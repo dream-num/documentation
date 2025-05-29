@@ -1,0 +1,95 @@
+# Custom Model
+
+Univer allows users to persist/load data from custom plugins along with the `snapshot`.
+
+## Create a CustomerService
+
+In `@univerjs/core`, there is an instance of `ResourceManagerService`. You can register the corresponding `hooks` in your `custom plugin` and bind the data to `snapshot`.
+
+```typescript
+import { IResourceManagerService, Inject, LifecycleStages } from '@univerjs/core';
+import { UniverType } from '@univerjs/protocol';
+
+interface IResource { testResource: string }
+
+class CustomerService {
+  private _model: IResource = { testResource: '' };
+
+  constructor(
+    @Inject(IResourceManagerService) private _resourceManagerService: IResourceManagerService
+  ) {
+    this._resourceManagerService.registerPluginResource<IResource>({
+      toJson: (_unitId) => this._toJson(_unitId),
+      parseJson: (json) => this._parseJson(json),
+      pluginName: 'SHEET_CustomerService_PLUGIN',
+      businesses: [UniverType.UNIVER_SHEET, UniverType.UNIVER_DOC, UniverType.UNIVER_SLIDE],
+      onLoad: (_unitId, resource) => {
+        this._model = resource;
+      },
+      onUnLoad: (_unitId) => {
+        this._model = { testResource: '' };
+      },
+    });
+  }
+
+  private _toJson(_unitID: string) {
+    const model = this._model;
+    return JSON.stringify(model);
+  }
+
+  private _parseJson(json: string) {
+    return JSON.parse(json);
+  }
+}
+```
+
+1. The type of `IResource` can be defined freely and supports any type.
+2. `toJson/parseJson` are a pair of serialization functions for `IResource`, typically using JSON functions. You can also add specific logic for compression/obfuscation here.
+3. Why does `toJson` function have the parameter `unitId`? This is because an instance of `Univer` may contain multiple instances of `unit` (such as `Sheet`/`Doc` and subsequent `Slider`). The same applies to `onLoad`/`onUnLoad`.
+4. The `businesses` option is used to determine when to load this `resources` based on the business being loaded. For example, if you are loading data for a `Sheet` module, there is no need to load it when `Doc` is being loaded
+
+## Inject CustomerPlugin
+
+When your data has been connected to `ResourceManagerService`, inject your `CustomerService` into your own `CustomerPlugin`.
+
+```typescript
+import { Plugin, Inject, Injector } from '@univerjs/core';
+
+export class UniverSheetsPlugin extends Plugin {
+  constructor(
+    @Inject(Injector) override readonly _injector: Injector
+  ) {
+    super();
+    this._injector.add([CustomerService]);
+  }
+}
+```
+
+## Register the plugin in Univer
+
+```typescript
+const univer = new Univer();
+univer.registerPlugin(UniverSheetsPlugin);
+// Performs additional initialization logic
+```
+
+## How to obtain a snapshot containing the `Resources`?
+
+There is a `ResourceLoaderService` instance in `@univerjs/core`, which you can use to save the latest `snapshot` information of a workbook or document using `saveWorkbook` or `saveDoc`. You can then use `univer.createUnit` to retrieve and display the data later.
+The information of `Resource` is stored on `snapshot.resources` and can be obtained based on the corresponding `pluginName`.
+
+```typescript
+import { IResourceLoaderService, IUniverInstanceService, Inject, LifecycleStages } from '@univerjs/core';
+import { UniverType } from '@univerjs/protocol';
+
+class CustomerService {
+  constructor(
+    @Inject(IResourceLoaderService) private _resourceLoaderService: IResourceLoaderService,
+    @Inject(IUniverInstanceService) private _univerInstanceService: IUniverInstanceService
+
+  ) {
+    const workbook = this._univerInstanceService.getCurrentUnitForType(UniverType.UNIVER_SHEET)!
+    const snapshot = this._resourceLoaderService.saveWorkbook(workbook.getUnitId());
+  }
+}
+```

@@ -1,0 +1,134 @@
+# Facade API — How Univer Enhances the Development Experience
+
+In this post, we will discuss the Facade API, the interface layer of the Univer SDK, and how it improves usability and serves a broader audience of developers.
+
+## Design Goals of Univer
+
+From the outset, the architecture of the Univer SDK was built with the following goals in mind:
+
+1. Flexible extension of non-core functionalities through a plugin system to support user customization and community-driven plugin development.  
+2. High customizability and scalability to meet the needs of complex applications.  
+3. Long-term maintainability and testability for large projects.  
+4. Providing an excellent developer experience.  
+
+To achieve these goals, we introduced various [mechanisms](https://docs.univer.ai/en-US/introduction/architecture/univer), such as the plugin system, dependency injection, and a command system. However, these mechanisms also introduced some side effects: the complexity of directly using Univer's low-level APIs made development less accessible, which conflicted with our goal of providing a "great developer experience."
+
+Fortunately, as the saying goes, ["All problems in computer science can be solved by another level of indirection"](https://en.wikipedia.org/wiki/Indirection#:~:text=A%20famous%20aphorism%20of%20Butler,for%20%22level%20of%20indirection%22.). We addressed this issue by introducing the [Facade API](https://docs.univer.ai/en/guides/sheets/getting-started/facade) as the interface layer of the Univer SDK. This abstraction layer encapsulates internal complexities, offering users a straightforward and intuitive API.
+
+## The Simplicity of the Facade API
+
+Using the Facade API is incredibly simple. If you use [Univer Presets](https://docs.univer.ai/en-US/guides/sheets/getting-started/installation#usage), we automatically create a `univerAPI` for you, allowing you to start developing immediately:
+
+```typescript
+const { univerAPI } = createUniver({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: merge(
+      {},
+      UniverPresetSheetsCoreEnUS,
+    ),
+  },
+  theme: defaultTheme,
+  presets: [
+    UniverSheetsCorePreset({
+      container: 'app',
+    }),
+  ],
+});
+
+const sheet = univerAPI.getActiveWorkbook().getActiveSheet();
+const range = sheet.getRange('A1');
+range.setValue('Hello, Univer!');
+```
+
+## Extensible Interface Design
+
+In the initial implementation of the Facade API, all functionalities were centralized in a single `@univerjs/facade` package. However, this led to several issues:
+
+1. Code hints for plugins appeared in the API even if the plugins weren’t imported, disrupting the development experience.  
+2. Plugins not in use were still included in the user’s build due to references in the Facade API implementation, resulting in unnecessary bloat.  
+
+To address these issues, we restructured the Facade API.
+
+First, we introduced interface classes, extension mixins, and an extension mechanism. Interface classes represent the original Facade API types (e.g., `FUniver`, `FWorkbook`) and inherit from [`FBase`](https://github.com/dream-num/univer/blob/dev/packages/core/src/facade/f-base.ts). `FBase` provides a static `extend` method for adding extension mixins. These mixins are essentially TypeScript classes that enhance the interface classes with additional methods.
+
+Next, we modularized the interfaces. For example, `FWorksheet` was split into several files:
+
+- [packages/sheets/src/facade/f-worksheet.ts](https://github.com/dream-num/univer/blob/dev/packages/sheets/src/facade/f-worksheet.ts): Defines the `FWorksheet` interface class.  
+- [packages/sheets-ui/src/facade/f-worksheet.ts](https://github.com/dream-num/univer/blob/dev/packages/sheets-ui/src/facade/f-worksheet.ts): Implements UI-related extensions for worksheets.  
+- [packages/sheets-filter/src/facade/f-worksheet.ts](https://github.com/dream-num/univer/blob/dev/packages/sheets-filter/src/facade/f-worksheet.ts): Implements filtering extensions.  
+- [packages/sheets-data-validation/src/facade/f-worksheet.ts](https://github.com/dream-num/univer/blob/dev/packages/sheets-data-validation/src/facade/f-worksheet.ts): Implements data validation extensions.  
+
+This modular approach ensures that each file only contains APIs related to a specific plugin, reducing unnecessary dependencies and keeping functionalities distinct.
+
+We also enhanced TypeScript’s IntelliSense. Using the `declare` keyword, we informed TypeScript of extended interface class types. For instance, the [sheets-ui](https://github.com/dream-num/univer/blob/5ae246e6179df616da8e0375c22c496e2d8f21fe/packages/sheets-ui/src/facade/f-worksheet.ts#L191-L195) package includes the following code:
+
+```typescript
+FWorksheet.extend(FWorksheetSkeletonMixin);
+declare module '@univerjs/sheets/facade' {
+    interface FWorksheet extends IFWorksheetSkeletonMixin {}
+}
+```
+
+Finally, we introduced [secondary entry points](https://github.com/dream-num/univer/blob/5ae246e6179df616da8e0375c22c496e2d8f21fe/packages/sheets-ui/package.json#L27) for all packages that provide a Facade API, allowing users to import APIs more selectively. For example, to use the Facade API from `sheets-ui`, users can import it as follows:
+
+```typescript
+import '@univerjs/sheets-ui/facade';
+```
+
+These optimizations resolved the previous issues:  
+
+1. Developers only see relevant API hints for the packages they’ve imported.  
+2. Only necessary code is bundled into the final output, avoiding unnecessary overhead.  
+
+## Universal Support for Browsers and Node.js
+
+During a recent refactor, we standardized each plugin’s runtime environment, reusing as much code as possible between browsers and Node.js. You can now [run Univer in Node.js](https://docs.univer.ai/en/guides/sheets/getting-started/node) for server-side reading, writing, and computations, or even as a headless collaborative client in Univer’s editing system.
+
+The Facade API supports both browser and Node.js environments. The main exception is packages ending in `-ui`, which are browser-exclusive.
+
+## Uniscript and Univer Go
+
+If the Facade API is simple enough for developers, we can make Univer accessible to non-technical users. Our ultimate goal is to empower everyone, not just professional developers, to create custom productivity tools.
+
+Initially, we attempted this through the [Uniscript](https://docs.univer.ai/en/guides/sheets/features/uniscript) plugin, which allowed users to write custom scripts in the sidebar. For example, users could draw a pixel-art Univer logo using Uniscript.
+
+![](/assets/blog/facade/examples-sheets-uniscript.gif)
+
+However, this approach was insufficient for more advanced needs, such as customizing UIs or writing server-side scripts. To address this, we launched [Univer Go](https://go.univer.ai), a new product that eliminates technical barriers like setting up development environments or deploying code.
+
+With Univer Go, you can:  
+
+Create custom Gantt chart templates with contextual menus for seamless integration into spreadsheets.  
+
+<video style={{ marginTop: '1em' }} width="1920" height="1080" controls preload="auto">
+    <source src="/assets/blog/facade/template-demo.mov" type="video/mp4" />
+</video>
+
+Write server-side scripts to fetch data from databases and load it into spreadsheets.  
+
+<video style={{ marginTop: '1em' }} width="1920" height="1080" controls preload="auto">
+    <source src="/assets/blog/facade/database-demo.mp4" type="video/mp4" />
+</video>
+
+Even build a Snake game using Univer Go!
+
+<video style={{ marginTop: '1em' }} width="1920" height="1080" controls preload="auto">
+    <source src="/assets/snake-demo.mp4" type="video/mp4" />
+</video>
+
+## Continuously Enhancing Facade API
+
+Our engineers are constantly improving the Facade API with new features. Whether you’re using the Univer SDK or Univer Go, you’ll benefit from these enhancements in future releases.
+
+We’re also simplifying the developer experience. Univer SDK users can import Facade APIs through presets, while Univer Go users enjoy full type information and intelligent code completion in its built-in editor. Additionally, we plan to integrate AI-assisted coding into Univer Go.
+
+---
+
+Today, we explored the design and implementation of the Facade API, as well as our ongoing efforts to enhance its usability and functionality. Univer aims to empower not only developers but also non-technical users to build tailored productivity tools. As we continue to iterate on our features, Univer remains committed to helping users unlock their potential and create their ideal digital workspace.
+
+For those unfamiliar with [Univer](https://univer.ai): The Univer SDK is a full-stack development framework supporting browser and server-side creation and editing of spreadsheets and documents. It enables seamless integration of office applications into various web systems. The core architecture and features of Univer are open source on [GitHub](https://github.com/dream-num/univer).
+
+If you haven’t heard of [Univer Go](https://go.univer.ai/en): Univer Go is a personalized productivity app development tool built on the Univer SDK. It is now available for download.
+
+Author: [Wenzhao Hu](https://github.com/wzhudev), Tech Lead & Architect

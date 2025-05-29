@@ -1,0 +1,189 @@
+import FeatureMeta from '@/components/feature-meta'
+
+# Collaborative Editing
+
+<FeatureMeta texts={['-', '✅', '✅', '-', 'UniverSheetsCollaborationPreset' ]} />
+
+Univer provides collaborative editing functions, supporting multiple people to edit the same workbook at the same time.
+
+This feature includes the following plugin packages:
+
+- [`@univerjs-pro/collaboration`](https://www.npmjs.com/package/@univerjs-pro/collaboration)
+- [`@univerjs-pro/collaboration-client` ](https://www.npmjs.com/package/@univerjs-pro/collaboration-client)
+
+## Presets Installation
+
+```typescript {6-7,14,24,28,33-35}
+import { createUniver, defaultTheme, LocaleType, merge } from '@univerjs/presets';
+import { UniverSheetsCorePreset } from '@univerjs/presets/preset-sheets-core';
+import UniverPresetSheetsCoreEnUS from '@univerjs/presets/preset-sheets-core/locales/en-US';
+import { UniverSheetsAdvancedPreset } from '@univerjs/presets/preset-sheets-advanced';
+import UniverPresetSheetsAdvancedEnUS from '@univerjs/presets/preset-sheets-advanced/locales/en-US';
+import { UniverSheetsCollaborationPreset } from '@univerjs/presets/preset-sheets-collaboration';
+import UniverPresetSheetsCollaborationEnUS from '@univerjs/presets/preset-sheets-collaboration/locales/en-US';
+import { UniverSheetsDrawingPreset } from '@univerjs/presets/preset-sheets-drawing'
+import UniverPresetSheetsDrawingEnUS from '@univerjs/presets/preset-sheets-drawing/locales/en-US'
+
+import '@univerjs/presets/lib/styles/preset-sheets-core.css'
+import '@univerjs/presets/lib/styles/preset-sheets-drawing.css'
+import '@univerjs/presets/lib/styles/preset-sheets-advanced.css'
+import '@univerjs/presets/lib/styles/preset-sheets-collaboration.css'
+
+const { univerAPI } = createUniver({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: merge(
+      {},
+      UniverPresetSheetsCoreEnUS,
+      UniverPresetSheetsDrawingEnUS,
+      UniverPresetSheetsAdvancedEnUS,
+      UniverPresetSheetsCollaborationEnUS,
+    ),
+  },
+  theme: defaultTheme,
+  collaboration: true,
+  presets: [
+    UniverSheetsCorePreset(),
+    UniverSheetsDrawingPreset(),
+    UniverSheetsAdvancedPreset(),
+    UniverSheetsCollaborationPreset({
+      universerEndpoint: 'http://localhost:3010',
+    }),
+  ],
+});
+```
+
+## Piecemeal Installation
+
+```shell npm2yarn
+npm install @univerjs-pro/collaboration @univerjs-pro/collaboration-client
+```
+
+```typescript {3-6,8-9,11,18,28-29,33-41}
+import { LocaleType, merge, Univer } from '@univerjs/core';
+import { defaultTheme } from "@univerjs/design";
+import { UniverCollaborationPlugin } from '@univerjs-pro/collaboration';
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client';
+import CollaborationClientEnUS from '@univerjs-pro/collaboration-client/locale/en-US';
+
+import '@univerjs-pro/collaboration-client/facade';
+import '@univerjs-pro/collaboration-client-ui/facade';
+
+import '@univerjs-pro/collaboration-client/lib/index.css';
+
+const univer = new Univer({
+  theme: defaultTheme,
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: merge(
+      CollaborationClientEnUS
+    ),
+  },
+});
+
+// By setting the override option to [[IAuthzIoService, null]], you can instruct Univer not to register the built-in IAuthzIoService.
+// By setting the override option to [[IUndoRedoService, null]], you can instruct Univer not to register the built-in IUndoRedoService.
+// This way, Univer will use the services provided by the UniverCollaborationPlugin as the implementation for the authorization and undo-redo features.
+const univer = new Univer({
+  override: [
+    [IAuthzIoService, null]
+    [IUndoRedoService, null],
+  ],
+});
+
+univer.registerPlugin(UniverCollaborationPlugin);
+univer.registerPlugin(UniverCollaborationClientPlugin, {
+  socketService: BrowserCollaborationSocketService,
+  authzUrl: 'http://localhost:3010/universer-api/authz',
+  snapshotServerUrl: 'http://localhost:3010/universer-api/snapshot',
+  collabSubmitChangesetUrl: 'http://localhost:3010/universer-api/comb',
+  collabWebSocketUrl: 'ws://localhost:3010/universer-api/comb/connect',
+});
+univer.registerPlugin(UniverCollaborationClientUIPlugin);
+```
+
+## Collaborative Document Data
+
+The collaborative editing plugin relies on the Univer server, and the data for collaborative documents is stored in the Univer server.
+
+### unitId
+
+Each collaborative document in the Univer server has a unique `unitId`.
+
+The Univer collaboration client (collaborative editing plugin) uses the `unitId` to retrieve the corresponding collaborative document data from the Univer server for collaborative editing.
+
+### type
+
+`type` is the type of the collaborative document, which determines the initial data structure of the collaborative document.
+
+## Creating Collaborative Documents
+
+There are multiple ways to create collaborative documents in the Univer server:
+
+1. You can create a blank document using the [Create Unit](/en-US/guides/sheets/pro-features/server/api#create-empty-document) API.
+2. You can import an XLSX file into the Univer server using the [`importXLSXToUnitIdAsync`](/en-US/guides/sheets/features/import-export) method provided by the [Import Plugin](/en-US/guides/sheets/features/import-export#import-xlsx-and-get-unitid) Facade API.
+
+## Loading Collaborative Documents with URL Parameters
+
+`@univerjs-pro/collaboration-client` plugin provides a feature that automatically loads corresponding data according to the URL parameters `unit` and `type`, which can simplify the data loading logic in some cases.
+
+If you want to use this feature, you need to modify the original data loading logic appropriately and add the `unit` and `type` parameters to the URL, as shown below:
+
+```diff
+import { UniverInstanceType } from '@univerjs/core';
+
+- univer.createUnit(UniverInstanceType.UNIVER_SHEET, {});
+ 
++ const url = new URL(window.location.href);
++ const unit = url.searchParams.get('unit');
+
++ if (unit) {
++   // If the URL contains the unit parameter, the data will be loaded automatically
++ } else {
++   // Or create a new workbook
++   fetch(`/universer-api/snapshot/${UniverInstanceType.UNIVER_SHEET}/unit/-/create`, {
++     method: 'POST',
++     headers: {
++       'Content-Type': 'application/json',
++     },
++     body: JSON.stringify({
++       type: UniverInstanceType.UNIVER_SHEET, // instance type
++       name: 'New Sheet By Univer', // sheet name
++       creator: 'user',  // creator name
++     }),
++   }).then((response) => {
++     if (!response.ok) {
++       throw new Error('create unit failed');
++     }
++
++     return response.json();
++   }).then((data) => {
++     if (!data.unitID) {
++       throw new Error('create unit failed');
++     }
++
++     url.searchParams.set('unit', data.unitID);
++     url.searchParams.set('type', String(UniverInstanceType.UNIVER_SHEET));
++     window.location.href = url.toString();
++   }).catch((error) => {
++     console.error(error);
++   })
++ }
+```
+
+## Loading Collaborative Documents with Facade API
+
+If you prefer to load collaborative documents programmatically over URL parameters, you can use the Facade API to load collaborative documents.
+
+```typescript
+const collaboration = univerAPI.getCollaboration();
+const workbook = await collaboration.loadSheetAsync('your-unit-id');
+```
+
+Please refer to the [API reference](https://reference.univer.ai/en-US/classes/FCollaboration#loadSheetAsync) for more details on the `loadSheetAsync` method.
+
+## Further Reading
+
+If you want to learn more about how collaborative editing works, you can read the following article:
+
+- [OT Algorithm and Univer's Collaborative Editing Design](/blog/ot)

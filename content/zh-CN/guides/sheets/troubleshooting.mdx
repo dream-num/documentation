@@ -1,0 +1,143 @@
+import Image from 'next/image'
+import missingLocaleImg from './troubleshooting/missing-locale.png'
+import { Callout } from 'nextra/components'
+
+# 常见问题
+
+## 安装相关
+
+### 为什么我在使用 webpack 4 的项目中导入 Univer 会报错？
+
+- webpack 4 无法正确地识别 `packages.json` 的 `exports` 字段，详见 [webpack/webpack#9509](https://github.com/webpack/webpack/issues/9509)。你需要找到正确路径并手动引入。部分第三方依赖可能需要通过配置 `resolve.alias` 建立别名来解决。
+- 在某些 webpack 4 脚手架中，默认的 babel 的配置可能不处理 node_modules 下的依赖，你可能需要手动修改 webpack 的 rules，将 `@univerjs/*` 添加到 babel-loader 的 `include` 配置中。
+
+### 为什么使用 `<script>` 引入 Univer UMD 包时，部分插件注册时会报错？
+
+- 请确保你按顺序引入了插件所用到的前置依赖。
+- 可在插件的文档页或插件源码的 `packages.json` 的 `peerDependencies` 字段中找到插件运行所需要的前置依赖项。
+
+### 为什么我使用 npm 或者 yarn 安装，运行时报错找不到依赖？
+
+这可能是因为你使用的 node 包管理工具版本较低导致， yarn 和 npm@6 不会自动安装 `packages.json` 中的 `peerDependencies`，详见 [package-json#peerdependencies](https://docs.npmjs.com/cli/v10/configuring-npm/package-json#peerdependencies)。
+
+- 你可以自行安装缺失的附属依赖项。
+- 对于 npm 用户，可将 node 版本更新至 16 以上，亦或者将 npm 版本升级至 7 及以上，并留意升级行为可能对你已有项目的影响。
+
+## 开发相关
+
+### 为什么我的菜单项中没有显示正确的语言？
+
+这是因为你遗漏了对应的语言包，你需要在初始化 Univer 时传入对应的语言包，详情请参考各个功能项中国际化相关的文档。
+
+<Image src={missingLocaleImg} alt="Missing Locale" width={300} />
+
+### 📊 如何实时获取单元格编辑器内的数据？
+
+Univer Sheets 的单元格编辑器本质上就是 Univer Docs 的编辑器，因此你可以通过 Facade API 获取当前激活的 Univer Docs 编辑器内的 snapshot 数据。
+
+```typescript
+univerAPI.onCommandExecuted((command) => {
+  const { id } = command;
+  if (id === 'doc.command.insert-text' || id === 'doc.command.delete-text') {
+    const doc = univerAPI.getActiveDocument();
+    if (doc) {
+      const snapshot = doc.getSnapshot();
+      console.log(snapshot.body?.dataStream);
+    }
+  }
+});
+```
+
+参考：https://github.com/dream-num/univer/discussions/2261
+
+### 📊 单元格编辑器聚焦时点击外部按钮触发事件，获取的 snapshot 中未包含该聚焦单元格的数据
+
+单元格的数据会在失焦时同步到 snapshot 中，因此你应当在获取 snapshot 数据前先对单元格进行失焦操作。
+
+```typescript
+import '@univerjs/sheets-ui/facade'
+
+$btn.addEventListener('click', () => {
+  univerAPI.getActiveWorkbook().endEditingAsync(true);
+});
+```
+
+参考：https://github.com/dream-num/univer/issues/1314
+
+### 当使用 Facade API 创建 Workbook 后，立即调用其它 API 时，会出现不生效的情况
+
+部分 API 需要在渲染完成后调用才能生效，可以在生命周期的 `Rendered` 或 `Steady` 阶段调用试试。
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+  if (stage === univerAPI.Enum.LifecycleStages.Steady) {
+    // 代码...
+  }
+})
+
+// 移除事件监听器，使用 `disposable.dispose()`
+```
+
+## 集成相关
+
+### 使用 React
+
+首先请确保你的 React 版本在 16.9 以上，因为 Univer 的 UI 层依赖 React，并且使用了 React Hooks。
+
+此外，受限于 Univer DI 机制，暂时不支持 React 的 StrictMode，通过移除 StrictMode 可以解决这个问题。
+
+```diff
+- <React.StrictMode>
+  <App />
+- </React.StrictMode>
+```
+
+### 使用 Angular
+
+使用 Angular CLI 默认创建的项目模板引入 Univer 前需要确保是否在 `tsconfig.json` 中配置了 `"skipLibCheck": true`：
+
+```diff
+{
+  "compilerOptions": {
++    "skipLibCheck": true
+  }
+}
+```
+
+## 故障排查
+
+### Error: [ThemeService]: current theme is not set!
+
+```
+Error: [ThemeService]: current theme is not set!
+```
+
+出现该错误的原因是因为你在使用 Univer 时没有设置主题。你需要通过以下方式来设置主题：
+
+```typescript {2}
+const univer = new Univer({
+  theme: defaultTheme,
+  locale: LocaleType.ZH_CN,
+  locales: {
+    [LocaleType.ZH_CN]: zhCN,
+  },
+});
+```
+
+### Error: [LocaleService]: Locale not initialized
+
+```
+Error: [LocaleService]: Locale not initialized
+```
+
+出现该错误的原因是因为你在使用 Univer 时没有初始化语言环境。你需要通过以下方式来初始化语言环境：
+
+```typescript {3-6}
+const univer = new Univer({
+  theme: defaultTheme,
+  locale: LocaleType.ZH_CN,
+  locales: {
+    [LocaleType.ZH_CN]: zhCN,
+  },
+});
+```

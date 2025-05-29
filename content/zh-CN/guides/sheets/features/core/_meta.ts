@@ -1,0 +1,18 @@
+export default {
+  'general-api': '基础 API',
+  'sheet-api': 'Sheet API',
+  'permission': '权限控制',
+  'formula': '公式',
+  'numfmt': '数字格式',
+  'row-col': '行列',
+  'range-selection': '范围、选区、单元格',
+  'freeze': '冻结',
+  'clipboard': '复制粘贴',
+  'dom': '集成自定义组件',
+  'default-style': '默认样式',
+  'gridlines': '网格线',
+  'range-theme': '范围主题',
+  'rich-text': '富文本',
+  'worker': 'Worker',
+  'defined-names': '定义名称',
+}

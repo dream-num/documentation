@@ -1,0 +1,153 @@
+# Integrate Univer with Vue
+
+## Vue 3+
+
+### Notes before integration
+
+1. Univer is fully compatible with Vue, you can use all features of Univer in Vue.
+2. Avoid proxying the instances of Univer and UniverAPI, as it may lead to unpredictable errors or performance issues.
+
+### Integration steps
+
+1. Initialize Univer in the `onMounted` hook
+2. Destroy Univer in the `onBeforeUnmount` hook
+
+### Example code
+
+```vue
+<template>
+  <div ref="container"></div>
+</template>
+
+<script lang="ts" setup>
+import { onMounted, onBeforeUnmount, ref } from 'vue'
+
+import { createUniver, defaultTheme, FUniver, LocaleType, merge, Univer } from '@univerjs/presets';
+import { UniverSheetsCorePreset } from '@univerjs/presets/preset-sheets-core';
+import UniverPresetSheetsCoreEnUS from '@univerjs/presets/preset-sheets-core/locales/en-US';
+ 
+import '@univerjs/presets/lib/styles/preset-sheets-core.css';
+
+const container = ref<HTMLElement | null>(null)
+
+let univerInstance: Univer | null = null
+let univerAPIInstance: FUniver | null = null
+
+onMounted(() => {
+  const { univer, univerAPI } = createUniver({
+    locale: LocaleType.EN_US,
+    locales: {
+      [LocaleType.EN_US]: merge(
+        {}, 
+        UniverPresetSheetsCoreEnUS
+      ),
+    },
+    theme: defaultTheme,
+    presets: [
+      UniverSheetsCorePreset({
+        container: container.value as HTMLElement,
+      }),
+    ],
+  })
+
+  univerAPI.createWorkbook({ name: 'Test Sheet' })
+
+  univerInstance = univer
+  univerAPIInstance = univerAPI
+})
+
+onBeforeUnmount(() => {
+  univerInstance?.dispose()
+  univerAPIInstance?.dispose()
+  univerInstance = null
+  univerAPIInstance = null
+})
+</script>
+```
+
+## Vue 2.x
+
+### Notes before integration
+
+1. Univer usually works well in Vue 2.x, but the `ComponentManager` of Univer does not support Vue 2.x, so you cannot register components written based on Vue 2.x as custom components of Univer.
+2. When using pnpm to install `@univerjs/presets`, you may need to manually install react and react-dom.
+3. If you encounter the `ResizeObserver loop limit exceeded` warning in the development environment, you can ignore it, or you can refer to the code snippet below to solve it:
+
+```typescript
+if (process.env.NODE_ENV === 'development') {
+  const _ResizeObserver = window.ResizeObserver;
+  function debounce(fn, delay) {
+    let timer = null;
+    return function() {
+      if (timer) {
+        clearTimeout(timer);
+      }
+      timer = setTimeout(() => {
+        fn.apply(this, arguments);
+      }, delay);
+    };
+  }
+  window.ResizeObserver = class ResizeObserver extends _ResizeObserver{
+    constructor(callback) {
+      callback = debounce(callback, 50);
+      super(callback)
+    }
+  }
+}
+```
+
+### Integration steps
+
+1. Initialize Univer in the `mounted` hook
+2. Destroy Univer in the `beforeDestroy` hook
+
+### Example code
+
+```vue
+<template>
+  <div ref="container"></div>
+</template>
+
+<script>
+import { createUniver, defaultTheme, LocaleType, merge } from '@univerjs/presets';
+import { UniverSheetsCorePreset } from '@univerjs/presets/preset-sheets-core';
+import UniverPresetSheetsCoreEnUS from '@univerjs/presets/preset-sheets-core/locales/en-US';
+ 
+import '@univerjs/presets/lib/styles/preset-sheets-core.css';
+
+export default {
+  data() {
+    return {
+    };
+  },
+  mounted() {
+    const { univer, univerAPI } = createUniver({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: merge(
+          {},
+          UniverPresetSheetsCoreEnUS,
+        ),
+      },
+      theme: defaultTheme,
+      presets: [
+        UniverSheetsCorePreset({
+          container: this.$refs.container,
+        }),
+      ],
+    });
+    
+    univerAPI.createWorkbook({ name: 'Test Sheet' });
+
+    this.univerInstance = univer;
+    this.univerAPIInstance = univerAPI;
+  },
+  beforeDestroy() {
+    this.univerInstance?.dispose();
+    this.univerAPIInstance?.dispose();
+    this.univerInstance = null;
+    this.univerAPIInstance = null;
+  },
+}
+</script>
+```

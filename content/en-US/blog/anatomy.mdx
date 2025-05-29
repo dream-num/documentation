@@ -1,0 +1,260 @@
+import { Callout } from 'nextra/components'
+
+# Anatomy of Filter - How to Write Plugins like a Pro
+
+Univer's Facade API allows developers to call APIs to implement simple custom functionalities. However, if you wish to develop a completely new feature or customize according to specific requirements, understanding Univer's architecture and learning how to write plugins that align with the architecture is essential.
+
+We will use the official filtering plugin as an example to introduce the structure of a Univer plugin. Later, readers can delve into the source code and [API Reference](https://reference.univer.ai/en-US) to learn how to write a more complex plugin based on this foundation.
+
+You can find the source code for [@univerjs/sheets-filter](https://github.com/dream-num/univer/tree/dev/packages/sheets-filter) and [@univerjs/sheets-filter-ui](https://github.com/dream-num/univer/tree/dev/packages/sheets-filter-ui) packages on GitHub.
+
+<Callout type="info" emoji="💡">
+  In the Univer official documentation, there is a [tutorial](/guides/sheets/tutorials/csv-import-plugin) to help readers get started with plugin development by writing a CSV import plugin. It is recommended to complete this tutorial before reading the blog.
+</Callout>
+
+<Callout type="info" emoji="💡">
+  Currently, we do not strictly distinguish between npm packages and Univer plugins. When we refer to plugins, it may refer to an npm package or the `Plugin` class exported by the package.
+</Callout>
+
+### Plugin Structure
+
+#### How to Divide Plugins
+
+A complex functionality is often split across multiple npm packages. The filtering feature consists of two npm packages:
+
+**@univerjs/sheets-filter**
+
+- Defines the runtime data structure for filtering and the data structure in snapshots.
+- Defines mutations for changing filtering data.
+- Implements the coupling logic for filtering and basic sheet functionalities (such as the linkage between filtering and inserting rows/columns).
+- Provides the `SheetsFilterModel` for managing filtering models in multiple workbooks and worksheets.
+- Encapsulates the above modules in the `UniverSheetsFilterPlugin`.
+
+**@univerjs/sheets-filter-ui**
+
+- Implements the rendering of the filtering feature, including the filter selection area and filter button.
+- Implements the UI for the filtering feature, including the filter panel and menu bar.
+- Implements other interactions, such as keyboard shortcuts.
+- Provides the `SheetsFilterPanelService` for managing the filter panel.
+- Encapsulates the above modules in the `UniverSheetsFilterUIPlugin`.
+
+The reason for splitting into two packages is that the code in `@univerjs/sheets-filter-ui` relies on the DOM, while the code in `@univerjs/sheets-filter` is pure logical code that does not depend on the DOM and can run in Node.js and Web Worker environments, suitable for collaborative editing and server-side computation scenarios. By splitting them, we can easily reuse the code from `@univerjs/sheets-filter` and fully leverage the isomorphic advantages of the Univer architecture.
+
+<Callout type="info" emoji="💡">
+  For more information on how to divide plugins, you can refer to the relevant chapter in the architecture documentation [here](/introduction/architecture/univer).
+</Callout>
+
+### Plugin Directory Structure
+
+All plugins have a similar directory structure.
+
+The directory structure of sheets-filter-ui is as follows:
+
+```plaintext
+.
+|-- README.md
+|-- package.json
+|-- src
+|   |-- __testing__ // Testing resources
+|   |   `-- data.ts
+|   |-- commands
+|   |   |-- commands // Commands of type CommandType.COMMAND
+|   |   `-- operations // Commands of type CommandType.OPERATION
+|   |-- controllers
+|   |   |-- __tests__ // Test cases
+|   |   |-- sheets-filter-permission.controller.ts // Logic related to permissions
+|   |   |-- sheets-filter-ui-desktop.controller.ts // Desktop UI
+|   |   |-- sheets-filter-ui-mobile.controller.ts // Mobile UI
+|   |   |-- sheets-filter.menu.ts // Menu items
+|   |   `-- sheets-filter.shortcut.ts // Shortcuts
+|   |-- filter-ui-desktop.plugin.ts // Desktop plugin
+|   |-- filter-ui-mobile.plugin.ts // Mobile plugin (experimental, not publicly released)
+|   |-- index.ts // Package entry file, exports resources from here
+|   |-- locale // Internationalization resources
+|   |   |-- en-US.ts
+|   |   |-- ru-RU.ts
+|   |   |-- vi-VN.ts
+|   |   |-- en-US.ts
+|   |   `-- zh-TW.ts
+|   |-- models // Data models for the filtering configuration panel
+|   |   |-- __tests__
+|   |   |-- conditions.ts
+|   |   |-- extended-operators.ts
+|   |   `-- utils.ts
+|   |-- services
+|   |   |-- __tests__
+|   |   `-- sheets-filter-panel.service.ts // Service managing filtering configuration panel state and form data
+|   |-- views
+|   |   |-- components // React components
+|   |   |-- render-modules // Render modules
+|   |   `-- widgets // Components drawn on Canvas
+|   |-- vite-env.d.ts
+|   `-- worker // Code running in Web Worker
+|       |-- generate-filter-values.service.ts // Calculate options in the filter panel
+|       `-- plugin.ts
+|-- tsconfig.json
+|-- tsconfig.node.json
+`-- vite.config.ts
+```
+
+The directory structure largely follows Univer's layered model, enabling developers familiar with Univer to quickly get started.
+
+<Callout type="info" emoji="💡">
+  Learn about Univer's [layered model](/introduction/architecture/univer#divide-modules-by-layers-on-the-architecture).
+</Callout>
+
+For comparison, the sheets-filter plugin has a similar directory structure:
+
+```plaintext
+.
+|-- README.md
+|-- docs
+|   |-- README.md
+|   `-- architecture.excalidraw
+|-- package.json
+|-- src
+|   |-- commands
+|   |   `-- mutations // Commands of type CommandType.MUTATION
+|   |-- controllers
+|   |   `-- sheets-filter.controller.ts // Part coupled with basic spreadsheet functionality, e.g., modifying filter range when inserting rows/columns
+|   |-- index.ts
+|   |-- models // Filtering data models
+|   |   |-- __tests__
+|   |   |-- custom-filters.ts // Conditional filters
+|   |   |-- filter-model.ts // Runtime filtering data structure
+|   |   `-- types.ts // Snapshot data structure
+|   |-- plugin.ts
+|   |-- services
+|   |   `-- sheet-filter.service.ts // Service managing filtering models in multiple workbooks and worksheets
+|   |-- utils.ts
+|   `-- vite-env.d.ts
+|-- tsconfig.json
+|-- tsconfig.node.json
+`-- vite.config.ts
+```
+
+## Custom Data
+
+Plugins may require custom data structures, which need to consider these aspects: snapshot data structure, in-memory data structure, and mutations to modify these data structures.
+
+### Snapshot Data Structure
+
+The snapshot data structure will be stored in the database, so it must be serializable. The format of the snapshot data for filtering is in [types.ts](https://github.com/dream-num/univer/blob/dev/packages/sheets-filter/src/models/types.ts). `IAutoFilter` only utilizes basic data structures, thus it can be easily serialized and deserialized using JSON.
+
+<Callout type="info" emoji="💡">
+  Learn about the concept of [snapshots](/introduction/concepts#snapshots).
+</Callout>
+
+<Callout type="info" emoji="💡">
+  First-party plugins of Univer refer to the [OOXML specification](http://officeopenxml.com/) when defining snapshot data structures to facilitate import and export.
+</Callout>
+
+### In-Memory Data Structure
+
+The snapshot data structure might not be suitable for direct use in memory (e.g., high time complexity for queries and modifications), hence the need to define an in-memory data structure. The in-memory data structure defined by the filtering plugin is in [filter-model.ts](https://github.com/dream-num/univer/blob/dev/packages/sheets-filter/src/models/filter-model.ts).
+
+### `IResourcesManagerService`
+
+After defining the two data structures, we need to convert the snapshot data structure to the in-memory data structure, or vice versa, at the appropriate times. This process is achieved through `IResourceManagerService`. The filtering functionality in [sheets-filter.service.ts](https://github.com/dream-num/univer/blob/f68e8ebe85db46801dd579e2f2d772c8ab9d18fc/packages/sheets-filter/src/services/sheet-filter.service.ts#L186) defines the relevant operations.
+
+<Callout type="info" emoji="💡">
+  Refer to [Custom Model](/guides/sheets/advanced/custom-model) for more details.
+</Callout>
+
+### Mutations
+
+In Univer, modifications to data structures need to be completed using commands of the MUTATION type; otherwise, features like undo redo, collaborative editing, and history tracking cannot be implemented. The filtering mutations are defined in [sheets-filter.mutation.ts](https://github.com/dream-num/univer/blob/dev/packages/sheets-filter/src/commands/mutations/sheets-filter.mutation.ts).
+
+<Callout type="info" emoji="💡">
+  Read about the [Command System](/introduction/architecture/univer#command-system) to understand what commands are and the three types of commands.
+</Callout>
+
+<Callout type="info" emoji="💡">
+  Read about [Extending Commands](/guides/sheets/advanced/custom-command) to learn how to customize commands.
+</Callout>
+
+## Coupling with the basic functionality of sheets
+
+Due to the modular design of Univer, the coupling logic between functionalities needs to be implemented through various callback mechanisms. The relevant coupling logic for the filtering plugin is located in [sheets-filter.controller.ts](https://github.com/dream-num/univer/blob/dev/packages/sheets-filter/src/controllers/sheets-filter.controller.ts).
+
+These coupling logics include:
+
+1. Intercepting the execution process of commands through `SheetInterceptorService` to supplement operations; for example, if the position of inserting rows and columns intersects with the filtering range, the filtering range needs to be updated.
+2. Intercepting row filtering logic through `SheetInterceptorService` to filter rows based on the filtering results.
+3. Listening to the `beforeCommandExecute` event of `ICommandService` to check the moving range when moving cells, and if the range includes the filtering header, then movement is prohibited.
+
+And so on.
+
+<Callout emoji="🤔" type="info">
+  When dealing with the logic of coupling with the basic sheet functionality, it often requires calling relevant methods of `SheetInterceptorService`, which can be referred to the API documentation and usage of existing plugins.
+</Callout>
+
+<Callout type="info" emoji="💡">
+  Some plugins need to extend copy-paste or drag-fill functionalities, and the [Extending Commands](/guides/sheets/advanced/custom-command) section explains how to extend these two operations.
+</Callout>
+
+## Rendering
+
+Univer allows functional plugins to customize rendering, and the rendering module of the filtering plugin is located in [sheets-filter.render-controller.ts](https://github.com/dream-num/univer/blob/dev/packages/sheets-filter-ui/src/views/widgets/render-modules/sheets-filter.render-controller.ts). `SheetsFilterRenderController` is an `IRenderModule` that defines the logic for rendering the filter selection and buttons.
+
+<Callout type="info" emoji="💡">
+  Please read [Architecture of Rendering Engine](/introduction/architecture/rendering) to understand how to write rendering layer code.
+</Callout>
+
+## Developing UI
+
+### Menu Items
+
+The menu items of Univer are described by an `IMenuItem`, and the menu item definition for the filter plugin is located in [sheets-filter.menu.ts](https://github.com/dream-num/univer/blob/dev/packages/sheets-filter-ui/src/controllers/sheets-filter.menu.ts). These menu items are registered on the `IMenuService` during the initialization of `SheetsFilterUIDesktopController`.
+
+<Callout type="info" emoji="💡">
+  Please read [Extending UI](/guides/sheets/advanced/custom-ui) to learn how to customize commands, including mutations.
+</Callout>
+
+<Callout type="info" emoji="🎉">
+  Univer's menu items are not bound to any specific UI framework or style implementation, allowing them to be used on different platforms with the same menu item definition. They can appear in various components such as context menus, toolbars, menu bars, and more.
+</Callout>
+
+### Shortcuts
+
+The shortcut definitions for the filter plugin are located in [sheets-filter.shortcut.ts](https://github.com/dream-num/univer/blob/dev/packages/sheets-filter-ui/src/controllers/sheets-filter.shortcut.ts). These shortcuts are registered on the `IShortcutService` during the initialization of `SheetsFilterUIDesktopController`.
+
+### Custom Components
+
+The filter panel is defined in the file [SheetsFilterPanel.tsx](), which is a React component. `SheetsFilterUIDesktopController` will register this component in the `ComponentManager` during initialization. When the user opens the filter panel by clicking the filter button, `SheetsFilterUIDesktopController` will call the method provided by `SheetCanvasPopManagerService` to render the panel at the specified position.
+
+<Callout type="info" emoji="💡">
+  React components in Univer can use the `useDependency` hook to access dependencies.
+</Callout>
+
+## Plugin Encapsulation
+
+Finally, the `Plugin` will serve as the encapsulation of the above modules, allowing users to simply register the `Plugin` to introduce the filtering functionality in the project without worrying about the complexity of the internal plugins.
+
+The plugin will go through four lifecycles: `STARTING`, `READY`, `RENDERED`, and `STEADY`.
+
+During the `STARTING` lifecycle, the plugin needs to call the `add` method of `Injector` to register the modules it provides on the injection container. The plugin can initialize the modules as needed in any lifecycle. Initializing a module is simple and only requires getting the module from the injection container once:
+
+```typescript
+this._injector.get(SheetsFilterUIDesktopController);
+```
+
+<Callout type="info" emoji="💡">
+  For more information on Univer's lifecycle mechanism, please refer to the documentation on [Plugin Lifecycle](/introduction/architecture/univer#plugin-lifecycle).
+</Callout>
+
+<Callout type="info" emoji="💡">
+  Univer uses the dependency injection pattern to manage dependencies between modules and instantiate modules. For more information on dependency injection, please refer to our [documentation](/introduction/architecture/univer#dependency-injection).
+</Callout>
+
+## Internationalization
+
+Plugins need to provide internationalization resources, and the internationalization resources for filtering are located in the [locale](https://github.com/dream-num/univer/blob/dev/packages/sheets-filter-ui/src/locale) directory.
+
+## Facade API
+
+To further abstract concepts such as services and commands for easier use, a Facade API needs to be provided.
+
+The Facade API for filtering is primarily contained in the file [f-filter.ts](https://github.com/dream-num/univer/blob/dev/packages/facade/src/apis/sheets/f-filter.ts).
+
+<p className="text-gray-500 text-sm mt-8">Author: [Wenzhao Hu](https://github.com/wzhudev), Tech Lead & Architect</p>

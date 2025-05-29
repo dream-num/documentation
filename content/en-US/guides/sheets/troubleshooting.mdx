@@ -1,0 +1,143 @@
+import { Callout } from 'nextra/components'
+import Image from 'next/image'
+import missingLocaleImg from './troubleshooting/missing-locale.png'
+
+# Troubleshooting
+
+## Installation Related
+
+### Why am I getting an error when importing Univer in my webpack 4 project?
+
+- Webpack 4 may not recognize the `exports` field in `packages.json` correctly. Please refer to [webpack/webpack#9509](https://github.com/webpack/webpack/issues/9509) for more details. You need to locate the correct path and import it manually. Some third-party dependencies may require setting up aliases using `resolve.alias` in the configuration.
+- In some webpack 4 scaffolds, the default babel configuration may not handle dependencies under node_modules. You may need to manually modify the webpack rules and add `@univerjs/*` to the `include` configuration of babel-loader.
+
+### Why do some plugins report errors when registering while using `<script>` to introduce the Univer UMD package?
+
+- Please make sure you have introduced the prerequisite dependencies used by the plugins in order.
+- You can find the prerequisite dependencies required for the plugin to run in the `peerDependencies` field of the plugin's documentation page or the `packages.json` of the plugin source code.
+
+### Why do I get an error outputting that `Could not resolve dependencies` when I use npm or yarn to install?
+
+This may be because the version of the node package manager you are using is too low. yarn and npm@6 will not automatically install peerDependencies in packages.json. For more details, see  [package-json#peerdependencies](https://docs.npmjs.com/cli/v10/configuring-npm/package-json#peerdependencies).
+
+- You can manually install the missing peer dependencies.
+- For npm users, you can upgrade your node version to 16 or above, or upgrade your npm version to 7 or above. Be aware that the upgrade behavior may affect your existing projects.
+
+## Development Related
+
+### Why are the menu items not displayed in the correct language?
+
+This is because you have missed the corresponding locales. You need to pass the corresponding locales when initializing Univer. For more details, please refer to the documentation on the internationalization of each feature.
+
+<Image src={missingLocaleImg} alt="Missing Locale" width={300} />
+
+### 📊 How to get the data in the cell editor in real time?
+
+The cell editor of Univer Sheets is essentially the editor of Univer Doc, so you can use the Facade API to get the snapshot data in the currently active Univer Docs editor.
+
+```typescript
+univerAPI.onCommandExecuted((command) => {
+  const { id } = command;
+  if (id === 'doc.command.insert-text' || id === 'doc.command.delete-text') {
+    const doc = univerAPI.getActiveDocument();
+    if (doc) {
+      const snapshot = doc.getSnapshot();
+      console.log(snapshot.body?.dataStream);
+    }
+  }
+});
+```
+
+Reference: https://github.com/dream-num/univer/discussions/2261
+
+### 📊 When the cell editor is focused and an external button is clicked to trigger an event, the snapshot obtained does not contain the data of the focused cell.
+
+The data of the cell will be synchronized to the snapshot when it loses focus, so you should defocus the cell before obtaining the snapshot data.
+
+```typescript
+import '@univerjs/sheets-ui/facade'
+
+$btn.addEventListener('click', () => {
+  univerAPI.getActiveWorkbook().endEditingAsync(true);
+});
+```
+
+Reference: https://github.com/dream-num/univer/issues/1314
+
+### When using the Facade API to create a Workbook, calling other APIs immediately may not take effect.
+
+Some APIs need to be called after rendering to take effect. You can try calling them in the `Rendered` or `Steady` stage of the lifecycle.
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+  if (stage === univerAPI.Enum.LifecycleStages.Steady) {
+    // code...
+  }
+})
+
+// Remove the event listener, use `disposable.dispose()`
+```
+
+## Integration Related
+
+### Using React
+
+First, make sure your React version is 16.9 or higher, as Univer's UI layer depends on React and uses React Hooks.
+
+In addition, there is currently no support for React's StrictMode due to the Univer DI mechanism. You can resolve this issue by removing StrictMode.
+
+```diff
+- <React.StrictMode>
+  <App />
+- </React.StrictMode>
+```
+
+### Using Angular
+
+When using Angular CLI to create a project template, you need to ensure that `"skipLibCheck": true` is configured in `tsconfig.json` before importing Univer:
+
+```diff
+{
+  "compilerOptions": {
++    "skipLibCheck": true
+  }
+}
+```
+
+## Errors
+
+### Error: [ThemeService]: current theme is not set!
+
+```
+Error: [ThemeService]: current theme is not set!
+```
+
+This error occurs because you have not set the theme when using Univer. You need to set the theme as follows:
+
+```typescript {2}
+const univer = new Univer({
+  theme: defaultTheme,
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: enUS,
+  },
+});
+```
+
+### Error: [LocaleService]: Locale not initialized
+
+```
+Error: [LocaleService]: Locale not initialized
+```
+
+This error occurs because you have not initialized the locales when using Univer. You need to initialize the locales as follows:
+
+```typescript {3-6}
+const univer = new Univer({
+  theme: defaultTheme,
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: enUS,
+  },
+});
+```

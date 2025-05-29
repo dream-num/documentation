@@ -1,0 +1,220 @@
+import { Callout } from 'nextra/components'
+import ServerNotice from '@/components/server-notice'
+import VersionBadge from '@/components/version-badge'
+
+# Using Custom Components in Univer
+
+Univer provides multiple ways to integrate custom components, allowing you to extend and customize Univer's functionality. This guide will cover several common methods.
+
+## Prerequisites: Custom Components in Univer [#prerequisites]
+
+* In Univer, we use ComponentManager to manage custom DOM components.
+* Before using the following methods, you need to register your components first.
+
+Registering a React component
+
+```typescript
+const ReactComponent = (props: any) => {
+  console.log('ReactComponent', props);
+  return <div style={{ width: 100, height: 100, background: '#fff' }}>Popup Content</div>
+}
+univerAPI.registerComponent(
+  'myComponentKey',
+  ReactComponent,
+);
+```
+
+Registering a Vue3 component
+
+```typescript
+const Vue3Component = defineComponent({
+  setup(props) {
+    console.log('Vue3Component', props);
+    return () => <div style={{ width: 100, height: 100, background: '#fff' }}>Popup Content</div>
+  }
+});
+
+univerAPI.registerComponent(
+  'myComponentKey',
+  Vue3Component,
+  {
+    framework: 'vue3',
+  }
+);
+```
+
+## 1. Using Custom Components in the Sidebar
+
+### `openSidebar` Method <VersionBadge version="0.3.0+" />
+
+* Use [`univerAPI.openSidebar(params: ISidebarMethodOptions)`](https://reference.univer.ai/en-US/classes/FUniver#opensidebar) to open a sidebar containing custom components in the Univer interface.
+* [ISidebarMethodOptions](https://github.com/dream-num/univer/blob/dev/packages/ui/src/views/components/sidebar/Sidebar.tsx#L26-L39): Complete parameter definition
+
+```typescript
+// You should register components at an appropriate time (e.g., when Univer is loaded)
+// This is a React component. For Vue3 components, see Prerequisites section above
+univerAPI.registerComponent(
+  'mySidebarComponentKey',
+  () => <div style={{ width: 100, height: 100, background: '#fff' }}>Popup Content</div>
+);
+
+const sidebar = univerAPI.openSidebar({
+  header: { title: 'My Sidebar' },
+  children: { label: 'mySidebarComponentKey' },
+  onClose: () => {
+    console.log('close');
+  },
+  width: 360,
+});
+
+// Close sidebar later
+sidebar.dispose();
+```
+
+## 2. Using Custom Components in Dialogs
+
+### `openDialog` Method <VersionBadge version="0.3.0+" />
+
+* Use [`univerAPI.openDialog(params: IDialogPartMethodOptions)`](https://reference.univer.ai/en-US/classes/FUniver#opendialog) to open a dialog containing custom components.
+* [IDialogPartMethodOptions](https://github.com/dream-num/univer/blob/dev/packages/ui/src/views/components/dialog-part/interface.ts#L21-L27): Complete parameter definition
+
+```typescript
+// You should register components at an appropriate time (e.g., when Univer is loaded)
+// This is a React component. For Vue3 components, see Prerequisites section above
+univerAPI.registerComponent(
+  'myDialogComponentKey',
+  () => <div style={{ width: 100, height: 100, background: '#fff' }}>Popup Content</div>
+);
+
+const dialog = univerAPI.openDialog({
+  // unique id
+  id: 'myDialog',
+  draggable: true,
+  width: 300,
+  title: { title: 'Dialog title' },
+  children: { 
+    label: 'myDialogComponentKey'
+  },
+  destroyOnClose: true,
+  preservePositionOnDestroy: true,
+  onClose: () => {},
+});
+
+// Close dialog later
+dialog.dispose();
+```
+
+## 3. Attaching Popups to Cells <VersionBadge version="0.2.10+" />
+
+### `attachPopup` Method
+
+* A Popup is a temporary DOM element attached to a cell, typically used to display temporary status information. It doesn't support persistent storage.
+* Use [`FRange.attachPopup(popup: IFCanvasPopup)`](https://reference.univer.ai/en-US/classes/FRange#attachpopup) to attach custom popups to specific cell ranges.
+* Popups will snap to the cell's four edges and automatically adjust position and direction if obscured.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook();
+const fWorksheet = fWorkbook.getActiveSheet();
+const fRange = fWorksheet.getRange('A1:J10');
+
+// You should register components at an appropriate time (e.g., when Univer is loaded)
+// This is a React component. For Vue3 components, see Prerequisites section above
+univerAPI.registerComponent(
+  'myPopup',
+  () => <div style={{ width: 100, height: 100, background: '#fff' }}>Popup Content</div>
+);
+
+// Attach popup to the first cell of the range
+// If disposable is null, popup attachment failed
+const disposeable = fRange.attachPopup({
+  // componentKey must be a component or key of a registered component
+  componentKey: 'myPopup',
+});
+
+// Remove popup
+disposable.dispose();
+```
+
+## 4. Adding Floating DOM to Worksheet <VersionBadge version="0.2.10+" />
+
+### `addFloatDomToPosition` Method
+
+* Requires the `@univerjs/sheets-drawing-ui` plugin or `@univerjs/presets/preset-sheets-drawing` preset.
+* Floating DOM is a draggable component hovering over the sheet that supports persistent storage.
+* Must be called after Univer has finished rendering.
+* `componentKey` must be a registered component ID or React/Vue3 component.
+* [Complete parameter definition](https://github.com/dream-num/univer/blob/dev/packages/sheets-drawing-ui/src/facade/f-worksheet.ts#L32)
+
+{/* [demo](https://stackblitz.com/edit/awesome-univer-sheets-vite-demo-fqsu99?file=package.json,src%2Fmain.tsx) */}
+
+```tsx
+const fWorkbook = univerAPI.getActiveWorkbook();
+const fWorksheet = fWorkbook.getActiveSheet();
+
+// You should register components at an appropriate time (e.g., when Univer is loaded)
+// This is a React component. For Vue3 components, see Prerequisites section above
+univerAPI.registerComponent(
+  'myFloatDom',
+  ({ data }) => (
+    <div style={{ width: '100%', height: '100%', background: '#fff' }}>
+      popup content
+      {data?.label}
+    </div>
+  ),
+);
+
+// Add a floating DOM
+// If disposable is null, floating DOM addition failed
+const disposeable = fWorksheet.addFloatDomToPosition({
+  // componentKey must be a component or key of a registered component
+  componentKey: 'myFloatDom',
+  initPosition: {
+    startX: 100,
+    endX: 200,
+    startY: 100,
+    endY: 200,
+  },
+
+  // Component data
+  data: {
+    label: 'hahah',
+  },
+});
+
+// Remove floating DOM
+disposeable.dispose();
+```
+
+## 5. Attaching Alert Popups <VersionBadge version="0.3.0+" />
+
+### `attachAlertPopup` Method
+
+Use [`FRange.attachAlertPopup()`](https://reference.univer.ai/en-US/classes/FRange#attachalertpopup) to attach an alert popup to the starting cell of a specified range.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook();
+const fWorksheet = fWorkbook.getActiveSheet();
+const fRange = fWorksheet.getRange('A1:B2');
+const alertDisposable = range.attachAlertPopup({
+  key: "myAlert",
+  title: "This is a warning!",
+  message: "This is a warning!",
+  width: 300,
+  height: 200,
+  // 0: Information
+  // 1: Warning
+  // 2: Error
+  type: 0
+});
+
+// Remove alert later
+alertDisposable.dispose();
+```
+
+## Important Notes
+
+1. Ensure Univer has finished rendering before using these methods.
+2. Make sure components are properly registered before use.
+3. Use the `dispose()` method to clean up and remove added components to prevent memory leaks.
+
+With these methods, you can flexibly integrate various custom components in Univer to enhance and customize its functionality.

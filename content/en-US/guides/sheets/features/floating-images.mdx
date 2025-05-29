@@ -1,0 +1,386 @@
+import FeatureMeta from '@/components/feature-meta'
+
+# Images
+
+<FeatureMeta texts={['✅', '-', '-', '-', 'UniverSheetsDrawingPreset' ]} />
+
+Insert floating images and cell images, support adjusting size and position.
+
+This feature includes the following plugin packages:
+
+* [`@univerjs/docs-drawing`](https://www.npmjs.com/package/@univerjs/docs-drawing) - Docs Drawing Plugin
+* [`@univerjs/drawing`](https://www.npmjs.com/package/@univerjs/drawing) - Fundamental Drawing Plugin
+* [`@univerjs/drawing-ui`](https://www.npmjs.com/package/@univerjs/drawing-ui) - Fundamental Drawing UI Plugin
+* [`@univerjs/sheets-drawing`](https://www.npmjs.com/package/@univerjs/sheets-drawing) - Sheet Drawing Plugin
+* [`@univerjs/sheets-drawing-ui`](https://www.npmjs.com/package/@univerjs/sheets-drawing-ui) - Sheet Drawing UI Plugin
+
+## Presets Installation
+
+```typescript {4-5,8,16,22}
+import { createUniver, defaultTheme, LocaleType, merge } from '@univerjs/presets';
+import { UniverSheetsCorePreset } from '@univerjs/presets/preset-sheets-core';
+import UniverPresetSheetsCoreEnUS from '@univerjs/presets/preset-sheets-core/locales/en-US';
+import { UniverSheetsDrawingPreset } from '@univerjs/presets/preset-sheets-drawing';
+import UniverPresetSheetsDrawingEnUS from '@univerjs/presets/preset-sheets-drawing/locales/en-US';
+
+import '@univerjs/presets/lib/styles/preset-sheets-core.css'
+import '@univerjs/presets/lib/styles/preset-sheets-drawing.css'
+
+const { univerAPI } = createUniver({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: merge(
+      {},
+      UniverPresetSheetsCoreEnUS,
+      UniverPresetSheetsDrawingEnUS 
+    ),
+  },
+  theme: defaultTheme,
+  presets: [
+    UniverSheetsCorePreset(),
+    UniverSheetsDrawingPreset()
+  ]
+});
+```
+
+## Piecemeal Installation
+
+```shell npm2yarn
+npm install @univerjs/docs-drawing @univerjs/drawing @univerjs/drawing-ui @univerjs/sheets-drawing @univerjs/sheets-drawing-ui
+```
+
+```typescript {3-9,11-12,14,21-22,28-31,34-39}
+import { LocaleType, merge, Univer } from '@univerjs/core';
+import { defaultTheme } from "@univerjs/design";
+import { UniverDocsDrawingPlugin } from '@univerjs/docs-drawing';
+import { IImageIoService, UniverDrawingPlugin } from '@univerjs/drawing';
+import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui';
+import { UniverSheetsDrawingPlugin } from '@univerjs/sheets-drawing';
+import { UniverSheetsDrawingUIPlugin } from '@univerjs/sheets-drawing-ui';
+import DrawingUIEnUS from '@univerjs/drawing-ui/locale/en-US';
+import SheetsDrawingUIEnUS from '@univerjs/sheets-drawing-ui/locale/en-US';
+
+import '@univerjs/drawing-ui/lib/index.css';
+import '@univerjs/sheets-drawing-ui/lib/index.css';
+
+import '@univerjs/sheets-drawing-ui/facade';
+
+const univer = new Univer({
+  theme: defaultTheme,
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: merge(
+      DrawingUIEnUS,
+      SheetsDrawingUIEnUS,
+    ),
+  },
+});
+
+// When not using the collaborative plugin, the registration code is as follows:
+univer.registerPlugin(UniverDrawingPlugin);
+univer.registerPlugin(UniverDrawingUIPlugin);
+univer.registerPlugin(UniverSheetsDrawingPlugin);
+univer.registerPlugin(UniverSheetsDrawingUIPlugin);
+
+// When using the collaborative plugin, the registration code is as follows:
+univer.registerPlugin(UniverDrawingPlugin, {
+  override: [[IImageIoService, null]], // The collaborative plugin will provide this implementation
+});
+```
+
+## Facade API
+
+To get full definition of facade api, please refer to [FacadeAPI](https://reference.univer.ai/en-US).
+
+### Add Floating DOM
+
+`FWorksheet.addFloatDomToPosition(layer)` method can add a floating DOM element to a specified position.
+
+```tsx
+const fWorksheet = univerAPI.getActiveWorkbook().getActiveSheet();
+
+// You should register components at an appropriate time (e.g., when Univer is loaded)
+// This is a React component. For Vue3 components, the third parameter should be `{ framework: 'vue3' }`
+univerAPI.registerComponent(
+  'myFloatDom',
+  ({ data }) => (
+    <div style={{ width: '100%', height: '100%', background: '#fff', border: '1px solid #ccc', boxSizing: 'border-box' }}>
+      popup content:
+      {' '}
+      {data?.label}
+    </div>
+  )
+);
+
+// Add a floating DOM
+// If disposable is null, floating DOM addition failed
+const disposeable = fWorksheet.addFloatDomToPosition({
+  componentKey: 'myFloatDom',
+  initPosition: {
+    startX: 100,
+    endX: 300,
+    startY: 100,
+    endY: 200,
+  },
+
+  // Component data
+  data: {
+    label: 'hahah',
+  }
+});
+
+// Remove the floating DOM after 2 seconds
+setTimeout(() => {
+  disposeable?.dispose();
+}, 2000);
+```
+
+`FWorksheet.addFloatDomToRange(range, layer, domLayout)` method can add a floating DOM element to a specified range.
+
+```tsx
+const fWorksheet = univerAPI.getActiveWorkbook().getActiveSheet();
+
+// Register a range loading component
+const RangeLoading = () => {
+  const divStyle = {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#fff',
+    border: '1px solid #ccc',
+    boxSizing: 'border-box' as const,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center' as const,
+    transformOrigin: 'top left',
+  };
+
+  return (
+    <div style={divStyle}>
+      Loading...
+    </div>
+  );
+};
+univerAPI.registerComponent('RangeLoading', RangeLoading);
+
+// Add the range loading component covering the range A1:C3
+const fRange = fWorksheet.getRange('A1:C3');
+const disposeable = fWorksheet.addFloatDomToRange(fRange, { componentKey: 'RangeLoading' }, {}, 'myRangeLoading');
+
+// Remove the floating DOM after 2 seconds
+setTimeout(() => {
+  disposeable?.dispose();
+}, 2000);
+
+// another example-------------------
+// Register a float button component
+const FloatButton = () => {
+  const divStyle = {
+    width: '100px',
+    height: '30px',
+    backgroundColor: '#fff',
+    border: '1px solid #ccc',
+    boxSizing: 'border-box' as const,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center' as const,
+    cursor: 'pointer',
+  };
+
+  const clickHandler = () => {
+    console.warn('click');
+  };
+
+  return (
+    <div style={divStyle} onClick={clickHandler}>
+      FloatButton
+    </div>
+  );
+};
+univerAPI.registerComponent('FloatButton', FloatButton);
+
+// Add the float button to the range A5:C7, position is start from A5 cell, and width is 100px, height is 30px, margin is 100% of range width and height
+const fRange2 = fWorksheet.getRange('A5:C7');
+const disposeable2 = fWorksheet.addFloatDomToRange(
+  fRange2, 
+  {
+    componentKey: 'FloatButton',
+  }, 
+  { 
+    width: 100,
+    height: 30,
+    marginX: '100%', // margin percent to range width, or pixel
+    marginY: '100%'
+  }, 
+  'myFloatButton'
+);
+```
+
+`FWorksheet.addFloatDomToColumnHeader(column, layer, domPos)` method can add a floating DOM element to a specified column header.
+
+```tsx
+const fWorksheet = univerAPI.getActiveWorkbook().getActiveSheet();
+
+// Register a float button component
+const FloatButton = () => {
+  const divStyle = {
+    width: '100px',
+    height: '30px',
+    backgroundColor: '#fff',
+    border: '1px solid #ccc',
+    boxSizing: 'border-box' as const,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center' as const,
+    cursor: 'pointer',
+  };
+
+  const clickHandler = () => {
+    console.warn('click');
+  };
+
+  return (
+    <div style={divStyle} onClick={clickHandler}>
+      FloatButton
+    </div>
+  );
+};
+univerAPI.registerComponent('FloatButton', FloatButton);
+
+// Add the float button to the column D header, position is right align, width is 100px, height is 30px, margin is 0
+const disposeable = fWorksheet.addFloatDomToColumnHeader(
+  3, 
+  {
+    componentKey: 'FloatButton',
+    allowTransform: false,
+  }, 
+  {
+    width: 100,
+    height: 30,
+    marginX: 0,
+    marginY: 0,
+    horizonOffsetAlign: 'right',
+  }, 
+  'myFloatButton'
+);
+
+// Remove the float button after 2 seconds
+setTimeout(() => {
+  disposeable?.dispose();
+}, 2000);
+```
+
+### Insert Floating Images
+
+[`FWorksheet.newOverGridImage()`](https://reference.univer.ai/en-US/classes/FWorksheet#newovergridimage) creates a floating image builder, returns an instance of `FOverGridImageBuilder`, and generates an `ISheetImage` object for inserting floating images through chain calls.
+
+Here are some member methods on [`FOverGridImageBuilder`](https://reference.univer.ai/en-US/classes/FOverGridImageBuilder):
+
+| Method | Description |
+| ------ | ----------- |
+| buildAsync | Build the image and return `ISheetImage` object |
+| setSource | Set the source of the image |
+| setColumn | Set the horizontal position of the image |
+| setRow | Set the vertical position of the image |
+| setColumnOffset | Set the horizontal offset of the image |
+| setRowOffset | Set the vertical offset of the image |
+| setWidth | Set the width of the image |
+| setHeight | Set the height of the image |
+| setAnchorType | Set the anchor type of the image, whether the position and size change with the cell |
+| setCropTop | Set the cropping region of the image by defining the top edges, thereby displaying the specific part of the image you want |
+| setCropLeft | Set the cropping region of the image by defining the left edges, thereby displaying the specific part of the image you want |
+| setCropBottom | Set the cropping region of the image by defining the bottom edges, thereby displaying the specific part of the image you want |
+| setCropRight | Set the cropping region of the image by defining the right edges, thereby displaying the specific part of the image you want |
+| setRotate | Set the rotation angle of the image |
+
+```typescript
+// create a new image builder and set image source.
+// then build `ISheetImage` and insert it into the sheet, position is start from F6 cell, width is 500px, height is 300px
+const fWorkbook = univerAPI.getActiveWorkbook();
+const fWorksheet = fWorkbook.getActiveSheet();
+const image = await fWorksheet.newOverGridImage()
+  .setSource('https://avatars.githubusercontent.com/u/61444807?s=48&v=4', univerAPI.Enum.ImageSourceType.URL)
+  .setColumn(5)
+  .setRow(5)
+  .setWidth(500)
+  .setHeight(300)
+  .buildAsync();
+fWorksheet.insertImages([image]);
+```
+
+Also can insert image by `FWorksheet.insertImage(url, column, row, offsetX, offsetY)` method.
+
+```typescript
+// Insert an image to the sheet, position is F6, offset is 10px
+const fWorksheet = univerAPI.getActiveWorkbook().getActiveSheet();
+const result = await fWorksheet.insertImage('https://avatars.githubusercontent.com/u/61444807?s=48&v=4', 5, 5, 10, 10);
+console.log(result);
+```
+
+### Get Floating Images
+
+`FWorksheet.getImages()` method can get all floating images in the worksheet, and return an array of [`FOverGridImage[]`](https://reference.univer.ai/en-US/classes/FOverGridImage) instances. 
+
+```typescript
+const fWorksheet = univerAPI.getActiveWorkbook().getActiveSheet();
+const images = fWorksheet.getImages();
+images.forEach((image) => {
+  console.log(image, image.getId());
+});
+```
+
+Also can get specified floating image by `FWorksheet.getImageById(id)` method.
+
+### Update Floating Images
+
+`FWorksheet.updateImages(sheetImages)` method can update the position and size of floating images. etc.
+
+```typescript
+// create a new image builder and set image source.
+// then build `ISheetImage` and insert it into the sheet, position is start from F6 cell, width is 500px, height is 300px
+const fWorkbook = univerAPI.getActiveWorkbook();
+const fWorksheet = fWorkbook.getActiveSheet();
+const image = await fWorksheet.newOverGridImage()
+  .setSource('https://avatars.githubusercontent.com/u/61444807?s=48&v=4', univerAPI.Enum.ImageSourceType.URL)
+  .setColumn(5)
+  .setRow(5)
+  .setWidth(500)
+  .setHeight(300)
+  .buildAsync();
+fWorksheet.insertImages([image]);
+
+// update the image width to 100px and height to 50px after 4 seconds
+setTimeout(async () => {
+  const imageBuilder = fWorksheet.getImageById(image.drawingId).toBuilder();
+  const newImage = await imageBuilder.setWidth(100).setHeight(50).buildAsync();
+  fWorksheet.updateImages([newImage]);
+}, 4000);
+```
+
+### Delete Floating Images
+
+`FWorksheet.deleteImages(sheetImages)` method can delete floating images.
+
+```typescript
+const fWorksheet = univerAPI.getActiveWorkbook().getActiveSheet();
+const image = fWorksheet.getImages()[0];
+
+// Delete the first image of the sheet
+fWorksheet.deleteImages([image]);
+```
+
+### Insert Cell Images
+
+`FRange.insertCellImageAsync(file)` method can insert cell images.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook();
+const fWorksheet = fWorkbook.getActiveSheet();
+
+// Insert an image into the cell A10
+const fRange = fWorksheet.getRange('A10');
+const result = await fRange.insertCellImageAsync('https://avatars.githubusercontent.com/u/61444807?s=48&v=4');
+console.log(result);
+```

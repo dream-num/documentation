@@ -1,0 +1,531 @@
+import { Callout } from 'nextra/components'
+import Showcase from '@/showcase/sheets/custom-menu'
+
+# Extending UI
+
+## Adding Menu Items
+
+In Univer, both the top toolbar menu and the context menu can be extended by writing plugins. Below, we will introduce how to use `IMenuManagerService` in the dependency injection system to register menu items.
+
+### 1. Plugin Environment
+
+Make sure you have a basic understanding of the [plugin mechanism](/en-US/introduction/architecture/univer#plugins).
+
+First, construct a `controller` class to register menu item commands, menu item icons, and menu item configurations.
+
+```typescript
+// src/plugin/controllers/custom-menu.controller.ts
+import { Disposable, ICommandService, Inject, Injector } from '@univerjs/core';
+import { IMenuManagerService, ComponentManager } from '@univerjs/ui';
+
+export class CustomMenuController extends Disposable {
+  constructor(
+    @Inject(Injector) private readonly _injector: Injector,
+    @ICommandService private readonly _commandService: ICommandService,
+    @IMenuManagerService private readonly _menuManagerService: IMenuManagerService,
+    @Inject(ComponentManager) private readonly _componentManager: ComponentManager,
+  ) {
+    super();
+
+    this._initCommands();
+    this._registerComponents();
+    this._initMenus();
+  }
+
+  /**
+   * register commands
+  */
+  private _initCommands(): void { }
+
+  /**
+   * register icon components
+  */
+  private _registerComponents(): void { }
+
+  /**
+   * register menu items
+  */
+  private _initMenus(): void { }
+}
+```
+
+Register this `controller` in the plugin.
+
+```typescript
+// src/plugin/plugin.ts
+import type { Dependency } from '@univerjs/core';
+import { Inject, Injector, Plugin, touchDependencies, UniverInstanceType } from '@univerjs/core';
+import { CustomMenuController } from './controllers/custom-menu.controller';
+
+const SHEET_CUSTOM_MENU_PLUGIN = 'SHEET_CUSTOM_MENU_PLUGIN';
+
+export class UniverSheetsCustomMenuPlugin extends Plugin {
+  static override type = UniverInstanceType.UNIVER_SHEET;
+  static override pluginName = SHEET_CUSTOM_MENU_PLUGIN;
+
+  constructor(
+    @Inject(Injector) protected readonly _injector: Injector
+  ) {
+    super();
+  }
+
+  override onStarting(): void {
+    ([
+      [CustomMenuController],
+    ] as Dependency[]).forEach(d => this._injector.add(d))
+  }
+
+  override onRendered(): void {
+    touchDependencies(this._injector, [
+      [CustomMenuController],
+    ])
+  }
+}
+```
+
+### 2. Menu Item Commands
+
+Before registering the menu, you need to construct a `Command`, which will be executed when the menu is clicked.
+
+```typescript
+// src/plugin/commands/operations/single-button.operation.ts
+import type { IAccessor, ICommand } from '@univerjs/core';
+import { CommandType } from '@univerjs/core';
+
+export const SingleButtonOperation: ICommand = {
+  id: 'custom-menu.operation.single-button',
+  type: CommandType.OPERATION,
+  handler: async (accessor: IAccessor) => {
+    alert('Single button operation');
+    return true;
+  },
+};
+```
+
+Register this `Command` with `ICommandService`.
+
+```typescript
+// src/plugin/controllers/custom-menu.controller.ts
+import { SingleButtonOperation } from '../commands/operations/single-button.operation';
+
+private _initCommands(): void {
+  [
+    SingleButtonOperation
+  ].forEach((c) => {
+    this.disposeWithMe(this._commandService.registerCommand(c));
+  });
+}
+```
+
+### 3. Menu Item Icons
+
+If your menu item needs an icon, you also need to register the icon in advance.
+
+First, construct an icon tsx component.
+
+```tsx
+// src/plugin/components/button-icon/ButtonIcon.tsx
+export function ButtonIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+      <path fill="currentColor" d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2m.16 14a6.981 6.981 0 0 0-5.147 2.256A7.966 7.966 0 0 0 12 20a7.97 7.97 0 0 0 5.167-1.892A6.979 6.979 0 0 0 12.16 16M12 4a8 8 0 0 0-6.384 12.821A8.975 8.975 0 0 1 12.16 14a8.972 8.972 0 0 1 6.362 2.634A8 8 0 0 0 12 4m0 1a4 4 0 1 1 0 8a4 4 0 0 1 0-8m0 2a2 2 0 1 0 0 4a2 2 0 0 0 0-4" />
+    </svg>
+  );
+};
+```
+
+Register this icon with `ComponentManager`.
+
+```typescript
+// src/plugin/controllers/custom-menu.controller.ts
+import { ButtonIcon } from '../components/button-icon/ButtonIcon';
+
+private _registerComponents(): void {
+  this.disposeWithMe(this._componentManager.register("ButtonIcon", ButtonIcon));
+}
+```
+
+### 4. Menu Item Internationalization
+
+If your menu item needs internationalization, you need to add internationalization resources in advance.
+
+```typescript
+// src/plugin/locale/en-US.ts
+export default {
+  customMenu: {
+    button: '按钮',
+    singleButton: '单个按钮',
+  },
+};
+```
+
+```typescript
+// src/plugin/locale/en-US.ts
+export default {
+  customMenu: {
+    button: 'Button',
+    singleButton: 'Single button',
+  },
+};
+```
+
+Register this internationalized resource to `ILocaleService`
+
+```typescript
+// src/plugin/plugin.ts
++ import { LocaleService } from '@univerjs/core';
+import enUS from './locale/en-US';
+import zhCN from './locale/zh-CN';
+
+export class UniverSheetsCustomMenuPlugin extends Plugin {
+  static override type = UniverInstanceType.UNIVER_SHEET;
+  static override pluginName = SHEET_CUSTOM_MENU_PLUGIN;
+
+  constructor(
+    @Inject(Injector) protected readonly _injector: Injector,
+    @Inject(LocaleService) private readonly _localeService: LocaleService
+  ) {
+    super();
+
+    this._localeService.load({
+      enUS,
+      zhCN,
+    });
+  }
+}
+```
+
+### 5. Menu Item Configuration
+
+Define a menu item configuration factory function that returns a menu item configuration object.
+
+```typescript
+// src/plugin/controllers/menu.ts
+import type { IMenuButtonItem } from '@univerjs/ui';
+import { MenuItemType } from '@univerjs/ui';
+import { SingleButtonOperation } from '../commands/operations/single-button.operation';
+
+export function CustomMenuItemSingleButtonFactory(): IMenuButtonItem<string> {
+  return {
+    // Bind the command id, clicking the button will trigger this command
+    id: SingleButtonOperation.id,
+    // The type of the menu item, in this case, it is a button
+    type: MenuItemType.BUTTON,
+    // The icon of the button, which needs to be registered in ComponentManager
+    icon: 'ButtonIcon',
+    // The tooltip of the button. Prioritize matching internationalization. If no match is found, the original string will be displayed
+    tooltip: 'customMenu.singleButton',
+    // The title of the button. Prioritize matching internationalization. If no match is found, the original string will be displayed
+    title: 'customMenu.button',
+  };
+}
+```
+
+Construct these menu items into a Schema and merge them into the menu through `IMenuManagerService`.
+
+```typescript
+// src/plugin/controllers/custom-menu.controller.ts
++ import { ContextMenuGroup, ContextMenuPosition, RibbonStartGroup } from '@univerjs/ui';
+import { CustomMenuItemSingleButtonFactory } from './menu';
+import { SingleButtonOperation } from '../commands/operations/single-button.operation';
+
+private _initMenus(): void {
+  this._menuManagerService.mergeMenu({
+    [RibbonStartGroup.OTHERS]: {
+      [SingleButtonOperation.id]: {
+        order: 10,
+        menuItemFactory: CustomMenuItemSingleButtonFactory,
+      },
+    },
+    [ContextMenuPosition.MAIN_AREA]: {
+      [ContextMenuGroup.OTHERS]: {
+        [SingleButtonOperation.id]: {
+          order: 12,
+          menuItemFactory: CustomMenuItemSingleButtonFactory,
+        },
+      },
+    },
+  })
+}
+```
+
+### 6. Dropdown List
+
+In addition to adding a single button menu item, you can also add a dropdown menu item. The specific implementation is similar, except for the difference in constructing the menu item configuration:
+- Replace menu item configuration return type `IMenuButtonItem<string>` with `IMenuSelectorItem<string>`
+- Replace menu item type `MenuItemType.BUTTON` with `MenuItemType.SUBITEMS`
+- The main button of the dropdown list needs to customize an id, which is used as the unique identifier of the dropdown list and is used to associate the sub-menu items of the dropdown list.
+
+```typescript
+// src/plugin/controllers/menu/dropdown-list.menu.ts
+import type { IMenuButtonItem, IMenuSelectorItem } from '@univerjs/ui';
+import { MenuItemType } from '@univerjs/ui';
+import { DropdownListFirstItemOperation, DropdownListSecondItemOperation } from '../../commands/operations/dropdown-list.operation';
+
+const CUSTOM_MENU_DROPDOWN_LIST_OPERATION_ID = 'custom-menu.operation.dropdown-list';
+
+export function CustomMenuItemDropdownListMainButtonFactory(): IMenuSelectorItem<string> {
+  return {
+    // When type is MenuItemType.SUBITEMS, this factory serves as a container for the drop-down list, and you can set any unique id
+    id: CUSTOM_MENU_DROPDOWN_LIST_OPERATION_ID,
+    // The type of the menu item, in this case, it is a subitems
+    type: MenuItemType.SUBITEMS,
+    icon: 'MainButtonIcon',
+    tooltip: 'customMenu.dropdownList',
+    title: 'customMenu.dropdown',
+  }
+}
+
+export function CustomMenuItemDropdownListFirstItemFactory(): IMenuButtonItem<string> {
+  return {
+    id: DropdownListFirstItemOperation.id,
+    type: MenuItemType.BUTTON,
+    title: 'customMenu.itemOne',
+    icon: 'ItemIcon',
+  }
+}
+
+export function CustomMenuItemDropdownListSecondItemFactory(): IMenuButtonItem<string> {
+  return {
+    id: DropdownListSecondItemOperation.id,
+    type: MenuItemType.BUTTON,
+    title: 'customMenu.itemTwo',
+    icon: 'ItemIcon',
+  }
+}
+```
+
+Then construct these menu items into a Schema and merge them into the menu through `IMenuManagerService`.
+
+```typescript
+// src/plugin/controllers/custom-menu.controller.ts
+import { DropdownListFirstItemOperation, DropdownListSecondItemOperation } from '../commands/operations/dropdown-list.operation';
+import { CUSTOM_MENU_DROPDOWN_LIST_OPERATION_ID, CustomMenuItemDropdownListFirstItemFactory, CustomMenuItemDropdownListMainButtonFactory, CustomMenuItemDropdownListSecondItemFactory } from './menu/dropdown-list.menu';
+
+private _initMenus(): void {
+  this._menuManagerService.mergeMenu({
+    [RibbonStartGroup.OTHERS]: {
+      [CUSTOM_MENU_DROPDOWN_LIST_OPERATION_ID]: {
+        order: 11,
+        menuItemFactory: CustomMenuItemDropdownListMainButtonFactory,
+        [DropdownListFirstItemOperation.id]: {
+          order: 0,
+          menuItemFactory: CustomMenuItemDropdownListFirstItemFactory,
+        },
+        [DropdownListSecondItemOperation.id]: {
+          order: 1,
+          menuItemFactory: CustomMenuItemDropdownListSecondItemFactory,
+        },
+      },
+    },
+    [ContextMenuPosition.MAIN_AREA]: {
+      [ContextMenuGroup.OTHERS]: {
+        [CUSTOM_MENU_DROPDOWN_LIST_OPERATION_ID]: {
+          order: 9,
+          menuItemFactory: CustomMenuItemDropdownListMainButtonFactory,
+          [DropdownListFirstItemOperation.id]: {
+            order: 0,
+            menuItemFactory: CustomMenuItemDropdownListFirstItemFactory,
+          },
+          [DropdownListSecondItemOperation.id]: {
+            order: 1,
+            menuItemFactory: CustomMenuItemDropdownListSecondItemFactory,
+          },
+        },
+      },
+    },
+  })
+}
+```
+
+Export the plugin and register it with Univer instance.
+
+```typescript
+// src/plugin/index.ts
+export { UniverSheetsCustomMenuPlugin } from './plugin'
+```
+
+```typescript
+// src/index.ts
+import { UniverSheetsCustomMenuPlugin } from './plugin';
+
+univer.registerPlugin(UniverSheetsCustomMenuPlugin);
+```
+
+Now you have successfully added a custom menu item to Univer. You can see the menu item in the top toolbar and context menu.
+
+## Demo
+
+Some source code can be refer to [here](https://github.com/awesome-univer/custom-menu/tree/main/src)
+
+<Showcase lang="en-US" toolbar={{ showCode: true }} />
+
+## Overriding Built-in Business Components
+
+Some business components in Univer can be overridden, such as the context menu panel, pop-up windows, icons, etc. These components are registered internally in Univer through `ComponentManager`, and you can override the default components by registering components with the same name.
+
+```diff
+export class CustomMenuController extends Disposable {
+  constructor(
++   @Inject(ComponentManager) private readonly _componentManager: ComponentManager,
+  ) {
+    super();
+
+    // Replace the default BoldSingle icon
++   this._componentManager.register('BoldSingle', YourBoldIconComponent);
+  }
+}
+```
+
+## Customizing Menu Items (Hiding Menu Items) [#customizing-menu-items-hiding-menu-items]
+
+Customizing or hiding menu items in Univer is a common requirement. We provide configuration options for all plugins that contain menu items. As long as you know the command ID of the menu item, you can easily achieve this requirement through configuration options.
+
+For example, hiding the bold menu item:
+
+```typescript
+// Presets config mode
+UniverSheetsCorePreset({
+  menu: {
+    'sheet.command.set-range-bold': {
+      hidden: true,
+    },
+    'sheet.command.set-range-italic': {
+      hidden: true,
+    },
+  },
+});
+```
+
+```typescript
+// Plugin config mode
+univer.registerPlugin(UniverSheetsUIPlugin, {
+  menu: {
+    'sheet.command.set-range-bold': {
+      hidden: true,
+    },
+    'sheet.command.set-range-italic': {
+      hidden: true,
+    },
+  },
+});
+```
+
+To learn how to find the command ID, please refer to the tutorial [How To Find The Command ID](/guides/sheets/tutorials/find-the-command-id).
+
+### Menu Item ID List
+
+#### Toolbar Menu Items
+
+| Menu Item ID | Menu Item Name |
+| ------------ | -------------- |
+| univer.command.undo | Undo |
+| univer.command.redo | Redo |
+| sheet.command.set-once-format-painter | Paint format |
+| sheet.command.set-range-bold | Bold |
+| sheet.command.set-range-italic | Italic |
+| sheet.command.set-range-underline | Underline |
+| sheet.command.set-range-stroke | Strikethrough |
+| sheet.command.set-range-font-family | Font |
+| sheet.command.set-range-fontsize | Font size |
+| sheet.command.set-range-text-color | Text color |
+| sheet.command.set-background-color | Fill color |
+| sheet.command.set-border-basic | Border |
+| sheet.command.add-worksheet-merge | Merge cells |
+| sheet.command.set-horizontal-text-align | Horizontal align |
+| sheet.command.set-vertical-text-align | Vertical align |
+| sheet.command.set-text-wrap | Text wrap |
+| sheet.command.set-text-rotation | Text rotate |
+| sheet.operation.open.conditional.formatting.panel | Conditional Formatting |
+| formula-ui.operation.insert-function | Functions |
+| sheet.menu.sheets-sort | Sort |
+| sheet.menu.image | Image |
+| sheet.command.numfmt.set.currency | Currency |
+| sheet.command.numfmt.add.decimal.command | Increase decimal places |
+| sheet.command.numfmt.subtract.decimal.command | Decreasing decimal places |
+| sheet.command.numfmt.set.percent | Percentage |
+| sheet.operation.open.numfmt.panel | Number format |
+| sheet.menu.data-validation | Data validation |
+| sheet.command.smart-toggle-filter | Toggle Filter |
+| sheet.operation.open-pivot-table-range-selector-panel | Pivot Table |
+| sheet.operation.print-open | Print |
+| data-connector.operation.sidebar | Data Connector |
+| sheets-exchange-client.operation.exchange | File |
+| sheet.command.menu-insert-chart | Insert chart |
+| sheet.command.add-range-protection-from-toolbar | Protection |
+| univer.operation.toggle-edit-history | Edit History |
+| sheet.operation.open-sparkline-selector | Sparkline |
+| thread-comment-ui.operation.toggle-panel | Comment Management |
+| sheet.operation.insert-hyper-link-toolbar | Insert Link |
+| ui.operation.open-find-dialog | Find & Replace |
+| base-ui.operation.toggle-shortcut-panel | Toggle Shortcut Panel |
+
+#### Right-click Menu Items
+
+| Menu Item ID | Menu Item Name |
+| ------------ | -------------- |
+| sheet.command.copy | Copy |
+| sheet.command.paste | Paste |
+| sheet.menu.paste-special | Paste Special |
+| sheet.command.paste-values | Paste Special - Paste Value |
+| sheet.command.paste-format | Paste Special - Paste Format |
+| sheet.command.paste-col-width | Paste Special - Paste Column Width |
+| sheet.command.paste-besides-border | Paste Special - Paste Besides Border Styles |
+| sheet.command.paste-formula | Paste Special - Paste Formula |
+| sheet.menu.clear-selection | Clear |
+| sheet.command.clear-selection-content | Clear - Clear Contents |
+| sheet.command.clear-selection-format | Clear - Clear Formats |
+| sheet.command.clear-selection-all | Clear - Clear All |
+| sheet.menu.cell-insert | Insert |
+| sheet.command.insert-row-before | Insert - Insert Row Before |
+| sheet.command.insert-col-before | Insert - Insert Column Before |
+| sheet.command.insert-range-move-right-confirm | Insert - Move Right |
+| sheet.command.insert-range-move-down-confirm | Insert - Move Down |
+| sheet.menu.delete | Delete |
+| sheet.command.remove-row-confirm | Delete Selected Row |
+| sheet.command.remove-col-confirm | Delete Selected Column |
+| sheet.command.delete-range-move-left-confirm | Delete - Move Left |
+| sheet.command.delete-range-move-up-confirm | Delete - Move Up |
+| sheet.menu.sheet-frozen | Freeze |
+| sheet.header-menu.sheet-frozen | Freeze (Row & Column Header Right Click Menu Item) |
+| sheet.command.set-selection-frozen | Freeze - Freeze |
+| sheet.command.set-row-frozen | Freeze - Freeze to this row |
+| sheet.command.set-col-frozen | Freeze - Freeze to this column |
+| sheet.command.cancel-frozen | Freeze - Cancel freeze |
+| sheet.contextMenu.permission | Protect Rows And Columns |
+| sheet.command.add-range-protection-from-context-menu | Protect Rows And Columns - Add Protection Range |
+| sheet.command.set-range-protection-from-context-menu | Protect Rows And Columns - Set Protection Range |
+| sheet.command.delete-range-protection-from-context-menu | Protect Rows And Columns - Remove Protection Range |
+| sheet.command.view-sheet-permission-from-context-menu | Protect Rows And Columns - View All Protection Ranges |
+| sheet.menu.sheets-sort-ctx | Sort |
+| sheet.command.sort-range-asc-ctx | Sort - Ascending |
+| sheet.command.sort-range-asc-ext-ctx | Sort - Expand Ascending |
+| sheet.command.sort-range-desc-ctx | Sort - Descending |
+| sheet.command.sort-range-desc-ext-ctx | Sort - Expand Descending |
+| sheet.command.sort-range-custom-ctx | Sort - Custom Sort |
+| sheets.operation.show-comment-modal | Add Comment |
+| sheet.operation.insert-hyper-link | Insert Link |
+| zen-editor.command.open-zen-editor | Full Screen Editor |
+| sheet.operation.screenshot | Copy as picture |
+
+#### Right-click Menu Items - Row Header
+
+| Menu Item ID | Menu Item Name |
+| ------------ | -------------- |
+| sheet.command.insert-multi-rows-above | Insert Row Before |
+| sheet.command.insert-multi-rows-after | Insert Row After |
+| sheet.command.hide-row-confirm | Hide Selected Row |
+| sheet.command.set-selected-rows-visible | Show Hide Row |
+| sheet.command.set-row-height | Row Height |
+| sheet.command.set-row-is-auto-height | Fit for data |
+
+#### Right-click Menu Items - Column Header
+
+| Menu Item ID | Menu Item Name |
+| ------------ | -------------- |
+| sheet.command.insert-multi-cols-before | Insert Column Before |
+| sheet.command.insert-multi-cols-right | Insert Column After |
+| sheet.command.hide-col-confirm | Hide Selected Column |
+| sheet.command.set-selected-cols-visible | Show Hide Column |
+| sheet.command.set-worksheet-col-width | Column Width |
+| sheet.command.set-col-auto-width | Fit for data |

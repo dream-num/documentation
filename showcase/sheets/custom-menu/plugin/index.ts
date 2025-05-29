@@ -1,0 +1,1 @@
+export { UniverSheetsCustomMenuPlugin } from './plugin'

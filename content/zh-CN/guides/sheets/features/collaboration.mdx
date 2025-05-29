@@ -1,0 +1,190 @@
+import FeatureMeta from '@/components/feature-meta'
+
+# 协同编辑
+
+<FeatureMeta texts={['-', '✅', '✅', '-', 'UniverSheetsCollaborationPreset' ]} />
+
+Univer 提供了协同编辑功能，支持多人同时编辑同一个工作簿。
+
+该功能包含以下插件包：
+
+- [`@univerjs-pro/collaboration`](https://www.npmjs.com/package/@univerjs-pro/collaboration)
+- [`@univerjs-pro/collaboration-client` ](https://www.npmjs.com/package/@univerjs-pro/collaboration-client)
+
+## Presets 安装
+
+```typescript {6-7,14,24,28,33-35}
+import { createUniver, defaultTheme, LocaleType, merge } from '@univerjs/presets';
+import { UniverSheetsCorePreset } from '@univerjs/presets/preset-sheets-core';
+import UniverPresetSheetsCoreZhCN from '@univerjs/presets/preset-sheets-core/locales/zh-CN';
+import { UniverSheetsAdvancedPreset } from '@univerjs/presets/preset-sheets-advanced';
+import UniverPresetSheetsAdvancedZhCN from '@univerjs/presets/preset-sheets-advanced/locales/zh-CN';
+import { UniverSheetsCollaborationPreset } from '@univerjs/presets/preset-sheets-collaboration';
+import UniverPresetSheetsCollaborationZhCN from '@univerjs/presets/preset-sheets-collaboration/locales/zh-CN';
+import { UniverSheetsDrawingPreset } from '@univerjs/presets/preset-sheets-drawing'
+import UniverPresetSheetsDrawingZhCN from '@univerjs/presets/preset-sheets-drawing/locales/zh-CN'
+
+import '@univerjs/presets/lib/styles/preset-sheets-core.css'
+import '@univerjs/presets/lib/styles/preset-sheets-drawing.css'
+import '@univerjs/presets/lib/styles/preset-sheets-advanced.css'
+import '@univerjs/presets/lib/styles/preset-sheets-collaboration.css'
+
+const { univerAPI } = createUniver({
+  locale: LocaleType.ZH_CN,
+  locales: {
+    [LocaleType.ZH_CN]: merge(
+      {},
+      UniverPresetSheetsCoreZhCN,
+      UniverPresetSheetsDrawingZhCN,
+      UniverPresetSheetsAdvancedZhCN,
+      UniverPresetSheetsCollaborationZhCN,
+    ),
+  },
+  theme: defaultTheme,
+  collaboration: true,
+  presets: [
+    UniverSheetsCorePreset(),
+    UniverSheetsDrawingPreset(),
+    UniverSheetsAdvancedPreset(),
+    UniverSheetsCollaborationPreset({
+      universerEndpoint: 'http://localhost:3010',
+    }),
+  ],
+});
+```
+
+## 手动组合安装
+
+```shell npm2yarn
+npm install @univerjs-pro/collaboration @univerjs-pro/collaboration-client
+```
+
+```typescript {3-6,8-9,11,18,28-29,33-41}
+import { LocaleType, merge, Univer } from '@univerjs/core';
+import { defaultTheme } from "@univerjs/design";
+import { UniverCollaborationPlugin } from '@univerjs-pro/collaboration';
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client';
+import { UniverCollaborationClientUIPlugin, BrowserCollaborationSocketService } from '@univerjs-pro/collaboration-client-ui';
+import CollaborationClientZhCN from '@univerjs-pro/collaboration-client/locale/zh-CN';
+
+import '@univerjs-pro/collaboration-client/facade';
+import '@univerjs-pro/collaboration-client-ui/facade';
+
+import '@univerjs-pro/collaboration-client/lib/index.css';
+
+const univer = new Univer({
+  theme: defaultTheme,
+  locale: LocaleType.ZH_CN,
+  locales: {
+    [LocaleType.ZH_CN]: merge(
+      CollaborationClientZhCN
+    ),
+  },
+});
+
+// 通过将 override 选项设置为 [[IAuthzIoService, null]]，可以告诉 Univer 不要注册内置的 IAuthzIoService。
+// 通过将 override 选项设置为 [[IUndoRedoService, null]]，可以告诉 Univer 不要注册内置的 IUndoRedoService
+// 这样，Univer 将使用 UniverCollaborationPlugin 中提供的服务作为权限、重做恢复服务的实现。
+const univer = new Univer({
+  override: [
+    [IAuthzIoService, null]
+    [IUndoRedoService, null],
+  ],
+});
+
+univer.registerPlugin(UniverCollaborationPlugin);
+univer.registerPlugin(UniverCollaborationClientPlugin, {
+  socketService: BrowserCollaborationSocketService,
+  authzUrl: 'http://localhost:3010/universer-api/authz',
+  snapshotServerUrl: 'http://localhost:3010/universer-api/snapshot',
+  collabSubmitChangesetUrl: 'http://localhost:3010/universer-api/comb',
+  collabWebSocketUrl: 'ws://localhost:3010/universer-api/comb/connect',
+});
+univer.registerPlugin(UniverCollaborationClientUIPlugin);
+```
+
+## 协同文档数据
+
+协同编辑插件依赖 Univer 服务，协同文档的数据存储在 Univer 服务中。
+
+### unitId
+
+每篇协同文档在 Univer 服务中都有一个唯一的 `unitId`。Univer 协同客户端使用 `unitId` 可从 Univer 服务获取到对应的协同文档数据进行协同编辑。
+
+### type
+
+`type` 是协同文档的类型，协同文档的类型决定了协同文档的初始数据结构。
+
+## 创建协同文档
+
+有多种方式在 Univer 服务中创建协同文档：
+
+1. 通过 [创建文档](/zh-CN/guides/sheets/pro-features/server/api#create-empty-document) 接口可以创建一篇空白文档。
+2. 通过 [导入插件](/zh-CN/guides/sheets/features/import-export) 提供的 Facade API [`importXLSXToUnitIdAsync`](/zh-CN/guides/sheets/features/import-export#import-xlsx-and-get-unitid) 方法，将 XlSX 文件导入到 Univer 服务。
+
+## 通过 URL 参数加载协同文档
+
+`@univerjs-pro/collaboration-client` 插件内部提供了根据 URL 参数 `unit` 和 `type` 自动加载对应的数据的功能，这可以简化一些场景下的数据加载逻辑。
+
+如果你想使用该特性，你需要适当地修改一下原有的加载数据逻辑，并将 `unit` 和 `type` 参数添加到 URL 中，如下所示：
+
+```diff
+import { UniverInstanceType } from '@univerjs/core';
+
+# 原有逻辑，只适用于非协同文档
+- univer.createUnit(UniverInstanceType.UNIVER_SHEET, {});
+ 
+# 修改后的逻辑，适用于协同文档
++ const url = new URL(window.location.href);
++ const unit = url.searchParams.get('unit');
+
++ if (unit) {
++   // 如果 URL 中包含 unit 参数，则自动加载数据
++ } else {
++   // 创建一个新的表格
++   fetch(`/universer-api/snapshot/${UniverInstanceType.UNIVER_SHEET}/unit/-/create`, {
++     method: 'POST',
++     headers: {
++       'Content-Type': 'application/json',
++     },
++     body: JSON.stringify({
++       type: UniverInstanceType.UNIVER_SHEET, // instance type
++       name: 'New Sheet By Univer', // sheet name
++       creator: 'user',  // creator name
++     }),
++   }).then((response) => {
++     if (!response.ok) {
++       throw new Error('create unit failed');
++     }
++
++     return response.json();
++   }).then((data) => {
++     if (!data.unitID) {
++       throw new Error('create unit failed');
++     }
++
++     url.searchParams.set('unit', data.unitID);
++     url.searchParams.set('type', String(UniverInstanceType.UNIVER_SHEET));
++     window.location.href = url.toString();
++   }).catch((error) => {
++     console.error(error);
++   })
++ }
+```
+
+## 通过 Facade API 加载协同文档
+
+如果你不想使用 URL 参数来加载协同文档，你也可以通过 Facade API 来加载协同文档。
+
+```typescript
+const collaboration = univerAPI.getCollaboration();
+const workbook = await collaboration.loadSheetAsync('your-unit-id');
+```
+
+请参考 [API 文档](https://reference.univer.ai/zh-CN/classes/FCollaboration#loadsheetasync) 来了解更多 API 的使用方法。
+
+## 拓展阅读
+
+如果你想进一步了解协同编辑的工作原理，可以阅读以下文章：
+
+- [OT 算法以及 Univer 的协同编辑设计](/blog/ot)

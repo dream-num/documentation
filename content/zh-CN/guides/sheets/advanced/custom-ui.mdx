@@ -1,0 +1,531 @@
+import { Callout } from 'nextra/components'
+import Showcase from '@/showcase/sheets/custom-menu'
+
+# 自定义 UI
+
+## 新增菜单项
+
+在 Univer 中，无论是顶部的工具栏菜单还是右键菜单，都可以通过编写插件来实现扩展。下面将介绍如何使用依赖注入系统中的 `IMenuManagerService` 来注册菜单项。
+
+### 1. 插件环境
+
+确保你对[插件机制](/zh-CN/introduction/architecture/univer#plugins)有所了解。
+
+首先构造一个 `controller` 类，用于注册菜单项命令、菜单项图标、菜单项配置。
+
+```typescript
+// src/plugin/controllers/custom-menu.controller.ts
+import { Disposable, ICommandService, Inject, Injector } from '@univerjs/core';
+import { IMenuManagerService, ComponentManager } from '@univerjs/ui';
+
+export class CustomMenuController extends Disposable {
+  constructor(
+    @Inject(Injector) private readonly _injector: Injector,
+    @ICommandService private readonly _commandService: ICommandService,
+    @IMenuManagerService private readonly _menuManagerService: IMenuManagerService,
+    @Inject(ComponentManager) private readonly _componentManager: ComponentManager,
+  ) {
+    super();
+
+    this._initCommands();
+    this._registerComponents();
+    this._initMenus();
+  }
+
+  /**
+   * register commands
+  */
+  private _initCommands(): void { }
+
+  /**
+   * register icon components
+  */
+  private _registerComponents(): void { }
+
+  /**
+   * register menu items
+  */
+  private _initMenus(): void { }
+}
+```
+
+将这个 `controller` 注册到插件中
+
+```typescript
+// src/plugin/plugin.ts
+import type { Dependency } from '@univerjs/core';
+import { Inject, Injector, Plugin, touchDependencies, UniverInstanceType } from '@univerjs/core';
+import { CustomMenuController } from './controllers/custom-menu.controller';
+
+const SHEET_CUSTOM_MENU_PLUGIN = 'SHEET_CUSTOM_MENU_PLUGIN';
+
+export class UniverSheetsCustomMenuPlugin extends Plugin {
+  static override type = UniverInstanceType.UNIVER_SHEET;
+  static override pluginName = SHEET_CUSTOM_MENU_PLUGIN;
+
+  constructor(
+    @Inject(Injector) protected readonly _injector: Injector
+  ) {
+    super();
+  }
+
+  override onStarting(): void {
+    ([
+      [CustomMenuController],
+    ] as Dependency[]).forEach(d => this._injector.add(d))
+  }
+
+  override onRendered(): void {
+    touchDependencies(this._injector, [
+      [CustomMenuController],
+    ])
+  }
+}
+```
+
+### 2. 菜单项命令
+
+注册菜单之前，需要构造一个 `Command`，这个 `Command` 会在菜单被点击时执行。
+
+```typescript
+// src/plugin/commands/operations/single-button.operation.ts
+import type { IAccessor, ICommand } from '@univerjs/core';
+import { CommandType } from '@univerjs/core';
+
+export const SingleButtonOperation: ICommand = {
+  id: 'custom-menu.operation.single-button',
+  type: CommandType.OPERATION,
+  handler: async (accessor: IAccessor) => {
+    alert('Single button operation');
+    return true;
+  },
+};
+```
+
+将这个 `Command` 注册到 `ICommandService`
+
+```typescript
+// src/plugin/controllers/custom-menu.controller.ts
+import { SingleButtonOperation } from '../commands/operations/single-button.operation';
+
+private _initCommands(): void {
+  [
+    SingleButtonOperation
+  ].forEach((c) => {
+    this.disposeWithMe(this._commandService.registerCommand(c));
+  });
+}
+```
+
+### 3. 菜单项图标
+
+如果你的菜单项需要图标，也需要提前注册图标。
+
+先构造一个图标 tsx 组件
+
+```tsx
+// src/plugin/components/button-icon/ButtonIcon.tsx
+export function ButtonIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24">
+      <path fill="currentColor" d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2m.16 14a6.981 6.981 0 0 0-5.147 2.256A7.966 7.966 0 0 0 12 20a7.97 7.97 0 0 0 5.167-1.892A6.979 6.979 0 0 0 12.16 16M12 4a8 8 0 0 0-6.384 12.821A8.975 8.975 0 0 1 12.16 14a8.972 8.972 0 0 1 6.362 2.634A8 8 0 0 0 12 4m0 1a4 4 0 1 1 0 8a4 4 0 0 1 0-8m0 2a2 2 0 1 0 0 4a2 2 0 0 0 0-4" />
+    </svg>
+  );
+};
+```
+
+将这个图标注册到 `ComponentManager`
+
+```typescript
+// src/plugin/controllers/custom-menu.controller.ts
+import { ButtonIcon } from '../components/button-icon/ButtonIcon';
+
+private _registerComponents(): void {
+  this.disposeWithMe(this._componentManager.register("ButtonIcon", ButtonIcon));
+}
+```
+
+### 4. 菜单项国际化
+
+如果你的菜单项需要国际化，需要提前添加好国际化资源。
+
+```typescript
+// src/plugin/locale/zh-CN.ts
+export default {
+  customMenu: {
+    button: '按钮',
+    singleButton: '单个按钮',
+  },
+};
+```
+
+```typescript
+// src/plugin/locale/en-US.ts
+export default {
+  customMenu: {
+    button: 'Button',
+    singleButton: 'Single button',
+  },
+};
+```
+
+将这个国际化资源注册到 `ILocaleService`
+
+```typescript
+// src/plugin/plugin.ts
++ import { LocaleService } from '@univerjs/core';
+import enUS from './locale/en-US';
+import zhCN from './locale/zh-CN';
+
+export class UniverSheetsCustomMenuPlugin extends Plugin {
+  static override type = UniverInstanceType.UNIVER_SHEET;
+  static override pluginName = SHEET_CUSTOM_MENU_PLUGIN;
+
+  constructor(
+    @Inject(Injector) protected readonly _injector: Injector,
+    @Inject(LocaleService) private readonly _localeService: LocaleService
+  ) {
+    super();
+
+    this._localeService.load({
+      enUS,
+      zhCN,
+    });
+  }
+}
+```
+
+### 5. 菜单项配置
+
+定义一个菜单项配置工厂函数，返回一个菜单项配置对象。
+
+```typescript
+// src/plugin/controllers/menu/single-button.menu.ts
+import type { IMenuButtonItem } from '@univerjs/ui';
+import { MenuItemType } from '@univerjs/ui';
+import { SingleButtonOperation } from '../../commands/operations/single-button.operation';
+
+export function CustomMenuItemSingleButtonFactory(): IMenuButtonItem<string> {
+  return {
+    // 绑定 Command id，单击该按钮将触发该命令
+    id: SingleButtonOperation.id,
+    // 菜单项的类型，在本例中，它是一个按钮
+    type: MenuItemType.BUTTON,
+    // 按钮的图标，需要在 ComponentManager 中注册
+    icon: 'ButtonIcon',
+    // 按钮的提示，优先匹配国际化，如果没有匹配到，将显示原始字符串
+    tooltip: 'customMenu.singleButton',
+    // 按钮的标题，优先匹配国际化，如果没有匹配到，将显示原始字符串
+    title: 'customMenu.button',
+  };
+}
+```
+
+将这些菜单项构造成成 Schema 并通过 `IMenuManagerService` 合并到菜单中。
+
+```typescript
+// src/plugin/controllers/custom-menu.controller.ts
++ import { ContextMenuGroup, ContextMenuPosition, RibbonStartGroup } from '@univerjs/ui';
+import { CustomMenuItemSingleButtonFactory } from './menu/single-button.menu';
+import { SingleButtonOperation } from '../commands/operations/single-button.operation';
+
+private _initMenus(): void {
+  this._menuManagerService.mergeMenu({
+    [RibbonStartGroup.OTHERS]: {
+      [SingleButtonOperation.id]: {
+        order: 10,
+        menuItemFactory: CustomMenuItemSingleButtonFactory,
+      },
+    },
+    [ContextMenuPosition.MAIN_AREA]: {
+      [ContextMenuGroup.OTHERS]: {
+        [SingleButtonOperation.id]: {
+          order: 12,
+          menuItemFactory: CustomMenuItemSingleButtonFactory,
+        },
+      },
+    },
+  })
+}
+```
+
+### 6. 下拉列表
+
+除了添加单个按钮的菜单项，还可以添加一个下拉菜单项，具体实现方式类似，只在构造菜单 Schema 时有所区别：
+- 将菜单项配置返回类型 `IMenuButtonItem<string>` 替换为 `IMenuSelectorItem<string>`
+- 将菜单项类型 `MenuItemType.BUTTON` 替换为 `MenuItemType.SUBITEMS`
+- 下拉列表主按钮需要自定义一个 id，作为下拉列表的唯一标识，用于关联下拉列表的子菜单项
+
+```typescript
+// src/plugin/controllers/menu/dropdown-list.menu.ts
+import type { IMenuButtonItem, IMenuSelectorItem } from '@univerjs/ui';
+import { MenuItemType } from '@univerjs/ui';
+import { DropdownListFirstItemOperation, DropdownListSecondItemOperation } from '../../commands/operations/dropdown-list.operation';
+
+export const CUSTOM_MENU_DROPDOWN_LIST_OPERATION_ID = 'custom-menu.operation.dropdown-list';
+
+export function CustomMenuItemDropdownListMainButtonFactory(): IMenuSelectorItem<string> {
+  return {
+    // 当 type 为 MenuItemType.SUBITEMS 时，工厂函数作为下拉列表的容器，可以设置任意唯一的id
+    id: CUSTOM_MENU_DROPDOWN_LIST_OPERATION_ID,
+    // 菜单项的类型
+    type: MenuItemType.SUBITEMS,
+    icon: 'MainButtonIcon',
+    tooltip: 'customMenu.dropdownList',
+    title: 'customMenu.dropdown',
+  }
+}
+
+export function CustomMenuItemDropdownListFirstItemFactory(): IMenuButtonItem<string> {
+  return {
+    id: DropdownListFirstItemOperation.id,
+    type: MenuItemType.BUTTON,
+    title: 'customMenu.itemOne',
+    icon: 'ItemIcon',
+  }
+}
+
+export function CustomMenuItemDropdownListSecondItemFactory(): IMenuButtonItem<string> {
+  return {
+    id: DropdownListSecondItemOperation.id,
+    type: MenuItemType.BUTTON,
+    title: 'customMenu.itemTwo',
+    icon: 'ItemIcon',
+  }
+}
+```
+
+构造菜单 Schema：
+
+```typescript
+// src/plugin/controllers/custom-menu.controller.ts
+import { DropdownListFirstItemOperation, DropdownListSecondItemOperation } from '../commands/operations/dropdown-list.operation';
+import { CUSTOM_MENU_DROPDOWN_LIST_OPERATION_ID, CustomMenuItemDropdownListFirstItemFactory, CustomMenuItemDropdownListMainButtonFactory, CustomMenuItemDropdownListSecondItemFactory } from './menu/dropdown-list.menu';
+
+private _initMenus(): void {
+  this._menuManagerService.mergeMenu({
+    [RibbonStartGroup.OTHERS]: {
+      [CUSTOM_MENU_DROPDOWN_LIST_OPERATION_ID]: {
+        order: 11,
+        menuItemFactory: CustomMenuItemDropdownListMainButtonFactory,
+        [DropdownListFirstItemOperation.id]: {
+          order: 0,
+          menuItemFactory: CustomMenuItemDropdownListFirstItemFactory,
+        },
+        [DropdownListSecondItemOperation.id]: {
+          order: 1,
+          menuItemFactory: CustomMenuItemDropdownListSecondItemFactory,
+        },
+      },
+    },
+    [ContextMenuPosition.MAIN_AREA]: {
+      [ContextMenuGroup.OTHERS]: {
+        [CUSTOM_MENU_DROPDOWN_LIST_OPERATION_ID]: {
+          order: 9,
+          menuItemFactory: CustomMenuItemDropdownListMainButtonFactory,
+          [DropdownListFirstItemOperation.id]: {
+            order: 0,
+            menuItemFactory: CustomMenuItemDropdownListFirstItemFactory,
+          },
+          [DropdownListSecondItemOperation.id]: {
+            order: 1,
+            menuItemFactory: CustomMenuItemDropdownListSecondItemFactory,
+          },
+        },
+      },
+    },
+  })
+}
+```
+
+导出这个插件，并在 Univer 实例中注册。
+
+```typescript
+// src/plugin/index.ts
+export { UniverSheetsCustomMenuPlugin } from './plugin'
+```
+
+```typescript
+// src/index.ts
+import { UniverSheetsCustomMenuPlugin } from './plugin';
+
+univer.registerPlugin(UniverSheetsCustomMenuPlugin);
+```
+
+现在你已经成功添加了一个新的菜单项，可以在 Univer 菜单栏和右键菜单中看到它。
+
+## Demo
+
+部分源码可以参考 [这里](https://github.com/awesome-univer/custom-menu/tree/main/src)
+
+<Showcase lang="zh-CN" toolbar={{ showCode: true }} />
+
+## 覆盖内置业务组件
+
+Univer 中部分业务组件是可以被覆盖的，例如右侧的菜单面板、弹窗、图标等。这些组件在 Univer 的内部经由 `ComponentManager` 进行注册，你可以通过注册同名的组件来覆盖默认的组件。
+
+```diff
+export class CustomMenuController extends Disposable {
+  constructor(
++   @Inject(ComponentManager) private readonly _componentManager: ComponentManager,
+  ) {
+    super();
+
+    // 替换默认的 BoldSingle 图标
++   this._componentManager.register('BoldSingle', YourBoldIconComponent);
+  }
+}
+```
+
+## 定制菜单项（隐藏菜单项）[#customizing-menu-items-hiding-menu-items]
+
+在 Univer 中定制或隐藏菜单项是一种常见需求，我们为所有包含了菜单项的插件提供了配置项。只要知道菜单项对应的命令 ID，你就可以非常轻松地通过配置项来实现这一需求。
+
+例如，隐藏加粗和斜体的菜单项：
+
+```typescript
+// Presets 配置模式
+UniverSheetsCorePreset({
+  menu: {
+    'sheet.command.set-range-bold': {
+      hidden: true,
+    },
+    'sheet.command.set-range-italic': {
+      hidden: true,
+    },
+  },
+});
+```
+
+```typescript
+// Plugin 配置模式
+univer.registerPlugin(UniverSheetsUIPlugin, {
+  menu: {
+    'sheet.command.set-range-bold': {
+      hidden: true,
+    },
+    'sheet.command.set-range-italic': {
+      hidden: true,
+    },
+  },
+});
+```
+
+关于如何获取命令 ID，可以参考教程[如何查找命令 ID](/guides/sheets/tutorials/find-the-command-id)。
+
+### 菜单项 ID 列表
+
+#### 工具栏菜单项
+
+| 菜单项 ID | 菜单项名称 |
+| --------- | --------- |
+| univer.command.undo | 撤销 |
+| univer.command.redo | 重做 |
+| sheet.command.set-once-format-painter | 格式刷 |
+| sheet.command.set-range-bold | 加粗 |
+| sheet.command.set-range-italic | 斜体 |
+| sheet.command.set-range-underline | 下划线 |
+| sheet.command.set-range-stroke | 删除线 |
+| sheet.command.set-range-font-family | 字体 |
+| sheet.command.set-range-fontsize | 字号 |
+| sheet.command.set-range-text-color | 文本颜色 |
+| sheet.command.set-background-color | 单元格颜色 |
+| sheet.command.set-border-basic | 边框 |
+| sheet.command.add-worksheet-merge | 合并单元格 |
+| sheet.command.set-horizontal-text-align | 水平对齐 |
+| sheet.command.set-vertical-text-align | 垂直对齐 |
+| sheet.command.set-text-wrap | 文本换行 |
+| sheet.command.set-text-rotation | 文本旋转 |
+| sheet.operation.open.conditional.formatting.panel | 条件格式 |
+| formula-ui.operation.insert-function | 函数 |
+| sheet.menu.sheets-sort | 排序 |
+| sheet.menu.image | 图片 |
+| sheet.command.numfmt.set.currency | 货币 |
+| sheet.command.numfmt.add.decimal.command | 增加小数位 |
+| sheet.command.numfmt.subtract.decimal.command | 减少小数位 |
+| sheet.command.numfmt.set.percent | 百分比 |
+| sheet.operation.open.numfmt.panel | 数字格式 |
+| sheet.menu.data-validation | 数据验证 |
+| sheet.command.smart-toggle-filter | 筛选 |
+| sheet.operation.open-pivot-table-range-selector-panel | 数据透视表 |
+| sheet.operation.print-open | 打印 |
+| data-connector.operation.sidebar | 数据连接器 |
+| sheets-exchange-client.operation.exchange | 文件 |
+| sheet.command.menu-insert-chart | 插入图表 |
+| sheet.command.add-range-protection-from-toolbar | 保护 |
+| univer.operation.toggle-edit-history | 历史记录 |
+| sheet.operation.open-sparkline-selector | 迷你图 |
+| thread-comment-ui.operation.toggle-panel | 评论管理 |
+| sheet.operation.insert-hyper-link-toolbar | 插入链接 |
+| ui.operation.open-find-dialog | 查找替换 |
+| base-ui.operation.toggle-shortcut-panel | 打开收起快捷键面板 |
+
+#### 右键菜单项
+
+| 菜单项 ID | 菜单项名称 |
+| --------- | --------- |
+| sheet.command.copy | 复制 |
+| sheet.command.paste | 粘贴 |
+| sheet.menu.paste-special | 选择性粘贴 |
+| sheet.command.paste-values | 选择性粘贴 - 仅粘贴值 |
+| sheet.command.paste-format | 选择性粘贴 - 仅粘贴格式 |
+| sheet.command.paste-col-width | 选择性粘贴 - 仅粘贴列宽 |
+| sheet.command.paste-besides-border | 选择性粘贴 - 仅粘贴边框以外内容 |
+| sheet.command.paste-formula | 选择性粘贴 - 仅粘贴公式 |
+| sheet.menu.clear-selection | 清除 |
+| sheet.command.clear-selection-content | 清除 - 清除内容 |
+| sheet.command.clear-selection-format | 清除 - 清除格式 |
+| sheet.command.clear-selection-all | 清除 - 清除全部 |
+| sheet.menu.cell-insert | 插入 |
+| sheet.command.insert-row-before | 插入 - 在上方插入行 |
+| sheet.command.insert-col-before | 插入 - 在左侧插入列 |
+| sheet.command.insert-range-move-right-confirm | 插入 - 右移 |
+| sheet.command.insert-range-move-down-confirm | 插入 - 下移 |
+| sheet.menu.delete | 删除 |
+| sheet.command.remove-row-confirm | 删除选中行 |
+| sheet.command.remove-col-confirm | 删除选中列 |
+| sheet.command.delete-range-move-left-confirm | 删除 - 左移 |
+| sheet.command.delete-range-move-up-confirm | 删除 - 上移 |
+| sheet.menu.sheet-frozen | 冻结 |
+| sheet.header-menu.sheet-frozen | 冻结（行列标题右键菜单项） |
+| sheet.command.set-selection-frozen | 冻结 - 冻结 |
+| sheet.command.set-row-frozen | 冻结 - 冻结行 |
+| sheet.command.set-col-frozen | 冻结 - 冻结列 |
+| sheet.command.cancel-frozen | 冻结 - 取消冻结 |
+| sheet.contextMenu.permission | 保护行列 |
+| sheet.command.add-range-protection-from-context-menu | 保护行列 - 新增保护范围 |
+| sheet.command.set-range-protection-from-context-menu | 保护行列 - 设置保护范围 |
+| sheet.command.delete-range-protection-from-context-menu | 保护行列 - 移除保护范围 |
+| sheet.command.view-sheet-permission-from-context-menu | 保护行列 - 查看所有保护范围 |
+| sheet.menu.sheets-sort-ctx | 排序 |
+| sheet.command.sort-range-asc-ctx | 排序 - 当前区域升序 |
+| sheet.command.sort-range-asc-ext-ctx | 排序 - 拓展区域升序 |
+| sheet.command.sort-range-desc-ctx | 排序 - 当前区域降序 |
+| sheet.command.sort-range-desc-ext-ctx | 排序 - 拓展区域降序 |
+| sheet.command.sort-range-custom-ctx | 排序 - 自定义排序 |
+| sheets.operation.show-comment-modal | 添加评论 |
+| sheet.operation.insert-hyper-link | 添加链接 |
+| zen-editor.command.open-zen-editor | 禅模式编辑 |
+| sheet.operation.screenshot | 复制为截图 |
+
+#### 右键菜单项 - 行标题
+
+| 菜单项 ID | 菜单项名称 |
+| --------- | --------- |
+| sheet.command.insert-multi-rows-above | 在上方插入行 |
+| sheet.command.insert-multi-rows-after | 在下方插入行 |
+| sheet.command.hide-row-confirm | 隐藏选中行 |
+| sheet.command.set-selected-rows-visible | 显示隐藏行 |
+| sheet.command.set-row-height | 行高 |
+| sheet.command.set-row-is-auto-height | 适合数据 |
+
+#### 右键菜单项 - 列标题
+
+| 菜单项 ID | 菜单项名称 |
+| --------- | --------- |
+| sheet.command.insert-multi-cols-before | 在左侧插入列 |
+| sheet.command.insert-multi-cols-right | 在右侧插入列 |
+| sheet.command.hide-col-confirm | 隐藏选中列 |
+| sheet.command.set-selected-cols-visible | 显示隐藏列 |
+| sheet.command.set-worksheet-col-width | 列宽 |
+| sheet.command.set-col-auto-width | 适合数据 |

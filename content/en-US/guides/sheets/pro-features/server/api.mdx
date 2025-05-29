@@ -1,0 +1,257 @@
+# Univer Server API Protocol
+
+## rule
+
+1. the parameter with `*` mean it is required.
+2. the response with `.` mean json object properties.
+3. `GET` and `DELETE` method parameters only can set in pathinfo or query.
+4. `POST`, `PUT` and `PATCH` method need `content-type: application/json` request header in most api.
+
+## Create Unit [#create-empty-document]
+
+`POST /universer-api/snapshot/{type}/unit/-/create`
+
+parameters:
+
+| name    | type                    | description                              |
+| ------- | ----------------------- | ---------------------------------------- |
+| type    | enum(int)<sup> *</sup> | 1(doc), 2(sheet) <br/> pathinfo and body |
+| name    | string   <sup> *</sup> | Unit name                                |
+| creator | string   <sup> *</sup> | The creator user id                      |
+
+response:
+
+| name          | type      | description                       |
+| ------------- | --------- | --------------------------------- |
+| error.code    | enum(int) | 1(success)                        |
+| error.message | string    | The information of fail situation |
+| unitID        | string    | Unit id                  |
+
+example:
+
+```bash
+curl http://localhost:8000/universer-api/snapshot/2/unit/-/create \
+  -X POST \
+  -H 'Content-Type: application/json' \
+  --data-raw '{"type":2,"name":"New Sheet By Univer","creator":"userID"}'
+
+# response
+{"error":{"code":1, "message":""}, "unitID":"ETVf-B4lQqOSE_p09mcp9Q"}
+```
+
+## List Unit
+
+`GET /universer-api/snapshot/{type}/units`
+
+parameters:
+
+| name       | type                   | description                           |
+| ---------- | ---------------------- | ------------------------------------- |
+| type       | enum(int)<sup> *</sup> | 1(doc), 2(sheet) <br/> pathinfo param |
+| nextCursor | string                 | The cursor for next page              |
+
+response:
+
+| name          | type          | description                                          |
+| ------------- | ------------- | ---------------------------------------------------- |
+| error.code    | enum(int)     | 1(success)                                           |
+| error.message | string        | The information of fail situation                    |
+| units         | array[object] |                                                      |
+| .unitID       | string        | Unit id                                     |
+| .name         | string        | Unit name                                   |
+| .type         | enum(int)     | 1(doc), 2(sheet)                                     |
+| nextCursor    | string        | The cursor for next page, when empty it is last page |
+
+example:
+
+```bash
+curl -X GET 'http://localhost:8000/universer-api/snapshot/1/units?nextCursor=100'
+
+# response
+{"error":{"code":1, "message":""},"units":[{"unitID":"1","name":"a","type":1}],"nextCursor":"200"}
+```
+
+## Delete Unit
+
+`DELETE /universer-api/snapshot/-/units`
+
+parameters:
+
+| name    | type                       | description |
+| ------- | -------------------------- | ----------- |
+| unitIds | array[string]<sup> *</sup> | Unit ids    |
+
+response:
+
+| name          | type      | description                       |
+| ------------- | --------- | --------------------------------- |
+| error.code    | enum(int) | 1(success)                        |
+| error.message | string    | The information of fail situation |
+
+example:
+
+```bash
+curl -X DELETE 'http://localhost:8000/universer-api/snapshot/-/units?unitIds=1&unitIds=2'
+
+# response
+{"error":{"code":1, "message":""}}
+```
+
+## Upload file
+
+`POST /universer-api/stream/file/upload`
+
+1. The request body is a HTLM form, so need request header like it: `content-type: multipart/form-data;boundary=---------------------------163876677831359887162093904846`.
+2. Note that `size` parameter must be equal the real file size, if not equal it will product a api error.
+
+parameters:
+
+| name | type                   | description                       |
+| ---- | ---------------------- | --------------------------------- |
+| size | int<sup> *</sup>       | File size (byte), query parameter |
+| file | Form.file<sup> *</sup> | Use HTLM form to upload file      |
+
+response:
+
+| name   | type   | description                                            |
+| ------ | ------ | ------------------------------------------------------ |
+| FileId | string | The file id for next api using, like import ane export |
+
+example:
+
+```bash
+
+curl 'http://localhost:8000/universer-api/stream/file/upload?size=125466' --header 'cookie: _univer=XXXXXX' --form 'file=@"demo.xlsx"'
+
+# response
+{"FileId":"xxxx"}
+```
+
+## Import
+
+`POST /universer-api/exchange/{type}/import`
+
+parameters:
+
+| name       | type                   | description        |
+| ---------- | ---------------------- | ------------------ |
+| type       | enum(int)<sup> *</sup> | 1(doc), 2(sheet)   |
+| outputType | enum(int)<sup> *</sup> | 1(unit), 2(json)   |
+| fileID     | string<sup> *</sup>    | The upload file id |
+| minSheetRowCount     | int<sup> *</sup>    | Minimum Number of Rows  |
+| minSheetColumnCount     | int<sup> *</sup>    | Minimum Number of Columns  |
+
+response:
+
+| name          | type      | description                       |
+| ------------- | --------- | --------------------------------- |
+| error.code    | enum(int) | 1(success)                        |
+| error.message | string    | The information of fail situation |
+| taskID        | string    | The exchange task id, because of import is a async task, so need to polling to get result |
+
+example:
+
+```bash
+curl 'http://localhost:8000/universer-api/exchange/2/import' \
+  -X POST \
+  -H 'Content-Type: application/json' \
+  --data-raw \
+  '{"fileID":"123","outputType":1,"minSheetRowCount":1000,"minSheetColumnCount":20}'
+
+# response
+{"error":{"code":1,"message":""},"taskID":"456"}
+```
+
+## Export
+
+`POST /universer-api/exchange/{type}/export`
+
+parameters:
+
+| name   | type                   | description      |
+| ------ | ---------------------- | ---------------- |
+| type   | enum(int)<sup> *</sup> | 1(doc), 2(sheet) |
+| unitID | string<sup> *</sup>    | The Unit id      |
+
+response:
+
+| name          | type      | description                       |
+| ------------- | --------- | --------------------------------- |
+| error.code    | enum(int) | 1(success)                        |
+| error.message | string    | The information of fail situation |
+| taskID        | string    | The exchange task id, because of export is a async task, so need to polling to get result |
+
+example:
+
+```bash
+curl 'http://localhost:8000/universer-api/exchange/2/export' \
+  -X POST \
+  -H 'Content-Type: application/json' \
+  --data-raw \
+  '{"unitID":"xxxx","type":2}'
+
+# response
+{"error":{"code":1,"message":""},"taskID":"456"}
+```
+
+## Get exchange task result
+
+`GET /universer-api/exchange/task/{taskID}`
+
+parameters:
+
+| name   | type                | description                  |
+| ------ | ------------------- | ---------------------------- |
+| taskID | string<sup> *</sup> | The import or export task id |
+
+response:
+
+| name          | type         | description                                                                      |
+| ------------- | ------------ | -------------------------------------------------------------------------------- |
+| error.code    | enum(int)    | 1(success)                                                                       |
+| error.message | string       | The information of fail situation                                                |
+| status        | enum(string) | `pending`, `done`, `failed`                                                      |
+| export.fileID | string       | The export exchange result file id, it use for next api to get file content      |
+| import.unitID | string       | The import exchange for unit, it use to open online file                         |
+| import.jsonID | string       | The import exchange json result file id, it use for next api to get file content |
+
+example:
+
+```bash
+curl -X GET 'http://localhost:8000/universer-api/exchange/task/123'
+
+# reponse(import)
+{"error":{"code":1,"message":""},"taskID":"123","status":"done","import":{"jsonID":"456"}}
+
+# response(export)
+{"error":{"code":1,"message":""},"taskID":"123","status":"done","export":{"fileID":"456"}}
+```
+
+## Get file
+
+`GET /universer-api/file/{fileID}/sign-url`
+
+1. The api return a file download url, it can used to get file content.
+
+parameters:
+
+| name   | type                | description                                        |
+| ------ | ------------------- | -------------------------------------------------- |
+| fileID | string<sup> *</sup> | The exchange result file id which need to download |
+
+response:
+
+| name          | type      | description                       |
+| ------------- | --------- | --------------------------------- |
+| error.code    | enum(int) | 1(success)                        |
+| error.message | string    | The information of fail situation |
+| url           | string    | The download url                  |
+
+example:
+
+```bash
+curl -X GET 'http://localhost:8000/universer-api/file/1234/sign-url'
+
+# response
+{"error":{"code":1,"message":""},"url":"https://192.168.50.74:19000/univer/file/123/univer-2060360000.xlsx"}
+```

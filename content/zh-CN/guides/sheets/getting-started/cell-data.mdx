@@ -1,0 +1,502 @@
+import { Callout } from 'nextra/components'
+
+# 单元格数据结构
+
+## 单元格位置
+
+Univer Sheets 中的单元格数据存储在 [IWorksheetData](https://reference.univer.ai/zh-CN/interfaces/IWorkbookData) 的 [cellData](https://reference.univer.ai/zh-CN/interfaces/ICellData) 字段中，cellData 是一个二维 Map 结构，一二级索引分别代表行号和列号，每一个单元格是一个 [ICellData](https://reference.univer.ai/zh-CN/interfaces/ICellData) 对象，包含了单元格值、样式、类型等所有单元格信息。
+
+cellData 的结构如下
+
+```typescript
+// IWorksheetData
+{
+  cellData: {
+    // 第一行
+    0: {
+      // 第一列
+      0: { v: 'A1' },
+      // 第二列
+      1: { v: 'B1' },
+    },
+    // 第二行
+    1: {
+      // 第一列
+      0: { v: 'A2' },
+      // 第二列
+      1: { v: 'B2' },
+    },
+  }
+}
+```
+
+## 单元格信息
+
+完整的单元格信息如下。
+
+| 属性 | 说明 |
+| --- | --- |
+| v | 单元格的原始值 |
+| s | 单元格的样式 id 或者样式对象 |
+| t | 单元格的类型 |
+| p | 富文本，同时也是一个 📝 Univer Docs |
+| f | 公式 |
+| si | 公式 ID |
+| custom | 自定义字段 |
+
+详细了解 [ICellData](https://reference.univer.ai/zh-CN/interfaces/ICellData) 每个字段的类型信息。
+
+### 单元格原始值
+
+`cellData.v` 存储了单元格的原始值，可以为字符串或者数字。有公式的单元格，`v` 存放公式的计算结果。
+
+如下展示了两种不同的单元格值。
+
+```typescript
+// IWorksheetData
+{
+  cellData: {
+    0: {
+      0: { v: 'A1' },
+      1: { v: 1 },
+    },
+  }
+}
+```
+
+### 单元格样式
+
+`cellData.s` 存储了单元格的样式 id 或者样式对象。
+
+如果 `s` 是一个字符串，表示样式 id。Univer Sheets 支持对样式做引用优化，将重复的样式对象存储在 IWorkbookData 的 [styles](https://reference.univer.ai/zh-CN/interfaces/IWorkbookData#styles) 字段中，是一个 Map 结构，每个 key 是样式 id，value 是样式对象。
+
+```typescript
+// IWorkbookData
+{
+  styles: {
+    'random_style_id_1': {
+      fs: 12,
+      bg: {
+        rgb: '#ff0000'
+      }
+    }
+  }
+}
+```
+
+然后将 id 存储到单元格样式中，达到样式复用的目的。
+
+```typescript
+// IWorksheetData
+{
+  cellData: {
+    0: {
+      0: {
+        v: 'A1',
+        s: 'random_style_id_1'
+      },
+      1: {
+        v: 'B1',
+        s: 'random_style_id_1'
+      },
+    },
+  }
+}
+```
+
+如果 `s` 是一个对象，则表示一个完整的单元格样式对象 [IStyleData](https://reference.univer.ai/zh-CN/interfaces/IStyleData)。
+
+完整的样式字段如下。
+
+| 属性 | 说明 |
+| --- | --- |
+| ff | 字体 |
+| fs | 字体大小 |
+| it | 是否斜体 |
+| bl | 是否加粗 |
+| ul | 下划线 |
+| st | 删除线 |
+| ol | 上划线 |
+| bg | 背景颜色 |
+| bd | 边框 |
+| cl | 字体颜色 |
+| va | 上标下标 |
+| tr | 文字旋转 |
+| td | 文字方向 |
+| ht | 水平对齐方式 |
+| vt | 垂直对齐方式 |
+| tb | 截断溢出 |
+| pd | 内边距 |
+| n | 数字格式 |
+
+详细了解 [IStyleData](https://reference.univer.ai/zh-CN/interfaces/IStyleData) 每个字段的类型信息。
+
+#### 字体
+
+`ff` 是一个字符串，表示字体的名称。
+
+```typescript
+// IStyleData
+{
+  ff: 'Arial' // 字体名称为 Arial
+}
+```
+
+#### 字体大小
+
+`fs` 是一个数字，单位是 **pt**。
+
+```typescript
+// IStyleData
+{
+  fs: 12 // 字体大小为 12 pt
+}
+```
+
+#### 是否斜体
+
+`it` 是一个布尔数字，`0` 表示不斜体，`1` 表示斜体。
+
+```typescript
+// IStyleData
+{
+  it: 1 // 斜体
+}
+```
+
+#### 是否加粗
+
+`bl` 是一个布尔数字，`0` 表示不加粗，`1` 表示加粗。
+
+```typescript
+// IStyleData
+{
+  bl: 1 // 加粗
+}
+```
+
+#### 下划线
+
+`ul` 是一个对象，表示下划线样式。
+
+```typescript
+// IStyleData
+{
+  ul: {
+    s: 1, // 是否展示下划线
+    c: 0, // 颜色是否跟随字体颜色。当 `c` 为 1（TRUE） 时 cl 不起作用。默认值为 1
+    cl: { // 下划线颜色
+      rgb: '#ff0000'
+    },
+    t: 0 // 下划线类型
+  }
+}
+```
+
+#### 删除线
+
+`st` 是一个对象，表示删除线样式。
+
+```typescript
+// IStyleData
+{
+  st: {
+    s: 1, // 是否展示删除线
+    c: 0, // 颜色是否跟随字体颜色。当 `c` 为 1（TRUE） 时 cl 不起作用。默认值为 1
+    cl: { // 删除线颜色
+      rgb: '#ff0000'
+    },
+    t: 0 // 删除线类型
+  }
+}
+```
+
+#### 上划线
+
+`ol` 是一个对象，表示上划线样式。
+
+```typescript
+// IStyleData
+{
+  ol: {
+    s: 1, // 是否展示上划线
+    c: 0, // 颜色是否跟随字体颜色。当 `c` 为 1（TRUE） 时 cl 不起作用。默认值为 1
+    cl: { // 上划线颜色
+      rgb: '#ff0000'
+    },
+    t: 0 // 上划线类型
+  }
+}
+```
+
+#### 背景颜色
+
+`bg` 是一个对象，表示背景颜色。
+
+```typescript
+// IStyleData
+{
+  bg: {
+    rgb: '#ff0000' // 背景颜色为红色
+  }
+}
+```
+
+#### 边框
+
+`bd` 是一个对象，表示边框样式。
+
+```typescript
+// IStyleData
+{
+  bd: {
+    // 上边框
+    t: {
+      s: 0, // 边框样式
+      cl: {  // 边框颜色
+        rgb: '#ff0000'
+      }
+    },
+    // 下边框
+    b: {
+      s: 0, // 边框样式
+      cl: {  // 边框颜色
+        rgb: '#ff0000'
+      }
+    },
+    // 左边框
+    l: {
+      s: 0, // 边框样式
+      cl: {  // 边框颜色
+        rgb: '#ff0000'
+      }
+    },
+    // 右边框
+    r: {
+      s: 0, // 边框样式
+      cl: {  // 边框颜色
+        rgb: '#ff0000'
+      }
+    },
+  }
+}
+```
+
+#### 字体颜色
+
+`cl` 是一个对象，表示字体颜色。
+
+```typescript
+// IStyleData
+{
+  cl: {
+    rgb: '#ff0000' // 字体颜色为红色
+  }
+}
+```
+
+#### 上标下标
+
+`va` 是一个数字枚举，`1` 表示正常，`2` 表示下标，`3` 表示上标。
+
+```typescript
+// IStyleData
+{
+  va: 2 // 下标
+}
+```
+
+#### 文字旋转
+
+`tr` 是一个对象，表示文字旋转角度。
+
+```typescript
+// IStyleData
+{
+  tr: {
+    a: 0, // 文字旋转角度
+    v: 0  // 是否垂直。1 表示垂直，0 表示水平。默认值为 0。当 v 为 1 时，a 无效
+  }
+}
+```
+
+#### 文字方向
+
+`td` 是一个数字枚举，`1` 表示从左到右，`2` 表示从右到左。
+
+```typescript
+// IStyleData
+{
+  td: 1 // 从左到右
+}
+```
+
+#### 水平对齐方式
+
+`ht` 是一个数字枚举，`1` 表示左对齐，`2` 表示居中`，3` 表示右对齐。
+
+```typescript
+// IStyleData
+{
+  ht: 1 // 左对齐
+}
+```
+
+#### 垂直对齐方式
+
+`vt` 是一个数字枚举，`1` 表示顶部对齐，`2` 表示居中，`3` 表示底部对齐。
+
+```typescript
+// IStyleData
+{
+  vt: 1 // 顶部对齐
+}
+```
+
+#### 截断溢出
+
+`tb` 是一个数字枚举，`1` 表示溢出，`2` 表示截断，`3` 表示自动换行。
+
+```typescript
+// IStyleData
+{
+  tb: 1 // 溢出
+}
+```
+
+#### 内边距
+
+`pd` 是一个对象，表示内边距。
+
+```typescript
+// IStyleData
+{
+  pd: {
+    t: 0, // 上边距
+    b: 0, // 下边距
+    l: 0, // 左边距
+    r: 0  // 右边距
+  }
+}
+```
+
+#### 数字格式 [#number-format]
+
+`n` 是一个对象，其 `pattern` 字段表示数字格式。数字格式是一个字符串，具体请参考 [这里](https://support.microsoft.com/zh-cn/office/%E6%95%B0%E5%AD%97%E6%A0%BC%E5%BC%8F%E4%BB%A3%E7%A0%81-5026bbd6-04bc-48cd-bf33-80f18b4eae68)。
+
+`n` 为 `null` 或者 `pattern` 为 `null` 时，表示常规格式。
+
+```typescript
+import { DEFAULT_TEXT_FORMAT_EXCEL } from '@univerjs/engine-numfmt';
+
+// IStyleData
+{
+  n: {
+    pattern: DEFAULT_TEXT_FORMAT_EXCEL, // 文本格式
+  }
+}
+```
+
+[关于单元格输入带有0开头或可转换为日期格式的数字时，不想被默认转换](/zh-CN/guides/sheets/features/core/numfmt#qa-1)
+
+### 单元格类型 [#cell-type]
+
+`cellData.t` 是一个枚举 [CellValueType](https://reference.univer.ai/zh-CN/globals#cellvaluetype)，表示单元格的类型。`1` 表示字符串，`2` 表示数字，`3` 表示布尔值，`4` 表示强制文本，不设置时 Univer 会自动识别。
+
+其中，如果单元格是布尔类型，则 `cellData.v` 的值存储为 `0` 或 `1`，`0` 表示 false，`1` 表示 true。
+
+```typescript
+// IWorksheetData
+{
+  cellData: {
+    0: {
+      0: {
+        v: 'A1',
+        t: 1 // 字符串
+      },
+      1: {
+        v: 1,
+        t: 2 // 数字
+      },
+      2: {
+        v: 1, // TRUE
+        t: 3 // 布尔值
+      },
+      3: {
+        v: '012.0',
+        t: 4 // 强制文本
+      },
+    },
+  }
+}
+```
+
+### 富文本
+
+`cellData.p` 是一个对象，表示富文本，同时也是一个 Univer Doc。详细了解 [IDocumentData](https://reference.univer.ai/zh-CN/interfaces/IDocumentData)。
+
+<Callout type="info" emoji="💡">
+  当 `p` 和 `v` 同时存在时，只会显示 `p` 的内容。
+</Callout>
+
+`cellData.p.body.dataStream` 是富文本的内容。
+
+### 公式
+
+`cellData.f` 是一个字符串，表示公式。
+
+```typescript
+// IWorksheetData
+{
+  cellData: {
+    0: {
+      0: {
+        f: '=SUM(A1:B1)' // 求和公式
+      },
+    },
+  }
+}
+```
+
+### 公式 ID
+
+`cellData.si` 是一个字符串，表示公式 ID。Univer Sheets 支持对公式做引用优化，单元格中用 `si` 关联上当前公式后，其他单元格可以通过 `si` 引用到当前公式。注意，`si` 所在单元格的位置必须在引用单元格的右下角，否则导出为 XLSX 时会出现错误。
+
+可以通过 Facade API `range.getFormulas()` 来获取实际的公式，规则是取 `si` 对应的公式 `f` 后，根据当前单元格位置到引用位置的偏移量来计算实际的公式。
+
+```typescript
+// IWorksheetData
+{
+  cellData: {
+    0: {
+      0: {
+        f: '=SUM(A1:B1)' // 求和公式
+        si: 'random_formula_id_1' // 当前公式的 id
+      },
+      1: {
+        si: 'random_formula_id_1' // 计算时取此 id 对应的公式
+      },
+    },
+  }
+}
+```
+
+### 自定义字段
+
+`cellData.custom` 是一个对象，表示自定义字段。其中可以放入任何符合 JSON 格式的数据，用于自定义存储一些额外的信息。
+更新 `custom` 数据会覆盖原有的 `custom` 数据，如果你在更新数据时需要保留原有的 `custom` 数据，请提前获取到 `custom` 数据合并成新的数据后再更新。
+
+```typescript
+// IWorksheetData
+{
+  cellData: {
+    0: {
+      0: {
+        custom: {
+          key: 'value'
+        }
+      },
+    },
+  }
+}
+```

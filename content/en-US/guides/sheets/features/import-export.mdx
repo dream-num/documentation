@@ -1,0 +1,291 @@
+import { Callout } from 'nextra/components'
+import FeatureMeta from '@/components/feature-meta'
+
+# Import & Export
+
+<FeatureMeta texts={['✅', '✅', '✅', '-', 'UniverSheetsAdvancedPreset' ]} />
+
+Univer implements the import and export of Excel XLSX format files through plugins and backend services. The plugin integrates the ability to interact with the server and provides an import and export menu entry.
+
+This feature includes the following plugin packages:
+
+- [`@univerjs-pro/exchange-client`](https://www.npmjs.com/package/@univerjs-pro/exchange-client)
+- [`@univerjs-pro/sheets-exchange-client`](https://www.npmjs.com/package/@univerjs-pro/sheets-exchange-client)
+
+<Callout type="warning" emoji="❓">
+  **Why does Univer implement import and export through backend services?**
+
+  Importing and exporting implemented only through the frontend cannot meet enterprise requirements in terms of performance or effect. Therefore, we provide backend services to implement import and export features. You can use some open-source XLSX parsing libraries to parse files into data structures that conform to the [`IWorksheetData`](https://reference.univer.ai/en-US/interfaces/IWorkbookData) interface, and then import the data into Univer through the Facade API.
+</Callout>
+
+## Presets Installation
+
+```typescript {4-7,10-11,19-20,26-29}
+import { createUniver, defaultTheme, LocaleType, merge } from '@univerjs/presets';
+import { UniverSheetsCorePreset } from '@univerjs/presets/preset-sheets-core';
+import UniverPresetSheetsCoreEnUS from '@univerjs/presets/preset-sheets-core/locales/en-US';
+import { UniverSheetsAdvancedPreset } from '@univerjs/presets/preset-sheets-advanced';
+import UniverPresetSheetsAdvancedEnUS from '@univerjs/presets/preset-sheets-advanced/locales/en-US';
+import { UniverSheetsDrawingPreset } from '@univerjs/presets/preset-sheets-drawing'
+import UniverPresetSheetsDrawingEnUS from '@univerjs/presets/preset-sheets-drawing/locales/en-US'
+
+import '@univerjs/presets/lib/styles/preset-sheets-core.css'
+import '@univerjs/presets/lib/styles/preset-sheets-drawing.css'
+import '@univerjs/presets/lib/styles/preset-sheets-advanced.css'
+
+const { univerAPI } = createUniver({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: merge(
+      {},
+      UniverPresetSheetsCoreEnUS,
+      UniverPresetSheetsDrawingEnUS,
+      UniverPresetSheetsAdvancedEnUS,
+    ),
+  },
+  theme: defaultTheme,
+  presets: [
+    UniverSheetsCorePreset(),
+    UniverSheetsDrawingPreset(),
+    UniverSheetsAdvancedPreset({
+      universerEndpoint: 'http://localhost:3010',
+    }),
+  ],
+});
+```
+
+### Configuration
+
+```typescript
+UniverSheetsAdvancedPreset({
+  // Univer Server endpoint address
+  universerEndpoint?: string;
+  exchangeClientOptions?: {
+    // The minimum number of rows in the worksheet after import
+    minSheetRowCount?: number;
+    // The minimum number of columns in the worksheet after import
+    minSheetColumnCount?: number;
+  };
+})
+```
+
+## Piecemeal Installation
+
+```shell npm2yarn
+npm install @univerjs-pro/exchange-client @univerjs-pro/sheets-exchange-client
+```
+
+```typescript {3-5,7,9,16,21-31}
+import { LocaleType, merge, Univer } from '@univerjs/core';
+import { defaultTheme } from "@univerjs/design";
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client';
+import { UniverSheetsExchangeClientPlugin } from '@univerjs-pro/sheets-exchange-client';
+import ExchangeClientEnUS from '@univerjs-pro/exchange-client/locale/en-US';
+
+import '@univerjs-pro/exchange-client/facade';
+
+import '@univerjs-pro/exchange-client/lib/index.css';
+
+const univer = new Univer({
+  theme: defaultTheme,
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: merge(
+      ExchangeClientEnUS
+    ),
+  },
+});
+
+const UNIVER_SERVER_ENDPOINT = `http://localhost:8000`;
+univer.registerPlugin(UniverExchangeClientPlugin, {
+  // Configurations below are for Univer Server, please modify them according to actual circumstances
+  uploadFileServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/stream/file/upload`,
+  importServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/{type}/import`,
+  exportServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/{type}/export`,
+  getTaskServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/task/{taskID}`,
+  signUrlServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/file/{fileID}/sign-url`,
+  downloadEndpointUrl: `${UNIVER_SERVER_ENDPOINT}/`,
+});
+univer.registerPlugin(UniverSheetsExchangeClientPlugin);
+```
+
+### Configuration
+
+```typescript
+univer.registerPlugin(UniverExchangeClientPlugin, {
+  // Univer Server Configuration
+  downloadEndpointUrl?: string;
+  uploadFileServerUrl?: string;
+  importServerUrl?: string;
+  exportServerUrl?: string;
+  getTaskServerUrl?: string;
+  signUrlServerUrl?: string;
+  // Maximum timeout time, in milliseconds
+  maxTimeoutTime?: number;
+  options?: {
+    // The minimum number of rows in the worksheet after import
+    minSheetRowCount?: number;
+    // The minimum number of columns in the worksheet after import
+    minSheetColumnCount?: number;
+  };
+});
+```
+
+## Custom Usage
+
+The default behavior of importing is: after importing successfully through the import entry in the menu bar, a prompt box will pop up in the lower left corner of the page, displaying the information of the successful import. Click the corresponding link to access the imported document.
+
+If you are not satisfied with the default import and export behavior of the plugin, you can refer to the following code to customize the import and export behavior.
+
+Get the document `URL` or `File` object , and then call the `importXLSXToUnitIdAsync` or `importXLSXToSnapshotAsync` method of the Facade API to import. The reference code is as follows:
+
+```typescript
+const url = 'https://example.com/filename.xlsx'; // Your Excel file URL
+
+// Function to fetch and convert the URL to a File object.
+// Here, the fetch API is used to directly obtain the file,
+// which may need to be modified according to the actual situation,
+// such as file address authentication and cross-domain issues.
+async function fetchExcelFile(url) {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new File([blob], 'filename.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  } catch (error) {
+    console.error('Failed to fetch the file:', error);
+  }
+}
+
+// Fetch the file and import it as a snapshot
+// If the URL file address is not authenticated, 
+// you can directly pass it to the importXLSXToSnapshotAsync or importXLSXToUnitIdAsync method
+fetchExcelFile(url).then(async file => {
+  if (file) {
+    // Modify the following code according to the actual situation
+    univerAPI.importXLSXToSnapshotAsync(file).then(snapshot => {
+      console.log('Snapshot created:', snapshot); // see more: https://docs.univer.ai/en-US/guides/sheets/getting-started/workbook-data
+      // Create a new workbook with the snapshot
+      univerAPI.createWorkbook(snapshot);
+    });
+
+    univerAPI.importXLSXToUnitIdAsync(file).then(unitId => {
+      console.log('Unit ID created:', unitId);
+
+      // Utilize automatic data loading in conjunction with collaborative editing. https://docs.univer.ai/en-US/guides/sheets/features/collaboration#loading-collaborative-documents
+      const url = new URL(window.location.href);
+      const unit = url.searchParams.get('unit');
+      url.searchParams.set('unit', unitId);
+      url.searchParams.set('type', '2'); // The meaning of "2" is String(UniverInstanceType.UNIVER_SHEET)
+      console.log('Unit URL:', url.toString());
+      window.location.href = url.toString();
+
+      // Or call API: univerAPI.loadServerUnit(unitId, 2) to load the document. For specific parameters, refer to https://reference.univer.ai/en-US/classes/FUniver#loadserverunit
+      // This API requires UniverSheetsCollaborationPreset (version after 0.6.9) or manually importing @univerjs-pro/collaboration-client/facade (version 0.6.7+) to use
+    });
+  }
+});
+```
+
+## Facade API
+
+### Import XLSX
+
+To import via API, use the [Facade API](/guides/sheets/getting-started/facade) to call the features provided by the [import/export plugin](/guides/sheets/features/import-export). Make sure to include the necessary dependencies before use.
+
+#### Import XLSX and Get `unitId` [#import-xlsx-and-get-unitid]
+
+In a collaborative environment, each workbook has a unique `unitId`. Use the API `importXLSXToUnitIdAsync` to pass in the `file` parameter and return `unitId`, which can be used to access the workbook. The `file` parameter can be a File object or a URL to a remote file.
+
+```typescript
+// Accepts a File object
+const unitId = await univerAPI.importXLSXToUnitIdAsync(file);
+// Or accepts a URL to a remote file
+// const unitId = await univerAPI.importXLSXToUnitIdAsync('https://example.com/filename.xlsx');
+
+// Utilize automatic data loading in conjunction with collaborative editing. https://docs.univer.ai/en-US/guides/sheets/features/collaboration#loading-collaborative-documents
+const url = new URL(window.location.href);
+const unit = url.searchParams.get('unit');
+url.searchParams.set('unit', unitId);
+url.searchParams.set('type', "2"); // The meaning of "2" is String(UniverInstanceType.UNIVER_SHEET)
+console.log('Unit URL:', url.toString());
+window.location.href = url.toString();
+
+// Or call API: univerAPI.loadServerUnit(unitId, 2) to load the document. For specific parameters, refer to https://reference.univer.ai/en-US/classes/FUniver#loadserverunit
+// This API requires UniverSheetsCollaborationPreset (version after 0.6.9) or manually importing @univerjs-pro/collaboration-client/facade (version 0.6.7+) to use
+```
+
+#### Import XLSX and Get Workbook Data [#import-xlsx-and-get-workbook-data]
+
+When using the import XLSX capability separately in a non-collaborative environment, you can use the API `importXLSXToSnapshotAsync` to return the workbook data in the IWorkbookData format.
+
+```typescript
+// Accepts a File object
+const snapshot = await univerAPI.importXLSXToSnapshotAsync(file);
+// Or accepts a URL to a remote file
+// const snapshot = await univerAPI.importXLSXToSnapshotAsync('https://example.com/filename.xlsx');
+console.log('Snapshot created:', snapshot); // see more: https://docs.univer.ai/en-US/guides/sheets/getting-started/workbook-data
+
+// Create a new workbook with the snapshot
+univerAPI.createWorkbook(snapshot);
+```
+
+### Export XLSX
+
+To export via API, use the [Facade API](/guides/sheets/getting-started/facade) to call the features provided by the [import/export plugin](/guides/sheets/features/import-export). Make sure to include the necessary dependencies before use.
+
+#### Export XLSX via `unitId`
+
+Use the API `exportXLSXByUnitIdAsync` to pass in the `unitId` parameter and return an `File` object. You can use `downloadFile` to download the file or process it further.
+
+```typescript
+import { downloadFile } from '@univerjs-pro/exchange-client';
+
+const fWorkbook = univerAPI.getActiveWorkbook();
+const unitId = fWorkbook.getId();
+const file = await univerAPI.exportXLSXByUnitIdAsync(unitId);
+
+// Download the file
+downloadFile(file, 'univer', 'xlsx');
+```
+
+### Export XLSX via Workbook Data
+
+Use the API `exportXLSXBySnapshotAsync` to pass in the table data in the `IWorkbookData` format and return a `File` object.
+
+You can refer to [Getting Workbook Data](/en-US/guides/sheets/features/core/sheet-api#get-workbook-data) to get the data in the `IWorkbookData` format.
+
+```typescript
+import { downloadFile } from '@univerjs-pro/exchange-client';
+
+const fWorkbook = univerAPI.getActiveWorkbook();
+const snapshot = fWorkbook.save();
+const file = await univerAPI.exportXLSXBySnapshotAsync(snapshot);
+
+// Download the file
+downloadFile(file, 'univer', 'xlsx');
+```
+
+## Server-Side Data Conversion
+
+Univer's server provides import and export APIs, but the server-side converted data is not consistent with the Univer format. If you use our frontend import/export plugin `@univerjs-pro/exchange-client`, the data is automatically converted by default without any additional processing. However, if you use the server's import/export API directly, you need to use the following methods to convert the data.
+
+### Converting Snapshot to Workbook Data
+
+After importing, the obtained Snapshot JSON data needs to be converted into the `IWorkbookData` format for use in Univer.
+
+```typescript
+import { transformSnapshotJsonToWorkbookData } from '@univerjs-pro/exchange-client';
+
+// The JSON data contains snapshot and sheetBlocks
+const workbookData = transformSnapshotJsonToWorkbookData(json);
+```
+
+### Converting Workbook Data to Snapshot
+
+Before exporting, the `IWorkbookData` format data needs to be converted into Snapshot JSON data so that it can be passed to the server for export.
+
+```typescript
+import { transformWorkbookDataToSnapshotJson } from '@univerjs-pro/exchange-client';
+
+const snapshotJson = transformWorkbookDataToSnapshotJson(workbookData);
+```

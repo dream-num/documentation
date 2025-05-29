@@ -1,0 +1,256 @@
+# Univer Server API 定义
+
+## 规则
+
+1. 带有 `*` 符号的参数表示是必须的。
+2. 带有 `.` 符号的返回值表示是 json 对象的属性。
+3. `GET` 和 `DELETE` 的请求参数只能出现在路径和 query 里。
+4. `POST`， `PUT` 和 `PATCH` 请求一般需要 `content-type: application/json` 请求头。
+
+## 创建文档 [#create-empty-document]
+
+`POST /universer-api/snapshot/{type}/unit/-/create`
+
+参数:
+
+| 字段    | 类型                   | 描述                                        |
+| ------- | ---------------------- | ------------------------------------------- |
+| type    | enum(int)<sup> *</sup> | 1（doc）， 2（sheet）<br/> 路径和请求体参数 |
+| name    | string<sup> *</sup>    | 文档名称                                    |
+| creator | string<sup> *</sup>    | 创建者id                                    |
+
+返回值:
+
+| 字段          | 类型      | 描述      |
+| ------------- | --------- | --------- |
+| error.code    | enum(int) | 1（成功） |
+| error.message | string    | 失败信息  |
+| unitID        | string    | 文档id    |
+
+例：
+
+```bash
+curl http://localhost:8000/universer-api/snapshot/{type}/unit/-/create \
+  -X POST \
+  -H 'Content-Type: application/json' \
+  --data-raw '{"type":2,"name":"New Sheet By Univer","creator":"userID"}'
+
+# response
+{"error":{"code":1, "message":"success"}, "unitID":"ETVf-B4lQqOSE_p09mcp9Q"}
+```
+
+## 获取文档列表
+
+`GET /universer-api/snapshot/{type}/units`
+
+参数:
+
+| 字段       | 类型                   | 描述                                        |
+| ---------- | ---------------------- | ------------------------------------------- |
+| type       | enum(int)<sup> *</sup> | 1（doc）， 2（sheet）<br/> 路径和请求体参数 |
+| nextCursor | string                 | 分页的下一页游标                            |
+
+返回值：
+
+| 字段          | 类型          | 描述                                     |
+| ------------- | ------------- | ---------------------------------------- |
+| error.code    | enum(int)     | 1（成功）                                |
+| error.message | string        | 失败信息                                 |
+| units         | array[object] |                                          |
+| .unitID       | string        | 文档id                                   |
+| .name         | string        | 文档名称                                 |
+| .type         | enum(int)     | 1（doc）， 2（sheet）                    |
+| nextCursor    | string        | 分页的下一页游标，当为空时表示为最后一页 |
+
+例：
+
+```bash
+curl -X GET 'http://localhost:8000/universer-api/snapshot/1/units?nextCursor=100'
+
+# response
+{"error":{"code":1, "message":""},"units":[{"unitID":"1","name":"a","type":1}],"nextCursor":"200"}
+```
+
+## 删除文档
+
+`DELETE /universer-api/snapshot/-/units`
+
+参数：
+
+| 字段    | 类型                       | 描述         |
+| ------- | -------------------------- | ------------ |
+| unitIds | array[string]<sup> *</sup> | 文档 id 数组 |
+
+返回值：
+
+| 字段          | 类型      | 描述      |
+| ------------- | --------- | --------- |
+| error.code    | enum(int) | 1（成功） |
+| error.message | string    | 失败信息  |
+
+例：
+
+```bash
+curl -X DELETE 'http://localhost:8000/universer-api/snapshot/-/units?unitIds=1&unitIds=2'
+
+# response
+{"error":{"code":1, "message":""}}
+```
+
+## 上传文件
+
+`POST /universer-api/stream/file/upload`
+
+1. 请求体是 HTML form 结构，所以请求头需要一个类似的： `content-type: multipart/form-data;boundary=---------------------------163876677831359887162093904846`。
+2. 注意 `size` 参数必须等于真实文件大小，如果不等于会造成返回 error 。
+
+参数：
+
+| 字段 | 类型                   | 描述                         |
+| ---- | ---------------------- | ---------------------------- |
+| size | int<sup> *</sup>       | 文件大小（byte），query 参数 |
+| file | Form.file<sup> *</sup> | HTML form 上传文件           |
+
+返回值：
+
+| 字段   | 类型   | 描述                               |
+| ------ | ------ | ---------------------------------- |
+| FileId | string | 文件id，用于后面请求比如导入和导出 |
+
+例：
+
+```bash
+curl 'http://localhost:8000/universer-api/stream/file/upload?size=125466'  --header 'cookie: _univer=XXXXXX' --form 'file=@"demo.xlsx"'
+
+# response
+{"FileId":"xxxx"}
+```
+
+## 导入
+
+`POST /universer-api/exchange/{type}/import`
+
+参数：
+
+| 字段       | 类型                   | 描述                  |
+| ---------- | ---------------------- | --------------------- |
+| type       | enum(int)<sup> *</sup> | 1（doc）， 2（sheet） |
+| outputType | enum(int)<sup> *</sup> | 1（unit）， 2（json） |
+| fileID     | string<sup> *</sup>    | 上传的文件id          |
+| minSheetRowCount     | int<sup> *</sup>    | 最小行数          |
+| minSheetColumnCount     | int<sup> *</sup>    | 最小列数          |
+
+返回值：
+
+| 字段          | 类型      | 描述                                                          |
+| ------------- | --------- | ------------------------------------------------------------- |
+| error.code    | enum(int) | 1（成功）                                                     |
+| error.message | string    | 失败信息                                                      |
+| taskID        | string    | 转换任务 id，导入导出是异步的，使用该 id 轮询接口获取转换结果 |
+
+例：
+
+```bash
+curl 'http://localhost:8000/universer-api/exchange/2/import' \
+  -X POST \
+  -H 'Content-Type: application/json' \
+  --data-raw \
+  '{"fileID":"123","outputType":1,"minSheetRowCount":1000,"minSheetColumnCount":20}'
+
+# response
+{"error":{"code":1,"message":""},"taskID":"456"}
+```
+
+## 导出
+
+`POST /universer-api/exchange/{type}/export`
+
+参数：
+
+| 字段   | 类型                   | 描述                  |
+| ------ | ---------------------- | --------------------- |
+| type   | enum(int)<sup> *</sup> | 1（doc）， 2（sheet） |
+| unitID | string<sup> *</sup>    | 文档id                |
+
+返回值：
+
+| 字段          | 类型      | 描述                                                          |
+| ------------- | --------- | ------------------------------------------------------------- |
+| error.code    | enum(int) | 1（成功）                                                     |
+| error.message | string    | 失败信息                                                      |
+| taskID        | string    | 转换任务 id，导入导出是异步的，使用该 id 轮询接口获取转换结果 |
+
+例：
+
+```bash
+curl 'http://localhost:8000/universer-api/exchange/2/export' \
+  -X POST \
+  -H 'Content-Type: application/json' \
+  --data-raw \
+  '{"unitID":"xxxx","type":2}'
+
+# response
+{"error":{"code":1,"message":""},"taskID":"456"}
+```
+
+## 获取转换结果
+
+`GET /universer-api/exchange/task/{taskID}`
+
+参数：
+
+| 字段   | 类型                | 描述        |
+| ------ | ------------------- | ----------- |
+| taskID | string<sup> *</sup> | 转换任务 id |
+
+返回值：
+
+| 字段          | 类型         | 描述                                                    |
+| ------------- | ------------ | ------------------------------------------------------- |
+| error.code    | enum(int)    | 1（成功）                                               |
+| error.message | string       | 失败信息                                                |
+| status        | enum(string) | `pending`, `done`, `failed`                             |
+| export.fileID | string       | 导出转换结果的文件 id，用于后面接口获取文件内容         |
+| import.unitID | string       | 导入转换后的 unitID，用于打开在线表格                   |
+| import.jsonID | string       | 导入转换为 json 结果的文件 id，用于后面接口获取文件内容 |
+
+例：
+
+```bash
+curl -X GET 'http://localhost:8000/universer-api/exchange/task/123'
+
+# reponse(import)
+{"error":{"code":1,"message":""},"taskID":"123","status":"done","import":{"jsonID":"456"}}
+
+# response(export)
+{"error":{"code":1,"message":""},"taskID":"123","status":"done","export":{"fileID":"456"}}
+```
+
+## 获取文件
+
+`GET /universer-api/file/{fileID}/sign-url`
+
+1. 接口返回一个文件下载链接，需要通过它获取文件内容
+
+参数：
+
+| 字段   | 类型                | 描述                  |
+| ------ | ------------------- | --------------------- |
+| fileID | string<sup> *</sup> | 转换任务的结果文件 id |
+
+返回值：
+
+| 字段          | 类型      | 描述           |
+| ------------- | --------- | -------------- |
+| error.code    | enum(int) | 1（成功）      |
+| error.message | string    | 失败信息       |
+| url           | string    | 文件的下载连接 |
+
+例：
+
+```bash
+curl -X GET 'http://localhost:8000/universer-api/file/1234/sign-url'
+
+# response
+{"error":{"code":1,"message":""},"url":"https://192.168.50.74:19000/univer/file/123/univer-2060360000.xlsx"}
+```

@@ -1,0 +1,116 @@
+import { Callout } from 'nextra/components'
+
+# Architecture of Web Worker
+
+Certain modules, such as the formula engine, are naturally resource-intensive. To prevent them from blocking the main thread and degrading the interactive user experience, Univer supports running these modules within Web Workers.
+
+A Univer codebase running within a Web Worker is essentially a separate `Univer` instance, and instances communicate with each other via the RPC mechanism provided by the `@univerjs/rpc` package. This plugin also offers a mechanism for synchronizing data and mutations between the two Univer instances.
+
+## Example
+
+Utilizing Web Workers in Univer is quite simple.
+
+In the main thread's Univer instance, import the `@univerjs/rpc` plugin, specify the path of the Web Worker entry file, and configure the formula plugin in the main thread to not compute formulas.
+
+```typescript
+import type { IUniverRPCMainThreadConfig } from '@univerjs/rpc';
+import { UniverRPCMainThread } from '@univerjs/rpc';
+import { UniverSheetsFormula } from '@univerjs/sheets-formula';
+
+// ...
+
+univer.registerPlugin(UniverSheetsFormula, {
+  notExecuteFormula: true,
+})
+
+univer.registerPlugin(UniverRPCMainThread, {
+  workerURL: './worker.js',
+  unsyncMutations: new Set([RichTextEditingMutation.id])
+});
+```
+
+In the Web Worker's entry file, instantiate another Univer instance and register the required plugins.
+
+```typescript
+import { UniverFormulaEngine } from '@univerjs/engine-formula';
+import { UniverSheets } from '@univerjs/sheets';
+import { LocaleType, Univer } from '@univerjs/core';
+import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc';
+import { UniverSheetsFormula } from '@univerjs/sheets-formula';
+
+const univer = new Univer();
+
+univer.registerPlugin(UniverRPCWorkerThreadPlugin);
+univer.registerPlugin(UniverSheets);
+univer.registerPlugin(UniverFormulaEngine);
+univer.registerPlugin(UniverSheetsFormula);
+```
+
+After running the code, you will notice a Web Worker thread, and formula computations will occur within it.
+
+<Callout type="info" emoji="ℹ️">
+  Because there's no need to worry about UI and rendering in the Web Worker, the plugins introduced are significantly fewer than in the main thread. This is one of the advantages of a pluginized architecture - enabling Univer to run with minimal resources in any environment.
+</Callout>
+
+For more information, please refer to [examples/sheets](https://github.com/dream-num/univer/tree/dev/examples/src/sheets).
+
+## Overall Architecture
+
+The architecture of Univer's Web Worker is as follows:
+
+![Web Worker Architecture](./web-worker/web-worker-architecture.png)
+
+Documents created and edits made in the main thread will be synchronized to the Web Worker through the following steps:
+
+1. When a document is created in the main thread, the `DataSyncPrimaryController` in the main thread detects the event and calls the `createInstance` method of the `IRemoteInstanceService` in the Web Worker to create the same document instance.
+2. When mutation occurs in the main thread, the `DataSyncPrimaryController` in the main thread detects the event and calls the `syncMutation` method of the `IRemoteInstanceService` in the Web Worker to apply the mutation to the Univer instance in the Web Worker.
+
+The calculation results of the Web Worker's formula are written back to the main thread as follows:
+
+1. When the Univer instance in the Web Worker completes formula calculation, it generates a mutation and references it. The `DataSyncReplicaController` in the Web Worker detects the event and calls the `syncMutation` method of the `IRemoteSyncService` in the main thread to apply the mutation to the Univer instance in the main thread.
+
+## RPC Mechanism
+
+As shown in the previous explanation, modules of Univer in different threads appear to be able to directly call each other's methods, which is provided by the RPC mechanism of the `@univerjs/rpc` plugin.
+
+As an example, let's consider the main thread calling the `IRemoteInstanceService` in the Web Worker thread. In the main thread, acting as a client, an `IRemoteInstanceService` interface needs to be declared as a dependency, and the specific implementation is provided by the `toModule` method of the RPC module. This method accepts a `Channel` as a parameter and returns an object that implements the `IRemoteInstanceService` interface. This object is actually a `Proxy`, and calls to its methods are intercepted by the `Proxy`. The channel name, method name, and arguments are serialized by the RPC module and sent to the Web Worker thread.
+
+```typescript
+export class UniverRPCMainThread extends Plugin {
+  override async onStarting(injector: Injector): Promise<void> {
+    const worker = new Worker(this._config.workerURL);
+    const messageProtocol = createWebWorkerMessagePortOnMain(worker);
+    const client = new ChannelClient(messageProtocol);
+    const server = new ChannelServer(messageProtocol);
+
+    const dependencies: Dependency[] = [
+        IRemoteInstanceService,
+        { useFactory: () => toModule<IRemoteInstanceService>(client.getChannel(RemoteInstanceServiceName)) },
+      ],
+    ];
+    dependencies.forEach((dependency) => injector.add(dependency));
+  }
+}
+```
+
+In the Web Worker thread, the `IRemoteInstanceService` interface must be implemented and registered to `ChannelServer`, so the RPC module in the Web Worker thread can forward RPC calls from the main thread to the implementation of `IRemoteInstanceService` in the Web Worker thread.
+
+```typescript
+/**
+ * This plugin is used to register the RPC services on the worker thread.
+ */
+export class UniverRPCWorkerThreadPlugin extends Plugin {
+  override onStarting(injector: Injector): void {
+    const messageProtocol = createWebWorkerMessagePortOnWorker();
+    const server = new ChannelServer(messageProtocol);
+
+    const dependencies: Dependency[] = [
+      [IRemoteInstanceService, { useClass: RemoteInstanceReplicaService }],
+    ];
+    dependencies.forEach((dependency) => injector.add(dependency));
+    server.registerChannel(RemoteInstanceServiceName, fromModule(injector.get(IRemoteInstanceService)));
+  }
+}
+```
+
+Indeed, the RPC mechanism provided by the `@univerjs/rpc` plugin can be used for communication between any two Univer instances, not limited to the main thread and Web Worker. Therefore, implementing server-side calculations or using multi-process with Electron is also straightforward. All that is needed is to implement the corresponding communication mechanism (`messageProtocol`) in the corresponding environment.

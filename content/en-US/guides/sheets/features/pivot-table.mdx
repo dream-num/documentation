@@ -1,0 +1,513 @@
+import FeatureMeta from '@/components/feature-meta'
+
+# Pivot Table
+
+<FeatureMeta texts={['✅', '✅', '-', '✅', 'UniverSheetsAdvancedPreset' ]} />
+
+Pivot table is a powerful data analysis tool that can quickly summarize, organize and analyze large amounts of data, thereby helping users discover patterns and trends in the data.
+
+This feature includes the following plugin packages:
+
+- [`@univerjs-pro/engine-pivot`](https://www.npmjs.com/package/@univerjs-pro/engine-pivot) provides the most basic data calculation capabilities for pivot tables. The plugin does not rely on any third-party plug-ins for its work.
+- [`@univerjs-pro/sheets-pivot`](https://www.npmjs.com/package/@univerjs-pro/sheets-pivot) assembles engine-pivot into universal sheet plugin to support table rendering, collaboration, formulas and other capabilities
+- [`@univerjs-pro/sheets-pivot-ui`](https://www.npmjs.com/package/@univerjs-pro/sheets-pivot-ui) provides a basic drag-and-drop interface & filtering and other dialogs required for interaction
+
+Currently supported functions include:
+
+- 11 subtotal methods supported like excel
+- Dimension label filtering and sorting (using localCompare method)
+- tabular layout
+- expand / collapse
+- Supports multiple value dimensions, and can customize the area (value position) and position (value index) of the multi-value dimension.
+- rename field & format filed
+- auto refresh when data source range change and dirty formula witch ref the pivot table area
+
+We also plan to support the following features in the near future:
+
+- Group , the date group & element group & number group
+- Filter & sort, support the value filter and value sort
+- Show data as, support all kind of show data as type in excel
+- Calc field & calc item
+- Enhance the layout ability, support compact & outline layout, merge items and blank rows.
+
+## Presets Installation
+
+Please follow the instructions in [Print](/guides/sheets/features/print).
+
+## Piecemeal Installation
+
+### Plugin Installation and Import
+
+```shell npm2yarn
+npm install @univerjs-pro/engine-pivot @univerjs-pro/sheets-pivot @univerjs-pro/sheets-pivot-ui
+```
+
+```typescript {3-6,8,10,17-18}
+import { LocaleType, merge, Univer } from '@univerjs/core';
+import { defaultTheme } from "@univerjs/design";
+import { UniverSheetsPivotTablePlugin } from '@univerjs-pro/sheets-pivot';
+import SheetsPivotTableEnUS from '@univerjs-pro/sheets-pivot/locale/en-US';
+import { UniverSheetsPivotTableUIPlugin } from '@univerjs-pro/sheets-pivot-ui';
+import SheetsPivotTableUIEnUS from '@univerjs-pro/sheets-pivot-ui/locale/en-US';
+
+import '@univerjs-pro/sheets-pivot-ui/lib/index.css';
+
+import '@univerjs-pro/sheets-pivot/facade';
+
+const univer = new Univer({
+  theme: defaultTheme,
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: merge(
+      SheetsPivotTableEnUS,
+      SheetsPivotTableUIEnUS
+    ),
+  },
+});
+
+```
+### Plugin Registration
+
+The Pivot Table plugin supports flexible registration for different usage scenarios, offering two modes to suit various computational demands.
+
+**Registering in the Main Process Only**
+
+The Pivot Table plugin can be registered in the main process only. This mode is suitable for lightweight tasks, offering simplicity with no additional plugin configuration required. Developers only need to import `UniverSheetsPivotTablePlugin`.
+
+```typescript
+univer.registerPlugin(UniverSheetsPivotTablePlugin);
+univer.registerPlugin(UniverSheetsPivotTableUIPlugin);
+```
+
+**Registering in Both the Main Process and Worker Process** 
+
+For high-performance scenarios, the Pivot Table plugin supports registration in both the main process and the worker process. This mode leverages a multi-threaded architecture to enable efficient data distribution and computation, significantly reducing the computational burden on the main process and enhancing overall performance.
+
+In this mode, the main process is primarily responsible for data distribution, synchronization, and rendering, while the worker process handles complex computational tasks. To enable this mode, the plugin must be configured during registration.
+
+```typescript {1,7}
+// main process file
+// Setting notExecuteFormula to true indicates that the main process does not perform calculations. It is only responsible for data distribution, synchronization, and rendering.
+univer.registerPlugin(UniverSheetsPivotTablePlugin, { notExecuteFormula: true });
+univer.registerPlugin(UniverSheetsPivotTableUIPlugin);
+
+// web worker process file
+// Setting notExecuteFormula to false indicates that the worker process performs the calculations.
+univer.registerPlugin(UniverSheetsPivotTablePlugin, { notExecuteFormula: false });
+```
+
+## Univer on Node.js Piecemeal Installation
+
+```typescript {3-4,6,13,18}
+import { LocaleType, merge, Univer } from '@univerjs/core';
+import { defaultTheme } from "@univerjs/design";
+import { UniverSheetsPivotTablePlugin } from '@univerjs-pro/sheets-pivot';
+import SheetsPivotTableEnUS from '@univerjs-pro/sheets-pivot/locale/en-US';
+
+import '@univerjs-pro/sheets-pivot/facade';
+
+const univer = new Univer({
+  theme: defaultTheme,
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: merge(
+      SheetsPivotTableEnUS,
+    ),
+  },
+});
+
+univer.registerPlugin(UniverSheetsPivotTablePlugin, { notExecuteFormula: false });
+```
+
+## Facade API
+
+To get full definition of facade api, please refer to [FacadeAPI](https://reference.univer.ai/en-US)
+
+### Add a Pivot Table
+
+[`FWorkbook.addPivotTable`](https://reference.univer.ai/en-US/classes/FWorkbook#addpivottable) method is used to add a pivot table, and it will return the `FPivotTable` instance if successful.
+
+```typescript
+// should ensure the sheet range A1:G9 is not empty
+const fWorkbook = univerAPI.getActiveWorkbook();
+const unitId = fWorkbook.getId();
+const fSheet = fWorkbook.getActiveSheet();
+const subUnitId = fSheet.getSheetId();
+const sheetName = fSheet.getSheetName();
+const sourceInfo = {
+  unitId,
+  subUnitId,
+  sheetName,
+  range: {
+    startRow: 0,
+    startColumn: 0,
+    endRow: 8,
+    endColumn: 5,
+  },
+}
+const anchorCellInfo = {
+  unitId,
+  subUnitId,
+  row: 20,
+  col: 8
+};
+const fPivotTable = await fWorkbook.addPivotTable(sourceInfo, univerAPI.Enum.PositionTypeEnum.Existing, anchorCellInfo);
+const pivotTableId = fPivotTable.getPivotTableId();
+//add flag to avoid add pivot fields multiple times
+let hasAdded = false;
+// the addPivotTable is async, you can add pivot fields after the pivot table is added
+univerAPI.addEvent(univerAPI.Event.PivotTableRendered, (params) => {
+  if (!hasAdded && params.pivotTableId === pivotTableId) {
+    fPivotTable.addField(1, univerAPI.Enum.PivotTableFiledAreaEnum.Row, 0);
+    fPivotTable.addField(1, univerAPI.Enum.PivotTableFiledAreaEnum.Value, 0);
+    hasAdded = true;
+  }
+});
+```
+
+### Get a Pivot Table
+
+[`FWorkbook.getPivotTableByCell`](https://reference.univer.ai/en-US/classes/FWorkbook#getpivottablebycell) method is used to get a pivot table instance by the anchor cell, and it will return the `FPivotTable` instance if the target cell is in a pivot table.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook();
+const unitId = fWorkbook.getId();
+const fSheet = fWorkbook.getActiveSheet();
+const subUnitId = fSheet.getSheetId();
+
+// get pivot table by the cell in FWorkbook.
+const fPivotTable =  fWorkbook.getPivotTableByCell(unitId, subUnitId, 0, 8)
+
+// get pivot table by the cell in FWorksheet.
+const pivotTable2 = fSheet.getPivotTableByCell(0, 8);
+```
+
+There are some methods in the [`FPivotTable`](https://reference.univer.ai/en-US/classes/FPivotTable) instance, which can be used to operate the pivot table.
+
+| Method                                                                                                                         | Description                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| [remove](https://reference.univer.ai/@univerjs-pro/sheets-pivot/facade/classes/FPivotTable#remove)                             | remove the pivot table from instance                                              |
+| [getConfig](https://reference.univer.ai/@univerjs-pro/sheets-pivot/facade/classes/FPivotTable#getconfig)                       | return the pivot table config, the source range info, anchor cell info and config |
+| [addField](https://reference.univer.ai/@univerjs-pro/sheets-pivot/facade/classes/FPivotTable#addfield)                         | add a field to pivot table                                                        |
+| [removeField](https://reference.univer.ai/@univerjs-pro/sheets-pivot/facade/classes/FPivotTable#removefield)                   | remove a field from pivot table                                                   |
+| [updateFieldPosition](https://reference.univer.ai/@univerjs-pro/sheets-pivot/facade/classes/FPivotTable#updatefieldposition)   | update the field position in pivot table                                          |
+| [updateValuePosition](https://reference.univer.ai/@univerjs-pro/sheets-pivot/facade/classes/FPivotTable#updatevalueposition)   | control the ∑Value position                                                       |
+| [setSubtotalType](https://reference.univer.ai/@univerjs-pro/sheets-pivot/facade/classes/FPivotTable#setsubtotaltype)           | set the subtotal type of the field                                                |
+| [setLabelSort](https://reference.univer.ai/@univerjs-pro/sheets-pivot/facade/classes/FPivotTable#setlabelsort)                 | set the label sort of the field                                                   |
+| [setLabelManualFilter](https://reference.univer.ai/@univerjs-pro/sheets-pivot/facade/classes/FPivotTable#setlabelmanualfilter) | set the label filter of the field                                                 |
+| [renameField](https://reference.univer.ai/@univerjs-pro/sheets-pivot/facade/classes/FPivotTable#renamefield)                   | rename the field                                                                  |
+| [setValueFilter](https://reference.univer.ai/@univerjs-pro/sheets-pivot/facade/classes/FPivotTable#setValueFilter)             | set value filter                                                                  |
+| [reset](https://reference.univer.ai/@univerjs-pro/sheets-pivot/facade/classes/FPivotTable#reset)                               | reset the pivot table fields                                                      |
+| [setFieldsConfig](https://reference.univer.ai/@univerjs-pro/sheets-pivot/facade/classes/FPivotTable#setfieldsconfig)           | set the pivot table fields config                                                 |
+| [getValueFilters](https://reference.univer.ai/@univerjs-pro/sheets-pivot/facade/classes/FPivotTable#getvaluefilters)           | get all value filters of the pivot table                                          |
+
+```typescript
+/**
+ * @description Get the pivot table config by the pivot table id.
+ * @typedef PivotTableConfig
+ * @property {TargetInfo} targetCellInfo  The target cell info of the pivot table.
+ * @property {SourceInfo} sourceRangeInfo The source data range info of the pivot table.
+ * @property {boolean} isEmpty The pivot table is empty or not.
+ * @property {object} fieldsConfig The snapshot of the pivot table fields config.
+ * @returns {PivotTableConfig|undefined} The pivot table config or undefined.
+ */
+getConfig():IPivotTableConfig;
+/**
+ * @description Remove a pivot table from the workbook by pivot table id
+ */
+async remove():void;
+/**
+ *@description Add a pivot field to the pivot table.
+  * @param {string|number} dataFieldIdOrIndex The data field id.
+  * @param {PivotTableFiledAreaEnum} fieldArea The area of the field.
+  * @param {number} index The index of the field in the target area.
+  * @returns {boolean} Whether the pivot field is added successfully.
+  */
+async addField(dataFieldIdOrIndex: string | number, fieldArea: PivotTableFiledAreaEnum, index: number): Promise<boolean>;
+/**
+ * @description Remove a pivot field from the pivot table
+ * @param {string[]} fieldIds The deleted field ids.
+ * @returns {boolean} Whether the pivot field is removed successfully.
+ */
+async removeField(fieldIds: string[]): Promise<boolean>;
+/**
+ * @description Update the pivot table field position.
+ * @param {string} fieldId - The moved field id.
+ * @param {PivotTableFiledAreaEnum} area - The target area of the field.
+ * @param {number} index - The target index of the field, if the index is bigger than the field count in the target area, the field will be moved to the last, if the index is smaller than 0, the field will be moved to the first.
+ * @returns {boolean} Whether the pivot field is moved successfully.
+ */
+async updateFieldPosition(fieldId: string, area: PivotTableFiledAreaEnum, index: number): Promise<boolean>;
+/**
+ * @description If there are multiple value fields in the pivot table, you can update the position of the value field, which only can be position in row or column.
+ * @param {PivotTableValuePositionEnum} position - The position of the value field.
+ * @param {number} index - The index of the value field.
+ * @returns {boolean} Whether the pivot value field is moved successfully.
+ */
+async updateValuePosition(position: PivotTableValuePositionEnum, index: number): Promise<boolean>;
+/**
+ * @description Set the pivot table subtotal type for value field, it only works for the value field.
+ * @param {string} fieldId - The field id.
+ * @param {PivotSubtotalTypeEnum} subtotalType - The subtotal type of the field.
+ * @returns {boolean} Whether the pivot table subtotal type is set successfully.
+ */
+async setSubtotalType(fieldId: string, subtotalType: PivotSubtotalTypeEnum): Promise<boolean>;
+/**
+ * @description Set the pivot table sort info.
+ * @param {string} tableFieldId - The field id of the sort.
+ * @param {PivotTableSortInfo} info - The sort info.
+ * @typedef PivotTableSortInfo
+ * @property {PivotDataFieldSortOperatorEnum} type The sort operator of the field items.
+ * @returns {boolean} Whether the pivot table sort info is set successfully.
+ */
+async setLabelSort(tableFieldId: string, info: IPivotTableSortInfo): Promise<boolean>;
+/**
+ * @description Set the pivot table filter.
+ * @param {string} tableFieldId - The field id of the filter.
+ * @param {string[]} items - The items of the filter.
+ * @returns {boolean} Whether the pivot table filter is set successfully.
+ */
+async setLabelFilter(tableFieldId: string, items: string[], isAll?: boolean): Promise<boolean>;
+/**
+ * @description Rename the pivot table field.
+ * @param {string} fieldId - The field id. 
+ * @param {string} name - The new name of the field.
+ * @returns {boolean} Whether the pivot table field is renamed successfully.
+ */
+async renameField(fieldId: string, name: string): Promise<boolean>;
+/**
+ * @description Set the pivot table value filter. A value filter is used to filter the data based on the value of a field.
+ * @param {string} fieldId - The field id of the filter. Only one value filer can be set for a field.
+ * @param {Omit<IPivotTableValueFilter, 'type'>} filterInfo - The filter info. The undefined value will be removed from the old filter.
+ * @typedef filterInfo
+ * @property {valueGreaterThan} operator - The filter operator is used to compare the value of the field with the expected value.Currently, The following operators are supported: valueBetween, valueEqual, valueGreaterThan, valueGreaterThanOrEqual, valueLessThan, valueLessThanOrEqual,valueNotBetween,valueNotEqual.
+ * @property {number} expected - The expected value.
+ * @property {string} valueFieldId - The value field id.
+ * @returns {boolean} Whether the pivot table value filter is set successfully.
+ */
+async setValueFilter(fieldId: string, filterInfo: Omit<IPivotTableValueFilter, 'type'>): Promise<boolean>;
+/**
+ * @description Clear the fields by provided field area or clear all fields.
+ * @param {PivotTableFiledAreaEnum} [resetArea] The area of the field to reset or undefined to reset all fields.
+ * @returns {Promise<boolean>} Whether the pivot table fields are reset successfully.
+ */
+reset(resetArea?: PivotTableFiledAreaEnum): Promise<boolean>;
+/**
+ * @description Set the pivot table fields config.It will add fields to the pivot table from provided config.Before setting the fields config, you should ensure the pivot table is empty to avoid the conflict.
+ * @param {IPivotTableConfig['fieldsConfig']} config The pivot table fields config.
+ * @returns {Promise<boolean>} Whether the pivot table fields config is set successfully.
+ */
+setFieldsConfig(config: IPivotTableConfig['fieldsConfig']): Promise<boolean>; 
+/**
+ * Get all value filters of the pivot table. In pivot table, the value filter must be applied in order.So the order of the value filter is important.
+ * @returns {IValueFilterInfoItem[]} The value filter info list.
+ */
+getValueFilters(): IValueFilterInfoItem[];
+```
+
+### Event Listening
+
+Full event type definitions, please refer to [Events](https://reference.univer.ai/en-US/classes/FEventName).
+
+`univerAPI.Event.BeforePivotTableAdd` event is triggered before adding a pivot table.
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.BeforePivotTableAdd, (params) => {
+  const { positionType, targetCellInfo } = params;
+  if (positionType === univerAPI.Enum.PositionTypeEnum.Existing && targetCellInfo.sheetName === 'Sheet 1') {
+    // Cancel the pivot table adding operation
+    params.cancel = true;
+    console.log(`The pivot table can't be added to the sheet ${targetCellInfo.sheetName}`);
+  }
+});
+
+// Remove the event listener, use `disposable.dispose()`
+```
+
+`univerAPI.Event.PivotTableAdded` event is triggered after adding a pivot table.
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.PivotTableAdded, (params) => {
+  const { positionType, targetCellInfo } = params;
+  if (positionType === univerAPI.Enum.PositionTypeEnum.Existing) {
+    console.log('A pivot table created in an existing sheet');
+    console.log(`
+      The target sheet name is ${targetCellInfo.sheetName},
+      the target row is ${targetCellInfo.row}, the target column is ${targetCellInfo.column}
+    `);
+  } else {
+    console.log('A pivot table created in a new sheet');
+  }
+});
+
+// Remove the event listener, use `disposable.dispose()`
+```
+
+`univerAPI.Event.BeforePivotTableMove` event is triggered before moving a pivot table.
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.BeforePivotTableMove, (params) => {
+  const { pivotTableId, targetCellInfo } = params;
+  if (pivotTableId === 'pivotTable1' && targetCellInfo.sheetName === 'Sheet 1') {
+    // Cancel the move pivot table operation
+    params.cancel = true;
+    console.log(`The pivot table can't be moved to the sheet ${targetCellInfo.sheetName}`);
+  }
+});
+
+// Remove the event listener, use `disposable.dispose()`
+```
+
+`univerAPI.Event.PivotTableMoved` event is triggered after moving a pivot table.
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.PivotTableMoved, (params) => {
+  const { pivotTableId, targetCellInfo, originTargetInfo } = params;
+  if (pivotTableId === 'pivotTable1') {
+    console.log(`
+      The pivot table moved from row: ${originTargetInfo.row} & column: ${originTargetInfo.column}
+      to the sheet ${targetCellInfo.sheetName} row: ${targetCellInfo.row} & column: ${targetCellInfo.column}
+    `);
+  }
+});
+
+// Remove the event listener, use `disposable.dispose()`
+```
+
+`univerAPI.Event.PivotTableRendered` event is triggered after rendering a pivot table.
+
+```typescript
+// import { unionPivotViewRange } from '@univerjs-pro/sheets-pivot';
+const disposable = univerAPI.addEvent(univerAPI.Event.PivotTableRendered, (params) => {
+  const { pivotTableId, rangeInfo } = params;
+  console.log(`The pivot table ${pivotTableId} has been rendered`);
+  if (rangeInfo) {
+    console.log(unionPivotViewRange(rangeInfo));
+  }
+});
+
+// Remove the event listener, use `disposable.dispose()`
+```
+
+`univerAPI.Event.PivotTableRemoved` event is triggered after removing a pivot table.
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.PivotTableRemoved, (params) => {
+  const { pivotTableId } = params;
+  console.log(`The pivot table ${pivotTableId} has been removed`);
+});
+
+// Remove the event listener, use `disposable.dispose()`
+```
+
+`univerAPI.Event.PivotTableFieldAdded` event is triggered after adding a field to a pivot table.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook();
+const disposable = univerAPI.addEvent(univerAPI.Event.PivotTableFieldAdded, (params) => {
+  const { pivotTableId, fieldId, fieldArea, fieldIndex } = params;
+  const pivotTable = fWorkbook.getPivotTableById(pivotTableId);
+  const fieldSetting = pivotTable.getFieldSetting('fieldId');
+  console.log(fieldSetting);
+});
+
+// Remove the event listener, use `disposable.dispose()`
+```
+
+`univerAPI.Event.PivotTableFieldRemoved` event is triggered after removing a field from a pivot table.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook();
+const disposable = univerAPI.addEvent(univerAPI.Event.PivotTableFieldRemoved, (params) => {
+  const { pivotTableId, fieldId } = params;
+  const pivotTable = fWorkbook.getPivotTableById(pivotTableId);
+  const fieldSetting = pivotTable.getFieldSetting(fieldId);
+  console.log(fieldSetting);
+});
+
+// Remove the event listener, use `disposable.dispose()`
+```
+
+`univerAPI.Event.PivotTableFieldMoved` event is triggered after moving a field in a pivot table.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook();
+const disposable = univerAPI.addEvent(univerAPI.Event.PivotTableFieldMoved, (params) => {
+  const { pivotTableId, fieldId, fieldArea, fieldIndex } = params;
+  const pivotTable = fWorkbook.getPivotTableById(pivotTableId);
+  const fieldSetting = pivotTable.getFieldSetting(fieldId);
+  console.log(`The source name ${fieldSetting.sourceName} the display name ${fieldSetting.displayName}`);
+});
+
+// Remove the event listener, use `disposable.dispose()`
+```
+
+`univerAPI.Event.PivotTableFieldCollapseChanged` event is triggered after expanding/collapsing a dimension in a pivot table.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook();
+const disposable = univerAPI.addEvent(univerAPI.Event.PivotTableFieldCollapseChanged, (params) => {
+  const { pivotTableId, fieldId, isCollapsed } = params;  
+  const pivotTable = fWorkbook.getPivotTableById(pivotTableId);
+  const fieldSetting = pivotTable.getFieldSetting(fieldId);
+  console.log(`The source name ${fieldSetting.sourceName} the display name ${fieldSetting.displayName}`);
+});
+
+// Remove the event listener, use `disposable.dispose()`
+```
+
+`univerAPI.Event.PivotTableFieldFilterChanged` event is triggered after filtering a dimension in a pivot table.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook();
+const disposable = univerAPI.addEvent(univerAPI.Event.PivotTableFieldFilterChanged, (params) => {
+  const { pivotTableId, fieldId, filter } = params;
+  const pivotTable = fWorkbook.getPivotTableById(pivotTableId);
+  const fieldSetting = pivotTable.getFieldSetting(fieldId);
+  console.log(`The Checklist filter value is ${fieldSetting.filterInfo.checklist}`);
+});
+
+// Remove the event listener, use `disposable.dispose()`
+```
+
+`univerAPI.Event.PivotTableFieldSortChanged` event is triggered after sorting a dimension in a pivot table.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook();
+const disposable = univerAPI.addEvent(univerAPI.Event.PivotTableFieldSortChanged, (params) => {
+  const { pivotTableId, fieldId, sort } = params;
+  const pivotTable = fWorkbook.getPivotTableById(pivotTableId);
+  const fieldSetting = pivotTable.getFieldSetting(fieldId);
+  console.log(`The sort info is ${fieldSetting.sortInfo}`);
+});
+
+// Remove the event listener, use `disposable.dispose()`
+```
+
+`univerAPI.Event.PivotTableFieldSettingChanged` event is triggered after changing the setting of a dimension in a pivot table.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook();
+const disposable = univerAPI.addEvent(univerAPI.Event.PivotTableFieldSettingChanged, (params) => {
+  const { pivotTableId, fieldId, setting } = params;
+  const pivotTable = fWorkbook.getPivotTableById(pivotTableId);
+  const fieldSetting = pivotTable.getFieldSetting(fieldId);
+  console.log(`The source name ${fieldSetting.sourceName} the display name ${fieldSetting.displayName}`);
+});
+
+// Remove the event listener, use `disposable.dispose()`
+```
+
+`univerAPI.Event.PivotTableValuePositionChanged` event is triggered after changing the position of a value in a pivot table.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook();
+const disposable = univerAPI.addEvent(univerAPI.Event.PivotTableValuePositionChanged, (params) => {
+  const { pivotTableId, valueId, position } = params;
+  const pivotTable = fWorkbook.getPivotTableById(pivotTableId);
+  const valueSetting = pivotTable.getValueSetting(valueId);
+  console.log(`The source name ${valueSetting.sourceName} the display name ${valueSetting.displayName}`);
+});
+
+// Remove the event listener, use `disposable.dispose()`
+```

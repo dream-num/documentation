@@ -1,0 +1,163 @@
+name: ⚓ Deploy
+
+run-name: Deploy ${{ inputs.univer-docs-site && 'docs' || '' }} to ${{ github.event_name == 'schedule' && 'staging' || inputs.environment }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy
+        required: true
+        default: staging
+        type: environment
+      univer-docs-site:
+        description: Deploy univer-docs-site
+        type: boolean
+        default: true
+      image-tag:
+        description: Image tag (Optional, only used for existing images)
+        type: string
+        default: ''
+      runner-name:
+        description: The name of the runner
+        type: choice
+        default: github-runner
+        options:
+          - github-runner
+          - shenzhen
+      acr-region:
+        description: ACR registry
+        type: choice
+        default: shenzhen
+        options:
+          - cn-shenzhen
+          - us-east-1
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-docker-image:
+    if: ${{ github.event_name == 'workflow_dispatch' && (inputs.univer-docs-site) && !inputs.image-tag }}
+    name: Build ${{ inputs.univer-docs-site && 'docs' || '' }} Docker Image
+    runs-on: ${{ inputs.runner-name == 'github-runner' && 'ubuntu-latest' || inputs.runner-name || 'ubuntu-latest' }}
+    timeout-minutes: 30
+    environment: ${{ github.event_name == 'schedule' && 'staging' || inputs.environment }}
+    env:
+      NPM_REGISTRY: ''
+      CR: ${{ secrets.REGISTRY_CR }}
+      USCR: ${{ secrets.REGISTRY_USCR }}
+      ACR_REGION: ${{ inputs.acr-region }}
+      REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+      REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          submodules: true
+      
+      - name: Create .env file
+        run: |
+          echo "NEXT_PUBLIC_ALGOLIA_APP_ID=${{ secrets.NEXT_PUBLIC_ALGOLIA_APP_ID }}" >> .env
+          echo "NEXT_PUBLIC_ALGOLIA_INDEX_NAME=${{ secrets.NEXT_PUBLIC_ALGOLIA_INDEX_NAME }}" >> .env
+          echo "NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY=${{ secrets.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY }}" >> .env
+
+      - uses: ./.github/actions/setup-docker
+        id: setup-docker
+        with:
+          runner-name: ${{ inputs.runner-name }}
+          environment: ${{ inputs.environment }}
+
+      - if: ${{ inputs.runner-name == 'shenzhen' }}
+        run: |
+          echo "NPM_REGISTRY=https://registry.npmmirror.com" >> $GITHUB_ENV
+
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE_TAG=$(echo "${{ github.sha }}" | cut -c 1-7)
+          if [ "${{ github.event_name }}" == "schedule" ] || [ "${{ inputs.univer-docs-site }}" == "true" ]; then
+            make push_image REPOSITORY=univer-docs-site PUSH_TAG=$IMAGE_TAG BUILDER=${{ steps.setup-docker.outputs.builder-name }} OSARCH=linux/amd64 PUSH_TAG_AS_LATEST=${{ vars.PUSH_TAG_AS_LATEST }} \
+              CR=${{ env.CR }} NPM_REGISTRY=${{ env.NPM_REGISTRY }}
+          fi
+
+  deploy-site:
+    if: ${{ inputs.univer-docs-site }}
+    name: Deploy Site
+    needs: [build-docker-image]
+    runs-on: arc-runner-set
+    environment: ${{ github.event_name == 'schedule' && 'staging' || inputs.environment }}
+
+    steps:
+      - name: Set IMAGE_TAG environment variable
+        run: |
+          if [ -z "${{ inputs.image-tag }}" ]; then
+            echo "IMAGE_TAG=$(echo ${{ github.sha }} | cut -c 1-7)" >> $GITHUB_ENV
+          else
+            echo "IMAGE_TAG=${{ inputs.image-tag }}" >> $GITHUB_ENV
+          fi
+
+      - name: Set FEATURE environment variable
+        if: ${{ startsWith(github.event_name == 'schedule' && 'staging' || inputs.environment, 'feature') }}
+        run: echo "FEATURE=$(echo ${GITHUB_REF#refs/heads/feat/})" >> $GITHUB_ENV
+
+      - name: Set US ACR region
+        if: ${{ inputs.acr-region == 'us-east-1' || inputs.environment == 'prod' || inputs.environment == 'feature prod' }}
+        run: |
+          echo "CR=${{ secrets.REGISTRY_USCR }}" >> $GITHUB_ENV
+
+      - uses: peter-evans/repository-dispatch@v2
+        name: Deploy Docs Site
+        if: ${{ github.event_name == 'schedule' || inputs.univer-docs-site }}
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          repository: dream-num/helm-chart-private
+          event-type: ${{ vars.DISPATCH_EVENT_TYPE }}
+          client-payload: >
+            {
+              "service": "univer-docs-site",
+              "tag": "${{ env.IMAGE_TAG }}",
+              "feature": "${{ env.FEATURE }}",
+              "registry":"${{ env.CR }}"
+            }
+
+  deploy-k8s:
+    name: DeployK8s
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.image-tag }}
+    runs-on: arc-runner-set
+    environment: ${{ github.event_name == 'schedule' && 'staging' || inputs.environment }}
+
+    steps:
+      - name: Set IMAGE_TAG environment variable
+        run: |
+          if [ -z "${{ inputs.image-tag }}" ]; then
+            echo "IMAGE_TAG=$(echo ${{ github.sha }} | cut -c 1-7)" >> $GITHUB_ENV
+          else
+            echo "IMAGE_TAG=${{ inputs.image-tag }}" >> $GITHUB_ENV
+          fi
+
+      - name: Set FEATURE environment variable
+        if: ${{ startsWith(github.event_name == 'schedule' && 'staging' || inputs.environment, 'feature') }}
+        run: echo "FEATURE=$(echo ${GITHUB_REF#refs/heads/feat/})" >> $GITHUB_ENV
+
+      - name: Set US ACR region
+        if: ${{ inputs.acr-region == 'us-east-1' || inputs.environment == 'prod' || inputs.environment == 'feature prod' }}
+        run: |
+          echo "CR=${{ secrets.REGISTRY_USCR }}" >> $GITHUB_ENV
+
+      - uses: peter-evans/repository-dispatch@v2
+        name: Deploy Docs Site
+        if: ${{ github.event_name == 'schedule' || inputs.univer-docs-site }}
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          repository: dream-num/helm-chart-private
+          event-type: ${{ vars.DISPATCH_EVENT_TYPE }}
+          client-payload: >
+            {
+              "service": "univer-docs-site",
+              "tag": "${{ env.IMAGE_TAG }}",
+              "feature": "${{ env.FEATURE }}",
+              "registry":"${{ env.CR }}"
+            }
