@@ -1,4 +1,4 @@
-CR ?= 
+CR ?= univer-acr-registry.cn-shenzhen.cr.aliyuncs.com
 LOCAL_TAG = dev
 PUSH_TAG ?= latest
 REPOSITORY = 
