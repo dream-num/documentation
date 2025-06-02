@@ -1,5 +1,5 @@
 import { Callout } from 'nextra/components'
-import Showcase from '@/showcase/sheets/csv-import-plugin'
+import Showcase from '@univerjs-site/docs/showcase/sheets/csv-import-plugin'
 
 # How to write a CSV import plugin
 
@@ -26,6 +26,11 @@ This plugin allows users to import CSV files into Univer tables.
 Let's experience the effect of this plugin first:
 
 <Showcase lang="en-US" toolbar={{ showCode: true }} />
+
+Case source code reference:
+
+- [Plugin Installation](https://github.com/dream-num/univer/blob/dev/examples/src/sheets/custom-plugin/import-csv-button.ts)
+- [Presets Installation](https://github.com/dream-num/univer-presets/blob/dev/examples/src/sheets-core/custom-plugin/import-csv-button.ts)
 
 ## Requirement decomposition
 
@@ -228,7 +233,9 @@ Next, we need to pop up the file selection box in the click event, read the CSV 
 
 Let's talk about how to convert the CSV two-dimensional array into the data structure `ICellData` of Univer.
 
-[`ICellData`](/guides/sheets/getting-started/cell-data) is the cell data structure in Univer, which contains the value and style of the cell, where the value is stored in the `v` attribute, and the style is stored in the `s` attribute, the simplified code is as follows:
+[`ICellData`](/guides/sheets/getting-started/cell-data) is the cell data structure in Univer, which contains the value and style of the cell, where the value is stored in the `v` attribute, and the style is stored in the `s` attribute.
+
+You can refer to the case to convert using the `covertCellValues` method provided by the `@univerjs/core` package, or you can manually convert it using similar code as follows:
 
 ```typescript
 import type { ICellData } from '@univerjs/core'
@@ -265,40 +272,102 @@ If you want to learn more about commands, you can check [Command System](/en-US/
 
 We can use `this.commandService.executeCommand` to access the instance object of `ICommandService`, but for the decoupling of the code and the independence of the Command, we can also use `IAccessor.get` to obtain the instance object of `ICommandService`.
 
+Here we add the undo/redo implementation:
+
 ```typescript
-import { IUniverInstanceService } from '@univerjs/core'
-import { SetRangeValuesCommand } from '@univerjs/sheets'
+import type { ISetRangeValuesMutationParams, ISetWorksheetColumnCountMutationParams, ISetWorksheetRowCountMutationParams } from '@univerjs/sheets';
+import { ICommandService, IUndoRedoService, IUniverInstanceService, UniverInstanceType } from '@univerjs/core'
+import {
+  SetRangeValuesMutation,
+  SetRangeValuesUndoMutationFactory,
+  SetWorksheetColumnCountMutation,
+  SetWorksheetColumnCountUndoMutationFactory,
+  SetWorksheetRowCountMutation,
+  SetWorksheetRowCountUndoMutationFactory,
+} from '@univerjs/sheets';
 
 // ...omit other code
   handler: (accessor: IAccessor) => {
     // ...omit other code
 
     // inject univer instance service
-    const univer = accessor.get(IUniverInstanceService)
+    const univerInstanceService = accessor.get(IUniverInstanceService);
     // get command service
-    const commandService = accessor.get(ICommandService)
+    const commandService = accessor.get(ICommandService);
+    // get undo redo service
+    const undoRedoService = accessor.get(IUndoRedoService);
+    
     // get current sheet
-    const sheet = univer.getCurrentUnitForType<Workbook>(UniverInstanceType.UNIVER_SHEET)!.getActiveSheet()
+    const worksheet = univerInstanceService.getCurrentUnitOfType<Workbook>(UniverInstanceType.UNIVER_SHEET)!.getActiveSheet();
+    const unitId = worksheet.getUnitId();
+    const subUnitId = worksheet.getSheetId();
 
-    // wait user select csv file
-    waitUserSelectCSVFile({ csv, rowsCount, colsCount }) => {
-      // set sheet size
-      sheet.setColumnCount(colsCount)
-      sheet.setRowCount(rowsCount)
+    // wait user select csv file, then assemble multiple mutations operation to enable correct undo/redo
+    return waitUserSelectCSVFile(({ data, rowsCount, colsCount }) => {
+      const redoMutations: IMutationInfo[] = [];
+      const undoMutations: IMutationInfo[] = [];
+
+      // set sheet row count
+      const setRowCountMutationRedoParams: ISetWorksheetRowCountMutationParams = {
+        unitId,
+        subUnitId,
+        rowCount: rowsCount,
+      };
+      const setRowCountMutationUndoParams: ISetWorksheetRowCountMutationParams = SetWorksheetRowCountUndoMutationFactory(
+        accessor,
+        setRowCountMutationRedoParams
+      );
+      redoMutations.push({ id: SetWorksheetRowCountMutation.id, params: setRowCountMutationRedoParams });
+      undoMutations.push({ id: SetWorksheetRowCountMutation.id, params: setRowCountMutationUndoParams });
+
+      // set sheet column count
+      const setColumnCountMutationRedoParams: ISetWorksheetColumnCountMutationParams = {
+        unitId,
+        subUnitId,
+        columnCount: colsCount,
+      };
+      const setColumnCountMutationUndoParams: ISetWorksheetColumnCountMutationParams = SetWorksheetColumnCountUndoMutationFactory(
+        accessor,
+        setColumnCountMutationRedoParams
+      );
+      redoMutations.push({ id: SetWorksheetColumnCountMutation.id, params: setColumnCountMutationRedoParams });
+      undoMutations.unshift({ id: SetWorksheetColumnCountMutation.id, params: setColumnCountMutationUndoParams });
+
+      // parse csv to univer data
+      const cellValue = covertCellValues(data, {
+        startColumn: 0, // start column index
+        startRow: 0, // start row index
+        endColumn: colsCount - 1, // end column index
+        endRow: rowsCount - 1, // end row index
+      });
 
       // set sheet data
-      commandService.executeCommand(SetRangeValuesCommand.id, {
-        range: {
-          startColumn: 0,  // start column index
-          startRow: 0, // start row index
-          endColumn: colsCount - 1, // end column index
-          endRow: rowsCount - 1,  // end row index
-        },
-        value: parseCSV2UniverData(csv),
-      });
-    })
-    // ...omit other code
-    return true;
+      const setRangeValuesMutationRedoParams: ISetRangeValuesMutationParams = {
+        unitId,
+        subUnitId,
+        cellValue,
+      };
+      const setRangeValuesMutationUndoParams: ISetRangeValuesMutationParams = SetRangeValuesUndoMutationFactory(
+        accessor,
+        setRangeValuesMutationRedoParams
+      );
+      redoMutations.push({ id: SetRangeValuesMutation.id, params: setRangeValuesMutationRedoParams });
+      undoMutations.unshift({ id: SetRangeValuesMutation.id, params: setRangeValuesMutationUndoParams });
+
+      const result = sequenceExecute(redoMutations, commandService);
+
+      if (result.result) {
+        undoRedoService.pushUndoRedo({
+          unitID: unitId,
+          undoMutations,
+          redoMutations,
+        });
+
+        return true;
+      }
+
+      return false;
+    });
   }
 // ...omit other code
 ```

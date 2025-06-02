@@ -1,5 +1,5 @@
 import { Callout } from 'nextra/components'
-import Showcase from '@/showcase/sheets/csv-import-plugin'
+import Showcase from '@univerjs-site/docs/showcase/sheets/csv-import-plugin'
 
 # 编写一个 CSV 导入插件
 
@@ -26,6 +26,11 @@ import Showcase from '@/showcase/sheets/csv-import-plugin'
 我们先来体验一下这个插件的效果：
 
 <Showcase lang="zh-CN" toolbar={{ showCode: true }} />
+
+案例源码参考：
+
+- [Plugin 安装](https://github.com/dream-num/univer/blob/dev/examples/src/sheets/custom-plugin/import-csv-button.ts)
+- [Presets 安装](https://github.com/dream-num/univer-presets/blob/dev/examples/src/sheets-core/custom-plugin/import-csv-button.ts)
 
 ## 需求拆解
 
@@ -228,7 +233,9 @@ onStarting () {
 
 我们讲下如何将 CSV 二层数组转换成 Univer 的数据结构 `ICellData` 。
 
-[`ICellData`](/guides/sheets/getting-started/cell-data) 是 Univer 中的单元格数据结构，它包含了单元格的值和样式，其中值存放在 `v` 属性中，样式存放在 `s` 属性中，简化后的代码如下：
+[`ICellData`](/guides/sheets/getting-started/cell-data) 是 Univer 中的单元格数据结构，它包含了单元格的值和样式，其中值存放在 `v` 属性中，样式存放在 `s` 属性中。
+
+你可以参考案例通过 `@univerjs/core` 包提供的 `covertCellValues` 方法转换，也可以通过类似以下代码手动转换：
 
 ```typescript
 import type { ICellData } from '@univerjs/core'
@@ -265,40 +272,102 @@ function parseCSV2UniverData(csv: string[][]): ICellData[][] {
 
 可以使用 `this.commandService.executeCommand` 访问 `ICommandService` 的实例对象，但为了代码的解耦，保持 Command 的独立性，这里我们还可以通过 `IAccessor.get` 来获取 `ICommandService` 的实例对象。
 
+这里我们添加了撤销/重做的实现方式：
+
 ```typescript
-import { IUniverInstanceService } from '@univerjs/core'
-import { SetRangeValuesCommand } from '@univerjs/sheets'
+import type { ISetRangeValuesMutationParams, ISetWorksheetColumnCountMutationParams, ISetWorksheetRowCountMutationParams } from '@univerjs/sheets';
+import { ICommandService, IUndoRedoService, IUniverInstanceService, UniverInstanceType } from '@univerjs/core'
+import {
+  SetRangeValuesMutation,
+  SetRangeValuesUndoMutationFactory,
+  SetWorksheetColumnCountMutation,
+  SetWorksheetColumnCountUndoMutationFactory,
+  SetWorksheetRowCountMutation,
+  SetWorksheetRowCountUndoMutationFactory,
+} from '@univerjs/sheets';
 
 // ...omit other code
   handler: (accessor: IAccessor) => {
     // ...omit other code
 
     // inject univer instance service
-    const univer = accessor.get(IUniverInstanceService)
+    const univerInstanceService = accessor.get(IUniverInstanceService);
     // get command service
-    const commandService = accessor.get(ICommandService)
+    const commandService = accessor.get(ICommandService);
+    // get undo redo service
+    const undoRedoService = accessor.get(IUndoRedoService);
+    
     // get current sheet
-    const sheet = univer.getCurrentUnitForType<Workbook>(UniverInstanceType.UNIVER_SHEET)!.getActiveSheet()
+    const worksheet = univerInstanceService.getCurrentUnitOfType<Workbook>(UniverInstanceType.UNIVER_SHEET)!.getActiveSheet();
+    const unitId = worksheet.getUnitId();
+    const subUnitId = worksheet.getSheetId();
 
-    // wait user select csv file
-    waitUserSelectCSVFile({ csv, rowsCount, colsCount }) => {
-      // set sheet size
-      sheet.setColumnCount(colsCount)
-      sheet.setRowCount(rowsCount)
+    // wait user select csv file, then assemble multiple mutations operation to enable correct undo/redo
+    return waitUserSelectCSVFile(({ data, rowsCount, colsCount }) => {
+      const redoMutations: IMutationInfo[] = [];
+      const undoMutations: IMutationInfo[] = [];
+
+      // set sheet row count
+      const setRowCountMutationRedoParams: ISetWorksheetRowCountMutationParams = {
+        unitId,
+        subUnitId,
+        rowCount: rowsCount,
+      };
+      const setRowCountMutationUndoParams: ISetWorksheetRowCountMutationParams = SetWorksheetRowCountUndoMutationFactory(
+        accessor,
+        setRowCountMutationRedoParams
+      );
+      redoMutations.push({ id: SetWorksheetRowCountMutation.id, params: setRowCountMutationRedoParams });
+      undoMutations.push({ id: SetWorksheetRowCountMutation.id, params: setRowCountMutationUndoParams });
+
+      // set sheet column count
+      const setColumnCountMutationRedoParams: ISetWorksheetColumnCountMutationParams = {
+        unitId,
+        subUnitId,
+        columnCount: colsCount,
+      };
+      const setColumnCountMutationUndoParams: ISetWorksheetColumnCountMutationParams = SetWorksheetColumnCountUndoMutationFactory(
+        accessor,
+        setColumnCountMutationRedoParams
+      );
+      redoMutations.push({ id: SetWorksheetColumnCountMutation.id, params: setColumnCountMutationRedoParams });
+      undoMutations.unshift({ id: SetWorksheetColumnCountMutation.id, params: setColumnCountMutationUndoParams });
+
+      // parse csv to univer data
+      const cellValue = covertCellValues(data, {
+        startColumn: 0, // start column index
+        startRow: 0, // start row index
+        endColumn: colsCount - 1, // end column index
+        endRow: rowsCount - 1, // end row index
+      });
 
       // set sheet data
-      commandService.executeCommand(SetRangeValuesCommand.id, {
-        range: {
-          startColumn: 0,  // start column index
-          startRow: 0, // start row index
-          endColumn: colsCount - 1, // end column index
-          endRow: rowsCount - 1,  // end row index
-        },
-        value: parseCSV2UniverData(csv),
-      });
-    })
-    // ...omit other code
-    return true;
+      const setRangeValuesMutationRedoParams: ISetRangeValuesMutationParams = {
+        unitId,
+        subUnitId,
+        cellValue,
+      };
+      const setRangeValuesMutationUndoParams: ISetRangeValuesMutationParams = SetRangeValuesUndoMutationFactory(
+        accessor,
+        setRangeValuesMutationRedoParams
+      );
+      redoMutations.push({ id: SetRangeValuesMutation.id, params: setRangeValuesMutationRedoParams });
+      undoMutations.unshift({ id: SetRangeValuesMutation.id, params: setRangeValuesMutationUndoParams });
+
+      const result = sequenceExecute(redoMutations, commandService);
+
+      if (result.result) {
+        undoRedoService.pushUndoRedo({
+          unitID: unitId,
+          undoMutations,
+          redoMutations,
+        });
+
+        return true;
+      }
+
+      return false;
+    });
   }
 // ...omit other code
 ```
