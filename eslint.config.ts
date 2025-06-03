@@ -11,7 +11,6 @@ export default antfu({
     'packages/api/public/**/*',
     'packages/showcase/src/*/demo/data.ts',
   ],
-  typescript: true,
   formatters: true,
   markdown: true,
   react: true,

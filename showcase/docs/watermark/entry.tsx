@@ -1,7 +1,5 @@
 'use client'
 
-import { Preview } from '@/components/preview'
-import { useCodeHighlight } from '@/hooks/use-code'
 import { createUniver, defaultTheme, LocaleType, merge } from '@univerjs/presets'
 import { UniverDocsCorePreset } from '@univerjs/presets/preset-docs-core'
 import docsCoreEnUS from '@univerjs/presets/preset-docs-core/locales/en-US'
@@ -9,6 +7,8 @@ import docsCoreZhCN from '@univerjs/presets/preset-docs-core/locales/zh-CN'
 import { UniverWatermarkPlugin } from '@univerjs/watermark'
 import { useTheme } from 'nextra-theme-docs'
 import { useEffect, useRef } from 'react'
+import { Preview } from '@/components/preview'
+import { useCodeHighlight } from '@/hooks/use-code'
 import '@univerjs/watermark/facade'
 
 const code = `

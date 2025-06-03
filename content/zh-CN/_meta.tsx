@@ -1,5 +1,5 @@
-import ProductSelector from '@/components/product-selector'
 import { ShareRangeSingle } from '@univerjs/icons'
+import ProductSelector from '@/components/product-selector'
 
 export default {
   selector: {

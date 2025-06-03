@@ -1,8 +1,8 @@
 'use client'
 
-import { useTranslation } from '@/hooks/i18n'
 import { usePathname } from 'next/navigation'
 import { Callout } from 'nextra/components'
+import { useTranslation } from '@/hooks/i18n'
 
 export default function BusinessPlanNotice() {
   const pathname = usePathname()

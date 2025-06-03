@@ -1,5 +1,5 @@
-import { useTranslation } from '@/hooks/i18n'
 import { usePathname } from 'next/navigation'
+import { useTranslation } from '@/hooks/i18n'
 
 export default function TocTitle() {
   const pathname = usePathname()

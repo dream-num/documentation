@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
+import { generateStaticParamsFor, importPage } from 'nextra/pages'
 import FeedbackMessage from '@/components/feedback-message'
 import { useMDXComponents } from '@/mdx-components'
-import { generateStaticParamsFor, importPage } from 'nextra/pages'
 
 export const generateStaticParams = generateStaticParamsFor('mdxPath')
 

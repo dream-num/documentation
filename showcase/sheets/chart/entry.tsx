@@ -1,7 +1,5 @@
 'use client'
 
-import { Preview } from '@/components/preview'
-import { useCodeHighlight } from '@/hooks/use-code'
 import { createUniver, defaultTheme, LocaleType, merge } from '@univerjs/presets'
 import { UniverSheetsAdvancedPreset } from '@univerjs/presets/preset-sheets-advanced'
 import sheetsAdvancedEnUS from '@univerjs/presets/preset-sheets-advanced/locales/en-US'
@@ -14,6 +12,8 @@ import sheetsDrawingEnUS from '@univerjs/presets/preset-sheets-drawing/locales/e
 import sheetsDrawingZhCN from '@univerjs/presets/preset-sheets-drawing/locales/zh-CN'
 import { useTheme } from 'nextra-theme-docs'
 import { useEffect, useRef } from 'react'
+import { Preview } from '@/components/preview'
+import { useCodeHighlight } from '@/hooks/use-code'
 import { WORKBOOK_DATA } from './data'
 import { insertChart } from './function'
 

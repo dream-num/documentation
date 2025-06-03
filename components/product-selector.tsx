@@ -1,10 +1,10 @@
 'use client'
 
-import { useTranslation } from '@/hooks/i18n'
-import clsx from '@/lib/clsx'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from '@/hooks/i18n'
+import clsx from '@/lib/clsx'
 
 function Icon() {
   return (
