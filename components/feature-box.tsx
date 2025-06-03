@@ -1,7 +1,7 @@
 'use client'
 
-import { useTranslation } from '@/hooks/i18n'
 import { usePathname } from 'next/navigation'
+import { useTranslation } from '@/hooks/i18n'
 
 export default function FeatureBox() {
   const pathname = usePathname()

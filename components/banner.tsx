@@ -1,9 +1,9 @@
 'use client'
 
-import { useTranslation } from '@/hooks/i18n'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Banner as NextraBanner } from 'nextra/components'
+import { useTranslation } from '@/hooks/i18n'
 
 interface IProps {
   version: string

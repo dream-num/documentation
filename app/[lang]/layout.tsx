@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
+import { Layout } from 'nextra-theme-docs'
+import { Head } from 'nextra/components'
+import { getPageMap } from 'nextra/page-map'
 import Banner from '@/components/banner'
 import Copyright from '@/components/copyright'
 import DocSearch from '@/components/doc-search'
 import Navbar from '@/components/navbar'
 import TocBackToTop from '@/components/toc-back-to-top'
-import { Layout } from 'nextra-theme-docs'
-import { Head } from 'nextra/components'
-import { getPageMap } from 'nextra/page-map'
 
 import { version } from '../../package.json'
 

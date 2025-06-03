@@ -1,7 +1,5 @@
 'use client'
 
-import { Preview } from '@/components/preview'
-import { useCodeHighlight } from '@/hooks/use-code'
 import { createUniver, defaultTheme, LocaleType, merge } from '@univerjs/presets'
 import { UniverSheetsCorePreset } from '@univerjs/presets/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/presets/preset-sheets-core/locales/en-US'
@@ -11,6 +9,8 @@ import uniscriptEnUS from '@univerjs/uniscript/locale/en-US'
 import uniscriptZhCN from '@univerjs/uniscript/locale/zh-CN'
 import { useTheme } from 'nextra-theme-docs'
 import { useEffect, useRef } from 'react'
+import { Preview } from '@/components/preview'
+import { useCodeHighlight } from '@/hooks/use-code'
 
 const code = `
 import { createUniver, defaultTheme, LocaleType, merge } from '@univerjs/presets'

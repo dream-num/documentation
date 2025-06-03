@@ -1,7 +1,5 @@
 'use client'
 
-import { Preview } from '@/components/preview'
-import { useCodeHighlight } from '@/hooks/use-code'
 import { createUniver, defaultTheme, LocaleType, merge } from '@univerjs/presets'
 import { UniverDocsCorePreset } from '@univerjs/presets/preset-docs-core'
 import docsCoreEnUS from '@univerjs/presets/preset-docs-core/locales/en-US'
@@ -14,6 +12,8 @@ import docsHyperLinkEnUS from '@univerjs/presets/preset-docs-hyper-link/locales/
 import docsHyperLinkZhCN from '@univerjs/presets/preset-docs-hyper-link/locales/zh-CN'
 import { useTheme } from 'nextra-theme-docs'
 import { useEffect, useRef } from 'react'
+import { Preview } from '@/components/preview'
+import { useCodeHighlight } from '@/hooks/use-code'
 import { DOCUMENT_DATA } from './data'
 
 const code = `

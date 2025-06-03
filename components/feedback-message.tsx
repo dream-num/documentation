@@ -1,8 +1,8 @@
 'use client'
 
-import { useTranslation } from '@/hooks/i18n'
 import { FeelbackTaggedMessage, PRESET_EVALUATION } from '@feelback/react'
 import { usePathname } from 'next/navigation'
+import { useTranslation } from '@/hooks/i18n'
 
 import '@feelback/react/styles/feelback.css'
 
