@@ -22,7 +22,11 @@ export default {
   },
   playground: {
     type: 'page',
-    title: 'Playground',
+    title: (
+      <span title="Source code: https://github.com/dream-num/univer-documentation/tree/dev/showcase">
+        Playground
+      </span>
+    ),
     theme: {
       toc: false,
     },

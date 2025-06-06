@@ -22,7 +22,11 @@ export default {
   },
   playground: {
     type: 'page',
-    title: '在线演示',
+    title: (
+      <span title="源码地址: https://github.com/dream-num/univer-documentation/tree/dev/showcase">
+        在线演示
+      </span>
+    ),
     theme: {
       toc: false,
     },
