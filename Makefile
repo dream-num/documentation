@@ -6,6 +6,10 @@ NS ?= univer
 CTR = docker
 BUILDER ?= univerdocs-builder
 NPM_REGISTRY ?= ""
+# Environment variables for Algolia
+NEXT_PUBLIC_ALGOLIA_APP_ID = 
+NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY =
+NEXT_PUBLIC_ALGOLIA_INDEX_NAME =
 
 OSARCH = linux/amd64
 image_exists=$(shell docker manifest inspect $(CR)/$(NS)/$(REPOSITORY):$(IMAGE_TAG) > /dev/null 2>&1 && echo true || echo false)
@@ -28,6 +32,9 @@ endif
 	$(CTR) buildx build \
 	--build-arg CR=$(CR) \
 	--build-arg NPM_REGISTRY=$(NPM_REGISTRY) \
+	--build-arg NEXT_PUBLIC_ALGOLIA_APP_ID=$(NEXT_PUBLIC_ALGOLIA_APP_ID) \
+	--build-arg NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY=$(NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY) \
+	--build-arg NEXT_PUBLIC_ALGOLIA_INDEX_NAME=$(NEXT_PUBLIC_ALGOLIA_INDEX_NAME) \
 	--builder $(BUILDER) \
 	--platform $(OSARCH) \
 	--file Dockerfile \

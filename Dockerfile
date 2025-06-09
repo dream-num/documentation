@@ -12,6 +12,14 @@ RUN [[ "${NPM_REGISTRY}" != "" ]] && npm config set registry ${NPM_REGISTRY} || 
 COPY . .
 RUN corepack enable pnpm && pnpm i
 
+# Algolia
+ARG NEXT_PUBLIC_ALGOLIA_APP_ID
+ARG NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY
+ARG NEXT_PUBLIC_ALGOLIA_INDEX_NAME
+RUN echo "NEXT_PUBLIC_ALGOLIA_APP_ID=${NEXT_PUBLIC_ALGOLIA_APP_ID}" >> .env
+RUN echo "NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY=${NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY}" >> .env
+RUN echo "NEXT_PUBLIC_ALGOLIA_INDEX_NAME=${NEXT_PUBLIC_ALGOLIA_INDEX_NAME}" >> .env
+
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line in case you want to disable telemetry during the build.
