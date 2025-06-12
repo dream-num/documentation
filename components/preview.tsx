@@ -1,13 +1,14 @@
-import type { RefObject } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import { useEffect, useRef } from 'react'
 
 interface IPreviewProps {
-  ref: RefObject<HTMLDivElement>
+  ref?: RefObject<HTMLDivElement>
+  component?: ReactNode
   code: string
 }
 
 export function Preview(props: IPreviewProps) {
-  const { ref, code } = props
+  const { ref, component, code } = props
 
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -56,7 +57,9 @@ export function Preview(props: IPreviewProps) {
       </header>
 
       <div ref={containerRef} className="flex-1 overflow-hidden">
-        <div ref={ref} className="h-[480px] overflow-hidden rounded-b-2xl" />
+        <div ref={ref} className="h-[480px] overflow-hidden rounded-b-2xl">
+          {component}
+        </div>
       </div>
 
       <div
