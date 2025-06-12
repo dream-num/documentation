@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { generateStaticParamsFor, importPage } from 'nextra/pages'
-import FeedbackMessage from '@/components/feedback-message'
 import { useMDXComponents } from '@/mdx-components'
 
 export const generateStaticParams = generateStaticParamsFor('mdxPath')
@@ -29,17 +28,6 @@ export default async function Page(props: PageProps) {
     <>
       <Wrapper toc={toc} metadata={metadata}>
         <MDXContent {...props} params={params} />
-
-        <footer className="pt-10">
-          <hr
-            className={`
-              border-gray-200
-              dark:border-gray-600
-            `}
-          />
-
-          <FeedbackMessage />
-        </footer>
       </Wrapper>
     </>
   )

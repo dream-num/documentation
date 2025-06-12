@@ -15,13 +15,13 @@ export interface IluckysheetDataVerificationValue {
   hintText: string
 }
 
-export type IluckysheetDataVerificationType =
-  | 'dropdown'
-  | 'checkbox'
-  | 'number'
-  | 'number_integer'
-  | 'number_decimal'
-  | 'text_content'
-  | 'text_length'
-  | 'date'
-  | 'validity'
+export type IluckysheetDataVerificationType
+  = | 'dropdown'
+    | 'checkbox'
+    | 'number'
+    | 'number_integer'
+    | 'number_decimal'
+    | 'text_content'
+    | 'text_length'
+    | 'date'
+    | 'validity'

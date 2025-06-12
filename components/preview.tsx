@@ -55,8 +55,8 @@ export function Preview(props: IPreviewProps) {
         </div>
       </header>
 
-      <div ref={containerRef} className="univer-flex-1 univer-overflow-hidden">
-        <div ref={ref} className="rounded-b-2xl-lg h-[480px] overflow-hidden" />
+      <div ref={containerRef} className="flex-1 overflow-hidden">
+        <div ref={ref} className="h-[480px] overflow-hidden rounded-b-2xl" />
       </div>
 
       <div
