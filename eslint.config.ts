@@ -1,15 +1,14 @@
+import os from 'node:os'
 import antfu from '@antfu/eslint-config'
-import eslintPluginReadableTailwind from 'eslint-plugin-readable-tailwind'
+import eslintPluginBetterTailwindcss from 'eslint-plugin-better-tailwindcss'
+
+const isWindows = os.platform() === 'win32'
+const lineBreakStyle = isWindows ? 'windows' : 'unix'
 
 export default antfu({
   ignores: [
     '**/*.js',
     '**/.next/**/*',
-    'packages/api/pages/**/*',
-    'packages/api/dts/**/*.js',
-    'packages/api/content/**/*',
-    'packages/api/public/**/*',
-    'packages/showcase/src/*/demo/data.ts',
   ],
   formatters: true,
   markdown: true,
@@ -41,13 +40,14 @@ export default antfu({
         ],
       },
     ],
+    'react-hooks/rules-of-hooks': 'off',
     'padding-line-between-statements': [
       'error',
       { blankLine: 'always', prev: 'directive', next: '*' },
     ],
   },
 }, {
-  files: ['**/*.{jsx,tsx}'],
+  files: ['**/*.tsx'],
   languageOptions: {
     parserOptions: {
       ecmaFeatures: {
@@ -56,18 +56,25 @@ export default antfu({
     },
   },
   plugins: {
-    'readable-tailwind': eslintPluginReadableTailwind,
+    'better-tailwindcss': eslintPluginBetterTailwindcss,
+  },
+  settings: {
+    'better-tailwindcss': {
+      entryPoint: 'styles/globals.css',
+    },
   },
   rules: {
     // enable all recommended rules to warn
-    ...eslintPluginReadableTailwind.configs.warning.rules,
+    ...eslintPluginBetterTailwindcss.configs['recommended-warn'].rules,
     // enable all recommended rules to error
-    ...eslintPluginReadableTailwind.configs.error.rules,
-    'jsonc/sort-keys': ['warn'],
+    ...eslintPluginBetterTailwindcss.configs['recommended-error'].rules,
 
     // or configure rules individually
-    'readable-tailwind/multiline': ['warn', { printWidth: 120 }],
-
-    'react-hooks/rules-of-hooks': 'off',
+    'better-tailwindcss/multiline': ['warn', {
+      printWidth: 120,
+      group: 'newLine',
+      lineBreakStyle,
+    }],
+    'better-tailwindcss/no-conflicting-classes': 'off',
   },
 })

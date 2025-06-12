@@ -102,10 +102,10 @@ export default function ProductSelector() {
       <a
         ref={btnRef}
         className={`
-          dark:hover:bg-primary-100/5
           flex w-full cursor-pointer items-center justify-between gap-2 rounded-md p-2 transition-all duration-200
           ease-in-out
           hover:bg-gray-200
+          dark:hover:bg-primary-100/5
         `}
         onClick={handleToggleVisible}
       >
