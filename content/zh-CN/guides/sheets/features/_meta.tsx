@@ -8,8 +8,13 @@ export default {
   'data-validation': '数据验证',
   'conditional-formatting': '条件格式',
   'hyperlink': '超链接',
+  'find-replace': '查找 & 替换',
   'floating-images': '图片',
   'watermark': '水印',
+  'thread-comment': '评论',
+  'note': {
+    title: <DotBadge>批注</DotBadge>,
+  },
   'table': {
     title: <DotBadge>表格</DotBadge>,
   },
@@ -44,11 +49,6 @@ export default {
   // 'live-share': {
   //   title: <ProTag>Live Share</ProTag>,
   // },
-  'thread-comment': '评论',
-  'note': {
-    title: <DotBadge>批注</DotBadge>,
-  },
-  'find-replace': '查找 & 替换',
   'crosshair': '十字高亮',
   'zen-editor': '禅编辑器',
   'uniscript': 'Uniscript',

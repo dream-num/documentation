@@ -8,8 +8,13 @@ export default {
   'data-validation': 'Data Validation',
   'conditional-formatting': 'Conditional Formatting',
   'hyperlink': 'Hyperlink',
+  'find-replace': 'Find & Replace',
   'floating-images': 'Images',
   'watermark': 'Watermark',
+  'thread-comment': 'Thread Comment',
+  'note': {
+    title: <DotBadge>Annotation</DotBadge>,
+  },
   'table': {
     title: <DotBadge>Table</DotBadge>,
   },
@@ -44,11 +49,6 @@ export default {
   // 'live-share': {
   //   title: <ProTag>Live Share</ProTag>,
   // },
-  'thread-comment': 'Thread Comment',
-  'note': {
-    title: <DotBadge>Annotation</DotBadge>,
-  },
-  'find-replace': 'Find & Replace',
   'crosshair': 'Crosshair Highlight',
   'zen-editor': 'Zen Editor',
   'uniscript': 'Uniscript',
