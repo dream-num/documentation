@@ -1,0 +1,138 @@
+---
+title: Facade API -- Univer 如何提升用户的开发体验
+author: Wenzhao Hu
+date: 2025-01-05
+---
+
+在这篇文章中，我们将从 Univer SDK 的接口层 Facade API 说起，讨论我们如何让 Univer 更易用，服务更广泛的用户群体。
+
+## Univer 的设计目标
+
+Univer SDK 的架构设计从一开始就确立了以下几个目标：
+
+1. 通过插件系统灵活扩展非核心功能，支持用户个性化需求，并允许用户和社区开发插件。
+2. 高度可定制和可扩展，以满足复杂应用的需求。
+3. 为大型项目提供长期的可维护性和可测试性。
+4. 提供卓越的开发者体验。
+
+为实现这些目标，我们引入了诸多[机制](https://docs.univer.ai/zh-CN/introduction/architecture/univer)，如插件系统、依赖注入和命令系统等。然而，这些机制的引入也带来了副作用：直接使用 Univer 的底层 API 开发门槛较高，可能会影响开发者体验——这一点与我们的目标“提供卓越的开发者体验”有所冲突。
+
+幸运的是，[“计算机科学中的所有问题都可以通过添加一个间接层解决”](https://en.wikipedia.org/wiki/Indirection#:~:text=A%20famous%20aphorism%20of%20Butler,for%20%22level%20of%20indirection%22.)，我们引入了 [Facade API](https://docs.univer.ai/zh-CN/guides/sheets/getting-started/facade) 作为 Univer SDK 的接口层，封装内部复杂度，为用户提供直观、易用的 API 接口。
+
+## 简单易用的 Facade API
+
+使用 Facade API 非常简便。如果你使用 [Univer Presets](https://docs.univer.ai/zh-CN/guides/sheets/getting-started/installation#%E4%BD%BF%E7%94%A8)，我们会自动为你创建 `univerAPI`，你可以立即开始开发：
+
+```typescript
+const { univerAPI } = createUniver({
+  locale: LocaleType.ZH_CN,
+  locales: {
+    [LocaleType.ZH_CN]: merge(
+      {},
+      UniverPresetSheetsCoreZhCN,
+    ),
+  },
+  theme: defaultTheme,
+  presets: [
+    UniverSheetsCorePreset({
+      container: 'app',
+    }),
+  ],
+});
+ 
+const sheet = univerAPI.getActiveWorkbook().getActiveSheet();
+const range = sheet.getRange('A1');
+range.setValue('Hello, Univer!');
+```
+
+## 可扩展的接口设计
+
+在 Facade API 的初期实现中，我们将所有功能集中在一个单独的 `@univerjs/facade` 包中。然而，这带来了以下这些问题：
+
+1. 即使用户没有引入某个插件，Facade API 中依然会出现该插件的代码提示，影响开发体验；
+2. 即使某个插件未被使用，由于 Facade API 的实现引用到了这些插件，因此底层实现仍会被引入到用户的构建产物中，导致额外的体积。
+
+为了应对这些问题，我们对 Facade API 进行了重构。
+
+首先，我们引入了接口类、扩展 mixin 和扩展机制。接口类对应原始的 Facade API 类型（如 `FUniver`、`FWorkbook` 等），都继承自 [`FBase`](https://github.com/dream-num/univer/blob/dev/packages/core/src/facade/f-base.ts)，`FBase` 提供了 `extend` 静态方法，允许为这些接口类添加扩展 mixin。扩展 mixin 本质上也是 TypeScript 类，在继承接口类的基础上，添加新的方法以增强接口功能。
+
+接着，我们将原来的接口拆分成多个功能模块。例如，`FWorksheet` 被拆解为以下几个文件：
+
+- [packages/sheets/src/facade/f-worksheet.ts](https://github.com/dream-num/univer/blob/dev/packages/sheets/src/facade/f-worksheet.ts)：定义了 `FWorksheet` 接口类。
+- [packages/sheets-ui/src/facade/f-worksheet.ts](https://github.com/dream-num/univer/blob/dev/packages/sheets-ui/src/facade/f-worksheet.ts)：实现了工作表 UI 扩展。
+- [packages/sheets-filter/src/facade/f-worksheet.ts](https://github.com/dream-num/univer/blob/dev/packages/sheets-filter/src/facade/f-worksheet.ts)：实现了工作表筛选扩展。
+- [packages/sheets-data-validation/src/facade/f-worksheet.ts](https://github.com/dream-num/univer/blob/dev/packages/sheets-data-validation/src/facade/f-worksheet.ts)：实现了数据验证扩展。
+
+这种拆分方式使得每个文件只包含相应插件的 API，确保 Facade API 的功能模块化，降低了不必要的代码依赖。
+
+我们还增强了 TypeScript 的智能提示功能。通过 `declare` 关键字，我们能告诉 TypeScript 接口类的类型已被扩展。例如，[sheets-ui](https://github.com/dream-num/univer/blob/5ae246e6179df616da8e0375c22c496e2d8f21fe/packages/sheets-ui/src/facade/f-worksheet.ts#L191-L195) 包的代码如下：
+
+```typescript
+FWorksheet.extend(FWorksheetSkeletonMixin);
+declare module '@univerjs/sheets/facade' {
+    interface FWorksheet extends IFWorksheetSkeletonMixin { }
+}
+```
+
+最后，我们为所有提供 Facade API 的包创建了[二级入口点](https://github.com/dream-num/univer/blob/5ae246e6179df616da8e0375c22c496e2d8f21fe/packages/sheets-ui/package.json#L27)，允许用户通过二级入口点引入相应的 API。例如，使用 `sheets-ui` 的 Facade API 时，用户需要这样导入：
+
+```typescript
+import '@univerjs/sheets-ui/facade';
+```
+
+通过这些优化，我们成功解决了之前提到的两个问题：
+
+1. 只有在引入相应包的 Facade API 时，用户才能看到该包相关 API 的智能提示，避免了无关功能的代码提示；
+2. 同时，相关代码才会被打包进最终产物中，避免了不必要的代码冗余。
+
+## 浏览器和 Node.js 同构
+
+在一次重构中，我们严格规范了每个插件的运行环境，并尽可能复用浏览器和 Node.js 环境中的代码。目前，你可以在 [Node.js 上运行 Univer](https://docs.univer.ai/zh-CN/guides/sheets/getting-started/node)，实现服务端读写和计算，甚至将它作为无头协同客户端加入 Univer 的协同编辑系统。
+
+同样，Facade API 也可以在浏览器和 Node.js 环境中运行。唯一的区别是，一些包（例如以 `ui` 作为结尾的包）仅能在浏览器中运行，因此 Node.js 环境无法访问这些包所提供的 Facade API。不过，对于大多数场景，我们已经实现了**一处编写，双端运行**。
+
+## Uniscript 与 Univer Go
+
+如果 Facade API 已足够简单易用，我们不仅能让 web 开发者使用，甚至可以让非专业开发者体验 Univer 的强大功能。毕竟，Univer 的目标是帮助每个人和组织构建定制化的生产力工具，而不仅仅服务于专业开发者或软件公司。
+
+最初，我们尝试通过 [Uniscript](https://docs.univer.ai/en-US/guides/sheets/features/uniscript) 插件来实现这一目标。用户在安装插件后，可以在侧边栏编写 Uniscript，调用 Facade API 来实现自定义的业务逻辑。例如，绘制一个像素风格的 Univer Logo：
+
+![](/assets/blog/facade/examples-sheets-uniscript.gif)
+
+然而，我们很快发现，这种方式无法充分释放 Univer 的潜力，尤其是在自定义 UI 和编写服务端代码方面；另外，这样的产品形态也过于简单，无法满足较为深度的使用需求。
+
+为此，我们推出了全新产品 [Univer Go](https://go.univer.ai)。在 Univer Go 中，你不用再担心类似设置开发环境、部署代码等技术问题，就可以创建项目、编写浏览器端和服务端 Uniscript，探索更多的可能性，例如：
+
+自定义甘特图模板，并设置右键菜单，一键插入到电子表格中：
+
+<video style={{ marginTop: '1em' }} width="1920" height="1080" controls preload="auto">
+    <source src="/assets/blog/facade/template-demo.mov" type="video/mp4" />
+</video>
+
+编写服务端脚本，从数据库获取数据并加载到电子表格：
+
+<video style={{ marginTop: '1em' }} width="1920" height="1080" controls preload="auto">
+    <source src="/assets/blog/facade/database-demo.mp4" type="video/mp4" />
+</video>
+
+甚至可以用 Univer Go 编写一个贪吃蛇小游戏！
+
+<video style={{ marginTop: '1em' }} width="1920" height="1080" controls preload="auto">
+    <source src="/assets/blog/facade/snake-demo.mp4" type="video/mp4" />
+</video>
+
+## 持续提升 Facade API 的能力和易用性
+
+为了解锁更多功能，我们的工程师最近为 Facade API 添加了大量新特性。幸运的是，Univer Go 基于 Univer SDK 构建，因此无论你使用的是 Univer SDK 还是 Univer Go，都可以在未来的版本中体验这些新增功能！
+
+我们还在不断提升 Facade API 的易用性。例如，Univer SDK 用户可以通过 presets 引入 Facade API，无需手动引入 `@univerjs/xxx/facade` 目录；而 Univer Go 用户则可以在内置编辑器中获得完整的类型信息和智能补全，我们还计划在 Univer Go 中引入 AI 辅助编码。此外，我们还花了大量时间和精力来优化文档，确保用户能获得良好的开发体验。
+
+---
+
+今天我们深入探讨了 Facade API 的设计理念与实现过程，还介绍了我们基于 Facade API 持续为用户提供方便、强大的使用体验的所付出的努力。Univer 的目标不仅仅是为专业开发者提供强大的功能，还希望让非技术用户也能轻松构建定制化的生产力工具。未来，我们将继续倾听用户反馈，迭代产品功能，让每个用户都能充分发挥 Univer 的潜力，构建属于自己的数字化工作环境。无论你是专业开发者，还是业务领域专家，Univer 都将是你值得信赖的伙伴。
+
+如果你还不知道 [Univer](https://univer.ai) 是什么：Univer SDK 是一个同构的全栈开发框架，支持在浏览器端和服务端创建与编辑电子表格和文档。它帮助开发者将办公应用无缝集成到各种 web 系统中，全面提升用户交互体验。Univer 的核心架构和功能已在 [GitHub 上开源](https://github.com/dream-num/univer)。
+
+如果你还没听说过 [Univer Go](https://go.univer.ai/zh-CN)：Univer Go 是 Univer 团队基于 SDK 打造的个性化生产力应用开发工具，目前已开放下载。
+
+作者：[Wenzhao Hu](https://github.com/wzhudev)，Tech Lead & Architect
