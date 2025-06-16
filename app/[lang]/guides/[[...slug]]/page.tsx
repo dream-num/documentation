@@ -6,6 +6,7 @@ import {
   DocsTitle,
 } from 'fumadocs-ui/page'
 import { notFound } from 'next/navigation'
+import { ArticleActions } from '@/components/article-actions'
 import { guides } from '@/lib/source'
 import { getMDXComponents } from '@/mdx-components'
 
@@ -23,8 +24,9 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: IProps) {
   const { slug, lang } = await params
   const page = guides.getPage(slug, lang)
-  if (!page)
+  if (!page) {
     notFound()
+  }
 
   return {
     title: page.data.title,
@@ -35,8 +37,9 @@ export async function generateMetadata({ params }: IProps) {
 export default async function Page({ params }: IProps) {
   const { slug, lang } = await params
   const page = guides.getPage(slug, lang)
-  if (!page)
+  if (!page) {
     notFound()
+  }
 
   const MDXContent = page.data.body
 
@@ -44,6 +47,7 @@ export default async function Page({ params }: IProps) {
     <DocsPage toc={page.data.toc} full={page.data.full}>
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
+      <ArticleActions path={`/guides/${slug?.join('/')}`} />
       <DocsBody>
         <MDXContent
           components={getMDXComponents({
