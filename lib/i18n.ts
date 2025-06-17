@@ -47,10 +47,15 @@ const customZhCN = {
   'ecosystem.title': '生态',
   'icons.title': 'Univer Icons',
   'icons.slogan': 'Univer 的图标库，提供丰富的图标资源',
+  'showcase.title': '在线演示',
+  'showcase.slogan': '通过案例，了解 Univer 的强大功能',
+  'showcase.back': '返回',
   'blog.title': '博客',
   'blog.slogan': '在此探索 Univer 的新闻、架构和最佳实践',
   'blog.author': '作者',
   'blog.date': '发表日期',
+  'blog.back': '返回',
+  'banner.release': '已发布。',
 }
 
 const customEnUS: typeof customZhCN = {
@@ -58,10 +63,15 @@ const customEnUS: typeof customZhCN = {
   'ecosystem.title': 'Ecosystem',
   'icons.title': 'Univer Icons',
   'icons.slogan': 'An icon library for Univer, providing a rich set of icons',
+  'showcase.title': 'Showcase',
+  'showcase.slogan': 'Explore Univer\'s powerful features through online examples',
+  'showcase.back': 'Back',
   'blog.title': 'Blog',
   'blog.slogan': 'Explore the latest news, architecture, and best practices of Univer',
   'blog.author': 'Author',
   'blog.date': 'Published Date',
+  'blog.back': 'Back',
+  'banner.release': 'has been released.',
 }
 
 export const customTranslations: Record<string, Record<string, string>> = {

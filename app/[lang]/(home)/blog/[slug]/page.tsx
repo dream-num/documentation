@@ -118,7 +118,7 @@ export default async function Page({ params }: IProps) {
           <InlineTOC defaultOpen items={page.data.toc} />
           <Button className="w-full" asChild>
             <Link href="/blog">
-              Back
+              {customTranslations[lang]['blog.back']}
             </Link>
           </Button>
         </aside>

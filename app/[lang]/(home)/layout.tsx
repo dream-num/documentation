@@ -99,6 +99,10 @@ export default async function Layout({ params, children }: IProps) {
       text: customTranslations[lang]['blog.title'],
       url: `/${lang}/blog`,
     },
+    {
+      text: customTranslations[lang]['showcase.title'],
+      url: `/${lang}/showcase`,
+    },
   ]
 
   return (

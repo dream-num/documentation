@@ -1,5 +1,6 @@
 import { RssIcon } from 'lucide-react'
 import Link from 'next/link'
+import { Header } from '@/components/header'
 import { dayjs, formatLocalDate } from '@/lib/dayjs'
 import { customTranslations } from '@/lib/i18n'
 import { blog } from '@/lib/source'
@@ -30,31 +31,13 @@ export default async function Page({ params }: IProps) {
         md:py-12
       `}
     >
-      <header
-        className={`
-          relative p-6
-          before:pointer-events-none before:absolute before:top-0 before:left-0 before:z-10 before:h-full before:w-full
-          before:bg-[url('/assets/images/noise.gif')] before:opacity-[0.05] before:content-['']
-        `}
-      >
-        <div className="flex justify-between">
-          <div>
-            <h1 className="mb-2 text-3xl font-semibold">
-              {customTranslations[lang]['blog.title']}
-            </h1>
-            <p
-              className={`
-                text-neutral-700
-                dark:text-neutral-300
-              `}
-            >
-              {customTranslations[lang]['blog.slogan']}
-            </p>
-          </div>
-
+      <Header
+        title={customTranslations[lang]['blog.title']}
+        slogan={customTranslations[lang]['blog.slogan']}
+        actions={(
           <Link
             className={`
-              mt-2 text-sm text-neutral-500
+              text-sm text-neutral-500
               hover:text-neutral-700
             `}
             href={`/${lang}/blog/rss.xml`}
@@ -63,8 +46,8 @@ export default async function Page({ params }: IProps) {
           >
             <RssIcon />
           </Link>
-        </div>
-      </header>
+        )}
+      />
 
       <section
         className={`

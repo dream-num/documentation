@@ -1,3 +1,4 @@
+import { Header } from '@/components/header'
 import { customTranslations } from '@/lib/i18n'
 import IconBlock from './icon-block'
 
@@ -23,26 +24,14 @@ export default async function Page({ params }: IProps) {
         md:py-12
       `}
     >
-      <header
-        className={`
-          mb-4 bg-neutral-50 p-6
-          dark:bg-neutral-900
-        `}
-      >
-        <h1 className="mb-2 text-3xl font-semibold">
-          {customTranslations[lang]['icons.title']}
-        </h1>
-        <p
-          className={`
-            text-neutral-700
-            dark:text-neutral-300
-          `}
-        >
-          {customTranslations[lang]['icons.slogan']}
-        </p>
-      </header>
+      <Header
+        title={customTranslations[lang]['icons.title']}
+        slogan={customTranslations[lang]['icons.slogan']}
+      />
 
-      <IconBlock />
+      <section className="mt-4">
+        <IconBlock />
+      </section>
     </main>
   )
 }
