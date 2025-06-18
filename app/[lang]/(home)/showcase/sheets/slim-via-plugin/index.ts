@@ -7,12 +7,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const metadata = {
   title: {
-    'en-US': 'Univer Sheets Basic Example (Plugin Mode)',
-    'zh-CN': 'Univer Sheets 基础示例（插件模式）',
+    'en-US': 'Univer Sheets Slim Example (Plugin Mode)',
+    'zh-CN': 'Univer Sheets 精简示例（插件模式）',
   },
   description: {
-    'en-US': 'A basic example of Univer Sheets in plugin mode, demonstrating how to use the core features of Univer Sheets.',
-    'zh-CN': 'Univer Sheets 官方插件的基础示例，展示了如何使用 Univer Sheets 的核心功能。',
+    'en-US': 'A minimal setup example for Univer Sheets, demonstrating the minimum configuration required to use Univer Sheets.',
+    'zh-CN': 'Univer Sheets 的精简配置示例，展示了使用 Univer Sheets 所需的最小配置。',
   },
   tags: {
     'en-US': ['Univer Sheets', 'Plugin Mode'],

@@ -71,7 +71,12 @@ export default async function Page({ params }: IProps) {
                 dark:bg-linear-[145deg,#40B9FF_-30%,rgba(0,0,0,0)_70%]
               `}
             />
-            <div className="relative">
+            <div
+              className={`
+                relative text-neutral-800
+                dark:text-neutral-100
+              `}
+            >
               <h3 className="font-medium">{post.data.title}</h3>
               <p>{post.data.description}</p>
             </div>

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Header } from '@/components/header'
+import { Badge } from '@/components/ui/badge'
 import { customTranslations } from '@/lib/i18n'
 import { showcase } from './data'
 
@@ -43,27 +44,60 @@ export default async function Page({ params }: IProps) {
         slogan={customTranslations[lang]['showcase.slogan']}
       />
 
-      <section>
+      <section
+        className={`
+          mt-4 grid grid-cols-1 gap-4
+          md:grid-cols-2
+          lg:grid-cols-3
+        `}
+      >
         {items.map(item => (
-          <Link key={item.url} href={item.url} className="mb-4 block">
-            <h2 className="text-xl font-semibold">{item.title}</h2>
-            <p
+          <Link
+            key={item.url}
+            className="group relative overflow-hidden rounded-2xl border"
+            href={item.url}
+          >
+            <div
               className={`
-                text-neutral-600
-                dark:text-neutral-400
+                absolute inset-0 bg-gradient-to-br from-[#64bcff] to-50% opacity-0 transition-all duration-500
+                ease-in-out
+                group-hover:opacity-100
+                hover:to-neutral-50
+                dark:bg-gradient-to-t dark:from-[#242424] dark:to-[#020202] dark:hover:from-[#182135]
+                dark:hover:to-[#080808]
               `}
-            >
-              {item.description}
-            </p>
-            <div className="mt-2">
-              {item.tags.map(tag => (
+            />
+
+            <div className="relative">
+              <div className="px-6 py-5">
+                <div className="flex flex-wrap gap-2">
+                  {item.tags.map(tag => (
+                    <Badge
+                      key={tag}
+                      className="rounded-full transition-all duration-500 ease-in-out"
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
                 <span
-                  key={tag}
-                  className="mr-2 mb-1 inline-block rounded-full bg-blue-100 px-2 py-1 text-xs text-blue-800"
+                  className={`
+                    mb-1 inline-block pt-2 text-lg font-semibold text-neutral-800 transition-all duration-500
+                    ease-in-out
+                    dark:text-neutral-100
+                  `}
                 >
-                  {tag}
+                  {item.title}
                 </span>
-              ))}
+                <p
+                  className={`
+                    text-sm text-neutral-600 transition-all duration-500 ease-in-out
+                    dark:text-neutral-400
+                  `}
+                >
+                  {item.description}
+                </p>
+              </div>
             </div>
           </Link>
         ))}

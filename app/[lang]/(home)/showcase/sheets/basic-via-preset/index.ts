@@ -11,8 +11,8 @@ const metadata = {
     'zh-CN': 'Univer Sheets 基础示例（预设模式）',
   },
   description: {
-    'en-US': 'A basic example of Univer Sheets, showcasing the minimal setup required to get started with Univer Sheets.',
-    'zh-CN': 'Univer Sheets 的基础示例，展示了使用 Univer Sheets 所需的最小配置。',
+    'en-US': 'A basic example of Univer Sheets in preset mode, demonstrating how to use the core features of Univer Sheets.',
+    'zh-CN': 'Univer Sheets 官方预设的基础示例，展示了如何使用 Univer Sheets 的核心功能。',
   },
   tags: {
     'en-US': ['Univer Sheets', 'Preset Mode'],

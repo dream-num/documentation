@@ -1,5 +1,5 @@
-import type { IWorkbookData } from '@univerjs/core'
-import { LocaleType } from '@univerjs/core'
+import type { IWorkbookData } from '@univerjs/presets'
+import { LocaleType } from '@univerjs/presets'
 
 export const WORKBOOK_DATA: IWorkbookData = {
   id: 'workbook-01',
