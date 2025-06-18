@@ -1,5 +1,23 @@
-export { FUniver } from '@univerjs/core/facade'
+import { FUniver } from '@univerjs/core/facade'
 
-export interface MyInterface {
-  name: string
-}
+import '@univerjs/engine-formula/facade'
+import '@univerjs/ui/facade'
+import '@univerjs/docs-ui/facade'
+import '@univerjs/sheets/facade'
+import '@univerjs/sheets-ui/facade'
+import '@univerjs/sheets-formula/facade'
+import '@univerjs/sheets-numfmt/facade'
+import '@univerjs/sheets-filter/facade'
+import '@univerjs/sheets-sort/facade'
+import '@univerjs/sheets-data-validation/facade'
+import '@univerjs/sheets-conditional-formatting/facade'
+import '@univerjs/sheets-hyper-link/facade'
+import '@univerjs/sheets-hyper-link-ui/facade'
+import '@univerjs/sheets-find-replace/facade'
+import '@univerjs/sheets-drawing-ui/facade'
+import '@univerjs/watermark/facade'
+import '@univerjs/sheets-thread-comment/facade'
+import '@univerjs/sheets-note/facade'
+import '@univerjs/sheets-table/facade'
+
+export { FUniver }

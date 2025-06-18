@@ -17,7 +17,7 @@ export function ArticleActions(props: IProps) {
           size: 'sm',
           className: 'gap-2',
         })}
-        href={`https://github.com/dream-num/univer-documentation/tree/v1/content/${path}`}
+        href={`https://github.com/dream-num/univer-documentation/tree/v1/content${path}`}
         target="_blank"
         rel="nofollow noreferrer"
       >
