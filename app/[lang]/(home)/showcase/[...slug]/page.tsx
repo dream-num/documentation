@@ -44,7 +44,7 @@ export default async function Page({ params }: IProps) {
   const { metadata, dependencies = {}, files = {} } = (await currentShowCasePromise).default
 
   return (
-    <main
+    <div
       className={`
         container py-12
         max-sm:px-0
@@ -86,6 +86,6 @@ export default async function Page({ params }: IProps) {
           files={files}
         />
       </section>
-    </main>
+    </div>
   )
 }

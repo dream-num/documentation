@@ -3,9 +3,9 @@
 import * as icons from '@univerjs/icons'
 import * as manifest from '@univerjs/icons/esm/manifest'
 import { type ComponentType, useMemo, useState } from 'react'
+import { Tooltip } from '@/components/tooltip'
 import { Slider } from '@/components/ui/slider'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 export default function IconBlock() {
   const [fontSize, setFontSize] = useState(24)
@@ -63,20 +63,15 @@ export default function IconBlock() {
       <ul className="flex flex-wrap gap-4">
         {activeGroup.icons.map(icon => (
           <li key={icon.stem} className="text-center">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div
-                  className={`
-                    flex aspect-square size-16 flex-col items-center justify-center rounded-md bg-neutral-50 p-2
-                    dark:bg-neutral-800
-                  `}
-                >
-                  <div>{getIcon(icon.icon)}</div>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                {icon.icon}
-              </TooltipContent>
+            <Tooltip content={icon.icon}>
+              <div
+                className={`
+                  flex aspect-square size-16 flex-col items-center justify-center rounded-md bg-neutral-50 p-2
+                  dark:bg-neutral-800
+                `}
+              >
+                <div>{getIcon(icon.icon)}</div>
+              </div>
             </Tooltip>
           </li>
         ))}

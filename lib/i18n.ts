@@ -43,6 +43,8 @@ export const translations: Record<string, Partial<Translations>> = {
  */
 
 const customZhCN = {
+  'home.slogan': '重塑工作流的全栈嵌入工具',
+  'home.description': 'Univer 是一个前后端同构的全栈开发框架，可以在 WEB 端和服务端创建、编辑电子表格、文档以及幻灯片。',
   'documentation.title': '文档',
   'ecosystem.title': '生态',
   'icons.title': 'Univer Icons',
@@ -59,6 +61,8 @@ const customZhCN = {
 }
 
 const customEnUS: typeof customZhCN = {
+  'home.slogan': 'Embedding server-driven productivity tools into Your Workflow',
+  'home.description': 'Univer is a full-stack framework for creating and editing spreadsheets, documents, and slides on both web and server.',
   'documentation.title': 'Documentation',
   'ecosystem.title': 'Ecosystem',
   'icons.title': 'Univer Icons',

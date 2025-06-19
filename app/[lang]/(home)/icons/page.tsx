@@ -17,7 +17,7 @@ export default async function Page({ params }: IProps) {
   const { lang } = await params
 
   return (
-    <main
+    <div
       className={`
         container
         max-sm:px-0
@@ -32,6 +32,6 @@ export default async function Page({ params }: IProps) {
       <section className="mt-4">
         <IconBlock />
       </section>
-    </main>
+    </div>
   )
 }

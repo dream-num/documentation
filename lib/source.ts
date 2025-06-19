@@ -14,10 +14,24 @@ export const guides = loader({
     if (!icon) return
 
     if (icon in icons) {
-      return createElement(icons[icon as keyof typeof icons])
+      return createElement(IconWrapper, {
+        type: 'icon',
+        icon: icons[icon as keyof typeof icons],
+      })
     }
 
-    return createElement(IconWrapper, { children: icon })
+    if (icon.startsWith('#pro')) {
+      const [,iconName] = icon.split('/')
+      return createElement(IconWrapper, {
+        type: 'pro',
+        icon: icons[iconName as keyof typeof icons],
+      })
+    }
+
+    return createElement(IconWrapper, {
+      type: 'text',
+      text: icon,
+    })
   },
 })
 

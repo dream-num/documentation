@@ -24,7 +24,7 @@ export default async function Page({ params }: IProps) {
   })
 
   return (
-    <main
+    <div
       className={`
         container
         max-sm:px-0
@@ -95,6 +95,6 @@ export default async function Page({ params }: IProps) {
           </Link>
         ))}
       </section>
-    </main>
+    </div>
   )
 }

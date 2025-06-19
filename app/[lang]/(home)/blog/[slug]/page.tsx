@@ -46,7 +46,7 @@ export default async function Page({ params }: IProps) {
   const MDXContent = page.data.body
 
   return (
-    <main
+    <div
       className={`
         container py-12
         max-sm:px-0
@@ -71,7 +71,7 @@ export default async function Page({ params }: IProps) {
         `}
       >
         <article
-          // eslint-disable-next-line better-tailwindcss/no-unregistered-classes
+
           className={clsx('prose', `
             order-last
             md:order-none
@@ -123,6 +123,6 @@ export default async function Page({ params }: IProps) {
           </Button>
         </aside>
       </div>
-    </main>
+    </div>
   )
 }

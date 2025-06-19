@@ -1,3 +1,4 @@
+import { SiGithub } from '@icons-pack/react-simple-icons'
 import { createRelativeLink } from 'fumadocs-ui/mdx'
 import {
   DocsBody,
@@ -5,8 +6,9 @@ import {
   DocsPage,
   DocsTitle,
 } from 'fumadocs-ui/page'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArticleActions } from '@/components/article-actions'
+import { Button } from '@/components/ui/button'
 import { guides } from '@/lib/source'
 import { getMDXComponents } from '@/mdx-components'
 
@@ -44,10 +46,25 @@ export default async function Page({ params }: IProps) {
   const MDXContent = page.data.body
 
   return (
-    <DocsPage toc={page.data.toc} full={page.data.full}>
-      <DocsTitle>{page.data.title}</DocsTitle>
-      <DocsDescription>{page.data.description}</DocsDescription>
-      <ArticleActions path={`/guides/${slug?.join('/')}`} />
+    <DocsPage
+      toc={page.data.toc}
+      full={page.data.full}
+    >
+      <header className="border-b border-b-neutral-200 pb-6">
+        <DocsTitle className="mb-6">{page.data.title}</DocsTitle>
+        <DocsDescription>{page.data.description}</DocsDescription>
+
+        {/* Actions */}
+        <section>
+          <Button size="sm" asChild>
+            <Link className="text-xs" href={`https://github.com/dream-num/univer-documentation/tree/v1/content/guides/${page.path}`}>
+              <SiGithub />
+              View on GitHub
+            </Link>
+          </Button>
+        </section>
+      </header>
+
       <DocsBody>
         <MDXContent
           components={getMDXComponents({

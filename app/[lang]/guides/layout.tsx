@@ -19,6 +19,9 @@ export default async function Layout({ params, children }: IProps) {
     <DocsLayout
       {...baseOptions(lang)}
       tree={guides.pageTree[lang]}
+      sidebar={{
+        defaultOpenLevel: 1,
+      }}
     >
       <Banner id={pkg.version} variant="rainbow" changeLayout={false}>
         <Link href={`https://github.com/dream-num/univer/releases/tag/v${pkg.version}`}>
