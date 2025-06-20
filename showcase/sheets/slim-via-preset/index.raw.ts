@@ -1,6 +1,6 @@
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import sheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
-import { createUniver, defaultTheme, LocaleType, merge } from '@univerjs/presets'
+import { createUniver, LocaleType, merge } from '@univerjs/presets'
 import { WORKBOOK_DATA } from './data'
 
 import './styles.css'
@@ -15,7 +15,6 @@ const { univerAPI } = createUniver({
       sheetsCoreZhCN,
     ),
   },
-  theme: defaultTheme,
   presets: [
     UniverSheetsCorePreset(),
   ],

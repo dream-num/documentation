@@ -58,6 +58,9 @@ const customZhCN = {
   'blog.date': '发表日期',
   'blog.back': '返回',
   'banner.release': '已发布。',
+  'docs.header.edit-on-github': '在 GitHub 上编辑',
+  'playground.click-to-show': '点击显示 demo',
+  'playground.click-to-hide': '点击隐藏 demo',
 }
 
 const customEnUS: typeof customZhCN = {
@@ -76,6 +79,9 @@ const customEnUS: typeof customZhCN = {
   'blog.date': 'Published Date',
   'blog.back': 'Back',
   'banner.release': 'has been released.',
+  'docs.header.edit-on-github': 'Edit on GitHub',
+  'playground.click-to-show': 'Click to show demo',
+  'playground.click-to-hide': 'Click to hide demo',
 }
 
 export const customTranslations: Record<string, Record<string, string>> = {

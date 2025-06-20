@@ -7,7 +7,6 @@ import sheetsDataValidationZhCN from '@univerjs/preset-sheets-data-validation/lo
 import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing'
 import sheetsDrawingZhCN from '@univerjs/preset-sheets-drawing/locales/zh-CN'
 import { UniverSheetsFilterPreset } from '@univerjs/preset-sheets-filter'
-import sheetsFilterZhCN from '@univerjs/preset-sheets-filter/locales/zh-CN'
 import UniverPresetSheetsFilterZhCN from '@univerjs/preset-sheets-filter/locales/zh-CN'
 import { UniverSheetsFindReplacePreset } from '@univerjs/preset-sheets-find-replace'
 import UniverPresetSheetsFindReplaceZhCN from '@univerjs/preset-sheets-find-replace/locales/zh-CN'
@@ -33,7 +32,6 @@ import '@univerjs/presets/lib/styles/preset-sheets-filter.css'
 import '@univerjs/presets/lib/styles/preset-sheets-conditional-formatting.css'
 import '@univerjs/presets/lib/styles/preset-sheets-data-validation.css'
 import '@univerjs/presets/lib/styles/preset-sheets-drawing.css'
-import '@univerjs/presets/lib/styles/preset-sheets-filter.css'
 import '@univerjs/presets/lib/styles/preset-sheets-hyper-link.css'
 import '@univerjs/presets/lib/styles/preset-sheets-find-replace.css'
 import '@univerjs/presets/lib/styles/preset-sheets-thread-comment.css'
@@ -52,7 +50,6 @@ const { univerAPI } = createUniver({
       sheetsDataValidationZhCN,
       UniverPresetSheetsFindReplaceZhCN,
       sheetsDrawingZhCN,
-      sheetsFilterZhCN,
       sheetsHyperLinkZhCN,
       UniverPresetSheetsThreadCommentZhCN,
       SheetsCrosshairHighlightZhCN,

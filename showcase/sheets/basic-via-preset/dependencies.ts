@@ -1,0 +1,18 @@
+export const dependencies = {
+  rxjs: 'latest',
+  react: 'latest',
+  'react-dom': 'latest',
+  '@univerjs/presets': '0.8.2',
+  '@univerjs/preset-sheets-core': '0.8.2',
+  '@univerjs/preset-sheets-conditional-formatting': '0.8.2',
+  '@univerjs/preset-sheets-data-validation': '0.8.2',
+  '@univerjs/preset-sheets-thread-comment': '0.8.2',
+  '@univerjs/preset-sheets-drawing': '0.8.2',
+  '@univerjs/preset-sheets-filter': '0.8.2',
+  '@univerjs/preset-sheets-sort': '0.8.2',
+  '@univerjs/preset-sheets-hyper-link': '0.8.2',
+  '@univerjs/preset-sheets-find-replace': '0.8.2',
+  '@univerjs/watermark': '0.8.2',
+  '@univerjs/sheets-crosshair-highlight': '0.8.2',
+  '@univerjs/sheets-zen-editor': '0.8.2',
+}

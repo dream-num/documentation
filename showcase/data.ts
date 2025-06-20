@@ -13,4 +13,6 @@ export const showcase: Record<string, Promise<{ default: {
   'sheets/slim-via-preset': import('./sheets/slim-via-preset'),
   'sheets/basic-via-plugin': import('./sheets/basic-via-plugin'),
   'sheets/basic-via-preset': import('./sheets/basic-via-preset'),
+  'docs/slim-via-plugin': import('./docs/slim-via-plugin'),
+  'docs/slim-via-preset': import('./docs/slim-via-preset'),
 }

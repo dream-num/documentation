@@ -13,6 +13,7 @@ export function baseOptions(_locale: string): BaseLayoutProps {
   return {
     nav: {
       title: <Logo />,
+      transparentMode: 'always',
     },
     // see https://fumadocs.dev/docs/ui/navigation/links
     links: [],

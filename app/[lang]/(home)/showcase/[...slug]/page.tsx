@@ -4,7 +4,7 @@ import { Playground } from '@/components/playground'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { customTranslations } from '@/lib/i18n'
-import { showcase } from '../data'
+import { showcase } from '@/showcase/data'
 
 interface IProps {
   params: Promise<{

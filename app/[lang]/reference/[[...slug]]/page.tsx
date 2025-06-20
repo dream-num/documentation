@@ -10,7 +10,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { customTranslations } from '@/lib/i18n'
-import { guides } from '@/lib/source'
+import { reference } from '@/lib/source'
 import { getMDXComponents } from '@/mdx-components'
 
 interface IProps {
@@ -21,12 +21,12 @@ interface IProps {
 }
 
 export async function generateStaticParams() {
-  return guides.generateParams()
+  return reference.generateParams()
 }
 
 export async function generateMetadata({ params }: IProps) {
   const { slug, lang } = await params
-  const page = guides.getPage(slug, lang)
+  const page = reference.getPage(slug, lang)
   if (!page) {
     notFound()
   }
@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: IProps) {
 
 export default async function Page({ params }: IProps) {
   const { slug, lang } = await params
-  const page = guides.getPage(slug, lang)
+  const page = reference.getPage(slug, lang)
   if (!page) {
     notFound()
   }
@@ -73,7 +73,7 @@ export default async function Page({ params }: IProps) {
         <MDXContent
           components={getMDXComponents({
             // this allows you to link to other pages with relative file paths
-            a: createRelativeLink(guides, page),
+            a: createRelativeLink(reference, page),
           })}
         />
       </DocsBody>

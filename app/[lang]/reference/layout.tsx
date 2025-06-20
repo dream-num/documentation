@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import { baseOptions } from '@/app/layout.config'
-import { guides } from '@/lib/source'
+import { reference } from '@/lib/source'
 
 interface IProps {
   params: Promise<{ lang: string }>
@@ -14,7 +14,7 @@ export default async function Layout({ params, children }: IProps) {
   return (
     <DocsLayout
       {...baseOptions(lang)}
-      tree={guides.pageTree[lang]}
+      tree={reference.pageTree[lang]}
       sidebar={{
         defaultOpenLevel: 1,
       }}

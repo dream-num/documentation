@@ -1,0 +1,486 @@
+---
+title: 安装和基本使用
+icon: Blocks
+---
+
+import { Playground } from '@/components/playground'
+import slimViaPreset from '@/showcase/docs/slim-via-preset'
+import slimViaPlugin from '@/showcase/docs/slim-via-plugin'
+
+Univer 采用了插件化的设计理念，旨在为开发者提供一个灵活、可扩展的电子文档应用框架。通过插件化设计，Univer 可以轻松地集成各种功能模块，从而满足不同用户的需求。但插件化的设计会增加应用的复杂性，尤其是对于首次接触 Univer 的开发者来说。
+
+为此，Univer 提供了**插件模式**和**预设模式**两种方式帮助你快速集成和使用 Univer。所谓**预设**实际上就是一组预先配置好的插件组合，因此在无需进行复杂扩展的情况下，两者所提供的能力是相同的。
+
+<Callout type="warning" title="注意事项">
+  - **依赖版本需一致**：无论是使用预设模式还是插件模式的方式，你都必须保证所有依赖的版本号一致。
+  - **谨慎混用插件和预设**：如果一个插件已经被包含在某个预设中，那么在使用预设时就不需要再单独引入该插件了。否则可能会导致插件冲突或功能异常。
+</Callout>
+
+预设模式与插件模式的区别：
+
+| 插件模式 | 预设模式 | 
+| --- | --- |
+| 需要手动引入对应的 facade 包 | 无需手动引入任何 facade 包 |
+| 需要注意同类型功能插件注册顺序 | 同功能被包含在预设中无需关注注册顺序 |
+| 支持按需懒加载 | 仅支持预设级别的懒加载，预设内的插件包只能同步加载 |
+
+## 通过预设模式创建
+
+在这里我们将简单介绍下如何通过不到二十行的代码来快速搭建一个 Univer Docs 应用。
+
+### 使用包管理器
+
+如果你的项目中已经引入了现代前端开发工具，那么引入 Univer 将会非常简单。我们推荐使用 [Vite](https://vitejs.dev/)、[esbuild](https://esbuild.github.io/) 或 [Webpack 5](https://webpack.js.org/) 等对 ES Module 支持较好的构建工具来构建 Univer 应用。如果你使用了其它构建工具（例如 Webpack 4），可能会需要一些额外的配置，请阅读 [常见问题](/guides/sheets/troubleshooting) 获取更多信息。
+
+#### 安装
+
+选择你所使用的包管理器以安装 `@unvierjs/presets`：
+
+```package-install
+npm install @univerjs/presets @univerjs/preset-docs-core
+```
+
+#### 使用
+
+<Callout type="warning">
+  如果你的构建工具不支持 package.json 的 `exports` 字段（常见于 Webpack 4），你需要手动将映射的路径修改为实际的路径。
+</Callout>
+
+通过以下代码，你就可以快速创建一个 Univer Docs 应用：
+
+```typescript
+import { createUniver, defaultTheme, LocaleType, merge } from '@univerjs/presets';
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core';
+import UniverPresetDocsCoreZhCN from '@univerjs/preset-docs-core/locales/zh-CN';
+ 
+const { univer, univerAPI } = createUniver({
+  locale: LocaleType.ZH_CN,
+  locales: {
+    [LocaleType.ZH_CN]: merge(
+      {},
+      UniverPresetDocsCoreZhCN,
+    ),
+  },
+  theme: defaultTheme,
+  presets: [
+    UniverDocsCorePreset({
+      container: 'app',
+    }),
+  ],
+});
+ 
+univerAPI.createUniverDoc({});
+```
+
+<Playground lang="zh-CN" {...slimViaPreset} options={{ clickToShow: true }} />
+
+<Callout type="warning">
+你也可以通过 `@univerjs/presets/preset-docs-core` 来引入 `UniverDocsCorePreset`，但必须确保你的构建工具支持 `package.json` 的 `exports` 字段。
+</Callout>
+
+#### `createUniver` 方法
+
+`createUniver` 方法接受一个配置对象，其中包含了 Univer 的配置信息，例如语言、主题、插件等。这个方法会返回一个包含了 Univer 实例和 Univer Facade API 实例的对象。
+
+配置对象的部分属性如下：
+
+- `locale`：语言环境，可以是 `LocaleType` 枚举值。
+- `locales`：语言包，一个对象，键为语言环境，值为语言包对象。
+- `theme`：主题，一个可选主题对象。
+- `presets`：一个 preset 数组，包含了需要注册的预设包，例如 `UniverDocsCorePreset`。
+- `plugins`：一个插件数组，包含了需要额外注册的插件。
+
+当你使用了一个未包含在任何预设包中的插件或者你自己实现了一个插件时，可以通过 `plugins` 属性来注册这些插件。也可以选择在获得 Univer 实例后通过 `univer.registerPlugin` 方法来注册插件。
+
+<Callout>
+你可以在 [API Reference / createUniver](/zh-CN/reference/methods/create-univer) 找到更多关于 `createUniver` 方法的详细信息。
+</Callout>
+
+### 通过 `<script>` 标签引入（不推荐）
+
+如果你不使用包管理工具，也可以通过 `<script>` 标签引入 Univer。
+
+我们在当前主流的 CDN 服务商（例如 jsDelivr、unpkg）都提供了 Univer 的 UMD 构建，你可以在 HTML 文件中引入这些资源（当然你也可以下载这些文件然后通过自己的服务器或者 CDN 网络分发）：
+
+#### 示例
+
+```html
+<head>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/rxjs/dist/bundles/rxjs.umd.min.js"></script>
+  <script src="https://unpkg.com/echarts@5.6.0/dist/echarts.min.js"></script>
+
+  <script src="https://unpkg.com/@univerjs/presets/lib/umd/index.js"></script>
+  
+  <script src="https://unpkg.com/@univerjs/preset-docs-core/lib/umd/index.js"></script>
+  <script src="https://unpkg.com/@univerjs/preset-docs-core/lib/umd/locales/zh-CN.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/@univerjs/preset-docs-core/lib/index.css" />
+  <style>
+    html,
+    body,
+    #root,
+    #app {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+ 
+  <script>
+    const { createUniver } = UniverPresets;
+    const { LocaleType, merge } = UniverCore;
+    const { defaultTheme } = UniverDesign;
+    const { UniverDocsCorePreset } = UniverPresetDocsCore
+
+    const { univerAPI } = createUniver({
+      locale: LocaleType.ZH_CN,
+      locales: {
+        [LocaleType.ZH_CN]: merge(
+          {},
+          UniverPresetDocsCoreZhCN,
+        ),
+      },
+      theme: defaultTheme,
+      presets: [
+        UniverDocsCorePreset(),
+      ],
+    });
+
+    univerAPI.createUniverDoc({}); // 创建一个新的文档
+  </script>
+</body>
+```
+
+这里返回的 `univerAPI` 对象被称为 Univer 的面板 API（Facade API），通过它可以调用 Univer 提供的许多功能。
+
+#### 指定版本
+
+unpkg 和 jsDeliver 都支持指定特定版本的资源。以 unpkg 为例，如果你想使用 x.y.z 版本的 Univer，仅需在 URL 中加上 `@<version>` 来指定版本即可：
+
+```diff
+- https://unpkg.com/@univerjs/presets/lib/umd/index.js
++ https://unpkg.com/@univerjs/presets@x.y.z/lib/umd/index.js
+```
+
+## 通过插件模式创建
+
+Univer 以插件的形式提供了一系列功能，除了一些产品所必需的核心插件外，你还可以根据需要选择性地引入其它插件。这里仅以最基础的 Univer Docs 应用为例，介绍如何手动组合安装插件。
+
+与预设模式不同，插件模式默认并不包含 Facade API，以下代码示例中有关 Facade API 的部分都是可选的，你可以根据自己的需求来决定是否删除。
+
+### 使用包管理器
+
+#### 安装
+
+Univer 使用了 React 开发视图（当然这并不影响你在 Vue 或者 Angular 中使用 Univer），使用 Rxjs 来处理数据流，由于这两个库被广泛使用在现代前端开发中，因此我们将它们作为 peerDependencies。而不同的包管理工具在对于 peerDependencies 有着不同的行为策略，因此你可能需要注意一些细节。
+
+<Callout>
+  - 如果你正在使用 npm，请确保使用的版本为 npm@7 及以上。这是因为 npm@3 ~ npm@6 并不会正确地安装 `peerDependencies`[^1]。
+  - 如果你正在使用 pnpm，请确保使用的版本为 pnpm@8 及以上。如果你正在使用 pnpm@6 ~ pnpm@7，可以尝试配置 `auto-install-peers=true` [^2]来解决依赖安装问题。
+  - 如果你正在使用 yarn，你需要手动安装缺失的 `peerDependencies`[^3]，不过别担心，下面的安装命令中已经包含了这些依赖。
+</Callout>
+
+<Tabs items={['npm', 'pnpm', 'yarn']}>
+  <Tab>
+    ```shell
+    npm install @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/ui
+    ```
+  </Tab>
+  <Tab>
+    ```shell
+    pnpm add @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/ui
+    ```
+  </Tab>
+  <Tab>
+    ```shell
+    yarn add @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/ui react react-dom rxjs
+    ```
+  </Tab>
+</Tabs>
+
+#### 使用
+
+<Callout type="warning" title="注意事项">
+  - 并非所有的插件都包含了 facade 包、语言包和样式文件，我们会在每个功能的文档对此进行说明。
+  - 样式文件的引入顺序很重要，确保你在依次引入 `@univerjs/design`、`@univerjs/ui` 的 CSS 样式后再引入其他插件的样式文件。
+</Callout>
+
+你需要在项目中引入 Univer 的样式文件、语言包，以及一些必要的插件：
+
+```typescript
+import { LocaleType, merge, Univer, UniverInstanceType } from "@univerjs/core";
+import { FUniver } from "@univerjs/core/facade";
+import { defaultTheme } from "@univerjs/design";
+
+import { UniverFormulaEnginePlugin } from "@univerjs/engine-formula";
+import { UniverRenderEnginePlugin } from "@univerjs/engine-render";
+import { UniverUIPlugin } from "@univerjs/ui";
+import { UniverDocsPlugin } from "@univerjs/docs";
+import { UniverDocsUIPlugin } from "@univerjs/docs-ui";
+
+import DesignZhCN from '@univerjs/design/locale/zh-CN';
+import UIZhCN from '@univerjs/ui/locale/zh-CN';
+import DocsUIZhCN from '@univerjs/docs-ui/locale/zh-CN';
+
+// 这里的 Facade API 是可选的，你可以根据自己的需求来决定是否引入
+import '@univerjs/engine-formula/facade';
+import '@univerjs/ui/facade';
+import '@univerjs/docs-ui/facade';
+
+import "@univerjs/design/lib/index.css";
+import "@univerjs/ui/lib/index.css";
+import "@univerjs/docs-ui/lib/index.css";
+```
+
+然后创建一个 Univer 实例，并注册这些插件：
+
+```typescript
+const univer = new Univer({
+  theme: defaultTheme,
+  locale: LocaleType.ZH_CN,
+  locales: {
+    [LocaleType.ZH_CN]: merge(
+      {},
+      DesignZhCN,
+      UIZhCN,
+      DocsUIZhCN,
+    ),
+  },
+});
+
+univer.registerPlugin(UniverRenderEnginePlugin);
+univer.registerPlugin(UniverFormulaEnginePlugin);
+
+univer.registerPlugin(UniverUIPlugin, {
+  container: 'app',
+});
+
+univer.registerPlugin(UniverDocsPlugin);
+univer.registerPlugin(UniverDocsUIPlugin);
+
+univer.createUnit(UniverInstanceType.UNIVER_DOC, {});
+
+const univerAPI = FUniver.newAPI(univer);
+```
+
+<Playground lang="zh-CN" {...slimViaPlugin} options={{ clickToShow: true }} />
+
+#### 懒加载部分插件
+
+使用插件模式的一个优势是你可以更加灵活地控制插件的加载时机，一种常见的方式是在应用初始化时仅加载必须的插件，而将部分插件的加载时机延迟到首次渲染完成之后。
+
+```typescript
+// ...
+
+univer.createUnit(UniverInstanceType.UNIVER_DOC, {});
+
+import('@univerjs/watermark').then(({ UniverWatermarkPlugin }) => {
+  univer.registerPlugin(UniverWatermarkPlugin, {
+    textWatermarkSettings: {
+      content: 'Hello, Univer!',
+      fontSize: 36,
+    },
+  });
+});
+```
+
+Univer 的 [官方 demo](https://github.com/dream-num/univer/blob/dev/examples/src/sheets/main.ts) 就使用了这样的优化技巧，可供参考。
+
+### 通过 `<script>` 标签引入（不推荐）
+
+和预设模式一样 Univer 也为每个插件都提供了 UMD 包，但与之不同的是，你需要手动引入每个插件的 UMD 包以及它们的前置依赖包。这个过程非常繁琐，我们并**不推荐**这种方式。请在完全理解插件机制（如插件之间的依赖关系，以及插件样式文件的引入顺序）之后再考虑使用。
+
+#### 示例
+
+```html
+<head>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/rxjs@7.8.1/dist/bundles/rxjs.umd.min.js"></script>
+  <script src="https://unpkg.com/echarts@5.6.0/dist/echarts.min.js"></script>
+  <script src="https://unpkg.com/@wendellhu/redi/dist/redi.js"></script>
+  <script src="https://unpkg.com/@wendellhu/redi/dist/react-bindings.js"></script>
+
+  <script>
+    /**
+     * With the support for React 19[^1], UMD users may need additional adaptation.
+     *
+     * [^1]: [support for React 19] https://github.com/dream-num/univer/pull/4247
+     */
+
+    /**
+     * Fix `Uncaught TypeError: client.createRoot is not a function`
+     * If using UMD React < 18, you might need the following code.
+     */
+    (function (global) {
+      'use strict';
+      if (!global.ReactDOM) {
+        throw new Error('ReactDOM must be loaded before ReactCreateRoot.');
+      }
+      const ReactDOM = global.ReactDOM;
+      if (!ReactDOM.createRoot) {
+        ReactDOM.createRoot = function (container) {
+          return {
+            render: (element) => {
+              ReactDOM.render(element, container);
+            },
+          };
+        };
+      }
+    })(this);
+
+    /**
+     * Fix `Uncaught TypeError: jsxRuntime.jsx is not a function`
+     * If using UMD React, you might need the following code.
+     * Reference: https://unpkg.com/react@18.3.1/cjs/react-jsx-runtime.production.min.js
+     */
+    (function (global) {
+      'use strict';
+      if (!global.React) {
+        throw new Error('React must be loaded before ReactJSXRuntime.');
+      }
+      const React = global.React;
+      if (!React.jsx || !React.jsxs) {
+        const REACT_ELEMENT_TYPE = Symbol.for('react.element');
+        const hasOwnProperty = Object.prototype.hasOwnProperty;
+        const RESERVED_PROPS = {
+          key: true,
+          ref: true,
+          __self: true,
+          __source: true,
+        };
+        const ReactCurrentOwner = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner;
+        function createReactElement(type, config, maybeKey) {
+          const props = {};
+          let key = null;
+          let ref = null;
+          if (maybeKey !== undefined) {
+            key = `${maybeKey}`;
+          }
+          if (config.key !== undefined) {
+            key = `${config.key}`;
+          }
+          if (config.ref !== undefined) {
+            ref = config.ref;
+          }
+          for (var propName in config) {
+            if (hasOwnProperty.call(config, propName) && !RESERVED_PROPS.hasOwnProperty(propName)) {
+              props[propName] = config[propName];
+            }
+          }
+          if (type && type.defaultProps) {
+            const defaultProps = type.defaultProps;
+            for (var propName in defaultProps) {
+              if (props[propName] === undefined) {
+                props[propName] = defaultProps[propName];
+              }
+            }
+          }
+          return {
+            $$typeof: REACT_ELEMENT_TYPE,
+            type,
+            key,
+            ref,
+            props,
+            _owner: ReactCurrentOwner.current,
+          };
+        }
+        React.jsx = createReactElement;
+        React.jsxs = createReactElement;
+      }
+    })(this);
+  </script>
+  
+  <script src="https://unpkg.com/@univerjs/protocol/lib/umd/index.js"></script>
+  <script src="https://unpkg.com/@univerjs/core/lib/umd/index.js"></script>
+  <script src="https://unpkg.com/@univerjs/telemetry/lib/umd/index.js"></script>
+  <script src="https://unpkg.com/@univerjs/rpc/lib/umd/index.js"></script>
+  <script src="https://unpkg.com/@univerjs/design/lib/umd/index.js"></script>
+  <script src="https://unpkg.com/@univerjs/engine-render/lib/umd/index.js"></script>
+  <script src="https://unpkg.com/@univerjs/engine-numfmt/lib/umd/index.js"></script>
+  <script src="https://unpkg.com/@univerjs/engine-formula/lib/umd/index.js"></script>
+  <script src="https://unpkg.com/@univerjs/drawing/lib/umd/index.js"></script>
+
+  <script src="https://unpkg.com/@univerjs/ui/lib/umd/index.js"></script>
+  <script src="https://unpkg.com/@univerjs/docs/lib/umd/index.js"></script>
+  <script src="https://unpkg.com/@univerjs/docs-ui/lib/umd/index.js"></script>
+
+  <script src="https://unpkg.com/@univerjs/core/lib/umd/facade.js"></script>
+  <script src="https://unpkg.com/@univerjs/engine-formula/lib/umd/facade.js"></script>
+  <script src="https://unpkg.com/@univerjs/ui/lib/umd/facade.js"></script>
+  <script src="https://unpkg.com/@univerjs/docs-ui/lib/umd/facade.js"></script>
+
+  <script src="https://unpkg.com/@univerjs/design/lib/umd/locale/zh-CN.js"></script>
+  <script src="https://unpkg.com/@univerjs/ui/lib/umd/locale/zh-CN.js"></script>
+  <script src="https://unpkg.com/@univerjs/docs-ui/lib/umd/locale/zh-CN.js"></script>
+
+  <link rel="stylesheet" href="https://unpkg.com/@univerjs/design/lib/index.css" />
+  <link rel="stylesheet" href="https://unpkg.com/@univerjs/ui/lib/index.css" />
+  <link rel="stylesheet" href="https://unpkg.com/@univerjs/docs-ui/lib/index.css" />
+
+  <style>
+    html,
+    body,
+    #root,
+    #app {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+ 
+  <script>
+    const { Univer, LocaleType, merge, UniverInstanceType } = UniverCore
+    const { FUniver } = UniverCoreFacade
+    const { defaultTheme } = UniverDesign
+    const { UniverRenderEnginePlugin } = UniverEngineRender
+    const { UniverFormulaEnginePlugin } = UniverEngineFormula
+    const { UniverUIPlugin } = UniverUi
+    const { UniverDocsPlugin } = UniverDocs
+    const { UniverDocsUIPlugin } = UniverDocsUi
+
+    const univer = new Univer({
+      theme: defaultTheme,
+      locale: LocaleType.ZH_CN,
+      locales: {
+        [LocaleType.ZH_CN]: merge(
+          {},
+          UniverDesignZhCN,
+          UniverUiZhCN,
+          UniverDocsUiZhCN,
+        ),
+      },
+    });
+
+    univer.registerPlugin(UniverRenderEnginePlugin);
+    univer.registerPlugin(UniverFormulaEnginePlugin);
+
+    univer.registerPlugin(UniverUIPlugin, {
+      container: 'app',
+    });
+
+    univer.registerPlugin(UniverDocsPlugin);
+    univer.registerPlugin(UniverDocsUIPlugin);
+
+    univer.createUnit(UniverInstanceType.UNIVER_DOC, {});
+
+    const univerAPI = FUniver.newAPI(univer);
+  </script>
+</body>
+```
+
+## 下一步
+
+* 在 [基础概念](/introduction/concepts) 章节了解本章中出现的插件、命令和 Facade API 等概念。
+* 在 [功能](/guides/docs/features/core) 相关章节中了解修改电子表格数据的所有操作。
+
+[^1]: https://blog.npmjs.org/post/110924823920/npm-weekly-5
+[^2]: https://pnpm.io/npmrc#auto-install-peers
+[^3]: https://github.com/yarnpkg/yarn/issues/1503
