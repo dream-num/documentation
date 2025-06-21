@@ -1,5 +1,4 @@
 import { LocaleType, merge, Univer, UniverInstanceType } from '@univerjs/core'
-import { defaultTheme } from '@univerjs/design'
 import DesignZhCN from '@univerjs/design/locale/zh-CN'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
@@ -29,7 +28,6 @@ import '@univerjs/sheets-formula-ui/lib/index.css'
 import '@univerjs/sheets-numfmt-ui/lib/index.css'
 
 const univer = new Univer({
-  theme: defaultTheme,
   locale: LocaleType.ZH_CN,
   locales: {
     [LocaleType.ZH_CN]: merge(

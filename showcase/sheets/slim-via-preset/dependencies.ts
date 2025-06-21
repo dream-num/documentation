@@ -1,7 +1,9 @@
+import pkg from '@/package.json'
+
 export const dependencies = {
   rxjs: 'latest',
   react: 'latest',
   'react-dom': 'latest',
-  '@univerjs/presets': '0.8.2',
-  '@univerjs/preset-sheets-core': '0.8.2',
+  '@univerjs/presets': pkg.version,
+  '@univerjs/preset-sheets-core': pkg.version,
 }

@@ -1,6 +1,5 @@
 import { LocaleType, merge, Univer, UniverInstanceType } from '@univerjs/core'
 // import { FUniver } from '@univerjs/core/facade'
-import { defaultTheme } from '@univerjs/design'
 import DesignZhCN from '@univerjs/design/locale/zh-CN'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
@@ -68,7 +67,6 @@ import '@univerjs/sheets-zen-editor/lib/index.css'
 import '@univerjs/sheets-crosshair-highlight/lib/index.css'
 
 const univer = new Univer({
-  theme: defaultTheme,
   locale: LocaleType.ZH_CN,
   locales: {
     [LocaleType.ZH_CN]: merge(
