@@ -44,7 +44,7 @@ export function IconWrapper(props: (IIconProps | IProProps | ITextProps) & { cla
       <Tooltip content="Univer Pro feature">
         <span
           className={clsx(`
-            inline-block rounded-md bg-gradient-to-b from-[#5357ED] to-[#40B9FF] p-1 text-white shadow-sm
+            inline-block rounded-md bg-gradient-to-b from-[#5357ED] to-[#40B9FF] p-[5px] text-white shadow-lg
             dark:from-[#1d1f54] dark:to-[#2d3048]
           `, className)}
         >
