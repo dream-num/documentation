@@ -46,7 +46,7 @@ export default antfu({
     ...eslintPluginBetterTailwindcss.configs['recommended-error'].rules,
 
     // or configure rules individually
-    'better-tailwindcss/multiline': ['warn', {
+    'better-tailwindcss/enforce-consistent-line-wrapping': ['error', {
       printWidth: 120,
       group: 'newLine',
       lineBreakStyle,

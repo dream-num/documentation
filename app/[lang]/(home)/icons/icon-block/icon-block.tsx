@@ -1,8 +1,9 @@
 'use client'
 
+import type { ComponentType } from 'react'
 import * as icons from '@univerjs/icons'
 import * as manifest from '@univerjs/icons/esm/manifest'
-import { type ComponentType, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Tooltip } from '@/components/tooltip'
 import { Slider } from '@/components/ui/slider'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'

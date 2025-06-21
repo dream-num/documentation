@@ -1,0 +1,150 @@
+---
+title: Vue
+---
+
+## Vue 3.x
+
+### Notes before integration
+
+- Univer completely supports integration in Vue, allowing you to use all Univer features within Vue.
+- Avoid proxying the Univer and FUniver instances, as this may lead to unpredictable errors or performance issues.
+
+### Integration Steps
+
+1. Initialize Univer in the `onMounted` hook
+2. Destroy Univer in the `onBeforeUnmount` hook
+
+### Example
+
+```vue
+<template>
+  <div ref="container"></div>
+</template>
+ 
+<script lang="ts" setup>
+import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { createUniver, defaultTheme, FUniver, LocaleType, merge, Univer } from '@univerjs/presets';
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core';
+import UniverPresetDocsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US';
+ 
+import '@univerjs/presets/lib/styles/preset-docs-core.css';
+ 
+const container = ref<HTMLElement | null>(null)
+ 
+let univerInstance: Univer | null = null
+let univerAPIInstance: FUniver | null = null
+ 
+onMounted(() => {
+  const { univer, univerAPI } = createUniver({
+    locale: LocaleType.EN_US,
+    locales: {
+      [LocaleType.EN_US]: merge(
+        {}, 
+        UniverPresetDocsCoreEnUS
+      ),
+    },
+    theme: defaultTheme,
+    presets: [
+      UniverDocsCorePreset({
+        container: container.value as HTMLElement,
+      }),
+    ],
+  })
+ 
+  univerAPI.createUniverDoc({})
+ 
+  univerInstance = univer
+  univerAPIInstance = univerAPI
+})
+ 
+onBeforeUnmount(() => {
+  univerInstance?.dispose()
+  univerAPIInstance?.dispose()
+  univerInstance = null
+  univerAPIInstance = null
+})
+</script>
+```
+
+## Vue 2.x
+
+### Notes before integration
+
+- Univer can be integrated in Vue 2.x, but the Univer's `ComponentManager` does not support Vue 2.x, so you cannot register components written in Vue 2.x as custom components in Univer.
+- When installing `@univerjs/presets` with pnpm, you may need to manually install `react` and `react-dom`.
+- If you encounter the "ResizeObserver loop limit exceeded" warning in the development environment, you can ignore it or refer to the code snippet below to resolve it:
+
+```typescript
+if (process.env.NODE_ENV === 'development') {
+  const _ResizeObserver = window.ResizeObserver;
+  function debounce(fn, delay) {
+    let timer = null;
+    return function() {
+      if (timer) {
+        clearTimeout(timer);
+      }
+      timer = setTimeout(() => {
+        fn.apply(this, arguments);
+      }, delay);
+    };
+  }
+  window.ResizeObserver = class ResizeObserver extends _ResizeObserver{
+    constructor(callback) {
+      callback = debounce(callback, 50);
+      super(callback)
+    }
+  }
+}
+```
+
+### Integration Steps
+
+1. Initialize Univer in the `mounted` hook
+2. Destroy Univer in the `beforeDestroy` hook
+
+### Example
+
+```vue
+<template>
+  <div ref="container"></div>
+</template>
+ 
+<script>
+import { createUniver, defaultTheme, LocaleType, merge } from '@univerjs/presets';
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core';
+import UniverPresetDocsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US';
+ 
+import '@univerjs/presets/lib/styles/preset-docs-core.css';
+ 
+export default {
+  mounted() {
+    const { univer, univerAPI } = createUniver({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: merge(
+          {},
+          UniverPresetDocsCoreEnUS,
+        ),
+      },
+      theme: defaultTheme,
+      presets: [
+        UniverDocsCorePreset({
+          container: this.$refs.container,
+        }),
+      ],
+    });
+    
+    univerAPI.createUniverDoc({});
+ 
+    this.univerInstance = univer;
+    this.univerAPIInstance = univerAPI;
+  },
+  beforeDestroy() {
+    this.univerInstance?.dispose();
+    this.univerAPIInstance?.dispose();
+    this.univerInstance = null;
+    this.univerAPIInstance = null;
+  },
+}
+</script>
+```

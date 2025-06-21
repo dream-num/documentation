@@ -16,7 +16,7 @@ export default async function Layout({ params, children }: IProps) {
       {...baseOptions(lang)}
       tree={guides.pageTree[lang]}
       sidebar={{
-        defaultOpenLevel: 1,
+        defaultOpenLevel: 0,
       }}
     >
       {children}

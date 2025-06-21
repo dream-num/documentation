@@ -1,0 +1,281 @@
+---
+title: 停机升级 SOP
+---
+
+本章节介绍 Univer 后端服务的停机升级 SOP。如果你对 docker compose 和 K8s 比较熟悉，Univer 建议你参照此 SOP 来制定更适合你们生产环境的 SOP。
+
+## docker compose 方式升级 SOP
+
+### 升级前准备
+
+- 自定义配置文件
+
+在准备升级前，你应该查看我们的版本介绍，确定你想要升级的版本，并查看我们的[生产部署](/guides/sheets/pro-features/server/deploy)，其中会介绍从哪个版本开始加入了新的配置项，从哪个版本开始旧的配置项不再支持。根据文档，查看自己的旧版本自定义配置文件 `.env.custom` 有哪些需要修改、有哪些新增配置需要自定义。确定好后，准备一份新的自定义配置文件 `.env.custom`，并且保留旧版本的 `.env.custom`以便后续能安全回滚。
+
+- License 文件
+
+你还需要准备好你的 License 文件。
+
+- 升级知会
+
+告知使用者预计的停机升级时间段，以便他们做好准备
+
+### 升级操作
+
+<Steps>
+  <Step>
+    #### 停止旧版本服务
+
+    这里假设旧版本的 Univer 服务部署在目录 `universer-old`
+
+    - 先禁写
+
+    **注意**：因为协同编辑的特殊性，为了确保所有协同编辑请求都正常保存，最好不要直接停止服务，而是先通过一段时间的禁写操作后再停止服务。你可以使用你们自己的基础设施来达到此目的，或者通过 Univer 服务中的 nginx 来实现。下面介绍使用 Univer 部署的 nginx 来实现的方式。
+    如下修改 `universer-old/nginx/universer.conf`，增加路由配置`location ~ ^/universer-api {return 403;}` 来禁止所有新请求
+
+    ```nginx
+    server {
+      listen 8000;
+
+      client_max_body_size 100m;
+
+      location ~ ^/universer-api {return 403;} # 增加这句来通过 nginx 禁止所有请求
+
+      location / {
+        proxy_pass http://universer;
+      }
+
+      location /universer-api/comb/connect {
+        proxy_pass http://universer;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+      }
+
+      location /universer-api/metrics {
+        return 403;
+      }
+    }
+    ```
+
+    修改后，需要让 nginx 重新加载此配置方能生效，执行以下命令让 nginx 重新加载配置：
+
+    ```bash
+    docker exec univer-lb nginx -s reload
+    ````
+    
+    其中的 `univer-lb` 是默认配置的 nginx 容器名，如果你修改了，需要更换下
+
+    - 禁写持续一段时间，建议至少 1 分钟
+    - 停止旧版本服务
+
+    执行以下命令来停止服务
+
+    ```bash
+    cd universer-old && bash run.sh stop
+    ```
+  </Step>
+  <Step>
+    #### 数据备份
+
+    Univer 建议你在升级前进行重要数据的备份，需要备份的数据包括 RDS 中的文档元数据，使用对应 RDS 的数据备份工具自行备份即可。Object Storage 中的数据只会新增，不会修改，所以不用备份。
+  </Step>
+  <Step>
+    #### 部署选定的版本
+
+    - 获取Univer后端服务
+      - 如果你的部署服务器可以访问公共互联网：
+        - 执行 `bash -c "$(curl -fsSL https://get.univer.ai/product)" [-- version]`，下载到你给定版本的Univer服务，如果没有指定 version，将默认下载最新的版本
+      - 如果你的部署服务器不能访问公共互联网：
+        - [点此下载](https://univer.ai/releases/univer-server/download) Univer提供的 All in one 离线安装包
+        - 将 All in one 离线安装包上传到你的部署服务器并解压
+        - 进入解压后的目录执行 `bash load-images.sh` 将 Univer 后端服务的镜像加载到本机 docker
+    - 将你的新自定义配置文件 `.env.custom` 复制到新版本文件夹下，和默认的 `.env` 文件放在同一目录
+    - 将你的 License 文件 `license.txt` 和 `licenseKey.txt` 复制到新版本文件夹下的 `configs/` 目录下
+    - 如果你使用的是自己维护的 RDS，请下载[数据库更新脚本](https://release-univer.oss-cn-shenzhen.aliyuncs.com/releases/latest/univer-server-sql-latest.tar.gz)，完成 Univer 服务的 RDS DDL 更新
+    - 修改 load balance 配置，仅允许测试账户使用新版系统
+
+    如果你使用的是 Univer 内建的 nginx，可如下配置：
+
+    编辑新版本文件夹下 `/nginx/universer.conf`，在 server 路由配置前增加如下配置：
+
+    ```nginx title="/nginx/universer.conf"
+    server {
+      listen 8000;
+
+      # 配置仅允许携带 header x-request-env=test 的请求
+      # 新增此配置以在用户不可用的情况下验证新版本
+      underscores_in_headers on;
+      if ($http_x_request_env != "test") {
+        return 403;
+      }
+
+      client_max_body_size 100m;
+
+      location / {
+        proxy_pass http://universer;
+      }
+
+      ...
+    }
+    ```
+
+    - 启动新版本的服务：`bash run.sh start`，成功后，即可使用测试账号登录，携带 header `x-request-env=test` 来进行验证
+  </Step>
+</Steps>
+
+### 升级后验证
+
+现在，你已经启动了新版服务，并且用户暂时不能访问。接下来你需要全面地验证新版服务是否配置部署正确，是否能如期地稳定地运行。
+
+### 启用新版本服务
+
+如果新版服务验收通过决定采用，将前面在 `/nginx/universer.conf` 中配置的只允许特定 header 请求的部分删除，执行命令让 nginx 重新加载配置：`docker exec univer-lb nginx -s reload`， `univer-lb` 是默认配置的 nginx 容器名，如果你修改了，则需要更换。
+
+### 退回使用旧版服务
+
+如果新版服务验收未通过，或者时间不够完成验收，可先配置继续使用旧版本。
+
+1. 先停止新版的服务，因为此时没有用户在使用，直接停止即可。执行 `bash run.sh stop` 停止新版服务
+2. 还原旧版本服务的nginx配置：去掉禁写配置 `location ~ ^/universer-api {return 403;}` （还记得我们在前面停止旧服务前禁写了吗？）
+3. 重新启动旧版服务
+
+## K8s 方式升级 SOP
+
+### 升级前准备
+
+- 自定义配置文件
+
+在准备升级前，你应该查看我们的版本介绍，确定你想要升级的版本，并查看我们的[生产部署](/guides/sheets/pro-features/server/deploy)，其中会介绍从哪个版本开始加入了新的配置项，从哪个版本开始旧的配置项不再支持。根据文档，查看自己的旧版本自定义配置文件 `values.yaml` 有哪些需要修改、有哪些新增配置需要自定义。确定好后，准备一份新的自定义配置文件 `values.yaml`，并且保留旧版本的 `values.yaml`，以便后续能安全回滚。
+
+**请注意**：如果你发现旧版本的某一自定义配置项不需要修改，新版本的自定义配置仍然需要包含它，否则此配置项将会在升级时使用默认的值。这是由于 Helm 在部署时是用 `values.yaml` 和模板动态地渲染 K8s 所需资源清单的。
+
+- License 文件
+
+你还需要准备好你的 License 文件。
+
+- 升级知会
+
+告知使用者预计的停机升级时间段，以便他们做好准备
+
+### 升级操作
+
+<Steps>
+  <Step>
+    #### 旧版本禁止访问
+
+    **注意**：因为协同编辑的特殊性，为了确保所有协同编辑请求都正常保存，最好不要直接停止服务程序，而是通过其他手段来禁止用户访问。如果你维护的 K8s 集群有方法来配置拒绝所有 path 包含前缀 `/universer-api/` 的请求，那么直接配置即可。如果没有，你可以通过禁用 universer 服务的 ingress 来达到此目的，可以如下配置：
+
+    ```yaml title="values.yaml"
+    universer:
+      ingress:
+        enabled: false  # 禁用 universer 的 ingress
+    ```
+
+    因为 Helm 是动态渲染 K8s 资源清单的，为了启用上述配置，你需要在你旧版本自定义配置(假设是 `values-1.0.0.yaml`)的基础上应用上述配置变更，生成新的配置文件(假设是 `values-1.0.0-forbid.yaml`)，之后使用 helm 执行更新以应用此配置：
+
+    ```bash
+    helm upgrade univer-stack \
+      oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
+      --version your-current-version \
+      -n univer \
+      -f values-1.0.0-forbid.yaml \
+      --set-file universer.license.licenseV2=your-license.txt-path \
+      --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path
+    ```
+
+    命令中，使用 `-f` 指定新增禁写配置的 `values-1.0.0-forbid.yaml`。另外，需要注意，我们此时只是配置禁止访问 Univer，并不能现在就升级到新版本服务，因此需要用 `--version` 指定 chart 版本仍然是当前部署的版本 `your-current-version`。可以使用下列命令获取当前部署的 chart 版本：
+
+    `helm list --all-namespaces --filter univer-stack`
+
+    执行结果如下图，从其中的 chart 字段即可获取到当前部署的版本号，本例中是 0.1.3
+
+    ![升级操作](./downtime-upgrade/helm-release-version.png)
+
+    禁止访问需要持续一段时间，建议至少 1 分钟，之后再往下操作
+  </Step>
+  <Step>
+    #### 数据备份
+
+    Univer 建议你在升级前进行重要数据的备份，需要备份的数据包括 RDS 中的文档元数据，使用对应 RDS 的数据备份工具自行备份即可。Object Storage 中的数据只会新增，不会修改，所以不用备份。
+  </Step>
+  <Step>
+    #### 升级到新版本
+
+    - 如果你使用的是自己维护的 RDS，请下载[数据库更新脚本](https://release-univer.oss-cn-shenzhen.aliyuncs.com/releases/latest/univer-server-sql-latest.tar.gz)，完成 Univer 服务的 RDS DDL 更新
+    - 由于我们不想让所有用户直接能访问到新版本服务，又需要测试账户能够访问来测试，你需要配置好只允许特定用户访问。如果你的基础设施能够支持，通过它配置即可。如果不支持，可通过 ingress 如下配置
+
+    如果你的 K8s 集群使用的是 `nginx ingress controller`，以下配置将只允许携带 `header x-request-env=test` 的请求，你可以将其合并到新版本的自定义配置 `values.yaml` 来支持带上此 header 进行测试验证：
+
+    ```yaml title="values.yaml"
+    universer:
+      ingress:
+        enabled: true
+        annotations:
+          nginx.ingress.kubernetes.io/configuration-snippet: |
+            if ($http_x_request_env != "test") {
+              return 403;
+            }
+    ```
+
+    - 执行 helm 命令升级到指定的版本
+      - 如果你的部署服务器可以访问公共互联网：
+      ```bash
+      helm upgrade --install univer-stack \
+        oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
+        --version target-version \
+        -n univer \
+        -f your-values.yaml-path \
+        --set-file universer.license.licenseV2=your-license.txt-path \
+        --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path
+      ```
+      - 如果你的部署服务器不能访问公共互联网：
+        - [点此下载](https://univer.ai/releases/univer-server/download)Univer提供的 K8s All in one 离线安装包
+        - 进入解压后的目录执行 `bash load-images.sh` 将Univer后端服务的镜像上传到私有镜像仓库
+            ```shell
+            export REGISTER=XXXX # 你的私有镜像仓库
+            export NAMESPACE=XXX # 要上传的镜像 namespace
+            docker login $REGISTER
+            bash load-image.sh --registry $REGISTER --namespace $NAMESPACE
+            ```
+      - 执行成功后会在当前目录生成一个 `values.yaml` 和 `values-observability.yaml` 文件，可在里面按需修改你自己的配置
+        - values.yaml：univer 服务的配置文件
+        - values-observability.yaml：univer 服务相关可观测性监控组件
+      - 接着执行以下命令进行升级安装
+          ```shell
+          helm upgrade --install univer-stack \
+            -n univer \
+            -f your-own-values.yaml-path \
+            --set-file universer.license.licenseV2=your-license.txt-path \
+            --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path \
+            univer-stack-xxxx.tgz # 需要改成当前目录解压后对应的chart包
+          ```
+    命令中，使用 `-f` 指定新版本的自定义配置 values.yaml；使用 `--version` 指定想要升级到的目标版本，如果想直接升级到最新版本，去掉 `--version` 参数即可。
+  </Step>
+</Steps>
+
+### 升级后验证
+
+现在，你已经启动了新版服务，并且用户暂时不能访问。接下来你需要全面地验证新版服务是否配置部署正确，是否能如期地稳定地运行。
+
+### 启用新版本服务
+
+如果新版服务验收通过决定采用，更新配置让所有用户都能访问即可。如果你是使用 ingress 的方式控制哪些用户可以访问的，需要去除对应的配置，再次执行 helm upgrade 应用配置以开放给所有用户访问。
+
+### 退回使用旧版服务
+
+如果新版服务验收未通过，或者时间不够完成验收，可如下配置退回到旧版本：
+
+使用旧版本的 chart 版本号和自定义配置更新部署即可：
+
+```bash
+helm upgrade --install univer-stack \
+  oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
+  --version old-version \
+  -n univer \
+  -f old-values.yaml \
+  --set-file universer.license.licenseV2=your-license.txt-path \
+  --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path
+```
+
+通过参数 `--version` 指定旧版本的 chart 版本号，参数 `-f` 指定旧版本的自定义配置文件。

@@ -59,12 +59,12 @@ export default async function Page({ params }: IProps) {
           >
             <div
               className={`
-                absolute inset-0 bg-gradient-to-br from-[#64bcff] to-50%
-                opacity-0 transition-all duration-500 ease-in-out
+                absolute inset-0 bg-gradient-to-br from-[#64bcff] to-50% opacity-0 transition-all duration-500
+                ease-in-out
                 group-hover:opacity-100
                 hover:to-neutral-50
-                dark:bg-gradient-to-t dark:from-[#242424] dark:to-[#020202]
-                dark:hover:from-[#182135] dark:hover:to-[#080808]
+                dark:bg-gradient-to-t dark:from-[#242424] dark:to-[#020202] dark:hover:from-[#182135]
+                dark:hover:to-[#080808]
               `}
             />
 
@@ -74,9 +74,7 @@ export default async function Page({ params }: IProps) {
                   {item.tags.map(tag => (
                     <Badge
                       key={tag}
-                      className={`
-                        rounded-full transition-all duration-500 ease-in-out
-                      `}
+                      className="rounded-full transition-all duration-500 ease-in-out"
                     >
                       {tag}
                     </Badge>
@@ -84,8 +82,8 @@ export default async function Page({ params }: IProps) {
                 </div>
                 <span
                   className={`
-                    mb-1 inline-block pt-2 text-lg font-semibold
-                    text-neutral-800 transition-all duration-500 ease-in-out
+                    mb-1 inline-block pt-2 text-lg font-semibold text-neutral-800 transition-all duration-500
+                    ease-in-out
                     dark:text-neutral-100
                   `}
                 >
@@ -93,8 +91,7 @@ export default async function Page({ params }: IProps) {
                 </span>
                 <p
                   className={`
-                    text-sm text-neutral-600 transition-all duration-500
-                    ease-in-out
+                    text-sm text-neutral-600 transition-all duration-500 ease-in-out
                     dark:text-neutral-400
                   `}
                 >

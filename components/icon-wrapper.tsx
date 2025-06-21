@@ -1,6 +1,8 @@
+import type { LucideProps } from 'lucide-react'
 import type { ForwardRefExoticComponent, ReactNode, RefAttributes } from 'react'
-import { type LucideProps, SparklesIcon } from 'lucide-react'
+import { SparklesIcon } from 'lucide-react'
 import { Tooltip } from '@/components/tooltip'
+import { clsx } from '@/lib/clsx'
 
 interface IIconProps {
   type: 'icon'
@@ -9,6 +11,7 @@ interface IIconProps {
 
 interface IProProps {
   type: 'pro'
+  size?: 'sm'
   icon?: ForwardRefExoticComponent<Omit<LucideProps, 'ref'> & RefAttributes<SVGSVGElement>>
 }
 
@@ -17,32 +20,36 @@ interface ITextProps {
   text: ReactNode
 }
 
-export function IconWrapper(props: IIconProps | IProProps | ITextProps) {
-  const { type } = props
+export function IconWrapper(props: (IIconProps | IProProps | ITextProps) & { className?: string }) {
+  const { type, className } = props
 
   if (type === 'icon') {
     const { icon: IconComponent } = props
 
     return (
-      <div className="rounded-md border bg-gradient-to-b from-secondary p-1 shadow-sm">
+      <span className={clsx('inline-block rounded-md border bg-gradient-to-b from-secondary p-1 shadow-sm', className)}>
         <IconComponent className="size-6" />
-      </div>
+      </span>
     )
   }
 
   if (type === 'pro') {
-    const { icon: IconComponent } = props
+    const { icon: IconComponent, size } = props
+
+    const iconClassName = clsx({
+      'size-4': size === 'sm',
+    })
 
     return (
       <Tooltip content="Univer Pro feature">
-        <div
-          className={`
-            rounded-md bg-gradient-to-b from-[#5357ED] to-[#40B9FF] p-1 text-white shadow-sm
+        <span
+          className={clsx(`
+            inline-block rounded-md bg-gradient-to-b from-[#5357ED] to-[#40B9FF] p-1 text-white shadow-sm
             dark:from-[#1d1f54] dark:to-[#2d3048]
-          `}
+          `, className)}
         >
-          {IconComponent ? <IconComponent /> : <SparklesIcon />}
-        </div>
+          {IconComponent ? <IconComponent className={iconClassName} /> : <SparklesIcon className={iconClassName} />}
+        </span>
       </Tooltip>
     )
   }
@@ -51,9 +58,9 @@ export function IconWrapper(props: IIconProps | IProProps | ITextProps) {
     const { text } = props
 
     return (
-      <div className="flex size-6 items-center justify-center text-lg">
+      <span className={clsx('flex size-6 items-center justify-center text-lg', className)}>
         {text}
-      </div>
+      </span>
     )
   }
 }
