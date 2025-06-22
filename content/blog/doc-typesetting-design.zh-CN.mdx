@@ -44,19 +44,19 @@ Univer 文档编辑器放弃了传统的通过 DOM contenteditable 属性来实�
 同时引擎层提供了 render 循环，支持同时运行多个 render function，通过一个定时器会去循环执行 render function，进行页面渲染绘制，这也是在数据层修改后，视图层能够及时更新渲染的页面的原因所在，下面是 render loop 的核心代码：
 
 ```typescript
-runRenderLoop(renderFunction: () _=>_ _void_): _void_ {
-    if (this._activeRenderLoops.indexOf(renderFunction) !== -1) {
-        return;
-    }
+runRenderLoop((renderFunction) => {
+  if (this._activeRenderLoops.includes(renderFunction)) {
+    return
+  }
 
-    this._activeRenderLoops.push(renderFunction);
+  this._activeRenderLoops.push(renderFunction)
 
-    if (!this._renderingQueueLaunched) {
-        this._renderingQueueLaunched = true;
-        this._renderFunction = this._renderLoop.bind(this);
-        this._requestNewFrameHandler = requestNewFrame(this._renderFunction);
-    }
-}
+  if (!this._renderingQueueLaunched) {
+    this._renderingQueueLaunched = true
+    this._renderFunction = this._renderLoop.bind(this)
+    this._requestNewFrameHandler = requestNewFrame(this._renderFunction)
+  }
+})
 ```
 
 **Scene 层**：位于引擎层之上，依赖于引擎层提供的绘制能力，可以将其理解成一个装绘制元素的容器，同时提供了一些其他的功能，一个 Scene 对象中包含多个 Layer，Layer 中可以包含多个 Object，同时 Layer 还可以缓存绘制对象，提升整体绘制性能。一个 Scene 也可以包含多个 Viewport 对象，Viewport 可以理解过视窗，通过这个视窗来观察 Canvas 绘制的元素，在视窗内的元素我们才能看到，Scene 的尺寸可能会大于 Viewport，所以在 Viewport 还需要支持横向和纵向的滚动条，来调整视窗的位置，来观察整个 Scene 中绘制的元素。Scene 中最基本的元素就是 Object 了，其他绘制元素都是从 BaseObject 衍生而来，包括矩形、富文本、路径等
@@ -152,7 +152,7 @@ _为什么这样设计呢？_
 
 **Layout 过程**：layout 过程主要就是计算 Skeleton 中各元素的位置信息，整个代码位于 `_createSkeleton` 方法中，首先通过 `getViewModel` 方法获取视图层模型数据，这就是我们用于生成 Skeleton 的数据。在 layout 过程中，最小的布局单元是 span，span 包含一个或多个字符（通常是一个）的布局相关的所有信息，如 content、文本样式、宽度、bBox（boundingBox）、span 类型、count（content.length）等信息，当我们知道 span 信息，以及一行的宽度，我们也就能够进行布局排版了，逐个把 span 放在当前 divide，当 divide 排满之后，就创建一个新的 divide，当 line 排满之后，就创建新的 column，以此类推直到创建新的的页面。在 layout 的过程中，我们会计算没有渲染节点的位置、大小。当然在逐字排版的时候，我们也会遵守一些约定的规则，比如标点符号不能出现在行首等，这些规则都定义在了 Unicode line break 算法中，在下面介绍 line break 算法的时候会详细讨论
 
-**Render 过程**：渲染的过程，就是将上一步计算得到的包含文字位置信息的 skeleton 数据，渲染到页面上。首先我们需要在渲染引擎上注册绘制不同形状元素的扩展，比如绘制文字的 <u>FontAndBaseLine</u> 类，绘制下划线、删除线 <u>Line</u> 类，当注册好绘制扩展之后，会逐层遍历 pages、sections、columns、lines、divides、spans 然后将带有样式信息的 span 内容绘制到页面上
+**Render 过程**：渲染的过程，就是将上一步计算得到的包含文字位置信息的 skeleton 数据，渲染到页面上。首先我们需要在渲染引擎上注册绘制不同形状元素的扩展，比如绘制文字的 `FontAndBaseLine` 类，绘制下划线、删除线 `Line` 类，当注册好绘制扩展之后，会逐层遍历 pages、sections、columns、lines、divides、spans 然后将带有样式信息的 span 内容绘制到页面上
 
 ## 处理中西文混合排版
 
@@ -160,24 +160,24 @@ _为什么这样设计呢？_
 
 代码实现如下：
 
-```javascript
+```typescript
 // Last span is western char and the current span is Chinese word or vice verse.
- _const_ isMixedCJKWesternTextLayout = hasMixedTextLayout(lastSpan, _spanGroup_[0]);
- _let_ wordSpaceWidth = 0;
+const isMixedCJKWesternTextLayout = hasMixedTextLayout(lastSpan, spanGroup[0])
+let wordSpaceWidth = 0
 
- // Only add word space between CJK text and Western text when processing span for the first time,
- // otherwise it will be added multiple times during recursion.
- if (isMixedCJKWesternTextLayout) {
-       _const_ lastSpanIsCJKWord = hasCJKText(lastSpan.content!);
-       _const_ WORD_INNER_SPACE = '\u0020';
+// Only add word space between CJK text and Western text when processing span for the first time,
+// otherwise it will be added multiple times during recursion.
+if (isMixedCJKWesternTextLayout) {
+  const lastSpanIsCJKWord = hasCJKText(lastSpan.content!)
+  const WORD_INNER_SPACE = '\u0020'
 
-       wordSpaceWidth = <u>FontCache</u>.getTextSize(
-            WORD_INNER_SPACE, // word space.
-            lastSpanIsCJKWord ? _spanGroup_[0].fontStyle! : lastSpan.fontStyle!
-       ).width;
+  wordSpaceWidth = FontCache.getTextSize(
+    WORD_INNER_SPACE, // word space.
+    lastSpanIsCJKWord ? _spanGroup_[0].fontStyle! : lastSpan.fontStyle!,
+  ).width
 
-       lastSpan.width += wordSpaceWidth;
-  }
+  lastSpan.width += wordSpaceWidth
+}
 ```
 
 首先，通过 `hasMixedTextLayout` 方法，判断前后两个字符是否存在中西文混排。如果存在中西文混排，将通过 CanvasRenderingContext2D: measureText 方法，测量西文词间空格 `U+0020` 的宽度。最后，将测得的宽度加到中西文混排右侧字符的宽度上，这样在渲染的时候，就会在中西文之间渲染一个西文词间空格了，并且该空格是不存在文档内容中的，只在渲染时插入到中西文混排中
