@@ -5,7 +5,7 @@ import { WORKBOOK_DATA } from './data'
 
 import './styles.css'
 
-import '@univerjs/presets/lib/styles/preset-sheets-core.css'
+import '@univerjs/preset-sheets-core/lib/index.css'
 
 const { univerAPI } = createUniver({
   locale: LocaleType.ZH_CN,

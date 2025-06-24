@@ -5,7 +5,7 @@ import { DOCUMENT_DATA } from './data'
 
 import './styles.css'
 
-import '@univerjs/presets/lib/styles/preset-docs-core.css'
+import '@univerjs/preset-docs-core/lib/index.css'
 
 const { univerAPI } = createUniver({
   locale: LocaleType.ZH_CN,
