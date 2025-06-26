@@ -5,6 +5,7 @@ import { Step, Steps } from 'fumadocs-ui/components/steps'
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
 import defaultMdxComponents from 'fumadocs-ui/mdx'
 import { APITable } from '@/components/api-table'
+import { MetaData } from '@/components/meta-data'
 
 const generator = createGenerator()
 
@@ -17,6 +18,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Tab,
     Steps,
     Step,
+    MetaData,
     AutoTypeTable: props => (
       <AutoTypeTable
         class="hidden"

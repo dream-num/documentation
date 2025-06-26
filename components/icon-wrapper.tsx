@@ -58,7 +58,7 @@ export function IconWrapper(props: (IIconProps | IProProps | ITextProps) & { cla
     const { text } = props
 
     return (
-      <span className={clsx('flex size-6 items-center justify-center text-lg', className)}>
+      <span className={clsx('inline-flex size-full items-center justify-center text-lg', className)}>
         {text}
       </span>
     )
