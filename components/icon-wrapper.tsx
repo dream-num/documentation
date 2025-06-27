@@ -15,12 +15,17 @@ interface IProProps {
   icon?: ForwardRefExoticComponent<Omit<LucideProps, 'ref'> & RefAttributes<SVGSVGElement>>
 }
 
-interface ITextProps {
-  type: 'text'
+interface IRefProps {
+  type: 'ref'
   text: ReactNode
 }
 
-export function IconWrapper(props: (IIconProps | IProProps | ITextProps) & { className?: string }) {
+interface ITextProps {
+  type: 'text'
+  text: string
+}
+
+export function IconWrapper(props: (IIconProps | IProProps | ITextProps | IRefProps) & { className?: string }) {
   const { type, className } = props
 
   if (type === 'icon') {
@@ -59,6 +64,27 @@ export function IconWrapper(props: (IIconProps | IProProps | ITextProps) & { cla
 
     return (
       <span className={clsx('inline-flex size-full items-center justify-center text-lg', className)}>
+        {text}
+      </span>
+    )
+  }
+
+  if (type === 'ref') {
+    const { text } = props
+
+    return (
+      <span
+        className={clsx(`
+          inline-flex size-6 items-center justify-center rounded-md border bg-gradient-to-b from-secondary font-semibold
+          shadow-sm
+        `, {
+          'border-blue-600 bg-blue-50 text-blue-600': text === 'M',
+          'border-yellow-600 bg-yellow-50 text-yellow-600': text === 'E',
+          'border-indigo-600 bg-indigo-50 text-indigo-600': text === 'C',
+          'border-green-600 bg-green-50 text-green-600': text === 'P',
+          'border-teal-600 bg-teal-50 text-teal-600': text === 'T',
+        }, className)}
+      >
         {text}
       </span>
     )

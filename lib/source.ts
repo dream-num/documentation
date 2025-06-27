@@ -39,21 +39,17 @@ export const reference = loader({
   baseUrl: '/reference',
   source: referencePosts.toFumadocsSource(),
   i18n,
-  // icon(icon) {
-  //   if (!icon) return
+  icon(icon) {
+    if (!icon) return
 
-  //   if (icon in icons) {
-  //     return createElement(IconWrapper, {
-  //       type: 'icon',
-  //       icon: icons[icon as keyof typeof icons],
-  //     })
-  //   }
-
-  //   return createElement(IconWrapper, {
-  //     type: 'text',
-  //     text: icon,
-  //   })
-  // },
+    if (icon.startsWith('#ref')) {
+      const [,iconName] = icon.split('/')
+      return createElement(IconWrapper, {
+        type: 'ref',
+        text: iconName,
+      })
+    }
+  },
 })
 
 export const blog = loader({

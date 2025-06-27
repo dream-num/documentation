@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch'
 import { clsx } from '@/lib/clsx'
 
 interface IProps {
+  lang: string
   meta: {
     preset: Array<{
       client?: string
@@ -24,6 +25,23 @@ interface IProps {
     }>
     server: string
   }
+}
+
+const locales: Record<string, Record<string, string>> = {
+  'zh-CN': {
+    'preset-mode': '预设模式',
+    'plugin-mode': '插件模式',
+    'preset-info': '预设信息',
+    'plugins-info': '插件信息',
+    'server-required': '需要服务端支持',
+  },
+  'en-US': {
+    'preset-mode': 'Preset Mode',
+    'plugin-mode': 'Plugin Mode',
+    'preset-info': 'Preset Info',
+    'plugins-info': 'Plugins Info',
+    'server-required': 'Server Required',
+  },
 }
 
 function PackageInfo({ client, locale, style, facade }: { client?: string, locale?: string, style?: string, facade?: string }) {
@@ -64,10 +82,12 @@ function Label({ children }: { children: ReactNode }) {
 }
 
 export function MetaData(props: IProps) {
-  const { meta } = props
+  const { lang, meta } = props
   const { preset = [], plugins = [], server = false } = meta
 
   const [mode, setMode] = useState<'preset' | 'plugin'>(preset.length > 0 ? 'preset' : 'plugin')
+
+  const t = locales[lang] || locales['en-US']
 
   return (
     <div
@@ -83,7 +103,7 @@ export function MetaData(props: IProps) {
           })}
           onClick={() => preset.length && setMode('preset')}
         >
-          Preset Mode
+          {t['preset-mode']}
         </label>
         <Switch
           checked={mode === 'plugin'}
@@ -98,7 +118,7 @@ export function MetaData(props: IProps) {
           })}
           onClick={() => plugins.length && setMode('plugin')}
         >
-          Plugin Mode
+          {t['plugin-mode']}
         </label>
       </div>
 
@@ -109,7 +129,7 @@ export function MetaData(props: IProps) {
             hidden: mode === 'plugin',
           })}
         >
-          <Label>Preset Info</Label>
+          <Label>{t['preset-info']}</Label>
           <div
             className={`
               grid grid-cols-2 gap-2
@@ -128,7 +148,7 @@ export function MetaData(props: IProps) {
             hidden: mode === 'preset',
           })}
         >
-          <Label>Plugins Info</Label>
+          <Label>{t['plugins-info']}</Label>
           <div
             className={`
               grid grid-cols-2 gap-2
@@ -145,7 +165,7 @@ export function MetaData(props: IProps) {
 
         {/* Server */}
         <div className="grid gap-2">
-          <Label>Server Required</Label>
+          <Label>{t['server-required']}</Label>
           <div className="text-sm text-neutral-600">
             {server}
           </div>
