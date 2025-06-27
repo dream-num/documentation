@@ -132,8 +132,8 @@ export function MetaData(props: IProps) {
           <Label>{t['preset-info']}</Label>
           <div
             className={`
-              grid grid-cols-2 gap-2
-              xl:grid-cols-3
+              grid grid-cols-1 gap-2
+              xl:grid-cols-2
             `}
           >
             {preset.map((item, index) => (
@@ -151,8 +151,8 @@ export function MetaData(props: IProps) {
           <Label>{t['plugins-info']}</Label>
           <div
             className={`
-              grid grid-cols-2 gap-2
-              xl:grid-cols-3
+              grid grid-cols-1 gap-2
+              xl:grid-cols-2
             `}
           >
             {plugins.map((item, index) => (

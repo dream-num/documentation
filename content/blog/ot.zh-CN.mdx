@@ -71,11 +71,11 @@ const insertCell = {
 
 定义了操作之后，用户的编辑行为都可以被操作所表示，执行编辑的行为即是在某个副本上应用操作的过程。
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   这里是伪代码，[Univer 所使用的结构](https://github.com/dream-num/univer/blob/dev/packages/sheets/src/commands/mutations/set-range-values.mutation.ts)比这要稍微复杂些。
 </Callout>
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   实际往往会用[命令模式](https://en.wikipedia.org/wiki/Command_pattern)来实现操作。
 </Callout>
 
@@ -87,7 +87,7 @@ const insertCell = {
 
 需要确定操作的顺序。
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   换句话说，大部分的操作不满足[交换律](https://en.wikipedia.org/wiki/Commutative_property)。与之相对，CRDT 类算法通过定义满足交换律的一些操作，来使得操作可以交换顺序，因此无需引入协同服务器。
 </Callout>
 
@@ -120,11 +120,11 @@ const insertCell = {
 
 现在的问题是，当多个副本同时发生操作时（或者说有多个相同 `baseRevision` 的操作时），我们如何给这些操作分配版本号呢？在 OT 中，**版本号不能由客户端赋予**，客户端仅能赋值操作的 `baseRevision`。这里我们引入一个协调服务器，这个服务器将会负责给每个操作分配一个版本号，即给它们的 `revision` 属性赋值，通过服务端的分配，我们能保证所有的 `revision` 是全局唯一且全局一致的。
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   换句话说，OT 中的所有副本的操作整体具有[全序关系](https://en.wikipedia.org/wiki/Total_order)，即任意两个操作都可以比较出先后顺序。与之相对，CRDT 并不要求所有副本的操作具有全序关系，仅需要[偏序关系](https://en.wikipedia.org/wiki/Partially_ordered_set)。
 </Callout>
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   为什么版本号不能由客户端赋予？因为由客户端赋予的话，很难保证版本号的唯一、单增和连续。而前面我们提到：
 
   > 同样的一组操作以不同的顺序应用在同一副本上，会得到不同的结果，因此需要确定操作的顺序。
@@ -180,7 +180,7 @@ const opc = {
 }
 ```
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   你可能想知道服务端如何给操作分配版本号，其实这里的依据是无关紧要的，只要版本号是全局唯一的就可以了，可以按照时间顺序来分配，也可以按照操作发起者的 ID 来分配。
 </Callout>
 
@@ -257,7 +257,7 @@ A 收到 ACK 之后，将本地版本号自增为 13。
 
 B 收到 `a` 之后，发现 `a` 的 `revision` 为 13，而 B 的版本号为 12，所以 B 应该应用这个操作，但是由于 B 已经先应用的自己的操作 `b`，因此不能直接应用这个操作，B 必须计算 **“在 b 已经被应用”的前提下，该如何转换 a 得到 a'，转换 b 得到 b'，才能使得应用 ab' 和应用 ba' 的结果一致？** ，这就是操作转换。
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   有可能存在 `revision` 不是本地版本号加一的情况，如果 `revision` 低于自己的版本号加一，那么直接丢弃即可，如果高于自己的版本号加一，说明本地副本 miss 了一些操作，需要去服务器端补拉这些操作并做操作转换。这些边际情形我们会在后面的小节中分析。
 </Callout>
 
@@ -265,7 +265,7 @@ B 收到 `a` 之后，发现 `a` 的 `revision` 为 13，而 B 的版本号为 1
 
 假设 `a` `b` 是基于相同版本，在不同副本上并发的两个操作，Transform 所做的事情是：**在假设 `a` `b` 分别已经在各自的副本中应用的情况下，调整 `a` `b` 操作得到 `a'` `b'`，使得 `ab'` / `ba'` 的应用结果一致。**
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   由定义可以看出：`a` `b` 的 `baseRevision` 必须相同。
 </Callout>
 
@@ -295,7 +295,7 @@ const bPrime = {
 }
 ```
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   我们已经知道了为什么要把 `revision` 设为 13，但为什么这里要设置 `revision` 呢，`b` 不是已经被发送到服务端去了么？这里其实跟网络异常等边际情况有关，我们将会在后面的小节中讨论。
 </Callout>
 
@@ -307,7 +307,7 @@ C 对于 `a` 的处理和 B 类似，不再赘述。
 
 首先 b `baseRevision` 是 12，而此时服务端副本的版本号因为应用了 `a` 变为 13，因此服务端收到此操作之后，需要对 `a` `b` 进行得转换到 `b'` 再将 `b'` 应用在服务端的副本上，并给 `b'` 设置 `revision` 为 14。然后向 B 发送 ACK 事件，向 A C 广播 `b'`。
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   这里有一个有趣的问题：为什么广播的是 `b'` 而不是 `b`？
 
   对于 A 来说，此时它的版本号已经升到 13，直接应用 `b'` 就可以直接到 14。容易发现：实际上 A 和服务端副本应用的操作是完全一致的。
@@ -331,7 +331,7 @@ C 对于 `a` 的处理和 B 类似，不再赘述。
 
 具体的操作转换方法，需要根据操作的类型来决定，任意两种操作都需要进行转换，另外操作可能要和同类型的另一个操作进行转换。如果原子操作的数量是 `n`，那么转换方法的量级就是 `O(n^2)`，因此，正确地实现操作转换是一个细活。不过也正是我们需要一个个地实现操作转换，我们才对转换过程中的意图保持有更强的控制力。
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   这些操作转换方法我们在 Univer 称之为 “transform 算法”。而之前提到的客户端和服务器如何对操作进行调度，以及后面提到的网络传输、离线缓存等等，我们统称为 “协同调度算法”。
 </Callout>
 

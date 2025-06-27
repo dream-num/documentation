@@ -35,11 +35,11 @@ In addition to the goals of eventual consistency and preserving user intent, the
 
 Next, let's explore how the Operation Transformation (OT) algorithm satisfies these requirements for collaborative editing.
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   The problem of collaborative editing can be seen as a special case of distributed data synchronization, adhering to the principles of the [CAP theorem](https://en.wikipedia.org/wiki/CAP_theorem). Collaborative editing guarantees availability (users can always edit their local copies), partition tolerance (copies can temporarily be inconsistent), and sacrifices strong consistency while providing eventual consistency. It is AP without C.
 </Callout>
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   In recent years, there has been increasing attention and application of [Conflict-free Replicated Data Types (CRDTs)](https://en.wikipedia.org/wiki/Conflict-free_replicated_data_type). However, Univer did not choose CRDTs. We will discuss the reasons for this decision at the end of the article.
 </Callout>
 
@@ -75,11 +75,11 @@ const insertCell = {
 
 Once the operations are defined, the user's editing behavior can be represented by applying these operations to a copy.
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   The following is pseudocode, and the actual structure used in Univer may be slightly more complex. You can refer to the [set-range-values.mutation.ts file](https://github.com/dream-num/univer/blob/dev/packages/sheets/src/commands/mutations/set-range-values.mutation.ts) for more details.
 </Callout>
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   In practice, the [command pattern](https://en.wikipedia.org/wiki/Command_pattern) is often used to implement operations.
 </Callout>
 
@@ -89,7 +89,7 @@ The same set of operations, when applied in different orders to the same copy, w
 
 , the order of operations needs to be determined.
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   In other words, most operations do not satisfy the [commutative property](https://en.wikipedia.org/wiki/Commutative_property). In contrast, CRDT-like algorithms define operations that satisfy the commutative property, so it does not need a coordinating server.
 </Callout>
 
@@ -110,11 +110,11 @@ Notably, the `baseRevision` of an operation being `y` does not necessarily imply
 
 The question at hand is how to assign revision numbers when multiple copies undergo operations simultaneously (or when there are multiple operations with the same `baseRevision`). In OT, **revision numbers cannot be assigned by clients**, as clients can only assign the `baseRevision` of operations. To address this, we introduce a coordinating server that will be responsible for assigning a revision number to each operation by setting their `revision` property. Through server allocation, we can ensure that all `revision` values are globally unique and globally consistent.
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   In other words, in OT, the operations of all copies have a total order relationship, meaning that the order of any two operations can be determined. In contrast, CRDT does not require a total order relationship among the operations of all copies; only a partial order relationship is needed.
 </Callout>
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   Revision numbers cannot be assigned by clients because it would be challenging to ensure uniqueness, monotonically increasing sequences, and continuity. As mentioned earlier:
 
   > The same set of operations, when applied in different orders to the same copy, will yield different results.
@@ -170,7 +170,7 @@ const opc = {
 }
 ```
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   You may be curious about how the server assigns revision numbers to the operations. However, the specifics of this process are not crucial for our discussion. As long as the revision numbers are globally unique, they can be assigned based on timestamps or the IDs of the operation initiators, among other methods.
 </Callout>
 
@@ -245,7 +245,7 @@ Upon receiving the ACK, A increments its local revision number to 13.
 
 **Here comes the interesting thing.** When B receives `a`, it notices that the `revision` of `a` is 13, while B's revision number is 12. Therefore, B should apply this operation. However, since B has already applied its own operation, `b`, it cannot directly apply this operation. B must calculate how to transform `a` into `a'` and `b` into `b'` under the assumption that `b` has already been applied, in order to ensure consistency between applying `ab'` and `ba'`? This is known as operation transformation.
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   It is possible that the `revision` is not simply one higher than the local revision number. If the `revision` is lower than the local revision number plus one, it can be discarded. If the `revision` is higher than the local revision number plus one, it indicates that the local replica has missed some operations and needs to fetch those operations from the server and perform operation transformation. We will analyze these edge cases in subsequent sections.
 </Callout>
 
@@ -253,7 +253,7 @@ Here is an informal definition of transformation (Transform):
 
 Let `a` and `b` be two concurrent operations based on the same revision but applied to different replicas. The purpose of transformation is to adjust the operations `a` and `b` into `a'` and `b'`, respectively, assuming that `a` and `b` have already been applied to their respective replicas, in order to achieve consistent results when applying `ab'` and `ba'` on different replicas.
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   From the definition, it is clear that the `baseRevision` of `a` and `b` must be the same.
 </Callout>
 
@@ -283,7 +283,7 @@ const bPrime = {
 }
 ```
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   We have already understood why `revision` needs to be set to 13. But why is `revision` set here? Wasn't `b` already sent to the server? This actually relates to marginal cases such as network anomalies, which we will discuss in subsequent sections.
 </Callout>
 
@@ -295,7 +295,7 @@ C handles `a` in a similar way to B, without further elaboration.
 
 First, the `baseRevision` of `b` is 12, but at this point, the revision number of the server replica becomes 13 because `a` has been applied. Therefore, when the server receives this operation, it needs to transform `a` and `b` into `b'`, then apply `b'` to its own replica, and set the `revision` of `b'` to 14. After that, an ACK event is sent to B, and `b'` is broadcasted to A and C.
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   Here's an interesting question: Why is `b'` broadcasted instead of `b`?
 
   For A, its revision number has already increased to 13 at this point, so applying `b'` directly will bring it to revision 14. It's easy to see that the operations applied by A and the server replica are exactly the same.
@@ -319,7 +319,7 @@ When applying changes through operations, it is common to modify the coordinates
 
 The specific method of operation transformation depends on the type of operation. Every pair of operations needs to be transformed, and operations of the same type may need to be transformed with each other. If there are `n` atomic operations, the complexity of the transformation method is on the order of `O(n^2)`. Therefore, implementing operation transformation correctly requires attention to detail. However, precisely implementing operation transformation methods allows us to maintain stronger control over the intended outcome of the transformation process.
 
-<Callout type="info" emoji="ℹ️">
+<Callout title="ℹ️">
   In Univer, we refer to these operational transformation methods as "transform algorithms." The process of scheduling operations between clients and servers mentioned earlier, as well as the mechanisms such as network transmission and offline caching that we will cover later, are collectively referred to as the "collaborative scheduling algorithm."
 </Callout>
 

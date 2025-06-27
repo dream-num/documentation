@@ -83,6 +83,7 @@ export function IconWrapper(props: (IIconProps | IProProps | ITextProps | IRefPr
           'border-indigo-600 bg-indigo-50 text-indigo-600': text === 'C',
           'border-green-600 bg-green-50 text-green-600': text === 'P',
           'border-teal-600 bg-teal-50 text-teal-600': text === 'T',
+          'border-lime-600 bg-lime-50 text-lime-600': text === 'F',
         }, className)}
       >
         {text}
