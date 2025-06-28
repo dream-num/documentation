@@ -11,7 +11,7 @@ interface IIconProps {
 
 interface IProProps {
   type: 'pro'
-  size?: 'sm'
+  size?: 'sm' | 'xs'
   icon?: ForwardRefExoticComponent<Omit<LucideProps, 'ref'> & RefAttributes<SVGSVGElement>>
 }
 
@@ -43,6 +43,7 @@ export function IconWrapper(props: (IIconProps | IProProps | ITextProps | IRefPr
 
     const iconClassName = clsx({
       'size-4': size === 'sm',
+      'size-3': size === 'xs',
     })
 
     return (

@@ -68,6 +68,7 @@ export default antfu({
     'no-restricted-syntax': 'off',
     'react-dom/no-render': 'off',
     'no-new': 'off',
+    'antfu/no-top-level-await': 'off',
   },
 }, {
   files: ['**/*.tsx'],

@@ -47,25 +47,49 @@ const locales: Record<string, Record<string, string>> = {
 function PackageInfo({ client, locale, style, facade }: { client?: string, locale?: string, style?: string, facade?: string }) {
   return (
     <div className="flex items-center gap-2">
-      {client && <code className="text-xs text-neutral-600">{client}</code>}
+      {client && (
+        <code
+          className={`
+            text-xs text-neutral-600
+            dark:text-neutral-300
+          `}
+        >
+          {client}
+        </code>
+      )}
       {locale && (
         <CopyButton text={locale}>
           <Tooltip content={locale}>
-            <LanguagesIcon className="h-4 w-4 text-neutral-500" />
+            <LanguagesIcon
+              className={`
+                h-4 w-4 text-neutral-500
+                dark:text-neutral-400
+              `}
+            />
           </Tooltip>
         </CopyButton>
       )}
       {style && (
         <CopyButton text={style}>
           <Tooltip content={style}>
-            <SiCss className="h-4 w-4 text-neutral-500" />
+            <SiCss
+              className={`
+                h-4 w-4 text-neutral-500
+                dark:text-neutral-400
+              `}
+            />
           </Tooltip>
         </CopyButton>
       )}
       {facade && (
         <CopyButton text={facade}>
           <Tooltip content={facade}>
-            <PlugZapIcon className="h-4 w-4 text-neutral-500" />
+            <PlugZapIcon
+              className={`
+                h-4 w-4 text-neutral-500
+                dark:text-neutral-400
+              `}
+            />
           </Tooltip>
         </CopyButton>
       )}
@@ -75,7 +99,12 @@ function PackageInfo({ client, locale, style, facade }: { client?: string, local
 
 function Label({ children }: { children: ReactNode }) {
   return (
-    <span className="text-sm font-semibold text-neutral-600">
+    <span
+      className={`
+        text-sm font-semibold text-neutral-600
+        dark:text-neutral-300
+      `}
+    >
       {children}
     </span>
   )
@@ -92,14 +121,14 @@ export function MetaData(props: IProps) {
   return (
     <div
       className={`
-        grid gap-2 rounded-lg bg-neutral-100 p-2.5 shadow-md
+        grid gap-2 rounded-lg bg-neutral-100 p-4 shadow-md
         dark:bg-neutral-800
       `}
     >
       <div className="flex items-center gap-1 text-xs">
         <label
           className={clsx('text-neutral-400', {
-            'text-neutral-800': mode === 'preset',
+            'text-neutral-800 dark:text-white': mode === 'preset',
           })}
           onClick={() => preset.length && setMode('preset')}
         >
@@ -114,7 +143,7 @@ export function MetaData(props: IProps) {
         />
         <label
           className={clsx('text-neutral-400', {
-            'text-neutral-800': mode === 'plugin',
+            'text-neutral-800 dark:text-white': mode === 'plugin',
           })}
           onClick={() => plugins.length && setMode('plugin')}
         >
@@ -166,7 +195,12 @@ export function MetaData(props: IProps) {
         {/* Server */}
         <div className="grid gap-2">
           <Label>{t['server-required']}</Label>
-          <div className="text-sm text-neutral-600">
+          <div
+            className={`
+              text-sm text-neutral-600
+              dark:text-neutral-300
+            `}
+          >
             {server}
           </div>
         </div>
