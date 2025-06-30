@@ -1,0 +1,1 @@
+export { UniverSheetsCustomShortcutPlugin } from './plugin'

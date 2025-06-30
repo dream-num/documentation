@@ -47,6 +47,12 @@ export default {
       layout: 'full',
     },
   },
+  'custom-shortcut': {
+    title: '自定义快捷键',
+    theme: {
+      layout: 'full',
+    },
+  },
   'uniscript': {
     title: 'Uniscript',
     theme: {

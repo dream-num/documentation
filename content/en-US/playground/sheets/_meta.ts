@@ -47,6 +47,12 @@ export default {
       layout: 'full',
     },
   },
+  'custom-shortcut': {
+    title: 'Custom Shortcut',
+    theme: {
+      layout: 'full',
+    },
+  },
   'uniscript': {
     title: 'Uniscript',
     theme: {
