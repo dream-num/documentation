@@ -49,9 +49,11 @@ export default async function Page({ params }: IProps) {
         <header className="relative px-4">
           <h1
             className={`
-              mx-auto mb-4 max-w-3xl text-center text-3xl font-semibold
+              mx-auto mb-6 max-w-3xl bg-gradient-to-br from-black from-30% to-black/40 bg-clip-text text-center text-3xl
+              font-semibold text-transparent
               md:text-4xl
               lg:text-6xl
+              dark:from-white dark:to-white/40
             `}
           >
             {customTranslations[lang]['home.slogan']}
@@ -59,7 +61,7 @@ export default async function Page({ params }: IProps) {
 
           <p
             className={`
-              mx-auto mb-4 max-w-3xl text-center text-base text-neutral-600
+              mx-auto mb-6 max-w-3xl text-center text-base text-neutral-600
               md:text-lg
               dark:text-neutral-300
             `}

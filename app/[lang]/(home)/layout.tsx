@@ -7,6 +7,7 @@ import {
   NavbarMenuLink,
   NavbarMenuTrigger,
 } from 'fumadocs-ui/layouts/home/navbar'
+import { BookTextIcon, CookingPotIcon, PresentationIcon, SheetIcon } from 'lucide-react'
 import Link from 'next/link'
 import { baseOptions } from '@/app/layout.config'
 import { Footer } from '@/components/footer'
@@ -21,14 +22,25 @@ export default async function Layout({ params, children }: IProps) {
   const { lang } = await params
 
   const documentationLinks = [{
-    text: '📊 Univer Sheets',
+    text: 'Univer Sheets',
     url: `/${lang}/guides/sheets`,
+    className: 'lg:col-start-1',
+    icon: <SheetIcon />,
   }, {
-    text: '📝 Univer Docs',
+    text: 'Univer Docs',
     url: `/${lang}/guides/docs`,
+    className: 'lg:col-start-1',
+    icon: <BookTextIcon />,
   }, {
-    text: '📽️ Univer Slides',
+    text: 'Univer Slides',
     url: `/${lang}/guides/slides`,
+    className: 'lg:col-start-2 lg:row-start-1',
+    icon: <PresentationIcon />,
+  }, {
+    text: 'Recipes',
+    url: `/${lang}/guides/recipes/custom-canvas`,
+    className: 'lg:col-start-2 lg:row-start-2',
+    icon: <CookingPotIcon />,
   }]
 
   const ecosystemLinks = [{
@@ -57,11 +69,31 @@ export default async function Layout({ params, children }: IProps) {
             {documentationLinks.map(link => (
               <NavbarMenuLink
                 key={link.url}
+                className={link.className}
                 href={link.url}
               >
-                <span className="relative">{link.text}</span>
+                <div className="flex flex-col">
+                  <div
+                    className={`
+                      mb-2 flex size-6 items-center justify-center rounded bg-primary text-white
+                      [&>*]:size-4
+                    `}
+                  >
+                    {link.icon}
+                  </div>
+                  <div className="font-medium">{link.text}</div>
+                </div>
               </NavbarMenuLink>
             ))}
+
+            <NavbarMenuLink
+              className={`
+                md:col-span-2 md:row-span-2
+                lg:col-start-3 lg:row-start-1
+              `}
+            >
+              right
+            </NavbarMenuLink>
           </NavbarMenuContent>
         </NavbarMenu>
       ),

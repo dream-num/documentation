@@ -1,14 +1,14 @@
 ---
-title: 自定义组件
-description: Univer 提供了多种方式来集成自定义组件，使您能够扩展和定制 Univer 的功能。本指南将介绍几种常用的方法。
+title: Custom Components
+description: Univer provides multiple ways to integrate custom components, allowing you to extend and customize its functionality. This guide will introduce several common methods.
 icon: Component
 ---
 
-Univer 并不会直接将组件作为参数直接传递给任何渲染函数，你需要通过 Facade API 将组件注册到 Univer 中之后，才能在各个挂载点使用它们。
+Univer does not directly pass components as parameters to any rendering functions. You need to register the components with Univer through the Facade API before you can use them in various mounting points.
 
-如果你还不了解如何获取 Facade API 的实例，可以参考 [Facade API](/zh-CN/guides/docs/getting-started/facade)。
+If you are not familiar with how to obtain an instance of the Facade API, you can refer to [Facade API](/en-US/guides/docs/getting-started/facade).
 
-## 注册自定义组件
+## Registering Custom Components
 
 ```typescript
 // [!code word:componentKey]
@@ -17,15 +17,15 @@ Univer 并不会直接将组件作为参数直接传递给任何渲染函数，�
 univerAPI.registerComponent(componentKey, CustomComponent, options)
 ```
 
-使用 `univerAPI.registerComponent` 方法来注册自定义组件。这个方法接受三个参数：
+Use the `univerAPI.registerComponent` method to register custom components. This method accepts three parameters:
 
-- `componentKey`: 组件的唯一标识符，用于在 Univer 中引用该组件。
-- `CustomComponent`: 组件的实现，可以是 React、Vue 或 Web Components。
-- `options`: 可选的配置选项，可用于指定组件所依赖的框架或其他相关设置。
+- `componentKey`: A unique identifier for the component, used to reference it within Univer.
+- `CustomComponent`: The implementation of the component, which can be a React, Vue, or Web Component.
+- `options`: Optional configuration options that can be used to specify the framework the component depends on or other related settings.
 
-### React 组件
+### React Components
 
-注册 React 组件无需额外的配置，只需确保组件是一个有效的 React 组件即可。以下是一个简单的示例：
+To register a React component, no additional configuration is required; just ensure that the component is a valid React component. Here is a simple example:
 
 ```tsx
 function ReactComponent(props: Record<string, any>) {
@@ -38,13 +38,15 @@ univerAPI.registerComponent(
 )
 ```
 
-### Vue 组件
+### Vue Components
 
-<Callout type="warning" title="注意事项">
-  目前 Univer 仅支持 Vue 3.x 版本的组件。
+#### Vue 3.x
+
+<Callout type="warning" title="Caution">
+  Currently, Univer only supports Vue 3.x components.
 </Callout>
 
-注册 Vue 组件时，需要确保安装并注册 `@univerjs/ui-adapter-vue3` 的 `UniverVue3AdapterPlugin` 插件：
+If you want to register Vue components, make sure to install and register the `UniverVue3AdapterPlugin` from the `@univerjs/ui-adapter-vue3` package:
 
 ```package-install
 npm install @univerjs/ui-adapter-vue3
@@ -56,7 +58,7 @@ import { UniverVue3AdapterPlugin } from '@univerjs/ui-adapter-vue3'
 univer.registerPlugin(UniverVue3AdapterPlugin)
 ```
 
-注册 Vue 组件时，需要指定 `framework` 选项为 `'vue3'`
+When registering Vue components, you need to specify the `framework` option as `'vue3'`:
 
 ```tsx
 const Vue3Component = defineComponent({
@@ -75,9 +77,108 @@ univerAPI.registerComponent(
 )
 ```
 
+#### Vue 2.x
+
+Since Vue 2.x is EOL (End of Life) and no longer maintained, Univer does not currently provide a UI adapter plugin for Vue 2.x. However, you can implement a Vue 2.x adapter by creating a custom plugin. Below is an example of how to create a Vue 2.x adapter plugin:
+
+```typescript title="ui-adapter-vue2.ts"
+import { DependentOn, Inject, Injector, Plugin } from '@univerjs/core'
+import { ComponentManager, UniverUIPlugin } from '@univerjs/ui'
+import Vue from 'vue'
+
+/**
+ * The plugin that allows Univer to use Vue 2 components as UI components.
+ */
+@DependentOn(UniverUIPlugin)
+export class UniverVue2AdapterPlugin extends Plugin {
+  static override pluginName = 'UNIVER_UI_VUE2_ADAPTER_PLUGIN'
+
+  constructor(
+    private readonly _config = {},
+        @Inject(Injector) protected readonly _injector: Injector,
+        @Inject(ComponentManager) protected readonly _componentManager: ComponentManager,
+  ) {
+    super()
+  }
+
+  override onStarting(): void {
+    const { createElement, useEffect, useRef } = this._componentManager.reactUtils
+
+    this._componentManager.setHandler('vue2', (component: any) => {
+      return (props: Record<string, any>) => createElement(VueComponentWrapper, {
+        component,
+        props: Object.keys(props).reduce<Record<string, any>>((acc, key) => {
+          if (key !== 'key') {
+            acc[key] = props[key]
+          }
+          return acc
+        }, {}),
+        reactUtils: { createElement, useEffect, useRef },
+      })
+    })
+  }
+}
+
+export function VueComponentWrapper(options: {
+  component: any
+  props: Record<string, any>
+  reactUtils: typeof ComponentManager.prototype.reactUtils
+}) {
+  const { component, props, reactUtils } = options
+  const { createElement, useEffect, useRef } = reactUtils
+
+  const domRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!domRef.current) return
+
+    const Constructor = Vue.extend(component)
+
+    const instance = new Constructor({
+      data: props,
+    })
+    instance.$mount()
+
+    domRef.current.appendChild(instance.$el)
+
+    return () => {
+      instance.$destroy()
+    }
+  }, [props])
+
+  return createElement('div', { ref: domRef })
+}
+```
+
+Then register it:
+
+```typescript
+import { UniverVue2AdapterPlugin } from './ui-adapter-vue2' // [!code ++]
+
+univer.registerPlugin(UniverUIPlugin)
+univer.registerPlugin(UniverVue2AdapterPlugin) // [!code ++]
+```
+
+When registering Vue 2.x components, you need to specify the `framework` option as `'vue2'`:
+
+```tsx
+const Vue2Component = Vue.component('MyVue2Component', {
+  template: '<div>Hello, Univer!</div>',
+})
+
+univerAPI.registerComponent(
+  'MyVue2Component',
+  Vue2Component,
+  {
+    // [!code word:vue2]
+    framework: 'vue2',
+  },
+)
+```
+
 ### Web Components
 
-注册 Web Components 时，需要确保组件符合 Web Components 标准，并安装和注册 `@univerjs/ui-adapter-web-component` 的 `UniverWebComponentAdapterPlugin` 插件：
+If you want to register Web Components, make sure the component adheres to the Web Components standard and install and register the `UniverWebComponentAdapterPlugin` from the `@univerjs/ui-adapter-web-component` package:
 
 ```package-install
 npm install @univerjs/ui-adapter-web-component
@@ -89,7 +190,7 @@ import { UniverWebComponentAdapterPlugin } from '@univerjs/ui-adapter-web-compon
 univer.registerPlugin(UniverWebComponentAdapterPlugin)
 ```
 
-注册 Web Components 时，需要指定 `framework` 选项为 `'web-component'`
+When registering Web Components, you need to specify the `framework` option as `'web-component'`:
 
 ```tsx
 class WebComponent extends HTMLElement {
@@ -112,21 +213,21 @@ univerAPI.registerComponent(
 )
 ```
 
-## 使用自定义组件
+## Using Custom Components
 
-### 添加自定义菜单项
+### Adding Custom Menu Items
 
-顶部菜单栏（Ribbon）和右键菜单（Context Menu）都可以添加自定义组件。为菜单项添加自定义组件需要通过创建自定义插件来实现，我们准备了一份[新增自定义菜单项的最佳实践](/zh-CN/guides/recipes/custom-plugin)来帮助你快速上手。
+The top menu bar (Ribbon) and right-click menu (Context Menu) can both include custom components. To add custom components to menu items, you need to create a custom plugin. We have prepared a [best practice for adding custom menu items](/en-US/guides/recipes/custom-plugin) to help you get started quickly.
 
-### 作为内容组件添加到……
+### Using as Content Components
 
-#### 在侧边栏中使用
+#### In the Sidebar
 
-使用 `univerAPI.openSidebar` 方法可以在Univer界面中打开一个包含自定义组件的侧边栏。
+Using the `univerAPI.openSidebar` method, you can open a sidebar in the Univer interface that contains a custom component.
 
 ```tsx
 // [!code word:MyCustomSidebarComponent]
-// 你应该在合适的时机（比如 univer 加载完成）注册组件
+// You should register the component at an appropriate time (e.g., after Univer has loaded)
 univerAPI.registerComponent(
   'MyCustomSidebarComponent',
   () => <div>Hello Univer!</div>,
@@ -141,26 +242,26 @@ const sidebar = univerAPI.openSidebar({
   width: 360,
 })
 
-// 稍后关闭侧边栏
+// Later close the sidebar
 sidebar.dispose()
 ```
 
-参考： [`univerAPI.openSidebar`](/zh-CN/reference/facade/open-sidebar)
+Reference: [`univerAPI.openSidebar`](/en-US/reference/facade/open-sidebar)
 
-#### 在对话框中使用
+#### In a Dialog
 
-使用 `univerAPI.openDialog` 方法可以打开一个包含自定义组件的对话框。
+Using the `univerAPI.openDialog` method, you can open a dialog that contains a custom component.
 
 ```tsx
 // [!code word:MyCustomDialogComponent]
-// 你应该在合适的时机（比如 univer 加载完成）注册组件
+// You should register the component at an appropriate time (e.g., after Univer has loaded)
 univerAPI.registerComponent(
   'MyCustomDialogComponent',
   () => <div>Hello Univer!</div>,
 )
 
 const dialog = univerAPI.openDialog({
-  id: 'myDialog', // 对话框的唯一标识符
+  id: 'myDialog', // The unique identifier for the dialog
   draggable: true,
   width: 300,
   title: { title: 'My Dialog' },
@@ -172,24 +273,24 @@ const dialog = univerAPI.openDialog({
   onClose: () => {},
 })
 
-// 稍后关闭对话框
+// Later close the dialog
 dialog.dispose()
 ```
 
-参考： [`univerAPI.openDialog`](/zh-CN/reference/facade/open-dialog)
+Reference: [`univerAPI.openDialog`](/en-US/reference/facade/open-dialog)
 
-### 替换内置组件
+### Replacing Built-in Components
 
-<Callout type="error" title="警告">
-  替换内置组件可能会导致一些功能无法正常工作，请在充分阅读源码和文档后自行寻找可替换的组件并谨慎操作。
+<Callout type="error" title="Warning">
+  Replacing built-in components may cause some functionalities to not work properly. Please read the source code and documentation thoroughly before attempting to replace components, and proceed with caution.
 </Callout>
 
-通过 `univerAPI.registerComponent` 方法注册组件时，如果传入的 `componentKey` 已经存在，那么 Univer 会将其替换为新的组件。
+When you register a component using the `univerAPI.registerComponent` method, if the `componentKey` already exists, Univer will replace the existing component with the new one.
 
-例如简单地替换内置的 ColorPicker 组件：
+For example, to simply replace the built-in ColorPicker component:
 
 ```tsx
-// 此代码仅可在 UI 层面替换内置 ColorPicker 组件，无法替代其功能实现
+// Following code only replaces the UI of the built-in ColorPicker component, not its functionality
 univerAPI.registerComponent(
   'UI_COLOR_PICKER_COMPONENT',
   () => <input type="color" />,
