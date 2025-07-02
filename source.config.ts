@@ -3,6 +3,7 @@ import { defineConfig, defineDocs, frontmatterSchema, metaSchema } from 'fumadoc
 import { z } from 'zod'
 
 export default defineConfig({
+  lastModifiedTime: 'git',
   mdxOptions: {
     // MDX options
     remarkPlugins: [remarkInstall],

@@ -38,7 +38,7 @@ export default async function Layout({ params, children }: IProps) {
     icon: <PresentationIcon />,
   }, {
     text: 'Recipes',
-    url: `/${lang}/guides/recipes/custom-canvas`,
+    url: `/${lang}/guides/recipes`,
     className: 'lg:col-start-2 lg:row-start-2',
     icon: <CookingPotIcon />,
   }]
