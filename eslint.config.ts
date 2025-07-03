@@ -49,6 +49,7 @@ export default antfu({
     'style/jsx-tag-spacing': 'off',
     'no-unused-vars': 'off',
     'eslint-comments/no-unlimited-disable': 'off',
+    'style/max-statements-per-line': 'off',
   },
 }, {
   files: ['**/*.mdx'],

@@ -14,7 +14,7 @@ export function UIArchitecture() {
             relative grid gap-2 rounded-md border p-2 shadow transition-all duration-500
             [&_div]:border [&_div]:p-2
           `, {
-            'z-1 bg-white': activeIndex === 0,
+            'z-1 bg-white [&_div]:transition-all [&_div]:hover:border-blue-500': activeIndex === 0,
             'translate-x-4 -translate-y-4 cursor-pointer bg-neutral-100': activeIndex !== 0,
           })}
           onClick={() => setActiveIndex(0)}
@@ -37,7 +37,7 @@ export function UIArchitecture() {
             absolute inset-0 size-full rounded-md border p-2 shadow transition-all duration-500
             [&_div]:border [&_div]:p-2
           `, {
-            'z-1 bg-white': activeIndex === 1,
+            'z-1 bg-white [&_div]:transition-all [&_div]:hover:border-blue-500': activeIndex === 1,
             'translate-x-4 -translate-y-4 cursor-pointer bg-neutral-100': activeIndex !== 1,
           })}
           onClick={() => setActiveIndex(1)}
