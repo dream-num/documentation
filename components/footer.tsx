@@ -4,7 +4,7 @@ export function Footer() {
   return (
     <footer
       className={`
-        absolute bottom-0 mt-auto w-full border-t border-neutral-100 bg-white/5 p-4 text-center backdrop-blur-xs
+        mt-auto w-full border-t border-neutral-100 bg-white/5 p-4 text-center backdrop-blur-xs
         dark:border-neutral-800
       `}
     >
