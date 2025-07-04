@@ -1,0 +1,156 @@
+---
+title: 公式
+---
+
+import FormulaList from '@/components/formula-list'
+
+公式是 Univer 提供的核心能力之一，它可以让你在单元格中使用公式来计算数值，公式支持的函数和 Excel 一致，包括数学、逻辑、文本、日期等等。
+
+## 配置
+
+以下是公式插件相关配置项的链接：
+
+| 插件 | 配置项 |
+| --- | --- |
+| `@univerjs/engine-formula` | [IUniverEngineFormulaConfig](https://github.com/dream-num/univer/blob/dev/packages/engine-formula/src/controller/config.schema.ts#L29) |
+| `@univerjs/sheets-formula` | [IUniverSheetsFormulaBaseConfig](https://github.com/dream-num/univer/blob/dev/packages/sheets-formula/src/controllers/config.schema.ts#L44) |
+
+### Presets 配置
+
+```typescript
+import type { CalculationMode } from '@univerjs/presets/preset-sheets-core'
+import { UniverSheetsCorePreset } from '@univerjs/presets/preset-sheets-core'
+
+interface IUniverSheetsCorePresetConfig {
+  formula?: {
+    // 自定义公式函数
+    function?: Array<[Ctor<BaseFunction>, IFunctionNames]>
+    // 自定义公式描述
+    description?: IFunctionInfo[]
+    // 定义数据初始化时公式的计算模式，默认为 `WHEN_EMPTY`
+    initialFormulaComputing?: CalculationMode
+  }
+}
+```
+
+### Plugin 配置
+
+```typescript
+import type { CalculationMode } from '@univerjs/sheets-formula'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+interface IUniverSheetsFormulaConfig {
+  // 自定义公式函数
+  function?: Array<[Ctor<BaseFunction>, IFunctionNames]>
+  // 自定义公式描述
+  description?: IFunctionInfo[]
+  // 定义数据初始化时公式的计算模式，默认为 `WHEN_EMPTY`
+  initialFormulaComputing?: CalculationMode
+}
+```
+
+其中 `CalculationMode` 为：
+
+```typescript
+enum CalculationMode {
+  /**
+   * 强制计算所有公式
+   */
+  FORCED,
+
+  /**
+   * 部分计算，只计算有公式但没有 v 值的单元格
+   */
+  WHEN_EMPTY,
+
+  /**
+   * 所有公式不计算
+   */
+  NO_CALCULATION,
+}
+```
+
+> 如果公式所在单元格有非预期值，可以通过 `initialFormulaComputing` 设置为 `FORCED` 强制计算所有公式。或者初始化之前清空单元格的值。
+
+## 已经支持的公式函数
+
+<FormulaList lang="en-US" />
+
+## Facade API
+
+使用公式 API 之前确保已经引入 `@univerjs/sheets-formula/facade`。
+
+```typescript
+import '@univerjs/sheets-formula/facade'
+```
+
+### 执行计算
+
+```typescript
+const formula = univerAPI.getFormula()
+formula.executeCalculation()
+```
+
+### 停止计算
+
+```typescript
+const formula = univerAPI.getFormula()
+formula.stopCalculation()
+```
+
+### 计算开始事件
+
+```typescript
+const formula = univerAPI.getFormula()
+formula.calculationStart((forceCalculate) => {
+  console.log(forceCalculate)
+})
+```
+
+### 计算中事件
+
+```typescript
+const formula = univerAPI.getFormula()
+formula.calculationProcessing((stageInfo) => {
+  console.log(stageInfo)
+})
+```
+
+### 计算结束事件
+
+```typescript
+const formula = univerAPI.getFormula()
+formula.calculationEnd((functionsExecutedState) => {
+  console.log(functionsExecutedState)
+})
+```
+
+### 设置初始化计算模式
+
+```typescript
+const formula = univerAPI.getFormula()
+formula.setInitialFormulaComputing(CalculationMode.FORCED)
+```
+
+如果这个 API 在 `Starting` 生命周期之后调用，会在下次创建 Univer Sheet 时生效。
+
+如果希望它在本次初始化 Univer Sheet 时生效，可以考虑在 `Ready` 生命周期之前调用它，比如：
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+  if (stage === LifecycleStages.Starting) {
+    const formula = univerAPI.getFormula()
+    formula.setInitialFormulaComputing(CalculationMode.FORCED)
+  }
+})
+```
+
+## 自定义公式
+
+Univer 支持自定义公式，请参考[自定义公式](/en-US/guides/recipes/practices/custom-formula) 章节了解如何实现。
+
+## 常见问题
+
+### HYPERLINK 公式单元格无法操作超链接
+
+需要引入 Univer Sheets 的超链接插件, 见[超链接](/en-US/guides/sheets/features/hyper-link)模块。

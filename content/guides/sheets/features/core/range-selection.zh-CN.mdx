@@ -1,0 +1,881 @@
+---
+title: 范围 & 选区 & 单元格
+---
+
+## 范围Range [#range]
+
+范围指工作表中的一块矩形区域，有起始行号、起始列号、长宽或者结束行号、结束列号来确定。
+
+表格中的大部分操作都可以通过范围 API 来操作，如设置值、获取值、设置样式、获取样式等。
+
+### Facade API
+
+范围完整 facade api 类型定义，请查看 [FRange FacadeAPI](https://reference.univer.ai/zh-CN/classes/FRange)
+
+#### 创建范围
+
+获得一个范围需要知道起始行号、起始列号、长宽。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+
+// 获取 A1 单元格的范围：
+const fRange = fWorksheet.getRange(0, 0)
+console.log(fRange, fRange.getA1Notation())
+
+// 获取 A1:B2 的范围：
+const fRange2 = fWorksheet.getRange(0, 0, 2, 2)
+console.log(fRange2, fRange2.getA1Notation())
+```
+
+从 `0.2.15` 开始 `getRange` 支持用 A1 表示法获取范围。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+
+// 获取名称是 Sheet1 的工作表的 A1:B2 范围
+const fRange1 = fWorksheet.getRange('Sheet1!A1:B2')
+console.log(fRange1, fRange1.getA1Notation())
+
+// 获取单个单元格 A1
+const fRange2 = fWorksheet.getRange('A1')
+console.log(fRange2, fRange2.getA1Notation())
+
+// 获取 A1:B2 范围
+const fRange3 = fWorksheet.getRange('A1:B2')
+console.log(fRange3, fRange3.getA1Notation())
+
+// 获取 A 列的范围
+const fRange4 = fWorksheet.getRange('A:A')
+console.log(fRange4, fRange4.getA1Notation())
+
+// 获取第 1 行的范围
+const fRange5 = fWorksheet.getRange('1:1')
+console.log(fRange5, fRange5.getA1Notation())
+```
+
+#### 获取范围数据
+
+获取范围第一个单元格的值
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+
+console.log(fRange.getValue()) // 范围左上角单元格值
+console.log(fRange.getRawValue()) // 范围左上角单元格原始值
+console.log(fRange.getDisplayValue()) // 范围左上角单元格显示值
+console.log(fRange.getCellData()) // 范围左上角单元格 ICellData 对象
+```
+
+获取范围的所有值
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+
+console.log(fRange.getValues()) // 范围所有单元格值
+console.log(fRange.getRawValues()) // 范围所有单元格原始值
+console.log(fRange.getDisplayValues()) // 范围所有单元格显示值
+console.log(fRange.getCellDatas()) // 范围所有单元格 ICellData 对象
+```
+
+获取范围的所有公式
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+
+console.log(fRange.getFormula()) // 范围左上角单元格公式
+console.log(fRange.getFormulas()) // 范围所有单元格公式
+```
+
+#### 设置范围数据
+
+##### 设置单一值
+
+传入一个值或者单元格对象，将会覆盖范围内所有单元格，如果以 `=` 开头，将被解释为公式。
+
+比如，设置 A1:B2 的值为 `Hello, Univer`：
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+fRange.setValue('Hello, Univer')
+```
+
+设置 A1+B1 的值为公式：
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+fRange.setValue('=A1+B1')
+```
+
+设置 A1:B2 的值为单元格对象：
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+fRange.setValue({
+  v: 'Hello, Univer',
+  custom: {
+    key: 'value',
+  },
+})
+```
+
+如果只想设置范围左上角的单元格值，可以使用 [`FRange.setValueForCell`](https://reference.univer.ai/zh-CN/classes/FRange#setvalueforcell) 方法：
+```typescript
+fRange.setValueForCell('Hello, Univer')
+```
+
+##### 通过数组设置多个值
+
+数组的长度和宽度必须和范围的长宽一致。
+
+可以传入单元格值也可以传入单元格对象。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+fRange.setValues([
+  ['A1', 'B1'],
+  ['A2', 'B2'],
+])
+
+fRange.setValues([
+  [{ v: 'A1' }, { v: 'B1' }],
+  [{ v: 'A2' }, { v: 'B2' }],
+])
+```
+
+##### 通过对象设置多个值
+
+则对象的一级索引代表行号，二级索引代表列号，与范围的长宽无需一致。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+fRange.setValues({
+  0: {
+    0: 'A1',
+    1: 'B1',
+  },
+  1: {
+    0: 'A2',
+    1: 'B2',
+  },
+})
+```
+
+#### 清理范围数据
+
+- [`FRange.clear`](https://reference.univer.ai/zh-CN/classes/FRange#clear) 方法可以清理范围的内容和格式信息。
+- [`FRange.clearContent`](https://reference.univer.ai/zh-CN/classes/FRange#clearcontent) 方法可以清理范围的内容信息。
+- [`FRange.clearFormat`](https://reference.univer.ai/zh-CN/classes/FRange#clearformat) 方法可以清理范围的格式信息。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorkSheet = fWorkbook.getActiveSheet()
+const fRange = fWorkSheet.getRange('A1:D10')
+
+// 清除范围的内容和格式信息。
+fRange.clear()
+```
+
+#### 获取范围样式
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+console.log(fRange.getCellStyleData()) // 范围左上角单元格样式数据
+console.log(fRange.getCellStyle()) // 范围左上角单元格样式
+console.log(fRange.getCellStyles()) // 范围所有单元格样式
+```
+
+#### 设置范围样式
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+fRange.setValues([
+  [1, 2],
+  [3, 4],
+]).setFontWeight('bold').setFontLine('underline').setFontFamily('Arial').setFontSize(24).setFontColor('red')
+```
+
+#### 清理范围样式
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+fRange
+  .setFontWeight(null)
+  .setFontLine(null)
+  .setFontFamily(null)
+  .setFontSize(null)
+  .setFontColor(null)
+```
+
+#### 插入单元格
+
+[`FRange.insertCells`](https://reference.univer.ai/zh-CN/classes/FRange#insertcells) 方法可以在此范围内插入空单元格。工作表中沿指定维度的现有数据将移离插入的范围。
+
+```typescript
+// 假设当前工作表是空工作表
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const values = [
+  [1, 2, 3, 4],
+  [2, 3, 4, 5],
+  [3, 4, 5, 6],
+  [4, 5, 6, 7],
+  [5, 6, 7, 8],
+]
+
+// A1:D5 范围设置值如下：
+// 1 | 2 | 3 | 4
+// 2 | 3 | 4 | 5
+// 3 | 4 | 5 | 6
+// 4 | 5 | 6 | 7
+// 5 | 6 | 7 | 8
+const fRange = fWorksheet.getRange('A1:D5')
+fRange.setValues(values)
+console.log(fWorksheet.getRange('A1:D5').getValues()) // [[1, 2, 3, 4], [2, 3, 4, 5], [3, 4, 5, 6], [4, 5, 6, 7], [5, 6, 7, 8]]
+
+// 沿着列维度在范围 A1:B2 中插入空单元格，范围 A1:D5 将变为：
+//   |   | 1 | 2
+//   |   | 2 | 3
+// 3 | 4 | 5 | 6
+// 4 | 5 | 6 | 7
+// 5 | 6 | 7 | 8
+const fRange2 = fWorksheet.getRange('A1:B2')
+fRange2.insertCells(univerAPI.Enum.Dimension.COLUMNS)
+console.log(fWorksheet.getRange('A1:D5').getValues()) // [[null, null, 1, 2], [null, null, 2, 3], [3, 4, 5, 6], [4, 5, 6, 7], [5, 6, 7, 8]]
+
+// 再次设置范围 A1:D5 的值，范围 A1:D5 将变为：
+// 1 | 2 | 3 | 4
+// 2 | 3 | 4 | 5
+// 3 | 4 | 5 | 6
+// 4 | 5 | 6 | 7
+// 5 | 6 | 7 | 8
+fRange.setValues(values)
+
+// 沿着行维度在范围 A1:B2 中插入空单元格，范围 A1:D5 将变为：
+//   |   | 3 | 4
+//   |   | 4 | 5
+// 1 | 2 | 5 | 6
+// 2 | 3 | 6 | 7
+// 3 | 4 | 7 | 8
+const fRange3 = fWorksheet.getRange('A1:B2')
+fRange3.insertCells(univerAPI.Enum.Dimension.ROWS)
+console.log(fWorksheet.getRange('A1:D5').getValues()) // [[null, null, 3, 4], [null, null, 4, 5], [1, 2, 5, 6], [2, 3, 6, 7], [3, 4, 7, 8]]
+```
+
+#### 删除单元格
+
+[`FRange.deleteCells`](https://reference.univer.ai/zh-CN/classes/FRange#deletecells) 方法可以在范围内删除单元格。工作表中沿指定维度的现有数据将向已删除的范围移动。
+
+```typescript
+// 假设当前工作表是空工作表
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const values = [
+  [1, 2, 3, 4],
+  [2, 3, 4, 5],
+  [3, 4, 5, 6],
+  [4, 5, 6, 7],
+  [5, 6, 7, 8],
+]
+
+// A1:D5 范围设置值如下：
+// 1 | 2 | 3 | 4
+// 2 | 3 | 4 | 5
+// 3 | 4 | 5 | 6
+// 4 | 5 | 6 | 7
+// 5 | 6 | 7 | 8
+const fRange = fWorksheet.getRange('A1:D5')
+fRange.setValues(values)
+console.log(fWorksheet.getRange('A1:D5').getValues()) // [[1, 2, 3, 4], [2, 3, 4, 5], [3, 4, 5, 6], [4, 5, 6, 7], [5, 6, 7, 8]]
+
+// 沿着列维度删除范围 A1:B2，范围 A1:D5 将变为：
+// 3 | 4 |   |
+// 4 | 5 |   |
+// 3 | 4 | 5 | 6
+// 4 | 5 | 6 | 7
+// 5 | 6 | 7 | 8
+const fRange2 = fWorksheet.getRange('A1:B2')
+fRange2.deleteCells(univerAPI.Enum.Dimension.COLUMNS)
+console.log(fWorksheet.getRange('A1:D5').getValues()) // [[3, 4, null, null], [4, 5, null, null], [3, 4, 5, 6], [4, 5, 6, 7], [5, 6, 7, 8]]
+
+// 再次设置范围 A1:D5 的值，范围 A1:D5 将变为：
+// 1 | 2 | 3 | 4
+// 2 | 3 | 4 | 5
+// 3 | 4 | 5 | 6
+// 4 | 5 | 6 | 7
+// 5 | 6 | 7 | 8
+fRange.setValues(values)
+
+// 沿着行维度删除范围 A1:B2，范围 A1:D5 将变为：
+// 3 | 4 | 3 | 4
+// 4 | 5 | 4 | 5
+// 5 | 6 | 5 | 6
+//   |   | 6 | 7
+//   |   | 7 | 8
+const fRange3 = fWorksheet.getRange('A1:B2')
+fRange3.deleteCells(univerAPI.Enum.Dimension.ROWS)
+console.log(fWorksheet.getRange('A1:D5').getValues()) // [[3, 4, 3, 4], [4, 5, 4, 5], [5, 6, 5, 6], [null, null, 6, 7], [null, null, 7, 8]]
+```
+
+#### 合并单元格
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+
+// 合并 B1:B2
+const fRange = fWorksheet.getRange('B1:B2')
+fRange.merge()
+console.log(fRange.isMerged()) // true
+
+// A1:B2 是否合并
+const fRange2 = fWorksheet.getRange('A1:B2')
+console.log(fRange2.isMerged()) // false
+console.log(fRange2.isPartOfMerge()) // true
+
+// 取消合并
+fRange2.breakApart()
+
+// 水平合并：fRange2.mergeAcross();
+// 垂直合并：fRange2.mergeVertically();
+// 获取表格中所有合并单元格范围：fWorksheet.getMergedRanges();
+```
+
+#### 高亮范围
+
+[`FRange.highlight`](https://reference.univer.ai/en-US/classes/FRange#highlight) 方法可以使用指定样式和主单元格高亮范围。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+
+// Highlight the range C3:E5 with default style
+const fRange = fWorksheet.getRange('C3:E5')
+fRange.highlight()
+
+// Highlight the range C7:E9 with custom style and primary cell D8
+const fRange2 = fWorksheet.getRange('C7:E9')
+const primaryCell = fWorksheet.getRange('D8').getRange()
+const disposable = fRange2.highlight(
+  {
+    stroke: 'red',
+    fill: 'yellow',
+  },
+  {
+    ...primaryCell,
+    actualRow: primaryCell.startRow,
+    actualColumn: primaryCell.startColumn,
+  },
+)
+
+// Remove the range C7:E9 highlight after 5 seconds
+setTimeout(() => {
+  disposable.dispose()
+}, 5000)
+```
+
+#### 数据分列
+
+[`FRange.splitTextToColumns`](https://reference.univer.ai/zh-CN/classes/FRange#splittexttocolumns) 方法可以将单元格中的文本按指定分隔符分列。
+
+默认分隔符示例：
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+
+// A1:A3 包含以下值：
+//  A      |
+//  1,2,3  |
+//  4,,5,6 |
+const fRange = fWorksheet.getRange('A1:A3')
+fRange.setValues([
+  ['A'],
+  ['1,2,3'],
+  ['4,,5,6'],
+])
+
+// 调用 splitTextToColumns(true) 后，范围值将变为：
+//  A |   |
+//  1 | 2 | 3
+//  4 | 5 | 6
+fRange.splitTextToColumns(true)
+
+// 调用 splitTextToColumns(false) 后，范围值将变为：
+//  A |   |   |
+//  1 | 2 | 3 |
+//  4 |   | 5 | 6
+fRange.splitTextToColumns(false)
+```
+
+指定分隔符示例：
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+
+// A1:A3 包含以下值：
+//     A   |
+//  1;;2;3 |
+//  1;,2;3 |
+const fRange = fWorksheet.getRange('A1:A3')
+fRange.setValues([
+  ['A'],
+  ['1;;2;3'],
+  ['1;,2;3'],
+])
+
+// 调用 splitTextToColumns(false, univerAPI.Enum.SplitDelimiterType.Semicolon|univerAPI.Enum.SplitDelimiterType.Comma) 后，范围值将变为：
+//  A |   |   |
+//  1 |   | 2 | 3
+//  1 |   | 2 | 3
+fRange.splitTextToColumns(false, univerAPI.Enum.SplitDelimiterType.Semicolon | univerAPI.Enum.SplitDelimiterType.Comma)
+
+// 调用 splitTextToColumns(true, univerAPI.Enum.SplitDelimiterType.Semicolon|univerAPI.Enum.SplitDelimiterType.Comma) 后，范围值将变为：
+//  A |   |
+//  1 | 2 | 3
+//  1 | 2 | 3
+fRange.splitTextToColumns(true, univerAPI.Enum.SplitDelimiterType.Semicolon | univerAPI.Enum.SplitDelimiterType.Comma)
+```
+
+自定义分隔符示例：
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+
+// A1:A3 包含以下值：
+//     A   |
+//  1#2#3  |
+//  4##5#6 |
+const fRange = fWorksheet.getRange('A1:A3')
+fRange.setValues([
+  ['A'],
+  ['1#2#3'],
+  ['4##5#6'],
+])
+
+// 调用 splitTextToColumns(false, univerAPI.Enum.SplitDelimiterType.Custom, '#') 后，范围值将变为：
+//  A |   |   |
+//  1 | 2 | 3 |
+//  4 |   | 5 | 6
+fRange.splitTextToColumns(false, univerAPI.Enum.SplitDelimiterType.Custom, '#')
+
+// 调用 splitTextToColumns(true, univerAPI.Enum.SplitDelimiterType.Custom, '#') 后，范围值将变为：
+//  A |   |
+//  1 | 2 | 3
+//  4 | 5 | 6
+fRange.splitTextToColumns(true, univerAPI.Enum.SplitDelimiterType.Custom, '#')
+```
+
+#### 获取坐标
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+console.log(fRange.getCellRect()) // width、heigh、left、right、top、bottom、x、y
+```
+
+#### 同时获取范围的合并信息和坐标
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+console.log(fRange.getCell())
+```
+
+## 选区Selection [#selection]
+
+Univer 表格支持多选区，所以选区是一个范围数组，可以通过范围 API 来操作选区数据。
+
+我们还提供 API 来获取当前选区、设置选区和监听选区变化。
+
+### Facade API
+
+选区完整 facade api 类型定义，请查看 [FSelection FacadeAPI](https://reference.univer.ai/zh-CN/classes/FSelection)
+
+#### 获取激活选区的范围
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+
+// 激活新的选区
+const fRange = fWorksheet.getRange('A1:B2')
+fRange.activate()
+
+// 获取激活选区的范围
+const fSelection = fWorksheet.getSelection()
+console.log(fSelection)
+const activeRange = fSelection.getActiveRange()
+console.log(activeRange.getA1Notation()) // A1:B2
+```
+
+#### 设置选区
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+
+// 通过 FRange 设置选区 A1:B2
+const fRange = fWorksheet.getRange('A1:B2')
+fRange.activate()
+
+// 通过 FWorksheet 设置选区 C1:D2
+fWorksheet.setActiveSelection(fWorksheet.getRange('C1:D2'))
+```
+
+#### 获取当前激活的单元格
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+
+// 激活选区 A10:B11
+const fRange = fWorksheet.getRange('A10:B11')
+fRange.activate()
+
+// 获取当前激活的单元格
+let fSelection = fWorksheet.getSelection()
+const { actualRow, actualColumn } = fSelection.getCurrentCell()
+console.log(fWorksheet.getRange(actualRow, actualColumn).getA1Notation()) // A10
+
+// 更新新的激活单元格 B11
+fSelection = fSelection.updatePrimaryCell(fWorksheet.getRange('B11'))
+const { actualRow: newRow, actualColumn: newColumn } = fSelection.getCurrentCell()
+console.log(fWorksheet.getRange(newRow, newColumn).getA1Notation()) // B11
+```
+
+#### 禁用/启用/隐藏/显示选区
+
+禁用后，选区将不会响应。设置选区不可见，与禁用选区不同，选区仍然有效，只是看不到它们。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+
+// 禁用选区
+fWorkbook.disableSelection()
+
+// 启用选区
+fWorkbook.enableSelection()
+
+// 隐藏选区
+fWorkbook.transparentSelection()
+
+// 显示选区
+fWorkbook.showSelection()
+```
+
+#### 监听选区变化
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.SelectionChanged, (params) => {
+  const { worksheet, workbook, selections } = params
+  console.log(params)
+})
+```
+
+## 单元格Cell [#cell]
+
+单元格数据以二维 Map 的形式存储在工作表中，一二级索引分别代表行号和列号。
+
+以下是一个典型的单元格对象：
+
+```typescript
+const data = {
+  v: 'Hello, Univer',
+  s: 'styleId',
+  t: CellValueType.STRING,
+}
+```
+
+详细的字段说明请参考 [单元格信息](/guides/sheets/getting-started/cell-data)。
+
+<Callout type="info" emoji="ℹ️">
+  对单元格的操作可以看作对行高 1 、列宽 1 的范围进行操作，操作范围请阅读 [范围-range](/zh-CN/guides/sheets/features/core/range-selection#range)。
+</Callout>
+
+<Callout type="info" emoji="ℹ️">
+  插件还会将拓展的单元格属性存储在 `Workbook` 的 `resources` 属性中，详细请阅读 [插件自定义模型](/zh-CN/guides/recipes/practices/custom-model/)。
+</Callout>
+
+## 事件列表
+
+以下是可用的单元格相关事件列表：
+
+| 事件名称 | 描述 | 参数类型 | 示例 |
+|---------|------|---------|------|
+| `CellPointerMove` | 鼠标移动到单元格上时触发 | `ICellEventParam` | `const { worksheet, workbook, row, column } = params` |
+| `CellPointerDown` | 鼠标按下时触发 | `ICellEventParam` | `const { worksheet, workbook, row, column } = params` |
+| `CellPointerUp` | 鼠标释放时触发 | `ICellEventParam` | `const { worksheet, workbook, row, column } = params` |
+| `CellHover` | 鼠标悬停在单元格上时触发 | `ICellEventParam` | `const { worksheet, workbook, row, column } = params` |
+| `DragOver` | 拖动元素经过单元格时触发 | `ICellEventParam` | `const { worksheet, workbook, row, column } = params` |
+| `Drop` | 拖动元素放置到单元格时触发 | `ICellEventParam` | `const { worksheet, workbook, row, column } = params` |
+| `CellClicked` | 点击单元格时触发 | `ICellEventParam` | `const { worksheet, workbook, row, column } = params` |
+| `BeforeSheetEditStart` | 单元格开始编辑前触发 | `IBeforeSheetEditStartEventParams` | `const { worksheet, workbook, row, column, eventType, keycode, isZenEditor } = params` |
+| `SheetEditStarted` | 单元格开始编辑时触发 | `ISheetEditStartedEventParams` | `const { worksheet, workbook, row, column, eventType, keycode, isZenEditor } = params` |
+| `SheetEditChanging` | 单元格编辑内容变化时触发 | `ISheetEditChangingEventParams` | `const { worksheet, workbook, row, column, value, isZenEditor } = params` |
+| `BeforeSheetEditEnd` | 单元格结束编辑前触发 | `IBeforeSheetEditEndEventParams` | `const { worksheet, workbook, row, column, value, eventType, keycode, isZenEditor, isConfirm } = params` |
+| `SheetEditEnded` | 单元格结束编辑后触发 | `ISheetEditEndedEventParams` | `const { worksheet, workbook, row, column, eventType, keycode, isZenEditor, isConfirm } = params` |
+
+### 使用示例
+
+所有事件都可以通过 `addEvent` 方法进行监听。基本格式如下：
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.事件名称, (params) => {
+  // 事件处理逻辑
+})
+```
+
+### 单元格 PointerMove 事件
+
+`CellPointerMove` 事件在鼠标移动到单元格上时触发。通过此事件可以获取当前鼠标指向的单元格信息。
+```typescript
+univerAPI.addEvent(univerAPI.Event.CellPointerMove, (params) => {
+  // 获取事件参数
+  const { worksheet, workbook, row, column } = params
+  console.log('当前单元格位置:', worksheet.getRange(row, column).getA1Notation())
+})
+```
+
+### 单元格 PointerDown 事件
+
+`CellPointerDown` 事件在鼠标按下时触发。
+```typescript
+univerAPI.addEvent(univerAPI.Event.CellPointerDown, (params) => {
+  const { worksheet, workbook, row, column } = params
+  console.log('鼠标按下的单元格:', worksheet.getRange(row, column).getA1Notation())
+})
+```
+
+### 单元格 PointerUp 事件
+
+`CellPointerUp` 事件在鼠标释放时触发。
+```typescript
+univerAPI.addEvent(univerAPI.Event.CellPointerUp, (params) => {
+  const { worksheet, workbook, row, column } = params
+  console.log('鼠标释放的单元格:', worksheet.getRange(row, column).getA1Notation())
+})
+```
+
+### 单元格 Hover 事件
+
+`CellHover` 事件在鼠标悬停在单元格上时触发。
+```typescript
+univerAPI.addEvent(univerAPI.Event.CellHover, (params) => {
+  const { worksheet, workbook, row, column } = params
+  console.log('悬停的单元格:', worksheet.getRange(row, column).getA1Notation())
+})
+```
+
+### 单元格 DragOver 事件
+
+`DragOver` 事件在拖动元素经过单元格时触发。
+```typescript
+univerAPI.addEvent(univerAPI.Event.DragOver, (params) => {
+  const { worksheet, workbook, row, column } = params
+  console.log('拖动经过的单元格:', worksheet.getRange(row, column).getA1Notation())
+})
+```
+
+### 单元格 Drop 事件
+
+`Drop` 事件在拖动元素放置到单元格时触发。
+```typescript
+univerAPI.addEvent(univerAPI.Event.Drop, (params) => {
+  const { worksheet, workbook, row, column } = params
+  console.log('放置的单元格:', worksheet.getRange(row, column).getA1Notation())
+})
+```
+
+### 单元格 Click 事件
+
+`CellClicked` 事件在点击单元格时触发。
+```typescript
+univerAPI.addEvent(univerAPI.Event.CellClicked, (params) => {
+  const { worksheet, workbook, row, column } = params
+  console.log('点击的单元格:', worksheet.getRange(row, column).getA1Notation())
+})
+```
+
+### 单元格渲染事件
+
+`onCellRender` 事件在单元格渲染时触发，可用于自定义单元格渲染。
+
+案例 1：固定位置渲染，添加行不会影响渲染位置
+
+```typescript
+// 固定位置渲染
+univerAPI.getSheetHooks().onCellRender([{
+  drawWith: (ctx, info, skeleton, spreadsheets) => {
+    const { row, col } = info
+    // 在指定位置(1,1)渲染勾选标记
+    if (row === 1 && col === 1) {
+      const { primaryWithCoord } = info
+      const { startX, startY } = primaryWithCoord
+      ctx.fillText('✅', startX, startY + 10)
+    }
+  },
+}])
+
+// 刷新画布以应用渲染
+univerAPI.getActiveWorkbook().getActiveSheet().refreshCanvas()
+```
+
+案例 2：按标记渲染，标记位置会随着行列变化而变化
+
+```typescript
+// 设置标记
+univerAPI.getActiveWorkbook().getActiveSheet().getRange('B2').setValue({ custom: { key: 'needCheck' } })
+
+// 按标记渲染
+univerAPI.getSheetHooks().onCellRender([{
+  drawWith: (ctx, info, skeleton, spreadsheets) => {
+    const { row, col, data } = info
+    // 在标记的位置渲染勾选标记
+    if (data?.custom?.key === 'needCheck') {
+      const { primaryWithCoord } = info
+      const { startX, startY } = primaryWithCoord
+      ctx.fillText('✅', startX, startY + 10)
+    }
+  },
+}])
+
+// 刷新画布以应用渲染
+univerAPI.getActiveWorkbook().getActiveSheet().refreshCanvas()
+```
+
+### 单元格编辑事件
+
+#### 开始编辑
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+fWorkbook.startEditing()
+```
+
+#### 结束编辑
+```typescript
+// 传入 true 表示提交编辑，false 表示取消编辑
+// 这是一个异步函数，需要使用 await
+const fWorkbook = univerAPI.getActiveWorkbook()
+await fWorkbook.endEditingAsync(true)
+```
+
+#### 开始编辑事件
+
+`BeforeSheetEditStart` 事件在单元格开始编辑前触发。
+```typescript
+univerAPI.addEvent(univerAPI.Event.BeforeSheetEditStart, (params) => {
+  const { worksheet, workbook, row, column, eventType, keycode, isZenEditor } = params
+  console.log('单元格编辑前:', params)
+
+  // 如果想阻止进入编辑状态
+  params.cancel = true
+})
+```
+
+`SheetEditStarted` 事件在单元格开始编辑时触发。
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.SheetEditStarted, (params) => {
+  const { worksheet, workbook, row, column, eventType, keycode, isZenEditor } = params
+  console.log(params)
+})
+
+// 移除事件监听器，使用 `disposable.dispose()`
+```
+
+#### 结束编辑事件
+
+`BeforeSheetEditEnd` 事件在单元格结束编辑前触发。
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.BeforeSheetEditEnd, (params) => {
+  const { worksheet, workbook, row, column, value, eventType, keycode, isZenEditor, isConfirm } = params
+  console.log(params)
+
+  // 取消单元格编辑结束操作
+  params.cancel = true
+})
+
+// 移除事件监听器，使用 `disposable.dispose()`
+```
+
+`SheetEditEnded` 事件在单元格结束编辑后触发。
+```typescript
+univerAPI.addEvent(univerAPI.Event.SheetEditEnded, (params) => {
+  const { worksheet, workbook, row, column, eventType, keycode, isZenEditor, isConfirm } = params
+  console.log('单元格编辑后:', params)
+})
+```
+
+### 剪贴板事件
+
+#### BeforeClipboardChange
+
+`BeforeClipboardChange` 事件在剪贴板内容改变之前触发。您可以使用此事件在内容改变之前监控或修改剪贴板内容。
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.BeforeClipboardChange, (params) => {
+  const { text, html } = params
+  console.log('剪贴板内容:', text, html)
+  // 如果想取消剪贴板内容的改变
+  // params.cancel = true;
+})
+```
+
+#### BeforeClipboardPaste
+
+`BeforeClipboardPaste` 事件在内容粘贴之前触发。您可以使用此事件在粘贴之前监控或修改内容。
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.BeforeClipboardPaste, (params) => {
+  const { text, html } = params
+  console.log('待粘贴内容:', text, html)
+  // 如果想取消粘贴操作
+  // params.cancel = true;
+})
+```
+
+#### ClipboardChanged
+
+`ClipboardChanged` 事件在剪贴板内容改变之后触发。
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.ClipboardChanged, (params) => {
+  const { text, html } = params
+  console.log('新的剪贴板内容:', text, html)
+})
+```
+
+#### ClipboardPasted
+
+`ClipboardPasted` 事件在内容粘贴完成后触发。
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.ClipboardPasted, (params) => {
+  const { text, html } = params
+  console.log('已粘贴的内容:', text, html)
+})

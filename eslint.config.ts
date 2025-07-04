@@ -70,6 +70,8 @@ export default antfu({
     'react-dom/no-render': 'off',
     'no-new': 'off',
     'antfu/no-top-level-await': 'off',
+    'ts/prefer-literal-enum-member': 'off',
+    'react-hooks/rules-of-hooks': 'off',
   },
 }, {
   files: ['**/*.tsx'],
