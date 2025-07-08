@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import {
   SandpackCodeEditor,
+  SandpackFileExplorer,
   SandpackLayout,
   SandpackProvider,
 } from '@codesandbox/sandpack-react'
@@ -22,10 +23,10 @@ export function Playground(props: IProps) {
   const { showCodeEditor = true } = options
 
   const transformedFiles = Object.keys(files).reduce((acc, key) => {
-    if (lang === 'en-US') {
-      const value = files[key].replaceAll('zh-CN', 'en-US')
-        .replaceAll('ZhCN', 'EnUS')
-        .replaceAll('ZH_CN', 'EN_US')
+    if (lang === 'zh-CN') {
+      const value = files[key].replaceAll('en-US', 'zh-CN')
+        .replaceAll('EnUS', 'ZhCN')
+        .replaceAll('EN_US', 'ZH_CN')
 
       acc[key] = value
       return acc
@@ -47,15 +48,19 @@ export function Playground(props: IProps) {
       >
         <SandpackLayout className="grid!">
           <div className="h-180!">{preview}</div>
-          {showCodeEditor && (
-            <SandpackCodeEditor
-              className="h-180!"
-              showTabs
-              showLineNumbers
-              readOnly
-              showReadOnly={false}
-            />
-          )}
+
+          <div className="grid grid-cols-12">
+            <SandpackFileExplorer className="col-span-2" />
+            {showCodeEditor && (
+              <SandpackCodeEditor
+                className="col-span-10 h-180!"
+                showLineNumbers
+                readOnly
+                showReadOnly={false}
+                showTabs={false}
+              />
+            )}
+          </div>
         </SandpackLayout>
       </SandpackProvider>
     </section>

@@ -7,16 +7,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const metadata = {
   title: {
-    'en-US': 'Lit Example',
-    'zh-CN': 'Lit 示例',
+    'en-US': 'Big Data Rendering',
+    'zh-CN': '大数据量渲染',
   },
   description: {
-    'en-US': 'A minimal configuration example of Univer Sheets using Lit.',
-    'zh-CN': '使用 Lit 的 Univer Sheets 最小配置示例',
+    'en-US': 'Univer Sheets supports rendering large datasets efficiently. This example demonstrates how to handle big data rendering in a spreadsheet, ensuring smooth performance even with extensive data.',
+    'zh-CN': 'Univer Sheets 支持高效渲染大数据集。这个示例演示了如何在电子表格中处理大数据渲染，即使在处理大量数据时也能确保流畅的性能。',
   },
   tags: {
-    'en-US': ['Univer Sheets', 'Preset Mode', 'Web Components'],
-    'zh-CN': ['Univer Sheets', '预设模式', 'Web Components'],
+    'en-US': ['Univer Sheets', 'Preset Mode'],
+    'zh-CN': ['Univer Sheets', '预设模式'],
   },
 }
 

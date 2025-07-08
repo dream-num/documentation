@@ -20,10 +20,10 @@ const metadata = {
   },
 }
 
-const indexTs = fs.readFileSync(path.resolve(__dirname, './code/index.raw.ts'), 'utf-8')
-const dataTs = fs.readFileSync(path.resolve(__dirname, './code/data.raw.ts'), 'utf-8')
-const stylesCss = fs.readFileSync(path.resolve(__dirname, './code/styles.raw.css'), 'utf-8')
-const indexHtml = fs.readFileSync(path.resolve(__dirname, './code/index.raw.html'), 'utf-8')
+const indexTs = fs.readFileSync(path.resolve(__dirname, './code/index.ts'), 'utf-8')
+const dataTs = fs.readFileSync(path.resolve(__dirname, './code/data.ts'), 'utf-8')
+const stylesCss = fs.readFileSync(path.resolve(__dirname, './code/styles.css'), 'utf-8')
+const indexHtml = fs.readFileSync(path.resolve(__dirname, './code/index.html'), 'utf-8')
 
 export const files = {
   '/index.ts': indexTs,
