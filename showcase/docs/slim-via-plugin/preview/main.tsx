@@ -2,14 +2,14 @@
 
 import { LocaleType, merge, Univer, UniverInstanceType } from '@univerjs/core'
 // import { FUniver } from '@univerjs/core/facade'
-import DesignZhCN from '@univerjs/design/locale/zh-CN'
+import DesignEnUS from '@univerjs/design/locale/en-US'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
-import DocsUIZhCN from '@univerjs/docs-ui/locale/zh-CN'
+import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverUIPlugin } from '@univerjs/ui'
-import UIZhCN from '@univerjs/ui/locale/zh-CN'
+import UIEnUS from '@univerjs/ui/locale/en-US'
 import { useEffect, useRef } from 'react'
 import { DOCUMENT_DATA } from './data'
 
@@ -26,13 +26,13 @@ export default function Preview() {
 
   useEffect(() => {
     const univer = new Univer({
-      locale: LocaleType.ZH_CN,
+      locale: LocaleType.EN_US,
       locales: {
-        [LocaleType.ZH_CN]: merge(
+        [LocaleType.EN_US]: merge(
           {},
-          DesignZhCN,
-          UIZhCN,
-          DocsUIZhCN,
+          DesignEnUS,
+          UIEnUS,
+          DocsUIEnUS,
         ),
       },
     })

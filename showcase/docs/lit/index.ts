@@ -1,15 +1,14 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { dependencies } from './dependencies'
 import Preview from './preview'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const metadata = {
   title: {
-    'en-US': 'Univer Docs Lit Example',
-    'zh-CN': 'Univer Docs Lit 示例',
+    'en-US': 'Lit Example',
+    'zh-CN': 'Lit 示例',
   },
   description: {
     'en-US': 'A minimal configuration example of Univer Docs using Lit.',
@@ -36,6 +35,5 @@ export const files = {
 export default {
   metadata,
   files,
-  dependencies,
   Preview,
 }

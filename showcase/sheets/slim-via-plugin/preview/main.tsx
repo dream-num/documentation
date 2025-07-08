@@ -1,22 +1,22 @@
 'use client'
 
 import { LocaleType, merge, Univer, UniverInstanceType } from '@univerjs/core'
-import DesignZhCN from '@univerjs/design/locale/zh-CN'
+import DesignEnUS from '@univerjs/design/locale/en-US'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
-import DocsUIZhCN from '@univerjs/docs-ui/locale/zh-CN'
+import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
 import { UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
-import SheetsFormulaUIZhCN from '@univerjs/sheets-formula-ui/locale/zh-CN'
+import SheetsFormulaUIEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
 import { UniverSheetsNumfmtUIPlugin } from '@univerjs/sheets-numfmt-ui'
-import SheetsNumfmtUIZhCN from '@univerjs/sheets-numfmt-ui/locale/zh-CN'
+import SheetsNumfmtUIEnUS from '@univerjs/sheets-numfmt-ui/locale/en-US'
 import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
-import SheetsUIZhCN from '@univerjs/sheets-ui/locale/zh-CN'
-import SheetsZhCN from '@univerjs/sheets/locale/zh-CN'
+import SheetsUIEnUS from '@univerjs/sheets-ui/locale/en-US'
+import SheetsEnUS from '@univerjs/sheets/locale/en-US'
 import { UniverUIPlugin } from '@univerjs/ui'
-import UIZhCN from '@univerjs/ui/locale/zh-CN'
+import UIEnUS from '@univerjs/ui/locale/en-US'
 import { useEffect, useRef } from 'react'
 import { WORKBOOK_DATA } from './data'
 
@@ -32,17 +32,17 @@ export default function Preview() {
 
   useEffect(() => {
     const univer = new Univer({
-      locale: LocaleType.ZH_CN,
+      locale: LocaleType.EN_US,
       locales: {
-        [LocaleType.ZH_CN]: merge(
+        [LocaleType.EN_US]: merge(
           {},
-          DesignZhCN,
-          UIZhCN,
-          DocsUIZhCN,
-          SheetsZhCN,
-          SheetsUIZhCN,
-          SheetsFormulaUIZhCN,
-          SheetsNumfmtUIZhCN,
+          DesignEnUS,
+          UIEnUS,
+          DocsUIEnUS,
+          SheetsEnUS,
+          SheetsUIEnUS,
+          SheetsFormulaUIEnUS,
+          SheetsNumfmtUIEnUS,
         ),
       },
     })

@@ -2,48 +2,48 @@
 
 import { LocaleType, merge, Univer, UniverInstanceType } from '@univerjs/core'
 // import { FUniver } from '@univerjs/core/facade'
-import DesignZhCN from '@univerjs/design/locale/zh-CN'
+import DesignEnUS from '@univerjs/design/locale/en-US'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
-import DocsUIZhCN from '@univerjs/docs-ui/locale/zh-CN'
+import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
-import FindReplaceZhCN from '@univerjs/find-replace/locale/zh-CN'
+import FindReplaceEnUS from '@univerjs/find-replace/locale/en-US'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
 import { UniverSheetsConditionalFormattingUIPlugin } from '@univerjs/sheets-conditional-formatting-ui'
-import SheetsConditionalFormattingUIZhCN from '@univerjs/sheets-conditional-formatting-ui/locale/zh-CN'
+import SheetsConditionalFormattingUIEnUS from '@univerjs/sheets-conditional-formatting-ui/locale/en-US'
 import { UniverSheetsCrosshairHighlightPlugin } from '@univerjs/sheets-crosshair-highlight'
-import SheetsCrosshairHighlightZhCN from '@univerjs/sheets-crosshair-highlight/locale/zh-CN'
+import SheetsCrosshairHighlightEnUS from '@univerjs/sheets-crosshair-highlight/locale/en-US'
 import { UniverSheetsDataValidationPlugin } from '@univerjs/sheets-data-validation'
 import { UniverSheetsDataValidationUIPlugin } from '@univerjs/sheets-data-validation-ui'
-import SheetsDataValidationUIZhCN from '@univerjs/sheets-data-validation-ui/locale/zh-CN'
+import SheetsDataValidationUIEnUS from '@univerjs/sheets-data-validation-ui/locale/en-US'
 import { UniverSheetsFilterUIPlugin } from '@univerjs/sheets-filter-ui'
-import SheetsFilterUIZhCN from '@univerjs/sheets-filter-ui/locale/zh-CN'
+import SheetsFilterUIEnUS from '@univerjs/sheets-filter-ui/locale/en-US'
 import { UniverSheetsFindReplacePlugin } from '@univerjs/sheets-find-replace'
-import SheetsFindReplaceZhCN from '@univerjs/sheets-find-replace/locale/zh-CN'
+import SheetsFindReplaceEnUS from '@univerjs/sheets-find-replace/locale/en-US'
 import { UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
-import SheetsFormulaUIZhCN from '@univerjs/sheets-formula-ui/locale/zh-CN'
+import SheetsFormulaUIEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
 import { UniverSheetsHyperLinkUIPlugin } from '@univerjs/sheets-hyper-link-ui'
-import SheetsHyperLinkUIZhCN from '@univerjs/sheets-hyper-link-ui/locale/zh-CN'
+import SheetsHyperLinkUIEnUS from '@univerjs/sheets-hyper-link-ui/locale/en-US'
 import { UniverSheetsNoteUIPlugin } from '@univerjs/sheets-note-ui'
-import SheetsNoteUIZhCN from '@univerjs/sheets-note-ui/locale/zh-CN'
+import SheetsNoteUIEnUS from '@univerjs/sheets-note-ui/locale/en-US'
 import { UniverSheetsNumfmtUIPlugin } from '@univerjs/sheets-numfmt-ui'
-import SheetsNumfmtUIZhCN from '@univerjs/sheets-numfmt-ui/locale/zh-CN'
+import SheetsNumfmtUIEnUS from '@univerjs/sheets-numfmt-ui/locale/en-US'
 import { UniverSheetsSortUIPlugin } from '@univerjs/sheets-sort-ui'
-import SheetsSortUIZhCN from '@univerjs/sheets-sort-ui/locale/zh-CN'
+import SheetsSortUIEnUS from '@univerjs/sheets-sort-ui/locale/en-US'
 import { UniverSheetsTableUIPlugin } from '@univerjs/sheets-table-ui'
-import SheetsTableUIZhCN from '@univerjs/sheets-table-ui/locale/zh-CN'
+import SheetsTableUIEnUS from '@univerjs/sheets-table-ui/locale/en-US'
 import { UniverSheetsThreadCommentUIPlugin } from '@univerjs/sheets-thread-comment-ui'
-import SheetsThreadCommentUIZhCN from '@univerjs/sheets-thread-comment-ui/locale/zh-CN'
+import SheetsThreadCommentUIEnUS from '@univerjs/sheets-thread-comment-ui/locale/en-US'
 import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
-import SheetsUIZhCN from '@univerjs/sheets-ui/locale/zh-CN'
+import SheetsUIEnUS from '@univerjs/sheets-ui/locale/en-US'
 import { UniverSheetsZenEditorPlugin } from '@univerjs/sheets-zen-editor'
-import SheetsZenEditorZhCN from '@univerjs/sheets-zen-editor/locale/zh-CN'
-import SheetsZhCN from '@univerjs/sheets/locale/zh-CN'
+import SheetsZenEditorEnUS from '@univerjs/sheets-zen-editor/locale/en-US'
+import SheetsEnUS from '@univerjs/sheets/locale/en-US'
 import { UniverThreadCommentUIPlugin } from '@univerjs/thread-comment-ui'
-import ThreadCommentUIZhCN from '@univerjs/thread-comment-ui/locale/zh-CN'
+import ThreadCommentUIEnUS from '@univerjs/thread-comment-ui/locale/en-US'
 import { UniverUIPlugin } from '@univerjs/ui'
-import UIZhCN from '@univerjs/ui/locale/zh-CN'
+import UIEnUS from '@univerjs/ui/locale/en-US'
 import { UniverWatermarkPlugin } from '@univerjs/watermark'
 import { useEffect, useRef } from 'react'
 import { WORKBOOK_DATA } from './data'
@@ -71,30 +71,30 @@ export default function Preview() {
 
   useEffect(() => {
     const univer = new Univer({
-      locale: LocaleType.ZH_CN,
+      locale: LocaleType.EN_US,
       locales: {
-        [LocaleType.ZH_CN]: merge(
+        [LocaleType.EN_US]: merge(
           {},
-          DesignZhCN,
-          UIZhCN,
-          DocsUIZhCN,
-          SheetsZhCN,
-          SheetsUIZhCN,
-          SheetsFormulaUIZhCN,
-          SheetsNumfmtUIZhCN,
-          SheetsFilterUIZhCN,
-          SheetsConditionalFormattingUIZhCN,
-          SheetsDataValidationUIZhCN,
-          SheetsSortUIZhCN,
-          FindReplaceZhCN,
-          SheetsFindReplaceZhCN,
-          ThreadCommentUIZhCN,
-          SheetsThreadCommentUIZhCN,
-          SheetsNoteUIZhCN,
-          SheetsHyperLinkUIZhCN,
-          SheetsTableUIZhCN,
-          SheetsCrosshairHighlightZhCN,
-          SheetsZenEditorZhCN,
+          DesignEnUS,
+          UIEnUS,
+          DocsUIEnUS,
+          SheetsEnUS,
+          SheetsUIEnUS,
+          SheetsFormulaUIEnUS,
+          SheetsNumfmtUIEnUS,
+          SheetsFilterUIEnUS,
+          SheetsConditionalFormattingUIEnUS,
+          SheetsDataValidationUIEnUS,
+          SheetsSortUIEnUS,
+          FindReplaceEnUS,
+          SheetsFindReplaceEnUS,
+          ThreadCommentUIEnUS,
+          SheetsThreadCommentUIEnUS,
+          SheetsNoteUIEnUS,
+          SheetsHyperLinkUIEnUS,
+          SheetsTableUIEnUS,
+          SheetsCrosshairHighlightEnUS,
+          SheetsZenEditorEnUS,
         ),
       },
     })

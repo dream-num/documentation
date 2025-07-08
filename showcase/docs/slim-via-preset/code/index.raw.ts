@@ -1,5 +1,5 @@
 import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
-import docsCoreZhCN from '@univerjs/preset-docs-core/locales/zh-CN'
+import docsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
 import { createUniver, LocaleType, merge } from '@univerjs/presets'
 import { DOCUMENT_DATA } from './data'
 
@@ -8,11 +8,11 @@ import './styles.css'
 import '@univerjs/preset-docs-core/lib/index.css'
 
 const { univerAPI } = createUniver({
-  locale: LocaleType.ZH_CN,
+  locale: LocaleType.EN_US,
   locales: {
-    [LocaleType.ZH_CN]: merge(
+    [LocaleType.EN_US]: merge(
       {},
-      docsCoreZhCN,
+      docsCoreEnUS,
     ),
   },
   presets: [

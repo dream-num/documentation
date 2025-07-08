@@ -1,15 +1,14 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { dependencies } from './dependencies'
 import Preview from './preview'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const metadata = {
   title: {
-    'en-US': 'Univer Sheets Slim Example (Plugin Mode)',
-    'zh-CN': 'Univer Sheets 精简示例（插件模式）',
+    'en-US': 'Minimal Example (Plugin Mode)',
+    'zh-CN': '精简示例（插件模式）',
   },
   description: {
     'en-US': 'A minimal setup example for Univer Sheets, demonstrating the minimum configuration required to use Univer Sheets.',
@@ -36,6 +35,5 @@ export const files = {
 export default {
   metadata,
   files,
-  dependencies,
   Preview,
 }

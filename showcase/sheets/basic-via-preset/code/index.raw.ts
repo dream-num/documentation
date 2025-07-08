@@ -1,26 +1,26 @@
 import { UniverSheetsConditionalFormattingPreset } from '@univerjs/preset-sheets-conditional-formatting'
-import sheetsConditionalFormattingZhCN from '@univerjs/preset-sheets-conditional-formatting/locales/zh-CN'
+import sheetsConditionalFormattingEnUS from '@univerjs/preset-sheets-conditional-formatting/locales/en-US'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
-import sheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
+import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
 import { UniverSheetsDataValidationPreset } from '@univerjs/preset-sheets-data-validation'
-import sheetsDataValidationZhCN from '@univerjs/preset-sheets-data-validation/locales/zh-CN'
+import sheetsDataValidationEnUS from '@univerjs/preset-sheets-data-validation/locales/en-US'
 import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing'
-import sheetsDrawingZhCN from '@univerjs/preset-sheets-drawing/locales/zh-CN'
+import sheetsDrawingEnUS from '@univerjs/preset-sheets-drawing/locales/en-US'
 import { UniverSheetsFilterPreset } from '@univerjs/preset-sheets-filter'
-import UniverPresetSheetsFilterZhCN from '@univerjs/preset-sheets-filter/locales/zh-CN'
+import UniverPresetSheetsFilterEnUS from '@univerjs/preset-sheets-filter/locales/en-US'
 import { UniverSheetsFindReplacePreset } from '@univerjs/preset-sheets-find-replace'
-import UniverPresetSheetsFindReplaceZhCN from '@univerjs/preset-sheets-find-replace/locales/zh-CN'
+import UniverPresetSheetsFindReplaceEnUS from '@univerjs/preset-sheets-find-replace/locales/en-US'
 import { UniverSheetsHyperLinkPreset } from '@univerjs/preset-sheets-hyper-link'
-import sheetsHyperLinkZhCN from '@univerjs/preset-sheets-hyper-link/locales/zh-CN'
+import sheetsHyperLinkEnUS from '@univerjs/preset-sheets-hyper-link/locales/en-US'
 import { UniverSheetsSortPreset } from '@univerjs/preset-sheets-sort'
-import SheetsSortZhCN from '@univerjs/preset-sheets-sort/locales/zh-CN'
+import SheetsSortEnUS from '@univerjs/preset-sheets-sort/locales/en-US'
 import { UniverSheetsThreadCommentPreset } from '@univerjs/preset-sheets-thread-comment'
-import UniverPresetSheetsThreadCommentZhCN from '@univerjs/preset-sheets-thread-comment/locales/zh-CN'
+import UniverPresetSheetsThreadCommentEnUS from '@univerjs/preset-sheets-thread-comment/locales/en-US'
 import { createUniver, LocaleType, merge } from '@univerjs/presets'
 import { UniverSheetsCrosshairHighlightPlugin } from '@univerjs/sheets-crosshair-highlight'
-import SheetsCrosshairHighlightZhCN from '@univerjs/sheets-crosshair-highlight/locale/zh-CN'
+import SheetsCrosshairHighlightEnUS from '@univerjs/sheets-crosshair-highlight/locale/en-US'
 import { UniverSheetsZenEditorPlugin } from '@univerjs/sheets-zen-editor'
-import SheetsZenEditorZhCN from '@univerjs/sheets-zen-editor/locale/zh-CN'
+import SheetsZenEditorEnUS from '@univerjs/sheets-zen-editor/locale/en-US'
 import { UniverWatermarkPlugin } from '@univerjs/watermark'
 
 import { WORKBOOK_DATA } from './data'
@@ -39,21 +39,21 @@ import '@univerjs/sheets-zen-editor/lib/index.css'
 import '@univerjs/sheets-crosshair-highlight/lib/index.css'
 
 const { univerAPI } = createUniver({
-  locale: LocaleType.ZH_CN,
+  locale: LocaleType.EN_US,
   locales: {
-    [LocaleType.ZH_CN]: merge(
+    [LocaleType.EN_US]: merge(
       {},
-      sheetsCoreZhCN,
-      SheetsSortZhCN,
-      UniverPresetSheetsFilterZhCN,
-      sheetsConditionalFormattingZhCN,
-      sheetsDataValidationZhCN,
-      UniverPresetSheetsFindReplaceZhCN,
-      sheetsDrawingZhCN,
-      sheetsHyperLinkZhCN,
-      UniverPresetSheetsThreadCommentZhCN,
-      SheetsCrosshairHighlightZhCN,
-      SheetsZenEditorZhCN,
+      sheetsCoreEnUS,
+      SheetsSortEnUS,
+      UniverPresetSheetsFilterEnUS,
+      sheetsConditionalFormattingEnUS,
+      sheetsDataValidationEnUS,
+      UniverPresetSheetsFindReplaceEnUS,
+      sheetsDrawingEnUS,
+      sheetsHyperLinkEnUS,
+      UniverPresetSheetsThreadCommentEnUS,
+      SheetsCrosshairHighlightEnUS,
+      SheetsZenEditorEnUS,
     ),
   },
   presets: [

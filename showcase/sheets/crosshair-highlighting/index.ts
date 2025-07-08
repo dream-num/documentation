@@ -7,12 +7,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const metadata = {
   title: {
-    'en-US': 'Basic Example (Preset Mode)',
-    'zh-CN': '基础示例（预设模式）',
+    'en-US': 'Crosshair Highlighting',
+    'zh-CN': '十字高亮',
   },
   description: {
-    'en-US': 'A basic example of Univer Sheets in preset mode, demonstrating how to use the core features of Univer Sheets.',
-    'zh-CN': 'Univer Sheets 官方预设的基础示例，展示了如何使用 Univer Sheets 的核心功能。',
+    'en-US': 'An example of crosshair highlighting in Univer Sheets, demonstrating how to highlight cells based on the current selection.',
+    'zh-CN': 'Univer Sheets 中的十字高亮示例，展示了如何根据当前选择高亮显示单元格。',
   },
   tags: {
     'en-US': ['Univer Sheets', 'Preset Mode'],
