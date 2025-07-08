@@ -72,7 +72,7 @@ export default async function Page({ params }: IProps) {
   return (
     <div className="flex flex-1">
       <aside className="h-auto w-72 overflow-x-hidden">
-        <div className="fixed top-14 h-[calc(100%-110px)] p-4">
+        <div className="fixed top-14 h-[calc(100%-110px)] w-72 p-4">
           <ScrollArea className="h-full">
             {Object.entries(groupedNav).map(([type, items]) => (
               <div key={type} className="mb-4">

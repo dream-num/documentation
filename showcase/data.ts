@@ -16,6 +16,7 @@ export const showcase: Record<string, Promise<{ default: {
   'sheets/basic-via-preset': import('./sheets/basic-via-preset'),
   'sheets/lit': import('./sheets/lit'),
   'sheets/big-data': import('./sheets/big-data'),
+  'sheets/csv-import-plugin': import('./sheets/csv-import-plugin'),
   'sheets/custom-canvas': import('./sheets/custom-canvas'),
   'sheets/crosshair-highlighting': import('./sheets/crosshair-highlighting'),
   'docs/slim-via-plugin': import('./docs/slim-via-plugin'),
