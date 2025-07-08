@@ -115,7 +115,7 @@ export default async function Page({ params }: IProps) {
               {formatLocalDate(page.data.date, lang)}
             </time>
           </div>
-          <InlineTOC defaultOpen items={page.data.toc} />
+          {page.data.toc.length >= 0 && <InlineTOC defaultOpen items={page.data.toc} />}
           <Button className="w-full" asChild>
             <Link href="/blog">
               {customTranslations[lang]['blog.back']}
