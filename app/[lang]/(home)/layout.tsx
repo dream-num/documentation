@@ -11,6 +11,7 @@ import { BookTextIcon, CookingPotIcon, PresentationIcon, SheetIcon } from 'lucid
 import Link from 'next/link'
 import { baseOptions } from '@/app/layout.config'
 import { Footer } from '@/components/footer'
+import { clsx } from '@/lib/clsx'
 import { customTranslations } from '@/lib/i18n'
 
 interface IProps {
@@ -26,26 +27,33 @@ export default async function Layout({ params, children }: IProps) {
     url: `/${lang}/guides/sheets`,
     className: 'lg:col-start-1',
     icon: <SheetIcon />,
+    iconClassName: 'bg-linear-[135deg,#0DA471_0%,#F3FAF7_100%] dark:bg-linear-[135deg,#0DA471_0%,#014737_100%]',
   }, {
     text: 'Univer Docs',
     url: `/${lang}/guides/docs`,
     className: 'lg:col-start-1',
     icon: <BookTextIcon />,
+    iconClassName: 'bg-linear-[135deg,#3F83F8_0%,#EBF5FF_100%] dark:bg-linear-[135deg,#3F83F8_0%,#233876_100%]',
   }, {
     text: 'Univer Slides',
     url: `/${lang}/guides/slides`,
     className: 'lg:col-start-2 lg:row-start-1',
     icon: <PresentationIcon />,
+    iconClassName: 'bg-linear-[135deg,#F05252_0%,#FDF2F2_100%] dark:bg-linear-[135deg,#F05252_0%,#771D1D_100%]',
   }, {
     text: 'Recipes',
-    url: `/${lang}/guides/recipes`,
+    url: `/${lang}/guides/recipes/architecture/univer`,
     className: 'lg:col-start-2 lg:row-start-2',
     icon: <CookingPotIcon />,
+    iconClassName: 'bg-linear-[135deg,#9061F9_0%,#F6F5FF_100%] dark:bg-linear-[135deg,#9061F9_0%,#4A1D96_100%]',
   }]
 
   const ecosystemLinks = [{
     text: '📦 Univer Icons',
     url: `/${lang}/icons`,
+  }, {
+    text: '💎 Obsidian Univer Plugin',
+    url: 'https://github.com/dream-num/obsidian-univer',
   }]
 
   const links: LinkItemType[] = [
@@ -69,15 +77,15 @@ export default async function Layout({ params, children }: IProps) {
             {documentationLinks.map(link => (
               <NavbarMenuLink
                 key={link.url}
-                className={link.className}
+                className={clsx('border-none', link.className)}
                 href={link.url}
               >
                 <div className="flex flex-col">
                   <div
-                    className={`
-                      mb-2 flex size-6 items-center justify-center rounded bg-primary text-white
+                    className={clsx(`
+                      mb-2 flex size-6 items-center justify-center rounded text-white
                       [&>*]:size-4
-                    `}
+                    `, link.iconClassName)}
                   >
                     {link.icon}
                   </div>
@@ -88,11 +96,39 @@ export default async function Layout({ params, children }: IProps) {
 
             <NavbarMenuLink
               className={`
+                relative overflow-hidden border-none
                 md:col-span-2 md:row-span-2
                 lg:col-start-3 lg:row-start-1
+                [&>img]:absolute [&>img]:inset-0 [&>img]:size-full [&>img]:transition-all
+                hover:[&>img]:grayscale-50
               `}
+              href={`/${lang}/guides/pro`}
             >
-              right
+              <img
+                className={`
+                  hidden
+                  dark:block
+                `}
+                src="/assets/images/pro-panel.dark.png"
+                alt="Univer Pro"
+              />
+              <img
+                className={`
+                  block
+                  dark:hidden
+                `}
+                src="/assets/images/pro-panel.light.png"
+                alt="Univer Pro"
+              />
+              <label
+                className={`
+                  absolute top-4 left-4 inline-block rounded-md bg-linear-[90deg,#272A2F_0%,#7D8698_100%] px-3 py-1
+                  text-lg font-semibold text-gray-100
+                  dark:bg-linear-[90deg,#EEEFF1_0%,#7D8698_100%] dark:text-gray-700
+                `}
+              >
+                Univer Pro
+              </label>
             </NavbarMenuLink>
           </NavbarMenuContent>
         </NavbarMenu>

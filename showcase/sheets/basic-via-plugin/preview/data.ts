@@ -1,5 +1,5 @@
-import type { IWorkbookData } from '@univerjs/core'
-import { LocaleType } from '@univerjs/core'
+import type { IWorkbookData } from '@univerjs/presets'
+import { LocaleType } from '@univerjs/presets'
 
 export const WORKBOOK_DATA: IWorkbookData = {
   id: 'workbook-01',
@@ -10630,8 +10630,8 @@ export const WORKBOOK_DATA: IWorkbookData = {
               id: 'd',
               documentStyle: {
                 pageSize: {
-                  width: null,
-                  height: null,
+                  width: undefined,
+                  height: undefined,
                 },
                 marginTop: 0,
                 marginBottom: 2,
@@ -10696,8 +10696,8 @@ export const WORKBOOK_DATA: IWorkbookData = {
               id: 'd',
               documentStyle: {
                 pageSize: {
-                  width: null,
-                  height: null,
+                  width: undefined,
+                  height: undefined,
                 },
                 marginTop: 0,
                 marginBottom: 2,
@@ -10762,8 +10762,8 @@ export const WORKBOOK_DATA: IWorkbookData = {
               id: 'd',
               documentStyle: {
                 pageSize: {
-                  width: null,
-                  height: null,
+                  width: undefined,
+                  height: undefined,
                 },
                 marginTop: 0,
                 marginBottom: 2,
@@ -10828,8 +10828,8 @@ export const WORKBOOK_DATA: IWorkbookData = {
               id: 'd',
               documentStyle: {
                 pageSize: {
-                  width: null,
-                  height: null,
+                  width: undefined,
+                  height: undefined,
                 },
                 marginTop: 0,
                 marginBottom: 2,

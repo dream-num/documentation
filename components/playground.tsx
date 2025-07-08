@@ -1,20 +1,18 @@
-import type { SandpackSetup } from '@codesandbox/sandpack-react'
+import type { ReactNode } from 'react'
 import {
   SandpackCodeEditor,
   SandpackLayout,
-  SandpackPreview,
   SandpackProvider,
 } from '@codesandbox/sandpack-react'
 import { customTranslations } from '@/lib/i18n'
 import { ClickToShowButton } from './click-to-show-button'
 
-export type Denpendencies = SandpackSetup['dependencies']
 export type Files = Record<string, string>
 
 interface IProps {
   lang: string
-  dependencies: Denpendencies
   files: Files
+  preview: ReactNode
   options?: {
     clickToShow?: boolean
     showCodeEditor?: boolean
@@ -22,18 +20,9 @@ interface IProps {
 }
 
 export function Playground(props: IProps) {
-  const { lang, dependencies, files, options = {} } = props
+  const { lang, preview, files, options = {} } = props
 
   const { clickToShow = false, showCodeEditor = true } = options
-
-  const npmRegistries: SandpackSetup['npmRegistries'] = lang === 'zh-CN'
-    ? [{
-        enabledScopes: ['@univerjs', '@univerjs-pro'],
-        limitToScopes: false,
-        registryUrl: 'https://registry.npmmirror.com/',
-        proxyEnabled: false,
-      }]
-    : []
 
   const transformedFiles = Object.keys(files).reduce((acc, key) => {
     if (lang === 'en-US') {
@@ -54,15 +43,14 @@ export function Playground(props: IProps) {
     <section>
       <SandpackProvider
         customSetup={{
-          dependencies,
-          npmRegistries,
+          dependencies: {},
           entry: '/index.ts',
         }}
         files={transformedFiles}
       >
         <SandpackLayout className="grid!">
-          <SandpackPreview className="h-180!" showOpenInCodeSandbox={false} showRefreshButton={false} />
-          {showCodeEditor && <SandpackCodeEditor className="h-180!" showTabs showLineNumbers />}
+          <div className="h-180!">{preview}</div>
+          {showCodeEditor && <SandpackCodeEditor className="h-180!" showTabs showLineNumbers readOnly />}
         </SandpackLayout>
       </SandpackProvider>
     </section>

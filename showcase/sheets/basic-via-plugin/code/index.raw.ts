@@ -109,7 +109,7 @@ univer.registerPlugin(UniverSheetsPlugin)
 univer.registerPlugin(UniverSheetsUIPlugin)
 univer.registerPlugin(UniverSheetsFormulaUIPlugin)
 univer.registerPlugin(UniverSheetsNumfmtUIPlugin)
-// TODO: Should be removed in the future
+
 univer.registerPlugin(UniverSheetsDataValidationPlugin)
 univer.registerPlugin(UniverSheetsDataValidationUIPlugin)
 univer.registerPlugin(UniverSheetsConditionalFormattingUIPlugin)

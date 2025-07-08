@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Playground } from '@/components/playground'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { customTranslations } from '@/lib/i18n'
 import { showcase } from '@/showcase/data'
+import { PlaygroundFrame } from './playground.client'
 
 interface IProps {
   params: Promise<{
@@ -41,7 +41,7 @@ export default async function Page({ params }: IProps) {
     notFound()
   }
 
-  const { metadata, dependencies = {}, files = {} } = (await currentShowCasePromise).default
+  const { metadata } = (await currentShowCasePromise).default
 
   return (
     <div
@@ -80,11 +80,7 @@ export default async function Page({ params }: IProps) {
       </header>
 
       <section className="mt-4">
-        <Playground
-          lang={lang}
-          dependencies={dependencies}
-          files={files}
-        />
+        <PlaygroundFrame slug={slug} lang={lang} />
       </section>
     </div>
   )

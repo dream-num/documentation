@@ -8,16 +8,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const metadata = {
   title: {
-    'en-US': 'Univer Sheets Slim Example (Preset Mode)',
-    'zh-CN': 'Univer Sheets 精简示例（预设模式）',
+    'en-US': 'Univer Sheets Lit Example',
+    'zh-CN': 'Univer Sheets Lit 示例',
   },
   description: {
-    'en-US': 'A minimal setup example for Univer Sheets, demonstrating the minimum configuration required to use Univer Sheets.',
-    'zh-CN': 'Univer Sheets 的精简配置示例，展示了使用 Univer Sheets 所需的最小配置。',
+    'en-US': 'A minimal configuration example of Univer Sheets using Lit.',
+    'zh-CN': '使用 Lit 的 Univer Sheets 最小配置示例',
   },
   tags: {
-    'en-US': ['Univer Sheets', 'Preset Mode'],
-    'zh-CN': ['Univer Sheets', '预设模式'],
+    'en-US': ['Univer Sheets', 'Preset Mode', 'Web Components'],
+    'zh-CN': ['Univer Sheets', '预设模式', 'Web Components'],
   },
 }
 
