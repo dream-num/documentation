@@ -1,7 +1,7 @@
-import { createUniver, defaultTheme, LocaleType, merge } from '@univerjs/presets'
-import { UniverSheetsCorePreset } from '@univerjs/presets/preset-sheets-core'
+import { createUniver, LocaleType, merge } from '@univerjs/presets'
+import { UniverDocsCorePreset } from '@univerjs/presets/preset-docs-core'
 
-import sheetsCoreEnUS from '@univerjs/presets/preset-sheets-core/locales/en-US'
+import docsCoreEnUS from '@univerjs/presets/preset-docs-core/locales/en-US'
 import { html, LitElement } from 'lit'
 
 import { WORKBOOK_DATA } from './data'
@@ -15,12 +15,11 @@ class MyWebComponent extends LitElement {
       locales: {
         [LocaleType.EN_US]: merge(
           {},
-          sheetsCoreEnUS,
+          docsCoreEnUS,
         ),
       },
-      theme: defaultTheme,
       presets: [
-        UniverSheetsCorePreset({
+        UniverDocsCorePreset({
           container,
         }),
       ],
@@ -31,7 +30,7 @@ class MyWebComponent extends LitElement {
 
   override render() {
     return html`
-      <link rel="stylesheet" href="https://unpkg.com/@univerjs/preset-sheets-core/lib/index.css">
+      <link rel="stylesheet" href="https://unpkg.com/@univerjs/preset-docs-core/lib/index.css">
       <div style="height: 100%;" id="containerId" />
     `
   }

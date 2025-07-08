@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { PlaygroundFrame } from '@/components/playground'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { customTranslations } from '@/lib/i18n'
 import { showcase } from '@/showcase/data'
-import { PlaygroundFrame } from './playground.client'
 
 interface IProps {
   params: Promise<{
@@ -80,7 +80,7 @@ export default async function Page({ params }: IProps) {
       </header>
 
       <section className="mt-4">
-        <PlaygroundFrame slug={slug} lang={lang} />
+        <PlaygroundFrame slug={slug.join('/')} lang={lang} />
       </section>
     </div>
   )

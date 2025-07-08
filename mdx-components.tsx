@@ -6,6 +6,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
 import defaultMdxComponents from 'fumadocs-ui/mdx'
 import { APITable } from '@/components/api-table'
 import { MetaData } from '@/components/meta-data'
+import { PlaygroundFrame } from '@/components/playground'
 
 const generator = createGenerator()
 
@@ -27,5 +28,6 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
       />
     ),
     APITable,
+    PlaygroundFrame,
   }
 }

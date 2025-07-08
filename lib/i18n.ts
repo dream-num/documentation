@@ -15,6 +15,7 @@ export const locales = [
 export const i18n: I18nConfig = {
   defaultLanguage: 'en-US',
   languages: ['en-US', 'zh-CN'],
+  hideLocale: 'always',
 }
 
 // translations

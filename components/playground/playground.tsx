@@ -4,8 +4,6 @@ import {
   SandpackLayout,
   SandpackProvider,
 } from '@codesandbox/sandpack-react'
-import { customTranslations } from '@/lib/i18n'
-import { ClickToShowButton } from './click-to-show-button'
 
 export type Files = Record<string, string>
 
@@ -14,7 +12,6 @@ interface IProps {
   files: Files
   preview: ReactNode
   options?: {
-    clickToShow?: boolean
     showCodeEditor?: boolean
   }
 }
@@ -22,7 +19,7 @@ interface IProps {
 export function Playground(props: IProps) {
   const { lang, preview, files, options = {} } = props
 
-  const { clickToShow = false, showCodeEditor = true } = options
+  const { showCodeEditor = true } = options
 
   const transformedFiles = Object.keys(files).reduce((acc, key) => {
     if (lang === 'en-US') {
@@ -39,7 +36,7 @@ export function Playground(props: IProps) {
     return acc
   }, {} as Files)
 
-  const sandbox = (
+  return (
     <section>
       <SandpackProvider
         customSetup={{
@@ -50,22 +47,17 @@ export function Playground(props: IProps) {
       >
         <SandpackLayout className="grid!">
           <div className="h-180!">{preview}</div>
-          {showCodeEditor && <SandpackCodeEditor className="h-180!" showTabs showLineNumbers readOnly />}
+          {showCodeEditor && (
+            <SandpackCodeEditor
+              className="h-180!"
+              showTabs
+              showLineNumbers
+              readOnly
+              showReadOnly={false}
+            />
+          )}
         </SandpackLayout>
       </SandpackProvider>
     </section>
   )
-
-  if (clickToShow) {
-    return (
-      <ClickToShowButton
-        showText={customTranslations[lang]['playground.click-to-show']}
-        hideText={customTranslations[lang]['playground.click-to-hide']}
-      >
-        {sandbox}
-      </ClickToShowButton>
-    )
-  }
-
-  return sandbox
 }

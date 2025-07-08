@@ -2,14 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { clsx } from '@/lib/clsx'
+import { customTranslations } from '@/lib/i18n'
+import { ClickToShowButton } from './click-to-show-button'
 
 interface IProps {
-  slug: string[]
+  slug: string
   lang: string
+  clickToShow?: boolean
 }
 
 export function PlaygroundFrame(props: IProps) {
-  const { lang, slug } = props
+  const { lang, slug, clickToShow = false } = props
 
   const iframeRef = useRef<HTMLIFrameElement>(null!)
   const [iframeHeight, setIframeHeight] = useState<number>(0)
@@ -28,7 +31,7 @@ export function PlaygroundFrame(props: IProps) {
     }
   }, [])
 
-  return (
+  const sandbox = (
     // eslint-disable-next-line react-dom/no-missing-iframe-sandbox
     <iframe
       ref={iframeRef}
@@ -39,8 +42,21 @@ export function PlaygroundFrame(props: IProps) {
       style={{
         height: `${iframeHeight || 100}px`,
       }}
-      src={`/${lang}/playground/${slug.join('/')}`}
+      src={`/${lang}/playground/${slug}`}
       loading="lazy"
     />
   )
+
+  if (clickToShow) {
+    return (
+      <ClickToShowButton
+        showText={customTranslations[lang]['playground.click-to-show']}
+        hideText={customTranslations[lang]['playground.click-to-hide']}
+      >
+        {sandbox}
+      </ClickToShowButton>
+    )
+  }
+
+  return sandbox
 }

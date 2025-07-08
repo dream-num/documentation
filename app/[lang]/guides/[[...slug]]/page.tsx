@@ -61,7 +61,7 @@ export default async function Page({ params }: IProps) {
         {/* Actions */}
         <section>
           <Button size="sm" asChild>
-            <Link className="text-xs" href={`https://github.com/dream-num/univer-documentation/tree/v1/content/guides/${page.path}`}>
+            <Link className="text-xs" href={`https://github.com/dream-num/univer-documentation/tree/dev/content/guides/${page.path}`}>
               <SiGithub />
               {customTranslations[lang]['docs.header.edit-on-github']}
             </Link>

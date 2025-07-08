@@ -40,7 +40,7 @@ export function ClickToShowButton(props: IProps) {
       </div>
 
       <div
-        className={clsx('mt-4', {
+        className={clsx('relative mt-4', {
           hidden: !visible,
           block: visible,
         })}

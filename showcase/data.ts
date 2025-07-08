@@ -17,4 +17,5 @@ export const showcase: Record<string, Promise<{ default: {
   'sheets/lit': import('./sheets/lit'),
   'docs/slim-via-plugin': import('./docs/slim-via-plugin'),
   'docs/slim-via-preset': import('./docs/slim-via-preset'),
+  'docs/lit': import('./docs/lit'),
 }
