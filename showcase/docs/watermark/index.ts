@@ -11,12 +11,12 @@ const metadata = {
     'zh-CN': '水印',
   },
   description: {
-    'en-US': 'This example demonstrates how to add a watermark to Univer Sheets. The watermark can be customized with different text and styles.',
-    'zh-CN': '此示例演示了如何在 Univer Sheets 中添加水印。水印可以使用不同的文本和样式进行自定义。',
+    'en-US': 'This example demonstrates how to add a watermark to Univer Docs. The watermark can be customized with different text and styles.',
+    'zh-CN': '此示例演示了如何在 Univer Docs 中添加水印。水印可以使用不同的文本和样式进行自定义。',
   },
   tags: {
-    'en-US': ['Univer Sheets', 'Preset Mode'],
-    'zh-CN': ['Univer Sheets', '预设模式'],
+    'en-US': ['Univer Docs', 'Preset Mode'],
+    'zh-CN': ['Univer Docs', '预设模式'],
   },
 }
 
