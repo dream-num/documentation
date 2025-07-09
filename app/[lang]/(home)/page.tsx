@@ -1,8 +1,10 @@
 import { BookTextIcon, FerrisWheelIcon } from 'lucide-react'
 import Link from 'next/link'
+import { AnimatedShinyText } from '@/components/magicui/animated-shiny-text'
 import { BlurFade } from '@/components/magicui/blur-fade'
 import { Button } from '@/components/ui/button'
 import { customTranslations } from '@/lib/i18n'
+import pkg from '@/package.json'
 
 interface IProps {
   params: Promise<{
@@ -47,6 +49,35 @@ export default async function Page({ params }: IProps) {
       {/* Hero */}
       <BlurFade duration={0.2}>
         <header className="relative px-4">
+          <div className="mb-6 text-center">
+            <Link
+              className={`
+                mx-auto inline-block rounded-full border bg-neutral-50 py-1 text-sm font-semibold shadow
+                transition-colors
+                hover:bg-neutral-100
+                dark:bg-neutral-800 dark:hover:bg-neutral-900
+              `}
+              href={`https://github.com/dream-num/univer/releases/tag/v${pkg.version}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span
+                className={`
+                  border-r border-neutral-300 py-1 pr-1 pl-3
+                  dark:border-neutral-700
+                `}
+              >
+                🎉
+              </span>
+              <AnimatedShinyText className="py-1 pr-3 pl-1">
+                v
+                {pkg.version}
+                {' '}
+                {customTranslations[lang]['banner.release']}
+              </AnimatedShinyText>
+            </Link>
+          </div>
+
           <h1
             className={`
               mx-auto mb-6 max-w-3xl bg-gradient-to-br from-black from-30% to-black/40 bg-clip-text text-center text-3xl

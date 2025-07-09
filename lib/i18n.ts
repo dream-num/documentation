@@ -58,7 +58,7 @@ const customZhCN = {
   'blog.author': '作者',
   'blog.date': '发表日期',
   'blog.back': '返回',
-  'banner.release': '已发布。',
+  'banner.release': '已发布',
   'docs.header.edit-on-github': '在 GitHub 上编辑',
   'playground.click-to-show': '点击显示 demo',
   'playground.click-to-hide': '点击隐藏 demo',
