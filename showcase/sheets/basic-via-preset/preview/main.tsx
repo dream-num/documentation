@@ -24,6 +24,7 @@ import SheetsCrosshairHighlightEnUS from '@univerjs/sheets-crosshair-highlight/l
 import { UniverSheetsZenEditorPlugin } from '@univerjs/sheets-zen-editor'
 import SheetsZenEditorEnUS from '@univerjs/sheets-zen-editor/locale/en-US'
 import { UniverWatermarkPlugin } from '@univerjs/watermark'
+import { useTheme } from 'next-themes'
 import { useEffect, useRef } from 'react'
 import { WORKBOOK_DATA } from '../code/data'
 
@@ -42,8 +43,11 @@ import '@univerjs/sheets-crosshair-highlight/lib/index.css'
 export default function Preview() {
   const divRef = useRef<HTMLDivElement>(null!)
 
+  const { theme } = useTheme()
+
   useEffect(() => {
     const { univerAPI } = createUniver({
+      darkMode: theme === 'dark',
       locale: LocaleType.EN_US,
       locales: {
         [LocaleType.EN_US]: merge(

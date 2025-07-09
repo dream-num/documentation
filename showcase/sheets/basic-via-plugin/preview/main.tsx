@@ -45,6 +45,7 @@ import ThreadCommentUIEnUS from '@univerjs/thread-comment-ui/locale/en-US'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
 import { UniverWatermarkPlugin } from '@univerjs/watermark'
+import { useTheme } from 'next-themes'
 import { useEffect, useRef } from 'react'
 import { WORKBOOK_DATA } from '../code/data'
 
@@ -69,8 +70,11 @@ import '@univerjs/sheets-crosshair-highlight/lib/index.css'
 export default function Preview() {
   const divRef = useRef<HTMLDivElement>(null!)
 
+  const { theme } = useTheme()
+
   useEffect(() => {
     const univer = new Univer({
+      darkMode: theme === 'dark',
       locale: LocaleType.EN_US,
       locales: {
         [LocaleType.EN_US]: merge(

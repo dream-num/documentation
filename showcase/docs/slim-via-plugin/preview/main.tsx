@@ -10,6 +10,7 @@ import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
+import { useTheme } from 'next-themes'
 import { useEffect, useRef } from 'react'
 import { DOCUMENT_DATA } from '../code/data'
 
@@ -24,8 +25,11 @@ import '@univerjs/docs-ui/lib/index.css'
 export default function Preview() {
   const divRef = useRef<HTMLDivElement>(null!)
 
+  const { theme } = useTheme()
+
   useEffect(() => {
     const univer = new Univer({
+      darkMode: theme === 'dark',
       locale: LocaleType.EN_US,
       locales: {
         [LocaleType.EN_US]: merge(

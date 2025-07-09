@@ -6,6 +6,8 @@ const withMDX = createMDX({})
 const config: NextConfig = {
   reactStrictMode: true,
 
+  allowedDevOrigins: ['*'],
+
   output: 'standalone',
 
   eslint: {

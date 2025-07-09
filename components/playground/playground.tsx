@@ -1,3 +1,5 @@
+'use client'
+
 import type { ReactNode } from 'react'
 import {
   SandpackCodeEditor,
@@ -5,6 +7,7 @@ import {
   SandpackLayout,
   SandpackProvider,
 } from '@codesandbox/sandpack-react'
+import { useTheme } from 'next-themes'
 
 export type Files = Record<string, string>
 
@@ -16,6 +19,8 @@ interface IProps {
 
 export function Playground(props: IProps) {
   const { lang, preview, files } = props
+
+  const { theme } = useTheme()
 
   const transformedFiles = Object.keys(files).reduce((acc, key) => {
     if (lang === 'zh-CN') {
@@ -63,6 +68,7 @@ body,
   return (
     <section>
       <SandpackProvider
+        theme={theme as 'light' | 'dark'}
         customSetup={{
           dependencies: {},
           entry: '/index.ts',
@@ -73,7 +79,12 @@ body,
           <div className="h-180!">{preview}</div>
 
           <div className="grid grid-cols-12">
-            <SandpackFileExplorer className="col-span-3 border-r border-neutral-100" />
+            <SandpackFileExplorer
+              className={`
+                col-span-3 border-r border-neutral-100
+                dark:border-neutral-800
+              `}
+            />
             <SandpackCodeEditor
               className="col-span-9 h-180!"
               showLineNumbers

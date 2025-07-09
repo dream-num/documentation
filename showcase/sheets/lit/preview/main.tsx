@@ -5,15 +5,19 @@ import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
 import { createUniver, LocaleType, merge } from '@univerjs/presets'
 import { html, LitElement } from 'lit'
+import { useTheme } from 'next-themes'
 import React from 'react'
 
 import '@univerjs/preset-sheets-core/lib/index.css'
 
 class MyWebComponent extends LitElement {
+  theme = 'light'
+
   override firstUpdated() {
     const container = this.renderRoot.querySelector('#containerId') as HTMLDivElement
 
     const { univerAPI } = createUniver({
+      darkMode: this.theme === 'dark',
       locale: LocaleType.EN_US,
       locales: {
         [LocaleType.EN_US]: merge(
@@ -45,13 +49,12 @@ const MyUniver = createComponent({
   tagName: 'my-univer',
   elementClass: MyWebComponent,
   react: React,
-  events: {
-    onMyEvent: 'my-event',
-  },
 })
 
 export default function Preview() {
+  const { theme } = useTheme()
+
   return (
-    <MyUniver />
+    <MyUniver theme={theme} />
   )
 }
