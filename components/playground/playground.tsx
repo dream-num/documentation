@@ -12,15 +12,10 @@ interface IProps {
   lang: string
   files: Files
   preview: ReactNode
-  options?: {
-    showCodeEditor?: boolean
-  }
 }
 
 export function Playground(props: IProps) {
-  const { lang, preview, files, options = {} } = props
-
-  const { showCodeEditor = true } = options
+  const { lang, preview, files } = props
 
   const transformedFiles = Object.keys(files).reduce((acc, key) => {
     if (lang === 'zh-CN') {
@@ -37,6 +32,34 @@ export function Playground(props: IProps) {
     return acc
   }, {} as Files)
 
+  transformedFiles['package.json'] = JSON.stringify({
+    name: 'univer-playground',
+    version: '1.0.0',
+    main: 'src/index.ts',
+    dependencies: {},
+  }, null, 2)
+
+  transformedFiles['index.html'] = `<!doctype html>
+<html>
+  <head>
+    <title>Univer</title>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script src="index.js"></script>
+  </body>
+</html>
+`
+  transformedFiles['styles.css'] = `html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+`
+
   return (
     <section>
       <SandpackProvider
@@ -51,15 +74,13 @@ export function Playground(props: IProps) {
 
           <div className="grid grid-cols-12">
             <SandpackFileExplorer className="col-span-2" />
-            {showCodeEditor && (
-              <SandpackCodeEditor
-                className="col-span-10 h-180!"
-                showLineNumbers
-                readOnly
-                showReadOnly={false}
-                showTabs={false}
-              />
-            )}
+            <SandpackCodeEditor
+              className="col-span-10 h-180!"
+              showLineNumbers
+              readOnly
+              showReadOnly={false}
+              showTabs={false}
+            />
           </div>
         </SandpackLayout>
       </SandpackProvider>

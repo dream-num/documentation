@@ -25,17 +25,13 @@ const extensionsMainExtensionTs = fs.readFileSync(path.resolve(__dirname, './cod
 const extensionsColumnHeaderExtensionTs = fs.readFileSync(path.resolve(__dirname, './code/extensions/column-header.extension.ts'), 'utf-8')
 const extensionsRowHeaderExtensionTs = fs.readFileSync(path.resolve(__dirname, './code/extensions/row-header.extension.ts'), 'utf-8')
 const dataTs = fs.readFileSync(path.resolve(__dirname, './code/data.ts'), 'utf-8')
-const stylesCss = fs.readFileSync(path.resolve(__dirname, './code/styles.css'), 'utf-8')
-const indexHtml = fs.readFileSync(path.resolve(__dirname, './code/index.html'), 'utf-8')
 
 export const files = {
-  '/index.ts': indexTs,
-  '/data.ts': dataTs,
-  '/extensions/main.extension.ts': extensionsMainExtensionTs,
-  '/extensions/column-header.extension.ts': extensionsColumnHeaderExtensionTs,
-  '/extensions/row-header.extension.ts': extensionsRowHeaderExtensionTs,
-  '/styles.css': stylesCss,
-  '/index.html': indexHtml,
+  '/src/index.ts': indexTs,
+  '/src/data.ts': dataTs,
+  '/src/extensions/main.extension.ts': extensionsMainExtensionTs,
+  '/src/extensions/column-header.extension.ts': extensionsColumnHeaderExtensionTs,
+  '/src/extensions/row-header.extension.ts': extensionsRowHeaderExtensionTs,
 }
 
 export default {

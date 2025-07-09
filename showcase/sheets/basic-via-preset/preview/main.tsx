@@ -25,7 +25,7 @@ import { UniverSheetsZenEditorPlugin } from '@univerjs/sheets-zen-editor'
 import SheetsZenEditorEnUS from '@univerjs/sheets-zen-editor/locale/en-US'
 import { UniverWatermarkPlugin } from '@univerjs/watermark'
 import { useEffect, useRef } from 'react'
-import { WORKBOOK_DATA } from './data'
+import { WORKBOOK_DATA } from '../code/data'
 
 import '@univerjs/preset-sheets-core/lib/index.css'
 import '@univerjs/preset-sheets-sort/lib/index.css'

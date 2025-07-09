@@ -6,7 +6,7 @@ import { createUniver, LocaleType, merge } from '@univerjs/presets'
 import { UniverSheetsCrosshairHighlightPlugin } from '@univerjs/sheets-crosshair-highlight'
 import sheetsCrosshairHighlightEnUS from '@univerjs/sheets-crosshair-highlight/locale/en-US'
 import { useEffect, useRef } from 'react'
-import { WORKBOOK_DATA } from './data'
+import { WORKBOOK_DATA } from '../code/data'
 
 import '@univerjs/preset-sheets-core/lib/index.css'
 

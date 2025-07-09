@@ -4,7 +4,7 @@ import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
 import docsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
 import { createUniver, LocaleType, merge } from '@univerjs/presets'
 import { useEffect, useRef } from 'react'
-import { DOCUMENT_DATA } from './data'
+import { DOCUMENT_DATA } from '../code/data'
 
 import '@univerjs/preset-docs-core/lib/index.css'
 

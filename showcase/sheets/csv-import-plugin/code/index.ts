@@ -1,8 +1,8 @@
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
 import { createUniver, LocaleType, merge } from '@univerjs/presets'
+import { ImportCSVButtonPlugin } from './csv-plugin/plugin'
 import { WORKBOOK_DATA } from './data'
-import { ImportCSVButtonPlugin } from './plugin'
 
 import './styles.css'
 

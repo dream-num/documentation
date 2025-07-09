@@ -21,19 +21,15 @@ const metadata = {
 }
 
 const indexTs = fs.readFileSync(path.resolve(__dirname, './code/index.ts'), 'utf-8')
-const pluginTs = fs.readFileSync(path.resolve(__dirname, './code/plugin.ts'), 'utf-8')
-const utilsTs = fs.readFileSync(path.resolve(__dirname, './code/utils.ts'), 'utf-8')
+const pluginTs = fs.readFileSync(path.resolve(__dirname, './code/csv-plugin/plugin.ts'), 'utf-8')
+const utilsTs = fs.readFileSync(path.resolve(__dirname, './code/csv-plugin/utils.ts'), 'utf-8')
 const dataTs = fs.readFileSync(path.resolve(__dirname, './code/data.ts'), 'utf-8')
-const stylesCss = fs.readFileSync(path.resolve(__dirname, './code/styles.css'), 'utf-8')
-const indexHtml = fs.readFileSync(path.resolve(__dirname, './code/index.html'), 'utf-8')
 
 export const files = {
-  '/index.ts': indexTs,
-  '/plugin.ts': pluginTs,
-  '/utils.ts': utilsTs,
-  '/data.ts': dataTs,
-  '/styles.css': stylesCss,
-  '/index.html': indexHtml,
+  '/src/index.ts': indexTs,
+  '/src/csv-plugin/plugin.ts': pluginTs,
+  '/src/csv-plugin/utils.ts': utilsTs,
+  '/src/data.ts': dataTs,
 }
 
 export default {

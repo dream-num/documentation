@@ -18,8 +18,11 @@ export const showcase: Record<string, Promise<{ default: {
   'sheets/big-data': import('./sheets/big-data'),
   'sheets/csv-import-plugin': import('./sheets/csv-import-plugin'),
   'sheets/custom-canvas': import('./sheets/custom-canvas'),
+  'sheets/custom-formula': import('./sheets/custom-formula'),
+  'sheets/custom-shortcuts': import('./sheets/custom-shortcuts'),
   'sheets/crosshair-highlighting': import('./sheets/crosshair-highlighting'),
   'docs/slim-via-plugin': import('./docs/slim-via-plugin'),
   'docs/slim-via-preset': import('./docs/slim-via-preset'),
   'docs/lit': import('./docs/lit'),
+  'docs/big-data': import('./docs/big-data'),
 }

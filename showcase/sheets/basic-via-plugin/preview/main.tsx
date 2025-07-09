@@ -46,7 +46,7 @@ import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
 import { UniverWatermarkPlugin } from '@univerjs/watermark'
 import { useEffect, useRef } from 'react'
-import { WORKBOOK_DATA } from './data'
+import { WORKBOOK_DATA } from '../code/data'
 
 import '@univerjs/design/lib/index.css'
 import '@univerjs/ui/lib/index.css'
