@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
+import './global.css'
+
 export default function NotFound() {
   return (
     <main className="flex h-screen w-full flex-col items-center justify-center bg-muted px-4">
