@@ -1,5 +1,5 @@
+import { IShortcutService } from '@univerjs/preset-sheets-core'
 import { ICommandService, Inject, Injector, Plugin, UniverInstanceType } from '@univerjs/presets'
-import { IShortcutService } from '@univerjs/presets/preset-sheets-core'
 import { CustomClearSelectionContentCommand } from './commands/custom.command'
 import { CustomClearSelectionValueShortcutItem } from './controllers/custom.shortcut'
 

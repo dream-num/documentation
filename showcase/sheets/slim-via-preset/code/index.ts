@@ -1,7 +1,7 @@
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
 import { createUniver, LocaleType, merge } from '@univerjs/presets'
-import { WORKBOOK_DATA } from '../code/data'
+import { WORKBOOK_DATA } from './data'
 
 import './styles.css'
 

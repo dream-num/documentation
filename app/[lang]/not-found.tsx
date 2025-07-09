@@ -1,16 +1,14 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
-import './global.css'
-
 export default function NotFound() {
   return (
-    <main className="flex h-screen w-full flex-col items-center justify-center bg-muted px-4">
+    <main className="bg-muted flex h-screen w-full flex-col items-center justify-center px-4">
       <div>
         <h1 className="mb-2 text-center text-3xl font-bold">
           Page Not Found
         </h1>
-        <p className="mb-6 text-center text-lg text-muted-foreground">
+        <p className="text-muted-foreground mb-6 text-center text-lg">
           The page you are looking for does not exist.
         </p>
 

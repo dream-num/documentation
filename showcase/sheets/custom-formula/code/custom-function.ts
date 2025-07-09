@@ -1,10 +1,5 @@
+import type { BaseValueObject, IFunctionInfo, IFunctionNames } from '@univerjs/preset-sheets-core'
 import type { Ctor } from '@univerjs/presets'
-import type {
-  BaseValueObject,
-  IFunctionInfo,
-  IFunctionNames,
-} from '@univerjs/presets/preset-sheets-core'
-
 import {
   ArrayValueObject,
   AsyncObject,
@@ -12,7 +7,7 @@ import {
   FunctionType,
   NumberValueObject,
   StringValueObject,
-} from '@univerjs/presets/preset-sheets-core'
+} from '@univerjs/preset-sheets-core'
 
 /**
  * function name

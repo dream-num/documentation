@@ -1,6 +1,6 @@
 import type { IAccessor, ICommand } from '@univerjs/presets'
+import { ClearSelectionContentCommand, getSheetCommandTarget, SheetsSelectionsService } from '@univerjs/preset-sheets-core'
 import { CommandType, ICommandService, IUniverInstanceService } from '@univerjs/presets'
-import { ClearSelectionContentCommand, getSheetCommandTarget, SheetsSelectionsService } from '@univerjs/presets/preset-sheets-core'
 
 /**
  * The command to clear content in current selected ranges.

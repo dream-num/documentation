@@ -19,7 +19,7 @@ export const i18n: I18nConfig = {
 }
 
 // translations
-export const zhCN: Partial<Translations> = {
+export const zhCN: Translations = {
   search: '搜索',
   searchNoResult: '没有找到相关内容',
   toc: '目录',

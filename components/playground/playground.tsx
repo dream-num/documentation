@@ -51,7 +51,7 @@ export function Playground(props: IProps) {
   </body>
 </html>
 `
-  transformedFiles['styles.css'] = `html,
+  transformedFiles['src/styles.css'] = `html,
 body,
 #app {
   height: 100%;

@@ -1,10 +1,22 @@
-import type { ICommand, IMutationInfo, Workbook } from '@univerjs/presets'
 import type {
   ISetRangeValuesMutationParams,
   ISetWorksheetColumnCountMutationParams,
   ISetWorksheetRowCountMutationParams,
-} from '@univerjs/presets/preset-sheets-core'
+} from '@univerjs/preset-sheets-core'
+import type { ICommand, IMutationInfo, Workbook } from '@univerjs/presets'
 import { FolderIcon } from '@univerjs/icons'
+import {
+  ComponentManager,
+  IMenuManagerService,
+  MenuItemType,
+  RibbonStartGroup,
+  SetRangeValuesMutation,
+  SetRangeValuesUndoMutationFactory,
+  SetWorksheetColumnCountMutation,
+  SetWorksheetColumnCountUndoMutationFactory,
+  SetWorksheetRowCountMutation,
+  SetWorksheetRowCountUndoMutationFactory,
+} from '@univerjs/preset-sheets-core'
 import {
   CommandType,
   covertCellValues,
@@ -17,18 +29,6 @@ import {
   sequenceExecute,
   UniverInstanceType,
 } from '@univerjs/presets'
-import {
-  ComponentManager,
-  IMenuManagerService,
-  MenuItemType,
-  RibbonStartGroup,
-  SetRangeValuesMutation,
-  SetRangeValuesUndoMutationFactory,
-  SetWorksheetColumnCountMutation,
-  SetWorksheetColumnCountUndoMutationFactory,
-  SetWorksheetRowCountMutation,
-  SetWorksheetRowCountUndoMutationFactory,
-} from '@univerjs/presets/preset-sheets-core'
 import { waitUserSelectCSVFile } from './utils'
 
 /**

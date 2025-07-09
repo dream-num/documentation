@@ -1,6 +1,6 @@
+import type { SpreadsheetSkeleton, UniverRenderingContext } from '@univerjs/preset-sheets-core'
 import type { IScale } from '@univerjs/presets'
-import type { SpreadsheetSkeleton, UniverRenderingContext } from '@univerjs/presets/preset-sheets-core'
-import { DEFAULT_FONTFACE_PLANE, FIX_ONE_PIXEL_BLUR_OFFSET, getColor, SheetExtension } from '@univerjs/presets/preset-sheets-core'
+import { DEFAULT_FONTFACE_PLANE, FIX_ONE_PIXEL_BLUR_OFFSET, getColor, SheetExtension } from '@univerjs/preset-sheets-core'
 
 const UNIQUE_KEY = 'ColumnHeaderCustomExtension'
 

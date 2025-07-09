@@ -1,5 +1,5 @@
-import type { IShortcutItem } from '@univerjs/presets/preset-sheets-core'
-import { KeyCode, whenSheetEditorFocused } from '@univerjs/presets/preset-sheets-core'
+import type { IShortcutItem } from '@univerjs/preset-sheets-core'
+import { KeyCode, whenSheetEditorFocused } from '@univerjs/preset-sheets-core'
 import { CustomClearSelectionContentCommand } from '../commands/custom.command'
 
 export const CustomClearSelectionValueShortcutItem: IShortcutItem = {

@@ -1,9 +1,7 @@
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+import docsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
 import { createUniver, LocaleType, merge } from '@univerjs/presets'
-import { UniverDocsCorePreset } from '@univerjs/presets/preset-docs-core'
-
-import docsCoreEnUS from '@univerjs/presets/preset-docs-core/locales/en-US'
 import { html, LitElement } from 'lit'
-
 import { WORKBOOK_DATA } from './data'
 
 class MyWebComponent extends LitElement {

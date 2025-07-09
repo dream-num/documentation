@@ -1,9 +1,7 @@
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
 import { createUniver, LocaleType, merge } from '@univerjs/presets'
-import { UniverSheetsCorePreset } from '@univerjs/presets/preset-sheets-core'
-
-import sheetsCoreEnUS from '@univerjs/presets/preset-sheets-core/locales/en-US'
 import { html, LitElement } from 'lit'
-
 import { DOCUMENT_DATA } from './data'
 
 class MyWebComponent extends LitElement {

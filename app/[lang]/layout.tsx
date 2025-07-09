@@ -3,7 +3,7 @@ import { RootProvider } from 'fumadocs-ui/provider'
 import { locales, translations } from '@/lib/i18n'
 import { Body } from './layout.client'
 
-import '../global.css'
+import './global.css'
 
 interface IProps {
   params: Promise<{ lang: string }>
