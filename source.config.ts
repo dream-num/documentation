@@ -1,12 +1,9 @@
-import { remarkInstall } from 'fumadocs-docgen'
 import { defineConfig, defineDocs, frontmatterSchema, metaSchema } from 'fumadocs-mdx/config'
 import { z } from 'zod'
 
 export default defineConfig({
   lastModifiedTime: 'git',
   mdxOptions: {
-    // MDX options
-    remarkPlugins: [remarkInstall],
   },
 })
 
