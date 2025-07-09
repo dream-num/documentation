@@ -1,5 +1,4 @@
-ARG CR=univer-acr-registry.cn-shenzhen.cr.aliyuncs.com
-FROM ${CR}/devops/node:20-alpine AS base
+FROM node:24-alpine AS base
 
 # Builder stage
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
@@ -11,14 +10,6 @@ RUN [[ "${NPM_REGISTRY}" != "" ]] && npm config set registry ${NPM_REGISTRY} || 
 
 COPY . .
 RUN corepack enable pnpm && pnpm i
-
-# Algolia
-ARG NEXT_PUBLIC_ALGOLIA_APP_ID
-ARG NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY
-ARG NEXT_PUBLIC_ALGOLIA_INDEX_NAME
-RUN echo "NEXT_PUBLIC_ALGOLIA_APP_ID=${NEXT_PUBLIC_ALGOLIA_APP_ID}" >> .env
-RUN echo "NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY=${NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY}" >> .env
-RUN echo "NEXT_PUBLIC_ALGOLIA_INDEX_NAME=${NEXT_PUBLIC_ALGOLIA_INDEX_NAME}" >> .env
 
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
@@ -38,6 +29,7 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/showcase ./showcase
 
 # Set the correct permission for prerender cache
 RUN mkdir .next
