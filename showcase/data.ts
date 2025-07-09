@@ -21,8 +21,10 @@ export const showcase: Record<string, Promise<{ default: {
   'sheets/custom-formula': import('./sheets/custom-formula'),
   'sheets/custom-shortcuts': import('./sheets/custom-shortcuts'),
   'sheets/crosshair-highlighting': import('./sheets/crosshair-highlighting'),
+  'sheets/watermark': import('./sheets/watermark'),
   'docs/slim-via-plugin': import('./docs/slim-via-plugin'),
   'docs/slim-via-preset': import('./docs/slim-via-preset'),
   'docs/lit': import('./docs/lit'),
   'docs/big-data': import('./docs/big-data'),
+  'docs/watermark': import('./docs/watermark'),
 }

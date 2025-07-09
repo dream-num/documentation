@@ -73,9 +73,9 @@ body,
           <div className="h-180!">{preview}</div>
 
           <div className="grid grid-cols-12">
-            <SandpackFileExplorer className="col-span-2" />
+            <SandpackFileExplorer className="col-span-3 border-r border-neutral-100" />
             <SandpackCodeEditor
-              className="col-span-10 h-180!"
+              className="col-span-9 h-180!"
               showLineNumbers
               readOnly
               showReadOnly={false}
