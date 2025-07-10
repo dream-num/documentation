@@ -1,4 +1,6 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
+import process from 'node:process'
+import { GithubInfo } from 'fumadocs-ui/components/github-info'
 import { Logo } from '@/components/logo'
 import { i18n } from '@/lib/i18n'
 
@@ -16,7 +18,18 @@ export function baseOptions(_locale: string): BaseLayoutProps {
       transparentMode: 'top',
     },
     // see https://fumadocs.dev/docs/ui/navigation/links
-    links: [],
+    links: [
+      {
+        type: 'custom',
+        children: (
+          <GithubInfo
+            owner="dream-num"
+            repo="univer"
+            token={process.env.NEXT_GITHUB_TOKEN}
+          />
+        ),
+      },
+    ],
     i18n,
     githubUrl: 'https://github.com/dream-num/univer',
   }

@@ -2,6 +2,6 @@
 
 import dynamic from 'next/dynamic'
 
-export default dynamic(() => import('./univer'), {
+export default dynamic(() => import('./main'), {
   ssr: false,
 })

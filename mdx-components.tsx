@@ -4,9 +4,9 @@ import { AutoTypeTable } from 'fumadocs-typescript/ui'
 import { Step, Steps } from 'fumadocs-ui/components/steps'
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
 import defaultMdxComponents from 'fumadocs-ui/mdx'
-import { APITable } from '@/components/api-table'
-import { Mermaid } from '@/components/mermaid'
-import { MetaData } from '@/components/meta-data'
+import { APITable } from '@/components/mdx/api-table'
+import { Mermaid } from '@/components/mdx/mermaid'
+import { MetaData } from '@/components/mdx/meta-data'
 import { PlaygroundFrame } from '@/components/playground'
 
 const generator = createGenerator()

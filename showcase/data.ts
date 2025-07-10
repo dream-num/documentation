@@ -30,4 +30,6 @@ export const showcase: Record<string, Promise<{ default: {
   'docs/big-data': import('./docs/big-data'),
   'docs/watermark': import('./docs/watermark'),
   'slides/basic-via-plugin': import('./slides/basic-via-plugin'),
+  'miscs/sheets': import('./miscs/sheets'),
+  'miscs/docs': import('./miscs/docs'),
 }

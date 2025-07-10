@@ -33,7 +33,9 @@ export async function generateMetadata({ params }: IProps) {
 export default async function Page({ params }: IProps) {
   const { slug, lang } = await params
 
-  const currentShowCasePromise = showcase[slug.join('/')]
+  const path = slug.join('/')
+
+  const currentShowCasePromise = showcase[path]
   if (!currentShowCasePromise) {
     notFound()
   }
@@ -46,6 +48,7 @@ export default async function Page({ params }: IProps) {
         lang={lang}
         preview={<Preview />}
         files={files}
+        showCodeEditor={!path.startsWith('miscs/')}
       />
     </PageProvider>
   )

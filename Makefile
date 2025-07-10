@@ -6,6 +6,8 @@ NS ?= univer
 CTR = docker
 BUILDER ?= univerdocs-builder
 NPM_REGISTRY ?= ""
+# Environment variables
+NEXT_GITHUB_TOKEN =
 
 OSARCH = linux/amd64
 image_exists=$(shell docker manifest inspect $(CR)/$(NS)/$(REPOSITORY):$(IMAGE_TAG) > /dev/null 2>&1 && echo true || echo false)
@@ -28,6 +30,7 @@ endif
 	$(CTR) buildx build \
 	--build-arg CR=$(CR) \
 	--build-arg NPM_REGISTRY=$(NPM_REGISTRY) \
+	--build-arg NEXT_GITHUB_TOKEN=$(NEXT_GITHUB_TOKEN) \
 	--builder $(BUILDER) \
 	--platform $(OSARCH) \
 	--file Dockerfile \

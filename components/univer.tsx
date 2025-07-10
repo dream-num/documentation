@@ -1,74 +1,37 @@
 'use client'
 
-import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
-import docsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
-import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
-import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import { createUniver, LocaleType, merge } from '@univerjs/presets'
 import { BookTextIcon, SheetIcon } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import { useEffect, useRef, useState } from 'react'
 import { BorderBeam } from '@/components/magicui/border-beam'
+import Spinner from '@/components/spinner'
 import { clsx } from '@/lib/clsx'
 
-import '@univerjs/preset-sheets-core/lib/index.css'
-import '@univerjs/preset-docs-core/lib/index.css'
-
 export default function Univer() {
-  const divRef = useRef<HTMLDivElement>(null!)
+  const iframeRef = useRef<HTMLIFrameElement>(null!)
 
   const [type, setType] = useState<'sheets' | 'docs'>('sheets')
   const [steady, setSteady] = useState(false)
 
-  const { theme } = useTheme()
-
   useEffect(() => {
-    const presets = []
-
-    if (type === 'sheets') {
-      presets.push(
-        UniverSheetsCorePreset({
-          container: divRef.current,
-        }),
-      )
-    } else if (type === 'docs') {
-      presets.push(
-        UniverDocsCorePreset({
-          container: divRef.current,
-        }),
-      )
-    }
-
-    const { univerAPI } = createUniver({
-      darkMode: theme === 'dark',
-      locale: LocaleType.EN_US,
-      locales: {
-        [LocaleType.EN_US]: merge(
-          {},
-          sheetsCoreEnUS,
-          docsCoreEnUS,
-        ),
-      },
-      presets,
-    })
-
-    if (type === 'sheets') {
-      univerAPI.createWorkbook({})
-    } else if (type === 'docs') {
-      univerAPI.createUniverDoc({})
-    }
-
-    univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, (event) => {
-      if (event.stage === univerAPI.Enum.LifecycleStages.Rendered) {
+    const eventHandler = (event: MessageEvent) => {
+      if (event.data.type === 'lifecycle' && event.data.stage === 'steady') {
         setSteady(true)
       }
-    })
+    }
+
+    window.addEventListener('message', eventHandler)
 
     return () => {
-      univerAPI.dispose()
       setSteady(false)
+
+      window.removeEventListener('message', eventHandler)
     }
-  }, [type, theme])
+  }, [])
+
+  function handleChangeType(newType: 'sheets' | 'docs') {
+    setSteady(false)
+    setType(newType)
+  }
 
   return (
     <div className="w-full">
@@ -88,7 +51,7 @@ export default function Univer() {
               'hover:bg-green-50 dark:hover:bg-green-900 dark:hover:text-neutral-200': type !== 'sheets',
             })}
             type="button"
-            onClick={() => setType('sheets')}
+            onClick={() => handleChangeType('sheets')}
           >
             <SheetIcon />
             <span
@@ -106,7 +69,7 @@ export default function Univer() {
               'hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:text-neutral-200': type !== 'docs',
             })}
             type="button"
-            onClick={() => setType('docs')}
+            onClick={() => handleChangeType('docs')}
           >
             <BookTextIcon />
             <span
@@ -122,27 +85,28 @@ export default function Univer() {
       </header>
 
       <div
-        className={`
-          relative mx-auto h-120 w-320 max-w-full overflow-hidden rounded-xl p-px shadow-xl
-          md:h-200
-        `}
+        className="relative mx-auto h-161 w-320 max-w-full overflow-hidden rounded-xl p-px shadow-xl"
       >
         {/* Mask */}
         <div
           className={clsx(`
-            absolute inset-0 size-full bg-white/10
-            dark:bg-black/10
+            absolute inset-0 flex size-full items-center justify-center bg-white/20
+            dark:bg-black/20
           `, {
             'pointer-events-auto z-0 opacity-0': steady,
           })}
-        />
+        >
+          <Spinner />
+        </div>
 
         {/* Univer Container */}
-        <div
-          ref={divRef}
+        {/* eslint-disable-next-line react-dom/no-missing-iframe-sandbox */}
+        <iframe
+          ref={iframeRef}
           className={clsx('pointer-events-none size-full opacity-0 blur-3xl transition-all duration-500', {
             'pointer-events-auto opacity-100 blur-none': steady,
           })}
+          src={`/playground/miscs/${type}`}
         />
 
         <BorderBeam

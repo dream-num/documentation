@@ -15,10 +15,11 @@ interface IProps {
   lang: string
   files: Files
   preview: ReactNode
+  showCodeEditor?: boolean
 }
 
 export function Playground(props: IProps) {
-  const { lang, preview, files } = props
+  const { lang, preview, files, showCodeEditor = true } = props
 
   const { theme } = useTheme()
 
@@ -76,23 +77,25 @@ body,
         files={transformedFiles}
       >
         <SandpackLayout className="grid!">
-          <div className="h-180!">{preview}</div>
+          <div className="h-160">{preview}</div>
 
-          <div className="grid grid-cols-12">
-            <SandpackFileExplorer
-              className={`
-                col-span-3 h-180! border-r border-neutral-100
-                dark:border-neutral-800
-              `}
-            />
-            <SandpackCodeEditor
-              className="col-span-9 h-180!"
-              showLineNumbers
-              readOnly
-              showReadOnly={false}
-              showTabs={false}
-            />
-          </div>
+          {showCodeEditor && (
+            <div className="grid grid-cols-12">
+              <SandpackFileExplorer
+                className={`
+                  col-span-3 h-180! border-r border-neutral-100
+                  dark:border-neutral-800
+                `}
+              />
+              <SandpackCodeEditor
+                className="col-span-9 h-180!"
+                showLineNumbers
+                readOnly
+                showReadOnly={false}
+                showTabs={false}
+              />
+            </div>
+          )}
         </SandpackLayout>
       </SandpackProvider>
     </section>

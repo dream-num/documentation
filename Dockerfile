@@ -11,6 +11,10 @@ RUN [[ "${NPM_REGISTRY}" != "" ]] && npm config set registry ${NPM_REGISTRY} || 
 COPY . .
 RUN corepack enable pnpm && pnpm i
 
+# Environment variables
+ARG NEXT_GITHUB_TOKEN=""
+RUN echo "NEXT_GITHUB_TOKEN=${NEXT_GITHUB_TOKEN}" >> .env
+
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line in case you want to disable telemetry during the build.
