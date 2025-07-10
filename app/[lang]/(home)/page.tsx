@@ -1,5 +1,7 @@
 import { BookTextIcon, FerrisWheelIcon } from 'lucide-react'
 import Link from 'next/link'
+import BlurryBlob from '@/components/blurry-blob'
+import { Customer } from '@/components/customer'
 import { AnimatedShinyText } from '@/components/magicui/animated-shiny-text'
 import { BlurFade } from '@/components/magicui/blur-fade'
 import { RainbowButton } from '@/components/magicui/rainbow-button'
@@ -29,29 +31,37 @@ export default async function Page({ params }: IProps) {
     <>
       {/* Spotlight */}
       <div className="fixed inset-0 z-1 size-full overflow-hidden">
-        <div className="absolute h-full w-full" aria-label="Spotlight" aria-hidden="true">
-          <div
-            className={`
-              absolute -top-1/2 -left-1/2 h-[880px] w-[1500px] rounded-full bg-[#7595FF] opacity-20 blur-[200px]
-            `}
-          />
-          <div
-            className={`
-              absolute -top-1/2 -right-1/2 h-[950px] w-[1180px] rounded-full bg-[#F16CE4] opacity-10 blur-[140px]
-            `}
-          />
-          <div
-            className={`
-              absolute top-1/2 left-1/2 h-[610px] w-[610px] -translate-y-1/2 rounded-full bg-[#A87DFF] opacity-10
-              blur-[140px]
-            `}
-          />
+        <div className="relative container size-full">
+          <div className="absolute top-1/3 left-1/6">
+            <BlurryBlob
+              className={`
+                rounded-xl opacity-50
+                dark:opacity-35
+              `}
+              firstBlobColor="bg-red-200 dark:bg-red-800"
+              secondBlobColor="bg-purple-200 dark:bg-blue-800"
+            />
+          </div>
+          <div className="absolute right-1/7 bottom-0 rotate-90">
+            <BlurryBlob
+              className="rounded-xl opacity-45"
+              firstBlobColor="bg-green-300 dark:bg-rose-800"
+              secondBlobColor="bg-blue-200 dark:bg-teal-800"
+            />
+          </div>
+          <div className="absolute -bottom-1/6 left-0">
+            <BlurryBlob
+              className="rounded-xl opacity-25"
+              firstBlobColor="bg-yellow-300 dark:bg-orange-800"
+              secondBlobColor="bg-indigo-800 dark:bg-pink-900"
+            />
+          </div>
         </div>
       </div>
 
       <div
         className={`
-          relative z-1 flex flex-col items-center py-8
+          relative z-1 flex flex-col items-center gap-8 py-8
           md:py-12
         `}
       >
@@ -66,8 +76,7 @@ export default async function Page({ params }: IProps) {
             <div className="mb-6 text-center">
               <Link
                 className={`
-                  mx-auto inline-block rounded-full border bg-neutral-50 py-1 text-sm font-semibold shadow
-                  transition-colors
+                  mx-auto inline-block rounded-full bg-neutral-50 py-1 text-sm font-semibold shadow-sm transition-colors
                   hover:bg-neutral-100
                   dark:bg-neutral-800 dark:hover:bg-neutral-900
                 `}
@@ -106,12 +115,28 @@ export default async function Page({ params }: IProps) {
 
             <p
               className={`
-                mx-auto mb-6 max-w-3xl text-center text-base text-neutral-600
+                mx-auto mb-10 max-w-3xl text-center text-base text-neutral-600
                 md:text-lg
                 dark:text-neutral-300
               `}
             >
               {customTranslations[lang]['home.description']}
+              <span
+                className="font-medium text-green-600 underline decoration-current decoration-wavy underline-offset-8"
+              >
+                {customTranslations[lang]['home.description.sheets']}
+              </span>
+              {customTranslations[lang]['home.description.split']}
+              <span
+                className="font-medium text-blue-600 underline decoration-current decoration-wavy underline-offset-8"
+              >
+                {customTranslations[lang]['home.description.docs']}
+              </span>
+              {customTranslations[lang]['home.description.and']}
+              <span className="font-medium text-red-600 underline decoration-current decoration-wavy underline-offset-8">
+                {customTranslations[lang]['home.description.slides']}
+              </span>
+              {customTranslations[lang]['home.description.period']}
             </p>
 
             <div className="flex justify-center gap-4">
@@ -131,9 +156,31 @@ export default async function Page({ params }: IProps) {
           </header>
         </BlurFade>
 
-        <div className="relative w-full px-12">
+        {/* Playground */}
+        <section
+          className={`
+            relative min-h-120 w-full px-4
+            md:min-h-200 md:px-12
+          `}
+        >
           <Univer />
-        </div>
+        </section>
+
+        {/* Customer */}
+        <section className="text-center">
+          <h3
+            className={`
+              mb-4 text-sm font-semibold text-neutral-800
+              dark:text-neutral-400
+            `}
+          >
+            {customTranslations[lang]['home.customer.title']}
+          </h3>
+
+          <div className="flex justify-center overflow-hidden">
+            <Customer />
+          </div>
+        </section>
       </div>
     </>
   )

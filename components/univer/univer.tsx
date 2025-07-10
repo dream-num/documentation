@@ -78,29 +78,45 @@ export default function Univer() {
             flex gap-2 rounded-full bg-white p-1 text-sm font-medium shadow-md
             dark:bg-neutral-800
             [&_button]:flex [&_button]:cursor-pointer [&_button]:items-center [&_button]:gap-2 [&_button]:rounded-full
-            [&_button]:px-2 [&_button]:py-1 [&_button]:transition-all
+            [&_button]:px-2 [&_button]:py-1 [&_button]:transition-all [&_button]:duration-300
             [&_svg]:size-4
           `}
         >
           <button
             className={clsx('text-green-600', {
               'bg-green-600 text-white': type === 'sheets',
+              'hover:bg-green-50 dark:hover:bg-green-900 dark:hover:text-neutral-200': type !== 'sheets',
             })}
             type="button"
             onClick={() => setType('sheets')}
           >
             <SheetIcon />
-            Univer Sheets
+            <span
+              className={`
+                hidden
+                md:inline
+              `}
+            >
+              Univer Sheets
+            </span>
           </button>
           <button
             className={clsx('text-blue-600', {
               'bg-blue-600 text-white': type === 'docs',
+              'hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:text-neutral-200': type !== 'docs',
             })}
             type="button"
             onClick={() => setType('docs')}
           >
             <BookTextIcon />
-            Univer Docs
+            <span
+              className={`
+                hidden
+                md:inline
+              `}
+            >
+              Univer Docs
+            </span>
           </button>
         </div>
       </header>
@@ -111,11 +127,17 @@ export default function Univer() {
           md:h-200
         `}
       >
+        {/* Mask */}
         <div
-          className={clsx('absolute inset-0 size-full bg-white opacity-70', {
+          className={clsx(`
+            absolute inset-0 size-full bg-white/10
+            dark:bg-black/10
+          `, {
             'pointer-events-auto z-0 opacity-0': steady,
           })}
         />
+
+        {/* Univer Container */}
         <div
           ref={divRef}
           className={clsx('pointer-events-none size-full opacity-0 blur-3xl transition-all duration-500', {

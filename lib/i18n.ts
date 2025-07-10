@@ -45,7 +45,14 @@ export const translations: Record<string, Partial<Translations>> = {
 
 const customZhCN = {
   'home.slogan': '重塑工作流的全栈嵌入工具',
-  'home.description': 'Univer 是一个前后端同构的全栈办公套件，具有高扩展性和高性能，旨在帮助开发者自由构建和编辑电子表格、文档和演示文稿。',
+  'home.description': 'Univer 是一个前后端同构的全栈办公套件，具有高扩展性和高性能，旨在帮助开发者自由构建和编辑',
+  'home.description.split': '、',
+  'home.description.period': '。',
+  'home.description.and': '和',
+  'home.description.sheets': '电子表格',
+  'home.description.docs': '文档',
+  'home.description.slides': '演示文稿',
+  'home.customer.title': 'Univer 为各行业团队与公司赋能，提升工作效率',
   'documentation.title': '文档',
   'ecosystem.title': '生态',
   'icons.title': 'Univer Icons',
@@ -66,7 +73,14 @@ const customZhCN = {
 
 const customEnUS: typeof customZhCN = {
   'home.slogan': 'Embedding server-driven productivity tools into Your Workflow',
-  'home.description': 'Univer is a full-stack, isomorphic office suite with high extensibility and performance, designed to help developers build and edit spreadsheets, documents, and presentations freely.',
+  'home.description': 'Univer is a full-stack, isomorphic office suite with high extensibility and performance, designed to help developers build and edit ',
+  'home.description.split': ', ',
+  'home.description.period': ' freely.',
+  'home.description.and': ' and ',
+  'home.description.sheets': 'spreadsheets',
+  'home.description.docs': 'documents',
+  'home.description.slides': 'presentations',
+  'home.customer.title': 'Trusted by teams and companies across industries',
   'documentation.title': 'Documentation',
   'ecosystem.title': 'Ecosystem',
   'icons.title': 'Univer Icons',
