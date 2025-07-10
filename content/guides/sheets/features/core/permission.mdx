@@ -32,183 +32,187 @@ permission.setWorkbookPermissionPoint(unitId, workbookEditablePermission, false)
 
 ### Worksheet Permissions Code Example
 
-Worksheet and range-related permissions can be set via API and command modes. Here, we'll use worksheet edit permissions as an example. Other worksheet functions require replacing the permission points, which are listed at the bottom of the article.
+Worksheet and range-related permissions can be set via both the Facade API and command. Here, we'll use worksheet edit permissions as an example. Other worksheet functions require replacing the permission points, which are listed at the bottom of the article.
 
-#### API Method
+<Tabs items={['Facade API', 'Command Mode']}>
+  <Tab>
+    ```typescript
+    const permission = univerAPI.getPermission()
+    const worksheetEditPermission = permission.permissionPointsDefinition.WorksheetEditPermission
+    // Create worksheet permission, unitId is the workbook id, subUnitId is the sheet id, the generated permission is a basic permission used for rendering permission areas
+    const permissionId = await permission.addWorksheetBasePermission(unitId, subUnitId)
 
-```typescript
-const permission = univerAPI.getPermission()
-const worksheetEditPermission = permission.permissionPointsDefinition.WorksheetEditPermission
-// Create worksheet permission, unitId is the workbook id, subUnitId is the sheet id, the generated permission is a basic permission used for rendering permission areas
-const permissionId = await permission.addWorksheetBasePermission(unitId, subUnitId)
+    permission.sheetRuleChangedAfterAuth$.subscribe((currentPermissionId) => {
+      if (currentPermissionId === permissionId) {
+        // Set the worksheet as non-editable
+        permission.setWorksheetPermissionPoint(unitId, subUnitId, worksheetEditPermission, false)
+      }
+    })
+    ```
+  </Tab>
+  <Tab>
+    ```typescript
+    import { ICommandService, IPermissionService, IUniverInstanceService } from '@univerjs/core'
+    import { AddWorksheetProtectionMutation, getSheetCommandTarget, WorksheetEditPermission } from '@univerjs/sheets'
 
-permission.sheetRuleChangedAfterAuth$.subscribe((currentPermissionId) => {
-  if (currentPermissionId === permissionId) {
-    // Set the worksheet as non-editable
-    permission.setWorksheetPermissionPoint(unitId, subUnitId, worksheetEditPermission, false)
-  }
-})
-```
+    const accessor = univer.__getInjector()
+    const commandService = accessor.get(ICommandService)
+    const univerInstanceService = accessor.get(IUniverInstanceService)
 
-#### Command Mode
+    const target = getSheetCommandTarget(univerInstanceService)
+    if (!target) {
+      return
+    }
 
-```typescript
-import { ICommandService, IPermissionService, IUniverInstanceService } from '@univerjs/core'
-import { AddWorksheetProtectionMutation, getSheetCommandTarget, WorksheetEditPermission } from '@univerjs/sheets'
+    const { unitId, subUnitId } = target
 
-const accessor = univer.__getInjector()
-const commandService = accessor.get(ICommandService)
-const univerInstanceService = accessor.get(IUniverInstanceService)
+    commandService.executeCommand(AddWorksheetProtectionMutation.id, {
+      unitId,
+      subUnitId,
+      rule: {
+        permissionId: '2sxcza1',
+        name: 'sheet',
+        unitType: 2,
+        unitId,
+        subUnitId,
+      },
+    })
 
-const target = getSheetCommandTarget(univerInstanceService)
-if (!target) {
-  return
-}
-
-const { unitId, subUnitId } = target
-
-commandService.executeCommand(AddWorksheetProtectionMutation.id, {
-  unitId,
-  subUnitId,
-  rule: {
-    permissionId: '2sxcza1',
-    name: 'sheet',
-    unitType: 2,
-    unitId,
-    subUnitId,
-  },
-})
-
-const permissionService = accessor.get(IPermissionService)
-permissionService.updatePermissionPoint(new WorksheetEditPermission(unitId, subUnitId).id, false)
-```
+    const permissionService = accessor.get(IPermissionService)
+    permissionService.updatePermissionPoint(new WorksheetEditPermission(unitId, subUnitId).id, false)
+    ```
+  </Tab>
+</Tabs>
 
 Parameters in this command: `permissionId` is a unique ID you generate to store the permission, `unitType` is the sheet type (you can use the UnitObject enum from the repository), unitId is the workbook id, and `subUnitId` is the sheet id.
 
 #### Delete Worksheet Permissions
 
-To delete existing worksheet permissions, you can use command mode to drive `DeleteWorksheetProtectionMutation`,` with `unitId` and `subUnitId` as parameters.
+<Tabs items={['API Method', 'Command Mode']}>
+  <Tab>
+    ```typescript
+    const permission = univerAPI.getPermission()
+    permission.removeWorksheetPermission(unitId, subUnitId)
+    ```
+  </Tab>
+  <Tab>
+    ```typescript
+    import { DeleteWorksheetProtectionMutation } from '@univerjs/sheets' // [!code ++]
 
-```typescript
-import { DeleteWorksheetProtectionMutation } from '@univerjs/sheets' // [!code ++]
-
-commandService.executeCommand(DeleteWorksheetProtectionMutation.id, {
-  unitId,
-  subUnitId,
-})
-```
-
-You can also use the API to delete all permissions settings for a worksheet:
-
-```typescript
-const permission = univerAPI.getPermission()
-permission.removeWorksheetPermission(unitId, subUnitId)
-```
+    commandService.executeCommand(DeleteWorksheetProtectionMutation.id, {
+      unitId,
+      subUnitId,
+    })
+    ```
+  </Tab>
+</Tabs>
 
 ### Custom Range Permissions Code Example
 
 Range permissions can also be set via API and command modes. Here, we'll use range edit permissions as an example. Other range functions require replacing the permission points, which are listed at the bottom of the article.
 
-#### API Method
+<Tabs items={['API Method', 'Command Mode']}>
+  <Tab>
+    ```typescript
+    const workbook = univerAPI.getActiveWorkbook()
+    const sheet = workbook.getActiveSheet()
+    const unitId = workbook.getId()
+    const subUnitId = sheet.getSheetId()
 
-```typescript
-const workbook = univerAPI.getActiveWorkbook()
-const sheet = workbook.getActiveSheet()
-const unitId = workbook.getId()
-const subUnitId = sheet.getSheetId()
+    const range1 = sheet.getRange('A1:B3')
+    const range2 = sheet.getRange('C4:D5')
+    const ranges = [range1, range2]
 
-const range1 = sheet.getRange('A1:B3')
-const range2 = sheet.getRange('C4:D5')
-const ranges = [range1, range2]
+    const permission = univerAPI.getPermission()
+    const rangeProtectionPermissionEditPoint = permission.permissionPointsDefinition.RangeProtectionPermissionEditPoint
+    const res = await permission.addRangeBaseProtection(unitId, subUnitId, ranges)
+    // The response differs from worksheet permissions as a sheet may have multiple range protections, so ruleId is used for storing the unique permission rule, and permissionId is for combining permission points.
+    const { permissionId, ruleId } = res
 
-const permission = univerAPI.getPermission()
-const rangeProtectionPermissionEditPoint = permission.permissionPointsDefinition.RangeProtectionPermissionEditPoint
-const res = await permission.addRangeBaseProtection(unitId, subUnitId, ranges)
-// The response differs from worksheet permissions as a sheet may have multiple range protections, so ruleId is used for storing the unique permission rule, and permissionId is for combining permission points.
-const { permissionId, ruleId } = res
+    permission.rangeRuleChangedAfterAuth$.subscribe((currentPermissionId) => {
+      if (currentPermissionId === permissionId) {
+        // Set the range protection as non-editable
+        permission.setRangeProtectionPermissionPoint(unitId, subUnitId, permissionId, rangeProtectionPermissionEditPoint, false)
+      }
+    })
+    ```
+  </Tab>
+  <Tab>
+    ```typescript
+    import { ICommandService, IPermissionService, IUniverInstanceService } from '@univerjs/core'
+    import { AddRangeProtectionMutation, getSheetCommandTarget, RangeProtectionPermissionEditPoint } from '@univerjs/sheets'
 
-permission.rangeRuleChangedAfterAuth$.subscribe((currentPermissionId) => {
-  if (currentPermissionId === permissionId) {
-    // Set the range protection as non-editable
-    permission.setRangeProtectionPermissionPoint(unitId, subUnitId, permissionId, rangeProtectionPermissionEditPoint, false)
-  }
-})
-```
+    const accessor = univer.__getInjector()
+    const commandService = accessor.get(ICommandService)
+    const univerInstanceService = accessor.get(IUniverInstanceService)
 
-#### Command Mode
+    const target = getSheetCommandTarget(univerInstanceService)
+    if (!target) {
+      return
+    }
 
-```typescript
-import { ICommandService, IPermissionService, IUniverInstanceService } from '@univerjs/core'
-import { AddRangeProtectionMutation, getSheetCommandTarget, RangeProtectionPermissionEditPoint } from '@univerjs/sheets'
+    const { unitId, subUnitId } = target
+    const ranges = [
+      {
+        startRow: 0,
+        startColumn: 0,
+        endRow: 2,
+        endColumn: 1,
+      },
+      {
+        startRow: 3,
+        startColumn: 2,
+        endRow: 4,
+        endColumn: 3,
+      },
+    ]
 
-const accessor = univer.__getInjector()
-const commandService = accessor.get(ICommandService)
-const univerInstanceService = accessor.get(IUniverInstanceService)
+    commandService.executeCommand(AddRangeProtectionMutation.id, {
+      unitId,
+      subUnitId,
+      rules: [{
+        permissionId: '3xtfxG1',
+        name: 'sheet1',
+        unitType: 3,
+        unitId,
+        subUnitId,
+        ranges,
+        id: 'rule1',
+      }],
+    })
 
-const target = getSheetCommandTarget(univerInstanceService)
-if (!target) {
-  return
-}
-
-const { unitId, subUnitId } = target
-const ranges = [
-  {
-    startRow: 0,
-    startColumn: 0,
-    endRow: 2,
-    endColumn: 1,
-  },
-  {
-    startRow: 3,
-    startColumn: 2,
-    endRow: 4,
-    endColumn: 3,
-  },
-]
-
-commandService.executeCommand(AddRangeProtectionMutation.id, {
-  unitId,
-  subUnitId,
-  rules: [{
-    permissionId: '3xtfxG1',
-    name: 'sheet1',
-    unitType: 3,
-    unitId,
-    subUnitId,
-    ranges,
-    id: 'rule1',
-  }],
-})
-
-const permissionService = accessor.get(IPermissionService)
-// Here, RangeProtectionPermissionEditPoint's third parameter is the generated permissionId, false means not editable
-permissionService.updatePermissionPoint(new RangeProtectionPermissionEditPoint(unitId, subUnitId, '3xtfxG1').id, false)
-```
+    const permissionService = accessor.get(IPermissionService)
+    // Here, RangeProtectionPermissionEditPoint's third parameter is the generated permissionId, false means not editable
+    permissionService.updatePermissionPoint(new RangeProtectionPermissionEditPoint(unitId, subUnitId, '3xtfxG1').id, false)
+    ```
+  </Tab>
+</Tabs>
 
 Here, the parameters are similar to those above, with additional `ranges` parameter for selected areas, and `id` parameter for uniquely identifying the rule, used for deletion.
 
 #### Delete Range Protection Permissions
 
-To delete existing custom range protections, use command mode to drive `DeleteRangeProtectionMutation`, with `unitId`, `subUnitId`, and the `ruleIds` to be deleted.
+<Tabs items={['API Method', 'Command Mode']}>
+  <Tab>
+    ```typescript
+    const permission = univerAPI.getPermission()
+    permission.removeRangeProtection(unitId, subUnitId, ruleIds)
+    ```
+  </Tab>
+  <Tab>
+    ```typescript
+    import { DeleteRangeProtectionMutation } from '@univerjs/sheets' // [!code ++]
 
-```typescript
-import { DeleteRangeProtectionMutation } from '@univerjs/sheets' // [!code ++]
+    commandService.executeCommand(DeleteRangeProtectionMutation.id, {
+      unitId,
+      subUnitId,
+      ruleIds: ['rule1'],
+    })
+    ```
+  </Tab>
+</Tabs>
 
-commandService.executeCommand(DeleteRangeProtectionMutation.id, {
-  unitId,
-  subUnitId,
-  ruleIds: ['rule1'],
-})
-```
-
-You can also use the API to delete all permission settings for a selection.
-
-```typescript
-const permission = univerAPI.getPermission()
-permission.removeRangeProtection(unitId, subUnitId, ruleIds)
-```
-
-### How to remove permission dialog
+### Remove permission dialog
 
 ```typescript
 const permission = univerAPI.getPermission()

@@ -32,183 +32,188 @@ permission.setWorkbookPermissionPoint(unitId, workbookEditablePermission, false)
 
 ### 工作表权限代码示例
 
-工作表和选区相关的权限设置通过API和命令模式两种方式来执行，这里以工作表编辑权限举例，其他工作表功能只需替换权限点位即可，具体的权限点位列举在文章最下面。
+工作表和选区相关的权限设置可以通过 Facde API 和命令系统两种方式来实现。这里以工作表编辑权限举例，其他工作表功能只需替换权限点位即可，具体的权限点位列举在文章最下面。
 
-#### API 方式
+<Tabs items={['使用 Facade API', '使用命令系统']}>
+  <Tab>
+    ```typescript
+    const permission = univerAPI.getPermission()
+    const worksheetEditPermission = permission.permissionPointsDefinition.WorksheetEditPermission
+    // 创建工作表权限，unitId 是工作簿的 id, subUnitId 是工作表的 id，此时生成的权限是一个基础权限，它的作用是用于渲染权限区域
+    const permissionId = await permission.addWorksheetBasePermission(unitId, subUnitId)
 
-```typescript
-const permission = univerAPI.getPermission()
-const worksheetEditPermission = permission.permissionPointsDefinition.WorksheetEditPermission
-// 创建工作表权限，unitId 是工作簿的 id, subUnitId 是工作表的 id，此时生成的权限是一个基础权限，它的作用是用于渲染权限区域
-const permissionId = await permission.addWorksheetBasePermission(unitId, subUnitId)
+    permission.sheetRuleChangedAfterAuth$.subscribe((currentPermissionId) => {
+      if (currentPermissionId === permissionId) {
+        // 设置工作表为不可编辑状态
+        permission.setWorksheetPermissionPoint(unitId, subUnitId, worksheetEditPermission, false)
+      }
+    })
+    ```
+  </Tab>
+  <Tab>
+    ```typescript
+    import { ICommandService, IPermissionService, IUniverInstanceService } from '@univerjs/core'
+    import { AddWorksheetProtectionMutation, getSheetCommandTarget, WorksheetEditPermission } from '@univerjs/sheets'
 
-permission.sheetRuleChangedAfterAuth$.subscribe((currentPermissionId) => {
-  if (currentPermissionId === permissionId) {
-    // 设置工作表为不可编辑状态
-    permission.setWorksheetPermissionPoint(unitId, subUnitId, worksheetEditPermission, false)
-  }
-})
-```
+    const accessor = univer.__getInjector()
+    const commandService = accessor.get(ICommandService)
+    const univerInstanceService = accessor.get(IUniverInstanceService)
 
-#### 命令模式
+    const target = getSheetCommandTarget(univerInstanceService)
+    if (!target) {
+      return
+    }
 
-```typescript
-import { ICommandService, IPermissionService, IUniverInstanceService } from '@univerjs/core'
-import { AddWorksheetProtectionMutation, getSheetCommandTarget, WorksheetEditPermission } from '@univerjs/sheets'
+    const { unitId, subUnitId } = target
 
-const accessor = univer.__getInjector()
-const commandService = accessor.get(ICommandService)
-const univerInstanceService = accessor.get(IUniverInstanceService)
+    commandService.executeCommand(AddWorksheetProtectionMutation.id, {
+      unitId,
+      subUnitId,
+      rule: {
+        permissionId: '2sxcza1',
+        name: 'sheet',
+        unitType: 2,
+        unitId,
+        subUnitId,
+      },
+    })
 
-const target = getSheetCommandTarget(univerInstanceService)
-if (!target) {
-  return
-}
-
-const { unitId, subUnitId } = target
-
-commandService.executeCommand(AddWorksheetProtectionMutation.id, {
-  unitId,
-  subUnitId,
-  rule: {
-    permissionId: '2sxcza1',
-    name: 'sheet',
-    unitType: 2,
-    unitId,
-    subUnitId,
-  },
-})
-
-const permissionService = accessor.get(IPermissionService)
-permissionService.updatePermissionPoint(new WorksheetEditPermission(unitId, subUnitId).id, false)
-```
+    const permissionService = accessor.get(IPermissionService)
+    permissionService.updatePermissionPoint(new WorksheetEditPermission(unitId, subUnitId).id, false)
+    ```
+  </Tab>
+</Tabs>
 
 该命令中的参数：`permissionId` 需要自己生成的唯一 Id 用来存储权限，`unitType` 是工作表的类型，你可以使用仓库中的 UnitObject 枚举来替换上面的魔法数，`unitId` 是工作簿的id，`subUnitId` 是工作表的 id。
 
 #### 删除工作表权限
 
-删除已经存在的工作表权限可以使用命令模式驱动 `DeleteWorksheetProtectionMutation`，参数是 `unitId` 和 `subUnitId`。
+<Tabs items={['使用 Facade API', '使用命令系统']}>
+  <Tab>
+    ```typescript
+    const permission = univerAPI.getPermission()
+    permission.removeWorksheetPermission(unitId, subUnitId)
+    ```
+  </Tab>
+  <Tab>
+    ```typescript
+    import { DeleteWorksheetProtectionMutation } from '@univerjs/sheets' // [!code ++]
 
-```typescript
-import { DeleteWorksheetProtectionMutation } from '@univerjs/sheets' // [!code ++]
-
-commandService.executeCommand(DeleteWorksheetProtectionMutation.id, {
-  unitId,
-  subUnitId,
-})
-```
-
-也可以使用API来删除工作表的所有权限设置
-
-```typescript
-const permission = univerAPI.getPermission()
-permission.removeWorksheetPermission(unitId, subUnitId)
-```
+    commandService.executeCommand(DeleteWorksheetProtectionMutation.id, {
+      unitId,
+      subUnitId,
+    })
+    ```
+  </Tab>
+</Tabs>
 
 ### 自定义选区权限代码示例
 
 选区的权限同样可以通过 API 和命令模式两种方式来执行，这里以选区编辑权限举例，其他选区功能只需替换权限点位即可，具体的权限点位列举在文章最下面。
 
-#### API 方式
+<Tabs items={['使用 Facade API', '使用命令系统']}>
+  <Tab>
+    ```typescript
+    const workbook = univerAPI.getActiveWorkbook()
+    const sheet = workbook.getActiveSheet()
+    const unitId = workbook.getId()
+    const subUnitId = sheet.getSheetId()
 
-```typescript
-const workbook = univerAPI.getActiveWorkbook()
-const sheet = workbook.getActiveSheet()
-const unitId = workbook.getId()
-const subUnitId = sheet.getSheetId()
+    const range1 = sheet.getRange('A1:B3')
+    const range2 = sheet.getRange('C4:D5')
+    const ranges = [range1, range2]
 
-const range1 = sheet.getRange('A1:B3')
-const range2 = sheet.getRange('C4:D5')
-const ranges = [range1, range2]
+    const permission = univerAPI.getPermission()
+    const rangeProtectionPermissionEditPoint = permission.permissionPointsDefinition.RangeProtectionPermissionEditPoint
+    const res = await permission.addRangeBaseProtection(unitId, subUnitId, ranges)
+    // 这里的返回区别于工作表权限，因为一个子表中可能会有多个区域保护，所以 ruleId 是用来存储该权限规则的唯一 id，permissionId 是用来拼接权限点位的。
+    const { permissionId, ruleId } = res
 
-const permission = univerAPI.getPermission()
-const rangeProtectionPermissionEditPoint = permission.permissionPointsDefinition.RangeProtectionPermissionEditPoint
-const res = await permission.addRangeBaseProtection(unitId, subUnitId, ranges)
-// 这里的返回区别于工作表权限，因为一个子表中可能会有多个区域保护，所以 ruleId 是用来存储该权限规则的唯一 id，permissionId 是用来拼接权限点位的。
-const { permissionId, ruleId } = res
+    permission.rangeRuleChangedAfterAuth$.subscribe((currentPermissionId) => {
+      if (currentPermissionId === permissionId) {
+        // 设置范围保护为不可编辑
+        permission.setRangeProtectionPermissionPoint(unitId, subUnitId, permissionId, rangeProtectionPermissionEditPoint, false)
+      }
+    })
+    ```
+  </Tab>
+  <Tab>
+    ```typescript
+    import { ICommandService, IPermissionService, IUniverInstanceService } from '@univerjs/core'
+    import { AddRangeProtectionMutation, getSheetCommandTarget, RangeProtectionPermissionEditPoint } from '@univerjs/sheets'
 
-permission.rangeRuleChangedAfterAuth$.subscribe((currentPermissionId) => {
-  if (currentPermissionId === permissionId) {
-    // 设置范围保护为不可编辑
-    permission.setRangeProtectionPermissionPoint(unitId, subUnitId, permissionId, rangeProtectionPermissionEditPoint, false)
-  }
-})
-```
+    const accessor = univer.__getInjector()
+    const commandService = accessor.get(ICommandService)
+    const univerInstanceService = accessor.get(IUniverInstanceService)
 
-#### 命令模式
+    const target = getSheetCommandTarget(univerInstanceService)
+    if (!target) {
+      return
+    }
 
-```typescript
-import { ICommandService, IPermissionService, IUniverInstanceService } from '@univerjs/core'
-import { AddRangeProtectionMutation, getSheetCommandTarget, RangeProtectionPermissionEditPoint } from '@univerjs/sheets'
+    const { unitId, subUnitId } = target
+    const ranges = [
+      {
+        startRow: 0,
+        startColumn: 0,
+        endRow: 2,
+        endColumn: 1,
+      },
+      {
+        startRow: 3,
+        startColumn: 2,
+        endRow: 4,
+        endColumn: 3,
+      },
+    ]
 
-const accessor = univer.__getInjector()
-const commandService = accessor.get(ICommandService)
-const univerInstanceService = accessor.get(IUniverInstanceService)
+    commandService.executeCommand(AddRangeProtectionMutation.id, {
+      unitId,
+      subUnitId,
+      rules: [{
+        permissionId: '3xtfxG1',
+        name: 'sheet1',
+        unitType: 3,
+        unitId,
+        subUnitId,
+        ranges,
+        id: 'rule1',
+      }],
+    })
 
-const target = getSheetCommandTarget(univerInstanceService)
-if (!target) {
-  return
-}
-
-const { unitId, subUnitId } = target
-const ranges = [
-  {
-    startRow: 0,
-    startColumn: 0,
-    endRow: 2,
-    endColumn: 1,
-  },
-  {
-    startRow: 3,
-    startColumn: 2,
-    endRow: 4,
-    endColumn: 3,
-  },
-]
-
-commandService.executeCommand(AddRangeProtectionMutation.id, {
-  unitId,
-  subUnitId,
-  rules: [{
-    permissionId: '3xtfxG1',
-    name: 'sheet1',
-    unitType: 3,
-    unitId,
-    subUnitId,
-    ranges,
-    id: 'rule1',
-  }],
-})
-
-const permissionService = accessor.get(IPermissionService)
-// 这里 RangeProtectionPermissionEditPoint 的第三个参数就是上面生成的 permissionId，false 表示不可编辑
-permissionService.updatePermissionPoint(new RangeProtectionPermissionEditPoint(unitId, subUnitId, '3xtfxG1').id, false)
-```
+    const permissionService = accessor.get(IPermissionService)
+    // 这里 RangeProtectionPermissionEditPoint 的第三个参数就是上面生成的 permissionId，false 表示不可编辑
+    permissionService.updatePermissionPoint(new RangeProtectionPermissionEditPoint(unitId, subUnitId, '3xtfxG1').id, false)
+    ```
+  </Tab>
+</Tabs>
 
 这里面的参数和上面的一样，增加了 `ranges` 参数，这个参数是你要设置权限的区域， 还有一个 `id` 参数, 这个参数是用来标识这个规则的唯一 id，用来删除这个规则。
 
 #### 删除区域保护权限
 
-删除已经存在的自定义区域保护可以通过命令模式驱动 `DeleteRangeProtectionMutation`，参数是 `unitId` 和 `subUnitId` 以及想批量删除的 `ruleIds`。
+<Tabs items={['使用 Facade API', '使用命令系统']}>
+  <Tab>
+    ```typescript
+    const permission = univerAPI.getPermission()
+    permission.removeRangeProtection(unitId, subUnitId, ruleIds)
+    ```
+  </Tab>
+  <Tab>
+    ```typescript
+    import { DeleteRangeProtectionMutation } from '@univerjs/sheets' // [!code ++]
 
-```typescript
-import { DeleteRangeProtectionMutation } from '@univerjs/sheets' // [!code ++]
+    commandService.executeCommand(DeleteRangeProtectionMutation.id, {
+      unitId,
+      subUnitId,
+      ruleIds: ['rule1'],
+    })
+    ```
+  </Tab>
+</Tabs>
 
-commandService.executeCommand(DeleteRangeProtectionMutation.id, {
-  unitId,
-  subUnitId,
-  ruleIds: ['rule1'],
-})
-```
+### 去除权限弹窗
 
-也可以使用API来删除选区的所有权限设置
-
-```typescript
-const permission = univerAPI.getPermission()
-permission.removeRangeProtection(unitId, subUnitId, ruleIds)
-```
-
-### 如何去除权限弹窗
 ```typescript
 const permission = univerAPI.getPermission()
 permission.setPermissionDialogVisible(false)
