@@ -41,7 +41,11 @@ export default function Preview() {
 
     univerAPI.createWorkbook(WORKBOOK_DATA)
     univerAPI.setCrosshairHighlightEnabled(true)
-  }, [])
+
+    return () => {
+      univerAPI.dispose()
+    }
+  }, [theme])
 
   return (
     <div ref={divRef} className="h-full" />

@@ -81,7 +81,7 @@ body,
           <div className="grid grid-cols-12">
             <SandpackFileExplorer
               className={`
-                col-span-3 border-r border-neutral-100
+                col-span-3 h-180! border-r border-neutral-100
                 dark:border-neutral-800
               `}
             />

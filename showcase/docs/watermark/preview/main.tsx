@@ -54,7 +54,11 @@ export default function Preview() {
     })
 
     univerAPI.createUniverDoc(DOCUMENT_DATA)
-  }, [])
+
+    return () => {
+      univerAPI.dispose()
+    }
+  }, [theme])
 
   return (
     <div ref={divRef} className="h-full" />

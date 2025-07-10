@@ -1,12 +1,13 @@
 'use client'
 
+import type { ComponentType } from 'react'
 import { createComponent } from '@lit/react'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
 import { createUniver, LocaleType, merge } from '@univerjs/presets'
 import { html, LitElement } from 'lit'
 import { useTheme } from 'next-themes'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 
 import '@univerjs/preset-sheets-core/lib/index.css'
 
@@ -45,16 +46,19 @@ class MyWebComponent extends LitElement {
 
 customElements.define('my-univer', MyWebComponent)
 
-const MyUniver = createComponent({
-  tagName: 'my-univer',
-  elementClass: MyWebComponent,
-  react: React,
-})
-
 export default function Preview() {
   const { theme } = useTheme()
+  const [Component, setComponent] = useState<ComponentType<{ theme?: string }> | null>(null)
 
-  return (
-    <MyUniver theme={theme} />
-  )
+  useEffect(() => {
+    const MyUniver = createComponent({
+      tagName: 'my-univer',
+      elementClass: MyWebComponent,
+      react: React,
+    })
+
+    setComponent(MyUniver)
+  }, [theme])
+
+  return Component && <Component theme={theme} />
 }

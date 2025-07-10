@@ -48,7 +48,11 @@ export default function Preview() {
         insertChart(univerAPI)
       }
     })
-  }, [])
+
+    return () => {
+      univerAPI.dispose()
+    }
+  }, [theme])
 
   return (
     <div ref={divRef} className="h-full" />

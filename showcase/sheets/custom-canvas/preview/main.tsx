@@ -47,7 +47,11 @@ export default function Preview() {
         univerAPI.registerSheetColumnHeaderExtension(unitId, new ColumnHeaderCustomExtension())
       }
     })
-  }, [])
+
+    return () => {
+      univerAPI.dispose()
+    }
+  }, [theme])
 
   return (
     <div ref={divRef} className="h-full" />

@@ -103,7 +103,11 @@ export default function Preview() {
     })
 
     univerAPI.createWorkbook(WORKBOOK_DATA)
-  }, [])
+
+    return () => {
+      univerAPI.dispose()
+    }
+  }, [theme])
 
   return (
     <div ref={divRef} className="h-full" />

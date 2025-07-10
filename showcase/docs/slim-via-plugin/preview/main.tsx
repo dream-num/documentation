@@ -1,7 +1,7 @@
 'use client'
 
 import { LocaleType, merge, Univer, UniverInstanceType } from '@univerjs/core'
-// import { FUniver } from '@univerjs/core/facade'
+import { FUniver } from '@univerjs/core/facade'
 import DesignEnUS from '@univerjs/design/locale/en-US'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
@@ -51,9 +51,12 @@ export default function Preview() {
 
     univer.createUnit(UniverInstanceType.UNIVER_DOC, DOCUMENT_DATA)
 
-    // const univerAPI = FUniver.newAPI(univer)
-  }, [])
+    const univerAPI = FUniver.newAPI(univer)
 
+    return () => {
+      univerAPI.dispose()
+    }
+  }, [theme])
   return (
     <div ref={divRef} className="h-full" />
   )
