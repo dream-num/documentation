@@ -122,18 +122,18 @@ export default async function Page({ params }: IProps) {
             >
               {customTranslations[lang]['home.description']}
               <span
-                className="font-medium text-green-600 underline decoration-current decoration-wavy underline-offset-8"
+                className="font-medium text-green-600 underline decoration-current decoration-wavy underline-offset-4"
               >
                 {customTranslations[lang]['home.description.sheets']}
               </span>
               {customTranslations[lang]['home.description.split']}
               <span
-                className="font-medium text-blue-600 underline decoration-current decoration-wavy underline-offset-8"
+                className="font-medium text-blue-600 underline decoration-current decoration-wavy underline-offset-4"
               >
                 {customTranslations[lang]['home.description.docs']}
               </span>
               {customTranslations[lang]['home.description.and']}
-              <span className="font-medium text-red-600 underline decoration-current decoration-wavy underline-offset-8">
+              <span className="font-medium text-red-600 underline decoration-current decoration-wavy underline-offset-4">
                 {customTranslations[lang]['home.description.slides']}
               </span>
               {customTranslations[lang]['home.description.period']}

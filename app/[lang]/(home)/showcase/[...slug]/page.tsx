@@ -70,8 +70,18 @@ export default async function Page({ params }: IProps) {
   }, {} as Record<string, typeof nav>)
 
   return (
-    <div className="flex flex-1">
-      <aside className="h-auto w-72 overflow-x-hidden">
+    <div
+      className={`
+        flex flex-1 px-4
+        lg:px-0
+      `}
+    >
+      <aside
+        className={`
+          hidden h-auto w-72 overflow-x-hidden
+          lg:block
+        `}
+      >
         <div className="fixed top-14 h-[calc(100%-56px)] w-72 px-4 pt-4">
           <ScrollArea className="h-full">
             {Object.entries(groupedNav).map(([type, items]) => (
@@ -118,7 +128,12 @@ export default async function Page({ params }: IProps) {
           max-sm:px-0
         `}
       >
-        <header className="flex justify-between">
+        <header
+          className={`
+            flex flex-col-reverse justify-between
+            md:flex-row
+          `}
+        >
           <div>
             <h1
               className={`
