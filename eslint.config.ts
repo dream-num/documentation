@@ -88,7 +88,7 @@ export default antfu({
   settings: {
     'better-tailwindcss': {
       // tailwindcss 4: the path to the entry file of the css based tailwind config (eg: `src/global.css`)
-      entryPoint: 'app/global.css',
+      entryPoint: 'app/[lang]/global.css',
     },
   },
   rules: {

@@ -615,13 +615,10 @@ const data = {
 
 For detailed field descriptions, please refer to [Configure Cell Data](/guides/sheets/model/cell-data).
 
-<Callout type="info" emoji="ℹ️">
-  Cell operations can be regarded as operations on a range of rows and columns with a height of 1 and a width of 1. For the operation range, please refer to [Range](/guides/sheets/features/core/range-selection#range).
-</Callout>
+### Good to know
 
-<Callout type="info" emoji="ℹ️">
-  The Univer API plugin will also store the extended cell attributes in the `resources` property of the `Workbook`, please refer to [Plugin Custom Model](/guides/customization/model/).
-</Callout>
+1. Cell operations can be regarded as operations on a range of rows and columns with a height of 1 and a width of 1. For the operation range, please refer to [Range](/guides/sheets/features/core/range-selection#range).
+2. The Univer API plugin will also store the extended cell attributes in the `resources` property of the `Workbook`, please refer to [Plugin Custom Model](/guides/customization/model/).
 
 ## Event List
 
@@ -880,3 +877,55 @@ univerAPI.addEvent(univerAPI.Event.ClipboardPasted, (params) => {
   const { text, html } = params
   console.log('Pasted content:', text, html)
 })
+```
+
+## Miscellaneous
+
+### How to get the data in the cell editor in real time?
+
+The Univer Sheets cell editor is built on the Univer Docs editor engine, allowing you to use the Facade API to obtain the snapshot data of the currently active Univer Docs editor. This enables real-time retrieval and processing of the edited content.
+
+```typescript
+univerAPI.onCommandExecuted((command) => {
+  const { id } = command
+  if (id === 'doc.command.insert-text' || id === 'doc.command.delete-text') {
+    const doc = univerAPI.getActiveDocument()
+    if (doc) {
+      const snapshot = doc.getSnapshot()
+      console.log(snapshot.body?.dataStream)
+    }
+  }
+})
+```
+
+Reference: https://github.com/dream-num/univer/discussions/2261
+
+### When the cell editor is focused and an external button is clicked to trigger an event, the snapshot obtained does not contain the data of the focused cell.
+
+The cell data is synchronized to the snapshot when the cell editor loses focus (i.e., when editing ends). Therefore, before attempting to obtain the snapshot data, ensure that the cell has lost focus. You can actively end editing as follows:
+
+```typescript
+import '@univerjs/sheets-ui/facade'
+
+$btn.addEventListener('click', () => {
+  univerAPI.getActiveWorkbook().endEditingAsync(true)
+})
+```
+
+Reference: https://github.com/dream-num/univer/issues/1314
+
+### When using Facade API to create a Workbook, some APIs may not work immediately after the Workbook is created. This is because some APIs depend on the interface being fully rendered before they can function correctly. It is recommended to perform related operations in the `Rendered` or `Steady` stage of the lifecycle.
+
+Many APIs depend on the interface being fully rendered before they can function correctly. If you call related APIs immediately after creating a Workbook, they may not work due to the interface not being fully rendered yet. It is recommended to perform related operations in the `Rendered` or `Steady` stage of the lifecycle:
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+  if (stage === univerAPI.Enum.LifecycleStages.Steady) {
+    // code...
+  }
+})
+
+// To remove the event listener, you can call `disposable.dispose()`
+```
+
+Reference: [Life Cycle](/guides/sheets/getting-started/life-cycle)

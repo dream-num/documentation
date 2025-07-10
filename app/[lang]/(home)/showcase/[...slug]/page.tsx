@@ -90,9 +90,9 @@ export default async function Page({ params }: IProps) {
                     <Link
                       href={`/showcase/${item.slug}`}
                       className={`
-                        hover:bg-fd-card
                         inline-flex h-8 items-center truncate rounded px-2 text-sm font-medium text-neutral-800
                         transition-colors
+                        hover:bg-fd-card
                         dark:text-neutral-50
                       `}
                     >

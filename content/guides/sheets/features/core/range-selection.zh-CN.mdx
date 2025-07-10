@@ -2,7 +2,7 @@
 title: 范围 & 选区 & 单元格
 ---
 
-## 范围Range [#range]
+## 范围 Range [#range]
 
 范围指工作表中的一块矩形区域，有起始行号、起始列号、长宽或者结束行号、结束列号来确定。
 
@@ -508,7 +508,7 @@ const fRange = fWorksheet.getRange('A1:B2')
 console.log(fRange.getCell())
 ```
 
-## 选区Selection [#selection]
+## 选区 Selection [#selection]
 
 Univer 表格支持多选区，所以选区是一个范围数组，可以通过范围 API 来操作选区数据。
 
@@ -599,7 +599,7 @@ univerAPI.addEvent(univerAPI.Event.SelectionChanged, (params) => {
 })
 ```
 
-## 单元格Cell [#cell]
+## 单元格 Cell [#cell]
 
 单元格数据以二维 Map 的形式存储在工作表中，一二级索引分别代表行号和列号。
 
@@ -615,13 +615,10 @@ const data = {
 
 详细的字段说明请参考 [单元格信息](/guides/sheets/model/cell-data)。
 
-<Callout>
-  对单元格的操作可以看作对行高 1 、列宽 1 的范围进行操作，操作范围请阅读 [范围-range](/guides/sheets/features/core/range-selection#range)。
-</Callout>
+### 注意事项
 
-<Callout>
-  插件还会将拓展的单元格属性存储在 `Workbook` 的 `resources` 属性中，详细请阅读 [插件自定义模型](/guides/recipes/tutorials/custom-model/)。
-</Callout>
+1. 对单元格的操作可以看作对行高 1 、列宽 1 的范围进行操作，操作范围请阅读 [范围-range](/guides/sheets/features/core/range-selection#range)。
+2. 插件还会将拓展的单元格属性存储在 `Workbook` 的 `resources` 属性中，详细请阅读 [插件自定义模型](/guides/recipes/tutorials/custom-model/)。
 
 ## 事件列表
 
@@ -880,3 +877,55 @@ univerAPI.addEvent(univerAPI.Event.ClipboardPasted, (params) => {
   const { text, html } = params
   console.log('已粘贴的内容:', text, html)
 })
+```
+
+## 杂项
+
+### 如何实时获取单元格编辑器内的数据？
+
+Univer Sheets 的单元格编辑器底层采用了 Univer Docs 的编辑器引擎，因此可以通过 Facade API 获取当前激活的 Univer Docs 编辑器的快照（snapshot）数据，实现对编辑内容的实时获取和处理。
+
+```typescript
+univerAPI.onCommandExecuted((command) => {
+  const { id } = command
+  if (id === 'doc.command.insert-text' || id === 'doc.command.delete-text') {
+    const doc = univerAPI.getActiveDocument()
+    if (doc) {
+      const snapshot = doc.getSnapshot()
+      console.log(snapshot.body?.dataStream)
+    }
+  }
+})
+```
+
+参考：https://github.com/dream-num/univer/discussions/2261
+
+### 单元格编辑器聚焦时，点击外部按钮触发事件，获取的 snapshot 未包含当前单元格数据
+
+单元格数据会在编辑器失焦（即编辑状态结束）时同步到 snapshot。因此，在尝试获取 snapshot 数据前，应确保单元格已经失去焦点。可以通过如下方式主动结束编辑：
+
+```typescript
+import '@univerjs/sheets-ui/facade'
+
+$btn.addEventListener('click', () => {
+  univerAPI.getActiveWorkbook().endEditingAsync(true)
+})
+```
+
+参考：https://github.com/dream-num/univer/issues/1314
+
+### 使用 Facade API 创建 Workbook 后，立即调用其它 API 不生效的情况
+
+部分 API 依赖于界面渲染完成后才能正常工作。如果在 Workbook 创建后立即调用相关 API，可能因尚未完成渲染而失效。建议在生命周期的 `Rendered` 或 `Steady` 阶段再进行相关操作：
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+  if (stage === univerAPI.Enum.LifecycleStages.Steady) {
+    // 代码...
+  }
+})
+
+// 需要移除事件监听时，可调用 disposable.dispose()
+```
+
+参考：[生命周期](/guides/sheets/getting-started/life-cycle)
