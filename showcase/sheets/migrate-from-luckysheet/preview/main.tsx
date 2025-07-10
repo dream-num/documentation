@@ -13,6 +13,7 @@ import { luckyToUniver } from '../code/core/lucky-to-univer'
 import { luckyJson } from '../code/data'
 
 import '@univerjs/preset-sheets-core/lib/index.css'
+import '@univerjs/preset-sheets-conditional-formatting/lib/index.css'
 import '@univerjs/preset-sheets-data-validation/lib/index.css'
 
 export default function Preview() {

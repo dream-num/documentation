@@ -11,6 +11,8 @@ import { luckyJson } from './data'
 import './styles.css'
 
 import '@univerjs/preset-sheets-core/lib/index.css'
+import '@univerjs/preset-sheets-conditional-formatting/lib/index.css'
+import '@univerjs/preset-sheets-data-validation/lib/index.css'
 
 const { univerAPI } = createUniver({
   locale: LocaleType.EN_US,

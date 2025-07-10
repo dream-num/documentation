@@ -1,11 +1,6 @@
 import { SiGithub } from '@icons-pack/react-simple-icons'
 import { createRelativeLink } from 'fumadocs-ui/mdx'
-import {
-  DocsBody,
-  DocsDescription,
-  DocsPage,
-  DocsTitle,
-} from 'fumadocs-ui/page'
+import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/page'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
