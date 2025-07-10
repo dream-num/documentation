@@ -20,12 +20,9 @@ const metadata = {
   },
 }
 
-const indexTs = fs.readFileSync(path.resolve(__dirname, './code/index.ts'), 'utf-8')
-const dataTs = fs.readFileSync(path.resolve(__dirname, './code/data.ts'), 'utf-8')
-
 export const files = {
-  '/src/index.ts': indexTs,
-  '/src/data.ts': dataTs,
+  '/src/index.ts': fs.readFileSync(path.resolve(__dirname, './code/index.ts'), 'utf-8'),
+  '/src/data.ts': fs.readFileSync(path.resolve(__dirname, './code/data.ts'), 'utf-8'),
 }
 
 export default {

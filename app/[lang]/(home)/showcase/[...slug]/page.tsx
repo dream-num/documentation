@@ -90,9 +90,9 @@ export default async function Page({ params }: IProps) {
                     <Link
                       href={`/showcase/${item.slug}`}
                       className={`
+                        hover:bg-fd-card
                         inline-flex h-8 items-center truncate rounded px-2 text-sm font-medium text-neutral-800
                         transition-colors
-                        hover:bg-fd-card
                         dark:text-neutral-50
                       `}
                     >
@@ -123,13 +123,13 @@ export default async function Page({ params }: IProps) {
               {metadata.title[lang]}
             </h1>
 
-            <p className="mb-4">{metadata.description[lang]}</p>
-
-            <div className="flex gap-2">
+            <div className="mb-4 flex gap-2">
               {metadata.tags[lang]?.map(tag => (
-                <Badge key={tag}>{tag}</Badge>
+                <Badge key={tag} variant="secondary">{tag}</Badge>
               ))}
             </div>
+
+            <p>{metadata.description[lang]}</p>
           </div>
 
           <div>
