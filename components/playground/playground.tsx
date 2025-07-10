@@ -68,7 +68,7 @@ body,
   return (
     <section>
       <SandpackProvider
-        theme={theme as 'light' | 'dark'}
+        theme={theme === 'dark' ? 'dark' : 'light'}
         customSetup={{
           dependencies: {},
           entry: '/index.ts',

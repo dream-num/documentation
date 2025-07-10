@@ -5,6 +5,7 @@ import { Step, Steps } from 'fumadocs-ui/components/steps'
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs'
 import defaultMdxComponents from 'fumadocs-ui/mdx'
 import { APITable } from '@/components/api-table'
+import { Mermaid } from '@/components/mermaid'
 import { MetaData } from '@/components/meta-data'
 import { PlaygroundFrame } from '@/components/playground'
 
@@ -19,6 +20,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Tab,
     Steps,
     Step,
+    Mermaid,
     MetaData,
     AutoTypeTable: props => (
       <AutoTypeTable
