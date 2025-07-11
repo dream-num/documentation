@@ -54,7 +54,7 @@ export default async function Page({ params }: IProps) {
           grid grid-cols-1 bg-neutral-50
           md:grid-cols-3
           lg:grid-cols-4
-          dark:bg-neutral-800
+          dark:bg-neutral-900
         `}
       >
         {posts.map(post => (

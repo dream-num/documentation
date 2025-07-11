@@ -2,8 +2,8 @@
 
 import { BookTextIcon, SheetIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import Spinner from '@/components/animata/spinner'
 import { BorderBeam } from '@/components/magicui/border-beam'
-import Spinner from '@/components/spinner'
 import { clsx } from '@/lib/clsx'
 
 export default function Univer() {
@@ -93,7 +93,7 @@ export default function Univer() {
             absolute inset-0 flex size-full items-center justify-center bg-white/20
             dark:bg-black/20
           `, {
-            'pointer-events-auto z-0 opacity-0': steady,
+            'pointer-events-auto -z-1 opacity-0': steady,
           })}
         >
           <Spinner />

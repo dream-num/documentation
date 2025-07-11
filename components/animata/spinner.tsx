@@ -22,7 +22,12 @@ export default function Spinner({
         outerSize,
       )}
     >
-      <div className={clsx('h-6 w-6 rounded-full bg-white', childSize)} />
+      <div
+        className={clsx(`
+          h-6 w-6 rounded-full bg-white
+          dark:bg-neutral-900
+        `, childSize)}
+      />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { BookTextIcon, FerrisWheelIcon } from 'lucide-react'
 import Link from 'next/link'
-import BlurryBlob from '@/components/blurry-blob'
+import BlurryBlob from '@/components/animata/blurry-blob'
 import { Customer } from '@/components/customer'
 import { AnimatedShinyText } from '@/components/magicui/animated-shiny-text'
 import { BlurFade } from '@/components/magicui/blur-fade'

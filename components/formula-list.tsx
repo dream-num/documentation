@@ -16,7 +16,7 @@ export default function FormuaList(props: IProps) {
   const formula = functionList[lang]
 
   return (
-    <details className="mt-6" open>
+    <details className="mt-6">
       <summary className="cursor-pointer font-medium">
         Functions - (
         {Object.keys(formula).length}

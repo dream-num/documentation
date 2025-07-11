@@ -1,6 +1,6 @@
 import Link from 'next/link'
+import { CardComment } from '@/components/animata/card-comment'
 import { Header } from '@/components/header'
-import { Badge } from '@/components/ui/badge'
 import { customTranslations } from '@/lib/i18n'
 import { showcase } from '@/showcase/data'
 
@@ -56,53 +56,12 @@ export default async function Page({ params }: IProps) {
         `}
       >
         {items.map(item => (
-          <Link
-            key={item.url}
-            className="group relative overflow-hidden rounded-2xl border"
-            href={item.url}
-          >
-            <div
-              className={`
-                absolute inset-0 bg-gradient-to-br from-[#64bcff] to-50% opacity-0 transition-all duration-500
-                ease-in-out
-                group-hover:opacity-100
-                hover:to-neutral-50
-                dark:bg-gradient-to-t dark:from-[#242424] dark:to-[#020202] dark:hover:from-[#182135]
-                dark:hover:to-[#080808]
-              `}
+          <Link key={item.url} href={item.url}>
+            <CardComment
+              title={item.title}
+              tags={item.tags}
+              description={item.description}
             />
-
-            <div className="relative">
-              <div className="px-6 py-5">
-                <div className="flex flex-wrap gap-2">
-                  {item.tags.map(tag => (
-                    <Badge
-                      key={tag}
-                      className="rounded-full transition-all duration-500 ease-in-out"
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-                <span
-                  className={`
-                    mb-1 inline-block pt-2 text-lg font-semibold text-neutral-800 transition-all duration-500
-                    ease-in-out
-                    dark:text-neutral-100
-                  `}
-                >
-                  {item.title}
-                </span>
-                <p
-                  className={`
-                    text-sm text-neutral-600 transition-all duration-500 ease-in-out
-                    dark:text-neutral-400
-                  `}
-                >
-                  {item.description}
-                </p>
-              </div>
-            </div>
           </Link>
         ))}
       </section>
