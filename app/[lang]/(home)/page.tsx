@@ -80,7 +80,7 @@ export default async function Page({ params }: IProps) {
                   hover:bg-neutral-100
                   dark:bg-neutral-800 dark:hover:bg-neutral-900
                 `}
-                href={`https://github.com/dream-num/univer/releases/tag/v${pkg.version}`}
+                href="/blog/weekly-4"
                 target="_blank"
                 rel="noopener noreferrer"
               >
