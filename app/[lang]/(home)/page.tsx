@@ -1,6 +1,7 @@
 import { BookTextIcon, FerrisWheelIcon } from 'lucide-react'
 import Link from 'next/link'
 import BlurryBlob from '@/components/animata/blurry-blob'
+import Beam from '@/components/beam'
 import { Customer } from '@/components/customer'
 import { AnimatedShinyText } from '@/components/magicui/animated-shiny-text'
 import { BlurFade } from '@/components/magicui/blur-fade'
@@ -179,6 +180,54 @@ export default async function Page({ params }: IProps) {
 
           <div className="flex justify-center overflow-hidden">
             <Customer />
+          </div>
+        </section>
+
+        {/* Features */}
+        <section className="container px-4">
+          <h2>
+            Built for developers, by developers
+          </h2>
+          <div
+            className={`
+              grid gap-4
+              lg:h-120 lg:grid-flow-col lg:grid-cols-3 lg:grid-rows-4
+              [&>div]:p-4
+            `}
+          >
+            <div
+              className={`
+                bg-amber-200
+                lg:col-span-1 lg:row-span-4
+              `}
+            >
+              <h3>丰富插件，塑造多元产品</h3>
+              <Beam />
+            </div>
+            <div
+              className={`
+                bg-red-500
+                lg:col-span-1 lg:row-span-3
+              `}
+            >
+              2
+            </div>
+            <div
+              className={`
+                bg-blue-500
+                lg:col-span-2 lg:row-span-1
+              `}
+            >
+              4
+            </div>
+            <div
+              className={`
+                bg-green-500
+                lg:col-span-1 lg:row-span-3
+              `}
+            >
+              3
+            </div>
           </div>
         </section>
       </div>
