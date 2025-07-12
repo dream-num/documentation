@@ -35,6 +35,9 @@ export default function Univer() {
 
   return (
     <div className="w-full">
+      <link rel="prerender" href="/playground/miscs/sheets" />
+      <link rel="prerender" href="/playground/miscs/docs" />
+
       <header className="mb-4 flex justify-center gap-4">
         <div
           className={`
@@ -96,7 +99,8 @@ export default function Univer() {
             'pointer-events-auto -z-1 opacity-0': steady,
           })}
         >
-          <Spinner />
+          <div className="absolute inset-0 size-full backdrop-blur-sm" />
+          <Spinner className="z-1" />
         </div>
 
         {/* Univer Container */}
