@@ -4,8 +4,15 @@ import { ArrowUpNarrowWideIcon, BookTextIcon, ChartPieIcon, FunnelIcon, Grid2X2C
 import { useRef } from 'react'
 import { BrandIcon } from '@/components/logo'
 import { AnimatedBeam, Circle } from '@/components/ui-layouts/animated-beam'
+import { clsx } from '@/lib/clsx'
 
-export default function Beam() {
+interface IProps {
+  className?: string
+}
+
+export default function Combination(props: IProps) {
+  const { className } = props
+
   const containerRef = useRef<HTMLDivElement>(null!)
   const div1Ref = useRef<HTMLDivElement>(null!)
   const div2Ref = useRef<HTMLDivElement>(null!)
@@ -20,29 +27,65 @@ export default function Beam() {
   return (
     <div
       ref={containerRef}
-      className="relative mx-auto flex w-full items-center justify-center overflow-hidden"
+      className={clsx('relative mx-auto flex size-full items-center justify-center overflow-hidden', className)}
     >
       <div className="flex h-full w-full flex-row items-stretch justify-between gap-10">
-        <div className="flex flex-col justify-center gap-2">
-          <Circle ref={div1Ref} className="size-11">
+        <div className="flex flex-col justify-center gap-3">
+          <Circle
+            ref={div1Ref}
+            className={`
+              size-11
+              dark:bg-neutral-800
+            `}
+          >
             <FunnelIcon className="text-emerald-500" />
           </Circle>
-          <Circle ref={div2Ref} className="size-11">
+          <Circle
+            ref={div2Ref}
+            className={`
+              size-11
+              dark:bg-neutral-800
+            `}
+          >
             <ArrowUpNarrowWideIcon className="text-teal-500" />
           </Circle>
-          <Circle ref={div3Ref} className="size-11">
+          <Circle
+            ref={div3Ref}
+            className={`
+              size-11
+              dark:bg-neutral-800
+            `}
+          >
             <Grid2X2CheckIcon className="text-cyan-500" />
           </Circle>
-          <Circle ref={div4Ref} className="size-11">
+          <Circle
+            ref={div4Ref}
+            className={`
+              size-11
+              dark:bg-neutral-800
+            `}
+          >
             <ImagePlusIcon className="text-sky-500" />
           </Circle>
-          <Circle ref={div5Ref} className="size-11">
+          <Circle
+            ref={div5Ref}
+            className={`
+              size-11
+              dark:bg-neutral-800
+            `}
+          >
             <ChartPieIcon className="text-blue-500" />
           </Circle>
         </div>
 
         <div className="flex flex-col justify-center">
-          <Circle ref={div6Ref} className="size-16 p-0 shadow-xl">
+          <Circle
+            ref={div6Ref}
+            className={`
+              size-16 p-0 shadow-xl
+              dark:bg-neutral-800
+            `}
+          >
             <BrandIcon />
           </Circle>
         </div>
@@ -83,43 +126,35 @@ export default function Beam() {
         fromRef={div1Ref}
         toRef={div6Ref}
         dotted
-        dotSpacing={6}
+        dotSpacing={8}
       />
       <AnimatedBeam
         containerRef={containerRef}
         fromRef={div2Ref}
         toRef={div6Ref}
         dotted
-        gradientStartColor="#006ae3"
-        gradientStopColor="#1194ff"
-        dotSpacing={6}
+        dotSpacing={8}
       />
       <AnimatedBeam
         containerRef={containerRef}
         fromRef={div3Ref}
         toRef={div6Ref}
-        gradientStartColor="#00ac47"
-        gradientStopColor="#4fcc5d"
         dotted
-        dotSpacing={6}
+        dotSpacing={8}
       />
       <AnimatedBeam
         containerRef={containerRef}
         fromRef={div4Ref}
         toRef={div6Ref}
         dotted
-        gradientStartColor="#006ae3"
-        gradientStopColor="#1194ff"
-        dotSpacing={6}
+        dotSpacing={8}
       />
       <AnimatedBeam
         containerRef={containerRef}
         fromRef={div5Ref}
         toRef={div6Ref}
         dotted
-        dotSpacing={6}
-        gradientStartColor="#d948ae"
-        gradientStopColor="#5b60ff"
+        dotSpacing={8}
       />
       <AnimatedBeam
         containerRef={containerRef}
@@ -127,6 +162,8 @@ export default function Beam() {
         toRef={div7Ref}
         dotted
         dotSpacing={6}
+        gradientStartColor="#00c951"
+        gradientStopColor="#00a63e"
       />
       <AnimatedBeam
         containerRef={containerRef}
@@ -134,6 +171,8 @@ export default function Beam() {
         toRef={div8Ref}
         dotted
         dotSpacing={6}
+        gradientStartColor="#2b7fff"
+        gradientStopColor="#155dfc"
       />
       <AnimatedBeam
         containerRef={containerRef}
@@ -141,6 +180,8 @@ export default function Beam() {
         toRef={div9Ref}
         dotted
         dotSpacing={6}
+        gradientStartColor="#fb2c36"
+        gradientStopColor="#e7000b"
       />
     </div>
   )

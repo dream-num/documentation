@@ -1,12 +1,15 @@
-import { BookTextIcon, FerrisWheelIcon } from 'lucide-react'
+import { BookTextIcon, BowArrowIcon, CircuitBoardIcon, Columns3CogIcon, FerrisWheelIcon, LayersIcon } from 'lucide-react'
 import Link from 'next/link'
 import BlurryBlob from '@/components/animata/blurry-blob'
-import Beam from '@/components/beam'
 import { Customer } from '@/components/customer'
 import { AnimatedShinyText } from '@/components/magicui/animated-shiny-text'
 import { BlurFade } from '@/components/magicui/blur-fade'
 import { RainbowButton } from '@/components/magicui/rainbow-button'
 import Univer from '@/components/univer'
+import Combination from '@/components/widget/combination'
+import Customizability from '@/components/widget/customizability'
+import Integration from '@/components/widget/integration'
+import Performance from '@/components/widget/performance'
 import { customTranslations } from '@/lib/i18n'
 import pkg from '@/package.json'
 
@@ -82,8 +85,6 @@ export default async function Page({ params }: IProps) {
                   dark:bg-neutral-800 dark:hover:bg-neutral-900
                 `}
                 href="/blog/weekly-4"
-                target="_blank"
-                rel="noopener noreferrer"
               >
                 <span
                   className={`
@@ -168,15 +169,15 @@ export default async function Page({ params }: IProps) {
         </section>
 
         {/* Customer */}
-        <section className="text-center">
-          <h3
+        <section className="mb-12 text-center">
+          <h2
             className={`
               mb-4 text-sm font-semibold text-neutral-800
               dark:text-neutral-400
             `}
           >
             {customTranslations[lang]['home.customer.title']}
-          </h3>
+          </h2>
 
           <div className="flex justify-center overflow-hidden">
             <Customer />
@@ -185,48 +186,53 @@ export default async function Page({ params }: IProps) {
 
         {/* Features */}
         <section className="container px-4">
-          <h2>
-            Built for developers, by developers
-          </h2>
           <div
             className={`
               grid gap-4
               lg:h-120 lg:grid-flow-col lg:grid-cols-3 lg:grid-rows-4
-              [&>div]:p-4
+              [&>div]:flex [&>div]:flex-col [&>div]:gap-8 [&>div]:rounded-2xl [&>div]:bg-white/30 [&>div]:p-6
+              [&>div]:shadow-xs [&>div]:ring-4 [&>div]:ring-neutral-100/20 [&>div]:backdrop-blur-sm [&>div]:ring-inset
+              dark:[&>div]:bg-neutral-900/50 dark:[&>div]:ring-neutral-600/20
+              [&>div>h3]:inline-flex [&>div>h3]:items-center [&>div>h3]:gap-2 [&>div>h3]:text-sm
+              [&>div>h3]:font-semibold [&>div>h3]:text-neutral-600
+              dark:[&>div>h3]:text-neutral-300
+              [&>div>h3>svg]:size-5
             `}
           >
-            <div
-              className={`
-                bg-amber-200
-                lg:col-span-1 lg:row-span-4
-              `}
-            >
-              <h3>丰富插件，塑造多元产品</h3>
-              <Beam />
+            {/* Combination */}
+            <div className="lg:col-span-1 lg:row-span-4">
+              <h3>
+                <CircuitBoardIcon />
+                {customTranslations[lang]['home.features.conbination.title']}
+              </h3>
+              <Combination className="flex-1" />
             </div>
-            <div
-              className={`
-                bg-red-500
-                lg:col-span-1 lg:row-span-3
-              `}
-            >
-              2
+
+            {/* Integration */}
+            <div className="lg:col-span-1 lg:row-span-2">
+              <h3>
+                <LayersIcon />
+                {customTranslations[lang]['home.features.integration.title']}
+              </h3>
+              <Integration className="flex-1" />
             </div>
-            <div
-              className={`
-                bg-blue-500
-                lg:col-span-2 lg:row-span-1
-              `}
-            >
-              4
+
+            {/* Performance */}
+            <div className="lg:col-span-2 lg:row-span-2">
+              <h3>
+                <BowArrowIcon />
+                {customTranslations[lang]['home.features.performance.title']}
+              </h3>
+              <Performance />
             </div>
-            <div
-              className={`
-                bg-green-500
-                lg:col-span-1 lg:row-span-3
-              `}
-            >
-              3
+
+            {/* Customizability */}
+            <div className="lg:col-span-1 lg:row-span-2">
+              <h3>
+                <Columns3CogIcon />
+                {customTranslations[lang]['home.features.customizability.title']}
+              </h3>
+              <Customizability className="flex-1" />
             </div>
           </div>
         </section>
