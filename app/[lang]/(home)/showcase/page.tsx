@@ -21,10 +21,6 @@ export default async function Page({ params }: IProps) {
   const items = []
   const keys = Object.keys(showcase)
   for (const key of keys) {
-    if (key.startsWith('miscs/')) {
-      continue // Skip misc items
-    }
-
     const { metadata } = (await showcase[key]).default
 
     items.push({

@@ -1,32 +1,74 @@
 'use client'
 
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+import docsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { createUniver, LocaleType, merge } from '@univerjs/presets'
 import { BookTextIcon, SheetIcon } from 'lucide-react'
+import { useTheme } from 'next-themes'
 import { useEffect, useRef, useState } from 'react'
 import Spinner from '@/components/animata/spinner'
 import { BorderBeam } from '@/components/magicui/border-beam'
 import { clsx } from '@/lib/clsx'
 
+import '@univerjs/preset-docs-core/lib/index.css'
+import '@univerjs/preset-sheets-core/lib/index.css'
+
 export default function Univer() {
-  const iframeRef = useRef<HTMLIFrameElement>(null!)
+  const divRef = useRef<HTMLDivElement>(null!)
 
   const [type, setType] = useState<'sheets' | 'docs'>('sheets')
   const [steady, setSteady] = useState(false)
 
+  const { theme } = useTheme()
+
   useEffect(() => {
-    const eventHandler = (event: MessageEvent) => {
-      if (event.data.type === 'lifecycle' && event.data.stage === 'steady') {
+    const presets = []
+
+    if (type === 'docs') {
+      presets.push(
+        UniverDocsCorePreset({
+          container: divRef.current,
+        }),
+      )
+    } else if (type === 'sheets') {
+      presets.push(
+        UniverSheetsCorePreset({
+          container: divRef.current,
+        }),
+      )
+    }
+
+    const { univerAPI } = createUniver({
+      darkMode: theme === 'dark',
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: merge(
+          {},
+          docsCoreEnUS,
+          sheetsCoreEnUS,
+        ),
+      },
+      presets,
+    })
+
+    if (type === 'docs') {
+      univerAPI.createUniverDoc({})
+    } else if (type === 'sheets') {
+      univerAPI.createWorkbook({})
+    }
+
+    univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, (event) => {
+      if (event.stage === univerAPI.Enum.LifecycleStages.Rendered) {
         setSteady(true)
       }
-    }
-
-    window.addEventListener('message', eventHandler)
+    })
 
     return () => {
-      setSteady(false)
-
-      window.removeEventListener('message', eventHandler)
+      univerAPI.dispose()
     }
-  }, [])
+  }, [theme, type])
 
   function handleChangeType(newType: 'sheets' | 'docs') {
     setSteady(false)
@@ -35,9 +77,6 @@ export default function Univer() {
 
   return (
     <div className="w-full">
-      <link rel="prerender" href="/playground/miscs/sheets" />
-      <link rel="prerender" href="/playground/miscs/docs" />
-
       <header className="mb-4 flex justify-center gap-4">
         <div
           className={`
@@ -88,30 +127,29 @@ export default function Univer() {
       </header>
 
       <div
-        className="relative mx-auto h-161 w-320 max-w-full overflow-hidden rounded-xl p-px shadow-xl"
+        className="relative mx-auto h-160 w-320 max-w-full overflow-hidden rounded-xl p-0.5 shadow-xl"
       >
         {/* Mask */}
         <div
           className={clsx(`
-            absolute inset-0 flex size-full items-center justify-center bg-white/20
-            dark:bg-black/20
+            pointer-events-auto absolute inset-0 z-1 flex size-full items-center justify-center bg-white/20
+            transition-all
+            dark:bg-neutral-900/20
           `, {
-            'pointer-events-auto -z-1 opacity-0': steady,
+            'opacity-0': steady,
           })}
         >
-          <div className="absolute inset-0 size-full backdrop-blur-sm" />
-          <Spinner className="z-1" />
+          {!steady && <Spinner />}
         </div>
 
         {/* Univer Container */}
-        {/* eslint-disable-next-line react-dom/no-missing-iframe-sandbox */}
-        <iframe
-          ref={iframeRef}
-          className={clsx('pointer-events-none size-full opacity-0 blur-3xl transition-all duration-500', {
-            'pointer-events-auto opacity-100 blur-none': steady,
+        <div
+          className={clsx('size-full blur-3xl transition-all duration-300', {
+            'blur-none': steady,
           })}
-          src={`/playground/miscs/${type}`}
-        />
+        >
+          <div ref={divRef} className="h-full" />
+        </div>
 
         <BorderBeam
           delay={0}

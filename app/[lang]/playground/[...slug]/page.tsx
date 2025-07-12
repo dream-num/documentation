@@ -48,7 +48,6 @@ export default async function Page({ params }: IProps) {
         lang={lang}
         preview={<Preview />}
         files={files}
-        showCodeEditor={!path.startsWith('miscs/')}
       />
     </PageProvider>
   )
