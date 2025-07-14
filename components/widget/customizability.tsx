@@ -10,7 +10,7 @@ export default function Customizability(props: IProps) {
   return (
     <div
       className={clsx(`
-        relative h-full min-h-64 drop-shadow-md drop-shadow-neutral-200 transition-all
+        relative h-full min-h-42 drop-shadow-md drop-shadow-neutral-200 transition-all
         hover:drop-shadow-neutral-300
         lg:min-h-33
         dark:drop-shadow-blue-500 dark:hover:drop-shadow-blue-600
