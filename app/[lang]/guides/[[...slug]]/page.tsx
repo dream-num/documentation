@@ -1,8 +1,11 @@
+import process from 'node:process'
 import { SiGithub } from '@icons-pack/react-simple-icons'
 import { createRelativeLink } from 'fumadocs-ui/mdx'
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/page'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { PostHog } from 'posthog-node'
+import { Rate } from '@/components/rate'
 import { Button } from '@/components/ui/button'
 import { customTranslations } from '@/lib/i18n'
 import { guides } from '@/lib/source'
@@ -71,6 +74,31 @@ export default async function Page({ params }: IProps) {
             a: createRelativeLink(guides, page),
           })}
         />
+        <Rate
+          lang={lang}
+          onRateAction={async (url, feedback) => {
+            'use server'
+
+            if (!process.env.NEXT_POSTHOG_APIKEY) return
+
+            const posthog = new PostHog(
+              process.env.NEXT_POSTHOG_APIKEY,
+              { host: 'https://us.i.posthog.com' },
+            )
+
+            posthog.capture({
+              event: 'on_rate_docs',
+              timestamp: new Date(),
+              distinctId: 'anonymous',
+              properties: {
+                ...feedback,
+                url,
+                lang,
+              },
+            })
+          }}
+        />
+
       </DocsBody>
     </DocsPage>
   )

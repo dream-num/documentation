@@ -14,6 +14,8 @@ RUN corepack enable pnpm && pnpm i
 # Environment variables
 ARG NEXT_GITHUB_TOKEN=""
 RUN echo "NEXT_GITHUB_TOKEN=${NEXT_GITHUB_TOKEN}" >> .env
+ARG NEXT_POSTHOG_APIKEY=""
+RUN echo "NEXT_POSTHOG_APIKEY=${NEXT_POSTHOG_APIKEY}" >> .env
 
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry
