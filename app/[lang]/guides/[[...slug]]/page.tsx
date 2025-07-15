@@ -74,32 +74,32 @@ export default async function Page({ params }: IProps) {
             a: createRelativeLink(guides, page),
           })}
         />
-        <Rate
-          lang={lang}
-          onRateAction={async (url, feedback) => {
-            'use server'
-
-            if (!process.env.NEXT_POSTHOG_APIKEY) return
-
-            const posthog = new PostHog(
-              process.env.NEXT_POSTHOG_APIKEY,
-              { host: 'https://us.i.posthog.com' },
-            )
-
-            posthog.capture({
-              event: 'on_rate_docs',
-              timestamp: new Date(),
-              distinctId: 'anonymous',
-              properties: {
-                ...feedback,
-                url,
-                lang,
-              },
-            })
-          }}
-        />
-
       </DocsBody>
+
+      <Rate
+        lang={lang}
+        onRateAction={async (url, feedback) => {
+          'use server'
+
+          if (!process.env.NEXT_POSTHOG_APIKEY) return
+
+          const posthog = new PostHog(
+            process.env.NEXT_POSTHOG_APIKEY,
+            { host: 'https://us.i.posthog.com' },
+          )
+
+          posthog.capture({
+            event: 'on_rate_docs',
+            timestamp: new Date(),
+            distinctId: 'anonymous',
+            properties: {
+              ...feedback,
+              url,
+              lang,
+            },
+          })
+        }}
+      />
     </DocsPage>
   )
 }
