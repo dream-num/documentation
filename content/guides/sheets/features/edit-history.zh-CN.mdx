@@ -28,6 +28,10 @@ icon: '#pro/History'
 
 编辑历史功能允许用户查看和恢复文档的历史版本，支持多种过滤和搜索方式，帮助用户高效管理文档内容。
 
+<Callout type="warning" title="注意事项">
+  编辑历史功能内部创建了一个独立的 Univer 实例来处理历史记录的加载和展示。如果你需要对历史记录的 Univer 实例进行操作或配置（如修改接口请求头、注册插件等），请参考[获取历史记录的 Univer 实例](#get-edit-history-univer-instance)部分。
+</Callout>
+
 ## 预设模式
 
 ### 安装
@@ -154,32 +158,56 @@ interface IUniverExchangeClientConfig {
 
 启动历史记录时，`UniverEditHistoryLoaderPlugin` 会加载一个新的 Univer 实例挂载指定 DOM 节点上。因此在注册时，需要提供合适的 DOM 节点 id（如原 Univer 实例的 Container），以达到历史记录面板覆盖原 Univer 面板的目的。若节点 id 未指定，则默认为  `univer-container`。
 
-## Feature 适配
+## 获取历史记录的 Univer 实例 `historyUniver` [#get-edit-history-univer-instance]
+
+如果你需要对历史记录的 Univer 实例进行操作或配置（如修改接口请求头、注册插件等），可以通过 `HistoryLoaderService` 获取到该实例。
+
+<Tabs items={['预设模式', '插件模式']}>
+  <Tab>
+    ```typescript
+    import { HistoryLoaderService } from '@univerjs/preset-sheets-collaboration'
+
+    const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+      if (stage === univerAPI.Enum.LifecycleStages.Steady) {
+        const injector = univer.__getInjector()
+        const historyLoaderService = injector.get(HistoryLoaderService)
+
+        const { historyUniver } = historyLoaderService // [!code word:historyUniver]
+      }
+    })
+
+    // 移除事件监听器，使用 `disposable.dispose()`
+    ```
+  </Tab>
+  <Tab>
+    ```typescript
+    import { HistoryLoaderService } from '@univerjs-pro/edit-history-loader'
+
+    const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+      if (stage === univerAPI.Enum.LifecycleStages.Steady) {
+        const injector = univer.__getInjector()
+        const historyLoaderService = injector.get(HistoryLoaderService)
+
+        const { historyUniver } = historyLoaderService // [!code word:historyUniver]
+      }
+    })
+
+    // 移除事件监听器，使用 `disposable.dispose()`
+    ```
+  </Tab>
+</Tabs>
+
+### 第三方插件适配
 
 历史记录的 Univer 实例中只会默认加载官方的 Plugin。为业务需求开发的第三方 Feature Plugin 需要被注册到 `HistoryLoaderService` 后，才会被正确的显示在历史记录中。
 
-对已经内置注册的官方 Plugin，也可以修改其配置。
-
-在 `HistoryLoaderService` 中，你还可以获取或订阅历史记录的 Univer 实例，用于支持更多的拓展操作。
-
 ```typescript
-import { HistoryLoaderService } from '@univerjs-pro/edit-history-loader'
-// Presets 引入: import { HistoryLoaderService } from '@univerjs/preset-sheets-collaboration';
+const injector = univer.__getInjector()
+const historyLoaderService = injector.get(HistoryLoaderService)
 
-const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
-  if (stage === univerAPI.Enum.LifecycleStages.Steady) {
-    const injector = univer.__getInjector()
-    const historyLoaderService = injector.get(HistoryLoaderService)
-
-    // 和 PluginService 的注册方式一致，历史记录的 Univer 实例在新建后会按照以下配置来注册对应 Plugin
-    historyLoaderService.registerPlugin(YourPlugin, YourPluginConfig)
-    // 配置官方已注册的 Plugin, 需设置 true 参数表示覆盖原配置
-    historyLoaderService.registerPlugin(ExamplePlugin, ExamplePluginConfig, true)
-
-    // 如果加载了历史记录，则可以直接获取到历史记录的 Univer 实例
-    const historyUniver = historyLoaderService.historyUniver
-  }
-})
-
-// 移除事件监听器，使用 `disposable.dispose()`
+// [!code focus:4]
+// 和 PluginService 的注册方式一致，历史记录的 Univer 实例在新建后会按照以下配置来注册对应 Plugin
+historyLoaderService.registerPlugin(YourPlugin, YourPluginConfig)
+// 配置官方已注册的 Plugin, 需设置 true 参数表示覆盖原配置
+historyLoaderService.registerPlugin(ExamplePlugin, ExamplePluginConfig, true)
 ```
