@@ -2,8 +2,12 @@
 
 import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
 import docsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
+import { UniverSheetsConditionalFormattingPreset } from '@univerjs/preset-sheets-conditional-formatting'
+import sheetsConditionalFormattingEnUS from '@univerjs/preset-sheets-conditional-formatting/locales/en-US'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { UniverSheetsDataValidationPreset } from '@univerjs/preset-sheets-data-validation'
+import sheetsDataValidationEnUS from '@univerjs/preset-sheets-data-validation/locales/en-US'
 import { createUniver, LocaleType, merge } from '@univerjs/presets'
 import { BookTextIcon, SheetIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
@@ -11,6 +15,7 @@ import { useEffect, useRef, useState } from 'react'
 import Spinner from '@/components/animata/spinner'
 import { BorderBeam } from '@/components/magicui/border-beam'
 import { clsx } from '@/lib/clsx'
+import { documentData, workbookData } from './data'
 
 import '@univerjs/preset-docs-core/lib/index.css'
 import '@univerjs/preset-sheets-core/lib/index.css'
@@ -24,19 +29,24 @@ export default function Univer() {
   const { theme } = useTheme()
 
   useEffect(() => {
+    const locales = []
     const presets = []
 
     if (type === 'docs') {
+      locales.push(docsCoreEnUS)
       presets.push(
         UniverDocsCorePreset({
           container: divRef.current,
         }),
       )
     } else if (type === 'sheets') {
+      locales.push(sheetsCoreEnUS, sheetsDataValidationEnUS, sheetsConditionalFormattingEnUS)
       presets.push(
         UniverSheetsCorePreset({
           container: divRef.current,
         }),
+        UniverSheetsDataValidationPreset(),
+        UniverSheetsConditionalFormattingPreset(),
       )
     }
 
@@ -46,17 +56,16 @@ export default function Univer() {
       locales: {
         [LocaleType.EN_US]: merge(
           {},
-          docsCoreEnUS,
-          sheetsCoreEnUS,
+          ...locales,
         ),
       },
       presets,
     })
 
     if (type === 'docs') {
-      univerAPI.createUniverDoc({})
+      univerAPI.createUniverDoc(documentData)
     } else if (type === 'sheets') {
-      univerAPI.createWorkbook({})
+      univerAPI.createWorkbook(workbookData)
     }
 
     univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, (event) => {
@@ -144,7 +153,7 @@ export default function Univer() {
 
         {/* Univer Container */}
         <div
-          className={clsx('size-full blur-3xl transition-all duration-300', {
+          className={clsx('relative z-1 size-full blur-3xl transition-all duration-300', {
             'blur-none': steady,
           })}
         >
