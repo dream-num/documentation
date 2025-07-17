@@ -34,7 +34,7 @@ export const blog = defineDocs({
   docs: {
     schema: frontmatterSchema.extend({
       author: z.string(),
-      date: z.string().date().or(z.date()),
+      date: z.iso.date().or(z.date()),
     }),
   },
   meta: {
