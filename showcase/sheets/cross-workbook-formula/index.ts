@@ -23,6 +23,7 @@ const metadata = {
 export const files = {
   '/src/index.ts': fs.readFileSync(path.resolve(__dirname, './code/index.ts'), 'utf-8'),
   '/src/components/switch-units.tsx': fs.readFileSync(path.resolve(__dirname, './code/components/switch-units.tsx'), 'utf-8'),
+  '/src/state.ts': fs.readFileSync(path.resolve(__dirname, './code/state.ts'), 'utf-8'),
   '/src/data.ts': fs.readFileSync(path.resolve(__dirname, './code/data.ts'), 'utf-8'),
 }
 

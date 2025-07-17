@@ -1,20 +1,37 @@
 import type { Workbook } from '@univerjs/presets'
 import { clsx, IUniverInstanceService, UniverInstanceType } from '@univerjs/presets'
-import { useDependency, useObservable } from '@univerjs/ui'
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
+import { state } from '../state'
 
 export function SwitchUnits() {
-  const univerInstanceService = useDependency(IUniverInstanceService)
-  const activeSheet = useObservable(useMemo(() => univerInstanceService.getCurrentTypeOfUnit$<Workbook>(UniverInstanceType.UNIVER_SHEET), [univerInstanceService]))
+  const univer = state.getUniver()
+  const injector = univer?.__getInjector()
+  const univerInstanceService = injector?.get(IUniverInstanceService)
 
-  if (!activeSheet) return null
+  const [sheets, setSheets] = useState<Workbook[]>([])
+  const [activeSheetId, setActiveSheetId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!univerInstanceService) return
+
+    const sheets = univerInstanceService.getAllUnitsForType<Workbook>(UniverInstanceType.UNIVER_SHEET)
+    setSheets(sheets)
+
+    const currentUnit$ = univerInstanceService.getCurrentTypeOfUnit$(UniverInstanceType.UNIVER_SHEET)
+    const subscription = currentUnit$?.subscribe((unit) => {
+      if (unit) {
+        setActiveSheetId(unit.getUnitId())
+      }
+    })
+
+    return () => {
+      subscription?.unsubscribe()
+    }
+  }, [univerInstanceService])
 
   function switchSheet(sheet: Workbook) {
-    univerInstanceService.focusUnit(sheet.getUnitId())
+    univerInstanceService?.focusUnit(sheet.getUnitId())
   }
-
-  const allSheets = univerInstanceService.getAllUnitsForType<Workbook>(UniverInstanceType.UNIVER_SHEET)
-  const activeSheetId = activeSheet?.getUnitId()
 
   return (
     <div
@@ -34,7 +51,7 @@ export function SwitchUnits() {
             Workbooks
           </span>
 
-          {allSheets.map((sheet) => {
+          {sheets.map((sheet) => {
             const isActive = sheet.getUnitId() === activeSheetId
 
             return (

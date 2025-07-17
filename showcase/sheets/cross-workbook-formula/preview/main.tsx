@@ -7,6 +7,7 @@ import { useTheme } from 'next-themes'
 import { useEffect, useRef } from 'react'
 import { SwitchUnits } from '../code/components/switch-units'
 import { WORKBOOK_DATA_1, WORKBOOK_DATA_2, WORKBOOK_DATA_3, WORKBOOK_DATA_4 } from '../code/data'
+import { state } from '../code/state'
 
 import '@univerjs/preset-sheets-core/lib/index.css'
 
@@ -16,7 +17,7 @@ export default function Preview() {
   const { theme } = useTheme()
 
   useEffect(() => {
-    const { univerAPI } = createUniver({
+    const { univer, univerAPI } = createUniver({
       darkMode: theme === 'dark',
       locale: LocaleType.EN_US,
       locales: {
@@ -41,6 +42,8 @@ export default function Preview() {
       univerAPI.Enum.BuiltInUIPart.CUSTOM_HEADER,
       SwitchUnits,
     )
+
+    state.setUniver(univer)
 
     return () => {
       univerAPI.dispose()
