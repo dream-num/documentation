@@ -1,5 +1,5 @@
+import type { IConditionFormattingRule } from '@univerjs/preset-sheets-conditional-formatting'
 import type { IWorkbookData, IWorksheetData } from '@univerjs/presets'
-import type { IConditionFormattingRule } from '@univerjs/presets/preset-sheets-conditional-formatting'
 import type { ILuckyJson } from '../common/interface/lucky-json'
 import type { ILuckySheet } from '../common/interface/lucky-sheet'
 import { colorGradationCondition } from './utils/color-gradation-condition'

@@ -1,7 +1,14 @@
-import type { IAverageHighlightCell, IDuplicateValuesHighlightCell, INumberHighlightCell, IRankHighlightCell, ITextHighlightCell, IUniqueValuesHighlightCell } from '@univerjs/presets/preset-sheets-conditional-formatting'
+import type {
+  IAverageHighlightCell,
+  IDuplicateValuesHighlightCell,
+  INumberHighlightCell,
+  IRankHighlightCell,
+  ITextHighlightCell,
+  IUniqueValuesHighlightCell,
+} from '@univerjs/preset-sheets-conditional-formatting'
 import type { IluckysheetCFDefaultFormat, IluckysheetConditionFormat } from '../../common/interface/condition-format'
+import { CFNumberOperator, CFRuleType, CFSubRuleType, CFTextOperator } from '@univerjs/preset-sheets-conditional-formatting'
 import { generateRandomId } from '@univerjs/presets'
-import { CFNumberOperator, CFRuleType, CFSubRuleType, CFTextOperator } from '@univerjs/presets/preset-sheets-conditional-formatting'
 import { rangeArrayToRanges } from '../../common/utils/selection'
 
 export function defaultCondition(condition: IluckysheetConditionFormat) {

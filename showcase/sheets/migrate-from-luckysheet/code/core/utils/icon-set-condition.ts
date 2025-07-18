@@ -1,7 +1,7 @@
-import type { IIconSet } from '@univerjs/presets/preset-sheets-conditional-formatting'
+import type { IIconSet } from '@univerjs/preset-sheets-conditional-formatting'
 import type { IluckysheetCFIconsFormat, IluckysheetConditionFormat } from '../../common/interface/condition-format'
+import { CFNumberOperator, CFRuleType, CFValueType } from '@univerjs/preset-sheets-conditional-formatting'
 import { generateRandomId } from '@univerjs/presets'
-import { CFNumberOperator, CFRuleType, CFValueType } from '@univerjs/presets/preset-sheets-conditional-formatting'
 import { rangeArrayToRanges } from '../../common/utils/selection'
 
 const defaultIconType = '3Arrows'

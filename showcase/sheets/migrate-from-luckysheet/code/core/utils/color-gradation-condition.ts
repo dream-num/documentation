@@ -1,7 +1,7 @@
-import type { IColorScale, IValueConfig } from '@univerjs/presets/preset-sheets-conditional-formatting'
+import type { IColorScale, IValueConfig } from '@univerjs/preset-sheets-conditional-formatting'
 import type { IluckysheetConditionFormat } from '../../common/interface/condition-format'
+import { CFRuleType, CFValueType } from '@univerjs/preset-sheets-conditional-formatting'
 import { generateRandomId } from '@univerjs/presets'
-import { CFRuleType, CFValueType } from '@univerjs/presets/preset-sheets-conditional-formatting'
 import { rangeArrayToRanges } from '../../common/utils/selection'
 
 export function colorGradationCondition(condition: IluckysheetConditionFormat) {
