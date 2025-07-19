@@ -19,6 +19,8 @@ import { documentData, workbookData } from './data'
 
 import '@univerjs/preset-docs-core/lib/index.css'
 import '@univerjs/preset-sheets-core/lib/index.css'
+import '@univerjs/preset-sheets-data-validation/lib/index.css'
+import '@univerjs/preset-sheets-conditional-formatting/lib/index.css'
 
 export default function Univer() {
   const divRef = useRef<HTMLDivElement>(null!)
