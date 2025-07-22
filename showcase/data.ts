@@ -22,6 +22,7 @@ export const showcase: Record<string, Promise<{ default: {
   'sheets/custom-menu': import('./sheets/custom-menu'),
   'sheets/custom-formula': import('./sheets/custom-formula'),
   'sheets/custom-shortcuts': import('./sheets/custom-shortcuts'),
+  'sheets/images': import('./sheets/images'),
   'sheets/crosshair-highlighting': import('./sheets/crosshair-highlighting'),
   'sheets/watermark': import('./sheets/watermark'),
   'sheets/charts': import('./sheets/charts'),
