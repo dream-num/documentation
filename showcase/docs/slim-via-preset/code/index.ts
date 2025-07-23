@@ -16,7 +16,9 @@ const { univerAPI } = createUniver({
     ),
   },
   presets: [
-    UniverDocsCorePreset(),
+    UniverDocsCorePreset({
+      container: 'app',
+    }),
   ],
 })
 

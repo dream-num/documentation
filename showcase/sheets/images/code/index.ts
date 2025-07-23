@@ -20,7 +20,9 @@ const { univerAPI } = createUniver({
     ),
   },
   presets: [
-    UniverSheetsCorePreset(),
+    UniverSheetsCorePreset({
+      container: 'app',
+    }),
     UniverSheetsDrawingPreset(),
   ],
 })
@@ -28,7 +30,7 @@ const { univerAPI } = createUniver({
 univerAPI.createWorkbook(WORKBOOK_DATA)
 
 univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, async (event) => {
-  if (event.stage === univerAPI.Enum.LifecycleStages.Steady) {
+  if (event.stage === univerAPI.Enum.LifecycleStages.Rendered) {
     const fWorkbook = univerAPI.getActiveWorkbook()
     const fWorksheet = fWorkbook?.getActiveSheet()
 

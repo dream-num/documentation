@@ -44,7 +44,7 @@ export default function Preview() {
 
     univerAPI.createWorkbook(WORKBOOK_DATA)
     univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
-      if (stage === univerAPI.Enum.LifecycleStages.Steady) {
+      if (stage === univerAPI.Enum.LifecycleStages.Rendered) {
         insertChart(univerAPI)
       }
     })

@@ -57,7 +57,9 @@ const { univerAPI } = createUniver({
     ),
   },
   presets: [
-    UniverSheetsCorePreset(),
+    UniverSheetsCorePreset({
+      container: 'app',
+    }),
     UniverSheetsFindReplacePreset(),
     UniverSheetsSortPreset(),
     UniverSheetsFilterPreset(),
