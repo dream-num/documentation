@@ -72,6 +72,7 @@ export default antfu({
     'antfu/no-top-level-await': 'off',
     'ts/prefer-literal-enum-member': 'off',
     'react-hooks/rules-of-hooks': 'off',
+    'no-useless-return': 'off',
   },
 }, {
   files: ['**/*.tsx'],
