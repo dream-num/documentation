@@ -7,8 +7,11 @@ const isWindows = os.platform() === 'win32'
 const lineBreakStyle = isWindows ? 'windows' : 'unix'
 
 export default antfu({
+  ignores: ['**/.angular/**', '**/.astro/**'],
   formatters: true,
   react: true,
+  astro: true,
+  vue: true,
 }, {
   ignores: ['**/*.mdx'],
   files: ['**/*.ts', '**/*.tsx'],
