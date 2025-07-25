@@ -37,6 +37,7 @@ export default function Preview() {
     })
 
     univerAPI.createWorkbook(WORKBOOK_DATA)
+    window.univerAPI = univerAPI
 
     return () => {
       univerAPI.dispose()

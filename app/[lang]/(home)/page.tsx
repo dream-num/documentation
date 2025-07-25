@@ -143,13 +143,13 @@ export default async function Page({ params }: IProps) {
 
             <div className="flex justify-center gap-4">
               <RainbowButton asChild>
-                <Link href={`/${lang}/guides/sheets`}>
+                <Link href="/guides/sheets">
                   <BookTextIcon />
                   {customTranslations[lang]['documentation.title']}
                 </Link>
               </RainbowButton>
               <RainbowButton variant="outline" asChild>
-                <Link href={`/${lang}/showcase`}>
+                <Link href="/showcase">
                   <FerrisWheelIcon />
                   {customTranslations[lang]['showcase.title']}
                 </Link>
