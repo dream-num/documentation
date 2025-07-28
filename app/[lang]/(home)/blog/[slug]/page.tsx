@@ -46,12 +46,7 @@ export default async function Page({ params }: IProps) {
   const MDXContent = page.data.body
 
   return (
-    <div
-      className={`
-        container py-12
-        max-sm:px-0
-      `}
-    >
+    <div className="container px-4 py-12">
       <header>
         <h1
           className={`
@@ -72,7 +67,7 @@ export default async function Page({ params }: IProps) {
       >
         <article
 
-          className={clsx('prose', `
+          className={clsx('prose overflow-x-hidden', `
             order-last
             md:order-none
           `)}
