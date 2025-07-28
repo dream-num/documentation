@@ -1,6 +1,6 @@
 import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
 import docsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
-import { createUniver, LocaleType, merge } from '@univerjs/presets'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { html, LitElement } from 'lit'
 import { DOCUMENT_DATA } from './data'
 
@@ -11,8 +11,7 @@ class MyWebComponent extends LitElement {
     const { univerAPI } = createUniver({
       locale: LocaleType.EN_US,
       locales: {
-        [LocaleType.EN_US]: merge(
-          {},
+        [LocaleType.EN_US]: mergeLocales(
           docsCoreEnUS,
         ),
       },

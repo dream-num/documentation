@@ -2,7 +2,7 @@
 
 import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
 import docsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
-import { createUniver, LocaleType, merge } from '@univerjs/presets'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef } from 'react'
 import { DOCUMENT_DATA } from '../code/data'
@@ -19,8 +19,7 @@ export default function Preview() {
       darkMode: theme === 'dark',
       locale: LocaleType.EN_US,
       locales: {
-        [LocaleType.EN_US]: merge(
-          {},
+        [LocaleType.EN_US]: mergeLocales(
           docsCoreEnUS,
         ),
       },

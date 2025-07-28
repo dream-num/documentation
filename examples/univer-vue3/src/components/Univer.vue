@@ -2,7 +2,7 @@
 import type { FUniver, Univer } from '@univerjs/presets'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import UniverPresetSheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
-import { createUniver, LocaleType, merge } from '@univerjs/presets'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import '@univerjs/preset-sheets-core/lib/index.css'
 
@@ -14,8 +14,7 @@ onMounted(() => {
   const { univer, univerAPI } = createUniver({
     locale: LocaleType.ZH_CN,
     locales: {
-      [LocaleType.ZH_CN]: merge(
-        {},
+      [LocaleType.ZH_CN]: mergeLocales(
         UniverPresetSheetsCoreZhCN,
       ),
     },

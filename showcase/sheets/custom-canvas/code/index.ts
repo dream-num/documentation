@@ -1,6 +1,6 @@
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import { createUniver, LocaleType, merge } from '@univerjs/presets'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { WORKBOOK_DATA } from './data'
 import ColumnHeaderCustomExtension from './extensions/column-header.extension'
 import MainCustomExtension from './extensions/main.extension'
@@ -13,8 +13,7 @@ import '@univerjs/preset-sheets-core/lib/index.css'
 const { univerAPI } = createUniver({
   locale: LocaleType.EN_US,
   locales: {
-    [LocaleType.EN_US]: merge(
-      {},
+    [LocaleType.EN_US]: mergeLocales(
       sheetsCoreEnUS,
     ),
   },

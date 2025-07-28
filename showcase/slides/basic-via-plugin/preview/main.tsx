@@ -1,6 +1,6 @@
 'use client'
 
-import { LocaleType, merge, Univer, UniverInstanceType } from '@univerjs/core'
+import { LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
 import DesignEnUS from '@univerjs/design/locale/en-US'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
@@ -32,8 +32,7 @@ export default function Preview() {
       darkMode: theme === 'dark',
       locale: LocaleType.EN_US,
       locales: {
-        [LocaleType.EN_US]: merge(
-          {},
+        [LocaleType.EN_US]: mergeLocales(
           DesignEnUS,
           UIEnUS,
           DocsUIEnUS,

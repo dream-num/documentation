@@ -1,4 +1,4 @@
-import { LocaleType, merge, Univer, UniverInstanceType } from '@univerjs/core'
+import { LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
 // import { FUniver } from '@univerjs/core/facade'
 import DesignEnUS from '@univerjs/design/locale/en-US'
 import { UniverDocsPlugin } from '@univerjs/docs'
@@ -23,8 +23,7 @@ import './styles.css'
 const univer = new Univer({
   locale: LocaleType.EN_US,
   locales: {
-    [LocaleType.EN_US]: merge(
-      {},
+    [LocaleType.EN_US]: mergeLocales(
       DesignEnUS,
       UIEnUS,
       DocsUIEnUS,

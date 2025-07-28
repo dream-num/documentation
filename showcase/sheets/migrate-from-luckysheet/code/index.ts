@@ -4,7 +4,7 @@ import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
 import { UniverSheetsDataValidationPreset } from '@univerjs/preset-sheets-data-validation'
 import sheetsDataValidationEnUS from '@univerjs/preset-sheets-data-validation/locales/en-US'
-import { createUniver, LocaleType, merge } from '@univerjs/presets'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { luckyToUniver } from './core/lucky-to-univer'
 import { luckyJson } from './data'
 
@@ -17,8 +17,7 @@ import '@univerjs/preset-sheets-data-validation/lib/index.css'
 const { univerAPI } = createUniver({
   locale: LocaleType.EN_US,
   locales: {
-    [LocaleType.EN_US]: merge(
-      {},
+    [LocaleType.EN_US]: mergeLocales(
       sheetsCoreEnUS,
       sheetsConditionalFormattingEnUS,
       sheetsDataValidationEnUS,
