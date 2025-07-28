@@ -14,7 +14,7 @@ export const WORKBOOK_DATA: IWorkbookData = {
     'sheet-08',
   ],
   name: 'Sheets Feature',
-  appVersion: '',
+  appVersion: '0.9.4',
   locale: LocaleType.EN_US,
   styles: {
     AifWG9: {

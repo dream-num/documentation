@@ -6,8 +6,6 @@ export const workbookData: Partial<IWorkbookData> = {
   sheetOrder: [
     'bk_yzgbvysKwoStbCNy_f',
   ],
-  name: '',
-  appVersion: '0.9.2',
   locale: LocaleType.EN_US,
   styles: {
     f0wC6_: {

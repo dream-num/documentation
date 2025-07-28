@@ -7,7 +7,7 @@ export const WORKBOOK_DATA: IWorkbookData = {
     'sheet-01',
   ],
   name: 'Sheets Chart Demo',
-  appVersion: '0.5.2',
+  appVersion: '0.9.4',
   locale: LocaleType.EN_US,
   styles: {
     mTVIwU: {

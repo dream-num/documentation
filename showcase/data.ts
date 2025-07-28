@@ -27,6 +27,7 @@ export const showcase: Record<string, Promise<{ default: {
   'sheets/crosshair-highlighting': import('./sheets/crosshair-highlighting'),
   'sheets/watermark': import('./sheets/watermark'),
   'sheets/charts': import('./sheets/charts'),
+  'sheets/print': import('./sheets/print'),
   'sheets/migrate-from-luckysheet': import('./sheets/migrate-from-luckysheet'),
   'sheets/cross-workbook-formula': import('./sheets/cross-workbook-formula'),
   'docs/slim-via-plugin': import('./docs/slim-via-plugin'),
