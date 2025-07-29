@@ -1,0 +1,181 @@
+---
+title: "Univer 周报 #7"
+author: 白熱
+date: 2025-07-29
+---
+
+import { RainbowButton } from '@/components/magicui/rainbow-button'
+
+如果 Univer 对你有所帮助，请考虑在 GitHub 上给我们点个星。你的支持将帮助我们继续改进和维护 Univer。
+
+<a href="https://github.com/dream-num/univer" target="_blank" rel="noopener noreferrer">
+  <RainbowButton variant="outline">⭐️ 在 GitHub 上点个星</RainbowButton>
+</a>
+
+---
+
+## Univer v0.10.0
+
+### `mergeLocales`：简化多语言包合并
+
+在 Univer v0.10.0 版本中，我们提供了新的 [`mergeLocales`](/guides/getting-started/i18n#mergeLocales) 方法。用于合并多个语言包对象。相比以往手动调用 `merge` 进行合并，`mergeLocales` 让你无需再关心底层的合并细节，只需专注于传入需要合并的语言包即可，大幅提升了国际化开发的便捷性和代码可读性。
+
+对于之前使用 `merge` 方法的项目，建议按如下方式修改代码：
+
+<Tabs items={['预设模式', '插件模式']}>
+  <Tab>
+    ```diff
+    - import { merge } from '@univerjs/presets';
+    + import { mergeLocales } from '@univerjs/presets';
+
+    const univer = new Univer({
+      locale: LocaleType.ZH_CN,
+      locales: {
+    -   [LocaleType.ZH_CN]: merge(
+    -   {},
+    +   [LocaleType.ZH_CN]: mergeLocales(
+          DesignZhCN,
+          UIZhCN,
+          DocsUIZhCN,
+          SheetsZhCN,
+          SheetsUIZhCN,
+          SheetsFormulaUIZhCN,
+          SheetsNumfmtUIZhCN,
+        ),
+      },
+    })
+    ```
+  </Tab>
+  <Tab>
+    ```diff
+    - import { merge } from '@univerjs/core';
+    + import { mergeLocales } from '@univerjs/core';
+
+    const univer = new Univer({
+      locale: LocaleType.ZH_CN,
+      locales: {
+    -   [LocaleType.ZH_CN]: merge(
+    -   {},
+    +   [LocaleType.ZH_CN]: mergeLocales(
+          DesignZhCN,
+          UIZhCN,
+          DocsUIZhCN,
+          SheetsZhCN,
+          SheetsUIZhCN,
+          SheetsFormulaUIZhCN,
+          SheetsNumfmtUIZhCN,
+        ),
+      },
+    })
+    ```
+  </Tab>
+</Tabs>
+
+通过上述调整，你可以用更清晰的方式合并多个语言包，无需再手动传入空对象作为初始参数。
+
+### `univer.registerPlugin`：支持批量注册插件
+
+本次更新对 [`univer.registerPlugin`](/guides/getting-started/installation#registerPlugin) 方法进行了增强，现在支持一次性注册多个插件，无需多次循环调用，极大提升了插件注册的灵活性与效率。例如：
+
+```typescript
+univer.registerPlugin([
+  UniverRenderEnginePlugin,
+  UniverFormulaEnginePlugin,
+  [UniverUIPlugin, {
+    container: 'app',
+  }],
+  UniverDocsPlugin,
+  UniverDocsUIPlugin,
+  UniverSheetsPlugin,
+  UniverSheetsUIPlugin,
+  UniverSheetsFormulaPlugin,
+  UniverSheetsFormulaUIPlugin,
+  UniverSheetsNumfmtPlugin,
+  UniverSheetsNumfmtUIPlugin,
+])
+```
+
+通过数组传递插件列表，可以更直观地管理和维护插件依赖关系。
+
+### 💔 破坏性更新：自定义权限背景与用户组件配置方式调整
+
+以往，开发者需要通过 `UniverSheetsUIPlugin` 的 `customComponents` 属性实现自定义权限背景和用户组件，这一方式配置繁琐、理解门槛高。v0.10.0 版本对此进行了破坏性调整，移除了 `customComponents`，并用更直观的 `protectedRangeUserSelector` 和 `protectedRangeShadow` 替代。
+
+如果你过去使用了 `customComponents` 属性来实现自定义权限背景和用户组件，请参考以下示例进行迁移：
+
+**隐藏权限背景阴影**
+
+<Tabs items={['预设模式', '插件模式']}>
+  <Tab>
+    ```diff
+    createUniver({
+      presets: [
+        UniverSheetsCorePreset({
+    -     customComponents: new Set([UNIVER_SHEET_PERMISSION_BACKGROUND]),
+    +     protectedRangeShadow: false,
+        }),
+      ],
+    })
+    ```
+  </Tab>
+  <Tab>
+    ```diff
+    univer.registerPlugin(UniverSheetsUIPlugin, {
+    -  customComponents: new Set([UNIVER_SHEET_PERMISSION_BACKGROUND]),
+    +  protectedRangeShadow: false,
+    })
+    ```
+  </Tab>
+</Tabs>
+
+**自定义用户组件**
+
+<Tabs items={['预设模式', '插件模式']}>
+  <Tab>
+    ```diff
+    - const injector = univer.__getInjector()
+    - const uiPartsService = injector.get(IUIPartsService)
+    - uiPartsService.registerComponent(UNIVER_SHEET_PERMISSION_USER_PART, () => connectInjector(CustomPermissionDetailUserPart, injector))
+
+    createUniver({
+      presets: [
+        UniverSheetsCorePreset({
+    -     customComponents: new Set([UNIVER_SHEET_PERMISSION_USER_PART]),
+    +     protectedRangeUserSelector: {
+    +       component: CustomPermissionDetailUserPart,
+    +       framework: 'react',
+    +     },
+        }),
+      ],
+    })
+    ```
+  </Tab>
+  <Tab>
+    ```diff
+    - const injector = univer.__getInjector()
+    - const uiPartsService = injector.get(IUIPartsService)
+    - uiPartsService.registerComponent(UNIVER_SHEET_PERMISSION_USER_PART, () => connectInjector(CustomPermissionDetailUserPart, injector))
+
+    univer.registerPlugin(UniverSheetsUIPlugin, {
+    -  customComponents: new Set([UNIVER_SHEET_PERMISSION_USER_PART]),
+    +  protectedRangeUserSelector: {
+    +    component: CustomPermissionDetailUserPart,
+    +    framework: 'react',
+    +  },
+    })
+    ```
+  </Tab>
+</Tabs>
+
+### 其他功能优化与问题修复
+
+- Univer Slides 现已支持插入圆形。感谢社区贡献者 [@kenny-not-dead](https://github.com/kenny-not-dead) 对此功能的贡献（[#5602](https://github.com/dream-num/univer/pull/5602)）。
+- 优化了自定义排序弹窗的默认弹出位置，提升用户体验。
+- 查找替换功能升级，现支持在输入框中直接通过回车键跳转到下一个匹配项。
+- 修复了部分表格过滤器相关的问题。
+
+更多详细的更新内容和历史版本信息，请访问我们的 [GitHub Releases](https://github.com/dream-num/univer/releases/tag/v0.10.0) 页面。
+
+---
+
+感谢每一位社区开发者和用户的关注与支持！我们将持续优化产品体验，也欢迎大家通过文档评价、Issue 或 Pull Request 提出宝贵建议或直接参与贡献。让我们一起让 Univer 变得更好！

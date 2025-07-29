@@ -84,7 +84,7 @@ export default async function Page({ params }: IProps) {
                   hover:bg-neutral-100
                   dark:bg-neutral-800 dark:hover:bg-neutral-900
                 `}
-                href="/blog/weekly-6"
+                href="/blog/weekly-7"
               >
                 <span
                   className={`
