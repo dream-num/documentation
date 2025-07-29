@@ -1,5 +1,4 @@
 import type { IWorkbookData } from '@univerjs/presets'
-import { LocaleType } from '@univerjs/presets'
 
 export const WORKBOOK_DATA: Partial<IWorkbookData> = {
   id: '8fa7DI',
@@ -7,8 +6,6 @@ export const WORKBOOK_DATA: Partial<IWorkbookData> = {
     'OLRIuX3bOBBG69xuhV_lD',
   ],
   name: '',
-  appVersion: '0.9.4',
-  locale: LocaleType.EN_US,
   styles: {},
   sheets: {
     OLRIuX3bOBBG69xuhV_lD: {

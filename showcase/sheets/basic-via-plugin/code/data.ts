@@ -1,7 +1,6 @@
 import type { IWorkbookData } from '@univerjs/core'
-import { LocaleType } from '@univerjs/core'
 
-export const WORKBOOK_DATA: IWorkbookData = {
+export const WORKBOOK_DATA: Partial<IWorkbookData> = {
   id: 'workbook-01',
   sheetOrder: [
     'sheet-01',
@@ -14,8 +13,6 @@ export const WORKBOOK_DATA: IWorkbookData = {
     'sheet-08',
   ],
   name: 'Sheets Feature',
-  appVersion: '0.9.4',
-  locale: LocaleType.EN_US,
   styles: {
     AifWG9: {
       bd: {

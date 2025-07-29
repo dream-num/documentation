@@ -1,14 +1,11 @@
 import type { IWorkbookData } from '@univerjs/presets'
-import { LocaleType } from '@univerjs/presets'
 
-export const WORKBOOK_DATA: IWorkbookData = {
+export const WORKBOOK_DATA: Partial<IWorkbookData> = {
   id: 'oiQGjk',
   sheetOrder: [
     'Sh6VlTxjEi2wdfOkplhhP',
   ],
   name: '',
-  appVersion: '0.9.4',
-  locale: LocaleType.EN_US,
   styles: {
     N2R3rl: {
       fs: 12,
