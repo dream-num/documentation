@@ -4,7 +4,7 @@ import type { ComponentType } from 'react'
 import { createComponent } from '@lit/react'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import { createUniver, LocaleType, merge } from '@univerjs/presets'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { html, LitElement } from 'lit'
 import { useTheme } from 'next-themes'
 import React, { useEffect, useState } from 'react'
@@ -21,8 +21,7 @@ class MyWebComponent extends LitElement {
       darkMode: this.theme === 'dark',
       locale: LocaleType.EN_US,
       locales: {
-        [LocaleType.EN_US]: merge(
-          {},
+        [LocaleType.EN_US]: mergeLocales(
           sheetsCoreEnUS,
         ),
       },

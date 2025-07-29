@@ -8,7 +8,7 @@ import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
 import { UniverSheetsDataValidationPreset } from '@univerjs/preset-sheets-data-validation'
 import sheetsDataValidationEnUS from '@univerjs/preset-sheets-data-validation/locales/en-US'
-import { createUniver, LocaleType, merge } from '@univerjs/presets'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { BookTextIcon, SheetIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef, useState } from 'react'
@@ -56,10 +56,7 @@ export default function Univer() {
       darkMode: theme === 'dark',
       locale: LocaleType.EN_US,
       locales: {
-        [LocaleType.EN_US]: merge(
-          {},
-          ...locales,
-        ),
+        [LocaleType.EN_US]: mergeLocales(locales),
       },
       presets,
     })

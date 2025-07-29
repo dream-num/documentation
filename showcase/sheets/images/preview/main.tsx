@@ -4,7 +4,7 @@ import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
 import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing'
 import sheetsDrawingEnUS from '@univerjs/preset-sheets-drawing/locales/en-US'
-import { createUniver, LocaleType, merge } from '@univerjs/presets'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef } from 'react'
 import { WORKBOOK_DATA } from '../code/data'
@@ -22,8 +22,7 @@ export default function Preview() {
       darkMode: theme === 'dark',
       locale: LocaleType.EN_US,
       locales: {
-        [LocaleType.EN_US]: merge(
-          {},
+        [LocaleType.EN_US]: mergeLocales(
           sheetsCoreEnUS,
           sheetsDrawingEnUS,
         ),

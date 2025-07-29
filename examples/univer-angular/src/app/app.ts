@@ -3,7 +3,7 @@ import type { FUniver, Univer } from '@univerjs/presets'
 import { Component, signal, ViewChild } from '@angular/core'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import { createUniver, LocaleType, merge } from '@univerjs/presets'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 
 import '@univerjs/preset-sheets-core/lib/index.css'
 
@@ -22,8 +22,7 @@ export class App implements OnInit, OnDestroy {
     const { univer, univerAPI } = createUniver({
       locale: LocaleType.EN_US,
       locales: {
-        [LocaleType.EN_US]: merge(
-          {},
+        [LocaleType.EN_US]: mergeLocales(
           sheetsCoreEnUS,
         ),
       },

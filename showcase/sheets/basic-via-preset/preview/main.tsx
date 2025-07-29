@@ -18,7 +18,7 @@ import { UniverSheetsSortPreset } from '@univerjs/preset-sheets-sort'
 import SheetsSortEnUS from '@univerjs/preset-sheets-sort/locales/en-US'
 import { UniverSheetsThreadCommentPreset } from '@univerjs/preset-sheets-thread-comment'
 import UniverPresetSheetsThreadCommentEnUS from '@univerjs/preset-sheets-thread-comment/locales/en-US'
-import { createUniver, LocaleType, merge } from '@univerjs/presets'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { UniverSheetsCrosshairHighlightPlugin } from '@univerjs/sheets-crosshair-highlight'
 import SheetsCrosshairHighlightEnUS from '@univerjs/sheets-crosshair-highlight/locale/en-US'
 import { UniverSheetsZenEditorPlugin } from '@univerjs/sheets-zen-editor'
@@ -50,8 +50,7 @@ export default function Preview() {
       darkMode: theme === 'dark',
       locale: LocaleType.EN_US,
       locales: {
-        [LocaleType.EN_US]: merge(
-          {},
+        [LocaleType.EN_US]: mergeLocales(
           sheetsCoreEnUS,
           SheetsSortEnUS,
           UniverPresetSheetsFilterEnUS,

@@ -1,6 +1,6 @@
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import { createUniver, LocaleType, merge } from '@univerjs/presets'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { SwitchUnits } from './components/switch-units'
 import { WORKBOOK_DATA_1, WORKBOOK_DATA_2, WORKBOOK_DATA_3, WORKBOOK_DATA_4 } from './data'
 import { state } from './state'
@@ -11,8 +11,7 @@ import '@univerjs/preset-sheets-core/lib/index.css'
 const { univer, univerAPI } = createUniver({
   locale: LocaleType.EN_US,
   locales: {
-    [LocaleType.EN_US]: merge(
-      {},
+    [LocaleType.EN_US]: mergeLocales(
       sheetsCoreEnUS,
     ),
   },
