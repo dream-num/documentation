@@ -25,6 +25,7 @@ export const showcase: Record<string, Promise<{ default: {
   'sheets/permission': import('./sheets/permission'),
   'sheets/images': import('./sheets/images'),
   'sheets/hyper-link': import('./sheets/hyper-link'),
+  'sheets/find-replace': import('./sheets/find-replace'),
   'sheets/notes': import('./sheets/notes'),
   'sheets/crosshair-highlighting': import('./sheets/crosshair-highlighting'),
   'sheets/watermark': import('./sheets/watermark'),

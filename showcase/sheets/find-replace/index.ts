@@ -7,12 +7,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const metadata = {
   title: {
-    'en-US': 'Hyper Link',
-    'zh-CN': '超链接',
+    'en-US': 'Find and Replace',
+    'zh-CN': '查找和替换',
   },
   description: {
-    'en-US': 'The Hyper Link feature allows users to insert and manage hyperlinks in spreadsheets, enhancing data interactivity and navigation.',
-    'zh-CN': '超链接功能允许用户在电子表格中插入和管理超链接，以增强数据的交互性和导航性。',
+    'en-US': 'The Find and Replace feature allows users to quickly locate and modify data within their spreadsheets, improving efficiency and accuracy.',
+    'zh-CN': '查找和替换功能允许用户快速定位和修改电子表格中的数据，从而提高效率和准确性。',
   },
   tags: {
     'en-US': ['Univer Sheets', 'Preset Mode'],
