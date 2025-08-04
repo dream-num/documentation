@@ -7,8 +7,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const metadata = {
   title: {
-    'en-US': 'Big Data Rendering',
-    'zh-CN': '大数据量渲染',
+    'en-US': 'Stress Test',
+    'zh-CN': '压力测试（大数据量渲染）',
   },
   description: {
     'en-US': 'Univer Docs supports rendering large datasets efficiently. This example demonstrates how to render large data in Univer Docs using preset mode.',

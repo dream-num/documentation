@@ -4,6 +4,7 @@ import { PlaygroundFrame } from '@/components/playground'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { clsx } from '@/lib/clsx'
 import { customTranslations } from '@/lib/i18n'
 import { showcase } from '@/showcase/data'
 
@@ -37,7 +38,9 @@ export async function generateMetadata({ params }: IProps) {
 export default async function Page({ params }: IProps) {
   const { slug, lang } = await params
 
-  const currentShowCasePromise = showcase[slug.join('/')]
+  const pathname = slug.join('/')
+
+  const currentShowCasePromise = showcase[pathname]
   if (!currentShowCasePromise) {
     notFound()
   }
@@ -72,17 +75,18 @@ export default async function Page({ params }: IProps) {
   return (
     <div
       className={`
-        flex flex-1 px-4
+        container flex h-[calc(100vh-108px)] flex-1 px-4 pt-12
+        max-sm:px-0
         lg:px-0
       `}
     >
       <aside
         className={`
-          hidden h-auto w-72 overflow-x-hidden
+          fixed hidden h-[calc(100vh-108px)] shrink-0 overflow-x-hidden overflow-y-hidden
           lg:block
         `}
       >
-        <div className="fixed top-14 h-[calc(100%-56px)] w-72 px-4 pt-4">
+        <div className="h-full pt-4">
           <ScrollArea className="h-full">
             {Object.entries(groupedNav).map(([type, items]) => (
               <div
@@ -105,12 +109,14 @@ export default async function Page({ params }: IProps) {
                   <div key={item.slug} className="mb-1">
                     <Link
                       href={`/showcase/${item.slug}`}
-                      className={`
-                        inline-flex h-8 items-center truncate rounded px-2 text-sm font-medium text-neutral-800
+                      className={clsx(`
+                        block h-8 w-72 items-center truncate rounded px-2 text-sm/8 font-medium text-neutral-800
                         transition-colors
                         hover:bg-fd-card
                         dark:text-neutral-50
-                      `}
+                      `, {
+                        'text-blue-600 dark:text-blue-500': item.slug === pathname,
+                      })}
                     >
                       {item.title[lang]}
                     </Link>
@@ -122,12 +128,7 @@ export default async function Page({ params }: IProps) {
         </div>
       </aside>
 
-      <div
-        className={`
-          container py-12
-          max-sm:px-0
-        `}
-      >
+      <div className="w-full pl-74">
         <header
           className={`
             flex flex-col-reverse justify-between
