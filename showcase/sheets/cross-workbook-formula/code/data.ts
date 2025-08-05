@@ -22,6 +22,19 @@ export const WORKBOOK_DATA_1: Partial<IWorkbookData> = {
             f: '=\'[workbook1]Sheet 01\'!A1 + \'[workbook2]Sheet 01\'!A1 + \'[workbook3]Sheet 01\'!A1 + \'[workbook4]Sheet 01\'!A1',
           },
         },
+        3: {
+          0: {
+            t: CellValueType.STRING,
+            v: 'FROM WORKSHEET "foobar"',
+          },
+        },
+        4: {
+          0: {
+            f: '=0.04 + foobar!A1',
+            v: 3.14,
+            t: CellValueType.NUMBER,
+          },
+        },
       },
     },
     'sheet-02': {
@@ -30,8 +43,10 @@ export const WORKBOOK_DATA_1: Partial<IWorkbookData> = {
       rowCount: 20,
       columnCount: 40,
       cellData: {
-        5: {
+        0: {
           0: {
+            t: CellValueType.NUMBER,
+            v: 3.1,
           },
         },
       },
