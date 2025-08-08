@@ -1,0 +1,237 @@
+---
+title: React
+---
+
+<Callout>
+  カスタムコンポーネントとして React コンポーネントを使用する方法をお探しの場合は、[こちら](/guides/sheets/ui/components#react)をご参照ください。
+</Callout>
+
+Univer を React プロジェクトに統合する前に、[Univer のインストールと基本的な使用方法](/guides/sheets/getting-started/installation)セクションを読み、React の基本概念とライフサイクルフックを理解していることを確認してください。
+
+## React 17、18、19 との統合
+
+### 統合手順
+
+1. `useEffect` フックで Univer を初期化する
+2. `useEffect` フックの戻り関数で Univer を破棄する
+
+### 例
+
+```tsx
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+import UniverPresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+import { useEffect, useRef } from 'react'
+
+import '@univerjs/preset-sheets-core/lib/index.css'
+
+export function App() {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const { univerAPI } = createUniver({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: mergeLocales(
+          UniverPresetSheetsCoreEnUS,
+        ),
+      },
+      presets: [
+        UniverSheetsCorePreset({
+          container: containerRef.current,
+        }),
+      ],
+    })
+
+    univerAPI.createWorkbook({})
+
+    return () => {
+      univerAPI.dispose()
+    }
+  }, [])
+
+  return (
+    <div ref={containerRef} />
+  )
+}
+```
+
+## React 16.9+ との統合
+
+### 統合前の注意事項
+
+#### 互換性について
+
+Univer のビューレイヤーは React 18.3.1 をベースに開発されていますが、React 16.9+ プロジェクトに対して最小限の互換性サポートを提供しています。これは低バージョンの React が永続的にサポートされることを意味するものではありません。最高の体験と新機能のために、可能な限り早期に最新バージョンへのアップグレードを推奨します。
+
+#### ビルドツールのエイリアス設定
+
+React 16.9+ 環境では、ビルドツールのエイリアス機能を使用して `react-dom/client` のエクスポートをシミュレートする必要があります。そうしないと、一部の機能が正常に動作しない可能性があります。
+
+**Vite 設定例**
+
+```typescript title="vite.config.ts"
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      'react-dom/client': path.resolve(__dirname, './src/client.ts'), // [!code ++]
+    },
+  },
+})
+```
+
+```typescript title="src/client.ts"
+import ReactDOM from 'react-dom'
+
+export function createRoot(container: HTMLElement) {
+  return {
+    render: (element: JSX.Element) => {
+      ReactDOM.render(element, container)
+    },
+  }
+}
+```
+
+#### CDN/UMD シーンでの適応
+
+`<script>` タグを使用して Univer と React を含める場合、React をインポートした後に以下のコードを追加して `react-dom/client` のエクスポートをシミュレートする必要があります：
+
+```html
+<script>
+  /**
+   * React 19 のサポート[^1]により、UM Dユーザーは追加の適応が必要な場合があります。
+   *
+   * [^1]: [support for React 19] https://github.com/dream-num/univer/pull/4247
+   */
+
+  /**
+   * `Uncaught TypeError: client.createRoot is not a function` の修正
+   * UMD React < 18 を使用している場合、以下のコードが必要な場合があります。
+   */
+  ;(function (global) {
+    'use strict'
+    if (!global.ReactDOM) {
+      throw new Error('ReactDOM must be loaded before ReactCreateRoot.')
+    }
+    const ReactDOM = global.ReactDOM
+    if (!ReactDOM.createRoot) {
+      ReactDOM.createRoot = function (container) {
+        return {
+          render: (element) => {
+            ReactDOM.render(element, container)
+          },
+        }
+      }
+    }
+  })(this)
+
+  /**
+   * `Uncaught TypeError: jsxRuntime.jsx is not a function` の修正
+   * UMD React を使用している場合、以下のコードが必要な場合があります。
+   * 参考: https://unpkg.com/react@18.3.1/cjs/react-jsx-runtime.production.min.js
+   */
+  ;(function (global) {
+    'use strict'
+    if (!global.React) {
+      throw new Error('React must be loaded before ReactJSXRuntime.')
+    }
+    const React = global.React
+    if (!React.jsx || !React.jsxs) {
+      const REACT_ELEMENT_TYPE = Symbol.for('react.element')
+      const hasOwnProperty = Object.prototype.hasOwnProperty
+      const RESERVED_PROPS = {
+        key: true,
+        ref: true,
+        __self: true,
+        __source: true,
+      }
+      const ReactCurrentOwner = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner
+      function createReactElement(type, config, maybeKey) {
+        const props = {}
+        let key = null
+        let ref = null
+        if (maybeKey !== undefined) {
+          key = `${maybeKey}`
+        }
+        if (config.key !== undefined) {
+          key = `${config.key}`
+        }
+        if (config.ref !== undefined) {
+          ref = config.ref
+        }
+        for (var propName in config) {
+          if (hasOwnProperty.call(config, propName) && !RESERVED_PROPS.hasOwnProperty(propName)) {
+            props[propName] = config[propName]
+          }
+        }
+        if (type && type.defaultProps) {
+          const defaultProps = type.defaultProps
+          for (var propName in defaultProps) {
+            if (props[propName] === undefined) {
+              props[propName] = defaultProps[propName]
+            }
+          }
+        }
+        return {
+          $$typeof: REACT_ELEMENT_TYPE,
+          type,
+          key,
+          ref,
+          props,
+          _owner: ReactCurrentOwner.current,
+        }
+      }
+      React.jsx = createReactElement
+      React.jsxs = createReactElement
+    }
+  })(this)
+</script>
+```
+
+### 統合手順
+
+1. `useEffect` フック内で Univer を初期化する
+2. `useEffect` フックの戻り関数で Univer を破棄する
+
+### 例
+
+```tsx
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+
+import UniverPresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+import { useEffect, useRef } from 'react'
+
+import '@univerjs/preset-sheets-core/lib/index.css'
+
+export function App() {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const { univerAPI } = createUniver({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: mergeLocales(
+          UniverPresetSheetsCoreEnUS,
+        ),
+      },
+      presets: [
+        UniverSheetsCorePreset({
+          container: containerRef.current,
+        }),
+      ],
+    })
+
+    univerAPI.createWorkbook({})
+
+    return () => {
+      univerAPI.dispose()
+    }
+  }, [])
+
+  return (
+    <div ref={containerRef} />
+  )
+}
+```

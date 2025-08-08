@@ -9,14 +9,17 @@ const metadata = {
   title: {
     'en-US': 'Print',
     'zh-CN': '打印',
+    'ja-JP': '印刷',
   },
   description: {
     'en-US': 'This example demonstrates how to create and manipulate print settings in Univer Sheets',
     'zh-CN': '本示例演示了如何使用 Univer Sheets 创建和操作打印设置',
+    'ja-JP': 'この例では、Univer Sheets で印刷設定を作成および操作する方法を示します。',
   },
   tags: {
     'en-US': ['Univer Sheets', 'Preset Mode'],
     'zh-CN': ['Univer Sheets', '预设模式'],
+    'ja-JP': ['Univer Sheets', 'プリセットモード'],
   },
 }
 

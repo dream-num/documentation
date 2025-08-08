@@ -10,11 +10,15 @@ export const locales = [
     name: '简体中文',
     locale: 'zh-CN',
   },
+  {
+    name: '日本語（30%）',
+    locale: 'ja-JP',
+  },
 ]
 
 export const i18n: I18nConfig = {
   defaultLanguage: 'en-US',
-  languages: ['en-US', 'zh-CN'],
+  languages: ['en-US', 'zh-CN', 'ja-JP'],
   hideLocale: 'always',
 }
 
@@ -32,8 +36,22 @@ export const zhCN: Translations = {
   editOnGithub: '在 GitHub 上编辑',
 }
 
+export const jaJP: Translations = {
+  search: '検索',
+  searchNoResult: '関連するコンテンツが見つかりませんでした',
+  toc: '目次',
+  tocNoHeadings: '利用可能な目次がありません',
+  lastUpdate: '最終更新',
+  chooseLanguage: '言語を選択',
+  nextPage: '次のページ',
+  previousPage: '前のページ',
+  chooseTheme: 'テーマを選択',
+  editOnGithub: 'GitHub で編集',
+}
+
 export const translations: Record<string, Partial<Translations>> = {
   'zh-CN': zhCN,
+  'ja-JP': jaJP,
 }
 
 /**
@@ -121,7 +139,47 @@ const customEnUS: typeof customZhCN = {
   'playground.click-to-hide': 'Click to hide demo',
 }
 
+const customJaJP: typeof customZhCN = {
+  'home.slogan': 'あなたのワークフローに、サーバードリブンの生産性ツールを組み込もう。',
+  'home.description': 'Univer は高い拡張性とパフォーマンスを備えたフルスタックのオフィススイートで、開発者が自由に構築および編集できるように設計されています。',
+  'home.description.split': '、',
+  'home.description.period': '。',
+  'home.description.and': 'と',
+  'home.description.sheets': 'スプレッドシート',
+  'home.description.docs': 'ドキュメント',
+  'home.description.slides': 'プレゼンテーション',
+  'home.customer.title': '業界を問わず、チームと企業に信頼されています',
+  'home.features.conbination.title': '多様な製品のための豊富なプラグイン',
+  'home.features.integration.title': 'どこでも統合',
+  'home.features.performance.title': '比類のないパフォーマンス',
+  'home.features.customizability.title': 'すべてをカスタマイズ',
+  'documentation.title': 'ドキュメント',
+  'ecosystem.title': 'エコシステム',
+  'icons.title': 'Univer Icons',
+  'icons.slogan': 'Univer のアイコンライブラリで、豊富なアイコンリソースを提供します',
+  'showcase.title': 'ショーケース',
+  'showcase.slogan': 'オンライン例を通じて Univer の強力な機能を探求します',
+  'showcase.back': '戻る',
+  'blog.title': 'ブログ',
+  'blog.slogan': 'Univer の最新ニュース、アーキテクチャ、ベストプラクティスを探求します',
+  'blog.author': '著者',
+  'blog.date': '公開日',
+  'blog.back': '戻る',
+  'banner.release': 'がリリースされました →',
+  'docs.header.edit-on-github': 'GitHub で編集',
+  'docs.feedback.question': 'このガイドはいかがですか？',
+  'docs.feedback.good': '良い',
+  'docs.feedback.bad': '悪い',
+  'docs.feedback.message': 'フィードバックや提案をお聞かせください',
+  'docs.feedback.submit': '送信',
+  'docs.feedback.thanks': 'フィードバックありがとうございます！',
+  'docs.feedback.retry': '再度送信',
+  'playground.click-to-show': 'デモを表示するにはクリック',
+  'playground.click-to-hide': 'デモを非表示にするにはクリック',
+}
+
 export const customTranslations: Record<string, Record<string, string>> = {
   'zh-CN': customZhCN,
   'en-US': customEnUS,
+  'ja-JP': customJaJP,
 }

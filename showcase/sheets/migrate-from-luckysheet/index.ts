@@ -9,14 +9,17 @@ const metadata = {
   title: {
     'en-US': 'Migrate From Luckysheet to Univer',
     'zh-CN': '从 Luckysheet 迁移到 Univer',
+    'ja-JP': 'Luckysheet から Univer への移行',
   },
   description: {
     'en-US': 'Compared with Luckysheet, our newly designed Univer has made great improvements in terms of architecture, data structure and API, so Luckysheet can no longer be migrated 1:1 to Univer. However, we provide a migration example to help you understand how to migrate Luckysheet features to Univer.',
     'zh-CN': '与 Luckysheet 相比，我们新设计的 Univer 在架构、数据结构和 API 等方面有了很大的改进，因此 Luckysheet 无法再 1:1 迁移到 Univer。但是，我们提供了一个迁移示例，帮助您了解如何将 Luckysheet 的功能迁移到 Univer。',
+    'ja-JP': 'Luckysheet と比較して、新しく設計された Univer は、アーキテクチャ、データ構造、API の面で大きな改善を遂げているため、Luckysheet を Univer に 1:1 で移行することはできません。ただし、Luckysheet の機能を Univer に移行する方法を理解するのに役立つ移行例を提供します。',
   },
   tags: {
     'en-US': ['Univer Sheets', 'Preset Mode'],
     'zh-CN': ['Univer Sheets', '预设模式'],
+    'ja-JP': ['Univer Sheets', 'プリセットモード'],
   },
 }
 

@@ -9,14 +9,17 @@ const metadata = {
   title: {
     'en-US': 'Minimal Example (Plugin Mode)',
     'zh-CN': '基础示例（插件模式）',
+    'ja-JP': '最小限の例（プラグインモード）',
   },
   description: {
     'en-US': 'A minimal setup example for Univer Slides, demonstrating the minimum configuration required to use Univer Slides.',
     'zh-CN': 'Univer Slides 的基础配置示例，展示了使用 Univer Slides 所需的最小配置。',
+    'ja-JP': 'Univer Slides の最小限のセットアップ例で、Univer Slides を使用するために必要な最小限の構成を示しています。',
   },
   tags: {
     'en-US': ['Univer Slides', 'Plugin Mode'],
     'zh-CN': ['Univer Slides', '插件模式'],
+    'ja-JP': ['Univer Slides', 'プラグインモード'],
   },
 }
 
