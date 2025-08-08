@@ -9,14 +9,17 @@ const metadata = {
   title: {
     'en-US': 'Watermark',
     'zh-CN': '水印',
+    'ja-JP': '透かし',
   },
   description: {
     'en-US': 'This example demonstrates how to add a watermark to Univer Sheets. The watermark can be customized with different text and styles.',
     'zh-CN': '此示例演示了如何在 Univer Sheets 中添加水印。水印可以使用不同的文本和样式进行自定义。',
+    'ja-JP': 'この例では、Univer Sheets に透かしを追加する方法を示します。透かしは、異なるテキストやスタイルでカスタマイズできます。',
   },
   tags: {
     'en-US': ['Univer Sheets', 'Preset Mode'],
     'zh-CN': ['Univer Sheets', '预设模式'],
+    'ja-JP': ['Univer Sheets', 'プリセットモード'],
   },
 }
 

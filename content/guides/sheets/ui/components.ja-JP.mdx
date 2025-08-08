@@ -1,0 +1,113 @@
+---
+title: カスタムコンポーネント
+description: Univer は、カスタムコンポーネントを統合するための複数の方法を提供しており、その機能を拡張およびカスタマイズできます。このガイドでは、いくつかの一般的な方法を紹介します。
+icon: Component
+---
+
+Univer は、コンポーネントをレンダリング関数に直接渡すことはありません。さまざまなマウントポイントで使用する前に、Facade API を介してコンポーネントを Univer に登録する必要があります。
+
+Facade API のインスタンスを取得する方法に慣れていない場合は、[Facade API](/guides/sheets/getting-started/facade) を参照してください。
+
+<include cwd>content/guides/shared/ui/components.ja-JP.mdx</include>
+
+#### セルにポップアップを添付
+
+`FRange.attachPopup` メソッドを使用して、特定のセル範囲にカスタムポップアップを添付できます。
+
+- ポップアップは、セルに添付される一時的な DOM 要素で、通常は一時的なステータス情報を表示するために使用され、永続的な保存をサポートしません。
+- [`FRange.attachPopup(popup: IFCanvasPopup)`](https://reference.univer.ai/en-US/classes/FRange#attachpopup) メソッドを使用して、特定のセル範囲にカスタムポップアップを添付できます。
+- ポップアップはセルの端に添付され、遮蔽されると自動的に位置と向きを調整します。
+
+```tsx
+// [!code word:MyCustomPopupComponent]
+// 適切なタイミング（例：Univer が読み込まれた後）でコンポーネントを登録する必要があります
+univerAPI.registerComponent(
+  'MyCustomPopupComponent',
+  () => <div>Hello Univer!</div>,
+)
+
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:J10')
+
+// 範囲の最初のセルにポップアップを添付
+// `disposable` が null の場合、ポップアップが正常に追加されなかったことを示します
+const disposable = fRange.attachPopup({
+  componentKey: 'MyCustomPopupComponent',
+})
+
+// ポップアップを削除
+disposable.dispose()
+```
+
+#### アラートポップアップを添付
+
+`FRange.attachAlertPopup` メソッドを使用して、指定された範囲の開始セルにアラートポップアップを添付できます。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+
+const disposable = fRange.attachAlertPopup({
+  key: 'unique-alert-key', // 一意の識別子
+  title: 'これは警告です！',
+  message: 'これは警告です！',
+  width: 300,
+  height: 200,
+  // 0: 情報
+  // 1: 警告
+  // 2: エラー
+  type: 0,
+})
+
+// ポップアップを削除
+disposable.dispose()
+```
+
+#### ワークシートにフローティングDOMを追加
+
+`FWorksheet.addFloatDomToPosition` メソッドを使用して、ワークシートにフローティング DOM を追加できます。
+
+- このメソッドを使用する前に、`@univerjs/sheets-drawing-ui` プラグインまたは `@univerjs/preset-sheets-drawing` プリセットをインストールする必要があります。
+- フローティング DOM は、ワークシートの上に浮かぶドラッグ可能なコンポーネントで、永続的なストレージをサポートしています。
+- このメソッドは、Univer のレンダリングが完了した後に呼び出す必要があります。
+- `componentKey`: コンポーネントの一意の識別子で、Univer 内で参照するために使用されます。
+- [完全なパラメータ定義](https://github.com/dream-num/univer/blob/dev/packages/sheets-drawing-ui/src/facade/f-worksheet.ts#L32)
+
+```tsx
+// [!code word:MyCustomFloatDOMComponent]
+// 適切なタイミング（例：Univer が読み込まれた後）でコンポーネントを登録する必要があります
+univerAPI.registerComponent(
+  'MyCustomFloatDOMComponent',
+  ({ data }) => (
+    <div>
+      Hello
+      {data?.label}
+      !
+    </div>
+  ),
+)
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+
+// ワークシートにフローティング DOM を追加
+// `disposable` が null の場合、フローティング DOM が正常に追加されなかったことを示します
+const disposable = fWorksheet.addFloatDomToPosition({
+  componentKey: 'MyCustomFloatDOMComponent',
+  initPosition: {
+    startX: 100,
+    endX: 200,
+    startY: 100,
+    endY: 200,
+  },
+
+  // コンポーネントのデータ
+  data: {
+    label: 'Univer',
+  },
+})
+
+// フローティング DOM を削除
+disposable.dispose()
+```

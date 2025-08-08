@@ -9,14 +9,17 @@ const metadata = {
   title: {
     'en-US': 'Running Headless Univer Docs in Node.js',
     'zh-CN': '在 Node.js 运行无头 Univer Docs',
+    'ja-JP': 'Node.js でヘッドレス Univer Docs を実行する',
   },
   description: {
     'en-US': 'This example demonstrates how to run Univer Docs in a Node.js environment using a plugin. It showcases the minimal setup required to create and manipulate a document without a UI.',
     'zh-CN': '本示例演示了如何在 Node.js 环境中使用插件运行 Univer Docs。它展示了在没有 UI 的情况下创建和操作文档所需的最小设置。',
+    'ja-JP': 'この例では、プラグインを使用して Node.js 環境で Univer Docs を実行する方法を示します。UI なしでドキュメントを作成および操作するために必要な最小限のセットアップを紹介します。',
   },
   tags: {
     'en-US': ['Univer Docs', 'Plugin Mode'],
     'zh-CN': ['Univer Docs', '插件模式'],
+    'ja-JP': ['Univer Docs', 'プラグインモード'],
   },
 }
 

@@ -1,0 +1,86 @@
+---
+title: ライフサイクル
+icon: Recycle
+---
+
+Univer アプリケーションが稼働すると、一連の順序だったライフサイクル段階を経由します。これらのライフサイクルを理解することは、開発者にとって非常に重要です。なぜなら、業務インスタンスや DOM 要素へのアクセス、時間のかかる非同期処理の実行タイミングを判断できるからです。各段階は、初期化・レンダリング・パフォーマンス最適化など、さまざまなタスクの実行に適しています。ライフサイクルの変化を監視することで、開発者はシステム状態の変化に最適なタイミングで対応し、機能拡張・パフォーマンス向上・ユーザー体験の最適化を実現できます。
+
+Univer のライフサイクルは主に以下の4段階で構成されています：
+
+<Mermaid chart="flowchart LR; A([Starting]) --> B([Ready]) --> C([Rendered]) -->D([Steady])" />
+
+1. **Starting（開始）**: システムの初期化が始まり、プラグインが依存性注入や基本設定を行います。
+2. **Ready（準備完了）**: 最初の業務インスタンスが生成され、プラグインがコア機能の初期化を行います。
+3. **Rendered（描画完了）**: 初回インターフェースが描画され、DOM やインターフェース関連の初期化が安全に行えます。
+4. **Steady（安定）**: システムが安定状態に入り、遅延ロードや非クリティカルなタスク、その他の最適化処理を実行するのに適しています。
+
+プラグインやコンポーネントの種類によっては、ライフサイクル内で起動タイミングが異なる場合もありますが、全体の流れは上記の順序に従います。開発者はライフサイクルイベントを利用して、機能のロードや実行タイミングを正確に制御できます。
+
+<Callout>
+  Univer のライフサイクル設計やプラグインの具体的な起動タイミングについて詳しくは、[《Univer アーキテクチャ#プラグインライフサイクル》](/guides/recipes/architecture/univer#plugin-lifecycle) をご覧ください。
+</Callout>
+
+## Facade API
+
+### リスナーの追加
+
+Univer は統一されたイベント購読インターフェースを提供しており、Facade API を通じてライフサイクルの変化を監視できます。
+
+````typescript
+const disposable = univerAPI.addEvent(
+  univerAPI.Event.LifeCycleChanged,
+  ({ stage }) => {
+    if (stage === univerAPI.Enum.LifecycleStages.Steady) {
+      // Steady 段階でカスタムロジックを実行
+    }
+  },
+)
+````
+
+### リスナーの削除
+
+リスナーを削除するには、返却された `disposable` オブジェクトを利用します。
+
+````typescript
+disposable.dispose()
+````
+
+### ライフサイクルイベントと列挙型
+
+Univer は以下のライフサイクルイベントおよび列挙型を提供しています：
+
+- イベント名: `univerAPI.Event.LifeCycleChanged`
+
+- ライフサイクル段階の列挙型:
+  - `univerAPI.Enum.LifecycleStages.Starting`
+  - `univerAPI.Enum.LifecycleStages.Ready`
+  - `univerAPI.Enum.LifecycleStages.Rendered`
+  - `univerAPI.Enum.LifecycleStages.Steady`
+
+### サンプル
+
+<Callout type="warning" title="注意事項">
+  `univerAPI.Event.LifeCycleChanged` はライフサイクルの変化のみを反映し、`Starting` 段階ではイベントは発火しません。
+</Callout>
+
+````typescript
+const disposable = univerAPI.addEvent(
+  univerAPI.Event.LifeCycleChanged,
+  ({ stage }) => {
+    switch (stage) {
+      case univerAPI.Enum.LifecycleStages.Ready:
+        console.log('業務インスタンスが生成され、コア初期化が可能です')
+        break
+      case univerAPI.Enum.LifecycleStages.Rendered:
+        console.log('インターフェースが描画され、DOM 操作が安全に行えます')
+        break
+      case univerAPI.Enum.LifecycleStages.Steady:
+        console.log('システムが安定し、遅延ロードや最適化処理が可能です')
+        break
+    }
+  },
+)
+
+// リスナーの削除
+disposable.dispose()
+````

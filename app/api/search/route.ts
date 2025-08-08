@@ -13,6 +13,17 @@ export const { GET } = createFromSource(guides, {
         tolerance: 0,
       },
     },
-    'en-US': { language: 'english' },
+    'ja-JP': {
+      components: {
+        tokenizer: createTokenizer(),
+      },
+      search: {
+        threshold: 0,
+        tolerance: 0,
+      },
+    },
+    'en-US': {
+      language: 'english',
+    },
   },
 })

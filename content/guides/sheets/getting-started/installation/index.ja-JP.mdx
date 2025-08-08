@@ -1,0 +1,312 @@
+---
+title: インストールと基本的な使い方
+---
+
+Univer は、開発者に電子文書アプリケーション向けの柔軟で拡張可能なフレームワークを提供することを目的として、プラグインベースの設計思想を採用しています。このプラグインベースの設計により、Univer は様々な機能モジュールを簡単に統合して、異なるユーザーのニーズに対応できます。しかし、プラグインベースの設計はアプリケーションの複雑さを増し、特に Univer に慣れていない開発者にとっては難しくなります。
+
+このため、Univer は迅速に統合・使用できるよう2つの方法を提供しています：**プラグインモード**と**プリセットモード**です。いわゆる**プリセット**は実際には事前設定されたプラグインの組み合わせであり、複雑な拡張を行わない限り、両方のモードが提供する機能は同じです。
+
+<Callout type="warning" title="注意事項">
+  - **依存関係のバージョンの一致**: プリセットモードとプラグインモードのどちらを使用する場合でも、すべての依存関係のバージョン番号が一致していることを確認する必要があります。
+  - **プラグインとプリセットの混在に注意**: プラグインがすでにプリセットに含まれている場合、プリセットを使用する際にそのプラグインを別途インポートする必要はありません。そうしないと、プラグインの競合や機能異常を招く可能性があります。
+</Callout>
+
+プリセットモードとプラグインモードの違い：
+
+| プラグインモード | プリセットモード |
+| --- | --- |
+| 対応する facade パッケージを手動でインポートする必要がある | facade パッケージを手動でインポートする必要はない |
+| 同一機能を持つプラグインの登録順序に注意する必要がある | プリセットに含まれる機能の登録順序に注意する必要はない |
+| オンデマンド遅延読み込みをサポート | プリセットレベルの遅延読み込みのみサポート、プリセット内のプラグインは同期的にのみ読み込み可能 |
+
+## プリセットモードでのセットアップ
+
+ここでは、20 行未満のコードで Univer Sheets アプリケーションを迅速に構築する方法を簡単に紹介します。
+
+### パッケージマネージャーの使用
+
+プロジェクトで既にモダンなフロントエンド開発ツールを使用している場合、Univer の統合は非常に簡単です。ES モジュールに良好なサポートを持つ [Vite](https://vitejs.dev/)、[esbuild](https://esbuild.github.io/)、[Webpack 5](https://webpack.js.org/) などのビルドツールを使用して Univer アプリケーションを構築することをお勧めします。他のビルドツール（Webpack 4 など）を使用している場合は、追加の設定が必要になる場合があります。
+
+#### インストール
+
+お使いのパッケージマネージャーを選択して`@univerjs/presets`をインストールしてください：
+
+```package-install
+npm install @univerjs/presets @univerjs/preset-docs-core
+```
+
+#### 使い方
+
+<Callout type="warning">
+  ビルドツールが package.json の `exports` フィールドをサポートしていない場合（Webpack 4 でよくある）、マップされたパスを実際のパスに手動で変更する必要があります。
+</Callout>
+
+以下のコードで、Univer Sheets アプリケーションを開始できます：
+
+```typescript
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+import UniverPresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+import '@univerjs/preset-sheets-core/lib/index.css'
+
+const { univer, univerAPI } = createUniver({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(
+      UniverPresetSheetsCoreEnUS,
+    ),
+  },
+  presets: [
+    UniverSheetsCorePreset({
+      container: 'app',
+    }),
+  ],
+})
+
+univerAPI.createWorkbook({})
+```
+
+ここで返される `univerAPI` オブジェクトは Univer Facade API と呼ばれ、これを通して Univer が提供する多くの機能を呼び出すことができます。
+
+<PlaygroundFrame lang="en-US" slug="sheets/slim-via-preset" clickToShow />
+
+<Callout type="warning">
+  `@univerjs/presets/preset-sheets-core` から `UniverSheetsCorePreset` をインポートすることもできますが、ビルドツールが package.json の `exports` フィールドをサポートしていることを確認する必要があります。
+</Callout>
+
+#### `createUniver` メソッド
+
+`createUniver` メソッドは、言語、テーマ、プラグインなどの Univer の設定情報を含む設定オブジェクトを受け取ります。このメソッドは、Univers インスタンスと Univer Facade API インスタンスを含むオブジェクトを返します。
+
+設定オブジェクトのいくつかのプロパティは以下の通りです：
+
+- `locale`: 言語環境、`LocaleType` 列挙値を使用できます。
+- `locales`: ロケール、オブジェクトで、キーは言語環境、値は言語パックオブジェクトです。
+- `theme`: テーマオブジェクト、オプションです。
+- `presets`: 登録するプリセットを含むプリセットの配列、例：`UniverSheetsCorePreset`。
+- `plugins`: 追加で登録する必要があるプラグインを含むプラグインの配列。
+
+どのプリセットパッケージにも含まれていないプラグインを使用する場合や、独自のプラグインを実装する場合は、`plugins` プロパティを通してこれらのプラグインを登録できます。また、Univer インスタンスを取得した後に `univer.registerPlugin` メソッドを使用してプラグインを登録することも可能です。
+
+<Callout>
+  `createUniver` メソッドの詳細情報については、[API リファレンス / createUniver](/reference/methods/create-univer) で確認できます。
+</Callout>
+
+### CDN からのインポート
+
+パッケージマネージャーを使用したくない場合や、Univer の機能を素早く試したい場合は、CDN 経由で Univer の関連リソースをインポートできます。詳細については、[CDN 経由での Univer 使用](/guides/sheets/getting-started/installation/cdn#preset-mode)を参照してください。
+
+## プラグインモードでのセットアップ
+
+Univer は一連の機能をプラグインの形で提供しています。製品に不可欠ないくつかのコアプラグインに加えて、必要に応じて他のプラグインを選択的に導入できます。ここでは、最も基本的な Univer Sheets アプリケーションを例に、プラグインを手動で組み合わせてインストールする方法を紹介します。
+
+プリセットモードとは異なり、プラグインモードはデフォルトで Facade API を含みません。以下のコード例で Facade API 関連の部分はオプションであり、必要に応じて削除するかどうかを決定できます。
+
+### パッケージマネージャーの使用
+
+#### インストール
+
+ビュー開発には React を使用し（これは Vue や Angular での Univer の使用には影響しません）、データストリームの処理には Rxjs を使用しています。これら 2 つのライブラリはモダンなフロントエンド開発で広く使用されているため、peerDependencies として扱っています。ただし、パッケージ管理ツールによって peerDependencies の動作が異なるため、いくつかの詳細に注意する必要があります。
+
+<Callout>
+  - npm を使用している場合は、npm@7 以上を使用していることを確認してください。npm@3 ~ npm@6 は `peerDependencies` を正しくインストールしないためです[^1]。
+  - pnpm を使用している場合は、pnpm@8 以上を使用していることを確認してください。pnpm@6 ~ pnpm@7 を使用している場合は、`auto-install-peers=true` を設定[^2]して依存関係のインストール問題を解決してみてください。
+  - yarn を使用している場合は、不足している `peerDependencies` を手動でインストールする必要があります[^3]が、心配しないでください。以下のインストールコマンドにはすでにこれらの依存関係が含まれています。
+</Callout>
+
+<Tabs items={['npm', 'pnpm', 'yarn']}>
+  <Tab>
+    ```shell
+    npm install @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/sheets @univerjs/sheets-formula @univerjs/sheets-formula-ui @univerjs/sheets-numfmt @univerjs/sheets-numfmt-ui @univerjs/sheets-ui @univerjs/ui
+    ```
+  </Tab>
+  <Tab>
+    ```shell
+    pnpm add @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/sheets @univerjs/sheets-formula @univerjs/sheets-formula-ui @univerjs/sheets-numfmt @univerjs/sheets-numfmt-ui @univerjs/sheets-ui @univerjs/ui
+    ```
+  </Tab>
+  <Tab>
+    ```shell
+    yarn add @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/sheets @univerjs/sheets-formula @univerjs/sheets-formula-ui @univerjs/sheets-numfmt @univerjs/sheets-numfmt-ui @univerjs/sheets-ui @univerjs/ui react react-dom rxjs
+    ```
+  </Tab>
+</Tabs>
+
+#### 使い方
+
+<Callout type="warning" title="注意事項">
+  - すべてのプラグインが facade パッケージ、言語パック、スタイルファイルを含んでいるわけではありません。各機能のドキュメントでこれを明記します。
+  - スタイルファイルのインポート順序は重要です。`@univerjs/design `と `@univerjs/ui` の CSS スタイルを他のプラグインのスタイルより先にインポートするようにしてください。
+</Callout>
+
+<Steps>
+  <Step>
+    プロジェクトで Univer のスタイルファイル、言語パック、および必要なプラグインをインポートする必要があります：
+
+    ```typescript
+    import { LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
+    import { FUniver } from '@univerjs/core/facade'
+    import DesignEnUS from '@univerjs/design/locale/en-US'
+    import { UniverDocsPlugin } from '@univerjs/docs'
+    import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+    import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
+    import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+    import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+    import { UniverSheetsPlugin } from '@univerjs/sheets'
+    import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+    import { UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
+    import SheetsFormulaUIEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
+    import { UniverSheetsNumfmtPlugin } from '@univerjs/sheets-numfmt'
+    import { UniverSheetsNumfmtUIPlugin } from '@univerjs/sheets-numfmt-ui'
+    import SheetsNumfmtUIEnUS from '@univerjs/sheets-numfmt-ui/locale/en-US'
+    import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
+    import SheetsUIEnUS from '@univerjs/sheets-ui/locale/en-US'
+    import SheetsEnUS from '@univerjs/sheets/locale/en-US'
+    import { UniverUIPlugin } from '@univerjs/ui'
+    import UIEnUS from '@univerjs/ui/locale/en-US'
+
+    import '@univerjs/design/lib/index.css'
+    import '@univerjs/ui/lib/index.css'
+    import '@univerjs/docs-ui/lib/index.css'
+    import '@univerjs/sheets-ui/lib/index.css'
+    import '@univerjs/sheets-formula-ui/lib/index.css'
+    import '@univerjs/sheets-numfmt-ui/lib/index.css'
+    ```
+  </Step>
+  <Step>
+    Facade API を使用する必要がある場合は、ここで関連する facade パッケージをインポートできます。これはオプションです（きっと必要になると思います 😀）：
+
+    ```typescript
+    import '@univerjs/engine-formula/facade'
+    import '@univerjs/ui/facade'
+    import '@univerjs/docs-ui/facade'
+    import '@univerjs/sheets/facade'
+    import '@univerjs/sheets-ui/facade'
+    import '@univerjs/sheets-formula/facade'
+    import '@univerjs/sheets-numfmt/facade'
+    ```
+  </Step>
+  <Step>
+    次に、Univer インスタンスを作成し、これらのプラグインを登録します：
+
+    ```typescript
+    const univer = new Univer({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: mergeLocales(
+          DesignEnUS,
+          UIEnUS,
+          DocsUIEnUS,
+          SheetsEnUS,
+          SheetsUIEnUS,
+          SheetsFormulaUIEnUS,
+          SheetsNumfmtUIEnUS,
+        ),
+      },
+    })
+
+    univer.registerPlugin(UniverRenderEnginePlugin)
+    univer.registerPlugin(UniverFormulaEnginePlugin)
+
+    univer.registerPlugin(UniverUIPlugin, {
+      container: 'app',
+    })
+
+    univer.registerPlugin(UniverDocsPlugin)
+    univer.registerPlugin(UniverDocsUIPlugin)
+
+    univer.registerPlugin(UniverSheetsPlugin)
+    univer.registerPlugin(UniverSheetsUIPlugin)
+    univer.registerPlugin(UniverSheetsFormulaPlugin)
+    univer.registerPlugin(UniverSheetsFormulaUIPlugin)
+    univer.registerPlugin(UniverSheetsNumfmtPlugin)
+    univer.registerPlugin(UniverSheetsNumfmtUIPlugin)
+
+    univer.createUnit(UniverInstanceType.UNIVER_SHEET, {})
+
+    const univerAPI = FUniver.newAPI(univer)
+    ```
+  </Step>
+</Steps>
+
+<PlaygroundFrame lang="en-US" slug="sheets/slim-via-plugin" clickToShow />
+
+#### `univer.registerPlugin` メソッド [#registerPlugin]
+
+`univer.registerPlugin` メソッドは、Univer インスタンスにプラグインを登録するために使用されます。Univer インスタンスを作成した後、このメソッドを呼び出してプラグインを登録できます。
+
+`univer.registerPlugin(Plugin, options)` メソッドを使用してプラグインを登録できます。ここで `Plugin` は登録するプラグイン、`options` はオプションの設定項目で、各プラグインは異なる設定項目を持つ場合があります。
+
+もちろん、配列を渡して複数のプラグインを一度に登録することも可能です。これは、プラグインを一元管理する必要があるシナリオで非常に便利です。
+
+```typescript
+univer.registerPlugin([
+  UniverRenderEnginePlugin,
+  UniverFormulaEnginePlugin,
+  [UniverUIPlugin, {
+    container: 'app',
+  }],
+  UniverDocsPlugin,
+  UniverDocsUIPlugin,
+  UniverSheetsPlugin,
+  UniverSheetsUIPlugin,
+  UniverSheetsFormulaPlugin,
+  UniverSheetsFormulaUIPlugin,
+  UniverSheetsNumfmtPlugin,
+  UniverSheetsNumfmtUIPlugin,
+])
+```
+
+#### プラグインの遅延読み込み
+
+プラグインモードの一般的な利点は、プラグインの読み込みタイミングをより柔軟に制御できることです。一般的なアプローチは、アプリケーション初期化時に必要不可欠なプラグインのみを読み込み、一部のプラグインの読み込みを最初のレンダリング完了後まで遅延させることです。
+
+```typescript
+// ...
+
+univer.createUnit(UniverInstanceType.UNIVER_SHEET, {})
+
+import('@univerjs/watermark').then(({ UniverWatermarkPlugin }) => {
+  univer.registerPlugin(UniverWatermarkPlugin, {
+    textWatermarkSettings: {
+      content: 'Hello, Univer!',
+      fontSize: 36,
+    },
+  })
+})
+```
+
+私たちの[公式デモ](https://github.com/dream-num/univer/blob/dev/examples/src/sheets/main.ts)でもこの最適化技術を使用しており、参考にしていただけます。
+
+### CDN からのインポート
+
+パッケージマネージャーを使用したくない場合や、Univer の機能を素早く試したい場合は、CDN 経由で Univer の関連リソースをインポートできます。詳細については、[CDN 経由での Univer 使用](/guides/sheets/getting-started/installation/cdn#plugin-mode)を参照してください。
+
+## その他のリリース
+
+安定版リリースに加えて、Univer は alpha/beta および nightly チャンネルも提供しています。これらのバージョンでは、まだ正式にリリースされていない最新機能に早期にアクセスできます。ただし、機能が多いということはリスクも多いということを覚えておいてください。これらのバージョンにはバグ、不完全な機能、または不安定な機能が含まれている可能性があります。可能な限り、本番環境でのこれらのバージョンの使用は避けてください。
+
+### Alpha/Beta リリース
+
+Univer 開発チームが新機能や重要な変更を完了すると、alpha または beta チャンネルにプレリリースすることがあります。以下のコマンドを使用して Univer パッケージの alpha/beta バージョンをインストールできます：
+
+```package-install
+npm install @univerjs/<package-name>@alpha # Alpha バージョン
+npm install @univerjs/<package-name>@beta # Beta バージョン
+```
+
+alpha/beta バージョンを使用中に問題が発生したり、フィードバックがある場合は、[Github Issues](https://github.com/dream-num/univer/issues) や [Discord チャンネル](https://discord.gg/XPGnMBmpd6)などの適切なチャンネルを通じて Univer 開発チームに報告してください。
+
+早期アクセス実験をお楽しみください！
+
+## 次のステップ
+
+* [基本概念](/guides/sheets/getting-started/quickstart#basic-concepts) - Univer の基本概念について学びます。
+* [機能](/guides/sheets/features/core) - Univer の機能とデータ操作方法について学びます。
+
+---
+
+[^1]: https://blog.npmjs.org/post/110924823920/npm-weekly-5
+[^2]: https://pnpm.io/npmrc#auto-install-peers
+[^3]: https://github.com/yarnpkg/yarn/issues/1503
