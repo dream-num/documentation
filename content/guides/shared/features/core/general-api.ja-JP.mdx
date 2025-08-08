@@ -1,0 +1,540 @@
+---
+title: 共通 API
+---
+
+Univer では、ドキュメントタイプに応じて利用可能な Facade API が異なります。このセクションでは、すべてのドキュメントタイプに適用される一般的な Facade API を紹介します。
+
+## 概念
+
+### コマンド
+
+Univer での操作の大部分はコマンドシステムに登録され、コマンドシステムを通じて実行されます。この統一された操作アプローチにより、Univer は元に戻す、やり直し、コラボレーションなどの機能を容易に実装できます。
+
+<Callout>
+  設計の詳細については、[Univer コマンドシステム](/guides/recipes/architecture/univer#command-system)をお読みください。
+</Callout>
+
+### コマンド
+
+Univer での操作の大部分はコマンドシステムに登録され、コマンドシステムを通じて実行されます。この統一された操作アプローチにより、Univer は元に戻す、やり直し、コラボレーションなどの機能を容易に実装できます。
+
+<Callout>
+  コマンドは、Univer 内の一意の「イベント」として簡単に理解できます。設計の詳細については、[command-system](/introduction/architecture/univer#command-system) を参照してください。
+</Callout>
+
+### コマンドのリスニング
+
+Univer は、コマンドの実行前と実行後の2つの方法でコマンドをリスニングする機能を提供します：
+
+- `onBeforeCommandExecute`: コマンド実行前にカスタムロジックを実行します。
+- `onCommandExecuted`: コマンド実行後にカスタムロジックを実行します。
+
+#### 実行前のコマンドリスニング
+
+コマンドが実行される前に、`FUniver.onBeforeCommandExecute` API にコールバック関数を渡してカスタム前処理リスナーを登録します。
+
+コマンドが実行されると、前処理リスナー内のロジックが実行されます。
+
+```typescript
+const univerAPI = FUniver.newAPI(univer)
+
+univerAPI.onBeforeCommandExecute((command) => {
+  const { id, type, params } = command
+  // コマンド実行前に実行されるカスタムロジック
+})
+```
+
+コマンドが実行される前にその実行を阻止したい場合は、リスナーコールバック内で例外を`throw`できます。
+
+```typescript
+const univerAPI = FUniver.newAPI(univer)
+
+univerAPI.onBeforeCommandExecute((command) => {
+  throw new Error('編集は禁止されています')
+})
+```
+
+#### 実行後のコマンドリスニング
+
+コマンドが実行された後、`FUniver.onCommandExecuted` API にコールバック関数を渡してカスタム後処理リスナーを登録することもできます。
+
+コマンドが実行されると、後処理リスナー内のロジックが実行されます。
+
+```typescript
+const univerAPI = FUniver.newAPI(univer)
+
+univerAPI.onCommandExecuted((command) => {
+  const { id, type, params } = command
+  // コマンド実行後に実行されるカスタムロジック
+})
+```
+
+### リスニングのキャンセル
+
+コマンドリスナーを登録するメソッドは `IDisposable` オブジェクトを返し、`IDisposable.dispose` を呼び出すことで破棄できます。
+
+プログラムの堅牢性を向上させるため、使用しなくなったリスナーは破棄することを推奨します。
+
+```typescript
+const univerAPI = FUniver.newAPI(univer)
+
+// リスナーを登録
+const disposable = univerAPI.onBeforeCommandExecute((command) => {
+  // コマンド実行前のカスタム前処理ロジック
+})
+
+// 例：1 秒後にリスナーを破棄
+setTimeout(() => {
+  // リスナーを破棄
+  disposable.dispose()
+}, 1000)
+```
+
+### コマンドの実行
+
+コマンド ID と渡す必要があるパラメータがすでに分かっている場合、`FUniver.executeCommand` メソッドを使用してコマンドを実行することもできます。
+
+例えば、`sheet.command.set-range-values` コマンドを使用してセル A1 の値を設定できます：
+
+```typescript
+const univerAPI = FUniver.newAPI(univer)
+
+// コマンドを実行
+univerAPI.executeCommand('sheet.command.set-range-values', {
+  value: { v: 'Hello, Univer!' },
+  range: { startRow: 0, startColumn: 0, endRow: 0, endColumn: 0 },
+})
+```
+
+## イベント API
+
+Univer は、スプレッドシートでのさまざまな変更をリスニングし、応答するための包括的なイベントシステムを提供します。イベントは、クリップボード操作、選択変更、セルインタラクション、シート変更など、いくつかのグループに大きく分類できます。
+
+### イベントカテゴリ
+
+完全なイベントリスト: https://reference.univer.ai/en-US/classes/FEventName#properties
+
+1. **クリップボードイベント**
+   - `BeforeClipboardChange`: クリップボード内容変更前にトリガー、`params.cancel = true` で変更を阻止可能
+   - `BeforeClipboardPaste`: 貼り付け前にトリガー、`params.cancel = true` で貼り付けを阻止可能
+   - `ClipboardChanged`: クリップボード内容変更後にトリガー、新しいクリップボード内容を提供
+   - `ClipboardPasted`: 内容貼り付け後にトリガー、貼り付けられた内容を提供
+
+2. **選択イベント**
+   - `SelectionChanged`: 選択変更時にトリガー、新しい選択範囲情報を提供
+   - `SelectionMoveStart`: 選択移動開始時にトリガー、カスタム選択効果に有用
+   - `SelectionMoveEnd`: 選択移動終了時にトリガー、最終選択範囲を提供
+   - `SelectionMoving`: 選択移動中にトリガー、リアルタイムUI更新に有用
+   - `DragOver`: セル上でドラッグ中にトリガー
+   - `Drop`: 選択内容をドロップ時にトリガー
+
+3. **セルイベント**
+   - `CellClicked`: セルクリック時にトリガー、セル位置と内容情報を提供
+   - `CellHover`: セルホバー時にトリガー、ツールチップ表示に有用
+   - `CellPointerDown`: セル上でポインタ押下時にトリガー、ドラッグや選択操作開始に使用
+   - `CellPointerUp`: セル上でポインタ解放時にトリガー、操作完了に使用
+   - `CellPointerMove`: セル上でポインタ移動時にトリガー
+
+4. **シートイベント**
+   - `SheetValueChanged`: シート値変更時にトリガー、変更範囲と新しい値を提供
+   - `SheetZoomChanged`: ズームレベル変更時にトリガー、新しいズーム比率を提供
+   - `SheetSkeletonChanged`: シート構造変更時（行/列の挿入/削除など）にトリガー
+   - `BeforeSheetEditStart`: セル編集開始前にトリガー、編集許可を制御可能
+   - `SheetEditStarted`: セル編集開始時にトリガー、カスタムエディタ動作に有用
+   - `BeforeSheetEditEnd`: セル編集終了前にトリガー、内容検証に使用可能
+   - `SheetEditEnded`: セル編集終了時にトリガー、編集された値を提供
+   - `SheetEditChanging`: セル編集中にトリガー、リアルタイム検証やフォーマットに有用
+   - `Scroll`: シートスクロール時にトリガー、スクロール位置情報を提供
+   - `CrosshairHighlightColorChanged`: 十字線ハイライト色変更時にトリガー
+   - `CrosshairHighlightEnabledChanged`: 十字線ハイライト有効/無効時にトリガー
+
+5. **ヘッダーイベント**
+   - `RowHeaderClick`: 行ヘッダークリック時にトリガー
+   - `RowHeaderHover`: 行ヘッダーホバー時にトリガー
+   - `ColumnHeaderClick`: 列ヘッダークリック時にトリガー
+   - `ColumnHeaderHover`: 列ヘッダーホバー時にトリガー
+
+6. **データ検証イベント**
+   - `BeforeSheetDataValidationAdd`: データ検証ルール追加前にトリガー
+   - `SheetDataValidationChanged`: データ検証ルール変更時にトリガー
+   - `SheetDataValidatorStatusChanged`: データ検証ステータス変更時にトリガー
+
+7. **コメントイベント**
+   - `BeforeCommentAdd`: コメント追加前にトリガー
+   - `CommentAdded`: コメント追加後にトリガー
+   - `BeforeCommentUpdate`: コメント更新前にトリガー
+   - `CommentUpdated`: コメント更新後にトリガー
+   - `BeforeCommentDeleted`: コメント削除前にトリガー
+   - `CommentDeleted`: コメント削除後にトリガー
+
+8. **データ処理イベント**
+   - `SheetBeforeRangeSort`: 範囲ソート前にトリガー
+   - `SheetRangeSorted`: 範囲ソート後にトリガー
+   - `SheetBeforeRangeFilter`: 範囲フィルタ前にトリガー
+   - `SheetRangeFiltered`: 範囲フィルタ後にトリガー
+   - `BeforePivotTableAdd`: ピボットテーブル追加前にトリガー
+   - `PivotTableAdded`: ピボットテーブル追加後にトリガー
+
+### イベントの使用
+
+`univerAPI` の `addEvent` メソッドを使用してイベントをリスニングできます。基本的なパターンは以下の通りです：
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.EventName, (params) => {
+  // イベントパラメータを処理
+})
+```
+
+#### 例：セルクリックのリスニング
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.CellClicked, (params) => {
+  const { worksheet, workbook, row, column, value } = params
+  console.log(`セルがクリックされました：行 ${row}、列 ${column}`)
+})
+```
+
+#### 例：クリップボード操作の監視
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.BeforeClipboardPaste, (params) => {
+  const { text, html } = params
+  // クリップボード貼り付けをキャンセルしたい場合
+  params.cancel = true
+})
+```
+
+#### 例：選択変更の追跡
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.SelectionChanged, (params) => {
+  const { worksheet, workbook, selections } = params
+  console.log('選択が変更されました:', selections)
+})
+```
+
+### イベントリスナーのキャンセル
+
+イベントリスナーは `IDisposable` オブジェクトを返し、不要になったときにリスナーを削除するために使用できます：
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.SheetValueChanged, (params) => {
+  // 値変更を処理
+})
+
+// 後でリスナーを削除したい場合：
+disposable.dispose()
+```
+
+### ベストプラクティス
+
+1. メモリリークを防ぐため、不要になったイベントリスナーは常に破棄する
+2. 使用ケースに適切なイベントを使用する - 一般的なイベントよりも特定のイベントを優先
+3. パフォーマンスを維持するため、イベントハンドラーは軽量に保つ
+4. デフォルト動作を阻止する必要がある場合は、`BeforeClipboardChange` などの「before」イベントの使用を検討
+
+## 元に戻すとやり直し
+
+### 元に戻す
+
+```typescript
+await univerAPI.undo()
+```
+
+### やり直し
+
+```typescript
+await univerAPI.redo()
+```
+
+## システムクリップボード
+
+`FUniver.copy()` と `FUniver.paste()` メソッドを使用することで、システムクリップボードから読み取りと書き込みができます。
+
+<Callout>
+  コピーと貼り付けはブラウザのネイティブAPIに依存します。環境条件や権限が不十分な場合、コピーと貼り付け機能は動作しません。詳細については、[MDN ドキュメント](https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText)を参照してください。
+</Callout>
+
+例：シート範囲でのコピーと貼り付け
+
+```typescript
+// コンソールでコピーと貼り付けコードを実行する際のフォーカス失失による失敗を防ぐため、
+// この例ではセルクリックイベントをリスニングしてコピーと貼り付けコードを実行します。
+univerAPI.addEvent(univerAPI.Event.CellClicked, async (params) => {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  const fWorksheet = fWorkbook.getActiveSheet()
+
+  // 範囲 A1:B2 をクリップボードにコピー
+  const fRange = fWorksheet.getRange('A1:B2')
+  fRange.activate().setValues([
+    [1, 2],
+    [3, 4],
+  ])
+  await univerAPI.copy()
+
+  // コピーした内容を範囲 C1:D2 に貼り付け
+  const fRange2 = fWorksheet.getRange('C1')
+  fRange2.activate()
+  await univerAPI.paste()
+
+  // 貼り付けた内容を確認
+  console.log(fWorksheet.getRange('C1:D2').getValues()) // [[1, 2], [3, 4]]
+})
+```
+
+または、コマンドシステムを使用してクリップボード機能を呼び出すこともできます：
+
+```typescript
+import { CopyCommand, PasteCommand } from '@univerjs/ui'
+
+// コピー
+univerAPI.executeCommand(CopyCommand.id)
+// 貼り付け
+univerAPI.executeCommand(PasteCommand.id)
+```
+
+## UI
+
+Univer UI を拡張するには、以下のドキュメントを参照してください：
+
+- [キャンバスの拡張](/guides/recipes/tutorials/custom-canvas)
+
+## WebSocket
+
+Facade API は、URL を渡して WebSocket を作成する便利な API `createSocket` を提供します。
+その後、open、message、close、error イベントをリスニングし、`send` メソッドを使用してメッセージを積極的に送信し、`close` メソッドを使用して接続を閉じることができます。
+
+プリセットインストールを使用して `univerAPI.createSocket(url)` を直接使用します。
+個別インストールを使用する場合、[`@univerjs/network`](https://www.npmjs.com/package/@univerjs/network) 依存関係パッケージをインストールし、`UniverNetworkPlugin` プラグインを登録する必要があります。
+
+```typescript
+// ... 他のプラグインインポートを省略
+import { UniverNetworkPlugin } from '@univerjs/network'
+
+// ... 他のファサードインポートを省略
+import '@univerjs/network/facade'
+
+// ... 他のプラグイン登録を省略
+univer.registerPlugin(UniverNetworkPlugin)
+```
+
+以下は簡単な例です：
+
+```typescript
+// URLを独自のWebSocketサービスのアドレスに置き換えてください
+const ws = univerAPI.createSocket('ws://47.100.177.253:8449/ws')
+
+ws.open$.subscribe(() => {
+  console.log('websocket opened')
+  ws.send('hello')
+})
+
+ws.message$.subscribe((message) => {
+  console.log('websocket message', message)
+  const content = JSON.parse(message.data).content
+  if (!content.includes('command')) {
+    return
+  }
+
+  const commandInfo = JSON.parse(content)
+  const { command, options } = commandInfo
+  const { id, params } = command
+
+  // コラボレーションデータを受信すると、ローカルに保存される
+  univerAPI.executeCommand(id, params, options)
+})
+
+ws.close$.subscribe(() => {
+  console.log('websocket closed')
+})
+
+ws.error$.subscribe((error) => {
+  console.log('websocket error', error)
+})
+
+univerAPI.onCommandExecuted((command, options) => {
+  // ローカル変更のみを同期
+  if (command.type !== 2 || options?.fromCollab || options?.onlyLocal || command.id === 'doc.mutation.rich-text-editing') {
+    return
+  }
+
+  const commandInfo = JSON.stringify({ command, options: { fromCollab: true } })
+  ws.send(commandInfo)
+})
+```
+
+注意：Univerを起動する際にunitIDがあることを確認してください。unitIDが指定されていない場合、コラボレーションは機能しません。
+
+## 数式の登録
+
+Facade API を使用して、現在の Univer インスタンスにカスタム数式を迅速かつ簡単に登録できます。
+
+以下のケースに示すように、[`registerFunction`](https://reference.univer.ai/en-US/classes/FFormula#registerfunction) を使用して、`CUSTOMSUM` 数式に必要なアルゴリズム、名前、説明を数式プラグインに一度に登録します。実行後、数式を使用できます。任意の空白セルに `=CUSTOMSUM` と入力すると、プロンプトが表示されます。
+
+```typescript
+// 登録された数式はラムダ関数をサポート
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.registerFunction(
+  'CUSTOMSUM',
+  (...variants) => {
+    let sum = 0
+    const last = variants[variants.length - 1]
+
+    if (last.isLambda && last.isLambda()) {
+      variants.pop()
+      const variantsList = variants.map(variant => Array.isArray(variant) ? variant[0][0] : variant)
+      sum += last.executeCustom(...variantsList).getValue()
+    }
+
+    for (const variant of variants) {
+      sum += Number(variant) || 0
+    }
+
+    return sum
+  },
+  'Adds its arguments',
+)
+
+// セル内で関数を使用
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const cellA1 = fWorksheet.getRange('A1')
+cellA1.setValue(1)
+const cellA2 = fWorksheet.getRange('A2')
+cellA2.setValue(2)
+const cellA3 = fWorksheet.getRange('A3')
+cellA3.setValue({ f: '=CUSTOMSUM(A1,A2,LAMBDA(x,y,x*y))' })
+
+// A3 は表示されます：5
+formulaEngine.calculationEnd((functionsExecutedState) => {
+  if (functionsExecutedState === 3) {
+    console.log(cellA3.getValue()) // 5
+  }
+})
+```
+
+数式の登録を解除する必要がある場合は、`dispose` メソッドを呼び出すことができます。
+
+```typescript
+const functionDisposable = formulaEngine.registerFunction({
+  // 計算
+})
+
+// 関数の登録を解除
+functionDisposable.dispose()
+```
+
+より完全な国際化内容と説明を提供したい場合は、`locales` と `description` フィールドも設定できます。以下の通りです。
+
+```typescript
+formulaEngine.registerFunction(
+  'CUSTOMSUM',
+  (...variants) => {
+    let sum = 0
+    const last = variants[variants.length - 1]
+
+    if (last.isLambda && last.isLambda()) {
+      variants.pop()
+      const variantsList = variants.map(variant => Array.isArray(variant) ? variant[0][0] : variant)
+      sum += last.executeCustom(...variantsList).getValue()
+    }
+
+    for (const variant of variants) {
+      sum += Number(variant) || 0
+    }
+
+    return sum
+  },
+  {
+    description: {
+      functionName: 'CUSTOMSUM',
+      description: 'formulaCustom.CUSTOMSUM.description',
+      abstract: 'formulaCustom.CUSTOMSUM.abstract',
+      functionParameter: [
+        {
+          name: 'formulaCustom.CUSTOMSUM.functionParameter.number1.name',
+          detail: 'formulaCustom.CUSTOMSUM.functionParameter.number1.detail',
+          example: 'A1:A20',
+          require: 1,
+          repeat: 0,
+        },
+        {
+          name: 'formulaCustom.CUSTOMSUM.functionParameter.number2.name',
+          detail: 'formulaCustom.CUSTOMSUM.functionParameter.number2.detail',
+          example: 'B2:B10',
+          require: 0,
+          repeat: 1,
+        },
+      ],
+    },
+    locales: {
+      zhCN: {
+        formulaCustom: {
+          CUSTOMSUM: {
+            description: '将单个值、单元格引用或是区域相加，或者将三者的组合相加。',
+            abstract: '求参数的和',
+            functionParameter: {
+              number1: {
+                name: '数值1',
+                detail: '要相加的第一个数字。 该数字可以是 4 之类的数字，B6 之类的单元格引用或 B2:B8 之类的单元格范围。',
+              },
+              number2: {
+                name: '数值2',
+                detail: '这是要相加的第二个数字。 可以按照这种方式最多指定 255 个数字。',
+              },
+            },
+          },
+        },
+      },
+      enUS: {
+        formulaCustom: {
+          CUSTOMSUM: {
+            description: `You can add individual values, cell references or ranges or a mix of all three.`,
+            abstract: `Adds its arguments`,
+            functionParameter: {
+              number1: {
+                name: 'number1',
+                detail: 'The first number you want to add. The number can be like 4, a cell reference like B6, or a cell range like B2:B8.',
+              },
+              number2: {
+                name: 'number2',
+                detail: 'This is the second number you want to add. You can specify up to 255 numbers in this way.',
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+)
+```
+
+注意
+
+- `func` は計算数式の具体的なアルゴリズムと名前マッピングを記述します。入力パラメータは、ユーザーが数式を使用する際に入力する内容で、数値、文字列、ブール値、または配列の可能性があります。
+- `description` はカスタム数式の説明を設定します。
+- `locales` の下で複数の言語を設定できます。命名規則については、[LocaleType](https://reference.univer.ai/en-US/globals#localetype) を参照してください。複数の数式の翻訳は `functionList` の下に追加できます。詳細なフィールド説明については、[Formula Engine で数式を追加する方法](/guides/sheets/advanced/custom-formula#how-to-add-formulas-in-formula-engine)セクションを参照してください。
+
+<Callout>
+  数式システムが提供するアルゴリズムを再利用し、数式アルゴリズムの機能を強化したい場合は、プラグイン設定を通じてカスタム数式を登録できます。詳細なチュートリアルについては、[カスタム数式](/guides/recipes/tutorials/custom-formula)を参照してください。
+</Callout>
+
+## 列挙型 API
+
+Facade API は、開発中に使用できる一般的に使用される列挙型を提供します。例えば：
+
+```typescript
+console.log(univerAPI.Enum)
+console.log(univerAPI.Enum.UniverInstanceType.UNIVER_SHEET)
+console.log(univerAPI.Enum.LifecycleStages.Rendered)
+```
+
+## ユーティリティメソッド API
+
+Facade API は、開発中に使用できる一般的に使用されるユーティリティメソッドを提供します。例えば：
+
+```typescript
+console.log(univerAPI.Util)
+console.log(univerAPI.Util.tools.chatAtABC(10))
+console.log(univerAPI.Util.tools.ABCatNum('K'))
+```

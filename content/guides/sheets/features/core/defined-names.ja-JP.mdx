@@ -1,0 +1,143 @@
+---
+title: 定義名（Defined Names）
+---
+
+Defined Names（定義名）は、セル・セル範囲・数式に対して任意の名前（ラベル）を付与し、直感的で読みやすく保守性の高い参照を可能にする機能です。適切な名前付けにより、数式の可読性・再利用性・ワークシート全体の専門性を向上できます。
+
+- **数式の可読性向上**: `A1 + A2 + A3` の代わりに `Amount` を用いることで意図が明確になります。
+- **複雑な参照の簡素化**: 例えば `A1:A10` に `SalesData` という名前を定義し、数式中で直接 `SalesData` を使用できます。
+- **データ領域の統一管理**: 範囲が変わっても定義名の参照先を更新するだけで、すべての数式を逐一編集する必要がなくなります。
+
+## 使い方
+
+シート左上の名前ボックス横に「名前管理（Name Manager）」へのエントリがあります。ここで定義済みのすべての名前一覧を確認し、管理操作（閲覧・編集・削除）が可能です。
+
+![Defined Names](./defined-names/defined-names.png)
+
+数式内で定義名を使う際は、名前をそのまま入力します。例: `TotalSales` を定義済みなら、`=TotalSales` と入力してその範囲（または数式）を参照できます。
+
+## 注意事項
+
+- **名前の一意性**: 同一ワークシート内で重複不可。既存名や組み込み関数名と競合してはなりません。
+- **名前の妥当性**: 先頭を数字にできず、スペースや `!`, `@`, `#` など特殊文字は使用できません。規則違反の場合はエラーが通知されます。
+- **定義名の更新**: 既存名を変更する場合は「名前の定義」編集パネルを再度開き、対象を選択して編集後「OK」で保存します。
+- **定義名の削除**: 不要になった定義名は編集パネルで選択し「削除」します。削除後、その名前を参照していた数式は無効になります。
+- **シート間利用（クロスワークシート）**: 同一ブック内で利用可能ですが、名前の一意性管理に注意してください。異なるシートで同名を定義すると参照の混乱を招く可能性があります。
+- **命名規約**: 意味が明確で、過度に短い・曖昧な名称は避け、他ユーザーにも理解しやすいものを推奨します。
+- **数式デバッグ**: 動作不良時は (1) 名前の綴り (2) 参照範囲 (3) 重複・競合の有無 を確認してください。
+- **スコープ**: 定義名は「ブックレベル」または「ワークシートレベル」で設定可能。ブックレベルは全シートで使用可能、シートレベルは対象シート内のみ。
+
+## Facade API
+
+完全な Facade API 型定義は [Facade API](https://reference.univer.ai/en-US) を参照してください。
+
+### Create Defined Names
+
+[`univerAPI.newDefinedName()`](https://reference.univer.ai/en-US/classes/FUniver#newdefinedname) は定義名ビルダーを生成し、`FDefinedNameBuilder` インスタンスを返します。メソッドチェーンで `ISetDefinedNameMutationParam` オブジェクトを構築し、定義名を挿入できます。
+
+[`FDefinedNameBuilder`](https://reference.univer.ai/en-US/classes/FDefinedNameBuilder) の主なメンバー:
+
+| メソッド | 説明 |
+| ---- | ---- |
+| build | 定義名オブジェクトを構築 |
+| setName | 定義名を設定 |
+| setFormula | 数式を設定 |
+| setRef | 参照範囲を設定 |
+| setComment | コメントを設定 |
+| setScopeToWorksheet | 特定ワークシート限定スコープに設定 |
+| setScopeToWorkbook | ブック全体スコープに設定 |
+
+[`FWorkbook.insertDefinedNameBuilder()`](https://reference.univer.ai/en-US/classes/FWorkbook#insertdefinednamebuilder) はブック全体で利用可能な定義名を作成します。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const definedNameBuilder = univerAPI.newDefinedName()
+  .setName('MyDefinedName')
+  .setRef('Sheet1!$A$1')
+  .setComment('Sheet1 の A1 セル参照')
+  .build()
+fWorkbook.insertDefinedNameBuilder(definedNameBuilder)
+```
+
+[`FWorkbook.insertDefinedName()`](https://reference.univer.ai/en-US/classes/FWorkbook#insertdefinedname) で簡易作成も可能です。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+fWorkbook.insertDefinedName('MyDefinedName', 'Sheet1!$A$1')
+```
+
+その他:
+- [`FWorksheet.insertDefinedName()`](https://reference.univer.ai/en-US/classes/FWorksheet#insertdefinedname): 特定ワークシートのみ有効な定義名を作成。
+
+### 定義名の取得
+
+[`FWorkbook.getDefinedName()`](https://reference.univer.ai/en-US/classes/FWorkbook#getdefinedname) はブック内の特定定義名を取得し、`FDefinedName` インスタンスを返します。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const definedName = fWorkbook.getDefinedName('MyDefinedName')
+console.log(definedName?.getFormulaOrRefString())
+
+if (definedName) {
+  definedName.setName('NewDefinedName')
+}
+```
+
+その他:
+- [`FWorkbook.getDefinedNames()`](https://reference.univer.ai/en-US/classes/FWorkbook#getdefinednames): ブック内すべての定義名配列 (`FDefinedName[]`) を取得。
+- [`FWorksheet.getDefinedNames()`](https://reference.univer.ai/en-US/classes/FWorksheet#getdefinednames): そのワークシートで利用可能な定義名配列を取得。
+
+### 定義名の変更
+
+[`FWorkbook.updateDefinedNameBuilder()`](https://reference.univer.ai/en-US/classes/FWorkbook#updatedefinednamebuilder) は既存定義名を変更します。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const definedName = fWorkbook.getDefinedName('MyDefinedName')
+console.log(definedName?.getFormulaOrRefString())
+
+// 定義名を更新
+if (definedName) {
+  const newDefinedNameParam = definedName.toBuilder()
+    .setName('NewDefinedName')
+    .setRef('Sheet1!$A$2')
+    .build()
+  fWorkbook.updateDefinedNameBuilder(newDefinedNameParam)
+}
+```
+
+[`FDefinedName`](https://reference.univer.ai/en-US/classes/FDefinedName) インスタンスから直接更新も可能です。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const definedName = fWorkbook.getDefinedName('MyDefinedName')
+console.log(definedName?.getFormulaOrRefString())
+
+// 直接更新
+if (definedName) {
+  definedName.setName('NewDefinedName')
+  definedName.setRef('Sheet1!$A$2')
+}
+```
+
+### 定義名の削除
+
+[`FWorkbook.deleteDefinedName()`](https://reference.univer.ai/en-US/classes/FWorkbook#deletedefinedname) で定義名を削除します。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+fWorkbook.deleteDefinedName('MyDefinedName')
+```
+
+取得済みの [`FDefinedName`](https://reference.univer.ai/en-US/classes/FDefinedName) インスタンスから直接削除することも可能です。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const definedName = fWorkbook.getDefinedName('MyDefinedName')
+console.log(definedName?.getFormulaOrRefString())
+
+// 削除
+if (definedName) {
+  definedName.delete()
+}
+```

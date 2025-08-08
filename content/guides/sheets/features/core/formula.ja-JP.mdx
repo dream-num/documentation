@@ -1,0 +1,156 @@
+---
+title: 数式
+---
+
+import FormulaList from '@/components/formula-list'
+
+数式は Univer が提供する中核能力の一つで、セル内で数式を用いて値を計算できます。サポートされる関数は Excel と互換であり、数学・論理・テキスト・日付関数など多岐にわたります。
+
+## 設定
+
+以下は数式関連プラグインの設定項目へのリンクです:
+
+| プラグイン | 設定項目 |
+| --- | --- |
+| `@univerjs/engine-formula` | [IUniverEngineFormulaConfig](https://github.com/dream-num/univer/blob/dev/packages/engine-formula/src/controller/config.schema.ts#L29) |
+| `@univerjs/sheets-formula` | [IUniverSheetsFormulaBaseConfig](https://github.com/dream-num/univer/blob/dev/packages/sheets-formula/src/controllers/config.schema.ts#L44) |
+
+### プリセット設定
+
+```typescript
+import type { CalculationMode } from '@univerjs/preset-sheets-core'
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+
+interface IUniverSheetsCorePresetConfig {
+  formula?: {
+    // カスタム数式関数
+    function?: Array<[Ctor<BaseFunction>, IFunctionNames]>
+    // カスタム数式の説明
+    description?: IFunctionInfo[]
+    // データ初期化時の数式計算モード。既定値は `WHEN_EMPTY`
+    initialFormulaComputing?: CalculationMode
+  }
+}
+```
+
+### プラグイン設定
+
+```typescript
+import type { CalculationMode } from '@univerjs/sheets-formula'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+interface IUniverSheetsFormulaConfig {
+  // カスタム数式関数
+  function?: Array<[Ctor<BaseFunction>, IFunctionNames]>
+  // カスタム数式の説明
+  description?: IFunctionInfo[]
+  // データ初期化時の数式計算モード。既定値は `WHEN_EMPTY`
+  initialFormulaComputing?: CalculationMode
+}
+```
+
+`CalculationMode` の定義は以下の通りです:
+
+```typescript
+enum CalculationMode {
+  /**
+   * 全数式を強制計算
+   */
+  FORCED,
+
+  /**
+   * 部分計算（値を持たない数式セルのみ計算）
+   */
+  WHEN_EMPTY,
+
+  /**
+   * 一切計算しない
+   */
+  NO_CALCULATION,
+}
+```
+
+> 数式セルが予期しない値を保持している場合、`initialFormulaComputing` を `FORCED` に設定して全数式を強制再計算するか、初期化前にセル値をクリアしてください。
+
+## サポートされる数式関数
+
+<FormulaList lang="en-US" />
+
+## Facade API
+
+数式 API を使用する前に `@univerjs/sheets-formula/facade` をインポートしてください。
+
+```typescript
+import '@univerjs/sheets-formula/facade'
+```
+
+### 計算の実行
+
+```typescript
+const formula = univerAPI.getFormula()
+formula.executeCalculation()
+```
+
+### 計算の停止
+
+```typescript
+const formula = univerAPI.getFormula()
+formula.stopCalculation()
+```
+
+### 計算開始イベント
+
+```typescript
+const formula = univerAPI.getFormula()
+formula.calculationStart((forceCalculate) => {
+  console.log(forceCalculate)
+})
+```
+
+### 計算進行イベント
+
+```typescript
+const formula = univerAPI.getFormula()
+formula.calculationProcessing((stageInfo) => {
+  console.log(stageInfo)
+})
+```
+
+### 計算終了イベント
+
+```typescript
+const formula = univerAPI.getFormula()
+formula.calculationEnd((functionsExecutedState) => {
+  console.log(functionsExecutedState)
+})
+```
+
+### 初期計算モードの設定
+
+```typescript
+const formula = univerAPI.getFormula()
+formula.setInitialFormulaComputing(CalculationMode.FORCED)
+```
+
+この API が `Starting` ライフサイクル以降に呼ばれた場合、次に Univer Sheet が生成されるタイミングで反映されます。
+
+現在の初期化処理中に反映させたい場合は、`Ready` より前、例えば `Starting` ステージで呼び出してください:
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+  if (stage === LifecycleStages.Starting) {
+    const formula = univerAPI.getFormula()
+    formula.setInitialFormulaComputing(CalculationMode.FORCED)
+  }
+})
+```
+
+## カスタム数式
+
+Univer はカスタム数式をサポートしています。実装方法は [Custom Formulas](/guides/recipes/tutorials/custom-formula) を参照してください。
+
+## よくある質問
+
+### `HYPERLINK` 関数セルでハイパーリンク操作ができない
+
+Univer Sheets 用のハイパーリンクプラグインをインポートする必要があります。詳細は [ハイパーリンク](/guides/sheets/features/hyper-link) モジュールを参照してください。

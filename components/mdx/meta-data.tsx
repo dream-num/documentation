@@ -4,9 +4,9 @@ import type { ReactNode } from 'react'
 import { SiCss } from '@icons-pack/react-simple-icons'
 import { LanguagesIcon, PlugZapIcon } from 'lucide-react'
 import { useState } from 'react'
+import { Switch } from '@/components/animate-ui/radix/switch'
 import { CopyButton } from '@/components/copy-button'
 import { Tooltip } from '@/components/tooltip'
-import { Switch } from '@/components/ui/switch'
 import { clsx } from '@/lib/clsx'
 
 interface IProps {
@@ -121,13 +121,18 @@ export function MetaData(props: IProps) {
   return (
     <div
       className={`
-        grid gap-2 rounded-lg bg-neutral-100 p-4 shadow-md
+        grid gap-2 rounded-lg bg-neutral-100 shadow-md
         dark:bg-neutral-800
       `}
     >
-      <div className="flex items-center gap-1 text-xs">
+      <div
+        className={`
+          flex items-center gap-2 border-b border-neutral-200 p-2 text-sm
+          dark:border-neutral-600
+        `}
+      >
         <label
-          className={clsx('text-neutral-400', {
+          className={clsx('cursor-pointer text-neutral-400', {
             'text-neutral-800 dark:text-white': mode === 'preset',
           })}
           onClick={() => preset.length && setMode('preset')}
@@ -142,7 +147,7 @@ export function MetaData(props: IProps) {
           }}
         />
         <label
-          className={clsx('text-neutral-400', {
+          className={clsx('cursor-pointer text-neutral-400', {
             'text-neutral-800 dark:text-white': mode === 'plugin',
           })}
           onClick={() => plugins.length && setMode('plugin')}
@@ -151,7 +156,7 @@ export function MetaData(props: IProps) {
         </label>
       </div>
 
-      <div className="grid gap-2">
+      <div className="grid gap-2 rounded-lg p-2">
         {/* Preset */}
         <div
           className={clsx('grid gap-2', {

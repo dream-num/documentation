@@ -1,0 +1,163 @@
+---
+title: リッチテキスト利用ガイド
+---
+
+Univer は、セル内容、コメント、ハイパーリンクなど多様な場面で利用できる強力なリッチテキスト機能を提供しています。本ガイドではリッチテキスト機能の使用方法を紹介します。
+
+## Facade API
+
+Facade API はリッチテキスト関連オブジェクトを作成するための一連のメソッドを提供します。
+
+```typescript
+// リッチテキストを作成
+const richText = univerAPI.newRichText()
+const richTextValue = univerAPI.newRichTextValue({ body: { dataStream: 'Hello Univer\r\n' } })
+
+// 段落スタイルを作成
+const paragraphStyle = univerAPI.newParagraphStyle()
+const paragraphStyleValue = univerAPI.newParagraphStyleValue()
+
+// テキストスタイルを作成
+const textStyle = univerAPI.newTextStyle()
+const textStyleValue = univerAPI.newTextStyleValue()
+
+// テキスト装飾を作成
+const decoration = univerAPI.newTextDecoration()
+```
+
+各作成メソッドには Builder 版と Value 版が対応しています。
+- Builder 版（例：`newRichText`）はスタイルの生成および変更に使用
+- Value 版（例：`newRichTextValue`）は読み取り専用スタイルオブジェクトの生成に使用
+
+## 基本概念
+
+リッチテキストシステムは主に次の2つのコアコンポーネントから構成されます。
+
+1. TextStyle（テキストスタイル）：フォント、サイズ、色など文字の外観を制御
+2. ParagraphStyle（段落スタイル）：配置、インデント、行間など段落レベルの書式を制御
+
+## テキストスタイル設定
+
+### テキストスタイルの作成
+
+```typescript
+// 基本的なテキストスタイルを作成
+const textStyle = univerAPI.newTextStyle()
+  .setFontFamily('Arial')
+  .setFontSize(12)
+  .setItalic(true)
+  .setBold(true)
+  .build()
+
+// 色付きテキストスタイルを作成
+const coloredStyle = univerAPI.newTextStyle()
+  .setColor({ rgb: '#FF0000' }) // 文字色を赤に設定
+  .setBackground({ rgb: '#FFFF00' }) // 背景色を黄色に設定
+  .build()
+```
+
+### テキスト装飾
+
+```typescript
+// 下線を追加
+const underlineStyle = univerAPI.newTextStyle()
+  .setUnderline(
+    univerAPI.newTextDecoration()
+      .setShow(true)
+      .setColor({ rgb: '#0000FF' })
+      .setLineType(univerAPI.Enum.TextDecoration.SINGLE),
+  )
+  .build()
+
+// 取り消し線を追加
+const strikethroughStyle = univerAPI.newTextStyle()
+  .setStrikethrough(
+    univerAPI.newTextDecoration()
+      .setShow(true),
+  )
+  .build()
+```
+
+## 段落スタイル設定
+
+### 段落スタイルの作成
+
+```typescript
+// 基本的な段落スタイルを作成
+const paragraphStyle = univerAPI.newParagraphStyle()
+  .setHorizontalAlign(univerAPI.Enum.HorizontalAlign.CENTER) // 中央揃え
+  .setLineSpacing(1.5) // 1.5 行間
+  .build()
+
+// 段落インデントを設定
+const indentedStyle = univerAPI.newParagraphStyle()
+  .setIndentFirstLine({ value: 2, unit: 'cm' }) // 一行目インデント 2cm
+  .setIndentStart({ value: 1, unit: 'cm' }) // 左インデント 1cm
+  .build()
+```
+
+## 利用ケース
+
+### 1. セルのリッチテキスト
+
+セルにリッチテキストを設定する方法は2通りあります（[`setRichTextValueForCell`](https://reference.univer.ai/en-US/classes/FRange#setrichtextvalueforcell) と [`setRichTextValues`](https://reference.univer.ai/en-US/classes/FRange#setrichtextvalues)）。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+console.log(fRange.getValue(true))
+
+// A1 セル値をリッチテキストに設定
+const richText = univerAPI.newRichText()
+  .insertText('Hello World')
+  .setStyle(0, 1, { bl: 1, cl: { rgb: '#c81e1e' } })
+  .setStyle(6, 7, { bl: 1, cl: { rgb: '#c81e1e' } })
+fRange.setRichTextValueForCell(richText)
+console.log(fRange.getValue(true).toPlainText()) // Hello World
+
+// A1:B2 のセル値をリッチテキストに設定
+fRange.setRichTextValues([
+  [richText, richText],
+  [null, null],
+])
+console.log(fRange.getValue(true).toPlainText()) // Hello World
+```
+
+### 2. コメントのリッチテキスト
+
+```typescript
+// 書式付きコメントを追加
+const range = univerAPI.getActiveWorkbook()
+  .getActiveSheet()
+  .getActiveRange()
+
+// コメント内容を作成
+const comment = univerAPI.newTheadComment()
+  .setContent(
+    univerAPI.newRichText()
+      .insertText('このセル内のデータを確認してください'),
+  )
+
+// コメントを非同期で追加
+const success = await range.addCommentAsync(comment)
+if (success) {
+  console.log('コメントが正常に追加されました')
+}
+```
+
+### 3. ハイパーリンク付きリッチテキスト
+
+```typescript
+// ハイパーリンク付きリッチテキストを作成
+const range = univerAPI.getActiveWorkbook()
+  .getActiveSheet()
+  .getActiveRange()
+
+// newRichText().insertLink を用いてハイパーリンクを作成
+const richText = univerAPI.newRichText()
+  .insertLink('Visit Univer', 'https://univer.ai')
+
+// セルへ設定
+range.setRichTextValueForCell(richText)
+```
