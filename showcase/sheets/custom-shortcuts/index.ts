@@ -9,16 +9,19 @@ const metadata = {
   title: {
     'en-US': 'Custom Shortcuts',
     'zh-CN': '自定义快捷键',
+    'zh-TW': '自訂快捷鍵',
     'ja-JP': 'カスタムショートカット',
   },
   description: {
     'en-US': 'This example demonstrates how to create and use custom shortcuts in Univer Sheets. It shows how to define shortcuts for common actions, enhancing user productivity.',
     'zh-CN': '这个示例演示了如何在 Univer Sheets 中创建和使用自定义快捷键。它展示了如何为常见操作定义快捷键，从而提高用户的工作效率。',
+    'zh-TW': '這個示例演示了如何在 Univer Sheets 中創建和使用自訂快捷鍵。它展示了如何為常見操作定義快捷鍵，從而提高用戶的工作效率。',
     'ja-JP': 'この例では、Univer Sheets でカスタムショートカットを作成および使用する方法を示します。一般的なアクションのショートカットを定義する方法を示し、ユーザーの生産性を向上させます。',
   },
   tags: {
     'en-US': ['Univer Sheets', 'Preset Mode'],
     'zh-CN': ['Univer Sheets', '预设模式'],
+    'zh-TW': ['Univer Sheets', '預設模式'],
     'ja-JP': ['Univer Sheets', 'プリセットモード'],
   },
 }

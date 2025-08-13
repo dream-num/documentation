@@ -9,16 +9,19 @@ const metadata = {
   title: {
     'en-US': 'Basic Example (Plugin Mode)',
     'zh-CN': '基础示例（插件模式）',
+    'zh-TW': '基本範例（插件模式）',
     'ja-JP': '基本例（プラグインモード）',
   },
   description: {
     'en-US': 'A basic example of Univer Sheets in plugin mode, demonstrating how to use the core features of Univer Sheets.',
     'zh-CN': 'Univer Sheets 官方插件的基础示例，展示了如何使用 Univer Sheets 的核心功能。',
+    'zh-TW': '基本範例（插件模式），展示了如何使用 Univer Sheets 的核心功能。',
     'ja-JP': 'プラグインモードの Unive Sheets の基本例であり、Univer Sheets のコア機能の使い方を示しています。',
   },
   tags: {
     'en-US': ['Univer Sheets', 'Plugin Mode'],
     'zh-CN': ['Univer Sheets', '插件模式'],
+    'zh-TW': ['Univer Sheets', '預設模式'],
     'ja-JP': ['Univer Sheets', 'プラグインモード'],
   },
 }

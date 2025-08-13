@@ -9,16 +9,19 @@ const metadata = {
   title: {
     'en-US': 'Minimal Example (Plugin Mode)',
     'zh-CN': '精简示例（插件模式）',
+    'zh-TW': '最小範例（插件模式）',
     'ja-JP': '最小限の例（プラグインモード）',
   },
   description: {
     'en-US': 'A minimal setup example for Univer Sheets, demonstrating the minimum configuration required to use Univer Sheets.',
     'zh-CN': 'Univer Sheets 的精简配置示例，展示了使用 Univer Sheets 所需的最小配置。',
+    'zh-TW': 'Univer Sheets 的最小配置示例，展示了使用 Univer Sheets 所需的最小配置。',
     'ja-JP': 'Univer Sheets の最小限のセットアップ例で、Univer Sheets を使用するために必要な最小限の構成を示しています。',
   },
   tags: {
     'en-US': ['Univer Sheets', 'Plugin Mode'],
     'zh-CN': ['Univer Sheets', '插件模式'],
+    'zh-TW': ['Univer Sheets', '預設模式'],
     'ja-JP': ['Univer Sheets', 'プラグインモード'],
   },
 }

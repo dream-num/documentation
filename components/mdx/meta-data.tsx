@@ -37,6 +37,13 @@ const locales: Record<string, Record<string, string>> = {
     'plugins-info': '插件信息',
     'server-required': '需要服务端支持',
   },
+  'zh-TW': {
+    'preset-mode': '預設模式',
+    'plugin-mode': '插件模式',
+    'preset-info': '預設信息',
+    'plugins-info': '插件信息',
+    'server-required': '需要服務端支持',
+  },
   'en-US': {
     'preset-mode': 'Preset Mode',
     'plugin-mode': 'Plugin Mode',

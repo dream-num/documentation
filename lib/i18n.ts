@@ -11,6 +11,10 @@ export const locales = [
     locale: 'zh-CN',
   },
   {
+    name: '繁體中文（5%）',
+    locale: 'zh-TW',
+  },
+  {
     name: '日本語（30%）',
     locale: 'ja-JP',
   },
@@ -18,7 +22,7 @@ export const locales = [
 
 export const i18n: I18nConfig = {
   defaultLanguage: 'en-US',
-  languages: ['en-US', 'zh-CN', 'ja-JP'],
+  languages: ['en-US', 'zh-CN', 'zh-TW', 'ja-JP'],
   hideLocale: 'always',
 }
 
@@ -36,6 +40,19 @@ export const zhCN: Translations = {
   editOnGithub: '在 GitHub 上编辑',
 }
 
+export const zhTW: Translations = {
+  search: '搜索',
+  searchNoResult: '沒有找到相關內容',
+  toc: '目錄',
+  tocNoHeadings: '沒有可用的目錄',
+  lastUpdate: '最後更新',
+  chooseLanguage: '選擇語言',
+  nextPage: '下一頁',
+  previousPage: '上一頁',
+  chooseTheme: '選擇主題',
+  editOnGithub: '在 GitHub 上編輯',
+}
+
 export const jaJP: Translations = {
   search: '検索',
   searchNoResult: '関連するコンテンツが見つかりませんでした',
@@ -51,6 +68,7 @@ export const jaJP: Translations = {
 
 export const translations: Record<string, Partial<Translations>> = {
   'zh-CN': zhCN,
+  'zh-TW': zhTW,
   'ja-JP': jaJP,
 }
 
@@ -88,6 +106,45 @@ const customZhCN = {
   'blog.date': '发表日期',
   'blog.back': '返回',
   'banner.release': '已发布 →',
+  'docs.header.edit-on-github': '在 GitHub 上编辑',
+  'docs.feedback.question': '你觉得这篇文档如何？',
+  'docs.feedback.good': '好',
+  'docs.feedback.bad': '差',
+  'docs.feedback.message': '请留下你的意见或建议',
+  'docs.feedback.submit': '提交',
+  'docs.feedback.thanks': '感谢你的反馈！',
+  'docs.feedback.retry': '再次提交',
+  'playground.click-to-show': '点击显示 demo',
+  'playground.click-to-hide': '点击隐藏 demo',
+}
+
+const customZhTw = {
+  'home.slogan': '重塑工作流的全棧嵌入工具',
+  'home.description': 'Univer 是一個前後端同構的全棧辦公套件，具有高擴展性和高性能，旨在幫助開發者自由構建和編輯',
+  'home.description.split': '、',
+  'home.description.period': '。',
+  'home.description.and': '和',
+  'home.description.sheets': '電子表格',
+  'home.description.docs': '文檔',
+  'home.description.slides': '演示文稿',
+  'home.customer.title': 'Univer 為各行業團隊與公司賦能，提升工作效率',
+  'home.features.conbination.title': '豐富插件，塑造多元產品',
+  'home.features.integration.title': '隨處集成',
+  'home.features.performance.title': '無與倫比的性能',
+  'home.features.customizability.title': '一切皆可定制',
+  'documentation.title': '文檔',
+  'ecosystem.title': '生態',
+  'icons.title': 'Univer Icons',
+  'icons.slogan': 'Univer 的圖標庫，提供豐富的圖標資源',
+  'showcase.title': '在線演示',
+  'showcase.slogan': '通過案例，了解 Univer 的強大功能',
+  'showcase.back': '返回',
+  'blog.title': '博客',
+  'blog.slogan': '在此探索 Univer 的新聞、架構和最佳實踐',
+  'blog.author': '作者',
+  'blog.date': '發表日期',
+  'blog.back': '返回',
+  'banner.release': '已發布 →',
   'docs.header.edit-on-github': '在 GitHub 上编辑',
   'docs.feedback.question': '你觉得这篇文档如何？',
   'docs.feedback.good': '好',
@@ -180,6 +237,7 @@ const customJaJP: typeof customZhCN = {
 
 export const customTranslations: Record<string, Record<string, string>> = {
   'zh-CN': customZhCN,
+  'zh-TW': customZhTw,
   'en-US': customEnUS,
   'ja-JP': customJaJP,
 }

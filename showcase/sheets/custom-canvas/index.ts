@@ -9,16 +9,19 @@ const metadata = {
   title: {
     'en-US': 'Custom Canvas Rendering',
     'zh-CN': '自定义绘制',
+    'zh-TW': '自訂繪製',
     'ja-JP': 'カスタムキャンバスレンダリング',
   },
   description: {
     'en-US': 'Univer provides an extension mechanism that allows you to customize the rendering of content in a spreadsheet. This mechanism can be used to implement custom row headers, column headers, and middle content area rendering.',
     'zh-CN': 'Univer 提供了一套扩展机制，可以让你在电子表格中自定义绘制内容。这个机制可以用于实现自定义的行标题、列标题、中间内容区域的渲染。',
+    'zh-TW': 'Univer 提供了一套擴展機制，可以讓你在電子表格中自訂繪製內容。這個機制可以用於實現自訂的行標題、列標題和中間內容區域的繪製。',
     'ja-JP': 'Univer は、スプレッドシート内のコンテンツのレンダリングをカスタマイズするための拡張機構を提供します。この機構を使用して、カスタム行ヘッダー、列ヘッダー、および中央コンテンツ領域のレンダリングを実装できます。',
   },
   tags: {
     'en-US': ['Univer Sheets', 'Preset Mode'],
     'zh-CN': ['Univer Sheets', '预设模式'],
+    'zh-TW': ['Univer Sheets', '預設模式'],
     'ja-JP': ['Univer Sheets', 'プリセットモード'],
   },
 }
