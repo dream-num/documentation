@@ -7,7 +7,7 @@ import {
   NavbarMenuLink,
   NavbarMenuTrigger,
 } from 'fumadocs-ui/layouts/home/navbar'
-import { BookTextIcon, CookingPotIcon, PresentationIcon, SheetIcon } from 'lucide-react'
+import { BookTextIcon, CookingPotIcon, PresentationIcon, SheetIcon, StarIcon } from 'lucide-react'
 import Link from 'next/link'
 import { baseOptions } from '@/app/layout.config'
 import { Footer } from '@/components/footer'
@@ -36,21 +36,26 @@ export default async function Layout({ params, children }: IProps) {
     iconClassName: 'bg-linear-[135deg,#3F83F8_0%,#EBF5FF_100%] dark:bg-linear-[135deg,#3F83F8_0%,#233876_100%]',
   }, {
     text: 'Univer Slides',
-    url: `/${lang}/guides/slides`,
+    url: '/guides/slides',
     className: 'lg:col-start-2 lg:row-start-1',
     icon: <PresentationIcon />,
     iconClassName: 'bg-linear-[135deg,#F05252_0%,#FDF2F2_100%] dark:bg-linear-[135deg,#F05252_0%,#771D1D_100%]',
   }, {
     text: 'Recipes',
-    url: `/${lang}/guides/recipes/architecture/univer`,
+    url: '/guides/recipes/architecture/univer',
     className: 'lg:col-start-2 lg:row-start-2',
     icon: <CookingPotIcon />,
     iconClassName: 'bg-linear-[135deg,#9061F9_0%,#F6F5FF_100%] dark:bg-linear-[135deg,#9061F9_0%,#4A1D96_100%]',
+  }, {
+    text: 'Univer Pro',
+    url: '/guides/pro',
+    className: 'md:hidden',
+    icon: <StarIcon />,
   }]
 
   const ecosystemLinks = [{
     text: '📦 Univer Icons',
-    url: `/${lang}/icons`,
+    url: '/icons',
   }, {
     text: '💎 Obsidian Univer Plugin',
     url: 'https://github.com/dream-num/obsidian-univer',
@@ -69,7 +74,7 @@ export default async function Layout({ params, children }: IProps) {
       children: (
         <NavbarMenu>
           <NavbarMenuTrigger asChild>
-            <Link href={`/${lang}/guides/sheets`}>
+            <Link href="/guides/sheets">
               {customTranslations[lang]['documentation.title']}
             </Link>
           </NavbarMenuTrigger>
@@ -102,7 +107,7 @@ export default async function Layout({ params, children }: IProps) {
                 [&>img]:absolute [&>img]:inset-0 [&>img]:size-full [&>img]:transition-all
                 hover:[&>img]:grayscale-50
               `}
-              href={`/${lang}/guides/pro`}
+              href="/guides/pro"
             >
               <img
                 className={`
@@ -165,11 +170,11 @@ export default async function Layout({ params, children }: IProps) {
     },
     {
       text: customTranslations[lang]['blog.title'],
-      url: `/${lang}/blog`,
+      url: '/blog',
     },
     {
       text: customTranslations[lang]['showcase.title'],
-      url: `/${lang}/showcase`,
+      url: '/showcase',
     },
   ]
 

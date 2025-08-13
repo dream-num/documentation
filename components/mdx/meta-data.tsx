@@ -42,6 +42,13 @@ const locales: Record<string, Record<string, string>> = {
     'plugins-info': 'Plugins Info',
     'server-required': 'Server Required',
   },
+  'ja-JP': {
+    'preset-mode': 'プリセットモード',
+    'plugin-mode': 'プラグインモード',
+    'preset-info': 'プリセット情報',
+    'plugins-info': 'プラグイン情報',
+    'server-required': 'サーバーが必要',
+  },
 }
 
 function PackageInfo({ client, locale, style, facade }: { client?: string, locale?: string, style?: string, facade?: string }) {

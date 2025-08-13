@@ -1,0 +1,342 @@
+---
+title: Troubleshooting
+---
+
+This guide extends the "Quick Start" documentation and provides systematic diagnosis and resolution steps for engineers encountering issues during installation, startup, validation, integration (USIP), upgrade, uninstallation, and core features (including import/export).
+
+## 1. Intended Audience & Scope
+
+**Intended for:**
+- Users deploying locally or on servers via Docker Compose using the one‑command install script (`bash -c "$(curl -fsSL https://get.univer.ai)"`)
+- Users deploying Univer to a Kubernetes cluster via Helm
+- Developers integrating USIP, event sync, or backend capabilities
+- DevOps / platform engineers troubleshooting long-standing import/export Pending states (involving temporal / exchange / universer)
+
+**Not included:**
+- Frontend SDK integration details
+- OpenAPI (still under design)
+
+## 2. Failure Lifecycle Stages & Typical Cases
+
+| Stage | Scenario | Typical Symptoms | Key Components / Files |
+|------|----------|------------------|------------------------|
+| Download / Install | One-click script / offline bundle | Script interruption, image pull failures | Network, DNS, offline bundle integrity |
+| First Startup | Docker Compose | Containers restarting repeatedly / some not starting | run.sh, docker-compose.yml |
+| Access Validation | Demo UI / collaboration | http://localhost:3010/ inaccessible, blank page, WebSocket failure | Reverse proxy / port conflicts |
+| USIP Mode | Identity integration | http://localhost:8080 unreachable, 401/403 | .env.custom, USIP_ENABLED |
+| K8s Deployment | Helm install | Pod Pending / CrashLoopBackOff | Registry access, PVC, Ingress |
+| Update / Upgrade | Overlay install / helm upgrade | Data loss (should not happen), version unchanged | Volume mounts, tag confusion |
+| Uninstall | Environment cleanup | Data not removed / accidental production deletion | run.sh uninstall, helm uninstall |
+| Import / Export | Tasks Pending | Status unchanged for long time | temporal / exchange / universer |
+| Performance | Collaboration lag | High CPU / memory / RTT | Container resources, network latency |
+
+## 3. Fast Decision Matrix (Symptom → Path)
+
+| Symptom | Immediate Action | Next if Unresolved |
+|---------|------------------|--------------------|
+| One-click script hangs | Check network: `curl https://get.univer.ai -v` | Use offline bundle |
+| Demo UI port 3010 refused | `cd univer-server && bash run.sh start` | `docker compose ps` to inspect containers |
+| USIP demo 8080 returns 404 | Ensure `USIP_ENABLED=true` in `.env.custom` | Check logs after `bash run.sh restart` |
+| Helm install Pod Pending | `kubectl get nodes` resource status | `kubectl describe pod` for scheduling reason |
+| Import/Export Pending | Follow full flow in Section 9 | Collect logs, submit Issue |
+| Version unchanged after update | Ensure command includes version arg | Prune image cache / specify tag |
+| Data remains after uninstall | Inspect mounted volume path | Manual cleanup (confirm non-production) |
+
+## 4. Common Docker Compose Deployment Troubleshooting
+
+### 4.1 One-Click Installation Failure
+
+**Common manifestations:**
+- curl timeout
+- Image pull timeout (cross-border / regional network)
+- Script execution permission errors
+
+**Diagnosis steps:**
+1. Network connectivity:
+  ```bash
+  curl -I https://get.univer.ai
+  dig get.univer.ai
+  ```
+
+2. If blocked at Docker installation stage: check for conflicting existing Docker daemon:
+  ```bash
+  systemctl status docker
+  ps -ef | grep dockerd
+  ```
+
+3. When using the offline package:
+- Verify file integrity (sha256 if provided)
+- After extraction:
+  ```bash
+  bash load-images.sh
+  ```
+
+### 4.2 Missing `univer-server` Directory After First Run
+
+- Verify write permissions in current working directory
+- Before re-running install, confirm you are not in a read-only mount point
+
+### 4.3 Services Not Started or Some Containers Down
+
+**Enter the directory:**
+```bash
+cd univer-server
+bash run.sh start
+docker compose ps
+docker compose logs --tail=200 <service>
+```
+
+**Focus on:**
+- Port conflicts: `lsof -i :3010`
+- Environment variables not loaded: inspect generated `.env`, `.env.custom`
+
+### 4.4 Demo UI Access Issues
+
+| Symptom | Possible Cause | Action |
+|---------|----------------|--------|
+| Blank browser page | Frontend assets not built/served | Inspect static asset service container logs |
+| WebSocket disconnects | Reverse proxy not forwarding / CORS issue | Confirm no extra corporate proxy layer |
+| Auto-creation of blank document fails | universer not connected to storage | Inspect universer logs |
+
+## 5. K8s (Helm) Deployment Troubleshooting
+
+### 5.1 Install Command Runs but No Resources Created
+
+```bash
+helm ls -n univer
+kubectl get pods -n univer
+```
+
+### 5.2 Pod Pending
+
+```bash
+kubectl describe pod <pod> -n univer
+```
+
+**Check:**
+- Image pull failure: private registry auth
+- PVC binding failure: missing StorageClass
+- Resource requests exceed node allocatable capacity
+
+### 5.3 CrashLoopBackOff
+
+```bash
+kubectl logs <pod> -n univer --previous
+```
+
+### 5.4 Ingress / Domain Access Failure
+
+- DNS resolution: `dig univer.example.com`
+- Ingress to Service mapping: `kubectl get ingress -n univer`
+- Service backend endpoints: `kubectl get endpoints -n univer`
+
+### 5.5 Failed Upgrade Rollback
+
+```bash
+helm upgrade --install univer-stack ... -n univer
+helm rollback univer-stack <revision> -n univer
+```
+
+## 6. USIP (User Identity Integration) Issues
+
+| Symptom | Diagnostic Command | Notes |
+|---------|--------------------|-------|
+| 8080 unresponsive | `docker compose ps` for demo-usip service | Must run `bash run.sh start-demo-usip` |
+| 401 after enabling USIP | Check universer auth logs | Token / session not forwarded correctly |
+| `USIP_ENABLED=true` ineffective | Confirm filename `.env.custom` | Must `bash run.sh restart` after edit |
+
+**Suggested validation:**
+```bash
+curl -I http://localhost:8080
+```
+
+## 7. Updates & Version Management
+
+### 7.1 Docker Compose Method
+
+| Goal | Action | Notes |
+|------|--------|-------|
+| Update to latest | Re-run one-click script in parent dir | Existing volumes & config retained |
+| Update to specific version | Append `-- <version>` | Example: `-- 0.9.1` |
+| Verify version | Check image tags / container env | `docker compose images` |
+
+Avoid pitfalls:
+- Old image cache not replaced: optionally `docker image prune -f` (use with caution)
+- Data compatibility: backup volumes before major version jumps
+
+### 7.2 Helm Method
+
+```bash
+helm repo update  # if using a chart repo
+helm upgrade --install univer-stack ... -n univer
+```
+
+**Verification:**
+```bash
+helm history univer-stack -n univer
+kubectl describe deployment universer -n univer | grep Image
+```
+
+## 8. Uninstall & Data Safety
+
+| Environment | Uninstall Command | Data Deleted? |
+|-------------|-------------------|---------------|
+| Docker Compose | `bash run.sh uninstall` | Yes: volumes & document data (irreversible) |
+| K8s | `helm uninstall univer-stack -n univer` | Only resources; PVC retention depends on StorageClass reclaim policy |
+
+**Recommendations:**
+- Rehearse uninstallation in a test environment first
+- Manually back up volumes (rsync / tar)
+
+## 9. Import / Export Task Stuck in Pending (Key Section)
+
+### 9.1 End-to-End Flow
+
+1. Disable local VPN/proxy → `bash run.sh restart`
+2. Service status → `docker compose ps`
+3. Temporal health → `docker compose logs -f temporal`
+4. exchange connection state → `docker compose logs -f univer-worker-exchange`
+5. universer task submission → `docker compose logs -f universer`
+6. Still unclear → gather info & file Issue
+
+### 9.2 Temporal Startup Failure
+
+- Port conflict (default 7233)
+- DNS / hostname resolution failure
+- External DB dependency lacks permission
+
+**Action:**
+```bash
+docker compose logs -f temporal
+```
+
+Reference: https://hub.docker.com/r/temporalio/auto-setup
+
+### 9.3 exchange Error:
+
+```text
+connect temporal fail: failed reaching server: context deadline exceeded
+```
+
+**Edit `exchange/config.yaml.template`:**
+```text
+addr: no-txt:///${TEMPORAL_HOST}:${TEMPORAL_PORT}
+```
+
+**Restart:**
+```bash
+bash run.sh restart
+```
+### 9.4 universer Not Consuming / Not Submitting
+
+**Symptoms:**
+- No task submission entries in logs
+- Auth / deserialization / config omissions
+
+**Check:**
+```bash
+docker compose logs --tail=300 universer | egrep -i "error|import|export|task"
+```
+
+### 9.5 Quick Reference Table
+
+| Symptom | Root Cause | Resolution |
+|---------|------------|------------|
+| All containers Up but tasks remain Pending | exchange ↔ temporal blocked | Adjust addr + restart |
+| temporal restarts periodically | Init failure / storage unavailable | Fix DB / storage config |
+| universer logs show no submissions | API misuse / parameter validation failure | Enable debug logs, reproduce & packet capture |
+| Single task no progress | Insufficient worker threads / queue blockage | Inspect exchange load; scale workers |
+| All Pending under high concurrency | Resource bottleneck | Inspect CPU / memory / I/O metrics |
+
+## 10. Log Collection & Analysis
+
+| Service | Key Log Focus | Example Command |
+|---------|---------------|-----------------|
+| temporal | Initialization, connectivity, heartbeats | `docker compose logs -f temporal` |
+| exchange / univer-worker-exchange | temporal connectivity, queue consumption | `docker compose logs -f univer-worker-exchange` |
+| universer | API requests, task submission, stack traces | `docker compose logs -f universer` |
+| K8s environment | Pod restart reasons, liveness failures | `kubectl describe pod ...` |
+
+**Collection suggestion:**
+```bash
+# Bundle logs
+mkdir -p logs_collect && \
+docker compose logs temporal > logs_collect/temporal.log 2>&1 && \
+docker compose logs universer > logs_collect/universer.log 2>&1 && \
+tar czf univer-troubleshoot-logs.tar.gz logs_collect
+```
+
+## 11. Performance & Resource Monitoring Recommendations
+
+| Component | Metric | Threshold Suggestion | Notes |
+|-----------|--------|----------------------|-------|
+| universer | CPU / avg response time | > 80% sustained 5 min | Potential thread saturation |
+| temporal | Workflow Pending count | Deviates from baseline | Spike indicates worker blockage |
+| exchange | Task queue backlog | Should not climb linearly | Scale or inspect errors |
+| Docker host | Disk free space | < 15% | Impacts image/log writes |
+| K8s | Pod restart count | > 3/hour | Stability concern |
+
+## 12. Troubleshooting Checklist
+
+| Item | Done |
+|------|------|
+| Network reachable (VPN/proxy disabled) |
+| All services Up / Pods Ready |
+| temporal logs clean of errors |
+| exchange ↔ temporal interaction normal |
+| universer logs show no task errors |
+| UI / API validated OK |
+| Version / tag confirmed |
+| Backup before upgrade/config changes |
+| Complete logs collected (time-bounded) |
+| Reproduction minimized |
+
+## 13. Key Command Quick Reference
+
+```bash
+# One-click install (latest)
+bash -c "$(curl -fsSL https://get.univer.ai)"
+
+# Specific version
+bash -c "$(curl -fsSL https://get.univer.ai/product)" -- 0.9.1
+
+# Start / Stop / Restart
+cd univer-server && bash run.sh start
+cd univer-server && bash run.sh stop
+cd univer-server && bash run.sh restart
+
+# Uninstall (destructive)
+cd univer-server && bash run.sh uninstall
+
+# Start Demo UI
+cd univer-server && bash run.sh start-demo-ui
+
+# Enable USIP (edit then restart)
+echo "USIP_ENABLED=true" >> .env.custom
+bash run.sh restart
+bash run.sh start-demo-usip
+
+# Monitor containers
+docker compose ps
+docker compose logs -f universer
+
+# K8s install
+helm install -n univer --create-namespace \
+  --set global.istioNamespace="univer" \
+  univer-stack oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack
+
+# K8s upgrade
+helm upgrade --install univer-stack \
+  oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
+  -n univer
+```
+
+## 14. Common Pitfalls & Prevention
+
+| Pitfall | Consequence | Correct Approach |
+|---------|-------------|------------------|
+| Running install script in wrong directories repeatedly | Multiple scattered instances | Plan a unified deployment root |
+| Ignoring `.env.custom` management | Config drift | Separate custom values from template |
+| Upgrading without backup | Data compatibility risk | Periodic volume backups |
+| Using trial setup in production | Feature/performance limits | Acquire proper license |
+| Filing Issue without logs | Longer turnaround | Use template & bundled logs |
