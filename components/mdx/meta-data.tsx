@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { SiCss } from '@icons-pack/react-simple-icons'
 import { LanguagesIcon, PlugZapIcon } from 'lucide-react'
+import Link from 'next/link'
 import { useState } from 'react'
 import { Switch } from '@/components/animate-ui/radix/switch'
 import { CopyButton } from '@/components/copy-button'
@@ -11,6 +12,7 @@ import { clsx } from '@/lib/clsx'
 
 interface IProps {
   lang: string
+  isPro?: boolean
   meta: {
     preset: Array<{
       client?: string
@@ -118,7 +120,7 @@ function Label({ children }: { children: ReactNode }) {
 }
 
 export function MetaData(props: IProps) {
-  const { lang, meta } = props
+  const { lang, isPro = false, meta } = props
   const { preset = [], plugins = [], server = false } = meta
 
   const [mode, setMode] = useState<'preset' | 'plugin'>(preset.length > 0 ? 'preset' : 'plugin')
@@ -134,33 +136,50 @@ export function MetaData(props: IProps) {
     >
       <div
         className={`
-          flex items-center gap-2 border-b border-neutral-200 p-2 text-sm
+          flex items-center justify-between gap-2 border-b border-neutral-200 p-2 text-sm
           dark:border-neutral-600
         `}
       >
-        <label
-          className={clsx('cursor-pointer text-neutral-400', {
-            'text-neutral-800 dark:text-white': mode === 'preset',
-          })}
-          onClick={() => preset.length && setMode('preset')}
-        >
-          {t['preset-mode']}
-        </label>
-        <Switch
-          checked={mode === 'plugin'}
-          disabled={preset.length === 0 || plugins.length === 0}
-          onCheckedChange={(checked) => {
-            setMode(checked ? 'plugin' : 'preset')
-          }}
-        />
-        <label
-          className={clsx('cursor-pointer text-neutral-400', {
-            'text-neutral-800 dark:text-white': mode === 'plugin',
-          })}
-          onClick={() => plugins.length && setMode('plugin')}
-        >
-          {t['plugin-mode']}
-        </label>
+        <div className="flex items-center gap-2">
+          <label
+            className={clsx('cursor-pointer text-neutral-400', {
+              'text-neutral-800 dark:text-white': mode === 'preset',
+            })}
+            onClick={() => preset.length && setMode('preset')}
+          >
+            {t['preset-mode']}
+          </label>
+          <Switch
+            checked={mode === 'plugin'}
+            disabled={preset.length === 0 || plugins.length === 0}
+            onCheckedChange={(checked) => {
+              setMode(checked ? 'plugin' : 'preset')
+            }}
+          />
+          <label
+            className={clsx('cursor-pointer text-neutral-400', {
+              'text-neutral-800 dark:text-white': mode === 'plugin',
+            })}
+            onClick={() => plugins.length && setMode('plugin')}
+          >
+            {t['plugin-mode']}
+          </label>
+        </div>
+
+        <div>
+          {isPro && (
+            <Link
+              className={`
+                inline-block rounded-md bg-gradient-to-b from-[#5357ED] to-[#40B9FF] p-[5px] text-xs font-medium
+                text-white no-underline shadow-lg
+                dark:from-[#1d1f54] dark:to-[#2d3048]
+              `}
+              href="/guides/pro"
+            >
+              Univer Pro
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-2 rounded-lg p-2">
