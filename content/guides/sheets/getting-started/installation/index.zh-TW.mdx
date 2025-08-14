@@ -1,0 +1,312 @@
+---
+title: 安裝與基本使用
+---
+
+Univer 採用外掛（插件）化的設計理念，旨在為開發者提供一個彈性、可擴充的電子文件應用框架。透過外掛式設計，Univer 能輕鬆整合各類功能模組，以滿足不同使用者的需求。但此種設計也提高了應用的複雜度，尤其對初次接觸 Univer 的開發者來說可能較陌生。
+
+為此，Univer 提供 **外掛模式** 與 **預設模式** 兩種方式協助您快速整合與使用。所謂「預設」其實就是一組預先配置好的外掛組合；在無需進行進階擴充的情況下，兩種模式能提供的能力是等同的。
+
+<Callout type="warning" title="注意事項">
+  - **相依套件版本需一致**：無論使用預設模式或外掛模式，請務必確保所有相依套件的版本號保持一致。
+  - **謹慎混用外掛與預設**：若某個外掛已被某個預設包含，使用該預設時就不需再額外單獨引入，否則可能導致衝突或功能異常。
+</Callout>
+
+預設模式與外掛模式的差異：
+
+| 外掛模式 | 預設模式 |
+| --- | --- |
+| 需要手動引入對應的 Facade 套件 | 無需手動引入任何 Facade 套件 |
+| 需注意同類型功能外掛的註冊順序 | 預設內已處理註冊順序，無需關注 |
+| 支援按需（懶）載入 | 只支援預設層級的懶載入，預設內外掛僅能同步載入 |
+
+## 透過預設模式建立
+
+以下示範如何用不到二十行程式碼快速搭建一個 Univer Sheets 應用。
+
+### 使用套件管理器
+
+若您的專案已採用現代前端建置工具，導入 Univer 會非常簡單。我們推薦使用 [Vite](https://vitejs.dev/)、[esbuild](https://esbuild.github.io/) 或 [Webpack 5](https://webpack.js.org/) 等對 ES Module 支援良好的建置工具。若使用較舊工具（如 Webpack 4），可能需要額外設定。
+
+#### 安裝
+
+選擇您使用的套件管理器安裝 `@univerjs/presets`：
+
+```package-install
+npm install @univerjs/presets @univerjs/preset-sheets-core
+```
+
+#### 使用
+
+<Callout type="warning">
+  若建置工具不支援 package.json 的 `exports` 欄位（常見於 Webpack 4），需手動調整對應的匯入路徑。
+</Callout>
+
+以下程式碼可快速建立一個 Univer Sheets 應用：
+
+```typescript
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+import UniverPresetSheetsCoreZhTW from '@univerjs/preset-sheets-core/locales/zh-TW'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+import '@univerjs/preset-sheets-core/lib/index.css'
+
+const { univer, univerAPI } = createUniver({
+  locale: LocaleType.ZH_TW,
+  locales: {
+    [LocaleType.ZH_TW]: mergeLocales(
+      UniverPresetSheetsCoreZhTW,
+    ),
+  },
+  presets: [
+    UniverSheetsCorePreset({
+      container: 'app',
+    }),
+  ],
+})
+
+univerAPI.createWorkbook({})
+```
+
+此處回傳的 `univerAPI` 物件即為 Univer 的 Facade API，您可透過它呼叫眾多功能。
+
+<PlaygroundFrame lang="zh-TW" slug="sheets/slim-via-preset" clickToShow />
+
+<Callout type="warning">
+  您也可改用 `@univerjs/presets/preset-sheets-core` 匯入 `UniverSheetsCorePreset`，但必須確保建置工具支援 `package.json` 的 `exports`。
+</Callout>
+
+#### `createUniver` 方法
+
+`createUniver` 接受一組設定物件，包含語系、主題、預設、外掛等資訊。其回傳物件內含 Univer 實例與 Facade API。
+
+主要屬性說明（節錄）：
+
+- `locale`：語系，為 `LocaleType` 列舉值。
+- `locales`：語系包對應物件，鍵為語系代碼、值為語系包。
+- `theme`：主題（可選）。
+- `presets`：預設（preset）陣列，例如 `UniverSheetsCorePreset`。
+- `plugins`：額外註冊的外掛陣列。
+
+若使用的外掛不在任何預設中，或為自行實作，可透過 `plugins` 註冊，或於取得實例後使用 `univer.registerPlugin`。
+
+<Callout>
+  參見 [API Reference / createUniver](/reference/methods/create-univer) 取得更多細節。
+</Callout>
+
+### 透過 CDN 使用 Univer
+
+若不想使用套件管理器，或只想快速試用，可透過 CDN 引入相關資源。詳見[透過 CDN 使用 Univer](/guides/sheets/getting-started/installation/cdn#preset-mode)。
+
+## 透過外掛模式建立
+
+Univer 以外掛形式提供多種功能。除核心必要外掛外，您可按需求選擇性導入。以下以最基礎的 Univer Sheets 應用示範手動組合安裝。
+
+與預設模式不同，外掛模式預設不包含 Facade API；下列程式碼中 Facade 相關部分皆為可選，可按需求移除。
+
+### 使用套件管理器
+
+#### 安裝
+
+Univer 以 React 建構視圖（仍可在 Vue / Angular 中使用），並使用 RxJS 處理資料流。由於兩者在現代前端普及，我們將其列為 peerDependencies。不同套件管理器對 peerDependencies 行為不同，需注意細節。
+
+<Callout>
+  - 使用 npm：請確保版本為 npm@7 以上；npm@3 ~ npm@6 不會正確安裝 `peerDependencies`。[^1]
+  - 使用 pnpm：請使用 pnpm@8 以上；若為 pnpm@6 ~ pnpm@7，可設定 `auto-install-peers=true`[^2]。
+  - 使用 yarn：需手動安裝缺少的 `peerDependencies`[^3]；以下指令已納入。
+</Callout>
+
+<Tabs items={['npm', 'pnpm', 'yarn']}>
+  <Tab>
+    ```shell
+    npm install @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/sheets @univerjs/sheets-formula @univerjs/sheets-formula-ui @univerjs/sheets-numfmt @univerjs/sheets-numfmt-ui @univerjs/sheets-ui @univerjs/ui
+    ```
+  </Tab>
+  <Tab>
+    ```shell
+    pnpm add @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/sheets @univerjs/sheets-formula @univerjs/sheets-formula-ui @univerjs/sheets-numfmt @univerjs/sheets-numfmt-ui @univerjs/sheets-ui @univerjs/ui
+    ```
+  </Tab>
+  <Tab>
+    ```shell
+    yarn add @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/sheets @univerjs/sheets-formula @univerjs/sheets-formula-ui @univerjs/sheets-numfmt @univerjs/sheets-numfmt-ui @univerjs/sheets-ui @univerjs/ui react react-dom rxjs
+    ```
+  </Tab>
+</Tabs>
+
+#### 使用
+
+<Callout type="warning" title="注意事項">
+  - 非所有外掛皆包含 Facade 套件、語系包與樣式；各功能文件會個別說明。
+  - 樣式檔引入順序很重要：請先依序引入 `@univerjs/design`、`@univerjs/ui` 的 CSS，再引入其他外掛樣式。
+</Callout>
+
+<Steps>
+  <Step>
+    在專案中引入樣式、語系與必要外掛：
+
+    ```typescript
+    import { LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
+    import { FUniver } from '@univerjs/core/facade'
+    import DesignZhTW from '@univerjs/design/locale/zh-TW'
+    import { UniverDocsPlugin } from '@univerjs/docs'
+    import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+    import DocsUIZhTW from '@univerjs/docs-ui/locale/zh-TW'
+    import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+    import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+    import { UniverSheetsPlugin } from '@univerjs/sheets'
+    import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+    import { UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
+    import SheetsFormulaUIZhTW from '@univerjs/sheets-formula-ui/locale/zh-TW'
+    import { UniverSheetsNumfmtPlugin } from '@univerjs/sheets-numfmt'
+    import { UniverSheetsNumfmtUIPlugin } from '@univerjs/sheets-numfmt-ui'
+    import SheetsNumfmtUIZhTW from '@univerjs/sheets-numfmt-ui/locale/zh-TW'
+    import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
+    import SheetsUIZhTW from '@univerjs/sheets-ui/locale/zh-TW'
+    import SheetsZhTW from '@univerjs/sheets/locale/zh-TW'
+    import { UniverUIPlugin } from '@univerjs/ui'
+    import UIZhTW from '@univerjs/ui/locale/zh-TW'
+
+    import '@univerjs/design/lib/index.css'
+    import '@univerjs/ui/lib/index.css'
+    import '@univerjs/docs-ui/lib/index.css'
+    import '@univerjs/sheets-ui/lib/index.css'
+    import '@univerjs/sheets-formula-ui/lib/index.css'
+    import '@univerjs/sheets-numfmt-ui/lib/index.css'
+    ```
+  </Step>
+  <Step>
+    若需使用 Facade API，可選擇引入以下 Facade 套件（多半您會需要 😀）：
+
+    ```typescript
+    import '@univerjs/engine-formula/facade'
+    import '@univerjs/ui/facade'
+    import '@univerjs/docs-ui/facade'
+    import '@univerjs/sheets/facade'
+    import '@univerjs/sheets-ui/facade'
+    import '@univerjs/sheets-formula/facade'
+    import '@univerjs/sheets-numfmt/facade'
+    ```
+  </Step>
+  <Step>
+    建立 Univer 實例並註冊外掛：
+
+    ```typescript
+    const univer = new Univer({
+      locale: LocaleType.ZH_TW,
+      locales: {
+        [LocaleType.ZH_TW]: mergeLocales(
+          DesignZhTW,
+          UIZhTW,
+          DocsUIZhTW,
+          SheetsZhTW,
+          SheetsUIZhTW,
+          SheetsFormulaUIZhTW,
+          SheetsNumfmtUIZhTW,
+        ),
+      },
+    })
+
+    univer.registerPlugin(UniverRenderEnginePlugin)
+    univer.registerPlugin(UniverFormulaEnginePlugin)
+
+    univer.registerPlugin(UniverUIPlugin, {
+      container: 'app',
+    })
+
+    univer.registerPlugin(UniverDocsPlugin)
+    univer.registerPlugin(UniverDocsUIPlugin)
+
+    univer.registerPlugin(UniverSheetsPlugin)
+    univer.registerPlugin(UniverSheetsUIPlugin)
+    univer.registerPlugin(UniverSheetsFormulaPlugin)
+    univer.registerPlugin(UniverSheetsFormulaUIPlugin)
+    univer.registerPlugin(UniverSheetsNumfmtPlugin)
+    univer.registerPlugin(UniverSheetsNumfmtUIPlugin)
+
+    univer.createUnit(UniverInstanceType.UNIVER_SHEET, {})
+
+    const univerAPI = FUniver.newAPI(univer)
+    ```
+  </Step>
+</Steps>
+
+<PlaygroundFrame lang="zh-TW" slug="sheets/slim-via-plugin" clickToShow />
+
+#### `univer.registerPlugin` 方法 [#registerPlugin]
+
+`univer.registerPlugin` 用於將外掛註冊到 Univer 實例。可於建立實例後呼叫。
+
+使用方式：`univer.registerPlugin(Plugin, options)`，其中 `Plugin` 為外掛類別，`options` 為該外掛的（可選）設定。
+
+亦可傳入陣列一次性註冊多個外掛，便於集中管理：
+
+```typescript
+univer.registerPlugin([
+  UniverRenderEnginePlugin,
+  UniverFormulaEnginePlugin,
+  [UniverUIPlugin, {
+    container: 'app',
+  }],
+  UniverDocsPlugin,
+  UniverDocsUIPlugin,
+  UniverSheetsPlugin,
+  UniverSheetsUIPlugin,
+  UniverSheetsFormulaPlugin,
+  UniverSheetsFormulaUIPlugin,
+  UniverSheetsNumfmtPlugin,
+  UniverSheetsNumfmtUIPlugin,
+])
+```
+
+#### 懶載入部分外掛
+
+外掛模式的優勢之一是可更靈活控制載入時機。常見策略：初始化時僅載入必要外掛，將其他外掛延後至首次渲染後再載入。
+
+```typescript
+// ...
+
+univer.createUnit(UniverInstanceType.UNIVER_SHEET, {})
+
+import('@univerjs/watermark').then(({ UniverWatermarkPlugin }) => {
+  univer.registerPlugin(UniverWatermarkPlugin, {
+    textWatermarkSettings: {
+      content: 'Hello, Univer!',
+      fontSize: 36,
+    },
+  })
+})
+```
+
+Univer 的[官方範例](https://github.com/dream-num/univer/blob/dev/examples/src/sheets/main.ts) 即採此優化技巧，可供參考。
+
+### 透過 CDN 使用 Univer
+
+若不想使用套件管理器，或僅需快速試用，可透過 CDN 引入資源。詳見[透過 CDN 使用 Univer](/guides/sheets/getting-started/installation/cdn#plugin-mode)。
+
+## 其他發佈版本
+
+除穩定版外，Univer 亦提供 alpha / beta 通道。這些版本可讓您搶先體驗未正式釋出的新功能；但請注意，功能更多同時代表風險更高，可能包含錯誤、未完成或不穩定特性。生產環境請謹慎使用。
+
+### Alpha / Beta 版本
+
+當團隊完成新功能或重大調整，可能會預先發佈於 alpha 或 beta 通道。可用以下指令安裝：
+
+```package-install
+npm install @univerjs/<package-name>@alpha # Alpha 版本
+npm install @univerjs/<package-name>@beta # Beta 版本
+```
+
+若於使用 alpha / beta 過程遇到問題或有建議，歡迎透過 [GitHub Issues](https://github.com/dream-num/univer/issues) 或 [Discord 社群](https://discord.gg/XPGnMBmpd6) 回報。
+
+祝您搶先體驗愉快！
+
+## 下一步
+
+* 前往 [基礎概念](/guides/sheets/getting-started/quickstart#basic-concepts) 了解本章提到的外掛、命令與 Facade API 等概念。
+* 於 [功能](/guides/sheets/features/core) 相關章節了解修改試算表資料的各項操作。
+
+---
+
+[^1]: https://blog.npmjs.org/post/110924823920/npm-weekly-5
+[^2]: https://pnpm.io/npmrc#auto-install-peers
+[^3]: https://github.com/yarnpkg/yarn/issues/1503
