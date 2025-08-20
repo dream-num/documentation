@@ -1,9 +1,7 @@
 import type { ReactNode } from 'react'
 import { RootProvider } from 'fumadocs-ui/provider'
 import { locales, translations } from '@/lib/i18n'
-import { Body } from './layout.client'
-
-import './global.css'
+import { Wrapper } from './layout.client'
 
 interface IProps {
   params: Promise<{ lang: string }>
@@ -14,18 +12,16 @@ export default async function Layout({ params, children }: IProps) {
   const { lang } = await params
 
   return (
-    <html lang={lang} suppressHydrationWarning>
-      <Body className="flex min-h-screen flex-col antialiased">
-        <RootProvider
-          i18n={{
-            locale: lang,
-            locales,
-            translations: translations[lang],
-          }}
-        >
-          {children}
-        </RootProvider>
-      </Body>
-    </html>
+    <RootProvider
+      i18n={{
+        locale: lang,
+        locales,
+        translations: translations[lang],
+      }}
+    >
+      <Wrapper>
+        {children}
+      </Wrapper>
+    </RootProvider>
   )
 }
