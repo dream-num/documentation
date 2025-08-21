@@ -1,0 +1,296 @@
+---
+title: 自訂元件
+---
+
+## 註冊自訂元件
+
+```typescript
+// [!code word:componentKey]
+// [!code word:CustomComponent]
+// [!code word:options]
+univerAPI.registerComponent(componentKey, CustomComponent, options)
+```
+
+使用 `univerAPI.registerComponent` 方法來註冊自訂元件。此方法接受三個參數：
+
+- `componentKey`: 元件的唯一識別符，用於在 Univer 中引用該元件。
+- `CustomComponent`: 元件的實現，可以是 React、Vue 或 Web Components。
+- `options`: 可選的配置選項，用於指定元件所依賴的框架或其他相關設定。
+
+### React 元件 [#react]
+
+註冊 React 元件無需額外的配置，只需確保元件是一個有效的 React 元件即可。以下是一個簡單的範例：
+
+```tsx
+function ReactComponent(props: Record<string, any>) {
+  return <div>Hello Univer!</div>
+}
+
+univerAPI.registerComponent(
+  'MyReactComponent',
+  ReactComponent,
+)
+```
+
+### Vue 元件 [#vue]
+
+#### Vue 3.x
+
+註冊 Vue 元件時，需要確保安裝並註冊 `@univerjs/ui-adapter-vue3` 的 `UniverVue3AdapterPlugin` 插件：
+
+```package-install
+npm install @univerjs/ui-adapter-vue3
+```
+
+```typescript
+import { UniverVue3AdapterPlugin } from '@univerjs/ui-adapter-vue3'
+
+univer.registerPlugin(UniverVue3AdapterPlugin)
+```
+
+註冊 Vue 元件時，需要指定 `framework` 選項為 `'vue3'`
+
+```tsx
+const Vue3Component = defineComponent({
+  setup(props) {
+    return () => <div>Hello Univer!</div>
+  },
+})
+
+univerAPI.registerComponent(
+  'MyVue3Component',
+  Vue3Component,
+  {
+    // [!code word:vue3]
+    framework: 'vue3',
+  },
+)
+```
+
+#### Vue 2.x
+
+由於 Vue 2.x 已經不再維護，Univer 暫時沒有提供 Vue 2.x 的 UI 適配器插件的計劃，你可以參考如下程式碼通過自訂插件來實現一個 Vue 2.x 的適配器：
+
+```typescript title="ui-adapter-vue2.ts"
+import { DependentOn, Inject, Injector, Plugin } from '@univerjs/core'
+import { ComponentManager, UniverUIPlugin } from '@univerjs/ui'
+import Vue from 'vue'
+
+/**
+ * 允許 Univer 使用 Vue 2 元件作為 UI 元件的插件。
+ */
+@DependentOn(UniverUIPlugin)
+export class UniverVue2AdapterPlugin extends Plugin {
+  static override pluginName = 'UNIVER_UI_VUE2_ADAPTER_PLUGIN'
+
+  constructor(
+    private readonly _config = {},
+        @Inject(Injector) protected readonly _injector: Injector,
+        @Inject(ComponentManager) protected readonly _componentManager: ComponentManager,
+  ) {
+    super()
+  }
+
+  override onStarting(): void {
+    const { createElement, useEffect, useRef } = this._componentManager.reactUtils
+
+    this._componentManager.setHandler('vue2', (component: any) => {
+      return (props: Record<string, any>) => createElement(VueComponentWrapper, {
+        component,
+        props: Object.keys(props).reduce<Record<string, any>>((acc, key) => {
+          if (key !== 'key') {
+            acc[key] = props[key]
+          }
+          return acc
+        }, {}),
+        reactUtils: { createElement, useEffect, useRef },
+      })
+    })
+  }
+}
+
+export function VueComponentWrapper(options: {
+  component: any
+  props: Record<string, any>
+  reactUtils: typeof ComponentManager.prototype.reactUtils
+}) {
+  const { component, props, reactUtils } = options
+  const { createElement, useEffect, useRef } = reactUtils
+
+  const domRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!domRef.current) return
+
+    const Constructor = Vue.extend(component)
+
+    const instance = new Constructor({
+      data: props,
+    })
+    instance.$mount()
+
+    domRef.current.appendChild(instance.$el)
+
+    return () => {
+      instance.$destroy()
+    }
+  }, [props])
+
+  return createElement('div', { ref: domRef })
+}
+```
+
+然後將其註冊：
+
+```typescript
+import { UniverVue2AdapterPlugin } from './ui-adapter-vue2' // [!code ++]
+
+univer.registerPlugin(UniverUIPlugin)
+univer.registerPlugin(UniverVue2AdapterPlugin) // [!code ++]
+```
+
+使用時需要指定 `framework` 選項為 `'vue2'`
+
+```tsx
+const Vue2Component = Vue.component('MyVue2Component', {
+  template: '<div>Hello, Univer!</div>',
+})
+
+univerAPI.registerComponent(
+  'MyVue2Component',
+  Vue2Component,
+  {
+    // [!code word:vue2]
+    framework: 'vue2',
+  },
+)
+```
+
+### Web Components [#web-component]
+
+註冊 Web Components 時，需要確保元件符合 Web Components 標準，並安裝和註冊 `@univerjs/ui-adapter-web-component` 的 `UniverWebComponentAdapterPlugin` 插件：
+
+```package-install
+npm install @univerjs/ui-adapter-web-component
+```
+
+```typescript
+import { UniverWebComponentAdapterPlugin } from '@univerjs/ui-adapter-web-component'
+
+univer.registerPlugin(UniverWebComponentAdapterPlugin)
+```
+
+註冊 Web Components 時，需要指定 `framework` 選項為 `'web-component'`
+
+```tsx
+class WebComponent extends HTMLElement {
+  constructor() {
+    super()
+    const shadow = this.attachShadow({ mode: 'open' })
+    const div = document.createElement('div')
+    div.textContent = 'Hello Univer!'
+    shadow.appendChild(div)
+  }
+}
+
+univerAPI.registerComponent(
+  'my-web-component',
+  WebComponent,
+  {
+    // [!code word:web-component]
+    framework: 'web-component',
+  },
+)
+```
+
+## 使用自訂元件
+
+透過以下方法，你可以靈活地在 Univer 中整合各種自訂元件，從而增強和定制 Univer 的功能。
+
+<Callout type="warning" title="注意事項">
+  1. 在使用這些方法時，請確保 Univer 已經完成渲染。
+  2. 對於需要註冊的元件，請確保在使用前已正確註冊。
+  3. 使用 `dispose()` 方法來清理和移除添加的元件，以避免記憶體洩漏。
+</Callout>
+
+### 添加自訂選單項目
+
+頂部選單列（Ribbon）和右鍵選單（Context Menu）都可以添加自訂元件。為選單項目添加自訂元件需要透過建立自訂插件來實現，我們準備了一份[新增自訂選單項目的最佳實踐](/guides/recipes/tutorials/custom-plugin)來幫助你快速上手。
+
+### 替換內建元件
+
+<Callout type="error" title="警告">
+  替換內建元件可能會導致一些功能無法正常工作，請在充分閱讀原始碼和文件後自行尋找可替換的元件並謹慎操作。
+</Callout>
+
+透過 `univerAPI.registerComponent` 方法註冊元件時，如果傳入的 `componentKey` 已經存在，則 Univer 會將其替換為新的元件。
+
+例如簡單地替換內建的 ColorPicker 元件：
+
+```tsx
+// 此程式碼僅可在 UI 層面替換內建 ColorPicker 元件，無法替代其功能實現
+univerAPI.registerComponent(
+  'UI_COLOR_PICKER_COMPONENT',
+  () => <input type="color" />,
+)
+```
+
+### 作為內容元件添加到……
+
+#### 在側邊欄中使用
+
+使用 `univerAPI.openSidebar` 方法可以在 Univer 介面中打開一個包含自訂元件的側邊欄。
+
+```tsx
+// [!code word:MyCustomSidebarComponent]
+// 你應該在合適的時機（比如渲染完成）註冊元件
+univerAPI.registerComponent(
+  'MyCustomSidebarComponent',
+  () => <div>Hello Univer!</div>,
+)
+
+const sidebar = univerAPI.openSidebar({
+  header: { title: 'My Sidebar' },
+  children: { label: 'MyCustomSidebarComponent' },
+  onClose: () => {
+    console.log('close')
+  },
+  width: 360,
+})
+
+// 稍後關閉側邊欄
+sidebar.dispose()
+```
+
+參考： [`univerAPI.openSidebar`](/reference/facade/open-sidebar)
+
+#### 在對話框中使用
+
+使用 `univerAPI.openDialog` 方法可以打開一個包含自訂元件的對話框。
+
+```tsx
+// [!code word:MyCustomDialogComponent]
+// 你應該在合適的時機（比如渲染完成）註冊元件
+univerAPI.registerComponent(
+  'MyCustomDialogComponent',
+  () => <div>Hello Univer!</div>,
+)
+
+const dialog = univerAPI.openDialog({
+  id: 'unique-dialog-id', // 對話框的唯一識別符
+  draggable: true,
+  width: 300,
+  title: { title: 'My Dialog' },
+  children: {
+    label: 'MyCustomDialogComponent',
+  },
+  destroyOnClose: true,
+  preservePositionOnDestroy: true,
+  onClose: () => {},
+})
+
+// 稍後關閉對話框
+dialog.dispose()
+```
+
+參考： [`univerAPI.openDialog`](/reference/facade/open-dialog)

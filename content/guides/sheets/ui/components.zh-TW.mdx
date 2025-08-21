@@ -1,0 +1,113 @@
+---
+title: 自訂元件
+description: Univer 提供了多種方式來整合自訂元件，使您能夠擴展並定制 Univer 的功能。本指南將介紹幾種常用的方法。
+icon: Component
+---
+
+Univer 並不會直接將元件作為參數傳遞給任何渲染函數，您需要透過 Facade API 將元件註冊到 Univer 中之後，才能在各個掛載點使用它們。
+
+如果您還不瞭解如何獲取 Facade API 的實例，可以參考 [Facade API](/guides/sheets/getting-started/facade)。
+
+<include cwd>content/guides/shared/ui/components.zh-TW.mdx</include>
+
+#### 將彈出框附加到儲存格
+
+使用 `FRange.attachPopup` 方法可以將自訂彈出框附加到特定的儲存格範圍。
+
+- Popup 是一個依附於儲存格之上的臨時 DOM，一般用於顯示一些臨時的狀態資訊，不支援持久化存儲。
+- 使用 [`FRange.attachPopup(popup: IFCanvasPopup)`](https://reference.univer.ai/zh-TW/classes/FRange#attachpopup) 方法可以將自訂彈出框附加到特定的儲存格範圍。
+- Popup 會吸附在儲存格的四邊，如果被遮擋，會自動調整位置和方向。
+
+```tsx
+// [!code word:MyCustomPopupComponent]
+// 您應該在合適的時機（例如渲染完成）註冊元件
+univerAPI.registerComponent(
+  'MyCustomPopupComponent',
+  () => <div>Hello Univer!</div>,
+)
+
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:J10')
+
+// 將彈出窗口附加到範圍的第一個儲存格
+// 如果 `disposable` 為 null，則表示 popup 添加失敗
+const disposable = fRange.attachPopup({
+  componentKey: 'MyCustomPopupComponent',
+})
+
+// 移除彈出框
+disposable.dispose()
+```
+
+#### 附加警告彈出框
+
+使用 `FRange.attachAlertPopup` 方法可以在指定範圍的起始儲存格附加一個警告彈出框。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+
+const disposable = fRange.attachAlertPopup({
+  key: 'unique-alert-key', // 唯一識別符
+  title: '這是一個警告！',
+  message: '這是一個警告！',
+  width: 300,
+  height: 200,
+  // 0: 資訊
+  // 1: 警告
+  // 2: 錯誤
+  type: 0,
+})
+
+// 稍後移除警告
+disposable.dispose()
+```
+
+#### 添加浮動 DOM 到工作表
+
+透過 `FWorksheet.addFloatDomToPosition` 方法可以在工作表上添加一個浮動 DOM。
+
+- 使用該方法前需要安裝 `@univerjs/sheets-drawing-ui` 插件或 `@univerjs/preset-sheets-drawing` 預設。
+- 浮動 DOM 是懸浮於工作表上的可拖動元件，同時支援持久化存儲。
+- 需要在 Univer 渲染完成之後呼叫。
+- `componentKey`: 元件的唯一識別符，用於在 Univer 中引用該元件。
+- [完整的參數定義](https://github.com/dream-num/univer/blob/dev/packages/sheets-drawing-ui/src/facade/f-worksheet.ts#L32)
+
+```tsx
+// [!code word:MyCustomFloatingDOMComponent]
+// 您應該在合適的時機（例如渲染完成）註冊元件
+univerAPI.registerComponent(
+  'MyCustomFloatingDOMComponent',
+  ({ data }) => (
+    <div>
+      Hello
+      {data?.label}
+      !
+    </div>
+  ),
+)
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+
+// 添加一個浮動 DOM
+// 如果 `disposable` 為 null，則表示浮動 DOM 添加失敗
+const disposable = fWorksheet.addFloatDomToPosition({
+  componentKey: 'MyCustomFloatingDOMComponent',
+  initPosition: {
+    startX: 100,
+    endX: 200,
+    startY: 100,
+    endY: 200,
+  },
+
+  // 這是元件的資料
+  data: {
+    label: 'Univer',
+  },
+})
+
+// 移除浮動 DOM
+disposable.dispose()
+```

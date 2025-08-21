@@ -1,0 +1,540 @@
+---
+title: 通用 API
+---
+
+在 Univer 中，根據文件類型的不同，所能調用的 Facade API 也有所不同。本章將介紹在所有類型文件中都適用的通用 Facade API。
+
+## 概念
+
+### 命令
+
+Univer 中大多數的操作都會註冊到命令系統，並通過命令系統來觸發。這種統一的操作方式使得 Univer 可以很容易的實現撤銷、重做、協同等功能。
+
+<Callout>
+  如需了解更多設計細節請閱讀 [Univer 命令系統](/guides/recipes/architecture/univer#command-system)。
+</Callout>
+
+## 命令系統
+
+Univer 為使用者提供了統一的命令系統，通過命令系統使用者可以實現各種自訂化的功能。
+
+<Callout>
+  每一個命令對應了一個唯一的 ID。如果你正在尋找某個特定的命令 ID，可以參考 [如何查找命令 ID](/guides/recipes/practices/find-the-command-id)。
+</Callout>
+
+### 監聽命令
+
+Univer 設計了兩種監聽命令的方式，分別是在命令執行前和命令執行後：
+
+- `onBeforeCommandExecute`：在命令執行前執行自訂邏輯。
+- `onCommandExecuted`：在命令執行後執行自訂邏輯。
+
+#### 監聽命令執行前
+
+在命令執行之前，我們向 `FUniver.onBeforeCommandExecute` API 傳入一個回調函數來註冊自訂的預處理監聽器。
+
+當命令執行前，預處理監聽器內邏輯會被執行。
+
+```typescript
+const univerAPI = FUniver.newAPI(univer)
+
+univerAPI.onBeforeCommandExecute((command) => {
+  const { id, type, params } = command
+  // 在命令執行前執行自訂邏輯
+})
+```
+
+如果你想在命令執行前阻止命令執行，可以在監聽器回調中 `throw` 一個異常。
+
+```typescript
+const univerAPI = FUniver.newAPI(univer)
+
+univerAPI.onBeforeCommandExecute((command) => {
+  throw new Error('禁止編輯')
+})
+```
+
+#### 監聽命令執行後
+
+在命令執行之後，我們也可以向 `FUniver.onCommandExecuted` API 傳入一個回調函數來註冊自訂的後處理監聽器。
+
+當命令執行後，後處理監聽器內邏輯會被執行。
+
+```typescript
+const univerAPI = FUniver.newAPI(univer)
+
+univerAPI.onCommandExecuted((command) => {
+  const { id, type, params } = command
+  // 在命令執行後執行自訂邏輯
+})
+```
+
+### 取消監聽
+
+註冊命令監聽器的方法會返回一個 `IDisposable` 物件，調用 `IDisposable.dispose` 可以銷毀該監聽器。
+
+建議你及時銷毀不再使用的監聽器，有助於提高程式的穩定性。
+
+```typescript
+const univerAPI = FUniver.newAPI(univer)
+
+// 註冊監聽器
+const disposable = univerAPI.onBeforeCommandExecute((command) => {
+  // 在命令執行前執行自訂邏輯
+})
+
+// 示例：1 秒後取消監聽
+setTimeout(() => {
+  // 取消監聽
+  disposable.dispose()
+}, 1000)
+```
+
+### 執行命令
+
+如果你知道命令 ID 和所需傳遞的參數，也可以通過 `FUniver.executeCommand` 方法來執行命令。
+
+例如，我們可以通過 `sheet.command.set-range-values` 命令來設定儲存格 A1 的值：
+
+```typescript
+const univerAPI = FUniver.newAPI(univer)
+
+// 執行命令
+univerAPI.executeCommand('sheet.command.set-range-values', {
+  value: { v: 'Hello, Univer!' },
+  range: { startRow: 0, startColumn: 0, endRow: 0, endColumn: 0 },
+})
+```
+
+## 事件系統
+
+Univer 提供了一個完整的事件系統，允許你監聽和響應電子試算表中的各種變化。事件可以分為多個類別，包括剪貼板操作、選區變化、儲存格互動、表格修改等。
+
+### 事件類別
+
+完整事件列表請參考：https://reference.univer.ai/zh-CN/classes/FEventName#%E5%B1%9E%E6%80%A7
+
+1. **剪貼板事件**
+   - `BeforeClipboardChange`: 在剪貼板內容改變前觸發，可以通過設定 `params.cancel = true` 來阻止改變
+   - `BeforeClipboardPaste`: 在貼上內容前觸發，可以通過設定 `params.cancel = true` 來阻止貼上
+   - `ClipboardChanged`: 在剪貼板內容改變後觸發，可以獲取新的剪貼板內容
+   - `ClipboardPasted`: 在內容貼上後觸發，可以獲取貼上的內容
+
+2. **選區事件**
+   - `SelectionChanged`: 在選區改變時觸發，提供新的選區範圍資訊
+   - `SelectionMoveStart`: 在選區開始移動時觸發，可用於實現自訂選區效果
+   - `SelectionMoveEnd`: 在選區結束移動時觸發，提供最終的選區範圍
+   - `SelectionMoving`: 在選區移動過程中觸發，可用於即時更新 UI
+   - `DragOver`: 在拖動經過儲存格時觸發
+   - `Drop`: 在放置選區內容時觸發
+
+3. **儲存格事件**
+   - `CellClicked`: 在儲存格被點擊時觸發，提供儲存格的位置和內容資訊
+   - `CellHover`: 在滑鼠懸停在儲存格上時觸發，可用於顯示提示資訊
+   - `CellPointerDown`: 在儲存格上按下指標時觸發，用於開始拖動或選擇操作
+   - `CellPointerUp`: 在儲存格上釋放指標時觸發，用於完成操作
+   - `CellPointerMove`: 在指標在儲存格上移動時觸發
+
+4. **表格事件**
+   - `SheetValueChanged`: 在表格值改變時觸發，提供變更的範圍和新值
+   - `SheetZoomChanged`: 在縮放級別改變時觸發，可獲取新的縮放比例
+   - `SheetSkeletonChanged`: 在表格結構改變時觸發，如行列的插入刪除
+   - `BeforeSheetEditStart`: 在儲存格開始編輯前觸發，可用於控制是否允許編輯
+   - `SheetEditStarted`: 在儲存格開始編輯時觸發，可用於自訂編輯器行為
+   - `BeforeSheetEditEnd`: 在儲存格結束編輯前觸發，可用於驗證編輯內容
+   - `SheetEditEnded`: 在儲存格結束編輯時觸發，提供編輯後的值
+   - `SheetEditChanging`: 在儲存格編輯過程中觸發，可用於即時驗證或格式化
+   - `Scroll`: 在表格滾動時觸發，提供滾動位置信息
+   - `CrosshairHighlightColorChanged`: 在十字光標高亮顏色改變時觸發
+   - `CrosshairHighlightEnabledChanged`: 在啟用或禁用十字光標高亮時觸發
+
+5. **表頭事件**
+   - `RowHeaderClick`: 在行表頭被點擊時觸發
+   - `RowHeaderHover`: 在滑鼠懸停在行表頭時觸發
+   - `ColumnHeaderClick`: 在列表頭被點擊時觸發
+   - `ColumnHeaderHover`: 在滑鼠懸停在列表頭時觸發
+
+6. **資料驗證事件**
+   - `BeforeSheetDataValidationAdd`: 在新增資料驗證規則前觸發
+   - `SheetDataValidationChanged`: 在資料驗證規則改變時觸發
+   - `SheetDataValidatorStatusChanged`: 在資料驗證狀態改變時觸發
+
+7. **評論事件**
+   - `BeforeCommentAdd`: 在新增評論前觸發
+   - `CommentAdded`: 在評論新增後觸發
+   - `BeforeCommentUpdate`: 在更新評論前觸發
+   - `CommentUpdated`: 在評論更新後觸發
+   - `BeforeCommentDeleted`: 在刪除評論前觸發
+   - `CommentDeleted`: 在評論刪除後觸發
+
+8. **資料處理事件**
+   - `SheetBeforeRangeSort`: 在範圍排序前觸發
+   - `SheetRangeSorted`: 在範圍排序後觸發
+   - `SheetBeforeRangeFilter`: 在範圍篩選前觸發
+   - `SheetRangeFiltered`: 在範圍篩選後觸發
+   - `BeforePivotTableAdd`: 在新增資料透視表前觸發
+   - `PivotTableAdded`: 在資料透視表新增後觸發
+
+### 使用事件
+
+你可以使用 `univerAPI` 的 `addEvent` 方法來監聽事件。以下是基本模式：
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.事件名稱, (params) => {
+  // 處理事件參數
+})
+```
+
+#### 示例：監聽儲存格點擊
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.CellClicked, (params) => {
+  const { worksheet, workbook, row, column, value } = params
+  console.log(`儲存格被點擊，行：${row}，列：${column}`)
+})
+```
+
+#### 示例：監控剪貼板操作
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.BeforeClipboardPaste, (params) => {
+  const { text, html } = params
+  // 如果要取消貼上操作
+  params.cancel = true
+})
+```
+
+#### 示例：追蹤選區變化
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.SelectionChanged, (params) => {
+  const { worksheet, workbook, selections } = params
+  console.log('選區已改變:', selections)
+})
+```
+
+### 取消事件監聽
+
+事件監聽器會返回一個 `IDisposable` 物件，可以用它來在不再需要時移除監聽器：
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.SheetValueChanged, (params) => {
+  // 處理值變化
+})
+
+// 之後，當你想要移除監聽器時：
+disposable.dispose()
+```
+
+### 最佳實踐
+
+1. 當不再需要時，務必銷毀事件監聽器以防止記憶體洩漏
+2. 根據具體用例選擇合適的事件 - 優先使用特定事件而不是通用事件
+3. 保持事件處理程序輕量化以維持效能
+4. 當需要阻止預設行為時，考慮使用 `BeforeClipboardChange` 等「前置」事件
+
+## 撤銷和重做
+
+### 撤銷
+
+```typescript
+await univerAPI.undo()
+```
+
+### 重做
+
+```typescript
+await univerAPI.redo()
+```
+
+## 系統剪貼板
+
+使用 [`FUniver.copy()`](https://reference.univer.ai/zh-CN/classes/FUniver#copy) 和 [`FUniver.paste()`](https://reference.univer.ai/zh-CN/classes/FUniver#paste) 方法可以讀取和寫入系統剪貼板。
+
+<Callout>
+  複製與貼上依賴瀏覽器原生 API ，當[環境條件或者權限](https://developer.mozilla.org/zh-CN/docs/Web/API/Clipboard/writeText)不滿足時複製與貼上功能將無法工作。
+</Callout>
+
+示例: Sheet 區域的複製與貼上
+
+```typescript
+// 防止在控制台中執行複製貼上程式碼時因失去焦點而失敗，
+// 此示例監聽儲存格點擊事件並執行複製貼上程式碼。
+univerAPI.addEvent(univerAPI.Event.CellClicked, async (params) => {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  const fWorksheet = fWorkbook.getActiveSheet()
+
+  // 將範圍 A1:B2 複製到剪貼板
+  const fRange = fWorksheet.getRange('A1:B2')
+  fRange.activate().setValues([
+    [1, 2],
+    [3, 4],
+  ])
+  await univerAPI.copy()
+
+  // 將複製的內容貼到範圍 C1:D2
+  const fRange2 = fWorksheet.getRange('C1')
+  fRange2.activate()
+  await univerAPI.paste()
+
+  // 檢查貼上的內容
+  console.log(fWorksheet.getRange('C1:D2').getValues()) // [[1, 2], [3, 4]]
+})
+```
+
+你也可以使用[命令系統](#命令系統)實現調用剪貼板功能：
+
+```typescript
+import { CopyCommand, PasteCommand } from '@univerjs/ui'
+
+// 複製
+univerAPI.executeCommand(CopyCommand.id)
+// 貼上
+univerAPI.executeCommand(PasteCommand.id)
+```
+
+## UI
+
+請參考以下文件來擴展 Univer 的 UI：
+
+- [自訂繪製內容](/guides/recipes/tutorials/custom-canvas)
+
+## WebSocket
+
+Facade API 提供了一個便捷的 API `createSocket` 來建立 WebSocket，傳入一個 URL 即可。
+然後可以監聽 open、message、close、error 事件，以及主動發送消息 send 方法和主動關閉 close 方法。
+
+使用 Presets 安裝，可以直接使用 `univerAPI.createSocket(url)`。
+使用手動組合安裝，需要安裝 [`@univerjs/network`](https://www.npmjs.com/package/@univerjs/network) 依賴包，並註冊 `UniverNetworkPlugin` 插件。
+
+```typescript
+// ... 省略其他插件引入
+import { UniverNetworkPlugin } from '@univerjs/network'
+
+// ... 省略其他 facade 引入
+import '@univerjs/network/facade'
+
+// ... 省略其他插件註冊
+univer.registerPlugin(UniverNetworkPlugin)
+```
+
+以下是一個簡單的示例：
+
+```typescript
+// URL 換成你自己 WebSocket 服務的地址
+const ws = univerAPI.createSocket('ws://47.100.177.253:8449/ws')
+
+ws.open$.subscribe(() => {
+  console.log('websocket opened')
+  ws.send('hello')
+})
+
+ws.message$.subscribe((message) => {
+  console.log('websocket message', message)
+  const content = JSON.parse(message.data).content
+  if (!content.includes('command')) {
+    return
+  }
+
+  const commandInfo = JSON.parse(content)
+  const { command, options } = commandInfo
+  const { id, params } = command
+
+  // 接收到協同數據，本地落盤
+  univerAPI.executeCommand(id, params, options)
+})
+
+ws.close$.subscribe(() => {
+  console.log('websocket closed')
+})
+
+ws.error$.subscribe((error) => {
+  console.log('websocket error', error)
+})
+
+univerAPI.onCommandExecuted((command, options) => {
+  // 僅同步本地 mutation
+  if (command.type !== 2 || options?.fromCollab || options?.onlyLocal || command.id === 'doc.mutation.rich-text-editing') {
+    return
+  }
+
+  const commandInfo = JSON.stringify({ command, options: { fromCollab: true } })
+  ws.send(commandInfo)
+})
+```
+
+注意：啟動 Univer 的時候要確保有 unitID，不指定 unitID 的話無法協同。
+
+## 註冊公式
+
+使用 Facade API，可以方便快速地在當前 Univer 實例中註冊自訂公式。
+
+如下案例所示，使用 [`registerFunction`](https://reference.univer.ai/zh-CN/classes/FFormula#registerfunction) 將一個 `CUSTOMSUM` 公式所需的演算法、名稱、描述一次性註冊到公式插件，執行之後就可以使用公式了。在任一空白儲存格輸入 `=CUSTOMSUM` 可以看到提示。
+
+```typescript
+// 註冊公式支援 lambda 函數
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.registerFunction(
+  'CUSTOMSUM',
+  (...variants) => {
+    let sum = 0
+    const last = variants[variants.length - 1]
+
+    if (last.isLambda && last.isLambda()) {
+      variants.pop()
+      const variantsList = variants.map(variant => Array.isArray(variant) ? variant[0][0] : variant)
+      sum += last.executeCustom(...variantsList).getValue()
+    }
+
+    for (const variant of variants) {
+      sum += Number(variant) || 0
+    }
+
+    return sum
+  },
+  '求參數的和',
+)
+
+// Use the function in a cell
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const cellA1 = fWorksheet.getRange('A1')
+cellA1.setValue(1)
+const cellA2 = fWorksheet.getRange('A2')
+cellA2.setValue(2)
+const cellA3 = fWorksheet.getRange('A3')
+cellA3.setValue({ f: '=CUSTOMSUM(A1,A2,LAMBDA(x,y,x*y))' })
+
+// A3 will display: 5
+formulaEngine.calculationEnd((functionsExecutedState) => {
+  if (functionsExecutedState === 3) {
+    console.log(cellA3.getValue()) // 5
+  }
+})
+```
+
+如果需要卸載所註冊的公式，可以調用 `dispose` 方法。
+
+```typescript
+const functionDisposable = formulaEngine.registerFunction(
+  // calculate
+)
+
+// 卸載所註冊的公式
+functionDisposable.dispose()
+```
+
+如果想要提供更完善的國際化內容和描述，還可以配置 `locales` 和 `description` 欄位。如下所示。
+
+```typescript
+formulaEngine.registerFunction(
+  'CUSTOMSUM',
+  (...variants) => {
+    let sum = 0
+    const last = variants[variants.length - 1]
+
+    if (last.isLambda && last.isLambda()) {
+      variants.pop()
+      const variantsList = variants.map(variant => Array.isArray(variant) ? variant[0][0] : variant)
+      sum += last.executeCustom(...variantsList).getValue()
+    }
+
+    for (const variant of variants) {
+      sum += Number(variant) || 0
+    }
+
+    return sum
+  },
+  {
+    description: {
+      functionName: 'CUSTOMSUM',
+      description: 'formulaCustom.CUSTOMSUM.description',
+      abstract: 'formulaCustom.CUSTOMSUM.abstract',
+      functionParameter: [
+        {
+          name: 'formulaCustom.CUSTOMSUM.functionParameter.number1.name',
+          detail: 'formulaCustom.CUSTOMSUM.functionParameter.number1.detail',
+          example: 'A1:A20',
+          require: 1,
+          repeat: 0,
+        },
+        {
+          name: 'formulaCustom.CUSTOMSUM.functionParameter.number2.name',
+          detail: 'formulaCustom.CUSTOMSUM.functionParameter.number2.detail',
+          example: 'B2:B10',
+          require: 0,
+          repeat: 1,
+        },
+      ],
+    },
+    locales: {
+      zhCN: {
+        formulaCustom: {
+          CUSTOMSUM: {
+            description: '將單個值、儲存格引用或是範圍相加，或者將三者的組合相加。',
+            abstract: '求參數的和',
+            functionParameter: {
+              number1: {
+                name: '數值1',
+                detail: '要相加的第一個數字。 該數字可以是 4 之類的數字，B6 之類的儲存格引用或 B2:B8 之類的儲存格範圍。',
+              },
+              number2: {
+                name: '數值2',
+                detail: '這是要相加的第二個數字。 可以按照這種方式最多指定 255 個數字。',
+              },
+            },
+          },
+        },
+      },
+      enUS: {
+        formulaCustom: {
+          CUSTOMSUM: {
+            description: `You can add individual values, cell references or ranges or a mix of all three.`,
+            abstract: `Adds its arguments`,
+            functionParameter: {
+              number1: {
+                name: 'number1',
+                detail: 'The first number you want to add. The number can be like 4, a cell reference like B6, or a cell range like B2:B8.',
+              },
+              number2: {
+                name: 'number2',
+                detail: 'This is the second number you want to add. You can specify up to 255 numbers in this way.',
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+)
+```
+
+說明
+
+- `func` 編寫計算公式的具體演算法和名稱映射。入參為使用公式時使用者輸入的內容，可能為數字、字串、布林值，或者一個陣列。
+- `description` 設定自訂公式的描述。
+- `locales` 下可以設定多種語言，命名規則參考 [LocaleType](https://reference.univer.ai/zh-CN/globals#localetype)。可以在 `functionList` 下添加多個公式的翻譯。詳細的欄位說明請參考 [如何在 Formula Engine 中添加公式](/guides/recipes/tutorials/custom-formula#how-to-add-formulas-in-formula-engine) 的部分。
+
+<Callout>
+  如果想重用公式系統提供的演算法，增強公式演算法的能力，可以通過插件配置的方式註冊自訂公式，詳細教程請參考 [自訂公式](/guides/recipes/tutorials/custom-formula/)。
+</Callout>
+
+## 列舉類型 API
+
+Facade API 提供了一些常用的列舉類型，可以在開發過程中使用。例如：
+
+```typescript
+console.log(univerAPI.Enum)
+console.log(univerAPI.Enum.UniverInstanceType.UNIVER_SHEET)
+console.log(univerAPI.Enum.LifecycleStages.Rendered)
+```
+
+## 工具方法 API
+
+Facade API 提供了一些常用的工具方法，可以在開發過程中使用。例如：
+
+```typescript
+console.log(univerAPI.Util)
+console.log(univerAPI.Util.tools.chatAtABC(10))
+console.log(univerAPI.Util.tools.ABCatNum('K'))
+```

@@ -11,7 +11,7 @@ export const locales = [
     locale: 'zh-CN',
   },
   {
-    name: '繁體中文（5%）',
+    name: '繁體中文（10%）',
     locale: 'zh-TW',
   },
   {

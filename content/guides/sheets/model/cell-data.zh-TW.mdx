@@ -1,0 +1,475 @@
+---
+title: 儲存格資料結構
+icon: NotebookText
+---
+
+## 儲存格位置
+
+Univer Sheets 中的儲存格資料儲存在 [IWorksheetData](https://reference.univer.ai/zh-CN/interfaces/IWorkbookData) 的 [cellData](https://reference.univer.ai/zh-CN/interfaces/ICellData) 欄位中。cellData 為二維 Map 結構，第一層與第二層索引分別代表列號與欄號；每一個儲存格是一個 [ICellData](https://reference.univer.ai/zh-CN/interfaces/ICellData) 物件，包含儲存格值、樣式、型別等所有資訊。
+
+cellData 的結構如下
+
+```typescript
+interface IWorksheetData {
+  cellData: {
+    // 第 1 列（row）
+    0: {
+      // 第 1 欄（column）
+      0: { v: 'A1' }
+      // 第 2 欄
+      1: { v: 'B1' }
+    }
+    // 第 2 列
+    1: {
+      // 第 1 欄
+      0: { v: 'A2' }
+      // 第 2 欄
+      1: { v: 'B2' }
+    }
+  }
+}
+```
+
+## 儲存格資訊
+
+完整的儲存格資訊如下。
+
+| 屬性 | 說明 |
+| --- | --- |
+| v | 儲存格的原始值 |
+| s | 儲存格的樣式 id 或樣式物件 |
+| t | 儲存格的型別 |
+| p | 豐富文字，同時也是一個 📝 Univer Docs |
+| f | 公式 |
+| si | 公式 ID |
+| custom | 自訂欄位 |
+
+詳細了解 [ICellData](https://reference.univer.ai/zh-CN/interfaces/ICellData) 各欄位的型別資訊。
+
+### 儲存格原始值
+
+`cellData.v` 儲存了儲存格的原始值，可以是字串或數字。有公式的儲存格，`v` 儲存公式的計算結果。
+
+如下展示兩種不同的儲存格值。
+
+```typescript
+interface IWorksheetData {
+  cellData: {
+    0: {
+      0: { v: 'A1' }
+      1: { v: 1 }
+    }
+  }
+}
+```
+
+### 儲存格樣式
+
+`cellData.s` 儲存了儲存格的樣式 id 或樣式物件。
+
+如果 `s` 是字串，表示樣式 id。Univer Sheets 支援對樣式做參照最佳化，將重複的樣式物件儲存在 IWorkbookData 的 [styles](https://reference.univer.ai/zh-CN/interfaces/IWorkbookData#styles) 欄位中，為 Map 結構，每個 key 是樣式 id，value 是樣式物件。
+
+<Callout type="warning">
+  請儘量避免使用帶透明度的顏色值（如 rgba），否則在啟用編輯狀態時，背景會透出下方儲存格的內容。
+</Callout>
+
+```typescript
+interface IWorkbookData {
+  styles: {
+    random_style_id_1: {
+      fs: 12
+      bg: {
+        rgb: '#ff0000'
+      }
+    }
+  }
+}
+```
+
+接著將 id 儲存在儲存格樣式中，以達到樣式重用的目的。
+
+```typescript
+interface IWorksheetData {
+  cellData: {
+    0: {
+      0: {
+        v: 'A1'
+        s: 'random_style_id_1'
+      }
+      1: {
+        v: 'B1'
+        s: 'random_style_id_1'
+      }
+    }
+  }
+}
+```
+
+如果 `s` 是物件，則表示一個完整的儲存格樣式物件 [IStyleData](https://reference.univer.ai/zh-CN/interfaces/IStyleData)。
+
+完整的樣式欄位如下。
+
+| 屬性 | 說明 |
+| --- | --- |
+| ff | 字型 |
+| fs | 字型大小 |
+| it | 斜體 |
+| bl | 粗體 |
+| ul | 底線 |
+| st | 刪除線 |
+| ol | 上劃線 |
+| bg | 背景顏色 |
+| bd | 邊框 |
+| cl | 字型顏色 |
+| va | 上標下標 |
+| tr | 文字旋转 |
+| ht | 水平對齊方式 |
+| vt | 垂直對齊方式 |
+| tb | 截斷溢出 |
+| pd | 內邊距 |
+| n | 數字格式 |
+
+詳細了解 [IStyleData](https://reference.univer.ai/zh-CN/interfaces/IStyleData) 各欄位的型別資訊。
+
+#### 字型
+
+`ff` 是字串，表示字型名稱。
+
+```typescript
+interface IStyleData {
+  ff: 'Arial' // 字型名稱為 Arial
+}
+```
+
+#### 字型大小
+
+`fs` 是數字，單位為 **pt**。
+
+```typescript
+interface IStyleData {
+  fs: 12 // 字型大小為 12 pt
+}
+```
+
+#### 斜體
+
+`it` 是布林（數值），`0` 表示不斜體，`1` 表示斜體。
+
+```typescript
+interface IStyleData {
+  it: 1 // 斜體
+}
+```
+
+#### 粗體
+
+`bl` 是布林（數值），`0` 表示非粗體，`1` 表示粗體。
+
+```typescript
+interface IStyleData {
+  bl: 1 // 粗體
+}
+```
+
+#### 底線
+
+`ul` 是物件，表示底線樣式。
+
+```typescript
+interface IStyleData {
+  ul: {
+    s: 1 // 是否顯示底線
+    c: 0 // 顏色是否跟隨字型顏色。當 `c` 為 1（TRUE）時，cl 不生效。預設值為 1
+    cl: { // 底線顏色
+      rgb: '#ff0000'
+    }
+    t: 0 // 底線類型
+  }
+}
+```
+
+#### 刪除線
+
+`st` 是物件，表示刪除線樣式。
+
+```typescript
+interface IStyleData {
+  st: {
+    s: 1 // 是否顯示刪除線
+    c: 0 // 顏色是否跟隨字型顏色。當 `c` 為 1（TRUE）時，cl 不生效。預設值為 1
+    cl: { // 刪除線顏色
+      rgb: '#ff0000'
+    }
+    t: 0 // 刪除線類型
+  }
+}
+```
+
+#### 上劃線
+
+`ol` 是物件，表示上劃線樣式。
+
+```typescript
+interface IStyleData {
+  ol: {
+    s: 1 // 是否顯示上劃線
+    c: 0 // 顏色是否跟隨字型顏色。當 `c` 為 1（TRUE）時，cl 不生效。預設值為 1
+    cl: { // 上劃線顏色
+      rgb: '#ff0000'
+    }
+    t: 0 // 上劃線類型
+  }
+}
+```
+
+#### 背景顏色
+
+`bg` 是物件，表示背景顏色。
+
+```typescript
+interface IStyleData {
+  bg: {
+    rgb: '#ff0000' // 背景顏色為紅色
+  }
+}
+```
+
+#### 邊框
+
+`bd` 是物件，表示邊框樣式。
+
+```typescript
+interface IStyleData {
+  bd: {
+    // 上邊框
+    t: {
+      s: 0 // 邊框樣式
+      cl: { // 邊框顏色
+        rgb: '#ff0000'
+      }
+    }
+    // 下邊框
+    b: {
+      s: 0 // 邊框樣式
+      cl: { // 邊框顏色
+        rgb: '#ff0000'
+      }
+    }
+    // 左邊框
+    l: {
+      s: 0 // 邊框樣式
+      cl: { // 邊框顏色
+        rgb: '#ff0000'
+      }
+    }
+    // 右邊框
+    r: {
+      s: 0 // 邊框樣式
+      cl: { // 邊框顏色
+        rgb: '#ff0000'
+      }
+    }
+  }
+}
+```
+
+#### 字型顏色
+
+`cl` 是物件，表示字型顏色。
+
+```typescript
+interface IStyleData {
+  cl: {
+    rgb: '#ff0000' // 字型顏色為紅色
+  }
+}
+```
+
+#### 上標下標
+
+`va` 是數值列舉，`1` 表示正常，`2` 表示下標，`3` 表示上標。
+
+```typescript
+interface IStyleData {
+  va: 2 // 下標
+}
+```
+
+#### 文字旋转
+
+`tr` 是物件，表示文字旋轉。
+
+```typescript
+interface IStyleData {
+  tr: {
+    a: 0 // 文字旋轉角度
+    v: 0 // 是否垂直。1 表示垂直，0 表示水平。預設值為 0。當 v 為 1 時，a 無效
+  }
+}
+```
+
+#### 水平對齊方式
+
+`ht` 是數值列舉，`1` 表示靠左，`2` 表示置中，`3` 表示靠右。
+
+```typescript
+interface IStyleData {
+  ht: 1 // 靠左
+}
+```
+
+#### 垂直對齊方式
+
+`vt` 是數值列舉，`1` 表示頂端對齊，`2` 表示置中，`3` 表示底端對齊。
+
+```typescript
+interface IStyleData {
+  vt: 1 // 頂端對齊
+}
+```
+
+#### 截斷溢出
+
+`tb` 是數值列舉，`1` 表示溢出，`2` 表示截斷，`3` 表示自動換行。
+
+```typescript
+interface IStyleData {
+  tb: 1 // 溢出
+}
+```
+
+#### 內邊距
+
+`pd` 是物件，表示內邊距。
+
+```typescript
+interface IStyleData {
+  pd: {
+    t: 0 // 上邊距
+    b: 0 // 下邊距
+    l: 0 // 左邊距
+    r: 0 // 右邊距
+  }
+}
+```
+
+#### 數字格式 [#number-format]
+
+`n` 是物件，其 `pattern` 欄位表示數字格式。數字格式是一個字串，請參考[這裡](https://support.microsoft.com/zh-tw/office/%E6%95%B8%E5%AD%97%E6%A0%BC%E5%BC%8F%E4%BB%A3%E7%A2%BC-5026bbd6-04bc-48cd-bf33-80f18b4eae68)。
+
+當 `n` 為 `null` 或 `pattern` 為 `null` 時，表示一般格式。
+
+```typescript
+import type { DEFAULT_TEXT_FORMAT_EXCEL } from '@univerjs/engine-numfmt'
+
+interface IStyleData {
+  n: {
+    pattern: DEFAULT_TEXT_FORMAT_EXCEL // 文字格式
+  }
+}
+```
+
+[關於在儲存格輸入以 0 開頭或可轉換為日期格式的數字時，不想被預設轉換](/guides/sheets/features/core/numfmt#qa-1)
+
+### 儲存格型別 [#cell-type]
+
+`cellData.t` 是一個列舉 [CellValueType](https://reference.univer.ai/zh-CN/globals#cellvaluetype)，表示儲存格的型別。`1` 表示字串，`2` 表示數字，`3` 表示布林值，`4` 表示強制文字；未設定時 Univer 會自動辨識。
+
+其中，若儲存格為布林型別，則 `cellData.v` 的值以 `0` 或 `1` 儲存；`0` 表示 false，`1` 表示 true。
+
+```typescript
+interface IWorksheetData {
+  cellData: {
+    0: {
+      0: {
+        v: 'A1'
+        t: 1 // 字串
+      }
+      1: {
+        v: 1
+        t: 2 // 數字
+      }
+      2: {
+        v: 1 // TRUE
+        t: 3 // 布林值
+      }
+      3: {
+        v: '012.0'
+        t: 4 // 強制文字
+      }
+    }
+  }
+}
+```
+
+### 豐富文字
+
+`cellData.p` 是物件，表示豐富文字，同時也是一個 Univer Doc。詳細了解 [IDocumentData](https://reference.univer.ai/zh-CN/interfaces/IDocumentData)。
+
+<Callout>
+  當 `p` 與 `v` 同時存在時，僅會顯示 `p` 的內容。
+</Callout>
+
+`cellData.p.body.dataStream` 是豐富文字的內容。
+
+### 公式
+
+`cellData.f` 是字串，表示公式。
+
+```typescript
+interface IWorksheetData {
+  cellData: {
+    0: {
+      0: {
+        f: '=SUM(A1:B1)' // 加總公式
+      }
+    }
+  }
+}
+```
+
+### 公式 ID
+
+`cellData.si` 是字串，表示公式 ID。Univer Sheets 支援對公式做參照最佳化，儲存格中以 `si` 關聯上目前公式後，其他儲存格可以透過 `si` 參照到該公式。注意，帶有 `si` 的儲存格位置必須位於參照儲存格的右下角，否則匯出為 XLSX 時會出錯。
+
+可透過 Facade API `range.getFormulas()` 取得實際公式。規則為先取得 `si` 對應的公式 `f`，再根據當前儲存格位置到參照位置的位移量計算實際公式。
+
+```typescript
+interface IWorksheetData {
+  cellData: {
+    0: {
+      0: {
+        f: '=SUM(A1:B1)' // 加總公式
+        si: 'random_formula_id_1' // 目前公式的 id
+      }
+      1: {
+        si: 'random_formula_id_1' // 計算時取此 id 對應的公式
+      }
+    }
+  }
+}
+```
+
+### 自訂欄位
+
+`cellData.custom` 是物件，表示自訂欄位。可放入任何符合 JSON 格式的資料，用於自訂儲存一些額外資訊。
+
+更新 `custom` 資料會覆蓋原有的 `custom` 資料；若在更新時需要保留原有的 `custom` 資料，請先取得並與新資料合併後再更新。
+
+<Callout type="warning">
+  `custom` 欄位僅適用於部分特殊情境，儲存在該欄位中的資料可能因使用者的任何操作被覆蓋或刪除，請謹慎使用。
+</Callout>
+
+```typescript
+interface IWorksheetData {
+  cellData: {
+    0: {
+      0: {
+        custom: {
+          key: 'value'
+        }
+      }
+    }
+  }
+}
+```
