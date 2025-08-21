@@ -1,11 +1,9 @@
 'use client'
 
 import type { AnchorHTMLAttributes } from 'react'
-import { SiGithub } from '@icons-pack/react-simple-icons'
 import { StarIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { SlidingNumber } from '@/components/animate-ui/text/sliding-number'
-import { clsx } from '@/lib/clsx'
 
 async function getRepoStarsAndForks(
   owner: string,
@@ -42,11 +40,10 @@ async function getRepoStarsAndForks(
   }
 }
 
-export function GithubInfo({
+export default function Stars({
   repo,
   owner,
   token,
-  ...props
 }: AnchorHTMLAttributes<HTMLAnchorElement> & {
   owner: string
   repo: string
@@ -85,51 +82,30 @@ export function GithubInfo({
   }, [stars])
 
   return (
-    <a
-      href={`https://github.com/${owner}/${repo}`}
-      rel="noreferrer noopener"
-      target="_blank"
-      {...props}
-      className={clsx(
-        `
-          flex gap-1.5 rounded-lg px-3 text-sm text-fd-foreground/80 transition-colors
-          hover:text-fd-accent-foreground
-          lg:flex-row lg:items-center
-        `,
-        props.className,
-      )}
-    >
-      <p className="flex items-center gap-2 truncate">
-        <SiGithub className="size-4" />
-        {owner}
-        /
-        {repo}
-      </p>
-      <p className="flex items-center gap-1 text-xs text-fd-muted-foreground">
-        <span className="relative">
-          <StarIcon
-            className="size-3 fill-neutral-300 text-neutral-300"
-            aria-hidden="true"
+    <p className="flex items-center gap-1 text-xs text-fd-muted-foreground">
+      <span className="relative">
+        <StarIcon
+          className="size-3 fill-neutral-300 text-neutral-300"
+          aria-hidden="true"
+        />
+        <StarIcon
+          className="absolute top-0 size-3 fill-yellow-500 text-yellow-500"
+          aria-hidden="true"
+          style={{
+            clipPath: `inset(${100 - (isCompleted ? fillPercentage : fillPercentage - 10)}% 0 0 0)`,
+          }}
+        />
+      </span>
+      {stars > 0 && (
+        <span className="inline-flex">
+          <SlidingNumber
+            number={currentStars}
+            decimalPlaces={1}
           />
-          <StarIcon
-            className="absolute top-0 size-3 fill-yellow-500 text-yellow-500"
-            aria-hidden="true"
-            style={{
-              clipPath: `inset(${100 - (isCompleted ? fillPercentage : fillPercentage - 10)}% 0 0 0)`,
-            }}
-          />
+          K
         </span>
-        {stars > 0 && (
-          <span className="inline-flex">
-            <SlidingNumber
-              number={currentStars}
-              decimalPlaces={1}
-            />
-            K
-          </span>
-        )}
-      </p>
-    </a>
+      )}
+    </p>
   )
 }
 

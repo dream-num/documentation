@@ -1,6 +1,6 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
 import process from 'node:process'
-import { GithubInfo } from '@/components/github-info'
+import { GithubInfo } from '@/components/github-info/github-info'
 import { Logo } from '@/components/logo'
 import { i18n } from '@/lib/i18n'
 
