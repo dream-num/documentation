@@ -1,5 +1,5 @@
-import type { I18nConfig } from 'fumadocs-core/i18n'
 import type { Translations } from 'fumadocs-ui/i18n'
+import { defineI18n } from 'fumadocs-core/i18n'
 
 export const locales = [
   {
@@ -20,11 +20,11 @@ export const locales = [
   },
 ]
 
-export const i18n: I18nConfig = {
+export const i18n = defineI18n({
   defaultLanguage: 'en-US',
   languages: ['en-US', 'zh-CN', 'zh-TW', 'ja-JP'],
   hideLocale: 'always',
-}
+})
 
 // translations
 export const zhCN: Translations = {
