@@ -1,0 +1,149 @@
+---
+title: Vue
+---
+
+<Callout>
+  如果你正在尋找使用 Vue 元件作為自訂元件的方法，請參閱[此處](/guides/sheets/ui/components#vue)。
+</Callout>
+
+## Vue 3.x
+
+### 整合前須知
+
+- 應避免對 Univer 與 FUniver 的實例進行代理，否則可能會引發不可預期的錯誤或效能問題。
+
+### 整合步驟
+
+1. 在 `onMounted` 鉤子中初始化 Univer
+2. 在 `onBeforeUnmount` 鉤子中銷毀 Univer
+
+### 範例程式碼
+
+```vue
+<script lang="ts" setup>
+import type { FUniver, Univer } from '@univerjs/presets'
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+import UniverPresetSheetsCoreZhTW from '@univerjs/preset-sheets-core/locales/zh-TW'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
+
+import '@univerjs/preset-sheets-core/lib/index.css'
+
+const container = ref<HTMLElement | null>(null)
+
+let univerInstance: Univer | null = null
+let univerAPIInstance: FUniver | null = null
+
+onMounted(() => {
+  const { univer, univerAPI } = createUniver({
+    locale: LocaleType.ZH_TW,
+    locales: {
+      [LocaleType.ZH_TW]: mergeLocales(
+        UniverPresetSheetsCoreZhTW,
+      ),
+    },
+    presets: [
+      UniverSheetsCorePreset({
+        container: container.value as HTMLElement,
+      }),
+    ],
+  })
+
+  univerAPI.createWorkbook({})
+
+  univerInstance = univer
+  univerAPIInstance = univerAPI
+})
+
+onBeforeUnmount(() => {
+  univerInstance?.dispose()
+  univerAPIInstance?.dispose()
+  univerInstance = null
+  univerAPIInstance = null
+})
+</script>
+
+<template>
+  <div ref="container" />
+</template>
+```
+
+## Vue 2.x
+
+### 整合前須知
+
+- 使用 pnpm 安裝 `@univerjs/presets` 時，可能會出現需要手動安裝 react 與 react-dom 的情況。
+- 如果在開發環境遇到 ResizeObserver loop limit exceeded 警告，可忽略，或參考下面的程式碼片段解決：
+
+```typescript
+if (process.env.NODE_ENV === 'development') {
+  const _ResizeObserver = window.ResizeObserver
+  function debounce(fn, delay) {
+    let timer = null
+    return function () {
+      if (timer) {
+        clearTimeout(timer)
+      }
+      timer = setTimeout(() => {
+        fn.apply(this, arguments)
+      }, delay)
+    }
+  }
+  window.ResizeObserver = class ResizeObserver extends _ResizeObserver {
+    constructor(callback) {
+      callback = debounce(callback, 50)
+      super(callback)
+    }
+  }
+}
+```
+
+### 整合步驟
+
+1. 在 `mounted` 鉤子中初始化 Univer
+2. 在 `beforeDestroy` 鉤子中銷毀 Univer
+
+### 範例程式碼
+
+```vue
+<script>
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+import UniverPresetSheetsCoreZhTW from '@univerjs/preset-sheets-core/locales/zh-TW'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+import '@univerjs/preset-sheets-core/lib/index.css'
+
+export default {
+  mounted() {
+    const { univer, univerAPI } = createUniver({
+      locale: LocaleType.ZH_TW,
+      locales: {
+        [LocaleType.ZH_TW]: mergeLocales(
+          UniverPresetSheetsCoreZhTW,
+        ),
+      },
+      presets: [
+        UniverSheetsCorePreset({
+          container: this.$refs.container,
+        }),
+      ],
+    })
+
+    univerAPI.createWorkbook({})
+
+    this.univerInstance = univer
+    this.univerAPIInstance = univerAPI
+  },
+  beforeUnmount() {
+    this.univerInstance?.dispose()
+    this.univerAPIInstance?.dispose()
+    this.univerInstance = null
+    this.univerAPIInstance = null
+  },
+}
+</script>
+
+<template>
+  <div ref="container" />
+</template>
+```

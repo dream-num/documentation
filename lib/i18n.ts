@@ -1,25 +1,6 @@
 import type { Translations } from 'fumadocs-ui/i18n'
 import { defineI18n } from 'fumadocs-core/i18n'
 
-export const locales = [
-  {
-    name: 'English',
-    locale: 'en-US',
-  },
-  {
-    name: '简体中文',
-    locale: 'zh-CN',
-  },
-  {
-    name: '繁體中文（10%）',
-    locale: 'zh-TW',
-  },
-  {
-    name: '日本語（30%）',
-    locale: 'ja-JP',
-  },
-]
-
 export const i18n = defineI18n({
   defaultLanguage: 'en-US',
   languages: ['en-US', 'zh-CN', 'zh-TW', 'ja-JP'],
@@ -27,7 +8,24 @@ export const i18n = defineI18n({
 })
 
 // translations
-export const zhCN: Translations = {
+export const enUS: (Partial<Translations> & {
+  displayName?: string
+}) = {
+  displayName: 'English',
+  search: 'Search',
+  searchNoResult: 'No results found',
+  toc: 'Table of Contents',
+  tocNoHeadings: 'No headings available',
+  lastUpdate: 'Last updated',
+  chooseLanguage: 'Choose language',
+  nextPage: 'Next page',
+  previousPage: 'Previous page',
+  chooseTheme: 'Choose theme',
+  editOnGithub: 'Edit on GitHub',
+}
+
+export const zhCN: typeof enUS = {
+  displayName: '简体中文',
   search: '搜索',
   searchNoResult: '没有找到相关内容',
   toc: '目录',
@@ -40,7 +38,8 @@ export const zhCN: Translations = {
   editOnGithub: '在 GitHub 上编辑',
 }
 
-export const zhTW: Translations = {
+export const zhTW: typeof enUS = {
+  displayName: '繁體中文',
   search: '搜索',
   searchNoResult: '沒有找到相關內容',
   toc: '目錄',
@@ -53,7 +52,8 @@ export const zhTW: Translations = {
   editOnGithub: '在 GitHub 上編輯',
 }
 
-export const jaJP: Translations = {
+export const jaJP: typeof enUS = {
+  displayName: '日本語',
   search: '検索',
   searchNoResult: '関連するコンテンツが見つかりませんでした',
   toc: '目次',
@@ -67,6 +67,7 @@ export const jaJP: Translations = {
 }
 
 export const translations: Record<string, Partial<Translations>> = {
+  'en-US': enUS,
   'zh-CN': zhCN,
   'zh-TW': zhTW,
   'ja-JP': jaJP,
