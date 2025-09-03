@@ -1,0 +1,286 @@
+---
+title: インポートとエクスポート
+icon: '#pro/FolderSync'
+---
+
+<MetaData
+  lang="ja-JP"
+  isPro
+  meta={{
+    preset: [{
+      client: '@univerjs/preset-sheets-advanced',
+      locale: '@univerjs/preset-sheets-advanced/locales/en-US',
+      style: '@univerjs/preset-sheets-advanced/lib/index.css',
+    }],
+    plugins: [{
+      client: '@univerjs-pro/exchange-client',
+      facade: '@univerjs-pro/exchange-client/facade',
+      locale: '@univerjs-pro/exchange-client/locale/en-US',
+      style: '@univerjs-pro/exchange-client/lib/index.css',
+    }, {
+      client: '@univerjs-pro/sheets-exchange-client',
+    }],
+    server: 'Yes',
+  }}
+/>
+
+<Callout type="warning" title="注意事項">
+  インポート/エクスポート機能には Univer サーバーのサポートが必要です。Univer サーバーが正しくインストール・設定されていることを確認してください。詳しくは [Pro へのアップグレード](/guides/pro) を参照してください。
+</Callout>
+
+インポート/エクスポート機能により、ユーザーは `.xlsx` ファイルを Univer のドキュメントにインポートしたり、Univer サーバー経由でドキュメント内容を `.xlsx` ファイルとしてエクスポートしたりできます。これにより、他のオフィス ソフトウェアやプラットフォームとの連携が容易になります。
+
+<Callout title="なぜ Univer はバックエンド サービスでインポート/エクスポートを実装しているのですか?">
+  フロントエンドのみで実装されたインポート/エクスポートは、パフォーマンスや結果の面でエンタープライズ要件を満たせません。そのため、当社はバックエンド サービスでインポート/エクスポート機能を提供しています。オープンソースの DOCX 解析ライブラリを使ってファイルを `IDocumentData` インターフェイスに準拠したデータ構造へ変換し、Facade API を用いて Univer に取り込むことができます。
+</Callout>
+
+メニュー バーのインポート エントリからのインポートに成功すると、ページ左下に通知が表示され、成功情報とインポートされたドキュメントにアクセスするためのリンクが提示されます。既定のインポート/エクスポート動作が要件に合わない場合は、[カスタム インポート](/guides/recipes/tutorials/custom-import) を参照し、動作のカスタマイズ方法をご確認ください。
+
+## プリセットモード
+
+### インストール
+
+<Callout>
+  `@univerjs/preset-sheets-advanced` の `UniverSheetsAdvancedPreset` は、実行時に `UniverSheetsDrawingPreset` に依存します。先に `@univerjs/preset-sheets-drawing` をインストールしてください。
+</Callout>
+
+```package-install
+npm install @univerjs/preset-sheets-drawing @univerjs/preset-sheets-advanced
+```
+
+### 使い方
+
+```typescript
+import { UniverSheetsAdvancedPreset } from '@univerjs/preset-sheets-advanced' // [!code ++]
+import UniverPresetSheetsAdvancedEnUS from '@univerjs/preset-sheets-advanced/locales/en-US' // [!code ++]
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+import UniverPresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing' // [!code ++]
+import UniverPresetSheetsDrawingEnUS from '@univerjs/preset-sheets-drawing/locales/en-US' // [!code ++]
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+import '@univerjs/preset-sheets-core/lib/index.css'
+import '@univerjs/preset-sheets-drawing/lib/index.css' // [!code ++]
+import '@univerjs/preset-sheets-advanced/lib/index.css' // [!code ++]
+
+const { univerAPI } = createUniver({
+  locale: LocaleType.En_US,
+  locales: {
+    [LocaleType.En_US]: mergeLocales(
+      UniverPresetSheetsCoreEnUS,
+      UniverPresetSheetsDrawingEnUS, // [!code ++]
+      UniverPresetSheetsAdvancedEnUS, // [!code ++]
+    ),
+  },
+  presets: [
+    UniverSheetsCorePreset(),
+    UniverSheetsDrawingPreset(), // [!code ++]
+    UniverSheetsAdvancedPreset({ // [!code ++]
+      universerEndpoint: 'http://localhost:3010', // Univer サーバーのエンドポイント // [!code ++]
+    }), // [!code ++]
+  ],
+})
+```
+
+Univer の商用ライセンスをお持ちの場合は、設定方法について [クライアントでのライセンス](/guides/pro/license#in-preset-mode) を参照してください。
+### プリセットと設定
+
+`UniverSheetsAdvancedPreset` の設定オプションは以下のとおりです。
+
+```typescript
+interface IUniverSheetsAdvancedPresetConfig {
+  // Univer サーバーのエンドポイント
+  universerEndpoint?: string
+  exchangeClientOptions?: {
+    // インポート先ワークシートの最小行数
+    minSheetRowCount?: number
+    // インポート先ワークシートの最小列数
+    minSheetColumnCount?: number
+    /**
+     * エクスポート時にサーバー側の数式計算を有効にするか。 有効化すると、各エクスポートでサーバー側の数式計算がトリガーされ、以下の問題に対応します。
+     * 1. WPS などのオフィス ソフトでファイルを開いた際、数式に既定値がない
+     * 2. Excel で編集を有効化しないと数式結果が表示されない
+     * 3. 先頭に @ が付く配列数式で計算結果が展開されない
+     * 注意: この設定は共同編集環境で使用する必要があり、サーバーの設定ファイルで `SSC_SERVER_ENABLED=true` を設定してください。
+     */
+    enableServerSideComputing?: boolean
+  }
+}
+```
+
+## プラグインモード
+
+### インストール
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/sheets-exchange-client
+```
+
+### 使い方
+
+```typescript
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client' // [!code ++]
+import ExchangeClientEnUS from '@univerjs-pro/exchange-client/locale/en-US' // [!code ++]
+import { UniverSheetsExchangeClientPlugin } from '@univerjs-pro/sheets-exchange-client' // [!code ++]
+import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+
+import '@univerjs-pro/exchange-client/facade' // [!code ++]
+
+import '@univerjs-pro/exchange-client/lib/index.css' // [!code ++]
+
+const univer = new Univer({
+  locale: LocaleType.En_US,
+  locales: {
+    [LocaleType.En_US]: mergeLocales(
+      ExchangeClientEnUS, // [!code ++]
+    ),
+  },
+})
+
+const UNIVER_SERVER_ENDPOINT = `http://localhost:8000` // [!code ++]
+
+univer.registerPlugin(UniverExchangeClientPlugin, { // [!code ++]
+  uploadFileServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/stream/file/upload`, // [!code ++]
+  importServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/{type}/import`, // [!code ++]
+  exportServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/{type}/export`, // [!code ++]
+  getTaskServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/task/{taskID}`, // [!code ++]
+  signUrlServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/file/{fileID}/sign-url`, // [!code ++]
+  downloadEndpointUrl: `${UNIVER_SERVER_ENDPOINT}/`, // [!code ++]
+}) // [!code ++]
+univer.registerPlugin(UniverSheetsExchangeClientPlugin) // [!code ++]
+```
+
+Univer の商用ライセンスをお持ちの場合は、設定方法について [クライアントでのライセンス](/guides/pro/license#in-plugin-mode) を参照してください。
+
+### プラグインと設定
+
+`UniverExchangeClientPlugin` の設定オプションは以下のとおりです。
+
+```typescript
+interface IUniverExchangeClientConfig {
+  // Univer サーバーの設定
+  downloadEndpointUrl?: string
+  uploadFileServerUrl?: string
+  importServerUrl?: string
+  exportServerUrl?: string
+  getTaskServerUrl?: string
+  signUrlServerUrl?: string
+  // 最大タイムアウト（ミリ秒）
+  maxTimeoutTime?: number
+  options?: {
+    // インポート先ワークシートの最小行数
+    minSheetRowCount?: number
+    // インポート先ワークシートの最小列数
+    minSheetColumnCount?: number
+    /**
+     * エクスポート時にサーバー側の数式計算を有効にするか。 有効化すると、各エクスポートでサーバー側の数式計算がトリガーされ、以下の問題に対応します。
+     * 1. WPS などのオフィス ソフトでファイルを開いた際、数式に既定値がない
+     * 2. Excel で編集を有効化しないと数式結果が表示されない
+     * 3. 先頭に @ が付く配列数式で計算結果が展開されない
+     * 注意: この設定は共同編集環境で使用する必要があり、サーバーの設定ファイルで `SSC_SERVER_ENABLED=true` を設定してください。
+     */
+    enableServerSideComputing?: boolean
+  }
+}
+```
+
+## Facade API
+
+### インポート
+
+#### `.xlsx` ファイルをインポートして `unitId` を取得
+
+<Callout type="warning" title="注意">
+  この方法は、共同編集を有効にしたドキュメントのインポートにのみ適用できます。
+</Callout>
+
+共同編集を有効にすると、各ドキュメントには一意の `unitId` が割り当てられます。`univerAPI.importXLSXToUnitIdAsync` に `file` パラメーターを渡すと `unitId` が返され、これを使ってドキュメントにアクセスできます。`file` には `File` オブジェクトまたはリモート ファイル URL を指定できます。
+
+```typescript
+// File オブジェクトを受け取る
+const unitId = await univerAPI.importXLSXToUnitIdAsync(file)
+// またはリモート ファイル URL を受け取る
+// const unitId = await univerAPI.importXLSXToUnitIdAsync('https://example.com/filename.xlsx');
+
+// 共同編集と併用して自動的にデータを読み込む
+// https://docs.univer.ai/en-US/guides/docs/features/collaboration#loading-collaborative-documents
+const url = new URL(window.location.href)
+url.searchParams.set('unit', unitId)
+url.searchParams.set('type', '2') // 2 は UniverInstanceType.UNIVER_SHEET を意味します
+
+window.location.href = url.toString()
+
+// あるいは API: univerAPI.loadServerUnit(unitId, 2) を呼び出してドキュメントを読み込みます
+// パラメーターの詳細は https://reference.univer.ai/en-US/classes/FUniver#loadserverunit を参照
+```
+
+#### `.xlsx` ファイルをインポートして `IWorkbookData` を取得
+
+`univerAPI.importXLSXToSnapshotAsync` で `.xlsx` ファイルをインポートすると、`IWorkbookData` 形式のドキュメント データが返されます。
+
+```typescript
+// File オブジェクトを受け取る
+const snapshot = await univerAPI.importXLSXToSnapshotAsync(file)
+// またはリモート ファイル URL を受け取る
+// const snapshot = await univerAPI.importXLSXToSnapshotAsync('https://example.com/filename.xlsx');
+
+// スナップショットから新しいワークブックを作成
+univerAPI.createWorkbook(snapshot)
+```
+
+### エクスポート
+
+#### `unitId` を使って `.xlsx` ファイルをエクスポート
+
+共同編集を有効にした場合、各ドキュメントには一意の `unitId` があります。`univerAPI.exportXLSXByUnitIdAsync` に `unitId` を渡すと `File` オブジェクトが返されます。
+
+```typescript
+import { downloadFile } from '@univerjs-pro/exchange-client'
+
+const fWorkbook = univerAPI.getActiveWorkbook()
+const unitId = fWorkbook.getId()
+const file = await univerAPI.exportXLSXByUnitIdAsync(unitId)
+
+// @univerjs-pro/exchange-client の downloadFile 関数でダウンロード
+downloadFile(file, 'univer', 'xlsx')
+```
+
+#### `IWorkbookData` を使って `.xlsx` ファイルをエクスポート
+
+`univerAPI.exportXLSXBySnapshotAsync` に `IWorkbookData` を渡すと `File` オブジェクトが返されます。
+
+```typescript
+import { downloadFile } from '@univerjs-pro/exchange-client'
+
+const fWorkbook = univerAPI.getActiveWorkbook()
+const snapshot = fWorkbook.getSnapshot()
+const file = await univerAPI.exportXLSXBySnapshotAsync(snapshot)
+
+// @univerjs-pro/exchange-client の downloadFile 関数でダウンロード
+downloadFile(file, 'univer', 'xlsx')
+```
+
+## Node.js サーバーでのデータ変換
+
+Univer サーバーはインポート/エクスポートの API を提供しますが、サーバー側で変換されたデータ形式は Univer の形式とは一致しません。`@univerjs-pro/exchange-client` プラグインには、Node.js サーバーで利用できるデータ変換ユーティリティ関数が含まれています。
+
+### Snapshot を `IWorkbookData` へ変換
+
+インポート後、Snapshot の JSON データは `IWorkbookData` 形式へ変換してから Univer で利用します。
+
+```typescript
+import { transformSnapshotJsonToWorkbookData } from '@univerjs-pro/exchange-client'
+
+// JSON データは snapshot と sheetBlocks を含みます
+const workbookData = transformSnapshotJsonToWorkbookData(json)
+```
+
+### `IWorkbookData` を Snapshot JSON へ変換
+
+エクスポート前に、`IWorkbookData` 形式のデータを Snapshot JSON へ変換し、サーバーへ送信してエクスポートします。
+
+```typescript
+import { transformWorkbookDataToSnapshotJson } from '@univerjs-pro/exchange-client'
+
+const snapshotJson = transformWorkbookDataToSnapshotJson(workbookData)
+```
