@@ -24,7 +24,7 @@ export default class ColumnHeaderCustomExtension extends SheetExtension {
     }
 
     const { rowHeightAccumulation, columnTotalWidth, columnWidthAccumulation, rowTotalHeight }
-            = spreadsheetSkeleton
+      = spreadsheetSkeleton
 
     if (
       !rowHeightAccumulation

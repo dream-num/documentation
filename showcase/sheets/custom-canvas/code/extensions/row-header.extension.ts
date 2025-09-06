@@ -29,7 +29,7 @@ export default class RowHeaderCustomExtension extends SheetExtension {
     }
 
     const { rowHeightAccumulation, columnTotalWidth, columnWidthAccumulation, rowTotalHeight }
-            = spreadsheetSkeleton
+      = spreadsheetSkeleton
 
     if (
       !rowHeightAccumulation
