@@ -7,10 +7,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const metadata = {
   title: {
-    'en-US': 'Minimal Example (Preset Mode)',
-    'zh-CN': '精简示例（预设模式）',
-    'zh-TW': '精簡範例（預設模式）',
-    'ja-JP': '最小限の例（プリセットモード）',
+    'en-US': 'Minimal Example (Plugin Mode)',
+    'zh-CN': '精简示例（插件模式）',
+    'zh-TW': '精簡範例（插件模式）',
+    'ja-JP': '最小限の例（プラグインモード）',
   },
   description: {
     'en-US': 'A minimal setup example for Univer Docs, demonstrating the minimum configuration required to use Univer Docs.',
@@ -19,10 +19,10 @@ const metadata = {
     'ja-JP': 'Univer Docs を使用するために必要な最小限の構成を示す、Univer Docs の最小限のセットアップ例です。',
   },
   tags: {
-    'en-US': ['Univer Docs', 'Preset Mode'],
-    'zh-CN': ['Univer Docs', '预设模式'],
-    'zh-TW': ['Univer Docs', '預設模式'],
-    'ja-JP': ['Univer Docs', 'プリセットモード'],
+    'en-US': ['Univer Docs', 'Plugin Mode'],
+    'zh-CN': ['Univer Docs', '插件模式'],
+    'zh-TW': ['Univer Docs', '插件模式'],
+    'ja-JP': ['Univer Docs', 'プラグインモード'],
   },
 }
 
