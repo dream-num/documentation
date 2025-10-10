@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { DocsLayout } from 'fumadocs-ui/layouts/docs'
+import { DocsLayout } from 'fumadocs-ui/layouts/notebook'
 import { baseOptions } from '@/app/layout.config'
 import { reference } from '@/lib/source'
 
@@ -15,6 +15,7 @@ export default async function Layout({ params, children }: IProps) {
     <DocsLayout
       {...baseOptions(lang)}
       tree={reference.pageTree[lang]}
+      tabMode="navbar"
       sidebar={{
         defaultOpenLevel: 1,
       }}
