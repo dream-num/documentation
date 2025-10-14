@@ -10,10 +10,6 @@ const config: NextConfig = {
 
   output: 'standalone',
 
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-
   typescript: {
     ignoreBuildErrors: true,
   },
