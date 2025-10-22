@@ -54,11 +54,13 @@ export class CustomMenuController extends Disposable {
    */
   private _initMenus(): void {
     this._menuManagerService.mergeMenu({
-      [RibbonStartGroup.OTHERS]: {
+      [RibbonStartGroup.FORMAT]: {
         [SingleButtonOperation.id]: {
-          order: 10,
+          order: 2.1,
           menuItemFactory: CustomMenuItemSingleButtonFactory,
         },
+      },
+      [RibbonStartGroup.OTHERS]: {
         [CUSTOM_MENU_DROPDOWN_LIST_OPERATION_ID]: {
           order: 11,
           menuItemFactory: CustomMenuItemDropdownListMainButtonFactory,
