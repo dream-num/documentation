@@ -1,7 +1,8 @@
 'use client'
 
 import * as icons from '@univerjs/icons'
-import { useMemo, useState } from 'react'
+import { useTheme } from 'next-themes'
+import { useEffect, useMemo, useState } from 'react'
 import { Tooltip } from '@/components/tooltip'
 import { Slider } from '@/components/ui/slider'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -18,6 +19,22 @@ export default function IconBlock() {
   const [fontSize, setFontSize] = useState(24)
   const [color, setColor] = useState('#1b1c1e')
   const [colorChannel1, setColorChannel1] = useState('#2563eb')
+
+  const { resolvedTheme } = useTheme()
+
+  useEffect(() => {
+    if (resolvedTheme === 'dark') {
+      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+      setColor('#e4e4e7')
+      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+      setColorChannel1('#3b82f6')
+    } else {
+      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+      setColor('#1b1c1e')
+      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+      setColorChannel1('#2563eb')
+    }
+  }, [resolvedTheme])
 
   const manifest = Object.keys(icons).reduce((acc, key) => {
     let type = 'single'
@@ -46,6 +63,10 @@ export default function IconBlock() {
   const activeGroup = useMemo(() => {
     return manifest[activeGroupName] ?? manifest.single
   }, [activeGroupName, manifest])
+
+  function handleCopy(text: string) {
+    navigator.clipboard.writeText(text)
+  }
 
   return (
     <section className="px-4">
@@ -80,17 +101,22 @@ export default function IconBlock() {
         {activeGroup.map((icon: any) => (
           <li key={icon.name} className="text-center">
             <Tooltip content={icon.name}>
-              <div
+              <button
                 className={`
-                  flex aspect-square size-16 flex-col items-center justify-center rounded-md bg-neutral-50 p-2
+                  flex aspect-square size-16 cursor-pointer flex-col items-center justify-center rounded-md
+                  bg-neutral-50 p-2 transition-transform
+                  hover:scale-105
+                  active:scale-95
                   dark:bg-neutral-800
                 `}
+                type="button"
+                onClick={() => handleCopy(icon.name)}
               >
                 <icon.icon
                   style={{ color, fontSize: `${fontSize}px` }}
                   extend={{ colorChannel1 }}
                 />
-              </div>
+              </button>
             </Tooltip>
           </li>
         ))}

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import pkg from '@/package.json'
 
 interface IProps {
   title: string
@@ -8,6 +9,8 @@ interface IProps {
 
 export function Header(props: IProps) {
   const { title, slogan, actions } = props
+
+  const iconVersion = pkg.dependencies['@univerjs/icons'].replace('^', '')
 
   return (
     <header
@@ -26,6 +29,10 @@ export function Header(props: IProps) {
             `}
           >
             {title}
+            <sup className="-top-4 ml-1 text-sm">
+              v
+              {iconVersion}
+            </sup>
           </h1>
           <p
             className={`
