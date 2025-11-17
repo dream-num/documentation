@@ -1,8 +1,8 @@
 // See https://fumadocs.vercel.app/docs/headless/source-api for more info
 import { loader } from 'fumadocs-core/source'
+import { blog as blogPosts, guides as guidesPosts, reference as referencePosts } from 'fumadocs-mdx:collections/server'
 import { icons } from 'lucide-react'
 import { createElement } from 'react'
-import { blog as blogPosts, guides as guidesPosts, reference as referencePosts } from '@/.source'
 import { IconWrapper } from '@/components/icon-wrapper'
 import { i18n } from './i18n'
 
