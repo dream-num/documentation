@@ -50,7 +50,7 @@ export default async function Page({ params }: IProps) {
         style: 'clerk',
         footer: <SponsorCard />,
       }}
-      lastUpdate={page.data.lastModified}
+      // lastUpdate={page.data.lastModified}
     >
       <header className="border-b border-b-neutral-200 pb-6">
         <DocsTitle className="mb-6">{page.data.title}</DocsTitle>
