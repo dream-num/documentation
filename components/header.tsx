@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
-import pkg from '@/package.json'
+import { BlurFade } from '@/components/magicui/blur-fade'
 
 interface IProps {
-  title: string
+  title: ReactNode
   slogan: string
   actions?: ReactNode
 }
@@ -10,42 +10,69 @@ interface IProps {
 export function Header(props: IProps) {
   const { title, slogan, actions } = props
 
-  const iconVersion = pkg.dependencies['@univerjs/icons'].replace('^', '')
-
   return (
     <header
       className={`
-        relative p-6
-        before:pointer-events-none before:absolute before:top-0 before:left-0 before:z-10 before:h-full before:w-full
-        before:bg-[url('/assets/images/noise.gif')] before:opacity-[0.05] before:content-['']
+        relative overflow-hidden bg-white/50 px-4 py-12
+        dark:bg-neutral-950/50
       `}
     >
-      <div className="relative flex justify-between">
-        <div>
-          <h1
-            className={`
-              mb-2 text-3xl font-semibold text-neutral-800
-              dark:text-neutral-100
-            `}
-          >
-            {title}
-            <sup className="-top-4 ml-1 text-sm">
-              v
-              {iconVersion}
-            </sup>
-          </h1>
-          <p
-            className={`
-              text-neutral-700
-              dark:text-neutral-300
-            `}
-          >
-            {slogan}
-          </p>
-        </div>
+      {/* Background Pattern */}
+      <div
+        className={`
+          absolute inset-0 -z-10 h-full w-full
+          bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)]
+          bg-size-[14px_24px]
+        `}
+      >
+        <div
+          className={`
+            absolute top-0 right-0 left-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-blue-400 opacity-20
+            blur-[100px]
+            dark:bg-blue-900
+          `}
+        />
+      </div>
 
-        <div className="absolute top-0 right-0">
-          {actions}
+      <div>
+        <div
+          className={`
+            relative flex flex-col gap-6
+            md:flex-row md:items-center md:justify-between
+          `}
+        >
+          <div className="flex-1">
+            <BlurFade delay={0.1} inView>
+              <h1
+                className={`
+                  mb-4 text-xl font-semibold tracking-tight text-neutral-900
+                  md:text-3xl
+                  dark:text-neutral-50
+                `}
+              >
+                {title}
+              </h1>
+            </BlurFade>
+
+            <BlurFade delay={0.2} inView>
+              <p
+                className={`
+                  max-w-2xl text-neutral-600
+                  dark:text-neutral-400
+                `}
+              >
+                {slogan}
+              </p>
+            </BlurFade>
+          </div>
+
+          {actions && (
+            <BlurFade delay={0.3} inView>
+              <div className="flex shrink-0 items-center gap-4">
+                {actions}
+              </div>
+            </BlurFade>
+          )}
         </div>
       </div>
     </header>

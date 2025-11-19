@@ -37,8 +37,8 @@ export default async function Page({ params }: IProps) {
         actions={(
           <Link
             className={`
-              text-sm text-neutral-500
-              hover:text-neutral-700
+              text-sm text-amber-500 transition-all
+              hover:text-amber-600
             `}
             href={`/${lang}/blog/rss.xml`}
             target="_blank"
@@ -51,43 +51,50 @@ export default async function Page({ params }: IProps) {
 
       <section
         className={`
-          grid grid-cols-1 bg-neutral-50
-          md:grid-cols-3
-          lg:grid-cols-4
-          dark:bg-neutral-900
+          mt-4 grid grid-cols-1 gap-6 px-4
+          md:grid-cols-2
+          lg:grid-cols-3
         `}
       >
         {posts.map(post => (
           <Link
             key={post.url}
-            className="group relative flex flex-col p-4 transition-colors"
+            className={`
+              group relative flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white p-4
+              transition-all duration-300
+              hover:-translate-y-1
+              dark:border-neutral-800 dark:bg-neutral-950/50
+            `}
             href={post.url}
           >
-            <div
-              className={`
-                absolute top-0 left-0 h-full w-full bg-linear-[145deg,#64bcff_-30%,rgba(0,0,0,0)_70%] opacity-0
-                transition-all duration-300
-                group-hover:opacity-100
-                dark:bg-linear-[145deg,#40B9FF_-30%,rgba(0,0,0,0)_70%]
-              `}
-            />
-            <div
-              className={`
-                relative text-neutral-800
-                dark:text-neutral-100
-              `}
-            >
-              <h3 className="font-medium">{post.data.title}</h3>
-              <p>{post.data.description}</p>
+            <div className="mb-4 flex flex-col gap-2">
+              <h3
+                className={`
+                  line-clamp-2 text-lg font-medium tracking-tight text-neutral-900
+                  group-hover:text-blue-600
+                  dark:text-neutral-100 dark:group-hover:text-blue-400
+                `}
+              >
+                {post.data.title}
+              </h3>
             </div>
 
             <div
               className={`
-                relative mt-auto flex flex-col pt-4 text-xs text-neutral-600
-                dark:text-neutral-400
+                mt-auto flex items-center justify-between border-t border-neutral-100 pt-4 text-xs text-neutral-500
+                dark:border-neutral-800 dark:text-neutral-500
               `}
             >
-              <span>{post.data.author}</span>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`
+                    font-medium text-neutral-700
+                    dark:text-neutral-300
+                  `}
+                >
+                  {post.data.author}
+                </span>
+              </div>
               <time dateTime={dayjs(post.data.date).format('YYYY-MM-DD')}>
                 {formatLocalDate(post.data.date, lang)}
               </time>
