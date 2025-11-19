@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { defineI18nUI } from 'fumadocs-ui/i18n'
-import { RootProvider } from 'fumadocs-ui/provider'
+import { RootProvider } from 'fumadocs-ui/provider/next'
 import { i18n, translations } from '@/lib/i18n'
 import { Wrapper } from './layout.client'
 

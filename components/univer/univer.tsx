@@ -39,6 +39,7 @@ export default function Univer() {
       presets.push(
         UniverDocsCorePreset({
           container: divRef.current,
+          ribbonType: 'classic',
         }),
       )
     } else if (type === 'sheets') {
@@ -46,6 +47,7 @@ export default function Univer() {
       presets.push(
         UniverSheetsCorePreset({
           container: divRef.current,
+          ribbonType: 'classic',
         }),
         UniverSheetsDataValidationPreset(),
         UniverSheetsConditionalFormattingPreset(),

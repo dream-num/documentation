@@ -1,8 +1,9 @@
 import { defineConfig, defineDocs, frontmatterSchema, metaSchema } from 'fumadocs-mdx/config'
+import lastModified from 'fumadocs-mdx/plugins/last-modified'
 import { z } from 'zod'
 
 export default defineConfig({
-  lastModifiedTime: 'git',
+  plugins: [lastModified()],
   mdxOptions: {
   },
 })
