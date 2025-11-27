@@ -11,45 +11,39 @@ Univer はブック・シート・セル範囲に対する権限制御機能を�
 
 ## 基本例
 
-### ブック（Workbook）権限
+### ワークブック権限コード例
 
 現状、ブックレベルの権限は API を通じて直接変更します。Univer は [Facade API](/guides/sheets/getting-started/facade) を提供しており、これを用いてブックの各機能に対する権限を設定できます。
 
-編集権限を例にします（他機能は末尾に列挙している権限ポイントへ置き換えてください。これらは `@univerjs/sheets` からインポートします）。次のコードでブック全体を編集不可にできます:
+編集権限を例にとると（他の機能の場合は、権限ポイントを置き換えるだけで済みます。詳細については、[権限ポイントビット一覧 - ワークブック](#workbook-point)を参照してください）、次のコードを使用してワークブック全体を編集不可に設定できます：
 
 ```typescript
-import { FUniver } from '@univerjs/core/facade'
+const fWorkbook = univerAPI.getActiveWorkbook()
+const permission = fWorkbook.getWorkbookPermission()
 
-const univerAPI = FUniver.newAPI(univer)
-```
-
-次に、univerAPI のメソッドを利用して FPermission オブジェクトを取得し、個別権限を設定します:
-
-```typescript
-const permission = univerAPI.getActiveWorkbook().getPermission()
-const workbookEditablePermission = permission.permissionPointsDefinition.WorkbookEditablePermission
-// unitId はブック ID。WorkbookEditablePermission は権限ポイント。false は権限不可を意味する
-permission.setWorkbookPermissionPoint(unitId, workbookEditablePermission, false)
+// ワークブックを編集不可に設定
+await permission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
 ```
 
 ### ワークシート権限コード例
 
-ワークシートおよび範囲に関連する権限は Facade API とコマンド両方で設定可能です。ここではワークシート編集権限を例とします。その他のワークシート機能は末尾の権限ポイント一覧を参照し置き換えてください。
+ワークシートおよび範囲に関連する権限は Facade API とコマンド両方で設定可能です。ここではワークシート編集権限を例とします。その他のワークシート機能は[権限ポイントビット一覧 - ワークシート](#worksheet-point)を参照してください。
 
 <Tabs items={['Facade API', 'コマンド方式']}>
   <Tab>
     ```typescript
-    const permission = univerAPI.getActiveWorkbook().getPermission()
-    const worksheetEditPermission = permission.permissionPointsDefinition.WorksheetEditPermission
-    // ワークシート権限の生成。unitId はブック ID、subUnitId はシート ID。生成される permissionId は権限領域描画用の基本権限識別子
-    const permissionId = await permission.addWorksheetBasePermission(unitId, subUnitId)
+    const fWorkbook = univerAPI.getActiveWorkbook()
+    const fWorksheet = fWorkbook.getActiveSheet()
+    const permission = fWorksheet.getWorksheetPermission()
 
-    permission.sheetRuleChangedAfterAuth$.subscribe((currentPermissionId) => {
-      if (currentPermissionId === permissionId) {
-        // ワークシートを編集不可に設定
-        permission.setWorksheetPermissionPoint(unitId, subUnitId, worksheetEditPermission, false)
-      }
+    // ワークシート保護を作成し、指定したユーザーのみ編集可能に設定
+    const permissionId = await permission.protect({
+      allowedUsers: ['user1', 'user2'],
+      name: 'My Worksheet Protection',
     })
+
+    // 権限ポイントを設定する必要がある場合は、まずワークシート保護を作成する必要があります
+    await permission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.Edit, false)
     ```
   </Tab>
   <Tab>
@@ -86,15 +80,19 @@ permission.setWorkbookPermissionPoint(unitId, workbookEditablePermission, false)
   </Tab>
 </Tabs>
 
-このコマンドのパラメータ: `permissionId` は保存用に自分で生成する一意 ID、`unitType` はシート種別（リポジトリの UnitObject enum 利用可）、unitId はブック ID、`subUnitId` はシート ID。
+このコマンドのパラメータ: `permissionId` は保存用に自分で生成する一意 ID、`unitType` はシート種別（リポジトリの `UnitObject` enum 利用可）、unitId はブック ID、`subUnitId` はシート ID。
 
 #### ワークシート権限の削除
 
 <Tabs items={['API メソッド', 'コマンド方式']}>
   <Tab>
     ```typescript
-    const permission = univerAPI.getActiveWorkbook().getPermission()
-    permission.removeWorksheetPermission(unitId, subUnitId)
+    const fWorkbook = univerAPI.getActiveWorkbook()
+    const fWorksheet = fWorkbook.getActiveSheet()
+    const permission = fWorksheet.getWorksheetPermission()
+
+    // ワークシート保護を削除します
+    await permission.unprotect()
     ```
   </Tab>
   <Tab>
@@ -111,32 +109,28 @@ permission.setWorkbookPermissionPoint(unitId, workbookEditablePermission, false)
 
 ### カスタム範囲権限コード例
 
-範囲（Range）権限も API とコマンドの両方式で設定できます。ここでは範囲編集権限を例とします。他の範囲機能は末尾の一覧の権限ポイントへ置き換えてください。
+範囲（Range）権限も API とコマンドの両方式で設定できます。ここでは範囲編集権限を例とします。他の範囲機能は[権限ポイントビット一覧 - 範囲](#range-point)を参照してください。
 
 <Tabs items={['API メソッド', 'コマンド方式']}>
   <Tab>
     ```typescript
-    const workbook = univerAPI.getActiveWorkbook()
-    const sheet = workbook.getActiveSheet()
-    const unitId = workbook.getId()
-    const subUnitId = sheet.getSheetId()
+    const fWorkbook = univerAPI.getActiveWorkbook()
+    const fWorksheet = fWorkbook.getActiveSheet()
+    const fRange = fWorksheet.getRange('A1:B2')
+    const permission = fRange.getRangePermission()
 
-    const range1 = sheet.getRange('A1:B3')
-    const range2 = sheet.getRange('C4:D5')
-    const ranges = [range1, range2]
-
-    const permission = univerAPI.getActiveWorkbook().getPermission()
-    const rangeProtectionPermissionEditPoint = permission.permissionPointsDefinition.RangeProtectionPermissionEditPoint
-    const res = await permission.addRangeBaseProtection(unitId, subUnitId, ranges)
-    // レスポンスはワークシート権限と異なり、1 シートに複数範囲保護が存在し得るため ruleId が一意ルール保存用、permissionId は権限ポイント集合用
-    const { permissionId, ruleId } = res
-
-    permission.rangeRuleChangedAfterAuth$.subscribe((currentPermissionId) => {
-      if (currentPermissionId === permissionId) {
-        // 範囲保護を編集不可に設定
-        permission.setRangeProtectionPermissionPoint(unitId, subUnitId, permissionId, rangeProtectionPermissionEditPoint, false)
-      }
+    // 指定したユーザーのみ編集可能、他のユーザーは閲覧不可
+    const rule = await permission.protect({
+      name: 'My protected range',
+      allowEdit: true,
+      allowViewByOthers: false,
+      allowedUsers: ['user1', 'user2'],
     })
+    console.log(rule)
+
+    // 権限ポイントを設定する必要がある場合は、まず範囲保護を作成する必要があります
+    await permission.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
+    await permission.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
     ```
   </Tab>
   <Tab>
@@ -197,8 +191,13 @@ permission.setWorkbookPermissionPoint(unitId, workbookEditablePermission, false)
 <Tabs items={['API メソッド', 'コマンド方式']}>
   <Tab>
     ```typescript
-    const permission = univerAPI.getActiveWorkbook().getPermission()
-    permission.removeRangeProtection(unitId, subUnitId, ruleIds)
+    const fWorkbook = univerAPI.getActiveWorkbook()
+    const fWorksheet = fWorkbook.getActiveSheet()
+    const fRange = fWorksheet.getRange('A1:B2')
+    const permission = fRange.getRangePermission()
+
+    // 範囲保護を削除します
+    await permission.unprotect()
     ```
   </Tab>
   <Tab>
@@ -213,13 +212,6 @@ permission.setWorkbookPermissionPoint(unitId, workbookEditablePermission, false)
     ```
   </Tab>
 </Tabs>
-
-### 権限ダイアログの非表示
-
-```typescript
-const permission = univerAPI.getActiveWorkbook().getPermission()
-permission.setPermissionDialogVisible(false)
-```
 
 ## 拡張利用
 
@@ -495,59 +487,69 @@ const univer = new Univer({
 univer.registerPlugin(YourPlugin)
 ```
 
-## 権限ポイントビット一覧
+## 権限ポイントビット一覧 [#point-list]
 
 対象コードは次の [code](https://github.com/dream-num/univer/tree/dev/packages/sheets/src/services/permission/permission-point) を参照してください。
 
 ブック権限とワークシート／範囲権限が交差する場合、利用には全て true に設定されている必要があります。
 
-### ブック（Workbook）権限
+### ワークブック権限 [#workbook-point]
 
-| Permission                           | 説明                             |
-|--------------------------------------|----------------------------------|
-| WorkbookEditablePermission           | 編集可能                        |
-| WorkbookPrintPermission              | 印刷可能                        |
-| WorkbookCommentPermission            | コメント可能                    |
-| WorkbookViewPermission               | 閲覧可能                        |
-| WorkbookCopyPermission               | コピー可能                      |
-| WorkbookExportPermission             | エクスポート可能                |
-| WorkbookManageCollaboratorPermission | 共同編集者管理可能              |
-| WorkbookCreateSheetPermission        | ワークシート作成可能            |
-| WorkbookDeleteSheetPermission        | ワークシート削除可能            |
-| WorkbookRenameSheetPermission        | ワークシート名称変更可能        |
-| WorkbookHideSheetPermission          | ワークシート非表示設定可能      |
-| WorkbookDuplicateSheetPermission     | ワークシート複製可能            |
-| WorkbookSharePermission              | 共有可能                        |
-| WorkbookMoveSheetPermission          | ワークシート移動可能            |
-| WorksheetViewHistoryPermission       | 履歴閲覧可能                    |
-| WorksheetRecoverHistoryPermission    | 履歴復元可能                    |
+| API 列挙 | 対応する権限ポイントクラス | 説明 |
+| --- | --- | --- |
+| univerAPI.Enum.WorkbookPermissionPoint.Edit | WorkbookEditablePermission | 編集可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.View | WorkbookViewPermission | 閲覧可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.Print | WorkbookPrintPermission | 印刷可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.Export | WorkbookExportPermission | エクスポート可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.Share | WorkbookSharePermission | 共有可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.CopyContent | WorkbookCopyPermission |コピー可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.DuplicateFile | WorkbookDuplicatePermission | 複製可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.Comment | WorkbookCommentPermission | コメント可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.ManageCollaborator | WorkbookManageCollaboratorPermission | 共同編集者管理可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.CreateSheet | WorkbookCreateSheetPermission | ワークシート作成可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.DeleteSheet | WorkbookDeleteSheetPermission | ワークシート削除可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.RenameSheet | WorkbookRenameSheetPermission | ワークシート名称変更可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.MoveSheet | WorkbookMoveSheetPermission | ワークシート移動可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.HideSheet | WorkbookHideSheetPermission | ワークシート非表示設定可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.CopySheet | WorkbookCopySheetPermission | ワークシート複製可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.ViewHistory | WorksheetViewHistoryPermission | 履歴閲覧可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.ManageHistory | WorkbookHistoryPermission | 履歴管理可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.RecoverHistory | WorksheetRecoverHistoryPermission | 履歴復元可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.CreateProtection | WorkbookCreateProtectPermission | 保護範囲作成可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.InsertRow | WorkbookInsertRowPermission | 行挿入可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.InsertColumn | WorkbookInsertColumnPermission | 列挿入可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.DeleteRow | WorkbookDeleteRowPermission | 行削除可能 |
+| univerAPI.Enum.WorkbookPermissionPoint.DeleteColumn | WorkbookDeleteColumnPermission | 列削除可能 |
 
-### ワークシート権限
+### ワークシート権限 [#worksheet-point]
 
-| Permission                          | 説明                       |
-|-------------------------------------|----------------------------|
-| WorksheetCopyPermission             | コピー可能                 |
-| WorksheetDeleteColumnPermission     | 列削除可能                 |
-| WorksheetDeleteRowPermission        | 行削除可能                 |
-| WorksheetFilterPermission           | フィルタ使用可能           |
-| WorksheetInsertColumnPermission     | 列挿入可能                 |
-| WorksheetInsertHyperlinkPermission  | ハイパーリンク使用可能     |
-| WorksheetInsertRowPermission        | 行挿入可能                 |
-| WorksheetPivotTablePermission       | ピボットテーブル使用可能   |
-| WorksheetSetCellStylePermission     | セルスタイル編集可能       |
-| WorksheetSetCellValuePermission     | セル値編集可能             |
-| WorksheetSetColumnStylePermission   | 列スタイル設定可能         |
-| WorksheetSetRowStylePermission      | 行スタイル設定可能         |
-| WorksheetSortPermission             | 並べ替え可能               |
-| WorksheetViewPermission             | 閲覧可能                   |
-| WorksheetEditPermission             | 編集可能                   |
+| API 列挙 | 対応する権限ポイントクラス | 説明 |
+| --- | --- | --- |
+| univerAPI.Enum.WorksheetPermissionPoint.Edit | WorksheetEditPermission | 編集可能 |
+| univerAPI.Enum.WorksheetPermissionPoint.View | WorksheetViewPermission | 閲覧可能 |
+| univerAPI.Enum.WorksheetPermissionPoint.Copy | WorksheetCopyPermission | コピー可能 |
+| univerAPI.Enum.WorksheetPermissionPoint.SetCellValue | WorksheetSetCellValuePermission | セル値編集可能 |
+| univerAPI.Enum.WorksheetPermissionPoint.SetCellStyle | WorksheetSetCellStylePermission | セルスタイル編集可能 |
+| univerAPI.Enum.WorksheetPermissionPoint.SetRowStyle | WorksheetSetRowStylePermission | 行スタイル設定可能 |
+| univerAPI.Enum.WorksheetPermissionPoint.SetColumnStyle | WorksheetSetColumnStylePermission | 列スタイル設定可能 |
+| univerAPI.Enum.WorksheetPermissionPoint.InsertRow | WorksheetInsertRowPermission | 行挿入可能 |
+| univerAPI.Enum.WorksheetPermissionPoint.InsertColumn | WorksheetInsertColumnPermission | 行挿入可能 |
+| univerAPI.Enum.WorksheetPermissionPoint.DeleteRow | WorksheetDeleteRowPermission | 行削除可能 |
+| univerAPI.Enum.WorksheetPermissionPoint.DeleteColumn | WorksheetDeleteColumnPermission | 列削除可能 |
+| univerAPI.Enum.WorksheetPermissionPoint.Sort | WorksheetSortPermission | 並べ替え可能 |
+| univerAPI.Enum.WorksheetPermissionPoint.Filter | WorksheetFilterPermission | フィルタ使用可能 |
+| univerAPI.Enum.WorksheetPermissionPoint.PivotTable | WorksheetPivotTablePermission | ピボットテーブル使用可能 |
+| univerAPI.Enum.WorksheetPermissionPoint.InsertHyperlink | WorksheetInsertHyperlinkPermission | ハイパーリンク使用可能 |
+| univerAPI.Enum.WorksheetPermissionPoint.ManageCollaborator | WorksheetManageCollaboratorPermission | 共同編集者管理可能 |
+| univerAPI.Enum.WorksheetPermissionPoint.DeleteProtection | WorksheetDeleteProtectionPermission | 保護範囲削除可能 |
 
-### 範囲保護
+### 範囲 [#range-point]
 
-| Permission                           | 説明                                  |
-|--------------------------------------|---------------------------------------|
-| RangeProtectionPermissionViewPoint   | 保護範囲の内容を閲覧可能             |
-| RangeProtectionPermissionEditPoint   | 保護範囲を編集可能                   |
+| API Enum  | Corresponding Permission Point Class | Description |
+| --- | --- | --- |
+| univerAPI.Enum.RangePermissionPoint.Edit | RangeProtectionPermissionEditPoint | 保護範囲を編集可能 |
+| univerAPI.Enum.RangePermissionPoint.View | RangeProtectionPermissionViewPoint | 保護範囲の内容を閲覧可能 |
+| univerAPI.Enum.RangePermissionPoint.Delete | RangeProtectionPermissionDeleteProtectionPoint | 保護範囲を削除可能 |
 
 ## 設定
 
@@ -685,3 +687,427 @@ Univer の標準ユーザーコンポーネントは適応性に限界があり�
     ```
   </Tab>
 </Tabs>
+
+## Facade API
+
+### ワークブック権限
+
+#### ワークブック権限インスタンスの取得
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const permission = fWorkbook.getWorkbookPermission()
+```
+
+#### ワークブック権限ポイントの設定
+
+`WorkbookPermissionPoint` 列挙値のリストは、[権限ポイントビット一覧 - ワークブック権限](#workbook-point) にあります。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const permission = fWorkbook.getWorkbookPermission()
+
+// ワークブック印刷権限を不可に設定
+await permission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Print, false)
+```
+
+定義済みモードの利用例：
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const permission = fWorkbook.getWorkbookPermission()
+
+// オーナーモードに設定
+await permission.setMode('owner')
+
+// エディターモードに設定
+await permission.setMode('editor')
+
+// ビューアモードに設定
+await permission.setMode('viewer')
+
+// コメント可能モードに設定
+await permission.setMode('commenter')
+```
+
+ショートカットメソッドの利用例：
+
+- `FWorkbookPermission.setReadOnly()`：読み取り専用モードに設定することは、`setMode('viewer')` と同じです。
+- `FWorkbookPermission.setEditable()`: 読み取り/書き込み可能モードに設定することは、`setMode('editor')` と同じです。
+
+#### ワークブック権限ポイントステータスの取得
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const permission = fWorkbook.getWorkbookPermission()
+
+// ワークブック印刷権限ステータスを取得
+const canPrint = permission.getPoint(univerAPI.Enum.WorkbookPermissionPoint.Print)
+console.log('Can print:', canPrint)
+
+// すべてのワークブック権限ポイントステータスを取得
+const snapshot = permission.getSnapshot()
+console.log('Workbook permission snapshot:', snapshot)
+```
+
+ショートカットメソッドの利用例：
+
+- `FWorkbookPermission.canEdit()`: ワークブックが編集可能か確認します
+
+#### ワークブック権限ポイント変更の購読
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const permission = fWorkbook.getWorkbookPermission()
+
+// ワークブック権限ポイント変更を購読
+const unsubscribe = permission.subscribe((snapshot) => {
+  console.log('Permission changed:', snapshot)
+})
+
+// サブスクリプションを削除する
+unsubscribe()
+```
+
+#### 共同編集者管理
+
+<Callout type="warning" title="注意事項">
+  共同編集者管理関連の API は、共同編集機能を利用し USIP サービスと統合している場合にのみ利用可能です。
+  カスタム権限サービスを利用する場合は、上記の「サードパーティ認可サービスの統合」セクションを参照し、共同編集者管理ロジックを自分で実装してください。
+</Callout>
+
+- 共同編集者リストの取得
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const permission = workbook.getWorkbookPermission()
+
+const collaborators = await permission.listCollaborators()
+console.log(collaborators)
+```
+
+- 共同編集者の追加
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const permission = workbook.getWorkbookPermission()
+
+// 複数の共同編集者を一度に追加
+await permission.setCollaborators([
+  {
+    user: { userID: 'user1', name: 'John Doe', avatar: 'https://...' },
+    role: univerAPI.Enum.UnitRole.Editor,
+  },
+  {
+    user: { userID: 'user2', name: 'Jane Smith', avatar: '' },
+    role: univerAPI.Enum.UnitRole.Reader,
+  },
+])
+
+// 単一の共同編集者を追加
+await permission.addCollaborator(
+  { userID: 'user1', name: 'John Doe', avatar: 'https://...' },
+  univerAPI.Enum.UnitRole.Editor,
+)
+```
+
+- 共同編集者ロールの更新
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const permission = workbook.getWorkbookPermission()
+
+await permission.updateCollaborator(
+  { userID: 'user1', name: 'John Doe Updated', avatar: 'https://...' },
+  univerAPI.Enum.UnitRole.Reader,
+)
+```
+
+- 共同編集者の削除
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const permission = workbook.getWorkbookPermission()
+
+// 複数の共同編集者を一度に削除
+await permission.removeCollaborators(['user1', 'user2'])
+
+// 単一の共同編集者を削除
+await permission.removeCollaborator('user1')
+```
+
+### ワークシート権限
+
+#### ワークシート権限インスタンスの取得
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const permission = fWorksheet.getWorksheetPermission()
+```
+
+#### ワークシート保護
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const permission = fWorksheet.getWorksheetPermission()
+
+// ワークシート保護を設定し、指定ユーザーが編集可能にする
+const permissionId = await permission.protect({
+  allowedUsers: ['user1', 'user2'],
+  name: 'My Worksheet Protection',
+})
+
+// ワークシートが保護されているか確認
+const isProtected = permission.isProtected()
+console.log('Is worksheet protected:', isProtected)
+
+if (isProtected) {
+  // ワークシート保護を解除
+  await permission.unprotect()
+}
+```
+
+#### 範囲保護
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const permission = fWorksheet.getWorksheetPermission()
+
+// 複数の保護範囲を設定、A1:B2 は他のユーザーが閲覧可能だが編集不可、C3:D4 は指定ユーザーが編集可能だが他のユーザーは閲覧不可
+const rules = await permission.protectRanges([
+  {
+    ranges: [fWorksheet.getRange('A1:B2')],
+    options: { name: 'Protected Area 1', allowEdit: false, allowViewByOthers: true },
+  },
+  {
+    ranges: [fWorksheet.getRange('C3:D4')],
+    options: { name: 'Protected Area 2', allowEdit: true, allowViewByOthers: false, allowedUsers: ['user1'] },
+  },
+])
+console.log(rules)
+
+// 現在のすべての保護範囲ルールを取得
+const rules = await permission.listRangeProtectionRules()
+console.log(rules)
+
+// 最初の保護範囲ルールを削除
+await permission.unprotectRules([rules[0].id])
+```
+
+#### ワークシート権限ポイントの設定
+
+`WorksheetPermissionPoint` 列挙値のリストは、[権限ポイントビット一覧 - ワークシート権限](#worksheet-point) にあります。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const permission = fWorksheet.getWorksheetPermission()
+
+// 権限ポイントを設定する必要がある場合は、まずワークシート保護を作成する必要があります
+await permission.protect()
+
+// ワークシートの行挿入権限を不可に設定
+await permission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.InsertRow, false)
+```
+
+定義済みモードの利用例：
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const permission = fWorksheet.getWorksheetPermission()
+
+// 権限ポイントを設定する必要がある場合は、まずワークシート保護を作成する必要があります
+await permission.protect()
+
+// エディターモードに設定
+await permission.setMode('editable')
+
+// ビューアモードに設定
+await permission.setMode('readOnly')
+
+// フィルタ/ソートのみモードに設定
+await permission.setMode('filterOnly')
+
+// カスタムモードに設定
+await permission.applyConfig({
+  mode: 'readOnly',
+  points: {
+    [univerAPI.Enum.WorksheetPermissionPoint.InsertRow]: true,
+    [univerAPI.Enum.WorksheetPermissionPoint.InsertColumn]: true,
+  },
+})
+```
+
+ショートカットメソッドの利用例：
+
+- `FWorksheetPermission.setReadOnly()`：読み取り専用モードに設定することは、`setMode('readOnly')` と同じです。
+- `FWorksheetPermission.setEditable()`：読み取り/書き込み可能モードに設定することは、`setMode('editable')` と同じです。
+
+#### ワークシート権限ポイントステータスの取得
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const permission = fWorksheet.getWorksheetPermission()
+
+// ワークシートの行挿入権限ステータスを取得
+const canInsertRow = permission.getPoint(univerAPI.Enum.WorksheetPermissionPoint.InsertRow)
+
+// すべてのワークシート権限ポイントステータスを取得
+const snapshot = permission.getSnapshot()
+```
+
+ショートカットメソッドの利用例：
+
+- `FWorksheetPermission.canEdit(): boolean`：ワークシートが編集可能か確認します
+- `FWorksheetPermission.canEditCell(row: number, col: number): boolean`：特定のセルが編集可能か確認します
+- `FWorksheetPermission.debugCellPermission(row: number, col: number): ICellPermissionDebugInfo`：特定のセルの権限デバッグ情報を取得します
+
+#### ワークシート権限ポイント変更の購読
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const permission = fWorksheet.getWorksheetPermission()
+
+// ワークシート権限ポイント変更を購読
+const unsubscribe = permission.subscribe((snapshot) => {
+  console.log('Permission changed:', snapshot)
+})
+
+// サブスクリプションを削除する
+unsubscribe()
+```
+
+### 範囲権限
+
+#### 範囲権限インスタンスの取得
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+const permission = fRange.getRangePermission()
+```
+
+#### 範囲保護の設定
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+const permission = fRange.getRangePermission()
+
+// 範囲保護を設定し、指定ユーザーが編集可能で他のユーザーは閲覧不可にする
+const rule = await permission.protect({
+  name: 'My protected range',
+  allowEdit: true,
+  allowViewByOthers: false,
+  allowedUsers: ['user1', 'user2'],
+})
+console.log(rule)
+
+// 現在のすべての範囲保護ルールを取得
+const rules = await permission.listRules()
+console.log(rules)
+
+// 範囲保護を削除
+await permission.unprotect()
+```
+
+#### 範囲権限インスタンスの設定
+
+`RangePermissionPoint` 列挙値のリストは、[権限ポイントビット一覧 - 範囲](#range-point) にあります。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+const permission = fRange.getRangePermission()
+
+// 権限ポイントを設定する必要がある場合は、まず範囲保護を作成する必要があります
+await permission.protect({
+  name: 'My protected range',
+  allowEdit: true,
+  allowViewByOthers: false,
+  allowedUsers: ['user1', 'user2'],
+})
+
+// A1:B2 選択範囲の編集権限を不可、閲覧権限を可に設定
+await permission.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
+await permission.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
+```
+
+#### 範囲権限インスタンスステータスの取得
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+const permission = fRange.getRangePermission()
+
+// 選択範囲の編集権限ステータスを取得
+const canEdit = permission.getPoint(univerAPI.Enum.RangePermissionPoint.Edit)
+console.log(canEdit)
+
+// すべての範囲権限ポイントステータスを取得
+const snapshot = permission.getSnapshot()
+```
+
+ショートカットメソッドの利用例：
+
+- `FRangePermission.isProtected(): boolean`：範囲が保護されているか確認
+- `FRangePermission.canEdit(): boolean`：範囲が編集可能か確認
+- `FRangePermission.canView(): boolean`：範囲が閲覧可能か確認
+- `FRangePermission.canDelete(): boolean`：選択範囲が保護削除可能か確認
+
+#### 範囲権限ポイント変更の購読
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+const permission = fRange.getRangePermission()
+
+// 範囲権限ポイント変更の購読
+const unsubscribe = permission.subscribe((snapshot) => {
+  console.log('Permission changed:', snapshot)
+})
+
+// サブスクリプションを削除する
+unsubscribe()
+```
+
+### 権限ルール API
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const permission = fWorksheet.getWorksheetPermission()
+const rules = await permission.listRangeProtectionRules()
+const rule = rules?.[0]
+
+// ID 最初の保護ルールの ID を取得
+const ruleId = rule?.id
+console.log(ruleId)
+
+// 最初の保護ルールの範囲を取得
+const ranges = rule?.ranges
+console.log(ranges)
+
+// A1:C3 最初の保護ルールの範囲を A1:C3 に更新
+await rule?.updateRanges([fWorksheet.getRange('A1:C3')])
+
+// 最初の保護ルールを削除
+await rule?.remove()
+```
+
+### 権限ダイアログの非表示
+
+```typescript
+univerAPI.setPermissionDialogVisible(false)
+```
