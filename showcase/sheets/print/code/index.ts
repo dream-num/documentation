@@ -33,8 +33,9 @@ const { univerAPI } = createUniver({
 
 univerAPI.createWorkbook(WORKBOOK_DATA)
 
-univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
-  if (stage === univerAPI.Enum.LifecycleStages.Rendered) {
+univerAPI.addEvent(univerAPI.Event.CellClicked, (params) => {
+  const { worksheet, row, column } = params
+  if (worksheet.getRange(row, column).getA1Notation() === 'A7') {
     const fWorkbook = univerAPI.getActiveWorkbook()
     fWorkbook?.openPrintDialog()
   }
