@@ -1,4 +1,4 @@
-import type { LinkItemType } from 'fumadocs-ui/layouts/links'
+import type { LinkItemType } from 'fumadocs-ui/layouts/shared'
 import type { ReactNode } from 'react'
 import { HomeLayout } from 'fumadocs-ui/layouts/home'
 import {

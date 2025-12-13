@@ -46,7 +46,7 @@ export default async function Page({ params }: IProps) {
   const MDXContent = page.data.body
 
   return (
-    <div className="container px-4 py-12">
+    <div className="container mx-auto px-4 py-12">
       <header>
         <h1
           className={`

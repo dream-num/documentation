@@ -34,7 +34,7 @@ export default async function Page({ params }: IProps) {
   return (
     <div
       className={`
-        container
+        container mx-auto
         max-sm:px-0
         md:py-12
       `}

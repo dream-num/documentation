@@ -75,7 +75,7 @@ export default async function Page({ params }: IProps) {
   return (
     <div
       className={`
-        container flex h-[calc(100vh-108px)] flex-1 px-4 pt-12
+        container mx-auto flex h-[calc(100vh-108px)] flex-1 px-4 pt-12
         max-sm:px-0
         lg:px-0
       `}
