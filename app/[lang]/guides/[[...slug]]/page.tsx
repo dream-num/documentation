@@ -55,7 +55,7 @@ export default async function Page({ params }: IProps) {
       }}
       // lastUpdate={page.data.lastModified}
     >
-      <header className="mx-auto w-full border-b border-b-neutral-200 pb-6">
+      <header className="border-b border-b-neutral-200 pb-6">
         <DocsTitle className="mb-6">{page.data.title}</DocsTitle>
         <DocsDescription>{page.data.description}</DocsDescription>
 
@@ -70,7 +70,7 @@ export default async function Page({ params }: IProps) {
         </section>
       </header>
 
-      <DocsBody className="mx-auto w-full">
+      <DocsBody className="w-full">
         <MDXContent
           components={getMDXComponents({
             // this allows you to link to other pages with relative file paths

@@ -96,11 +96,11 @@ export function Rate({
 
   return (
     <Collapsible
+      className="border-y py-3"
       open={opinion !== null || previous !== null}
       onOpenChange={(v) => {
         if (!v) setOpinion(null)
       }}
-      className="border-y py-3"
     >
       <div className="flex flex-row items-center gap-2">
         <p className="pe-2 text-sm font-medium">
