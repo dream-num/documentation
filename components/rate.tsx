@@ -4,7 +4,7 @@ import type { SyntheticEvent } from 'react'
 import { cva } from 'class-variance-authority'
 import { buttonVariants } from 'fumadocs-ui/components/ui/button'
 import { Collapsible, CollapsibleContent } from 'fumadocs-ui/components/ui/collapsible'
-import { ThumbsDown, ThumbsUp } from 'lucide-react'
+import { MessageCircleMoreIcon } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
@@ -31,7 +31,7 @@ const rateButtonVariants = cva(
 )
 
 export interface IFeedback {
-  opinion: 'good' | 'bad'
+  opinion: 'normal'
   url?: string
   message: string
 }
@@ -53,7 +53,7 @@ export function Rate({
 }) {
   const url = usePathname()
   const [previous, setPrevious] = useState<Result | null>(null)
-  const [opinion, setOpinion] = useState<'good' | 'bad' | null>(null)
+  const [opinion, setOpinion] = useState<'normal' | null>(null)
   const [message, setMessage] = useState('')
   const [isPending, startTransition] = useTransition()
 
@@ -109,32 +109,17 @@ export function Rate({
         <button
           className={clsx(
             rateButtonVariants({
-              active: activeOpinion === 'good',
+              active: activeOpinion === 'normal',
             }),
           )}
           type="button"
           disabled={previous !== null}
           onClick={() => {
-            setOpinion('good')
+            setOpinion('normal')
           }}
         >
-          <ThumbsUp />
-          {customTranslations[lang]['docs.feedback.good']}
-        </button>
-        <button
-          className={clsx(
-            rateButtonVariants({
-              active: activeOpinion === 'bad',
-            }),
-          )}
-          type="button"
-          disabled={previous !== null}
-          onClick={() => {
-            setOpinion('bad')
-          }}
-        >
-          <ThumbsDown />
-          {customTranslations[lang]['docs.feedback.bad']}
+          <MessageCircleMoreIcon />
+          {customTranslations[lang]['docs.feedback.button']}
         </button>
       </div>
 
