@@ -238,6 +238,302 @@ const collaboration = univerAPI.getCollaboration()
 const workbook = await collaboration.loadSheetAsync('your-unit-id')
 ```
 
+## Collaborative Editing in Node.js Environment [#node-collaboration-example]
+
+```typescript
+// examples/sheets-node/main.ts
+import { FUniver } from '@univerjs/core/facade'
+import { createUniverOnNode } from './univer'
+
+async function run(): Promise<void> {
+  const univer = createUniverOnNode()
+  const univerAPI = FUniver.newAPI(univer)
+
+  await univerAPI.getCollaboration().loadSheetAsync('your-unit-id')
+
+  TestSheetsFacadeAPI(univerAPI)
+  TestSheetsConditionalFormattingAPI(univerAPI)
+}
+
+run()
+
+async function TestSheetsFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  // Set workbook name
+  fWorkbook.setName('Test Workbook - Node Collaboration Client')
+
+  const fWorksheet = fWorkbook.getActiveSheet()
+
+  // Set a value in a cell A1
+  fWorksheet.getRange('A1').setValue(`Hello! message from the Node Collaboration Client! The current time is: ${new Date().toString()}.`)
+
+  // Merge C2:E4 range cells
+  const fRange2 = fWorksheet.getRange('C2:E4')
+  if (fRange2.isPartOfMerge() || fRange2.isMerged()) {
+    fRange2.breakApart()
+  }
+  fRange2.merge().setValue(1234).setNumberFormat('#,##0.00')
+
+  // Create a defined name for cell A1 and use it in cell A6
+  const definedNameBuilder = univerAPI.newDefinedName()
+    .setRef(`${fWorksheet.getSheetName()}!$A$1`)
+    .setName('MyDefinedName')
+    .build()
+  fWorkbook.insertDefinedNameBuilder(definedNameBuilder)
+  fWorksheet.getRange('A6').setValue('=MyDefinedName')
+
+  // Insert a new sheet
+  const newSheet = fWorkbook.insertSheet('New Sheet from Node Client', {
+    index: 1,
+    sheet: {
+      rowCount: 100,
+      columnCount: 20,
+      cellData: {
+        0: {
+          0: {
+            v: 1,
+          },
+        },
+        1: {
+          1: {
+            v: 2,
+          },
+        },
+        2: {
+          2: {
+            v: 3,
+          },
+        },
+        3: {
+          3: {
+            v: 4,
+          },
+        },
+      },
+    },
+  })
+
+  // Insert 3 rows after row 3 (0-based index).
+  newSheet.insertRowsAfter(2, 3)
+
+  const sheets = fWorkbook.getSheets()
+  if (sheets.length) {
+    // Rename the first sheet and set its row and column count
+    sheets[0].setName('Renamed Sheet 1').setRowCount(100).setColumnCount(10)
+    // Freeze first row and first column in the first sheet
+    sheets[0].setFrozenRows(1).setFrozenColumns(1)
+    // Set grid lines color to red in the first sheet
+    sheets[0].setGridLinesColor('#FF0000')
+    // Get data range of the first sheet and log its A1 notation
+    const dataRange = sheets[0].getDataRange()
+    console.warn(`Renamed Sheet 1 Data Range A1 Notation: ${dataRange.getA1Notation()}`)
+    // Clear content of the data range after 5 seconds
+    setTimeout(() => {
+      dataRange.clearContent()
+    }, 5000)
+  }
+}
+
+async function TestSheetsConditionalFormattingAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const newSheet = fWorkbook.insertSheet('Conditional Formatting Sheet', {
+    sheet: {
+      cellData: {
+        0: {
+          0: { v: 1, t: 2 },
+          1: { v: 2, t: 2 },
+          2: { v: 3, t: 2 },
+          3: { v: 4, t: 2 },
+        },
+        1: {
+          0: { v: 2, t: 2 },
+          1: { v: 3, t: 2 },
+          2: { v: 4, t: 2 },
+          3: { v: 5, t: 2 },
+        },
+        2: {
+          0: { v: 3, t: 2 },
+          1: { v: 4, t: 2 },
+          2: { v: 5, t: 2 },
+          3: { v: 6, t: 2 },
+        },
+        3: {
+          0: { v: 4, t: 2 },
+          1: { v: 5, t: 2 },
+          2: { v: 6, t: 2 },
+          3: { v: 7, t: 2 },
+        },
+      },
+    },
+  })
+  // Add conditional formatting rule for range A1:D4: italic font, red background, green font color when cell value > 3
+  const fRange = newSheet.getRange('A1:D4')
+  const rule = newSheet.newConditionalFormattingRule()
+    .whenNumberGreaterThan(3)
+    .setRanges([fRange.getRange()])
+    .setItalic(true)
+    .setBackground('red')
+    .setFontColor('green')
+    .build()
+  newSheet.addConditionalFormattingRule(rule)
+}
+```
+
+```typescript
+// examples/sheets-node/univer.ts
+import path from 'node:path'
+import { UniverCollaborationPlugin } from '@univerjs-pro/collaboration'
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import { NodeCollaborationSocketService, UniverCollaborationClientNodePlugin } from '@univerjs-pro/collaboration-client-node'
+import { UniverSheetsChartPlugin } from '@univerjs-pro/sheets-chart'
+import { UniverSheetsPivotTablePlugin } from '@univerjs-pro/sheets-pivot'
+import { UniverSheetSparklinePlugin } from '@univerjs-pro/sheets-sparkline'
+import { IAuthzIoService, IUndoRedoService, LocaleType, Univer } from '@univerjs/core'
+import { UniverDataValidationPlugin } from '@univerjs/data-validation'
+import { UniverDocsPlugin } from '@univerjs/docs'
+import { UniverDocsDrawingPlugin } from '@univerjs/docs-drawing'
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import { UniverNetworkPlugin } from '@univerjs/network'
+import { UniverRPCNodeMainPlugin } from '@univerjs/rpc-node'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverSheetsConditionalFormattingPlugin } from '@univerjs/sheets-conditional-formatting'
+import { UniverSheetsDataValidationPlugin } from '@univerjs/sheets-data-validation'
+import { UniverSheetsDrawingPlugin } from '@univerjs/sheets-drawing'
+import { UniverSheetsFilterPlugin } from '@univerjs/sheets-filter'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+import { UniverSheetsHyperLinkPlugin } from '@univerjs/sheets-hyper-link'
+import { UniverSheetsNotePlugin } from '@univerjs/sheets-note'
+import { UniverSheetsNumfmtPlugin } from '@univerjs/sheets-numfmt'
+import { UniverSheetsSortPlugin } from '@univerjs/sheets-sort'
+import { UniverSheetsTablePlugin } from '@univerjs/sheets-table'
+import { UniverThreadCommentPlugin } from '@univerjs/thread-comment'
+
+import '@univerjs/engine-formula/facade'
+import '@univerjs/sheets/facade'
+import '@univerjs/sheets-formula/facade'
+import '@univerjs/sheets-numfmt/facade'
+import '@univerjs/sheets-conditional-formatting/facade'
+import '@univerjs/sheets-data-validation/facade'
+import '@univerjs/sheets-filter/facade'
+import '@univerjs/sheets-hyper-link/facade'
+import '@univerjs/sheets-note/facade'
+import '@univerjs/sheets-table/facade'
+import '@univerjs/sheets-thread-comment/facade'
+import '@univerjs-pro/sheets-pivot/facade'
+import '@univerjs-pro/sheets-sparkline/facade'
+import '@univerjs-pro/collaboration-client/facade'
+
+export interface ICreateUniverOnNodeOptions {
+  useComputingWorker?: boolean
+}
+
+export function createUniverOnNode(options: ICreateUniverOnNodeOptions = {}): Univer {
+  const { useComputingWorker = false } = options
+
+  const univer = new Univer({
+    locale: LocaleType.ZH_CN,
+    locales: {},
+    override: [
+      [IAuthzIoService, null],
+      [IUndoRedoService, null],
+    ],
+  })
+
+  registerBasicPlugins(univer, useComputingWorker)
+  registerSharedPlugins(univer)
+
+  if (useComputingWorker) {
+    registerRPCPlugin(univer)
+  }
+
+  registerDocPlugins(univer)
+  registerSheetPlugins(univer)
+  registerCollaborationPlugins(univer)
+
+  return univer
+}
+
+function registerBasicPlugins(univer: Univer, useComputingWorker: boolean): void {
+  univer.registerPlugin(UniverFormulaEnginePlugin, { notExecuteFormula: useComputingWorker })
+}
+
+function registerSharedPlugins(univer: Univer): void {
+  univer.registerPlugin(UniverThreadCommentPlugin)
+  univer.registerPlugin(UniverDrawingPlugin)
+}
+
+function registerDocPlugins(univer: Univer): void {
+  univer.registerPlugin(UniverDocsPlugin)
+  univer.registerPlugin(UniverDocsDrawingPlugin)
+}
+
+function registerSheetPlugins(univer: Univer): void {
+  univer.registerPlugin(UniverSheetsPlugin)
+  univer.registerPlugin(UniverSheetsFormulaPlugin)
+  univer.registerPlugin(UniverSheetsNumfmtPlugin)
+  univer.registerPlugin(UniverSheetsConditionalFormattingPlugin)
+  univer.registerPlugin(UniverDataValidationPlugin)
+  univer.registerPlugin(UniverSheetsDataValidationPlugin)
+  univer.registerPlugin(UniverSheetsFilterPlugin)
+  univer.registerPlugin(UniverSheetsHyperLinkPlugin)
+  univer.registerPlugin(UniverSheetsNotePlugin)
+  univer.registerPlugin(UniverSheetsDrawingPlugin)
+  univer.registerPlugin(UniverSheetsSortPlugin)
+  univer.registerPlugin(UniverSheetsTablePlugin)
+  univer.registerPlugin(UniverSheetsChartPlugin)
+  univer.registerPlugin(UniverSheetsPivotTablePlugin)
+  univer.registerPlugin(UniverSheetSparklinePlugin)
+}
+
+function registerRPCPlugin(univer: Univer): void {
+  const childPath = path.join(__dirname, '../sdk/worker.js')
+  univer.registerPlugin(UniverRPCNodeMainPlugin, { workerSrc: childPath })
+}
+
+function registerCollaborationPlugins(univer: Univer): void {
+  univer.registerPlugin(UniverNetworkPlugin)
+  univer.registerPlugin(UniverCollaborationPlugin)
+  univer.registerPlugin(UniverCollaborationClientPlugin, {
+    socketService: NodeCollaborationSocketService,
+    enableOfflineEditing: false,
+    enableSingleActiveInstanceLock: false,
+    snapshotServerUrl: 'https://dev.univer.plus/universer-api/snapshot',
+    collabSubmitChangesetUrl: 'https://dev.univer.plus/universer-api/comb',
+    collabWebSocketUrl: 'http://dev.univer.plus/universer-api/comb/connect',
+    wsSessionTicketUrl: 'http://dev.univer.plus/universer-api/user/session-ticket',
+    sendChangesetTimeout: 200,
+    retryConnectingInterval: 1000,
+    customHeaders: {
+      // Example: If your Univer server requires authentication via cookies, you can set the 'cookie' header here.
+      cookie: '_univer=GY3WYUTBIJ2FEVDRI5FFI6SONN2XONDGGJAW2',
+      // ... more headers
+    },
+  })
+  univer.registerPlugin(UniverCollaborationClientNodePlugin)
+}
+```
+
+```typescript
+// examples/sheets-node/worker.ts
+import { LocaleType, Univer } from '@univerjs/core'
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import { UniverRPCNodeWorkerPlugin } from '@univerjs/rpc-node'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+
+const univer = new Univer({
+  locale: LocaleType.ZH_CN,
+})
+
+univer.registerPlugin(UniverSheetsPlugin, { onlyRegisterFormulaRelatedMutations: true })
+univer.registerPlugin(UniverFormulaEnginePlugin)
+univer.registerPlugin(UniverRPCNodeWorkerPlugin)
+```
+
 ## Further Reading
 
 If you want to learn more about how collaborative editing works, you can read the following article:
