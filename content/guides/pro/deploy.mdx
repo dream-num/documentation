@@ -6,6 +6,11 @@ title: Production Deployment
 
 ![Introduction to Deployment Architecture and Services](./deploy/deploy-arch.png)
 
+### Architectural Evolution
+
+- `v0.13.0` Introduced the `collaboration-helper` service to handle CPU-intensive tasks that need to be executed asynchronously, such as snapshot generation.
+- `v0.15.0` Implemented hierarchical scheduling for collaborative editing, routing operations on sheets of different sizes to separate collaboration service clusters to minimize the impact of large-sheet edits on normal-sized sheets.
+
 ### Service Overview
 
 - collaboration-server: Collaborative editing engine in the backend, implementing the same OT algorithm as the frontend in the backend
@@ -49,6 +54,8 @@ You need to carefully assess your capacity requirements. If the demand is large,
 
 - Import/export service exchange worker is computationally intensive. It may consume a lot of CPU and memory in a short time when processing import/export tasks, especially when importing large documents. You need to assess the potential demand for import/export and allocate appropriate CPU and memory resources.
 - The collaborative editing engine collaboration-server is a stateful Node.js service and consumes more memory when multiple document edits are opened simultaneously. You need to carefully assess the required number of instances and the memory configuration for each instance. For workloads involving editing very large spreadsheets (exceeding 5 million cells), we recommend allocating a minimum of 8 GB of memory per instance.
+
+Note: Starting from `v0.15.0`, hierarchical scheduling for collaborative editing was introduced. You need to analyze the distribution of sheet sizes in your usage scenarios (Docs and Slides are not subject to hierarchical scheduling) to determine whether hierarchical scheduling is necessary. If it is required, you should also decide how many tiers are needed and which sheet sizes each tier should handle (e.g., total cell count, import time, etc.). Detailed configuration instructions are provided in the following sections.
 
 ### Choosing Basic Components
 
@@ -522,6 +529,88 @@ Please note that the components used by Univer, Temporal, do not support gaussdb
         importConcurrent: 1 # how many import tasks each worker can do at the same time.
         exportConcurrent: 1 # how many export tasks each worker can do at the same time.
     ```
+  </Tab>
+</Tabs>
+
+#### Hierarchical Scheduling Configuration for Collaborative Editing
+
+Starting from version `v0.15.0`, hierarchical scheduling was introduced. It is not enabled by default and must be manually configured. Currently, the target collaborative service cluster is determined based on the total number of cells in a workbook and the actual time consumed during import. For workbooks created via import, the scheduling level is decided according to the actual import duration. For workbooks created by other means or when a new snapshot is triggered, the decision is based on the total number of cells. Once a snapshot is created, the relevant metrics will persisted to the database and the scheduled target is updated.
+
+Hierarchical scheduling essentially means that the collaborative service is deployed across multiple clusters, and rules are configured to specify which cluster should handle workbooks of different sizes. The structure of the rule configuration is as follows:
+
+```yaml
+unitRoutingConf:
+  tiers:
+    - tierName: normal
+      enable: true
+      upgradeCellsThreshold: 0
+      downgradeCellsThreshold: 0
+      upgradeImportTimeThreshold: 0
+    - tierName: large
+      enable: true
+      upgradeCellsThreshold: 1000
+      downgradeCellsThreshold: 900
+      upgradeImportTimeThreshold: 10
+    - tierName: huge
+      enable: true
+      upgradeCellsThreshold: 10000
+      downgradeCellsThreshold: 9000
+      upgradeImportTimeThreshold: 60
+```
+
+Description of Configuration Parameters:
+
+- `tiers`: Describes each cluster. In theory, there can be an arbitrary number of clusters.
+- `enable`: Determines whether the cluster is enabled. If set to `false`, this cluster will be ignored.
+- `upgradeCellsThreshold`: Specifies the minimum total number of cells in a sheet required for it to be scheduled to this cluster.
+- `downgradeCellsThreshold`: Specifies that if a sheet is currently scheduled to this cluster, it will only be downgraded to a lower-level cluster when the total number of cells falls below this threshold. This prevents sheets near the boundary between two tiers from being switched back and forth frequently.
+- `upgradeImportTimeThreshold`: Newly imported sheets may not yet have a total cell count. In this case, this setting is used to determine scheduling. Its mechanism is similar to `upgradeCellsThreshold`, but the metric used is the actual import duration.
+
+It can be seen that at least one cluster must have all threshold values set to 0 to ensure that every sheet can be scheduled to some cluster.
+
+Scheduling Cases Based on the Above Example Configuration:
+
+- workbook w1 is created with an initial total cell count of 0 → scheduled to the normal cluster.
+- workbook w1 is subsequently edited to a total cell count of 1000 → scheduled to the large cluster.
+- workbook w1's total cell count drops to 999 → still scheduled to large, because it is above the downgrade threshold of 900.
+- workbook w1's total cell count drops further to 899 → downgraded back to the normal cluster.
+- workbook w2 is imported with an actual import duration of 61 seconds → exceeds the huge cluster threshold of 60 seconds → scheduled to the huge cluster.
+
+The Univer Docker Compose deployment script provides options to deploy either a single-tier or a two-tier cluster (separating normal-sized sheets and large sheets).
+The cluster configuration parameter `ENABLE_LARGE_TIER_COLLABORATION_SERVER` controls whether the large-sheet tier cluster is used for scheduling, and also determines whether Docker Compose actually deploys the large-sheet tier cluster service.
+If you require finer-grained control over cluster tiers or plan to deploy using Kubernetes, adjust the Docker Compose files or Helm charts to deploy the corresponding collaboration-server service clusters. Then, configure the scheduling routing table according to the rules described above (the `unitRoutingConf.tiers` array).
+
+When using the Univer-provided Docker Compose setup directly, you can adjust the following parameters to configure:
+
+- Whether the second-tier (large-sheet tier) cluster is enabled.
+- The definition of a large sheet for separate handling.
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    two tiers defined default: `normal` and `large`
+
+    ```properties title=".env.custom"
+    # enable or disable the large tier，true-enable，false-disable，disable default.
+    ENABLE_LARGE_TIER_COLLABORATION_SERVER=false
+
+    # if the large tier is enable, a sheet will be scheduled to the large tier when it's total cells count is greater than this value.
+    LARGE_TIER_MIN_CELLS_COUNT=2000000
+
+    # if one sheet is scheduled to the large tier now, it will downgrade to the normal tier only when it's total cells count is less than this value.
+    LARGE_TIER_DOWNGRADE_CELLS_COUNT=1950000
+
+    # if the large tier is enable, and the sheet is created by import, it will be scheduled to the large tier when cost time of import is greater than this value.
+    LARGE_TIER_MIN_IMPORT_SECONDS=10
+
+    # instanse count of collaboration server in the large tier. 2 default
+    LARGE_TIER_COLLABORATION_SERVER_REPLICATION_CNT=2
+
+    # memory limit of collaboration server in the large tier, at least 8 GB is recommended
+    LARGE_TIER_COLLABORATION_SERVER_MEMORY_LIMIT=8192
+    ```
+  </Tab>
+  <Tab label="K8s">
+    should be configured by the user.
   </Tab>
 </Tabs>
 
