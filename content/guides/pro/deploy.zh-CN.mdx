@@ -6,6 +6,11 @@ title: 生产部署
 
 ![部署架构及服务介绍](./deploy/deploy-arch.png)
 
+### 演进历史
+
+- `v0.13.0`版本开始，新增了`collaboration-helper`服务，用于处理需要异步执行的CPU密集型任务，如生成快照等
+- `v0.15.0`版本开始，引入了协同编辑分层调度，将不同规模sheet的操作调度到不同的协同服务集群，尽量降低大表编辑影响普通规模表格
+
 ### 服务介绍
 
 - collaboration-server：后端的协同编辑引擎，在后端实现了和前端一致的 OT 算法
@@ -50,6 +55,8 @@ Univer 的安装配置默认是未启用的，你需要根据你的使用需求�
 
 - 导入导出服务 exchange worker 是计算密集型，在处理导入导出任务时，短时间内可能会占用大量的 CPU 和内存，尤其是导入大文档时。你需要评估好导入导出的可能需求，为其分配合适的 CPU 和内存
 - 协同引擎 collaboration-server 是有状态的 node 服务，并且在同时打开较多的文档编辑时会占用较多的内存，你需要认真评估需要的实例数和每个实例的内存配置。如果有编辑超大表格（大于500万单元格）的需求，建议每个实例至少配置8GB内存。
+
+另外，`v0.15.0`版本开始，引入了协同编辑分层调度，你需要统计下在你们的使用场景中，表格的规模分布（doc和slide不会参与分层调度），以此来判断是否需要配置分层调度，如果需要，还要评估好需要多少个等级的集群、每个等级处理什么规模的表格（单元格总数量、导入耗时等指标）。具体配置在后续章节中说明。
 
 ### 基础组件选择
 
@@ -523,6 +530,85 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
         importConcurrent: 1 # how many import tasks each worker can do at the same time.
         exportConcurrent: 1 # how many export tasks each worker can do at the same time.
     ```
+  </Tab>
+</Tabs>
+
+#### 协同编辑分层调度配置
+
+`v0.15.0`版本开始引入，默认配置下不会生效，需要手动配置开启。目前会通过workbook的单元格总数、导入实际消耗的时间来决定应该调度到哪个等级的协同服务集群。针对刚通过导入创建的workbook，会根据导入实际耗时来决定；其他方式创建或触发新快照生成后，则通过单元格总数来决定。每次快照创建后，会将相关指标数据持久化到数据库并更新调度。
+
+分层调度实际上就是将协同服务部署了多个集群，然后配置规则指定什么规模的表格应该调度到哪个集群处理。规则配置数据结构如下：
+
+```yaml
+unitRoutingConf:
+  tiers:
+    - tierName: normal
+      enable: true
+      upgradeCellsThreshold: 0
+      downgradeCellsThreshold: 0
+      upgradeImportTimeThreshold: 0
+    - tierName: large
+      enable: true
+      upgradeCellsThreshold: 1000
+      downgradeCellsThreshold: 900
+      upgradeImportTimeThreshold: 10
+    - tierName: huge
+      enable: true
+      upgradeCellsThreshold: 10000
+      downgradeCellsThreshold: 9000
+      upgradeImportTimeThreshold: 60
+```
+
+说明：
+
+- `tiers`: 描述每一个集群信息，理论上可以有任意多个集群
+- `enable`: 设置是否启用此集群，设置为`false`则此集群会被忽略
+- `upgradeCellsThreshold`: 指定当sheet单元格总数达到此规模时才能调度到此集群
+- `downgradeCellsThreshold`: 则指定：如果sheet当前正被调度到此集群，只有当单元格总数低于此值时才能被调度到更低等级的集群。这样可以避免两个等级交界处规模的sheet被频繁地切换调度
+- `upgradeImportTimeThreshold`: 新导入的sheet暂时没有单元格总数统计，此时利用此配置来决定调度，作用机制同`upgradeCellsThreshold`，只是指标用的是导入的实际耗时
+
+可以看出，必须得有一个集群的指标要求全是0，才能保证每个sheet都能被调度到。
+
+按上述示例配置参数下的调度case：
+
+- workbook1创建后的初始单元格数量为0，调度到normal集群
+- workbook1随后被编辑到总单元格数量为1000时，调度到large集群
+- workbook1总单元格数量又降至999时，由于大于设置的降级线900，仍然调度到large集群
+- workbook1总单元格数量继续降至899时，则降级调度回normal集群
+- workbook2被导入了，实际耗时61秒，已经超过huge集群的条件60秒，将被调度到huge集群处理
+
+Univer 的 Docker Compose 部署脚本提供了选项，可选部署1个 or 2个等级的集群（分离普通表格和大表格）。
+集群配置中的 `ENABLE_LARGE_TIER_COLLABORATION_SERVER` 参数控制调度时是否使用大表格集群，以及控制Docker Compose是否实际部署大表格集群服务。
+如果你需要更精细的集群等级控制或使用 K8s 部署，请调整docker compose/charts的编排来实际部署对应等级的`collaboration-server`服务集群，然后按上述说明配置好调度路由表（`tiers`数组）
+
+如果你直接使用univer提供的docker compose编排，可调整如下参数来配置是否启用第二个等级集群，以及什么规模的表格算作大表格需要分离处理。
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    默认部署只配置了两个等级：`normal`和`large`
+
+    ```properties title=".env.custom"
+    # 配置开启/关闭large集群，true-开启，false-关闭，默认关闭
+    ENABLE_LARGE_TIER_COLLABORATION_SERVER=false
+
+    # 如果开启large集群，当总单元格数达到此规模后将调度到large集群，默认2M
+    LARGE_TIER_MIN_CELLS_COUNT=2000000
+
+    # 如果sheet当前调度在large集群，则只有当总单元格数降至此值以下时才会降级回normal集群，默认1.95M
+    LARGE_TIER_DOWNGRADE_CELLS_COUNT=1950000
+
+    # 如果开启large集群，当workbook导入耗时超过配置后将调度到large集群，默认10s
+    LARGE_TIER_MIN_IMPORT_SECONDS=10
+
+    # large集群协同服务实例数，默认2
+    LARGE_TIER_COLLABORATION_SERVER_REPLICATION_CNT=2
+
+    # large集群协同服务实例内存限制，建议至少配置8GB，默认8GB
+    LARGE_TIER_COLLABORATION_SERVER_MEMORY_LIMIT=8192
+    ```
+  </Tab>
+  <Tab label="K8s">
+    自行配置部署
   </Tab>
 </Tabs>
 
