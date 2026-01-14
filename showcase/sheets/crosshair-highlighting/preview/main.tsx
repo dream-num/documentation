@@ -9,9 +9,10 @@ import { useTheme } from 'next-themes'
 import { useEffect, useRef } from 'react'
 import { WORKBOOK_DATA } from '../code/data'
 
-import '@univerjs/preset-sheets-core/lib/index.css'
-
 import '@univerjs/sheets-crosshair-highlight/facade'
+
+import '@univerjs/preset-sheets-core/lib/index.css'
+import '@univerjs/sheets-crosshair-highlight/lib/index.css'
 
 export default function Preview() {
   const divRef = useRef<HTMLDivElement>(null!)
