@@ -110,6 +110,6 @@ export default antfu({
       group: 'newLine',
       lineBreakStyle,
     }],
-    'better-tailwindcss/no-unregistered-classes': 'warn',
+    'better-tailwindcss/no-unknown-classes': 'warn',
   },
 })

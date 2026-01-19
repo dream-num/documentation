@@ -4,41 +4,7 @@ import type { AnchorHTMLAttributes } from 'react'
 import { StarIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { SlidingNumber } from '@/components/animate-ui/text/sliding-number'
-
-async function getRepoStarsAndForks(
-  owner: string,
-  repo: string,
-  token?: string,
-): Promise<{
-  stars: number
-  forks: number
-}> {
-  const endpoint = `https://api.github.com/repos/${owner}/${repo}`
-  const headers = new Headers({
-    'Content-Type': 'application/json',
-  })
-
-  if (token) headers.set('Authorization', `Bearer ${token}`)
-
-  const response = await fetch(endpoint, {
-    headers,
-    next: {
-      revalidate: 60,
-    },
-  })
-
-  if (!response.ok) {
-    const message = await response.text()
-
-    throw new Error(`Failed to fetch repository data: ${message}`)
-  }
-
-  const data = await response.json()
-  return {
-    stars: data.stargazers_count,
-    forks: data.forks_count,
-  }
-}
+import { getRepoStarsAndForks } from '@/lib/github'
 
 export default function Stars({
   repo,
