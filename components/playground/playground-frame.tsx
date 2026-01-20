@@ -32,7 +32,6 @@ export function PlaygroundFrame(props: IProps) {
   }, [])
 
   const sandbox = (
-    // eslint-disable-next-line react-dom/no-missing-iframe-sandbox
     <iframe
       ref={iframeRef}
       className={clsx('h-fit w-full', {

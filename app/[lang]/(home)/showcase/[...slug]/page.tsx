@@ -128,7 +128,12 @@ export default async function Page({ params }: IProps) {
         </div>
       </aside>
 
-      <div className="w-full pl-74">
+      <div
+        className="
+          w-full px-2
+          lg:pr-0 lg:pl-74
+        "
+      >
         <header
           className={`
             flex flex-col-reverse justify-between
