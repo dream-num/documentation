@@ -81,6 +81,7 @@ export default antfu({
     'react-hooks/rules-of-hooks': 'off',
     'react-dom/no-render': 'off',
     'react-refresh/only-export-components': 'off',
+    'import/no-duplicates': 'off',
   },
 }, {
   files: ['**/*.tsx'],

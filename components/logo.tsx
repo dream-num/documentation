@@ -1,10 +1,11 @@
-'use client'
-
 import type { SVGProps } from 'react'
-import { useId } from 'react'
+
+function generateId() {
+  return Math.random().toString(36).substring(2, 15)
+}
 
 export function Logo(props: SVGProps<SVGSVGElement>) {
-  const id = useId()
+  const id = generateId()
 
   return (
     <svg
@@ -37,7 +38,7 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
 }
 
 export function BrandIcon(props: SVGProps<SVGSVGElement>) {
-  const id = useId()
+  const id = generateId()
 
   return (
     <svg

@@ -177,8 +177,7 @@ function PerformanceVisualCompact() {
         >
           <div
             className={`
-              flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-green-200
-              shadow-md
+              flex size-16 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-green-200 shadow-md
               dark:from-blue-800 dark:to-green-400
             `}
           >
@@ -205,7 +204,7 @@ function PerformanceVisualCompact() {
       {[...Array.from({ length: 5 })].map((_, i) => (
         <motion.div
           key={`flying-${i}`}
-          className="absolute h-5 w-0.5 rounded-full bg-gradient-to-b from-green-200 to-blue-500"
+          className="absolute h-5 w-0.5 rounded-full bg-linear-to-b from-green-200 to-blue-500"
           style={{
             left: `${Math.random() * 100}%`,
             top: '100%',
