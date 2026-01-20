@@ -69,7 +69,7 @@ export default async function Page({ params }: IProps) {
 
           className={clsx('prose overflow-x-hidden', `
             order-last
-            md:order-none
+            md:order-0
           `)}
         >
           <MDXContent

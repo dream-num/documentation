@@ -184,7 +184,7 @@ export const ColorPickerSelection = memo(
 
     return (
       <div
-        className={clsx('relative size-full cursor-crosshair rounded', className)}
+        className={clsx('relative size-full cursor-crosshair rounded-sm', className)}
         onPointerDown={(e) => {
           e.preventDefault()
           setIsDragging(true)
@@ -197,9 +197,7 @@ export const ColorPickerSelection = memo(
         {...props}
       >
         <div
-          className={`
-            pointer-events-none absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white
-          `}
+          className="pointer-events-none absolute size-4 -translate-1/2 rounded-full border-2 border-white"
           style={{
             left: `${positionX * 100}%`,
             top: `${positionY * 100}%`,
@@ -240,7 +238,7 @@ export function ColorPickerHue({
       </Slider.Track>
       <Slider.Thumb
         className={`
-          block h-4 w-4 rounded-full border border-primary/50 bg-background shadow transition-colors
+          block size-4 rounded-full border border-primary/50 bg-background shadow-sm transition-colors
           focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
           disabled:pointer-events-none disabled:opacity-50
         `}
@@ -273,12 +271,12 @@ export function ColorPickerAlpha({
             'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYGAQYcAP3uCTZhw1gGGYhAGBZIA/nYDCgBDAm9BGDWAAJyRCgLaBCAAgXwixzAS0pgAAAABJRU5ErkJggg==") left center',
         }}
       >
-        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent to-black/50" />
+        <div className="absolute inset-0 rounded-full bg-linear-to-r from-transparent to-black/50" />
         <Slider.Range className="absolute h-full rounded-full bg-transparent" />
       </Slider.Track>
       <Slider.Thumb
         className={`
-          block h-4 w-4 rounded-full border border-primary/50 bg-background shadow transition-colors
+          block size-4 rounded-full border border-primary/50 bg-background shadow-sm transition-colors
           focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
           disabled:pointer-events-none disabled:opacity-50
         `}
@@ -362,7 +360,7 @@ function PercentageInput({ className, ...props }: PercentageInputProps) {
         type="text"
         {...props}
         className={clsx(
-          'h-8 w-[3.25rem] rounded-l-none bg-secondary px-2 text-xs shadow-none',
+          'h-8 w-13 rounded-l-none bg-secondary px-2 text-xs shadow-none',
           className,
         )}
       />

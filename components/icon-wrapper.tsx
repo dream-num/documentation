@@ -32,7 +32,7 @@ export function IconWrapper(props: (IIconProps | IProProps | ITextProps | IRefPr
     const { icon: IconComponent } = props
 
     return (
-      <span className={clsx('inline-block rounded-md border bg-gradient-to-b from-secondary p-1 shadow-sm', className)}>
+      <span className={clsx('inline-block rounded-md border bg-linear-to-b from-secondary p-1 shadow-sm', className)}>
         <IconComponent className="size-6" />
       </span>
     )
@@ -50,7 +50,7 @@ export function IconWrapper(props: (IIconProps | IProProps | ITextProps | IRefPr
       <Tooltip content="Univer Pro feature">
         <span
           className={clsx(`
-            inline-block rounded-md bg-gradient-to-b from-[#5357ED] to-[#40B9FF] p-[5px] text-white shadow-lg
+            inline-block rounded-md bg-linear-to-b from-[#5357ED] to-[#40B9FF] p-[5px] text-white shadow-lg
             dark:from-[#1d1f54] dark:to-[#2d3048]
           `, className)}
         >
@@ -76,7 +76,7 @@ export function IconWrapper(props: (IIconProps | IProProps | ITextProps | IRefPr
     return (
       <span
         className={clsx(`
-          inline-flex size-6 items-center justify-center rounded-md border bg-gradient-to-b from-secondary font-semibold
+          inline-flex size-6 items-center justify-center rounded-md border bg-linear-to-b from-secondary font-semibold
           shadow-sm
         `, {
           'border-blue-600 bg-blue-50 text-blue-600': text === 'M',

@@ -29,7 +29,7 @@ export default function Combination(props: IProps) {
       ref={containerRef}
       className={clsx('relative mx-auto flex size-full items-center justify-center overflow-hidden', className)}
     >
-      <div className="flex h-full w-full flex-row items-stretch justify-between gap-10">
+      <div className="flex size-full flex-row items-stretch justify-between gap-10">
         <div className="flex flex-col justify-center gap-3">
           <Circle
             ref={div1Ref}

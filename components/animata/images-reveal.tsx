@@ -2,7 +2,7 @@
 
 import { motion } from 'motion/react'
 import Image from 'next/image'
-import React from 'react'
+import * as React from 'react'
 import { clsx } from '@/lib/clsx'
 
 interface ICustomProps {
@@ -44,9 +44,9 @@ export default function ImagesReveal(props: IProps) {
         <motion.div
           key={i}
           className={`
-            group relative -mr-3.5 -ml-3.5 flex size-18 shrink-0 items-center justify-center rounded-lg bg-white
-            object-cover shadow-md
-            xl:-mr-3 xl:-ml-3 xl:size-22
+            group relative -mx-3.5 flex size-18 shrink-0 items-center justify-center rounded-lg bg-white object-cover
+            shadow-md
+            xl:-mx-3 xl:size-22
             dark:bg-neutral-900
           `}
           custom={{ index: i, angle: card.angle }}

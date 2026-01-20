@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, useCycle } from 'motion/react'
-import React, { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { clsx } from '@/lib/clsx'
 
 interface IProps {
@@ -56,7 +56,7 @@ function LayoutPreview({ mode }: { mode: 0 | 1 | 2 }) {
   ]
 
   return (
-    <div className="relative h-full w-full bg-muted/10">
+    <div className="relative size-full bg-muted/10">
       {blocks.map((b, i) => {
         const [gx, gy] = layouts[mode][i]
         return (
@@ -101,7 +101,8 @@ export default function Customizability(props: IProps) {
           relative h-full min-h-42 drop-shadow-md drop-shadow-neutral-200 transition-all
           hover:drop-shadow-neutral-300
           lg:min-h-33
-          dark:drop-shadow-blue-500 dark:hover:drop-shadow-blue-600
+          dark:drop-shadow-blue-500
+          dark:hover:drop-shadow-blue-600
         `,
         className,
       )}
@@ -123,7 +124,7 @@ export default function Customizability(props: IProps) {
           <div className="h-2 w-1/2 rounded-md bg-muted-foreground/25" />
           <LayoutPreview mode={mode} />
         </div>
-        <div className="flex w-full flex-shrink-0">
+        <div className="flex w-full shrink-0">
           <motion.div
             whileHover={{ scale: 1.05 }}
             className="w-full rounded-sm bg-emerald-500 p-2"

@@ -110,7 +110,7 @@ export default async function Page({ params }: IProps) {
                     <Link
                       href={`/showcase/${item.slug}`}
                       className={clsx(`
-                        block h-8 w-72 items-center truncate rounded px-2 text-sm/8 font-medium text-neutral-800
+                        block h-8 w-72 items-center truncate rounded-sm px-2 text-sm/8 font-medium text-neutral-800
                         transition-colors
                         hover:bg-fd-card
                         dark:text-neutral-50

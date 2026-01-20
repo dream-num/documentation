@@ -82,7 +82,8 @@ export default async function Page({ params }: IProps) {
                 className={`
                   mx-auto inline-block rounded-full bg-neutral-50 py-1 text-sm font-semibold shadow-sm transition-colors
                   hover:bg-neutral-100
-                  dark:bg-neutral-800 dark:hover:bg-neutral-900
+                  dark:bg-neutral-800
+                  dark:hover:bg-neutral-900
                 `}
                 href="https://github.com/dream-num/univer/releases/tag/v0.15.2"
               >
@@ -105,8 +106,8 @@ export default async function Page({ params }: IProps) {
 
             <h1
               className={`
-                mx-auto mb-6 max-w-3xl bg-gradient-to-br from-black from-30% to-black/40 bg-clip-text text-center
-                text-3xl font-semibold text-transparent
+                mx-auto mb-6 max-w-3xl bg-linear-to-br from-black from-30% to-black/40 bg-clip-text text-center text-3xl
+                font-semibold text-transparent
                 md:text-4xl
                 lg:text-6xl
                 dark:from-white dark:to-white/40

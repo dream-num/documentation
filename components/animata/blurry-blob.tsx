@@ -17,7 +17,7 @@ export default function BlurryBlob({
         <div
           className={clsx(
             `
-              absolute -top-28 -right-24 h-72 w-72 animate-blurry-blob rounded-sm bg-blue-400 p-8 opacity-45
+              absolute -top-28 -right-24 size-72 animate-blurry-blob rounded-sm bg-blue-400 p-8 opacity-45
               mix-blend-multiply blur-3xl filter
             `,
             className,
@@ -27,7 +27,7 @@ export default function BlurryBlob({
         <div
           className={clsx(
             `
-              absolute -top-64 -left-40 h-72 w-72 animate-blurry-blob rounded-sm bg-purple-400 p-8 opacity-45
+              absolute -top-64 -left-40 size-72 animate-blurry-blob rounded-sm bg-purple-400 p-8 opacity-45
               mix-blend-multiply blur-3xl filter
             `,
             className,

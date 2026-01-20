@@ -67,11 +67,8 @@ export function BorderBeam({
   return (
     <div
       className={`
-        pointer-events-none absolute inset-0 rounded-[inherit]
-        border-(length:--border-beam-width)
-        border-transparent
-        [mask-image:linear-gradient(transparent,transparent),linear-gradient(#000,#000)]
-        [mask-composite:intersect]
+        pointer-events-none absolute inset-0 rounded-[inherit] border-(length:--border-beam-width) border-transparent
+        mask-[linear-gradient(transparent,transparent),linear-gradient(#000,#000)] mask-intersect
         [mask-clip:padding-box,border-box]
       `}
       style={{
@@ -81,7 +78,7 @@ export function BorderBeam({
       <motion.div
         className={clsx(
           'absolute aspect-square',
-          'bg-gradient-to-l from-[var(--color-from)] via-[var(--color-to)] to-transparent',
+          'bg-linear-to-l from-(--color-from) via-(--color-to) to-transparent',
           className,
         )}
         style={

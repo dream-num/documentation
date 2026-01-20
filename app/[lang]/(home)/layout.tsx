@@ -88,8 +88,8 @@ export default async function Layout({ params, children }: IProps) {
                 <div className="flex flex-col">
                   <div
                     className={clsx(`
-                      mb-2 flex size-6 items-center justify-center rounded text-white
-                      [&>*]:size-4
+                      mb-2 flex size-6 items-center justify-center rounded-sm text-white
+                      *:size-4
                     `, link.iconClassName)}
                   >
                     {link.icon}

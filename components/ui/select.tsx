@@ -40,14 +40,17 @@ function SelectTrigger({
           focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50
           disabled:cursor-not-allowed disabled:opacity-50
           aria-invalid:border-destructive aria-invalid:ring-destructive/20
-          data-[placeholder]:text-muted-foreground
+          data-placeholder:text-muted-foreground
           data-[size=default]:h-9
           data-[size=sm]:h-8
           *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex
           *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2
-          dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:ring-destructive/40
+          dark:bg-input/30
+          dark:hover:bg-input/50
+          dark:aria-invalid:ring-destructive/40
           [&_svg]:pointer-events-none [&_svg]:shrink-0
-          [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground
+          [&_svg:not([class*='size-'])]:size-4
+          [&_svg:not([class*='text-'])]:text-muted-foreground
         `,
         className,
       )}
@@ -74,7 +77,7 @@ function SelectContent({
         data-slot="select-content"
         className={clsx(
           `
-            relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem]
+            relative z-50 max-h-(--radix-select-content-available-height) min-w-32
             origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border
             bg-popover text-popover-foreground shadow-md
             data-[side=bottom]:slide-in-from-top-2
@@ -102,7 +105,7 @@ function SelectContent({
           className={clsx(
             'p-1',
             position === 'popper'
-            && 'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1',
+            && 'h-(--radix-select-trigger-height) w-full min-w-(--radix-select-trigger-width) scroll-my-1',
           )}
         >
           {children}
@@ -139,9 +142,10 @@ function SelectItem({
           relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden
           select-none
           focus:bg-accent focus:text-accent-foreground
-          data-[disabled]:pointer-events-none data-[disabled]:opacity-50
+          data-disabled:pointer-events-none data-disabled:opacity-50
           [&_svg]:pointer-events-none [&_svg]:shrink-0
-          [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground
+          [&_svg:not([class*='size-'])]:size-4
+          [&_svg:not([class*='text-'])]:text-muted-foreground
           *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2
         `,
         className,

@@ -72,7 +72,8 @@ export default async function Page({ params }: IProps) {
                 className={`
                   line-clamp-2 text-lg font-medium tracking-tight text-neutral-900
                   group-hover:text-blue-600
-                  dark:text-neutral-100 dark:group-hover:text-blue-400
+                  dark:text-neutral-100
+                  dark:group-hover:text-blue-400
                 `}
               >
                 {post.data.title}

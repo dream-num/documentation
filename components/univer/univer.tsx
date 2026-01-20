@@ -137,7 +137,7 @@ export default function Univer() {
       </header>
 
       <div
-        className="relative mx-auto h-160 w-320 max-w-full overflow-hidden rounded-xl p-0.5 shadow-xl"
+        className="relative mx-auto h-160 w-7xl max-w-full overflow-hidden rounded-xl p-0.5 shadow-xl"
       >
         {/* Mask */}
         <div

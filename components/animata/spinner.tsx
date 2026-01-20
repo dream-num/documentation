@@ -15,7 +15,7 @@ export default function Spinner({
     <div
       className={clsx(
         `
-          m-2 h-8 w-8 animate-spin items-center justify-center rounded-full bg-gradient-to-bl from-pink-500 to-blue-600
+          m-2 size-8 animate-spin items-center justify-center rounded-full bg-linear-to-bl from-pink-500 to-blue-600
           p-0.5
         `,
         className,
@@ -24,7 +24,7 @@ export default function Spinner({
     >
       <div
         className={clsx(`
-          h-6 w-6 rounded-full bg-white
+          size-6 rounded-full bg-white
           dark:bg-neutral-900
         `, childSize)}
       />

@@ -104,7 +104,7 @@ export function Terminal({ children, className }: TerminalProps) {
   return (
     <div
       className={clsx(`
-        z-0 flex h-full w-full flex-col bg-neutral-50
+        z-0 flex size-full flex-col bg-neutral-50
         dark:bg-neutral-900
       `, className)}
     >
@@ -115,9 +115,9 @@ export function Terminal({ children, className }: TerminalProps) {
         `}
       >
         <div className="flex flex-row gap-x-2">
-          <div className="h-2 w-2 rounded-full bg-red-500" />
-          <div className="h-2 w-2 rounded-full bg-yellow-500" />
-          <div className="h-2 w-2 rounded-full bg-green-500" />
+          <div className="size-2 rounded-full bg-red-500" />
+          <div className="size-2 rounded-full bg-yellow-500" />
+          <div className="size-2 rounded-full bg-green-500" />
         </div>
       </div>
       <pre className="flex-1 overflow-y-auto p-4">

@@ -7,7 +7,8 @@ import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { html, LitElement } from 'lit'
 import { useTheme } from 'next-themes'
-import React, { useEffect, useState } from 'react'
+import * as React from 'react'
+import { useEffect, useState } from 'react'
 
 import '@univerjs/preset-sheets-core/lib/index.css'
 

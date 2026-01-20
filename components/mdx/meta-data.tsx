@@ -78,7 +78,7 @@ function PackageInfo({ client, locale, style, facade }: { client?: string, local
           <Tooltip content={locale}>
             <LanguagesIcon
               className={`
-                h-4 w-4 text-neutral-500
+                size-4 text-neutral-500
                 dark:text-neutral-400
               `}
             />
@@ -90,7 +90,7 @@ function PackageInfo({ client, locale, style, facade }: { client?: string, local
           <Tooltip content={style}>
             <SiCss
               className={`
-                h-4 w-4 text-neutral-500
+                size-4 text-neutral-500
                 dark:text-neutral-400
               `}
             />
@@ -102,7 +102,7 @@ function PackageInfo({ client, locale, style, facade }: { client?: string, local
           <Tooltip content={facade}>
             <PlugZapIcon
               className={`
-                h-4 w-4 text-neutral-500
+                size-4 text-neutral-500
                 dark:text-neutral-400
               `}
             />
@@ -177,7 +177,7 @@ export function MetaData(props: IProps) {
           {isPro && (
             <Link
               className={`
-                inline-block rounded-md bg-gradient-to-b from-[#5357ED] to-[#40B9FF] p-[5px] text-xs font-medium
+                inline-block rounded-md bg-linear-to-b from-[#5357ED] to-[#40B9FF] p-[5px] text-xs font-medium
                 text-white no-underline shadow-lg
                 dark:from-[#1d1f54] dark:to-[#2d3048]
               `}

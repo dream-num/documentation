@@ -11,7 +11,7 @@ export function UIArchitecture() {
       <div className="relative">
         <div
           className={clsx(`
-            relative grid gap-2 rounded-md border p-2 shadow transition-all duration-500
+            relative grid gap-2 rounded-md border p-2 shadow-sm transition-all duration-500
             [&_div]:border [&_div]:p-2
           `, {
             'z-1 bg-white [&_div]:transition-all [&_div]:hover:border-blue-500': activeIndex === 0,
@@ -34,7 +34,7 @@ export function UIArchitecture() {
 
         <div
           className={clsx(`
-            absolute inset-0 size-full rounded-md border p-2 shadow transition-all duration-500
+            absolute inset-0 size-full rounded-md border p-2 shadow-sm transition-all duration-500
             [&_div]:border [&_div]:p-2
           `, {
             'z-1 bg-white [&_div]:transition-all [&_div]:hover:border-blue-500': activeIndex === 1,

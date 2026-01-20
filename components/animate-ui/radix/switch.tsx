@@ -106,7 +106,7 @@ function Switch({
             whileTap="tab"
             className={clsx(
               `
-                relative z-[1] flex items-center justify-center rounded-full bg-background text-neutral-500 shadow-lg
+                relative z-1 flex items-center justify-center rounded-full bg-background text-neutral-500 shadow-lg
                 ring-0
                 dark:text-neutral-400
                 [&_svg]:size-3

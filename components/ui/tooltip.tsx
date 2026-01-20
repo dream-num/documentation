@@ -58,7 +58,7 @@ function TooltipContent({
       >
         {children}
         <Arrow
-          className="z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px] bg-primary fill-primary"
+          className="z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-[2px] bg-primary fill-primary"
         />
       </Content>
     </Portal>

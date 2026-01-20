@@ -209,7 +209,7 @@ export function Circle({ ref, className, children }: { className?: string, child
     <div
       ref={ref}
       className={clsx(
-        `z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white p-3 shadow`,
+        `z-10 flex size-12 items-center justify-center rounded-full bg-white p-3 shadow-sm`,
         className,
       )}
     >

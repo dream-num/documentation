@@ -27,7 +27,7 @@ export default function RibbonStyle() {
         <ul
           className={`
             m-0! flex list-none gap-2 overflow-hidden p-0!
-            [&>li]:m-0! [&>li]:h-6 [&>li]:w-6 [&>li]:shrink-0 [&>li]:rounded-md [&>li]:bg-neutral-300
+            [&>li]:m-0! [&>li]:size-6 [&>li]:shrink-0 [&>li]:rounded-md [&>li]:bg-neutral-300
           `}
         >
           {Array.from({ length: 12 + (ribbonType === 'simple' ? 8 : 0) }).map((_, index) => (
