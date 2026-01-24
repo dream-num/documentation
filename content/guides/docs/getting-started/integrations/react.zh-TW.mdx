@@ -1,0 +1,237 @@
+---
+title: React
+---
+
+<Callout>
+  如果你正在尋找使用 React 元件作為自定義元件的方法，請參閱[此處](/guides/docs/ui/components#react)。
+</Callout>
+
+在整合 Univer 到 React 專案前，請確保你已經閱讀了 [Univer 的安裝和基本使用](/guides/docs/getting-started/installation)章節以及瞭解 React 的基本概念和生命週期鉤子。
+
+## 在 React 18 & 19 中整合 Univer
+
+### 整合步驟
+
+1. 在 `useEffect` 中初始化 Univer
+2. 在 `useEffect` 的清理函式中銷燬 Univer
+
+### 示例程式碼
+
+```tsx
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+import UniverPresetDocsCoreZhTW from '@univerjs/preset-docs-core/locales/zh-TW'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+import { useEffect, useRef } from 'react'
+
+import '@univerjs/preset-docs-core/lib/index.css'
+
+export function App() {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const { univerAPI } = createUniver({
+      locale: LocaleType.ZH_TW,
+      locales: {
+        [LocaleType.ZH_TW]: mergeLocales(
+          UniverPresetDocsCoreZhTW,
+        ),
+      },
+      presets: [
+        UniverDocsCorePreset({
+          container: containerRef.current,
+        }),
+      ],
+    })
+
+    univerAPI.createUniverDoc({})
+
+    return () => {
+      univerAPI.dispose()
+    }
+  }, [])
+
+  return (
+    <div ref={containerRef} />
+  )
+}
+```
+
+## 在 React 16.9+ & 17 中整合 Univer
+
+### 整合須知
+
+#### 相容性說明
+
+Univer 的檢視層基於 React 18.3.1 開發，但我們對 React 16.9+ & 17 專案提供了最低限度的相容性支援。請注意，這並不意味著會長期支援低版本 React，建議儘快升級到最新版以獲得最佳體驗和新特性。
+
+#### 構建工具 alias 配置
+
+在 React 16.9+ & 17 環境下，需要透過構建工具的 alias 功能模擬 `react-dom/client` 的匯出，否則部分功能無法正常使用。
+
+**Vite 配置示例**
+
+```typescript title="vite.config.ts"
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      'react-dom/client': path.resolve(__dirname, './src/client.ts'), // [!code ++]
+    },
+  },
+})
+```
+
+```typescript title="src/client.ts"
+import ReactDOM from 'react-dom'
+
+export function createRoot(container: HTMLElement) {
+  return {
+    render: (element: JSX.Element) => {
+      ReactDOM.render(element, container)
+    },
+  }
+}
+```
+
+#### CDN/UMD 場景適配
+
+如果你透過 `<script>` 標籤引入 React 和 Univer，需要手動補充部分 API 以相容新版介面，具體程式碼如下：
+
+```html
+<script>
+  /**
+   * With the support for React 19[^1], UMD users may need additional adaptation.
+   *
+   * [^1]: [support for React 19] https://github.com/dream-num/univer/pull/4247
+   */
+
+  /**
+   * Fix `Uncaught TypeError: client.createRoot is not a function`
+   * If using UMD React < 18, you might need the following code.
+   */
+  ;(function (global) {
+    'use strict'
+    if (!global.ReactDOM) {
+      throw new Error('ReactDOM must be loaded before ReactCreateRoot.')
+    }
+    const ReactDOM = global.ReactDOM
+    if (!ReactDOM.createRoot) {
+      ReactDOM.createRoot = function (container) {
+        return {
+          render: (element) => {
+            ReactDOM.render(element, container)
+          },
+        }
+      }
+    }
+  })(this)
+
+  /**
+   * Fix `Uncaught TypeError: jsxRuntime.jsx is not a function`
+   * If using UMD React, you might need the following code.
+   * Reference: https://unpkg.com/react@18.3.1/cjs/react-jsx-runtime.production.min.js
+   */
+  ;(function (global) {
+    'use strict'
+    if (!global.React) {
+      throw new Error('React must be loaded before ReactJSXRuntime.')
+    }
+    const React = global.React
+    if (!React.jsx || !React.jsxs) {
+      const REACT_ELEMENT_TYPE = Symbol.for('react.element')
+      const hasOwnProperty = Object.prototype.hasOwnProperty
+      const RESERVED_PROPS = {
+        key: true,
+        ref: true,
+        __self: true,
+        __source: true,
+      }
+      const ReactCurrentOwner = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner
+      function createReactElement(type, config, maybeKey) {
+        const props = {}
+        let key = null
+        let ref = null
+        if (maybeKey !== undefined) {
+          key = `${maybeKey}`
+        }
+        if (config.key !== undefined) {
+          key = `${config.key}`
+        }
+        if (config.ref !== undefined) {
+          ref = config.ref
+        }
+        for (var propName in config) {
+          if (hasOwnProperty.call(config, propName) && !RESERVED_PROPS.hasOwnProperty(propName)) {
+            props[propName] = config[propName]
+          }
+        }
+        if (type && type.defaultProps) {
+          const defaultProps = type.defaultProps
+          for (var propName in defaultProps) {
+            if (props[propName] === undefined) {
+              props[propName] = defaultProps[propName]
+            }
+          }
+        }
+        return {
+          $$typeof: REACT_ELEMENT_TYPE,
+          type,
+          key,
+          ref,
+          props,
+          _owner: ReactCurrentOwner.current,
+        }
+      }
+      React.jsx = createReactElement
+      React.jsxs = createReactElement
+    }
+  })(this)
+</script>
+```
+
+### 整合步驟
+
+1. 在 `useEffect` 中初始化 Univer
+2. 在 `useEffect` 的清理函式中銷燬 Univer
+
+### 示例程式碼
+
+```tsx
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+
+import UniverPresetDocsCoreZhTW from '@univerjs/preset-docs-core/locales/zh-TW'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+import { useEffect, useRef } from 'react'
+
+import '@univerjs/preset-docs-core/lib/index.css'
+
+export function App() {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const { univerAPI } = createUniver({
+      locale: LocaleType.ZH_TW,
+      locales: {
+        [LocaleType.ZH_TW]: mergeLocales(
+          UniverPresetDocsCoreZhTW,
+        ),
+      },
+      presets: [
+        UniverDocsCorePreset({
+          container: containerRef.current,
+        }),
+      ],
+    })
+
+    univerAPI.createUniverDoc({})
+
+    return () => {
+      univerAPI.dispose()
+    }
+  }, [])
+
+  return (
+    <div ref={containerRef} />
+  )
+}
+```

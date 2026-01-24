@@ -1,0 +1,278 @@
+---
+title: 安裝和基本使用
+---
+
+Univer 採用了外掛化的設計理念，旨在為開發者提供一個靈活、可擴充套件的電子文件應用框架。透過外掛化設計，Univer 可以輕鬆地整合各種功能模組，從而滿足不同使用者的需求。但外掛化的設計會增加應用的複雜性，尤其是對於首次接觸 Univer 的開發者來說。
+
+為此，Univer 提供了**外掛模式**和**預設模式**兩種方式幫助你快速整合和使用 Univer。所謂**預設**實際上就是一組預先配置好的外掛組合，因此在無需進行復雜擴充套件的情況下，兩者所提供的能力是相同的。
+
+<Callout type="warning" title="注意事項">
+  - **依賴版本需一致**：無論是使用預設模式還是外掛模式的方式，你都必須保證所有依賴的版本號一致。
+  - **謹慎混用外掛和預設**：如果一個外掛已經被包含在某個預設中，那麼在使用預設時就不需要再單獨引入該外掛了。否則可能會導致外掛衝突或功能異常。
+</Callout>
+
+預設模式與外掛模式的區別：
+
+| 外掛模式 | 預設模式 |
+| --- | --- |
+| 需要手動引入對應的 facade 包 | 無需手動引入任何 facade 包 |
+| 需要注意同型別功能外掛註冊順序 | 同功能被包含在預設中無需關注註冊順序 |
+| 支援按需懶載入 | 僅支援預設級別的懶載入，預設內的外掛包只能同步載入 |
+
+## 透過預設模式建立
+
+在這裡我們將簡單介紹下如何透過不到二十行的程式碼來快速搭建一個 Univer Docs 應用。
+
+### 使用包管理器
+
+如果你的專案中已經引入了現代前端開發工具，那麼引入 Univer 將會非常簡單。我們推薦使用 [Vite](https://vitejs.dev/)、[esbuild](https://esbuild.github.io/) 或 [Webpack 5](https://webpack.js.org/) 等對 ES Module 支援較好的構建工具來構建 Univer 應用。如果你使用了其它構建工具（例如 Webpack 4），可能會需要一些額外的配置。
+
+#### 安裝
+
+選擇你所使用的包管理器以安裝 `@unvierjs/presets`：
+
+```package-install
+npm install @univerjs/presets @univerjs/preset-docs-core
+```
+
+#### 使用
+
+<Callout type="warning">
+  如果你的構建工具不支援 package.json 的 `exports` 欄位（常見於 Webpack 4），你需要手動將對映的路徑修改為實際的路徑。
+</Callout>
+
+透過以下程式碼，你就可以快速建立一個 Univer Docs 應用：
+
+```typescript
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+import UniverPresetDocsCoreZhTW from '@univerjs/preset-docs-core/locales/zh-TW'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+import '@univerjs/preset-docs-core/lib/index.css'
+
+const { univer, univerAPI } = createUniver({
+  locale: LocaleType.ZH_TW,
+  locales: {
+    [LocaleType.ZH_TW]: mergeLocales(
+      UniverPresetDocsCoreZhTW,
+    ),
+  },
+  presets: [
+    UniverDocsCorePreset({
+      container: 'app',
+    }),
+  ],
+})
+
+univerAPI.createUniverDoc({})
+```
+
+這裡返回的 `univerAPI` 物件被稱為 Univer 的面板 API（Facade API），透過它可以呼叫 Univer 提供的許多功能。
+
+<PlaygroundFrame lang="zh-TW" slug="docs/slim-via-preset" clickToShow />
+
+<Callout type="warning">
+  你也可以透過 `@univerjs/presets/preset-docs-core` 來引入 `UniverDocsCorePreset`，但必須確保你的構建工具支援 `package.json` 的 `exports` 欄位。
+</Callout>
+
+#### `createUniver` 方法
+
+`createUniver` 方法接受一個配置物件，其中包含了 Univer 的配置資訊，例如語言、主題、外掛等。這個方法會返回一個包含了 Univer 例項和 Univer Facade API 例項的物件。
+
+配置物件的部分屬性如下：
+
+- `locale`：語言環境，可以是 `LocaleType` 列舉值。
+- `locales`：語言包，一個物件，鍵為語言環境，值為語言包物件。
+- `theme`：主題，一個可選主題物件。
+- `presets`：一個 preset 陣列，包含了需要註冊的預設包，例如 `UniverDocsCorePreset`。
+- `plugins`：一個外掛陣列，包含了需要額外註冊的外掛。
+
+當你使用了一個未包含在任何預設包中的外掛或者你自己實現了一個外掛時，可以透過 `plugins` 屬性來註冊這些外掛。也可以選擇在獲得 Univer 例項後透過 `univer.registerPlugin` 方法來註冊外掛。
+
+<Callout>
+  你可以在 [API Reference / createUniver](/reference/methods/create-univer) 找到更多關於 `createUniver` 方法的詳細資訊。
+</Callout>
+
+### 透過 CDN 使用 Univer
+
+如果你不想使用包管理器，或者只是想快速嘗試 Univer 的功能，你可以透過 CDN 引入 Univer 的相關資源。詳情請參考 [透過 CDN 使用 Univer](/guides/docs/getting-started/installation/cdn#preset-mode)。
+
+## 透過外掛模式建立
+
+Univer 以外掛的形式提供了一系列功能，除了一些產品所必需的核心外掛外，你還可以根據需要選擇性地引入其它外掛。這裡僅以最基礎的 Univer Docs 應用為例，介紹如何手動組合安裝外掛。
+
+與預設模式不同，外掛模式預設並不包含 Facade API，以下程式碼示例中有關 Facade API 的部分都是可選的，你可以根據自己的需求來決定是否刪除。
+
+### 使用包管理器
+
+#### 安裝
+
+Univer 使用了 React 開發檢視（當然這並不影響你在 Vue 或者 Angular 中使用 Univer），使用 Rxjs 來處理資料流，由於這兩個庫被廣泛使用在現代前端開發中，因此我們將它們作為 peerDependencies。而不同的包管理工具在對於 peerDependencies 有著不同的行為策略，因此你可能需要注意一些細節。
+
+<Callout>
+  - 如果你正在使用 npm，請確保使用的版本為 npm@7 及以上。這是因為 npm@3 ~ npm@6 並不會正確地安裝 `peerDependencies`[^1]。
+  - 如果你正在使用 pnpm，請確保使用的版本為 pnpm@8 及以上。如果你正在使用 pnpm@6 ~ pnpm@7，可以嘗試配置 `auto-install-peers=true` [^2]來解決依賴安裝問題。
+  - 如果你正在使用 yarn，你需要手動安裝缺失的 `peerDependencies`[^3]，不過別擔心，下面的安裝命令中已經包含了這些依賴。
+</Callout>
+
+<Tabs items={['npm', 'pnpm', 'yarn']}>
+  <Tab>
+    ```shell
+    npm install @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/ui
+    ```
+  </Tab>
+  <Tab>
+    ```shell
+    pnpm add @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/ui
+    ```
+  </Tab>
+  <Tab>
+    ```shell
+    yarn add @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/ui react react-dom rxjs
+    ```
+  </Tab>
+</Tabs>
+
+#### 使用
+
+<Callout type="warning" title="注意事項">
+  - 並非所有的外掛都包含了 facade 包、語言包和樣式檔案，我們會在每個功能的文件對此進行說明。
+  - 樣式檔案的引入順序很重要，確保你在依次引入 `@univerjs/design`、`@univerjs/ui` 的 CSS 樣式後再引入其他外掛的樣式檔案。
+</Callout>
+
+<Steps>
+  <Step>
+    你需要在專案中引入 Univer 的樣式檔案、語言包，以及一些必要的外掛：
+
+    ```typescript
+    import { LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
+    import { FUniver } from '@univerjs/core/facade'
+    import DesignZhTW from '@univerjs/design/locale/zh-TW'
+    import { UniverDocsPlugin } from '@univerjs/docs'
+    import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+    import DocsUIZhTW from '@univerjs/docs-ui/locale/zh-TW'
+    import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+    import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+    import { UniverUIPlugin } from '@univerjs/ui'
+    import UIZhTW from '@univerjs/ui/locale/zh-TW'
+
+    import '@univerjs/design/lib/index.css'
+    import '@univerjs/ui/lib/index.css'
+    import '@univerjs/docs-ui/lib/index.css'
+    ```
+  </Step>
+  <Step>
+    如果你需要使用 Facade API，你可以在這裡引入相關的 facade 包，這是可選的（我相信你會需要它們 😀）：
+
+    ```typescript
+    import '@univerjs/engine-formula/facade'
+    import '@univerjs/ui/facade'
+    import '@univerjs/docs-ui/facade'
+    ```
+  </Step>
+  <Step>
+    然後建立一個 Univer 例項，並註冊這些外掛：
+
+    ```typescript
+    const univer = new Univer({
+      locale: LocaleType.ZH_TW,
+      locales: {
+        [LocaleType.ZH_TW]: mergeLocales(
+          DesignZhTW,
+          UIZhTW,
+          DocsUIZhTW,
+        ),
+      },
+    })
+
+    univer.registerPlugin(UniverRenderEnginePlugin)
+    univer.registerPlugin(UniverFormulaEnginePlugin)
+
+    univer.registerPlugin(UniverUIPlugin, {
+      container: 'app',
+    })
+
+    univer.registerPlugin(UniverDocsPlugin)
+    univer.registerPlugin(UniverDocsUIPlugin)
+
+    univer.createUnit(UniverInstanceType.UNIVER_DOC, {})
+
+    const univerAPI = FUniver.newAPI(univer)
+    ```
+  </Step>
+</Steps>
+
+<PlaygroundFrame lang="zh-TW" slug="docs/slim-via-plugin" clickToShow />
+
+#### `univer.registerPlugin` 方法
+
+`univer.registerPlugin` 方法用於註冊一個外掛到 Univer 例項中。你可以在建立 Univer 例項後呼叫這個方法來註冊外掛。
+
+你可以透過 `univer.registerPlugin(Plugin, options)` 的方式來註冊外掛，其中 `Plugin` 是要註冊的外掛，`options` 是可選的配置項，每個外掛可能有不同的配置項。
+
+當然你可以可以透過傳入一個陣列來一次性註冊多個外掛。這對於需要集中管理外掛的場景非常有用。
+
+```typescript
+univer.registerPlugin([
+  UniverRenderEnginePlugin,
+  UniverFormulaEnginePlugin,
+  [UniverUIPlugin, {
+    container: 'app',
+  }],
+  UniverDocsPlugin,
+  UniverDocsUIPlugin,
+])
+```
+
+#### 懶載入部分外掛
+
+使用外掛模式的一個優勢是你可以更加靈活地控制外掛的載入時機，一種常見的方式是在應用初始化時僅載入必須的外掛，而將部分外掛的載入時機延遲到首次渲染完成之後。
+
+```typescript
+// ...
+
+univer.createUnit(UniverInstanceType.UNIVER_DOC, {})
+
+import('@univerjs/watermark').then(({ UniverWatermarkPlugin }) => {
+  univer.registerPlugin(UniverWatermarkPlugin, {
+    textWatermarkSettings: {
+      content: 'Hello, Univer!',
+      fontSize: 36,
+    },
+  })
+})
+```
+
+Univer 的 [官方 demo](https://github.com/dream-num/univer/blob/dev/examples/src/sheets/main.ts) 就使用了這樣的最佳化技巧，可供參考。
+
+### 透過 CDN 使用 Univer
+
+如果你不想使用包管理器，或者只是想快速嘗試 Univer 的功能，你可以透過 CDN 引入 Univer 的相關資源。詳情請參考 [透過 CDN 使用 Univer](/guides/docs/getting-started/installation/cdn#plugin-mode)。
+
+## 其他釋出版本
+
+除了穩定版本之外，Univer 還提供了 alpha / beta 和 nightly 通道。這些版本可以讓你提前體驗到尚未正式釋出的最新功能。但請記住，更多的功能同時意味著更多的風險。這些版本可能包含錯誤、不完整的功能或者不穩定的特性。請儘可能避免在生產環境中使用這些版本。
+
+### Alpha / Beta 版本
+
+當 Univer 開發團隊完成了一個新功能或重大更改時，可能會將其預釋出到 alpha 或 beta 通道，你可以透過以下命令安裝 alpha / beta 版本的 Univer 包：
+
+```package-install
+npm install @univerjs/<package-name>@alpha # Alpha 版本
+npm install @univerjs/<package-name>@beta # Beta 版本
+```
+
+如果你在使用 alpha / beta 版本時遇到任何問題或者有任何反饋，請透過適當的渠道向 Univer 開發團隊報告，比如 [Github Issues](https://github.com/dream-num/univer/issues) 或者 [Discord 社群](https://discord.gg/XPGnMBmpd6)。
+
+祝你在搶先體驗中玩得愉快！
+
+## 下一步
+
+* 在 [基礎概念](/guides/docs/getting-started/quickstart#basic-concepts) 章節瞭解本章中出現的外掛、命令和 Facade API 等概念。
+* 在 [功能](/guides/docs/features/core) 相關章節中瞭解修改電子表格資料的所有操作。
+
+---
+
+[^1]: https://blog.npmjs.org/post/110924823920/npm-weekly-5
+[^2]: https://pnpm.io/npmrc#auto-install-peers
+[^3]: https://github.com/yarnpkg/yarn/issues/1503

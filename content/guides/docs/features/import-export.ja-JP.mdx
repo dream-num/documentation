@@ -1,0 +1,237 @@
+---
+title: インポート & エクスポート
+icon: '#pro/FolderSync'
+---
+
+<MetaData
+  lang="ja-JP"
+  isPro
+  meta={{
+    preset: [{
+      client: '@univerjs/preset-docs-advanced',
+      locale: '@univerjs/preset-docs-advanced/locales/ja-JP',
+      style: '@univerjs/preset-docs-advanced/lib/index.css',
+    }],
+    plugins: [{
+      client: '@univerjs-pro/exchange-client',
+      locale: '@univerjs-pro/exchange-client/locales/ja-JP',
+      style: '@univerjs-pro/exchange-client/lib/index.css',
+      facade: '@univerjs-pro/exchange-client/facade',
+    }, {
+      client: '@univerjs-pro/docs-exchange-client',
+    }],
+    server: true,
+  }}
+/>
+
+<Callout type="warning" title="注意事項">
+  インポート/エクスポート機能は Univer サーバーのサポートが必要です。Univer サーバーを正しくインストールして設定していることを確認してください。詳細は [Pro へのアップグレード](/guides/pro) を参照してください。
+</Callout>
+
+インポート/エクスポート機能により、`.docx` ファイルを Univer ドキュメントへ取り込み、または Univer ドキュメントを `.docx` として書き出せます。ほかのオフィスソフトやプラットフォームとの連携に便利です。
+
+<Callout title="なぜバックエンドでインポート/エクスポートを実装するのか？">
+  フロントエンドのみの実装では性能や結果が企業要件を満たせません。そのため、バックエンドサービスでインポート/エクスポートを提供しています。オープンソースの DOCX 解析ライブラリで `IDocumentData` 形式のデータ構造に変換し、Facade API で Univer に取り込めます。
+</Callout>
+
+メニューバーのインポートから取り込むと、ページ左下に成功通知が表示され、取り込んだドキュメントへのリンクが提示されます。既定の挙動が要件に合わない場合は [カスタムインポート](/guides/recipes/tutorials/custom-import) を参照してください。
+
+## プリセットモード
+
+### インストール
+
+<Callout>
+  `@univerjs/preset-docs-advanced` の `UniverDocsAdvancedPreset` は実行時に `UniverDocsDrawingPreset` に依存します。先に `@univerjs/preset-docs-drawing` をインストールしてください。
+</Callout>
+
+```package-install
+npm install @univerjs/preset-docs-drawing @univerjs/preset-docs-advanced
+```
+
+### 使い方
+
+```typescript
+import { UniverDocsAdvancedPreset } from '@univerjs/preset-docs-advanced' // [!code ++]
+import UniverPresetDocsAdvancedJaJP from '@univerjs/preset-docs-advanced/locales/ja-JP' // [!code ++]
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+import UniverPresetDocsCoreJaJP from '@univerjs/preset-docs-core/locales/ja-JP'
+import { UniverDocsDrawingPreset } from '@univerjs/preset-docs-drawing' // [!code ++]
+import UniverPresetDocsDrawingJaJP from '@univerjs/preset-docs-drawing/locales/ja-JP' // [!code ++]
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+import '@univerjs/preset-docs-core/lib/index.css'
+import '@univerjs/preset-docs-drawing/lib/index.css' // [!code ++]
+import '@univerjs/preset-docs-advanced/lib/index.css' // [!code ++]
+
+const { univerAPI } = createUniver({
+  locale: LocaleType.JA_JP,
+  locales: {
+    [LocaleType.JA_JP]: mergeLocales(
+      UniverPresetDocsCoreJaJP,
+      UniverPresetDocsDrawingJaJP, // [!code ++]
+      UniverPresetDocsAdvancedJaJP, // [!code ++]
+    ),
+  },
+  presets: [
+    UniverDocsCorePreset(),
+    UniverDocsDrawingPreset(), // [!code ++]
+    UniverDocsAdvancedPreset({ // [!code ++]
+      universerEndpoint: 'http://localhost:3010', // [!code ++]
+    }), // [!code ++]
+  ],
+})
+```
+
+Univer の商用ライセンスをお持ちの場合は、設定方法について [クライアントでのライセンス](/guides/pro/license#in-preset-mode) を参照してください。
+
+### プリセットと設定
+
+`UniverDocsAdvancedPreset` の設定項目は以下のとおりです。
+
+```typescript
+interface IUniverSheetsAdvancedPresetConfig {
+  // Univer サーバーのエンドポイント
+  universerEndpoint?: string
+}
+```
+
+## プラグインモード
+
+### インストール
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/docs-exchange-client
+```
+
+### 使い方
+
+```typescript
+import { UniverDocsExchangeClientPlugin } from '@univerjs-pro/docs-exchange-client' // [!code ++]
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client' // [!code ++]
+import ExchangeClientJaJP from '@univerjs-pro/exchange-client/locale/ja-JP' // [!code ++]
+import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+
+import '@univerjs-pro/exchange-client/facade' // [!code ++]
+
+import '@univerjs-pro/exchange-client/lib/index.css' // [!code ++]
+
+const univer = new Univer({
+  locale: LocaleType.JA_JP,
+  locales: {
+    [LocaleType.JA_JP]: mergeLocales(
+      ExchangeClientJaJP, // [!code ++]
+    ),
+  },
+})
+
+const UNIVER_SERVER_ENDPOINT = `http://localhost:8000` // [!code ++]
+
+univer.registerPlugin(UniverExchangeClientPlugin, { // [!code ++]
+  uploadFileServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/stream/file/upload`, // [!code ++]
+  importServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/{type}/import`, // [!code ++]
+  exportServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/{type}/export`, // [!code ++]
+  getTaskServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/task/{taskID}`, // [!code ++]
+  signUrlServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/file/{fileID}/sign-url`, // [!code ++]
+  downloadEndpointUrl: `${UNIVER_SERVER_ENDPOINT}/`, // [!code ++]
+}) // [!code ++]
+univer.registerPlugin(UniverDocsExchangeClientPlugin) // [!code ++]
+```
+
+Univer の商用ライセンスをお持ちの場合は、設定方法について [クライアントでのライセンス](/guides/pro/license#in-plugin-mode) を参照してください。
+
+### プラグインと設定
+
+`UniverExchangeClientPlugin` の設定項目は以下のとおりです。
+
+```typescript
+interface IUniverExchangeClientConfig {
+  // Univer サーバー設定
+  downloadEndpointUrl?: string
+  uploadFileServerUrl?: string
+  importServerUrl?: string
+  exportServerUrl?: string
+  getTaskServerUrl?: string
+  signUrlServerUrl?: string
+  // 最大タイムアウト（ミリ秒）
+  maxTimeoutTime?: number
+}
+```
+
+## Facade API
+
+### インポート
+
+```typescript
+import '@univerjs-pro/exchange-client/facade'
+```
+
+### `.docx` のインポート
+
+#### `.docx` をインポートして `unitId` を取得
+
+<Callout type="warning" title="注意事項">
+  この方法は共同編集が有効なドキュメントのインポート時のみ有効です。
+</Callout>
+
+共同編集が有効な場合、各ドキュメントは一意の `unitId` を持ちます。`univerAPI.importDOCXToUnitIdAsync` に `file` を渡すと `unitId` が返され、その `unitId` でドキュメントにアクセスできます。`file` は `File` オブジェクトまたはリモート URL を指定できます。
+
+```typescript
+// File オブジェクトを受け取る
+const unitId = await univerAPI.importDOCXToUnitIdAsync(file)
+// リモート URL を受け取る
+// const unitId = await univerAPI.importDOCXToUnitIdAsync('https://example.com/filename.docx');
+
+// 共同編集と組み合わせて自動ロードする https://docs.univer.ai/en-US/guides/docs/features/collaboration#loading-collaborative-documents
+const url = new URL(window.location.href)
+url.searchParams.set('unit', unitId)
+url.searchParams.set('type', '1') // 1 は UniverInstanceType.UNIVER_DOC を表す
+window.location.href = url.toString()
+
+// または API: univerAPI.loadServerUnit(unitId, 1) を呼び出す。パラメータは https://reference.univer.ai/en-US/classes/FUniver#loadserverunit を参照
+```
+
+#### `.docx` をインポートして `IDocumentData` を取得
+
+`univerAPI.importDOCXToSnapshotAsync` を使用すると、`.docx` を `IDocumentData` 形式で取得できます。
+
+```typescript
+// File オブジェクトを受け取る
+const snapshot = await univerAPI.importDOCXToSnapshotAsync(file)
+// リモート URL を受け取る
+// const snapshot = await univerAPI.importDOCXToSnapshotAsync('https://example.com/filename.xlsx');
+
+// スナップショットから新規ドキュメントを作成
+univerAPI.createUniverDoc(snapshot)
+```
+
+### `.docx` のエクスポート
+
+#### `unitId` で `.docx` をエクスポート
+
+共同編集が有効な場合、各ドキュメントには一意の `unitId` があります。`univerAPI.exportDOCXByUnitIdAsync` に `unitId` を渡すと `File` が返ります。
+
+```typescript
+import { downloadFile } from '@univerjs-pro/exchange-client'
+
+const fDocument = univerAPI.getActiveDocument()
+const unitId = fDocument.getId()
+const file = await univerAPI.exportDOCXByUnitIdAsync(unitId)
+
+// @univerjs-pro/exchange-client の downloadFile で保存
+downloadFile(file, 'univer', 'docx')
+```
+
+#### `IDocumentData` で `.docx` をエクスポート
+
+`univerAPI.exportDOCXBySnapshotAsync` に `IDocumentData` を渡すと `File` が返ります。
+
+```typescript
+import { downloadFile } from '@univerjs-pro/exchange-client'
+
+const fDocument = univerAPI.getActiveDocument()
+const snapshot = fDocument.getSnapshot()
+const file = await univerAPI.exportDOCXBySnapshotAsync(snapshot)
+
+// @univerjs-pro/exchange-client の downloadFile で保存
+downloadFile(file, 'univer', 'docx')
+```

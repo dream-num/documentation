@@ -145,15 +145,15 @@ const customZhTw = {
   'blog.date': '發表日期',
   'blog.back': '返回',
   'banner.release': '已發布 →',
-  'docs.header.edit-on-github': '在 GitHub 上编辑',
-  'docs.feedback.question': '你觉得这篇文档如何？',
-  'docs.feedback.button': '留下建议',
-  'docs.feedback.message': '请留下你的意见或建议',
+  'docs.header.edit-on-github': '在 GitHub 上編輯',
+  'docs.feedback.question': '你覺得這篇文檔如何？',
+  'docs.feedback.button': '留下建議',
+  'docs.feedback.message': '請留下你的意見或建議',
   'docs.feedback.submit': '提交',
-  'docs.feedback.thanks': '感谢你的反馈！',
+  'docs.feedback.thanks': '感謝你的反饋！',
   'docs.feedback.retry': '再次提交',
-  'playground.click-to-show': '点击显示 demo',
-  'playground.click-to-hide': '点击隐藏 demo',
+  'playground.click-to-show': '點擊顯示 demo',
+  'playground.click-to-hide': '點擊隱藏 demo',
 }
 
 const customEnUS: typeof customZhCN = {

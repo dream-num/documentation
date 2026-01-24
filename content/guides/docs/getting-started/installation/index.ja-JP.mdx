@@ -1,0 +1,278 @@
+---
+title: インストールと基本的な使い方
+---
+
+Univer はプラグイン志向の設計で、柔軟で拡張可能なドキュメントアプリ基盤を提供します。プラグイン構成により機能モジュールを容易に統合できますが、初めて触れる開発者にとっては複雑に感じることがあります。
+
+そのため Univer では **プラグインモード** と **プリセットモード** の 2 つを用意し、素早く導入できるようにしています。**プリセット**は事前に構成されたプラグインの組み合わせで、複雑な拡張をしない限り両者の機能は同等です。
+
+<Callout type="warning" title="注意事項">
+  - **依存バージョンの一致**：プリセット/プラグインどちらの方法でも、依存関係のバージョンは揃える必要があります。
+  - **プリセットとプラグインの併用に注意**：プリセットに含まれるプラグインを重複して読み込むと、衝突や不具合の原因になります。
+</Callout>
+
+プリセットモードとプラグインモードの違い：
+
+| プラグインモード | プリセットモード |
+| --- | --- |
+| 対応する facade パッケージを手動で読み込む必要がある | facade パッケージの手動読み込みは不要 |
+| 同種の機能プラグインの登録順に注意が必要 | プリセット内の機能は登録順を気にしなくてよい |
+| 必要に応じた遅延読み込みが可能 | プリセット単位の遅延読み込みのみ（内部プラグインは同期読み込み） |
+
+## プリセットモードで作成
+
+ここでは 20 行未満のコードで Univer Docs アプリを作成する方法を紹介します。
+
+### パッケージマネージャーを使う
+
+プロジェクトにモダンなフロントエンド開発環境があれば、Univer の導入は簡単です。ES Modules に対応したビルドツール（[Vite](https://vitejs.dev/)、[esbuild](https://esbuild.github.io/)、[Webpack 5](https://webpack.js.org/) など）を推奨します。Webpack 4 などを使う場合は追加設定が必要になることがあります。
+
+#### インストール
+
+使用しているパッケージマネージャーで `@unvierjs/presets` をインストールします。
+
+```package-install
+npm install @univerjs/presets @univerjs/preset-docs-core
+```
+
+#### 使い方
+
+<Callout type="warning">
+  ビルドツールが package.json の `exports` をサポートしていない場合（例：Webpack 4）、マッピングされたパスを実際のパスに変更する必要があります。
+</Callout>
+
+次のコードで Univer Docs アプリを作成できます。
+
+```typescript
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+import UniverPresetDocsCoreJaJP from '@univerjs/preset-docs-core/locales/ja-JP'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+import '@univerjs/preset-docs-core/lib/index.css'
+
+const { univer, univerAPI } = createUniver({
+  locale: LocaleType.JA_JP,
+  locales: {
+    [LocaleType.JA_JP]: mergeLocales(
+      UniverPresetDocsCoreJaJP,
+    ),
+  },
+  presets: [
+    UniverDocsCorePreset({
+      container: 'app',
+    }),
+  ],
+})
+
+univerAPI.createUniverDoc({})
+```
+
+ここで返される `univerAPI` は Univer の Facade API で、Univer の機能を呼び出すために使用します。
+
+<PlaygroundFrame lang="ja-JP" slug="docs/slim-via-preset" clickToShow />
+
+<Callout type="warning">
+  `@univerjs/presets/preset-docs-core` から `UniverDocsCorePreset` を読み込むこともできますが、`exports` に対応したビルドツールが必要です。
+</Callout>
+
+#### `createUniver` メソッド
+
+`createUniver` は言語、テーマ、プラグインなどを含む設定オブジェクトを受け取り、Univer インスタンスと Facade API インスタンスを返します。
+
+設定オブジェクトの主な項目：
+
+- `locale`：言語環境。`LocaleType` の列挙値。
+- `locales`：言語パック。キーが言語環境、値が言語パック。
+- `theme`：テーマ（任意）。
+- `presets`：登録するプリセット配列（例：`UniverDocsCorePreset`）。
+- `plugins`：追加で登録するプラグイン配列。
+
+プリセットに含まれないプラグインや独自プラグインを使う場合は `plugins` に登録します。Univer インスタンスを取得した後に `univer.registerPlugin` で登録することもできます。
+
+<Callout>
+  `createUniver` の詳細は [API Reference / createUniver](/reference/methods/create-univer) を参照してください。
+</Callout>
+
+### CDN で Univer を使う
+
+パッケージマネージャーを使わずに試したい場合は CDN で読み込めます。詳細は [CDN で Univer を利用](/guides/docs/getting-started/installation/cdn#preset-mode) を参照してください。
+
+## プラグインモードで作成
+
+Univer はプラグインとして機能を提供します。必須のコアプラグインに加えて、必要に応じて他のプラグインを選択できます。ここでは最小構成の Univer Docs を例に、手動でプラグインを組み合わせる方法を紹介します。
+
+プリセットモードと異なり、プラグインモードには Facade API がデフォルトでは含まれません。以下のコード例の Facade API 関連は任意です。
+
+### パッケージマネージャーを使う
+
+#### インストール
+
+Univer は UI に React、データストリームに Rxjs を利用しています（Vue/Angular での利用には影響しません）。これらは peerDependencies のため、パッケージマネージャーの挙動に注意してください。
+
+<Callout>
+  - npm を使う場合は npm@7 以上を推奨します（npm@3〜6 は `peerDependencies` を正しく解決しません）。
+  - pnpm を使う場合は pnpm@8 以上を推奨します。pnpm@6〜7 を使う場合は `auto-install-peers=true` の設定で回避できることがあります。
+  - yarn の場合は不足する `peerDependencies` を手動で追加してください（以下のコマンドに含まれています）。
+</Callout>
+
+<Tabs items={['npm', 'pnpm', 'yarn']}>
+  <Tab>
+    ```shell
+    npm install @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/ui
+    ```
+  </Tab>
+  <Tab>
+    ```shell
+    pnpm add @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/ui
+    ```
+  </Tab>
+  <Tab>
+    ```shell
+    yarn add @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/ui react react-dom rxjs
+    ```
+  </Tab>
+</Tabs>
+
+#### 使い方
+
+<Callout type="warning" title="注意事項">
+  - すべてのプラグインに facade パッケージ、言語パック、スタイルファイルがあるわけではありません。各機能のドキュメントで案内します。
+  - スタイルの読み込み順が重要です。`@univerjs/design` と `@univerjs/ui` の CSS を先に読み込み、その後に他プラグインの CSS を読み込んでください。
+</Callout>
+
+<Steps>
+  <Step>
+    プロジェクトで Univer のスタイル、言語パック、必要なプラグインを読み込みます。
+
+    ```typescript
+    import { LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
+    import { FUniver } from '@univerjs/core/facade'
+    import DesignJaJP from '@univerjs/design/locale/ja-JP'
+    import { UniverDocsPlugin } from '@univerjs/docs'
+    import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+    import DocsUIJaJP from '@univerjs/docs-ui/locale/ja-JP'
+    import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+    import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+    import { UniverUIPlugin } from '@univerjs/ui'
+    import UIJaJP from '@univerjs/ui/locale/ja-JP'
+
+    import '@univerjs/design/lib/index.css'
+    import '@univerjs/ui/lib/index.css'
+    import '@univerjs/docs-ui/lib/index.css'
+    ```
+  </Step>
+  <Step>
+    Facade API が必要な場合は facade パッケージを読み込みます（任意）。
+
+    ```typescript
+    import '@univerjs/engine-formula/facade'
+    import '@univerjs/ui/facade'
+    import '@univerjs/docs-ui/facade'
+    ```
+  </Step>
+  <Step>
+    Univer インスタンスを作成し、プラグインを登録します。
+
+    ```typescript
+    const univer = new Univer({
+      locale: LocaleType.JA_JP,
+      locales: {
+        [LocaleType.JA_JP]: mergeLocales(
+          DesignJaJP,
+          UIJaJP,
+          DocsUIJaJP,
+        ),
+      },
+    })
+
+    univer.registerPlugin(UniverRenderEnginePlugin)
+    univer.registerPlugin(UniverFormulaEnginePlugin)
+
+    univer.registerPlugin(UniverUIPlugin, {
+      container: 'app',
+    })
+
+    univer.registerPlugin(UniverDocsPlugin)
+    univer.registerPlugin(UniverDocsUIPlugin)
+
+    univer.createUnit(UniverInstanceType.UNIVER_DOC, {})
+
+    const univerAPI = FUniver.newAPI(univer)
+    ```
+  </Step>
+</Steps>
+
+<PlaygroundFrame lang="ja-JP" slug="docs/slim-via-plugin" clickToShow />
+
+#### `univer.registerPlugin` メソッド
+
+`univer.registerPlugin` は Univer インスタンスにプラグインを登録するためのメソッドです。Univer インスタンスを作成した後に呼び出せます。
+
+`univer.registerPlugin(Plugin, options)` の形式で登録します。`Plugin` は対象プラグイン、`options` はオプション設定です（プラグインごとに異なります）。
+
+配列を渡して複数プラグインをまとめて登録することもできます。プラグインを集約して管理したい場合に便利です。
+
+```typescript
+univer.registerPlugin([
+  UniverRenderEnginePlugin,
+  UniverFormulaEnginePlugin,
+  [UniverUIPlugin, {
+    container: 'app',
+  }],
+  UniverDocsPlugin,
+  UniverDocsUIPlugin,
+])
+```
+
+#### 一部プラグインの遅延読み込み
+
+プラグインモードの利点は、プラグインの読み込みタイミングを柔軟に制御できる点です。代表的な方法として、初期化時に必須プラグインのみ読み込み、初回レンダリング後に一部プラグインを読み込む方法があります。
+
+```typescript
+// ...
+
+univer.createUnit(UniverInstanceType.UNIVER_DOC, {})
+
+import('@univerjs/watermark').then(({ UniverWatermarkPlugin }) => {
+  univer.registerPlugin(UniverWatermarkPlugin, {
+    textWatermarkSettings: {
+      content: 'Hello, Univer!',
+      fontSize: 36,
+    },
+  })
+})
+```
+
+Univer の [公式デモ](https://github.com/dream-num/univer/blob/dev/examples/src/sheets/main.ts) でも同様の最適化手法が使われています。
+
+### CDN で Univer を使う
+
+パッケージマネージャーを使わずに試したい場合は CDN で読み込めます。詳細は [CDN で Univer を利用](/guides/docs/getting-started/installation/cdn#plugin-mode) を参照してください。
+
+## その他のリリースチャンネル
+
+Univer は安定版に加え、alpha / beta / nightly のチャンネルを提供しています。最新機能を先行利用できますが、リスクも高まります。バグや不完全な機能、不安定な挙動を含む可能性があるため、本番環境での使用は避けてください。
+
+### Alpha / Beta 版
+
+新機能や大きな変更が完成した際、alpha / beta チャンネルで先行公開されることがあります。次のコマンドでインストールできます。
+
+```package-install
+npm install @univerjs/<package-name>@alpha # Alpha 版
+npm install @univerjs/<package-name>@beta # Beta 版
+```
+
+alpha / beta 版で問題が発生した場合は、[Github Issues](https://github.com/dream-num/univer/issues) や [Discord コミュニティ](https://discord.gg/XPGnMBmpd6) などで報告してください。
+
+先行体験をお楽しみください！
+
+## 次のステップ
+
+* [基本概念](/guides/docs/getting-started/quickstart#basic-concepts) で本章に登場するプラグイン、コマンド、Facade API の概念を確認しましょう。
+* [機能](/guides/docs/features/core) でドキュメント操作の機能を確認しましょう。
+
+---
+
+[^1]: https://blog.npmjs.org/post/110924823920/npm-weekly-5
+[^2]: https://pnpm.io/npmrc#auto-install-peers
+[^3]: https://github.com/yarnpkg/yarn/issues/1503

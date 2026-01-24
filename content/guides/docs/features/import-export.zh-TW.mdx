@@ -1,0 +1,235 @@
+---
+title: 匯入 & 匯出
+icon: '#pro/FolderSync'
+---
+
+<MetaData
+  lang="zh-TW"
+  isPro
+  meta={{
+    preset: [{
+      client: '@univerjs/preset-docs-advanced',
+      locale: '@univerjs/preset-docs-advanced/locales/zh-TW',
+      style: '@univerjs/preset-docs-advanced/lib/index.css',
+    }],
+    plugins: [{
+      client: '@univerjs-pro/exchange-client',
+      locale: '@univerjs-pro/exchange-client/locale/zh-TW',
+      style: '@univerjs-pro/exchange-client/lib/index.css',
+      facade: '@univerjs-pro/exchange-client/facade',
+    }, {
+      client: '@univerjs-pro/docs-exchange-client',
+    }],
+    server: true,
+  }}
+/>
+
+<Callout type="warning" title="注意事項">
+  匯入匯出功能需要 Univer 服務端支援，請確保你已經正確安裝並配置了 Univer 服務端。具體請參考：[升級到 Pro](/guides/pro)
+</Callout>
+
+匯入和匯出功能允許使用者透過 Univer 服務端將 `.docx` 檔案匯入到 Univer 文件中，或將文件內容匯出為 `.docx` 檔案，便於與其他辦公軟體或平臺進行互動。
+
+<Callout title="為什麼 Univer 透過後端服務實現匯入匯出？">
+  僅透過前端實現的匯入匯出無論是從效能還是效果上來說都無法滿足企業需求，因此我們提供了後端服務來實現匯入匯出功能。你可以透過一些開源的 DOCX 解析庫將檔案解析為符合 `IDocumentData` 介面的資料結構，然後透過 Facade API 將資料匯入到 Univer 中。
+</Callout>
+
+透過選單欄的匯入入口成功匯入後，頁面左下角會彈出提示框，顯示匯入成功的資訊，並提供訪問匯入文件的連結。若預設的匯入匯出行為無法滿足你的需求，請檢視[《自定義匯入文件》](/guides/recipes/tutorials/custom-import)以瞭解如何自定義匯入行為。
+
+## 預設模式
+
+### 安裝
+
+<Callout>
+  @univerjs/preset-docs-advanced 的 `UniverDocsAdvancedPreset` 預設在執行時依賴 `UniverDocsDrawingPreset` 預設，請先安裝 @univerjs/preset-docs-drawing。
+</Callout>
+
+```package-install
+npm install @univerjs/preset-docs-drawing @univerjs/preset-docs-advanced
+```
+
+### 使用
+
+```typescript
+import { UniverDocsAdvancedPreset } from '@univerjs/preset-docs-advanced' // [!code ++]
+import UniverPresetDocsAdvancedZhTW from '@univerjs/preset-docs-advanced/locales/zh-TW' // [!code ++]
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+import UniverPresetDocsCoreZhTW from '@univerjs/preset-docs-core/locales/zh-TW'
+import { UniverDocsDrawingPreset } from '@univerjs/preset-docs-drawing' // [!code ++]
+import UniverPresetDocsDrawingZhTW from '@univerjs/preset-docs-drawing/locales/zh-TW' // [!code ++]
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+import '@univerjs/preset-docs-core/lib/index.css'
+import '@univerjs/preset-docs-drawing/lib/index.css' // [!code ++]
+import '@univerjs/preset-docs-advanced/lib/index.css' // [!code ++]
+
+const { univerAPI } = createUniver({
+  locale: LocaleType.ZH_TW,
+  locales: {
+    [LocaleType.ZH_TW]: mergeLocales(
+      UniverPresetDocsCoreZhTW,
+      UniverPresetDocsDrawingZhTW, // [!code ++]
+      UniverPresetDocsAdvancedZhTW, // [!code ++]
+    ),
+  },
+  presets: [
+    UniverDocsCorePreset(),
+    UniverDocsDrawingPreset(), // [!code ++]
+    UniverDocsAdvancedPreset({ // [!code ++]
+      universerEndpoint: 'http://localhost:3010', // [!code ++]
+    }), // [!code ++]
+  ],
+})
+```
+
+如果你擁有 Univer 的商業許可證，請參考[在客戶端使用許可證](/guides/pro/license#在預設模式中使用)進行配置。
+
+### 預設與配置
+
+`UniverSheetsAdvancedPreset` 配置項：
+
+```typescript
+interface IUniverSheetsAdvancedPresetConfig {
+  // Univer Server 的埠地址
+  universerEndpoint?: string
+}
+```
+
+## 外掛模式
+
+### 安裝
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/docs-exchange-client
+```
+
+### 使用
+
+```typescript
+import { UniverDocsExchangeClientPlugin } from '@univerjs-pro/docs-exchange-client' // [!code ++]
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client' // [!code ++]
+import ExchangeClientZhTW from '@univerjs-pro/exchange-client/locale/zh-TW' // [!code ++]
+import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+
+import '@univerjs-pro/exchange-client/facade' // [!code ++]
+
+import '@univerjs-pro/exchange-client/lib/index.css' // [!code ++]
+
+const univer = new Univer({
+  locale: LocaleType.ZH_TW,
+  locales: {
+    [LocaleType.ZH_TW]: mergeLocales(
+      ExchangeClientZhTW, // [!code ++]
+    ),
+  },
+})
+
+const UNIVER_SERVER_ENDPOINT = `http://localhost:8000` // [!code ++]
+
+univer.registerPlugin(UniverExchangeClientPlugin, { // [!code ++]
+  uploadFileServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/stream/file/upload`, // [!code ++]
+  importServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/{type}/import`, // [!code ++]
+  exportServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/{type}/export`, // [!code ++]
+  getTaskServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/task/{taskID}`, // [!code ++]
+  signUrlServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/file/{fileID}/sign-url`, // [!code ++]
+  downloadEndpointUrl: `${UNIVER_SERVER_ENDPOINT}/`, // [!code ++]
+}) // [!code ++]
+univer.registerPlugin(UniverDocsExchangeClientPlugin) // [!code ++]
+```
+
+如果你擁有 Univer 的商業許可證，請參考[在客戶端使用許可證](/guides/pro/license#在外掛模式中使用)進行配置。
+
+### 外掛與配置
+
+`UniverExchangeClientPlugin` 配置項：
+
+```typescript
+interface IUniverExchangeClientConfig {
+  // Univer Server 的配置
+  downloadEndpointUrl?: string
+  uploadFileServerUrl?: string
+  importServerUrl?: string
+  exportServerUrl?: string
+  getTaskServerUrl?: string
+  signUrlServerUrl?: string
+  // 最大超時時間，單位為毫秒
+  maxTimeoutTime?: number
+}
+```
+
+## Facade API
+
+```typescript
+import '@univerjs-pro/exchange-client/facade'
+```
+
+### 匯入 `.docx`
+
+#### 匯入 `.docx` 檔案並獲取 `unitId`
+
+<Callout type="warning" title="注意事項">
+  此方法僅適用於啟用了協同編輯的文件匯入。
+</Callout>
+
+在啟用協同編輯的時候，每個文件都有一個唯一的 `unitId`。使用 `univerAPI.importDOCXToUnitIdAsync` 傳入 `file` 引數會返回 `unitId`，可以透過 `unitId` 來訪問文件。 `file` 引數可以是一個 `File` 物件，也可以是遠端檔案的 URL。
+
+```typescript
+// 接受 File 物件
+const unitId = await univerAPI.importDOCXToUnitIdAsync(file)
+// 或者接受遠端檔案的 URL
+// const unitId = await univerAPI.importDOCXToUnitIdAsync('https://example.com/filename.docx');
+
+// 配合協同編輯自動載入資料一同使用 https://docs.univer.ai/zh-TW/guides/docs/features/collaboration#loading-collaborative-documents
+const url = new URL(window.location.href)
+url.searchParams.set('unit', unitId)
+url.searchParams.set('type', '1') // 1 的意思是 String(UniverInstanceType.UNIVER_DOC)
+window.location.href = url.toString()
+
+// 或者呼叫API: univerAPI.loadServerUnit(unitId, 1) 載入文件，具體引數參考 https://reference.univer.ai/zh-TW/classes/FUniver#loadserverunit
+```
+
+#### 匯入 `.docx` 檔案並獲取 `IDocumentData`
+
+使用 `univerAPI.importDOCXToSnapshotAsync` 匯入 `.docx` 檔案，會返回 `IDocumentData` 格式的文件資料。
+
+```typescript
+// 接受 File 物件
+const snapshot = await univerAPI.importDOCXToSnapshotAsync(file)
+// 或者接受遠端檔案的 URL
+// const snapshot = await univerAPI.importDOCXToSnapshotAsync('https://example.com/filename.xlsx');
+
+// 透過快照建立一個新的文件
+univerAPI.createUniverDoc(snapshot)
+```
+
+### 匯出 `.docx`
+
+#### 透過 `unitId` 匯出 `.docx` 檔案
+
+在啟用協同編輯的時候，每個文件都有一個唯一的 `unitId`。使用 `univerAPI.exportDOCXByUnitIdAsync` 傳入 `unitId` 引數會返回 `File` 物件。
+
+```typescript
+import { downloadFile } from '@univerjs-pro/exchange-client'
+
+const fDocument = univerAPI.getActiveDocument()
+const unitId = fDocument.getId()
+const file = await univerAPI.exportDOCXByUnitIdAsync(unitId)
+
+// 下載檔案
+downloadFile(file, 'univer', 'docx')
+```
+
+#### 透過 `IDocumentData` 匯出 `.docx` 檔案
+
+使用 `univerAPI.exportDOCXBySnapshotAsync` 傳入 `IDocumentData` 會返回 `File` 物件。
+
+```typescript
+import { downloadFile } from '@univerjs-pro/exchange-client'
+
+const fDocument = univerAPI.getActiveDocument()
+const snapshot = fDocument.getSnapshot()
+const file = await univerAPI.exportDOCXBySnapshotAsync(snapshot)
+
+// 下載檔案
+downloadFile(file, 'univer', 'docx')
+```

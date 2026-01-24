@@ -1,0 +1,153 @@
+---
+title: 範圍主題
+---
+
+為了豐富表格的展示效果，我們提供了一些預設的區域主題，也開放了定製主題的能力，供 Univer 使用者使用。
+
+## 內建主題
+
+我們提供類似 `Excel Table` 預設樣式的主題作為預設主題， 主題名稱為 `default` ，可透過 `theme` 屬性設定。同時提供了一系列的 color 主題，你可以透過以下 Facade API 獲取當前支援的主題。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const themes = fWorkbook.getRegisteredRangeThemes()
+console.log(themes) // ['default', 'light-blue', 'light-grey', 'light-red', 'light-orange', 'light-yellow', 'light-green', 'light-azure', 'light-indigo', 'light-purple', 'light-magenta', 'middle-blue', 'middle-grey', 'middle-red', 'middle-orange', 'middle-yellow', 'middle-green', 'middle-azure', 'middle-indigo', 'middle-purple', 'middle-magenta', 'dark-blue', 'dark-grey', 'dark-red', 'dark-orange', 'dark-yellow', 'dark-green', 'dark-azure', 'dark-indigo', 'dark-purple', 'dark-magenta']
+```
+
+![Range Theme](./range-theme/range-theme.png)
+
+## 設定主題
+
+在 Univer 中你可以透過以下兩種方式來設定主題：
+- 透過設定 snapshot 來支援主題
+- 透過 Facade API 來支援主題
+
+### 透過設定 snapshot 來設定主題
+
+Univer 的主題儲存在 snapshot 的 resource 中， key 值為 `SHEET_RANGE_THEME_MODEL_PLUGIN` ，資料結構如下：
+
+```typescript
+interface IRangeThemeRangeInfo {
+  range: IRange
+  unitId: string
+  subUnitId: string
+}
+
+interface IRangeThemeStyleRule {
+  rangeInfo: IRangeThemeRangeInfo
+  themeName: string
+}
+
+interface ISheetRangeThemeModelJSON {
+  // 儲存設定主題的 range，theme 資訊的 json, key 為 id 只要保證不重複即可, value 位對應的 range 資訊以及模板名稱
+  rangeThemeStyleRuleMap: Record<string, IRangeThemeStyleRule>
+  // 儲存主題的 json, key 為 主題名稱， value 為主題序列化json
+  rangeThemeStyleMapJson: Record<string, IRangeThemeStyleJSON>
+}
+```
+
+### 透過 Facade API 來設定主題
+
+我們推薦使用 Facade API 來設定主題，再利用 Univer 提供的序列化反序列化方法來儲存主題資訊。
+
+以下是主題相關的一些 API 介紹：
+
+```typescript
+// 獲取當前支援的主題
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const themes = fWorkbook.getRegisteredRangeThemes()
+
+// A1:E20 設定預設主題
+const fRange = fWorksheet.getRange('A1:E20')
+fRange.useThemeStyle('default') // 使用預設主題
+
+// 獲取當前使用的主題
+const currentTheme = fRange.getUsedThemeStyle()
+
+// 清除主題樣式
+fRange.useThemeStyle(undefined)
+fRange.removeThemeStyle(currentTheme)
+```
+
+## 自定義主題
+
+Univer 除了內建主題， 還提供了自定義主題的能力，你可以透過以下 API 來自定義主題：
+
+```typescript
+// 建立自定義主題
+const fWorkbook = univerAPI.getActiveWorkbook()
+const rangeThemeStyle = fWorkbook.createRangeThemeStyle('MyTheme', {
+  secondRowStyle: {
+    bg: {
+      rgb: 'rgb(214,231,241)',
+    },
+  },
+})
+fWorkbook.registerRangeTheme(rangeThemeStyle)
+
+// A1:E20 使用自定義主題
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:E20')
+// 請保證主題已經註冊，否則會報錯
+fRange.useThemeStyle('MyTheme')
+```
+
+我們也提供了刪除註冊主題的 API：
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+fWorkbook.unregisterRangeTheme('MyTheme')
+```
+
+### `RangeThemeStyle` 類
+
+Univer 主題的核心類 [`RangeThemeStyle`](https://github.com/dream-num/univer/blob/dev/packages/sheets/src/model/range-theme-util.ts#L110) 上提供提供了以下屬性供使用者自定義主題：
+
+- `name`: 主題名稱
+- `wholeStyle`: 整個區域的樣式
+- `firstRowStyle`: 第一行的樣式
+- `secondRowStyle`: 第二行的樣式
+- `headerRowStyle`: 表頭行的樣式
+- `lastRowStyle`: 最後一行的樣式
+- `firstColumnStyle`: 第一列的樣式
+- `secondColumnStyle`: 第二列的樣式
+- `headerColumnStyle`: 表頭列的樣式
+- `lastColumnStyle`: 最後一列的樣式
+
+在 `RangeThemeStyle` 類上可以透過 `getXXX/setXXX` 方法來獲取/設定樣式，例如：
+
+```typescript
+const rangeThemeStyle = new RangeThemeStyle('MyTheme')
+rangeThemeStyle.setSecondRowStyle({
+  bg: {
+    rgb: 'rgb(214,231,241)',
+  },
+})
+```
+
+也可以在建立的時候使用可選引數直接建立:
+
+```typescript
+/**
+ * @constructor
+ * @param {string} name The name of the range theme style, it used to identify the range theme style.
+ * @param {IRangeThemeStyleJSON} [options] The options to initialize the range theme style.
+ */
+class RangeThemeStyle {};
+
+// 示例
+const rangeThemeStyle = new RangeThemeStyle('MyTheme', {
+  secondRowStyle: {
+    bg: {
+      rgb: 'rgb(214,231,241)',
+    },
+  },
+})
+```
+
+當你定義了多個樣式時，會按照以下優先順序來應用樣式：
+
+`lastRowStyle` > `headerRowStyle` > `lastColumnStyle` > `headerColumnStyle` > `secondRowStyle` > `firstRowStyle` > `secondColumnStyle` > `firstColumnStyle` > `wholeStyle`
+
+同時，如果某個單元格定義的樣式與 `range theme` 中的樣式衝突時，會以單元格樣式為準。這裡的衝突是指同時在 `style data` 中定義相同的樣式屬性，比如單元格樣式中定義了背景色為`紅色`，而 `range theme` 中定義了背景色為`藍色`，那麼單元格的背景色會是`紅色`。
