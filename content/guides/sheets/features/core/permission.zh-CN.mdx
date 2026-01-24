@@ -2,48 +2,62 @@
 title: 权限控制
 ---
 
-Univer 提供了权限控制的能力，通常可用于限制用户对工作簿、工作表、选区的操作。当用户进行没有权限的操作时，可终止代码执行并提示用户缺失权限。例如你可以在一片选区内设置区域保护，就可以设置其他协作者在该保护范围内是否可以使用编辑、阅读、复制、筛选等等。
+Univer 提供权限控制能力，用于限制用户对工作簿、工作表、选区的操作。当用户执行无权限动作时，Univer 会中止执行并提示缺失权限。常见场景如：对一片选区设置保护，限制协作者的编辑/查看/复制等能力。
 
-**注意：Univer提供的是可拓展的基础能力，并非定制化的能力，如果有持久化或者组织架构等更丰富和更定制化的需求，需要自行实现权限规则的存储和组织架构接入，这里需要编写自定义插件来实现。**
-所以会出现设置权限后去查看权限列表时权限信息为空、查看用户信息时返回为空等情况，这是因为这些信息都需要走接口请求拉取，是自定义的逻辑 需要自己额外补充，可以看下面的第三方接入。
+<Callout type="warning" title="使用前须知">
+  Univer 提供的是可扩展的基础能力，而不是完整的权限系统。
+  如果你需要权限持久化、组织架构、用户信息等定制能力，需要自行实现权限规则存储与组织架构接入，通常通过自定义插件来完成。
+  因此出现“权限列表为空”或“用户信息为空”的情况是正常的：这些信息需要由你的接口返回。可参考下方的“第三方权限服务接入”。
+</Callout>
 
 <PlaygroundFrame lang="zh-CN" slug="sheets/permission" clickToShow />
 
+## 核心概念
+
+- 作用范围：权限可以作用在工作簿、工作表、选区三个层级。
+- 权限点位：每个功能对应一个权限点位，修改点位即可控制功能是否可用。
+- 保护规则：工作表和选区在设置权限点位前，需要先创建保护规则。
+
 ## 基础示例
+
+下面按工作簿、工作表、选区三个层级展示最常见的权限设置方式。
 
 ### 工作簿权限代码示例
 
-目前工作簿的整体权限是直接通过 API 来修改权限点位，我们提供了 [Facade API](/guides/sheets/getting-started/facade)，你可以通过调用这个 API 来设置工作簿不同功能的权限。
+工作簿层级权限通过 [Facade API](/guides/sheets/getting-started/facade) 直接修改权限点位即可。
 
-拿编辑权限举例（其他功能只需替换权限点位即可，具体的参考[权限点位列表 - 工作簿](#workbook-point)），你可以通过下面的代码来设置整体工作簿不可编辑：
+以编辑权限为例（其他功能只需替换权限点位，参考[权限点位列表 - 工作簿](#workbook-point)）：
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
-const permission = fWorkbook.getWorkbookPermission()
+const workbookPermission = fWorkbook.getWorkbookPermission()
 
 // 设置工作簿不可编辑
-await permission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
+await workbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
 ```
+
+要点：
+- 工作簿权限点位可以直接设置，不需要创建保护规则。
 
 ### 工作表权限代码示例
 
-工作表和选区相关的权限设置可以通过 Facade API 和命令系统两种方式来实现。这里以工作表编辑权限举例，其他工作表功能只需替换权限点位即可，具体的参考[权限点位列表 - 工作表](#worksheet-point)。
+工作表和选区相关的权限设置可以通过 Facade API 或命令系统实现。这里以工作表编辑权限举例，其他功能只需替换权限点位，参考[权限点位列表 - 工作表](#worksheet-point)。
 
 <Tabs items={['使用 Facade API', '使用命令系统']}>
   <Tab>
     ```typescript
     const fWorkbook = univerAPI.getActiveWorkbook()
     const fWorksheet = fWorkbook.getActiveSheet()
-    const permission = fWorksheet.getWorksheetPermission()
+    const worksheetPermission = fWorksheet.getWorksheetPermission()
 
     // 创建工作表保护, 允许指定用户编辑
-    const permissionId = await permission.protect({
+    const permissionId = await worksheetPermission.protect({
       allowedUsers: ['user1', 'user2'],
       name: 'My Worksheet Protection',
     })
 
     // 如果需要设置权限点位，必须先创建工作表保护
-    await permission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.Edit, false)
+    await worksheetPermission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.Edit, false)
     ```
   </Tab>
   <Tab>
@@ -80,7 +94,11 @@ await permission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
   </Tab>
 </Tabs>
 
-该命令中的参数：`permissionId` 需要自己生成的唯一 Id 用来存储权限，`unitType` 是工作表的类型，你可以使用仓库中的 `UnitObject` 枚举来替换上面的魔法数，`unitId` 是工作簿的 id，`subUnitId` 是工作表的 id。
+参数说明：
+- `permissionId`：你生成的唯一 Id，用于存储权限。
+- `unitType`：工作表类型，可使用仓库中的 `UnitObject` 枚举替代魔法数。
+- `unitId`：工作簿 id。
+- `subUnitId`：工作表 id。
 
 #### 删除工作表权限
 
@@ -89,10 +107,10 @@ await permission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
     ```typescript
     const fWorkbook = univerAPI.getActiveWorkbook()
     const fWorksheet = fWorkbook.getActiveSheet()
-    const permission = fWorksheet.getWorksheetPermission()
+    const worksheetPermission = fWorksheet.getWorksheetPermission()
 
     // 删除工作表保护
-    await permission.unprotect()
+    await worksheetPermission.unprotect()
     ```
   </Tab>
   <Tab>
@@ -109,7 +127,7 @@ await permission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
 
 ### 自定义选区权限代码示例
 
-选区的权限同样可以通过 API 和命令模式两种方式来执行，这里以选区编辑权限举例，其他选区功能只需替换权限点位即可，具体的参考[权限点位列表 - 选区](#range-point)。
+选区的权限同样支持 API 和命令模式。这里以选区编辑权限举例，其他选区功能只需替换权限点位，参考[权限点位列表 - 选区](#range-point)。
 
 <Tabs items={['使用 Facade API', '使用命令系统']}>
   <Tab>
@@ -117,10 +135,10 @@ await permission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
     const fWorkbook = univerAPI.getActiveWorkbook()
     const fWorksheet = fWorkbook.getActiveSheet()
     const fRange = fWorksheet.getRange('A1:B2')
-    const permission = fRange.getRangePermission()
+    const rangePermission = fRange.getRangePermission()
 
     // 设置区域保护权限，允许指定用户编辑但不允许他人查看
-    const rule = await permission.protect({
+    const rule = await rangePermission.protect({
       name: 'My protected range',
       allowEdit: true,
       allowViewByOthers: false,
@@ -129,8 +147,8 @@ await permission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
     console.log(rule)
 
     // 如果需要设置权限点位，必须先创建区域保护
-    await permission.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
-    await permission.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
+    await rangePermission.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
+    await rangePermission.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
     ```
   </Tab>
   <Tab>
@@ -184,7 +202,10 @@ await permission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
   </Tab>
 </Tabs>
 
-这里面的参数和上面的一样，增加了 `ranges` 参数，这个参数是你要设置权限的区域， 还有一个 `id` 参数, 这个参数是用来标识这个规则的唯一 id，用来删除这个规则。
+参数说明：
+- `ranges`：要设置权限的区域数组。
+- `id`：规则的唯一 id，用于删除该规则。
+- 其余参数含义与上方工作表示例一致。
 
 #### 删除区域保护权限
 
@@ -194,10 +215,10 @@ await permission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
     const fWorkbook = univerAPI.getActiveWorkbook()
     const fWorksheet = fWorkbook.getActiveSheet()
     const fRange = fWorksheet.getRange('A1:B2')
-    const permission = fRange.getRangePermission()
+    const rangePermission = fRange.getRangePermission()
 
     // 删除区域保护
-    await permission.unprotect()
+    await rangePermission.unprotect()
     ```
   </Tab>
   <Tab>
@@ -215,7 +236,9 @@ await permission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
 
 ## 拓展使用
 
-这里以`WorkbookEditablePermission`举例，在自己的插件中增加权限校验，其他点位类似
+当你需要在自己的插件中增加权限校验时，可以直接操作权限点位。
+
+下面以 `WorkbookEditablePermission` 为例，其他点位类似：
 
 ```typescript
 import { IPermissionService } from '@univerjs/core'
@@ -235,9 +258,11 @@ class YourService {
 }
 ```
 
-你也可以拓展修改别得权限点位来实现对不同功能的权限控制，具体点位列表请参考文章底部。
+你也可以扩展修改别的权限点位来实现对不同功能的控制，具体点位列表请参考文章底部。
 
 ### 第三方插件如何扩展权限点位
+
+如果你需要自定义权限点位，可以实现 `IPermissionPoint` 并注册到权限服务中：
 
 ```typescript
 import type { IPermissionPoint } from '@univerjs/core'
@@ -277,8 +302,8 @@ class ConsumeService {
 
   bindEvent() {
     // 这将获得一个 Rx 对象，使得你能够监听当前权限的变化作出一些改变
-    const pount$ = this._permissionService.getPermissionPoint$(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id').id)
-    console.log(pount$)
+    const point$ = this._permissionService.getPermissionPoint$(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id').id)
+    console.log(point$)
   }
 }
 ```
@@ -289,14 +314,13 @@ class ConsumeService {
   已经开始接入自定义权限，可以直接操作更细粒度的权限点位，建议不要和 Permission Facade API 混用。
 </Callout>
 
-权限的判断逻辑通常是由一个外置服务来单独处理，这部分一般会带有一个通信流程，在纯前端 sdk 实现中，我们使用 [AuthzIoLocalService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/authz-io-local.service.ts) 来承载这部分逻辑。
+权限的判断逻辑通常由外置服务处理，这部分一般会带有一个通信流程。在纯前端 SDK 实现中，我们使用 [AuthzIoLocalService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/authz-io-local.service.ts) 来承载这部分逻辑。
 
-在生产环境中，我们需要将这部分实现转由后端实现，前端需要基于 [IAuthzIoService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/type.ts) 类型实现对应的请求函数，来进行运行时的替换。
+在生产环境中，我们需要将这部分实现转由后端实现，前端需要基于 [IAuthzIoService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/type.ts) 类型实现对应的请求函数，以便在运行时替换。
 
 ![权限](./permission/permission-cn.png)
 
-下面是一个简单的示例用来展示预设 2 个角色( 所有者/阅读者) 情况下区域保护权限点位的增删.
-所有者拥有保护区域的编辑/查看权限,而阅读者不能编辑也不能查看保护区域内单元格的内容.
+下面是一个简单示例：预设 2 个角色（所有者/阅读者）情况下区域保护权限点位的增删。所有者拥有保护区域的编辑/查看权限，而阅读者不能编辑也不能查看保护区域内单元格的内容。
 
 ```typescript
 import type { Injector } from '@univerjs/core'
@@ -474,7 +498,7 @@ export class YourPlugin extends Plugin {
   }
 
   override onStarting(): void {
-    this._injector.add([IAuthzIoService, { useClass: YouAuthzService }])
+    this._injector.add([IAuthzIoService, { useClass: YourAuthzService }])
   }
 }
 
@@ -489,7 +513,7 @@ univer.registerPlugin(YourPlugin)
 
 ## 权限点位列表 [#point-list]
 
-不同的功能权限是由不同的权限点位来控制的，修改该点位的值可以控制对应功能的权限。下面是一些常用的权限点位，具体的点位代码，请参阅[这里](https://github.com/dream-num/univer/tree/dev/packages/sheets/src/services/permission/permission-point)。
+不同的功能权限由不同的权限点位控制，修改点位的值即可控制对应功能。具体点位代码请参阅[这里](https://github.com/dream-num/univer/tree/dev/packages/sheets/src/services/permission/permission-point)。
 
 如果 `workbook` 的权限控制和 `worksheet` / `range` 有交叉，那么必须全部为 `true` 才能使用。例如一个单元格的编辑权限必须 `workbook` 和 `worksheet` 的编辑权限都为 `true` 才能编辑。
 
@@ -690,13 +714,15 @@ Univer 内置的自定义用户组件所适配的场景比较有限，如果需�
 
 ## Facade API
 
+Facade API 为权限提供了统一入口，下面按工作簿、工作表、选区分组展示常用方法。
+
 ### 工作簿级权限
 
 #### 获取工作簿权限实例
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
-const permission = fWorkbook.getWorkbookPermission()
+const workbookPermission = fWorkbook.getWorkbookPermission()
 ```
 
 #### 设置工作簿权限点位
@@ -705,29 +731,29 @@ const permission = fWorkbook.getWorkbookPermission()
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
-const permission = fWorkbook.getWorkbookPermission()
+const workbookPermission = fWorkbook.getWorkbookPermission()
 
 // 设置工作簿打印权限为不可用
-await permission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Print, false)
+await workbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Print, false)
 ```
 
 使用预定义模式：
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
-const permission = fWorkbook.getWorkbookPermission()
+const workbookPermission = fWorkbook.getWorkbookPermission()
 
 // 设置为所有者模式
-await permission.setMode('owner')
+await workbookPermission.setMode('owner')
 
 // 设置为编辑者模式
-await permission.setMode('editor')
+await workbookPermission.setMode('editor')
 
 // 设置为只读模式
-await permission.setMode('viewer')
+await workbookPermission.setMode('viewer')
 
 // 设置为评论者模式
-await permission.setMode('commenter')
+await workbookPermission.setMode('commenter')
 ```
 
 使用快捷方法：
@@ -739,14 +765,14 @@ await permission.setMode('commenter')
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
-const permission = fWorkbook.getWorkbookPermission()
+const workbookPermission = fWorkbook.getWorkbookPermission()
 
 // 获取工作簿打印权限状态
-const canPrint = permission.getPoint(univerAPI.Enum.WorkbookPermissionPoint.Print)
+const canPrint = workbookPermission.getPoint(univerAPI.Enum.WorkbookPermissionPoint.Print)
 console.log('Can print:', canPrint)
 
 // 获取工作簿所有权限点位状态
-const snapshot = permission.getSnapshot()
+const snapshot = workbookPermission.getSnapshot()
 console.log('Workbook permission snapshot:', snapshot)
 ```
 
@@ -758,10 +784,10 @@ console.log('Workbook permission snapshot:', snapshot)
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
-const permission = fWorkbook.getWorkbookPermission()
+const workbookPermission = fWorkbook.getWorkbookPermission()
 
 // 订阅工作簿权限点位变化
-const unsubscribe = permission.subscribe((snapshot) => {
+const unsubscribe = workbookPermission.subscribe((snapshot) => {
   console.log('Permission changed:', snapshot)
 })
 
@@ -780,9 +806,9 @@ unsubscribe()
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
-const permission = workbook.getWorkbookPermission()
+const workbookPermission = fWorkbook.getWorkbookPermission()
 
-const collaborators = await permission.listCollaborators()
+const collaborators = await workbookPermission.listCollaborators()
 console.log(collaborators)
 ```
 
@@ -790,10 +816,10 @@ console.log(collaborators)
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
-const permission = workbook.getWorkbookPermission()
+const workbookPermission = fWorkbook.getWorkbookPermission()
 
 // 一次添加多个协作者
-await permission.setCollaborators([
+await workbookPermission.setCollaborators([
   {
     user: { userID: 'user1', name: 'John Doe', avatar: 'https://...' },
     role: univerAPI.Enum.UnitRole.Editor,
@@ -805,7 +831,7 @@ await permission.setCollaborators([
 ])
 
 // 添加单个协作者
-await permission.addCollaborator(
+await workbookPermission.addCollaborator(
   { userID: 'user1', name: 'John Doe', avatar: 'https://...' },
   univerAPI.Enum.UnitRole.Editor,
 )
@@ -815,9 +841,9 @@ await permission.addCollaborator(
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
-const permission = workbook.getWorkbookPermission()
+const workbookPermission = fWorkbook.getWorkbookPermission()
 
-await permission.updateCollaborator(
+await workbookPermission.updateCollaborator(
   { userID: 'user1', name: 'John Doe Updated', avatar: 'https://...' },
   univerAPI.Enum.UnitRole.Reader,
 )
@@ -827,13 +853,13 @@ await permission.updateCollaborator(
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
-const permission = workbook.getWorkbookPermission()
+const workbookPermission = fWorkbook.getWorkbookPermission()
 
 // 删除多个协作者
-await permission.removeCollaborators(['user1', 'user2'])
+await workbookPermission.removeCollaborators(['user1', 'user2'])
 
 // 删除单个协作者
-await permission.removeCollaborator('user1')
+await workbookPermission.removeCollaborator('user1')
 ```
 
 ### 工作表级权限
@@ -843,7 +869,7 @@ await permission.removeCollaborator('user1')
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
-const permission = fWorksheet.getWorksheetPermission()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
 ```
 
 #### 工作表保护
@@ -851,21 +877,21 @@ const permission = fWorksheet.getWorksheetPermission()
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
-const permission = fWorksheet.getWorksheetPermission()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
 
 // 设置工作表保护，允许指定用户编辑
-const permissionId = await permission.protect({
+const permissionId = await worksheetPermission.protect({
   allowedUsers: ['user1', 'user2'],
   name: 'My Worksheet Protection',
 })
 
 // 检查工作表是否受保护
-const isProtected = permission.isProtected()
+const isProtected = worksheetPermission.isProtected()
 console.log('Is worksheet protected:', isProtected)
 
 if (isProtected) {
   // 取消工作表保护
-  await permission.unprotect()
+  await worksheetPermission.unprotect()
 }
 ```
 
@@ -874,10 +900,10 @@ if (isProtected) {
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
-const permission = fWorksheet.getWorksheetPermission()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
 
 // 设置多个保护范围，A1:B2 不允许编辑但允许他人查看，C3:D4 允许指定用户编辑但不允许他人查看
-const rules = await permission.protectRanges([
+const rules = await worksheetPermission.protectRanges([
   {
     ranges: [fWorksheet.getRange('A1:B2')],
     options: { name: 'Protected Area 1', allowEdit: false, allowViewByOthers: true },
@@ -890,11 +916,11 @@ const rules = await permission.protectRanges([
 console.log(rules)
 
 // 获取当前所有保护范围规则
-const rules = await permission.listRangeProtectionRules()
-console.log(rules)
+const ruleList = await worksheetPermission.listRangeProtectionRules()
+console.log(ruleList)
 
 // 取消第一个保护范围
-await permission.unprotectRules([rules[0].id])
+await worksheetPermission.unprotectRules([ruleList[0].id])
 ```
 
 #### 设置工作表权限点位
@@ -904,13 +930,13 @@ await permission.unprotectRules([rules[0].id])
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
-const permission = fWorksheet.getWorksheetPermission()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
 
 // 如果需要设置权限点位，必须先创建工作表保护
-await permission.protect()
+await worksheetPermission.protect()
 
 // 设置工作表插入行权限为不可用
-await permission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.InsertRow, false)
+await worksheetPermission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.InsertRow, false)
 ```
 
 使用预定义模式：
@@ -918,22 +944,22 @@ await permission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.InsertRow, fal
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
-const permission = fWorksheet.getWorksheetPermission()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
 
 // 如果需要设置权限点位，必须先创建工作表保护
-await permission.protect()
+await worksheetPermission.protect()
 
 // 设置为编辑模式
-await permission.setMode('editable')
+await worksheetPermission.setMode('editable')
 
 // 设置为只读模式
-await permission.setMode('readOnly')
+await worksheetPermission.setMode('readOnly')
 
 // 设置为仅筛选/排序模式
-await permission.setMode('filterOnly')
+await worksheetPermission.setMode('filterOnly')
 
 // 设置为自定义模式
-await permission.applyConfig({
+await worksheetPermission.applyConfig({
   mode: 'readOnly',
   points: {
     [univerAPI.Enum.WorksheetPermissionPoint.InsertRow]: true,
@@ -952,13 +978,13 @@ await permission.applyConfig({
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
-const permission = fWorksheet.getWorksheetPermission()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
 
 // 获取工作表插入行权限状态
-const canInsertRow = permission.getPoint(univerAPI.Enum.WorksheetPermissionPoint.InsertRow)
+const canInsertRow = worksheetPermission.getPoint(univerAPI.Enum.WorksheetPermissionPoint.InsertRow)
 
 // 获取工作表所有权限点位状态
-const snapshot = permission.getSnapshot()
+const snapshot = worksheetPermission.getSnapshot()
 ```
 
 使用快捷方法：
@@ -972,10 +998,10 @@ const snapshot = permission.getSnapshot()
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
-const permission = fWorksheet.getWorksheetPermission()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
 
 // 订阅工作表权限点位变化
-const unsubscribe = permission.subscribe((snapshot) => {
+const unsubscribe = worksheetPermission.subscribe((snapshot) => {
   console.log('Permission changed:', snapshot)
 })
 
@@ -991,7 +1017,7 @@ unsubscribe()
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 const fRange = fWorksheet.getRange('A1:B2')
-const permission = fRange.getRangePermission()
+const rangePermission = fRange.getRangePermission()
 ```
 
 #### 设置区域保护权限
@@ -1000,10 +1026,10 @@ const permission = fRange.getRangePermission()
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 const fRange = fWorksheet.getRange('A1:B2')
-const permission = fRange.getRangePermission()
+const rangePermission = fRange.getRangePermission()
 
 // 设置区域保护权限，允许指定用户编辑但不允许他人查看
-const rule = await permission.protect({
+const rule = await rangePermission.protect({
   name: 'My protected range',
   allowEdit: true,
   allowViewByOthers: false,
@@ -1012,11 +1038,11 @@ const rule = await permission.protect({
 console.log(rule)
 
 // 获取当前区域保护规则
-const rules = await permission.listRules()
+const rules = await rangePermission.listRules()
 console.log(rules)
 
 // 取消区域保护
-await permission.unprotect()
+await rangePermission.unprotect()
 ```
 
 #### 设置选区权限点位
@@ -1027,10 +1053,10 @@ await permission.unprotect()
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 const fRange = fWorksheet.getRange('A1:B2')
-const permission = fRange.getRangePermission()
+const rangePermission = fRange.getRangePermission()
 
 // 如果需要设置权限点位，必须先创建区域保护
-await permission.protect({
+await rangePermission.protect({
   name: 'My protected range',
   allowEdit: true,
   allowViewByOthers: false,
@@ -1038,8 +1064,8 @@ await permission.protect({
 })
 
 // 设置 A1:B2 选区的编辑权限为不可用，查看权限为可用
-await permission.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
-await permission.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
+await rangePermission.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
+await rangePermission.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
 ```
 
 #### 获取选区权限点位状态
@@ -1048,14 +1074,14 @@ await permission.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 const fRange = fWorksheet.getRange('A1:B2')
-const permission = fRange.getRangePermission()
+const rangePermission = fRange.getRangePermission()
 
 // 获取选区编辑权限状态
-const canEdit = permission.getPoint(univerAPI.Enum.RangePermissionPoint.Edit)
+const canEdit = rangePermission.getPoint(univerAPI.Enum.RangePermissionPoint.Edit)
 console.log(canEdit)
 
 // 获取选区所有权限点位状态
-const snapshot = permission.getSnapshot()
+const snapshot = rangePermission.getSnapshot()
 ```
 
 使用快捷方法：
@@ -1071,10 +1097,10 @@ const snapshot = permission.getSnapshot()
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 const fRange = fWorksheet.getRange('A1:B2')
-const permission = fRange.getRangePermission()
+const rangePermission = fRange.getRangePermission()
 
 // 订阅选区权限点位变化
-const unsubscribe = permission.subscribe((snapshot) => {
+const unsubscribe = rangePermission.subscribe((snapshot) => {
   console.log('Permission changed:', snapshot)
 })
 
@@ -1087,8 +1113,8 @@ unsubscribe()
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
-const permission = fWorksheet.getWorksheetPermission()
-const rules = await permission.listRangeProtectionRules()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
+const rules = await worksheetPermission.listRangeProtectionRules()
 const rule = rules?.[0]
 
 // 获取第一个保护规则的 ID
