@@ -1,0 +1,343 @@
+---
+title: 故障排查
+---
+
+本指南在“快速開始”文件基礎上擴充套件，面向在安裝、啟動、驗證、整合（USIP）、更新、解除安裝及核心功能（含匯入/匯出）過程中遇到問題的工程師，提供系統化定位與處理步驟。
+
+## 1. 適用讀者與範圍
+
+**適用物件：**
+- 使用一鍵安裝指令碼（`bash -c "$(curl -fsSL https://get.univer.ai)"`）在本地或伺服器透過 Docker Compose 部署的使用者
+- 使用 Helm 在 Kubernetes 叢集中部署 Univer 的使用者
+- 正在整合 USIP、事件同步、後端能力的開發者
+- 排查匯入/匯出長時間 Pending（依賴 temporal / exchange / universer）的運維 / 平臺工程師
+
+**不包含：**
+- 前端 SDK 整合細節
+- OpenAPI（尚在設計中）
+
+## 2. 故障生命週期階段與典型情況
+
+| 階段 | 場景 | 典型症狀 | 重點元件/檔案 |
+|------|------|----------|---------------|
+| 下載/安裝 | 一鍵指令碼 / 離線包 | 指令碼中斷、映象拉取失敗 | 網路、DNS、離線包完整性 |
+| 首次啟動 | Docker Compose | 容器反覆重啟 / 部分未啟動 | run.sh、docker-compose.yml |
+| 驗證訪問 | Demo UI / 協同 | http://localhost:3010/ 不能訪問、空白頁、WebSocket 失敗 | 反向代理 / 埠占用 |
+| USIP 模式 | 身份整合 | http://localhost:8080 無法訪問、401/403 | .env.custom、USIP_ENABLED |
+| K8s 部署 | Helm 安裝 | Pod Pending / CrashLoopBackOff | 映象倉庫訪問、PVC、Ingress |
+| 更新升級 | 覆蓋安裝 / helm upgrade | 資料丟失（不應發生）、版本未變化 | 資料卷掛載、tag 混淆 |
+| 解除安裝 | 清理環境 | 資料未清理 / 誤刪生產資料 | run.sh uninstall、helm uninstall |
+| 匯入/匯出 | 任務 Pending | 狀態長時間不變 | temporal / exchange / universer |
+| 效能 | 協同卡頓 | 高 CPU / 記憶體 / RTT 高 | 容器資源、網路延遲 |
+
+## 3. 快速決策入口（症狀 → 排查路徑）
+
+| 症狀 | 立即執行 | 若未解決轉下一步 |
+|------|----------|------------------|
+| 一鍵指令碼卡住 | 檢查網路：`curl https://get.univer.ai -v` | 使用離線安裝包 |
+| Demo UI 3010 埠拒絕 | `cd univer-server && bash run.sh start` | `docker compose ps` 檢查容器 |
+| USIP Demo 8080 404 | 確認 `.env.custom` 中 `USIP_ENABLED=true` | `bash run.sh restart` 後看日誌 |
+| Helm 安裝 Pod Pending | `kubectl get nodes` 節點資源 | `kubectl describe pod` 檢視排程原因 |
+| 匯入/匯出 Pending | 參見第 9 節完整流程 | 收集日誌後提 Issue |
+| 更新後版本未變 | 確認命令含版本引數 | 清理映象快取 / 指定 tag |
+| 解除安裝後仍有資料 | 檢查掛載卷目錄 | 手工清理（確認非生產） |
+
+## 4. Docker Compose 部署常見故障排查
+
+### 4.1 一鍵安裝失敗
+
+**常見表現：**
+- curl 超時
+- 映象拉取超時（國內/跨境網路因素）
+- 指令碼執行許可權錯誤
+
+**排查步驟：**
+1. 網路連通性：
+  ```bash
+  curl -I https://get.univer.ai
+  dig get.univer.ai
+  ```
+
+2. 若指令碼卡主於 Docker 安裝階段：檢查是否已存在舊版本 Docker 服務衝突：
+  ```bash
+  systemctl status docker
+  ps -ef | grep dockerd
+  ```
+
+3. 使用離線安裝包時：
+- 校驗檔案完整性（如提供 sha256）
+- 解壓後執行：
+  ```bash
+  bash load-images.sh
+  ```
+
+### 4.2 首次啟動後缺少 `univer-server` 目錄
+
+- 檢查當前工作目錄是否具有寫許可權
+- 再次執行安裝命令前確認未誤在只讀掛載點
+
+### 4.3 服務未啟動或部分容器 Down
+
+**進入目錄：**
+```bash
+cd univer-server
+bash run.sh start
+docker compose ps
+docker compose logs --tail=200 <service>
+```
+
+**關注：**
+- 埠衝突：`lsof -i :3010`
+- 環境變數未載入：檢視生成的 `.env`、`.env.custom`
+
+### 4.4 Demo UI 訪問異常
+
+| 現象 | 可能原因 | 動作 |
+|------|----------|------|
+| 瀏覽器空白 | 前端資源未構建／未託管 | 檢查對應靜態服務容器日誌 |
+| WebSocket 斷開 | 反向代理未透傳 / 跨域 | 確認未處在額外代理層（如公司閘道器） |
+| 自動建立空白文件失敗 | universer 未連上儲存 | 檢視 universer 日誌 |
+
+## 5. K8s (Helm) 部署故障排查
+
+### 5.1 安裝命令執行但資源未建立
+
+```bash
+helm ls -n univer
+kubectl get pods -n univer
+```
+
+### 5.2 Pod Pending
+
+```bash
+kubectl describe pod <pod> -n univer
+```
+
+**檢查：**
+- 映象拉取失敗：私有倉庫認證
+- PVC 繫結失敗：StorageClass 不存在
+- 資源請求超出節點可分配
+
+### 5.3 CrashLoopBackOff
+
+```bash
+kubectl logs <pod> -n univer --previous
+```
+
+### 5.4 Ingress / 域名訪問失敗
+
+- DNS 解析：`dig univer.example.com`
+- Ingress 對應 Service：`kubectl get ingress -n univer`
+- Service 後端 Endpoint：`kubectl get endpoints -n univer`
+
+### 5.5 升級失敗回滾
+
+```bash
+helm upgrade --install univer-stack ... -n univer
+helm rollback univer-stack <revision> -n univer
+```
+
+## 6. USIP（使用者身份整合）相關問題
+
+| 現象 | 排查命令 | 說明 |
+|------|----------|------|
+| 8080 無響應 | `docker compose ps` 是否啟動 demo-usip service | 需執行 `bash run.sh start-demo-usip` |
+| 開啟 USIP 後服務報 401 | 檢視 universer 日誌鑑權模組 | 未正確傳入 token / session |
+| 設定 `USIP_ENABLED=true` 無效果 | 確認檔名 `.env.custom` | 修改後一定要 `bash run.sh restart` |
+
+**建議驗證：**
+```bash
+curl -I http://localhost:8080
+```
+
+## 7. 更新與版本管理
+
+### 7.1 Docker Compose 方式
+
+| 目標 | 操作 | 說明 |
+|------|------|------|
+| 更新到最新 | 在父目錄重新執行一鍵指令碼 | 保留原資料卷與配置 |
+| 更新到指定版本 | 新增 `-- <version>` | 例：`-- 0.9.1` |
+| 驗證版本 | 查映象 tag / 執行容器 ENV | `docker compose images` |
+
+**避免問題：**
+- 舊映象快取未被替換：可手動 `docker image prune -f`（慎用）
+- 資料相容性：跨大版本前備份資料卷
+
+### 7.2 Helm 方式
+
+```bash
+helm repo update  # 若使用倉庫
+helm upgrade --install univer-stack ... -n univer
+```
+
+**驗證：**
+```bash
+helm history univer-stack -n univer
+kubectl describe deployment universer -n univer | grep Image
+```
+
+## 8. 解除安裝與資料安全
+
+| 環境 | 解除安裝命令 | 是否刪除資料 |
+|------|----------|--------------|
+| Docker Compose | `bash run.sh uninstall` | 刪除卷及文件資料（不可恢復） |
+| K8s | `helm uninstall univer-stack -n univer` | 僅刪除資源；PVC 是否保留取決於 StorageClass 的回收策略 |
+
+**建議：**
+- 生產前先在測試環境演練解除安裝
+- 資料卷手動備份（rsync / tar）
+
+## 9. 匯入 / 匯出任務長時間 Pending 排查（重點）
+
+### 9.1 排查流程總覽
+
+1. 關閉本地 VPN/代理 → `bash run.sh restart`
+2. 服務狀態 → `docker compose ps`
+3. Temporal 是否正常 → `docker compose logs -f temporal`
+4. exchange 連線是否異常 → `docker compose logs -f univer-worker-exchange`
+5. universer 是否投遞任務成功 → `docker compose logs -f universer`
+6. 無法定位 → 收集資訊提交 Issue
+
+### 9.2 Temporal 啟動失敗
+
+- 埠占用（預設 7233）
+- DNS / 主機名解析失敗
+- 依賴資料庫（如外部）無許可權
+
+**動作：**
+```bash
+docker compose logs -f temporal
+```
+
+參考官方映象文件：https://hub.docker.com/r/temporalio/auto-setup
+
+### 9.3 exchange 報錯：
+
+```text
+connect temporal fail: failed reaching server: context deadline exceeded
+```
+
+**修改 `exchange/config.yaml.template`：**
+```text
+addr: no-txt:///${TEMPORAL_HOST}:${TEMPORAL_PORT}
+```
+
+**重啟：**
+```bash
+bash run.sh restart
+```
+
+### 9.4 universer 未消費 / 未投遞
+
+**現象：**
+- 日誌無任務提交記錄
+- 或存在鑑權 / 反序列化 / 配置缺失
+
+**檢查：**
+```bash
+docker compose logs --tail=300 universer | egrep -i "error|import|export|task"
+```
+
+### 9.5 常見現象速查表
+
+| 現象 | 根因 | 解決 |
+|------|------|------|
+| 所有容器 Up，任務仍 Pending | exchange 與 temporal 阻塞 | 修改 addr + 重啟 |
+| temporal 週期性重啟 | 初始化失敗 / 儲存不可用 | 修正資料庫/儲存配置 |
+| universer 日誌無投遞 | API 未正確呼叫 / 引數校驗失敗 | 開啟除錯級日誌，復現並抓包 |
+| 單任務長時間無進度 | Worker 執行緒不足 / 佇列阻塞 | 檢查 exchange 負載，擴容例項 |
+| 高併發下全 Pending | 資源瓶頸 | 檢視 CPU / 記憶體 / I/O 指標 |
+
+## 10. 日誌收集與分析
+
+| 服務 | 關鍵日誌關注點 | 命令示例 |
+|------|---------------|----------|
+| temporal | 初始化、連線、心跳 | `docker compose logs -f temporal` |
+| exchange / univer-worker-exchange | 連線 temporal、佇列消費 | `docker compose logs -f univer-worker-exchange` |
+| universer | API 請求、任務提交、異常棧 | `docker compose logs -f universer` |
+| K8s 環境 | Pod 重啟原因、Liveness 失敗 | `kubectl describe pod ...` |
+
+**收集建議：**
+```bash
+# 打包日誌
+mkdir -p logs_collect && \
+docker compose logs temporal > logs_collect/temporal.log 2>&1 && \
+docker compose logs universer > logs_collect/universer.log 2>&1 && \
+tar czf univer-troubleshoot-logs.tar.gz logs_collect
+```
+
+## 11. 效能與資源監控建議
+
+| 元件 | 指標 | 閾值建議 | 說明 |
+|------|------|----------|------|
+| universer | CPU / 平均響應時間 | > 80% 持續 5 min | 可能執行緒飽和 |
+| temporal | Workflow Pending 數量 | 按場景基線增長 | 激增說明 Worker 堵塞 |
+| exchange | 任務佇列滯留數 | 不應線性攀升 | 需擴容或排查錯誤 |
+| Docker 主機 | 磁碟可用空間 | < 15% | 影響映象 / 日誌寫入 |
+| K8s | Pod 重啟次數 | > 3/小時 | 穩定性異常 |
+
+## 12. 排查 Checklist
+
+| 項 | 完成 |
+|----|------|
+| 網路連通（禁用代理/VPN） |
+| 服務全部 Up / Pod Ready |
+| temporal 日誌無錯誤 |
+| exchange 與 temporal 正常互動 |
+| universer 日誌無任務報錯 |
+| 已驗證 UI / API 正常 |
+| 更新 / 版本號確認 |
+| 升級或配置變更前有備份 |
+| 已採集完整日誌（附時間段） |
+| 復現步驟最小化 |
+
+## 13. 關鍵命令速查
+
+```bash
+# 一鍵安裝（最新）
+bash -c "$(curl -fsSL https://get.univer.ai)"
+
+# 指定版本
+bash -c "$(curl -fsSL https://get.univer.ai/product)" -- 0.9.1
+
+# 啟動 / 停止 / 重啟
+cd univer-server && bash run.sh start
+cd univer-server && bash run.sh stop
+cd univer-server && bash run.sh restart
+
+# 解除安裝（危險操作）
+cd univer-server && bash run.sh uninstall
+
+# 啟動 Demo UI
+cd univer-server && bash run.sh start-demo-ui
+
+# 啟用 USIP（編輯後重啟）
+echo "USIP_ENABLED=true" >> .env.custom
+bash run.sh restart
+bash run.sh start-demo-usip
+
+# 監控容器
+docker compose ps
+docker compose logs -f universer
+
+# K8s 安裝
+helm install -n univer --create-namespace \
+  --set global.istioNamespace="univer" \
+  univer-stack oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack
+
+# K8s 更新
+helm upgrade --install univer-stack \
+  oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
+  -n univer
+```
+
+## 14. 常見誤區與預防
+
+| 誤區 | 後果 | 正確做法 |
+|------|------|----------|
+| 在錯誤目錄重複執行安裝指令碼 | 生成多個散落例項 | 統一規劃部署根目錄 |
+| 忽略 `.env.custom` 管理 | 配置漂移 | 將自定義與模板分離 |
+| 未備份直接升級 | 資料相容風險 | 關鍵卷定期備份 |
+| 把臨時試用用於生產 | 功能/效能限制 | 申請正式許可證 |
+| 未收集日誌即提 Issue | 反饋週期變長 | 使用模板與打包指令碼 |

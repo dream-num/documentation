@@ -1,0 +1,81 @@
+---
+title: イベント同期メカニズム
+---
+
+イベント同期メカニズムは、協調エンジン内で発生するイベントを公開するためのチャネルを提供します。クライアントシステムはこれらのイベントを購読し、自身の業務と組み合わせて次のアクションを行えます。
+
+![event-sync](./event-sync/event-sync.png)
+
+**イベント同期メカニズムの使い方**
+
+現在サポートされている協調イベント同期:
+
+- 共同編集: 変更セットの保存成功
+
+## イベント同期メカニズムの使い方
+
+イベント同期メカニズムの利用開始はとても簡単です。
+
+1. イベント同期スイッチを有効化する
+2. コンシューマーを起動する
+
+### イベント同期の有効化
+
+以下の設定をカスタム設定ファイルに追加してください。カスタム設定ファイルの追加方法は [本番環境へのデプロイ](/guides/pro/deploy) を参照してください。
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    .env.custom ファイルに記述します。
+
+    ```properties title=".env.custom"
+    EVENT_SYNC=true # true で有効化
+    ```
+  </Tab>
+  <Tab label="K8s">
+    values.yaml ファイルに記述します。
+
+    ```yaml title="values.yaml"
+    universer:
+      config:
+        rabbitmq:
+          eventSync: true # true で有効化
+    ```
+  </Tab>
+</Tabs>
+
+### コンシューマーのコード例
+
+[https://github.com/dream-num/univer-event-sync-example-go](https://github.com/dream-num/univer-event-sync-example-go) を参照してください。
+
+## データ構造
+
+```go
+message EventSyncData {
+  string eventId = 1;
+  string eventType = 2; // type of event, now support changeset
+  int32 createdAt = 3;
+  oneof event {
+    univer.ChangesetAck csAckEvent = 4;
+    // more event types in the future.
+  }
+}
+
+message ChangesetAck {
+  univer.Changeset cs = 1;
+}
+
+message Changeset {
+  string unitID = 1; // unitID of the Univer document
+  univer.constants.UniverType type = 2;
+  int32 baseRev = 3;
+  int32 revision = 4;
+  string userID = 5;
+  repeated Mutation mutations = 6;
+  string memberID = 7;
+}
+
+message Mutation {
+  string id = 1; // ID of the mutation
+  string data = 2; // serialized params
+}
+```

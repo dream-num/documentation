@@ -1,0 +1,63 @@
+---
+title: 運維手冊
+---
+
+本節介紹 Univer 提供的後端服務運維資源，幫助你更好地瞭解 Univer 後端服務的執行情況、定位故障、管理容量。
+
+Univer 提供了以下可觀測支援：
+
+- Prometheus metrics 指標
+- 服務日誌
+
+## Metrics
+
+Univer 後端服務輸出了 Prometheus 指標，如果你配置了 Univer 部署內建的可觀測元件，你可以直接開啟 Grafana 檢視，我們已經內建了一組 Grafana 監控面板，包括：
+
+- 基礎元件：rabbitmq、redis、rds
+- 協同服務 collaboration-server
+- 主服務 universer
+- 匯入匯出服務 exchange
+
+你可從中實時檢視 Univer 服務的效能指標、可用性、關鍵業務指標。如果你使用的是自己的監控系統，可以[點此下載](https://release-univer.oss-cn-shenzhen.aliyuncs.com/release/univer-grafana-dashboards.tar.gz) Univer 準備好的 grafana 監控面板配置。
+
+Grafana 看板基礎說明：
+
+1. 服務黃金 4 指標，重點觀測 QPS、整體和各 API 的 SLI、錯誤碼分佈
+
+![服務黃金 4 指標](./sre-manual/golden-4-metrics.png)
+
+2. 業務視角的基礎元件效能和可用性
+
+- RDS
+
+![RDS 效能和可用性](./sre-manual/rds-metrics.png)
+
+- Redis & MQ
+
+![Redis 和 MQ 效能和可用性](./sre-manual/redis-and-mq.png)
+
+3. 協同編輯業務指標
+
+![協同編輯業務指標](./sre-manual/collaboration-edit-metrics.png)
+
+4. 如果你開啟了 USIP 整合，可以觀測 Univer 服務側視角的技術指標
+
+![USIP 技術指標](./sre-manual/usip-metrics.png)
+
+## 服務日誌
+
+如果你使用 docker compose 部署，可以透過 docker 命令直接檢視對應容器的日誌。Univer 後端服務的日誌除了輸出到標準輸出，還會輸出到持久化卷，但不會永久儲存。當單個服務例項的日誌總大小超過 1G 時會立即清除部分較早的日誌，即使日誌大小未超過 1G，最多也只會保留 30 天，超過 30 天的那部分日誌檔案將被清除。你可以直接開啟對應的日誌檔案檢視。universer 服務的日誌儲存在部署目錄下的 `/logs/universer/`，匯入匯出服務的日誌則儲存在 `/logs/worker-exchange/`
+
+不論你是用 docker compose 還是 k8s 部署，如果你配置部署了 Univer 內建的可觀測元件，還可以使用 Loki 檢視日誌。檢視路徑：grafana Toggle Menu -> Explore，資料來源選擇 Loki，如下圖所示：
+
+![Loki 日誌搜尋](./sre-manual/loki-search.png)
+
+當然，如果你已有自己的日誌元件，可以配置採集 Univer 的日誌。Univer 後端服務的日誌都會輸出到標準輸出。
+
+## 常見錯誤排查
+
+1. 發現服務出現某些功能不可用
+
+首先，開啟監控面板，檢查訪問基礎元件 RDS、MQ、Redis 是否正常，即檢視 SLI 是否正常，如果 SLI 異常，一般就是基礎元件故障或服務和基礎元件的網路故障。
+
+如果基礎元件訪問正常，再檢視 universer 服務的 ingress 和 egress 的各介面 SLI 是否正常，如果有某些介面 SLI 異常，可檢視此介面返回的錯誤碼，根據錯誤碼能瞭解一些原因。同時，透過 Grafana Loki 嘗試搜尋該錯誤碼的日誌，搜尋關鍵詞：biz_code=the_biz_err_code。可透過這些資訊進一步定位問題根因。

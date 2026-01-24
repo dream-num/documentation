@@ -1,0 +1,63 @@
+---
+title: SRE マニュアル
+---
+
+このセクションでは、Univer が提供するバックエンドサービスの運用・保守リソースを紹介し、稼働状況の把握、障害の切り分け、容量管理に役立てるための情報を提供します。
+
+Univer は以下の可観測性機能を提供しています:
+
+- Prometheus メトリクス
+- サービスログ
+
+## メトリクス
+
+Univer バックエンドサービスは Prometheus メトリクスを生成します。Univer デプロイに含まれる可観測性コンポーネントを設定済みであれば、Grafana で直接確認できます。以下の Grafana 監視ダッシュボードを用意しています:
+
+- コンポーネント: rabbitmq, redis, rds
+- 共同編集サービス: collaboration-server
+- universer
+- import & export exchange
+
+Univer サービスのパフォーマンス、可用性、主要ビジネスメトリクスをリアルタイムで確認できます。独自の監視システムを利用している場合は、Univer が用意した Grafana ダッシュボード設定を [こちらからダウンロード](https://release-univer.oss-cn-shenzhen.aliyuncs.com/release/univer-grafana-dashboards.tar.gz) できます。
+
+用意された Grafana ダッシュボードの説明:
+
+1. Golden 4 メトリクス（各 API の QPS/SLI とエラーコード分布の観測）
+
+![Golden 4 metrics](./sre-manual/golden-4-metrics.png)
+
+2. サーバー側コンポーネントの性能と可用性
+
+- RDS
+
+![RDS metrics](./sre-manual/rds-metrics.png)
+
+- Redis & MQ
+
+![Redis and MQ metrics](./sre-manual/redis-and-mq.png)
+
+3. 共同編集のビジネスメトリクス
+
+![Collaborative editing metrics](./sre-manual/collaboration-edit-metrics.png)
+
+4. USIP 統合を有効化した場合の Univer サービス側技術メトリクス
+
+![USIP metrics](./sre-manual/usip-metrics.png)
+
+## サービスログ
+
+docker compose でデプロイしている場合、docker コマンドで該当コンテナのログを直接確認できます。Univer バックエンドサービスのログは標準出力に加えて永続ボリュームにも出力されますが、永続保存はされません。単一サービスインスタンスのログ総量が 1G を超えると古いログは即時削除されます。1G 未満でも最大 30 日間のみ保持され、30 日を超えるログは削除されます。対応するログファイルを直接開いて確認できます。universer のログはデプロイディレクトリの `/logs/universer/` に、インポート/エクスポートサービスのログは `/logs/worker-exchange/` に保存されます。
+
+Docker Compose または K8s のいずれでデプロイしていても、Univer の可観測性コンポーネントを設定・デプロイ済みであれば、Loki でログを閲覧できます。Grafana の切替メニューから Explore を開き、データソースに Loki を選択します。以下の図を参照してください。
+
+![Loki search](./sre-manual/loki-search.png)
+
+もちろん、独自のログシステムをお持ちの場合は Univer サービスのログ収集を設定できます。Univer バックエンドサービスのログは標準出力に出力されます。
+
+## よくあるエラーの切り分け
+
+1. サービスの一部機能が利用できない場合
+
+まず監視ダッシュボードを開き、RDS/MQ/Redis など基盤コンポーネントへのアクセスが正常か、つまり SLI が正常かを確認します。SLI が異常な場合、多くは基盤コンポーネントの障害、またはサービスと基盤コンポーネント間のネットワーク障害が原因です。
+
+基盤コンポーネントが正常なら、universer サービスの入出力インターフェースの SLI が正常かを確認します。一部インターフェースの SLI が異常な場合は、返却されたエラーコードを確認し、原因を把握します。同時に Grafana Loki で該当エラーコードを検索してください。検索キーワード: `biz_code = the_biz_err_code`。この情報で原因の特定がさらに進みます。

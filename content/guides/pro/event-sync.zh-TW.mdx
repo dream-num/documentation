@@ -1,0 +1,81 @@
+---
+title: 事件同步機制
+---
+
+事件同步機制提供一種將協同引擎內部發生事件釋出出去的通道，客戶系統能夠消費這些事件，結合自身的業務做下一步事情。
+
+![事件同步](./event-sync/event-sync.png)
+
+**事件同步了哪些內容？**
+
+目前協同事件同步支援：
+
+- 協同編輯：成功落庫的 changeset
+
+## 如何使用事件同步機制
+
+開始使用事件同步機制非常簡單：
+
+1. 開啟事件同步開關
+2. 啟動 Consumer 消費事件
+
+### 開啟事件同步開關
+
+新增下述自定義配置以開啟，可以前往[生產部署](/guides/pro/deploy)瞭解如何應用自定義配置。
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    在 .env.custom 檔案中寫入
+
+    ```properties title=".env.custom"
+    EVENT_SYNC=true # 設定 true 為開啟
+    ```
+  </Tab>
+  <Tab label="K8s">
+    在 values.yaml 檔案中寫入
+
+    ```yaml title="values.yaml"
+    universer:
+      config:
+        rabbitmq:
+          eventSync: true # 設定 true 為開啟
+    ```
+  </Tab>
+</Tabs>
+
+### 消費者程式碼示例
+
+參考 [https://github.com/dream-num/univer-event-sync-example-go](https://github.com/dream-num/univer-event-sync-example-go)
+
+## 關鍵的資料結構
+
+```go
+message EventSyncData {
+  string eventId = 1;
+  string eventType = 2; // type of event, now support changeset
+  int32 createdAt = 3;
+  oneof event {
+    univer.ChangesetAck csAckEvent = 4;
+    // more event types in the future.
+  }
+}
+
+message ChangesetAck {
+  univer.Changeset cs = 1;
+}
+
+message Changeset {
+  string unitID = 1; // unitID of the Univer document
+  univer.constants.UniverType type = 2;
+  int32 baseRev = 3;
+  int32 revision = 4;
+  string userID = 5;
+  repeated Mutation mutations = 6;
+  string memberID = 7;
+}
+
+message Mutation {
+  string id = 1; // ID of the mutation
+  string data = 2; // serialized params
+}
+```

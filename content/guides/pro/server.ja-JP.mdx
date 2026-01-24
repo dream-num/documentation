@@ -1,0 +1,164 @@
+---
+title: クイックスタート
+---
+
+Univer のバックエンドサービスが必要な機能をすぐに体験したい場合は、用意されたワンクリックデプロイ版を利用できます。
+
+[Univer Server の構成要件](/guides/pro#evironment-requirements) を参照し、Univer バックエンドサービスの実行要件を満たしていることを確認してください。
+
+<Callout>
+  ライセンス未取得の Univer バックエンドサービスは機能制限付きの体験版です。制限なしで利用する場合は [ライセンス](/guides/pro/license) セクションを参照してください。
+</Callout>
+
+## Docker Compose へのワンクリックデプロイ
+
+### インストール
+
+<Callout type="warning" title="注意事項">
+  Docker を未インストールの場合、以下のスクリプトが最新バージョンの Docker を自動でインストールします。
+</Callout>
+
+次のコマンドを実行すると、**現在のディレクトリ**に Univer バックエンドサービスの最新バージョンを自動でダウンロード、インストール、起動します:
+
+```bash
+bash -c "$(curl -fsSL https://get.univer.ai)"
+```
+
+特定バージョンをインストールしたい場合は、上記コマンドに `-- <version>` を付与します。例:
+
+```bash
+bash -c "$(curl -fsSL https://get.univer.ai/product)" -- 0.9.1
+```
+
+オフラインインストール:
+
+オフラインインストールパッケージをダウンロード: https://univer.ai/releases/univer-server/download
+
+1. オフラインインストールパッケージをデプロイサーバーにアップロードして解凍します。
+2. 解凍したディレクトリで `bash load-images.sh` を実行し、Univer バックエンドサービスのイメージをローカル Docker に読み込みます。
+
+スクリプト実行後、サービスは現在の作業ディレクトリ配下の `univer-server` にインストールされ、完了後に自動起動します。
+
+### サービスの動作確認
+
+サービスが正常に動作しているかを確認するには、以下のコマンドで内蔵デモサービスを起動します:
+
+```bash
+cd univer-server && bash run.sh start-demo-ui
+```
+
+起動後、ブラウザで `http://localhost:3010` を開いて体験できます。このリンクを開くと新しい空白ドキュメントが自動作成され、そのドキュメントへのリンクにリダイレクトされます。共同編集を試したい場合は、別のブラウザまたはシークレットウィンドウで同じドキュメントを開いてください。
+
+### USIP の動作確認
+
+ユーザー認証や権限管理など、自社システムとの統合を体験したい場合は次の手順に従ってください:
+
+<Steps>
+  <Step>
+    `univer-server` ディレクトリに `.env.custom` という名前のファイルを作成し、以下の設定を記述します:
+
+    ```properties
+    USIP_ENABLED=true
+    ```
+  </Step>
+  <Step>
+    `bash run.sh restart` を実行してバックエンドサービスを再起動します。
+  </Step>
+  <Step>
+    `bash run.sh start-demo-usip` を実行してデモサービスを起動します。
+  </Step>
+</Steps>
+
+上記が完了したら、ブラウザで `http://localhost:8080` を開いて体験できます。
+
+### サービスの停止/起動/再起動/アンインストール
+
+`univer-server` ディレクトリ内の `run.sh` で、Univer バックエンドサービスの停止、起動、再起動、アンインストールを制御できます。
+
+<Callout type="warning" title="注意事項">
+  アンインストールは体験中に作成したドキュメントや画像などのデータをすべて削除します。慎重に実行してください。
+</Callout>
+
+- **停止**：`cd univer-server && bash run.sh stop`
+- **起動**：`cd univer-server && bash run.sh start`
+- **再起動**：`cd univer-server && bash run.sh restart`
+- **アンインストール**：`cd univer-server && bash run.sh uninstall`
+
+### サービスの更新
+
+インストールディレクトリ `univer-server` の親ディレクトリで、次のコマンドを実行すると最新バージョンで上書きインストールされます。**既存の設定とデータは保持されます。**
+
+```bash
+bash -c "$(curl -fsSL https://get.univer.ai)"
+```
+
+## K8s へのワンクリックデプロイ
+
+### 環境要件
+
+Univer は K8s へのデプロイに Helm を使用するため、先に Helm をインストールしてください。[Helm 公式インストールガイド](https://helm.sh/docs/intro/install/) を参照してインストールを完了してください。
+
+Helm は K8s クラスターへのアクセスが必要です。K8s クラスターを用意した上で、**次のいずれかの方法**で Helm からアクセスできるようにします:
+
+- `~/.kube/config` に K8s クラスターの `kubeconfig` を設定する
+- `KUBECONFIG` 環境変数に `kubeconfig` のパスを設定する
+- Helm コマンドに `--kubeconfig` を指定し、`kubeconfig` のパスを渡す（例: `helm install --kubeconfig your-kubeconfig-path`）
+
+### 操作手順
+
+以下のコマンドで Univer バックエンドサービスを K8s にインストールします。
+
+```bash
+helm install -n univer --create-namespace \
+  --set global.istioNamespace="univer" \
+  univer-stack oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack
+kubectl rollout restart -n univer deployment/collaboration-server
+kubectl rollout restart -n univer deployment/universer
+```
+
+#### サービスの動作確認
+
+インストール後、`http://univer.example.com/sheet/` を開いて体験できます。
+
+#### サービスのアンインストール
+
+```bash
+helm uninstall univer-stack -n univer
+```
+
+#### サービスの更新
+
+```bash
+helm upgrade --install univer-stack \
+  oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
+  -n univer
+```
+
+## さらに統合する
+
+Univer Pro のバックエンドサービスを自社システムに統合し、次のような機能を実現したい場合:
+
+- ログイン済みユーザーのみ Univer Pro サービスへアクセス
+- 役割/ユーザー単位でドキュメントのアクセス権を管理
+- ドキュメントコメントの通知を受信
+- ドキュメントリソースの操作（作成/削除/更新など）
+
+Univer Pro は 3 つの統合方式を提供しています:
+
+<Cards>
+  <Card title="USIP" href="/ja-JP/guides/pro/usip">
+    一部インターフェースを実装済み
+  </Card>
+  <Card title="Univer イベント同期" href="/ja-JP/guides/pro/event-sync">
+    一部イベントをサポート
+  </Card>
+  <Card title="OpenAPI">
+    設計中（順次提供予定）
+  </Card>
+</Cards>
+
+要件に応じて適切な統合方式を選択してください。
+
+以下は、自社システムと統合した際のデプロイ構成図です:
+
+![Univer Pro 統合アーキテクチャ](./server/integration-arch.png)
