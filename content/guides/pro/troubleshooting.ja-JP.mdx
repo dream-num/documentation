@@ -2,83 +2,40 @@
 title: トラブルシューティング
 ---
 
-このガイドは「クイックスタート」の補足として、インストール、起動、検証、統合（USIP）、アップグレード、アンインストール、コア機能（インポート/エクスポートを含む）に関する問題の診断と解決手順を体系的にまとめたものです。
+インストール、起動、アクセス、USIP、インポート/エクスポート、アップグレードの代表的な問題を整理します。
 
-## 1. 対象読者と範囲
+## 対象範囲
 
-**対象:**
-- ワンコマンドインストールスクリプト（`bash -c "$(curl -fsSL https://get.univer.ai)"`）で Docker Compose によりローカル/サーバーへデプロイするユーザー
-- Helm で Kubernetes クラスターに Univer をデプロイするユーザー
-- USIP/イベント同期/バックエンド機能を統合する開発者
-- import/export が Pending のまま長時間進まない問題を調査する DevOps/プラットフォームエンジニア（temporal/exchange/universer 関連）
+- Docker Compose / K8s
+- USIP / イベント同期
+- インポート/エクスポート
 
-**範囲外:**
-- フロントエンド SDK の統合詳細
-- OpenAPI（設計中）
+## 迅速切り分け
 
-## 2. 障害ライフサイクル段階と代表例
+| 症状 | まず実行 | 次の手順 |
+| --- | --- | --- |
+| 一括スクリプトが停止 | `curl -I https://get.univer.ai` | オフラインパッケージ |
+| Demo UI にアクセスできない | `cd univer-server && bash run.sh start` | `docker compose ps` |
+| USIP Demo 8080 が 404 | `.env.custom` の `USIP_ENABLED=true` | `bash run.sh restart` |
+| Helm Pod Pending | `kubectl describe pod` | イメージ/リソース/PVC 確認 |
+| インポート/エクスポート Pending | temporal/exchange/universer ログ | 以降参照 |
 
-| 段階 | シナリオ | 典型的な症状 | 主なコンポーネント/ファイル |
-|------|----------|------------------|------------------------|
-| ダウンロード/インストール | ワンクリックスクリプト/オフラインバンドル | スクリプト中断、イメージ取得失敗 | ネットワーク、DNS、オフラインバンドル整合性 |
-| 初回起動 | Docker Compose | コンテナが再起動し続ける/一部起動しない | run.sh, docker-compose.yml |
-| アクセス検証 | デモ UI/共同編集 | http://localhost:3010/ にアクセス不可、白画面、WebSocket 失敗 | リバースプロキシ/ポート競合 |
-| USIP モード | 認証統合 | http://localhost:8080 到達不可、401/403 | .env.custom, USIP_ENABLED |
-| K8s デプロイ | Helm install | Pod Pending / CrashLoopBackOff | レジストリアクセス、PVC、Ingress |
-| 更新/アップグレード | 上書きインストール/helm upgrade | データ消失（本来起きない）、バージョン変更されない | ボリュームマウント、タグ誤認 |
-| アンインストール | 環境クリーンアップ | データが消えない/本番削除の事故 | run.sh uninstall, helm uninstall |
-| インポート/エクスポート | タスク Pending | ステータスが長時間変わらない | temporal / exchange / universer |
-| パフォーマンス | 共同編集の遅延 | CPU/メモリ/RTT 高負荷 | コンテナ資源、ネットワーク遅延 |
+## Docker Compose
 
-## 3. クイック判断マトリクス（症状 → 対応）
+### インストール失敗
 
-| 症状 | 直近アクション | 解決しない場合 |
-|---------|------------------|--------------------|
-| ワンクリックスクリプトが停止 | ネットワーク確認: `curl https://get.univer.ai -v` | オフラインバンドルを使用 |
-| Demo UI の 3010 が拒否 | `cd univer-server && bash run.sh start` | `docker compose ps` でコンテナ確認 |
-| USIP デモ 8080 が 404 | `.env.custom` の `USIP_ENABLED=true` を確認 | `bash run.sh restart` 後にログ確認 |
-| Helm install で Pod Pending | `kubectl get nodes` でリソース状態 | `kubectl describe pod` でスケジューリング理由確認 |
-| Import/Export が Pending | セクション 9 のフローを参照 | ログ収集して Issue 送信 |
-| 更新後もバージョンが変わらない | コマンドにバージョン引数があるか確認 | イメージキャッシュ削除/タグ指定 |
-| アンインストール後もデータ残存 | マウントボリュームを確認 | 手動削除（非本番で確認） |
+```bash
+curl -I https://get.univer.ai
+dig get.univer.ai
+```
 
-## 4. Docker Compose デプロイでよくある問題
+```bash
+systemctl status docker
+ps -ef | grep dockerd
+```
 
-### 4.1 ワンクリックインストール失敗
+### 起動失敗/再起動ループ
 
-**よくある症状:**
-- curl タイムアウト
-- イメージ取得タイムアウト（越境/地域ネットワーク）
-- スクリプト実行権限エラー
-
-**診断手順:**
-1. ネットワーク疎通:
-  ```bash
-  curl -I https://get.univer.ai
-  dig get.univer.ai
-  ```
-
-2. Docker インストール段階で詰まる場合: 既存 Docker デーモンの競合を確認
-  ```bash
-  systemctl status docker
-  ps -ef | grep dockerd
-  ```
-
-3. オフラインパッケージ利用時:
-- ファイル整合性を確認（提供されていれば sha256）
-- 展開後に実行:
-  ```bash
-  bash load-images.sh
-  ```
-
-### 4.2 初回実行後に `univer-server` ディレクトリがない
-
-- 現在の作業ディレクトリの書き込み権限を確認
-- 再実行前に読み取り専用マウントでないことを確認
-
-### 4.3 サービス未起動/一部コンテナ停止
-
-**ディレクトリに入る:**
 ```bash
 cd univer-server
 bash run.sh start
@@ -86,257 +43,90 @@ docker compose ps
 docker compose logs --tail=200 <service>
 ```
 
-**注目ポイント:**
-- ポート競合: `lsof -i :3010`
-- 環境変数未読み込み: 生成された `.env`, `.env.custom` を確認
+原因例：ポート競合、`.env.custom` 未反映、リソース不足。
 
-### 4.4 Demo UI アクセス問題
+### Demo UI
 
-| 症状 | 可能性 | 対応 |
-|---------|----------------|--------|
-| 白画面 | フロントエンド資産がビルド/配信されていない | 静的アセットサービスのコンテナログ確認 |
-| WebSocket 切断 | リバースプロキシ未転送 / CORS | 社内プロキシ等の追加レイヤーがないか確認 |
-| 空白ドキュメント自動作成失敗 | universer がストレージに接続できていない | universer ログ確認 |
+- ポート競合：`lsof -i :3010`
+- WebSocket 切断：プロキシ/CORS を確認
+- 自動作成失敗：universer ログを確認
 
-## 5. K8s（Helm）デプロイのトラブルシューティング
+## K8s
 
-### 5.1 install は実行されたがリソースが作成されない
-
-```bash
-helm ls -n univer
-kubectl get pods -n univer
-```
-
-### 5.2 Pod Pending
+### Pod Pending
 
 ```bash
 kubectl describe pod <pod> -n univer
 ```
 
-**確認事項:**
-- イメージ取得失敗: プライベートレジストリ認証
-- PVC バインド失敗: StorageClass 不在
-- リソース要求がノード許容量超過
-
-### 5.3 CrashLoopBackOff
+### CrashLoopBackOff
 
 ```bash
 kubectl logs <pod> -n univer --previous
 ```
 
-### 5.4 Ingress/ドメインアクセス失敗
-
-- DNS 解決: `dig univer.example.com`
-- Ingress → Service マッピング: `kubectl get ingress -n univer`
-- Service バックエンドエンドポイント: `kubectl get endpoints -n univer`
-
-### 5.5 アップグレード失敗のロールバック
+### Ingress / ドメイン
 
 ```bash
-helm upgrade --install univer-stack ... -n univer
-helm rollback univer-stack <revision> -n univer
+dig univer.example.com
+kubectl get ingress -n univer
+kubectl get endpoints -n univer
 ```
 
-## 6. USIP（ユーザー認証連携）の問題
+## USIP
 
-| 症状 | 診断コマンド | 備考 |
-|---------|--------------------|-------|
-| 8080 応答なし | `docker compose ps` で demo-usip サービス確認 | `bash run.sh start-demo-usip` が必要 |
-| USIP 有効化後に 401 | universer の認証ログを確認 | トークン/セッションの転送漏れ |
-| `USIP_ENABLED=true` が効かない | `.env.custom` のファイル名確認 | 編集後に `bash run.sh restart` が必要 |
+| 症状 | 対応 |
+| --- | --- |
+| 8080 が応答しない | `bash run.sh start-demo-usip` 実行確認 |
+| 401/403 | token 透過、user レスポンス確認 |
+| 設定が反映されない | `.env.custom` 変更後に再起動 |
 
-**推奨検証:**
-```bash
-curl -I http://localhost:8080
-```
+## インポート/エクスポート Pending
 
-## 7. 更新 & バージョン管理
+### 切り分け
 
-### 7.1 Docker Compose 方式
-
-| 目的 | アクション | 補足 |
-|------|--------|-------|
-| 最新へ更新 | 親ディレクトリでワンクリックスクリプト再実行 | 既存ボリューム/設定は保持 |
-| 特定バージョンに更新 | `-- <version>` を付与 | 例: `-- 0.9.1` |
-| バージョン確認 | イメージタグ/コンテナ環境を確認 | `docker compose images` |
-
-**注意点:**
-- 古いイメージキャッシュが置換されない場合: `docker image prune -f`（注意して実行）
-- 互換性: メジャーアップデート前にボリュームをバックアップ
-
-### 7.2 Helm 方式
-
-```bash
-helm repo update  # チャートリポジトリ使用時
-helm upgrade --install univer-stack ... -n univer
-```
-
-**検証:**
-```bash
-helm history univer-stack -n univer
-kubectl describe deployment universer -n univer | grep Image
-```
-
-## 8. アンインストール & データ安全性
-
-| 環境 | アンインストールコマンド | データ削除? |
-|-------------|-------------------|---------------|
-| Docker Compose | `bash run.sh uninstall` | はい: ボリュームとドキュメントデータ（不可逆） |
-| K8s | `helm uninstall univer-stack -n univer` | リソースのみ。PVC 保持は StorageClass の reclaim policy に依存 |
-
-**推奨:**
-- まずテスト環境でアンインストール手順を検証
-- ボリュームは手動でバックアップ（rsync/tar）
-
-## 9. インポート/エクスポートが Pending のまま（重要）
-
-### 9.1 エンドツーエンドフロー
-
-1. ローカル VPN/プロキシを無効化 → `bash run.sh restart`
+1. VPN/プロキシを無効化 → `bash run.sh restart`
 2. サービス状態 → `docker compose ps`
-3. Temporal ヘルス → `docker compose logs -f temporal`
-4. exchange 接続状態 → `docker compose logs -f univer-worker-exchange`
-5. universer タスク送信 → `docker compose logs -f universer`
-6. 依然不明 → 情報収集して Issue 投稿
+3. Temporal → `docker compose logs -f temporal`
+4. Exchange → `docker compose logs -f univer-worker-exchange`
+5. Universer → `docker compose logs -f universer`
 
-### 9.2 Temporal 起動失敗
+### よくある原因
 
-- ポート競合（既定 7233）
-- DNS / ホスト名解決失敗
-- 外部 DB 依存が権限不足
+- Temporal 起動失敗：ポート競合/DB エラー
+- Exchange タイムアウト：Temporal アドレス
 
-**対応:**
-```bash
-docker compose logs -f temporal
-```
+例：`exchange/config.yaml.template` を修正後再起動：
 
-参考: https://hub.docker.com/r/temporalio/auto-setup
-
-### 9.3 exchange エラー
-
-```text
-connect temporal fail: failed reaching server: context deadline exceeded
-```
-
-**`exchange/config.yaml.template` を編集:**
 ```text
 addr: no-txt:///${TEMPORAL_HOST}:${TEMPORAL_PORT}
 ```
 
-**再起動:**
+## アップグレード/アンインストール
+
+- Docker Compose：親ディレクトリで再実行
+- K8s：`helm upgrade --install ... -n univer`
+- データが残る：PVC/ボリューム確認
+
+## ログ収集
+
+| サービス | コマンド |
+| --- | --- |
+| temporal | `docker compose logs -f temporal` |
+| exchange | `docker compose logs -f univer-worker-exchange` |
+| universer | `docker compose logs -f universer` |
+
 ```bash
-bash run.sh restart
-```
-### 9.4 universer が処理しない/送信しない
-
-**症状:**
-- ログにタスク送信が出てこない
-- 認証/デシリアライズ/設定漏れ
-
-**確認:**
-```bash
-docker compose logs --tail=300 universer | egrep -i "error|import|export|task"
-```
-
-### 9.5 クイック参照テーブル
-
-| 症状 | 原因 | 解決 |
-|---------|------------|------------|
-| 全コンテナ Up だが Pending | exchange ↔ temporal が遮断 | addr 修正 + 再起動 |
-| temporal が周期的に再起動 | 初期化失敗/ストレージ未接続 | DB/ストレージ設定の修正 |
-| universer ログに送信がない | API 誤用/パラメータ検証失敗 | デバッグログ有効化、再現 & パケットキャプチャ |
-| 特定タスクのみ進まない | ワーカースレッド不足/キュー詰まり | exchange 負荷確認、ワーカー増強 |
-| 高同時で全タスク Pending | リソースボトルネック | CPU/メモリ/I/O を確認 |
-
-## 10. ログ収集と分析
-
-| サービス | 注目ポイント | コマンド例 |
-|---------|---------------|-----------------|
-| temporal | 初期化/接続/ハートビート | `docker compose logs -f temporal` |
-| exchange / univer-worker-exchange | temporal 接続、キュー消費 | `docker compose logs -f univer-worker-exchange` |
-| universer | API リクエスト、タスク送信、スタックトレース | `docker compose logs -f universer` |
-| K8s 環境 | Pod 再起動理由、ヘルス失敗 | `kubectl describe pod ...` |
-
-**収集例:**
-```bash
-# Bundle logs
 mkdir -p logs_collect && \
 docker compose logs temporal > logs_collect/temporal.log 2>&1 && \
 docker compose logs universer > logs_collect/universer.log 2>&1 && \
 tar czf univer-troubleshoot-logs.tar.gz logs_collect
 ```
 
-## 11. パフォーマンス & リソース監視の推奨
+## チェックリスト
 
-| コンポーネント | 指標 | 目安 | 備考 |
-|-----------|--------|----------------------|-------|
-| universer | CPU / 平均応答時間 | 5 分継続で > 80% | スレッド飽和の可能性 |
-| temporal | Workflow Pending 数 | ベースラインからの乖離 | スパイクはワーカー詰まりを示唆 |
-| exchange | タスクキュー backlog | 直線的に増加しないこと | スケール/エラー確認 |
-| Docker ホスト | ディスク空き | < 15% | イメージ/ログ書き込みに影響 |
-| K8s | Pod 再起動回数 | > 3/時 | 安定性懸念 |
-
-## 12. トラブルシューティングチェックリスト
-
-| 項目 | Done |
-|------|------|
-| ネットワーク到達性（VPN/プロキシ無効） |
-| 全サービス Up / Pod Ready |
-| temporal ログにエラーがない |
-| exchange ↔ temporal の連携が正常 |
-| universer ログにタスクエラーがない |
-| UI / API の検証 OK |
-| バージョン/タグ確認 |
-| アップグレード前のバックアップ |
-| 期間を限定したログ収集 |
-| 再現条件の最小化 |
-
-## 13. 主要コマンド早見表
-
-```bash
-# ワンクリックインストール（最新）
-bash -c "$(curl -fsSL https://get.univer.ai)"
-
-# 特定バージョン
-bash -c "$(curl -fsSL https://get.univer.ai/product)" -- 0.9.1
-
-# Start / Stop / Restart
-cd univer-server && bash run.sh start
-cd univer-server && bash run.sh stop
-cd univer-server && bash run.sh restart
-
-# Uninstall（破壊的）
-cd univer-server && bash run.sh uninstall
-
-# Start Demo UI
-cd univer-server && bash run.sh start-demo-ui
-
-# Enable USIP（編集後に再起動）
-echo "USIP_ENABLED=true" >> .env.custom
-bash run.sh restart
-bash run.sh start-demo-usip
-
-# Monitor containers
-docker compose ps
-docker compose logs -f universer
-
-# K8s install
-helm install -n univer --create-namespace \
-  --set global.istioNamespace="univer" \
-  univer-stack oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack
-
-# K8s upgrade
-helm upgrade --install univer-stack \
-  oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
-  -n univer
-```
-
-## 14. よくある落とし穴と予防
-
-| 落とし穴 | 影響 | 正しい対処 |
-|---------|-------------|------------------|
-| 間違ったディレクトリでスクリプトを繰り返し実行 | インスタンスが散在 | デプロイ先ルートを統一 |
-| `.env.custom` 管理の放置 | 設定ドリフト | テンプレートとカスタムを分離 |
-| バックアップ無しでアップグレード | 互換性リスク | 定期的にボリュームバックアップ |
-| トライアル構成を本番で使用 | 機能/性能制限 | 正規ライセンス取得 |
-| ログなしで Issue 投稿 | 解決遅延 | テンプレートとログ同封 |
+- すべて Up / Pod Ready
+- temporal/exchange にエラーなし
+- ポート/ドメイン疎通
+- 設定変更後に再起動済み
+- インポート/エクスポート完了

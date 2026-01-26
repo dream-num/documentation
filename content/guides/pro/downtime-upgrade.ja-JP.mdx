@@ -1,75 +1,39 @@
 ---
-title: ダウンタイムアップグレード SOP
+title: 停止メンテナンスのアップグレード SOP
 ---
 
-本セクションでは、Univer バックエンドサービスのダウンタイムアップグレード SOP を説明します。docker compose と K8s に慣れている場合は、この SOP を参考に本番環境に適した SOP を作成することを推奨します。
+本ページは停止前提のアップグレード手順です。自社 SOP に合わせて調整してください。
 
-## Docker Compose のダウンタイムアップグレード SOP
+## Docker Compose
 
-### アップグレード準備
+### 事前準備
 
-**カスタム設定ファイル**
+- 目標バージョンと設定変更を[本番デプロイ](/guides/pro/deploy)で確認
+- 新しい `.env.custom` を用意（旧版はロールバック用に保持）
+- ライセンスファイルを用意
+- メンテナンス通知
 
-アップグレード準備の前に、アップグレード先のバージョンを決め、[本番環境デプロイ](/guides/pro/deploy) を参照してください。どのバージョンで新しい設定項目が追加され、どのバージョンで旧設定項目が非サポートになったかを確認できます。ドキュメントに基づき、旧バージョンのカスタム設定ファイル `.env.custom` を見直し、必要な修正や追加設定を洗い出します。確認後、新しい `.env.custom` を用意し、旧バージョンの `.env.custom` はロールバック用に保管してください。
-
-**ライセンスファイル**
-
-ライセンスファイルも用意してください。
-
-**アップグレード通知**
-
-想定ダウンタイムをユーザーに通知し、準備できるようにします。
-
-### アップグレード手順
+### 手順
 
 <Steps>
   <Step>
-    #### 旧バージョンサービスの停止
+    #### 書き込み停止と旧版停止
 
-    旧バージョンの Univer サービスが `universer-old` ディレクトリにデプロイされている前提です。
+    先に書き込みを止めてデータ不整合を防止します。
 
-    - 書き込みの禁止
-
-    **注記**: 共同編集の特性上、すべての共同編集リクエストを確実に保存するため、直接停止するのではなく、一定時間書き込みを禁止してから停止するのが望ましいです。独自のインフラで実現するか、Univer が提供する nginx を使用できます。以下は Univer の nginx を使う場合の手順です。
-  を編集し、すべての新規リクエストを禁止する `location ~ ^/universer-api {return 403;}` を追加します:
+    `universer-old/nginx/universer.conf` に追加：
 
     ```nginx
-    server {
-      listen 8000;
-
-      client_max_body_size 100m;
-
-      location ~ ^/universer-api {return 403;} # Add this sentence to disable all requests through nginx
-
-      location / {
-        proxy_pass http://universer;
-      }
-
-      location /universer-api/comb/connect {
-        proxy_pass http://universer;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection $connection_upgrade;
-      }
-
-      location /universer-api/metrics {
-        return 403;
-      }
-    }
+    location ~ ^/universer-api {return 403;}
     ```
 
-    変更後、nginx 設定をリロードして反映させます。以下のコマンドを実行します:
+    Nginx を再読み込み：
 
     ```bash
     docker exec univer-lb nginx -s reload
     ```
 
-    `univer-lb` は既定の nginx コンテナ名です。変更している場合は適宜置き換えてください。
-
-    - 一定時間（推奨 1 分以上）書き込みを禁止
-    - 旧バージョンサービスを停止
-
-    以下のコマンドで停止します:
+    1 分ほど待ってから旧版停止：
 
     ```bash
     cd universer-old && bash run.sh stop
@@ -78,103 +42,75 @@ title: ダウンタイムアップグレード SOP
   <Step>
     #### データバックアップ
 
-    アップグレード前に重要データのバックアップを推奨します。RDS 内のドキュメントメタデータが対象です。対応する RDS バックアップツールで取得してください。オブジェクトストレージ内のデータは追加のみで変更されないため、バックアップは不要です。
+    RDS メタデータをバックアップ（Object Storage は必要に応じて）。
   </Step>
   <Step>
-    #### 新バージョンのデプロイ
+    #### 新版デプロイ
 
-    - Univer バックエンドサービスを取得
-      - デプロイサーバーがインターネットにアクセス可能な場合:
-        - `bash -c "$(curl -fsSL https://get.univer.ai/product)" [-- version]` を実行し、指定バージョンの Univer サービスをダウンロードします。バージョン未指定の場合は最新を取得します。
-      - デプロイサーバーがインターネットにアクセスできない場合:
-        - Univer 提供の All in one オフラインインストールパッケージを [ここからダウンロード](https://univer.ai/releases/univer-server/download)
-        - オフラインパッケージをデプロイサーバーにアップロードして解凍
-        - 解凍ディレクトリで `bash load-images.sh` を実行し、Univer バックエンドサービスのイメージをローカル Docker に読み込み
-    - 新しいカスタム設定ファイル `.env.custom` を新バージョンフォルダにコピーし、既定の `.env` と同じディレクトリに配置
-    - ライセンスファイル `license.txt` と `licenseKey.txt` を新バージョンフォルダの `configs/` ディレクトリにコピー
-    - 独自の RDS を利用している場合は、[DB 更新スクリプト](https://release-univer.oss-cn-shenzhen.aliyuncs.com/releases/latest/univer-server-sql-latest.tar.gz) をダウンロードして RDS の DDL 更新を実施
-    - 新バージョンをテストユーザーのみ利用できるよう、ロードバランス設定を変更
+    - 新版を取得（オンライン/オフライン）
+    - 新しい `.env.custom` を配置
+    - `configs/` にライセンスを配置
+    - 自前 RDS の場合は DB 更新スクリプトを実行
 
-    Univer の組み込み nginx を使う場合は次のように設定できます:
-
-    新バージョンフォルダの `/nginx/universer.conf` を編集し、server 設定の前に以下を追加します:
+    テストユーザーのみ許可する場合：
 
     ```nginx title="/nginx/universer.conf"
-    server {
-      listen 8000;
-
-      # Configure to allow only requests with header x-request-env=test
-      # Add this configuration to verify the new version when users are not available
-      underscores_in_headers on;
-      if ($http_x_request_env != "test") {
-        return 403;
-      }
-
-      client_max_body_size 100m;
-
-      location / {
-        proxy_pass http://universer;
-      }
-
-      ...
+    underscores_in_headers on;
+    if ($http_x_request_env != "test") {
+      return 403;
     }
     ```
 
-    - 新バージョンサービスを起動: `bash run.sh start`。起動後、テストアカウントでログインし、`x-request-env=test` ヘッダーを付けて検証します。
+    起動：
+
+    ```bash
+    bash run.sh start
+    ```
   </Step>
 </Steps>
 
-### アップグレード後の検証
+### 検証
 
-新バージョンサービスを起動し、ユーザーが一時的にアクセスできない状態で、設定とデプロイが正しく行われているか、安定して動作するかを総合的に確認してください。
+- `x-request-env=test` で検証
+- ログ/監視の確認
 
-### 新バージョンサービスの有効化
+### 切替
 
-新バージョンが受け入れテストに合格し採用する場合は、`/nginx/universer.conf` の特定ヘッダーのみ許可する設定を削除し、`docker exec univer-lb nginx -s reload` で設定を再読み込みします。`univer-lb` は既定の nginx コンテナ名で、変更している場合は適宜置き換えてください。
+制限を削除して Nginx 再読み込み：
 
-### 旧バージョンサービスへのロールバック
+```bash
+docker exec univer-lb nginx -s reload
+```
 
-新バージョンが受け入れテストに通らない、または時間が不足している場合は旧バージョンを継続利用します。
+### ロールバック
 
-1. まず新バージョンサービスを停止します。ユーザーは利用していないため、`bash run.sh stop` で直接停止できます。
-2. 旧バージョンの nginx 設定を復旧します。書き込み禁止設定 `location ~ ^/universer-api {return 403;}` を削除します（停止前に書き込み禁止を行ったため）。
-3. 旧バージョンサービスを再起動します。
+- 新版停止
+- 旧版 Nginx 設定復元
+- 旧版再起動
 
-## K8s のダウンタイムアップグレード SOP
+## K8s
 
-### アップグレード準備
+### 事前準備
 
-**カスタム設定ファイル**
+- 新しい `values.yaml` を用意（旧版保持）
+- ライセンスファイル
+- メンテナンス通知
 
-アップグレード準備のため、アップグレード先のバージョンを決め、[本番環境デプロイ](/guides/pro/deploy) を参照してください。新しい設定が追加されたバージョンや旧設定が非サポートになったバージョンを確認できます。ドキュメントに基づき、旧バージョンの `values.yaml` を見直し、必要な修正/追加を洗い出します。確認後、新しい `values.yaml` を用意し、旧バージョンの `values.yaml` はロールバック用に保管してください。
-
-<Callout>
-  旧バージョンでカスタム設定が不要な項目でも、新バージョンの `values.yaml` に含める必要があります。含めない場合、アップグレード時に既定値が適用されます。これは Helm が `values.yaml` とテンプレートに基づいて K8s リソースを動的に生成するためです。
-</Callout>
-
-**ライセンスファイル**
-
-ライセンスファイルも用意してください。
-
-**アップグレード通知**
-
-想定ダウンタイムをユーザーに通知し、準備できるようにします。
-
-### アップグレード手順
+### 手順
 
 <Steps>
   <Step>
-    #### 旧バージョンサービスの停止
+    #### 旧版アクセス停止
 
-    **注記**: 共同編集の特性上、すべての共同編集リクエストを確実に保存するため、直接停止するのではなく一定時間書き込みを禁止してから停止するのが望ましいです。K8s クラスターで `/universer-api/` プレフィックスの全リクエスト拒否設定が可能なら直接設定してください。難しい場合は universer の ingress を無効化して対応します。
+    旧版設定で ingress を無効化：
 
     ```yaml title="values.yaml"
     universer:
       ingress:
-        enabled: false # Disable universer ingress
+        enabled: false
     ```
 
-    Helm は K8s リソースを動的に生成するため、旧バージョンのカスタム設定（例: `values-1.0.0.yaml`）に基づいて新しい設定ファイル（例: `values-1.0.0-forbid.yaml`）を生成し、Helm で更新を実行して反映します:
+    旧版 chart で upgrade：
 
     ```bash
     helm upgrade univer-stack \
@@ -186,28 +122,17 @@ title: ダウンタイムアップグレード SOP
       --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path
     ```
 
-    ここでは `-f` に書き込み禁止設定 `values-1.0.0-forbid.yaml` を指定します。また、現時点ではアクセス禁止のみで新バージョンにアップグレードしていないため、`--version` には現在デプロイ中のバージョン `your-current-version` を指定します。現在のチャートバージョンは次のコマンドで確認できます:
-
-    `helm list --all-namespaces --filter univer-stack`
-
-    実行結果は下図のとおりで、chart 欄から現在のバージョンが分かります。この例では 0.1.3 です。
-
-    ![Upgrade Process](./downtime-upgrade/helm-release-version.png)
-
-    アクセス禁止は一定時間（推奨 1 分以上）継続し、次のステップに進みます。
+    `helm list --all-namespaces --filter univer-stack` で現行バージョン確認。
   </Step>
   <Step>
     #### データバックアップ
 
-    アップグレード前に重要データのバックアップを推奨します。RDS 内のドキュメントメタデータが対象です。対応する RDS バックアップツールで取得してください。オブジェクトストレージ内のデータは追加のみで変更されないため、バックアップは不要です。
+    RDS メタデータをバックアップ。
   </Step>
   <Step>
-    #### 新バージョンへのアップグレード
+    #### 新版へアップグレード
 
-    - 独自の RDS を利用している場合は、[DB 更新スクリプト](https://release-univer.oss-cn-shenzhen.aliyuncs.com/releases/latest/univer-server-sql-latest.tar.gz) をダウンロードして RDS の DDL 更新を実施
-    - 新バージョンを全ユーザーに開放せず、テストアカウントだけがアクセスできるように設定します。インフラ側で実現できる場合はそちらで設定し、難しい場合は ingress で設定します。
-
-    K8s クラスターで `nginx ingress controller` を使っている場合、以下の設定で `x-request-env=test` ヘッダー付きリクエストのみ許可できます。新バージョンの `values.yaml` にマージしてテストに利用してください:
+    テストユーザーのみ許可：
 
     ```yaml title="values.yaml"
     universer:
@@ -220,55 +145,28 @@ title: ダウンタイムアップグレード SOP
             }
     ```
 
-    - Helm コマンドで指定バージョンへアップグレード:
-      - デプロイサーバーがインターネットにアクセス可能な場合:
-      ```bash
-      helm upgrade --install univer-stack \
-        oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
-        --version target-version \
-        -n univer \
-        -f your-values.yaml-path \
-        --set-file universer.license.licenseV2=your-license.txt-path \
-        --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path
-      ```
-      - デプロイサーバーがインターネットにアクセスできない場合:
-        - Univer 提供の All in one オフラインインストールパッケージを [ここからダウンロード](https://univer.ai/releases/univer-server/download)
-        - 解凍ディレクトリで `bash load-images.sh` を実行し、Univer バックエンドサービスのイメージをプライベートレジストリにアップロード
-            ```shell
-            export REGISTER=XXXX # Your private image register
-            export NAMESPACE=XXX # The namespace where image save
-            docker login $REGISTER
-            bash load-image.sh --registry $REGISTER --namespace $NAMESPACE
-            ```
-      - 実行後、カレントディレクトリに `values.yaml` と `values-observability.yaml` が生成されます。必要に応じて独自設定を追加してください。
-        - `values.yaml`: Univer サービスの設定ファイル
-        - `values-observability.yaml`: Univer サービス関連の可観測性監視コンポーネント設定ファイル
-      - 次のコマンドでアップグレード/インストールを実行:
-          ```shell
-          helm upgrade --install univer-stack \
-            -n univer \
-            -f your-own-values.yaml-path \
-            --set-file universer.license.licenseV2=your-license.txt-path \
-            --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path \
-            univer-stack-xxxx.tgz # should change to the right chart name
-          ```
-    このコマンドでは `-f` で新バージョンの `values.yaml` を指定し、`--version` で目標バージョンを指定します。最新へ直接アップグレードする場合は `--version` を省略できます。
+    アップグレード：
+
+    ```bash
+    helm upgrade --install univer-stack \
+      oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
+      --version target-version \
+      -n univer \
+      -f your-values.yaml-path \
+      --set-file universer.license.licenseV2=your-license.txt-path \
+      --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path
+    ```
+
+    オフライン環境は `bash load-image.sh` を使用。
   </Step>
 </Steps>
 
-### アップグレード後の検証
+### 検証と切替
 
-新バージョンサービスを起動し、ユーザーが一時的にアクセスできない状態で、設定とデプロイが正しく行われているか、安定して動作するかを総合的に確認してください。
+- テストアカウントで検証
+- ingress 制限を削除して再適用
 
-### 新バージョンサービスの有効化
-
-新バージョンが受け入れテストに合格し採用する場合は、全ユーザーに開放するよう設定を変更します。ingress でアクセス制御している場合は該当設定を削除し、`helm upgrade` を再実行して全ユーザーにアクセスを許可します。
-
-### 旧バージョンサービスへのロールバック
-
-新バージョンが受け入れテストに通らない、または受け入れに十分な時間がない場合は旧バージョンを継続利用します。
-
-旧バージョンのチャートバージョンとカスタム設定を用いてデプロイを更新します:
+### ロールバック
 
 ```bash
 helm upgrade --install univer-stack \
@@ -279,5 +177,3 @@ helm upgrade --install univer-stack \
   --set-file universer.license.licenseV2=your-license.txt-path \
   --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path
 ```
-
-`--version` で旧チャートバージョン、`-f` で旧カスタム設定を指定します。
