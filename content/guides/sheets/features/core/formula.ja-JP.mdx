@@ -70,13 +70,15 @@ enum CalculationMode {
 }
 ```
 
-> 数式セルが予期しない値を保持している場合、`initialFormulaComputing` を `FORCED` に設定して全数式を強制再計算するか、初期化前にセル値をクリアしてください。
+> 数式セルが予期しない値を保持している場合、`initialFormulaComputing` を `FORCED` に設定して全数式を強制再計算するか、初期化前にセルの `v` 値をクリアしてください。
 
 ## サポートされる数式関数
 
 <FormulaList lang="en-US" />
 
 ## Facade API
+
+完全な Facade API については、[FFormula](https://reference.univer.ai/classes/FFormula) を参照してください。
 
 ### インポート
 
@@ -89,52 +91,71 @@ import '@univerjs/engine-formula/facade'
 import '@univerjs/sheets-formula/facade'
 ```
 
-### 計算の実行
+### 数式計算の実行
 
 ```typescript
-const formula = univerAPI.getFormula()
-formula.executeCalculation()
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.executeCalculation()
 ```
 
-### 計算の停止
+### 数式計算の停止
 
 ```typescript
-const formula = univerAPI.getFormula()
-formula.stopCalculation()
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.stopCalculation()
 ```
 
-### 計算開始イベント
+### 数式計算の開始
 
 ```typescript
-const formula = univerAPI.getFormula()
-formula.calculationStart((forceCalculate) => {
+// 数式計算の開始イベントをリッスン
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationStart((forceCalculate) => {
   console.log(forceCalculate)
 })
 ```
 
-### 計算進行イベント
+### 数式計算の進行
 
 ```typescript
-const formula = univerAPI.getFormula()
-formula.calculationProcessing((stageInfo) => {
+// 数式計算の進行イベントをリッスン
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationProcessing((stageInfo) => {
   console.log(stageInfo)
 })
 ```
 
-### 計算終了イベント
+### 数式計算の終了
 
 ```typescript
-const formula = univerAPI.getFormula()
-formula.calculationEnd((functionsExecutedState) => {
+// 数式計算の終了イベントをリッスン
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationEnd((functionsExecutedState) => {
   console.log(functionsExecutedState)
 })
+
+// 数式計算の終了を待機
+await formulaEngine.onCalculationEnd()
 ```
 
-### 初期計算モードの設定
+### 数式計算結果の適用
 
 ```typescript
-const formula = univerAPI.getFormula()
-formula.setInitialFormulaComputing(CalculationMode.FORCED)
+// 数式計算結果の適用イベントをリッスン
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationResultApplied((result) => {
+  console.log(result)
+})
+
+// 数式計算結果の適用完了を待機
+await formulaEngine.onCalculationResultApplied()
+```
+
+### 初期化データ時の数式計算モードの設定
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.setInitialFormulaComputing(CalculationMode.FORCED)
 ```
 
 この API が `Starting` ライフサイクル以降に呼ばれた場合、次に Univer Sheet が生成されるタイミングで反映されます。
@@ -144,10 +165,55 @@ formula.setInitialFormulaComputing(CalculationMode.FORCED)
 ```typescript
 univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
   if (stage === LifecycleStages.Starting) {
-    const formula = univerAPI.getFormula()
-    formula.setInitialFormulaComputing(CalculationMode.FORCED)
+    const formulaEngine = univerAPI.getFormula()
+    formulaEngine.setInitialFormulaComputing(CalculationMode.FORCED)
   }
 })
+```
+
+### 反復回数の設定
+
+数式に循環参照が存在する場合、この API を使用して数式計算時の最大反復回数を設定できます。デフォルト値は 1 です。
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.setMaxIteration(10)
+```
+
+### 数式文字列の計算結果の取得
+
+数式文字列の一括非同期実行と計算結果の取得:
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+const formulas = {
+  Book1: {
+    Sheet1: {
+      2: {
+        3: [
+          // 完全な数式:
+          '=SUM(A1:A10) + SQRT(D7)',
+
+          // 分解されたサブ数式（それぞれ独立して評価可能）:
+          'SUM(A1:A10)', // サブ数式1
+          'SQRT(D7)', // サブ数式2
+          'A1:A10', // 範囲参照
+          'D7', // 単一セル参照
+        ],
+      },
+      4: {
+        5: [
+          '=A2 + B2 + SQRT(C5)',
+          'A2',
+          'B2',
+          'SQRT(C5)',
+        ],
+      },
+    },
+  },
+}
+const result = await formulaEngine.executeFormulas(formulas)
+console.log(result)
 ```
 
 ## カスタム数式
