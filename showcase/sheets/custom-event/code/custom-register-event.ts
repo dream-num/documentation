@@ -1,7 +1,8 @@
-import type { FWorkbook, FWorksheet, IRemoveColByRangeCommandParams } from '@univerjs/preset-sheets-core'
-import type { FUniver, IEventBase, Univer } from '@univerjs/presets'
+import type { FWorkbook, FWorksheet, IRemoveColByRangeCommandParams, IRender } from '@univerjs/preset-sheets-core'
+import type { FUniver, IEventBase, Nullable, Univer } from '@univerjs/presets'
 import { IContextMenuService, IRenderManagerService, RemoveColByRangeCommand, SHEET_VIEW_KEY } from '@univerjs/preset-sheets-core'
-import { CanceledError, ICommandService } from '@univerjs/presets'
+import { CanceledError, DisposableCollection, ICommandService, LifecycleService, LifecycleStages, UniverInstanceType } from '@univerjs/presets'
+import { combineLatest } from 'rxjs'
 
 interface IMainRightClickEventParams extends IEventBase {
   event: MouseEvent
@@ -30,9 +31,10 @@ interface ICustomEventParamConfig {
 }
 
 export function customRegisterEvent(univer: Univer, univerAPI: FUniver) {
+  registerMainRightClickEvent(univer, univerAPI)
+
   univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
     if (stage === univerAPI.Enum.LifecycleStages.Steady) {
-      registerMainRightClickEvent(univer, univerAPI)
       registerRemoveColumnEvent(univer, univerAPI)
       registerBeforeRemoveColumnEvent(univer, univerAPI)
 
@@ -70,44 +72,64 @@ export function customRegisterEvent(univer: Univer, univerAPI: FUniver) {
 }
 
 function registerMainRightClickEvent(univer: Univer, univerAPI: FUniver) {
-  const fWorkbook = univerAPI.getActiveWorkbook()
-  if (!fWorkbook) return
-
-  const fWorksheet = fWorkbook.getActiveSheet()
-  if (!fWorksheet) return
-
   const injector = univer.__getInjector()
   const renderManagerService = injector.get(IRenderManagerService)
-  const render = renderManagerService.getRenderById(fWorkbook.getId())
-  if (!render) return
-
-  const { components } = render
-  const mainComponent = components.get(SHEET_VIEW_KEY.MAIN)
-  if (!mainComponent) return
-
+  const lifeCycleService = injector.get(LifecycleService)
   const contextMenuService = injector.get(IContextMenuService)
 
-  univerAPI.registerEventHandler(
-    'MainRightClickEvent',
-    () => mainComponent.onPointerDown$.subscribeEvent((event) => {
-      if (event.button !== 2) return
+  let sheetRenderUnit: Nullable<IRender>
+  const combined$ = combineLatest([
+    renderManagerService.created$,
+    lifeCycleService.lifecycle$,
+  ])
+  const disposable = new DisposableCollection()
 
-      const activeRange = fWorksheet.getActiveRange()
-      const eventParams: IMainRightClickEventParams = {
-        event,
-        row: activeRange?.getRow() ?? 0,
-        column: activeRange?.getColumn() ?? 0,
-      }
+  univerAPI.disposeWithMe(combined$.subscribe(([created, lifecycle]) => {
+    if (created.type === UniverInstanceType.UNIVER_SHEET) {
+      sheetRenderUnit = created
+    }
+    if (lifecycle <= LifecycleStages.Rendered) return
+    if (!sheetRenderUnit) return
 
-      univerAPI.fireEvent('MainRightClickEvent', eventParams)
+    const { components } = sheetRenderUnit
+    const mainComponent = components.get(SHEET_VIEW_KEY.MAIN)
+    if (!mainComponent) return
 
-      if (eventParams.cancel) {
-        requestAnimationFrame(() => {
-          contextMenuService.hideContextMenu()
-        })
-      }
-    }),
-  )
+    const fWorkbook = univerAPI.getWorkbook(sheetRenderUnit.unitId)
+    if (!fWorkbook) return
+
+    const fWorksheet = fWorkbook.getActiveSheet()
+    if (!fWorksheet) return
+
+    disposable.dispose()
+
+    disposable.add(
+      univerAPI.registerEventHandler(
+        'MainRightClickEvent',
+        () => mainComponent.onPointerDown$.subscribeEvent((event) => {
+          if (event.button !== 2) return
+
+          const activeRange = fWorksheet.getActiveRange()
+          const eventParams: IMainRightClickEventParams = {
+            event,
+            row: activeRange?.getRow() ?? 0,
+            column: activeRange?.getColumn() ?? 0,
+          }
+
+          univerAPI.fireEvent('MainRightClickEvent', eventParams)
+
+          // If the event is canceled, do not show the context menu
+          if (eventParams.cancel) {
+            requestAnimationFrame(() => {
+              contextMenuService.hideContextMenu()
+            })
+          }
+        }),
+      ),
+    )
+
+    univerAPI.disposeWithMe(disposable)
+  }))
 }
 
 function registerRemoveColumnEvent(univer: Univer, univerAPI: FUniver) {
