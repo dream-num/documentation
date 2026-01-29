@@ -1,0 +1,334 @@
+---
+title: FFormulaSheetsMixin
+icon: '#ref/F'
+---
+
+| packages | `@univerjs/sheets-formula` |
+| --- | --- |
+
+## APIs
+
+### `calculationResultApplied`
+
+Listens for the moment when formula-calculation results are applied.
+
+This event fires after the engine completes a calculation cycle and
+dispatches a `SetFormulaCalculationResultMutation`.
+The callback is invoked during an idle frame to avoid blocking UI updates.
+
+**Signature**
+```typescript
+calculationResultApplied(callback: (result: ISetFormulaCalculationResultMutation) => void): IDisposable
+```
+
+**Parameters**
+- `callback` (`(result: ISetFormulaCalculationResultMutation) => void`) — - A function called with the calculation result payload once the result-application mutation is emitted.
+
+**Returns**
+- (`IDisposable`) — A disposable used to unsubscribe from the event.
+
+**Examples**
+```ts
+const formulaEngine = univerAPI.getFormula()
+
+const dispose = formulaEngine.calculationResultApplied((result) => {
+  console.log('Calculation results applied:', result)
+})
+
+// Later…
+dispose.dispose()
+```
+
+### `onCalculationResultApplied`
+
+Waits for formula-calculation results to be applied.
+
+This method resolves under three conditions:
+1. A real calculation runs and the engine emits a "calculation started" signal,
+   followed by a "calculation result applied" signal.
+2. No calculation actually starts within 500 ms — the method assumes there is
+   nothing to wait for and resolves automatically.
+3. A global 30 s timeout triggers, in which case the promise rejects.
+
+The API internally listens to both “calculation in progress” events and
+“calculation result applied” events, ensuring it behaves correctly whether
+formulas are recalculated or skipped due to cache/state.
+
+**Signature**
+```typescript
+onCalculationResultApplied(): Promise<void>
+```
+
+**Returns**
+- (`Promise<void>`) — A promise that resolves when calculation results are applied or when no calculation occurs within the start-detection window.
+
+**Examples**
+```ts
+const formulaEngine = univerAPI.getFormula()
+
+// Wait for formula updates to apply before reading values.
+await formulaEngine.onCalculationResultApplied()
+
+const value = sheet.getRange('C24').getValue()
+console.log('Updated value:', value)
+```
+
+### `registerAsyncFunction`
+
+Register a custom asynchronous formula function.
+
+**Signature**
+```typescript
+registerAsyncFunction(name: string, func: IRegisterAsyncFunction, options?: string | { locales?: ILocales; description?: string | IFunctionInfo }): IDisposable
+```
+
+**Parameters**
+- `name` (`string`) — - The name of the function to register. This will be used in formulas (e.g., =ASYNCFUNC()).
+- `func` (`IRegisterAsyncFunction`) — - The async implementation of the function.
+- `description` — - A string describing the function's purpose and usage.
+- `name` (`string`) — - The name of the function to register. This will be used in formulas (e.g., =ASYNCFUNC()).
+- `func` (`IRegisterAsyncFunction`) — - The async implementation of the function.
+- `options` (`string | { locales?: ILocales; description?: string | IFunctionInfo }`) — - Object containing locales and description.
+- `options.locales` — - Object containing locales.
+- `options.description` — - Object containing description.
+
+**Returns**
+- (`IDisposable`) — A disposable object that will unregister the function when disposed.
+
+**Examples**
+```ts
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.registerAsyncFunction(
+  'RANDOM_DELAYED',
+  async () => {
+    await new Promise(resolve => setTimeout(resolve, 500))
+    return Math.random()
+  },
+  'Mock a random number generation function',
+)
+
+// Use the function in a cell
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const cellA1 = fWorksheet.getRange('A1')
+cellA1.setValue({ f: '=RANDOM_DELAYED()' })
+
+// After 0.5 second, A1 will display a random number
+```
+
+```ts
+// Mock a user score fetching function
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.registerAsyncFunction(
+  'FETCH_USER_SCORE',
+  async (userId) => {
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Mock fetching user score from database
+    return userId * 10 + Math.floor(Math.random() * 20)
+  },
+  {
+    description: 'customFunction.FETCH_USER_SCORE.description',
+    locales: {
+      zhCN: {
+        customFunction: {
+          FETCH_USER_SCORE: {
+            description: '从数据库中获取用户分数',
+          },
+        },
+      },
+      enUS: {
+        customFunction: {
+          FETCH_USER_SCORE: {
+            description: 'Mock fetching user score from database',
+          },
+        },
+      },
+    },
+  },
+)
+
+// Use the function in a cell
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const cellA1 = fWorksheet.getRange('A1')
+cellA1.setValue({ f: '=FETCH_USER_SCORE(42)' })
+
+// After 1 second, A1 will display a score
+```
+
+### `registerFunction`
+
+Register a custom synchronous formula function.
+
+**Signature**
+```typescript
+registerFunction(name: string, func: IRegisterFunction, options?: string | { locales?: ILocales; description?: string | IFunctionInfo }): IDisposable
+```
+
+**Parameters**
+- `name` (`string`) — - The name of the function to register. This will be used in formulas (e.g., =MYFUNC()).
+- `func` (`IRegisterFunction`) — - The implementation of the function.
+- `description` — - A string describing the function's purpose and usage.
+- `name` (`string`) — - The name of the function to register. This will be used in formulas (e.g., =MYFUNC()).
+- `func` (`IRegisterFunction`) — - The implementation of the function.
+- `options` (`string | { locales?: ILocales; description?: string | IFunctionInfo }`) — - Object containing locales and description.
+- `options.locales` — - Object containing locales.
+- `options.description` — - Object containing description.
+
+**Returns**
+- (`IDisposable`) — A disposable object that will unregister the function when disposed.
+
+**Examples**
+```ts
+// Register a simple greeting function
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.registerFunction(
+  'HELLO',
+  name => `Hello, ${name}!`,
+  'A simple greeting function',
+)
+
+// Use the function in a cell
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const cellA1 = fWorksheet.getRange('A1')
+cellA1.setValue('World')
+const cellA2 = fWorksheet.getRange('A2')
+cellA2.setValue({ f: '=HELLO(A1)' })
+
+// A2 will display: "Hello, World!"
+formulaEngine.calculationEnd((functionsExecutedState) => {
+  if (functionsExecutedState === 3) {
+    console.log(cellA2.getValue()) // Hello, World!
+  }
+})
+```
+
+```ts
+// Register a discount calculation function
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.registerFunction(
+  'DISCOUNT',
+  (price, discountPercent) => price * (1 - discountPercent / 100),
+  'Calculates final price after discount',
+)
+
+// Use the function in a cell
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const cellA1 = fWorksheet.getRange('A1')
+cellA1.setValue(100)
+const cellA2 = fWorksheet.getRange('A2')
+cellA2.setValue({ f: '=DISCOUNT(A1, 20)' })
+
+// A2 will display: 80
+formulaEngine.calculationEnd((functionsExecutedState) => {
+  if (functionsExecutedState === 3) {
+    console.log(cellA2.getValue()) // 80
+  }
+})
+```
+
+```ts
+// Registered formulas support lambda functions
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.registerFunction(
+  'CUSTOMSUM',
+  (...variants) => {
+    let sum = 0
+    const last = variants[variants.length - 1]
+
+    if (last.isLambda && last.isLambda()) {
+      variants.pop()
+      const variantsList = variants.map(variant => Array.isArray(variant) ? variant[0][0] : variant)
+      sum += last.executeCustom(...variantsList).getValue()
+    }
+
+    for (const variant of variants) {
+      sum += Number(variant) || 0
+    }
+
+    return sum
+  },
+  'Adds its arguments',
+)
+
+// Use the function in a cell
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const cellA1 = fWorksheet.getRange('A1')
+cellA1.setValue(1)
+const cellA2 = fWorksheet.getRange('A2')
+cellA2.setValue(2)
+const cellA3 = fWorksheet.getRange('A3')
+cellA3.setValue({ f: '=CUSTOMSUM(A1,A2,LAMBDA(x,y,x*y))' })
+
+// A3 will display: 5
+formulaEngine.calculationEnd((functionsExecutedState) => {
+  if (functionsExecutedState === 3) {
+    console.log(cellA3.getValue()) // 5
+  }
+})
+```
+
+```js
+// Register a simple greeting function
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.registerFunction(
+  'HELLO',
+  name => `Hello, ${name}!`,
+  {
+    description: 'customFunction.HELLO.description',
+    locales: {
+      zhCN: {
+        customFunction: {
+          HELLO: {
+            description: '一个简单的问候函数',
+          },
+        },
+      },
+      enUS: {
+        customFunction: {
+          HELLO: {
+            description: 'A simple greeting function',
+          },
+        },
+      },
+    },
+  },
+)
+
+// Use the function in a cell
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const cellA1 = fWorksheet.getRange('A1')
+cellA1.setValue('World')
+const cellA2 = fWorksheet.getRange('A2')
+cellA2.setValue({ f: '=HELLO(A1)' })
+
+// A2 will display: "Hello, World!"
+formulaEngine.calculationEnd((functionsExecutedState) => {
+  if (functionsExecutedState === 3) {
+    console.log(cellA2.getValue()) // Hello, World!
+  }
+})
+```
+
+### `setInitialFormulaComputing`
+
+Update the calculation mode of the formula. It will take effect the next time the Univer Sheet is constructed.
+The calculation mode only handles formulas data when the workbook initializes data.
+
+**Signature**
+```typescript
+setInitialFormulaComputing(calculationMode: CalculationMode): void
+```
+
+**Parameters**
+- `calculationMode` (`CalculationMode`) — - The calculation mode of the formula.
+
+**Examples**
+```ts
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.setInitialFormulaComputing(0)
+```
