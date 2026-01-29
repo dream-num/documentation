@@ -169,6 +169,10 @@ export default async function Layout({ params, children }: IProps) {
       ),
     },
     {
+      text: customTranslations[lang]['reference.title'],
+      url: '/reference/classes/univer',
+    },
+    {
       text: customTranslations[lang]['blog.title'],
       url: '/blog',
     },

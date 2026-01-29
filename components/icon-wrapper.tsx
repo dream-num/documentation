@@ -76,8 +76,8 @@ export function IconWrapper(props: (IIconProps | IProProps | ITextProps | IRefPr
     return (
       <span
         className={clsx(`
-          inline-flex size-6 items-center justify-center rounded-md border bg-linear-to-b from-secondary font-semibold
-          shadow-sm
+          inline-flex size-6 shrink-0 items-center justify-center rounded-md border bg-linear-to-b from-secondary
+          font-semibold shadow-sm
         `, {
           'border-blue-600 bg-blue-50 text-blue-600': text === 'M',
           'border-yellow-600 bg-yellow-50 text-yellow-600': text === 'E',
