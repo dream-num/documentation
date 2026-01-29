@@ -101,11 +101,13 @@ export default async function Layout({ params, children }: IProps) {
 
             <NavbarMenuLink
               className={`
-                relative overflow-hidden border-none
+                group relative overflow-hidden rounded-2xl border-none shadow-[0_25px_60px_rgba(15,23,42,0.25)]
+                transition-transform duration-200
+                hover:-translate-y-1
                 md:col-span-2 md:row-span-2
                 lg:col-start-3 lg:row-start-1
-                [&>img]:absolute [&>img]:inset-0 [&>img]:size-full [&>img]:transition-all
-                hover:[&>img]:grayscale-50
+                [&>img]:absolute [&>img]:inset-0 [&>img]:size-full [&>img]:transition-transform
+                hover:[&>img]:scale-[1.02]
               `}
               href="/guides/pro"
             >
@@ -115,7 +117,7 @@ export default async function Layout({ params, children }: IProps) {
                   dark:block
                 `}
                 src="/assets/images/pro-panel.dark.png"
-                alt="Univer Pro"
+                alt={customTranslations[lang]['navbar.pro.title']}
               />
               <img
                 className={`
@@ -123,17 +125,40 @@ export default async function Layout({ params, children }: IProps) {
                   dark:hidden
                 `}
                 src="/assets/images/pro-panel.light.png"
-                alt="Univer Pro"
+                alt={customTranslations[lang]['navbar.pro.title']}
               />
-              <label
+              <div
                 className={`
-                  absolute top-4 left-4 inline-block rounded-md bg-linear-[90deg,#272A2F_0%,#7D8698_100%] px-3 py-1
-                  text-lg font-semibold text-gray-100
-                  dark:bg-linear-[90deg,#EEEFF1_0%,#7D8698_100%] dark:text-gray-700
+                  absolute inset-0
+                  bg-linear-[135deg,rgba(15,23,42,0.9)_0%,rgba(15,23,42,0.55)_45%,rgba(15,23,42,0.15)_100%]
+                  dark:bg-linear-[135deg,rgba(2,6,23,0.75)_0%,rgba(2,6,23,0.45)_45%,rgba(2,6,23,0.1)_100%]
                 `}
-              >
-                Univer Pro
-              </label>
+              />
+              <div className="relative z-10 flex h-full flex-col justify-between p-5 text-white">
+                <div className="flex items-center justify-between text-xs tracking-[0.28em] text-white/70 uppercase">
+                  <span className="rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-semibold text-white/90">
+                    {customTranslations[lang]['navbar.pro.badge']}
+                  </span>
+                  <span>{customTranslations[lang]['navbar.pro.kicker']}</span>
+                </div>
+                <div>
+                  <div className="text-2xl font-semibold">{customTranslations[lang]['navbar.pro.title']}</div>
+                  <p className="mt-2 text-sm text-white/80">
+                    {customTranslations[lang]['navbar.pro.description']}
+                  </p>
+                </div>
+                <div className="inline-flex items-center gap-2 text-sm font-semibold">
+                  {customTranslations[lang]['navbar.pro.cta']}
+                  <span
+                    className="
+                      transition-transform duration-200
+                      group-hover:translate-x-1
+                    "
+                  >
+                    →
+                  </span>
+                </div>
+              </div>
             </NavbarMenuLink>
           </NavbarMenuContent>
         </NavbarMenu>
