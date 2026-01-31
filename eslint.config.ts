@@ -37,6 +37,7 @@ export default antfu({
     'content/blog/univer-doc-architecture.zh-CN.mdx',
     'content/blog/this-is-univer.mdx',
     'content/blog/this-is-univer.zh-CN.mdx',
+    'content/reference/facade/**/*.mdx',
   ],
   ...mdx.flat,
   // optional, if you want to lint code blocks at the same
@@ -60,6 +61,7 @@ export default antfu({
   },
 }, {
   files: ['**/*.mdx'],
+  ignores: ['content/reference/facade/**/*.mdx'],
   ...mdx.flatCodeBlocks,
   rules: {
     ...mdx.flatCodeBlocks.rules,

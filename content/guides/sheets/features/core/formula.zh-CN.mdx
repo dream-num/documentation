@@ -70,7 +70,7 @@ enum CalculationMode {
 }
 ```
 
-> 如果公式所在单元格有非预期值，可以通过 `initialFormulaComputing` 设置为 `FORCED` 强制计算所有公式。或者初始化之前清空单元格的值。
+> 如果公式所在单元格有非预期值，可以通过 `initialFormulaComputing` 设置为 `FORCED` 强制计算所有公式。或者初始化之前清空单元格的 `v` 值。
 
 ## 已经支持的公式函数
 
@@ -78,58 +78,84 @@ enum CalculationMode {
 
 ## Facade API
 
+完整 Facade API 见 [FFormula](https://reference.univer.ai/classes/FFormula)。
+
 ### 引入
 
+<Callout type="info" title="插件模式提示">
+  仅插件模式需要手动引入 Facade 包。预设模式已内置对应的 Facade 包，无需额外导入。
+</Callout>
+
 ```typescript
+import '@univerjs/engine-formula/facade'
 import '@univerjs/sheets-formula/facade'
 ```
 
-### 执行计算
+### 执行公式计算
 
 ```typescript
-const formula = univerAPI.getFormula()
-formula.executeCalculation()
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.executeCalculation()
 ```
 
-### 停止计算
+### 停止公式计算
 
 ```typescript
-const formula = univerAPI.getFormula()
-formula.stopCalculation()
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.stopCalculation()
 ```
 
-### 计算开始事件
+### 公式开始计算
 
 ```typescript
-const formula = univerAPI.getFormula()
-formula.calculationStart((forceCalculate) => {
+// 监听公式计算开始事件
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationStart((forceCalculate) => {
   console.log(forceCalculate)
 })
 ```
 
-### 计算中事件
+### 公式计算中
 
 ```typescript
-const formula = univerAPI.getFormula()
-formula.calculationProcessing((stageInfo) => {
+// 监听公式计算中事件
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationProcessing((stageInfo) => {
   console.log(stageInfo)
 })
 ```
 
-### 计算结束事件
+### 公式计算结束
 
 ```typescript
-const formula = univerAPI.getFormula()
-formula.calculationEnd((functionsExecutedState) => {
+// 监听公式计算结束事件
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationEnd((functionsExecutedState) => {
   console.log(functionsExecutedState)
 })
+
+// 等待公式计算结束
+await formulaEngine.onCalculationEnd()
 ```
 
-### 设置初始化计算模式
+### 公式计算结果应用
 
 ```typescript
-const formula = univerAPI.getFormula()
-formula.setInitialFormulaComputing(CalculationMode.FORCED)
+// 监听公式计算结果应用事件
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationResultApplied((result) => {
+  console.log(result)
+})
+
+// 等待公式计算结果应用完成
+await formulaEngine.onCalculationResultApplied()
+```
+
+### 设置初始化数据时公式的计算模式
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.setInitialFormulaComputing(CalculationMode.FORCED)
 ```
 
 如果这个 API 在 `Starting` 生命周期之后调用，会在下次创建 Univer Sheet 时生效。
@@ -139,10 +165,55 @@ formula.setInitialFormulaComputing(CalculationMode.FORCED)
 ```typescript
 univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
   if (stage === LifecycleStages.Starting) {
-    const formula = univerAPI.getFormula()
-    formula.setInitialFormulaComputing(CalculationMode.FORCED)
+    const formulaEngine = univerAPI.getFormula()
+    formulaEngine.setInitialFormulaComputing(CalculationMode.FORCED)
   }
 })
+```
+
+### 设置迭代次数
+
+当公式中存在循环引用时，可以通过该 API 设置公式计算时的最大迭代次数。默认值为 1。
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.setMaxIteration(10)
+```
+
+### 获取公式字符串的计算结果
+
+异步执行一批公式字符串并返回计算结果：
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+const formulas = {
+  Book1: {
+    Sheet1: {
+      2: {
+        3: [
+          // 完整公式：
+          '=SUM(A1:A10) + SQRT(D7)',
+
+          // 分解后的子公式（每个都可以独立计算）：
+          'SUM(A1:A10)', // 子公式 1
+          'SQRT(D7)', // 子公式 2
+          'A1:A10', // 范围引用
+          'D7', // 单个单元格引用
+        ],
+      },
+      4: {
+        5: [
+          '=A2 + B2 + SQRT(C5)',
+          'A2',
+          'B2',
+          'SQRT(C5)',
+        ],
+      },
+    },
+  },
+}
+const result = await formulaEngine.executeFormulas(formulas)
+console.log(result)
 ```
 
 ## 自定义公式

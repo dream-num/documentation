@@ -2,62 +2,68 @@
 title: 運維手冊
 ---
 
-本節介紹 Univer 提供的後端服務運維資源，幫助你更好地瞭解 Univer 後端服務的執行情況、定位故障、管理容量。
+本頁介紹 Univer 後端服務的可觀測性與運維入口，包含指標、日誌與常見定位路徑。
 
-Univer 提供了以下可觀測支援：
+## 可觀測入口
 
-- Prometheus metrics 指標
-- 服務日誌
+Univer 提供：
+
+- Prometheus Metrics 指標
+- 服務日誌（stdout + 持久化卷）
+
+若啟用內建可觀測元件，可在 Grafana 直接查看；否則可匯出面板接入你的監控系統。
 
 ## Metrics
 
-Univer 後端服務輸出了 Prometheus 指標，如果你配置了 Univer 部署內建的可觀測元件，你可以直接開啟 Grafana 檢視，我們已經內建了一組 Grafana 監控面板，包括：
+內建 Grafana 面板涵蓋：
 
-- 基礎元件：rabbitmq、redis、rds
-- 協同服務 collaboration-server
-- 主服務 universer
-- 匯入匯出服務 exchange
+- 基礎元件：RabbitMQ、Redis、RDS
+- 協作服務：collaboration-server
+- 主服務：universer
+- 匯入匯出：exchange
 
-你可從中實時檢視 Univer 服務的效能指標、可用性、關鍵業務指標。如果你使用的是自己的監控系統，可以[點此下載](https://release-univer.oss-cn-shenzhen.aliyuncs.com/release/univer-grafana-dashboards.tar.gz) Univer 準備好的 grafana 監控面板配置。
+可用於觀測效能、可用性與業務指標。外部系統可下載面板設定：
 
-Grafana 看板基礎說明：
+https://release-univer.oss-cn-shenzhen.aliyuncs.com/release/univer-grafana-dashboards.tar.gz
 
-1. 服務黃金 4 指標，重點觀測 QPS、整體和各 API 的 SLI、錯誤碼分佈
+### 面板示例
+
+1. 黃金四指標（QPS、SLI、錯誤碼分佈）
 
 ![服務黃金 4 指標](./sre-manual/golden-4-metrics.png)
 
-2. 業務視角的基礎元件效能和可用性
+2. 基礎元件效能與可用性
 
-- RDS
+![RDS 效能與可用性](./sre-manual/rds-metrics.png)
 
-![RDS 效能和可用性](./sre-manual/rds-metrics.png)
+![Redis 與 MQ 效能](./sre-manual/redis-and-mq.png)
 
-- Redis & MQ
+3. 協作編輯業務指標
 
-![Redis 和 MQ 效能和可用性](./sre-manual/redis-and-mq.png)
+![協作編輯指標](./sre-manual/collaboration-edit-metrics.png)
 
-3. 協同編輯業務指標
+4. USIP 技術指標
 
-![協同編輯業務指標](./sre-manual/collaboration-edit-metrics.png)
-
-4. 如果你開啟了 USIP 整合，可以觀測 Univer 服務側視角的技術指標
-
-![USIP 技術指標](./sre-manual/usip-metrics.png)
+![USIP 指標](./sre-manual/usip-metrics.png)
 
 ## 服務日誌
 
-如果你使用 docker compose 部署，可以透過 docker 命令直接檢視對應容器的日誌。Univer 後端服務的日誌除了輸出到標準輸出，還會輸出到持久化卷，但不會永久儲存。當單個服務例項的日誌總大小超過 1G 時會立即清除部分較早的日誌，即使日誌大小未超過 1G，最多也只會保留 30 天，超過 30 天的那部分日誌檔案將被清除。你可以直接開啟對應的日誌檔案檢視。universer 服務的日誌儲存在部署目錄下的 `/logs/universer/`，匯入匯出服務的日誌則儲存在 `/logs/worker-exchange/`
+### Docker Compose
 
-不論你是用 docker compose 還是 k8s 部署，如果你配置部署了 Univer 內建的可觀測元件，還可以使用 Loki 檢視日誌。檢視路徑：grafana Toggle Menu -> Explore，資料來源選擇 Loki，如下圖所示：
+日誌輸出到 stdout 與持久化卷（最多保留 30 天或 1GB）。
 
-![Loki 日誌搜尋](./sre-manual/loki-search.png)
+- universer：`/logs/universer/`
+- exchange：`/logs/worker-exchange/`
 
-當然，如果你已有自己的日誌元件，可以配置採集 Univer 的日誌。Univer 後端服務的日誌都會輸出到標準輸出。
+### K8s / Loki
 
-## 常見錯誤排查
+啟用內建可觀測元件後，可於 Grafana -> Explore 使用 Loki 查詢：
 
-1. 發現服務出現某些功能不可用
+![Loki 查詢](./sre-manual/loki-search.png)
 
-首先，開啟監控面板，檢查訪問基礎元件 RDS、MQ、Redis 是否正常，即檢視 SLI 是否正常，如果 SLI 異常，一般就是基礎元件故障或服務和基礎元件的網路故障。
+## 常見定位路徑
 
-如果基礎元件訪問正常，再檢視 universer 服務的 ingress 和 egress 的各介面 SLI 是否正常，如果有某些介面 SLI 異常，可檢視此介面返回的錯誤碼，根據錯誤碼能瞭解一些原因。同時，透過 Grafana Loki 嘗試搜尋該錯誤碼的日誌，搜尋關鍵詞：biz_code=the_biz_err_code。可透過這些資訊進一步定位問題根因。
+1. **功能不可用**：先檢查 RDS/MQ/Redis 的 SLI
+2. **API 失敗**：查看 universer API SLI 與錯誤碼分佈
+3. **日誌檢索**：在 Loki 搜尋 `biz_code=xxx`
+4. **容量瓶頸**：觀察 QPS、延遲、CPU/記憶體

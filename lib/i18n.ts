@@ -95,6 +95,7 @@ const customZhCN = {
   'home.features.performance.title': '无与伦比的性能',
   'home.features.customizability.title': '一切皆可定制',
   'documentation.title': '文档',
+  'reference.title': 'API 参考',
   'ecosystem.title': '生态',
   'icons.title': 'Univer Icons',
   'icons.slogan': 'Univer 的图标库，提供丰富的图标资源',
@@ -116,6 +117,11 @@ const customZhCN = {
   'docs.feedback.retry': '再次提交',
   'playground.click-to-show': '点击显示 demo',
   'playground.click-to-hide': '点击隐藏 demo',
+  'navbar.pro.badge': 'Pro',
+  'navbar.pro.kicker': '高级',
+  'navbar.pro.title': 'Univer Pro',
+  'navbar.pro.description': '协作、图表、透视表与打印工作流。',
+  'navbar.pro.cta': '探索 Pro',
 }
 
 const customZhTw = {
@@ -133,6 +139,7 @@ const customZhTw = {
   'home.features.performance.title': '無與倫比的性能',
   'home.features.customizability.title': '一切皆可定制',
   'documentation.title': '文檔',
+  'reference.title': 'API 參考',
   'ecosystem.title': '生態',
   'icons.title': 'Univer Icons',
   'icons.slogan': 'Univer 的圖標庫，提供豐富的圖標資源',
@@ -154,6 +161,11 @@ const customZhTw = {
   'docs.feedback.retry': '再次提交',
   'playground.click-to-show': '點擊顯示 demo',
   'playground.click-to-hide': '點擊隱藏 demo',
+  'navbar.pro.badge': 'Pro',
+  'navbar.pro.kicker': '進階',
+  'navbar.pro.title': 'Univer Pro',
+  'navbar.pro.description': '協作、圖表、樞紐分析與列印工作流。',
+  'navbar.pro.cta': '探索 Pro',
 }
 
 const customEnUS: typeof customZhCN = {
@@ -171,6 +183,7 @@ const customEnUS: typeof customZhCN = {
   'home.features.performance.title': 'Unrivaled Performance',
   'home.features.customizability.title': 'Customize Everything',
   'documentation.title': 'Documentation',
+  'reference.title': 'API Reference',
   'ecosystem.title': 'Ecosystem',
   'icons.title': 'Univer Icons',
   'icons.slogan': 'An icon library for Univer, providing a rich set of icons',
@@ -192,6 +205,11 @@ const customEnUS: typeof customZhCN = {
   'docs.feedback.retry': 'Submit Again',
   'playground.click-to-show': 'Click to show demo',
   'playground.click-to-hide': 'Click to hide demo',
+  'navbar.pro.badge': 'Pro',
+  'navbar.pro.kicker': 'Advanced',
+  'navbar.pro.title': 'Univer Pro',
+  'navbar.pro.description': 'Collaboration, charts, pivot tables, and print workflows.',
+  'navbar.pro.cta': 'Explore Pro',
 }
 
 const customJaJP: typeof customZhCN = {
@@ -209,6 +227,7 @@ const customJaJP: typeof customZhCN = {
   'home.features.performance.title': '比類のないパフォーマンス',
   'home.features.customizability.title': 'すべてをカスタマイズ',
   'documentation.title': 'ドキュメント',
+  'reference.title': 'API リファレンス',
   'ecosystem.title': 'エコシステム',
   'icons.title': 'Univer Icons',
   'icons.slogan': 'Univer のアイコンライブラリで、豊富なアイコンリソースを提供します',
@@ -230,6 +249,11 @@ const customJaJP: typeof customZhCN = {
   'docs.feedback.retry': '再度送信',
   'playground.click-to-show': 'デモを表示するにはクリック',
   'playground.click-to-hide': 'デモを非表示にするにはクリック',
+  'navbar.pro.badge': 'Pro',
+  'navbar.pro.kicker': '上級',
+  'navbar.pro.title': 'Univer Pro',
+  'navbar.pro.description': 'コラボレーション、チャート、ピボット、印刷ワークフロー。',
+  'navbar.pro.cta': 'Pro を見る',
 }
 
 export const customTranslations: Record<string, Record<string, string>> = {

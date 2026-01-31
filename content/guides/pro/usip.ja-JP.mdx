@@ -1,71 +1,68 @@
 ---
-title: USIP との連携
+title: USIP 連携
 ---
 
-## 概要
+Univer Pro はアカウントシステムを内蔵しません。認証・権限・業務連携が必要な場合は USIP（Univer Server Integration Protocol）を使用します。USIP は SPI で、Univer が仕様を定義し、貴社システムが実装します。
 
-Univer Pro のバックエンドサービスにはアカウントシステムが組み込まれておらず（また組み込むべきではありません）、デフォルトでは訪問者の認証を行いません。つまり、すべてのユーザーがすべてのリソースにアクセスできます。
+## 利用シーン
 
-ユーザーがサービスを利用する前に認証が必要な場合は、独自のアカウントシステムを実装する必要があります。Univer Server をあなたのシステムと連携するよう設定でき、ユーザー認証が必要な場面であなたのシステムが呼び出されます。
+- ログイン必須のアクセス
+- 役割に応じた権限制御
+- 協作者情報や最終更新時刻の同期
 
-この連携を実現するために、Univer Pro は **Univer Server Integration Protocol (USIP)** を設計しました。USIP は SPI（Service Provider Interface）であり、**Univer Pro がインターフェースを定義し、あなたのシステムがそれを実装する** 仕組みです。
+## 連携フロー
 
-Univer Pro はユーザー要件を想定していくつかの USIP インターフェースを事前定義しています。必要に応じて一部インターフェースを実装し、ユーザー認証や権限検証などの挙動を変更できます。現状の USIP で要件を満たせない場合は改善提案をご連絡ください。
+1. USIP API を実装
+2. デプロイ設定で USIP を有効化
+3. クライアントから認証ヘッダーを透過
 
-## USIP インターフェースの説明
+## USIP API
 
-現在、Univer Pro は次の 3 種類のシナリオに対して USIP インターフェースを定義しています:
-
-- 👥 アカウント関連
-  - ユーザー認証
-  - ユーザー情報取得: 名前/アバターなどの基本情報
-- 🔒 権限関連
-  - 特定ドキュメントに対するユーザーの権限ロール取得
-  - 特定ドキュメントの共同編集者リスト取得
-- 📄 ドキュメント関連
-  - ドキュメントの最終編集時刻通知
+- 👥 アカウント：認証、ユーザー情報
+- 🔒 権限：役割、協作者一覧
+- 📄 ドキュメント：最終更新時刻
 
 ### ユーザー認証
 
-#### 呼び出しシーン
+#### 呼び出しタイミング
 
-Univer バックエンドとの通信はすべて認証が必要なため、認証 SPI は毎回呼び出されます。
+サーバーとの通信ごとに呼び出されます。
 
-#### 連携フロー
+#### フロー
 
-![Interaction flow](./usip/credential.png)
+![フロー](./usip/credential.png)
 
-#### プロトコル定義
+#### 定義
 
 <APITable
   request={{
     method: 'GET',
-    headers: 'カスタムヘッダーは不要で、ユーザーリクエストのヘッダーは引き継がれません',
+    headers: '全ての header が透過されます',
   }}
   response={{
     type: 'application/json',
     parameters: [{
       name: 'user',
       type: 'Object',
-      description: '認証成功時にユーザーオブジェクトを返します',
+      description: '認証成功時の user',
       properties: [
         {
           name: 'userID',
           type: 'string',
           example: 'ace55655ceabd55',
-          description: 'ユーザー ID。実ユーザーと 1 対 1 で対応できるものを使用してください。open_uid の使用を推奨します。',
+          description: 'ユーザー ID（open_uid 推奨）',
         },
         {
           name: 'name',
           type: 'string',
           example: 'alice',
-          description: 'ユーザー名。フロントエンドで共同編集者情報を表示するために使用します。',
+          description: '表示名',
         },
         {
           name: 'avatar',
           type: 'string',
           example: 'https://image.xx/acde55acb45bbead55',
-          description: 'アバター URL。フロントエンドで共同編集者情報を表示するために使用します。',
+          description: 'アバター URL',
         },
       ],
     }],
@@ -79,28 +76,28 @@ Univer バックエンドとの通信はすべて認証が必要なため、認�
   }}
 />
 
-### ユーザー情報を一括取得
+### ユーザー情報の一括取得
 
-#### 呼び出しシーン
+#### 呼び出しタイミング
 
-複数人で共同編集する際に共同編集者のプロフィール画像/名前を表示する場合、またドキュメントのコメント一覧でコメント投稿者の画像/名前を表示する場合に使用します。
+協作者の表示やコメント表示で使用。
 
-#### 連携フロー
+#### フロー
 
-![Interaction flow](./usip/user-infos.png)
+![フロー](./usip/user-infos.png)
 
-#### プロトコル定義
+#### 定義
 
 <APITable
   request={{
     method: 'POST',
-    headers: 'カスタムヘッダーは不要で、ユーザーリクエストのヘッダーは引き継がれません',
+    headers: 'カスタム header は不要。ユーザー header は透過されません',
     parametersType: 'Body',
     parameters: [{
       name: 'userIDs',
       type: 'array[string]',
       example: '["user_id1", "user_id2"]',
-      description: 'ユーザー ID の配列。Univer Pro がこれらのユーザーのアバター/名前などを一括取得します。',
+      description: 'ユーザー ID 配列',
     }],
     example: JSON.stringify({
       userIDs: ['user_id1', 'user_id2', 'user_id3'],
@@ -111,7 +108,7 @@ Univer バックエンドとの通信はすべて認証が必要なため、認�
     parameters: [{
       name: 'users',
       type: 'array[Object]',
-      description: 'ユーザーオブジェクトの配列。定義は認証インターフェースに準拠します。',
+      description: '認証 API と同じ user 構造',
     }],
     example: JSON.stringify({
       users: [
@@ -123,22 +120,22 @@ Univer バックエンドとの通信はすべて認証が必要なため、認�
   }}
 />
 
-### ユーザー権限ロール取得
+### ユーザーの役割取得
 
-#### 呼び出しシーン
+#### 呼び出しタイミング
 
-ユーザーがドキュメントを閲覧/編集する際に、その操作権限を判定するためユーザーの権限ロールを取得します。
+読み取り/編集時の権限判定。
 
-#### 連携フロー
+#### フロー
 
-![Interaction flow](./usip/user-role.png)
+![フロー](./usip/user-role.png)
 
-#### プロトコル定義
+#### 定義
 
 <APITable
   request={{
     method: 'GET',
-    headers: 'カスタムヘッダーは不要で、ユーザーリクエストのヘッダーは引き継がれません',
+    headers: 'カスタム header は不要',
     parametersType: 'Query',
     parameters: [{
       name: 'userID',
@@ -159,12 +156,12 @@ Univer バックエンドとの通信はすべて認証が必要なため、認�
       name: 'userID',
       type: 'string',
       example: 'acd5455e44fc5bb55',
-      description: 'リクエストに含まれるユーザー ID',
+      description: 'ユーザー ID',
     }, {
       name: 'role',
       type: 'string',
       example: 'editor',
-      description: 'ドキュメント上の権限ロール。Univer は owner/editor/reader の 3 つを定義します。',
+      description: '役割：owner/editor/reader',
     }],
     example: JSON.stringify({
       userID: 'acd5455e44fc5bb55',
@@ -173,28 +170,28 @@ Univer バックエンドとの通信はすべて認証が必要なため、認�
   }}
 />
 
-### ドキュメントの共同編集者一覧
+### 協作者一覧
 
-#### 呼び出しシーン
+#### 呼び出しタイミング
 
-保護範囲やサブテーブルの共同編集者を設定する際に使用します（このドキュメントの共同編集者のみ、サブテーブルや保護範囲の閲覧/編集ユーザーとして設定できます）。
+保護範囲/保護シートのユーザー選択時。
 
-#### 連携フロー
+#### フロー
 
-![Interaction flow](./usip/list-collaborators.png)
+![フロー](./usip/list-collaborators.png)
 
-#### プロトコル定義
+#### 定義
 
 <APITable
   request={{
     method: 'POST',
-    headers: 'カスタムヘッダーは不要で、ユーザーリクエストのヘッダーは引き継がれません',
+    headers: 'カスタム header は不要',
     parametersType: 'Body',
     parameters: [{
       name: 'unitIDs',
       type: 'array[string]',
       example: '["unit_id1", "unit_id2"]',
-      description: 'ドキュメント ID の配列。Univer Pro がこれらのドキュメントの共同編集者を一括取得します。',
+      description: 'ドキュメント ID 配列',
     }],
     example: JSON.stringify({
       unitIDs: ['unit_id1', 'unit_id2', 'unit_id3'],
@@ -205,7 +202,7 @@ Univer バックエンドとの通信はすべて認証が必要なため、認�
     parameters: [{
       name: 'collaborators',
       type: 'array[Object]',
-      description: 'ドキュメントごとの共同編集者オブジェクトのリスト（ドキュメント ID と共同編集者情報を含む）',
+      description: 'ドキュメント別の協作者一覧',
       properties: [{
         name: 'unitID',
         type: 'string',
@@ -214,21 +211,21 @@ Univer バックエンドとの通信はすべて認証が必要なため、認�
       }, {
         name: 'subjects',
         type: 'array[Object]',
-        description: 'ドキュメントの共同編集者オブジェクト一覧',
+        description: '協作者リスト',
         properties: [{
           name: 'role',
           type: 'string',
           example: 'editor',
-          description: '共同編集者の権限ロール。Univer は owner/editor/reader の 3 つを定義します。',
+          description: '役割：owner/editor/reader',
         }, {
           name: 'subject',
           type: 'Object',
-          description: '共同編集者情報',
+          description: '協作者情報',
           properties: [{
             name: 'type',
             type: 'string',
             example: 'user',
-            description: '"user" に設定する必要があります',
+            description: '"user" のみ',
           }, {
             name: 'id',
             type: 'string',
@@ -278,18 +275,18 @@ Univer バックエンドとの通信はすべて認証が必要なため、認�
   }}
 />
 
-### ドキュメントの最終編集時刻を通知
+### 最終更新時刻通知
 
-#### 呼び出しシーン
+#### 呼び出しタイミング
 
-ドキュメント一覧に表示するなど、内部業務向けに最終編集時刻を提供します。
+業務側で最終更新時刻を表示するため。
 
-#### プロトコル定義
+#### 定義
 
 <APITable
   request={{
     method: 'POST',
-    headers: 'カスタムヘッダーは不要で、ユーザーリクエストのヘッダーは引き継がれません',
+    headers: 'カスタム header は不要',
     parametersType: 'Body',
     parameters: [{
       name: 'unitID',
@@ -300,7 +297,7 @@ Univer バックエンドとの通信はすべて認証が必要なため、認�
       name: 'editTimeUnixMs',
       type: 'int',
       example: '1762591632345',
-      description: 'UNIX タイムスタンプ（ミリ秒）',
+      description: 'Unix ミリ秒',
     }],
     example: JSON.stringify({
       unitID: 'unit_id1',
@@ -314,105 +311,97 @@ Univer バックエンドとの通信はすべて認証が必要なため、認�
   }}
 />
 
-## USIP 連携の設定
+## USIP 設定
 
-Univer バックエンドサービスでユーザー認証と権限検証を有効化する方法です。
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    ```properties title=".env.custom"
+    USIP_ENABLED=true
+    USIP_URI_CREDENTIAL=https://your-domain/usip/credential
+    USIP_URI_USERINFO=https://your-domain/usip/userinfo
+    USIP_URI_ROLE=https://your-domain/usip/role
+    USIP_URI_COLLABORATORS=https://your-domain/usip/collaborators
+    USIP_URI_UNITEDITTIME=https://your-domain/usip/unit-edit-time
 
-Docker Compose でデプロイする場合は、`.env.custom` に次の設定を追加します:
+    USIP_APIKEY=
 
-```properties title=".env.custom"
-# usip about
-USIP_ENABLED=true  # Set true to enable USIP
-USIP_URI_CREDENTIAL=https://your-domain/usip/credential # the implementation URL of USIP API user authentication
-USIP_URI_USERINFO=https://your-domain/usip/userinfo     # the implementation URL of USIP API get user information
-USIP_URI_ROLE=https://your-domain/usip/role             # the implementation URL of USIP API get user role
-USIP_URI_COLLABORATORS=https://your-domain/usip/collaborators # the implementation URL of USIP API list collaborators
-USIP_URI_UNITEDITTIME=https://your-domain/usip/unit-edit-time # the implementation URL of USIP API notify document last updated timestamp
+    AUTH_PERMISSION_ENABLE_OBJ_INHERIT=false
+    AUTH_PERMISSION_CUSTOMER_STRATEGIES=
+    ```
+  </Tab>
+  <Tab label="K8s">
+    ```yaml title="values.yaml"
+    universer:
+      config:
+        usip:
+          enabled: true
+          uri:
+            userinfo: 'https://your-domain/usip/userinfo'
+            collaborators: 'https://your-domain/usip/collaborators'
+            role: 'https://your-domain/usip/role'
+            credential: 'https://your-domain/usip/credential'
+            unitEditTime: 'https://your-domain/usip/unit-edit-time'
+          apikey: ''
+        auth:
+          permission:
+            enableObjInherit: false
+            customerStrategies: ''
+    ```
+  </Tab>
+</Tabs>
 
-# apikey is optional.
-USIP_APIKEY=
-
-# auth about
-AUTH_PERMISSION_ENABLE_OBJ_INHERIT=false  # See permission design instructions below
-AUTH_PERMISSION_CUSTOMER_STRATEGIES=      # See permission design instructions below
-```
-
-K8s でデプロイする場合は、`values.yaml` に次の設定を追加します:
-
-```yaml title="values.yaml"
-universer:
-  config:
-    usip:
-      enabled: true # Set true to enable USIP
-      uri:
-        userinfo: 'https://your-domain/usip/userinfo' # the implementation URL of USIP API get user information
-        collaborators: 'https://your-domain/usip/collaborators' # the implementation URL of USIP API list collaborators
-        role: 'https://your-domain/usip/role' # the implementation URL of USIP API get user role
-        credential: 'https://your-domain/usip/credential' # the implementation URL of USIP API user authentication
-        unitEditTime: 'https://your-domain/usip/unit-edit-time' # the implementation URL of USIP API notify document last updated timestamp
-
-      # apikey is optional.
-      apikey: ''
-    auth:
-      permission:
-        enableObjInherit: false # See permission design instructions below
-        customerStrategies: '' # See permission design instructions below
-```
+**注意**：USIP を有効化する場合は 5 つの API をすべて設定・実装する必要があります。
 
 USIP サービスがパブリックネットワーク上に公開されている場合、API リクエストの安全性を確保するために、AI API の認証方式に近い仕組みを採用できます。API キーを生成し、Univer サーバーに設定してください。USIP API を呼び出す際には、リクエストに x-api-key: API_KEY というヘッダーが付与され、この値を用いてリクエストの正当性を検証できます。
 
-USIP を有効化した後は、上記 4 つの USIP API の URL をすべて設定し、サービス側で正しく実装する必要があります。デプロイ時の適用方法は [本番環境デプロイ](/guides/pro/deploy) を参照してください。
+## 権限モデル
 
-## Univer の権限管理設計
+Univer は RBAC を採用。固定ロールは `owner`、`editor`、`reader`。
 
-Univer の権限制御は `RBAC` モデルを使用します。現在は `owner`、`editor`、`reader` の 3 つの固定ロールがあります。editor は reader の権限を持ち、owner は editor と reader の権限を持ちます。カスタムロールは現在サポートしていませんが、各アクションに必要な最小ロールを設定できます。既定の設定があり、不要であれば何もする必要はありません。必要に応じて、特定アクションの最小ロール要件を上書きできます。
+既定の権限ポイント：
 
-Univer に組み込まれている既定アクションと最小ロール要件は以下のとおりです:
-
-| action | action の enum 値 | action の説明 | 最小ロール要件 | role の enum 値 |
+| 権限 | Enum | 説明 | 最低ロール | ロール値 |
 |:-------|:---------|:-------|:-------|:-------|
-| ManageCollaborator | 2 | 共同編集者の招待/削除 | owner | 2 |
-| Copy | 6 | コンテンツのコピー | reader | 0 |
+| ManageCollaborator | 2 | 協作者の招待/削除 | owner | 2 |
+| Copy | 6 | コピー | reader | 0 |
 | Print | 3 | 印刷 | editor | 1 |
-| Duplicate | 4 | ドキュメントの複製 | editor | 1 |
+| Duplicate | 4 | ドキュメント複製 | editor | 1 |
 | Share | 7 | 共有 | reader | 0 |
 | Export | 8 | エクスポート | editor | 1 |
 | Comment | 5 | コメント | reader | 0 |
-| View | 0 | ドキュメント閲覧 | reader | 0 |
-| MoveSheet | 25 | ワークシートの移動 | editor | 1 |
-| DeleteSheet | 26 | ワークシート削除 | editor | 1 |
-| HideSheet | 27 | ワークシート非表示 | editor | 1 |
-| CopySheet | 28 | ワークシート複製 | editor | 1 |
-| RenameSheet | 29 | ワークシートの名前変更 | editor | 1 |
-| CreateSheet | 30 | ワークシート作成 | editor | 1 |
-| SetCellStyle | 33 | セルのスタイル設定 | editor | 1 |
-| SetCellValue | 34 | セル値設定 | editor | 1 |
-| InsertHyperlink | 16 | セルへのハイパーリンク挿入 | editor | 1 |
+| View | 0 | 閲覧 | reader | 0 |
+| MoveSheet | 25 | シート移動 | editor | 1 |
+| DeleteSheet | 26 | シート削除 | editor | 1 |
+| HideSheet | 27 | シート非表示 | editor | 1 |
+| CopySheet | 28 | シート複製 | editor | 1 |
+| RenameSheet | 29 | シート名変更 | editor | 1 |
+| CreateSheet | 30 | シート作成 | editor | 1 |
+| SetCellStyle | 33 | セルスタイル | editor | 1 |
+| SetCellValue | 34 | セル値 | editor | 1 |
+| InsertHyperlink | 16 | ハイパーリンク | editor | 1 |
 | Sort | 17 | ソート | editor | 1 |
-| Filter | 18 | フィルター | editor | 1 |
-| PivotTable | 19 | ピボットテーブル | editor | 1 |
-| RecoverHistory | 43 | ドキュメントを履歴版に復元 | editor | 1 |
-| ViewHistory | 44 | 編集履歴の閲覧 | reader | 0 |
-| SelectProtectedCells | 31 | 保護範囲のセル選択 | editor | 1 |
-| SelectUnProtectedCells | 32 | 非保護セルの選択 | editor | 1 |
-| SetRowStyle | 35 | 行スタイル設定 | editor | 1 |
-| SetColumnStyle | 36 | 列スタイル設定 | editor | 1 |
-| InsertRow | 37 | 行の挿入 | editor | 1 |
-| InsertColumn | 38 | 列の挿入 | editor | 1 |
-| DeleteRow | 39 | 行の削除 | editor | 1 |
-| DeleteColumn | 40 | 列の削除 | editor | 1 |
-| Delete | 42 | ドキュメント全体の削除 | owner | 2 |
-| CreatePermissionObject | 45 | 保護範囲/保護シートの作成 | editor | 1 |
+| Filter | 18 | フィルタ | editor | 1 |
+| PivotTable | 19 | ピボット | editor | 1 |
+| RecoverHistory | 43 | 履歴復元 | editor | 1 |
+| ViewHistory | 44 | 履歴閲覧 | reader | 0 |
+| SelectProtectedCells | 31 | 保護範囲選択 | editor | 1 |
+| SelectUnProtectedCells | 32 | 非保護範囲選択 | editor | 1 |
+| SetRowStyle | 35 | 行スタイル | editor | 1 |
+| SetColumnStyle | 36 | 列スタイル | editor | 1 |
+| InsertRow | 37 | 行挿入 | editor | 1 |
+| InsertColumn | 38 | 列挿入 | editor | 1 |
+| DeleteRow | 39 | 行削除 | editor | 1 |
+| DeleteColumn | 40 | 列削除 | editor | 1 |
+| Delete | 42 | ドキュメント削除 | owner | 2 |
+| CreatePermissionObject | 45 | 保護範囲/シート作成 | editor | 1 |
 
-一部アクションの最小ロールを変更したい場合（例: コピーと印刷は unit の owner（role=2）のみに許可）には、以下のように設定します:
-
-Docker Compose でデプロイする場合は `.env.custom` に追加:
+例：コピー/印刷を owner のみに制限：
 
 ```properties title=".env.custom"
 AUTH_PERMISSION_CUSTOMER_STRATEGIES=[{"action": 3, "role": 2}, {"action": 6, "role": 2}]
 ```
 
-K8s でデプロイする場合は `values.yaml` に追加:
+K8s 設定：
 
 ```yaml title="values.yaml"
 universer:
@@ -422,19 +411,15 @@ universer:
         customerStrategies: '[ {"action": 3, "role": 2}, {"action": 6, "role": 2} ]'
 ```
 
-設定値は JSON オブジェクト配列で、`action` は上記一覧のアクション enum 値、`role` は必要最小ロールの enum 値です。
+### オブジェクト権限の継承
 
-権限設計ではもう 1 点注意が必要です。
-
-Univer はドキュメント全体だけでなく、保護範囲/サブテーブルなどのオブジェクト単位でも権限を管理し、それぞれが独立した認可ユーザー管理を持ちます。例えばユーザー A がドキュメント全体の editor でも、そのドキュメント内の特定保護範囲/サブテーブルで editor/owner でなければ編集できません。既定設定では、ドキュメントの owner であっても、他ユーザーが作成した保護範囲/サブテーブルは、相手が権限を付与しない限り管理できません。ドキュメント owner がすべてのオブジェクトで無条件に owner ロールを持つようにしたい場合は、以下の設定を追加します:
-
-Docker Compose:
+既定では、ドキュメント owner が全保護範囲の owner になるわけではありません。継承を有効にする場合：
 
 ```properties title=".env.custom"
 AUTH_PERMISSION_ENABLE_OBJ_INHERIT=true
 ```
 
-K8s:
+K8s：
 
 ```yaml title="values.yaml"
 universer:
@@ -444,30 +429,24 @@ universer:
         enableObjInherit: true
 ```
 
-## USIP クライアント実装例
+## サンプル実装
 
-[USIP のサンプルコードを参照](https://github.com/dream-num/usip-example)
+https://github.com/dream-num/usip-example
 
-## フロントエンドでカスタムリクエストヘッダーを設定
+## クライアントヘッダー
 
-USIP を使用する場合、フロントエンドリクエストにカスタムヘッダー（Authorization トークンなど）を追加する必要がある場合があります。Univer の HTTPService インターセプターを使うことで実現できます。
+カスタムヘッダー（Authorization など）を追加する場合は HTTPService のインターセプタを使用します：
 
-Univer インスタンス初期化時に次のコードを追加します:
-
-<Tabs items={['Preset Mode', 'Plugin Mode']}>
+<Tabs items={['プリセット', 'プラグイン']}>
   <Tab>
     ```typescript
     import { HTTPService } from '@univerjs/preset-sheets-core'
 
-    // Get the injector from the Univer instance
     const injector = univer.__getInjector()
-    // Add custom request headers
     const httpService = injector.get(HTTPService)
     httpService.registerHTTPInterceptor({
       priority: 0,
       interceptor: (request, next) => {
-        // Add your custom headers here
-        // For example, add Authorization token:
         // request.headers.set('Authorization', 'Bearer your-token-here')
         return next(request)
       },
@@ -478,15 +457,11 @@ Univer インスタンス初期化時に次のコードを追加します:
     ```typescript
     import { HTTPService } from '@univerjs/network'
 
-    // Get the injector from the Univer instance
     const injector = univer.__getInjector()
-    // Add custom request headers
     const httpService = injector.get(HTTPService)
     httpService.registerHTTPInterceptor({
       priority: 0,
       interceptor: (request, next) => {
-        // Add your custom headers here
-        // For example, add Authorization token:
         // request.headers.set('Authorization', 'Bearer your-token-here')
         return next(request)
       },
@@ -495,7 +470,7 @@ Univer インスタンス初期化時に次のコードを追加します:
   </Tab>
 </Tabs>
 
-[編集履歴](/guides/sheets/features/edit-history) を使用している場合は、[インスタンス取得](/guides/sheets/features/edit-history#get-edit-history-univer-instance) 後に `HistoryUniver` に同じインターセプターを追加してください:
+[編集履歴](/guides/sheets/features/edit-history) を使う場合は HistoryUniver にも同じ設定を適用します：
 
 ```typescript
 historyLoaderService.historyUniver$.subscribe((historyUniver) => {
@@ -506,8 +481,6 @@ historyLoaderService.historyUniver$.subscribe((historyUniver) => {
   httpService.registerHTTPInterceptor({
     priority: 0,
     interceptor: (request, next) => {
-      // Add your custom headers here
-      // For example, add Authorization token:
       // request.headers.set('Authorization', 'Bearer your-token-here')
       return next(request)
     },
@@ -515,4 +488,4 @@ historyLoaderService.historyUniver$.subscribe((historyUniver) => {
 })
 ```
 
-詳細な情報や完全な設定例は [Univer Pro Sheet Starter Kit](https://github.com/dream-num/univer-pro-sheet-start-kit/blob/main/src/setup-univer.ts) を参照してください。
+完全な例は [Univer Pro Sheet スターター](https://github.com/dream-num/univer-pro-sheet-start-kit/blob/main/src/setup-univer.ts) を参照してください。

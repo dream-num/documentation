@@ -70,7 +70,7 @@ enum CalculationMode {
 }
 ```
 
-> If the cell containing the formula has an unexpected value, you can set `initialFormulaComputing` to `FORCED` to force the calculation of all formulas. Alternatively, you can clear the cell's value before initialization.
+> If the cell containing the formula has an unexpected value, you can set `initialFormulaComputing` to `FORCED` to force the calculation of all formulas. Alternatively, you can clear the cell's `v` value before initialization.
 
 ## Supported Formula Functions
 
@@ -78,58 +78,84 @@ enum CalculationMode {
 
 ## Facade API
 
+For more details, please refer to the [FFormula Facade API](https://reference.univer.ai/classes/FFormula).
+
 ### Importing
 
+<Callout type="info" title="Plugin mode note">
+  Only plugin mode requires manually importing the Facade package. Preset mode already includes the corresponding Facade package, so no extra import is needed.
+</Callout>
+
 ```typescript
+import '@univerjs/engine-formula/facade'
 import '@univerjs/sheets-formula/facade'
 ```
 
-### Execute Calculation
+### Execute Formula Calculation
 
 ```typescript
-const formula = univerAPI.getFormula()
-formula.executeCalculation()
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.executeCalculation()
 ```
 
-### Stop Calculation
+### Stop Formula Calculation
 
 ```typescript
-const formula = univerAPI.getFormula()
-formula.stopCalculation()
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.stopCalculation()
 ```
 
-### Calculation Start Event
+### Formula Calculation Start
 
 ```typescript
-const formula = univerAPI.getFormula()
-formula.calculationStart((forceCalculate) => {
+// Listening to formula calculation start event
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationStart((forceCalculate) => {
   console.log(forceCalculate)
 })
 ```
 
-### Calculation Processing Event
+### Formula Calculation Processing
 
 ```typescript
-const formula = univerAPI.getFormula()
-formula.calculationProcessing((stageInfo) => {
+// Listening to formula calculation processing event
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationProcessing((stageInfo) => {
   console.log(stageInfo)
 })
 ```
 
-### Calculation End Event
+### Formula Calculation End
 
 ```typescript
-const formula = univerAPI.getFormula()
-formula.calculationEnd((functionsExecutedState) => {
+// Listening to formula calculation end event
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationEnd((functionsExecutedState) => {
   console.log(functionsExecutedState)
 })
+
+// Wait for formula calculation to end
+await formulaEngine.onCalculationEnd()
 ```
 
-### Set Initial Calculation Mode
+### Formula Calculation Result Applied
 
 ```typescript
-const formula = univerAPI.getFormula()
-formula.setInitialFormulaComputing(CalculationMode.FORCED)
+// Listening to formula calculation result applied event
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationResultApplied((result) => {
+  console.log(result)
+})
+
+// Wait for formula calculation result to be applied
+await formulaEngine.onCalculationResultApplied()
+```
+
+### Set Formula Calculation Mode When Initializing Data
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.setInitialFormulaComputing(CalculationMode.FORCED)
 ```
 
 If this API is called after the `Starting` lifecycle, it will take effect the next time a Univer Sheet is created.
@@ -139,10 +165,55 @@ If you want it to take effect during the current initialization of the Univer Sh
 ```typescript
 univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
   if (stage === LifecycleStages.Starting) {
-    const formula = univerAPI.getFormula()
-    formula.setInitialFormulaComputing(CalculationMode.FORCED)
+    const formulaEngine = univerAPI.getFormula()
+    formulaEngine.setInitialFormulaComputing(CalculationMode.FORCED)
   }
 })
+```
+
+### Set Max Iteration
+
+When there are circular references in formulas, you can use this API to set the maximum number of iterations for formula calculations. The default value is 1.
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.setMaxIteration(10)
+```
+
+### Get Formula Strings Execution Result
+
+Execute a batch of formulas asynchronously and receive calculation results:
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+const formulas = {
+  Book1: {
+    Sheet1: {
+      2: {
+        3: [
+          // Full formula:
+          '=SUM(A1:A10) + SQRT(D7)',
+
+          // Decomposed sub-formulas (each one can be evaluated independently):
+          'SUM(A1:A10)', // sub-formula 1
+          'SQRT(D7)', // sub-formula 2
+          'A1:A10', // range reference
+          'D7', // single-cell reference
+        ],
+      },
+      4: {
+        5: [
+          '=A2 + B2 + SQRT(C5)',
+          'A2',
+          'B2',
+          'SQRT(C5)',
+        ],
+      },
+    },
+  },
+}
+const result = await formulaEngine.executeFormulas(formulas)
+console.log(result)
 ```
 
 ## Custom Formulas

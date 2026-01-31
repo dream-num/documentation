@@ -1,121 +1,71 @@
 ---
-title: 本番環境デプロイ
+title: 本番デプロイと設定
 ---
 
-## デプロイ構成とサービス概要
+本ページは本番環境向けのデプロイ/設定です。評価目的は[クイックスタート](/guides/pro/server)を参照してください。
 
-![Introduction to Deployment Architecture and Services](./deploy/deploy-arch.png)
+## デプロイ構成とコンポーネント
 
-### アーキテクチャの進化
+![デプロイ構成](./deploy/deploy-arch.png)
 
-- `v0.13.0` スナップショット生成など、非同期で実行すべき CPU 集約タスクを処理する `collaboration-helper` サービスを導入
-- `v0.15.0` 協調編集に階層スケジューリングを導入。サイズの異なるシートを別クラスタに振り分け、大規模シート編集の影響を抑制
-
-### サービス概要
-
-- collaboration-server: バックエンドの共同編集エンジン（フロントエンドと同じ OT アルゴリズムを実装）
-- collaboration-helper: 共同編集フロー内の CPU 集約タスク（例: スナップショット生成）を処理し、リアルタイム共同編集の応答性を維持。※ v0.13.0 で導入
-- universer: unit の各種操作リクエスト処理、unit データ保持、共同編集メッセージのブロードキャスト
-- exchange worker: unit のインポート/エクスポート計算タスクを実行。計算負荷/メモリ要求が高い
-
-<Callout>
-  collaboration-server はステートフルサービスで、同一ドキュメントの編集リクエストは同じ collaboration-server インスタンスで処理されます。これにより処理時のデータ読み込みが削減され、性能が向上します。
-  そのため、universer から collaboration-server を呼び出す際に一貫性ハッシュによるルーティング層を追加しています。
+<Callout title="バージョン情報">
+  - v0.13.0 で `collaboration-helper` を導入（スナップショット生成などの CPU 集約処理）。
+  - v0.15.0 で協調編集の分層スケジューリングを導入。
 </Callout>
 
-### コンポーネント概要
+### サービス一覧
 
-- RDS: リレーショナルデータベース。ドキュメントのメタデータや権限設定を保存
-- Object Storage: ドキュメント内容（画像/データブロック等）を保存
-- Redis: ドキュメントのオンライン共同編集者キャッシュ、API レート制限
-- RabbitMQ: メッセージキュー。universer 間で共同編集メッセージを交換
-- Temporal: オープンソースのワークフロー実行エンジン。インポート/エクスポートの非同期処理を管理
+- **collaboration-server**：協調編集エンジン（OT）
+- **collaboration-helper**：CPU 集約タスク（v0.13.0+）
+- **universer**：ドキュメント操作と協調ルーティング
+- **exchange worker**：インポート/エクスポート（計算/メモリ集約）
 
-## デプロイ前の準備
+<Callout>
+  collaboration-server はステートフルです。同一ドキュメントの編集は同一インスタンスにルーティングされます。
+</Callout>
 
-本番環境にデプロイする前に、以下を慎重に検討してください:
+### 依存コンポーネント
 
-### デプロイ方式の選択
+- **RDS**：メタデータ・権限
+- **Object Storage**：ドキュメントデータ、画像
+- **Redis**：協作者キャッシュ、レート制限
+- **RabbitMQ**：協調メッセージ配信
+- **Temporal**：インポート/エクスポートのワークフロー
 
-Univer は次の 2 つの方式を提供しています:
+## デプロイ方式
 
-- Docker Compose でデプロイ:
-    単一マシンのみで、**水平スケールは非対応**です。K8s を運用しておらず、利用規模が大きくない場合に適しています。
-- 標準 K8s でデプロイ:
-    K8s クラスターを運用している場合はこちらが最適です。Univer は水平スケールをサポートし、K8s デプロイはスケーラビリティに優れます。
+| 方式 | 用途 | 特徴 |
+| --- | --- | --- |
+| Docker Compose | 小規模、K8s なし | 単一ノード、垂直スケールのみ |
+| K8s | 中〜大規模 | 水平スケールと拡張性 |
 
-### ユーザー認証と権限管理の要件
+## 本番チェックリスト
 
-Univer のインストール設定では認証がデフォルトで無効です。利用要件に応じて有効化するか判断してください。詳細は [USIP 連携](/guides/pro/usip) を参照してください。
+- **ID/権限**：USIP が必要か
+- **容量計画**：協調/交換の CPU/メモリ
+- **基盤**：自前またはクラウド管理の利用
+- **データ保護**：RDS/Object Storage のバックアップ
+- **可観測性**：[運用手冊](/guides/pro/sre-manual)参照
 
-### 容量評価
+## 設定の入口
 
-容量要件を慎重に見積もる必要があります。需要が大きい場合は Docker Compose が適さない可能性があります。特に次の点に注意してください:
+### Docker Compose
 
-- インポート/エクスポートの exchange worker は計算負荷が高く、特に大きなドキュメントの処理で短時間に CPU/メモリを大きく消費します。需要を評価し、適切なリソースを割り当ててください。
-- 共同編集エンジンの collaboration-server はステートフルな Node.js サービスで、同時に複数ドキュメントを開くとメモリ消費が増加します。必要なインスタンス数とメモリ構成を慎重に評価してください。非常に大きいスプレッドシート（500 万セル超）の編集が想定される場合、1 インスタンスあたり最低 8GB のメモリを推奨します。
+`.env.custom` を作成して `.env` を上書きします。
 
-注: `v0.15.0` 以降、共同編集の階層スケジューリングが導入されました。利用シナリオにおけるシートサイズ分布（Docs/Slides は対象外）を分析し、階層スケジューリングが必要か判断してください。必要なら、階層数や各階層が扱うシートサイズ（総セル数、インポート時間など）を決定します。詳細設定は後続セクションで説明します。
+### K8s
 
-### 基盤コンポーネントの選定
+独自の `values.yaml` で Helm chart を上書きします。
 
-上記のデプロイ構成図のとおり、Univer は MQ、Redis、RDS、Object Storage を使用します。インストールパッケージには一般的な OSS 版が含まれます。
+## よく使う設定
 
-もちろん、独自管理のコンポーネントを使用できます。以下の理由からそれを推奨します:
-
-- システム保守が容易
-- データ保管の安全性が高い
-- システムの安定性向上
-
-特に RDS と Object Storage は、Univer 組み込み版を使うと物理障害時に永続的なデータ損失が起こり得ます。自社のストレージ基盤がない場合は、公的クラウドベンダーのサービス利用を推奨します。組み込みストレージしか使えない場合は、少なくとも 1 日 1 回の定期バックアップを必ず行ってください。
-
-独自コンポーネントを利用する場合は、Univer の要件に完全に準拠していることを確認してください。要件は以下のとおりです。
-
-#### MQ
-
-AMQP/AMQPS 互換が必要です。現時点では RabbitMQ を推奨します。インストールパッケージは `rabbitmq:3-management` を使用しています。
-
-#### Redis
-
-Redis コマンド互換が必要です。インストールパッケージでは bitnami/redis: 7.0.15-debian-11-r3 を使用しています。Univer が利用する Redis コマンドは GET/MGET/SET/SETNX/DEL/EXISTS/EXPIRE/HSET/HGET/HDEL/HGETALL/HLEN/SCAN/Pipeline/EVAL/EVALSHA です。互換性を確保してください。互換性があれば分散版 Redis も利用できます。
-
-#### RDS
-
-現在は PostgreSQL 16.1、MySQL 8.0、GaussDB、DamengDB に対応しています。これらまたは互換 DB を利用できます。インストールパッケージは postgres: 16.1 を使用しています。
-
-ただし、現在 Univer は分散 DB をサポートしません。スタンドアロン DB と同等のアクセスができない場合は利用不可です。例えばシャーディング必須の DB は未対応です。TiDB のような互換分散 DB を使う場合も、Univer の ID が単調増加するため同一ノードに偏り、性能低下が起こり得ますので注意してください。
-
-#### Object Storage
-
-AWS S3 互換の API が必要です。インストールパッケージでは bitnami/minio: 2024.8.3-debian-12-r1 を使用しています。
-
-#### 可観測性コンポーネント
-
-運用時に Univer の組み込み可観測性コンポーネントを使うか、自社の監視基盤に接続するかを検討してください。Univer は Prometheus メトリクス、Grafana ダッシュボード、サービスログを提供します。詳細は [SRE マニュアル](/guides/pro/sre-manual) を参照してください。自社の監視基盤がない場合は、Univer の組み込み可観測性を有効化することを推奨します。
-
-## デプロイ設定
-
-### 設定の変更方法
-
-#### Docker Compose でデプロイ
-
-既定の設定はインストールディレクトリの `.env` にあります。この `.env` を直接編集せず、同じディレクトリに `.env.custom` を作成して設定値を記述してください。`.env.custom` に設定した値はインストール時に `.env` の値を上書きします。
-
-#### K8s でデプロイ
-
-既定の設定は Helm Chart の values.yaml にあります（[参照](https://github.com/dream-num/helm-charts/blob/main/charts/univer-stack/values.yaml)）。設定を変更する場合、チャート内のファイルは編集せず、新しい values.yaml を作成して変更したい項目だけを書き込みます。Helm がそれらを上書きし、未指定項目は既定値を使用します。具体的な Helm コマンドは最後のデプロイ手順で説明します。
-
-### 設定詳細
-
-#### 認証と権限管理の有効化
-
-設定項目の意味は [USIP 連携](/guides/pro/usip) に記載されています。有効化する場合は次のように設定します:
+### USIP を有効化
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
     ```properties title=".env.custom"
-    # usip about
-    USIP_ENABLED=true # Set true to enable USIP
+    # usip
+    USIP_ENABLED=true # true で有効化
     USIP_URI_CREDENTIAL=https://your-domain/usip/credential
     USIP_URI_USERINFO=https://your-domain/usip/userinfo
     USIP_URI_ROLE=https://your-domain/usip/role
@@ -125,7 +75,7 @@ AWS S3 互換の API が必要です。インストールパッケージでは b
     # Apikey config is optinal.
     USIP_APIKEY=
 
-    # auth about
+    # auth
     AUTH_PERMISSION_ENABLE_OBJ_INHERIT=false
     AUTH_PERMISSION_CUSTOMER_STRATEGIES=
     ```
@@ -135,7 +85,7 @@ AWS S3 互換の API が必要です。インストールパッケージでは b
     universer:
       config:
         usip:
-          enabled: true # Set true to enable USIP
+          enabled: true
           uri:
             userinfo: 'https://your-domain/usip/userinfo'
             collaborators: 'https://your-domain/usip/collaborators'
@@ -153,14 +103,18 @@ AWS S3 互換の API が必要です。インストールパッケージでは b
   </Tab>
 </Tabs>
 
-#### Univer イベント送信の有効化
+補足：
 
-設定項目の意味は [Univer イベント同期](/guides/pro/event-sync) に記載されています。有効化する場合は次のとおりです:
+- `USIP_ENABLED` / `usip.enabled` 有効化時は全エンドポイント必須
+- `USIP_URI_*`：USIP API の URL
+- `AUTH_PERMISSION_*`：権限ポイント/継承（[USIP](/guides/pro/usip)参照）
+
+### イベント同期
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
     ```properties title=".env.custom"
-    EVENT_SYNC=true # Set true to enable
+    EVENT_SYNC=true # 有効化
     ```
   </Tab>
   <Tab label="K8s">
@@ -168,104 +122,125 @@ AWS S3 互換の API が必要です。インストールパッケージでは b
     universer:
       config:
         rabbitmq:
-          eventSync: true # Set true to enable
+          eventSync: true # 有効化
     ```
   </Tab>
 </Tabs>
 
-#### 独自コンポーネントの利用
+補足：
 
-##### RDS
+- 有効化後はイベントの Consumer が必要です（[イベント同期](/guides/pro/event-sync)）。
 
-Univer が使用する Temporal は gaussdb / damengDB をサポートしていません。これらを利用する場合、Temporal 用に専用 PostgreSQL をインストールします。Temporal DB に保存されるのはインポート/エクスポートのプロセス状態であり、ドキュメントデータには影響しません。失われても未完了タスクが失敗するだけで、それ以外の影響はありません。
+### 自前インフラ利用
 
-###### PostgreSQL 互換 RDS を利用
+<Callout>
+  安定性とデータ保護のため、自前またはクラウド管理コンポーネントを推奨します。
+</Callout>
+
+#### 互換要件
+
+- MQ：AMQP/AMQPS 互換。推奨 RabbitMQ。内蔵イメージ：`rabbitmq:3-management`。
+- Redis：主要コマンド互換（GET/MGET/SET/SETNX/DEL/EXISTS/EXPIRE/HSET/HGET/HDEL/HGETALL/HLEN/SCAN/Pipeline/EVAL/EVALSHA）。
+- RDS：PostgreSQL 16.1、MySQL 8.0、GaussDB、DamengDB。分散 DB は未対応の場合あり。
+- Object Storage：AWS S3 互換。内蔵イメージ：`bitnami/minio:2024.8.3-debian-12-r1`。
+
+#### RDS
+
+**注意**：Temporal は GaussDB/DamengDB 非対応。Temporal は別 PostgreSQL を使用します。
+
+##### PostgreSQL 互換
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
     ```properties title=".env.custom"
-    # RDS config
-    DISABLE_UNIVER_RDS=true # When using your own RDS, prevent Univer deploying the default postgresql
+    DISABLE_UNIVER_RDS=true
 
-    DATABASE_DRIVER=postgresql # Set to postgresql to use a postgresql-compatible database
+    DATABASE_DRIVER=postgresql
     DATABASE_HOST=your-database-host
     DATABASE_PORT=your-database-port
-    DATABASE_DBNAME=univer # The default name used by Univer's database initialization script, update here if you have changed it
-    DATABASE_USERNAME=postgres # You should grant this user select, insert, update, delete permissions
+    DATABASE_DBNAME=univer
+    DATABASE_USERNAME=user-name
     DATABASE_PASSWORD=password
     ```
   </Tab>
   <Tab label="K8s">
     ```yaml title="values.yaml"
     postgresql:
-      enabled: false # When using your own RDS, prevent Univer deploying the default postgresql
+      enabled: false
 
     universer:
       config:
         database:
-          driver: postgresql # Set to postgresql to use a postgresql-compatible database
+          driver: postgresql
           host: your-database-host
           port: your-database-port
-          dbname: univer # The default name used by Univer's database initialization script, update here if you have changed it
-          username: postgres # You should grant this user select, insert, update, delete permissions
+          dbname: univer
+          username: postgres
           password: postgres
 
-    temporal: # temporal uses databases too
+    temporal:
       server:
         config:
           persistence:
             default:
-              driver: sql # Should be set to sql
+              driver: sql
               sql:
-                driver: postgres12 # PostgreSQL requires version 12 or higher.
+                driver: postgres12
                 host: your-database-host
                 port: your-database-port
-                database: temporal # The default name used by Univer's database initialization script, update here if you have changed it
-                user: postgres # You should grant this user select, insert, update, delete permissions
+                database: temporal
+                user: postgres
                 password: postgres
 
             visibility:
               driver: sql
               sql:
-                driver: postgres12 # PostgreSQL requires version 12 or higher.
+                driver: postgres12
                 host: your-database-host
                 port: your-database-port
-                database: temporal_visibility # The default name used by Univer's database initialization script, update here if you have changed it
-                user: postgres # You should grant this user select, insert, update, delete permissions
+                database: temporal_visibility
+                user: postgres
                 password: postgres
     ```
   </Tab>
 </Tabs>
 
-###### MySQL 互換 RDS を利用
+補足：
+
+- `DISABLE_UNIVER_RDS`：内蔵 DB を無効化
+- `DATABASE_DBNAME`：初期化スクリプトと一致させる
+- `DATABASE_USERNAME`：select/insert/update/delete 権限推奨
+- Temporal DB はワークフローのみで文書データは格納しない
+- `driver: postgres12` は PostgreSQL 12+ が必要
+
+##### MySQL 互換
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
     ```properties title=".env.custom"
-    # RDS config
-    DISABLE_UNIVER_RDS=true # When using your own RDS, prevent Univer deploying the default postgresql
+    DISABLE_UNIVER_RDS=true
 
-    DATABASE_DRIVER=mysql # Set to MySQL to use a MySQL-compatible database
+    DATABASE_DRIVER=mysql
     DATABASE_HOST=your-database-host
     DATABASE_PORT=your-database-port
-    DATABASE_DBNAME=univer # The default name used by Univer's database initialization script, update here if you have changed it
-    DATABASE_USERNAME=user-name # You should grant this user select, insert, update, delete permissions
+    DATABASE_DBNAME=univer
+    DATABASE_USERNAME=user-name
     DATABASE_PASSWORD=password
     ```
   </Tab>
   <Tab label="K8s">
     ```yaml title="values.yaml"
     postgresql:
-      enabled: false # Disable Univer's built-in database
+      enabled: false
 
     universer:
       config:
         database:
-          driver: mysql # Set to MySQL to use a MySQL-compatible database
+          driver: mysql
           host: your-database-host
           port: your-database-port
-          dbname: univer # The default name used by Univer's database initialization script, update here if you have changed it
-          username: mysql # You should grant this user select, insert, update, delete permissions
+          dbname: univer
+          username: mysql
           password: mysql
 
     temporal:
@@ -275,11 +250,11 @@ Univer が使用する Temporal は gaussdb / damengDB をサポートしてい�
             default:
               driver: sql
               sql:
-                driver: mysql8 # We require MySQL version 8.x
+                driver: mysql8
                 host: your-database-host
                 port: your-database-port
-                database: temporal # The default name used by Univer's database initialization script, update here if you have changed it
-                user: mysql # You should grant this user select, insert, update, delete permissions
+                database: temporal
+                user: mysql
                 password: mysql
 
             visibility:
@@ -288,26 +263,30 @@ Univer が使用する Temporal は gaussdb / damengDB をサポートしてい�
                 driver: mysql8
                 host: your-database-host
                 port: your-database-port
-                database: temporal_visibility # The default name used by Univer's database initialization script, update here if you have changed it
+                database: temporal_visibility
                 user: mysql
                 password: mysql
     ```
   </Tab>
 </Tabs>
 
-###### GaussDB を利用
+補足：
+
+- `DATABASE_DRIVER=mysql` は MySQL 8.x
+- `driver: mysql8` は MySQL 8.x が必要
+
+##### GaussDB
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
     ```properties title=".env.custom"
-    # RDS config
-    DISABLE_UNIVER_RDS=true # When using your own RDS, prevent Univer deploying the default postgresql
+    DISABLE_UNIVER_RDS=true
 
     DATABASE_DRIVER=gaussdb
     DATABASE_HOST=your-database-host
     DATABASE_PORT=your-database-port
-    DATABASE_DBNAME=univer # The default name used by Univer's database initialization script, update here if you have changed it
-    DATABASE_USERNAME=user-name # You should grant this user select, insert, update, delete permissions
+    DATABASE_DBNAME=univer
+    DATABASE_USERNAME=user-name
     DATABASE_PASSWORD=password
     ```
   </Tab>
@@ -319,26 +298,29 @@ Univer が使用する Temporal は gaussdb / damengDB をサポートしてい�
           driver: gaussdb
           host: your-database-host
           port: your-database-port
-          dbname: univer # The default name used by Univer's database initialization script, update here if you have changed it
-          username: gaussdb # You should grant this user select, insert, update, delete permissions
+          dbname: univer
+          username: gaussdb
           password: gaussdb
     ```
   </Tab>
 </Tabs>
 
-###### DamengDB を利用
+補足：
+
+- GaussDB は Temporal 非対応
+
+##### DamengDB
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
     ```properties title=".env.custom"
-    # RDS config
-    DISABLE_UNIVER_RDS=true # When using your own RDS, prevent Univer deploying the default postgresql
+    DISABLE_UNIVER_RDS=true
 
     DATABASE_DRIVER=dameng
     DATABASE_HOST=your-database-host
     DATABASE_PORT=your-database-port
-    DATABASE_DBNAME=univer # The default name used by Univer's database initialization script, update here if you have changed it
-    DATABASE_USERNAME=user-name # You should grant this user select, insert, update, delete permissions
+    DATABASE_DBNAME=univer
+    DATABASE_USERNAME=user-name
     DATABASE_PASSWORD=password
     ```
   </Tab>
@@ -350,31 +332,29 @@ Univer が使用する Temporal は gaussdb / damengDB をサポートしてい�
           driver: dameng
           host: your-database-host
           port: your-database-port
-          dbname: univer # The default name used by Univer's database initialization script, update here if you have changed it
-          username: dameng # You should grant this user select, insert, update, delete permissions
+          dbname: univer
+          username: dameng
           password: dameng
     ```
   </Tab>
 </Tabs>
 
-##### Redis
+補足：
+
+- DamengDB は Temporal 非対応
+
+#### Redis
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
     ```properties title=".env.custom"
-    # redis config
-    DISABLE_UNIVER_REDIS=true # When using your own Redis, prevent Univer deploying the default redis
+    DISABLE_UNIVER_REDIS=true
 
-    # if you use redis cluster, use comma ',' to separate multiple addresses
-    # for example: REDIS_ADDR=192.168.1.5:6001,192.168.1.5:6002,192.168.1.5:6003
     REDIS_ADDR=host:port[,host:port]
     REDIS_USERNAME=user-name
     REDIS_PASSWORD=password
     REDIS_DB=0
 
-    # redis tls config
-    # Support three modes: insecure, CA verification only, and client certificate (mTLS) verification.
-    # The CA, certificate, and key can be provided either as file paths or as file contents. If file paths are used, make sure to use the Docker volume’s virtual path.
     REDIS_TLS_ENABLED=false
     REDIS_TLS_INSECURE=false
     REDIS_TLS_CA=
@@ -388,18 +368,12 @@ Univer が使用する Temporal は gaussdb / damengDB をサポートしてい�
       config:
         redis:
           poolSize: 100
-          # If you use redis cluster, use comma ',' to separate multiple addresses
-          # For example: 192.168.1.100:6379,192.168.1.101:6379
           addr: 192.168.1.100:6379
           read_timeout: 1s
           write_timeout: 1s
           db: 0
           username: user_name_here
           password: password_here
-
-          # TLS config
-          # Support three modes: insecure, CA verification only, and client certificate (mTLS) verification.
-          # The CA, certificate, and key should be provided as file contents when set.
           tlsConfig:
             enabled: false
             insecure: false
@@ -407,7 +381,6 @@ Univer が使用する Temporal は gaussdb / damengDB をサポートしてい�
             cert: ''
             key: ''
 
-    # same as universer.config.redis
     worker:
       redis:
         poolSize: 10
@@ -425,29 +398,29 @@ Univer が使用する Temporal は gaussdb / damengDB をサポートしてい�
           key: ''
 
     redis:
-      enabled: false # When using your own Redis, prevent Univer deploying the default redis
+      enabled: false
     ```
   </Tab>
 </Tabs>
 
-##### MQ
+補足：
+
+- `DISABLE_UNIVER_REDIS`：内蔵 Redis を無効化
+- `REDIS_ADDR`：クラスタはカンマ区切り
+- TLS は insecure/CA/mTLS をサポート
+- `worker.redis` は `universer.config.redis` と合わせる
+
+#### MQ
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
     ```properties title=".env.custom"
-    DISABLE_UNIVER_MQ=true # When using your own MQ, prevent Univer deploying the default MQ
+    DISABLE_UNIVER_MQ=true
 
-    RABBITMQ_CLUSTER_ENABLED=true # Must be set to true
-    RABBITMQ_CLUSTER_USERNAME=user-name # need grant Declear Exchange、Produce、Consume to the user
-    RABBITMQ_CLUSTER_PASSWORD=password # password
-
-    # use comma to separate multiple addresses
-    # for example: RABBITMQ_CLUSTER_ADDR=192.168.1.2:5672,192.168.1.5:5672,192.168.1.7:5672
-    # Each addr must be able to Consume and Produce. Univer will poll these host when connecting, until the connection is successful
+    RABBITMQ_CLUSTER_ENABLED=true
+    RABBITMQ_CLUSTER_USERNAME=user-name
+    RABBITMQ_CLUSTER_PASSWORD=password
     RABBITMQ_CLUSTER_ADDR=host:port[,host:port]
-
-    # RABBITMQ_CLUSTER_VHOST is the vhost of the rabbitmq cluster. If you don't set it, the default value is /
-    # for example: RABBITMQ_CLUSTER_VHOST=univer
     RABBITMQ_CLUSTER_VHOST=/
     RABBITMQ_CLUSTER_SCHEMA=amqp
     ```
@@ -458,10 +431,7 @@ Univer が使用する Temporal は gaussdb / damengDB をサポートしてい�
       config:
         rabbitmq:
           cluster:
-            enabled: true # Must be set to true
-            # use comma to separate multiple addresses
-            # for example: RABBITMQ_CLUSTER_ADDR=192.168.1.2:5672,192.168.1.5:5672
-            # Each addr must be able to Consume and Produce. Univer will poll these host when connecting, until the connection is successful
+            enabled: true
             addr: '192.168.1.2:5672,192.168.1.5:5672'
             username: user-here
             password: password-here
@@ -469,35 +439,32 @@ Univer が使用する Temporal は gaussdb / damengDB をサポートしてい�
             schema: amqp
 
     rabbitmq:
-      enabled: false # When using your own MQ, prevent Univer deploying the default MQ
+      enabled: false
     ```
   </Tab>
 </Tabs>
 
-##### Object Storage
+補足：
+
+- `DISABLE_UNIVER_MQ`：内蔵 RabbitMQ を無効化
+- `RABBITMQ_CLUSTER_ENABLED` は true 必須
+- `RABBITMQ_CLUSTER_ADDR` は複数指定可能
+- `RABBITMQ_CLUSTER_VHOST` はデフォルト `/`
+- `RABBITMQ_CLUSTER_SCHEMA` は `amqp`/`amqps`
+
+#### Object Storage
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
     ```properties title=".env.custom"
-    DISABLE_UNIVER_S3=true # When using your own Object Storage, prevent Univer deploying the default Minio
+    DISABLE_UNIVER_S3=true
 
-    # s3 config
     S3_USER=user
     S3_PASSWORD=password
-    S3_REGION=your-inner-s3like-region # s3-region
-
-    # S3_PATH_STYLE
-    # if set true, build url with Path-Style
-    # if set false, build url with Virtual-Host Style
+    S3_REGION=your-inner-s3like-region
     S3_PATH_STYLE=true|false
-
-    # S3_ENDPOINT address private
     S3_ENDPOINT=inner-visit-host:port
-
-    # S3_ENDPOINT_PUBLIC public address
     S3_ENDPOINT_PUBLIC=public-visit-host:port
-
-    # S3_DEFAULT_BUCKET
     S3_DEFAULT_BUCKET=default-bucket-name
     ```
   </Tab>
@@ -515,69 +482,84 @@ Univer が使用する Temporal は gaussdb / damengDB をサポートしてい�
           defaultBucket: univer
 
     minio:
-      enabled: false # When using your own Object Storage, prevent Univer deploying the default Minio
+      enabled: false
     ```
   </Tab>
 </Tabs>
 
-#### Univer 組み込み可観測性コンポーネントを有効化
+補足：
+
+- `DISABLE_UNIVER_S3`：内蔵 MinIO を無効化
+- `S3_PATH_STYLE`：`true` は Path-Style
+- `S3_ENDPOINT`：内部向け URL
+- `S3_ENDPOINT_PUBLIC`：公開ダウンロード URL
+- `S3_DEFAULT_BUCKET`：既定バケット名
+
+### 可観測性
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
     ```properties title=".env.custom"
-    # observability config
-    ENABLE_UNIVER_OBSERVABILITY=true  # set true to enable
-    GRAFANA_USERNAME=set-your-admin-user-name-here # initialise grafana admin user name
-    GRAFANA_PASSWORD=set-your-admin-user-password-here # initialise grafana admin user password
-    HOST_GRAFANA_PORT=13000  # grafana public port
+    ENABLE_UNIVER_OBSERVABILITY=true
+    GRAFANA_USERNAME=set-your-admin-user-name-here
+    GRAFANA_PASSWORD=set-your-admin-user-password-here
+    HOST_GRAFANA_PORT=set-the-port-you-want
     ```
   </Tab>
   <Tab label="K8s">
-    K8s で組み込み可観測性コンポーネントを有効化するための設定は不要です。有効化は以下の K8s デプロイ手順を参照してください。
+    K8s は別途インストールが必要です（[運用手冊](/guides/pro/sre-manual)）。
   </Tab>
 </Tabs>
 
-#### 容量関連の設定
+補足：
+
+- `ENABLE_UNIVER_OBSERVABILITY=true` で内蔵 Grafana/Prometheus 有効化
+- `HOST_GRAFANA_PORT` は外部公開ポート
+
+### 容量とスケール
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
     ```properties title=".env.custom"
-    UNIVERSER_REPLICATION_CNT=2 # Set the number of universer instances
-    COLLABORATION_SERVER_REPLICATION_CNT=2 # COLLABORATION_SERVER instances count
-    COLLABORATION_SERVER_MEMORY_LIMIT=2048 # MB, memory limit of each COLLABORATION_SERVER instance
-    COLLABORATION_HELPER_REPLICATION_CNT=2 # helper server instances count, Note: Introduced in v0.13.0.
-    COLLABORATION_HELPER_MEMORY_LIMIT=2048 # MB, memory limit of each helper server instance, Note: Introduced in v0.13.0.
+    UNIVERSER_REPLICATION_CNT=2
+    COLLABORATION_SERVER_REPLICATION_CNT=2
+    COLLABORATION_SERVER_MEMORY_LIMIT=2048
+    COLLABORATION_HELPER_REPLICATION_CNT=2
+    COLLABORATION_HELPER_MEMORY_LIMIT=2048
 
-    # Import and export configuration related to the capacity of exchange-worker.
-    EXCHANGE_WORKER_REPLICATION_CNT=1 # working exchange worker count
-    EXCHANGE_WORKER_MEMORY_LIMIT=4096 # MB, the memory limit of each exchange-worker.
-    EXCHANGE_WORKER_IMPORT_CONCURRENT=1 # how many import tasks each worker can do at the same time.
-    EXCHANGE_WORKER_EXPORT_CONCURRENT=1 # how many export tasks each worker can do at the same time.
+    EXCHANGE_WORKER_REPLICATION_CNT=1
+    EXCHANGE_WORKER_MEMORY_LIMIT=4096
+    EXCHANGE_WORKER_IMPORT_CONCURRENT=1
+    EXCHANGE_WORKER_EXPORT_CONCURRENT=1
     ```
   </Tab>
   <Tab label="K8s">
     ```yaml title="values.yaml"
     universer:
-      replicaCount: 3 # Set the number of universer instances
+      replicaCount: 3
     collaboration-server:
-      replicaCount: 3 # COLLABORATION_SERVER instances count
-      maxMemoryLimit: 2048 # MB, memory limit of each COLLABORATION_SERVER instances
-    collaboration-helper-server: # Note: Introduced in v0.13.0.
-      replicaCount: 2 # helper server instances count
+      replicaCount: 3
+      maxMemoryLimit: 2048
+    collaboration-helper-server:
+      replicaCount: 2
     worker:
-      replicaCount: 1 # working exchange worker count
+      replicaCount: 1
       temporalWorker:
-        importConcurrent: 1 # how many import tasks each worker can do at the same time.
-        exportConcurrent: 1 # how many export tasks each worker can do at the same time.
+        importConcurrent: 1
+        exportConcurrent: 1
     ```
   </Tab>
 </Tabs>
 
-#### 共同編集の階層スケジューリング設定
+補足：
 
-`v0.15.0` 以降、階層スケジューリングが導入されました。デフォルトでは無効のため、手動設定が必要です。現在はワークブックの総セル数とインポート実時間で、対象の協調サービスクラスタを決定します。インポートで作成されたワークブックは実際のインポート時間で判定し、それ以外の作成や新規スナップショット時には総セル数で判定します。スナップショット作成後、関連メトリクスが DB に永続化され、スケジュール対象が更新されます。
+- `*_REPLICATION_CNT` / `replicaCount`：インスタンス数
+- `*_MEMORY_LIMIT` / `maxMemoryLimit`：メモリ上限（MB）
+- `EXCHANGE_WORKER_*_CONCURRENT`：1 worker あたりの並列数
 
-階層スケジューリングは、複数クラスタに協調サービスをデプロイし、どのサイズのワークブックをどのクラスタで処理するかのルールを定義する仕組みです。設定構造は以下のとおりです:
+### 分層スケジューリング（高度）
+
+v0.15.0 から分層ルーティングを導入（デフォルトは無効）。
 
 ```yaml
 unitRoutingConf:
@@ -599,96 +581,51 @@ unitRoutingConf:
       upgradeImportTimeThreshold: 60
 ```
 
-設定パラメータの説明:
+補足：
 
-- `tiers`: 各クラスタの定義。理論上は任意の数のクラスタを設定可能
-- `enable`: クラスタの有効化フラグ。`false` の場合は無視される
-- `upgradeCellsThreshold`: このクラスタにスケジュールするための最小セル数
-- `downgradeCellsThreshold`: 既にこのクラスタに割り当て済みの場合、セル数がこの閾値を下回ったときのみ下位クラスタへ降格する（境界付近の頻繁な切替を防ぐ）
-- `upgradeImportTimeThreshold`: インポート直後などセル数未確定の場合、実際のインポート時間で判断。`upgradeCellsThreshold` と同様の仕組み
+- `tiers`：階層一覧
+- `enable`：有効/無効
+- `upgradeCellsThreshold`：昇格の閾値
+- `downgradeCellsThreshold`：降格の閾値
+- `upgradeImportTimeThreshold`：インポート時間の閾値
+- 少なくとも 1 階層はすべて 0 にする必要あり
 
-少なくとも 1 つのクラスタは全閾値を 0 に設定し、すべてのシートが必ずどこかのクラスタに割り当てられるようにしてください。
+例：
 
-上記設定例に基づくスケジュール例:
+- 0 セル → normal
+- 1000 セル → large
+- 899 セル → normal
+- 61s のインポート → huge
 
-- workbook w1 がセル数 0 で作成 → normal クラスタに割り当て
-- w1 のセル数が 1000 → large クラスタへ昇格
-- w1 のセル数が 999 → downgrade 閾値 900 を上回るため large のまま
-- w1 のセル数が 899 → normal に降格
-- workbook w2 をインポートし、所要時間 61 秒 → huge 閾値 60 秒を超えるため huge に割り当て
-
-Univer の Docker Compose デプロイでは、単一階層または 2 階層（通常サイズ/大サイズ）のクラスタをデプロイできます。`ENABLE_LARGE_TIER_COLLABORATION_SERVER` が大サイズ階層クラスタの利用有無を制御し、Docker Compose が実際に大サイズクラスタをデプロイするかどうかも決定します。
-
-より細かい階層制御が必要、または K8s デプロイする場合は、Docker Compose ファイルまたは Helm チャートを調整して対応する collaboration-server クラスタをデプロイし、上記ルールに基づいてルーティングテーブル（`unitRoutingConf.tiers` 配列）を設定してください。
-
-Univer 提供の Docker Compose 設定をそのまま使う場合は、以下のパラメータで調整できます:
-
-- 第 2 階層（大サイズ階層）クラスタの有効/無効
-- 大サイズシートの判定基準
+Docker Compose は 2 階層（normal/large）を提供：
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
-    two tiers defined default: `normal` and `large`
-
     ```properties title=".env.custom"
-    # enable or disable the large tier，true-enable，false-disable，disable default.
     ENABLE_LARGE_TIER_COLLABORATION_SERVER=false
-
-    # if the large tier is enable, a sheet will be scheduled to the large tier when it's total cells count is greater than this value.
     LARGE_TIER_MIN_CELLS_COUNT=2000000
-
-    # if one sheet is scheduled to the large tier now, it will downgrade to the normal tier only when it's total cells count is less than this value.
     LARGE_TIER_DOWNGRADE_CELLS_COUNT=1950000
-
-    # if the large tier is enable, and the sheet is created by import, it will be scheduled to the large tier when cost time of import is greater than this value.
     LARGE_TIER_MIN_IMPORT_SECONDS=10
-
-    # instanse count of collaboration server in the large tier. 2 default
     LARGE_TIER_COLLABORATION_SERVER_REPLICATION_CNT=2
-
-    # memory limit of collaboration server in the large tier, at least 8 GB is recommended
     LARGE_TIER_COLLABORATION_SERVER_MEMORY_LIMIT=8192
     ```
   </Tab>
   <Tab label="K8s">
-    設定はユーザー側で行ってください。
+    多階層の構成とルールを自前で設定してください。
   </Tab>
 </Tabs>
 
-#### ネットワーク設定
+### ネットワークと CORS
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
-    Univer の既定ポートが他サービスと競合する場合は `.env.custom` で変更します。
-
     ```properties title=".env.custom"
-    # If there is a conflict with your network configuration, you can modify the network segment used by docker. Use CIDR notation
     DOCKER_NETWORK_SUBNET=172.30.0.0/16
+    HOST_NGINX_PORT=the-univer-server-api-port-you-wanted
+    HOST_MINIO_PORT=the-minio-port-you-wanted
+    HOST_GRAFANA_PORT=the-grafana-port-you-wanted
 
-    # Univer API service exposed port, if it is the same as other server level port of your host machine, please change it to another port
-    HOST_NGINX_PORT=the-univer-server-api-port-you-wantted
-
-    # If you choose the built-in Minio as the object storage and there is a port conflict, please add this configuration item to modify it
-    # Of course, if you are using your own maintained object storage, setting this configuration item will be meaningless
-    HOST_MINIO_PORT=the-minio-port-you-wantted
-
-    # If you choose the built-in observability components of Univer and there is a port conflict, please add this configuration item to modify it
-    # Of course, if you are using your own maintained observability components, setting this configuration item will be meaningless
-    HOST_GRAFANA_PORT=the-grafana-port-you-wantted
-    ```
-  </Tab>
-  <Tab label="K8s">
-    K8s では不要です。
-  </Tab>
-</Tabs>
-
-#### クロスオリジン許可設定
-
-<Tabs items={['docker compose', 'K8s']}>
-  <Tab label="docker compose">
-    ```properties title=".env.custom"
-    # allowed cross-origins config
-    CORS_ALLOW_ORIGINS='["domain1", "domain2", "and more"]'
+    CORS_ALLOW_ORIGINS='["domain1", "domain2"]'
     CORS_ALLOW_HEADERS='["content-type","authorization"]'
     ```
   </Tab>
@@ -698,75 +635,64 @@ Univer 提供の Docker Compose 設定をそのまま使う場合は、以下の
       config:
         server:
           http:
-            corsAllowOrigins: [domain1, domain2, and more]
+            corsAllowOrigins: [domain1, domain2]
             corsAllowHeaders: [content-type, authorization]
     ```
   </Tab>
 </Tabs>
 
-#### K8s デプロイ向けの特別設定
+補足：
 
-Helm chart ではフロントエンドデモサービスがデフォルトで有効化され、universer の http gateway ingress ドメインがデモのドメインに設定されています。本番デプロイではデモサービスを無効化し、universer の ingress を自分のドメインに変更する必要があります。`values.yaml` に次の設定を追加してください:
+- `DOCKER_NETWORK_SUBNET`：Docker ネットワーク CIDR
+- `HOST_NGINX_PORT`：API 公開ポート
+- `HOST_MINIO_PORT` / `HOST_GRAFANA_PORT` は内蔵利用時のみ
+- K8s はポートマッピング不要
+- `CORS_ALLOW_ORIGINS` / `CORS_ALLOW_HEADERS`：許可するオリジン/ヘッダー
+
+### K8s 本番必須設定
+
+Helm chart はデフォルトでデモ UI をデプロイします。本番では無効化しドメインを設定します：
 
 ```yaml title="values.yaml"
 collaboration-demo:
-  enabled: false # Set false to disable demo service
+  enabled: false
 universer:
   ingress:
     enabled: true
     hosts:
-      - host: use-your-own-domain-here # Set your real domain here
+      - host: use-your-own-domain-here
         paths:
           - path: /universer-api/
             pathType: Prefix
 ```
 
-#### 設定例
+### 設定例
 
-次の設定例では以下を実現しています:
-
-- USIP 連携を有効化し、ユーザー認証と権限管理を有効化
-- ドキュメント所有者のみがコピー/印刷可能
-- Univer イベント送信を有効化
-- 独自 PostgreSQL を使用
-- 独自 Object Storage を使用
-- Univer サービスの公開ポート変更
-- universer/collaboration-server の容量設定
+USIP/イベント同期を有効化し、自前 RDS/Object Storage を使いスケールを調整する例：
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
-    .env.custom content
-
     ```properties title=".env.custom"
-    # 1. enable USIP integration
-    # usip about
     USIP_ENABLED=true
     USIP_URI_CREDENTIAL=https://usip-demo.univer.ai/usip/credential
     USIP_URI_USERINFO=https://usip-demo.univer.ai/usip/userinfo
     USIP_URI_ROLE=https://usip-demo.univer.ai/usip/role
     USIP_URI_COLLABORATORS=https://usip-demo.univer.ai/usip/collaborators
+    USIP_URI_UNITEDITTIME=https://usip-demo.univer.ai/unit-edit-time
 
-    # 2. only owner can copy content and print
     AUTH_PERMISSION_CUSTOMER_STRATEGIES=[ {"action": 3, "role": 2}, {"action": 6, "role": 2} ]
 
-    # 3. enable univer event sync
-    EVENT_SYNC=true # Set true to enable
+    EVENT_SYNC=true
 
-    # 4. use owner RDS
-    # postgresql config
-    DISABLE_UNIVER_RDS=true # When using your own RDS, prevent Univer deploying the default postgresql
-
-    DATABASE_DRIVER=postgresql # Set to postgresql to use a postgresql-compatible database
+    DISABLE_UNIVER_RDS=true
+    DATABASE_DRIVER=postgresql
     DATABASE_HOST=univer-postgresql
     DATABASE_PORT=5432
     DATABASE_DBNAME=univer
     DATABASE_USERNAME=universer-biz
     DATABASE_PASSWORD=123456
 
-    # 5. use owner Object storage
-    # s3 config
-    DISABLE_UNIVER_S3=true # When using your own Object Storage, prevent Univer deploying the default Minio
-
+    DISABLE_UNIVER_S3=true
     S3_USER=universer-biz
     S3_PASSWORD=123456
     S3_REGION=cn-sz
@@ -775,27 +701,23 @@ universer:
     S3_ENDPOINT_PUBLIC=univer.ai:9653
     S3_DEFAULT_BUCKET=univer
 
-    # 6. change univer service Port
     HOST_NGINX_PORT=8010
 
-    # 7. set the service scale
-    UNIVERSER_REPLICATION_CNT=4 # Set the number of universer instances
-    COLLABORATION_SERVER_REPLICATION_CNT=5 # Set the number of collaboration service instances
-    MAX_MEMORY_LIMIT=2048 # Configuration of the maximum memory limit for the collaboration service, in MB
+    UNIVERSER_REPLICATION_CNT=4
+    COLLABORATION_SERVER_REPLICATION_CNT=5
+    COLLABORATION_SERVER_MEMORY_LIMIT=2048
     ```
   </Tab>
   <Tab label="K8s">
-    values.yaml content, Note: When you need to modify multiple configurations, you need to merge them in the yaml.
-
     ```yaml title="values.yaml"
     collaboration-demo:
-      enabled: false # Disable demo service
+      enabled: false
 
     postgresql:
-      enabled: false # Disable Univer's built-in database
+      enabled: false
 
     minio:
-      enabled: false # Disable Univer's built-in object storage
+      enabled: false
 
     collaboration-server:
       replicaCount: 5
@@ -806,23 +728,24 @@ universer:
       ingress:
         enabled: true
         hosts:
-          - host: use-your-own-domain-here # Modify this to your own domain
+          - host: usip-demo.univer.ai
             paths:
               - path: /universer-api/
                 pathType: Prefix
       config:
         usip:
-          enabled: true # Set true to enable USIP
+          enabled: true
           uri:
             userinfo: 'https://usip-demo.univer.ai/usip/userinfo'
             collaborators: 'https://usip-demo.univer.ai/usip/collaborators'
             role: 'https://usip-demo.univer.ai/usip/role'
             credential: 'https://usip-demo.univer.ai/usip/credential'
+            unitEditTime: 'https://usip-demo.univer.ai/unit-edit-time'
         auth:
           permission:
             customerStrategies: '[ {"action": 3, "role": 2}, {"action": 6, "role": 2} ]'
         rabbitmq:
-          eventSync: true # Set true to enable
+          eventSync: true
         database:
           driver: postgresql
           host: univer-postgresql
@@ -866,109 +789,73 @@ universer:
   </Tab>
 </Tabs>
 
-## 本番デプロイ SOP
+## デプロイ手順
 
-必要な設定を決めたら、以下の手順で Univer バックエンドサービスをデプロイします。
+### Docker Compose
 
-### Docker でデプロイする SOP [#deploy-to-docker-compose]
+1. `.env.custom` を用意（任意）
+2. `license.txt` と `licenseKey.txt` を用意
+3. 自前 RDS の場合は[初期化スクリプト](https://release-univer.oss-cn-shenzhen.aliyuncs.com/releases/latest/univer-server-sql-latest.tar.gz)を実行
+4. Univer Server を取得
+   - オンライン：`bash -c "$(curl -fsSL https://get.univer.ai/product)" [-- version]`
+   - オフライン：All-in-one パッケージを解凍し `bash load-images.sh`
+5. `.env.custom` をルートに配置
+6. ライセンスファイルを `configs/` に配置
+7. ルートで `bash run.sh start`
+8. 回帰テスト
 
-1. `.env.custom` を準備（変更がなければ省略可）
-2. `license.txt` と `licenseKey.txt` を準備
-3. 独自 RDS を使う場合は、[DB 初期化スクリプト](https://release-univer.oss-cn-shenzhen.aliyuncs.com/releases/latest/univer-server-sql-latest.tar.gz) をダウンロードして RDS（universer/temporal）を初期化。gaussdb / damengdb の場合は temporal の初期化は不要です。
-4. Univer バックエンドサービスを取得
-   - サーバーがインターネットにアクセス可能な場合
-     - `bash -c "$(curl -fsSL https://get.univer.ai/product)" [-- version]` を実行し、指定バージョンをダウンロード（未指定なら最新）
-   - インターネットにアクセスできない場合
-     - [こちら](https://univer.ai/releases/univer-server/download) から All-in-one オフラインパッケージをダウンロード
-     - サーバーへアップロードして解凍
-     - 解凍ディレクトリで `bash load-images.sh` を実行し、Docker にイメージを読み込み
-5. `.env.custom` をバックエンドサービスフォルダへコピーし、`.env` と同じディレクトリに配置
-6. `license.txt` と `licenseKey.txt` を `configs/` 配下にコピー
-7. バックエンドサービスのルートディレクトリで `bash run.sh start` を実行し、Univer サービスを起動
-8. 動作確認を行う
+### K8s
 
-### K8s でデプロイする SOP [#deploy-to-k8s]
+1. `values.yaml` を用意（任意、バージョン管理推奨）
+2. `license.txt` と `licenseKey.txt` を用意
+3. 自前 RDS の場合は初期化
+4. Helm でインストール
+   - オンライン：
 
-K8s デプロイでは、カスタム設定変更がある場合に `values.yaml` のバージョン管理が必要です。後続のアップグレードでも完全なカスタム設定が求められるため、git などで管理することを推奨します。
+   ```shell
+   helm install -n univer --create-namespace \
+     -f your-own-values.yaml-path \
+     --set global.istioNamespace="univer" \
+     --set-file universer.license.licenseV2=your-license.txt-path \
+     --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path \
+     univer-stack \
+     oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
+     --version target-version
 
-1. `values.yaml` を準備（変更がなければ省略可）
-2. `license.txt` と `licenseKey.txt` を準備
-3. 独自 RDS を使う場合は、[DB 初期化スクリプト](https://release-univer.oss-cn-shenzhen.aliyuncs.com/releases/latest/univer-server-sql-latest.tar.gz) をダウンロードして RDS（universer/temporal）を初期化。gaussdb / dameng の場合は temporal 初期化は不要です。
-4. `values.yaml` とライセンスファイルを使って Helm でインストール
-   - デプロイサーバーがインターネットにアクセス可能な場合:
-     - 次のコマンドでインストール:
-        ```shell
-        helm install -n univer --create-namespace \
-            -f your-own-values.yaml-path \
-            --set global.istioNamespace="univer" \
-            --set-file universer.license.licenseV2=your-license.txt-path \
-            --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path \
-            univer-stack \
-            oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
-            --version target-version
+   kubectl rollout restart -n univer deployment/collaboration-server
+   kubectl rollout restart -n univer deployment/universer
+   ```
 
-        # After successful execution, execute the following two commands to restart the services and complete the sidecar injection
-        kubectl rollout restart -n univer deployment/collaboration-server
-        kubectl rollout restart -n univer deployment/universer
-        ```
-     - Univer が用意した可観測性コンポーネントをデプロイする場合は、以下を実行:
-        ```bash
-        helm upgrade --install -n univer-observability --create-namespace \
-            --set global.univerNamespace="univer" \
-            univer-observability \
-            oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-observability
-        ```
+   - オフライン：
 
-        パラメータ説明:
+   ```shell
+   export REGISTER=XXXX
+   export NAMESPACE=XXX
+   docker login $REGISTER
+   bash load-image.sh --registry $REGISTER --namespace $NAMESPACE
 
-        - `--set global.univerNamespace="univer"`: 観測対象のクラスタを "univer" に設定
-   - デプロイサーバーがインターネットにアクセスできない場合:
-     - [こちら](https://univer.ai/releases/univer-server/download) から K8s All-in-one オフラインパッケージをダウンロード
-     - サーバーへアップロードして解凍
-     - 解凍ディレクトリでイメージを読み込み:
-        ```shell
-        export REGISTER=XXXX # Your private image register
-        export NAMESPACE=XXX # The namespace where image save
-        docker login $REGISTER
-        bash load-image.sh --registry $REGISTER --namespace $NAMESPACE
-        ```
-     - 読み込み後、カレントディレクトリに `values.yaml` と `values-observability.yaml` が生成されるので、必要に応じて編集
-       - values.yaml: Univer サービス設定
-       - values-observability.yaml: 可観測性コンポーネント設定
-     - 次のコマンドでインストール:
-        ```shell
-        helm install -n univer --create-namespace \
-            -f your-own-values.yaml-path \
-            --set global.istioNamespace="univer" \
-            --set-file universer.license.licenseV2=your-license.txt-path \
-            --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path \
-            univer-stack \
-            univer-stack-xxxx.tgz # should change to the right chart name
+   helm install -n univer --create-namespace \
+     -f your-own-values.yaml-path \
+     --set global.istioNamespace="univer" \
+     --set-file universer.license.licenseV2=your-license.txt-path \
+     --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path \
+     univer-stack-xxxx.tgz
+   ```
 
-        # After successful execution, execute the following two commands to restart the services and complete the
-        kubectl rollout restart -n univer deployment/collaboration-server
-        kubectl rollout restart -n univer deployment/universer
-        ```
-     - Univer の可観測性コンポーネントをデプロイする場合は次のコマンドを実行:
-        ```bash
-        helm upgrade --install -n univer-observability --create-namespace \
-            --set global.univerNamespace="univer" \
-            -f your-own-values-observability.yaml-path \
-            univer-observability \
-            univer-observability-xxxx.tgz
-        ```
+パラメータ：
 
-        パラメータ説明:
+- `-n univer`：namespace
+- `univer-stack`：Helm リリース名
+- `--version target-version`：対象バージョン
+- `-f your-own-values.yaml-path`：カスタム値ファイル
+- `--set-file universer.license.licenseV2`：`license.txt` のパス
+- `--set-file universer.license.licenseKeyV2`：`licenseKey.txt` のパス
 
-        - `--set global.univerNamespace="univer"`: 観測対象のクラスタを "univer" に設定
+内蔵可観測性の導入：
 
-パラメータ説明:
-
-- `-n univer`：namespace を univer に指定。変更可能だが将来のアップグレード時に必要
-- `univer-stack`：Helm release 名。変更可能だが将来のアップグレード時に必要
-- `--version target-version`：デプロイするバージョン。ターゲットに合わせて変更し、最新を使う場合は省略
-- `-f your-own-values.yaml-path`：カスタム `values.yaml` のパスを指定
-- `--set-file universer.license.licenseV2=your-license.txt-path`：解凍後の `license.txt` パスを指定
-- `--set-file universer.license.licenseKeyV2=your-licenseKey.txt-path`：解凍後の `licenseKey.txt` パスを指定
-
-5. 動作確認を行う
+```bash
+helm upgrade --install -n univer-observability --create-namespace \
+  --set global.univerNamespace="univer" \
+  univer-observability \
+  oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-observability
+```
