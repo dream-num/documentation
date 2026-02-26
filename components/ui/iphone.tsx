@@ -12,7 +12,7 @@ export function Iphone({ children, className, style, ...props }: IphoneProps) {
     <div
       className={
         `
-          relative mx-auto aspect-[9/19.5] w-[320px] max-w-full rounded-[40px] border border-neutral-200 bg-neutral-100
+          relative mx-auto aspect-9/19.5 w-[320px] max-w-full rounded-[40px] border border-neutral-200 bg-neutral-100
           shadow-lg
           dark:border-neutral-700 dark:bg-neutral-900
           ${
