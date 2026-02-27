@@ -58,6 +58,7 @@ export default antfu({
     'no-unused-vars': 'off',
     'eslint-comments/no-unlimited-disable': 'off',
     'style/max-statements-per-line': 'off',
+    'no-undef': 'off',
   },
 }, {
   files: ['**/*.mdx'],

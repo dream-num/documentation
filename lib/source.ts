@@ -57,3 +57,23 @@ export const blog = loader({
   source: blogPosts.toFumadocsSource(),
   i18n,
 })
+
+export function getActiveBlogPages(lang: string) {
+  return blog.getPages(lang).filter(page => !page.data.deprecated)
+}
+
+export function getActiveBlogPage(slug: string[], lang: string) {
+  const page = blog.getPage(slug, lang)
+  if (!page || page.data.deprecated) {
+    return undefined
+  }
+
+  return page
+}
+
+export function getActiveBlogParams() {
+  return blog.generateParams().filter((page) => {
+    const matchedPage = blog.getPage(page.slug, page.lang)
+    return Boolean(matchedPage && !matchedPage.data.deprecated)
+  })
+}

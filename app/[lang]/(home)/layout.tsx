@@ -7,7 +7,7 @@ import {
   NavbarMenuLink,
   NavbarMenuTrigger,
 } from 'fumadocs-ui/layouts/home/navbar'
-import { BookTextIcon, CookingPotIcon, PresentationIcon, SheetIcon, StarIcon } from 'lucide-react'
+import { BookTextIcon, CookingPotIcon, PackageIcon, PresentationIcon, SheetIcon, StarIcon } from 'lucide-react'
 import Link from 'next/link'
 import { baseOptions } from '@/app/layout.config'
 import { Footer } from '@/components/footer'
@@ -31,34 +31,32 @@ export default async function Layout({ params, children }: IProps) {
   }, {
     text: 'Univer Docs',
     url: `/${lang}/guides/docs`,
-    className: 'lg:col-start-1',
+    className: 'lg:col-start-2',
     icon: <BookTextIcon />,
     iconClassName: 'bg-linear-[135deg,#3F83F8_0%,#EBF5FF_100%] dark:bg-linear-[135deg,#3F83F8_0%,#233876_100%]',
   }, {
     text: 'Univer Slides',
     url: '/guides/slides',
-    className: 'lg:col-start-2 lg:row-start-1',
+    className: 'lg:col-start-3',
     icon: <PresentationIcon />,
     iconClassName: 'bg-linear-[135deg,#F05252_0%,#FDF2F2_100%] dark:bg-linear-[135deg,#F05252_0%,#771D1D_100%]',
   }, {
     text: 'Recipes',
     url: '/guides/recipes/architecture/univer',
-    className: 'lg:col-start-2 lg:row-start-2',
+    className: 'lg:col-start-1 lg:row-start2',
     icon: <CookingPotIcon />,
     iconClassName: 'bg-linear-[135deg,#9061F9_0%,#F6F5FF_100%] dark:bg-linear-[135deg,#9061F9_0%,#4A1D96_100%]',
+  }, {
+    text: customTranslations[lang]['icons.title'],
+    url: `/${lang}/guides/icons`,
+    className: 'lg:col-start-2 lg:row-start-2',
+    icon: <PackageIcon />,
+    iconClassName: 'bg-linear-[135deg,#FACC15_0%,#FFFBEB_100%] dark:bg-linear-[135deg,#FACC15_0%,#664D03_100%]',
   }, {
     text: 'Univer Pro',
     url: '/guides/pro',
     className: 'md:hidden',
     icon: <StarIcon />,
-  }]
-
-  const ecosystemLinks = [{
-    text: '📦 Univer Icons',
-    url: '/icons',
-  }, {
-    text: '💎 Obsidian Univer Plugin',
-    url: 'https://github.com/dream-num/obsidian-univer',
   }]
 
   const links: LinkItemType[] = [
@@ -105,7 +103,7 @@ export default async function Layout({ params, children }: IProps) {
                 transition-transform duration-200
                 hover:-translate-y-1
                 md:col-span-2 md:row-span-2
-                lg:col-start-3 lg:row-start-1
+                lg:col-start-4 lg:row-start-1
                 [&>img]:absolute [&>img]:inset-0 [&>img]:size-full [&>img]:transition-transform
                 hover:[&>img]:scale-[1.02]
               `}
@@ -160,35 +158,6 @@ export default async function Layout({ params, children }: IProps) {
                 </div>
               </div>
             </NavbarMenuLink>
-          </NavbarMenuContent>
-        </NavbarMenu>
-      ),
-    },
-    {
-      type: 'menu',
-      on: 'menu',
-      text: customTranslations[lang]['ecosystem.title'],
-      items: ecosystemLinks,
-    },
-    {
-      type: 'custom',
-      on: 'nav',
-      children: (
-        <NavbarMenu>
-          <NavbarMenuTrigger asChild>
-            <button className="cursor-pointer" type="button">
-              {customTranslations[lang]['ecosystem.title']}
-            </button>
-          </NavbarMenuTrigger>
-          <NavbarMenuContent className="text-sm">
-            {ecosystemLinks.map(link => (
-              <NavbarMenuLink
-                key={link.url}
-                href={link.url}
-              >
-                <span className="relative">{link.text}</span>
-              </NavbarMenuLink>
-            ))}
           </NavbarMenuContent>
         </NavbarMenu>
       ),

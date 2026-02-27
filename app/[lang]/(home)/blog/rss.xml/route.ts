@@ -1,6 +1,6 @@
 import { Feed } from 'feed'
 import { NextResponse } from 'next/server'
-import { blog } from '@/lib/source'
+import { getActiveBlogPages } from '@/lib/source'
 
 export const revalidate = false
 
@@ -21,7 +21,7 @@ export async function GET(request: Request, { params }: IProps) {
     copyright: 'All rights reserved 2025, ',
   })
 
-  for (const page of blog.getPages(lang).sort((a, b) => {
+  for (const page of getActiveBlogPages(lang).sort((a, b) => {
     return new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
   })) {
     feed.addItem({

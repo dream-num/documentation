@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { clsx } from '@/lib/clsx'
 import { formatLocalDate } from '@/lib/dayjs'
 import { customTranslations } from '@/lib/i18n'
-import { blog } from '@/lib/source'
+import { blog, getActiveBlogPage, getActiveBlogParams } from '@/lib/source'
 import { getMDXComponents } from '@/mdx-components'
 
 interface IProps {
@@ -18,14 +18,14 @@ interface IProps {
 }
 
 export function generateStaticParams(): { slug: string }[] {
-  return blog.generateParams().map(page => ({
+  return getActiveBlogParams().map(page => ({
     slug: page.slug[0],
   }))
 }
 
 export async function generateMetadata({ params }: IProps) {
   const { slug, lang } = await params
-  const page = blog.getPage([slug], lang)
+  const page = getActiveBlogPage([slug], lang)
   if (!page) {
     notFound()
   }
@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: IProps) {
 
 export default async function Page({ params }: IProps) {
   const { slug, lang } = await params
-  const page = blog.getPage([slug], lang)
+  const page = getActiveBlogPage([slug], lang)
   if (!page) {
     notFound()
   }

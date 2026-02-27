@@ -33,9 +33,14 @@ export const reference = defineDocs({
 export const blog = defineDocs({
   dir: './content/blog',
   docs: {
+    files: [
+      '**/*.mdx',
+      '!weekly-*.mdx',
+    ],
     schema: frontmatterSchema.extend({
       author: z.string(),
       date: z.iso.date().or(z.date()),
+      deprecated: z.boolean().optional(),
     }),
   },
   meta: {
