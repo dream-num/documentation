@@ -6,12 +6,10 @@ import { DynamicStars } from './dynamic-stars'
 export function GithubInfo({
   repo,
   owner,
-  token,
   ...props
 }: AnchorHTMLAttributes<HTMLAnchorElement> & {
   owner: string
   repo: string
-  token?: string
 }) {
   return (
     <a
@@ -38,7 +36,6 @@ export function GithubInfo({
       <DynamicStars
         repo={repo}
         owner={owner}
-        token={token}
       />
     </a>
   )

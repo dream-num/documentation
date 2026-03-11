@@ -12,8 +12,6 @@ COPY . .
 RUN corepack enable pnpm && pnpm i
 
 # Environment variables
-ARG NEXT_GITHUB_TOKEN=""
-RUN echo "NEXT_GITHUB_TOKEN=${NEXT_GITHUB_TOKEN}" >> .env
 ARG NEXT_POSTHOG_APIKEY=""
 RUN echo "NEXT_POSTHOG_APIKEY=${NEXT_POSTHOG_APIKEY}" >> .env
 

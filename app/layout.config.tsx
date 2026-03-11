@@ -1,5 +1,4 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
-import process from 'node:process'
 import { GithubInfo } from '@/components/github-info/github-info'
 import { Logo } from '@/components/logo'
 import { customTranslations, i18n } from '@/lib/i18n'
@@ -29,7 +28,6 @@ export function baseOptions(locale: string): BaseLayoutProps {
           <GithubInfo
             owner="dream-num"
             repo="univer"
-            token={process.env.NEXT_GITHUB_TOKEN}
           />
         ),
       },

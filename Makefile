@@ -7,7 +7,6 @@ CTR = docker
 BUILDER ?= univerdocs-builder
 NPM_REGISTRY ?= ""
 # Environment variables
-NEXT_GITHUB_TOKEN =
 NEXT_POSTHOG_APIKEY =
 
 OSARCH = linux/amd64
@@ -31,7 +30,6 @@ endif
 	$(CTR) buildx build \
 	--build-arg CR=$(CR) \
 	--build-arg NPM_REGISTRY=$(NPM_REGISTRY) \
-	--build-arg NEXT_GITHUB_TOKEN=$(NEXT_GITHUB_TOKEN) \
 	--build-arg NEXT_POSTHOG_APIKEY=$(NEXT_POSTHOG_APIKEY) \
 	--builder $(BUILDER) \
 	--platform $(OSARCH) \

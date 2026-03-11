@@ -9,11 +9,9 @@ import { getRepoStarsAndForks } from '@/lib/github'
 export default function Stars({
   repo,
   owner,
-  token,
 }: AnchorHTMLAttributes<HTMLAnchorElement> & {
   owner: string
   repo: string
-  token?: string
 }) {
   const [isCompleted, setIsCompleted] = useState(false)
   const [currentStars, setCurrentStars] = useState(0)
@@ -21,11 +19,11 @@ export default function Stars({
   const [fillPercentage, setFillPercentage] = useState(0)
 
   useEffect(() => {
-    getRepoStarsAndForks(owner, repo, token)
+    getRepoStarsAndForks(owner, repo)
       .then(({ stars }) => {
         setStars(humanizeNumber(stars))
       })
-  }, [owner, repo, token])
+  }, [owner, repo])
 
   useEffect(() => {
     const interval = setInterval(() => {

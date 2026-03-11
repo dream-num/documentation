@@ -3,13 +3,11 @@
 import { unstable_cache } from 'next/cache'
 
 const getCachedRepoStarsAndForks = unstable_cache(
-  async (owner: string, repo: string, token?: string) => {
+  async (owner: string, repo: string) => {
     const endpoint = `https://api.github.com/repos/${owner}/${repo}`
     const headers = new Headers({
       'Content-Type': 'application/json',
     })
-
-    if (token) headers.set('Authorization', `Bearer ${token}`)
 
     const response = await fetch(endpoint, {
       headers,
@@ -41,7 +39,6 @@ const getCachedRepoStarsAndForks = unstable_cache(
 export async function getRepoStarsAndForks(
   owner: string,
   repo: string,
-  token?: string,
 ) {
-  return await getCachedRepoStarsAndForks(owner, repo, token)
+  return await getCachedRepoStarsAndForks(owner, repo)
 }
