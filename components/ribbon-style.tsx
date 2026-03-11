@@ -5,14 +5,14 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { clsx } from '@/lib/clsx'
 
 export default function RibbonStyle() {
-  const [ribbonType, setRibbonType] = useState<string>('default')
+  const [ribbonType, setRibbonType] = useState<string>('classic')
 
   return (
     <div>
-      <Tabs className="mb-2" defaultValue="default" onValueChange={setRibbonType}>
+      <Tabs className="mb-2" defaultValue="classic" onValueChange={setRibbonType}>
         <TabsList>
-          <TabsTrigger value="default">default</TabsTrigger>
           <TabsTrigger value="classic">classic</TabsTrigger>
+          <TabsTrigger value="collapsed">collapsed</TabsTrigger>
           <TabsTrigger value="simple">simple</TabsTrigger>
         </TabsList>
       </Tabs>
