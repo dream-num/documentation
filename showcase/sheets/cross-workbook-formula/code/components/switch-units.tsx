@@ -1,5 +1,6 @@
 import type { Workbook } from '@univerjs/presets'
-import { clsx, IUniverInstanceService, UniverInstanceType } from '@univerjs/presets'
+import { clsx } from '@univerjs/preset-sheets-core'
+import { IUniverInstanceService, UniverInstanceType } from '@univerjs/presets'
 import { useEffect, useState } from 'react'
 import { state } from '../state'
 
