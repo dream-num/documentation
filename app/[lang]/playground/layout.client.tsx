@@ -7,7 +7,7 @@ interface IProps {
   children: ReactNode
 }
 
-export function PageProvider(props: IProps) {
+export function LayoutProvider(props: IProps) {
   const { children } = props
 
   useEffect(() => {

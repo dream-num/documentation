@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { Playground } from '@/components/playground'
 import { showcase } from '@/showcase/data'
-import { PageProvider } from './page.client'
+import { LayoutProvider } from '../layout.client'
 
 interface IProps {
   params: Promise<{
@@ -43,12 +43,12 @@ export default async function Page({ params }: IProps) {
   const { files, Preview } = (await currentShowCasePromise).default
 
   return (
-    <PageProvider>
+    <LayoutProvider>
       <Playground
         lang={lang}
         preview={<Preview />}
         files={files}
       />
-    </PageProvider>
+    </LayoutProvider>
   )
 }
