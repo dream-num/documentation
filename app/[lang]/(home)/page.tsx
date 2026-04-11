@@ -85,7 +85,7 @@ export default async function Page({ params }: IProps) {
                   dark:bg-neutral-800
                   dark:hover:bg-neutral-900
                 `}
-                href="https://github.com/dream-num/univer/releases/tag/v0.18.0"
+                href={`https://github.com/dream-num/univer/releases/tag/v${pkg.version}`}
               >
                 <span
                   className={`
