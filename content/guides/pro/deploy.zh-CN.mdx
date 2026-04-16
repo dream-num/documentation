@@ -10,131 +10,140 @@ import { CapacityCalculator } from './deploy/components/capacity-calculator'
 
 ### 演进历史
 
-- `v0.13.0`版本开始，新增了`collaboration-helper`服务，用于处理需要异步执行的CPU密集型任务，如生成快照等
-- `v0.15.0`版本开始，引入了协同编辑分层调度，将不同规模sheet的操作调度到不同的协同服务集群，尽量降低大表编辑影响普通规模表格
+- 自 `v0.13.0` 起，新增 `collaboration-helper` 服务，用于处理异步执行的 CPU 密集型任务（如生成快照）。
+- 自 `v0.15.0` 起，引入协同编辑分层调度，将不同规模 sheet 的操作调度至不同的协同服务集群，以降低大表格编辑对普通规模表格的影响。
 
 ### 服务介绍
 
-- collaboration-server：后端的协同编辑引擎，在后端实现了和前端一致的 OT 算法
-- collaboration-helper：负责处理协同中的CPU密集型任务（比如快照生成），让协同编辑本身可以持续流畅运行。注：v0.13.0开始引入
-- universer：处理文档的各种操作请求，维护文档数据，处理协同消息的广播
-- exchange worker：负责执行文档的导入导出计算任务，是计算密集型服务，同时也有大内存需求
+- **collaboration-server**：后端的协同编辑引擎，实现了与前端一致的 OT 算法。
+- **collaboration-helper**：负责处理协同中的 CPU 密集型任务（如快照生成），保障协同编辑的流畅运行。注：`v0.13.0` 起引入。
+- **universer**：处理文档操作请求，维护文档数据，并负责协同消息的广播。
+- **exchange worker**：负责执行文档的导入导出计算任务，属于计算密集型服务，对内存亦有较高需求。
 
 <Callout>
-  collaboration-server 是有状态服务，对同一个文档的编辑请求处理都在同一个 collaboration-server 实例中进行，这样可以大大减少处理时需要加载数据的可能，从而增加了整体性能。
-  所以我们在 universer 调用 collaboration server 应用编辑处理时，增加了一层一致性 hash 路由。
+  collaboration-server 是有状态服务，对同一文档的编辑请求均在同一 collaboration-server 实例中处理，可减少数据加载开销，从而提升整体性能。
+  因此，universer 在调用 collaboration-server 处理编辑操作时，增加了一层一致性哈希路由。
 </Callout>
 
 ### 组件介绍
 
-- RDS：关系型数据库，用于存储文档的元数据、权限配置等
-- Object Storage：对象存储，用于存储文档的内容数据，包括图片、数据块等
-- Redis：文档在线协作者缓存、API 限流
-- Rabbitmq：消息队列，用于 universer 服务间交换需要广播的协同消息
-- Temporal：开源的流程执行引擎，Univer 将其用于管理文档导入导出的异步流程
+- **RDS**：关系型数据库，用于存储文档的元数据、权限配置等。
+- **Object Storage**：对象存储，用于存储文档的内容数据，包括图片、数据块等。
+- **Redis**：文档在线协作者缓存及 API 限流。
+- **RabbitMQ**：消息队列，用于 universer 服务间交换需要广播的协同消息。
+- **Temporal**：开源的流程执行引擎，Univer 将其用于管理文档导入导出的异步流程。
 
 ## 部署前准备
 
-了解了 Univer 后端服务的基本架构后，在生产部署之前，你还应该认真评估以下问题：
+在了解 Univer 后端服务的基本架构后，生产部署前应对以下事项进行评估：
 
-### 部署方式的选择：
+### 部署方式选择
 
 Univer 目前提供两种部署方式：
 
-- 使用 Docker compose 部署
-    docker compose 方式只能单机部署，因此其能支持的规模有限，只能进行纵向扩展，而**不支持横向扩展**。如果你没有在运维 K8s，并且使用规模不是很大，可以使用此方式部署。
+- **Docker Compose 部署**
+  Docker Compose 仅支持单机部署，扩展方式以纵向扩展为主，**不支持横向扩展**。适用于无 Kubernetes 运维能力且使用规模较小的场景。
 
-- 使用兼容标准的 K8S 部署
-    如果你有在运维 K8s 集群，且能兼容标准 K8s 模式，用这种方式部署最好了。Univer 支持了水平扩容，用 K8s 部署能获得最佳的可扩展性。
+- **兼容标准 Kubernetes 部署**
+  若已运维 Kubernetes 集群且兼容标准 K8s 模式，推荐采用此方式。Univer 支持水平扩容，K8s 部署可提供最佳的可扩展性。
 
-### 确定你是否有用户身份认证和权限校验的需求
+### 用户身份认证与权限校验
 
-Univer 的安装配置默认是未启用的，你需要根据你的使用需求决定是否需要启用，相关说明请查看[通过 USIP 与你的系统集成](/guides/pro/usip)
+Univer 的安装配置默认未启用身份认证与权限校验，需根据实际业务需求决定是否开启。详见[通过 USIP 与你的系统集成](/guides/pro/usip)。
 
 ### 容量评估
 
-你需要认真评估下你的容量需求，如果需求较大，docker compose 方式部署可能就不适合了。特别说明：
+需根据实际业务规模评估容量需求。若需求较大，Docker Compose 部署方式可能不适用。特别说明：
 
-- 导入导出服务 exchange worker 是计算密集型，在处理导入导出任务时，短时间内可能会占用大量的 CPU 和内存，尤其是导入大文档时。你需要评估好导入导出的可能需求，为其分配合适的 CPU 和内存
-- 协同引擎 collaboration-server 是有状态的 node 服务，并且在同时打开较多的文档编辑时会占用较多的内存，你需要认真评估需要的实例数和每个实例的内存配置。如果有编辑超大表格（大于500万单元格）的需求，建议每个实例至少配置8GB内存。
+- **exchange worker**（导入导出服务）为计算密集型服务，处理导入导出任务时可能在短时间内占用大量 CPU 与内存，尤其是导入大文档时。需评估导入导出需求，为其分配合适的 CPU 与内存资源。
+- **collaboration-server**（协同引擎）为有状态的 Node 服务，在同时打开较多文档编辑时会占用较多内存。需评估所需实例数及每个实例的内存配置。若有编辑超大表格（大于 500 万单元格）的需求，建议每个实例至少配置 8 GB 内存。
 
-另外，`v0.15.0`版本开始，引入了协同编辑分层调度，你需要统计下在你们的使用场景中，表格的规模分布（doc和slide不会参与分层调度），以此来判断是否需要配置分层调度，如果需要，还要评估好需要多少个等级的集群、每个等级处理什么规模的表格（单元格总数量、导入耗时等指标）。具体配置在后续章节中说明。
+此外，自 `v0.15.0` 起引入的协同编辑分层调度，需统计使用场景中表格的规模分布（文档与幻灯片不参与分层调度），以判断是否需配置分层调度。若需要，还需评估集群等级数量及各等级处理的表格规模（单元格总数、导入耗时等指标）。具体配置说明见后续章节。
 
 #### 协同编辑资源需求计算
 
-如果绝大部分都是小文档，可以选择 2c4g 规格的协同服务；否则建议选择 4c8g 规格的协同服务配置。不建议继续增加协同服务单实例的规格，会导致 CPU 资源过多的浪费。
+若绝大部分为小文档，协同服务可选择 2c4g 规格；否则建议选择 4c8g 规格。不建议继续增加单实例协同服务的规格，以免造成 CPU 资源浪费。
 
-- 单实例协同服务 2c4g/4c8g 能支撑 1100/1200 篇小规模文档的同时编辑，按编辑保存 QPS 算是 360/400
-- 单 universer 服务 2c4g/4c8g 能支撑 1200/2200 篇小规模文档的同时编辑，按编辑保存 QPS 算是 400/730
+- 单实例协同服务（2c4g / 4c8g）可支持约 1100 / 1200 篇小规模文档的并发编辑，按编辑保存 QPS 计算约为 360 / 400。
+- 单 universer 服务（2c4g / 4c8g）可支持约 1200 / 2200 篇小规模文档的并发编辑，按编辑保存 QPS 计算约为 400 / 730。
 
 #### 多人协同资源需求计算
 
-多人协同时，除了编辑保存消耗资源外，更多的是协同消息广播对 CPU 资源的需求。协同消息广播都在 universer 服务中完成，不影响 node 服务的资源占用。
+多人协同时，除编辑保存消耗资源外，协同消息广播对 CPU 资源的需求更为显著。协同消息广播由 universer 服务完成，不影响 collaboration-server 的资源占用。
 
-2c4g × 2 能支持向 1400 人每秒推送 10 次编辑操作。平均 1core 最高能支持每秒 3500 次编辑协同广播。
+2c4g × 2 的配置可支持向 1400 人每秒推送 10 次编辑操作。平均而言，1 核 CPU 最高可支持每秒 3500 次协同广播。
 
-协同广播 QPS = 编辑保存 QPS × (活跃用户数/活跃文档数 − 1)，减去 1 是因为向自己的推送已经算在编辑操作中了。
+协同广播 QPS 计算公式为：
+
+```
+协同广播 QPS = 编辑保存 QPS × (活跃用户数 / 活跃文档数 − 1)
+```
+
+其中减去 1 是因为向自身的推送已计入编辑保存 QPS 中。
 
 #### 容量需求计算器
 
-你可以使用下方的计算器，根据你的实际业务参数快速估算所需的资源配置。输入活跃文档数、保存频率、协同比例等参数后，计算器会自动给出编辑 QPS、协同广播 QPS 以及推荐的 Node 服务、Universer 和数据库配置。
+可使用下方的计算器，根据实际业务参数快速估算所需的资源配置。输入活跃文档数、保存频率、协同比例等参数后，计算器将自动输出编辑 QPS、协同广播 QPS 以及推荐的 Node 服务、Universer 和数据库配置。
 
 <CapacityCalculator locale="zh-CN" />
 
 ### 基础组件选择
 
-如上述系统部署架构所示，Univer 会用到的基础组件包括：MQ、Redis、RDS、Object Storage，并且 Univer 的安装包会包含对应组件的常用的开源版本。
+如上述系统部署架构所示，Univer 依赖的基础组件包括 MQ、Redis、RDS、Object Storage。Univer 的安装包会包含对应组件的常用开源版本。
 
-当然，Univer 支持你改用自己维护的组件，并且我们强烈建议你这样做，这样：
+同时，Univer 支持改用自己维护的组件，并且**强烈建议**在生产环境中这样做，原因如下：
 
-- 利于系统维护
-- 确保数据的存储安全
-- 确保系统运行的稳定性
+- 便于系统维护
+- 保障数据存储安全
+- 确保系统运行稳定
 
-特别是文档数据的存储组件 RDS 和 Object storage，如果你使用 Univer 的内置版本，在物理机存储破坏的情况下很有可能会造成数据的永久丢失。这是个比较大的风险，如果你没有自有的存储基础设施，建议选择公有云厂商提供的服务。如果只能使用 Univer 内置的存储组件，则一定要定期备份数据，建议每天一次备份。
+特别是文档数据的存储组件 RDS 与 Object Storage。若使用 Univer 内置版本，在物理机存储损坏的情况下可能造成数据的永久丢失。若缺乏自有的存储基础设施，建议选择公有云厂商提供的服务。若只能使用 Univer 内置的存储组件，则务必定期备份数据，建议每天备份一次。
 
-如果你选择使用自己维护的组件，需要确保能完全兼容 Univer 对这些组件的要求，每个组件的要求如下：
+若选择使用自己维护的组件，需确保完全兼容 Univer 对这些组件的要求。各组件要求如下：
 
 #### MQ
 
-需要完全兼容 AMQP/AMQPS，目前建议选用 Rabbit MQ。Univer 安装包使用的是 Rabbit MQ 的官方镜像 rabbitmq:3-management。
+需完全兼容 AMQP/AMQPS，目前建议选用 RabbitMQ。Univer 安装包使用的官方镜像为 `rabbitmq:3-management`。
 
 #### Redis
 
-需要能兼容所有 Redis 命令。Univer 安装包使用的是标准版本的 Redis 官方镜像 bitnami/redis:7.0.15-debian-11-r3。
-目前 Univer 用到的 redis 命令包括：GET、MGET、SET、SETNX、DEL、EXISTS、EXPIRE、HSET、HGET、HDEL、HGETALL、HLEN、SCAN、Pipeline、EVAL、EVALSHA。你需要确保你的 redis 组件能兼容。当然，在满足兼容性的前提下，你也可以使用分布式版本的 Redis。
+需兼容所有 Redis 命令。Univer 安装包使用的官方镜像为 `bitnami/redis:7.0.15-debian-11-r3`。
+
+目前 Univer 使用的 Redis 命令包括：`GET`、`MGET`、`SET`、`SETNX`、`DEL`、`EXISTS`、`EXPIRE`、`HSET`、`HGET`、`HDEL`、`HGETALL`、`HLEN`、`SCAN`、`Pipeline`、`EVAL`、`EVALSHA`。需确保 Redis 组件兼容上述命令。在满足兼容性的前提下，亦可使用分布式版本的 Redis。
 
 #### RDS
 
-目前我们适配了 PostgreSQL16.1、MySQL8.0、GaussDB、DamengDB，你可以选择这些 DB 或与之兼容的 DB。Univer 安装包使用的是 PostgreSQL 官方镜像 postgres:16.1。
-但请注意，目前 Univer 暂时没有支持分布式数据库，如果你的分布式数据库不能完全兼容像单机数据库那样访问，那么你不能使用。比如需要使用表字段进行分片的数据库暂不支持。另外，如果你使用的是 TiDB 这类完全兼容的分布式数据库，也要谨慎，因为 Univer 目前的 ID 生成器生成的 ID 都是趋势递增的，会导致其请求一直在同一个节点处理而性能低下。
+目前已适配 PostgreSQL 16.1、MySQL 8.0、GaussDB、DamengDB，可选择上述数据库或兼容的数据库。Univer 安装包使用的官方镜像为 `postgres:16.1`。
+
+请注意，Univer 目前暂未支持需要按表字段分片的分布式数据库。若分布式数据库无法完全兼容单机数据库的访问方式，则不能使用。另外，若使用 TiDB 等完全兼容的分布式数据库，也需谨慎——Univer 目前的 ID 生成器生成的 ID 为趋势递增，可能导致请求集中在同一节点处理，从而出现性能瓶颈。
 
 #### Object Storage
 
-需要能兼容 AWS S3 的 API。Univer 安装包使用的是 Minio 官方镜像 bitnami/minio:2024.8.3-debian-12-r1。
+需兼容 AWS S3 API。Univer 安装包使用的官方镜像为 `bitnami/minio:2024.8.3-debian-12-r1`。
 
 #### 可观测组件
 
-在后续运维 Univer 的后端服务时，你希望使用 Univer 集成的可观测组件还是接入自己的可观测系统？Univer 目前提供了 Prometheus 指标及 grafana 看板、服务日志。接入详情请阅读[运维手册](/guides/pro/sre-manual)。
-如果你没有自己的可观测系统，或者难以接入，建议配置启用 Univer 内置的可观测组件。
+在后续运维 Univer 后端服务时，需确定使用 Univer 集成的可观测组件还是接入已有的可观测系统。Univer 目前提供 Prometheus 指标、Grafana 看板及服务日志。接入详情请参阅[运维手册](/guides/pro/sre-manual)。
+
+若无可观测系统或难以接入，建议启用 Univer 内置的可观测组件。
 
 ## 部署配置
 
 ### 如何修改部署配置？
 
-#### 使用 docker compose 部署
+#### Docker Compose 部署
 
-Univer 默认的部署配置在安装目录下的 .env 文件中，如果你需要修改安装配置，不要直接修改此 .env 文件，而是在此 .env 文件所在的目录下创建一个名为 .env.custom 的自定义配置文件，如果你在 .env.custom 文件里面配置了某个配置项的值，Univer 安装脚本即会用你配置的值代替 .env 文件里的默认值。
+Univer 的默认部署配置位于安装目录下的 `.env` 文件中。如需修改安装配置，请勿直接编辑 `.env` 文件，而应在其同级目录下创建名为 `.env.custom` 的自定义配置文件。`.env.custom` 中配置的项将覆盖 `.env` 文件中的默认值。
 
-#### 使用 K8s 部署
+#### Kubernetes 部署
 
-Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](https://github.com/dream-num/helm-charts/blob/main/charts/univer-stack/values.yaml)。如果你想要修改配置，不用修改 charts 中的文件，只需要新建一个 values.yaml 文件，将你想要修改的配置项写入其中即可，通过 helm 安装时指定你的 values.yaml 文件，即可用你设置的配置项替换掉默认的配置项，当然，你没有设置的配置项将使用默认的值。具体的 helm 命令在最后部署步骤中有说明。
+Univer 的默认部署配置位于 Helm chart 的 `values.yaml` 中，[点击查看](https://github.com/dream-num/helm-charts/blob/main/charts/univer-stack/values.yaml)。如需修改配置，无需编辑 charts 中的文件，只需新建一个 `values.yaml` 文件，将需要修改的配置项写入其中即可。通过 `helm install` 命令安装时指定该 `values.yaml` 文件，即可用自定义配置覆盖默认配置。未指定的配置项将使用默认值。具体的 Helm 命令说明见后文部署步骤。
 
 ### 配置详解
 
 #### 启用身份认证和权限管理
 
-在[通过 USIP 与你的系统集成](/guides/pro/usip)中已描述配置项的意义，这里不再重复，如果你需要启用，可如下配置：
+相关配置项的意义已在[通过 USIP 与你的系统集成](/guides/pro/usip)中说明，此处不再赘述。如需启用，可参考如下配置：
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
@@ -180,12 +189,12 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
 
 #### 开启 Univer 事件发布
 
-这个在[通过 Univer 事件同步机制与你的系统集成](/guides/pro/event-sync)中已描述配置项的意义，这里不再重复，如果你需要启用，可如下配置：
+相关配置项的意义已在[通过 Univer 事件同步机制与你的系统集成](/guides/pro/event-sync)中说明，此处不再赘述。如需启用，可参考如下配置：
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
     ```properties title=".env.custom"
-    EVENT_SYNC=true # 设置 true 为开启
+    EVENT_SYNC=true # 设置为 true 以开启
     ```
   </Tab>
   <Tab label="K8s">
@@ -193,7 +202,7 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
     universer:
       config:
         rabbitmq:
-          eventSync: true # 设置 true 为开启
+          eventSync: true # 设置为 true 以开启
     ```
   </Tab>
 </Tabs>
@@ -202,28 +211,28 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
 
 ##### RDS
 
-**请注意**，由于 Univer 使用的组件 temporal 不支持 gaussdb 和 damengDB，如果你选择了他们，univer 会为 temporal 安装专用的 postgresql。temporal 在 DB 中存储的数据是导入导出任务的流程状态，不会涉及到你文档的任何数据，即使丢失，也只会造成你尚未完成的导入导出任务执行失败，不会有其他影响。
+**请注意**，由于 Univer 使用的组件 Temporal 不支持 GaussDB 和 DamengDB，若选择这两种数据库，Univer 将为 Temporal 单独安装 PostgreSQL。Temporal 在数据库中存储的是导入导出任务的流程状态，不涉及任何文档数据。即使丢失，也仅会导致未完成的导入导出任务失败，不会产生其他影响。
 
-###### 使用兼容 postgresql 的 RDS
+###### 使用兼容 PostgreSQL 的 RDS
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
     ```properties title=".env.custom"
     # RDS config
-    DISABLE_UNIVER_RDS=true # 使用自己的 RDS 时，需要设置禁止 Univer 部署默认的 postgresql
+    DISABLE_UNIVER_RDS=true # 使用自己的 RDS 时，需禁用 Univer 默认部署的 PostgreSQL
 
     DATABASE_DRIVER=postgresql # 设置为 postgresql 代表使用兼容 postgresql 的数据库
     DATABASE_HOST=your-database-host
     DATABASE_PORT=your-database-port
-    DATABASE_DBNAME=univer # Univer 的数据库初始化脚本默认使用的是这个名字，如果你有更改，请更新这里保持一致
-    DATABASE_USERNAME=user-name # 你应该给此 user 授予 select、insert、update、delete 权限
+    DATABASE_DBNAME=univer # Univer 数据库初始化脚本默认使用该名称，若已更改，请保持此处一致
+    DATABASE_USERNAME=user-name # 需授予该用户 select、insert、update、delete 权限
     DATABASE_PASSWORD=password
     ```
   </Tab>
   <Tab label="K8s">
     ```yaml title="values.yaml"
     postgresql:
-      enabled: false # 禁止 Univer 部署自带的数据库
+      enabled: false # 禁用 Univer 自带的数据库
 
     universer:
       config:
@@ -231,8 +240,8 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
           driver: postgresql # 设置为 postgresql 代表使用兼容 postgresql 的数据库
           host: your-database-host
           port: your-database-port
-          dbname: univer # Univer 的数据库初始化脚本默认使用的是这个名字，如果你有更改，请更新这里保持一致
-          username: postgres # 你应该给此 user 授予 select、insert、update、delete 权限
+          dbname: univer # Univer 数据库初始化脚本默认使用该名称，若已更改，请保持此处一致
+          username: postgres # 需授予该用户 select、insert、update、delete 权限
           password: postgres
 
     temporal: # temporal 用到了数据库
@@ -245,8 +254,8 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
                 driver: postgres12 # postgres 需要 12 以上的版本
                 host: your-database-host
                 port: your-database-port
-                database: temporal # Univer 的数据库初始化脚本默认使用的是这个名字，如果你有更改，请更新这里保持一致
-                user: postgres # 你应该给此 user 授予 select、insert、update、delete 权限
+                database: temporal # Univer 数据库初始化脚本默认使用该名称，若已更改，请保持此处一致
+                user: postgres # 需授予该用户 select、insert、update、delete 权限
                 password: postgres
 
             visibility:
@@ -255,8 +264,8 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
                 driver: postgres12 # postgres 需要 12 以上的版本
                 host: your-database-host
                 port: your-database-port
-                database: temporal_visibility # Univer 的数据库初始化脚本默认使用的是这个名字，如果你有更改，请更新这里保持一致
-                user: postgres # 你应该给此 user 授予 select、insert、update、delete 权限
+                database: temporal_visibility # Univer 数据库初始化脚本默认使用该名称，若已更改，请保持此处一致
+                user: postgres # 需授予该用户 select、insert、update、delete 权限
                 password: postgres
     ```
   </Tab>
@@ -268,20 +277,20 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
   <Tab label="docker compose">
     ```properties title=".env.custom"
     # RDS config
-    DISABLE_UNIVER_RDS=true # 使用自己的 RDS 时，需要设置禁止 Univer 部署默认的 postgresql
+    DISABLE_UNIVER_RDS=true # 使用自己的 RDS 时，需禁用 Univer 默认部署的 PostgreSQL
 
     DATABASE_DRIVER=mysql # 设置为 MySQL 代表使用兼容 MySQL 的数据库
     DATABASE_HOST=your-database-host
     DATABASE_PORT=your-database-port
-    DATABASE_DBNAME=univer # Univer 的数据库初始化脚本默认使用的是这个名字，如果你有更改，请更新这里保持一致
-    DATABASE_USERNAME=user-name # 你应该给此 user 授予 select、insert、update、delete 权限
+    DATABASE_DBNAME=univer # Univer 数据库初始化脚本默认使用该名称，若已更改，请保持此处一致
+    DATABASE_USERNAME=user-name # 需授予该用户 select、insert、update、delete 权限
     DATABASE_PASSWORD=password
     ```
   </Tab>
   <Tab label="K8s">
     ```yaml title="values.yaml"
     postgresql:
-      enabled: false # 禁止 Univer 部署自带的数据库
+      enabled: false # 禁用 Univer 自带的数据库
 
     universer:
       config:
@@ -289,8 +298,8 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
           driver: mysql # 设置为 MySQL 代表使用兼容 MySQL 的数据库
           host: your-database-host
           port: your-database-port
-          dbname: univer # Univer 的数据库初始化脚本默认使用的是这个名字，如果你有更改，请更新这里保持一致
-          username: mysql # 你应该给此 user 授予 select、insert、update、delete 权限
+          dbname: univer # Univer 数据库初始化脚本默认使用该名称，若已更改，请保持此处一致
+          username: mysql # 需授予该用户 select、insert、update、delete 权限
           password: mysql
 
     temporal:
@@ -300,11 +309,11 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
             default:
               driver: sql
               sql:
-                driver: mysql8 # 我们要求的 MySQL 版本为 8.x
+                driver: mysql8 # 要求的 MySQL 版本为 8.x
                 host: your-database-host
                 port: your-database-port
-                database: temporal # Univer 的数据库初始化脚本默认使用的是这个名字，如果你有更改，请更新这里保持一致
-                user: mysql # 你应该给此 user 授予 select、insert、update、delete 权限
+                database: temporal # Univer 数据库初始化脚本默认使用该名称，若已更改，请保持此处一致
+                user: mysql # 需授予该用户 select、insert、update、delete 权限
                 password: mysql
 
             visibility:
@@ -313,7 +322,7 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
                 driver: mysql8
                 host: your-database-host
                 port: your-database-port
-                database: temporal_visibility # Univer 的数据库初始化脚本默认使用的是这个名字，如果你有更改，请更新这里保持一致
+                database: temporal_visibility # Univer 数据库初始化脚本默认使用该名称，若已更改，请保持此处一致
                 user: mysql
                 password: mysql
     ```
@@ -326,13 +335,13 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
   <Tab label="docker compose">
     ```properties title=".env.custom"
     # RDS config
-    DISABLE_UNIVER_RDS=true # 使用自己的 RDS 时，需要设置禁止 Univer 部署默认的 postgresql
+    DISABLE_UNIVER_RDS=true # 使用自己的 RDS 时，需禁用 Univer 默认部署的 PostgreSQL
 
     DATABASE_DRIVER=gaussdb
     DATABASE_HOST=your-database-host
     DATABASE_PORT=your-database-port
-    DATABASE_DBNAME=univer # Univer 的数据库初始化脚本默认使用的是这个名字，如果你有更改，请更新这里保持一致
-    DATABASE_USERNAME=user-name # 你应该给此 user 授予 select、insert、update、delete 权限
+    DATABASE_DBNAME=univer # Univer 数据库初始化脚本默认使用该名称，若已更改，请保持此处一致
+    DATABASE_USERNAME=user-name # 需授予该用户 select、insert、update、delete 权限
     DATABASE_PASSWORD=password
     ```
   </Tab>
@@ -344,8 +353,8 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
           driver: gaussdb
           host: your-database-host
           port: your-database-port
-          dbname: univer # Univer 的数据库初始化脚本默认使用的是这个名字，如果你有更改，请更新这里保持一致
-          username: gaussdb # 你应该给此 user 授予 select、insert、update、delete 权限
+          dbname: univer # Univer 数据库初始化脚本默认使用该名称，若已更改，请保持此处一致
+          username: gaussdb # 需授予该用户 select、insert、update、delete 权限
           password: gaussdb
     ```
   </Tab>
@@ -357,13 +366,13 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
   <Tab label="docker compose">
     ```properties title=".env.custom"
     # RDS config
-    DISABLE_UNIVER_RDS=true # 使用自己的 RDS 时，需要设置禁止 Univer 部署默认的 postgresql
+    DISABLE_UNIVER_RDS=true # 使用自己的 RDS 时，需禁用 Univer 默认部署的 PostgreSQL
 
     DATABASE_DRIVER=dameng
     DATABASE_HOST=your-database-host
     DATABASE_PORT=your-database-port
-    DATABASE_DBNAME=univer # Univer 的数据库初始化脚本默认使用的是这个名字，如果你有更改，请更新这里保持一致
-    DATABASE_USERNAME=user-name # 你应该给此 user 授予 select、insert、update、delete 权限
+    DATABASE_DBNAME=univer # Univer 数据库初始化脚本默认使用该名称，若已更改，请保持此处一致
+    DATABASE_USERNAME=user-name # 需授予该用户 select、insert、update、delete 权限
     DATABASE_PASSWORD=password
     ```
   </Tab>
@@ -375,8 +384,8 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
           driver: dameng
           host: your-database-host
           port: your-database-port
-          dbname: univer # Univer 的数据库初始化脚本默认使用的是这个名字，如果你有更改，请更新这里保持一致
-          username: dameng # 你应该给此 user 授予 select、insert、update、delete 权限
+          dbname: univer # Univer 数据库初始化脚本默认使用该名称，若已更改，请保持此处一致
+          username: dameng # 需授予该用户 select、insert、update、delete 权限
           password: dameng
     ```
   </Tab>
@@ -388,7 +397,7 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
   <Tab label="docker compose">
     ```properties title=".env.custom"
     # redis config
-    DISABLE_UNIVER_REDIS=true # 使用自己的 redis 时，需要禁止 Univer 安装内建的 redis
+    DISABLE_UNIVER_REDIS=true # 使用自己的 Redis 时，需禁用 Univer 内建的 Redis
 
     # if you use redis cluster, use comma ',' to separate multiple addresses
     # for example: REDIS_ADDR=192.168.1.5:6001,192.168.1.5:6002,192.168.1.5:6003
@@ -414,7 +423,7 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
       config:
         redis:
           poolSize: 100
-          # 如果是 redis 集群，可以用逗分隔多个地址
+          # 如果是 redis 集群，可以用逗号分隔多个地址
           # 例如：192.168.1.100:6379,192.168.1.101:6379
           addr: 192.168.1.100:6379
           read_timeout: 1s
@@ -425,7 +434,7 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
 
           # TLS 配置
           # 支持三种模式：不安全模式（insecure）、仅进行 CA 验证、以及客户端证书（mTLS）验证。
-          # CA、证书和私钥需要时是填写文件内容
+          # CA、证书和私钥需要时填写文件内容
           tlsConfig:
             enabled: false
             insecure: false
@@ -451,7 +460,7 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
           key: ''
 
     redis:
-      enabled: false # 禁止 Univer 部署自带的 redis
+      enabled: false # 禁用 Univer 自带的 Redis
     ```
   </Tab>
 </Tabs>
@@ -461,10 +470,10 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
     ```properties title=".env.custom"
-    DISABLE_UNIVER_MQ=true # 使用自己的 MQ 时，需要禁止 Univer 安装内置的 MQ
+    DISABLE_UNIVER_MQ=true # 使用自己的 MQ 时，需禁用 Univer 内建的 MQ
 
     RABBITMQ_CLUSTER_ENABLED=true # 必须设置为 true
-    RABBITMQ_CLUSTER_USERNAME=user-name # 有权限的账户，需要 Declear Exchange、Produce、Consume 权限
+    RABBITMQ_CLUSTER_USERNAME=user-name # 需具备 Declare Exchange、Produce、Consume 权限
     RABBITMQ_CLUSTER_PASSWORD=password # password
 
     # use comma to separate multiple addresses
@@ -495,7 +504,7 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
             schema: amqp
 
     rabbitmq:
-      enabled: false # 禁止 Univer 部署自带的 rabbitmq
+      enabled: false # 禁用 Univer 自带的 RabbitMQ
     ```
   </Tab>
 </Tabs>
@@ -505,16 +514,16 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
     ```properties title=".env.custom"
-    DISABLE_UNIVER_S3=true # 使用自己的 object storage 时，需要禁止 Univer 安装内建的 minio
+    DISABLE_UNIVER_S3=true # 使用自己的 object storage 时，需禁用 Univer 内建的 MinIO
 
     # s3 config
     S3_USER=user
     S3_PASSWORD=password
-    S3_REGION=your-inner-s3like-region # 如果你的 S3-like 没有这个概念，随意填写个字符串即可
+    S3_REGION=your-inner-s3like-region # 若 S3-like 服务无此概念，可随意填写一个字符串
 
-    # S3_PATH_STYLE，可设置true或false
-    # 如果设置为 true，使用路径样式（Path-Style）来构建访问 URL
-    # 如果设置为false，使用虚拟主机样式（Virtual-Host Style）来构建访问 URL
+    # S3_PATH_STYLE，可设置 true 或 false
+    # 若设置为 true，使用路径样式（Path-Style）构建访问 URL
+    # 若设置为 false，使用虚拟主机样式（Virtual-Host Style）构建访问 URL
     S3_PATH_STYLE=true|false
 
     # S3_ENDPOINT 提供给内部服务访问的地址
@@ -541,7 +550,7 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
           defaultBucket: univer
 
     minio:
-      enabled: false # 禁止 Univer 部署自带的 minio
+      enabled: false # 禁用 Univer 自带的 MinIO
     ```
   </Tab>
 </Tabs>
@@ -553,13 +562,13 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
     ```properties title=".env.custom"
     # observability config
     ENABLE_UNIVER_OBSERVABILITY=true # 设置为 true 则开启
-    GRAFANA_USERNAME=set-your-admin-user-name-here # 设置好 grafana 的管理员账号
-    GRAFANA_PASSWORD=set-your-admin-user-password-here # 设置好 grafana 的管理员密码
-    HOST_GRAFANA_PORT=set-the-port-you-want # grafana 对外暴露端口
+    GRAFANA_USERNAME=set-your-admin-user-name-here # 设置 Grafana 管理员账号
+    GRAFANA_PASSWORD=set-your-admin-user-password-here # 设置 Grafana 管理员密码
+    HOST_GRAFANA_PORT=set-the-port-you-want # Grafana 对外暴露端口
     ```
   </Tab>
   <Tab label="K8s">
-    K8s 方式部署内建可观测组件不用配置，要启用请参考下面的 K8s 部署操作
+    K8s 方式部署内建可观测组件无需额外配置，如需启用请参考下文 K8s 部署操作。
   </Tab>
 </Tabs>
 
@@ -570,9 +579,9 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
     ```properties title=".env.custom"
     UNIVERSER_REPLICATION_CNT=2 # universer 实例数
     COLLABORATION_SERVER_REPLICATION_CNT=2 # 协同服务实例数
-    COLLABORATION_SERVER_MEMORY_LIMIT=2048 # 配置协同服务的最大内存限制，单位为 MB
-    COLLABORATION_HELPER_REPLICATION_CNT=2 # helper服务实例数，注：v0.13.0开始引入
-    COLLABORATION_HELPER_MEMORY_LIMIT=2048 # 配置helper的最大内存限制，单位为 MB，注：v0.13.0开始引入
+    COLLABORATION_SERVER_MEMORY_LIMIT=2048 # 协同服务最大内存限制，单位为 MB
+    COLLABORATION_HELPER_REPLICATION_CNT=2 # helper 服务实例数，注：v0.13.0 起引入
+    COLLABORATION_HELPER_MEMORY_LIMIT=2048 # helper 最大内存限制，单位为 MB，注：v0.13.0 起引入
 
     # 导入导出 exchange-worker 容量相关配置
     EXCHANGE_WORKER_REPLICATION_CNT=1 # working exchange worker count
@@ -587,9 +596,9 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
       replicaCount: 3 # universer 实例数
     collaboration-server:
       replicaCount: 3 # 协同服务实例数
-      maxMemoryLimit: 2048 # MB, 配置协同服务的最大内存限制
-    collaboration-helper-server: # 注：v0.13.0开始引入
-      replicaCount: 2 # helper服务实例数
+      maxMemoryLimit: 2048 # MB, 协同服务最大内存限制
+    collaboration-helper-server: # 注：v0.13.0 起引入
+      replicaCount: 2 # helper 服务实例数
     worker:
       replicaCount: 1 # working exchange worker count
       temporalWorker:
@@ -601,9 +610,9 @@ Univer 默认的部署配置在 Helm chart 的 values.yaml 中，[点此查看](
 
 #### 协同编辑分层调度配置
 
-`v0.15.0`版本开始引入，默认配置下不会生效，需要手动配置开启。目前会通过workbook的单元格总数、导入实际消耗的时间来决定应该调度到哪个等级的协同服务集群。针对刚通过导入创建的workbook，会根据导入实际耗时来决定；其他方式创建或触发新快照生成后，则通过单元格总数来决定。每次快照创建后，会将相关指标数据持久化到数据库并更新调度。
+自 `v0.15.0` 起引入，默认未启用，需手动配置开启。系统根据 workbook 的单元格总数及导入实际耗时决定调度到哪个等级的协同服务集群。对于刚通过导入创建的 workbook，依据导入耗时进行调度；对于其他方式创建或触发新快照生成后的 workbook，则依据单元格总数进行调度。每次快照创建后，相关指标数据将持久化到数据库并更新调度策略。
 
-分层调度实际上就是将协同服务部署了多个集群，然后配置规则指定什么规模的表格应该调度到哪个集群处理。规则配置数据结构如下：
+分层调度的本质是将协同服务部署为多个集群，并通过规则指定不同规模的表格由哪个集群处理。规则配置的数据结构如下：
 
 ```yaml
 unitRoutingConf:
@@ -627,49 +636,49 @@ unitRoutingConf:
 
 说明：
 
-- `tiers`: 描述每一个集群信息，理论上可以有任意多个集群
-- `enable`: 设置是否启用此集群，设置为`false`则此集群会被忽略
-- `upgradeCellsThreshold`: 指定当sheet单元格总数达到此规模时才能调度到此集群
-- `downgradeCellsThreshold`: 则指定：如果sheet当前正被调度到此集群，只有当单元格总数低于此值时才能被调度到更低等级的集群。这样可以避免两个等级交界处规模的sheet被频繁地切换调度
-- `upgradeImportTimeThreshold`: 新导入的sheet暂时没有单元格总数统计，此时利用此配置来决定调度，作用机制同`upgradeCellsThreshold`，只是指标用的是导入的实际耗时
+- `tiers`：描述各集群信息，理论上可配置任意多个集群。
+- `enable`：设置是否启用该集群，设置为 `false` 则该集群将被忽略。
+- `upgradeCellsThreshold`：指定 sheet 单元格总数达到此规模时才能调度到该集群。
+- `downgradeCellsThreshold`：若 sheet 当前正被调度到该集群，仅当单元格总数低于此值时才能降级到更低等级的集群。此设置可避免在等级边界处规模的 sheet 被频繁切换调度。
+- `upgradeImportTimeThreshold`：新导入的 sheet 尚无单元格总数统计，此时利用该配置决定调度，作用机制同 `upgradeCellsThreshold`，仅指标换为导入实际耗时。
 
-可以看出，必须得有一个集群的指标要求全是0，才能保证每个sheet都能被调度到。
+必须保证至少有一个集群的指标要求全部为 0，才能确保每个 sheet 都能被调度到。
 
-按上述示例配置参数下的调度case：
+按上述示例配置参数下的调度示例：
 
-- workbook1创建后的初始单元格数量为0，调度到normal集群
-- workbook1随后被编辑到总单元格数量为1000时，调度到large集群
-- workbook1总单元格数量又降至999时，由于大于设置的降级线900，仍然调度到large集群
-- workbook1总单元格数量继续降至899时，则降级调度回normal集群
-- workbook2被导入了，实际耗时61秒，已经超过huge集群的条件60秒，将被调度到huge集群处理
+- workbook1 创建后的初始单元格数量为 0，调度到 normal 集群。
+- workbook1 编辑后总单元格数量达到 1000 时，调度到 large 集群。
+- workbook1 总单元格数量降至 999 时，由于仍大于降级线 900，继续调度到 large 集群。
+- workbook1 总单元格数量继续降至 899 时，降级调度回 normal 集群。
+- workbook2 被导入，实际耗时 61 秒，已超过 huge 集群的条件 60 秒，将调度到 huge 集群处理。
 
-Univer 的 Docker Compose 部署脚本提供了选项，可选部署1个 or 2个等级的集群（分离普通表格和大表格）。
-集群配置中的 `ENABLE_LARGE_TIER_COLLABORATION_SERVER` 参数控制调度时是否使用大表格集群，以及控制Docker Compose是否实际部署大表格集群服务。
-如果你需要更精细的集群等级控制或使用 K8s 部署，请调整docker compose/charts的编排来实际部署对应等级的`collaboration-server`服务集群，然后按上述说明配置好调度路由表（`tiers`数组）
+Univer 的 Docker Compose 部署脚本提供了选项，可选部署 1 个或 2 个等级的集群（分离普通表格和大表格）。
+集群配置中的 `ENABLE_LARGE_TIER_COLLABORATION_SERVER` 参数控制调度时是否使用大表格集群，以及控制 Docker Compose 是否实际部署大表格集群服务。
+若需更精细的集群等级控制或使用 K8s 部署，请调整 docker compose / charts 的编排以实际部署对应等级的 `collaboration-server` 服务集群，然后按上述说明配置调度路由表（`tiers` 数组）。
 
-如果你直接使用univer提供的docker compose编排，可调整如下参数来配置是否启用第二个等级集群，以及什么规模的表格算作大表格需要分离处理。
+若直接使用 Univer 提供的 docker compose 编排，可调整如下参数来配置是否启用第二个等级集群，以及什么规模的表格算作大表格需要分离处理。
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
-    默认部署只配置了两个等级：`normal`和`large`
+    默认部署仅配置了两个等级：`normal` 和 `large`。
 
     ```properties title=".env.custom"
-    # 配置开启/关闭large集群，true-开启，false-关闭，默认关闭
+    # 配置开启/关闭 large 集群，true-开启，false-关闭，默认关闭
     ENABLE_LARGE_TIER_COLLABORATION_SERVER=false
 
-    # 如果开启large集群，当总单元格数达到此规模后将调度到large集群，默认2M
+    # 若开启 large 集群，当总单元格数达到此规模后将调度到 large 集群，默认 2M
     LARGE_TIER_MIN_CELLS_COUNT=2000000
 
-    # 如果sheet当前调度在large集群，则只有当总单元格数降至此值以下时才会降级回normal集群，默认1.95M
+    # 若 sheet 当前调度在 large 集群，则只有当总单元格数降至此值以下时才会降级回 normal 集群，默认 1.95M
     LARGE_TIER_DOWNGRADE_CELLS_COUNT=1950000
 
-    # 如果开启large集群，当workbook导入耗时超过配置后将调度到large集群，默认10s
+    # 若开启 large 集群，当 workbook 导入耗时超过配置后将调度到 large 集群，默认 10s
     LARGE_TIER_MIN_IMPORT_SECONDS=10
 
-    # large集群协同服务实例数，默认2
+    # large 集群协同服务实例数，默认 2
     LARGE_TIER_COLLABORATION_SERVER_REPLICATION_CNT=2
 
-    # large集群协同服务实例内存限制，建议至少配置8GB，默认8GB
+    # large 集群协同服务实例内存限制，建议至少配置 8GB，默认 8GB
     LARGE_TIER_COLLABORATION_SERVER_MEMORY_LIMIT=8192
     ```
   </Tab>
@@ -682,26 +691,26 @@ Univer 的 Docker Compose 部署脚本提供了选项，可选部署1个 or 2个
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
-    如果 Univer 暴露的默认端口已被其余服务使用，需要修改：
+    若 Univer 暴露的默认端口与其他服务冲突，可按需修改：
 
     ```properties title=".env.custom"
-    # 如果和你们的网络配置存在冲突，可以修改 docker 使用的网段。使用 CIDR 表示法
+    # 若与现有网络配置冲突，可修改 docker 使用的网段。使用 CIDR 表示法
     DOCKER_NETWORK_SUBNET=172.30.0.0/16
 
-    # Univer API 服务暴露的端口，如果和你宿主机的其他服务端口重复，请更换成其他端口
+    # Univer API 服务暴露的端口，若与宿主机其他服务端口冲突，请更换为其他端口
     HOST_NGINX_PORT=the-univer-server-api-port-you-wantted
 
-    # 如果你选择了 Univer 安装包内置的 minio 作为对象存储，且存在端口冲突，请添加此配置项修改
-    # 当然，如果你使用的是自己维护的对象存储，设置此配置项将无任何意义
+    # 若选择 Univer 安装包内置的 MinIO 作为对象存储且存在端口冲突，请添加此配置项修改
+    # 若使用的是自己维护的对象存储，设置此配置项无意义
     HOST_MINIO_PORT=the-minio-port-you-wantted
 
-    # 如果你选择了 Univer 安装包内置的可观测组件，且存在端口冲突，请添加此配置项修改
-    # 当然，如果你使用的是自己维护的可观测组件，设置此配置项将无任何意义
+    # 若选择 Univer 安装包内置的可观测组件且存在端口冲突，请添加此配置项修改
+    # 若使用的是自己维护的可观测组件，设置此配置项无意义
     HOST_GRAFANA_PORT=the-grafana-port-you-wantted
     ```
   </Tab>
   <Tab label="K8s">
-    K8s 部署无此问题
+    K8s 部署不存在此问题。
   </Tab>
 </Tabs>
 
@@ -729,7 +738,7 @@ Univer 的 Docker Compose 部署脚本提供了选项，可选部署1个 or 2个
 
 #### 使用 K8s 部署的特殊配置
 
-Univer Pro 在 Helm chart 中默认配置了部署前端 demo 服务，并且将 http 网关服务 universer 的 ingress 路由域名设置成了 demo 的域名。在生产部署时，你需要禁用 demo 服务，并且将 universer 的 ingress 路由更改为你的域名。你需要在 values.yaml 中添加以下配置：
+Univer Pro 在 Helm chart 中默认配置了部署前端 demo 服务，并将 http 网关服务 universer 的 ingress 路由域名设置成了 demo 的域名。在生产部署时，需禁用 demo 服务，并将 universer 的 ingress 路由更改为实际域名。需在 `values.yaml` 中添加以下配置：
 
 ```yaml title="values.yaml"
 collaboration-demo:
@@ -738,7 +747,7 @@ universer:
   ingress:
     enabled: true
     hosts:
-      - host: use-your-own-domain-here # 这里修改成你的域名
+      - host: use-your-own-domain-here # 修改为你的实际域名
         paths:
           - path: /universer-api/
             pathType: Prefix
@@ -748,17 +757,17 @@ universer:
 
 以下配置示例实现了：
 
-- 开启 USIP 集成，认证用户身份，开启权限校验
-- 配置只有文档 owner 才能复制内容和打印
+- 开启 USIP 集成、认证用户身份、开启权限校验
+- 配置仅文档 owner 可复制内容和打印
 - 开启 Univer 事件发布
-- 使用自己的 postgresql
+- 使用自己的 PostgreSQL
 - 使用自己的 Object Storage
 - 修改 Univer 服务暴露的端口
 - 设置 universer 和 collaboration-server 的容量配置
 
 <Tabs items={['docker compose', 'K8s']}>
   <Tab label="docker compose">
-    .env.custom 文件内容如下
+    `.env.custom` 文件内容如下：
 
     ```properties title=".env.custom"
     # 1. enable USIP integration
@@ -768,17 +777,17 @@ universer:
     USIP_URI_USERINFO=https://usip-demo.univer.ai/usip/userinfo
     USIP_URI_ROLE=https://usip-demo.univer.ai/usip/role
     USIP_URI_COLLABORATORS=https://usip-demo.univer.ai/usip/collaborators
-    USIP_URI_UNITEDITTIME=https://usip-demo.univer.ai/unit-edit-time
+    USIP_URI_UNITEDITTIME=https://usip-demo.univer.ai/usip/unit-edit-time
 
     # 2. only owner can copy content and print
     AUTH_PERMISSION_CUSTOMER_STRATEGIES=[ {"action": 3, "role": 2}, {"action": 6, "role": 2} ]
 
     # 3. enable univer event sync
-    EVENT_SYNC=true # 设置 true 为开启
+    EVENT_SYNC=true # 设置为 true 以开启
 
     # 4. use owner RDS
     # postgresql config
-    DISABLE_UNIVER_RDS=true # 使用自己的 RDS 时，需要设置禁止 Univer 部署默认的 postgresql
+    DISABLE_UNIVER_RDS=true # 使用自己的 RDS 时，需禁用 Univer 默认部署的 PostgreSQL
 
     DATABASE_DRIVER=postgresql # 设置为 postgresql 代表使用兼容 postgresql 的数据库
     DATABASE_HOST=univer-postgresql
@@ -789,7 +798,7 @@ universer:
 
     # 5. use owner Object storage
     # s3 config
-    DISABLE_UNIVER_S3=true # 使用自己的 object storage 时，需要禁止 Univer 安装内建的 minio
+    DISABLE_UNIVER_S3=true # 使用自己的 object storage 时，需禁用 Univer 内建的 MinIO
 
     S3_USER=universer-biz
     S3_PASSWORD=123456
@@ -805,21 +814,21 @@ universer:
     # 7. set the service scale
     UNIVERSER_REPLICATION_CNT=4 # universer 实例数
     COLLABORATION_SERVER_REPLICATION_CNT=5 # 协同服务实例数
-    MAX_MEMORY_LIMIT=2048 # 配置协同服务的最大内存限制，单位为 MB
+    MAX_MEMORY_LIMIT=2048 # 协同服务最大内存限制，单位为 MB
     ```
   </Tab>
   <Tab label="K8s">
-    使用 K8s 部署时的 values.yaml，注意：当你要修改多处配置时，需要你对最终的 yaml 进行合并。
+    使用 K8s 部署时的 `values.yaml`。注意：当需修改多处配置时，需对最终的 yaml 进行合并。
 
     ```yaml title="values.yaml"
     collaboration-demo:
       enabled: false # 设置为 false 则禁止部署 demo 服务
 
     postgresql:
-      enabled: false # 禁止 Univer 部署自带的数据库
+      enabled: false # 禁用 Univer 自带的数据库
 
     minio:
-      enabled: false # 禁止 Univer 部署自带的 minio
+      enabled: false # 禁用 Univer 自带的 MinIO
 
     collaboration-server:
       replicaCount: 5
@@ -830,7 +839,7 @@ universer:
       ingress:
         enabled: true
         hosts:
-          - host: usip-demo.univer.ai # 这里修改成你的域名
+          - host: usip-demo.univer.ai # 修改为你的实际域名
             paths:
               - path: /universer-api/
                 pathType: Prefix
@@ -847,7 +856,7 @@ universer:
           permission:
             customerStrategies: '[ {"action": 3, "role": 2}, {"action": 6, "role": 2} ]'
         rabbitmq:
-          eventSync: true # 设置 true 为开启
+          eventSync: true # 设置为 true 以开启
         database:
           driver: postgresql
           host: univer-postgresql
@@ -893,107 +902,104 @@ universer:
 
 ## 部署 SOP
 
-确定所需的配置后，可按照如下步骤实施 Univer 后端服务的部署
+确定所需配置后，可按照以下步骤实施 Univer 后端服务的部署。
 
-### 部署到 docker compose SOP [#deploy-to-docker-compose]
+### Docker Compose 部署 SOP [#deploy-to-docker-compose]
 
-1. 准备好你的配置文件 `.env.custom`，如果你没有任何需要修改的配置，可忽略此步
-2. 准备好你的 License，包括 `license.txt` 和 `licenseKey.txt` 两个文件
-3. 如果你选择使用自己维护的 RDS，请前往下载[数据库初始化脚本](https://release-univer.oss-cn-shenzhen.aliyuncs.com/releases/latest/univer-server-sql-latest.tar.gz)并完成 RDS 的初始化，包括 universer 和 temporal 的初始化。如果你使用的是 gaussdb 或 dameng，就不用初始化 temporal 了
-4. 获取 Univer Pro 后端服务
-   - 如果你的部署服务器可以访问公共互联网：
-     - 执行 `bash -c "$(curl -fsSL https://get.univer.ai/product)" [-- version]`，下载到你给定版本的 Univer 服务，如果没有指定 version，将默认下载最新的版本
-   - 如果你的部署服务器不能访问公共互联网：
-     - [点此下载](https://univer.ai/releases/univer-server/download)Univer提供的 All in one 离线安装包
-     - 将 All in one 离线安装包上传到你的部署服务器并解压
-     - 进入解压后的目录执行 `bash load-images.sh` 将 Univer 后端服务的镜像加载到本机 docker
-5. 将你准备好的自定义配置文件 `.env.custom` 复制到下载的Univer服务文件夹下，和默认的 `.env` 文件放在同一目录
-6. 将你的 license 文件 `license.txt` 和 `licenseKey.txt` 复制到下载的Univer服务文件夹下的 `configs/` 目录
-7. 进入下载的 Univer 服务根目录，执行 `bash run.sh start` 即可完成服务的部署
-8. 完成回归测试
+1. 准备好配置文件 `.env.custom`（如无修改需求，可跳过此步）。
+2. 准备好 License 文件，包括 `license.txt` 和 `licenseKey.txt`。
+3. 若选择使用自己维护的 RDS，请下载[数据库初始化脚本](https://release-univer.oss-cn-shenzhen.aliyuncs.com/releases/latest/univer-server-sql-latest.tar.gz)并完成 RDS 的初始化，包括 universer 和 temporal 的初始化。若使用的是 GaussDB 或 DamengDB，则无需初始化 temporal。
+4. 获取 Univer Pro 后端服务：
+   - 若部署服务器可访问公共互联网：
+     - 执行 `bash -c "$(curl -fsSL https://get.univer.ai/product)" [-- version]`，下载指定版本的 Univer 服务。若未指定 version，默认下载最新版本。
+   - 若部署服务器无法访问公共互联网：
+     - [点此下载](https://univer.ai/releases/univer-server/download) Univer 提供的 All in one 离线安装包。
+     - 将离线安装包上传至部署服务器并解压。
+     - 进入解压后的目录，执行 `bash load-images.sh` 将 Univer 后端服务的镜像加载到本机 Docker。
+5. 将准备好的 `.env.custom` 文件复制到下载的 Univer 服务文件夹下，与默认的 `.env` 文件放在同一目录。
+6. 将 License 文件 `license.txt` 和 `licenseKey.txt` 复制到下载的 Univer 服务文件夹下的 `configs/` 目录。
+7. 进入 Univer 服务根目录，执行 `bash run.sh start` 即可完成服务部署。
+8. 完成回归测试。
 
-### 部署到 K8s SOP [#deploy-to-k8s]
+### K8s 部署 SOP [#deploy-to-k8s]
 
-使用 K8s 部署时请注意：如果你有自定义的配置修改，需要你来实现自定义配置文件 values.yaml 的版本管理，因为后续的升级操作还需要你来提供完整的自定义配置。Univer 建议你使用 git 等版本管理工具来管理。
+使用 K8s 部署时请注意：若有自定义配置修改，需自行管理自定义配置文件 `values.yaml` 的版本，因为后续升级操作仍需要提供完整的自定义配置。建议使用 Git 等版本管理工具进行管理。
 
-1. 准备好你的配置文件 `values.yaml`，如果你没有任何需要修改的，可忽略此步
-2. 准备好你的 license `license.txt` 和 `licenseKey.txt` 两个文件
-3. 如果你选择使用自己维护的 RDS，请前往下载[数据库初始化脚本](https://release-univer.oss-cn-shenzhen.aliyuncs.com/releases/latest/univer-server-sql-latest.tar.gz)并完成 RDS 的初始化，包括 universer 和 temporal 的初始化。如果你使用的是 gaussdb 或 dameng，就不用初始化 temporal 了
-4. 执行 helm 安装命令，使用你的 `values.yaml` 文件和 License 文件
-   - 如果你的部署服务器可以访问公共互联网:
-     - 可以执行以下命令进行安装
-        ```shell
-        helm install -n univer --create-namespace \
-            -f your-own-values.yaml-path \
-            --set global.istioNamespace="univer" \
-            --set-file universer.license.licenseV2=your-license.txt-path \
-            --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path \
-            univer-stack \
-            oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
-            --version target-version
+1. 准备好配置文件 `values.yaml`（如无修改需求，可跳过此步）。
+2. 准备好 License 文件 `license.txt` 和 `licenseKey.txt`。
+3. 若选择使用自己维护的 RDS，请下载[数据库初始化脚本](https://release-univer.oss-cn-shenzhen.aliyuncs.com/releases/latest/univer-server-sql-latest.tar.gz)并完成 RDS 的初始化，包括 universer 和 temporal 的初始化。若使用的是 GaussDB 或 DamengDB，则无需初始化 temporal。
+4. 执行 Helm 安装命令，使用你的 `values.yaml` 文件和 License 文件：
+   - 若部署服务器可访问公共互联网：
+     ```shell
+     helm install -n univer --create-namespace \
+         -f your-own-values.yaml-path \
+         --set global.istioNamespace="univer" \
+         --set-file universer.license.licenseV2=your-license.txt-path \
+         --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path \
+         univer-stack \
+         oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
+         --version target-version
 
-        # 执行成功后，执行下面两个命令重启服务以完成 sidecar 的注入
-        kubectl rollout restart -n univer deployment/collaboration-server
-        kubectl rollout restart -n univer deployment/universer
-        ```
-     - 如果想要部署 Univer 配置的可观测组件，请执行以下命令安装：
-        ```bash
-        helm upgrade --install -n univer-observability --create-namespace \
-            --set global.univerNamespace="univer" \
-            univer-observability \
-            oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-observability
-        ```
+     # 执行成功后，运行以下两个命令重启服务以完成 sidecar 注入
+     kubectl rollout restart -n univer deployment/collaboration-server
+     kubectl rollout restart -n univer deployment/universer
+     ```
+     若需部署 Univer 配置的可观测组件，请执行以下命令安装：
+     ```bash
+     helm upgrade --install -n univer-observability --create-namespace \
+         --set global.univerNamespace="univer" \
+         univer-observability \
+         oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-observability
+     ```
 
-        参数说明：
-
-        - `--set global.univerNamespace="univer"`：配置所观测的 Univer 集群的 `namespace` 为 `"univer"`
-   - 如果你的部署服务器无法访问公共互联网：
-     - [点此下载](https://univer.ai/releases/univer-server/download) Univer 提供的 K8s all in one 离线安装包
-     - 将 K8s all in one 离线安装包上传到你的部署服务器并解压
+     参数说明：
+     - `--set global.univerNamespace="univer"`：配置所观测的 Univer 集群的 namespace 为 `"univer"`。
+   - 若部署服务器无法访问公共互联网：
+     - [点此下载](https://univer.ai/releases/univer-server/download) Univer 提供的 K8s all in one 离线安装包。
+     - 将离线安装包上传至部署服务器并解压。
      - 进入解压后的目录执行：
-        ```shell
-        export REGISTER=XXXX # 你的私有镜像仓库
-        export NAMESPACE=XXX # 要上传的镜像 namespace
-        docker login $REGISTER
-        bash load-image.sh --registry $REGISTER --namespace $NAMESPACE
-        ```
-     - 执行成功后会在当前目录生成一个 `values.yaml` 和 `values-observability.yaml` 文件，可在里面按需修改你自己的配置
-       - values.yaml：Univer 服务的配置文件
-       - values-observability.yaml：Univer 服务相关可观测性监控组件
-     - 接着执行以下命令进行安装
-        ```shell
-        helm install -n univer --create-namespace \
-            -f your-own-values.yaml-path \
-            --set global.istioNamespace="univer" \
-            --set-file universer.license.licenseV2=your-license.txt-path \
-            --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path \
-            univer-stack \
-            univer-stack-xxxx.tgz # 需要改成当前目录解压后对应的 chart 包
+       ```shell
+       export REGISTER=XXXX # 你的私有镜像仓库
+       export NAMESPACE=XXX # 要上传的镜像 namespace
+       docker login $REGISTER
+       bash load-image.sh --registry $REGISTER --namespace $NAMESPACE
+       ```
+     - 执行成功后会在当前目录生成 `values.yaml` 和 `values-observability.yaml` 文件，可按需修改配置：
+       - `values.yaml`：Univer 服务的配置文件
+       - `values-observability.yaml`：Univer 服务相关可观测性监控组件的配置文件
+     - 接着执行以下命令进行安装：
+       ```shell
+       helm install -n univer --create-namespace \
+           -f your-own-values.yaml-path \
+           --set global.istioNamespace="univer" \
+           --set-file universer.license.licenseV2=your-license.txt-path \
+           --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path \
+           univer-stack \
+           univer-stack-xxxx.tgz # 需改为当前目录解压后对应的 chart 包
 
-        # 执行成功后，执行下面两个命令重启服务以完成 sidecar 的注入
-        kubectl rollout restart -n univer deployment/collaboration-server
-        kubectl rollout restart -n univer deployment/universer
-        ```
-     - 如果想要部署 Univer 配置的可观测组件，请执行以下命令安装：
-        ```bash
-        helm upgrade --install -n univer-observability --create-namespace \
-            --set global.univerNamespace="univer" \
-            -f your-own-values-observability.yaml-path \
-            univer-observability \
-            univer-observability-xxxx.tgz
-        ```
+       # 执行成功后，运行以下两个命令重启服务以完成 sidecar 注入
+       kubectl rollout restart -n univer deployment/collaboration-server
+       kubectl rollout restart -n univer deployment/universer
+       ```
+     - 若需部署 Univer 配置的可观测组件，请执行以下命令安装：
+       ```bash
+       helm upgrade --install -n univer-observability --create-namespace \
+           --set global.univerNamespace="univer" \
+           -f your-own-values-observability.yaml-path \
+           univer-observability \
+           univer-observability-xxxx.tgz
+       ```
 
-        参数说明：
-
-        - `--set global.univerNamespace="univer"`：配置所观测的 Univer 集群的 namespace 为 `"univer"`
+       参数说明：
+       - `--set global.univerNamespace="univer"`：配置所观测的 Univer 集群的 namespace 为 `"univer"`。
 
 参数说明：
 
-- `-n univer`：指定集群`namespace` 为 univer，你可以随意更改，但需要记住，后续升级需要
-- `univer-stack`：`helm release` 的名字，你可以随意更改，但需要记住，后续升级需要
-- `--version target-version`：指定部署的版本，需要你修改为目标版本，也可以去掉此项来自动选择最新版本
-- `-f your-own-values.yaml-path`：指定你的自定义配置文件 `values.yaml` 的路径，需要你修改正确
-- `--set-file universer.license.licenseV2=your-license.txt-path`：指定你 license 解压后的 `license.txt` 文件路径
-- `--set-file universer.license.licenseKeyV2=your-licenseKey.txt-path`：指定你 license 解压后的 `licenseKey.txt` 文件路径
+- `-n univer`：指定集群 namespace 为 `univer`，可根据需要更改，但需记住该值，后续升级时仍需使用。
+- `univer-stack`：Helm release 的名称，可根据需要更改，但需记住该值，后续升级时仍需使用。
+- `--version target-version`：指定部署版本，需修改为目标版本；也可去掉此项以自动选择最新版本。
+- `-f your-own-values.yaml-path`：指定自定义配置文件 `values.yaml` 的路径，需确保路径正确。
+- `--set-file universer.license.licenseV2=your-license.txt-path`：指定 License 解压后的 `license.txt` 文件路径。
+- `--set-file universer.license.licenseKeyV2=your-licenseKey.txt-path`：指定 License 解压后的 `licenseKey.txt` 文件路径。
 
-5. 完成回归测试
+5. 完成回归测试。
