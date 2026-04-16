@@ -1,0 +1,528 @@
+---
+title: Kubernetes 部署
+---
+
+## 部署設定
+
+### 如何修改部署設定
+
+Univer 的預設部署設定位於 Helm chart 的 `values.yaml` 中，[點擊檢視](https://github.com/dream-num/helm-charts/blob/main/charts/univer-stack/values.yaml)。如需修改設定，無需編輯 charts 中的檔案，只需新建一個 `values.yaml` 檔案，將需要修改的設定項寫入其中即可。透過 `helm install` 命令安裝時指定該 `values.yaml` 檔案，即可用自訂設定覆蓋預設設定。未指定的設定項將使用預設值。具體的 Helm 命令說明見後文部署步驟。
+
+### 設定詳解
+
+#### 啟用身分驗證和權限管理
+
+相關設定項的意義已在[透過 USIP 與你的系統整合](/guides/pro/usip)中說明，此處不再贅述。如需啟用，可參考如下設定：
+
+```yaml title="values.yaml"
+universer:
+  config:
+    usip:
+      enabled: true # 設定為 true 以啟用 USIP
+      uri:
+        userinfo: 'https://your-domain/usip/userinfo'
+        collaborators: 'https://your-domain/usip/collaborators'
+        role: 'https://your-domain/usip/role'
+        credential: 'https://your-domain/usip/credential'
+        unitEditTime: 'https://your-domain/usip/unit-edit-time'
+
+      # apikey 是可選的
+      apikey: ''
+    auth:
+      permission:
+        enableObjInherit: false
+        customerStrategies: ''
+```
+
+#### 開啟 Univer 事件發布
+
+相關設定項的意義已在[透過 Univer 事件同步機制與你的系統整合](/guides/pro/event-sync)中說明，此處不再贅述。如需啟用，可參考如下設定：
+
+```yaml title="values.yaml"
+universer:
+  config:
+    rabbitmq:
+      eventSync: true # 設定為 true 以開啟
+```
+
+#### 使用自己維護的基礎元件
+
+##### RDS
+
+**請注意**，由於 Univer 使用的元件 Temporal 不支援 GaussDB 和 DamengDB，若選擇這兩種資料庫，Univer 將為 Temporal 單獨安裝 PostgreSQL。Temporal 在資料庫中儲存的是匯入匯出任務的流程狀態，不涉及任何文件資料。即使遺失，也僅會導致未完成的匯入匯出任務失敗，不會產生其他影響。
+
+###### 使用相容 PostgreSQL 的 RDS
+
+```yaml title="values.yaml"
+postgresql:
+  enabled: false # 停用 Univer 自帶的資料庫
+
+universer:
+  config:
+    database:
+      driver: postgresql # 設定為 postgresql 代表使用相容 postgresql 的資料庫
+      host: your-database-host
+      port: your-database-port
+      dbname: univer # Univer 資料庫初始化指令碼預設使用該名稱，若已更改，請保持此處一致
+      username: postgres # 需授予該使用者 select、insert、update、delete 權限
+      password: postgres
+
+temporal: # temporal 用到了資料庫
+  server:
+    config:
+      persistence:
+        default:
+          driver: sql # 固定設定為 sql
+          sql:
+            driver: postgres12 # postgres 需要 12 以上的版本
+            host: your-database-host
+            port: your-database-port
+            database: temporal # Univer 資料庫初始化指令碼預設使用該名稱，若已更改，請保持此處一致
+            user: postgres # 需授予該使用者 select、insert、update、delete 權限
+            password: postgres
+
+        visibility:
+          driver: sql
+          sql:
+            driver: postgres12 # postgres 需要 12 以上的版本
+            host: your-database-host
+            port: your-database-port
+            database: temporal_visibility # Univer 資料庫初始化指令碼預設使用該名稱，若已更改，請保持此處一致
+            user: postgres # 需授予該使用者 select、insert、update、delete 權限
+            password: postgres
+```
+
+###### 使用相容 MySQL 的 RDS
+
+```yaml title="values.yaml"
+postgresql:
+  enabled: false # 停用 Univer 自帶的資料庫
+
+universer:
+  config:
+    database:
+      driver: mysql # 設定為 MySQL 代表使用相容 MySQL 的資料庫
+      host: your-database-host
+      port: your-database-port
+      dbname: univer # Univer 資料庫初始化指令碼預設使用該名稱，若已更改，請保持此處一致
+      username: mysql # 需授予該使用者 select、insert、update、delete 權限
+      password: mysql
+
+temporal:
+  server:
+    config:
+      persistence:
+        default:
+          driver: sql
+          sql:
+            driver: mysql8 # 要求的 MySQL 版本為 8.x
+            host: your-database-host
+            port: your-database-port
+            database: temporal # Univer 資料庫初始化指令碼預設使用該名稱，若已更改，請保持此處一致
+            user: mysql # 需授予該使用者 select、insert、update、delete 權限
+            password: mysql
+
+        visibility:
+          driver: sql
+          sql:
+            driver: mysql8
+            host: your-database-host
+            port: your-database-port
+            database: temporal_visibility # Univer 資料庫初始化指令碼預設使用該名稱，若已更改，請保持此處一致
+            user: mysql
+            password: mysql
+```
+
+###### 使用 GaussDB
+
+```yaml title="values.yaml"
+universer:
+  config:
+    database:
+      driver: gaussdb
+      host: your-database-host
+      port: your-database-port
+      dbname: univer # Univer 資料庫初始化指令碼預設使用該名稱，若已更改，請保持此處一致
+      username: gaussdb # 需授予該使用者 select、insert、update、delete 權限
+      password: gaussdb
+```
+
+###### 使用 DamengDB
+
+```yaml title="values.yaml"
+universer:
+  config:
+    database:
+      driver: dameng
+      host: your-database-host
+      port: your-database-port
+      dbname: univer # Univer 資料庫初始化指令碼預設使用該名稱，若已更改，請保持此處一致
+      username: dameng # 需授予該使用者 select、insert、update、delete 權限
+      password: dameng
+```
+
+##### Redis
+
+```yaml title="values.yaml"
+universer:
+  config:
+    redis:
+      poolSize: 100
+      # 如果是 redis 叢集，可以用逗號分隔多個位址
+      # 例如：192.168.1.100:6379,192.168.1.101:6379
+      addr: 192.168.1.100:6379
+      read_timeout: 1s
+      write_timeout: 1s
+      db: 0
+      username: user_name_here
+      password: password_here
+
+      # TLS 設定
+      # 支援三種模式：不安全模式（insecure）、僅進行 CA 驗證、以及用戶端憑證（mTLS）驗證。
+      # CA、憑證和私鑰需要時填寫檔案內容
+      tlsConfig:
+        enabled: false
+        insecure: false
+        ca: ''
+        cert: ''
+        key: ''
+
+# 跟 universer.config.redis 一樣
+worker:
+  redis:
+    poolSize: 10
+    addr: 192.168.1.100:6379
+    read_timeout: 1s
+    write_timeout: 1s
+    db: 0
+    username: user_name_here
+    password: password_here
+    tlsConfig:
+      enabled: false
+      insecure: false
+      ca: ''
+      cert: ''
+      key: ''
+
+redis:
+  enabled: false # 停用 Univer 自帶的 Redis
+```
+
+##### MQ
+
+```yaml title="values.yaml"
+universer:
+  config:
+    rabbitmq:
+      cluster:
+        enabled: true # 必須設定為 true
+        # use comma to separate multiple addresses
+        # for example: RABBITMQ_CLUSTER_ADDR=192.168.1.2:5672,192.168.1.5:5672
+        # 每個 addr 都要能讀寫，Univer 在連線時會輪詢其中的 host，直到連線成功
+        addr: '192.168.1.2:5672,192.168.1.5:5672'
+        username: user-here
+        password: password-here
+        vhost: /
+        schema: amqp
+
+rabbitmq:
+  enabled: false # 停用 Univer 自帶的 RabbitMQ
+```
+
+##### Object Storage
+
+```yaml title="values.yaml"
+universer:
+  config:
+    s3:
+      accessKeyID: admin
+      accessKeySecret: minioadmin
+      region: us-east-1
+      endpoint: http://192.168.1.100:9000
+      endpointPublic: http://192.168.1.100:9001
+      usePathStyle: true
+      defaultBucket: univer
+
+minio:
+  enabled: false # 停用 Univer 自帶的 MinIO
+```
+
+#### 開啟 Univer 內建可觀測元件
+
+K8s 方式部署內建可觀測元件無需額外設定，如需啟用請參考下文 K8s 部署操作。
+
+#### 容量相關設定
+
+```yaml title="values.yaml"
+universer:
+  replicaCount: 3 # universer 實例數
+collaboration-server:
+  replicaCount: 3 # 協同服務實例數
+  maxMemoryLimit: 2048 # MB, 協同服務最大記憶體限制
+collaboration-helper-server: # 注：v0.13.0 起引入
+  replicaCount: 2 # helper 服務實例數
+worker:
+  replicaCount: 1 # working exchange worker count
+  temporalWorker:
+    importConcurrent: 1 # how many import tasks each worker can do at the same time.
+    exportConcurrent: 1 # how many export tasks each worker can do at the same time.
+```
+
+#### 協同編輯分層排程設定
+
+自 `v0.15.0` 起引入，預設未啟用，需手動設定開啟。系統根據 workbook 的儲存格總數及匯入實際耗時決定排程到哪個等級的協同服務叢集。對於剛透過匯入建立的 workbook，依據匯入耗時進行排程；對於其他方式建立或觸發新快照生成後的 workbook，則依據儲存格總數進行排程。每次快照建立後，相關指標資料將持續儲存到資料庫並更新排程策略。
+
+分層排程的本質是將協同服務部署為多個叢集，並透過規則指定不同規模的表格由哪個叢集處理。規則設定的資料結構如下：
+
+```yaml
+unitRoutingConf:
+  tiers:
+    - tierName: normal
+      enable: true
+      upgradeCellsThreshold: 0
+      downgradeCellsThreshold: 0
+      upgradeImportTimeThreshold: 0
+    - tierName: large
+      enable: true
+      upgradeCellsThreshold: 1000
+      downgradeCellsThreshold: 900
+      upgradeImportTimeThreshold: 10
+    - tierName: huge
+      enable: true
+      upgradeCellsThreshold: 10000
+      downgradeCellsThreshold: 9000
+      upgradeImportTimeThreshold: 60
+```
+
+說明：
+
+- `tiers`：描述各叢集資訊，理論上可設定任意多個叢集。
+- `enable`：設定是否啟用該叢集，設定為 `false` 則該叢集將被忽略。
+- `upgradeCellsThreshold`：指定 sheet 儲存格總數達到此規模時才能排程到該叢集。
+- `downgradeCellsThreshold`：若 sheet 目前被排程到該叢集，僅當儲存格總數低於此值時才能降級到更低等級的叢集。此設定可避免在等級邊界處規模的 sheet 被頻繁切換排程。
+- `upgradeImportTimeThreshold`：新匯入的 sheet 尚無儲存格總數統計，此時利用該設定決定排程，作用機制同 `upgradeCellsThreshold`，僅指標換為匯入實際耗時。
+
+必須保證至少有一個叢集的指標要求全部為 0，才能確保每個 sheet 都能被排程到。
+
+按上述範例設定參數下的排程範例：
+
+- workbook1 建立後的初始儲存格數量為 0，排程到 normal 叢集。
+- workbook1 編輯後總儲存格數量達到 1000 時，排程到 large 叢集。
+- workbook1 總儲存格數量降至 999 時，由於仍大於降級線 900，繼續排程到 large 叢集。
+- workbook1 總儲存格數量繼續降至 899 時，降級排程回 normal 叢集。
+- workbook2 被匯入，實際耗時 61 秒，已超過 huge 叢集的條件 60 秒，將排程到 huge 叢集處理。
+
+若需更精細的叢集等級控制，請調整 charts 的編排以實際部署對應等級的 `collaboration-server` 服務叢集，然後按上述說明設定排程路由表（`tiers` 陣列）。
+
+K8s 下請自行在 Helm values 中設定 `unitRoutingConf`。
+
+#### 網路設定
+
+K8s 部署不存在此問題。
+
+#### 允許跨域設定
+
+```yaml title="values.yaml"
+universer:
+  config:
+    server:
+      http:
+        corsAllowOrigins: [domain1, domain2, and more]
+        corsAllowHeaders: [content-type, authorization]
+```
+
+#### 使用 K8s 部署的特殊設定
+
+Univer Pro 在 Helm chart 中預設設定了部署前端 demo 服務，並將 http 閘道服務 universer 的 ingress 路由網域名稱設定成了 demo 的網域。在生產部署時，需停用 demo 服務，並將 universer 的 ingress 路由更改為實際網域。需在 `values.yaml` 中新增以下設定：
+
+```yaml title="values.yaml"
+collaboration-demo:
+  enabled: false # 設定為 false 則禁止部署 demo 服務
+universer:
+  ingress:
+    enabled: true
+    hosts:
+      - host: use-your-own-domain-here # 修改為你的實際網域
+        paths:
+          - path: /universer-api/
+            pathType: Prefix
+```
+
+#### 設定範例
+
+以下設定範例實現了：
+
+- 開啟 USIP 整合、驗證使用者身分、開啟權限校驗
+- 設定僅文件 owner 可复制內容和列印
+- 開啟 Univer 事件發布
+- 使用自己的 PostgreSQL
+- 使用自己的 Object Storage
+- 修改 Univer 服務暴露的埠號
+- 設定 universer 和 collaboration-server 的容量設定
+
+使用 K8s 部署時的 `values.yaml`。注意：當需修改多處設定時，需對最終的 yaml 進行合併。
+
+```yaml title="values.yaml"
+collaboration-demo:
+  enabled: false # 設定為 false 則禁止部署 demo 服務
+
+postgresql:
+  enabled: false # 停用 Univer 自帶的資料庫
+
+minio:
+  enabled: false # 停用 Univer 自帶的 MinIO
+
+collaboration-server:
+  replicaCount: 5
+  maxMemoryLimit: 2048
+
+universer:
+  replicaCount: 4
+  ingress:
+    enabled: true
+    hosts:
+      - host: usip-demo.univer.ai # 修改為你的實際網域
+        paths:
+          - path: /universer-api/
+            pathType: Prefix
+  config:
+    usip:
+      enabled: true # 設定為 true 以啟用 USIP
+      uri:
+        userinfo: 'https://usip-demo.univer.ai/usip/userinfo'
+        collaborators: 'https://usip-demo.univer.ai/usip/collaborators'
+        role: 'https://usip-demo.univer.ai/usip/role'
+        credential: 'https://usip-demo.univer.ai/usip/credential'
+        unitEditTime: 'https://usip-demo.univer.ai/usip/unit-edit-time'
+    auth:
+      permission:
+        customerStrategies: '[ {"action": 3, "role": 2}, {"action": 6, "role": 2} ]'
+    rabbitmq:
+      eventSync: true # 設定為 true 以開啟
+    database:
+      driver: postgresql
+      host: univer-postgresql
+      port: 5432
+      dbname: univer
+      username: universer-biz
+      password: 123456
+    s3:
+      accessKeyID: universer-biz
+      accessKeySecret: 123456
+      region: cn-sz
+      endpoint: 'univer-s3:9652'
+      endpointPublic: 'univer.ai:9653'
+      usePathStyle: true
+      defaultBucket: univer
+
+temporal:
+  server:
+    config:
+      persistence:
+        default:
+          driver: sql
+          sql:
+            driver: postgres12
+            host: univer-postgresql
+            port: 5432
+            database: temporal
+            user: universer-temporal
+            password: 123456
+
+        visibility:
+          driver: sql
+          sql:
+            driver: postgres12
+            host: univer-postgresql
+            port: 5432
+            database: temporal_visibility
+            user: universer-temporal
+            password: 123456
+```
+
+## 部署 SOP
+
+確定所需設定後，可按照以下步驟實施 Univer 後端服務的部署。
+
+### K8s 部署 SOP
+
+使用 K8s 部署時請注意：若有自訂設定修改，需自行管理自訂設定檔 `values.yaml` 的版本，因為後續升級操作仍需要提供完整的自訂設定。建議使用 Git 等版本管理工具進行管理。
+
+1. 準備好設定檔 `values.yaml`（如無修改需求，可跳過此步）。
+2. 準備好 License 檔案 `license.txt` 和 `licenseKey.txt`。
+3. 若選擇使用自己維護的 RDS，請下載[資料庫初始化指令碼](https://release-univer.oss-cn-shenzhen.aliyuncs.com/releases/latest/univer-server-sql-latest.tar.gz)並完成 RDS 的初始化，包括 universer 和 temporal 的初始化。若使用的是 GaussDB 或 DamengDB，則無需初始化 temporal。
+4. 執行 Helm 安裝命令，使用你的 `values.yaml` 檔案和 License 檔案：
+   - 若部署伺服器可存取公共網際網路：
+     ```shell
+     helm install -n univer --create-namespace \
+         -f your-own-values.yaml-path \
+         --set global.istioNamespace="univer" \
+         --set-file universer.license.licenseV2=your-license.txt-path \
+         --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path \
+         univer-stack \
+         oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
+         --version target-version
+
+     # 執行成功後，執行以下兩個命令重啟服務以完成 sidecar 注入
+     kubectl rollout restart -n univer deployment/collaboration-server
+     kubectl rollout restart -n univer deployment/universer
+     ```
+     若需部署 Univer 設定的可觀測元件，請執行以下命令安裝：
+     ```bash
+     helm upgrade --install -n univer-observability --create-namespace \
+         --set global.univerNamespace="univer" \
+         univer-observability \
+         oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-observability
+     ```
+
+     參數說明：
+     - `--set global.univerNamespace="univer"`：設定所觀測的 Univer 叢集的 namespace 為 `"univer"`。
+   - 若部署伺服器無法存取公共網際網路：
+     - [點此下載](https://univer.ai/releases/univer-server/download) Univer 提供的 K8s all in one 離線安裝包。
+     - 將離線安裝包上傳至部署伺服器並解壓縮。
+     - 進入解壓縮後的目錄執行：
+       ```shell
+       export REGISTER=XXXX # 你的私有映像檔倉庫
+       export NAMESPACE=XXX # 要上傳的映像檔 namespace
+       docker login $REGISTER
+       bash load-image.sh --registry $REGISTER --namespace $NAMESPACE
+       ```
+     - 執行成功後會在目前目錄生成 `values.yaml` 和 `values-observability.yaml` 檔案，可按需修改設定：
+       - `values.yaml`：Univer 服務的設定檔
+       - `values-observability.yaml`：Univer 服務相關可觀測性監控元件的設定檔
+     - 接著執行以下命令進行安裝：
+       ```shell
+       helm install -n univer --create-namespace \
+           -f your-own-values.yaml-path \
+           --set global.istioNamespace="univer" \
+           --set-file universer.license.licenseV2=your-license.txt-path \
+           --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path \
+           univer-stack \
+           univer-stack-xxxx.tgz # 需改為目前目錄解壓縮後對應的 chart 包
+
+       # 執行成功後，執行以下兩個命令重啟服務以完成 sidecar 注入
+       kubectl rollout restart -n univer deployment/collaboration-server
+       kubectl rollout restart -n univer deployment/universer
+       ```
+     - 若需部署 Univer 設定的可觀測元件，請執行以下命令安裝：
+       ```bash
+       helm upgrade --install -n univer-observability --create-namespace \
+           --set global.univerNamespace="univer" \
+           -f your-own-values-observability.yaml-path \
+           univer-observability \
+           univer-observability-xxxx.tgz
+       ```
+
+       參數說明：
+       - `--set global.univerNamespace="univer"`：設定所觀測的 Univer 叢集的 namespace 為 `"univer"`。
+
+參數說明：
+
+- `-n univer`：指定叢集 namespace 為 `univer`，可根據需要更改，但需記住該值，後續升級時仍需使用。
+- `univer-stack`：Helm release 的名稱，可根據需要更改，但需記住該值，後續升級時仍需使用。
+- `--version target-version`：指定部署版本，需修改為目標版本；也可去掉此項以自動選擇最新版本。
+- `-f your-own-values.yaml-path`：指定自訂設定檔 `values.yaml` 的路徑，需確保路徑正確。
+- `--set-file universer.license.licenseV2=your-license.txt-path`：指定 License 解壓縮後的 `license.txt` 檔案路徑。
+- `--set-file universer.license.licenseKeyV2=your-licenseKey.txt-path`：指定 License 解壓縮後的 `licenseKey.txt` 檔案路徑。
+
+5. 完成迴歸測試。

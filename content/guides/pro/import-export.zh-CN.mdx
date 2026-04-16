@@ -35,6 +35,165 @@ title: 导入导出服务
 
 ![export](./import-export/export.png)
 
+## 实现示例
+
+以下代码展示了使用 `fetch` 的完整 TypeScript 实现。请将 `BASE_URL` 替换为你的 Univer 服务端点，并在每次请求中带上认证信息（例如 `cookie` 或 `Authorization`）。
+
+### 1. 上传文件
+
+```typescript
+async function uploadFile(file: File): Promise<string> {
+  const res = await fetch(
+    `${BASE_URL}/universer-api/stream/file/upload?size=${file.size}`,
+    {
+      method: 'POST',
+      headers: {
+        // 在此添加认证信息，例如
+        // cookie: '_univer=XXXXXX',
+      },
+      body: file,
+    },
+  )
+
+  const data = await res.json()
+  if (data.error?.code !== 1) {
+    throw new Error(data.error?.message || '上传失败')
+  }
+  return data.FileId // 作为下一步的 fileID 使用
+}
+```
+
+### 2. 轮询任务状态
+
+```typescript
+interface TaskResult {
+  status: 'pending' | 'done' | 'failed'
+  error?: { code: number, message: string }
+  import?: { unitID?: string, jsonID?: string }
+  export?: { fileID?: string }
+}
+
+async function pollTask(taskID: string, interval = 2000): Promise<TaskResult> {
+  while (true) {
+    const res = await fetch(
+      `${BASE_URL}/universer-api/exchange/task/${taskID}`,
+      {
+        headers: {
+          // cookie: '_univer=XXXXXX',
+        },
+      },
+    )
+    const data: TaskResult = await res.json()
+
+    if (data.status === 'done' || data.status === 'failed') {
+      return data
+    }
+
+    await new Promise(resolve => setTimeout(resolve, interval))
+  }
+}
+```
+
+### 3. 导入文件
+
+```typescript
+interface ImportParams {
+  fileID: string
+  type: 1 | 2 // 1 = 文档, 2 = 表格
+  outputType: 1 | 2 // 1 = unit 文档, 2 = JSON
+  minSheetRowCount?: number
+  minSheetColumnCount?: number
+}
+
+async function importFile(params: ImportParams): Promise<string> {
+  const res = await fetch(
+    `${BASE_URL}/universer-api/exchange/${params.type}/import`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // cookie: '_univer=XXXXXX',
+      },
+      body: JSON.stringify({
+        fileID: params.fileID,
+        outputType: params.outputType,
+        minSheetRowCount: params.minSheetRowCount ?? 1000,
+        minSheetColumnCount: params.minSheetColumnCount ?? 20,
+      }),
+    },
+  )
+
+  const data = await res.json()
+  if (data.error?.code !== 1) {
+    throw new Error(data.error?.message || '导入请求失败')
+  }
+
+  // 轮询任务状态直到完成或失败
+  const taskResult = await pollTask(data.taskID)
+  if (taskResult.status === 'failed') {
+    throw new Error(taskResult.error?.message || '导入失败')
+  }
+
+  return params.outputType === 1
+    ? taskResult.import!.unitID!
+    : taskResult.import!.jsonID!
+}
+```
+
+### 4. 导出文件
+
+```typescript
+interface ExportParams {
+  unitID: string
+  type: 1 | 2 // 1 = 文档, 2 = 表格
+  sscSwitch?: boolean
+}
+
+async function exportFile(params: ExportParams): Promise<string> {
+  const res = await fetch(
+    `${BASE_URL}/universer-api/exchange/${params.type}/export`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // cookie: '_univer=XXXXXX',
+      },
+      body: JSON.stringify({
+        unitID: params.unitID,
+        type: params.type,
+        sscSwitch: params.sscSwitch ?? false,
+      }),
+    },
+  )
+
+  const data = await res.json()
+  if (data.error?.code !== 1) {
+    throw new Error(data.error?.message || '导出请求失败')
+  }
+
+  const taskResult = await pollTask(data.taskID)
+  if (taskResult.status === 'failed') {
+    throw new Error(taskResult.error?.message || '导出失败')
+  }
+
+  // 获取带签名的下载链接
+  const urlRes = await fetch(
+    `${BASE_URL}/universer-api/file/${taskResult.export!.fileID!}/sign-url`,
+    {
+      headers: {
+        // cookie: '_univer=XXXXXX',
+      },
+    },
+  )
+  const urlData = await urlRes.json()
+  if (urlData.error?.code !== 1) {
+    throw new Error(urlData.error?.message || '获取下载链接失败')
+  }
+
+  return urlData.url
+}
+```
+
 ## API 与示例
 
 - API 参考：[Univer Server API](/guides/pro/api)

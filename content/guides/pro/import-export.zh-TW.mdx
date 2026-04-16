@@ -35,6 +35,165 @@ title: 匯入匯出服務
 
 ![export](./import-export/export.png)
 
+## 實作範例
+
+以下程式碼展示使用 `fetch` 的完整 TypeScript 實作。請將 `BASE_URL` 替換為你的 Univer 伺服器端點，並在每次請求中帶上認證資訊（例如 `cookie` 或 `Authorization`）。
+
+### 1. 上傳檔案
+
+```typescript
+async function uploadFile(file: File): Promise<string> {
+  const res = await fetch(
+    `${BASE_URL}/universer-api/stream/file/upload?size=${file.size}`,
+    {
+      method: 'POST',
+      headers: {
+        // 在此添加認證資訊，例如
+        // cookie: '_univer=XXXXXX',
+      },
+      body: file,
+    },
+  )
+
+  const data = await res.json()
+  if (data.error?.code !== 1) {
+    throw new Error(data.error?.message || '上傳失敗')
+  }
+  return data.FileId // 作為下一步的 fileID 使用
+}
+```
+
+### 2. 輪詢任務狀態
+
+```typescript
+interface TaskResult {
+  status: 'pending' | 'done' | 'failed'
+  error?: { code: number, message: string }
+  import?: { unitID?: string, jsonID?: string }
+  export?: { fileID?: string }
+}
+
+async function pollTask(taskID: string, interval = 2000): Promise<TaskResult> {
+  while (true) {
+    const res = await fetch(
+      `${BASE_URL}/universer-api/exchange/task/${taskID}`,
+      {
+        headers: {
+          // cookie: '_univer=XXXXXX',
+        },
+      },
+    )
+    const data: TaskResult = await res.json()
+
+    if (data.status === 'done' || data.status === 'failed') {
+      return data
+    }
+
+    await new Promise(resolve => setTimeout(resolve, interval))
+  }
+}
+```
+
+### 3. 匯入檔案
+
+```typescript
+interface ImportParams {
+  fileID: string
+  type: 1 | 2 // 1 = 文件, 2 = 試算表
+  outputType: 1 | 2 // 1 = unit 文件, 2 = JSON
+  minSheetRowCount?: number
+  minSheetColumnCount?: number
+}
+
+async function importFile(params: ImportParams): Promise<string> {
+  const res = await fetch(
+    `${BASE_URL}/universer-api/exchange/${params.type}/import`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // cookie: '_univer=XXXXXX',
+      },
+      body: JSON.stringify({
+        fileID: params.fileID,
+        outputType: params.outputType,
+        minSheetRowCount: params.minSheetRowCount ?? 1000,
+        minSheetColumnCount: params.minSheetColumnCount ?? 20,
+      }),
+    },
+  )
+
+  const data = await res.json()
+  if (data.error?.code !== 1) {
+    throw new Error(data.error?.message || '匯入請求失敗')
+  }
+
+  // 輪詢任務狀態直到完成或失敗
+  const taskResult = await pollTask(data.taskID)
+  if (taskResult.status === 'failed') {
+    throw new Error(taskResult.error?.message || '匯入失敗')
+  }
+
+  return params.outputType === 1
+    ? taskResult.import!.unitID!
+    : taskResult.import!.jsonID!
+}
+```
+
+### 4. 匯出檔案
+
+```typescript
+interface ExportParams {
+  unitID: string
+  type: 1 | 2 // 1 = 文件, 2 = 試算表
+  sscSwitch?: boolean
+}
+
+async function exportFile(params: ExportParams): Promise<string> {
+  const res = await fetch(
+    `${BASE_URL}/universer-api/exchange/${params.type}/export`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // cookie: '_univer=XXXXXX',
+      },
+      body: JSON.stringify({
+        unitID: params.unitID,
+        type: params.type,
+        sscSwitch: params.sscSwitch ?? false,
+      }),
+    },
+  )
+
+  const data = await res.json()
+  if (data.error?.code !== 1) {
+    throw new Error(data.error?.message || '匯出請求失敗')
+  }
+
+  const taskResult = await pollTask(data.taskID)
+  if (taskResult.status === 'failed') {
+    throw new Error(taskResult.error?.message || '匯出失敗')
+  }
+
+  // 取得帶簽名的下載連結
+  const urlRes = await fetch(
+    `${BASE_URL}/universer-api/file/${taskResult.export!.fileID!}/sign-url`,
+    {
+      headers: {
+        // cookie: '_univer=XXXXXX',
+      },
+    },
+  )
+  const urlData = await urlRes.json()
+  if (urlData.error?.code !== 1) {
+    throw new Error(urlData.error?.message || '取得下載連結失敗')
+  }
+
+  return urlData.url
+}
+```
+
 ## API 與範例
 
 - API 參考：[Univer Server API](/guides/pro/api)

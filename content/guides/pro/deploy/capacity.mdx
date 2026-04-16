@@ -1,0 +1,41 @@
+---
+title: Capacity Planning
+---
+
+import { CapacityCalculator } from './components/capacity-calculator'
+
+## Capacity Planning
+
+Capacity requirements should be evaluated based on actual business scale. If demand is high, Docker Compose deployment may not be suitable. Special notes:
+
+- **exchange worker** (import/export service) is a compute-intensive service that may consume significant CPU and memory in short bursts, especially when importing large documents. Evaluate import/export demand and allocate appropriate CPU and memory resources.
+- **collaboration-server** (collaboration engine) is a stateful Node service that consumes considerable memory when many documents are open for editing concurrently. Evaluate the required number of instances and memory configuration per instance. If there is a need to edit very large spreadsheets (greater than 5 million cells), it is recommended to allocate at least 8 GB of memory per instance.
+
+In addition, the collaborative editing tiered scheduling introduced since `v0.15.0` requires statistics on the scale distribution of spreadsheets in the usage scenario (documents and slides do not participate in tiered scheduling) to determine whether tiered scheduling needs to be configured. If needed, the number of cluster tiers and the spreadsheet scale handled by each tier (total cell count, import time, etc.) must also be evaluated. For specific configuration instructions, see the corresponding deployment platform's configuration documentation.
+
+### Collaborative Editing Resource Requirements
+
+If the vast majority are small documents, the collaboration service can be sized at 2c4g; otherwise, 4c8g is recommended. It is not recommended to further increase the specification of a single collaboration service instance, as this may lead to CPU waste.
+
+- A single collaboration service instance (2c4g / 4c8g) can support approximately 1100 / 1200 small-scale documents being edited concurrently, which equates to about 360 / 400 edit-save QPS.
+- A single universer service (2c4g / 4c8g) can support approximately 1200 / 2200 small-scale documents being edited concurrently, which equates to about 400 / 730 edit-save QPS.
+
+### Multi-User Collaboration Resource Requirements
+
+In multi-user collaboration, besides the resources consumed by edit-save operations, the CPU demand for collaborative message broadcasting is more significant. Collaborative message broadcasting is handled by the universer service and does not affect the resource usage of the collaboration-server.
+
+A 2c4g × 2 configuration can support pushing 10 edit operations per second to 1400 people. On average, 1 CPU core can support up to 3500 collaborative broadcasts per second.
+
+The formula for collaborative broadcast QPS is:
+
+```
+Collaborative Broadcast QPS = Edit-Save QPS × (Active Users / Active Documents − 1)
+```
+
+The subtraction of 1 is because the push to oneself is already counted in the edit-save QPS.
+
+### Capacity Requirement Calculator
+
+You can use the calculator below to quickly estimate the required resource configuration based on actual business parameters. After entering parameters such as active document count, save frequency, and collaboration ratio, the calculator will automatically output edit QPS, collaborative broadcast QPS, and recommended Node service, Universer, and database configurations.
+
+<CapacityCalculator locale="en-US" />

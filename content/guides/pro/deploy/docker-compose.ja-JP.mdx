@@ -1,0 +1,376 @@
+---
+title: Docker Compose デプロイ
+---
+
+## デプロイメント構成
+
+### デプロイメント構成の変更方法
+
+Univer のデフォルトデプロイメント構成は、インストールディレクトリ配下の `.env` ファイルにあります。インストール構成を変更する必要がある場合は、`.env` ファイルを直接編集せず、同じディレクトリに `.env.custom` という名前のカスタム構成ファイルを作成してください。`.env.custom` で構成された項目は、`.env` ファイルのデフォルト値を上書きします。
+
+### 構成の詳細
+
+#### 身元認証と権限管理の有効化
+
+関連構成項目の意味は [USIP を介したシステム連携](/guides/pro/usip) で既に説明しており、ここでは繰り返しません。有効にする必要がある場合は、以下の構成を参考にしてください：
+
+```properties title=".env.custom"
+# usip about
+USIP_ENABLED=true # USIP を有効にするには true に設定
+USIP_URI_CREDENTIAL=https://your-domain/usip/credential
+USIP_URI_USERINFO=https://your-domain/usip/userinfo
+USIP_URI_ROLE=https://your-domain/usip/role
+USIP_URI_COLLABORATORS=https://your-domain/usip/collaborators
+USIP_URI_UNITEDITTIME=https://your-domain/usip/unit-edit-time
+
+# apikey はオプション
+USIP_APIKEY=
+
+# auth about
+AUTH_PERMISSION_ENABLE_OBJ_INHERIT=false
+AUTH_PERMISSION_CUSTOMER_STRATEGIES=
+```
+
+#### Univer イベント発行の有効化
+
+関連構成項目の意味は [Univer イベント同期メカニズムを介したシステム連携](/guides/pro/event-sync) で既に説明しており、ここでは繰り返しません。有効にする必要がある場合は、以下の構成を参考にしてください：
+
+```properties title=".env.custom"
+EVENT_SYNC=true # 有効にするには true に設定
+```
+
+#### 自己管理の基盤コンポーネントの使用
+
+##### RDS
+
+**ご注意ください**。Univer が使用するコンポーネント Temporal は GaussDB と DamengDB をサポートしていないため、これらのデータベースを選択した場合、Univer は Temporal 用に PostgreSQL を個別にインストールします。Temporal がデータベースに保存するのは、インポート／エクスポートタスクのワークフロー状態であり、ドキュメントデータは一切含まれません。たとえ失われても、未完了のインポート／エクスポートタスクが失敗するだけで、他の影響は生じません。
+
+###### PostgreSQL 互換 RDS の使用
+
+```properties title=".env.custom"
+# RDS config
+DISABLE_UNIVER_RDS=true # 独自の RDS を使用する場合、Univer のデフォルト PostgreSQL を無効にする
+
+DATABASE_DRIVER=postgresql # postgresql 互換データベースを使用する場合は postgresql に設定
+DATABASE_HOST=your-database-host
+DATABASE_PORT=your-database-port
+DATABASE_DBNAME=univer # Univer データベース初期化スクリプトのデフォルト名；変更した場合は一致させてください
+DATABASE_USERNAME=user-name # select、insert、update、delete 権限を付与
+DATABASE_PASSWORD=password
+```
+
+###### MySQL 互換 RDS の使用
+
+```properties title=".env.custom"
+# RDS config
+DISABLE_UNIVER_RDS=true # 独自の RDS を使用する場合、Univer のデフォルト PostgreSQL を無効にする
+
+DATABASE_DRIVER=mysql # MySQL 互換データベースを使用する場合は mysql に設定
+DATABASE_HOST=your-database-host
+DATABASE_PORT=your-database-port
+DATABASE_DBNAME=univer # Univer データベース初期化スクリプトのデフォルト名；変更した場合は一致させてください
+DATABASE_USERNAME=user-name # select、insert、update、delete 権限を付与
+DATABASE_PASSWORD=password
+```
+
+###### GaussDB の使用
+
+```properties title=".env.custom"
+# RDS config
+DISABLE_UNIVER_RDS=true # 独自の RDS を使用する場合、Univer のデフォルト PostgreSQL を無効にする
+
+DATABASE_DRIVER=gaussdb
+DATABASE_HOST=your-database-host
+DATABASE_PORT=your-database-port
+DATABASE_DBNAME=univer # Univer データベース初期化スクリプトのデフォルト名；変更した場合は一致させてください
+DATABASE_USERNAME=user-name # select、insert、update、delete 権限を付与
+DATABASE_PASSWORD=password
+```
+
+###### DamengDB の使用
+
+```properties title=".env.custom"
+# RDS config
+DISABLE_UNIVER_RDS=true # 独自の RDS を使用する場合、Univer のデフォルト PostgreSQL を無効にする
+
+DATABASE_DRIVER=dameng
+DATABASE_HOST=your-database-host
+DATABASE_PORT=your-database-port
+DATABASE_DBNAME=univer # Univer データベース初期化スクリプトのデフォルト名；変更した場合は一致させてください
+DATABASE_USERNAME=user-name # select、insert、update、delete 権限を付与
+DATABASE_PASSWORD=password
+```
+
+##### Redis
+
+```properties title=".env.custom"
+# redis config
+DISABLE_UNIVER_REDIS=true # 独自の Redis を使用する場合、Univer 内蔵の Redis を無効にする
+
+# redis クラスタを使用する場合は、カンマ ',' で複数のアドレスを区切ってください
+# 例：REDIS_ADDR=192.168.1.5:6001,192.168.1.5:6002,192.168.1.5:6003
+REDIS_ADDR=host:port[,host:port]
+REDIS_USERNAME=user-name
+REDIS_PASSWORD=password
+REDIS_DB=0
+
+# redis tls config
+# 3 つのモードをサポート：不安全モード（insecure）、CA 検証のみ、クライアント証明書（mTLS）検証。
+# CA、証明書、秘密鍵はファイルパスまたはファイル内容のいずれかで提供できます。
+# ファイルパスを使用する場合は、Docker volume マウント後のコンテナ内仮想パスを必ず使用してください。
+REDIS_TLS_ENABLED=false
+REDIS_TLS_INSECURE=false
+REDIS_TLS_CA=
+REDIS_TLS_CERT=
+REDIS_TLS_KEY=
+```
+
+##### MQ
+
+```properties title=".env.custom"
+DISABLE_UNIVER_MQ=true # 独自の MQ を使用する場合、Univer 内蔵の MQ を無効にする
+
+RABBITMQ_CLUSTER_ENABLED=true # true に設定が必須
+RABBITMQ_CLUSTER_USERNAME=user-name # Declare Exchange、Produce、Consume 権限が必要
+RABBITMQ_CLUSTER_PASSWORD=password # password
+
+# 複数のアドレスをカンマで区切ってください
+# 例：RABBITMQ_CLUSTER_ADDR=192.168.1.2:5672,192.168.1.5:5672,192.168.1.7:5672
+# 各アドレスは読み書き可能である必要があり、Univer は接続時にホストをポーリングして成功するまで試行します
+RABBITMQ_CLUSTER_ADDR=host:port[,host:port]
+
+# RABBITMQ_CLUSTER_VHOST は rabbitmq クラスタの vhost です。設定しない場合、デフォルト値は / です
+# 例：RABBITMQ_CLUSTER_VHOST=univer
+RABBITMQ_CLUSTER_VHOST=/
+RABBITMQ_CLUSTER_SCHEMA=amqp
+```
+
+##### Object Storage
+
+```properties title=".env.custom"
+DISABLE_UNIVER_S3=true # 独自のオブジェクトストレージを使用する場合、Univer 内蔵の MinIO を無効にする
+
+# s3 config
+S3_USER=user
+S3_PASSWORD=password
+S3_REGION=your-inner-s3like-region # S3 互換サービスにこの概念がない場合は、任意の文字列を入力してください
+
+# S3_PATH_STYLE は true または false に設定できます
+# true に設定した場合、パススタイル（Path-Style）を使用してアクセス URL を構築します
+# false に設定した場合、仮想ホストスタイル（Virtual-Host Style）を使用してアクセス URL を構築します
+S3_PATH_STYLE=true|false
+
+# S3_ENDPOINT は内部サービスアクセス用に提供されるアドレスです
+S3_ENDPOINT=inner-visit-host:port
+
+# S3_ENDPOINT_PUBLIC は公開アクセス可能なアドレスで、クライアントがオブジェクトストレージに直接接続してファイルをダウンロードする際に使用されます
+S3_ENDPOINT_PUBLIC=public-visit-host:port
+
+# S3_DEFAULT_BUCKET は使用するバケットを構成します
+S3_DEFAULT_BUCKET=default-bucket-name
+```
+
+#### Univer 内蔵可観測性コンポーネントの有効化
+
+```properties title=".env.custom"
+# observability config
+ENABLE_UNIVER_OBSERVABILITY=true # true に設定すると有効になります
+GRAFANA_USERNAME=set-your-admin-user-name-here # Grafana 管理者ユーザー名を設定
+GRAFANA_PASSWORD=set-your-admin-user-password-here # Grafana 管理者パスワードを設定
+HOST_GRAFANA_PORT=set-the-port-you-want # Grafana 外部公開ポート
+```
+
+#### キャパシティ関連の構成
+
+```properties title=".env.custom"
+UNIVERSER_REPLICATION_CNT=2 # universer インスタンス数
+COLLABORATION_SERVER_REPLICATION_CNT=2 # 協同サービスインスタンス数
+COLLABORATION_SERVER_MEMORY_LIMIT=2048 # 協同サービスの最大メモリ制限、単位 MB
+COLLABORATION_HELPER_REPLICATION_CNT=2 # helper サービスインスタンス数、注：v0.13.0 から導入
+COLLABORATION_HELPER_MEMORY_LIMIT=2048 # helper の最大メモリ制限、単位 MB、注：v0.13.0 から導入
+
+# インポート／エクスポート exchange-worker キャパシティ関連構成
+EXCHANGE_WORKER_REPLICATION_CNT=1 # 稼働中の exchange worker 数
+EXCHANGE_WORKER_MEMORY_LIMIT=4096 # MB、各 exchange-worker のメモリ制限
+EXCHANGE_WORKER_IMPORT_CONCURRENT=1 # 各ワーカーが同時に実行できるインポートタスク数
+EXCHANGE_WORKER_EXPORT_CONCURRENT=1 # 各ワーカーが同時に実行できるエクスポートタスク数
+```
+
+#### 協同編集階層スケジューリング構成
+
+`v0.15.0` から導入され、デフォルトでは無効で、手動で構成して有効にする必要があります。システムは、workbook の総セル数と実際のインポート時間に基づいて、どの階層の協同サービスクラスタにスケジューリングするかを決定します。インポートによって作成されたばかりの workbook については、インポート時間に基づいてスケジューリングされます。その他の方法で作成された workbook、または新しいスナップショット生成後の workbook については、総セル数に基づいてスケジューリングされます。スナップショットが作成されるたびに、関連する指標データはデータベースに永続化され、スケジューリングポリシーが更新されます。
+
+階層スケジューリングの本質は、協同サービスを複数のクラスタとしてデプロイし、ルールによって異なる規模のスプレッドシートをどのクラスタで処理するかを指定することです。ルール構成のデータ構造は以下の通りです：
+
+```yaml
+unitRoutingConf:
+  tiers:
+    - tierName: normal
+      enable: true
+      upgradeCellsThreshold: 0
+      downgradeCellsThreshold: 0
+      upgradeImportTimeThreshold: 0
+    - tierName: large
+      enable: true
+      upgradeCellsThreshold: 1000
+      downgradeCellsThreshold: 900
+      upgradeImportTimeThreshold: 10
+    - tierName: huge
+      enable: true
+      upgradeCellsThreshold: 10000
+      downgradeCellsThreshold: 9000
+      upgradeImportTimeThreshold: 60
+```
+
+説明：
+
+- `tiers`：各クラスタ情報を記述します。理論上、任意の数のクラスタを構成できます。
+- `enable`：そのクラスタを有効にするかどうかを設定します。`false` に設定すると、そのクラスタは無視されます。
+- `upgradeCellsThreshold`：シートの総セル数がこの規模に達した場合にのみ、そのクラスタにスケジューリングできることを指定します。
+- `downgradeCellsThreshold`：シートが現在そのクラスタにスケジューリングされている場合、総セル数がこの値を下回った場合にのみ、より低い階層のクラスタにダウングレードできます。この設定により、階層境界付近の規模のシートが頻繁にスケジューリング切り替えされることを回避します。
+- `upgradeImportTimeThreshold`：新しくインポートされたシートには総セル数の統計がまだないため、この構成を使用してスケジューリングを決定します。作用メカニズムは `upgradeCellsThreshold` と同じですが、指標が実際のインポート時間に変わります。
+
+すべてのシートがスケジューリングされるように、少なくとも 1 つのクラスタの指標要件がすべて 0 であることを確認する必要があります。
+
+上記のサンプル構成パラメータでのスケジューリング例：
+
+- workbook1 の作成後の初期セル数は 0 で、normal クラスタにスケジューリングされます。
+- workbook1 が編集され、総セル数が 1000 に達すると、large クラスタにスケジューリングされます。
+- workbook1 の総セル数が 999 に減少しても、ダウングレード線 900 を上回っているため、引き続き large クラスタにスケジューリングされます。
+- workbook1 の総セル数がさらに 899 に減少すると、normal クラスタにダウングレードされます。
+- workbook2 がインポートされ、実際の時間が 61 秒で、huge クラスタの条件 60 秒を超えたため、huge クラスタにスケジューリングされます。
+
+Univer の Docker Compose デプロイスクリプトは、1 階層または 2 階層（通常のスプレッドシートと大規模スプレッドシートを分離）のクラスタをデプロイするオプションを提供します。クラスタ構成の `ENABLE_LARGE_TIER_COLLABORATION_SERVER` パラメータは、スケジューリング時に大規模スプレッドシートクラスタを使用するかどうか、および Docker Compose が実際に大規模スプレッドシートクラスタサービスをデプロイするかどうかを制御します。より細かいクラスタ階層制御や K8s デプロイが必要な場合は、docker compose / charts のオーケストレーションを調整して、対応する階層の `collaboration-server` サービスクラスタを実際にデプロイし、上記の説明に従ってスケジューリングルーティングテーブル（`tiers` 配列）を構成してください。
+
+デフォルトのデプロイでは、`normal` と `large` の 2 階層のみが構成されています。
+
+```properties title=".env.custom"
+# large クラスタの有効化／無効化を構成、true-有効、false-無効、デフォルトは無効
+ENABLE_LARGE_TIER_COLLABORATION_SERVER=false
+
+# large クラスタが有効な場合、総セル数がこの規模に達すると large クラスタにスケジューリング、デフォルト 2M
+LARGE_TIER_MIN_CELLS_COUNT=2000000
+
+# シートが現在 large クラスタにスケジューリングされている場合、総セル数がこの値を下回った場合にのみ normal クラスタにダウングレード、デフォルト 1.95M
+LARGE_TIER_DOWNGRADE_CELLS_COUNT=1950000
+
+# large クラスタが有効な場合、workbook のインポート時間がこの値を超えると large クラスタにスケジューリング、デフォルト 10s
+LARGE_TIER_MIN_IMPORT_SECONDS=10
+
+# large クラスタの協同サービスインスタンス数、デフォルト 2
+LARGE_TIER_COLLABORATION_SERVER_REPLICATION_CNT=2
+
+# large クラスタの協同サービスインスタンスのメモリ制限、最低 8GB を推奨、デフォルト 8GB
+LARGE_TIER_COLLABORATION_SERVER_MEMORY_LIMIT=8192
+```
+
+#### ネットワーク構成
+
+Univer のデフォルト公開ポートが他のサービスと競合する場合は、必要に応じて変更できます：
+
+```properties title=".env.custom"
+# 既存のネットワーク構成と競合する場合は、docker が使用する CIDR を変更できます
+DOCKER_NETWORK_SUBNET=172.30.0.0/16
+
+# Univer API サービスの公開ポート。ホストの他のサービスと競合する場合は、別のポートに変更してください
+HOST_NGINX_PORT=the-univer-server-api-port-you-wantted
+
+# Univer インストールパッケージの内蔵 MinIO をオブジェクトストレージとして選択し、ポート競合がある場合は、この構成項目を追加してください
+# 自己管理のオブジェクトストレージを使用している場合、この構成項目の設定は意味がありません
+HOST_MINIO_PORT=the-minio-port-you-wantted
+
+# Univer インストールパッケージの内蔵可観測性コンポーネントを選択し、ポート競合がある場合は、この構成項目を追加してください
+# 自己管理の可観測性コンポーネントを使用している場合、この構成項目の設定は意味がありません
+HOST_GRAFANA_PORT=the-grafana-port-you-wantted
+```
+
+#### クロスオリジン構成
+
+```properties title=".env.custom"
+# allowed cross-origins config
+CORS_ALLOW_ORIGINS='["domain1", "domain2", "and more"]'
+CORS_ALLOW_HEADERS='["content-type","authorization"]'
+```
+
+#### 構成例
+
+以下の構成例は以下を実現します：
+
+- USIP 統合の有効化、ユーザー身元の認証、権限検証の有効化
+- ドキュメント owner のみがコンテンツをコピーして印刷できるように構成
+- Univer イベント発行の有効化
+- 自己管理の PostgreSQL の使用
+- 自己管理の Object Storage の使用
+- Univer サービス公開ポートの変更
+- universer と collaboration-server のキャパシティ構成の設定
+
+`.env.custom` ファイルの内容は以下の通りです：
+
+```properties title=".env.custom"
+# 1. enable USIP integration
+# usip about
+USIP_ENABLED=true
+USIP_URI_CREDENTIAL=https://usip-demo.univer.ai/usip/credential
+USIP_URI_USERINFO=https://usip-demo.univer.ai/usip/userinfo
+USIP_URI_ROLE=https://usip-demo.univer.ai/usip/role
+USIP_URI_COLLABORATORS=https://usip-demo.univer.ai/usip/collaborators
+USIP_URI_UNITEDITTIME=https://usip-demo.univer.ai/usip/unit-edit-time
+
+# 2. only owner can copy content and print
+AUTH_PERMISSION_CUSTOMER_STRATEGIES=[ {"action": 3, "role": 2}, {"action": 6, "role": 2} ]
+
+# 3. enable univer event sync
+EVENT_SYNC=true # 有効にするには true に設定
+
+# 4. use owner RDS
+# postgresql config
+DISABLE_UNIVER_RDS=true # 独自の RDS を使用する場合、Univer のデフォルト PostgreSQL を無効にする
+
+DATABASE_DRIVER=postgresql # postgresql 互換データベースを使用する場合は postgresql に設定
+DATABASE_HOST=univer-postgresql
+DATABASE_PORT=5432
+DATABASE_DBNAME=univer
+DATABASE_USERNAME=universer-biz
+DATABASE_PASSWORD=123456
+
+# 5. use owner Object storage
+# s3 config
+DISABLE_UNIVER_S3=true # 独自のオブジェクトストレージを使用する場合、Univer 内蔵の MinIO を無効にする
+
+S3_USER=universer-biz
+S3_PASSWORD=123456
+S3_REGION=cn-sz
+S3_PATH_STYLE=true
+S3_ENDPOINT=univer-s3:9652
+S3_ENDPOINT_PUBLIC=univer.ai:9653
+S3_DEFAULT_BUCKET=univer
+
+# 6. change univer service Port
+HOST_NGINX_PORT=8010
+
+# 7. set the service scale
+UNIVERSER_REPLICATION_CNT=4 # universer インスタンス数
+COLLABORATION_SERVER_REPLICATION_CNT=5 # 協同サービスインスタンス数
+MAX_MEMORY_LIMIT=2048 # 協同サービスの最大メモリ制限、単位 MB
+```
+
+## デプロイ SOP
+
+必要な構成を確定した後、以下の手順に従って Univer バックエンドサービスをデプロイできます。
+
+### Docker Compose デプロイ SOP
+
+1. 構成ファイル `.env.custom` を準備します（変更が不要な場合はこの手順をスキップできます）。
+2. ライセンスファイル `license.txt` と `licenseKey.txt` を準備します。
+3. 自己管理の RDS を使用することを選択した場合は、[データベース初期化スクリプト](https://release-univer.oss-cn-shenzhen.aliyuncs.com/releases/latest/univer-server-sql-latest.tar.gz) をダウンロードし、RDS の初期化を完了してください。universer と temporal の初期化を含みます。GaussDB または DamengDB を使用している場合、temporal の初期化は不要です。
+4. Univer Pro バックエンドサービスを取得します：
+   - デプロイサーバーがパブリックインターネットにアクセスできる場合：
+     - `bash -c "$(curl -fsSL https://get.univer.ai/product)" [-- version]` を実行して、指定バージョンの Univer サービスをダウンロードします。バージョンを指定しない場合、デフォルトで最新バージョンがダウンロードされます。
+   - デプロイサーバーがパブリックインターネットにアクセスできない場合：
+     - [ここをクリックして](https://univer.ai/releases/univer-server/download) Univer が提供するオールインワンオフラインインストールパッケージをダウンロードしてください。
+     - オフラインインストールパッケージをデプロイサーバーにアップロードして展開します。
+     - 展開後のディレクトリに移動し、`bash load-images.sh` を実行して Univer バックエンドサービスのイメージをローカル Docker にロードします。
+5. 準備した `.env.custom` ファイルをダウンロードした Univer サービスフォルダにコピーし、デフォルトの `.env` ファイルと同じディレクトリに配置します。
+6. ライセンスファイル `license.txt` と `licenseKey.txt` をダウンロードした Univer サービスフォルダの `configs/` ディレクトリにコピーします。
+7. Univer サービスのルートディレクトリに移動し、`bash run.sh start` を実行してサービスのデプロイを完了します。
+8. リグレッションテストを完了します。

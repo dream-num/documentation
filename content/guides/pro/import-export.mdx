@@ -35,7 +35,166 @@ Import/export is provided by the server and allows converting Office files to Un
 
 ![export](./import-export/export.png)
 
-## API & Examples
+## Implementation Example
 
-- API reference: [Univer Server API](/guides/pro/api)
-- Import example: https://github.com/dream-num/usip-example/tree/main/import
+The snippets below demonstrate a complete TypeScript workflow using `fetch`. Replace `BASE_URL` with your Univer server endpoint and include the required auth header (for example `cookie` or `Authorization`) in every request.
+
+### 1. Upload a file
+
+```typescript
+async function uploadFile(file: File): Promise<string> {
+  const res = await fetch(
+    `${BASE_URL}/universer-api/stream/file/upload?size=${file.size}`,
+    {
+      method: 'POST',
+      headers: {
+        // Add your auth header here, e.g.
+        // cookie: '_univer=XXXXXX',
+      },
+      body: file,
+    },
+  )
+
+  const data = await res.json()
+  if (data.error?.code !== 1) {
+    throw new Error(data.error?.message || 'Upload failed')
+  }
+  return data.FileId // used as fileID in the next step
+}
+```
+
+### 2. Poll task status
+
+```typescript
+interface TaskResult {
+  status: 'pending' | 'done' | 'failed'
+  error?: { code: number, message: string }
+  import?: { unitID?: string, jsonID?: string }
+  export?: { fileID?: string }
+}
+
+async function pollTask(taskID: string, interval = 2000): Promise<TaskResult> {
+  while (true) {
+    const res = await fetch(
+      `${BASE_URL}/universer-api/exchange/task/${taskID}`,
+      {
+        headers: {
+          // cookie: '_univer=XXXXXX',
+        },
+      },
+    )
+    const data: TaskResult = await res.json()
+
+    if (data.status === 'done' || data.status === 'failed') {
+      return data
+    }
+
+    await new Promise(resolve => setTimeout(resolve, interval))
+  }
+}
+```
+
+### 3. Import a file
+
+```typescript
+interface ImportParams {
+  fileID: string
+  type: 1 | 2 // 1 = doc, 2 = sheet
+  outputType: 1 | 2 // 1 = unit, 2 = json
+  minSheetRowCount?: number
+  minSheetColumnCount?: number
+}
+
+async function importFile(params: ImportParams): Promise<string> {
+  const res = await fetch(
+    `${BASE_URL}/universer-api/exchange/${params.type}/import`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // cookie: '_univer=XXXXXX',
+      },
+      body: JSON.stringify({
+        fileID: params.fileID,
+        outputType: params.outputType,
+        minSheetRowCount: params.minSheetRowCount ?? 1000,
+        minSheetColumnCount: params.minSheetColumnCount ?? 20,
+      }),
+    },
+  )
+
+  const data = await res.json()
+  if (data.error?.code !== 1) {
+    throw new Error(data.error?.message || 'Import request failed')
+  }
+
+  // Poll until the task is done or failed
+  const taskResult = await pollTask(data.taskID)
+  if (taskResult.status === 'failed') {
+    throw new Error(taskResult.error?.message || 'Import failed')
+  }
+
+  return params.outputType === 1
+    ? taskResult.import!.unitID!
+    : taskResult.import!.jsonID!
+}
+```
+
+### 4. Export a file
+
+```typescript
+interface ExportParams {
+  unitID: string
+  type: 1 | 2 // 1 = doc, 2 = sheet
+  sscSwitch?: boolean
+}
+
+async function exportFile(params: ExportParams): Promise<string> {
+  const res = await fetch(
+    `${BASE_URL}/universer-api/exchange/${params.type}/export`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // cookie: '_univer=XXXXXX',
+      },
+      body: JSON.stringify({
+        unitID: params.unitID,
+        type: params.type,
+        sscSwitch: params.sscSwitch ?? false,
+      }),
+    },
+  )
+
+  const data = await res.json()
+  if (data.error?.code !== 1) {
+    throw new Error(data.error?.message || 'Export request failed')
+  }
+
+  const taskResult = await pollTask(data.taskID)
+  if (taskResult.status === 'failed') {
+    throw new Error(taskResult.error?.message || 'Export failed')
+  }
+
+  // Get a signed download URL
+  const urlRes = await fetch(
+    `${BASE_URL}/universer-api/file/${taskResult.export!.fileID!}/sign-url`,
+    {
+      headers: {
+        // cookie: '_univer=XXXXXX',
+      },
+    },
+  )
+  const urlData = await urlRes.json()
+  if (urlData.error?.code !== 1) {
+    throw new Error(urlData.error?.message || 'Failed to get download URL')
+  }
+
+  return urlData.url
+}
+```
+
+## API Reference
+
+- [Univer Server API](/guides/pro/api)
+- Import example repo: https://github.com/dream-num/usip-example/tree/main/import

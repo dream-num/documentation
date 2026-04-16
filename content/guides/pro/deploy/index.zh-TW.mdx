@@ -1,0 +1,98 @@
+---
+title: 生產部署
+---
+
+## 部署架構及服務介紹
+
+![部署架構及服務介紹](./index/deploy-arch.png)
+
+### 演進歷史
+
+- 自 `v0.13.0` 起，新增 `collaboration-helper` 服務，用於處理非同步執行的 CPU 密集型任務（如生成快照）。
+- 自 `v0.15.0` 起，引入協同編輯分層排程，將不同規模工作表的操作排程至不同的協同服務叢集，以降低大表格編輯對普通規模表格的影響。
+
+### 服務介紹
+
+- **collaboration-server**：後端的協同編輯引擎，實現了與前端一致的 OT 演算法。
+- **collaboration-helper**：負責處理協同中的 CPU 密集型任務（如快照生成），保障協同編輯的流暢執行。注：`v0.13.0` 起引入。
+- **universer**：處理文件操作請求，維護文件資料，並負責協同訊息的廣播。
+- **exchange worker**：負責執行文件的匯入匯出計算任務，屬於計算密集型服務，對記憶體亦有較高需求。
+
+<Callout>
+  collaboration-server 是有狀態服務，對同一文件的編輯請求均在同一 collaboration-server 實例中處理，可減少資料載入開銷，從而提升整體效能。
+  因此，universer 在呼叫 collaboration-server 處理編輯操作時，增加了一層一致性雜湊路由。
+</Callout>
+
+### 元件介紹
+
+- **RDS**：關聯式資料庫，用於儲存文件的中繼資料、權限設定等。
+- **Object Storage**：物件儲存，用於儲存文件的內容資料，包括圖片、資料區塊等。
+- **Redis**：文件線上協作者快取及 API 限流。
+- **RabbitMQ**：訊息佇列，用於 universer 服務間交換需要廣播的協同訊息。
+- **Temporal**：開源的工作流程執行引擎，Univer 將其用於管理文件匯入匯出的非同步流程。
+
+## 部署前準備
+
+在了解 Univer 後端服務的基本架構後，生產部署前應對以下事項進行評估：
+
+### 部署方式選擇
+
+Univer 目前提供兩種部署方式：
+
+- **Docker Compose 部署**
+  Docker Compose 僅支援單機部署，擴展方式以垂直擴展為主，**不支援水平擴展**。適用於無 Kubernetes 維運能力且使用規模較小的場景。
+
+- **相容標準 Kubernetes 部署**
+  若已維運 Kubernetes 叢集且相容標準 K8s 模式，推薦採用此方式。Univer 支援水平擴容，K8s 部署可提供最佳的擴展性。
+
+### 使用者身分驗證與權限校驗
+
+Univer 的安裝設定預設未啟用身分驗證與權限校驗，需根據實際業務需求決定是否開啟。詳見[透過 USIP 與你的系統整合](/guides/pro/usip)。
+
+### 基礎元件選擇
+
+如上述系統部署架構所示，Univer 依賴的基礎元件包括 MQ、Redis、RDS、Object Storage。Univer 的安裝包會包含對應元件的常用開源版本。
+
+同時，Univer 支援改用自己維護的元件，並且**強烈建議**在生產環境中這樣做，原因如下：
+
+- 便於系統維護
+- 保障資料儲存安全
+- 確保系統執行穩定
+
+特別是文件資料的儲存元件 RDS 與 Object Storage。若使用 Univer 內建版本，在實體機儲存損壞的情況下可能造成資料的永久遺失。若缺乏自有的儲存基礎設施，建議選擇公有雲廠商提供的服務。若只能使用 Univer 內建的儲存元件，則務必定期備份資料，建議每天備份一次。
+
+若選擇使用自己維護的元件，需確保完全相容 Univer 對這些元件的要求。各元件要求如下：
+
+#### MQ
+
+需完全相容 AMQP/AMQPS，目前建議選用 RabbitMQ。Univer 安裝包使用的官方映像檔為 `rabbitmq:3-management`。
+
+#### Redis
+
+需相容所有 Redis 命令。Univer 安裝包使用的官方映像檔為 `bitnami/redis:7.0.15-debian-11-r3`。
+
+目前 Univer 使用的 Redis 命令包括：`GET`、`MGET`、`SET`、`SETNX`、`DEL`、`EXISTS`、`EXPIRE`、`HSET`、`HGET`、`HDEL`、`HGETALL`、`HLEN`、`SCAN`、`Pipeline`、`EVAL`、`EVALSHA`。需確保 Redis 元件相容上述命令。在滿足相容性的前提下，亦可使用分散式版本的 Redis。
+
+#### RDS
+
+目前已適配 PostgreSQL 16.1、MySQL 8.0、GaussDB、DamengDB，可選擇上述資料庫或相容的資料庫。Univer 安裝包使用的官方映像檔為 `postgres:16.1`。
+
+請注意，Univer 目前暫未支援需要按表欄位分片的分散式資料庫。若分散式資料庫無法完全相容單機資料庫的存取方式，則不能使用。另外，若使用 TiDB 等完全相容的分散式資料庫，也需谨慎——Univer 目前的 ID 產生器產生的 ID 為趨勢遞增，可能導致請求集中在同一節點處理，從而出現效能瓶頸。
+
+#### Object Storage
+
+需相容 AWS S3 API。Univer 安裝包使用的官方映像檔為 `bitnami/minio:2024.8.3-debian-12-r1`。
+
+#### 可觀測元件
+
+在後續維運 Univer 後端服務時，需確定使用 Univer 集成的可觀測元件還是接入已有的可觀測系統。Univer 目前提供 Prometheus 指標、Grafana 看板及服務日誌。接入詳情請參閱[維運手冊](/guides/pro/sre-manual)。
+
+若無可觀測系統或難以接入，建議啟用 Univer 內建的可觀測元件。
+
+## 下一步
+
+完成上述評估後，請根據實際部署方式閱讀以下文件：
+
+- [容量評估](/guides/pro/deploy/capacity) — 估算所需的 CPU、記憶體及實例數
+- [Docker Compose 部署指南](/guides/pro/deploy/docker-compose) — Docker Compose 的設定與部署步驟
+- [Kubernetes 部署指南](/guides/pro/deploy/kubernetes) — K8s 的設定與部署步驟

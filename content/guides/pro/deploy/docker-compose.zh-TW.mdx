@@ -1,0 +1,376 @@
+---
+title: Docker Compose 部署
+---
+
+## 部署設定
+
+### 如何修改部署設定
+
+Univer 的預設部署設定位於安裝目錄下的 `.env` 檔案中。如需修改安裝設定，請勿直接編輯 `.env` 檔案，而應在其同級目錄下建立名為 `.env.custom` 的自訂設定檔案。`.env.custom` 中設定的項目將覆蓋 `.env` 檔案中的預設值。
+
+### 設定詳解
+
+#### 啟用身分驗證和權限管理
+
+相關設定項的意義已在[透過 USIP 與你的系統整合](/guides/pro/usip)中說明，此處不再贅述。如需啟用，可參考如下設定：
+
+```properties title=".env.custom"
+# usip about
+USIP_ENABLED=true # 設定為 true 以啟用 USIP
+USIP_URI_CREDENTIAL=https://your-domain/usip/credential
+USIP_URI_USERINFO=https://your-domain/usip/userinfo
+USIP_URI_ROLE=https://your-domain/usip/role
+USIP_URI_COLLABORATORS=https://your-domain/usip/collaborators
+USIP_URI_UNITEDITTIME=https://your-domain/usip/unit-edit-time
+
+# apikey 是可選的
+USIP_APIKEY=
+
+# auth about
+AUTH_PERMISSION_ENABLE_OBJ_INHERIT=false
+AUTH_PERMISSION_CUSTOMER_STRATEGIES=
+```
+
+#### 開啟 Univer 事件發布
+
+相關設定項的意義已在[透過 Univer 事件同步機制與你的系統整合](/guides/pro/event-sync)中說明，此處不再贅述。如需啟用，可參考如下設定：
+
+```properties title=".env.custom"
+EVENT_SYNC=true # 設定為 true 以開啟
+```
+
+#### 使用自己維護的基礎元件
+
+##### RDS
+
+**請注意**，由於 Univer 使用的元件 Temporal 不支援 GaussDB 和 DamengDB，若選擇這兩種資料庫，Univer 將為 Temporal 單獨安裝 PostgreSQL。Temporal 在資料庫中儲存的是匯入匯出任務的流程狀態，不涉及任何文件資料。即使遺失，也僅會導致未完成的匯入匯出任務失敗，不會產生其他影響。
+
+###### 使用相容 PostgreSQL 的 RDS
+
+```properties title=".env.custom"
+# RDS config
+DISABLE_UNIVER_RDS=true # 使用自己的 RDS 時，需停用 Univer 預設部署的 PostgreSQL
+
+DATABASE_DRIVER=postgresql # 設定為 postgresql 代表使用相容 postgresql 的資料庫
+DATABASE_HOST=your-database-host
+DATABASE_PORT=your-database-port
+DATABASE_DBNAME=univer # Univer 資料庫初始化指令碼預設使用該名稱，若已更改，請保持此處一致
+DATABASE_USERNAME=user-name # 需授予該使用者 select、insert、update、delete 權限
+DATABASE_PASSWORD=password
+```
+
+###### 使用相容 MySQL 的 RDS
+
+```properties title=".env.custom"
+# RDS config
+DISABLE_UNIVER_RDS=true # 使用自己的 RDS 時，需停用 Univer 預設部署的 PostgreSQL
+
+DATABASE_DRIVER=mysql # 設定為 MySQL 代表使用相容 MySQL 的資料庫
+DATABASE_HOST=your-database-host
+DATABASE_PORT=your-database-port
+DATABASE_DBNAME=univer # Univer 資料庫初始化指令碼預設使用該名稱，若已更改，請保持此處一致
+DATABASE_USERNAME=user-name # 需授予該使用者 select、insert、update、delete 權限
+DATABASE_PASSWORD=password
+```
+
+###### 使用 GaussDB
+
+```properties title=".env.custom"
+# RDS config
+DISABLE_UNIVER_RDS=true # 使用自己的 RDS 時，需停用 Univer 預設部署的 PostgreSQL
+
+DATABASE_DRIVER=gaussdb
+DATABASE_HOST=your-database-host
+DATABASE_PORT=your-database-port
+DATABASE_DBNAME=univer # Univer 資料庫初始化指令碼預設使用該名稱，若已更改，請保持此處一致
+DATABASE_USERNAME=user-name # 需授予該使用者 select、insert、update、delete 權限
+DATABASE_PASSWORD=password
+```
+
+###### 使用 DamengDB
+
+```properties title=".env.custom"
+# RDS config
+DISABLE_UNIVER_RDS=true # 使用自己的 RDS 時，需停用 Univer 預設部署的 PostgreSQL
+
+DATABASE_DRIVER=dameng
+DATABASE_HOST=your-database-host
+DATABASE_PORT=your-database-port
+DATABASE_DBNAME=univer # Univer 資料庫初始化指令碼預設使用該名稱，若已更改，請保持此處一致
+DATABASE_USERNAME=user-name # 需授予該使用者 select、insert、update、delete 權限
+DATABASE_PASSWORD=password
+```
+
+##### Redis
+
+```properties title=".env.custom"
+# redis config
+DISABLE_UNIVER_REDIS=true # 使用自己的 Redis 時，需停用 Univer 內建的 Redis
+
+# if you use redis cluster, use comma ',' to separate multiple addresses
+# for example: REDIS_ADDR=192.168.1.5:6001,192.168.1.5:6002,192.168.1.5:6003
+REDIS_ADDR=host:port[,host:port]
+REDIS_USERNAME=user-name
+REDIS_PASSWORD=password
+REDIS_DB=0
+
+# redis tls config
+# 支援三種模式：不安全模式（insecure）、僅進行 CA 驗證、以及用戶端憑證（mTLS）驗證。
+# CA、憑證和私鑰既可以以檔案路徑形式提供，也可以直接以檔案內容形式提供；
+# 如果使用檔案路徑，請務必使用 Docker volume 掛載後的容器內虛擬路徑。
+REDIS_TLS_ENABLED=false
+REDIS_TLS_INSECURE=false
+REDIS_TLS_CA=
+REDIS_TLS_CERT=
+REDIS_TLS_KEY=
+```
+
+##### MQ
+
+```properties title=".env.custom"
+DISABLE_UNIVER_MQ=true # 使用自己的 MQ 時，需停用 Univer 內建的 MQ
+
+RABBITMQ_CLUSTER_ENABLED=true # 必須設定為 true
+RABBITMQ_CLUSTER_USERNAME=user-name # 需具備 Declare Exchange、Produce、Consume 權限
+RABBITMQ_CLUSTER_PASSWORD=password # password
+
+# use comma to separate multiple addresses
+# for example: RABBITMQ_CLUSTER_ADDR=192.168.1.2:5672,192.168.1.5:5672,192.168.1.7:5672
+# 每個 addr 都要能讀寫，Univer 在連線時會輪詢其中的 host，直到連線成功
+RABBITMQ_CLUSTER_ADDR=host:port[,host:port]
+
+# RABBITMQ_CLUSTER_VHOST is the vhost of the rabbitmq cluster. If you don't set it, the default value is /
+# for example: RABBITMQ_CLUSTER_VHOST=univer
+RABBITMQ_CLUSTER_VHOST=/
+RABBITMQ_CLUSTER_SCHEMA=amqp
+```
+
+##### Object Storage
+
+```properties title=".env.custom"
+DISABLE_UNIVER_S3=true # 使用自己的 object storage 時，需停用 Univer 內建的 MinIO
+
+# s3 config
+S3_USER=user
+S3_PASSWORD=password
+S3_REGION=your-inner-s3like-region # 若 S3-like 服務無此概念，可隨意填寫一個字串
+
+# S3_PATH_STYLE，可設定 true 或 false
+# 若設定為 true，使用路徑樣式（Path-Style）建構存取 URL
+# 若設定為 false，使用虛擬主機樣式（Virtual-Host Style）建構存取 URL
+S3_PATH_STYLE=true|false
+
+# S3_ENDPOINT 提供給內部服務存取的位址
+S3_ENDPOINT=inner-visit-host:port
+
+# S3_ENDPOINT_PUBLIC 公開存取的位址，在用戶端直接連接物件儲存下載檔案時使用
+S3_ENDPOINT_PUBLIC=public-visit-host:port
+
+# S3_DEFAULT_BUCKET 設定使用哪個 bucket
+S3_DEFAULT_BUCKET=default-bucket-name
+```
+
+#### 開啟 Univer 內建可觀測元件
+
+```properties title=".env.custom"
+# observability config
+ENABLE_UNIVER_OBSERVABILITY=true # 設定為 true 則開啟
+GRAFANA_USERNAME=set-your-admin-user-name-here # 設定 Grafana 管理員帳號
+GRAFANA_PASSWORD=set-your-admin-user-password-here # 設定 Grafana 管理員密碼
+HOST_GRAFANA_PORT=set-the-port-you-want # Grafana 對外暴露埠號
+```
+
+#### 容量相關設定
+
+```properties title=".env.custom"
+UNIVERSER_REPLICATION_CNT=2 # universer 實例數
+COLLABORATION_SERVER_REPLICATION_CNT=2 # 協同服務實例數
+COLLABORATION_SERVER_MEMORY_LIMIT=2048 # 協同服務最大記憶體限制，單位為 MB
+COLLABORATION_HELPER_REPLICATION_CNT=2 # helper 服務實例數，注：v0.13.0 起引入
+COLLABORATION_HELPER_MEMORY_LIMIT=2048 # helper 最大記憶體限制，單位為 MB，注：v0.13.0 起引入
+
+# 匯入匯出 exchange-worker 容量相關設定
+EXCHANGE_WORKER_REPLICATION_CNT=1 # working exchange worker count
+EXCHANGE_WORKER_MEMORY_LIMIT=4096 # MB, the memory limit of each exchange-worker.
+EXCHANGE_WORKER_IMPORT_CONCURRENT=1 # how many import tasks each worker can do at the same time.
+EXCHANGE_WORKER_EXPORT_CONCURRENT=1 # how many export tasks each worker can do at the same time.
+```
+
+#### 協同編輯分層排程設定
+
+自 `v0.15.0` 起引入，預設未啟用，需手動設定開啟。系統根據 workbook 的儲存格總數及匯入實際耗時決定排程到哪個等級的協同服務叢集。對於剛透過匯入建立的 workbook，依據匯入耗時進行排程；對於其他方式建立或觸發新快照生成後的 workbook，則依據儲存格總數進行排程。每次快照建立後，相關指標資料將持續儲存到資料庫並更新排程策略。
+
+分層排程的本質是將協同服務部署為多個叢集，並透過規則指定不同規模的表格由哪個叢集處理。規則設定的資料結構如下：
+
+```yaml
+unitRoutingConf:
+  tiers:
+    - tierName: normal
+      enable: true
+      upgradeCellsThreshold: 0
+      downgradeCellsThreshold: 0
+      upgradeImportTimeThreshold: 0
+    - tierName: large
+      enable: true
+      upgradeCellsThreshold: 1000
+      downgradeCellsThreshold: 900
+      upgradeImportTimeThreshold: 10
+    - tierName: huge
+      enable: true
+      upgradeCellsThreshold: 10000
+      downgradeCellsThreshold: 9000
+      upgradeImportTimeThreshold: 60
+```
+
+說明：
+
+- `tiers`：描述各叢集資訊，理論上可設定任意多個叢集。
+- `enable`：設定是否啟用該叢集，設定為 `false` 則該叢集將被忽略。
+- `upgradeCellsThreshold`：指定 sheet 儲存格總數達到此規模時才能排程到該叢集。
+- `downgradeCellsThreshold`：若 sheet 目前被排程到該叢集，僅當儲存格總數低於此值時才能降級到更低等級的叢集。此設定可避免在等級邊界處規模的 sheet 被頻繁切換排程。
+- `upgradeImportTimeThreshold`：新匯入的 sheet 尚無儲存格總數統計，此時利用該設定決定排程，作用機制同 `upgradeCellsThreshold`，僅指標換為匯入實際耗時。
+
+必須保證至少有一個叢集的指標要求全部為 0，才能確保每個 sheet 都能被排程到。
+
+按上述範例設定參數下的排程範例：
+
+- workbook1 建立後的初始儲存格數量為 0，排程到 normal 叢集。
+- workbook1 編輯後總儲存格數量達到 1000 時，排程到 large 叢集。
+- workbook1 總儲存格數量降至 999 時，由於仍大於降級線 900，繼續排程到 large 叢集。
+- workbook1 總儲存格數量繼續降至 899 時，降級排程回 normal 叢集。
+- workbook2 被匯入，實際耗時 61 秒，已超過 huge 叢集的條件 60 秒，將排程到 huge 叢集處理。
+
+Univer 的 Docker Compose 部署指令碼提供了選項，可選部署 1 個或 2 個等級的叢集（分離普通表格和大表格）。叢集設定中的 `ENABLE_LARGE_TIER_COLLABORATION_SERVER` 參數控制排程時是否使用大表格叢集，以及控制 Docker Compose 是否實際部署大表格叢集服務。若需更精細的叢集等級控制或使用 K8s 部署，請調整 docker compose / charts 的編排以實際部署對應等級的 `collaboration-server` 服務叢集，然後按上述說明設定排程路由表（`tiers` 陣列）。
+
+預設部署僅設定了兩個等級：`normal` 和 `large`。
+
+```properties title=".env.custom"
+# 設定開啟/關閉 large 叢集，true-開啟，false-關閉，預設關閉
+ENABLE_LARGE_TIER_COLLABORATION_SERVER=false
+
+# 若開啟 large 叢集，當總儲存格數達到此規模後將排程到 large 叢集，預設 2M
+LARGE_TIER_MIN_CELLS_COUNT=2000000
+
+# 若 sheet 目前排程在 large 叢集，則只有當總儲存格數降至此值以下時才會降級回 normal 叢集，預設 1.95M
+LARGE_TIER_DOWNGRADE_CELLS_COUNT=1950000
+
+# 若開啟 large 叢集，當 workbook 匯入耗時超過設定後將排程到 large 叢集，預設 10s
+LARGE_TIER_MIN_IMPORT_SECONDS=10
+
+# large 叢集協同服務實例數，預設 2
+LARGE_TIER_COLLABORATION_SERVER_REPLICATION_CNT=2
+
+# large 叢集協同服務實例記憶體限制，建議至少設定 8GB，預設 8GB
+LARGE_TIER_COLLABORATION_SERVER_MEMORY_LIMIT=8192
+```
+
+#### 網路設定
+
+若 Univer 暴露的預設埠號與其他服務衝突，可按需修改：
+
+```properties title=".env.custom"
+# 若與現有網路設定衝突，可修改 docker 使用的網段。使用 CIDR 表示法
+DOCKER_NETWORK_SUBNET=172.30.0.0/16
+
+# Univer API 服務暴露的埠號，若與主機其他服務埠號衝突，請更換為其他埠號
+HOST_NGINX_PORT=the-univer-server-api-port-you-wantted
+
+# 若選擇 Univer 安裝套件內建的 MinIO 作為物件儲存且存在埠號衝突，請添加此設定項修改
+# 若使用的是自己維護的物件儲存，設定此設定項無意義
+HOST_MINIO_PORT=the-minio-port-you-wantted
+
+# 若選擇 Univer 安裝套件內建的可觀測元件且存在埠號衝突，請添加此設定項修改
+# 若使用的是自己維護的可觀測元件，設定此設定項無意義
+HOST_GRAFANA_PORT=the-grafana-port-you-wantted
+```
+
+#### 允許跨域設定
+
+```properties title=".env.custom"
+# allowed cross-origins config
+CORS_ALLOW_ORIGINS='["domain1", "domain2", "and more"]'
+CORS_ALLOW_HEADERS='["content-type","authorization"]'
+```
+
+#### 設定範例
+
+以下設定範例實現了：
+
+- 開啟 USIP 整合、驗證使用者身分、開啟權限校驗
+- 設定僅文件 owner 可复制內容和列印
+- 開啟 Univer 事件發布
+- 使用自己的 PostgreSQL
+- 使用自己的 Object Storage
+- 修改 Univer 服務暴露的埠號
+- 設定 universer 和 collaboration-server 的容量設定
+
+`.env.custom` 檔案內容如下：
+
+```properties title=".env.custom"
+# 1. enable USIP integration
+# usip about
+USIP_ENABLED=true
+USIP_URI_CREDENTIAL=https://usip-demo.univer.ai/usip/credential
+USIP_URI_USERINFO=https://usip-demo.univer.ai/usip/userinfo
+USIP_URI_ROLE=https://usip-demo.univer.ai/usip/role
+USIP_URI_COLLABORATORS=https://usip-demo.univer.ai/usip/collaborators
+USIP_URI_UNITEDITTIME=https://usip-demo.univer.ai/usip/unit-edit-time
+
+# 2. only owner can copy content and print
+AUTH_PERMISSION_CUSTOMER_STRATEGIES=[ {"action": 3, "role": 2}, {"action": 6, "role": 2} ]
+
+# 3. enable univer event sync
+EVENT_SYNC=true # 設定為 true 以開啟
+
+# 4. use owner RDS
+# postgresql config
+DISABLE_UNIVER_RDS=true # 使用自己的 RDS 時，需停用 Univer 預設部署的 PostgreSQL
+
+DATABASE_DRIVER=postgresql # 設定為 postgresql 代表使用相容 postgresql 的資料庫
+DATABASE_HOST=univer-postgresql
+DATABASE_PORT=5432
+DATABASE_DBNAME=univer
+DATABASE_USERNAME=universer-biz
+DATABASE_PASSWORD=123456
+
+# 5. use owner Object storage
+# s3 config
+DISABLE_UNIVER_S3=true # 使用自己的 object storage 時，需停用 Univer 內建的 MinIO
+
+S3_USER=universer-biz
+S3_PASSWORD=123456
+S3_REGION=cn-sz
+S3_PATH_STYLE=true
+S3_ENDPOINT=univer-s3:9652
+S3_ENDPOINT_PUBLIC=univer.ai:9653
+S3_DEFAULT_BUCKET=univer
+
+# 6. change univer service Port
+HOST_NGINX_PORT=8010
+
+# 7. set the service scale
+UNIVERSER_REPLICATION_CNT=4 # universer 實例數
+COLLABORATION_SERVER_REPLICATION_CNT=5 # 協同服務實例數
+MAX_MEMORY_LIMIT=2048 # 協同服務最大記憶體限制，單位為 MB
+```
+
+## 部署 SOP
+
+確定所需設定後，可按照以下步驟實施 Univer 後端服務的部署。
+
+### Docker Compose 部署 SOP
+
+1. 準備好設定檔 `.env.custom`（如無修改需求，可跳過此步）。
+2. 準備好 License 檔案，包括 `license.txt` 和 `licenseKey.txt`。
+3. 若選擇使用自己維護的 RDS，請下載[資料庫初始化指令碼](https://release-univer.oss-cn-shenzhen.aliyuncs.com/releases/latest/univer-server-sql-latest.tar.gz)並完成 RDS 的初始化，包括 universer 和 temporal 的初始化。若使用的是 GaussDB 或 DamengDB，則無需初始化 temporal。
+4. 取得 Univer Pro 後端服務：
+   - 若部署伺服器可存取公共網際網路：
+     - 執行 `bash -c "$(curl -fsSL https://get.univer.ai/product)" [-- version]`，下載指定版本的 Univer 服務。若未指定 version，預設下載最新版本。
+   - 若部署伺服器無法存取公共網際網路：
+     - [點此下載](https://univer.ai/releases/univer-server/download) Univer 提供的 All in one 離線安裝包。
+     - 將離線安裝包上傳至部署伺服器並解壓縮。
+     - 進入解壓縮後的目錄，執行 `bash load-images.sh` 將 Univer 後端服務的映像檔載入到本機 Docker。
+5. 將準備好的 `.env.custom` 檔案複製到下載的 Univer 服務資料夾下，與預設的 `.env` 檔案放在同一目錄。
+6. 將 License 檔案 `license.txt` 和 `licenseKey.txt` 複製到下載的 Univer 服務資料夾下的 `configs/` 目錄。
+7. 進入 Univer 服務根目錄，執行 `bash run.sh start` 即可完成服務部署。
+8. 完成迴歸測試。

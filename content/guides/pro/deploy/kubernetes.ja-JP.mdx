@@ -1,0 +1,528 @@
+---
+title: Kubernetes デプロイ
+---
+
+## デプロイメント構成
+
+### デプロイメント構成の変更方法
+
+Univer のデフォルトデプロイメント構成は Helm chart の `values.yaml` にあります。[ここをクリックして表示](https://github.com/dream-num/helm-charts/blob/main/charts/univer-stack/values.yaml)。構成を変更する必要がある場合、charts 内のファイルを編集する必要はありません。新しい `values.yaml` ファイルを作成し、変更が必要な構成項目を記述するだけです。`helm install` コマンドでインストールする際にこの `values.yaml` ファイルを指定すると、カスタム構成がデフォルト構成を上書きします。指定されていない構成項目はデフォルト値を使用します。具体的な Helm コマンドの説明については、後述のデプロイ手順を参照してください。
+
+### 構成の詳細
+
+#### 身元認証と権限管理の有効化
+
+関連構成項目の意味は [USIP を介したシステム連携](/guides/pro/usip) で既に説明しており、ここでは繰り返しません。有効にする必要がある場合は、以下の構成を参考にしてください：
+
+```yaml title="values.yaml"
+universer:
+  config:
+    usip:
+      enabled: true # USIP を有効にするには true に設定
+      uri:
+        userinfo: 'https://your-domain/usip/userinfo'
+        collaborators: 'https://your-domain/usip/collaborators'
+        role: 'https://your-domain/usip/role'
+        credential: 'https://your-domain/usip/credential'
+        unitEditTime: 'https://your-domain/usip/unit-edit-time'
+
+      # apikey はオプション
+      apikey: ''
+    auth:
+      permission:
+        enableObjInherit: false
+        customerStrategies: ''
+```
+
+#### Univer イベント発行の有効化
+
+関連構成項目の意味は [Univer イベント同期メカニズムを介したシステム連携](/guides/pro/event-sync) で既に説明しており、ここでは繰り返しません。有効にする必要がある場合は、以下の構成を参考にしてください：
+
+```yaml title="values.yaml"
+universer:
+  config:
+    rabbitmq:
+      eventSync: true # 有効にするには true に設定
+```
+
+#### 自己管理の基盤コンポーネントの使用
+
+##### RDS
+
+**ご注意ください**。Univer が使用するコンポーネント Temporal は GaussDB と DamengDB をサポートしていないため、これらのデータベースを選択した場合、Univer は Temporal 用に PostgreSQL を個別にインストールします。Temporal がデータベースに保存するのは、インポート／エクスポートタスクのワークフロー状態であり、ドキュメントデータは一切含まれません。たとえ失われても、未完了のインポート／エクスポートタスクが失敗するだけで、他の影響は生じません。
+
+###### PostgreSQL 互換 RDS の使用
+
+```yaml title="values.yaml"
+postgresql:
+  enabled: false # Univer 内蔵のデータベースを無効にする
+
+universer:
+  config:
+    database:
+      driver: postgresql # postgresql 互換データベースを使用する場合は postgresql に設定
+      host: your-database-host
+      port: your-database-port
+      dbname: univer # Univer データベース初期化スクリプトのデフォルト名；変更した場合は一致させてください
+      username: postgres # select、insert、update、delete 権限を付与
+      password: postgres
+
+temporal: # temporal はデータベースを使用します
+  server:
+    config:
+      persistence:
+        default:
+          driver: sql # sql に固定
+          sql:
+            driver: postgres12 # postgres 12 以上が必要
+            host: your-database-host
+            port: your-database-port
+            database: temporal # Univer データベース初期化スクリプトのデフォルト名；変更した場合は一致させてください
+            user: postgres # select、insert、update、delete 権限を付与
+            password: postgres
+
+        visibility:
+          driver: sql
+          sql:
+            driver: postgres12 # postgres 12 以上が必要
+            host: your-database-host
+            port: your-database-port
+            database: temporal_visibility # Univer データベース初期化スクリプトのデフォルト名；変更した場合は一致させてください
+            user: postgres # select、insert、update、delete 権限を付与
+            password: postgres
+```
+
+###### MySQL 互換 RDS の使用
+
+```yaml title="values.yaml"
+postgresql:
+  enabled: false # Univer 内蔵のデータベースを無効にする
+
+universer:
+  config:
+    database:
+      driver: mysql # MySQL 互換データベースを使用する場合は mysql に設定
+      host: your-database-host
+      port: your-database-port
+      dbname: univer # Univer データベース初期化スクリプトのデフォルト名；変更した場合は一致させてください
+      username: mysql # select、insert、update、delete 権限を付与
+      password: mysql
+
+temporal:
+  server:
+    config:
+      persistence:
+        default:
+          driver: sql
+          sql:
+            driver: mysql8 # MySQL 8.x が必要
+            host: your-database-host
+            port: your-database-port
+            database: temporal # Univer データベース初期化スクリプトのデフォルト名；変更した場合は一致させてください
+            user: mysql # select、insert、update、delete 権限を付与
+            password: mysql
+
+        visibility:
+          driver: sql
+          sql:
+            driver: mysql8
+            host: your-database-host
+            port: your-database-port
+            database: temporal_visibility # Univer データベース初期化スクリプトのデフォルト名；変更した場合は一致させてください
+            user: mysql
+            password: mysql
+```
+
+###### GaussDB の使用
+
+```yaml title="values.yaml"
+universer:
+  config:
+    database:
+      driver: gaussdb
+      host: your-database-host
+      port: your-database-port
+      dbname: univer # Univer データベース初期化スクリプトのデフォルト名；変更した場合は一致させてください
+      username: gaussdb # select、insert、update、delete 権限を付与
+      password: gaussdb
+```
+
+###### DamengDB の使用
+
+```yaml title="values.yaml"
+universer:
+  config:
+    database:
+      driver: dameng
+      host: your-database-host
+      port: your-database-port
+      dbname: univer # Univer データベース初期化スクリプトのデフォルト名；変更した場合は一致させてください
+      username: dameng # select、insert、update、delete 権限を付与
+      password: dameng
+```
+
+##### Redis
+
+```yaml title="values.yaml"
+universer:
+  config:
+    redis:
+      poolSize: 100
+      # redis クラスタを使用する場合は、カンマで複数のアドレスを区切ってください
+      # 例：192.168.1.100:6379,192.168.1.101:6379
+      addr: 192.168.1.100:6379
+      read_timeout: 1s
+      write_timeout: 1s
+      db: 0
+      username: user_name_here
+      password: password_here
+
+      # TLS 構成
+      # 3 つのモードをサポート：不安全モード（insecure）、CA 検証のみ、クライアント証明書（mTLS）検証。
+      # CA、証明書、秘密鍵は必要に応じてファイル内容を記入
+      tlsConfig:
+        enabled: false
+        insecure: false
+        ca: ''
+        cert: ''
+        key: ''
+
+# universer.config.redis と同じ
+worker:
+  redis:
+    poolSize: 10
+    addr: 192.168.1.100:6379
+    read_timeout: 1s
+    write_timeout: 1s
+    db: 0
+    username: user_name_here
+    password: password_here
+    tlsConfig:
+      enabled: false
+      insecure: false
+      ca: ''
+      cert: ''
+      key: ''
+
+redis:
+  enabled: false # Univer 内蔵の Redis を無効にする
+```
+
+##### MQ
+
+```yaml title="values.yaml"
+universer:
+  config:
+    rabbitmq:
+      cluster:
+        enabled: true # true に設定が必須
+        # 複数のアドレスをカンマで区切ってください
+        # 例：RABBITMQ_CLUSTER_ADDR=192.168.1.2:5672,192.168.1.5:5672
+        # 各アドレスは読み書き可能である必要があり、Univer は接続時にホストをポーリングして成功するまで試行します
+        addr: '192.168.1.2:5672,192.168.1.5:5672'
+        username: user-here
+        password: password-here
+        vhost: /
+        schema: amqp
+
+rabbitmq:
+  enabled: false # Univer 内蔵の RabbitMQ を無効にする
+```
+
+##### Object Storage
+
+```yaml title="values.yaml"
+universer:
+  config:
+    s3:
+      accessKeyID: admin
+      accessKeySecret: minioadmin
+      region: us-east-1
+      endpoint: http://192.168.1.100:9000
+      endpointPublic: http://192.168.1.100:9001
+      usePathStyle: true
+      defaultBucket: univer
+
+minio:
+  enabled: false # Univer 内蔵の MinIO を無効にする
+```
+
+#### Univer 内蔵可観測性コンポーネントの有効化
+
+K8s 方式で内蔵可観測性コンポーネントをデプロイする場合、追加の構成は不要です。有効にする方法については、後述の K8s デプロイ操作を参照してください。
+
+#### キャパシティ関連の構成
+
+```yaml title="values.yaml"
+universer:
+  replicaCount: 3 # universer インスタンス数
+collaboration-server:
+  replicaCount: 3 # 協同サービスインスタンス数
+  maxMemoryLimit: 2048 # MB、協同サービスの最大メモリ制限
+collaboration-helper-server: # 注：v0.13.0 から導入
+  replicaCount: 2 # helper サービスインスタンス数
+worker:
+  replicaCount: 1 # 稼働中の exchange worker 数
+  temporalWorker:
+    importConcurrent: 1 # 各ワーカーが同時に実行できるインポートタスク数
+    exportConcurrent: 1 # 各ワーカーが同時に実行できるエクスポートタスク数
+```
+
+#### 協同編集階層スケジューリング構成
+
+`v0.15.0` から導入され、デフォルトでは無効で、手動で構成して有効にする必要があります。システムは、workbook の総セル数と実際のインポート時間に基づいて、どの階層の協同サービスクラスタにスケジューリングするかを決定します。インポートによって作成されたばかりの workbook については、インポート時間に基づいてスケジューリングされます。その他の方法で作成された workbook、または新しいスナップショット生成後の workbook については、総セル数に基づいてスケジューリングされます。スナップショットが作成されるたびに、関連する指標データはデータベースに永続化され、スケジューリングポリシーが更新されます。
+
+階層スケジューリングの本質は、協同サービスを複数のクラスタとしてデプロイし、ルールによって異なる規模のスプレッドシートをどのクラスタで処理するかを指定することです。ルール構成のデータ構造は以下の通りです：
+
+```yaml
+unitRoutingConf:
+  tiers:
+    - tierName: normal
+      enable: true
+      upgradeCellsThreshold: 0
+      downgradeCellsThreshold: 0
+      upgradeImportTimeThreshold: 0
+    - tierName: large
+      enable: true
+      upgradeCellsThreshold: 1000
+      downgradeCellsThreshold: 900
+      upgradeImportTimeThreshold: 10
+    - tierName: huge
+      enable: true
+      upgradeCellsThreshold: 10000
+      downgradeCellsThreshold: 9000
+      upgradeImportTimeThreshold: 60
+```
+
+説明：
+
+- `tiers`：各クラスタ情報を記述します。理論上、任意の数のクラスタを構成できます。
+- `enable`：そのクラスタを有効にするかどうかを設定します。`false` に設定すると、そのクラスタは無視されます。
+- `upgradeCellsThreshold`：シートの総セル数がこの規模に達した場合にのみ、そのクラスタにスケジューリングできることを指定します。
+- `downgradeCellsThreshold`：シートが現在そのクラスタにスケジューリングされている場合、総セル数がこの値を下回った場合にのみ、より低い階層のクラスタにダウングレードできます。この設定により、階層境界付近の規模のシートが頻繁にスケジューリング切り替えされることを回避します。
+- `upgradeImportTimeThreshold`：新しくインポートされたシートには総セル数の統計がまだないため、この構成を使用してスケジューリングを決定します。作用メカニズムは `upgradeCellsThreshold` と同じですが、指標が実際のインポート時間に変わります。
+
+すべてのシートがスケジューリングされるように、少なくとも 1 つのクラスタの指標要件がすべて 0 であることを確認する必要があります。
+
+上記のサンプル構成パラメータでのスケジューリング例：
+
+- workbook1 の作成後の初期セル数は 0 で、normal クラスタにスケジューリングされます。
+- workbook1 が編集され、総セル数が 1000 に達すると、large クラスタにスケジューリングされます。
+- workbook1 の総セル数が 999 に減少しても、ダウングレード線 900 を上回っているため、引き続き large クラスタにスケジューリングされます。
+- workbook1 の総セル数がさらに 899 に減少すると、normal クラスタにダウングレードされます。
+- workbook2 がインポートされ、実際の時間が 61 秒で、huge クラスタの条件 60 秒を超えたため、huge クラスタにスケジューリングされます。
+
+より細かいクラスタ階層制御が必要な場合は、charts のオーケストレーションを調整して、対応する階層の `collaboration-server` サービスクラスタを実際にデプロイし、上記の説明に従ってスケジューリングルーティングテーブル（`tiers` 配列）を構成してください。
+
+K8s 下では、Helm values で `unitRoutingConf` を自行構成してください。
+
+#### ネットワーク構成
+
+K8s デプロイではこの問題は存在しません。
+
+#### クロスオリジン構成
+
+```yaml title="values.yaml"
+universer:
+  config:
+    server:
+      http:
+        corsAllowOrigins: [domain1, domain2, and more]
+        corsAllowHeaders: [content-type, authorization]
+```
+
+#### K8s デプロイの特殊構成
+
+Univer Pro の Helm chart では、デフォルトでフロントエンド demo サービスのデプロイが構成され、http ゲートウェイサービス universer の ingress ルートドメインが demo のドメインに設定されています。本番デプロイ時には、demo サービスを無効にし、universer の ingress ルートを実際のドメインに変更する必要があります。`values.yaml` に以下の構成を追加してください：
+
+```yaml title="values.yaml"
+collaboration-demo:
+  enabled: false # false に設定すると demo サービスのデプロイを禁止
+universer:
+  ingress:
+    enabled: true
+    hosts:
+      - host: use-your-own-domain-here # 実際のドメインに変更
+        paths:
+          - path: /universer-api/
+            pathType: Prefix
+```
+
+#### 構成例
+
+以下の構成例は以下を実現します：
+
+- USIP 統合の有効化、ユーザー身元の認証、権限検証の有効化
+- ドキュメント owner のみがコンテンツをコピーして印刷できるように構成
+- Univer イベント発行の有効化
+- 自己管理の PostgreSQL の使用
+- 自己管理の Object Storage の使用
+- Univer サービス公開ポートの変更
+- universer と collaboration-server のキャパシティ構成の設定
+
+K8s デプロイ時の `values.yaml`。注意：複数の構成を変更する必要がある場合は、最終的な yaml をマージする必要があります。
+
+```yaml title="values.yaml"
+collaboration-demo:
+  enabled: false # false に設定すると demo サービスのデプロイを禁止
+
+postgresql:
+  enabled: false # Univer 内蔵のデータベースを無効にする
+
+minio:
+  enabled: false # Univer 内蔵の MinIO を無効にする
+
+collaboration-server:
+  replicaCount: 5
+  maxMemoryLimit: 2048
+
+universer:
+  replicaCount: 4
+  ingress:
+    enabled: true
+    hosts:
+      - host: usip-demo.univer.ai # 実際のドメインに変更
+        paths:
+          - path: /universer-api/
+            pathType: Prefix
+  config:
+    usip:
+      enabled: true # USIP を有効にするには true に設定
+      uri:
+        userinfo: 'https://usip-demo.univer.ai/usip/userinfo'
+        collaborators: 'https://usip-demo.univer.ai/usip/collaborators'
+        role: 'https://usip-demo.univer.ai/usip/role'
+        credential: 'https://usip-demo.univer.ai/usip/credential'
+        unitEditTime: 'https://usip-demo.univer.ai/usip/unit-edit-time'
+    auth:
+      permission:
+        customerStrategies: '[ {"action": 3, "role": 2}, {"action": 6, "role": 2} ]'
+    rabbitmq:
+      eventSync: true # 有効にするには true に設定
+    database:
+      driver: postgresql
+      host: univer-postgresql
+      port: 5432
+      dbname: univer
+      username: universer-biz
+      password: 123456
+    s3:
+      accessKeyID: universer-biz
+      accessKeySecret: 123456
+      region: cn-sz
+      endpoint: 'univer-s3:9652'
+      endpointPublic: 'univer.ai:9653'
+      usePathStyle: true
+      defaultBucket: univer
+
+temporal:
+  server:
+    config:
+      persistence:
+        default:
+          driver: sql
+          sql:
+            driver: postgres12
+            host: univer-postgresql
+            port: 5432
+            database: temporal
+            user: universer-temporal
+            password: 123456
+
+        visibility:
+          driver: sql
+          sql:
+            driver: postgres12
+            host: univer-postgresql
+            port: 5432
+            database: temporal_visibility
+            user: universer-temporal
+            password: 123456
+```
+
+## デプロイ SOP
+
+必要な構成を確定した後、以下の手順に従って Univer バックエンドサービスをデプロイできます。
+
+### K8s デプロイ SOP
+
+K8s を使用してデプロイする際の注意事項：カスタム構成の変更がある場合は、カスタム構成ファイル `values.yaml` のバージョンを自行管理する必要があります。後続のアップグレード操作でも完全なカスタム構成が必要となるためです。Git などのバージョン管理ツールを使用して管理することをお勧めします。
+
+1. 構成ファイル `values.yaml` を準備します（変更が不要な場合はこの手順をスキップできます）。
+2. ライセンスファイル `license.txt` と `licenseKey.txt` を準備します。
+3. 自己管理の RDS を使用することを選択した場合は、[データベース初期化スクリプト](https://release-univer.oss-cn-shenzhen.aliyuncs.com/releases/latest/univer-server-sql-latest.tar.gz) をダウンロードし、RDS の初期化を完了してください。universer と temporal の初期化を含みます。GaussDB または DamengDB を使用している場合、temporal の初期化は不要です。
+4. Helm インストールコマンドを実行し、独自の `values.yaml` ファイルとライセンスファイルを使用します：
+   - デプロイサーバーがパブリックインターネットにアクセスできる場合：
+     ```shell
+     helm install -n univer --create-namespace \
+         -f your-own-values.yaml-path \
+         --set global.istioNamespace="univer" \
+         --set-file universer.license.licenseV2=your-license.txt-path \
+         --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path \
+         univer-stack \
+         oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
+         --version target-version
+
+     # 成功後、以下の 2 つのコマンドを実行してサービスを再起動し、sidecar インジェクションを完了してください
+     kubectl rollout restart -n univer deployment/collaboration-server
+     kubectl rollout restart -n univer deployment/universer
+     ```
+     Univer 構成の可観測性コンポーネントをデプロイする必要がある場合は、以下のコマンドでインストールしてください：
+     ```bash
+     helm upgrade --install -n univer-observability --create-namespace \
+         --set global.univerNamespace="univer" \
+         univer-observability \
+         oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-observability
+     ```
+
+     パラメータ説明：
+     - `--set global.univerNamespace="univer"`：観測対象の Univer クラスタの namespace を `"univer"` に設定します。
+   - デプロイサーバーがパブリックインターネットにアクセスできない場合：
+     - [ここをクリックして](https://univer.ai/releases/univer-server/download) Univer が提供する K8s オールインワンオフラインインストールパッケージをダウンロードしてください。
+     - オフラインインストールパッケージをデプロイサーバーにアップロードして展開します。
+     - 展開後のディレクトリに移動して実行します：
+       ```shell
+       export REGISTER=XXXX # あなたのプライベートイメージレジストリ
+       export NAMESPACE=XXX # アップロードするイメージの namespace
+       docker login $REGISTER
+       bash load-image.sh --registry $REGISTER --namespace $NAMESPACE
+       ```
+     - 成功後、現在のディレクトリに `values.yaml` と `values-observability.yaml` ファイルが生成されます。必要に応じて変更してください：
+       - `values.yaml`：Univer サービスの構成ファイル
+       - `values-observability.yaml`：Univer サービス関連の可観測性監視コンポーネントの構成ファイル
+     - 次に、以下のコマンドを実行してインストールします：
+       ```shell
+       helm install -n univer --create-namespace \
+           -f your-own-values.yaml-path \
+           --set global.istioNamespace="univer" \
+           --set-file universer.license.licenseV2=your-license.txt-path \
+           --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path \
+           univer-stack \
+           univer-stack-xxxx.tgz # 現在のディレクトリで展開後の対応する chart パッケージに変更
+
+       # 成功後、以下の 2 つのコマンドを実行してサービスを再起動し、sidecar インジェクションを完了してください
+       kubectl rollout restart -n univer deployment/collaboration-server
+       kubectl rollout restart -n univer deployment/universer
+       ```
+     - Univer 構成の可観測性コンポーネントをデプロイする必要がある場合は、以下のコマンドでインストールしてください：
+       ```bash
+       helm upgrade --install -n univer-observability --create-namespace \
+           --set global.univerNamespace="univer" \
+           -f your-own-values-observability.yaml-path \
+           univer-observability \
+           univer-observability-xxxx.tgz
+       ```
+
+       パラメータ説明：
+       - `--set global.univerNamespace="univer"`：観測対象の Univer クラスタの namespace を `"univer"` に設定します。
+
+パラメータ説明：
+
+- `-n univer`：クラスタの namespace を `univer` に指定します。必要に応じて変更できますが、アップグレード時にもこの値が必要となるため覚えておいてください。
+- `univer-stack`：Helm リリースの名前です。必要に応じて変更できますが、アップグレード時にもこの値が必要となるため覚えておいてください。
+- `--version target-version`：デプロイするバージョンを指定します。対象のバージョンに変更するか、この項目を省略して最新バージョンを自動選択することもできます。
+- `-f your-own-values.yaml-path`：カスタム構成ファイル `values.yaml` のパスを指定します。パスが正しいことを確認してください。
+- `--set-file universer.license.licenseV2=your-license.txt-path`：展開後の `license.txt` ファイルのパスを指定します。
+- `--set-file universer.license.licenseKeyV2=your-licenseKey.txt-path`：展開後の `licenseKey.txt` ファイルのパスを指定します。
+
+5. リグレッションテストを完了します。
