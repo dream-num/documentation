@@ -30,7 +30,7 @@ const SPECS = {
 }
 
 type SpecKey = keyof typeof SPECS
-type Locale = 'zh-CN' | 'zh-TW' | 'en' | 'ja-JP'
+type Locale = 'zh-CN' | 'zh-TW' | 'en-US' | 'ja-JP'
 
 const T: Record<Locale, {
   title: string
@@ -128,7 +128,7 @@ const T: Record<Locale, {
     noteUniverser: (spec, qps, bps) => `單實例 universer ${spec} 約支撐 ${qps} 編輯 QPS 或 ${bps} 廣播 QPS`,
     noteFinal: '最終配置 = 基礎實例數 × (1 + 冗餘倍數)',
   },
-  en: {
+  'en-US': {
     title: 'Capacity Calculator',
     subtitle: 'Enter your business parameters to get recommended Univer Pro resource configurations',
     docCount: 'Max concurrent editing documents',
