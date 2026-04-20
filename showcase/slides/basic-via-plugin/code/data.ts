@@ -1,5 +1,5 @@
-import type { ISlideData } from '@univerjs/core'
-import { BasicShapes } from '@univerjs/core'
+import type { ISlideData } from '@univerjs/slides'
+import { BasicShapes } from '@univerjs/slides'
 
 export const SLIDE_DATA: Partial<ISlideData> = {
   id: 'slide_test',

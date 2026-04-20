@@ -30,14 +30,13 @@ univerAPI.createWorkbook(WORKBOOK_DATA)
 univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
   if (stage === univerAPI.Enum.LifecycleStages.Rendered) {
     const fWorkbook = univerAPI.getActiveWorkbook()!
-    const unitId = fWorkbook.getId()
 
     // disable selection
     fWorkbook.disableSelection()
 
     // set read only
-    const permission = fWorkbook.getPermission()
-    permission.setWorkbookEditPermission(unitId, false)
+    const permission = fWorkbook.getWorkbookPermission()
+    permission.setReadOnly()
     permission.setPermissionDialogVisible(false)
   }
 })

@@ -18,6 +18,13 @@ Univer 提供权限控制能力，用于限制用户对工作簿、工作表、�
 - 权限点位：每个功能对应一个权限点位，修改点位即可控制功能是否可用。
 - 保护规则：工作表和选区在设置权限点位前，需要先创建保护规则。
 
+<Callout type="info" title="权限点位说明">
+  本地非持久化（非协同编辑环境）权限控制可直接通过修改权限点位实现，持久化权限请参考下方的“第三方权限服务接入”。
+  协同编辑场景下，更新权限点位会同步更新服务端状态：
+  - false：该权限点至少需要 `owner` 角色
+  - true：该权限点至少需要 `reader` 角色
+</Callout>
+
 ## 基础示例
 
 下面按工作簿、工作表、选区三个层级展示最常见的权限设置方式。
@@ -43,196 +50,72 @@ await workbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, f
 
 工作表和选区相关的权限设置可以通过 Facade API 或命令系统实现。这里以工作表编辑权限举例，其他功能只需替换权限点位，参考[权限点位列表 - 工作表](#worksheet-point)。
 
-<Tabs items={['使用 Facade API', '使用命令系统']}>
-  <Tab>
-    ```typescript
-    const fWorkbook = univerAPI.getActiveWorkbook()
-    const fWorksheet = fWorkbook.getActiveSheet()
-    const worksheetPermission = fWorksheet.getWorksheetPermission()
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
 
-    // 创建工作表保护, 允许指定用户编辑
-    const permissionId = await worksheetPermission.protect({
-      allowedUsers: ['user1', 'user2'],
-      name: 'My Worksheet Protection',
-    })
+// 创建工作表保护, 允许指定用户编辑
+const permissionId = await worksheetPermission.protect({
+  allowedUsers: ['user1', 'user2'],
+  name: 'My Worksheet Protection',
+})
 
-    // 如果需要设置权限点位，必须先创建工作表保护
-    await worksheetPermission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.Edit, false)
-    ```
-  </Tab>
-  <Tab>
-    ```typescript
-    import { ICommandService, IPermissionService, IUniverInstanceService } from '@univerjs/core'
-    import { AddWorksheetProtectionMutation, getSheetCommandTarget, WorksheetEditPermission } from '@univerjs/sheets'
-
-    const accessor = univer.__getInjector()
-    const commandService = accessor.get(ICommandService)
-    const univerInstanceService = accessor.get(IUniverInstanceService)
-
-    const target = getSheetCommandTarget(univerInstanceService)
-    if (!target) {
-      return
-    }
-
-    const { unitId, subUnitId } = target
-
-    commandService.executeCommand(AddWorksheetProtectionMutation.id, {
-      unitId,
-      subUnitId,
-      rule: {
-        permissionId: '2sxcza1',
-        name: 'sheet',
-        unitType: 2,
-        unitId,
-        subUnitId,
-      },
-    })
-
-    const permissionService = accessor.get(IPermissionService)
-    permissionService.updatePermissionPoint(new WorksheetEditPermission(unitId, subUnitId).id, false)
-    ```
-  </Tab>
-</Tabs>
-
-参数说明：
-- `permissionId`：你生成的唯一 Id，用于存储权限。
-- `unitType`：工作表类型，可使用仓库中的 `UnitObject` 枚举替代魔法数。
-- `unitId`：工作簿 id。
-- `subUnitId`：工作表 id。
+// 如果需要设置权限点位，必须先创建工作表保护
+await worksheetPermission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.Edit, false)
+```
 
 #### 删除工作表权限
 
-<Tabs items={['使用 Facade API', '使用命令系统']}>
-  <Tab>
-    ```typescript
-    const fWorkbook = univerAPI.getActiveWorkbook()
-    const fWorksheet = fWorkbook.getActiveSheet()
-    const worksheetPermission = fWorksheet.getWorksheetPermission()
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
 
-    // 删除工作表保护
-    await worksheetPermission.unprotect()
-    ```
-  </Tab>
-  <Tab>
-    ```typescript
-    import { DeleteWorksheetProtectionMutation } from '@univerjs/sheets' // [!code ++]
-
-    commandService.executeCommand(DeleteWorksheetProtectionMutation.id, {
-      unitId,
-      subUnitId,
-    })
-    ```
-  </Tab>
-</Tabs>
+// 删除工作表保护
+await worksheetPermission.unprotect()
+```
 
 ### 自定义选区权限代码示例
 
 选区的权限同样支持 API 和命令模式。这里以选区编辑权限举例，其他选区功能只需替换权限点位，参考[权限点位列表 - 选区](#range-point)。
 
-<Tabs items={['使用 Facade API', '使用命令系统']}>
-  <Tab>
-    ```typescript
-    const fWorkbook = univerAPI.getActiveWorkbook()
-    const fWorksheet = fWorkbook.getActiveSheet()
-    const fRange = fWorksheet.getRange('A1:B2')
-    const rangePermission = fRange.getRangePermission()
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+const rangePermission = fRange.getRangePermission()
 
-    // 设置区域保护权限，允许指定用户编辑但不允许他人查看
-    const rule = await rangePermission.protect({
-      name: 'My protected range',
-      allowEdit: true,
-      allowViewByOthers: false,
-      allowedUsers: ['user1', 'user2'],
-    })
-    console.log(rule)
+// 设置区域保护权限，允许指定用户编辑但不允许他人查看
+const rule = await rangePermission.protect({
+  name: 'My protected range',
+  allowViewByOthers: false,
+  allowedUsers: ['user1', 'user2'],
+})
+console.log(rule)
 
-    // 如果需要设置权限点位，必须先创建区域保护
-    await rangePermission.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
-    await rangePermission.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
-    ```
-  </Tab>
-  <Tab>
-    ```typescript
-    import { ICommandService, IPermissionService, IUniverInstanceService } from '@univerjs/core'
-    import { AddRangeProtectionMutation, getSheetCommandTarget, RangeProtectionPermissionEditPoint } from '@univerjs/sheets'
-
-    const accessor = univer.__getInjector()
-    const commandService = accessor.get(ICommandService)
-    const univerInstanceService = accessor.get(IUniverInstanceService)
-
-    const target = getSheetCommandTarget(univerInstanceService)
-    if (!target) {
-      return
-    }
-
-    const { unitId, subUnitId } = target
-    const ranges = [
-      {
-        startRow: 0,
-        startColumn: 0,
-        endRow: 2,
-        endColumn: 1,
-      },
-      {
-        startRow: 3,
-        startColumn: 2,
-        endRow: 4,
-        endColumn: 3,
-      },
-    ]
-
-    commandService.executeCommand(AddRangeProtectionMutation.id, {
-      unitId,
-      subUnitId,
-      rules: [{
-        permissionId: '3xtfxG1',
-        name: 'sheet1',
-        unitType: 3,
-        unitId,
-        subUnitId,
-        ranges,
-        id: 'rule1',
-      }],
-    })
-
-    const permissionService = accessor.get(IPermissionService)
-    // 这里 RangeProtectionPermissionEditPoint 的第三个参数就是上面生成的 permissionId，false 表示不可编辑
-    permissionService.updatePermissionPoint(new RangeProtectionPermissionEditPoint(unitId, subUnitId, '3xtfxG1').id, false)
-    ```
-  </Tab>
-</Tabs>
-
-参数说明：
-- `ranges`：要设置权限的区域数组。
-- `id`：规则的唯一 id，用于删除该规则。
-- 其余参数含义与上方工作表示例一致。
+// 如果需要设置权限点位，必须先创建区域保护。
+await rule.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
+await rule.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
+```
 
 #### 删除区域保护权限
 
-<Tabs items={['使用 Facade API', '使用命令系统']}>
-  <Tab>
-    ```typescript
-    const fWorkbook = univerAPI.getActiveWorkbook()
-    const fWorksheet = fWorkbook.getActiveSheet()
-    const fRange = fWorksheet.getRange('A1:B2')
-    const rangePermission = fRange.getRangePermission()
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+const rangePermission = fRange.getRangePermission()
 
-    // 删除区域保护
-    await rangePermission.unprotect()
-    ```
-  </Tab>
-  <Tab>
-    ```typescript
-    import { DeleteRangeProtectionMutation } from '@univerjs/sheets' // [!code ++]
+// 删除范围内所有保护规则
+await rangePermission.unprotect()
 
-    commandService.executeCommand(DeleteRangeProtectionMutation.id, {
-      unitId,
-      subUnitId,
-      ruleIds: ['rule1'],
-    })
-    ```
-  </Tab>
-</Tabs>
+// 或者删除范围内指定规则
+const rules = await rangePermission.listRules()
+if (rules.length > 0) {
+  await rules[0].remove()
+}
+```
 
 ## 拓展使用
 
@@ -266,7 +149,8 @@ class YourService {
 
 ```typescript
 import type { IPermissionPoint } from '@univerjs/core'
-import { IPermissionService } from '@univerjs/core'
+import { IPermissionService, PermissionStatus } from '@univerjs/core'
+import { UnitAction, UnitObject } from '@univerjs/protocol'
 
 export class CustomPermissionPoint implements IPermissionPoint {
   type = UnitObject.Unkonwn // your type
@@ -779,21 +663,6 @@ console.log('Workbook permission snapshot:', snapshot)
 
 - `FWorkbookPermission.canEdit()`：检查工作簿是否可编辑
 
-#### 订阅工作簿权限点位变化
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const workbookPermission = fWorkbook.getWorkbookPermission()
-
-// 订阅工作簿权限点位变化
-const unsubscribe = workbookPermission.subscribe((snapshot) => {
-  console.log('Permission changed:', snapshot)
-})
-
-// 取消订阅
-unsubscribe()
-```
-
 #### 协作者管理
 
 <Callout type="warning" title="注意事项">
@@ -894,34 +763,6 @@ if (isProtected) {
 }
 ```
 
-#### 范围保护
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// 设置多个保护范围，A1:B2 不允许编辑但允许他人查看，C3:D4 允许指定用户编辑但不允许他人查看
-const rules = await worksheetPermission.protectRanges([
-  {
-    ranges: [fWorksheet.getRange('A1:B2')],
-    options: { name: 'Protected Area 1', allowEdit: false, allowViewByOthers: true },
-  },
-  {
-    ranges: [fWorksheet.getRange('C3:D4')],
-    options: { name: 'Protected Area 2', allowEdit: true, allowViewByOthers: false, allowedUsers: ['user1'] },
-  },
-])
-console.log(rules)
-
-// 获取当前所有保护范围规则
-const ruleList = await worksheetPermission.listRangeProtectionRules()
-console.log(ruleList)
-
-// 取消第一个保护范围
-await worksheetPermission.unprotectRules([ruleList[0].id])
-```
-
 #### 设置工作表权限点位
 
 `WorksheetPermissionPoint` 枚举值列表请参考[权限点位列表-工作表](#worksheet-point)。
@@ -990,23 +831,9 @@ const snapshot = worksheetPermission.getSnapshot()
 
 - `FWorksheetPermission.canEdit(): boolean`：检查工作表是否可编辑
 - `FWorksheetPermission.canEditCell(row: number, col: number): boolean`：检查指定单元格是否可编辑
+- `FWorksheetPermission.canView(): boolean`：检查工作表是否可查看
+- `FWorksheetPermission.canViewCell(row: number, col: number): boolean`：检查指定单元格是否可查看
 - `FWorksheetPermission.debugCellPermission(row: number, col: number): ICellPermissionDebugInfo`：获取指定单元格的权限调试信息
-
-#### 订阅工作表权限点位变化
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// 订阅工作表权限点位变化
-const unsubscribe = worksheetPermission.subscribe((snapshot) => {
-  console.log('Permission changed:', snapshot)
-})
-
-// 取消订阅
-unsubscribe()
-```
 
 ### 选区级权限
 
@@ -1019,7 +846,40 @@ const fRange = fWorksheet.getRange('A1:B2')
 const rangePermission = fRange.getRangePermission()
 ```
 
-#### 设置区域保护权限
+#### 设置范围保护
+
+- 通过工作表级权限设置范围保护：
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
+
+// 设置多个保护范围，A1:B2 不允许编辑但允许他人查看，C3:D4 允许指定用户编辑但不允许他人查看
+const rules = await worksheetPermission.protectRanges([
+  {
+    ranges: [fWorksheet.getRange('A1:B2')],
+    options: { name: 'Protected Area 1', allowViewByOthers: true },
+  },
+  {
+    ranges: [fWorksheet.getRange('C3:D4')],
+    options: { name: 'Protected Area 2', allowViewByOthers: false, allowedUsers: ['user1'] },
+  },
+])
+console.log(rules)
+
+// 获取当前工作表所有保护范围规则
+const ruleList = await worksheetPermission.listRangeProtectionRules()
+console.log(ruleList)
+
+// 删除第一个保护范围规则
+await worksheetPermission.unprotectRules([ruleList[0].id])
+
+// 或者通过 `FRangeProtectionRule.remove()` 删除保护规则
+await ruleList[0].remove()
+```
+
+- 通过选区级权限设置范围保护：
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -1027,24 +887,26 @@ const fWorksheet = fWorkbook.getActiveSheet()
 const fRange = fWorksheet.getRange('A1:B2')
 const rangePermission = fRange.getRangePermission()
 
-// 设置区域保护权限，允许指定用户编辑但不允许他人查看
+// 设置范围保护，允许指定用户编辑但不允许他人查看
 const rule = await rangePermission.protect({
   name: 'My protected range',
-  allowEdit: true,
   allowViewByOthers: false,
   allowedUsers: ['user1', 'user2'],
 })
 console.log(rule)
 
-// 获取当前区域保护规则
+// 获取当前范围内的所有保护规则
 const rules = await rangePermission.listRules()
 console.log(rules)
 
-// 取消区域保护
+// 删除当前范围内的所有保护规则
 await rangePermission.unprotect()
+
+// 或者通过 `FRangeProtectionRule.remove()` 删除保护规则
+await rules[0].remove()
 ```
 
-#### 设置选区权限点位
+#### 设置区域保护权限点位
 
 `RangePermissionPoint` 枚举值列表请参考[权限点位列表-区域保护](#range-point)。
 
@@ -1055,59 +917,43 @@ const fRange = fWorksheet.getRange('A1:B2')
 const rangePermission = fRange.getRangePermission()
 
 // 如果需要设置权限点位，必须先创建区域保护
-await rangePermission.protect({
-  name: 'My protected range',
-  allowEdit: true,
-  allowViewByOthers: false,
-  allowedUsers: ['user1', 'user2'],
-})
+if (rangePermission.isProtected()) {
+  const rules = await rangePermission.listRules()
 
-// 设置 A1:B2 选区的编辑权限为不可用，查看权限为可用
-await rangePermission.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
-await rangePermission.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
+  // 设置第一个保护规则的编辑权限为不可用，查看权限为可用
+  await rules[0].setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
+  await rules[0].setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
+} else {
+  const rule = await rangePermission.protect({
+    name: 'My protected range',
+    allowViewByOthers: false,
+    allowedUsers: ['user1', 'user2'],
+  })
+
+  // 设置 A1:B2 选区的编辑权限为不可用，查看权限为可用
+  await rule.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
+  await rule.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
+}
 ```
 
-#### 获取选区权限点位状态
+### 范围权限保护规则
 
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const fRange = fWorksheet.getRange('A1:B2')
-const rangePermission = fRange.getRangePermission()
+以下是 `FRangeProtectionRule` 一些成员方法：
 
-// 获取选区编辑权限状态
-const canEdit = rangePermission.getPoint(univerAPI.Enum.RangePermissionPoint.Edit)
-console.log(canEdit)
-
-// 获取选区所有权限点位状态
-const snapshot = rangePermission.getSnapshot()
-```
-
-使用快捷方法：
-
-- `FRangePermission.isProtected(): boolean`：检查选区是否受保护
-- `FRangePermission.canEdit(): boolean`：检查选区是否可编辑
-- `FRangePermission.canView(): boolean`：检查选区是否可查看
-- `FRangePermission.canDelete(): boolean`：检查选区是否可删除保护
-
-#### 订阅选区权限点位变化
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const fRange = fWorksheet.getRange('A1:B2')
-const rangePermission = fRange.getRangePermission()
-
-// 订阅选区权限点位变化
-const unsubscribe = rangePermission.subscribe((snapshot) => {
-  console.log('Permission changed:', snapshot)
-})
-
-// 取消订阅
-unsubscribe()
-```
-
-### 权限保护规则
+| 方法 | 描述 |
+| --- | --- |
+| `id: string` | 保护规则的 ID |
+| `permissionId: string` | 保护规则关联的权限 ID |
+| `ranges: FRange[]` | 保护规则的范围 |
+| `options: IRangeProtectionOptions` | 保护规则的选项配置 |
+| `updateRanges(ranges: FRange[]): Promise<boolean>` | 更新保护规则的范围 |
+| `remove(): Promise<boolean>` | 删除保护规则 |
+| `setPoint(point: RangePermissionPoint, value: boolean): Promise<void>` | 设置保护规则的权限点位 |
+| `getPoint(point: RangePermissionPoint): boolean` | 获取保护规则的权限点位状态 |
+| `canEdit(): boolean` | 检查保护规则是否允许编辑 |
+| `canView(): boolean` | 检查保护规则是否允许查看 |
+| `canDelete(): boolean` | 检查保护规则是否允许删除 |
+| `getSnapshot(): RangePermissionSnapshot` | 获取保护规则的权限快照 |
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -1137,21 +983,202 @@ await rule?.remove()
 univerAPI.setPermissionDialogVisible(false)
 ```
 
-{/* ### 旧 API 迁移指南
+### 旧 API 迁移指南
 
-| 功能 | 新 API 方法 | 旧 API 方法 |
-| --- | --- | --- |
-| 获取权限实例 | 工作簿：`FWorkbook.getWorkbookPermission()` <br/> 工作表：`FWorksheet.getWorksheetPermission()` <br/> 选区：`FRange.getRangePermission()` | `FWorkbook.getPermission()` |
-| 设置工作簿权限点位 | `FWorkbookPermission.setPoint(point: WorkbookPermissionPoint, value: boolean)` | `FPermission.setWorkbookPermissionPoint(unitId: string, FPointClass: WorkbookPermissionPointConstructor, value: boolean)` |
-| 获取工作簿权限点位状态 | `FWorkbookPermission.getPoint(point: WorkbookPermissionPoint): boolean` | `FPermission.checkWorkbookPermissionPoint(unitId: string, FPointClass: WorkbookPermissionPointConstructor): boolean` |
-| 设置工作簿编辑权限 | `FWorkbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, value: boolean)` | `FPermission.setWorkbookEditPermission(unitId: string, value: boolean)` |
-| 设置工作表权限点位 | `FWorksheetPermission.setPoint(point: WorksheetPermissionPoint, value: boolean)` | `FPermission.setWorksheetPermissionPoint(unitId: string, subUnitId: string, FPointClass: WorkSheetPermissionPointConstructor, value: boolean)` |
-| 获取工作表权限点位状态 | `FWorksheetPermission.getPoint(point: WorksheetPermissionPoint): boolean` | `FPermission.checkWorksheetPermissionPoint(unitId: string, subUnitId: string, FPointClass: WorkSheetPermissionPointConstructor): boolean` |
-| 添加工作表保护 | `FWorksheetPermission.protect(options?: IWorksheetProtectionOptions)` | `FPermission.addWorksheetBasePermission(unitId: string, subUnitId: string)` |
-| 删除工作表保护 | `FWorksheetPermission.unprotect()` | `FPermission.removeWorksheetPermission(unitId: string, subUnitId: string)` |
-| 设置选区权限点位 | `FRangePermission.setPoint(point: RangePermissionPoint, value: boolean)` | `FPermission.setRangeProtectionPermissionPoint(unitId: string, subUnitId: string, permissionId: string, FPointClass: RangePermissionPointConstructor, value: boolean)` |
-| 设置区域保护权限 | 工作表：`FWorksheetPermission.protectRanges(configs)` <br/> 选区：`FRangePermission.protect(options?: IRangeProtectionOptions)` | `FPermission.addRangeBaseProtection(unitId: string, subUnitId: string, ranges: FRange[])` |
-| 删除区域保护权限 | 工作表：`FWorksheetPermission.unprotectRules(ruleIds: string[])` <br/> 选区：`FRangePermission.unprotect()` | `FPermission.removeRangeProtection(unitId: string, subUnitId: string, ruleIds: string[])` |
-| 更新区域保护权限范围 | `FRangeProtectionRule.updateRanges(ranges: FRange[])` | `FPermission.setRangeProtectionRanges(unitId: string, subUnitId: string, ruleId: string, ranges: FRange[])` |
-| 获取指定单元格权限信息 | `FWorksheetPermission.debugCellPermission(row: number, col: number): ICellPermissionDebugInfo` | `FPermission.getPermissionInfoWithCell(unitId: string, subUnitId: string, row: number, column: number)` |
-| 去除权限弹窗 | `univerAPI.setPermissionDialogVisible(false)` | `FPermission.setPermissionDialogVisible(false)` | */}
+<table>
+<thead>
+  <tr>
+    <th style={{ width: '200px' }}>API 方法描述</th>
+    <th>迁移指南</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>获取权限实例</td>
+    <td>
+      <p style={{ marginBottom: '10px' }}>
+        **旧 API：**<br/>
+        `FWorkbook.getPermission()`
+      </p>
+      <p>
+        **新 API：**<br/>
+        工作簿：`FWorkbook.getWorkbookPermission()` <br/>
+        工作表：`FWorksheet.getWorksheetPermission()` <br/>
+        选区：`FRange.getRangePermission()`
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td>设置工作簿权限点位</td>
+    <td>
+      <p style={{ marginBottom: '10px' }}>
+        **旧 API：**<br/>
+        `FPermission.setWorkbookPermissionPoint(unitId: string, FPointClass: WorkbookPermissionPointConstructor, value: boolean)`
+      </p>
+      <p>
+        **新 API：**<br/>
+        `FWorkbookPermission.setPoint(point: WorkbookPermissionPoint, value: boolean)`
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td>获取工作簿权限点位状态</td>
+    <td>
+      <p style={{ marginBottom: '10px' }}>
+        **旧 API：**<br/>
+        `FPermission.checkWorkbookPermissionPoint(unitId: string, FPointClass: WorkbookPermissionPointConstructor): boolean`
+      </p>
+      <p>
+        **新 API：**<br/>
+        `FWorkbookPermission.getPoint(point: WorkbookPermissionPoint): boolean`
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td>设置工作簿编辑权限</td>
+    <td>
+      <p style={{ marginBottom: '10px' }}>
+        **旧 API：**<br/>
+        `FPermission.setWorkbookEditPermission(unitId: string, value: boolean)`
+      </p>
+      <p>
+        **新 API：**<br/>
+        `FWorkbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, value: boolean)`
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td>添加工作表保护</td>
+    <td>
+      <p style={{ marginBottom: '10px' }}>
+        **旧 API：**<br/>
+        `FPermission.addWorksheetBasePermission(unitId: string, subUnitId: string)`
+      </p>
+      <p>
+        **新 API：**<br/>
+        `FWorksheetPermission.protect(options?: IWorksheetProtectionOptions)`
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td>删除工作表保护</td>
+    <td>
+      <p style={{ marginBottom: '10px' }}>
+        **旧 API：**<br/>
+        `FPermission.removeWorksheetPermission(unitId: string, subUnitId: string)`
+      </p>
+      <p>
+        **新 API：**<br/>
+        `FWorksheetPermission.unprotect()`
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td>设置工作表权限点位</td>
+    <td>
+      <p style={{ marginBottom: '10px' }}>
+        **旧 API：**<br/>
+        `FPermission.setWorksheetPermissionPoint(unitId: string, subUnitId: string, FPointClass: WorkSheetPermissionPointConstructor, value: boolean)`
+      </p>
+      <p>
+        **新 API：**<br/>
+        `FWorksheetPermission.setPoint(point: WorksheetPermissionPoint, value: boolean)`
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td>获取工作表权限点位状态</td>
+    <td>
+      <p style={{ marginBottom: '10px' }}>
+        **旧 API：**<br/>
+        `FPermission.checkWorksheetPermissionPoint(unitId: string, subUnitId: string, FPointClass: WorkSheetPermissionPointConstructor): boolean`
+      </p>
+      <p>
+        **新 API：**<br/>
+        `FWorksheetPermission.getPoint(point: WorksheetPermissionPoint): boolean`
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td>获取指定单元格权限信息</td>
+    <td>
+      <p style={{ marginBottom: '10px' }}>
+        **旧 API：**<br/>
+        `FPermission.getPermissionInfoWithCell(unitId: string, subUnitId: string, row: number, column: number)`
+      </p>
+      <p>
+        **新 API：**<br/>
+        `FWorksheetPermission.debugCellPermission(row: number, col: number): ICellPermissionDebugInfo`
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td>设置范围保护权限</td>
+    <td>
+      <p style={{ marginBottom: '10px' }}>
+        **旧 API：**<br/>
+        `FPermission.addRangeBaseProtection(unitId: string, subUnitId: string, ranges: FRange[])`
+      </p>
+      <p>
+        **新 API：**<br/>
+        工作表：`FWorksheetPermission.protectRanges(configs)` <br/>
+        选区：`FRangePermission.protect(options?: IRangeProtectionOptions)`
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td>删除范围保护权限</td>
+    <td>
+      <p style={{ marginBottom: '10px' }}>
+        **旧 API：**<br/>
+        `FPermission.removeRangeProtection(unitId: string, subUnitId: string, ruleIds: string[])`
+      </p>
+      <p>
+        **新 API：**<br/>
+        工作表：`FWorksheetPermission.unprotectRules(ruleIds: string[])` <br/>
+        选区：`FRangePermission.unprotect()` <br/>
+        范围保护规则：`FRangeProtectionRule.remove()`
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td>设置范围保护权限点位</td>
+    <td>
+      <p style={{ marginBottom: '10px' }}>
+        **旧 API：**<br/>
+        `FPermission.setRangeProtectionPermissionPoint(unitId: string, subUnitId: string, permissionId: string, FPointClass: RangePermissionPointConstructor, value: boolean)`
+      </p>
+      <p>
+        **新 API：**<br/>
+        `FRangeProtectionRule.setPoint(point: RangePermissionPoint, value: boolean)`
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td>更新范围保护权限范围</td>
+    <td>
+      <p style={{ marginBottom: '10px' }}>
+        **旧 API：**<br/>
+        `FPermission.setRangeProtectionRanges(unitId: string, subUnitId: string, ruleId: string, ranges: FRange[])`
+      </p>
+      <p>
+        **新 API：**<br/>
+        `FRangeProtectionRule.updateRanges(ranges: FRange[])`
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td>去除权限弹窗</td>
+    <td>
+      <p style={{ marginBottom: '10px' }}>
+        **旧 API：**<br/>
+        `FPermission.setPermissionDialogVisible(false)`
+      </p>
+      <p>
+        **新 API：**<br/>
+        `univerAPI.setPermissionDialogVisible(false)`
+      </p>
+    </td>
+  </tr>
+</tbody>
+</table>
