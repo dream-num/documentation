@@ -19,6 +19,7 @@ export const showcase: Record<string, Promise<{ default: {
   'sheets/big-data': import('./sheets/big-data'),
   'sheets/csv-import-plugin': import('./sheets/csv-import-plugin'),
   'sheets/custom-canvas': import('./sheets/custom-canvas'),
+  'sheets/custom-header': import('./sheets/custom-header'),
   'sheets/custom-menu': import('./sheets/custom-menu'),
   'sheets/custom-formula': import('./sheets/custom-formula'),
   'sheets/custom-shortcuts': import('./sheets/custom-shortcuts'),
