@@ -1,11 +1,8 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { PlaygroundFrame } from '@/components/playground'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { clsx } from '@/lib/clsx'
-import { customTranslations } from '@/lib/i18n'
+import { RelatedShowcases } from '@/components/showcase/related-showcases'
+import { ShowcaseDetailHeader } from '@/components/showcase/showcase-detail-header'
+import { ShowcaseSidebar } from '@/components/showcase/showcase-sidebar'
 import { showcase } from '@/showcase/data'
 
 interface IProps {
@@ -15,19 +12,22 @@ interface IProps {
   }>
 }
 
-export function generateStaticParams(): { slug: string }[] {
-  return Object.keys(showcase).reduce((acc, key) => {
-    acc.push({
-      slug: key,
-    })
-    return acc
-  }, [] as { slug: string }[])
+export function generateStaticParams(): { slug: string[] }[] {
+  return Object.keys(showcase).map(key => ({
+    slug: key.split('/'),
+  }))
 }
 
 export async function generateMetadata({ params }: IProps) {
   const { slug, lang } = await params
+  const pathname = slug.join('/')
 
-  const { metadata } = (await showcase[slug.join('/')]).default
+  const currentShowCasePromise = showcase[pathname]
+  if (!currentShowCasePromise) {
+    return { title: 'Not Found' }
+  }
+
+  const { metadata } = (await currentShowCasePromise).default
 
   return {
     title: metadata.title[lang],
@@ -37,7 +37,6 @@ export async function generateMetadata({ params }: IProps) {
 
 export default async function Page({ params }: IProps) {
   const { slug, lang } = await params
-
   const pathname = slug.join('/')
 
   const currentShowCasePromise = showcase[pathname]
@@ -47,21 +46,43 @@ export default async function Page({ params }: IProps) {
 
   const { metadata } = (await currentShowCasePromise).default
 
-  const nav = []
+  const type = pathname.split('/')[0] as 'sheets' | 'docs' | 'slides'
+
+  const nav: Array<{
+    type: string
+    typeKey: string
+    title: string
+    slug: string
+  }> = []
+
+  const relatedItems: Array<{
+    title: string
+    description: string
+    slug: string
+    type: 'sheets' | 'docs' | 'slides'
+  }> = []
+
   for (const key of Object.keys(showcase)) {
     const item = showcase[key as keyof typeof showcase]
-
     const { metadata } = (await item).default
-
-    const type = key.split('/')[0]
+    const itemType = key.split('/')[0] as 'sheets' | 'docs' | 'slides'
+    const displayType = `Univer ${itemType.charAt(0).toUpperCase() + itemType.slice(1)}`
 
     nav.push({
-      type: `Univer ${type.charAt(0).toUpperCase() + type.slice(1)}`,
-      title: metadata.title,
-      description: metadata.description,
-      tags: metadata.tags,
+      type: displayType,
+      typeKey: itemType,
+      title: metadata.title[lang],
       slug: key,
     })
+
+    if (itemType === type && key !== pathname) {
+      relatedItems.push({
+        title: metadata.title[lang],
+        description: metadata.description[lang],
+        slug: key,
+        type: itemType,
+      })
+    }
   }
 
   const groupedNav = nav.reduce((acc, item) => {
@@ -80,53 +101,7 @@ export default async function Page({ params }: IProps) {
         lg:px-0
       `}
     >
-      <aside
-        className={`
-          fixed hidden h-[calc(100vh-108px)] shrink-0 overflow-x-hidden overflow-y-hidden
-          lg:block
-        `}
-      >
-        <div className="h-full pt-4">
-          <ScrollArea className="h-full">
-            {Object.entries(groupedNav).map(([type, items]) => (
-              <div
-                key={type}
-                className={`
-                  mb-4
-                  last:mb-24
-                `}
-              >
-                <label
-                  className={`
-                    mb-2 px-2 text-xs font-medium text-neutral-400
-                    dark:text-neutral-600
-                  `}
-                >
-                  {type}
-                </label>
-
-                {items.map(item => (
-                  <div key={item.slug} className="mb-1">
-                    <Link
-                      href={`/showcase/${item.slug}`}
-                      className={clsx(`
-                        block h-8 w-72 items-center truncate rounded-sm px-2 text-sm/8 font-medium text-neutral-800
-                        transition-colors
-                        hover:bg-fd-card
-                        dark:text-neutral-50
-                      `, {
-                        'text-blue-600 dark:text-blue-500': item.slug === pathname,
-                      })}
-                    >
-                      {item.title[lang]}
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </ScrollArea>
-        </div>
-      </aside>
+      <ShowcaseSidebar groupedNav={groupedNav} pathname={pathname} lang={lang} />
 
       <div
         className="
@@ -134,43 +109,26 @@ export default async function Page({ params }: IProps) {
           lg:pr-0 lg:pl-74
         "
       >
-        <header
-          className={`
-            flex flex-col-reverse justify-between
-            md:flex-row
-          `}
-        >
-          <div>
-            <h1
-              className={`
-                mb-2 text-3xl font-semibold text-neutral-800
-                dark:text-neutral-50
-              `}
-            >
-              {metadata.title[lang]}
-            </h1>
+        <ShowcaseDetailHeader
+          lang={lang}
+          title={metadata.title[lang]}
+          description={metadata.description[lang]}
+          tags={metadata.tags[lang]}
+          type={type}
+        />
 
-            <div className="mb-4 flex gap-2">
-              {metadata.tags[lang]?.map(tag => (
-                <Badge key={tag} variant="secondary">{tag}</Badge>
-              ))}
-            </div>
-
-            <p>{metadata.description[lang]}</p>
-          </div>
-
-          <div>
-            <Button asChild>
-              <Link href="/showcase">
-                {customTranslations[lang]['showcase.back']}
-              </Link>
-            </Button>
-          </div>
-        </header>
-
-        <section className="mt-4">
-          <PlaygroundFrame slug={slug.join('/')} lang={lang} />
+        <section className="mt-6">
+          <PlaygroundFrame slug={pathname} lang={lang} />
         </section>
+
+        <RelatedShowcases
+          lang={lang}
+          items={relatedItems}
+          currentSlug={pathname}
+        />
+
+        {/* Bottom spacing */}
+        <div className="h-16" />
       </div>
     </div>
   )
