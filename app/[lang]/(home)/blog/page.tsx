@@ -128,7 +128,7 @@ export default async function Page({ params }: IProps) {
             hover:bg-accent
             focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none
           `}
-          href={`/${lang}/blog/rss.xml`}
+          href="/blog/rss.xml"
           target="_blank"
           rel="nofollow noreferrer"
         >

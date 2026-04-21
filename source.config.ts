@@ -30,6 +30,16 @@ export const reference = defineDocs({
   },
 })
 
+export const icons = defineDocs({
+  dir: './content/icons',
+  docs: {
+    schema: frontmatterSchema,
+  },
+  meta: {
+    schema: metaSchema,
+  },
+})
+
 export const blog = defineDocs({
   dir: './content/blog',
   docs: {

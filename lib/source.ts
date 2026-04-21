@@ -1,7 +1,7 @@
 // See https://fumadocs.vercel.app/docs/headless/source-api for more info
 import { loader } from 'fumadocs-core/source'
-import { blog as blogPosts, guides as guidesPosts, reference as referencePosts } from 'fumadocs-mdx:collections/server'
-import { icons } from 'lucide-react'
+import { blog as blogPosts, guides as guidesPosts, icons as iconsPosts, reference as referencePosts } from 'fumadocs-mdx:collections/server'
+import { icons as lucideIcons } from 'lucide-react'
 import { createElement } from 'react'
 import { IconWrapper } from '@/components/icon-wrapper'
 import { i18n } from './i18n'
@@ -13,10 +13,10 @@ export const guides = loader({
   icon(icon) {
     if (!icon) return
 
-    if (icon in icons) {
+    if (icon in lucideIcons) {
       return createElement(IconWrapper, {
         type: 'icon',
-        icon: icons[icon as keyof typeof icons],
+        icon: lucideIcons[icon as keyof typeof lucideIcons],
       })
     }
 
@@ -24,7 +24,7 @@ export const guides = loader({
       const [,iconName] = icon.split('/')
       return createElement(IconWrapper, {
         type: 'pro',
-        icon: icons[iconName as keyof typeof icons],
+        icon: lucideIcons[iconName as keyof typeof lucideIcons],
       })
     }
 
@@ -49,6 +49,27 @@ export const reference = loader({
         text: iconName,
       })
     }
+  },
+})
+
+export const icons = loader({
+  baseUrl: '/icons',
+  source: iconsPosts.toFumadocsSource(),
+  i18n,
+  icon(icon) {
+    if (!icon) return
+
+    if (icon in lucideIcons) {
+      return createElement(IconWrapper, {
+        type: 'icon',
+        icon: lucideIcons[icon as keyof typeof lucideIcons],
+      })
+    }
+
+    return createElement(IconWrapper, {
+      type: 'text',
+      text: icon,
+    })
   },
 })
 

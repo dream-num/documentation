@@ -15,8 +15,8 @@ export async function GET(request: Request, { params }: IProps) {
 
   const feed = new Feed({
     title: 'Univer Blog',
-    id: `${baseUrl}/${lang}/blog`,
-    link: `${baseUrl}/${lang}/blog`,
+    id: `${baseUrl}/blog`,
+    link: `${baseUrl}/blog`,
     language: lang,
     copyright: 'All rights reserved 2025, ',
   })

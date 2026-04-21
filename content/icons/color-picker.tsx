@@ -1,6 +1,6 @@
 import type { ColorLike } from 'color'
 import Color from 'color'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Popover,
   PopoverContent,
@@ -26,10 +26,16 @@ export function ColorPickerPopover({
   const [color, setColor] = useState<ColorLike>(value)
   const [open, setOpen] = useState(false)
 
+  const hexValue = useMemo(() => Color(color).hex(), [color])
+
+  useEffect(() => {
+    setColor(value)
+  }, [value])
+
   function handleOpenChange(isOpen: boolean) {
     setOpen(isOpen)
     if (!isOpen) {
-      onValueChange(Color(color).hex())
+      onValueChange(hexValue)
     }
   }
 
@@ -41,13 +47,17 @@ export function ColorPickerPopover({
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button
-          className="size-6 cursor-pointer rounded-md ring ring-accent-foreground/40 ring-offset-1"
-          style={{ backgroundColor: Color(color).hex() }}
+          className="
+            size-5 cursor-pointer rounded-md border-2 border-border/80 shadow-sm transition-all
+            hover:scale-105 hover:border-foreground/30
+          "
+          style={{ backgroundColor: hexValue }}
           type="button"
+          aria-label="Pick color"
         />
       </PopoverTrigger>
       <PopoverContent className="w-fit" align="end">
-        <ColorPicker defaultValue={Color(color).hex()} onChange={handleChange}>
+        <ColorPicker defaultValue={hexValue} onChange={handleChange}>
           <ColorPickerSelection className="h-48 w-full" />
           <div className="flex items-center gap-4">
             <ColorPickerEyeDropper />

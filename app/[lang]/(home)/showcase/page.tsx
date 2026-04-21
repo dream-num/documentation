@@ -50,10 +50,9 @@ export default async function Page({ params, searchParams }: IProps) {
       title: metadata.title[lang],
       description: metadata.description[lang],
       tags: metadata.tags[lang],
-      url: `/${lang}/showcase/${key}`,
+      url: `/showcase/${key}`,
       type,
       index: i,
-      image: `/assets/showcase/${key.replace(/\//g, '-')}.png`,
     })
   }
 
@@ -83,7 +82,7 @@ export default async function Page({ params, searchParams }: IProps) {
       <div className="mt-8 flex justify-center">
         <div className="inline-flex h-10 items-center rounded-lg bg-muted p-[3px] text-muted-foreground">
           <a
-            href={`/${lang}/showcase?filter=all`}
+            href="/showcase?filter=all"
             className={clsx(`
               inline-flex h-[calc(100%-1px)] items-center justify-center gap-1.5 rounded-md border border-transparent
               px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors
@@ -107,7 +106,7 @@ export default async function Page({ params, searchParams }: IProps) {
             </span>
           </a>
           <a
-            href={`/${lang}/showcase?filter=sheets`}
+            href="/showcase?filter=sheets"
             className={clsx(`
               inline-flex h-[calc(100%-1px)] items-center justify-center gap-1.5 rounded-md border border-transparent
               px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors
@@ -139,7 +138,7 @@ export default async function Page({ params, searchParams }: IProps) {
             </span>
           </a>
           <a
-            href={`/${lang}/showcase?filter=docs`}
+            href="/showcase?filter=docs"
             className={clsx(`
               inline-flex h-[calc(100%-1px)] items-center justify-center gap-1.5 rounded-md border border-transparent
               px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors
@@ -171,7 +170,7 @@ export default async function Page({ params, searchParams }: IProps) {
             </span>
           </a>
           <a
-            href={`/${lang}/showcase?filter=slides`}
+            href="/showcase?filter=slides"
             className={clsx(`
               inline-flex h-[calc(100%-1px)] items-center justify-center gap-1.5 rounded-md border border-transparent
               px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors

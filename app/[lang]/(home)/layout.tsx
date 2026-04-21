@@ -7,7 +7,7 @@ import {
   NavbarMenuLink,
   NavbarMenuTrigger,
 } from 'fumadocs-ui/layouts/home/navbar'
-import { BookTextIcon, CookingPotIcon, PackageIcon, PresentationIcon, SheetIcon, StarIcon } from 'lucide-react'
+import { BookTextIcon, CookingPotIcon, PresentationIcon, SheetIcon, StarIcon } from 'lucide-react'
 import Link from 'next/link'
 import { baseOptions } from '@/app/layout.config'
 import { Footer } from '@/components/footer'
@@ -24,13 +24,13 @@ export default async function Layout({ params, children }: IProps) {
 
   const documentationLinks = [{
     text: 'Univer Sheets',
-    url: `/${lang}/guides/sheets`,
+    url: `/guides/sheets`,
     className: 'lg:col-start-1',
     icon: <SheetIcon />,
     iconClassName: 'bg-linear-[135deg,#0DA471_0%,#F3FAF7_100%] dark:bg-linear-[135deg,#0DA471_0%,#014737_100%]',
   }, {
     text: 'Univer Docs',
-    url: `/${lang}/guides/docs`,
+    url: `/guides/docs`,
     className: 'lg:col-start-2',
     icon: <BookTextIcon />,
     iconClassName: 'bg-linear-[135deg,#3F83F8_0%,#EBF5FF_100%] dark:bg-linear-[135deg,#3F83F8_0%,#233876_100%]',
@@ -46,12 +46,6 @@ export default async function Layout({ params, children }: IProps) {
     className: 'lg:col-start-1 lg:row-start2',
     icon: <CookingPotIcon />,
     iconClassName: 'bg-linear-[135deg,#9061F9_0%,#F6F5FF_100%] dark:bg-linear-[135deg,#9061F9_0%,#4A1D96_100%]',
-  }, {
-    text: customTranslations[lang]['icons.title'],
-    url: `/${lang}/guides/icons`,
-    className: 'lg:col-start-2 lg:row-start-2',
-    icon: <PackageIcon />,
-    iconClassName: 'bg-linear-[135deg,#FACC15_0%,#FFFBEB_100%] dark:bg-linear-[135deg,#FACC15_0%,#664D03_100%]',
   }, {
     text: 'Univer Pro',
     url: '/guides/pro',
@@ -169,6 +163,10 @@ export default async function Layout({ params, children }: IProps) {
     {
       text: customTranslations[lang]['blog.title'],
       url: '/blog',
+    },
+    {
+      text: customTranslations[lang]['icons.title'],
+      url: `/icons`,
     },
     {
       text: customTranslations[lang]['showcase.title'],

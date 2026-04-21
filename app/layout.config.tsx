@@ -23,6 +23,10 @@ export function baseOptions(locale: string): BaseLayoutProps {
         url: '/reference/classes/univer',
       },
       {
+        text: customTranslations[locale]['icons.title'],
+        url: '/icons',
+      },
+      {
         type: 'custom',
         children: (
           <GithubInfo

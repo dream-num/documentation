@@ -19,7 +19,7 @@ export function PlaygroundFrame(props: IProps) {
   const [iframeHeight, setIframeHeight] = useState<number>(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
-  const src = `/${lang}/playground/${slug}`
+  const src = `/playground/${slug}`
 
   useEffect(() => {
     const eventHandler = (event: MessageEvent) => {

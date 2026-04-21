@@ -55,7 +55,7 @@ export function ShowcaseDetailHeader({ lang, title, description, tags, type }: S
         </Link>
         <ChevronRightIcon className="size-3.5" />
         <Link
-          href={`/${lang}/showcase`}
+          href="/showcase"
           className="
             transition-colors
             hover:text-neutral-900
@@ -115,7 +115,7 @@ export function ShowcaseDetailHeader({ lang, title, description, tags, type }: S
 
         <div className="shrink-0">
           <Button asChild variant="outline" size="sm">
-            <Link href={`/${lang}/showcase`}>
+            <Link href="/showcase">
               {t['showcase.back']}
             </Link>
           </Button>
