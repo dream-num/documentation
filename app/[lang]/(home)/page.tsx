@@ -1,15 +1,16 @@
-import { BookTextIcon, BowArrowIcon, CircuitBoardIcon, Columns3CogIcon, FerrisWheelIcon, LayersIcon } from 'lucide-react'
+import { BookTextIcon, FerrisWheelIcon } from 'lucide-react'
 import Link from 'next/link'
 import BlurryBlob from '@/components/animata/blurry-blob'
-import { Customer } from '@/components/customer'
+import { DeveloperExperience } from '@/components/home/developer-experience'
+import { Ecosystem } from '@/components/home/ecosystem'
+import { EnterprisePerformance } from '@/components/home/enterprise-performance'
+import { Headless } from '@/components/home/headless'
+import { LogoCloud } from '@/components/home/logo-cloud'
+import { Scenes } from '@/components/home/scenes'
 import { AnimatedShinyText } from '@/components/magicui/animated-shiny-text'
 import { BlurFade } from '@/components/magicui/blur-fade'
 import { RainbowButton } from '@/components/magicui/rainbow-button'
 import Univer from '@/components/univer'
-import Combination from '@/components/widget/combination'
-import Customizability from '@/components/widget/customizability'
-import Integration from '@/components/widget/integration'
-import Performance from '@/components/widget/performance'
 import { customTranslations } from '@/lib/i18n'
 import pkg from '@/package.json'
 
@@ -30,6 +31,7 @@ export async function generateMetadata({ params }: IProps) {
 
 export default async function Page({ params }: IProps) {
   const { lang } = await params
+  const t = customTranslations[lang]
 
   return (
     <>
@@ -42,22 +44,22 @@ export default async function Page({ params }: IProps) {
                 rounded-xl opacity-50
                 dark:opacity-35
               `}
-              firstBlobColor="bg-red-200 dark:bg-red-800"
-              secondBlobColor="bg-purple-200 dark:bg-blue-800"
+              firstBlobColor="bg-[#7AB0FF] dark:bg-[#0048FF]"
+              secondBlobColor="bg-[#6BB5F7] dark:bg-[#0C81ED]"
             />
           </div>
           <div className="absolute right-1/7 bottom-0 rotate-90">
             <BlurryBlob
               className="rounded-xl opacity-45"
-              firstBlobColor="bg-green-300 dark:bg-rose-800"
-              secondBlobColor="bg-blue-200 dark:bg-teal-800"
+              firstBlobColor="bg-[#66DDD6] dark:bg-[#00BBB0]"
+              secondBlobColor="bg-[#66D4E8] dark:bg-[#029DCE]"
             />
           </div>
           <div className="absolute -bottom-1/6 left-0">
             <BlurryBlob
               className="rounded-xl opacity-25"
-              firstBlobColor="bg-yellow-300 dark:bg-orange-800"
-              secondBlobColor="bg-indigo-800 dark:bg-pink-900"
+              firstBlobColor="bg-[#80E5D4] dark:bg-[#00C5A8]"
+              secondBlobColor="bg-[#7AB0FF] dark:bg-[#0048FF]"
             />
           </div>
         </div>
@@ -65,7 +67,7 @@ export default async function Page({ params }: IProps) {
 
       <div
         className={`
-          relative z-1 flex flex-col items-center gap-8 py-8
+          relative z-1 flex flex-col items-center gap-16 py-8
           md:py-12
         `}
       >
@@ -99,7 +101,7 @@ export default async function Page({ params }: IProps) {
                   Univer v
                   {pkg.version}
                   {' '}
-                  {customTranslations[lang]['banner.release']}
+                  {t['banner.release']}
                 </AnimatedShinyText>
               </Link>
             </div>
@@ -113,7 +115,7 @@ export default async function Page({ params }: IProps) {
                 dark:from-white dark:to-white/40
               `}
             >
-              {customTranslations[lang]['home.slogan']}
+              {t['home.slogan']}
             </h1>
 
             <p
@@ -123,36 +125,36 @@ export default async function Page({ params }: IProps) {
                 dark:text-neutral-300
               `}
             >
-              {customTranslations[lang]['home.description']}
+              {t['home.description']}
               <span
                 className="font-medium text-green-600 underline decoration-current decoration-wavy underline-offset-4"
               >
-                {customTranslations[lang]['home.description.sheets']}
+                {t['home.description.sheets']}
               </span>
-              {customTranslations[lang]['home.description.split']}
+              {t['home.description.split']}
               <span
                 className="font-medium text-blue-600 underline decoration-current decoration-wavy underline-offset-4"
               >
-                {customTranslations[lang]['home.description.docs']}
+                {t['home.description.docs']}
               </span>
-              {customTranslations[lang]['home.description.and']}
+              {t['home.description.and']}
               <span className="font-medium text-red-600 underline decoration-current decoration-wavy underline-offset-4">
-                {customTranslations[lang]['home.description.slides']}
+                {t['home.description.slides']}
               </span>
-              {customTranslations[lang]['home.description.period']}
+              {t['home.description.period']}
             </p>
 
             <div className="flex justify-center gap-4">
               <RainbowButton asChild>
                 <Link href="/guides/sheets">
                   <BookTextIcon />
-                  {customTranslations[lang]['documentation.title']}
+                  {t['documentation.title']}
                 </Link>
               </RainbowButton>
               <RainbowButton variant="outline" asChild>
                 <Link href="/showcase">
                   <FerrisWheelIcon />
-                  {customTranslations[lang]['showcase.title']}
+                  {t['showcase.title']}
                 </Link>
               </RainbowButton>
             </div>
@@ -169,74 +171,117 @@ export default async function Page({ params }: IProps) {
           <Univer />
         </section>
 
-        {/* Customer */}
-        <section className="mb-12 text-center">
-          <h2
-            className={`
-              mb-4 text-sm font-semibold text-neutral-800
-              dark:text-neutral-400
-            `}
-          >
-            {customTranslations[lang]['home.customer.title']}
-          </h2>
+        {/* Logo Cloud */}
+        <LogoCloud title={t['home.logocloud.title']} />
 
-          <div className="flex justify-center overflow-hidden">
-            <Customer />
-          </div>
-        </section>
+        {/* Scenes */}
+        <Scenes
+          title={t['home.scenes.title']}
+          subtitle={t['home.scenes.subtitle']}
+          sheetsTitle={t['home.scenes.sheets.title']}
+          sheetsDesc={t['home.scenes.sheets.desc']}
+          docsTitle={t['home.scenes.docs.title']}
+          docsDesc={t['home.scenes.docs.desc']}
+          slidesTitle={t['home.scenes.slides.title']}
+          slidesDesc={t['home.scenes.slides.desc']}
+          dataTitle={t['home.scenes.data.title']}
+          dataDesc={t['home.scenes.data.desc']}
+          collabTitle={t['home.scenes.collab.title']}
+          collabDesc={t['home.scenes.collab.desc']}
+          automationTitle={t['home.scenes.automation.title']}
+          automationDesc={t['home.scenes.automation.desc']}
+          proBadge={t['home.pro.badge']}
+        />
 
-        {/* Features */}
-        <section className="container px-4">
-          <div
-            className={`
-              grid gap-4
-              lg:h-120 lg:grid-flow-col lg:grid-cols-3 lg:grid-rows-4
-              [&>div]:flex [&>div]:flex-col [&>div]:gap-8 [&>div]:rounded-2xl [&>div]:bg-white/30 [&>div]:p-6
-              [&>div]:shadow-xs [&>div]:ring-4 [&>div]:ring-neutral-100/20 [&>div]:backdrop-blur-sm [&>div]:ring-inset
-              dark:[&>div]:bg-neutral-900/50 dark:[&>div]:ring-neutral-600/20
-              [&>div>h3]:inline-flex [&>div>h3]:items-center [&>div>h3]:gap-2 [&>div>h3]:text-sm
-              [&>div>h3]:font-semibold [&>div>h3]:text-neutral-600
-              dark:[&>div>h3]:text-neutral-300
-              [&>div>h3>svg]:size-5
-            `}
-          >
-            {/* Combination */}
-            <div className="lg:col-span-1 lg:row-span-4">
-              <h3>
-                <CircuitBoardIcon />
-                {customTranslations[lang]['home.features.conbination.title']}
-              </h3>
-              <Combination className="flex-1" />
-            </div>
+        {/* Developer Experience */}
+        <DeveloperExperience
+          title={t['home.devexp.title']}
+          subtitle={t['home.devexp.subtitle']}
+          step1Title={t['home.devexp.step1.title']}
+          step1Desc={t['home.devexp.step1.desc']}
+          step2Title={t['home.devexp.step2.title']}
+          step2Desc={t['home.devexp.step2.desc']}
+          step3Title={t['home.devexp.step3.title']}
+          step3Desc={t['home.devexp.step3.desc']}
+          step4Title={t['home.devexp.step4.title']}
+          step4Desc={t['home.devexp.step4.desc']}
+          copyLabel={t['home.devexp.copy']}
+          copiedLabel={t['home.devexp.copied']}
+          presetLabel={t['home.devexp.preset.label']}
+          pluginLabel={t['home.devexp.plugin.label']}
+        />
 
-            {/* Integration */}
-            <div className="lg:col-span-1 lg:row-span-2">
-              <h3>
-                <LayersIcon />
-                {customTranslations[lang]['home.features.integration.title']}
-              </h3>
-              <Integration className="flex-1" />
-            </div>
+        {/* Enterprise Performance */}
+        <EnterprisePerformance
+          title={t['home.enterprise.title']}
+          subtitle={t['home.enterprise.subtitle']}
+          metric1Label={t['home.enterprise.metric1.label']}
+          metric1Value={0.27}
+          metric1Suffix={t['home.enterprise.metric1.suffix']}
+          metric2Label={t['home.enterprise.metric2.label']}
+          metric2Value={60}
+          metric2Suffix={t['home.enterprise.metric2.suffix']}
+          metric3Label={t['home.enterprise.metric3.label']}
+          metric3Value={1.3}
+          metric3Suffix={t['home.enterprise.metric3.suffix']}
+          metric4Label={t['home.enterprise.metric4.label']}
+          metric4Value={200}
+          metric4Suffix={t['home.enterprise.metric4.suffix']}
+          feature1Title={t['home.enterprise.feature1.title']}
+          feature1Desc={t['home.enterprise.feature1.desc']}
+          feature2Title={t['home.enterprise.feature2.title']}
+          feature2Desc={t['home.enterprise.feature2.desc']}
+          feature3Title={t['home.enterprise.feature3.title']}
+          feature3Desc={t['home.enterprise.feature3.desc']}
+          feature4Title={t['home.enterprise.feature4.title']}
+          feature4Desc={t['home.enterprise.feature4.desc']}
+          feature5Title={t['home.enterprise.feature5.title']}
+          feature5Desc={t['home.enterprise.feature5.desc']}
+          feature6Title={t['home.enterprise.feature6.title']}
+          feature6Desc={t['home.enterprise.feature6.desc']}
+          feature7Title={t['home.enterprise.feature7.title']}
+          feature7Desc={t['home.enterprise.feature7.desc']}
+          feature8Title={t['home.enterprise.feature8.title']}
+          feature8Desc={t['home.enterprise.feature8.desc']}
+          feature9Title={t['home.enterprise.feature9.title']}
+          feature9Desc={t['home.enterprise.feature9.desc']}
+          feature10Title={t['home.enterprise.feature10.title']}
+          feature10Desc={t['home.enterprise.feature10.desc']}
+          feature11Title={t['home.enterprise.feature11.title']}
+          feature11Desc={t['home.enterprise.feature11.desc']}
+          feature12Title={t['home.enterprise.feature12.title']}
+          feature12Desc={t['home.enterprise.feature12.desc']}
+          proBadge={t['home.pro.badge']}
+        />
 
-            {/* Performance */}
-            <div className="lg:col-span-2 lg:row-span-2">
-              <h3>
-                <BowArrowIcon />
-                {customTranslations[lang]['home.features.performance.title']}
-              </h3>
-              <Performance />
-            </div>
+        {/* Headless */}
+        <Headless
+          title={t['home.headless.title']}
+          subtitle={t['home.headless.subtitle']}
+          feature1Title={t['home.headless.feature1.title']}
+          feature1Desc={t['home.headless.feature1.desc']}
+          feature2Title={t['home.headless.feature2.title']}
+          feature2Desc={t['home.headless.feature2.desc']}
+          feature3Title={t['home.headless.feature3.title']}
+          feature3Desc={t['home.headless.feature3.desc']}
+          feature4Title={t['home.headless.feature4.title']}
+          feature4Desc={t['home.headless.feature4.desc']}
+        />
 
-            {/* Customizability */}
-            <div className="lg:col-span-1 lg:row-span-2">
-              <h3>
-                <Columns3CogIcon />
-                {customTranslations[lang]['home.features.customizability.title']}
-              </h3>
-              <Customizability className="flex-1" />
-            </div>
-          </div>
-        </section>
+        {/* Ecosystem */}
+        <Ecosystem
+          title={t['home.ecosystem.title']}
+          subtitle={t['home.ecosystem.subtitle']}
+          pluginsTitle={t['home.ecosystem.plugins.title']}
+          pluginsDesc={t['home.ecosystem.plugins.desc']}
+          pluginsCta={t['home.ecosystem.plugins.cta']}
+          integrationsTitle={t['home.ecosystem.integrations.title']}
+          integrationsDesc={t['home.ecosystem.integrations.desc']}
+          integrationsCta={t['home.ecosystem.integrations.cta']}
+          communityTitle={t['home.ecosystem.community.title']}
+          communityDesc={t['home.ecosystem.community.desc']}
+          communityCta={t['home.ecosystem.community.cta']}
+        />
       </div>
     </>
   )

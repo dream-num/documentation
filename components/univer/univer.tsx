@@ -10,6 +10,7 @@ import { UniverSheetsDataValidationPreset } from '@univerjs/preset-sheets-data-v
 import sheetsDataValidationEnUS from '@univerjs/preset-sheets-data-validation/locales/en-US'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { BookTextIcon, SheetIcon } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef, useState } from 'react'
 import Spinner from '@/components/animata/spinner'
@@ -81,76 +82,114 @@ export default function Univer() {
   }, [theme, type])
 
   function handleChangeType(newType: 'sheets' | 'docs') {
+    if (newType === type) return
     setSteady(false)
     setType(newType)
   }
 
+  const tabs = [
+    {
+      key: 'sheets' as const,
+      label: 'Sheets',
+      fullLabel: 'Univer Sheets',
+      icon: SheetIcon,
+      activeClass: 'text-green-700 dark:text-green-300',
+      beamColor: '#22c55e',
+    },
+    {
+      key: 'docs' as const,
+      label: 'Docs',
+      fullLabel: 'Univer Docs',
+      icon: BookTextIcon,
+      activeClass: 'text-blue-700 dark:text-blue-300',
+      beamColor: '#3b82f6',
+    },
+  ]
+
+  const activeIndex = type === 'sheets' ? 0 : 1
+
   return (
     <div className="w-full">
-      <header className="mb-4 flex justify-center gap-4">
+      {/* Tab Switcher */}
+      <header className="mb-5 flex justify-center">
         <div
           className={`
-            flex gap-2 rounded-full bg-white p-1 text-sm font-medium shadow-md
+            relative inline-flex items-center rounded-full bg-neutral-100 p-0.5
             dark:bg-neutral-800
-            [&_button]:flex [&_button]:cursor-pointer [&_button]:items-center [&_button]:gap-2 [&_button]:rounded-full
-            [&_button]:px-2 [&_button]:py-1 [&_button]:transition-all [&_button]:duration-300
-            [&_svg]:size-4
           `}
         >
-          <button
-            className={clsx('text-green-600', {
-              'bg-green-600 text-white': type === 'sheets',
-              'hover:bg-green-50 dark:hover:bg-green-900 dark:hover:text-neutral-200': type !== 'sheets',
-            })}
-            type="button"
-            onClick={() => handleChangeType('sheets')}
-          >
-            <SheetIcon />
-            <span
-              className={`
-                hidden
-                md:inline
-              `}
-            >
-              Univer Sheets
-            </span>
-          </button>
-          <button
-            className={clsx('text-blue-600', {
-              'bg-blue-600 text-white': type === 'docs',
-              'hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:text-neutral-200': type !== 'docs',
-            })}
-            type="button"
-            onClick={() => handleChangeType('docs')}
-          >
-            <BookTextIcon />
-            <span
-              className={`
-                hidden
-                md:inline
-              `}
-            >
-              Univer Docs
-            </span>
-          </button>
+          {tabs.map((tab) => {
+            const isActive = type === tab.key
+            const Icon = tab.icon
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => handleChangeType(tab.key)}
+                className={clsx(
+                  `
+                    relative flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-colors duration-200
+                    md:px-4
+                  `,
+                  isActive
+                    ? clsx('font-semibold', tab.activeClass)
+                    : `
+                      font-medium text-neutral-500
+                      hover:text-neutral-700
+                      dark:text-neutral-400
+                      dark:hover:text-neutral-300
+                    `,
+                )}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="univer-active-tab"
+                    className={`
+                      absolute inset-0 rounded-full bg-white shadow-xs
+                      dark:bg-neutral-700
+                    `}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-1.5">
+                  <Icon className="size-3.5" />
+                  <span
+                    className="
+                      hidden
+                      md:inline
+                    "
+                  >
+                    {tab.fullLabel}
+                  </span>
+                  <span className="md:hidden">{tab.label}</span>
+                </span>
+              </button>
+            )
+          })}
         </div>
       </header>
 
+      {/* Playground Container */}
       <div
         className="relative mx-auto h-160 w-7xl max-w-full overflow-hidden rounded-xl p-0.5 shadow-xl"
       >
-        {/* Mask */}
-        <div
-          className={clsx(`
-            pointer-events-auto absolute inset-0 z-1 flex size-full items-center justify-center bg-white/20
-            transition-all
-            dark:bg-neutral-900/20
-          `, {
-            'opacity-0': steady,
-          })}
-        >
-          {!steady && <Spinner />}
-        </div>
+        {/* Mask / Loading */}
+        <AnimatePresence>
+          {!steady && (
+            <motion.div
+              className={`
+                pointer-events-auto absolute inset-0 z-10 flex size-full items-center justify-center bg-white/30
+                backdrop-blur-sm
+                dark:bg-neutral-900/30
+              `}
+              initial={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Spinner />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Univer Container */}
         <div
@@ -161,17 +200,15 @@ export default function Univer() {
           <div ref={divRef} className="h-full" />
         </div>
 
+        {/* Border Beam */}
         <BorderBeam
+          key={type}
           delay={0}
           size={600}
           borderWidth={2}
-          className="from-transparent via-green-500 to-transparent"
-        />
-        <BorderBeam
-          delay={10}
-          size={600}
-          borderWidth={2}
-          className="from-transparent via-blue-500 to-transparent"
+          colorFrom={tabs[activeIndex].beamColor}
+          colorTo={tabs[activeIndex].beamColor}
+          className="opacity-40"
         />
       </div>
     </div>
