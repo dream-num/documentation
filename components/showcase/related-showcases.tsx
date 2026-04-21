@@ -74,7 +74,7 @@ export function RelatedShowcases({ lang, items, currentSlug }: RelatedShowcasesP
           return (
             <BlurFade key={item.slug} delay={0.05 * index} inView>
               <Link
-                href={`/${lang}/showcase/${item.slug}`}
+                href={`/showcase/${item.slug}`}
                 className={`
                   group flex flex-col rounded-xl border bg-card p-4 shadow-sm transition-all duration-300
                   hover:-translate-y-0.5 hover:shadow-md

@@ -1,5 +1,6 @@
 'use client'
 
+import { ExpandIcon, XIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { clsx } from '@/lib/clsx'
 import { customTranslations } from '@/lib/i18n'
@@ -16,6 +17,9 @@ export function PlaygroundFrame(props: IProps) {
 
   const iframeRef = useRef<HTMLIFrameElement>(null!)
   const [iframeHeight, setIframeHeight] = useState<number>(0)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  const src = `/${lang}/playground/${slug}`
 
   useEffect(() => {
     const eventHandler = (event: MessageEvent) => {
@@ -30,6 +34,17 @@ export function PlaygroundFrame(props: IProps) {
       window.removeEventListener('message', eventHandler)
     }
   }, [])
+
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isFullscreen])
 
   const sandbox = (
     <div
@@ -53,7 +68,7 @@ export function PlaygroundFrame(props: IProps) {
         style={{
           height: `${iframeHeight || 100}px`,
         }}
-        src={`/${lang}/playground/${slug}`}
+        src={src}
         loading="lazy"
       />
     </div>
@@ -73,61 +88,116 @@ export function PlaygroundFrame(props: IProps) {
       )
 
   return (
-    <div
-      className="
-        relative overflow-hidden rounded-2xl border border-neutral-200/70 bg-white
-        shadow-[0_1px_0_rgba(15,23,42,0.06),0_16px_40px_rgba(15,23,42,0.12)]
-        dark:border-neutral-800/70 dark:bg-neutral-950
-      "
-    >
+    <>
       <div
         className="
-          pointer-events-none absolute inset-0
-          bg-[radial-gradient(900px_circle_at_0%_0%,rgba(59,130,246,0.14),transparent_45%),radial-gradient(900px_circle_at_100%_0%,rgba(16,185,129,0.14),transparent_45%)]
-          dark:bg-[radial-gradient(900px_circle_at_0%_0%,rgba(59,130,246,0.18),transparent_45%),radial-gradient(900px_circle_at_100%_0%,rgba(16,185,129,0.18),transparent_45%)]
+          rounded-lg border border-neutral-200/80 bg-white shadow-sm
+          dark:border-neutral-800 dark:bg-neutral-950
         "
-      />
-      <div className="relative">
+      >
+        {/* Toolbar */}
         <div
           className="
-            flex items-center justify-between border-b border-neutral-200/70 bg-neutral-50/80 px-4 py-2 text-[11px]
-            font-semibold tracking-[0.2em] text-neutral-500 uppercase
-            dark:border-neutral-800/70 dark:bg-neutral-900/70 dark:text-neutral-400
+            flex items-center justify-between border-b border-neutral-200/80 px-3 py-2
+            dark:border-neutral-800
           "
         >
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1">
-              <span className="size-2 rounded-full bg-rose-400/80" />
-              <span className="size-2 rounded-full bg-amber-400/80" />
-              <span className="size-2 rounded-full bg-emerald-400/80" />
-            </div>
-            <span
-              className="
-                hidden
-                sm:inline
-              "
-            >
-              Playground
-            </span>
-          </div>
           <span
             className="
-              rounded-full border border-neutral-200/70 bg-white/80 px-3 py-1 text-xs font-semibold text-neutral-600
-              dark:border-neutral-800 dark:bg-neutral-950/70 dark:text-neutral-300
+              text-xs font-medium text-neutral-500
+              dark:text-neutral-400
             "
           >
-            Live preview
+            Preview
           </span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(true)}
+              className="
+                inline-flex size-7 items-center justify-center rounded-sm text-neutral-500 transition-colors
+                hover:bg-neutral-100 hover:text-neutral-800
+                dark:text-neutral-400
+                dark:hover:bg-neutral-800 dark:hover:text-neutral-200
+              "
+              title="Fullscreen preview"
+            >
+              <ExpandIcon className="size-3.5" />
+            </button>
+          </div>
         </div>
+
         <div
           className="
-            p-2
-            md:p-3
+            p-1
+            md:p-2
           "
         >
           {content}
         </div>
       </div>
-    </div>
+
+      {/* Fullscreen overlay */}
+      {isFullscreen && (
+        <div
+          className="
+            fixed inset-0 z-50 flex flex-col bg-white
+            dark:bg-neutral-950
+          "
+        >
+          <div
+            className="
+              flex items-center justify-between border-b border-neutral-200/80 px-4 py-2
+              dark:border-neutral-800
+            "
+          >
+            <span
+              className="
+                text-sm font-medium text-neutral-700
+                dark:text-neutral-300
+              "
+            >
+              Preview
+            </span>
+            <div className="flex items-center gap-2">
+              <a
+                href={src}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="
+                  text-xs text-neutral-500 transition-colors
+                  hover:text-neutral-800
+                  dark:text-neutral-400
+                  dark:hover:text-neutral-200
+                "
+              >
+                Open in new tab
+              </a>
+              <button
+                type="button"
+                onClick={() => setIsFullscreen(false)}
+                className="
+                  inline-flex size-8 items-center justify-center rounded-md text-neutral-500 transition-colors
+                  hover:bg-neutral-100 hover:text-neutral-800
+                  dark:text-neutral-400
+                  dark:hover:bg-neutral-800 dark:hover:text-neutral-200
+                "
+              >
+                <XIcon className="size-4" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <iframe
+              className="
+                size-full bg-white
+                dark:bg-neutral-950
+              "
+              src={src}
+            />
+          </div>
+        </div>
+      )}
+    </>
   )
 }
