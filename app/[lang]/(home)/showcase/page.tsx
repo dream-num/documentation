@@ -53,6 +53,7 @@ export default async function Page({ params, searchParams }: IProps) {
       url: `/${lang}/showcase/${key}`,
       type,
       index: i,
+      image: `/assets/showcase/${key.replace(/\//g, '-')}.png`,
     })
   }
 

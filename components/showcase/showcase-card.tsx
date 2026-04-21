@@ -1,6 +1,7 @@
 'use client'
 
 import { ArrowUpRightIcon, BookTextIcon, PresentationIcon, SheetIcon } from 'lucide-react'
+import { useState } from 'react'
 import { BlurFade } from '@/components/magicui/blur-fade'
 import { Badge } from '@/components/ui/badge'
 import { clsx } from '@/lib/clsx'
@@ -12,6 +13,7 @@ export interface ShowcaseItem {
   url: string
   type: 'sheets' | 'docs' | 'slides'
   index: number
+  image?: string
 }
 
 const typeConfig = {
@@ -47,6 +49,9 @@ interface ShowcaseCardProps {
 
 export function ShowcaseCard({ item }: ShowcaseCardProps) {
   const config = typeConfig[item.type]
+  const [imgError, setImgError] = useState(false)
+  const [imgLoaded, setImgLoaded] = useState(false)
+  const showImage = item.image && !imgError
 
   return (
     <BlurFade delay={0.05 * item.index} inView>
@@ -54,24 +59,67 @@ export function ShowcaseCard({ item }: ShowcaseCardProps) {
         href={item.url}
         className={clsx(`
           group flex h-full flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300
-          hover:-translate-y-1 hover:shadow-lg
+          hover:-translate-y-1 hover:shadow-xl
           dark:bg-neutral-900/50
         `, config.borderColor)}
       >
         {/* Preview Area */}
         <div
-          className={clsx(`relative flex h-36 items-center justify-center bg-linear-to-br`, config.gradient)}
+          className={clsx(`relative h-48 overflow-hidden bg-linear-to-br`, config.gradient)}
         >
-          <div
-            className={clsx(`
-              flex size-14 items-center justify-center rounded-2xl bg-white/80 shadow-sm backdrop-blur-sm
-              transition-transform duration-300
-              group-hover:scale-110
-              dark:bg-neutral-800/80
-            `, config.iconColor)}
-          >
-            {config.icon}
-          </div>
+          {showImage
+            ? (
+                <>
+                  {/* Skeleton placeholder */}
+                  {!imgLoaded && (
+                    <div
+                      className="
+                        absolute inset-0 animate-pulse bg-neutral-200/50
+                        dark:bg-neutral-700/50
+                      "
+                    />
+                  )}
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className="
+                      absolute inset-0 size-full object-cover object-top-left transition-all duration-500 ease-out
+                      group-hover:scale-[1.03]
+                    "
+                    loading="lazy"
+                    onError={() => setImgError(true)}
+                    onLoad={() => setImgLoaded(true)}
+                  />
+                  {/* Bottom gradient vignette for depth */}
+                  <div
+                    className="
+                      pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-black/15 to-transparent
+                      dark:from-black/25
+                    "
+                  />
+                  {/* Subtle top highlight border */}
+                  <div
+                    className="
+                      pointer-events-none absolute inset-x-0 top-0 h-px bg-white/20
+                      dark:bg-white/10
+                    "
+                  />
+                </>
+              )
+            : (
+                <div className="flex h-full items-center justify-center">
+                  <div
+                    className={clsx(`
+                      flex size-14 items-center justify-center rounded-2xl bg-white/80 shadow-sm backdrop-blur-sm
+                      transition-transform duration-300
+                      group-hover:scale-110
+                      dark:bg-neutral-800/80
+                    `, config.iconColor)}
+                  >
+                    {config.icon}
+                  </div>
+                </div>
+              )}
 
           {/* Hover overlay */}
           <div
