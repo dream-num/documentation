@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import fs from 'node:fs'
 import process from 'node:process'
 import { chromium } from 'playwright'
 
@@ -44,6 +45,24 @@ const keys = [
   'slides/basic-via-plugin',
 ]
 
+// Ensure standalone static files are present to avoid 404s
+function ensureStandaloneStatic() {
+  const sourceStatic = '.next/static'
+  const targetStatic = '.next/standalone/.next/static'
+
+  if (!fs.existsSync(sourceStatic)) {
+    console.error('Missing .next/static. Please run "pnpm build" first.')
+    process.exit(1)
+  }
+
+  if (!fs.existsSync(targetStatic)) {
+    console.log('Copying .next/static to standalone...')
+    fs.cpSync(sourceStatic, targetStatic, { recursive: true, force: true })
+  }
+}
+
+ensureStandaloneStatic()
+
 // Start the Next.js standalone server
 const server = spawn('node', ['.next/standalone/server.js'], {
   env: { ...process.env, PORT: String(PORT) },
@@ -76,21 +95,25 @@ for (const key of keys) {
   try {
     await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 })
 
-    // Inject h-160 style since Tailwind v4 may not include it in build
+    // Inject h-160 style since Tailwind v4 may not include it in build output
     await page.addStyleTag({
       content: '.h-160 { height: 640px !important; min-height: 640px !important; }',
     })
 
-    // Wait for canvas inside the preview area
+    // Wait for the preview container to render
+    await page.waitForSelector('.h-160', { timeout: 15000 })
+
+    // Wait for canvas OR terminal content (some showcases show JSON in Terminal)
     await page.waitForFunction(() => {
       const preview = document.querySelector('.h-160')
       if (!preview)
         return false
       return preview.querySelector('canvas') !== null
-    }, { timeout: 20000 })
+        || preview.textContent.length > 50
+    }, { timeout: 25000 })
 
     // Extra wait for Univer to fully render
-    await page.waitForTimeout(4000)
+    await page.waitForTimeout(5000)
 
     // Screenshot the preview area
     const previewEl = await page.locator('.h-160').first()

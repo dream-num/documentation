@@ -2,7 +2,6 @@
 
 import { ArrowRightIcon } from 'lucide-react'
 import Link from 'next/link'
-import { BlurFade } from '@/components/magicui/blur-fade'
 import { Badge } from '@/components/ui/badge'
 import { clsx } from '@/lib/clsx'
 import { customTranslations } from '@/lib/i18n'
@@ -52,16 +51,14 @@ export function RelatedShowcases({ lang, items, currentSlug }: RelatedShowcasesP
 
   return (
     <section className="mt-12">
-      <BlurFade inView>
-        <h2
-          className={`
-            mb-4 text-lg font-semibold tracking-tight text-neutral-900
-            dark:text-neutral-50
-          `}
-        >
-          {t['showcase.related.title']}
-        </h2>
-      </BlurFade>
+      <h2
+        className={`
+          mb-4 text-lg font-semibold tracking-tight text-neutral-900
+          dark:text-neutral-50
+        `}
+      >
+        {t['showcase.related.title']}
+      </h2>
 
       <div
         className={`
@@ -69,50 +66,49 @@ export function RelatedShowcases({ lang, items, currentSlug }: RelatedShowcasesP
           md:grid-cols-3
         `}
       >
-        {filteredItems.map((item, index) => {
+        {filteredItems.map((item) => {
           const config = typeConfig[item.type]
           return (
-            <BlurFade key={item.slug} delay={0.05 * index} inView>
-              <Link
-                href={`/showcase/${item.slug}`}
+            <Link
+              key={item.slug}
+              href={`/showcase/${item.slug}`}
+              className={`
+                group flex flex-col rounded-xl border bg-card p-4 shadow-sm transition-all duration-300
+                hover:-translate-y-0.5 hover:shadow-md
+                dark:bg-neutral-900/50
+              `}
+            >
+              <div className="mb-2 flex items-center justify-between">
+                <Badge className={clsx('h-5 px-1.5 text-[10px] font-semibold', config.badgeColor)}>
+                  {config.label}
+                </Badge>
+                <ArrowRightIcon
+                  className={`
+                    size-4 text-neutral-400 transition-transform duration-200
+                    group-hover:translate-x-0.5
+                    dark:text-neutral-600
+                  `}
+                />
+              </div>
+
+              <h3
                 className={`
-                  group flex flex-col rounded-xl border bg-card p-4 shadow-sm transition-all duration-300
-                  hover:-translate-y-0.5 hover:shadow-md
-                  dark:bg-neutral-900/50
+                  mb-1 text-sm font-semibold text-neutral-800
+                  dark:text-neutral-100
                 `}
               >
-                <div className="mb-2 flex items-center justify-between">
-                  <Badge className={clsx('h-5 px-1.5 text-[10px] font-semibold', config.badgeColor)}>
-                    {config.label}
-                  </Badge>
-                  <ArrowRightIcon
-                    className={`
-                      size-4 text-neutral-400 transition-transform duration-200
-                      group-hover:translate-x-0.5
-                      dark:text-neutral-600
-                    `}
-                  />
-                </div>
+                {item.title}
+              </h3>
 
-                <h3
-                  className={`
-                    mb-1 text-sm font-semibold text-neutral-800
-                    dark:text-neutral-100
-                  `}
-                >
-                  {item.title}
-                </h3>
-
-                <p
-                  className={`
-                    line-clamp-2 text-xs text-neutral-500
-                    dark:text-neutral-400
-                  `}
-                >
-                  {item.description}
-                </p>
-              </Link>
-            </BlurFade>
+              <p
+                className={`
+                  line-clamp-2 text-xs text-neutral-500
+                  dark:text-neutral-400
+                `}
+              >
+                {item.description}
+              </p>
+            </Link>
           )
         })}
       </div>
