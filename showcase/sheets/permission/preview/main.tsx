@@ -1,5 +1,6 @@
 'use client'
 
+import type { FUniver } from '@univerjs/presets'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
@@ -13,6 +14,20 @@ export default function Preview() {
   const divRef = useRef<HTMLDivElement>(null!)
 
   const { theme } = useTheme()
+
+  async function AddWorksheetProtection(univerAPI: FUniver) {
+    const fWorkbook = univerAPI.getActiveWorkbook()
+    if (!fWorkbook) return
+
+    fWorkbook.getWorkbookPermission().setPermissionDialogVisible(false)
+
+    const fWorksheet = fWorkbook.getActiveSheet()
+    if (!fWorksheet) return
+
+    const permission = fWorksheet.getWorksheetPermission()
+    await permission.protect()
+    await permission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.Edit, false)
+  }
 
   useEffect(() => {
     const { univerAPI } = createUniver({
@@ -35,21 +50,7 @@ export default function Preview() {
 
     univerAPI.createWorkbook(WORKBOOK_DATA)
 
-    const workbook = univerAPI.getActiveWorkbook()!
-    const permission = workbook?.getPermission()
-    if (permission) {
-      const unitId = workbook.getId()
-      const subUnitId = workbook.getActiveSheet().getSheetId()
-      const worksheetEditPermission = permission.permissionPointsDefinition.WorksheetEditPermission
-
-      permission.addWorksheetBasePermission(unitId, subUnitId).then((permissionId) => {
-        permission.sheetRuleChangedAfterAuth$.subscribe((currentPermissionId) => {
-          if (currentPermissionId === permissionId) {
-            permission.setWorksheetPermissionPoint(unitId, subUnitId, worksheetEditPermission, false)
-          }
-        })
-      })
-    }
+    AddWorksheetProtection(univerAPI)
 
     return () => {
       univerAPI.dispose()

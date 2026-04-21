@@ -2,14 +2,34 @@
 title: 権限管理
 ---
 
+import { MigrationCell, MigrationRow, MigrationTable } from './components/migration-table'
+
 Univer はブック・シート・セル範囲に対する権限制御機能を提供します。ユーザーが許可されていない操作を実行しようとすると、コード実行を停止し、権限不足を通知できます。たとえば、範囲保護（エリア保護）を設定し、その範囲内で他の共同編集者が編集 / 閲覧 / コピー / フィルター等を行えるかどうかを制御できます。
 
-**注意: Univer が提供するのは拡張可能な基盤能力であり、カスタマイズ済み機能ではありません。永続化や組織構造など、より広範かつ特化した要件がある場合は、権限ルールの保存および組織構造との統合を自ら実装する必要があります。その際はカスタムプラグインを作成してください。**
-そのため、権限を設定した後に権限一覧が空であったり、ユーザー情報を取得しても空で返ることがあります。これは当該情報が API 経由で取得されるべきカスタムロジックであり、追加実装が必要だからです。以下の「サードパーティ認可サービス統合」を参照してください。
+<Callout type="warning" title="使用上の注意">
+  Univer が提供するのは拡張可能な基盤能力であり、カスタマイズ済み機能ではありません。
+  永続化や組織構造など、より広範かつ特化した要件がある場合は、権限ルールの保存および組織構造との統合を自ら実装する必要があります。その際はカスタムプラグインを作成してください。
+  そのため、権限を設定した後に権限一覧が空であったり、ユーザー情報を取得しても空で返ることがあります。これは当該情報が API 経由で取得されるべきカスタムロジックであり、追加実装が必要だからです。以下の「サードパーティ認可サービス統合」を参照してください。
+</Callout>
 
 <PlaygroundFrame lang="ja-JP" slug="sheets/permission" clickToShow />
 
+## 基本概念
+
+- 範囲：権限の対象となる範囲。Univer ではワークブック、ワークシート、選区の 3 つの範囲がサポートされており、ユーザーはこれらの範囲に対して権限を設定できます。
+- 権限ポイント：権限の対象となる機能点。各機能点は対応する権限ポイントクラスで表され、ユーザーはこれらのポイントを設定して特定の機能を制御できます。
+- 保護ルール：ワークシートと選区の権限設定には、まず保護ルールを作成する必要があります。保護ルールは、特定のユーザーやユーザーグループに対して範囲内の操作を許可または禁止するためのルールです。
+
+<Callout type="info" title="権限ポイント説明">
+  ローカル非永続化（非協同編集環境）権限制御は、権限ポイントを変更することで直接実現できます。永続化された権限については、以下の「サードパーティ認可サービス統合」を参照してください。
+  協同編集シナリオでは、権限ポイントの更新はサーバー側の状態も同期的に更新します：
+  - false：その権限ポイントには少なくとも `owner` ロールが必要
+  - true：その権限ポイントには少なくとも `reader` ロールが必要
+</Callout>
+
 ## 基本例
+
+最も一般的な権限設定方法を、ワークブック、ワークシート、選区の 3 つのレベルで以下に示します。
 
 ### ワークブック権限コード例
 
@@ -25,195 +45,83 @@ const workbookPermission = fWorkbook.getWorkbookPermission()
 await workbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
 ```
 
+重要な点：
+- ブック権限ポイントは直接設定でき、保護ルールの作成は必要ありません。
+
 ### ワークシート権限コード例
 
 ワークシートおよび範囲に関連する権限は Facade API とコマンド両方で設定可能です。ここではワークシート編集権限を例とします。その他のワークシート機能は[権限ポイントビット一覧 - ワークシート](#worksheet-point)を参照してください。
 
-<Tabs items={['Facade API', 'コマンド方式']}>
-  <Tab>
-    ```typescript
-    const fWorkbook = univerAPI.getActiveWorkbook()
-    const fWorksheet = fWorkbook.getActiveSheet()
-    const worksheetPermission = fWorksheet.getWorksheetPermission()
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
 
-    // ワークシート保護を作成し、指定したユーザーのみ編集可能に設定
-    const permissionId = await worksheetPermission.protect({
-      allowedUsers: ['user1', 'user2'],
-      name: 'My Worksheet Protection',
-    })
+// ワークシート保護を作成し、指定したユーザーのみ編集可能に設定
+const permissionId = await worksheetPermission.protect({
+  allowedUsers: ['user1', 'user2'],
+  name: 'My Worksheet Protection',
+})
 
-    // 権限ポイントを設定する必要がある場合は、まずワークシート保護を作成する必要があります
-    await worksheetPermission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.Edit, false)
-    ```
-  </Tab>
-  <Tab>
-    ```typescript
-    import { ICommandService, IPermissionService, IUniverInstanceService } from '@univerjs/core'
-    import { AddWorksheetProtectionMutation, getSheetCommandTarget, WorksheetEditPermission } from '@univerjs/sheets'
-
-    const accessor = univer.__getInjector()
-    const commandService = accessor.get(ICommandService)
-    const univerInstanceService = accessor.get(IUniverInstanceService)
-
-    const target = getSheetCommandTarget(univerInstanceService)
-    if (!target) {
-      return
-    }
-
-    const { unitId, subUnitId } = target
-
-    commandService.executeCommand(AddWorksheetProtectionMutation.id, {
-      unitId,
-      subUnitId,
-      rule: {
-        permissionId: '2sxcza1',
-        name: 'sheet',
-        unitType: 2,
-        unitId,
-        subUnitId,
-      },
-    })
-
-    const permissionService = accessor.get(IPermissionService)
-    permissionService.updatePermissionPoint(new WorksheetEditPermission(unitId, subUnitId).id, false)
-    ```
-  </Tab>
-</Tabs>
-
-このコマンドのパラメータ: `permissionId` は保存用に自分で生成する一意 ID、`unitType` はシート種別（リポジトリの `UnitObject` enum 利用可）、unitId はブック ID、`subUnitId` はシート ID。
+// 権限ポイントを設定する必要がある場合は、まずワークシート保護を作成する必要があります
+await worksheetPermission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.Edit, false)
+```
 
 #### ワークシート権限の削除
 
-<Tabs items={['API メソッド', 'コマンド方式']}>
-  <Tab>
-    ```typescript
-    const fWorkbook = univerAPI.getActiveWorkbook()
-    const fWorksheet = fWorkbook.getActiveSheet()
-    const worksheetPermission = fWorksheet.getWorksheetPermission()
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
 
-    // ワークシート保護を削除します
-    await worksheetPermission.unprotect()
-    ```
-  </Tab>
-  <Tab>
-    ```typescript
-    import { DeleteWorksheetProtectionMutation } from '@univerjs/sheets' // [!code ++]
-
-    commandService.executeCommand(DeleteWorksheetProtectionMutation.id, {
-      unitId,
-      subUnitId,
-    })
-    ```
-  </Tab>
-</Tabs>
+// ワークシート保護を削除します
+await worksheetPermission.unprotect()
+```
 
 ### カスタム範囲権限コード例
 
 範囲（Range）権限も API とコマンドの両方式で設定できます。ここでは範囲編集権限を例とします。他の範囲機能は[権限ポイントビット一覧 - 範囲](#range-point)を参照してください。
 
-<Tabs items={['API メソッド', 'コマンド方式']}>
-  <Tab>
-    ```typescript
-    const fWorkbook = univerAPI.getActiveWorkbook()
-    const fWorksheet = fWorkbook.getActiveSheet()
-    const fRange = fWorksheet.getRange('A1:B2')
-    const rangePermission = fRange.getRangePermission()
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+const rangePermission = fRange.getRangePermission()
 
-    // 指定したユーザーのみ編集可能、他のユーザーは閲覧不可
-    const rule = await rangePermission.protect({
-      name: 'My protected range',
-      allowEdit: true,
-      allowViewByOthers: false,
-      allowedUsers: ['user1', 'user2'],
-    })
-    console.log(rule)
+// 指定したユーザーのみ編集可能、他のユーザーは閲覧不可
+const rule = await rangePermission.protect({
+  name: 'My protected range',
+  allowViewByOthers: false,
+  allowedUsers: ['user1', 'user2'],
+})
+console.log(rule)
 
-    // 権限ポイントを設定する必要がある場合は、まず範囲保護を作成する必要があります
-    await rangePermission.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
-    await rangePermission.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
-    ```
-  </Tab>
-  <Tab>
-    ```typescript
-    import { ICommandService, IPermissionService, IUniverInstanceService } from '@univerjs/core'
-    import { AddRangeProtectionMutation, getSheetCommandTarget, RangeProtectionPermissionEditPoint } from '@univerjs/sheets'
-
-    const accessor = univer.__getInjector()
-    const commandService = accessor.get(ICommandService)
-    const univerInstanceService = accessor.get(IUniverInstanceService)
-
-    const target = getSheetCommandTarget(univerInstanceService)
-    if (!target) {
-      return
-    }
-
-    const { unitId, subUnitId } = target
-    const ranges = [
-      {
-        startRow: 0,
-        startColumn: 0,
-        endRow: 2,
-        endColumn: 1,
-      },
-      {
-        startRow: 3,
-        startColumn: 2,
-        endRow: 4,
-        endColumn: 3,
-      },
-    ]
-
-    commandService.executeCommand(AddRangeProtectionMutation.id, {
-      unitId,
-      subUnitId,
-      rules: [{
-        permissionId: '3xtfxG1',
-        name: 'sheet1',
-        unitType: 3,
-        unitId,
-        subUnitId,
-        ranges,
-        id: 'rule1',
-      }],
-    })
-
-    const permissionService = accessor.get(IPermissionService)
-    // RangeProtectionPermissionEditPoint の第3引数は生成した permissionId。false は編集不可
-    permissionService.updatePermissionPoint(new RangeProtectionPermissionEditPoint(unitId, subUnitId, '3xtfxG1').id, false)
-    ```
-  </Tab>
-</Tabs>
-
-ここでのパラメータは前述とほぼ同じで、選択範囲を示す `ranges`、および削除時に利用する一意識別子 `id` が追加されています。
+// 権限ポイントを設定する必要がある場合は、まず範囲保護を作成する必要があります
+await rule.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
+await rule.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
+```
 
 #### 範囲保護権限の削除
 
-<Tabs items={['API メソッド', 'コマンド方式']}>
-  <Tab>
-    ```typescript
-    const fWorkbook = univerAPI.getActiveWorkbook()
-    const fWorksheet = fWorkbook.getActiveSheet()
-    const fRange = fWorksheet.getRange('A1:B2')
-    const rangePermission = fRange.getRangePermission()
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+const rangePermission = fRange.getRangePermission()
 
-    // 範囲保護を削除します
-    await rangePermission.unprotect()
-    ```
-  </Tab>
-  <Tab>
-    ```typescript
-    import { DeleteRangeProtectionMutation } from '@univerjs/sheets' // [!code ++]
+// スコープ内のすべての保護ルールを削除
+await rangePermission.unprotect()
 
-    commandService.executeCommand(DeleteRangeProtectionMutation.id, {
-      unitId,
-      subUnitId,
-      ruleIds: ['rule1'],
-    })
-    ```
-  </Tab>
-</Tabs>
+// または、指定されたルールを削除
+const rules = await rangePermission.listRules()
+if (rules.length > 0) {
+  await rules[0].remove()
+}
+```
 
 ## 拡張利用
+
+独自のプラグイン内で権限検証を追加する必要がある場合は、直接権限ポイントを操作できます。
 
 ここでは `WorkbookEditablePermission` を例に、独自プラグイン内で権限検証を追加します。他のポイントも同様です。
 
@@ -239,9 +147,12 @@ class YourService {
 
 ### 権限ポイントの拡張方法
 
+権限ポイントをカスタマイズする必要がある場合は、`IPermissionPoint` を実装し、権限サービスに登録できます。
+
 ```typescript
 import type { IPermissionPoint } from '@univerjs/core'
-import { IPermissionService } from '@univerjs/core'
+import { IPermissionService, PermissionStatus } from '@univerjs/core'
+import { UnitAction, UnitObject } from '@univerjs/protocol'
 
 export class CustomPermissionPoint implements IPermissionPoint {
   type = UnitObject.Unkonwn // 任意のタイプ
@@ -295,8 +206,7 @@ class ConsumeService {
 
 ![Permission](./permission/permission-en.png)
 
-以下は 2 つの事前定義ロール（Owner / Reader）に対し、保護された範囲の追加と削除を行う簡易例です。
-Owner は保護範囲の編集・閲覧が可能で、Reader は保護範囲内セルの内容を編集・閲覧できません。
+以下は 2 つの事前定義ロール（Owner / Reader）に対し、保護された範囲の追加と削除を行う簡易例です。 Owner は保護範囲の編集・閲覧が可能で、Reader は保護範囲内セルの内容を編集・閲覧できません。
 
 ```typescript
 import type { Injector } from '@univerjs/core'
@@ -689,6 +599,8 @@ Univer の標準ユーザーコンポーネントは適応性に限界があり�
 
 ## Facade API
 
+Facade API は、権限に対する統一されたエントリーポイントを提供します。以下は、ワークブック、ワークシート、選区ごとに一般的なメソッドをグループ化して示しています。
+
 ### ワークブック権限
 
 #### ワークブック権限インスタンスの取得
@@ -752,21 +664,6 @@ console.log('Workbook permission snapshot:', snapshot)
 ショートカットメソッドの利用例：
 
 - `FWorkbookPermission.canEdit()`: ワークブックが編集可能か確認します
-
-#### ワークブック権限ポイント変更の購読
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const workbookPermission = fWorkbook.getWorkbookPermission()
-
-// ワークブック権限ポイント変更を購読
-const unsubscribe = workbookPermission.subscribe((snapshot) => {
-  console.log('Permission changed:', snapshot)
-})
-
-// サブスクリプションを削除する
-unsubscribe()
-```
 
 #### 共同編集者管理
 
@@ -868,34 +765,6 @@ if (isProtected) {
 }
 ```
 
-#### 範囲保護
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// 複数の保護範囲を設定、A1:B2 は他のユーザーが閲覧可能だが編集不可、C3:D4 は指定ユーザーが編集可能だが他のユーザーは閲覧不可
-const rules = await worksheetPermission.protectRanges([
-  {
-    ranges: [fWorksheet.getRange('A1:B2')],
-    options: { name: 'Protected Area 1', allowEdit: false, allowViewByOthers: true },
-  },
-  {
-    ranges: [fWorksheet.getRange('C3:D4')],
-    options: { name: 'Protected Area 2', allowEdit: true, allowViewByOthers: false, allowedUsers: ['user1'] },
-  },
-])
-console.log(rules)
-
-// 現在のすべての保護範囲ルールを取得
-const rules = await worksheetPermission.listRangeProtectionRules()
-console.log(rules)
-
-// 最初の保護範囲ルールを削除
-await worksheetPermission.unprotectRules([rules[0].id])
-```
-
 #### ワークシート権限ポイントの設定
 
 `WorksheetPermissionPoint` 列挙値のリストは、[権限ポイントビット一覧 - ワークシート権限](#worksheet-point) にあります。
@@ -964,23 +833,9 @@ const snapshot = worksheetPermission.getSnapshot()
 
 - `FWorksheetPermission.canEdit(): boolean`：ワークシートが編集可能か確認します
 - `FWorksheetPermission.canEditCell(row: number, col: number): boolean`：特定のセルが編集可能か確認します
+- `FWorksheetPermission.canView(): boolean`：ワークシートが閲覧可能か確認します
+- `FWorksheetPermission.canViewCell(row: number, col: number): boolean`：特定のセルが閲覧可能か確認します
 - `FWorksheetPermission.debugCellPermission(row: number, col: number): ICellPermissionDebugInfo`：特定のセルの権限デバッグ情報を取得します
-
-#### ワークシート権限ポイント変更の購読
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// ワークシート権限ポイント変更を購読
-const unsubscribe = worksheetPermission.subscribe((snapshot) => {
-  console.log('Permission changed:', snapshot)
-})
-
-// サブスクリプションを削除する
-unsubscribe()
-```
 
 ### 範囲権限
 
@@ -995,6 +850,39 @@ const rangePermission = fRange.getRangePermission()
 
 #### 範囲保護の設定
 
+- ワークシート権限を使用して範囲保護を設定します：
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
+
+// 複数の保護範囲を設定、A1:B2 は他のユーザーが閲覧可能だが編集不可、C3:D4 は指定ユーザーが編集可能だが他のユーザーは閲覧不可
+const rules = await worksheetPermission.protectRanges([
+  {
+    ranges: [fWorksheet.getRange('A1:B2')],
+    options: { name: 'Protected Area 1', allowViewByOthers: true },
+  },
+  {
+    ranges: [fWorksheet.getRange('C3:D4')],
+    options: { name: 'Protected Area 2', allowViewByOthers: false, allowedUsers: ['user1'] },
+  },
+])
+console.log(rules)
+
+// 現在のワークシートのすべての保護範囲ルールを取得
+const rules = await worksheetPermission.listRangeProtectionRules()
+console.log(rules)
+
+// 最初の保護範囲ルールを削除
+await worksheetPermission.unprotectRules([rules[0].id])
+
+// または、`FRangeProtectionRule.remove()` を使用して保護ルールを削除
+await ruleList[0].remove()
+```
+
+- 範囲権限インスタンスを使用して範囲保護を設定します：
+
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
@@ -1004,21 +892,23 @@ const rangePermission = fRange.getRangePermission()
 // 範囲保護を設定し、指定ユーザーが編集可能で他のユーザーは閲覧不可にする
 const rule = await rangePermission.protect({
   name: 'My protected range',
-  allowEdit: true,
   allowViewByOthers: false,
   allowedUsers: ['user1', 'user2'],
 })
 console.log(rule)
 
-// 現在のすべての範囲保護ルールを取得
+// 現在の範囲のすべての保護ルールを取得
 const rules = await rangePermission.listRules()
 console.log(rules)
 
-// 範囲保護を削除
+// 現在の範囲内のすべての保護ルールを削除
 await rangePermission.unprotect()
+
+// または、`FRangeProtectionRule.remove()` を使用して保護ルールを削除
+await rules[0].remove()
 ```
 
-#### 範囲権限インスタンスの設定
+#### 範囲権限ポイントの設定
 
 `RangePermissionPoint` 列挙値のリストは、[権限ポイントビット一覧 - 範囲](#range-point) にあります。
 
@@ -1029,59 +919,43 @@ const fRange = fWorksheet.getRange('A1:B2')
 const rangePermission = fRange.getRangePermission()
 
 // 権限ポイントを設定する必要がある場合は、まず範囲保護を作成する必要があります
-await rangePermission.protect({
-  name: 'My protected range',
-  allowEdit: true,
-  allowViewByOthers: false,
-  allowedUsers: ['user1', 'user2'],
-})
+if (rangePermission.isProtected()) {
+  const rules = await rangePermission.listRules()
 
-// A1:B2 選択範囲の編集権限を不可、閲覧権限を可に設定
-await rangePermission.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
-await rangePermission.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
+  // 最初の保護ルールの編集権限を不可、閲覧権限を可に設定
+  await rules[0].setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
+  await rules[0].setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
+} else {
+  await rangePermission.protect({
+    name: 'My protected range',
+    allowViewByOthers: false,
+    allowedUsers: ['user1', 'user2'],
+  })
+
+  // A1:B2 選択範囲の編集権限を不可、閲覧権限を可に設定
+  await rangePermission.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
+  await rangePermission.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
+}
 ```
 
-#### 範囲権限インスタンスステータスの取得
+### 範囲権限ルール API
 
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const fRange = fWorksheet.getRange('A1:B2')
-const rangePermission = fRange.getRangePermission()
+`FRangeProtectionRule` の主なメソッドは以下の通りです：
 
-// 選択範囲の編集権限ステータスを取得
-const canEdit = rangePermission.getPoint(univerAPI.Enum.RangePermissionPoint.Edit)
-console.log(canEdit)
-
-// すべての範囲権限ポイントステータスを取得
-const snapshot = rangePermission.getSnapshot()
-```
-
-ショートカットメソッドの利用例：
-
-- `FRangePermission.isProtected(): boolean`：範囲が保護されているか確認
-- `FRangePermission.canEdit(): boolean`：範囲が編集可能か確認
-- `FRangePermission.canView(): boolean`：範囲が閲覧可能か確認
-- `FRangePermission.canDelete(): boolean`：選択範囲が保護削除可能か確認
-
-#### 範囲権限ポイント変更の購読
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const fRange = fWorksheet.getRange('A1:B2')
-const rangePermission = fRange.getRangePermission()
-
-// 範囲権限ポイント変更の購読
-const unsubscribe = rangePermission.subscribe((snapshot) => {
-  console.log('Permission changed:', snapshot)
-})
-
-// サブスクリプションを削除する
-unsubscribe()
-```
-
-### 権限ルール API
+| 方法 | 説明 |
+| --- | --- |
+| `id: string` | 保護ルールの一意識別子 |
+| `permissionId: string` | この保護ルールに関連付けられた権限ポイントの ID |
+| `ranges: FRange[]` | この保護ルールが適用される範囲のリスト |
+| `options: IRangeProtectionOptions` | 保護ルールのオプション設定 |
+| `updateRanges(ranges: FRange[]): Promise<boolean>` | 保護ルールの範囲を更新 |
+| `remove(): Promise<boolean>` | この保護ルールを削除 |
+| `setPoint(point: RangePermissionPoint, value: boolean): Promise<void>` | 保護ルールの権限ポイントを設定 |
+| `getPoint(point: RangePermissionPoint): boolean` | 保護ルールの特定の権限ポイントのステータスを取得 |
+| `canEdit(): boolean` | チェック保護ルールが編集を許可するかどうか |
+| `canView(): boolean` | チェック保護ルールが閲覧を許可するかどうか |
+| `canDelete(): boolean` | チェック保護ルールが削除を許可するかどうか |
+| `getSnapshot(): RangePermissionSnapshot` | 保護ルールの現在の状態のスナップショットを取得 |
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -1110,3 +984,181 @@ await rule?.remove()
 ```typescript
 univerAPI.setPermissionDialogVisible(false)
 ```
+
+### 旧 API 移行ガイド
+
+<MigrationTable headers={['API メソッドの説明', '移行ガイド']}>
+  <MigrationRow method="権限インスタンスの取得">
+    <MigrationCell className="mb-2.5">
+      <strong>旧 API：</strong>
+      <br />
+      <code>FWorkbook.getPermission()</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>新しい API：</strong>
+      <br />
+      <div>ワークブック：<code>FWorkbook.getWorkbookPermission()</code></div>
+ <div>ワークシート：<code>FWorksheet.getWorksheetPermission()</code></div>
+ <div>範囲：<code>FRange.getRangePermission()</code></div>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="ワークブック権限ポイントの設定">
+    <MigrationCell className="mb-2.5">
+      <strong>旧 API：</strong>
+      <br />
+      <code>FPermission.setWorkbookPermissionPoint(unitId: string, FPointClass: WorkbookPermissionPointConstructor, value: boolean)</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>新しい API：</strong>
+      <br />
+      <code>FWorkbookPermission.setPoint(point: WorkbookPermissionPoint, value: boolean)</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="ワークブック権限ポイントステータスの取得">
+    <MigrationCell className="mb-2.5">
+      <strong>旧 API：</strong>
+      <br />
+      <code>FPermission.checkWorkbookPermissionPoint(unitId: string, FPointClass: WorkbookPermissionPointConstructor): boolean</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>新しい API：</strong>
+      <br />
+      <code>FWorkbookPermission.getPoint(point: WorkbookPermissionPoint): boolean</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="ワークブック編集権限の設定">
+    <MigrationCell className="mb-2.5">
+      <strong>旧 API：</strong>
+      <br />
+      <code>FPermission.setWorkbookEditPermission(unitId: string, value: boolean)</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>新しい API：</strong>
+      <br />
+      <code>FWorkbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, value: boolean)</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="ワークシート保護の設定">
+    <MigrationCell className="mb-2.5">
+      <strong>旧 API：</strong>
+      <br />
+      <code>FPermission.addWorksheetBasePermission(unitId: string, subUnitId: string)</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>新しい API：</strong>
+      <br />
+      <code>FWorksheetPermission.protect(options?: IWorksheetProtectionOptions)</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="ワークシート保護の解除">
+    <MigrationCell className="mb-2.5">
+      <strong>旧 API：</strong>
+      <br />
+      <code>FPermission.removeWorksheetPermission(unitId: string, subUnitId: string)</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>新しい API：</strong>
+      <br />
+      <code>FWorksheetPermission.unprotect()</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="ワークシート権限ポイントの設定">
+    <MigrationCell className="mb-2.5">
+      <strong>旧 API：</strong>
+      <br />
+      <code>FPermission.setWorksheetPermissionPoint(unitId: string, subUnitId: string, FPointClass: WorkSheetPermissionPointConstructor, value: boolean)</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>新しい API：</strong>
+      <br />
+      <code>FWorksheetPermission.setPoint(point: WorksheetPermissionPoint, value: boolean)</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="ワークシート権限ポイントステータスの取得">
+    <MigrationCell className="mb-2.5">
+      <strong>旧 API：</strong>
+      <br />
+      <code>FPermission.checkWorksheetPermissionPoint(unitId: string, subUnitId: string, FPointClass: WorkSheetPermissionPointConstructor): boolean</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>新しい API：</strong>
+      <br />
+      <code>FWorksheetPermission.getPoint(point: WorksheetPermissionPoint): boolean</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="特定のセルの権限デバッグ情報を取得します">
+    <MigrationCell className="mb-2.5">
+      <strong>旧 API：</strong>
+      <br />
+      <code>FPermission.getPermissionInfoWithCell(unitId: string, subUnitId: string, row: number, column: number)</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>新しい API：</strong>
+      <br />
+      <code>FWorksheetPermission.debugCellPermission(row: number, col: number): ICellPermissionDebugInfo</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="範囲保護の設定">
+    <MigrationCell className="mb-2.5">
+      <strong>旧 API：</strong>
+      <br />
+      <code>FPermission.addRangeBaseProtection(unitId: string, subUnitId: string, ranges: FRange[])</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>新しい API：</strong>
+      <br />
+      <div>ワークシート：<code>FWorksheetPermission.protectRanges(configs)</code></div>
+ <div>範囲：<code>FRangePermission.protect(options?: IRangeProtectionOptions)</code></div>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="範囲保護の解除">
+    <MigrationCell className="mb-2.5">
+      <strong>旧 API：</strong>
+      <br />
+      <code>FPermission.removeRangeProtection(unitId: string, subUnitId: string, ruleIds: string[])</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>新しい API：</strong>
+      <br />
+      <div>ワークシート：<code>FWorksheetPermission.unprotectRules(ruleIds: string[])</code></div>
+ <div>範囲：<code>FRangePermission.unprotect()</code></div>
+ <div>範囲権限ルール：<code>FRangeProtectionRule.remove()</code></div>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="範囲権限ポイントの設定">
+    <MigrationCell className="mb-2.5">
+      <strong>旧 API：</strong>
+      <br />
+      <code>FPermission.setRangeProtectionPermissionPoint(unitId: string, subUnitId: string, permissionId: string, FPointClass: RangePermissionPointConstructor, value: boolean)</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>新しい API：</strong>
+      <br />
+      <code>FRangeProtectionRule.setPoint(point: RangePermissionPoint, value: boolean)</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="保護ルールの範囲を更新">
+    <MigrationCell className="mb-2.5">
+      <strong>旧 API：</strong>
+      <br />
+      <code>FPermission.setRangeProtectionRanges(unitId: string, subUnitId: string, ruleId: string, ranges: FRange[])</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>新しい API：</strong>
+      <br />
+      <code>FRangeProtectionRule.updateRanges(ranges: FRange[])</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="権限ダイアログの非表示">
+    <MigrationCell className="mb-2.5">
+      <strong>旧 API：</strong>
+      <br />
+      <code>FPermission.setPermissionDialogVisible(false)</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>新しい API：</strong>
+      <br />
+      <code>univerAPI.setPermissionDialogVisible(false)</code>
+    </MigrationCell>
+  </MigrationRow>
+</MigrationTable>
