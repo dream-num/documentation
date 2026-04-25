@@ -19,6 +19,10 @@ export function baseOptions(locale: string): BaseLayoutProps {
     // see https://fumadocs.dev/docs/ui/navigation/links
     links: [
       {
+        text: customTranslations[locale]['guides.title'],
+        url: '/guides/sheets',
+      },
+      {
         text: customTranslations[locale]['reference.title'],
         url: '/reference/classes/univer',
       },

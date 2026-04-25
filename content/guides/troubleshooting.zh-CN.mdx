@@ -1,0 +1,175 @@
+---
+title: 故障排查
+---
+
+本文档涵盖了在安装、配置或运行 Univer 时可能遇到的常见问题及推荐解决方案。
+
+## 安装问题
+
+### 依赖版本不匹配
+
+**现象**：安装后出现构建错误或运行时异常。
+
+**原因**：Univer 的所有包必须使用完全相同的版本，不支持混用版本。
+
+**解决方案**：
+
+```bash
+# 检查当前安装的版本
+npm list @univerjs/core
+
+# 将所有包更新到相同版本
+npm install @univerjs/core@latest @univerjs/sheets@latest @univerjs/sheets-ui@latest
+```
+
+> 请始终确保所有 `@univerjs/*` 和 `@univerjs-pro/*` 包使用相同的版本号。
+
+### Peer Dependency 警告
+
+**现象**：安装时出现 `react`、`react-dom` 或 `rxjs` 的警告。
+
+**解决方案**：
+
+```bash
+# npm 7+ 会自动处理 peerDependencies
+# 对于旧版本或 yarn，请手动安装
+npm install react react-dom rxjs
+```
+
+### Webpack 4 兼容性
+
+**现象**：使用 Webpack 4 时出现 `Module not found` 错误。
+
+**原因**：Webpack 4 不支持 `package.json` 中的 `exports` 字段。
+
+**解决方案**：升级到 Webpack 5，或在构建配置中手动将导入路径映射到实际文件路径。
+
+## 运行时问题
+
+### 白屏 / Univer 无法渲染
+
+**现象**：初始化后容器元素为空。
+
+**检查清单**：
+
+1. **容器元素存在**：确保调用 `createUniver` 前，指定 `container` id 的 DOM 元素已存在。
+   ```html
+   <!-- 确保 HTML 中存在 #app -->
+   <div id="app"></div>
+   ```
+
+2. **已导入 CSS 文件**：Univer 需要 CSS 才能正确渲染。
+   ```typescript
+   import '@univerjs/design/lib/index.css'
+   import '@univerjs/ui/lib/index.css'
+   ```
+
+3. **插件注册顺序正确**：UI 插件应在核心插件之后注册。
+   ```typescript
+   univer.registerPlugin(UniverRenderEnginePlugin)
+   univer.registerPlugin(UniverFormulaEnginePlugin)
+   univer.registerPlugin(UniverUIPlugin, { container: 'app' })
+   ```
+
+### 公式不计算
+
+**现象**：单元格显示公式文本（`=SUM(A1:A10)`）而非计算结果。
+
+**解决方案**：
+
+1. 确保已注册 `@univerjs/engine-formula` 和 `@univerjs/sheets-formula` 插件。
+2. 检查 `initialFormulaComputing` 配置：
+   ```typescript
+   import { CalculationMode } from '@univerjs/engine-formula'
+   // 初始化时强制计算
+   formulaEngine.setInitialFormulaComputing(CalculationMode.FORCED)
+   ```
+3. 确认公式语法受 Univer 支持。
+
+### 撤销/重做无效
+
+**现象**：Ctrl+Z / Ctrl+Y 没有反应。
+
+**原因**：可能未注册撤销/重做插件。
+
+**解决方案**：确保已注册 `@univerjs/sheets-ui`（包含撤销/重做功能）。对于自定义命令，请确认它们已正确声明为 `COMMAND` 类型，并带有正确的撤销/重做参数。
+
+## 性能问题
+
+### 大数据集渲染缓慢
+
+**现象**：滚动或编辑包含 10万+ 单元格时出现卡顿。
+
+**建议**：
+
+1. **使用懒加载**：首次渲染后再加载非必要插件。
+   ```typescript
+   univer.createUnit(UniverInstanceType.UNIVER_SHEET, {})
+   // 初始渲染后加载重量级插件
+   import('@univerjs/watermark').then(({ UniverWatermarkPlugin }) => {
+     univer.registerPlugin(UniverWatermarkPlugin)
+   })
+   ```
+
+2. **避免过多单元格样式**：每种独特样式都会增加内存占用，请尽量复用样式。
+
+3. **使用服务端渲染处理数据**：对于繁重计算，考虑在 Node.js 中使用 Univer（headless 模式）。
+
+### 内存占用过高
+
+**现象**：浏览器标签页崩溃或无响应。
+
+**建议**：
+
+1. 释放不用的工作簿实例：
+   ```typescript
+   const workbook = univerAPI.getActiveWorkbook()
+   workbook.dispose()
+   ```
+
+2. 避免不必要地在内存中保留大量快照数据。
+
+## 移动端问题
+
+### 触摸事件无响应
+
+**现象**：在移动设备上无法与单元格交互。
+
+**原因**：桌面端和移动端 UI 插件不能同时使用。
+
+**解决方案**：使用移动端变体 UI 插件：
+
+```typescript
+// 将桌面端 UI 插件替换为移动端变体
+import { UniverSheetsMobileUIPlugin } from '@univerjs/sheets-ui'
+
+univer.registerPlugin(UniverSheetsMobileUIPlugin)
+```
+
+> 移动端支持目前处于实验阶段，生产环境部署前建议进行充分测试。
+
+## Headless / Node.js 问题
+
+### `document is not defined` 错误
+
+**现象**：在 Node.js 中运行时出现错误。
+
+**原因**：UI 相关插件在非浏览器环境中访问了 DOM API。
+
+**解决方案**：在 Node.js 中只注册核心和数据插件，不要注册任何 `-ui` 后缀的插件。
+
+```typescript
+// Node.js 安全的插件组合
+univer.registerPlugin(UniverRenderEnginePlugin)
+univer.registerPlugin(UniverFormulaEnginePlugin)
+univer.registerPlugin(UniverSheetsPlugin)
+// 不要注册 UniverSheetsUIPlugin 或 UniverUIPlugin
+```
+
+## 获取帮助
+
+如果本文档未涵盖你的问题：
+
+1. 在 [GitHub Issues](https://github.com/dream-num/univer/issues) 中搜索类似问题
+2. 加入我们的 [Discord 社区](https://discord.gg/XPGnMBmpd6) 获取实时支持
+3. 创建一个最小可复现示例并提交新 issue

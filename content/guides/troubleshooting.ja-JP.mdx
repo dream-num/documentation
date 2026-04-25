@@ -1,0 +1,175 @@
+---
+title: トラブルシューティング
+---
+
+このガイドでは、Univer のインストール、設定、実行時に発生する可能性のある一般的な問題と推奨される解決策について説明します。
+
+## インストールの問題
+
+### 依存関係のバージョンの不一致
+
+**症状**：インストール後にビルドエラーや実行時例外が発生する。
+
+**原因**：Univer のすべてのパッケージは、完全に同じバージョンを使用する必要があります。バージョンの混在はサポートされていません。
+
+**解決策**：
+
+```bash
+# 現在インストールされているバージョンを確認
+npm list @univerjs/core
+
+# すべてのパッケージを同じバージョンに更新
+npm install @univerjs/core@latest @univerjs/sheets@latest @univerjs/sheets-ui@latest
+```
+
+> すべての `@univerjs/*` および `@univerjs-pro/*` パッケージが同じバージョン番号を使用していることを常に確認してください。
+
+### Peer Dependency の警告
+
+**症状**：インストール時に `react`、`react-dom`、または `rxjs` に関する警告が表示される。
+
+**解決策**：
+
+```bash
+# npm 7+ は peerDependencies を自動的に処理します
+# 古いバージョンや yarn の場合は手動でインストールしてください
+npm install react react-dom rxjs
+```
+
+### Webpack 4 の互換性
+
+**症状**：Webpack 4 を使用しているときに `Module not found` エラーが発生する。
+
+**原因**：Webpack 4 は `package.json` の `exports` フィールドをサポートしていません。
+
+**解決策**：Webpack 5 にアップグレードするか、ビルド設定でインポートパスを実際のファイルパスに手動でマッピングしてください。
+
+## 実行時の問題
+
+### 空白画面 / Univer がレンダリングされない
+
+**症状**：初期化後にコンテナ要素が空になっている。
+
+**チェックリスト**：
+
+1. **コンテナ要素が存在する**：`createUniver` を呼び出す前に、指定された `container` id を持つ DOM 要素が存在することを確認してください。
+   ```html
+   <!-- HTML に #app が存在することを確認 -->
+   <div id="app"></div>
+   ```
+
+2. **CSS ファイルがインポートされている**：Univer は正しくレンダリングするために CSS を必要とします。
+   ```typescript
+   import '@univerjs/design/lib/index.css'
+   import '@univerjs/ui/lib/index.css'
+   ```
+
+3. **プラグインが正しい順序で登録されている**：UI プラグインはコアプラグインの後に登録する必要があります。
+   ```typescript
+   univer.registerPlugin(UniverRenderEnginePlugin)
+   univer.registerPlugin(UniverFormulaEnginePlugin)
+   univer.registerPlugin(UniverUIPlugin, { container: 'app' })
+   ```
+
+### 数式が計算されない
+
+**症状**：セルに計算結果ではなく数式テキスト（`=SUM(A1:A10)`）が表示される。
+
+**解決策**：
+
+1. `@univerjs/engine-formula` および `@univerjs/sheets-formula` プラグインが登録されていることを確認してください。
+2. `initialFormulaComputing` 設定を確認してください：
+   ```typescript
+   import { CalculationMode } from '@univerjs/engine-formula'
+   // 初期化時に強制計算
+   formulaEngine.setInitialFormulaComputing(CalculationMode.FORCED)
+   ```
+3. 数式の構文が Univer でサポートされていることを確認してください。
+
+### 元に戻す/やり直しが機能しない
+
+**症状**：Ctrl+Z / Ctrl+Y が反応しない。
+
+**原因**：元に戻す/やり直しプラグインが登録されていない可能性があります。
+
+**解決策**：`@univerjs/sheets-ui`（元に戻す/やり直し機能を含む）が登録されていることを確認してください。カスタムコマンドの場合、それらが `COMMAND` タイプとして適切に宣言され、正しい元に戻す/やり直しパラメータを持っていることを確認してください。
+
+## パフォーマンスの問題
+
+### 大規模データセットでのレンダリングが遅い
+
+**症状**：10万個以上のセルを含むワークシートのスクロールや編集時に遅延が発生する。
+
+**推奨事項**：
+
+1. **遅延読み込みを使用する**：最初のレンダリング後に必須でないプラグインを読み込みます。
+   ```typescript
+   univer.createUnit(UniverInstanceType.UNIVER_SHEET, {})
+   // 初期レンダリング後に重いプラグインを読み込む
+   import('@univerjs/watermark').then(({ UniverWatermarkPlugin }) => {
+     univer.registerPlugin(UniverWatermarkPlugin)
+   })
+   ```
+
+2. **過度なセルスタイルを避ける**：一意のスタイルはそれぞれメモリ使用量を増加させます。可能な限りスタイルを再利用してください。
+
+3. **データ処理にはサーバーサイドレンダリングを使用する**：重い計算の場合、Node.js での Univer 使用（ヘッドレスモード）を検討してください。
+
+### メモリ使用量が高い
+
+**症状**：ブラウザタブがクラッシュしたり、応答しなくなったりする。
+
+**推奨事項**：
+
+1. 未使用のワークブックインスタンスを破棄する：
+   ```typescript
+   const workbook = univerAPI.getActiveWorkbook()
+   workbook.dispose()
+   ```
+
+2. メモリ内に大きなスナップショットを不必要に保持しないようにしてください。
+
+## モバイルの問題
+
+### タッチイベントが応答しない
+
+**症状**：モバイルデバイスでセルを操作できない。
+
+**原因**：デスクトップとモバイルの UI プラグインは同時に使用できません。
+
+**解決策**：モバイル版の UI プラグインを使用してください：
+
+```typescript
+// デスクトップ UI プラグインをモバイル版に置き換える
+import { UniverSheetsMobileUIPlugin } from '@univerjs/sheets-ui'
+
+univer.registerPlugin(UniverSheetsMobileUIPlugin)
+```
+
+> モバイル対応は現在実験的です。本番環境にデプロイする前に、十分なテストをお勧めします。
+
+## Headless / Node.js の問題
+
+### `document is not defined` エラー
+
+**症状**：Node.js で実行時にエラーが発生する。
+
+**原因**：UI 関連のプラグインがブラウザー以外の環境で DOM API にアクセスしています。
+
+**解決策**：Node.js では、コアプラグインとデータプラグインのみを登録し、`-ui` サフィックスのプラグインは登録しないでください。
+
+```typescript
+// Node.js で安全なプラグインセット
+univer.registerPlugin(UniverRenderEnginePlugin)
+univer.registerPlugin(UniverFormulaEnginePlugin)
+univer.registerPlugin(UniverSheetsPlugin)
+// UniverSheetsUIPlugin や UniverUIPlugin は登録しない
+```
+
+## ヘルプの取得
+
+このドキュメントで問題が解決しない場合：
+
+1. [GitHub Issues](https://github.com/dream-num/univer/issues) で類似の問題を検索する
+2. リアルタイムサポートのために [Discord コミュニティ](https://discord.gg/XPGnMBmpd6) に参加する
+3. 最小限の再現例を作成し、新しい issue を提出する

@@ -1,0 +1,175 @@
+---
+title: Troubleshooting
+---
+
+This guide covers common issues you may encounter when installing, configuring, or running Univer, along with recommended solutions.
+
+## Installation Issues
+
+### Dependency Version Mismatch
+
+**Symptom**: Build errors or runtime exceptions after installation.
+
+**Cause**: Univer packages must use the exact same version. Mixing versions is not supported.
+
+**Solution**:
+
+```bash
+# Check current installed versions
+npm list @univerjs/core
+
+# Update all packages to the same version
+npm install @univerjs/core@latest @univerjs/sheets@latest @univerjs/sheets-ui@latest
+```
+
+> Always ensure all `@univerjs/*` and `@univerjs-pro/*` packages share the same version number.
+
+### Peer Dependency Warnings
+
+**Symptom**: Warnings about `react`, `react-dom`, or `rxjs` during installation.
+
+**Solution**:
+
+```bash
+# npm 7+ handles peerDependencies automatically
+# For older versions or yarn, install them manually
+npm install react react-dom rxjs
+```
+
+### Webpack 4 Compatibility
+
+**Symptom**: `Module not found` errors when using Webpack 4.
+
+**Cause**: Webpack 4 does not support the `exports` field in `package.json`.
+
+**Solution**: Update to Webpack 5, or manually map the import paths to the actual file paths in your build configuration.
+
+## Runtime Issues
+
+### Blank Screen / Univer Not Rendering
+
+**Symptom**: The container element is empty after initialization.
+
+**Checklist**:
+
+1. **Container element exists**: Ensure the DOM element with the specified `container` id exists before calling `createUniver`.
+   ```html
+   <!-- Ensure #app exists in your HTML -->
+   <div id="app"></div>
+   ```
+
+2. **CSS files are imported**: Univer requires CSS to render correctly.
+   ```typescript
+   import '@univerjs/design/lib/index.css'
+   import '@univerjs/ui/lib/index.css'
+   ```
+
+3. **Plugins registered in correct order**: UI plugins should be registered after core plugins.
+   ```typescript
+   univer.registerPlugin(UniverRenderEnginePlugin)
+   univer.registerPlugin(UniverFormulaEnginePlugin)
+   univer.registerPlugin(UniverUIPlugin, { container: 'app' })
+   ```
+
+### Formula Not Calculating
+
+**Symptom**: Cells show formula text (`=SUM(A1:A10)`) instead of calculated values.
+
+**Solution**:
+
+1. Ensure `@univerjs/engine-formula` and `@univerjs/sheets-formula` plugins are registered.
+2. Check the `initialFormulaComputing` configuration:
+   ```typescript
+   import { CalculationMode } from '@univerjs/engine-formula'
+   // Force calculation during initialization
+   formulaEngine.setInitialFormulaComputing(CalculationMode.FORCED)
+   ```
+3. Verify the formula syntax is supported by Univer.
+
+### Undo/Redo Not Working
+
+**Symptom**: Ctrl+Z / Ctrl+Y has no effect.
+
+**Cause**: The undo/redo plugin may not be registered.
+
+**Solution**: Ensure `@univerjs/sheets-ui` (which includes undo/redo) is registered. For custom commands, verify they are properly declared as `COMMAND` type with correct undo/redo parameters.
+
+## Performance Issues
+
+### Slow Rendering with Large Datasets
+
+**Symptom**: Lag when scrolling or editing with 100k+ cells.
+
+**Recommendations**:
+
+1. **Use lazy loading**: Defer non-essential plugins until after first render.
+   ```typescript
+   univer.createUnit(UniverInstanceType.UNIVER_SHEET, {})
+   // Load heavy plugins after initial render
+   import('@univerjs/watermark').then(({ UniverWatermarkPlugin }) => {
+     univer.registerPlugin(UniverWatermarkPlugin)
+   })
+   ```
+
+2. **Avoid excessive cell styles**: Each unique style increases memory usage. Reuse styles when possible.
+
+3. **Use server-side rendering for data processing**: For heavy computations, consider using Univer in Node.js (headless mode).
+
+### High Memory Usage
+
+**Symptom**: Browser tab crashes or becomes unresponsive.
+
+**Recommendations**:
+
+1. Dispose unused workbook instances:
+   ```typescript
+   const workbook = univerAPI.getActiveWorkbook()
+   workbook.dispose()
+   ```
+
+2. Avoid keeping large snapshots in memory unnecessarily.
+
+## Mobile Issues
+
+### Touch Events Not Responding
+
+**Symptom**: Cannot interact with cells on mobile devices.
+
+**Cause**: Desktop and mobile UI plugins cannot be used together.
+
+**Solution**: Use the mobile variant of UI plugins:
+
+```typescript
+// Replace desktop UI plugin with mobile variant
+import { UniverSheetsMobileUIPlugin } from '@univerjs/sheets-ui'
+
+univer.registerPlugin(UniverSheetsMobileUIPlugin)
+```
+
+> Mobile support is currently experimental. Thorough testing is recommended before production deployment.
+
+## Headless / Node.js Issues
+
+### `document is not defined` Error
+
+**Symptom**: Error when running in Node.js.
+
+**Cause**: UI-related plugins are accessing DOM APIs in a non-browser environment.
+
+**Solution**: Only register core and data plugins in Node.js. Do not register any `-ui` plugins.
+
+```typescript
+// Node.js safe plugin set
+univer.registerPlugin(UniverRenderEnginePlugin)
+univer.registerPlugin(UniverFormulaEnginePlugin)
+univer.registerPlugin(UniverSheetsPlugin)
+// Do NOT register UniverSheetsUIPlugin or UniverUIPlugin
+```
+
+## Getting Help
+
+If your issue is not covered here:
+
+1. Search [GitHub Issues](https://github.com/dream-num/univer/issues) for similar problems
+2. Join our [Discord community](https://discord.gg/XPGnMBmpd6) for real-time support
+3. Create a minimal reproduction and file a new issue
