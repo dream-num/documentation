@@ -34,6 +34,7 @@ export const showcase: Record<string, Promise<{ default: {
   'sheets/charts': import('./sheets/charts'),
   'sheets/shapes': import('./sheets/shapes'),
   'sheets/print': import('./sheets/print'),
+  'sheets/univer-pro-import-export': import('./sheets/univer-pro-import-export'),
   'sheets/migrate-from-luckysheet': import('./sheets/migrate-from-luckysheet'),
   'sheets/cross-workbook-formula': import('./sheets/cross-workbook-formula'),
   'sheets/read-only': import('./sheets/read-only'),
