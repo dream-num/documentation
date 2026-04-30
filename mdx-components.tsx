@@ -1,4 +1,5 @@
 import type { MDXComponents } from 'mdx/types'
+import type { ComponentProps } from 'react'
 import { createGenerator } from 'fumadocs-typescript'
 import { AutoTypeTable } from 'fumadocs-typescript/ui'
 import { Step, Steps } from 'fumadocs-ui/components/steps'
@@ -11,6 +12,16 @@ import { PlaygroundFrame } from '@/components/playground'
 
 const generator = createGenerator()
 
+function AutoTypeTableWrapper(props: ComponentProps<typeof AutoTypeTable>) {
+  return (
+    <AutoTypeTable
+      className="hidden"
+      {...props}
+      generator={generator}
+    />
+  )
+}
+
 // use this function to get MDX components, you will need it for rendering MDX
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
@@ -22,13 +33,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Step,
     Mermaid,
     MetaData,
-    AutoTypeTable: props => (
-      <AutoTypeTable
-        class="hidden"
-        {...props}
-        generator={generator}
-      />
-    ),
+    AutoTypeTable: AutoTypeTableWrapper,
     APITable,
     PlaygroundFrame,
   }

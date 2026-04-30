@@ -793,7 +793,7 @@ export function DeveloperExperience(props: IProps) {
   function handleCopy() {
     navigator.clipboard.writeText(mode === 'preset' ? presetCode : pluginCode)
     setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    setTimeout(setCopied, 2000, false)
   }
 
   const steps = [

@@ -5,12 +5,11 @@ export function ToolbarField(props: { label: string, children: ReactNode }) {
   const { label, children } = props
 
   return (
-    <div className="univer-inline-flex univer-items-center univer-gap-2">
+    <div className="inline-flex items-center gap-2">
       <div
         className="
-          univer-shrink-0 univer-text-[11px] univer-font-medium univer-uppercase univer-tracking-[0.06em]
-          univer-text-slate-500
-          dark:!univer-text-gray-400
+          shrink-0 text-[11px] font-medium tracking-[0.06em] text-slate-500 uppercase
+          dark:text-gray-400!
         "
       >
         {label}
@@ -28,7 +27,7 @@ export function ToolbarToggleGroup(props: {
   const { items, value, onChange } = props
 
   return (
-    <div className="univer-inline-flex univer-items-center univer-gap-1">
+    <div className="inline-flex items-center gap-1">
       {items.map((item) => {
         const active = item.value === value
 
@@ -37,19 +36,18 @@ export function ToolbarToggleGroup(props: {
             key={item.value}
             type="button"
             className={clsx(`
-              univer-cursor-pointer univer-rounded-md univer-border-none univer-bg-transparent univer-px-2.5 univer-py-1
-              univer-text-sm univer-font-medium univer-transition-colors
+              cursor-pointer rounded-md border-none bg-transparent px-2.5 py-1 text-sm font-medium transition-colors
             `, active
               ? ''
               : `
-                univer-text-slate-600
-                hover:univer-bg-slate-100 hover:univer-text-slate-900
-                dark:!univer-text-gray-300
-                dark:hover:!univer-bg-gray-800 dark:hover:!univer-text-white
+                text-slate-600
+                hover:bg-slate-100 hover:text-slate-900
+                dark:text-gray-300!
+                dark:hover:bg-gray-800! dark:hover:text-white!
               `)}
             style={active
               ? {
-                  backgroundColor: 'var(--univer-primary-600)',
+                  backgroundColor: 'var(--primary-600)',
                   color: '#FFFFFF',
                 }
               : undefined}

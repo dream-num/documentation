@@ -90,7 +90,7 @@ function CopyableTag({ text, label, icon: Icon, successText }: { text: string, l
   const handleCopy = () => {
     navigator.clipboard.writeText(text)
     setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    setTimeout(setCopied, 2000, false)
   }
 
   return (
@@ -143,7 +143,7 @@ function PackageRow({
     if (!client) return
     navigator.clipboard.writeText(client)
     setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    setTimeout(setCopied, 2000, false)
   }
 
   if (!client && !locale && !style && !facade) return null

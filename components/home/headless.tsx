@@ -744,7 +744,7 @@ export function Headless(props: IProps) {
                   onClick={() => {
                     navigator.clipboard.writeText(mode === 'preset' ? presetCode : pluginCode)
                     setCopied(true)
-                    setTimeout(() => setCopied(false), 2000)
+                    setTimeout(setCopied, 2000, false)
                   }}
                   className="
                     inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-neutral-500

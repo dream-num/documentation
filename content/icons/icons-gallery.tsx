@@ -99,7 +99,7 @@ export function IconsGallery() {
   function handleCopy(text: string, componentName: string) {
     navigator.clipboard.writeText(text)
     setCopiedName(componentName)
-    window.setTimeout(() => setCopiedName(null), 1500)
+    window.setTimeout(setCopiedName, 1500, null)
   }
 
   const totalCount = useMemo(
