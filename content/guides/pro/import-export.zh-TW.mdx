@@ -12,30 +12,46 @@ title: 匯入匯出服務
 
 ## 匯入流程
 
-1. 上傳檔案到物件儲存，取得 `fileID`
-2. 呼叫匯入 API，設定 `outputType`
+1. [上傳檔案](/guides/pro/api#upload-file)到物件儲存，取得 `fileID`
+2. 呼叫[匯入](/guides/pro/api#import-file) API，設定 `outputType`
    - `1`：匯入為 unit 文件
    - `2`：匯入為 JSON
-3. 輪詢任務狀態：
+3. 輪詢[任務狀態](/guides/pro/api#get-task-result)：
    - `pending`：持續輪詢
    - `done`：取得 `import.unitID` 或 `import.jsonID`
    - `failed`：查看 `error.message`
-4. 若匯入為 JSON，需依[服務端資料轉換](/guides/docs/features/import-export#服務端資料轉換)處理後再載入
+4. 文件載入
+   - 若匯入為 unit 文件，直接使用 `import.unitID` 載入，使用見[協同編輯](/guides/sheets/features/collaboration)章節
+   - 若匯入為 JSON，使用 `import.jsonID` [取得檔案](/guides/pro/api#get-file)下載連結，拿到 JSON 後按[服務端資料轉換](/guides/sheets/features/import-export#server-side-data-conversion)處理後再載入
 
 ![import](./import-export/import.png)
 
 ## 匯出流程
 
-1. 以 `unitID` 呼叫匯出 API，取得 `taskID`
-2. 輪詢狀態：
+unit 協同文件匯出方式：
+
+1. 以 `unitID` 呼叫[匯出](/guides/pro/api#export-file) API，取得 `taskID`
+2. 輪詢[任務狀態](/guides/pro/api#get-task-result)：
    - `pending`：持續輪詢
    - `done`：取得 `export.fileID`
    - `failed`：查看 `error.message`
-3. 使用 `export.fileID` 取得下載連結
+3. 使用 `export.fileID` [取得檔案](/guides/pro/api#get-file)下載連結
 
 ![export](./import-export/export.png)
 
+非協同文件匯出方式：
+
+1. [上傳](/guides/pro/api#upload-file)前端 snapshot json 生成的檔案到物件儲存，取得 `fileID`
+2. 以 `jsonID` 呼叫[匯出](/guides/pro/api#export-file) API，取得 `taskID`；`jsonID` 為前一步上傳檔案的 `fileID`
+3. 輪詢[任務狀態](/guides/pro/api#get-task-result)：
+   - `pending`：持續輪詢
+   - `done`：取得 `export.fileID`
+   - `failed`：查看 `error.message`
+4. 使用 `export.fileID` [取得檔案](/guides/pro/api#get-file)下載連結
+
 ## 實作範例
+
+前端已經整合了匯入匯出的 API 呼叫，詳見 [Facade API](/guides/sheets/features/import-export#facade-api)。
 
 以下程式碼展示使用 `fetch` 的完整 TypeScript 實作。請將 `BASE_URL` 替換為你的 Univer 伺服器端點，並在每次請求中帶上認證資訊（例如 `cookie` 或 `Authorization`）。
 
@@ -43,6 +59,9 @@ title: 匯入匯出服務
 
 ```typescript
 async function uploadFile(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', file)
+
   const res = await fetch(
     `${BASE_URL}/universer-api/stream/file/upload?size=${file.size}`,
     {
@@ -51,7 +70,7 @@ async function uploadFile(file: File): Promise<string> {
         // 在此添加認證資訊，例如
         // cookie: '_univer=XXXXXX',
       },
-      body: file,
+      body: formData,
     },
   )
 
@@ -145,6 +164,7 @@ async function importFile(params: ImportParams): Promise<string> {
 ```typescript
 interface ExportParams {
   unitID: string
+  jsonID: string
   type: 1 | 2 // 1 = 文件, 2 = 試算表
   sscSwitch?: boolean
 }

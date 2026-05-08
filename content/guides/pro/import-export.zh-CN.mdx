@@ -12,37 +12,56 @@ title: 导入导出服务
 
 ## 导入流程
 
-1. 上传文件到对象存储，获取 `fileID`
-2. 调用导入接口，设置 `outputType`
+1. [上传文件](/guides/pro/api#upload-file)到对象存储，获取 `fileID`
+2. 调用[导入](/guides/pro/api#import-file)接口，设置 `outputType`
    - `1`：导入为 unit 文档
    - `2`：导入为 JSON
-3. 轮询任务状态：
+3. 轮询[任务状态](/guides/pro/api#get-task-result)：
    - `pending`：继续轮询
    - `done`：获取 `import.unitID` 或 `import.jsonID`
    - `failed`：查看 `error.message`
-4. 若导入为 JSON，需按[服务端数据转化](/guides/docs/features/import-export#服务端数据转化)处理后再加载
+4. 文档加载
+   - 若导入为 unit 文档，直接使用 `import.unitID` 加载，使用见[协同编辑](/guides/sheets/features/collaboration)章节
+   - 若导入为 JSON，使用 `import.jsonID` [获取文件](/guides/pro/api#get-file)下载链接，拿到 JSON 后按[服务端数据转换](/guides/sheets/features/import-export#server-side-data-conversion)处理后再加载
 
 ![import](./import-export/import.png)
 
 ## 导出流程
 
-1. 通过 `unitID` 调用导出接口，获取 `taskID`
-2. 轮询任务状态：
+unit 协同文档导出方式：
+
+1. 通过 `unitID` 调用[导出](/guides/pro/api#export-file)接口，获取 `taskID`
+2. 轮询[任务状态](/guides/pro/api#get-task-result)：
    - `pending`：继续轮询
    - `done`：获取 `export.fileID`
    - `failed`：查看 `error.message`
-3. 使用 `export.fileID` 获取文件下载链接
+3. 使用 `export.fileID` [获取文件](/guides/pro/api#get-file)下载链接
 
 ![export](./import-export/export.png)
 
+非协同文档导出方式：
+
+1. [上传](/guides/pro/api#upload-file)前端 snapshot json 生成的文件到对象存储，获取 `fileID`
+2. 通过 `jsonID` 调用[导出](/guides/pro/api#export-file)接口，获取 `taskID`；`jsonID` 为前一步上传文件的 `fileID`
+3. 轮询[任务状态](/guides/pro/api#get-task-result)：
+   - `pending`：继续轮询
+   - `done`：获取 `export.fileID`
+   - `failed`：查看 `error.message`
+4. 使用 `export.fileID` [获取文件](/guides/pro/api#get-file)下载链接
+
 ## 实现示例
 
-以下代码展示了使用 `fetch` 的完整 TypeScript 实现。请将 `BASE_URL` 替换为你的 Univer 服务端点，并在每次请求中带上认证信息（例如 `cookie` 或 `Authorization`）。
+前端已经集成了导入导出的 API 调用，详见 [Facade API](/guides/sheets/features/import-export#facade-api)。
+
+以下代码展示了使用 `fetch` 进行接口调用的完整 TypeScript 实现。请将 `BASE_URL` 替换为你的 Univer 服务端点，并在每次请求中带上认证信息（例如 `cookie` 或 `Authorization`）。
 
 ### 1. 上传文件
 
 ```typescript
 async function uploadFile(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', file)
+
   const res = await fetch(
     `${BASE_URL}/universer-api/stream/file/upload?size=${file.size}`,
     {
@@ -51,7 +70,7 @@ async function uploadFile(file: File): Promise<string> {
         // 在此添加认证信息，例如
         // cookie: '_univer=XXXXXX',
       },
-      body: file,
+      body: formData,
     },
   )
 
@@ -145,6 +164,7 @@ async function importFile(params: ImportParams): Promise<string> {
 ```typescript
 interface ExportParams {
   unitID: string
+  jsonID: string
   type: 1 | 2 // 1 = 文档, 2 = 表格
   sscSwitch?: boolean
 }
