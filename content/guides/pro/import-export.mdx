@@ -12,30 +12,46 @@ Import/export is provided by the server and allows converting Office files to Un
 
 ## Import Flow
 
-1. Upload the file to object storage and get `fileID`
-2. Call the import API with `outputType`
+1. [Upload the file](/guides/pro/api#upload-file) to object storage and get `fileID`
+2. Call the [import](/guides/pro/api#import-file) API with `outputType`
    - `1`: import as a unit document
    - `2`: import as JSON
-3. Poll task status:
+3. Poll [task status](/guides/pro/api#get-task-result):
    - `pending`: keep polling
    - `done`: get `import.unitID` or `import.jsonID`
    - `failed`: read `error.message`
-4. If importing JSON, follow [Server-side data conversion](/guides/docs/features/import-export#server-side-data-conversion)
+4. Document loading
+   - If importing as a unit document, load directly with `import.unitID`, see [Collaboration](/guides/sheets/features/collaboration) section
+   - If importing as JSON, use `import.jsonID` to [Get File](/guides/pro/api#get-file) download URL, then process the JSON with [Server-side data conversion](/guides/sheets/features/import-export#server-side-data-conversion) before loading
 
 ![import](./import-export/import.png)
 
 ## Export Flow
 
-1. Call export API with `unitID` to get `taskID`
-2. Poll status:
+The export flow for unit collaborative documents:
+
+1. Call [export](/guides/pro/api#export-file) API with `unitID` to get `taskID`
+2. Poll [task status](/guides/pro/api#get-task-result):
    - `pending`: keep polling
    - `done`: get `export.fileID`
    - `failed`: read `error.message`
-3. Use `export.fileID` to get a download URL
+3. Use `export.fileID` to [Get File](/guides/pro/api#get-file) download URL
 
 ![export](./import-export/export.png)
 
+The export flow for non-collaborative documents:
+
+1. [Upload](/guides/pro/api#upload-file) the file generated from frontend snapshot JSON to object storage and get `fileID`
+2. Call [export](/guides/pro/api#export-file) API with `jsonID` to get `taskID`; `jsonID` is the `fileID` from the previous step
+3. Poll [task status](/guides/pro/api#get-task-result):
+   - `pending`: keep polling
+   - `done`: get `export.fileID`
+   - `failed`: read `error.message`
+4. Use `export.fileID` to [Get File](/guides/pro/api#get-file) download URL
+
 ## Implementation Example
+
+The API calls for import/export are already integrated in the frontend, see [Facade API](/guides/sheets/features/import-export#facade-api) for details.
 
 The snippets below demonstrate a complete TypeScript workflow using `fetch`. Replace `BASE_URL` with your Univer server endpoint and include the required auth header (for example `cookie` or `Authorization`) in every request.
 
@@ -43,6 +59,9 @@ The snippets below demonstrate a complete TypeScript workflow using `fetch`. Rep
 
 ```typescript
 async function uploadFile(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', file)
+
   const res = await fetch(
     `${BASE_URL}/universer-api/stream/file/upload?size=${file.size}`,
     {
@@ -51,7 +70,7 @@ async function uploadFile(file: File): Promise<string> {
         // Add your auth header here, e.g.
         // cookie: '_univer=XXXXXX',
       },
-      body: file,
+      body: formData,
     },
   )
 
@@ -145,6 +164,7 @@ async function importFile(params: ImportParams): Promise<string> {
 ```typescript
 interface ExportParams {
   unitID: string
+  jsonID: string
   type: 1 | 2 // 1 = doc, 2 = sheet
   sscSwitch?: boolean
 }

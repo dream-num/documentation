@@ -12,30 +12,46 @@ title: インポート/エクスポート
 
 ## インポート手順
 
-1. ファイルを Object Storage にアップロードし `fileID` を取得
-2. `outputType` を指定してインポート API を呼び出す
+1. ファイルを Object Storage に[アップロード](/guides/pro/api#upload-file)し `fileID` を取得
+2. `outputType` を指定して[インポート](/guides/pro/api#import-file) API を呼び出す
    - `1`：unit 文書としてインポート
    - `2`：JSON としてインポート
-3. タスクの状態をポーリング：
+3. [タスクの状態](/guides/pro/api#get-task-result)をポーリング：
    - `pending`：継続
-   - `done`：`import.unitID` または `import.jsonID`
+   - `done`：取得 `import.unitID` または `import.jsonID`
    - `failed`：`error.message` を参照
-4. JSON の場合は[サーバー側変換](/guides/docs/features/import-export#server-side-data-conversion)が必要
+4. ドキュメントの読み込み
+   - unit 文書としてインポートした場合は、`import.unitID` を使用して直接読み込む。使用方法は[共同編集](/guides/sheets/features/collaboration)章を参照
+   - JSON としてインポートした場合は、`import.jsonID` を使用して[ファイル取得](/guides/pro/api#get-file)しダウンロード URL を取得。JSON をダウンロードした後、[サーバー側変換](/guides/sheets/features/import-export#server-side-data-conversion)に従って処理し、読み込む
 
 ![import](./import-export/import.png)
 
 ## エクスポート手順
 
-1. `unitID` でエクスポート API を呼び出し `taskID` を取得
-2. ステータスをポーリング：
+unit 協同文書のエクスポート手順：
+
+1. `unitID` で[エクスポート](/guides/pro/api#export-file) API を呼び出し `taskID` を取得
+2. [タスクの状態](/guides/pro/api#get-task-result)をポーリング：
    - `pending`：継続
-   - `done`：`export.fileID`
-   - `failed`：`error.message`
-3. `export.fileID` でダウンロード URL を取得
+   - `done`：取得 `export.fileID`
+   - `failed`：`error.message` を参照
+3. `export.fileID` を使用して[ファイル取得](/guides/pro/api#get-file)でダウンロード URL を取得
 
 ![export](./import-export/export.png)
 
+非協同文書のエクスポート手順：
+
+1. 前端 snapshot json 生成的文件を Object Storage に[アップロード](/guides/pro/api#upload-file)し `fileID` を取得
+2. `jsonID` を使用して[エクスポート](/guides/pro/api#export-file) API を呼び出し `taskID` を取得；`jsonID` は前のステップでアップロードしたファイルの `fileID`
+3. [タスクの状態](/guides/pro/api#get-task-result)をポーリング：
+   - `pending`：継続
+   - `done`：取得 `export.fileID`
+   - `failed`：`error.message` を参照
+4. `export.fileID` を使用して[ファイル取得](/guides/pro/api#get-file)でダウンロード URL を取得
+
 ## 実装例
+
+フロントエンドはすでにインポート/エクスポートの API 呼び出しを統合しており、詳細は [Facade API](/guides/sheets/features/import-export#facade-api) を参照してください。
 
 以下は `fetch` を使った TypeScript の実装例です。`BASE_URL` を Univer サーバーのエンドポイントに置き換え、各リクエストに認証ヘッダー（例：`cookie` や `Authorization`）を含めてください。
 
@@ -43,6 +59,9 @@ title: インポート/エクスポート
 
 ```typescript
 async function uploadFile(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', file)
+
   const res = await fetch(
     `${BASE_URL}/universer-api/stream/file/upload?size=${file.size}`,
     {
@@ -51,7 +70,7 @@ async function uploadFile(file: File): Promise<string> {
         // 認証ヘッダーを追加してください。例：
         // cookie: '_univer=XXXXXX',
       },
-      body: file,
+      body: formData,
     },
   )
 
@@ -145,6 +164,7 @@ async function importFile(params: ImportParams): Promise<string> {
 ```typescript
 interface ExportParams {
   unitID: string
+  jsonID: string
   type: 1 | 2 // 1 = ドキュメント, 2 = スプレッドシート
   sscSwitch?: boolean
 }
