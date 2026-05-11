@@ -29,6 +29,7 @@ export default antfu({
     'react-hooks/purity': 'off',
     'react-hooks/refs': 'off',
     'react-refresh/only-export-components': 'off',
+    'react/static-components': 'off',
   },
 }, {
   files: ['**/*.mdx'],
@@ -89,6 +90,7 @@ export default antfu({
     'react/rules-of-hooks': 'off',
     'react-refresh/only-export-components': 'off',
     'import/no-duplicates': 'off',
+    'react/dom-no-render': 'off',
   },
 }, {
   files: ['**/*.tsx'],
