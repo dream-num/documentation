@@ -39,6 +39,7 @@ export const showcase: Record<string, Promise<{ default: {
   'sheets/migrate-from-luckysheet': import('./sheets/migrate-from-luckysheet'),
   'sheets/cross-workbook-formula': import('./sheets/cross-workbook-formula'),
   'sheets/read-only': import('./sheets/read-only'),
+  'sheets/hide-headers': import('./sheets/hide-headers'),
   'sheets/mobile-via-plugin': import('./sheets/mobile-via-plugin'),
   'docs/slim-via-plugin': import('./docs/slim-via-plugin'),
   'docs/slim-via-preset': import('./docs/slim-via-preset'),
