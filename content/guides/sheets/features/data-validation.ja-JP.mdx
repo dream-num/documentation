@@ -144,8 +144,7 @@ univer.registerPlugin(UniverSheetsDataValidationUIPlugin, {
 })
 ```
 
-{/* 完整的配置项参考 [IUniverSheetsDataValidationUIConfig](https://github.com/dream-num/univer/blob/dev/packages/sheets-data-validation-ui/src/controllers/config.schema.ts#L23)。 */}
-Complete configuration options can be found in the [`IUniverSheetsDataValidationUIConfig`](https://github.com/dream-num/univer/blob/dev/packages/sheets-data-validation-ui/src/controllers/config.schema.ts#L23).
+Complete configuration options can be found in the [`IUniverSheetsDataValidationUIConfig`](https://github.com/dream-num/univer/blob/dev/packages/sheets-data-validation-ui/src/config/config.ts).
 
 ## Facade API
 
@@ -163,9 +162,9 @@ import '@univerjs/sheets-data-validation/facade'
 
 ### データ検証ルールの追加
 
-[`univerAPI.newDataValidation()`](https://reference.univer.ai/en-US/classes/FUniver#newdatavalidation) は、新しいデータ検証ビルダーを作成します。これは `FDataValidationBuilder` インスタンスを返し、チェーン呼び出しでデータ検証ルールを生成できます。
+[`univerAPI.newDataValidation()`](https://docs.univer.ai/reference/facade/univer#newdatavalidation) は、新しいデータ検証ビルダーを作成します。これは `FDataValidationBuilder` インスタンスを返し、チェーン呼び出しでデータ検証ルールを生成できます。
 
-以下は [`FDataValidationBuilder`](https://reference.univer.ai/en-US/classes/FDataValidationBuilder) のメソッドの一部です:
+以下は [`FDataValidationBuilder`](https://docs.univer.ai/reference/facade/data-validation) のメソッドの一部です:
 
 | Method | Description |
 | ------ | ----------- |
@@ -187,8 +186,8 @@ import '@univerjs/sheets-data-validation/facade'
 | requireNumberLessThanOrEqualTo | 指定した値以下の数値を要求するルールを設定します |
 | requireNumberNotBetween | 指定した 2 つの数値の間にない、かつどちらとも等しくない数値を要求するルールを設定します |
 | requireNumberNotEqualTo | 指定した値と等しくない数値を要求するルールを設定します |
-| requireValueInList | ユーザーが特定の値のリストから値を入力することを要求するルールを設定します |
-| requireValueInRange | 指定した範囲内の値を入力することを要求するルールを設定します |
+| requireValueInList | ユーザーが特定の値のリストから値を入力することを要求するルールを設定します。単一/複数選択、ドロップダウンの表示/非表示をサポートします |
+| requireValueInRange | 指定した範囲内の値を入力することを要求するルールを設定します。単一/複数選択、ドロップダウンの表示/非表示をサポートします |
 | setOptions | データ検証ルールのオプションを設定します |
 
 ```typescript
@@ -223,10 +222,11 @@ fRange.setDataValidation(null)
 
 返されるデータ検証ルールオブジェクトは `FDataValidation` インスタンスであり、ルールの条件やオプションなどを取得できます。
 
-以下は [`FDataValidation`](https://reference.univer.ai/en-US/classes/FDataValidation) のメソッドの一部です:
+以下は [`FDataValidation`](https://docs.univer.ai/reference/facade/data-validation) のメソッドの一部です:
 
 | Method | Description |
 | ---- | ---- |
+| copy | 現在のルールオブジェクトを使用して新しい FDataValidationBuilder インスタンスを作成します |
 | getCriteriaType | ルールのデータ検証タイプを取得します |
 | getCriteriaValues | 条件評価に使用される値を取得します |
 | getHelpText | ヘルプテキスト情報を取得します（ユーザーへの案内に使用されます） |
@@ -242,6 +242,9 @@ const fWorksheet = fWorkbook.getActiveSheet()
 
 // 現在のシートのすべてのデータ検証ルールを取得します
 const rulesOfSheet = fWorksheet.getDataValidations()
+
+// ルール ID でデータ検証ルールを取得します
+const ruleById = fWorksheet.getDataValidation(rulesOfSheet[0]?.rule.uid)
 
 const fRange = fWorksheet.getRange('A1:B10')
 
@@ -293,7 +296,40 @@ setTimeout(() => {
 }, 6000)
 ```
 
+### 検証エラーの取得
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+
+// 現在のワークブックのすべてのデータ検証エラーを取得します
+const workbookErrors = await fWorkbook.getAllDataValidationErrorAsync()
+console.log('workbookErrors:', workbookErrors)
+
+// 現在のシートのすべてのデータ検証エラーを取得します
+const worksheetErrors = await fWorksheet.getAllDataValidationErrorAsync()
+console.log('worksheetErrors:', worksheetErrors)
+
+// 現在の範囲のデータ検証エラーを取得します
+const fRange = fWorksheet.getRange('A1:B10')
+const rangeErrors = await fRange.getDataValidationErrorAsync()
+console.log('rangeErrors:', rangeErrors)
+```
+
+各エラーオブジェクトには以下のフィールドが含まれます：
+- `sheetName`：エラーが発生したワークシートの名前
+- `row`：エラーをトリガーしたセルの行インデックス
+- `column`：エラーをトリガーしたセルの列インデックス
+- `ruleId`：エラーをトリガーしたルールの ID
+- `inputValue`：エラーをトリガーした入力値
+- `rule`：ルールコンテンツのスナップショット
+
 ### バリデータの状態を取得
+
+バリデータの状態は `DataValidationStatus` の列挙値であり、以下を含みます：
+- `valid`：セルの値が検証を通過しました
+- `invalid`：セルの値が検証に失敗しました
+- `validating`：セルが検証中です
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -317,7 +353,7 @@ fRange.getValidatorStatus().then((status) => {
 
 ### イベントリスナー
 
-完全なイベント型定義は、[Events](https://reference.univer.ai/en-US/classes/FEventName) を参照してください。
+完全なイベント型定義は、[Events](https://docs.univer.ai/reference/facade/events) を参照してください。
 
 データ検証モジュールは、ルールの追加、更新、削除、バリデーション状態の変更を監視するための一連のイベントを提供します。すべてのイベントは `univerAPI.addEvent()` で購読できます。
 
@@ -439,10 +475,38 @@ const disposable = univerAPI.addEvent(univerAPI.Event.SheetDataValidatorStatusCh
 
 `Before` プレフィックスが付いたすべてのイベントコールバックは `params.cancel = true` を使用して対応する操作を防止できます。
 
+### エラースタイル
+
+`errorStyle` オプションは、無効なデータが入力されたときの動作を制御します。これは `DataValidationErrorStyle` の列挙値であり、以下を含みます：
+- `STOP`：ユーザーが無効なデータを入力するのを防ぎます
+- `WARNING`：ユーザーが無効なデータを入力することを許可しますが、警告を表示します
+- `INFO`：ユーザーが無効なデータを入力することを許可しますが、情報メッセージを表示します
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B10')
+
+const rule = univerAPI.newDataValidation()
+  .requireNumberBetween(1, 10)
+  .setOptions({
+    allowBlank: true,
+    showErrorMessage: true,
+    error: '1 から 10 の間の数値を入力してください',
+    errorStyle: univerAPI.Enum.DataValidationErrorStyle.STOP,
+  })
+  .build()
+fRange.setDataValidation(rule)
+```
+
 ### 変更リストのレンダーモード設定
 
 ```typescript
-dataValidation.setOptions({
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B10')
+
+fRange.getDataValidation().setOptions({
   // support TEXT, ARROW, CUSTOM
   // default is `CUSTOM`
   renderMode: univerAPI.Enum.DataValidationRenderMode.TEXT,

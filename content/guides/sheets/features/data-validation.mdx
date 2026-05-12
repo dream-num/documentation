@@ -144,8 +144,7 @@ univer.registerPlugin(UniverSheetsDataValidationUIPlugin, {
 })
 ```
 
-{/* 完整的配置项参考 [IUniverSheetsDataValidationUIConfig](https://github.com/dream-num/univer/blob/dev/packages/sheets-data-validation-ui/src/controllers/config.schema.ts#L23)。 */}
-Complete configuration options can be found in the [`IUniverSheetsDataValidationUIConfig`](https://github.com/dream-num/univer/blob/dev/packages/sheets-data-validation-ui/src/controllers/config.schema.ts#L23).
+Complete configuration options can be found in the [`IUniverSheetsDataValidationUIConfig`](https://github.com/dream-num/univer/blob/dev/packages/sheets-data-validation-ui/src/config/config.ts).
 
 ## Facade API
 
@@ -163,9 +162,9 @@ import '@univerjs/sheets-data-validation/facade'
 
 ### Add a data validation rule
 
-[`univerAPI.newDataValidation()`](https://reference.univer.ai/en-US/classes/FUniver#newdatavalidation) can create a new data validation builder, which returns an `FDataValidationBuilder` instance that can generate data validation rules through chained calls.
+[`univerAPI.newDataValidation()`](https://docs.univer.ai/reference/facade/univer#newdatavalidation) can create a new data validation builder, which returns an `FDataValidationBuilder` instance that can generate data validation rules through chained calls.
 
-Here are some member methods on [`FDataValidationBuilder`](https://reference.univer.ai/en-US/classes/FDataValidationBuilder):
+Here are some member methods on [`FDataValidationBuilder`](https://docs.univer.ai/reference/facade/data-validation):
 
 | Method | Description |
 | ------ | ----------- |
@@ -187,8 +186,8 @@ Here are some member methods on [`FDataValidationBuilder`](https://reference.uni
 | requireNumberLessThanOrEqualTo | Sets the data validation rule to require a number less than or equal to the given value |
 | requireNumberNotBetween | Sets the data validation rule to require a number that does not fall between, and is neither of, two specified numbers |
 | requireNumberNotEqualTo | Sets the data validation rule to require a number not equal to the given value |
-| requireValueInList | Sets a data validation rule that requires the user to enter a value from a list of specific values |
-| requireValueInRange | Sets a data validation rule that requires the user to enter a value within a specific range |
+| requireValueInList | Sets a data validation rule that requires the user to enter a value from a list of specific values. Supports single/multiple selection and show/hide dropdown |
+| requireValueInRange | Sets a data validation rule that requires the user to enter a value within a specific range. Supports single/multiple selection and show/hide dropdown |
 | setOptions | Sets the options for the data validation rule |
 
 ```typescript
@@ -223,10 +222,11 @@ fRange.setDataValidation(null)
 
 The returned data validation rule object is an `FDataValidation` instance, which can be used to obtain the conditions, options, etc. of the validation rule.
 
-Here are some member methods on [`FDataValidation`](https://reference.univer.ai/en-US/classes/FDataValidation):
+Here are some member methods on [`FDataValidation`](https://docs.univer.ai/reference/facade/data-validation):
 
 | Method | Description |
 | ---- | ---- |
+| copy | Creates a new instance of FDataValidationBuilder using the current rule object |
 | getCriteriaType | Gets the data validation type of the rule |
 | getCriteriaValues | Gets the values used for criteria evaluation |
 | getHelpText | Gets the help text information, which is used to provide users with guidance and support |
@@ -242,6 +242,9 @@ const fWorksheet = fWorkbook.getActiveSheet()
 
 // Get all data validation rules in current sheet.
 const rulesOfSheet = fWorksheet.getDataValidations()
+
+// Get a data validation rule by rule ID.
+const ruleById = fWorksheet.getDataValidation(rulesOfSheet[0]?.rule.uid)
 
 const fRange = fWorksheet.getRange('A1:B10')
 
@@ -293,7 +296,40 @@ setTimeout(() => {
 }, 6000)
 ```
 
+### Get validation errors
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+
+// Get all data validation errors for current workbook.
+const workbookErrors = await fWorkbook.getAllDataValidationErrorAsync()
+console.log('workbookErrors:', workbookErrors)
+
+// Get all data validation errors for current sheet.
+const worksheetErrors = await fWorksheet.getAllDataValidationErrorAsync()
+console.log('worksheetErrors:', worksheetErrors)
+
+// Get data validation errors for current range.
+const fRange = fWorksheet.getRange('A1:B10')
+const rangeErrors = await fRange.getDataValidationErrorAsync()
+console.log('rangeErrors:', rangeErrors)
+```
+
+Each error object contains the following fields:
+- `sheetName`: The name of the worksheet where the error occurred
+- `row`: The row index of the cell that triggered the error
+- `column`: The column index of the cell that triggered the error
+- `ruleId`: The ID of the rule that triggered the error
+- `inputValue`: The input value that triggered the error
+- `rule`: The rule content snapshot
+
 ### Get validator status
+
+The validator status is an enum value of `DataValidationStatus`, which includes:
+- `valid`: The cell value passes validation
+- `invalid`: The cell value fails validation
+- `validating`: The cell is being validated
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -317,7 +353,7 @@ fRange.getValidatorStatus().then((status) => {
 
 ### Event Listeners
 
-Full event type definitions, please refer to [Events](https://reference.univer.ai/en-US/classes/FEventName).
+Full event type definitions, please refer to [Events](https://docs.univer.ai/reference/facade/events).
 
 The data validation module provides a series of events for monitoring validation rule additions, updates, deletions, and validation status changes. All events can be listened to using `univerAPI.addEvent()`.
 
@@ -439,10 +475,38 @@ Special parameters:
 
 All event callbacks with the `Before` prefix can use `params.cancel = true` to prevent the corresponding operation.
 
+### Error style
+
+The `errorStyle` option controls the behavior when invalid data is entered. It is an enum value of `DataValidationErrorStyle`, which includes:
+- `STOP`: Prevents the user from entering invalid data
+- `WARNING`: Allows the user to enter invalid data, but displays a warning
+- `INFO`: Allows the user to enter invalid data, but displays an information message
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B10')
+
+const rule = univerAPI.newDataValidation()
+  .requireNumberBetween(1, 10)
+  .setOptions({
+    allowBlank: true,
+    showErrorMessage: true,
+    error: 'Please enter a number between 1 and 10',
+    errorStyle: univerAPI.Enum.DataValidationErrorStyle.STOP,
+  })
+  .build()
+fRange.setDataValidation(rule)
+```
+
 ### Change List render mode
 
 ```typescript
-dataValidation.setOptions({
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B10')
+
+fRange.getDataValidation().setOptions({
   // support TEXT, ARROW, CUSTOM
   // default is `CUSTOM`
   renderMode: univerAPI.Enum.DataValidationRenderMode.TEXT,

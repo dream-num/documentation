@@ -143,7 +143,7 @@ univer.registerPlugin(UniverSheetsDataValidationUIPlugin, {
 })
 ```
 
-完整的配置项参考 [`IUniverSheetsDataValidationUIConfig`](https://github.com/dream-num/univer/blob/dev/packages/sheets-data-validation-ui/src/controllers/config.schema.ts#L23)。
+完整的配置项参考 [`IUniverSheetsDataValidationUIConfig`](https://github.com/dream-num/univer/blob/dev/packages/sheets-data-validation-ui/src/config/config.ts)。
 
 ## Facade API
 
@@ -161,9 +161,9 @@ import '@univerjs/sheets-data-validation/facade'
 
 ### 添加一个数据验证规则
 
-[`univerAPI.newDataValidation()`](https://reference.univer.ai/zh-CN/classes/FUniver#newdatavalidation) 可以创建一个新的数据验证构建器，返回一个 `FDataValidationBuilder` 实例，可以通过链式调用生成数据验证规则。
+[`univerAPI.newDataValidation()`](https://docs.univer.ai/reference/facade/univer#newdatavalidation) 可以创建一个新的数据验证构建器，返回一个 `FDataValidationBuilder` 实例，可以通过链式调用生成数据验证规则。
 
-以下是 [`FDataValidationBuilder`](https://reference.univer.ai/zh-CN/classes/FDataValidationBuilder) 上的一些成员方法：
+以下是 [`FDataValidationBuilder`](https://docs.univer.ai/reference/facade/data-validation) 上的一些成员方法：
 
 | 方法 | 描述 |
 | ---- | ---- |
@@ -185,8 +185,8 @@ import '@univerjs/sheets-data-validation/facade'
 | requireNumberLessThanOrEqualTo | 设置数据验证规则要求数字小于或等于给定值 |
 | requireNumberNotBetween | 设置数据验证规则要求数字不在两个指定数字之间，也不是其中之一 |
 | requireNumberNotEqualTo | 设置数据验证规则要求数字不等于给定值 |
-| requireValueInList | 设置数据验证规则，要求用户从特定值列表中输入一个值。 |
-| requireValueInRange | 设置数据验证规则，要求用户输入特定范围内的值 |
+| requireValueInList | 设置数据验证规则，要求用户从特定值列表中输入一个值。支持单选/多选，支持显示/隐藏下拉框 |
+| requireValueInRange | 设置数据验证规则，要求用户输入特定范围内的值。支持单选/多选，支持显示/隐藏下拉框 |
 | setOptions | 设置数据验证规则的选项 |
 
 ```typescript
@@ -221,10 +221,11 @@ fRange.setDataValidation(null)
 
 返回的数据验证规则对象是一个 `FDataValidation` 实例，可以通过该实例获取验证规则的条件、选项等。
 
-以下是 [`FDataValidation`](https://reference.univer.ai/zh-CN/classes/FDataValidation) 上的一些成员方法：
+以下是 [`FDataValidation`](https://docs.univer.ai/reference/facade/data-validation) 上的一些成员方法：
 
 | 方法 | 描述 |
 | ---- | ---- |
+| copy | 使用当前规则对象创建一个新的 FDataValidationBuilder 实例 |
 | getCriteriaType | 获取数据验证规则的类型 |
 | getCriteriaValues | 获取数据验证规则的条件值 |
 | getHelpText | 获取帮助文本信息，用于为用户提供指导和支持 |
@@ -240,6 +241,9 @@ const fWorksheet = fWorkbook.getActiveSheet()
 
 // 获取当前工作表的所有数据验证规则
 const rulesOfSheet = fWorksheet.getDataValidations()
+
+// 通过规则 ID 获取数据验证规则
+const ruleById = fWorksheet.getDataValidation(rulesOfSheet[0]?.rule.uid)
 
 const fRange = fWorksheet.getRange('A1:B10')
 
@@ -291,7 +295,40 @@ setTimeout(() => {
 }, 6000)
 ```
 
+### 获取验证错误
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+
+// 获取当前工作簿的所有数据验证错误
+const workbookErrors = await fWorkbook.getAllDataValidationErrorAsync()
+console.log('workbookErrors:', workbookErrors)
+
+// 获取当前工作表的所有数据验证错误
+const worksheetErrors = await fWorksheet.getAllDataValidationErrorAsync()
+console.log('worksheetErrors:', worksheetErrors)
+
+// 获取当前范围的数据验证错误
+const fRange = fWorksheet.getRange('A1:B10')
+const rangeErrors = await fRange.getDataValidationErrorAsync()
+console.log('rangeErrors:', rangeErrors)
+```
+
+每个错误对象包含以下字段：
+- `sheetName`：发生错误的工作表名称
+- `row`：触发错误的单元格行索引
+- `column`：触发错误的单元格列索引
+- `ruleId`：触发错误的规则 ID
+- `inputValue`：触发错误的输入值
+- `rule`：规则内容快照
+
 ### 查询校验状态
+
+校验状态是 `DataValidationStatus` 的枚举值，包括：
+- `valid`：单元格值通过验证
+- `invalid`：单元格值未通过验证
+- `validating`：单元格正在验证中
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -313,7 +350,7 @@ fRange.getValidatorStatus().then((status) => {
 
 ### 事件监听
 
-完整事件类型定义，请查看 [Events](https://reference.univer.ai/zh-CN/classes/FEventName)。
+完整事件类型定义，请查看 [Events](https://docs.univer.ai/reference/facade/events)。
 
 数据验证模块提供了一系列事件用于监听验证规则的添加、更新、删除和验证状态变更。所有事件都可以通过 `univerAPI.addEvent()` 进行监听。
 
@@ -435,10 +472,38 @@ const disposable = univerAPI.addEvent(univerAPI.Event.SheetDataValidatorStatusCh
 
 所有 `Before` 前缀的事件回调函数都可以使用 `params.cancel = true` 来阻止对应的操作。
 
+### 错误样式
+
+`errorStyle` 选项控制输入无效数据时的行为。它是 `DataValidationErrorStyle` 的枚举值，包括：
+- `STOP`：阻止用户输入无效数据
+- `WARNING`：允许用户输入无效数据，但显示警告
+- `INFO`：允许用户输入无效数据，但显示信息提示
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B10')
+
+const rule = univerAPI.newDataValidation()
+  .requireNumberBetween(1, 10)
+  .setOptions({
+    allowBlank: true,
+    showErrorMessage: true,
+    error: '请输入 1 到 10 之间的数字',
+    errorStyle: univerAPI.Enum.DataValidationErrorStyle.STOP,
+  })
+  .build()
+fRange.setDataValidation(rule)
+```
+
 ### 变更列表型验证的渲染模式
 
 ```typescript
-dataValidation.setOptions({
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B10')
+
+fRange.getDataValidation().setOptions({
   // support TEXT, ARROW, CUSTOM
   // default is `CUSTOM`
   renderMode: univerAPI.Enum.DataValidationRenderMode.TEXT,

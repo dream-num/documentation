@@ -18,38 +18,33 @@ This interface class provides methods to modify the behavior of the operation fo
 
 | Method | Description |
 |--------|-------------|
-| [`calculationEnd`](#calculationend) | Listening calculation ends |
-| [`calculationProcessing`](#calculationprocessing) | Listening calculation processing |
-| [`calculationStart`](#calculationstart) | Listening calculation starts |
+| [`calculationEnd`](#calculationend) | Listen for calculation end events |
+| [`calculationProcessing`](#calculationprocessing) | Listen for calculation processing events |
+| [`calculationStart`](#calculationstart) | Listen for calculation start events |
 | [`executeCalculation`](#executecalculation) | Start the calculation of the formula |
 | [`executeFormulas`](#executeformulas) | Execute a batch of formulas asynchronously and receive computed results |
-| [`getAllDependencyTrees`](#getalldependencytrees) | Retrieve all formula dependency trees that were produced during the latest
-dependency-analysis run |
+| [`getAllDependencyTrees`](#getalldependencytrees) | Retrieve all formula dependency trees produced during the latest dependency-analysis run |
 | [`getCellDependencyTree`](#getcelldependencytree) | Retrieve the dependency tree of a specific cell |
 | [`getFormulaExpressTree`](#getformulaexpresstree) | Parse a formula string and return its formula expression tree |
-| [`getInRangeFormulas`](#getinrangeformulas) | Retrieve the dependency trees of all formulas *inside* the specified ranges |
-| [`getRangeDependents`](#getrangedependents) | Retrieve the full dependency trees for all formulas that *depend on* the
-specified ranges |
-| [`getRangeDependentsAndInRangeFormulas`](#getrangedependentsandinrangeformulas) | Retrieve both:
-1) the full dependency trees of all formulas that depend on the specified ranges, and
-2) the dependency trees of all formulas that physically reside inside the specified ranges |
+| [`getInRangeFormulas`](#getinrangeformulas) | Retrieve the dependency trees of all formulas inside the specified ranges |
+| [`getRangeDependents`](#getrangedependents) | Retrieve the full dependency trees for all formulas that depend on the specified ranges |
+| [`getRangeDependentsAndInRangeFormulas`](#getrangedependentsandinrangeformulas) | Retrieve both the dependency trees of formulas that depend on the specified ranges and those inside the ranges |
 | [`moveFormulaRefOffset`](#moveformularefoffset) | Offsets the formula |
 | [`onCalculationEnd`](#oncalculationend) | Waits for the formula calculation to complete |
-| [`sequenceNodesBuilder`](#sequencenodesbuilder) | Resolves the formula string to a 'node' node |
+| [`sequenceNodesBuilder`](#sequencenodesbuilder) | Resolves the formula string to a node tree |
 | [`setFormulaReturnDependencyTree`](#setformulareturndependencytree) | Enable or disable emitting formula dependency trees after each formula calculation |
 | [`setMaxIteration`](#setmaxiteration) | When a formula contains a circular reference, set the maximum number of iterations for the formula calculation |
 | [`stopCalculation`](#stopcalculation) | Stop the calculation of the formula |
-| [`whenComputingCompleteAsync`](#whencomputingcompleteasync) | - |
 
 ### @univerjs/sheets-formula
 
 | Method | Description |
 |--------|-------------|
-| [`calculationResultApplied`](#calculationresultapplied) | - |
-| [`onCalculationResultApplied`](#oncalculationresultapplied) | - |
-| [`registerAsyncFunction`](#registerasyncfunction) | - |
-| [`registerFunction`](#registerfunction) | - |
-| [`setInitialFormulaComputing`](#setinitialformulacomputing) | - |
+| [`calculationResultApplied`](#calculationresultapplied) | Listens for the moment when formula-calculation results are applied |
+| [`onCalculationResultApplied`](#oncalculationresultapplied) | Waits for formula-calculation results to be applied |
+| [`registerAsyncFunction`](#registerasyncfunction) | Register a custom asynchronous formula function |
+| [`registerFunction`](#registerfunction) | Register a custom synchronous formula function |
+| [`setInitialFormulaComputing`](#setinitialformulacomputing) | Update the calculation mode of the formula |
 
 ## APIs
 
@@ -67,7 +62,7 @@ getAllDependencyTrees(timeout = 30_000): Promise<IFormulaDependencyTreeJson[]>
 ```
 
 **Parameters**
-- `timeout` `number` *(optional)* — *No description*
+- `timeout` `number` *(optional)* — The maximum time to wait for the result, in milliseconds. Default is `30_000`.
 
 **Returns**
 - `Promise<IFormulaDependencyTreeJson[]>` — A promise that resolves with the array of dependency trees.
@@ -95,8 +90,8 @@ getCellDependencyTree(param: { unitId: string; sheetId: string; row: number; col
 ```
 
 **Parameters**
-- `param` `{ unitId: string; sheetId: string; row: number; column: number; }` — *No description*
-- `timeout` `number` *(optional)* — *No description*
+- `param` `{ unitId: string; sheetId: string; row: number; column: number; }` — The target cell coordinates and unit information.
+- `timeout` `number` *(optional)* — The maximum time to wait for the result, in milliseconds. Default is `30_000`.
 
 **Returns**
 - `Promise<any>` — A promise that resolves with the dependency tree or `undefined`
@@ -142,8 +137,8 @@ getFormulaExpressTree(formulaString: string, unitId: string): IExprTreeNode | nu
 ```
 
 **Parameters**
-- `formulaString` `string` — *No description*
-- `unitId` `string` — *No description*
+- `formulaString` `string` — The formula string to parse (with or without leading `=`).
+- `unitId` `string` — The ID of the workbook unit.
 
 **Returns**
 - `any` — A formula expression tree describing the hierarchical structure of the formula
@@ -151,10 +146,11 @@ getFormulaExpressTree(formulaString: string, unitId: string): IExprTreeNode | nu
 **Examples**
 ```ts
 const formulaEngine = univerAPI.getFormula();
+const fWorkbook = univerAPI.getActiveWorkbook();
 
 const formula = '=LET(x,SUM(A1,B1,A1:B10),y,OFFSET(A1:B10,0,1),SUM(x,y)+x)+1';
 
-const exprTree = formulaEngine.getFormulaExpressTree(formula);
+const exprTree = formulaEngine.getFormulaExpressTree(formula, fWorkbook.getId());
 
 console.log(exprTree);
 ```
@@ -209,8 +205,8 @@ getInRangeFormulas(unitRanges: IUnitRange[], timeout = 30_000): Promise<IFormula
 ```
 
 **Parameters**
-- `unitRanges` `IUnitRange[]` — *No description*
-- `timeout` `number` *(optional)* — *No description*
+- `unitRanges` `IUnitRange[]` — The ranges to query for formula dependencies.
+- `timeout` `number` *(optional)* — The maximum time to wait for the result, in milliseconds. Default is `30_000`.
 
 **Returns**
 - `Promise<IFormulaDependencyTreeJson[]>` — A promise that resolves with an array of `IFormulaDependencyTreeJson`
@@ -243,8 +239,8 @@ getRangeDependents(unitRanges: IUnitRange[], timeout = 30_000): Promise<IFormula
 ```
 
 **Parameters**
-- `unitRanges` `IUnitRange[]` — *No description*
-- `timeout` `number` *(optional)* — *No description*
+- `unitRanges` `IUnitRange[]` — The ranges to query for formula dependencies.
+- `timeout` `number` *(optional)* — The maximum time to wait for the result, in milliseconds. Default is `30_000`.
 
 **Returns**
 - `Promise<IFormulaDependencyTreeJson[]>` — A promise that resolves with an array of `IFormulaDependencyTreeJson`
@@ -283,8 +279,8 @@ getRangeDependentsAndInRangeFormulas(unitRanges: IUnitRange[], timeout = 30_000)
 ```
 
 **Parameters**
-- `unitRanges` `IUnitRange[]` — *No description*
-- `timeout` `number` *(optional)* — *No description*
+- `unitRanges` `IUnitRange[]` — The ranges to query for formula dependencies.
+- `timeout` `number` *(optional)* — The maximum time to wait for the result, in milliseconds. Default is `30_000`.
 
 **Returns**
 - `Promise<IFormulaDependentsAndInRangeResults>` — A promise that resolves with an object containing:
@@ -333,7 +329,7 @@ setFormulaReturnDependencyTree(value: boolean): void
 ```
 
 **Parameters**
-- `value` `boolean` — *No description*
+- `value` `boolean` — Whether to emit formula dependency trees after each formula calculation.
 
 **Examples**
 ```ts
@@ -369,13 +365,15 @@ console.log('Dependency trees:', trees);
 
 ### `setInitialFormulaComputing`
 
+Update the calculation mode of the formula. It will take effect the next time the Univer Sheet is constructed. The calculation mode only handles formulas data when the workbook initializes data.
+
 **Signature**
 ```typescript
 setInitialFormulaComputing(calculationMode: CalculationMode): void
 ```
 
 **Parameters**
-- `calculationMode` `CalculationMode` — *No description*
+- `calculationMode` `CalculationMode` — The calculation mode for formula initialization. See [`CalculationMode`](../../facade/formula#calculationmode) for details.
 
 <span className="text-xs text-fd-muted-foreground">Source: `@univerjs/sheets-formula`</span>
 
@@ -389,7 +387,7 @@ setMaxIteration(maxIteration: number): void
 ```
 
 **Parameters**
-- `maxIteration` `number` — *No description*
+- `maxIteration` `number` — The maximum number of iterations for circular reference calculations.
 
 **Examples**
 ```ts
@@ -405,7 +403,7 @@ formulaEngine.setMaxIteration(5);
 
 ### `moveFormulaRefOffset`
 
-Offsets the formula
+Offsets the formula references by the specified row and column offsets.
 
 **Signature**
 ```typescript
@@ -413,10 +411,10 @@ moveFormulaRefOffset(formulaString: string, refOffsetX: number, refOffsetY: numb
 ```
 
 **Parameters**
-- `formulaString` `string` — *No description*
-- `refOffsetX` `number` — *No description*
-- `refOffsetY` `number` — *No description*
-- `ignoreAbsolute` `boolean` *(optional)* — *No description*
+- `formulaString` `string` — The formula string to offset.
+- `refOffsetX` `number` — The number of columns to offset.
+- `refOffsetY` `number` — The number of rows to offset.
+- `ignoreAbsolute` `boolean` *(optional)* — Whether to ignore absolute references (e.g. `$A$1`).
 
 **Returns**
 - `string` — The offset formula string
@@ -448,17 +446,21 @@ onCalculationEnd(): Promise<void>
 
 ### `onCalculationResultApplied`
 
+Waits for formula-calculation results to be applied. This method resolves when a real calculation runs and results are applied, or when no calculation starts within 500 ms.
+
 **Signature**
 ```typescript
 onCalculationResultApplied(): Promise<void>
 ```
 
 **Returns**
-- `Promise<void>` — See signature above.
+- `Promise<void>` — A promise that resolves when calculation results are applied.
 
 <span className="text-xs text-fd-muted-foreground">Source: `@univerjs/sheets-formula`</span>
 
 ### `registerAsyncFunction`
+
+Register a custom asynchronous formula function.
 
 **Signature**
 ```typescript
@@ -466,9 +468,9 @@ registerAsyncFunction(name: string, func: IRegisterAsyncFunction, options?: stri
 ```
 
 **Parameters**
-- `name` `string` — *No description*
-- `func` `IRegisterAsyncFunction` — *No description*
-- `options` `string | { locales?: ILocales; description?: string | IFunctionInfo; }` *(optional)* — *No description*
+- `name` `string` — The name of the function to register. This will be used in formulas (e.g., `=MYFUNC()`).
+- `func` `IRegisterAsyncFunction` — The async implementation of the function.
+- `options` `string | { locales?: ILocales; description?: string | IFunctionInfo; }` *(optional)* — A description string, or an object containing `locales` and `description`.
 
 **Returns**
 - `IDisposable` — See signature above.
@@ -477,15 +479,17 @@ registerAsyncFunction(name: string, func: IRegisterAsyncFunction, options?: stri
 
 ### `registerFunction`
 
+Register a custom synchronous formula function.
+
 **Signature**
 ```typescript
 registerFunction(name: string, func: IRegisterFunction, options?: string | { locales?: ILocales; description?: string | IFunctionInfo }): IDisposable
 ```
 
 **Parameters**
-- `name` `string` — *No description*
-- `func` `IRegisterFunction` — *No description*
-- `options` `string | { locales?: ILocales; description?: string | IFunctionInfo; }` *(optional)* — *No description*
+- `name` `string` — The name of the function to register. This will be used in formulas (e.g., `=MYFUNC()`).
+- `func` `IRegisterFunction` — The implementation of the function.
+- `options` `string | { locales?: ILocales; description?: string | IFunctionInfo; }` *(optional)* — A description string, or an object containing `locales` and `description`.
 
 **Returns**
 - `IDisposable` — See signature above.
@@ -496,7 +500,7 @@ registerFunction(name: string, func: IRegisterFunction, options?: string | { loc
 
 ### `calculationEnd`
 
-Listening calculation ends.
+Listen for calculation end events.
 
 **Signature**
 ```typescript
@@ -504,7 +508,7 @@ calculationEnd(callback: (functionsExecutedState: FormulaExecutedStateType) => v
 ```
 
 **Parameters**
-- `callback` `(functionsExecutedState: FormulaExecutedStateType) => void` — *No description*
+- `callback` `(functionsExecutedState: FormulaExecutedStateType) => void` — A callback that receives the execution state when calculation ends.
 
 **Returns**
 - `IDisposable` — The disposable instance.
@@ -521,7 +525,7 @@ formulaEngine.calculationEnd((functionsExecutedState) => {
 
 ### `calculationProcessing`
 
-Listening calculation processing.
+Listen for calculation processing events.
 
 **Signature**
 ```typescript
@@ -529,7 +533,7 @@ calculationProcessing(callback: (stageInfo: IExecutionInProgressParams) => void)
 ```
 
 **Parameters**
-- `callback` `(stageInfo: IExecutionInProgressParams) => void` — *No description*
+- `callback` `(stageInfo: IExecutionInProgressParams) => void` — A callback that receives the current calculation stage information.
 
 **Returns**
 - `IDisposable` — The disposable instance.
@@ -546,22 +550,24 @@ formulaEngine.calculationProcessing((stageInfo) => {
 
 ### `calculationResultApplied`
 
+Listens for the moment when formula-calculation results are applied. The callback is invoked during an idle frame after the engine completes a calculation cycle.
+
 **Signature**
 ```typescript
 calculationResultApplied(callback: (result: ISetFormulaCalculationResultMutation) => void): IDisposable
 ```
 
 **Parameters**
-- `callback` `(result: ISetFormulaCalculationResultMutation) => void` — *No description*
+- `callback` `(result: ISetFormulaCalculationResultMutation) => void` — A function called with the calculation result payload.
 
 **Returns**
-- `IDisposable` — See signature above.
+- `IDisposable` — A disposable used to unsubscribe from the event.
 
 <span className="text-xs text-fd-muted-foreground">Source: `@univerjs/sheets-formula`</span>
 
 ### `calculationStart`
 
-Listening calculation starts.
+Listen for calculation start events.
 
 **Signature**
 ```typescript
@@ -569,7 +575,7 @@ calculationStart(callback: (forceCalculation: boolean) => void): IDisposable
 ```
 
 **Parameters**
-- `callback` `(forceCalculation: boolean) => void` — *No description*
+- `callback` `(forceCalculation: boolean) => void` — A callback that receives whether the calculation is forced.
 
 **Returns**
 - `IDisposable` — The disposable instance.
@@ -631,8 +637,8 @@ executeFormulas(formulas: IFormulaStringMap, timeout = 30_000): Promise<IFormula
 ```
 
 **Parameters**
-- `formulas` `IFormulaStringMap` — *No description*
-- `timeout` `number` *(optional)* — *No description*
+- `formulas` `IFormulaStringMap` — A map of formulas to execute, keyed by unit ID, sheet ID, row, and column.
+- `timeout` `number` *(optional)* — The maximum time to wait for the calculation to complete, in milliseconds. Default is `30_000`.
 
 **Returns**
 - `Promise<IFormulaExecuteResultMap>` — A promise that resolves with the computed value map mirroring
@@ -676,7 +682,7 @@ console.log(result);
 
 ### `sequenceNodesBuilder`
 
-Resolves the formula string to a 'node' node
+Resolves the formula string to a sequence of nodes
 
 **Signature**
 ```typescript
@@ -684,7 +690,7 @@ sequenceNodesBuilder(formulaString: string): (string | ISequenceNode)[]
 ```
 
 **Parameters**
-- `formulaString` `string` — *No description*
+- `formulaString` `string` — The formula string to resolve into nodes.
 
 **Returns**
 - `any[]` — The nodes of the formula string
@@ -715,19 +721,3 @@ formulaEngine.stopCalculation();
 
 <span className="text-xs text-fd-muted-foreground">Source: `@univerjs/engine-formula`</span>
 
-### `whenComputingCompleteAsync`
-
-<Callout type="warn">Deprecated — Use `onCalculationEnd` instead.</Callout>
-
-**Signature**
-```typescript
-whenComputingCompleteAsync(timeout?: number): Promise<boolean>
-```
-
-**Parameters**
-- `timeout` `number` *(optional)* — *No description*
-
-**Returns**
-- `Promise<boolean>` — See signature above.
-
-<span className="text-xs text-fd-muted-foreground">Source: `@univerjs/engine-formula`</span>
