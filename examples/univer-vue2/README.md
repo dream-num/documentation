@@ -1,23 +1,42 @@
-# univer-vue2
+# Univer Vue 2 Example
 
-## Project setup
+This example demonstrates how to integrate Univer Sheets into a Vue 2 application.
 
-```shell
-pnpm install
+## Prerequisites
+
+- Node.js >= 18
+- npm / pnpm / yarn
+
+## Getting Started
+
+Install dependencies:
+
+```bash
+npm install
 ```
 
-### Compiles and hot-reloads for development
+Start the development server:
 
-```shell
-pnpm run serve
+```bash
+npm run serve
 ```
 
-### Compiles and minifies for production
+The application will be available at `http://localhost:8080` by default.
 
-```shell
-pnpm run build
-```
+## Project Structure
 
-### Customize configuration
+| File                        | Description                         |
+| --------------------------- | ----------------------------------- |
+| `src/main.js`               | Application entry point             |
+| `src/App.vue`               | Root component                      |
+| `src/components/Univer.vue` | Univer Sheets integration component |
 
-See [Configuration Reference](https://cli.vuejs.org/config/).
+## Key Integration Points
+
+- Uses `@univerjs/preset-sheets-core` via the preset mode for quick setup.
+- The `Univer` component creates a Univer instance in the `mounted` lifecycle hook and mounts it to a container `div` via template ref.
+- Disposes the Univer instance in `beforeUnmount` to avoid memory leaks.
+- Remember to import the preset CSS file: `@univerjs/preset-sheets-core/lib/index.css`.
+- Call `univerAPI.createWorkbook({})` to initialize an empty workbook.
+
+For more details, see the [Univer Sheets Quickstart](https://docs.univer.ai/guides/sheets/getting-started/quickstart) documentation.

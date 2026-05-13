@@ -1,8 +1,41 @@
-# React + TypeScript + Vite
+# Univer React Example
 
-This template provides a minimal setup to get React working in Vite with HMR.
+This example demonstrates how to integrate Univer Sheets into a React application using Vite.
 
-Currently, two official plugins are available:
+## Prerequisites
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Node.js >= 18
+- npm / pnpm / yarn
+
+## Getting Started
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+The application will be available at `http://localhost:5173` by default.
+
+## Project Structure
+
+| File                        | Description                         |
+| --------------------------- | ----------------------------------- |
+| `src/main.tsx`              | Application entry point             |
+| `src/App.tsx`               | Root component                      |
+| `src/components/univer.tsx` | Univer Sheets integration component |
+
+## Key Integration Points
+
+- Uses `@univerjs/preset-sheets-core` via the preset mode for quick setup.
+- The `Univer` component creates a Univer instance inside a `useEffect` hook and mounts it to a container `div`.
+- Remember to import the preset CSS file: `@univerjs/preset-sheets-core/lib/index.css`.
+- Call `univerAPI.createWorkbook({})` to initialize an empty workbook.
+
+For more details, see the [Univer Sheets Quickstart](https://docs.univer.ai/guides/sheets/getting-started/quickstart) documentation.

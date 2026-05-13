@@ -1,43 +1,40 @@
-# Astro Starter Kit: Minimal
+# Univer Astro Example
 
-```sh
-pnpm create astro@latest -- --template minimal
+This example demonstrates how to integrate Univer Sheets into an Astro application.
+
+## Prerequisites
+
+- Node.js >= 18
+- npm / pnpm / yarn
+
+## Getting Started
+
+Install dependencies:
+
+```bash
+npm install
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+Start the development server:
 
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+```bash
+npm run dev
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+The application will be available at `http://localhost:4321` by default.
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+## Project Structure
 
-Any static assets, like images, can be placed in the `public/` directory.
+| File                    | Description                               |
+| ----------------------- | ----------------------------------------- |
+| `src/pages/index.astro` | Index page with inline Univer integration |
 
-## 🧞 Commands
+## Key Integration Points
 
-All commands are run from the root of the project, from a terminal:
+- Uses `@univerjs/preset-sheets-core` via the preset mode for quick setup.
+- Univer is initialized directly in an inline `<script>` tag within the Astro page.
+- The `container` option receives the DOM element where Univer will be mounted.
+- Remember to import the preset CSS file: `@univerjs/preset-sheets-core/lib/index.css`.
+- Call `univerAPI.createWorkbook({})` to initialize an empty workbook.
 
-| Command                | Action                                           |
-| :--------------------- | :----------------------------------------------- |
-| `pnpm install`         | Installs dependencies                            |
-| `pnpm dev`             | Starts local dev server at `localhost:4321`      |
-| `pnpm build`           | Build your production site to `./dist/`          |
-| `pnpm preview`         | Preview your build locally, before deploying     |
-| `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `pnpm astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+For more details, see the [Univer Sheets Quickstart](https://docs.univer.ai/guides/sheets/getting-started/quickstart) documentation.

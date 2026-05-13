@@ -4,27 +4,27 @@ title: Permission Control
 
 import { MigrationCell, MigrationRow, MigrationTable } from './components/migration-table'
 
-Univer provides permission control capabilities, typically used to restrict user operations on workbooks, sheets, and ranges. When a user performs an operation without permission, the code execution can be halted and the user will be prompted about the missing permissions. For example, you can set area protection within a range, which allows setting whether other collaborators can edit, read, copy, filter, etc., within the protected range.
+Univer provides permission control capabilities to restrict user operations on workbooks, worksheets, and ranges. When a user attempts an operation without the required permission, execution is halted and the user is notified. For example, you can protect a range to control whether collaborators can edit, view, copy, or filter within that range.
 
 <Callout type="warning" title="Precautions before use">
-  Univer provides extendable foundational capabilities, not customized features.
-  If you have more extensive and tailored requirements such as persistence or organizational structures, you need to implement the storage of permission rules and integrate organizational structures yourself. In this case, you need to write custom plugins to achieve this.
-  Therefore, after setting permissions, you might find the permission list empty when viewing it, or user information returns empty when you check it. This is because this information needs to be fetched via API requests; it's custom logic that requires additional implementation on your part. You can refer to the third-party integration below.
+  Univer provides extensible foundational capabilities, not out-of-the-box customized features.
+  If you need persistence, organizational structures, or other tailored requirements, you must implement the storage of permission rules and integrate organizational structures yourself—typically through custom plugins.
+  Therefore, it is normal to find the permission list empty or user information missing after setting permissions. This data must be fetched via your own API requests, which is custom logic you need to implement. Refer to the third-party integration section below for details.
 </Callout>
 
 <PlaygroundFrame lang="en-US" slug="sheets/permission" clickToShow />
 
 ## Core Concepts
 
-- Scope of Action: Permissions can be applied at three levels: workbook, worksheet, and range.
-- Permission Points: Each function corresponds to a permission point, and modifying the point can control whether the function is available.
-- Protection Rules: Before setting permission points for worksheets and ranges, you need to create protection rules
+- Scope: Permissions apply at three levels—workbook, worksheet, and range.
+- Permission Points: Each feature corresponds to a permission point. Modifying a point controls whether that feature is available.
+- Protection Rules: Before setting permission points for worksheets and ranges, you must create a protection rule.
 
 <Callout type="info" title="Permission Point Explanation">
-  Local non-persistent (non-collaborative editing environment) permission control can be directly achieved by modifying the permission points. For persistent permissions, please refer to the "Integration of Third-Party Authorization Service" section below.
-  In a collaborative editing scenario, updating permission points will synchronize the server state:
-  - false: This permission point requires at least the `owner` role
-  - true: This permission point requires at least the `reader` role
+  In a local, non-persistent environment (without collaborative editing), you can control permissions directly by modifying permission points. For persistent permissions, refer to the "Integrating a Third-Party Authorization Service" section below.
+  In a collaborative editing scenario, updating a permission point synchronizes the server state:
+  - `false`: The permission point requires at least the `owner` role
+  - `true`: The permission point requires at least the `reader` role
 </Callout>
 
 ## Basic Example
@@ -33,9 +33,9 @@ The most common permission setting methods are shown below at three levels: work
 
 ### Workbook Permissions Code Example
 
-Currently, workbook-level permissions are directly modified through the API. We provide the [Facade API](/guides/sheets/getting-started/facade), and you can use this API to set permissions for different functions of the workbook.
+Workbook-level permissions can be set directly via the [Facade API](/guides/sheets/getting-started/facade).
 
-Taking edit permission as an example (other functions require replacing the permission points, see the [list of permission points - Workbook](#workbook-point) for details), you can use the following code to set the entire workbook to be non-editable:
+The following example disables editing for the entire workbook. For other functions, replace the permission point accordingly (see the [workbook permission points list](#workbook-point)):
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -46,11 +46,11 @@ await workbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, f
 ```
 
 Key points:
-- Workbook permissions points can be directly set without the need to create protection rules.
+- Workbook permission points can be set directly without creating protection rules.
 
 ### Worksheet Permissions Code Example
 
-Worksheet and range-related permissions can be set via both the Facade API and command. Here, we'll use worksheet edit permissions as an example. Other worksheet functions require replacing the permission points, see the [list of permission points - Worksheet](#worksheet-point) for details.
+Worksheet and range permissions can be set via the Facade API or commands. The following example demonstrates how to set worksheet edit permissions. For other features, replace the permission point accordingly (see the [worksheet permission points list](#worksheet-point)):
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -63,7 +63,7 @@ const permissionId = await worksheetPermission.protect({
   name: 'My Worksheet Protection',
 })
 
-// If you need to set permission points, you must first create worksheet protection
+// To set permission points, you must first protect the worksheet
 await worksheetPermission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.Edit, false)
 ```
 
@@ -96,7 +96,7 @@ const rule = await rangePermission.protect({
 })
 console.log(rule)
 
-// If you need to set permission points, you must first create range protection.
+// To set permission points, you must first create a range protection rule.
 await rule.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
 await rule.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
 ```
@@ -121,9 +121,9 @@ if (rules.length > 0) {
 
 ## Extended usage
 
-When you need to add permission verification in your own plug-in, you can directly manipulate the permission points.
+When you need to check permissions in your own plugin, you can manipulate the permission points directly.
 
-Here we take `WorkbookEditablePermission` as an example and add permission verification in your own plug-in. Other points are similar.
+The following example uses `WorkbookEditablePermission` to demonstrate how to check permissions in your own plugin. Other permission points work similarly.
 
 ```typescript
 import { IPermissionService } from '@univerjs/core'
@@ -143,11 +143,11 @@ class YourService {
 }
 ```
 
-You can also extend and modify other permission points to achieve permission control for different functions. For a specific list of points, please refer to the bottom of the article.
+You can also extend and modify other permission points to control different features. See the full list at the bottom of this page.
 
-### How to extend the permission point
+### How to Extend Permission Points
 
-If you need to customize permission points, you can implement `IPermissionPoint` and register it to the permission service:
+To customize permission points, implement `IPermissionPoint` and register it with the permission service:
 
 ```typescript
 import type { IPermissionPoint } from '@univerjs/core'
@@ -158,10 +158,10 @@ export class CustomPermissionPoint implements IPermissionPoint {
   type = UnitObject.Unkonwn // your type
   subType = UnitAction.View // your subType
   status = PermissionStatus.INIT
-  value = true // Initial values
+  value = true // Default value
   id: string
   constructor(unitId: string, subUnitId: string, customId: string) {
-    // The id attribute needs to be guaranteed to be unique throughout `IPermissionService`.
+    // The id must be unique within `IPermissionService`.
     this.id = `${unitId}.${subUnitId}.${customId}`
   }
 }
@@ -187,14 +187,14 @@ class ConsumeService {
   }
 
   bindEvent() {
-    // This will get an RX object, allowing you to listen for changes to the current permissions and make a list of changes
-    const pount$ = this._permissionService.getPermissionPoint$(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id').id)
-    console.log(pount$)
+    // This returns an RxJS observable that lets you listen for permission changes
+    const point$ = this._permissionService.getPermissionPoint$(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id').id)
+    console.log(point$)
   }
 }
 ```
 
-### Integration of Third-Party Authorization Service(Advanced Usage)
+### Integrating a Third-Party Authorization Service (Advanced)
 
 <Callout type="warning" title="Caution">
   It is recommended to avoid mixing custom permission access with the Permission Facade API, as it allows for more granular control over permission points.
@@ -399,9 +399,9 @@ univer.registerPlugin(YourPlugin)
 
 ## List of permission points [#point-list]
 
-To access the specific code related to permission point at the given URL, you can refer to the [code](https://github.com/dream-num/univer/tree/dev/packages/sheets/src/services/permission/permission-point).
+You can view the source code for all permission points [here](https://github.com/dream-num/univer/tree/dev/packages/sheets/src/services/permission/permission-point).
 
-In the case where the permission control of the workbook intersects with the worksheet/range, all permissions must be set to true in order to use them.
+When workbook permissions overlap with worksheet or range permissions, **all** relevant permissions must be set to `true` for the feature to be usable.
 
 ### Workbook Permissions [#workbook-point]
 
@@ -451,6 +451,9 @@ In the case where the permission control of the workbook intersects with the wor
 | univerAPI.Enum.WorksheetPermissionPoint.InsertHyperlink | WorksheetInsertHyperlinkPermission | Can use hyperlinks |
 | univerAPI.Enum.WorksheetPermissionPoint.ManageCollaborator | WorksheetManageCollaboratorPermission | Can manage collaborators |
 | univerAPI.Enum.WorksheetPermissionPoint.DeleteProtection | WorksheetDeleteProtectionPermission | Can delete protection |
+| univerAPI.Enum.WorksheetPermissionPoint.EditExtraObject | WorksheetEditExtraObjectPermission | Can edit extra objects |
+| univerAPI.Enum.WorksheetPermissionPoint.SelectProtectedCells | WorksheetSelectProtectedCellsPermission | Can select protected cells |
+| univerAPI.Enum.WorksheetPermissionPoint.SelectUnProtectedCells | WorksheetSelectUnProtectedCellsPermission | Can select unprotected cells |
 
 ### Range Protection [#range-point]
 
@@ -459,12 +462,13 @@ In the case where the permission control of the workbook intersects with the wor
 | univerAPI.Enum.RangePermissionPoint.Edit | RangeProtectionPermissionEditPoint | Can edit protected ranges |
 | univerAPI.Enum.RangePermissionPoint.View | RangeProtectionPermissionViewPoint | Can view content of protected ranges |
 | univerAPI.Enum.RangePermissionPoint.Delete | RangeProtectionPermissionDeleteProtectionPoint | Can delete protected ranges |
+| univerAPI.Enum.RangePermissionPoint.ManageCollaborator | RangeProtectionPermissionManageCollaPoint | Can manage collaborators for protected ranges |
 
 ## Configuration
 
-### Protection Range Shadow Strategy
+### Protected Range Shadow Strategy
 
-The permission background shadow is displayed by default. You can hide it using the following code:
+The protected range shadow is shown by default. You can hide it with the following configuration:
 
 <Tabs items={['Preset Mode', 'Plugin Mode']}>
   <Tab>
@@ -505,7 +509,7 @@ The permission background shadow is displayed by default. You can hide it using 
   </Tab>
 </Tabs>
 
-Also can be modified dynamically through the API:
+You can also modify it dynamically via the API:
 
 ```typescript
 // Set to only show shadows for non-editable ranges
@@ -526,7 +530,7 @@ subscription.unsubscribe()
 
 ### Custom User Component
 
-Univer's built-in custom user components are limited in their adaptability. If you need more complex custom components, you can create them using the following method.
+Univer's built-in user selector has limited flexibility. For more complex scenarios, you can provide a custom component as shown below.
 
 <Callout>
   You can refer to [Custom Components](/guides/sheets/ui/components) for how to create custom components.
@@ -541,7 +545,7 @@ Univer's built-in custom user components are limited in their adaptability. If y
           sheets: {
             protectedRangeUserSelector: {
             /**
-             * custom component, should implement the `IPermissionDetailUserPartProps` interface.
+             * Custom component; must implement the `IPermissionDetailUserPartProps` interface.
              */
               component: CustomPermissionDetailUserPart,
               /**
@@ -560,7 +564,7 @@ Univer's built-in custom user components are limited in their adaptability. If y
     univer.registerPlugin(UniverSheetsUIPlugin, {
       protectedRangeUserSelector: {
         /**
-         * custom component, should implement the `IPermissionDetailUserPartProps` interface.
+         * Custom component; must implement the `IPermissionDetailUserPartProps` interface.
          */
         component: CustomPermissionDetailUserPart,
         /**
@@ -573,7 +577,7 @@ Univer's built-in custom user components are limited in their adaptability. If y
   </Tab>
 </Tabs>
 
-After completing the custom user settings, please synchronize it to the `sheetPermissionUserManagerService` service's `_selectUserList` for later use.
+After configuring your custom user component, synchronize the selected user list to `SheetPermissionUserManagerService` via `setSelectUserList()` for later use.
 
 <Tabs items={['Preset Mode', 'Plugin Mode']}>
   <Tab>
@@ -612,17 +616,17 @@ const workbookPermission = fWorkbook.getWorkbookPermission()
 
 #### Set Workbook Permission Point
 
-`WorkbookPermissionPoint` enum values list can be found in [Workbook Permission Points List](#workbook-point).
+For the `WorkbookPermissionPoint` enum values, see the [workbook permission points list](#workbook-point).
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const workbookPermission = fWorkbook.getWorkbookPermission()
 
-// Set the workbook print permission to unavailable
+// Disable the workbook print permission
 await workbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Print, false)
 ```
 
-Using predefined modes:
+Predefined modes:
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -641,10 +645,10 @@ await workbookPermission.setMode('viewer')
 await workbookPermission.setMode('commenter')
 ```
 
-Using shortcut methods:
+Shortcut methods:
 
-- `FWorkbookPermission.setReadOnly()`: Set to read-only mode, equivalent to `setMode('viewer')`
-- `FWorkbookPermission.setEditable()`: Set to editable mode, equivalent to `setMode('editor')`
+- `FWorkbookPermission.setReadOnly()`: Sets read-only mode (equivalent to `setMode('viewer')`)
+- `FWorkbookPermission.setEditable()`: Sets editable mode (equivalent to `setMode('editor')`)
 
 #### Get Workbook Permission Point Status
 
@@ -652,24 +656,24 @@ Using shortcut methods:
 const fWorkbook = univerAPI.getActiveWorkbook()
 const workbookPermission = fWorkbook.getWorkbookPermission()
 
-// Get workbook print permission status
+// Check whether the workbook can be printed
 const canPrint = workbookPermission.getPoint(univerAPI.Enum.WorkbookPermissionPoint.Print)
 console.log('Can print:', canPrint)
 
-// Get all workbook permission point statuses
+// Get the status of all workbook permission points
 const snapshot = workbookPermission.getSnapshot()
 console.log('Workbook permission snapshot:', snapshot)
 ```
 
-Using shortcut methods:
+Shortcut methods:
 
-- `FWorkbookPermission.canEdit()`: Check if the workbook is editable
+- `FWorkbookPermission.canEdit()`: Returns `true` if the workbook is editable
 
 #### Collaborator Management
 
 <Callout type="warning" title="Caution">
-  Collaborator management related APIs are only available when using the collaborative editing feature and integrating with the USIP service.
-  When using a custom permission service, please refer to the "Integration of Third-Party Authorization Service" section above to implement the collaborator management logic yourself.
+  Collaborator management APIs are only available in collaborative editing scenarios with the USIP service integrated.
+  When using a custom permission service, implement collaborator management logic yourself as described in the "Integrating a Third-Party Authorization Service" section above.
 </Callout>
 
 - Get Collaborators List
@@ -700,14 +704,14 @@ await workbookPermission.setCollaborators([
   },
 ])
 
-// Add single Collaborator
+// Add a single collaborator
 await workbookPermission.addCollaborator(
   { userID: 'user1', name: 'John Doe', avatar: 'https://...' },
   univerAPI.Enum.UnitRole.Editor,
 )
 ```
 
-- Update Collaborator Role
+- Update collaborator role
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -719,7 +723,7 @@ await workbookPermission.updateCollaborator(
 )
 ```
 
-- Remove Collaborators
+- Remove collaborators
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -728,7 +732,7 @@ const workbookPermission = fWorkbook.getWorkbookPermission()
 // Remove multiple collaborators
 await workbookPermission.removeCollaborators(['user1', 'user2'])
 
-// Remove single collaborator
+// Remove a single collaborator
 await workbookPermission.removeCollaborator('user1')
 ```
 
@@ -749,7 +753,7 @@ const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 const worksheetPermission = fWorksheet.getWorksheetPermission()
 
-// Set worksheet protection, allowing specified users to edit
+// Protect the worksheet, allowing only specified users to edit
 const permissionId = await worksheetPermission.protect({
   allowedUsers: ['user1', 'user2'],
   name: 'My Worksheet Protection',
@@ -760,24 +764,24 @@ const isProtected = worksheetPermission.isProtected()
 console.log('Is worksheet protected:', isProtected)
 
 if (isProtected) {
-  // Remove worksheet protection
+  // Unprotect the worksheet
   await worksheetPermission.unprotect()
 }
 ```
 
 #### Set Worksheet Permission Point
 
-`WorksheetPermissionPoint` enum values list can be found in [Worksheet Permission Points List](#worksheet-point).
+For the `WorksheetPermissionPoint` enum values, see the [worksheet permission points list](#worksheet-point).
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 const worksheetPermission = fWorksheet.getWorksheetPermission()
 
-// If you need to set permission points, you must first create worksheet protection
+// To set permission points, you must first protect the worksheet
 await worksheetPermission.protect()
 
-// Set the worksheet insert row permission to unavailable
+// Disable the worksheet insert-row permission
 await worksheetPermission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.InsertRow, false)
 ```
 
@@ -788,7 +792,7 @@ const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 const worksheetPermission = fWorksheet.getWorksheetPermission()
 
-// If you need to set permission points, you must first create worksheet protection
+// To set permission points, you must first protect the worksheet
 await worksheetPermission.protect()
 
 // Set to editable mode
@@ -800,7 +804,7 @@ await worksheetPermission.setMode('readOnly')
 // Set to filter/sort only mode
 await worksheetPermission.setMode('filterOnly')
 
-// Set to custom mode
+// Apply a custom configuration
 await worksheetPermission.applyConfig({
   mode: 'readOnly',
   points: {
@@ -810,10 +814,10 @@ await worksheetPermission.applyConfig({
 })
 ```
 
-Using shortcut methods:
+Shortcut methods:
 
-- `FWorksheetPermission.setReadOnly()`: Set to read-only mode, equivalent to `setMode('readOnly')`
-- `FWorksheetPermission.setEditable()`: Set to editable mode, equivalent to `setMode('editable')`
+- `FWorksheetPermission.setReadOnly()`: Sets read-only mode (equivalent to `setMode('readOnly')`)
+- `FWorksheetPermission.setEditable()`: Sets editable mode (equivalent to `setMode('editable')`)
 
 #### Get Worksheet Permission Point Status
 
@@ -822,10 +826,10 @@ const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 const worksheetPermission = fWorksheet.getWorksheetPermission()
 
-// Get worksheet insert row permission status
+// Check whether the worksheet can insert rows
 const canInsertRow = worksheetPermission.getPoint(univerAPI.Enum.WorksheetPermissionPoint.InsertRow)
 
-// Get all worksheet permission point statuses
+// Get the status of all worksheet permission points
 const snapshot = worksheetPermission.getSnapshot()
 ```
 
@@ -850,14 +854,15 @@ const rangePermission = fRange.getRangePermission()
 
 #### Set Range Protection
 
-- Set range protection using the worksheet-level permission:
+- Protect ranges via the worksheet-level API:
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 const worksheetPermission = fWorksheet.getWorksheetPermission()
 
-// Set multiple protected ranges, A1:B2 is not editable but viewable by others, C3:D4 is editable by specified users but not viewable by others
+// Protect two ranges: A1:B2 is viewable by everyone but not editable,
+// while C3:D4 is editable only by specified users and hidden from others
 const rules = await worksheetPermission.protectRanges([
   {
     ranges: [fWorksheet.getRange('A1:B2')],
@@ -870,18 +875,18 @@ const rules = await worksheetPermission.protectRanges([
 ])
 console.log(rules)
 
-// Get all protection rules for the worksheet
+// List all protection rules on the worksheet
 const rules = await worksheetPermission.listRangeProtectionRules()
 console.log(rules)
 
-// Delete the first protection rule
+// Delete the first rule
 await worksheetPermission.unprotectRules([rules[0].id])
 
-// Or delete protection range through `FRangeProtectionRule.remove()`
+// Or delete a rule via `FRangeProtectionRule.remove()`
 await ruleList[0].remove()
 ```
 
-- Set range protection using the range-level permission:
+- Protect a range via the range-level API:
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -889,7 +894,7 @@ const fWorksheet = fWorkbook.getActiveSheet()
 const fRange = fWorksheet.getRange('A1:B2')
 const rangePermission = fRange.getRangePermission()
 
-// Set protection for the range, allowing specified users to edit but not allowing others to view
+// Protect the range so only specified users can edit it, while others cannot view it
 const rule = await rangePermission.protect({
   name: 'My protected range',
   allowViewByOthers: false,
@@ -897,20 +902,20 @@ const rule = await rangePermission.protect({
 })
 console.log(rule)
 
-// Get all protection rules for the range
+// List all protection rules covering the range
 const rules = await rangePermission.listRules()
 console.log(rules)
 
-// Delete all protection rules for the range
+// Delete all protection rules covering the range
 await rangePermission.unprotect()
 
-// Or delete protection rules through `FRangeProtectionRule.remove()`
+// Or delete a rule via `FRangeProtectionRule.remove()`
 await rules[0].remove()
 ```
 
 #### Set Range Permission Point
 
-`RangePermissionPoint` enum values list can be found in [Range Protection Points List](#range-point).
+For the `RangePermissionPoint` enum values, see the [range protection points list](#range-point).
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -918,11 +923,11 @@ const fWorksheet = fWorkbook.getActiveSheet()
 const fRange = fWorksheet.getRange('A1:B2')
 const rangePermission = fRange.getRangePermission()
 
-// If you need to set permission points, you must first create range protection
+// To set permission points, you must first create a range protection rule
 if (rangePermission.isProtected()) {
   const rules = await rangePermission.listRules()
 
-  // Set the edit permission of the first protection rule to unavailable, and the view permission to available
+  // Disable editing but enable viewing for the first protection rule
   await rules[0].setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
   await rules[0].setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
 } else {
@@ -932,7 +937,7 @@ if (rangePermission.isProtected()) {
     allowedUsers: ['user1', 'user2'],
   })
 
-  // Set the edit permission of the A1:B2 selection to unavailable, and the view permission to available
+  // Disable editing but enable viewing for the A1:B2 range
   await rule.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
   await rule.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
 }
@@ -940,7 +945,7 @@ if (rangePermission.isProtected()) {
 
 ### Range Permission Rule API
 
-Here are some member methods of `FRangeProtectionRule`:
+`FRangeProtectionRule` provides the following members:
 
 | API | Description |
 | --- | --- |
@@ -955,6 +960,7 @@ Here are some member methods of `FRangeProtectionRule`:
 | `canEdit(): boolean` | Check if the protection rule allows editing |
 | `canView(): boolean` | Check if the protection rule allows viewing |
 | `canDelete(): boolean` | Check if the protection rule allows deletion |
+| `canManageCollaborator(): boolean` | Check if the protection rule allows managing collaborators |
 | `getSnapshot(): RangePermissionSnapshot` | Get a snapshot of the current permission status of the protection rule, including all permission points |
 
 ```typescript
@@ -964,7 +970,7 @@ const worksheetPermission = fWorksheet.getWorksheetPermission()
 const rules = await worksheetPermission.listRangeProtectionRules()
 const rule = rules?.[0]
 
-// ID Get the ID of the first protection rule
+// Get the ID of the first protection rule
 const ruleId = rule?.id
 console.log(ruleId)
 
@@ -972,20 +978,20 @@ console.log(ruleId)
 const ranges = rule?.ranges
 console.log(ranges)
 
-// A1:C3 Update the ranges of the first protection rule to A1:C3
+// Update the ranges of the first protection rule to A1:C3
 await rule?.updateRanges([fWorksheet.getRange('A1:C3')])
 
 // Remove the first protection rule
 await rule?.remove()
 ```
 
-### Remove Permission Dialog
+### Hide the Permission Dialog
 
 ```typescript
 univerAPI.setPermissionDialogVisible(false)
 ```
 
-### Old API Migration Guide
+### Migrating from the Old API
 
 <MigrationTable headers={['API Method Description', 'Migration Guide']}>
   <MigrationRow method="Get Permission Instance">
@@ -1149,7 +1155,7 @@ univerAPI.setPermissionDialogVisible(false)
       <code>FRangeProtectionRule.updateRanges(ranges: FRange[])</code>
     </MigrationCell>
   </MigrationRow>
-  <MigrationRow method="Remove Permission Dialog">
+  <MigrationRow method="Hide Permission Dialog">
     <MigrationCell className="mb-2.5">
       <strong>Old API:</strong>
       <br />
