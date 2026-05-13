@@ -1,41 +1,43 @@
-# UniverAngular
+# Univer Angular Example
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.1.2.
+This example demonstrates how to integrate Univer Sheets into an Angular application.
 
-## Development server
+## Prerequisites
 
-To start a local development server, run:
+- Node.js >= 18
+- npm / pnpm / yarn
+- Angular CLI
+
+## Getting Started
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the development server:
 
 ```bash
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+The application will be available at `http://localhost:4200` by default.
 
-## Code scaffolding
+## Project Structure
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+| File               | Description                                  |
+| ------------------ | -------------------------------------------- |
+| `src/main.ts`      | Application bootstrap entry point            |
+| `src/app/app.ts`   | Root component with Univer integration logic |
+| `src/app/app.html` | Root component template                      |
 
-```bash
-ng generate component component-name
-```
+## Key Integration Points
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+- Uses `@univerjs/preset-sheets-core` via the preset mode for quick setup.
+- The `App` component creates a Univer instance in `ngOnInit` using a `ViewChild` reference to the container element.
+- Disposes the Univer instance in `ngOnDestroy` to avoid memory leaks.
+- Remember to import the preset CSS file: `@univerjs/preset-sheets-core/lib/index.css`.
+- Call `univerAPI.createWorkbook({})` to initialize an empty workbook.
 
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+For more details, see the [Univer Sheets Quickstart](https://docs.univer.ai/guides/sheets/getting-started/quickstart) documentation.
