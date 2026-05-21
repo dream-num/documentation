@@ -12,6 +12,7 @@ export default antfu({
   react: true,
   astro: true,
   vue: true,
+  pnpm: false,
 }, {
   ignores: ['**/*.mdx'],
   files: ['**/*.ts', '**/*.tsx'],
