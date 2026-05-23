@@ -31,6 +31,7 @@ export const showcase: Record<string, Promise<{ default: {
   'sheets/notes': import('./sheets/notes'),
   'sheets/crosshair-highlighting': import('./sheets/crosshair-highlighting'),
   'sheets/watermark': import('./sheets/watermark'),
+  'sheets/outline': import('./sheets/outline'),
   'sheets/charts': import('./sheets/charts'),
   'sheets/shapes': import('./sheets/shapes'),
   'sheets/print': import('./sheets/print'),
