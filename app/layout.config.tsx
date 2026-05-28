@@ -27,6 +27,10 @@ export function baseOptions(locale: string): BaseLayoutProps {
         url: '/icons',
       },
       {
+        text: customTranslations[locale]['showcase.title'],
+        url: '/showcase',
+      },
+      {
         type: 'custom',
         children: (
           <GithubInfo
