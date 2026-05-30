@@ -1,9 +1,9 @@
-import enUS from '@univerjs/sheets-formula-ui/locale/en-US'
-import zhCN from '@univerjs/sheets-formula-ui/locale/zh-CN'
+import enUS from '@univerjs/sheets-formula/locale/en-US'
+import zhCN from '@univerjs/sheets-formula/locale/zh-CN'
 
 const functionList = {
-  'zh-CN': zhCN.formula.functionList,
-  'en-US': enUS.formula.functionList,
+  'zh-CN': zhCN['sheets-formula'].functionList,
+  'en-US': enUS['sheets-formula'].functionList,
 }
 
 interface IProps {
