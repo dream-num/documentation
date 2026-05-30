@@ -20,7 +20,6 @@ import SheetsDataValidationUIEnUS from '@univerjs/sheets-data-validation-ui/loca
 import { UniverSheetsFilterUIPlugin } from '@univerjs/sheets-filter-ui'
 import SheetsFilterUIEnUS from '@univerjs/sheets-filter-ui/locale/en-US'
 import { UniverSheetsFindReplacePlugin } from '@univerjs/sheets-find-replace'
-import SheetsFindReplaceEnUS from '@univerjs/sheets-find-replace/locale/en-US'
 import { UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
 import SheetsFormulaUIEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
 import { UniverSheetsHyperLinkUIPlugin } from '@univerjs/sheets-hyper-link-ui'
@@ -90,7 +89,6 @@ export default function Preview() {
           SheetsDataValidationUIEnUS,
           SheetsSortUIEnUS,
           FindReplaceEnUS,
-          SheetsFindReplaceEnUS,
           ThreadCommentUIEnUS,
           SheetsThreadCommentUIEnUS,
           SheetsNoteUIEnUS,
