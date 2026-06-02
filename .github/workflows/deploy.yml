@@ -57,6 +57,7 @@ jobs:
         with:
           token: ${{ secrets.GH_TOKEN }}
           submodules: true
+          persist-credentials: false
 
       - uses: ./.github/actions/setup-docker
         id: setup-docker
@@ -69,16 +70,24 @@ jobs:
           echo "NPM_REGISTRY=https://registry.npmmirror.com" >> $GITHUB_ENV
 
       - name: Build and Push Docker Image
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          UNIVER_DOCS_SITE: ${{ inputs.univer-docs-site }}
+          BUILDER_NAME: ${{ steps.setup-docker.outputs.builder-name }}
+          PUSH_TAG_AS_LATEST: ${{ vars.PUSH_TAG_AS_LATEST }}
+          CR: ${{ env.CR }}
+          NPM_REGISTRY: ${{ env.NPM_REGISTRY }}
+          NEXT_POSTHOG_APIKEY: ${{ secrets.NEXT_POSTHOG_APIKEY }}
         run: |
-          IMAGE_TAG=$(echo "${{ github.sha }}" | cut -c 1-7)
-          if [ "${{ github.event_name }}" == "schedule" ] || [ "${{ inputs.univer-docs-site }}" == "true" ]; then
+          IMAGE_TAG=$(echo "$GITHUB_SHA" | cut -c 1-7)
+          if [ "$EVENT_NAME" == "schedule" ] || [ "$UNIVER_DOCS_SITE" == "true" ]; then
             make push_image REPOSITORY=univer-docs-site \
-              PUSH_TAG=$IMAGE_TAG \
-              BUILDER=${{ steps.setup-docker.outputs.builder-name }} \
+              PUSH_TAG="$IMAGE_TAG" \
+              BUILDER="$BUILDER_NAME" \
               OSARCH=linux/amd64 \
-              PUSH_TAG_AS_LATEST=${{ vars.PUSH_TAG_AS_LATEST }} \
-              CR=${{ env.CR }} NPM_REGISTRY=${{ env.NPM_REGISTRY }} \
-              NEXT_POSTHOG_APIKEY=${{ secrets.NEXT_POSTHOG_APIKEY }}
+              PUSH_TAG_AS_LATEST="$PUSH_TAG_AS_LATEST" \
+              CR="$CR" NPM_REGISTRY="$NPM_REGISTRY" \
+              NEXT_POSTHOG_APIKEY="$NEXT_POSTHOG_APIKEY"
           fi
 
   deploy-site:
@@ -90,16 +99,18 @@ jobs:
 
     steps:
       - name: Set IMAGE_TAG environment variable
+        env:
+          IMAGE_TAG_INPUT: ${{ inputs.image-tag }}
         run: |
-          if [ -z "${{ inputs.image-tag }}" ]; then
-            echo "IMAGE_TAG=$(echo ${{ github.sha }} | cut -c 1-7)" >> $GITHUB_ENV
+          if [ -z "$IMAGE_TAG_INPUT" ]; then
+            echo "IMAGE_TAG=$(echo "$GITHUB_SHA" | cut -c 1-7)" >> "$GITHUB_ENV"
           else
-            echo "IMAGE_TAG=${{ inputs.image-tag }}" >> $GITHUB_ENV
+            echo "IMAGE_TAG=$IMAGE_TAG_INPUT" >> "$GITHUB_ENV"
           fi
 
       - name: Set FEATURE environment variable
         if: ${{ startsWith(github.event_name == 'schedule' && 'staging' || inputs.environment, 'feature') }}
-        run: echo "FEATURE=$(echo ${GITHUB_REF#refs/heads/feat/})" >> $GITHUB_ENV
+        run: echo "FEATURE=$(echo "${GITHUB_REF#refs/heads/feat/}")" >> "$GITHUB_ENV"
 
       - uses: peter-evans/repository-dispatch@v2
         name: Deploy Docs Site
@@ -124,21 +135,23 @@ jobs:
 
     steps:
       - name: Set IMAGE_TAG environment variable
+        env:
+          IMAGE_TAG_INPUT: ${{ inputs.image-tag }}
         run: |
-          if [ -z "${{ inputs.image-tag }}" ]; then
-            echo "IMAGE_TAG=$(echo ${{ github.sha }} | cut -c 1-7)" >> $GITHUB_ENV
+          if [ -z "$IMAGE_TAG_INPUT" ]; then
+            echo "IMAGE_TAG=$(echo "$GITHUB_SHA" | cut -c 1-7)" >> "$GITHUB_ENV"
           else
-            echo "IMAGE_TAG=${{ inputs.image-tag }}" >> $GITHUB_ENV
+            echo "IMAGE_TAG=$IMAGE_TAG_INPUT" >> "$GITHUB_ENV"
           fi
 
       - name: Set FEATURE environment variable
         if: ${{ startsWith(github.event_name == 'schedule' && 'staging' || inputs.environment, 'feature') }}
-        run: echo "FEATURE=$(echo ${GITHUB_REF#refs/heads/feat/})" >> $GITHUB_ENV
+        run: echo "FEATURE=$(echo "${GITHUB_REF#refs/heads/feat/}")" >> "$GITHUB_ENV"
 
       - name: Set US ACR region
         if: ${{ inputs.acr-region == 'us-east-1' || inputs.environment == 'prod' || inputs.environment == 'feature prod' }}
         run: |
-          echo "CR=univer-acr-eastus-registry.us-east-1.cr.aliyuncs.com" >> $GITHUB_ENV
+          echo "CR=univer-acr-eastus-registry.us-east-1.cr.aliyuncs.com" >> "$GITHUB_ENV"
 
       - uses: peter-evans/repository-dispatch@v2
         name: Deploy Docs Site
