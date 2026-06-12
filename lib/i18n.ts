@@ -1,16 +1,20 @@
-import type { Translations } from 'fumadocs-ui/i18n'
+import type { I18nConfig } from 'fumadocs-core/i18n'
 import { defineI18n } from 'fumadocs-core/i18n'
 
-export const i18n = defineI18n({
+export const i18nConfig = {
   defaultLanguage: 'en-US',
   languages: ['en-US', 'zh-CN', 'zh-TW', 'ja-JP'],
   hideLocale: 'always',
-})
+} satisfies I18nConfig
+
+export const i18n = defineI18n(i18nConfig)
 
 // translations
-export const enUS: (Partial<Translations> & {
-  displayName?: string
-}) = {
+type LocaleTranslations = Record<string, string> & {
+  displayName: string
+}
+
+export const enUS: LocaleTranslations = {
   displayName: 'English',
   search: 'Search',
   searchNoResult: 'No results found',
@@ -22,6 +26,23 @@ export const enUS: (Partial<Translations> & {
   previousPage: 'Previous page',
   chooseTheme: 'Choose theme',
   editOnGithub: 'Edit on GitHub',
+  'Choose a language(language switcher)': 'Choose language',
+  'Choose a language(language switcher)(aria-label)': 'Choose language',
+  'Dark(theme switcher)(aria-label)': 'Dark',
+  'Edit on GitHub(edit page)': 'Edit on GitHub',
+  'Last updated on(page footer)': 'Last updated',
+  'Light(theme switcher)(aria-label)': 'Light',
+  'Next Page(pagination)': 'Next page',
+  'No Headings(table of contents)': 'No headings available',
+  'No results found(search dialog)': 'No results found',
+  'On this page(table of contents)': 'Table of Contents',
+  'Open Search(search trigger)(aria-label)': 'Search',
+  'Previous Page(pagination)': 'Previous page',
+  'Search(search dialog)': 'Search',
+  'Search(search trigger)': 'Search',
+  'System(theme switcher)(aria-label)': 'System',
+  'Table of Contents(inline table of contents)': 'Table of Contents',
+  'Toggle Theme(theme switcher)(aria-label)': 'Choose theme',
 }
 
 export const zhCN: typeof enUS = {
@@ -36,6 +57,23 @@ export const zhCN: typeof enUS = {
   previousPage: '上一页',
   chooseTheme: '选择主题',
   editOnGithub: '在 GitHub 上编辑',
+  'Choose a language(language switcher)': '选择语言',
+  'Choose a language(language switcher)(aria-label)': '选择语言',
+  'Dark(theme switcher)(aria-label)': '深色',
+  'Edit on GitHub(edit page)': '在 GitHub 上编辑',
+  'Last updated on(page footer)': '最后更新',
+  'Light(theme switcher)(aria-label)': '浅色',
+  'Next Page(pagination)': '下一页',
+  'No Headings(table of contents)': '没有可用的目录',
+  'No results found(search dialog)': '没有找到相关内容',
+  'On this page(table of contents)': '目录',
+  'Open Search(search trigger)(aria-label)': '搜索',
+  'Previous Page(pagination)': '上一页',
+  'Search(search dialog)': '搜索',
+  'Search(search trigger)': '搜索',
+  'System(theme switcher)(aria-label)': '跟随系统',
+  'Table of Contents(inline table of contents)': '目录',
+  'Toggle Theme(theme switcher)(aria-label)': '选择主题',
 }
 
 export const zhTW: typeof enUS = {
@@ -50,6 +88,23 @@ export const zhTW: typeof enUS = {
   previousPage: '上一頁',
   chooseTheme: '選擇主題',
   editOnGithub: '在 GitHub 上編輯',
+  'Choose a language(language switcher)': '選擇語言',
+  'Choose a language(language switcher)(aria-label)': '選擇語言',
+  'Dark(theme switcher)(aria-label)': '深色',
+  'Edit on GitHub(edit page)': '在 GitHub 上編輯',
+  'Last updated on(page footer)': '最後更新',
+  'Light(theme switcher)(aria-label)': '淺色',
+  'Next Page(pagination)': '下一頁',
+  'No Headings(table of contents)': '沒有可用的目錄',
+  'No results found(search dialog)': '沒有找到相關內容',
+  'On this page(table of contents)': '目錄',
+  'Open Search(search trigger)(aria-label)': '搜索',
+  'Previous Page(pagination)': '上一頁',
+  'Search(search dialog)': '搜索',
+  'Search(search trigger)': '搜索',
+  'System(theme switcher)(aria-label)': '跟隨系統',
+  'Table of Contents(inline table of contents)': '目錄',
+  'Toggle Theme(theme switcher)(aria-label)': '選擇主題',
 }
 
 export const jaJP: typeof enUS = {
@@ -64,9 +119,26 @@ export const jaJP: typeof enUS = {
   previousPage: '前のページ',
   chooseTheme: 'テーマを選択',
   editOnGithub: 'GitHub で編集',
+  'Choose a language(language switcher)': '言語を選択',
+  'Choose a language(language switcher)(aria-label)': '言語を選択',
+  'Dark(theme switcher)(aria-label)': 'ダーク',
+  'Edit on GitHub(edit page)': 'GitHub で編集',
+  'Last updated on(page footer)': '最終更新',
+  'Light(theme switcher)(aria-label)': 'ライト',
+  'Next Page(pagination)': '次のページ',
+  'No Headings(table of contents)': '利用可能な目次がありません',
+  'No results found(search dialog)': '関連するコンテンツが見つかりませんでした',
+  'On this page(table of contents)': '目次',
+  'Open Search(search trigger)(aria-label)': '検索',
+  'Previous Page(pagination)': '前のページ',
+  'Search(search dialog)': '検索',
+  'Search(search trigger)': '検索',
+  'System(theme switcher)(aria-label)': 'システム',
+  'Table of Contents(inline table of contents)': '目次',
+  'Toggle Theme(theme switcher)(aria-label)': 'テーマを選択',
 }
 
-export const translations: Record<string, Partial<Translations>> = {
+export const translations: Partial<Record<(typeof i18nConfig.languages)[number], LocaleTranslations>> = {
   'en-US': enUS,
   'zh-CN': zhCN,
   'zh-TW': zhTW,

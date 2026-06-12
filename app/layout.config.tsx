@@ -1,7 +1,7 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
 import { GithubInfo } from '@/components/github-info/github-info'
 import { Logo } from '@/components/logo'
-import { customTranslations, i18n } from '@/lib/i18n'
+import { customTranslations, i18nConfig } from '@/lib/i18n'
 
 /**
  * Shared layout configurations
@@ -40,7 +40,7 @@ export function baseOptions(locale: string): BaseLayoutProps {
         ),
       },
     ],
-    i18n,
+    i18n: i18nConfig,
     githubUrl: 'https://github.com/dream-num/univer',
   }
 }

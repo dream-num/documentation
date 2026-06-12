@@ -1,6 +1,8 @@
 import Link from 'next/link'
 
 export function SponsorCard() {
+  return null
+
   const sponsor = {
     name: 'Capalyze',
     url: 'https://capalyze.ai/?utm_source=univer',
