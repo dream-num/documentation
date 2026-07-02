@@ -9,6 +9,10 @@ interface IProps {
   children: ReactNode
 }
 
+export function generateStaticParams(): Array<{ lang: string }> {
+  return i18nConfig.languages.map(lang => ({ lang }))
+}
+
 export default async function Layout({ params, children }: IProps) {
   const { lang } = await params
 

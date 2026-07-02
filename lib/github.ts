@@ -1,5 +1,3 @@
-'use server'
-
 import { unstable_cache } from 'next/cache'
 
 const getCachedRepoStarsAndForks = unstable_cache(

@@ -2,6 +2,8 @@ import { createTokenizer } from '@orama/tokenizers/mandarin'
 import { createFromSource } from 'fumadocs-core/search/server'
 import { guides } from '@/lib/source'
 
+export const dynamic = 'force-static'
+
 export const { GET } = createFromSource(guides, {
   localeMap: {
     'zh-CN': {

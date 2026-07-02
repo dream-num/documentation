@@ -49,7 +49,7 @@ export function Rate({
   onRateAction,
 }: {
   lang: string
-  onRateAction: (url: string, feedback: IFeedback) => void
+  onRateAction?: (url: string, feedback: IFeedback) => void | Promise<void>
 }) {
   const url = usePathname()
   const [previous, setPrevious] = useState<Result | null>(null)
@@ -80,7 +80,7 @@ export function Rate({
         message,
       }
 
-      onRateAction(url, feedback)
+      await onRateAction?.(url, feedback)
 
       setPrevious({
         ...feedback,

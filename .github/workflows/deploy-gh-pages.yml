@@ -1,0 +1,50 @@
+name: Deploy GitHub Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages-v0.25
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and publish v0.25
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.GH_TOKEN }}
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: ./.github/actions/setup-node
+
+      - name: Build static site
+        run: pnpm build:gh-pages
+
+      - name: Verify static output
+        run: |
+          test -d out
+          test -f out/index.html
+          test -d out/_next
+          grep -R "/documentation/v0.25/_next" out -m 1
+
+      - name: Disable Jekyll
+        run: touch out/.nojekyll
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./out
+          destination_dir: v0.25
+          keep_files: true

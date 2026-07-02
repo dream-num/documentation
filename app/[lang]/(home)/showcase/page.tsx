@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { ShowcaseContent } from '@/components/showcase/showcase-content'
 import { ShowcaseHero } from '@/components/showcase/showcase-hero'
 import { showcase } from '@/showcase/data'
@@ -69,13 +70,15 @@ export default async function Page({ params }: IProps) {
         slidesCount={slidesCount}
       />
 
-      <ShowcaseContent
-        items={items}
-        lang={lang}
-        sheetsCount={sheetsCount}
-        docsCount={docsCount}
-        slidesCount={slidesCount}
-      />
+      <Suspense fallback={null}>
+        <ShowcaseContent
+          items={items}
+          lang={lang}
+          sheetsCount={sheetsCount}
+          docsCount={docsCount}
+          slidesCount={slidesCount}
+        />
+      </Suspense>
     </div>
   )
 }

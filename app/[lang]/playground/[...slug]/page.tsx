@@ -10,13 +10,13 @@ interface IProps {
   }>
 }
 
-export function generateStaticParams(): { slug: string }[] {
+export function generateStaticParams(): { slug: string[] }[] {
   return Object.keys(showcase).reduce((acc, key) => {
     acc.push({
-      slug: key,
+      slug: key.split('/'),
     })
     return acc
-  }, [] as { slug: string }[])
+  }, [] as { slug: string[] }[])
 }
 
 export async function generateMetadata({ params }: IProps) {
