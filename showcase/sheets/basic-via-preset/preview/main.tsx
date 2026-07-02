@@ -21,8 +21,6 @@ import UniverPresetSheetsThreadCommentEnUS from '@univerjs/preset-sheets-thread-
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { UniverSheetsCrosshairHighlightPlugin } from '@univerjs/sheets-crosshair-highlight'
 import SheetsCrosshairHighlightEnUS from '@univerjs/sheets-crosshair-highlight/locale/en-US'
-import { UniverSheetsZenEditorPlugin } from '@univerjs/sheets-zen-editor'
-import SheetsZenEditorEnUS from '@univerjs/sheets-zen-editor/locale/en-US'
 import { UniverWatermarkPlugin } from '@univerjs/watermark'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef } from 'react'
@@ -37,7 +35,6 @@ import '@univerjs/preset-sheets-drawing/lib/index.css'
 import '@univerjs/preset-sheets-hyper-link/lib/index.css'
 import '@univerjs/preset-sheets-find-replace/lib/index.css'
 import '@univerjs/preset-sheets-thread-comment/lib/index.css'
-import '@univerjs/sheets-zen-editor/lib/index.css'
 import '@univerjs/sheets-crosshair-highlight/lib/index.css'
 
 export default function Preview() {
@@ -61,7 +58,6 @@ export default function Preview() {
           sheetsHyperLinkEnUS,
           UniverPresetSheetsThreadCommentEnUS,
           SheetsCrosshairHighlightEnUS,
-          SheetsZenEditorEnUS,
         ),
       },
       presets: [
@@ -97,7 +93,6 @@ export default function Preview() {
           },
         }],
         UniverSheetsCrosshairHighlightPlugin,
-        UniverSheetsZenEditorPlugin,
       ],
     })
 

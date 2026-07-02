@@ -22,7 +22,7 @@ class MyWebComponent extends LitElement {
       ],
     })
 
-    univerAPI.createUniverDoc(DOCUMENT_DATA)
+    univerAPI.createDocument(DOCUMENT_DATA)
   }
 
   override render() {

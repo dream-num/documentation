@@ -1,7 +1,10 @@
+import type { Locale } from '@/i18n/routing'
 import { ArrowRightIcon, RssIcon } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
+import { Footer } from '@/components/footer'
+import { normalizeLocale } from '@/i18n/locale-config'
 import { clsx } from '@/lib/clsx'
-import { customTranslations } from '@/lib/i18n'
 import { getActiveBlogPages } from '@/lib/source'
 
 interface IProps {
@@ -10,43 +13,14 @@ interface IProps {
   }>
 }
 
-export const metadata = {
-  title: 'Blog',
-  description: 'Blog posts about Univer',
-}
+export async function generateMetadata({ params }: IProps) {
+  const { lang } = await params
+  const t = await getTranslations({ locale: lang as Locale })
 
-const localeMap: Record<string, string> = {
-  en: 'en-US',
-  'zh-CN': 'zh-CN',
-  'zh-TW': 'zh-TW',
-  ja: 'ja-JP',
-}
-
-const localeCopy: Record<string, {
-  featured: string
-  recent: string
-  rss: string
-}> = {
-  en: {
-    featured: 'Featured',
-    recent: 'Recent posts',
-    rss: 'RSS Feed',
-  },
-  'zh-CN': {
-    featured: '焦点文章',
-    recent: '最新文章',
-    rss: 'RSS 订阅',
-  },
-  'zh-TW': {
-    featured: '焦點文章',
-    recent: '最新文章',
-    rss: 'RSS 訂閱',
-  },
-  ja: {
-    featured: '注目の記事',
-    recent: '最新記事',
-    rss: 'RSS フィード',
-  },
+  return {
+    title: t('blog.title'),
+    description: t('blog.slogan'),
+  }
 }
 
 function formatDisplayDate(date: Date | string, lang: string): string {
@@ -55,7 +29,7 @@ function formatDisplayDate(date: Date | string, lang: string): string {
     return String(date)
   }
 
-  return new Intl.DateTimeFormat(localeMap[lang] ?? 'en-US', {
+  return new Intl.DateTimeFormat(normalizeLocale(lang), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -73,7 +47,7 @@ function formatDateTime(date: Date | string): string {
 
 export default async function Page({ params }: IProps) {
   const { lang } = await params
-  const labels = localeCopy[lang] ?? localeCopy.en
+  const t = await getTranslations({ locale: lang as Locale })
 
   const posts = [...getActiveBlogPages(lang)].sort((a, b) => {
     return new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
@@ -84,183 +58,189 @@ export default async function Page({ params }: IProps) {
 
   if (!featuredPost) {
     return (
-      <div className="container mx-auto px-4 py-12">
-        <h1 className="text-3xl font-semibold tracking-tight">{customTranslations[lang]['blog.title']}</h1>
-      </div>
+      <>
+        <div className="container mx-auto px-4 py-12">
+          <h1 className="text-3xl font-semibold tracking-tight">{t('blog.title')}</h1>
+        </div>
+        <Footer />
+      </>
     )
   }
 
   return (
-    <main
-      className="
-        container mx-auto px-4 py-10
-        md:py-12
-      "
-    >
-      <header
-        className={`
-          flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-sm
-          md:flex-row md:items-start md:justify-between md:p-8
-        `}
+    <>
+      <main
+        className="
+          container mx-auto px-4 py-10
+          md:py-12
+        "
       >
-        <div className="space-y-2">
-          <h1
-            className={`
-              text-3xl font-semibold tracking-tight text-balance
-              md:text-4xl
-            `}
-          >
-            {customTranslations[lang]['blog.title']}
-          </h1>
-          <p
-            className={`
-              max-w-2xl text-sm text-muted-foreground
-              md:text-base
-            `}
-          >
-            {customTranslations[lang]['blog.slogan']}
-          </p>
-        </div>
-        <Link
+        <header
           className={`
-            inline-flex w-fit items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium
-            transition-colors
-            hover:bg-accent
-            focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none
-          `}
-          href="/blog/rss.xml"
-          target="_blank"
-          rel="nofollow noreferrer"
-        >
-          <RssIcon aria-hidden className="size-4" />
-          <span>{labels.rss}</span>
-        </Link>
-      </header>
-
-      <section
-        aria-labelledby="featured-post"
-        className={`
-          mt-8 grid gap-4
-          lg:grid-cols-3 lg:items-stretch
-        `}
-      >
-        <h2 id="featured-post" className="sr-only">
-          {labels.featured}
-        </h2>
-
-        <Link
-          className={`
-            group flex min-h-[150px] flex-col rounded-2xl border bg-card p-4 shadow-sm transition-colors
-            hover:bg-accent/20
-            focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none
-          `}
-          href={featuredPost.url}
-        >
-          <time className="text-xs text-muted-foreground" dateTime={formatDateTime(featuredPost.data.date)}>
-            {formatDisplayDate(featuredPost.data.date, lang)}
-          </time>
-          <h3 className="mt-1.5 line-clamp-2 text-base font-medium tracking-tight text-balance">
-            {featuredPost.data.title}
-          </h3>
-          <div
-            className="mt-auto inline-flex items-center justify-between pt-3 text-xs text-muted-foreground"
-          >
-            <span>{featuredPost.data.author}</span>
-            <ArrowRightIcon
-              aria-hidden
-              className="
-                size-4 transition-transform
-                group-hover:translate-x-0.5
-              "
-            />
-          </div>
-        </Link>
-
-        <div
-          className={`
-            grid gap-4
-            md:grid-cols-2
-            lg:col-span-2
+            flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-sm
+            md:flex-row md:items-start md:justify-between md:p-8
           `}
         >
-          {secondaryPosts.map(post => (
-            <Link
-              key={post.url}
+          <div className="space-y-2">
+            <h1
               className={`
-                group flex min-h-[150px] flex-col rounded-2xl border bg-card p-4 shadow-sm transition-colors
-                hover:bg-accent/20
-                focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none
+                text-3xl font-semibold tracking-tight text-balance
+                md:text-4xl
               `}
-              href={post.url}
             >
-              <time className="text-xs text-muted-foreground" dateTime={formatDateTime(post.data.date)}>
-                {formatDisplayDate(post.data.date, lang)}
-              </time>
-              <h3 className="mt-1.5 line-clamp-2 text-base font-medium tracking-tight text-balance">
-                {post.data.title}
-              </h3>
-              <div
-                className="mt-auto inline-flex items-center justify-between pt-3 text-xs text-muted-foreground"
-              >
-                <span>{post.data.author}</span>
-                <ArrowRightIcon
-                  aria-hidden
-                  className="
-                    size-4 transition-transform
-                    group-hover:translate-x-0.5
-                  "
-                />
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
+              {t('blog.title')}
+            </h1>
+            <p
+              className={`
+                max-w-2xl text-sm text-muted-foreground
+                md:text-base
+              `}
+            >
+              {t('blog.slogan')}
+            </p>
+          </div>
+          <Link
+            className={`
+              inline-flex w-fit items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium
+              transition-colors
+              hover:bg-accent
+              focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none
+            `}
+            href="/blog/rss.xml"
+            target="_blank"
+            rel="nofollow noreferrer"
+          >
+            <RssIcon aria-hidden className="size-4" />
+            <span>{t('blog.rss')}</span>
+          </Link>
+        </header>
 
-      <section aria-labelledby="recent-posts" className="mt-10">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 id="recent-posts" className="text-xl font-semibold tracking-tight">
-            {labels.recent}
+        <section
+          aria-labelledby="featured-post"
+          className={`
+            mt-8 grid gap-4
+            lg:grid-cols-3 lg:items-stretch
+          `}
+        >
+          <h2 id="featured-post" className="sr-only">
+            {t('blog.featured')}
           </h2>
-          <span className="text-xs text-muted-foreground">{posts.length}</span>
-        </div>
 
-        <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-          {archivePosts.map((post, index) => (
-            <Link
-              key={post.url}
-              className={clsx(`
-                group grid gap-2 p-4 transition-colors
-                hover:bg-accent/20
-                focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset
-                md:grid-cols-[140px_1fr_auto] md:items-center
-              `, index !== archivePosts.length - 1 && 'border-b')}
-              href={post.url}
+          <Link
+            className={`
+              group flex min-h-[150px] flex-col rounded-2xl border bg-card p-4 shadow-sm transition-colors
+              hover:bg-accent/20
+              focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none
+            `}
+            href={featuredPost.url}
+          >
+            <time className="text-xs text-muted-foreground" dateTime={formatDateTime(featuredPost.data.date)}>
+              {formatDisplayDate(featuredPost.data.date, lang)}
+            </time>
+            <h3 className="mt-1.5 line-clamp-2 text-base font-medium tracking-tight text-balance">
+              {featuredPost.data.title}
+            </h3>
+            <div
+              className="mt-auto inline-flex items-center justify-between pt-3 text-xs text-muted-foreground"
             >
-              <time className="text-sm text-muted-foreground" dateTime={formatDateTime(post.data.date)}>
-                {formatDisplayDate(post.data.date, lang)}
-              </time>
-              <h3 className="text-base font-medium tracking-tight text-balance">
-                {post.data.title}
-              </h3>
-              <span
+              <span>{featuredPost.data.author}</span>
+              <ArrowRightIcon
+                aria-hidden
+                className="
+                  size-4 transition-transform
+                  group-hover:translate-x-0.5
+                "
+              />
+            </div>
+          </Link>
+
+          <div
+            className={`
+              grid gap-4
+              md:grid-cols-2
+              lg:col-span-2
+            `}
+          >
+            {secondaryPosts.map(post => (
+              <Link
+                key={post.url}
                 className={`
-                  inline-flex items-center gap-1 text-sm text-muted-foreground
-                  md:justify-end
+                  group flex min-h-[150px] flex-col rounded-2xl border bg-card p-4 shadow-sm transition-colors
+                  hover:bg-accent/20
+                  focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none
                 `}
+                href={post.url}
               >
-                {post.data.author}
-                <ArrowRightIcon
-                  aria-hidden
-                  className="
-                    size-4 transition-transform
-                    group-hover:translate-x-0.5
-                  "
-                />
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
-    </main>
+                <time className="text-xs text-muted-foreground" dateTime={formatDateTime(post.data.date)}>
+                  {formatDisplayDate(post.data.date, lang)}
+                </time>
+                <h3 className="mt-1.5 line-clamp-2 text-base font-medium tracking-tight text-balance">
+                  {post.data.title}
+                </h3>
+                <div
+                  className="mt-auto inline-flex items-center justify-between pt-3 text-xs text-muted-foreground"
+                >
+                  <span>{post.data.author}</span>
+                  <ArrowRightIcon
+                    aria-hidden
+                    className="
+                      size-4 transition-transform
+                      group-hover:translate-x-0.5
+                    "
+                  />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section aria-labelledby="recent-posts" className="mt-10">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 id="recent-posts" className="text-xl font-semibold tracking-tight">
+              {t('blog.recent')}
+            </h2>
+            <span className="text-xs text-muted-foreground">{posts.length}</span>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+            {archivePosts.map((post, index) => (
+              <Link
+                key={post.url}
+                className={clsx(`
+                  group grid gap-2 p-4 transition-colors
+                  hover:bg-accent/20
+                  focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset
+                  md:grid-cols-[140px_1fr_auto] md:items-center
+                `, index !== archivePosts.length - 1 && 'border-b')}
+                href={post.url}
+              >
+                <time className="text-sm text-muted-foreground" dateTime={formatDateTime(post.data.date)}>
+                  {formatDisplayDate(post.data.date, lang)}
+                </time>
+                <h3 className="text-base font-medium tracking-tight text-balance">
+                  {post.data.title}
+                </h3>
+                <span
+                  className={`
+                    inline-flex items-center gap-1 text-sm text-muted-foreground
+                    md:justify-end
+                  `}
+                >
+                  {post.data.author}
+                  <ArrowRightIcon
+                    aria-hidden
+                    className="
+                      size-4 transition-transform
+                      group-hover:translate-x-0.5
+                    "
+                  />
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </main>
+      <Footer />
+    </>
   )
 }

@@ -1,0 +1,99 @@
+---
+title: 文本范围与段落
+icon: Pilcrow
+---
+
+## 基于下标的模型
+
+Univer Docs 不会把富文本存储成嵌套树，而是将纯文本存储在 `body.dataStream` 中，再通过下标范围把样式和结构附加到文本上。
+
+最常见的下标结构包括：
+
+- `ITextRun`：行内文本样式范围。
+- `IParagraph`：段落元信息和段落样式。
+- `ISectionBreak`：章节分隔符元信息。
+
+## ITextRun
+
+`ITextRun` 用于描述一段连续文本的样式。
+
+| 属性 | 类型 | 描述 |
+| --- | --- | --- |
+| st | `number` | 起始下标，包含该位置。 |
+| ed | `number` | 结束下标，不包含该位置。 |
+| sId? | `string` | 引用的样式 ID。 |
+| ts? | `ITextStyle` | 行内文本样式对象。 |
+
+```typescript
+const body: IDocumentBody = {
+  dataStream: '你好 Univer\r\n',
+  textRuns: [
+    {
+      st: 0,
+      ed: 2,
+      ts: { bl: 1 },
+    },
+    {
+      st: 3,
+      ed: 9,
+      ts: { cl: { rgb: '#2563eb' } },
+    },
+  ],
+}
+```
+
+在这个示例中，`你好` 会加粗，`Univer` 会显示为蓝色。段落分隔符 `\r\n` 不包含在样式范围中。
+
+## IParagraph
+
+`IParagraph` 用于描述段落级元信息。`startIndex` 指向 `dataStream` 中的段落分隔符位置。
+
+| 属性 | 类型 | 描述 |
+| --- | --- | --- |
+| startIndex | `number` | 段落分隔符所在下标。 |
+| paragraphId | `string` | 稳定的段落 ID。 |
+| paragraphStyle? | `IParagraphStyle` | 段落样式，例如对齐、缩进、行距、标题类型。 |
+| bullet? | `IBullet` | 列表标记元信息。 |
+
+```typescript
+const body: IDocumentBody = {
+  dataStream: '你好 Univer\r\n第二行\r\n',
+  paragraphs: [
+    {
+      startIndex: 9,
+      paragraphId: 'p-1',
+      paragraphStyle: {
+        namedStyleType: NamedStyleType.HEADING_1,
+      },
+    },
+    {
+      startIndex: 14,
+      paragraphId: 'p-2',
+    },
+  ],
+}
+```
+
+## ISectionBreak
+
+`ISectionBreak` 同样通过下标与文本流关联。它可以为章节覆盖页面大小、页边距、页眉页脚、分栏和文字方向等设置。
+
+```typescript
+const body: IDocumentBody = {
+  dataStream: '第一节\n第二节\r\n',
+  sectionBreaks: [
+    {
+      startIndex: 3,
+      pageSize: { width: 595, height: 842 },
+      marginTop: 72,
+      marginBottom: 72,
+    },
+  ],
+}
+```
+
+## 注意事项
+
+- 需要保证下标与 `dataStream` 对齐。错误的下标可能导致样式范围、段落、选区或渲染状态不一致。
+- 编辑运行中的文档时，优先使用 Facade API 和命令。
+- 手动生成快照时，建议先构造 `dataStream`，再从该字符串计算样式范围和段落位置。

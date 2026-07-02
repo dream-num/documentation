@@ -46,7 +46,7 @@ export default function Preview() {
         // set read only
         const permission = fWorkbook.getWorkbookPermission()
         permission.setReadOnly()
-        permission.setPermissionDialogVisible(false)
+        univerAPI.setPermissionDialogVisible(false)
       }
     })
 

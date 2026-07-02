@@ -1,0 +1,119 @@
+---
+title: 提及
+icon: AtSign
+---
+
+<MetaData
+  lang="zh-CN"
+  meta={{
+    plugins: [{
+      client: '@univerjs/docs-mention-ui',
+      style: '@univerjs/docs-mention-ui/lib/index.css',
+    }],
+    server: false,
+  }}
+/>
+
+提及功能允许用户在 Univer Docs 中输入 `@` 并插入一个 mention 实体，例如应用中的人员、团队、工单或其他对象。插入后的 mention 会作为 `CustomRangeType.MENTION` 自定义范围存储在文档正文中。
+
+## 交互方式
+
+- 在文档中输入 `@` 打开提及弹层。
+- 继续输入会把 `search` 传给 mention 数据源。
+- 选择候选项后，会用类似 `@Alice` 的实体替换已输入的触发文本。
+- 移动光标或删除到触发位置之前会关闭弹层。
+
+## 插件模式
+
+### 安装
+
+```package-install
+npm install @univerjs/docs-mention-ui
+```
+
+### 使用
+
+```typescript
+import { UniverDocsMentionUIPlugin } from '@univerjs/docs-mention-ui' // [!code ++]
+
+import '@univerjs/docs-mention-ui/lib/index.css' // [!code ++]
+
+univer.registerPlugin(UniverDocsMentionUIPlugin) // [!code ++]
+```
+
+## 提供候选数据
+
+提及弹层会从 `IMentionIOService` 读取候选项。Univer 内置的本地实现会返回当前用户；生产应用通常会替换为连接用户目录、团队服务、工单系统或其他业务数据源的实现。
+
+```typescript
+import type { IListMentionParam, IListMentionResponse, IMentionIOService } from '@univerjs/core'
+import { MentionType } from '@univerjs/core'
+
+class DirectoryMentionIOService implements IMentionIOService {
+  async list(params: IListMentionParam): Promise<IListMentionResponse> {
+    const users = await searchUsers(params.search ?? '')
+
+    return {
+      list: [{
+        type: MentionType.PERSON,
+        title: 'People',
+        metadata: {},
+        mentions: users.map(user => ({
+          objectType: MentionType.PERSON,
+          objectId: user.id,
+          label: user.name,
+          metadata: {
+            icon: user.avatarUrl,
+            email: user.email,
+          },
+        })),
+      }],
+      page: params.page,
+      size: params.size,
+      total: users.length,
+    }
+  }
+}
+```
+
+创建应用时，通过 Univer 的依赖覆盖注册自定义服务。
+
+```typescript
+import { IMentionIOService, LocaleType, Univer } from '@univerjs/core'
+
+const univer = new Univer({
+  locale: LocaleType.ZH_CN,
+  override: [
+    [IMentionIOService, { useClass: DirectoryMentionIOService }],
+  ],
+})
+```
+
+## 数据模型
+
+mention 插入后，可见文本会写入 `body.dataStream`，实体元信息会持久化到 `body.customRanges`。
+
+```typescript
+const documentData = {
+  body: {
+    dataStream: 'Hello @Alice\\r\\n',
+    customRanges: [{
+      startIndex: 6,
+      endIndex: 11,
+      rangeId: 'mention-1',
+      rangeType: CustomRangeType.MENTION,
+      wholeEntity: true,
+      properties: {
+        id: 'mention-1',
+        label: 'Alice',
+        type: 'user',
+        email: 'alice@example.com',
+      },
+    }],
+  },
+}
+```
+
+<Callout type="info">
+  Mentions 是文档自定义范围。如果应用在 `metadata` 中存储额外字段，请保持这些字段可序列化，这样文档快照才能安全持久化和恢复。
+</Callout>

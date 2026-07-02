@@ -3,8 +3,10 @@
 import type { Theme } from '@univerjs/themes'
 import type { ReactNode } from 'react'
 import type { LoopColorKey, ThemeScaleKey, ThemeShadeKey } from './types'
-import { Button, clsx, ColorPicker, Dropdown, FormLayout, Input, Select, Textarea } from '@univerjs/design'
+import { Button, clsx, FormLayout, Input, Select, Textarea } from '@univerjs/design'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
+import { ColorPickerPopover } from '@/components/color-picker-popover'
 import { COLOR_SHADE_KEYS, LOOP_COLOR_KEYS, LOOP_COLOR_OPTIONS } from './constants'
 import { normalizeHexColor } from './theme-utils'
 
@@ -24,13 +26,14 @@ export function ThemeColorField(props: {
   onChange: (value: string) => void
 }) {
   const { label, value, onChange } = props
+  const t = useTranslations()
   const [draftValue, setDraftValue] = useState(value)
 
   useEffect(() => {
     setDraftValue(value)
   }, [value])
 
-  const error = draftValue.trim().length > 0 && !normalizeHexColor(draftValue) ? 'Enter a valid HEX value, for example #466AF7.' : undefined
+  const error = draftValue.trim().length > 0 && !normalizeHexColor(draftValue) ? t('theme-customizer.invalid-hex') : undefined
 
   function handleInputChange(nextValue: string) {
     setDraftValue(nextValue)
@@ -55,36 +58,18 @@ export function ThemeColorField(props: {
         onChange={handleInputChange}
         placeholder="#000000"
         slot={(
-          <Dropdown
-            align="end"
-            side="bottom"
-            overlay={(
-              <div className="p-2">
-                <ColorPicker
-                  value={value}
-                  onChange={(nextValue) => {
-                    const normalizedValue = normalizeHexColor(nextValue)
+          <ColorPickerPopover
+            ariaLabel={t('theme-customizer.choose-color', { label })}
+            value={value}
+            onValueChange={(nextValue) => {
+              const normalizedValue = normalizeHexColor(nextValue)
 
-                    if (normalizedValue) {
-                      setDraftValue(normalizedValue)
-                      onChange(normalizedValue)
-                    }
-                  }}
-                />
-              </div>
-            )}
-          >
-            <button
-              type="button"
-              aria-label={`Choose ${label} color`}
-              className={clsx(`
-                focus:ring-primary-50
-                size-5 cursor-pointer rounded-full border border-solid border-slate-300 bg-transparent p-0
-                focus:ring-2 focus:outline-none
-              `)}
-              style={{ backgroundColor: value }}
-            />
-          </Dropdown>
+              if (normalizedValue) {
+                setDraftValue(normalizedValue)
+                onChange(normalizedValue)
+              }
+            }}
+          />
         )}
       />
     </FormLayout>
@@ -99,6 +84,7 @@ export function ThemeScaleSection(props: {
   onChange: (scale: ThemeScaleKey, shade: ThemeShadeKey, value: string) => void
 }) {
   const { title, scale, theme, defaultExpanded = false, onChange } = props
+  const t = useTranslations()
   const [expanded, setExpanded] = useState(defaultExpanded)
 
   return (
@@ -145,7 +131,7 @@ export function ThemeScaleSection(props: {
               dark:text-gray-300!
             "
           >
-            {expanded ? 'Collapse' : 'Expand'}
+            {expanded ? t('theme-customizer.collapse') : t('theme-customizer.expand')}
           </span>
         </div>
       </button>
@@ -176,6 +162,7 @@ export function ThemeRootColorsSection(props: {
   onChange: (key: 'white' | 'black', value: string) => void
 }) {
   const { theme, onChange } = props
+  const t = useTranslations()
 
   return (
     <section
@@ -190,7 +177,7 @@ export function ThemeRootColorsSection(props: {
           dark:text-white!
         "
       >
-        Base Tokens
+        {t('theme-customizer.base-tokens')}
       </div>
       <div
         className="
@@ -210,6 +197,7 @@ export function ThemeLoopColorSection(props: {
   onChange: (key: LoopColorKey, value: string) => void
 }) {
   const { theme, onChange } = props
+  const t = useTranslations()
 
   return (
     <section
@@ -224,7 +212,7 @@ export function ThemeLoopColorSection(props: {
           dark:text-white!
         "
       >
-        loop-color
+        {t('theme-customizer.loop-colors')}
       </div>
       <div
         className="
@@ -251,6 +239,7 @@ export function IntegrationExampleSection(props: {
   onCopy: () => void
 }) {
   const { copyLabel, onCopy } = props
+  const t = useTranslations()
 
   return (
     <section
@@ -266,7 +255,7 @@ export function IntegrationExampleSection(props: {
             dark:text-white!
           "
         >
-          Integration Example
+          {t('theme-customizer.integration-example')}
         </div>
         <Button size="middle" onClick={onCopy}>
           {copyLabel}
@@ -297,6 +286,7 @@ export function JsonEditorPanel(props: {
   onViewDefault: () => void
 }) {
   const { copyLabel, jsonDraft, jsonError, onCopy, onFormatCurrent, onJsonChange, onSyncCurrent, onViewDefault } = props
+  const t = useTranslations()
 
   return (
     <section
@@ -313,7 +303,7 @@ export function JsonEditorPanel(props: {
               dark:text-white!
             "
           >
-            Theme JSON
+            {t('theme-customizer.theme-json')}
           </div>
           <p
             className="
@@ -321,16 +311,16 @@ export function JsonEditorPanel(props: {
               dark:text-gray-300!
             "
           >
-            A valid JSON patch is merged and applied to the running `ThemeService` immediately.
+            {t('theme-customizer.theme-json-description')}
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2">
           <Button size="middle" onClick={onSyncCurrent}>
-            Sync Current Theme
+            {t('theme-customizer.sync-current-theme')}
           </Button>
           <Button size="middle" onClick={onViewDefault}>
-            View Default
+            {t('theme-customizer.view-default')}
           </Button>
           <Button size="middle" onClick={onCopy}>
             {copyLabel}
@@ -366,7 +356,7 @@ export function JsonEditorPanel(props: {
             {jsonError}
           </div>
           <Button size="middle" variant="primary" onClick={onFormatCurrent}>
-            Format Current Result
+            {t('theme-customizer.format-current-result')}
           </Button>
         </div>
       </div>

@@ -19,8 +19,8 @@ export function GithubInfo({
       {...props}
       className={clsx(
         `
-          flex gap-1.5 rounded-lg px-3 text-sm text-fd-foreground/80 transition-colors
-          hover:text-fd-accent-foreground
+          flex gap-1.5 rounded-lg px-3 text-sm text-foreground/80 transition-colors
+          hover:text-accent-foreground
           lg:flex-row lg:items-center
         `,
         props.className,

@@ -1,6 +1,6 @@
 import type { IWorkbookData } from '@univerjs/presets'
 
-export const WORKBOOK_DATA: Partial<IWorkbookData> = {
+export const WORKBOOK_DATA = {
   id: 'xf_VBt',
   sheetOrder: [
     'SHh40QNCykVZr7CbKqQdv',
@@ -525,4 +525,4 @@ export const WORKBOOK_DATA: Partial<IWorkbookData> = {
       data: '{}',
     },
   ],
-}
+} as unknown as Partial<IWorkbookData>

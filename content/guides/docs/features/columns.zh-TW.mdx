@@ -1,0 +1,139 @@
+---
+title: 分欄版面
+icon: '#pro/Columns3'
+---
+
+<MetaData
+  lang="zh-TW"
+  isPro
+  meta={{
+    plugins: [{
+      client: '@univerjs-pro/docs-column',
+      facade: '@univerjs-pro/docs-column/facade',
+    }, {
+      client: '@univerjs-pro/docs-column-ui',
+      locale: '@univerjs-pro/docs-column-ui/locale/zh-TW',
+      style: '@univerjs-pro/docs-column-ui/lib/index.css',
+    }],
+    server: false,
+  }}
+/>
+
+分欄版面為 Univer Docs 增加可編輯的 column group。一個 column group 是包含 2 到 5 個欄的區塊容器，適合在文件中製作緊湊的編輯排版、對比區塊、簡報內容，以及文字和表格混排。
+
+## 介紹
+
+在 Univer Docs 中，分欄版面使您能夠：
+
+- **插入分欄組**：在指定文件 offset 建立兩欄、三欄或自訂寬度比例的分欄區塊。
+- **互動式編輯**：透過 Docs UI 插入、調整寬度和刪除欄。
+- **使用 Facade API**：用程式查詢分欄組、向指定欄插入內容，並更新各欄寬度比例。
+- **保留文件操作語義**：分欄 mutation 會走標準富文字命令鏈路，因此復原/重做和協同編輯能收到與 UI 操作一致的文件變更。
+
+## 外掛模式
+
+### 安裝
+
+```package-install
+npm install @univerjs-pro/docs-column @univerjs-pro/docs-column-ui
+```
+
+### 使用
+
+```typescript
+import { UniverDocsColumnUIPlugin } from '@univerjs-pro/docs-column-ui' // [!code ++]
+import DocsColumnUIZhTW from '@univerjs-pro/docs-column-ui/locale/zh-TW' // [!code ++]
+import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+
+import '@univerjs-pro/docs-column-ui/lib/index.css' // [!code ++]
+
+const univer = new Univer({
+  locale: LocaleType.ZH_TW,
+  locales: {
+    [LocaleType.ZH_TW]: mergeLocales(
+      DocsColumnUIZhTW, // [!code ++]
+    ),
+  },
+})
+
+univer.registerPlugin(UniverDocsColumnUIPlugin) // [!code ++]
+```
+
+如果您擁有 Univer 商業授權，請參閱[在用戶端使用授權](/guides/pro/license#in-plugin-mode)進行配置。
+
+## Facade API
+
+使用 API 前請確保已匯入 facade：
+
+```typescript
+import '@univerjs-pro/docs-column/facade'
+```
+
+### 插入分欄組
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+const group = doc?.insertColumnGroup(3, {
+  gap: 18,
+  widthRatios: [1.1, 1, 0.9],
+})
+```
+
+### 向指定欄插入內容
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+const group = doc?.insertColumnGroup(2)
+const [left, right] = group?.getColumns() ?? []
+
+const leftOffset = left?.getInsertOffset()
+if (leftOffset != null) {
+  doc?.insertText('摘要\r關鍵決策和背景資訊。', {
+    startOffset: leftOffset,
+    endOffset: leftOffset,
+  })
+}
+
+const rightOffset = right?.getInsertOffset()
+if (rightOffset != null) {
+  doc?.insertTableFromData([
+    ['事項', '負責人'],
+    ['發布檢查清單', 'Docs team'],
+  ], { offset: rightOffset, headerRowCount: 1 })
+}
+```
+
+### 查詢分欄組
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+
+const groups = doc?.getColumnGroups() ?? []
+const byId = doc?.getColumnGroup('column-group-id')
+const atOffset = doc?.getColumnGroupAt(128)
+const matched = doc?.findColumnGroups('Launch') ?? []
+
+console.log(groups.map(group => group.describe()))
+console.log(byId, atOffset, matched)
+```
+
+### 調整或編輯分欄組
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+const group = doc?.getColumnGroups()[0]
+
+group?.setWidthRatios([1.2, 1, 0.8])
+
+const first = group?.getColumn(0)
+if (first) {
+  group?.addColumn(first.getId(), 'right')
+}
+```
+
+### 刪除分欄組
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+doc?.deleteColumnGroup('column-group-id')
+```

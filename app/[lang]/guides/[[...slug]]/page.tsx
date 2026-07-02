@@ -1,16 +1,16 @@
+import type { ComponentProps } from 'react'
 import process from 'node:process'
-import { SiGithub } from '@icons-pack/react-simple-icons'
-import { createRelativeLink } from 'fumadocs-ui/mdx'
-import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/page'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { PostHog } from 'posthog-node'
-import { Rate } from '@/components/rate'
+import { GuidesArticle } from '@/components/guides/article'
+import { GuidesLayout } from '@/components/guides/layout'
+import { getGuidesMDXComponents } from '@/components/mdx-docs'
 import { SponsorCard } from '@/components/sponsor-card'
-import { Button } from '@/components/ui/button'
-import { customTranslations } from '@/lib/i18n'
+import { getGuidesEditUrl } from '@/lib/github'
+import { createGuideNavigation } from '@/lib/guides/navigation'
 import { guides } from '@/lib/source'
-import { getMDXComponents } from '@/mdx-components'
+
+type GuidePage = NonNullable<ReturnType<typeof guides.getPage>>
 
 interface IProps {
   params: Promise<{
@@ -36,6 +36,22 @@ export async function generateMetadata({ params }: IProps) {
   }
 }
 
+function createGuideLink(page: GuidePage) {
+  function GuideLink({
+    href,
+    ...props
+  }: ComponentProps<'a'>) {
+    return (
+      <a
+        href={typeof href === 'string' ? guides.resolveHref(href, page) : href}
+        {...props}
+      />
+    )
+  }
+
+  return GuideLink
+}
+
 export default async function Page({ params }: IProps) {
   const { slug, lang } = await params
   const page = guides.getPage(slug, lang)
@@ -44,42 +60,23 @@ export default async function Page({ params }: IProps) {
   }
 
   const MDXContent = page.data.body
+  const navigation = createGuideNavigation(guides.pageTree[lang], page.url)
+  const editUrl = await getGuidesEditUrl(page.path)
+  const GuideLink = createGuideLink(page)
 
   return (
-    <DocsPage
+    <GuidesLayout
+      lang={lang}
+      navigation={navigation}
+      pathname={page.url}
       toc={page.data.toc}
-      full={page.data.full}
-      tableOfContent={{
-        style: 'clerk',
-        footer: <SponsorCard />,
-      }}
-      // lastUpdate={page.data.lastModified}
+      tocFooter={<SponsorCard />}
     >
-      <header className="border-b border-b-neutral-200 pb-6">
-        <DocsTitle className="mb-6">{page.data.title}</DocsTitle>
-        <DocsDescription>{page.data.description}</DocsDescription>
-
-        {/* Actions */}
-        <section>
-          <Button size="sm" asChild>
-            <Link className="text-xs" href={`https://github.com/dream-num/univer-documentation/tree/dev/content/guides/${page.path}`}>
-              <SiGithub />
-              {customTranslations[lang]['docs.header.edit-on-github']}
-            </Link>
-          </Button>
-        </section>
-      </header>
-
-      <DocsBody className="w-full">
-        <MDXContent
-          components={getMDXComponents({
-            // this allows you to link to other pages with relative file paths
-            a: createRelativeLink(guides, page),
-          })}
-        />
-      </DocsBody>
-
-      <Rate
+      <GuidesArticle
+        title={page.data.title}
+        description={page.data.description}
+        editUrl={editUrl}
+        navigation={navigation}
         lang={lang}
         onRateAction={async (url, feedback) => {
           'use server'
@@ -102,7 +99,15 @@ export default async function Page({ params }: IProps) {
             },
           })
         }}
-      />
-    </DocsPage>
+      >
+        <div data-docs-body>
+          <MDXContent
+            components={getGuidesMDXComponents({
+              a: GuideLink,
+            })}
+          />
+        </div>
+      </GuidesArticle>
+    </GuidesLayout>
   )
 }

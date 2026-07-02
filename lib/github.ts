@@ -42,3 +42,7 @@ export async function getRepoStarsAndForks(
 ) {
   return await getCachedRepoStarsAndForks(owner, repo)
 }
+
+export async function getGuidesEditUrl(path: string) {
+  return `https://github.com/dream-num/univer-documentation/tree/dev/content/guides/${path}`
+}

@@ -65,7 +65,7 @@ export default function Univer() {
     })
 
     if (type === 'docs') {
-      univerAPI.createUniverDoc(documentData)
+      univerAPI.createDocument(documentData)
     } else if (type === 'sheets') {
       univerAPI.createWorkbook(workbookData)
     }

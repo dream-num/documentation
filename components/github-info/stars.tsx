@@ -46,7 +46,7 @@ export default function Stars({
   }, [stars])
 
   return (
-    <p className="flex items-center gap-1 text-xs text-fd-muted-foreground">
+    <p className="flex items-center gap-1 text-xs text-muted-foreground">
       <span className="relative">
         <StarIcon
           className="size-3 fill-neutral-300 text-neutral-300"

@@ -1,6 +1,6 @@
 import type { FWorksheet } from '@univerjs/preset-sheets-core'
 import type { FUniver } from '@univerjs/presets'
-import { AreaLineStyle, ChartTypeBits, LegendPositionEnum, RadarShape, SelectModeEnum } from '@univerjs/preset-sheets-advanced'
+import { AreaLineStyle, ChartTypeBits, LegendPositionEnum, SelectModeEnum } from '@univerjs/preset-sheets-advanced'
 import themeJson from './theme.json'
 
 export function insertChart(univerAPI: FUniver) {
@@ -10,7 +10,6 @@ export function insertChart(univerAPI: FUniver) {
   insertLineChart(fWorksheet)
   insertBarChart(fWorksheet)
   insertPieChart(fWorksheet)
-  insertRadarChart(fWorksheet)
   insertCombinChart(fWorksheet)
 }
 
@@ -68,22 +67,11 @@ async function insertPieChart(fWorksheet: FWorksheet) {
   await fWorksheet.insertChart(pieChartBuildInfo)
 }
 
-async function insertRadarChart(fWorksheet: FWorksheet) {
-  const RadarChartBuildInfo = fWorksheet.newChart()
-    .asRadarChart()
-    .setShape(RadarShape.Circle)
-    .setFill(true)
-    .addRange('Sheet1!B3:F14')
-    .setPosition(18, 8, 0, 0)
-    .build()
-  await fWorksheet.insertChart(RadarChartBuildInfo)
-}
-
 async function insertCombinChart(fWorksheet: FWorksheet) {
   const combinChartBuildInfo = fWorksheet.newChart()
     .setChartType(ChartTypeBits.Combination)
     .addRange('Sheet1!B3:F14')
-    .setPosition(18, 14, 0, 0)
+    .setPosition(18, 8, 0, 0)
     .build()
   await fWorksheet.insertChart(combinChartBuildInfo)
 }

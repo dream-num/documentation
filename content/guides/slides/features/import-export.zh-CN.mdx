@@ -1,0 +1,95 @@
+---
+title: 导入 & 导出
+icon: '#pro/FolderSync'
+---
+
+## 概览
+
+Slides 导入导出属于 Pro 能力。浏览器端需要注册通用 exchange client 和 Slides exchange client，实际的转换、任务轮询、存储和签名下载地址由你的 Pro 部署提供。
+
+```ts
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
+import { UniverSlidesExchangeClientPlugin } from '@univerjs-pro/slides-exchange-client'
+import '@univerjs-pro/exchange-client/facade'
+
+univer.registerPlugin(UniverExchangeClientPlugin)
+univer.registerPlugin(UniverSlidesExchangeClientPlugin)
+```
+
+## 安装
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/slides-exchange-client
+```
+
+## 配置端点
+
+`@univerjs-pro/slides-exchange-client` 依赖 `@univerjs-pro/exchange-client`。服务端地址配置在通用 exchange client 上，然后再注册 Slides client 来提供 PPTX 菜单操作。
+
+```ts
+univer.registerPlugin(UniverExchangeClientPlugin, {
+  uploadFileServerUrl: '/universer-api/stream/file/upload',
+  importServerUrl: '/universer-api/exchange/{type}/import',
+  exportServerUrl: '/universer-api/exchange/{type}/export',
+  getTaskServerUrl: '/universer-api/exchange/task/{taskID}',
+  signUrlServerUrl: '/universer-api/file/{fileID}/sign-url',
+  downloadEndpointUrl: location.origin,
+  maxTimeoutTime: 120000,
+})
+
+univer.registerPlugin(UniverSlidesExchangeClientPlugin)
+```
+
+`{type}` 会被替换为 `UniverInstanceType.UNIVER_SLIDE`。导入可以返回服务端 unit id，也可以返回 snapshot JSON。导出会把 slide snapshot 上传到 exchange 服务，等待任务结果，给返回的 file id 签名，然后下载 PPTX 文件。
+
+## Facade API
+
+插件模式下需要引入 facade 包：
+
+```ts
+import '@univerjs-pro/exchange-client/facade'
+```
+
+导入 PPTX 到服务端 unit：
+
+```ts
+const unitId = await univerAPI.importPPTXToUnitIdAsync(file)
+```
+
+导入 PPTX 为本地 slide 数据：
+
+```ts
+const slideData = await univerAPI.importPPTXToSnapshotAsync(file)
+
+if (slideData) {
+  univerAPI.createPresentation(slideData)
+}
+```
+
+导出当前 slide deck：
+
+```ts
+const presentation = univerAPI.getActivePresentation()
+const file = await univerAPI.exportPPTXBySnapshotAsync(presentation.save())
+```
+
+导出服务端 slide unit：
+
+```ts
+const file = await univerAPI.exportPPTXByUnitIdAsync(unitId)
+```
+
+## 菜单行为
+
+Slides exchange client 提供 PPTX 菜单操作：
+
+- `ImportPPTXOperation` 会在当前 URL 存在 `unit` query 参数时导入到已有 unit，否则导入为本地 snapshot。
+- `ExportPPTXOperation` 会按当前 slide deck 的 snapshot 导出。
+
+如果需要合并自定义菜单显隐或顺序，可以给 `UniverSlidesExchangeClientPlugin` 传入 `menu` 配置。
+
+## 相关设置
+
+- 先注册 `UniverSlidesPlugin`，确保 Slides unit 已经可用。
+- 使用 Pro 服务端 API 处理鉴权、存储、转换、任务轮询和签名下载地址。
+- 如果导入 PPTX 可能包含表格、图表或打印相关信息，请同时启用对应插件。

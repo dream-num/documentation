@@ -21,4 +21,4 @@ const { univerAPI } = createUniver({
   ],
 })
 
-univerAPI.createUniverDoc(DOCS_BIG_DATA)
+univerAPI.createDocument(DOCS_BIG_DATA)

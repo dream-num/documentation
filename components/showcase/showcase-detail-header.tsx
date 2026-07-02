@@ -1,11 +1,11 @@
 'use client'
 
 import { ChevronRightIcon } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { clsx } from '@/lib/clsx'
-import { customTranslations } from '@/lib/i18n'
 
 interface ShowcaseDetailHeaderProps {
   lang: string
@@ -31,7 +31,7 @@ const typeConfig = {
 }
 
 export function ShowcaseDetailHeader({ lang, title, description, tags, type }: ShowcaseDetailHeaderProps) {
-  const t = customTranslations[lang]
+  const t = useTranslations()
   const config = typeConfig[type]
 
   return (
@@ -51,7 +51,7 @@ export function ShowcaseDetailHeader({ lang, title, description, tags, type }: S
             dark:hover:text-neutral-200
           "
         >
-          {t['showcase.breadcrumb.home']}
+          {t('showcase.breadcrumb.home')}
         </Link>
         <ChevronRightIcon className="size-3.5" />
         <Link
@@ -62,7 +62,7 @@ export function ShowcaseDetailHeader({ lang, title, description, tags, type }: S
             dark:hover:text-neutral-200
           "
         >
-          {t['showcase.breadcrumb.showcase']}
+          {t('showcase.breadcrumb.showcase')}
         </Link>
         <ChevronRightIcon className="size-3.5" />
         <span
@@ -116,7 +116,7 @@ export function ShowcaseDetailHeader({ lang, title, description, tags, type }: S
         <div className="shrink-0">
           <Button asChild variant="outline" size="sm">
             <Link href="/showcase">
-              {t['showcase.back']}
+              {t('showcase.back')}
             </Link>
           </Button>
         </div>

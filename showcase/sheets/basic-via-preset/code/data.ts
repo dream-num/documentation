@@ -1,6 +1,6 @@
 import type { IWorkbookData } from '@univerjs/presets'
 
-export const WORKBOOK_DATA: Partial<IWorkbookData> = {
+export const WORKBOOK_DATA = {
   id: 'workbook-01',
   sheetOrder: [
     'sheet-01',
@@ -10986,7 +10986,7 @@ export const WORKBOOK_DATA: Partial<IWorkbookData> = {
     },
     {
       name: 'SHEET_AuthzIoMockService_PLUGIN',
-      data: '{"kt0xKSZX":{"collaborators":[],"unitID":"workbook-01","name":"工作表1(B2:E7)","objectType":3}}',
+      data: '{"kt0xKSZX":{"collaborators":[],"strategies":[],"unitID":"workbook-01","name":"工作表1(B2:E7)","objectType":3}}',
     },
     {
       name: 'SHEET_WORKSHEET_PROTECTION_PLUGIN',
@@ -10997,4 +10997,4 @@ export const WORKBOOK_DATA: Partial<IWorkbookData> = {
       data: '{}',
     },
   ],
-}
+} as unknown as Partial<IWorkbookData>

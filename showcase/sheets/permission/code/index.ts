@@ -31,7 +31,7 @@ async function AddWorksheetProtection(univerAPI: FUniver) {
   const fWorkbook = univerAPI.getActiveWorkbook()
   if (!fWorkbook) return
 
-  fWorkbook.getWorkbookPermission().setPermissionDialogVisible(false)
+  univerAPI.setPermissionDialogVisible(false)
 
   const fWorksheet = fWorkbook.getActiveSheet()
   if (!fWorksheet) return

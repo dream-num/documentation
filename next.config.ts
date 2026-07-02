@@ -1,8 +1,10 @@
 import type { NextConfig } from 'next'
 import process from 'node:process'
 import { createMDX } from 'fumadocs-mdx/next'
+import createNextIntlPlugin from 'next-intl/plugin'
 
 const withMDX = createMDX({})
+const withNextIntl = createNextIntlPlugin()
 const DEV_API_ORIGIN = 'https://dev.univer.plus'
 
 const config: NextConfig = {
@@ -30,4 +32,4 @@ const config: NextConfig = {
   },
 }
 
-export default withMDX(config)
+export default withNextIntl(withMDX(config))

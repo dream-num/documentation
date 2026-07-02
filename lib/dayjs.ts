@@ -1,15 +1,19 @@
 import dayjs from 'dayjs'
 import localizedFormat from 'dayjs/plugin/localizedFormat'
+import { normalizeLocale } from '@/i18n/locale-config'
 
 dayjs.extend(localizedFormat)
 
 export function formatLocalDate(date: Date | string, language: string): string {
-  const parsedDate = dayjs(date)
+  const parsedDate = new Date(date)
 
-  if (language === 'zh-CN') {
-    return parsedDate.format('YYYY-MM-DD')
+  if (Number.isNaN(parsedDate.getTime())) {
+    return String(date)
   }
-  return parsedDate.format('ll')
+
+  return new Intl.DateTimeFormat(normalizeLocale(language), {
+    dateStyle: 'medium',
+  }).format(parsedDate)
 }
 
 export { dayjs }

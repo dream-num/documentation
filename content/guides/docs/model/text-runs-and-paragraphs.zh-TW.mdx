@@ -1,0 +1,99 @@
+---
+title: 文字範圍與段落
+icon: Pilcrow
+---
+
+## 基於索引的模型
+
+Univer Docs 不會把富文字儲存成巢狀樹，而是將純文字儲存在 `body.dataStream` 中，再透過索引範圍把樣式和結構附加到文字上。
+
+最常見的索引結構包括：
+
+- `ITextRun`：行內文字樣式範圍。
+- `IParagraph`：段落中繼資訊與段落樣式。
+- `ISectionBreak`：章節分隔符中繼資訊。
+
+## ITextRun
+
+`ITextRun` 用於描述一段連續文字的樣式。
+
+| 屬性 | 類型 | 描述 |
+| --- | --- | --- |
+| st | `number` | 起始索引，包含該位置。 |
+| ed | `number` | 結束索引，不包含該位置。 |
+| sId? | `string` | 引用的樣式 ID。 |
+| ts? | `ITextStyle` | 行內文字樣式物件。 |
+
+```typescript
+const body: IDocumentBody = {
+  dataStream: '你好 Univer\r\n',
+  textRuns: [
+    {
+      st: 0,
+      ed: 2,
+      ts: { bl: 1 },
+    },
+    {
+      st: 3,
+      ed: 9,
+      ts: { cl: { rgb: '#2563eb' } },
+    },
+  ],
+}
+```
+
+在這個範例中，`你好` 會加粗，`Univer` 會顯示為藍色。段落分隔符 `\r\n` 不包含在樣式範圍中。
+
+## IParagraph
+
+`IParagraph` 用於描述段落級中繼資訊。`startIndex` 指向 `dataStream` 中的段落分隔符位置。
+
+| 屬性 | 類型 | 描述 |
+| --- | --- | --- |
+| startIndex | `number` | 段落分隔符所在索引。 |
+| paragraphId | `string` | 穩定的段落 ID。 |
+| paragraphStyle? | `IParagraphStyle` | 段落樣式，例如對齊、縮排、行距、標題類型。 |
+| bullet? | `IBullet` | 清單標記中繼資訊。 |
+
+```typescript
+const body: IDocumentBody = {
+  dataStream: '你好 Univer\r\n第二行\r\n',
+  paragraphs: [
+    {
+      startIndex: 9,
+      paragraphId: 'p-1',
+      paragraphStyle: {
+        namedStyleType: NamedStyleType.HEADING_1,
+      },
+    },
+    {
+      startIndex: 14,
+      paragraphId: 'p-2',
+    },
+  ],
+}
+```
+
+## ISectionBreak
+
+`ISectionBreak` 同樣透過索引與文字流關聯。它可以為章節覆蓋頁面大小、頁邊距、頁首頁尾、分欄和文字方向等設定。
+
+```typescript
+const body: IDocumentBody = {
+  dataStream: '第一節\n第二節\r\n',
+  sectionBreaks: [
+    {
+      startIndex: 3,
+      pageSize: { width: 595, height: 842 },
+      marginTop: 72,
+      marginBottom: 72,
+    },
+  ],
+}
+```
+
+## 注意事項
+
+- 需要保證索引與 `dataStream` 對齊。錯誤的索引可能導致樣式範圍、段落、選區或渲染狀態不一致。
+- 編輯執行中的文件時，優先使用 Facade API 和命令。
+- 手動產生快照時，建議先建構 `dataStream`，再從該字串計算樣式範圍和段落位置。

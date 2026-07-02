@@ -1,0 +1,66 @@
+---
+title: 正文資料結構
+icon: FileText
+---
+
+## IDocumentBody
+
+`IDocumentBody` 用於儲存 Univer Docs 文件的正文流內容。
+
+真正的文字內容儲存在 `dataStream` 中，樣式與結構資訊儲存在並列陣列中，並透過索引與文字內容關聯。
+
+### 屬性
+
+| 屬性 | 類型 | 描述 |
+| --- | --- | --- |
+| dataStream | `string` | 正文純文字流。段落、章節、表格和自訂區塊等元素會透過特殊字元標記。 |
+| textRuns? | `ITextRun[]` | 行內樣式範圍。 |
+| paragraphs? | `IParagraph[]` | 段落中繼資訊與段落樣式。 |
+| sectionBreaks? | `ISectionBreak[]` | 章節分隔符中繼資訊。 |
+| customBlocks? | `ICustomBlock[]` | 插件定義的區塊佔位符。 |
+| tables? | `ICustomTable[]` | 正文中的表格標記。表格定義儲存在 `IDocumentData.tableSource` 中。 |
+| columnGroups? | `ICustomColumnGroup[]` | 分欄群組標記。 |
+| blockRanges? | `IDocumentBlockRange[]` | 結構化區塊範圍，例如 callout、quote、code block。 |
+| customRanges? | `ICustomRange[]` | 超連結、欄位、書籤、評論、mention 和插件自訂範圍。 |
+| customDecorations? | `ICustomDecoration[]` | 評論高亮等裝飾範圍。 |
+| payloads? | `Record<string, string>` | 複製貼上過程中的暫存資料，不會持久化。 |
+
+### dataStream
+
+`dataStream` 是正文文字的來源。一個段落通常以 `\r\n` 結束。
+
+```typescript
+const body: IDocumentBody = {
+  dataStream: '標題\r\nHello Univer\r\n',
+  paragraphs: [
+    { startIndex: 2, paragraphId: 'p-title' },
+    { startIndex: 16, paragraphId: 'p-body' },
+  ],
+}
+```
+
+### 特殊字元
+
+部分文件元素透過 `dataStream` 中的控制字元表示，並在渲染時轉換為對應元素：
+
+| 字元 | 含義 |
+| --- | --- |
+| `\r\n` | 段落分隔符 |
+| `\n` | 章節分隔符 |
+| `\f` | 分頁符 |
+| `\v` | 分欄符 |
+| `\t` | Tab |
+| `\0` | 文件結束符 |
+| `\b` | 自訂區塊佔位符 |
+
+表格和自訂範圍內部也會使用控制字元。處理表格、連結、評論和區塊級能力時，建議優先使用 Facade API 或命令，不要手寫控制字元。
+
+## 與 IDocumentData 的關係
+
+`IDocumentBody` 只儲存正文流。外部資源儲存在 `IDocumentData` 上：
+
+- `tableSource` 儲存表格定義。
+- `drawings` 儲存圖片和繪圖物件。
+- `headers` 和 `footers` 各自包含自己的 `IDocumentBody`。
+- `lists` 儲存段落項目符號引用的清單定義。
+- `resources` 儲存插件自訂資料。

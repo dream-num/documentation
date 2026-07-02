@@ -27,7 +27,7 @@ export function ShowcaseSidebar({ groupedNav, pathname }: ShowcaseSidebarProps) 
   return (
     <aside
       className={`
-        fixed hidden h-[calc(100vh-108px)] shrink-0 overflow-hidden
+        fixed hidden h-[calc(100vh-108px)] w-64 shrink-0 overflow-hidden
         lg:block
       `}
     >
@@ -54,7 +54,7 @@ export function ShowcaseSidebar({ groupedNav, pathname }: ShowcaseSidebarProps) 
                 <div key={item.slug} className="mb-0.5">
                   <Link
                     href={`/showcase/${item.slug}`}
-                    className={clsx(`block rounded-md px-2 py-1.5 text-sm font-medium transition-colors`, {
+                    className={clsx(`block min-w-0 rounded-md px-2 py-1.5 text-sm font-medium transition-colors`, {
                       'bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100': item.slug === pathname,
                       'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800/50 dark:hover:text-neutral-200': item.slug !== pathname,
                     })}

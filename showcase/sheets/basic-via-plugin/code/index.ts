@@ -34,8 +34,6 @@ import { UniverSheetsThreadCommentUIPlugin } from '@univerjs/sheets-thread-comme
 import SheetsThreadCommentUIEnUS from '@univerjs/sheets-thread-comment-ui/locale/en-US'
 import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
 import SheetsUIEnUS from '@univerjs/sheets-ui/locale/en-US'
-import { UniverSheetsZenEditorPlugin } from '@univerjs/sheets-zen-editor'
-import SheetsZenEditorEnUS from '@univerjs/sheets-zen-editor/locale/en-US'
 import SheetsEnUS from '@univerjs/sheets/locale/en-US'
 import { UniverThreadCommentUIPlugin } from '@univerjs/thread-comment-ui'
 import ThreadCommentUIEnUS from '@univerjs/thread-comment-ui/locale/en-US'
@@ -62,7 +60,6 @@ import '@univerjs/sheets-hyper-link-ui/lib/index.css'
 import '@univerjs/sheets-note-ui/lib/index.css'
 import '@univerjs/sheets-table-ui/lib/index.css'
 import '@univerjs/thread-comment-ui/lib/index.css'
-import '@univerjs/sheets-zen-editor/lib/index.css'
 import '@univerjs/sheets-crosshair-highlight/lib/index.css'
 
 const univer = new Univer({
@@ -87,7 +84,6 @@ const univer = new Univer({
       SheetsHyperLinkUIEnUS,
       SheetsTableUIEnUS,
       SheetsCrosshairHighlightEnUS,
-      SheetsZenEditorEnUS,
     ),
   },
 })
@@ -136,6 +132,5 @@ univer.registerPlugin(UniverWatermarkPlugin, {
   },
 })
 univer.registerPlugin(UniverSheetsCrosshairHighlightPlugin)
-univer.registerPlugin(UniverSheetsZenEditorPlugin)
 
 univer.createUnit(UniverInstanceType.UNIVER_SHEET, WORKBOOK_DATA)

@@ -1,0 +1,95 @@
+---
+title: インポート & エクスポート
+icon: '#pro/FolderSync'
+---
+
+## 概要
+
+Slides のインポートとエクスポートは Pro 機能です。ブラウザー側では共通の exchange client と Slides exchange client を登録し、変換、タスクのポーリング、保存、署名付きダウンロード URL は Pro デプロイメント側で提供します。
+
+```ts
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
+import { UniverSlidesExchangeClientPlugin } from '@univerjs-pro/slides-exchange-client'
+import '@univerjs-pro/exchange-client/facade'
+
+univer.registerPlugin(UniverExchangeClientPlugin)
+univer.registerPlugin(UniverSlidesExchangeClientPlugin)
+```
+
+## インストール
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/slides-exchange-client
+```
+
+## エンドポイントを設定する
+
+`@univerjs-pro/slides-exchange-client` は `@univerjs-pro/exchange-client` に依存します。サーバー URL は共通の exchange client に設定し、その後 Slides client を登録して PPTX メニュー操作を追加します。
+
+```ts
+univer.registerPlugin(UniverExchangeClientPlugin, {
+  uploadFileServerUrl: '/universer-api/stream/file/upload',
+  importServerUrl: '/universer-api/exchange/{type}/import',
+  exportServerUrl: '/universer-api/exchange/{type}/export',
+  getTaskServerUrl: '/universer-api/exchange/task/{taskID}',
+  signUrlServerUrl: '/universer-api/file/{fileID}/sign-url',
+  downloadEndpointUrl: location.origin,
+  maxTimeoutTime: 120000,
+})
+
+univer.registerPlugin(UniverSlidesExchangeClientPlugin)
+```
+
+`{type}` は `UniverInstanceType.UNIVER_SLIDE` に置き換えられます。インポートではサーバー側の unit id、または snapshot JSON を受け取れます。エクスポートでは slide snapshot を exchange サービスにアップロードし、タスク結果を待ち、返された file id に署名して PPTX ファイルをダウンロードします。
+
+## Facade API
+
+Plugin モードでは facade パッケージを一度インポートします。
+
+```ts
+import '@univerjs-pro/exchange-client/facade'
+```
+
+PPTX をサーバー側 unit としてインポートします。
+
+```ts
+const unitId = await univerAPI.importPPTXToUnitIdAsync(file)
+```
+
+PPTX をローカルの slide データとしてインポートします。
+
+```ts
+const slideData = await univerAPI.importPPTXToSnapshotAsync(file)
+
+if (slideData) {
+  univerAPI.createPresentation(slideData)
+}
+```
+
+現在の slide deck をエクスポートします。
+
+```ts
+const presentation = univerAPI.getActivePresentation()
+const file = await univerAPI.exportPPTXBySnapshotAsync(presentation.save())
+```
+
+サーバー側の slide unit をエクスポートします。
+
+```ts
+const file = await univerAPI.exportPPTXByUnitIdAsync(unitId)
+```
+
+## メニューの挙動
+
+Slides exchange client は PPTX メニュー操作を追加します。
+
+- `ImportPPTXOperation` は、現在の URL に `unit` query パラメーターがある場合は既存 unit にインポートし、ない場合はローカル snapshot としてインポートします。
+- `ExportPPTXOperation` は、現在の slide deck を snapshot からエクスポートします。
+
+メニューの表示条件や順序を調整したい場合は、`UniverSlidesExchangeClientPlugin` に `menu` 設定を渡せます。
+
+## 関連設定
+
+- Slides unit が利用できるように、先に `UniverSlidesPlugin` を登録します。
+- 認証、保存、変換、タスクのポーリング、署名付きダウンロード URL は Pro サーバー API で処理します。
+- インポートする PPTX に表、グラフ、印刷関連情報が含まれる可能性がある場合は、対応するプラグインも有効にしてください。

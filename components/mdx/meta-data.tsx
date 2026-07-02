@@ -12,76 +12,17 @@ import {
   SparkleIcon,
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useState } from 'react'
 import { Tooltip } from '@/components/tooltip'
 import { clsx } from '@/lib/clsx'
 
-const locales: Record<string, Record<string, string>> = {
-  'zh-CN': {
-    'preset-mode': '预设模式',
-    'plugin-mode': '插件模式',
-    'preset-info': '预设信息',
-    'plugins-info': '插件信息',
-    'mobile-support': '移动端支持',
-    'mobile-support-desc': '提供针对触摸设备的 UI 适配',
-    'server-required': '需要服务端',
-    'server-required-desc': '部分功能依赖服务端支持',
-    'server-optional': '可选服务端',
-    'server-optional-desc': '可选接入服务端增强功能',
-    copied: '已复制',
-    locale: '语言包',
-    style: '样式',
-    facade: 'Facade',
-  },
-  'zh-TW': {
-    'preset-mode': '預設模式',
-    'plugin-mode': '插件模式',
-    'preset-info': '預設信息',
-    'plugins-info': '插件信息',
-    'mobile-support': '行動端支援',
-    'mobile-support-desc': '提供針對觸摸設備的 UI 適配',
-    'server-required': '需要服務端',
-    'server-required-desc': '部分功能依賴服務端支持',
-    'server-optional': '可選服務端',
-    'server-optional-desc': '可選接入服務端增強功能',
-    copied: '已複製',
-    locale: '語系包',
-    style: '樣式',
-    facade: 'Facade',
-  },
-  'en-US': {
-    'preset-mode': 'Preset Mode',
-    'plugin-mode': 'Plugin Mode',
-    'preset-info': 'Preset Info',
-    'plugins-info': 'Plugins Info',
-    'mobile-support': 'Mobile Support',
-    'mobile-support-desc': 'Optimized UI for touch devices',
-    'server-required': 'Server Required',
-    'server-required-desc': 'Depends on server-side capabilities',
-    'server-optional': 'Server Optional',
-    'server-optional-desc': 'Optional server for enhanced features',
-    copied: 'Copied',
-    locale: 'Locale',
-    style: 'CSS',
-    facade: 'Facade',
-  },
-  'ja-JP': {
-    'preset-mode': 'プリセットモード',
-    'plugin-mode': 'プラグインモード',
-    'preset-info': 'プリセット情報',
-    'plugins-info': 'プラグイン情報',
-    'mobile-support': 'モバイルサポート',
-    'mobile-support-desc': 'タッチデバイス向けUI最適化',
-    'server-required': 'サーバーが必要',
-    'server-required-desc': 'サーバー側の機能に依存',
-    'server-optional': 'サーバー (任意)',
-    'server-optional-desc': 'サーバー連携で機能拡張が可能',
-    copied: 'コピーしました',
-    locale: 'ロケール',
-    style: 'スタイル',
-    facade: 'Facade',
-  },
+interface MetaDataLabels {
+  copied: string
+  facade: string
+  locale: string
+  style: string
 }
 
 function CopyableTag({ text, label, icon: Icon, successText }: { text: string, label: string, icon: any, successText: string }) {
@@ -129,13 +70,13 @@ function PackageRow({
   locale,
   style,
   facade,
-  t,
+  labels,
 }: {
   client?: string
   locale?: string
   style?: string
   facade?: string
-  t: Record<string, string>
+  labels: MetaDataLabels
 }) {
   const [copied, setCopied] = useState(false)
 
@@ -159,7 +100,7 @@ function PackageRow({
     >
       {client && (
         <div className="flex min-w-0 items-center">
-          <Tooltip content={copied ? t.copied : client}>
+          <Tooltip content={copied ? labels.copied : client}>
             <button
               className="
                 group relative flex max-w-full cursor-pointer items-center gap-1 rounded-sm bg-neutral-100 px-1.5 py-0.5
@@ -181,9 +122,9 @@ function PackageRow({
       )}
 
       <div className="flex flex-wrap gap-1">
-        {locale && <CopyableTag text={locale} label={t.locale} icon={Languages} successText={t.copied} />}
-        {style && <CopyableTag text={style} label={t.style} icon={Palette} successText={t.copied} />}
-        {facade && <CopyableTag text={facade} label={t.facade} icon={PlugZap} successText={t.copied} />}
+        {locale && <CopyableTag text={locale} label={labels.locale} icon={Languages} successText={labels.copied} />}
+        {style && <CopyableTag text={style} label={labels.style} icon={Palette} successText={labels.copied} />}
+        {facade && <CopyableTag text={facade} label={labels.facade} icon={PlugZap} successText={labels.copied} />}
       </div>
     </div>
   )
@@ -252,7 +193,8 @@ export function MetaData(props: {
     mobile?: boolean
   }
 }) {
-  const { lang, isPro = false, meta } = props
+  const { isPro = false, meta } = props
+  const t = useTranslations()
   const { preset = [], plugins = [], server = false, mobile = false } = meta
 
   // If we have presets, default to 'preset', otherwise 'plugin'.
@@ -262,7 +204,12 @@ export function MetaData(props: {
   const showTabs = preset.length > 0 && plugins.length > 0
   const currentItems = mode === 'preset' ? preset : plugins
 
-  const t = locales[lang] || locales['en-US']
+  const labels: MetaDataLabels = {
+    copied: t('mdx-meta-data.copied'),
+    facade: t('mdx-meta-data.facade'),
+    locale: t('mdx-meta-data.locale'),
+    style: t('mdx-meta-data.style'),
+  }
 
   return (
     <div
@@ -309,7 +256,7 @@ export function MetaData(props: {
                     onClick={() => setMode('preset')}
                   >
                     <Box className="size-3.5" />
-                    {t['preset-mode']}
+                    {t('mdx-meta-data.preset-mode')}
                   </button>
                   <button
                     onClick={() => setMode('plugin')}
@@ -333,7 +280,7 @@ export function MetaData(props: {
                     )}
                   >
                     <Puzzle className="size-3.5" />
-                    {t['plugin-mode']}
+                    {t('mdx-meta-data.plugin-mode')}
                   </button>
                 </div>
               )
@@ -352,7 +299,7 @@ export function MetaData(props: {
                       dark:text-neutral-100
                     "
                   >
-                    {mode === 'preset' ? t['preset-info'] : t['plugins-info']}
+                    {mode === 'preset' ? t('mdx-meta-data.preset-info') : t('mdx-meta-data.plugins-info')}
                   </span>
                 </div>
               )}
@@ -388,9 +335,12 @@ export function MetaData(props: {
             >
               {currentItems.length > 0
                 ? (
-                    currentItems.map((item, index) => (
-                      <PackageRow key={index} {...item} t={t} />
-                    ))
+                    currentItems.map((item) => {
+                      const facade = 'facade' in item ? item.facade : undefined
+                      const key = [item.client, item.locale, item.style, facade].filter(Boolean).join(':')
+
+                      return <PackageRow key={key} {...item} labels={labels} />
+                    })
                   )
                 : (
                     <div
@@ -399,7 +349,7 @@ export function MetaData(props: {
                         dark:text-neutral-500
                       "
                     >
-                      No items available
+                      {t('mdx-meta-data.no-items')}
                     </div>
                   )}
             </motion.div>
@@ -417,14 +367,14 @@ export function MetaData(props: {
             <StatusBadge
               active={!!mobile}
               icon={Smartphone}
-              label={t['mobile-support']}
-              desc={t['mobile-support-desc']}
+              label={t('mdx-meta-data.mobile-support')}
+              desc={t('mdx-meta-data.mobile-support-desc')}
             />
             <StatusBadge
               active={!!server}
               icon={Server}
-              label={server === 'optional' ? t['server-optional'] : t['server-required']}
-              desc={server === 'optional' ? t['server-optional-desc'] : t['server-required-desc']}
+              label={server === 'optional' ? t('mdx-meta-data.server-optional') : t('mdx-meta-data.server-required')}
+              desc={server === 'optional' ? t('mdx-meta-data.server-optional-desc') : t('mdx-meta-data.server-required-desc')}
             />
           </div>
         )}

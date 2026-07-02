@@ -4,12 +4,14 @@ import { blog as blogPosts, guides as guidesPosts, icons as iconsPosts, referenc
 import { icons as lucideIcons } from 'lucide-react'
 import { createElement } from 'react'
 import { IconWrapper } from '@/components/icon-wrapper'
-import { i18n } from './i18n'
+import { UniverIcon } from '@/components/univer-icon'
+import { fumadocsI18n } from '@/i18n/fumadocs'
+import { isUniverIconName } from './univer-icons'
 
 export const guides = loader({
   baseUrl: '/guides',
   source: guidesPosts.toFumadocsSource(),
-  i18n,
+  i18n: fumadocsI18n,
   icon(icon) {
     if (!icon) return
 
@@ -17,6 +19,12 @@ export const guides = loader({
       return createElement(IconWrapper, {
         type: 'icon',
         icon: lucideIcons[icon as keyof typeof lucideIcons],
+      })
+    }
+
+    if (isUniverIconName(icon)) {
+      return createElement(UniverIcon, {
+        name: icon,
       })
     }
 
@@ -38,7 +46,7 @@ export const guides = loader({
 export const reference = loader({
   baseUrl: '/reference',
   source: referencePosts.toFumadocsSource(),
-  i18n,
+  i18n: fumadocsI18n,
   icon(icon) {
     if (!icon) return
 
@@ -55,7 +63,7 @@ export const reference = loader({
 export const icons = loader({
   baseUrl: '/icons',
   source: iconsPosts.toFumadocsSource(),
-  i18n,
+  i18n: fumadocsI18n,
   icon(icon) {
     if (!icon) return
 
@@ -76,7 +84,7 @@ export const icons = loader({
 export const blog = loader({
   baseUrl: '/blog',
   source: blogPosts.toFumadocsSource(),
-  i18n,
+  i18n: fumadocsI18n,
 })
 
 export function getActiveBlogPages(lang: string) {

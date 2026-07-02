@@ -1,10 +1,10 @@
 'use client'
 
 import { ArrowRightIcon } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { clsx } from '@/lib/clsx'
-import { customTranslations } from '@/lib/i18n'
 
 export interface RelatedItem {
   title: string
@@ -40,8 +40,8 @@ const typeConfig = {
   },
 }
 
-export function RelatedShowcases({ lang, items, currentSlug }: RelatedShowcasesProps) {
-  const t = customTranslations[lang]
+export function RelatedShowcases({ items, currentSlug }: RelatedShowcasesProps) {
+  const t = useTranslations()
 
   const filteredItems = items.filter(item => item.slug !== currentSlug).slice(0, 3)
 
@@ -57,7 +57,7 @@ export function RelatedShowcases({ lang, items, currentSlug }: RelatedShowcasesP
           dark:text-neutral-50
         `}
       >
-        {t['showcase.related.title']}
+        {t('showcase.related-title')}
       </h2>
 
       <div

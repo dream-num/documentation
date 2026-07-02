@@ -33,7 +33,7 @@ class MyWebComponent extends LitElement {
       ],
     })
 
-    univerAPI.createUniverDoc({})
+    univerAPI.createDocument({})
   }
 
   override render() {

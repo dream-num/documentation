@@ -2,6 +2,7 @@
 
 import { clsx } from '@univerjs/design'
 import { defaultTheme } from '@univerjs/themes'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { useThemeCustomizerState } from './hooks/use-theme-customizer-state'
 import { SidebarHeader } from './sidebar-header'
@@ -11,6 +12,7 @@ import { TokenEditorPanel } from './token-editor-panel'
 import { UniverPreview } from './univer-preview'
 
 export function ThemeCustomizerApp() {
+  const t = useTranslations()
   const {
     copyLabel,
     darkMode,
@@ -32,7 +34,7 @@ export function ThemeCustomizerApp() {
     handleScaleColorChange,
   } = useThemeCustomizerState()
 
-  // 控制 Live Preview 在小屏幕下的展开/收起
+  // 控制实时预览在小屏幕下的展开/收起
   const [previewOpen, setPreviewOpen] = useState(false)
 
   return (
@@ -101,7 +103,7 @@ export function ThemeCustomizerApp() {
             </div>
           </aside>
 
-          {/* 右侧 Live Preview */}
+          {/* 右侧实时预览 */}
           <section
             className={clsx(`
               flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] bg-white
@@ -126,7 +128,7 @@ export function ThemeCustomizerApp() {
                   dark:text-white!
                 "
               >
-                Live Preview
+                {t('theme-customizer.live-preview')}
               </h2>
               <button
                 type="button"
@@ -138,7 +140,7 @@ export function ThemeCustomizerApp() {
                   dark:hover:bg-slate-700
                 "
               >
-                Back to Editor
+                {t('theme-customizer.back-to-editor')}
               </button>
             </div>
 
@@ -156,7 +158,7 @@ export function ThemeCustomizerApp() {
                   dark:text-white!
                 "
               >
-                Live Preview
+                {t('theme-customizer.live-preview')}
               </h2>
             </div>
 
@@ -177,7 +179,7 @@ export function ThemeCustomizerApp() {
               dark:hover:bg-blue-600
             `, previewOpen && 'hidden')}
           >
-            Preview →
+            {t('theme-customizer.preview-action')}
           </button>
         </section>
       </div>

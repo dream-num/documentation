@@ -8,6 +8,7 @@ import {
   SandpackProvider,
 } from '@codesandbox/sandpack-react'
 import { useTheme } from 'next-themes'
+import { transformLocaleCodeSample } from '@/i18n/locale-config'
 
 export type Files = Record<string, string>
 
@@ -23,16 +24,7 @@ export function Playground(props: IProps) {
   const { theme } = useTheme()
 
   const transformedFiles = Object.keys(files).reduce((acc, key) => {
-    if (lang === 'zh-CN') {
-      const value = files[key].replaceAll('en-US', 'zh-CN')
-        .replaceAll('EnUS', 'ZhCN')
-        .replaceAll('EN_US', 'ZH_CN')
-
-      acc[key] = value
-      return acc
-    }
-
-    acc[key] = files[key]
+    acc[key] = transformLocaleCodeSample(files[key], lang)
 
     return acc
   }, {} as Files)

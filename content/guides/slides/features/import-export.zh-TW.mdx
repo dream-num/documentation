@@ -1,0 +1,95 @@
+---
+title: 匯入 & 匯出
+icon: '#pro/FolderSync'
+---
+
+## 概覽
+
+Slides 匯入匯出屬於 Pro 能力。瀏覽器端需要註冊共用 exchange client 和 Slides exchange client，實際的轉換、任務輪詢、儲存和簽名下載網址由你的 Pro 部署提供。
+
+```ts
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
+import { UniverSlidesExchangeClientPlugin } from '@univerjs-pro/slides-exchange-client'
+import '@univerjs-pro/exchange-client/facade'
+
+univer.registerPlugin(UniverExchangeClientPlugin)
+univer.registerPlugin(UniverSlidesExchangeClientPlugin)
+```
+
+## 安裝
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/slides-exchange-client
+```
+
+## 設定端點
+
+`@univerjs-pro/slides-exchange-client` 依賴 `@univerjs-pro/exchange-client`。服務端網址設定在共用 exchange client 上，然後再註冊 Slides client 來提供 PPTX 選單操作。
+
+```ts
+univer.registerPlugin(UniverExchangeClientPlugin, {
+  uploadFileServerUrl: '/universer-api/stream/file/upload',
+  importServerUrl: '/universer-api/exchange/{type}/import',
+  exportServerUrl: '/universer-api/exchange/{type}/export',
+  getTaskServerUrl: '/universer-api/exchange/task/{taskID}',
+  signUrlServerUrl: '/universer-api/file/{fileID}/sign-url',
+  downloadEndpointUrl: location.origin,
+  maxTimeoutTime: 120000,
+})
+
+univer.registerPlugin(UniverSlidesExchangeClientPlugin)
+```
+
+`{type}` 會被替換為 `UniverInstanceType.UNIVER_SLIDE`。匯入可以回傳服務端 unit id，也可以回傳 snapshot JSON。匯出會把 slide snapshot 上傳到 exchange 服務，等待任務結果，替回傳的 file id 簽名，然後下載 PPTX 檔案。
+
+## Facade API
+
+插件模式下需要匯入 facade 套件：
+
+```ts
+import '@univerjs-pro/exchange-client/facade'
+```
+
+將 PPTX 匯入到服務端 unit：
+
+```ts
+const unitId = await univerAPI.importPPTXToUnitIdAsync(file)
+```
+
+將 PPTX 匯入為本地 slide 資料：
+
+```ts
+const slideData = await univerAPI.importPPTXToSnapshotAsync(file)
+
+if (slideData) {
+  univerAPI.createPresentation(slideData)
+}
+```
+
+匯出目前的 slide deck：
+
+```ts
+const presentation = univerAPI.getActivePresentation()
+const file = await univerAPI.exportPPTXBySnapshotAsync(presentation.save())
+```
+
+匯出服務端 slide unit：
+
+```ts
+const file = await univerAPI.exportPPTXByUnitIdAsync(unitId)
+```
+
+## 選單行為
+
+Slides exchange client 提供 PPTX 選單操作：
+
+- `ImportPPTXOperation` 會在目前 URL 存在 `unit` query 參數時匯入到既有 unit，否則匯入為本地 snapshot。
+- `ExportPPTXOperation` 會根據目前 slide deck 的 snapshot 匯出。
+
+如果需要合併自訂選單顯隱或順序，可以給 `UniverSlidesExchangeClientPlugin` 傳入 `menu` 設定。
+
+## 相關設定
+
+- 先註冊 `UniverSlidesPlugin`，確保 Slides unit 已經可用。
+- 使用 Pro 服務端 API 處理鑑權、儲存、轉換、任務輪詢和簽名下載網址。
+- 如果匯入 PPTX 可能包含表格、圖表或列印相關資訊，請同時啟用對應外掛。

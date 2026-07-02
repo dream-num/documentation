@@ -1,7 +1,7 @@
 import type { IDocumentData, IWorkbookData } from '@univerjs/presets'
 import { LocaleType } from '@univerjs/presets'
 
-export const workbookData: Partial<IWorkbookData> = {
+export const workbookData = {
   id: '0xyvYA',
   sheetOrder: [
     'bk_yzgbvysKwoStbCNy_f',
@@ -2137,9 +2137,9 @@ export const workbookData: Partial<IWorkbookData> = {
       data: '{}',
     },
   ],
-}
+} as unknown as Partial<IWorkbookData>
 
-export const documentData: Partial<IDocumentData> = {
+export const documentData = {
   id: 'ATZYqG',
   documentStyle: {
     pageSize: {
@@ -2285,4 +2285,4 @@ export const documentData: Partial<IDocumentData> = {
   settings: {
     zoomRatio: 1,
   },
-}
+} as unknown as Partial<IDocumentData>

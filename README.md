@@ -1,6 +1,6 @@
 # Univer Documentation
 
-This is the official documentation site for [Univer](https://github.com/dream-num/univer), built with [Next.js](https://nextjs.org/) and [Fumadocs](https://fumadocs.vercel.app/).
+This is the official documentation site for [Univer](https://github.com/dream-num/univer), built with [Next.js](https://nextjs.org/), Fumadocs headless content tooling, and project-owned UI.
 
 ## Prerequisites
 

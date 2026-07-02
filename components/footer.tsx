@@ -1,13 +1,33 @@
-export function Footer() {
-  const currentYear = new Date().getFullYear()
+import { clsx } from '@/lib/clsx'
+
+const currentYear = new Date().getFullYear()
+
+export function Footer({
+  className,
+  variant = 'site',
+}: {
+  className?: string
+  variant?: 'site' | 'content'
+}) {
+  const isContent = variant === 'content'
 
   return (
-    <footer className="mt-auto w-full bg-white/5 p-4 text-center backdrop-blur-xs">
+    <footer
+      className={clsx(
+        'w-full text-sm text-muted-foreground',
+        isContent
+          ? 'mt-14 border-t pt-6 pb-1'
+          : 'border-t bg-background px-4 py-6',
+        className,
+      )}
+      data-site-footer
+    >
       <p
-        className={`
-          text-sm text-neutral-600
-          dark:text-neutral-300
-        `}
+        className={clsx(
+          isContent
+            ? 'mx-0 max-w-none'
+            : 'mx-auto flex max-w-384 items-center justify-center',
+        )}
       >
         &copy;
         {' '}

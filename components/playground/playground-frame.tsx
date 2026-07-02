@@ -1,9 +1,9 @@
 'use client'
 
 import { ExpandIcon, XIcon } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
 import { clsx } from '@/lib/clsx'
-import { customTranslations } from '@/lib/i18n'
 import { ClickToShowButton } from './click-to-show-button'
 
 interface IProps {
@@ -13,7 +13,8 @@ interface IProps {
 }
 
 export function PlaygroundFrame(props: IProps) {
-  const { lang, slug, clickToShow = false } = props
+  const { slug, clickToShow = false } = props
+  const t = useTranslations()
 
   const iframeRef = useRef<HTMLIFrameElement>(null!)
   const [iframeHeight, setIframeHeight] = useState<number>(0)
@@ -77,8 +78,8 @@ export function PlaygroundFrame(props: IProps) {
   const content = clickToShow
     ? (
         <ClickToShowButton
-          showText={customTranslations[lang]['playground.click-to-show']}
-          hideText={customTranslations[lang]['playground.click-to-hide']}
+          showText={t('playground.click-to-show')}
+          hideText={t('playground.click-to-hide')}
         >
           {sandbox}
         </ClickToShowButton>
@@ -108,7 +109,7 @@ export function PlaygroundFrame(props: IProps) {
               dark:text-neutral-400
             "
           >
-            Preview
+            {t('playground.preview')}
           </span>
           <div className="flex items-center gap-1">
             <button
@@ -120,7 +121,7 @@ export function PlaygroundFrame(props: IProps) {
                 dark:text-neutral-400
                 dark:hover:bg-neutral-800 dark:hover:text-neutral-200
               "
-              title="Fullscreen preview"
+              title={t('playground.fullscreen-preview')}
             >
               <ExpandIcon className="size-3.5" />
             </button>

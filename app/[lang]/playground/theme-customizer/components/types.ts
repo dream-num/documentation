@@ -8,6 +8,5 @@ export type TokenDensity = 'core' | 'full'
 
 export interface IThemePreset {
   key: 'default' | 'green'
-  label: string
   theme: Theme
 }

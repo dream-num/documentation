@@ -1,6 +1,9 @@
+import type { Locale } from '@/i18n/routing'
 import { BookTextIcon, FerrisWheelIcon } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import BlurryBlob from '@/components/animata/blurry-blob'
+import { Footer } from '@/components/footer'
 import { DeveloperExperience } from '@/components/home/developer-experience'
 import { Ecosystem } from '@/components/home/ecosystem'
 import { EnterprisePerformance } from '@/components/home/enterprise-performance'
@@ -11,7 +14,6 @@ import { AnimatedShinyText } from '@/components/magicui/animated-shiny-text'
 import { BlurFade } from '@/components/magicui/blur-fade'
 import { RainbowButton } from '@/components/magicui/rainbow-button'
 import Univer from '@/components/univer'
-import { customTranslations } from '@/lib/i18n'
 import pkg from '@/package.json'
 
 interface IProps {
@@ -22,16 +24,17 @@ interface IProps {
 
 export async function generateMetadata({ params }: IProps) {
   const { lang } = await params
+  const t = await getTranslations({ locale: lang as Locale })
 
   return {
     title: 'Univer',
-    description: customTranslations[lang]['home.description'],
+    description: t('home.description'),
   }
 }
 
 export default async function Page({ params }: IProps) {
   const { lang } = await params
-  const t = customTranslations[lang]
+  const t = await getTranslations({ locale: lang as Locale })
 
   return (
     <>
@@ -101,7 +104,7 @@ export default async function Page({ params }: IProps) {
                   Univer v
                   {pkg.version}
                   {' '}
-                  {t['banner.release']}
+                  {t('home.banner-release')}
                 </AnimatedShinyText>
               </Link>
             </div>
@@ -115,7 +118,7 @@ export default async function Page({ params }: IProps) {
                 dark:from-white dark:to-white/40
               `}
             >
-              {t['home.slogan']}
+              {t('home.slogan')}
             </h1>
 
             <p
@@ -125,36 +128,36 @@ export default async function Page({ params }: IProps) {
                 dark:text-neutral-300
               `}
             >
-              {t['home.description']}
+              {t('home.description')}
               <span
                 className="font-medium text-green-600 underline decoration-current decoration-wavy underline-offset-4"
               >
-                {t['home.description.sheets']}
+                {t('home.description-sheets')}
               </span>
-              {t['home.description.split']}
+              {t('home.description-split')}
               <span
                 className="font-medium text-blue-600 underline decoration-current decoration-wavy underline-offset-4"
               >
-                {t['home.description.docs']}
+                {t('home.description-docs')}
               </span>
-              {t['home.description.and']}
+              {t('home.description-and')}
               <span className="font-medium text-red-600 underline decoration-current decoration-wavy underline-offset-4">
-                {t['home.description.slides']}
+                {t('home.description-slides')}
               </span>
-              {t['home.description.period']}
+              {t('home.description-period')}
             </p>
 
             <div className="flex justify-center gap-4">
               <RainbowButton asChild>
                 <Link href="/guides/sheets">
                   <BookTextIcon />
-                  {t['documentation.title']}
+                  {t('navigation.documentation')}
                 </Link>
               </RainbowButton>
               <RainbowButton variant="outline" asChild>
                 <Link href="/showcase">
                   <FerrisWheelIcon />
-                  {t['showcase.title']}
+                  {t('navigation.showcase')}
                 </Link>
               </RainbowButton>
             </div>
@@ -172,117 +175,118 @@ export default async function Page({ params }: IProps) {
         </section>
 
         {/* Logo Cloud */}
-        <LogoCloud title={t['home.logocloud.title']} />
+        <LogoCloud title={t('home.logocloud.title')} />
 
         {/* Scenes */}
         <Scenes
-          title={t['home.scenes.title']}
-          subtitle={t['home.scenes.subtitle']}
-          sheetsTitle={t['home.scenes.sheets.title']}
-          sheetsDesc={t['home.scenes.sheets.desc']}
-          docsTitle={t['home.scenes.docs.title']}
-          docsDesc={t['home.scenes.docs.desc']}
-          slidesTitle={t['home.scenes.slides.title']}
-          slidesDesc={t['home.scenes.slides.desc']}
-          dataTitle={t['home.scenes.data.title']}
-          dataDesc={t['home.scenes.data.desc']}
-          collabTitle={t['home.scenes.collab.title']}
-          collabDesc={t['home.scenes.collab.desc']}
-          automationTitle={t['home.scenes.automation.title']}
-          automationDesc={t['home.scenes.automation.desc']}
-          proBadge={t['home.pro.badge']}
+          title={t('home.scenes.title')}
+          subtitle={t('home.scenes.subtitle')}
+          sheetsTitle={t('home.scenes.sheets.title')}
+          sheetsDesc={t('home.scenes.sheets.desc')}
+          docsTitle={t('home.scenes.docs.title')}
+          docsDesc={t('home.scenes.docs.desc')}
+          slidesTitle={t('home.scenes.slides.title')}
+          slidesDesc={t('home.scenes.slides.desc')}
+          dataTitle={t('home.scenes.data.title')}
+          dataDesc={t('home.scenes.data.desc')}
+          collabTitle={t('home.scenes.collab.title')}
+          collabDesc={t('home.scenes.collab.desc')}
+          automationTitle={t('home.scenes.automation.title')}
+          automationDesc={t('home.scenes.automation.desc')}
+          proBadge={t('home.pro.badge')}
         />
 
         {/* Developer Experience */}
         <DeveloperExperience
-          title={t['home.devexp.title']}
-          subtitle={t['home.devexp.subtitle']}
-          step1Title={t['home.devexp.step1.title']}
-          step1Desc={t['home.devexp.step1.desc']}
-          step2Title={t['home.devexp.step2.title']}
-          step2Desc={t['home.devexp.step2.desc']}
-          step3Title={t['home.devexp.step3.title']}
-          step3Desc={t['home.devexp.step3.desc']}
-          step4Title={t['home.devexp.step4.title']}
-          step4Desc={t['home.devexp.step4.desc']}
-          copyLabel={t['home.devexp.copy']}
-          copiedLabel={t['home.devexp.copied']}
-          presetLabel={t['home.devexp.preset.label']}
-          pluginLabel={t['home.devexp.plugin.label']}
+          title={t('home.devexp.title')}
+          subtitle={t('home.devexp.subtitle')}
+          step1Title={t('home.devexp.step1.title')}
+          step1Desc={t('home.devexp.step1.desc')}
+          step2Title={t('home.devexp.step2.title')}
+          step2Desc={t('home.devexp.step2.desc')}
+          step3Title={t('home.devexp.step3.title')}
+          step3Desc={t('home.devexp.step3.desc')}
+          step4Title={t('home.devexp.step4.title')}
+          step4Desc={t('home.devexp.step4.desc')}
+          copyLabel={t('home.devexp.copy')}
+          copiedLabel={t('home.devexp.copied')}
+          presetLabel={t('home.devexp.preset.label')}
+          pluginLabel={t('home.devexp.plugin.label')}
         />
 
         {/* Enterprise Performance */}
         <EnterprisePerformance
-          title={t['home.enterprise.title']}
-          subtitle={t['home.enterprise.subtitle']}
-          metric1Label={t['home.enterprise.metric1.label']}
+          title={t('home.enterprise.title')}
+          subtitle={t('home.enterprise.subtitle')}
+          metric1Label={t('home.enterprise.metric1.label')}
           metric1Value={0.27}
-          metric1Suffix={t['home.enterprise.metric1.suffix']}
-          metric2Label={t['home.enterprise.metric2.label']}
+          metric1Suffix={t('home.enterprise.metric1.suffix')}
+          metric2Label={t('home.enterprise.metric2.label')}
           metric2Value={60}
-          metric2Suffix={t['home.enterprise.metric2.suffix']}
-          metric3Label={t['home.enterprise.metric3.label']}
+          metric2Suffix={t('home.enterprise.metric2.suffix')}
+          metric3Label={t('home.enterprise.metric3.label')}
           metric3Value={1.3}
-          metric3Suffix={t['home.enterprise.metric3.suffix']}
-          metric4Label={t['home.enterprise.metric4.label']}
+          metric3Suffix={t('home.enterprise.metric3.suffix')}
+          metric4Label={t('home.enterprise.metric4.label')}
           metric4Value={200}
-          metric4Suffix={t['home.enterprise.metric4.suffix']}
-          feature1Title={t['home.enterprise.feature1.title']}
-          feature1Desc={t['home.enterprise.feature1.desc']}
-          feature2Title={t['home.enterprise.feature2.title']}
-          feature2Desc={t['home.enterprise.feature2.desc']}
-          feature3Title={t['home.enterprise.feature3.title']}
-          feature3Desc={t['home.enterprise.feature3.desc']}
-          feature4Title={t['home.enterprise.feature4.title']}
-          feature4Desc={t['home.enterprise.feature4.desc']}
-          feature5Title={t['home.enterprise.feature5.title']}
-          feature5Desc={t['home.enterprise.feature5.desc']}
-          feature6Title={t['home.enterprise.feature6.title']}
-          feature6Desc={t['home.enterprise.feature6.desc']}
-          feature7Title={t['home.enterprise.feature7.title']}
-          feature7Desc={t['home.enterprise.feature7.desc']}
-          feature8Title={t['home.enterprise.feature8.title']}
-          feature8Desc={t['home.enterprise.feature8.desc']}
-          feature9Title={t['home.enterprise.feature9.title']}
-          feature9Desc={t['home.enterprise.feature9.desc']}
-          feature10Title={t['home.enterprise.feature10.title']}
-          feature10Desc={t['home.enterprise.feature10.desc']}
-          feature11Title={t['home.enterprise.feature11.title']}
-          feature11Desc={t['home.enterprise.feature11.desc']}
-          feature12Title={t['home.enterprise.feature12.title']}
-          feature12Desc={t['home.enterprise.feature12.desc']}
-          proBadge={t['home.pro.badge']}
+          metric4Suffix={t('home.enterprise.metric4.suffix')}
+          feature1Title={t('home.enterprise.feature1.title')}
+          feature1Desc={t('home.enterprise.feature1.desc')}
+          feature2Title={t('home.enterprise.feature2.title')}
+          feature2Desc={t('home.enterprise.feature2.desc')}
+          feature3Title={t('home.enterprise.feature3.title')}
+          feature3Desc={t('home.enterprise.feature3.desc')}
+          feature4Title={t('home.enterprise.feature4.title')}
+          feature4Desc={t('home.enterprise.feature4.desc')}
+          feature5Title={t('home.enterprise.feature5.title')}
+          feature5Desc={t('home.enterprise.feature5.desc')}
+          feature6Title={t('home.enterprise.feature6.title')}
+          feature6Desc={t('home.enterprise.feature6.desc')}
+          feature7Title={t('home.enterprise.feature7.title')}
+          feature7Desc={t('home.enterprise.feature7.desc')}
+          feature8Title={t('home.enterprise.feature8.title')}
+          feature8Desc={t('home.enterprise.feature8.desc')}
+          feature9Title={t('home.enterprise.feature9.title')}
+          feature9Desc={t('home.enterprise.feature9.desc')}
+          feature10Title={t('home.enterprise.feature10.title')}
+          feature10Desc={t('home.enterprise.feature10.desc')}
+          feature11Title={t('home.enterprise.feature11.title')}
+          feature11Desc={t('home.enterprise.feature11.desc')}
+          feature12Title={t('home.enterprise.feature12.title')}
+          feature12Desc={t('home.enterprise.feature12.desc')}
+          proBadge={t('home.pro.badge')}
         />
 
         {/* Headless */}
         <Headless
-          title={t['home.headless.title']}
-          subtitle={t['home.headless.subtitle']}
-          feature1Title={t['home.headless.feature1.title']}
-          feature1Desc={t['home.headless.feature1.desc']}
-          feature2Title={t['home.headless.feature2.title']}
-          feature2Desc={t['home.headless.feature2.desc']}
-          feature3Title={t['home.headless.feature3.title']}
-          feature3Desc={t['home.headless.feature3.desc']}
-          feature4Title={t['home.headless.feature4.title']}
-          feature4Desc={t['home.headless.feature4.desc']}
+          title={t('home.headless.title')}
+          subtitle={t('home.headless.subtitle')}
+          feature1Title={t('home.headless.feature1.title')}
+          feature1Desc={t('home.headless.feature1.desc')}
+          feature2Title={t('home.headless.feature2.title')}
+          feature2Desc={t('home.headless.feature2.desc')}
+          feature3Title={t('home.headless.feature3.title')}
+          feature3Desc={t('home.headless.feature3.desc')}
+          feature4Title={t('home.headless.feature4.title')}
+          feature4Desc={t('home.headless.feature4.desc')}
         />
 
         {/* Ecosystem */}
         <Ecosystem
-          title={t['home.ecosystem.title']}
-          subtitle={t['home.ecosystem.subtitle']}
-          pluginsTitle={t['home.ecosystem.plugins.title']}
-          pluginsDesc={t['home.ecosystem.plugins.desc']}
-          pluginsCta={t['home.ecosystem.plugins.cta']}
-          integrationsTitle={t['home.ecosystem.integrations.title']}
-          integrationsDesc={t['home.ecosystem.integrations.desc']}
-          integrationsCta={t['home.ecosystem.integrations.cta']}
-          communityTitle={t['home.ecosystem.community.title']}
-          communityDesc={t['home.ecosystem.community.desc']}
-          communityCta={t['home.ecosystem.community.cta']}
+          title={t('home.ecosystem.title')}
+          subtitle={t('home.ecosystem.subtitle')}
+          pluginsTitle={t('home.ecosystem.plugins.title')}
+          pluginsDesc={t('home.ecosystem.plugins.desc')}
+          pluginsCta={t('home.ecosystem.plugins.cta')}
+          integrationsTitle={t('home.ecosystem.integrations.title')}
+          integrationsDesc={t('home.ecosystem.integrations.desc')}
+          integrationsCta={t('home.ecosystem.integrations.cta')}
+          communityTitle={t('home.ecosystem.community.title')}
+          communityDesc={t('home.ecosystem.community.desc')}
+          communityCta={t('home.ecosystem.community.cta')}
         />
       </div>
+      <Footer className="relative z-1 mt-8" />
     </>
   )
 }

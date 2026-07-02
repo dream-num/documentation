@@ -1,9 +1,9 @@
 'use client'
 
 import { BookTextIcon, PresentationIcon, SheetIcon, SparklesIcon } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { BlurFade } from '@/components/magicui/blur-fade'
 import { clsx } from '@/lib/clsx'
-import { customTranslations } from '@/lib/i18n'
 
 interface StatItemProps {
   icon: React.ReactNode
@@ -42,8 +42,8 @@ interface ShowcaseHeroProps {
   slidesCount: number
 }
 
-export function ShowcaseHero({ lang, sheetsCount, docsCount, slidesCount }: ShowcaseHeroProps) {
-  const t = customTranslations[lang]
+export function ShowcaseHero({ sheetsCount, docsCount, slidesCount }: ShowcaseHeroProps) {
+  const t = useTranslations()
 
   return (
     <section
@@ -84,7 +84,7 @@ export function ShowcaseHero({ lang, sheetsCount, docsCount, slidesCount }: Show
             `}
           >
             <SparklesIcon className="size-3.5" />
-            <span>{t['showcase.slogan']}</span>
+            <span>{t('showcase.slogan')}</span>
           </div>
         </BlurFade>
 
@@ -96,7 +96,7 @@ export function ShowcaseHero({ lang, sheetsCount, docsCount, slidesCount }: Show
               dark:text-neutral-50
             `}
           >
-            {t['showcase.title']}
+            {t('showcase.title')}
           </h1>
         </BlurFade>
 
@@ -108,7 +108,7 @@ export function ShowcaseHero({ lang, sheetsCount, docsCount, slidesCount }: Show
               dark:text-neutral-400
             `}
           >
-            {t['showcase.slogan']}
+            {t('showcase.slogan')}
           </p>
         </BlurFade>
 
@@ -117,19 +117,19 @@ export function ShowcaseHero({ lang, sheetsCount, docsCount, slidesCount }: Show
         >
           <StatItem
             icon={<SheetIcon className="size-5" />}
-            label={t['showcase.stats.sheets']}
+            label={t('showcase.stats.sheets')}
             value={sheetsCount}
             colorClass="bg-linear-to-br from-emerald-500 to-emerald-700"
           />
           <StatItem
             icon={<BookTextIcon className="size-5" />}
-            label={t['showcase.stats.docs']}
+            label={t('showcase.stats.docs')}
             value={docsCount}
             colorClass="bg-linear-to-br from-blue-500 to-blue-700"
           />
           <StatItem
             icon={<PresentationIcon className="size-5" />}
-            label={t['showcase.stats.slides']}
+            label={t('showcase.stats.slides')}
             value={slidesCount}
             colorClass="bg-linear-to-br from-rose-500 to-rose-700"
           />

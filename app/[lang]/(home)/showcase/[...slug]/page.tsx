@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { Footer } from '@/components/footer'
 import { PlaygroundFrame } from '@/components/playground'
 import { RelatedShowcases } from '@/components/showcase/related-showcases'
 import { ShowcaseDetailHeader } from '@/components/showcase/showcase-detail-header'
@@ -96,7 +97,7 @@ export default async function Page({ params }: IProps) {
   return (
     <div
       className={`
-        container mx-auto flex h-[calc(100vh-108px)] flex-1 px-4 pt-12
+        container mx-auto flex min-h-[calc(100vh-108px)] flex-1 px-4 pt-12
         max-sm:px-0
         lg:px-0
       `}
@@ -127,8 +128,7 @@ export default async function Page({ params }: IProps) {
           currentSlug={pathname}
         />
 
-        {/* Bottom spacing */}
-        <div className="h-16" />
+        <Footer className="mb-8 text-center" variant="content" />
       </div>
     </div>
   )

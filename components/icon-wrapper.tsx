@@ -1,18 +1,19 @@
-import type { LucideProps } from 'lucide-react'
-import type { ForwardRefExoticComponent, ReactNode, RefAttributes } from 'react'
+import type { ElementType, ReactNode } from 'react'
 import { SparklesIcon } from 'lucide-react'
 import { Tooltip } from '@/components/tooltip'
 import { clsx } from '@/lib/clsx'
 
+type IconComponent = ElementType<{ className?: string }>
+
 interface IIconProps {
   type: 'icon'
-  icon: ForwardRefExoticComponent<Omit<LucideProps, 'ref'> & RefAttributes<SVGSVGElement>>
+  icon: IconComponent
 }
 
 interface IProProps {
   type: 'pro'
   size?: 'sm' | 'xs' | 'md'
-  icon?: ForwardRefExoticComponent<Omit<LucideProps, 'ref'> & RefAttributes<SVGSVGElement>>
+  icon?: IconComponent
 }
 
 interface IRefProps {

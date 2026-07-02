@@ -1,0 +1,139 @@
+---
+title: カラムレイアウト
+icon: '#pro/Columns3'
+---
+
+<MetaData
+  lang="ja-JP"
+  isPro
+  meta={{
+    plugins: [{
+      client: '@univerjs-pro/docs-column',
+      facade: '@univerjs-pro/docs-column/facade',
+    }, {
+      client: '@univerjs-pro/docs-column-ui',
+      locale: '@univerjs-pro/docs-column-ui/locale/ja-JP',
+      style: '@univerjs-pro/docs-column-ui/lib/index.css',
+    }],
+    server: false,
+  }}
+/>
+
+カラムレイアウトは、Univer Docs に編集可能な column group を追加します。column group は 2 から 5 個のカラムを持つブロックコンテナで、コンパクトな編集レイアウト、比較セクション、ニュースレター、テキストと表の混在コンテンツに適しています。
+
+## はじめに
+
+Univer Docs では、カラムレイアウトを使用して以下ができます：
+
+- **カラムグループを挿入**：ドキュメント offset に 2 カラム、3 カラム、またはカスタム幅比率のブロックを作成します。
+- **対話的に編集**：Docs UI からカラムの挿入、幅調整、削除を行えます。
+- **Facade API を使用**：コードからカラムグループを検索し、特定のカラムに内容を挿入し、幅比率を更新できます。
+- **ドキュメント操作を保持**：カラム mutation は通常のリッチテキストコマンドパイプラインを通るため、Undo/Redo とコラボレーションは UI 操作と同じ変更を受け取ります。
+
+## プラグインモード
+
+### インストール
+
+```package-install
+npm install @univerjs-pro/docs-column @univerjs-pro/docs-column-ui
+```
+
+### 使用法
+
+```typescript
+import { UniverDocsColumnUIPlugin } from '@univerjs-pro/docs-column-ui' // [!code ++]
+import DocsColumnUIJaJP from '@univerjs-pro/docs-column-ui/locale/ja-JP' // [!code ++]
+import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+
+import '@univerjs-pro/docs-column-ui/lib/index.css' // [!code ++]
+
+const univer = new Univer({
+  locale: LocaleType.JA_JP,
+  locales: {
+    [LocaleType.JA_JP]: mergeLocales(
+      DocsColumnUIJaJP, // [!code ++]
+    ),
+  },
+})
+
+univer.registerPlugin(UniverDocsColumnUIPlugin) // [!code ++]
+```
+
+Univer の商用ライセンスをお持ちの場合は、[クライアントでのライセンス使用](/guides/pro/license#in-plugin-mode)を参照してください。
+
+## Facade API
+
+API を使用する前に facade をインポートしてください：
+
+```typescript
+import '@univerjs-pro/docs-column/facade'
+```
+
+### カラムグループを挿入
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+const group = doc?.insertColumnGroup(3, {
+  gap: 18,
+  widthRatios: [1.1, 1, 0.9],
+})
+```
+
+### 特定のカラムに内容を挿入
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+const group = doc?.insertColumnGroup(2)
+const [left, right] = group?.getColumns() ?? []
+
+const leftOffset = left?.getInsertOffset()
+if (leftOffset != null) {
+  doc?.insertText('Summary\rKey decisions and context.', {
+    startOffset: leftOffset,
+    endOffset: leftOffset,
+  })
+}
+
+const rightOffset = right?.getInsertOffset()
+if (rightOffset != null) {
+  doc?.insertTableFromData([
+    ['Item', 'Owner'],
+    ['Launch checklist', 'Docs team'],
+  ], { offset: rightOffset, headerRowCount: 1 })
+}
+```
+
+### カラムグループを検索
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+
+const groups = doc?.getColumnGroups() ?? []
+const byId = doc?.getColumnGroup('column-group-id')
+const atOffset = doc?.getColumnGroupAt(128)
+const matched = doc?.findColumnGroups('Launch') ?? []
+
+console.log(groups.map(group => group.describe()))
+console.log(byId, atOffset, matched)
+```
+
+### グループをリサイズまたは編集
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+const group = doc?.getColumnGroups()[0]
+
+group?.setWidthRatios([1.2, 1, 0.8])
+
+const first = group?.getColumn(0)
+if (first) {
+  group?.addColumn(first.getId(), 'right')
+}
+```
+
+### カラムグループを削除
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+doc?.deleteColumnGroup('column-group-id')
+```

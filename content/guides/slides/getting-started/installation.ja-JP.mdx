@@ -1,0 +1,193 @@
+---
+title: インストールと基本使用
+icon: Blocks
+---
+
+この章では Univer Slides のインストールと基本的な使い方を説明します。Univer Sheets や Univer Docs と異なり、Slides は現在 Univer Pro 製品として提供されており、preset mode はありません。Slides アプリケーションは plugin mode で構築します。
+
+Univer の基本概念にまだ慣れていない場合は、先に [Quickstart](/guides/slides/getting-started/quickstart) を確認してください。
+
+## plugin mode で作成する
+
+Univer は Slides 機能をプラグインとして提供します。ブラウザーエディターでは通常、共通の Univer runtime、Pro ライセンスプラグイン、Docs と Drawing の依存関係を登録してから、Slides のモデルと UI プラグインを登録します。
+
+### パッケージマネージャーを使う
+
+プロジェクトでモダンなフロントエンドツールを使っている場合は、Vite、esbuild、Webpack 5 を推奨します。Slides パッケージは ESM entry に依存するため、古い bundler では追加設定が必要になる場合があります。
+
+#### インストール
+
+ブラウザー向け Slides エディターの最小依存関係をインストールします。
+
+<Tabs items={['npm', 'pnpm', 'yarn']}>
+  <Tab>
+    ```shell
+    npm install @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/drawing @univerjs/engine-render @univerjs/ui @univerjs-pro/license @univerjs-pro/slides @univerjs-pro/slides-ui
+    ```
+  </Tab>
+  <Tab>
+    ```shell
+    pnpm add @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/drawing @univerjs/engine-render @univerjs/ui @univerjs-pro/license @univerjs-pro/slides @univerjs-pro/slides-ui
+    ```
+  </Tab>
+  <Tab>
+    ```shell
+    yarn add @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/drawing @univerjs/engine-render @univerjs/ui @univerjs-pro/license @univerjs-pro/slides @univerjs-pro/slides-ui react react-dom rxjs
+    ```
+  </Tab>
+</Tabs>
+
+#### 使用
+
+<Callout type="warning" title="注意">
+  - Slides プラグインを登録する前に `UniverLicensePlugin` を登録してください。
+  - CSS の読み込み順は重要です。共通 UI CSS を先に読み込み、その後に製品 UI CSS を読み込みます。
+  - 印刷、テーブル、チャート、インポートとエクスポートなどの追加機能パッケージは、製品で必要になったときだけ追加してください。
+</Callout>
+
+<Steps>
+  <Step>
+    CSS、locale pack、必要なプラグインを import します。
+
+    ```typescript
+    import { UniverLicensePlugin } from '@univerjs-pro/license'
+    import { UniverSlidesPlugin } from '@univerjs-pro/slides'
+    import { UniverSlidesUIPlugin } from '@univerjs-pro/slides-ui'
+    import SlidesUIJaJP from '@univerjs-pro/slides-ui/locale/ja-JP'
+    import SlidesJaJP from '@univerjs-pro/slides/locale/ja-JP'
+    import { LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
+    import DesignJaJP from '@univerjs/design/locale/ja-JP'
+    import { UniverDocsPlugin } from '@univerjs/docs'
+    import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+    import DocsUIJaJP from '@univerjs/docs-ui/locale/ja-JP'
+    import { UniverDrawingPlugin } from '@univerjs/drawing'
+    import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+    import { UniverUIPlugin } from '@univerjs/ui'
+    import UIJaJP from '@univerjs/ui/locale/ja-JP'
+
+    import '@univerjs/design/lib/index.css'
+    import '@univerjs/ui/lib/index.css'
+    import '@univerjs/docs-ui/lib/index.css'
+    import '@univerjs-pro/slides-ui/lib/index.css'
+    ```
+  </Step>
+  <Step>
+    Facade API を使う場合は、関連する facade entry を import します。
+
+    ```typescript
+    import { FUniver } from '@univerjs/core/facade'
+    import '@univerjs-pro/slides/facade'
+    ```
+  </Step>
+  <Step>
+    Univer インスタンスを作成し、プラグインを登録して Slides unit を作成します。
+
+    ```typescript
+    const univer = new Univer({
+      locale: LocaleType.JA_JP,
+      locales: {
+        [LocaleType.JA_JP]: mergeLocales(
+          DesignJaJP,
+          UIJaJP,
+          DocsUIJaJP,
+          SlidesJaJP,
+          SlidesUIJaJP,
+        ),
+      },
+    })
+
+    univer.registerPlugin(UniverRenderEnginePlugin)
+    univer.registerPlugin(UniverUIPlugin, {
+      container: 'app',
+    })
+
+    univer.registerPlugin(UniverDocsPlugin)
+    univer.registerPlugin(UniverDocsUIPlugin)
+    univer.registerPlugin(UniverDrawingPlugin)
+
+    univer.registerPlugin(UniverLicensePlugin, {
+      license: process.env.CLIENT_LICENSE_TEXT,
+    })
+
+    univer.registerPlugin(UniverSlidesPlugin)
+    univer.registerPlugin(UniverSlidesUIPlugin)
+
+    univer.createUnit(UniverInstanceType.UNIVER_SLIDE, {})
+
+    const univerAPI = FUniver.newAPI(univer)
+    ```
+  </Step>
+</Steps>
+
+ここで作成した `univerAPI` は Univer の Facade API です。これを使ってプレゼンテーションを作成し、Slides 関連 API を呼び出せます。
+
+#### `univer.registerPlugin`
+
+`univer.registerPlugin` は Univer インスタンスにプラグインを登録します。プラグインごとに呼び出すことも、配列でまとめて登録することもできます。
+
+```typescript
+univer.registerPlugin([
+  UniverRenderEnginePlugin,
+  [UniverUIPlugin, {
+    container: 'app',
+  }],
+  UniverDocsPlugin,
+  UniverDocsUIPlugin,
+  UniverDrawingPlugin,
+  [UniverLicensePlugin, {
+    license: process.env.CLIENT_LICENSE_TEXT,
+  }],
+  UniverSlidesPlugin,
+  UniverSlidesUIPlugin,
+])
+```
+
+#### 追加機能パッケージ
+
+エディターで必要になった機能だけを追加します。
+
+```shell
+pnpm add @univerjs-pro/slides-print
+pnpm add @univerjs-pro/slides-table @univerjs-pro/slides-table-ui
+pnpm add @univerjs-pro/slides-chart @univerjs-pro/slides-chart-ui
+pnpm add @univerjs-pro/slides-exchange-client
+```
+
+機能登録の例は、[印刷](/guides/slides/features/print)、[テーブル](/guides/slides/features/tables)、[チャート](/guides/slides/features/charts)、[インポート & エクスポート](/guides/slides/features/import-export) を参照してください。
+
+#### 一部プラグインの遅延読み込み
+
+plugin mode では、追加機能プラグインを必要になるまで遅延読み込みできます。
+
+```typescript
+univer.createUnit(UniverInstanceType.UNIVER_SLIDE, {})
+
+import('@univerjs-pro/slides-chart').then(({ UniverSlidesChartPlugin }) => {
+  univer.registerPlugin(UniverSlidesChartPlugin)
+})
+```
+
+### サーバーサイドでの使用
+
+Node.js では通常、モデルプラグインだけを登録し、ブラウザー UI プラグインは登録しません。
+
+```typescript
+univer.registerPlugin(UniverSlidesPlugin)
+```
+
+この構成は、snapshot 処理、サーバーサイドのインポートとエクスポート、共同編集サービスに適しています。
+
+## その他のリリースチャンネル
+
+安定版のほかに、Univer には alpha、beta、nightly チャンネルがあります。これらは新機能を早めに試すためのものですが、不完全または不安定な動作を含む可能性があります。明確な検証計画がない限り、本番環境では避けてください。
+
+```package-install
+npm install @univerjs-pro/slides@alpha
+npm install @univerjs-pro/slides@beta
+```
+
+## 次のステップ
+
+- [Facade API](/guides/slides/getting-started/facade) で Slides を Facade API から操作する方法を確認します。
+- [Pro へのアップグレード](/guides/slides/getting-started/pro) でライセンスとデプロイ要件を確認します。
+- 必要に応じて [機能](/guides/slides/features/print) セクションのプラグインを追加します。

@@ -18,7 +18,6 @@ import { UniverSheetsNumfmtUIPlugin } from '@univerjs/sheets-numfmt-ui'
 import SheetsNumfmtUIEnUS from '@univerjs/sheets-numfmt-ui/locale/en-US'
 import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
 import SheetsUIEnUS from '@univerjs/sheets-ui/locale/en-US'
-import { UniverSheetsZenEditorPlugin } from '@univerjs/sheets-zen-editor'
 import SheetsEnUS from '@univerjs/sheets/locale/en-US'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
@@ -38,7 +37,6 @@ import '@univerjs/sheets-hyper-link-ui/lib/index.css'
 import '@univerjs/sheets-table-ui/lib/index.css'
 import '@univerjs/sheets-note-ui/lib/index.css'
 import '@univerjs/sheets-numfmt-ui/lib/index.css'
-import '@univerjs/sheets-zen-editor/lib/index.css'
 import '@univerjs/thread-comment-ui/lib/index.css'
 
 // Demo workbook data
@@ -104,7 +102,6 @@ export function UniverPreview(props: { theme: Theme, darkMode: boolean }) {
       [UniverSheetsPlugin],
       [UniverSheetsUIPlugin],
       [UniverSheetsNumfmtPlugin],
-      [UniverSheetsZenEditorPlugin],
       [UniverFormulaEnginePlugin],
       [UniverSheetsFormulaPlugin],
       [UniverSheetsFormulaUIPlugin],

@@ -1,5 +1,10 @@
 'use client'
 
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import ShapeEditorUIEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
+import { UniverSlidesPlugin } from '@univerjs-pro/slides'
+import { UniverSlidesUIPlugin } from '@univerjs-pro/slides-ui'
+import SlidesUIEnUS from '@univerjs-pro/slides-ui/locale/en-US'
 import { LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
 import DesignEnUS from '@univerjs/design/locale/en-US'
 import { UniverDocsPlugin } from '@univerjs/docs'
@@ -8,9 +13,6 @@ import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
-import { UniverSlidesPlugin } from '@univerjs/slides'
-import { UniverSlidesUIPlugin } from '@univerjs/slides-ui'
-import SlidesUIEnUS from '@univerjs/slides-ui/locale/en-US'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
 import { useTheme } from 'next-themes'
@@ -20,22 +22,25 @@ import { SLIDE_DATA } from '../code/data'
 import '@univerjs/design/lib/index.css'
 import '@univerjs/ui/lib/index.css'
 import '@univerjs/docs-ui/lib/index.css'
-import '@univerjs/slides-ui/lib/index.css'
+import '@univerjs-pro/shape-editor-ui/lib/index.css'
+import '@univerjs-pro/slides-ui/lib/index.css'
 
 export default function Preview() {
   const divRef = useRef<HTMLDivElement>(null!)
 
   const { theme } = useTheme()
+  const darkModeRef = useRef(theme === 'dark')
 
   useEffect(() => {
     const univer = new Univer({
-      darkMode: theme === 'dark',
+      darkMode: darkModeRef.current,
       locale: LocaleType.EN_US,
       locales: {
         [LocaleType.EN_US]: mergeLocales(
           DesignEnUS,
           UIEnUS,
           DocsUIEnUS,
+          ShapeEditorUIEnUS,
           SlidesUIEnUS,
         ),
       },
@@ -52,6 +57,7 @@ export default function Preview() {
     univer.registerPlugin(UniverDocsUIPlugin)
 
     univer.registerPlugin(UniverDrawingPlugin)
+    univer.registerPlugin(UniverLicensePlugin)
     univer.registerPlugin(UniverSlidesPlugin)
     univer.registerPlugin(UniverSlidesUIPlugin)
 

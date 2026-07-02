@@ -1,6 +1,6 @@
 import type { IDocumentData } from '@univerjs/presets'
 
-export const DOCS_BIG_DATA: IDocumentData = {
+export const DOCS_BIG_DATA = {
   id: 'm71aFr',
   disabled: true,
   documentStyle: {
@@ -266924,4 +266924,4 @@ export const DOCS_BIG_DATA: IDocumentData = {
     ],
   },
   settings: {},
-}
+} as unknown as IDocumentData

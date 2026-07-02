@@ -3,18 +3,20 @@
 import type { Theme } from '@univerjs/themes'
 import type { EditorMode, LoopColorKey, ThemeScaleKey, ThemeShadeKey, TokenDensity } from '../types'
 import { defaultTheme } from '@univerjs/themes'
+import { useTranslations } from 'next-intl'
 import { useEffect, useMemo, useState } from 'react'
 import { COLOR_SCALE_KEYS, CORE_SCALE_KEYS, THEME_PRESETS } from '../constants'
 import { cloneTheme, formatTheme, mergeThemePatch, updateLoopColor, updateScaleColor, updateThemeRootColor } from '../theme-utils'
 
 export function useThemeCustomizerState() {
+  const t = useTranslations()
   const [theme, setTheme] = useState<Theme>(() => cloneTheme(defaultTheme))
   const [editorMode, setEditorMode] = useState<EditorMode>('tokens')
   const [tokenDensity, setTokenDensity] = useState<TokenDensity>('core')
   const [darkMode, setDarkMode] = useState(false)
   const [jsonDraft, setJsonDraft] = useState(() => formatTheme(defaultTheme))
   const [jsonError, setJsonError] = useState<string | null>(null)
-  const [copyLabel, setCopyLabel] = useState('Copy JSON')
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     document.documentElement.classList.toggle('univer-dark', darkMode)
@@ -66,14 +68,14 @@ export function useThemeCustomizerState() {
       const mergedTheme = mergeThemePatch(theme, parsedValue)
 
       if (!mergedTheme) {
-        setJsonError('JSON must be an object.')
+        setJsonError(t('theme-customizer.json-object-required'))
         return
       }
 
       setTheme(mergedTheme)
       setJsonError(null)
-    } catch (error) {
-      setJsonError(error instanceof Error ? error.message : 'Failed to parse JSON.')
+    } catch {
+      setJsonError(t('theme-customizer.json-parse-failed'))
     }
   }
 
@@ -83,15 +85,15 @@ export function useThemeCustomizerState() {
     }
 
     await navigator.clipboard.writeText(formatTheme(theme))
-    setCopyLabel('Copied')
+    setCopied(true)
 
     window.setTimeout(() => {
-      setCopyLabel('Copy JSON')
+      setCopied(false)
     }, 1600)
   }
 
   return {
-    copyLabel,
+    copyLabel: copied ? t('theme-customizer.copied') : t('theme-customizer.copy-json'),
     darkMode,
     editorMode,
     jsonDraft,

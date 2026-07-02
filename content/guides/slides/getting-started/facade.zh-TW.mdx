@@ -1,0 +1,99 @@
+---
+title: Facade API
+description: 了解如何在 Slides 應用中加入 Facade API，簡化對 Univer 複雜架構的使用。
+icon: PlugZap
+---
+
+Univer 的外掛架構非常彈性，但內部服務和 unit 模型對應用程式碼來說會顯得比較繁瑣。Facade API 提供了一層更適合應用側使用的簡化介面。
+
+本小節將介紹如何在 Univer Slides 應用中啟用 Facade API。後續功能章節會列出每個 Slides 能力主要使用的 Facade API；如果你想查看完整 API，請參考對應套件的 API 參考文件。
+
+<Callout type="warning" title="注意事項">
+  部分 Facade API 是非同步的，特別是修改資料的 API。如果你需要在修改資料後立即讀取結果，請使用 `await` 或 `.then()`，否則可能會讀取到舊狀態。
+</Callout>
+
+## Preset mode
+
+Univer Slides 目前不提供 preset mode。Slides 作為 Univer Pro 外掛提供，因此需要透過 plugin mode 引入 Facade API。
+
+## Plugin mode
+
+### 安裝
+
+在 plugin mode 下，Facade API 的實作由各個套件提供，並掛載到全域 Facade API 根物件上。應用使用了哪些 Slides 能力，就引入對應的 facade 入口。
+
+```typescript
+import { FUniver } from '@univerjs/core/facade'
+
+import '@univerjs-pro/slides/facade'
+import '@univerjs-pro/slides-chart/facade'
+import '@univerjs-pro/exchange-client/facade'
+import '@univerjs-pro/slides-print/facade'
+import '@univerjs-pro/slides-table/facade'
+```
+
+<Callout type="warning" title="注意事項">
+  並非所有外掛都包含 facade 入口。功能文件會在對應套件包含 facade 時說明它的引入方式。
+</Callout>
+
+### 使用
+
+Facade API 是對 Univer 實例的封裝。你需要在建立 Univer 實例並註冊必要外掛之後，再用 `FUniver` 包裹該實例：
+
+```typescript
+import { FUniver } from '@univerjs/core/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+## Slides API
+
+### 建立簡報
+
+使用 `createPresentation` 透過 facade 層建立 Slides unit：
+
+```typescript
+const presentation = univerAPI.createPresentation({
+  id: 'slide-demo',
+  name: 'Slide Demo',
+})
+
+const activePresentation = univerAPI.getActivePresentation()
+const samePresentation = univerAPI.getPresentation(presentation.getId())
+```
+
+### 儲存快照
+
+presentation facade 可以儲存目前 Slides 快照。快照適合作為持久化資料，執行中的簡報應透過 Facade API 修改。
+
+```typescript
+const snapshot = presentation.save()
+```
+
+## 生命週期注意事項
+
+並非所有 Facade API 都可以在初始化後立即呼叫。有些 API 需要編輯器進入特定生命週期階段後才能穩定執行：
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+  if (stage === univerAPI.Enum.LifecycleStages.Rendered) {
+    // 在首次渲染後執行的程式碼
+  }
+  if (stage === univerAPI.Enum.LifecycleStages.Steady) {
+    // 在編輯器進入穩定狀態後執行的程式碼
+  }
+})
+```
+
+## 相關 facade 入口
+
+- `@univerjs-pro/slides/facade` 增加簡報和 slide facade API。
+- `@univerjs-pro/slides-table/facade` 增加表格相關 slide API。
+- `@univerjs-pro/slides-chart/facade` 增加圖表相關 slide API。
+- `@univerjs-pro/slides-print/facade` 增加列印相關 slide API。
+- `@univerjs-pro/exchange-client/facade` 增加 Slides exchange 流程使用的 PPTX 匯入匯出 API。
+
+## 下一步
+
+- 如果還沒有註冊 Slides 外掛，請先閱讀 [安裝與基本使用](/guides/slides/getting-started/installation)。
+- 按需繼續閱讀 [表格](/guides/slides/features/tables)、[圖表](/guides/slides/features/charts)、[列印](/guides/slides/features/print) 和 [匯入 & 匯出](/guides/slides/features/import-export) 中的功能 API。

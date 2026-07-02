@@ -1,3 +1,8 @@
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import ShapeEditorUIEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
+import { UniverSlidesPlugin } from '@univerjs-pro/slides'
+import { UniverSlidesUIPlugin } from '@univerjs-pro/slides-ui'
+import SlidesUIEnUS from '@univerjs-pro/slides-ui/locale/en-US'
 import { LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
 import DesignEnUS from '@univerjs/design/locale/en-US'
 import { UniverDocsPlugin } from '@univerjs/docs'
@@ -6,9 +11,6 @@ import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
-import { UniverSlidesPlugin } from '@univerjs/slides'
-import { UniverSlidesUIPlugin } from '@univerjs/slides-ui'
-import SlidesUIEnUS from '@univerjs/slides-ui/locale/en-US'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
 import { SLIDE_DATA } from './data'
@@ -18,7 +20,8 @@ import './styles.css'
 import '@univerjs/design/lib/index.css'
 import '@univerjs/ui/lib/index.css'
 import '@univerjs/docs-ui/lib/index.css'
-import '@univerjs/slides-ui/lib/index.css'
+import '@univerjs-pro/shape-editor-ui/lib/index.css'
+import '@univerjs-pro/slides-ui/lib/index.css'
 
 const univer = new Univer({
   locale: LocaleType.EN_US,
@@ -27,6 +30,7 @@ const univer = new Univer({
       DesignEnUS,
       UIEnUS,
       DocsUIEnUS,
+      ShapeEditorUIEnUS,
       SlidesUIEnUS,
     ),
   },
@@ -43,6 +47,7 @@ univer.registerPlugin(UniverDocsPlugin)
 univer.registerPlugin(UniverDocsUIPlugin)
 
 univer.registerPlugin(UniverDrawingPlugin)
+univer.registerPlugin(UniverLicensePlugin)
 univer.registerPlugin(UniverSlidesPlugin)
 univer.registerPlugin(UniverSlidesUIPlugin)
 

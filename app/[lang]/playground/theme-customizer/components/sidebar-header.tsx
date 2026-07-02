@@ -1,5 +1,6 @@
 import type { EditorMode, TokenDensity } from './types'
 import { Button } from '@univerjs/design'
+import { useTranslations } from 'next-intl'
 import { ToolbarField, ToolbarToggleGroup } from './toolbar-controls'
 
 export function SidebarHeader(props: {
@@ -11,6 +12,7 @@ export function SidebarHeader(props: {
   onPresetApply: (presetKey: 'default' | 'green') => void
   onTokenDensityChange: (density: TokenDensity) => void
 }) {
+  const t = useTranslations()
   const {
     darkMode,
     editorMode,
@@ -30,37 +32,37 @@ export function SidebarHeader(props: {
             dark:text-white!
           "
         >
-          Theme Customizer
+          {t('theme-customizer.title')}
         </h2>
 
         <div className="flex flex-wrap gap-2">
           <Button size="small" onClick={() => onPresetApply('default')}>
-            Reset Default
+            {t('theme-customizer.reset-default')}
           </Button>
           <Button size="small" onClick={() => onPresetApply('green')}>
-            Apply Green
+            {t('theme-customizer.apply-green')}
           </Button>
         </div>
       </div>
 
       <div className="mt-2.5">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <ToolbarField label="Appearance">
+          <ToolbarField label={t('theme-customizer.appearance')}>
             <ToolbarToggleGroup
               items={[
-                { label: 'Light', value: 'light' },
-                { label: 'Dark', value: 'dark' },
+                { label: t('theme-customizer.light'), value: 'light' },
+                { label: t('theme-customizer.dark'), value: 'dark' },
               ]}
               value={darkMode ? 'dark' : 'light'}
               onChange={value => onDarkModeChange(value === 'dark')}
             />
           </ToolbarField>
 
-          <ToolbarField label="Mode">
+          <ToolbarField label={t('theme-customizer.mode')}>
             <ToolbarToggleGroup
               items={[
-                { label: 'Token', value: 'tokens' },
-                { label: 'JSON', value: 'json' },
+                { label: t('theme-customizer.token'), value: 'tokens' },
+                { label: t('theme-customizer.json'), value: 'json' },
               ]}
               value={editorMode}
               onChange={value => onEditorModeChange(value as EditorMode)}
@@ -68,11 +70,11 @@ export function SidebarHeader(props: {
           </ToolbarField>
 
           {editorMode === 'tokens' && (
-            <ToolbarField label="Scope">
+            <ToolbarField label={t('theme-customizer.scope')}>
               <ToolbarToggleGroup
                 items={[
-                  { label: 'Core Palette', value: 'core' },
-                  { label: 'Full Schema', value: 'full' },
+                  { label: t('theme-customizer.core-palette'), value: 'core' },
+                  { label: t('theme-customizer.full-schema'), value: 'full' },
                 ]}
                 value={tokenDensity}
                 onChange={value => onTokenDensityChange(value as TokenDensity)}

@@ -1,32 +1,32 @@
 import type { IIconSet } from '@univerjs/preset-sheets-conditional-formatting'
 import type { IluckysheetCFIconsFormat, IluckysheetConditionFormat } from '../../common/interface/condition-format'
-import { CFNumberOperator, CFRuleType, CFValueType } from '@univerjs/preset-sheets-conditional-formatting'
+import { CFNumberOperator, CFRuleType, CFValueType, IIconSetType } from '@univerjs/preset-sheets-conditional-formatting'
 import { generateRandomId } from '@univerjs/presets'
 import { rangeArrayToRanges } from '../../common/utils/selection'
 
-const defaultIconType = '3Arrows'
+const defaultIconType = IIconSetType.threeArrows
 
-const iconTypeMap: Record<string, string> = {
-  '0-3-0': '3Arrows',
-  '5-3-0': '3ArrowsGray',
-  '0-3-1': '3Triangles',
-  '0-4-2': '4Arrows',
-  '0-5-3': '5Arrows',
-  '5-4-1': '4ArrowsGray',
-  '5-5-2': '5ArrowsGray',
-  '0-3-4': '3TrafficLights1',
-  '5-3-4': '3TrafficLights2',
-  '0-3-7': '3Symbols',
-  '5-3-7': '3Symbols2',
-  '0-3-9': '3Stars',
-  '0-3-5': '3Signs',
-  '0-3-8': '3Flags',
-  '0-5-11': '5Boxes',
-  '0-5-10': '5Quarters',
-  '5-4-9': '4Rating',
-  '5-5-10': '5Rating',
-  '0-4-6': '4RedToBlack',
-  '5-4-5': '4TrafficLights',
+const iconTypeMap: Record<string, IIconSetType> = {
+  '0-3-0': IIconSetType.threeArrows,
+  '5-3-0': IIconSetType.threeArrowsGray,
+  '0-3-1': IIconSetType.threeTriangles,
+  '0-4-2': IIconSetType.fourArrows,
+  '0-5-3': IIconSetType.fiveArrows,
+  '5-4-1': IIconSetType.fourArrowsGray,
+  '5-5-2': IIconSetType.fiveArrowsGray,
+  '0-3-4': IIconSetType.threeTrafficLights1,
+  '5-3-4': IIconSetType.threeTrafficLights2,
+  '0-3-7': IIconSetType.threeSymbols,
+  '5-3-7': IIconSetType.threeSymbols2,
+  '0-3-9': IIconSetType.threeStars,
+  '0-3-5': IIconSetType.threeSigns,
+  '0-3-8': IIconSetType.threeFlags,
+  '0-5-11': IIconSetType.fiveBoxes,
+  '0-5-10': IIconSetType.fiveQuarters,
+  '5-4-9': IIconSetType.fourRating,
+  '5-5-10': IIconSetType.fiveRating,
+  '0-4-6': IIconSetType.fourRedToBlack,
+  '5-4-5': IIconSetType.fourTrafficLights,
 }
 
 export function iconSetCondition(condition: IluckysheetConditionFormat) {
@@ -61,7 +61,7 @@ export function iconSetCondition(condition: IluckysheetConditionFormat) {
  * @param iconType
  * @returns
  */
-function getIconConfig(iconType: string) {
+function getIconConfig(iconType: IIconSetType) {
   const len = getConfigLength(iconType)
 
   return Array.from({ length: len }, (_, i) => {

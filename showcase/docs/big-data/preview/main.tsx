@@ -30,7 +30,7 @@ export default function Preview() {
       ],
     })
 
-    univerAPI.createUniverDoc(DOCS_BIG_DATA)
+    univerAPI.createDocument(DOCS_BIG_DATA)
 
     return () => {
       univerAPI.dispose()

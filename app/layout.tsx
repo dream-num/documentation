@@ -1,15 +1,19 @@
 import type { ReactNode } from 'react'
+import { hasLocale } from 'next-intl'
+import { cookies } from 'next/headers'
 import NextTopLoader from 'nextjs-toploader'
+import { routing } from '@/i18n/routing'
 
 import './global.css'
 
 interface IProps {
-  params: Promise<{ lang: string }>
   children: ReactNode
 }
 
-export default async function Layout({ params, children }: IProps) {
-  const { lang } = await params
+export default async function Layout({ children }: IProps) {
+  const cookieStore = await cookies()
+  const requestedLocale = cookieStore.get('FD_LOCALE')?.value
+  const lang = hasLocale(routing.locales, requestedLocale) ? requestedLocale : routing.defaultLocale
 
   return (
     <html lang={lang} suppressHydrationWarning>

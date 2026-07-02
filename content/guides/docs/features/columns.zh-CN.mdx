@@ -1,0 +1,139 @@
+---
+title: 分栏布局
+icon: '#pro/Columns3'
+---
+
+<MetaData
+  lang="zh-CN"
+  isPro
+  meta={{
+    plugins: [{
+      client: '@univerjs-pro/docs-column',
+      facade: '@univerjs-pro/docs-column/facade',
+    }, {
+      client: '@univerjs-pro/docs-column-ui',
+      locale: '@univerjs-pro/docs-column-ui/locale/zh-CN',
+      style: '@univerjs-pro/docs-column-ui/lib/index.css',
+    }],
+    server: false,
+  }}
+/>
+
+分栏布局为 Univer Docs 增加可编辑的 column group。一个 column group 是包含 2 到 5 个栏的块级容器，适合在文档中制作紧凑的编辑排版、对比区块、简报内容，以及文本和表格混排。
+
+## 介绍
+
+在 Univer Docs 中，分栏布局使您能够：
+
+- **插入分栏组**：在指定文档 offset 创建两栏、三栏或自定义宽度比例的分栏块。
+- **交互式编辑**：通过 Docs UI 插入、调整宽度和删除栏。
+- **使用 Facade API**：用代码查询分栏组、向指定栏插入内容，并更新各栏宽度比例。
+- **保留文档操作语义**：分栏 mutation 会走标准富文本命令链路，因此撤销/重做和协同编辑能收到与 UI 操作一致的文档变更。
+
+## 插件模式
+
+### 安装
+
+```package-install
+npm install @univerjs-pro/docs-column @univerjs-pro/docs-column-ui
+```
+
+### 使用
+
+```typescript
+import { UniverDocsColumnUIPlugin } from '@univerjs-pro/docs-column-ui' // [!code ++]
+import DocsColumnUIZhCN from '@univerjs-pro/docs-column-ui/locale/zh-CN' // [!code ++]
+import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+
+import '@univerjs-pro/docs-column-ui/lib/index.css' // [!code ++]
+
+const univer = new Univer({
+  locale: LocaleType.ZH_CN,
+  locales: {
+    [LocaleType.ZH_CN]: mergeLocales(
+      DocsColumnUIZhCN, // [!code ++]
+    ),
+  },
+})
+
+univer.registerPlugin(UniverDocsColumnUIPlugin) // [!code ++]
+```
+
+如果您拥有 Univer 商业许可证，请参阅[在客户端使用许可证](/guides/pro/license#in-plugin-mode)进行配置。
+
+## Facade API
+
+使用 API 前请确保已导入 facade：
+
+```typescript
+import '@univerjs-pro/docs-column/facade'
+```
+
+### 插入分栏组
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+const group = doc?.insertColumnGroup(3, {
+  gap: 18,
+  widthRatios: [1.1, 1, 0.9],
+})
+```
+
+### 向指定栏插入内容
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+const group = doc?.insertColumnGroup(2)
+const [left, right] = group?.getColumns() ?? []
+
+const leftOffset = left?.getInsertOffset()
+if (leftOffset != null) {
+  doc?.insertText('概要\r关键决策和背景信息。', {
+    startOffset: leftOffset,
+    endOffset: leftOffset,
+  })
+}
+
+const rightOffset = right?.getInsertOffset()
+if (rightOffset != null) {
+  doc?.insertTableFromData([
+    ['事项', '负责人'],
+    ['发布检查清单', 'Docs team'],
+  ], { offset: rightOffset, headerRowCount: 1 })
+}
+```
+
+### 查询分栏组
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+
+const groups = doc?.getColumnGroups() ?? []
+const byId = doc?.getColumnGroup('column-group-id')
+const atOffset = doc?.getColumnGroupAt(128)
+const matched = doc?.findColumnGroups('Launch') ?? []
+
+console.log(groups.map(group => group.describe()))
+console.log(byId, atOffset, matched)
+```
+
+### 调整或编辑分栏组
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+const group = doc?.getColumnGroups()[0]
+
+group?.setWidthRatios([1.2, 1, 0.8])
+
+const first = group?.getColumn(0)
+if (first) {
+  group?.addColumn(first.getId(), 'right')
+}
+```
+
+### 删除分栏组
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+doc?.deleteColumnGroup('column-group-id')
+```

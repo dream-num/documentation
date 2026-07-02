@@ -37,6 +37,6 @@ univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
     // set read only
     const permission = fWorkbook.getWorkbookPermission()
     permission.setReadOnly()
-    permission.setPermissionDialogVisible(false)
+    univerAPI.setPermissionDialogVisible(false)
   }
 })

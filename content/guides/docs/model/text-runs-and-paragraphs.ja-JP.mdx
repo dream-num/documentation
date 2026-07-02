@@ -1,0 +1,99 @@
+---
+title: テキスト範囲と段落
+icon: Pilcrow
+---
+
+## インデックスベースのモデル
+
+Univer Docs はリッチテキストをネストしたツリーとして保存しません。プレーンテキストを `body.dataStream` に保存し、インデックス範囲でスタイルや構造を関連付けます。
+
+よく使われるインデックスベースの構造は次のとおりです。
+
+- `ITextRun`: インラインテキストスタイル範囲。
+- `IParagraph`: 段落メタデータと段落スタイル。
+- `ISectionBreak`: セクション区切りメタデータ。
+
+## ITextRun
+
+`ITextRun` は連続したテキスト範囲のスタイルを表します。
+
+| プロパティ | 型 | 説明 |
+| --- | --- | --- |
+| st | `number` | 開始インデックス。この位置を含みます。 |
+| ed | `number` | 終了インデックス。この位置は含みません。 |
+| sId? | `string` | 参照するスタイル ID。 |
+| ts? | `ITextStyle` | インラインテキストスタイル。 |
+
+```typescript
+const body: IDocumentBody = {
+  dataStream: 'Hello Univer\r\n',
+  textRuns: [
+    {
+      st: 0,
+      ed: 5,
+      ts: { bl: 1 },
+    },
+    {
+      st: 6,
+      ed: 12,
+      ts: { cl: { rgb: '#2563eb' } },
+    },
+  ],
+}
+```
+
+この例では、`Hello` が太字になり、`Univer` が青色になります。段落区切り `\r\n` はスタイル範囲に含まれません。
+
+## IParagraph
+
+`IParagraph` は段落レベルのメタデータを表します。`startIndex` は `dataStream` 内の段落区切り位置を指します。
+
+| プロパティ | 型 | 説明 |
+| --- | --- | --- |
+| startIndex | `number` | 段落区切りのインデックス。 |
+| paragraphId | `string` | 安定した段落 ID。 |
+| paragraphStyle? | `IParagraphStyle` | 配置、インデント、行間、見出し種別などの段落スタイル。 |
+| bullet? | `IBullet` | 箇条書きマーカーのメタデータ。 |
+
+```typescript
+const body: IDocumentBody = {
+  dataStream: 'Hello Univer\r\nSecond line\r\n',
+  paragraphs: [
+    {
+      startIndex: 12,
+      paragraphId: 'p-1',
+      paragraphStyle: {
+        namedStyleType: NamedStyleType.HEADING_1,
+      },
+    },
+    {
+      startIndex: 25,
+      paragraphId: 'p-2',
+    },
+  ],
+}
+```
+
+## ISectionBreak
+
+`ISectionBreak` もインデックスによってテキストストリームと関連付けられます。セクションごとにページサイズ、余白、ヘッダー/フッター、カラム、文字方向などを上書きできます。
+
+```typescript
+const body: IDocumentBody = {
+  dataStream: 'First section\nSecond section\r\n',
+  sectionBreaks: [
+    {
+      startIndex: 13,
+      pageSize: { width: 595, height: 842 },
+      marginTop: 72,
+      marginBottom: 72,
+    },
+  ],
+}
+```
+
+## 注意事項
+
+- インデックスは `dataStream` と一致させる必要があります。不正なインデックスは、スタイル範囲、段落、選択範囲、レンダリング状態の不整合につながります。
+- 実行中のドキュメントを編集する場合は、Facade API またはコマンドを優先してください。
+- スナップショットを手動生成する場合は、先に `dataStream` を構築し、その文字列から範囲と段落位置を計算してください。

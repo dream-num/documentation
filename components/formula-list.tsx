@@ -1,5 +1,6 @@
 import enUS from '@univerjs/sheets-formula/locale/en-US'
 import zhCN from '@univerjs/sheets-formula/locale/zh-CN'
+import { getFormulaLocale } from '@/i18n/locale-config'
 
 const functionList = {
   'zh-CN': zhCN['sheets-formula'].functionList,
@@ -7,13 +8,13 @@ const functionList = {
 }
 
 interface IProps {
-  lang: 'zh-CN' | 'en-US'
+  lang: string
 }
 
 export default function FormuaList(props: IProps) {
   const { lang } = props
 
-  const formula = functionList[lang]
+  const formula = functionList[getFormulaLocale(lang)]
 
   return (
     <details className="mt-6">

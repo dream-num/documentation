@@ -1,0 +1,119 @@
+---
+title: Mentions
+icon: AtSign
+---
+
+<MetaData
+  lang="en-US"
+  meta={{
+    plugins: [{
+      client: '@univerjs/docs-mention-ui',
+      style: '@univerjs/docs-mention-ui/lib/index.css',
+    }],
+    server: false,
+  }}
+/>
+
+Mentions allow users to type `@` in Univer Docs and insert a mention entity, such as a person, team, ticket, or other object from your application. The inserted mention is stored as a `CustomRangeType.MENTION` custom range in the document body.
+
+## Interactions
+
+- Type `@` in the document to open the mention popup.
+- Continue typing to pass a `search` value to the mention data source.
+- Select a candidate to replace the typed trigger text with an entity like `@Alice`.
+- Move the cursor or delete before the trigger to close the popup.
+
+## Plugin Mode
+
+### Installation
+
+```package-install
+npm install @univerjs/docs-mention-ui
+```
+
+### Usage
+
+```typescript
+import { UniverDocsMentionUIPlugin } from '@univerjs/docs-mention-ui' // [!code ++]
+
+import '@univerjs/docs-mention-ui/lib/index.css' // [!code ++]
+
+univer.registerPlugin(UniverDocsMentionUIPlugin) // [!code ++]
+```
+
+## Provide Mention Candidates
+
+The mention popup reads candidates from `IMentionIOService`. Univer provides a local default implementation that returns the current user. Production applications usually replace it with an implementation backed by a user directory, team service, issue tracker, or another business data source.
+
+```typescript
+import type { IListMentionParam, IListMentionResponse, IMentionIOService } from '@univerjs/core'
+import { MentionType } from '@univerjs/core'
+
+class DirectoryMentionIOService implements IMentionIOService {
+  async list(params: IListMentionParam): Promise<IListMentionResponse> {
+    const users = await searchUsers(params.search ?? '')
+
+    return {
+      list: [{
+        type: MentionType.PERSON,
+        title: 'People',
+        metadata: {},
+        mentions: users.map(user => ({
+          objectType: MentionType.PERSON,
+          objectId: user.id,
+          label: user.name,
+          metadata: {
+            icon: user.avatarUrl,
+            email: user.email,
+          },
+        })),
+      }],
+      page: params.page,
+      size: params.size,
+      total: users.length,
+    }
+  }
+}
+```
+
+Register the service through Univer's dependency override when creating the application.
+
+```typescript
+import { IMentionIOService, LocaleType, Univer } from '@univerjs/core'
+
+const univer = new Univer({
+  locale: LocaleType.EN_US,
+  override: [
+    [IMentionIOService, { useClass: DirectoryMentionIOService }],
+  ],
+})
+```
+
+## Data Model
+
+When a mention is inserted, the visible text is written into `body.dataStream`, and the entity metadata is persisted in `body.customRanges`.
+
+```typescript
+const documentData = {
+  body: {
+    dataStream: 'Hello @Alice\\r\\n',
+    customRanges: [{
+      startIndex: 6,
+      endIndex: 11,
+      rangeId: 'mention-1',
+      rangeType: CustomRangeType.MENTION,
+      wholeEntity: true,
+      properties: {
+        id: 'mention-1',
+        label: 'Alice',
+        type: 'user',
+        email: 'alice@example.com',
+      },
+    }],
+  },
+}
+```
+
+<Callout type="info">
+  Mentions are document custom ranges. If your application stores extra fields in `metadata`, keep them serializable so the document snapshot can be persisted and restored safely.
+</Callout>

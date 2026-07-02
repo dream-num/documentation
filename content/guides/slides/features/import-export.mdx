@@ -1,0 +1,95 @@
+---
+title: Import & Export
+icon: '#pro/FolderSync'
+---
+
+## Overview
+
+Slides import and export is a Pro capability. The browser client registers the shared exchange client plus the Slides exchange client, while conversion, task polling, storage, and signed download URLs are provided by your Pro deployment.
+
+```ts
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
+import { UniverSlidesExchangeClientPlugin } from '@univerjs-pro/slides-exchange-client'
+import '@univerjs-pro/exchange-client/facade'
+
+univer.registerPlugin(UniverExchangeClientPlugin)
+univer.registerPlugin(UniverSlidesExchangeClientPlugin)
+```
+
+## Installation
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/slides-exchange-client
+```
+
+## Configure endpoints
+
+`@univerjs-pro/slides-exchange-client` depends on `@univerjs-pro/exchange-client`. Put server URLs on the shared exchange client, then register the Slides client to add PPTX menu operations.
+
+```ts
+univer.registerPlugin(UniverExchangeClientPlugin, {
+  uploadFileServerUrl: '/universer-api/stream/file/upload',
+  importServerUrl: '/universer-api/exchange/{type}/import',
+  exportServerUrl: '/universer-api/exchange/{type}/export',
+  getTaskServerUrl: '/universer-api/exchange/task/{taskID}',
+  signUrlServerUrl: '/universer-api/file/{fileID}/sign-url',
+  downloadEndpointUrl: location.origin,
+  maxTimeoutTime: 120000,
+})
+
+univer.registerPlugin(UniverSlidesExchangeClientPlugin)
+```
+
+The `{type}` placeholder is filled with `UniverInstanceType.UNIVER_SLIDE`. Import can return either a server-side unit id or a snapshot JSON. Export uploads a slide snapshot to the exchange service, waits for the task result, signs the returned file id, and downloads the PPTX file.
+
+## Facade API
+
+Import the facade package once in plugin mode:
+
+```ts
+import '@univerjs-pro/exchange-client/facade'
+```
+
+Import a PPTX into a server-side unit:
+
+```ts
+const unitId = await univerAPI.importPPTXToUnitIdAsync(file)
+```
+
+Import a PPTX as local slide data:
+
+```ts
+const slideData = await univerAPI.importPPTXToSnapshotAsync(file)
+
+if (slideData) {
+  univerAPI.createPresentation(slideData)
+}
+```
+
+Export the current slide deck:
+
+```ts
+const presentation = univerAPI.getActivePresentation()
+const file = await univerAPI.exportPPTXBySnapshotAsync(presentation.save())
+```
+
+Export a server-side slide unit:
+
+```ts
+const file = await univerAPI.exportPPTXByUnitIdAsync(unitId)
+```
+
+## Menu behavior
+
+The Slides exchange client contributes PPTX menu actions:
+
+- `ImportPPTXOperation` imports to an existing unit when the current URL has a `unit` query parameter; otherwise it imports to a local snapshot.
+- `ExportPPTXOperation` exports the current slide deck by snapshot.
+
+You can pass a `menu` config to `UniverSlidesExchangeClientPlugin` when you need to merge custom menu visibility or ordering.
+
+## Related setup
+
+- Register `UniverSlidesPlugin` before the exchange client so Slides units are available.
+- Use Pro server APIs for authentication, storage, conversion, task polling, and signed download URLs.
+- Keep print, table, and chart packages enabled if imported PPTX files may contain those elements.

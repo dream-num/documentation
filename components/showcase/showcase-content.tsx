@@ -8,10 +8,10 @@ import {
   SearchIcon,
   SheetIcon,
 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useMemo, useState } from 'react'
 import { clsx } from '@/lib/clsx'
-import { customTranslations } from '@/lib/i18n'
 import { ShowcaseCard } from './showcase-card'
 import { ShowcaseListItem } from './showcase-list-item'
 
@@ -32,11 +32,11 @@ interface ShowcaseContentProps {
 
 export function ShowcaseContent({
   items,
-  lang,
   sheetsCount,
   docsCount,
   slidesCount,
 }: ShowcaseContentProps) {
+  const t = useTranslations()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -44,8 +44,6 @@ export function ShowcaseContent({
   const activeFilter = searchParams.get('filter') || 'all'
   const currentView = (searchParams.get('view') as 'grid' | 'list') || 'grid'
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '')
-
-  const t = customTranslations[lang]
 
   const buildQuery = useCallback(
     (updates: Record<string, string | undefined>) => {
@@ -112,7 +110,7 @@ export function ShowcaseContent({
               `
               : 'hover:text-foreground')}
           >
-            <span>{t['showcase.filter.all']}</span>
+            <span>{t('showcase.filter.all')}</span>
             <span
               className="
                 rounded-full bg-neutral-200 px-1.5 py-0 text-[10px] font-medium text-neutral-600
@@ -143,7 +141,7 @@ export function ShowcaseContent({
                 sm:inline
               "
             >
-              {t['showcase.filter.sheets']}
+              {t('showcase.filter.sheets')}
             </span>
             <span
               className="
@@ -175,7 +173,7 @@ export function ShowcaseContent({
                 sm:inline
               "
             >
-              {t['showcase.filter.docs']}
+              {t('showcase.filter.docs')}
             </span>
             <span
               className="
@@ -207,7 +205,7 @@ export function ShowcaseContent({
                 sm:inline
               "
             >
-              {t['showcase.filter.slides']}
+              {t('showcase.filter.slides')}
             </span>
             <span
               className="
@@ -240,7 +238,7 @@ export function ShowcaseContent({
             type="text"
             value={searchQuery}
             onChange={e => handleSearchChange(e.target.value)}
-            placeholder={t['showcase.search.placeholder']}
+            placeholder={t('showcase.search.placeholder')}
             className="
               h-10 w-full rounded-lg border bg-background pr-8 pl-9 text-sm transition-colors outline-none
               focus:border-ring focus:ring-2 focus:ring-ring/20
@@ -274,7 +272,7 @@ export function ShowcaseContent({
                 dark:border-input dark:bg-input/30
               `
               : 'hover:text-foreground')}
-            aria-label="Grid view"
+            aria-label={t('showcase.view.grid')}
           >
             <LayoutGridIcon className="size-4" />
           </button>
@@ -290,7 +288,7 @@ export function ShowcaseContent({
                 dark:border-input dark:bg-input/30
               `
               : 'hover:text-foreground')}
-            aria-label="List view"
+            aria-label={t('showcase.view.list')}
           >
             <ListIcon className="size-4" />
           </button>
@@ -302,8 +300,10 @@ export function ShowcaseContent({
         <p className="mt-4 text-sm text-muted-foreground">
           {filteredItems.length}
           {' '}
-          {filteredItems.length === 1 ? 'result' : 'results'}
-          {' for "'}
+          {filteredItems.length === 1 ? t('showcase.search.result') : t('showcase.search.results')}
+          {' '}
+          {t('showcase.search.result-for')}
+          {' "'}
           {searchQuery}
           "
         </p>
@@ -340,7 +340,7 @@ export function ShowcaseContent({
               dark:text-neutral-400
             "
           >
-            {t['showcase.search.noResult']}
+            {t('showcase.search.no-result')}
           </p>
         </div>
       )}

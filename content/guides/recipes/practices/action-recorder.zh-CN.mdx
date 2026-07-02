@@ -1,0 +1,118 @@
+---
+title: 记录和回放用户操作
+---
+
+`@univerjs/action-recorder` 可以记录被选中的 Univer 命令和操作，将它们导出为 JSON，并在之后回放。它适合用来调试难以复现的 UI 问题、准备确定性的演示流程，或者把一段操作工作流交给其他开发者复现。
+
+## 什么时候使用
+
+当您需要下面这些能力时，可以使用 action recorder：
+
+- 捕获一段会修改工作簿的短工作流。
+- 在当前工作簿、当前激活工作表，或同名工作表上回放工作流。
+- 给 bug report 附上一份可复现的命令 JSON。
+- 构建一个开发环境使用的插件，把自定义命令加入可记录范围。
+
+不要把记录下来的 JSON 当成长期业务审计日志。它保存的是可执行的 command id 和 params，因此会和当前命令模型、包版本绑定。
+
+## 安装
+
+```package-install
+npm install @univerjs/action-recorder
+```
+
+## 注册插件
+
+```typescript
+import { UniverActionRecorderPlugin } from '@univerjs/action-recorder'
+import ActionRecorderZhCN from '@univerjs/action-recorder/locale/zh-CN'
+import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+
+import '@univerjs/action-recorder/lib/index.css'
+
+const univer = new Univer({
+  locale: LocaleType.ZH_CN,
+  locales: {
+    [LocaleType.ZH_CN]: mergeLocales(
+      ActionRecorderZhCN,
+    ),
+  },
+})
+
+univer.registerPlugin(UniverActionRecorderPlugin)
+```
+
+如果您只需要回放已有命令 JSON，不希望记录新的操作，可以使用 `replayOnly` 注册插件。
+
+```typescript
+univer.registerPlugin(UniverActionRecorderPlugin, {
+  replayOnly: true,
+})
+```
+
+## 使用录制 UI
+
+插件注册后，会在内置 **Others** ribbon 分组下增加录制入口。
+
+1. 打开录制面板。
+2. 开始录制。
+3. 执行需要复现的工作流。
+4. 完成录制并下载 `recorded-commands.json`。
+5. 使用回放菜单加载 JSON 文件并重新执行命令。
+
+内置回放服务支持三种模式：
+
+| 模式 | 行为 |
+| --- | --- |
+| `default` | 在当前聚焦的 unit 上回放命令。 |
+| `name` | 将记录中的工作表名称映射回同名工作表 ID。 |
+| `active` | 在当前激活工作表上回放工作表命令。 |
+
+## 注册更多命令
+
+录制器只会捕获显式注册到 `ActionRecorderService` 的命令。内置 controller 已经注册了常用 Sheets 命令，例如单元格编辑、格式、行列操作、冻结、筛选、复制粘贴和选区变化。
+
+如果您的插件拥有需要被记录的命令，可以注入 `ActionRecorderService`，并在 controller 初始化时注册命令。
+
+```typescript
+import { ActionRecorderService } from '@univerjs/action-recorder'
+import { Inject } from '@univerjs/core'
+
+export class MyFeatureRecorderController {
+  constructor(
+    @Inject(ActionRecorderService) private readonly actionRecorderService: ActionRecorderService,
+  ) {
+    this.actionRecorderService.registerRecordedCommand(MyFeatureCommand)
+  }
+}
+```
+
+<Callout type="warning">
+  `registerRecordedCommand` 接受 command 和 operation，但不接受 mutation command。mutation 是更底层的数据变更，应通过回放已记录的 command 来产生。
+</Callout>
+
+## 用代码回放
+
+构建开发工具时，可以使用 `ActionReplayService` 自行回放命令 JSON。
+
+```typescript
+import { ActionReplayService } from '@univerjs/action-recorder'
+import { Inject } from '@univerjs/core'
+
+export class MyReplayController {
+  constructor(
+    @Inject(ActionReplayService) private readonly replayService: ActionReplayService,
+  ) {}
+
+  async replay(commands: ICommandInfo[]) {
+    return this.replayService.replayCommands(commands)
+  }
+}
+```
+
+## 注意事项
+
+- 保持 `@univerjs/action-recorder` 和其他 `@univerjs/*` 包版本一致。
+- 记录的 command params 应该是可序列化的。
+- 优先录制短流程。过长的记录更难审查，也更容易依赖无关的文档状态。
+- 从不可信来源回放命令 JSON 可能会修改当前 Univer 实例，应把它当成可执行测试数据处理。

@@ -1,3 +1,4 @@
+import { Footer } from '@/components/footer'
 import { ShowcaseContent } from '@/components/showcase/showcase-content'
 import { ShowcaseHero } from '@/components/showcase/showcase-hero'
 import { showcase } from '@/showcase/data'
@@ -55,27 +56,30 @@ export default async function Page({ params }: IProps) {
   }
 
   return (
-    <div
-      className={`
-        container mx-auto px-4 py-8
-        max-sm:px-0
-        md:py-12
-      `}
-    >
-      <ShowcaseHero
-        lang={lang}
-        sheetsCount={sheetsCount}
-        docsCount={docsCount}
-        slidesCount={slidesCount}
-      />
+    <>
+      <div
+        className={`
+          container mx-auto px-4 py-8
+          max-sm:px-0
+          md:py-12
+        `}
+      >
+        <ShowcaseHero
+          lang={lang}
+          sheetsCount={sheetsCount}
+          docsCount={docsCount}
+          slidesCount={slidesCount}
+        />
 
-      <ShowcaseContent
-        items={items}
-        lang={lang}
-        sheetsCount={sheetsCount}
-        docsCount={docsCount}
-        slidesCount={slidesCount}
-      />
-    </div>
+        <ShowcaseContent
+          items={items}
+          lang={lang}
+          sheetsCount={sheetsCount}
+          docsCount={docsCount}
+          slidesCount={slidesCount}
+        />
+      </div>
+      <Footer />
+    </>
   )
 }
