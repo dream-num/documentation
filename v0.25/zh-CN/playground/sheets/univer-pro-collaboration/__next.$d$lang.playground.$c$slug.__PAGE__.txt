@@ -1,0 +1,508 @@
+1:"$Sreact.fragment"
+2:I[797640,["/documentation/v0.25/_next/static/chunks/32hhmnrgs9vja.js","/documentation/v0.25/_next/static/chunks/36b7uj8d__8ne.js","/documentation/v0.25/_next/static/chunks/1o5_viqb5yf14.js","/documentation/v0.25/_next/static/chunks/1gfnpo-kbrgdg.js","/documentation/v0.25/_next/static/chunks/2tidbkptjvdwx.js","/documentation/v0.25/_next/static/chunks/3ypjthg7roiue.js"],"LayoutProvider"]
+3:I[263775,["/documentation/v0.25/_next/static/chunks/32hhmnrgs9vja.js","/documentation/v0.25/_next/static/chunks/36b7uj8d__8ne.js","/documentation/v0.25/_next/static/chunks/1o5_viqb5yf14.js","/documentation/v0.25/_next/static/chunks/1gfnpo-kbrgdg.js","/documentation/v0.25/_next/static/chunks/2tidbkptjvdwx.js","/documentation/v0.25/_next/static/chunks/3ypjthg7roiue.js"],"Playground"]
+4:I[213379,["/documentation/v0.25/_next/static/chunks/32hhmnrgs9vja.js","/documentation/v0.25/_next/static/chunks/36b7uj8d__8ne.js","/documentation/v0.25/_next/static/chunks/1o5_viqb5yf14.js","/documentation/v0.25/_next/static/chunks/1gfnpo-kbrgdg.js","/documentation/v0.25/_next/static/chunks/2tidbkptjvdwx.js","/documentation/v0.25/_next/static/chunks/3ypjthg7roiue.js"],"default"]
+d:I[203576,["/documentation/v0.25/_next/static/chunks/32hhmnrgs9vja.js","/documentation/v0.25/_next/static/chunks/36b7uj8d__8ne.js"],"OutletBoundary"]
+e:"$Sreact.suspense"
+5:Tbaf,import CollaborationClientEnUS from '@univerjs-pro/collaboration-client/locale/en-US'
+import {
+  IAuthzIoService,
+  IMentionIOService,
+  IUndoRedoService,
+  LocaleType,
+  mergeLocales,
+  Univer,
+  UniverInstanceType,
+} from '@univerjs/core'
+import { FUniver } from '@univerjs/core/facade'
+import DesignEnUS from '@univerjs/design/locale/en-US'
+import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
+import SheetsFormulaUIEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
+import SheetsNumfmtUIEnUS from '@univerjs/sheets-numfmt-ui/locale/en-US'
+import SheetsUIEnUS from '@univerjs/sheets-ui/locale/en-US'
+import SheetsEnUS from '@univerjs/sheets/locale/en-US'
+import UIEnUS from '@univerjs/ui/locale/en-US'
+
+import {
+  CollaborationUnauthorizedError,
+  createCollaborationClientConfig,
+  createCollaborationSheetUnit,
+  ensureCollaborationSession,
+  getCollaborationBootstrapState,
+  persistCollaborationUnitId,
+  redirectToCollaborationLogin,
+  replaceLocationWithCollaborationUnit,
+} from './config'
+import { WORKBOOK_DATA } from './data'
+import { registerCollaborationPlugins, registerCorePlugins } from './function'
+
+import '@univerjs-pro/collaboration-client/facade'
+import '@univerjs-pro/collaboration-client-ui/facade'
+
+import '@univerjs/design/lib/index.css'
+import '@univerjs/docs-ui/lib/index.css'
+import '@univerjs-pro/collaboration-client-ui/lib/index.css'
+import '@univerjs/sheets-formula-ui/lib/index.css'
+import '@univerjs/sheets-numfmt-ui/lib/index.css'
+import '@univerjs/sheets-ui/lib/index.css'
+import '@univerjs/ui/lib/index.css'
+
+async function bootstrap() {
+  const bootstrapState = getCollaborationBootstrapState()
+
+  try {
+    if (bootstrapState.enableCollaboration) {
+      await ensureCollaborationSession()
+
+      let unitId = bootstrapState.unitId
+
+      if (!unitId) {
+        unitId = await createCollaborationSheetUnit()
+      }
+
+      if (unitId) {
+        persistCollaborationUnitId(unitId)
+
+        if (bootstrapState.shouldUpdateUrl) {
+          replaceLocationWithCollaborationUnit(unitId)
+          return
+        }
+      }
+    }
+  } catch (error) {
+    if (error instanceof CollaborationUnauthorizedError) {
+      redirectToCollaborationLogin()
+      return
+    }
+
+    throw error
+  }
+
+  const univer = new Univer({
+    locale: LocaleType.EN_US,
+    locales: {
+      [LocaleType.EN_US]: mergeLocales(
+        DesignEnUS,
+        CollaborationClientEnUS,
+        UIEnUS,
+        DocsUIEnUS,
+        SheetsEnUS,
+        SheetsUIEnUS,
+        SheetsFormulaUIEnUS,
+        SheetsNumfmtUIEnUS,
+      ),
+    },
+    override: [
+      [IAuthzIoService, null],
+      [IUndoRedoService, null],
+      [IMentionIOService, null],
+    ],
+  })
+
+  registerCorePlugins(univer, 'app')
+  registerCollaborationPlugins(univer, createCollaborationClientConfig(bootstrapState.enableCollaboration))
+
+  if (bootstrapState.enableCollaboration) {
+    FUniver.newAPI(univer)
+    return
+  }
+
+  univer.createUnit(UniverInstanceType.UNIVER_SHEET, WORKBOOK_DATA)
+}
+
+void bootstrap()
+6:T1b06,import type { IUniverCollaborationClientConfig } from '@univerjs-pro/collaboration-client'
+import { BrowserCollaborationSocketService } from '@univerjs-pro/collaboration-client-ui'
+import { UniverInstanceType } from '@univerjs/core'
+
+const DEV_API_ORIGIN = 'https://dev.univer.plus'
+const PROD_API_ORIGIN = 'https://univer.ai'
+const PRO_API_PREFIX = '/universer-api'
+const COLLABORATION_UNIT_STORAGE_KEY = 'showcase:univer-pro-collaboration:unit-id'
+const COLLABORATION_DOCUMENT_TYPE = String(UniverInstanceType.UNIVER_SHEET)
+const COLLABORATION_LOGIN_URL = 'https://univer.ai/login?url=https%3A%2F%2Fdocs.univer.ai%2Fshowcase%2Fsheets%2Funiver-pro-collaboration&from=univer-website'
+
+export class CollaborationUnauthorizedError extends Error {
+  constructor() {
+    super('collaboration login required')
+    this.name = 'CollaborationUnauthorizedError'
+  }
+}
+
+function isLocalhost(hostname: string) {
+  return hostname === 'localhost' || hostname === '127.0.0.1'
+}
+
+function getApiOrigin() {
+  if (typeof location === 'undefined') {
+    return DEV_API_ORIGIN
+  }
+
+  const { hostname, origin } = location
+
+  if (isLocalhost(hostname)) {
+    return origin
+  }
+
+  if (hostname === 'univer.ai' || hostname.endsWith('.univer.ai')) {
+    return PROD_API_ORIGIN
+  }
+
+  return DEV_API_ORIGIN
+}
+
+function getApiHttpUrl(path: string) {
+  return `${getApiOrigin()}${PRO_API_PREFIX}${path}`
+}
+
+function getApiWebSocketUrl(path: string) {
+  return `${getApiOrigin().replace(/^http/, 'ws')}${PRO_API_PREFIX}${path}`
+}
+
+function isUnauthorizedResponse(response: Response) {
+  return response.status === 401
+}
+
+function createApiRequestUrl(path: string) {
+  return getApiHttpUrl(path)
+}
+
+async function requestCollaborationApi(path: string, init?: RequestInit) {
+  const response = await fetch(createApiRequestUrl(path), {
+    credentials: 'include',
+    ...init,
+  })
+
+  if (isUnauthorizedResponse(response)) {
+    throw new CollaborationUnauthorizedError()
+  }
+
+  return response
+}
+
+export interface ICollaborationBootstrapState {
+  enableCollaboration: boolean
+  unitId: string | null
+  source: 'query' | 'local-storage' | 'create' | 'fallback'
+  shouldUpdateUrl: boolean
+  reason: string
+}
+
+function buildCollaborationUrl(unitId: string) {
+  const url = new URL(location.href)
+
+  url.searchParams.set('unit', unitId)
+  url.searchParams.set('type', COLLABORATION_DOCUMENT_TYPE)
+
+  return url
+}
+
+export function getStoredCollaborationUnitId() {
+  if (typeof localStorage === 'undefined') {
+    return null
+  }
+
+  return localStorage.getItem(COLLABORATION_UNIT_STORAGE_KEY)
+}
+
+export function persistCollaborationUnitId(unitId: string) {
+  if (typeof localStorage === 'undefined') {
+    return
+  }
+
+  localStorage.setItem(COLLABORATION_UNIT_STORAGE_KEY, unitId)
+}
+
+export function clearStoredCollaborationUnitId() {
+  if (typeof localStorage === 'undefined') {
+    return
+  }
+
+  localStorage.removeItem(COLLABORATION_UNIT_STORAGE_KEY)
+}
+
+export async function ensureCollaborationSession() {
+  if (typeof location === 'undefined') {
+    return
+  }
+
+  const response = await requestCollaborationApi('/user/session-ticket')
+
+  if (!response.ok) {
+    throw new Error('collaboration session check failed')
+  }
+}
+
+export async function createCollaborationSheetUnit() {
+  const response = await requestCollaborationApi(`/snapshot/${UniverInstanceType.UNIVER_SHEET}/unit/-/create`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      type: UniverInstanceType.UNIVER_SHEET,
+      name: 'Univer Pro Collaboration Showcase',
+      creator: 'documentation-showcase',
+    }),
+  })
+
+  if (!response.ok) {
+    throw new Error('create collaboration unit failed')
+  }
+
+  const data = await response.json() as { unitID?: string }
+
+  if (!data.unitID) {
+    throw new Error('create collaboration unit failed')
+  }
+
+  persistCollaborationUnitId(data.unitID)
+
+  return data.unitID
+}
+
+export function redirectToCollaborationLogin() {
+  if (typeof location === 'undefined') {
+    return
+  }
+
+  location.href = COLLABORATION_LOGIN_URL
+}
+
+export function replaceLocationWithCollaborationUnit(unitId: string) {
+  if (typeof location === 'undefined') {
+    return
+  }
+
+  location.href = buildCollaborationUrl(unitId).toString()
+}
+
+export function getCollaborationBootstrapState(): ICollaborationBootstrapState {
+  if (typeof location === 'undefined') {
+    return {
+      enableCollaboration: false,
+      unitId: null,
+      source: 'fallback',
+      shouldUpdateUrl: false,
+      reason: 'Running without a browser location. The showcase will use its local workbook fallback.',
+    }
+  }
+
+  const url = new URL(location.href)
+  const queryUnitId = url.searchParams.get('unit')
+  const queryType = url.searchParams.get('type')
+
+  if (queryUnitId) {
+    return {
+      enableCollaboration: true,
+      unitId: queryUnitId,
+      source: 'query',
+      shouldUpdateUrl: queryType !== COLLABORATION_DOCUMENT_TYPE,
+      reason: queryType === COLLABORATION_DOCUMENT_TYPE
+        ? `Attempting to connect to collaborative unit ${queryUnitId} from the URL.`
+        : `The URL already contains unit ${queryUnitId}, but the collaboration client also needs a Sheets type parameter. The showcase will normalize the URL before loading.`,
+    }
+  }
+
+  const storedUnitId = getStoredCollaborationUnitId()
+
+  if (storedUnitId) {
+    return {
+      enableCollaboration: true,
+      unitId: storedUnitId,
+      source: 'local-storage',
+      shouldUpdateUrl: true,
+      reason: `No unit query parameter was found. Reusing the last collaborative unit ${storedUnitId} from local storage.`,
+    }
+  }
+
+  return {
+    enableCollaboration: true,
+    unitId: null,
+    source: 'create',
+    shouldUpdateUrl: true,
+    reason: 'No unit query parameter or stored unit was found. The showcase will create a new collaborative sheet and save its unit id locally.',
+  }
+}
+
+export function createCollaborationClientConfig(enableCollaboration: boolean): IUniverCollaborationClientConfig {
+  return {
+    socketService: BrowserCollaborationSocketService,
+    enableCollaboration,
+    enableOfflineEditing: !enableCollaboration,
+    enableSingleActiveInstanceLock: false,
+    authzUrl: getApiHttpUrl('/authz'),
+    snapshotServerUrl: getApiHttpUrl('/snapshot'),
+    collabSubmitChangesetUrl: getApiHttpUrl('/comb'),
+    collabWebSocketUrl: getApiWebSocketUrl('/comb/connect'),
+    loginUrlKey: getApiHttpUrl('/oidc/authpage'),
+    uploadFileServerUrl: getApiHttpUrl('/stream/file/upload'),
+    signUrlServerUrl: getApiHttpUrl('/file/{fileID}/sign-url'),
+    downloadEndpointUrl: getApiOrigin(),
+    wsSessionTicketUrl: getApiHttpUrl('/user/session-ticket'),
+    startFormulaLimitUrl: getApiHttpUrl('/license/formula/limit/start'),
+    getFormulaLimitStatusUrl: getApiHttpUrl('/license/formula/limit/status'),
+    releaseFormulaLimitUrl: getApiHttpUrl('/license/formula/limit/done'),
+    sendChangesetTimeout: 200,
+  }
+}
+7:T1184,import type { IWorkbookData } from '@univerjs/core'
+import { LocaleType } from '@univerjs/core'
+
+export const WORKBOOK_DATA: Partial<IWorkbookData> = {
+  id: 'univer-pro-collaboration-showcase',
+  name: 'Univer Pro Collaboration Showcase',
+  sheetOrder: ['overview', 'endpoint-checklist'],
+  sheets: {
+    overview: {
+      id: 'overview',
+      name: 'Overview',
+      rowCount: 20,
+      columnCount: 8,
+      cellData: {
+        0: {
+          0: { v: 'Step' },
+          1: { v: 'What this showcase does' },
+          2: { v: 'Notes' },
+        },
+        1: {
+          0: { v: '1. Bootstrap client' },
+          1: { v: 'Registers Sheets UI plus collaboration client and collaboration UI plugins.' },
+          2: { v: 'The demo keeps the same plugin-mode structure as the import/export showcase.' },
+        },
+        2: {
+          0: { v: '2. Read unit id' },
+          1: { v: 'Checks whether the URL already contains both ?unit=<unitId> and ?type=<sheetType>.' },
+          2: { v: 'The collaboration client UI auto-loader only starts when both parameters exist.' },
+        },
+        3: {
+          0: { v: '3. Normalize the URL' },
+          1: { v: 'If the unit comes from local storage or a freshly created document, the showcase redirects to a URL with both unit and type.' },
+          2: { v: 'This matches the collaboration guide in the repository.' },
+        },
+        4: {
+          0: { v: '4. Create when missing' },
+          1: { v: 'If neither the URL nor local storage has a unit id, the showcase creates a new collaborative sheet on Universer.' },
+          2: { v: 'The new unit id is saved locally, then the page reloads with the required URL parameters.' },
+        },
+        6: {
+          0: { v: 'Quick test' },
+          1: { v: 'Open the same page twice with the same ?unit=<unitId> after connecting your Universer server.' },
+          2: { v: 'Edits should sync between tabs once the backend is available.' },
+        },
+        8: {
+          0: { v: 'Default behavior in docs' },
+          1: { v: 'Reopen the last collaborative workbook through URL parameters' },
+          2: { v: 'If no explicit unit is passed, the showcase prefers the locally remembered unit, rewrites the URL, and lets the plugin load it automatically.' },
+        },
+        10: {
+          0: { v: 'Fallback mode' },
+          1: { v: 'If create or load fails, the preview still opens this local workbook so the setup remains inspectable.' },
+        },
+        12: {
+          0: { v: 'Tip' },
+          1: { v: 'Reuse createCollaborationClientConfig() in your own app and swap the endpoint resolver if your server origin differs.' },
+        },
+      },
+    },
+    'endpoint-checklist': {
+      id: 'endpoint-checklist',
+      name: 'Endpoint Checklist',
+      rowCount: 16,
+      columnCount: 8,
+      cellData: {
+        0: {
+          0: { v: 'Endpoint' },
+          1: { v: 'Path' },
+          2: { v: 'Purpose' },
+        },
+        1: {
+          0: { v: 'Authz' },
+          1: { v: '/universer-api/authz' },
+          2: { v: 'Permission and auth flow for collaboration sessions.' },
+        },
+        2: {
+          0: { v: 'Snapshot' },
+          1: { v: '/universer-api/snapshot' },
+          2: { v: 'Loads the initial workbook snapshot.' },
+        },
+        3: {
+          0: { v: 'Comb submit' },
+          1: { v: '/universer-api/comb' },
+          2: { v: 'Submits local changesets.' },
+        },
+        4: {
+          0: { v: 'Comb websocket' },
+          1: { v: '/universer-api/comb/connect' },
+          2: { v: 'Receives remote changes and cursor events.' },
+        },
+        5: {
+          0: { v: 'Session ticket' },
+          1: { v: '/universer-api/user/session-ticket' },
+          2: { v: 'Fetches the websocket session ticket before connecting.' },
+        },
+        6: {
+          0: { v: 'Formula limit start' },
+          1: { v: '/universer-api/license/formula/limit/start' },
+          2: { v: 'Starts server-side formula calculation limits when needed.' },
+        },
+        7: {
+          0: { v: 'Formula limit status' },
+          1: { v: '/universer-api/license/formula/limit/status' },
+          2: { v: 'Checks server-side formula calculation progress.' },
+        },
+        8: {
+          0: { v: 'Formula limit done' },
+          1: { v: '/universer-api/license/formula/limit/done' },
+          2: { v: 'Releases formula calculation resources.' },
+        },
+      },
+    },
+  },
+  locale: LocaleType.EN_US,
+}
+8:T7a9,import type { IUniverCollaborationClientConfig } from '@univerjs-pro/collaboration-client'
+import type { Univer } from '@univerjs/core'
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import { UniverCollaborationClientUIPlugin } from '@univerjs-pro/collaboration-client-ui'
+import { UniverDocsPlugin } from '@univerjs/docs'
+import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+import { UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
+import { UniverSheetsNumfmtPlugin } from '@univerjs/sheets-numfmt'
+import { UniverSheetsNumfmtUIPlugin } from '@univerjs/sheets-numfmt-ui'
+import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
+import { UniverUIPlugin } from '@univerjs/ui'
+
+import { createCollaborationClientConfig } from './config'
+
+export function registerCorePlugins(univer: Univer, container: HTMLElement | string) {
+  univer.registerPlugin(UniverRenderEnginePlugin)
+  univer.registerPlugin(UniverFormulaEnginePlugin)
+  univer.registerPlugin(UniverUIPlugin, { container })
+  univer.registerPlugin(UniverDocsPlugin)
+  univer.registerPlugin(UniverDocsUIPlugin)
+  univer.registerPlugin(UniverSheetsPlugin)
+  univer.registerPlugin(UniverSheetsUIPlugin)
+  univer.registerPlugin(UniverSheetsFormulaPlugin)
+  univer.registerPlugin(UniverSheetsFormulaUIPlugin)
+  univer.registerPlugin(UniverSheetsNumfmtPlugin)
+  univer.registerPlugin(UniverSheetsNumfmtUIPlugin)
+}
+
+export function registerCollaborationPlugins(
+  univer: Univer,
+  config: IUniverCollaborationClientConfig = createCollaborationClientConfig(false),
+) {
+  univer.registerPlugin(UniverCollaborationClientPlugin, config)
+  univer.registerPlugin(UniverCollaborationClientUIPlugin)
+}
+0:{"rsc":["$","$1","c",{"children":[["$","$L2",null,{"children":["$","$L3",null,{"lang":"zh-CN","preview":["$","$L4",null,{}],"files":{"/src/index.ts":"$5","/src/config.ts":"$6","/src/data.ts":"$7","/src/function.ts":"$8"}}]}],["$L9","$La","$Lb"],"$Lc"]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"qYSJZ9B2-OKXigdErddYq"}
+9:["$","script","script-0",{"src":"/documentation/v0.25/_next/static/chunks/1gfnpo-kbrgdg.js","async":true}]
+a:["$","script","script-1",{"src":"/documentation/v0.25/_next/static/chunks/2tidbkptjvdwx.js","async":true}]
+b:["$","script","script-2",{"src":"/documentation/v0.25/_next/static/chunks/3ypjthg7roiue.js","async":true}]
+c:["$","$Ld",null,{"children":["$","$e",null,{"name":"Next.MetadataOutlet","children":"$@f"}]}]
+f:null

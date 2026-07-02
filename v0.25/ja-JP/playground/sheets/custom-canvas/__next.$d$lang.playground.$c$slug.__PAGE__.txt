@@ -1,0 +1,292 @@
+1:"$Sreact.fragment"
+2:I[797640,["/documentation/v0.25/_next/static/chunks/32hhmnrgs9vja.js","/documentation/v0.25/_next/static/chunks/36b7uj8d__8ne.js","/documentation/v0.25/_next/static/chunks/1o5_viqb5yf14.js","/documentation/v0.25/_next/static/chunks/1gfnpo-kbrgdg.js","/documentation/v0.25/_next/static/chunks/2tidbkptjvdwx.js","/documentation/v0.25/_next/static/chunks/3ypjthg7roiue.js"],"LayoutProvider"]
+3:I[263775,["/documentation/v0.25/_next/static/chunks/32hhmnrgs9vja.js","/documentation/v0.25/_next/static/chunks/36b7uj8d__8ne.js","/documentation/v0.25/_next/static/chunks/1o5_viqb5yf14.js","/documentation/v0.25/_next/static/chunks/1gfnpo-kbrgdg.js","/documentation/v0.25/_next/static/chunks/2tidbkptjvdwx.js","/documentation/v0.25/_next/static/chunks/3ypjthg7roiue.js"],"Playground"]
+4:I[885743,["/documentation/v0.25/_next/static/chunks/32hhmnrgs9vja.js","/documentation/v0.25/_next/static/chunks/36b7uj8d__8ne.js","/documentation/v0.25/_next/static/chunks/1o5_viqb5yf14.js","/documentation/v0.25/_next/static/chunks/1gfnpo-kbrgdg.js","/documentation/v0.25/_next/static/chunks/2tidbkptjvdwx.js","/documentation/v0.25/_next/static/chunks/3ypjthg7roiue.js"],"default"]
+d:I[203576,["/documentation/v0.25/_next/static/chunks/32hhmnrgs9vja.js","/documentation/v0.25/_next/static/chunks/36b7uj8d__8ne.js"],"OutletBoundary"]
+e:"$Sreact.suspense"
+5:T51b,import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+import { WORKBOOK_DATA } from './data'
+import ColumnHeaderCustomExtension from './extensions/column-header.extension'
+import MainCustomExtension from './extensions/main.extension'
+import RowHeaderCustomExtension from './extensions/row-header.extension'
+
+import './styles.css'
+
+import '@univerjs/preset-sheets-core/lib/index.css'
+
+const { univerAPI } = createUniver({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(
+      sheetsCoreEnUS,
+    ),
+  },
+  presets: [
+    UniverSheetsCorePreset({
+      container: 'app',
+    }),
+  ],
+})
+
+univerAPI.createWorkbook(WORKBOOK_DATA)
+
+univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+  if (stage === univerAPI.Enum.LifecycleStages.Rendered) {
+    const unitId = univerAPI.getActiveWorkbook()?.getId()
+    if (!unitId) {
+      return
+    }
+    univerAPI.registerSheetRowHeaderExtension(unitId, new RowHeaderCustomExtension())
+    univerAPI.registerSheetMainExtension(unitId, new MainCustomExtension())
+    univerAPI.registerSheetColumnHeaderExtension(unitId, new ColumnHeaderCustomExtension())
+  }
+})
+6:Tb80,import type { SpreadsheetSkeleton, UniverRenderingContext } from '@univerjs/preset-sheets-core'
+import type { IScale } from '@univerjs/presets'
+import {
+  DEFAULT_FONTFACE_PLANE,
+  FIX_ONE_PIXEL_BLUR_OFFSET,
+  getColor,
+  MIDDLE_CELL_POS_MAGIC_NUMBER,
+  SheetExtension,
+} from '@univerjs/preset-sheets-core'
+
+const UNIQUE_KEY = 'MainCustomExtension'
+
+// Show custom emojis on row headers
+const customEmojiList = ['🍎', '🍌', '🍒', '🍓', '🍅', '🍆', '🍇', '🍈', '🍉', '🍊']
+
+export default class MainCustomExtension extends SheetExtension {
+  uKey = UNIQUE_KEY
+
+  // Must be greater than 50
+  get zIndex() {
+    return 50
+  }
+
+  draw(ctx: UniverRenderingContext, _parentScale: IScale, spreadsheetSkeleton: SpreadsheetSkeleton) {
+    const { rowColumnSegment } = spreadsheetSkeleton
+    const { startRow, endRow, startColumn, endColumn } = rowColumnSegment
+
+    if (!spreadsheetSkeleton) {
+      return
+    }
+
+    const { rowHeightAccumulation, columnTotalWidth, columnWidthAccumulation, rowTotalHeight } = spreadsheetSkeleton
+
+    if (
+      !rowHeightAccumulation
+      || !columnWidthAccumulation
+      || columnTotalWidth === undefined
+      || rowTotalHeight === undefined
+    ) {
+      return
+    }
+
+    ctx.fillStyle = getColor([248, 249, 250])
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = getColor([0, 0, 0])!
+    ctx.beginPath()
+    ctx.lineWidth = 1
+    ctx.translateWithPrecisionRatio(FIX_ONE_PIXEL_BLUR_OFFSET, FIX_ONE_PIXEL_BLUR_OFFSET)
+    ctx.strokeStyle = getColor([217, 217, 217])
+    ctx.font = `13px ${DEFAULT_FONTFACE_PLANE}`
+
+    let preRowPosition = 0
+
+    for (let r = startRow - 1; r <= endRow; r++) {
+      if (r < 0 || r > rowHeightAccumulation.length - 1) {
+        continue
+      }
+
+      const rowEndPosition = rowHeightAccumulation[r]
+
+      if (preRowPosition === rowEndPosition) {
+        // Skip hidden rows
+        continue
+      }
+
+      // Only draw customEmojiList.length rows
+      if (r > customEmojiList.length - 1) {
+        break
+      }
+
+      let preColumnPosition = 0
+
+      for (let c = startColumn - 1; c <= endColumn; c++) {
+        if (c < 0 || c > columnWidthAccumulation.length - 1) {
+          continue
+        }
+
+        const columnEndPosition = columnWidthAccumulation[c]
+
+        if (preColumnPosition === columnEndPosition) {
+          // Skip hidden columns
+          continue
+        }
+
+        // painting cell text
+        const middleCellPosX = preColumnPosition + (columnEndPosition - preColumnPosition) / 2
+        const middleCellPosY = preRowPosition + (rowEndPosition - preRowPosition) / 2
+        customEmojiList[c] && ctx.fillText(customEmojiList[c], middleCellPosX + 20, middleCellPosY + MIDDLE_CELL_POS_MAGIC_NUMBER) // Magic number 1, because the vertical alignment appears to be off by 1 pixel
+        preColumnPosition = columnEndPosition
+      }
+
+      preRowPosition = rowEndPosition
+    }
+
+    ctx.stroke()
+  }
+}
+7:T974,import type { SpreadsheetSkeleton, UniverRenderingContext } from '@univerjs/preset-sheets-core'
+import type { IScale } from '@univerjs/presets'
+import { DEFAULT_FONTFACE_PLANE, FIX_ONE_PIXEL_BLUR_OFFSET, getColor, SheetExtension } from '@univerjs/preset-sheets-core'
+
+const UNIQUE_KEY = 'ColumnHeaderCustomExtension'
+
+// Show custom emojis on column headers
+const customEmojiList = ['🍎', '🍌', '🍒', '🍓', '🍅', '🍆', '🍇', '🍈', '🍉', '🍊']
+
+export default class ColumnHeaderCustomExtension extends SheetExtension {
+  uKey = UNIQUE_KEY
+
+  // Must be greater than 10
+  get zIndex() {
+    return 11
+  }
+
+  draw(ctx: UniverRenderingContext, _parentScale: IScale, spreadsheetSkeleton: SpreadsheetSkeleton) {
+    const { rowColumnSegment, columnHeaderHeight = 0 } = spreadsheetSkeleton
+    const { startColumn, endColumn } = rowColumnSegment
+
+    if (!spreadsheetSkeleton) {
+      return
+    }
+
+    const { rowHeightAccumulation, columnTotalWidth, columnWidthAccumulation, rowTotalHeight }
+      = spreadsheetSkeleton
+
+    if (
+      !rowHeightAccumulation
+      || !columnWidthAccumulation
+      || columnTotalWidth === undefined
+      || rowTotalHeight === undefined
+    ) {
+      return
+    }
+    // painting background
+    ctx.fillStyle = getColor([248, 249, 250])
+
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = getColor([0, 0, 0])
+    ctx.beginPath()
+    ctx.lineWidth = 1
+
+    ctx.translateWithPrecisionRatio(FIX_ONE_PIXEL_BLUR_OFFSET, FIX_ONE_PIXEL_BLUR_OFFSET)
+
+    ctx.strokeStyle = getColor([217, 217, 217])
+    ctx.font = `13px ${DEFAULT_FONTFACE_PLANE}`
+    let preColumnPosition = 0
+    const columnWidthAccumulationLength = columnWidthAccumulation.length
+    for (let c = startColumn - 1; c <= endColumn; c++) {
+      if (c < 0 || c > columnWidthAccumulationLength - 1) {
+        continue
+      }
+
+      const columnEndPosition = columnWidthAccumulation[c]
+      if (preColumnPosition === columnEndPosition) {
+        // Skip hidden columns
+        continue
+      }
+
+      // painting column header text
+      const middleCellPos = preColumnPosition + (columnEndPosition - preColumnPosition) / 2
+      customEmojiList[c] && ctx.fillText(customEmojiList[c], middleCellPos + 20, columnHeaderHeight / 2) // Magic number 1, because the vertical alignment appears to be off by 1 pixel
+      preColumnPosition = columnEndPosition
+    }
+
+    ctx.stroke()
+  }
+}
+8:T938,import type { SpreadsheetSkeleton, UniverRenderingContext } from '@univerjs/preset-sheets-core'
+import type { IScale } from '@univerjs/presets'
+import {
+  DEFAULT_FONTFACE_PLANE,
+  FIX_ONE_PIXEL_BLUR_OFFSET,
+  getColor,
+  MIDDLE_CELL_POS_MAGIC_NUMBER,
+  SheetExtension,
+} from '@univerjs/preset-sheets-core'
+
+const UNIQUE_KEY = 'RowHeaderCustomExtension'
+
+// Show custom emojis on row headers
+const customEmojiList = ['🍎', '🍌', '🍒', '🍓', '🍅', '🍆', '🍇', '🍈', '🍉', '🍊']
+
+export default class RowHeaderCustomExtension extends SheetExtension {
+  uKey = UNIQUE_KEY
+
+  // Must be greater than 10
+  get zIndex() {
+    return 11
+  }
+
+  draw(ctx: UniverRenderingContext, _parentScale: IScale, spreadsheetSkeleton: SpreadsheetSkeleton) {
+    const { rowColumnSegment, rowHeaderWidth = 0 } = spreadsheetSkeleton
+    const { startRow, endRow } = rowColumnSegment
+    if (!spreadsheetSkeleton) {
+      return
+    }
+
+    const { rowHeightAccumulation, columnTotalWidth, columnWidthAccumulation, rowTotalHeight }
+      = spreadsheetSkeleton
+
+    if (
+      !rowHeightAccumulation
+      || !columnWidthAccumulation
+      || columnTotalWidth === undefined
+      || rowTotalHeight === undefined
+    ) {
+      return
+    }
+
+    ctx.fillStyle = getColor([248, 249, 250])
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = getColor([0, 0, 0])!
+    ctx.beginPath()
+    ctx.lineWidth = 1
+
+    ctx.translateWithPrecisionRatio(FIX_ONE_PIXEL_BLUR_OFFSET, FIX_ONE_PIXEL_BLUR_OFFSET)
+
+    ctx.strokeStyle = getColor([217, 217, 217])
+    ctx.font = `13px ${DEFAULT_FONTFACE_PLANE}`
+    let preRowPosition = 0
+    const rowHeightAccumulationLength = rowHeightAccumulation.length
+    for (let r = startRow - 1; r <= endRow; r++) {
+      if (r < 0 || r > rowHeightAccumulationLength - 1) {
+        continue
+      }
+      const rowEndPosition = rowHeightAccumulation[r]
+      if (preRowPosition === rowEndPosition) {
+        // Skip hidden rows
+        continue
+      }
+
+      const middleCellPos = preRowPosition + (rowEndPosition - preRowPosition) / 2
+      customEmojiList[r] && ctx.fillText(customEmojiList[r], rowHeaderWidth / 2 + 14, middleCellPos + MIDDLE_CELL_POS_MAGIC_NUMBER) // Magic number 1, because the vertical alignment appears to be off by 1 pixel.
+      preRowPosition = rowEndPosition
+    }
+    ctx.stroke()
+  }
+}
+0:{"rsc":["$","$1","c",{"children":[["$","$L2",null,{"children":["$","$L3",null,{"lang":"ja-JP","preview":["$","$L4",null,{}],"files":{"/src/index.ts":"$5","/src/data.ts":"import type { IWorkbookData } from '@univerjs/core'\n\nexport const WORKBOOK_DATA: Partial<IWorkbookData> = {}\n","/src/extensions/main.extension.ts":"$6","/src/extensions/column-header.extension.ts":"$7","/src/extensions/row-header.extension.ts":"$8"}}]}],["$L9","$La","$Lb"],"$Lc"]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"qYSJZ9B2-OKXigdErddYq"}
+9:["$","script","script-0",{"src":"/documentation/v0.25/_next/static/chunks/1gfnpo-kbrgdg.js","async":true}]
+a:["$","script","script-1",{"src":"/documentation/v0.25/_next/static/chunks/2tidbkptjvdwx.js","async":true}]
+b:["$","script","script-2",{"src":"/documentation/v0.25/_next/static/chunks/3ypjthg7roiue.js","async":true}]
+c:["$","$Ld",null,{"children":["$","$e",null,{"name":"Next.MetadataOutlet","children":"$@f"}]}]
+f:null

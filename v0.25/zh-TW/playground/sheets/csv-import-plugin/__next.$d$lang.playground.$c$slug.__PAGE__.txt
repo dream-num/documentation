@@ -1,0 +1,181 @@
+1:"$Sreact.fragment"
+2:I[797640,["/documentation/v0.25/_next/static/chunks/32hhmnrgs9vja.js","/documentation/v0.25/_next/static/chunks/36b7uj8d__8ne.js","/documentation/v0.25/_next/static/chunks/1o5_viqb5yf14.js","/documentation/v0.25/_next/static/chunks/1gfnpo-kbrgdg.js","/documentation/v0.25/_next/static/chunks/2tidbkptjvdwx.js","/documentation/v0.25/_next/static/chunks/3ypjthg7roiue.js"],"LayoutProvider"]
+3:I[263775,["/documentation/v0.25/_next/static/chunks/32hhmnrgs9vja.js","/documentation/v0.25/_next/static/chunks/36b7uj8d__8ne.js","/documentation/v0.25/_next/static/chunks/1o5_viqb5yf14.js","/documentation/v0.25/_next/static/chunks/1gfnpo-kbrgdg.js","/documentation/v0.25/_next/static/chunks/2tidbkptjvdwx.js","/documentation/v0.25/_next/static/chunks/3ypjthg7roiue.js"],"Playground"]
+4:I[52992,["/documentation/v0.25/_next/static/chunks/32hhmnrgs9vja.js","/documentation/v0.25/_next/static/chunks/36b7uj8d__8ne.js","/documentation/v0.25/_next/static/chunks/1o5_viqb5yf14.js","/documentation/v0.25/_next/static/chunks/1gfnpo-kbrgdg.js","/documentation/v0.25/_next/static/chunks/2tidbkptjvdwx.js","/documentation/v0.25/_next/static/chunks/3ypjthg7roiue.js"],"default"]
+a:I[203576,["/documentation/v0.25/_next/static/chunks/32hhmnrgs9vja.js","/documentation/v0.25/_next/static/chunks/36b7uj8d__8ne.js"],"OutletBoundary"]
+b:"$Sreact.suspense"
+5:T177c,import type {
+  ISetRangeValuesMutationParams,
+  ISetWorksheetColumnCountMutationParams,
+  ISetWorksheetRowCountMutationParams,
+} from '@univerjs/preset-sheets-core'
+import type { ICommand, IMutationInfo, Workbook } from '@univerjs/presets'
+import { FolderIcon } from '@univerjs/icons'
+import {
+  ComponentManager,
+  IMenuManagerService,
+  MenuItemType,
+  RibbonStartGroup,
+  SetRangeValuesMutation,
+  SetRangeValuesUndoMutationFactory,
+  SetWorksheetColumnCountMutation,
+  SetWorksheetColumnCountUndoMutationFactory,
+  SetWorksheetRowCountMutation,
+  SetWorksheetRowCountUndoMutationFactory,
+} from '@univerjs/preset-sheets-core'
+import {
+  CommandType,
+  covertCellValues,
+  ICommandService,
+  Inject,
+  Injector,
+  IUndoRedoService,
+  IUniverInstanceService,
+  Plugin,
+  sequenceExecute,
+  UniverInstanceType,
+} from '@univerjs/presets'
+import { waitUserSelectCSVFile } from './utils'
+
+/**
+ * Import CSV Button Plugin
+ * A simple Plugin example, show how to write a plugin.
+ */
+export class ImportCSVButtonPlugin extends Plugin {
+  static override pluginName = 'import-csv-plugin'
+
+  constructor(
+    // inject injector, required
+    @Inject(Injector) readonly _injector: Injector,
+    // inject menu service, to add toolbar button
+    @Inject(IMenuManagerService) private readonly menuManagerService: IMenuManagerService,
+    // inject command service, to register command handler
+    @Inject(ICommandService) private readonly commandService: ICommandService,
+    // inject component manager, to register icon component
+    @Inject(ComponentManager) private readonly componentManager: ComponentManager,
+  ) {
+    super()
+  }
+
+  /**
+   * The first lifecycle of the plugin mounted on the Univer instance,
+   * the Univer business instance has not been created at this time.
+   * The plugin should add its own module to the dependency injection system at this lifecycle.
+   * It is not recommended to initialize the internal module of the plugin outside this lifecycle.
+   */
+
+  override onStarting() {
+    // register icon component
+    this.componentManager.register('FolderIcon', FolderIcon)
+
+    const buttonId = 'import-csv-button'
+
+    const command: ICommand = {
+      type: CommandType.OPERATION,
+      id: buttonId,
+      handler: (accessor) => {
+        // inject univer instance service
+        const univerInstanceService = accessor.get(IUniverInstanceService)
+        const commandService = accessor.get(ICommandService)
+        const undoRedoService = accessor.get(IUndoRedoService)
+
+        // get current sheet
+        const worksheet = univerInstanceService.getCurrentUnitOfType<Workbook>(UniverInstanceType.UNIVER_SHEET)!.getActiveSheet()
+        const unitId = worksheet.getUnitId()
+        const subUnitId = worksheet.getSheetId()
+
+        // wait user select csv file, then assemble multiple mutations operation to enable correct undo/redo
+        return waitUserSelectCSVFile(({ data, rowsCount, colsCount }) => {
+          const redoMutations: IMutationInfo[] = []
+          const undoMutations: IMutationInfo[] = []
+
+          // set sheet row count
+          const setRowCountMutationRedoParams: ISetWorksheetRowCountMutationParams = {
+            unitId,
+            subUnitId,
+            rowCount: rowsCount,
+          }
+          const setRowCountMutationUndoParams: ISetWorksheetRowCountMutationParams = SetWorksheetRowCountUndoMutationFactory(
+            accessor,
+            setRowCountMutationRedoParams,
+          )
+          redoMutations.push({ id: SetWorksheetRowCountMutation.id, params: setRowCountMutationRedoParams })
+          undoMutations.push({ id: SetWorksheetRowCountMutation.id, params: setRowCountMutationUndoParams })
+
+          // set sheet column count
+          const setColumnCountMutationRedoParams: ISetWorksheetColumnCountMutationParams = {
+            unitId,
+            subUnitId,
+            columnCount: colsCount,
+          }
+          const setColumnCountMutationUndoParams: ISetWorksheetColumnCountMutationParams = SetWorksheetColumnCountUndoMutationFactory(
+            accessor,
+            setColumnCountMutationRedoParams,
+          )
+          redoMutations.push({ id: SetWorksheetColumnCountMutation.id, params: setColumnCountMutationRedoParams })
+          undoMutations.unshift({ id: SetWorksheetColumnCountMutation.id, params: setColumnCountMutationUndoParams })
+
+          // parse csv to univer data
+          const cellValue = covertCellValues(data, {
+            startColumn: 0, // start column index
+            startRow: 0, // start row index
+            endColumn: colsCount - 1, // end column index
+            endRow: rowsCount - 1, // end row index
+          })
+
+          // set sheet data
+          const setRangeValuesMutationRedoParams: ISetRangeValuesMutationParams = {
+            unitId,
+            subUnitId,
+            cellValue,
+          }
+          const setRangeValuesMutationUndoParams: ISetRangeValuesMutationParams = SetRangeValuesUndoMutationFactory(
+            accessor,
+            setRangeValuesMutationRedoParams,
+          )
+          redoMutations.push({ id: SetRangeValuesMutation.id, params: setRangeValuesMutationRedoParams })
+          undoMutations.unshift({ id: SetRangeValuesMutation.id, params: setRangeValuesMutationUndoParams })
+
+          const result = sequenceExecute(redoMutations, commandService)
+
+          if (result.result) {
+            undoRedoService.pushUndoRedo({
+              unitID: unitId,
+              undoMutations,
+              redoMutations,
+            })
+
+            return true
+          }
+
+          return false
+        })
+      },
+    }
+
+    const menuItemFactory = () => ({
+      id: buttonId,
+      title: 'Import CSV',
+      tooltip: 'Import CSV',
+      icon: 'FolderIcon', // icon name
+      type: MenuItemType.BUTTON,
+    })
+
+    this.menuManagerService.mergeMenu({
+      [RibbonStartGroup.OTHERS]: {
+        [buttonId]: {
+          order: 10,
+          menuItemFactory,
+        },
+      },
+    })
+
+    this.commandService.registerCommand(command)
+  }
+}
+0:{"rsc":["$","$1","c",{"children":[["$","$L2",null,{"children":["$","$L3",null,{"lang":"zh-TW","preview":["$","$L4",null,{}],"files":{"/src/index.ts":"import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'\nimport sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'\nimport { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'\nimport { ImportCSVButtonPlugin } from './csv-plugin/plugin'\nimport { WORKBOOK_DATA } from './data'\n\nimport './styles.css'\n\nimport '@univerjs/preset-sheets-core/lib/index.css'\n\nconst { univerAPI } = createUniver({\n  locale: LocaleType.EN_US,\n  locales: {\n    [LocaleType.EN_US]: mergeLocales(\n      sheetsCoreEnUS,\n    ),\n  },\n  presets: [\n    UniverSheetsCorePreset({\n      container: 'app',\n    }),\n  ],\n  plugins: [\n    ImportCSVButtonPlugin,\n  ],\n})\n\nuniverAPI.createWorkbook(WORKBOOK_DATA)\n","/src/csv-plugin/plugin.ts":"$5","/src/csv-plugin/utils.ts":"/**\n * wait user select csv file\n */\nexport function waitUserSelectCSVFile(onSelect: (data: {\n  data: string[][]\n  colsCount: number\n  rowsCount: number\n}) => boolean): Promise<boolean> {\n  return new Promise((resolve) => {\n    const input = document.createElement('input')\n    input.type = 'file'\n    input.accept = '.csv'\n    input.click()\n\n    input.onchange = () => {\n      const file = input.files?.[0]\n      if (!file) return\n      const reader = new FileReader()\n      reader.onload = () => {\n        const text = reader.result\n        if (typeof text !== 'string') return\n\n        // tip: use npm package to parse csv\n        const rows = text.split(/\\r\\n|\\n/)\n        const data = rows.map(line => line.split(','))\n\n        const colsCount = data.reduce((max, row) => Math.max(max, row.length), 0)\n\n        const result = onSelect({\n          data,\n          colsCount,\n          rowsCount: data.length,\n        })\n\n        resolve(result)\n      }\n      reader.readAsText(file)\n    }\n  })\n}\n","/src/data.ts":"import type { IWorkbookData } from '@univerjs/presets'\n\nexport const WORKBOOK_DATA: Partial<IWorkbookData> = {}\n"}}]}],["$L6","$L7","$L8"],"$L9"]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"qYSJZ9B2-OKXigdErddYq"}
+6:["$","script","script-0",{"src":"/documentation/v0.25/_next/static/chunks/1gfnpo-kbrgdg.js","async":true}]
+7:["$","script","script-1",{"src":"/documentation/v0.25/_next/static/chunks/2tidbkptjvdwx.js","async":true}]
+8:["$","script","script-2",{"src":"/documentation/v0.25/_next/static/chunks/3ypjthg7roiue.js","async":true}]
+9:["$","$La",null,{"children":["$","$b",null,{"name":"Next.MetadataOutlet","children":"$@c"}]}]
+c:null
