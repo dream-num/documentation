@@ -66,7 +66,7 @@ export function Ecosystem(props: IProps) {
       title: integrationsTitle,
       desc: integrationsDesc,
       cta: integrationsCta,
-      href: '/guides/sheets/getting-started/installation/react',
+      href: '/guides/sheets/getting-started/integrations/react',
     },
     {
       icon: (
