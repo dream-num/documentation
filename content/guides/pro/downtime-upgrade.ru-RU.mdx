@@ -1,0 +1,181 @@
+---
+title: Регламент обновления с простоем
+---
+
+На этой странице приведён пример регламента обновления с простоем. При необходимости адаптируйте его к требованиям вашей рабочей среды.
+
+## Обновление Docker Compose
+
+### Подготовка
+
+- Выберите целевую версию и проверьте изменения конфигурации в разделе [Развёртывание в рабочей среде](/guides/pro/deploy)
+- Подготовьте новый файл `.env.custom` (сохраните старый для отката)
+- Подготовьте файлы лицензии
+- Уведомите пользователей о периоде технического обслуживания
+
+### Порядок обновления
+
+<Steps>
+  <Step>
+    #### Заблокируйте запись и остановите старую версию
+
+    Заблокируйте новые запросы, чтобы избежать рассинхронизации данных.
+
+    Откройте `universer-old/nginx/universer.conf` и добавьте:
+
+    ```nginx
+    location ~ ^/universer-api {return 403;}
+    ```
+
+    Перезагрузите Nginx:
+
+    ```bash
+    docker exec univer-lb nginx -s reload
+    ```
+
+    Подождите не менее 1 минуты, затем остановите старые сервисы:
+
+    ```bash
+    cd universer-old && bash run.sh stop
+    ```
+  </Step>
+  <Step>
+    #### Создайте резервную копию данных
+
+    Создайте резервную копию метаданных RDS (объектное хранилище работает только на добавление; создайте его резервную копию при необходимости).
+  </Step>
+  <Step>
+    #### Разверните новую версию
+
+    - Скачайте целевую версию (онлайн или офлайн)
+    - Скопируйте новый файл `.env.custom`
+    - Поместите файлы лицензии в каталог `configs/`
+    - Если вы самостоятельно управляете RDS, выполните скрипты обновления базы данных
+
+    Чтобы разрешить доступ только тестовым учётным записям, добавьте в `nginx/universer.conf`:
+
+    ```nginx title="/nginx/universer.conf"
+    underscores_in_headers on;
+    if ($http_x_request_env != "test") {
+      return 403;
+    }
+    ```
+
+    Запустите новую версию:
+
+    ```bash
+    bash run.sh start
+    ```
+  </Step>
+</Steps>
+
+### Проверка после обновления
+
+- Проверьте основные сценарии с `x-request-env=test`
+- Следите за журналами и метриками
+
+### Переключение
+
+Удалите ограничение по заголовку и перезагрузите Nginx:
+
+```bash
+docker exec univer-lb nginx -s reload
+```
+
+### Откат
+
+- Остановите новую версию
+- Восстановите прежнюю конфигурацию Nginx
+- Запустите старую версию
+
+## Обновление K8s
+
+### Подготовка
+
+- Подготовьте новый файл `values.yaml` (сохраните старый)
+- Подготовьте файлы лицензии
+- Уведомите пользователей о периоде технического обслуживания
+
+### Порядок обновления
+
+<Steps>
+  <Step>
+    #### Заблокируйте доступ к старой версии
+
+    Отключите ingress в прежней конфигурации:
+
+    ```yaml title="values.yaml"
+    universer:
+      ingress:
+        enabled: false
+    ```
+
+    Примените конфигурацию с текущей версией чарта:
+
+    ```bash
+    helm upgrade univer-stack \
+      oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
+      --version your-current-version \
+      -n univer \
+      -f values-1.0.0-forbid.yaml \
+      --set-file universer.license.licenseV2=your-license.txt-path \
+      --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path
+    ```
+
+    Текущую версию чарта можно узнать с помощью `helm list --all-namespaces --filter univer-stack`.
+  </Step>
+  <Step>
+    #### Создайте резервную копию данных
+
+    Создайте резервную копию метаданных RDS.
+  </Step>
+  <Step>
+    #### Обновитесь до новой версии
+
+    Чтобы разрешить доступ только тестовым пользователям, добавьте в новую конфигурацию:
+
+    ```yaml title="values.yaml"
+    universer:
+      ingress:
+        enabled: true
+        annotations:
+          nginx.ingress.kubernetes.io/configuration-snippet: |
+            if ($http_x_request_env != "test") {
+              return 403;
+            }
+    ```
+
+    Выполните обновление:
+
+    ```bash
+    helm upgrade --install univer-stack \
+      oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
+      --version target-version \
+      -n univer \
+      -f your-values.yaml-path \
+      --set-file universer.license.licenseV2=your-license.txt-path \
+      --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path
+    ```
+
+    В офлайн-среде используйте офлайн-пакет и выполните `bash load-image.sh`.
+  </Step>
+</Steps>
+
+### Проверка после обновления и переключение
+
+- Выполните проверку с тестовой учётной записью
+- Удалите ограничение ingress и примените конфигурацию повторно
+
+### Откат
+
+Используйте старую версию чарта и прежнюю конфигурацию:
+
+```bash
+helm upgrade --install univer-stack \
+  oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
+  --version old-version \
+  -n univer \
+  -f old-values.yaml \
+  --set-file universer.license.licenseV2=your-license.txt-path \
+  --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path
+```

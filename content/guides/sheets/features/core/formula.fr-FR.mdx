@@ -1,0 +1,258 @@
+---
+title: Formules
+---
+
+import FormulaList from '@/components/formula-list'
+
+Les formules constituent l’une des fonctionnalités principales d’Univer. Elles permettent de calculer des valeurs à partir de formules saisies dans les cellules. Les fonctions prises en charge sont compatibles avec Excel et comprennent notamment les fonctions mathématiques, logiques, textuelles et de date.
+
+Lorsqu’un classeur contient un grand nombre de formules, leur calcul peut mobiliser le thread principal et réduire la réactivité de la page. Nous vous recommandons d’exécuter le calcul des formules dans un processus Worker afin de limiter son incidence sur le rendu et les interactions utilisateur. Pour en savoir plus sur la configuration, consultez la page [Web Workers](/guides/sheets/features/core/worker).
+
+## Configuration
+
+Voici les liens vers les options de configuration associées au plugin de formules :
+
+| Plugin | Option de configuration |
+| --- | --- |
+| `@univerjs/engine-formula` | [IUniverEngineFormulaConfig](/reference/packages/plugins/univerjs/engine-formula) |
+| `@univerjs/sheets-formula` | [IUniverSheetsFormulaBaseConfig](/reference/packages/plugins/univerjs/sheets-formula) |
+
+### Configuration des préréglages
+
+```typescript
+import type { CalculationMode } from '@univerjs/preset-sheets-core'
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+
+interface IUniverSheetsCorePresetConfig {
+  formula?: {
+    // Custom formula functions
+    function?: Array<[Ctor<BaseFunction>, IFunctionNames]>
+    // Custom formula descriptions
+    description?: IFunctionInfo[]
+    // Defines the calculation mode for formulas during data initialization, default is `WHEN_EMPTY`
+    initialFormulaComputing?: CalculationMode
+  }
+}
+```
+
+### Configuration du plugin
+
+```typescript
+import type { CalculationMode } from '@univerjs/sheets-formula'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+interface IUniverSheetsFormulaConfig {
+  // Custom formula functions
+  function?: Array<[Ctor<BaseFunction>, IFunctionNames]>
+  // Custom formula descriptions
+  description?: IFunctionInfo[]
+  // Defines the calculation mode for formulas during data initialization, default is `WHEN_EMPTY`
+  initialFormulaComputing?: CalculationMode
+}
+```
+
+`CalculationMode` est défini comme suit :
+
+```typescript
+enum CalculationMode {
+  /**
+   * Force calculation of all formulas
+   */
+  FORCED,
+
+  /**
+   * Partial calculation, only calculates cells with formulas but no value
+   */
+  WHEN_EMPTY,
+
+  /**
+   * No calculation for all formulas
+   */
+  NO_CALCULATION,
+}
+```
+
+> Si la cellule contenant la formule présente une valeur inattendue, vous pouvez définir `initialFormulaComputing` sur `CalculationMode.FORCED` afin de forcer le calcul de toutes les formules. Vous pouvez également effacer la valeur `v` de la cellule avant l’initialisation.
+
+## Fonctions de formule prises en charge
+
+<FormulaList lang="fr-FR" />
+
+## API Facade
+
+Pour en savoir plus, consultez la documentation de l’[API Facade FFormula](https://docs.univer.ai/reference/facade/formula).
+
+### Importation
+
+<Callout type="info" title="Remarque sur le mode plugin">
+  Seul le mode plugin nécessite l’importation manuelle du package Facade. Le mode prédéfini inclut déjà le package Facade correspondant ; aucune importation supplémentaire n’est donc nécessaire.
+</Callout>
+
+```typescript
+import '@univerjs/engine-formula/facade'
+import '@univerjs/sheets-formula/facade'
+import '@univerjs/sheets-formula-ui/facade'
+```
+
+### Afficher la boîte de dialogue de sélection de plages
+
+`@univerjs/sheets-formula-ui/facade` ajoute `univerAPI.showRangeSelectorDialog`. Utilisez cette méthode lorsque votre interface personnalisée doit permettre aux utilisateurs de sélectionner une ou plusieurs plages avec le même sélecteur que celui des panneaux liés aux formules.
+
+```typescript
+const workbook = univerAPI.getActiveWorkbook()
+const worksheet = workbook?.getActiveSheet()
+
+if (workbook && worksheet) {
+  await univerAPI.showRangeSelectorDialog({
+    unitId: workbook.getId(),
+    subUnitId: worksheet.getSheetId(),
+    initialValue: [
+      {
+        unitId: workbook.getId(),
+        sheetName: worksheet.getSheetName(),
+        range: worksheet.getRange('A1:B2').getRange(),
+      },
+    ],
+    maxRangeCount: 2,
+    supportAcrossSheet: true,
+    callback: (ranges, isCancel) => {
+      console.log(ranges, isCancel)
+    },
+  })
+}
+```
+
+### Exécuter le calcul des formules
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.executeCalculation()
+```
+
+### Arrêter le calcul des formules
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.stopCalculation()
+```
+
+### Début du calcul des formules
+
+```typescript
+// Listening to formula calculation start event
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationStart((forceCalculate) => {
+  console.log(forceCalculate)
+})
+```
+
+### Progression du calcul des formules
+
+```typescript
+// Listening to formula calculation processing event
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationProcessing((stageInfo) => {
+  console.log(stageInfo)
+})
+```
+
+### Fin du calcul des formules
+
+```typescript
+// Listening to formula calculation end event
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationEnd((functionsExecutedState) => {
+  console.log(functionsExecutedState)
+})
+
+// Wait for formula calculation to end
+await formulaEngine.onCalculationEnd()
+```
+
+### Application du résultat du calcul des formules
+
+```typescript
+// Listening to formula calculation result applied event
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationResultApplied((result) => {
+  console.log(result)
+})
+
+// Wait for formula calculation result to be applied
+await formulaEngine.onCalculationResultApplied()
+```
+
+### Définir le mode de calcul des formules lors de l’initialisation des données
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.setInitialFormulaComputing(CalculationMode.FORCED)
+```
+
+Si cette API est appelée après le cycle de vie `Starting`, elle prendra effet lors de la prochaine création d’une feuille Univer Sheet.
+
+Pour qu’elle prenne effet pendant l’initialisation en cours de la feuille Univer Sheet, vous pouvez l’appeler avant le cycle de vie `Ready`, par exemple :
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+  if (stage === LifecycleStages.Starting) {
+    const formulaEngine = univerAPI.getFormula()
+    formulaEngine.setInitialFormulaComputing(CalculationMode.FORCED)
+  }
+})
+```
+
+### Définir le nombre maximal d’itérations
+
+Lorsque des formules contiennent des références circulaires, vous pouvez utiliser cette API pour définir le nombre maximal d’itérations du calcul. La valeur par défaut est 1.
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.setMaxIteration(10)
+```
+
+### Obtenir le résultat de l’exécution de chaînes de formule
+
+Exécutez un ensemble de formules de façon asynchrone et récupérez les résultats des calculs :
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+const formulas = {
+  Book1: {
+    Sheet1: {
+      2: {
+        3: [
+          // Full formula:
+          '=SUM(A1:A10) + SQRT(D7)',
+
+          // Decomposed sub-formulas (each one can be evaluated independently):
+          'SUM(A1:A10)', // sub-formula 1
+          'SQRT(D7)', // sub-formula 2
+          'A1:A10', // range reference
+          'D7', // single-cell reference
+        ],
+      },
+      4: {
+        5: [
+          '=A2 + B2 + SQRT(C5)',
+          'A2',
+          'B2',
+          'SQRT(C5)',
+        ],
+      },
+    },
+  },
+}
+const result = await formulaEngine.executeFormulas(formulas)
+console.log(result)
+```
+
+## Formules personnalisées
+
+Univer prend en charge les formules personnalisées. Consultez la section [Formules personnalisées](/guides/recipes/tutorials/custom-formula) pour découvrir comment les implémenter.
+
+## Questions fréquentes
+
+### Les cellules contenant la formule `HYPERLINK` ne permettent pas d’utiliser les liens hypertextes
+
+Vous devez importer le plugin de liens hypertextes pour Univer Sheets. Consultez le module [Liens hypertextes](/guides/sheets/features/hyper-link).

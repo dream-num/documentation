@@ -1,0 +1,77 @@
+---
+title: Synchronisation des événements
+---
+
+La synchronisation des événements publie les événements du moteur collaboratif dans votre système afin que vous puissiez y réagir, par exemple à des fins d’audit, de notification ou d’indexation.
+
+![Synchronisation des événements](./event-sync/event-sync.png)
+
+## Cas d’usage
+
+- Auditer et rejouer les modifications collaboratives
+- Synchroniser les modifications avec les pipelines de recherche et d’indexation
+- Envoyer des notifications et des alertes externes
+
+Événements pris en charge :
+
+- Modifications collaboratives : changeset persisté
+
+## Activer la synchronisation des événements
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    Ajoutez ceci à `.env.custom` :
+
+    ```properties title=".env.custom"
+    EVENT_SYNC=true
+    ```
+  </Tab>
+  <Tab label="K8s">
+    Ajoutez ceci à `values.yaml` :
+
+    ```yaml title="values.yaml"
+    universer:
+      config:
+        rabbitmq:
+          eventSync: true
+    ```
+  </Tab>
+</Tabs>
+
+## Exemple de consommateur
+
+Voir : https://github.com/dream-num/univer-event-sync-example-go
+
+## Schéma des événements
+
+```go
+message EventSyncData {
+  string eventId = 1;
+  string eventType = 2; // type of event, now support changeset
+  int32 createdAt = 3;
+  oneof event {
+    univer.ChangesetAck csAckEvent = 4;
+    // more event types in the future.
+  }
+  optional string unitMetaData = 99; // Introduced since v0.20.0, customer setted metadata of the unit(created by CreateUnit request or Import request)
+}
+
+message ChangesetAck {
+  univer.Changeset cs = 1;
+}
+
+message Changeset {
+  string unitID = 1; // unitID of the Univer document
+  univer.constants.UniverType type = 2;
+  int32 baseRev = 3;
+  int32 revision = 4;
+  string userID = 5;
+  repeated Mutation mutations = 6;
+  string memberID = 7;
+}
+
+message Mutation {
+  string id = 1; // ID of the mutation
+  string data = 2; // serialized params
+}
+```

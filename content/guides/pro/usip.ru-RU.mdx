@@ -1,0 +1,510 @@
+---
+title: Интеграция USIP
+---
+
+По умолчанию в Univer Pro нет системы учётных записей. Если вам нужны проверка личности, управление разрешениями или интеграция с другой системой, используйте USIP (Univer Server Integration Protocol). USIP представляет собой SPI: Univer определяет интерфейсы, а ваша система реализует их.
+
+## Сценарии использования
+
+- Доступ только после входа в систему
+- Разрешения на редактирование в зависимости от роли
+- Синхронизация данных соавторов, комментариев и времени редактирования
+
+## Процесс интеграции
+
+1. Реализуйте API USIP (см. ниже)
+2. Включите USIP в конфигурации развёртывания
+3. Передавайте заголовки аутентификации с клиента (например, токен)
+
+## API USIP
+
+Сейчас USIP охватывает три категории:
+
+- 👥 Учётные записи: проверка личности и данные пользователей
+- 🔒 Разрешения: роли и соавторы
+- 📄 Документы: время последнего редактирования
+
+### Аутентификация пользователя
+
+#### Когда вызывается
+
+Аутентификация выполняется при каждом запросе между клиентом и сервером.
+
+#### Схема
+
+![Схема](./usip/credential.png)
+
+#### Описание API
+
+<APITable
+  request={{
+    method: 'GET',
+    headers: 'Все заголовки запроса перенаправляются, чтобы вы могли выполнить аутентификацию',
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'user',
+      type: 'Object',
+      description: 'Возвращается при успешной аутентификации',
+      properties: [
+        {
+          name: 'userID',
+          type: 'string',
+          example: 'ace55655ceabd55',
+          description: 'Идентификатор пользователя (рекомендуется open_uid)',
+        },
+        {
+          name: 'name',
+          type: 'string',
+          example: 'alice',
+          description: 'Отображаемое имя соавтора',
+        },
+        {
+          name: 'avatar',
+          type: 'string',
+          example: 'https://image.xx/acde55acb45bbead55',
+          description: 'URL аватара соавтора',
+        },
+      ],
+    }],
+    example: JSON.stringify({
+      user: {
+        userID: 'ace55655ceabd55g',
+        name: 'alice',
+        avatar: 'https://image.xx/acde55acb45bbead55',
+      },
+    }, null, 2),
+  }}
+/>
+
+### Пакетное получение данных пользователей
+
+#### Когда вызывается
+
+При отображении аватаров и имён соавторов, а также авторов комментариев.
+
+#### Схема
+
+![Схема](./usip/user-infos.png)
+
+#### Описание API
+
+<APITable
+  request={{
+    method: 'POST',
+    headers: 'Без пользовательских заголовков; заголовки пользователя не перенаправляются',
+    parametersType: 'Body',
+    parameters: [{
+      name: 'userIDs',
+      type: 'array[string]',
+      example: '["user_id1", "user_id2"]',
+      description: 'Идентификаторы пользователей, данные которых нужно получить',
+    }],
+    example: JSON.stringify({
+      userIDs: ['user_id1', 'user_id2', 'user_id3'],
+    }, null, 2),
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'users',
+      type: 'array[Object]',
+      description: 'Объекты пользователей; схема совпадает со схемой аутентификации',
+    }],
+    example: JSON.stringify({
+      users: [
+        { userID: 'user_id1', name: 'name1', avatar: 'https://xxxx' },
+        { userID: 'user_id2', name: 'name2', avatar: 'https://xxxx' },
+        { userID: 'user_id3', name: 'name3', avatar: 'https://xxxx' },
+      ],
+    }, null, 2),
+  }}
+/>
+
+### Роль пользователя
+
+#### Когда вызывается
+
+Для определения разрешений на чтение и редактирование документа.
+
+#### Схема
+
+![Схема](./usip/user-role.png)
+
+#### Описание API
+
+<APITable
+  request={{
+    method: 'GET',
+    headers: 'Без пользовательских заголовков; заголовки пользователя не перенаправляются',
+    parametersType: 'Query',
+    parameters: [{
+      name: 'userID',
+      type: 'string',
+      example: 'acd5455e44fc5bb55',
+      description: 'Идентификатор пользователя',
+    }, {
+      name: 'unitID',
+      type: 'string',
+      example: 'acff-adebc125e45b',
+      description: 'Идентификатор документа',
+    }, {
+      name: 'metaData',
+      type: 'string',
+      example: '{"tenantId":"company1"}',
+      description: 'Метаданные, связанные с модулем. Добавлено в версии 0.20.0',
+    }],
+    example: 'curl -X GET "http://sample.univer.ai/role?unitID=acff-adebc125e45b&userID=acd5455e44fc5bb55"',
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'userID',
+      type: 'string',
+      example: 'acd5455e44fc5bb55',
+      description: 'Идентификатор пользователя из запроса',
+    }, {
+      name: 'role',
+      type: 'string',
+      example: 'editor',
+      description: 'Роль: owner, editor или reader',
+    }],
+    example: JSON.stringify({
+      userID: 'acd5455e44fc5bb55',
+      role: 'editor',
+    }, null, 2),
+  }}
+/>
+
+### Соавторы документа
+
+#### Когда вызывается
+
+Требуется при выборе пользователей для защищённых диапазонов или листов.
+
+#### Схема
+
+![Схема](./usip/list-collaborators.png)
+
+#### Описание API
+
+<APITable
+  request={{
+    method: 'POST',
+    headers: 'Без пользовательских заголовков; заголовки пользователя не перенаправляются',
+    parametersType: 'Body',
+    parameters: [{
+      name: 'unitIDs',
+      type: 'array[string]',
+      example: '["unit_id1", "unit_id2"]',
+      description: 'Идентификаторы документов',
+    }, {
+      name: 'unitsMetaDatas',
+      type: 'object',
+      example: '{"unit_id1":"metadata of unit_id1","unit_id2":"metadata of unit_id2"}',
+      description: 'Метаданные каждого модуля из параметра unitIDs. Добавлено в версии 0.20.0',
+    }],
+    example: JSON.stringify({
+      unitIDs: ['unit_id1', 'unit_id2'],
+      unitsMetaDatas: { unit_id1: 'metadata of unit_id1', unit_id2: 'metadata of unit_id2' },
+    }, null, 2),
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'collaborators',
+      type: 'array[Object]',
+      description: 'Соавторы, сгруппированные по документам',
+      properties: [{
+        name: 'unitID',
+        type: 'string',
+        example: 'unit_id1',
+        description: 'Идентификатор документа',
+      }, {
+        name: 'subjects',
+        type: 'array[Object]',
+        description: 'Список соавторов',
+        properties: [{
+          name: 'role',
+          type: 'string',
+          example: 'editor',
+          description: 'Роль: owner, editor или reader',
+        }, {
+          name: 'subject',
+          type: 'Object',
+          description: 'Данные соавтора',
+          properties: [{
+            name: 'type',
+            type: 'string',
+            example: 'user',
+            description: 'Обязательное значение: "user"',
+          }, {
+            name: 'id',
+            type: 'string',
+            example: 'acdef12555b12',
+            description: 'Идентификатор пользователя',
+          }, {
+            name: 'name',
+            type: 'string',
+            example: 'alice',
+            description: 'Имя пользователя',
+          }, {
+            name: 'avatar',
+            type: 'string',
+            example: 'https://image.ai/36554',
+            description: 'URL аватара',
+          }],
+        }],
+      }],
+    }],
+    example: JSON.stringify({
+      collaborators: [
+        {
+          unitID: 'unit_id1',
+          subjects: [
+            {
+              subject: {
+                id: '1',
+                name: 'alice',
+                avatar: 'https://image.ai/36554',
+                type: 'user',
+              },
+              role: 'owner',
+            },
+            {
+              subject: {
+                id: '2',
+                name: 'bob',
+                avatar: 'https://image.ai/36559',
+                type: 'user',
+              },
+              role: 'editor',
+            },
+          ],
+        },
+      ],
+    }, null, 2),
+  }}
+/>
+
+### Уведомление о времени последнего редактирования
+
+#### Когда вызывается
+
+Чтобы ваша система могла отображать время последнего редактирования.
+
+#### Описание API
+
+<APITable
+  request={{
+    method: 'POST',
+    headers: 'Без пользовательских заголовков; заголовки пользователя не перенаправляются',
+    parametersType: 'Body',
+    parameters: [{
+      name: 'unitID',
+      type: 'string',
+      example: 'acff-adebc125e45b',
+      description: 'Идентификатор документа',
+    }, {
+      name: 'editTimeUnixMs',
+      type: 'int',
+      example: '1762591632345',
+      description: 'Метка времени Unix в миллисекундах',
+    }, {
+      name: 'metaData',
+      type: 'string',
+      example: '{"tenantId":"company1"}',
+      description: 'Метаданные, связанные с модулем. Добавлено в версии 0.20.0',
+    }],
+    example: JSON.stringify({
+      unitID: 'unit_id1',
+      editTimeUnixMs: 1762591632345,
+      metaData: { tenantId: 'company1' },
+    }, null, 2),
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [],
+    example: JSON.stringify({}, null, 2),
+  }}
+/>
+
+## Настройка USIP [#usip-configuration]
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    ```properties title=".env.custom"
+    USIP_ENABLED=true
+    USIP_URI_CREDENTIAL=https://your-domain/usip/credential
+    USIP_URI_USERINFO=https://your-domain/usip/userinfo
+    USIP_URI_ROLE=https://your-domain/usip/role
+    USIP_URI_COLLABORATORS=https://your-domain/usip/collaborators
+    USIP_URI_UNITEDITTIME=https://your-domain/usip/unit-edit-time
+
+    USIP_APIKEY=
+
+    AUTH_PERMISSION_ENABLE_OBJ_INHERIT=false
+    AUTH_PERMISSION_CUSTOMER_STRATEGIES=
+    ```
+  </Tab>
+  <Tab label="K8s">
+    ```yaml title="values.yaml"
+    universer:
+      config:
+        usip:
+          enabled: true
+          uri:
+            userinfo: 'https://your-domain/usip/userinfo'
+            collaborators: 'https://your-domain/usip/collaborators'
+            role: 'https://your-domain/usip/role'
+            credential: 'https://your-domain/usip/credential'
+            unitEditTime: 'https://your-domain/usip/unit-edit-time'
+          apikey: ''
+        auth:
+          permission:
+            enableObjInherit: false
+            customerStrategies: ''
+    ```
+  </Tab>
+</Tabs>
+
+**Примечание**: если USIP включён, необходимо настроить и реализовать все пять конечных точек.
+
+Если ваш сервис USIP доступен из публичной сети, для защиты запросов API можно использовать механизм, аналогичный запросам к API ИИ. Создайте ключ API и укажите его в конфигурации сервера Univer. При вызове API USIP запрос будет содержать заголовок x-api-key: API_KEY, с помощью которого можно проверить подлинность запроса.
+
+## Модель разрешений
+
+Univer использует RBAC с фиксированными ролями: `owner`, `editor`, `reader`. Для отдельных разрешений можно переопределить минимально необходимую роль.
+
+Ниже перечислены разрешения по умолчанию и минимально необходимые роли:
+
+| Разрешение | Перечисление | Описание | Минимальная роль | Перечисление роли |
+|:-------|:---------|:-------|:-------|:-------|
+| ManageCollaborator | 2 | Приглашение и удаление соавторов | owner | 2 |
+| Copy | 6 | Копирование содержимого | reader | 0 |
+| Print | 3 | Печать | editor | 1 |
+| Duplicate | 4 | Создание копии документа | editor | 1 |
+| Share | 7 | Предоставление доступа к документу | reader | 0 |
+| Export | 8 | Экспорт | editor | 1 |
+| Comment | 5 | Комментирование | reader | 0 |
+| View | 0 | Просмотр | reader | 0 |
+| MoveSheet | 25 | Перемещение листа | editor | 1 |
+| DeleteSheet | 26 | Удаление листа | editor | 1 |
+| HideSheet | 27 | Скрытие листа | editor | 1 |
+| CopySheet | 28 | Копирование листа | editor | 1 |
+| RenameSheet | 29 | Переименование листа | editor | 1 |
+| CreateSheet | 30 | Создание листа | editor | 1 |
+| SetCellStyle | 33 | Настройка стиля ячейки | editor | 1 |
+| SetCellValue | 34 | Изменение значения ячейки | editor | 1 |
+| InsertHyperlink | 16 | Вставка гиперссылки | editor | 1 |
+| Sort | 17 | Сортировка | editor | 1 |
+| Filter | 18 | Фильтрация | editor | 1 |
+| PivotTable | 19 | Сводная таблица | editor | 1 |
+| RecoverHistory | 43 | Восстановление из истории | editor | 1 |
+| ViewHistory | 44 | Просмотр истории | reader | 0 |
+| SelectProtectedCells | 31 | Выбор защищённых ячеек | editor | 1 |
+| SelectUnProtectedCells | 32 | Выбор незащищённых ячеек | editor | 1 |
+| SetRowStyle | 35 | Настройка стиля строки | editor | 1 |
+| SetColumnStyle | 36 | Настройка стиля столбца | editor | 1 |
+| InsertRow | 37 | Вставка строки | editor | 1 |
+| InsertColumn | 38 | Вставка столбца | editor | 1 |
+| DeleteRow | 39 | Удаление строки | editor | 1 |
+| DeleteColumn | 40 | Удаление столбца | editor | 1 |
+| Delete | 42 | Удаление документа | owner | 2 |
+| CreatePermissionObject | 45 | Создание защищённого диапазона или листа | editor | 1 |
+
+Чтобы разрешить копирование и печать только владельцам:
+
+```properties title=".env.custom"
+AUTH_PERMISSION_CUSTOMER_STRATEGIES=[{"action": 3, "role": 2}, {"action": 6, "role": 2}]
+```
+
+Конфигурация K8s:
+
+```yaml title="values.yaml"
+universer:
+  config:
+    auth:
+      permission:
+        customerStrategies: '[ {"action": 3, "role": 2}, {"action": 6, "role": 2} ]'
+```
+
+### Наследование разрешений объектов
+
+По умолчанию владелец документа не получает автоматически права владельца для всех «защищённых областей и вложенных таблиц» этого документа. Чтобы владелец документа безусловно имел полный доступ ко всем вложенным объектам документа, включите наследование разрешений с помощью следующей настройки:
+
+```properties title=".env.custom"
+AUTH_PERMISSION_ENABLE_OBJ_INHERIT=true
+```
+
+Конфигурация K8s:
+
+```yaml title="values.yaml"
+universer:
+  config:
+    auth:
+      permission:
+        enableObjInherit: true
+```
+
+## Пример реализации
+
+См.: https://github.com/dream-num/usip-example
+
+## Клиентские заголовки
+
+Если нужно добавить пользовательские заголовки (например, токен Authorization), используйте перехватчики HTTPService:
+
+<Tabs items={['Preset', 'Plugin']}>
+  <Tab>
+    ```typescript
+    import { HTTPService } from '@univerjs/preset-sheets-core'
+
+    const injector = univer.__getInjector()
+    const httpService = injector.get(HTTPService)
+    httpService.registerHTTPInterceptor({
+      priority: 0,
+      interceptor: (request, next) => {
+        // request.headers.set('Authorization', 'Bearer your-token-here')
+        return next(request)
+      },
+    })
+    ```
+  </Tab>
+  <Tab>
+    ```typescript
+    import { HTTPService } from '@univerjs/network'
+
+    const injector = univer.__getInjector()
+    const httpService = injector.get(HTTPService)
+    httpService.registerHTTPInterceptor({
+      priority: 0,
+      interceptor: (request, next) => {
+        // request.headers.set('Authorization', 'Bearer your-token-here')
+        return next(request)
+      },
+    })
+    ```
+  </Tab>
+</Tabs>
+
+Если вы используете [Историю изменений](/guides/sheets/features/edit-history), добавьте такой же перехватчик в HistoryUniver:
+
+```typescript
+historyLoaderService.historyUniver$.subscribe((historyUniver) => {
+  if (!historyUniver) return
+
+  const injector = historyUniver.__getInjector()
+  const httpService = injector.get(HTTPService)
+  httpService.registerHTTPInterceptor({
+    priority: 0,
+    interceptor: (request, next) => {
+      // request.headers.set('Authorization', 'Bearer your-token-here')
+      return next(request)
+    },
+  })
+})
+```
+
+Полный пример см. в [стартовом наборе Univer Pro Sheet](https://github.com/dream-num/univer-pro-sheet-start-kit/blob/main/src/setup-univer.ts).

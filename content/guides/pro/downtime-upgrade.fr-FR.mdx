@@ -1,0 +1,181 @@
+---
+title: Procédure de mise à niveau avec interruption de service
+---
+
+Cette page propose une procédure de référence pour les mises à niveau avec interruption de service. Adaptez-la si nécessaire à vos normes de production.
+
+## Mise à niveau avec Docker Compose
+
+### Préparation
+
+- Choisissez la version cible et vérifiez les changements de configuration dans [Déploiement en production](/guides/pro/deploy)
+- Préparez un nouveau fichier `.env.custom` (conservez l’ancien pour pouvoir revenir à la version précédente)
+- Préparez les fichiers de licence
+- Informez les utilisateurs de la fenêtre de maintenance
+
+### Étapes de la mise à niveau
+
+<Steps>
+  <Step>
+    #### Bloquer les écritures et arrêter l’ancienne version
+
+    Bloquez les nouvelles requêtes afin d’éviter toute incohérence des données.
+
+    Modifiez `universer-old/nginx/universer.conf` et ajoutez :
+
+    ```nginx
+    location ~ ^/universer-api {return 403;}
+    ```
+
+    Rechargez Nginx :
+
+    ```bash
+    docker exec univer-lb nginx -s reload
+    ```
+
+    Attendez au moins 1 minute, puis arrêtez les anciens services :
+
+    ```bash
+    cd universer-old && bash run.sh stop
+    ```
+  </Step>
+  <Step>
+    #### Sauvegarder les données
+
+    Sauvegardez les métadonnées RDS (le stockage d’objets fonctionne uniquement par ajout ; sauvegardez-le si nécessaire).
+  </Step>
+  <Step>
+    #### Déployer la nouvelle version
+
+    - Téléchargez la version cible (en ligne ou hors ligne)
+    - Copiez le nouveau fichier `.env.custom`
+    - Placez les fichiers de licence dans `configs/`
+    - Si vous utilisez un service RDS autogéré, exécutez les scripts de mise à niveau de la base de données
+
+    Pour n’autoriser que les comptes de test, ajoutez ce qui suit dans `nginx/universer.conf` :
+
+    ```nginx title="/nginx/universer.conf"
+    underscores_in_headers on;
+    if ($http_x_request_env != "test") {
+      return 403;
+    }
+    ```
+
+    Démarrez la nouvelle version :
+
+    ```bash
+    bash run.sh start
+    ```
+  </Step>
+</Steps>
+
+### Validation après la mise à niveau
+
+- Vérifiez les parcours essentiels avec `x-request-env=test`
+- Surveillez les journaux et les métriques
+
+### Basculement
+
+Supprimez la restriction d’en-tête et rechargez Nginx :
+
+```bash
+docker exec univer-lb nginx -s reload
+```
+
+### Retour à la version précédente
+
+- Arrêtez la nouvelle version
+- Restaurez l’ancienne configuration Nginx
+- Démarrez l’ancienne version
+
+## Mise à niveau avec K8s
+
+### Préparation
+
+- Préparez un nouveau fichier `values.yaml` (conservez l’ancien)
+- Préparez les fichiers de licence
+- Informez les utilisateurs de la fenêtre de maintenance
+
+### Étapes de la mise à niveau
+
+<Steps>
+  <Step>
+    #### Bloquer l’accès à l’ancienne version
+
+    Désactivez ingress dans l’ancienne configuration :
+
+    ```yaml title="values.yaml"
+    universer:
+      ingress:
+        enabled: false
+    ```
+
+    Appliquez-la avec la version actuelle du chart :
+
+    ```bash
+    helm upgrade univer-stack \
+      oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
+      --version your-current-version \
+      -n univer \
+      -f values-1.0.0-forbid.yaml \
+      --set-file universer.license.licenseV2=your-license.txt-path \
+      --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path
+    ```
+
+    Recherchez la version actuelle du chart avec `helm list --all-namespaces --filter univer-stack`.
+  </Step>
+  <Step>
+    #### Sauvegarder les données
+
+    Sauvegardez les métadonnées RDS.
+  </Step>
+  <Step>
+    #### Effectuer la mise à niveau vers la nouvelle version
+
+    Pour n’autoriser que les utilisateurs de test, ajoutez ce qui suit à la nouvelle configuration :
+
+    ```yaml title="values.yaml"
+    universer:
+      ingress:
+        enabled: true
+        annotations:
+          nginx.ingress.kubernetes.io/configuration-snippet: |
+            if ($http_x_request_env != "test") {
+              return 403;
+            }
+    ```
+
+    Effectuez la mise à niveau :
+
+    ```bash
+    helm upgrade --install univer-stack \
+      oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
+      --version target-version \
+      -n univer \
+      -f your-values.yaml-path \
+      --set-file universer.license.licenseV2=your-license.txt-path \
+      --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path
+    ```
+
+    Pour les environnements hors ligne, utilisez le bundle hors ligne et exécutez `bash load-image.sh`.
+  </Step>
+</Steps>
+
+### Validation après la mise à niveau et basculement
+
+- Effectuez la validation avec un compte de test
+- Supprimez la restriction ingress et réappliquez la configuration
+
+### Retour à la version précédente
+
+Utilisez l’ancienne version du chart et l’ancienne configuration :
+
+```bash
+helm upgrade --install univer-stack \
+  oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
+  --version old-version \
+  -n univer \
+  -f old-values.yaml \
+  --set-file universer.license.licenseV2=your-license.txt-path \
+  --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path
+```

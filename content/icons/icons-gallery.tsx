@@ -22,7 +22,7 @@ interface IconItem {
 
 type IconGroup = 'single' | 'double' | 'multi'
 type IconGroupFilter = 'all' | IconGroup
-type GalleryLocale = 'en' | 'zh-CN' | 'zh-TW' | 'ja-JP'
+type GalleryLocale = 'en' | 'zh-CN' | 'zh-TW' | 'ja-JP' | 'ko-KR' | 'fr-FR' | 'ru-RU'
 
 const translations = {
   en: {
@@ -96,6 +96,60 @@ const translations = {
     single: '単色',
     size: 'サイズ',
     stroke: '主色',
+  },
+  'ko-KR': {
+    accent: '강조색',
+    all: '전체',
+    channel: '채널',
+    clearSearch: '검색 지우기',
+    copied: '복사됨',
+    copyImport: 'import 복사',
+    double: '2색',
+    emptyTitle: '아이콘을 찾을 수 없습니다',
+    emptyHint: '다른 이름으로 검색하거나 카테고리를 바꿔 보세요.',
+    multi: '다색',
+    pickColor: '색상 선택',
+    searchPlaceholder: '아이콘 이름 검색...',
+    showing: '표시 중',
+    single: '단색',
+    size: '크기',
+    stroke: '기본색',
+  },
+  'fr-FR': {
+    accent: 'Accent',
+    all: 'Tous',
+    channel: 'Canal',
+    clearSearch: 'Effacer la recherche',
+    copied: 'Copié',
+    copyImport: 'Copier l’import',
+    double: 'Bicolore',
+    emptyTitle: 'Aucune icône trouvée',
+    emptyHint: 'Essayez un autre nom ou changez de catégorie.',
+    multi: 'Multicolore',
+    pickColor: 'Choisir une couleur',
+    searchPlaceholder: 'Rechercher une icône...',
+    showing: 'Affichage',
+    single: 'Monochrome',
+    size: 'Taille',
+    stroke: 'Couleur principale',
+  },
+  'ru-RU': {
+    accent: 'Акцент',
+    all: 'Все',
+    channel: 'Канал',
+    clearSearch: 'Очистить поиск',
+    copied: 'Скопировано',
+    copyImport: 'Копировать импорт',
+    double: 'Двухцветные',
+    emptyTitle: 'Значки не найдены',
+    emptyHint: 'Попробуйте другое название или смените категорию.',
+    multi: 'Многоцветные',
+    pickColor: 'Выбрать цвет',
+    searchPlaceholder: 'Поиск значка...',
+    showing: 'Показано',
+    single: 'Одноцветные',
+    size: 'Размер',
+    stroke: 'Основной цвет',
   },
 } satisfies Record<GalleryLocale, Record<string, string>>
 

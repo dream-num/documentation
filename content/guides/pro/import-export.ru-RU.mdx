@@ -1,0 +1,220 @@
+---
+title: Сервис импорта и экспорта
+---
+
+Импорт и экспорт выполняются на сервере: файлы Office можно преобразовать в документы Univer, а документы Univer — экспортировать обратно в форматы Office.
+
+## Предварительные требования
+
+- Развертывание сервера завершено (см. [Краткое руководство](/guides/pro/server))
+- Exchange worker и Temporal запущены
+- Объектное хранилище доступно
+
+## Процесс импорта
+
+1. [Загрузите файл](/guides/pro/api#upload-file) в объектное хранилище и получите `fileID`
+2. Вызовите API [импорта](/guides/pro/api#import-file), указав `outputType`
+   - `1`: импортировать как unit-документ
+   - `2`: импортировать как JSON
+3. Опрашивайте [состояние задачи](/guides/pro/api#get-task-result):
+   - `pending`: продолжайте опрос
+   - `done`: получите `import.unitID` или `import.jsonID`
+   - `failed`: прочитайте `error.message`
+4. Загрузите документ
+   - Если файл импортирован как unit-документ, загрузите его напрямую с помощью `import.unitID`; подробнее см. в разделе [Совместная работа](/guides/sheets/features/collaboration)
+   - Если файл импортирован как JSON, используйте `import.jsonID`, чтобы получить URL для скачивания через API [получения файла](/guides/pro/api#get-file), а затем перед загрузкой обработайте JSON с помощью [преобразования данных на стороне сервера](/guides/sheets/features/import-export#server-side-data-conversion)
+
+![Импорт](./import-export/import.png)
+
+## Процесс экспорта
+
+Экспорт совместных unit-документов:
+
+1. Вызовите API [экспорта](/guides/pro/api#export-file), указав `unitID`, и получите `taskID`
+2. Опрашивайте [состояние задачи](/guides/pro/api#get-task-result):
+   - `pending`: продолжайте опрос
+   - `done`: получите `export.fileID`
+   - `failed`: прочитайте `error.message`
+3. Используйте `export.fileID`, чтобы получить URL для скачивания через API [получения файла](/guides/pro/api#get-file)
+
+![Экспорт](./import-export/export.png)
+
+Экспорт документов без совместной работы:
+
+1. [Загрузите](/guides/pro/api#upload-file) в объектное хранилище файл, созданный из JSON-снимка на клиенте, и получите `fileID`
+2. Вызовите API [экспорта](/guides/pro/api#export-file), указав `jsonID`, и получите `taskID`; в качестве `jsonID` используйте `fileID` из предыдущего шага
+3. Опрашивайте [состояние задачи](/guides/pro/api#get-task-result):
+   - `pending`: продолжайте опрос
+   - `done`: получите `export.fileID`
+   - `failed`: прочитайте `error.message`
+4. Используйте `export.fileID`, чтобы получить URL для скачивания через API [получения файла](/guides/pro/api#get-file)
+
+## Пример реализации
+
+Вызовы API импорта и экспорта уже интегрированы в клиентскую часть. Подробнее см. в разделе [Facade API](/guides/sheets/features/import-export#facade-api).
+
+В приведенных ниже фрагментах показан полный процесс на TypeScript с использованием `fetch`. Замените `BASE_URL` адресом конечной точки сервера Univer и добавьте необходимый заголовок аутентификации (например, `cookie` или `Authorization`) в каждый запрос.
+
+### 1. Загрузка файла
+
+```typescript
+async function uploadFile(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const res = await fetch(
+    `${BASE_URL}/universer-api/stream/file/upload?size=${file.size}`,
+    {
+      method: 'POST',
+      headers: {
+        // Add your auth header here, e.g.
+        // cookie: '_univer=XXXXXX',
+      },
+      body: formData,
+    },
+  )
+
+  const data = await res.json()
+  if (data.error?.code !== 1) {
+    throw new Error(data.error?.message || 'Upload failed')
+  }
+  return data.FileId // used as fileID in the next step
+}
+```
+
+### 2. Опрос состояния задачи
+
+```typescript
+interface TaskResult {
+  status: 'pending' | 'done' | 'failed'
+  error?: { code: number, message: string }
+  import?: { unitID?: string, jsonID?: string }
+  export?: { fileID?: string }
+}
+
+async function pollTask(taskID: string, interval = 2000): Promise<TaskResult> {
+  while (true) {
+    const res = await fetch(
+      `${BASE_URL}/universer-api/exchange/task/${taskID}`,
+      {
+        headers: {
+          // cookie: '_univer=XXXXXX',
+        },
+      },
+    )
+    const data: TaskResult = await res.json()
+
+    if (data.status === 'done' || data.status === 'failed') {
+      return data
+    }
+
+    await new Promise(resolve => setTimeout(resolve, interval))
+  }
+}
+```
+
+### 3. Импорт файла
+
+```typescript
+interface ImportParams {
+  fileID: string
+  type: 1 | 2 // 1 = doc, 2 = sheet
+  outputType: 1 | 2 // 1 = unit, 2 = json
+  minSheetRowCount?: number
+  minSheetColumnCount?: number
+}
+
+async function importFile(params: ImportParams): Promise<string> {
+  const res = await fetch(
+    `${BASE_URL}/universer-api/exchange/${params.type}/import`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // cookie: '_univer=XXXXXX',
+      },
+      body: JSON.stringify({
+        fileID: params.fileID,
+        outputType: params.outputType,
+        minSheetRowCount: params.minSheetRowCount ?? 1000,
+        minSheetColumnCount: params.minSheetColumnCount ?? 20,
+      }),
+    },
+  )
+
+  const data = await res.json()
+  if (data.error?.code !== 1) {
+    throw new Error(data.error?.message || 'Import request failed')
+  }
+
+  // Poll until the task is done or failed
+  const taskResult = await pollTask(data.taskID)
+  if (taskResult.status === 'failed') {
+    throw new Error(taskResult.error?.message || 'Import failed')
+  }
+
+  return params.outputType === 1
+    ? taskResult.import!.unitID!
+    : taskResult.import!.jsonID!
+}
+```
+
+### 4. Экспорт файла
+
+```typescript
+interface ExportParams {
+  unitID: string
+  jsonID: string
+  type: 1 | 2 // 1 = doc, 2 = sheet
+  sscSwitch?: boolean
+}
+
+async function exportFile(params: ExportParams): Promise<string> {
+  const res = await fetch(
+    `${BASE_URL}/universer-api/exchange/${params.type}/export`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // cookie: '_univer=XXXXXX',
+      },
+      body: JSON.stringify({
+        unitID: params.unitID,
+        type: params.type,
+        sscSwitch: params.sscSwitch ?? false,
+      }),
+    },
+  )
+
+  const data = await res.json()
+  if (data.error?.code !== 1) {
+    throw new Error(data.error?.message || 'Export request failed')
+  }
+
+  const taskResult = await pollTask(data.taskID)
+  if (taskResult.status === 'failed') {
+    throw new Error(taskResult.error?.message || 'Export failed')
+  }
+
+  // Get a signed download URL
+  const urlRes = await fetch(
+    `${BASE_URL}/universer-api/file/${taskResult.export!.fileID!}/sign-url`,
+    {
+      headers: {
+        // cookie: '_univer=XXXXXX',
+      },
+    },
+  )
+  const urlData = await urlRes.json()
+  if (urlData.error?.code !== 1) {
+    throw new Error(urlData.error?.message || 'Failed to get download URL')
+  }
+
+  return urlData.url
+}
+```
+
+## Справочник API
+
+- [API сервера Univer](/guides/pro/api)
+- Репозиторий с примером импорта: https://github.com/dream-num/usip-example/tree/main/import

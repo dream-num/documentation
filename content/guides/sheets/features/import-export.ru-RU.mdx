@@ -1,0 +1,343 @@
+---
+title: Импорт и экспорт
+icon: '#pro/FolderSync'
+---
+
+<MetaData
+  lang="ru-RU"
+  isPro
+  meta={{
+    preset: [{
+      client: '@univerjs/preset-sheets-advanced',
+      locale: '@univerjs/preset-sheets-advanced/locales/en-US',
+      style: '@univerjs/preset-sheets-advanced/lib/index.css',
+    }],
+    plugins: [{
+      client: '@univerjs-pro/exchange-client',
+      facade: '@univerjs-pro/exchange-client/facade',
+      locale: '@univerjs-pro/exchange-client/locale/en-US',
+      style: '@univerjs-pro/exchange-client/lib/index.css',
+    }, {
+      client: '@univerjs-pro/sheets-exchange-client',
+      locale: '@univerjs-pro/sheets-exchange-client/locale/en-US',
+    }],
+    server: true,
+  }}
+/>
+
+<Callout type="warning" title="Внимание">
+  Для работы импорта и экспорта требуется сервер Univer. Убедитесь, что сервер Univer правильно установлен и настроен. Подробности см. в разделе [Переход на Pro](/guides/pro).
+</Callout>
+
+Функции импорта и экспорта позволяют через сервер Univer импортировать файлы `.xlsx` в документы Univer и экспортировать содержимое документов в файлы `.xlsx`, упрощая обмен данными с другими офисными приложениями и платформами.
+
+<PlaygroundFrame lang="ru-RU" slug="sheets/univer-pro-import-export" clickToShow />
+
+<Callout title="Почему импорт и экспорт в Univer выполняются через серверные службы?">
+  Реализация импорта и экспорта исключительно на стороне клиента не отвечает корпоративным требованиям к производительности и качеству результата. Поэтому эти функции реализованы с помощью серверных служб. Вы можете использовать библиотеки с открытым исходным кодом для разбора DOCX-файлов в структуры данных, соответствующие интерфейсу `IDocumentData`, а затем импортировать данные в Univer с помощью Facade API.
+</Callout>
+
+После успешного импорта через пункт меню в левом нижнем углу страницы появится уведомление с информацией о результате и ссылкой на импортированный документ. Если стандартное поведение импорта и экспорта вам не подходит, узнайте, как его настроить, в разделе [Пользовательский импорт документов](/guides/recipes/tutorials/custom-import).
+
+## Как выбрать способ импорта и экспорта
+
+В зависимости от необходимости совместной работы доступны два способа:
+
+| Способ | Требуется совместная работа | Подходит для | API |
+| --- | --- | --- | --- |
+| По `unitId` | Да | Документы для совместной работы, хранящиеся на сервере | `importXLSXToUnitIdAsync` / `exportXLSXByUnitIdAsync` |
+| По снимку | Нет | Локальные или автономные сценарии, а также только преобразование формата | `importXLSXToSnapshotAsync` / `exportXLSXBySnapshotAsync` |
+
+Если в проекте используется совместная работа, а документы хранятся на сервере и открываются по `unitId`, выберите способ с `unitId`. В остальных случаях используйте снимок.
+
+## Режим предустановок
+
+### Установка
+
+<Callout>
+  Во время выполнения предустановка `UniverSheetsAdvancedPreset` из `@univerjs/preset-sheets-advanced` зависит от предустановки `UniverSheetsDrawingPreset`. Сначала установите `@univerjs/preset-sheets-drawing`.
+</Callout>
+
+```package-install
+npm install @univerjs/preset-sheets-drawing @univerjs/preset-sheets-advanced
+```
+
+### Использование
+
+```typescript
+import { UniverSheetsAdvancedPreset } from '@univerjs/preset-sheets-advanced' // [!code ++]
+import UniverPresetSheetsAdvancedEnUS from '@univerjs/preset-sheets-advanced/locales/en-US' // [!code ++]
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+import UniverPresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing' // [!code ++]
+import UniverPresetSheetsDrawingEnUS from '@univerjs/preset-sheets-drawing/locales/en-US' // [!code ++]
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+import '@univerjs/preset-sheets-core/lib/index.css'
+import '@univerjs/preset-sheets-drawing/lib/index.css' // [!code ++]
+import '@univerjs/preset-sheets-advanced/lib/index.css' // [!code ++]
+
+const { univerAPI } = createUniver({
+  locale: LocaleType.En_US,
+  locales: {
+    [LocaleType.En_US]: mergeLocales(
+      UniverPresetSheetsCoreEnUS,
+      UniverPresetSheetsDrawingEnUS, // [!code ++]
+      UniverPresetSheetsAdvancedEnUS, // [!code ++]
+    ),
+  },
+  presets: [
+    UniverSheetsCorePreset(),
+    UniverSheetsDrawingPreset(), // [!code ++]
+    UniverSheetsAdvancedPreset({ // [!code ++]
+      universerEndpoint: 'http://localhost:3010', // [!code ++]
+    }), // [!code ++]
+  ],
+})
+```
+
+Если у вас есть коммерческая лицензия Univer, инструкции по настройке см. в разделе [Использование лицензии в клиенте](/guides/pro/license#in-preset-mode).
+
+### Предустановки и конфигурация
+
+Для `UniverSheetsAdvancedPreset` доступны следующие параметры конфигурации:
+
+```typescript
+interface IUniverSheetsAdvancedPresetConfig {
+  // This is the endpoint for the Univer server
+  universerEndpoint?: string
+  exchangeClientOptions?: {
+    // The minimum number of rows in the imported worksheet
+    minSheetRowCount?: number
+    // The minimum number of columns in the imported worksheet
+    minSheetColumnCount?: number
+    /**
+     * Export whether to enable server-side formula calculation. When enabled, each export will trigger server-side formula calculation, addressing the following issues:
+     * 1. Formulas have no default values when opening files in office software like WPS
+     * 2. Excel does not show formula results unless editing is enabled
+     * 3. Array formulas with the @ prefix cannot expand calculation results
+     * Note: This configuration needs to be used in a collaborative editing environment, and the server configuration file needs to set `SSC_SERVER_ENABLED=true`.
+     */
+    enableServerSideComputing?: boolean
+    /**
+     * Whether to disable converting cell images to link on export.
+     * If the cell image source is a URL, the default behavior is to convert the url to the cell value on export.
+     * Because the server will download all the resource files, when there are many images, it will consume a lot of resources and take a long time.
+     * @default true
+     */
+    disableCellImageConversion?: boolean
+    /**
+     * Whether to ignore Table when exporting.
+     * @default false
+     */
+    ignoreTableExport?: boolean
+  }
+}
+```
+
+## Режим плагинов
+
+### Установка
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/sheets-exchange-client
+```
+
+### Использование
+
+```typescript
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client' // [!code ++]
+import ExchangeClientEnUS from '@univerjs-pro/exchange-client/locale/en-US' // [!code ++]
+import { UniverSheetsExchangeClientPlugin } from '@univerjs-pro/sheets-exchange-client' // [!code ++]
+import SheetsExchangeClientEnUS from '@univerjs-pro/sheets-exchange-client/locale/en-US' // [!code ++]
+import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+
+import '@univerjs-pro/exchange-client/facade' // [!code ++]
+
+import '@univerjs-pro/exchange-client/lib/index.css' // [!code ++]
+
+const univer = new Univer({
+  locale: LocaleType.En_US,
+  locales: {
+    [LocaleType.En_US]: mergeLocales(
+      ExchangeClientEnUS, // [!code ++]
+      SheetsExchangeClientEnUS, // [!code ++]
+    ),
+  },
+})
+
+const UNIVER_SERVER_ENDPOINT = `http://localhost:8000` // [!code ++]
+
+univer.registerPlugin(UniverExchangeClientPlugin, { // [!code ++]
+  uploadFileServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/stream/file/upload`, // [!code ++]
+  importServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/{type}/import`, // [!code ++]
+  exportServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/{type}/export`, // [!code ++]
+  getTaskServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/task/{taskID}`, // [!code ++]
+  signUrlServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/file/{fileID}/sign-url`, // [!code ++]
+  downloadEndpointUrl: `${UNIVER_SERVER_ENDPOINT}/`, // [!code ++]
+}) // [!code ++]
+univer.registerPlugin(UniverSheetsExchangeClientPlugin) // [!code ++]
+```
+
+Если у вас есть коммерческая лицензия Univer, инструкции по настройке см. в разделе [Использование лицензии в клиенте](/guides/pro/license#in-plugin-mode).
+
+### Плагины и конфигурация
+
+Для `UniverExchangeClientPlugin` доступны следующие параметры конфигурации:
+
+```typescript
+interface IUniverExchangeClientConfig {
+  // Configuration for the Univer server
+  downloadEndpointUrl?: string
+  uploadFileServerUrl?: string
+  importServerUrl?: string
+  exportServerUrl?: string
+  getTaskServerUrl?: string
+  signUrlServerUrl?: string
+  // The maximum timeout time, in milliseconds
+  maxTimeoutTime?: number
+  options?: {
+    // The minimum number of rows in the imported worksheet
+    minSheetRowCount?: number
+    // The minimum number of columns in the imported worksheet
+    minSheetColumnCount?: number
+    /**
+     * Export whether to enable server-side formula calculation. When enabled, each export will trigger server-side formula calculation, addressing the following issues:
+     * 1. Formulas have no default values when opening files in office software like WPS
+     * 2. Excel does not show formula results unless editing is enabled
+     * 3. Array formulas with the @ prefix cannot expand calculation results
+     * Note: This configuration needs to be used in a collaborative editing environment, and the server configuration file needs to set `SSC_SERVER_ENABLED=true`.
+     */
+    enableServerSideComputing?: boolean
+    /**
+     * Whether to disable converting cell images to link on export.
+     * If the cell image source is a URL, the default behavior is to convert the url to the cell value on export.
+     * Because the server will download all the resource files, when there are many images, it will consume a lot of resources and take a long time.
+     * @default true
+     */
+    disableCellImageConversion?: boolean
+    /**
+     * Whether to ignore Table when exporting.
+     * @default false
+     */
+    ignoreTableExport?: boolean
+  }
+}
+```
+
+## Facade API [#facade-api]
+
+### Импорт
+
+<Callout type="info" title="Примечание о режиме плагинов">
+  Импортировать пакет Facade вручную нужно только в режиме плагинов. В режиме предустановок соответствующий пакет Facade уже включён, поэтому дополнительный импорт не требуется.
+</Callout>
+
+```typescript
+import '@univerjs-pro/exchange-client/facade'
+```
+
+### Импорт `.xlsx`
+
+#### Импорт файла `.xlsx` с получением `unitId`
+
+<Callout type="warning" title="Внимание">
+  Для этого способа требуется совместная работа: он создаёт документ на сервере и возвращает `unitId`. Если совместная работа не включена, используйте импорт по снимку.
+</Callout>
+
+Когда совместное редактирование включено, у каждого документа есть уникальный `unitId`. Вызов `univerAPI.importXLSXToUnitIdAsync` с параметром `file` возвращает `unitId`, по которому можно получить доступ к документу. В качестве параметра `file` можно передать объект `File` или URL удалённого файла.
+
+```typescript
+// Accept a File object
+const unitId = await univerAPI.importXLSXToUnitIdAsync(file)
+// Or accept a remote file URL
+// const unitId = await univerAPI.importXLSXToUnitIdAsync('https://example.com/filename.xlsx');
+
+// Using with collaborative editing to automatically load data https://docs.univer.ai/en-US/guides/docs/features/collaboration#loading-collaborative-documents
+const url = new URL(window.location.href)
+url.searchParams.set('unit', unitId)
+url.searchParams.set('type', '2') // The meaning of 2 is UniverInstanceType.UNIVER_SHEET
+
+window.location.href = url.toString()
+
+// Or call the API: univerAPI.loadServerUnit(unitId, 2) to load the document, refer to /reference/facade/univer#loadserverunit for specific parameters
+```
+
+#### Импорт файла `.xlsx` с получением `IWorkbookData`
+
+<Callout>
+  Для импорта по снимку совместная работа не требуется. Для документов с совместным доступом используйте импорт по `unitId`.
+</Callout>
+
+С помощью `univerAPI.importXLSXToSnapshotAsync` можно импортировать файл `.xlsx` и получить данные документа в формате `IWorkbookData`.
+
+```typescript
+// Accept a File object
+const snapshot = await univerAPI.importXLSXToSnapshotAsync(file)
+// Or accept a remote file URL
+// const snapshot = await univerAPI.importXLSXToSnapshotAsync('https://example.com/filename.xlsx');
+
+// Create a new workbook via snapshot
+univerAPI.createWorkbook(snapshot)
+```
+
+### Экспорт `.xlsx`
+
+#### Экспорт файла `.xlsx` по `unitId`
+
+<Callout type="warning" title="Внимание">
+  Для экспорта по `unitId` требуется совместная работа. Если она не включена, используйте экспорт по снимку.
+</Callout>
+
+Когда совместное редактирование включено, у каждого документа есть уникальный `unitId`. Вызов `univerAPI.exportXLSXByUnitIdAsync` с параметром `unitId` возвращает объект `File`.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const unitId = fWorkbook.getId()
+const file = await univerAPI.exportXLSXByUnitIdAsync(unitId)
+
+// Download the file through the Facade API
+if (file) univerAPI.downloadFile(file, 'univer', 'xlsx')
+```
+
+#### Экспорт файла `.xlsx` из `IWorkbookData`
+
+<Callout>
+  Для экспорта по снимку совместная работа не требуется, поэтому он подходит для локальных сценариев.
+</Callout>
+
+Вызов `univerAPI.exportXLSXBySnapshotAsync` с данными `IWorkbookData` возвращает объект `File`.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const snapshot = fWorkbook.getSnapshot()
+const file = await univerAPI.exportXLSXBySnapshotAsync(snapshot)
+
+// Download the file through the Facade API
+if (file) univerAPI.downloadFile(file, 'univer', 'xlsx')
+```
+
+## Преобразование данных на сервере Node.js [#server-side-data-conversion]
+
+Сервер Univer предоставляет API для импорта и экспорта, но формат преобразованных на сервере данных не совпадает с форматом Univer. Инициализируйте Univer и зарегистрируйте `@univerjs-pro/exchange-client` в процессе Node.js, а затем преобразуйте данные с помощью Facade API.
+
+<Callout type="warning" title="Примечание о миграции">
+  Вспомогательные функции `transformSnapshotJsonToWorkbookData` и `transformWorkbookDataToSnapshotJson` из корня пакета по-прежнему доступны для совместимости, но объявлены устаревшими и будут удалены в версии v1.1.0. В новом коде используйте приведённые ниже методы Facade API.
+</Callout>
+
+### Преобразование снимка в `IWorkbookData`
+
+После импорта данные Snapshot JSON необходимо преобразовать в формат `IWorkbookData`, чтобы использовать их в Univer.
+
+```typescript
+// The json data contains snapshot and sheetBlocks
+const workbookData = await univerAPI.transformSnapshotJsonToWorkbookDataAsync(json)
+```
+
+### Преобразование `IWorkbookData` в Snapshot JSON
+
+Перед экспортом данные в формате `IWorkbookData` необходимо преобразовать в Snapshot JSON, после чего их можно отправить на сервер для экспорта.
+
+```typescript
+const snapshotJson = await univerAPI.transformWorkbookDataToSnapshotJsonAsync(workbookData)
+```

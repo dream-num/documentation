@@ -1,0 +1,138 @@
+---
+title: Configuration des composants intégrés
+---
+
+Cette page s’applique uniquement si vous utilisez les composants intégrés d’Univer (PostgreSQL, RabbitMQ, MinIO). Ces identifiants ne prennent effet que lors de la première initialisation. Après le déploiement, modifiez les mots de passe en suivant la procédure officielle de chaque composant.
+
+## Modifier les mots de passe par défaut
+
+<Callout>
+  Configurez-les avant le premier déploiement. Les mots de passe des instances existantes ne seront pas modifiés automatiquement.
+</Callout>
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    Créez `.env.custom` dans le répertoire d’installation, puis exécutez :
+
+    ```bash
+    bash run.sh
+    ```
+  </Tab>
+  <Tab label="K8s">
+    Créez `values.yaml`, puis exécutez :
+
+    ```shell
+    helm install -n univer --create-namespace \
+      --set global.istioNamespace="univer" \
+      --values values.yaml \
+      univer-stack oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack
+    kubectl rollout restart -n univer deployment/collaboration-server
+    kubectl rollout restart -n univer deployment/universer
+    ```
+  </Tab>
+</Tabs>
+
+### PostgreSQL
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    ```properties title=".env.custom"
+    DATABASE_USERNAME=postgres
+    DATABASE_PASSWORD=postgres
+    ```
+  </Tab>
+  <Tab label="K8s">
+    ```yaml title="values.yaml"
+    global:
+      postgresql:
+        auth:
+          postgresPassword: postgres
+
+    universer:
+      config:
+        database:
+          username: postgres
+          password: postgres
+
+    temporal:
+      server:
+        config:
+          persistence:
+            default:
+              sql:
+                user: postgres
+                password: postgres
+
+            visibility:
+              sql:
+                user: postgres
+                password: postgres
+    ```
+  </Tab>
+</Tabs>
+
+Remarques :
+
+- Ces paramètres ne prennent effet que lors de la première initialisation.
+- Dans K8s, seul le mot de passe administrateur peut être configuré ; le nom d’utilisateur administrateur par défaut est `postgres`.
+- `universer` et `temporal` doivent utiliser les mêmes identifiants de base de données.
+
+### RabbitMQ
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    ```properties title=".env.custom"
+    RABBITMQ_USERNAME=guest
+    RABBITMQ_PASSWORD=guest
+    ```
+  </Tab>
+  <Tab label="K8s">
+    ```yaml title="values.yaml"
+    rabbitmq:
+      auth:
+        username: guest
+        password: guest
+
+    universer:
+      config:
+        rabbitmq:
+          username: guest
+          password: guest
+    ```
+  </Tab>
+</Tabs>
+
+Remarques :
+
+- Le nom d’utilisateur par défaut est `guest`. Modifiez-le pour une utilisation en production.
+- Après avoir modifié les identifiants RabbitMQ, mettez à jour la configuration d’`universer` en conséquence.
+
+### S3 (MinIO)
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    ```properties title=".env.custom"
+    S3_USER=minio
+    S3_PASSWORD=minio123456
+    ```
+  </Tab>
+  <Tab label="K8s">
+    ```yaml title="values.yaml"
+    minio:
+      auth:
+        rootUser: admin
+        rootPassword: minioadmin
+
+    universer:
+      config:
+        s3:
+          accessKeyID: admin
+          accessKeySecret: minioadmin
+    ```
+  </Tab>
+</Tabs>
+
+Remarques :
+
+- `rootUser/rootPassword` sont les identifiants d’administration de MinIO.
+- `accessKeyID/accessKeySecret` doivent correspondre au compte MinIO.

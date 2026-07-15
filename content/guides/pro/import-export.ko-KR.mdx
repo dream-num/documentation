@@ -1,0 +1,220 @@
+---
+title: 가져오기 및 내보내기 서비스
+---
+
+가져오기/내보내기 기능은 서버에서 제공하며, Office 파일을 Univer 문서로 변환하거나 Univer 문서를 Office 형식으로 다시 내보낼 수 있습니다.
+
+## 사전 요구 사항
+
+- 서버 배포 완료([빠른 시작](/guides/pro/server) 참조)
+- Exchange worker와 Temporal 실행 중
+- 객체 스토리지에 접근 가능
+
+## 가져오기 흐름
+
+1. 객체 스토리지에 [파일을 업로드](/guides/pro/api#upload-file)하고 `fileID`를 가져옵니다.
+2. `outputType`을 지정하여 [가져오기](/guides/pro/api#import-file) API를 호출합니다.
+   - `1`: unit 문서로 가져오기
+   - `2`: JSON으로 가져오기
+3. [작업 상태](/guides/pro/api#get-task-result)를 폴링합니다.
+   - `pending`: 계속 폴링
+   - `done`: `import.unitID` 또는 `import.jsonID` 가져오기
+   - `failed`: `error.message` 확인
+4. 문서를 불러옵니다.
+   - unit 문서로 가져온 경우 `import.unitID`로 직접 불러옵니다. 자세한 내용은 [협업](/guides/sheets/features/collaboration) 섹션을 참조하세요.
+   - JSON으로 가져온 경우 `import.jsonID`를 사용해 [파일 가져오기](/guides/pro/api#get-file) 다운로드 URL을 얻은 다음, 불러오기 전에 [서버 측 데이터 변환](/guides/sheets/features/import-export#server-side-data-conversion)으로 JSON을 처리합니다.
+
+![가져오기](./import-export/import.png)
+
+## 내보내기 흐름
+
+unit 협업 문서의 내보내기 흐름은 다음과 같습니다.
+
+1. `unitID`를 지정하여 [내보내기](/guides/pro/api#export-file) API를 호출하고 `taskID`를 가져옵니다.
+2. [작업 상태](/guides/pro/api#get-task-result)를 폴링합니다.
+   - `pending`: 계속 폴링
+   - `done`: `export.fileID` 가져오기
+   - `failed`: `error.message` 확인
+3. `export.fileID`를 사용해 [파일 가져오기](/guides/pro/api#get-file) 다운로드 URL을 얻습니다.
+
+![내보내기](./import-export/export.png)
+
+비협업 문서의 내보내기 흐름은 다음과 같습니다.
+
+1. 프런트엔드 스냅샷 JSON에서 생성한 파일을 객체 스토리지에 [업로드](/guides/pro/api#upload-file)하고 `fileID`를 가져옵니다.
+2. `jsonID`를 지정하여 [내보내기](/guides/pro/api#export-file) API를 호출하고 `taskID`를 가져옵니다. `jsonID`에는 이전 단계에서 얻은 `fileID`를 사용합니다.
+3. [작업 상태](/guides/pro/api#get-task-result)를 폴링합니다.
+   - `pending`: 계속 폴링
+   - `done`: `export.fileID` 가져오기
+   - `failed`: `error.message` 확인
+4. `export.fileID`를 사용해 [파일 가져오기](/guides/pro/api#get-file) 다운로드 URL을 얻습니다.
+
+## 구현 예제
+
+가져오기/내보내기 API 호출은 프런트엔드에 이미 통합되어 있습니다. 자세한 내용은 [Facade API](/guides/sheets/features/import-export#facade-api)를 참조하세요.
+
+아래 코드 조각은 `fetch`를 사용하는 전체 TypeScript 워크플로를 보여 줍니다. `BASE_URL`을 Univer 서버 엔드포인트로 바꾸고 모든 요청에 필요한 인증 헤더(예: `cookie` 또는 `Authorization`)를 포함하세요.
+
+### 1. 파일 업로드
+
+```typescript
+async function uploadFile(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const res = await fetch(
+    `${BASE_URL}/universer-api/stream/file/upload?size=${file.size}`,
+    {
+      method: 'POST',
+      headers: {
+        // Add your auth header here, e.g.
+        // cookie: '_univer=XXXXXX',
+      },
+      body: formData,
+    },
+  )
+
+  const data = await res.json()
+  if (data.error?.code !== 1) {
+    throw new Error(data.error?.message || 'Upload failed')
+  }
+  return data.FileId // used as fileID in the next step
+}
+```
+
+### 2. 작업 상태 폴링
+
+```typescript
+interface TaskResult {
+  status: 'pending' | 'done' | 'failed'
+  error?: { code: number, message: string }
+  import?: { unitID?: string, jsonID?: string }
+  export?: { fileID?: string }
+}
+
+async function pollTask(taskID: string, interval = 2000): Promise<TaskResult> {
+  while (true) {
+    const res = await fetch(
+      `${BASE_URL}/universer-api/exchange/task/${taskID}`,
+      {
+        headers: {
+          // cookie: '_univer=XXXXXX',
+        },
+      },
+    )
+    const data: TaskResult = await res.json()
+
+    if (data.status === 'done' || data.status === 'failed') {
+      return data
+    }
+
+    await new Promise(resolve => setTimeout(resolve, interval))
+  }
+}
+```
+
+### 3. 파일 가져오기
+
+```typescript
+interface ImportParams {
+  fileID: string
+  type: 1 | 2 // 1 = doc, 2 = sheet
+  outputType: 1 | 2 // 1 = unit, 2 = json
+  minSheetRowCount?: number
+  minSheetColumnCount?: number
+}
+
+async function importFile(params: ImportParams): Promise<string> {
+  const res = await fetch(
+    `${BASE_URL}/universer-api/exchange/${params.type}/import`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // cookie: '_univer=XXXXXX',
+      },
+      body: JSON.stringify({
+        fileID: params.fileID,
+        outputType: params.outputType,
+        minSheetRowCount: params.minSheetRowCount ?? 1000,
+        minSheetColumnCount: params.minSheetColumnCount ?? 20,
+      }),
+    },
+  )
+
+  const data = await res.json()
+  if (data.error?.code !== 1) {
+    throw new Error(data.error?.message || 'Import request failed')
+  }
+
+  // Poll until the task is done or failed
+  const taskResult = await pollTask(data.taskID)
+  if (taskResult.status === 'failed') {
+    throw new Error(taskResult.error?.message || 'Import failed')
+  }
+
+  return params.outputType === 1
+    ? taskResult.import!.unitID!
+    : taskResult.import!.jsonID!
+}
+```
+
+### 4. 파일 내보내기
+
+```typescript
+interface ExportParams {
+  unitID: string
+  jsonID: string
+  type: 1 | 2 // 1 = doc, 2 = sheet
+  sscSwitch?: boolean
+}
+
+async function exportFile(params: ExportParams): Promise<string> {
+  const res = await fetch(
+    `${BASE_URL}/universer-api/exchange/${params.type}/export`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // cookie: '_univer=XXXXXX',
+      },
+      body: JSON.stringify({
+        unitID: params.unitID,
+        type: params.type,
+        sscSwitch: params.sscSwitch ?? false,
+      }),
+    },
+  )
+
+  const data = await res.json()
+  if (data.error?.code !== 1) {
+    throw new Error(data.error?.message || 'Export request failed')
+  }
+
+  const taskResult = await pollTask(data.taskID)
+  if (taskResult.status === 'failed') {
+    throw new Error(taskResult.error?.message || 'Export failed')
+  }
+
+  // Get a signed download URL
+  const urlRes = await fetch(
+    `${BASE_URL}/universer-api/file/${taskResult.export!.fileID!}/sign-url`,
+    {
+      headers: {
+        // cookie: '_univer=XXXXXX',
+      },
+    },
+  )
+  const urlData = await urlRes.json()
+  if (urlData.error?.code !== 1) {
+    throw new Error(urlData.error?.message || 'Failed to get download URL')
+  }
+
+  return urlData.url
+}
+```
+
+## API 참고 자료
+
+- [Univer Server API](/guides/pro/api)
+- 가져오기 예제 저장소: https://github.com/dream-num/usip-example/tree/main/import

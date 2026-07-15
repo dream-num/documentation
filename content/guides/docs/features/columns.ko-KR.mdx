@@ -1,0 +1,139 @@
+---
+title: 단 레이아웃
+icon: '#pro/Columns3'
+---
+
+<MetaData
+  lang="en-US"
+  isPro
+  meta={{
+    plugins: [{
+      client: '@univerjs-pro/docs-column',
+      facade: '@univerjs-pro/docs-column/facade',
+    }, {
+      client: '@univerjs-pro/docs-column-ui',
+      locale: '@univerjs-pro/docs-column-ui/locale/en-US',
+      style: '@univerjs-pro/docs-column-ui/lib/index.css',
+    }],
+    server: false,
+  }}
+/>
+
+단 레이아웃은 Univer Docs에 편집 가능한 단 그룹을 추가합니다. 단 그룹은 2개에서 5개의 단을 포함하는 블록 컨테이너로, 문서 안에 간결한 편집 레이아웃, 비교 섹션, 뉴스레터, 텍스트와 표가 혼합된 콘텐츠를 만들 수 있게 해 줍니다.
+
+## 소개
+
+Univer Docs의 단 레이아웃으로 다음 작업을 할 수 있습니다.
+
+- **단 그룹 삽입**: 문서 오프셋에 2단, 3단 또는 사용자 지정 너비 비율의 블록을 만듭니다.
+- **대화형 편집**: Docs UI에서 단을 삽입하고 크기를 조정하거나 삭제할 수 있습니다.
+- **Facade API 사용**: 코드로 단 그룹을 조회하고 특정 단에 콘텐츠를 삽입하며 너비 비율을 업데이트합니다.
+- **문서 작업 보존**: 단 변경은 일반 리치 텍스트 명령 파이프라인을 거치므로 실행 취소/다시 실행과 공동 작업에 UI 작업과 동일한 문서 변경 사항이 전달됩니다.
+
+## 플러그인 모드
+
+### 설치
+
+```package-install
+npm install @univerjs-pro/docs-column @univerjs-pro/docs-column-ui
+```
+
+### 사용법
+
+```typescript
+import { UniverDocsColumnUIPlugin } from '@univerjs-pro/docs-column-ui' // [!code ++]
+import DocsColumnUIEnUS from '@univerjs-pro/docs-column-ui/locale/en-US' // [!code ++]
+import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+
+import '@univerjs-pro/docs-column-ui/lib/index.css' // [!code ++]
+
+const univer = new Univer({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(
+      DocsColumnUIEnUS, // [!code ++]
+    ),
+  },
+})
+
+univer.registerPlugin(UniverDocsColumnUIPlugin) // [!code ++]
+```
+
+Univer 상용 라이선스가 있다면 구성 방법은 [클라이언트에서 라이선스 사용하기](/guides/pro/license#in-plugin-mode)를 참고하세요.
+
+## Facade API
+
+API를 사용하기 전에 facade를 반드시 가져오세요.
+
+```typescript
+import '@univerjs-pro/docs-column/facade'
+```
+
+### 단 그룹 삽입하기
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+const group = doc?.insertColumnGroup(3, {
+  gap: 18,
+  widthRatios: [1.1, 1, 0.9],
+})
+```
+
+### 단에 콘텐츠 삽입하기
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+const group = doc?.insertColumnGroup(2)
+const [left, right] = group?.getColumns() ?? []
+
+const leftOffset = left?.getInsertOffset()
+if (leftOffset != null) {
+  doc?.insertText('Summary\rKey decisions and context.', {
+    startOffset: leftOffset,
+    endOffset: leftOffset,
+  })
+}
+
+const rightOffset = right?.getInsertOffset()
+if (rightOffset != null) {
+  doc?.insertTableFromData([
+    ['Item', 'Owner'],
+    ['Launch checklist', 'Docs team'],
+  ], { offset: rightOffset, headerRowCount: 1 })
+}
+```
+
+### 단 그룹 조회하기
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+
+const groups = doc?.getColumnGroups() ?? []
+const byId = doc?.getColumnGroup('column-group-id')
+const atOffset = doc?.getColumnGroupAt(128)
+const matched = doc?.findColumnGroups('Launch') ?? []
+
+console.log(groups.map(group => group.describe()))
+console.log(byId, atOffset, matched)
+```
+
+### 그룹 크기 조정 또는 편집하기
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+const group = doc?.getColumnGroups()[0]
+
+group?.setWidthRatios([1.2, 1, 0.8])
+
+const first = group?.getColumn(0)
+if (first) {
+  group?.addColumn(first.getId(), 'right')
+}
+```
+
+### 단 그룹 삭제하기
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+doc?.deleteColumnGroup('column-group-id')
+```

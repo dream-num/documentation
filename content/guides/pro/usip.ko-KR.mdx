@@ -1,0 +1,510 @@
+---
+title: USIP 통합
+---
+
+Univer Pro에는 기본적으로 계정 시스템이 포함되어 있지 않습니다. 신원 확인, 권한 제어 또는 시스템 통합이 필요한 경우 USIP(Univer Server Integration Protocol)를 사용하세요. USIP는 SPI로, Univer가 인터페이스를 정의하고 사용자의 시스템이 이를 구현합니다.
+
+## 사용 사례
+
+- 로그인 후 접근 허용
+- 역할 기반 편집 권한
+- 공동 작업자 정보, 댓글 및 편집 시간 동기화
+
+## 통합 절차
+
+1. USIP API 구현(아래 내용 참조)
+2. 배포 구성에서 USIP 활성화
+3. 클라이언트에서 인증 헤더 전달(예: 토큰)
+
+## USIP API
+
+현재 USIP는 다음 세 가지 범주를 지원합니다.
+
+- 👥 계정: 신원 확인, 사용자 정보
+- 🔒 권한: 역할 및 공동 작업자
+- 📄 문서: 마지막 편집 시간
+
+### 사용자 인증
+
+#### 호출 시점
+
+클라이언트와 서버 간의 모든 요청에서 인증이 실행됩니다.
+
+#### 흐름
+
+![흐름](./usip/credential.png)
+
+#### API 정의
+
+<APITable
+  request={{
+    method: 'GET',
+    headers: '인증에 사용할 수 있도록 모든 요청 헤더가 전달됩니다',
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'user',
+      type: 'Object',
+      description: '인증에 성공하면 반환됩니다',
+      properties: [
+        {
+          name: 'userID',
+          type: 'string',
+          example: 'ace55655ceabd55',
+          description: '사용자 ID(open_uid 권장)',
+        },
+        {
+          name: 'name',
+          type: 'string',
+          example: 'alice',
+          description: '공동 작업자에게 표시할 이름',
+        },
+        {
+          name: 'avatar',
+          type: 'string',
+          example: 'https://image.xx/acde55acb45bbead55',
+          description: '공동 작업자 아바타 URL',
+        },
+      ],
+    }],
+    example: JSON.stringify({
+      user: {
+        userID: 'ace55655ceabd55g',
+        name: 'alice',
+        avatar: 'https://image.xx/acde55acb45bbead55',
+      },
+    }, null, 2),
+  }}
+/>
+
+### 사용자 정보 일괄 조회
+
+#### 호출 시점
+
+공동 작업자의 아바타와 이름 및 댓글 작성자를 표시할 때 호출됩니다.
+
+#### 흐름
+
+![흐름](./usip/user-infos.png)
+
+#### API 정의
+
+<APITable
+  request={{
+    method: 'POST',
+    headers: '사용자 지정 헤더가 없으며 사용자 헤더는 전달되지 않습니다',
+    parametersType: 'Body',
+    parameters: [{
+      name: 'userIDs',
+      type: 'array[string]',
+      example: '["user_id1", "user_id2"]',
+      description: '조회할 사용자 ID',
+    }],
+    example: JSON.stringify({
+      userIDs: ['user_id1', 'user_id2', 'user_id3'],
+    }, null, 2),
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'users',
+      type: 'array[Object]',
+      description: '사용자 객체이며 인증 API와 동일한 스키마를 사용합니다',
+    }],
+    example: JSON.stringify({
+      users: [
+        { userID: 'user_id1', name: 'name1', avatar: 'https://xxxx' },
+        { userID: 'user_id2', name: 'name2', avatar: 'https://xxxx' },
+        { userID: 'user_id3', name: 'name3', avatar: 'https://xxxx' },
+      ],
+    }, null, 2),
+  }}
+/>
+
+### 사용자 역할
+
+#### 호출 시점
+
+문서 읽기 및 편집 권한을 확인할 때 호출됩니다.
+
+#### 흐름
+
+![흐름](./usip/user-role.png)
+
+#### API 정의
+
+<APITable
+  request={{
+    method: 'GET',
+    headers: '사용자 지정 헤더가 없으며 사용자 헤더는 전달되지 않습니다',
+    parametersType: 'Query',
+    parameters: [{
+      name: 'userID',
+      type: 'string',
+      example: 'acd5455e44fc5bb55',
+      description: '사용자 ID',
+    }, {
+      name: 'unitID',
+      type: 'string',
+      example: 'acff-adebc125e45b',
+      description: '문서 ID',
+    }, {
+      name: 'metaData',
+      type: 'string',
+      example: '{"tenantId":"company1"}',
+      description: '유닛과 연결된 메타데이터입니다. v0.20.0부터 지원됩니다',
+    }],
+    example: 'curl -X GET "http://sample.univer.ai/role?unitID=acff-adebc125e45b&userID=acd5455e44fc5bb55"',
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'userID',
+      type: 'string',
+      example: 'acd5455e44fc5bb55',
+      description: '요청에 포함된 사용자 ID',
+    }, {
+      name: 'role',
+      type: 'string',
+      example: 'editor',
+      description: '역할: owner, editor, reader',
+    }],
+    example: JSON.stringify({
+      userID: 'acd5455e44fc5bb55',
+      role: 'editor',
+    }, null, 2),
+  }}
+/>
+
+### 문서 공동 작업자
+
+#### 호출 시점
+
+보호된 범위 또는 시트의 사용자를 선택할 때 필요합니다.
+
+#### 흐름
+
+![흐름](./usip/list-collaborators.png)
+
+#### API 정의
+
+<APITable
+  request={{
+    method: 'POST',
+    headers: '사용자 지정 헤더가 없으며 사용자 헤더는 전달되지 않습니다',
+    parametersType: 'Body',
+    parameters: [{
+      name: 'unitIDs',
+      type: 'array[string]',
+      example: '["unit_id1", "unit_id2"]',
+      description: '문서 ID',
+    }, {
+      name: 'unitsMetaDatas',
+      type: 'object',
+      example: '{"unit_id1":"unit_id1의 메타데이터","unit_id2":"unit_id2의 메타데이터"}',
+      description: 'unitIDs 매개변수에 포함된 각 유닛의 메타데이터이며 v0.20.0부터 지원됩니다',
+    }],
+    example: JSON.stringify({
+      unitIDs: ['unit_id1', 'unit_id2'],
+      unitsMetaDatas: { unit_id1: 'unit_id1의 메타데이터', unit_id2: 'unit_id2의 메타데이터' },
+    }, null, 2),
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'collaborators',
+      type: 'array[Object]',
+      description: '문서별로 그룹화된 공동 작업자',
+      properties: [{
+        name: 'unitID',
+        type: 'string',
+        example: 'unit_id1',
+        description: '문서 ID',
+      }, {
+        name: 'subjects',
+        type: 'array[Object]',
+        description: '공동 작업자 목록',
+        properties: [{
+          name: 'role',
+          type: 'string',
+          example: 'editor',
+          description: '역할: owner, editor, reader',
+        }, {
+          name: 'subject',
+          type: 'Object',
+          description: '공동 작업자 정보',
+          properties: [{
+            name: 'type',
+            type: 'string',
+            example: 'user',
+            description: '"user"여야 합니다',
+          }, {
+            name: 'id',
+            type: 'string',
+            example: 'acdef12555b12',
+            description: '사용자 ID',
+          }, {
+            name: 'name',
+            type: 'string',
+            example: 'alice',
+            description: '사용자 이름',
+          }, {
+            name: 'avatar',
+            type: 'string',
+            example: 'https://image.ai/36554',
+            description: '아바타 URL',
+          }],
+        }],
+      }],
+    }],
+    example: JSON.stringify({
+      collaborators: [
+        {
+          unitID: 'unit_id1',
+          subjects: [
+            {
+              subject: {
+                id: '1',
+                name: 'alice',
+                avatar: 'https://image.ai/36554',
+                type: 'user',
+              },
+              role: 'owner',
+            },
+            {
+              subject: {
+                id: '2',
+                name: 'bob',
+                avatar: 'https://image.ai/36559',
+                type: 'user',
+              },
+              role: 'editor',
+            },
+          ],
+        },
+      ],
+    }, null, 2),
+  }}
+/>
+
+### 마지막 편집 시간 알림
+
+#### 호출 시점
+
+사용자의 시스템에서 마지막 편집 시간을 표시할 때 호출됩니다.
+
+#### API 정의
+
+<APITable
+  request={{
+    method: 'POST',
+    headers: '사용자 지정 헤더가 없으며 사용자 헤더는 전달되지 않습니다',
+    parametersType: 'Body',
+    parameters: [{
+      name: 'unitID',
+      type: 'string',
+      example: 'acff-adebc125e45b',
+      description: '문서 ID',
+    }, {
+      name: 'editTimeUnixMs',
+      type: 'int',
+      example: '1762591632345',
+      description: '밀리초 단위 Unix 타임스탬프',
+    }, {
+      name: 'metaData',
+      type: 'string',
+      example: '{"tenantId":"company1"}',
+      description: '유닛과 연결된 메타데이터입니다. v0.20.0부터 지원됩니다',
+    }],
+    example: JSON.stringify({
+      unitID: 'unit_id1',
+      editTimeUnixMs: 1762591632345,
+      metaData: { tenantId: 'company1' },
+    }, null, 2),
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [],
+    example: JSON.stringify({}, null, 2),
+  }}
+/>
+
+## USIP 구성 [#usip-configuration]
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    ```properties title=".env.custom"
+    USIP_ENABLED=true
+    USIP_URI_CREDENTIAL=https://your-domain/usip/credential
+    USIP_URI_USERINFO=https://your-domain/usip/userinfo
+    USIP_URI_ROLE=https://your-domain/usip/role
+    USIP_URI_COLLABORATORS=https://your-domain/usip/collaborators
+    USIP_URI_UNITEDITTIME=https://your-domain/usip/unit-edit-time
+
+    USIP_APIKEY=
+
+    AUTH_PERMISSION_ENABLE_OBJ_INHERIT=false
+    AUTH_PERMISSION_CUSTOMER_STRATEGIES=
+    ```
+  </Tab>
+  <Tab label="K8s">
+    ```yaml title="values.yaml"
+    universer:
+      config:
+        usip:
+          enabled: true
+          uri:
+            userinfo: 'https://your-domain/usip/userinfo'
+            collaborators: 'https://your-domain/usip/collaborators'
+            role: 'https://your-domain/usip/role'
+            credential: 'https://your-domain/usip/credential'
+            unitEditTime: 'https://your-domain/usip/unit-edit-time'
+          apikey: ''
+        auth:
+          permission:
+            enableObjInherit: false
+            customerStrategies: ''
+    ```
+  </Tab>
+</Tabs>
+
+**참고**: USIP를 활성화하면 엔드포인트 다섯 개를 모두 구성하고 구현해야 합니다.
+
+USIP 서비스가 공용 네트워크에 노출된 경우 API 요청의 보안을 위해 AI API 요청과 유사한 메커니즘을 사용할 수 있습니다. API 키를 생성하여 Univer 서버에 구성하세요. USIP API를 호출하면 요청에 x-api-key: API_KEY 헤더가 포함되며, 이 헤더를 사용해 요청의 유효성을 확인할 수 있습니다.
+
+## 권한 모델
+
+Univer는 `owner`, `editor`, `reader`라는 고정 역할을 사용하는 RBAC를 적용합니다. 권한 포인트에 필요한 최소 역할은 재정의할 수 있습니다.
+
+기본 권한 포인트와 최소 역할 요구 사항은 다음과 같습니다.
+
+| 권한 | 열거형 | 설명 | 최소 역할 | 역할 열거형 |
+|:-------|:---------|:-------|:-------|:-------|
+| ManageCollaborator | 2 | 공동 작업자 초대/삭제 | owner | 2 |
+| Copy | 6 | 콘텐츠 복사 | reader | 0 |
+| Print | 3 | 인쇄 | editor | 1 |
+| Duplicate | 4 | 문서 복제 | editor | 1 |
+| Share | 7 | 문서 공유 | reader | 0 |
+| Export | 8 | 내보내기 | editor | 1 |
+| Comment | 5 | 댓글 작성 | reader | 0 |
+| View | 0 | 보기 | reader | 0 |
+| MoveSheet | 25 | 워크시트 이동 | editor | 1 |
+| DeleteSheet | 26 | 워크시트 삭제 | editor | 1 |
+| HideSheet | 27 | 워크시트 숨기기 | editor | 1 |
+| CopySheet | 28 | 워크시트 복사 | editor | 1 |
+| RenameSheet | 29 | 워크시트 이름 바꾸기 | editor | 1 |
+| CreateSheet | 30 | 워크시트 만들기 | editor | 1 |
+| SetCellStyle | 33 | 셀 스타일 설정 | editor | 1 |
+| SetCellValue | 34 | 셀 값 설정 | editor | 1 |
+| InsertHyperlink | 16 | 하이퍼링크 삽입 | editor | 1 |
+| Sort | 17 | 정렬 | editor | 1 |
+| Filter | 18 | 필터 | editor | 1 |
+| PivotTable | 19 | 피벗 테이블 | editor | 1 |
+| RecoverHistory | 43 | 기록 복구 | editor | 1 |
+| ViewHistory | 44 | 기록 보기 | reader | 0 |
+| SelectProtectedCells | 31 | 보호된 셀 선택 | editor | 1 |
+| SelectUnProtectedCells | 32 | 보호되지 않은 셀 선택 | editor | 1 |
+| SetRowStyle | 35 | 행 스타일 설정 | editor | 1 |
+| SetColumnStyle | 36 | 열 스타일 설정 | editor | 1 |
+| InsertRow | 37 | 행 삽입 | editor | 1 |
+| InsertColumn | 38 | 열 삽입 | editor | 1 |
+| DeleteRow | 39 | 행 삭제 | editor | 1 |
+| DeleteColumn | 40 | 열 삭제 | editor | 1 |
+| Delete | 42 | 문서 삭제 | owner | 2 |
+| CreatePermissionObject | 45 | 보호된 범위/시트 만들기 | editor | 1 |
+
+복사와 인쇄를 소유자에게만 허용하려면 다음과 같이 설정합니다.
+
+```properties title=".env.custom"
+AUTH_PERMISSION_CUSTOMER_STRATEGIES=[{"action": 3, "role": 2}, {"action": 6, "role": 2}]
+```
+
+K8s 구성:
+
+```yaml title="values.yaml"
+universer:
+  config:
+    auth:
+      permission:
+        customerStrategies: '[ {"action": 3, "role": 2}, {"action": 6, "role": 2} ]'
+```
+
+### 객체 권한 상속
+
+기본적으로 문서 소유자에게 해당 문서 내의 모든 "보호된 영역/하위 테이블"에 대한 소유자 권한이 자동으로 부여되지는 않습니다. 문서 소유자에게 문서 내 모든 하위 객체에 대한 전체 권한을 조건 없이 부여하려면 다음 설정을 구성하여 권한 상속을 활성화할 수 있습니다.
+
+```properties title=".env.custom"
+AUTH_PERMISSION_ENABLE_OBJ_INHERIT=true
+```
+
+K8s 구성:
+
+```yaml title="values.yaml"
+universer:
+  config:
+    auth:
+      permission:
+        enableObjInherit: true
+```
+
+## 구현 예제
+
+참조: https://github.com/dream-num/usip-example
+
+## 클라이언트 헤더
+
+사용자 지정 헤더(예: Authorization 토큰)를 추가해야 하는 경우 HTTPService 인터셉터를 사용하세요.
+
+<Tabs items={['프리셋', '플러그인']}>
+  <Tab>
+    ```typescript
+    import { HTTPService } from '@univerjs/preset-sheets-core'
+
+    const injector = univer.__getInjector()
+    const httpService = injector.get(HTTPService)
+    httpService.registerHTTPInterceptor({
+      priority: 0,
+      interceptor: (request, next) => {
+        // request.headers.set('Authorization', 'Bearer your-token-here')
+        return next(request)
+      },
+    })
+    ```
+  </Tab>
+  <Tab>
+    ```typescript
+    import { HTTPService } from '@univerjs/network'
+
+    const injector = univer.__getInjector()
+    const httpService = injector.get(HTTPService)
+    httpService.registerHTTPInterceptor({
+      priority: 0,
+      interceptor: (request, next) => {
+        // request.headers.set('Authorization', 'Bearer your-token-here')
+        return next(request)
+      },
+    })
+    ```
+  </Tab>
+</Tabs>
+
+[편집 기록](/guides/sheets/features/edit-history)을 사용하는 경우 HistoryUniver에도 같은 인터셉터를 적용하세요.
+
+```typescript
+historyLoaderService.historyUniver$.subscribe((historyUniver) => {
+  if (!historyUniver) return
+
+  const injector = historyUniver.__getInjector()
+  const httpService = injector.get(HTTPService)
+  httpService.registerHTTPInterceptor({
+    priority: 0,
+    interceptor: (request, next) => {
+      // request.headers.set('Authorization', 'Bearer your-token-here')
+      return next(request)
+    },
+  })
+})
+```
+
+전체 예제는 [Univer Pro Sheet 스타터 키트](https://github.com/dream-num/univer-pro-sheet-start-kit/blob/main/src/setup-univer.ts)를 참조하세요.

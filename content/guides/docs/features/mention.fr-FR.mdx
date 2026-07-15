@@ -1,0 +1,119 @@
+---
+title: Mentions
+icon: AtSign
+---
+
+<MetaData
+  lang="fr-FR"
+  meta={{
+    plugins: [{
+      client: '@univerjs/docs-mention-ui',
+      style: '@univerjs/docs-mention-ui/lib/index.css',
+    }],
+    server: false,
+  }}
+/>
+
+Les mentions permettent aux utilisateurs de saisir `@` dans Univer Docs et d’insérer une entité, par exemple une personne, une équipe, un ticket ou tout autre objet de votre application. La mention insérée est stockée sous forme de plage personnalisée `CustomRangeType.MENTION` dans le corps du document.
+
+## Interactions
+
+- Saisissez `@` dans le document pour ouvrir la fenêtre contextuelle des mentions.
+- Continuez à saisir du texte pour transmettre une valeur `search` à la source de données des mentions.
+- Sélectionnez une suggestion pour remplacer le texte de déclenchement saisi par une entité telle que `@Alice`.
+- Déplacez le curseur ou effacez le texte situé avant le caractère de déclenchement pour fermer la fenêtre contextuelle.
+
+## Mode plugin
+
+### Installation
+
+```package-install
+npm install @univerjs/docs-mention-ui
+```
+
+### Utilisation
+
+```typescript
+import { UniverDocsMentionUIPlugin } from '@univerjs/docs-mention-ui' // [!code ++]
+
+import '@univerjs/docs-mention-ui/lib/index.css' // [!code ++]
+
+univer.registerPlugin(UniverDocsMentionUIPlugin) // [!code ++]
+```
+
+## Fournir des suggestions de mentions
+
+La fenêtre contextuelle des mentions récupère ses suggestions auprès de `IMentionIOService`. Univer fournit une implémentation locale par défaut qui renvoie l’utilisateur actuel. Dans les applications en production, elle est généralement remplacée par une implémentation reliée à un annuaire d’utilisateurs, un service d’équipe, un outil de suivi des tickets ou une autre source de données métier.
+
+```typescript
+import type { IListMentionParam, IListMentionResponse, IMentionIOService } from '@univerjs/core'
+import { MentionType } from '@univerjs/core'
+
+class DirectoryMentionIOService implements IMentionIOService {
+  async list(params: IListMentionParam): Promise<IListMentionResponse> {
+    const users = await searchUsers(params.search ?? '')
+
+    return {
+      list: [{
+        type: MentionType.PERSON,
+        title: 'People',
+        metadata: {},
+        mentions: users.map(user => ({
+          objectType: MentionType.PERSON,
+          objectId: user.id,
+          label: user.name,
+          metadata: {
+            icon: user.avatarUrl,
+            email: user.email,
+          },
+        })),
+      }],
+      page: params.page,
+      size: params.size,
+      total: users.length,
+    }
+  }
+}
+```
+
+Enregistrez le service au moyen du mécanisme de remplacement des dépendances d’Univer lors de la création de l’application.
+
+```typescript
+import { IMentionIOService, LocaleType, Univer } from '@univerjs/core'
+
+const univer = new Univer({
+  locale: LocaleType.EN_US,
+  override: [
+    [IMentionIOService, { useClass: DirectoryMentionIOService }],
+  ],
+})
+```
+
+## Modèle de données
+
+Lorsqu’une mention est insérée, le texte visible est écrit dans `body.dataStream` et les métadonnées de l’entité sont conservées dans `body.customRanges`.
+
+```typescript
+const documentData = {
+  body: {
+    dataStream: 'Hello @Alice\\r\\n',
+    customRanges: [{
+      startIndex: 6,
+      endIndex: 11,
+      rangeId: 'mention-1',
+      rangeType: CustomRangeType.MENTION,
+      wholeEntity: true,
+      properties: {
+        id: 'mention-1',
+        label: 'Alice',
+        type: 'user',
+        email: 'alice@example.com',
+      },
+    }],
+  },
+}
+```
+
+<Callout type="info">
+  Les mentions sont des plages personnalisées du document. Si votre application stocke des champs supplémentaires dans `metadata`, veillez à ce qu’ils soient sérialisables afin que l’instantané du document puisse être enregistré et restauré en toute sécurité.
+</Callout>

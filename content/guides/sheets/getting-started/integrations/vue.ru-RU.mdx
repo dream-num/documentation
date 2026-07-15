@@ -1,0 +1,181 @@
+---
+title: Vue
+---
+
+<Callout>
+  Если вы хотите использовать компоненты Vue в качестве пользовательских компонентов, обратитесь к [этому разделу](/guides/sheets/ui/components#vue).
+</Callout>
+
+## Vue 3.x
+
+### Перед интеграцией
+
+- Не используйте прокси для экземпляров Univer и FUniver: это может привести к непредсказуемым ошибкам или проблемам с производительностью.
+
+### Этапы интеграции
+
+1. Инициализируйте Univer в хуке `onMounted`
+2. Уничтожьте Univer в хуке `onBeforeUnmount`
+
+### Пример
+
+```vue
+<script lang="ts" setup>
+import type { FUniver, Univer } from '@univerjs/presets'
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+import UniverPresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
+
+import '@univerjs/preset-sheets-core/lib/index.css'
+
+const container = ref<HTMLElement | null>(null)
+
+let univerInstance: Univer | null = null
+let univerAPIInstance: FUniver | null = null
+
+onMounted(() => {
+  const { univer, univerAPI } = createUniver({
+    locale: LocaleType.EN_US,
+    locales: {
+      [LocaleType.EN_US]: mergeLocales(
+        UniverPresetSheetsCoreEnUS,
+      ),
+    },
+    presets: [
+      UniverSheetsCorePreset({
+        container: container.value as HTMLElement,
+      }),
+    ],
+  })
+
+  univerAPI.createWorkbook({})
+
+  univerInstance = univer
+  univerAPIInstance = univerAPI
+})
+
+onBeforeUnmount(() => {
+  univerInstance?.dispose()
+  univerAPIInstance?.dispose()
+  univerInstance = null
+  univerAPIInstance = null
+})
+</script>
+
+<template>
+  <div ref="container" />
+</template>
+```
+
+## Vue 2.x
+
+### Перед интеграцией
+
+- При установке `@univerjs/presets` с помощью pnpm может потребоваться установить `react` и `react-dom` вручную.
+- Если в среде разработки появляется предупреждение "ResizeObserver loop limit exceeded", его можно проигнорировать или устранить с помощью приведённого ниже фрагмента кода:
+
+```typescript
+if (process.env.NODE_ENV === 'development') {
+  const _ResizeObserver = window.ResizeObserver
+  function debounce(fn, delay) {
+    let timer = null
+    return function () {
+      if (timer) {
+        clearTimeout(timer)
+      }
+      timer = setTimeout(() => {
+        fn.apply(this, arguments)
+      }, delay)
+    }
+  }
+  window.ResizeObserver = class ResizeObserver extends _ResizeObserver {
+    constructor(callback) {
+      callback = debounce(callback, 50)
+      super(callback)
+    }
+  }
+}
+```
+
+- Если в качестве инструмента сборки используется Vue CLI 3.x/4.x (на базе Webpack 4.x), необходимо вручную заменить сопоставленные пути фактическими:
+
+```javascript
+// vue.config.js
+const path = require('node:path')
+
+module.exports = {
+  transpileDependencies: ['@wendellhu/redi'],
+  configureWebpack: {
+    resolve: {
+      alias: {
+        '@univerjs/core/facade': path.resolve(__dirname, 'node_modules/@univerjs/core/lib/facade.js'),
+        '@univerjs/engine-formula/facade': path.resolve(__dirname, 'node_modules/@univerjs/engine-formula/lib/facade.js'),
+        '@univerjs/preset-sheets-core/lib/index.css': path.resolve(__dirname, 'node_modules/@univerjs/preset-sheets-core/lib/index.css'),
+        '@univerjs/preset-sheets-core/locales/en-US': path.resolve(__dirname, 'node_modules/@univerjs/preset-sheets-core/lib/es/locales/en-US.js'),
+        '@univerjs/design/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/design/lib/es/locale/en-US.js'),
+        '@univerjs/docs-ui/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/docs-ui/lib/es/locale/en-US.js'),
+        '@univerjs/sheets-formula-ui/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/sheets-formula-ui/lib/es/locale/en-US.js'),
+        '@univerjs/sheets-formula/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/sheets-formula/lib/es/locale/en-US.js'),
+        '@univerjs/sheets-numfmt-ui/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/sheets-numfmt-ui/lib/es/locale/en-US.js'),
+        '@univerjs/sheets-ui/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/sheets-ui/lib/es/locale/en-US.js'),
+        '@univerjs/sheets/facade': path.resolve(__dirname, 'node_modules/@univerjs/sheets/lib/facade.js'),
+        '@univerjs/sheets/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/sheets/lib/es/locale/en-US.js'),
+        '@univerjs/ui/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/ui/lib/es/locale/en-US.js'),
+        '@wendellhu/redi/react-bindings': path.resolve(__dirname, 'node_modules/@wendellhu/redi/dist/esm/react-bindings/index.js'),
+        // ...
+      },
+    },
+  },
+}
+```
+
+### Этапы интеграции
+
+1. Инициализируйте Univer в хуке `mounted`
+2. Уничтожьте Univer в хуке `beforeDestroy`
+
+### Пример
+
+```vue
+<script>
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+import UniverPresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+import '@univerjs/preset-sheets-core/lib/index.css'
+
+export default {
+  mounted() {
+    const { univer, univerAPI } = createUniver({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: mergeLocales(
+          UniverPresetSheetsCoreEnUS,
+        ),
+      },
+      presets: [
+        UniverSheetsCorePreset({
+          container: this.$refs.container,
+        }),
+      ],
+    })
+
+    univerAPI.createWorkbook({})
+
+    this.univerInstance = univer
+    this.univerAPIInstance = univerAPI
+  },
+  beforeUnmount() {
+    this.univerInstance?.dispose()
+    this.univerAPIInstance?.dispose()
+    this.univerInstance = null
+    this.univerAPIInstance = null
+  },
+}
+</script>
+
+<template>
+  <div ref="container" />
+</template>
+```

@@ -1,0 +1,140 @@
+---
+title: 문제 해결
+---
+
+이 가이드에서는 설치, 시작, 접속, USIP, 가져오기/내보내기 및 업그레이드 중에 발생하는 일반적인 문제를 다룹니다.
+
+## 범위
+
+- Docker Compose 또는 K8s 배포
+- USIP 및 이벤트 동기화 통합
+- 가져오기/내보내기 문제
+
+## 빠른 진단
+
+| 증상 | 즉시 수행할 작업 | 다음 단계 |
+| --- | --- | --- |
+| 원클릭 스크립트가 멈춤 | `curl -I https://get.univer.ai` | 오프라인 패키지 사용 |
+| 데모 UI에 접속할 수 없음 | `cd univer-server && bash run.sh start` | `docker compose ps` |
+| USIP 데모의 8080 포트에서 404 반환 | `USIP_ENABLED=true`가 `.env.custom`에 있는지 확인 | `bash run.sh restart` |
+| Helm Pod가 Pending 상태임 | `kubectl describe pod` | 이미지/리소스/PVC 확인 |
+| 가져오기/내보내기가 Pending 상태임 | temporal/exchange/universer 로그 확인 | 가져오기/내보내기 섹션 참고 |
+
+## Docker Compose 문제
+
+### 설치 실패
+
+1. 네트워크를 확인합니다.
+
+```bash
+curl -I https://get.univer.ai
+dig get.univer.ai
+```
+
+2. Docker 설치 충돌을 확인합니다.
+
+```bash
+systemctl status docker
+ps -ef | grep dockerd
+```
+
+### 서비스가 실행되지 않거나 반복해서 다시 시작됨
+
+```bash
+cd univer-server
+bash run.sh start
+docker compose ps
+docker compose logs --tail=200 <service>
+```
+
+일반적인 원인으로는 포트 충돌, `.env.custom`이 로드되지 않음, 리소스 부족 등이 있습니다.
+
+### 데모 UI 문제
+
+- 포트 충돌: `lsof -i :3010`
+- WebSocket 연결 끊김: 리버스 프록시/CORS를 확인하세요.
+- 문서 자동 생성 실패: universer 로그를 확인하세요.
+
+## K8s 문제
+
+### Pod Pending
+
+```bash
+kubectl describe pod <pod> -n univer
+```
+
+이미지 가져오기, PVC 및 노드 리소스를 확인하세요.
+
+### CrashLoopBackOff
+
+```bash
+kubectl logs <pod> -n univer --previous
+```
+
+### Ingress / 도메인 접속 실패
+
+```bash
+dig univer.example.com
+kubectl get ingress -n univer
+kubectl get endpoints -n univer
+```
+
+## USIP 문제
+
+| 증상 | 원인 |
+| --- | --- |
+| 8080 포트가 응답하지 않음 | `bash run.sh start-demo-usip`가 실행되었는지 확인 |
+| USIP 활성화 후 401/403 발생 | 토큰 전달 및 사용자 응답 확인 |
+| 구성이 적용되지 않음 | `.env.custom` 수정 후 다시 시작 |
+
+## 가져오기/내보내기 Pending
+
+### 조사 절차
+
+1. VPN/프록시 비활성화 → `bash run.sh restart`
+2. 서비스 상태 → `docker compose ps`
+3. Temporal 로그 → `docker compose logs -f temporal`
+4. Exchange 로그 → `docker compose logs -f univer-worker-exchange`
+5. Universer 로그 → `docker compose logs -f universer`
+
+### 일반적인 오류
+
+- Temporal 시작 실패: 포트 충돌 또는 데이터베이스 문제
+- Exchange 시간 초과: Temporal 주소 확인
+
+예: `exchange/config.yaml.template`을 업데이트한 후 다시 시작합니다.
+
+```text
+addr: no-txt:///${TEMPORAL_HOST}:${TEMPORAL_PORT}
+```
+
+## 업그레이드 및 제거
+
+- Docker Compose 업그레이드: 상위 디렉터리에서 설치 프로그램을 다시 실행합니다.
+- K8s 업그레이드: `helm upgrade --install ... -n univer`
+- 제거 후에도 데이터가 남아 있음: PVC 회수 정책 또는 볼륨을 확인합니다.
+
+## 로그 및 수집
+
+| 서비스 | 명령 |
+| --- | --- |
+| temporal | `docker compose logs -f temporal` |
+| exchange | `docker compose logs -f univer-worker-exchange` |
+| universer | `docker compose logs -f universer` |
+
+로그를 패키징합니다.
+
+```bash
+mkdir -p logs_collect && \
+docker compose logs temporal > logs_collect/temporal.log 2>&1 && \
+docker compose logs universer > logs_collect/universer.log 2>&1 && \
+tar czf univer-troubleshoot-logs.tar.gz logs_collect
+```
+
+## 체크리스트
+
+- 서비스가 Up / Pod Ready 상태임
+- temporal/exchange에 오류가 없음
+- 포트와 도메인에 접속할 수 있음
+- 다시 시작한 후 구성 변경 사항이 적용됨
+- 가져오기/내보내기 작업이 완료됨

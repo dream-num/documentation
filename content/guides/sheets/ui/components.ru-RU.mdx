@@ -1,0 +1,113 @@
+---
+title: Пользовательские компоненты
+description: Univer предлагает несколько способов интеграции пользовательских компонентов, с помощью которых можно расширять и настраивать его функциональность. В этом руководстве рассматриваются наиболее распространённые способы.
+icon: Component
+---
+
+Univer не передаёт компоненты напрямую в функции отрисовки в качестве параметров. Чтобы использовать компоненты в различных точках монтирования, сначала зарегистрируйте их в Univer через Facade API.
+
+Если вы не знаете, как получить экземпляр Facade API, обратитесь к разделу [Facade API](/guides/sheets/getting-started/facade).
+
+<include cwd>content/guides/shared/ui/components.ru-RU.mdx</include>
+
+#### Добавление всплывающего окна к ячейкам
+
+Метод `FRange.attachPopup` позволяет добавить пользовательское всплывающее окно к определённому диапазону ячеек.
+
+- Всплывающее окно — это временный DOM-элемент, прикреплённый к ячейке. Обычно он служит для отображения временной информации о состоянии и не поддерживает постоянное хранение данных.
+- Метод [`FRange.attachPopup(popup: IFCanvasPopup)`](https://docs.univer.ai/reference/facade/range#attachpopup) позволяет добавить пользовательское всплывающее окно к определённому диапазону ячеек.
+- Всплывающее окно прикрепляется к краям ячейки и автоматически меняет положение и ориентацию, если оказывается перекрыто.
+
+```tsx
+// [!code word:MyCustomPopupComponent]
+// You should register the component at an appropriate time (e.g., after Univer has loaded)
+univerAPI.registerComponent(
+  'MyCustomPopupComponent',
+  () => <div>Hello Univer!</div>,
+)
+
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:J10')
+
+// Attach the popup to the first cell of the range
+// If `disposable` is null, it indicates that the popup was not added successfully
+const disposable = fRange.attachPopup({
+  componentKey: 'MyCustomPopupComponent',
+})
+
+// Remove the popup
+disposable.dispose()
+```
+
+#### Добавление предупреждения
+
+Метод `FRange.attachAlertPopup` позволяет добавить всплывающее предупреждение к начальной ячейке указанного диапазона.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+
+const disposable = fRange.attachAlertPopup({
+  key: 'unique-alert-key', // Unique identifier
+  title: '这是一个警告！',
+  message: '这是一个警告！',
+  width: 300,
+  height: 200,
+  // 0: Information
+  // 1: Warning
+  // 2: Error
+  type: 0,
+})
+
+// Remove the alert later
+disposable.dispose()
+```
+
+#### Добавление плавающего DOM-элемента на лист
+
+Метод `FWorksheet.addFloatDomToPosition` позволяет добавить на лист плавающий DOM-элемент.
+
+- Перед использованием этого метода установите плагин `@univerjs/sheets-drawing-ui` или пресет `@univerjs/preset-sheets-drawing`.
+- Плавающий DOM-элемент — это компонент, который располагается поверх листа, поддерживает перетаскивание и постоянное хранение данных.
+- Вызывайте этот метод после завершения отрисовки Univer.
+- `componentKey`: уникальный идентификатор компонента, по которому на него можно ссылаться в Univer.
+- [Полное описание параметров](https://github.com/dream-num/univer/blob/dev/packages/sheets-drawing-ui/src/facade/f-worksheet.ts#L32)
+
+```tsx
+// [!code word:MyCustomFloatDOMComponent]
+// You should register the component at an appropriate time (e.g., after Univer has loaded)
+univerAPI.registerComponent(
+  'MyCustomFloatDOMComponent',
+  ({ data }) => (
+    <div>
+      Hello
+      {data?.label}
+      !
+    </div>
+  ),
+)
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+
+// Add a floating DOM to the worksheet
+// If `disposable` is null, it indicates that the floating DOM was not added successfully
+const disposable = fWorksheet.addFloatDomToPosition({
+  componentKey: 'MyCustomFloatDOMComponent',
+  initPosition: {
+    startX: 100,
+    endX: 200,
+    startY: 100,
+    endY: 200,
+  },
+
+  // The data for the component
+  data: {
+    label: 'Univer',
+  },
+})
+
+// Remove the floating DOM
+disposable.dispose()
+```

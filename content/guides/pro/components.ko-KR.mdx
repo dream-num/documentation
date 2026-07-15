@@ -1,0 +1,138 @@
+---
+title: 기본 제공 컴포넌트 구성
+---
+
+이 페이지는 Univer 기본 제공 컴포넌트(PostgreSQL, RabbitMQ, MinIO)를 사용하는 경우에만 적용됩니다. 이러한 자격 증명은 최초 초기화 시에만 적용됩니다. 배포 후에는 각 컴포넌트의 공식 절차에 따라 비밀번호를 변경하세요.
+
+## 기본 비밀번호 변경
+
+<Callout>
+  최초 배포 전에 설정하세요. 기존 인스턴스의 비밀번호는 자동으로 변경되지 않습니다.
+</Callout>
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    설치 디렉터리에 `.env.custom`을 만든 후 다음 명령을 실행합니다.
+
+    ```bash
+    bash run.sh
+    ```
+  </Tab>
+  <Tab label="K8s">
+    `values.yaml`을 만든 후 다음 명령을 실행합니다.
+
+    ```shell
+    helm install -n univer --create-namespace \
+      --set global.istioNamespace="univer" \
+      --values values.yaml \
+      univer-stack oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack
+    kubectl rollout restart -n univer deployment/collaboration-server
+    kubectl rollout restart -n univer deployment/universer
+    ```
+  </Tab>
+</Tabs>
+
+### PostgreSQL
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    ```properties title=".env.custom"
+    DATABASE_USERNAME=postgres
+    DATABASE_PASSWORD=postgres
+    ```
+  </Tab>
+  <Tab label="K8s">
+    ```yaml title="values.yaml"
+    global:
+      postgresql:
+        auth:
+          postgresPassword: postgres
+
+    universer:
+      config:
+        database:
+          username: postgres
+          password: postgres
+
+    temporal:
+      server:
+        config:
+          persistence:
+            default:
+              sql:
+                user: postgres
+                password: postgres
+
+            visibility:
+              sql:
+                user: postgres
+                password: postgres
+    ```
+  </Tab>
+</Tabs>
+
+참고:
+
+- 최초 초기화 시에만 적용됩니다.
+- K8s에서는 관리자 비밀번호만 설정할 수 있으며 기본 관리자 사용자는 `postgres`입니다.
+- `universer`와 `temporal`은 동일한 데이터베이스 자격 증명을 사용해야 합니다.
+
+### RabbitMQ
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    ```properties title=".env.custom"
+    RABBITMQ_USERNAME=guest
+    RABBITMQ_PASSWORD=guest
+    ```
+  </Tab>
+  <Tab label="K8s">
+    ```yaml title="values.yaml"
+    rabbitmq:
+      auth:
+        username: guest
+        password: guest
+
+    universer:
+      config:
+        rabbitmq:
+          username: guest
+          password: guest
+    ```
+  </Tab>
+</Tabs>
+
+참고:
+
+- 기본 사용자 이름은 `guest`입니다. 프로덕션 환경에서는 변경하세요.
+- RabbitMQ 자격 증명을 변경한 후 `universer` 구성도 그에 맞게 변경하세요.
+
+### S3 (MinIO)
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    ```properties title=".env.custom"
+    S3_USER=minio
+    S3_PASSWORD=minio123456
+    ```
+  </Tab>
+  <Tab label="K8s">
+    ```yaml title="values.yaml"
+    minio:
+      auth:
+        rootUser: admin
+        rootPassword: minioadmin
+
+    universer:
+      config:
+        s3:
+          accessKeyID: admin
+          accessKeySecret: minioadmin
+    ```
+  </Tab>
+</Tabs>
+
+참고:
+
+- `rootUser/rootPassword`는 MinIO 관리자 자격 증명입니다.
+- `accessKeyID/accessKeySecret`는 MinIO 계정과 일치해야 합니다.

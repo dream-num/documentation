@@ -1,0 +1,85 @@
+---
+title: Жизненный цикл
+---
+
+Во время работы приложение Univer последовательно проходит несколько этапов жизненного цикла. Разработчику важно понимать эти этапы, чтобы знать, когда можно безопасно обращаться к бизнес-экземплярам и элементам DOM или запускать длительные асинхронные операции. Каждый этап подходит для определенных задач инициализации, отрисовки и оптимизации производительности. Отслеживая изменения жизненного цикла, разработчик может вовремя реагировать на изменения состояния системы, расширять функциональность, повышать производительность и улучшать взаимодействие с приложением.
+
+Жизненный цикл Univer состоит из четырех основных этапов:
+
+<Mermaid chart="flowchart LR; A([Starting]) --> B([Ready]) --> C([Rendered]) -->D([Steady])" />
+
+1. **Starting**: система начинает инициализацию, а плагины выполняют внедрение зависимостей и базовую настройку.
+2. **Ready**: создан первый бизнес-экземпляр, и плагины инициализируют основные функции.
+3. **Rendered**: интерфейс впервые отрисован, поэтому можно безопасно работать с DOM и выполнять связанную с интерфейсом инициализацию.
+4. **Steady**: система перешла в стабильное состояние, подходящее для отложенной загрузки, некритичных задач и других операций оптимизации.
+
+Момент запуска разных типов плагинов и компонентов в рамках жизненного цикла может отличаться, но общий процесс всегда следует описанному выше порядку. События жизненного цикла позволяют точно управлять моментом загрузки и выполнения функций.
+
+<Callout>
+  Подробнее об устройстве жизненного цикла Univer и времени запуска отдельных плагинов см. в разделе [«Архитектура Univer: жизненный цикл плагина»](/guides/recipes/architecture/univer#plugin-lifecycle).
+</Callout>
+
+## Facade API
+
+### Добавление обработчиков
+
+Univer предоставляет единый интерфейс подписки на события, с помощью которого можно отслеживать изменения жизненного цикла через Facade API:
+
+```typescript
+const disposable = univerAPI.addEvent(
+  univerAPI.Event.LifeCycleChanged,
+  ({ stage }) => {
+    if (stage === univerAPI.Enum.LifecycleStages.Steady) {
+      // Execute custom logic in the Steady stage
+    }
+  },
+)
+```
+
+### Удаление обработчиков
+
+Чтобы удалить обработчик, используйте возвращенный объект `disposable`:
+
+```typescript
+disposable.dispose()
+```
+
+### События и перечисления жизненного цикла
+
+Разработчикам доступны следующие события и перечисления жизненного цикла:
+
+- Имя события: `univerAPI.Event.LifeCycleChanged`
+
+- Перечисления этапов жизненного цикла:
+  - `univerAPI.Enum.LifecycleStages.Starting`
+  - `univerAPI.Enum.LifecycleStages.Ready`
+  - `univerAPI.Enum.LifecycleStages.Rendered`
+  - `univerAPI.Enum.LifecycleStages.Steady`
+
+### Пример
+
+<Callout type="warning" title="Внимание">
+  `univerAPI.Event.LifeCycleChanged` отражает только изменения жизненного цикла, поэтому на этапе `Starting` события не возникают.
+</Callout>
+
+```typescript
+const disposable = univerAPI.addEvent(
+  univerAPI.Event.LifeCycleChanged,
+  ({ stage }) => {
+    switch (stage) {
+      case univerAPI.Enum.LifecycleStages.Ready:
+        console.log('The business instance has been created, you can perform core initialization')
+        break
+      case univerAPI.Enum.LifecycleStages.Rendered:
+        console.log('The interface has been rendered, you can safely manipulate the DOM')
+        break
+      case univerAPI.Enum.LifecycleStages.Steady:
+        console.log('The system is stable, you can perform delayed loading and other optimization operations')
+        break
+    }
+  },
+)
+
+// Remove the listener
+disposable.dispose()
+```

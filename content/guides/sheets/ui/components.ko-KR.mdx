@@ -1,0 +1,113 @@
+---
+title: 사용자 지정 컴포넌트
+description: Univer는 사용자 지정 컴포넌트를 통합하는 여러 방법을 제공하므로 기능을 확장하고 원하는 대로 조정할 수 있습니다. 이 가이드에서는 자주 사용하는 몇 가지 방법을 소개합니다.
+icon: Component
+---
+
+Univer는 컴포넌트를 렌더링 함수에 매개변수로 직접 전달하지 않습니다. 여러 마운트 지점에서 컴포넌트를 사용하려면 먼저 Facade API를 통해 Univer에 등록해야 합니다.
+
+Facade API 인스턴스를 가져오는 방법이 익숙하지 않다면 [Facade API](/guides/sheets/getting-started/facade)를 참고하세요.
+
+<include cwd>content/guides/shared/ui/components.ko-KR.mdx</include>
+
+#### 셀에 팝업 연결
+
+`FRange.attachPopup` 메서드를 사용하면 특정 셀 범위에 사용자 지정 팝업을 연결할 수 있습니다.
+
+- 팝업은 셀에 연결되는 임시 DOM 요소입니다. 일반적으로 일시적인 상태 정보를 표시하는 데 사용하며 영구 저장은 지원하지 않습니다.
+- [`FRange.attachPopup(popup: IFCanvasPopup)`](https://docs.univer.ai/reference/facade/range#attachpopup) 메서드를 사용하면 특정 셀 범위에 사용자 지정 팝업을 연결할 수 있습니다.
+- 팝업은 셀 가장자리에 붙으며, 가려질 경우 위치와 방향을 자동으로 조정합니다.
+
+```tsx
+// [!code word:MyCustomPopupComponent]
+// You should register the component at an appropriate time (e.g., after Univer has loaded)
+univerAPI.registerComponent(
+  'MyCustomPopupComponent',
+  () => <div>Hello Univer!</div>,
+)
+
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:J10')
+
+// Attach the popup to the first cell of the range
+// If `disposable` is null, it indicates that the popup was not added successfully
+const disposable = fRange.attachPopup({
+  componentKey: 'MyCustomPopupComponent',
+})
+
+// Remove the popup
+disposable.dispose()
+```
+
+#### 경고 팝업 연결
+
+`FRange.attachAlertPopup` 메서드를 사용하면 지정한 범위의 시작 셀에 경고 팝업을 연결할 수 있습니다.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+
+const disposable = fRange.attachAlertPopup({
+  key: 'unique-alert-key', // Unique identifier
+  title: '这是一个警告！',
+  message: '这是一个警告！',
+  width: 300,
+  height: 200,
+  // 0: Information
+  // 1: Warning
+  // 2: Error
+  type: 0,
+})
+
+// Remove the alert later
+disposable.dispose()
+```
+
+#### 워크시트에 플로팅 DOM 추가
+
+`FWorksheet.addFloatDomToPosition` 메서드를 사용하면 워크시트에 플로팅 DOM을 추가할 수 있습니다.
+
+- 이 메서드를 사용하기 전에 `@univerjs/sheets-drawing-ui` 플러그인 또는 `@univerjs/preset-sheets-drawing` 프리셋을 설치해야 합니다.
+- 플로팅 DOM은 워크시트 위에 떠 있는 드래그 가능한 컴포넌트이며 영구 저장을 지원합니다.
+- Univer의 렌더링이 끝난 뒤 이 메서드를 호출해야 합니다.
+- `componentKey`: Univer 내부에서 컴포넌트를 참조하는 데 사용하는 고유 식별자입니다.
+- [전체 매개변수 정의](https://github.com/dream-num/univer/blob/dev/packages/sheets-drawing-ui/src/facade/f-worksheet.ts#L32)
+
+```tsx
+// [!code word:MyCustomFloatDOMComponent]
+// You should register the component at an appropriate time (e.g., after Univer has loaded)
+univerAPI.registerComponent(
+  'MyCustomFloatDOMComponent',
+  ({ data }) => (
+    <div>
+      Hello
+      {data?.label}
+      !
+    </div>
+  ),
+)
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+
+// Add a floating DOM to the worksheet
+// If `disposable` is null, it indicates that the floating DOM was not added successfully
+const disposable = fWorksheet.addFloatDomToPosition({
+  componentKey: 'MyCustomFloatDOMComponent',
+  initPosition: {
+    startX: 100,
+    endX: 200,
+    startY: 100,
+    endY: 200,
+  },
+
+  // The data for the component
+  data: {
+    label: 'Univer',
+  },
+})
+
+// Remove the floating DOM
+disposable.dispose()
+```

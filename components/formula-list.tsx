@@ -1,10 +1,19 @@
 import enUS from '@univerjs/sheets-formula/locale/en-US'
+import frFR from '@univerjs/sheets-formula/locale/fr-FR'
+import koKR from '@univerjs/sheets-formula/locale/ko-KR'
+import ruRU from '@univerjs/sheets-formula/locale/ru-RU'
 import zhCN from '@univerjs/sheets-formula/locale/zh-CN'
 import { getFormulaLocale } from '@/i18n/locale-config'
 
-const functionList = {
+type FormulaLocale = ReturnType<typeof getFormulaLocale>
+type FormulaList = Record<string, { description: string }>
+
+const functionList: Record<FormulaLocale, FormulaList> = {
   'zh-CN': zhCN['sheets-formula'].functionList,
   'en-US': enUS['sheets-formula'].functionList,
+  'fr-FR': frFR['sheets-formula'].functionList,
+  'ko-KR': koKR['sheets-formula'].functionList,
+  'ru-RU': ruRU['sheets-formula'].functionList,
 }
 
 interface IProps {
@@ -41,7 +50,7 @@ export default function FormuaList(props: IProps) {
                   {key}
                 </th>
                 <td className="px-6 py-4">
-                  {formula[key as keyof typeof formula].description}
+                  {formula[key].description}
                 </td>
               </tr>
             ))}

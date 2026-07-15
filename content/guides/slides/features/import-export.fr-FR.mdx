@@ -1,0 +1,99 @@
+---
+title: Importation et exportation
+icon: '#pro/FolderSync'
+---
+
+## Vue d’ensemble
+
+L’importation et l’exportation de diapositives sont des fonctionnalités Pro. Le client du navigateur enregistre le client d’échange partagé ainsi que le client d’échange Slides, tandis que la conversion, l’interrogation des tâches, le stockage et les URL de téléchargement signées sont fournis par votre déploiement Pro.
+
+```ts
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
+import ExchangeClientEnUS from '@univerjs-pro/exchange-client/locale/en-US'
+import { UniverSlidesExchangeClientPlugin } from '@univerjs-pro/slides-exchange-client'
+import SlidesExchangeClientEnUS from '@univerjs-pro/slides-exchange-client/locale/en-US'
+
+import '@univerjs-pro/exchange-client/lib/index.css'
+import '@univerjs-pro/exchange-client/facade'
+
+univer.registerPlugin(UniverExchangeClientPlugin)
+univer.registerPlugin(UniverSlidesExchangeClientPlugin)
+```
+
+## Installation
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/slides-exchange-client
+```
+
+## Configurer les points de terminaison
+
+`@univerjs-pro/slides-exchange-client` dépend de `@univerjs-pro/exchange-client`. Configurez les URL du serveur sur le client d’échange partagé, puis enregistrez le client Slides pour ajouter les opérations de menu PPTX. Importez `@univerjs-pro/exchange-client/lib/index.css` ; le package d’échange Slides ajoute des entrées de traduction, mais aucun point d’entrée CSS ou facade distinct.
+
+```ts
+univer.registerPlugin(UniverExchangeClientPlugin, {
+  uploadFileServerUrl: '/universer-api/stream/file/upload',
+  importServerUrl: '/universer-api/exchange/{type}/import',
+  exportServerUrl: '/universer-api/exchange/{type}/export',
+  getTaskServerUrl: '/universer-api/exchange/task/{taskID}',
+  signUrlServerUrl: '/universer-api/file/{fileID}/sign-url',
+  downloadEndpointUrl: location.origin,
+  maxTimeoutTime: 120000,
+})
+
+univer.registerPlugin(UniverSlidesExchangeClientPlugin)
+```
+
+L’espace réservé `{type}` est remplacé par `UniverInstanceType.UNIVER_SLIDE`. L’importation peut renvoyer soit l’identifiant d’une unité côté serveur, soit un instantané au format JSON. L’exportation téléverse un instantané des diapositives vers le service d’échange, attend le résultat de la tâche, signe l’identifiant du fichier renvoyé, puis télécharge le fichier PPTX.
+
+## API facade
+
+En mode plugin, importez une fois le package facade :
+
+```ts
+import '@univerjs-pro/exchange-client/facade'
+```
+
+Importez un fichier PPTX dans une unité côté serveur :
+
+```ts
+const unitId = await univerAPI.importPPTXToUnitIdAsync(file)
+```
+
+Importez un fichier PPTX sous forme de données de diapositives locales :
+
+```ts
+const slideData = await univerAPI.importPPTXToSnapshotAsync(file)
+
+if (slideData) {
+  univerAPI.createPresentation(slideData)
+}
+```
+
+Exportez la présentation actuelle :
+
+```ts
+const presentation = univerAPI.getActivePresentation()
+const file = await univerAPI.exportPPTXBySnapshotAsync(presentation.save())
+```
+
+Exportez une unité de diapositives côté serveur :
+
+```ts
+const file = await univerAPI.exportPPTXByUnitIdAsync(unitId)
+```
+
+## Comportement du menu
+
+Le client d’échange Slides ajoute des actions PPTX au menu :
+
+- `ImportPPTXOperation` importe le fichier dans une unité existante lorsque l’URL actuelle contient un paramètre de requête `unit` ; dans le cas contraire, il l’importe sous forme d’instantané local.
+- `ExportPPTXOperation` exporte l’instantané de la présentation actuelle.
+
+Vous pouvez transmettre une configuration `menu` à `UniverSlidesExchangeClientPlugin` si vous devez fusionner des règles personnalisées de visibilité ou d’ordre des éléments du menu.
+
+## Configuration associée
+
+- Enregistrez `UniverSlidesPlugin` avant le client d’échange afin que les unités Slides soient disponibles.
+- Utilisez les API du serveur Pro pour l’authentification, le stockage, la conversion, l’interrogation des tâches et les URL de téléchargement signées.
+- Gardez les packages d’impression, de tableaux et de graphiques activés si les fichiers PPTX importés peuvent contenir ces éléments.

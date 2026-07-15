@@ -1,0 +1,138 @@
+---
+title: Настройка встроенных компонентов
+---
+
+Эта страница относится только к встроенным компонентам Univer (PostgreSQL, RabbitMQ, MinIO). Эти учётные данные применяются только при первой инициализации. После развёртывания меняйте пароли в соответствии с официальной процедурой для каждого компонента.
+
+## Изменение паролей по умолчанию
+
+<Callout>
+  Настройте их до первого развёртывания. Пароли в существующих экземплярах не изменятся автоматически.
+</Callout>
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    Создайте `.env.custom` в каталоге установки, затем выполните:
+
+    ```bash
+    bash run.sh
+    ```
+  </Tab>
+  <Tab label="K8s">
+    Создайте `values.yaml`, затем выполните:
+
+    ```shell
+    helm install -n univer --create-namespace \
+      --set global.istioNamespace="univer" \
+      --values values.yaml \
+      univer-stack oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack
+    kubectl rollout restart -n univer deployment/collaboration-server
+    kubectl rollout restart -n univer deployment/universer
+    ```
+  </Tab>
+</Tabs>
+
+### PostgreSQL
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    ```properties title=".env.custom"
+    DATABASE_USERNAME=postgres
+    DATABASE_PASSWORD=postgres
+    ```
+  </Tab>
+  <Tab label="K8s">
+    ```yaml title="values.yaml"
+    global:
+      postgresql:
+        auth:
+          postgresPassword: postgres
+
+    universer:
+      config:
+        database:
+          username: postgres
+          password: postgres
+
+    temporal:
+      server:
+        config:
+          persistence:
+            default:
+              sql:
+                user: postgres
+                password: postgres
+
+            visibility:
+              sql:
+                user: postgres
+                password: postgres
+    ```
+  </Tab>
+</Tabs>
+
+Примечания:
+
+- Настройки действуют только при первой инициализации.
+- В K8s можно настроить только пароль администратора; имя администратора по умолчанию — `postgres`.
+- `universer` и `temporal` должны использовать одни и те же учётные данные базы данных.
+
+### RabbitMQ
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    ```properties title=".env.custom"
+    RABBITMQ_USERNAME=guest
+    RABBITMQ_PASSWORD=guest
+    ```
+  </Tab>
+  <Tab label="K8s">
+    ```yaml title="values.yaml"
+    rabbitmq:
+      auth:
+        username: guest
+        password: guest
+
+    universer:
+      config:
+        rabbitmq:
+          username: guest
+          password: guest
+    ```
+  </Tab>
+</Tabs>
+
+Примечания:
+
+- Имя пользователя по умолчанию — `guest`. Измените его для рабочей среды.
+- После изменения учётных данных RabbitMQ соответствующим образом обновите конфигурацию `universer`.
+
+### S3 (MinIO)
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    ```properties title=".env.custom"
+    S3_USER=minio
+    S3_PASSWORD=minio123456
+    ```
+  </Tab>
+  <Tab label="K8s">
+    ```yaml title="values.yaml"
+    minio:
+      auth:
+        rootUser: admin
+        rootPassword: minioadmin
+
+    universer:
+      config:
+        s3:
+          accessKeyID: admin
+          accessKeySecret: minioadmin
+    ```
+  </Tab>
+</Tabs>
+
+Примечания:
+
+- `rootUser/rootPassword` — учётные данные администратора MinIO.
+- `accessKeyID/accessKeySecret` должны соответствовать учётной записи MinIO.

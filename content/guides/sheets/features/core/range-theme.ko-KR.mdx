@@ -1,0 +1,153 @@
+---
+title: 범위 테마
+---
+
+표를 더욱 다채롭게 표현할 수 있도록 여러 사전 설정 범위 테마를 제공하며, Univer 사용자가 테마를 직접 사용자 지정할 수도 있습니다.
+
+## 기본 제공 테마
+
+`Excel Table default style`과 비슷한 테마를 `default`라는 이름의 기본 테마로 제공하며, `theme` 속성으로 설정할 수 있습니다. 다양한 색상 테마도 제공하며, 다음 Facade API로 현재 지원되는 테마를 확인할 수 있습니다.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const themes = fWorkbook.getRegisteredRangeThemes()
+console.log(themes) // ['default', 'light-blue', 'light-grey', 'light-red', 'light-orange', 'light-yellow', 'light-green', 'light-azure', 'light-indigo', 'light-purple', 'light-magenta', 'middle-blue', 'middle-grey', 'middle-red', 'middle-orange', 'middle-yellow', 'middle-green', 'middle-azure', 'middle-indigo', 'middle-purple', 'middle-magenta', 'dark-blue', 'dark-grey', 'dark-red', 'dark-orange', 'dark-yellow', 'dark-green', 'dark-azure', 'dark-indigo', 'dark-purple', 'dark-magenta']
+```
+
+![Range Theme](./range-theme/range-theme.png)
+
+## 테마 설정
+
+Univer에서는 다음 두 가지 방법으로 테마를 설정할 수 있습니다.
+- 스냅샷을 설정하여 테마 적용
+- Facade API를 통해 테마 적용
+
+### 스냅샷으로 테마 설정
+
+Univer의 테마는 스냅샷 리소스에 `SHEET_RANGE_THEME_MODEL_PLUGIN` 키로 저장됩니다. 데이터 구조는 다음과 같습니다.
+
+```typescript
+interface IRangeThemeRangeInfo {
+  range: IRange
+  unitId: string
+  subUnitId: string
+}
+
+interface IRangeThemeStyleRule {
+  rangeInfo: IRangeThemeRangeInfo
+  themeName: string
+}
+
+interface ISheetRangeThemeModelJSON {
+  // JSON storing the range and theme information for setting themes, the key is the id, please ensure it is not repeated, the value is the corresponding range information and template name.
+  rangeThemeStyleRuleMap: Record<string, IRangeThemeStyleRule>
+  // JSON storing the themes, the key is the theme name, and the value is the serialized JSON of the theme.
+  rangeThemeStyleMapJson: Record<string, IRangeThemeStyleJSON>
+}
+```
+
+### Facade API로 테마 설정
+
+Facade API로 테마를 설정한 다음, Univer가 제공하는 직렬화 및 역직렬화 메서드로 테마 정보를 저장하는 방식을 권장합니다.
+
+다음은 테마 관련 API의 사용 예입니다.
+
+```typescript
+// Get the currently supported themes
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const themes = fWorkbook.getRegisteredRangeThemes()
+
+// Set the default theme for A1:E20
+const fRange = fWorksheet.getRange('A1:E20')
+fRange.useThemeStyle('default') // 使用默认主题
+
+// Get the currently used theme
+const currentTheme = fRange.getUsedThemeStyle()
+
+// Clear the theme style
+fRange.useThemeStyle(undefined)
+fRange.removeThemeStyle(currentTheme)
+```
+
+## 사용자 지정 테마
+
+Univer는 기본 제공 테마 외에도 테마 사용자 지정 기능을 제공합니다. 다음 API를 사용하여 테마를 사용자 지정할 수 있습니다.
+
+```typescript
+// Create a custom theme
+const fWorkbook = univerAPI.getActiveWorkbook()
+const rangeThemeStyle = fWorkbook.createRangeThemeStyle('MyTheme', {
+  secondRowStyle: {
+    bg: {
+      rgb: 'rgb(214,231,241)',
+    },
+  },
+})
+fWorkbook.registerRangeTheme(rangeThemeStyle)
+
+// Use the custom theme for A1:E20
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:E20')
+// Make sure the theme is registered, otherwise it will throw an error.
+fRange.useThemeStyle('MyTheme')
+```
+
+등록된 테마를 삭제하는 API도 제공합니다.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+fWorkbook.unregisterRangeTheme('MyTheme')
+```
+
+### `RangeThemeStyle` 클래스
+
+Univer 테마의 핵심 클래스인 [`RangeThemeStyle`](https://github.com/dream-num/univer/blob/dev/packages/sheets/src/models/range-theme-util.ts#L110)은 테마 사용자 지정을 위해 다음 속성을 제공합니다.
+
+- `name`: 테마 이름
+- `wholeStyle`: 전체 범위의 스타일
+- `firstRowStyle`: 첫 번째 행의 스타일
+- `secondRowStyle`: 두 번째 행의 스타일
+- `headerRowStyle`: 머리글 행의 스타일
+- `lastRowStyle`: 마지막 행의 스타일
+- `firstColumnStyle`: 첫 번째 열의 스타일
+- `secondColumnStyle`: 두 번째 열의 스타일
+- `headerColumnStyle`: 머리글 열의 스타일
+- `lastColumnStyle`: 마지막 열의 스타일
+
+예를 들어 `RangeThemeStyle` 클래스의 `getXXX/setXXX` 메서드로 스타일을 가져오거나 설정할 수 있습니다.
+
+```typescript
+const rangeThemeStyle = new RangeThemeStyle('MyTheme')
+rangeThemeStyle.setSecondRowStyle({
+  bg: {
+    rgb: 'rgb(214,231,241)',
+  },
+})
+```
+
+또는 인스턴스를 만들 때 선택적 매개변수를 전달하여 바로 생성할 수도 있습니다.
+
+```typescript
+/**
+ * @constructor
+ * @param {string} name The name of the range theme style, it used to identify the range theme style.
+ * @param {IRangeThemeStyleJSON} [options] The options to initialize the range theme style.
+ */
+class RangeThemeStyle {};
+
+// For example:
+const rangeThemeStyle = new RangeThemeStyle('MyTheme', {
+  secondRowStyle: {
+    bg: {
+      rgb: 'rgb(214,231,241)',
+    },
+  },
+})
+```
+
+여러 스타일을 정의하면 다음 우선순위에 따라 적용됩니다.
+
+`lastRowStyle` > `headerRowStyle` > `lastColumnStyle` > `headerColumnStyle` > `secondRowStyle` > `firstRowStyle` > `secondColumnStyle` > `firstColumnStyle` > `wholeStyle`
+
+셀에 정의된 스타일이 `range theme`의 스타일과 충돌하면 셀 스타일이 우선합니다. 여기서 충돌이란 셀 스타일 데이터와 `range theme` 양쪽에 같은 스타일 속성이 정의된 경우를 뜻합니다. 예를 들어 셀 스타일의 배경색이 `red`이고 `range theme`에서는 `blue`라면 셀의 배경색은 `red`가 됩니다.

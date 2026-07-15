@@ -1,0 +1,265 @@
+---
+title: Импорт и экспорт
+icon: '#pro/FolderSync'
+---
+
+<MetaData
+  lang="ru-RU"
+  isPro
+  meta={{
+    preset: [{
+      client: '@univerjs/preset-docs-advanced',
+      locale: '@univerjs/preset-docs-advanced/locales/ru-RU',
+      style: '@univerjs/preset-docs-advanced/lib/index.css',
+    }],
+    plugins: [{
+      client: '@univerjs-pro/exchange-client',
+      locale: '@univerjs-pro/exchange-client/locale/ru-RU',
+      style: '@univerjs-pro/exchange-client/lib/index.css',
+      facade: '@univerjs-pro/exchange-client/facade',
+    }, {
+      client: '@univerjs-pro/docs-exchange-client',
+      locale: '@univerjs-pro/docs-exchange-client/locale/ru-RU',
+    }],
+    server: true,
+  }}
+/>
+
+<Callout type="warning" title="Внимание">
+  Для импорта и экспорта требуется сервер Univer. Убедитесь, что сервер Univer установлен и настроен правильно. Подробности см. в разделе [Переход на Pro](/guides/pro).
+</Callout>
+
+Функции импорта и экспорта позволяют через сервер Univer импортировать файлы `.docx` в документы Univer и экспортировать содержимое документов в файлы `.docx` для обмена данными с другими офисными приложениями и платформами.
+
+<Callout title="Почему импорт и экспорт в Univer реализованы через серверные службы?">
+  Реализация импорта и экспорта только на стороне клиента не отвечает корпоративным требованиям к производительности и качеству результата. Поэтому эти функции работают через серверные службы. Кроме того, вы можете воспользоваться библиотеками с открытым исходным кодом для разбора DOCX, преобразовать файлы в структуры данных, соответствующие интерфейсу `IDocumentData`, а затем импортировать данные в Univer через Facade API.
+</Callout>
+
+После успешного импорта через пункт меню в левом нижнем углу страницы появится уведомление с результатом и ссылкой на импортированный документ. Если стандартное поведение импорта и экспорта вам не подходит, узнайте, как его изменить, в разделе [Настройка импорта документов](/guides/recipes/tutorials/custom-import).
+
+## Выбор способа импорта и экспорта
+
+Доступны два способа — выбор зависит от того, требуется ли совместная работа:
+
+| Способ | Требуется совместная работа | Подходит для | API |
+| --- | --- | --- | --- |
+| По `unitId` | Да | Совместных документов, которые хранятся на сервере | `importDOCXToUnitIdAsync` / `exportDOCXByUnitIdAsync` |
+| По снимку | Нет | Локальных и автономных сценариев или только преобразования формата | `importDOCXToSnapshotAsync` / `exportDOCXBySnapshotAsync` |
+
+Если проект использует совместную работу — документы хранятся на сервере и открываются по `unitId` — выберите способ с `unitId`. В остальных случаях используйте снимки.
+
+## Режим предустановок
+
+### Установка
+
+<Callout>
+  Во время выполнения предустановка `UniverDocsAdvancedPreset` из `@univerjs/preset-docs-advanced` зависит от предустановки `UniverDocsDrawingPreset`. Сначала установите `@univerjs/preset-docs-drawing`.
+</Callout>
+
+```package-install
+npm install @univerjs/preset-docs-drawing @univerjs/preset-docs-advanced
+```
+
+### Использование
+
+```typescript
+import { UniverDocsAdvancedPreset } from '@univerjs/preset-docs-advanced' // [!code ++]
+import UniverPresetDocsAdvancedEnUS from '@univerjs/preset-docs-advanced/locales/en-US' // [!code ++]
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+import UniverPresetDocsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
+import { UniverDocsDrawingPreset } from '@univerjs/preset-docs-drawing' // [!code ++]
+import UniverPresetDocsDrawingEnUS from '@univerjs/preset-docs-drawing/locales/en-US' // [!code ++]
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+import '@univerjs/preset-docs-core/lib/index.css'
+import '@univerjs/preset-docs-drawing/lib/index.css' // [!code ++]
+import '@univerjs/preset-docs-advanced/lib/index.css' // [!code ++]
+
+const { univer, univerAPI } = createUniver({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(
+      UniverPresetDocsCoreEnUS,
+      UniverPresetDocsDrawingEnUS, // [!code ++]
+      UniverPresetDocsAdvancedEnUS, // [!code ++]
+    ),
+  },
+  presets: [
+    UniverDocsCorePreset(),
+    UniverDocsDrawingPreset(), // [!code ++]
+    UniverDocsAdvancedPreset({ // [!code ++]
+      universerEndpoint: 'http://localhost:3010', // [!code ++]
+    }), // [!code ++]
+  ],
+})
+```
+
+Если у вас есть коммерческая лицензия Univer, ознакомьтесь с разделом [Использование лицензии в клиенте](/guides/pro/license#in-preset-mode).
+
+### Предустановки и настройка
+
+Для `UniverDocsAdvancedPreset` доступны следующие параметры:
+
+```typescript
+interface IUniverSheetsAdvancedPresetConfig {
+  // This is the endpoint for the Univer server
+  universerEndpoint?: string
+}
+```
+
+## Режим плагинов
+
+### Установка
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/docs-exchange-client
+```
+
+### Использование
+
+```typescript
+import { UniverDocsExchangeClientPlugin } from '@univerjs-pro/docs-exchange-client' // [!code ++]
+import DocsExchangeClientEnUS from '@univerjs-pro/docs-exchange-client/locale/en-US' // [!code ++]
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client' // [!code ++]
+import ExchangeClientEnUS from '@univerjs-pro/exchange-client/locale/en-US' // [!code ++]
+import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+
+import '@univerjs-pro/exchange-client/facade' // [!code ++]
+
+import '@univerjs-pro/exchange-client/lib/index.css' // [!code ++]
+
+const univer = new Univer({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(
+      ExchangeClientEnUS, // [!code ++]
+      DocsExchangeClientEnUS, // [!code ++]
+    ),
+  },
+})
+
+const UNIVER_SERVER_ENDPOINT = `http://localhost:8000` // [!code ++]
+
+univer.registerPlugin(UniverExchangeClientPlugin, { // [!code ++]
+  uploadFileServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/stream/file/upload`, // [!code ++]
+  importServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/{type}/import`, // [!code ++]
+  exportServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/{type}/export`, // [!code ++]
+  getTaskServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/task/{taskID}`, // [!code ++]
+  signUrlServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/file/{fileID}/sign-url`, // [!code ++]
+  downloadEndpointUrl: `${UNIVER_SERVER_ENDPOINT}/`, // [!code ++]
+}) // [!code ++]
+univer.registerPlugin(UniverDocsExchangeClientPlugin) // [!code ++]
+```
+
+Если у вас есть коммерческая лицензия Univer, ознакомьтесь с разделом [Использование лицензии в клиенте](/guides/pro/license#in-plugin-mode).
+
+### Плагины и настройка
+
+Для `UniverExchangeClientPlugin` доступны следующие параметры:
+
+```typescript
+interface IUniverExchangeClientConfig {
+  // Configuration for the Univer server
+  downloadEndpointUrl?: string
+  uploadFileServerUrl?: string
+  importServerUrl?: string
+  exportServerUrl?: string
+  getTaskServerUrl?: string
+  signUrlServerUrl?: string
+  // Maximum timeout time in milliseconds
+  maxTimeoutTime?: number
+}
+```
+
+## Facade API
+
+### Импорт
+
+<Callout type="info" title="Примечание для режима плагинов">
+  Импортировать пакет Facade вручную нужно только в режиме плагинов. В режиме предустановок соответствующий пакет Facade уже подключён, поэтому дополнительный импорт не требуется.
+</Callout>
+
+### Импорт
+
+```typescript
+import '@univerjs-pro/exchange-client/facade'
+```
+
+### Импорт `.docx`
+
+#### Импорт файла `.docx` с получением `unitId`
+
+<Callout type="warning" title="Внимание">
+  Для этого метода требуется совместная работа: он создаёт документ на сервере и возвращает `unitId`. Если совместная работа не включена, используйте импорт снимка.
+</Callout>
+
+При совместном редактировании у каждого документа есть уникальный `unitId`. Метод `univerAPI.importDOCXToUnitIdAsync` принимает параметр `file` и возвращает `unitId`, по которому можно открыть документ. Параметр `file` может быть объектом `File` или URL удалённого файла.
+
+```typescript
+// Accept a File object
+const unitId = await univerAPI.importDOCXToUnitIdAsync(file)
+// Or accept a remote file URL
+// const unitId = await univerAPI.importDOCXToUnitIdAsync('https://example.com/filename.docx');
+
+// Using with collaborative editing to automatically load data https://docs.univer.ai/en-US/guides/docs/features/collaboration#loading-collaborative-documents
+const url = new URL(window.location.href)
+url.searchParams.set('unit', unitId)
+url.searchParams.set('type', '1') // The meaning of 1 is UniverInstanceType.UNIVER_DOC
+window.location.href = url.toString()
+
+// Or call the API: univerAPI.loadServerUnit(unitId, 1) to load the document, refer to /reference/facade/univer#loadserverunit for specific parameters
+```
+
+#### Импорт файла `.docx` с получением `IDocumentData`
+
+<Callout>
+  Для импорта снимка совместная работа не требуется. Для совместных документов используйте импорт по `unitId`.
+</Callout>
+
+Метод `univerAPI.importDOCXToSnapshotAsync` импортирует файл `.docx` и возвращает данные документа в формате `IDocumentData`.
+
+```typescript
+// Accept a File object
+const snapshot = await univerAPI.importDOCXToSnapshotAsync(file)
+// Or accept a remote file URL
+// const snapshot = await univerAPI.importDOCXToSnapshotAsync('https://example.com/filename.xlsx');
+
+// Create a new document via snapshot
+univerAPI.createDocument(snapshot)
+```
+
+### Экспорт `.docx`
+
+#### Экспорт файла `.docx` по `unitId`
+
+<Callout type="warning" title="Внимание">
+  Для экспорта по `unitId` требуется совместная работа. Если она не включена, используйте экспорт снимка.
+</Callout>
+
+При совместном редактировании у каждого документа есть уникальный `unitId`. Метод `univerAPI.exportDOCXByUnitIdAsync` принимает параметр `unitId` и возвращает объект `File`.
+
+```typescript
+const fDocument = univerAPI.getActiveDocument()
+const unitId = fDocument.getId()
+const file = await univerAPI.exportDOCXByUnitIdAsync(unitId)
+
+// Download the file through the Facade API
+if (file) univerAPI.downloadFile(file, 'univer', 'docx')
+```
+
+#### Экспорт файла `.docx` с помощью `IDocumentData`
+
+<Callout>
+  Для экспорта снимка совместная работа не требуется; этот способ подходит для локальных сценариев.
+</Callout>
+
+Метод `univerAPI.exportDOCXBySnapshotAsync` принимает `IDocumentData` и возвращает объект `File`.
+
+```typescript
+const fDocument = univerAPI.getActiveDocument()
+const snapshot = fDocument.save()
+const file = await univerAPI.exportDOCXBySnapshotAsync(snapshot)
+
+// Download the file through the Facade API
+if (file) univerAPI.downloadFile(file, 'univer', 'docx')
+```

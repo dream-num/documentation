@@ -1,0 +1,258 @@
+---
+title: Формулы
+---
+
+import FormulaList from '@/components/formula-list'
+
+Формулы — одна из ключевых возможностей Univer. Они позволяют выполнять вычисления в ячейках. Поддерживаемые функции совместимы с Excel и включают математические, логические, текстовые функции, функции для работы с датами и многие другие.
+
+Если книга содержит много формул, их вычисление может занять основной поток и снизить отзывчивость страницы. Рекомендуется выполнять вычисления формул в процессе Worker, чтобы уменьшить влияние на отрисовку и взаимодействие с пользователем. Подробнее о настройке см. в разделе [Web Workers](/guides/sheets/features/core/worker).
+
+## Настройка
+
+Ниже приведены ссылки на параметры конфигурации плагинов формул:
+
+| Плагин | Параметр конфигурации |
+| --- | --- |
+| `@univerjs/engine-formula` | [IUniverEngineFormulaConfig](/reference/packages/plugins/univerjs/engine-formula) |
+| `@univerjs/sheets-formula` | [IUniverSheetsFormulaBaseConfig](/reference/packages/plugins/univerjs/sheets-formula) |
+
+### Настройка предустановки
+
+```typescript
+import type { CalculationMode } from '@univerjs/preset-sheets-core'
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+
+interface IUniverSheetsCorePresetConfig {
+  formula?: {
+    // Custom formula functions
+    function?: Array<[Ctor<BaseFunction>, IFunctionNames]>
+    // Custom formula descriptions
+    description?: IFunctionInfo[]
+    // Defines the calculation mode for formulas during data initialization, default is `WHEN_EMPTY`
+    initialFormulaComputing?: CalculationMode
+  }
+}
+```
+
+### Настройка плагина
+
+```typescript
+import type { CalculationMode } from '@univerjs/sheets-formula'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+interface IUniverSheetsFormulaConfig {
+  // Custom formula functions
+  function?: Array<[Ctor<BaseFunction>, IFunctionNames]>
+  // Custom formula descriptions
+  description?: IFunctionInfo[]
+  // Defines the calculation mode for formulas during data initialization, default is `WHEN_EMPTY`
+  initialFormulaComputing?: CalculationMode
+}
+```
+
+Перечисление `CalculationMode` определено следующим образом:
+
+```typescript
+enum CalculationMode {
+  /**
+   * Force calculation of all formulas
+   */
+  FORCED,
+
+  /**
+   * Partial calculation, only calculates cells with formulas but no value
+   */
+  WHEN_EMPTY,
+
+  /**
+   * No calculation for all formulas
+   */
+  NO_CALCULATION,
+}
+```
+
+> Если ячейка с формулой содержит неожиданное значение, задайте для `initialFormulaComputing` значение `CalculationMode.FORCED`, чтобы принудительно вычислить все формулы. Другой вариант — очистить значение `v` этой ячейки перед инициализацией.
+
+## Поддерживаемые функции
+
+<FormulaList lang="ru-RU" />
+
+## Facade API
+
+Подробные сведения см. в документации [Facade API для FFormula](https://docs.univer.ai/reference/facade/formula).
+
+### Импорт
+
+<Callout type="info" title="Примечание о режиме плагинов">
+  Импортировать пакет Facade вручную требуется только в режиме плагинов. В режиме предустановок соответствующий пакет Facade уже включён, поэтому дополнительно импортировать его не нужно.
+</Callout>
+
+```typescript
+import '@univerjs/engine-formula/facade'
+import '@univerjs/sheets-formula/facade'
+import '@univerjs/sheets-formula-ui/facade'
+```
+
+### Открытие диалогового окна выбора диапазона
+
+Пакет `@univerjs/sheets-formula-ui/facade` добавляет метод `univerAPI.showRangeSelectorDialog`. Используйте его, если в вашем интерфейсе пользователю нужно выбрать один или несколько диапазонов с помощью того же инструмента, который применяется в панелях для работы с формулами.
+
+```typescript
+const workbook = univerAPI.getActiveWorkbook()
+const worksheet = workbook?.getActiveSheet()
+
+if (workbook && worksheet) {
+  await univerAPI.showRangeSelectorDialog({
+    unitId: workbook.getId(),
+    subUnitId: worksheet.getSheetId(),
+    initialValue: [
+      {
+        unitId: workbook.getId(),
+        sheetName: worksheet.getSheetName(),
+        range: worksheet.getRange('A1:B2').getRange(),
+      },
+    ],
+    maxRangeCount: 2,
+    supportAcrossSheet: true,
+    callback: (ranges, isCancel) => {
+      console.log(ranges, isCancel)
+    },
+  })
+}
+```
+
+### Запуск вычисления формул
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.executeCalculation()
+```
+
+### Остановка вычисления формул
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.stopCalculation()
+```
+
+### Начало вычисления формул
+
+```typescript
+// Listening to formula calculation start event
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationStart((forceCalculate) => {
+  console.log(forceCalculate)
+})
+```
+
+### Процесс вычисления формул
+
+```typescript
+// Listening to formula calculation processing event
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationProcessing((stageInfo) => {
+  console.log(stageInfo)
+})
+```
+
+### Завершение вычисления формул
+
+```typescript
+// Listening to formula calculation end event
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationEnd((functionsExecutedState) => {
+  console.log(functionsExecutedState)
+})
+
+// Wait for formula calculation to end
+await formulaEngine.onCalculationEnd()
+```
+
+### Применение результатов вычисления формул
+
+```typescript
+// Listening to formula calculation result applied event
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationResultApplied((result) => {
+  console.log(result)
+})
+
+// Wait for formula calculation result to be applied
+await formulaEngine.onCalculationResultApplied()
+```
+
+### Установка режима вычисления формул при инициализации данных
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.setInitialFormulaComputing(CalculationMode.FORCED)
+```
+
+Если вызвать этот API после этапа жизненного цикла `Starting`, настройка вступит в силу при следующем создании Univer Sheet.
+
+Чтобы применить её во время текущей инициализации Univer Sheet, вызовите API до этапа жизненного цикла `Ready`, например:
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+  if (stage === LifecycleStages.Starting) {
+    const formulaEngine = univerAPI.getFormula()
+    formulaEngine.setInitialFormulaComputing(CalculationMode.FORCED)
+  }
+})
+```
+
+### Установка максимального количества итераций
+
+Если в формулах есть циклические ссылки, с помощью этого API можно задать максимальное количество итераций вычисления. По умолчанию выполняется одна итерация.
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.setMaxIteration(10)
+```
+
+### Получение результатов выполнения строковых формул
+
+Метод асинхронно выполняет пакет формул и возвращает результаты вычислений:
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+const formulas = {
+  Book1: {
+    Sheet1: {
+      2: {
+        3: [
+          // Full formula:
+          '=SUM(A1:A10) + SQRT(D7)',
+
+          // Decomposed sub-formulas (each one can be evaluated independently):
+          'SUM(A1:A10)', // sub-formula 1
+          'SQRT(D7)', // sub-formula 2
+          'A1:A10', // range reference
+          'D7', // single-cell reference
+        ],
+      },
+      4: {
+        5: [
+          '=A2 + B2 + SQRT(C5)',
+          'A2',
+          'B2',
+          'SQRT(C5)',
+        ],
+      },
+    },
+  },
+}
+const result = await formulaEngine.executeFormulas(formulas)
+console.log(result)
+```
+
+## Пользовательские формулы
+
+Univer поддерживает пользовательские формулы. Инструкции по их реализации приведены в разделе [Пользовательские формулы](/guides/recipes/tutorials/custom-formula).
+
+## Часто задаваемые вопросы
+
+### Не удаётся открыть гиперссылку из ячейки с формулой `HYPERLINK`
+
+Необходимо импортировать плагин гиперссылок для Univer Sheets. Подробнее см. в разделе [Гиперссылки](/guides/sheets/features/hyper-link).

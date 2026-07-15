@@ -1,0 +1,534 @@
+---
+title: API
+---
+
+Cette page répertorie les API courantes d’Univer Server. L’URL de base par défaut est `http://localhost:8000`.
+
+> Remarque : valeurs du paramètre `type` : `1` pour Docs, `2` pour Sheets.
+
+## Gestion des documents
+
+### Créer un document
+
+<APITable
+  request={{
+    method: 'POST',
+    url: '/universer-api/snapshot/{type}/unit/-/create',
+    headers: <code>content-type: application/json</code>,
+    parametersType: 'Body',
+    parameters: [{
+      name: 'type',
+      type: 'enum(int)',
+      required: true,
+      description: '1 (docs), 2 (sheets) dans le chemin et le corps de la requête',
+    }, {
+      name: 'name',
+      type: 'string',
+      required: true,
+      description: 'Nom du document',
+    }, {
+      name: 'creator',
+      type: 'string',
+      required: true,
+      description: 'ID du créateur',
+    }, {
+      name: 'idempotencyKey',
+      type: 'string',
+      required: false,
+      description: 'Disponible depuis la version 0.20.0. Clé d’idempotence facultative ; sa taille totale ne doit pas dépasser 64 octets.',
+    }, {
+      name: 'metaData',
+      type: 'string',
+      required: false,
+      description: 'Disponible depuis la version 0.20.0. Ces informations définies par l’utilisateur sont associées à l’unité créée, puis transmises sans modification lors des événements de synchronisation et des appels USIP ultérieurs. Leur taille totale ne doit pas dépasser 1 024 octets.',
+    }],
+    example: `curl http://localhost:8000/universer-api/snapshot/{type}/unit/-/create \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    --data-raw '{"type":2,"name":"New Sheet By Univer","creator":"userID","idempotencyKey":"a-idgenerator-unique-id","metaData":"tenant12345"}'`,
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'error',
+      type: 'object',
+      properties: [{
+        name: 'code',
+        type: 'enum(int)',
+        description: '1 (succès)',
+      }, {
+        name: 'message',
+        type: 'string',
+        description: 'Message d’erreur',
+      }],
+    }, {
+      name: 'unitID',
+      type: 'string',
+      description: 'ID du document',
+    }],
+    example: JSON.stringify({
+      error: {
+        code: 1,
+        message: 'success',
+      },
+      unitID: 'ETVf-B4lQqOSE_p09mcp9Q',
+    }, null, 2),
+  }}
+/>
+
+### Répertorier les documents
+
+<APITable
+  request={{
+    method: 'GET',
+    url: '/universer-api/snapshot/{type}/units',
+    parametersType: 'Query',
+    parameters: [{
+      name: 'type',
+      type: 'enum(int)',
+      required: true,
+      description: '1 (doc), 2 (sheet) dans le chemin et le corps de la requête',
+    }, {
+      name: 'nextCursor',
+      type: 'string',
+      required: false,
+      description: 'Curseur de la page suivante',
+    }],
+    example: `curl -X GET 'http://localhost:8000/universer-api/snapshot/1/units?nextCursor=100'`,
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'error',
+      type: 'object',
+      properties: [{
+        name: 'code',
+        type: 'enum(int)',
+        description: '1 (succès)',
+      }, {
+        name: 'message',
+        type: 'string',
+        description: 'Message d’erreur',
+      }],
+    }, {
+      name: 'units',
+      type: 'array[object]',
+      description: 'Liste des documents',
+      properties: [{
+        name: 'unitID',
+        type: 'string',
+        description: 'ID du document',
+      }, {
+        name: 'name',
+        type: 'string',
+        description: 'Nom du document',
+      }, {
+        name: 'type',
+        type: 'enum(int)',
+        description: '1 (doc), 2 (sheet)',
+      }],
+    }, {
+      name: 'nextCursor',
+      type: 'string',
+      description: 'Curseur de la page suivante ; une valeur vide indique la dernière page',
+    }],
+    example: JSON.stringify({
+      error: {
+        code: 1,
+        message: '',
+      },
+      units: [{
+        unitID: '1',
+        name: 'a',
+        type: 1,
+      }],
+      nextCursor: '200',
+    }, null, 2),
+  }}
+/>
+
+### Supprimer des documents
+
+<APITable
+  request={{
+    method: 'DELETE',
+    url: '/universer-api/snapshot/-/units',
+    headers: <code>content-type: application/json</code>,
+    parametersType: 'Query',
+    parameters: [{
+      name: 'unitIds',
+      type: 'array[string]',
+      required: true,
+      description: 'Liste des ID de documents',
+    }],
+    example: `curl -X DELETE 'http://localhost:8000/universer-api/snapshot/-/units?unitIds=1&unitIds=2'`,
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'error',
+      type: 'object',
+      properties: [{
+        name: 'code',
+        type: 'enum(int)',
+        description: '1 (succès)',
+      }, {
+        name: 'message',
+        type: 'string',
+        description: 'Message d’erreur',
+      }],
+    }],
+    example: JSON.stringify({
+      error: {
+        code: 1,
+        message: '',
+      },
+    }, null, 2),
+  }}
+/>
+
+### Créer un instantané
+
+<APITable
+  request={{
+    method: 'GET',
+    url: '/universer-api/snapshot/{type}/unit/{unitID}/rev/0/ensure',
+    parametersType: 'Query',
+    parameters: [{
+      name: 'type',
+      type: 'enum(int)',
+      required: true,
+      description: '1 (doc), 2 (sheet) dans le chemin',
+    }, {
+      name: 'unitID',
+      type: 'string',
+      required: true,
+      description: 'ID du document',
+    }],
+    example: `curl -X GET 'http://localhost:8000/universer-api/snapshot/2/unit/ETVf-B4lQqOSE_p09mcp9Q/rev/0/ensure'`,
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'error',
+      type: 'object',
+      properties: [{
+        name: 'code',
+        type: 'enum(int)',
+        description: '1 (succès)',
+      }, {
+        name: 'message',
+        type: 'string',
+        description: 'Message d’erreur',
+      }],
+    }],
+    example: JSON.stringify({
+      error: {
+        code: 1,
+        message: '',
+      },
+    }, null, 2),
+  }}
+/>
+
+## Fichiers, importation et exportation
+
+### Téléverser un fichier [#upload-file]
+
+<APITable
+  request={{
+    method: 'POST',
+    url: '/universer-api/stream/file/upload',
+    headers: <code>content-type: multipart/form-data</code>,
+    parametersType: 'Body',
+    parameters: [{
+      name: 'size',
+      type: 'int',
+      required: true,
+      description: 'Taille du fichier en octets (paramètre de requête). Elle doit correspondre à la taille réelle.',
+    }, {
+      name: 'file',
+      type: 'Form.file',
+      required: true,
+      description: 'Fichier dans le formulaire HTML',
+    }],
+    example: `curl 'http://localhost:8000/universer-api/stream/file/upload?size=125466' \\
+    --header 'cookie: _univer=XXXXXX' \\
+    --form 'file=@"demo.xlsx"'`,
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'FileId',
+      type: 'string',
+      description: 'ID du fichier utilisé pour l’importation ou l’exportation',
+    }],
+    example: JSON.stringify({
+      FileId: 'xxxx',
+    }, null, 2),
+  }}
+/>
+
+### Importer [#import-file]
+
+<APITable
+  request={{
+    method: 'POST',
+    url: '/universer-api/exchange/{type}/import',
+    headers: <code>content-type: application/json</code>,
+    parametersType: 'Body',
+    parameters: [{
+      name: 'type',
+      type: 'enum(int)',
+      required: true,
+      description: '1 (doc), 2 (sheet)',
+    }, {
+      name: 'outputType',
+      type: 'enum(int)',
+      required: true,
+      description: '1 (unit), 2 (json)',
+    }, {
+      name: 'fileID',
+      type: 'string',
+      required: true,
+      description: 'ID du fichier téléversé',
+    }, {
+      name: 'minSheetRowCount',
+      type: 'int',
+      required: true,
+      description: 'Nombre minimal de lignes ; l’importation vérifie le nombre de lignes',
+    }, {
+      name: 'minSheetColumnCount',
+      type: 'int',
+      required: true,
+      description: 'Nombre minimal de colonnes ; l’importation vérifie le nombre de colonnes',
+    }, {
+      name: 'idempotencyKey',
+      type: 'string',
+      required: false,
+      description: 'Disponible depuis la version 0.20.0. Clé d’idempotence facultative ; sa taille totale ne doit pas dépasser 64 octets.',
+    }, {
+      name: 'metaData',
+      type: 'string',
+      required: false,
+      description: 'Disponible depuis la version 0.20.0. Ces informations définies par l’utilisateur sont associées à l’unité importée, puis transmises sans modification lors des événements de synchronisation et des appels USIP ultérieurs. Leur taille totale ne doit pas dépasser 1 024 octets.',
+    }],
+    example: `curl -X POST 'http://localhost:8000/universer-api/exchange/2/import' \\
+    -H 'Content-Type: application/json' \\
+    --data-raw '{"fileID":"123","outputType":1,"minSheetRowCount":1000,"minSheetColumnCount":20,"idempotencyKey":"a-idgenerator-unique-id","metaData":"tenant12345"}'`,
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'error',
+      type: 'object',
+      properties: [{
+        name: 'code',
+        type: 'enum(int)',
+        description: '1 (succès)',
+      }, {
+        name: 'message',
+        type: 'string',
+        description: 'Message d’erreur',
+      }],
+    }, {
+      name: 'taskID',
+      type: 'string',
+      description: 'ID de la tâche utilisé pour l’interrogation périodique',
+    }],
+    example: JSON.stringify({
+      error: {
+        code: 1,
+        message: '',
+      },
+      taskID: '456',
+    }, null, 2),
+  }}
+/>
+
+### Exporter [#export-file]
+
+<APITable
+  request={{
+    method: 'POST',
+    url: '/universer-api/exchange/{type}/export',
+    headers: <code>content-type: application/json</code>,
+    parametersType: 'Body',
+    parameters: [{
+      name: 'type',
+      type: 'enum(int)',
+      required: true,
+      description: '1 (doc), 2 (sheet)',
+    }, {
+      name: 'unitID',
+      type: 'string',
+      required: true,
+      description: 'ID du document collaboratif ; lors d’une exportation avec jsonID, unitID peut être une chaîne vide',
+    }, {
+      name: 'jsonID',
+      type: 'string',
+      required: true,
+      description: 'Pour exporter un document non collaboratif, jsonID correspond au FileId renvoyé après le téléversement du fichier généré à partir du JSON côté client ; lors d’une exportation avec unitID, jsonID peut être une chaîne vide',
+    }, {
+      name: 'sscSwitch',
+      type: 'boolean',
+      required: false,
+      description: 'Active SSC (calcul côté serveur) ; false par défaut',
+    }, {
+      name: 'useImageUrl',
+      type: 'boolean',
+      required: false,
+      description: 'Indique s’il faut désactiver la conversion des images de cellules en liens ; si la valeur est true, les images de cellules ne sont pas converties en liens ; false par défaut',
+    }, {
+      name: 'ignoreTableExport',
+      type: 'boolean',
+      required: false,
+      description: 'Indique s’il faut ignorer l’exportation des tableaux ; false par défaut',
+    }],
+    example: `curl -X POST 'http://localhost:8000/universer-api/exchange/2/export' \\
+    -H 'Content-Type: application/json' \\
+    --data-raw '{"unitID":"xxxx","type":2}'`,
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'error',
+      type: 'object',
+      properties: [{
+        name: 'code',
+        type: 'enum(int)',
+        description: '1 (succès)',
+      }, {
+        name: 'message',
+        type: 'string',
+        description: 'Message d’erreur',
+      }],
+    }, {
+      name: 'taskID',
+      type: 'string',
+      description: 'ID de la tâche utilisé pour l’interrogation périodique',
+    }],
+    example: JSON.stringify({
+      error: {
+        code: 1,
+        message: '',
+      },
+      taskID: '456',
+    }, null, 2),
+  }}
+/>
+
+### Obtenir le résultat d’une tâche [#get-task-result]
+
+<APITable
+  request={{
+    method: 'GET',
+    url: '/universer-api/exchange/task/{taskID}',
+    parametersType: 'Path',
+    parameters: [{
+      name: 'taskID',
+      type: 'string',
+      required: true,
+      description: 'ID de la tâche',
+    }],
+    example: `curl -X GET 'http://localhost:8000/universer-api/exchange/task/123'`,
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'error',
+      type: 'object',
+      properties: [{
+        name: 'code',
+        type: 'enum(int)',
+        description: '1 (succès)',
+      }, {
+        name: 'message',
+        type: 'string',
+        description: 'Message d’erreur',
+      }],
+    }, {
+      name: 'status',
+      type: 'enum(string)',
+      description: '"pending" (en attente), "done" (terminée), "failed" (échec)',
+    }, {
+      name: 'export',
+      type: 'object',
+      properties: [{
+        name: 'fileID',
+        type: 'string',
+        description: 'ID du fichier exporté',
+      }],
+    }, {
+      name: 'import',
+      type: 'object',
+      properties: [{
+        name: 'unitID',
+        type: 'string',
+        description: 'unitID importé',
+      }, {
+        name: 'jsonID',
+        type: 'string',
+        description: 'ID du fichier JSON',
+      }],
+    }],
+    example: JSON.stringify({
+      error: {
+        code: 1,
+        message: '',
+      },
+      status: 'done',
+      export: {
+        fileID: '456',
+      },
+      import: {
+        unitID: '789',
+        jsonID: '012',
+      },
+    }, null, 2),
+  }}
+/>
+
+### Obtenir un fichier [#get-file]
+
+<APITable
+  request={{
+    method: 'GET',
+    url: '/universer-api/file/{fileID}/sign-url',
+    parametersType: 'Path',
+    parameters: [{
+      name: 'fileID',
+      type: 'string',
+      required: true,
+      description: 'ID du fichier obtenu (export.fileID ou import.jsonID)',
+    }],
+    example: `curl -X GET 'http://localhost:8000/universer-api/file/1234/sign-url'`,
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'error',
+      type: 'object',
+      properties: [{
+        name: 'code',
+        type: 'enum(int)',
+        description: '1 (succès)',
+      }, {
+        name: 'message',
+        type: 'string',
+        description: 'Message d’erreur',
+      }],
+    }, {
+      name: 'url',
+      type: 'string',
+      description: 'URL de téléchargement',
+    }],
+    example: JSON.stringify({
+      error: {
+        code: 1,
+        message: '',
+      },
+      url: 'https://example.com/path/to/file.xlsx',
+    }, null, 2),
+  }}
+/>

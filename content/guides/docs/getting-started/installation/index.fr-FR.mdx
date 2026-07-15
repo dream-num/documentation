@@ -1,0 +1,281 @@
+---
+title: Installation et utilisation de base
+---
+
+Univer repose sur une architecture à base de plugins afin de fournir aux développeurs un framework flexible et extensible pour les applications de documents électroniques. Cette architecture permet à Univer d’intégrer facilement différents modules fonctionnels afin de répondre aux besoins de chaque utilisateur. Elle augmente toutefois la complexité de l’application, en particulier pour les développeurs qui découvrent Univer.
+
+C’est pourquoi Univer propose deux méthodes pour faciliter une intégration et une prise en main rapides : le **mode plugin** et le **mode prédéfini**. Un **préréglage** est en fait un ensemble de plugins préconfigurés. En l’absence d’extensions complexes, les deux modes offrent donc les mêmes fonctionnalités.
+
+<Callout type="warning" title="Attention">
+  - **Versions cohérentes des dépendances** : que vous utilisiez le mode prédéfini ou le mode plugin, toutes les dépendances doivent avoir le même numéro de version.
+  - **Prudence lors de l’association de plugins et de préréglages** : si un plugin est déjà inclus dans un préréglage, ne l’importez pas séparément lorsque vous utilisez ce préréglage. Cela pourrait entraîner des conflits entre plugins ou des dysfonctionnements.
+</Callout>
+
+Voici les différences entre le mode prédéfini et le mode plugin :
+
+| Mode plugin | Mode prédéfini |
+| --- | --- |
+| Nécessite l’importation manuelle des packages de façade correspondants | Ne nécessite pas l’importation manuelle des packages de façade |
+| Nécessite de respecter l’ordre d’enregistrement des plugins offrant les mêmes fonctionnalités | Ne nécessite pas de tenir compte de l’ordre d’enregistrement des fonctionnalités incluses dans les préréglages |
+| Permet le chargement différé à la demande | Permet uniquement le chargement différé au niveau des préréglages ; les plugins d’un préréglage ne peuvent être chargés que de manière synchrone |
+
+## Configurer Univer en mode prédéfini
+
+Cette section présente brièvement comment créer rapidement une application Univer Docs en moins de vingt lignes de code.
+
+### Utiliser un gestionnaire de paquets
+
+Si votre projet utilise déjà des outils de développement front-end modernes, l’intégration d’Univer est très simple. Pour créer des applications Univer, nous vous recommandons d’utiliser des outils de build qui prennent bien en charge les modules ES, comme [Vite](https://vitejs.dev/), [esbuild](https://esbuild.github.io/) ou [Webpack 5](https://webpack.js.org/). Si vous utilisez d’autres outils de build, tels que Webpack 4, une configuration supplémentaire peut être nécessaire.
+
+#### Installation
+
+Utilisez le gestionnaire de paquets de votre choix pour installer `@unvierjs/presets` :
+
+```package-install
+npm install @univerjs/presets @univerjs/preset-docs-core
+```
+
+#### Utilisation
+
+<Callout type="warning">
+  Si votre outil de build ne prend pas en charge le champ `exports` de package.json, ce qui est fréquent avec Webpack 4, vous devez remplacer manuellement les chemins mappés par les chemins réels.
+</Callout>
+
+Le code suivant permet de démarrer une application Univer Docs :
+
+```typescript
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+import UniverPresetDocsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+import '@univerjs/preset-docs-core/lib/index.css'
+
+const { univer, univerAPI } = createUniver({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(
+      UniverPresetDocsCoreEnUS,
+    ),
+  },
+  presets: [
+    UniverDocsCorePreset({
+      container: 'app',
+    }),
+  ],
+})
+
+univerAPI.createDocument({})
+```
+
+L’objet `univerAPI` renvoyé ici est appelé API Facade d’Univer. Il permet d’utiliser de nombreuses fonctionnalités fournies par Univer.
+
+<PlaygroundFrame lang="fr-FR" slug="docs/slim-via-preset" clickToShow />
+
+<Callout type="warning">
+  Vous pouvez également importer `UniverDocsCorePreset` depuis `@univerjs/presets/preset-docs-core`, mais vous devez vous assurer que votre outil de build prend en charge le champ `exports` de package.json.
+</Callout>
+
+#### Méthode `createUniver`
+
+La méthode `createUniver` accepte un objet de configuration qui contient les paramètres d’Univer, tels que la langue, le thème et les plugins. Elle renvoie un objet contenant l’instance d’Univer et l’instance de l’API Facade d’Univer.
+
+Voici quelques propriétés de l’objet de configuration :
+
+- `locale` : environnement linguistique, qui peut être une valeur de l’énumération `LocaleType`.
+- `locales` : objet des paramètres régionaux, dont les clés sont les environnements linguistiques et les valeurs les objets de packs de langue.
+- `theme` : objet de thème facultatif.
+- `presets` : tableau des préréglages à enregistrer, comme `UniverDocsCorePreset`.
+- `plugins` : tableau des plugins supplémentaires à enregistrer.
+
+Lorsque vous utilisez un plugin qui n’est inclus dans aucun package de préréglage, ou que vous implémentez votre propre plugin, vous pouvez l’enregistrer avec la propriété `plugins`. Vous pouvez également choisir d’enregistrer des plugins à l’aide de la méthode `univer.registerPlugin` après avoir obtenu l’instance d’Univer.
+
+<Callout>
+  Pour en savoir plus sur la méthode `createUniver`, consultez la page [API Reference / createUniver](https://docs.univer.ai/reference/methods/create-univer).
+</Callout>
+
+### Importer depuis un CDN
+
+Si vous ne souhaitez pas utiliser de gestionnaire de paquets ou voulez simplement essayer rapidement les fonctionnalités d’Univer, vous pouvez importer les ressources correspondantes via un CDN. Pour en savoir plus, consultez la page [Utiliser Univer via un CDN](/guides/docs/getting-started/installation/cdn#preset-mode).
+
+## Configurer Univer en mode plugin
+
+Univer fournit un ensemble de fonctionnalités sous forme de plugins. Outre certains plugins principaux indispensables au produit, vous pouvez ajouter les autres plugins de façon sélective selon vos besoins. Nous prendrons ici l’application Univer Docs la plus simple pour illustrer l’installation et l’association manuelles de plugins.
+
+Contrairement au mode prédéfini, le mode plugin n’inclut pas l’API Facade par défaut. Les exemples ci-dessous l’utilisent : importez donc les packages de façade correspondants avant de créer l’instance de l’API.
+
+### Utiliser un gestionnaire de paquets
+
+#### Installation
+
+Nous utilisons React pour développer l’interface, ce qui ne vous empêche pas d’utiliser Univer avec Vue ou Angular, et Rxjs pour gérer les flux de données. Ces deux bibliothèques étant largement utilisées dans le développement front-end moderne, nous les déclarons comme peerDependencies. Les gestionnaires de paquets ne gèrent toutefois pas tous les peerDependencies de la même manière ; vous devrez donc prêter attention à quelques détails.
+
+<Callout>
+  - Si vous utilisez npm, vérifiez que vous disposez de npm@7 ou d’une version ultérieure. En effet, npm@3 à npm@6 n’installent pas correctement les `peerDependencies`[^1].
+  - Si vous utilisez pnpm, vérifiez que vous disposez de pnpm@8 ou d’une version ultérieure. Avec pnpm@6 ou pnpm@7, vous pouvez essayer de configurer `auto-install-peers=true` [^2] pour résoudre les problèmes d’installation des dépendances.
+  - Si vous utilisez yarn, vous devez installer manuellement les `peerDependencies`[^3] manquantes. Les commandes d’installation ci-dessous incluent déjà ces dépendances.
+</Callout>
+
+<Tabs items={['npm', 'pnpm', 'yarn']}>
+  <Tab>
+    ```shell
+    npm install @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/ui
+    ```
+  </Tab>
+  <Tab>
+    ```shell
+    pnpm add @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/ui
+    ```
+  </Tab>
+  <Tab>
+    ```shell
+    yarn add @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/ui react react-dom rxjs
+    ```
+  </Tab>
+</Tabs>
+
+#### Utilisation
+
+<Callout type="warning" title="Attention">
+  - Tous les plugins n’incluent pas nécessairement des packages de façade, des packs de langue et des fichiers de style. Ce point est précisé dans la documentation de chaque fonctionnalité.
+  - L’ordre d’importation des fichiers de style est important. Veillez à importer les styles CSS de `@univerjs/design` et de `@univerjs/ui` avant ceux des autres plugins.
+</Callout>
+
+<Steps>
+  <Step>
+    Vous devez importer dans votre projet les fichiers de style d’Univer, les packs de langue et quelques plugins nécessaires :
+
+    ```typescript
+    import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+    import { FUniver } from '@univerjs/core/facade'
+    import DesignEnUS from '@univerjs/design/locale/en-US'
+    import { UniverDocsPlugin } from '@univerjs/docs'
+    import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+    import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
+    import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+    import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+    import { UniverUIPlugin } from '@univerjs/ui'
+    import UIEnUS from '@univerjs/ui/locale/en-US'
+
+    import '@univerjs/design/lib/index.css'
+    import '@univerjs/ui/lib/index.css'
+    import '@univerjs/docs-ui/lib/index.css'
+    ```
+  </Step>
+  <Step>
+    Importez les packages de façade utilisés dans l’exemple :
+
+    ```typescript
+    import '@univerjs/engine-formula/facade'
+    import '@univerjs/ui/facade'
+    import '@univerjs/docs/facade'
+    import '@univerjs/docs-ui/facade'
+    ```
+  </Step>
+  <Step>
+    Créez ensuite une instance d’Univer et enregistrez ces plugins :
+
+    ```typescript
+    const univer = new Univer({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: mergeLocales(
+          DesignEnUS,
+          UIEnUS,
+          DocsUIEnUS,
+        ),
+      },
+    })
+
+    univer.registerPlugin(UniverRenderEnginePlugin)
+    univer.registerPlugin(UniverFormulaEnginePlugin)
+
+    univer.registerPlugin(UniverUIPlugin, {
+      container: 'app',
+    })
+
+    univer.registerPlugin(UniverDocsPlugin)
+    univer.registerPlugin(UniverDocsUIPlugin)
+
+    const univerAPI = FUniver.newAPI(univer)
+
+    univerAPI.createDocument({})
+    ```
+  </Step>
+</Steps>
+
+<PlaygroundFrame lang="fr-FR" slug="docs/slim-via-plugin" clickToShow />
+
+#### Méthode `univer.registerPlugin`
+
+La méthode ``univer.registerPlugin` sert à enregistrer un plugin dans l’instance d’Univer. Vous pouvez l’appeler après avoir créé l’instance d’Univer.
+
+Vous pouvez enregistrer un plugin avec la méthode `univer.registerPlugin(Plugin, options)`, où `Plugin` désigne le plugin à enregistrer et `options` les options de configuration facultatives, qui peuvent varier d’un plugin à l’autre.
+
+Vous pouvez également transmettre un tableau pour enregistrer plusieurs plugins à la fois. Cette méthode est utile lorsque vous devez centraliser la gestion des plugins.
+
+```typescript
+univer.registerPlugin([
+  UniverRenderEnginePlugin,
+  UniverFormulaEnginePlugin,
+  [UniverUIPlugin, {
+    container: 'app',
+  }],
+  UniverDocsPlugin,
+  UniverDocsUIPlugin,
+])
+```
+
+#### Chargement différé des plugins
+
+L’un des principaux avantages du mode plugin est qu’il permet de contrôler plus précisément le moment où les plugins sont chargés. Une approche courante consiste à ne charger que les plugins indispensables lors de l’initialisation de l’application, puis à différer le chargement de certains plugins jusqu’à la fin du premier rendu.
+
+```typescript
+// ...
+
+const univerAPI = FUniver.newAPI(univer)
+
+univerAPI.createDocument({})
+
+import('@univerjs/watermark').then(({ UniverWatermarkPlugin }) => {
+  univer.registerPlugin(UniverWatermarkPlugin, {
+    textWatermarkSettings: {
+      content: 'Hello, Univer!',
+      fontSize: 36,
+    },
+  })
+})
+```
+
+Notre [démo officielle](https://github.com/dream-num/univer/blob/dev/examples/src/sheets/main.ts) utilise cette technique d’optimisation et peut vous servir de référence.
+
+### Importer depuis un CDN
+
+Si vous ne souhaitez pas utiliser de gestionnaire de paquets ou voulez simplement essayer rapidement les fonctionnalités d’Univer, vous pouvez importer les ressources correspondantes via un CDN. Pour en savoir plus, consultez la page [Utiliser Univer via un CDN](/guides/docs/getting-started/installation/cdn#plugin-mode).
+
+## Autres versions
+
+Outre les versions stables, Univer propose des canaux alpha, beta et nightly. Ces versions donnent accès en avant-première aux fonctionnalités les plus récentes, qui ne sont pas encore publiées officiellement. Gardez toutefois à l’esprit que davantage de fonctionnalités impliquent aussi davantage de risques. Ces versions peuvent contenir des bugs, des fonctionnalités incomplètes ou des fonctions instables. Dans la mesure du possible, évitez de les utiliser dans des environnements de production.
+
+### Versions alpha et beta
+
+Lorsque l’équipe de développement d’Univer termine une nouvelle fonctionnalité ou une modification importante, elle peut la publier en avant-première sur le canal alpha ou beta. Vous pouvez installer la version alpha ou beta d’un package Univer à l’aide de la commande suivante :
+
+```package-install
+npm install @univerjs/<package-name>@alpha # Alpha version
+npm install @univerjs/<package-name>@beta # Beta version
+```
+
+Si vous rencontrez un problème ou souhaitez faire part de vos commentaires lors de l’utilisation des versions alpha ou beta, contactez l’équipe de développement d’Univer via les [GitHub Issues](https://github.com/dream-num/univer/issues).
+
+Vos retours sur ces versions préliminaires sont les bienvenus.
+
+## Étapes suivantes
+
+* [Concepts de base](/guides/docs/getting-started/quickstart#basic-concepts) - Découvrez les concepts de base d’Univer.
+* [Fonctionnalités](/guides/docs/features/core) - Découvrez les fonctionnalités d’Univer et apprenez à manipuler les données.
+
+---
+
+[^1]: https://blog.npmjs.org/post/110924823920/npm-weekly-5
+[^2]: https://pnpm.io/npmrc#auto-install-peers
+[^3]: https://github.com/yarnpkg/yarn/issues/1503

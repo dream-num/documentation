@@ -1,0 +1,388 @@
+---
+title: Развёртывание с помощью Docker Compose
+---
+
+## Конфигурация развёртывания
+
+### Как изменить конфигурацию развёртывания
+
+Конфигурация развёртывания Univer по умолчанию находится в файле `.env` в каталоге установки. Если вам нужно изменить конфигурацию установки, не редактируйте файл `.env` напрямую. Вместо этого создайте в том же каталоге собственный файл конфигурации с именем `.env.custom`. Параметры из `.env.custom` переопределяют значения по умолчанию из файла `.env`.
+
+### Описание параметров конфигурации
+
+#### Включение аутентификации пользователей и управления разрешениями
+
+Значение соответствующих параметров уже описано в разделе [Интеграция с вашей системой через USIP](/guides/pro/usip), поэтому здесь мы не будем повторяться. Чтобы включить эту возможность, используйте следующую конфигурацию:
+
+```properties title=".env.custom"
+# usip about
+USIP_ENABLED=true # Set to true to enable USIP
+USIP_URI_CREDENTIAL=https://your-domain/usip/credential
+USIP_URI_USERINFO=https://your-domain/usip/userinfo
+USIP_URI_ROLE=https://your-domain/usip/role
+USIP_URI_COLLABORATORS=https://your-domain/usip/collaborators
+USIP_URI_UNITEDITTIME=https://your-domain/usip/unit-edit-time
+
+# apikey is optional
+USIP_APIKEY=
+
+# auth about
+AUTH_PERMISSION_ENABLE_OBJ_INHERIT=false
+AUTH_PERMISSION_CUSTOMER_STRATEGIES=
+```
+
+#### Включение публикации событий Univer
+
+Значение соответствующих параметров уже описано в разделе [Интеграция с вашей системой через Univer Event Sync](/guides/pro/event-sync), поэтому здесь мы не будем повторяться. Чтобы включить эту возможность, используйте следующую конфигурацию:
+
+```properties title=".env.custom"
+EVENT_SYNC=true # Set to true to enable
+```
+
+#### Использование самостоятельно обслуживаемых компонентов инфраструктуры
+
+##### RDS
+
+**Обратите внимание:** компонент Temporal, используемый Univer, не поддерживает GaussDB и DamengDB. Поэтому при выборе одной из этих баз данных Univer отдельно установит PostgreSQL для Temporal. Temporal хранит в базе данных состояния рабочих процессов задач импорта и экспорта и не затрагивает данные документов. Даже при потере этих данных произойдёт только сбой незавершённых задач импорта или экспорта — других последствий не будет.
+
+###### Использование RDS, совместимой с PostgreSQL
+
+```properties title=".env.custom"
+# RDS config
+DISABLE_UNIVER_RDS=true # When using your own RDS, disable Univer's default PostgreSQL
+
+DATABASE_DRIVER=postgresql # Set to postgresql for PostgreSQL-compatible databases
+DATABASE_HOST=your-database-host
+DATABASE_PORT=your-database-port
+DATABASE_DBNAME=univer # Univer database init scripts use this name by default; keep it consistent if changed
+DATABASE_USERNAME=user-name # Grant select, insert, update, delete permissions
+DATABASE_PASSWORD=password
+```
+
+###### Использование RDS, совместимой с MySQL
+
+```properties title=".env.custom"
+# RDS config
+DISABLE_UNIVER_RDS=true # When using your own RDS, disable Univer's default PostgreSQL
+
+DATABASE_DRIVER=mysql # Set to mysql for MySQL-compatible databases
+DATABASE_HOST=your-database-host
+DATABASE_PORT=your-database-port
+DATABASE_DBNAME=univer # Univer database init scripts use this name by default; keep it consistent if changed
+DATABASE_USERNAME=user-name # Grant select, insert, update, delete permissions
+DATABASE_PASSWORD=password
+```
+
+###### Использование GaussDB
+
+```properties title=".env.custom"
+# RDS config
+DISABLE_UNIVER_RDS=true # When using your own RDS, disable Univer's default PostgreSQL
+
+DATABASE_DRIVER=gaussdb
+DATABASE_HOST=your-database-host
+DATABASE_PORT=your-database-port
+DATABASE_DBNAME=univer # Univer database init scripts use this name by default; keep it consistent if changed
+DATABASE_USERNAME=user-name # Grant select, insert, update, delete permissions
+DATABASE_PASSWORD=password
+```
+
+###### Использование DamengDB
+
+```properties title=".env.custom"
+# RDS config
+DISABLE_UNIVER_RDS=true # When using your own RDS, disable Univer's default PostgreSQL
+
+DATABASE_DRIVER=dameng
+DATABASE_HOST=your-database-host
+DATABASE_PORT=your-database-port
+DATABASE_DBNAME=univer # Univer database init scripts use this name by default; keep it consistent if changed
+DATABASE_USERNAME=user-name # Grant select, insert, update, delete permissions
+DATABASE_PASSWORD=password
+```
+
+##### Redis
+
+```properties title=".env.custom"
+# redis config
+DISABLE_UNIVER_REDIS=true # When using your own Redis, disable Univer's built-in Redis
+
+# if you use redis cluster, use comma ',' to separate multiple addresses
+# for example: REDIS_ADDR=192.168.1.5:6001,192.168.1.5:6002,192.168.1.5:6003
+REDIS_ADDR=host:port[,host:port]
+REDIS_USERNAME=user-name
+REDIS_PASSWORD=password
+REDIS_DB=0
+
+# redis tls config
+# Supports three modes: insecure, CA verification only, and client certificate (mTLS) verification.
+# CA, certificate, and private key can be provided as file paths or directly as file content.
+# If using file paths, be sure to use the container virtual path after Docker volume mounting.
+REDIS_TLS_ENABLED=false
+REDIS_TLS_INSECURE=false
+REDIS_TLS_CA=
+REDIS_TLS_CERT=
+REDIS_TLS_KEY=
+```
+
+##### SSL для базы данных
+
+```properties title=".env.custom"
+# database ssl config
+DATABASE_SSL_MODE=require
+TEMPORAL_SQL_TLS_ENABLED=true
+TEMPORAL_SQL_TLS_DISABLE_HOST_VERIFICATION=true
+```
+
+> В рабочей среде задайте `TEMPORAL_SQL_TLS_DISABLE_HOST_VERIFICATION=false` и правильно настройте центр сертификации и сертификаты.
+
+##### MQ
+
+```properties title=".env.custom"
+DISABLE_UNIVER_MQ=true # When using your own MQ, disable Univer's built-in MQ
+
+RABBITMQ_CLUSTER_ENABLED=true # Must be set to true
+RABBITMQ_CLUSTER_USERNAME=user-name # Needs Declare Exchange, Produce, Consume permissions
+RABBITMQ_CLUSTER_PASSWORD=password # password
+
+# use comma to separate multiple addresses
+# for example: RABBITMQ_CLUSTER_ADDR=192.168.1.2:5672,192.168.1.5:5672,192.168.1.7:5672
+# Every addr must be readable and writable; Univer will poll the hosts until a connection succeeds
+RABBITMQ_CLUSTER_ADDR=host:port[,host:port]
+
+# RABBITMQ_CLUSTER_VHOST is the vhost of the rabbitmq cluster. If you don't set it, the default value is /
+# for example: RABBITMQ_CLUSTER_VHOST=univer
+RABBITMQ_CLUSTER_VHOST=/
+RABBITMQ_CLUSTER_SCHEMA=amqp
+```
+
+##### Объектное хранилище
+
+```properties title=".env.custom"
+DISABLE_UNIVER_S3=true # When using your own object storage, disable Univer's built-in MinIO
+
+# s3 config
+S3_USER=user
+S3_PASSWORD=password
+S3_REGION=your-inner-s3like-region # If the S3-like service has no such concept, fill in any string
+
+# S3_PATH_STYLE, can be set to true or false
+# If set to true, use Path-Style to construct access URLs
+# If set to false, use Virtual-Host Style to construct access URLs
+S3_PATH_STYLE=true|false
+
+# S3_ENDPOINT address provided for internal service access
+S3_ENDPOINT=inner-visit-host:port
+
+# S3_ENDPOINT_PUBLIC publicly accessible address, used when the client directly connects to object storage to download files
+S3_ENDPOINT_PUBLIC=public-visit-host:port
+
+# S3_DEFAULT_BUCKET configures which bucket to use
+S3_DEFAULT_BUCKET=default-bucket-name
+```
+
+#### Включение встроенных компонентов наблюдаемости Univer
+
+```properties title=".env.custom"
+# observability config
+ENABLE_UNIVER_OBSERVABILITY=true # Set to true to enable
+GRAFANA_USERNAME=set-your-admin-user-name-here # Set Grafana admin username
+GRAFANA_PASSWORD=set-your-admin-user-password-here # Set Grafana admin password
+HOST_GRAFANA_PORT=set-the-port-you-want # Grafana exposed port
+```
+
+#### Параметры производительности
+
+```properties title=".env.custom"
+UNIVERSER_REPLICATION_CNT=2 # universer instance count
+COLLABORATION_SERVER_REPLICATION_CNT=2 # collaboration service instance count
+COLLABORATION_SERVER_MEMORY_LIMIT=2048 # collaboration service max memory limit, in MB
+COLLABORATION_HELPER_REPLICATION_CNT=2 # helper service instance count, note: introduced since v0.13.0
+COLLABORATION_HELPER_MEMORY_LIMIT=2048 # helper max memory limit, in MB, note: introduced since v0.13.0
+
+# import/export exchange-worker capacity-related config
+EXCHANGE_WORKER_REPLICATION_CNT=1 # working exchange worker count
+EXCHANGE_WORKER_MEMORY_LIMIT=4096 # MB, the memory limit of each exchange-worker.
+EXCHANGE_WORKER_IMPORT_CONCURRENT=1 # how many import tasks each worker can do at the same time.
+EXCHANGE_WORKER_EXPORT_CONCURRENT=1 # how many export tasks each worker can do at the same time.
+```
+
+#### Настройка многоуровневого планирования совместного редактирования
+
+Эта возможность появилась в версии `v0.15.0`, по умолчанию отключена и требует ручной настройки. Система определяет, на какой уровень кластера службы совместного редактирования направить книгу, исходя из общего количества ячеек в ней и фактического времени импорта. Для только что импортированных книг решение принимается по времени импорта; для книг, созданных другими способами или получивших новый снимок, — по общему количеству ячеек. После создания каждого снимка соответствующие показатели сохраняются в базе данных, а политика планирования обновляется.
+
+Суть многоуровневого планирования заключается в развёртывании службы совместного редактирования в виде нескольких кластеров и назначении с помощью правил кластера для обработки таблиц разного размера. Структура данных конфигурации правил выглядит следующим образом:
+
+```yaml
+unitRoutingConf:
+  tiers:
+    - tierName: normal
+      enable: true
+      upgradeCellsThreshold: 0
+      downgradeCellsThreshold: 0
+      upgradeImportTimeThreshold: 0
+    - tierName: large
+      enable: true
+      upgradeCellsThreshold: 1000
+      downgradeCellsThreshold: 900
+      upgradeImportTimeThreshold: 10
+    - tierName: huge
+      enable: true
+      upgradeCellsThreshold: 10000
+      downgradeCellsThreshold: 9000
+      upgradeImportTimeThreshold: 60
+```
+
+Описание:
+
+- `tiers`: описывает сведения о каждом кластере; теоретически можно настроить любое количество кластеров.
+- `enable`: определяет, включён ли кластер; если указать `false`, кластер будет игнорироваться.
+- `upgradeCellsThreshold`: задаёт общее количество ячеек листа, необходимое для направления в этот кластер.
+- `downgradeCellsThreshold`: если лист уже направлен в этот кластер, перевести его в кластер более низкого уровня можно только после того, как общее количество ячеек станет меньше этого значения. Это предотвращает частые переключения листов, размер которых близок к границе уровня.
+- `upgradeImportTimeThreshold`: у только что импортированных листов ещё нет статистики общего количества ячеек, поэтому для планирования используется этот параметр. Механизм аналогичен `upgradeCellsThreshold`, но показателем служит фактическое время импорта.
+
+Необходимо, чтобы хотя бы в одном кластере требования ко всем показателям были равны 0: это гарантирует, что каждый лист можно будет направить в кластер.
+
+Примеры планирования с приведённой выше конфигурацией:
+
+- Сразу после создания workbook1 содержит 0 ячеек и направляется в кластер normal.
+- После редактирования workbook1 общее количество ячеек достигает 1000, и книга направляется в кластер large.
+- Когда общее количество ячеек в workbook1 снижается до 999, книга остаётся в кластере large, поскольку это число всё ещё превышает порог понижения 900.
+- Когда общее количество ячеек в workbook1 снижается до 899, книга возвращается в кластер normal.
+- Импорт workbook2 занимает 61 секунду, что превышает порог кластера huge в 60 секунд, поэтому книга направляется в кластер huge.
+
+Скрипт развёртывания Univer с помощью Docker Compose позволяет развернуть один или два уровня, разделив обычные и большие таблицы. Параметр `ENABLE_LARGE_TIER_COLLABORATION_SERVER` в конфигурации кластера определяет, будет ли кластер для больших таблиц использоваться при планировании и развернёт ли Docker Compose соответствующие службы. Если требуется более точное управление уровнями кластеров или развёртывание в K8s, измените оркестрацию docker compose / charts так, чтобы фактически развернуть кластеры службы `collaboration-server` соответствующего уровня, а затем настройте таблицу маршрутизации (`tiers`), как описано выше.
+
+По умолчанию настроено только два уровня: `normal` и `large`.
+
+```properties title=".env.custom"
+# Configure to enable/disable large cluster, true-enable, false-disable, default disabled
+ENABLE_LARGE_TIER_COLLABORATION_SERVER=false
+
+# If large cluster is enabled, sheets will be scheduled to the large cluster when total cell count reaches this scale, default 2M
+LARGE_TIER_MIN_CELLS_COUNT=2000000
+
+# If the sheet is currently scheduled to the large cluster, it will only be downgraded back to the normal cluster when total cell count falls below this value, default 1.95M
+LARGE_TIER_DOWNGRADE_CELLS_COUNT=1950000
+
+# If large cluster is enabled, workbooks will be scheduled to the large cluster when import time exceeds this value, default 10s
+LARGE_TIER_MIN_IMPORT_SECONDS=10
+
+# large cluster collaboration service instance count, default 2
+LARGE_TIER_COLLABORATION_SERVER_REPLICATION_CNT=2
+
+# large cluster collaboration service instance memory limit, recommended at least 8GB, default 8GB
+LARGE_TIER_COLLABORATION_SERVER_MEMORY_LIMIT=8192
+```
+
+#### Настройка сети
+
+Если открытые по умолчанию порты Univer конфликтуют с другими службами, их можно изменить:
+
+```properties title=".env.custom"
+# If it conflicts with existing network configuration, you can modify the CIDR used by docker
+DOCKER_NETWORK_SUBNET=172.30.0.0/16
+
+# Univer API service exposed port; if it conflicts with other host services, change to another port
+HOST_NGINX_PORT=the-univer-server-api-port-you-wantted
+
+# If you choose Univer's built-in MinIO as object storage and there is a port conflict, add this configuration item
+# If you are using self-maintained object storage, setting this configuration item has no effect
+HOST_MINIO_PORT=the-minio-port-you-wantted
+
+# If you choose Univer's built-in observability components and there is a port conflict, add this configuration item
+# If you are using self-maintained observability components, setting this configuration item has no effect
+HOST_GRAFANA_PORT=the-grafana-port-you-wantted
+```
+
+#### Настройка междоменных запросов
+
+```properties title=".env.custom"
+# allowed cross-origins config
+CORS_ALLOW_ORIGINS='["domain1", "domain2", "and more"]'
+CORS_ALLOW_HEADERS='["content-type","authorization"]'
+```
+
+#### Пример конфигурации
+
+Следующий пример конфигурации позволяет:
+
+- включить интеграцию с USIP, аутентификацию пользователей и проверку разрешений;
+- разрешить копирование содержимого и печать только владельцу документа;
+- включить публикацию событий Univer;
+- использовать самостоятельно обслуживаемую PostgreSQL;
+- использовать самостоятельно обслуживаемое объектное хранилище;
+- изменить открытый порт службы Univer;
+- настроить производительность universer и collaboration-server.
+
+Содержимое файла `.env.custom`:
+
+```properties title=".env.custom"
+# 1. enable USIP integration
+# usip about
+USIP_ENABLED=true
+USIP_URI_CREDENTIAL=https://usip-demo.univer.ai/usip/credential
+USIP_URI_USERINFO=https://usip-demo.univer.ai/usip/userinfo
+USIP_URI_ROLE=https://usip-demo.univer.ai/usip/role
+USIP_URI_COLLABORATORS=https://usip-demo.univer.ai/usip/collaborators
+USIP_URI_UNITEDITTIME=https://usip-demo.univer.ai/usip/unit-edit-time
+
+# 2. only owner can copy content and print
+AUTH_PERMISSION_CUSTOMER_STRATEGIES=[ {"action": 3, "role": 2}, {"action": 6, "role": 2} ]
+
+# 3. enable univer event sync
+EVENT_SYNC=true # Set to true to enable
+
+# 4. use owner RDS
+# postgresql config
+DISABLE_UNIVER_RDS=true # When using your own RDS, disable Univer's default PostgreSQL
+
+DATABASE_DRIVER=postgresql # Set to postgresql for PostgreSQL-compatible databases
+DATABASE_HOST=univer-postgresql
+DATABASE_PORT=5432
+DATABASE_DBNAME=univer
+DATABASE_USERNAME=universer-biz
+DATABASE_PASSWORD=123456
+
+# 5. use owner Object storage
+# s3 config
+DISABLE_UNIVER_S3=true # When using your own object storage, disable Univer's built-in MinIO
+
+S3_USER=universer-biz
+S3_PASSWORD=123456
+S3_REGION=cn-sz
+S3_PATH_STYLE=true
+S3_ENDPOINT=univer-s3:9652
+S3_ENDPOINT_PUBLIC=univer.ai:9653
+S3_DEFAULT_BUCKET=univer
+
+# 6. change univer service Port
+HOST_NGINX_PORT=8010
+
+# 7. set the service scale
+UNIVERSER_REPLICATION_CNT=4 # universer instance count
+COLLABORATION_SERVER_REPLICATION_CNT=5 # collaboration service instance count
+MAX_MEMORY_LIMIT=2048 # collaboration service max memory limit, in MB
+```
+
+## Регламент развёртывания
+
+Определив необходимую конфигурацию, вы можете развернуть серверные службы Univer, выполнив следующие действия.
+
+### Регламент развёртывания с помощью Docker Compose
+
+1. Подготовьте файл конфигурации `.env.custom` (если изменения не нужны, пропустите этот шаг).
+2. Подготовьте файлы лицензии: `license.txt` и `licenseKey.txt`.
+3. Если вы используете самостоятельно обслуживаемую RDS, скачайте [скрипт инициализации базы данных](https://release-univer.oss-cn-shenzhen.aliyuncs.com/releases/latest/univer-server-sql-latest.tar.gz) и выполните инициализацию RDS, включая universer и temporal. При использовании GaussDB или DamengDB инициализация temporal не требуется.
+4. Получите серверные службы Univer Pro:
+   - Если сервер развёртывания имеет доступ к интернету:
+     - Выполните команду `bash -c "$(curl -fsSL https://get.univer.ai/product)" [-- version]`, чтобы скачать указанную версию служб Univer. Если версия не указана, по умолчанию загружается последняя версия.
+     - CLI попытается автоматически открыть браузер, чтобы получить токен аутентификации на странице [//cli-auth](//cli-auth). Если браузер не откроется автоматически, перейдите по этому адресу вручную, получите токен и вставьте его в терминал по запросу.
+   - Если сервер развёртывания не имеет доступа к интернету:
+     - [Скачайте](//releases/univer-server/download) автономный пакет установки «всё в одном», предоставленный Univer.
+     - Загрузите автономный пакет установки на сервер развёртывания и распакуйте его.
+     - Перейдите в распакованный каталог и выполните команду `bash load-images.sh`, чтобы загрузить образы серверных служб Univer в локальную среду Docker.
+5. Скопируйте подготовленный файл `.env.custom` в каталог загруженных служб Univer, рядом с файлом `.env` по умолчанию.
+6. Скопируйте файлы лицензии `license.txt` и `licenseKey.txt` в каталог `configs/` загруженных служб Univer.
+7. Перейдите в корневой каталог служб Univer и выполните команду `bash run.sh start`, чтобы завершить развёртывание служб.
+8. Проведите регрессионное тестирование.

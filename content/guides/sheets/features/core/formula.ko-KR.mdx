@@ -1,0 +1,258 @@
+---
+title: 수식
+---
+
+import FormulaList from '@/components/formula-list'
+
+수식은 Univer가 제공하는 핵심 기능 중 하나로, 셀에서 수식을 사용해 값을 계산할 수 있습니다. 수식에서 지원하는 함수는 수학, 논리, 텍스트, 날짜 함수 등을 포함하여 Excel과 호환됩니다.
+
+통합 문서에 수식이 많으면 수식 계산이 메인 스레드를 점유해 페이지 응답성이 저하될 수 있습니다. 렌더링과 사용자 상호 작용에 미치는 영향을 줄이려면 Worker 프로세스에서 수식 계산을 실행하는 것이 좋습니다. 구성 방법은 [Web Workers](/guides/sheets/features/core/worker)를 참고하세요.
+
+## 구성
+
+수식 플러그인과 관련된 구성 항목은 다음 링크에서 확인할 수 있습니다.
+
+| 플러그인 | 구성 항목 |
+| --- | --- |
+| `@univerjs/engine-formula` | [IUniverEngineFormulaConfig](/reference/packages/plugins/univerjs/engine-formula) |
+| `@univerjs/sheets-formula` | [IUniverSheetsFormulaBaseConfig](/reference/packages/plugins/univerjs/sheets-formula) |
+
+### 프리셋 구성
+
+```typescript
+import type { CalculationMode } from '@univerjs/preset-sheets-core'
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+
+interface IUniverSheetsCorePresetConfig {
+  formula?: {
+    // Custom formula functions
+    function?: Array<[Ctor<BaseFunction>, IFunctionNames]>
+    // Custom formula descriptions
+    description?: IFunctionInfo[]
+    // Defines the calculation mode for formulas during data initialization, default is `WHEN_EMPTY`
+    initialFormulaComputing?: CalculationMode
+  }
+}
+```
+
+### 플러그인 구성
+
+```typescript
+import type { CalculationMode } from '@univerjs/sheets-formula'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+interface IUniverSheetsFormulaConfig {
+  // Custom formula functions
+  function?: Array<[Ctor<BaseFunction>, IFunctionNames]>
+  // Custom formula descriptions
+  description?: IFunctionInfo[]
+  // Defines the calculation mode for formulas during data initialization, default is `WHEN_EMPTY`
+  initialFormulaComputing?: CalculationMode
+}
+```
+
+`CalculationMode`의 정의는 다음과 같습니다.
+
+```typescript
+enum CalculationMode {
+  /**
+   * Force calculation of all formulas
+   */
+  FORCED,
+
+  /**
+   * Partial calculation, only calculates cells with formulas but no value
+   */
+  WHEN_EMPTY,
+
+  /**
+   * No calculation for all formulas
+   */
+  NO_CALCULATION,
+}
+```
+
+> 수식이 포함된 셀에 예상치 못한 값이 있으면 `initialFormulaComputing`을 `CalculationMode.FORCED`로 설정하여 모든 수식을 강제로 계산할 수 있습니다. 또는 초기화 전에 셀의 `v` 값을 지울 수 있습니다.
+
+## 지원되는 수식 함수
+
+<FormulaList lang="ko-KR" />
+
+## Facade API
+
+자세한 내용은 [FFormula Facade API](https://docs.univer.ai/reference/facade/formula)를 참고하세요.
+
+### 가져오기
+
+<Callout type="info" title="플러그인 모드 참고 사항">
+  Facade 패키지를 직접 가져와야 하는 것은 플러그인 모드뿐입니다. 프리셋 모드에는 해당 Facade 패키지가 이미 포함되어 있으므로 별도로 가져올 필요가 없습니다.
+</Callout>
+
+```typescript
+import '@univerjs/engine-formula/facade'
+import '@univerjs/sheets-formula/facade'
+import '@univerjs/sheets-formula-ui/facade'
+```
+
+### 범위 선택기 대화 상자 표시
+
+`@univerjs/sheets-formula-ui/facade`는 `univerAPI.showRangeSelectorDialog`를 추가합니다. 사용자 지정 UI에서 수식 관련 패널과 동일한 선택기를 사용해 사용자가 하나 이상의 범위를 선택하도록 할 때 사용하세요.
+
+```typescript
+const workbook = univerAPI.getActiveWorkbook()
+const worksheet = workbook?.getActiveSheet()
+
+if (workbook && worksheet) {
+  await univerAPI.showRangeSelectorDialog({
+    unitId: workbook.getId(),
+    subUnitId: worksheet.getSheetId(),
+    initialValue: [
+      {
+        unitId: workbook.getId(),
+        sheetName: worksheet.getSheetName(),
+        range: worksheet.getRange('A1:B2').getRange(),
+      },
+    ],
+    maxRangeCount: 2,
+    supportAcrossSheet: true,
+    callback: (ranges, isCancel) => {
+      console.log(ranges, isCancel)
+    },
+  })
+}
+```
+
+### 수식 계산 실행
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.executeCalculation()
+```
+
+### 수식 계산 중지
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.stopCalculation()
+```
+
+### 수식 계산 시작
+
+```typescript
+// Listening to formula calculation start event
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationStart((forceCalculate) => {
+  console.log(forceCalculate)
+})
+```
+
+### 수식 계산 진행
+
+```typescript
+// Listening to formula calculation processing event
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationProcessing((stageInfo) => {
+  console.log(stageInfo)
+})
+```
+
+### 수식 계산 종료
+
+```typescript
+// Listening to formula calculation end event
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationEnd((functionsExecutedState) => {
+  console.log(functionsExecutedState)
+})
+
+// Wait for formula calculation to end
+await formulaEngine.onCalculationEnd()
+```
+
+### 수식 계산 결과 적용
+
+```typescript
+// Listening to formula calculation result applied event
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.calculationResultApplied((result) => {
+  console.log(result)
+})
+
+// Wait for formula calculation result to be applied
+await formulaEngine.onCalculationResultApplied()
+```
+
+### 데이터 초기화 시 수식 계산 모드 설정
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.setInitialFormulaComputing(CalculationMode.FORCED)
+```
+
+이 API를 `Starting` 수명 주기 이후에 호출하면 다음에 Univer Sheet를 만들 때 적용됩니다.
+
+현재 Univer Sheet 초기화 중에 적용하려면 다음 예와 같이 `Ready` 수명 주기 전에 호출할 수 있습니다.
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+  if (stage === LifecycleStages.Starting) {
+    const formulaEngine = univerAPI.getFormula()
+    formulaEngine.setInitialFormulaComputing(CalculationMode.FORCED)
+  }
+})
+```
+
+### 최대 반복 횟수 설정
+
+수식에 순환 참조가 있을 때 이 API를 사용하여 수식 계산의 최대 반복 횟수를 설정할 수 있습니다. 기본값은 1입니다.
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.setMaxIteration(10)
+```
+
+### 수식 문자열 실행 결과 가져오기
+
+여러 수식을 비동기로 실행하고 계산 결과를 받습니다.
+
+```typescript
+const formulaEngine = univerAPI.getFormula()
+const formulas = {
+  Book1: {
+    Sheet1: {
+      2: {
+        3: [
+          // Full formula:
+          '=SUM(A1:A10) + SQRT(D7)',
+
+          // Decomposed sub-formulas (each one can be evaluated independently):
+          'SUM(A1:A10)', // sub-formula 1
+          'SQRT(D7)', // sub-formula 2
+          'A1:A10', // range reference
+          'D7', // single-cell reference
+        ],
+      },
+      4: {
+        5: [
+          '=A2 + B2 + SQRT(C5)',
+          'A2',
+          'B2',
+          'SQRT(C5)',
+        ],
+      },
+    },
+  },
+}
+const result = await formulaEngine.executeFormulas(formulas)
+console.log(result)
+```
+
+## 사용자 지정 수식
+
+Univer는 사용자 지정 수식을 지원합니다. 구현 방법은 [사용자 지정 수식](/guides/recipes/tutorials/custom-formula) 섹션을 참고하세요.
+
+## 자주 묻는 질문
+
+### `HYPERLINK` 수식 셀에서 하이퍼링크를 사용할 수 없음
+
+Univer Sheets용 하이퍼링크 플러그인을 가져와야 합니다. [하이퍼링크](/guides/sheets/features/hyper-link) 모듈을 참고하세요.

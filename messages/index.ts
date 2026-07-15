@@ -1,13 +1,19 @@
 import type { Messages } from './en-US'
 import type { Locale } from '@/i18n/routing'
 import enUSMessages from './en-US'
+import frFRMessages from './fr-FR'
 import jaJPMessages from './ja-JP'
+import koKRMessages from './ko-KR'
+import ruRUMessages from './ru-RU'
 import zhCNMessages from './zh-CN'
 import zhTWMessages from './zh-TW'
 
 export const messagesByLocale = {
   'en-US': enUSMessages,
+  'fr-FR': frFRMessages,
   'ja-JP': jaJPMessages,
+  'ko-KR': koKRMessages,
+  'ru-RU': ruRUMessages,
   'zh-CN': zhCNMessages,
   'zh-TW': zhTWMessages,
 } satisfies Record<Locale, Messages>

@@ -1,0 +1,163 @@
+---
+title: 리치 텍스트 사용 가이드
+---
+
+Univer는 셀 콘텐츠, 댓글, 하이퍼링크 등 다양한 상황에서 사용할 수 있는 강력한 리치 텍스트 기능을 제공합니다. 이 가이드에서는 리치 텍스트 기능의 사용 방법을 소개합니다.
+
+## Facade API
+
+Facade API는 리치 텍스트 관련 객체를 만드는 여러 메서드를 제공합니다.
+
+```typescript
+// Create rich text
+const richText = univerAPI.newRichText()
+const richTextValue = univerAPI.newRichTextValue({ body: { dataStream: 'Hello Univer\r\n' } })
+
+// Create paragraph style
+const paragraphStyle = univerAPI.newParagraphStyle()
+const paragraphStyleValue = univerAPI.newParagraphStyleValue()
+
+// Create text style
+const textStyle = univerAPI.newTextStyle()
+const textStyleValue = univerAPI.newTextStyleValue()
+
+// Create text decoration
+const decoration = univerAPI.newTextDecoration()
+```
+
+각 생성 메서드에는 Builder 버전과 Value 버전이 있습니다.
+- Builder 버전(`newRichText` 등)은 스타일을 만들고 수정하는 데 사용합니다.
+- Value 버전(`newRichTextValue` 등)은 읽기 전용 스타일 객체를 만드는 데 사용합니다.
+
+## 기본 개념
+
+리치 텍스트 시스템은 주로 두 가지 핵심 구성 요소로 이루어집니다.
+
+1. **TextStyle(텍스트 스타일)**: 글꼴, 크기, 색상 등 텍스트의 모양을 제어합니다.
+2. **ParagraphStyle(단락 스타일)**: 정렬, 들여쓰기, 줄 간격 등 단락 수준의 서식을 제어합니다.
+
+## 텍스트 스타일 설정
+
+### 텍스트 스타일 만들기
+
+```typescript
+// Create a basic text style
+const textStyle = univerAPI.newTextStyle()
+  .setFontFamily('Arial')
+  .setFontSize(12)
+  .setItalic(true)
+  .setBold(true)
+  .build()
+
+// Create a text style with colors
+const coloredStyle = univerAPI.newTextStyle()
+  .setColor({ rgb: '#FF0000' }) // Set red text
+  .setBackground({ rgb: '#FFFF00' }) // Set yellow background
+  .build()
+```
+
+### 텍스트 장식
+
+```typescript
+// Add underline
+const underlineStyle = univerAPI.newTextStyle()
+  .setUnderline(
+    univerAPI.newTextDecoration()
+      .setShow(true)
+      .setColor({ rgb: '#0000FF' })
+      .setLineType(univerAPI.Enum.TextDecoration.SINGLE),
+  )
+  .build()
+
+// Add strikethrough
+const strikethroughStyle = univerAPI.newTextStyle()
+  .setStrikethrough(
+    univerAPI.newTextDecoration()
+      .setShow(true),
+  )
+  .build()
+```
+
+## 단락 스타일 설정
+
+### 단락 스타일 만들기
+
+```typescript
+// Create a basic paragraph style
+const paragraphStyle = univerAPI.newParagraphStyle()
+  .setHorizontalAlign(univerAPI.Enum.HorizontalAlign.CENTER) // Center alignment
+  .setLineSpacing(1.5) // 1.5 line spacing
+  .build()
+
+// Set paragraph indentation
+const indentedStyle = univerAPI.newParagraphStyle()
+  .setIndentFirstLine({ value: 2, unit: 'cm' }) // First line indent 2cm
+  .setIndentStart({ value: 1, unit: 'cm' }) // Left indent 1cm
+  .build()
+```
+
+## 사용 사례
+
+### 1. 셀 리치 텍스트
+
+셀에 리치 텍스트를 설정하는 방법에는 [`setRichTextValueForCell`](https://docs.univer.ai/reference/facade/range#setrichtextvalueforcell)과 [`setRichTextValues`](https://docs.univer.ai/reference/facade/range#setrichtextvalues), 두 가지가 있습니다.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+console.log(fRange.getValue(true))
+
+// Set A1 cell value to rich text
+const richText = univerAPI.newRichText()
+  .insertText('Hello World')
+  .setStyle(0, 1, { bl: 1, cl: { rgb: '#c81e1e' } })
+  .setStyle(6, 7, { bl: 1, cl: { rgb: '#c81e1e' } })
+fRange.setRichTextValueForCell(richText)
+console.log(fRange.getValue(true).toPlainText()) // Hello World
+
+// Set A1:B2 cell value to rich text
+fRange.setRichTextValues([
+  [richText, richText],
+  [null, null],
+])
+console.log(fRange.getValue(true).toPlainText()) // Hello World
+```
+
+### 2. 댓글 리치 텍스트
+
+```typescript
+// Add formatted comments
+const range = univerAPI.getActiveWorkbook()
+  .getActiveSheet()
+  .getActiveRange()
+
+// Create comment content
+const comment = univerAPI.newTheadComment()
+  .setContent(
+    univerAPI.newRichText()
+      .insertText('Please check the data in this cell'),
+  )
+
+// Add comment asynchronously
+const success = await range.addCommentAsync(comment)
+if (success) {
+  console.log('Comment added successfully')
+}
+```
+
+### 3. 하이퍼링크 리치 텍스트
+
+```typescript
+// Create rich text with hyperlink
+const range = univerAPI.getActiveWorkbook()
+  .getActiveSheet()
+  .getActiveRange()
+
+// Create hyperlink using newRichText().insertLink
+const richText = univerAPI.newRichText()
+  .insertLink('Visit Univer', '/')
+
+// Set to cell
+range.setRichTextValueForCell(richText)
+```

@@ -1,0 +1,99 @@
+---
+title: 가져오기 및 내보내기
+icon: '#pro/FolderSync'
+---
+
+## 개요
+
+Slides 가져오기 및 내보내기는 Pro 기능입니다. 브라우저 클라이언트는 공용 exchange client와 Slides exchange client를 등록하며, 변환, 작업 폴링, 저장소, 서명된 다운로드 URL은 Pro 배포 환경에서 제공합니다.
+
+```ts
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
+import ExchangeClientEnUS from '@univerjs-pro/exchange-client/locale/en-US'
+import { UniverSlidesExchangeClientPlugin } from '@univerjs-pro/slides-exchange-client'
+import SlidesExchangeClientEnUS from '@univerjs-pro/slides-exchange-client/locale/en-US'
+
+import '@univerjs-pro/exchange-client/lib/index.css'
+import '@univerjs-pro/exchange-client/facade'
+
+univer.registerPlugin(UniverExchangeClientPlugin)
+univer.registerPlugin(UniverSlidesExchangeClientPlugin)
+```
+
+## 설치
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/slides-exchange-client
+```
+
+## 엔드포인트 구성
+
+`@univerjs-pro/slides-exchange-client`는 `@univerjs-pro/exchange-client`에 의존합니다. 공용 exchange client에 서버 URL을 설정한 다음 Slides client를 등록하여 PPTX 메뉴 작업을 추가하세요. `@univerjs-pro/exchange-client/lib/index.css`를 가져와야 합니다. Slides exchange 패키지는 로케일 항목을 추가하지만 별도의 CSS 또는 facade 항목은 제공하지 않습니다.
+
+```ts
+univer.registerPlugin(UniverExchangeClientPlugin, {
+  uploadFileServerUrl: '/universer-api/stream/file/upload',
+  importServerUrl: '/universer-api/exchange/{type}/import',
+  exportServerUrl: '/universer-api/exchange/{type}/export',
+  getTaskServerUrl: '/universer-api/exchange/task/{taskID}',
+  signUrlServerUrl: '/universer-api/file/{fileID}/sign-url',
+  downloadEndpointUrl: location.origin,
+  maxTimeoutTime: 120000,
+})
+
+univer.registerPlugin(UniverSlidesExchangeClientPlugin)
+```
+
+`{type}` 자리표시자는 `UniverInstanceType.UNIVER_SLIDE`로 채워집니다. 가져오기는 서버 측 unit id 또는 snapshot JSON을 반환할 수 있습니다. 내보내기는 slide snapshot을 exchange 서비스에 업로드하고 작업 결과를 기다린 다음, 반환된 file id에 서명하고 PPTX 파일을 다운로드합니다.
+
+## Facade API
+
+플러그인 모드에서는 facade 패키지를 한 번 가져옵니다.
+
+```ts
+import '@univerjs-pro/exchange-client/facade'
+```
+
+PPTX를 서버 측 unit으로 가져옵니다.
+
+```ts
+const unitId = await univerAPI.importPPTXToUnitIdAsync(file)
+```
+
+PPTX를 로컬 slide 데이터로 가져옵니다.
+
+```ts
+const slideData = await univerAPI.importPPTXToSnapshotAsync(file)
+
+if (slideData) {
+  univerAPI.createPresentation(slideData)
+}
+```
+
+현재 slide deck을 내보냅니다.
+
+```ts
+const presentation = univerAPI.getActivePresentation()
+const file = await univerAPI.exportPPTXBySnapshotAsync(presentation.save())
+```
+
+서버 측 slide unit을 내보냅니다.
+
+```ts
+const file = await univerAPI.exportPPTXByUnitIdAsync(unitId)
+```
+
+## 메뉴 동작
+
+Slides exchange client는 다음 PPTX 메뉴 작업을 제공합니다.
+
+- `ImportPPTXOperation`은 현재 URL에 `unit` 쿼리 매개변수가 있으면 기존 unit으로 가져오고, 그렇지 않으면 로컬 snapshot으로 가져옵니다.
+- `ExportPPTXOperation`은 현재 slide deck을 snapshot으로 내보냅니다.
+
+사용자 지정 메뉴의 표시 여부나 순서를 병합해야 한다면 `UniverSlidesExchangeClientPlugin`에 `menu` 구성을 전달할 수 있습니다.
+
+## 관련 설정
+
+- Slides unit을 사용할 수 있도록 exchange client보다 먼저 `UniverSlidesPlugin`을 등록하세요.
+- 인증, 저장소, 변환, 작업 폴링, 서명된 다운로드 URL에는 Pro 서버 API를 사용하세요.
+- 가져오는 PPTX 파일에 인쇄, 표 또는 차트 요소가 포함될 수 있다면 관련 패키지를 활성화해 두세요.

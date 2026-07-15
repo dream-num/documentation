@@ -69,70 +69,6 @@ import '@univerjs-pro/boards-ui/lib/index.css'
 
 type UniverType = 'sheets' | 'docs' | 'slides' | 'bases' | 'boards'
 
-const showcaseCopy: Record<UniverType, {
-  eyebrow: string
-  title: string
-  summary: string
-  stats: Array<{ label: string, value: string }>
-  capabilities: string[]
-}> = {
-  sheets: {
-    eyebrow: 'Spreadsheet ops cockpit',
-    title: 'Structured launch tracker with validation, progress and conditional signals.',
-    summary: 'A dense workbook view that shows formulas, typed cells, list validation, date columns and color-coded progress in the same grid.',
-    stats: [
-      { label: 'Rows', value: '20' },
-      { label: 'Rules', value: '6' },
-      { label: 'Signals', value: '3' },
-    ],
-    capabilities: ['Data validation', 'Conditional formatting', 'Currency/date formats', 'Task operations'],
-  },
-  docs: {
-    eyebrow: 'Document authoring',
-    title: 'Long-form document canvas with styled text and page layout.',
-    summary: 'A paginated document surface for rich text, editorial structure and precise page rendering inside the same Univer runtime.',
-    stats: [
-      { label: 'Pages', value: '1' },
-      { label: 'Text runs', value: '8' },
-      { label: 'Layout', value: 'A4' },
-    ],
-    capabilities: ['Rich text runs', 'Page margins', 'Document styling', 'Editor chrome'],
-  },
-  slides: {
-    eyebrow: 'Presentation design',
-    title: 'A real slide deck surface, not a static thumbnail.',
-    summary: 'The example loads a slide unit with shapes, text layers, page order and the Slides Pro canvas controls.',
-    stats: [
-      { label: 'Slides', value: '2' },
-      { label: 'Layers', value: '9' },
-      { label: 'Mode', value: 'Pro' },
-    ],
-    capabilities: ['Shape layers', 'Slide page model', 'Themeable canvas', 'Plugin mode'],
-  },
-  bases: {
-    eyebrow: 'No-code database',
-    title: 'A base workspace for records, typed fields, views and operational status.',
-    summary: 'The seed data creates a product launch base with status, owners, progress and roadmap views through the Facade API.',
-    stats: [
-      { label: 'Records', value: '4' },
-      { label: 'Fields', value: '6' },
-      { label: 'Views', value: '2' },
-    ],
-    capabilities: ['Typed fields', 'Grid views', 'Single-select status', 'Facade mutations'],
-  },
-  boards: {
-    eyebrow: 'Visual collaboration',
-    title: 'A whiteboard made from containers, sticky notes and structured groups.',
-    summary: 'The board example creates a live board unit from Facade APIs and renders a planning map for product workflows.',
-    stats: [
-      { label: 'Objects', value: '10' },
-      { label: 'Frames', value: '2' },
-      { label: 'Canvas', value: 'Live' },
-    ],
-    capabilities: ['Canvas objects', 'Sticky notes', 'Containers', 'Board facade'],
-  },
-}
-
 function seedBase(univerAPI: ReturnType<typeof FUniver.newAPI>) {
   const now = Date.now()
   const base = univerAPI.createBase({
@@ -459,7 +395,6 @@ export default function Univer() {
   ]
 
   const activeIndex = tabs.findIndex(tab => tab.key === type)
-  const activeShowcase = showcaseCopy[type]
 
   return (
     <div className="w-full">
@@ -520,78 +455,6 @@ export default function Univer() {
             )
           })}
         </div>
-
-        <section
-          className="
-            grid w-7xl max-w-full grid-cols-1 gap-4 rounded-xl border border-neutral-200 bg-white/85 p-4 shadow-sm
-            md:grid-cols-[1.3fr_0.7fr]
-            dark:border-neutral-800 dark:bg-neutral-950/70
-          "
-        >
-          <div className="min-w-0">
-            <div className={clsx('mb-2 text-xs font-semibold tracking-wide uppercase', tabs[activeIndex].activeClass)}>
-              {activeShowcase.eyebrow}
-            </div>
-            <h3
-              className="
-                text-lg font-semibold text-balance text-neutral-950
-                dark:text-neutral-50
-              "
-            >
-              {activeShowcase.title}
-            </h3>
-            <p
-              className="
-                mt-2 max-w-3xl text-sm/6 text-neutral-600
-                dark:text-neutral-400
-              "
-            >
-              {activeShowcase.summary}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {activeShowcase.capabilities.map(capability => (
-                <span
-                  key={capability}
-                  className="
-                    rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-xs font-medium
-                    text-neutral-700
-                    dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300
-                  "
-                >
-                  {capability}
-                </span>
-              ))}
-            </div>
-          </div>
-          <dl className="grid grid-cols-3 gap-2">
-            {activeShowcase.stats.map(stat => (
-              <div
-                key={stat.label}
-                className="
-                  rounded-lg border border-neutral-200 bg-neutral-50 p-3
-                  dark:border-neutral-800 dark:bg-neutral-900
-                "
-              >
-                <dt
-                  className="
-                    text-xs font-medium text-neutral-500
-                    dark:text-neutral-400
-                  "
-                >
-                  {stat.label}
-                </dt>
-                <dd
-                  className="
-                    mt-1 text-xl font-semibold text-neutral-950
-                    dark:text-neutral-50
-                  "
-                >
-                  {stat.value}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </section>
       </header>
 
       {/* Playground Container */}

@@ -1,0 +1,85 @@
+---
+title: Cycle de vie
+---
+
+Lorsqu’une application Univer s’exécute, elle passe par une série d’étapes ordonnées de son cycle de vie. Il est essentiel pour les développeurs de comprendre ce cycle afin de déterminer à quel moment ils peuvent accéder en toute sécurité aux instances métier et aux éléments du DOM, ou effectuer des opérations asynchrones longues. Chaque étape se prête à différents types de tâches d’initialisation, de rendu et d’optimisation des performances. En suivant les changements du cycle de vie, les développeurs peuvent réagir au moment opportun aux changements d’état du système afin d’étendre les fonctionnalités, d’améliorer les performances ou d’optimiser l’expérience utilisateur.
+
+Le cycle de vie d’Univer comprend principalement les quatre étapes suivantes :
+
+<Mermaid chart="flowchart LR; A([Starting]) --> B([Ready]) --> C([Rendered]) -->D([Steady])" />
+
+1. **Starting** : le système commence son initialisation. Les plugins effectuent l’injection des dépendances et la configuration de base.
+2. **Ready** : la première instance métier est créée et les plugins initialisent les fonctionnalités principales.
+3. **Rendered** : l’interface a été rendue une première fois. Il est désormais possible de manipuler le DOM en toute sécurité ou d’effectuer des initialisations liées à l’interface.
+4. **Steady** : le système atteint un état stable, adapté au chargement différé, aux tâches non critiques et aux autres opérations d’optimisation.
+
+Le moment où les différents types de plugins ou de composants démarrent au cours de leur cycle de vie peut varier, mais le processus global suit l’ordre décrit ci-dessus. Les développeurs peuvent utiliser les événements du cycle de vie pour contrôler précisément le moment où les fonctionnalités sont chargées et exécutées.
+
+<Callout>
+  Pour en savoir plus sur la conception du cycle de vie d’Univer et sur le moment précis où les plugins démarrent, consultez [« Architecture d’Univer#Cycle de vie des plugins »](/guides/recipes/architecture/univer#plugin-lifecycle).
+</Callout>
+
+## API Facade
+
+### Ajouter des écouteurs
+
+Univer fournit une interface unifiée d’abonnement aux événements, qui permet aux développeurs de suivre les changements du cycle de vie à l’aide de l’API Facade :
+
+```typescript
+const disposable = univerAPI.addEvent(
+  univerAPI.Event.LifeCycleChanged,
+  ({ stage }) => {
+    if (stage === univerAPI.Enum.LifecycleStages.Steady) {
+      // Execute custom logic in the Steady stage
+    }
+  },
+)
+```
+
+### Supprimer des écouteurs
+
+Pour supprimer un écouteur, utilisez l’objet `disposable` renvoyé :
+
+```typescript
+disposable.dispose()
+```
+
+### Événements et énumérations du cycle de vie
+
+Univer fournit aux développeurs les événements et énumérations de cycle de vie suivants :
+
+- Nom de l’événement : `univerAPI.Event.LifeCycleChanged`
+
+- Énumérations des étapes du cycle de vie :
+  - `univerAPI.Enum.LifecycleStages.Starting`
+  - `univerAPI.Enum.LifecycleStages.Ready`
+  - `univerAPI.Enum.LifecycleStages.Rendered`
+  - `univerAPI.Enum.LifecycleStages.Steady`
+
+### Exemple
+
+<Callout type="warning" title="Attention">
+  `univerAPI.Event.LifeCycleChanged` ne signale que les changements du cycle de vie. Aucun événement n’est donc déclenché pendant l’étape `Starting`.
+</Callout>
+
+```typescript
+const disposable = univerAPI.addEvent(
+  univerAPI.Event.LifeCycleChanged,
+  ({ stage }) => {
+    switch (stage) {
+      case univerAPI.Enum.LifecycleStages.Ready:
+        console.log('The business instance has been created, you can perform core initialization')
+        break
+      case univerAPI.Enum.LifecycleStages.Rendered:
+        console.log('The interface has been rendered, you can safely manipulate the DOM')
+        break
+      case univerAPI.Enum.LifecycleStages.Steady:
+        console.log('The system is stable, you can perform delayed loading and other optimization operations')
+        break
+    }
+  },
+)
+
+// Remove the listener
+disposable.dispose()
+```

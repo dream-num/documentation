@@ -1,0 +1,99 @@
+---
+title: Импорт и экспорт
+icon: '#pro/FolderSync'
+---
+
+## Обзор
+
+Импорт и экспорт Slides — это функции Pro. Клиент в браузере регистрирует общий клиент обмена и клиент обмена Slides, а преобразование, опрос состояния задач, хранение и подписанные URL-адреса для скачивания обеспечивает ваше развёртывание Pro.
+
+```ts
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
+import ExchangeClientEnUS from '@univerjs-pro/exchange-client/locale/en-US'
+import { UniverSlidesExchangeClientPlugin } from '@univerjs-pro/slides-exchange-client'
+import SlidesExchangeClientEnUS from '@univerjs-pro/slides-exchange-client/locale/en-US'
+
+import '@univerjs-pro/exchange-client/lib/index.css'
+import '@univerjs-pro/exchange-client/facade'
+
+univer.registerPlugin(UniverExchangeClientPlugin)
+univer.registerPlugin(UniverSlidesExchangeClientPlugin)
+```
+
+## Установка
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/slides-exchange-client
+```
+
+## Настройка конечных точек
+
+`@univerjs-pro/slides-exchange-client` зависит от `@univerjs-pro/exchange-client`. Укажите URL-адреса сервера в общем клиенте обмена, а затем зарегистрируйте клиент Slides, чтобы добавить операции с PPTX в меню. Импортируйте `@univerjs-pro/exchange-client/lib/index.css`; пакет обмена Slides добавляет записи локализации, но не предоставляет отдельных точек входа CSS или facade.
+
+```ts
+univer.registerPlugin(UniverExchangeClientPlugin, {
+  uploadFileServerUrl: '/universer-api/stream/file/upload',
+  importServerUrl: '/universer-api/exchange/{type}/import',
+  exportServerUrl: '/universer-api/exchange/{type}/export',
+  getTaskServerUrl: '/universer-api/exchange/task/{taskID}',
+  signUrlServerUrl: '/universer-api/file/{fileID}/sign-url',
+  downloadEndpointUrl: location.origin,
+  maxTimeoutTime: 120000,
+})
+
+univer.registerPlugin(UniverSlidesExchangeClientPlugin)
+```
+
+Вместо заполнителя `{type}` подставляется `UniverInstanceType.UNIVER_SLIDE`. Импорт может вернуть либо идентификатор серверного юнита, либо снимок в формате JSON. При экспорте снимок слайдов загружается в сервис обмена, затем клиент ожидает результат задачи, получает подписанный URL для возвращённого идентификатора файла и скачивает файл PPTX.
+
+## Facade API
+
+В режиме плагинов один раз импортируйте пакет facade:
+
+```ts
+import '@univerjs-pro/exchange-client/facade'
+```
+
+Импорт PPTX в серверный юнит:
+
+```ts
+const unitId = await univerAPI.importPPTXToUnitIdAsync(file)
+```
+
+Импорт PPTX в виде локальных данных слайдов:
+
+```ts
+const slideData = await univerAPI.importPPTXToSnapshotAsync(file)
+
+if (slideData) {
+  univerAPI.createPresentation(slideData)
+}
+```
+
+Экспорт текущей презентации:
+
+```ts
+const presentation = univerAPI.getActivePresentation()
+const file = await univerAPI.exportPPTXBySnapshotAsync(presentation.save())
+```
+
+Экспорт серверного юнита со слайдами:
+
+```ts
+const file = await univerAPI.exportPPTXByUnitIdAsync(unitId)
+```
+
+## Поведение меню
+
+Клиент обмена Slides добавляет в меню операции с PPTX:
+
+- `ImportPPTXOperation` импортирует данные в существующий юнит, если в текущем URL есть параметр запроса `unit`; в противном случае данные импортируются в локальный снимок.
+- `ExportPPTXOperation` экспортирует снимок текущей презентации.
+
+Если требуется объединить пользовательские настройки видимости или порядка пунктов меню, передайте конфигурацию `menu` в `UniverSlidesExchangeClientPlugin`.
+
+## Сопутствующая настройка
+
+- Зарегистрируйте `UniverSlidesPlugin` до клиента обмена, чтобы юниты Slides были доступны.
+- Используйте серверные API Pro для аутентификации, хранения, преобразования, опроса состояния задач и подписанных URL-адресов для скачивания.
+- Если импортируемые файлы PPTX могут содержать такие элементы, оставьте включёнными пакеты поддержки печати, таблиц и диаграмм.

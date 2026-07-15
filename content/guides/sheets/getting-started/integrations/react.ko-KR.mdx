@@ -1,0 +1,237 @@
+---
+title: React
+---
+
+<Callout>
+  React 컴포넌트를 사용자 정의 컴포넌트로 사용하는 방법을 찾고 있다면 [여기](/guides/sheets/ui/components#react)를 참고하세요.
+</Callout>
+
+Univer를 React 프로젝트에 통합하기 전에 [Univer 설치 및 기본 사용법](/guides/sheets/getting-started/installation) 섹션을 읽고 React의 기본 개념과 생명 주기 훅을 이해했는지 확인하세요.
+
+## React 18 및 19와 Univer 통합
+
+### 통합 단계
+
+1. `useEffect` 훅에서 Univer 초기화
+2. `useEffect` 훅의 반환 함수에서 Univer 제거
+
+### 예제
+
+```tsx
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+import UniverPresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+import { useEffect, useRef } from 'react'
+
+import '@univerjs/preset-sheets-core/lib/index.css'
+
+export function App() {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const { univerAPI } = createUniver({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: mergeLocales(
+          UniverPresetSheetsCoreEnUS,
+        ),
+      },
+      presets: [
+        UniverSheetsCorePreset({
+          container: containerRef.current,
+        }),
+      ],
+    })
+
+    univerAPI.createWorkbook({})
+
+    return () => {
+      univerAPI.dispose()
+    }
+  }, [])
+
+  return (
+    <div ref={containerRef} />
+  )
+}
+```
+
+## React 16.9+ 및 17과 Univer 통합
+
+### 통합 전 참고 사항
+
+#### 호환성 참고 사항
+
+Univer의 뷰 계층은 React 18.3.1을 기반으로 개발되었지만 React 16.9+ 및 17 프로젝트에 최소한의 호환성 지원을 제공합니다. 이는 낮은 버전의 React를 계속 지원한다는 의미가 아닙니다. 최상의 사용 경험과 새로운 기능을 위해 가능한 한 빨리 최신 버전으로 업그레이드하는 것이 좋습니다.
+
+#### 빌드 도구 별칭 구성
+
+React 16.9+ 및 17 환경에서는 빌드 도구의 별칭 기능을 사용하여 `react-dom/client` 내보내기를 모의 구현해야 합니다. 그렇지 않으면 일부 기능이 제대로 작동하지 않을 수 있습니다.
+
+**Vite 구성 예제**
+
+```typescript title="vite.config.ts"
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      'react-dom/client': path.resolve(__dirname, './src/client.ts'), // [!code ++]
+    },
+  },
+})
+```
+
+```typescript title="src/client.ts"
+import ReactDOM from 'react-dom'
+
+export function createRoot(container: HTMLElement) {
+  return {
+    render: (element: JSX.Element) => {
+      ReactDOM.render(element, container)
+    },
+  }
+}
+```
+
+#### CDN/UMD 환경 대응
+
+`<script>` 태그를 통해 Univer와 React를 포함하는 경우, React를 가져온 뒤 다음 코드를 추가하여 `react-dom/client` 내보내기를 모의 구현해야 합니다.
+
+```html
+<script>
+  /**
+   * With the support for React 19[^1], UMD users may need additional adaptation.
+   *
+   * [^1]: [support for React 19] https://github.com/dream-num/univer/pull/4247
+   */
+
+  /**
+   * Fix `Uncaught TypeError: client.createRoot is not a function`
+   * If using UMD React < 18, you might need the following code.
+   */
+  ;(function (global) {
+    'use strict'
+    if (!global.ReactDOM) {
+      throw new Error('ReactDOM must be loaded before ReactCreateRoot.')
+    }
+    const ReactDOM = global.ReactDOM
+    if (!ReactDOM.createRoot) {
+      ReactDOM.createRoot = function (container) {
+        return {
+          render: (element) => {
+            ReactDOM.render(element, container)
+          },
+        }
+      }
+    }
+  })(this)
+
+  /**
+   * Fix `Uncaught TypeError: jsxRuntime.jsx is not a function`
+   * If using UMD React, you might need the following code.
+   * Reference: https://unpkg.com/react@18.3.1/cjs/react-jsx-runtime.production.min.js
+   */
+  ;(function (global) {
+    'use strict'
+    if (!global.React) {
+      throw new Error('React must be loaded before ReactJSXRuntime.')
+    }
+    const React = global.React
+    if (!React.jsx || !React.jsxs) {
+      const REACT_ELEMENT_TYPE = Symbol.for('react.element')
+      const hasOwnProperty = Object.prototype.hasOwnProperty
+      const RESERVED_PROPS = {
+        key: true,
+        ref: true,
+        __self: true,
+        __source: true,
+      }
+      const ReactCurrentOwner = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner
+      function createReactElement(type, config, maybeKey) {
+        const props = {}
+        let key = null
+        let ref = null
+        if (maybeKey !== undefined) {
+          key = `${maybeKey}`
+        }
+        if (config.key !== undefined) {
+          key = `${config.key}`
+        }
+        if (config.ref !== undefined) {
+          ref = config.ref
+        }
+        for (var propName in config) {
+          if (hasOwnProperty.call(config, propName) && !RESERVED_PROPS.hasOwnProperty(propName)) {
+            props[propName] = config[propName]
+          }
+        }
+        if (type && type.defaultProps) {
+          const defaultProps = type.defaultProps
+          for (var propName in defaultProps) {
+            if (props[propName] === undefined) {
+              props[propName] = defaultProps[propName]
+            }
+          }
+        }
+        return {
+          $$typeof: REACT_ELEMENT_TYPE,
+          type,
+          key,
+          ref,
+          props,
+          _owner: ReactCurrentOwner.current,
+        }
+      }
+      React.jsx = createReactElement
+      React.jsxs = createReactElement
+    }
+  })(this)
+</script>
+```
+
+### 통합 단계
+
+1. `useEffect` 훅에서 Univer 초기화
+2. `useEffect` 훅의 반환 함수에서 Univer 제거
+
+### 예제
+
+```tsx
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+
+import UniverPresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+import { useEffect, useRef } from 'react'
+
+import '@univerjs/preset-sheets-core/lib/index.css'
+
+export function App() {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const { univerAPI } = createUniver({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: mergeLocales(
+          UniverPresetSheetsCoreEnUS,
+        ),
+      },
+      presets: [
+        UniverSheetsCorePreset({
+          container: containerRef.current,
+        }),
+      ],
+    })
+
+    univerAPI.createWorkbook({})
+
+    return () => {
+      univerAPI.dispose()
+    }
+  }, [])
+
+  return (
+    <div ref={containerRef} />
+  )
+}
+```

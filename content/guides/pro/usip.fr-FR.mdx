@@ -1,0 +1,510 @@
+---
+title: Intégration d’USIP
+---
+
+Par défaut, Univer Pro n’intègre pas de système de comptes. Si vous avez besoin de vérifier les identités, de contrôler les autorisations ou d’intégrer votre système, utilisez USIP (Univer Server Integration Protocol). USIP est une SPI : Univer définit les interfaces et votre système les implémente.
+
+## Cas d’utilisation
+
+- Exiger une connexion pour accéder au contenu
+- Gérer les autorisations de modification selon le rôle
+- Synchroniser les informations des collaborateurs, les commentaires et l’heure de modification
+
+## Processus d’intégration
+
+1. Implémentez les API USIP (voir ci-dessous)
+2. Activez USIP dans la configuration du déploiement
+3. Transmettez les en-têtes d’authentification depuis le client (par exemple, le token)
+
+## API USIP
+
+USIP couvre actuellement trois catégories :
+
+- 👥 Comptes : vérification de l’identité et informations utilisateur
+- 🔒 Autorisations : rôles et collaborateurs
+- 📄 Documents : heure de la dernière modification
+
+### Authentification de l’utilisateur
+
+#### Quand est-elle appelée ?
+
+Chaque requête entre le client et le serveur déclenche une authentification.
+
+#### Processus
+
+![Processus](./usip/credential.png)
+
+#### Définition de l’API
+
+<APITable
+  request={{
+    method: 'GET',
+    headers: 'Tous les en-têtes de la requête sont transmis pour vous permettre d’authentifier l’utilisateur',
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'user',
+      type: 'Object',
+      description: 'Renvoyé lorsque l’authentification réussit',
+      properties: [
+        {
+          name: 'userID',
+          type: 'string',
+          example: 'ace55655ceabd55',
+          description: 'Identifiant utilisateur (open_uid recommandé)',
+        },
+        {
+          name: 'name',
+          type: 'string',
+          example: 'alice',
+          description: 'Nom d’affichage des collaborateurs',
+        },
+        {
+          name: 'avatar',
+          type: 'string',
+          example: 'https://image.xx/acde55acb45bbead55',
+          description: 'URL de l’avatar des collaborateurs',
+        },
+      ],
+    }],
+    example: JSON.stringify({
+      user: {
+        userID: 'ace55655ceabd55g',
+        name: 'alice',
+        avatar: 'https://image.xx/acde55acb45bbead55',
+      },
+    }, null, 2),
+  }}
+/>
+
+### Informations utilisateur par lot
+
+#### Quand est-elle appelée ?
+
+Pour afficher les avatars et les noms des collaborateurs, ainsi que les auteurs des commentaires.
+
+#### Processus
+
+![Processus](./usip/user-infos.png)
+
+#### Définition de l’API
+
+<APITable
+  request={{
+    method: 'POST',
+    headers: 'Aucun en-tête personnalisé ; les en-têtes utilisateur ne sont pas transmis',
+    parametersType: 'Body',
+    parameters: [{
+      name: 'userIDs',
+      type: 'array[string]',
+      example: '["user_id1", "user_id2"]',
+      description: 'Identifiants utilisateur à résoudre',
+    }],
+    example: JSON.stringify({
+      userIDs: ['user_id1', 'user_id2', 'user_id3'],
+    }, null, 2),
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'users',
+      type: 'array[Object]',
+      description: 'Objets utilisateur, selon le même schéma que pour l’authentification',
+    }],
+    example: JSON.stringify({
+      users: [
+        { userID: 'user_id1', name: 'name1', avatar: 'https://xxxx' },
+        { userID: 'user_id2', name: 'name2', avatar: 'https://xxxx' },
+        { userID: 'user_id3', name: 'name3', avatar: 'https://xxxx' },
+      ],
+    }, null, 2),
+  }}
+/>
+
+### Rôle de l’utilisateur
+
+#### Quand est-elle appelée ?
+
+Pour déterminer les autorisations de lecture et de modification d’un document.
+
+#### Processus
+
+![Processus](./usip/user-role.png)
+
+#### Définition de l’API
+
+<APITable
+  request={{
+    method: 'GET',
+    headers: 'Aucun en-tête personnalisé ; les en-têtes utilisateur ne sont pas transmis',
+    parametersType: 'Query',
+    parameters: [{
+      name: 'userID',
+      type: 'string',
+      example: 'acd5455e44fc5bb55',
+      description: 'Identifiant utilisateur',
+    }, {
+      name: 'unitID',
+      type: 'string',
+      example: 'acff-adebc125e45b',
+      description: 'Identifiant du document',
+    }, {
+      name: 'metaData',
+      type: 'string',
+      example: '{"tenantId":"company1"}',
+      description: 'Métadonnées associées à l’unité. Disponibles depuis la version v0.20.0',
+    }],
+    example: 'curl -X GET "http://sample.univer.ai/role?unitID=acff-adebc125e45b&userID=acd5455e44fc5bb55"',
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'userID',
+      type: 'string',
+      example: 'acd5455e44fc5bb55',
+      description: 'Identifiant utilisateur de la requête',
+    }, {
+      name: 'role',
+      type: 'string',
+      example: 'editor',
+      description: 'Rôle : owner, editor, reader',
+    }],
+    example: JSON.stringify({
+      userID: 'acd5455e44fc5bb55',
+      role: 'editor',
+    }, null, 2),
+  }}
+/>
+
+### Collaborateurs d’un document
+
+#### Quand est-elle appelée ?
+
+Lors de la sélection d’utilisateurs pour des plages ou des feuilles protégées.
+
+#### Processus
+
+![Processus](./usip/list-collaborators.png)
+
+#### Définition de l’API
+
+<APITable
+  request={{
+    method: 'POST',
+    headers: 'Aucun en-tête personnalisé ; les en-têtes utilisateur ne sont pas transmis',
+    parametersType: 'Body',
+    parameters: [{
+      name: 'unitIDs',
+      type: 'array[string]',
+      example: '["unit_id1", "unit_id2"]',
+      description: 'Identifiants des documents',
+    }, {
+      name: 'unitsMetaDatas',
+      type: 'object',
+      example: '{"unit_id1":"metadata of unit_id1","unit_id2":"metadata of unit_id2"}',
+      description: 'Métadonnées de chaque unité du paramètre unitIDs, disponibles depuis la version v0.20.0',
+    }],
+    example: JSON.stringify({
+      unitIDs: ['unit_id1', 'unit_id2'],
+      unitsMetaDatas: { unit_id1: 'metadata of unit_id1', unit_id2: 'metadata of unit_id2' },
+    }, null, 2),
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'collaborators',
+      type: 'array[Object]',
+      description: 'Collaborateurs regroupés par document',
+      properties: [{
+        name: 'unitID',
+        type: 'string',
+        example: 'unit_id1',
+        description: 'Identifiant du document',
+      }, {
+        name: 'subjects',
+        type: 'array[Object]',
+        description: 'Liste des collaborateurs',
+        properties: [{
+          name: 'role',
+          type: 'string',
+          example: 'editor',
+          description: 'Rôle : owner, editor, reader',
+        }, {
+          name: 'subject',
+          type: 'Object',
+          description: 'Informations sur le collaborateur',
+          properties: [{
+            name: 'type',
+            type: 'string',
+            example: 'user',
+            description: 'Doit être « user »',
+          }, {
+            name: 'id',
+            type: 'string',
+            example: 'acdef12555b12',
+            description: 'Identifiant utilisateur',
+          }, {
+            name: 'name',
+            type: 'string',
+            example: 'alice',
+            description: 'Nom de l’utilisateur',
+          }, {
+            name: 'avatar',
+            type: 'string',
+            example: 'https://image.ai/36554',
+            description: 'URL de l’avatar',
+          }],
+        }],
+      }],
+    }],
+    example: JSON.stringify({
+      collaborators: [
+        {
+          unitID: 'unit_id1',
+          subjects: [
+            {
+              subject: {
+                id: '1',
+                name: 'alice',
+                avatar: 'https://image.ai/36554',
+                type: 'user',
+              },
+              role: 'owner',
+            },
+            {
+              subject: {
+                id: '2',
+                name: 'bob',
+                avatar: 'https://image.ai/36559',
+                type: 'user',
+              },
+              role: 'editor',
+            },
+          ],
+        },
+      ],
+    }, null, 2),
+  }}
+/>
+
+### Notification de la dernière heure de modification
+
+#### Quand est-elle appelée ?
+
+Pour permettre à votre système d’afficher l’heure de la dernière modification.
+
+#### Définition de l’API
+
+<APITable
+  request={{
+    method: 'POST',
+    headers: 'Aucun en-tête personnalisé ; les en-têtes utilisateur ne sont pas transmis',
+    parametersType: 'Body',
+    parameters: [{
+      name: 'unitID',
+      type: 'string',
+      example: 'acff-adebc125e45b',
+      description: 'Identifiant du document',
+    }, {
+      name: 'editTimeUnixMs',
+      type: 'int',
+      example: '1762591632345',
+      description: 'Horodatage Unix en millisecondes',
+    }, {
+      name: 'metaData',
+      type: 'string',
+      example: '{"tenantId":"company1"}',
+      description: 'Métadonnées associées à l’unité. Disponibles depuis la version v0.20.0',
+    }],
+    example: JSON.stringify({
+      unitID: 'unit_id1',
+      editTimeUnixMs: 1762591632345,
+      metaData: { tenantId: 'company1' },
+    }, null, 2),
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [],
+    example: JSON.stringify({}, null, 2),
+  }}
+/>
+
+## Configurer USIP [#usip-configuration]
+
+<Tabs items={['docker compose', 'K8s']}>
+  <Tab label="docker compose">
+    ```properties title=".env.custom"
+    USIP_ENABLED=true
+    USIP_URI_CREDENTIAL=https://your-domain/usip/credential
+    USIP_URI_USERINFO=https://your-domain/usip/userinfo
+    USIP_URI_ROLE=https://your-domain/usip/role
+    USIP_URI_COLLABORATORS=https://your-domain/usip/collaborators
+    USIP_URI_UNITEDITTIME=https://your-domain/usip/unit-edit-time
+
+    USIP_APIKEY=
+
+    AUTH_PERMISSION_ENABLE_OBJ_INHERIT=false
+    AUTH_PERMISSION_CUSTOMER_STRATEGIES=
+    ```
+  </Tab>
+  <Tab label="K8s">
+    ```yaml title="values.yaml"
+    universer:
+      config:
+        usip:
+          enabled: true
+          uri:
+            userinfo: 'https://your-domain/usip/userinfo'
+            collaborators: 'https://your-domain/usip/collaborators'
+            role: 'https://your-domain/usip/role'
+            credential: 'https://your-domain/usip/credential'
+            unitEditTime: 'https://your-domain/usip/unit-edit-time'
+          apikey: ''
+        auth:
+          permission:
+            enableObjInherit: false
+            customerStrategies: ''
+    ```
+  </Tab>
+</Tabs>
+
+**Remarque** : lorsque USIP est activé, les cinq points de terminaison doivent être configurés et implémentés.
+
+Si votre service USIP est accessible sur le réseau public, vous pouvez adopter un mécanisme similaire à celui des requêtes d’API d’IA pour sécuriser les requêtes. Générez une clé d’API et configurez-la sur le serveur Univer. Lors des appels aux API USIP, la requête inclura l’en-tête x-api-key: API_KEY, que vous pourrez utiliser pour vérifier sa légitimité.
+
+## Modèle d’autorisations
+
+Univer utilise un contrôle d’accès par rôles (RBAC) avec des rôles fixes : `owner`, `editor`, `reader`. Vous pouvez remplacer le rôle minimal requis pour chaque point d’autorisation.
+
+Voici les points d’autorisation par défaut et les rôles minimaux requis :
+
+| Autorisation | Énumération | Description | Rôle minimal | Énumération du rôle |
+|:-------|:---------|:-------|:-------|:-------|
+| ManageCollaborator | 2 | Inviter/supprimer des collaborateurs | owner | 2 |
+| Copy | 6 | Copier du contenu | reader | 0 |
+| Print | 3 | Imprimer | editor | 1 |
+| Duplicate | 4 | Dupliquer le document | editor | 1 |
+| Share | 7 | Partager le document | reader | 0 |
+| Export | 8 | Exporter | editor | 1 |
+| Comment | 5 | Commenter | reader | 0 |
+| View | 0 | Afficher | reader | 0 |
+| MoveSheet | 25 | Déplacer la feuille de calcul | editor | 1 |
+| DeleteSheet | 26 | Supprimer la feuille de calcul | editor | 1 |
+| HideSheet | 27 | Masquer la feuille de calcul | editor | 1 |
+| CopySheet | 28 | Copier la feuille de calcul | editor | 1 |
+| RenameSheet | 29 | Renommer la feuille de calcul | editor | 1 |
+| CreateSheet | 30 | Créer une feuille de calcul | editor | 1 |
+| SetCellStyle | 33 | Définir le style de cellule | editor | 1 |
+| SetCellValue | 34 | Définir la valeur de cellule | editor | 1 |
+| InsertHyperlink | 16 | Insérer un lien hypertexte | editor | 1 |
+| Sort | 17 | Trier | editor | 1 |
+| Filter | 18 | Filtrer | editor | 1 |
+| PivotTable | 19 | Tableau croisé dynamique | editor | 1 |
+| RecoverHistory | 43 | Restaurer l’historique | editor | 1 |
+| ViewHistory | 44 | Afficher l’historique | reader | 0 |
+| SelectProtectedCells | 31 | Sélectionner les cellules protégées | editor | 1 |
+| SelectUnProtectedCells | 32 | Sélectionner les cellules non protégées | editor | 1 |
+| SetRowStyle | 35 | Définir le style de ligne | editor | 1 |
+| SetColumnStyle | 36 | Définir le style de colonne | editor | 1 |
+| InsertRow | 37 | Insérer une ligne | editor | 1 |
+| InsertColumn | 38 | Insérer une colonne | editor | 1 |
+| DeleteRow | 39 | Supprimer une ligne | editor | 1 |
+| DeleteColumn | 40 | Supprimer une colonne | editor | 1 |
+| Delete | 42 | Supprimer le document | owner | 2 |
+| CreatePermissionObject | 45 | Créer une plage/feuille protégée | editor | 1 |
+
+Pour réserver la copie et l’impression aux propriétaires :
+
+```properties title=".env.custom"
+AUTH_PERMISSION_CUSTOMER_STRATEGIES=[{"action": 3, "role": 2}, {"action": 6, "role": 2}]
+```
+
+Configuration K8s :
+
+```yaml title="values.yaml"
+universer:
+  config:
+    auth:
+      permission:
+        customerStrategies: '[ {"action": 3, "role": 2}, {"action": 6, "role": 2} ]'
+```
+
+### Héritage des autorisations des objets
+
+Par défaut, le propriétaire d’un document ne dispose pas automatiquement des autorisations de propriétaire sur toutes les « zones protégées/sous-tables » de ce document. Pour accorder sans condition au propriétaire du document toutes les autorisations sur l’ensemble de ses sous-objets, vous pouvez activer l’héritage des autorisations avec les paramètres suivants :
+
+```properties title=".env.custom"
+AUTH_PERMISSION_ENABLE_OBJ_INHERIT=true
+```
+
+Configuration K8s :
+
+```yaml title="values.yaml"
+universer:
+  config:
+    auth:
+      permission:
+        enableObjInherit: true
+```
+
+## Exemple d’implémentation
+
+Voir : https://github.com/dream-num/usip-example
+
+## En-têtes du client
+
+Si vous devez ajouter des en-têtes personnalisés (par exemple, un token Authorization), utilisez les intercepteurs HTTPService :
+
+<Tabs items={['Preset', 'Plugin']}>
+  <Tab>
+    ```typescript
+    import { HTTPService } from '@univerjs/preset-sheets-core'
+
+    const injector = univer.__getInjector()
+    const httpService = injector.get(HTTPService)
+    httpService.registerHTTPInterceptor({
+      priority: 0,
+      interceptor: (request, next) => {
+        // request.headers.set('Authorization', 'Bearer your-token-here')
+        return next(request)
+      },
+    })
+    ```
+  </Tab>
+  <Tab>
+    ```typescript
+    import { HTTPService } from '@univerjs/network'
+
+    const injector = univer.__getInjector()
+    const httpService = injector.get(HTTPService)
+    httpService.registerHTTPInterceptor({
+      priority: 0,
+      interceptor: (request, next) => {
+        // request.headers.set('Authorization', 'Bearer your-token-here')
+        return next(request)
+      },
+    })
+    ```
+  </Tab>
+</Tabs>
+
+Si vous utilisez l’[historique des modifications](/guides/sheets/features/edit-history), appliquez le même intercepteur à HistoryUniver :
+
+```typescript
+historyLoaderService.historyUniver$.subscribe((historyUniver) => {
+  if (!historyUniver) return
+
+  const injector = historyUniver.__getInjector()
+  const httpService = injector.get(HTTPService)
+  httpService.registerHTTPInterceptor({
+    priority: 0,
+    interceptor: (request, next) => {
+      // request.headers.set('Authorization', 'Bearer your-token-here')
+      return next(request)
+    },
+  })
+})
+```
+
+Pour consulter un exemple complet, reportez-vous au [kit de démarrage Univer Pro Sheet](https://github.com/dream-num/univer-pro-sheet-start-kit/blob/main/src/setup-univer.ts).

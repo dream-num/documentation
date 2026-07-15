@@ -7,7 +7,7 @@ export const routing = defineRouting({
     sameSite: 'lax',
   },
   localePrefix: 'as-needed',
-  locales: ['en-US', 'zh-CN', 'zh-TW', 'ja-JP'],
+  locales: ['en-US', 'zh-CN', 'zh-TW', 'ja-JP', 'ko-KR', 'fr-FR', 'ru-RU'],
 })
 
 export type Locale = (typeof routing.locales)[number]

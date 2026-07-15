@@ -1,0 +1,113 @@
+---
+title: Composants personnalisés
+description: Univer propose plusieurs méthodes pour intégrer des composants personnalisés afin d’étendre et d’adapter ses fonctionnalités. Ce guide présente plusieurs méthodes courantes.
+icon: Component
+---
+
+Univer ne transmet pas directement les composants en tant que paramètres aux fonctions de rendu. Vous devez d’abord les enregistrer auprès d’Univer à l’aide de la Facade API avant de pouvoir les utiliser dans les différents points de montage.
+
+Si vous ne savez pas comment obtenir une instance de la Facade API, consultez la page [Facade API](/guides/sheets/getting-started/facade).
+
+<include cwd>content/guides/shared/ui/components.mdx</include>
+
+#### Associer une fenêtre contextuelle à des cellules
+
+La méthode `FRange.attachPopup` permet d’associer une fenêtre contextuelle personnalisée à une plage de cellules donnée.
+
+- Une fenêtre contextuelle est un élément DOM temporaire associé à une cellule. Elle sert généralement à afficher des informations d’état provisoires et ne prend pas en charge le stockage persistant.
+- La méthode [`FRange.attachPopup(popup: IFCanvasPopup)`](https://docs.univer.ai/reference/facade/range#attachpopup) permet d’associer une fenêtre contextuelle personnalisée à une plage de cellules donnée.
+- La fenêtre contextuelle se fixe sur les bords de la cellule et ajuste automatiquement sa position et son orientation si elle est masquée.
+
+```tsx
+// [!code word:MyCustomPopupComponent]
+// You should register the component at an appropriate time (e.g., after Univer has loaded)
+univerAPI.registerComponent(
+  'MyCustomPopupComponent',
+  () => <div>Hello Univer!</div>,
+)
+
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:J10')
+
+// Attach the popup to the first cell of the range
+// If `disposable` is null, it indicates that the popup was not added successfully
+const disposable = fRange.attachPopup({
+  componentKey: 'MyCustomPopupComponent',
+})
+
+// Remove the popup
+disposable.dispose()
+```
+
+#### Associer une fenêtre contextuelle d’alerte
+
+La méthode `FRange.attachAlertPopup` permet d’associer une fenêtre contextuelle d’alerte à la cellule de départ d’une plage donnée.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+
+const disposable = fRange.attachAlertPopup({
+  key: 'unique-alert-key', // Unique identifier
+  title: '这是一个警告！',
+  message: '这是一个警告！',
+  width: 300,
+  height: 200,
+  // 0: Information
+  // 1: Warning
+  // 2: Error
+  type: 0,
+})
+
+// Remove the alert later
+disposable.dispose()
+```
+
+#### Ajouter un DOM flottant à une feuille de calcul
+
+La méthode `FWorksheet.addFloatDomToPosition` permet d’ajouter un DOM flottant à une feuille de calcul.
+
+- Avant d’utiliser cette méthode, vous devez installer le plugin `@univerjs/sheets-drawing-ui` ou le preset `@univerjs/preset-sheets-drawing`.
+- Le DOM flottant est un composant déplaçable qui s’affiche au-dessus de la feuille de calcul et prend en charge le stockage persistant.
+- Vous devez appeler cette méthode une fois le rendu d’Univer terminé.
+- `componentKey` : identifiant unique du composant, utilisé pour y faire référence dans Univer.
+- [Définition complète des paramètres](https://github.com/dream-num/univer/blob/dev/packages/sheets-drawing-ui/src/facade/f-worksheet.ts#L32)
+
+```tsx
+// [!code word:MyCustomFloatDOMComponent]
+// You should register the component at an appropriate time (e.g., after Univer has loaded)
+univerAPI.registerComponent(
+  'MyCustomFloatDOMComponent',
+  ({ data }) => (
+    <div>
+      Hello
+      {data?.label}
+      !
+    </div>
+  ),
+)
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+
+// Add a floating DOM to the worksheet
+// If `disposable` is null, it indicates that the floating DOM was not added successfully
+const disposable = fWorksheet.addFloatDomToPosition({
+  componentKey: 'MyCustomFloatDOMComponent',
+  initPosition: {
+    startX: 100,
+    endX: 200,
+    startY: 100,
+    endY: 200,
+  },
+
+  // The data for the component
+  data: {
+    label: 'Univer',
+  },
+})
+
+// Remove the floating DOM
+disposable.dispose()
+```

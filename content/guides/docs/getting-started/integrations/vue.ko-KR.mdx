@@ -1,0 +1,149 @@
+---
+title: Vue
+---
+
+<Callout>
+  Vue 컴포넌트를 사용자 정의 컴포넌트로 사용하는 방법을 찾고 있다면 [여기](/guides/docs/ui/components#vue)를 참고하세요.
+</Callout>
+
+## Vue 3.x
+
+### 통합 전 참고 사항
+
+- Univer 및 FUniver 인스턴스를 프록시하지 마세요. 예기치 않은 오류나 성능 문제가 발생할 수 있습니다.
+
+### 통합 단계
+
+1. `onMounted` 훅에서 Univer 초기화
+2. `onBeforeUnmount` 훅에서 Univer 제거
+
+### 예제
+
+```vue
+<script lang="ts" setup>
+import type { FUniver, Univer } from '@univerjs/presets'
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+import UniverPresetDocsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
+
+import '@univerjs/preset-docs-core/lib/index.css'
+
+const container = ref<HTMLElement | null>(null)
+
+let univerInstance: Univer | null = null
+let univerAPIInstance: FUniver | null = null
+
+onMounted(() => {
+  const { univer, univerAPI } = createUniver({
+    locale: LocaleType.EN_US,
+    locales: {
+      [LocaleType.EN_US]: mergeLocales(
+        UniverPresetDocsCoreEnUS,
+      ),
+    },
+    presets: [
+      UniverDocsCorePreset({
+        container: container.value as HTMLElement,
+      }),
+    ],
+  })
+
+  univerAPI.createDocument({})
+
+  univerInstance = univer
+  univerAPIInstance = univerAPI
+})
+
+onBeforeUnmount(() => {
+  univerInstance?.dispose()
+  univerAPIInstance?.dispose()
+  univerInstance = null
+  univerAPIInstance = null
+})
+</script>
+
+<template>
+  <div ref="container" />
+</template>
+```
+
+## Vue 2.x
+
+### 통합 전 참고 사항
+
+- pnpm으로 `@univerjs/presets`를 설치할 때 `react`와 `react-dom`을 직접 설치해야 할 수 있습니다.
+- 개발 환경에서 "ResizeObserver loop limit exceeded" 경고가 발생하면 무시하거나 아래 코드 조각을 참고하여 해결할 수 있습니다.
+
+```typescript
+if (process.env.NODE_ENV === 'development') {
+  const _ResizeObserver = window.ResizeObserver
+  function debounce(fn, delay) {
+    let timer = null
+    return function () {
+      if (timer) {
+        clearTimeout(timer)
+      }
+      timer = setTimeout(() => {
+        fn.apply(this, arguments)
+      }, delay)
+    }
+  }
+  window.ResizeObserver = class ResizeObserver extends _ResizeObserver {
+    constructor(callback) {
+      callback = debounce(callback, 50)
+      super(callback)
+    }
+  }
+}
+```
+
+### 통합 단계
+
+1. `mounted` 훅에서 Univer 초기화
+2. `beforeDestroy` 훅에서 Univer 제거
+
+### 예제
+
+```vue
+<script>
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+import UniverPresetDocsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+import '@univerjs/preset-docs-core/lib/index.css'
+
+export default {
+  mounted() {
+    const { univer, univerAPI } = createUniver({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: mergeLocales(
+          UniverPresetDocsCoreEnUS,
+        ),
+      },
+      presets: [
+        UniverDocsCorePreset({
+          container: this.$refs.container,
+        }),
+      ],
+    })
+
+    univerAPI.createDocument({})
+
+    this.univerInstance = univer
+    this.univerAPIInstance = univerAPI
+  },
+  beforeUnmount() {
+    this.univerInstance?.dispose()
+    this.univerAPIInstance?.dispose()
+    this.univerInstance = null
+    this.univerAPIInstance = null
+  },
+}
+</script>
+
+<template>
+  <div ref="container" />
+</template>
+```

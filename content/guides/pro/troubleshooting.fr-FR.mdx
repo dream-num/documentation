@@ -1,0 +1,140 @@
+---
+title: Dépannage
+---
+
+Ce guide présente les problèmes courants liés à l’installation, au démarrage, à l’accès, à USIP, aux imports et exports ainsi qu’aux mises à niveau.
+
+## Périmètre
+
+- Déploiements avec Docker Compose ou K8s
+- Intégrations USIP et Event Sync
+- Problèmes d’import et d’export
+
+## Diagnostic rapide
+
+| Symptôme | Action immédiate | Étape suivante |
+| --- | --- | --- |
+| Le script d’installation en un clic est bloqué | `curl -I https://get.univer.ai` | Utiliser le paquet hors ligne |
+| L’interface de démonstration est inaccessible | `cd univer-server && bash run.sh start` | `docker compose ps` |
+| La démo USIP sur le port 8080 renvoie une erreur 404 | Vérifier la présence de `USIP_ENABLED=true` dans `.env.custom` | `bash run.sh restart` |
+| Des pods Helm restent à l’état Pending | `kubectl describe pod` | Vérifier l’image, les ressources et le PVC |
+| Un import ou un export reste à l’état Pending | Vérifier les journaux de temporal, exchange et universer | Voir la section Import et export |
+
+## Problèmes avec Docker Compose
+
+### Échec de l’installation
+
+1. Vérifiez le réseau :
+
+```bash
+curl -I https://get.univer.ai
+dig get.univer.ai
+```
+
+2. Vérifiez les conflits liés à l’installation de Docker :
+
+```bash
+systemctl status docker
+ps -ef | grep dockerd
+```
+
+### Services arrêtés ou en cours de redémarrage
+
+```bash
+cd univer-server
+bash run.sh start
+docker compose ps
+docker compose logs --tail=200 <service>
+```
+
+Causes courantes : conflits de ports, fichier `.env.custom` non chargé ou ressources insuffisantes.
+
+### Problèmes avec l’interface de démonstration
+
+- Conflit de port : `lsof -i :3010`
+- Déconnexion WebSocket : vérifiez le proxy inverse et la configuration CORS
+- Échec de la création automatique d’un document : vérifiez les journaux d’universer
+
+## Problèmes avec K8s
+
+### Pod à l’état Pending
+
+```bash
+kubectl describe pod <pod> -n univer
+```
+
+À vérifier : téléchargement de l’image, PVC et ressources du nœud.
+
+### CrashLoopBackOff
+
+```bash
+kubectl logs <pod> -n univer --previous
+```
+
+### Échec d’accès via l’Ingress ou le domaine
+
+```bash
+dig univer.example.com
+kubectl get ingress -n univer
+kubectl get endpoints -n univer
+```
+
+## Problèmes avec USIP
+
+| Symptôme | Cause |
+| --- | --- |
+| Le port 8080 ne répond pas | Vérifier que `bash run.sh start-demo-usip` a été exécuté |
+| Erreur 401/403 après l’activation d’USIP | Vérifier la transmission du jeton et la réponse utilisateur |
+| La configuration n’est pas appliquée | Redémarrer après avoir modifié `.env.custom` |
+
+## Import ou export à l’état Pending
+
+### Procédure de diagnostic
+
+1. Désactivez le VPN ou le proxy → `bash run.sh restart`
+2. Vérifiez l’état des services → `docker compose ps`
+3. Consultez les journaux de Temporal → `docker compose logs -f temporal`
+4. Consultez les journaux d’Exchange → `docker compose logs -f univer-worker-exchange`
+5. Consultez les journaux d’Universer → `docker compose logs -f universer`
+
+### Erreurs courantes
+
+- Échec du démarrage de Temporal : conflit de port ou problème de base de données
+- Délai d’attente dépassé pour Exchange : vérifiez l’adresse de Temporal
+
+Exemple : mettez à jour `exchange/config.yaml.template`, puis redémarrez :
+
+```text
+addr: no-txt:///${TEMPORAL_HOST}:${TEMPORAL_PORT}
+```
+
+## Mise à niveau et désinstallation
+
+- Mise à niveau avec Docker Compose : relancez le programme d’installation depuis le répertoire parent
+- Mise à niveau avec K8s : `helm upgrade --install ... -n univer`
+- Les données sont toujours présentes après la désinstallation : vérifiez la politique de récupération des PVC ou les volumes
+
+## Journaux et collecte
+
+| Service | Commande |
+| --- | --- |
+| temporal | `docker compose logs -f temporal` |
+| exchange | `docker compose logs -f univer-worker-exchange` |
+| universer | `docker compose logs -f universer` |
+
+Regroupez les journaux :
+
+```bash
+mkdir -p logs_collect && \
+docker compose logs temporal > logs_collect/temporal.log 2>&1 && \
+docker compose logs universer > logs_collect/universer.log 2>&1 && \
+tar czf univer-troubleshoot-logs.tar.gz logs_collect
+```
+
+## Liste de vérification
+
+- Les services sont à l’état Up et les pods à l’état Ready
+- Aucune erreur n’apparaît dans temporal ou exchange
+- Les ports et les domaines sont accessibles
+- Les modifications de configuration sont appliquées après le redémarrage
+- Les tâches d’import et d’export peuvent aboutir

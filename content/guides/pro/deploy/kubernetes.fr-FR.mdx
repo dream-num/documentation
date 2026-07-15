@@ -1,0 +1,535 @@
+---
+title: Déploiement avec Kubernetes
+---
+
+## Configuration du déploiement
+
+### Modifier la configuration du déploiement
+
+La configuration de déploiement par défaut d'Univer se trouve dans le fichier `values.yaml` du chart Helm ([consulter le fichier](https://github.com/dream-num/helm-charts/blob/main/charts/univer-stack/values.yaml)). Pour la modifier, il n'est pas nécessaire d'éditer les fichiers des charts : créez simplement un nouveau fichier `values.yaml` et ajoutez-y les paramètres à modifier. Lors de l'installation avec la commande `helm install`, indiquez ce fichier `values.yaml` afin que la configuration personnalisée remplace les valeurs par défaut. Les paramètres non spécifiés conservent leur valeur par défaut. Pour connaître les commandes Helm à utiliser, consultez la procédure de déploiement ci-dessous.
+
+### Détails de la configuration
+
+#### Activer l'authentification des utilisateurs et la gestion des autorisations
+
+La signification des paramètres concernés est déjà décrite dans [Intégrer Univer à votre système via USIP](/guides/pro/usip) et n'est pas reprise ici. Pour activer cette fonctionnalité, utilisez la configuration suivante :
+
+```yaml title="values.yaml"
+universer:
+  config:
+    usip:
+      enabled: true # Set to true to enable USIP
+      uri:
+        userinfo: 'https://your-domain/usip/userinfo'
+        collaborators: 'https://your-domain/usip/collaborators'
+        role: 'https://your-domain/usip/role'
+        credential: 'https://your-domain/usip/credential'
+        unitEditTime: 'https://your-domain/usip/unit-edit-time'
+
+      # apikey is optional
+      apikey: ''
+    auth:
+      permission:
+        enableObjInherit: false
+        customerStrategies: ''
+```
+
+#### Activer la publication des événements Univer
+
+La signification des paramètres concernés est déjà décrite dans [Intégrer Univer à votre système via Univer Event Sync](/guides/pro/event-sync) et n'est pas reprise ici. Pour activer cette fonctionnalité, utilisez la configuration suivante :
+
+```yaml title="values.yaml"
+universer:
+  config:
+    rabbitmq:
+      eventSync: true # Set to true to enable
+```
+
+#### Utiliser des composants d'infrastructure gérés par vos soins
+
+##### RDS
+
+**Attention** : le composant Temporal utilisé par Univer ne prenant pas en charge GaussDB ni DamengDB, Univer installe séparément PostgreSQL pour Temporal si vous choisissez l'une de ces bases de données. Temporal stocke dans la base de données l'état des workflows des tâches d'importation et d'exportation, sans aucune donnée de document. La perte de ces données entraînerait uniquement l'échec des tâches d'importation ou d'exportation en cours, sans autre conséquence.
+
+###### Utiliser un RDS compatible avec PostgreSQL
+
+```yaml title="values.yaml"
+postgresql:
+  enabled: false # Disable Univer's built-in database
+
+universer:
+  config:
+    database:
+      driver: postgresql # Set to postgresql for PostgreSQL-compatible databases
+      host: your-database-host
+      port: your-database-port
+      dbname: univer # Univer database init scripts use this name by default; keep it consistent if changed
+      username: postgres # Grant select, insert, update, delete permissions
+      password: postgres
+      sslMode: disable # Supported values: disable, require, verify-ca, verify-full; set to require / verify-ca / verify-full to enable SSL
+
+temporal: # temporal uses the database
+  server:
+    config:
+      persistence:
+        default:
+          driver: sql # Fixed to sql
+          sql:
+            driver: postgres12 # postgres 12 or above required
+            host: your-database-host
+            port: your-database-port
+            database: temporal # Univer database init scripts use this name by default; keep it consistent if changed
+            user: postgres # Grant select, insert, update, delete permissions
+            password: postgres
+
+        visibility:
+          driver: sql
+          sql:
+            driver: postgres12 # postgres 12 or above required
+            host: your-database-host
+            port: your-database-port
+            database: temporal_visibility # Univer database init scripts use this name by default; keep it consistent if changed
+            user: postgres # Grant select, insert, update, delete permissions
+            password: postgres
+```
+
+###### Utiliser un RDS compatible avec MySQL
+
+```yaml title="values.yaml"
+postgresql:
+  enabled: false # Disable Univer's built-in database
+
+universer:
+  config:
+    database:
+      driver: mysql # Set to mysql for MySQL-compatible databases
+      host: your-database-host
+      port: your-database-port
+      dbname: univer # Univer database init scripts use this name by default; keep it consistent if changed
+      username: mysql # Grant select, insert, update, delete permissions
+      password: mysql
+      sslMode: disable # Supported values: disable, require, verify-ca, verify-full; set to require / verify-ca / verify-full to enable SSL
+
+temporal:
+  server:
+    config:
+      persistence:
+        default:
+          driver: sql
+          sql:
+            driver: mysql8 # MySQL 8.x required
+            host: your-database-host
+            port: your-database-port
+            database: temporal # Univer database init scripts use this name by default; keep it consistent if changed
+            user: mysql # Grant select, insert, update, delete permissions
+            password: mysql
+
+        visibility:
+          driver: sql
+          sql:
+            driver: mysql8
+            host: your-database-host
+            port: your-database-port
+            database: temporal_visibility # Univer database init scripts use this name by default; keep it consistent if changed
+            user: mysql
+            password: mysql
+```
+
+Remarque : `sslMode` s'applique également à MySQL. Les valeurs `require`, `verify-ca` et `verify-full` correspondent à `tls=true` ; toute autre valeur est transmise sous la forme `tls=<your-value>` dans le DSN MySQL.
+
+###### Utiliser GaussDB
+
+```yaml title="values.yaml"
+universer:
+  config:
+    database:
+      driver: gaussdb
+      host: your-database-host
+      port: your-database-port
+      dbname: univer # Univer database init scripts use this name by default; keep it consistent if changed
+      username: gaussdb # Grant select, insert, update, delete permissions
+      password: gaussdb
+      sslMode: disable # Supported values: disable, require, verify-ca, verify-full; set to require / verify-ca / verify-full to enable SSL
+```
+
+###### Utiliser DamengDB
+
+```yaml title="values.yaml"
+universer:
+  config:
+    database:
+      driver: dameng
+      host: your-database-host
+      port: your-database-port
+      dbname: univer # Univer database init scripts use this name by default; keep it consistent if changed
+      username: dameng # Grant select, insert, update, delete permissions
+      password: dameng
+      sslMode: disable # Supported values: disable, require, verify-ca, verify-full; set to require / verify-ca / verify-full to enable SSL
+```
+
+##### Redis
+
+```yaml title="values.yaml"
+universer:
+  config:
+    redis:
+      poolSize: 100
+      # If using a redis cluster, separate multiple addresses with commas
+      # e.g.: 192.168.1.100:6379,192.168.1.101:6379
+      addr: 192.168.1.100:6379
+      read_timeout: 1s
+      write_timeout: 1s
+      db: 0
+      username: user_name_here
+      password: password_here
+
+      # TLS config
+      # Supports three modes: insecure, CA verification only, and client certificate (mTLS) verification.
+      # CA, certificate, and private key should be filled with file content when needed
+      tlsConfig:
+        enabled: false
+        insecure: false
+        ca: ''
+        cert: ''
+        key: ''
+
+# Same as universer.config.redis
+worker:
+  redis:
+    poolSize: 10
+    addr: 192.168.1.100:6379
+    read_timeout: 1s
+    write_timeout: 1s
+    db: 0
+    username: user_name_here
+    password: password_here
+    tlsConfig:
+      enabled: false
+      insecure: false
+      ca: ''
+      cert: ''
+      key: ''
+
+redis:
+  enabled: false # Disable Univer's built-in Redis
+```
+
+##### MQ
+
+```yaml title="values.yaml"
+universer:
+  config:
+    rabbitmq:
+      cluster:
+        enabled: true # Must be set to true
+        # use comma to separate multiple addresses
+        # for example: RABBITMQ_CLUSTER_ADDR=192.168.1.2:5672,192.168.1.5:5672
+        # Every addr must be readable and writable; Univer will poll the hosts until a connection succeeds
+        addr: '192.168.1.2:5672,192.168.1.5:5672'
+        username: user-here
+        password: password-here
+        vhost: /
+        schema: amqp
+
+rabbitmq:
+  enabled: false # Disable Univer's built-in RabbitMQ
+```
+
+##### Object Storage
+
+```yaml title="values.yaml"
+universer:
+  config:
+    s3:
+      accessKeyID: admin
+      accessKeySecret: minioadmin
+      region: us-east-1
+      endpoint: http://192.168.1.100:9000
+      endpointPublic: http://192.168.1.100:9001
+      usePathStyle: true
+      defaultBucket: univer
+
+minio:
+  enabled: false # Disable Univer's built-in MinIO
+```
+
+#### Activer les composants d'observabilité intégrés à Univer
+
+Le déploiement des composants d'observabilité intégrés sur K8s ne nécessite aucune configuration supplémentaire. Pour savoir comment les activer, consultez la procédure de déploiement K8s ci-dessous.
+
+#### Configuration de la capacité
+
+```yaml title="values.yaml"
+universer:
+  replicaCount: 3 # universer instance count
+collaboration-server:
+  replicaCount: 3 # collaboration service instance count
+  maxMemoryLimit: 2048 # MB, collaboration service max memory limit
+collaboration-helper-server: # Note: introduced since v0.13.0
+  replicaCount: 2 # helper service instance count
+worker:
+  replicaCount: 1 # working exchange worker count
+  temporalWorker:
+    importConcurrent: 1 # how many import tasks each worker can do at the same time.
+    exportConcurrent: 1 # how many export tasks each worker can do at the same time.
+```
+
+#### Configuration de la répartition par niveaux de l'édition collaborative
+
+Introduite dans la version `v0.15.0`, cette fonctionnalité est désactivée par défaut et doit être configurée manuellement. Le système détermine le niveau du cluster du service de collaboration auquel affecter un classeur en fonction de son nombre total de cellules et de sa durée réelle d'importation. Les classeurs nouvellement importés sont répartis en fonction de leur durée d'importation ; ceux créés d'une autre manière, ou pour lesquels un nouvel instantané a été généré, le sont en fonction de leur nombre total de cellules. Après chaque création d'instantané, les métriques concernées sont enregistrées dans la base de données et la stratégie de répartition est mise à jour.
+
+La répartition par niveaux consiste à déployer le service de collaboration sous la forme de plusieurs clusters, puis à définir par des règles celui qui traite chaque taille de feuille de calcul. La structure de données de cette configuration est la suivante :
+
+```yaml
+unitRoutingConf:
+  tiers:
+    - tierName: normal
+      enable: true
+      upgradeCellsThreshold: 0
+      downgradeCellsThreshold: 0
+      upgradeImportTimeThreshold: 0
+    - tierName: large
+      enable: true
+      upgradeCellsThreshold: 1000
+      downgradeCellsThreshold: 900
+      upgradeImportTimeThreshold: 10
+    - tierName: huge
+      enable: true
+      upgradeCellsThreshold: 10000
+      downgradeCellsThreshold: 9000
+      upgradeImportTimeThreshold: 60
+```
+
+Description :
+
+- `tiers` : décrit les informations relatives à chaque cluster ; en théorie, un nombre quelconque de clusters peut être configuré.
+- `enable` : indique si ce cluster est activé ; lorsqu'il est défini sur `false`, le cluster est ignoré.
+- `upgradeCellsThreshold` : indique le nombre total de cellules que la feuille doit atteindre pour être affectée à ce cluster.
+- `downgradeCellsThreshold` : si la feuille est actuellement affectée à ce cluster, elle ne peut revenir à un cluster de niveau inférieur que lorsque son nombre total de cellules passe sous cette valeur. Cela évite les changements fréquents pour les feuilles dont la taille est proche de la limite entre deux niveaux.
+- `upgradeImportTimeThreshold` : ce paramètre sert à répartir les feuilles nouvellement importées pour lesquelles le nombre total de cellules n'est pas connu. Son fonctionnement est identique à celui de `upgradeCellsThreshold`, mais la métrique utilisée est la durée réelle d'importation.
+
+Vous devez vous assurer qu'au moins un cluster a toutes ses métriques requises définies sur 0, afin que chaque feuille puisse être affectée à un cluster.
+
+Exemples de répartition avec la configuration ci-dessus :
+
+- Après sa création, workbook1 contient initialement 0 cellule et est affecté au cluster normal.
+- Lorsque workbook1 est modifié et que son nombre total de cellules atteint 1000, il est affecté au cluster large.
+- Lorsque le nombre total de cellules de workbook1 retombe à 999, il reste affecté au cluster large, car cette valeur est toujours supérieure au seuil de retour de 900.
+- Lorsque le nombre total de cellules de workbook1 descend ensuite à 899, il revient au cluster normal.
+- L'importation de workbook2 dure réellement 61 secondes, ce qui dépasse le seuil de 60 secondes du cluster huge ; il est donc affecté à ce cluster.
+
+Pour contrôler plus finement les niveaux de cluster, adaptez l'orchestration des charts afin de déployer effectivement les clusters du service `collaboration-server` correspondant à chaque niveau, puis configurez la table de routage de la répartition (tableau `tiers`) comme indiqué ci-dessus.
+
+Sous K8s, configurez vous-même `unitRoutingConf` dans les valeurs Helm.
+
+#### Configuration du réseau
+
+Sans objet pour un déploiement K8s.
+
+#### Configuration des requêtes cross-origin
+
+```yaml title="values.yaml"
+universer:
+  config:
+    server:
+      http:
+        corsAllowOrigins: [domain1, domain2, and more]
+        corsAllowHeaders: [content-type, authorization]
+```
+
+#### Configuration propre au déploiement K8s
+
+Par défaut, le chart Helm d'Univer Pro configure un service de démonstration front-end et associe la route ingress du service de passerelle HTTP (universer) au domaine de démonstration. Pour un déploiement en production, vous devez désactiver le service de démonstration et remplacer le domaine de la route ingress d'universer par le domaine réel. Ajoutez la configuration suivante à `values.yaml` :
+
+```yaml title="values.yaml"
+collaboration-demo:
+  enabled: false # Set to false to disable deploying the demo service
+universer:
+  ingress:
+    enabled: true
+    hosts:
+      - host: use-your-own-domain-here # Change to your actual domain
+        paths:
+          - path: /universer-api/
+            pathType: Prefix
+```
+
+#### Exemple de configuration
+
+L'exemple de configuration suivant permet de :
+
+- Activer l'intégration USIP, authentifier les utilisateurs et valider les autorisations
+- Autoriser uniquement le propriétaire du document à copier le contenu et à l'imprimer
+- Activer la publication des événements Univer
+- Utiliser une instance PostgreSQL gérée par vos soins
+- Utiliser un service Object Storage géré par vos soins
+- Modifier le port exposé du service Univer
+- Configurer la capacité d'universer et de collaboration-server
+
+Fichier `values.yaml` pour un déploiement K8s. Remarque : si plusieurs paramètres doivent être modifiés, fusionnez-les dans le fichier YAML final.
+
+```yaml title="values.yaml"
+collaboration-demo:
+  enabled: false # Set to false to disable deploying the demo service
+
+postgresql:
+  enabled: false # Disable Univer's built-in database
+
+minio:
+  enabled: false # Disable Univer's built-in MinIO
+
+collaboration-server:
+  replicaCount: 5
+  maxMemoryLimit: 2048
+
+universer:
+  replicaCount: 4
+  ingress:
+    enabled: true
+    hosts:
+      - host: usip-demo.univer.ai # Change to your actual domain
+        paths:
+          - path: /universer-api/
+            pathType: Prefix
+  config:
+    usip:
+      enabled: true # Set to true to enable USIP
+      uri:
+        userinfo: 'https://usip-demo.univer.ai/usip/userinfo'
+        collaborators: 'https://usip-demo.univer.ai/usip/collaborators'
+        role: 'https://usip-demo.univer.ai/usip/role'
+        credential: 'https://usip-demo.univer.ai/usip/credential'
+        unitEditTime: 'https://usip-demo.univer.ai/usip/unit-edit-time'
+    auth:
+      permission:
+        customerStrategies: '[ {"action": 3, "role": 2}, {"action": 6, "role": 2} ]'
+    rabbitmq:
+      eventSync: true # Set to true to enable
+    database:
+      driver: postgresql
+      host: univer-postgresql
+      port: 5432
+      dbname: univer
+      username: universer-biz
+      password: 123456
+      sslMode: disable # Supported values: disable, require, verify-ca, verify-full; set to require / verify-ca / verify-full to enable SSL
+    s3:
+      accessKeyID: universer-biz
+      accessKeySecret: 123456
+      region: cn-sz
+      endpoint: 'univer-s3:9652'
+      endpointPublic: 'univer.ai:9653'
+      usePathStyle: true
+      defaultBucket: univer
+
+temporal:
+  server:
+    config:
+      persistence:
+        default:
+          driver: sql
+          sql:
+            driver: postgres12
+            host: univer-postgresql
+            port: 5432
+            database: temporal
+            user: universer-temporal
+            password: 123456
+
+        visibility:
+          driver: sql
+          sql:
+            driver: postgres12
+            host: univer-postgresql
+            port: 5432
+            database: temporal_visibility
+            user: universer-temporal
+            password: 123456
+```
+
+## Procédure de déploiement
+
+Une fois la configuration nécessaire définie, déployez les services back-end d'Univer en suivant la procédure ci-dessous.
+
+### Procédure de déploiement K8s
+
+Lors d'un déploiement avec K8s, si vous personnalisez la configuration, vous devez gérer vous-même les versions du fichier `values.yaml` correspondant. En effet, les mises à niveau ultérieures nécessiteront toujours la totalité de la configuration personnalisée. Il est recommandé d'utiliser Git ou un autre outil de gestion de versions.
+
+1. Préparez le fichier de configuration `values.yaml` (ignorez cette étape si aucune modification n'est nécessaire).
+2. Préparez les fichiers de licence `license.txt` et `licenseKey.txt`.
+3. Si vous choisissez d'utiliser un RDS géré par vos soins, téléchargez le [script d'initialisation de la base de données](https://release-univer.oss-cn-shenzhen.aliyuncs.com/releases/latest/univer-server-sql-latest.tar.gz), puis initialisez le RDS pour universer et temporal. Avec GaussDB ou DamengDB, l'initialisation de temporal n'est pas nécessaire.
+4. Exécutez la commande d'installation Helm avec votre fichier `values.yaml` et les fichiers de licence :
+   - Si le serveur de déploiement peut accéder à Internet :
+     ```shell
+     helm install -n univer --create-namespace \
+         -f your-own-values.yaml-path \
+         --set global.istioNamespace="univer" \
+         --set-file universer.license.licenseV2=your-license.txt-path \
+         --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path \
+         univer-stack \
+         oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-stack \
+         --version target-version
+
+     # After success, run the following two commands to restart services to complete sidecar injection
+     kubectl rollout restart -n univer deployment/collaboration-server
+     kubectl rollout restart -n univer deployment/universer
+     ```
+     Pour déployer les composants d'observabilité configurés par Univer, installez-les avec la commande suivante :
+     ```bash
+     helm upgrade --install -n univer-observability --create-namespace \
+         --set global.univerNamespace="univer" \
+         univer-observability \
+         oci://univer-acr-registry.cn-shenzhen.cr.aliyuncs.com/helm-charts/univer-observability
+     ```
+
+     Description du paramètre :
+     - `--set global.univerNamespace="univer"` : définit `"univer"` comme espace de noms du cluster Univer à observer.
+   - Si le serveur de déploiement ne peut pas accéder à Internet :
+     - [Téléchargez ici](//releases/univer-server/download) le package d'installation hors ligne tout-en-un pour K8s fourni par Univer.
+     - Transférez le package d'installation hors ligne sur le serveur de déploiement, puis extrayez-le.
+     - Accédez au répertoire extrait et exécutez :
+       ```shell
+       export REGISTER=XXXX # Your private image registry
+       export NAMESPACE=XXX # The image namespace to upload to
+       docker login $REGISTER
+       bash load-image.sh --registry $REGISTER --namespace $NAMESPACE
+       ```
+     - Une fois l'opération terminée, les fichiers `values.yaml` et `values-observability.yaml` sont générés dans le répertoire actuel. Modifiez-les selon vos besoins :
+       - `values.yaml` : fichier de configuration des services Univer
+       - `values-observability.yaml` : fichier de configuration des composants de surveillance de l'observabilité pour les services Univer
+     - Exécutez ensuite les commandes d'installation suivantes :
+       ```shell
+       helm install -n univer --create-namespace \
+           -f your-own-values.yaml-path \
+           --set global.istioNamespace="univer" \
+           --set-file universer.license.licenseV2=your-license.txt-path \
+           --set-file universer.license.licenseKeyV2=your-licenseKey.txt-path \
+           univer-stack \
+           univer-stack-xxxx.tgz # Change to the corresponding chart package in the current directory after extraction
+
+       # After success, run the following two commands to restart services to complete sidecar injection
+       kubectl rollout restart -n univer deployment/collaboration-server
+       kubectl rollout restart -n univer deployment/universer
+       ```
+     - Pour déployer les composants d'observabilité configurés par Univer, installez-les avec la commande suivante :
+       ```bash
+       helm upgrade --install -n univer-observability --create-namespace \
+           --set global.univerNamespace="univer" \
+           -f your-own-values-observability.yaml-path \
+           univer-observability \
+           univer-observability-xxxx.tgz
+       ```
+
+       Description du paramètre :
+       - `--set global.univerNamespace="univer"` : définit `"univer"` comme espace de noms du cluster Univer à observer.
+
+Description des paramètres :
+
+- `-n univer` : définit `univer` comme espace de noms du cluster. Vous pouvez le modifier selon vos besoins, mais conservez cette valeur, car elle sera nécessaire lors des mises à niveau ultérieures.
+- `univer-stack` : nom de la release Helm. Vous pouvez le modifier selon vos besoins, mais conservez cette valeur, car elle sera nécessaire lors des mises à niveau ultérieures.
+- `--version target-version` : indique la version à déployer. Remplacez-la par la version cible ou omettez ce paramètre pour sélectionner automatiquement la dernière version.
+- `-f your-own-values.yaml-path` : indique le chemin du fichier de configuration personnalisé `values.yaml`. Vérifiez que ce chemin est correct.
+- `--set-file universer.license.licenseV2=your-license.txt-path` : indique le chemin du fichier `license.txt` extrait.
+- `--set-file universer.license.licenseKeyV2=your-licenseKey.txt-path` : indique le chemin du fichier `licenseKey.txt` extrait.
+
+5. Effectuez les tests de non-régression.

@@ -1,0 +1,119 @@
+---
+title: Упоминания
+icon: AtSign
+---
+
+<MetaData
+  lang="ru-RU"
+  meta={{
+    plugins: [{
+      client: '@univerjs/docs-mention-ui',
+      style: '@univerjs/docs-mention-ui/lib/index.css',
+    }],
+    server: false,
+  }}
+/>
+
+Упоминания позволяют пользователям ввести `@` в Univer Docs и вставить сущность — например, сотрудника, команду, задачу или другой объект из вашего приложения. Вставленное упоминание хранится в теле документа как пользовательский диапазон `CustomRangeType.MENTION`.
+
+## Взаимодействие
+
+- Введите `@` в документе, чтобы открыть всплывающее окно упоминаний.
+- Продолжайте вводить текст: он будет передан источнику данных упоминаний как значение `search`.
+- Выберите вариант, чтобы заменить введённый текст сущностью, например `@Alice`.
+- Переместите курсор или удалите текст перед символом вызова, чтобы закрыть всплывающее окно.
+
+## Режим плагинов
+
+### Установка
+
+```package-install
+npm install @univerjs/docs-mention-ui
+```
+
+### Использование
+
+```typescript
+import { UniverDocsMentionUIPlugin } from '@univerjs/docs-mention-ui' // [!code ++]
+
+import '@univerjs/docs-mention-ui/lib/index.css' // [!code ++]
+
+univer.registerPlugin(UniverDocsMentionUIPlugin) // [!code ++]
+```
+
+## Предоставление вариантов упоминаний
+
+Всплывающее окно получает варианты из `IMentionIOService`. Univer предоставляет локальную реализацию по умолчанию, которая возвращает текущего пользователя. В рабочих приложениях её обычно заменяют реализацией, подключённой к каталогу пользователей, сервису команд, трекеру задач или другому источнику бизнес-данных.
+
+```typescript
+import type { IListMentionParam, IListMentionResponse, IMentionIOService } from '@univerjs/core'
+import { MentionType } from '@univerjs/core'
+
+class DirectoryMentionIOService implements IMentionIOService {
+  async list(params: IListMentionParam): Promise<IListMentionResponse> {
+    const users = await searchUsers(params.search ?? '')
+
+    return {
+      list: [{
+        type: MentionType.PERSON,
+        title: 'People',
+        metadata: {},
+        mentions: users.map(user => ({
+          objectType: MentionType.PERSON,
+          objectId: user.id,
+          label: user.name,
+          metadata: {
+            icon: user.avatarUrl,
+            email: user.email,
+          },
+        })),
+      }],
+      page: params.page,
+      size: params.size,
+      total: users.length,
+    }
+  }
+}
+```
+
+При создании приложения зарегистрируйте сервис через механизм переопределения зависимостей Univer.
+
+```typescript
+import { IMentionIOService, LocaleType, Univer } from '@univerjs/core'
+
+const univer = new Univer({
+  locale: LocaleType.EN_US,
+  override: [
+    [IMentionIOService, { useClass: DirectoryMentionIOService }],
+  ],
+})
+```
+
+## Модель данных
+
+При вставке упоминания видимый текст записывается в `body.dataStream`, а метаданные сущности сохраняются в `body.customRanges`.
+
+```typescript
+const documentData = {
+  body: {
+    dataStream: 'Hello @Alice\\r\\n',
+    customRanges: [{
+      startIndex: 6,
+      endIndex: 11,
+      rangeId: 'mention-1',
+      rangeType: CustomRangeType.MENTION,
+      wholeEntity: true,
+      properties: {
+        id: 'mention-1',
+        label: 'Alice',
+        type: 'user',
+        email: 'alice@example.com',
+      },
+    }],
+  },
+}
+```
+
+<Callout type="info">
+  Упоминания представляют собой пользовательские диапазоны документа. Если приложение хранит дополнительные поля в `metadata`, они должны поддерживать сериализацию, чтобы снимок документа можно было надёжно сохранить и восстановить.
+</Callout>

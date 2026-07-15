@@ -1,0 +1,534 @@
+---
+title: API
+---
+
+이 페이지에서는 자주 사용하는 Univer Server API를 소개합니다. 기본 Base URL은 `http://localhost:8000`입니다.
+
+> 참고: `type` 매개변수 값은 Docs의 경우 `1`, Sheets의 경우 `2`입니다.
+
+## 문서 관리
+
+### 문서 생성
+
+<APITable
+  request={{
+    method: 'POST',
+    url: '/universer-api/snapshot/{type}/unit/-/create',
+    headers: <code>content-type: application/json</code>,
+    parametersType: 'Body',
+    parameters: [{
+      name: 'type',
+      type: 'enum(int)',
+      required: true,
+      description: '경로 및 본문에서 1은 docs, 2는 sheets',
+    }, {
+      name: 'name',
+      type: 'string',
+      required: true,
+      description: '문서 이름',
+    }, {
+      name: 'creator',
+      type: 'string',
+      required: true,
+      description: '생성자 ID',
+    }, {
+      name: 'idempotencyKey',
+      type: 'string',
+      required: false,
+      description: 'v0.20.0부터 지원하는 선택적 멱등성 키이며, 전체 바이트 크기는 64 이하여야 합니다.',
+    }, {
+      name: 'metaData',
+      type: 'string',
+      required: false,
+      description: 'v0.20.0부터 지원합니다. 생성된 유닛에 연결되는 사용자 정의 정보로, 이후 동기화 이벤트와 USIP 호출에 그대로 전달됩니다. 전체 바이트 크기는 1024 이하여야 합니다.',
+    }],
+    example: `curl http://localhost:8000/universer-api/snapshot/{type}/unit/-/create \\
+    -X POST \\
+    -H 'Content-Type: application/json' \\
+    --data-raw '{"type":2,"name":"New Sheet By Univer","creator":"userID","idempotencyKey":"a-idgenerator-unique-id","metaData":"tenant12345"}'`,
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'error',
+      type: 'object',
+      properties: [{
+        name: 'code',
+        type: 'enum(int)',
+        description: '1 (성공)',
+      }, {
+        name: 'message',
+        type: 'string',
+        description: '오류 메시지',
+      }],
+    }, {
+      name: 'unitID',
+      type: 'string',
+      description: '문서 ID',
+    }],
+    example: JSON.stringify({
+      error: {
+        code: 1,
+        message: 'success',
+      },
+      unitID: 'ETVf-B4lQqOSE_p09mcp9Q',
+    }, null, 2),
+  }}
+/>
+
+### 문서 목록 조회
+
+<APITable
+  request={{
+    method: 'GET',
+    url: '/universer-api/snapshot/{type}/units',
+    parametersType: 'Query',
+    parameters: [{
+      name: 'type',
+      type: 'enum(int)',
+      required: true,
+      description: '경로 및 본문에서 1은 doc, 2는 sheet',
+    }, {
+      name: 'nextCursor',
+      type: 'string',
+      required: false,
+      description: '다음 페이지 커서',
+    }],
+    example: `curl -X GET 'http://localhost:8000/universer-api/snapshot/1/units?nextCursor=100'`,
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'error',
+      type: 'object',
+      properties: [{
+        name: 'code',
+        type: 'enum(int)',
+        description: '1 (성공)',
+      }, {
+        name: 'message',
+        type: 'string',
+        description: '오류 메시지',
+      }],
+    }, {
+      name: 'units',
+      type: 'array[object]',
+      description: '문서 목록',
+      properties: [{
+        name: 'unitID',
+        type: 'string',
+        description: '문서 ID',
+      }, {
+        name: 'name',
+        type: 'string',
+        description: '문서 이름',
+      }, {
+        name: 'type',
+        type: 'enum(int)',
+        description: '1 (doc), 2 (sheet)',
+      }],
+    }, {
+      name: 'nextCursor',
+      type: 'string',
+      description: '다음 페이지 커서. 비어 있으면 마지막 페이지입니다.',
+    }],
+    example: JSON.stringify({
+      error: {
+        code: 1,
+        message: '',
+      },
+      units: [{
+        unitID: '1',
+        name: 'a',
+        type: 1,
+      }],
+      nextCursor: '200',
+    }, null, 2),
+  }}
+/>
+
+### 문서 삭제
+
+<APITable
+  request={{
+    method: 'DELETE',
+    url: '/universer-api/snapshot/-/units',
+    headers: <code>content-type: application/json</code>,
+    parametersType: 'Query',
+    parameters: [{
+      name: 'unitIds',
+      type: 'array[string]',
+      required: true,
+      description: '문서 ID 목록',
+    }],
+    example: `curl -X DELETE 'http://localhost:8000/universer-api/snapshot/-/units?unitIds=1&unitIds=2'`,
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'error',
+      type: 'object',
+      properties: [{
+        name: 'code',
+        type: 'enum(int)',
+        description: '1 (성공)',
+      }, {
+        name: 'message',
+        type: 'string',
+        description: '오류 메시지',
+      }],
+    }],
+    example: JSON.stringify({
+      error: {
+        code: 1,
+        message: '',
+      },
+    }, null, 2),
+  }}
+/>
+
+### 스냅샷 생성
+
+<APITable
+  request={{
+    method: 'GET',
+    url: '/universer-api/snapshot/{type}/unit/{unitID}/rev/0/ensure',
+    parametersType: 'Query',
+    parameters: [{
+      name: 'type',
+      type: 'enum(int)',
+      required: true,
+      description: '경로에서 1은 doc, 2는 sheet',
+    }, {
+      name: 'unitID',
+      type: 'string',
+      required: true,
+      description: '문서 ID',
+    }],
+    example: `curl -X GET 'http://localhost:8000/universer-api/snapshot/2/unit/ETVf-B4lQqOSE_p09mcp9Q/rev/0/ensure'`,
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'error',
+      type: 'object',
+      properties: [{
+        name: 'code',
+        type: 'enum(int)',
+        description: '1 (성공)',
+      }, {
+        name: 'message',
+        type: 'string',
+        description: '오류 메시지',
+      }],
+    }],
+    example: JSON.stringify({
+      error: {
+        code: 1,
+        message: '',
+      },
+    }, null, 2),
+  }}
+/>
+
+## 파일 및 가져오기/내보내기
+
+### 파일 업로드 [#upload-file]
+
+<APITable
+  request={{
+    method: 'POST',
+    url: '/universer-api/stream/file/upload',
+    headers: <code>content-type: multipart/form-data</code>,
+    parametersType: 'Body',
+    parameters: [{
+      name: 'size',
+      type: 'int',
+      required: true,
+      description: '바이트 단위의 파일 크기(쿼리 매개변수). 실제 크기와 일치해야 합니다.',
+    }, {
+      name: 'file',
+      type: 'Form.file',
+      required: true,
+      description: 'HTML 폼의 파일',
+    }],
+    example: `curl 'http://localhost:8000/universer-api/stream/file/upload?size=125466' \\
+    --header 'cookie: _univer=XXXXXX' \\
+    --form 'file=@"demo.xlsx"'`,
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'FileId',
+      type: 'string',
+      description: '가져오기/내보내기에 사용할 파일 ID',
+    }],
+    example: JSON.stringify({
+      FileId: 'xxxx',
+    }, null, 2),
+  }}
+/>
+
+### 가져오기 [#import-file]
+
+<APITable
+  request={{
+    method: 'POST',
+    url: '/universer-api/exchange/{type}/import',
+    headers: <code>content-type: application/json</code>,
+    parametersType: 'Body',
+    parameters: [{
+      name: 'type',
+      type: 'enum(int)',
+      required: true,
+      description: '1 (doc), 2 (sheet)',
+    }, {
+      name: 'outputType',
+      type: 'enum(int)',
+      required: true,
+      description: '1 (unit), 2 (json)',
+    }, {
+      name: 'fileID',
+      type: 'string',
+      required: true,
+      description: '업로드된 파일 ID',
+    }, {
+      name: 'minSheetRowCount',
+      type: 'int',
+      required: true,
+      description: '최소 행 수. 가져올 때 행 수를 검증합니다.',
+    }, {
+      name: 'minSheetColumnCount',
+      type: 'int',
+      required: true,
+      description: '최소 열 수. 가져올 때 열 수를 검증합니다.',
+    }, {
+      name: 'idempotencyKey',
+      type: 'string',
+      required: false,
+      description: 'v0.20.0부터 지원하는 선택적 멱등성 키이며, 전체 바이트 크기는 64 이하여야 합니다.',
+    }, {
+      name: 'metaData',
+      type: 'string',
+      required: false,
+      description: 'v0.20.0부터 지원합니다. 가져온 유닛에 연결되는 사용자 정의 정보로, 이후 동기화 이벤트와 USIP 호출에 그대로 전달됩니다. 전체 바이트 크기는 1024 이하여야 합니다.',
+    }],
+    example: `curl -X POST 'http://localhost:8000/universer-api/exchange/2/import' \\
+    -H 'Content-Type: application/json' \\
+    --data-raw '{"fileID":"123","outputType":1,"minSheetRowCount":1000,"minSheetColumnCount":20,"idempotencyKey":"a-idgenerator-unique-id","metaData":"tenant12345"}'`,
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'error',
+      type: 'object',
+      properties: [{
+        name: 'code',
+        type: 'enum(int)',
+        description: '1 (성공)',
+      }, {
+        name: 'message',
+        type: 'string',
+        description: '오류 메시지',
+      }],
+    }, {
+      name: 'taskID',
+      type: 'string',
+      description: '폴링에 사용할 작업 ID',
+    }],
+    example: JSON.stringify({
+      error: {
+        code: 1,
+        message: '',
+      },
+      taskID: '456',
+    }, null, 2),
+  }}
+/>
+
+### 내보내기 [#export-file]
+
+<APITable
+  request={{
+    method: 'POST',
+    url: '/universer-api/exchange/{type}/export',
+    headers: <code>content-type: application/json</code>,
+    parametersType: 'Body',
+    parameters: [{
+      name: 'type',
+      type: 'enum(int)',
+      required: true,
+      description: '1 (doc), 2 (sheet)',
+    }, {
+      name: 'unitID',
+      type: 'string',
+      required: true,
+      description: '공동 작업 문서 ID. jsonID로 내보낼 경우 unitID는 빈 문자열일 수 있습니다.',
+    }, {
+      name: 'jsonID',
+      type: 'string',
+      required: true,
+      description: '공동 작업 문서가 아닌 문서를 내보낼 때 jsonID는 프런트엔드 JSON에서 생성한 파일을 업로드한 후 반환되는 FileId입니다. unitID로 내보낼 경우 jsonID는 빈 문자열일 수 있습니다.',
+    }, {
+      name: 'sscSwitch',
+      type: 'boolean',
+      required: false,
+      description: 'SSC(서버 측 계산) 활성화 여부. 기본값은 false입니다.',
+    }, {
+      name: 'useImageUrl',
+      type: 'boolean',
+      required: false,
+      description: '셀 이미지를 링크로 변환하지 않을지 여부. true이면 셀 이미지가 링크로 변환되지 않습니다. 기본값은 false입니다.',
+    }, {
+      name: 'ignoreTableExport',
+      type: 'boolean',
+      required: false,
+      description: '테이블 내보내기를 무시할지 여부. 기본값은 false입니다.',
+    }],
+    example: `curl -X POST 'http://localhost:8000/universer-api/exchange/2/export' \\
+    -H 'Content-Type: application/json' \\
+    --data-raw '{"unitID":"xxxx","type":2}'`,
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'error',
+      type: 'object',
+      properties: [{
+        name: 'code',
+        type: 'enum(int)',
+        description: '1 (성공)',
+      }, {
+        name: 'message',
+        type: 'string',
+        description: '오류 메시지',
+      }],
+    }, {
+      name: 'taskID',
+      type: 'string',
+      description: '폴링에 사용할 작업 ID',
+    }],
+    example: JSON.stringify({
+      error: {
+        code: 1,
+        message: '',
+      },
+      taskID: '456',
+    }, null, 2),
+  }}
+/>
+
+### 작업 결과 조회 [#get-task-result]
+
+<APITable
+  request={{
+    method: 'GET',
+    url: '/universer-api/exchange/task/{taskID}',
+    parametersType: 'Path',
+    parameters: [{
+      name: 'taskID',
+      type: 'string',
+      required: true,
+      description: '작업 ID',
+    }],
+    example: `curl -X GET 'http://localhost:8000/universer-api/exchange/task/123'`,
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'error',
+      type: 'object',
+      properties: [{
+        name: 'code',
+        type: 'enum(int)',
+        description: '1 (성공)',
+      }, {
+        name: 'message',
+        type: 'string',
+        description: '오류 메시지',
+      }],
+    }, {
+      name: 'status',
+      type: 'enum(string)',
+      description: '"pending", "done", "failed"',
+    }, {
+      name: 'export',
+      type: 'object',
+      properties: [{
+        name: 'fileID',
+        type: 'string',
+        description: '내보낸 파일 ID',
+      }],
+    }, {
+      name: 'import',
+      type: 'object',
+      properties: [{
+        name: 'unitID',
+        type: 'string',
+        description: '가져온 unitID',
+      }, {
+        name: 'jsonID',
+        type: 'string',
+        description: 'JSON 파일 ID',
+      }],
+    }],
+    example: JSON.stringify({
+      error: {
+        code: 1,
+        message: '',
+      },
+      status: 'done',
+      export: {
+        fileID: '456',
+      },
+      import: {
+        unitID: '789',
+        jsonID: '012',
+      },
+    }, null, 2),
+  }}
+/>
+
+### 파일 가져오기 [#get-file]
+
+<APITable
+  request={{
+    method: 'GET',
+    url: '/universer-api/file/{fileID}/sign-url',
+    parametersType: 'Path',
+    parameters: [{
+      name: 'fileID',
+      type: 'string',
+      required: true,
+      description: '결과 파일 ID(export.fileID 또는 import.jsonID)',
+    }],
+    example: `curl -X GET 'http://localhost:8000/universer-api/file/1234/sign-url'`,
+  }}
+  response={{
+    type: 'application/json',
+    parameters: [{
+      name: 'error',
+      type: 'object',
+      properties: [{
+        name: 'code',
+        type: 'enum(int)',
+        description: '1 (성공)',
+      }, {
+        name: 'message',
+        type: 'string',
+        description: '오류 메시지',
+      }],
+    }, {
+      name: 'url',
+      type: 'string',
+      description: '다운로드 URL',
+    }],
+    example: JSON.stringify({
+      error: {
+        code: 1,
+        message: '',
+      },
+      url: 'https://example.com/path/to/file.xlsx',
+    }, null, 2),
+  }}
+/>

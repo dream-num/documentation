@@ -1,0 +1,153 @@
+---
+title: Thèmes de plages
+---
+
+Pour enrichir la présentation des tableaux, Univer propose plusieurs thèmes de plages prédéfinis ainsi que la possibilité de créer des thèmes personnalisés.
+
+## Thèmes intégrés
+
+Le thème par défaut, similaire à `Excel Table default style`, est nommé `default`. Vous pouvez l'appliquer à l'aide de l'attribut `theme`. Univer fournit également une série de thèmes colorés. L'API Facade suivante permet d'obtenir la liste des thèmes actuellement disponibles.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const themes = fWorkbook.getRegisteredRangeThemes()
+console.log(themes) // ['default', 'light-blue', 'light-grey', 'light-red', 'light-orange', 'light-yellow', 'light-green', 'light-azure', 'light-indigo', 'light-purple', 'light-magenta', 'middle-blue', 'middle-grey', 'middle-red', 'middle-orange', 'middle-yellow', 'middle-green', 'middle-azure', 'middle-indigo', 'middle-purple', 'middle-magenta', 'dark-blue', 'dark-grey', 'dark-red', 'dark-orange', 'dark-yellow', 'dark-green', 'dark-azure', 'dark-indigo', 'dark-purple', 'dark-magenta']
+```
+
+![Thème de plage](./range-theme/range-theme.png)
+
+## Définir des thèmes
+
+Dans Univer, vous pouvez définir des thèmes de deux façons :
+- En configurant des instantanés
+- Au moyen de l'API Facade
+
+### Définir des thèmes à l'aide d'instantanés
+
+Dans Univer, les thèmes sont stockés dans la ressource de l'instantané sous la clé `SHEET_RANGE_THEME_MODEL_PLUGIN`. La structure de données est la suivante :
+
+```typescript
+interface IRangeThemeRangeInfo {
+  range: IRange
+  unitId: string
+  subUnitId: string
+}
+
+interface IRangeThemeStyleRule {
+  rangeInfo: IRangeThemeRangeInfo
+  themeName: string
+}
+
+interface ISheetRangeThemeModelJSON {
+  // JSON storing the range and theme information for setting themes, the key is the id, please ensure it is not repeated, the value is the corresponding range information and template name.
+  rangeThemeStyleRuleMap: Record<string, IRangeThemeStyleRule>
+  // JSON storing the themes, the key is the theme name, and the value is the serialized JSON of the theme.
+  rangeThemeStyleMapJson: Record<string, IRangeThemeStyleJSON>
+}
+```
+
+### Définir des thèmes à l'aide de l'API Facade
+
+Nous vous recommandons de définir les thèmes à l'aide de l'API Facade, puis de stocker leurs informations avec les méthodes de sérialisation et de désérialisation fournies par Univer.
+
+Voici quelques API liées aux thèmes :
+
+```typescript
+// Get the currently supported themes
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const themes = fWorkbook.getRegisteredRangeThemes()
+
+// Set the default theme for A1:E20
+const fRange = fWorksheet.getRange('A1:E20')
+fRange.useThemeStyle('default') // 使用默认主题
+
+// Get the currently used theme
+const currentTheme = fRange.getUsedThemeStyle()
+
+// Clear the theme style
+fRange.useThemeStyle(undefined)
+fRange.removeThemeStyle(currentTheme)
+```
+
+## Thèmes personnalisés
+
+En plus des thèmes intégrés, Univer permet de créer des thèmes personnalisés à l'aide de l'API suivante :
+
+```typescript
+// Create a custom theme
+const fWorkbook = univerAPI.getActiveWorkbook()
+const rangeThemeStyle = fWorkbook.createRangeThemeStyle('MyTheme', {
+  secondRowStyle: {
+    bg: {
+      rgb: 'rgb(214,231,241)',
+    },
+  },
+})
+fWorkbook.registerRangeTheme(rangeThemeStyle)
+
+// Use the custom theme for A1:E20
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:E20')
+// Make sure the theme is registered, otherwise it will throw an error.
+fRange.useThemeStyle('MyTheme')
+```
+
+Univer fournit également une API permettant de supprimer les thèmes enregistrés :
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+fWorkbook.unregisterRangeTheme('MyTheme')
+```
+
+### Classe `RangeThemeStyle`
+
+La classe principale des thèmes Univer, [`RangeThemeStyle`](https://github.com/dream-num/univer/blob/dev/packages/sheets/src/models/range-theme-util.ts#L110), expose les propriétés suivantes pour personnaliser les thèmes :
+
+- `name` : nom du thème
+- `wholeStyle` : style de toute la plage
+- `firstRowStyle` : style de la première ligne
+- `secondRowStyle` : style de la deuxième ligne
+- `headerRowStyle` : style de la ligne d'en-tête
+- `lastRowStyle` : style de la dernière ligne
+- `firstColumnStyle` : style de la première colonne
+- `secondColumnStyle` : style de la deuxième colonne
+- `headerColumnStyle` : style de la colonne d'en-tête
+- `lastColumnStyle` : style de la dernière colonne
+
+Vous pouvez utiliser les méthodes `getXXX/setXXX` de la classe `RangeThemeStyle` pour obtenir ou définir les styles. Par exemple :
+
+```typescript
+const rangeThemeStyle = new RangeThemeStyle('MyTheme')
+rangeThemeStyle.setSecondRowStyle({
+  bg: {
+    rgb: 'rgb(214,231,241)',
+  },
+})
+```
+
+Vous pouvez également fournir directement des paramètres facultatifs lors de l'instanciation :
+
+```typescript
+/**
+ * @constructor
+ * @param {string} name The name of the range theme style, it used to identify the range theme style.
+ * @param {IRangeThemeStyleJSON} [options] The options to initialize the range theme style.
+ */
+class RangeThemeStyle {};
+
+// For example:
+const rangeThemeStyle = new RangeThemeStyle('MyTheme', {
+  secondRowStyle: {
+    bg: {
+      rgb: 'rgb(214,231,241)',
+    },
+  },
+})
+```
+
+Lorsque vous définissez plusieurs styles, ils sont appliqués selon l'ordre de priorité suivant :
+
+`lastRowStyle` > `headerRowStyle` > `lastColumnStyle` > `headerColumnStyle` > `secondRowStyle` > `firstRowStyle` > `secondColumnStyle` > `firstColumnStyle` > `wholeStyle`
+
+Si le style défini pour une cellule entre en conflit avec celui du `range theme`, le style de la cellule est prioritaire. Il y a conflit lorsqu'une même propriété est définie à la fois dans les données de style de la cellule et dans le `range theme`. Par exemple, si l'arrière-plan de la cellule est défini sur `red` et celui du `range theme` sur `blue`, l'arrière-plan de la cellule sera `red`.

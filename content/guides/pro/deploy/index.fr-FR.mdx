@@ -1,0 +1,98 @@
+---
+title: Déploiement en production
+---
+
+## Architecture et services de déploiement
+
+![Architecture et services de déploiement](./index/deploy-arch.png)
+
+### Historique des évolutions
+
+- Depuis la version `v0.13.0`, le service `collaboration-helper` prend en charge les tâches asynchrones gourmandes en ressources de calcul, telles que la génération d'instantanés.
+- Depuis la version `v0.15.0`, la répartition par niveaux de l'édition collaborative achemine les opérations effectuées sur des feuilles de calcul de différentes tailles vers différents clusters du service de collaboration, ce qui réduit l'incidence des feuilles volumineuses sur celles de taille standard.
+
+### Présentation des services
+
+- **collaboration-server** : moteur d'édition collaborative côté serveur, qui met en œuvre le même algorithme OT que le client.
+- **collaboration-helper** : prend en charge les tâches gourmandes en ressources de calcul pendant la collaboration, comme la génération d'instantanés, afin de garantir une édition collaborative fluide. Remarque : disponible depuis la version `v0.13.0`.
+- **universer** : traite les requêtes d'opération sur les documents, conserve leurs données et assure la diffusion des messages de collaboration.
+- **exchange worker** : exécute les calculs nécessaires à l'importation et à l'exportation des documents ; ce service gourmand en ressources de calcul nécessite beaucoup de mémoire.
+
+<Callout>
+  collaboration-server est un service avec état. Les demandes de modification portant sur un même document sont traitées par la même instance de collaboration-server, ce qui réduit le coût de chargement des données et améliore les performances globales.
+  Par conséquent, universer ajoute une couche de routage par hachage cohérent lorsqu'il appelle collaboration-server pour traiter les opérations de modification.
+</Callout>
+
+### Présentation des composants
+
+- **RDS** : base de données relationnelle utilisée pour stocker les métadonnées des documents, les configurations d'autorisation, etc.
+- **Object Storage** : stockage d'objets utilisé pour conserver les données de contenu des documents, notamment les images, les blocs de données, etc.
+- **Redis** : cache utilisé pour les collaborateurs présents sur les documents en ligne et pour la limitation du débit de l'API.
+- **RabbitMQ** : file de messages utilisée par les services universer pour échanger les messages de collaboration à diffuser.
+- **Temporal** : moteur open source d'exécution de workflows ; Univer l'utilise pour gérer le workflow asynchrone d'importation et d'exportation des documents.
+
+## Préparation du déploiement
+
+Après avoir pris connaissance de l'architecture générale des services back-end d'Univer, évaluez les points suivants avant le déploiement en production :
+
+### Choix de la méthode de déploiement
+
+Univer propose actuellement deux méthodes de déploiement :
+
+- **Déploiement avec Docker Compose**
+  Docker Compose prend uniquement en charge le déploiement sur une seule machine, avec une mise à l'échelle principalement verticale. **La mise à l'échelle horizontale n'est pas prise en charge.** Cette méthode convient aux environnements dépourvus de compétences d'exploitation et de maintenance Kubernetes et dont l'utilisation reste relativement limitée.
+
+- **Déploiement standard compatible avec Kubernetes**
+  Cette méthode est recommandée si vous exploitez déjà un cluster Kubernetes compatible avec les modèles K8s standard. Univer prend en charge la mise à l'échelle horizontale, et le déploiement K8s offre la meilleure évolutivité.
+
+### Authentification des utilisateurs et validation des autorisations
+
+Par défaut, la configuration d'installation d'Univer n'active ni l'authentification des utilisateurs ni la validation des autorisations. Vous devez décider de les activer ou non en fonction des besoins réels de votre activité. Pour en savoir plus, consultez [Intégrer Univer à votre système via USIP](/guides/pro/usip).
+
+### Choix des composants d'infrastructure
+
+Comme l'illustre l'architecture de déploiement ci-dessus, Univer dépend des composants d'infrastructure suivants : MQ, Redis, RDS et Object Storage. Le package d'installation d'Univer comprend les versions open source courantes de ces composants.
+
+Univer permet également d'utiliser des composants gérés par vos soins, ce qui est **vivement recommandé** dans les environnements de production pour les raisons suivantes :
+
+- Faciliter la maintenance du système
+- Garantir la sécurité du stockage des données
+- Garantir la stabilité du fonctionnement du système
+
+Cette recommandation vaut tout particulièrement pour RDS et Object Storage, qui stockent les données des documents. Si vous utilisez les versions intégrées à Univer, une défaillance du stockage de la machine physique peut entraîner une perte définitive de données. Si vous ne disposez pas de votre propre infrastructure de stockage, privilégiez les services proposés par des fournisseurs de cloud public. Si vous devez utiliser les composants de stockage intégrés à Univer, veillez à sauvegarder régulièrement les données, de préférence une fois par jour.
+
+Si vous choisissez des composants gérés par vos soins, assurez-vous qu'ils sont entièrement compatibles avec les exigences d'Univer. Les exigences propres à chaque composant sont les suivantes :
+
+#### MQ
+
+Le composant doit être entièrement compatible avec AMQP/AMQPS ; RabbitMQ est actuellement recommandé. L'image officielle utilisée dans le package d'installation d'Univer est `rabbitmq:3-management`.
+
+#### Redis
+
+Le composant doit être compatible avec toutes les commandes Redis. L'image officielle utilisée dans le package d'installation d'Univer est `bitnami/redis:7.0.15-debian-11-r3`.
+
+Les commandes Redis actuellement utilisées par Univer sont : `GET`, `MGET`, `SET`, `SETNX`, `DEL`, `EXISTS`, `EXPIRE`, `HSET`, `HGET`, `HDEL`, `HGETALL`, `HLEN`, `SCAN`, `Pipeline`, `EVAL`, `EVALSHA`. Assurez-vous que le composant Redis est compatible avec ces commandes. Une version distribuée de Redis peut également être utilisée, sous réserve de satisfaire à ces exigences de compatibilité.
+
+#### RDS
+
+Univer est actuellement adapté à PostgreSQL 16.1, MySQL 8.0, GaussDB et DamengDB. Vous pouvez choisir l'une de ces bases de données ou une solution compatible. L'image officielle utilisée dans le package d'installation d'Univer est `postgres:16.1`.
+
+Veuillez noter qu'Univer ne prend actuellement pas en charge les bases de données distribuées qui nécessitent un partitionnement selon les champs des tables. Une base de données distribuée qui n'est pas entièrement compatible avec le mode d'accès d'une base de données installée sur une seule machine ne peut pas être utilisée. Même avec une base de données distribuée entièrement compatible telle que TiDB, la prudence reste de mise : le générateur d'identifiants actuel d'Univer produit des identifiants qui augmentent de manière tendancielle, ce qui peut concentrer les requêtes sur un même nœud et créer des goulets d'étranglement.
+
+#### Object Storage
+
+Le composant doit être compatible avec l'API AWS S3. L'image officielle utilisée dans le package d'installation d'Univer est `bitnami/minio:2024.8.3-debian-12-r1`.
+
+#### Composants d'observabilité
+
+Pour l'exploitation et la maintenance ultérieures des services back-end d'Univer, vous devez choisir entre les composants d'observabilité intégrés à Univer et un système d'observabilité existant. Univer fournit actuellement des métriques Prometheus, des tableaux de bord Grafana et des journaux de service. Pour en savoir plus sur leur connexion, consultez le [manuel SRE](/guides/pro/sre-manual).
+
+Si vous ne disposez pas d'un système d'observabilité ou si son intégration s'avère difficile, il est recommandé d'activer les composants d'observabilité intégrés à Univer.
+
+## Étapes suivantes
+
+Une fois l'évaluation terminée, consultez les documents suivants selon la méthode de déploiement retenue :
+
+- [Planification de la capacité](/guides/pro/deploy/capacity) — Estimer les ressources processeur et mémoire nécessaires ainsi que le nombre d'instances
+- [Guide de déploiement avec Docker Compose](/guides/pro/deploy/docker-compose) — Configuration et procédure de déploiement avec Docker Compose
+- [Guide de déploiement avec Kubernetes](/guides/pro/deploy/kubernetes) — Configuration et procédure de déploiement avec K8s

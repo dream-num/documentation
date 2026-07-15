@@ -1,0 +1,41 @@
+---
+title: Planification de la capacité
+---
+
+import { CapacityCalculator } from './components/capacity-calculator'
+
+## Planification de la capacité
+
+Les besoins en capacité doivent être évalués en fonction de l'activité réelle. Si la demande est élevée, un déploiement avec Docker Compose peut ne pas convenir. Points importants :
+
+- **exchange worker** (service d'importation et d'exportation) est un service gourmand en ressources de calcul, susceptible de consommer beaucoup de processeur et de mémoire sur de courtes périodes, en particulier lors de l'importation de documents volumineux. Évaluez les besoins d'importation et d'exportation, puis allouez les ressources processeur et mémoire appropriées.
+- **collaboration-server** (moteur de collaboration) est un service Node avec état qui consomme une quantité importante de mémoire lorsque de nombreux documents sont ouverts simultanément pour modification. Évaluez le nombre d'instances nécessaires et la quantité de mémoire à attribuer à chacune. Si des feuilles de calcul très volumineuses (plus de 5 millions de cellules) doivent être modifiées, il est recommandé d'allouer au moins 8 Go de mémoire par instance.
+
+En outre, la répartition par niveaux de l'édition collaborative introduite à partir de la version `v0.15.0` nécessite de connaître la distribution des feuilles de calcul par taille dans le contexte d'utilisation (les documents et les présentations ne sont pas concernés par cette répartition), afin de déterminer si cette fonctionnalité doit être configurée. Le cas échéant, vous devez également évaluer le nombre de niveaux du cluster et la taille des feuilles de calcul traitées par chacun d'eux (nombre total de cellules, durée d'importation, etc.). Pour obtenir les instructions de configuration détaillées, consultez la documentation de la plateforme de déploiement correspondante.
+
+### Ressources requises pour l'édition collaborative
+
+Si la grande majorité des documents sont de petite taille, le service de collaboration peut être dimensionné à 2c4g ; dans le cas contraire, une configuration 4c8g est recommandée. Il est déconseillé d'augmenter davantage les ressources d'une seule instance du service de collaboration, car cela pourrait entraîner un gaspillage de processeur.
+
+- Une instance du service de collaboration (2c4g / 4c8g) peut prendre en charge environ 1 100 / 1 200 documents de petite taille modifiés simultanément, soit environ 360 / 400 QPS de modification-enregistrement.
+- Une instance du service universer (2c4g / 4c8g) peut prendre en charge environ 1 200 / 2 200 documents de petite taille modifiés simultanément, soit environ 400 / 730 QPS de modification-enregistrement.
+
+### Ressources requises pour la collaboration multi-utilisateur
+
+Dans un contexte de collaboration multi-utilisateur, outre les ressources consommées par les opérations de modification-enregistrement, la diffusion des messages de collaboration sollicite davantage le processeur. Cette diffusion est assurée par le service universer et n'a aucune incidence sur l'utilisation des ressources de collaboration-server.
+
+Une configuration 2c4g × 2 permet de transmettre 10 opérations de modification par seconde à 1 400 personnes. En moyenne, un cœur de processeur peut assurer jusqu'à 3 500 diffusions collaboratives par seconde.
+
+La formule de calcul des QPS de diffusion collaborative est la suivante :
+
+```
+Collaborative Broadcast QPS = Edit-Save QPS × (Active Users / Active Documents − 1)
+```
+
+La soustraction de 1 s'explique par le fait que l'envoi à l'utilisateur lui-même est déjà comptabilisé dans les QPS de modification-enregistrement.
+
+### Calculateur des besoins en capacité
+
+Le calculateur ci-dessous permet d'estimer rapidement la configuration nécessaire à partir des paramètres réels de l'activité. Une fois renseignés le nombre de documents actifs, la fréquence d'enregistrement, le taux de collaboration et les autres paramètres, il calcule automatiquement les QPS de modification, les QPS de diffusion collaborative et les configurations recommandées pour le service Node, Universer et la base de données.
+
+<CapacityCalculator locale="fr-FR" />

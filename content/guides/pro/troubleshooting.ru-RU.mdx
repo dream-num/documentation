@@ -1,0 +1,140 @@
+---
+title: Устранение неполадок
+---
+
+В этом руководстве рассмотрены типичные проблемы при установке, запуске, настройке доступа, интеграции USIP, импорте и экспорте, а также обновлении.
+
+## Область применения
+
+- Развертывание с помощью Docker Compose или K8s
+- Интеграции USIP и Event Sync
+- Проблемы с импортом и экспортом
+
+## Быстрая диагностика
+
+| Симптом | Что сделать сразу | Следующий шаг |
+| --- | --- | --- |
+| Скрипт быстрой установки завис | `curl -I https://get.univer.ai` | Использовать офлайн-пакет |
+| Демо-интерфейс недоступен | `cd univer-server && bash run.sh start` | `docker compose ps` |
+| Демо USIP на порту 8080 возвращает 404 | Проверить `USIP_ENABLED=true` в `.env.custom` | `bash run.sh restart` |
+| Поды Helm находятся в состоянии Pending | `kubectl describe pod` | Проверить образы, ресурсы и PVC |
+| Импорт или экспорт находится в состоянии Pending | Проверить журналы temporal, exchange и universer | Перейти к разделу об импорте и экспорте |
+
+## Проблемы с Docker Compose
+
+### Ошибка установки
+
+1. Проверьте сеть:
+
+```bash
+curl -I https://get.univer.ai
+dig get.univer.ai
+```
+
+2. Проверьте конфликты при установке Docker:
+
+```bash
+systemctl status docker
+ps -ef | grep dockerd
+```
+
+### Сервисы не запущены или перезапускаются
+
+```bash
+cd univer-server
+bash run.sh start
+docker compose ps
+docker compose logs --tail=200 <service>
+```
+
+Типичные причины: конфликт портов, файл `.env.custom` не загружен или недостаточно ресурсов.
+
+### Проблемы с демо-интерфейсом
+
+- Конфликт портов: `lsof -i :3010`
+- Разрыв соединения WebSocket: проверьте обратный прокси и CORS
+- Ошибка автоматического создания документа: проверьте журналы universer
+
+## Проблемы с K8s
+
+### Под находится в состоянии Pending
+
+```bash
+kubectl describe pod <pod> -n univer
+```
+
+Проверьте загрузку образа, PVC и ресурсы узла.
+
+### CrashLoopBackOff
+
+```bash
+kubectl logs <pod> -n univer --previous
+```
+
+### Ошибка доступа через Ingress или домен
+
+```bash
+dig univer.example.com
+kubectl get ingress -n univer
+kubectl get endpoints -n univer
+```
+
+## Проблемы с USIP
+
+| Симптом | Причина |
+| --- | --- |
+| Порт 8080 не отвечает | Убедитесь, что выполнена команда `bash run.sh start-demo-usip` |
+| Ошибка 401/403 после включения USIP | Проверьте сквозную передачу токена и ответ с данными пользователя |
+| Конфигурация не применяется | Перезапустите сервисы после изменения `.env.custom` |
+
+## Импорт или экспорт находится в состоянии Pending
+
+### Порядок диагностики
+
+1. Отключите VPN или прокси → `bash run.sh restart`
+2. Проверьте состояние сервисов → `docker compose ps`
+3. Проверьте журналы Temporal → `docker compose logs -f temporal`
+4. Проверьте журналы Exchange → `docker compose logs -f univer-worker-exchange`
+5. Проверьте журналы Universer → `docker compose logs -f universer`
+
+### Типичные ошибки
+
+- Ошибка запуска Temporal: конфликт портов или проблемы с базой данных
+- Тайм-аут Exchange: проверьте адрес Temporal
+
+Пример: измените `exchange/config.yaml.template` и перезапустите сервисы:
+
+```text
+addr: no-txt:///${TEMPORAL_HOST}:${TEMPORAL_PORT}
+```
+
+## Обновление и удаление
+
+- Обновление Docker Compose: повторно запустите установщик в родительском каталоге
+- Обновление K8s: `helm upgrade --install ... -n univer`
+- После удаления остались данные: проверьте политику освобождения PVC или тома
+
+## Журналы и их сбор
+
+| Сервис | Команда |
+| --- | --- |
+| temporal | `docker compose logs -f temporal` |
+| exchange | `docker compose logs -f univer-worker-exchange` |
+| universer | `docker compose logs -f universer` |
+
+Сбор журналов в архив:
+
+```bash
+mkdir -p logs_collect && \
+docker compose logs temporal > logs_collect/temporal.log 2>&1 && \
+docker compose logs universer > logs_collect/universer.log 2>&1 && \
+tar czf univer-troubleshoot-logs.tar.gz logs_collect
+```
+
+## Контрольный список
+
+- Сервисы находятся в состоянии Up, а поды — в состоянии Ready
+- В temporal и exchange нет ошибок
+- Порты и домены доступны
+- После изменения конфигурации сервисы перезапущены
+- Задачи импорта и экспорта завершаются

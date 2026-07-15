@@ -1,0 +1,237 @@
+---
+title: React
+---
+
+<Callout>
+  Si vous cherchez à utiliser des composants React comme composants personnalisés, consultez [cette section](/guides/docs/ui/components#react).
+</Callout>
+
+Avant d’intégrer Univer dans un projet React, assurez-vous d’avoir lu la section [Installation et utilisation de base d’Univer](/guides/docs/getting-started/installation) et de comprendre les concepts fondamentaux ainsi que les hooks de cycle de vie de React.
+
+## Intégrer Univer avec React 18 et 19
+
+### Étapes d’intégration
+
+1. Initialisez Univer dans le hook `useEffect`
+2. Détruisez Univer dans la fonction de nettoyage renvoyée par le hook `useEffect`
+
+### Exemple
+
+```tsx
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+import UniverPresetDocsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+import { useEffect, useRef } from 'react'
+
+import '@univerjs/preset-docs-core/lib/index.css'
+
+export function App() {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const { univerAPI } = createUniver({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: mergeLocales(
+          UniverPresetDocsCoreEnUS,
+        ),
+      },
+      presets: [
+        UniverDocsCorePreset({
+          container: containerRef.current,
+        }),
+      ],
+    })
+
+    univerAPI.createDocument({})
+
+    return () => {
+      univerAPI.dispose()
+    }
+  }, [])
+
+  return (
+    <div ref={containerRef} />
+  )
+}
+```
+
+## Intégrer Univer avec React 16.9+ et 17
+
+### Remarques avant l’intégration
+
+#### Remarques sur la compatibilité
+
+La couche d’affichage d’Univer repose sur React 18.3.1, mais nous assurons une prise en charge minimale des projets utilisant React 16.9+ et 17. Cela ne signifie pas que les anciennes versions de React seront prises en charge indéfiniment. Pour profiter d’une expérience optimale et des nouvelles fonctionnalités, nous vous recommandons de passer à la dernière version dès que possible.
+
+#### Configuration des alias de l’outil de build
+
+Dans un environnement React 16.9+ ou 17, vous devez utiliser la fonctionnalité d’alias de votre outil de build pour simuler l’export de `react-dom/client`. Sans cela, certaines fonctionnalités risquent de ne pas fonctionner correctement.
+
+**Exemple de configuration Vite**
+
+```typescript title="vite.config.ts"
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      'react-dom/client': path.resolve(__dirname, './src/client.ts'), // [!code ++]
+    },
+  },
+})
+```
+
+```typescript title="src/client.ts"
+import ReactDOM from 'react-dom'
+
+export function createRoot(container: HTMLElement) {
+  return {
+    render: (element: JSX.Element) => {
+      ReactDOM.render(element, container)
+    },
+  }
+}
+```
+
+#### Adaptation pour une utilisation avec CDN/UMD
+
+Si vous chargez Univer et React à l’aide de balises `<script>`, vous devez également ajouter le code suivant après l’import de React afin de simuler l’export de `react-dom/client` :
+
+```html
+<script>
+  /**
+   * With the support for React 19[^1], UMD users may need additional adaptation.
+   *
+   * [^1]: [support for React 19] https://github.com/dream-num/univer/pull/4247
+   */
+
+  /**
+   * Fix `Uncaught TypeError: client.createRoot is not a function`
+   * If using UMD React < 18, you might need the following code.
+   */
+  ;(function (global) {
+    'use strict'
+    if (!global.ReactDOM) {
+      throw new Error('ReactDOM must be loaded before ReactCreateRoot.')
+    }
+    const ReactDOM = global.ReactDOM
+    if (!ReactDOM.createRoot) {
+      ReactDOM.createRoot = function (container) {
+        return {
+          render: (element) => {
+            ReactDOM.render(element, container)
+          },
+        }
+      }
+    }
+  })(this)
+
+  /**
+   * Fix `Uncaught TypeError: jsxRuntime.jsx is not a function`
+   * If using UMD React, you might need the following code.
+   * Reference: https://unpkg.com/react@18.3.1/cjs/react-jsx-runtime.production.min.js
+   */
+  ;(function (global) {
+    'use strict'
+    if (!global.React) {
+      throw new Error('React must be loaded before ReactJSXRuntime.')
+    }
+    const React = global.React
+    if (!React.jsx || !React.jsxs) {
+      const REACT_ELEMENT_TYPE = Symbol.for('react.element')
+      const hasOwnProperty = Object.prototype.hasOwnProperty
+      const RESERVED_PROPS = {
+        key: true,
+        ref: true,
+        __self: true,
+        __source: true,
+      }
+      const ReactCurrentOwner = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner
+      function createReactElement(type, config, maybeKey) {
+        const props = {}
+        let key = null
+        let ref = null
+        if (maybeKey !== undefined) {
+          key = `${maybeKey}`
+        }
+        if (config.key !== undefined) {
+          key = `${config.key}`
+        }
+        if (config.ref !== undefined) {
+          ref = config.ref
+        }
+        for (var propName in config) {
+          if (hasOwnProperty.call(config, propName) && !RESERVED_PROPS.hasOwnProperty(propName)) {
+            props[propName] = config[propName]
+          }
+        }
+        if (type && type.defaultProps) {
+          const defaultProps = type.defaultProps
+          for (var propName in defaultProps) {
+            if (props[propName] === undefined) {
+              props[propName] = defaultProps[propName]
+            }
+          }
+        }
+        return {
+          $$typeof: REACT_ELEMENT_TYPE,
+          type,
+          key,
+          ref,
+          props,
+          _owner: ReactCurrentOwner.current,
+        }
+      }
+      React.jsx = createReactElement
+      React.jsxs = createReactElement
+    }
+  })(this)
+</script>
+```
+
+### Étapes d’intégration
+
+1. Initialisez Univer dans le hook `useEffect`
+2. Détruisez Univer dans la fonction de nettoyage renvoyée par le hook `useEffect`
+
+### Exemple
+
+```tsx
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+
+import UniverPresetDocsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+import { useEffect, useRef } from 'react'
+
+import '@univerjs/preset-docs-core/lib/index.css'
+
+export function App() {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const { univerAPI } = createUniver({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: mergeLocales(
+          UniverPresetDocsCoreEnUS,
+        ),
+      },
+      presets: [
+        UniverDocsCorePreset({
+          container: containerRef.current,
+        }),
+      ],
+    })
+
+    univerAPI.createDocument({})
+
+    return () => {
+      univerAPI.dispose()
+    }
+  }, [])
+
+  return (
+    <div ref={containerRef} />
+  )
+}
+```

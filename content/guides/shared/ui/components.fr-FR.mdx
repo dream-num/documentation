@@ -1,0 +1,296 @@
+---
+title: Composants personnalisés
+---
+
+## Enregistrer des composants personnalisés
+
+```typescript
+// [!code word:componentKey]
+// [!code word:CustomComponent]
+// [!code word:options]
+univerAPI.registerComponent(componentKey, CustomComponent, options)
+```
+
+Utilisez la méthode `univerAPI.registerComponent` pour enregistrer des composants personnalisés. Cette méthode accepte trois paramètres :
+
+- `componentKey` : identifiant unique du composant, utilisé pour le référencer dans Univer.
+- `CustomComponent` : implémentation du composant, qui peut être un composant React, Vue ou Web Component.
+- `options` : options de configuration facultatives permettant notamment d’indiquer le framework dont dépend le composant.
+
+### Composants React [#react]
+
+L’enregistrement d’un composant React ne nécessite aucune configuration supplémentaire ; assurez-vous simplement qu’il s’agit d’un composant React valide. Voici un exemple simple :
+
+```tsx
+function ReactComponent(props: Record<string, any>) {
+  return <div>Hello Univer!</div>
+}
+
+univerAPI.registerComponent(
+  'MyReactComponent',
+  ReactComponent,
+)
+```
+
+### Composants Vue [#vue]
+
+#### Vue 3.x
+
+Pour enregistrer des composants Vue, installez et enregistrez le plugin `UniverVue3AdapterPlugin` du package `@univerjs/ui-adapter-vue3` :
+
+```package-install
+npm install @univerjs/ui-adapter-vue3
+```
+
+```typescript
+import { UniverVue3AdapterPlugin } from '@univerjs/ui-adapter-vue3'
+
+univer.registerPlugin(UniverVue3AdapterPlugin)
+```
+
+Lors de l’enregistrement de composants Vue, vous devez définir l’option `framework` sur `'vue3'` :
+
+```tsx
+const Vue3Component = defineComponent({
+  setup(props) {
+    return () => <div>Hello Univer!</div>
+  },
+})
+
+univerAPI.registerComponent(
+  'MyVue3Component',
+  Vue3Component,
+  {
+    // [!code word:vue3]
+    framework: 'vue3',
+  },
+)
+```
+
+#### Vue 2.x
+
+Comme Vue 2.x est arrivé en fin de vie et n’est plus maintenu, Univer ne fournit actuellement aucun plugin d’adaptation d’interface utilisateur pour Vue 2.x. Vous pouvez toutefois créer un plugin personnalisé afin d’implémenter votre propre adaptateur Vue 2.x. Voici un exemple :
+
+```typescript title="ui-adapter-vue2.ts"
+import { DependentOn, Inject, Injector, Plugin } from '@univerjs/core'
+import { ComponentManager, UniverUIPlugin } from '@univerjs/ui'
+import Vue from 'vue'
+
+/**
+ * The plugin that allows Univer to use Vue 2 components as UI components.
+ */
+@DependentOn(UniverUIPlugin)
+export class UniverVue2AdapterPlugin extends Plugin {
+  static override pluginName = 'UNIVER_UI_VUE2_ADAPTER_PLUGIN'
+
+  constructor(
+    private readonly _config = {},
+    @Inject(Injector) protected readonly _injector: Injector,
+    @Inject(ComponentManager) protected readonly _componentManager: ComponentManager,
+  ) {
+    super()
+  }
+
+  override onStarting(): void {
+    const { createElement, useEffect, useRef } = this._componentManager.reactUtils
+
+    this._componentManager.setHandler('vue2', (component: any) => {
+      return (props: Record<string, any>) => createElement(VueComponentWrapper, {
+        component,
+        props: Object.keys(props).reduce<Record<string, any>>((acc, key) => {
+          if (key !== 'key') {
+            acc[key] = props[key]
+          }
+          return acc
+        }, {}),
+        reactUtils: { createElement, useEffect, useRef },
+      })
+    })
+  }
+}
+
+export function VueComponentWrapper(options: {
+  component: any
+  props: Record<string, any>
+  reactUtils: typeof ComponentManager.prototype.reactUtils
+}) {
+  const { component, props, reactUtils } = options
+  const { createElement, useEffect, useRef } = reactUtils
+
+  const domRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!domRef.current) return
+
+    const Constructor = Vue.extend(component)
+
+    const instance = new Constructor({
+      data: props,
+    })
+    instance.$mount()
+
+    domRef.current.appendChild(instance.$el)
+
+    return () => {
+      instance.$destroy()
+    }
+  }, [props])
+
+  return createElement('div', { ref: domRef })
+}
+```
+
+Enregistrez-le ensuite :
+
+```typescript
+import { UniverVue2AdapterPlugin } from './ui-adapter-vue2' // [!code ++]
+
+univer.registerPlugin(UniverUIPlugin)
+univer.registerPlugin(UniverVue2AdapterPlugin) // [!code ++]
+```
+
+Lors de l’enregistrement de composants Vue 2.x, vous devez définir l’option `framework` sur `'vue2'` :
+
+```tsx
+const Vue2Component = Vue.component('MyVue2Component', {
+  template: '<div>Hello, Univer!</div>',
+})
+
+univerAPI.registerComponent(
+  'MyVue2Component',
+  Vue2Component,
+  {
+    // [!code word:vue2]
+    framework: 'vue2',
+  },
+)
+```
+
+### Web Components [#web-component]
+
+Pour enregistrer des Web Components, assurez-vous qu’ils respectent le standard Web Components, puis installez et enregistrez le plugin `UniverWebComponentAdapterPlugin` du package `@univerjs/ui-adapter-web-component` :
+
+```package-install
+npm install @univerjs/ui-adapter-web-component
+```
+
+```typescript
+import { UniverWebComponentAdapterPlugin } from '@univerjs/ui-adapter-web-component'
+
+univer.registerPlugin(UniverWebComponentAdapterPlugin)
+```
+
+Lors de l’enregistrement de Web Components, vous devez définir l’option `framework` sur `'web-component'` :
+
+```tsx
+class WebComponent extends HTMLElement {
+  constructor() {
+    super()
+    const shadow = this.attachShadow({ mode: 'open' })
+    const div = document.createElement('div')
+    div.textContent = 'Hello Univer!'
+    shadow.appendChild(div)
+  }
+}
+
+univerAPI.registerComponent(
+  'my-web-component',
+  WebComponent,
+  {
+    // [!code word:web-component]
+    framework: 'web-component',
+  },
+)
+```
+
+## Utiliser des composants personnalisés
+
+Les méthodes suivantes vous permettent d’intégrer avec souplesse différents composants personnalisés dans Univer afin d’enrichir et d’adapter ses fonctionnalités.
+
+<Callout type="warning" title="Attention">
+  1. Avant d’utiliser ces méthodes, assurez-vous qu’Univer a terminé le rendu.
+  2. Pour les composants qui doivent être enregistrés, vérifiez que leur enregistrement a bien été effectué avant de les utiliser.
+  3. Utilisez la méthode `dispose()` pour nettoyer et supprimer les composants ajoutés afin d’éviter les fuites de mémoire.
+</Callout>
+
+### Ajouter des éléments de menu personnalisés
+
+La barre de menu supérieure (Ribbon) et le menu contextuel (Context Menu) peuvent tous deux contenir des composants personnalisés. Pour ajouter ces composants à des éléments de menu, vous devez créer un plugin personnalisé. Nous avons préparé un [guide de bonnes pratiques pour l’ajout d’éléments de menu personnalisés](/guides/recipes/tutorials/custom-plugin) afin de vous aider à démarrer rapidement.
+
+### Remplacer des composants intégrés
+
+<Callout type="error" title="Avertissement">
+  Le remplacement de composants intégrés peut empêcher certaines fonctionnalités de fonctionner correctement. Lisez attentivement le code source et la documentation avant de tenter de remplacer des composants, et procédez avec prudence.
+</Callout>
+
+Lorsque vous enregistrez un composant avec la méthode `univerAPI.registerComponent`, Univer remplace le composant existant si la valeur de `componentKey` est déjà utilisée.
+
+Par exemple, pour remplacer simplement le composant ColorPicker intégré :
+
+```tsx
+// Following code only replaces the UI of the built-in ColorPicker component, not its functionality
+univerAPI.registerComponent(
+  'UI_COLOR_PICKER_COMPONENT',
+  () => <input type="color" />,
+)
+```
+
+### Utiliser des composants comme contenu
+
+#### Dans la barre latérale
+
+La méthode `univerAPI.openSidebar` permet d’ouvrir dans l’interface d’Univer une barre latérale contenant un composant personnalisé.
+
+```tsx
+// [!code word:MyCustomSidebarComponent]
+// You should register the component at an appropriate time (e.g., after Univer has loaded)
+univerAPI.registerComponent(
+  'MyCustomSidebarComponent',
+  () => <div>Hello Univer!</div>,
+)
+
+const sidebar = univerAPI.openSidebar({
+  header: { title: 'My Sidebar' },
+  children: { label: 'MyCustomSidebarComponent' },
+  onClose: () => {
+    console.log('close')
+  },
+  width: 360,
+})
+
+// Later close the sidebar
+sidebar.dispose()
+```
+
+Référence : [`univerAPI.openSidebar`](/reference/facade/univer#opensidebar)
+
+#### Dans une boîte de dialogue
+
+La méthode `univerAPI.openDialog` permet d’ouvrir une boîte de dialogue contenant un composant personnalisé.
+
+```tsx
+// [!code word:MyCustomDialogComponent]
+// You should register the component at an appropriate time (e.g., after Univer has loaded)
+univerAPI.registerComponent(
+  'MyCustomDialogComponent',
+  () => <div>Hello Univer!</div>,
+)
+
+const dialog = univerAPI.openDialog({
+  id: 'unique-dialog-id', // The unique identifier for the dialog
+  draggable: true,
+  width: 300,
+  title: { title: 'My Dialog' },
+  children: {
+    label: 'MyCustomDialogComponent',
+  },
+  destroyOnClose: true,
+  preservePositionOnDestroy: true,
+  onClose: () => {},
+})
+
+// Later close the dialog
+dialog.dispose()
+```
+
+Référence : [`univerAPI.openDialog`](/reference/facade/univer#opendialog)

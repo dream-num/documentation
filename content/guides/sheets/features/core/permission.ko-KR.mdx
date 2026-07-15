@@ -1,0 +1,1170 @@
+---
+title: 권한 제어
+---
+
+import { MigrationCell, MigrationRow, MigrationTable } from './components/migration-table'
+
+Univer는 통합 문서, 워크시트, 범위에서 사용자가 수행할 수 있는 작업을 제한하는 권한 제어 기능을 제공합니다. 사용자가 필요한 권한 없이 작업을 시도하면 실행을 중단하고 사용자에게 알립니다. 예를 들어 범위를 보호하여 공동 작업자가 해당 범위에서 편집, 보기, 복사 또는 필터링을 할 수 있는지 제어할 수 있습니다.
+
+<Callout type="warning" title="사용 전 주의 사항">
+  Univer는 즉시 사용할 수 있는 맞춤형 기능이 아니라 확장 가능한 기반 기능을 제공합니다.
+  영구 저장, 조직 구조 또는 그 밖의 맞춤 요구 사항이 있다면 일반적으로 사용자 정의 플러그인을 통해 권한 규칙 저장과 조직 구조 연동을 직접 구현해야 합니다.
+  따라서 권한을 설정한 뒤 권한 목록이 비어 있거나 사용자 정보가 표시되지 않는 것은 정상입니다. 이 데이터는 직접 구현한 사용자 정의 로직의 API 요청으로 가져와야 합니다. 자세한 내용은 아래의 타사 연동 섹션을 참고하세요.
+</Callout>
+
+<PlaygroundFrame lang="ko-KR" slug="sheets/permission" clickToShow />
+
+## 핵심 개념
+
+- 적용 범위: 권한은 통합 문서, 워크시트, 범위의 세 수준에 적용됩니다.
+- 권한 포인트: 각 기능은 하나의 권한 포인트에 대응합니다. 포인트를 변경하면 해당 기능을 사용할 수 있는지 제어할 수 있습니다.
+- 보호 규칙: 워크시트와 범위의 권한 포인트를 설정하려면 먼저 보호 규칙을 만들어야 합니다.
+
+<Callout type="info" title="권한 포인트 설명">
+  로컬 비영구 환경(공동 편집을 사용하지 않는 환경)에서는 권한 포인트를 변경해 권한을 직접 제어할 수 있습니다. 권한을 영구 저장하려면 아래의 "타사 권한 부여 서비스 연동" 섹션을 참고하세요.
+  공동 편집 환경에서 권한 포인트를 업데이트하면 서버 상태도 동기화됩니다.
+  - `false`: 해당 권한 포인트를 사용하려면 최소 `owner` 역할이 필요합니다.
+  - `true`: 해당 권한 포인트를 사용하려면 최소 `reader` 역할이 필요합니다.
+</Callout>
+
+## 기본 예제
+
+가장 일반적인 권한 설정 방법을 통합 문서, 워크시트, 범위의 세 수준으로 나누어 살펴보겠습니다.
+
+### 통합 문서 권한 코드 예제
+
+통합 문서 수준 권한은 [Facade API](/guides/sheets/getting-started/facade)로 직접 설정할 수 있습니다.
+
+다음 예제는 통합 문서 전체의 편집을 비활성화합니다. 다른 기능을 제어하려면 권한 포인트를 알맞게 바꾸세요([통합 문서 권한 포인트 목록](#workbook-point) 참고).
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+// Set the workbook to be non-editable
+await workbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
+```
+
+핵심 사항:
+- 통합 문서 권한 포인트는 보호 규칙을 만들지 않고 직접 설정할 수 있습니다.
+
+### 워크시트 권한 코드 예제
+
+워크시트와 범위 권한은 Facade API 또는 명령으로 설정할 수 있습니다. 다음 예제에서는 워크시트 편집 권한을 설정합니다. 다른 기능을 제어하려면 권한 포인트를 알맞게 바꾸세요([워크시트 권한 포인트 목록](#worksheet-point) 참고).
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
+
+// Create worksheet protection, allow specified users to edit
+const permissionId = await worksheetPermission.protect({
+  allowedUsers: ['user1', 'user2'],
+  name: 'My Worksheet Protection',
+})
+
+// To set permission points, you must first protect the worksheet
+await worksheetPermission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.Edit, false)
+```
+
+#### 워크시트 권한 삭제
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
+
+// Remove worksheet protection
+await worksheetPermission.unprotect()
+```
+
+### 사용자 정의 범위 권한 코드 예제
+
+범위 권한도 API와 명령 방식으로 설정할 수 있습니다. 여기서는 범위 편집 권한을 예로 사용합니다. 다른 범위 기능을 제어하려면 권한 포인트를 바꿔야 합니다. 자세한 내용은 [권한 포인트 목록 - 범위](#range-point)를 참고하세요.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+const rangePermission = fRange.getRangePermission()
+
+// Set range protection permission, allow specified users to edit but not allow others to view
+const rule = await rangePermission.protect({
+  name: 'My protected range',
+  allowViewByOthers: false,
+  allowedUsers: ['user1', 'user2'],
+})
+console.log(rule)
+
+// To set permission points, you must first create a range protection rule.
+await rule.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
+await rule.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
+```
+
+#### 범위 보호 권한 삭제
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+const rangePermission = fRange.getRangePermission()
+
+// delete all rules within the range
+await rangePermission.unprotect()
+
+// Or delete specific rules within the range
+const rules = await rangePermission.listRules()
+if (rules.length > 0) {
+  await rules[0].remove()
+}
+```
+
+## 확장 사용법
+
+자체 플러그인에서 권한을 확인해야 할 때는 권한 포인트를 직접 조작할 수 있습니다.
+
+다음 예제에서는 `WorkbookEditablePermission`을 사용하여 자체 플러그인에서 권한을 확인하는 방법을 보여 줍니다. 다른 권한 포인트도 같은 방식으로 사용할 수 있습니다.
+
+```typescript
+import { IPermissionService } from '@univerjs/core'
+import { WorkbookEditablePermission } from '@univerjs/sheets'
+
+class YourService {
+  constructor(@IPermissionService private _permissionService: IPermissionService) {
+  }
+
+  setWorkbookNotEditable() {
+    this._permissionService.updatePermissionPoint(new WorkbookEditablePermission('unitId').id, false)
+  }
+
+  setWorkbookEditable() {
+    this._permissionService.updatePermissionPoint(new WorkbookEditablePermission('unitId').id, true)
+  }
+}
+```
+
+다른 권한 포인트를 확장하거나 변경하여 여러 기능을 제어할 수도 있습니다. 전체 목록은 이 페이지 아래쪽에서 확인하세요.
+
+### 권한 포인트 확장 방법
+
+권한 포인트를 사용자 정의하려면 `IPermissionPoint`를 구현하고 권한 서비스에 등록하세요.
+
+```typescript
+import type { IPermissionPoint } from '@univerjs/core'
+import { IPermissionService, PermissionStatus } from '@univerjs/core'
+import { UnitAction, UnitObject } from '@univerjs/protocol'
+
+export class CustomPermissionPoint implements IPermissionPoint {
+  type = UnitObject.Unkonwn // your type
+  subType = UnitAction.View // your subType
+  status = PermissionStatus.INIT
+  value = true // Default value
+  id: string
+  constructor(unitId: string, subUnitId: string, customId: string) {
+    // The id must be unique within `IPermissionService`.
+    this.id = `${unitId}.${subUnitId}.${customId}`
+  }
+}
+
+class YourService {
+  constructor(@IPermissionService private _permissionService: IPermissionService) {
+    this._init()
+  }
+
+  _init() {
+    this._permissionService.addPermissionPoint(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id'))
+  }
+}
+
+// How to use it elsewhere
+class ConsumeService {
+  constructor(@IPermissionService private _permissionService: IPermissionService) {
+  }
+
+  doSomething() {
+    const point = this._permissionService.getPermissionPoint(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id').id)
+    console.log(point.value)
+  }
+
+  bindEvent() {
+    // This returns an RxJS observable that lets you listen for permission changes
+    const point$ = this._permissionService.getPermissionPoint$(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id').id)
+    console.log(point$)
+  }
+}
+```
+
+### 타사 권한 부여 서비스 연동(고급)
+
+<Callout type="warning" title="주의">
+  사용자 정의 권한 접근 방식은 권한 포인트를 더 세밀하게 제어할 수 있으므로 Permission Facade API와 함께 사용하지 않는 것이 좋습니다.
+</Callout>
+
+권한을 판단하는 로직은 일반적으로 통신 과정을 포함하는 외부 서비스에서 처리합니다. 프런트엔드 SDK 구현에서는 [AuthzIoLocalService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/authz-io-local.service.ts)가 이 로직을 담당합니다.
+
+프로덕션 환경에서는 이 구현을 백엔드 서비스로 교체해야 합니다. 런타임에 교체할 수 있도록 프런트엔드에서 [IAuthzIoService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/type.ts) 인터페이스를 바탕으로 해당 요청 함수를 구현해야 합니다.
+
+![권한](./permission/permission-en.png)
+
+다음은 미리 정의된 두 역할(Owner/Reader)에 대해 보호 범위 권한을 추가하고 삭제하는 간단한 예제입니다. Owner는 보호 범위를 편집하고 볼 수 있지만 Reader는 보호 범위 안의 셀 내용을 편집하거나 볼 수 없습니다.
+
+```typescript
+import type { Injector } from '@univerjs/core'
+import type { IActionInfo, IAllowedRequest, IBatchAllowedResponse, ICollaborator, ICreateRequest, ICreateRequest_SelectRangeObject, IListPermPointRequest, IPermissionPoint, IPutCollaboratorsRequest, IUnitRoleKV, IUpdatePermPointRequest } from '@univerjs/protocol'
+import { createDefaultUser, generateRandomId, IAuthzIoService, Inject, IResourceManagerService, isDevRole, Univer, UserManagerService } from '@univerjs/core'
+import { ObjectScope, UnitAction, UnitObject, UnitRole, UniverType } from '@univerjs/protocol'
+
+class YourAuthzService implements IAuthzIoService {
+  private _permissionMap: Map<string, ICreateRequest_SelectRangeObject & { objectType: UnitObject }> = new Map([])
+
+  constructor(
+    @IResourceManagerService private _resourceManagerService: IResourceManagerService,
+    @Inject(UserManagerService) private _userManagerService: UserManagerService,
+  ) {
+    this._initSnapshot()
+    this._initDefaultUser()
+  }
+
+  private _initDefaultUser() {
+    const currentUser = this._userManagerService.getCurrentUser()
+    const currentUserIsValid = currentUser && currentUser.userID
+    if (!currentUserIsValid) {
+      this._userManagerService.setCurrentUser(createDefaultUser(UnitRole.Owner))
+    }
+  }
+
+  private _getRole(type: UnitRole) {
+    const user = this._userManagerService.getCurrentUser()
+    if (!user) {
+      return false
+    }
+    return isDevRole(user.userID, type)
+  }
+
+  private _initSnapshot() {
+    this._resourceManagerService.registerPluginResource({
+      toJson: (_unitId: string) => {
+        const obj = [...this._permissionMap.keys()].reduce((r, k) => {
+          const v = this._permissionMap.get(k)
+          r[k] = v!
+          return r
+        }, {} as Record<string, ICreateRequest_SelectRangeObject & { objectType: UnitObject }>)
+        return JSON.stringify(obj)
+      },
+      parseJson: (json: string) => {
+        return JSON.parse(json)
+      },
+      pluginName: 'SHEET_AuthzIoMockService_PLUGIN',
+      businesses: [UniverType.UNIVER_SHEET, UniverType.UNIVER_DOC, UniverType.UNIVER_SLIDE],
+      onLoad: (_unitId, resource) => {
+        for (const key in resource) {
+          this._permissionMap.set(key, resource[key])
+        }
+      },
+      onUnLoad: () => {
+        this._permissionMap.clear()
+      },
+    })
+  }
+
+  async create(config: ICreateRequest): Promise<string> {
+    const permissionId = generateRandomId(8)
+    if (config.objectType === UnitObject.SelectRange && config.selectRangeObject) {
+      this._permissionMap.set(permissionId, { ...config.selectRangeObject, objectType: config.objectType })
+    }
+    return permissionId
+  }
+
+  async batchAllowed(config: IAllowedRequest[]): Promise<IBatchAllowedResponse['objectActions']> {
+    const selectionRangeConfig = config.filter(c => c.objectType === UnitObject.SelectRange)
+    if (selectionRangeConfig.length) {
+      const currentUser = this._userManagerService.getCurrentUser()
+      const res = [] as IBatchAllowedResponse['objectActions']
+      selectionRangeConfig.forEach((c) => {
+        res.push({
+          unitID: c.unitID,
+          objectID: c.objectID,
+          actions: c.actions.map((action) => {
+            if (isDevRole(currentUser.userID, UnitRole.Owner)) {
+              return { action, allowed: true }
+            }
+            return { action, allowed: false }
+          }),
+        })
+      })
+      return res
+    }
+    return Promise.resolve([])
+  }
+
+  async list(config: IListPermPointRequest): Promise <IPermissionPoint[]> {
+    const result: IPermissionPoint[] = []
+    config.objectIDs.forEach((objectID) => {
+      const rule = this._permissionMap.get(objectID)
+      if (rule) {
+        const item = {
+          objectID,
+          unitID: config.unitID,
+          objectType: rule!.objectType,
+          name: rule!.name,
+          shareOn: false,
+          shareRole: UnitRole.Owner,
+          shareScope: -1,
+          scope: {
+            read: ObjectScope.AllCollaborator,
+            edit: ObjectScope.AllCollaborator,
+          },
+          creator: createDefaultUser(UnitRole.Owner),
+          strategies: [
+            {
+              action: UnitAction.View,
+              role: UnitRole.Owner,
+            },
+            {
+              action: UnitAction.Edit,
+              role: UnitRole.Owner,
+            },
+          ],
+          actions: config.actions.map((a) => {
+            return { action: a, allowed: this._getRole(UnitRole.Owner) }
+          }),
+        }
+        result.push(item)
+      }
+    })
+    return result
+  }
+
+  async listCollaborators(): Promise<ICollaborator[]> {
+    // List the existing collaborators
+    return []
+  }
+
+  async allowed(_config: IAllowedRequest): Promise<IActionInfo[]> {
+    // Because this is a mockService for handling permissions, we will not write real logic in it. We will only return an empty array to ensure that the permissions originally set by the user are not modified.
+    // If you want to achieve persistence of permissions, you can modify the logic here.
+    return Promise.resolve([])
+  }
+
+  async listRoles(): Promise<{ roles: IUnitRoleKV[], actions: UnitAction[] }> {
+    return {
+      roles: [],
+      actions: [],
+    }
+  }
+
+  async update(config: IUpdatePermPointRequest): Promise<void> {
+    // Update bit information
+  }
+
+  async updateCollaborator(): Promise<void> {
+    // Update collaborator information
+    return undefined
+  }
+
+  async createCollaborator(): Promise<void> {
+    // Create new collaborator information
+    return undefined
+  }
+
+  async deleteCollaborator(): Promise<void> {
+    return undefined
+  }
+
+  async putCollaborators(config: IPutCollaboratorsRequest): Promise<void> {
+    return undefined
+  }
+}
+
+export class YourPlugin extends Plugin {
+  constructor(
+    _config: unknown,
+    @Inject(Injector) protected override _injector: Injector,
+  ) {
+  }
+
+  override onStarting(): void {
+    this._injector.add([IAuthzIoService, { useClass: YourAuthzService }])
+  }
+}
+
+// By setting the override option to [[IAuthzIoService, null]], you can instruct Univer not to register the built-in IAuthzIoService.
+// This way, Univer will use the service provided by YourAuthzService as the implementation of the authorization service.
+const univer = new Univer({
+  override: [[IAuthzIoService, null]],
+})
+
+univer.registerPlugin(YourPlugin)
+```
+
+## 권한 포인트 목록 [#point-list]
+
+모든 권한 포인트의 소스 코드는 [여기](https://github.com/dream-num/univer/tree/dev/packages/sheets/src/services/permission/permission-point)에서 확인할 수 있습니다.
+
+통합 문서 권한이 워크시트 또는 범위 권한과 겹치는 경우, 관련된 **모든** 권한을 `true`로 설정해야 해당 기능을 사용할 수 있습니다.
+
+### 통합 문서 권한 [#workbook-point]
+
+| API 열거형 | 해당 권한 포인트 클래스 | 설명 |
+| --- | --- | --- |
+| univerAPI.Enum.WorkbookPermissionPoint.Edit | WorkbookEditablePermission | 편집 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.View | WorkbookViewPermission | 보기 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.Print | WorkbookPrintPermission | 인쇄 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.Export | WorkbookExportPermission | 내보내기 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.Share | WorkbookSharePermission | 공유 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.CopyContent | WorkbookCopyPermission | 복사 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.DuplicateFile | WorkbookDuplicatePermission | 복제 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.Comment | WorkbookCommentPermission | 댓글 작성 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.ManageCollaborator | WorkbookManageCollaboratorPermission | 공동 작업자 관리 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.CreateSheet | WorkbookCreateSheetPermission | 워크시트 생성 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.DeleteSheet | WorkbookDeleteSheetPermission | 워크시트 삭제 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.RenameSheet | WorkbookRenameSheetPermission | 워크시트 이름 변경 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.MoveSheet | WorkbookMoveSheetPermission | 워크시트 이동 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.HideSheet | WorkbookHideSheetPermission | 워크시트 숨기기 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.CopySheet | WorkbookCopySheetPermission | 워크시트 복사 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.ViewHistory | WorkbookViewHistoryPermission | 기록 보기 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.RecoverHistory | WorkbookRecoverHistoryPermission | 기록 복구 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.CreateProtection | WorkbookCreateProtectPermission | 보호 설정 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.InsertRow | WorkbookInsertRowPermission | 행 삽입 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.InsertColumn | WorkbookInsertColumnPermission | 열 삽입 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.DeleteRow | WorkbookDeleteRowPermission | 행 삭제 가능 |
+| univerAPI.Enum.WorkbookPermissionPoint.DeleteColumn | WorkbookDeleteColumnPermission | 열 삭제 가능 |
+
+### 워크시트 권한 [#worksheet-point]
+
+| API 열거형 | 해당 권한 포인트 클래스 | 설명 |
+| --- | --- | --- |
+| univerAPI.Enum.WorksheetPermissionPoint.Edit | WorksheetEditPermission | 편집 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.View | WorksheetViewPermission | 보기 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.Copy | WorksheetCopyPermission | 복사 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.SetCellValue | WorksheetSetCellValuePermission | 셀 값 편집 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.SetCellStyle | WorksheetSetCellStylePermission | 셀 스타일 편집 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.SetRowStyle | WorksheetSetRowStylePermission | 행 스타일 설정 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.SetColumnStyle | WorksheetSetColumnStylePermission | 열 스타일 설정 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.InsertRow | WorksheetInsertRowPermission | 행 삽입 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.InsertColumn | WorksheetInsertColumnPermission | 열 삽입 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.DeleteRow | WorksheetDeleteRowPermission | 행 삭제 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.DeleteColumn | WorksheetDeleteColumnPermission | 열 삭제 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.Sort | WorksheetSortPermission | 정렬 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.Filter | WorksheetFilterPermission | 필터링 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.PivotTable | WorksheetPivotTablePermission | 피벗 테이블 사용 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.InsertHyperlink | WorksheetInsertHyperlinkPermission | 하이퍼링크 사용 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.ManageCollaborator | WorksheetManageCollaboratorPermission | 공동 작업자 관리 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.DeleteProtection | WorksheetDeleteProtectionPermission | 보호 삭제 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.EditExtraObject | WorksheetEditExtraObjectPermission | 추가 객체 편집 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.SelectProtectedCells | WorksheetSelectProtectedCellsPermission | 보호된 셀 선택 가능 |
+| univerAPI.Enum.WorksheetPermissionPoint.SelectUnProtectedCells | WorksheetSelectUnProtectedCellsPermission | 보호되지 않은 셀 선택 가능 |
+
+### 범위 보호 [#range-point]
+
+| API 열거형 | 해당 권한 포인트 클래스 | 설명 |
+| --- | --- | --- |
+| univerAPI.Enum.RangePermissionPoint.Edit | RangeProtectionPermissionEditPoint | 보호 범위 편집 가능 |
+| univerAPI.Enum.RangePermissionPoint.View | RangeProtectionPermissionViewPoint | 보호 범위의 내용 보기 가능 |
+| univerAPI.Enum.RangePermissionPoint.Delete | RangeProtectionPermissionDeleteProtectionPoint | 보호 범위 삭제 가능 |
+| univerAPI.Enum.RangePermissionPoint.ManageCollaborator | RangeProtectionPermissionManageCollaPoint | 보호 범위의 공동 작업자 관리 가능 |
+
+## 구성
+
+### 보호 범위 음영 표시 전략
+
+보호 범위의 음영은 기본적으로 표시됩니다. 다음 구성으로 숨길 수 있습니다.
+
+<Tabs items={['프리셋 모드', '플러그인 모드']}>
+  <Tab>
+    ```typescript
+    createUniver({
+      presets: [
+        UniverSheetsCorePreset({
+          sheets: {
+            /**
+             * Strategy for showing the protected range shadow.
+             * - true or 'always': Show shadow for all protected ranges (default behavior)
+             * - 'non-editable': Only show shadow for ranges that cannot be edited (Edit permission is false)
+             * - 'non-viewable': Only show shadow for ranges that cannot be viewed (View permission is false)
+             * - false or 'none': Never show shadow for protected ranges
+             * @default true
+             */
+            protectedRangeShadow: false,
+          },
+        }),
+      ],
+    })
+    ```
+  </Tab>
+  <Tab>
+    ```typescript
+    univer.registerPlugin(UniverSheetsUIPlugin, {
+      /**
+       * Strategy for showing the protected range shadow.
+       * - true or 'always': Show shadow for all protected ranges (default behavior)
+       * - 'non-editable': Only show shadow for ranges that cannot be edited (Edit permission is false)
+       * - 'non-viewable': Only show shadow for ranges that cannot be viewed (View permission is false)
+       * - false or 'none': Never show shadow for protected ranges
+       * @default true
+       */
+      protectedRangeShadow: false,
+    })
+    ```
+  </Tab>
+</Tabs>
+
+API를 통해 동적으로 변경할 수도 있습니다.
+
+```typescript
+// Set to only show shadows for non-editable ranges
+univerAPI.setProtectedRangeShadowStrategy('non-editable')
+
+// Get the current protected range shadow display strategy
+console.log(univerAPI.getProtectedRangeShadowStrategy())
+
+// Subscribe to changes in the protected range shadow strategy
+const subscription = univerAPI.getProtectedRangeShadowStrategy$().subscribe((strategy) => {
+  console.log('Global strategy changed to:', strategy)
+  // Update UI or perform other actions
+})
+
+// Later, unsubscribe to clean up
+subscription.unsubscribe()
+```
+
+### 사용자 정의 사용자 컴포넌트
+
+Univer의 기본 제공 사용자 선택기는 유연성이 제한적입니다. 더 복잡한 상황에서는 다음과 같이 사용자 정의 컴포넌트를 제공할 수 있습니다.
+
+<Callout>
+  사용자 정의 컴포넌트를 만드는 방법은 [사용자 정의 컴포넌트](/guides/sheets/ui/components)를 참고하세요.
+</Callout>
+
+<Tabs items={['프리셋 모드', '플러그인 모드']}>
+  <Tab>
+    ```typescript
+    const { univer } = createUniver({
+      presets: [
+        UniverSheetsCorePreset({
+          sheets: {
+            protectedRangeUserSelector: {
+            /**
+             * Custom component; must implement the `IPermissionDetailUserPartProps` interface.
+             */
+              component: CustomPermissionDetailUserPart,
+              /**
+               * The framework of the component. Must be passed correctly.
+               */
+              framework: 'react',
+            },
+          },
+        }),
+      ],
+    })
+    ```
+  </Tab>
+  <Tab>
+    ```typescript
+    univer.registerPlugin(UniverSheetsUIPlugin, {
+      protectedRangeUserSelector: {
+        /**
+         * Custom component; must implement the `IPermissionDetailUserPartProps` interface.
+         */
+        component: CustomPermissionDetailUserPart,
+        /**
+         * The framework of the component. Must be passed correctly.
+         */
+        framework: 'react',
+      },
+    })
+    ```
+  </Tab>
+</Tabs>
+
+사용자 정의 사용자 컴포넌트를 구성한 뒤, 나중에 사용할 수 있도록 `setSelectUserList()`를 통해 선택한 사용자 목록을 `SheetPermissionUserManagerService`에 동기화하세요.
+
+<Tabs items={['프리셋 모드', '플러그인 모드']}>
+  <Tab>
+    ```typescript
+    import { SheetPermissionUserManagerService, useDependency } from '@univerjs/preset-sheets-core'
+
+    const sheetPermissionUserManagerService = useDependency(SheetPermissionUserManagerService)
+    // For the specific data structure, refer to: https://github.com/dream-num/univer/blob/b4d4cfa063c9e6d5a82d1fc6b05edc206a415252/packages/sheets-ui/src/services/permission/sheet-permission-user-list.service.ts#L57
+    sheetPermissionUserManagerService.setSelectUserList([])
+    ```
+  </Tab>
+  <Tab>
+    ```typescript
+    import { SheetPermissionUserManagerService } from '@univerjs/sheets-ui'
+    import { useDependency } from '@univerjs/ui'
+
+    const sheetPermissionUserManagerService = useDependency(SheetPermissionUserManagerService)
+    // For the specific data structure, refer to: https://github.com/dream-num/univer/blob/b4d4cfa063c9e6d5a82d1fc6b05edc206a415252/packages/sheets-ui/src/services/permission/sheet-permission-user-list.service.ts#L57
+    sheetPermissionUserManagerService.setSelectUserList([])
+    ```
+  </Tab>
+</Tabs>
+
+## Facade API
+
+Facade API는 권한을 다루는 통합 진입점을 제공합니다. 아래에서는 자주 사용하는 메서드를 통합 문서, 워크시트, 범위별로 나누어 설명합니다.
+
+### 통합 문서 권한
+
+#### 통합 문서 권한 인스턴스 가져오기
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const workbookPermission = fWorkbook.getWorkbookPermission()
+```
+
+#### 통합 문서 권한 포인트 설정
+
+`WorkbookPermissionPoint` 열거형 값은 [통합 문서 권한 포인트 목록](#workbook-point)을 참고하세요.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+// Disable the workbook print permission
+await workbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Print, false)
+```
+
+미리 정의된 모드:
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+// Set to owner mode
+await workbookPermission.setMode('owner')
+
+// Set to editor mode
+await workbookPermission.setMode('editor')
+
+// Set to viewer mode
+await workbookPermission.setMode('viewer')
+
+// Set to commenter mode
+await workbookPermission.setMode('commenter')
+```
+
+단축 메서드:
+
+- `FWorkbookPermission.setReadOnly()`: 읽기 전용 모드를 설정합니다(`setMode('viewer')`와 동일).
+- `FWorkbookPermission.setEditable()`: 편집 가능 모드를 설정합니다(`setMode('editor')`와 동일).
+
+#### 통합 문서 권한 포인트 상태 가져오기
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+// Check whether the workbook can be printed
+const canPrint = workbookPermission.getPoint(univerAPI.Enum.WorkbookPermissionPoint.Print)
+console.log('Can print:', canPrint)
+
+// Get the status of all workbook permission points
+const snapshot = workbookPermission.getSnapshot()
+console.log('Workbook permission snapshot:', snapshot)
+```
+
+단축 메서드:
+
+- `FWorkbookPermission.canEdit()`: 통합 문서를 편집할 수 있으면 `true`를 반환합니다.
+
+#### 공동 작업자 관리
+
+<Callout type="warning" title="주의">
+  공동 작업자 관리 API는 USIP 서비스가 연동된 공동 편집 환경에서만 사용할 수 있습니다.
+  사용자 정의 권한 서비스를 사용하는 경우 위의 "타사 권한 부여 서비스 연동" 섹션에 설명된 대로 공동 작업자 관리 로직을 직접 구현하세요.
+</Callout>
+
+- 공동 작업자 목록 가져오기
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+const collaborators = await workbookPermission.listCollaborators()
+console.log(collaborators)
+```
+
+- 공동 작업자 추가
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+// Add multiple collaborators at once
+await workbookPermission.setCollaborators([
+  {
+    user: { userID: 'user1', name: 'John Doe', avatar: 'https://...' },
+    role: univerAPI.Enum.UnitRole.Editor,
+  },
+  {
+    user: { userID: 'user2', name: 'Jane Smith', avatar: '' },
+    role: univerAPI.Enum.UnitRole.Reader,
+  },
+])
+
+// Add a single collaborator
+await workbookPermission.addCollaborator(
+  { userID: 'user1', name: 'John Doe', avatar: 'https://...' },
+  univerAPI.Enum.UnitRole.Editor,
+)
+```
+
+- 공동 작업자 역할 업데이트
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+await workbookPermission.updateCollaborator(
+  { userID: 'user1', name: 'John Doe Updated', avatar: 'https://...' },
+  univerAPI.Enum.UnitRole.Reader,
+)
+```
+
+- 공동 작업자 제거
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+// Remove multiple collaborators
+await workbookPermission.removeCollaborators(['user1', 'user2'])
+
+// Remove a single collaborator
+await workbookPermission.removeCollaborator('user1')
+```
+
+### 워크시트 권한
+
+#### 워크시트 권한 인스턴스 가져오기
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
+```
+
+#### 워크시트 보호
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
+
+// Protect the worksheet, allowing only specified users to edit
+const permissionId = await worksheetPermission.protect({
+  allowedUsers: ['user1', 'user2'],
+  name: 'My Worksheet Protection',
+})
+
+// Check if the worksheet is protected
+const isProtected = worksheetPermission.isProtected()
+console.log('Is worksheet protected:', isProtected)
+
+if (isProtected) {
+  // Unprotect the worksheet
+  await worksheetPermission.unprotect()
+}
+```
+
+#### 워크시트 권한 포인트 설정
+
+`WorksheetPermissionPoint` 열거형 값은 [워크시트 권한 포인트 목록](#worksheet-point)을 참고하세요.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
+
+// To set permission points, you must first protect the worksheet
+await worksheetPermission.protect()
+
+// Disable the worksheet insert-row permission
+await worksheetPermission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.InsertRow, false)
+```
+
+미리 정의된 모드 사용:
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
+
+// To set permission points, you must first protect the worksheet
+await worksheetPermission.protect()
+
+// Set to editable mode
+await worksheetPermission.setMode('editable')
+
+// Set to read-only mode
+await worksheetPermission.setMode('readOnly')
+
+// Set to filter/sort only mode
+await worksheetPermission.setMode('filterOnly')
+
+// Apply a custom configuration
+await worksheetPermission.applyConfig({
+  mode: 'readOnly',
+  points: {
+    [univerAPI.Enum.WorksheetPermissionPoint.InsertRow]: true,
+    [univerAPI.Enum.WorksheetPermissionPoint.InsertColumn]: true,
+  },
+})
+```
+
+단축 메서드:
+
+- `FWorksheetPermission.setReadOnly()`: 읽기 전용 모드를 설정합니다(`setMode('readOnly')`와 동일).
+- `FWorksheetPermission.setEditable()`: 편집 가능 모드를 설정합니다(`setMode('editable')`와 동일).
+
+#### 워크시트 권한 포인트 상태 가져오기
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
+
+// Check whether the worksheet can insert rows
+const canInsertRow = worksheetPermission.getPoint(univerAPI.Enum.WorksheetPermissionPoint.InsertRow)
+
+// Get the status of all worksheet permission points
+const snapshot = worksheetPermission.getSnapshot()
+```
+
+단축 메서드 사용:
+
+- `FWorksheetPermission.canEdit(): boolean`: 워크시트를 편집할 수 있는지 확인합니다.
+- `FWorksheetPermission.canEditCell(row: number, col: number): boolean`: 특정 셀을 편집할 수 있는지 확인합니다.
+- `FWorksheetPermission.canView(): boolean`: 워크시트를 볼 수 있는지 확인합니다.
+- `FWorksheetPermission.canViewCell(row: number, col: number): boolean`: 특정 셀을 볼 수 있는지 확인합니다.
+- `FWorksheetPermission.debugCellPermission(row: number, col: number): ICellPermissionDebugInfo`: 특정 셀의 권한 디버그 정보를 가져옵니다.
+
+### 범위 권한
+
+#### 범위 권한 인스턴스 가져오기
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+const rangePermission = fRange.getRangePermission()
+```
+
+#### 범위 보호 설정
+
+- 워크시트 수준 API로 범위 보호:
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
+
+// Protect two ranges: A1:B2 is viewable by everyone but not editable,
+// while C3:D4 is editable only by specified users and hidden from others
+const rules = await worksheetPermission.protectRanges([
+  {
+    ranges: [fWorksheet.getRange('A1:B2')],
+    options: { name: 'Protected Area 1', allowViewByOthers: true },
+  },
+  {
+    ranges: [fWorksheet.getRange('C3:D4')],
+    options: { name: 'Protected Area 2', allowViewByOthers: false, allowedUsers: ['user1'] },
+  },
+])
+console.log(rules)
+
+// List all protection rules on the worksheet
+const rules = await worksheetPermission.listRangeProtectionRules()
+console.log(rules)
+
+// Delete the first rule
+await worksheetPermission.unprotectRules([rules[0].id])
+
+// Or delete a rule via `FRangeProtectionRule.remove()`
+await ruleList[0].remove()
+```
+
+- 범위 수준 API로 범위 보호:
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+const rangePermission = fRange.getRangePermission()
+
+// Protect the range so only specified users can edit it, while others cannot view it
+const rule = await rangePermission.protect({
+  name: 'My protected range',
+  allowViewByOthers: false,
+  allowedUsers: ['user1', 'user2'],
+})
+console.log(rule)
+
+// List all protection rules covering the range
+const rules = await rangePermission.listRules()
+console.log(rules)
+
+// Delete all protection rules covering the range
+await rangePermission.unprotect()
+
+// Or delete a rule via `FRangeProtectionRule.remove()`
+await rules[0].remove()
+```
+
+#### 범위 권한 포인트 설정
+
+`RangePermissionPoint` 열거형 값은 [범위 보호 포인트 목록](#range-point)을 참고하세요.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+const rangePermission = fRange.getRangePermission()
+
+// To set permission points, you must first create a range protection rule
+if (rangePermission.isProtected()) {
+  const rules = await rangePermission.listRules()
+
+  // Disable editing but enable viewing for the first protection rule
+  await rules[0].setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
+  await rules[0].setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
+} else {
+  const rule = await rangePermission.protect({
+    name: 'My protected range',
+    allowViewByOthers: false,
+    allowedUsers: ['user1', 'user2'],
+  })
+
+  // Disable editing but enable viewing for the A1:B2 range
+  await rule.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
+  await rule.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
+}
+```
+
+### 범위 권한 규칙 API
+
+`FRangeProtectionRule`은 다음 멤버를 제공합니다.
+
+| API | 설명 |
+| --- | --- |
+| `id: string` | 보호 규칙의 고유 식별자 |
+| `permissionId: string` | 보호 규칙과 연결된 권한 ID |
+| `ranges: FRange[]` | 보호 규칙이 적용되는 범위 |
+| `options: IRangeProtectionOptions` | 규칙 이름, 다른 사용자의 보기 허용 여부, 편집이 허용된 사용자 목록을 포함하는 보호 규칙 옵션 |
+| `updateRanges(ranges: FRange[]): Promise<boolean>` | 보호 규칙이 적용되는 범위 업데이트 |
+| `remove(): Promise<boolean>` | 보호 규칙 제거 |
+| `setPoint(point: RangePermissionPoint, value: boolean): Promise<void>` | 보호 규칙의 특정 권한 포인트 상태 설정(예: 편집/보기/삭제) |
+| `getPoint(point: RangePermissionPoint): boolean` | 보호 규칙의 특정 권한 포인트 상태 가져오기(예: 편집/보기/삭제) |
+| `canEdit(): boolean` | 보호 규칙이 편집을 허용하는지 확인 |
+| `canView(): boolean` | 보호 규칙이 보기를 허용하는지 확인 |
+| `canDelete(): boolean` | 보호 규칙이 삭제를 허용하는지 확인 |
+| `canManageCollaborator(): boolean` | 보호 규칙이 공동 작업자 관리를 허용하는지 확인 |
+| `getSnapshot(): RangePermissionSnapshot` | 모든 권한 포인트를 포함하여 보호 규칙의 현재 권한 상태 스냅샷 가져오기 |
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
+const rules = await worksheetPermission.listRangeProtectionRules()
+const rule = rules?.[0]
+
+// Get the ID of the first protection rule
+const ruleId = rule?.id
+console.log(ruleId)
+
+// Get the ranges of the first protection rule
+const ranges = rule?.ranges
+console.log(ranges)
+
+// Update the ranges of the first protection rule to A1:C3
+await rule?.updateRanges([fWorksheet.getRange('A1:C3')])
+
+// Remove the first protection rule
+await rule?.remove()
+```
+
+### 권한 대화 상자 숨기기
+
+```typescript
+univerAPI.setPermissionDialogVisible(false)
+```
+
+### 이전 API에서 마이그레이션
+
+<MigrationTable headers={['API Method Description', 'Migration Guide']}>
+  <MigrationRow method="Get Permission Instance">
+    <MigrationCell className="mb-2.5">
+      <strong>Old API:</strong>
+      <br />
+      <code>FWorkbook.getPermission()</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>New API:</strong>
+      <br />
+      <div>Workbook: <code>FWorkbook.getWorkbookPermission()</code></div>
+ <div>Worksheet: <code>FWorksheet.getWorksheetPermission()</code></div>
+ <div>Range: <code>FRange.getRangePermission()</code></div>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="Set Workbook Permission Point">
+    <MigrationCell className="mb-2.5">
+      <strong>Old API:</strong>
+      <br />
+      <code>FPermission.setWorkbookPermissionPoint(unitId: string, FPointClass: WorkbookPermissionPointConstructor, value: boolean)</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>New API:</strong>
+      <br />
+      <code>FWorkbookPermission.setPoint(point: WorkbookPermissionPoint, value: boolean)</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="Get Workbook Permission Point Status">
+    <MigrationCell className="mb-2.5">
+      <strong>Old API:</strong>
+      <br />
+      <code>FPermission.checkWorkbookPermissionPoint(unitId: string, FPointClass: WorkbookPermissionPointConstructor): boolean</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>New API:</strong>
+      <br />
+      <code>FWorkbookPermission.getPoint(point: WorkbookPermissionPoint): boolean</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="Set Workbook Edit Permission">
+    <MigrationCell className="mb-2.5">
+      <strong>Old API:</strong>
+      <br />
+      <code>FPermission.setWorkbookEditPermission(unitId: string, value: boolean)</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>New API:</strong>
+      <br />
+      <code>FWorkbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, value: boolean)</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="Add Worksheet Protection">
+    <MigrationCell className="mb-2.5">
+      <strong>Old API:</strong>
+      <br />
+      <code>FPermission.addWorksheetBasePermission(unitId: string, subUnitId: string)</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>New API:</strong>
+      <br />
+      <code>FWorksheetPermission.protect(options?: IWorksheetProtectionOptions)</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="Remove Worksheet Protection">
+    <MigrationCell className="mb-2.5">
+      <strong>Old API:</strong>
+      <br />
+      <code>FPermission.removeWorksheetPermission(unitId: string, subUnitId: string)</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>New API:</strong>
+      <br />
+      <code>FWorksheetPermission.unprotect()</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="Set Worksheet Permission Point">
+    <MigrationCell className="mb-2.5">
+      <strong>Old API:</strong>
+      <br />
+      <code>FPermission.setWorksheetPermissionPoint(unitId: string, subUnitId: string, FPointClass: WorkSheetPermissionPointConstructor, value: boolean)</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>New API:</strong>
+      <br />
+      <code>FWorksheetPermission.setPoint(point: WorksheetPermissionPoint, value: boolean)</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="Get Worksheet Permission Point Status">
+    <MigrationCell className="mb-2.5">
+      <strong>Old API:</strong>
+      <br />
+      <code>FPermission.checkWorksheetPermissionPoint(unitId: string, subUnitId: string, FPointClass: WorkSheetPermissionPointConstructor): boolean</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>New API:</strong>
+      <br />
+      <code>FWorksheetPermission.getPoint(point: WorksheetPermissionPoint): boolean</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="Get Permission Info of Specific Cell">
+    <MigrationCell className="mb-2.5">
+      <strong>Old API:</strong>
+      <br />
+      <code>FPermission.getPermissionInfoWithCell(unitId: string, subUnitId: string, row: number, column: number)</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>New API:</strong>
+      <br />
+      <code>FWorksheetPermission.debugCellPermission(row: number, col: number): ICellPermissionDebugInfo</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="Set Range Protection Permission">
+    <MigrationCell className="mb-2.5">
+      <strong>Old API:</strong>
+      <br />
+      <code>FPermission.addRangeBaseProtection(unitId: string, subUnitId: string, ranges: FRange[])</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>New API:</strong>
+      <br />
+      <div>Worksheet: <code>FWorksheetPermission.protectRanges(configs)</code></div>
+ <div>Range: <code>FRangePermission.protect(options?: IRangeProtectionOptions)</code></div>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="Remove Range Protection Permission">
+    <MigrationCell className="mb-2.5">
+      <strong>Old API:</strong>
+      <br />
+      <code>FPermission.removeRangeProtection(unitId: string, subUnitId: string, ruleIds: string[])</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>New API:</strong>
+      <br />
+      <div>Worksheet: <code>FWorksheetPermission.unprotectRules(ruleIds: string[])</code></div>
+ <div>Range: <code>FRangePermission.unprotect()</code></div>
+ <div>Range Protection Rule: <code>FRangeProtectionRule.remove()</code></div>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="Set Range Protection Permission Point">
+    <MigrationCell className="mb-2.5">
+      <strong>Old API:</strong>
+      <br />
+      <code>FPermission.setRangeProtectionPermissionPoint(unitId: string, subUnitId: string, permissionId: string, FPointClass: RangePermissionPointConstructor, value: boolean)</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>New API:</strong>
+      <br />
+      <code>FRangeProtectionRule.setPoint(point: RangePermissionPoint, value: boolean)</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="Update Range Protection Permission Ranges">
+    <MigrationCell className="mb-2.5">
+      <strong>Old API:</strong>
+      <br />
+      <code>FPermission.setRangeProtectionRanges(unitId: string, subUnitId: string, ruleId: string, ranges: FRange[])</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>New API:</strong>
+      <br />
+      <code>FRangeProtectionRule.updateRanges(ranges: FRange[])</code>
+    </MigrationCell>
+  </MigrationRow>
+  <MigrationRow method="Hide Permission Dialog">
+    <MigrationCell className="mb-2.5">
+      <strong>Old API:</strong>
+      <br />
+      <code>FPermission.setPermissionDialogVisible(false)</code>
+    </MigrationCell>
+    <MigrationCell>
+      <strong>New API:</strong>
+      <br />
+      <code>univerAPI.setPermissionDialogVisible(false)</code>
+    </MigrationCell>
+  </MigrationRow>
+</MigrationTable>
