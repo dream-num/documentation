@@ -116,6 +116,14 @@ const zhCNMessages = {
         title: '演示文稿',
         desc: '类 PowerPoint 的幻灯片编辑器。支持幻灯片的创建、编辑与放映，集成统一的 Canvas2D 渲染引擎，确保跨平台一致的呈现效果。',
       },
+      bases: {
+        title: '数据表',
+        desc: '面向业务数据的表格化应用。支持字段建模、多视图、记录管理和低代码数据工作流。',
+      },
+      boards: {
+        title: '白板',
+        desc: '面向视觉协作的无限画布。支持容器、便签、图形对象和结构化头脑风暴。',
+      },
       data: {
         title: '数据分析',
         desc: '透视表、图表、迷你图和条件格式，助力数据可视化。',
@@ -126,7 +134,7 @@ const zhCNMessages = {
       },
       automation: {
         title: '自动化',
-        desc: '500+ 内置函数、自定义函数和 Uniscript 脚本，实现电子表格任务自动化。',
+        desc: '500+ 内置函数、自定义函数和 Facade API，覆盖电子表格任务自动化。',
       },
     },
     devexp: {

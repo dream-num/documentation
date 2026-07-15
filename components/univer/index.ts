@@ -1,7 +1,1 @@
-'use client'
-
-import dynamic from 'next/dynamic'
-
-export default dynamic(() => import('./univer'), {
-  ssr: false,
-})
+export { default } from './client'

@@ -2,9 +2,11 @@
 
 import {
   BarChart3Icon,
+  DatabaseIcon,
   FileSpreadsheetIcon,
   FileTextIcon,
   PresentationIcon,
+  ShapesIcon,
   UsersIcon,
   ZapIcon,
 } from 'lucide-react'
@@ -27,6 +29,10 @@ interface IProps {
   docsDesc: string
   slidesTitle: string
   slidesDesc: string
+  basesTitle: string
+  basesDesc: string
+  boardsTitle: string
+  boardsDesc: string
   dataTitle: string
   dataDesc: string
   collabTitle: string
@@ -35,6 +41,33 @@ interface IProps {
   automationDesc: string
   proBadge: string
 }
+
+const sheetVisualCells = [
+  { id: 'a1', corner: 'rounded-tl-md' },
+  { id: 'b1' },
+  { id: 'c1' },
+  { id: 'd1', corner: 'rounded-tr-md' },
+  { id: 'a2' },
+  { id: 'b2', active: true },
+  { id: 'c2' },
+  { id: 'd2' },
+  { id: 'a3', corner: 'rounded-bl-md' },
+  { id: 'b3' },
+  { id: 'c3' },
+  { id: 'd3', corner: 'rounded-br-md' },
+]
+
+const baseVisualCells = [
+  { id: 'field-a', active: true },
+  { id: 'field-b' },
+  { id: 'field-c' },
+  { id: 'record-a' },
+  { id: 'record-b', active: true },
+  { id: 'record-c' },
+  { id: 'view-a' },
+  { id: 'view-b' },
+  { id: 'view-c', active: true },
+]
 
 /* Pure CSS illustrations */
 
@@ -47,12 +80,12 @@ function SheetsVisual() {
           dark:border-neutral-700/60 dark:bg-neutral-700/60
         "
       >
-        {Array.from({ length: 12 }).map((_, i) => (
+        {sheetVisualCells.map(cell => (
           <div
-            key={i}
+            key={cell.id}
             className={`
               size-5
-              ${i === 5
+              ${cell.active
             ? `
               bg-emerald-400/30
               dark:bg-emerald-500/30
@@ -61,10 +94,7 @@ function SheetsVisual() {
               bg-white/60
               dark:bg-neutral-800/60
             `}
-              ${i === 0 ? 'rounded-tl-md' : ''}
-              ${i === 3 ? 'rounded-tr-md' : ''}
-              ${i === 8 ? 'rounded-bl-md' : ''}
-              ${i === 11 ? 'rounded-br-md' : ''}
+              ${cell.corner ?? ''}
             `}
           />
         ))}
@@ -186,6 +216,103 @@ function DataVisual() {
   )
 }
 
+function BasesVisual() {
+  return (
+    <div className="flex h-16 items-center justify-center">
+      <div
+        className="
+          grid w-24 grid-cols-[24px_1fr] gap-1 rounded-md border border-teal-200/70 bg-white/50 p-2
+          dark:border-teal-700/50 dark:bg-neutral-800/40
+        "
+      >
+        <div className="space-y-1">
+          <div
+            className="
+              h-2 rounded-sm bg-teal-300/60
+              dark:bg-teal-500/40
+            "
+          />
+          <div
+            className="
+              h-2 rounded-sm bg-teal-200/60
+              dark:bg-teal-600/30
+            "
+          />
+          <div
+            className="
+              h-2 rounded-sm bg-teal-200/60
+              dark:bg-teal-600/30
+            "
+          />
+        </div>
+        <div className="grid grid-cols-3 gap-1">
+          {baseVisualCells.map(cell => (
+            <span
+              key={cell.id}
+              className={`
+                h-2 rounded-sm
+                ${cell.active
+              ? `
+                bg-teal-400/50
+                dark:bg-teal-400/40
+              `
+              : `
+                bg-neutral-200/70
+                dark:bg-neutral-700/70
+              `}
+              `}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function BoardsVisual() {
+  return (
+    <div className="flex h-16 items-center justify-center">
+      <div
+        className="
+          relative h-12 w-28 rounded-md border border-violet-200/70 bg-violet-50/40
+          dark:border-violet-700/50 dark:bg-violet-950/20
+        "
+      >
+        <span
+          className="
+            absolute top-2 left-3 size-6 rounded-sm bg-emerald-200/80 shadow-xs
+            dark:bg-emerald-500/40
+          "
+        />
+        <span
+          className="
+            absolute top-4 left-12 size-6 rounded-sm bg-blue-200/80 shadow-xs
+            dark:bg-blue-500/40
+          "
+        />
+        <span
+          className="
+            absolute right-4 bottom-2 size-6 rounded-sm bg-rose-200/80 shadow-xs
+            dark:bg-rose-500/40
+          "
+        />
+        <span
+          className="
+            absolute top-5 left-9 h-px w-5 bg-violet-300/70
+            dark:bg-violet-500/50
+          "
+        />
+        <span
+          className="
+            absolute top-7 right-10 h-px w-5 bg-violet-300/70
+            dark:bg-violet-500/50
+          "
+        />
+      </div>
+    </div>
+  )
+}
+
 function CollabVisual() {
   return (
     <div className="flex h-16 items-center justify-center gap-2">
@@ -268,6 +395,10 @@ export function Scenes(props: IProps) {
     docsDesc,
     slidesTitle,
     slidesDesc,
+    basesTitle,
+    basesDesc,
+    boardsTitle,
+    boardsDesc,
     dataTitle,
     dataDesc,
     collabTitle,
@@ -316,6 +447,34 @@ export function Scenes(props: IProps) {
       title: slidesTitle,
       desc: slidesDesc,
       visual: <SlidesVisual />,
+    },
+    {
+      icon: (
+        <DatabaseIcon
+          className="
+            size-5 text-teal-600
+            dark:text-teal-400
+          "
+        />
+      ),
+      title: basesTitle,
+      desc: basesDesc,
+      isPro: true,
+      visual: <BasesVisual />,
+    },
+    {
+      icon: (
+        <ShapesIcon
+          className="
+            size-5 text-violet-600
+            dark:text-violet-400
+          "
+        />
+      ),
+      title: boardsTitle,
+      desc: boardsDesc,
+      isPro: true,
+      visual: <BoardsVisual />,
     },
     {
       icon: (
@@ -387,7 +546,7 @@ export function Scenes(props: IProps) {
           className="
             grid gap-4
             md:grid-cols-2
-            lg:grid-cols-3
+            lg:grid-cols-4
           "
         >
           {items.map((item, index) => (

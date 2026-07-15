@@ -114,6 +114,14 @@ const enUSMessages = {
         title: 'Presentations',
         desc: 'PowerPoint-like slide editor. Create, edit, and present slides with the unified Canvas2D rendering engine for consistent cross-platform output.',
       },
+      bases: {
+        title: 'Bases',
+        desc: 'Table-driven business apps with field modeling, multiple views, record management, and low-code data workflows.',
+      },
+      boards: {
+        title: 'Boards',
+        desc: 'Infinite canvas for visual collaboration with containers, sticky notes, shape objects, and structured brainstorming.',
+      },
       data: {
         title: 'Data Analysis',
         desc: 'Pivot tables, charts, sparklines, and conditional formatting for data visualization.',
@@ -124,7 +132,7 @@ const enUSMessages = {
       },
       automation: {
         title: 'Automation',
-        desc: '500+ built-in functions, custom functions, and Uniscript for automating spreadsheet tasks.',
+        desc: '500+ built-in functions, custom functions, and Facade APIs for automating spreadsheet tasks.',
       },
     },
     devexp: {

@@ -116,6 +116,14 @@ const zhTWMessages = {
         title: '演示文稿',
         desc: '類 PowerPoint 的幻燈片編輯器。支持幻燈片的創建、編輯與放映，集成統一的 Canvas2D 渲染引擎，確保跨平台一致的呈現效果。',
       },
+      bases: {
+        title: '數據表',
+        desc: '面向業務數據的表格化應用。支持字段建模、多視圖、記錄管理和低代碼數據工作流。',
+      },
+      boards: {
+        title: '白板',
+        desc: '面向視覺協作的無限畫布。支持容器、便籤、圖形對象和結構化頭腦風暴。',
+      },
       data: {
         title: '數據分析',
         desc: '透視表、圖表、迷你圖和條件格式，助力數據可視化。',
@@ -126,7 +134,7 @@ const zhTWMessages = {
       },
       automation: {
         title: '自動化',
-        desc: '500+ 內置函數、自定義函數和 Uniscript 腳本，實現電子表格任務自動化。',
+        desc: '500+ 內置函數、自定義函數和 Facade API，覆蓋電子表格任務自動化。',
       },
     },
     devexp: {
