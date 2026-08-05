@@ -57,6 +57,7 @@ getSchema(): IBaseSchemaSnapshot
 | Category | Methods |
 | --- | --- |
 | Identity | `getBase`, `getTable`, `getId`, `getName`, `setName`, `getSchema` |
+| Hierarchy | `getHierarchyFieldId`, `setHierarchyField` |
 | Search | `search` |
 | Fields | `getPrimaryFieldId`, `getPrimaryField`, `getFields`, `getFieldById`, `getFieldByName`, `addField` |
 | Records | `getRecords`, `getRecordById`, `queryRecords`, `addRecord`, `addRecords`, `deleteRecords` |
@@ -67,6 +68,8 @@ getSchema(): IBaseSchemaSnapshot
 getBase(): BaseDataModel
 getTable(): ITableSnapshot
 getId(): string
+getHierarchyFieldId(): string
+setHierarchyField(fieldId: string | null): boolean
 getName(): string
 setName(name: string): boolean
 search(request: Omit<IBaseTableSearchRequest, 'table' | 'rows'>, viewId?: string): IBaseTableSearchResult
@@ -139,7 +142,19 @@ setValues(values: Record<string, BaseCellValue>, fieldKey?: BaseFieldKeyEnum): b
 delete(): boolean
 duplicate(record?: Partial<Omit<IRecordSnapshot, 'id'>>): FBaseTableRecord
 setOrderKey(orderKey: string): boolean
+getLinkedRecordIds(fieldId: FieldId): string[]
+setLinkedRecordIds(fieldId: FieldId, recordIds: readonly string[]): boolean
+addLinkedRecord(fieldId: FieldId, recordId: string): boolean
+removeLinkedRecord(fieldId: FieldId, recordId: string): boolean
+getParent(fieldId: FieldId): FBaseTableRecord | null
+getChildren(fieldId: FieldId): FBaseTableRecord[]
+getAncestors(fieldId: FieldId): FBaseTableRecord[]
+getDescendants(fieldId: FieldId): FBaseTableRecord[]
+setParent(fieldId: FieldId, parentRecordId: string | null, orderKey?: string): boolean
+addChild(fieldId: FieldId, values: Record<FieldId, BaseCellValue>, fieldKey?: BaseFieldKeyEnum, record?: Partial<Omit<IRecordSnapshot, 'id'>>): FBaseTableRecord
 ```
+
+RecordLink helpers validate target records and preserve link order. Hierarchy methods use the table's single-value, same-table Parent RecordLink field. `getHierarchyFieldId()` may return a virtual id before the first hierarchy write; `addChild()` materializes it atomically. Base hierarchies support at most five levels.
 
 Uploading or encoding a file is the caller's responsibility. `setAttachments` stores descriptors through the undoable Base command path.
 
@@ -163,6 +178,11 @@ getType(): BaseViewType
 setName(name: string): boolean
 getConfig(): ViewSpecificConfig
 updateConfig(patch: Partial<ViewSpecificConfig>): boolean
+getConditionalColorRules(): IBaseConditionalColorRule[]
+setConditionalColorRules(rules: IBaseConditionalColorRule[]): boolean
+addConditionalColorRule(rule: IBaseConditionalColorRule): boolean
+deleteConditionalColorRule(ruleId: string): boolean
+clearConditionalColorRules(): boolean
 getFilter(): IFilterConfig | null
 setFilter(filter: IFilterConfig | null): boolean
 getSort(): ISortConfig[]
@@ -213,8 +233,8 @@ Import `@univerjs-pro/bases-ui/facade`, then call `univerAPI.getBaseUI()`.
 
 ## Events and enums
 
-`@univerjs-pro/bases/facade` adds Base lifecycle and change events to `univerAPI.Event`, including table, field, record, cell-value, view, and batch changes.
+`@univerjs-pro/bases/facade` adds table, field, record, view, cell-value, and `BeforeBaseHierarchyChange` / `BaseHierarchyChanged` events to `univerAPI.Event`. Conditional-color rule updates are reported through view changes.
 
-The current enum Facade exposes `BaseFieldType`, `BaseViewType`, `BaseFilterConjunction`, `BaseFilterOperator`, `BaseSortDirection`, and `BaseFieldKeyEnum`.
+The current enum Facade exposes `BaseFieldType`, `BaseViewType`, filtering and sorting enums, `BaseFieldKeyEnum`, `BaseHierarchyErrorCode`, `BaseHierarchyInvalidReason`, `BaseConditionalColorTarget`, `BaseConditionalColorOperator`, and `BaseConditionalDateMode`.
 
 <span className="text-xs text-fd-muted-foreground">Source: `@univerjs-pro/bases`, `@univerjs-pro/bases-ui`</span>

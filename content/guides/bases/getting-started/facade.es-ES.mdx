@@ -7,7 +7,7 @@ icon: '#pro/PlugZap'
 API de Facade proporciona una capa orientada a la aplicación sobre el modelo Bases. Úselo para operaciones comunes como la creación de bases, tablas, campos, registros, vistas, filtros, ordenaciones, grupos, selecciones y navegación de la interfaz de usuario.
 
 <Callout type="warning" title="Caution">
-Algunas API de Facade son asíncronas. Si necesita leer datos inmediatamente después de cambiarlos, use `await` o `.then()`.
+Las mutaciones del modelo Base son síncronas. Los métodos de activación de la UI devuelven promesas y deben usar `await`.
 </Callout>
 
 ## Habilitar entradas de fachada
@@ -43,26 +43,19 @@ const sameBase = univerAPI.getBase(base.getId())
 ## Crear una tabla
 
 ```ts
-const table = base.createTable({
-  name: 'Tasks',
-  fields: [
-    { name: 'Title', type: univerAPI.Enum.BaseFieldTypeEnum.Text },
-    { name: 'Status', type: univerAPI.Enum.BaseFieldTypeEnum.SingleSelect },
-  ],
-})
+const table = base.insertTable('Tasks', { primaryFieldName: 'Title' })
+const status = table.addField('Status', univerAPI.Enum.BaseFieldType.SingleSelect)
 ```
 
 ## Trabajar con registros
 
 ```ts
 const record = table.addRecord({
-  values: {
-    Title: 'Write docs',
-    Status: 'In progress',
-  },
-}, { key: univerAPI.Enum.BaseFieldKeyEnum.Name })
+  Title: 'Write docs',
+  Status: 'In progress',
+}, univerAPI.Enum.BaseFieldKeyEnum.Name)
 
-record.setValue('Status', 'Done')
+record.setValue(status.getId(), 'Done')
 ```
 
 ## Trabajar con el estado de la interfaz de usuario
@@ -70,9 +63,17 @@ record.setValue('Status', 'Done')
 `@univerjs-pro/bases-ui/facade` agrega API de interfaz de usuario para activación, selección, desplazamiento, edición y paneles de vista/tabla.
 
 ```ts
-const baseUI = univerAPI.getBaseUI(base.getId())
-baseUI.activateTable(table.getId())
-baseUI.setSelection({ tableId: table.getId(), recordId: record.getId() })
+const baseUI = univerAPI.getBaseUI()
+const view = table.getViews()[0]
+if (!view) throw new Error('No table view')
+await baseUI.activateTable(table.getId())
+await baseUI.activateView(view.getId())
+baseUI.setSelection({
+  type: 'grid-record',
+  tableId: table.getId(),
+  viewId: view.getId(),
+  recordId: record.getId(),
+})
 ```
 
 ## Referencia

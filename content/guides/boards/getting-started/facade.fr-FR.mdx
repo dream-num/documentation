@@ -7,7 +7,7 @@ icon: '#pro/PlugZap'
 Facade API fournit une couche destinée aux applications au-dessus des services et des modèles d’unité Univer. Utilisez-la pour les opérations Board courantes, comme créer des boards, lire les pages actives, ajouter des éléments, mettre à jour des conteneurs et gérer les couloirs.
 
 <Callout type="warning" title="Attention">
-  Certaines API de Facade sont asynchrones. Pour lire des données immédiatement après les avoir modifiées, utilisez `await` ou `.then()`.
+  Les mutations Board sont synchrones et renvoient un `boolean` ou un objet nullable. Vérifiez la valeur de retour.
 </Callout>
 
 ## Activer le point d’entrée de Facade
@@ -44,21 +44,23 @@ const sameBoard = univerAPI.getBoard(board.getId())
 La Facade `FBoard` lit la page active, recherche des éléments et met à jour leurs données sans que le code de l’application ait à résoudre les services internes.
 
 ```ts
-const pageId = board.getActivePageId()
-const elements = board.getElements(pageId)
+const elements = board.getElements()
 
-await board.addElement({
+const note = board.insertText({
   id: 'note-1',
-  type: 'text',
-  transform: { left: 120, top: 80, width: 240, height: 80 },
+  left: 120,
+  top: 80,
+  width: 240,
+  height: 80,
   text: 'Planning note',
-}, { pageId })
+})
+if (!note) throw new Error('Cannot insert note')
 
-await board.updateElement('note-1', {
-  patch: {
-    transform: { left: 160, top: 120, width: 280, height: 96 },
-  },
-  pageId,
+board.setElementTransform('note-1', {
+  left: 160,
+  top: 120,
+  width: 280,
+  height: 96,
 })
 ```
 
@@ -67,14 +69,21 @@ await board.updateElement('note-1', {
 Utilisez la Facade Board pour modifier l’appartenance aux conteneurs. Les API de conteneur conservent l’ordre et les relations parent-enfant dans l’instantané Board.
 
 ```ts
-const container = await board.createContainer({
-  pageId,
+const containerId = 'backlog'
+const containerCreated = board.createContainer({
+  id: containerId,
   title: 'Backlog',
-  transform: { left: 80, top: 80, width: 520, height: 360 },
+  left: 80,
+  top: 80,
+  width: 520,
+  height: 360,
 })
+if (!containerCreated) {
+  throw new Error('Cannot create container')
+}
 
-await board.moveElementsToContainer(['note-1'], container.id, { pageId })
-await board.fitContainerToContent(container.id, { pageId })
+board.moveElementsToContainer(['note-1'], containerId)
+board.fitContainerToContent(containerId)
 ```
 
 ## Références

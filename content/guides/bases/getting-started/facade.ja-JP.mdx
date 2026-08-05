@@ -7,7 +7,7 @@ icon: '#pro/PlugZap'
 Facade API は、アプリケーションから Bases モデルを操作するためのレイヤーです。Base、テーブル、フィールド、レコード、ビュー、フィルター、並べ替え、グループ、選択範囲の作成や、UI の移動といった一般的な操作に使用できます。
 
 <Callout type="warning" title="注意">
-  一部の Facade API は非同期です。変更後すぐにデータを読み取る必要がある場合は、`await` または `.then()` を使用してください。
+  Base モデルの変更は同期処理です。UI のアクティブ化メソッドは Promise を返すため `await` してください。
 </Callout>
 
 ## Facade エントリを有効にする
@@ -43,26 +43,19 @@ const sameBase = univerAPI.getBase(base.getId())
 ## テーブルを作成する
 
 ```ts
-const table = base.createTable({
-  name: 'Tasks',
-  fields: [
-    { name: 'Title', type: univerAPI.Enum.BaseFieldTypeEnum.Text },
-    { name: 'Status', type: univerAPI.Enum.BaseFieldTypeEnum.SingleSelect },
-  ],
-})
+const table = base.insertTable('Tasks', { primaryFieldName: 'Title' })
+const status = table.addField('Status', univerAPI.Enum.BaseFieldType.SingleSelect)
 ```
 
 ## レコードを操作する
 
 ```ts
 const record = table.addRecord({
-  values: {
-    Title: 'Write docs',
-    Status: 'In progress',
-  },
-}, { key: univerAPI.Enum.BaseFieldKeyEnum.Name })
+  Title: 'Write docs',
+  Status: 'In progress',
+}, univerAPI.Enum.BaseFieldKeyEnum.Name)
 
-record.setValue('Status', 'Done')
+record.setValue(status.getId(), 'Done')
 ```
 
 ## UI の状態を操作する
@@ -70,9 +63,17 @@ record.setValue('Status', 'Done')
 `@univerjs-pro/bases-ui/facade` は、テーブル／ビューのアクティブ化、選択、スクロール、編集、パネル操作のための UI API を追加します。
 
 ```ts
-const baseUI = univerAPI.getBaseUI(base.getId())
-baseUI.activateTable(table.getId())
-baseUI.setSelection({ tableId: table.getId(), recordId: record.getId() })
+const baseUI = univerAPI.getBaseUI()
+const view = table.getViews()[0]
+if (!view) throw new Error('No table view')
+await baseUI.activateTable(table.getId())
+await baseUI.activateView(view.getId())
+baseUI.setSelection({
+  type: 'grid-record',
+  tableId: table.getId(),
+  viewId: view.getId(),
+  recordId: record.getId(),
+})
 ```
 
 ## 関連資料

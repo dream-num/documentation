@@ -12,6 +12,7 @@ import { UniverBoardsMindPlugin } from '@univerjs-pro/boards-mind'
 import { UniverBoardsMindUIPlugin } from '@univerjs-pro/boards-mind-ui'
 import BoardsMindUIEnUS from '@univerjs-pro/boards-mind-ui/locale/en-US'
 
+import '@univerjs-pro/boards-mind/facade'
 import '@univerjs-pro/boards-mind-ui/lib/index.css'
 
 univer.registerPlugin(UniverBoardsMindPlugin)
@@ -28,3 +29,48 @@ univer.registerPlugin(UniverBoardsMindUIPlugin)
 Use both packages in a browser editor. For server-side snapshot processing, register the model package with `UniverBoardsPlugin` and skip UI packages.
 
 Register mind-map support before opening snapshots that contain mind-map elements.
+
+## Facade API
+
+Use the structured Facade instead of editing the underlying Board shapes and connectors independently.
+
+```ts
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active Board')
+
+const mindMap = board.insertMindMap({
+  left: 180,
+  top: 180,
+  root: {
+    text: 'Release',
+    children: [
+      { text: 'Product', children: [{ text: 'Scope' }, { text: 'UX' }] },
+      { text: 'Engineering', children: [{ text: 'API' }, { text: 'QA' }] },
+      { text: 'Launch', children: [{ text: 'Docs' }] },
+    ],
+  },
+})
+if (!mindMap) throw new Error('Cannot insert mind map')
+
+const qa = mindMap.getNodes().find(node => node.getText() === 'QA')
+qa?.addChild({ text: 'Automation' })
+```
+
+`FBoard` exposes `insertMindMap`, `getMindMap`, and `getMindMaps`. `FBoardMindMap` exposes node lookup, descendants, layout, bounds, `reflow`, `setLayout`, `setBranchLineType`, and `remove`. Node handles support text, children and sibling insertion, reparenting, promotion, detaching, ordering, styling, and collapse state.
+
+### Reflow into bounds
+
+`reflow()` atomically lays out and centers a mind map inside a Board-coordinate rectangle. It preserves node and text sizes. By default it retries with supported minimum gaps; if the readable layout still does not fit, it leaves the Board unchanged and returns `reason: 'bounds-too-small'` with `requiredBounds`.
+
+```ts
+const result = mindMap.reflow({
+  bounds: { left: 80, top: 80, width: 1_000, height: 600 },
+  padding: 24,
+})
+
+if (!result.success) {
+  console.warn(result.reason, result.requiredBounds)
+}
+```
+
+The target rectangle is only a placement region: reflow does not reparent, clip, or resize the mind-map container. A successful reflow is committed as one undo item.

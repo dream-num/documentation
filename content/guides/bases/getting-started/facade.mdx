@@ -7,7 +7,7 @@ icon: '#pro/PlugZap'
 Facade API provides an application-facing layer over the Bases model. Use it for common operations such as creating bases, tables, fields, records, views, filters, sorts, groups, selections, and UI navigation.
 
 <Callout type="warning" title="Caution">
-  Some Facade APIs are asynchronous. If you need to read data immediately after changing it, use `await` or `.then()`.
+  Base model mutations are synchronous. UI activation methods return promises and should be awaited.
 </Callout>
 
 ## Enable facade entries
@@ -43,26 +43,19 @@ const sameBase = univerAPI.getBase(base.getId())
 ## Create a table
 
 ```ts
-const table = base.createTable({
-  name: 'Tasks',
-  fields: [
-    { name: 'Title', type: univerAPI.Enum.BaseFieldTypeEnum.Text },
-    { name: 'Status', type: univerAPI.Enum.BaseFieldTypeEnum.SingleSelect },
-  ],
-})
+const table = base.insertTable('Tasks', { primaryFieldName: 'Title' })
+const status = table.addField('Status', univerAPI.Enum.BaseFieldType.SingleSelect)
 ```
 
 ## Work with records
 
 ```ts
 const record = table.addRecord({
-  values: {
-    Title: 'Write docs',
-    Status: 'In progress',
-  },
-}, { key: univerAPI.Enum.BaseFieldKeyEnum.Name })
+  Title: 'Write docs',
+  Status: 'In progress',
+}, univerAPI.Enum.BaseFieldKeyEnum.Name)
 
-record.setValue('Status', 'Done')
+record.setValue(status.getId(), 'Done')
 ```
 
 ## Work with UI state
@@ -70,9 +63,17 @@ record.setValue('Status', 'Done')
 `@univerjs-pro/bases-ui/facade` adds UI APIs for table/view activation, selection, scrolling, editing, and panels.
 
 ```ts
-const baseUI = univerAPI.getBaseUI(base.getId())
-baseUI.activateTable(table.getId())
-baseUI.setSelection({ tableId: table.getId(), recordId: record.getId() })
+const baseUI = univerAPI.getBaseUI()
+const view = table.getViews()[0]
+if (!view) throw new Error('No table view')
+await baseUI.activateTable(table.getId())
+await baseUI.activateView(view.getId())
+baseUI.setSelection({
+  type: 'grid-record',
+  tableId: table.getId(),
+  viewId: view.getId(),
+  recordId: record.getId(),
+})
 ```
 
 ## Reference

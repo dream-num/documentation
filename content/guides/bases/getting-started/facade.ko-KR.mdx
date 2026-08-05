@@ -7,7 +7,7 @@ icon: '#pro/PlugZap'
 Facade API는 Bases 모델 위에 애플리케이션용 계층을 제공합니다. Base, 테이블, 필드, 레코드, 뷰, 필터, 정렬, 그룹, 선택 영역을 만들거나 UI를 탐색하는 등의 일반적인 작업에 사용하세요.
 
 <Callout type="warning" title="주의">
-  일부 Facade API는 비동기 방식으로 동작합니다. 데이터를 변경한 직후 읽어야 한다면 `await` 또는 `.then()`을 사용하세요.
+  Base 모델 변경은 동기식입니다. UI 활성화 메서드는 Promise를 반환하므로 `await`하세요.
 </Callout>
 
 ## Facade 진입점 활성화
@@ -43,26 +43,19 @@ const sameBase = univerAPI.getBase(base.getId())
 ## 테이블 생성
 
 ```ts
-const table = base.createTable({
-  name: 'Tasks',
-  fields: [
-    { name: 'Title', type: univerAPI.Enum.BaseFieldTypeEnum.Text },
-    { name: 'Status', type: univerAPI.Enum.BaseFieldTypeEnum.SingleSelect },
-  ],
-})
+const table = base.insertTable('Tasks', { primaryFieldName: 'Title' })
+const status = table.addField('Status', univerAPI.Enum.BaseFieldType.SingleSelect)
 ```
 
 ## 레코드 작업
 
 ```ts
 const record = table.addRecord({
-  values: {
-    Title: 'Write docs',
-    Status: 'In progress',
-  },
-}, { key: univerAPI.Enum.BaseFieldKeyEnum.Name })
+  Title: 'Write docs',
+  Status: 'In progress',
+}, univerAPI.Enum.BaseFieldKeyEnum.Name)
 
-record.setValue('Status', 'Done')
+record.setValue(status.getId(), 'Done')
 ```
 
 ## UI 상태 작업
@@ -70,9 +63,17 @@ record.setValue('Status', 'Done')
 `@univerjs-pro/bases-ui/facade`는 테이블 및 뷰 활성화, 선택, 스크롤, 편집, 패널을 위한 UI API를 추가합니다.
 
 ```ts
-const baseUI = univerAPI.getBaseUI(base.getId())
-baseUI.activateTable(table.getId())
-baseUI.setSelection({ tableId: table.getId(), recordId: record.getId() })
+const baseUI = univerAPI.getBaseUI()
+const view = table.getViews()[0]
+if (!view) throw new Error('No table view')
+await baseUI.activateTable(table.getId())
+await baseUI.activateView(view.getId())
+baseUI.setSelection({
+  type: 'grid-record',
+  tableId: table.getId(),
+  viewId: view.getId(),
+  recordId: record.getId(),
+})
 ```
 
 ## 참고 자료

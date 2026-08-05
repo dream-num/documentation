@@ -7,7 +7,7 @@ icon: '#pro/PlugZap'
 Facade API 在 Univer 服务和单元模型之上提供了面向应用的接口层。你可以用它执行常见的 Board 操作，例如创建画板、读取当前页面、添加元素、更新容器和管理泳道。
 
 <Callout type="warning" title="注意">
-  部分 Facade API 是异步的。如果需要在更改数据后立即读取，请使用 `await` 或 `.then()`。
+  Board 变更 API 是同步的，并返回 `boolean` 或可为空的句柄。读取结果前请检查返回值。
 </Callout>
 
 ## 启用 Facade 入口
@@ -44,21 +44,23 @@ const sameBoard = univerAPI.getBoard(board.getId())
 通过 `FBoard` Facade，可以读取当前页面、查找元素和更新元素数据，而无需在应用代码中解析内部服务。
 
 ```ts
-const pageId = board.getActivePageId()
-const elements = board.getElements(pageId)
+const elements = board.getElements()
 
-await board.addElement({
+const note = board.insertText({
   id: 'note-1',
-  type: 'text',
-  transform: { left: 120, top: 80, width: 240, height: 80 },
+  left: 120,
+  top: 80,
+  width: 240,
+  height: 80,
   text: 'Planning note',
-}, { pageId })
+})
+if (!note) throw new Error('Cannot insert note')
 
-await board.updateElement('note-1', {
-  patch: {
-    transform: { left: 160, top: 120, width: 280, height: 96 },
-  },
-  pageId,
+board.setElementTransform('note-1', {
+  left: 160,
+  top: 120,
+  width: 280,
+  height: 96,
 })
 ```
 
@@ -67,14 +69,21 @@ await board.updateElement('note-1', {
 使用 Board Facade 更改元素所属的容器。容器 API 会保留 Board 快照中的排列顺序和父子关系。
 
 ```ts
-const container = await board.createContainer({
-  pageId,
+const containerId = 'backlog'
+const containerCreated = board.createContainer({
+  id: containerId,
   title: 'Backlog',
-  transform: { left: 80, top: 80, width: 520, height: 360 },
+  left: 80,
+  top: 80,
+  width: 520,
+  height: 360,
 })
+if (!containerCreated) {
+  throw new Error('Cannot create container')
+}
 
-await board.moveElementsToContainer(['note-1'], container.id, { pageId })
-await board.fitContainerToContent(container.id, { pageId })
+board.moveElementsToContainer(['note-1'], containerId)
+board.fitContainerToContent(containerId)
 ```
 
 ## 参考资料

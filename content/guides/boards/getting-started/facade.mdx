@@ -7,7 +7,7 @@ icon: '#pro/PlugZap'
 Facade API provides an application-facing layer over Univer services and unit models. Use it for common Board operations such as creating boards, reading active pages, adding elements, updating containers, and managing swimlanes.
 
 <Callout type="warning" title="Caution">
-  Some Facade APIs are asynchronous. If you need to read data immediately after changing it, use `await` or `.then()`.
+  Board mutations are synchronous and return `boolean` or a nullable handle. Check the return value before reading the result.
 </Callout>
 
 ## Enable the facade entry
@@ -44,21 +44,23 @@ const sameBoard = univerAPI.getBoard(board.getId())
 The `FBoard` facade reads the active page, looks up elements, and updates element data without requiring application code to resolve internal services.
 
 ```ts
-const pageId = board.getActivePageId()
-const elements = board.getElements(pageId)
+const elements = board.getElements()
 
-await board.addElement({
+const note = board.insertText({
   id: 'note-1',
-  type: 'text',
-  transform: { left: 120, top: 80, width: 240, height: 80 },
+  left: 120,
+  top: 80,
+  width: 240,
+  height: 80,
   text: 'Planning note',
-}, { pageId })
+})
+if (!note) throw new Error('Cannot insert note')
 
-await board.updateElement('note-1', {
-  patch: {
-    transform: { left: 160, top: 120, width: 280, height: 96 },
-  },
-  pageId,
+board.setElementTransform('note-1', {
+  left: 160,
+  top: 120,
+  width: 280,
+  height: 96,
 })
 ```
 
@@ -67,14 +69,21 @@ await board.updateElement('note-1', {
 Use the Board facade for container membership changes. Container APIs preserve ordering and parent-child relationships in the Board snapshot.
 
 ```ts
-const container = await board.createContainer({
-  pageId,
+const containerId = 'backlog'
+const containerCreated = board.createContainer({
+  id: containerId,
   title: 'Backlog',
-  transform: { left: 80, top: 80, width: 520, height: 360 },
+  left: 80,
+  top: 80,
+  width: 520,
+  height: 360,
 })
+if (!containerCreated) {
+  throw new Error('Cannot create container')
+}
 
-await board.moveElementsToContainer(['note-1'], container.id, { pageId })
-await board.fitContainerToContent(container.id, { pageId })
+board.moveElementsToContainer(['note-1'], containerId)
+board.fitContainerToContent(containerId)
 ```
 
 ## Reference

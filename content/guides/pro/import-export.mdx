@@ -49,6 +49,37 @@ The export flow for non-collaborative documents:
    - `failed`: read `error.message`
 4. Use `export.fileID` to [Get File](/guides/pro/api#get-file) download URL
 
+## Client packages
+
+`@univerjs-pro/exchange-client` provides the shared request service and Facade download/snapshot utilities. Register the unit-specific client package for the editor you expose:
+
+- `@univerjs-pro/sheets-exchange-client`
+- `@univerjs-pro/docs-exchange-client`
+- `@univerjs-pro/slides-exchange-client`
+- `@univerjs-pro/pdfs-exchange-client`
+- `@univerjs-pro/bases-exchange-client`
+- `@univerjs-pro/boards-exchange-client`
+
+Import and export request settings are now nested by unit kind:
+
+```ts
+const importRequest: IImportRequest = {
+  fileID,
+  type: univerAPI.Enum.UniverInstanceType.UNIVER_BASE,
+  outputType: ImportOutputType.JSON,
+  options: {
+    base: {
+      xlsx: {
+        baseMode: ExchangeBaseImportMode.AUTO,
+        baseFormulaPolicy: ExchangeBaseFormulaPolicy.CONVERT_THEN_VALUES,
+      },
+    },
+  },
+}
+```
+
+Base export options similarly use `options.base.csv.tableId` or `options.base.xlsx` with `ExchangeBaseExportMode` and `ExchangeBaseFormulaPolicy`. Sheet options live under `options.sheet`.
+
 ## Implementation Example
 
 The API calls for import/export are already integrated in the frontend, see [Facade API](/guides/sheets/features/import-export#facade-api) for details.
@@ -118,10 +149,9 @@ async function pollTask(taskID: string, interval = 2000): Promise<TaskResult> {
 ```typescript
 interface ImportParams {
   fileID: string
-  type: 1 | 2 // 1 = doc, 2 = sheet
+  type: UniverInstanceType
   outputType: 1 | 2 // 1 = unit, 2 = json
-  minSheetRowCount?: number
-  minSheetColumnCount?: number
+  options?: IExchangeImportOptions
 }
 
 async function importFile(params: ImportParams): Promise<string> {
@@ -136,8 +166,7 @@ async function importFile(params: ImportParams): Promise<string> {
       body: JSON.stringify({
         fileID: params.fileID,
         outputType: params.outputType,
-        minSheetRowCount: params.minSheetRowCount ?? 1000,
-        minSheetColumnCount: params.minSheetColumnCount ?? 20,
+        options: params.options,
       }),
     },
   )
@@ -163,10 +192,11 @@ async function importFile(params: ImportParams): Promise<string> {
 
 ```typescript
 interface ExportParams {
-  unitID: string
-  jsonID: string
-  type: 1 | 2 // 1 = doc, 2 = sheet
-  sscSwitch?: boolean
+  unitID?: string
+  jsonID?: string
+  type: UniverInstanceType
+  format: ExchangeFormat
+  options?: IExchangeExportOptions
 }
 
 async function exportFile(params: ExportParams): Promise<string> {
@@ -179,9 +209,7 @@ async function exportFile(params: ExportParams): Promise<string> {
         // cookie: '_univer=XXXXXX',
       },
       body: JSON.stringify({
-        unitID: params.unitID,
-        type: params.type,
-        sscSwitch: params.sscSwitch ?? false,
+        ...params,
       }),
     },
   )

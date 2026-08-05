@@ -7,7 +7,7 @@ icon: '#pro/PlugZap'
 Facade API는 Univer 서비스 및 유닛 모델 위에 애플리케이션용 계층을 제공합니다. Board 만들기, 활성 페이지 읽기, 요소 추가, 컨테이너 업데이트, 스윔레인 관리와 같은 일반적인 Board 작업에 사용하세요.
 
 <Callout type="warning" title="주의">
-  일부 Facade API는 비동기식입니다. 데이터를 변경한 직후 읽어야 한다면 `await` 또는 `.then()`을 사용하세요.
+  Board 변경 API는 동기식이며 `boolean` 또는 nullable 핸들을 반환합니다. 반환값을 확인하세요.
 </Callout>
 
 ## Facade 진입점 활성화
@@ -44,21 +44,23 @@ const sameBoard = univerAPI.getBoard(board.getId())
 `FBoard` Facade는 애플리케이션 코드에서 내부 서비스를 직접 확인할 필요 없이 활성 페이지를 읽고, 요소를 조회하고, 요소 데이터를 업데이트합니다.
 
 ```ts
-const pageId = board.getActivePageId()
-const elements = board.getElements(pageId)
+const elements = board.getElements()
 
-await board.addElement({
+const note = board.insertText({
   id: 'note-1',
-  type: 'text',
-  transform: { left: 120, top: 80, width: 240, height: 80 },
+  left: 120,
+  top: 80,
+  width: 240,
+  height: 80,
   text: 'Planning note',
-}, { pageId })
+})
+if (!note) throw new Error('Cannot insert note')
 
-await board.updateElement('note-1', {
-  patch: {
-    transform: { left: 160, top: 120, width: 280, height: 96 },
-  },
-  pageId,
+board.setElementTransform('note-1', {
+  left: 160,
+  top: 120,
+  width: 280,
+  height: 96,
 })
 ```
 
@@ -67,14 +69,21 @@ await board.updateElement('note-1', {
 컨테이너 소속을 변경하려면 Board Facade를 사용하세요. 컨테이너 API는 Board 스냅샷에서 순서와 부모-자식 관계를 유지합니다.
 
 ```ts
-const container = await board.createContainer({
-  pageId,
+const containerId = 'backlog'
+const containerCreated = board.createContainer({
+  id: containerId,
   title: 'Backlog',
-  transform: { left: 80, top: 80, width: 520, height: 360 },
+  left: 80,
+  top: 80,
+  width: 520,
+  height: 360,
 })
+if (!containerCreated) {
+  throw new Error('Cannot create container')
+}
 
-await board.moveElementsToContainer(['note-1'], container.id, { pageId })
-await board.fitContainerToContent(container.id, { pageId })
+board.moveElementsToContainer(['note-1'], containerId)
+board.fitContainerToContent(containerId)
 ```
 
 ## 참고 자료
