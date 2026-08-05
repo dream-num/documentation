@@ -34,45 +34,43 @@ Univer での操作の大部分はコマンドシステムに登録され、コ�
 
 Univer は、コマンドの実行前と実行後の2つの方法でコマンドをリスニングする機能を提供します：
 
-- `onBeforeCommandExecute`: コマンド実行前にカスタムロジックを実行します。
-- `onCommandExecuted`: コマンド実行後にカスタムロジックを実行します。
+- `Event.BeforeCommandExecute`: コマンド実行前にカスタムロジックを実行します。
+- `Event.CommandExecuted`: コマンド実行後にカスタムロジックを実行します。
 
 #### 実行前のコマンドリスニング
 
-コマンドが実行される前に、`FUniver.onBeforeCommandExecute` API にコールバック関数を渡してカスタム前処理リスナーを登録します。
+実行前は `Event.BeforeCommandExecute` を `FUniver.addEvent` に渡して前処理リスナーを登録します。
 
 コマンドが実行されると、前処理リスナー内のロジックが実行されます。
 
 ```typescript
 const univerAPI = FUniver.newAPI(univer)
 
-univerAPI.onBeforeCommandExecute((command) => {
-  const { id, type, params } = command
+univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, ({ id, type, params }) => {
   // コマンド実行前に実行されるカスタムロジック
 })
 ```
 
-コマンドが実行される前にその実行を阻止したい場合は、リスナーコールバック内で例外を`throw`できます。
+コマンドの実行を阻止するには、リスナー内で `event.cancel` を `true` に設定します。
 
 ```typescript
 const univerAPI = FUniver.newAPI(univer)
 
-univerAPI.onBeforeCommandExecute((command) => {
-  throw new Error('編集は禁止されています')
+univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (event) => {
+  event.cancel = true
 })
 ```
 
 #### 実行後のコマンドリスニング
 
-コマンドが実行された後、`FUniver.onCommandExecuted` API にコールバック関数を渡してカスタム後処理リスナーを登録することもできます。
+実行後は `Event.CommandExecuted` を `FUniver.addEvent` に渡して後処理リスナーを登録します。
 
 コマンドが実行されると、後処理リスナー内のロジックが実行されます。
 
 ```typescript
 const univerAPI = FUniver.newAPI(univer)
 
-univerAPI.onCommandExecuted((command) => {
-  const { id, type, params } = command
+univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, type, params }) => {
   // コマンド実行後に実行されるカスタムロジック
 })
 ```
@@ -87,7 +85,7 @@ univerAPI.onCommandExecuted((command) => {
 const univerAPI = FUniver.newAPI(univer)
 
 // リスナーを登録
-const disposable = univerAPI.onBeforeCommandExecute((command) => {
+const disposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, () => {
   // コマンド実行前のカスタム前処理ロジック
 })
 
@@ -360,13 +358,13 @@ ws.error$.subscribe((error) => {
   console.log('websocket error', error)
 })
 
-univerAPI.onCommandExecuted((command, options) => {
+univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, type, params, options }) => {
   // ローカル変更のみを同期
-  if (command.type !== 2 || options?.fromCollab || options?.onlyLocal || command.id === 'doc.mutation.rich-text-editing') {
+  if (type !== univerAPI.Enum.CommandType.MUTATION || options?.fromCollab || options?.onlyLocal || id === 'doc.mutation.rich-text-editing') {
     return
   }
 
-  const commandInfo = JSON.stringify({ command, options: { fromCollab: true } })
+  const commandInfo = JSON.stringify({ command: { id, type, params }, options: { fromCollab: true } })
   ws.send(commandInfo)
 })
 ```

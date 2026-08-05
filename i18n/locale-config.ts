@@ -10,6 +10,16 @@ export function normalizeLocale(value: string | undefined): Locale {
 }
 
 const codeSampleLocaleReplacements: Partial<Record<Locale, Array<[string, string]>>> = {
+  'de-DE': [
+    ['en-US', 'de-DE'],
+    ['EnUS', 'DeDE'],
+    ['EN_US', 'DE_DE'],
+  ],
+  'es-ES': [
+    ['en-US', 'es-ES'],
+    ['EnUS', 'EsES'],
+    ['EN_US', 'ES_ES'],
+  ],
   'zh-CN': [
     ['en-US', 'zh-CN'],
     ['EnUS', 'ZhCN'],
@@ -40,7 +50,9 @@ export function transformLocaleCodeSample(source: string, locale: string) {
 }
 
 export const searchLocaleProfiles = {
+  'de-DE': 'english',
   'en-US': 'english',
+  'es-ES': 'english',
   'fr-FR': 'english',
   'ja-JP': 'cjk',
   'ko-KR': 'cjk',
@@ -50,7 +62,9 @@ export const searchLocaleProfiles = {
 } satisfies Record<Locale, 'cjk' | 'english'>
 
 export const formulaLocaleFallbacks = {
+  'de-DE': 'en-US',
   'en-US': 'en-US',
+  'es-ES': 'en-US',
   'fr-FR': 'fr-FR',
   'ja-JP': 'en-US',
   'ko-KR': 'ko-KR',

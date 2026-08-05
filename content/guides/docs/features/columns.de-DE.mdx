@@ -1,0 +1,139 @@
+---
+title: Spaltenlayout
+icon: '#pro/Columns3'
+---
+
+<MetaData
+  lang="en-US"
+  isPro
+  meta={{
+    plugins: [{
+      client: '@univerjs-pro/docs-column',
+      facade: '@univerjs-pro/docs-column/facade',
+    }, {
+      client: '@univerjs-pro/docs-column-ui',
+      locale: '@univerjs-pro/docs-column-ui/locale/en-US',
+      style: '@univerjs-pro/docs-column-ui/lib/index.css',
+    }],
+    server: false,
+  }}
+/>
+
+Das Spaltenlayout fügt bearbeitbare Spaltengruppen zu Univer Docs hinzu. Eine Spaltengruppe ist ein Blockcontainer mit zwei bis fünf Spalten, sodass Benutzer kompakte redaktionelle Layouts, Vergleichsabschnitte, Newsletter und gemischte Text-/Tabelleninhalte innerhalb eines Dokuments erstellen können.
+
+## Einführung
+
+In Univer Docs ermöglicht Ihnen das Spaltenlayout Folgendes:
+
+- **Spaltengruppen einfügen**: Erstellen Sie einen Block mit zwei Spalten, drei Spalten oder einem benutzerdefinierten Verhältnis bei einem Dokumentversatz.
+- **Interaktiv bearbeiten**: Benutzern erlauben Fügen Sie Spalten über die Docs-Benutzeroberfläche ein, ändern Sie deren Größe und löschen Sie sie.
+- **Verwenden Sie Facade-APIs**: Fragen Sie Spaltengruppen ab, fügen Sie Inhalte in eine bestimmte Spalte ein und aktualisieren Sie Breitenverhältnisse im Code.
+- **Dokumentvorgänge beibehalten**: Spaltenmutationen werden über die normale Rich-Text-Befehlspipeline ausgeführt, sodass Rückgängig/Wiederherstellen und Zusammenarbeit dieselben Dokumentänderungen wie UI-Vorgänge erhalten.
+
+## Plugin Modus
+
+### Installation
+
+```package-install
+npm install @univerjs-pro/docs-column @univerjs-pro/docs-column-ui
+```
+
+### Nutzung
+
+```typescript
+import { UniverDocsColumnUIPlugin } from '@univerjs-pro/docs-column-ui' // [!code ++]
+import DocsColumnUIEnUS from '@univerjs-pro/docs-column-ui/locale/en-US' // [!code ++]
+import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+
+import '@univerjs-pro/docs-column-ui/lib/index.css' // [!code ++]
+
+const univer = new Univer({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(
+      DocsColumnUIEnUS, // [!code ++]
+    ),
+  },
+})
+
+univer.registerPlugin(UniverDocsColumnUIPlugin) // [!code ++]
+```
+
+Wenn Sie eine kommerzielle Lizenz für Univer haben, lesen Sie bitte die Konfiguration unter [Lizenz im Client verwenden](/guides/pro/license#in-plugin-mode).
+
+## Fassaden-API
+
+Stellen Sie sicher, dass Sie die Fassade importieren, bevor Sie die API verwenden:
+
+```typescript
+import '@univerjs-pro/docs-column/facade'
+```
+
+### Eine Spaltengruppe einfügen
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+const group = doc?.insertColumnGroup(3, {
+  gap: 18,
+  widthRatios: [1.1, 1, 0.9],
+})
+```
+
+### Inhalt in eine Spalte einfügen
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+const group = doc?.insertColumnGroup(2)
+const [left, right] = group?.getColumns() ?? []
+
+const leftOffset = left?.getInsertOffset()
+if (leftOffset != null) {
+  doc?.insertText('Summary\rKey decisions and context.', {
+    startOffset: leftOffset,
+    endOffset: leftOffset,
+  })
+}
+
+const rightOffset = right?.getInsertOffset()
+if (rightOffset != null) {
+  doc?.insertTableFromData([
+    ['Item', 'Owner'],
+    ['Launch checklist', 'Docs team'],
+  ], { offset: rightOffset, headerRowCount: 1 })
+}
+```
+
+### Abfragespalte Gruppen
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+
+const groups = doc?.getColumnGroups() ?? []
+const byId = doc?.getColumnGroup('column-group-id')
+const atOffset = doc?.getColumnGroupAt(128)
+const matched = doc?.findColumnGroups('Launch') ?? []
+
+console.log(groups.map(group => group.describe()))
+console.log(byId, atOffset, matched)
+```
+
+### Größe ändern oder eine Gruppe bearbeiten
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+const group = doc?.getColumnGroups()[0]
+
+group?.setWidthRatios([1.2, 1, 0.8])
+
+const first = group?.getColumn(0)
+if (first) {
+  group?.addColumn(first.getId(), 'right')
+}
+```
+
+### Eine Spaltengruppe löschen
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+doc?.deleteColumnGroup('column-group-id')
+```

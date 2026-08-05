@@ -157,99 +157,86 @@ import '@univerjs-pro/sheets-shape/facade'
 
 ### 基本図形の挿入
 
-`FWorksheet.newShape` で図形ビルダーを作成し、`FWorksheet.insertShape` で挿入します。
+共通の図形作成データを `FWorksheet.insertShape` に渡します。戻り値はライブ Facade ハンドルです。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 
-const rectShape = fWorksheet.newShape()
-  .setShapeType(univerAPI.Enum.ShapeTypeEnum.Rect)
-  .setPosition(1, 1, 0, 0)
-  .setWidth(240)
-  .setHeight(120)
-  .setShapeSolidFill('#e6f4ff')
-  .setStrokeColor('#1677ff')
-  .setStrokeWidth(2)
-  .build()
+const rectShape = fWorksheet.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.Rect,
+  transform: { left: 120, top: 80, width: 240, height: 120 },
+  shapeData: {
+    fill: {
+      fillType: univerAPI.Enum.ShapeFillEnum.SolidFill,
+      color: '#e6f4ff',
+    },
+    stroke: {
+      lineStrokeType: univerAPI.Enum.ShapeLineTypeEnum.SolidLine,
+      color: '#1677ff',
+      width: 2,
+    },
+  },
+})
 
-await fWorksheet.insertShape(rectShape)
+if (!rectShape) throw new Error('Shape could not be inserted.')
 ```
 
 ### コネクタ図形の挿入と接続
 
-`FWorksheet.newConnector` でコネクタを作成し、`FWorksheet.connectShapes` で両端を図形の接続点に接続します。
+`FWorksheet.insertShape` でコネクタを挿入し、返された `FConnectorShape` Facade から両端を接続します。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 
-const leftShape = fWorksheet.newShape()
-  .setShapeType(univerAPI.Enum.ShapeTypeEnum.RoundRect)
-  .setPosition(1, 1, 0, 0)
-  .setWidth(180)
-  .setHeight(80)
-  .setShapeSolidFill('#f6ffed')
-  .setStrokeColor('#52c41a')
-  .build()
-await fWorksheet.insertShape(leftShape)
+const leftShape = fWorksheet.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.RoundRect,
+  transform: { left: 80, top: 80, width: 180, height: 100 },
+})
+const rightShape = fWorksheet.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.Ellipse,
+  transform: { left: 420, top: 200, width: 180, height: 100 },
+})
+const connectorShape = fWorksheet.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.BentConnector3,
+  transform: { left: 240, top: 130, width: 240, height: 120 },
+})
 
-const rightShape = fWorksheet.newShape()
-  .setShapeType(univerAPI.Enum.ShapeTypeEnum.Diamond)
-  .setPosition(1, 5, 0, 0)
-  .setWidth(180)
-  .setHeight(120)
-  .setShapeSolidFill('#fffbe6')
-  .setStrokeColor('#faad14')
-  .build()
-await fWorksheet.insertShape(rightShape)
-
-const connector = fWorksheet.newConnector()
-  .setShapeType(univerAPI.Enum.ShapeTypeEnum.StraightConnector1)
-  .setPosition(2, 3, 0, 0)
-  .setWidth(220)
-  .setHeight(40)
-  .setStartArrowType(univerAPI.Enum.ShapeArrowTypeEnum.Arrow)
-  .setEndArrowType(univerAPI.Enum.ShapeArrowTypeEnum.Arrow)
-  .setStrokeColor('#595959')
-  .setStrokeWidth(2)
-  .build()
-await fWorksheet.insertShape(connector)
-
-const shapes = fWorksheet.getShapes()
-const basicShapes = shapes.filter(shape => !shape.isLineShape())
-const connectorShape = shapes.find(shape => shape.isLineShape())
-
-if (connectorShape && basicShapes.length >= 2) {
-  await fWorksheet.connectShapes({
-    connector: connectorShape,
-    startTarget: { shape: basicShapes[0], connectionSiteIndex: 0 },
-    endTarget: { shape: basicShapes[1], connectionSiteIndex: 2 },
-  })
+if (!leftShape || !rightShape || !connectorShape) {
+  throw new Error('Shapes could not be inserted.')
 }
+
+const startSite = leftShape.getConnectionSites()[0]
+const rightSites = rightShape.getConnectionSites()
+const endSite = rightSites[2] ?? rightSites[0]
+
+if (!startSite || !endSite) throw new Error('Connection site not found.')
+
+connectorShape
+  .bindStart(leftShape.getId(), startSite.index)
+  .bindEnd(rightShape.getId(), endSite.index)
+  .setEndArrow(univerAPI.Enum.ShapeArrowTypeEnum.Arrow)
 ```
 
 ### 図形の更新と削除
 
-既存図形の更新には `FWorksheet.updateShape`、削除には `FWorksheet.removeShape` を使います。
+図形の更新と削除は、ライブ Facade ハンドルから直接行います。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 
-const shapes = fWorksheet.getShapes()
-const firstShape = shapes.find(shape => !shape.isLineShape())
+const firstShape = fWorksheet.getShapes().find(shape => !shape.isConnectorShape())
 
 if (firstShape) {
-  const updatedShape = fWorksheet.newShape(firstShape)
+  firstShape
     .setStrokeColor('#ff4d4f')
     .setStrokeWidth(3)
-    .setShapeSolidFill('#fff1f0')
-    .build()
-
-  await fWorksheet.updateShape(updatedShape)
+    .setSolidFill('#fff1f0')
 
   // 必要に応じて更新後に削除
-  await fWorksheet.removeShape(firstShape)
+  const removed = firstShape.remove()
+  console.log(removed)
 }
 ```

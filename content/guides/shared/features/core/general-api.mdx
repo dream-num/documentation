@@ -34,45 +34,43 @@ The majority of operations in Univer are registered with the command system, and
 
 Univer provides two ways to listen for commands, before the command is executed and after the command is executed:
 
-- `onBeforeCommandExecute`: Executes custom logic before the command is executed.
-- `onCommandExecuted`: Executes custom logic after the command is executed.
+- `Event.BeforeCommandExecute`: Executes custom logic before the command is executed.
+- `Event.CommandExecuted`: Executes custom logic after the command is executed.
 
 #### Listening Commands Before Execution
 
-Before the command is executed, we pass a callback function to the `FUniver.onBeforeCommandExecute` API to register a custom preprocessing listener.
+Before the command is executed, pass `Event.BeforeCommandExecute` to `FUniver.addEvent` to register a custom preprocessing listener.
 
 When the command is executed, the logic inside the preprocessing listener will be executed.
 
 ```typescript
 const univerAPI = FUniver.newAPI(univer)
 
-univerAPI.onBeforeCommandExecute((command) => {
-  const { id, type, params } = command
+univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, ({ id, type, params }) => {
   // Custom logic executed before the command is executed
 })
 ```
 
-If you want to prevent the command from executing before it is executed, you can `throw` an exception in the listener callback.
+To prevent the command from executing, set `event.cancel` to `true` in the listener callback.
 
 ```typescript
 const univerAPI = FUniver.newAPI(univer)
 
-univerAPI.onBeforeCommandExecute((command) => {
-  throw new Error('Editing is prohibited')
+univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (event) => {
+  event.cancel = true
 })
 ```
 
 #### Listening Commands After Execution
 
-After the command is executed, we can also pass a callback function to the `FUniver.onCommandExecuted` API to register a custom post-processing listener.
+After the command is executed, pass `Event.CommandExecuted` to `FUniver.addEvent` to register a custom post-processing listener.
 
 When the command is executed, the logic inside the post-processing listener will be executed.
 
 ```typescript
 const univerAPI = FUniver.newAPI(univer)
 
-univerAPI.onCommandExecuted((command) => {
-  const { id, type, params } = command
+univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, type, params }) => {
   // Custom logic executed after the command is executed
 })
 ```
@@ -87,7 +85,7 @@ It is recommended that you destroy listeners that are no longer in use to help i
 const univerAPI = FUniver.newAPI(univer)
 
 // Register a listener
-const disposable = univerAPI.onBeforeCommandExecute((command) => {
+const disposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, () => {
   // custom preprocessing logic before the command is executed
 })
 
@@ -360,13 +358,13 @@ ws.error$.subscribe((error) => {
   console.log('websocket error', error)
 })
 
-univerAPI.onCommandExecuted((command, options) => {
+univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, type, params, options }) => {
   // Only synchronize local mutations
-  if (command.type !== 2 || options?.fromCollab || options?.onlyLocal || command.id === 'doc.mutation.rich-text-editing') {
+  if (type !== univerAPI.Enum.CommandType.MUTATION || options?.fromCollab || options?.onlyLocal || id === 'doc.mutation.rich-text-editing') {
     return
   }
 
-  const commandInfo = JSON.stringify({ command, options: { fromCollab: true } })
+  const commandInfo = JSON.stringify({ command: { id, type, params }, options: { fromCollab: true } })
   ws.send(commandInfo)
 })
 ```

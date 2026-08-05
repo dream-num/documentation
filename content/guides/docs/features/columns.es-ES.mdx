@@ -1,0 +1,139 @@
+---
+title: Diseño de columnas
+icon: '#pro/Columns3'
+---
+
+<MetaData
+  lang="en-US"
+  isPro
+  meta={{
+    plugins: [{
+      client: '@univerjs-pro/docs-column',
+      facade: '@univerjs-pro/docs-column/facade',
+    }, {
+      client: '@univerjs-pro/docs-column-ui',
+      locale: '@univerjs-pro/docs-column-ui/locale/en-US',
+      style: '@univerjs-pro/docs-column-ui/lib/index.css',
+    }],
+    server: false,
+  }}
+/>
+
+El diseño de columnas agrega grupos de columnas editables a Univer Docs. Un grupo de columnas es un contenedor de bloques que posee de dos a cinco columnas, por lo que los usuarios pueden crear diseños editoriales compactos, secciones de comparación, boletines y contenido mixto de texto/tabla dentro de un documento.
+
+## Introducción
+
+En Univer Docs, el diseño de columnas le permite:
+
+- **Insertar grupos de columnas**: cree un bloque de dos, tres columnas o un bloque de proporciones personalizadas en un desplazamiento del documento.
+- **Editar interactivamente**: permita a los usuarios inserte, cambie el tamaño y elimine columnas a través de la interfaz de usuario de Docs.
+- **Utilice las API de Facade**: consulte grupos de columnas, inserte contenido en una columna específica y actualice las proporciones de ancho en el código.
+- **Conserve las operaciones de documentos**: las mutaciones de columnas se ejecutan a través de la canalización normal de comandos de texto enriquecido, por lo que deshacer/rehacer y la colaboración reciben los mismos cambios en los documentos que las operaciones de la interfaz de usuario.
+
+## Complemento Modo
+
+### Instalación
+
+```package-install
+npm install @univerjs-pro/docs-column @univerjs-pro/docs-column-ui
+```
+
+### Uso
+
+```typescript
+import { UniverDocsColumnUIPlugin } from '@univerjs-pro/docs-column-ui' // [!code ++]
+import DocsColumnUIEnUS from '@univerjs-pro/docs-column-ui/locale/en-US' // [!code ++]
+import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+
+import '@univerjs-pro/docs-column-ui/lib/index.css' // [!code ++]
+
+const univer = new Univer({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(
+      DocsColumnUIEnUS, // [!code ++]
+    ),
+  },
+})
+
+univer.registerPlugin(UniverDocsColumnUIPlugin) // [!code ++]
+```
+
+Si tiene una licencia comercial de Univer, consulte [Uso de licencia en el cliente](/guides/pro/license#in-plugin-mode) para la configuración.
+
+## API de fachada
+
+Asegúrese de importar la fachada antes de usar la API:
+
+```typescript
+import '@univerjs-pro/docs-column/facade'
+```
+
+### Insertar un grupo de columnas
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+const group = doc?.insertColumnGroup(3, {
+  gap: 18,
+  widthRatios: [1.1, 1, 0.9],
+})
+```
+
+### Insertar contenido en una columna
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+const group = doc?.insertColumnGroup(2)
+const [left, right] = group?.getColumns() ?? []
+
+const leftOffset = left?.getInsertOffset()
+if (leftOffset != null) {
+  doc?.insertText('Summary\rKey decisions and context.', {
+    startOffset: leftOffset,
+    endOffset: leftOffset,
+  })
+}
+
+const rightOffset = right?.getInsertOffset()
+if (rightOffset != null) {
+  doc?.insertTableFromData([
+    ['Item', 'Owner'],
+    ['Launch checklist', 'Docs team'],
+  ], { offset: rightOffset, headerRowCount: 1 })
+}
+```
+
+### Consulta Grupos de columnas
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+
+const groups = doc?.getColumnGroups() ?? []
+const byId = doc?.getColumnGroup('column-group-id')
+const atOffset = doc?.getColumnGroupAt(128)
+const matched = doc?.findColumnGroups('Launch') ?? []
+
+console.log(groups.map(group => group.describe()))
+console.log(byId, atOffset, matched)
+```
+
+### Cambiar el tamaño o editar un grupo
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+const group = doc?.getColumnGroups()[0]
+
+group?.setWidthRatios([1.2, 1, 0.8])
+
+const first = group?.getColumn(0)
+if (first) {
+  group?.addColumn(first.getId(), 'right')
+}
+```
+
+### Eliminar un grupo de columnas
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+doc?.deleteColumnGroup('column-group-id')
+```

@@ -3,7 +3,7 @@ title: Document
 icon: '#ref/F'
 ---
 
-| Packages | `@univerjs/docs`, `@univerjs/docs-ui` |
+| Packages | `@univerjs/docs`, `@univerjs/docs-ui`, `@univerjs/docs-drawing` |
 | --- | --- |
 
 <span className="rounded bg-fd-primary/10 px-1.5 py-0.5 text-xs font-medium text-fd-primary">CORE</span>
@@ -26,13 +26,19 @@ The facade classes for Univer Docs documents and paragraphs.
 | `FDocument` | [`dispose`](#dispose) | Dispose the facade wrapper. |
 | `FDocument` | [`getId`](#getid) | Get the document id. |
 | `FDocument` | [`getName`](#getname) | Get the document name. |
+| `FDocument` | `getDocumentFlavor` | Get the document flavor. |
+| `FDocument` | `isTraditional` | Check whether the document uses traditional pagination. |
 | `FDocument` | [`isModern`](#ismodern) | Check whether the document uses the modern document flavor. |
 | `FDocument` | [`save`](#save) | Save and return the document snapshot data. |
 | `FDocument` | [`undo`](#undo) | Undo the last operation in the focused document. |
 | `FDocument` | [`redo`](#redo) | Redo the last undone operation in the focused document. |
 | `FDocument` | [`ensurePageHeader`](#ensurepageheader) | Ensure that a page header segment exists. |
 | `FDocument` | [`ensurePageFooter`](#ensurepagefooter) | Ensure that a page footer segment exists. |
+| `FDocument` | `getHeaderFooterOptions`, `setHeaderFooterOptions` | Read or update document-level header and footer settings. |
 | `FDocument` | [`insertText`](#inserttext) | Insert plain text at a body offset. |
+| `FDocument` | `getTextRange` | Create a fixed text-range facade. |
+| `FDocument` | `getSections`, `getSection`, `getSectionAt` | Resolve traditional document sections. |
+| `FDocument` | `insertSectionBreak`, `insertColumnBreak`, `insertHorizontalRule` | Insert structural document elements. |
 | `FDocument` | [`getParagraphs`](#getparagraphs) | Get all paragraph wrappers for a body segment. |
 | `FDocument` | [`getParagraph`](#getparagraph) | Get a paragraph wrapper by paragraph id. |
 | `FDocument` | [`findParagraphByText`](#findparagraphbytext) | Find the first paragraph containing text. |
@@ -41,8 +47,10 @@ The facade classes for Univer Docs documents and paragraphs.
 | `FDocument` | [`appendParagraph`](#appendparagraph) | Append a plain-text paragraph to the body. |
 | `FDocument` | [`deleteRange`](#deleterange) | Delete a text range from the body. |
 | `FDocumentParagraph` | [`getSegmentId`](#getsegmentid) | Get the paragraph segment id. |
+| `FDocumentParagraph` | `getId` | Get the stable paragraph id. |
 | `FDocumentParagraph` | [`getInfo`](#getinfo) | Get resolved paragraph metadata. |
 | `FDocumentParagraph` | [`getRange`](#getrange) | Get the paragraph text range. |
+| `FDocumentParagraph` | `getTextRange`, `findText`, `findAllText` | Create or find fixed text ranges in the paragraph. |
 | `FDocumentParagraph` | [`getText`](#gettext) | Get the paragraph plain text. |
 | `FDocumentParagraph` | [`setText`](#settext) | Replace the paragraph plain text. |
 | `FDocumentParagraph` | [`appendText`](#appendtext) | Append plain text before the paragraph break. |
@@ -57,6 +65,89 @@ The facade classes for Univer Docs documents and paragraphs.
 | Class | Method | Description |
 | --- | --- | --- |
 | `FDocument` | [`setSelection`](#setselection) | Set the rendered selection range in a document. |
+
+### @univerjs/docs-drawing
+
+| Class | Method | Description |
+| --- | --- | --- |
+| `FDocument` | [`insertImage`](#insertimage) | Insert an image into the document. |
+| `FDocument` | [`getImage`](#getimage) | Get an image by drawing id. |
+| `FDocument` | [`getImages`](#getimages) | Get all document images in drawing order. |
+| `FDocumentImage` | `getId`, `getSource`, `getSize`, `getAngle` | Read image identity, source, and transform. |
+| `FDocumentImage` | `setSize`, `setRotate`, `setPositionH`, `setPositionV` | Update image geometry. |
+| `FDocumentImage` | `setWrappingStyle`, `setForward`, `setBackward`, `setFront`, `setBack`, `remove` | Update layout or remove the image. |
+
+## Structure and text ranges
+
+Traditional documents expose stable section facades. Modern documents use column groups instead; `getSections()` returns an empty array for them.
+
+```typescript
+// FDocument
+getDocumentFlavor(): DocumentFlavor
+isTraditional(): boolean
+getHeaderFooterOptions(): IHeaderFooterProps
+setHeaderFooterOptions(options: IHeaderFooterProps): boolean
+getTextRange(startOffset: number, endOffset: number, segmentId?: string): FDocumentTextRange
+getSections(): FDocumentSection[]
+getSection(index: number): FDocumentSection | null
+getSectionAt(offset: number): FDocumentSection | null
+insertSectionBreak(offset: number, options?: IFDocumentInsertSectionBreakOptions): FDocumentSection | null
+insertColumnBreak(offset: number): boolean
+insertHorizontalRule(offset: number, border?: IParagraphBorder, segmentId?: string): FDocumentParagraph | null
+
+// FDocumentParagraph
+getId(): string
+getTextRange(): FDocumentTextRange
+findText(text: string, options?: IFDocumentFindTextOptions): FDocumentTextRange | null
+findAllText(text: string, options?: Omit<IFDocumentFindTextOptions, 'occurrence'>): FDocumentTextRange[]
+
+// FDocumentTextRange
+getRange(): IFDocumentTextRange
+getText(): string
+getExplicitTextStyleRuns(): IFDocumentTextStyleRun[]
+getCommonExplicitTextStyle(): ITextStyle
+describe(): IFDocumentTextRangeDescription
+setTextStyle(style: ITextStyle): boolean
+setText(text: string): boolean
+```
+
+`FDocumentSection` supports column layout, section types, page setup, section-specific headers and footers, and removal:
+
+```typescript
+getId(): string
+getIndex(): number
+getConfig(): ISectionBreak
+getRange(): IFDocumentTextRange
+getColumns(): ISectionColumnProperties[]
+describe(): IFDocumentSectionDescription
+setColumns(columnCount: number, options?: IFDocumentSectionColumnOptions): boolean
+setColumnProperties(columns: ISectionColumnProperties[], separator?: ColumnSeparatorType): boolean
+setSectionType(sectionType: SectionType): boolean
+getPageSetup(): FDocumentSectionPageSetup
+getEffectivePageSetup(): IEffectiveSectionPageSetup
+setPageSetup(pageSetup: FDocumentSectionPageSetup): boolean
+ensureHeader(variant?: SectionHeaderFooterVariant): string
+ensureFooter(variant?: SectionHeaderFooterVariant): string
+getHeaderId(variant?: SectionHeaderFooterVariant): string | null
+getFooterId(variant?: SectionHeaderFooterVariant): string | null
+isHeaderLinkedToPrevious(variant?: SectionHeaderFooterVariant): boolean
+isFooterLinkedToPrevious(variant?: SectionHeaderFooterVariant): boolean
+setHeaderLinkedToPrevious(linked: boolean, variant?: SectionHeaderFooterVariant): boolean
+setFooterLinkedToPrevious(linked: boolean, variant?: SectionHeaderFooterVariant): boolean
+setHeaderFooterOptions(options: IHeaderFooterProps): boolean
+remove(): boolean
+```
+
+```ts
+const document = univerAPI.getActiveDocument()
+const chapter = document?.findParagraphByText('Chapter 2')
+
+if (document?.isTraditional() && chapter) {
+  document.insertSectionBreak(chapter.getInfo().startOffset, {
+    nextSectionType: univerAPI.Enum.SectionType.NEXT_PAGE,
+  })
+}
+```
 
 ## APIs
 
@@ -444,6 +535,51 @@ remove(): boolean
 ```
 
 <span className="text-xs text-fd-muted-foreground">Source: `@univerjs/docs`</span>
+
+### Document Images
+
+Plugin mode requires `import '@univerjs/docs-drawing/facade'`.
+
+### `insertImage`
+
+**Signature**
+```typescript
+insertImage(options: IFDocumentInsertImageOptions): Promise<FDocumentImage | null>
+```
+
+`source` and `imageSourceType` are required. Size, rotation, position, wrapping style, and insertion range are optional.
+
+```ts
+const document = univerAPI.getActiveDocument()
+const image = await document?.insertImage({
+  source: 'https://example.com/image.png',
+  imageSourceType: univerAPI.Enum.ImageSourceType.URL,
+  width: 320,
+  wrappingStyle: univerAPI.Enum.DocsImageWrappingStyle.INLINE,
+})
+
+image?.setRotate(15)
+```
+
+<span className="text-xs text-fd-muted-foreground">Source: `@univerjs/docs-drawing`</span>
+
+### `getImage`
+
+**Signature**
+```typescript
+getImage(imageId: string): FDocumentImage | null
+```
+
+<span className="text-xs text-fd-muted-foreground">Source: `@univerjs/docs-drawing`</span>
+
+### `getImages`
+
+**Signature**
+```typescript
+getImages(): FDocumentImage[]
+```
+
+<span className="text-xs text-fd-muted-foreground">Source: `@univerjs/docs-drawing`</span>
 
 ### UI
 

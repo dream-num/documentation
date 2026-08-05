@@ -1,0 +1,140 @@
+---
+title: Solución de problemas
+---
+
+Esta guía cubre problemas comunes durante la instalación, el inicio, el acceso, USIP, la importación/exportación y las actualizaciones.
+
+## Alcance
+
+- Implementaciones de Docker Compose o K8
+- Integraciones de USIP y Event Sync
+- Importación/exportación problemas
+
+## Selección rápida
+
+| Síntoma | Acción inmediata | Siguiente paso |
+| --- | --- | --- |
+| Script de un clic atascado | `curl -I https://get.univer.ai` | Usar paquete sin conexión |
+| IU de demostración no accesible | `cd univer-server && bash run.sh start` | `docker compose ps` |
+| La demostración USIP 8080 devuelve 404 | Marque `USIP_ENABLED=true` en `.env.custom` | `bash run.sh restart` |
+| Pods de timón Pendiente | `kubectl describe pod` | Verificar imagen/recursos/PVC |
+| Importación/exportación Pendiente | Verificar registros temporales/de intercambio/universador | Consulte la sección Importar/Exportar |
+
+## Problemas de Docker Compose
+
+### Error de instalación
+
+1. Verificar la red:
+
+```bash
+curl -I https://get.univer.ai
+dig get.univer.ai
+```
+
+2. Conflictos de instalación de Docker:
+
+```bash
+systemctl status docker
+ps -ef | grep dockerd
+```
+
+### Servicios que no se ejecutan o no se reinician
+
+```bash
+cd univer-server
+bash run.sh start
+docker compose ps
+docker compose logs --tail=200 <service>
+```
+
+Causas comunes: conflictos de puertos, `.env.custom` no cargado, recursos insuficientes.
+
+### Problemas de la interfaz de usuario de demostración
+
+- Conflicto de puertos: `lsof -i :3010`
+- Desconexión de WebSocket: verifique el proxy inverso/CORS
+- Error al crear automáticamente el documento: verifique los registros del universo
+
+## Problemas de K8s
+
+### Pod pendiente
+
+```bash
+kubectl describe pod <pod> -n univer
+```
+
+Verifique: extracción de imágenes, PVC, recursos de nodo.
+
+### CrashLoopBackOff
+
+```bash
+kubectl logs <pod> -n univer --previous
+```
+
+### Error de ingreso/acceso al dominio
+
+```bash
+dig univer.example.com
+kubectl get ingress -n univer
+kubectl get endpoints -n univer
+```
+
+## USIP Problemas
+
+| Síntoma | Causa |
+| --- | --- |
+| 8080 no responde | Asegúrese de que `bash run.sh start-demo-usip` se ejecute |
+| 401/403 después de habilitar USIP | Compruebe el paso del token y la respuesta del usuario |
+| Configuración no aplicada | Reiniciar después de editar `.env.custom` |
+
+## Importación/Exportación pendiente
+
+### Ruta de investigación
+
+1. Desactivar VPN/proxy → `bash run.sh restart`
+2. Estado del servicio → `docker compose ps`
+3. Registros temporales → `docker compose logs -f temporal`
+4. Registros de intercambio → `docker compose logs -f univer-worker-exchange`
+5. Registros de Universer → `docker compose logs -f universer`
+
+### Errores comunes
+
+- Error de inicio temporal: conflicto de puerto o problemas de base de datos
+- Tiempo de espera de Exchange: verifique la dirección temporal
+
+Ejemplo: actualizar `exchange/config.yaml.template` y reiniciar:
+
+```text
+addr: no-txt:///${TEMPORAL_HOST}:${TEMPORAL_PORT}
+```
+
+## Actualizar y desinstalar
+
+- Actualización de Docker Compose: volver a ejecutar el instalador en el directorio principal
+- Actualización de K8s: `helm upgrade --install ... -n univer`
+- Los datos aún existen después de la desinstalación: verifique la política o los volúmenes de recuperación de PVC
+
+## Registros y recopilación
+
+| Servicio | Comando |
+| --- | --- |
+| temporal | `docker compose logs -f temporal` |
+| exchange | `docker compose logs -f univer-worker-exchange` |
+| universer | `docker compose logs -f universer` |
+
+Paquete logs:
+
+```bash
+mkdir -p logs_collect && \
+docker compose logs temporal > logs_collect/temporal.log 2>&1 && \
+docker compose logs universer > logs_collect/universer.log 2>&1 && \
+tar czf univer-troubleshoot-logs.tar.gz logs_collect
+```
+
+## Lista de verificación
+
+- Los servicios están activos/Pods listos
+- No hay errores en temporal/intercambio
+- Se puede acceder a los puertos y dominios
+- Los cambios de configuración se aplican después del reinicio
+- Las tareas de importación/exportación se pueden completar

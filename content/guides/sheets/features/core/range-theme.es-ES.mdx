@@ -1,0 +1,153 @@
+---
+title: Tema de rango
+---
+
+Para enriquecer los efectos de visualización de las tablas, proporcionamos algunos temas de rango preestablecidos y abrimos la capacidad de personalizar temas para Univer usuarios.
+
+## Temas integrados
+
+Proporcionamos un tema similar a `Excel Table default style` como tema predeterminado, llamado `default`, que se puede configurar a través del atributo `theme`. También proporcionamos una serie de temas de color, que puede obtener a través de la siguiente API de Facade para ver los temas actualmente admitidos.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+const themes = fWorkbook.getRegisteredRangeThemes()
+console.log(themes) // ['default', 'light-blue', 'light-grey', 'light-red', 'light-orange', 'light-yellow', 'light-green', 'light-azure', 'light-indigo', 'light-purple', 'light-magenta', 'middle-blue', 'middle-grey', 'middle-red', 'middle-orange', 'middle-yellow', 'middle-green', 'middle-azure', 'middle-indigo', 'middle-purple', 'middle-magenta', 'dark-blue', 'dark-grey', 'dark-red', 'dark-orange', 'dark-yellow', 'dark-green', 'dark-azure', 'dark-indigo', 'dark-purple', 'dark-magenta']
+```
+
+![Range Theme](./range-theme/range-theme.png)
+
+## Configuración de temas
+
+En Univer, puede configurar temas de las siguientes dos maneras:
+- Temas de soporte configurando instantáneas
+- Temas de soporte a través de Facade API
+
+### Configuración de temas por instantáneas
+
+Los temas en Univer se almacenan en el recurso de la instantánea con la clave `SHEET_RANGE_THEME_MODEL_PLUGIN`. La estructura de datos es la siguiente:
+
+```typescript
+interface IRangeThemeRangeInfo {
+  range: IRange
+  unitId: string
+  subUnitId: string
+}
+
+interface IRangeThemeStyleRule {
+  rangeInfo: IRangeThemeRangeInfo
+  themeName: string
+}
+
+interface ISheetRangeThemeModelJSON {
+  // JSON storing the range and theme information for setting themes, the key is the id, please ensure it is not repeated, the value is the corresponding range information and template name.
+  rangeThemeStyleRuleMap: Record<string, IRangeThemeStyleRule>
+  // JSON storing the themes, the key is the theme name, and the value is the serialized JSON of the theme.
+  rangeThemeStyleMapJson: Record<string, IRangeThemeStyleJSON>
+}
+```
+
+### Configuración de temas a través de la API de Facade
+
+Recomendamos usar la API de Facade para configurar temas y luego usar los métodos de serialización y deserialización proporcionados por Univer para almacenar información del tema.
+
+Aquí hay algunas introducciones de API relacionadas con los temas:
+
+```typescript
+// Get the currently supported themes
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const themes = fWorkbook.getRegisteredRangeThemes()
+
+// Set the default theme for A1:E20
+const fRange = fWorksheet.getRange('A1:E20')
+fRange.useThemeStyle('default') // 使用默认主题
+
+// Get the currently used theme
+const currentTheme = fRange.getUsedThemeStyle()
+
+// Clear the theme style
+fRange.useThemeStyle(undefined)
+fRange.removeThemeStyle(currentTheme)
+```
+
+## Temas personalizados
+
+Univer ofrece la posibilidad de personalizar temas además de los temas integrados. Puede personalizar temas utilizando la siguiente API:
+
+```typescript
+// Create a custom theme
+const fWorkbook = univerAPI.getActiveWorkbook()
+const rangeThemeStyle = fWorkbook.createRangeThemeStyle('MyTheme', {
+  secondRowStyle: {
+    bg: {
+      rgb: 'rgb(214,231,241)',
+    },
+  },
+})
+fWorkbook.registerRangeTheme(rangeThemeStyle)
+
+// Use the custom theme for A1:E20
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:E20')
+// Make sure the theme is registered, otherwise it will throw an error.
+fRange.useThemeStyle('MyTheme')
+```
+
+Univer también proporciona una API para eliminar temas registrados:
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+fWorkbook.unregisterRangeTheme('MyTheme')
+```
+
+### `RangeThemeStyle` Clase
+
+La clase principal de los temas de Univer, [`RangeThemeStyle`](https://github.com/dream-num/univer/blob/dev/packages/sheets/src/models/range-theme-util.ts#L110), proporciona las siguientes propiedades para que los usuarios personalicen los temas:
+
+- `name`: Nombre del tema
+- `wholeStyle`: Estilo para toda la gama
+- `firstRowStyle`: Estilo para la primera fila
+- `secondRowStyle`: Estilo para la segunda fila
+- `headerRowStyle`: Estilo para la fila del encabezado
+- `lastRowStyle`: Estilo para la última fila
+- `firstColumnStyle`: Estilo para la primera columna
+- `secondColumnStyle`: Estilo para la segunda columna
+- `headerColumnStyle`: Estilo para la columna de encabezado
+- `lastColumnStyle`: Estilo para la última columna
+
+Puedes usar los métodos `getXXX/setXXX` en la Clase `RangeThemeStyle` para obtener/establecer estilos, por ejemplo:
+
+```typescript
+const rangeThemeStyle = new RangeThemeStyle('MyTheme')
+rangeThemeStyle.setSecondRowStyle({
+  bg: {
+    rgb: 'rgb(214,231,241)',
+  },
+})
+```
+
+Alternativamente, puede crearla directamente con parámetros opcionales durante la creación de instancias:
+
+```typescript
+/**
+ * @constructor
+ * @param {string} name The name of the range theme style, it used to identify the range theme style.
+ * @param {IRangeThemeStyleJSON} [options] The options to initialize the range theme style.
+ */
+class RangeThemeStyle {};
+
+// For example:
+const rangeThemeStyle = new RangeThemeStyle('MyTheme', {
+  secondRowStyle: {
+    bg: {
+      rgb: 'rgb(214,231,241)',
+    },
+  },
+})
+```
+
+Cuando definas varios estilos, se aplicarán en el siguiente orden de prioridad:
+
+`lastRowStyle` > `headerRowStyle` > `lastColumnStyle` > `headerColumnStyle` > `secondRowStyle` > `firstRowStyle` > `secondColumnStyle` > `firstColumnStyle` > `wholeStyle`
+
+Si el estilo definido de una celda entra en conflicto con el estilo en `range theme`, el estilo de la celda tendrá prioridad. Un conflicto aquí se refiere a definir la misma propiedad de estilo tanto en los datos de estilo de la celda como en `range theme`. Por ejemplo, si el estilo de la celda define un color de fondo de `red` mientras que `range theme` lo define como `blue`, el color de fondo de la celda será `red`.

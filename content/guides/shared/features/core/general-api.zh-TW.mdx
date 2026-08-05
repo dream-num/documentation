@@ -34,45 +34,43 @@ Univer 為使用者提供了統一的命令系統，通過命令系統使用者�
 
 Univer 設計了兩種監聽命令的方式，分別是在命令執行前和命令執行後：
 
-- `onBeforeCommandExecute`：在命令執行前執行自訂邏輯。
-- `onCommandExecuted`：在命令執行後執行自訂邏輯。
+- `Event.BeforeCommandExecute`：在命令執行前執行自訂邏輯。
+- `Event.CommandExecuted`：在命令執行後執行自訂邏輯。
 
 #### 監聽命令執行前
 
-在命令執行之前，我們向 `FUniver.onBeforeCommandExecute` API 傳入一個回調函數來註冊自訂的預處理監聽器。
+命令執行前，將 `Event.BeforeCommandExecute` 傳給 `FUniver.addEvent` 來註冊預處理監聽器。
 
 當命令執行前，預處理監聽器內邏輯會被執行。
 
 ```typescript
 const univerAPI = FUniver.newAPI(univer)
 
-univerAPI.onBeforeCommandExecute((command) => {
-  const { id, type, params } = command
+univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, ({ id, type, params }) => {
   // 在命令執行前執行自訂邏輯
 })
 ```
 
-如果你想在命令執行前阻止命令執行，可以在監聽器回調中 `throw` 一個異常。
+如需阻止命令執行，在監聽器中將 `event.cancel` 設為 `true`。
 
 ```typescript
 const univerAPI = FUniver.newAPI(univer)
 
-univerAPI.onBeforeCommandExecute((command) => {
-  throw new Error('禁止編輯')
+univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (event) => {
+  event.cancel = true
 })
 ```
 
 #### 監聽命令執行後
 
-在命令執行之後，我們也可以向 `FUniver.onCommandExecuted` API 傳入一個回調函數來註冊自訂的後處理監聽器。
+命令執行後，將 `Event.CommandExecuted` 傳給 `FUniver.addEvent` 來註冊後處理監聽器。
 
 當命令執行後，後處理監聽器內邏輯會被執行。
 
 ```typescript
 const univerAPI = FUniver.newAPI(univer)
 
-univerAPI.onCommandExecuted((command) => {
-  const { id, type, params } = command
+univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, type, params }) => {
   // 在命令執行後執行自訂邏輯
 })
 ```
@@ -87,7 +85,7 @@ univerAPI.onCommandExecuted((command) => {
 const univerAPI = FUniver.newAPI(univer)
 
 // 註冊監聽器
-const disposable = univerAPI.onBeforeCommandExecute((command) => {
+const disposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, () => {
   // 在命令執行前執行自訂邏輯
 })
 
@@ -360,13 +358,13 @@ ws.error$.subscribe((error) => {
   console.log('websocket error', error)
 })
 
-univerAPI.onCommandExecuted((command, options) => {
+univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, type, params, options }) => {
   // 僅同步本地 mutation
-  if (command.type !== 2 || options?.fromCollab || options?.onlyLocal || command.id === 'doc.mutation.rich-text-editing') {
+  if (type !== univerAPI.Enum.CommandType.MUTATION || options?.fromCollab || options?.onlyLocal || id === 'doc.mutation.rich-text-editing') {
     return
   }
 
-  const commandInfo = JSON.stringify({ command, options: { fromCollab: true } })
+  const commandInfo = JSON.stringify({ command: { id, type, params }, options: { fromCollab: true } })
   ws.send(commandInfo)
 })
 ```

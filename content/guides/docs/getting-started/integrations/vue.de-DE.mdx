@@ -1,0 +1,149 @@
+---
+title: Vue
+---
+
+<Callout>
+Wenn Sie nach Informationen suchen, wie Sie Vue-Komponenten als benutzerdefinierte Komponenten verwenden können, lesen Sie bitte [hier](/guides/docs/ui/components#vue).
+</Callout>
+
+## Vue 3.x
+
+### Hinweise vor der Integration
+
+- Vermeiden Sie das Proxying der Univer- und FUniver-Instanzen wie folgt kann zu unvorhersehbaren Fehlern oder Leistungsproblemen führen.
+
+### Integrationsschritte
+
+1. Univer im `onMounted`-Hook initialisieren
+2. Univer im `onBeforeUnmount`-Hook zerstören
+
+### Beispiel
+
+```vue
+<script lang="ts" setup>
+import type { FUniver, Univer } from '@univerjs/presets'
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+import UniverPresetDocsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
+
+import '@univerjs/preset-docs-core/lib/index.css'
+
+const container = ref<HTMLElement | null>(null)
+
+let univerInstance: Univer | null = null
+let univerAPIInstance: FUniver | null = null
+
+onMounted(() => {
+  const { univer, univerAPI } = createUniver({
+    locale: LocaleType.EN_US,
+    locales: {
+      [LocaleType.EN_US]: mergeLocales(
+        UniverPresetDocsCoreEnUS,
+      ),
+    },
+    presets: [
+      UniverDocsCorePreset({
+        container: container.value as HTMLElement,
+      }),
+    ],
+  })
+
+  univerAPI.createDocument({})
+
+  univerInstance = univer
+  univerAPIInstance = univerAPI
+})
+
+onBeforeUnmount(() => {
+  univerInstance?.dispose()
+  univerAPIInstance?.dispose()
+  univerInstance = null
+  univerAPIInstance = null
+})
+</script>
+
+<template>
+  <div ref="container" />
+</template>
+```
+
+## Vue 2.x
+
+### Hinweise vor der Integration
+
+- Bei der Installation `@univerjs/presets` mit pnpm müssen Sie möglicherweise `react` und `react-dom` manuell installieren.
+- Wenn Sie in der Entwicklungsumgebung auf die Warnung „ResizeObserver-Schleifenlimit überschritten“ stoßen, können Sie diese ignorieren oder sich auf das Code-Snippet unten beziehen, um das Problem zu beheben:
+
+```typescript
+if (process.env.NODE_ENV === 'development') {
+  const _ResizeObserver = window.ResizeObserver
+  function debounce(fn, delay) {
+    let timer = null
+    return function () {
+      if (timer) {
+        clearTimeout(timer)
+      }
+      timer = setTimeout(() => {
+        fn.apply(this, arguments)
+      }, delay)
+    }
+  }
+  window.ResizeObserver = class ResizeObserver extends _ResizeObserver {
+    constructor(callback) {
+      callback = debounce(callback, 50)
+      super(callback)
+    }
+  }
+}
+```
+
+### Integrationsschritte
+
+1. Initialisieren Univer im `mounted`-Hook
+2. Zerstöre Univer im `beforeDestroy`-Hook
+
+### Beispiel
+
+```vue
+<script>
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+import UniverPresetDocsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+import '@univerjs/preset-docs-core/lib/index.css'
+
+export default {
+  mounted() {
+    const { univer, univerAPI } = createUniver({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: mergeLocales(
+          UniverPresetDocsCoreEnUS,
+        ),
+      },
+      presets: [
+        UniverDocsCorePreset({
+          container: this.$refs.container,
+        }),
+      ],
+    })
+
+    univerAPI.createDocument({})
+
+    this.univerInstance = univer
+    this.univerAPIInstance = univerAPI
+  },
+  beforeUnmount() {
+    this.univerInstance?.dispose()
+    this.univerAPIInstance?.dispose()
+    this.univerInstance = null
+    this.univerAPIInstance = null
+  },
+}
+</script>
+
+<template>
+  <div ref="container" />
+</template>
+```

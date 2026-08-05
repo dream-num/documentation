@@ -157,99 +157,86 @@ import '@univerjs-pro/sheets-shape/facade'
 
 ### 插入基础形状
 
-通过 `FWorksheet.newShape` 创建形状构建器，然后调用 `FWorksheet.insertShape` 插入形状。
+向 `FWorksheet.insertShape` 传入通用形状创建数据，它会返回一个可直接操作的 Facade 实例。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 
-const rectShape = fWorksheet.newShape()
-  .setShapeType(univerAPI.Enum.ShapeTypeEnum.Rect)
-  .setPosition(1, 1, 0, 0)
-  .setWidth(240)
-  .setHeight(120)
-  .setShapeSolidFill('#e6f4ff')
-  .setStrokeColor('#1677ff')
-  .setStrokeWidth(2)
-  .build()
+const rectShape = fWorksheet.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.Rect,
+  transform: { left: 120, top: 80, width: 240, height: 120 },
+  shapeData: {
+    fill: {
+      fillType: univerAPI.Enum.ShapeFillEnum.SolidFill,
+      color: '#e6f4ff',
+    },
+    stroke: {
+      lineStrokeType: univerAPI.Enum.ShapeLineTypeEnum.SolidLine,
+      color: '#1677ff',
+      width: 2,
+    },
+  },
+})
 
-await fWorksheet.insertShape(rectShape)
+if (!rectShape) throw new Error('Shape could not be inserted.')
 ```
 
 ### 插入并连接连接线形状
 
-通过 `FWorksheet.newConnector` 创建连接线，再使用 `FWorksheet.connectShapes` 将连接线两端挂接到目标形状的连接点。
+通过 `FWorksheet.insertShape` 插入连接线，再通过返回的 `FConnectorShape` Facade 绑定两端。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 
-const leftShape = fWorksheet.newShape()
-  .setShapeType(univerAPI.Enum.ShapeTypeEnum.RoundRect)
-  .setPosition(1, 1, 0, 0)
-  .setWidth(180)
-  .setHeight(80)
-  .setShapeSolidFill('#f6ffed')
-  .setStrokeColor('#52c41a')
-  .build()
-await fWorksheet.insertShape(leftShape)
+const leftShape = fWorksheet.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.RoundRect,
+  transform: { left: 80, top: 80, width: 180, height: 100 },
+})
+const rightShape = fWorksheet.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.Ellipse,
+  transform: { left: 420, top: 200, width: 180, height: 100 },
+})
+const connectorShape = fWorksheet.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.BentConnector3,
+  transform: { left: 240, top: 130, width: 240, height: 120 },
+})
 
-const rightShape = fWorksheet.newShape()
-  .setShapeType(univerAPI.Enum.ShapeTypeEnum.Diamond)
-  .setPosition(1, 5, 0, 0)
-  .setWidth(180)
-  .setHeight(120)
-  .setShapeSolidFill('#fffbe6')
-  .setStrokeColor('#faad14')
-  .build()
-await fWorksheet.insertShape(rightShape)
-
-const connector = fWorksheet.newConnector()
-  .setShapeType(univerAPI.Enum.ShapeTypeEnum.StraightConnector1)
-  .setPosition(2, 3, 0, 0)
-  .setWidth(220)
-  .setHeight(40)
-  .setStartArrowType(univerAPI.Enum.ShapeArrowTypeEnum.Arrow)
-  .setEndArrowType(univerAPI.Enum.ShapeArrowTypeEnum.Arrow)
-  .setStrokeColor('#595959')
-  .setStrokeWidth(2)
-  .build()
-await fWorksheet.insertShape(connector)
-
-const shapes = fWorksheet.getShapes()
-const basicShapes = shapes.filter(shape => !shape.isLineShape())
-const connectorShape = shapes.find(shape => shape.isLineShape())
-
-if (connectorShape && basicShapes.length >= 2) {
-  await fWorksheet.connectShapes({
-    connector: connectorShape,
-    startTarget: { shape: basicShapes[0], connectionSiteIndex: 0 },
-    endTarget: { shape: basicShapes[1], connectionSiteIndex: 2 },
-  })
+if (!leftShape || !rightShape || !connectorShape) {
+  throw new Error('Shapes could not be inserted.')
 }
+
+const startSite = leftShape.getConnectionSites()[0]
+const rightSites = rightShape.getConnectionSites()
+const endSite = rightSites[2] ?? rightSites[0]
+
+if (!startSite || !endSite) throw new Error('Connection site not found.')
+
+connectorShape
+  .bindStart(leftShape.getId(), startSite.index)
+  .bindEnd(rightShape.getId(), endSite.index)
+  .setEndArrow(univerAPI.Enum.ShapeArrowTypeEnum.Arrow)
 ```
 
 ### 更新和删除形状
 
-通过 `FWorksheet.updateShape` 更新已有形状，通过 `FWorksheet.removeShape` 删除形状。
+直接通过形状的 Facade 实例更新或删除形状。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 
-const shapes = fWorksheet.getShapes()
-const firstShape = shapes.find(shape => !shape.isLineShape())
+const firstShape = fWorksheet.getShapes().find(shape => !shape.isConnectorShape())
 
 if (firstShape) {
-  const updatedShape = fWorksheet.newShape(firstShape)
+  firstShape
     .setStrokeColor('#ff4d4f')
     .setStrokeWidth(3)
-    .setShapeSolidFill('#fff1f0')
-    .build()
-
-  await fWorksheet.updateShape(updatedShape)
+    .setSolidFill('#fff1f0')
 
   // 如有需要，可在更新后删除该形状
-  await fWorksheet.removeShape(firstShape)
+  const removed = firstShape.remove()
+  console.log(removed)
 }
 ```

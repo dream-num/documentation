@@ -1,0 +1,140 @@
+---
+title: Fehlerbehebung
+---
+
+Dieses Handbuch behandelt häufige Probleme bei Installation, Start, Zugriff, USIP, Import/Export und Upgrades.
+
+## Umfang
+
+- Docker Compose- oder K8s-Bereitstellungen
+- USIP- und Event-Sync-Integrationen
+- Import-/Exportprobleme
+
+## Schnelle Triage
+
+| Symptom | Sofortige Maßnahme | Nächster Schritt |
+| --- | --- | --- |
+| Ein-Klick-Skript bleibt hängen | `curl -I https://get.univer.ai` | Offline-Paket verwenden |
+| Demo-Benutzeroberfläche nicht zugänglich | `cd univer-server && bash run.sh start` | `docker compose ps` |
+| USIP-Demo 8080 gibt 404 zurück | Überprüfen `USIP_ENABLED=true` in `.env.custom` | `bash run.sh restart` |
+| Helm-Pods ausstehend | `kubectl describe pod` | Bild/Ressourcen/PVC prüfen |
+| Import/Export ausstehend | Temporale/Exchange-/Universum-Protokolle prüfen | Siehe Abschnitt „Import/Export“ |
+
+## Docker Compose-Probleme
+
+### Installation fehlgeschlagen
+
+1. Netzwerk überprüfen:
+
+```bash
+curl -I https://get.univer.ai
+dig get.univer.ai
+```
+
+2. Docker-Installationskonflikte:
+
+```bash
+systemctl status docker
+ps -ef | grep dockerd
+```
+
+### Dienste werden nicht ausgeführt/neu gestartet
+
+```bash
+cd univer-server
+bash run.sh start
+docker compose ps
+docker compose logs --tail=200 <service>
+```
+
+Häufige Ursachen: Portkonflikte, `.env.custom` nicht geladen, unzureichende Ressourcen.
+
+### Demo-UI-Probleme
+
+- Portkonflikt: `lsof -i :3010`
+- WebSocket-Trennung: Reverse-Proxy/CORS prüfen
+- Fehler beim automatischen Erstellen des Dokuments: Universer-Protokolle prüfen
+
+## K8s-Probleme
+
+### Pod ausstehend
+
+```bash
+kubectl describe pod <pod> -n univer
+```
+
+Prüfung: Image-Pull, PVC, Knotenressourcen.
+
+### CrashLoopBackOff
+
+```bash
+kubectl logs <pod> -n univer --previous
+```
+
+### Ingress-/Domänenzugriffsfehler
+
+```bash
+dig univer.example.com
+kubectl get ingress -n univer
+kubectl get endpoints -n univer
+```
+
+## USIP Probleme
+
+| Symptom | Ursache |
+| --- | --- |
+| 8080 reagiert nicht | Stellen Sie sicher, dass `bash run.sh start-demo-usip` ausgeführt wird |
+| 401/403 nach der Aktivierung von USIP | Überprüfen Sie den Token-Passthrough und die Benutzerreaktion |
+| Konfiguration wurde nicht angewendet | Nach der Bearbeitung neu starten `.env.custom` |
+
+## Import/Export ausstehend
+
+### Untersuchungspfad
+
+1. VPN/Proxy deaktivieren → `bash run.sh restart`
+2. Dienststatus → `docker compose ps`
+3. Temporäre Protokolle → `docker compose logs -f temporal`
+4. Exchange-Protokolle → `docker compose logs -f univer-worker-exchange`
+5. Universer-Protokolle → `docker compose logs -f universer`
+
+### Häufige Fehler
+
+- Temporärer Startfehler: Portkonflikt oder Datenbankprobleme
+- Exchange-Timeout: Überprüfen Sie die temporäre Adresse
+
+Beispiel: `exchange/config.yaml.template` aktualisieren und neu starten:
+
+```text
+addr: no-txt:///${TEMPORAL_HOST}:${TEMPORAL_PORT}
+```
+
+## Upgrade & Deinstallation
+
+- Docker Compose-Upgrade: Installationsprogramm im übergeordneten Verzeichnis erneut ausführen
+- K8s-Upgrade: `helm upgrade --install ... -n univer`
+- Daten sind nach der Deinstallation noch vorhanden: Überprüfen Sie die PVC-Rückforderungsrichtlinie oder -Volumes
+
+## Protokolle und Sammlung
+
+| Dienst | Befehl |
+| --- | --- |
+| temporal | `docker compose logs -f temporal` |
+| exchange | `docker compose logs -f univer-worker-exchange` |
+| universer | `docker compose logs -f universer` |
+
+Paket Protokolle:
+
+```bash
+mkdir -p logs_collect && \
+docker compose logs temporal > logs_collect/temporal.log 2>&1 && \
+docker compose logs universer > logs_collect/universer.log 2>&1 && \
+tar czf univer-troubleshoot-logs.tar.gz logs_collect
+```
+
+## Checkliste
+
+- Dienste sind aktiv / Pods bereit
+- Keine Fehler in Zeit/Austausch
+- Ports und Domänen sind zugänglich
+- Konfigurationsänderungen werden nach dem Neustart angewendet
+- Import-/Exportaufgaben können abgeschlossen werden

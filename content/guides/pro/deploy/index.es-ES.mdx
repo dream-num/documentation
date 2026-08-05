@@ -1,0 +1,98 @@
+---
+title: Implementación de producción
+---
+
+## Arquitectura y servicios de implementación
+
+![Arquitectura y servicios de implementación](./index/deploy-arch.png)
+
+### Historial de evolución
+
+- Desde `v0.13.0`, se ha agregado el servicio `collaboration-helper` para manejar tareas intensivas de CPU ejecutadas de forma asincrónica (como instantáneas generación).
+- Desde `v0.15.0`, se ha introducido la programación de edición colaborativa por niveles para enrutar operaciones en hojas de cálculo de diferentes escalas a diferentes grupos de servicios de colaboración, reduciendo el impacto de hojas de cálculo grandes en hojas de cálculo de escala normal.
+
+### Introducción al servicio
+
+- **collaboration-server**: el motor de edición colaborativa back-end, que implementa el mismo algoritmo OT que el front-end. end.
+- **collaboration-helper**: Responsable de manejar tareas que requieren un uso intensivo de la CPU durante la colaboración (como la generación de instantáneas) para garantizar una edición colaborativa fluida. Nota: introducido desde `v0.13.0`.
+- **universer**: maneja solicitudes de operación de documentos, mantiene datos de documentos y es responsable de transmitir mensajes colaborativos.
+- **trabajador de intercambio**: responsable de ejecutar tareas de cálculo de importación/exportación de documentos; es un servicio de computación intensiva con altos requisitos de memoria.
+
+<Callout>
+el servidor de colaboración es un servicio con estado. Las solicitudes de edición para el mismo documento se procesan dentro de la misma instancia del servidor de colaboración, lo que reduce la sobrecarga de carga de datos y mejora el rendimiento general.
+Por lo tanto, Universer agrega una capa de enrutamiento de hash consistente cuando llama al servidor de colaboración para procesar las operaciones de edición.
+</Callout>
+
+### Introducción del componente
+
+- **RDS**: base de datos relacional, utilizada para almacenar metadatos de documentos, configuraciones de permisos, etc.
+- **Almacenamiento de objetos**: almacenamiento de objetos, utilizado para almacenar datos de contenido de documentos, incluidas imágenes, fragmentos de datos, etc.
+- **Redis**: caché para colaboradores de documentos en línea y tasa de API limitante.
+- **RabbitMQ**: cola de mensajes, utilizada para que los servicios Universer intercambien mensajes colaborativos que deben transmitirse.
+- **Temporal**: motor de ejecución de flujo de trabajo de código abierto; Univer lo utiliza para gestionar el flujo de trabajo asincrónico de importación/exportación de documentos.
+
+## Preparación previa a la implementación
+
+Después de comprender la arquitectura básica de los servicios back-end de Univer, se deben evaluar los siguientes elementos antes de la implementación en producción:
+
+### Selección del método de implementación
+
+Univer actualmente proporciona dos métodos de implementación:
+
+- **Implementación de Docker Compose**
+Docker Compose solo admite la implementación en una sola máquina y el escalado es principalmente vertical. **No se admite el escalado horizontal.** Es adecuado para escenarios sin capacidades de operación y mantenimiento de Kubernetes y con una escala de uso relativamente pequeña.
+
+- **Implementación estándar compatible con Kubernetes**
+Si ya opera un clúster de Kubernetes y es compatible con los patrones estándar de K8, se recomienda este método. Univer admite el escalamiento horizontal y la implementación de K8 proporciona la mejor escalabilidad.
+
+### Autenticación de identidad de usuario y validación de permisos
+
+La configuración de instalación de Univer no habilita la autenticación de identidad ni la validación de permisos de forma predeterminada. Debe decidir si habilitarlo en función de los requisitos comerciales reales. Consulte [Integre con su sistema a través de USIP](/guides/pro/usip) para obtener más detalles.
+
+### Selección de componentes de infraestructura
+
+Como se muestra en la arquitectura de implementación del sistema anterior, los componentes de infraestructura dependientes de Univer incluyen MQ, Redis, RDS y almacenamiento de objetos. El paquete de instalación de Univer incluye versiones comunes de código abierto de los componentes correspondientes.
+
+Al mismo tiempo, Univer admite el cambio a componentes de mantenimiento automático y se **muy recomendable** hacerlo en entornos de producción por los siguientes motivos:
+
+- Facilita el mantenimiento del sistema
+- Garantiza la seguridad del almacenamiento de datos
+- Garantiza un funcionamiento estable del sistema
+
+Esto es especialmente cierto para RDS y Object Storage, que almacenan datos de documentos. Si utiliza las versiones integradas de Univer, los daños en el almacenamiento físico de la máquina pueden provocar una pérdida permanente de datos. Si no tiene su propia infraestructura de almacenamiento, se recomienda elegir servicios proporcionados por proveedores de nube pública. Si solo puede utilizar los componentes de almacenamiento integrados de Univer, asegúrese de realizar copias de seguridad de los datos con regularidad, preferiblemente una vez al día.
+
+Si elige utilizar componentes de mantenimiento automático, asegúrese de que sean totalmente compatibles con los requisitos de Univer. Los requisitos para cada componente son los siguientes:
+
+#### MQ
+
+Debe ser totalmente compatible con AMQP/AMQPS; Actualmente se recomienda RabbitMQ. La imagen oficial utilizada en el paquete de instalación de Univer es `rabbitmq:3-management`.
+
+#### Redis
+
+Debe ser compatible con todos los comandos de Redis. La imagen oficial utilizada en el paquete de instalación de Univer es `bitnami/redis:7.0.15-debian-11-r3`.
+
+Los comandos de Redis utilizados actualmente por Univer incluyen: `GET`, `MGET`, `SET`, `SETNX`, `DEL`, `EXISTS`, `EXPIRE`, `HSET`, `HGET`, `HDEL`, `HGETALL`, `HLEN`, `SCAN`, `Pipeline`, `EVAL`, `EVALSHA`. Asegúrese de que el componente Redis sea compatible con los comandos anteriores. Bajo la premisa de compatibilidad de reuniones, también se puede utilizar una versión distribuida de Redis.
+
+#### RDS
+
+Actualmente adaptado para PostgreSQL 16.1, MySQL 8.0, GaussDB y DamengDB. Puede elegir una de las bases de datos anteriores o una alternativa compatible. La imagen oficial utilizada en el paquete de instalación de Univer es `postgres:16.1`.
+
+Tenga en cuenta que Univer actualmente no admite bases de datos distribuidas que requieran fragmentación por campos de tabla. Si una base de datos distribuida no es totalmente compatible con el método de acceso de una base de datos de una sola máquina, no se puede utilizar. Además, si utiliza una base de datos distribuida totalmente compatible como TiDB, también debe tener cuidado: el generador de ID actual de Univer produce ID que incrementan las tendencias, lo que puede hacer que las solicitudes se concentren en el mismo nodo y creen cuellos de botella en el rendimiento.
+
+#### Almacenamiento de objetos
+
+Debe ser compatible con la API de AWS S3. La imagen oficial utilizada en el paquete de instalación de Univer es `bitnami/minio:2024.8.3-debian-12-r1`.
+
+#### Componentes de observabilidad
+
+Al operar y mantener posteriormente los servicios back-end de Univer, debe determinar si utilizará los componentes de observabilidad integrados de Univer o se conectará a un sistema de observabilidad existente. Actualmente, Univer proporciona métricas de Prometheus, paneles de Grafana y registros de servicios. Para obtener detalles de conexión, consulte el [Manual de SRE](/guides/pro/sre-manual).
+
+Si no tiene un sistema de observabilidad o le resulta difícil integrarlo, se recomienda habilitar los componentes de observabilidad integrados de Univer.
+
+## Próximos pasos
+
+Después de completar la evaluación anterior, lea los siguientes documentos de acuerdo con el método de implementación real:
+
+- [Capacidad Planificación](/guides/pro/deploy/capacity) — Estimación de CPU, memoria y recuentos de instancias necesarios
+- [Guía de implementación de Docker Compose](/guides/pro/deploy/docker-compose) — Pasos de configuración e implementación de Docker Compose
+- [Guía de implementación de Kubernetes](/guides/pro/deploy/kubernetes): configuración de K8 y pasos de implementación

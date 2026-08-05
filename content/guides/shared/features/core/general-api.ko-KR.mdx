@@ -34,45 +34,43 @@ Univer의 작업 대부분은 명령 시스템에 등록되고 명령 시스템�
 
 Univer는 명령 실행 전과 실행 후, 두 가지 시점에 명령을 수신할 수 있는 방법을 제공합니다.
 
-- `onBeforeCommandExecute`: 명령이 실행되기 전에 사용자 지정 로직을 실행합니다.
-- `onCommandExecuted`: 명령이 실행된 후에 사용자 지정 로직을 실행합니다.
+- `Event.BeforeCommandExecute`: 명령이 실행되기 전에 사용자 지정 로직을 실행합니다.
+- `Event.CommandExecuted`: 명령이 실행된 후에 사용자 지정 로직을 실행합니다.
 
 #### 실행 전 명령 수신
 
-명령이 실행되기 전에 사용자 지정 전처리 리스너를 등록하려면 `FUniver.onBeforeCommandExecute` API에 콜백 함수를 전달합니다.
+실행 전에는 `Event.BeforeCommandExecute`를 `FUniver.addEvent`에 전달하여 전처리 리스너를 등록합니다.
 
 명령이 실행되면 전처리 리스너 내부의 로직이 실행됩니다.
 
 ```typescript
 const univerAPI = FUniver.newAPI(univer)
 
-univerAPI.onBeforeCommandExecute((command) => {
-  const { id, type, params } = command
+univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, ({ id, type, params }) => {
   // Custom logic executed before the command is executed
 })
 ```
 
-명령이 실행되기 전에 실행을 막으려면 리스너 콜백에서 예외를 `throw`할 수 있습니다.
+명령 실행을 막으려면 리스너에서 `event.cancel`을 `true`로 설정합니다.
 
 ```typescript
 const univerAPI = FUniver.newAPI(univer)
 
-univerAPI.onBeforeCommandExecute((command) => {
-  throw new Error('Editing is prohibited')
+univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (event) => {
+  event.cancel = true
 })
 ```
 
 #### 실행 후 명령 수신
 
-명령이 실행된 후에는 `FUniver.onCommandExecuted` API에 콜백 함수를 전달하여 사용자 지정 후처리 리스너를 등록할 수도 있습니다.
+실행 후에는 `Event.CommandExecuted`를 `FUniver.addEvent`에 전달하여 후처리 리스너를 등록합니다.
 
 명령이 실행되면 후처리 리스너 내부의 로직이 실행됩니다.
 
 ```typescript
 const univerAPI = FUniver.newAPI(univer)
 
-univerAPI.onCommandExecuted((command) => {
-  const { id, type, params } = command
+univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, type, params }) => {
   // Custom logic executed after the command is executed
 })
 ```
@@ -87,7 +85,7 @@ univerAPI.onCommandExecuted((command) => {
 const univerAPI = FUniver.newAPI(univer)
 
 // Register a listener
-const disposable = univerAPI.onBeforeCommandExecute((command) => {
+const disposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, () => {
   // custom preprocessing logic before the command is executed
 })
 
@@ -360,13 +358,13 @@ ws.error$.subscribe((error) => {
   console.log('websocket error', error)
 })
 
-univerAPI.onCommandExecuted((command, options) => {
+univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, type, params, options }) => {
   // Only synchronize local mutations
-  if (command.type !== 2 || options?.fromCollab || options?.onlyLocal || command.id === 'doc.mutation.rich-text-editing') {
+  if (type !== univerAPI.Enum.CommandType.MUTATION || options?.fromCollab || options?.onlyLocal || id === 'doc.mutation.rich-text-editing') {
     return
   }
 
-  const commandInfo = JSON.stringify({ command, options: { fromCollab: true } })
+  const commandInfo = JSON.stringify({ command: { id, type, params }, options: { fromCollab: true } })
   ws.send(commandInfo)
 })
 ```

@@ -1,0 +1,357 @@
+---
+title: Instalación y uso básico
+---
+
+Univer adopta una filosofía de diseño basada en complementos, con el objetivo de proporcionar a los desarrolladores un marco flexible y extensible para aplicaciones de documentos electrónicos. A través de este diseño basado en complementos, Univer puede integrar fácilmente varios módulos funcionales para satisfacer las necesidades de diferentes usuarios. Sin embargo, el diseño basado en complementos aumenta la complejidad de la aplicación, especialmente para los desarrolladores que son nuevos en Univer.
+
+Por esta razón, Univer ofrece dos formas de ayudarlo a integrar y usar Univer rápidamente: **modo complemento** y **modo preestablecido**. El llamado **preajuste** es en realidad una combinación de complementos preconfigurados, por lo que las capacidades proporcionadas por ambos modos son las mismas sin extensiones complejas.
+
+<Callout type="warning" title="Caution">
+  - **Versiones de dependencia consistentes**: ya sea que use el modo preestablecido o el modo complemento, debe asegurarse de que todas las dependencias tengan números de versión consistentes.
+  - **Mezcla cautelosa de complementos y ajustes preestablecidos**: si un complemento ya está incluido en un ajuste preestablecido, no necesita importar ese complemento por separado cuando use el ajuste preestablecido. De lo contrario, puede provocar conflictos con los complementos o anomalías funcionales.
+</Callout>
+
+Diferencias entre el modo preestablecido y el modo complemento:
+
+| Modo de complemento | Modo preestablecido |
+| --- | --- |
+| Requiere la importación manual de los paquetes de fachada correspondientes | No es necesario importar manualmente ningún paquete de fachada |
+| Requiere atención al orden de registro de los complementos con la misma funcionalidad | No es necesario prestar atención al orden de registro de las funcionalidades incluidas en ajustes preestablecidos |
+| Admite carga diferida bajo demanda | Solo admite carga diferida a nivel preestablecido, los complementos dentro del ajuste preestablecido solo se pueden cargar de forma sincrónica |
+
+## Configuración mediante el modo preestablecido
+
+Aquí presentaremos brevemente cómo crear rápidamente una aplicación Univer Sheets con menos de veinte líneas de código.
+
+### Uso del Administrador de paquetes
+
+Si su proyecto ya utiliza herramientas modernas de desarrollo front-end, integrar Univer será muy sencillo. Recomendamos utilizar herramientas de compilación como [Vite](https://vitejs.dev/), [esbuild](https://esbuild.github.io/) o [Webpack 5](https://webpack.js.org/) que tienen un buen soporte para módulos ES para crear aplicaciones Univer. Si está utilizando otras herramientas de compilación (como Webpack 4), es posible que necesite alguna configuración adicional.
+
+#### Instalación
+
+Elija su administrador de paquetes para instalar `@univerjs/presets`:
+
+```package-install
+npm install @univerjs/presets @univerjs/preset-docs-core
+```
+
+#### Uso
+
+<Callout type="warning">
+Si su herramienta de compilación no admite el campo `exports` en package.json (común en Webpack 4), deberá cambiar manualmente las rutas asignadas a las rutas reales.
+</Callout>
+
+Con el siguiente código, puede iniciar una aplicación Univer Sheets:
+
+```typescript
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+import UniverPresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+import '@univerjs/preset-sheets-core/lib/index.css'
+
+const { univer, univerAPI } = createUniver({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(
+      UniverPresetSheetsCoreEnUS,
+    ),
+  },
+  presets: [
+    UniverSheetsCorePreset({
+      container: 'app',
+    }),
+  ],
+})
+
+univerAPI.createWorkbook({})
+```
+
+El objeto `univerAPI` devuelto aquí se llama Univer Facade API, a través del cual puede llamar a muchas funciones proporcionadas por Univer.
+
+<PlaygroundFrame lang="en-US" slug="sheets/slim-via-preset" clickToShow />
+
+<Callout type="warning">
+También puede importar `UniverSheetsCorePreset` desde `@univerjs/presets/preset-sheets-core`, pero debe asegurarse de que su herramienta de compilación admita Campo `exports` en package.json.
+</Callout>
+
+#### Método `createUniver`
+
+El método `createUniver` acepta un objeto de configuración que contiene la información de configuración de Univer, como el idioma, el tema y los complementos. Este método devuelve un objeto que contiene la instancia de Univer y la instancia de API de Univer Facade.
+
+Algunas propiedades del objeto de configuración son las siguientes:
+
+- `locale`: entorno de idioma, puede ser un valor de enumeración `LocaleType`.
+- `locales`: configuraciones regionales, un objeto, la clave es el entorno de idioma y el valor es el objeto del paquete de idioma.
+- `theme`: un objeto de tema, que es opcional.
+- `presets`: una matriz de ajustes preestablecidos que contiene los ajustes preestablecidos que se registrarán, como `UniverSheetsCorePreset`.
+- `plugins`: una matriz de complementos que contiene los complementos que deben registrarse adicionalmente.
+
+Cuando utiliza un complemento que no está incluido en ningún paquete preestablecido o implementa su propio complemento, puede registrar estos complementos a través de la propiedad `plugins`. También puede optar por registrar complementos utilizando el método `univer.registerPlugin` después de obtener la instancia de Univer.
+
+<Callout>
+Puede encontrar información más detallada sobre el método `createUniver` en la [Referencia API / createUniver](https://docs.univer.ai/reference/methods/create-univer).
+</Callout>
+
+### Importar desde CDN
+
+Si no desea utilizar un administrador de paquetes o simplemente desea probarlo rápidamente Las funciones de Univer le permiten importar los recursos relevantes de Univer a través de CDN. Para obtener más información, consulte [Uso de Univer a través de CDN](/guides/sheets/getting-started/installation/cdn#preset-mode).
+
+## Configuración a través del modo complemento
+
+Univer proporciona una serie de funciones en forma de complementos. Además de algunos complementos principales que son esenciales para el producto, puede introducir selectivamente otros complementos según sea necesario. Aquí, tomaremos la aplicación Univer Sheets más básica como ejemplo para presentar cómo combinar e instalar complementos manualmente.
+
+A diferencia del modo preestablecido, el modo complemento no incluye Facade API de forma predeterminada. Las partes relacionadas con Facade API en los siguientes ejemplos de código son opcionales y puede decidir si desea eliminarlas según sus necesidades.
+
+### Uso del Administrador de paquetes
+
+#### Instalación
+
+Usamos React para desarrollar la vista (esto no afecta su uso de Univer en Vue o Angular) y Rxjs para manejar flujos de datos. Dado que estas dos bibliotecas se utilizan ampliamente en el desarrollo front-end moderno, las tratamos como dependencias entre pares. Sin embargo, diferentes herramientas de administración de paquetes tienen diferentes comportamientos con respecto a las dependencias de pares, por lo que es posible que deba prestar atención a algunos detalles.
+
+<Callout>
+  - Si está utilizando npm, asegúrese de utilizar npm@7 o superior. Esto se debe a que npm@3 ~ npm@6 no instalará correctamente `peerDependencies`[^1].
+  - Si está utilizando pnpm, asegúrese de estar utilizando pnpm@8 o superior. Si está utilizando pnpm@6 ~ pnpm@7, puede intentar configurar `auto-install-peers=true` [^2] para resolver los problemas de instalación de dependencias.
+  - Si está utilizando hilo, debe instalar manualmente el `peerDependencies`[^3] que falta, los comandos de instalación a continuación ya incluyen estas dependencias.
+</Callout>
+
+<Tabs items={['npm', 'pnpm', 'yarn']}>
+  <Tab>
+    ```shell
+    npm install @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/sheets @univerjs/sheets-formula @univerjs/sheets-formula-ui @univerjs/sheets-numfmt @univerjs/sheets-numfmt-ui @univerjs/sheets-ui @univerjs/ui
+    ```
+  </Tab>
+  <Tab>
+    ```shell
+    pnpm add @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/sheets @univerjs/sheets-formula @univerjs/sheets-formula-ui @univerjs/sheets-numfmt @univerjs/sheets-numfmt-ui @univerjs/sheets-ui @univerjs/ui
+    ```
+  </Tab>
+  <Tab>
+    ```shell
+    yarn add @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula @univerjs/engine-render @univerjs/sheets @univerjs/sheets-formula @univerjs/sheets-formula-ui @univerjs/sheets-numfmt @univerjs/sheets-numfmt-ui @univerjs/sheets-ui @univerjs/ui react react-dom rxjs
+    ```
+  </Tab>
+</Tabs>
+
+#### Uso
+
+<Callout type="warning" title="Caution">
+  - No todos los complementos incluyen paquetes de fachada, paquetes de idioma y archivos de estilo. Especificaremos esto en la documentación de cada característica.
+  - El orden de importación de los archivos de estilo es importante. Asegúrese de importar los estilos CSS de `@univerjs/design` y `@univerjs/ui` antes de importar los estilos de otros complementos.
+</Callout>
+
+<Steps>
+  <Step>
+Debe importar los archivos de estilo de Univer, los paquetes de idioma y algunos complementos necesarios en su proyecto:
+
+    ```typescript
+    import { LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
+    import { FUniver } from '@univerjs/core/facade'
+    import DesignEnUS from '@univerjs/design/locale/en-US'
+    import { UniverDocsPlugin } from '@univerjs/docs'
+    import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+    import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
+    import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+    import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+    import { UniverSheetsPlugin } from '@univerjs/sheets'
+    import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+    import { UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
+    import SheetsFormulaUIEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
+    import { UniverSheetsNumfmtPlugin } from '@univerjs/sheets-numfmt'
+    import { UniverSheetsNumfmtUIPlugin } from '@univerjs/sheets-numfmt-ui'
+    import SheetsNumfmtUIEnUS from '@univerjs/sheets-numfmt-ui/locale/en-US'
+    import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
+    import SheetsUIEnUS from '@univerjs/sheets-ui/locale/en-US'
+    import SheetsEnUS from '@univerjs/sheets/locale/en-US'
+    import { UniverUIPlugin } from '@univerjs/ui'
+    import UIEnUS from '@univerjs/ui/locale/en-US'
+
+    import '@univerjs/design/lib/index.css'
+    import '@univerjs/ui/lib/index.css'
+    import '@univerjs/docs-ui/lib/index.css'
+    import '@univerjs/sheets-ui/lib/index.css'
+    import '@univerjs/sheets-formula-ui/lib/index.css'
+    import '@univerjs/sheets-numfmt-ui/lib/index.css'
+    ```
+  </Step>
+  <Step>
+Si necesita utilizar la API de Facade, puede importar los paquetes de fachada relevantes aquí. Esto es opcional, pero recomendado:
+
+    ```typescript
+    import '@univerjs/engine-formula/facade'
+    import '@univerjs/ui/facade'
+    import '@univerjs/docs-ui/facade'
+    import '@univerjs/sheets/facade'
+    import '@univerjs/sheets-ui/facade'
+    import '@univerjs/sheets-formula/facade'
+    import '@univerjs/sheets-numfmt/facade'
+    ```
+  </Step>
+  <Step>
+Luego cree una instancia de Univer y registre estos complementos:
+
+    ```typescript
+    const univer = new Univer({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: mergeLocales(
+          DesignEnUS,
+          UIEnUS,
+          DocsUIEnUS,
+          SheetsEnUS,
+          SheetsUIEnUS,
+          SheetsFormulaUIEnUS,
+          SheetsNumfmtUIEnUS,
+        ),
+      },
+    })
+
+    univer.registerPlugin(UniverRenderEnginePlugin)
+    univer.registerPlugin(UniverFormulaEnginePlugin)
+
+    univer.registerPlugin(UniverUIPlugin, {
+      container: 'app',
+    })
+
+    univer.registerPlugin(UniverDocsPlugin)
+    univer.registerPlugin(UniverDocsUIPlugin)
+
+    univer.registerPlugin(UniverSheetsPlugin)
+    univer.registerPlugin(UniverSheetsUIPlugin)
+    univer.registerPlugin(UniverSheetsFormulaPlugin)
+    univer.registerPlugin(UniverSheetsFormulaUIPlugin)
+    univer.registerPlugin(UniverSheetsNumfmtPlugin)
+    univer.registerPlugin(UniverSheetsNumfmtUIPlugin)
+
+    univer.createUnit(UniverInstanceType.UNIVER_SHEET, {})
+
+    const univerAPI = FUniver.newAPI(univer)
+    ```
+  </Step>
+</Steps>
+
+<PlaygroundFrame lang="en-US" slug="sheets/slim-via-plugin" clickToShow />
+
+#### Método `univer.registerPlugin` [#registerPlugin]
+
+El método ``univer.registerPlugin` se utiliza para registrar un complemento en la instancia de Univer. Puede llamar a este método después de crear la instancia de Univer para registrar complementos.
+
+Puede registrar un complemento utilizando el método `univer.registerPlugin(Plugin, options)`, donde `Plugin` es el complemento que se registrará y `options` son elementos de configuración opcionales, ya que cada complemento puede tener diferentes elementos de configuración.
+
+También puede pasar una matriz para registrar varios complementos a la vez. Esto es útil para escenarios en los que necesita administrar complementos de forma centralizada.
+
+```typescript
+univer.registerPlugin([
+  UniverRenderEnginePlugin,
+  UniverFormulaEnginePlugin,
+  [UniverUIPlugin, {
+    container: 'app',
+  }],
+  UniverDocsPlugin,
+  UniverDocsUIPlugin,
+  UniverSheetsPlugin,
+  UniverSheetsUIPlugin,
+  UniverSheetsFormulaPlugin,
+  UniverSheetsFormulaUIPlugin,
+  UniverSheetsNumfmtPlugin,
+  UniverSheetsNumfmtUIPlugin,
+])
+```
+
+#### Complementos de carga diferida
+
+Una ventaja común del modo complemento es que puede controlar el tiempo de carga de los complementos de manera más flexible. Un enfoque común es cargar solo los complementos esenciales durante la inicialización de la aplicación, mientras se difiere la carga de algunos complementos hasta que se complete el primer procesamiento.
+
+```typescript
+// ...
+
+univer.createUnit(UniverInstanceType.UNIVER_SHEET, {})
+
+import('@univerjs/watermark').then(({ UniverWatermarkPlugin }) => {
+  univer.registerPlugin(UniverWatermarkPlugin, {
+    textWatermarkSettings: {
+      content: 'Hello, Univer!',
+      fontSize: 36,
+    },
+  })
+})
+```
+
+Nuestra [demostración oficial](https://github.com/dream-num/univer/blob/dev/examples/src/sheets/main.ts) utiliza esta técnica de optimización, a la que puede consultar.
+
+### Soporte móvil
+
+Univer proporciona soporte móvil **experimental**. La versión móvil está optimizada para interacciones táctiles y ofrece componentes de interfaz de usuario y experiencias de interacción adaptadas a dispositivos móviles.
+
+- **Complementos de interfaz de usuario**: para adaptarse a diferentes patrones de interacción entre dispositivos, algunos complementos de interfaz de usuario ofrecen variantes tanto de escritorio como móviles. Estas dos variantes viven en el mismo paquete npm y se distinguen por diferentes rutas de exportación.
+- **Complementos lógicos principales**: como el motor de fórmulas (`UniverFormulaEnginePlugin`) y el motor de renderizado (`UniverRenderEnginePlugin`), siguen siendo los mismos tanto en computadoras de escritorio como en dispositivos móviles, por lo que no hay necesidad de diferenciar las versiones.
+
+<Callout type="info">
+Los complementos para dispositivos móviles y de escritorio no son dos paquetes completamente separados: son el mismo paquete presentado de manera diferente. en diferentes plataformas. Por ejemplo, `@univerjs/sheets-ui` proporciona tanto el `UniverSheetsUIPlugin` de escritorio como el `UniverSheetsMobileUIPlugin` móvil.
+</Callout>
+
+<Callout type="warning" title="Notes">
+  - El soporte móvil actualmente es experimental y algunas características pueden estar incompletas.
+  - Los complementos de la interfaz de usuario móvil y los complementos de la interfaz de usuario de escritorio no se pueden usar al mismo tiempo; elija el complemento adecuado según el tipo de dispositivo.
+  - Se recomienda realizar pruebas exhaustivas antes de implementarlo en producción.
+</Callout>
+
+<PlaygroundFrame lang="en-US" slug="sheets/mobile-via-plugin" clickToShow />
+
+#### Cambiar a complementos móviles
+
+Simplemente reemplace el complemento de interfaz de usuario correspondiente con su variante móvil:
+
+````typescript
+import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui' // [!code --]
+import { UniverSheetsMobileUIPlugin } from '@univerjs/sheets-ui' // [!code ++]
+
+univer.registerPlugin(UniverSheetsUIPlugin) // [!code --]
+univer.registerPlugin(UniverSheetsMobileUIPlugin) // [!code ++]
+````
+
+#### Mapeo de complementos de escritorio versus móvil
+
+La siguiente tabla enumera todos los complementos de interfaz de usuario que ofrecen variantes móviles. Si necesita elegir complementos dinámicamente según el tipo de dispositivo, consulte la tabla de asignación:
+
+| Complemento de escritorio | Complemento móvil | Paquete |
+| --- | --- | --- |
+| `UniverUIPlugin` | `UniverMobileUIPlugin` | `@univerjs/ui` |
+| `UniverSheetsUIPlugin` | `UniverSheetsMobileUIPlugin` | `@univerjs/sheets-ui` |
+| `UniverSheetsFilterUIPlugin` | `UniverSheetsFilterMobileUIPlugin` | `@univerjs/sheets-filter-ui` |
+| `UniverSheetsDataValidationUIPlugin` | `UniverSheetsDataValidationMobileUIPlugin` | `@univerjs/sheets-data-validation-ui` |
+| `UniverSheetsConditionalFormattingUIPlugin` | `UniverSheetsConditionalFormattingMobileUIPlugin` | `@univerjs/sheets-conditional-formatting-ui` |
+
+En la documentación de funciones posterior, si una función tiene un complemento de adaptación móvil, lo anotaremos en la sección correspondiente.
+
+### Importar desde CDN
+
+Si no desea utilizar un administrador de paquetes o simplemente desea probar rápidamente las funciones de Univer, puede importar los recursos relevantes de Univer a través de CDN. Para obtener más información, consulte [Uso de Univer a través de CDN](/guides/sheets/getting-started/installation/cdn#plugin-mode).
+
+## Otras versiones
+
+Además de las versiones estables, Univer ofrece canales alfa/beta y nocturnos. Estas versiones le permiten obtener acceso anticipado a las funciones más nuevas que aún no se han lanzado oficialmente. Sin embargo, tenga en cuenta que más funciones también significan más riesgos. Estas versiones pueden contener errores, funciones incompletas o características inestables. Evite el uso de estas versiones en entornos de producción siempre que sea posible.
+
+### Lanzamiento alfa/beta
+
+Cuando el equipo de desarrollo de Univer completa una nueva función o un cambio significativo, es posible que lo publique previamente en el canal alfa o beta. Puede instalar la versión alfa/beta de un paquete de Univer usando el siguiente comando:
+
+```package-install
+npm install @univerjs/<package-name>@alpha # Alpha version
+npm install @univerjs/<package-name>@beta # Beta version
+```
+
+Si encuentra algún problema o tiene algún comentario mientras usa las versiones alfa/beta, infórmelo al equipo de desarrollo de Univer a través de [Problemas de GitHub](https://github.com/dream-num/univer/issues).
+
+Agradecemos sus comentarios sobre estas primeras versiones.
+
+## Próximos pasos
+
+* [Conceptos básicos](/guides/sheets/getting-started/quickstart#basic-concepts) - Aprenda sobre los conceptos básicos de Univer.
+* [Features](/guides/sheets/features/core) - Aprenda sobre las características de Univer y cómo manipular datos.
+
+---
+
+[^1]: https://blog.npmjs.org/post/110924823920/npm-weekly-5
+[^2]: https://pnpm.io/npmrc#auto-install-peers
+[^3]: https://github.com/yarnpkg/yarn/issues/1503

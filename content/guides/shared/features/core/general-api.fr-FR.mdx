@@ -34,45 +34,43 @@ La plupart des opérations d’Univer sont enregistrées dans le système de com
 
 Univer permet d’écouter les commandes de deux façons : avant leur exécution et après leur exécution :
 
-- `onBeforeCommandExecute` : exécute une logique personnalisée avant l’exécution de la commande.
-- `onCommandExecuted` : exécute une logique personnalisée après l’exécution de la commande.
+- `Event.BeforeCommandExecute` : exécute une logique personnalisée avant l’exécution de la commande.
+- `Event.CommandExecuted` : exécute une logique personnalisée après l’exécution de la commande.
 
 #### Écoute des commandes avant leur exécution
 
-Avant l’exécution de la commande, transmettez une fonction de rappel à l’API `FUniver.onBeforeCommandExecute` afin d’enregistrer un écouteur de prétraitement personnalisé.
+Avant l’exécution, transmettez `Event.BeforeCommandExecute` à `FUniver.addEvent` pour enregistrer un écouteur de prétraitement.
 
 Lorsque la commande est exécutée, la logique contenue dans l’écouteur de prétraitement s’exécute.
 
 ```typescript
 const univerAPI = FUniver.newAPI(univer)
 
-univerAPI.onBeforeCommandExecute((command) => {
-  const { id, type, params } = command
+univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, ({ id, type, params }) => {
   // Custom logic executed before the command is executed
 })
 ```
 
-Pour empêcher l’exécution d’une commande avant qu’elle ne commence, vous pouvez lancer une exception avec `throw` dans la fonction de rappel de l’écouteur.
+Pour empêcher l’exécution d’une commande, définissez `event.cancel` sur `true` dans la fonction de rappel.
 
 ```typescript
 const univerAPI = FUniver.newAPI(univer)
 
-univerAPI.onBeforeCommandExecute((command) => {
-  throw new Error('Editing is prohibited')
+univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (event) => {
+  event.cancel = true
 })
 ```
 
 #### Écoute des commandes après leur exécution
 
-Après l’exécution de la commande, vous pouvez également transmettre une fonction de rappel à l’API `FUniver.onCommandExecuted` afin d’enregistrer un écouteur de post-traitement personnalisé.
+Après l’exécution, transmettez `Event.CommandExecuted` à `FUniver.addEvent` pour enregistrer un écouteur de post-traitement.
 
 Lorsque la commande est exécutée, la logique contenue dans l’écouteur de post-traitement s’exécute.
 
 ```typescript
 const univerAPI = FUniver.newAPI(univer)
 
-univerAPI.onCommandExecuted((command) => {
-  const { id, type, params } = command
+univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, type, params }) => {
   // Custom logic executed after the command is executed
 })
 ```
@@ -87,7 +85,7 @@ Il est recommandé de détruire les écouteurs qui ne sont plus utilisés afin d
 const univerAPI = FUniver.newAPI(univer)
 
 // Register a listener
-const disposable = univerAPI.onBeforeCommandExecute((command) => {
+const disposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, () => {
   // custom preprocessing logic before the command is executed
 })
 
@@ -360,13 +358,13 @@ ws.error$.subscribe((error) => {
   console.log('websocket error', error)
 })
 
-univerAPI.onCommandExecuted((command, options) => {
+univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, type, params, options }) => {
   // Only synchronize local mutations
-  if (command.type !== 2 || options?.fromCollab || options?.onlyLocal || command.id === 'doc.mutation.rich-text-editing') {
+  if (type !== univerAPI.Enum.CommandType.MUTATION || options?.fromCollab || options?.onlyLocal || id === 'doc.mutation.rich-text-editing') {
     return
   }
 
-  const commandInfo = JSON.stringify({ command, options: { fromCollab: true } })
+  const commandInfo = JSON.stringify({ command: { id, type, params }, options: { fromCollab: true } })
   ws.send(commandInfo)
 })
 ```

@@ -12,7 +12,7 @@ This interface class provides methods to modify the behavior of the operation fo
 
 > This class should not be instantiated directly. Use factory methods on `univerAPI` instead.
 
-`@univerjs-pro/engine-formula/facade` re-exports the Facade API from `@univerjs/engine-formula/facade`; it does not add separate Pro-only Facade methods.
+`@univerjs-pro/engine-formula/facade` extends the core formula Facade with cross-unit Sheet and Base reference authoring.
 
 ## Overview
 
@@ -33,22 +33,76 @@ This interface class provides methods to modify the behavior of the operation fo
 | [`getRangeDependentsAndInRangeFormulas`](#getrangedependentsandinrangeformulas) | Retrieve both the dependency trees of formulas that depend on the specified ranges and those inside the ranges |
 | [`lexerTreeBuilder`](#lexertreebuilder) | Access the formula lexer tree builder |
 | [`moveFormulaRefOffset`](#moveformularefoffset) | Offsets the formula |
-| [`onCalculationEnd`](#oncalculationend) | Waits for the formula calculation to complete |
+| [`calculationResultApplied`](#calculationresultapplied) | Listen after calculation results have been applied to every affected model |
+| [`onCalculationResultApplied`](#oncalculationresultapplied) | Wait until the latest calculation results have been applied |
 | [`sequenceNodesBuilder`](#sequencenodesbuilder) | Resolves the formula string to a node tree |
 | [`setFormulaReturnDependencyTree`](#setformulareturndependencytree) | Enable or disable emitting formula dependency trees after each formula calculation |
 | [`setMaxIteration`](#setmaxiteration) | When a formula contains a circular reference, set the maximum number of iterations for the formula calculation |
 | [`stopCalculation`](#stopcalculation) | Stop the calculation of the formula |
-| [`whenComputingCompleteAsync`](#whencomputingcompleteasync) | Wait until formula computing is complete |
+
+### @univerjs-pro/engine-formula
+
+| Method | Description |
+|--------|-------------|
+| [`buildReference`](#buildreference) | Build a Sheet-range or Base-table reference and persist its cross-unit binding |
+| [`upsertExternalReference`](#upsertexternalreference) | Create or update a host-owned external reference binding |
+| [`removeExternalReference`](#removeexternalreference) | Remove a host-owned external reference binding |
 
 ### @univerjs/sheets-formula
 
 | Method | Description |
 |--------|-------------|
-| [`calculationResultApplied`](#calculationresultapplied) | Listens for the moment when formula-calculation results are applied |
-| [`onCalculationResultApplied`](#oncalculationresultapplied) | Waits for formula-calculation results to be applied |
 | [`registerAsyncFunction`](#registerasyncfunction) | Register a custom asynchronous formula function |
 | [`registerFunction`](#registerfunction) | Register a custom synchronous formula function |
 | [`setInitialFormulaComputing`](#setinitialformulacomputing) | Update the calculation mode of the formula |
+
+## Cross-unit reference authoring
+
+Import `@univerjs-pro/engine-formula/facade` to add these methods to `univerAPI.getFormula()`.
+
+### `buildReference`
+
+```typescript
+buildReference(options: IBuildFormulaReferenceOptions): string
+```
+
+The returned string is a reference fragment without a leading `=`. For a cross-unit source, the method also persists the stable source binding on the host unit.
+
+```ts
+const host = univerAPI.getActiveWorkbook()
+const reference = univerAPI.getFormula().buildReference({
+  hostUnitId: host.getId(),
+  unit: {
+    unitId: 'sales-workbook',
+    formulaQualifier: 'Sales Workbook',
+  },
+  target: {
+    kind: univerAPI.Enum.FormulaReferenceType.SHEET_RANGE,
+    sheetName: 'Sales',
+    range: { startRow: 1, endRow: 9, startColumn: 1, endColumn: 1 },
+  },
+})
+
+host.getActiveSheet().getRange('C1').setFormula(`=SUM(${reference})`)
+```
+
+### `upsertExternalReference`
+
+```typescript
+upsertExternalReference(options: IUpsertHostExternalReferenceCommandParams): boolean
+```
+
+Use this before writing hand-authored or imported cross-unit formula text. The options identify the host `unitId`, public `qualifier`, stable `sourceUnitId`, and `sourceUnitType`.
+
+### `removeExternalReference`
+
+```typescript
+removeExternalReference(options: IRemoveHostExternalReferenceCommandParams): boolean
+```
+
+Remove a host binding by `referenceId` or `qualifier`. Existing formula text is not rewritten.
+
+<span className="text-xs text-fd-muted-foreground">Source: `@univerjs-pro/engine-formula`</span>
 
 ## APIs
 
@@ -93,23 +147,6 @@ const formulaEngine = univerAPI.getFormula();
 const trees = await formulaEngine.getAllDependencyTrees();
 console.log('All dependency trees:', trees);
 ```
-
-<span className="text-xs text-fd-muted-foreground">Source: `@univerjs/engine-formula`</span>
-
-### `whenComputingCompleteAsync`
-
-Wait until formula computing is complete.
-
-**Signature**
-```typescript
-whenComputingCompleteAsync(timeout?: number): Promise<boolean>
-```
-
-**Parameters**
-- `timeout` `number` *(optional)* — Maximum wait time in milliseconds.
-
-**Returns**
-- `Promise<boolean>` — `true` when formula computing completes before timeout.
 
 <span className="text-xs text-fd-muted-foreground">Source: `@univerjs/engine-formula`</span>
 
@@ -465,33 +502,22 @@ console.log(result);
 
 ### Events
 
-### `onCalculationEnd`
-
-Waits for the formula calculation to complete.
-
-**Signature**
-```typescript
-onCalculationEnd(): Promise<void>
-```
-
-**Returns**
-- `Promise<void>` — This method returns a promise that resolves when the calculation is complete.
-
-<span className="text-xs text-fd-muted-foreground">Source: `@univerjs/engine-formula`</span>
-
 ### `onCalculationResultApplied`
 
-Waits for formula-calculation results to be applied. This method resolves when a real calculation runs and results are applied, or when no calculation starts within 500 ms.
+Waits until the latest formula-calculation results have been applied.
 
 **Signature**
 ```typescript
-onCalculationResultApplied(): Promise<void>
+onCalculationResultApplied(timeout?: number): Promise<void>
 ```
+
+**Parameters**
+- `timeout` `number` *(optional)* — Maximum wait time in milliseconds.
 
 **Returns**
 - `Promise<void>` — A promise that resolves when calculation results are applied.
 
-<span className="text-xs text-fd-muted-foreground">Source: `@univerjs/sheets-formula`</span>
+<span className="text-xs text-fd-muted-foreground">Source: `@univerjs/engine-formula`</span>
 
 ### `registerAsyncFunction`
 
@@ -585,7 +611,7 @@ formulaEngine.calculationProcessing((stageInfo) => {
 
 ### `calculationResultApplied`
 
-Listens for the moment when formula-calculation results are applied. The callback is invoked during an idle frame after the engine completes a calculation cycle.
+Listens after formula-calculation results have been applied to every affected model.
 
 **Signature**
 ```typescript
@@ -598,7 +624,7 @@ calculationResultApplied(callback: (result: ISetFormulaCalculationResultMutation
 **Returns**
 - `IDisposable` — A disposable used to unsubscribe from the event.
 
-<span className="text-xs text-fd-muted-foreground">Source: `@univerjs/sheets-formula`</span>
+<span className="text-xs text-fd-muted-foreground">Source: `@univerjs/engine-formula`</span>
 
 ### `calculationStart`
 

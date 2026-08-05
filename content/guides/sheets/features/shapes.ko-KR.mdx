@@ -157,99 +157,86 @@ import '@univerjs-pro/sheets-shape/facade'
 
 ### 기본 도형 삽입
 
-`FWorksheet.newShape`로 도형 빌더를 만든 다음 `FWorksheet.insertShape`을 호출하여 삽입합니다.
+공통 도형 생성 데이터를 `FWorksheet.insertShape`에 전달합니다. 활성 Facade 핸들이 반환됩니다.
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 
-const rectShape = fWorksheet.newShape()
-  .setShapeType(univerAPI.Enum.ShapeTypeEnum.Rect)
-  .setPosition(1, 1, 0, 0)
-  .setWidth(240)
-  .setHeight(120)
-  .setShapeSolidFill('#e6f4ff')
-  .setStrokeColor('#1677ff')
-  .setStrokeWidth(2)
-  .build()
+const rectShape = fWorksheet.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.Rect,
+  transform: { left: 120, top: 80, width: 240, height: 120 },
+  shapeData: {
+    fill: {
+      fillType: univerAPI.Enum.ShapeFillEnum.SolidFill,
+      color: '#e6f4ff',
+    },
+    stroke: {
+      lineStrokeType: univerAPI.Enum.ShapeLineTypeEnum.SolidLine,
+      color: '#1677ff',
+      width: 2,
+    },
+  },
+})
 
-await fWorksheet.insertShape(rectShape)
+if (!rectShape) throw new Error('Shape could not be inserted.')
 ```
 
 ### 커넥터 도형 삽입 및 연결
 
-`FWorksheet.newConnector`로 커넥터 선을 만들고 `FWorksheet.connectShapes`로 양 끝을 도형의 연결 지점에 연결합니다.
+`FWorksheet.insertShape`로 커넥터를 삽입한 뒤 반환된 `FConnectorShape` Facade에서 양 끝을 연결합니다.
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 
-const leftShape = fWorksheet.newShape()
-  .setShapeType(univerAPI.Enum.ShapeTypeEnum.RoundRect)
-  .setPosition(1, 1, 0, 0)
-  .setWidth(180)
-  .setHeight(80)
-  .setShapeSolidFill('#f6ffed')
-  .setStrokeColor('#52c41a')
-  .build()
-await fWorksheet.insertShape(leftShape)
+const leftShape = fWorksheet.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.RoundRect,
+  transform: { left: 80, top: 80, width: 180, height: 100 },
+})
+const rightShape = fWorksheet.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.Ellipse,
+  transform: { left: 420, top: 200, width: 180, height: 100 },
+})
+const connectorShape = fWorksheet.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.BentConnector3,
+  transform: { left: 240, top: 130, width: 240, height: 120 },
+})
 
-const rightShape = fWorksheet.newShape()
-  .setShapeType(univerAPI.Enum.ShapeTypeEnum.Diamond)
-  .setPosition(1, 5, 0, 0)
-  .setWidth(180)
-  .setHeight(120)
-  .setShapeSolidFill('#fffbe6')
-  .setStrokeColor('#faad14')
-  .build()
-await fWorksheet.insertShape(rightShape)
-
-const connector = fWorksheet.newConnector()
-  .setShapeType(univerAPI.Enum.ShapeTypeEnum.StraightConnector1)
-  .setPosition(2, 3, 0, 0)
-  .setWidth(220)
-  .setHeight(40)
-  .setStartArrowType(univerAPI.Enum.ShapeArrowTypeEnum.Arrow)
-  .setEndArrowType(univerAPI.Enum.ShapeArrowTypeEnum.Arrow)
-  .setStrokeColor('#595959')
-  .setStrokeWidth(2)
-  .build()
-await fWorksheet.insertShape(connector)
-
-const shapes = fWorksheet.getShapes()
-const basicShapes = shapes.filter(shape => !shape.isLineShape())
-const connectorShape = shapes.find(shape => shape.isLineShape())
-
-if (connectorShape && basicShapes.length >= 2) {
-  await fWorksheet.connectShapes({
-    connector: connectorShape,
-    startTarget: { shape: basicShapes[0], connectionSiteIndex: 0 },
-    endTarget: { shape: basicShapes[1], connectionSiteIndex: 2 },
-  })
+if (!leftShape || !rightShape || !connectorShape) {
+  throw new Error('Shapes could not be inserted.')
 }
+
+const startSite = leftShape.getConnectionSites()[0]
+const rightSites = rightShape.getConnectionSites()
+const endSite = rightSites[2] ?? rightSites[0]
+
+if (!startSite || !endSite) throw new Error('Connection site not found.')
+
+connectorShape
+  .bindStart(leftShape.getId(), startSite.index)
+  .bindEnd(rightShape.getId(), endSite.index)
+  .setEndArrow(univerAPI.Enum.ShapeArrowTypeEnum.Arrow)
 ```
 
 ### 도형 업데이트 및 제거
 
-기존 도형을 업데이트하려면 `FWorksheet.updateShape`을 사용하고 제거하려면 `FWorksheet.removeShape`을 사용합니다.
+도형의 업데이트와 제거는 활성 Facade 핸들에서 직접 수행합니다.
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 const fWorksheet = fWorkbook.getActiveSheet()
 
-const shapes = fWorksheet.getShapes()
-const firstShape = shapes.find(shape => !shape.isLineShape())
+const firstShape = fWorksheet.getShapes().find(shape => !shape.isConnectorShape())
 
 if (firstShape) {
-  const updatedShape = fWorksheet.newShape(firstShape)
+  firstShape
     .setStrokeColor('#ff4d4f')
     .setStrokeWidth(3)
-    .setShapeSolidFill('#fff1f0')
-    .build()
-
-  await fWorksheet.updateShape(updatedShape)
+    .setSolidFill('#fff1f0')
 
   // Remove the shape after update if needed
-  await fWorksheet.removeShape(firstShape)
+  const removed = firstShape.remove()
+  console.log(removed)
 }
 ```

@@ -3,17 +3,15 @@ title: Диаграммы
 icon: '#pro/ChartPie'
 ---
 
-## Подключение поддержки диаграмм
+## Регистрация поддержки диаграмм
 
-Поддержка диаграмм в Slides разделена на пакет модели и пакет пользовательского интерфейса:
-
-`@univerjs-pro/chart-ui` — это общая зависимость с компонентами интерфейса диаграмм, которую использует пакет интерфейса диаграмм Slides.
+Поддержка диаграмм Slides состоит из пакета модели и пакета интерфейса. `@univerjs-pro/chart-ui` предоставляет общие элементы редактирования, локали и стили.
 
 ```ts
-import ChartUIEnUS from '@univerjs-pro/chart-ui/locale/en-US'
+import ChartUIRuRU from '@univerjs-pro/chart-ui/locale/ru-RU'
 import { UniverSlidesChartPlugin } from '@univerjs-pro/slides-chart'
 import { UniverSlidesChartUIPlugin } from '@univerjs-pro/slides-chart-ui'
-import SlidesChartUIEnUS from '@univerjs-pro/slides-chart-ui/locale/en-US'
+import SlidesChartUIRuRU from '@univerjs-pro/slides-chart-ui/locale/ru-RU'
 
 import '@univerjs-pro/chart-ui/lib/index.css'
 import '@univerjs-pro/slides-chart-ui/lib/index.css'
@@ -23,89 +21,36 @@ univer.registerPlugin(UniverSlidesChartPlugin)
 univer.registerPlugin(UniverSlidesChartUIPlugin)
 ```
 
-## Назначение пакетов
+Зарегистрируйте поддержку диаграмм до открытия или импорта презентации, которая может содержать такие элементы.
 
-- `@univerjs-pro/slides-chart` интегрирует элементы диаграмм с моделью слайдов и движком диаграмм.
-- `@univerjs-pro/chart-ui` предоставляет общие элементы управления редактора диаграмм, локализации и файл `@univerjs-pro/chart-ui/lib/index.css` для пакетов Pro с интерфейсом диаграмм.
-- `@univerjs-pro/slides-chart-ui` добавляет интерфейс редактирования диаграмм, интеграцию с системой рендеринга, панели вставки и редактирование источников данных. Пакет также предоставляет локализации `@univerjs-pro/slides-chart-ui/locale/*` и файл `@univerjs-pro/slides-chart-ui/lib/index.css` для браузерных редакторов.
+## Создание и обновление диаграмм
 
-## Выбор среды выполнения
-
-В браузерном редакторе используйте оба пакета. Для серверной обработки снимков зарегистрируйте пакет модели вместе с основной моделью Slides:
+Управляйте диаграммами через коллекцию `charts` слайда. `create()` возвращает ещё не вставленный конструктор, а `insert()` добавляет его на текущий слайд.
 
 ```ts
-univer.registerPlugin(UniverSlidesPlugin)
-univer.registerPlugin(UniverSlidesChartPlugin)
-```
+const presentation = univerAPI.getActivePresentation()
+const slide = presentation.getActiveSlide()
 
-Подключите поддержку диаграмм до открытия или импорта презентаций, в которых могут быть элементы диаграмм.
-
-## Создание диаграммы
-
-В диаграммах Slides источником данных служат встроенные двумерные массивы. Они не считывают данные напрямую из диапазонов листа.
-
-```ts
-const fPresentation = univerAPI.getActivePresentation()
-const fSlide = fPresentation.getSlideById('slide-1')
-
-const chartInfo = fSlide.newChart()
-  .setChartType(univerAPI.Enum.ChartType.Column)
+const builder = slide.charts.create()
+  .setType(univerAPI.Enum.ChartTypeString.Column)
   .setData([
-    ['Month', 'Revenue', 'Cost'],
-    ['Jan', 120, 80],
-    ['Feb', 180, 96],
-    ['Mar', 240, 132],
+    ['Месяц', 'Выручка', 'Затраты'],
+    ['Янв.', 120, 80],
+    ['Фев.', 180, 96],
+    ['Мар.', 240, 132],
   ])
-  .setUseFirstRowAsHeaders(true)
-  .setUseFirstColumnAsDomain(true)
-  .setTitle('Quarterly revenue')
+  .setTitle('Квартальная выручка')
   .setAbsolutePosition(80, 120)
   .setSize(520, 320)
-  .build()
 
-const chart = fSlide.insertChart(chartInfo)
+const chart = await slide.charts.insert(builder)
+
+chart
+  .setType(univerAPI.Enum.ChartTypeString.Line)
+  .setLegend({ visible: true })
+  .commit()
 ```
 
-## Обновление диаграммы
+Для существующих диаграмм используйте `slide.charts.list()`, `slide.charts.get(id)` и `await slide.charts.remove(chartOrId)`. Конструктор Slides также поддерживает `setData`, `getData`, `setPlaceholder`, `setStroke` и `setZOrder`.
 
-Чтобы найти существующие диаграммы, используйте `getCharts()` или `getChartById()`. Метод `updateDataSource()` обновляет встроенные данные, не перемещая элемент диаграммы.
-
-```ts
-const chart = fSlide.getCharts()[0]
-
-chart?.updateDataSource(
-  [
-    ['Month', 'Revenue', 'Cost'],
-    ['Apr', 260, 140],
-    ['May', 300, 168],
-  ],
-  {
-    useFirstRowAsHeaders: true,
-    useFirstColumnAsDomain: true,
-  },
-)
-```
-
-Для более значительных изменений преобразуйте диаграмму обратно в построитель и вызовите `updateChart()`:
-
-```ts
-if (chart) {
-  const nextChartInfo = chart.toBuilder()
-    .setChartType(univerAPI.Enum.ChartType.Line)
-    .setOptions('legend.position', univerAPI.Enum.ChartLegendPositionEnum.Right)
-    .setSeriesStyle(0, { color: '#2F80ED' })
-    .build()
-
-  fSlide.updateChart(nextChartInfo)
-}
-```
-
-## Удаление диаграммы
-
-```ts
-chart?.remove()
-// or
-if (chart) {
-  fSlide.removeChart(chart)
-}
-```
+Общие настройки описаны в [справочнике Chart Facade](/reference/facade/chart).

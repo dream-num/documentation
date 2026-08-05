@@ -1,0 +1,41 @@
+---
+title: Capacidad Planificación
+---
+
+import { CapacityCalculator } from './components/capacity-calculator'
+
+## Planificación de capacidad
+
+Los requisitos de capacidad deben evaluarse en función de la escala comercial real. Si la demanda es alta, es posible que la implementación de Docker Compose no sea adecuada. Notas especiales:
+
+- **Exchange Worker** (servicio de importación/exportación) es un servicio de computación intensiva que puede consumir una cantidad significativa de CPU y memoria en períodos cortos, especialmente al importar documentos grandes. Evalúe la demanda de importación/exportación y asigne recursos de CPU y memoria adecuados.
+- **collaboration-server** (motor de colaboración) es un servicio de Nodo con estado que consume una cantidad considerable de memoria cuando hay muchos documentos abiertos para editarlos simultáneamente. Evalúe la cantidad requerida de instancias y la configuración de memoria por instancia. Si es necesario editar hojas de cálculo muy grandes (más de 5 millones de celdas), se recomienda asignar al menos 8 GB de memoria por instancia.
+
+Además, la programación por niveles de edición colaborativa introducida desde `v0.15.0` requiere estadísticas sobre la distribución a escala de las hojas de cálculo en el escenario de uso (los documentos y las diapositivas no participan en la programación por niveles) para determinar si es necesario editar hojas de cálculo por niveles. configurado. Si es necesario, también se debe evaluar la cantidad de niveles del clúster y la escala de la hoja de cálculo manejada por cada nivel (recuento total de celdas, tiempo de importación, etc.). Para obtener instrucciones de configuración específicas, consulte la documentación de configuración de la plataforma de implementación correspondiente.
+
+### Requisitos de recursos de edición colaborativa
+
+Si la gran mayoría son documentos pequeños, el servicio de colaboración puede tener un tamaño de 2c4g; de lo contrario, se recomienda 4c8g. No se recomienda aumentar aún más la especificación de una única instancia de servicio de colaboración, ya que esto puede provocar un desperdicio de CPU.
+
+- Una única instancia de servicio de colaboración (2c4g/4c8g) puede admitir aproximadamente 1100/1200 documentos de pequeña escala editados simultáneamente, lo que equivale a aproximadamente 360/400 QPS de edición y guardado.
+- Un único servicio Universer (2c4g/4c8g) puede admitir aproximadamente 1200/2200 documentos de pequeña escala editados simultáneamente, lo que equivale a aproximadamente 400/730 QPS de edición y guardado.
+
+### Requisitos de recursos de colaboración multiusuario
+
+En la colaboración multiusuario, además de los recursos consumidos por las operaciones de edición y guardado, la demanda de CPU para la transmisión colaborativa de mensajes es más significativa. La transmisión de mensajes colaborativos la maneja el servicio Universer y no afecta el uso de recursos del servidor de colaboración.
+
+Una configuración de 2c4g × 2 puede admitir 10 operaciones de edición por segundo para 1400 personas. En promedio, 1 núcleo de CPU puede admitir hasta 3500 transmisiones colaborativas por segundo.
+
+La fórmula para QPS de transmisión colaborativa es:
+
+```
+Collaborative Broadcast QPS = Edit-Save QPS × (Active Users / Active Documents − 1)
+```
+
+La resta de 1 se debe a que el envío a uno mismo ya se cuenta en el QPS de edición y guardado.
+
+### Calculadora de requisitos de capacidad
+
+Puede usar la calculadora a continuación para estimar rápidamente la configuración de recursos requerida en función de los parámetros comerciales reales. Después de ingresar parámetros como el recuento de documentos activos, la frecuencia de guardado y el índice de colaboración, la calculadora generará automáticamente la edición de QPS, la QPS de transmisión colaborativa y las configuraciones recomendadas del servicio de nodo, Universer y base de datos.
+
+<CapacityCalculator locale="en-US" />

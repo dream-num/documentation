@@ -1,0 +1,255 @@
+---
+title: Editar historial
+icon: '#pro/History'
+---
+
+<MetaData
+  lang="en-US"
+  isPro
+  meta={{
+    preset: [{
+      client: '@univerjs/preset-sheets-collaboration',
+      locale: '@univerjs/preset-sheets-collaboration/locales/en-US',
+      style: '@univerjs/preset-sheets-collaboration/lib/index.css',
+    }],
+    plugins: [{
+      client: '@univerjs-pro/edit-history-loader',
+      locale: '@univerjs-pro/edit-history-loader/locale/en-US',
+    }, {
+      client: '@univerjs-pro/edit-history-viewer',
+      locale: '@univerjs-pro/edit-history-viewer/locale/en-US',
+      style: '@univerjs-pro/edit-history-viewer/lib/index.css',
+    }],
+    server: true,
+  }}
+/>
+
+<Callout type="warning" title="Caution">
+La funcionalidad de editar historial requiere soporte del servidor Univer. Asegúrese de haber instalado y configurado correctamente el servidor Univer. Para obtener más información, consulte: [Actualización a Pro](/guides/pro)
+</Callout>
+
+Editar historial permite a los usuarios ver y restaurar versiones históricas de documentos, admitiendo varios métodos de filtrado y búsqueda para ayudar a los usuarios a administrar eficientemente el contenido del documento.
+
+<Callout type="warning" title="Caution">
+La función Editar historial crea una instancia independiente de Univer para manejar la carga y visualización de registros históricos. Si necesita operar o configurar la instancia de Univer para registros históricos (como modificar encabezados de solicitud de interfaz, registrar complementos, etc.), consulte la sección [Obtener la instancia de Univer para editar el historial](#get-edit-history-univer-instance).
+</Callout>
+
+## Modo preestablecido
+
+### Instalación
+
+<Callout>
+El ajuste preestablecido `UniverSheetsAdvancedPreset` de `@univerjs/preset-sheets-advanced` depende del `UniverSheetsDrawingPreset` preestablecido en tiempo de ejecución. Primero instale `@univerjs/preset-sheets-drawing`.
+</Callout>
+
+```package-install
+npm install @univerjs/preset-sheets-drawing @univerjs/preset-sheets-advanced @univerjs/preset-sheets-collaboration
+```
+
+### Uso
+
+```typescript
+import { UniverSheetsAdvancedPreset } from '@univerjs/preset-sheets-advanced' // [!code ++]
+import UniverPresetSheetsAdvancedEnUS from '@univerjs/preset-sheets-advanced/locales/en-US' // [!code ++]
+import { UniverSheetsCollaborationPreset } from '@univerjs/preset-sheets-collaboration' // [!code ++]
+import UniverPresetSheetsCollaborationEnUS from '@univerjs/preset-sheets-collaboration/locales/en-US' // [!code ++]
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+import UniverPresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing' // [!code ++]
+import UniverPresetSheetsDrawingEnUS from '@univerjs/preset-sheets-drawing/locales/en-US' // [!code ++]
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+import '@univerjs/preset-sheets-core/lib/index.css'
+import '@univerjs/preset-sheets-drawing/lib/index.css' // [!code ++]
+import '@univerjs/preset-sheets-advanced/lib/index.css' // [!code ++]
+import '@univerjs/preset-sheets-collaboration/lib/index.css' // [!code ++]
+
+const { univerAPI } = createUniver({
+  locale: LocaleType.En_US,
+  locales: {
+    [LocaleType.En_US]: mergeLocales(
+      UniverPresetSheetsCoreEnUS,
+      UniverPresetSheetsDrawingEnUS, // [!code ++]
+      UniverPresetSheetsAdvancedEnUS, // [!code ++]
+      UniverPresetSheetsCollaborationEnUS, // [!code ++]
+    ),
+  },
+  collaboration: true, // [!code ++]
+  presets: [
+    UniverSheetsCorePreset(),
+    UniverSheetsDrawingPreset({ // [!code ++]
+      collaboration: true,
+    }), // [!code ++]
+    UniverSheetsAdvancedPreset({ // [!code ++]
+      // configuration for advanced features
+    }), // [!code ++]
+    UniverSheetsCollaborationPreset({ // [!code ++]
+      universerEndpoint: 'http://localhost:3010', // [!code ++]
+    }), // [!code ++]
+  ],
+})
+```
+
+Si tiene una licencia comercial para Univer, consulte [Uso de la licencia en el cliente](/guides/pro/license#in-preset-mode) para la configuración.
+
+### Preajustes y configuración
+
+La configuración `UniverSheetsCollaborationPreset` opciones:
+
+```typescript
+interface IUniverSheetsCollaborationPresetConfig {
+  // The endpoint of the Univer Server
+  universerEndpoint?: string
+  /**
+   * If the data calculation in the history requires the use of Worker (such as formulas), you can configure this field.
+   * 1. If historyWorkerURL is provided and historyWorkerURL is a Worker instance, it will be destroyed when the history is closed, so a new Worker instance needs to be provided each time the history is opened.
+   * ```typescript
+   * importar { EDIT_HISTORY_LOADER_PLUGIN_CONFIG_KEY, ToggleEditHistoryOperation } desde '@univerjs/preset-sheets-collaboration';
+   *
+   * univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (evento) => {
+   *   if (event.id === ToggleEditHistoryOperation.id) {
+   *     const workURL = new Worker(new URL('./worker.ts', import.meta.url));
+   *     const configService = univer.__getInjector().get(IConfigService);
+   *     configService.setConfig(EDIT_HISTORY_LOADER_PLUGIN_CONFIG_KEY, {
+   *       workerURL,
+   *     });
+   *   }
+   * });
+   * 2. Si el historialWorkerURL proporcionado no es una instancia de Worker, no se requiere procesamiento adicional.
+   * ```
+   */
+  historyWorkerURL?: string | URL | Worker
+}
+```
+
+## Modo de complemento
+
+### Instalación
+
+```package-install
+npm install @univerjs-pro/edit-history-viewer @univerjs-pro/edit-history-loader
+```
+
+### Uso
+
+```typescript
+import { UniverEditHistoryLoaderPlugin } from '@univerjs-pro/edit-history-loader' // [!code ++]
+import EditHistoryViewerEnUS from '@univerjs-pro/edit-history-viewer/locale/en-US' // [!code ++]
+import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history-viewer/lib/index.css' // [!code ++]
+
+const univer = new Univer({
+  locale: LocaleType.En_US,
+  locales: {
+    [LocaleType.En_US]: mergeLocales(
+      EditHistoryViewerEnUS, // [!code ++]
+    ),
+  },
+})
+
+univer.registerPlugin(UniverEditHistoryLoaderPlugin, { // [!code ++]
+  univerContainerId: 'your-univer-container-id', // [!code ++]
+}) // [!code ++]
+```
+
+Si tiene una licencia comercial para Univer, consulte [Uso de la licencia en Cliente](/guides/pro/license#in-plugin-mode) para la configuración.
+
+### Complementos y configuración
+
+Las opciones de configuración `UniverEditHistoryLoaderPlugin`:
+
+```typescript
+interface IUniverEditHistoryLoaderConfig {
+  univerContainerId?: string
+  // The server url of the history list
+  historyListServerUrl?: string
+  /**
+   * If the data calculation in the history requires the use of Worker (such as formulas), you can configure this field.
+   * 1. If workerURL is provided and workerURL is a Worker instance, it will be destroyed when the history is closed, so a new Worker instance needs to be provided each time the history is opened.
+   * ```typescript
+   * importar { EDIT_HISTORY_LOADER_PLUGIN_CONFIG_KEY, ToggleEditHistoryOperation } desde '@univerjs-pro/edit-history-loader';
+   *
+   * univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (event) => {
+   *   if (event.id === ToggleEditHistoryOperation.id) {
+   *     const workURL = new Worker(new URL('./worker.ts', import.meta.url));
+   *     const configService = univer.__getInjector().get(IConfigService);
+   *     configService.setConfig(EDIT_HISTORY_LOADER_PLUGIN_CONFIG_KEY, {
+   *       workerURL,
+   *     });
+   *   }
+   * });
+   * 2. Si la URL de trabajador proporcionada no es un trabajador Por ejemplo, no se requiere ningún procesamiento adicional.
+   * ```
+   */
+  workerURL?: string | URL | Worker
+}
+```
+
+Al habilitar el historial de edición, `UniverEditHistoryLoaderPlugin` cargará una nueva instancia de Univer y la montará en el nodo DOM especificado. Por lo tanto, al registrarse, debe proporcionar una identificación de nodo DOM adecuada (como el contenedor de la instancia original de Univer) para lograr el propósito de que el panel de historial cubra el panel original de Univer. Si no se especifica la identificación del nodo, el valor predeterminado es `univer-container`.
+
+Si necesita modificar la dirección del servidor para la lista del historial, puede configurarla a través de la opción de configuración `historyListServerUrl`, que por defecto es `/universer-api/history`.
+
+## Obtener la instancia de Univer para editar el historial [#get-edit-history-univer-instance]
+
+<Callout title="Good to Know">
+La instancia de Univer para el historial de edición se crea solo cuando se abre el panel de historial por primera vez.
+</Callout>
+
+Si necesita operar o configurar la instancia de Univer para el historial de edición (como modificar encabezados de solicitud de interfaz, registrar complementos, etc.), puede obtener la instancia a través de `HistoryLoaderService`.
+
+<Tabs items={['Preset Mode', 'Plugin Mode']}>
+  <Tab>
+    ```typescript
+    import { HistoryLoaderService } from '@univerjs/preset-sheets-collaboration'
+
+    const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+      if (stage === univerAPI.Enum.LifecycleStages.Steady) {
+        const injector = univer.__getInjector()
+        const historyLoaderService = injector.get(HistoryLoaderService)
+
+        historyLoaderService.historyUniver$.subscribe((historyUniver) => {
+          // 在这里可以使用 historyUniver 实例进行操作
+        })
+      }
+    })
+
+    // Remove the event listener using `disposable.dispose()`
+    ```
+  </Tab>
+  <Tab>
+    ```typescript
+    import { HistoryLoaderService } from '@univerjs-pro/edit-history-loader'
+
+    const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+      if (stage === univerAPI.Enum.LifecycleStages.Steady) {
+        const injector = univer.__getInjector()
+        const historyLoaderService = injector.get(HistoryLoaderService)
+
+        historyLoaderService.historyUniver$.subscribe((historyUniver) => {
+          if (!historyUniver) return
+
+          // You can perform operations on the historyUniver instance here
+        })
+      }
+    })
+
+    // Remove the event listener using `disposable.dispose()`
+    ```
+  </Tab>
+</Tabs>
+
+### Complemento de terceros Adaptación
+
+La instancia de Univer para el historial de edición solo cargará complementos oficiales de forma predeterminada. Los complementos de funciones de terceros desarrollados para necesidades comerciales deben registrarse con `HistoryLoaderService` para que se muestren correctamente en el historial.
+
+```typescript
+const injector = univer.__getInjector()
+const historyLoaderService = injector.get(HistoryLoaderService)
+
+// [!code focus:4]
+// The registration method is the same as that of PluginService. The Univer instance for edit history will register the corresponding plugins according to the following configuration after creation.
+historyLoaderService.registerPlugin(YourPlugin, YourPluginConfig)
+// Configure the officially registered plugin, set the true parameter to indicate that the original configuration should be overridden
+historyLoaderService.registerPlugin(ExamplePlugin, ExamplePluginConfig, true)
+```
