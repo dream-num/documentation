@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
-import type { Locale } from '@/i18n/routing'
 import { getTranslations } from 'next-intl/server'
+
+import type { Locale } from '@/i18n/routing'
 import { DocsHeader } from '@/components/docs-shell/header'
 import { Footer } from '@/components/footer'
 import { createGuideNavigation } from '@/lib/guides/navigation'
@@ -17,13 +18,13 @@ export async function ToolsShell({
   pathname: string
 }) {
   const t = await getTranslations({ locale: lang as Locale })
-  const navigation = createToolsNavigation(lang, pathname, {
+  const navigation = createToolsNavigation(pathname, {
     themeCustomizer: t('tools.theme-customizer'),
   })
   const guideNavigation = createGuideNavigation(guides.pageTree[lang], pathname)
 
   return (
-    <div className="min-h-dvh bg-background text-foreground">
+    <div className="bg-background text-foreground min-h-dvh">
       <DocsHeader
         guideItems={guideNavigation.items}
         items={navigation.items}
@@ -32,12 +33,7 @@ export async function ToolsShell({
         searchScope="all"
         title={t('tools.section')}
       />
-      <main
-        className="
-          mx-auto w-full max-w-384 px-4 py-8
-          lg:px-12 lg:pb-12
-        "
-      >
+      <main className="mx-auto w-full max-w-384 px-4 py-8 lg:px-12 lg:pb-12">
         {children}
         <Footer variant="content" />
       </main>

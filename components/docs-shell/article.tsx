@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react'
 import { SiGithub } from '@icons-pack/react-simple-icons'
 import { getTranslations } from 'next-intl/server'
-import Link from 'next/link'
 
 import type { Locale } from '@/i18n/routing'
 import type { DocsNavigation } from '@/lib/docs/navigation'
 import { Rate } from '@/components/rate'
 import { Button } from '@/components/ui/button'
+import { Link } from '@/i18n/navigation'
 
 import { DocsPagination } from './pagination'
 

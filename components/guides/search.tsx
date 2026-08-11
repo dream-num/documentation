@@ -2,17 +2,17 @@
 
 import { SearchIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Link } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 
 type SearchScope = 'guides' | 'reference' | 'icons' | 'all'
 
-interface SearchResult {
+interface ISearchResult {
   id: string
   title: string
   url: string
@@ -22,7 +22,7 @@ interface SearchResult {
 
 const searchScopes: SearchScope[] = ['guides', 'reference', 'icons', 'all']
 
-function normalizeResults(payload: unknown): SearchResult[] {
+function normalizeResults(payload: unknown): ISearchResult[] {
   const source = Array.isArray(payload)
     ? payload
     : typeof payload === 'object' && payload !== null && 'results' in payload
@@ -63,7 +63,7 @@ export function GuidesSearch({
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [scope, setScope] = useState<SearchScope>(defaultScope)
-  const [results, setResults] = useState<SearchResult[]>([])
+  const [results, setResults] = useState<ISearchResult[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -141,17 +141,13 @@ export function GuidesSearch({
         {compact ? null : (
           <>
             <span className="min-w-0 flex-1 truncate text-left">{t('search.label')}</span>
-            <kbd
-              className="bg-muted text-muted-foreground hidden rounded-sm border px-1.5 py-0.5 text-[10px] font-medium sm:block"
-            >
+            <kbd className="bg-muted text-muted-foreground hidden rounded-sm border px-1.5 py-0.5 text-[10px] font-medium sm:block">
               Ctrl K
             </kbd>
           </>
         )}
       </Button>
-      <DialogContent
-        className="top-24 max-h-[min(42rem,calc(100vh-4rem))] translate-y-0 gap-0 overflow-hidden p-0 sm:top-28"
-      >
+      <DialogContent className="top-24 max-h-[min(42rem,calc(100vh-4rem))] translate-y-0 gap-0 overflow-hidden p-0 sm:top-28">
         <DialogTitle className="sr-only">{t('search.label')}</DialogTitle>
         <DialogDescription className="sr-only">{t('search.description')}</DialogDescription>
         <div className="border-b p-3">

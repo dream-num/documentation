@@ -1,27 +1,22 @@
 import type { ComponentProps } from 'react'
 
-interface ResolvablePage {
+import { Link } from '@/i18n/navigation'
+
+interface IResolvablePage {
   path: string
 }
 
-interface ResolvableSource<Page extends ResolvablePage> {
+interface IResolvableSource<Page extends IResolvablePage> {
   resolveHref: (href: string, page: Page) => string
 }
 
-export function createDocsRelativeLink<Page extends ResolvablePage>(
-  source: ResolvableSource<Page>,
-  page: Page,
-) {
-  function DocsLink({
-    href,
-    ...props
-  }: ComponentProps<'a'>) {
-    return (
-      <a
-        href={typeof href === 'string' ? source.resolveHref(href, page) : href}
-        {...props}
-      />
-    )
+export function createDocsRelativeLink<Page extends IResolvablePage>(source: IResolvableSource<Page>, page: Page) {
+  function DocsLink({ href, ...props }: ComponentProps<'a'>) {
+    if (typeof href !== 'string') {
+      return <a href={href} {...props} />
+    }
+
+    return <Link href={source.resolveHref(href, page)} {...props} />
   }
 
   return DocsLink

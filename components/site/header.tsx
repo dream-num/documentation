@@ -1,15 +1,17 @@
-import type { SiteDocumentationLink, SiteNavLink } from './mobile-menu'
+import { getTranslations } from 'next-intl/server'
+
 import type { Locale } from '@/i18n/routing'
 import type { GuideNavItem } from '@/lib/guides/navigation'
-import { getTranslations } from 'next-intl/server'
-import Link from 'next/link'
 import { PrimaryNavigation } from '@/components/docs-shell/primary-navigation'
 import { GithubInfo } from '@/components/github-info/github-info'
 import { GuidesSearch } from '@/components/guides/search'
 import { Logo } from '@/components/logo'
 import { ThemeSwitcher } from '@/components/theme-switcher'
+import { Link } from '@/i18n/navigation'
 import { routing } from '@/i18n/routing'
 import { messagesByLocale } from '@/messages'
+
+import type { ISiteDocumentationLink, ISiteNavLink } from './mobile-menu'
 import { SiteLanguageSwitcher } from './language-switcher'
 import { SiteMobileMenu } from './mobile-menu'
 
@@ -23,8 +25,8 @@ export async function SiteHeader({
 }: {
   guideItems: GuideNavItem[]
   lang: string
-  links: SiteNavLink[]
-  documentationLinks: SiteDocumentationLink[]
+  links: ISiteNavLink[]
+  documentationLinks: ISiteDocumentationLink[]
   documentationTitle: string
   pathname?: string
 }) {
@@ -37,24 +39,14 @@ export async function SiteHeader({
     showcase: t('navigation.showcase'),
     tools: t('navigation.tools'),
   }
-  const locales = routing.locales.map(locale => ({
+  const locales = routing.locales.map((locale) => ({
     displayName: messagesByLocale[locale].common['display-name'],
     locale,
   }))
 
   return (
-    <header
-      className="
-        sticky top-0 z-40 border-b bg-background/95 backdrop-blur-sm
-        supports-backdrop-filter:bg-background/80
-      "
-    >
-      <div
-        className="
-          mx-auto flex h-16 max-w-384 items-center gap-3 px-4
-          lg:px-6
-        "
-      >
+    <header className="bg-background/95 supports-backdrop-filter:bg-background/80 sticky top-0 z-40 border-b backdrop-blur-sm">
+      <div className="mx-auto flex h-16 max-w-384 items-center gap-3 px-4 lg:px-6">
         <SiteMobileMenu
           documentationLinks={documentationLinks}
           documentationTitle={documentationTitle}
@@ -65,17 +57,12 @@ export async function SiteHeader({
         <Link aria-label={t('navigation.univer-home')} className="flex shrink-0 items-center" href="/">
           <Logo />
         </Link>
-        <PrimaryNavigation items={guideItems} labels={navigationLabels} lang={lang} pathname={pathname} />
+        <PrimaryNavigation items={guideItems} labels={navigationLabels} pathname={pathname} />
         <div className="min-w-0 flex-1" />
         <div className="md:hidden">
           <GuidesSearch compact lang={lang} defaultScope="all" />
         </div>
-        <div
-          className="
-            hidden
-            md:block
-          "
-        >
+        <div className="hidden md:block">
           <GuidesSearch lang={lang} defaultScope="all" />
         </div>
         <SiteLanguageSwitcher
@@ -85,14 +72,7 @@ export async function SiteHeader({
           locales={locales}
         />
         <ThemeSwitcher label={t('common.choose-theme')} />
-        <GithubInfo
-          className="
-            hidden
-            xl:flex
-          "
-          owner="dream-num"
-          repo="univer"
-        />
+        <GithubInfo className="hidden xl:flex" owner="dream-num" repo="univer" />
       </div>
     </header>
   )

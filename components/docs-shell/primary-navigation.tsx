@@ -1,10 +1,10 @@
 import { CheckIcon, ChevronDownIcon } from 'lucide-react'
-import Link from 'next/link'
 
 import type { GuideNavItem } from '@/lib/guides/navigation'
 import { NavIconFrame } from '@/components/docs-shell/nav-icon-frame'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { UniverIcon } from '@/components/univer-icon'
+import { Link } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 import {
   getActiveGuideProduct,
@@ -13,7 +13,7 @@ import {
   getGuideStandaloneItems,
   isGuideNavItemActive,
 } from '@/lib/guides/navigation'
-import { isPathActive, withLocale } from '@/lib/locale-path'
+import { isPathActive } from '@/lib/locale-path'
 
 export interface IPrimaryNavigationLabels {
   blog: string
@@ -81,12 +81,10 @@ function ProductSwitcher({ items, label, pathname }: { items: GuideNavItem[]; la
 
 export function PrimaryNavigation({
   items,
-  lang,
   labels,
   pathname,
 }: {
   items: GuideNavItem[]
-  lang: string
   labels: IPrimaryNavigationLabels
   pathname: string
 }) {
@@ -94,7 +92,7 @@ export function PrimaryNavigation({
   const links = [
     {
       text: labels.tools,
-      url: withLocale(lang, '/tools/theme-customizer'),
+      url: '/tools/theme-customizer',
     },
     {
       text: labels.reference,

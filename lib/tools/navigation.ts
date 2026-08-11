@@ -1,29 +1,30 @@
-import type { DocsNavigation, DocsNavItem } from '@/lib/docs/navigation'
 import { PaintbrushIcon } from 'lucide-react'
 import { createElement } from 'react'
-import { IconWrapper } from '@/components/icon-wrapper'
-import { withLocale } from '@/lib/locale-path'
 
-export interface ToolsNavigationLabels {
+import type { DocsNavigation, DocsNavItem } from '@/lib/docs/navigation'
+import { IconWrapper } from '@/components/icon-wrapper'
+import { isPathActive } from '@/lib/locale-path'
+
+export interface IToolsNavigationLabels {
   themeCustomizer: string
 }
 
-export function createToolsNavigation(lang: string, pathname: string, labels: ToolsNavigationLabels): DocsNavigation {
-  const themeCustomizer: DocsNavItem = {
+export function createToolsNavigation(pathname: string, labels: IToolsNavigationLabels): DocsNavigation {
+  const themeCustomizer = {
     id: 'theme-customizer',
     type: 'page',
     name: labels.themeCustomizer,
-    url: withLocale(lang, '/tools/theme-customizer'),
+    url: '/tools/theme-customizer',
     icon: createElement(IconWrapper, {
       type: 'icon',
       icon: PaintbrushIcon,
     }),
     children: [],
-  }
+  } satisfies DocsNavItem
 
   return {
     items: [themeCustomizer],
     flatPages: [themeCustomizer],
-    activeTrail: pathname === themeCustomizer.url ? [themeCustomizer] : [],
+    activeTrail: isPathActive(pathname, themeCustomizer.url) ? [themeCustomizer] : [],
   }
 }

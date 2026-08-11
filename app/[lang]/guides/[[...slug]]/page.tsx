@@ -1,16 +1,16 @@
-import type { ComponentProps } from 'react'
 import process from 'node:process'
+
 import { notFound } from 'next/navigation'
 import { PostHog } from 'posthog-node'
+
 import { GuidesArticle } from '@/components/guides/article'
 import { GuidesLayout } from '@/components/guides/layout'
 import { getGuidesMDXComponents } from '@/components/mdx-docs'
 import { SponsorCard } from '@/components/sponsor-card'
+import { createDocsRelativeLink } from '@/lib/docs/links'
 import { getGuidesEditUrl } from '@/lib/github'
 import { createGuideNavigation } from '@/lib/guides/navigation'
 import { guides } from '@/lib/source'
-
-type GuidePage = NonNullable<ReturnType<typeof guides.getPage>>
 
 interface IProps {
   params: Promise<{
@@ -36,22 +36,6 @@ export async function generateMetadata({ params }: IProps) {
   }
 }
 
-function createGuideLink(page: GuidePage) {
-  function GuideLink({
-    href,
-    ...props
-  }: ComponentProps<'a'>) {
-    return (
-      <a
-        href={typeof href === 'string' ? guides.resolveHref(href, page) : href}
-        {...props}
-      />
-    )
-  }
-
-  return GuideLink
-}
-
 export default async function Page({ params }: IProps) {
   const { slug, lang } = await params
   const page = guides.getPage(slug, lang)
@@ -62,7 +46,7 @@ export default async function Page({ params }: IProps) {
   const MDXContent = page.data.body
   const navigation = createGuideNavigation(guides.pageTree[lang], page.url)
   const editUrl = await getGuidesEditUrl(page.path)
-  const GuideLink = createGuideLink(page)
+  const GuideLink = createDocsRelativeLink(guides, page)
 
   return (
     <GuidesLayout
@@ -83,10 +67,7 @@ export default async function Page({ params }: IProps) {
 
           if (!process.env.NEXT_POSTHOG_APIKEY) return
 
-          const posthog = new PostHog(
-            process.env.NEXT_POSTHOG_APIKEY,
-            { host: 'https://us.i.posthog.com' },
-          )
+          const posthog = new PostHog(process.env.NEXT_POSTHOG_APIKEY, { host: 'https://us.i.posthog.com' })
 
           posthog.capture({
             event: 'on_rate_docs',

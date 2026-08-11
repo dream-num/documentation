@@ -1,6 +1,5 @@
 import { LanguagesIcon } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
-import Link from 'next/link'
 
 import type { Locale } from '@/i18n/routing'
 import type { DocsNavItem } from '@/lib/docs/navigation'
@@ -10,6 +9,7 @@ import { Logo } from '@/components/logo'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Link } from '@/i18n/navigation'
 import { routing } from '@/i18n/routing'
 import { messagesByLocale } from '@/messages'
 
@@ -17,10 +17,6 @@ import { GuidesSearch } from '../guides/search'
 import { DocsMobileNav } from './mobile-nav'
 import { PrimaryNavigation } from './primary-navigation'
 import { SidebarVersionSwitcher } from './sidebar-version-switcher'
-
-function getLocaleHref(locale: string, currentPath: string) {
-  return `/${locale}${currentPath.startsWith('/') ? currentPath : `/${currentPath}`}`
-}
 
 function LanguageSwitcher({
   lang,
@@ -42,7 +38,7 @@ function LanguageSwitcher({
         {routing.locales.map((locale) => (
           <DropdownMenuItem
             key={locale}
-            render={<Link className="justify-between" href={getLocaleHref(locale, currentPath)} />}
+            render={<Link className="justify-between" href={currentPath} locale={locale} />}
           >
             <span>{messagesByLocale[locale].common['display-name'] ?? locale}</span>
             {locale === lang ? <span className="text-muted-foreground text-xs">{currentLabel}</span> : null}
@@ -92,7 +88,7 @@ export async function DocsHeader({
         <Link aria-label={t('navigation.univer-home')} className="flex shrink-0 items-center" href="/">
           <Logo />
         </Link>
-        <PrimaryNavigation items={guideItems} labels={navigationLabels} lang={lang} pathname={pathname} />
+        <PrimaryNavigation items={guideItems} labels={navigationLabels} pathname={pathname} />
         <div className="min-w-0 flex-1" />
         <div className="md:hidden">
           <GuidesSearch compact lang={lang} defaultScope={searchScope} />

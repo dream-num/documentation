@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react'
 import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react'
-import Link from 'next/link'
 
 import type { GuideNavItem } from '@/lib/guides/navigation'
 import { NavIconFrame } from '@/components/docs-shell/nav-icon-frame'
 import { SidebarVersionSwitcher } from '@/components/docs-shell/sidebar-version-switcher'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Link } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 import { getActiveGuideProduct, getGuideNavItemHref, getGuideProductItems } from '@/lib/guides/navigation'
 
