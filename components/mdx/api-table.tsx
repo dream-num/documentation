@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useTranslations } from 'next-intl'
 import { Fragment } from 'react'
+
 import { Separator } from '@/components/ui/separator'
 import { clsx } from '@/lib/clsx'
 
@@ -29,13 +30,9 @@ interface IProps {
   }
 }
 
-function CodeExample({
-  code,
-}: {
-  code: string
-}) {
+function CodeExample({ code }: { code: string }) {
   return (
-    <pre className="overflow-x-auto rounded-md border bg-muted p-3 text-sm">
+    <pre className="bg-muted overflow-x-auto rounded-md border p-3 text-sm">
       <code>{code}</code>
     </pre>
   )
@@ -54,36 +51,23 @@ function getRequestParametersKey(parametersType: IProps['request']['parametersTy
   }
 }
 
-function RenderParameters({
-  parameters,
-  labels,
-  indent = 0,
-}: {
-  parameters: IParameter[]
-  labels: {
-    description: string
-    example: string
-    parameter: string
-    type: string
-  }
-  indent?: number
-}) {
+function RenderParameters({ parameters, indent = 0 }: { parameters: IParameter[]; indent?: number }) {
   return (
     <>
-      {parameters.map(param => (
+      {parameters.map((param) => (
         <Fragment key={[indent, param.name, param.type, param.example].filter(Boolean).join(':')}>
           <tr className="border-b">
             <td className="py-2" style={{ paddingLeft: (indent + 1) * 10 }}>
               <code>{param.name}</code>
-              {param.required && (<span className="relative top-1 ml-1 text-red-600">*</span>)}
+              {param.required && <span className="relative top-1 ml-1 text-red-600">*</span>}
             </td>
-            <td className="py-2"><code>{param.type}</code></td>
+            <td className="py-2">
+              <code>{param.type}</code>
+            </td>
             <td className="py-2">{param.example || '-'}</td>
             <td className="py-2">{param.description || '-'}</td>
           </tr>
-          {param.properties?.length && (
-            <RenderParameters labels={labels} parameters={param.properties} indent={indent + 1} />
-          )}
+          {param.properties?.length && <RenderParameters parameters={param.properties} indent={indent + 1} />}
         </Fragment>
       ))}
     </>
@@ -104,12 +88,7 @@ export function APITable(props: IProps) {
   return (
     <div className="grid gap-4">
       {/* Request */}
-      <div
-        className={`
-          grid gap-2 rounded-lg bg-neutral-100 p-2.5 shadow-md
-          dark:bg-neutral-800
-        `}
-      >
+      <div className={`grid gap-2 rounded-lg bg-neutral-100 p-2.5 shadow-md dark:bg-neutral-800`}>
         {/* Method */}
         <div className="flex items-center gap-2">
           <span
@@ -127,16 +106,12 @@ export function APITable(props: IProps) {
         {/* Headers */}
         <div className="grid gap-0.5 text-sm">
           <div className="mb-1 font-semibold">{t('api-table.headers')}</div>
-          <div>
-            {request.headers}
-          </div>
+          <div>{request.headers}</div>
         </div>
 
         <Separator />
 
-        <div className="text-sm font-semibold">
-          {requestParameters}
-        </div>
+        <div className="text-sm font-semibold">{requestParameters}</div>
 
         {/* Request Parameters */}
         {request.parameters && (
@@ -150,15 +125,13 @@ export function APITable(props: IProps) {
               </tr>
             </thead>
             <tbody>
-              <RenderParameters labels={parameterLabels} parameters={request.parameters} />
+              <RenderParameters parameters={request.parameters} />
             </tbody>
           </table>
         )}
 
         {/* Request Example */}
-        {request.example && (
-          <CodeExample code={request.example} />
-        )}
+        {request.example && <CodeExample code={request.example} />}
       </div>
 
       {/* Response */}
@@ -180,15 +153,13 @@ export function APITable(props: IProps) {
               </tr>
             </thead>
             <tbody>
-              <RenderParameters labels={parameterLabels} parameters={response.parameters} />
+              <RenderParameters parameters={response.parameters} />
             </tbody>
           </table>
         )}
 
         {/* Response Example */}
-        {response.example && (
-          <CodeExample code={response.example} />
-        )}
+        {response.example && <CodeExample code={response.example} />}
       </div>
     </div>
   )

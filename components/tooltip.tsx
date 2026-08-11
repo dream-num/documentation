@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react'
+import type { ReactElement, ReactNode } from 'react'
+
 import { TooltipContent, TooltipRoot, TooltipTrigger } from './ui/tooltip'
 
 interface IProps {
-  children: ReactNode
+  children: ReactElement
   content: ReactNode
 }
 
@@ -11,12 +12,8 @@ export function Tooltip(props: IProps) {
 
   return (
     <TooltipRoot>
-      <TooltipTrigger asChild>
-        {children}
-      </TooltipTrigger>
-      <TooltipContent side="bottom">
-        {content}
-      </TooltipContent>
+      <TooltipTrigger render={children} />
+      <TooltipContent side="bottom">{content}</TooltipContent>
     </TooltipRoot>
   )
 }

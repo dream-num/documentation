@@ -1,13 +1,9 @@
-import type { GuideNavItem } from '@/lib/guides/navigation'
 import { CheckIcon, ChevronDownIcon } from 'lucide-react'
 import Link from 'next/link'
+
+import type { GuideNavItem } from '@/lib/guides/navigation'
 import { NavIconFrame } from '@/components/docs-shell/nav-icon-frame'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { UniverIcon } from '@/components/univer-icon'
 import { clsx } from '@/lib/clsx'
 import {
@@ -19,7 +15,7 @@ import {
 } from '@/lib/guides/navigation'
 import { isPathActive, withLocale } from '@/lib/locale-path'
 
-export interface PrimaryNavigationLabels {
+export interface IPrimaryNavigationLabels {
   blog: string
   primary: string
   products: string
@@ -43,15 +39,7 @@ function getIconsProductItem(): GuideNavItem {
   }
 }
 
-function ProductSwitcher({
-  items,
-  label,
-  pathname,
-}: {
-  items: GuideNavItem[]
-  label: string
-  pathname: string
-}) {
+function ProductSwitcher({ items, label, pathname }: { items: GuideNavItem[]; label: string; pathname: string }) {
   const iconsProduct = getIconsProductItem()
   const productItems = [...getGuideProductItems(items), iconsProduct]
   const currentProduct = isPrimaryLinkActive(pathname, iconsProduct.url ?? '')
@@ -62,40 +50,28 @@ function ProductSwitcher({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          className="
-            group inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm whitespace-nowrap text-muted-foreground
-            transition-colors
-            hover:bg-accent hover:text-accent-foreground
-            focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none
-          "
-          type="button"
-        >
-          <span className="max-w-32 truncate">{label}</span>
-          <ChevronDownIcon
-            className="
-              size-3.5 transition-transform
-              group-data-[state=open]:rotate-180
-            "
+      <DropdownMenuTrigger
+        render={
+          <button
+            className="group text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            type="button"
           />
-        </button>
+        }
+      >
+        <span className="max-w-32 truncate">{label}</span>
+        <ChevronDownIcon className="size-3.5 transition-transform group-data-popup-open:rotate-180" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-64">
-        {productItems.map(item => (
-          <DropdownMenuItem asChild key={item.id}>
-            <Link
-              className="min-h-10 justify-between"
-              href={getGuideNavItemHref(item) ?? '#'}
-            >
-              <span className="flex min-w-0 items-center gap-2">
-                {item.icon
-                  ? <NavIconFrame icon={item.icon} />
-                  : null}
-                <span className="truncate">{item.name}</span>
-              </span>
-              {item.id === currentProduct?.id ? <CheckIcon className="size-4" /> : null}
-            </Link>
+        {productItems.map((item) => (
+          <DropdownMenuItem
+            key={item.id}
+            render={<Link className="min-h-10 justify-between" href={getGuideNavItemHref(item) ?? '#'} />}
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              {item.icon ? <NavIconFrame icon={item.icon} /> : null}
+              <span className="truncate">{item.name}</span>
+            </span>
+            {item.id === currentProduct?.id ? <CheckIcon className="size-4" /> : null}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
@@ -111,7 +87,7 @@ export function PrimaryNavigation({
 }: {
   items: GuideNavItem[]
   lang: string
-  labels: PrimaryNavigationLabels
+  labels: IPrimaryNavigationLabels
   pathname: string
 }) {
   const standaloneItems = getGuideStandaloneItems(items)
@@ -135,21 +111,12 @@ export function PrimaryNavigation({
   ]
 
   return (
-    <nav
-      aria-label={labels.primary}
-      className="
-        hidden items-center gap-1
-        lg:flex
-      "
-    >
+    <nav aria-label={labels.primary} className="hidden items-center gap-1 lg:flex">
       <ProductSwitcher items={items} label={labels.products} pathname={pathname} />
-      {standaloneItems.map(item => (
+      {standaloneItems.map((item) => (
         <Link
           className={clsx(
-            `
-              rounded-md px-3 py-2 text-sm whitespace-nowrap text-muted-foreground transition-colors
-              hover:bg-accent hover:text-accent-foreground
-            `,
+            `text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-md px-3 py-2 text-sm whitespace-nowrap transition-colors`,
             isGuideNavItemActive(item, pathname) && 'bg-accent text-accent-foreground',
           )}
           href={getGuideNavItemHref(item) ?? '#'}
@@ -158,13 +125,10 @@ export function PrimaryNavigation({
           {item.name}
         </Link>
       ))}
-      {links.map(link => (
+      {links.map((link) => (
         <Link
           className={clsx(
-            `
-              rounded-md px-3 py-2 text-sm whitespace-nowrap text-muted-foreground transition-colors
-              hover:bg-accent hover:text-accent-foreground
-            `,
+            `text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-md px-3 py-2 text-sm whitespace-nowrap transition-colors`,
             isPrimaryLinkActive(pathname, link.url) && 'bg-accent text-accent-foreground',
           )}
           href={link.url}

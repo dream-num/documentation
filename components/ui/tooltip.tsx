@@ -1,67 +1,60 @@
-import type { ComponentProps } from 'react'
-import { Arrow, Content, Portal, Provider, Root, Trigger } from '@radix-ui/react-tooltip'
+import * as BaseTooltip from '@base-ui/react/tooltip'
+
 import { clsx } from '@/lib/clsx'
 
 function TooltipProvider({
   delayDuration = 0,
   ...props
-}: ComponentProps<typeof Provider>) {
-  return (
-    <Provider
-      data-slot="tooltip-provider"
-      delayDuration={delayDuration}
-      {...props}
-    />
-  )
+}: Omit<BaseTooltip.Tooltip.Provider.Props, 'delay'> & {
+  delayDuration?: number
+}) {
+  return <BaseTooltip.Tooltip.Provider delay={delayDuration} {...props} />
 }
 
-function TooltipRoot({
-  ...props
-}: ComponentProps<typeof Root>) {
+function TooltipRoot({ ...props }: BaseTooltip.Tooltip.Root.Props) {
   return (
     <TooltipProvider>
-      <Root data-slot="tooltip" {...props} />
+      <BaseTooltip.Tooltip.Root data-slot="tooltip" {...props} />
     </TooltipProvider>
   )
 }
 
-function TooltipTrigger({
-  ...props
-}: ComponentProps<typeof Trigger>) {
-  return <Trigger data-slot="tooltip-trigger" {...props} />
+function TooltipTrigger({ ...props }: BaseTooltip.Tooltip.Trigger.Props) {
+  return <BaseTooltip.Tooltip.Trigger data-slot="tooltip-trigger" {...props} />
 }
 
 function TooltipContent({
   className,
   sideOffset = 0,
   children,
+  align,
+  alignOffset,
+  side,
   ...props
-}: ComponentProps<typeof Content>) {
+}: BaseTooltip.Tooltip.Popup.Props &
+  Pick<BaseTooltip.Tooltip.Positioner.Props, 'align' | 'alignOffset' | 'side' | 'sideOffset'>) {
   return (
-    <Portal>
-      <Content
-        data-slot="tooltip-content"
+    <BaseTooltip.Tooltip.Portal>
+      <BaseTooltip.Tooltip.Positioner
+        align={align}
+        alignOffset={alignOffset}
+        side={side}
         sideOffset={sideOffset}
-        className={clsx(
-          `
-            z-50 w-fit origin-(--radix-tooltip-content-transform-origin) animate-in rounded-md bg-primary px-3 py-1.5
-            text-xs text-balance text-primary-foreground fade-in-0 zoom-in-95
-            data-[side=bottom]:slide-in-from-top-2
-            data-[side=left]:slide-in-from-right-2
-            data-[side=right]:slide-in-from-left-2
-            data-[side=top]:slide-in-from-bottom-2
-            data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95
-          `,
-          className,
-        )}
-        {...props}
+        className="z-50 outline-none"
       >
-        {children}
-        <Arrow
-          className="z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-[2px] bg-primary fill-primary"
-        />
-      </Content>
-    </Portal>
+        <BaseTooltip.Tooltip.Popup
+          data-slot="tooltip-content"
+          className={clsx(
+            `animate-in bg-primary text-primary-foreground fade-in-0 zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 w-fit origin-(--transform-origin) rounded-md px-3 py-1.5 text-xs text-balance`,
+            className,
+          )}
+          {...props}
+        >
+          {children}
+          <BaseTooltip.Tooltip.Arrow className="bg-primary z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-[2px] data-[side=bottom]:top-1 data-[side=left]:top-1/2! data-[side=left]:-right-1 data-[side=left]:-translate-y-1/2 data-[side=right]:top-1/2! data-[side=right]:-left-1 data-[side=right]:-translate-y-1/2 data-[side=top]:-bottom-2.5" />
+        </BaseTooltip.Tooltip.Popup>
+      </BaseTooltip.Tooltip.Positioner>
+    </BaseTooltip.Tooltip.Portal>
   )
 }
 

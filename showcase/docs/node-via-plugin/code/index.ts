@@ -3,6 +3,7 @@ import { IUniverInstanceService, LocaleType, Univer, UniverInstanceType } from '
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+
 import { DOCUMENT_DATA } from '../code/data'
 
 const univer = new Univer({
@@ -24,7 +25,6 @@ const univerInstanceService = injector.get(IUniverInstanceService)
 
 const units = univerInstanceService.getAllUnitsForType<DocumentDataModel>(UniverInstanceType.UNIVER_DOC)
 
-const snapshots = units.map(unit => unit.getSnapshot())
+const snapshots = units.map((unit) => unit.getSnapshot())
 
-// eslint-disable-next-line no-console
 console.log(JSON.stringify(snapshots, null, 2))

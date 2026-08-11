@@ -1,21 +1,18 @@
-import type { Locale } from '@/i18n/routing'
-import type { DocsNavItem } from '@/lib/docs/navigation'
-import type { GuideNavItem } from '@/lib/guides/navigation'
 import { LanguagesIcon } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
+
+import type { Locale } from '@/i18n/routing'
+import type { DocsNavItem } from '@/lib/docs/navigation'
+import type { GuideNavItem } from '@/lib/guides/navigation'
 import { GithubInfo } from '@/components/github-info/github-info'
 import { Logo } from '@/components/logo'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { routing } from '@/i18n/routing'
 import { messagesByLocale } from '@/messages'
+
 import { GuidesSearch } from '../guides/search'
 import { DocsMobileNav } from './mobile-nav'
 import { PrimaryNavigation } from './primary-navigation'
@@ -38,23 +35,17 @@ function LanguageSwitcher({
 }) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          aria-label={label}
-          size="icon"
-          type="button"
-          variant="outline"
-        >
-          <LanguagesIcon className="size-4" />
-        </Button>
+      <DropdownMenuTrigger render={<Button aria-label={label} size="icon" type="button" variant="outline" />}>
+        <LanguagesIcon className="size-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {routing.locales.map(locale => (
-          <DropdownMenuItem asChild key={locale}>
-            <Link className="justify-between" href={getLocaleHref(locale, currentPath)}>
-              <span>{messagesByLocale[locale].common['display-name'] ?? locale}</span>
-              {locale === lang ? <span className="text-xs text-muted-foreground">{currentLabel}</span> : null}
-            </Link>
+        {routing.locales.map((locale) => (
+          <DropdownMenuItem
+            key={locale}
+            render={<Link className="justify-between" href={getLocaleHref(locale, currentPath)} />}
+          >
+            <span>{messagesByLocale[locale].common['display-name'] ?? locale}</span>
+            {locale === lang ? <span className="text-muted-foreground text-xs">{currentLabel}</span> : null}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
@@ -88,19 +79,8 @@ export async function DocsHeader({
   }
 
   return (
-    <header
-      className="
-        sticky top-0 z-40 border-b bg-background/95 backdrop-blur-sm
-        supports-backdrop-filter:bg-background/80
-        lg:shrink-0
-      "
-    >
-      <div
-        className="
-          mx-auto flex h-16 max-w-384 items-center gap-3 px-4
-          lg:px-6
-        "
-      >
+    <header className="bg-background/95 supports-backdrop-filter:bg-background/80 sticky top-0 z-40 border-b backdrop-blur-sm lg:shrink-0">
+      <div className="mx-auto flex h-16 max-w-384 items-center gap-3 px-4 lg:px-6">
         <DocsMobileNav
           navigationLabel={t('docs.sidebar-navigation', { title })}
           openLabel={t('docs.open-navigation', { title })}
@@ -117,12 +97,7 @@ export async function DocsHeader({
         <div className="md:hidden">
           <GuidesSearch compact lang={lang} defaultScope={searchScope} />
         </div>
-        <div
-          className="
-            hidden
-            md:block
-          "
-        >
+        <div className="hidden md:block">
           <GuidesSearch lang={lang} defaultScope={searchScope} />
         </div>
         <LanguageSwitcher
@@ -132,14 +107,7 @@ export async function DocsHeader({
           lang={lang}
         />
         <ThemeSwitcher label={t('common.choose-theme')} />
-        <GithubInfo
-          className="
-            hidden
-            xl:flex
-          "
-          owner="dream-num"
-          repo="univer"
-        />
+        <GithubInfo className="hidden xl:flex" owner="dream-num" repo="univer" />
       </div>
     </header>
   )

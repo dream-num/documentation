@@ -1,6 +1,11 @@
 import type { SpreadsheetSkeleton, UniverRenderingContext } from '@univerjs/preset-sheets-core'
 import type { IScale } from '@univerjs/presets'
-import { DEFAULT_FONTFACE_PLANE, FIX_ONE_PIXEL_BLUR_OFFSET, getColor, SheetExtension } from '@univerjs/preset-sheets-core'
+import {
+  DEFAULT_FONTFACE_PLANE,
+  FIX_ONE_PIXEL_BLUR_OFFSET,
+  getColor,
+  SheetExtension,
+} from '@univerjs/preset-sheets-core'
 
 const UNIQUE_KEY = 'ColumnHeaderCustomExtension'
 
@@ -23,14 +28,13 @@ export default class ColumnHeaderCustomExtension extends SheetExtension {
       return
     }
 
-    const { rowHeightAccumulation, columnTotalWidth, columnWidthAccumulation, rowTotalHeight }
-      = spreadsheetSkeleton
+    const { rowHeightAccumulation, columnTotalWidth, columnWidthAccumulation, rowTotalHeight } = spreadsheetSkeleton
 
     if (
-      !rowHeightAccumulation
-      || !columnWidthAccumulation
-      || columnTotalWidth === undefined
-      || rowTotalHeight === undefined
+      !rowHeightAccumulation ||
+      !columnWidthAccumulation ||
+      columnTotalWidth === undefined ||
+      rowTotalHeight === undefined
     ) {
       return
     }
@@ -62,7 +66,9 @@ export default class ColumnHeaderCustomExtension extends SheetExtension {
 
       // painting column header text
       const middleCellPos = preColumnPosition + (columnEndPosition - preColumnPosition) / 2
-      customEmojiList[c] && ctx.fillText(customEmojiList[c], middleCellPos + 20, columnHeaderHeight / 2) // Magic number 1, because the vertical alignment appears to be off by 1 pixel
+      if (customEmojiList[c]) {
+        ctx.fillText(customEmojiList[c], middleCellPos + 20, columnHeaderHeight / 2) // Magic number 1, because the vertical alignment appears to be off by 1 pixel
+      }
       preColumnPosition = columnEndPosition
     }
 

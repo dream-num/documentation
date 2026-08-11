@@ -1,41 +1,28 @@
 'use client'
 
-import type { ComponentProps } from 'react'
-import * as DialogPrimitive from '@radix-ui/react-dialog'
+import * as BaseDialog from '@base-ui/react/dialog'
 import { XIcon } from 'lucide-react'
+
 import { clsx } from '@/lib/clsx'
 
-function Dialog({
-  ...props
-}: ComponentProps<typeof DialogPrimitive.Root>) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />
+function Dialog({ ...props }: BaseDialog.Dialog.Root.Props) {
+  return <BaseDialog.Dialog.Root data-slot="dialog" {...props} />
 }
 
-function DialogTrigger({
-  ...props
-}: ComponentProps<typeof DialogPrimitive.Trigger>) {
-  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
+function DialogTrigger({ ...props }: BaseDialog.Dialog.Trigger.Props) {
+  return <BaseDialog.Dialog.Trigger data-slot="dialog-trigger" {...props} />
 }
 
-function DialogPortal({
-  ...props
-}: ComponentProps<typeof DialogPrimitive.Portal>) {
-  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
+function DialogPortal({ ...props }: BaseDialog.Dialog.Portal.Props) {
+  return <BaseDialog.Dialog.Portal data-slot="dialog-portal" {...props} />
 }
 
-function DialogOverlay({
-  className,
-  ...props
-}: ComponentProps<typeof DialogPrimitive.Overlay>) {
+function DialogOverlay({ className, ...props }: BaseDialog.Dialog.Backdrop.Props) {
   return (
-    <DialogPrimitive.Overlay
+    <BaseDialog.Dialog.Backdrop
       data-slot="dialog-overlay"
       className={clsx(
-        `
-          fixed inset-0 z-50 bg-background/80 backdrop-blur-sm
-          data-[state=closed]:animate-out data-[state=closed]:fade-out-0
-          data-[state=open]:animate-in data-[state=open]:fade-in-0
-        `,
+        `bg-background/80 data-closed:animate-out data-closed:fade-out-0 data-open:animate-in data-open:fade-in-0 fixed inset-0 z-50 backdrop-blur-sm`,
         className,
       )}
       {...props}
@@ -48,52 +35,35 @@ function DialogContent({
   children,
   showCloseButton = true,
   ...props
-}: ComponentProps<typeof DialogPrimitive.Content> & {
+}: BaseDialog.Dialog.Popup.Props & {
   showCloseButton?: boolean
 }) {
   return (
     <DialogPortal>
       <DialogOverlay />
-      <DialogPrimitive.Content
+      <BaseDialog.Dialog.Popup
         data-slot="dialog-content"
         className={clsx(
-          `
-            fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-1/2 gap-4 rounded-lg border
-            bg-background p-6 shadow-lg duration-200
-            data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95
-            data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95
-          `,
+          `bg-background data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-1/2 gap-4 rounded-lg border p-6 shadow-lg duration-200`,
           className,
         )}
         {...props}
       >
         {children}
-        {showCloseButton
-          ? (
-              <DialogPrimitive.Close
-                className="
-                  absolute top-4 right-4 rounded-xs opacity-70 transition-opacity
-                  hover:opacity-100
-                  focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none
-                  disabled:pointer-events-none
-                "
-              >
-                <XIcon className="size-4" />
-                <span className="sr-only">Close</span>
-              </DialogPrimitive.Close>
-            )
-          : null}
-      </DialogPrimitive.Content>
+        {showCloseButton ? (
+          <BaseDialog.Dialog.Close className="focus:ring-ring absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none">
+            <XIcon className="size-4" />
+            <span className="sr-only">Close</span>
+          </BaseDialog.Dialog.Close>
+        ) : null}
+      </BaseDialog.Dialog.Popup>
     </DialogPortal>
   )
 }
 
-function DialogTitle({
-  className,
-  ...props
-}: ComponentProps<typeof DialogPrimitive.Title>) {
+function DialogTitle({ className, ...props }: BaseDialog.Dialog.Title.Props) {
   return (
-    <DialogPrimitive.Title
+    <BaseDialog.Dialog.Title
       data-slot="dialog-title"
       className={clsx('text-lg leading-none font-semibold tracking-normal', className)}
       {...props}
@@ -101,23 +71,14 @@ function DialogTitle({
   )
 }
 
-function DialogDescription({
-  className,
-  ...props
-}: ComponentProps<typeof DialogPrimitive.Description>) {
+function DialogDescription({ className, ...props }: BaseDialog.Dialog.Description.Props) {
   return (
-    <DialogPrimitive.Description
+    <BaseDialog.Dialog.Description
       data-slot="dialog-description"
-      className={clsx('text-sm text-muted-foreground', className)}
+      className={clsx('text-muted-foreground text-sm', className)}
       {...props}
     />
   )
 }
 
-export {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  DialogTrigger,
-}
+export { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger }

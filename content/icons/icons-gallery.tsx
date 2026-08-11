@@ -5,6 +5,7 @@ import * as icons from '@univerjs/icons'
 import { CheckIcon, CopyIcon, SearchIcon, XIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useMemo, useState, useSyncExternalStore } from 'react'
+
 import { ColorPickerPopover } from '@/components/color-picker-popover'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -206,14 +207,8 @@ export function IconsGallery({ locale = 'en' }: { locale?: GalleryLocale }) {
   const [search, setSearch] = useState('')
   const [copiedName, setCopiedName] = useState<string | null>(null)
 
-  const defaultColor = useMemo(
-    () => (resolvedTheme === 'dark' ? '#e4e4e7' : '#1b1c1e'),
-    [resolvedTheme],
-  )
-  const defaultColorChannel1 = useMemo(
-    () => (resolvedTheme === 'dark' ? '#3b82f6' : '#2563eb'),
-    [resolvedTheme],
-  )
+  const defaultColor = useMemo(() => (resolvedTheme === 'dark' ? '#e4e4e7' : '#1b1c1e'), [resolvedTheme])
+  const defaultColorChannel1 = useMemo(() => (resolvedTheme === 'dark' ? '#3b82f6' : '#2563eb'), [resolvedTheme])
 
   const [customColor, setCustomColor] = useState<string | null>(null)
   const [customColorChannel1, setCustomColorChannel1] = useState<string | null>(null)
@@ -230,9 +225,7 @@ export function IconsGallery({ locale = 'en' }: { locale?: GalleryLocale }) {
     const result: typeof iconGroups = { single: [], double: [], multi: [] }
     for (const [groupName, groupItems] of Object.entries(iconGroups) as Array<[keyof typeof iconGroups, IconItem[]]>) {
       result[groupName] = groupItems.filter(
-        item =>
-          item.componentName.toLowerCase().includes(term)
-          || item.kebabName.toLowerCase().includes(term),
+        (item) => item.componentName.toLowerCase().includes(term) || item.kebabName.toLowerCase().includes(term),
       )
     }
     return result
@@ -268,55 +261,38 @@ export function IconsGallery({ locale = 'en' }: { locale?: GalleryLocale }) {
   )
 
   return (
-    // eslint-disable-next-line better-tailwindcss/no-unknown-classes -- MDX content needs to opt out of article prose styles.
     <div className="not-prose">
       <div
-        className="
-          sticky top-18 z-20 -mx-2 rounded-lg border bg-background/95 p-3 shadow-sm backdrop-blur-sm
-          supports-backdrop-filter:bg-background/82
-          lg:-mx-3
-        "
+        className="bg-background/95 supports-backdrop-filter:bg-background/82 sticky top-18 z-20 -mx-2 rounded-lg border p-3 shadow-sm backdrop-blur-sm lg:-mx-3"
       >
         <div className="grid gap-3">
           <div
-            className="
-              flex flex-col gap-3
-              xl:flex-row xl:items-center xl:justify-between
-            "
+            className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between"
           >
             <div
-              className="
-                relative min-w-0 flex-1
-                xl:max-w-md
-              "
+              className="relative min-w-0 flex-1 xl:max-w-md"
             >
-              <SearchIcon className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground/65" />
+              <SearchIcon className="text-muted-foreground/65 absolute top-1/2 left-3 size-4 -translate-y-1/2" />
               <Input
                 placeholder={t.searchPlaceholder}
-                className="h-10 rounded-lg border-border/80 bg-card px-9 text-sm shadow-xs"
+                className="border-border/80 bg-card h-10 rounded-lg px-9 text-sm shadow-xs"
                 value={search}
-                onChange={event => setSearch(event.target.value)}
+                onChange={(event) => setSearch(event.target.value)}
               />
-              {search
-                ? (
-                    <button
-                      type="button"
-                      aria-label={t.clearSearch}
-                      onClick={() => setSearch('')}
-                      className="
-                        absolute top-1/2 right-3 flex size-5 -translate-y-1/2 items-center justify-center rounded-md
-                        text-muted-foreground transition-colors
-                        hover:bg-muted hover:text-foreground
-                      "
-                    >
-                      <XIcon className="size-3.5" />
-                    </button>
-                  )
-                : null}
+              {search ? (
+                <button
+                  type="button"
+                  aria-label={t.clearSearch}
+                  onClick={() => setSearch('')}
+                  className="text-muted-foreground hover:bg-muted hover:text-foreground absolute top-1/2 right-3 flex size-5 -translate-y-1/2 items-center justify-center rounded-md transition-colors"
+                >
+                  <XIcon className="size-3.5" />
+                </button>
+              ) : null}
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex rounded-lg border bg-muted/35 p-1">
+              <div className="bg-muted/35 flex rounded-lg border p-1">
                 {GROUP_FILTERS.map((group) => {
                   const count = group === 'all' ? totalCount : filteredGroups[group].length
                   const isActive = activeGroup === group
@@ -328,61 +304,55 @@ export function IconsGallery({ locale = 'en' }: { locale?: GalleryLocale }) {
                       aria-pressed={isActive}
                       onClick={() => setActiveGroup(group)}
                       className={clsx(
-                        `
-                          flex h-8 min-w-15 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-medium
-                          transition-colors outline-none
-                          focus-visible:ring-[3px] focus-visible:ring-ring/40
-                        `,
+                        `focus-visible:ring-ring/40 flex h-8 min-w-15 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors outline-none focus-visible:ring-[3px]`,
                         isActive
                           ? 'bg-background text-foreground shadow-xs'
-                          : `
-                            text-muted-foreground
-                            hover:text-foreground
-                          `,
+                          : `text-muted-foreground hover:text-foreground`,
                       )}
                     >
                       <span>{t[group]}</span>
-                      <span className="text-[10px] text-muted-foreground tabular-nums">{count}</span>
+                      <span className="text-muted-foreground text-[10px] tabular-nums">{count}</span>
                     </button>
                   )
                 })}
               </div>
 
-              <div className="flex h-10 items-center gap-2 rounded-lg border bg-card px-3 shadow-xs">
-                <span className="text-[11px] font-medium tracking-wider text-muted-foreground uppercase">{t.stroke}</span>
+              <div className="bg-card flex h-10 items-center gap-2 rounded-lg border px-3 shadow-xs">
+                <span className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
+                  {t.stroke}
+                </span>
                 <ColorPickerPopover ariaLabel={t.pickColor} value={color} onValueChange={setCustomColor} />
-                <span className="ml-1 text-[11px] font-medium tracking-wider text-muted-foreground uppercase">{t.accent}</span>
-                <ColorPickerPopover ariaLabel={t.pickColor} value={colorChannel1} onValueChange={setCustomColorChannel1} />
+                <span className="text-muted-foreground ml-1 text-[11px] font-medium tracking-wider uppercase">
+                  {t.accent}
+                </span>
+                <ColorPickerPopover
+                  ariaLabel={t.pickColor}
+                  value={colorChannel1}
+                  onValueChange={setCustomColorChannel1}
+                />
               </div>
             </div>
           </div>
 
           <div
-            className="
-              flex flex-col gap-3
-              md:flex-row md:items-center md:justify-between
-            "
+            className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
           >
-            <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+            <div className="text-muted-foreground flex min-w-0 items-center gap-2 text-sm">
               <span>{t.showing}</span>
-              <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-foreground tabular-nums">
+              <span className="bg-muted text-foreground rounded-md px-2 py-0.5 text-xs font-medium tabular-nums">
                 {visibleCount}
               </span>
-              {search
-                ? (
-                    <span className="min-w-0 truncate">
-                      "
-                      <span className="font-medium text-foreground">{search}</span>
-                      "
-                    </span>
-                  )
-                : null}
+              {search ? (
+                <span className="min-w-0 truncate">
+                  "<span className="text-foreground font-medium">{search}</span>"
+                </span>
+              ) : null}
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-medium tracking-wider text-muted-foreground uppercase">{t.size}</span>
+              <span className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">{t.size}</span>
               <div className="flex items-center gap-1">
-                {PRESET_SIZES.map(size => (
+                {PRESET_SIZES.map((size) => (
                   <button
                     key={size}
                     type="button"
@@ -391,10 +361,7 @@ export function IconsGallery({ locale = 'en' }: { locale?: GalleryLocale }) {
                       'h-7 rounded-md px-2 text-xs font-medium transition-colors',
                       fontSize === size
                         ? 'bg-foreground text-background shadow-xs'
-                        : `
-                          bg-muted text-muted-foreground
-                          hover:bg-muted/80 hover:text-foreground
-                        `,
+                        : `bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground`,
                     )}
                   >
                     {size}
@@ -407,9 +374,9 @@ export function IconsGallery({ locale = 'en' }: { locale?: GalleryLocale }) {
                 min={12}
                 max={40}
                 step={1}
-                onValueChange={value => setFontSize(value[0] ?? 22)}
+                onValueChange={(value) => setFontSize(value[0] ?? 22)}
               />
-              <span className="w-10 text-right text-xs text-muted-foreground tabular-nums">
+              <span className="text-muted-foreground w-10 text-right text-xs tabular-nums">
                 {fontSize}
                 px
               </span>
@@ -419,14 +386,12 @@ export function IconsGallery({ locale = 'en' }: { locale?: GalleryLocale }) {
       </div>
 
       {visibleCount === 0 && (
-        <div
-          className="mt-8 flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/20 py-20"
-        >
-          <div className="mb-4 flex size-12 items-center justify-center rounded-lg border bg-background shadow-xs">
-            <SearchIcon className="size-5 text-muted-foreground" />
+        <div className="bg-muted/20 mt-8 flex flex-col items-center justify-center rounded-lg border border-dashed py-20">
+          <div className="bg-background mb-4 flex size-12 items-center justify-center rounded-lg border shadow-xs">
+            <SearchIcon className="text-muted-foreground size-5" />
           </div>
-          <p className="text-sm font-medium text-foreground">{t.emptyTitle}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{t.emptyHint}</p>
+          <p className="text-foreground text-sm font-medium">{t.emptyTitle}</p>
+          <p className="text-muted-foreground mt-1 text-sm">{t.emptyHint}</p>
           <Button className="mt-5" variant="outline" size="sm" onClick={() => setSearch('')}>
             <XIcon className="size-4" />
             {t.clearSearch}
@@ -435,106 +400,75 @@ export function IconsGallery({ locale = 'en' }: { locale?: GalleryLocale }) {
       )}
 
       <div className="mt-8 space-y-10">
-        {displayedGroups.map(
-          ([groupName, groupItems]) =>
-            groupItems.length === 0
-              ? null
-              : (
-                  <section key={groupName}>
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <h2 className="text-sm font-semibold tracking-wide text-foreground">
-                        {t[groupName]}
-                      </h2>
-                      <span
-                        className="
-                          rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground tabular-nums
-                        "
+        {displayedGroups.map(([groupName, groupItems]) =>
+          groupItems.length === 0 ? null : (
+            <section key={groupName}>
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-foreground text-sm font-semibold tracking-wide">{t[groupName]}</h2>
+                <span
+                  className="bg-muted text-muted-foreground rounded-md px-2 py-0.5 text-xs font-medium tabular-nums"
+                >
+                  {groupItems.length}
+                </span>
+              </div>
+
+              <ul className="grid list-none grid-cols-[repeat(auto-fill,minmax(116px,1fr))] gap-2">
+                {groupItems.map((item) => {
+                  const Icon = item.component
+                  const isCopied = copiedName === item.componentName
+                  const importStatement = `import { ${item.componentName} } from '@univerjs/icons'`
+
+                  return (
+                    <li key={item.componentName} className="m-0">
+                      <button
+                        type="button"
+                        title={item.componentName}
+                        aria-label={`${t.copyImport}: ${item.componentName}`}
+                        className="group bg-card hover:border-foreground/15 focus-visible:ring-ring/40 relative block min-h-30 w-full rounded-lg border p-2.5 text-left shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-[3px] focus-visible:outline-none"
+                        onClick={() => handleCopy(importStatement, item.componentName)}
                       >
-                        {groupItems.length}
-                      </span>
-                    </div>
+                        <span
+                          className={clsx(
+                            `bg-background absolute top-2 right-2 flex h-6 items-center gap-1 rounded-md border px-1.5 text-[10px] font-medium opacity-0 shadow-xs transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100`,
+                            isCopied ? `text-emerald-600 opacity-100 dark:text-emerald-400` : `text-muted-foreground`,
+                          )}
+                        >
+                          {isCopied ? <CheckIcon className="size-3" /> : <CopyIcon className="size-3" />}
+                          {isCopied ? t.copied : null}
+                        </span>
 
-                    <ul
-                      className="grid list-none grid-cols-[repeat(auto-fill,minmax(116px,1fr))] gap-2"
-                    >
-                      {groupItems.map((item) => {
-                        const Icon = item.component
-                        const isCopied = copiedName === item.componentName
-                        const importStatement = `import { ${item.componentName} } from '@univerjs/icons'`
+                        <span
+                          className="bg-muted/35 group-hover:bg-muted/60 flex h-16 items-center justify-center rounded-md transition-colors"
+                        >
+                          {mounted ? (
+                            <Icon
+                              style={{
+                                color,
+                                fontSize: `${fontSize}px`,
+                              }}
+                              extend={groupName !== 'single' ? { colorChannel1 } : undefined}
+                            />
+                          ) : (
+                            <span className="bg-muted-foreground/10 size-5 rounded-sm" aria-hidden />
+                          )}
+                        </span>
 
-                        return (
-                          <li key={item.componentName} className="m-0">
-                            <button
-                              type="button"
-                              title={item.componentName}
-                              aria-label={`${t.copyImport}: ${item.componentName}`}
-                              className="
-                                group relative block min-h-30 w-full rounded-lg border bg-card p-2.5 text-left shadow-xs
-                                transition-all
-                                hover:-translate-y-0.5 hover:border-foreground/15 hover:shadow-md
-                                focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none
-                              "
-                              onClick={() => handleCopy(importStatement, item.componentName)}
-                            >
-                              <span
-                                className={clsx(
-                                  `
-                                    absolute top-2 right-2 flex h-6 items-center gap-1 rounded-md border bg-background
-                                    px-1.5 text-[10px] font-medium opacity-0 shadow-xs transition-opacity
-                                    group-hover:opacity-100
-                                    group-focus-visible:opacity-100
-                                  `,
-                                  isCopied
-                                    ? `
-                                      text-emerald-600 opacity-100
-                                      dark:text-emerald-400
-                                    `
-                                    : `text-muted-foreground`,
-                                )}
-                              >
-                                {isCopied ? <CheckIcon className="size-3" /> : <CopyIcon className="size-3" />}
-                                {isCopied ? t.copied : null}
-                              </span>
-
-                              <span
-                                className="
-                                  flex h-16 items-center justify-center rounded-md bg-muted/35 transition-colors
-                                  group-hover:bg-muted/60
-                                "
-                              >
-                                {mounted
-                                  ? (
-                                      <Icon
-                                        style={{
-                                          color,
-                                          fontSize: `${fontSize}px`,
-                                        }}
-                                        extend={groupName !== 'single' ? { colorChannel1 } : undefined}
-                                      />
-                                    )
-                                  : (
-                                      <span className="size-5 rounded-sm bg-muted-foreground/10" aria-hidden />
-                                    )}
-                              </span>
-
-                              <span className="mt-2 block min-w-0">
-                                <span className="block truncate text-center text-[11px] font-medium text-foreground">
-                                  {item.componentName}
-                                </span>
-                                <span className="mt-0.5 block truncate text-center text-[10px] text-muted-foreground">
-                                  {item.kebabName}
-                                </span>
-                              </span>
-                              <span className="sr-only">
-                                {item.componentName}
-                              </span>
-                            </button>
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  </section>
-                ),
+                        <span className="mt-2 block min-w-0">
+                          <span className="text-foreground block truncate text-center text-[11px] font-medium">
+                            {item.componentName}
+                          </span>
+                          <span className="text-muted-foreground mt-0.5 block truncate text-center text-[10px]">
+                            {item.kebabName}
+                          </span>
+                        </span>
+                        <span className="sr-only">{item.componentName}</span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          ),
         )}
       </div>
     </div>

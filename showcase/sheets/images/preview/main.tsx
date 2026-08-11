@@ -7,6 +7,7 @@ import sheetsDrawingEnUS from '@univerjs/preset-sheets-drawing/locales/en-US'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef } from 'react'
+
 import { WORKBOOK_DATA } from '../code/data'
 
 import '@univerjs/preset-sheets-core/lib/index.css'
@@ -22,10 +23,7 @@ export default function Preview() {
       darkMode: theme === 'dark',
       locale: LocaleType.EN_US,
       locales: {
-        [LocaleType.EN_US]: mergeLocales(
-          sheetsCoreEnUS,
-          sheetsDrawingEnUS,
-        ),
+        [LocaleType.EN_US]: mergeLocales(sheetsCoreEnUS, sheetsDrawingEnUS),
       },
       presets: [
         UniverSheetsCorePreset({
@@ -45,7 +43,8 @@ export default function Preview() {
         const imageUrl = 'https://avatars.githubusercontent.com/u/61444807'
 
         // Insert a floating image into the active worksheet
-        const image = await fWorksheet?.newOverGridImage()
+        const image = await fWorksheet
+          ?.newOverGridImage()
           .setSource(imageUrl, univerAPI.Enum.ImageSourceType.URL)
           .setColumn(5)
           .setRow(5)
@@ -53,7 +52,9 @@ export default function Preview() {
           .setHeight(120)
           .buildAsync()
 
-        image && fWorksheet?.insertImages([image])
+        if (image) {
+          fWorksheet?.insertImages([image])
+        }
 
         // Insert a cell image into the active worksheet
         const cells = ['A1', 'B1', 'C1', 'D1', 'E1']
@@ -69,7 +70,5 @@ export default function Preview() {
     }
   }, [theme])
 
-  return (
-    <div ref={divRef} className="h-full" />
-  )
+  return <div ref={divRef} className="h-full" />
 }

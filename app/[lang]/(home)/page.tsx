@@ -1,7 +1,8 @@
-import type { Locale } from '@/i18n/routing'
 import { BookTextIcon, FerrisWheelIcon } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
+
+import type { Locale } from '@/i18n/routing'
 import BlurryBlob from '@/components/animata/blurry-blob'
 import { Footer } from '@/components/footer'
 import { DeveloperExperience } from '@/components/home/developer-experience'
@@ -43,10 +44,7 @@ export default async function Page({ params }: IProps) {
         <div className="relative container size-full">
           <div className="absolute top-1/3 left-1/6">
             <BlurryBlob
-              className={`
-                rounded-xl opacity-50
-                dark:opacity-35
-              `}
+              className={`rounded-xl opacity-50 dark:opacity-35`}
               firstBlobColor="bg-[#7AB0FF] dark:bg-[#0048FF]"
               secondBlobColor="bg-[#6BB5F7] dark:bg-[#0C81ED]"
             />
@@ -68,76 +66,37 @@ export default async function Page({ params }: IProps) {
         </div>
       </div>
 
-      <div
-        className={`
-          relative z-1 flex flex-col items-center gap-16 py-8
-          md:py-12
-        `}
-      >
+      <div className={`relative z-1 flex flex-col items-center gap-16 py-8 md:py-12`}>
         {/* Hero */}
         <BlurFade duration={0.2}>
-          <header
-            className={`
-              relative px-4 pt-12 pb-24
-              md:pt-36
-            `}
-          >
+          <header className={`relative px-4 pt-12 pb-24 md:pt-36`}>
             <div className="mb-6 text-center">
               <Link
-                className={`
-                  mx-auto inline-block rounded-full bg-neutral-50 py-1 text-sm font-semibold shadow-sm transition-colors
-                  hover:bg-neutral-100
-                  dark:bg-neutral-800
-                  dark:hover:bg-neutral-900
-                `}
+                className={`mx-auto inline-block rounded-full bg-neutral-50 py-1 text-sm font-semibold shadow-sm transition-colors hover:bg-neutral-100 dark:bg-neutral-800 hover:dark:bg-neutral-900`}
                 href={`https://github.com/dream-num/univer/releases/tag/v${pkg.version}`}
               >
-                <span
-                  className={`
-                    border-r border-neutral-300 py-1 pr-1.5 pl-3
-                    dark:border-neutral-700
-                  `}
-                >
-                  🎉
-                </span>
+                <span className={`border-r border-neutral-300 py-1 pr-1.5 pl-3 dark:border-neutral-700`}>🎉</span>
                 <AnimatedShinyText className="py-1 pr-3 pl-1.5">
-                  Univer v
-                  {pkg.version}
-                  {' '}
-                  {t('home.banner-release')}
+                  Univer v{pkg.version} {t('home.banner-release')}
                 </AnimatedShinyText>
               </Link>
             </div>
 
             <h1
-              className={`
-                mx-auto mb-6 max-w-3xl bg-linear-to-br from-black from-30% to-black/40 bg-clip-text text-center text-3xl
-                font-semibold text-transparent
-                md:text-4xl
-                lg:text-6xl
-                dark:from-white dark:to-white/40
-              `}
+              className={`mx-auto mb-6 max-w-3xl bg-linear-to-br from-black from-30% to-black/40 bg-clip-text text-center text-3xl font-semibold text-transparent md:text-4xl lg:text-6xl dark:from-white dark:to-white/40`}
             >
               {t('home.slogan')}
             </h1>
 
             <p
-              className={`
-                mx-auto mb-10 max-w-3xl text-center text-base text-neutral-600
-                md:text-lg
-                dark:text-neutral-300
-              `}
+              className={`mx-auto mb-10 max-w-3xl text-center text-base text-neutral-600 md:text-lg dark:text-neutral-300`}
             >
               {t('home.description')}
-              <span
-                className="font-medium text-green-600 underline decoration-current decoration-wavy underline-offset-4"
-              >
+              <span className="font-medium text-green-600 underline decoration-current decoration-wavy underline-offset-4">
                 {t('home.description-sheets')}
               </span>
               {t('home.description-split')}
-              <span
-                className="font-medium text-blue-600 underline decoration-current decoration-wavy underline-offset-4"
-              >
+              <span className="font-medium text-blue-600 underline decoration-current decoration-wavy underline-offset-4">
                 {t('home.description-docs')}
               </span>
               {t('home.description-and')}
@@ -148,29 +107,20 @@ export default async function Page({ params }: IProps) {
             </p>
 
             <div className="flex justify-center gap-4">
-              <RainbowButton asChild>
-                <Link href="/guides/sheets">
-                  <BookTextIcon />
-                  {t('navigation.documentation')}
-                </Link>
+              <RainbowButton render={<Link href="/guides/sheets" />}>
+                <BookTextIcon />
+                {t('navigation.documentation')}
               </RainbowButton>
-              <RainbowButton variant="outline" asChild>
-                <Link href="/showcase">
-                  <FerrisWheelIcon />
-                  {t('navigation.showcase')}
-                </Link>
+              <RainbowButton variant="outline" render={<Link href="/showcase" />}>
+                <FerrisWheelIcon />
+                {t('navigation.showcase')}
               </RainbowButton>
             </div>
           </header>
         </BlurFade>
 
         {/* Playground */}
-        <section
-          className={`
-            relative min-h-120 w-full px-4
-            md:min-h-200 md:px-12
-          `}
-        >
+        <section className={`relative min-h-120 w-full px-4 md:min-h-200 md:px-12`}>
           <Univer />
         </section>
 

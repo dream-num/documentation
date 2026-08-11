@@ -32,10 +32,10 @@ export default class MainCustomExtension extends SheetExtension {
     const { rowHeightAccumulation, columnTotalWidth, columnWidthAccumulation, rowTotalHeight } = spreadsheetSkeleton
 
     if (
-      !rowHeightAccumulation
-      || !columnWidthAccumulation
-      || columnTotalWidth === undefined
-      || rowTotalHeight === undefined
+      !rowHeightAccumulation ||
+      !columnWidthAccumulation ||
+      columnTotalWidth === undefined ||
+      rowTotalHeight === undefined
     ) {
       return
     }
@@ -86,7 +86,9 @@ export default class MainCustomExtension extends SheetExtension {
         // painting cell text
         const middleCellPosX = preColumnPosition + (columnEndPosition - preColumnPosition) / 2
         const middleCellPosY = preRowPosition + (rowEndPosition - preRowPosition) / 2
-        customEmojiList[c] && ctx.fillText(customEmojiList[c], middleCellPosX + 20, middleCellPosY + MIDDLE_CELL_POS_MAGIC_NUMBER) // Magic number 1, because the vertical alignment appears to be off by 1 pixel
+        if (customEmojiList[c]) {
+          ctx.fillText(customEmojiList[c], middleCellPosX + 20, middleCellPosY + MIDDLE_CELL_POS_MAGIC_NUMBER) // Magic number 1, because the vertical alignment appears to be off by 1 pixel
+        }
         preColumnPosition = columnEndPosition
       }
 

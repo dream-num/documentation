@@ -1,71 +1,53 @@
 'use client'
 
-import type { ComponentProps } from 'react'
-import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu'
+import * as BaseMenu from '@base-ui/react/menu'
+
 import { clsx } from '@/lib/clsx'
 
-function DropdownMenu({
-  ...props
-}: ComponentProps<typeof DropdownMenuPrimitive.Root>) {
-  return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />
+function DropdownMenu({ ...props }: BaseMenu.Menu.Root.Props) {
+  return <BaseMenu.Menu.Root data-slot="dropdown-menu" {...props} />
 }
 
-function DropdownMenuTrigger({
-  ...props
-}: ComponentProps<typeof DropdownMenuPrimitive.Trigger>) {
-  return (
-    <DropdownMenuPrimitive.Trigger
-      data-slot="dropdown-menu-trigger"
-      {...props}
-    />
-  )
+function DropdownMenuTrigger({ ...props }: BaseMenu.Menu.Trigger.Props) {
+  return <BaseMenu.Menu.Trigger data-slot="dropdown-menu-trigger" {...props} />
 }
 
 function DropdownMenuContent({
   className,
   sideOffset = 4,
   align = 'end',
+  alignOffset,
+  side,
   ...props
-}: ComponentProps<typeof DropdownMenuPrimitive.Content>) {
+}: BaseMenu.Menu.Popup.Props & Pick<BaseMenu.Menu.Positioner.Props, 'align' | 'alignOffset' | 'side' | 'sideOffset'>) {
   return (
-    <DropdownMenuPrimitive.Portal>
-      <DropdownMenuPrimitive.Content
-        data-slot="dropdown-menu-content"
-        sideOffset={sideOffset}
+    <BaseMenu.Menu.Portal>
+      <BaseMenu.Menu.Positioner
         align={align}
-        className={clsx(
-          `
-            z-50 min-w-40 origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-md border
-            bg-popover p-1 text-popover-foreground shadow-md
-            data-[side=bottom]:slide-in-from-top-2
-            data-[side=left]:slide-in-from-right-2
-            data-[side=right]:slide-in-from-left-2
-            data-[side=top]:slide-in-from-bottom-2
-            data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95
-            data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95
-          `,
-          className,
-        )}
-        {...props}
-      />
-    </DropdownMenuPrimitive.Portal>
+        alignOffset={alignOffset}
+        side={side}
+        sideOffset={sideOffset}
+        className="z-50 outline-none"
+      >
+        <BaseMenu.Menu.Popup
+          data-slot="dropdown-menu-content"
+          className={clsx(
+            `bg-popover text-popover-foreground data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 min-w-40 origin-(--transform-origin) overflow-hidden rounded-md border p-1 shadow-md outline-none`,
+            className,
+          )}
+          {...props}
+        />
+      </BaseMenu.Menu.Positioner>
+    </BaseMenu.Menu.Portal>
   )
 }
 
-function DropdownMenuItem({
-  className,
-  ...props
-}: ComponentProps<typeof DropdownMenuPrimitive.Item>) {
+function DropdownMenuItem({ className, ...props }: BaseMenu.Menu.Item.Props) {
   return (
-    <DropdownMenuPrimitive.Item
+    <BaseMenu.Menu.Item
       data-slot="dropdown-menu-item"
       className={clsx(
-        `
-          relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none
-          focus:bg-accent focus:text-accent-foreground
-          data-disabled:pointer-events-none data-disabled:opacity-50
-          [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0
-        `,
+        `data-highlighted:bg-accent data-highlighted:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0`,
         className,
       )}
       {...props}
@@ -73,9 +55,4 @@ function DropdownMenuItem({
   )
 }
 
-export {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-}
+export { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger }

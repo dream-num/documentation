@@ -1,32 +1,23 @@
 import type { VariantProps } from 'class-variance-authority'
-import type { ButtonHTMLAttributes } from 'react'
-import { Slot } from '@radix-ui/react-slot'
+import { mergeProps } from '@base-ui/react/merge-props'
+import { useRender } from '@base-ui/react/use-render'
 import { cva } from 'class-variance-authority'
-import { clsx } from '@/lib/clsx'
 
-interface RainbowButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {}
+import { clsx } from '@/lib/clsx'
 
 const rainbowButtonVariants = cva(
   clsx(
-    'group relative animate-rainbow cursor-pointer transition-all',
+    'group animate-rainbow relative cursor-pointer transition-all',
     'inline-flex shrink-0 items-center justify-center gap-2',
-    `
-      rounded-sm outline-none
-      focus-visible:ring-[3px]
-      aria-invalid:border-destructive
-    `,
+    `aria-invalid:border-destructive rounded-sm outline-none focus-visible:ring-[3px]`,
     'text-sm font-medium whitespace-nowrap',
     'disabled:pointer-events-none disabled:opacity-50',
-    `
-      [&_svg]:pointer-events-none [&_svg]:shrink-0
-      [&_svg:not([class*='size-'])]:size-4
-    `,
+    `[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4`,
   ),
   {
     variants: {
       variant: {
-        default:
-          `
+        default: `
             border-0
             bg-[linear-gradient(#121213,#121213),linear-gradient(#121213_50%,rgba(18,18,19,0.6)_80%,rgba(18,18,19,0)),linear-gradient(90deg,var(--color-1),var(--color-5),var(--color-3),var(--color-4),var(--color-2))]
             bg-size-[200%] [background-clip:padding-box,border-box,border-box] bg-origin-border text-primary-foreground
@@ -37,8 +28,7 @@ const rainbowButtonVariants = cva(
             before:filter-[blur(0.75rem)]
             dark:bg-[linear-gradient(#fff,#fff),linear-gradient(#fff_50%,rgba(255,255,255,0.6)_80%,rgba(0,0,0,0)),linear-gradient(90deg,var(--color-1),var(--color-5),var(--color-3),var(--color-4),var(--color-2))]
           `,
-        outline:
-          `
+        outline: `
             border border-input border-b-transparent
             bg-[linear-gradient(#ffffff,#ffffff),linear-gradient(#ffffff_50%,rgba(18,18,19,0.6)_80%,rgba(18,18,19,0)),linear-gradient(90deg,var(--color-1),var(--color-5),var(--color-3),var(--color-4),var(--color-2))]
             bg-size-[200%] [background-clip:padding-box,border-box,border-box] bg-origin-border text-accent-foreground
@@ -63,23 +53,17 @@ const rainbowButtonVariants = cva(
   },
 )
 
-interface RainbowButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>,
-  VariantProps<typeof rainbowButtonVariants> {
-  asChild?: boolean
-}
+type IRainbowButtonProps = useRender.ComponentProps<'button'> & VariantProps<typeof rainbowButtonVariants>
 
-function RainbowButton({ ref, className, variant, size, asChild = false, ...props }: RainbowButtonProps & { ref?: React.RefObject<HTMLButtonElement | null> }) {
-  const Comp = asChild ? Slot : 'button'
-  return (
-    <Comp
-      data-slot="button"
-      className={clsx(rainbowButtonVariants({ variant, size, className }))}
-      ref={ref}
-      {...props}
-    />
-  )
+function RainbowButton({ className, variant, size, render, ...props }: IRainbowButtonProps) {
+  return useRender({
+    defaultTagName: 'button',
+    props: mergeProps<'button'>({ className: clsx(rainbowButtonVariants({ variant, size, className })) }, props),
+    render,
+    state: { slot: 'button' },
+  })
 }
 
 RainbowButton.displayName = 'RainbowButton'
 
-export { RainbowButton, type RainbowButtonProps, rainbowButtonVariants }
+export { RainbowButton, type IRainbowButtonProps, rainbowButtonVariants }

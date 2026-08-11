@@ -3,11 +3,8 @@
 import type { ColorLike } from 'color'
 import Color from 'color'
 import { useMemo, useState } from 'react'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   ColorPicker,
   ColorPickerAlpha,
@@ -50,17 +47,16 @@ export function ColorPickerPopover({
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
-        <button
-          aria-label={ariaLabel}
-          className="
-            size-5 cursor-pointer rounded-md border-2 border-border/80 shadow-sm transition-all
-            hover:scale-105 hover:border-foreground/30
-          "
-          style={{ backgroundColor: hexValue }}
-          type="button"
-        />
-      </PopoverTrigger>
+      <PopoverTrigger
+        render={
+          <button
+            aria-label={ariaLabel}
+            className="border-border/80 hover:border-foreground/30 size-5 cursor-pointer rounded-md border-2 shadow-sm transition-all hover:scale-105"
+            style={{ backgroundColor: hexValue }}
+            type="button"
+          />
+        }
+      />
       <PopoverContent
         align="end"
         className="w-78 max-w-[calc(100vw-1.5rem)] p-2.5"

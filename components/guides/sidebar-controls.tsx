@@ -1,21 +1,14 @@
 import type { ReactNode } from 'react'
-import type { GuideNavItem } from '@/lib/guides/navigation'
 import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react'
 import Link from 'next/link'
+
+import type { GuideNavItem } from '@/lib/guides/navigation'
 import { NavIconFrame } from '@/components/docs-shell/nav-icon-frame'
 import { SidebarVersionSwitcher } from '@/components/docs-shell/sidebar-version-switcher'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { clsx } from '@/lib/clsx'
-import {
-  getActiveGuideProduct,
-  getGuideNavItemHref,
-  getGuideProductItems,
-} from '@/lib/guides/navigation'
+import { getActiveGuideProduct, getGuideNavItemHref, getGuideProductItems } from '@/lib/guides/navigation'
+
 import { UniverIcon } from '../univer-icon'
 
 function getIconsProductItem(): GuideNavItem {
@@ -37,21 +30,11 @@ function isArchitecturePracticePath(pathname: string) {
   return /^(?:\/[a-z]{2}(?:-[A-Z]{2})?)?\/guides\/recipes\/architecture(?:\/|$)/.test(pathname)
 }
 
-function ControlIcon({
-  children,
-  className,
-}: {
-  children: ReactNode
-  className?: string
-}) {
+function ControlIcon({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <span
       className={clsx(
-        `
-          grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border bg-background p-2 text-primary
-          *:size-5! *:min-w-5! *:border-0! *:bg-transparent! *:p-0! *:shadow-none!
-          [&_svg]:size-4.5!
-        `,
+        `bg-background text-primary grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border p-2 *:size-5! *:min-w-5! *:border-0! *:bg-transparent! *:p-0! *:shadow-none! [&_svg]:size-4.5!`,
         className,
       )}
     >
@@ -72,39 +55,18 @@ function ProductIcon({ item }: { item?: GuideNavItem }) {
   )
 }
 
-function SwitcherSummary({
-  icon,
-  title,
-  subtitle,
-}: {
-  icon: ReactNode
-  title: string
-  subtitle?: ReactNode
-}) {
+function SwitcherSummary({ icon, title, subtitle }: { icon: ReactNode; title: string; subtitle?: ReactNode }) {
   return (
     <button
-      className="
-        flex w-full items-center gap-3 rounded-md p-1 text-left transition-colors
-        hover:bg-accent hover:text-accent-foreground
-        focus-visible:bg-accent/70 focus-visible:ring-1 focus-visible:ring-ring/60 focus-visible:outline-none
-        focus-visible:ring-inset
-      "
+      className="hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-ring/60 flex w-full items-center gap-3 rounded-md p-1 text-left transition-colors focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset"
       type="button"
     >
       {icon}
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold text-foreground">
-          {title}
-        </span>
-        {subtitle
-          ? (
-              <span className="block truncate text-sm text-muted-foreground">
-                {subtitle}
-              </span>
-            )
-          : null}
+        <span className="text-foreground block truncate text-sm font-semibold">{title}</span>
+        {subtitle ? <span className="text-muted-foreground block truncate text-sm">{subtitle}</span> : null}
       </span>
-      <ChevronsUpDownIcon className="size-4 shrink-0 text-muted-foreground" />
+      <ChevronsUpDownIcon className="text-muted-foreground size-4 shrink-0" />
     </button>
   )
 }
@@ -126,12 +88,8 @@ export function GuidesSidebarControls({
   showVersion?: boolean
 }) {
   const iconsProduct = getIconsProductItem()
-  const productItems = includeIcons
-    ? [...getGuideProductItems(items), iconsProduct]
-    : getGuideProductItems(items)
-  const currentProduct = includeIcons && isIconsPath(pathname)
-    ? iconsProduct
-    : getActiveGuideProduct(items, pathname)
+  const productItems = includeIcons ? [...getGuideProductItems(items), iconsProduct] : getGuideProductItems(items)
+  const currentProduct = includeIcons && isIconsPath(pathname) ? iconsProduct : getActiveGuideProduct(items, pathname)
   const shouldShowVersion = showVersion && !isArchitecturePracticePath(pathname)
   const shouldShowProduct = Boolean(currentProduct && productItems.length > 0)
 
@@ -143,38 +101,33 @@ export function GuidesSidebarControls({
     <div className={clsx('space-y-3', shouldShowVersion ? 'pb-6' : 'pb-4')}>
       {shouldShowVersion ? <SidebarVersionSwitcher /> : null}
 
-      {shouldShowProduct
-        ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SwitcherSummary
-                  icon={<ProductIcon item={currentProduct} />}
-                  title={currentProduct?.name ?? labels.products}
-                  subtitle={currentProduct?.description ?? labels.guides}
-                />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-64">
-                {productItems.map(item => (
-                  <DropdownMenuItem asChild key={item.id}>
-                    <Link
-                      className="min-h-10 justify-between"
-                      href={getGuideNavItemHref(item) ?? '#'}
-                    >
-                      <span className="flex min-w-0 items-center gap-2">
-                        {item.icon
-                          ? <NavIconFrame icon={item.icon} />
-                          : null}
-                        <span className="truncate">{item.name}</span>
-                      </span>
-                      {item.id === currentProduct?.id ? <CheckIcon className="size-4" /> : null}
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )
-        : null}
-
+      {shouldShowProduct ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <SwitcherSummary
+                icon={<ProductIcon item={currentProduct} />}
+                title={currentProduct?.name ?? labels.products}
+                subtitle={currentProduct?.description ?? labels.guides}
+              />
+            }
+          />
+          <DropdownMenuContent align="start" className="w-64">
+            {productItems.map((item) => (
+              <DropdownMenuItem
+                key={item.id}
+                render={<Link className="min-h-10 justify-between" href={getGuideNavItemHref(item) ?? '#'} />}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  {item.icon ? <NavIconFrame icon={item.icon} /> : null}
+                  <span className="truncate">{item.name}</span>
+                </span>
+                {item.id === currentProduct?.id ? <CheckIcon className="size-4" /> : null}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
     </div>
   )
 }

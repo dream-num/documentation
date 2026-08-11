@@ -1,14 +1,9 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { clsx } from '@/lib/clsx'
 
@@ -32,38 +27,41 @@ const SPECS = {
 type SpecKey = keyof typeof SPECS
 type Locale = 'zh-CN' | 'zh-TW' | 'en-US' | 'ja-JP' | 'ko-KR' | 'fr-FR' | 'ru-RU'
 
-const T: Record<Locale, {
-  title: string
-  subtitle: string
-  docCount: string
-  saveInterval: string
-  saveIntervalSuffix: string
-  multiDocRatio: string
-  avgCollaborators: string
-  collaboratorsSuffix: string
-  redundancy: string
-  redundancySuffix: string
-  spec: string
-  spec2c4g: string
-  spec4c8g: string
-  editQps: string
-  broadcastQps: string
-  activeUsers: string
-  recommended: string
-  nodeServer: string
-  nodeServerDesc: (qps: number) => string
-  universer: string
-  universerDesc: (qps: number, bps: number) => string
-  postgresql: string
-  postgresqlDescBaseline: string
-  postgresqlDescUpgrade: string
-  notes: string
-  noteEditQps: string
-  noteBroadcastQps: string
-  noteNode: (spec: string, qps: number) => string
-  noteUniverser: (spec: string, qps: number, bps: number) => string
-  noteFinal: string
-}> = {
+const T: Record<
+  Locale,
+  {
+    title: string
+    subtitle: string
+    docCount: string
+    saveInterval: string
+    saveIntervalSuffix: string
+    multiDocRatio: string
+    avgCollaborators: string
+    collaboratorsSuffix: string
+    redundancy: string
+    redundancySuffix: string
+    spec: string
+    spec2c4g: string
+    spec4c8g: string
+    editQps: string
+    broadcastQps: string
+    activeUsers: string
+    recommended: string
+    nodeServer: string
+    nodeServerDesc: (qps: number) => string
+    universer: string
+    universerDesc: (qps: number, bps: number) => string
+    postgresql: string
+    postgresqlDescBaseline: string
+    postgresqlDescUpgrade: string
+    notes: string
+    noteEditQps: string
+    noteBroadcastQps: string
+    noteNode: (spec: string, qps: number) => string
+    noteUniverser: (spec: string, qps: number, bps: number) => string
+    noteFinal: string
+  }
+> = {
   'zh-CN': {
     title: '容量需求计算器',
     subtitle: '输入你的业务参数，获取推荐的 Univer Pro 资源配置',
@@ -83,7 +81,7 @@ const T: Record<Locale, {
     activeUsers: '活跃用户数',
     recommended: '推荐资源配置（含冗余）',
     nodeServer: 'Node server (collaboration-server)',
-    nodeServerDesc: qps => `按 ${qps} QPS/实例计算`,
+    nodeServerDesc: (qps) => `按 ${qps} QPS/实例计算`,
     universer: 'Universer',
     universerDesc: (qps, bps) => `编辑 ${qps} QPS/实例，广播 ${bps}/实例`,
     postgresql: 'PostgreSQL',
@@ -115,7 +113,7 @@ const T: Record<Locale, {
     activeUsers: '活躍使用者數',
     recommended: '推薦資源配置（含冗餘）',
     nodeServer: 'Node server (collaboration-server)',
-    nodeServerDesc: qps => `按 ${qps} QPS/實例計算`,
+    nodeServerDesc: (qps) => `按 ${qps} QPS/實例計算`,
     universer: 'Universer',
     universerDesc: (qps, bps) => `編輯 ${qps} QPS/實例，廣播 ${bps}/實例`,
     postgresql: 'PostgreSQL',
@@ -147,7 +145,7 @@ const T: Record<Locale, {
     activeUsers: 'Active users',
     recommended: 'Recommended resources (with redundancy)',
     nodeServer: 'Node server (collaboration-server)',
-    nodeServerDesc: qps => `Based on ${qps} QPS/instance`,
+    nodeServerDesc: (qps) => `Based on ${qps} QPS/instance`,
     universer: 'Universer',
     universerDesc: (qps, bps) => `${qps} edit QPS/instance, ${bps} broadcast/instance`,
     postgresql: 'PostgreSQL',
@@ -157,7 +155,8 @@ const T: Record<Locale, {
     noteEditQps: 'Edit save QPS = documents ÷ save interval',
     noteBroadcastQps: 'Broadcast QPS = edit save QPS × (active users / documents − 1)',
     noteNode: (spec, qps) => `One collaboration-server ${spec} instance supports ~${qps} edit QPS`,
-    noteUniverser: (spec, qps, bps) => `One universer ${spec} instance supports ~${qps} edit QPS or ${bps} broadcast QPS`,
+    noteUniverser: (spec, qps, bps) =>
+      `One universer ${spec} instance supports ~${qps} edit QPS or ${bps} broadcast QPS`,
     noteFinal: 'Final config = base instances × (1 + redundancy factor)',
   },
   'ja-JP': {
@@ -179,7 +178,7 @@ const T: Record<Locale, {
     activeUsers: 'アクティブユーザー数',
     recommended: '推奨リソース構成（冗長性込み）',
     nodeServer: 'Node server (collaboration-server)',
-    nodeServerDesc: qps => `${qps} QPS/インスタンスで計算`,
+    nodeServerDesc: (qps) => `${qps} QPS/インスタンスで計算`,
     universer: 'Universer',
     universerDesc: (qps, bps) => `編集 ${qps} QPS/インスタンス、ブロードキャスト ${bps}/インスタンス`,
     postgresql: 'PostgreSQL',
@@ -189,7 +188,8 @@ const T: Record<Locale, {
     noteEditQps: '編集保存 QPS = ドキュメント数 ÷ 保存間隔',
     noteBroadcastQps: 'ブロードキャスト QPS = 編集保存 QPS × (アクティブユーザー数 / ドキュメント数 − 1)',
     noteNode: (spec, qps) => `collaboration-server ${spec} の単一インスタンスは約 ${qps} 編集 QPS を処理`,
-    noteUniverser: (spec, qps, bps) => `universer ${spec} の単一インスタンスは約 ${qps} 編集 QPS または ${bps} ブロードキャスト QPS を処理`,
+    noteUniverser: (spec, qps, bps) =>
+      `universer ${spec} の単一インスタンスは約 ${qps} 編集 QPS または ${bps} ブロードキャスト QPS を処理`,
     noteFinal: '最終構成 = 基本インスタンス数 × (1 + 冗長性倍率)',
   },
   'ko-KR': {
@@ -211,7 +211,7 @@ const T: Record<Locale, {
     activeUsers: '활성 사용자 수',
     recommended: '권장 리소스 구성(이중화 포함)',
     nodeServer: 'Node server (collaboration-server)',
-    nodeServerDesc: qps => `${qps} QPS/인스턴스 기준`,
+    nodeServerDesc: (qps) => `${qps} QPS/인스턴스 기준`,
     universer: 'Universer',
     universerDesc: (qps, bps) => `편집 ${qps} QPS/인스턴스, 브로드캐스트 ${bps}/인스턴스`,
     postgresql: 'PostgreSQL',
@@ -221,7 +221,8 @@ const T: Record<Locale, {
     noteEditQps: '편집 저장 QPS = 문서 수 ÷ 저장 간격',
     noteBroadcastQps: '협업 브로드캐스트 QPS = 편집 저장 QPS × (활성 사용자 수 / 문서 수 − 1)',
     noteNode: (spec, qps) => `collaboration-server ${spec} 인스턴스 하나는 약 ${qps} 편집 QPS를 지원합니다`,
-    noteUniverser: (spec, qps, bps) => `universer ${spec} 인스턴스 하나는 약 ${qps} 편집 QPS 또는 ${bps} 브로드캐스트 QPS를 지원합니다`,
+    noteUniverser: (spec, qps, bps) =>
+      `universer ${spec} 인스턴스 하나는 약 ${qps} 편집 QPS 또는 ${bps} 브로드캐스트 QPS를 지원합니다`,
     noteFinal: '최종 구성 = 기본 인스턴스 수 × (1 + 이중화 계수)',
   },
   'fr-FR': {
@@ -243,7 +244,7 @@ const T: Record<Locale, {
     activeUsers: 'Utilisateurs actifs',
     recommended: 'Ressources recommandées (avec redondance)',
     nodeServer: 'Serveur Node (collaboration-server)',
-    nodeServerDesc: qps => `Sur la base de ${qps} QPS/instance`,
+    nodeServerDesc: (qps) => `Sur la base de ${qps} QPS/instance`,
     universer: 'Universer',
     universerDesc: (qps, bps) => `${qps} QPS de modification/instance, ${bps} diffusions/instance`,
     postgresql: 'PostgreSQL',
@@ -252,8 +253,10 @@ const T: Record<Locale, {
     notes: 'Notes de calcul',
     noteEditQps: 'QPS de sauvegarde = documents ÷ intervalle de sauvegarde',
     noteBroadcastQps: 'QPS de diffusion = QPS de sauvegarde × (utilisateurs actifs / documents − 1)',
-    noteNode: (spec, qps) => `Une instance collaboration-server ${spec} prend en charge environ ${qps} QPS de modification`,
-    noteUniverser: (spec, qps, bps) => `Une instance universer ${spec} prend en charge environ ${qps} QPS de modification ou ${bps} diffusions`,
+    noteNode: (spec, qps) =>
+      `Une instance collaboration-server ${spec} prend en charge environ ${qps} QPS de modification`,
+    noteUniverser: (spec, qps, bps) =>
+      `Une instance universer ${spec} prend en charge environ ${qps} QPS de modification ou ${bps} diffusions`,
     noteFinal: 'Configuration finale = instances de base × (1 + facteur de redondance)',
   },
   'ru-RU': {
@@ -275,7 +278,7 @@ const T: Record<Locale, {
     activeUsers: 'Активные пользователи',
     recommended: 'Рекомендуемые ресурсы (с резервированием)',
     nodeServer: 'Сервер Node (collaboration-server)',
-    nodeServerDesc: qps => `Из расчёта ${qps} QPS на экземпляр`,
+    nodeServerDesc: (qps) => `Из расчёта ${qps} QPS на экземпляр`,
     universer: 'Universer',
     universerDesc: (qps, bps) => `${qps} QPS изменений на экземпляр, ${bps} рассылок на экземпляр`,
     postgresql: 'PostgreSQL',
@@ -285,7 +288,8 @@ const T: Record<Locale, {
     noteEditQps: 'QPS сохранения = документы ÷ интервал сохранения',
     noteBroadcastQps: 'QPS рассылки = QPS сохранения × (активные пользователи / документы − 1)',
     noteNode: (spec, qps) => `Один экземпляр collaboration-server ${spec} поддерживает около ${qps} QPS изменений`,
-    noteUniverser: (spec, qps, bps) => `Один экземпляр universer ${spec} поддерживает около ${qps} QPS изменений или ${bps} рассылок`,
+    noteUniverser: (spec, qps, bps) =>
+      `Один экземпляр universer ${spec} поддерживает около ${qps} QPS изменений или ${bps} рассылок`,
     noteFinal: 'Итоговая конфигурация = базовые экземпляры × (1 + коэффициент резервирования)',
   },
 }
@@ -307,20 +311,18 @@ function NumberInput({
 }) {
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-foreground">{label}</label>
+      <label className="text-foreground text-sm font-medium">{label}</label>
       <div className="relative">
         <Input
           type="number"
           min={min}
           step={step}
           value={value}
-          onChange={e => onChange(Number(e.target.value))}
+          onChange={(e) => onChange(Number(e.target.value))}
           className="pr-8"
         />
         {suffix && (
-          <span
-            className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground"
-          >
+          <span className="text-muted-foreground pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm">
             {suffix}
           </span>
         )}
@@ -329,40 +331,22 @@ function NumberInput({
   )
 }
 
-function ResultCard({
-  title,
-  children,
-  className,
-}: {
-  title: string
-  children: React.ReactNode
-  className?: string
-}) {
+function ResultCard({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={clsx('rounded-lg border bg-card p-4 shadow-sm', className)}>
-      <div className="mb-2 text-xs font-medium tracking-wider text-muted-foreground uppercase">
-        {title}
-      </div>
-      <div className="text-2xl font-semibold text-foreground">{children}</div>
+    <div className={clsx('bg-card rounded-lg border p-4 shadow-sm', className)}>
+      <div className="text-muted-foreground mb-2 text-xs font-medium tracking-wider uppercase">{title}</div>
+      <div className="text-foreground text-2xl font-semibold">{children}</div>
     </div>
   )
 }
 
-function ConfigRow({
-  label,
-  value,
-  desc,
-}: {
-  label: string
-  value: string
-  desc?: string
-}) {
+function ConfigRow({ label, value, desc }: { label: string; value: string; desc?: string }) {
   return (
     <div className="flex items-center justify-between py-2">
-      <span className="text-sm text-foreground">{label}</span>
+      <span className="text-foreground text-sm">{label}</span>
       <div className="text-right">
-        <div className="text-sm font-medium text-foreground">{value}</div>
-        {desc && <div className="text-xs text-muted-foreground">{desc}</div>}
+        <div className="text-foreground text-sm font-medium">{value}</div>
+        {desc && <div className="text-muted-foreground text-xs">{desc}</div>}
       </div>
     </div>
   )
@@ -378,14 +362,7 @@ export function CapacityCalculator({ locale = 'zh-CN' }: { locale?: Locale }) {
   const [redundancy, setRedundancy] = useState(1)
   const [spec, setSpec] = useState<SpecKey>('2c4g')
 
-  const {
-    editQps,
-    broadcastQps,
-    activeUsers,
-    nodeInstances,
-    universerInstances,
-    dbSpec,
-  } = useMemo(() => {
+  const { editQps, broadcastQps, activeUsers, nodeInstances, universerInstances, dbSpec } = useMemo(() => {
     const editQps = docCount / saveInterval
     const activeUsers = docCount * (1 + (multiDocRatio / 100) * (avgCollaborators - 1))
     const broadcastQps = editQps * (activeUsers / docCount - 1)
@@ -415,27 +392,16 @@ export function CapacityCalculator({ locale = 'zh-CN' }: { locale?: Locale }) {
   }, [docCount, saveInterval, multiDocRatio, avgCollaborators, redundancy, spec])
 
   return (
-    <div className="my-6 rounded-xl border bg-background shadow-sm">
-      <div className="border-b bg-muted/50 px-4 py-3">
-        <h3 className="text-base font-semibold text-foreground">{t.title}</h3>
-        <p className="text-sm text-muted-foreground">{t.subtitle}</p>
+    <div className="bg-background my-6 rounded-xl border shadow-sm">
+      <div className="bg-muted/50 border-b px-4 py-3">
+        <h3 className="text-foreground text-base font-semibold">{t.title}</h3>
+        <p className="text-muted-foreground text-sm">{t.subtitle}</p>
       </div>
 
-      <div
-        className="
-          grid gap-6 p-4
-          md:grid-cols-2 md:p-6
-        "
-      >
+      <div className="grid gap-6 p-4 md:grid-cols-2 md:p-6">
         {/* inputs */}
         <div className="space-y-5">
-          <NumberInput
-            label={t.docCount}
-            value={docCount}
-            onChange={setDocCount}
-            min={1}
-            step={100}
-          />
+          <NumberInput label={t.docCount} value={docCount} onChange={setDocCount} min={1} step={100} />
 
           <NumberInput
             label={t.saveInterval}
@@ -448,15 +414,12 @@ export function CapacityCalculator({ locale = 'zh-CN' }: { locale?: Locale }) {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-foreground">{t.multiDocRatio}</label>
-              <span className="text-sm text-muted-foreground">
-                {multiDocRatio}
-                %
-              </span>
+              <label className="text-foreground text-sm font-medium">{t.multiDocRatio}</label>
+              <span className="text-muted-foreground text-sm">{multiDocRatio}%</span>
             </div>
             <Slider
               value={[multiDocRatio]}
-              onValueChange={([v]) => setMultiDocRatio(v)}
+              onValueChange={(value) => setMultiDocRatio(value[0] ?? 0)}
               min={0}
               max={100}
               step={5}
@@ -482,8 +445,15 @@ export function CapacityCalculator({ locale = 'zh-CN' }: { locale?: Locale }) {
           />
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">{t.spec}</label>
-            <Select value={spec} onValueChange={(v: SpecKey) => setSpec(v)}>
+            <label className="text-foreground text-sm font-medium">{t.spec}</label>
+            <Select
+              value={spec}
+              onValueChange={(value) => {
+                if (value !== null) {
+                  setSpec(value)
+                }
+              }}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -498,19 +468,15 @@ export function CapacityCalculator({ locale = 'zh-CN' }: { locale?: Locale }) {
         {/* results */}
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <ResultCard title={t.editQps}>
-              {Math.round(editQps).toLocaleString()}
-            </ResultCard>
-            <ResultCard title={t.broadcastQps}>
-              {Math.round(broadcastQps).toLocaleString()}
-            </ResultCard>
+            <ResultCard title={t.editQps}>{Math.round(editQps).toLocaleString()}</ResultCard>
+            <ResultCard title={t.broadcastQps}>{Math.round(broadcastQps).toLocaleString()}</ResultCard>
             <ResultCard title={t.activeUsers} className="col-span-2">
               {Math.round(activeUsers).toLocaleString()}
             </ResultCard>
           </div>
 
-          <div className="rounded-lg border bg-card p-4 shadow-sm">
-            <div className="mb-3 text-sm font-semibold text-foreground">{t.recommended}</div>
+          <div className="bg-card rounded-lg border p-4 shadow-sm">
+            <div className="text-foreground mb-3 text-sm font-semibold">{t.recommended}</div>
             <div className="divide-y">
               <ConfigRow
                 label={t.nodeServer}
@@ -530,13 +496,15 @@ export function CapacityCalculator({ locale = 'zh-CN' }: { locale?: Locale }) {
             </div>
           </div>
 
-          <div className="rounded-md bg-muted p-3 text-xs text-muted-foreground">
-            <p className="mb-1 font-medium text-foreground">{t.notes}</p>
+          <div className="bg-muted text-muted-foreground rounded-md p-3 text-xs">
+            <p className="text-foreground mb-1 font-medium">{t.notes}</p>
             <ul className="list-disc space-y-0.5 pl-4">
               <li>{t.noteEditQps}</li>
               <li>{t.noteBroadcastQps}</li>
               <li>{t.noteNode(spec, SPECS[spec].nodeQps)}</li>
-              <li>{t.noteUniverser(spec, SPECS[spec].universerQps, SPECS[spec].cores * SPECS[spec].broadcastPerCore)}</li>
+              <li>
+                {t.noteUniverser(spec, SPECS[spec].universerQps, SPECS[spec].cores * SPECS[spec].broadcastPerCore)}
+              </li>
               <li>{t.noteFinal}</li>
             </ul>
           </div>

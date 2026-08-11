@@ -28,14 +28,13 @@ export default class RowHeaderCustomExtension extends SheetExtension {
       return
     }
 
-    const { rowHeightAccumulation, columnTotalWidth, columnWidthAccumulation, rowTotalHeight }
-      = spreadsheetSkeleton
+    const { rowHeightAccumulation, columnTotalWidth, columnWidthAccumulation, rowTotalHeight } = spreadsheetSkeleton
 
     if (
-      !rowHeightAccumulation
-      || !columnWidthAccumulation
-      || columnTotalWidth === undefined
-      || rowTotalHeight === undefined
+      !rowHeightAccumulation ||
+      !columnWidthAccumulation ||
+      columnTotalWidth === undefined ||
+      rowTotalHeight === undefined
     ) {
       return
     }
@@ -64,7 +63,9 @@ export default class RowHeaderCustomExtension extends SheetExtension {
       }
 
       const middleCellPos = preRowPosition + (rowEndPosition - preRowPosition) / 2
-      customEmojiList[r] && ctx.fillText(customEmojiList[r], rowHeaderWidth / 2 + 14, middleCellPos + MIDDLE_CELL_POS_MAGIC_NUMBER) // Magic number 1, because the vertical alignment appears to be off by 1 pixel.
+      if (customEmojiList[r]) {
+        ctx.fillText(customEmojiList[r], rowHeaderWidth / 2 + 14, middleCellPos + MIDDLE_CELL_POS_MAGIC_NUMBER) // Magic number 1, because the vertical alignment appears to be off by 1 pixel.
+      }
       preRowPosition = rowEndPosition
     }
     ctx.stroke()

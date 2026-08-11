@@ -3,20 +3,17 @@ import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
 import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing'
 import sheetsDrawingEnUS from '@univerjs/preset-sheets-drawing/locales/en-US'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
 import { WORKBOOK_DATA } from './data'
 
 import './styles.css'
-
 import '@univerjs/preset-sheets-core/lib/index.css'
 import '@univerjs/preset-sheets-drawing/lib/index.css'
 
 const { univerAPI } = createUniver({
   locale: LocaleType.EN_US,
   locales: {
-    [LocaleType.EN_US]: mergeLocales(
-      sheetsCoreEnUS,
-      sheetsDrawingEnUS,
-    ),
+    [LocaleType.EN_US]: mergeLocales(sheetsCoreEnUS, sheetsDrawingEnUS),
   },
   presets: [
     UniverSheetsCorePreset({
@@ -36,7 +33,8 @@ univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, async (event) => {
     const imageUrl = 'https://avatars.githubusercontent.com/u/61444807'
 
     // Insert a floating image into the active worksheet
-    const image = await fWorksheet?.newOverGridImage()
+    const image = await fWorksheet
+      ?.newOverGridImage()
       .setSource(imageUrl, univerAPI.Enum.ImageSourceType.URL)
       .setColumn(5)
       .setRow(5)
@@ -44,7 +42,9 @@ univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, async (event) => {
       .setHeight(120)
       .buildAsync()
 
-    image && fWorksheet?.insertImages([image])
+    if (image) {
+      fWorksheet?.insertImages([image])
+    }
 
     // Insert a cell image into the active worksheet
     const cells = ['A1', 'B1', 'C1', 'D1', 'E1']

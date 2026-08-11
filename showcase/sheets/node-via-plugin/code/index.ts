@@ -7,6 +7,7 @@ import { UniverSheetsPlugin } from '@univerjs/sheets'
 import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
 import { UniverSheetsNumfmtPlugin } from '@univerjs/sheets-numfmt'
 import SheetsEnUS from '@univerjs/sheets/locale/en-US'
+
 import { WORKBOOK_DATA } from './data'
 
 import '@univerjs/engine-formula/facade'
@@ -17,9 +18,7 @@ import '@univerjs/sheets-numfmt/facade'
 const univer = new Univer({
   locale: LocaleType.EN_US,
   locales: {
-    [LocaleType.EN_US]: mergeLocales(
-      SheetsEnUS,
-    ),
+    [LocaleType.EN_US]: mergeLocales(SheetsEnUS),
   },
 })
 
@@ -37,5 +36,4 @@ univer.createUnit(UniverInstanceType.UNIVER_SHEET, WORKBOOK_DATA)
 const univerAPI = FUniver.newAPI(univer)
 const snapshot = univerAPI.getActiveWorkbook()?.save()
 
-// eslint-disable-next-line no-console
 console.log(JSON.stringify(snapshot, null, 2))
