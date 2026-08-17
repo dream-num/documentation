@@ -1,9 +1,11 @@
 'use client'
 
+import process from 'node:process'
 import { ExpandIcon, XIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+
 import { clsx } from '@/lib/clsx'
-import { customTranslations } from '@/lib/i18n'
+import { customTranslations, localizePath } from '@/lib/i18n'
 import { ClickToShowButton } from './click-to-show-button'
 
 interface IProps {
@@ -19,7 +21,7 @@ export function PlaygroundFrame(props: IProps) {
   const [iframeHeight, setIframeHeight] = useState<number>(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
-  const src = `/playground/${slug}`
+  const src = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}${localizePath(`/playground/${slug}`, lang)}`
 
   useEffect(() => {
     const eventHandler = (event: MessageEvent) => {

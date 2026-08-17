@@ -5,7 +5,7 @@ import { createMDX } from 'fumadocs-mdx/next'
 const withMDX = createMDX({})
 const DEV_API_ORIGIN = 'https://dev.univer.plus'
 const isGitHubPages = process.env.GITHUB_PAGES === 'true'
-const githubPagesBasePath = '/documentation/v0.25'
+const githubPagesBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '/documentation/v0.25'
 
 const config: NextConfig = {
   reactStrictMode: true,

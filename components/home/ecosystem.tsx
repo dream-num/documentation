@@ -1,9 +1,12 @@
+import type { ReactNode } from 'react'
 import { ArrowRightIcon, HeartIcon, PlugIcon, PuzzleIcon } from 'lucide-react'
 import Link from 'next/link'
-import { BlurFade } from '@/components/magicui/blur-fade'
 
-interface EcosystemCard {
-  icon: React.ReactNode
+import { BlurFade } from '@/components/magicui/blur-fade'
+import { localizePath } from '@/lib/i18n'
+
+interface IEcosystemCard {
+  icon: ReactNode
   title: string
   desc: string
   cta: string
@@ -11,6 +14,7 @@ interface EcosystemCard {
 }
 
 interface IProps {
+  lang: string
   title: string
   subtitle: string
   pluginsTitle: string
@@ -37,9 +41,10 @@ export function Ecosystem(props: IProps) {
     communityTitle,
     communityDesc,
     communityCta,
+    lang,
   } = props
 
-  const cards: EcosystemCard[] = [
+  const cards: IEcosystemCard[] = [
     {
       icon: (
         <PuzzleIcon
@@ -143,7 +148,7 @@ export function Ecosystem(props: IProps) {
                   </p>
                 </div>
                 <Link
-                  href={card.href}
+                  href={localizePath(card.href, lang)}
                   target={card.href.startsWith('http') ? '_blank' : undefined}
                   className={`
                     mt-auto inline-flex items-center gap-1 text-sm font-medium text-neutral-700 transition-colors

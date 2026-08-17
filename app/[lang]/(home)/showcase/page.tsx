@@ -1,6 +1,8 @@
 import { Suspense } from 'react'
+
 import { ShowcaseContent } from '@/components/showcase/showcase-content'
 import { ShowcaseHero } from '@/components/showcase/showcase-hero'
+import { localizePath } from '@/lib/i18n'
 import { showcase } from '@/showcase/data'
 
 interface IProps {
@@ -49,7 +51,7 @@ export default async function Page({ params }: IProps) {
       title: metadata.title[lang],
       description: metadata.description[lang],
       tags: metadata.tags[lang],
-      url: `/showcase/${key}`,
+      url: localizePath(`/showcase/${key}`, lang),
       type,
       index: i,
     })

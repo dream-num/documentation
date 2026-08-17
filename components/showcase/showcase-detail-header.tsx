@@ -2,12 +2,13 @@
 
 import { ChevronRightIcon } from 'lucide-react'
 import Link from 'next/link'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { clsx } from '@/lib/clsx'
-import { customTranslations } from '@/lib/i18n'
+import { customTranslations, localizePath } from '@/lib/i18n'
 
-interface ShowcaseDetailHeaderProps {
+interface IShowcaseDetailHeaderProps {
   lang: string
   title: string
   description: string
@@ -30,7 +31,7 @@ const typeConfig = {
   },
 }
 
-export function ShowcaseDetailHeader({ lang, title, description, tags, type }: ShowcaseDetailHeaderProps) {
+export function ShowcaseDetailHeader({ lang, title, description, tags, type }: IShowcaseDetailHeaderProps) {
   const t = customTranslations[lang]
   const config = typeConfig[type]
 
@@ -44,7 +45,7 @@ export function ShowcaseDetailHeader({ lang, title, description, tags, type }: S
         "
       >
         <Link
-          href={`/${lang}`}
+          href={localizePath('/', lang)}
           className="
             transition-colors
             hover:text-neutral-900
@@ -55,7 +56,7 @@ export function ShowcaseDetailHeader({ lang, title, description, tags, type }: S
         </Link>
         <ChevronRightIcon className="size-3.5" />
         <Link
-          href="/showcase"
+          href={localizePath('/showcase', lang)}
           className="
             transition-colors
             hover:text-neutral-900
@@ -115,7 +116,7 @@ export function ShowcaseDetailHeader({ lang, title, description, tags, type }: S
 
         <div className="shrink-0">
           <Button asChild variant="outline" size="sm">
-            <Link href="/showcase">
+            <Link href={localizePath('/showcase', lang)}>
               {t['showcase.back']}
             </Link>
           </Button>

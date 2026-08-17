@@ -1,13 +1,13 @@
 import { SiGithub } from '@icons-pack/react-simple-icons'
-import { createRelativeLink } from 'fumadocs-ui/mdx'
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/page'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+
 import { SponsorCard } from '@/components/sponsor-card'
 import { Button } from '@/components/ui/button'
 import { customTranslations } from '@/lib/i18n'
 import { icons } from '@/lib/source'
-import { getMDXComponents } from '@/mdx-components'
+import { createLocalizedRelativeLink, getMDXComponents } from '@/mdx-components'
 
 interface IProps {
   params: Promise<{
@@ -67,8 +67,8 @@ export default async function Page({ params }: IProps) {
 
       <DocsBody className="w-full">
         <MDXContent
-          components={getMDXComponents({
-            a: createRelativeLink(icons, page),
+          components={getMDXComponents(lang, {
+            a: createLocalizedRelativeLink(icons, page, lang),
           })}
         />
       </DocsBody>

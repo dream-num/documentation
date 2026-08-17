@@ -1,5 +1,6 @@
 import { BookTextIcon, FerrisWheelIcon } from 'lucide-react'
 import Link from 'next/link'
+
 import BlurryBlob from '@/components/animata/blurry-blob'
 import { DeveloperExperience } from '@/components/home/developer-experience'
 import { Ecosystem } from '@/components/home/ecosystem'
@@ -11,7 +12,7 @@ import { AnimatedShinyText } from '@/components/magicui/animated-shiny-text'
 import { BlurFade } from '@/components/magicui/blur-fade'
 import { RainbowButton } from '@/components/magicui/rainbow-button'
 import Univer from '@/components/univer'
-import { customTranslations } from '@/lib/i18n'
+import { customTranslations, localizePath } from '@/lib/i18n'
 import pkg from '@/package.json'
 
 interface IProps {
@@ -146,13 +147,13 @@ export default async function Page({ params }: IProps) {
 
             <div className="flex justify-center gap-4">
               <RainbowButton asChild>
-                <Link href="/guides/sheets">
+                <Link href={localizePath('/guides/sheets', lang)}>
                   <BookTextIcon />
                   {t['documentation.title']}
                 </Link>
               </RainbowButton>
               <RainbowButton variant="outline" asChild>
-                <Link href="/showcase">
+                <Link href={localizePath('/showcase', lang)}>
                   <FerrisWheelIcon />
                   {t['showcase.title']}
                 </Link>
@@ -270,6 +271,7 @@ export default async function Page({ params }: IProps) {
 
         {/* Ecosystem */}
         <Ecosystem
+          lang={lang}
           title={t['home.ecosystem.title']}
           subtitle={t['home.ecosystem.subtitle']}
           pluginsTitle={t['home.ecosystem.plugins.title']}

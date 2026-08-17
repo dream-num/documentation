@@ -1,7 +1,8 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared'
+
 import { GithubInfo } from '@/components/github-info/github-info'
 import { Logo } from '@/components/logo'
-import { customTranslations, i18nConfig } from '@/lib/i18n'
+import { customTranslations, i18nConfig, localizePath } from '@/lib/i18n'
 
 /**
  * Shared layout configurations
@@ -14,21 +15,22 @@ export function baseOptions(locale: string): BaseLayoutProps {
   return {
     nav: {
       title: <Logo />,
+      url: localizePath('/', locale),
       transparentMode: 'top',
     },
     // see https://fumadocs.dev/docs/ui/navigation/links
     links: [
       {
         text: customTranslations[locale]['reference.title'],
-        url: '/reference/classes/univer',
+        url: localizePath('/reference/classes/univer', locale),
       },
       {
         text: customTranslations[locale]['icons.title'],
-        url: '/icons',
+        url: localizePath('/icons', locale),
       },
       {
         text: customTranslations[locale]['showcase.title'],
-        url: '/showcase',
+        url: localizePath('/showcase', locale),
       },
       {
         type: 'custom',

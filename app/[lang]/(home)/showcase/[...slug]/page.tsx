@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
-import { PlaygroundFrame } from '@/components/playground'
+
+import { PlaygroundFrame } from '@/components/playground/playground-frame'
 import { RelatedShowcases } from '@/components/showcase/related-showcases'
 import { ShowcaseDetailHeader } from '@/components/showcase/showcase-detail-header'
 import { ShowcaseSidebar } from '@/components/showcase/showcase-sidebar'

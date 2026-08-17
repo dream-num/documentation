@@ -1,14 +1,14 @@
 import dayjs from 'dayjs'
 import { InlineTOC } from 'fumadocs-ui/components/inline-toc'
-import { createRelativeLink } from 'fumadocs-ui/mdx'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+
 import { Button } from '@/components/ui/button'
 import { clsx } from '@/lib/clsx'
 import { formatLocalDate } from '@/lib/dayjs'
-import { customTranslations } from '@/lib/i18n'
+import { customTranslations, localizePath } from '@/lib/i18n'
 import { blog, getActiveBlogPage, getActiveBlogParams } from '@/lib/source'
-import { getMDXComponents } from '@/mdx-components'
+import { createLocalizedRelativeLink, getMDXComponents } from '@/mdx-components'
 
 interface IProps {
   params: Promise<{
@@ -73,9 +73,9 @@ export default async function Page({ params }: IProps) {
           `)}
         >
           <MDXContent
-            components={getMDXComponents({
+            components={getMDXComponents(lang, {
               // this allows you to link to other pages with relative file paths
-              a: createRelativeLink(blog, page),
+              a: createLocalizedRelativeLink(blog, page, lang),
             })}
           />
         </article>
@@ -112,7 +112,7 @@ export default async function Page({ params }: IProps) {
           </div>
           {page.data.toc.length >= 0 && <InlineTOC defaultOpen items={page.data.toc} />}
           <Button className="w-full" asChild>
-            <Link href="/blog">
+            <Link href={localizePath('/blog', lang)}>
               {customTranslations[lang]['blog.back']}
             </Link>
           </Button>

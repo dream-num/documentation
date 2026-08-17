@@ -2,20 +2,21 @@
 
 import { ArrowRightIcon } from 'lucide-react'
 import Link from 'next/link'
+
 import { Badge } from '@/components/ui/badge'
 import { clsx } from '@/lib/clsx'
-import { customTranslations } from '@/lib/i18n'
+import { customTranslations, localizePath } from '@/lib/i18n'
 
-export interface RelatedItem {
+export interface IRelatedItem {
   title: string
   description: string
   slug: string
   type: 'sheets' | 'docs' | 'slides'
 }
 
-interface RelatedShowcasesProps {
+interface IRelatedShowcasesProps {
   lang: string
-  items: RelatedItem[]
+  items: IRelatedItem[]
   currentSlug: string
 }
 
@@ -40,7 +41,7 @@ const typeConfig = {
   },
 }
 
-export function RelatedShowcases({ lang, items, currentSlug }: RelatedShowcasesProps) {
+export function RelatedShowcases({ lang, items, currentSlug }: IRelatedShowcasesProps) {
   const t = customTranslations[lang]
 
   const filteredItems = items.filter(item => item.slug !== currentSlug).slice(0, 3)
@@ -71,7 +72,7 @@ export function RelatedShowcases({ lang, items, currentSlug }: RelatedShowcasesP
           return (
             <Link
               key={item.slug}
-              href={`/showcase/${item.slug}`}
+              href={localizePath(`/showcase/${item.slug}`, lang)}
               className={`
                 group flex flex-col rounded-xl border bg-card p-4 shadow-sm transition-all duration-300
                 hover:-translate-y-0.5 hover:shadow-md

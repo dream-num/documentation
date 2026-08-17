@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
-import type { Files } from '@/components/playground'
+
+import type { Files } from '@/components/playground/playground'
 
 export const showcase: Record<string, Promise<{ default: {
   metadata: {

@@ -1,7 +1,8 @@
 import { ArrowRightIcon, RssIcon } from 'lucide-react'
 import Link from 'next/link'
+
 import { clsx } from '@/lib/clsx'
-import { customTranslations } from '@/lib/i18n'
+import { customTranslations, localizePath } from '@/lib/i18n'
 import { getActiveBlogPages } from '@/lib/source'
 
 interface IProps {
@@ -128,7 +129,7 @@ export default async function Page({ params }: IProps) {
             hover:bg-accent
             focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none
           `}
-          href="/blog/rss.xml"
+          href={localizePath('/blog/rss.xml', lang)}
           target="_blank"
           rel="nofollow noreferrer"
         >

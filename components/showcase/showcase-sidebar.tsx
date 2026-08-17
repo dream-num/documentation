@@ -1,18 +1,20 @@
 'use client'
 
 import Link from 'next/link'
+
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { clsx } from '@/lib/clsx'
+import { localizePath } from '@/lib/i18n'
 
-export interface NavItem {
+export interface INavItem {
   type: string
   typeKey: string
   title: string
   slug: string
 }
 
-interface ShowcaseSidebarProps {
-  groupedNav: Record<string, NavItem[]>
+interface IShowcaseSidebarProps {
+  groupedNav: Record<string, INavItem[]>
   pathname: string
   lang: string
 }
@@ -23,7 +25,7 @@ const typeColors: Record<string, string> = {
   'Univer Slides': 'text-rose-600 dark:text-rose-400',
 }
 
-export function ShowcaseSidebar({ groupedNav, pathname }: ShowcaseSidebarProps) {
+export function ShowcaseSidebar({ groupedNav, pathname, lang }: IShowcaseSidebarProps) {
   return (
     <aside
       className={`
@@ -53,7 +55,7 @@ export function ShowcaseSidebar({ groupedNav, pathname }: ShowcaseSidebarProps) 
               {items.map(item => (
                 <div key={item.slug} className="mb-0.5">
                   <Link
-                    href={`/showcase/${item.slug}`}
+                    href={localizePath(`/showcase/${item.slug}`, lang)}
                     className={clsx(`block rounded-md px-2 py-1.5 text-sm font-medium transition-colors`, {
                       'bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100': item.slug === pathname,
                       'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800/50 dark:hover:text-neutral-200': item.slug !== pathname,

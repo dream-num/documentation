@@ -4,10 +4,21 @@ import { defineI18n } from 'fumadocs-core/i18n'
 export const i18nConfig = {
   defaultLanguage: 'en-US',
   languages: ['en-US', 'zh-CN', 'zh-TW', 'ja-JP'],
-  hideLocale: 'always',
+  hideLocale: 'default-locale',
 } satisfies I18nConfig
 
 export const i18n = defineI18n(i18nConfig)
+
+export function localizePath(path: string, language: string): string {
+  if (!path.startsWith('/') || path.startsWith('//')) {
+    return path
+  }
+
+  const currentLanguage = i18nConfig.languages.find(candidate => path === `/${candidate}` || path.startsWith(`/${candidate}/`))
+  const canonicalPath = currentLanguage ? path.slice(currentLanguage.length + 1) || '/' : path
+
+  return language === i18nConfig.defaultLanguage ? canonicalPath : `/${language}${canonicalPath}`
+}
 
 // translations
 type LocaleTranslations = Record<string, string> & {

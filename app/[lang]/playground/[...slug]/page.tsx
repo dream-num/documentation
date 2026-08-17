@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
-import { Playground } from '@/components/playground'
+
+import { Playground } from '@/components/playground/playground'
 import { showcase } from '@/showcase/data'
 import { LayoutProvider } from '../layout.client'
 

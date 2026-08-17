@@ -1,7 +1,14 @@
+'use client'
+
 import Link from 'next/link'
+import { useParams } from 'next/navigation'
+
 import { Button } from '@/components/ui/button'
+import { localizePath } from '@/lib/i18n'
 
 export default function NotFound() {
+  const { lang } = useParams<{ lang: string }>()
+
   return (
     <main className="flex h-screen w-full flex-col items-center justify-center bg-muted px-4">
       <div>
@@ -14,7 +21,7 @@ export default function NotFound() {
 
         <div className="text-center">
           <Button asChild>
-            <Link href="/">
+            <Link href={localizePath('/', lang)}>
               Go Home
             </Link>
           </Button>

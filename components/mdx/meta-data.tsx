@@ -14,8 +14,10 @@ import {
 import { AnimatePresence, motion } from 'motion/react'
 import Link from 'next/link'
 import { useState } from 'react'
+
 import { Tooltip } from '@/components/tooltip'
 import { clsx } from '@/lib/clsx'
+import { localizePath } from '@/lib/i18n'
 
 const locales: Record<string, Record<string, string>> = {
   'zh-CN': {
@@ -366,7 +368,7 @@ export function MetaData(props: {
               hover:shadow-md hover:shadow-blue-500/30
               dark:from-blue-500 dark:to-indigo-500
             `}
-            href="/guides/pro"
+            href={localizePath('/guides/pro', lang)}
           >
             Univer Pro
             <SparkleIcon className="size-2.5" />
@@ -388,8 +390,8 @@ export function MetaData(props: {
             >
               {currentItems.length > 0
                 ? (
-                    currentItems.map((item, index) => (
-                      <PackageRow key={index} {...item} t={t} />
+                    currentItems.map(item => (
+                      <PackageRow key={JSON.stringify(item)} {...item} t={t} />
                     ))
                   )
                 : (

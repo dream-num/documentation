@@ -9,10 +9,11 @@ import {
 } from 'fumadocs-ui/layouts/home/navbar'
 import { BookTextIcon, CookingPotIcon, PresentationIcon, SheetIcon, StarIcon } from 'lucide-react'
 import Link from 'next/link'
+
 import { baseOptions } from '@/app/layout.config'
 import { Footer } from '@/components/footer'
 import { clsx } from '@/lib/clsx'
-import { customTranslations } from '@/lib/i18n'
+import { customTranslations, localizePath } from '@/lib/i18n'
 
 interface IProps {
   params: Promise<{ lang: string }>
@@ -24,31 +25,31 @@ export default async function Layout({ params, children }: IProps) {
 
   const documentationLinks = [{
     text: 'Univer Sheets',
-    url: `/guides/sheets`,
+    url: localizePath('/guides/sheets', lang),
     className: 'lg:col-start-1',
     icon: <SheetIcon />,
     iconClassName: 'bg-linear-[135deg,#0DA471_0%,#F3FAF7_100%] dark:bg-linear-[135deg,#0DA471_0%,#014737_100%]',
   }, {
     text: 'Univer Docs',
-    url: `/guides/docs`,
+    url: localizePath('/guides/docs', lang),
     className: 'lg:col-start-2',
     icon: <BookTextIcon />,
     iconClassName: 'bg-linear-[135deg,#3F83F8_0%,#EBF5FF_100%] dark:bg-linear-[135deg,#3F83F8_0%,#233876_100%]',
   }, {
     text: 'Univer Slides',
-    url: '/guides/slides',
+    url: localizePath('/guides/slides', lang),
     className: 'lg:col-start-3',
     icon: <PresentationIcon />,
     iconClassName: 'bg-linear-[135deg,#F05252_0%,#FDF2F2_100%] dark:bg-linear-[135deg,#F05252_0%,#771D1D_100%]',
   }, {
     text: 'Recipes',
-    url: '/guides/recipes/architecture/univer',
+    url: localizePath('/guides/recipes/architecture/univer', lang),
     className: 'lg:col-start-1 lg:row-start2',
     icon: <CookingPotIcon />,
     iconClassName: 'bg-linear-[135deg,#9061F9_0%,#F6F5FF_100%] dark:bg-linear-[135deg,#9061F9_0%,#4A1D96_100%]',
   }, {
     text: 'Univer Pro',
-    url: '/guides/pro',
+    url: localizePath('/guides/pro', lang),
     className: 'md:hidden',
     icon: <StarIcon />,
   }]
@@ -66,7 +67,7 @@ export default async function Layout({ params, children }: IProps) {
       children: (
         <NavbarMenu>
           <NavbarMenuTrigger asChild>
-            <Link href="/guides/sheets">
+            <Link href={localizePath('/guides/sheets', lang)}>
               {customTranslations[lang]['documentation.title']}
             </Link>
           </NavbarMenuTrigger>
@@ -101,7 +102,7 @@ export default async function Layout({ params, children }: IProps) {
                 [&>img]:absolute [&>img]:inset-0 [&>img]:size-full [&>img]:transition-transform
                 hover:[&>img]:scale-[1.02]
               `}
-              href="/guides/pro"
+              href={localizePath('/guides/pro', lang)}
             >
               <img
                 className={`
@@ -158,19 +159,19 @@ export default async function Layout({ params, children }: IProps) {
     },
     {
       text: customTranslations[lang]['reference.title'],
-      url: '/reference/classes/univer',
+      url: localizePath('/reference/classes/univer', lang),
     },
     {
       text: customTranslations[lang]['blog.title'],
-      url: '/blog',
+      url: localizePath('/blog', lang),
     },
     {
       text: customTranslations[lang]['icons.title'],
-      url: `/icons`,
+      url: localizePath('/icons', lang),
     },
     {
       text: customTranslations[lang]['showcase.title'],
-      url: '/showcase',
+      url: localizePath('/showcase', lang),
     },
   ]
 
