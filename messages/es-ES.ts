@@ -72,7 +72,8 @@ const esESMessages = {
     sheets: 'Hojas',
     'sync-current-theme': 'Sincronizar tema actual',
     'theme-json': 'Tema JSON',
-    'theme-json-description': 'Un válido El parche JSON se fusiona y se aplica inmediatamente al ThemeService en ejecución.',
+    'theme-json-description':
+      'Un válido El parche JSON se fusiona y se aplica inmediatamente al ThemeService en ejecución.',
     title: 'Personalizador de temas',
     token: 'Token',
     'token-intro': 'Variables CSS generadas para la transferencia de tokens de diseño.',
@@ -87,7 +88,8 @@ const esESMessages = {
   },
   home: {
     slogan: 'Incorporación de herramientas de productividad basadas en servidor en su flujo de trabajo',
-    description: 'Univer es una suite ofimática isomórfica de pila completa con alta extensibilidad y rendimiento, diseñada para ayudar a los desarrolladores a crear y editar',
+    description:
+      'Univer es una suite ofimática isomórfica de pila completa con alta extensibilidad y rendimiento, diseñada para ayudar a los desarrolladores a crear y editar',
     'description-split': ',',
     'description-period': 'libremente.',
     'description-and': 'y',
@@ -124,13 +126,17 @@ const esESMessages = {
         title: 'Tableros',
         desc: 'Lienzos infinitos para colaboración visual con contenedores, notas adhesivas, objetos de formas y lluvia de ideas estructurada.',
       },
+      pdf: {
+        title: 'PDF',
+        desc: 'Cree y edite páginas PDF con texto, imágenes, tablas, listas, divisores y anotaciones.',
+      },
       data: {
         title: 'Análisis de datos',
-        desc: 'Tablas dinámicas, gráficos, minigráficos y formato condicional para visualización de datos.',
+        desc: 'Tablas dinámicas, gráficos con referencias de Sheet en vivo, minigráficos y formato condicional.',
       },
       collab: {
         title: 'Colaboración',
-        desc: 'Colaboración en tiempo real a través del algoritmo OT. Admite más de 200 usuarios simultáneos con resolución de conflictos.',
+        desc: 'Colaboración en tiempo real para Sheets, Docs, Bases, Slides, Boards y PDF con resolución de conflictos.',
       },
       automation: {
         title: 'Automatización',
@@ -198,11 +204,11 @@ const esESMessages = {
       },
       feature4: {
         title: 'Importación y exportación',
-        desc: 'Completo compatibilidad con formatos: xlsx, docx.',
+        desc: 'Importación y exportación de xlsx, csv, tsv, docx, pptx, pdf, Bases y Boards.',
       },
       feature5: {
         title: 'Imprimir y PDF',
-        desc: 'Imprimir en documentos físicos o exportar a PDF.',
+        desc: 'Edite PDF e imprima diapositivas a página completa, como folleto o con notas.',
       },
       feature6: {
         title: 'Implementación',
@@ -210,7 +216,7 @@ const esESMessages = {
       },
       feature7: {
         title: 'Modo oscuro',
-        desc: 'Temas claros y oscuros integrados con tokens de diseño personalizables.',
+        desc: 'Tema azul oscuro integrado, cambio de tema en ejecución y tokens de diseño personalizables.',
       },
       feature8: {
         title: 'Extensibilidad de complementos',

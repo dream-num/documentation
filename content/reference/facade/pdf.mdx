@@ -4,53 +4,123 @@ icon: '#ref/F'
 ---
 
 | Packages | `@univerjs-pro/pdfs` |
-| --- | --- |
+| -------- | -------------------- |
 
 <span className="rounded bg-fd-primary/10 px-1.5 py-0.5 text-xs font-medium text-fd-primary">PRO</span>
 
-Facade APIs for creating and resolving Univer PDF units.
+Facade APIs for creating, reading, and editing Univer PDF units.
 
 > Import `@univerjs-pro/pdfs/facade` before using these APIs in plugin mode.
 
-## univerAPI
-
-| Method | Description |
-| --- | --- |
-| `createPdf` | Create a PDF unit from an `IPdfDocument` or `IPdfUnitData` snapshot. |
-| `getActivePdf` | Get the active PDF unit. |
-| `getPdf` | Get a PDF unit by id. |
+## Unit access
 
 ```typescript
-createPdf(data: IPdfDocument | IPdfUnitData, options?: ICreateUnitOptions): FPdf
+createPdf(data?: Partial<IPdfUnitData>, options?: ICreateUnitOptions): FPdf
 getActivePdf(): FPdf | null
 getPdf(id: string): FPdf | null
+getPdfTableThemePresets(): ReadonlyArray<Readonly<IPdfTableThemePreset>>
 ```
 
 ## FPdf
 
-| Method | Description |
-| --- | --- |
-| `getId` | Get the PDF unit id. |
-| `getName` | Get the PDF document name. |
-| `getSnapshot` | Get the current `IPdfUnitData` snapshot. |
-| `getDocument` | Get the current `IPdfDocument`. |
-| `getModel` | Get the underlying `PdfDocumentModel`. |
+| Category          | Methods                                                   |
+| ----------------- | --------------------------------------------------------- |
+| Identity and data | `getId`, `getName`, `save`, `getDocument`, `getModel`     |
+| Pages             | `insertPage`, `getPages`, `getPageById`, `getPageByIndex` |
 
 ```typescript
 getId(): string
 getName(): string
-getSnapshot(): IPdfUnitData
+save(): IPdfUnitData
 getDocument(): IPdfDocument
 getModel(): PdfDocumentModel
+insertPage(index?: number): FPdfPage
+getPages(): FPdfPage[]
+getPageById(id: string): FPdfPage | null
+getPageByIndex(index: number): FPdfPage | null
+```
+
+## FPdfPage
+
+`FPdfPage` resolves existing page elements and inserts editable text boxes, paragraphs, lists, tables, dividers, annotations, and images.
+
+```typescript
+getId(): string
+getIndex(): number
+getData(): Readonly<IPdfPage>
+getElements(): FPdfPageElement[]
+getElementById(id: string): FPdfPageElement | null
+getTextBoxes(): FPdfTextBox[]
+getImages(): FPdfImage[]
+getParagraphs(): FPdfParagraph[]
+getLists(): FPdfList[]
+getTables(): FPdfTable[]
+getDividers(): FPdfDivider[]
+getAnnotations(): FPdfAnnotation[]
+getTextSpans(): FPdfTextSpan[]
+insertTextBox(options: IPdfTextBoxInsertOptions): FPdfTextBox
+insertParagraph(options: IPdfParagraphInsertOptions): FPdfParagraph
+insertList(options: IPdfListInsertOptions): FPdfList
+insertTable(options: IPdfTableInsertOptions): FPdfTable
+insertDivider(options?: IPdfDividerInsertOptions): FPdfDivider
+insertAnnotation(options: IPdfAnnotationInsertOptions): FPdfAnnotation
+newImage(existing?: FPdfImage | string): FPdfImageBuilder
+insertImage(info: IPdfImageBuilderInfo, index?: number): FPdfImage
+insertImageAsync(source: string | IFBlobSource, options?: IPdfImageInsertOptions): Promise<FPdfImage>
+```
+
+## Page elements
+
+Every `FPdfPageElement` supports identity, transform, visibility, locking, z-order, and removal. Specialized wrappers add content editing:
+
+| Wrapper          | Methods                                                                                                       |
+| ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| `FPdfTextBox`    | `getText`, `getTextRuns`, `setText`, `setTextStyle`, `getTextAnchor`, `setTextAnchor`                         |
+| `FPdfParagraph`  | `getBlocks`, `insertBlock`, `appendBlock`, `setBlockText`, `setBlockStyle`, `removeBlock`                     |
+| `FPdfList`       | `getItems`, `insertItem`, `setItemText`, `removeItem`, `changeItemLevel`, `setPreset`, `setStartNumber`       |
+| `FPdfTable`      | `getRowCount`, `getColumnCount`, `getCell`, `resize`, `getTheme`, `setTheme`                                  |
+| `FPdfTableCell`  | `getText`, `setText`, `getStyle`, `setStyle`                                                                  |
+| `FPdfDivider`    | `getStroke`, `setStroke`                                                                                      |
+| `FPdfAnnotation` | `getAnnotationType`, `getMarkup`, `getInk`, `getStyle`, `setStyle`                                            |
+| `FPdfImage`      | `getSource`, `getImageSourceType`, `setSource`, `getCrop`, `setCrop`, `getOpacity`, `setOpacity`, `toBuilder` |
+| `FPdfTextSpan`   | `getId`, `getText`, `getTextRuns`, `getBounds`, `replaceText`                                                 |
+
+```typescript
+// FPdfPageElement
+getId(): string
+getType(): PdfObjectType
+getData(): Readonly<PdfObject>
+getTransform(): IPdfFacadeTransform
+setTransform(transform: IPdfFacadeTransform): this
+setPosition(left: number, top: number): this
+setSize(width: number, height: number): this
+setRotation(rotation: number): this
+setVisible(visible: boolean): this
+setLocked(locked: boolean): this
+bringToFront(): this
+sendToBack(): this
+bringForward(): this
+sendBackward(): this
+remove(): void
 ```
 
 ```ts
-import { migratePdfUnitData } from '@univerjs-pro/pdfs'
-
 import '@univerjs-pro/pdfs/facade'
 
-const pdf = univerAPI.createPdf(migratePdfUnitData(pdfData))
-console.log(pdf.getId(), pdf.getDocument().pages.length)
+const pdf = univerAPI.createPdf({ name: 'Project brief' })
+const page = pdf.insertPage()
+
+page.insertTextBox({ text: 'Hello PDF', left: 36, top: 36 }).setTextStyle({ fontSize: 18, fill: '#274690' })
+
+page.insertTable({
+  rowCount: 2,
+  columnCount: 2,
+  cellTexts: ['Metric', 'Value', 'Users', '42'],
+})
+
+const snapshot = pdf.save()
 ```
+
+PDF facade enums include `PdfAnnotationType`, `PdfListKind`, `PdfListPresetId`, `PdfTextAnchor`, and `PdfTableCellVerticalAlign` through `univerAPI.Enum`.
 
 <span className="text-xs text-fd-muted-foreground">Source: `@univerjs-pro/pdfs`</span>

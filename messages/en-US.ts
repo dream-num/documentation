@@ -85,7 +85,8 @@ const enUSMessages = {
   },
   home: {
     slogan: 'Embedding server-driven productivity tools into Your Workflow',
-    description: 'Univer is a full-stack, isomorphic office suite with high extensibility and performance, designed to help developers build and edit ',
+    description:
+      'Univer is a full-stack, isomorphic office suite with high extensibility and performance, designed to help developers build and edit ',
     'description-split': ', ',
     'description-period': ' freely.',
     'description-and': ' and ',
@@ -122,13 +123,17 @@ const enUSMessages = {
         title: 'Boards',
         desc: 'Infinite canvas for visual collaboration with containers, sticky notes, shape objects, and structured brainstorming.',
       },
+      pdf: {
+        title: 'PDFs',
+        desc: 'Create and edit PDF pages with text, images, tables, lists, dividers, and annotations.',
+      },
       data: {
         title: 'Data Analysis',
-        desc: 'Pivot tables, charts, sparklines, and conditional formatting for data visualization.',
+        desc: 'Pivot tables, charts with live Sheet references, sparklines, and conditional formatting.',
       },
       collab: {
         title: 'Collaboration',
-        desc: 'Real-time collaboration via OT algorithm. Supports 200+ concurrent users with conflict resolution.',
+        desc: 'Real-time collaboration for Sheets, Docs, Bases, Slides, Boards, and PDFs with conflict resolution.',
       },
       automation: {
         title: 'Automation',
@@ -196,11 +201,11 @@ const enUSMessages = {
       },
       feature4: {
         title: 'Import & Export',
-        desc: 'Full format support: xlsx, docx.',
+        desc: 'Unit-aware import and export for xlsx, csv, tsv, docx, pptx, pdf, Bases, and Boards.',
       },
       feature5: {
         title: 'Print & PDF',
-        desc: 'Print to physical documents or export to PDF.',
+        desc: 'Edit PDFs and print full-page slides, handouts, or speaker notes.',
       },
       feature6: {
         title: 'Deployment',
@@ -208,7 +213,7 @@ const enUSMessages = {
       },
       feature7: {
         title: 'Dark Mode',
-        desc: 'Built-in light and dark themes with customizable design tokens.',
+        desc: 'Built-in dark-blue theme, runtime theme switching, and customizable design tokens.',
       },
       feature8: {
         title: 'Plugin Extensibility',
@@ -300,7 +305,7 @@ const enUSMessages = {
   },
   showcase: {
     title: 'Showcase',
-    slogan: 'Explore Univer\'s powerful features through online examples',
+    slogan: "Explore Univer's powerful features through online examples",
     back: 'Back',
     'related-title': 'Related Examples',
     breadcrumb: {

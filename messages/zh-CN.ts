@@ -124,13 +124,17 @@ const zhCNMessages = {
         title: '白板',
         desc: '面向视觉协作的无限画布。支持容器、便签、图形对象和结构化头脑风暴。',
       },
+      pdf: {
+        title: 'PDF',
+        desc: '创建并编辑 PDF 页面中的文字、图片、表格、列表、分隔线和批注。',
+      },
       data: {
         title: '数据分析',
-        desc: '透视表、图表、迷你图和条件格式，助力数据可视化。',
+        desc: '透视表、可引用 Sheet 实时数据的图表、迷你图和条件格式。',
       },
       collab: {
         title: '协作',
-        desc: '基于 OT 算法的实时协作。支持 200+ 并发用户，具备冲突解决能力。',
+        desc: '面向 Sheets、Docs、Bases、Slides、Boards 和 PDF 的实时协作与冲突解决。',
       },
       automation: {
         title: '自动化',
@@ -198,11 +202,11 @@ const zhCNMessages = {
       },
       feature4: {
         title: '导入与导出',
-        desc: '完整格式支持：xlsx、docx。',
+        desc: '支持 xlsx、csv、tsv、docx、pptx、pdf，以及 Bases 和 Boards 的导入导出。',
       },
       feature5: {
         title: '打印与 PDF',
-        desc: '打印为实体文档或导出为 PDF。',
+        desc: '编辑 PDF，并以整页、讲义或演讲者备注布局打印幻灯片。',
       },
       feature6: {
         title: '部署',
@@ -210,7 +214,7 @@ const zhCNMessages = {
       },
       feature7: {
         title: '深色模式',
-        desc: '内置明暗主题切换，支持自定义设计令牌。',
+        desc: '内置深蓝主题、运行时主题切换，并支持自定义设计令牌。',
       },
       feature8: {
         title: '插件扩展',

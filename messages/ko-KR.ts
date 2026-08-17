@@ -87,7 +87,8 @@ const koKRMessages = {
   },
   home: {
     slogan: '워크플로에 서버 기반 생산성 도구를 더하세요',
-    description: 'Univer는 높은 확장성과 성능을 갖춘 풀스택 동형 오피스 제품군으로, 개발자가 자유롭게 구축하고 편집할 수 있도록 설계되었습니다. ',
+    description:
+      'Univer는 높은 확장성과 성능을 갖춘 풀스택 동형 오피스 제품군으로, 개발자가 자유롭게 구축하고 편집할 수 있도록 설계되었습니다. ',
     'description-split': ', ',
     'description-period': '을 자유롭게 다룰 수 있습니다.',
     'description-and': ' 및 ',
@@ -124,13 +125,17 @@ const koKRMessages = {
         title: 'Boards',
         desc: '컨테이너, 스티커 메모, 도형 객체, 구조화된 브레인스토밍을 지원하는 시각적 협업용 무한 캔버스입니다.',
       },
+      pdf: {
+        title: 'PDF',
+        desc: '텍스트, 이미지, 표, 목록, 구분선, 주석이 있는 PDF 페이지를 만들고 편집합니다.',
+      },
       data: {
         title: '데이터 분석',
-        desc: '피벗 테이블, 차트, 스파크라인, 조건부 서식으로 데이터를 시각화합니다.',
+        desc: '피벗 테이블, Sheet 범위를 참조하는 차트, 스파크라인, 조건부 서식을 제공합니다.',
       },
       collab: {
         title: '협업',
-        desc: 'OT 알고리즘 기반의 실시간 협업을 제공합니다. 충돌 해결과 200명 이상의 동시 사용자를 지원합니다.',
+        desc: 'Sheets, Docs, Bases, Slides, Boards, PDF의 실시간 협업과 충돌 해결을 지원합니다.',
       },
       automation: {
         title: '자동화',
@@ -198,11 +203,11 @@ const koKRMessages = {
       },
       feature4: {
         title: '가져오기 및 내보내기',
-        desc: 'xlsx, docx 형식을 폭넓게 지원합니다.',
+        desc: 'xlsx, csv, tsv, docx, pptx, pdf, Bases, Boards 가져오기와 내보내기를 지원합니다.',
       },
       feature5: {
         title: '인쇄 및 PDF',
-        desc: '문서를 인쇄하거나 PDF로 내보낼 수 있습니다.',
+        desc: 'PDF를 편집하고 슬라이드를 전체 페이지, 유인물, 발표자 노트 형식으로 인쇄합니다.',
       },
       feature6: {
         title: '배포',
@@ -210,7 +215,7 @@ const koKRMessages = {
       },
       feature7: {
         title: '다크 모드',
-        desc: '사용자 지정 가능한 디자인 토큰과 기본 제공 라이트 및 다크 테마를 지원합니다.',
+        desc: '기본 제공 다크 블루 테마, 런타임 테마 전환, 사용자 지정 디자인 토큰을 지원합니다.',
       },
       feature8: {
         title: '플러그인 확장성',

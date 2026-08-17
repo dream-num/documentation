@@ -3,8 +3,8 @@ title: Boards
 icon: '#ref/F'
 ---
 
-| Packages | `@univerjs-pro/boards`, `@univerjs-pro/boards-ui` |
-| --- | --- |
+| Packages | `@univerjs-pro/boards`, `@univerjs-pro/boards-ui`, `@univerjs-pro/boards-exchange-client` |
+| -------- | ----------------------------------------------------------------------------------------- |
 
 <span className="rounded bg-fd-primary/10 px-1.5 py-0.5 text-xs font-medium text-fd-primary">PRO</span>
 
@@ -12,6 +12,8 @@ Facade APIs for creating, querying, laying out, and editing an infinite Board pa
 
 ```ts
 import '@univerjs-pro/boards/facade'
+import '@univerjs-pro/boards-ui/facade'
+import '@univerjs-pro/boards-exchange-client/facade'
 ```
 
 ## Unit access
@@ -31,16 +33,17 @@ if (!board) throw new Error('No active Board')
 
 ### Unit and exchange
 
-| Category | Methods |
-| --- | --- |
-| Identity and data | `getId`, `getName`, `getData`, `save` |
-| History | `undo`, `redo` |
+| Category           | Methods                                                  |
+| ------------------ | -------------------------------------------------------- |
+| Identity and data  | `getId`, `getName`, `setName`, `getData`, `save`         |
+| History            | `undo`, `redo`                                           |
 | Settings and theme | `getSettings`, `setSettings`, `getThemeData`, `setTheme` |
-| Exchange UI | `beginImport`, `beginExport` |
+| Exchange UI        | `beginImport`, `beginExport`                             |
 
 ```typescript
 getId(): string
 getName(): string
+setName(name: string): this
 getData(): IBoardData
 save(): IBoardData
 undo(): boolean
@@ -53,37 +56,74 @@ beginImport(sourceType?: string): boolean
 beginExport(targetType?: 'image' | 'pdf' | string): boolean
 ```
 
+### Diagnostics, capture, and UI
+
+The model APIs work without a renderer. The rendered-layout, screenshot, panel, search, and viewport APIs require `@univerjs-pro/boards-ui/facade`.
+
+```typescript
+analyzeModelLayout(focusPadding?: number): IBoardLayoutAnalysisResult | false
+resolveCaptureBounds(options?: IBoardFacadeCaptureBoundsOptions): BoardCaptureBoundsResult | false
+normalizeConnectorRouting(connectorIds: string[]): INormalizeBoardConnectorRoutingResult | false
+analyzeRenderedLayout(focusPadding?: number): IBoardLayoutAnalysisResult | false
+getScreenshot(options: IBoardScreenshotOptions): Promise<IBoardScreenshotResult | false>
+getObjectListPanelOpen(): boolean
+setObjectListPanelOpen(open: boolean): boolean
+findElementsByText(query: string): IBoardElementFindResult[]
+focusElement(elementId: string, viewportPoint: IBoardViewportPoint): boolean
+getElementViewportPoint(elementId: string): IBoardViewportPoint | null
+```
+
+```ts
+const analysis = board.analyzeModelLayout(48)
+if (analysis) {
+  const connectorIds = Array.from(new Set(analysis.issues.flatMap((issue) => issue.connectorIds)))
+  board.normalizeConnectorRouting(connectorIds)
+}
+```
+
+### Exchange
+
+```typescript
+insertMermaidAsync(code: string, options?: IBoardMermaidOptions): Promise<boolean>
+
+// univerAPI
+exportBoardByUnitIdAsync(unitId: string): Promise<File | undefined>
+exportBoardBySnapshotAsync(snapshot: IBoardData): Promise<File | undefined>
+transformSnapshotJsonToBoardDataAsync(json: ISnapshotBlockJsonResponse): Promise<IBoardData>
+transformBoardDataToSnapshotJsonAsync(boardData: IBoardData): Promise<ISnapshotBlockJson>
+```
+
 ### Query and geometry
 
-| Category | Methods |
-| --- | --- |
-| Elements | `getElement`, `getElements`, `getElementsByIds`, `findElements`, `getElementIdsInOrder` |
-| Description | `describeElement`, `describeElements`, `describeElementsByIds` |
-| Geometry | `getElementLayout`, `getElementBounds`, `getElementCenter`, `getElementGeometry`, `getElementsBoundsByIds`, `getElementsCentersByIds`, `getElementsGeometryByIds`, `getElementsGeometry`, `getElementsBoundingRect`, `getElementsBoundingRectByIds` |
-| Validation | `checkElementIds`, `checkElementIdTypes` |
-| Placement | `getNextAvailableBounds`, `resolveContainerAtPoint`, `resolveDropTargetAtPoint` |
-| Metadata and order | `getElementMetadata`, `getElementsMetadataByIds`, `getElementOrder` |
-| Containers | `getContainerChildren`, `getContainerDescendants`, `getElementParentChain` |
+| Category           | Methods                                                                                                                                                                                                                                             |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Elements           | `getElement`, `getElements`, `getElementsByIds`, `findElements`, `getElementIdsInOrder`                                                                                                                                                             |
+| Description        | `describeElement`, `describeElements`, `describeElementsByIds`                                                                                                                                                                                      |
+| Geometry           | `getElementLayout`, `getElementBounds`, `getElementCenter`, `getElementGeometry`, `getElementsBoundsByIds`, `getElementsCentersByIds`, `getElementsGeometryByIds`, `getElementsGeometry`, `getElementsBoundingRect`, `getElementsBoundingRectByIds` |
+| Validation         | `checkElementIds`, `checkElementIdTypes`                                                                                                                                                                                                            |
+| Placement          | `getNextAvailableBounds`, `resolveContainerAtPoint`, `resolveDropTargetAtPoint`                                                                                                                                                                     |
+| Metadata and order | `getElementMetadata`, `getElementsMetadataByIds`, `getElementOrder`                                                                                                                                                                                 |
+| Containers         | `getContainerChildren`, `getContainerDescendants`, `getElementParentChain`                                                                                                                                                                          |
 
 Query methods return detached snapshots. Mutation methods below route through Board commands and participate in undo/redo and collaboration.
 
 ```ts
 const cards = board.findElements({ elementTypes: [univerAPI.Enum.BoardElementType.Shape] })
-const bounds = board.getElementsBoundingRectByIds(cards.map(card => card.id))
+const bounds = board.getElementsBoundingRectByIds(cards.map((card) => card.id))
 ```
 
 ### Insert elements
 
-| Method | Use |
-| --- | --- |
-| `insertText` | Insert a Board text element. |
-| `insertImage` | Insert an image from a URL, UUID, or other supported source. |
-| `insertShape`, `insertShapes` | Insert common Shape API objects and return live `FShape` / `FConnectorShape` handles. |
-| `getShape`, `getShapes` | Resolve live common Shape handles. |
-| `insertShapeAtPoint` | Place a Board-native shape at a coordinate and resolve its container or swimlane lane. |
-| `insertConnector`, `insertConnectors` | Insert Board-native connectors with optional endpoint attachment. |
-| `addElement`, `addElements` | Insert complete low-level `IBoardPageElement` snapshots. |
-| `createContainer`, `createSwimlane` | Create semantic Board containers. |
+| Method                                | Use                                                                                    |
+| ------------------------------------- | -------------------------------------------------------------------------------------- |
+| `insertText`                          | Insert a Board text element.                                                           |
+| `insertImage`                         | Insert an image from a URL, UUID, or other supported source.                           |
+| `insertShape`, `insertShapes`         | Insert common Shape API objects and return live `FShape` / `FConnectorShape` handles.  |
+| `getShape`, `getShapes`               | Resolve live common Shape handles.                                                     |
+| `insertShapeAtPoint`                  | Place a Board-native shape at a coordinate and resolve its container or swimlane lane. |
+| `insertConnector`, `insertConnectors` | Insert Board-native connectors with optional endpoint attachment.                      |
+| `addElement`, `addElements`           | Insert complete low-level `IBoardPageElement` snapshots.                               |
+| `createContainer`, `createSwimlane`   | Create semantic Board containers.                                                      |
 
 Prefer semantic insert methods over constructing raw page-element snapshots.
 
@@ -105,11 +145,11 @@ const sameShape = board.getShape(shape.getId())
 
 ### Transform and arrange
 
-| Category | Methods |
-| --- | --- |
-| Transform | `setElementTransform`, `setElementsTransform`, `translateElement`, `translateElements` |
-| Alignment | `alignElements`, `distributeElements` |
-| Layout | `arrangeElements`, `arrangeElementsInGrid`, `arrangeElementsInLayers`, `arrangeElementsInCircle`, `fitElementsIntoBounds` |
+| Category  | Methods                                                                                                                   |
+| --------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Transform | `setElementTransform`, `setElementsTransform`, `translateElement`, `translateElements`                                    |
+| Alignment | `alignElements`, `distributeElements`                                                                                     |
+| Layout    | `arrangeElements`, `arrangeElementsInGrid`, `arrangeElementsInLayers`, `arrangeElementsInCircle`, `fitElementsIntoBounds` |
 
 ```ts
 const nodes = board.insertShapes([
@@ -118,38 +158,42 @@ const nodes = board.insertShapes([
   { shapeType: univerAPI.Enum.ShapeTypeEnum.Rect, transform: { left: 480, top: 80 } },
 ])
 
-if (!nodes || !board.arrangeElementsInLayers(
-  [[nodes[0].getId()], [nodes[1].getId()], [nodes[2].getId()]],
-  { direction: 'horizontal', layerGap: 120 },
-)) throw new Error('Cannot arrange nodes')
+if (
+  !nodes ||
+  !board.arrangeElementsInLayers([[nodes[0].getId()], [nodes[1].getId()], [nodes[2].getId()]], {
+    direction: 'horizontal',
+    layerGap: 120,
+  })
+)
+  throw new Error('Cannot arrange nodes')
 ```
 
 ### Content and connector APIs
 
-| Category | Methods |
-| --- | --- |
-| Metadata | `setElementMetadata`, `setElementsMetadata` |
-| Text | `getTextContent`, `setTextContent` |
-| Connector style | `getConnectorStyle`, `setConnectorStyle` |
-| Connector label | `getConnectorLabelText`, `setConnectorLabelText`, `getConnectorLabelStyle`, `setConnectorLabelStyle`, `removeConnectorLabel` |
-| Connector endpoints | `getConnectorConnection`, `setConnectorConnection` |
-| Container style | `getContainerStyle`, `setContainerStyle` |
+| Category            | Methods                                                                                                                      |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Metadata            | `setElementMetadata`, `setElementsMetadata`                                                                                  |
+| Text                | `getTextContent`, `setTextContent`                                                                                           |
+| Connector style     | `getConnectorStyle`, `setConnectorStyle`                                                                                     |
+| Connector label     | `getConnectorLabelText`, `setConnectorLabelText`, `getConnectorLabelStyle`, `setConnectorLabelStyle`, `removeConnectorLabel` |
+| Connector endpoints | `getConnectorConnection`, `setConnectorConnection`                                                                           |
+| Container style     | `getContainerStyle`, `setContainerStyle`                                                                                     |
 
 ### Order, update, and removal
 
-| Category | Methods |
-| --- | --- |
-| Z-order | `reorderElements`, `bringElementsToFront`, `bringElementsForward`, `sendElementsBackward`, `sendElementsToBack` |
-| Update | `updateElement` |
-| Remove | `removeElement`, `removeElements` |
+| Category | Methods                                                                                                         |
+| -------- | --------------------------------------------------------------------------------------------------------------- |
+| Z-order  | `reorderElements`, `bringElementsToFront`, `bringElementsForward`, `sendElementsBackward`, `sendElementsToBack` |
+| Update   | `updateElement`                                                                                                 |
+| Remove   | `removeElement`, `removeElements`                                                                               |
 
 ### Containers and swimlanes
 
-| Category | Methods |
-| --- | --- |
-| Membership | `wrapElementsInContainer`, `reparentElements`, `moveElementsToContainer`, `moveElementsOutOfContainer`, `disbandContainer` |
-| Container behavior | `fitContainerToContent`, `setContainerMembershipLocked`, `setContainerAutoResize` |
-| Swimlanes | `setSwimlaneLanes`, `setSwimlaneLaneSize`, `addSwimlaneLane`, `removeSwimlaneLane`, `reorderSwimlaneLane`, `setSwimlaneLaneCollapsed`, `renameSwimlaneLane` |
+| Category           | Methods                                                                                                                                                     |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Membership         | `wrapElementsInContainer`, `reparentElements`, `moveElementsToContainer`, `moveElementsOutOfContainer`, `disbandContainer`                                  |
+| Container behavior | `fitContainerToContent`, `setContainerMembershipLocked`, `setContainerAutoResize`                                                                           |
+| Swimlanes          | `setSwimlaneLanes`, `setSwimlaneLaneSize`, `addSwimlaneLane`, `removeSwimlaneLane`, `reorderSwimlaneLane`, `setSwimlaneLaneCollapsed`, `renameSwimlaneLane` |
 
 ## Related Facades
 

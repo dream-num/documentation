@@ -72,7 +72,8 @@ const deDEMessages = {
     sheets: 'Blätter',
     'sync-current-theme': 'Aktuelles Theme synchronisieren',
     'theme-json': 'Theme-JSON',
-    'theme-json-description': 'Ein gültiger JSON Der Patch wird zusammengeführt und sofort auf den laufenden ThemeService angewendet.',
+    'theme-json-description':
+      'Ein gültiger JSON Der Patch wird zusammengeführt und sofort auf den laufenden ThemeService angewendet.',
     title: 'Theme-Anpasser',
     token: 'Token',
     'token-intro': 'Generierte CSS-Variablen für die Design-Token-Übergabe.',
@@ -87,7 +88,8 @@ const deDEMessages = {
   },
   home: {
     slogan: 'Einbettung servergesteuerter Produktivitätstools in Ihren Workflow',
-    description: 'Univer ist eine isomorphe Full-Stack-Office-Suite mit hoher Erweiterbarkeit und Leistung, die Entwickler dabei unterstützen soll,',
+    description:
+      'Univer ist eine isomorphe Full-Stack-Office-Suite mit hoher Erweiterbarkeit und Leistung, die Entwickler dabei unterstützen soll,',
     'description-split': ',',
     'description-period': 'frei zu erstellen und zu bearbeiten.',
     'description-and': 'und',
@@ -124,13 +126,17 @@ const deDEMessages = {
         title: 'Boards',
         desc: 'Unendliche Leinwand für visuelle Zusammenarbeit mit Containern, Haftnotizen, Formobjekten und strukturiertem Brainstorming.',
       },
+      pdf: {
+        title: 'PDFs',
+        desc: 'PDF-Seiten mit Text, Bildern, Tabellen, Listen, Trennlinien und Anmerkungen erstellen und bearbeiten.',
+      },
       data: {
         title: 'Datenanalyse',
-        desc: 'Pivot-Tabellen, Diagramme, Sparklines und bedingte Formatierung für die Datenvisualisierung.',
+        desc: 'Pivot-Tabellen, Diagramme mit Live-Sheet-Referenzen, Sparklines und bedingte Formatierung.',
       },
       collab: {
         title: 'Zusammenarbeit',
-        desc: 'Echtzeit-Zusammenarbeit über OT-Algorithmus. Unterstützt mehr als 200 gleichzeitige Benutzer bei der Konfliktlösung.',
+        desc: 'Echtzeit-Zusammenarbeit für Sheets, Docs, Bases, Slides, Boards und PDFs mit Konfliktlösung.',
       },
       automation: {
         title: 'Automatisierung',
@@ -198,11 +204,11 @@ const deDEMessages = {
       },
       feature4: {
         title: 'Import & Export',
-        desc: 'Vollständige Formatunterstützung: xlsx, docx.',
+        desc: 'Import und Export für xlsx, csv, tsv, docx, pptx, pdf sowie Bases und Boards.',
       },
       feature5: {
         title: 'Drucken und PDF',
-        desc: 'Drucken in physische Dokumente oder Export in PDF.',
+        desc: 'PDFs bearbeiten und Folien als Vollseite, Handout oder Notizseite drucken.',
       },
       feature6: {
         title: 'Bereitstellung',
@@ -210,7 +216,7 @@ const deDEMessages = {
       },
       feature7: {
         title: 'Dunkler Modus',
-        desc: 'Integrierte helle und dunkle Designs mit anpassbaren Design-Tokens.',
+        desc: 'Integriertes dunkelblaues Theme, Theme-Wechsel zur Laufzeit und anpassbare Design-Tokens.',
       },
       feature8: {
         title: 'Plugin Erweiterbarkeit',

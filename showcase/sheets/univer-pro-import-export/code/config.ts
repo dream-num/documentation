@@ -1,5 +1,4 @@
 import type { IUniverCollaborationClientConfig } from '@univerjs-pro/collaboration-client'
-import type { IUniverExchangeClientConfig } from '@univerjs-pro/exchange-client'
 import { BrowserCollaborationSocketService } from '@univerjs-pro/collaboration-client-ui'
 
 const DEV_API_ORIGIN = 'https://dev.univer.plus'
@@ -53,7 +52,7 @@ export function createCollaborationConfig(): IUniverCollaborationClientConfig {
   }
 }
 
-export function createExchangeClientConfig(): IUniverExchangeClientConfig {
+export function createExchangeClientConfig() {
   const isLocal = typeof location !== 'undefined' && isLocalhost(location.hostname)
 
   return {
@@ -63,10 +62,5 @@ export function createExchangeClientConfig(): IUniverExchangeClientConfig {
     exportServerUrl: getApiHttpUrl('/exchange/{type}/export'),
     getTaskServerUrl: getApiHttpUrl('/exchange/task/{taskID}'),
     signUrlServerUrl: isLocal ? getLocalExchangeSignUrl() : getApiHttpUrl('/file/{fileID}/sign-url'),
-    options: {
-      minSheetRowCount: 40,
-      minSheetColumnCount: 16,
-      enableServerSideComputing: false,
-    },
   }
 }

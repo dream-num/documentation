@@ -141,6 +141,8 @@ export default async function Page({ params }: IProps) {
           basesDesc={t('home.scenes.bases.desc')}
           boardsTitle={t('home.scenes.boards.title')}
           boardsDesc={t('home.scenes.boards.desc')}
+          pdfTitle={t('home.scenes.pdf.title')}
+          pdfDesc={t('home.scenes.pdf.desc')}
           dataTitle={t('home.scenes.data.title')}
           dataDesc={t('home.scenes.data.desc')}
           collabTitle={t('home.scenes.collab.title')}

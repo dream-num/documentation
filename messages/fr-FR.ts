@@ -70,7 +70,8 @@ const frFRMessages = {
     sheets: 'Feuilles de calcul',
     'sync-current-theme': 'Synchroniser le thème actuel',
     'theme-json': 'JSON du thème',
-    'theme-json-description': 'Un patch JSON valide est fusionné et appliqué immédiatement au ThemeService en cours d’exécution.',
+    'theme-json-description':
+      'Un patch JSON valide est fusionné et appliqué immédiatement au ThemeService en cours d’exécution.',
     title: 'Personnalisation du thème',
     token: 'Token',
     'token-intro': 'Variables CSS générées pour la transmission des design tokens.',
@@ -85,7 +86,8 @@ const frFRMessages = {
   },
   home: {
     slogan: 'Intégrez des outils de productivité pilotés par le serveur à votre workflow',
-    description: 'Univer est une suite bureautique full-stack isomorphe, hautement extensible et performante, conçue pour aider les développeurs à créer et modifier librement ',
+    description:
+      'Univer est une suite bureautique full-stack isomorphe, hautement extensible et performante, conçue pour aider les développeurs à créer et modifier librement ',
     'description-split': ', ',
     'description-period': '.',
     'description-and': ' et ',
@@ -122,13 +124,17 @@ const frFRMessages = {
         title: 'Tableaux blancs',
         desc: 'Un canevas infini pour collaborer visuellement avec des conteneurs, des notes adhésives, des formes et des séances de réflexion structurées.',
       },
+      pdf: {
+        title: 'PDF',
+        desc: 'Créez et modifiez des pages PDF avec du texte, des images, des tableaux, des listes, des séparateurs et des annotations.',
+      },
       data: {
         title: 'Analyse de données',
-        desc: 'Tableaux croisés dynamiques, graphiques, graphiques sparkline et mise en forme conditionnelle pour visualiser les données.',
+        desc: 'Tableaux croisés, graphiques liés à des plages Sheet, sparklines et mise en forme conditionnelle.',
       },
       collab: {
         title: 'Collaboration',
-        desc: 'Collaboration en temps réel grâce à l’algorithme OT. Plus de 200 utilisateurs simultanés avec résolution des conflits.',
+        desc: 'Collaboration en temps réel pour Sheets, Docs, Bases, Slides, Boards et PDF avec résolution des conflits.',
       },
       automation: {
         title: 'Automatisation',
@@ -137,7 +143,8 @@ const frFRMessages = {
     },
     devexp: {
       title: 'Conçu pour les développeurs',
-      subtitle: 'Un framework full-stack doté d’une architecture à micro-noyau et plugins. Lancez-vous en quelques minutes.',
+      subtitle:
+        'Un framework full-stack doté d’une architecture à micro-noyau et plugins. Lancez-vous en quelques minutes.',
       step1: {
         title: 'Installer',
         desc: 'Installez les packages principaux d’Univer avec npm, yarn ou pnpm.',
@@ -196,11 +203,11 @@ const frFRMessages = {
       },
       feature4: {
         title: 'Importation et exportation',
-        desc: 'Prise en charge complète des formats xlsx et docx.',
+        desc: 'Importation et exportation de xlsx, csv, tsv, docx, pptx, pdf, Bases et Boards.',
       },
       feature5: {
         title: 'Impression et PDF',
-        desc: 'Imprimez des documents physiques ou exportez-les au format PDF.',
+        desc: 'Modifiez des PDF et imprimez les diapositives en pleine page, document ou page de notes.',
       },
       feature6: {
         title: 'Déploiement',
@@ -208,7 +215,7 @@ const frFRMessages = {
       },
       feature7: {
         title: 'Mode sombre',
-        desc: 'Thèmes clair et sombre intégrés avec design tokens personnalisables.',
+        desc: 'Thème bleu sombre intégré, changement de thème à chaud et design tokens personnalisables.',
       },
       feature8: {
         title: 'Extensibilité par plugins',

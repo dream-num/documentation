@@ -87,7 +87,8 @@ const jaJPMessages = {
   },
   home: {
     slogan: 'あなたのワークフローに、サーバードリブンの生産性ツールを組み込もう。',
-    description: 'Univer は高い拡張性とパフォーマンスを備えたフルスタックのオフィススイートで、開発者が自由に構築および編集できるように設計されています。',
+    description:
+      'Univer は高い拡張性とパフォーマンスを備えたフルスタックのオフィススイートで、開発者が自由に構築および編集できるように設計されています。',
     'description-split': '、',
     'description-period': '。',
     'description-and': 'と',
@@ -124,13 +125,17 @@ const jaJPMessages = {
         title: 'Boards',
         desc: 'コンテナ、付箋、図形オブジェクト、構造化されたブレインストーミングに対応したビジュアル共同編集キャンバス。',
       },
+      pdf: {
+        title: 'PDF',
+        desc: 'テキスト、画像、表、リスト、区切り線、注釈を含む PDF ページを作成・編集。',
+      },
       data: {
         title: 'データ分析',
-        desc: 'ピボットテーブル、チャート、スパークライン、条件付き書式によるデータ可視化。',
+        desc: 'ピボットテーブル、Sheet 範囲を参照するチャート、スパークライン、条件付き書式。',
       },
       collab: {
         title: '共同編集',
-        desc: 'OT アルゴリズムによるリアルタイム共同編集。200+ の同時接続ユーザーをサポートし、競合解決機能を備える。',
+        desc: 'Sheets、Docs、Bases、Slides、Boards、PDF のリアルタイム共同編集と競合解決。',
       },
       automation: {
         title: '自動化',
@@ -198,11 +203,11 @@ const jaJPMessages = {
       },
       feature4: {
         title: 'インポート・エクスポート',
-        desc: 'xlsx、docx などの完全なフォーマットサポート。',
+        desc: 'xlsx、csv、tsv、docx、pptx、pdf、Bases、Boards のインポート・エクスポート。',
       },
       feature5: {
         title: '印刷と PDF',
-        desc: '実体文書として印刷、または PDF へエクスポート。',
+        desc: 'PDF 編集と、フルページ・配布資料・ノートページ形式のスライド印刷。',
       },
       feature6: {
         title: 'デプロイ',
@@ -210,7 +215,7 @@ const jaJPMessages = {
       },
       feature7: {
         title: 'ダークモード',
-        desc: 'ライト・ダークテーマの切り替えに対応。カスタムデザイントークンも可能。',
+        desc: '組み込みのダークブルーテーマ、実行時テーマ切替、カスタムデザイントークン。',
       },
       feature8: {
         title: 'プラグイン拡張',

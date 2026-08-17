@@ -124,13 +124,17 @@ const zhTWMessages = {
         title: '白板',
         desc: '面向視覺協作的無限畫布。支持容器、便籤、圖形對象和結構化頭腦風暴。',
       },
+      pdf: {
+        title: 'PDF',
+        desc: '建立並編輯 PDF 頁面中的文字、圖片、表格、清單、分隔線與註解。',
+      },
       data: {
         title: '數據分析',
-        desc: '透視表、圖表、迷你圖和條件格式，助力數據可視化。',
+        desc: '透視表、可參照 Sheet 即時資料的圖表、迷你圖與條件格式。',
       },
       collab: {
         title: '協作',
-        desc: '基於 OT 算法的實時協作。支持 200+ 並發用戶，具備衝突解決能力。',
+        desc: '面向 Sheets、Docs、Bases、Slides、Boards 與 PDF 的即時協作與衝突解決。',
       },
       automation: {
         title: '自動化',
@@ -198,11 +202,11 @@ const zhTWMessages = {
       },
       feature4: {
         title: '導入與導出',
-        desc: '完整格式支持：xlsx、docx。',
+        desc: '支援 xlsx、csv、tsv、docx、pptx、pdf，以及 Bases 與 Boards 的匯入匯出。',
       },
       feature5: {
         title: '打印與 PDF',
-        desc: '打印為實體文檔或導出為 PDF。',
+        desc: '編輯 PDF，並以整頁、講義或演講者備註版面列印投影片。',
       },
       feature6: {
         title: '部署',
@@ -210,7 +214,7 @@ const zhTWMessages = {
       },
       feature7: {
         title: '深色模式',
-        desc: '內建明暗主題切換，支持自定義設計令牌。',
+        desc: '內建深藍主題、執行時主題切換，並支援自訂設計令牌。',
       },
       feature8: {
         title: '插件擴展',
