@@ -1,5 +1,6 @@
-import type { NextConfig } from 'next'
 import process from 'node:process'
+
+import type { NextConfig } from 'next'
 import { createMDX } from 'fumadocs-mdx/next'
 import createNextIntlPlugin from 'next-intl/plugin'
 
@@ -13,6 +14,11 @@ const config: NextConfig = {
   allowedDevOrigins: ['*'],
 
   output: 'standalone',
+
+  experimental: {
+    turbopackRemoveUnusedImports: false,
+    turbopackRemoveUnusedExports: false,
+  },
 
   typescript: {
     ignoreBuildErrors: true,

@@ -1,6 +1,7 @@
 import type { Theme } from '@univerjs/themes'
+
 import type { LoopColorKey, ThemeScaleKey, ThemeShadeKey } from './types'
-import { COLOR_SCALE_KEYS, COLOR_SHADE_KEYS, LOOP_COLOR_KEYS } from './constants'
+import { COLOR_SCALE_KEYS, COLOR_SHADE_KEYS, GRAY_SHADE_KEYS, LOOP_COLOR_KEYS } from './constants'
 
 export function cloneTheme(theme: Theme): Theme {
   return JSON.parse(JSON.stringify(theme)) as Theme
@@ -39,14 +40,6 @@ export function mergeThemePatch(baseTheme: Theme, patch: unknown): Theme | null 
   const nextTheme = cloneTheme(baseTheme)
   const record = patch as Record<string, unknown>
 
-  if (typeof record.white === 'string') {
-    nextTheme.white = record.white
-  }
-
-  if (typeof record.black === 'string') {
-    nextTheme.black = record.black
-  }
-
   for (const scale of COLOR_SCALE_KEYS) {
     const scalePatch = record[scale]
 
@@ -55,15 +48,14 @@ export function mergeThemePatch(baseTheme: Theme, patch: unknown): Theme | null 
     }
 
     const scaleRecord = scalePatch as Record<string, unknown>
-    const mergedScale = { ...nextTheme[scale] } as Record<string, string>
+    const nextScale = nextTheme[scale] as unknown as Record<string, string>
+    const shadeKeys = scale === 'gray' ? GRAY_SHADE_KEYS : COLOR_SHADE_KEYS
 
-    for (const shade of COLOR_SHADE_KEYS) {
+    for (const shade of shadeKeys) {
       if (typeof scaleRecord[shade] === 'string') {
-        mergedScale[shade] = scaleRecord[shade] as string
+        nextScale[shade] = scaleRecord[shade]
       }
     }
-
-    nextTheme[scale] = mergedScale as Theme[ThemeScaleKey]
   }
 
   const loopColorPatch = record['loop-color']
@@ -95,9 +87,14 @@ export function updateScaleColor(theme: Theme, scale: ThemeScaleKey, shade: Them
 }
 
 export function updateThemeRootColor(theme: Theme, key: 'white' | 'black', value: string): Theme {
+  const shade = key === 'white' ? 0 : 1000
+
   return {
     ...theme,
-    [key]: value,
+    gray: {
+      ...theme.gray,
+      [shade]: value,
+    },
   }
 }
 

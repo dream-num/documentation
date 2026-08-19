@@ -1,13 +1,14 @@
 import type { ISlideData } from '@univerjs-pro/slides'
 import { ShapeTypeEnum } from '@univerjs-pro/engine-shape'
 import { PageElementTypeEnum, PageTypeEnum, SlideBackgroundTypeEnum } from '@univerjs-pro/slides'
+import { LocaleType } from '@univerjs/core'
 
 export const SLIDE_DATA: ISlideData = {
   id: 'slides-pro-demo',
   name: 'Univer Slides Pro',
-  appVersion: '1.0.0-alpha.1',
+  appVersion: '1.0.0-beta.1',
   rev: 1,
-  locale: 'en-US',
+  locale: LocaleType.EN_US,
   defaultPageSize: {
     width: 1200,
     height: 675,

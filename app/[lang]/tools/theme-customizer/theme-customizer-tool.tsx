@@ -6,47 +6,77 @@ import { defaultTheme, greenTheme } from '@univerjs/themes'
 import { CheckIcon, ClipboardIcon, MoonIcon, SunIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
+
 import { ColorPickerPopover } from '@/components/color-picker-popover'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 import { RealUniverPreview } from './real-univer-preview'
 
 type ShadeKey = '50' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900'
-type ScaleKey = 'primary' | 'gray' | 'blue' | 'red' | 'orange' | 'yellow' | 'green' | 'jiqing' | 'indigo' | 'purple' | 'pink'
+type ScaleKey =
+  | 'primary'
+  | 'gray'
+  | 'blue'
+  | 'red'
+  | 'orange'
+  | 'yellow'
+  | 'green'
+  | 'jiqing'
+  | 'indigo'
+  | 'purple'
+  | 'pink'
 type LoopKey = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | '11' | '12'
-type HighlightKey
-  = | '1'
-    | '2'
-    | '3'
-    | '4'
-    | '5'
-    | '6'
-    | '7'
-    | '8'
-    | '9'
-    | '10'
-    | '11'
-    | '12'
-    | '13'
-    | '14'
-    | '15'
-    | '16'
+type HighlightKey = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | '11' | '12' | '13' | '14' | '15' | '16'
 
 type ThemeWithTokens = Theme & {
   highlight: {
-    background: Record<HighlightKey, {
-      color: string
-      alpha: number
-    }>
+    background: Record<
+      HighlightKey,
+      {
+        color: string
+        alpha: number
+      }
+    >
   }
 }
 
 type PresetKey = 'default' | 'green' | 'orange' | 'red' | 'purple'
 
-const scaleKeys: ScaleKey[] = ['primary', 'gray', 'blue', 'red', 'orange', 'yellow', 'green', 'jiqing', 'indigo', 'purple', 'pink']
+const scaleKeys: ScaleKey[] = [
+  'primary',
+  'gray',
+  'blue',
+  'red',
+  'orange',
+  'yellow',
+  'green',
+  'jiqing',
+  'indigo',
+  'purple',
+  'pink',
+]
 const shadeKeys: ShadeKey[] = ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900']
+const grayShadeKeys = ['0', ...shadeKeys, '1000'] as const
 const loopKeys: LoopKey[] = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
-const highlightKeys: HighlightKey[] = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16']
+const highlightKeys: HighlightKey[] = [
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  '6',
+  '7',
+  '8',
+  '9',
+  '10',
+  '11',
+  '12',
+  '13',
+  '14',
+  '15',
+  '16',
+]
 
 const fallbackHighlight: ThemeWithTokens['highlight'] = {
   background: {
@@ -162,7 +192,7 @@ function hexToRgb(hex: string) {
   }
 }
 
-function alphaColor(theme: ThemeWithTokens, value: { color: string, alpha: number }) {
+function alphaColor(theme: ThemeWithTokens, value: { color: string; alpha: number }) {
   const { r, g, b } = hexToRgb(resolveColor(theme, value.color))
   return `rgba(${r}, ${g}, ${b}, ${value.alpha})`
 }
@@ -178,9 +208,14 @@ function updateScaleColor(theme: ThemeWithTokens, scale: ScaleKey, shade: ShadeK
 }
 
 function updateRootColor(theme: ThemeWithTokens, key: 'white' | 'black', value: string): ThemeWithTokens {
+  const shade = key === 'white' ? 0 : 1000
+
   return {
     ...theme,
-    [key]: value,
+    gray: {
+      ...theme.gray,
+      [shade]: value,
+    },
   }
 }
 
@@ -194,7 +229,11 @@ function updateLoopColor(theme: ThemeWithTokens, key: LoopKey, value: string): T
   }
 }
 
-function updateHighlight(theme: ThemeWithTokens, key: HighlightKey, value: { color?: string, alpha?: number }): ThemeWithTokens {
+function updateHighlight(
+  theme: ThemeWithTokens,
+  key: HighlightKey,
+  value: { color?: string; alpha?: number },
+): ThemeWithTokens {
   return {
     ...theme,
     highlight: {
@@ -210,22 +249,22 @@ function updateHighlight(theme: ThemeWithTokens, key: HighlightKey, value: { col
 }
 
 function createThemePatch(baseTheme: ThemeWithTokens, theme: ThemeWithTokens) {
-  const patch: Partial<ThemeWithTokens> = {}
-
-  if (theme.white !== baseTheme.white) patch.white = theme.white
-  if (theme.black !== baseTheme.black) patch.black = theme.black
+  const patch: Record<string, unknown> = {}
 
   for (const scale of scaleKeys) {
-    const scalePatch: Partial<Record<ShadeKey, string>> = {}
+    const scalePatch: Record<string, string> = {}
+    const scaleShadeKeys = scale === 'gray' ? grayShadeKeys : shadeKeys
+    const baseScale = baseTheme[scale] as unknown as Record<string, string>
+    const currentScale = theme[scale] as unknown as Record<string, string>
 
-    for (const shade of shadeKeys) {
-      if (theme[scale][shade] !== baseTheme[scale][shade]) {
-        scalePatch[shade] = theme[scale][shade]
+    for (const shade of scaleShadeKeys) {
+      if (currentScale[shade] !== baseScale[shade]) {
+        scalePatch[shade] = currentScale[shade]
       }
     }
 
     if (Object.keys(scalePatch).length > 0) {
-      patch[scale] = scalePatch as ThemeWithTokens[ScaleKey]
+      patch[scale] = scalePatch
     }
   }
 
@@ -237,7 +276,7 @@ function createThemePatch(baseTheme: ThemeWithTokens, theme: ThemeWithTokens) {
   }
 
   if (Object.keys(loopPatch).length > 0) {
-    patch['loop-color'] = loopPatch as ThemeWithTokens['loop-color']
+    patch['loop-color'] = loopPatch
   }
 
   if (JSON.stringify(theme.highlight) !== JSON.stringify(baseTheme.highlight)) {
@@ -248,17 +287,17 @@ function createThemePatch(baseTheme: ThemeWithTokens, theme: ThemeWithTokens) {
 }
 
 function createCssTokens(theme: ThemeWithTokens) {
-  const rows: Array<{ name: string, value: string, color?: string }> = [
-    { name: '--univer-white', value: theme.white, color: theme.white },
-    { name: '--univer-black', value: theme.black, color: theme.black },
-  ]
+  const rows: Array<{ name: string; value: string; color?: string }> = []
 
   for (const scale of scaleKeys) {
-    for (const shade of shadeKeys) {
+    const scaleShadeKeys = scale === 'gray' ? grayShadeKeys : shadeKeys
+    const currentScale = theme[scale] as unknown as Record<string, string>
+
+    for (const shade of scaleShadeKeys) {
       rows.push({
         name: `--univer-${scale}-${shade}`,
-        value: theme[scale][shade],
-        color: theme[scale][shade],
+        value: currentScale[shade],
+        color: currentScale[shade],
       })
     }
   }
@@ -282,68 +321,37 @@ function createCssTokens(theme: ThemeWithTokens) {
   return rows
 }
 
-function FieldLabel({
-  children,
-}: {
-  children: ReactNode
-}) {
-  return <span className="text-xs font-medium text-muted-foreground">{children}</span>
+function FieldLabel({ children }: { children: ReactNode }) {
+  return <span className="text-muted-foreground text-xs font-medium">{children}</span>
 }
 
-function ColorField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-}) {
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
     <label className="grid gap-1.5">
       <FieldLabel>{label}</FieldLabel>
-      <span className="flex h-9 items-center gap-2 rounded-md border bg-background px-2 shadow-xs">
+      <span className="bg-background flex h-9 items-center gap-2 rounded-md border px-2 shadow-xs">
         <ColorPickerPopover ariaLabel={label} value={value} onValueChange={onChange} />
-        <span className="font-mono text-xs text-muted-foreground">{value}</span>
+        <span className="text-muted-foreground font-mono text-xs">{value}</span>
       </span>
     </label>
   )
 }
 
-function TokenRow({
-  color,
-  name,
-  value,
-}: {
-  color?: string
-  name: string
-  value: string
-}) {
+function TokenRow({ color, name, value }: { color?: string; name: string; value: string }) {
   return (
     <div
-      className="
-        grid grid-cols-[minmax(0,1fr)_minmax(8rem,0.7fr)] items-center gap-3 border-b py-2 text-sm
-        last:border-b-0
-      "
+      className="grid grid-cols-[minmax(0,1fr)_minmax(8rem,0.7fr)] items-center gap-3 border-b py-2 text-sm last:border-b-0"
     >
       <span className="flex min-w-0 items-center gap-2">
-        {color
-          ? <span className="size-4 shrink-0 rounded-sm border" style={{ backgroundColor: color }} />
-          : null}
-        <code className="truncate rounded-sm bg-muted px-1.5 py-0.5 font-mono text-xs">{name}</code>
+        {color ? <span className="size-4 shrink-0 rounded-sm border" style={{ backgroundColor: color }} /> : null}
+        <code className="bg-muted truncate rounded-sm px-1.5 py-0.5 font-mono text-xs">{name}</code>
       </span>
-      <span className="truncate font-mono text-xs text-muted-foreground">{value}</span>
+      <span className="text-muted-foreground truncate font-mono text-xs">{value}</span>
     </div>
   )
 }
 
-export function ThemeCustomizerTool({
-  description,
-  title,
-}: {
-  description: string
-  title: string
-}) {
+export function ThemeCustomizerTool({ description, title }: { description: string; title: string }) {
   const t = useTranslations()
   const [presetKey, setPresetKey] = useState<PresetKey>('default')
   const [theme, setTheme] = useState(() => cloneTheme(presets[0].theme))
@@ -352,10 +360,10 @@ export function ThemeCustomizerTool({
   const [jsonDraft, setJsonDraft] = useState(() => JSON.stringify(presets[0].theme, null, 2))
   const [jsonError, setJsonError] = useState<string | null>(null)
 
-  const activePreset = presets.find(preset => preset.key === presetKey) ?? presets[0]
+  const activePreset = presets.find((preset) => preset.key === presetKey) ?? presets[0]
   const patch = useMemo(() => createThemePatch(activePreset.theme, theme), [activePreset.theme, theme])
   const tokenRows = useMemo(() => createCssTokens(theme), [theme])
-  const cssText = useMemo(() => tokenRows.map(row => `  ${row.name}: ${row.value};`).join('\n'), [tokenRows])
+  const cssText = useMemo(() => tokenRows.map((row) => `  ${row.name}: ${row.value};`).join('\n'), [tokenRows])
 
   function applyTheme(nextTheme: ThemeWithTokens) {
     setTheme(nextTheme)
@@ -364,7 +372,7 @@ export function ThemeCustomizerTool({
   }
 
   function applyPreset(nextPresetKey: PresetKey) {
-    const nextPreset = presets.find(preset => preset.key === nextPresetKey)
+    const nextPreset = presets.find((preset) => preset.key === nextPresetKey)
     if (!nextPreset) return
 
     setPresetKey(nextPreset.key)
@@ -389,23 +397,20 @@ export function ThemeCustomizerTool({
   return (
     <article className="min-w-0">
       <header className="border-b pb-4">
-        <p className="text-sm font-medium text-muted-foreground">{t('tools.section')}</p>
+        <p className="text-muted-foreground text-sm font-medium">{t('tools.section')}</p>
         <h1 className="mt-2 text-3xl/tight font-semibold tracking-normal">{title}</h1>
-        <p className="mt-2 max-w-3xl text-base text-muted-foreground">{description}</p>
+        <p className="text-muted-foreground mt-2 max-w-3xl text-base">{description}</p>
       </header>
 
       <div className="mt-4 space-y-4">
-        <section className="min-w-0 rounded-lg border bg-card shadow-sm">
+        <section className="bg-card min-w-0 rounded-lg border shadow-sm">
           <Tabs className="gap-0" defaultValue="palette">
             <div
-              className="
-                flex flex-wrap items-center justify-between gap-3 border-b px-3 py-2
-                lg:flex-nowrap
-              "
+              className="flex flex-wrap items-center justify-between gap-3 border-b px-3 py-2 lg:flex-nowrap"
             >
               <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <span className="mr-1 text-xs font-medium text-muted-foreground">{t('theme-customizer.presets')}</span>
-                {presets.map(preset => (
+                <span className="text-muted-foreground mr-1 text-xs font-medium">{t('theme-customizer.presets')}</span>
+                {presets.map((preset) => (
                   <Button
                     className="h-8 gap-2"
                     key={preset.key}
@@ -434,7 +439,7 @@ export function ThemeCustomizerTool({
                   size="sm"
                   type="button"
                   variant="outline"
-                  onClick={() => setDarkMode(value => !value)}
+                  onClick={() => setDarkMode((value) => !value)}
                 >
                   {darkMode ? <MoonIcon className="size-4" /> : <SunIcon className="size-4" />}
                   {darkMode ? t('theme-customizer.dark') : t('theme-customizer.light')}
@@ -444,57 +449,54 @@ export function ThemeCustomizerTool({
 
             <TabsContent className="m-0 max-h-58 overflow-y-auto p-3" value="palette">
               <div
-                className="
-                  grid gap-4
-                  xl:grid-cols-[18rem_minmax(0,1fr)]
-                "
+                className="grid gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]"
               >
                 <section>
                   <h2 className="text-sm font-semibold">{t('theme-customizer.root')}</h2>
                   <div className="mt-3 grid gap-3">
-                    <ColorField label="white" value={theme.white} onChange={value => applyTheme(updateRootColor(theme, 'white', value))} />
-                    <ColorField label="black" value={theme.black} onChange={value => applyTheme(updateRootColor(theme, 'black', value))} />
+                    <ColorField
+                      label="gray.0"
+                      value={theme.gray[0]}
+                      onChange={(value) => applyTheme(updateRootColor(theme, 'white', value))}
+                    />
+                    <ColorField
+                      label="gray.1000"
+                      value={theme.gray[1000]}
+                      onChange={(value) => applyTheme(updateRootColor(theme, 'black', value))}
+                    />
                   </div>
                 </section>
 
                 <section>
                   <h2 className="text-sm font-semibold">{t('theme-customizer.palette')}</h2>
                   <div
-                    className="
-                      mt-3 grid gap-x-4 gap-y-3
-                      xl:grid-cols-2
-                    "
+                    className="mt-3 grid gap-x-4 gap-y-3 xl:grid-cols-2"
                   >
-                    {scaleKeys.map(scale => (
+                    {scaleKeys.map((scale) => (
                       <div key={scale}>
                         <div className="mb-1.5 flex items-center justify-between">
                           <p className="text-sm font-medium capitalize">{scale}</p>
-                          <code
-                            className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
-                          >
+                          <code className="bg-muted text-muted-foreground rounded-sm px-1.5 py-0.5 font-mono text-[10px]">
                             --univer-
                             {scale}
                             -500
                           </code>
                         </div>
                         <div className="grid grid-cols-10 gap-1.5">
-                          {shadeKeys.map(shade => (
+                          {shadeKeys.map((shade) => (
                             <div className="group grid gap-1" key={shade}>
                               <span
-                                className="
-                                  h-6 rounded-sm border transition-transform
-                                  group-hover:-translate-y-0.5
-                                "
+                                className="h-6 rounded-sm border transition-transform group-hover:-translate-y-0.5"
                                 style={{ backgroundColor: theme[scale][shade] }}
                               />
                               <span className="flex justify-center">
                                 <ColorPickerPopover
                                   ariaLabel={t('theme-customizer.choose-color', { label: `${scale} ${shade}` })}
                                   value={theme[scale][shade]}
-                                  onValueChange={value => applyTheme(updateScaleColor(theme, scale, shade, value))}
+                                  onValueChange={(value) => applyTheme(updateScaleColor(theme, scale, shade, value))}
                                 />
                               </span>
-                              <span className="text-center font-mono text-[9px] text-muted-foreground">{shade}</span>
+                              <span className="text-muted-foreground text-center font-mono text-[9px]">{shade}</span>
                             </div>
                           ))}
                         </div>
@@ -509,37 +511,38 @@ export function ThemeCustomizerTool({
               <div className="grid gap-4">
                 <div>
                   <h2 className="text-sm font-semibold">{t('theme-customizer.design-tokens')}</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">{t('theme-customizer.token-intro')}</p>
+                  <p className="text-muted-foreground mt-1 text-sm">{t('theme-customizer.token-intro')}</p>
                 </div>
                 <div className="max-h-44 overflow-y-auto rounded-md border px-3">
-                  {tokenRows.map(row => (
+                  {tokenRows.map((row) => (
                     <TokenRow color={row.color} key={row.name} name={row.name} value={row.value} />
                   ))}
                 </div>
 
                 <div
-                  className="
-                    grid gap-4
-                    md:grid-cols-2
-                  "
+                  className="grid gap-4 md:grid-cols-2"
                 >
                   <section>
                     <h3 className="text-sm font-semibold">{t('theme-customizer.loop-colors')}</h3>
                     <div className="mt-3 grid grid-cols-2 gap-2">
-                      {loopKeys.map(key => (
+                      {loopKeys.map((key) => (
                         <label className="grid gap-1.5" key={key}>
                           <FieldLabel>
                             loop
                             {key}
                           </FieldLabel>
                           <select
-                            className="h-9 rounded-md border bg-background px-2 text-sm shadow-xs"
+                            className="bg-background h-9 rounded-md border px-2 text-sm shadow-xs"
                             value={theme['loop-color'][key]}
-                            onChange={event => applyTheme(updateLoopColor(theme, key, event.target.value))}
+                            onChange={(event) => applyTheme(updateLoopColor(theme, key, event.target.value))}
                           >
-                            {scaleKeys.flatMap(scale => shadeKeys.map(shade => `${scale}.${shade}`)).map(option => (
-                              <option key={option} value={option}>{option}</option>
-                            ))}
+                            {scaleKeys
+                              .flatMap((scale) => shadeKeys.map((shade) => `${scale}.${shade}`))
+                              .map((option) => (
+                                <option key={option} value={option}>
+                                  {option}
+                                </option>
+                              ))}
                           </select>
                         </label>
                       ))}
@@ -548,7 +551,7 @@ export function ThemeCustomizerTool({
                   <section>
                     <h3 className="text-sm font-semibold">{t('theme-customizer.highlights')}</h3>
                     <div className="mt-3 grid grid-cols-2 gap-2">
-                      {highlightKeys.slice(0, 8).map(key => (
+                      {highlightKeys.slice(0, 8).map((key) => (
                         <label className="grid gap-1.5" key={key}>
                           <FieldLabel>
                             highlight
@@ -556,13 +559,19 @@ export function ThemeCustomizerTool({
                           </FieldLabel>
                           <span className="flex items-center gap-2">
                             <select
-                              className="h-9 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm shadow-xs"
+                              className="bg-background h-9 min-w-0 flex-1 rounded-md border px-2 text-sm shadow-xs"
                               value={theme.highlight.background[key].color}
-                              onChange={event => applyTheme(updateHighlight(theme, key, { color: event.target.value }))}
+                              onChange={(event) =>
+                                applyTheme(updateHighlight(theme, key, { color: event.target.value }))
+                              }
                             >
-                              {scaleKeys.flatMap(scale => shadeKeys.map(shade => `${scale}.${shade}`)).map(option => (
-                                <option key={option} value={option}>{option}</option>
-                              ))}
+                              {scaleKeys
+                                .flatMap((scale) => shadeKeys.map((shade) => `${scale}.${shade}`))
+                                .map((option) => (
+                                  <option key={option} value={option}>
+                                    {option}
+                                  </option>
+                                ))}
                             </select>
                             <input
                               aria-label={`highlight ${key} alpha`}
@@ -572,7 +581,9 @@ export function ThemeCustomizerTool({
                               step={0.01}
                               type="range"
                               value={theme.highlight.background[key].alpha}
-                              onChange={event => applyTheme(updateHighlight(theme, key, { alpha: Number(event.target.value) }))}
+                              onChange={(event) =>
+                                applyTheme(updateHighlight(theme, key, { alpha: Number(event.target.value) }))
+                              }
                             />
                           </span>
                         </label>
@@ -586,18 +597,21 @@ export function ThemeCustomizerTool({
             <TabsContent className="m-0 max-h-58 overflow-y-auto p-3" value="json">
               <div className="grid gap-3">
                 <textarea
-                  className="
-                    h-42 resize-none rounded-md border bg-background p-3 font-mono text-xs shadow-xs outline-none
-                    focus-visible:ring-2 focus-visible:ring-ring/50
-                  "
+                  className="bg-background focus-visible:ring-ring/50 h-42 resize-none rounded-md border p-3 font-mono text-xs shadow-xs outline-none focus-visible:ring-2"
                   spellCheck={false}
                   value={jsonDraft}
-                  onChange={event => setJsonDraft(event.target.value)}
+                  onChange={(event) => setJsonDraft(event.target.value)}
                 />
-                {jsonError ? <p className="text-sm text-destructive">{jsonError}</p> : null}
+                {jsonError ? <p className="text-destructive text-sm">{jsonError}</p> : null}
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" onClick={applyJson}>{t('theme-customizer.apply')}</Button>
-                  <Button type="button" variant="outline" onClick={() => copyText('json', JSON.stringify(theme, null, 2))}>
+                  <Button type="button" onClick={applyJson}>
+                    {t('theme-customizer.apply')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => copyText('json', JSON.stringify(theme, null, 2))}
+                  >
                     {copied === 'json' ? <CheckIcon className="size-4" /> : <ClipboardIcon className="size-4" />}
                     {copied === 'json' ? t('theme-customizer.copied') : t('theme-customizer.copy-json')}
                   </Button>
@@ -607,12 +621,12 @@ export function ThemeCustomizerTool({
           </Tabs>
         </section>
 
-        <section className="rounded-lg border bg-card p-3 shadow-sm">
+        <section className="bg-card rounded-lg border p-3 shadow-sm">
           <Tabs defaultValue="sheets">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-semibold">{t('theme-customizer.live-preview')}</h2>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="text-muted-foreground mt-1 text-xs">
                   {darkMode ? t('theme-customizer.dark') : t('theme-customizer.light')}
                 </p>
               </div>
@@ -631,12 +645,9 @@ export function ThemeCustomizerTool({
         </section>
 
         <div
-          className="
-            grid gap-4
-            lg:grid-cols-2
-          "
+          className="grid gap-4 lg:grid-cols-2"
         >
-          <section className="rounded-lg border bg-card p-4 shadow-sm">
+          <section className="bg-card rounded-lg border p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h2 className="text-sm font-semibold">{t('theme-customizer.export')}</h2>
               <Button
@@ -649,14 +660,14 @@ export function ThemeCustomizerTool({
                 {copied === 'patch' ? t('theme-customizer.copied') : t('theme-customizer.copy-patch')}
               </Button>
             </div>
-            <pre className="max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs">
+            <pre className="bg-muted max-h-64 overflow-auto rounded-md p-3 text-xs">
               <code>{`const customTheme = ${JSON.stringify(theme, null, 2)}`}</code>
             </pre>
           </section>
 
-          <section className="rounded-lg border bg-card p-4 shadow-sm">
+          <section className="bg-card rounded-lg border p-4 shadow-sm">
             <h2 className="text-sm font-semibold">{t('theme-customizer.design-tokens')}</h2>
-            <pre className="mt-3 max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs">
+            <pre className="bg-muted mt-3 max-h-64 overflow-auto rounded-md p-3 text-xs">
               <code>{`:root {\n${cssText}\n}`}</code>
             </pre>
           </section>

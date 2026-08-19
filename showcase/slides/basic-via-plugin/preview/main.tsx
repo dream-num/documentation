@@ -11,12 +11,12 @@ import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
-import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef } from 'react'
+
 import { SLIDE_DATA } from '../code/data'
 
 import '@univerjs/design/lib/index.css'
@@ -36,18 +36,11 @@ export default function Preview() {
       darkMode: darkModeRef.current,
       locale: LocaleType.EN_US,
       locales: {
-        [LocaleType.EN_US]: mergeLocales(
-          DesignEnUS,
-          UIEnUS,
-          DocsUIEnUS,
-          ShapeEditorUIEnUS,
-          SlidesUIEnUS,
-        ),
+        [LocaleType.EN_US]: mergeLocales(DesignEnUS, UIEnUS, DocsUIEnUS, ShapeEditorUIEnUS, SlidesUIEnUS),
       },
     })
 
     univer.registerPlugin(UniverRenderEnginePlugin)
-    univer.registerPlugin(UniverFormulaEnginePlugin)
 
     univer.registerPlugin(UniverUIPlugin, {
       container: divRef.current,
@@ -62,9 +55,11 @@ export default function Preview() {
     univer.registerPlugin(UniverSlidesUIPlugin)
 
     univer.createUnit(UniverInstanceType.UNIVER_SLIDE, SLIDE_DATA)
+
+    return () => {
+      univer.dispose()
+    }
   }, [])
 
-  return (
-    <div ref={divRef} className="h-full" />
-  )
+  return <div ref={divRef} className="h-full" />
 }

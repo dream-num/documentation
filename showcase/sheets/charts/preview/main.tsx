@@ -9,6 +9,7 @@ import sheetsDrawingEnUS from '@univerjs/preset-sheets-drawing/locales/en-US'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef } from 'react'
+
 import { WORKBOOK_DATA } from '../code/data'
 import { insertChart } from '../code/function'
 
@@ -26,11 +27,7 @@ export default function Preview() {
       darkMode: theme === 'dark',
       locale: LocaleType.EN_US,
       locales: {
-        [LocaleType.EN_US]: mergeLocales(
-          sheetsCoreEnUS,
-          sheetsDrawingEnUS,
-          sheetsAdvancedEnUS,
-        ),
+        [LocaleType.EN_US]: mergeLocales(sheetsCoreEnUS, sheetsDrawingEnUS, sheetsAdvancedEnUS),
       },
       presets: [
         UniverSheetsCorePreset({
@@ -42,9 +39,9 @@ export default function Preview() {
     })
 
     univerAPI.createWorkbook(WORKBOOK_DATA)
-    univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+    univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, async ({ stage }) => {
       if (stage === univerAPI.Enum.LifecycleStages.Rendered) {
-        insertChart(univerAPI)
+        await insertChart(univerAPI)
       }
     })
 
@@ -53,7 +50,5 @@ export default function Preview() {
     }
   }, [theme])
 
-  return (
-    <div ref={divRef} className="h-full" />
-  )
+  return <div ref={divRef} className="h-full" />
 }

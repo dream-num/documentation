@@ -4,7 +4,12 @@ import { UniverBasesPlugin } from '@univerjs-pro/bases'
 import { UniverBasesUIPlugin } from '@univerjs-pro/bases-ui'
 import BasesUIEnUS from '@univerjs-pro/bases-ui/locale/en-US'
 import BasesEnUS from '@univerjs-pro/bases/locale/en-US'
-import { createBoardContainerElement, createBoardStickyElement, createBoardTextBoxShapeElement, UniverBoardsPlugin } from '@univerjs-pro/boards'
+import {
+  createBoardContainerElement,
+  createBoardStickyElement,
+  createBoardTextBoxShapeElement,
+  UniverBoardsPlugin,
+} from '@univerjs-pro/boards'
 import { UniverBoardsUIPlugin } from '@univerjs-pro/boards-ui'
 import BoardsUIEnUS from '@univerjs-pro/boards-ui/locale/en-US'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
@@ -12,7 +17,13 @@ import ShapeEditorUIEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
 import { UniverSlidesPlugin } from '@univerjs-pro/slides'
 import { UniverSlidesUIPlugin } from '@univerjs-pro/slides-ui'
 import SlidesUIEnUS from '@univerjs-pro/slides-ui/locale/en-US'
-import { LocaleType as CoreLocaleType, mergeLocales as mergeCoreLocales, Univer as UniverCore, UniverInstanceType } from '@univerjs/core'
+import {
+  BooleanNumber,
+  LocaleType as CoreLocaleType,
+  mergeLocales as mergeCoreLocales,
+  Univer as UniverCore,
+  UniverInstanceType,
+} from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
 import DesignEnUS from '@univerjs/design/locale/en-US'
 import { UniverDocsPlugin } from '@univerjs/docs'
@@ -42,17 +53,14 @@ import { BookTextIcon, DatabaseIcon, PresentationIcon, ShapesIcon, SheetIcon } f
 import { AnimatePresence, motion } from 'motion/react'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef, useState } from 'react'
+
 import Spinner from '@/components/animata/spinner'
 import { BorderBeam } from '@/components/magicui/border-beam'
 import { clsx } from '@/lib/clsx'
 import { SLIDE_DATA } from '@/showcase/slides/basic-via-plugin/code/data'
+
 import { documentData, workbookData } from './data'
 
-import '@univerjs-pro/bases/facade'
-import '@univerjs-pro/bases-ui/facade'
-import '@univerjs-pro/boards/facade'
-import '@univerjs/ui/facade'
-import '@univerjs/docs-ui/facade'
 import '@univerjs/design/lib/index.css'
 import '@univerjs/ui/lib/index.css'
 import '@univerjs/docs-ui/lib/index.css'
@@ -67,6 +75,12 @@ import '@univerjs-pro/slides-ui/lib/index.css'
 import '@univerjs-pro/bases-ui/lib/index.css'
 import '@univerjs-pro/boards-ui/lib/index.css'
 
+import '@univerjs-pro/bases/facade'
+import '@univerjs-pro/bases-ui/facade'
+import '@univerjs-pro/boards/facade'
+import '@univerjs/ui/facade'
+import '@univerjs/docs-ui/facade'
+
 type UniverType = 'sheets' | 'docs' | 'slides' | 'bases' | 'boards'
 
 function seedBase(univerAPI: ReturnType<typeof FUniver.newAPI>) {
@@ -80,28 +94,46 @@ function seedBase(univerAPI: ReturnType<typeof FUniver.newAPI>) {
     tables: {},
     tableOrder: [],
   })
-  const table = base.createTable({ id: 'tasks', name: 'Launch Tasks', primaryFieldName: 'Task' })
-  const status = table.addField({
-    id: 'status',
-    name: 'Status',
-    type: 'singleSelect',
-    config: {
-      options: [
-        { id: 'todo', name: 'Todo', color: 'blue' },
-        { id: 'doing', name: 'Doing', color: 'yellow' },
-        { id: 'done', name: 'Done', color: 'green' },
-      ],
+  const table = base.insertTable('Launch Tasks', { primaryFieldName: 'Task' })
+  const status = table.addField('Status', univerAPI.Enum.BaseFieldType.SingleSelect, {
+    field: {
+      config: {
+        options: [
+          { id: 'todo', name: 'Todo', color: 'blue' },
+          { id: 'doing', name: 'Doing', color: 'yellow' },
+          { id: 'done', name: 'Done', color: 'green' },
+        ],
+      },
+      defaultValue: 'todo',
     },
-    defaultValue: 'todo',
   })
-  const owner = table.addField({ id: 'owner', name: 'Owner', type: 'text', config: {} })
-  const progress = table.addField({ id: 'progress', name: 'Progress', type: 'progress', config: {} })
-  const channel = table.addField({ id: 'channel', name: 'Channel', type: 'singleSelect', config: { options: [{ id: 'web', name: 'Web', color: 'blue' }, { id: 'sdk', name: 'SDK', color: 'purple' }, { id: 'docs', name: 'Docs', color: 'green' }] } })
-  const risk = table.addField({ id: 'risk', name: 'Risk', type: 'singleSelect', config: { options: [{ id: 'low', name: 'Low', color: 'green' }, { id: 'medium', name: 'Medium', color: 'yellow' }, { id: 'high', name: 'High', color: 'red' }] } })
+  const owner = table.addField('Owner', univerAPI.Enum.BaseFieldType.Text)
+  const progress = table.addField('Progress', univerAPI.Enum.BaseFieldType.Progress)
+  const channel = table.addField('Channel', univerAPI.Enum.BaseFieldType.SingleSelect, {
+    field: {
+      config: {
+        options: [
+          { id: 'web', name: 'Web', color: 'blue' },
+          { id: 'sdk', name: 'SDK', color: 'purple' },
+          { id: 'docs', name: 'Docs', color: 'green' },
+        ],
+      },
+    },
+  })
+  const risk = table.addField('Risk', univerAPI.Enum.BaseFieldType.SingleSelect, {
+    field: {
+      config: {
+        options: [
+          { id: 'low', name: 'Low', color: 'green' },
+          { id: 'medium', name: 'Medium', color: 'yellow' },
+          { id: 'high', name: 'High', color: 'red' },
+        ],
+      },
+    },
+  })
 
   table.addRecords([
     {
-      id: 'task-positioning',
       values: {
         [table.getPrimaryFieldId()]: 'Align launch positioning',
         [status.getId()]: 'done',
@@ -112,7 +144,6 @@ function seedBase(univerAPI: ReturnType<typeof FUniver.newAPI>) {
       },
     },
     {
-      id: 'task-demo',
       values: {
         [table.getPrimaryFieldId()]: 'Publish homepage demo',
         [status.getId()]: 'doing',
@@ -123,7 +154,6 @@ function seedBase(univerAPI: ReturnType<typeof FUniver.newAPI>) {
       },
     },
     {
-      id: 'task-examples',
       values: {
         [table.getPrimaryFieldId()]: 'Connect example datasets',
         [status.getId()]: 'todo',
@@ -134,7 +164,6 @@ function seedBase(univerAPI: ReturnType<typeof FUniver.newAPI>) {
       },
     },
     {
-      id: 'task-feedback',
       values: {
         [table.getPrimaryFieldId()]: 'Route beta feedback into release notes',
         [status.getId()]: 'doing',
@@ -146,8 +175,8 @@ function seedBase(univerAPI: ReturnType<typeof FUniver.newAPI>) {
     },
   ])
 
-  table.createView({ id: 'grid-main', name: 'Roadmap', type: 'grid' })
-  table.createView({ id: 'grid-risk', name: 'Risk Queue', type: 'grid' })
+  table.createView('Roadmap', univerAPI.Enum.BaseViewType.Grid)
+  table.createView('Risk Queue', univerAPI.Enum.BaseViewType.Grid)
 }
 
 function seedBoard(univerAPI: ReturnType<typeof FUniver.newAPI>) {
@@ -197,7 +226,7 @@ function seedBoard(univerAPI: ReturnType<typeof FUniver.newAPI>) {
       width: 112,
       height: 36,
       text: 'Sheets',
-      textStyle: { fontSize: 20, bold: true, color: '#166534' },
+      textStyle: { fs: 20, bl: BooleanNumber.TRUE, cl: { rgb: '#166534' } },
     }),
     createBoardStickyElement({
       id: 'sticky-docs',
@@ -216,7 +245,7 @@ function seedBoard(univerAPI: ReturnType<typeof FUniver.newAPI>) {
       width: 96,
       height: 36,
       text: 'Docs',
-      textStyle: { fontSize: 20, bold: true, color: '#1E40AF' },
+      textStyle: { fs: 20, bl: BooleanNumber.TRUE, cl: { rgb: '#1E40AF' } },
     }),
     createBoardStickyElement({
       id: 'sticky-slides',
@@ -235,7 +264,7 @@ function seedBoard(univerAPI: ReturnType<typeof FUniver.newAPI>) {
       width: 112,
       height: 36,
       text: 'Slides',
-      textStyle: { fontSize: 20, bold: true, color: '#991B1B' },
+      textStyle: { fs: 20, bl: BooleanNumber.TRUE, cl: { rgb: '#991B1B' } },
     }),
     createBoardStickyElement({
       id: 'sticky-bases',
@@ -254,7 +283,7 @@ function seedBoard(univerAPI: ReturnType<typeof FUniver.newAPI>) {
       width: 112,
       height: 36,
       text: 'Bases',
-      textStyle: { fontSize: 20, bold: true, color: '#0F766E' },
+      textStyle: { fs: 20, bl: BooleanNumber.TRUE, cl: { rgb: '#0F766E' } },
     }),
   ])
 }
@@ -293,7 +322,6 @@ export default function Univer() {
     })
 
     univer.registerPlugin(UniverRenderEnginePlugin)
-    univer.registerPlugin(UniverFormulaEnginePlugin)
     univer.registerPlugin(UniverUIPlugin, {
       container: divRef.current,
     })
@@ -306,6 +334,7 @@ export default function Univer() {
     if (type === 'docs') {
       univer.createUnit(UniverInstanceType.UNIVER_DOC, documentData)
     } else if (type === 'sheets') {
+      univer.registerPlugin(UniverFormulaEnginePlugin)
       univer.registerPlugin(UniverSheetsPlugin)
       univer.registerPlugin(UniverSheetsUIPlugin)
       univer.registerPlugin(UniverSheetsFormulaUIPlugin)
@@ -394,18 +423,13 @@ export default function Univer() {
     },
   ]
 
-  const activeIndex = tabs.findIndex(tab => tab.key === type)
+  const activeIndex = tabs.findIndex((tab) => tab.key === type)
 
   return (
     <div className="w-full">
       {/* Tab Switcher */}
       <header className="mb-5 flex flex-col items-center gap-4">
-        <div
-          className={`
-            relative inline-flex items-center rounded-full bg-neutral-100 p-0.5
-            dark:bg-neutral-800
-          `}
-        >
+        <div className={`relative inline-flex items-center rounded-full bg-neutral-100 p-0.5 dark:bg-neutral-800`}>
           {tabs.map((tab) => {
             const isActive = type === tab.key
             const Icon = tab.icon
@@ -415,37 +439,23 @@ export default function Univer() {
                 type="button"
                 onClick={() => handleChangeType(tab.key)}
                 className={clsx(
-                  `
-                    relative flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs transition-colors duration-200
-                    md:px-4
-                  `,
+                  `relative flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs transition-colors duration-200 md:px-4`,
                   isActive
                     ? clsx('font-semibold', tab.activeClass)
-                    : `
-                      font-medium text-neutral-500
-                      hover:text-neutral-700
-                      dark:text-neutral-400
-                      dark:hover:text-neutral-300
-                    `,
+                    : `font-medium text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 hover:dark:text-neutral-300`,
                 )}
               >
                 {isActive && (
                   <motion.div
                     layoutId="univer-active-tab"
-                    className={`
-                      absolute inset-0 rounded-full bg-white shadow-xs
-                      dark:bg-neutral-700
-                    `}
+                    className={`absolute inset-0 rounded-full bg-white shadow-xs dark:bg-neutral-700`}
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
                 <span className="relative z-10 flex items-center gap-1.5">
                   <Icon className="size-3.5" />
                   <span
-                    className="
-                      hidden
-                      md:inline
-                    "
+                    className="hidden md:inline"
                   >
                     {tab.fullLabel}
                   </span>
@@ -458,18 +468,12 @@ export default function Univer() {
       </header>
 
       {/* Playground Container */}
-      <div
-        className="relative mx-auto h-160 w-7xl max-w-full overflow-hidden rounded-xl p-0.5 shadow-xl"
-      >
+      <div className="relative mx-auto h-160 w-7xl max-w-full overflow-hidden rounded-xl p-0.5 shadow-xl">
         {/* Mask / Loading */}
         <AnimatePresence>
           {!steady && (
             <motion.div
-              className={`
-                pointer-events-auto absolute inset-0 z-10 flex size-full items-center justify-center bg-white/30
-                backdrop-blur-sm
-                dark:bg-neutral-900/30
-              `}
+              className={`pointer-events-auto absolute inset-0 z-10 flex size-full items-center justify-center bg-white/30 backdrop-blur-sm dark:bg-neutral-900/30`}
               initial={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}

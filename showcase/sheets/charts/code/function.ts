@@ -1,77 +1,58 @@
 import type { FWorksheet } from '@univerjs/preset-sheets-core'
 import type { FUniver } from '@univerjs/presets'
-import { AreaLineStyle, ChartTypeBits, LegendPositionEnum, SelectModeEnum } from '@univerjs/preset-sheets-advanced'
+
 import themeJson from './theme.json'
 
-export function insertChart(univerAPI: FUniver) {
+export async function insertChart(univerAPI: FUniver) {
   const fWorkbook = univerAPI.getActiveWorkbook()!
   const fWorksheet = fWorkbook.getActiveSheet()
 
-  insertLineChart(fWorksheet)
-  insertBarChart(fWorksheet)
-  insertPieChart(fWorksheet)
-  insertCombinChart(fWorksheet)
+  univerAPI.registerTheme('theme1', themeJson)
+
+  await insertLineChart(fWorksheet, univerAPI)
+  await insertBarChart(fWorksheet, univerAPI)
+  await insertColumnChart(fWorksheet, univerAPI)
 }
 
-async function insertLineChart(fWorksheet: FWorksheet) {
-  const lineChartBuildInfo = fWorksheet.newChart()
-    .asLineChart()
-    .setLineStyle(AreaLineStyle.Step)
-    .addRange('Sheet1!B3:F14')
-    .setPosition(1, 7, 0, 0)
-    .setOptions('', {
-      legend: {
-        position: LegendPositionEnum.Top,
-      },
+async function insertLineChart(fWorksheet: FWorksheet, univerAPI: FUniver) {
+  const lineChartBuildInfo = fWorksheet
+    .newChart(univerAPI.Enum.ChartTypeString.Line)
+    .setSource('Sheet1!B3:F14')
+    .setPosition({ row: 1, column: 7 })
+    .setLegend({
+      position: univerAPI.Enum.ChartLegendPositionEnum.Top,
     })
     .build()
   await fWorksheet.insertChart(lineChartBuildInfo)
 }
 
-async function insertBarChart(fWorksheet: FWorksheet) {
-  const barChartBuildInfo = fWorksheet.newChart()
-    .setChartType(ChartTypeBits.Bar)
-    .addRange('Sheet1!B3:F14')
-    .setPosition(1, 13, 0, 0)
-    .setOptions('', {
-      legend: {
-        selectMode: SelectModeEnum.Multiple,
-      },
+async function insertBarChart(fWorksheet: FWorksheet, univerAPI: FUniver) {
+  const barChartBuildInfo = fWorksheet
+    .newChart(univerAPI.Enum.ChartTypeString.Bar)
+    .setSource('Sheet1!B3:F14')
+    .setPosition({ row: 1, column: 13 })
+    .setLegend({
+      selectMode: univerAPI.Enum.ChartSelectModeEnum.Multiple,
     })
     .build()
   await fWorksheet.insertChart(barChartBuildInfo)
 }
 
-async function insertPieChart(fWorksheet: FWorksheet) {
-  fWorksheet.registerChartTheme('theme1', themeJson)
-
-  const pieChartBuildInfo = fWorksheet.newChart()
-    .asPieChart()
-    .setHasPaddingAngle(true)
-    .addRange('Sheet1!B16:F17')
-    .setPosition(18, 1, 0, 0)
+async function insertColumnChart(fWorksheet: FWorksheet, univerAPI: FUniver) {
+  const columnChartBuildInfo = fWorksheet
+    .newChart(univerAPI.Enum.ChartTypeString.Column)
+    .setSource('Sheet1!B16:F17')
+    .setPosition({ row: 18, column: 1 })
     .setTheme('theme1')
-    .setOptions('', {
-      title: {
-        content: 'Average Consumption',
-        fontColor: '#ff0000',
-        alignment: 'left',
-      },
-      legend: {
-        selectMode: SelectModeEnum.Multiple,
-      },
+    .setTitle({
+      text: 'Average Consumption',
+      color: '#ff0000',
+      alignment: univerAPI.Enum.ChartLabelAlignEnum.Left,
     })
-    .setTransposeRowsAndColumns(false)
-    .setWidth(600)
+    .setLegend({
+      selectMode: univerAPI.Enum.ChartSelectModeEnum.Multiple,
+    })
+    .setSize(600, 360)
     .build()
-  await fWorksheet.insertChart(pieChartBuildInfo)
-}
-
-async function insertCombinChart(fWorksheet: FWorksheet) {
-  const combinChartBuildInfo = fWorksheet.newChart()
-    .setChartType(ChartTypeBits.Combination)
-    .addRange('Sheet1!B3:F14')
-    .setPosition(18, 8, 0, 0)
-    .build()
-  await fWorksheet.insertChart(combinChartBuildInfo)
+  await fWorksheet.insertChart(columnChartBuildInfo)
 }
