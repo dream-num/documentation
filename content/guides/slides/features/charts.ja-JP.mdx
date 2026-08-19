@@ -12,11 +12,14 @@ import ChartUIJaJP from '@univerjs-pro/chart-ui/locale/ja-JP'
 import { UniverSlidesChartPlugin } from '@univerjs-pro/slides-chart'
 import { UniverSlidesChartUIPlugin } from '@univerjs-pro/slides-chart-ui'
 import SlidesChartUIJaJP from '@univerjs-pro/slides-chart-ui/locale/ja-JP'
+import { LocaleType, mergeLocales } from '@univerjs/core'
 
+import '@univerjs-pro/chart-ui/facade'
 import '@univerjs-pro/chart-ui/lib/index.css'
 import '@univerjs-pro/slides-chart-ui/lib/index.css'
 import '@univerjs-pro/slides-chart/facade'
 
+univerAPI.loadLocales(LocaleType.JA_JP, mergeLocales(ChartUIJaJP, SlidesChartUIJaJP))
 univer.registerPlugin(UniverSlidesChartPlugin)
 univer.registerPlugin(UniverSlidesChartUIPlugin)
 ```
@@ -25,44 +28,61 @@ univer.registerPlugin(UniverSlidesChartUIPlugin)
 
 ## チャートを作成・更新する
 
-チャートはスライドの `charts` コレクションから操作します。`create()` は未挿入のビルダーを返し、`insert()` はそれを現在のスライドに挿入します。
+`slide.newChart(type)` は独立したビルダーを作成します。`build()` の結果を `slide.insertChart(info)` に渡すまで、スライドには何も追加されません。
 
 ```ts
 const presentation = univerAPI.getActivePresentation()
-const slide = presentation.getActiveSlide()
+if (!presentation) throw new Error('No active presentation')
 
-const builder = slide.charts
-  .create()
-  .setType(univerAPI.Enum.ChartTypeString.Column)
-  .setData([
-    ['月', '売上', '費用'],
-    ['1月', 120, 80],
-    ['2月', 180, 96],
-    ['3月', 240, 132],
+const slide = presentation.getActiveSlide()
+const info = slide
+  .newChart(univerAPI.Enum.ChartTypeString.Column)
+  .setSource([
+    ['Month', 'Revenue', 'Cost'],
+    ['Jan', 120, 80],
+    ['Feb', 180, 96],
+    ['Mar', 240, 132],
   ])
-  .setTitle('四半期の売上')
+  .setTitle('Quarterly revenue')
   .setAbsolutePosition(80, 120)
   .setSize(520, 320)
+  .setZOrder(1)
+  .build()
 
-const chart = await slide.charts.insert(builder)
+const chart = await slide.insertChart(info)
+chart.setLegend({ visible: true }).bringToFront()
 
-chart.setType(univerAPI.Enum.ChartTypeString.Line).setLegend({ visible: true }).commit()
+const updatedInfo = chart.toBuilder(univerAPI.Enum.ChartTypeString.Line).setSubtitle('FY 2026').build()
+await chart.update(updatedInfo)
+
+const svg = await chart.exportImage({ format: 'svg' })
 ```
 
-既存のチャートは `slide.charts.list()`、`slide.charts.get(id)`、`await slide.charts.remove(chartOrId)` で管理します。スライド用ビルダーには `setData`、`getData`、`setPlaceholder`、`setStroke`、`setZOrder` もあります。
+挿入後の `chart` に対する setter は即時反映されます。完全な独立コピーや種類の変更が必要な場合は、`toBuilder(type)` と `update(info)` を使います。画像を提供できる UI レンダラーがない場合、`exportImage()` は `undefined` を返します。
 
-共通の設定は[チャート Facade リファレンス](/reference/facade/chart)を参照してください。
+`slide.getCharts()` と `slide.getChart(id)` でライブチャートを取得します。削除するときは `await chart.remove()` を呼びます。Slides ビルダーには `setPlaceholder()`、`setStroke()`、`setZOrder()` が追加されています。
 
 ## Sheet データを参照する
 
-リソース参照でチャートを Sheet 範囲に連携し、`refreshDataSource()` で再読み込みできます：
+コピーした値を保持せず Sheet 範囲を参照する場合は、リソース参照を `setSource()` に渡します：
 
 ```ts
-const chart = await slide.charts.insert(
-  slide.charts.create().setDataSource({
+const info = slide
+  .newChart(univerAPI.Enum.ChartTypeString.Column)
+  .setSource({
     unit: { selector: 'sales-workbook', type: 'sheet' },
-    part: { kind: 'range', sheetName: 'Data', range: 'A1:B20', ref: 'Data!A1:B20' },
-  }),
-)
-await chart.refreshDataSource()
+    part: {
+      kind: 'range',
+      sheetName: 'Data',
+      range: 'A1:B20',
+      ref: 'Data!A1:B20',
+    },
+  })
+  .setAbsolutePosition(120, 80)
+  .setSize(640, 360)
+  .build()
+
+const chart = await slide.insertChart(info)
 ```
+
+共有チャート設定は [Chart Facade リファレンス](/reference/facade/chart)を参照してください。

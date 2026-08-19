@@ -7,24 +7,30 @@ icon: '#pro/ChartPie'
   lang="ru-RU"
   isPro
   meta={{
-    preset: [{
-      client: '@univerjs/preset-sheets-advanced',
-      locale: '@univerjs/preset-sheets-advanced/locales/ru-RU',
-      style: '@univerjs/preset-sheets-advanced/lib/index.css',
-    }],
-    plugins: [{
-      client: '@univerjs-pro/chart-ui',
-      locale: '@univerjs-pro/chart-ui/locale/ru-RU',
-      style: '@univerjs-pro/chart-ui/lib/index.css',
-    }, {
-      client: '@univerjs-pro/sheets-chart',
-      locale: '@univerjs-pro/sheets-chart/locale/ru-RU',
-      facade: '@univerjs-pro/sheets-chart/facade',
-    }, {
-      client: '@univerjs-pro/sheets-chart-ui',
-      locale: '@univerjs-pro/sheets-chart-ui/locale/ru-RU',
-      style: '@univerjs-pro/sheets-chart-ui/lib/index.css',
-    }],
+    preset: [
+      {
+        client: '@univerjs/preset-sheets-advanced',
+        locale: '@univerjs/preset-sheets-advanced/locales/ru-RU',
+        style: '@univerjs/preset-sheets-advanced/lib/index.css',
+      },
+    ],
+    plugins: [
+      {
+        client: '@univerjs-pro/chart-ui',
+        locale: '@univerjs-pro/chart-ui/locale/ru-RU',
+        style: '@univerjs-pro/chart-ui/lib/index.css',
+      },
+      {
+        client: '@univerjs-pro/sheets-chart',
+        locale: '@univerjs-pro/sheets-chart/locale/ru-RU',
+        facade: '@univerjs-pro/sheets-chart/facade',
+      },
+      {
+        client: '@univerjs-pro/sheets-chart-ui',
+        locale: '@univerjs-pro/sheets-chart-ui/locale/ru-RU',
+        style: '@univerjs-pro/sheets-chart-ui/lib/index.css',
+      },
+    ],
     server: false,
   }}
 />
@@ -55,6 +61,7 @@ import SheetsChartUIRuRU from '@univerjs-pro/sheets-chart-ui/locale/ru-RU'
 import SheetsChartRuRU from '@univerjs-pro/sheets-chart/locale/ru-RU'
 import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
 
+import '@univerjs-pro/chart-ui/facade'
 import '@univerjs-pro/sheets-chart/facade'
 import '@univerjs-pro/chart-ui/lib/index.css'
 import '@univerjs-pro/sheets-chart-ui/lib/index.css'
@@ -72,31 +79,38 @@ univer.registerPlugin(UniverSheetsChartUIPlugin)
 
 ## Создание и обновление диаграмм
 
-Управляйте диаграммами через коллекцию `charts` листа. `create()` возвращает ещё не вставленный конструктор, а `insert()` добавляет его на лист.
+`worksheet.newChart(type)` создаёт независимый конструктор. Диаграмма появится на листе только после передачи результата `build()` в `worksheet.insertChart(info)`.
 
 ```ts
-const worksheet = univerAPI.getActiveWorkbook().getActiveSheet()
+const workbook = univerAPI.getActiveWorkbook()
+if (!workbook) throw new Error('No active workbook')
 
-const builder = worksheet.charts.create()
-  .setType(univerAPI.Enum.ChartTypeString.Column)
+const worksheet = workbook.getActiveSheet()
+const info = worksheet
+  .newChart(univerAPI.Enum.ChartTypeString.Column)
   .setSource({
     range: 'A1:D6',
-    orientation: univerAPI.Enum.ChartSourceOrientation.Column,
+    orientation: univerAPI.Enum.ChartSourceOrientation.Columns,
   })
-  .setTitle('Квартальная выручка')
-  .setAbsolutePosition(80, 120)
-  .setSize(520, 320)
+  .setPosition('F2')
+  .setSize(640, 360)
+  .setCategoryField(0)
+  .setValueFields([1, 2, 3])
+  .setTitle('Quarterly revenue')
+  .build()
 
-const chart = await worksheet.charts.insert(builder)
+const chart = await worksheet.insertChart(info)
+chart.setLegend({ visible: true }).bringToFront()
 
-chart
-  .setType(univerAPI.Enum.ChartTypeString.Line)
-  .setLegend({ visible: true })
-  .setSeries({ index: 0 }, { color: '#2F80ED' })
-  .commit()
+const updatedInfo = chart.toBuilder(univerAPI.Enum.ChartTypeString.Line).setSubtitle('FY 2026').build()
+await chart.update(updatedInfo)
+
+const svg = await chart.exportImage({ format: 'svg' })
 ```
 
-Для существующих диаграмм используйте `worksheet.charts.list()`, `worksheet.charts.get(id)` и `await worksheet.charts.remove(chartOrId)`. `worksheet.charts.registerTheme(name, theme)` регистрирует тему ECharts, общую для текущего runtime Univer.
+Сеттеры вставленного `chart` применяются сразу. Используйте `toBuilder(type)` вместе с `update(info)`, когда нужна полная независимая копия или смена типа. `exportImage()` возвращает `undefined`, если UI-рендерер не может создать изображение.
+
+Получайте активные диаграммы через `worksheet.getCharts()` и `worksheet.getChart(id)`. Для удаления вызовите `await chart.remove()`, а общие темы ECharts регистрируйте методом `univerAPI.registerTheme(name, theme)`.
 
 ## Поддерживаемые типы диаграмм
 

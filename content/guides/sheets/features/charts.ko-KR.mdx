@@ -7,24 +7,30 @@ icon: '#pro/ChartPie'
   lang="ko-KR"
   isPro
   meta={{
-    preset: [{
-      client: '@univerjs/preset-sheets-advanced',
-      locale: '@univerjs/preset-sheets-advanced/locales/ko-KR',
-      style: '@univerjs/preset-sheets-advanced/lib/index.css',
-    }],
-    plugins: [{
-      client: '@univerjs-pro/chart-ui',
-      locale: '@univerjs-pro/chart-ui/locale/ko-KR',
-      style: '@univerjs-pro/chart-ui/lib/index.css',
-    }, {
-      client: '@univerjs-pro/sheets-chart',
-      locale: '@univerjs-pro/sheets-chart/locale/ko-KR',
-      facade: '@univerjs-pro/sheets-chart/facade',
-    }, {
-      client: '@univerjs-pro/sheets-chart-ui',
-      locale: '@univerjs-pro/sheets-chart-ui/locale/ko-KR',
-      style: '@univerjs-pro/sheets-chart-ui/lib/index.css',
-    }],
+    preset: [
+      {
+        client: '@univerjs/preset-sheets-advanced',
+        locale: '@univerjs/preset-sheets-advanced/locales/ko-KR',
+        style: '@univerjs/preset-sheets-advanced/lib/index.css',
+      },
+    ],
+    plugins: [
+      {
+        client: '@univerjs-pro/chart-ui',
+        locale: '@univerjs-pro/chart-ui/locale/ko-KR',
+        style: '@univerjs-pro/chart-ui/lib/index.css',
+      },
+      {
+        client: '@univerjs-pro/sheets-chart',
+        locale: '@univerjs-pro/sheets-chart/locale/ko-KR',
+        facade: '@univerjs-pro/sheets-chart/facade',
+      },
+      {
+        client: '@univerjs-pro/sheets-chart-ui',
+        locale: '@univerjs-pro/sheets-chart-ui/locale/ko-KR',
+        style: '@univerjs-pro/sheets-chart-ui/lib/index.css',
+      },
+    ],
     server: false,
   }}
 />
@@ -55,6 +61,7 @@ import SheetsChartUIKoKR from '@univerjs-pro/sheets-chart-ui/locale/ko-KR'
 import SheetsChartKoKR from '@univerjs-pro/sheets-chart/locale/ko-KR'
 import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
 
+import '@univerjs-pro/chart-ui/facade'
 import '@univerjs-pro/sheets-chart/facade'
 import '@univerjs-pro/chart-ui/lib/index.css'
 import '@univerjs-pro/sheets-chart-ui/lib/index.css'
@@ -72,31 +79,38 @@ univer.registerPlugin(UniverSheetsChartUIPlugin)
 
 ## 차트 만들기와 업데이트
 
-워크시트의 `charts` 컬렉션으로 차트를 관리합니다. `create()`는 아직 삽입되지 않은 빌더를 반환하고 `insert()`는 워크시트에 삽입합니다.
+`worksheet.newChart(type)`는 분리된 빌더를 만듭니다. `build()` 결과를 `worksheet.insertChart(info)`에 전달하기 전까지 워크시트에는 아무것도 추가되지 않습니다.
 
 ```ts
-const worksheet = univerAPI.getActiveWorkbook().getActiveSheet()
+const workbook = univerAPI.getActiveWorkbook()
+if (!workbook) throw new Error('No active workbook')
 
-const builder = worksheet.charts.create()
-  .setType(univerAPI.Enum.ChartTypeString.Column)
+const worksheet = workbook.getActiveSheet()
+const info = worksheet
+  .newChart(univerAPI.Enum.ChartTypeString.Column)
   .setSource({
     range: 'A1:D6',
-    orientation: univerAPI.Enum.ChartSourceOrientation.Column,
+    orientation: univerAPI.Enum.ChartSourceOrientation.Columns,
   })
-  .setTitle('분기 수익')
-  .setAbsolutePosition(80, 120)
-  .setSize(520, 320)
+  .setPosition('F2')
+  .setSize(640, 360)
+  .setCategoryField(0)
+  .setValueFields([1, 2, 3])
+  .setTitle('Quarterly revenue')
+  .build()
 
-const chart = await worksheet.charts.insert(builder)
+const chart = await worksheet.insertChart(info)
+chart.setLegend({ visible: true }).bringToFront()
 
-chart
-  .setType(univerAPI.Enum.ChartTypeString.Line)
-  .setLegend({ visible: true })
-  .setSeries({ index: 0 }, { color: '#2F80ED' })
-  .commit()
+const updatedInfo = chart.toBuilder(univerAPI.Enum.ChartTypeString.Line).setSubtitle('FY 2026').build()
+await chart.update(updatedInfo)
+
+const svg = await chart.exportImage({ format: 'svg' })
 ```
 
-기존 차트는 `worksheet.charts.list()`, `worksheet.charts.get(id)`, `await worksheet.charts.remove(chartOrId)`로 관리합니다. `worksheet.charts.registerTheme(name, theme)`로 Univer 런타임 전체에서 공유하는 ECharts 테마를 등록할 수 있습니다.
+삽입된 `chart`의 setter는 즉시 반영됩니다. 완전한 분리 사본이나 차트 유형 변경이 필요하면 `toBuilder(type)`와 `update(info)`를 사용합니다. 이미지를 만들 UI 렌더러가 없으면 `exportImage()`는 `undefined`를 반환합니다.
+
+`worksheet.getCharts()`와 `worksheet.getChart(id)`로 라이브 차트를 가져옵니다. 삭제할 때는 `await chart.remove()`를 호출하고 공유 ECharts 테마는 `univerAPI.registerTheme(name, theme)`로 등록합니다.
 
 ## 지원되는 차트 유형
 

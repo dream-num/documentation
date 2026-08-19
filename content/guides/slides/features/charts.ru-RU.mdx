@@ -12,11 +12,14 @@ import ChartUIRuRU from '@univerjs-pro/chart-ui/locale/ru-RU'
 import { UniverSlidesChartPlugin } from '@univerjs-pro/slides-chart'
 import { UniverSlidesChartUIPlugin } from '@univerjs-pro/slides-chart-ui'
 import SlidesChartUIRuRU from '@univerjs-pro/slides-chart-ui/locale/ru-RU'
+import { LocaleType, mergeLocales } from '@univerjs/core'
 
+import '@univerjs-pro/chart-ui/facade'
 import '@univerjs-pro/chart-ui/lib/index.css'
 import '@univerjs-pro/slides-chart-ui/lib/index.css'
 import '@univerjs-pro/slides-chart/facade'
 
+univerAPI.loadLocales(LocaleType.RU_RU, mergeLocales(ChartUIRuRU, SlidesChartUIRuRU))
 univer.registerPlugin(UniverSlidesChartPlugin)
 univer.registerPlugin(UniverSlidesChartUIPlugin)
 ```
@@ -25,44 +28,61 @@ univer.registerPlugin(UniverSlidesChartUIPlugin)
 
 ## Создание и обновление диаграмм
 
-Управляйте диаграммами через коллекцию `charts` слайда. `create()` возвращает ещё не вставленный конструктор, а `insert()` добавляет его на текущий слайд.
+`slide.newChart(type)` создаёт независимый конструктор. Диаграмма появится на слайде только после передачи результата `build()` в `slide.insertChart(info)`.
 
 ```ts
 const presentation = univerAPI.getActivePresentation()
-const slide = presentation.getActiveSlide()
+if (!presentation) throw new Error('No active presentation')
 
-const builder = slide.charts
-  .create()
-  .setType(univerAPI.Enum.ChartTypeString.Column)
-  .setData([
-    ['Месяц', 'Выручка', 'Затраты'],
-    ['Янв.', 120, 80],
-    ['Фев.', 180, 96],
-    ['Мар.', 240, 132],
+const slide = presentation.getActiveSlide()
+const info = slide
+  .newChart(univerAPI.Enum.ChartTypeString.Column)
+  .setSource([
+    ['Month', 'Revenue', 'Cost'],
+    ['Jan', 120, 80],
+    ['Feb', 180, 96],
+    ['Mar', 240, 132],
   ])
-  .setTitle('Квартальная выручка')
+  .setTitle('Quarterly revenue')
   .setAbsolutePosition(80, 120)
   .setSize(520, 320)
+  .setZOrder(1)
+  .build()
 
-const chart = await slide.charts.insert(builder)
+const chart = await slide.insertChart(info)
+chart.setLegend({ visible: true }).bringToFront()
 
-chart.setType(univerAPI.Enum.ChartTypeString.Line).setLegend({ visible: true }).commit()
+const updatedInfo = chart.toBuilder(univerAPI.Enum.ChartTypeString.Line).setSubtitle('FY 2026').build()
+await chart.update(updatedInfo)
+
+const svg = await chart.exportImage({ format: 'svg' })
 ```
 
-Для существующих диаграмм используйте `slide.charts.list()`, `slide.charts.get(id)` и `await slide.charts.remove(chartOrId)`. Конструктор Slides также поддерживает `setData`, `getData`, `setPlaceholder`, `setStroke` и `setZOrder`.
+Сеттеры вставленного `chart` применяются сразу. Используйте `toBuilder(type)` вместе с `update(info)`, когда нужна полная независимая копия или смена типа. `exportImage()` возвращает `undefined`, если UI-рендерер не может создать изображение.
 
-Общие настройки описаны в [справочнике Chart Facade](/reference/facade/chart).
+Получайте активные диаграммы через `slide.getCharts()` и `slide.getChart(id)`. Для удаления вызовите `await chart.remove()`. Конструктор Slides добавляет методы `setPlaceholder()`, `setStroke()` и `setZOrder()`.
 
 ## Привязка данных Sheet
 
-Ссылка на ресурс связывает диаграмму с диапазоном Sheet; `refreshDataSource()` обновляет данные:
+Передайте ссылку на ресурс в `setSource()`, если диаграмма должна следовать за диапазоном Sheet, а не хранить скопированные значения:
 
 ```ts
-const chart = await slide.charts.insert(
-  slide.charts.create().setDataSource({
+const info = slide
+  .newChart(univerAPI.Enum.ChartTypeString.Column)
+  .setSource({
     unit: { selector: 'sales-workbook', type: 'sheet' },
-    part: { kind: 'range', sheetName: 'Data', range: 'A1:B20', ref: 'Data!A1:B20' },
-  }),
-)
-await chart.refreshDataSource()
+    part: {
+      kind: 'range',
+      sheetName: 'Data',
+      range: 'A1:B20',
+      ref: 'Data!A1:B20',
+    },
+  })
+  .setAbsolutePosition(120, 80)
+  .setSize(640, 360)
+  .build()
+
+const chart = await slide.insertChart(info)
 ```
+
+Общая конфигурация описана в [справочнике Chart Facade](/reference/facade/chart).

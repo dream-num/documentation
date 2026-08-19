@@ -3,109 +3,119 @@ title: Chart
 icon: '#ref/F'
 ---
 
-| Packages | `@univerjs-pro/engine-chart`, `@univerjs-pro/sheets-chart` |
-| -------- | ---------------------------------------------------------- |
+| Packages | `@univerjs-pro/engine-chart`, `@univerjs-pro/sheets-chart`, `@univerjs-pro/slides-chart`, `@univerjs-pro/boards-chart`, `@univerjs-pro/docs-chart`, `@univerjs-pro/chart-ui` |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 
 <span className="rounded bg-fd-primary/10 px-1.5 py-0.5 text-xs font-medium text-fd-primary">PRO</span>
 
-The chart Facade API uses a host-scoped `charts` collection. Create a detached builder, configure it, then insert it into its host. The same lifecycle is used by Sheets, Slides, Boards, and Docs; each host adds its own data and layout methods.
+Charts use direct host Facade methods. Create detached chart information with `newChart(type)`, insert it with `insertChart(info)`, and then edit the returned live `FChart`.
 
-> Import the matching product facade entry before using `charts`, for example `@univerjs-pro/sheets-chart/facade`.
+> Import `@univerjs-pro/engine-chart/facade` and the matching host facade. Import `@univerjs-pro/chart-ui/facade` to add image export.
 
-## Sheets charts
+## Host lifecycle
 
-Access `FWorksheetCharts` from `fWorksheet.charts`.
+| Host   | Create and insert                                | Read                          |
+| ------ | ------------------------------------------------ | ----------------------------- |
+| Sheets | `FWorksheet.newChart(type)`, `insertChart(info)` | `getChart(id)`, `getCharts()` |
+| Slides | `FSlide.newChart(type)`, `insertChart(info)`     | `getChart(id)`, `getCharts()` |
+| Boards | `FBoard.newChart(type)`, `insertChart(info)`     | `getChart(id)`, `getCharts()` |
+| Docs   | `FDocument.newChart(type)`, `insertChart(info)`  | `getChart(id)`, `getCharts()` |
 
-| Method                       | Description                                                      |
-| ---------------------------- | ---------------------------------------------------------------- |
-| `create()`                   | Creates a detached chart builder.                                |
-| `insert(builder)`            | Inserts a configured builder and returns the host-bound builder. |
-| `get(chartId)`               | Gets a chart builder by id.                                      |
-| `list()`                     | Lists chart builders on the worksheet.                           |
-| `remove(builderOrId)`        | Removes a chart by builder or id.                                |
-| `registerTheme(name, theme)` | Registers a chart theme for the Univer runtime.                  |
+`newChart()` returns a type-specific builder. It does not mutate the host until `build()` is passed to `insertChart()`.
+
+## Sheets example
 
 ```ts
-const worksheet = univerAPI.getActiveWorkbook().getActiveSheet()
+const workbook = univerAPI.getActiveWorkbook()
+if (!workbook) throw new Error('No active workbook')
 
-const builder = worksheet.charts
-  .create()
-  .setType(univerAPI.Enum.ChartTypeString.Column)
+const worksheet = workbook.getActiveSheet()
+const info = worksheet
+  .newChart(univerAPI.Enum.ChartTypeString.Column)
   .setSource({
     range: 'A1:D6',
-    orientation: univerAPI.Enum.ChartSourceOrientation.Column,
+    orientation: univerAPI.Enum.ChartSourceOrientation.Columns,
   })
+  .setPosition('F2')
+  .setSize(640, 360)
+  .setCategoryField(0)
+  .setValueFields([1, 2, 3])
   .setTitle('Quarterly revenue')
-  .setAbsolutePosition(80, 120)
-  .setSize(520, 320)
+  .build()
 
-const chart = await worksheet.charts.insert(builder)
+const chart = await worksheet.insertChart(info)
+chart.setTitle('Quarterly revenue (updated)').bringToFront()
 ```
 
-Call configuration methods on a host-bound builder and then `commit()` to persist changes:
+Use `getChart(id)` or `getCharts()` to resolve live charts. Common setters update an inserted chart immediately; `setDataSource()`, `update()`, `remove()`, and image export are asynchronous.
 
 ```ts
-chart
-  .setType(univerAPI.Enum.ChartTypeString.Line)
-  .setLegend({ visible: true })
-  .setSeries({ index: 0 }, { color: '#2F80ED' })
-  .commit()
+const updatedInfo = chart.toBuilder(univerAPI.Enum.ChartTypeString.Line).setSubtitle('FY 2026').build()
+
+await chart.update(updatedInfo)
+const svg = await chart.exportImage({ format: 'svg' })
 ```
 
-## Shared builder methods
+`exportImage()` returns `undefined` when the current host has no UI renderer. Call `await chart.remove()` only when you want to delete the inserted chart.
 
-`FChartBuilderBase` provides the semantic configuration shared by every host:
-
-| Category                   | Methods                                                                                                                                                                                                            |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Chart type                 | `setType`                                                                                                                                                                                                          |
-| Titles and legend          | `setTitle`, `clearTitle`, `setSubtitle`, `clearSubtitle`, `setLegend`, `clearLegend`                                                                                                                               |
-| Axes and series            | `setXAxis`, `setYAxis`, `setRightYAxis`, `setSeries`, `clearSeries`, `setAllSeriesStyle`, `clearAllSeriesStyle`, `setTrendline`, `setAxisPointer`                                                                  |
-| Appearance                 | `setTheme`, `clearTheme`, `setAppearance`, `clearAppearance`, `setAggregation`, `clearAggregation`                                                                                                                 |
-| Field selection            | `setCategoryField`, `clearCategoryField`, `setValueFields`, `clearValueFields`                                                                                                                                     |
-| Special chart options      | Concrete chart builders add methods such as `setLineStyle`, `setDoughnutHole`, `setBubbleMapping`, `setCandlestickFields`, `setHistogramField`, `setHierarchyFields`, `setGaugeValueField`, and `setChordMapping`. |
-| Inspection and persistence | `describe`, `exportImage`, `commit`                                                                                                                                                                                |
-
-Changing the type returns a builder with the methods specific to that chart type. Use `univerAPI.Enum.ChartTypeString` for canonical chart type values.
-
-The current chart-type set includes `Candlestick`, `Histogram`, `Treemap`, `Sunburst`, `Gauge`, and `Chord` in addition to the existing cartesian, pie, relation, statistical, and flow chart types.
-
-## Other chart hosts
-
-All other hosts expose the same collection lifecycle:
-
-| Host   | Collection         | Host-specific builder methods                                                                                                                             |
-| ------ | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Slides | `fSlide.charts`    | `setData`, `getData`, `setDataSource`, `getDataSource`, `refreshDataSource`, `setAbsolutePosition`, `setSize`, `setPlaceholder`, `setStroke`, `setZOrder` |
-| Boards | `fBoard.charts`    | `setData`, `getData`, `setDataSource`, `getDataSource`, `refreshDataSource`, `setPosition`, `setSize`, `setContainer`, `setLane`, `setZOrder`             |
-| Docs   | `fDocument.charts` | `setData`, `getData`, `setDataSource`, `getDataSource`, `refreshDataSource`, `setAnchor`, `setLayout`, `setInline`, `setFloating`                         |
-
-Use `create()`, configure the returned builder, and call `await charts.insert(builder)`. Use `list()`, `get(id)`, and `remove(builderOrId)` to manage existing charts.
-
-Slides, Boards, and Docs can bind a chart to a referenced Unit resource instead of copying inline values:
-
-```ts
-const builder = slide.charts.create().setDataSource({
-  unit: { selector: 'sales-workbook', type: 'sheet' },
-  part: {
-    kind: 'range',
-    sheetName: 'Data',
-    range: 'A1:B20',
-    ref: 'Data!A1:B20',
-  },
-})
-
-const chart = await slide.charts.insert(builder)
-await chart.refreshDataSource()
-```
+Register shared themes on `univerAPI`:
 
 ```typescript
-setDataSource(ref: IResourceRefChartDataSourceInput): this
-getDataSource(): DeepReadonly<IResourceRef> | null
-refreshDataSource(): Promise<void>
+registerTheme(name: string, theme: IEchartTheme): void
+```
+
+## Detached builders
+
+| API                    | Methods                                                                                                                                             |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Builder lifecycle      | `setSource`, `setAbsolutePosition`, `setSize`, `build`                                                                                              |
+| Titles and legend      | `setTitle`, `clearTitle`, `setSubtitle`, `clearSubtitle`, `setLegend`, `clearLegend`                                                                |
+| Appearance and data    | `setTheme`, `setPalette`, `setAppearance`, `setAggregation`, `setCategoryField`, `setValueFields`, `setInvalidValueStrategy`, `setAutoGradientFill` |
+| Type-specific builders | Axis, series, line, pie, bubble, candlestick, histogram, hierarchy, gauge, and relation-chart methods                                               |
+
+Builder methods only change a detached draft. `build()` returns an insertable information snapshot.
+
+## Live charts
+
+| API                  | Methods                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| Live inspection      | `getId`, `getType`, `getInfo`, `toBuilder`                                                  |
+| Immediate updates    | `setType`, the shared configuration setters, `setAbsolutePosition`, `setSize`               |
+| Asynchronous updates | `setDataSource`, `update`, `remove`                                                         |
+| Order                | `setZOrder`, `bringToFront`, `bringForward`, `sendBackward`, `sendToBack`                   |
+| Image export         | `exportImage(options?)` for a PNG or SVG data URL; requires `@univerjs-pro/chart-ui/facade` |
+
+## Host-specific builders
+
+| Host   | Source and placement                                                                                |
+| ------ | --------------------------------------------------------------------------------------------------- |
+| Sheets | A1 ranges or range specs; `setPosition(anchor)`                                                     |
+| Slides | Inline values or a Sheet resource reference; `setPlaceholder`, `setStroke`, `setZOrder`             |
+| Boards | Inline values or a Sheet resource reference; `setContainer`, `setLane`, `setZOrder`                 |
+| Docs   | Inline values or a Sheet resource reference; `setPosition`, `setLayout`, `setInline`, `setFloating` |
+
+Slides, Boards, and Docs can reference a Sheet range instead of copying values:
+
+```ts
+const info = slide
+  .newChart(univerAPI.Enum.ChartTypeString.Column)
+  .setSource({
+    unit: { selector: 'sales-workbook', type: 'sheet' },
+    part: {
+      kind: 'range',
+      sheetName: 'Data',
+      range: 'A1:B20',
+      ref: 'Data!A1:B20',
+    },
+  })
+  .setAbsolutePosition(120, 80)
+  .setSize(640, 360)
+  .build()
+
+const chart = await slide.insertChart(info)
 ```
 
 <span className="text-xs text-fd-muted-foreground">
   Source: `@univerjs-pro/engine-chart`, `@univerjs-pro/sheets-chart`, `@univerjs-pro/slides-chart`,
-  `@univerjs-pro/boards-chart`, `@univerjs-pro/docs-chart`
+  `@univerjs-pro/boards-chart`, `@univerjs-pro/docs-chart`, `@univerjs-pro/chart-ui`
 </span>

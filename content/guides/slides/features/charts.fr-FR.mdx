@@ -12,11 +12,14 @@ import ChartUIFrFR from '@univerjs-pro/chart-ui/locale/fr-FR'
 import { UniverSlidesChartPlugin } from '@univerjs-pro/slides-chart'
 import { UniverSlidesChartUIPlugin } from '@univerjs-pro/slides-chart-ui'
 import SlidesChartUIFrFR from '@univerjs-pro/slides-chart-ui/locale/fr-FR'
+import { LocaleType, mergeLocales } from '@univerjs/core'
 
+import '@univerjs-pro/chart-ui/facade'
 import '@univerjs-pro/chart-ui/lib/index.css'
 import '@univerjs-pro/slides-chart-ui/lib/index.css'
 import '@univerjs-pro/slides-chart/facade'
 
+univerAPI.loadLocales(LocaleType.FR_FR, mergeLocales(ChartUIFrFR, SlidesChartUIFrFR))
 univer.registerPlugin(UniverSlidesChartPlugin)
 univer.registerPlugin(UniverSlidesChartUIPlugin)
 ```
@@ -25,44 +28,61 @@ Enregistrez cette prise en charge avant d’ouvrir ou d’importer une présenta
 
 ## Créer et mettre à jour un graphique
 
-Gérez les graphiques avec la collection `charts` de la diapositive. `create()` renvoie un générateur détaché, puis `insert()` l’insère dans la diapositive courante.
+`slide.newChart(type)` crée un builder détaché. Le graphique n’est ajouté à la diapositive que lorsque le résultat de `build()` est transmis à `slide.insertChart(info)`.
 
 ```ts
 const presentation = univerAPI.getActivePresentation()
-const slide = presentation.getActiveSlide()
+if (!presentation) throw new Error('No active presentation')
 
-const builder = slide.charts
-  .create()
-  .setType(univerAPI.Enum.ChartTypeString.Column)
-  .setData([
-    ['Mois', 'Revenus', 'Coûts'],
-    ['Jan.', 120, 80],
-    ['Fév.', 180, 96],
-    ['Mars', 240, 132],
+const slide = presentation.getActiveSlide()
+const info = slide
+  .newChart(univerAPI.Enum.ChartTypeString.Column)
+  .setSource([
+    ['Month', 'Revenue', 'Cost'],
+    ['Jan', 120, 80],
+    ['Feb', 180, 96],
+    ['Mar', 240, 132],
   ])
-  .setTitle('Revenus trimestriels')
+  .setTitle('Quarterly revenue')
   .setAbsolutePosition(80, 120)
   .setSize(520, 320)
+  .setZOrder(1)
+  .build()
 
-const chart = await slide.charts.insert(builder)
+const chart = await slide.insertChart(info)
+chart.setLegend({ visible: true }).bringToFront()
 
-chart.setType(univerAPI.Enum.ChartTypeString.Line).setLegend({ visible: true }).commit()
+const updatedInfo = chart.toBuilder(univerAPI.Enum.ChartTypeString.Line).setSubtitle('FY 2026').build()
+await chart.update(updatedInfo)
+
+const svg = await chart.exportImage({ format: 'svg' })
 ```
 
-Utilisez `slide.charts.list()`, `slide.charts.get(id)` et `await slide.charts.remove(chartOrId)` pour gérer les graphiques existants. Le générateur Slides ajoute aussi `setData`, `getData`, `setPlaceholder`, `setStroke` et `setZOrder`.
+Les setters du `chart` inséré s’appliquent immédiatement. Utilisez `toBuilder(type)` avec `update(info)` pour obtenir une copie détachée complète ou changer de type. `exportImage()` renvoie `undefined` si aucun moteur de rendu UI ne peut produire l’image.
 
-Consultez la [référence Facade des graphiques](/reference/facade/chart) pour la configuration commune.
+Utilisez `slide.getCharts()` et `slide.getChart(id)` pour obtenir les graphiques actifs. Appelez `await chart.remove()` pour en supprimer un. Les builders Slides ajoutent `setPlaceholder()`, `setStroke()` et `setZOrder()`.
 
 ## Lier des données Sheet
 
-Une référence de ressource lie le graphique à une plage Sheet ; `refreshDataSource()` la recharge :
+Passez une référence de ressource à `setSource()` lorsque le graphique doit suivre une plage Sheet au lieu de stocker des valeurs copiées :
 
 ```ts
-const chart = await slide.charts.insert(
-  slide.charts.create().setDataSource({
+const info = slide
+  .newChart(univerAPI.Enum.ChartTypeString.Column)
+  .setSource({
     unit: { selector: 'sales-workbook', type: 'sheet' },
-    part: { kind: 'range', sheetName: 'Data', range: 'A1:B20', ref: 'Data!A1:B20' },
-  }),
-)
-await chart.refreshDataSource()
+    part: {
+      kind: 'range',
+      sheetName: 'Data',
+      range: 'A1:B20',
+      ref: 'Data!A1:B20',
+    },
+  })
+  .setAbsolutePosition(120, 80)
+  .setSize(640, 360)
+  .build()
+
+const chart = await slide.insertChart(info)
 ```
+
+Consultez la [référence Chart Facade](/reference/facade/chart) pour la configuration partagée.

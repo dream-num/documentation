@@ -110,11 +110,11 @@ const frFRMessages = {
       },
       docs: {
         title: 'Documents',
-        desc: 'Un éditeur de texte enrichi inspiré de Word. Styles de paragraphe, tableaux, listes ordonnées et non ordonnées, en-têtes, pieds de page et commentaires.',
+        desc: 'Un éditeur de texte enrichi inspiré de Word avec statistiques du document, liens dans le texte enrichi, styles de paragraphe, tableaux, listes, en-têtes, pieds de page et commentaires.',
       },
       slides: {
         title: 'Présentations',
-        desc: 'Un éditeur de diapositives inspiré de PowerPoint. Créez, modifiez et présentez vos diapositives avec le moteur de rendu Canvas2D unifié pour un résultat cohérent sur toutes les plateformes.',
+        desc: 'Un éditeur inspiré de PowerPoint avec SmartArt modifiable, graphiques, conception de tableaux et rendu Canvas2D cohérent sur toutes les plateformes.',
       },
       bases: {
         title: 'Bases',
@@ -122,15 +122,15 @@ const frFRMessages = {
       },
       boards: {
         title: 'Tableaux blancs',
-        desc: 'Un canevas infini pour collaborer visuellement avec des conteneurs, des notes adhésives, des formes et des séances de réflexion structurées.',
+        desc: 'Un canevas infini avec arrière-plans en image, conteneurs, formes, impression et export PNG/JPEG.',
       },
       pdf: {
         title: 'PDF',
-        desc: 'Créez et modifiez des pages PDF avec du texte, des images, des tableaux, des listes, des séparateurs et des annotations.',
+        desc: 'Créez, modifiez, parcourez en continu et imprimez des pages PDF avec texte, images, tableaux, listes et annotations.',
       },
       data: {
         title: 'Analyse de données',
-        desc: 'Tableaux croisés, graphiques liés à des plages Sheet, sparklines et mise en forme conditionnelle.',
+        desc: 'Tableaux croisés, graphiques liés en direct à des plages Sheet avec export SVG, sparklines et mise en forme conditionnelle.',
       },
       collab: {
         title: 'Collaboration',
@@ -207,7 +207,7 @@ const frFRMessages = {
       },
       feature5: {
         title: 'Impression et PDF',
-        desc: 'Modifiez des PDF et imprimez les diapositives en pleine page, document ou page de notes.',
+        desc: 'Imprimez Sheets, Docs, Slides, Boards et PDF ; exportez Boards et graphiques sous forme d’images.',
       },
       feature6: {
         title: 'Déploiement',

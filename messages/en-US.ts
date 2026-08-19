@@ -109,11 +109,11 @@ const enUSMessages = {
       },
       docs: {
         title: 'Documents',
-        desc: 'Word-like rich text editor. Supports paragraph styles, tables, ordered/unordered lists, headers & footers, and comments.',
+        desc: 'Word-like rich text editor with document statistics, rich-text links, paragraph styles, tables, lists, headers, footers, and comments.',
       },
       slides: {
         title: 'Presentations',
-        desc: 'PowerPoint-like slide editor. Create, edit, and present slides with the unified Canvas2D rendering engine for consistent cross-platform output.',
+        desc: 'PowerPoint-like slide editor with editable SmartArt, charts, table design, and consistent Canvas2D rendering across platforms.',
       },
       bases: {
         title: 'Bases',
@@ -121,15 +121,15 @@ const enUSMessages = {
       },
       boards: {
         title: 'Boards',
-        desc: 'Infinite canvas for visual collaboration with containers, sticky notes, shape objects, and structured brainstorming.',
+        desc: 'Infinite canvas for visual collaboration with image backgrounds, containers, shapes, printing, and PNG/JPEG export.',
       },
       pdf: {
         title: 'PDFs',
-        desc: 'Create and edit PDF pages with text, images, tables, lists, dividers, and annotations.',
+        desc: 'Create and edit PDFs with continuous page scrolling, printing, text, images, tables, lists, and annotations.',
       },
       data: {
         title: 'Data Analysis',
-        desc: 'Pivot tables, charts with live Sheet references, sparklines, and conditional formatting.',
+        desc: 'Pivot tables, charts linked to live Sheet ranges with SVG export, sparklines, and conditional formatting.',
       },
       collab: {
         title: 'Collaboration',
@@ -205,7 +205,7 @@ const enUSMessages = {
       },
       feature5: {
         title: 'Print & PDF',
-        desc: 'Edit PDFs and print full-page slides, handouts, or speaker notes.',
+        desc: 'Print Sheets, Docs, Slides, Boards, and PDFs; export Boards and charts as images.',
       },
       feature6: {
         title: 'Deployment',

@@ -3,8 +3,8 @@ title: Shape
 icon: '#ref/F'
 ---
 
-| Packages | `@univerjs-pro/engine-shape`, `@univerjs-pro/sheets-shape`, `@univerjs-pro/docs-shape`, `@univerjs-pro/shape-editor` |
-| --- | --- |
+| Packages | `@univerjs-pro/engine-shape`, `@univerjs-pro/sheets-shape`, `@univerjs-pro/docs-shape`, `@univerjs-pro/slides`, `@univerjs-pro/shape-editor` |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 
 <span className="rounded bg-fd-primary/10 px-1.5 py-0.5 text-xs font-medium text-fd-primary">PRO</span>
 
@@ -24,6 +24,12 @@ getShapes(): Array<FSheetShape | FConnectorShape>
 
 // FDocument
 insertShape(input: IDocShapeCreateInput): FShape | FConnectorShape | null
+getShape(shapeId: string): FShape | FConnectorShape | null
+getShapes(): Array<FShape | FConnectorShape>
+
+// FSlide
+insertShape(input: IShapeCreateInput): FShape | FConnectorShape | null
+insertSmartArt(layoutId: string, transform?: IShapeCreateInput['transform']): FShape | FConnectorShape | null
 getShape(shapeId: string): FShape | FConnectorShape | null
 getShapes(): Array<FShape | FConnectorShape>
 ```
@@ -48,15 +54,16 @@ shape?.getText().setText('Quarterly review')
 
 ## FShape
 
-| Category | Methods |
-| --- | --- |
-| Identity and metadata | `getId`, `getName`, `setName`, `getDescription`, `setDescription`, `getHostType` |
-| Inspection | `isConnectorShape`, `getShapeType`, `getShapeData`, `getSnapshot`, `getTransform`, `isVisible`, `isSelectable` |
-| Geometry | `setShapeType`, `setShapeData`, `setTransform`, `setSize`, `setRotation`, `setAbsolutePosition` |
-| Custom shapes | `isCustomShape`, `getCustomGeometry`, `setCustomGeometry`, `getConnectionSites`, `getAdjustHandles`, `setAdjustValues`, `resetAdjustValues` |
-| Fill and stroke | `setSolidFill`, `setGradientFill`, `setImageFill`, `setNoneFill`, `setStroke`, `setStrokeColor`, `setStrokeWidth`, `setStrokeOpacity`, `setStrokeLineDashType`, `setStrokeLineJoinType`, `setStrokeLineCapType`, `setStrokeLineType` |
-| Text | `getText` |
-| Lifecycle and order | `update`, `remove`, `bringToFront`, `bringForward`, `sendBackward`, `sendToBack` |
+| Category              | Methods                                                                                                                                                                                                                              |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Identity and metadata | `getId`, `getName`, `setName`, `getDescription`, `setDescription`, `getHostType`                                                                                                                                                     |
+| Inspection            | `isConnectorShape`, `getShapeType`, `getShapeData`, `getSnapshot`, `getTransform`, `isVisible`, `isSelectable`                                                                                                                       |
+| Geometry              | `setShapeType`, `setShapeData`, `setTransform`, `setSize`, `setRotation`, `setAbsolutePosition`                                                                                                                                      |
+| Custom shapes         | `isCustomShape`, `getCustomGeometry`, `setCustomGeometry`, `getConnectionSites`, `getAdjustHandles`, `setAdjustValues`, `resetAdjustValues`                                                                                          |
+| SmartArt              | `isSmartArt`, `getSmartArtData`, `setSmartArtData`, node editing, layout, direction, and conversion APIs                                                                                                                             |
+| Fill and stroke       | `setSolidFill`, `setGradientFill`, `setImageFill`, `setNoneFill`, `setStroke`, `setStrokeColor`, `setStrokeWidth`, `setStrokeOpacity`, `setStrokeLineDashType`, `setStrokeLineJoinType`, `setStrokeLineCapType`, `setStrokeLineType` |
+| Text                  | `getText`                                                                                                                                                                                                                            |
+| Lifecycle and order   | `update`, `remove`, `setZOrder`, `bringToFront`, `bringForward`, `sendBackward`, `sendToBack`                                                                                                                                        |
 
 Every setter except `remove` is chainable and returns the same live facade.
 
@@ -84,6 +91,47 @@ setHorizontalAlign(align: HorizontalAlign): this
 setVerticalAlign(align: VerticalAlign): this
 getTextBoxOptions(): IResolvedShapeTextBoxOptions | null
 setTextBoxOptions(options: IShapeTextBoxOptions): this
+```
+
+Shape text uses the same rich-text link builder as Docs:
+
+```ts
+const richText = univerAPI.newRichText().text('Open ').link('the project brief', 'https://example.com/project-brief')
+
+shape.getText().setRichText(richText)
+```
+
+## SmartArt
+
+Slides can insert an editable SmartArt composite from a built-in layout id. The returned `FShape` keeps stable logical nodes while layouts and presentation shapes change.
+
+```typescript
+isSmartArt(): boolean
+getSmartArtData(): ISmartArtData | null
+setSmartArtData(data: ISmartArtData): this
+insertSmartArtNode(options: IInsertSmartArtNodeOptions): this
+updateSmartArtNode(nodeId: string, update: Partial<Pick<ISmartArtDataNode, 'fontSizeMode' | 'role' | 'text'>>): this
+deleteSmartArtNode(nodeId: string): this
+moveSmartArtNode(options: IMoveSmartArtNodeOptions): this
+promoteSmartArtNode(nodeId: string): this
+demoteSmartArtNode(nodeId: string): this
+setSmartArtLayout(layoutId: string): this
+setSmartArtDirection(direction: SmartArtDirectionEnum): this
+updateSmartArtPresentationShape(presentationShapeId: string, update: Partial<Pick<ISmartArtPresentationShape, 'shapeData' | 'transform'>>): this
+convertSmartArtToShapes(): FShape[]
+```
+
+```ts
+import { SmartArtDirectionEnum } from '@univerjs-pro/engine-shape'
+
+const slide = univerAPI.getActivePresentation()?.getActiveSlide()
+if (!slide) throw new Error('No active slide')
+
+const basicBlockListLayout = 'urn:microsoft.com/office/officeart/2005/8/layout/default'
+const smartArt = slide.insertSmartArt(basicBlockListLayout, { left: 80, top: 80, width: 640, height: 360 })
+if (!smartArt) throw new Error('Unknown SmartArt layout')
+
+smartArt.setSmartArtDirection(SmartArtDirectionEnum.RightToLeft).setZOrder(1)
 ```
 
 ## FConnectorShape
@@ -126,12 +174,17 @@ setFormulaAnimationEnabled(enabled: boolean): this
 `setFormula` always requires `externalReferences`. Pass `[]` only when the formula has no external Unit qualifier.
 
 ```ts
-shape?.setFormula({
-  formula: '=SUM(A1:B10)',
-  externalReferences: [],
-}).setFormulaNumberFormat('$#,##0.00')
+shape
+  ?.setFormula({
+    formula: '=SUM(A1:B10)',
+    externalReferences: [],
+  })
+  .setFormulaNumberFormat('$#,##0.00')
 ```
 
 Listen for calculated display changes through `univerAPI.Event.FormulaShapeResultChanged`. Result states are available from `univerAPI.Enum.FormulaShapeResultStatus`.
 
-<span className="text-xs text-fd-muted-foreground">Source: `@univerjs-pro/engine-shape`, `@univerjs-pro/sheets-shape`, `@univerjs-pro/docs-shape`, `@univerjs-pro/shape-editor`</span>
+<span className="text-xs text-fd-muted-foreground">
+  Source: `@univerjs-pro/engine-shape`, `@univerjs-pro/sheets-shape`, `@univerjs-pro/docs-shape`,
+  `@univerjs-pro/slides`, `@univerjs-pro/shape-editor`
+</span>

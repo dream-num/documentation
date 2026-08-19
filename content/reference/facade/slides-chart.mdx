@@ -3,38 +3,36 @@ title: Slides Chart
 icon: '#ref/F'
 ---
 
-| Packages | `@univerjs-pro/slides-chart`, `@univerjs-pro/engine-chart` |
-| -------- | ---------------------------------------------------------- |
+| Packages | `@univerjs-pro/slides-chart`, `@univerjs-pro/engine-chart`, `@univerjs-pro/chart-ui` |
+| -------- | ------------------------------------------------------------------------------------ |
 
 <span className="rounded bg-fd-primary/10 px-1.5 py-0.5 text-xs font-medium text-fd-primary">PRO</span>
 
-Facade APIs for chart elements in Univer Slides Pro.
+Create, inspect, and update chart elements on a Univer Slides Pro slide.
 
-> Import `@univerjs-pro/slides-chart/facade` before using these APIs in plugin mode.
+> Import `@univerjs-pro/slides-chart/facade` before using these APIs. Import `@univerjs-pro/chart-ui/facade` to add `exportImage()`.
 
-## FSlideCharts
+## FSlide
 
-Access the collection from `fSlide.charts`.
+```typescript
+newChart<T extends ChartTypeString>(type: T): FSlideChartBuilderOf<T>
+insertChart(info: ISlideChartInfo): Promise<FSlideChart>
+getChart(chartIdOrElementId: string): FSlideChart | null
+getCharts(): FSlideChart[]
+```
 
-| Method                       | Description                                                      |
-| ---------------------------- | ---------------------------------------------------------------- |
-| `create()`                   | Creates a detached slide chart builder.                          |
-| `insert(builder)`            | Inserts a configured builder and returns the host-bound builder. |
-| `get(id)`                    | Gets a slide chart builder by chart or element id.               |
-| `list()`                     | Lists chart builders on the slide.                               |
-| `remove(builderOrId)`        | Removes a chart by builder or id.                                |
-| `registerTheme(name, theme)` | Registers a chart theme for the Univer runtime.                  |
+The builder accepts inline values or a Sheet resource reference through `setSource()`. Slide-specific insertion methods are `setPlaceholder()`, `setStroke()`, and `setZOrder()`.
 
-## Example
+## Create a chart from inline data
 
 ```ts
 const presentation = univerAPI.getActivePresentation()
-const slide = presentation.getActiveSlide()
+if (!presentation) throw new Error('No active presentation')
 
-const builder = slide.charts
-  .create()
-  .setType(univerAPI.Enum.ChartTypeString.Column)
-  .setData([
+const slide = presentation.getActiveSlide()
+const info = slide
+  .newChart(univerAPI.Enum.ChartTypeString.Column)
+  .setSource([
     ['Month', 'Revenue', 'Cost'],
     ['Jan', 120, 80],
     ['Feb', 180, 96],
@@ -43,12 +41,24 @@ const builder = slide.charts
   .setTitle('Quarterly revenue')
   .setAbsolutePosition(80, 120)
   .setSize(520, 320)
+  .setZOrder(1)
+  .build()
 
-const chart = await slide.charts.insert(builder)
+const chart = await slide.insertChart(info)
+chart.setLegend({ visible: true }).bringToFront()
 
-chart.setType(univerAPI.Enum.ChartTypeString.Line).setLegend({ visible: true }).commit()
+const updatedInfo = chart.toBuilder(univerAPI.Enum.ChartTypeString.Line).setSubtitle('FY 2026').build()
+
+await chart.update(updatedInfo)
+const svg = await chart.exportImage({ format: 'svg' })
 ```
 
-Slide builders add `setData`, `getData`, `setDataSource`, `getDataSource`, `refreshDataSource`, `setAbsolutePosition`, `setSize`, `setPlaceholder`, `setStroke`, and `setZOrder` to the shared chart builder methods. Use `setDataSource` to bind a chart to a referenced Sheet range and `refreshDataSource()` to reload it. See [Chart](/reference/facade/chart#other-chart-hosts) for the shared configuration and reference shape.
+Setters on the inserted `chart` update it immediately. `toBuilder(type)` creates a detached copy for a complete update or type change. `exportImage()` returns `undefined` when no slide renderer can provide an image.
 
-<span className="text-xs text-fd-muted-foreground">Source: `@univerjs-pro/slides-chart`</span>
+Use `slide.getChart(id)` and `slide.getCharts()` to resolve live charts. `FSlideChart` inherits the shared chart configuration, data-source, placement, z-order, and removal APIs and adds `getElementId()`, `getPlaceholder()`, `setPlaceholder()`, `getStroke()`, `setStroke()`, and `getChartData()`.
+
+See [Chart](/reference/facade/chart) for the shared builder and live APIs.
+
+<span className="text-xs text-fd-muted-foreground">
+  Source: `@univerjs-pro/engine-chart`, `@univerjs-pro/slides-chart`, `@univerjs-pro/chart-ui`
+</span>

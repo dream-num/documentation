@@ -8,15 +8,18 @@ icon: '#pro/ChartPie'
 Die Diagrammunterstützung von Slides besteht aus einem Modellpaket und einem UI-Paket. `@univerjs-pro/chart-ui` stellt die gemeinsamen Editor-Steuerelemente, Gebietsschema-Einträge und Stile bereit.
 
 ```ts
-import ChartUIEnUS from '@univerjs-pro/chart-ui/locale/en-US'
+import ChartUIDeDE from '@univerjs-pro/chart-ui/locale/de-DE'
 import { UniverSlidesChartPlugin } from '@univerjs-pro/slides-chart'
 import { UniverSlidesChartUIPlugin } from '@univerjs-pro/slides-chart-ui'
-import SlidesChartUIEnUS from '@univerjs-pro/slides-chart-ui/locale/en-US'
+import SlidesChartUIDeDE from '@univerjs-pro/slides-chart-ui/locale/de-DE'
+import { LocaleType, mergeLocales } from '@univerjs/core'
 
+import '@univerjs-pro/chart-ui/facade'
 import '@univerjs-pro/chart-ui/lib/index.css'
 import '@univerjs-pro/slides-chart-ui/lib/index.css'
 import '@univerjs-pro/slides-chart/facade'
 
+univerAPI.loadLocales(LocaleType.DE_DE, mergeLocales(ChartUIDeDE, SlidesChartUIDeDE))
 univer.registerPlugin(UniverSlidesChartPlugin)
 univer.registerPlugin(UniverSlidesChartUIPlugin)
 ```
@@ -25,16 +28,16 @@ Registrieren Sie die Diagrammunterstützung, bevor Sie eine Präsentation öffne
 
 ## Erstellen und aktualisieren Sie Diagramme
 
-Verwalten Sie Diagramme über die folienbasierte `charts`-Sammlung. `create()` gibt einen getrennten Builder zurück und `insert()` hängt ihn an die aktuelle Folie an.
+`slide.newChart(type)` erstellt einen losgelösten Builder. Erst wenn Sie das Ergebnis von `build()` an `slide.insertChart(info)` übergeben, wird ein Diagramm in die Folie eingefügt.
 
 ```ts
 const presentation = univerAPI.getActivePresentation()
-const slide = presentation.getActiveSlide()
+if (!presentation) throw new Error('No active presentation')
 
-const builder = slide.charts
-  .create()
-  .setType(univerAPI.Enum.ChartTypeString.Column)
-  .setData([
+const slide = presentation.getActiveSlide()
+const info = slide
+  .newChart(univerAPI.Enum.ChartTypeString.Column)
+  .setSource([
     ['Month', 'Revenue', 'Cost'],
     ['Jan', 120, 80],
     ['Feb', 180, 96],
@@ -43,26 +46,43 @@ const builder = slide.charts
   .setTitle('Quarterly revenue')
   .setAbsolutePosition(80, 120)
   .setSize(520, 320)
+  .setZOrder(1)
+  .build()
 
-const chart = await slide.charts.insert(builder)
+const chart = await slide.insertChart(info)
+chart.setLegend({ visible: true }).bringToFront()
 
-chart.setType(univerAPI.Enum.ChartTypeString.Line).setLegend({ visible: true }).commit()
+const updatedInfo = chart.toBuilder(univerAPI.Enum.ChartTypeString.Line).setSubtitle('FY 2026').build()
+await chart.update(updatedInfo)
+
+const svg = await chart.exportImage({ format: 'svg' })
 ```
 
-Verwenden Sie `slide.charts.list()`, `slide.charts.get(id)` und `await slide.charts.remove(chartOrId)`, um vorhandene Diagramme zu verwalten. Folienersteller unterstützen auch `setData`, `getData`, `setPlaceholder`, `setStroke` und `setZOrder`.
+Setter auf dem eingefügten `chart` wirken sofort. Verwenden Sie `toBuilder(type)` mit `update(info)`, wenn Sie eine vollständige losgelöste Kopie oder einen Typwechsel benötigen. `exportImage()` gibt `undefined` zurück, wenn kein UI-Renderer ein Bild liefern kann.
 
-Informationen zur gemeinsamen Diagrammkonfiguration finden Sie in der [Chart Facade-Referenz](/reference/facade/chart).
+Mit `slide.getCharts()` und `slide.getChart(id)` rufen Sie Live-Diagramme ab. `await chart.remove()` löscht ein Diagramm. Slide-Builder ergänzen `setPlaceholder()`, `setStroke()` und `setZOrder()`.
 
 ## Sheet-Daten binden
 
-Eine Ressourcenreferenz hält das Diagramm mit einem Sheet-Bereich synchron; `refreshDataSource()` lädt ihn neu:
+Übergeben Sie eine Ressourcenreferenz an `setSource()`, wenn das Diagramm einem Sheet-Bereich folgen soll, statt kopierte Werte zu speichern:
 
 ```ts
-const chart = await slide.charts.insert(
-  slide.charts.create().setDataSource({
+const info = slide
+  .newChart(univerAPI.Enum.ChartTypeString.Column)
+  .setSource({
     unit: { selector: 'sales-workbook', type: 'sheet' },
-    part: { kind: 'range', sheetName: 'Data', range: 'A1:B20', ref: 'Data!A1:B20' },
-  }),
-)
-await chart.refreshDataSource()
+    part: {
+      kind: 'range',
+      sheetName: 'Data',
+      range: 'A1:B20',
+      ref: 'Data!A1:B20',
+    },
+  })
+  .setAbsolutePosition(120, 80)
+  .setSize(640, 360)
+  .build()
+
+const chart = await slide.insertChart(info)
 ```
+
+Die gemeinsame Diagrammkonfiguration finden Sie in der [Chart-Facade-Referenz](/reference/facade/chart).

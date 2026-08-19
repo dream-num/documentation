@@ -12,11 +12,14 @@ import ChartUIEnUS from '@univerjs-pro/chart-ui/locale/en-US'
 import { UniverSlidesChartPlugin } from '@univerjs-pro/slides-chart'
 import { UniverSlidesChartUIPlugin } from '@univerjs-pro/slides-chart-ui'
 import SlidesChartUIEnUS from '@univerjs-pro/slides-chart-ui/locale/en-US'
+import { LocaleType, mergeLocales } from '@univerjs/core'
 
+import '@univerjs-pro/chart-ui/facade'
 import '@univerjs-pro/chart-ui/lib/index.css'
 import '@univerjs-pro/slides-chart-ui/lib/index.css'
 import '@univerjs-pro/slides-chart/facade'
 
+univerAPI.loadLocales(LocaleType.EN_US, mergeLocales(ChartUIEnUS, SlidesChartUIEnUS))
 univer.registerPlugin(UniverSlidesChartPlugin)
 univer.registerPlugin(UniverSlidesChartUIPlugin)
 ```
@@ -25,16 +28,16 @@ Register chart support before opening or importing a presentation that might con
 
 ## Create and update charts
 
-Manage charts through the slide-scoped `charts` collection. `create()` returns a detached builder, and `insert()` attaches it to the current slide.
+`slide.newChart(type)` creates a detached builder. Nothing is added to the slide until you build the chart information and pass it to `slide.insertChart(info)`.
 
 ```ts
 const presentation = univerAPI.getActivePresentation()
-const slide = presentation.getActiveSlide()
+if (!presentation) throw new Error('No active presentation')
 
-const builder = slide.charts
-  .create()
-  .setType(univerAPI.Enum.ChartTypeString.Column)
-  .setData([
+const slide = presentation.getActiveSlide()
+const info = slide
+  .newChart(univerAPI.Enum.ChartTypeString.Column)
+  .setSource([
     ['Month', 'Revenue', 'Cost'],
     ['Jan', 120, 80],
     ['Feb', 180, 96],
@@ -43,21 +46,30 @@ const builder = slide.charts
   .setTitle('Quarterly revenue')
   .setAbsolutePosition(80, 120)
   .setSize(520, 320)
+  .setZOrder(1)
+  .build()
 
-const chart = await slide.charts.insert(builder)
+const chart = await slide.insertChart(info)
+chart.setLegend({ visible: true }).bringToFront()
 
-chart.setType(univerAPI.Enum.ChartTypeString.Line).setLegend({ visible: true }).commit()
+const updatedInfo = chart.toBuilder(univerAPI.Enum.ChartTypeString.Line).setSubtitle('FY 2026').build()
+await chart.update(updatedInfo)
+
+const svg = await chart.exportImage({ format: 'svg' })
 ```
 
-Use `slide.charts.list()`, `slide.charts.get(id)`, and `await slide.charts.remove(chartOrId)` to manage existing charts. Slide builders also support `setData`, `getData`, `setPlaceholder`, `setStroke`, and `setZOrder`.
+Setters on the inserted `chart` update it immediately. Use `toBuilder(type)` with `update(info)` for a complete detached copy or a type change. `exportImage()` returns `undefined` when no UI renderer can provide an image.
+
+Use `slide.getCharts()` and `slide.getChart(id)` to resolve live charts. Call `await chart.remove()` when you want to delete one. Slide builders also provide `setPlaceholder()`, `setStroke()`, and `setZOrder()`.
 
 ## Bind a chart to Sheet data
 
-Use a resource reference when the chart should follow a Sheet range instead of storing copied values:
+Pass a resource reference to `setSource()` when the chart should follow a Sheet range instead of storing copied values:
 
 ```ts
-const chart = await slide.charts.insert(
-  slide.charts.create().setDataSource({
+const info = slide
+  .newChart(univerAPI.Enum.ChartTypeString.Column)
+  .setSource({
     unit: { selector: 'sales-workbook', type: 'sheet' },
     part: {
       kind: 'range',
@@ -65,10 +77,12 @@ const chart = await slide.charts.insert(
       range: 'A1:B20',
       ref: 'Data!A1:B20',
     },
-  }),
-)
+  })
+  .setAbsolutePosition(120, 80)
+  .setSize(640, 360)
+  .build()
 
-await chart.refreshDataSource()
+const chart = await slide.insertChart(info)
 ```
 
 See the [Chart Facade reference](/reference/facade/chart) for shared chart configuration.

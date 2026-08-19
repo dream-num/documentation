@@ -101,7 +101,7 @@ const deDEMessages = {
       title: 'Vertrauen von Teams und Unternehmen aus allen Branchen',
     },
     logocloud: {
-      title: 'Vertrauen von Teams und Unternehmen aus allen Branchen Branchen',
+      title: 'Das Vertrauen von Teams und Unternehmen aus allen Branchen',
     },
     scenes: {
       title: 'Ermöglichen Sie jeden Arbeitsablauf',
@@ -112,11 +112,11 @@ const deDEMessages = {
       },
       docs: {
         title: 'Dokumente',
-        desc: 'Word-ähnlicher Rich-Text-Editor. Unterstützt Absatzstile, Tabellen, geordnete/ungeordnete Listen, Kopf- und Fußzeilen sowie Kommentare.',
+        desc: 'Word-ähnlicher Rich-Text-Editor mit Dokumentstatistiken, Links im Rich Text, Absatzstilen, Tabellen, Listen, Kopf- und Fußzeilen sowie Kommentaren.',
       },
       slides: {
         title: 'Präsentationen',
-        desc: 'PowerPoint-ähnlicher Folieneditor. Erstellen, bearbeiten und präsentieren Sie Folien mit der einheitlichen Canvas2D-Rendering-Engine für eine konsistente plattformübergreifende Ausgabe.',
+        desc: 'PowerPoint-ähnlicher Folieneditor mit bearbeitbarem SmartArt, Diagrammen, Tabellendesign und konsistentem Canvas2D-Rendering auf allen Plattformen.',
       },
       bases: {
         title: 'Basen',
@@ -124,15 +124,15 @@ const deDEMessages = {
       },
       boards: {
         title: 'Boards',
-        desc: 'Unendliche Leinwand für visuelle Zusammenarbeit mit Containern, Haftnotizen, Formobjekten und strukturiertem Brainstorming.',
+        desc: 'Unendliche Leinwand für visuelle Zusammenarbeit mit Bildhintergründen, Containern, Formen, Druck sowie PNG/JPEG-Export.',
       },
       pdf: {
         title: 'PDFs',
-        desc: 'PDF-Seiten mit Text, Bildern, Tabellen, Listen, Trennlinien und Anmerkungen erstellen und bearbeiten.',
+        desc: 'PDF-Seiten mit Text, Bildern, Tabellen, Listen und Anmerkungen erstellen, bearbeiten, fortlaufend anzeigen und drucken.',
       },
       data: {
         title: 'Datenanalyse',
-        desc: 'Pivot-Tabellen, Diagramme mit Live-Sheet-Referenzen, Sparklines und bedingte Formatierung.',
+        desc: 'Pivot-Tabellen, Diagramme mit Live-Bezug zu Sheet-Bereichen und SVG-Export, Sparklines und bedingte Formatierung.',
       },
       collab: {
         title: 'Zusammenarbeit',
@@ -208,7 +208,7 @@ const deDEMessages = {
       },
       feature5: {
         title: 'Drucken und PDF',
-        desc: 'PDFs bearbeiten und Folien als Vollseite, Handout oder Notizseite drucken.',
+        desc: 'Sheets, Docs, Slides, Boards und PDFs drucken; Boards und Diagramme als Bilder exportieren.',
       },
       feature6: {
         title: 'Bereitstellung',

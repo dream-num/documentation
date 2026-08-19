@@ -12,11 +12,14 @@ import ChartUIZhTW from '@univerjs-pro/chart-ui/locale/zh-TW'
 import { UniverSlidesChartPlugin } from '@univerjs-pro/slides-chart'
 import { UniverSlidesChartUIPlugin } from '@univerjs-pro/slides-chart-ui'
 import SlidesChartUIZhTW from '@univerjs-pro/slides-chart-ui/locale/zh-TW'
+import { LocaleType, mergeLocales } from '@univerjs/core'
 
+import '@univerjs-pro/chart-ui/facade'
 import '@univerjs-pro/chart-ui/lib/index.css'
 import '@univerjs-pro/slides-chart-ui/lib/index.css'
 import '@univerjs-pro/slides-chart/facade'
 
+univerAPI.loadLocales(LocaleType.ZH_TW, mergeLocales(ChartUIZhTW, SlidesChartUIZhTW))
 univer.registerPlugin(UniverSlidesChartPlugin)
 univer.registerPlugin(UniverSlidesChartUIPlugin)
 ```
@@ -25,44 +28,61 @@ univer.registerPlugin(UniverSlidesChartUIPlugin)
 
 ## 建立及更新圖表
 
-透過投影片的 `charts` 集合管理圖表。`create()` 會回傳尚未插入的建構器，`insert()` 則將它插入目前投影片。
+`slide.newChart(type)` 建立的是獨立建構器。只有將 `build()` 的結果傳給 `slide.insertChart(info)` 後，圖表才會插入投影片。
 
 ```ts
 const presentation = univerAPI.getActivePresentation()
-const slide = presentation.getActiveSlide()
+if (!presentation) throw new Error('No active presentation')
 
-const builder = slide.charts
-  .create()
-  .setType(univerAPI.Enum.ChartTypeString.Column)
-  .setData([
-    ['月份', '收入', '成本'],
-    ['一月', 120, 80],
-    ['二月', 180, 96],
-    ['三月', 240, 132],
+const slide = presentation.getActiveSlide()
+const info = slide
+  .newChart(univerAPI.Enum.ChartTypeString.Column)
+  .setSource([
+    ['Month', 'Revenue', 'Cost'],
+    ['Jan', 120, 80],
+    ['Feb', 180, 96],
+    ['Mar', 240, 132],
   ])
-  .setTitle('季度收入')
+  .setTitle('Quarterly revenue')
   .setAbsolutePosition(80, 120)
   .setSize(520, 320)
+  .setZOrder(1)
+  .build()
 
-const chart = await slide.charts.insert(builder)
+const chart = await slide.insertChart(info)
+chart.setLegend({ visible: true }).bringToFront()
 
-chart.setType(univerAPI.Enum.ChartTypeString.Line).setLegend({ visible: true }).commit()
+const updatedInfo = chart.toBuilder(univerAPI.Enum.ChartTypeString.Line).setSubtitle('FY 2026').build()
+await chart.update(updatedInfo)
+
+const svg = await chart.exportImage({ format: 'svg' })
 ```
 
-使用 `slide.charts.list()`、`slide.charts.get(id)` 與 `await slide.charts.remove(chartOrId)` 管理既有圖表。投影片建構器也支援 `setData`、`getData`、`setPlaceholder`、`setStroke` 與 `setZOrder`。
+對已插入的 `chart` 呼叫 setter 會立即更新圖表。需要完整的獨立副本或切換類型時，請搭配使用 `toBuilder(type)` 與 `update(info)`。若目前沒有可產生圖片的 UI 算繪器，`exportImage()` 會傳回 `undefined`。
 
-共用圖表設定請參閱[圖表 Facade 參考](/reference/facade/chart)。
+使用 `slide.getCharts()` 與 `slide.getChart(id)` 取得即時圖表。需要刪除時呼叫 `await chart.remove()`。Slides 建構器另外提供 `setPlaceholder()`、`setStroke()` 與 `setZOrder()`。
 
 ## 綁定 Sheet 資料
 
-透過資源參照讓圖表跟隨 Sheet 範圍，並用 `refreshDataSource()` 重新載入資料：
+若圖表需要跟隨 Sheet 範圍而非儲存值副本，請將資源參照傳給 `setSource()`：
 
 ```ts
-const chart = await slide.charts.insert(
-  slide.charts.create().setDataSource({
+const info = slide
+  .newChart(univerAPI.Enum.ChartTypeString.Column)
+  .setSource({
     unit: { selector: 'sales-workbook', type: 'sheet' },
-    part: { kind: 'range', sheetName: 'Data', range: 'A1:B20', ref: 'Data!A1:B20' },
-  }),
-)
-await chart.refreshDataSource()
+    part: {
+      kind: 'range',
+      sheetName: 'Data',
+      range: 'A1:B20',
+      ref: 'Data!A1:B20',
+    },
+  })
+  .setAbsolutePosition(120, 80)
+  .setSize(640, 360)
+  .build()
+
+const chart = await slide.insertChart(info)
 ```
+
+共用圖表設定請參閱[圖表 Facade 參考](/reference/facade/chart)。

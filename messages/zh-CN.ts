@@ -110,11 +110,11 @@ const zhCNMessages = {
       },
       docs: {
         title: '文档',
-        desc: '类 Word 的富文本编辑器。支持段落样式、表格插入、有序/无序列表、页眉页脚、评论批注等文档处理能力。',
+        desc: '类 Word 的富文本编辑器，支持文档统计、富文本链接、段落样式、表格、列表、页眉页脚和评论批注。',
       },
       slides: {
         title: '演示文稿',
-        desc: '类 PowerPoint 的幻灯片编辑器。支持幻灯片的创建、编辑与放映，集成统一的 Canvas2D 渲染引擎，确保跨平台一致的呈现效果。',
+        desc: '类 PowerPoint 的幻灯片编辑器，支持可编辑 SmartArt、图表、表格设计，以及跨平台一致的 Canvas2D 渲染。',
       },
       bases: {
         title: '数据表',
@@ -122,15 +122,15 @@ const zhCNMessages = {
       },
       boards: {
         title: '白板',
-        desc: '面向视觉协作的无限画布。支持容器、便签、图形对象和结构化头脑风暴。',
+        desc: '面向视觉协作的无限画布，支持图片背景、容器、图形、打印，以及 PNG/JPEG 导出。',
       },
       pdf: {
         title: 'PDF',
-        desc: '创建并编辑 PDF 页面中的文字、图片、表格、列表、分隔线和批注。',
+        desc: '创建、编辑、连续浏览和打印包含文字、图片、表格、列表与批注的 PDF 页面。',
       },
       data: {
         title: '数据分析',
-        desc: '透视表、可引用 Sheet 实时数据的图表、迷你图和条件格式。',
+        desc: '透视表、关联 Sheet 实时区域并支持 SVG 导出的图表、迷你图和条件格式。',
       },
       collab: {
         title: '协作',
@@ -206,7 +206,7 @@ const zhCNMessages = {
       },
       feature5: {
         title: '打印与 PDF',
-        desc: '编辑 PDF，并以整页、讲义或演讲者备注布局打印幻灯片。',
+        desc: '打印 Sheets、Docs、Slides、Boards 和 PDF，并将 Boards 与图表导出为图片。',
       },
       feature6: {
         title: '部署',

@@ -111,11 +111,11 @@ const koKRMessages = {
       },
       docs: {
         title: '문서',
-        desc: 'Word 스타일의 서식 있는 텍스트 편집기입니다. 단락 스타일, 표, 순서 목록 및 글머리 기호 목록, 머리글과 바닥글, 주석을 지원합니다.',
+        desc: '문서 통계, 리치 텍스트 링크, 단락 스타일, 표, 목록, 머리글, 바닥글, 주석을 지원하는 Word 스타일 편집기입니다.',
       },
       slides: {
         title: '프레젠테이션',
-        desc: 'PowerPoint 스타일의 슬라이드 편집기입니다. 통합 Canvas2D 렌더링 엔진으로 일관된 크로스 플랫폼 출력을 제공하며 슬라이드를 만들고, 편집하고, 발표할 수 있습니다.',
+        desc: '편집 가능한 SmartArt, 차트, 표 디자인과 일관된 크로스 플랫폼 Canvas2D 렌더링을 제공하는 PowerPoint 스타일 편집기입니다.',
       },
       bases: {
         title: 'Bases',
@@ -123,15 +123,15 @@ const koKRMessages = {
       },
       boards: {
         title: 'Boards',
-        desc: '컨테이너, 스티커 메모, 도형 객체, 구조화된 브레인스토밍을 지원하는 시각적 협업용 무한 캔버스입니다.',
+        desc: '이미지 배경, 컨테이너, 도형, 인쇄, PNG/JPEG 내보내기를 지원하는 시각적 협업용 무한 캔버스입니다.',
       },
       pdf: {
         title: 'PDF',
-        desc: '텍스트, 이미지, 표, 목록, 구분선, 주석이 있는 PDF 페이지를 만들고 편집합니다.',
+        desc: '텍스트, 이미지, 표, 목록, 주석이 있는 PDF 페이지를 만들고 편집하며 연속 탐색하고 인쇄합니다.',
       },
       data: {
         title: '데이터 분석',
-        desc: '피벗 테이블, Sheet 범위를 참조하는 차트, 스파크라인, 조건부 서식을 제공합니다.',
+        desc: '피벗 테이블, Sheet 범위와 실시간으로 연동하고 SVG로 내보낼 수 있는 차트, 스파크라인, 조건부 서식을 제공합니다.',
       },
       collab: {
         title: '협업',
@@ -207,7 +207,7 @@ const koKRMessages = {
       },
       feature5: {
         title: '인쇄 및 PDF',
-        desc: 'PDF를 편집하고 슬라이드를 전체 페이지, 유인물, 발표자 노트 형식으로 인쇄합니다.',
+        desc: 'Sheets, Docs, Slides, Boards, PDF를 인쇄하고 Boards와 차트를 이미지로 내보냅니다.',
       },
       feature6: {
         title: '배포',

@@ -101,7 +101,7 @@ const esESMessages = {
       title: 'Con la confianza de equipos y empresas de todos los sectores',
     },
     logocloud: {
-      title: 'Con la confianza de equipos y empresas de todas las industrias industrias',
+      title: 'Con la confianza de equipos y empresas de todos los sectores',
     },
     scenes: {
       title: 'Impulsa cada flujo de trabajo',
@@ -112,11 +112,11 @@ const esESMessages = {
       },
       docs: {
         title: 'Documentos',
-        desc: 'Editor de texto enriquecido similar a una palabra. Admite estilos de párrafo, tablas, listas ordenadas/desordenadas, encabezados y pies de página y comentarios.',
+        desc: 'Editor de texto enriquecido tipo Word con estadísticas de documentos, enlaces en texto enriquecido, estilos de párrafo, tablas, listas, encabezados, pies y comentarios.',
       },
       slides: {
         title: 'Presentaciones',
-        desc: 'Editor de diapositivas tipo PowerPoint. Cree, edite y presente diapositivas con el motor de renderizado unificado Canvas2D para obtener resultados multiplataforma consistentes.',
+        desc: 'Editor de diapositivas tipo PowerPoint con SmartArt editable, gráficos, diseño de tablas y renderizado Canvas2D uniforme entre plataformas.',
       },
       bases: {
         title: 'Bases',
@@ -124,15 +124,15 @@ const esESMessages = {
       },
       boards: {
         title: 'Tableros',
-        desc: 'Lienzos infinitos para colaboración visual con contenedores, notas adhesivas, objetos de formas y lluvia de ideas estructurada.',
+        desc: 'Lienzo infinito para colaboración visual con fondos de imagen, contenedores, formas, impresión y exportación PNG/JPEG.',
       },
       pdf: {
         title: 'PDF',
-        desc: 'Cree y edite páginas PDF con texto, imágenes, tablas, listas, divisores y anotaciones.',
+        desc: 'Cree, edite, recorra de forma continua e imprima páginas PDF con texto, imágenes, tablas, listas y anotaciones.',
       },
       data: {
         title: 'Análisis de datos',
-        desc: 'Tablas dinámicas, gráficos con referencias de Sheet en vivo, minigráficos y formato condicional.',
+        desc: 'Tablas dinámicas, gráficos vinculados a rangos de Sheet en tiempo real con exportación SVG, minigráficos y formato condicional.',
       },
       collab: {
         title: 'Colaboración',
@@ -208,7 +208,7 @@ const esESMessages = {
       },
       feature5: {
         title: 'Imprimir y PDF',
-        desc: 'Edite PDF e imprima diapositivas a página completa, como folleto o con notas.',
+        desc: 'Imprima Sheets, Docs, Slides, Boards y PDF; exporte Boards y gráficos como imágenes.',
       },
       feature6: {
         title: 'Implementación',
@@ -345,10 +345,10 @@ const esESMessages = {
     'guides-navigation': 'Navegación de guías',
     'guides-sidebar': 'Barra lateral de guías',
     'open-guides-navigation': 'Abrir navegación de guías',
-    'open-navigation': 'Abrir navegación de {título}',
+    'open-navigation': 'Abrir navegación de {title}',
     pagination: 'Paginación',
-    sidebar: 'Barra lateral de {título}',
-    'sidebar-navigation': 'Navegación de {título}',
+    sidebar: 'Barra lateral de {title}',
+    'sidebar-navigation': 'Navegación de {title}',
     'toc-panel': 'Panel de tabla de contenido',
     toc: {
       title: 'Tabla de contenido',

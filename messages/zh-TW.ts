@@ -110,11 +110,11 @@ const zhTWMessages = {
       },
       docs: {
         title: '文檔',
-        desc: '類 Word 的富文本編輯器。支持段落樣式、表格插入、有序/無序列表、頁眉頁腳、評論批註等文檔處理能力。',
+        desc: '類 Word 的富文字編輯器，支援文件統計、富文字連結、段落樣式、表格、清單、頁首頁尾與評論批註。',
       },
       slides: {
         title: '演示文稿',
-        desc: '類 PowerPoint 的幻燈片編輯器。支持幻燈片的創建、編輯與放映，集成統一的 Canvas2D 渲染引擎，確保跨平台一致的呈現效果。',
+        desc: '類 PowerPoint 的投影片編輯器，支援可編輯 SmartArt、圖表、表格設計，以及跨平台一致的 Canvas2D 算繪。',
       },
       bases: {
         title: '數據表',
@@ -122,15 +122,15 @@ const zhTWMessages = {
       },
       boards: {
         title: '白板',
-        desc: '面向視覺協作的無限畫布。支持容器、便籤、圖形對象和結構化頭腦風暴。',
+        desc: '面向視覺協作的無限畫布，支援圖片背景、容器、圖形、列印，以及 PNG/JPEG 匯出。',
       },
       pdf: {
         title: 'PDF',
-        desc: '建立並編輯 PDF 頁面中的文字、圖片、表格、清單、分隔線與註解。',
+        desc: '建立、編輯、連續瀏覽及列印包含文字、圖片、表格、清單與註解的 PDF 頁面。',
       },
       data: {
         title: '數據分析',
-        desc: '透視表、可參照 Sheet 即時資料的圖表、迷你圖與條件格式。',
+        desc: '樞紐分析表、連結至即時 Sheet 範圍並支援 SVG 匯出的圖表、迷你圖與條件式格式設定。',
       },
       collab: {
         title: '協作',
@@ -206,7 +206,7 @@ const zhTWMessages = {
       },
       feature5: {
         title: '打印與 PDF',
-        desc: '編輯 PDF，並以整頁、講義或演講者備註版面列印投影片。',
+        desc: '列印 Sheets、Docs、Slides、Boards 與 PDF，並將 Boards 與圖表匯出為圖片。',
       },
       feature6: {
         title: '部署',
