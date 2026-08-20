@@ -348,6 +348,7 @@ const zhTWMessages = {
     sidebar: '{title} 側邊欄',
     'sidebar-navigation': '{title} 導航',
     'toc-panel': '目錄面板',
+    version: '文檔版本',
     toc: {
       title: '目錄',
       'no-headings': '沒有可用的目錄',

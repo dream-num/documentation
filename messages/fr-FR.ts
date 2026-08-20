@@ -349,6 +349,7 @@ const frFRMessages = {
     sidebar: 'Barre latérale de {title}',
     'sidebar-navigation': 'Navigation de {title}',
     'toc-panel': 'Panneau de la table des matières',
+    version: 'Version de la documentation',
     toc: {
       title: 'Table des matières',
       'no-headings': 'Aucun titre disponible',

@@ -1,12 +1,14 @@
 'use client'
 
 import { CheckIcon, ChevronsUpDownIcon, TagIcon } from 'lucide-react'
+import { useLocale, useTranslations } from 'next-intl'
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Link } from '@/i18n/navigation'
-import { guideVersions } from '@/lib/guides/versions'
+import { getGuideVersionHref, guideVersions } from '@/lib/guides/versions'
 
 export function SidebarVersionSwitcher() {
+  const locale = useLocale()
+  const t = useTranslations('docs')
   const currentVersion = guideVersions.find((version) => version.isCurrent) ?? guideVersions[0]
 
   return (
@@ -23,13 +25,14 @@ export function SidebarVersionSwitcher() {
           <TagIcon className="size-5" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="text-foreground block truncate text-sm font-semibold">Latest Version</span>
+          <span className="text-foreground block truncate text-sm font-semibold">{t('version')}</span>
           <span className="text-muted-foreground block truncate text-sm">{currentVersion?.label}</span>
         </span>
         <ChevronsUpDownIcon className="text-muted-foreground size-4 shrink-0" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-64">
         {guideVersions.map((version) => {
+          const href = getGuideVersionHref(version, locale)
           const content = (
             <>
               <span>{version.label}</span>
@@ -37,8 +40,8 @@ export function SidebarVersionSwitcher() {
             </>
           )
 
-          return version.href ? (
-            <DropdownMenuItem key={version.value} render={<Link className="justify-between" href={version.href} />}>
+          return href ? (
+            <DropdownMenuItem key={version.value} render={<a className="justify-between" href={href} />}>
               {content}
             </DropdownMenuItem>
           ) : (

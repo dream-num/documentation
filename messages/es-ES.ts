@@ -350,6 +350,7 @@ const esESMessages = {
     sidebar: 'Barra lateral de {title}',
     'sidebar-navigation': 'Navegación de {title}',
     'toc-panel': 'Panel de tabla de contenido',
+    version: 'Versión de la documentación',
     toc: {
       title: 'Tabla de contenido',
       'no-headings': 'Sin encabezados disponible',

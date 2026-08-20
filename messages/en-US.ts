@@ -347,6 +347,7 @@ const enUSMessages = {
     sidebar: '{title} sidebar',
     'sidebar-navigation': '{title} navigation',
     'toc-panel': 'Table of contents panel',
+    version: 'Documentation version',
     toc: {
       title: 'Table of Contents',
       'no-headings': 'No headings available',

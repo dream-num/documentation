@@ -350,6 +350,7 @@ const deDEMessages = {
     sidebar: '{title}-Seitenleiste',
     'sidebar-navigation': '{title}-Navigation',
     'toc-panel': 'Inhaltsverzeichnisbereich',
+    version: 'Dokumentationsversion',
     toc: {
       title: 'Inhaltsverzeichnis',
       'no-headings': 'Keine Überschriften verfügbar',

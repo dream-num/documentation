@@ -351,6 +351,7 @@ const ruRUMessages = {
     sidebar: 'Боковая панель «{title}»',
     'sidebar-navigation': 'Навигация «{title}»',
     'toc-panel': 'Панель содержания',
+    version: 'Версия документации',
     toc: {
       title: 'Содержание',
       'no-headings': 'Заголовков нет',

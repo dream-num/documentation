@@ -349,6 +349,7 @@ const jaJPMessages = {
     sidebar: '{title} サイドバー',
     'sidebar-navigation': '{title} ナビゲーション',
     'toc-panel': '目次パネル',
+    version: 'ドキュメントのバージョン',
     toc: {
       title: '目次',
       'no-headings': '利用可能な目次がありません',

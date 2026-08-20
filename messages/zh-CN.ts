@@ -348,6 +348,7 @@ const zhCNMessages = {
     sidebar: '{title} 侧边栏',
     'sidebar-navigation': '{title} 导航',
     'toc-panel': '目录面板',
+    version: '文档版本',
     toc: {
       title: '目录',
       'no-headings': '没有可用的目录',

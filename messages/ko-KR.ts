@@ -349,6 +349,7 @@ const koKRMessages = {
     sidebar: '{title} 사이드바',
     'sidebar-navigation': '{title} 탐색',
     'toc-panel': '목차 패널',
+    version: '문서 버전',
     toc: {
       title: '목차',
       'no-headings': '표시할 목차가 없습니다',
