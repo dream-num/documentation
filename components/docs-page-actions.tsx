@@ -1,12 +1,12 @@
 'use client'
 
 import { SiGithub, SiMarkdown } from '@icons-pack/react-simple-icons'
-import { AlertCircleIcon, CheckIcon, ChevronDownIcon, CopyIcon, LoaderCircleIcon } from 'lucide-react'
+import { AlertCircleIcon, CheckIcon, CopyIcon, LoaderCircleIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { clsx } from '@/lib/clsx'
 
 interface IDocsPageActionsProps {
@@ -60,14 +60,19 @@ export function DocsPageActions({ githubUrl, markdownUrl }: IDocsPageActionsProp
     resetTimerRef.current = window.setTimeout(setCopyStatus, 1600, 'idle')
   }
 
+  function handlePageAction(value: string | null) {
+    const href = value === 'markdown' ? markdownUrl : value === 'github' ? githubUrl : null
+    if (!href) return
+    window.open(href, '_blank', 'noopener,noreferrer')
+  }
+
   return (
     <div className="mt-4 inline-flex max-w-full">
       <Button
-        className={clsx('min-w-0 rounded-r-none shadow-none', '[&_svg]:text-muted-foreground')}
+        className={clsx('min-w-0 rounded-r-none border-r-0', '[&_svg]:text-muted-foreground')}
         disabled={copyStatus === 'copying'}
-        size="sm"
         type="button"
-        variant="secondary"
+        variant="outline"
         onClick={handleCopyPage}
       >
         {copyStatus === 'copied' ? (
@@ -83,58 +88,23 @@ export function DocsPageActions({ githubUrl, markdownUrl }: IDocsPageActionsProp
           {copyLabel}
         </span>
       </Button>
-      <Popover>
-        <PopoverTrigger
-          render={
-            <Button
-              aria-label={t('docs.page-actions')}
-              className={clsx('rounded-l-none border-l px-2 shadow-none', 'border-border')}
-              size="sm"
-              type="button"
-              variant="secondary"
-            />
-          }
-        >
-          <ChevronDownIcon className={clsx('size-3.5', 'text-muted-foreground')} />
-        </PopoverTrigger>
-        <PopoverContent
-          align="end"
-          className={clsx(
-            'flex w-60 max-w-[calc(100vw-2rem)] flex-col rounded-xl p-2 shadow-lg backdrop-blur-lg',
-            'bg-popover/95',
-          )}
-          sideOffset={8}
-        >
-          <a
-            className={clsx(
-              'inline-flex items-center gap-2 rounded-lg p-2 text-sm outline-none',
-              'hover:bg-accent hover:text-accent-foreground',
-              'focus-visible:ring-2',
-              'focus-visible:ring-ring',
-            )}
-            href={markdownUrl}
-            rel="noreferrer noopener"
-            target="_blank"
-          >
-            <SiMarkdown aria-hidden="true" className={clsx('size-4', 'text-muted-foreground')} />
-            {t('docs.view-as-markdown')}
-          </a>
-          <a
-            className={clsx(
-              'inline-flex items-center gap-2 rounded-lg p-2 text-sm outline-none',
-              'hover:bg-accent hover:text-accent-foreground',
-              'focus-visible:ring-2',
-              'focus-visible:ring-ring',
-            )}
-            href={githubUrl}
-            rel="noreferrer noopener"
-            target="_blank"
-          >
-            <SiGithub aria-hidden="true" className={clsx('size-4', 'text-muted-foreground')} />
-            {t('docs.open-in-github')}
-          </a>
-        </PopoverContent>
-      </Popover>
+      <Select value={null} onValueChange={handlePageAction}>
+        <SelectTrigger aria-label={t('docs.page-actions')} className="rounded-l-none px-2" />
+        <SelectContent align="end" className={clsx('w-60', 'max-w-[calc(100vw-2rem)]')}>
+          <SelectItem value="markdown">
+            <span className="flex items-center gap-2">
+              <SiMarkdown aria-hidden="true" />
+              {t('docs.view-as-markdown')}
+            </span>
+          </SelectItem>
+          <SelectItem value="github">
+            <span className="flex items-center gap-2">
+              <SiGithub aria-hidden="true" />
+              {t('docs.open-in-github')}
+            </span>
+          </SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   )
 }
