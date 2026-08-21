@@ -36,7 +36,7 @@ pnpm build
 ├── components/       # React components for the documentation site
 ├── content/          # Documentation content (MDX)
 │   ├── blog/         # Blog posts
-│   ├── guides/       # User guides (docs, sheets, slides, pro, recipes, skills)
+│   ├── guides/       # User guides (docs, sheets, slides, pro, recipes)
 │   ├── icons/        # Icons reference
 │   └── reference/    # API reference
 ├── examples/         # Framework integration examples (React, Vue, Angular, Astro)

@@ -15,6 +15,10 @@ const config: NextConfig = {
 
   output: 'standalone',
 
+  outputFileTracingIncludes: {
+    '/*': ['node_modules/.pnpm/@swc+helpers@*/node_modules/@swc/helpers/esm/**/*'],
+  },
+
   experimental: {
     turbopackRemoveUnusedImports: false,
     turbopackRemoveUnusedExports: false,
@@ -25,9 +29,7 @@ const config: NextConfig = {
   },
 
   async rewrites() {
-    if (process.env.NODE_ENV !== 'development') {
-      return []
-    }
+    if (process.env.NODE_ENV !== 'development') return []
 
     return [
       {

@@ -1,8 +1,11 @@
-import type { Locale } from '@/i18n/routing'
 import process from 'node:process'
+
 import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { PostHog } from 'posthog-node'
+
+import type { Locale } from '@/i18n/routing'
+import { AgentDocsLinks } from '@/components/agent-docs-links'
 import { DocsArticle } from '@/components/docs-shell/article'
 import { DocsShellLayout } from '@/components/docs-shell/layout'
 import { getGuidesMDXComponents } from '@/components/mdx-docs'
@@ -49,51 +52,51 @@ export default async function Page({ params }: IProps) {
   const ReferenceLink = createDocsRelativeLink(reference, page)
 
   return (
-    <DocsShellLayout
-      lang={lang}
-      navigation={navigation}
-      pathname={page.url}
-      searchScope="reference"
-      title={t('navigation.reference')}
-      toc={page.data.toc}
-      tocFooter={<SponsorCard />}
-    >
-      <DocsArticle
-        description={page.data.description}
-        editUrl={getDocsEditUrl('reference', page.path)}
+    <>
+      <AgentDocsLinks collection="reference" lang={lang} pageUrl={page.url} />
+      <DocsShellLayout
         lang={lang}
         navigation={navigation}
-        title={page.data.title}
-        onRateAction={async (url, feedback) => {
-          'use server'
-
-          if (!process.env.NEXT_POSTHOG_APIKEY) return
-
-          const posthog = new PostHog(
-            process.env.NEXT_POSTHOG_APIKEY,
-            { host: 'https://us.i.posthog.com' },
-          )
-
-          posthog.capture({
-            event: 'on_rate_docs',
-            timestamp: new Date(),
-            distinctId: 'anonymous',
-            properties: {
-              ...feedback,
-              url,
-              lang,
-            },
-          })
-        }}
+        pathname={page.url}
+        searchScope="reference"
+        title={t('navigation.reference')}
+        toc={page.data.toc}
+        tocFooter={<SponsorCard />}
       >
-        <div data-docs-body>
-          <MDXContent
-            components={getGuidesMDXComponents({
-              a: ReferenceLink,
-            })}
-          />
-        </div>
-      </DocsArticle>
-    </DocsShellLayout>
+        <DocsArticle
+          description={page.data.description}
+          editUrl={getDocsEditUrl('reference', page.path)}
+          lang={lang}
+          navigation={navigation}
+          title={page.data.title}
+          onRateAction={async (url, feedback) => {
+            'use server'
+
+            if (!process.env.NEXT_POSTHOG_APIKEY) return
+
+            const posthog = new PostHog(process.env.NEXT_POSTHOG_APIKEY, { host: 'https://us.i.posthog.com' })
+
+            posthog.capture({
+              event: 'on_rate_docs',
+              timestamp: new Date(),
+              distinctId: 'anonymous',
+              properties: {
+                ...feedback,
+                url,
+                lang,
+              },
+            })
+          }}
+        >
+          <div data-docs-body>
+            <MDXContent
+              components={getGuidesMDXComponents({
+                a: ReferenceLink,
+              })}
+            />
+          </div>
+        </DocsArticle>
+      </DocsShellLayout>
+    </>
   )
 }

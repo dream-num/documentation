@@ -13,9 +13,12 @@ import { defineConfig, defineDocs, frontmatterSchema, metaSchema } from 'fumadoc
 // import lastModified from 'fumadocs-mdx/plugins/last-modified'
 import { z } from 'zod'
 
+import { agentMarkdownOptions, remarkAgentImageSources, remarkStripMdxComments } from './lib/agent-docs/mdx-projection'
+
 export default defineConfig({
   // plugins: [lastModified()],
   mdxOptions: {
+    remarkPlugins: [remarkStripMdxComments, remarkAgentImageSources],
     rehypeCodeOptions: {
       themes: {
         light: 'github-light',
@@ -62,6 +65,9 @@ export default defineConfig({
 export const guides = defineDocs({
   dir: './content/guides',
   docs: {
+    postprocess: {
+      includeProcessedMarkdown: agentMarkdownOptions,
+    },
     schema: frontmatterSchema,
   },
   meta: {
@@ -72,6 +78,9 @@ export const guides = defineDocs({
 export const reference = defineDocs({
   dir: './content/reference',
   docs: {
+    postprocess: {
+      includeProcessedMarkdown: agentMarkdownOptions,
+    },
     schema: frontmatterSchema,
   },
   meta: {
@@ -82,6 +91,9 @@ export const reference = defineDocs({
 export const icons = defineDocs({
   dir: './content/icons',
   docs: {
+    postprocess: {
+      includeProcessedMarkdown: agentMarkdownOptions,
+    },
     schema: frontmatterSchema,
   },
   meta: {
@@ -92,10 +104,7 @@ export const icons = defineDocs({
 export const blog = defineDocs({
   dir: './content/blog',
   docs: {
-    files: [
-      '**/*.mdx',
-      '!weekly-*.mdx',
-    ],
+    files: ['**/*.mdx', '!weekly-*.mdx'],
     schema: frontmatterSchema.extend({
       author: z.string(),
       date: z.iso.date().or(z.date()),

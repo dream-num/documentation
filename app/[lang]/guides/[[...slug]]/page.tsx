@@ -3,6 +3,7 @@ import process from 'node:process'
 import { notFound } from 'next/navigation'
 import { PostHog } from 'posthog-node'
 
+import { AgentDocsLinks } from '@/components/agent-docs-links'
 import { GuidesArticle } from '@/components/guides/article'
 import { GuidesLayout } from '@/components/guides/layout'
 import { getGuidesMDXComponents } from '@/components/mdx-docs'
@@ -49,46 +50,49 @@ export default async function Page({ params }: IProps) {
   const GuideLink = createDocsRelativeLink(guides, page)
 
   return (
-    <GuidesLayout
-      lang={lang}
-      navigation={navigation}
-      pathname={page.url}
-      toc={page.data.toc}
-      tocFooter={<SponsorCard />}
-    >
-      <GuidesArticle
-        title={page.data.title}
-        description={page.data.description}
-        editUrl={editUrl}
+    <>
+      <AgentDocsLinks collection="guides" lang={lang} pageUrl={page.url} />
+      <GuidesLayout
         navigation={navigation}
         lang={lang}
-        onRateAction={async (url, feedback) => {
-          'use server'
-
-          if (!process.env.NEXT_POSTHOG_APIKEY) return
-
-          const posthog = new PostHog(process.env.NEXT_POSTHOG_APIKEY, { host: 'https://us.i.posthog.com' })
-
-          posthog.capture({
-            event: 'on_rate_docs',
-            timestamp: new Date(),
-            distinctId: 'anonymous',
-            properties: {
-              ...feedback,
-              url,
-              lang,
-            },
-          })
-        }}
+        pathname={page.url}
+        toc={page.data.toc}
+        tocFooter={<SponsorCard />}
       >
-        <div data-docs-body>
-          <MDXContent
-            components={getGuidesMDXComponents({
-              a: GuideLink,
-            })}
-          />
-        </div>
-      </GuidesArticle>
-    </GuidesLayout>
+        <GuidesArticle
+          title={page.data.title}
+          description={page.data.description}
+          editUrl={editUrl}
+          navigation={navigation}
+          lang={lang}
+          onRateAction={async (url, feedback) => {
+            'use server'
+
+            if (!process.env.NEXT_POSTHOG_APIKEY) return
+
+            const posthog = new PostHog(process.env.NEXT_POSTHOG_APIKEY, { host: 'https://us.i.posthog.com' })
+
+            posthog.capture({
+              event: 'on_rate_docs',
+              timestamp: new Date(),
+              distinctId: 'anonymous',
+              properties: {
+                ...feedback,
+                url,
+                lang,
+              },
+            })
+          }}
+        >
+          <div data-docs-body>
+            <MDXContent
+              components={getGuidesMDXComponents({
+                a: GuideLink,
+              })}
+            />
+          </div>
+        </GuidesArticle>
+      </GuidesLayout>
+    </>
   )
 }

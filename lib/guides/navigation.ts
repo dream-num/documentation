@@ -31,7 +31,7 @@ interface PageTreeNode {
   $id?: string
 }
 
-const guideProductSegments = ['sheets', 'docs', 'slides', 'boards', 'bases', 'skills']
+const guideProductSegments = ['sheets', 'docs', 'slides', 'boards', 'bases']
 const guideStandaloneSegments = ['pro', 'recipes']
 
 function getNodeId(node: PageTreeNode) {
@@ -61,10 +61,7 @@ function normalizeNode(node: PageTreeNode): GuideNavItem {
   }
 
   if (node.type === 'folder') {
-    const children = [
-      ...(node.index ? [normalizeNode(node.index)] : []),
-      ...(node.children ?? []).map(normalizeNode),
-    ]
+    const children = [...(node.index ? [normalizeNode(node.index)] : []), ...(node.children ?? []).map(normalizeNode)]
 
     return {
       id,
@@ -118,11 +115,7 @@ function flattenPages(items: GuideNavItem[]): GuideNavItem[] {
   })
 }
 
-function findTrail(
-  items: GuideNavItem[],
-  pathname: string,
-  trail: GuideNavItem[] = [],
-): GuideNavItem[] {
+function findTrail(items: GuideNavItem[], pathname: string, trail: GuideNavItem[] = []): GuideNavItem[] {
   for (const item of items) {
     const nextTrail = [...trail, item]
     if (item.url === pathname) {
@@ -140,7 +133,7 @@ function findTrail(
 
 export function isGuideNavItemActive(item: GuideNavItem, pathname: string): boolean {
   if (item.url === pathname) return true
-  return item.children.some(child => isGuideNavItemActive(child, pathname))
+  return item.children.some((child) => isGuideNavItemActive(child, pathname))
 }
 
 export function getGuideNavItemHref(item: GuideNavItem): string | undefined {
@@ -170,12 +163,12 @@ export function getGuideProductItems(items: GuideNavItem[]): GuideNavItem[] {
   }
 
   return guideProductSegments
-    .map(segment => productBySegment.get(segment))
+    .map((segment) => productBySegment.get(segment))
     .filter((item): item is GuideNavItem => Boolean(item))
 }
 
 export function getActiveGuideProduct(items: GuideNavItem[], pathname: string): GuideNavItem | undefined {
-  return getGuideProductItems(items).find(item => isGuideNavItemActive(item, pathname))
+  return getGuideProductItems(items).find((item) => isGuideNavItemActive(item, pathname))
 }
 
 export function getGuideStandaloneItems(items: GuideNavItem[]): GuideNavItem[] {
@@ -189,30 +182,25 @@ export function getGuideStandaloneItems(items: GuideNavItem[]): GuideNavItem[] {
   }
 
   return guideStandaloneSegments
-    .map(segment => standaloneBySegment.get(segment))
+    .map((segment) => standaloneBySegment.get(segment))
     .filter((item): item is GuideNavItem => Boolean(item))
 }
 
 export function getActiveGuideStandaloneItem(items: GuideNavItem[], pathname: string): GuideNavItem | undefined {
-  return getGuideStandaloneItems(items).find(item => isGuideNavItemActive(item, pathname))
+  return getGuideStandaloneItems(items).find((item) => isGuideNavItemActive(item, pathname))
 }
 
-export function createGuideNavigation(
-  pageTree: PageTreeNode | PageTreeNode[],
-  pathname: string,
-): GuideNavigation {
+export function createGuideNavigation(pageTree: PageTreeNode | PageTreeNode[], pathname: string): GuideNavigation {
   const items = getRootItems(pageTree).map(normalizeNode)
   const flatPages = flattenPages(items)
   const activeTrail = findTrail(items, pathname)
-  const activeIndex = flatPages.findIndex(item => item.url === pathname)
+  const activeIndex = flatPages.findIndex((item) => item.url === pathname)
 
   return {
     items,
     flatPages,
     activeTrail,
     previous: activeIndex > 0 ? flatPages[activeIndex - 1] : undefined,
-    next: activeIndex >= 0 && activeIndex < flatPages.length - 1
-      ? flatPages[activeIndex + 1]
-      : undefined,
+    next: activeIndex >= 0 && activeIndex < flatPages.length - 1 ? flatPages[activeIndex + 1] : undefined,
   }
 }
