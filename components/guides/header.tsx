@@ -29,7 +29,9 @@ function LanguageSwitcher({
 }) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button aria-label={label} size="icon" type="button" variant="outline" />}>
+      <DropdownMenuTrigger
+        render={<Button aria-label={label} className="size-8" size="icon" type="button" variant="outline" />}
+      >
         <LanguagesIcon className="size-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -68,7 +70,7 @@ export async function GuidesHeader({
 
   return (
     <header className="bg-background/95 supports-backdrop-filter:bg-background/80 sticky top-0 z-40 border-b backdrop-blur-sm lg:shrink-0">
-      <div className="mx-auto flex h-16 max-w-384 items-center gap-3 px-4 lg:px-6">
+      <div className="mx-auto flex h-12 max-w-384 items-center gap-2 px-4 lg:px-6">
         <GuidesMobileNav
           labels={{
             guides: t('search.scope.guides'),
@@ -81,7 +83,7 @@ export async function GuidesHeader({
           pathname={pathname}
         />
         <Link aria-label={t('navigation.univer-home')} className="flex shrink-0 items-center" href="/">
-          <Logo />
+          <Logo className="h-8 w-auto" />
         </Link>
         <PrimaryNavigation items={items} labels={navigationLabels} pathname={pathname} />
         <div className="min-w-0 flex-1" />
@@ -101,7 +103,7 @@ export async function GuidesHeader({
           </div>
         </div>
       </div>
-      <div className="border-t px-4 py-2 sm:hidden">
+      <div className="border-t px-4 py-1.5 sm:hidden">
         <GuidesSearch lang={lang} />
       </div>
     </header>

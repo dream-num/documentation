@@ -31,12 +31,12 @@ export function SiteMobileMenu({
     <details className="group lg:hidden">
       <summary
         aria-label={openLabel}
-        className="hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex size-9 cursor-pointer list-none items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none [&::-webkit-details-marker]:hidden"
+        className="hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex size-8 cursor-pointer list-none items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none [&::-webkit-details-marker]:hidden"
         role="button"
       >
-        <MenuIcon className="size-5" />
+        <MenuIcon className="size-4" />
       </summary>
-      <div className="bg-background fixed top-16 left-0 z-50 flex h-[calc(100dvh-4rem)] w-[min(22rem,calc(100vw-2rem))] flex-col border-r shadow-lg">
+      <div className="bg-background fixed top-12 left-0 z-50 flex h-[calc(100dvh-3rem)] w-[min(22rem,calc(100vw-2rem))] flex-col border-r shadow-lg">
         <div className="border-b p-4">
           <p className="text-lg font-semibold tracking-normal">Univer</p>
         </div>

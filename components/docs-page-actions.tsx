@@ -67,7 +67,7 @@ export function DocsPageActions({ githubUrl, markdownUrl }: IDocsPageActionsProp
   }
 
   return (
-    <div className="mt-4 inline-flex max-w-full">
+    <div className="inline-flex max-w-full">
       <Button
         className={clsx('min-w-0 rounded-r-none border-r-0', '[&_svg]:text-muted-foreground')}
         disabled={copyStatus === 'copying'}
@@ -90,7 +90,7 @@ export function DocsPageActions({ githubUrl, markdownUrl }: IDocsPageActionsProp
       </Button>
       <Select value={null} onValueChange={handlePageAction}>
         <SelectTrigger aria-label={t('docs.page-actions')} className="rounded-l-none px-2" />
-        <SelectContent align="end" className={clsx('w-60', 'max-w-[calc(100vw-2rem)]')}>
+        <SelectContent align="end" className="w-max max-w-[calc(100vw-2rem)]">
           <SelectItem value="markdown">
             <span className="flex items-center gap-2">
               <SiMarkdown aria-hidden="true" />

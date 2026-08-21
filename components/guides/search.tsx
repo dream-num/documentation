@@ -130,9 +130,9 @@ export function GuidesSearch({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Button
-        className={clsx('text-muted-foreground gap-2', compact ? 'shrink-0' : `w-44 justify-start md:w-64`)}
+        className={clsx('text-muted-foreground gap-2', compact ? 'size-8 shrink-0' : `w-44 justify-start md:w-64`)}
         aria-label={t('search.label')}
-        size={compact ? 'icon' : 'default'}
+        size={compact ? 'icon' : 'sm'}
         type="button"
         variant="outline"
         onClick={() => setOpen(true)}

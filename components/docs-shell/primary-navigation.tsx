@@ -53,7 +53,7 @@ function ProductSwitcher({ items, label, pathname }: { items: IGuideNavItem[]; l
       <DropdownMenuTrigger
         render={
           <button
-            className="group text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            className="group text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
             type="button"
           />
         }
@@ -114,7 +114,7 @@ export function PrimaryNavigation({
       {standaloneItems.map((item) => (
         <Link
           className={clsx(
-            `text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-md px-3 py-2 text-sm whitespace-nowrap transition-colors`,
+            `text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-md px-2.5 py-1.5 text-sm whitespace-nowrap transition-colors`,
             isGuideNavItemActive(item, pathname) && 'bg-accent text-accent-foreground',
           )}
           href={getGuideNavItemHref(item) ?? '#'}
@@ -126,7 +126,7 @@ export function PrimaryNavigation({
       {links.map((link) => (
         <Link
           className={clsx(
-            `text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-md px-3 py-2 text-sm whitespace-nowrap transition-colors`,
+            `text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-md px-2.5 py-1.5 text-sm whitespace-nowrap transition-colors`,
             isPrimaryLinkActive(pathname, link.url) && 'bg-accent text-accent-foreground',
           )}
           href={link.url}
