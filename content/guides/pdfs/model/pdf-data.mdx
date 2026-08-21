@@ -1,0 +1,68 @@
+---
+title: PDF Unit Data
+description: Understand the persisted IPdfUnitData contract and the boundary between imported PDF content and durable edits.
+icon: '#pro/Database'
+---
+
+## IPdfUnitData
+
+`IPdfUnitData` is the persisted snapshot for one `UNIVER_PDF` unit. Its schema is `univer-pdf-unit`, its current schema version is `1`, and revision numbers start at `1`.
+
+| Property            | Type                                          | Purpose                                                          |
+| ------------------- | --------------------------------------------- | ---------------------------------------------------------------- |
+| `schema`            | `'univer-pdf-unit'`                           | Stable PDF unit schema identifier                                |
+| `schemaVersion`     | `1`                                           | Current PDF unit schema version                                  |
+| `id`                | `string`                                      | Identity shared by storage, collaboration, resources, and export |
+| `rev`               | `number`                                      | Authoritative unit revision                                      |
+| `name`              | `string`                                      | User-facing PDF name                                             |
+| `sourceDocumentRef` | `IPdfSourceDocumentRef`                       | Immutable provenance for an imported PDF artifact                |
+| `document`          | `IPdfDocument`                                | Imported baseline or blank document baseline                     |
+| `editState`         | `IPdfDurableEditState`                        | Accepted, persisted editing intent                               |
+| `documentShell?`    | `IPdfDocumentShell`                           | Small page directory and fragment index for block-backed PDFs    |
+| `fragmentIndex?`    | `IPdfUnitFragmentIndex`                       | Logical mapping from pages and shared data to stored fragments   |
+| `resourceBindings?` | `Record<string, PdfDurableResourceBinding>`   | Durable native or Univer-managed resource bindings               |
+| `fragmentBindings?` | `Record<string, IPdfFragmentArtifactBinding>` | Runtime file bindings for independently loaded fragments         |
+| `capabilityReport?` | `IPdfCapabilityReport`                        | Import/runtime decisions for supported actions and fallbacks     |
+| `metadata?`         | `Record<string, PdfJsonValue>`                | Application or integration metadata                              |
+
+## Baseline and edit layer
+
+The imported `document` is an immutable baseline. Editing does not rewrite it in place. Text replacements, inserted objects, page changes, source suppressions, and managed resources are recorded in `editState`, then projected over the baseline for rendering and export.
+
+This separation preserves native PDF provenance and lets exporters decide which source operations can be copied, suppressed, or replaced.
+
+<Callout type="warning" title="Choose the correct view">
+  `pdf.getDocument()` returns the imported baseline. `pdf.save()` returns the complete unit snapshot with its durable
+  edit state. Advanced integrations can obtain the current projection from `pdf.getModel().getMaterializedDocument()`.
+</Callout>
+
+## Create and persist a snapshot
+
+```ts
+const pdf = univerAPI.createPdf({ name: 'Untitled contract' })
+const page = pdf.getPageByIndex(0)
+
+page?.insertTextBox({
+  text: 'Draft',
+  left: 36,
+  top: 36,
+})
+
+const snapshot = pdf.save()
+await applicationStorage.save(snapshot.id, snapshot)
+```
+
+Restore the complete snapshot through the Facade:
+
+```ts
+const snapshot = await applicationStorage.load('pdf-unit-id')
+const pdf = univerAPI.createPdf(snapshot)
+```
+
+Do not mutate a snapshot object after the unit is running. Use Facade methods or registered commands so validation, undo and redo, collaboration, and export intent stay consistent.
+
+## Block-backed PDFs
+
+Large or remotely stored PDFs can use `documentShell`, `fragmentIndex`, and `fragmentBindings`. The shell keeps page sizes, order, labels, and block IDs available before every page body is loaded. Page and shared fragments are materialized through providers as the UI needs them.
+
+These fields are exchange and storage contracts. Application code normally receives them from the PDF exchange or collaboration services and persists them unchanged.

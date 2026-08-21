@@ -1,0 +1,72 @@
+---
+title: Pages and Elements
+description: Understand PDF pages, native source content, editable overlays, and coordinate systems.
+icon: '#pro/Layers'
+---
+
+## Document structure
+
+`IPdfDocument` contains the normalized PDF document model:
+
+- `pages` stores page order, size, rotation, layers, labels, and native PDF boxes.
+- `objects` stores semantic document objects.
+- `displayLists` preserve render-level PDF operations and source fidelity.
+- `textStories` keep editable text flow independent from unstable PDF glyph grouping.
+- `assets`, `styles`, and `native` retain reusable and source-specific resources.
+- `sources`, `edits`, and `exportPlan` record provenance and export intent.
+
+For an imported PDF, not every visible source operation becomes an editable Facade element. Native content can remain in display lists until a user action promotes or replaces it.
+
+## Pages
+
+`FPdf` reads pages in materialized order and inserts blank pages:
+
+```ts
+const pages = pdf.getPages()
+const firstPage = pdf.getPageByIndex(0)
+const pageById = firstPage ? pdf.getPageById(firstPage.getId()) : null
+const appendedPage = pdf.insertPage()
+```
+
+`insertPage(index)` accepts an integer from `0` through the current page count. A new page inherits adjacent page size, rotation, and PDF boxes. When no adjacent page exists, it uses A4 dimensions of 595 by 842 points.
+
+## Native content and editable overlays
+
+`FPdfPage.getElements()` returns durable editable overlays in z-order. Typed accessors filter the same overlay layer:
+
+| Accessor           | Facade wrapper   |
+| ------------------ | ---------------- |
+| `getTextBoxes()`   | `FPdfTextBox`    |
+| `getParagraphs()`  | `FPdfParagraph`  |
+| `getLists()`       | `FPdfList`       |
+| `getTables()`      | `FPdfTable`      |
+| `getImages()`      | `FPdfImage`      |
+| `getDividers()`    | `FPdfDivider`    |
+| `getAnnotations()` | `FPdfAnnotation` |
+
+`getTextSpans()` is different: it enumerates snapshots of visible native text operations. Calling `replaceText()` on a span suppresses the native operation and creates a new editable text box.
+
+## Coordinate systems
+
+The core model and the public Facade intentionally use different units:
+
+| Boundary                                                     | Unit and origin                    |
+| ------------------------------------------------------------ | ---------------------------------- |
+| Facade positions, sizes, annotation paths, and stroke widths | PDF points, top-left placement     |
+| Core model page and object geometry                          | EMU, top-left origin               |
+| Imported `pdfBoxes` and native source mappings               | PDF user space, bottom-left origin |
+
+Use `getTransform`, `setPosition`, `setSize`, `setRotation`, and typed Facade insert options in application code. Use `ptToEmu`, `emuToPt`, and related conversion helpers only when building lower-level model data.
+
+## Public editing limits
+
+The Facade validates several model constraints:
+
+- Width and height must be positive finite values; positions and rotations must be finite.
+- List levels range from `0` through `8`; an ordered-list start number must be a positive integer.
+- A table must have positive integer dimensions and no more than 10,000 cells.
+- Facade annotation insertion supports highlight, underline, strikeout, squiggly, and ink annotations.
+- Image opacity ranges from `0` through `1`, and a crop rectangle must have positive area.
+- Text ranges use inclusive start and exclusive end UTF-16 offsets.
+
+For task-oriented examples, continue with [Editing PDFs](/guides/pdfs/features/editing).

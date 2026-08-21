@@ -1,0 +1,72 @@
+---
+title: 页面和元素
+description: 了解 PDF 页面、原生源内容、可编辑叠加层和坐标系。
+icon: '#pro/Layers'
+---
+
+## 文档结构
+
+`IPdfDocument` 包含规范化的 PDF 文档模型：
+
+- `pages` 存储页面顺序、大小、旋转、图层、标签和原生 PDF 边界框。
+- `objects` 存储语义文档对象。
+- `displayLists` 保留渲染级 PDF 操作和源文件保真度。
+- `textStories` 使可编辑文本流独立于不稳定的 PDF 字形分组。
+- `assets`、`styles` 和 `native` 保留可复用资源及源文件特有资源。
+- `sources`、`edits` 和 `exportPlan` 记录来源和导出意图。
+
+对于导入的 PDF，并非所有可见的源操作都会成为可编辑的 Facade 元素。原生内容可以保留在显示列表中，直到用户操作将其提升或替换。
+
+## 页面
+
+`FPdf` 按物化后的顺序读取页面，并可插入空白页：
+
+```ts
+const pages = pdf.getPages()
+const firstPage = pdf.getPageByIndex(0)
+const pageById = firstPage ? pdf.getPageById(firstPage.getId()) : null
+const appendedPage = pdf.insertPage()
+```
+
+`insertPage(index)` 接受从 `0` 到当前页面数之间的整数。新页面会继承相邻页面的大小、旋转和 PDF 边界框。如果没有相邻页面，则使用 595 × 842 点的 A4 尺寸。
+
+## 原生内容与可编辑叠加层
+
+`FPdfPage.getElements()` 按层叠顺序返回持久化的可编辑叠加元素。类型化访问器会筛选同一叠加层：
+
+| 访问器             | Facade 包装器    |
+| ------------------ | ---------------- |
+| `getTextBoxes()`   | `FPdfTextBox`    |
+| `getParagraphs()`  | `FPdfParagraph`  |
+| `getLists()`       | `FPdfList`       |
+| `getTables()`      | `FPdfTable`      |
+| `getImages()`      | `FPdfImage`      |
+| `getDividers()`    | `FPdfDivider`    |
+| `getAnnotations()` | `FPdfAnnotation` |
+
+`getTextSpans()` 与它们不同：它会枚举可见原生文本操作的快照。在文本片段上调用 `replaceText()` 会抑制原生操作并创建新的可编辑文本框。
+
+## 坐标系
+
+核心模型和公共 Facade 有意使用不同的单位：
+
+| 边界                                  | 单位与原点               |
+| ------------------------------------- | ------------------------ |
+| Facade 位置、大小、批注路径和描边宽度 | PDF 点，左上角定位       |
+| 核心模型页面和对象几何                | EMU，左上角原点          |
+| 导入的 `pdfBoxes` 和原生源映射        | PDF 用户空间，左下角原点 |
+
+在应用代码中使用 `getTransform`、`setPosition`、`setSize`、`setRotation` 和类型化 Facade 插入选项。仅在构建底层模型数据时使用 `ptToEmu`、`emuToPt` 及相关转换辅助函数。
+
+## 公共编辑限制
+
+Facade 会验证多项模型约束：
+
+- 宽度和高度必须是有限正数；位置和旋转必须是有限数值。
+- 列表层级范围为 `0` 到 `8`；有序列表的起始编号必须是正整数。
+- 表格必须具有正整数维度，且不能超过 10,000 个单元格。
+- Facade 批注插入支持高亮、下划线、删除线、波浪线和墨迹批注。
+- 图片不透明度范围为 `0` 到 `1`，裁剪矩形必须具有正面积。
+- 文本范围使用起始位置包含、结束位置不包含的 UTF-16 偏移量。
+
+面向任务的示例请继续阅读[编辑 PDF](/guides/pdfs/features/editing)。

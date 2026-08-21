@@ -1,5 +1,7 @@
-import type { GuideNavItem } from '@/lib/guides/navigation'
 import { MenuIcon } from 'lucide-react'
+
+import type { IGuideNavItem } from '@/lib/guides/navigation'
+
 import { GuidesSidebar } from './sidebar'
 
 export function GuidesMobileNav({
@@ -10,7 +12,7 @@ export function GuidesMobileNav({
   pathname,
   title,
 }: {
-  items: GuideNavItem[]
+  items: IGuideNavItem[]
   labels: {
     guides: string
     products: string
@@ -21,29 +23,14 @@ export function GuidesMobileNav({
   title: string
 }) {
   return (
-    <details
-      className="
-        group
-        lg:hidden
-      "
-    >
+    <details className="group lg:hidden">
       <summary
         aria-label={openLabel}
-        className="
-          inline-flex size-9 cursor-pointer list-none items-center justify-center rounded-md transition-colors
-          hover:bg-accent hover:text-accent-foreground
-          focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none
-          [&::-webkit-details-marker]:hidden
-        "
+        className="hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex size-9 cursor-pointer list-none items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none [&::-webkit-details-marker]:hidden"
       >
         <MenuIcon className="size-5" />
       </summary>
-      <div
-        className="
-          fixed top-16 left-0 z-50 flex h-[calc(100dvh-4rem)] w-[min(22rem,calc(100vw-2rem))] flex-col border-r
-          bg-background shadow-lg
-        "
-      >
+      <div className="bg-background fixed top-16 left-0 z-50 flex h-[calc(100dvh-4rem)] w-[min(22rem,calc(100vw-2rem))] flex-col border-r shadow-lg">
         <div className="border-b p-4">
           <p className="text-lg font-semibold tracking-normal">{title}</p>
         </div>

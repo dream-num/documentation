@@ -1,0 +1,69 @@
+---
+title: PDF-Einheitsdaten
+description: Lernen Sie den gespeicherten IPdfUnitData-Vertrag und die Grenze zwischen importiertem PDF-Inhalt und dauerhaften Bearbeitungen kennen.
+icon: '#pro/Database'
+---
+
+## IPdfUnitData
+
+`IPdfUnitData` ist der gespeicherte Snapshot einer `UNIVER_PDF`-Einheit. Sein Schema ist `univer-pdf-unit`, die aktuelle Schemaversion ist `1` und Revisionsnummern beginnen bei `1`.
+
+| Eigenschaft         | Typ                                           | Zweck                                                                                 |
+| ------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `schema`            | `'univer-pdf-unit'`                           | Stabiler Schemabezeichner der PDF-Einheit                                             |
+| `schemaVersion`     | `1`                                           | Aktuelle Schemaversion der PDF-Einheit                                                |
+| `id`                | `string`                                      | Von Speicherung, Zusammenarbeit, Ressourcen und Export gemeinsam verwendete Identität |
+| `rev`               | `number`                                      | Maßgebliche Revision der Einheit                                                      |
+| `name`              | `string`                                      | Benutzerseitiger PDF-Name                                                             |
+| `sourceDocumentRef` | `IPdfSourceDocumentRef`                       | Unveränderliche Herkunft eines importierten PDF-Artefakts                             |
+| `document`          | `IPdfDocument`                                | Importierte Basis oder Basis eines leeren Dokuments                                   |
+| `editState`         | `IPdfDurableEditState`                        | Akzeptierte, gespeicherte Bearbeitungsabsicht                                         |
+| `documentShell?`    | `IPdfDocumentShell`                           | Kleines Seitenverzeichnis und Fragmentindex für blockgestützte PDFs                   |
+| `fragmentIndex?`    | `IPdfUnitFragmentIndex`                       | Logische Zuordnung von Seiten und gemeinsamen Daten zu gespeicherten Fragmenten       |
+| `resourceBindings?` | `Record<string, PdfDurableResourceBinding>`   | Dauerhafte Bindungen nativer oder von Univer verwalteter Ressourcen                   |
+| `fragmentBindings?` | `Record<string, IPdfFragmentArtifactBinding>` | Laufzeitdateibindungen für unabhängig geladene Fragmente                              |
+| `capabilityReport?` | `IPdfCapabilityReport`                        | Import- oder Laufzeitentscheidungen für unterstützte Aktionen und Rückfalloptionen    |
+| `metadata?`         | `Record<string, PdfJsonValue>`                | Anwendungs- oder Integrationsmetadaten                                                |
+
+## Basis und Bearbeitungsebene
+
+Das importierte `document` ist eine unveränderliche Basis. Bei der Bearbeitung wird es nicht direkt überschrieben. Textersetzungen, eingefügte Objekte, Seitenänderungen, Quellunterdrückungen und verwaltete Ressourcen werden in `editState` aufgezeichnet und anschließend zum Rendern und Exportieren über die Basis projiziert.
+
+Diese Trennung bewahrt die native PDF-Herkunft und ermöglicht Exportern zu entscheiden, welche Quelloperationen kopiert, unterdrückt oder ersetzt werden können.
+
+<Callout type="warning" title="Wählen Sie die richtige Ansicht">
+  `pdf.getDocument()` gibt die importierte Basis zurück. `pdf.save()` gibt den vollständigen Einheiten-Snapshot mit
+  seinem dauerhaften Bearbeitungszustand zurück. Erweiterte Integrationen können die aktuelle Projektion über
+  `pdf.getModel().getMaterializedDocument()` abrufen.
+</Callout>
+
+## Snapshot erstellen und speichern
+
+```ts
+const pdf = univerAPI.createPdf({ name: 'Untitled contract' })
+const page = pdf.getPageByIndex(0)
+
+page?.insertTextBox({
+  text: 'Draft',
+  left: 36,
+  top: 36,
+})
+
+const snapshot = pdf.save()
+await applicationStorage.save(snapshot.id, snapshot)
+```
+
+Stellen Sie den vollständigen Snapshot über die Facade wieder her:
+
+```ts
+const snapshot = await applicationStorage.load('pdf-unit-id')
+const pdf = univerAPI.createPdf(snapshot)
+```
+
+Verändern Sie kein Snapshot-Objekt, nachdem die Einheit ausgeführt wird. Verwenden Sie Facade-Methoden oder registrierte Befehle, damit Validierung, Rückgängig und Wiederholen, Zusammenarbeit und Exportabsicht konsistent bleiben.
+
+## Blockgestützte PDFs
+
+Große oder entfernt gespeicherte PDFs können `documentShell`, `fragmentIndex` und `fragmentBindings` verwenden. Die Shell hält Seitengrößen, Reihenfolge, Beschriftungen und Block-IDs verfügbar, bevor jeder Seiteninhalt geladen ist. Seiten und gemeinsame Fragmente werden durch Provider materialisiert, wenn die Benutzeroberfläche sie benötigt.
+
+Diese Felder sind Exchange- und Speicherverträge. Anwendungscode erhält sie normalerweise von den PDF-Exchange- oder Collaboration-Diensten und speichert sie unverändert.

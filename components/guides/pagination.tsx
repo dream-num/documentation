@@ -1,6 +1,6 @@
 import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react'
 
-import type { GuideNavItem } from '@/lib/guides/navigation'
+import type { IGuideNavItem } from '@/lib/guides/navigation'
 import { Link } from '@/i18n/navigation'
 
 export function GuidesPagination({
@@ -8,8 +8,8 @@ export function GuidesPagination({
   next,
   labels,
 }: {
-  previous?: GuideNavItem
-  next?: GuideNavItem
+  previous?: IGuideNavItem
+  next?: IGuideNavItem
   labels: {
     next: string
     pagination: string

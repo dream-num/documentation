@@ -1,0 +1,109 @@
+---
+title: Importation et exportation
+icon: '#pro/FolderSync'
+---
+
+L'importation et l'exportation PDF sont des processus de conversion assurés par le serveur. Les API pour les unités conservées et celles pour les snapshots nécessitent toutes deux le service Univer Exchange ; le chemin basé sur un snapshot supprime uniquement les exigences de collaboration et de persistance.
+
+<Callout type="warning" title="Serveur requis">
+  Configurez un serveur Univer Pro avant d'activer ces API. Sans les points de terminaison de téléversement, de
+  conversion, de tâches et de fichiers signés, les méthodes ne renvoient aucune unité ni aucun fichier converti.
+</Callout>
+
+## Enregistrer les plugins Exchange
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/pdfs-exchange-client
+```
+
+Ajoutez les packs de locales et le style d'Exchange à la configuration décrite dans [Installation et utilisation de base](/guides/pdfs/getting-started/installation) :
+
+```ts
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
+import ExchangeClientEnUS from '@univerjs-pro/exchange-client/locale/en-US'
+import { UniverPdfsExchangeClientPlugin } from '@univerjs-pro/pdfs-exchange-client'
+import PdfsExchangeClientEnUS from '@univerjs-pro/pdfs-exchange-client/locale/en-US'
+
+import '@univerjs-pro/exchange-client/lib/index.css'
+
+import '@univerjs-pro/exchange-client/facade'
+import '@univerjs-pro/pdfs-exchange-client/facade'
+```
+
+Fusionnez `ExchangeClientEnUS` et `PdfsExchangeClientEnUS` dans la locale transmise à `Univer`, puis enregistrez le client Exchange partagé avant l'adaptateur PDF :
+
+```ts
+const serverEndpoint = 'https://your-univer-server.example.com'
+
+univer.registerPlugin(UniverExchangeClientPlugin, {
+  uploadFileServerUrl: `${serverEndpoint}/universer-api/stream/file/upload`,
+  importServerUrl: `${serverEndpoint}/universer-api/exchange/{type}/import`,
+  exportServerUrl: `${serverEndpoint}/universer-api/exchange/{type}/export`,
+  getTaskServerUrl: `${serverEndpoint}/universer-api/exchange/task/{taskID}`,
+  signUrlServerUrl: `${serverEndpoint}/universer-api/file/{fileID}/sign-url`,
+  downloadEndpointUrl: serverEndpoint,
+})
+univer.registerPlugin(UniverPdfsExchangeClientPlugin)
+```
+
+Omettez les options des points de terminaison lorsque le serveur Univer est accessible par les routes de même origine `/universer-api/*` par défaut. Augmentez `maxTimeoutTime` lorsque la conversion de PDF volumineux peut dépasser le délai d'expiration par défaut des tâches.
+
+## Choisir un chemin de données
+
+| Chemin     | Conserve une unité serveur | Collaboration requise | Serveur de conversion |
+| ---------- | :------------------------: | :-------------------: | :-------------------: |
+| ID d'unité |            Oui             |          Oui          |        Requis         |
+| Snapshot   |            Non             |          Non          |        Requis         |
+
+### Importer dans une unité conservée
+
+L'entrée peut être un objet `File` du navigateur ou une URL. Chargez l'unité renvoyée avec le client de collaboration configuré.
+
+```ts
+const unitId = await univerAPI.importPdfToUnitIdAsync(file)
+
+if (unitId) {
+  const pdf = await univerAPI.getCollaboration().loadPdfAsync(unitId)
+  console.log(pdf?.getName())
+}
+```
+
+### Importer dans un snapshot
+
+Utilisez l'importation dans un snapshot pour une unité PDF locale qui ne doit pas être conservée dans le cadre de la tâche de conversion :
+
+```ts
+const snapshot = await univerAPI.importPdfToSnapshotAsync(file)
+
+if (snapshot) {
+  univerAPI.createPdf(snapshot)
+}
+```
+
+### Exporter et télécharger
+
+Exportez une unité conservée par son ID :
+
+```ts
+const file = await univerAPI.exportPdfByUnitIdAsync(unitId)
+
+if (file) {
+  univerAPI.downloadFile(file, 'project-brief', 'pdf')
+}
+```
+
+Exportez le snapshot local actuel sans le conserver au préalable :
+
+```ts
+const pdf = univerAPI.getActivePdf()
+
+if (pdf) {
+  const file = await univerAPI.exportPdfBySnapshotAsync(pdf.save())
+
+  if (file) {
+    univerAPI.downloadFile(file, pdf.getName(), 'pdf')
+  }
+}
+```
+
+Ces API renvoient un objet `File`. L'impression dans le navigateur est un processus distinct qui ouvre la boîte de dialogue d'impression du système ; consultez [Impression](/guides/pdfs/features/print).

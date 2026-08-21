@@ -1,0 +1,109 @@
+---
+title: Импорт и экспорт
+icon: '#pro/FolderSync'
+---
+
+Импорт и экспорт PDF — это серверные процессы преобразования. API сохранённых модулей и снимков требуют службы Univer Exchange; путь со снимком исключает только требования к совместной работе и хранению.
+
+<Callout type="warning" title="Требуется сервер">
+  Настройте Univer Pro Server перед включением этих API. Без конечных точек загрузки, преобразования, задач и
+  подписанных файлов методы не возвращают преобразованный модуль или файл.
+</Callout>
+
+## Регистрация плагинов Exchange
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/pdfs-exchange-client
+```
+
+Добавьте пакеты локалей и стиль Exchange к настройке из раздела [Установка и основы использования](/guides/pdfs/getting-started/installation):
+
+```ts
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
+import ExchangeClientEnUS from '@univerjs-pro/exchange-client/locale/en-US'
+import { UniverPdfsExchangeClientPlugin } from '@univerjs-pro/pdfs-exchange-client'
+import PdfsExchangeClientEnUS from '@univerjs-pro/pdfs-exchange-client/locale/en-US'
+
+import '@univerjs-pro/exchange-client/lib/index.css'
+
+import '@univerjs-pro/exchange-client/facade'
+import '@univerjs-pro/pdfs-exchange-client/facade'
+```
+
+Объедините `ExchangeClientEnUS` и `PdfsExchangeClientEnUS` с локалью, передаваемой в `Univer`, затем зарегистрируйте общий клиент Exchange перед адаптером PDF:
+
+```ts
+const serverEndpoint = 'https://your-univer-server.example.com'
+
+univer.registerPlugin(UniverExchangeClientPlugin, {
+  uploadFileServerUrl: `${serverEndpoint}/universer-api/stream/file/upload`,
+  importServerUrl: `${serverEndpoint}/universer-api/exchange/{type}/import`,
+  exportServerUrl: `${serverEndpoint}/universer-api/exchange/{type}/export`,
+  getTaskServerUrl: `${serverEndpoint}/universer-api/exchange/task/{taskID}`,
+  signUrlServerUrl: `${serverEndpoint}/universer-api/file/{fileID}/sign-url`,
+  downloadEndpointUrl: serverEndpoint,
+})
+univer.registerPlugin(UniverPdfsExchangeClientPlugin)
+```
+
+Если сервер Univer доступен по стандартным маршрутам того же источника `/universer-api/*`, параметры конечных точек можно опустить. Увеличьте `maxTimeoutTime`, если преобразование больших PDF может превысить стандартное время ожидания задачи.
+
+## Выбор пути данных
+
+| Путь      | Сохраняет модуль на сервере | Требует совместной работы | Сервер преобразования |
+| --------- | :-------------------------: | :-----------------------: | :-------------------: |
+| ID модуля |             Да              |            Да             |       Требуется       |
+| Снимок    |             Нет             |            Нет            |       Требуется       |
+
+### Импорт в сохраняемый модуль
+
+Входными данными могут быть браузерный объект `File` или URL. Загрузите возвращённый модуль через настроенный клиент совместной работы.
+
+```ts
+const unitId = await univerAPI.importPdfToUnitIdAsync(file)
+
+if (unitId) {
+  const pdf = await univerAPI.getCollaboration().loadPdfAsync(unitId)
+  console.log(pdf?.getName())
+}
+```
+
+### Импорт в снимок
+
+Используйте импорт в снимок для локального модуля PDF, который не следует сохранять в рамках задачи преобразования:
+
+```ts
+const snapshot = await univerAPI.importPdfToSnapshotAsync(file)
+
+if (snapshot) {
+  univerAPI.createPdf(snapshot)
+}
+```
+
+### Экспорт и скачивание
+
+Экспортируйте сохранённый модуль по ID:
+
+```ts
+const file = await univerAPI.exportPdfByUnitIdAsync(unitId)
+
+if (file) {
+  univerAPI.downloadFile(file, 'project-brief', 'pdf')
+}
+```
+
+Экспортируйте текущий локальный снимок, не сохраняя его предварительно:
+
+```ts
+const pdf = univerAPI.getActivePdf()
+
+if (pdf) {
+  const file = await univerAPI.exportPdfBySnapshotAsync(pdf.save())
+
+  if (file) {
+    univerAPI.downloadFile(file, pdf.getName(), 'pdf')
+  }
+}
+```
+
+Эти API возвращают объект `File`. Браузерная печать — отдельный процесс, который открывает системный диалог печати; см. раздел [Печать](/guides/pdfs/features/print).

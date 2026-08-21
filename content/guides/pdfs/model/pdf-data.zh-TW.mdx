@@ -1,0 +1,68 @@
+---
+title: PDF 單元資料
+description: 瞭解持久化的 IPdfUnitData 契約，以及匯入 PDF 內容與持久化編輯之間的邊界。
+icon: '#pro/Database'
+---
+
+## IPdfUnitData
+
+`IPdfUnitData` 是一個 `UNIVER_PDF` 單元的持久化快照。它的結構描述為 `univer-pdf-unit`，目前結構描述版本為 `1`，修訂號從 `1` 開始。
+
+| 屬性                | 類型                                          | 用途                                      |
+| ------------------- | --------------------------------------------- | ----------------------------------------- |
+| `schema`            | `'univer-pdf-unit'`                           | 穩定的 PDF 單元結構描述識別碼             |
+| `schemaVersion`     | `1`                                           | 目前 PDF 單元結構描述版本                 |
+| `id`                | `string`                                      | 儲存、協作、資源和匯出共用的識別          |
+| `rev`               | `number`                                      | 權威單元修訂號                            |
+| `name`              | `string`                                      | 面向使用者的 PDF 名稱                     |
+| `sourceDocumentRef` | `IPdfSourceDocumentRef`                       | 匯入 PDF 成品的不可變來源資訊             |
+| `document`          | `IPdfDocument`                                | 匯入的基線或空白文件基線                  |
+| `editState`         | `IPdfDurableEditState`                        | 已接受並持久化的編輯意圖                  |
+| `documentShell?`    | `IPdfDocumentShell`                           | 用於區塊型 PDF 的小型頁面目錄和片段索引   |
+| `fragmentIndex?`    | `IPdfUnitFragmentIndex`                       | 從頁面和共用資料到已儲存片段的邏輯對應    |
+| `resourceBindings?` | `Record<string, PdfDurableResourceBinding>`   | 持久化的原生或 Univer 管理資源繫結        |
+| `fragmentBindings?` | `Record<string, IPdfFragmentArtifactBinding>` | 獨立載入片段的執行階段檔案繫結            |
+| `capabilityReport?` | `IPdfCapabilityReport`                        | 針對支援操作和後援方案的匯入/執行階段決策 |
+| `metadata?`         | `Record<string, PdfJsonValue>`                | 應用程式或整合中繼資料                    |
+
+## 基線與編輯層
+
+匯入的 `document` 是不可變基線。編輯不會就地重寫它。文字取代、插入物件、頁面變更、來源抑制和受管理資源都會記錄在 `editState` 中，然後投影到基線上用於呈現和匯出。
+
+這種分離方式保留了原生 PDF 的來源資訊，並讓匯出器決定哪些來源操作可以複製、抑制或取代。
+
+<Callout type="warning" title="選擇正確的檢視">
+  `pdf.getDocument()` 傳回匯入的基線。`pdf.save()` 傳回包含持久化編輯狀態的完整單元快照。進階整合可以透過
+  `pdf.getModel().getMaterializedDocument()` 取得目前投影。
+</Callout>
+
+## 建立並持久化快照
+
+```ts
+const pdf = univerAPI.createPdf({ name: 'Untitled contract' })
+const page = pdf.getPageByIndex(0)
+
+page?.insertTextBox({
+  text: 'Draft',
+  left: 36,
+  top: 36,
+})
+
+const snapshot = pdf.save()
+await applicationStorage.save(snapshot.id, snapshot)
+```
+
+透過 Facade 還原完整快照：
+
+```ts
+const snapshot = await applicationStorage.load('pdf-unit-id')
+const pdf = univerAPI.createPdf(snapshot)
+```
+
+單元執行後不要修改快照物件。請使用 Facade 方法或已註冊的命令，以確保驗證、復原和重做、協作以及匯出意圖保持一致。
+
+## 區塊型 PDF
+
+大型或遠端儲存的 PDF 可以使用 `documentShell`、`fragmentIndex` 和 `fragmentBindings`。在載入所有頁面內容之前，Shell 就能提供頁面大小、順序、標籤和區塊 ID。UI 會視需要透過 Provider 具現化頁面片段和共用片段。
+
+這些欄位是 Exchange 和儲存契約。應用程式碼通常從 PDF Exchange 或協作服務接收它們，並保持原樣持久化。

@@ -1,7 +1,9 @@
+import type { AgentDocsCollection } from '@/lib/agent-docs/links'
+import { getAgentMarkdownPath } from '@/lib/agent-docs/links'
 import { withLocale } from '@/lib/locale-path'
 
 interface IProps {
-  collection: 'guides' | 'icons' | 'reference'
+  collection: AgentDocsCollection
   lang: string
   pageUrl: string
 }
@@ -9,7 +11,7 @@ interface IProps {
 export function AgentDocsLinks({ collection, lang, pageUrl }: IProps) {
   return (
     <>
-      <link href={withLocale(lang, `${pageUrl}.md`)} rel="alternate" type="text/markdown" />
+      <link href={getAgentMarkdownPath(lang, pageUrl)} rel="alternate" type="text/markdown" />
       <link href={withLocale(lang, `/${collection}/llms.txt`)} rel="describedby" type="text/plain" />
     </>
   )

@@ -1,0 +1,109 @@
+---
+title: Importación y exportación
+icon: '#pro/FolderSync'
+---
+
+La importación y exportación de PDF son flujos de conversión respaldados por servidor. Tanto las API de unidad persistente como las de instantánea requieren el servicio Univer Exchange; la ruta de instantánea solo elimina el requisito de colaboración y persistencia.
+
+<Callout type="warning" title="Servidor obligatorio">
+  Configure un Univer Pro Server antes de habilitar estas API. Sin los endpoints de carga, conversión, tareas y archivos
+  firmados, los métodos no devuelven ninguna unidad ni archivo convertido.
+</Callout>
+
+## Registrar los plugins de Exchange
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/pdfs-exchange-client
+```
+
+Añada los paquetes de configuración regional y el estilo de Exchange a la configuración de [Instalación y uso básico](/guides/pdfs/getting-started/installation):
+
+```ts
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
+import ExchangeClientEnUS from '@univerjs-pro/exchange-client/locale/en-US'
+import { UniverPdfsExchangeClientPlugin } from '@univerjs-pro/pdfs-exchange-client'
+import PdfsExchangeClientEnUS from '@univerjs-pro/pdfs-exchange-client/locale/en-US'
+
+import '@univerjs-pro/exchange-client/lib/index.css'
+
+import '@univerjs-pro/exchange-client/facade'
+import '@univerjs-pro/pdfs-exchange-client/facade'
+```
+
+Combine `ExchangeClientEnUS` y `PdfsExchangeClientEnUS` en la configuración regional pasada a `Univer` y, a continuación, registre el cliente Exchange compartido antes del adaptador PDF:
+
+```ts
+const serverEndpoint = 'https://your-univer-server.example.com'
+
+univer.registerPlugin(UniverExchangeClientPlugin, {
+  uploadFileServerUrl: `${serverEndpoint}/universer-api/stream/file/upload`,
+  importServerUrl: `${serverEndpoint}/universer-api/exchange/{type}/import`,
+  exportServerUrl: `${serverEndpoint}/universer-api/exchange/{type}/export`,
+  getTaskServerUrl: `${serverEndpoint}/universer-api/exchange/task/{taskID}`,
+  signUrlServerUrl: `${serverEndpoint}/universer-api/file/{fileID}/sign-url`,
+  downloadEndpointUrl: serverEndpoint,
+})
+univer.registerPlugin(UniverPdfsExchangeClientPlugin)
+```
+
+Omita las opciones de endpoint cuando el servidor Univer esté disponible mediante las rutas predeterminadas del mismo origen `/universer-api/*`. Aumente `maxTimeoutTime` cuando las conversiones de PDF grandes puedan superar el tiempo de espera predeterminado de la tarea.
+
+## Elegir una ruta de datos
+
+| Ruta         | Conserva una unidad del servidor | Requiere colaboración | Servidor de conversión |
+| ------------ | :------------------------------: | :-------------------: | :--------------------: |
+| ID de unidad |                Sí                |          Sí           |      Obligatorio       |
+| Instantánea  |                No                |          No           |      Obligatorio       |
+
+### Importar a una unidad persistente
+
+La entrada puede ser un `File` del navegador o una URL. Cargue la unidad devuelta mediante el cliente de colaboración configurado.
+
+```ts
+const unitId = await univerAPI.importPdfToUnitIdAsync(file)
+
+if (unitId) {
+  const pdf = await univerAPI.getCollaboration().loadPdfAsync(unitId)
+  console.log(pdf?.getName())
+}
+```
+
+### Importar a una instantánea
+
+Utilice la importación a instantánea para una unidad PDF local que no deba conservarse como parte de la tarea de conversión:
+
+```ts
+const snapshot = await univerAPI.importPdfToSnapshotAsync(file)
+
+if (snapshot) {
+  univerAPI.createPdf(snapshot)
+}
+```
+
+### Exportar y descargar
+
+Exporte una unidad persistente mediante su ID:
+
+```ts
+const file = await univerAPI.exportPdfByUnitIdAsync(unitId)
+
+if (file) {
+  univerAPI.downloadFile(file, 'project-brief', 'pdf')
+}
+```
+
+Exporte la instantánea local actual sin conservarla primero:
+
+```ts
+const pdf = univerAPI.getActivePdf()
+
+if (pdf) {
+  const file = await univerAPI.exportPdfBySnapshotAsync(pdf.save())
+
+  if (file) {
+    univerAPI.downloadFile(file, pdf.getName(), 'pdf')
+  }
+}
+```
+
+Estas API devuelven un `File`. La impresión desde el navegador es un flujo independiente que abre el diálogo de impresión del sistema; consulte [Impresión](/guides/pdfs/features/print).

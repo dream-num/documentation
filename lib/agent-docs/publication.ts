@@ -1,16 +1,19 @@
 import { createHash } from 'node:crypto'
 
 import type { Locale } from '@/i18n/routing'
+import type { AgentDocsCollection } from '@/lib/agent-docs/links'
 import { isAppLocale } from '@/i18n/locale-config'
 import { routing } from '@/i18n/routing'
+import {
+  agentDocsCollections,
+  getAgentDocsRawSourceUrl,
+  getAgentDocsSourceUrl,
+  getAgentMarkdownPath,
+} from '@/lib/agent-docs/links'
 import { withLocale } from '@/lib/locale-path'
 import { guides, icons, reference } from '@/lib/source'
 
 import packageJson from '../../package.json'
-
-export const agentDocsCollections = ['guides', 'reference', 'icons'] as const
-
-export type AgentDocsCollection = (typeof agentDocsCollections)[number]
 
 interface IAgentDocsRequest {
   asset: string[]
@@ -60,9 +63,6 @@ const MARKDOWN_IMAGE_DESTINATION = /(!\[[^\]]*\]\()([^\s)]+)([^)]*\))/g
 const MARKDOWN_DELIMITER_ENTITY = /&#x(?:60|2a);/i
 const RAW_MDX_COMMENT = /\{\/\*|\*\/\}/
 const RAW_MDX_ELEMENT = /<\/?[A-Z][A-Za-z0-9.]*(?:\s|\/?>)/
-const SOURCE_BRANCH = 'next'
-const GITHUB_RAW_ORIGIN = `https://raw.githubusercontent.com/dream-num/documentation/${SOURCE_BRANCH}`
-
 let staticParamsPromise: Promise<IAgentDocsStaticParam[]> | undefined
 
 function isAgentDocsCollection(value: string): value is AgentDocsCollection {
@@ -138,10 +138,6 @@ function getContentLocale(path: string): Locale {
     if (withoutExtension.endsWith(`.${locale}`)) return locale
   }
   return routing.defaultLocale
-}
-
-function getMarkdownPath(lang: Locale, pageUrl: string) {
-  return `${withLocale(lang, pageUrl)}.md`
 }
 
 function getCollectionIndexPath(lang: Locale, collection: AgentDocsCollection) {
@@ -235,7 +231,7 @@ function rewriteInternalLinks(markdown: string, lang: Locale, collection: AgentD
 
 function rewriteImageSources(markdown: string, collection: AgentDocsCollection, page: AgentDocsPage) {
   const sourceDirectory = page.path.includes('/') ? page.path.slice(0, page.path.lastIndexOf('/') + 1) : ''
-  const baseUrl = `${GITHUB_RAW_ORIGIN}/content/${collection}/${sourceDirectory}`
+  const baseUrl = getAgentDocsRawSourceUrl(collection, sourceDirectory)
 
   return markdown.replace(MARKDOWN_IMAGE_DESTINATION, (_match, prefix: string, href: string, suffix: string) => {
     if (!href.startsWith(AGENT_IMAGE_SOURCE)) return `${prefix}${href}${suffix}`
@@ -309,7 +305,7 @@ async function renderPage(
   page: AgentDocsPage,
 ): Promise<IAgentDocsArtifact> {
   const humanPath = withLocale(lang, page.url)
-  const canonicalPath = getMarkdownPath(lang, page.url)
+  const canonicalPath = getAgentMarkdownPath(lang, page.url)
   const describedByPath = getCollectionIndexPath(lang, collection)
   const contentLanguage = getContentLocale(page.path)
   const processed = restoreMarkdownDelimiters(await page.data.getText('processed'))
@@ -324,7 +320,7 @@ async function renderPage(
     contentLanguage === lang
       ? undefined
       : `> Language fallback: requested \`${lang}\`; content is \`${contentLanguage}\`.`
-  const sourceUrl = `https://github.com/dream-num/documentation/blob/${SOURCE_BRANCH}/content/${collection}/${page.path}`
+  const sourceUrl = getAgentDocsSourceUrl(collection, page.path)
   const body = [
     `# ${page.data.title}`,
     description ? `> ${description}` : undefined,
@@ -400,7 +396,7 @@ function renderCollectionIndex(lang: Locale, collection: AgentDocsCollection): I
       const description = oneLine(page.data.description)
       const contentLocale = getContentLocale(page.path)
       const fallback = contentLocale === lang ? '' : ` _(content in ${contentLocale})_`
-      return `- [${page.data.title}](${DOCS_ORIGIN}${getMarkdownPath(lang, page.url)})${description ? `: ${description}` : ''}${fallback}`
+      return `- [${page.data.title}](${DOCS_ORIGIN}${getAgentMarkdownPath(lang, page.url)})${description ? `: ${description}` : ''}${fallback}`
     }),
     '',
   ].join('\n')

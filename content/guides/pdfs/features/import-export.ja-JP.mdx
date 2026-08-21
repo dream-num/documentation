@@ -1,0 +1,109 @@
+---
+title: インポートとエクスポート
+icon: '#pro/FolderSync'
+---
+
+PDF のインポートとエクスポートは、サーバーを利用する変換ワークフローです。永続ユニット API とスナップショット API はどちらも Univer Exchange サービスを必要とします。スナップショット経由では、共同編集と永続化の要件だけがなくなります。
+
+<Callout type="warning" title="サーバーが必要">
+  これらの API を有効にする前に Univer Pro Server
+  を構成してください。アップロード、変換、タスク、署名付きファイルの各エンドポイントがない場合、メソッドは変換済みユニットまたはファイルを返しません。
+</Callout>
+
+## Exchange プラグインを登録する
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/pdfs-exchange-client
+```
+
+[インストールと基本的な使い方](/guides/pdfs/getting-started/installation)の構成に、Exchange のロケールパックとスタイルを追加します。
+
+```ts
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
+import ExchangeClientEnUS from '@univerjs-pro/exchange-client/locale/en-US'
+import { UniverPdfsExchangeClientPlugin } from '@univerjs-pro/pdfs-exchange-client'
+import PdfsExchangeClientEnUS from '@univerjs-pro/pdfs-exchange-client/locale/en-US'
+
+import '@univerjs-pro/exchange-client/lib/index.css'
+
+import '@univerjs-pro/exchange-client/facade'
+import '@univerjs-pro/pdfs-exchange-client/facade'
+```
+
+`ExchangeClientEnUS` と `PdfsExchangeClientEnUS` を `Univer` に渡すロケールへ統合し、共通 Exchange クライアントを PDF アダプターより先に登録します。
+
+```ts
+const serverEndpoint = 'https://your-univer-server.example.com'
+
+univer.registerPlugin(UniverExchangeClientPlugin, {
+  uploadFileServerUrl: `${serverEndpoint}/universer-api/stream/file/upload`,
+  importServerUrl: `${serverEndpoint}/universer-api/exchange/{type}/import`,
+  exportServerUrl: `${serverEndpoint}/universer-api/exchange/{type}/export`,
+  getTaskServerUrl: `${serverEndpoint}/universer-api/exchange/task/{taskID}`,
+  signUrlServerUrl: `${serverEndpoint}/universer-api/file/{fileID}/sign-url`,
+  downloadEndpointUrl: serverEndpoint,
+})
+univer.registerPlugin(UniverPdfsExchangeClientPlugin)
+```
+
+Univer サーバーをデフォルトの同一オリジン `/universer-api/*` ルートから利用できる場合は、エンドポイントオプションを省略できます。大きな PDF の変換がデフォルトのタスクタイムアウトを超える可能性がある場合は、`maxTimeoutTime` を増やしてください。
+
+## データ経路を選択する
+
+| 経路             | サーバーユニットを永続化 | 共同編集が必要 | 変換サーバー |
+| ---------------- | :----------------------: | :------------: | :----------: |
+| ユニット ID      |           はい           |      はい      |     必須     |
+| スナップショット |          いいえ          |     いいえ     |     必須     |
+
+### 永続ユニットとしてインポートする
+
+入力にはブラウザーの `File` または URL を使用できます。返されたユニットは、構成済みの共同編集クライアントを通じて読み込みます。
+
+```ts
+const unitId = await univerAPI.importPdfToUnitIdAsync(file)
+
+if (unitId) {
+  const pdf = await univerAPI.getCollaboration().loadPdfAsync(unitId)
+  console.log(pdf?.getName())
+}
+```
+
+### スナップショットとしてインポートする
+
+変換タスクの一部として永続化しないローカル PDF ユニットには、スナップショットのインポートを使用します。
+
+```ts
+const snapshot = await univerAPI.importPdfToSnapshotAsync(file)
+
+if (snapshot) {
+  univerAPI.createPdf(snapshot)
+}
+```
+
+### エクスポートしてダウンロードする
+
+永続化されたユニットを ID でエクスポートします。
+
+```ts
+const file = await univerAPI.exportPdfByUnitIdAsync(unitId)
+
+if (file) {
+  univerAPI.downloadFile(file, 'project-brief', 'pdf')
+}
+```
+
+現在のローカルスナップショットは、先に永続化せずにエクスポートできます。
+
+```ts
+const pdf = univerAPI.getActivePdf()
+
+if (pdf) {
+  const file = await univerAPI.exportPdfBySnapshotAsync(pdf.save())
+
+  if (file) {
+    univerAPI.downloadFile(file, pdf.getName(), 'pdf')
+  }
+}
+```
+
+これらの API は `File` を返します。ブラウザー印刷はシステムの印刷ダイアログを開く別のワークフローです。[印刷](/guides/pdfs/features/print)を参照してください。

@@ -8,8 +8,8 @@ import { GuidesArticle } from '@/components/guides/article'
 import { GuidesLayout } from '@/components/guides/layout'
 import { getGuidesMDXComponents } from '@/components/mdx-docs'
 import { SponsorCard } from '@/components/sponsor-card'
+import { getAgentDocsSourceUrl, getAgentMarkdownPath } from '@/lib/agent-docs/links'
 import { createDocsRelativeLink } from '@/lib/docs/links'
-import { getGuidesEditUrl } from '@/lib/github'
 import { createGuideNavigation } from '@/lib/guides/navigation'
 import { guides } from '@/lib/source'
 
@@ -46,7 +46,6 @@ export default async function Page({ params }: IProps) {
 
   const MDXContent = page.data.body
   const navigation = createGuideNavigation(guides.pageTree[lang], page.url)
-  const editUrl = await getGuidesEditUrl(page.path)
   const GuideLink = createDocsRelativeLink(guides, page)
 
   return (
@@ -62,7 +61,8 @@ export default async function Page({ params }: IProps) {
         <GuidesArticle
           title={page.data.title}
           description={page.data.description}
-          editUrl={editUrl}
+          githubUrl={getAgentDocsSourceUrl('guides', page.path)}
+          markdownUrl={getAgentMarkdownPath(lang, page.url)}
           navigation={navigation}
           lang={lang}
           onRateAction={async (url, feedback) => {

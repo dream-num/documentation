@@ -1,0 +1,108 @@
+---
+title: 匯入與匯出
+icon: '#pro/FolderSync'
+---
+
+PDF 匯入和匯出是由伺服器支援的轉換工作流程。持久化單元 API 和快照 API 都需要 Univer Exchange 服務；快照路徑只會免除協作和持久化需求。
+
+<Callout type="warning" title="需要伺服器">
+  啟用這些 API 前，請設定 Univer Pro Server。若沒有上傳、轉換、工作和簽章檔案端點，這些方法不會傳回轉換後的單元或檔案。
+</Callout>
+
+## 註冊 Exchange 外掛
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/pdfs-exchange-client
+```
+
+在[安裝與基本使用](/guides/pdfs/getting-started/installation)的設定中加入 Exchange 語言套件和樣式：
+
+```ts
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
+import ExchangeClientEnUS from '@univerjs-pro/exchange-client/locale/en-US'
+import { UniverPdfsExchangeClientPlugin } from '@univerjs-pro/pdfs-exchange-client'
+import PdfsExchangeClientEnUS from '@univerjs-pro/pdfs-exchange-client/locale/en-US'
+
+import '@univerjs-pro/exchange-client/lib/index.css'
+
+import '@univerjs-pro/exchange-client/facade'
+import '@univerjs-pro/pdfs-exchange-client/facade'
+```
+
+將 `ExchangeClientEnUS` 和 `PdfsExchangeClientEnUS` 合併到傳給 `Univer` 的語言套件中，然後先註冊共用 Exchange 客戶端，再註冊 PDF 介接器：
+
+```ts
+const serverEndpoint = 'https://your-univer-server.example.com'
+
+univer.registerPlugin(UniverExchangeClientPlugin, {
+  uploadFileServerUrl: `${serverEndpoint}/universer-api/stream/file/upload`,
+  importServerUrl: `${serverEndpoint}/universer-api/exchange/{type}/import`,
+  exportServerUrl: `${serverEndpoint}/universer-api/exchange/{type}/export`,
+  getTaskServerUrl: `${serverEndpoint}/universer-api/exchange/task/{taskID}`,
+  signUrlServerUrl: `${serverEndpoint}/universer-api/file/{fileID}/sign-url`,
+  downloadEndpointUrl: serverEndpoint,
+})
+univer.registerPlugin(UniverPdfsExchangeClientPlugin)
+```
+
+當 Univer 伺服器可透過預設的同源 `/universer-api/*` 路由存取時，可以省略端點選項。如果大型 PDF 轉換可能超過預設工作逾時時間，請增加 `maxTimeoutTime`。
+
+## 選擇資料路徑
+
+| 路徑    | 是否持久化伺服器單元 | 是否需要協作 | 轉換伺服器 |
+| ------- | :------------------: | :----------: | :--------: |
+| 單元 ID |          是          |      是      |    必要    |
+| 快照    |          否          |      否      |    必要    |
+
+### 匯入為持久化單元
+
+輸入可以是瀏覽器 `File` 或 URL。透過已設定的協作客戶端載入傳回的單元：
+
+```ts
+const unitId = await univerAPI.importPdfToUnitIdAsync(file)
+
+if (unitId) {
+  const pdf = await univerAPI.getCollaboration().loadPdfAsync(unitId)
+  console.log(pdf?.getName())
+}
+```
+
+### 匯入為快照
+
+對於不應作為轉換工作一部分持久化的本機 PDF 單元，請使用快照匯入：
+
+```ts
+const snapshot = await univerAPI.importPdfToSnapshotAsync(file)
+
+if (snapshot) {
+  univerAPI.createPdf(snapshot)
+}
+```
+
+### 匯出並下載
+
+依 ID 匯出持久化單元：
+
+```ts
+const file = await univerAPI.exportPdfByUnitIdAsync(unitId)
+
+if (file) {
+  univerAPI.downloadFile(file, 'project-brief', 'pdf')
+}
+```
+
+不必先持久化，即可匯出目前的本機快照：
+
+```ts
+const pdf = univerAPI.getActivePdf()
+
+if (pdf) {
+  const file = await univerAPI.exportPdfBySnapshotAsync(pdf.save())
+
+  if (file) {
+    univerAPI.downloadFile(file, pdf.getName(), 'pdf')
+  }
+}
+```
+
+這些 API 傳回 `File`。瀏覽器列印是獨立的工作流程，會開啟系統列印對話方塊；請參閱[列印](/guides/pdfs/features/print)。

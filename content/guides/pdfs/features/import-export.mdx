@@ -1,0 +1,109 @@
+---
+title: Import & Export
+icon: '#pro/FolderSync'
+---
+
+PDF import and export are server-backed conversion workflows. Both persisted-unit and snapshot APIs require the Univer Exchange service; the snapshot path only removes the collaboration and persistence requirement.
+
+<Callout type="warning" title="Server required">
+  Configure a Univer Pro Server before enabling these APIs. Without the upload, conversion, task, and signed-file
+  endpoints, the methods return no converted unit or file.
+</Callout>
+
+## Register the Exchange plugins
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/pdfs-exchange-client
+```
+
+Add the Exchange locale packs and style to the setup from [Installation & Basic Usage](/guides/pdfs/getting-started/installation):
+
+```ts
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
+import ExchangeClientEnUS from '@univerjs-pro/exchange-client/locale/en-US'
+import { UniverPdfsExchangeClientPlugin } from '@univerjs-pro/pdfs-exchange-client'
+import PdfsExchangeClientEnUS from '@univerjs-pro/pdfs-exchange-client/locale/en-US'
+
+import '@univerjs-pro/exchange-client/lib/index.css'
+
+import '@univerjs-pro/exchange-client/facade'
+import '@univerjs-pro/pdfs-exchange-client/facade'
+```
+
+Merge `ExchangeClientEnUS` and `PdfsExchangeClientEnUS` into the locale passed to `Univer`, then register the shared Exchange client before the PDF adapter:
+
+```ts
+const serverEndpoint = 'https://your-univer-server.example.com'
+
+univer.registerPlugin(UniverExchangeClientPlugin, {
+  uploadFileServerUrl: `${serverEndpoint}/universer-api/stream/file/upload`,
+  importServerUrl: `${serverEndpoint}/universer-api/exchange/{type}/import`,
+  exportServerUrl: `${serverEndpoint}/universer-api/exchange/{type}/export`,
+  getTaskServerUrl: `${serverEndpoint}/universer-api/exchange/task/{taskID}`,
+  signUrlServerUrl: `${serverEndpoint}/universer-api/file/{fileID}/sign-url`,
+  downloadEndpointUrl: serverEndpoint,
+})
+univer.registerPlugin(UniverPdfsExchangeClientPlugin)
+```
+
+Omit the endpoint options when the Univer server is available through the default same-origin `/universer-api/*` routes. Increase `maxTimeoutTime` when large PDF conversions can exceed the default task timeout.
+
+## Choose a data path
+
+| Path     | Persists a server unit | Requires collaboration | Conversion server |
+| -------- | :--------------------: | :--------------------: | :---------------: |
+| Unit ID  |          Yes           |          Yes           |     Required      |
+| Snapshot |           No           |           No           |     Required      |
+
+### Import to a persisted unit
+
+The input can be a browser `File` or a URL. Load the returned unit through the configured collaboration client.
+
+```ts
+const unitId = await univerAPI.importPdfToUnitIdAsync(file)
+
+if (unitId) {
+  const pdf = await univerAPI.getCollaboration().loadPdfAsync(unitId)
+  console.log(pdf?.getName())
+}
+```
+
+### Import to a snapshot
+
+Use snapshot import for a local PDF unit that should not be persisted as part of the conversion task:
+
+```ts
+const snapshot = await univerAPI.importPdfToSnapshotAsync(file)
+
+if (snapshot) {
+  univerAPI.createPdf(snapshot)
+}
+```
+
+### Export and download
+
+Export a persisted unit by ID:
+
+```ts
+const file = await univerAPI.exportPdfByUnitIdAsync(unitId)
+
+if (file) {
+  univerAPI.downloadFile(file, 'project-brief', 'pdf')
+}
+```
+
+Export the current local snapshot without persisting it first:
+
+```ts
+const pdf = univerAPI.getActivePdf()
+
+if (pdf) {
+  const file = await univerAPI.exportPdfBySnapshotAsync(pdf.save())
+
+  if (file) {
+    univerAPI.downloadFile(file, pdf.getName(), 'pdf')
+  }
+}
+```
+
+These APIs return a `File`. Browser printing is a separate workflow that opens the system print dialog; see [Print](/guides/pdfs/features/print).

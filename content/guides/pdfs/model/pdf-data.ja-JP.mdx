@@ -1,0 +1,69 @@
+---
+title: PDF ユニットデータ
+description: 永続化される IPdfUnitData 契約と、インポート済み PDF コンテンツと永続編集の境界を説明します。
+icon: '#pro/Database'
+---
+
+## IPdfUnitData
+
+`IPdfUnitData` は、1 つの `UNIVER_PDF` ユニットを永続化するスナップショットです。スキーマは `univer-pdf-unit`、現在のスキーマバージョンは `1`、リビジョン番号は `1` から始まります。
+
+| プロパティ          | 型                                            | 用途                                                                      |
+| ------------------- | --------------------------------------------- | ------------------------------------------------------------------------- |
+| `schema`            | `'univer-pdf-unit'`                           | 安定した PDF ユニットスキーマ識別子                                       |
+| `schemaVersion`     | `1`                                           | 現在の PDF ユニットスキーマバージョン                                     |
+| `id`                | `string`                                      | ストレージ、共同編集、リソース、エクスポートで共有する識別子              |
+| `rev`               | `number`                                      | 正式なユニットリビジョン                                                  |
+| `name`              | `string`                                      | ユーザーに表示する PDF 名                                                 |
+| `sourceDocumentRef` | `IPdfSourceDocumentRef`                       | インポートした PDF アーティファクトの変更できない来歴                     |
+| `document`          | `IPdfDocument`                                | インポート済みベースラインまたは空白ドキュメントのベースライン            |
+| `editState`         | `IPdfDurableEditState`                        | 確定して永続化された編集意図                                              |
+| `documentShell?`    | `IPdfDocumentShell`                           | ブロックベース PDF 用の小さなページディレクトリとフラグメントインデックス |
+| `fragmentIndex?`    | `IPdfUnitFragmentIndex`                       | ページおよび共有データから保存済みフラグメントへの論理マッピング          |
+| `resourceBindings?` | `Record<string, PdfDurableResourceBinding>`   | 永続的なネイティブリソースまたは Univer 管理リソースのバインディング      |
+| `fragmentBindings?` | `Record<string, IPdfFragmentArtifactBinding>` | 個別に読み込むフラグメント用のランタイムファイルバインディング            |
+| `capabilityReport?` | `IPdfCapabilityReport`                        | 対応する操作とフォールバックに関するインポート時またはランタイム時の判定  |
+| `metadata?`         | `Record<string, PdfJsonValue>`                | アプリケーションまたは統合のメタデータ                                    |
+
+## ベースラインと編集レイヤー
+
+インポートされた `document` は変更できないベースラインです。編集時にその場で書き換えられることはありません。テキストの置換、挿入したオブジェクト、ページの変更、ソースの抑制、管理対象リソースは `editState` に記録され、レンダリングおよびエクスポート時にベースラインへ投影されます。
+
+この分離により、ネイティブ PDF の来歴が保持され、エクスポーターはコピー、抑制、置換が可能なソース操作を判断できます。
+
+<Callout type="warning" title="正しいビューを選択する">
+  `pdf.getDocument()` はインポート済みベースラインを返します。`pdf.save()`
+  は永続編集状態を含む完全なユニットスナップショットを返します。高度な統合では、`pdf.getModel().getMaterializedDocument()`
+  から現在の投影を取得できます。
+</Callout>
+
+## スナップショットを作成して永続化する
+
+```ts
+const pdf = univerAPI.createPdf({ name: 'Untitled contract' })
+const page = pdf.getPageByIndex(0)
+
+page?.insertTextBox({
+  text: 'Draft',
+  left: 36,
+  top: 36,
+})
+
+const snapshot = pdf.save()
+await applicationStorage.save(snapshot.id, snapshot)
+```
+
+Facade を通じて完全なスナップショットを復元します。
+
+```ts
+const snapshot = await applicationStorage.load('pdf-unit-id')
+const pdf = univerAPI.createPdf(snapshot)
+```
+
+ユニットの実行開始後は、スナップショットオブジェクトを変更しないでください。検証、元に戻す操作とやり直し操作、共同編集、エクスポート意図の整合性を維持するため、Facade メソッドまたは登録済みコマンドを使用してください。
+
+## ブロックベース PDF
+
+大きな PDF またはリモートに保存された PDF では、`documentShell`、`fragmentIndex`、`fragmentBindings` を使用できます。シェルにより、各ページ本文をすべて読み込む前でも、ページサイズ、順序、ラベル、ブロック ID を利用できます。UI は必要に応じ、プロバイダーを通じてページフラグメントと共有フラグメントを実体化します。
+
+これらのフィールドは Exchange とストレージの契約です。通常、アプリケーションコードは PDF Exchange サービスまたは共同編集サービスからこれらを受け取り、変更せずに永続化します。

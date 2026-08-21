@@ -1,0 +1,72 @@
+---
+title: Seiten und Elemente
+description: Lernen Sie PDF-Seiten, native Quellinhalte, bearbeitbare Überlagerungen und Koordinatensysteme kennen.
+icon: '#pro/Layers'
+---
+
+## Dokumentstruktur
+
+`IPdfDocument` enthält das normalisierte PDF-Dokumentmodell:
+
+- `pages` speichert Seitenreihenfolge, Größe, Drehung, Ebenen, Beschriftungen und native PDF-Boxen.
+- `objects` speichert semantische Dokumentobjekte.
+- `displayLists` bewahrt PDF-Operationen auf Renderebene und die Wiedergabetreue der Quelle.
+- `textStories` hält den bearbeitbaren Textfluss unabhängig von instabiler PDF-Glyphengruppierung.
+- `assets`, `styles` und `native` bewahren wiederverwendbare und quellenspezifische Ressourcen.
+- `sources`, `edits` und `exportPlan` zeichnen Herkunft und Exportabsicht auf.
+
+Bei einem importierten PDF wird nicht jede sichtbare Quelloperation zu einem bearbeitbaren Facade-Element. Nativer Inhalt kann in Display-Listen verbleiben, bis eine Benutzeraktion ihn heraufstuft oder ersetzt.
+
+## Seiten
+
+`FPdf` liest Seiten in materialisierter Reihenfolge und fügt leere Seiten ein:
+
+```ts
+const pages = pdf.getPages()
+const firstPage = pdf.getPageByIndex(0)
+const pageById = firstPage ? pdf.getPageById(firstPage.getId()) : null
+const appendedPage = pdf.insertPage()
+```
+
+`insertPage(index)` akzeptiert eine Ganzzahl von `0` bis zur aktuellen Seitenzahl. Eine neue Seite übernimmt Seitengröße, Drehung und PDF-Boxen einer benachbarten Seite. Wenn keine benachbarte Seite vorhanden ist, verwendet sie A4-Abmessungen von 595 mal 842 Punkten.
+
+## Native Inhalte und bearbeitbare Überlagerungen
+
+`FPdfPage.getElements()` gibt dauerhafte bearbeitbare Überlagerungen in Z-Reihenfolge zurück. Typisierte Zugriffsmethoden filtern dieselbe Überlagerungsebene:
+
+| Zugriffsmethode    | Facade-Wrapper   |
+| ------------------ | ---------------- |
+| `getTextBoxes()`   | `FPdfTextBox`    |
+| `getParagraphs()`  | `FPdfParagraph`  |
+| `getLists()`       | `FPdfList`       |
+| `getTables()`      | `FPdfTable`      |
+| `getImages()`      | `FPdfImage`      |
+| `getDividers()`    | `FPdfDivider`    |
+| `getAnnotations()` | `FPdfAnnotation` |
+
+`getTextSpans()` unterscheidet sich davon: Es zählt Snapshots sichtbarer nativer Textoperationen auf. Der Aufruf von `replaceText()` für einen Abschnitt unterdrückt die native Operation und erstellt ein neues bearbeitbares Textfeld.
+
+## Koordinatensysteme
+
+Das Core-Modell und die öffentliche Facade verwenden bewusst unterschiedliche Einheiten:
+
+| Grenze                                                        | Einheit und Ursprung                   |
+| ------------------------------------------------------------- | -------------------------------------- |
+| Facade-Positionen, -Größen, Anmerkungspfade und Strichbreiten | PDF-Punkte, Platzierung von oben links |
+| Seiten- und Objektgeometrie des Core-Modells                  | EMU, Ursprung oben links               |
+| Importierte `pdfBoxes` und native Quellzuordnungen            | PDF-Benutzerraum, Ursprung unten links |
+
+Verwenden Sie im Anwendungscode `getTransform`, `setPosition`, `setSize`, `setRotation` und typisierte Facade-Einfügeoptionen. Verwenden Sie `ptToEmu`, `emuToPt` und verwandte Konvertierungshilfen nur beim Erstellen tieferliegender Modelldaten.
+
+## Öffentliche Bearbeitungsgrenzen
+
+Die Facade validiert mehrere Modellbeschränkungen:
+
+- Breite und Höhe müssen positive endliche Werte sein; Positionen und Drehungen müssen endlich sein.
+- Listenebenen reichen von `0` bis `8`; die Startnummer einer geordneten Liste muss eine positive Ganzzahl sein.
+- Eine Tabelle muss positive ganzzahlige Abmessungen haben und darf höchstens 10,000 Zellen enthalten.
+- Die Facade-Anmerkungseinfügung unterstützt Hervorhebungs-, Unterstreichungs-, Durchstreichungs-, Wellenlinien- und Freihandanmerkungen.
+- Die Bilddeckkraft reicht von `0` bis `1`, und ein Zuschneiderechteck muss eine positive Fläche besitzen.
+- Textbereiche verwenden UTF-16-Offsets mit inklusivem Anfang und exklusivem Ende.
+
+Aufgabenorientierte Beispiele finden Sie unter [PDFs bearbeiten](/guides/pdfs/features/editing).

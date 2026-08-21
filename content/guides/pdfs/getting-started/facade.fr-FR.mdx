@@ -1,0 +1,95 @@
+---
+title: API de façade
+description: Créez, consultez et modifiez les unités PDF d'Univer avec l'API de façade PDF.
+icon: '#pro/PlugZap'
+---
+
+La façade PDF fournit des objets destinés aux applications pour les unités PDF, les pages, les éléments modifiables et le texte natif visible. Les mutations de la façade passent par les commandes d'Univer et participent aux opérations d'annulation et de rétablissement lorsque la mutation possède une opération inverse.
+
+## Activer la façade PDF
+
+Importez le point d'entrée à effet de bord avant de créer l'objet d'API :
+
+```ts
+import { FUniver } from '@univerjs/core/facade'
+
+import '@univerjs-pro/pdfs/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+Cet import ajoute les méthodes PDF à `FUniver` ; l'enregistrement distinct de `UniverPdfsPlugin` fournit le modèle d'unité PDF.
+
+## Créer et trouver des unités PDF
+
+L'appel de `createPdf` sans document source crée une page A4 vide.
+
+```ts
+const pdf = univerAPI.createPdf({
+  id: 'project-brief',
+  name: 'Project brief',
+})
+
+const activePdf = univerAPI.getActivePdf()
+const samePdf = univerAPI.getPdf(pdf.getId())
+```
+
+Utilisez `createPdf(snapshot)` pour restaurer des données précédemment renvoyées par `pdf.save()`.
+
+## Travailler avec les pages et les éléments
+
+Les valeurs de placement de la façade sont exprimées en points PDF. La géométrie du snapshot principal utilise des EMU ; le code de l'application doit donc privilégier les transformations de la façade plutôt que de modifier directement les coordonnées des objets.
+
+```ts
+const page = pdf.getPageByIndex(0) ?? pdf.insertPage()
+
+const title = page.insertTextBox({
+  text: 'Quarterly review',
+  left: 36,
+  top: 36,
+  width: 320,
+  height: 48,
+  fontSize: 22,
+})
+
+title.setTextStyle({ bold: true, fill: '#1d4ed8' })
+
+const table = page.insertTable({
+  rowCount: 2,
+  columnCount: 2,
+  cellTexts: ['Metric', 'Value', 'Users', '42'],
+  left: 36,
+  top: 108,
+  width: 360,
+  height: 108,
+})
+
+table.getCell(1, 1).setText('43')
+```
+
+Chaque élément modifiable prend en charge l'identité, les transformations, la visibilité, le verrouillage, l'ordre d'empilement et la suppression. Des wrappers spécialisés ajoutent des opérations sur le texte, les listes, les tableaux, les images, les séparateurs et les annotations.
+
+## Remplacer le texte natif importé
+
+Le texte PDF importé reste du contenu natif jusqu'à sa promotion. `getTextSpans()` renvoie des handles de snapshot pour le texte natif actuellement visible ; `replaceText()` masque cette plage source et crée une zone de texte modifiable en une seule mutation persistante.
+
+```ts
+const [span] = page.getTextSpans()
+
+if (span) {
+  const editableText = span.replaceText('Reviewed text')
+  editableText.setTextStyle({ fill: '#111827' })
+}
+```
+
+Un `FPdfTextSpan` est un snapshot pris au moment où il a été énuméré. Après le remplacement, l'ancien handle est obsolète et ne doit pas être réutilisé.
+
+## Enregistrer l'unité
+
+```ts
+const snapshot = pdf.save()
+```
+
+`save()` renvoie un snapshot `IPdfUnitData` détaché qui contient la référence importée immuable et la couche de modifications persistantes. `getDocument()` renvoie la référence source, et non le document modifié tel qu'il est matérialisé visuellement.
+
+Pour obtenir la liste complète des méthodes, consultez la [référence de la façade PDF](/reference/facade/pdf).

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-export interface GuideNavItem {
+export interface IGuideNavItem {
   id: string
   type: 'page' | 'folder' | 'link' | 'separator'
   name: string
@@ -8,33 +8,33 @@ export interface GuideNavItem {
   url?: string
   icon?: ReactNode
   external?: boolean
-  children: GuideNavItem[]
+  children: IGuideNavItem[]
 }
 
-export interface GuideNavigation {
-  items: GuideNavItem[]
-  flatPages: GuideNavItem[]
-  activeTrail: GuideNavItem[]
-  previous?: GuideNavItem
-  next?: GuideNavItem
+export interface IGuideNavigation {
+  items: IGuideNavItem[]
+  flatPages: IGuideNavItem[]
+  activeTrail: IGuideNavItem[]
+  previous?: IGuideNavItem
+  next?: IGuideNavItem
 }
 
-interface PageTreeNode {
+interface IPageTreeNode {
   type?: string
   name?: ReactNode
   description?: ReactNode
   url?: string
   icon?: ReactNode
   external?: boolean
-  children?: PageTreeNode[]
-  index?: PageTreeNode
+  children?: IPageTreeNode[]
+  index?: IPageTreeNode
   $id?: string
 }
 
-const guideProductSegments = ['sheets', 'docs', 'slides', 'boards', 'bases']
+const guideProductSegments = ['sheets', 'docs', 'slides', 'boards', 'bases', 'pdfs']
 const guideStandaloneSegments = ['pro', 'recipes']
 
-function getNodeId(node: PageTreeNode) {
+function getNodeId(node: IPageTreeNode) {
   const id = node.$id ?? node.url ?? (typeof node.name === 'string' ? node.name : undefined)
   if (!id) {
     throw new Error(`Unable to derive stable Guides navigation key for node type: ${node.type}`)
@@ -42,11 +42,11 @@ function getNodeId(node: PageTreeNode) {
   return id
 }
 
-function getNodeName(node: PageTreeNode) {
+function getNodeName(node: IPageTreeNode) {
   return typeof node.name === 'string' ? node.name : 'Untitled'
 }
 
-function normalizeNode(node: PageTreeNode): GuideNavItem {
+function normalizeNode(node: IPageTreeNode): IGuideNavItem {
   const id = getNodeId(node)
 
   if (node.type === 'page') {
@@ -99,14 +99,14 @@ function normalizeNode(node: PageTreeNode): GuideNavItem {
   throw new Error(`Unknown Guides page-tree node type: ${node.type}`)
 }
 
-function getRootItems(pageTree: PageTreeNode | PageTreeNode[]) {
+function getRootItems(pageTree: IPageTreeNode | IPageTreeNode[]) {
   if (Array.isArray(pageTree)) {
     return pageTree
   }
   return pageTree.children ?? []
 }
 
-function flattenPages(items: GuideNavItem[]): GuideNavItem[] {
+function flattenPages(items: IGuideNavItem[]): IGuideNavItem[] {
   return items.flatMap((item) => {
     if (item.type === 'page' && item.url) {
       return [item]
@@ -115,7 +115,7 @@ function flattenPages(items: GuideNavItem[]): GuideNavItem[] {
   })
 }
 
-function findTrail(items: GuideNavItem[], pathname: string, trail: GuideNavItem[] = []): GuideNavItem[] {
+function findTrail(items: IGuideNavItem[], pathname: string, trail: IGuideNavItem[] = []): IGuideNavItem[] {
   for (const item of items) {
     const nextTrail = [...trail, item]
     if (item.url === pathname) {
@@ -131,12 +131,12 @@ function findTrail(items: GuideNavItem[], pathname: string, trail: GuideNavItem[
   return []
 }
 
-export function isGuideNavItemActive(item: GuideNavItem, pathname: string): boolean {
+export function isGuideNavItemActive(item: IGuideNavItem, pathname: string): boolean {
   if (item.url === pathname) return true
   return item.children.some((child) => isGuideNavItemActive(child, pathname))
 }
 
-export function getGuideNavItemHref(item: GuideNavItem): string | undefined {
+export function getGuideNavItemHref(item: IGuideNavItem): string | undefined {
   if (item.url) return item.url
 
   for (const child of item.children) {
@@ -147,13 +147,13 @@ export function getGuideNavItemHref(item: GuideNavItem): string | undefined {
   return undefined
 }
 
-function getGuideRootSegment(item: GuideNavItem): string | undefined {
+function getGuideRootSegment(item: IGuideNavItem): string | undefined {
   const href = getGuideNavItemHref(item)
   return href?.match(/^(?:\/[a-z]{2}(?:-[A-Z]{2})?)?\/guides\/([^/]+)/)?.[1]
 }
 
-export function getGuideProductItems(items: GuideNavItem[]): GuideNavItem[] {
-  const productBySegment = new Map<string, GuideNavItem>()
+export function getGuideProductItems(items: IGuideNavItem[]): IGuideNavItem[] {
+  const productBySegment = new Map<string, IGuideNavItem>()
 
   for (const item of items) {
     const segment = getGuideRootSegment(item)
@@ -164,15 +164,15 @@ export function getGuideProductItems(items: GuideNavItem[]): GuideNavItem[] {
 
   return guideProductSegments
     .map((segment) => productBySegment.get(segment))
-    .filter((item): item is GuideNavItem => Boolean(item))
+    .filter((item): item is IGuideNavItem => Boolean(item))
 }
 
-export function getActiveGuideProduct(items: GuideNavItem[], pathname: string): GuideNavItem | undefined {
+export function getActiveGuideProduct(items: IGuideNavItem[], pathname: string): IGuideNavItem | undefined {
   return getGuideProductItems(items).find((item) => isGuideNavItemActive(item, pathname))
 }
 
-export function getGuideStandaloneItems(items: GuideNavItem[]): GuideNavItem[] {
-  const standaloneBySegment = new Map<string, GuideNavItem>()
+export function getGuideStandaloneItems(items: IGuideNavItem[]): IGuideNavItem[] {
+  const standaloneBySegment = new Map<string, IGuideNavItem>()
 
   for (const item of items) {
     const segment = getGuideRootSegment(item)
@@ -183,14 +183,14 @@ export function getGuideStandaloneItems(items: GuideNavItem[]): GuideNavItem[] {
 
   return guideStandaloneSegments
     .map((segment) => standaloneBySegment.get(segment))
-    .filter((item): item is GuideNavItem => Boolean(item))
+    .filter((item): item is IGuideNavItem => Boolean(item))
 }
 
-export function getActiveGuideStandaloneItem(items: GuideNavItem[], pathname: string): GuideNavItem | undefined {
+export function getActiveGuideStandaloneItem(items: IGuideNavItem[], pathname: string): IGuideNavItem | undefined {
   return getGuideStandaloneItems(items).find((item) => isGuideNavItemActive(item, pathname))
 }
 
-export function createGuideNavigation(pageTree: PageTreeNode | PageTreeNode[], pathname: string): GuideNavigation {
+export function createGuideNavigation(pageTree: IPageTreeNode | IPageTreeNode[], pathname: string): IGuideNavigation {
   const items = getRootItems(pageTree).map(normalizeNode)
   const flatPages = flattenPages(items)
   const activeTrail = findTrail(items, pathname)

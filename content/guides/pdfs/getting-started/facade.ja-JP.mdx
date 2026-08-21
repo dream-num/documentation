@@ -1,0 +1,95 @@
+---
+title: Facade API
+description: PDF Facade API を使用して Univer PDF ユニットを作成、読み取り、編集します。
+icon: '#pro/PlugZap'
+---
+
+PDF Facade は、PDF ユニット、ページ、編集可能な要素、表示されているネイティブテキストに対するアプリケーション向けオブジェクトを提供します。Facade の変更は Univer コマンドを通じて実行され、逆操作がある場合は元に戻す操作とやり直し操作の対象になります。
+
+## PDF Facade を有効にする
+
+API オブジェクトを作成する前に、副作用エントリをインポートします。
+
+```ts
+import { FUniver } from '@univerjs/core/facade'
+
+import '@univerjs-pro/pdfs/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+このインポートは `FUniver` に PDF メソッドを追加します。PDF ユニットモデルは、`UniverPdfsPlugin` を別途登録することで提供されます。
+
+## PDF ユニットを作成して取得する
+
+ソースドキュメントを指定せずに `createPdf` を呼び出すと、A4 の空白ページが 1 ページ作成されます。
+
+```ts
+const pdf = univerAPI.createPdf({
+  id: 'project-brief',
+  name: 'Project brief',
+})
+
+const activePdf = univerAPI.getActivePdf()
+const samePdf = univerAPI.getPdf(pdf.getId())
+```
+
+以前 `pdf.save()` から返されたデータを復元するには、`createPdf(snapshot)` を使用します。
+
+## ページと要素を操作する
+
+Facade の配置値は PDF ポイントで表されます。コアスナップショットのジオメトリは EMU を使用するため、アプリケーションコードではオブジェクトの座標を直接編集せず、Facade の変換を使用してください。
+
+```ts
+const page = pdf.getPageByIndex(0) ?? pdf.insertPage()
+
+const title = page.insertTextBox({
+  text: 'Quarterly review',
+  left: 36,
+  top: 36,
+  width: 320,
+  height: 48,
+  fontSize: 22,
+})
+
+title.setTextStyle({ bold: true, fill: '#1d4ed8' })
+
+const table = page.insertTable({
+  rowCount: 2,
+  columnCount: 2,
+  cellTexts: ['Metric', 'Value', 'Users', '42'],
+  left: 36,
+  top: 108,
+  width: 360,
+  height: 108,
+})
+
+table.getCell(1, 1).setText('43')
+```
+
+すべての編集可能な要素は、識別情報、変換、表示、ロック、重なり順、削除の操作に対応します。専用のラッパーには、テキスト、リスト、テーブル、画像、区切り線、注釈の操作が追加されています。
+
+## インポートしたネイティブテキストを置き換える
+
+インポートした PDF テキストは、昇格されるまでネイティブコンテンツとして維持されます。`getTextSpans()` は、現在表示されているネイティブテキストのスナップショットハンドルを返します。`replaceText()` は 1 回の永続的な変更で対象のソーステキスト範囲を抑制し、編集可能なテキストボックスを作成します。
+
+```ts
+const [span] = page.getTextSpans()
+
+if (span) {
+  const editableText = span.replaceText('Reviewed text')
+  editableText.setTextStyle({ fill: '#111827' })
+}
+```
+
+`FPdfTextSpan` は列挙した時点のスナップショットです。置き換え後は以前のハンドルが無効になるため、再利用しないでください。
+
+## ユニットを保存する
+
+```ts
+const snapshot = pdf.save()
+```
+
+`save()` は、変更できないインポート済みベースラインと永続編集レイヤーを含む、切り離された `IPdfUnitData` スナップショットを返します。`getDocument()` が返すのはソースのベースラインであり、編集結果を視覚的に反映したドキュメントではありません。
+
+すべてのメソッドについては、[PDF Facade リファレンス](/reference/facade/pdf)を参照してください。

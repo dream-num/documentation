@@ -1,0 +1,87 @@
+---
+title: 協作
+icon: '#pro/CloudCheck'
+---
+
+PDF 協作使用 Univer 的通用協作堆疊。只需設定一次此堆疊、註冊快速開始中的 PDF 外掛，然後依 ID 載入已持久化的 PDF 單元。
+
+<Callout type="warning" title="需要伺服器">
+  即時同步和持久化 PDF 單元需要 Univer Pro Server。請在應用程式邊界處理驗證和工作階段；切勿將認證或工作階段 Cookie
+  放入客戶端原始碼。
+</Callout>
+
+## 安裝協作客戶端
+
+```package-install
+npm install @univerjs-pro/collaboration @univerjs-pro/collaboration-client @univerjs-pro/collaboration-client-ui
+```
+
+匯入協作外掛和 Facade 入口：
+
+```ts
+import { UniverCollaborationPlugin } from '@univerjs-pro/collaboration'
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import CollaborationClientEnUS from '@univerjs-pro/collaboration-client/locale/en-US'
+import {
+  BrowserCollaborationSocketService,
+  UniverCollaborationClientUIPlugin,
+} from '@univerjs-pro/collaboration-client-ui'
+import CollaborationClientUIEnUS from '@univerjs-pro/collaboration-client-ui/locale/en-US'
+import { IAuthzIoService, IMentionIOService, IUndoRedoService } from '@univerjs/core'
+
+import '@univerjs-pro/collaboration-client-ui/lib/index.css'
+
+import '@univerjs-pro/collaboration-client/facade'
+```
+
+將兩個協作語言套件合併到 PDF 快速開始中的語言套件。建構 `Univer` 時，讓協作客戶端提供授權、提及以及復原/重做服務：
+
+```ts
+const univer = new Univer({
+  // Keep the locale and theme options from your PDF setup.
+  override: [
+    [IAuthzIoService, null],
+    [IUndoRedoService, null],
+    [IMentionIOService, null],
+  ],
+})
+```
+
+## 設定伺服器連線
+
+開啟 PDF 前先註冊協作堆疊。以下端點是部署預留位置，不是認證：
+
+```ts
+const serverEndpoint = 'https://your-univer-server.example.com'
+
+univer.registerPlugin(UniverCollaborationPlugin)
+univer.registerPlugin(UniverCollaborationClientPlugin, {
+  socketService: BrowserCollaborationSocketService,
+  enableAuthServer: true,
+  authzUrl: `${serverEndpoint}/universer-api/authz`,
+  snapshotServerUrl: `${serverEndpoint}/universer-api/snapshot`,
+  collabSubmitChangesetUrl: `${serverEndpoint}/universer-api/comb`,
+  collabWebSocketUrl: 'wss://your-univer-server.example.com/universer-api/comb/connect',
+})
+univer.registerPlugin(UniverCollaborationClientUIPlugin, {
+  enableDocumentCollaborationUI: false,
+})
+```
+
+`enableDocumentCollaborationUI: false` 會將 Docs 專用協作 UI 排除在 PDF 編輯器之外，同時保留共用協作客戶端 UI。
+
+## 載入協作 PDF
+
+透過伺服器 API 或 `importPdfToUnitIdAsync` 建立 PDF 單元後，使用協作 Facade 載入：
+
+```ts
+const pdf = await univerAPI.getCollaboration().loadPdfAsync(unitId)
+
+if (!pdf) {
+  throw new Error(`PDF unit not found: ${unitId}`)
+}
+
+console.log(pdf.getId(), pdf.getName())
+```
+
+`loadPdfAsync` 會載入伺服器快照、準備協作工作階段並傳回 `FPdf`。當單元無法與 PDF 關聯時，它會傳回 `null`。

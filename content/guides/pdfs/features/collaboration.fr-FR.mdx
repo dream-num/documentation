@@ -1,0 +1,88 @@
+---
+title: Collaboration
+icon: '#pro/CloudCheck'
+---
+
+La collaboration sur les PDF utilise l'infrastructure de collaboration générale d'Univer. Configurez cette infrastructure une seule fois, enregistrez les plugins PDF du démarrage rapide, puis chargez l'unité PDF conservée par son ID.
+
+<Callout type="warning" title="Serveur requis">
+  La synchronisation en temps réel et les unités PDF conservées nécessitent un serveur Univer Pro. Maintenez
+  l'authentification et la gestion des sessions aux limites de votre application ; ne placez jamais d'identifiants ni de
+  cookies de session dans le code source client.
+</Callout>
+
+## Installer le client de collaboration
+
+```package-install
+npm install @univerjs-pro/collaboration @univerjs-pro/collaboration-client @univerjs-pro/collaboration-client-ui
+```
+
+Importez les plugins de collaboration et le point d'entrée de la façade :
+
+```ts
+import { UniverCollaborationPlugin } from '@univerjs-pro/collaboration'
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import CollaborationClientEnUS from '@univerjs-pro/collaboration-client/locale/en-US'
+import {
+  BrowserCollaborationSocketService,
+  UniverCollaborationClientUIPlugin,
+} from '@univerjs-pro/collaboration-client-ui'
+import CollaborationClientUIEnUS from '@univerjs-pro/collaboration-client-ui/locale/en-US'
+import { IAuthzIoService, IMentionIOService, IUndoRedoService } from '@univerjs/core'
+
+import '@univerjs-pro/collaboration-client-ui/lib/index.css'
+
+import '@univerjs-pro/collaboration-client/facade'
+```
+
+Fusionnez les deux packs de locales de collaboration dans la locale du démarrage rapide PDF. Lors de la création de `Univer`, laissez le client de collaboration fournir les services d'autorisation, de mentions, d'annulation et de rétablissement :
+
+```ts
+const univer = new Univer({
+  // Keep the locale and theme options from your PDF setup.
+  override: [
+    [IAuthzIoService, null],
+    [IUndoRedoService, null],
+    [IMentionIOService, null],
+  ],
+})
+```
+
+## Configurer la connexion au serveur
+
+Enregistrez l'infrastructure de collaboration avant d'ouvrir un PDF. Le point de terminaison ci-dessous est un paramètre fictif de déploiement, pas un identifiant :
+
+```ts
+const serverEndpoint = 'https://your-univer-server.example.com'
+
+univer.registerPlugin(UniverCollaborationPlugin)
+univer.registerPlugin(UniverCollaborationClientPlugin, {
+  socketService: BrowserCollaborationSocketService,
+  enableAuthServer: true,
+  authzUrl: `${serverEndpoint}/universer-api/authz`,
+  snapshotServerUrl: `${serverEndpoint}/universer-api/snapshot`,
+  collabSubmitChangesetUrl: `${serverEndpoint}/universer-api/comb`,
+  collabWebSocketUrl: 'wss://your-univer-server.example.com/universer-api/comb/connect',
+})
+univer.registerPlugin(UniverCollaborationClientUIPlugin, {
+  enableDocumentCollaborationUI: false,
+})
+```
+
+`enableDocumentCollaborationUI: false` exclut de l'éditeur PDF l'interface de collaboration propre à Docs tout en conservant l'interface partagée du client de collaboration.
+
+## Charger un PDF collaboratif
+
+Après avoir créé une unité PDF avec l'API du serveur ou `importPdfToUnitIdAsync`, chargez-la avec la façade de collaboration :
+
+```ts
+const pdf = await univerAPI.getCollaboration().loadPdfAsync(unitId)
+
+if (!pdf) {
+  throw new Error(`PDF unit not found: ${unitId}`)
+}
+
+console.log(pdf.getId(), pdf.getName())
+```
+
+`loadPdfAsync` charge le snapshot du serveur, prépare la session de collaboration et renvoie un objet `FPdf`. Elle renvoie `null` lorsque l'unité ne peut pas être associée à un PDF.

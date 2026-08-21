@@ -1,6 +1,6 @@
 import { CheckIcon, ChevronDownIcon } from 'lucide-react'
 
-import type { GuideNavItem } from '@/lib/guides/navigation'
+import type { IGuideNavItem } from '@/lib/guides/navigation'
 import { NavIconFrame } from '@/components/docs-shell/nav-icon-frame'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { UniverIcon } from '@/components/univer-icon'
@@ -28,7 +28,7 @@ function isPrimaryLinkActive(pathname: string, href: string) {
   return isPathActive(pathname, href)
 }
 
-function getIconsProductItem(): GuideNavItem {
+function getIconsProductItem(): IGuideNavItem {
   return {
     id: 'icons',
     type: 'link',
@@ -39,7 +39,7 @@ function getIconsProductItem(): GuideNavItem {
   }
 }
 
-function ProductSwitcher({ items, label, pathname }: { items: GuideNavItem[]; label: string; pathname: string }) {
+function ProductSwitcher({ items, label, pathname }: { items: IGuideNavItem[]; label: string; pathname: string }) {
   const iconsProduct = getIconsProductItem()
   const productItems = [...getGuideProductItems(items), iconsProduct]
   const currentProduct = isPrimaryLinkActive(pathname, iconsProduct.url ?? '')
@@ -84,7 +84,7 @@ export function PrimaryNavigation({
   labels,
   pathname,
 }: {
-  items: GuideNavItem[]
+  items: IGuideNavItem[]
   labels: IPrimaryNavigationLabels
   pathname: string
 }) {

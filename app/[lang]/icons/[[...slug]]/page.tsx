@@ -10,7 +10,7 @@ import { DocsArticle } from '@/components/docs-shell/article'
 import { DocsShellLayout } from '@/components/docs-shell/layout'
 import { getGuidesMDXComponents } from '@/components/mdx-docs'
 import { SponsorCard } from '@/components/sponsor-card'
-import { getDocsEditUrl } from '@/lib/docs/edit-url'
+import { getAgentDocsSourceUrl, getAgentMarkdownPath } from '@/lib/agent-docs/links'
 import { createDocsRelativeLink } from '@/lib/docs/links'
 import { createDocsNavigation } from '@/lib/docs/navigation'
 import { icons } from '@/lib/source'
@@ -65,8 +65,9 @@ export default async function Page({ params }: IProps) {
       >
         <DocsArticle
           description={page.data.description}
-          editUrl={getDocsEditUrl('icons', page.path)}
+          githubUrl={getAgentDocsSourceUrl('icons', page.path)}
           lang={lang}
+          markdownUrl={getAgentMarkdownPath(lang, page.url)}
           navigation={navigation}
           title={page.data.title}
           onRateAction={async (url, feedback) => {

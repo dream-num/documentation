@@ -50,6 +50,12 @@ export default async function Layout({ params, children }: IProps) {
       iconClassName: 'bg-linear-[135deg,#6875F5_0%,#F0F5FF_100%] dark:bg-linear-[135deg,#6875F5_0%,#2A326B_100%]',
     },
     {
+      text: 'Univer PDFs',
+      url: '/guides/pdfs',
+      icon: <UniverIcon name="PdfMultiIcon" />,
+      iconClassName: 'bg-linear-[135deg,#F43F5E_0%,#FFF1F2_100%] dark:bg-linear-[135deg,#F43F5E_0%,#881337_100%]',
+    },
+    {
       text: 'Univer Icons',
       url: '/icons',
       icon: <UniverIcon name="SymbolsIcon" />,

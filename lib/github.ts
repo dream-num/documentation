@@ -36,13 +36,6 @@ const getCachedRepoStarsAndForks = unstable_cache(
   },
 )
 
-export async function getRepoStarsAndForks(
-  owner: string,
-  repo: string,
-) {
+export async function getRepoStarsAndForks(owner: string, repo: string) {
   return await getCachedRepoStarsAndForks(owner, repo)
-}
-
-export async function getGuidesEditUrl(path: string) {
-  return `https://github.com/dream-num/univer-documentation/tree/dev/content/guides/${path}`
 }

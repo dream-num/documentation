@@ -1,0 +1,122 @@
+---
+title: 설치 및 기본 사용법
+icon: '#pro/Blocks'
+---
+
+Univer PDFs는 Univer Pro 제품이며 현재 프리셋을 제공하지 않습니다. 플러그인 모드로 PDF 애플리케이션을 만드세요.
+
+## 브라우저 편집기 설치
+
+<Tabs items={['npm', 'pnpm', 'yarn']}>
+  <Tab>
+
+    ```shell
+    npm install @univerjs/core @univerjs/design @univerjs/ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-editor @univerjs-pro/pdfs-ui
+    ```
+
+  </Tab>
+  <Tab>
+
+    ```shell
+    pnpm add @univerjs/core @univerjs/design @univerjs/ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-editor @univerjs-pro/pdfs-ui
+    ```
+
+  </Tab>
+  <Tab>
+
+    ```shell
+    yarn add @univerjs/core @univerjs/design @univerjs/ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-editor @univerjs-pro/pdfs-ui react react-dom rxjs
+    ```
+
+  </Tab>
+</Tabs>
+
+모든 `@univerjs/*` 및 `@univerjs-pro/*` 패키지를 동일한 버전으로 유지하세요.
+
+## 플러그인 등록
+
+<Steps>
+  <Step>
+    공통 UI 스타일을 PDF UI 스타일보다 먼저 가져오고, 애플리케이션에서 활성화한 로캘 팩을 병합하세요.
+
+    ```ts
+    import { UniverLicensePlugin } from '@univerjs-pro/license'
+    import { UniverPdfsPlugin } from '@univerjs-pro/pdfs'
+    import { UniverPdfEditorPlugin } from '@univerjs-pro/pdfs-editor'
+    import { UniverPdfsUIPlugin } from '@univerjs-pro/pdfs-ui'
+    import PdfsUIEnUS from '@univerjs-pro/pdfs-ui/locale/en-US'
+    import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+    import { FUniver } from '@univerjs/core/facade'
+    import DesignEnUS from '@univerjs/design/locale/en-US'
+    import { UniverUIPlugin } from '@univerjs/ui'
+    import UIEnUS from '@univerjs/ui/locale/en-US'
+
+    import '@univerjs/design/lib/index.css'
+    import '@univerjs/ui/lib/index.css'
+    import '@univerjs-pro/pdfs-ui/lib/index.css'
+    ```
+
+  </Step>
+  <Step>
+    PDF 퍼사드 진입점을 가져오세요. 이 부수 효과 가져오기는 `FUniver`에 PDF 메서드와 열거형을 추가합니다.
+
+    ```ts
+    import '@univerjs-pro/pdfs/facade'
+    ```
+
+  </Step>
+  <Step>
+    런타임을 만들고 명시적인 플러그인 스택을 등록한 다음 PDF를 만드세요.
+
+    ```ts
+    const univer = new Univer({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: mergeLocales(
+          DesignEnUS,
+          UIEnUS,
+          PdfsUIEnUS,
+        ),
+      },
+    })
+
+    univer.registerPlugin(UniverUIPlugin, { container: 'app' })
+    univer.registerPlugin(UniverLicensePlugin, {
+      license: process.env.CLIENT_LICENSE_TEXT,
+    })
+    univer.registerPlugin(UniverPdfsPlugin)
+    univer.registerPlugin(UniverPdfEditorPlugin)
+    univer.registerPlugin(UniverPdfsUIPlugin)
+
+    const univerAPI = FUniver.newAPI(univer)
+    univerAPI.createPdf({ name: 'Untitled PDF' })
+    ```
+
+  </Step>
+</Steps>
+
+## 선택적 썸네일 워커
+
+페이지 썸네일은 추가 설정 없이 메인 스레드에서 렌더링할 수 있습니다. 문서가 큰 경우 `thumbnailWorkerURL`을 통해 전용 모듈 워커를 제공하세요.
+
+`pdf-thumbnail.worker.ts`와 같은 워커 진입점을 만드세요.
+
+```ts
+import { startPdfPageThumbnailWorker } from '@univerjs-pro/pdfs-ui'
+
+startPdfPageThumbnailWorker()
+```
+
+그런 다음 PDF UI 플러그인을 등록할 때 해당 URL을 전달하세요.
+
+```ts
+univer.registerPlugin(UniverPdfsUIPlugin, {
+  thumbnailWorkerURL: new Worker(new URL('./pdf-thumbnail.worker.ts', import.meta.url), { type: 'module' }),
+})
+```
+
+이 옵션은 문자열 URL 또는 기존 `Worker`도 허용합니다. 워커나 `OffscreenCanvas`를 사용할 수 없으면 썸네일 렌더링은 메인 스레드로 대체됩니다.
+
+## Node.js 사용법
+
+Node.js 서비스는 브라우저 UI 패키지 없이 `UniverPdfsPlugin`과 `UniverPdfEditorPlugin`을 등록할 수 있습니다. 저장된 PDF 유닛을 불러오거나 동기화해야 하는 경우에만 협업 클라이언트를 추가하세요.

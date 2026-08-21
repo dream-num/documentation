@@ -1,0 +1,72 @@
+---
+title: Páginas y elementos
+description: Comprenda las páginas PDF, el contenido de origen nativo, las superposiciones editables y los sistemas de coordenadas.
+icon: '#pro/Layers'
+---
+
+## Estructura del documento
+
+`IPdfDocument` contiene el modelo normalizado del documento PDF:
+
+- `pages` almacena el orden, tamaño, rotación, capas, etiquetas y cuadros PDF nativos de las páginas.
+- `objects` almacena los objetos semánticos del documento.
+- `displayLists` conserva las operaciones PDF a nivel de renderizado y la fidelidad del origen.
+- `textStories` mantiene el flujo de texto editable independiente de la agrupación inestable de glifos PDF.
+- `assets`, `styles` y `native` conservan los recursos reutilizables y específicos del origen.
+- `sources`, `edits` y `exportPlan` registran la procedencia y la intención de exportación.
+
+En un PDF importado, no todas las operaciones de origen visibles se convierten en elementos editables de Facade. El contenido nativo puede permanecer en las listas de visualización hasta que una acción del usuario lo promueva o sustituya.
+
+## Páginas
+
+`FPdf` lee las páginas en orden materializado e inserta páginas en blanco:
+
+```ts
+const pages = pdf.getPages()
+const firstPage = pdf.getPageByIndex(0)
+const pageById = firstPage ? pdf.getPageById(firstPage.getId()) : null
+const appendedPage = pdf.insertPage()
+```
+
+`insertPage(index)` acepta un entero desde `0` hasta el número actual de páginas. Una página nueva hereda el tamaño, la rotación y los cuadros PDF de la página adyacente. Cuando no existe ninguna página adyacente, utiliza dimensiones A4 de 595 por 842 puntos.
+
+## Contenido nativo y superposiciones editables
+
+`FPdfPage.getElements()` devuelve las superposiciones editables persistentes en orden z. Los accesores tipados filtran la misma capa de superposición:
+
+| Accesor            | Wrapper Facade   |
+| ------------------ | ---------------- |
+| `getTextBoxes()`   | `FPdfTextBox`    |
+| `getParagraphs()`  | `FPdfParagraph`  |
+| `getLists()`       | `FPdfList`       |
+| `getTables()`      | `FPdfTable`      |
+| `getImages()`      | `FPdfImage`      |
+| `getDividers()`    | `FPdfDivider`    |
+| `getAnnotations()` | `FPdfAnnotation` |
+
+`getTextSpans()` es diferente: enumera instantáneas de operaciones de texto nativo visibles. Llamar a `replaceText()` en un fragmento suprime la operación nativa y crea un cuadro de texto editable nuevo.
+
+## Sistemas de coordenadas
+
+El modelo principal y la Facade pública utilizan unidades diferentes de forma intencionada:
+
+| Límite                                                              | Unidad y origen                                                 |
+| ------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Posiciones, tamaños, rutas de anotación y anchos de trazo de Facade | Puntos PDF, colocación desde la esquina superior izquierda      |
+| Geometría de páginas y objetos del modelo principal                 | EMU, origen en la esquina superior izquierda                    |
+| `pdfBoxes` importados y asignaciones del origen nativo              | Espacio de usuario PDF, origen en la esquina inferior izquierda |
+
+Utilice `getTransform`, `setPosition`, `setSize`, `setRotation` y las opciones tipadas de inserción de Facade en el código de la aplicación. Utilice `ptToEmu`, `emuToPt` y los asistentes de conversión relacionados solo al crear datos de modelo de nivel inferior.
+
+## Límites públicos de edición
+
+Facade valida varias restricciones del modelo:
+
+- El ancho y la altura deben ser valores finitos positivos; las posiciones y rotaciones deben ser finitas.
+- Los niveles de lista van de `0` a `8`; el número inicial de una lista ordenada debe ser un entero positivo.
+- Una tabla debe tener dimensiones enteras positivas y no más de 10,000 celdas.
+- La inserción de anotaciones mediante Facade admite resaltado, subrayado, tachado, subrayado ondulado y tinta.
+- La opacidad de la imagen va de `0` a `1`, y un rectángulo de recorte debe tener un área positiva.
+- Los rangos de texto utilizan offsets UTF-16 con inicio inclusivo y fin exclusivo.
+
+Para consultar ejemplos orientados a tareas, continúe con [Editar archivos PDF](/guides/pdfs/features/editing).

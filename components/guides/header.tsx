@@ -2,7 +2,7 @@ import { LanguagesIcon } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 
 import type { Locale } from '@/i18n/routing'
-import type { GuideNavItem } from '@/lib/guides/navigation'
+import type { IGuideNavItem } from '@/lib/guides/navigation'
 import { PrimaryNavigation } from '@/components/docs-shell/primary-navigation'
 import { GithubInfo } from '@/components/github-info/github-info'
 import { Logo } from '@/components/logo'
@@ -53,7 +53,7 @@ export async function GuidesHeader({
   pathname,
 }: {
   lang: string
-  items: GuideNavItem[]
+  items: IGuideNavItem[]
   pathname: string
 }) {
   const t = await getTranslations({ locale: lang as Locale })

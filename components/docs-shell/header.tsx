@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server'
 
 import type { Locale } from '@/i18n/routing'
 import type { DocsNavItem } from '@/lib/docs/navigation'
-import type { GuideNavItem } from '@/lib/guides/navigation'
+import type { IGuideNavItem } from '@/lib/guides/navigation'
 import { GithubInfo } from '@/components/github-info/github-info'
 import { Logo } from '@/components/logo'
 import { ThemeSwitcher } from '@/components/theme-switcher'
@@ -58,7 +58,7 @@ export async function DocsHeader({
   searchScope,
 }: {
   lang: string
-  guideItems: GuideNavItem[]
+  guideItems: IGuideNavItem[]
   items: DocsNavItem[]
   pathname: string
   title: string

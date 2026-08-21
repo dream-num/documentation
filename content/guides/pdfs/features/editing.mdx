@@ -1,0 +1,122 @@
+---
+title: Editing PDFs
+description: Add and update text, lists, tables, images, dividers, and annotations through the PDF Facade.
+icon: '#pro/Pencil'
+---
+
+The PDF UI exposes editing tools for common browser workflows. Application code can perform the same durable model changes through `@univerjs-pro/pdfs/facade`.
+
+## Add text and structured content
+
+```ts
+const pdf = univerAPI.getActivePdf()
+const page = pdf?.getPageByIndex(0)
+
+if (!page) {
+  throw new Error('No active PDF page')
+}
+
+const paragraph = page.insertParagraph({
+  text: 'Release summary',
+  left: 36,
+  top: 36,
+  width: 240,
+  height: 72,
+  fontSize: 18,
+})
+
+paragraph.appendBlock({
+  text: 'Approved for publication',
+  textStyle: { italic: true },
+})
+
+const list = page.insertList({
+  text: 'Verify content',
+  kind: univerAPI.Enum.PdfListKind.UNORDERED,
+  preset: univerAPI.Enum.PdfListPresetId.UNORDERED_DISC,
+  left: 36,
+  top: 132,
+  width: 240,
+  height: 108,
+})
+
+list.insertItem(1, { text: 'Export final PDF' })
+list.insertItem(2, { text: 'Archive source', level: 1 })
+```
+
+List levels are limited to `0` through `8`. Increasing an item's level also requires a preceding item that can act as its parent.
+
+## Edit a table
+
+```ts
+const table = page.insertTable({
+  rowCount: 2,
+  columnCount: 2,
+  cellTexts: ['Owner', 'Status', 'Docs', 'Ready'],
+  left: 312,
+  top: 36,
+  width: 240,
+  height: 108,
+})
+
+table.resize(3, 2)
+table.getCell(2, 0).setText('Legal')
+table.getCell(2, 1).setText('Review')
+```
+
+A table can contain at most 10,000 cells. `getPdfTableThemePresets()` returns built-in preset descriptors that can be passed into table theme workflows.
+
+## Add images and annotations
+
+```ts
+const image = await page.insertImageAsync('/assets/signature.png', {
+  left: 312,
+  top: 180,
+  width: 144,
+  height: 72,
+  opacity: 0.9,
+})
+
+image.setRotation(-4).bringToFront()
+
+const highlight = page.insertAnnotation({
+  annotationType: univerAPI.Enum.PdfAnnotationType.HIGHLIGHT,
+  left: 36,
+  top: 264,
+  width: 180,
+  height: 18,
+})
+
+highlight.setStyle({
+  fill: { color: '#fde047' },
+  opacity: 0.6,
+})
+```
+
+Facade insertion supports highlight, underline, strikeout, squiggly, and ink annotations. The core enum includes additional PDF annotation subtypes that are not accepted by this insertion API.
+
+## Replace imported text
+
+Native imported text is read through `getTextSpans()`. Replacing a span is an atomic promotion: Univer suppresses the corresponding source operation and inserts an editable text box at the captured position.
+
+```ts
+const matchingSpan = page.getTextSpans().find((span) => span.getText().includes('Draft'))
+
+if (matchingSpan) {
+  matchingSpan.replaceText('Final')
+}
+```
+
+Enumerate the spans again after a replacement; the old snapshot handle becomes stale.
+
+## Transform and remove elements
+
+All editable page elements share transform and z-order methods:
+
+```ts
+image.setPosition(300, 180).setSize(180, 90).setVisible(true).setLocked(false).sendBackward()
+
+const snapshot = pdf.save()
+```
+
+Facade changes are routed through Univer commands. Avoid mutating `snapshot.document` or `snapshot.editState` directly while the unit is active.

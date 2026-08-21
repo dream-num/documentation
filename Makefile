@@ -8,6 +8,7 @@ BUILDER ?= univerdocs-builder
 NPM_REGISTRY ?= ""
 # Environment variables
 NEXT_POSTHOG_APIKEY =
+NEXT_PUBLIC_DOCS_SOURCE_REF ?= $(shell git branch --show-current)
 
 OSARCH = linux/amd64
 image_exists=$(shell docker manifest inspect $(CR)/$(NS)/$(REPOSITORY):$(IMAGE_TAG) > /dev/null 2>&1 && echo true || echo false)
@@ -31,6 +32,7 @@ endif
 	--build-arg CR=$(CR) \
 	--build-arg NPM_REGISTRY=$(NPM_REGISTRY) \
 	--build-arg NEXT_POSTHOG_APIKEY=$(NEXT_POSTHOG_APIKEY) \
+	--build-arg NEXT_PUBLIC_DOCS_SOURCE_REF=$(NEXT_PUBLIC_DOCS_SOURCE_REF) \
 	--builder $(BUILDER) \
 	--platform $(OSARCH) \
 	--file Dockerfile \
@@ -46,6 +48,7 @@ check_image:
 build_image: create_builder
 	$(eval image_tag=-t $(REPOSITORY):latest)
 	$(CTR) buildx build \
+	--build-arg NEXT_PUBLIC_DOCS_SOURCE_REF=$(NEXT_PUBLIC_DOCS_SOURCE_REF) \
 	--builder $(BUILDER) \
 	--platform $(OSARCH) \
 	--file Dockerfile \

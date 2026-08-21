@@ -1,0 +1,68 @@
+---
+title: PDF 유닛 데이터
+description: 저장되는 IPdfUnitData 계약과 가져온 PDF 콘텐츠 및 영속적 편집 사이의 경계를 이해합니다.
+icon: '#pro/Database'
+---
+
+## IPdfUnitData
+
+`IPdfUnitData`는 하나의 `UNIVER_PDF` 유닛에 대한 저장 스냅샷입니다. 스키마는 `univer-pdf-unit`, 현재 스키마 버전은 `1`이며 리비전 번호는 `1`부터 시작합니다.
+
+| 속성                | 유형                                          | 용도                                                           |
+| ------------------- | --------------------------------------------- | -------------------------------------------------------------- |
+| `schema`            | `'univer-pdf-unit'`                           | 안정적인 PDF 유닛 스키마 식별자                                |
+| `schemaVersion`     | `1`                                           | 현재 PDF 유닛 스키마 버전                                      |
+| `id`                | `string`                                      | 저장소, 협업, 리소스 및 내보내기에서 공유하는 식별자           |
+| `rev`               | `number`                                      | 신뢰할 수 있는 유닛 리비전                                     |
+| `name`              | `string`                                      | 사용자에게 표시되는 PDF 이름                                   |
+| `sourceDocumentRef` | `IPdfSourceDocumentRef`                       | 가져온 PDF 아티팩트에 대한 변경 불가능한 출처 정보             |
+| `document`          | `IPdfDocument`                                | 가져온 기준 문서 또는 빈 기준 문서                             |
+| `editState`         | `IPdfDurableEditState`                        | 승인되어 저장된 편집 의도                                      |
+| `documentShell?`    | `IPdfDocumentShell`                           | 블록 기반 PDF를 위한 작은 페이지 디렉터리 및 프래그먼트 인덱스 |
+| `fragmentIndex?`    | `IPdfUnitFragmentIndex`                       | 페이지 및 공유 데이터에서 저장된 프래그먼트로의 논리적 매핑    |
+| `resourceBindings?` | `Record<string, PdfDurableResourceBinding>`   | 영속적인 네이티브 또는 Univer 관리 리소스 바인딩               |
+| `fragmentBindings?` | `Record<string, IPdfFragmentArtifactBinding>` | 독립적으로 불러온 프래그먼트를 위한 런타임 파일 바인딩         |
+| `capabilityReport?` | `IPdfCapabilityReport`                        | 지원되는 작업 및 대체 처리에 대한 가져오기/런타임 결정         |
+| `metadata?`         | `Record<string, PdfJsonValue>`                | 애플리케이션 또는 통합 메타데이터                              |
+
+## 기준 문서 및 편집 레이어
+
+가져온 `document`는 변경할 수 없는 기준 문서입니다. 편집 시 이를 직접 다시 쓰지 않습니다. 텍스트 바꾸기, 삽입된 객체, 페이지 변경, 소스 숨김 및 관리 리소스는 `editState`에 기록된 다음 렌더링 및 내보내기를 위해 기준 문서 위에 투영됩니다.
+
+이 분리는 네이티브 PDF 출처를 보존하고, 내보내기가 어떤 소스 작업을 복사하거나 숨기거나 대체할지 결정할 수 있게 합니다.
+
+<Callout type="warning" title="올바른 뷰 선택">
+  `pdf.getDocument()`는 가져온 기준 문서를 반환합니다. `pdf.save()`는 영속적 편집 상태를 포함한 전체 유닛 스냅샷을
+  반환합니다. 고급 통합에서는 `pdf.getModel().getMaterializedDocument()`를 통해 현재 투영을 가져올 수 있습니다.
+</Callout>
+
+## 스냅샷 만들기 및 저장
+
+```ts
+const pdf = univerAPI.createPdf({ name: 'Untitled contract' })
+const page = pdf.getPageByIndex(0)
+
+page?.insertTextBox({
+  text: 'Draft',
+  left: 36,
+  top: 36,
+})
+
+const snapshot = pdf.save()
+await applicationStorage.save(snapshot.id, snapshot)
+```
+
+퍼사드를 통해 전체 스냅샷을 복원하세요.
+
+```ts
+const snapshot = await applicationStorage.load('pdf-unit-id')
+const pdf = univerAPI.createPdf(snapshot)
+```
+
+유닛이 실행 중인 뒤에는 스냅샷 객체를 변경하지 마세요. 검증, 실행 취소 및 다시 실행, 협업, 내보내기 의도가 일관되게 유지되도록 퍼사드 메서드 또는 등록된 명령을 사용하세요.
+
+## 블록 기반 PDF
+
+크거나 원격에 저장된 PDF는 `documentShell`, `fragmentIndex` 및 `fragmentBindings`를 사용할 수 있습니다. 셸은 모든 페이지 본문이 로드되기 전에 페이지 크기, 순서, 레이블 및 블록 ID를 사용할 수 있게 합니다. UI에서 필요로 할 때 제공자를 통해 페이지 및 공유 프래그먼트가 구체화됩니다.
+
+이 필드는 Exchange 및 저장소 계약입니다. 애플리케이션 코드는 일반적으로 PDF Exchange 또는 협업 서비스에서 이를 받아 변경하지 않고 저장합니다.

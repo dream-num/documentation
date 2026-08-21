@@ -1,0 +1,88 @@
+---
+title: 共同編集
+icon: '#pro/CloudCheck'
+---
+
+PDF の共同編集には、Univer の汎用共同編集スタックを使用します。そのスタックを一度構成し、クイックスタートの PDF プラグインを登録してから、永続化された PDF ユニットを ID で読み込みます。
+
+<Callout type="warning" title="サーバーが必要">
+  リアルタイム同期と永続化された PDF ユニットには Univer Pro Server
+  が必要です。認証とセッション処理はアプリケーション境界に置き、認証情報やセッション Cookie
+  をクライアントソースに含めないでください。
+</Callout>
+
+## 共同編集クライアントをインストールする
+
+```package-install
+npm install @univerjs-pro/collaboration @univerjs-pro/collaboration-client @univerjs-pro/collaboration-client-ui
+```
+
+共同編集プラグインと Facade エントリをインポートします。
+
+```ts
+import { UniverCollaborationPlugin } from '@univerjs-pro/collaboration'
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import CollaborationClientEnUS from '@univerjs-pro/collaboration-client/locale/en-US'
+import {
+  BrowserCollaborationSocketService,
+  UniverCollaborationClientUIPlugin,
+} from '@univerjs-pro/collaboration-client-ui'
+import CollaborationClientUIEnUS from '@univerjs-pro/collaboration-client-ui/locale/en-US'
+import { IAuthzIoService, IMentionIOService, IUndoRedoService } from '@univerjs/core'
+
+import '@univerjs-pro/collaboration-client-ui/lib/index.css'
+
+import '@univerjs-pro/collaboration-client/facade'
+```
+
+両方の共同編集ロケールパックを PDF クイックスタートのロケールへ統合します。`Univer` を構築するときは、認可、メンション、元に戻す操作とやり直し操作の各サービスを共同編集クライアントから提供します。
+
+```ts
+const univer = new Univer({
+  // Keep the locale and theme options from your PDF setup.
+  override: [
+    [IAuthzIoService, null],
+    [IUndoRedoService, null],
+    [IMentionIOService, null],
+  ],
+})
+```
+
+## サーバー接続を構成する
+
+PDF を開く前に共同編集スタックを登録します。以下のエンドポイントはデプロイ用のプレースホルダーであり、認証情報ではありません。
+
+```ts
+const serverEndpoint = 'https://your-univer-server.example.com'
+
+univer.registerPlugin(UniverCollaborationPlugin)
+univer.registerPlugin(UniverCollaborationClientPlugin, {
+  socketService: BrowserCollaborationSocketService,
+  enableAuthServer: true,
+  authzUrl: `${serverEndpoint}/universer-api/authz`,
+  snapshotServerUrl: `${serverEndpoint}/universer-api/snapshot`,
+  collabSubmitChangesetUrl: `${serverEndpoint}/universer-api/comb`,
+  collabWebSocketUrl: 'wss://your-univer-server.example.com/universer-api/comb/connect',
+})
+univer.registerPlugin(UniverCollaborationClientUIPlugin, {
+  enableDocumentCollaborationUI: false,
+})
+```
+
+`enableDocumentCollaborationUI: false` は、共通の共同編集クライアント UI を維持したまま、Docs 固有の共同編集 UI を PDF エディターから除外します。
+
+## 共同編集 PDF を読み込む
+
+サーバー API または `importPdfToUnitIdAsync` を通じて PDF ユニットを作成した後、共同編集 Facade で読み込みます。
+
+```ts
+const pdf = await univerAPI.getCollaboration().loadPdfAsync(unitId)
+
+if (!pdf) {
+  throw new Error(`PDF unit not found: ${unitId}`)
+}
+
+console.log(pdf.getId(), pdf.getName())
+```
+
+`loadPdfAsync` は、サーバースナップショットを読み込み、共同編集セッションを準備して `FPdf` を返します。ユニットを PDF に関連付けられない場合は `null` を返します。

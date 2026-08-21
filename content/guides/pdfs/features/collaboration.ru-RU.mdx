@@ -1,0 +1,88 @@
+---
+title: Совместная работа
+icon: '#pro/CloudCheck'
+---
+
+Для совместной работы с PDF используется общий стек совместной работы Univer. Настройте его один раз, зарегистрируйте плагины PDF из краткого руководства и загрузите сохранённый модуль PDF по ID.
+
+<Callout type="warning" title="Требуется сервер">
+  Для синхронизации в реальном времени и сохранённых модулей PDF необходим Univer Pro Server. Оставьте аутентификацию и
+  управление сеансами на границе приложения; никогда не размещайте учётные данные или файлы cookie сеанса в исходном
+  коде клиента.
+</Callout>
+
+## Установка клиента совместной работы
+
+```package-install
+npm install @univerjs-pro/collaboration @univerjs-pro/collaboration-client @univerjs-pro/collaboration-client-ui
+```
+
+Импортируйте плагины совместной работы и точку входа фасада:
+
+```ts
+import { UniverCollaborationPlugin } from '@univerjs-pro/collaboration'
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import CollaborationClientEnUS from '@univerjs-pro/collaboration-client/locale/en-US'
+import {
+  BrowserCollaborationSocketService,
+  UniverCollaborationClientUIPlugin,
+} from '@univerjs-pro/collaboration-client-ui'
+import CollaborationClientUIEnUS from '@univerjs-pro/collaboration-client-ui/locale/en-US'
+import { IAuthzIoService, IMentionIOService, IUndoRedoService } from '@univerjs/core'
+
+import '@univerjs-pro/collaboration-client-ui/lib/index.css'
+
+import '@univerjs-pro/collaboration-client/facade'
+```
+
+Объедините оба пакета локалей совместной работы с локалью из краткого руководства по PDF. При создании `Univer` позвольте клиенту совместной работы предоставлять службы авторизации, упоминаний, отмены и повтора:
+
+```ts
+const univer = new Univer({
+  // Keep the locale and theme options from your PDF setup.
+  override: [
+    [IAuthzIoService, null],
+    [IUndoRedoService, null],
+    [IMentionIOService, null],
+  ],
+})
+```
+
+## Настройка подключения к серверу
+
+Зарегистрируйте стек совместной работы перед открытием PDF. Конечная точка ниже — пример для развёртывания, а не учётные данные:
+
+```ts
+const serverEndpoint = 'https://your-univer-server.example.com'
+
+univer.registerPlugin(UniverCollaborationPlugin)
+univer.registerPlugin(UniverCollaborationClientPlugin, {
+  socketService: BrowserCollaborationSocketService,
+  enableAuthServer: true,
+  authzUrl: `${serverEndpoint}/universer-api/authz`,
+  snapshotServerUrl: `${serverEndpoint}/universer-api/snapshot`,
+  collabSubmitChangesetUrl: `${serverEndpoint}/universer-api/comb`,
+  collabWebSocketUrl: 'wss://your-univer-server.example.com/universer-api/comb/connect',
+})
+univer.registerPlugin(UniverCollaborationClientUIPlugin, {
+  enableDocumentCollaborationUI: false,
+})
+```
+
+`enableDocumentCollaborationUI: false` исключает из редактора PDF интерфейс совместной работы, предназначенный для Docs, но сохраняет общий интерфейс клиента совместной работы.
+
+## Загрузка PDF для совместной работы
+
+После создания модуля PDF через серверный API или `importPdfToUnitIdAsync` загрузите его с помощью фасада совместной работы:
+
+```ts
+const pdf = await univerAPI.getCollaboration().loadPdfAsync(unitId)
+
+if (!pdf) {
+  throw new Error(`PDF unit not found: ${unitId}`)
+}
+
+console.log(pdf.getId(), pdf.getName())
+```
+
+`loadPdfAsync` загружает снимок сервера, подготавливает сеанс совместной работы и возвращает `FPdf`. Если модуль не удаётся связать с PDF, метод возвращает `null`.

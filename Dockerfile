@@ -13,7 +13,9 @@ RUN corepack enable pnpm && pnpm i
 
 # Environment variables
 ARG NEXT_POSTHOG_APIKEY=""
+ARG NEXT_PUBLIC_DOCS_SOURCE_REF="dev"
 RUN echo "NEXT_POSTHOG_APIKEY=${NEXT_POSTHOG_APIKEY}" >> .env
+ENV NEXT_PUBLIC_DOCS_SOURCE_REF=${NEXT_PUBLIC_DOCS_SOURCE_REF}
 
 # Next.js collects completely anonymous telemetry data about general usage.
 # Learn more here: https://nextjs.org/telemetry

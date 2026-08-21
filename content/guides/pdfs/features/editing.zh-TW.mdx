@@ -1,0 +1,122 @@
+---
+title: 編輯 PDF
+description: 透過 PDF Facade 加入和更新文字、清單、表格、圖片、分隔線和註解。
+icon: '#pro/Pencil'
+---
+
+PDF UI 為常見瀏覽器工作流程提供編輯工具。應用程式碼可以透過 `@univerjs-pro/pdfs/facade` 執行相同的持久化模型變更。
+
+## 加入文字和結構化內容
+
+```ts
+const pdf = univerAPI.getActivePdf()
+const page = pdf?.getPageByIndex(0)
+
+if (!page) {
+  throw new Error('No active PDF page')
+}
+
+const paragraph = page.insertParagraph({
+  text: 'Release summary',
+  left: 36,
+  top: 36,
+  width: 240,
+  height: 72,
+  fontSize: 18,
+})
+
+paragraph.appendBlock({
+  text: 'Approved for publication',
+  textStyle: { italic: true },
+})
+
+const list = page.insertList({
+  text: 'Verify content',
+  kind: univerAPI.Enum.PdfListKind.UNORDERED,
+  preset: univerAPI.Enum.PdfListPresetId.UNORDERED_DISC,
+  left: 36,
+  top: 132,
+  width: 240,
+  height: 108,
+})
+
+list.insertItem(1, { text: 'Export final PDF' })
+list.insertItem(2, { text: 'Archive source', level: 1 })
+```
+
+清單層級限制為 `0` 到 `8`。提高項目層級時，其前面還必須有可作為父層的項目。
+
+## 編輯表格
+
+```ts
+const table = page.insertTable({
+  rowCount: 2,
+  columnCount: 2,
+  cellTexts: ['Owner', 'Status', 'Docs', 'Ready'],
+  left: 312,
+  top: 36,
+  width: 240,
+  height: 108,
+})
+
+table.resize(3, 2)
+table.getCell(2, 0).setText('Legal')
+table.getCell(2, 1).setText('Review')
+```
+
+表格最多可以包含 10,000 個儲存格。`getPdfTableThemePresets()` 傳回可用於表格佈景主題工作流程的內建預設描述元。
+
+## 加入圖片和註解
+
+```ts
+const image = await page.insertImageAsync('/assets/signature.png', {
+  left: 312,
+  top: 180,
+  width: 144,
+  height: 72,
+  opacity: 0.9,
+})
+
+image.setRotation(-4).bringToFront()
+
+const highlight = page.insertAnnotation({
+  annotationType: univerAPI.Enum.PdfAnnotationType.HIGHLIGHT,
+  left: 36,
+  top: 264,
+  width: 180,
+  height: 18,
+})
+
+highlight.setStyle({
+  fill: { color: '#fde047' },
+  opacity: 0.6,
+})
+```
+
+Facade 插入支援醒目提示、底線、刪除線、波浪線和筆跡註解。核心列舉還包含此插入 API 不接受的其他 PDF 註解子類型。
+
+## 取代匯入的文字
+
+透過 `getTextSpans()` 讀取匯入的原生文字。取代文字片段是一項不可分割的提升操作：Univer 會抑制對應的來源操作，並在擷取的位置插入可編輯文字方塊。
+
+```ts
+const matchingSpan = page.getTextSpans().find((span) => span.getText().includes('Draft'))
+
+if (matchingSpan) {
+  matchingSpan.replaceText('Final')
+}
+```
+
+取代後請重新列舉文字片段；舊的快照控制代碼會失效。
+
+## 變換和移除元素
+
+所有可編輯頁面元素都共用變換和疊放順序方法：
+
+```ts
+image.setPosition(300, 180).setSize(180, 90).setVisible(true).setLocked(false).sendBackward()
+
+const snapshot = pdf.save()
+```
+
+Facade 變更透過 Univer 命令執行。單元處於作用中狀態時，請勿直接修改 `snapshot.document` 或 `snapshot.editState`。

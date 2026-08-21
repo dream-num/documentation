@@ -2,6 +2,7 @@ export const univerIconNames = [
   'BasesMultiIcon',
   'BoardsMultiIcon',
   'DocsMultiIcon',
+  'PdfMultiIcon',
   'SheetsMultiIcon',
   'SlidesMultiIcon',
   'SymbolsIcon',

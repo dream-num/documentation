@@ -1,0 +1,87 @@
+---
+title: 协作
+icon: '#pro/CloudCheck'
+---
+
+PDF 协作使用 Univer 的通用协作栈。只需配置一次该协作栈，注册快速开始中的 PDF 插件，然后按 ID 加载已持久化的 PDF 单元。
+
+<Callout type="warning" title="需要服务器">
+  实时同步和持久化 PDF 单元需要 Univer Pro Server。请在应用边界处理身份验证和会话；切勿将凭据或会话 Cookie
+  放入客户端源代码。
+</Callout>
+
+## 安装协作客户端
+
+```package-install
+npm install @univerjs-pro/collaboration @univerjs-pro/collaboration-client @univerjs-pro/collaboration-client-ui
+```
+
+导入协作插件和 Facade 入口：
+
+```ts
+import { UniverCollaborationPlugin } from '@univerjs-pro/collaboration'
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import CollaborationClientEnUS from '@univerjs-pro/collaboration-client/locale/en-US'
+import {
+  BrowserCollaborationSocketService,
+  UniverCollaborationClientUIPlugin,
+} from '@univerjs-pro/collaboration-client-ui'
+import CollaborationClientUIEnUS from '@univerjs-pro/collaboration-client-ui/locale/en-US'
+import { IAuthzIoService, IMentionIOService, IUndoRedoService } from '@univerjs/core'
+
+import '@univerjs-pro/collaboration-client-ui/lib/index.css'
+
+import '@univerjs-pro/collaboration-client/facade'
+```
+
+将两个协作语言包合并到 PDF 快速开始中的语言包。构造 `Univer` 时，让协作客户端提供授权、提及和撤销/重做服务：
+
+```ts
+const univer = new Univer({
+  // Keep the locale and theme options from your PDF setup.
+  override: [
+    [IAuthzIoService, null],
+    [IUndoRedoService, null],
+    [IMentionIOService, null],
+  ],
+})
+```
+
+## 配置服务器连接
+
+打开 PDF 前先注册协作栈。以下端点是部署占位符，不是凭据：
+
+```ts
+const serverEndpoint = 'https://your-univer-server.example.com'
+
+univer.registerPlugin(UniverCollaborationPlugin)
+univer.registerPlugin(UniverCollaborationClientPlugin, {
+  socketService: BrowserCollaborationSocketService,
+  enableAuthServer: true,
+  authzUrl: `${serverEndpoint}/universer-api/authz`,
+  snapshotServerUrl: `${serverEndpoint}/universer-api/snapshot`,
+  collabSubmitChangesetUrl: `${serverEndpoint}/universer-api/comb`,
+  collabWebSocketUrl: 'wss://your-univer-server.example.com/universer-api/comb/connect',
+})
+univer.registerPlugin(UniverCollaborationClientUIPlugin, {
+  enableDocumentCollaborationUI: false,
+})
+```
+
+`enableDocumentCollaborationUI: false` 会将 Docs 专用协作 UI 排除在 PDF 编辑器之外，同时保留公共协作客户端 UI。
+
+## 加载协作 PDF
+
+通过服务器 API 或 `importPdfToUnitIdAsync` 创建 PDF 单元后，使用协作 Facade 加载：
+
+```ts
+const pdf = await univerAPI.getCollaboration().loadPdfAsync(unitId)
+
+if (!pdf) {
+  throw new Error(`PDF unit not found: ${unitId}`)
+}
+
+console.log(pdf.getId(), pdf.getName())
+```
+
+`loadPdfAsync` 会加载服务器快照、准备协作会话并返回 `FPdf`。当单元无法关联到 PDF 时，它会返回 `null`。

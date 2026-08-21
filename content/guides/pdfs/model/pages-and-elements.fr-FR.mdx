@@ -1,0 +1,72 @@
+---
+title: Pages et éléments
+description: Comprenez les pages PDF, le contenu source natif, les calques modifiables et les systèmes de coordonnées.
+icon: '#pro/Layers'
+---
+
+## Structure du document
+
+`IPdfDocument` contient le modèle normalisé du document PDF :
+
+- `pages` stocke l'ordre, la taille, la rotation, les calques, les libellés et les boîtes PDF natives des pages.
+- `objects` stocke les objets sémantiques du document.
+- `displayLists` préserve les opérations PDF au niveau du rendu et la fidélité de la source.
+- `textStories` maintient le flux de texte modifiable indépendamment du regroupement instable des glyphes PDF.
+- `assets`, `styles` et `native` conservent les ressources réutilisables et propres à la source.
+- `sources`, `edits` et `exportPlan` enregistrent la provenance et l'intention d'exportation.
+
+Dans un PDF importé, toutes les opérations sources visibles ne deviennent pas des éléments de façade modifiables. Le contenu natif peut rester dans les listes d'affichage jusqu'à ce qu'une action de l'utilisateur le promeuve ou le remplace.
+
+## Pages
+
+`FPdf` lit les pages dans l'ordre matérialisé et insère des pages vides :
+
+```ts
+const pages = pdf.getPages()
+const firstPage = pdf.getPageByIndex(0)
+const pageById = firstPage ? pdf.getPageById(firstPage.getId()) : null
+const appendedPage = pdf.insertPage()
+```
+
+`insertPage(index)` accepte un entier de `0` jusqu'au nombre actuel de pages. Une nouvelle page hérite de la taille, de la rotation et des boîtes PDF d'une page adjacente. En l'absence de page adjacente, elle utilise les dimensions A4 de 595 par 842 points.
+
+## Contenu natif et calques modifiables
+
+`FPdfPage.getElements()` renvoie les calques modifiables persistants dans leur ordre d'empilement. Les accesseurs typés filtrent la même couche de calques :
+
+| Accesseur          | Wrapper de façade |
+| ------------------ | ----------------- |
+| `getTextBoxes()`   | `FPdfTextBox`     |
+| `getParagraphs()`  | `FPdfParagraph`   |
+| `getLists()`       | `FPdfList`        |
+| `getTables()`      | `FPdfTable`       |
+| `getImages()`      | `FPdfImage`       |
+| `getDividers()`    | `FPdfDivider`     |
+| `getAnnotations()` | `FPdfAnnotation`  |
+
+`getTextSpans()` est différent : il énumère les snapshots des opérations de texte natif visibles. Appeler `replaceText()` sur une plage masque l'opération native et crée une nouvelle zone de texte modifiable.
+
+## Systèmes de coordonnées
+
+Le modèle principal et la façade publique utilisent volontairement des unités différentes :
+
+| Limite                                                                          | Unité et origine                                              |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Positions et tailles de la façade, chemins d'annotations et épaisseurs de trait | Points PDF, positionnement depuis le coin supérieur gauche    |
+| Géométrie des pages et des objets du modèle principal                           | EMU, origine dans le coin supérieur gauche                    |
+| `pdfBoxes` importées et mappages de la source native                            | Espace utilisateur PDF, origine dans le coin inférieur gauche |
+
+Utilisez `getTransform`, `setPosition`, `setSize`, `setRotation` et les options d'insertion typées de la façade dans le code de l'application. Utilisez `ptToEmu`, `emuToPt` et les utilitaires de conversion associés uniquement lors de la création de données de modèle de plus bas niveau.
+
+## Limites publiques de modification
+
+La façade valide plusieurs contraintes du modèle :
+
+- La largeur et la hauteur doivent être des valeurs finies positives ; les positions et les rotations doivent être finies.
+- Les niveaux de liste vont de `0` à `8` ; le numéro de départ d'une liste ordonnée doit être un entier positif.
+- Les dimensions d'un tableau doivent être des entiers positifs et celui-ci ne peut pas contenir plus de 10,000 cellules.
+- L'insertion d'annotations par la façade prend en charge le surlignage, le soulignement, le texte barré, le soulignement ondulé et le dessin à main levée.
+- L'opacité d'une image va de `0` à `1` et un rectangle de recadrage doit avoir une aire positive.
+- Les plages de texte utilisent des décalages UTF-16 avec un début inclusif et une fin exclusive.
+
+Pour des exemples axés sur des tâches, continuez avec [Modifier des PDF](/guides/pdfs/features/editing).

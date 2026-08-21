@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server'
 
 import type { Locale } from '@/i18n/routing'
-import type { GuideNavItem } from '@/lib/guides/navigation'
+import type { IGuideNavItem } from '@/lib/guides/navigation'
 import { PrimaryNavigation } from '@/components/docs-shell/primary-navigation'
 import { GithubInfo } from '@/components/github-info/github-info'
 import { GuidesSearch } from '@/components/guides/search'
@@ -23,7 +23,7 @@ export async function SiteHeader({
   documentationTitle,
   pathname = '',
 }: {
-  guideItems: GuideNavItem[]
+  guideItems: IGuideNavItem[]
   lang: string
   links: ISiteNavLink[]
   documentationLinks: ISiteDocumentationLink[]

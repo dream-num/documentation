@@ -1,0 +1,122 @@
+---
+title: Modifier des PDF
+description: Ajoutez et mettez à jour du texte, des listes, des tableaux, des images, des séparateurs et des annotations avec la façade PDF.
+icon: '#pro/Pencil'
+---
+
+L'interface PDF fournit des outils de modification pour les processus courants dans le navigateur. Le code de l'application peut effectuer les mêmes modifications persistantes du modèle avec `@univerjs-pro/pdfs/facade`.
+
+## Ajouter du texte et du contenu structuré
+
+```ts
+const pdf = univerAPI.getActivePdf()
+const page = pdf?.getPageByIndex(0)
+
+if (!page) {
+  throw new Error('No active PDF page')
+}
+
+const paragraph = page.insertParagraph({
+  text: 'Release summary',
+  left: 36,
+  top: 36,
+  width: 240,
+  height: 72,
+  fontSize: 18,
+})
+
+paragraph.appendBlock({
+  text: 'Approved for publication',
+  textStyle: { italic: true },
+})
+
+const list = page.insertList({
+  text: 'Verify content',
+  kind: univerAPI.Enum.PdfListKind.UNORDERED,
+  preset: univerAPI.Enum.PdfListPresetId.UNORDERED_DISC,
+  left: 36,
+  top: 132,
+  width: 240,
+  height: 108,
+})
+
+list.insertItem(1, { text: 'Export final PDF' })
+list.insertItem(2, { text: 'Archive source', level: 1 })
+```
+
+Les niveaux de liste sont limités de `0` à `8`. L'augmentation du niveau d'un élément nécessite aussi un élément précédent pouvant servir de parent.
+
+## Modifier un tableau
+
+```ts
+const table = page.insertTable({
+  rowCount: 2,
+  columnCount: 2,
+  cellTexts: ['Owner', 'Status', 'Docs', 'Ready'],
+  left: 312,
+  top: 36,
+  width: 240,
+  height: 108,
+})
+
+table.resize(3, 2)
+table.getCell(2, 0).setText('Legal')
+table.getCell(2, 1).setText('Review')
+```
+
+Un tableau peut contenir au maximum 10,000 cellules. `getPdfTableThemePresets()` renvoie les descripteurs de préréglages intégrés qui peuvent être transmis aux processus de thème des tableaux.
+
+## Ajouter des images et des annotations
+
+```ts
+const image = await page.insertImageAsync('/assets/signature.png', {
+  left: 312,
+  top: 180,
+  width: 144,
+  height: 72,
+  opacity: 0.9,
+})
+
+image.setRotation(-4).bringToFront()
+
+const highlight = page.insertAnnotation({
+  annotationType: univerAPI.Enum.PdfAnnotationType.HIGHLIGHT,
+  left: 36,
+  top: 264,
+  width: 180,
+  height: 18,
+})
+
+highlight.setStyle({
+  fill: { color: '#fde047' },
+  opacity: 0.6,
+})
+```
+
+L'insertion par la façade prend en charge les annotations de surlignage, de soulignement, de texte barré, de soulignement ondulé et de dessin à main levée. L'énumération principale comprend d'autres sous-types d'annotations PDF qui ne sont pas acceptés par cette API d'insertion.
+
+## Remplacer du texte importé
+
+Le texte natif importé est lu avec `getTextSpans()`. Le remplacement d'une plage est une promotion atomique : Univer masque l'opération source correspondante et insère une zone de texte modifiable à la position capturée.
+
+```ts
+const matchingSpan = page.getTextSpans().find((span) => span.getText().includes('Draft'))
+
+if (matchingSpan) {
+  matchingSpan.replaceText('Final')
+}
+```
+
+Énumérez à nouveau les plages après un remplacement ; l'ancien handle de snapshot devient obsolète.
+
+## Transformer et supprimer des éléments
+
+Tous les éléments modifiables d'une page partagent les méthodes de transformation et d'ordre d'empilement :
+
+```ts
+image.setPosition(300, 180).setSize(180, 90).setVisible(true).setLocked(false).sendBackward()
+
+const snapshot = pdf.save()
+```
+
+Les modifications de la façade passent par les commandes d'Univer. Ne modifiez pas directement `snapshot.document` ni `snapshot.editState` tant que l'unité est active.

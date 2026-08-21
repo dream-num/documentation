@@ -2,7 +2,8 @@ import type { ReactNode } from 'react'
 import { getTranslations } from 'next-intl/server'
 
 import type { Locale } from '@/i18n/routing'
-import type { GuideNavigation } from '@/lib/guides/navigation'
+import type { IGuideNavigation } from '@/lib/guides/navigation'
+import { DocsPageActions } from '@/components/docs-page-actions'
 import { Rate } from '@/components/rate'
 import { Link } from '@/i18n/navigation'
 
@@ -11,7 +12,8 @@ import { GuidesPagination } from './pagination'
 export async function GuidesArticle({
   title,
   description,
-  editUrl,
+  githubUrl,
+  markdownUrl,
   navigation,
   lang,
   children,
@@ -19,8 +21,9 @@ export async function GuidesArticle({
 }: {
   title: string
   description?: string
-  editUrl: string
-  navigation: GuideNavigation
+  githubUrl: string
+  markdownUrl: string
+  navigation: IGuideNavigation
   lang: string
   children: ReactNode
   onRateAction: Parameters<typeof Rate>[0]['onRateAction']
@@ -50,10 +53,8 @@ export async function GuidesArticle({
       ) : null}
       <header className="border-b pb-6">
         <h1 className="text-4xl/tight font-semibold tracking-normal">{title}</h1>
-        {description ? <p className="text-muted-foreground mt-4 max-w-3xl text-lg">{description}</p> : null}
-        <Link className="text-primary mt-4 inline-flex text-sm font-medium" href={editUrl}>
-          {t('docs.edit-on-github')}
-        </Link>
+        {description ? <p className="text-muted-foreground mt-4 max-w-3xl text-base">{description}</p> : null}
+        <DocsPageActions githubUrl={githubUrl} markdownUrl={markdownUrl} />
       </header>
       <div className="mt-8 min-w-0">{children}</div>
       <div className="mt-10">

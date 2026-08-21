@@ -1,0 +1,68 @@
+---
+title: PDF 单元数据
+description: 了解持久化的 IPdfUnitData 契约，以及导入 PDF 内容与持久化编辑之间的边界。
+icon: '#pro/Database'
+---
+
+## IPdfUnitData
+
+`IPdfUnitData` 是一个 `UNIVER_PDF` 单元的持久化快照。它的架构为 `univer-pdf-unit`，当前架构版本为 `1`，修订号从 `1` 开始。
+
+| 属性                | 类型                                          | 用途                                      |
+| ------------------- | --------------------------------------------- | ----------------------------------------- |
+| `schema`            | `'univer-pdf-unit'`                           | 稳定的 PDF 单元架构标识符                 |
+| `schemaVersion`     | `1`                                           | 当前 PDF 单元架构版本                     |
+| `id`                | `string`                                      | 存储、协作、资源和导出共享的标识          |
+| `rev`               | `number`                                      | 权威单元修订号                            |
+| `name`              | `string`                                      | 面向用户的 PDF 名称                       |
+| `sourceDocumentRef` | `IPdfSourceDocumentRef`                       | 导入 PDF 工件的不可变来源信息             |
+| `document`          | `IPdfDocument`                                | 导入的基线或空白文档基线                  |
+| `editState`         | `IPdfDurableEditState`                        | 已接受并持久化的编辑意图                  |
+| `documentShell?`    | `IPdfDocumentShell`                           | 用于基于块的 PDF 的小型页面目录和分片索引 |
+| `fragmentIndex?`    | `IPdfUnitFragmentIndex`                       | 从页面和共享数据到已存储分片的逻辑映射    |
+| `resourceBindings?` | `Record<string, PdfDurableResourceBinding>`   | 持久化的原生或 Univer 管理资源绑定        |
+| `fragmentBindings?` | `Record<string, IPdfFragmentArtifactBinding>` | 独立加载分片的运行时文件绑定              |
+| `capabilityReport?` | `IPdfCapabilityReport`                        | 针对受支持操作和回退方案的导入/运行时决策 |
+| `metadata?`         | `Record<string, PdfJsonValue>`                | 应用或集成元数据                          |
+
+## 基线与编辑层
+
+导入的 `document` 是不可变基线。编辑不会就地重写它。文本替换、插入对象、页面变更、源抑制和托管资源都会记录在 `editState` 中，然后投影到基线上用于渲染和导出。
+
+这种分离方式保留了原生 PDF 的来源信息，并让导出器决定哪些源操作可以复制、抑制或替换。
+
+<Callout type="warning" title="选择正确的视图">
+  `pdf.getDocument()` 返回导入的基线。`pdf.save()` 返回包含持久化编辑状态的完整单元快照。高级集成可以通过
+  `pdf.getModel().getMaterializedDocument()` 获取当前投影。
+</Callout>
+
+## 创建并持久化快照
+
+```ts
+const pdf = univerAPI.createPdf({ name: 'Untitled contract' })
+const page = pdf.getPageByIndex(0)
+
+page?.insertTextBox({
+  text: 'Draft',
+  left: 36,
+  top: 36,
+})
+
+const snapshot = pdf.save()
+await applicationStorage.save(snapshot.id, snapshot)
+```
+
+通过 Facade 恢复完整快照：
+
+```ts
+const snapshot = await applicationStorage.load('pdf-unit-id')
+const pdf = univerAPI.createPdf(snapshot)
+```
+
+单元运行后不要修改快照对象。请使用 Facade 方法或已注册的命令，以确保验证、撤销和重做、协作以及导出意图保持一致。
+
+## 基于块的 PDF
+
+大型或远程存储的 PDF 可以使用 `documentShell`、`fragmentIndex` 和 `fragmentBindings`。在加载所有页面正文之前，Shell 就能提供页面大小、顺序、标签和块 ID。UI 会按需通过 Provider 物化页面分片和共享分片。
+
+这些字段是 Exchange 和存储契约。应用代码通常从 PDF Exchange 或协作服务接收它们，并保持原样持久化。

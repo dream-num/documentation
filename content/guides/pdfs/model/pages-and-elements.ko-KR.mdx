@@ -1,0 +1,72 @@
+---
+title: 페이지 및 요소
+description: PDF 페이지, 네이티브 소스 콘텐츠, 편집 가능한 오버레이 및 좌표계를 이해합니다.
+icon: '#pro/Layers'
+---
+
+## 문서 구조
+
+`IPdfDocument`에는 정규화된 PDF 문서 모델이 포함됩니다.
+
+- `pages`는 페이지 순서, 크기, 회전, 레이어, 레이블 및 네이티브 PDF 상자를 저장합니다.
+- `objects`는 의미론적 문서 객체를 저장합니다.
+- `displayLists`는 렌더링 수준의 PDF 작업과 소스 충실도를 보존합니다.
+- `textStories`는 불안정한 PDF 글리프 그룹화와 독립된 편집 가능한 텍스트 흐름을 유지합니다.
+- `assets`, `styles` 및 `native`는 재사용 가능하거나 소스에 특화된 리소스를 유지합니다.
+- `sources`, `edits` 및 `exportPlan`은 출처 및 내보내기 의도를 기록합니다.
+
+가져온 PDF에서 표시되는 모든 소스 작업이 편집 가능한 퍼사드 요소가 되는 것은 아닙니다. 네이티브 콘텐츠는 사용자 작업이 이를 승격하거나 대체할 때까지 표시 목록에 남아 있을 수 있습니다.
+
+## 페이지
+
+`FPdf`는 구체화된 순서로 페이지를 읽고 빈 페이지를 삽입합니다.
+
+```ts
+const pages = pdf.getPages()
+const firstPage = pdf.getPageByIndex(0)
+const pageById = firstPage ? pdf.getPageById(firstPage.getId()) : null
+const appendedPage = pdf.insertPage()
+```
+
+`insertPage(index)`는 `0`부터 현재 페이지 수까지의 정수를 허용합니다. 새 페이지는 인접 페이지의 크기, 회전 및 PDF 상자를 상속합니다. 인접 페이지가 없으면 595 x 842포인트의 A4 크기를 사용합니다.
+
+## 네이티브 콘텐츠 및 편집 가능한 오버레이
+
+`FPdfPage.getElements()`는 영속적인 편집 가능 오버레이를 z 순서로 반환합니다. 유형별 접근자는 동일한 오버레이 레이어를 필터링합니다.
+
+| 접근자             | 퍼사드 래퍼      |
+| ------------------ | ---------------- |
+| `getTextBoxes()`   | `FPdfTextBox`    |
+| `getParagraphs()`  | `FPdfParagraph`  |
+| `getLists()`       | `FPdfList`       |
+| `getTables()`      | `FPdfTable`      |
+| `getImages()`      | `FPdfImage`      |
+| `getDividers()`    | `FPdfDivider`    |
+| `getAnnotations()` | `FPdfAnnotation` |
+
+`getTextSpans()`는 다릅니다. 이 메서드는 표시되는 네이티브 텍스트 작업의 스냅샷을 열거합니다. 범위에서 `replaceText()`를 호출하면 네이티브 작업을 숨기고 편집 가능한 새 텍스트 상자를 만듭니다.
+
+## 좌표계
+
+핵심 모델과 공개 퍼사드는 의도적으로 서로 다른 단위를 사용합니다.
+
+| 경계                                    | 단위 및 원점                    |
+| --------------------------------------- | ------------------------------- |
+| 퍼사드 위치, 크기, 주석 경로 및 획 너비 | PDF 포인트, 왼쪽 위 배치        |
+| 핵심 모델 페이지 및 객체 기하 정보      | EMU, 왼쪽 위 원점               |
+| 가져온 `pdfBoxes` 및 네이티브 소스 매핑 | PDF 사용자 공간, 왼쪽 아래 원점 |
+
+애플리케이션 코드에서는 `getTransform`, `setPosition`, `setSize`, `setRotation` 및 유형별 퍼사드 삽입 옵션을 사용하세요. 하위 수준 모델 데이터를 만들 때만 `ptToEmu`, `emuToPt` 및 관련 변환 도우미를 사용하세요.
+
+## 공개 편집 제한
+
+퍼사드는 여러 모델 제약 조건을 검증합니다.
+
+- 너비와 높이는 양의 유한 값이어야 하며, 위치와 회전은 유한해야 합니다.
+- 목록 수준의 범위는 `0`부터 `8`까지이며, 순서 있는 목록의 시작 번호는 양의 정수여야 합니다.
+- 표의 크기는 양의 정수여야 하고 셀은 10,000개를 초과할 수 없습니다.
+- 퍼사드 주석 삽입은 강조, 밑줄, 취소선, 물결 밑줄 및 잉크 주석을 지원합니다.
+- 이미지 불투명도의 범위는 `0`부터 `1`까지이며 자르기 사각형의 면적은 양수여야 합니다.
+- 텍스트 범위는 시작을 포함하고 끝을 제외하는 UTF-16 오프셋을 사용합니다.
+
+작업 중심의 예제는 [PDF 편집](/guides/pdfs/features/editing)에서 계속 확인하세요.

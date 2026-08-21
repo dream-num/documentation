@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react'
 
-import type { GuideNavItem } from '@/lib/guides/navigation'
+import type { IGuideNavItem } from '@/lib/guides/navigation'
 import { NavIconFrame } from '@/components/docs-shell/nav-icon-frame'
 import { SidebarVersionSwitcher } from '@/components/docs-shell/sidebar-version-switcher'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -11,7 +11,7 @@ import { getActiveGuideProduct, getGuideNavItemHref, getGuideProductItems } from
 
 import { UniverIcon } from '../univer-icon'
 
-function getIconsProductItem(): GuideNavItem {
+function getIconsProductItem(): IGuideNavItem {
   return {
     id: 'icons',
     type: 'link',
@@ -43,7 +43,7 @@ function ControlIcon({ children, className }: { children: ReactNode; className?:
   )
 }
 
-function ProductIcon({ item }: { item?: GuideNavItem }) {
+function ProductIcon({ item }: { item?: IGuideNavItem }) {
   if (item?.icon) {
     return <ControlIcon>{item.icon}</ControlIcon>
   }
@@ -79,7 +79,7 @@ export function GuidesSidebarControls({
   showVersion = true,
 }: {
   includeIcons?: boolean
-  items: GuideNavItem[]
+  items: IGuideNavItem[]
   labels: {
     guides: string
     products: string
