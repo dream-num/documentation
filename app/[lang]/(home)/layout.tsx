@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { CookingPotIcon, StarIcon } from 'lucide-react'
+import { StarIcon } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 
 import type { Locale } from '@/i18n/routing'
@@ -60,12 +60,6 @@ export default async function Layout({ params, children }: IProps) {
       url: '/icons',
       icon: <UniverIcon name="SymbolsIcon" />,
       iconClassName: 'bg-linear-[135deg,#0EA5E9_0%,#F0F9FF_100%] dark:bg-linear-[135deg,#0EA5E9_0%,#0C4A6E_100%]',
-    },
-    {
-      text: 'Recipes',
-      url: '/guides/recipes/architecture/univer',
-      icon: <CookingPotIcon />,
-      iconClassName: 'bg-linear-[135deg,#9061F9_0%,#F6F5FF_100%] dark:bg-linear-[135deg,#9061F9_0%,#4A1D96_100%]',
     },
     {
       text: 'Univer Pro',

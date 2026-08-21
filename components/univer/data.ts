@@ -3,9 +3,7 @@ import { LocaleType } from '@univerjs/presets'
 
 export const workbookData = {
   id: '0xyvYA',
-  sheetOrder: [
-    'bk_yzgbvysKwoStbCNy_f',
-  ],
+  sheetOrder: ['bk_yzgbvysKwoStbCNy_f'],
   locale: LocaleType.EN_US,
   styles: {
     f0wC6_: {
@@ -737,7 +735,7 @@ export const workbookData = {
   sheets: {
     bk_yzgbvysKwoStbCNy_f: {
       id: 'bk_yzgbvysKwoStbCNy_f',
-      name: 'Sheet1',
+      name: 'Launch Command Center',
       tabColor: '',
       hidden: 0,
       rowCount: 1000,
@@ -2174,111 +2172,135 @@ export const documentData = {
     documentFlavor: 1,
   },
   locale: LocaleType.EN_US,
-  title: '',
+  title: 'Q3 Product Launch Brief',
   tableSource: {},
   drawings: {},
   drawingsOrder: [],
   headers: {},
   footers: {},
   body: {
-    dataStream: 'Pride and Prejudice – Elizabeth’s First Impression of Pemberley\rExcerpt from Pride and Prejudice by Jane Austen (1813). This work is in the public domain.\r\r\rElizabeth, as they drove along, watched for the first appearance of Pemberley Woods with some perturbation; and when at length they turned in at the lodge, her spirits were in a high flutter. The park was very large, and contained great variety of ground. They entered it in one of its lowest points, and drove for some time through a beautiful wood stretching over a wide extent.\r\rElizabeth\'s mind was too full for conversation, but she saw and admired every remarkable spot and point of view. They gradually ascended for half a mile, and then found themselves at the top of a considerable eminence, where the wood ceased, and the eye was instantly caught by Pemberley House, situated on the opposite side of a valley, into which the road with some abruptness wound. It was a large, handsome, stone building, standing well on rising ground, and backed by a ridge of high woody hills; and in front, a stream of some natural importance was swelled into greater, but without any artificial appearance. Its banks were neither formal nor falsely adorned.\r\rElizabeth was delighted. She had never seen a place for which nature had done more, or where natural beauty had been so little counteracted by awkward taste. They were all of them warm in their admiration; and at that moment she felt that to be mistress of Pemberley might be something!\r\r\n',
+    dataStream:
+      'Q3 Product Launch Brief\rExecutive operating memo  ·  September 2026\r\rLaunch thesis\rTeams move faster when planning, content, and delivery live in one connected system. Univer brings spreadsheets, documents, presentations, databases, boards, and PDFs into the same extensible workflow.\r\rWhat success looks like\r• Product readiness reaches 90% before release candidate approval.\r• Every launch region has localized content and trained partners.\r• Daily decisions are visible to owners in a shared command center.\r\rDecision log\rKeep the September 2 launch date. Close regional enablement gaps in parallel, with Product Operations accountable for the final go-live review.\r\rNext checkpoint\rMonday, 09:30  ·  Product Operations  ·  Launch room\r\n',
     textRuns: [
       {
-        st: 64,
-        ed: 77,
+        st: 0,
+        ed: 23,
         ts: {
-          it: 1,
-          cl: {
-            rgb: '#979dac',
-          },
-        },
-      },
-      {
-        st: 77,
-        ed: 96,
-        ts: {
+          ff: 'Arial',
+          fs: 28,
           bl: 1,
-          it: 1,
-          cl: {
-            rgb: '#979dac',
-          },
+          cl: { rgb: '#0F172A' },
         },
       },
       {
-        st: 96,
-        ed: 154,
+        st: 24,
+        ed: 67,
         ts: {
+          ff: 'Arial',
+          fs: 12,
           it: 1,
-          cl: {
-            rgb: '#979dac',
-          },
+          cl: { rgb: '#64748B' },
         },
       },
       {
-        st: 157,
-        ed: 1496,
+        st: 69,
+        ed: 82,
         ts: {
-          ff: 'Times New Roman',
-          fs: 14,
-          cl: {
-            rgb: '#414657',
-          },
+          ff: 'Arial',
+          fs: 16,
+          bl: 1,
+          cl: { rgb: '#0284C7' },
+        },
+      },
+      {
+        st: 83,
+        ed: 284,
+        ts: {
+          ff: 'Arial',
+          fs: 13,
+          cl: { rgb: '#334155' },
+        },
+      },
+      {
+        st: 286,
+        ed: 309,
+        ts: {
+          ff: 'Arial',
+          fs: 16,
+          bl: 1,
+          cl: { rgb: '#0284C7' },
+        },
+      },
+      {
+        st: 310,
+        ed: 510,
+        ts: {
+          ff: 'Arial',
+          fs: 13,
+          cl: { rgb: '#334155' },
+        },
+      },
+      {
+        st: 512,
+        ed: 524,
+        ts: {
+          ff: 'Arial',
+          fs: 16,
+          bl: 1,
+          cl: { rgb: '#0284C7' },
+        },
+      },
+      {
+        st: 525,
+        ed: 668,
+        ts: {
+          ff: 'Arial',
+          fs: 13,
+          bl: 1,
+          cl: { rgb: '#713F12' },
+        },
+      },
+      {
+        st: 670,
+        ed: 685,
+        ts: {
+          ff: 'Arial',
+          fs: 16,
+          bl: 1,
+          cl: { rgb: '#0284C7' },
+        },
+      },
+      {
+        st: 686,
+        ed: 738,
+        ts: {
+          ff: 'Arial',
+          fs: 12,
+          cl: { rgb: '#475569' },
         },
       },
     ],
     customBlocks: [],
     tables: [],
     paragraphs: [
-      {
-        startIndex: 63,
-        paragraphStyle: {
-          namedStyleType: 2,
-          headingId: 't_IVI6',
-          horizontalAlign: 2,
-        },
-      },
-      {
-        startIndex: 154,
-        paragraphStyle: {
-          horizontalAlign: 2,
-        },
-      },
-      {
-        startIndex: 155,
-      },
-      {
-        startIndex: 156,
-      },
-      {
-        startIndex: 537,
-      },
-      {
-        startIndex: 538,
-      },
-      {
-        startIndex: 1207,
-      },
-      {
-        startIndex: 1208,
-      },
-      {
-        startIndex: 1495,
-        paragraphStyle: {
-          namedStyleType: 1,
-        },
-      },
-      {
-        startIndex: 1496,
-        paragraphStyle: {
-          namedStyleType: 1,
-        },
-      },
+      { startIndex: 23, paragraphStyle: { horizontalAlign: 2 } },
+      { startIndex: 67, paragraphStyle: { horizontalAlign: 2 } },
+      { startIndex: 68 },
+      { startIndex: 82 },
+      { startIndex: 284 },
+      { startIndex: 285 },
+      { startIndex: 309 },
+      { startIndex: 376 },
+      { startIndex: 442 },
+      { startIndex: 510 },
+      { startIndex: 511 },
+      { startIndex: 524 },
+      { startIndex: 668 },
+      { startIndex: 669 },
+      { startIndex: 685 },
+      { startIndex: 738 },
     ],
-    sectionBreaks: [
-      {
-        startIndex: 1497,
-      },
-    ],
+    sectionBreaks: [{ startIndex: 739 }],
     customRanges: [],
     customDecorations: [],
   },

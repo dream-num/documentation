@@ -26,10 +26,6 @@ function isIconsPath(pathname: string) {
   return /^(?:\/[a-z]{2}(?:-[A-Z]{2})?)?\/icons(?:\/|$)/.test(pathname)
 }
 
-function isArchitecturePracticePath(pathname: string) {
-  return /^(?:\/[a-z]{2}(?:-[A-Z]{2})?)?\/guides\/recipes\/architecture(?:\/|$)/.test(pathname)
-}
-
 function ControlIcon({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <span
@@ -90,7 +86,7 @@ export function GuidesSidebarControls({
   const iconsProduct = getIconsProductItem()
   const productItems = includeIcons ? [...getGuideProductItems(items), iconsProduct] : getGuideProductItems(items)
   const currentProduct = includeIcons && isIconsPath(pathname) ? iconsProduct : getActiveGuideProduct(items, pathname)
-  const shouldShowVersion = showVersion && !isArchitecturePracticePath(pathname)
+  const shouldShowVersion = showVersion
   const shouldShowProduct = Boolean(currentProduct && productItems.length > 0)
 
   if (!shouldShowVersion && !shouldShowProduct) {
@@ -122,7 +118,7 @@ export function GuidesSidebarControls({
                   {item.icon ? <NavIconFrame icon={item.icon} /> : null}
                   <span className="truncate">{item.name}</span>
                 </span>
-                {item.id === currentProduct?.id ? <CheckIcon className="size-4" /> : null}
+                {item.id === currentProduct?.id ? <CheckIcon className="ml-auto size-4" /> : null}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>

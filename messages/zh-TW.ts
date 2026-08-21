@@ -97,6 +97,11 @@ const zhTWMessages = {
     'description-docs': '文檔',
     'description-slides': '演示文稿',
     'banner-release': '已發布 →',
+    examples: {
+      eyebrow: '互動式範例',
+      title: '一次發佈，串連每個工作空間',
+      description: '透過六種可編輯的 Univer 體驗，探索從規劃、內容表達、視覺協作到 PDF 交付的完整產品發佈流程。',
+    },
     customer: {
       title: 'Univer 為各行業團隊與公司賦能，提升工作效率',
     },

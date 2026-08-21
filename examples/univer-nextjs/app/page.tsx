@@ -1,4 +1,4 @@
-import { Univer } from '@/components/univer'
+import { Univer } from '../components/univer'
 
 export default function Home() {
   return (

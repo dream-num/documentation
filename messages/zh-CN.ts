@@ -97,6 +97,11 @@ const zhCNMessages = {
     'description-docs': '文档',
     'description-slides': '演示文稿',
     'banner-release': '已发布 →',
+    examples: {
+      eyebrow: '交互式示例',
+      title: '一次发布，贯穿每个工作空间',
+      description: '通过六种可编辑的 Univer 体验，探索从规划、内容表达、视觉协作到 PDF 交付的完整产品发布流程。',
+    },
     customer: {
       title: 'Univer 为各行业团队与公司赋能，提升工作效率',
     },

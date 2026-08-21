@@ -1,0 +1,231 @@
+---
+title: Custom Import Behavior
+author: Univer Engineering Team
+date: 2025-07-16
+---
+
+If the default document import behavior of Univer does not meet your needs, you can customize the import behavior using the Facade API.
+
+Most of the time, you may want to hide the import entry provided by the plugin or directly display the successfully imported file in the current instance. Here are some code examples for reference.
+
+## Hide Import Entry
+
+<Tabs items={['Univer Sheets', 'Univer Docs']}>
+  <Tab>
+    **Preset Mode**
+
+    ```typescript
+    UniverSheetsCorePreset({
+      menu: {
+        'sheets-exchange-client.operation.exchange': {
+          hidden: true,
+        },
+      },
+    })
+    ```
+
+    **Plugin Mode**
+
+    ```typescript
+    univer.registerPlugin(UniverSheetsUIPlugin, {
+      menu: {
+        'sheets-exchange-client.operation.exchange': {
+          hidden: true,
+        },
+      },
+    })
+    ```
+
+  </Tab>
+  <Tab>
+    **Preset Mode**
+
+    ```typescript
+    UniverDocsCorePreset({
+      menu: {
+        'docs-exchange-client.operation.exchange': {
+          hidden: true,
+        },
+      },
+    })
+    ```
+
+    **Plugin Mode**
+
+    ```typescript
+    univer.registerPlugin(UniverDocsUIPlugin, {
+      menu: {
+        'docs-exchange-client.operation.exchange': {
+          hidden: true,
+        },
+      },
+    })
+    ```
+
+  </Tab>
+</Tabs>
+
+## Custom Slides PPTX Import
+
+Univer Slides does not provide preset mode. To hide the PPTX import/export menu in plugin mode, pass a `menu` config to `UniverSlidesExchangeClientPlugin`:
+
+```typescript
+univer.registerPlugin(UniverSlidesExchangeClientPlugin, {
+  menu: {
+    'slides-exchange-client.operation.exchange': {
+      hidden: true,
+    },
+  },
+})
+```
+
+To import a `.pptx` file from a URL, obtain a `File` object first:
+
+```typescript
+const url = 'https://example.com/filename.pptx' // Your PowerPoint file URL
+
+async function fetchPPTXFile(url) {
+  try {
+    const response = await fetch(url)
+    const blob = await response.blob()
+    return new File([blob], 'filename.pptx', {
+      type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    })
+  } catch (error) {
+    console.error('Failed to fetch the file:', error)
+  }
+}
+
+const file = await fetchPPTXFile(url)
+```
+
+If you use a Pro server-side unit workflow, import the PPTX file and load the created Slides unit:
+
+```typescript
+import { UniverInstanceType } from '@univerjs/core'
+
+const unitId = await univerAPI.importSlideToUnitIdAsync(file)
+
+if (unitId) {
+  univerAPI.loadServerUnit(unitId, UniverInstanceType.UNIVER_SLIDE)
+}
+```
+
+If you only need local rendering, import it as slide data and create a presentation:
+
+```typescript
+const slideData = await univerAPI.importSlideToSnapshotAsync(file)
+
+if (slideData) {
+  univerAPI.createPresentation(slideData)
+}
+```
+
+## Import Document from URL
+
+<Tabs items={['Univer Sheets', 'Univer Docs']}>
+  <Tab>
+    You first need to obtain a `File` object, which you can usually get through file upload or by fetching from a URL. Here is an example code snippet that fetches a `.xlsx` file from a URL and converts it into a `File` object.
+
+    ```typescript
+    const url = 'https://example.com/filename.xlsx' // Your Excel file URL
+
+    // Function to fetch and convert the URL to a File object.
+    // Here, the fetch API is used to directly obtain the file,
+    // which may need to be modified according to the actual situation,
+    // such as file address authentication and cross-domain issues.
+    async function fetchExcelFile(url) {
+      try {
+        const response = await fetch(url)
+        const blob = await response.blob()
+        return new File([blob], 'filename.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      } catch (error) {
+        console.error('Failed to fetch the file:', error)
+      }
+    }
+
+    // Fetch the file and import it as a snapshot
+    // If the URL file address is not authenticated,
+    // you can directly pass it to the importSheetToSnapshotAsync or importSheetToUnitIdAsync method
+    const file = await fetchExcelFile(url)
+    ```
+
+    If you are using collaborative editing features, you can use the `univerAPI.importSheetToUnitIdAsync` method to import the `.xlsx` file and obtain a `unitId`, then load the workbook using the `univerAPI.loadServerUnit` method.
+
+    ```typescript
+    import { UniverInstanceType } from '@univerjs/core'
+    // When using presets, you can import `UniverInstanceType` from `@univerjs/presets`
+    import { UniverInstanceType } from '@univerjs/presets'
+
+    univerAPI.importSheetToUnitIdAsync(file).then((unitId) => {
+      console.log('Unit ID created:', unitId)
+
+      univerAPI.loadServerUnit(unitId, UniverInstanceType.UNIVER_SHEET)
+    })
+    ```
+
+    Or if you just want to import the `.xlsx` file as a snapshot (`IWorkbookData`) and render it in the current instance, you can use the `univerAPI.importSheetToSnapshotAsync` method.
+
+    ```typescript
+    // Modify the following code according to the actual situation
+    univerAPI.importSheetToSnapshotAsync(file).then((snapshot) => {
+      console.log('Snapshot created:', snapshot)
+      // Create a new workbook with the snapshot
+      univerAPI.createWorkbook(snapshot)
+    })
+    ```
+
+  </Tab>
+  <Tab>
+    You first need to obtain a `File` object, which you can usually get through file upload or by fetching from a URL. Here is an example code snippet that fetches a `.docx` file from a URL and converts it into a `File` object.
+
+    ```typescript
+    const url = 'https://example.com/filename.docx' // Your Word file URL
+
+    // Function to fetch and convert the URL to a File object.
+    // Here, the fetch API is used to directly obtain the file,
+    // which may need to be modified according to the actual situation,
+    // such as file address authentication and cross-domain issues.
+    async function fetchWordFile(url) {
+      try {
+        const response = await fetch(url)
+        const blob = await response.blob()
+        return new File([blob], 'filename.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
+      } catch (error) {
+        console.error('Failed to fetch the file:', error)
+      }
+    }
+
+    // Fetch the file and import it as a snapshot
+    // If the URL file address is not authenticated,
+    // you can directly pass it to the importDocToSnapshotAsync or importDocToUnitIdAsync method
+    const file = await fetchWordFile(url)
+    ```
+
+    If you are using collaborative editing features, you can use the `univerAPI.importDocToUnitIdAsync` method to import the `.docx` file and obtain a `unitId`, then load the document using the `univerAPI.loadServerUnit` method.
+
+    ```typescript
+    import { UniverInstanceType } from '@univerjs/core'
+    // When using presets, you can import `UniverInstanceType` from `@univerjs/presets`
+    import { UniverInstanceType } from '@univerjs/presets'
+
+    univerAPI.importDocToUnitIdAsync(file).then((unitId) => {
+      console.log('Unit ID created:', unitId)
+
+      univerAPI.loadServerUnit(unitId, UniverInstanceType.UNIVER_DOC)
+    })
+    ```
+
+    Or if you just want to import the `.docx` file as a snapshot (`IDocumentData`) and render it in the current instance, you can use the `univerAPI.importDocToSnapshotAsync` method.
+
+    ```typescript
+    // Modify the following code according to the actual situation
+    univerAPI.importDocToSnapshotAsync(file).then((snapshot) => {
+      console.log('Snapshot created:', snapshot)
+      // Create a new document with the snapshot
+      univerAPI.createDocument(snapshot)
+    })
+    ```
+
+  </Tab>
+</Tabs>

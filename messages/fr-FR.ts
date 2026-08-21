@@ -97,6 +97,12 @@ const frFRMessages = {
     'description-docs': 'des documents',
     'description-slides': 'des présentations',
     'banner-release': 'est disponible →',
+    examples: {
+      eyebrow: 'Exemples interactifs',
+      title: 'Un lancement, tous les espaces de travail',
+      description:
+        'Explorez un lancement produit connecté dans six expériences Univer entièrement modifiables, de la planification et du récit à la collaboration visuelle et aux PDF.',
+    },
     customer: {
       title: 'Adopté par des équipes et des entreprises de tous secteurs',
     },

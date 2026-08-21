@@ -4,6 +4,8 @@ import { MenuIcon } from 'lucide-react'
 import { Link } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 
+import { ActiveNavigationLink } from './active-navigation-link'
+
 export interface ISiteNavLink {
   text: string
   url: string
@@ -43,13 +45,14 @@ export function SiteMobileMenu({
         <nav aria-label={navigationLabel} className="min-h-0 flex-1 overflow-y-auto p-4">
           <div className="space-y-1">
             {links.map((link) => (
-              <Link
+              <ActiveNavigationLink
+                activeClassName="bg-accent text-accent-foreground"
                 className="hover:bg-accent hover:text-accent-foreground flex min-h-10 items-center rounded-md px-3 text-sm font-medium transition-colors"
                 href={link.url}
                 key={link.url}
               >
                 {link.text}
-              </Link>
+              </ActiveNavigationLink>
             ))}
           </div>
           <div className="mt-6 border-t pt-5">

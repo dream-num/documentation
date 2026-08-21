@@ -98,6 +98,12 @@ const jaJPMessages = {
     'description-docs': 'ドキュメント',
     'description-slides': 'プレゼンテーション',
     'banner-release': 'がリリースされました →',
+    examples: {
+      eyebrow: 'インタラクティブな例',
+      title: 'ひとつのローンチを、すべてのワークスペースで',
+      description:
+        '計画、ストーリーテリング、ビジュアルコラボレーション、PDF まで、6 つの編集可能な Univer 体験で一連の製品ローンチをお試しください。',
+    },
     customer: {
       title: '業界を問わず、チームと企業に信頼されています',
     },

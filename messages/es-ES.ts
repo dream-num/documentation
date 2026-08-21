@@ -99,6 +99,12 @@ const esESMessages = {
     'description-docs': 'documentos',
     'description-slides': 'presentaciones',
     'banner-release': 'ha sido lanzado →',
+    examples: {
+      eyebrow: 'Ejemplos interactivos',
+      title: 'Un lanzamiento, cada espacio de trabajo',
+      description:
+        'Explore un lanzamiento de producto conectado en seis experiencias de Univer totalmente editables, desde la planificación y la narrativa hasta la colaboración visual y los PDF.',
+    },
     customer: {
       title: 'Con la confianza de equipos y empresas de todos los sectores',
     },

@@ -98,6 +98,12 @@ const koKRMessages = {
     'description-docs': '문서',
     'description-slides': '프레젠테이션',
     'banner-release': '이 출시되었습니다 →',
+    examples: {
+      eyebrow: '인터랙티브 예제',
+      title: '하나의 출시, 모든 워크스페이스',
+      description:
+        '기획과 스토리텔링부터 시각적 협업과 PDF까지, 편집 가능한 여섯 가지 Univer 경험으로 연결된 제품 출시 과정을 살펴보세요.',
+    },
     customer: {
       title: '다양한 업계의 팀과 기업이 신뢰합니다',
     },

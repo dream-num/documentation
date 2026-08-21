@@ -14,7 +14,7 @@ import { Scenes } from '@/components/home/scenes'
 import { AnimatedShinyText } from '@/components/magicui/animated-shiny-text'
 import { BlurFade } from '@/components/magicui/blur-fade'
 import { RainbowButton } from '@/components/magicui/rainbow-button'
-import Univer from '@/components/univer'
+import Univer from '@/components/univer/client'
 import pkg from '@/package.json'
 
 interface IProps {
@@ -121,7 +121,18 @@ export default async function Page({ params }: IProps) {
 
         {/* Playground */}
         <section className={`relative min-h-120 w-full px-4 md:min-h-200 md:px-12`}>
-          <Univer />
+          <header className="mx-auto mb-6 flex max-w-3xl flex-col items-center px-4 text-center">
+            <p className="mb-3 text-xs font-semibold tracking-[0.18em] text-sky-700 uppercase dark:text-sky-300">
+              {t('home.examples.eyebrow')}
+            </p>
+            <h2 className="text-3xl font-semibold tracking-tight text-neutral-950 md:text-4xl dark:text-white">
+              {t('home.examples.title')}
+            </h2>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-neutral-600 md:text-base dark:text-neutral-300">
+              {t('home.examples.description')}
+            </p>
+          </header>
+          <Univer tablistLabel={t('home.examples.eyebrow')} />
         </section>
 
         {/* Logo Cloud */}

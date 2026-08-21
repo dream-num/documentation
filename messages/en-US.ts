@@ -96,6 +96,12 @@ const enUSMessages = {
     'description-docs': 'documents',
     'description-slides': 'presentations',
     'banner-release': 'has been released →',
+    examples: {
+      eyebrow: 'Interactive examples',
+      title: 'One launch, every workspace',
+      description:
+        'Explore a connected product launch across six fully editable Univer experiences — from planning and storytelling to visual collaboration and PDFs.',
+    },
     customer: {
       title: 'Trusted by teams and companies across industries',
     },

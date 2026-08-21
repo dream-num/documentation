@@ -1,0 +1,231 @@
+---
+title: 自定义导入行为
+author: Univer Engineering Team
+date: 2025-07-16
+---
+
+如果 Univer 默认的文档导入行为无法满足你的需求，你可以通过 Facade API 自定义导入行为。
+
+大多数情况下，你可能需要隐藏插件提供的导入入口，或者将导入成功的文件直接展示在当前实例中。下面是一些可供参考的代码示例。
+
+## 隐藏导入入口
+
+<Tabs items={['Univer Sheets', 'Univer Docs']}>
+  <Tab>
+    **预设模式**
+
+    ```typescript
+    UniverSheetsCorePreset({
+      menu: {
+        'sheets-exchange-client.operation.exchange': {
+          hidden: true,
+        },
+      },
+    })
+    ```
+
+    ### 插件模式
+
+    ```typescript
+    univer.registerPlugin(UniverSheetsUIPlugin, {
+      menu: {
+        'sheets-exchange-client.operation.exchange': {
+          hidden: true,
+        },
+      },
+    })
+    ```
+
+  </Tab>
+  <Tab>
+    **预设模式**
+
+    ```typescript
+    UniverDocsCorePreset({
+      menu: {
+        'docs-exchange-client.operation.exchange': {
+          hidden: true,
+        },
+      },
+    })
+    ```
+
+    ### 插件模式
+
+    ```typescript
+    univer.registerPlugin(UniverDocsUIPlugin, {
+      menu: {
+        'docs-exchange-client.operation.exchange': {
+          hidden: true,
+        },
+      },
+    })
+    ```
+
+  </Tab>
+</Tabs>
+
+## 自定义 Slides PPTX 导入
+
+Univer Slides 不提供预设模式。如果要在插件模式下隐藏 PPTX 导入导出菜单，可以给 `UniverSlidesExchangeClientPlugin` 传入 `menu` 配置：
+
+```typescript
+univer.registerPlugin(UniverSlidesExchangeClientPlugin, {
+  menu: {
+    'slides-exchange-client.operation.exchange': {
+      hidden: true,
+    },
+  },
+})
+```
+
+如果要从 URL 导入 `.pptx` 文件，先获取一个 `File` 对象：
+
+```typescript
+const url = 'https://example.com/filename.pptx' // 你的 PowerPoint 文件 URL
+
+async function fetchPPTXFile(url) {
+  try {
+    const response = await fetch(url)
+    const blob = await response.blob()
+    return new File([blob], 'filename.pptx', {
+      type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    })
+  } catch (error) {
+    console.error('Failed to fetch the file:', error)
+  }
+}
+
+const file = await fetchPPTXFile(url)
+```
+
+如果使用 Pro 服务端 unit 流程，可以导入 PPTX 文件并加载创建出来的 Slides unit：
+
+```typescript
+import { UniverInstanceType } from '@univerjs/core'
+
+const unitId = await univerAPI.importSlideToUnitIdAsync(file)
+
+if (unitId) {
+  univerAPI.loadServerUnit(unitId, UniverInstanceType.UNIVER_SLIDE)
+}
+```
+
+如果只需要本地渲染，可以导入为 slide 数据并创建 presentation：
+
+```typescript
+const slideData = await univerAPI.importSlideToSnapshotAsync(file)
+
+if (slideData) {
+  univerAPI.createPresentation(slideData)
+}
+```
+
+## 从 URL 导入文档
+
+<Tabs items={['Univer Sheets', 'Univer Docs']}>
+  <Tab>
+    首先你需要获取一个 `File` 对象，通常你可以通过文件上传或从 URL 获取文件。以下是一个从 URL 获取 `.xlsx` 文件并转换为 `File` 对象的示例代码。
+
+    ```typescript
+    const url = 'https://example.com/filename.xlsx' // 你的 Excel 文件 URL
+
+    // 从 URL 获取文件并转换为 File 对象的函数。
+    // 这里使用 fetch API 直接获取文件，
+    // 可能需要根据实际情况修改，
+    // 比如文件地址的鉴权和跨域问题。
+    async function fetchExcelFile(url) {
+      try {
+        const response = await fetch(url)
+        const blob = await response.blob()
+        return new File([blob], 'filename.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      } catch (error) {
+        console.error('Failed to fetch the file:', error)
+      }
+    }
+
+    // 从 URL 获取文件并导入为快照
+    // 如果 URL 文件地址没有鉴权，
+    // 可以直接传入到 importSheetToSnapshotAsync 或 importSheetToUnitIdAsync 方法中
+    const file = await fetchExcelFile(url)
+    ```
+
+    如果你使用了协同编辑功能，你可以使用 `univerAPI.importSheetToUnitIdAsync` 方法来导入 `.xlsx` 文件获取 `unitId`，并通过 `univerAPI.loadServerUnit` 方法加载工作簿。
+
+    ```typescript
+    import { UniverInstanceType } from '@univerjs/core'
+    // 预设模式下 `UniverInstanceType` 可从 @univerjs/presets 导入
+    import { UniverInstanceType } from '@univerjs/presets'
+
+    univerAPI.importSheetToUnitIdAsync(file).then((unitId) => {
+      console.log('Unit ID created:', unitId)
+
+      univerAPI.loadServerUnit(unitId, UniverInstanceType.UNIVER_SHEET)
+    })
+    ```
+
+    如果你只是希望将 `.xlsx` 文件导入为快照（`IWorkbookData`）并渲染到当前实例中，你可以使用 `univerAPI.importSheetToSnapshotAsync` 方法。
+
+    ```typescript
+    // 以下代码需要根据实际情况修改
+    univerAPI.importSheetToSnapshotAsync(file).then((snapshot) => {
+      console.log('Snapshot created:', snapshot)
+      // 通过快照创建一个新的工作簿
+      univerAPI.createWorkbook(snapshot)
+    })
+    ```
+
+  </Tab>
+  <Tab>
+    首先你需要获取一个 `File` 对象，通常你可以通过文件上传或从 URL 获取文件。以下是一个从 URL 获取 `.docx` 文件并转换为 `File` 对象的示例代码。
+
+    ```typescript
+    const url = 'https://example.com/filename.docx' // 你的 Word 文件 URL
+
+    // 从 URL 获取文件并转换为 File 对象的函数。
+    // 这里使用 fetch API 直接获取文件，
+    // 可能需要根据实际情况修改，
+    // 比如文件地址的鉴权和跨域问题。
+    async function fetchWordFile(url) {
+      try {
+        const response = await fetch(url)
+        const blob = await response.blob()
+        return new File([blob], 'filename.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
+      } catch (error) {
+        console.error('Failed to fetch the file:', error)
+      }
+    }
+
+    // 从 URL 获取文件并导入为快照
+    // 如果 URL 文件地址没有鉴权，
+    // 可以直接传入到 importDocToSnapshotAsync 或 importDocToUnitIdAsync 方法中
+    const file = await fetchWordFile(url)
+    ```
+
+    如果你使用了协同编辑功能，你可以使用 `univerAPI.importDocToUnitIdAsync` 方法来导入 `.docx` 文件获取 `unitId`，并通过 `univerAPI.loadServerUnit` 方法加载文档。
+
+    ```typescript
+    import { UniverInstanceType } from '@univerjs/core'
+    // 预设模式下 `UniverInstanceType` 可从 @univerjs/presets 导入
+    import { UniverInstanceType } from '@univerjs/presets'
+
+    univerAPI.importDocToUnitIdAsync(file).then((unitId) => {
+      console.log('Unit ID created:', unitId)
+
+      univerAPI.loadServerUnit(unitId, UniverInstanceType.UNIVER_DOC)
+    })
+    ```
+
+    如果你只是希望将 `.docx` 文件导入为快照（`IDocumentData`）并渲染到当前实例中，你可以使用 `univerAPI.importDocToSnapshotAsync` 方法。
+
+    ```typescript
+    // 以下代码需要根据实际情况修改
+    univerAPI.importDocToSnapshotAsync(file).then((snapshot) => {
+      console.log('Snapshot created:', snapshot)
+      // 通过快照创建一个新的文档
+      univerAPI.createDocument(snapshot)
+    })
+    ```
+
+  </Tab>
+</Tabs>

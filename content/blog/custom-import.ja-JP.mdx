@@ -1,0 +1,229 @@
+---
+title: インポート動作のカスタマイズ
+author: Univer Engineering Team
+date: 2025-07-16
+---
+
+Univer の標準インポート動作が要件に合わない場合は、Facade API を使ってインポート処理をカスタマイズできます。
+
+よくある用途は、プラグインが提供するインポート入口を非表示にすること、またはインポートに成功したファイルを現在のインスタンスに直接表示することです。以下に参考例を示します。
+
+## インポート入口を非表示にする
+
+<Tabs items={['Univer Sheets', 'Univer Docs']}>
+  <Tab>
+    **プリセットモード**
+
+    ```typescript
+    UniverSheetsCorePreset({
+      menu: {
+        'sheets-exchange-client.operation.exchange': {
+          hidden: true,
+        },
+      },
+    })
+    ```
+
+    **プラグインモード**
+
+    ```typescript
+    univer.registerPlugin(UniverSheetsUIPlugin, {
+      menu: {
+        'sheets-exchange-client.operation.exchange': {
+          hidden: true,
+        },
+      },
+    })
+    ```
+
+  </Tab>
+  <Tab>
+    **プリセットモード**
+
+    ```typescript
+    UniverDocsCorePreset({
+      menu: {
+        'docs-exchange-client.operation.exchange': {
+          hidden: true,
+        },
+      },
+    })
+    ```
+
+    **プラグインモード**
+
+    ```typescript
+    univer.registerPlugin(UniverDocsUIPlugin, {
+      menu: {
+        'docs-exchange-client.operation.exchange': {
+          hidden: true,
+        },
+      },
+    })
+    ```
+
+  </Tab>
+</Tabs>
+
+## Slides PPTX インポートをカスタマイズする
+
+Univer Slides にはプリセットモードがありません。プラグインモードで PPTX のインポート/エクスポートメニューを非表示にするには、`UniverSlidesExchangeClientPlugin` に `menu` 設定を渡します。
+
+```typescript
+univer.registerPlugin(UniverSlidesExchangeClientPlugin, {
+  menu: {
+    'slides-exchange-client.operation.exchange': {
+      hidden: true,
+    },
+  },
+})
+```
+
+URL から `.pptx` ファイルをインポートする場合は、まず `File` オブジェクトを取得します。
+
+```typescript
+const url = 'https://example.com/filename.pptx' // PowerPoint ファイルの URL
+
+async function fetchPPTXFile(url) {
+  try {
+    const response = await fetch(url)
+    const blob = await response.blob()
+    return new File([blob], 'filename.pptx', {
+      type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    })
+  } catch (error) {
+    console.error('Failed to fetch the file:', error)
+  }
+}
+
+const file = await fetchPPTXFile(url)
+```
+
+Pro のサーバー側 unit フローを使う場合は、PPTX ファイルをインポートして作成された Slides unit を読み込みます。
+
+```typescript
+import { UniverInstanceType } from '@univerjs/core'
+
+const unitId = await univerAPI.importSlideToUnitIdAsync(file)
+
+if (unitId) {
+  univerAPI.loadServerUnit(unitId, UniverInstanceType.UNIVER_SLIDE)
+}
+```
+
+ローカル表示だけが必要な場合は、slide データとしてインポートして presentation を作成します。
+
+```typescript
+const slideData = await univerAPI.importSlideToSnapshotAsync(file)
+
+if (slideData) {
+  univerAPI.createPresentation(slideData)
+}
+```
+
+## URL からドキュメントをインポートする
+
+<Tabs items={['Univer Sheets', 'Univer Docs']}>
+  <Tab>
+    まず `File` オブジェクトを取得します。通常はファイルアップロードから取得しますが、URL から取得することもできます。以下は URL から `.xlsx` ファイルを取得し、`File` オブジェクトに変換する例です。
+
+    ```typescript
+    const url = 'https://example.com/filename.xlsx' // Excel ファイルの URL
+
+    // URL からファイルを取得して File オブジェクトに変換します。
+    // ここでは fetch API を直接使っています。
+    // 実際にはファイル URL の認証や CORS に合わせて調整してください。
+    async function fetchExcelFile(url) {
+      try {
+        const response = await fetch(url)
+        const blob = await response.blob()
+        return new File([blob], 'filename.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      } catch (error) {
+        console.error('Failed to fetch the file:', error)
+      }
+    }
+
+    // URL からファイルを取得し、snapshot としてインポートします
+    // URL が認証不要であれば、
+    // importSheetToSnapshotAsync または importSheetToUnitIdAsync に直接渡すこともできます
+    const file = await fetchExcelFile(url)
+    ```
+
+    共同編集機能を使っている場合は、`univerAPI.importSheetToUnitIdAsync` で `.xlsx` ファイルをインポートして `unitId` を取得し、`univerAPI.loadServerUnit` で workbook を読み込みます。
+
+    ```typescript
+    import { UniverInstanceType } from '@univerjs/core'
+    // プリセットモードでは `UniverInstanceType` を @univerjs/presets からインポートできます
+    import { UniverInstanceType } from '@univerjs/presets'
+
+    univerAPI.importSheetToUnitIdAsync(file).then((unitId) => {
+      console.log('Unit ID created:', unitId)
+
+      univerAPI.loadServerUnit(unitId, UniverInstanceType.UNIVER_SHEET)
+    })
+    ```
+
+    `.xlsx` ファイルを snapshot（`IWorkbookData`）としてインポートし、現在のインスタンスで表示したいだけなら、`univerAPI.importSheetToSnapshotAsync` を使います。
+
+    ```typescript
+    // 実際の状況に合わせて調整してください
+    univerAPI.importSheetToSnapshotAsync(file).then((snapshot) => {
+      console.log('Snapshot created:', snapshot)
+      // snapshot から新しい workbook を作成します
+      univerAPI.createWorkbook(snapshot)
+    })
+    ```
+
+  </Tab>
+  <Tab>
+    まず `File` オブジェクトを取得します。通常はファイルアップロードから取得しますが、URL から取得することもできます。以下は URL から `.docx` ファイルを取得し、`File` オブジェクトに変換する例です。
+
+    ```typescript
+    const url = 'https://example.com/filename.docx' // Word ファイルの URL
+
+    // URL からファイルを取得して File オブジェクトに変換します。
+    // ここでは fetch API を直接使っています。
+    // 実際にはファイル URL の認証や CORS に合わせて調整してください。
+    async function fetchWordFile(url) {
+      try {
+        const response = await fetch(url)
+        const blob = await response.blob()
+        return new File([blob], 'filename.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
+      } catch (error) {
+        console.error('Failed to fetch the file:', error)
+      }
+    }
+
+    // URL からファイルを取得し、snapshot としてインポートします
+    // URL が認証不要であれば、
+    // importDocToSnapshotAsync または importDocToUnitIdAsync に直接渡すこともできます
+    const file = await fetchWordFile(url)
+    ```
+
+    共同編集機能を使っている場合は、`univerAPI.importDocToUnitIdAsync` で `.docx` ファイルをインポートして `unitId` を取得し、`univerAPI.loadServerUnit` でドキュメントを読み込みます。
+
+    ```typescript
+    import { UniverInstanceType } from '@univerjs/core'
+    // プリセットモードでは `UniverInstanceType` を @univerjs/presets からインポートできます
+    import { UniverInstanceType } from '@univerjs/presets'
+
+    univerAPI.importDocToUnitIdAsync(file).then((unitId) => {
+      console.log('Unit ID created:', unitId)
+
+      univerAPI.loadServerUnit(unitId, UniverInstanceType.UNIVER_DOC)
+    })
+    ```
+
+    `.docx` ファイルを snapshot（`IDocumentData`）としてインポートし、現在のインスタンスで表示したいだけなら、`univerAPI.importDocToSnapshotAsync` を使います。
+
+    ```typescript
+    // 実際の状況に合わせて調整してください
+    univerAPI.importDocToSnapshotAsync(file).then((snapshot) => {
+      console.log('Snapshot created:', snapshot)
+      // snapshot から新しい document を作成します
+      univerAPI.createDocument(snapshot)
+    })
+    ```
+
+  </Tab>
+</Tabs>

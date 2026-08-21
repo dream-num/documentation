@@ -1,13 +1,13 @@
-import { CheckIcon, ChevronDownIcon } from 'lucide-react'
+import { ChevronDownIcon } from 'lucide-react'
 
 import type { IGuideNavItem } from '@/lib/guides/navigation'
 import { NavIconFrame } from '@/components/docs-shell/nav-icon-frame'
+import { ActiveNavigationLink } from '@/components/site/active-navigation-link'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { UniverIcon } from '@/components/univer-icon'
 import { Link } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 import {
-  getActiveGuideProduct,
   getGuideNavItemHref,
   getGuideProductItems,
   getGuideStandaloneItems,
@@ -42,9 +42,10 @@ function getIconsProductItem(): IGuideNavItem {
 function ProductSwitcher({ items, label, pathname }: { items: IGuideNavItem[]; label: string; pathname: string }) {
   const iconsProduct = getIconsProductItem()
   const productItems = [...getGuideProductItems(items), iconsProduct]
-  const currentProduct = isPrimaryLinkActive(pathname, iconsProduct.url ?? '')
-    ? iconsProduct
-    : getActiveGuideProduct(items, pathname)
+  const active = productItems.some((item) => {
+    const href = getGuideNavItemHref(item)
+    return href ? isPrimaryLinkActive(pathname, href) : false
+  })
 
   if (productItems.length === 0) return null
 
@@ -53,7 +54,10 @@ function ProductSwitcher({ items, label, pathname }: { items: IGuideNavItem[]; l
       <DropdownMenuTrigger
         render={
           <button
-            className="group text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            className={clsx(
+              `group text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none`,
+              active && 'bg-accent text-accent-foreground',
+            )}
             type="button"
           />
         }
@@ -61,7 +65,7 @@ function ProductSwitcher({ items, label, pathname }: { items: IGuideNavItem[]; l
         <span className="max-w-32 truncate">{label}</span>
         <ChevronDownIcon className="size-3.5 transition-transform group-data-popup-open:rotate-180" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-64">
+      <DropdownMenuContent align="start" className="w-52">
         {productItems.map((item) => (
           <DropdownMenuItem
             key={item.id}
@@ -71,7 +75,6 @@ function ProductSwitcher({ items, label, pathname }: { items: IGuideNavItem[]; l
               {item.icon ? <NavIconFrame icon={item.icon} /> : null}
               <span className="truncate">{item.name}</span>
             </span>
-            {item.id === currentProduct?.id ? <CheckIcon className="size-4" /> : null}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
@@ -124,16 +127,14 @@ export function PrimaryNavigation({
         </Link>
       ))}
       {links.map((link) => (
-        <Link
-          className={clsx(
-            `text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-md px-2.5 py-1.5 text-sm whitespace-nowrap transition-colors`,
-            isPrimaryLinkActive(pathname, link.url) && 'bg-accent text-accent-foreground',
-          )}
+        <ActiveNavigationLink
+          activeClassName="bg-accent text-accent-foreground"
+          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-md px-2.5 py-1.5 text-sm whitespace-nowrap transition-colors"
           href={link.url}
           key={link.url}
         >
           {link.text}
-        </Link>
+        </ActiveNavigationLink>
       ))}
     </nav>
   )
