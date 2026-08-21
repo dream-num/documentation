@@ -39,7 +39,7 @@ const esESMessages = {
     appearance: 'Apariencia',
     'back-to-editor': 'Volver al editor',
     'base-tokens': 'Tokens base',
-    'choose-color': 'Elegir color de {etiqueta',
+    'choose-color': 'Elegir color de {label}',
     collapse: 'Contraer',
     'core-palette': 'Paleta principal',
     copied: 'Copiar',
@@ -80,10 +80,12 @@ const esESMessages = {
     'view-default': 'Ver valor predeterminado',
     preset: {
       default: 'Predeterminado',
+      'dark-blue': 'Azul oscuro',
       green: 'Verde',
       orange: 'Naranja',
-      red: 'Rojo',
       purple: 'Púrpura',
+      red: 'Rojo',
+      yellow: 'Amarillo',
     },
   },
   home: {

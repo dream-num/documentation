@@ -79,10 +79,12 @@ const jaJPMessages = {
     'view-default': 'デフォルトを表示',
     preset: {
       default: '標準',
+      'dark-blue': 'ダークブルー',
       green: '緑',
       orange: 'オレンジ',
-      red: '赤',
       purple: '紫',
+      red: '赤',
+      yellow: '黄',
     },
   },
   home: {

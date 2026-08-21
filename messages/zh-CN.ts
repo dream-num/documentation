@@ -79,10 +79,12 @@ const zhCNMessages = {
     'view-default': '查看默认',
     preset: {
       default: '默认',
+      'dark-blue': '深蓝色',
       green: '绿色',
       orange: '橙色',
-      red: '红色',
       purple: '紫色',
+      red: '红色',
+      yellow: '黄色',
     },
   },
   home: {

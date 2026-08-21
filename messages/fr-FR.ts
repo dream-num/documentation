@@ -78,10 +78,12 @@ const frFRMessages = {
     'view-default': 'Afficher les valeurs par défaut',
     preset: {
       default: 'Par défaut',
+      'dark-blue': 'Bleu foncé',
       green: 'Vert',
       orange: 'Orange',
-      red: 'Rouge',
       purple: 'Violet',
+      red: 'Rouge',
+      yellow: 'Jaune',
     },
   },
   home: {

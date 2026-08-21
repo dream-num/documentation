@@ -80,10 +80,12 @@ const ruRUMessages = {
     'view-default': 'Показать исходную тему',
     preset: {
       default: 'По умолчанию',
+      'dark-blue': 'Тёмно-синяя',
       green: 'Зелёная',
       orange: 'Оранжевая',
-      red: 'Красная',
       purple: 'Фиолетовая',
+      red: 'Красная',
+      yellow: 'Жёлтая',
     },
   },
   home: {

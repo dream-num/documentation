@@ -98,7 +98,7 @@ export function GuidesSidebarControls({
   }
 
   return (
-    <div className={clsx('space-y-3', shouldShowVersion ? 'pb-6' : 'pb-4')}>
+    <div className={clsx('flex flex-col gap-3', shouldShowVersion ? 'pb-6' : 'pb-4')}>
       {shouldShowVersion ? <SidebarVersionSwitcher /> : null}
 
       {shouldShowProduct ? (

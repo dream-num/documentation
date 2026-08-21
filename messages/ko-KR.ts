@@ -79,10 +79,12 @@ const koKRMessages = {
     'view-default': '기본값 보기',
     preset: {
       default: '기본',
+      'dark-blue': '다크 블루',
       green: '녹색',
       orange: '주황색',
-      red: '빨간색',
       purple: '보라색',
+      red: '빨간색',
+      yellow: '노란색',
     },
   },
   home: {

@@ -77,10 +77,12 @@ const enUSMessages = {
     'view-default': 'View default',
     preset: {
       default: 'Default',
+      'dark-blue': 'Dark Blue',
       green: 'Green',
       orange: 'Orange',
-      red: 'Red',
       purple: 'Purple',
+      red: 'Red',
+      yellow: 'Yellow',
     },
   },
   home: {

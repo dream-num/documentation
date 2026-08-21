@@ -80,10 +80,12 @@ const deDEMessages = {
     'view-default': 'Standardansicht',
     preset: {
       default: 'Standard',
+      'dark-blue': 'Dunkelblau',
       green: 'Grün',
       orange: 'Orange',
-      red: 'Rot',
       purple: 'Lila',
+      red: 'Rot',
+      yellow: 'Gelb',
     },
   },
   home: {

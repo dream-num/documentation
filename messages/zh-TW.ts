@@ -79,10 +79,12 @@ const zhTWMessages = {
     'view-default': '查看預設',
     preset: {
       default: '預設',
+      'dark-blue': '深藍色',
       green: '綠色',
       orange: '橙色',
-      red: '紅色',
       purple: '紫色',
+      red: '紅色',
+      yellow: '黃色',
     },
   },
   home: {
