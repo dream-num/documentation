@@ -2,9 +2,7 @@ import type { IWorkbookData } from '@univerjs/presets'
 
 export const WORKBOOK_DATA: Partial<IWorkbookData> = {
   id: 'workbook-01',
-  sheetOrder: [
-    'sheet-01',
-  ],
+  sheetOrder: ['sheet-01'],
   name: 'Sheets Chart Demo',
   styles: {
     mTVIwU: {
@@ -539,6 +537,64 @@ export const WORKBOOK_DATA: Partial<IWorkbookData> = {
             t: 2,
             s: 'BfLCvM',
           },
+        },
+        30: {
+          1: {
+            s: 'Y2QdlY',
+            v: 'Region',
+            t: 1,
+          },
+          2: {
+            s: 'Y2QdlY',
+            v: 'Quarter',
+            t: 1,
+          },
+          3: {
+            s: 'Y2QdlY',
+            v: 'Revenue',
+            t: 1,
+          },
+          4: {
+            s: 'Y2QdlY',
+            v: 'Profit',
+            t: 1,
+          },
+        },
+        31: {
+          1: { v: 'North', t: 1 },
+          2: { v: 'Q1', t: 1 },
+          3: { v: 120, t: 2 },
+          4: { v: 42, t: 2 },
+        },
+        32: {
+          1: { v: 'North', t: 1 },
+          2: { v: 'Q2', t: 1 },
+          3: { v: 148, t: 2 },
+          4: { v: 51, t: 2 },
+        },
+        33: {
+          1: { v: 'North', t: 1 },
+          2: { v: 'Q3', t: 1 },
+          3: { v: 176, t: 2 },
+          4: { v: 63, t: 2 },
+        },
+        34: {
+          1: { v: 'South', t: 1 },
+          2: { v: 'Q1', t: 1 },
+          3: { v: 98, t: 2 },
+          4: { v: 31, t: 2 },
+        },
+        35: {
+          1: { v: 'South', t: 1 },
+          2: { v: 'Q2', t: 1 },
+          3: { v: 132, t: 2 },
+          4: { v: 46, t: 2 },
+        },
+        36: {
+          1: { v: 'South', t: 1 },
+          2: { v: 'Q3', t: 1 },
+          3: { v: 159, t: 2 },
+          4: { v: 57, t: 2 },
         },
       },
     },

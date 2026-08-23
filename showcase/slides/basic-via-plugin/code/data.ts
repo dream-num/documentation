@@ -6,7 +6,7 @@ import { LocaleType } from '@univerjs/core'
 export const SLIDE_DATA: ISlideData = {
   id: 'slides-pro-demo',
   name: 'Univer Slides Pro',
-  appVersion: '1.0.0-beta.1',
+  appVersion: '1.0.0-beta.2',
   rev: 1,
   locale: LocaleType.EN_US,
   defaultPageSize: {

@@ -12,6 +12,7 @@ export async function insertChart(univerAPI: FUniver) {
   await insertLineChart(fWorksheet, univerAPI)
   await insertBarChart(fWorksheet, univerAPI)
   await insertColumnChart(fWorksheet, univerAPI)
+  await insertMultiLevelCategoryChart(fWorksheet, univerAPI)
 }
 
 async function insertLineChart(fWorksheet: FWorksheet, univerAPI: FUniver) {
@@ -55,4 +56,18 @@ async function insertColumnChart(fWorksheet: FWorksheet, univerAPI: FUniver) {
     .setSize(600, 360)
     .build()
   await fWorksheet.insertChart(columnChartBuildInfo)
+}
+
+async function insertMultiLevelCategoryChart(fWorksheet: FWorksheet, univerAPI: FUniver) {
+  const multiLevelChartBuildInfo = fWorksheet
+    .newChart(univerAPI.Enum.ChartTypeString.Column)
+    .setSource('Sheet1!B31:E37')
+    .setPosition({ row: 18, column: 8 })
+    .setCategoryFields([0, 1])
+    .setMultiLevelCategoryAxis(true)
+    .setValueFields([2, 3])
+    .setTitle('Revenue by Region and Quarter')
+    .setSize(600, 360)
+    .build()
+  await fWorksheet.insertChart(multiLevelChartBuildInfo)
 }
