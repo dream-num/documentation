@@ -41,6 +41,14 @@ import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
 import DrawingUIEnUS from '@univerjs/drawing-ui/locale/en-US'
 import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+import {
+  BasesMultiIcon,
+  BoardsMultiIcon,
+  DocsMultiIcon,
+  PdfMultiIcon,
+  SheetsMultiIcon,
+  SlidesMultiIcon,
+} from '@univerjs/icons'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
 import { UniverSheetsConditionalFormattingUIPlugin } from '@univerjs/sheets-conditional-formatting-ui'
 import SheetsConditionalFormattingUIEnUS from '@univerjs/sheets-conditional-formatting-ui/locale/en-US'
@@ -56,7 +64,6 @@ import SheetsUIEnUS from '@univerjs/sheets-ui/locale/en-US'
 import SheetsEnUS from '@univerjs/sheets/locale/en-US'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
-import { BookTextIcon, DatabaseIcon, FileTextIcon, PresentationIcon, ShapesIcon, SheetIcon } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTheme } from 'next-themes'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -1576,49 +1583,49 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       key: 'sheets' as const,
       label: 'Sheets',
       fullLabel: 'Univer Sheets',
-      icon: SheetIcon,
+      icon: SheetsMultiIcon,
       activeClass: 'text-green-700 dark:text-green-300',
-      beamColor: '#22c55e',
+      beamColor: '#35BD4B',
     },
     {
       key: 'docs' as const,
       label: 'Docs',
       fullLabel: 'Univer Docs',
-      icon: BookTextIcon,
+      icon: DocsMultiIcon,
       activeClass: 'text-blue-700 dark:text-blue-300',
-      beamColor: '#3b82f6',
+      beamColor: '#4B7DFF',
     },
     {
       key: 'slides' as const,
       label: 'Slides',
       fullLabel: 'Univer Slides',
-      icon: PresentationIcon,
-      activeClass: 'text-red-700 dark:text-red-300',
-      beamColor: '#ef4444',
+      icon: SlidesMultiIcon,
+      activeClass: 'text-orange-700 dark:text-orange-300',
+      beamColor: '#FF6B4B',
     },
     {
       key: 'bases' as const,
       label: 'Bases',
       fullLabel: 'Univer Bases',
-      icon: DatabaseIcon,
+      icon: BasesMultiIcon,
       activeClass: 'text-teal-700 dark:text-teal-300',
-      beamColor: '#14b8a6',
+      beamColor: '#14B8A6',
     },
     {
       key: 'boards' as const,
       label: 'Boards',
       fullLabel: 'Univer Boards',
-      icon: ShapesIcon,
+      icon: BoardsMultiIcon,
       activeClass: 'text-violet-700 dark:text-violet-300',
-      beamColor: '#8b5cf6',
+      beamColor: '#8B5CF6',
     },
     {
       key: 'pdfs' as const,
       label: 'PDFs',
       fullLabel: 'Univer PDFs',
-      icon: FileTextIcon,
-      activeClass: 'text-amber-700 dark:text-amber-300',
-      beamColor: '#f59e0b',
+      icon: PdfMultiIcon,
+      activeClass: 'text-red-700 dark:text-red-300',
+      beamColor: '#E5484D',
     },
   ]
 
@@ -1626,11 +1633,11 @@ export default function Univer({ tablistLabel }: IUniverProps) {
 
   return (
     <div className="w-full">
-      <div className={clsx('flex justify-center px-4', type === 'docs' ? 'mb-3' : 'mb-7')}>
+      <div className={clsx('flex justify-center px-4', type === 'docs' ? 'mb-2.5' : 'mb-5')}>
         <div
           role="tablist"
           aria-label={tablistLabel}
-          className="relative grid w-full max-w-xl grid-cols-3 gap-1 rounded-2xl border border-white/80 bg-white/75 p-1 shadow-lg shadow-sky-950/5 backdrop-blur-md md:w-auto md:max-w-none md:grid-cols-6 md:rounded-full dark:border-neutral-700/80 dark:bg-neutral-900/75"
+          className="relative grid w-full max-w-sm grid-cols-3 gap-0.5 rounded-xl border border-neutral-200/80 bg-neutral-100/80 p-0.5 sm:inline-flex sm:w-auto sm:max-w-none dark:border-neutral-700/80 dark:bg-neutral-800/80"
         >
           {tabs.map((tab) => {
             const isActive = type === tab.key
@@ -1641,11 +1648,12 @@ export default function Univer({ tablistLabel }: IUniverProps) {
                 id={`univer-tab-${tab.key}`}
                 role="tab"
                 type="button"
+                aria-label={tab.fullLabel}
                 aria-controls="univer-product-demo"
                 aria-selected={isActive}
                 onClick={() => handleChangeType(tab.key)}
                 className={clsx(
-                  `relative flex min-h-9 items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs transition-colors duration-200 md:rounded-full md:px-4`,
+                  'relative flex min-h-8.5 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] leading-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:outline-none sm:px-3 sm:text-xs',
                   isActive
                     ? clsx('font-semibold', tab.activeClass)
                     : `font-medium text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 hover:dark:text-neutral-300`,
@@ -1654,14 +1662,13 @@ export default function Univer({ tablistLabel }: IUniverProps) {
                 {isActive && (
                   <motion.div
                     layoutId="univer-active-tab"
-                    className={`absolute inset-0 rounded-full bg-white shadow-xs dark:bg-neutral-700`}
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    className="absolute inset-0 rounded-lg border border-neutral-200/90 bg-white shadow-xs dark:border-neutral-600 dark:bg-neutral-700"
+                    transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
                   />
                 )}
                 <span className="relative z-10 flex items-center gap-1.5">
-                  <Icon className="size-3.5" />
-                  <span className="hidden md:inline">{tab.fullLabel}</span>
-                  <span className="md:hidden">{tab.label}</span>
+                  <Icon aria-hidden className="size-4 shrink-0" />
+                  <span>{tab.label}</span>
                 </span>
               </button>
             )

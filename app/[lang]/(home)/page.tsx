@@ -99,9 +99,21 @@ export default async function Page({ params }: IProps) {
               <span className="font-medium text-blue-600 underline decoration-current decoration-wavy underline-offset-4">
                 {t('home.description-docs')}
               </span>
+              {t('home.description-split')}
+              <span className="font-medium text-orange-600 underline decoration-current decoration-wavy underline-offset-4">
+                {t('home.description-slides')}
+              </span>
+              {t('home.description-split')}
+              <span className="font-medium text-teal-600 underline decoration-current decoration-wavy underline-offset-4">
+                {t('home.scenes.bases.title')}
+              </span>
+              {t('home.description-split')}
+              <span className="font-medium text-violet-600 underline decoration-current decoration-wavy underline-offset-4">
+                {t('home.scenes.boards.title')}
+              </span>
               {t('home.description-and')}
               <span className="font-medium text-red-600 underline decoration-current decoration-wavy underline-offset-4">
-                {t('home.description-slides')}
+                {t('home.scenes.pdf.title')}
               </span>
               {t('home.description-period')}
             </p>
