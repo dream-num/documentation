@@ -248,6 +248,10 @@ export default async function Page({ params }: IProps) {
           feature3Desc={t('home.headless.feature3.desc')}
           feature4Title={t('home.headless.feature4.title')}
           feature4Desc={t('home.headless.feature4.desc')}
+          copyLabel={t('home.devexp.copy')}
+          copiedLabel={t('home.devexp.copied')}
+          pluginLabel={t('home.devexp.plugin.label')}
+          presetLabel={t('home.devexp.preset.label')}
         />
 
         {/* Ecosystem */}

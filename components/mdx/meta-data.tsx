@@ -199,7 +199,7 @@ export function MetaData(props: {
               </button>
             </div>
           ) : (
-            <div className="flex min-h-[26px] items-center gap-1.5 px-1.5">
+            <div className="flex min-h-6.5 items-center gap-1.5 px-1.5">
               {mode === 'preset' ? (
                 <Box className="size-4 text-neutral-500" />
               ) : (
