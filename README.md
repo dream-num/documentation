@@ -50,3 +50,15 @@ pnpm build
 We welcome contributions to the documentation. Please ensure your changes follow the existing style and conventions. Run `pnpm lint` and `pnpm typecheck` before submitting.
 
 For more information about contributing to Univer, see the [main repository](https://github.com/dream-num/univer).
+
+## Deploy Using ECS
+
+To deploy the documentation site to ECS through GitHub Actions:
+
+1. Open **Actions** and select **🕶️ Deploy Using ECS**.
+2. Select the branch to deploy (for example, `dev`).
+3. Set **Environment to deploy** to `staging` or `international`.
+4. Select the **ACR registry** region: use `cn-shenzhen` for the `staging` environment, or `us-east-1` for the `international` environment.
+5. Enter the required **ECS instance size** (for example, `32c64g`) and click **Run workflow**.
+
+The workflow dispatches the deployment to `runner-machine`; the ECS region is derived from the selected ACR region (`cn-shenzhen` → `shenzhen`, `us-east-1` → `us-virginia`).
