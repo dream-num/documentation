@@ -26,7 +26,7 @@ push_image: create_builder
 ifeq ($(PUSH_TAG), latest)
 	$(eval image_tag=-t $(CR)/$(NS)/$(REPOSITORY):latest)
 else
-	$(eval image_tag=-t $(CR)/$(NS)/$(REPOSITORY):$(PUSH_TAG) -t $(CR)/$(NS)/$(REPOSITORY):latest)
+	$(eval image_tag=-t $(CR)/$(NS)/$(REPOSITORY):$(PUSH_TAG))
 endif
 	$(CTR) buildx build \
 	--build-arg CR=$(CR) \
@@ -35,6 +35,7 @@ endif
 	--build-arg NEXT_PUBLIC_DOCS_SOURCE_REF=$(NEXT_PUBLIC_DOCS_SOURCE_REF) \
 	--builder $(BUILDER) \
 	--platform $(OSARCH) \
+	--progress=plain \
 	--file Dockerfile \
 	$(image_tag) \
 	--push .
