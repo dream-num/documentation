@@ -1,15 +1,23 @@
-FROM node:24-alpine AS base
+ARG BASE_IMAGE="node:24-alpine"
+
+FROM ${BASE_IMAGE} AS base
 
 # Builder stage
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
 FROM base AS builder
 WORKDIR /app
 
+# Optional proxy used by build commands such as pnpm install.
+ARG HTTP_PROXY=""
+ARG PNPM_STRICT_SSL="true"
+
 ARG NPM_REGISTRY=""
 RUN [[ "${NPM_REGISTRY}" != "" ]] && npm config set registry ${NPM_REGISTRY} || echo "Skip setting NPM_REGISTRY"
 
 COPY . .
-RUN corepack enable pnpm && pnpm i
+RUN corepack enable pnpm \
+  && pnpm config set strict-ssl "${PNPM_STRICT_SSL}" \
+  && HTTP_PROXY="${HTTP_PROXY}" HTTPS_PROXY="${HTTP_PROXY}" pnpm i
 
 # Environment variables
 ARG NEXT_POSTHOG_APIKEY=""
