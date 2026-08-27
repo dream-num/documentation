@@ -10,6 +10,7 @@ import {
   getAgentDocsSourceUrl,
   getAgentMarkdownPath,
 } from '@/lib/agent-docs/links'
+import { resolveGuideContentSlug } from '@/lib/guides/content-placements'
 import { withLocale } from '@/lib/locale-path'
 import { guides, icons, reference } from '@/lib/source'
 
@@ -113,7 +114,7 @@ function getPages(collection: AgentDocsCollection, lang: Locale): AgentDocsPage[
 function getPage(collection: AgentDocsCollection, slug: string[], lang: Locale): AgentDocsPage | undefined {
   switch (collection) {
     case 'guides':
-      return guides.getPage(slug, lang)
+      return guides.getPage(resolveGuideContentSlug(slug), lang)
     case 'icons':
       return icons.getPage(slug, lang)
     case 'reference':
@@ -213,12 +214,13 @@ function rewriteInternalHref(href: string, lang: Locale, collection: AgentDocsCo
   const [, collectionSegment, ...slug] = withoutSourceExtension.split('/')
   const targetCollection = agentDocsCollections.find((name) => name === collectionSegment)
   if (!targetCollection) return href
-  if (!getPage(targetCollection, slug, lang)) {
+  const targetPage = getPage(targetCollection, slug, lang)
+  if (!targetPage) {
     throw new Error(`Agent Markdown found a broken internal link in ${page.path}: ${href}`)
   }
 
-  const markdownPath = `${withoutSourceExtension}.md`
-  return `${DOCS_ORIGIN}${withLocale(lang, markdownPath)}${search}${hash}`
+  const markdownPath = getAgentMarkdownPath(lang, targetPage.url)
+  return `${DOCS_ORIGIN}${markdownPath}${search}${hash}`
 }
 
 function rewriteInternalLinks(markdown: string, lang: Locale, collection: AgentDocsCollection, page: AgentDocsPage) {

@@ -439,6 +439,63 @@ async function verifyHtmlDiscovery(baseUrl) {
   )
 }
 
+async function verifyGuideContentPlacements(baseUrl) {
+  const canonicalPath = '/zh-CN/guides/fundamentals/ui/themes'
+  const aliases = ['sheets', 'docs', 'slides', 'pdfs'].map((product) => `/zh-CN/guides/${product}/ui/themes`)
+
+  await Promise.all(
+    aliases.map(async (path) => {
+      const response = await fetchLocal(baseUrl, path)
+      assert(response.status === 200, `${path} returned ${response.status}`)
+      const html = await response.text()
+      assert(html.includes('darkBlueTheme'), `${path} did not render the canonical Theme content`)
+      assert(
+        new RegExp(`aria-current="page"[^>]*href="${path}"`).test(html),
+        `${path} did not retain its product sidebar context`,
+      )
+      assert(
+        html.includes(`<link rel="canonical" href="${DOCS_ORIGIN}${canonicalPath}"`),
+        `${path} is missing its canonical metadata`,
+      )
+      assert(
+        html.includes(`<link href="${canonicalPath}.md" rel="alternate" type="text/markdown"`),
+        `${path} exposes a duplicate Agent Markdown page`,
+      )
+    }),
+  )
+
+  const canonicalResponse = await fetchLocal(baseUrl, canonicalPath)
+  assert(canonicalResponse.status === 200, `${canonicalPath} returned ${canonicalResponse.status}`)
+  const canonicalHtml = await canonicalResponse.text()
+  assert(
+    new RegExp(`aria-current="page"[^>]*href="${canonicalPath}"`).test(canonicalHtml),
+    `${canonicalPath} is missing its canonical sidebar context`,
+  )
+
+  const aliasMarkdown = await fetchLocal(baseUrl, `${aliases[0]}.md`)
+  assert(aliasMarkdown.status === 200, `${aliases[0]}.md returned ${aliasMarkdown.status}`)
+  assert(
+    aliasMarkdown.headers.get('content-location') === `${canonicalPath}.md`,
+    `${aliases[0]}.md did not resolve to the canonical Agent Markdown page`,
+  )
+  assert(
+    (await aliasMarkdown.text()).includes('fundamentals/ui/themes.zh-CN.mdx'),
+    `${aliases[0]}.md did not use the canonical source`,
+  )
+
+  const searchResponse = await fetchLocal(baseUrl, '/api/search?query=darkBlueTheme&scope=guides&locale=zh-CN')
+  assert(searchResponse.status === 200, `Theme search returned ${searchResponse.status}`)
+  const results = await searchResponse.json()
+  assert(Array.isArray(results), 'Theme search returned an invalid payload')
+  const resultUrls = new Set(
+    results.flatMap((result) => (typeof result?.url === 'string' ? [result.url.split('#')[0]] : [])),
+  )
+  assert(resultUrls.has(canonicalPath.replace('/zh-CN', '')), 'Theme search is missing the canonical page')
+  for (const alias of aliases) {
+    assert(!resultUrls.has(alias.replace('/zh-CN', '')), `Theme search indexed the placement alias: ${alias}`)
+  }
+}
+
 await verifySourceMarkdown()
 await fs.access(SERVER_ENTRY)
 const { expected, roots } = await readExpectedAssets()
@@ -451,7 +508,12 @@ try {
   server = started.server
   await started.ready
   const count = await crawlAssets(baseUrl, expected, roots)
-  await Promise.all([verifySemanticProjection(baseUrl), verifyNotFound(baseUrl), verifyHtmlDiscovery(baseUrl)])
+  await Promise.all([
+    verifySemanticProjection(baseUrl),
+    verifyNotFound(baseUrl),
+    verifyHtmlDiscovery(baseUrl),
+    verifyGuideContentPlacements(baseUrl),
+  ])
   console.log(
     `Verified ${count} reachable agent docs with readable Markdown, metadata, fallback, discovery, and 404 behavior.`,
   )

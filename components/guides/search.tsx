@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Link } from '@/i18n/navigation'
+import { Link, useRouter } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 
 type SearchScope = 'guides' | 'reference' | 'icons' | 'all'
@@ -60,6 +60,7 @@ export function GuidesSearch({
   compact?: boolean
 }) {
   const t = useTranslations()
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [scope, setScope] = useState<SearchScope>(defaultScope)
@@ -169,7 +170,9 @@ export function GuidesSearch({
                   setActiveIndex((index) => Math.max(index - 1, 0))
                 }
                 if (event.key === 'Enter' && activeResult) {
-                  window.location.href = activeResult.url
+                  event.preventDefault()
+                  setOpen(false)
+                  router.push(activeResult.url)
                 }
               }}
             />

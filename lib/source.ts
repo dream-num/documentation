@@ -1,17 +1,44 @@
 // See https://fumadocs.vercel.app/docs/headless/source-api for more info
 import { loader } from 'fumadocs-core/source'
-import { blog as blogPosts, guides as guidesPosts, icons as iconsPosts, reference as referencePosts } from 'fumadocs-mdx:collections/server'
+import {
+  blog as blogPosts,
+  guides as guidesPosts,
+  icons as iconsPosts,
+  reference as referencePosts,
+} from 'fumadocs-mdx:collections/server'
 import { icons as lucideIcons } from 'lucide-react'
 import { createElement } from 'react'
+
 import { IconWrapper } from '@/components/icon-wrapper'
 import { UniverIcon } from '@/components/univer-icon'
 import { fumadocsI18n } from '@/i18n/fumadocs'
+import { getGuideContentPlacementTargetFromUrl } from '@/lib/guides/content-placements'
+
 import { isUniverIconName } from './univer-icons'
 
 export const guides = loader({
   baseUrl: '/guides',
   source: guidesPosts.toFumadocsSource(),
   i18n: fumadocsI18n,
+  pageTree: {
+    transformers: [
+      {
+        file(node, filePath) {
+          if (filePath) return node
+
+          const target = getGuideContentPlacementTargetFromUrl(node.url)
+          if (!target) return node
+
+          const targetPage = this.storage.read(`${target}.mdx`)
+          if (targetPage?.format !== 'page') {
+            throw new Error(`Guide content placement target not found: ${target}.mdx`)
+          }
+
+          return { ...node, name: targetPage.data.title ?? node.name }
+        },
+      },
+    ],
+  },
   icon(icon) {
     if (!icon) return
 
@@ -29,7 +56,7 @@ export const guides = loader({
     }
 
     if (icon.startsWith('#pro')) {
-      const [,iconName] = icon.split('/')
+      const [, iconName] = icon.split('/')
       return createElement(IconWrapper, {
         type: 'pro',
         icon: lucideIcons[iconName as keyof typeof lucideIcons],
@@ -51,7 +78,7 @@ export const reference = loader({
     if (!icon) return
 
     if (icon.startsWith('#ref')) {
-      const [,iconName] = icon.split('/')
+      const [, iconName] = icon.split('/')
       return createElement(IconWrapper, {
         type: 'ref',
         text: iconName,
@@ -88,7 +115,7 @@ export const blog = loader({
 })
 
 export function getActiveBlogPages(lang: string) {
-  return blog.getPages(lang).filter(page => !page.data.deprecated)
+  return blog.getPages(lang).filter((page) => !page.data.deprecated)
 }
 
 export function getActiveBlogPage(slug: string[], lang: string) {
