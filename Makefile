@@ -6,6 +6,7 @@ NS ?= univer
 CTR = docker
 BUILDER ?= univerdocs-builder
 BUILDKIT_IMAGE ?=
+ADD_HOST ?=
 NPM_REGISTRY ?= ""
 BASE_IMAGE ?=
 HTTP_PROXY ?=
@@ -13,6 +14,11 @@ HTTP_PROXY ?=
 BUILDKIT_IMAGE_OPT =
 ifneq ($(strip $(BUILDKIT_IMAGE)),)
 BUILDKIT_IMAGE_OPT = --driver-opt image="$(BUILDKIT_IMAGE)"
+endif
+
+ADD_HOST_OPT =
+ifneq ($(strip $(ADD_HOST)),)
+ADD_HOST_OPT = --add-host "$(ADD_HOST)"
 endif
 
 BASE_IMAGE_ARG =
@@ -49,6 +55,7 @@ else
 endif
 	$(CTR) buildx build \
 	$(BASE_IMAGE_ARG) \
+	$(ADD_HOST_OPT) \
 	--build-arg CR=$(CR) \
 	--build-arg NPM_REGISTRY=$(NPM_REGISTRY) \
 	$(HTTP_PROXY_ARG) \
@@ -71,6 +78,7 @@ build_image: create_builder
 	$(eval image_tag=-t $(REPOSITORY):latest)
 	$(CTR) buildx build \
 	$(BASE_IMAGE_ARG) \
+	$(ADD_HOST_OPT) \
 	--build-arg NEXT_PUBLIC_DOCS_SOURCE_REF=$(NEXT_PUBLIC_DOCS_SOURCE_REF) \
 	--builder $(BUILDER) \
 	--platform $(OSARCH) \
