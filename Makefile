@@ -5,9 +5,15 @@ REPOSITORY =
 NS ?= univer
 CTR = docker
 BUILDER ?= univerdocs-builder
+BUILDKIT_IMAGE ?=
 NPM_REGISTRY ?= ""
 BASE_IMAGE ?=
 HTTP_PROXY ?=
+
+BUILDKIT_IMAGE_OPT =
+ifneq ($(strip $(BUILDKIT_IMAGE)),)
+BUILDKIT_IMAGE_OPT = --driver-opt image="$(BUILDKIT_IMAGE)"
+endif
 
 BASE_IMAGE_ARG =
 ifneq ($(strip $(BASE_IMAGE)),)
@@ -30,7 +36,7 @@ image_exists=$(shell docker manifest inspect $(CR)/$(NS)/$(REPOSITORY):$(IMAGE_T
 # Check if the builder exists and create it if not
 create_builder:
 	@if ! $(CTR) buildx inspect $(BUILDER) > /dev/null 2>&1; then \
-		$(CTR) buildx create --name $(BUILDER) --use; \
+		$(CTR) buildx create --name $(BUILDER) $(BUILDKIT_IMAGE_OPT) --use; \
 	fi
 
 .PHONY: push_image
