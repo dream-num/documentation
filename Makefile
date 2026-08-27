@@ -6,6 +6,19 @@ NS ?= univer
 CTR = docker
 BUILDER ?= univerdocs-builder
 NPM_REGISTRY ?= ""
+BASE_IMAGE ?=
+HTTP_PROXY ?=
+
+BASE_IMAGE_ARG =
+ifneq ($(strip $(BASE_IMAGE)),)
+BASE_IMAGE_ARG = --build-arg BASE_IMAGE="$(BASE_IMAGE)"
+endif
+
+HTTP_PROXY_ARG =
+ifneq ($(strip $(HTTP_PROXY)),)
+HTTP_PROXY_ARG = --build-arg HTTP_PROXY="$(HTTP_PROXY)"
+endif
+
 # Environment variables
 NEXT_POSTHOG_APIKEY =
 NEXT_PUBLIC_DOCS_SOURCE_REF ?= $(shell git branch --show-current)
@@ -29,8 +42,10 @@ else
 	$(eval image_tag=-t $(CR)/$(NS)/$(REPOSITORY):$(PUSH_TAG))
 endif
 	$(CTR) buildx build \
+	$(BASE_IMAGE_ARG) \
 	--build-arg CR=$(CR) \
 	--build-arg NPM_REGISTRY=$(NPM_REGISTRY) \
+	$(HTTP_PROXY_ARG) \
 	--build-arg NEXT_POSTHOG_APIKEY=$(NEXT_POSTHOG_APIKEY) \
 	--build-arg NEXT_PUBLIC_DOCS_SOURCE_REF=$(NEXT_PUBLIC_DOCS_SOURCE_REF) \
 	--builder $(BUILDER) \
@@ -49,6 +64,7 @@ check_image:
 build_image: create_builder
 	$(eval image_tag=-t $(REPOSITORY):latest)
 	$(CTR) buildx build \
+	$(BASE_IMAGE_ARG) \
 	--build-arg NEXT_PUBLIC_DOCS_SOURCE_REF=$(NEXT_PUBLIC_DOCS_SOURCE_REF) \
 	--builder $(BUILDER) \
 	--platform $(OSARCH) \
