@@ -27,5 +27,5 @@ export default function proxy(request: NextRequest) {
 
 export const config = {
   // Matcher ignoring internal assets and backend proxy prefixes.
-  matcher: ['/((?!api|universer-api|_next/static|_next/image|favicon.ico|assets).*)'],
+  matcher: ['/((?!api|universer-api|_next/static|_next/image|icon.svg|assets).*)'],
 }
