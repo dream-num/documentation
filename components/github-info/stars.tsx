@@ -3,7 +3,7 @@
 import type { AnchorHTMLAttributes } from 'react'
 import { StarIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { SlidingNumber } from '@/components/animate-ui/text/sliding-number'
+
 import { getRepoStarsAndForks } from '@/lib/github'
 
 export default function Stars({
@@ -13,62 +13,20 @@ export default function Stars({
   owner: string
   repo: string
 }) {
-  const [isCompleted, setIsCompleted] = useState(false)
-  const [currentStars, setCurrentStars] = useState(0)
   const [stars, setStars] = useState(0)
-  const [fillPercentage, setFillPercentage] = useState(0)
 
   useEffect(() => {
     getRepoStarsAndForks(owner, repo)
-      .then(({ stars }) => {
-        setStars(humanizeNumber(stars))
+      .then((repository) => {
+        setStars(humanizeNumber(repository.stars))
       })
+      .catch(() => undefined)
   }, [owner, repo])
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentStars((prev) => {
-        if (prev < stars) {
-          if (prev + 1 >= stars) {
-            setIsCompleted(true)
-            return stars
-          }
-          setFillPercentage(((prev + 1) / stars) * 100)
-
-          return prev + 0.8
-        }
-        clearInterval(interval)
-        return prev
-      })
-    }, 50)
-
-    return () => clearInterval(interval)
-  }, [stars])
-
   return (
-    <p className="flex items-center gap-1 text-xs text-muted-foreground">
-      <span className="relative">
-        <StarIcon
-          className="size-3 fill-neutral-300 text-neutral-300"
-          aria-hidden="true"
-        />
-        <StarIcon
-          className="absolute top-0 size-3 fill-yellow-500 text-yellow-500"
-          aria-hidden="true"
-          style={{
-            clipPath: `inset(${100 - (isCompleted ? fillPercentage : fillPercentage - 10)}% 0 0 0)`,
-          }}
-        />
-      </span>
-      {stars > 0 && (
-        <span className="inline-flex">
-          <SlidingNumber
-            number={currentStars}
-            decimalPlaces={1}
-          />
-          K
-        </span>
-      )}
+    <p className="flex items-center gap-1 text-xs">
+      <StarIcon className="size-3 fill-yellow-500 text-yellow-500" aria-hidden="true" />
+      {stars > 0 && <span className="text-muted-foreground">{stars}K</span>}
     </p>
   )
 }
