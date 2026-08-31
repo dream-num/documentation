@@ -2,4 +2,555 @@
 title: Общий API
 ---
 
-<include cwd>content/guides/shared/features/core/general-api.ru-RU.mdx</include>
+
+Доступный в Univer Facade API зависит от типа документа. В этом разделе представлен общий Facade API, применимый ко всем типам документов.
+
+## Импорт
+
+```typescript
+import { FUniver } from '@univerjs/core/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+## Основные понятия
+
+### Команды
+
+Большинство операций в Univer регистрируется и запускается через систему команд. Единый подход упрощает реализацию отмены и повтора действий, совместной работы и других функций.
+
+<Callout>Подробнее об устройстве системы см. в разделе [Система команд Univer](/blog/univer#command-system).</Callout>
+
+### Команды
+
+Большинство операций в Univer регистрируется и запускается через систему команд. Единый подход упрощает реализацию отмены и повтора действий, совместной работы и других функций.
+
+<Callout>
+  Команды можно рассматривать как уникальные «события» внутри Univer. Подробнее об устройстве см. в разделе [система
+  команд](/blog/univer#command-system).
+</Callout>
+
+### Прослушивание команд
+
+Univer позволяет прослушивать команды до и после их выполнения:
+
+- `Event.BeforeCommandExecute`: выполняет пользовательскую логику перед выполнением команды.
+- `Event.CommandExecuted`: выполняет пользовательскую логику после выполнения команды.
+
+#### Прослушивание команд до выполнения
+
+До выполнения передайте `Event.BeforeCommandExecute` в `FUniver.addEvent`, чтобы зарегистрировать обработчик предварительной обработки.
+
+При запуске команды будет выполнена логика обработчика предварительной обработки.
+
+```typescript
+const univerAPI = FUniver.newAPI(univer)
+
+univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, ({ id, type, params }) => {
+  // Custom logic executed before the command is executed
+})
+```
+
+Чтобы предотвратить выполнение команды, установите `event.cancel` в `true` в обработчике.
+
+```typescript
+const univerAPI = FUniver.newAPI(univer)
+
+univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (event) => {
+  event.cancel = true
+})
+```
+
+#### Прослушивание команд после выполнения
+
+После выполнения передайте `Event.CommandExecuted` в `FUniver.addEvent`, чтобы зарегистрировать обработчик постобработки.
+
+После выполнения команды будет запущена логика обработчика постобработки.
+
+```typescript
+const univerAPI = FUniver.newAPI(univer)
+
+univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, type, params }) => {
+  // Custom logic executed after the command is executed
+})
+```
+
+### Отмена прослушивания
+
+Метод регистрации обработчика команды возвращает объект `IDisposable`, который можно уничтожить вызовом `IDisposable.dispose`.
+
+Рекомендуется удалять обработчики, которые больше не используются: это повышает надёжность приложения.
+
+```typescript
+const univerAPI = FUniver.newAPI(univer)
+
+// Register a listener
+const disposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, () => {
+  // custom preprocessing logic before the command is executed
+})
+
+// Example: Destroy the listener after 1 second
+setTimeout(() => {
+  // Destroy the listener
+  disposable.dispose()
+}, 1000)
+```
+
+### Выполнение команд
+
+Если известны идентификатор команды и необходимые параметры, команду можно выполнить методом `FUniver.executeCommand`.
+
+Например, задать значение ячейки A1 можно командой `sheet.command.set-range-values`:
+
+```typescript
+const univerAPI = FUniver.newAPI(univer)
+
+// Execute the command
+univerAPI.executeCommand('sheet.command.set-range-values', {
+  value: { v: 'Hello, Univer!' },
+  range: { startRow: 0, startColumn: 0, endRow: 0, endColumn: 0 },
+})
+```
+
+## API событий
+
+Univer предоставляет полноценную систему событий для отслеживания различных изменений в электронной таблице и реакции на них. События охватывают операции с буфером обмена, изменение выделения, взаимодействие с ячейками, изменение листа и многое другое.
+
+### Категории событий
+
+Полный список событий: /reference/facade/events#properties
+
+1. **События буфера обмена**
+   - `BeforeClipboardChange`: срабатывает перед изменением содержимого буфера; изменение можно отменить, задав `params.cancel = true`
+   - `BeforeClipboardPaste`: срабатывает перед вставкой; её можно отменить, задав `params.cancel = true`
+   - `ClipboardChanged`: срабатывает после изменения буфера и предоставляет его новое содержимое
+   - `ClipboardPasted`: срабатывает после вставки и предоставляет вставленное содержимое
+
+2. **События выделения**
+   - `SelectionChanged`: срабатывает при изменении выделения и предоставляет сведения о новом диапазоне
+   - `SelectionMoveStart`: срабатывает в начале перемещения выделения и полезно для пользовательских эффектов
+   - `SelectionMoveEnd`: срабатывает в конце перемещения и предоставляет итоговый диапазон
+   - `SelectionMoving`: срабатывает во время перемещения и полезно для обновления интерфейса в реальном времени
+   - `DragOver`: срабатывает при перетаскивании над ячейками
+   - `Drop`: срабатывает при отпускании перетаскиваемого содержимого
+
+3. **События ячеек**
+   - `CellClicked`: срабатывает при щелчке по ячейке и предоставляет сведения о её положении и содержимом
+   - `CellHover`: срабатывает при наведении на ячейку и полезно для показа подсказок
+   - `CellPointerDown`: срабатывает при нажатии указателя на ячейке и используется для начала перетаскивания или выделения
+   - `CellPointerUp`: срабатывает при отпускании указателя и используется для завершения операций
+   - `CellPointerMove`: срабатывает при перемещении указателя над ячейками
+
+4. **События листа**
+   - `SheetValueChanged`: срабатывает при изменении значений и предоставляет изменённый диапазон и новые значения
+   - `SheetZoomChanged`: срабатывает при изменении масштаба и предоставляет его новое значение
+   - `SheetSkeletonChanged`: срабатывает при изменении структуры листа, например при вставке или удалении строк и столбцов
+   - `BeforeSheetEditStart`: срабатывает перед началом редактирования ячейки и позволяет запретить редактирование
+   - `SheetEditStarted`: срабатывает в начале редактирования и полезно для настройки редактора
+   - `BeforeSheetEditEnd`: срабатывает перед завершением редактирования и может использоваться для проверки содержимого
+   - `SheetEditEnded`: срабатывает после завершения редактирования и предоставляет изменённое значение
+   - `SheetEditChanging`: срабатывает во время редактирования и полезно для проверки или форматирования в реальном времени
+   - `Scroll`: срабатывает при прокрутке листа и предоставляет сведения о положении прокрутки
+   - `CrosshairHighlightColorChanged`: срабатывает при изменении цвета перекрёстной подсветки
+   - `CrosshairHighlightEnabledChanged`: срабатывает при включении или отключении перекрёстной подсветки
+
+5. **События заголовков**
+   - `RowHeaderClick`: срабатывает при щелчке по заголовку строки
+   - `RowHeaderHover`: срабатывает при наведении на заголовок строки
+   - `ColumnHeaderClick`: срабатывает при щелчке по заголовку столбца
+   - `ColumnHeaderHover`: срабатывает при наведении на заголовок столбца
+
+6. **События проверки данных**
+   - `BeforeSheetDataValidationAdd`: срабатывает перед добавлением правила проверки данных
+   - `SheetDataValidationChanged`: срабатывает при изменении правил проверки данных
+   - `SheetDataValidatorStatusChanged`: срабатывает при изменении статуса проверки данных
+
+7. **События комментариев**
+   - `BeforeCommentAdd`: срабатывает перед добавлением комментария
+   - `CommentAdded`: срабатывает после добавления комментария
+   - `BeforeCommentUpdate`: срабатывает перед обновлением комментария
+   - `CommentUpdated`: срабатывает после обновления комментария
+   - `BeforeCommentDeleted`: срабатывает перед удалением комментария
+   - `CommentDeleted`: срабатывает после удаления комментария
+
+8. **События обработки данных**
+   - `SheetBeforeRangeSort`: срабатывает перед сортировкой диапазона
+   - `SheetRangeSorted`: срабатывает после сортировки диапазона
+   - `SheetBeforeRangeFilter`: срабатывает перед фильтрацией диапазона
+   - `SheetRangeFiltered`: срабатывает после фильтрации диапазона
+   - `BeforePivotTableAdd`: срабатывает перед добавлением сводной таблицы
+   - `PivotTableAdded`: срабатывает после добавления сводной таблицы
+
+### Использование событий
+
+Подписываться на события можно методом `addEvent` объекта `univerAPI`. Базовый шаблон выглядит так:
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.EventName, (params) => {
+  // Handle event parameters
+})
+```
+
+#### Пример: отслеживание щелчков по ячейкам
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.CellClicked, (params) => {
+  const { worksheet, workbook, row, column } = params
+  console.log(`Cell clicked at row ${row}, column ${column}`)
+})
+```
+
+#### Пример: отслеживание операций с буфером обмена
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.BeforeClipboardPaste, (params) => {
+  const { text, html } = params
+  // If you want to cancel the clipboard paste
+  params.cancel = true
+})
+```
+
+#### Пример: отслеживание изменения выделения
+
+```typescript
+univerAPI.addEvent(univerAPI.Event.SelectionChanged, (params) => {
+  const { worksheet, workbook, selections } = params
+  console.log('Selection changed:', selections)
+})
+```
+
+### Отмена подписки на события
+
+Обработчики событий возвращают объект `IDisposable`, с помощью которого можно удалить обработчик, когда он больше не нужен:
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.SheetValueChanged, (params) => {
+  // Handle value changes
+})
+
+// Later, when you want to remove the listener:
+disposable.dispose()
+```
+
+### Рекомендации
+
+1. Всегда удаляйте ненужные обработчики событий, чтобы избежать утечек памяти
+2. Выбирайте событие под конкретную задачу: специализированные события предпочтительнее общих
+3. Не перегружайте обработчики событий, чтобы сохранить производительность
+4. Если нужно отменить стандартное действие, используйте `BeforeClipboardChange` и аналогичные предварительные события
+
+## Отмена и повтор действий
+
+### Отмена
+
+```typescript
+await univerAPI.undo()
+```
+
+### Повтор
+
+```typescript
+await univerAPI.redo()
+```
+
+## Системный буфер обмена
+
+Методы `FUniver.copy()` и `FUniver.paste()` позволяют читать данные из системного буфера обмена и записывать их туда.
+
+<Callout>
+  Копирование и вставка используют нативный API браузера. Если среда или разрешения не соответствуют требованиям, эти
+  функции работать не будут. Подробнее см. в [документации
+  MDN](https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText).
+</Callout>
+
+Пример: копирование и вставка диапазона листа
+
+```typescript
+// Prevent failure due to loss of focus when executing copy and paste code in the console,
+// this example listens for the cell click event and executes the copy and paste code.
+univerAPI.addEvent(univerAPI.Event.CellClicked, async (params) => {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  const fWorksheet = fWorkbook.getActiveSheet()
+
+  // Copy the range A1:B2 to the clipboard
+  const fRange = fWorksheet.getRange('A1:B2')
+  fRange.activate().setValues([
+    [1, 2],
+    [3, 4],
+  ])
+  await univerAPI.copy()
+
+  // Paste the copied content to the range C1:D2
+  const fRange2 = fWorksheet.getRange('C1')
+  fRange2.activate()
+  await univerAPI.paste()
+
+  // Check the pasted content
+  console.log(fWorksheet.getRange('C1:D2').getValues()) // [[1, 2], [3, 4]]
+})
+```
+
+Функции буфера обмена также можно вызывать через систему команд:
+
+```typescript
+import { CopyCommand, PasteCommand } from '@univerjs/ui'
+
+// Copy
+univerAPI.executeCommand(CopyCommand.id)
+// Paste
+univerAPI.executeCommand(PasteCommand.id)
+```
+
+## UI
+
+Сведения о расширении интерфейса Univer см. в следующем разделе:
+
+- [Расширение холста](/blog/custom-canvas)
+
+## WebSocket
+
+Facade API предоставляет удобный метод `createSocket`, который создаёт WebSocket по переданному URL.
+После этого можно прослушивать события открытия, получения сообщения, закрытия и ошибки, отправлять сообщения методом `send` и закрывать соединение методом `close`.
+
+При установке через предустановки можно напрямую использовать `univerAPI.createSocket(url)`.
+При установке отдельных пакетов необходимо установить зависимость [`@univerjs/network`](/reference/packages/plugins/univerjs/network) и зарегистрировать плагин `UniverNetworkPlugin`.
+
+```typescript
+// ... Omits other plugin imports
+import { UniverNetworkPlugin } from '@univerjs/network'
+
+// ... Omits other facade imports
+import '@univerjs/network/facade'
+
+// ... Omits other plugin registrations
+univer.registerPlugin(UniverNetworkPlugin)
+```
+
+Простой пример:
+
+```typescript
+// Replace the URL with the address of your own WebSocket service
+const ws = univerAPI.createSocket('ws://47.100.177.253:8449/ws')
+
+ws.open$.subscribe(() => {
+  console.log('websocket opened')
+  ws.send('hello')
+})
+
+ws.message$.subscribe((message) => {
+  console.log('websocket message', message)
+  const content = JSON.parse(message.data).content
+  if (!content.includes('command')) {
+    return
+  }
+
+  const commandInfo = JSON.parse(content)
+  const { command, options } = commandInfo
+  const { id, params } = command
+
+  // Upon receiving collaborative data, it is locally saved
+  univerAPI.executeCommand(id, params, options)
+})
+
+ws.close$.subscribe(() => {
+  console.log('websocket closed')
+})
+
+ws.error$.subscribe((error) => {
+  console.log('websocket error', error)
+})
+
+univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, type, params, options }) => {
+  // Only synchronize local mutations
+  if (
+    type !== univerAPI.Enum.CommandType.MUTATION ||
+    options?.fromCollab ||
+    options?.onlyLocal ||
+    id === 'doc.mutation.rich-text-editing'
+  ) {
+    return
+  }
+
+  const commandInfo = JSON.stringify({ command: { id, type, params }, options: { fromCollab: true } })
+  ws.send(commandInfo)
+})
+```
+
+Примечание: при запуске Univer обязательно укажите unitID. Без unitID совместная работа не будет работать.
+
+## Регистрация формулы
+
+Facade API позволяет быстро регистрировать пользовательские формулы в текущем экземпляре Univer.
+
+В следующем примере метод [`registerFunction`](https://docs.univer.ai/reference/facade/formula#registerfunction) одновременно регистрирует в плагине формул алгоритм, имя и описание формулы `CUSTOMSUM`. После выполнения кода формула готова к использованию. Введите `=CUSTOMSUM` в любую пустую ячейку, чтобы увидеть подсказку.
+
+```typescript
+// Registered formulas support lambda functions
+const formulaEngine = univerAPI.getFormula()
+formulaEngine.registerFunction(
+  'CUSTOMSUM',
+  (...variants) => {
+    let sum = 0
+    const last = variants[variants.length - 1]
+
+    if (last.isLambda && last.isLambda()) {
+      variants.pop()
+      const variantsList = variants.map((variant) => (Array.isArray(variant) ? variant[0][0] : variant))
+      sum += last.executeCustom(...variantsList).getValue()
+    }
+
+    for (const variant of variants) {
+      sum += Number(variant) || 0
+    }
+
+    return sum
+  },
+  'Adds its arguments',
+)
+
+// Use the function in a cell
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook.getActiveSheet()
+const cellA1 = fWorksheet.getRange('A1')
+cellA1.setValue(1)
+const cellA2 = fWorksheet.getRange('A2')
+cellA2.setValue(2)
+const cellA3 = fWorksheet.getRange('A3')
+cellA3.setValue({ f: '=CUSTOMSUM(A1,A2,LAMBDA(x,y,x*y))' })
+
+// A3 will display: 5
+formulaEngine.calculationEnd((functionsExecutedState) => {
+  if (functionsExecutedState === 3) {
+    console.log(cellA3.getValue()) // 5
+  }
+})
+```
+
+Чтобы отменить регистрацию формулы, вызовите метод `dispose`.
+
+```typescript
+const functionDisposable = formulaEngine.registerFunction({
+  // calculate
+})
+
+// Unregister the function
+functionDisposable.dispose()
+```
+
+Чтобы добавить полноценные локализованные тексты и описание, настройте поля `locales` и `description`, как показано ниже.
+
+```typescript
+formulaEngine.registerFunction(
+  'CUSTOMSUM',
+  (...variants) => {
+    let sum = 0
+    const last = variants[variants.length - 1]
+
+    if (last.isLambda && last.isLambda()) {
+      variants.pop()
+      const variantsList = variants.map((variant) => (Array.isArray(variant) ? variant[0][0] : variant))
+      sum += last.executeCustom(...variantsList).getValue()
+    }
+
+    for (const variant of variants) {
+      sum += Number(variant) || 0
+    }
+
+    return sum
+  },
+  {
+    description: {
+      functionName: 'CUSTOMSUM',
+      description: 'formulaCustom.CUSTOMSUM.description',
+      abstract: 'formulaCustom.CUSTOMSUM.abstract',
+      functionParameter: [
+        {
+          name: 'formulaCustom.CUSTOMSUM.functionParameter.number1.name',
+          detail: 'formulaCustom.CUSTOMSUM.functionParameter.number1.detail',
+          example: 'A1:A20',
+          require: 1,
+          repeat: 0,
+        },
+        {
+          name: 'formulaCustom.CUSTOMSUM.functionParameter.number2.name',
+          detail: 'formulaCustom.CUSTOMSUM.functionParameter.number2.detail',
+          example: 'B2:B10',
+          require: 0,
+          repeat: 1,
+        },
+      ],
+    },
+    locales: {
+      zhCN: {
+        formulaCustom: {
+          CUSTOMSUM: {
+            description: '将单个值、单元格引用或是区域相加，或者将三者的组合相加。',
+            abstract: '求参数的和',
+            functionParameter: {
+              number1: {
+                name: '数值1',
+                detail:
+                  '要相加的第一个数字。 该数字可以是 4 之类的数字，B6 之类的单元格引用或 B2:B8 之类的单元格范围。',
+              },
+              number2: {
+                name: '数值2',
+                detail: '这是要相加的第二个数字。 可以按照这种方式最多指定 255 个数字。',
+              },
+            },
+          },
+        },
+      },
+      enUS: {
+        formulaCustom: {
+          CUSTOMSUM: {
+            description: `You can add individual values, cell references or ranges or a mix of all three.`,
+            abstract: `Adds its arguments`,
+            functionParameter: {
+              number1: {
+                name: 'number1',
+                detail:
+                  'The first number you want to add. The number can be like 4, a cell reference like B6, or a cell range like B2:B8.',
+              },
+              number2: {
+                name: 'number2',
+                detail: 'This is the second number you want to add. You can specify up to 255 numbers in this way.',
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+)
+```
+
+Примечание
+
+- `func` задаёт алгоритм вычисления формулы и сопоставление имени. Входной параметр содержит введённые пользователем данные: число, строку, логическое значение или массив.
+- `description` задаёт описание пользовательской формулы.
+- В `locales` можно настроить несколько языков. Правила именования см. в [LocaleType](https://reference.univer.ai/en-US/globals#localetype). Переводы нескольких формул можно добавить в `functionList`. Подробное описание полей приведено в разделе [Добавление формул в Formula Engine](/blog/custom-formula#how-to-add-formulas-in-formula-engine).
+
+<Callout>
+  Чтобы повторно использовать алгоритм системы формул и расширить его возможности, зарегистрируйте пользовательскую
+  формулу в конфигурации плагина. Подробное руководство см. в разделе [Пользовательская формула](/blog/custom-formula).
+</Callout>
+
+## API перечислений
+
+Facade API предоставляет часто используемые типы перечислений. Например:
+
+```typescript
+console.log(univerAPI.Enum)
+console.log(univerAPI.Enum.UniverInstanceType.UNIVER_SHEET)
+console.log(univerAPI.Enum.LifecycleStages.Rendered)
+```
+
+## API вспомогательных методов
+
+Facade API предоставляет часто используемые вспомогательные методы. Например:
+
+```typescript
+console.log(univerAPI.Util)
+console.log(univerAPI.Util.tools.chatAtABC(10))
+console.log(univerAPI.Util.tools.ABCatNum('K'))
+```

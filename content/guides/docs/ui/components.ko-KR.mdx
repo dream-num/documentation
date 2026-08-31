@@ -8,4 +8,274 @@ Univer는 컴포넌트를 렌더링 함수에 매개변수로 직접 전달하�
 
 Facade API 인스턴스를 가져오는 방법이 익숙하지 않다면 [Facade API](/guides/docs/getting-started/facade)를 참고하세요.
 
-<include cwd>content/guides/shared/ui/components.ko-KR.mdx</include>
+
+## 사용자 지정 컴포넌트 등록
+
+```typescript
+// [!code word:componentKey]
+// [!code word:CustomComponent]
+// [!code word:options]
+univerAPI.registerComponent(componentKey, CustomComponent, options)
+```
+
+`univerAPI.registerComponent` 메서드를 사용해 사용자 지정 컴포넌트를 등록할 수 있습니다. 이 메서드는 세 가지 매개변수를 받습니다.
+
+- `componentKey`: Univer에서 컴포넌트를 참조할 때 사용하는 고유 식별자입니다.
+- `CustomComponent`: 컴포넌트 구현입니다. React, Vue 또는 Web Component를 사용할 수 있습니다.
+- `options`: 컴포넌트가 의존하는 프레임워크나 그 밖의 관련 설정을 지정하는 선택적 구성 옵션입니다.
+
+### React 컴포넌트 [#react]
+
+React 컴포넌트를 등록할 때는 별도의 구성이 필요하지 않습니다. 유효한 React 컴포넌트인지 확인하기만 하면 됩니다. 다음은 간단한 예입니다.
+
+```tsx
+function ReactComponent(props: Record<string, any>) {
+  return <div>Hello Univer!</div>
+}
+
+univerAPI.registerComponent('MyReactComponent', ReactComponent)
+```
+
+### Vue 컴포넌트 [#vue]
+
+#### Vue 3.x
+
+Vue 컴포넌트를 등록하려면 `UniverVue3AdapterPlugin`을 `@univerjs/ui-adapter-vue3` 패키지에서 설치하고 등록해야 합니다.
+
+```package-install
+npm install @univerjs/ui-adapter-vue3
+```
+
+```typescript
+import { UniverVue3AdapterPlugin } from '@univerjs/ui-adapter-vue3'
+
+univer.registerPlugin(UniverVue3AdapterPlugin)
+```
+
+Vue 컴포넌트를 등록할 때는 `framework` 옵션을 `'vue3'`으로 지정해야 합니다.
+
+```tsx
+const Vue3Component = defineComponent({
+  setup(props) {
+    return () => <div>Hello Univer!</div>
+  },
+})
+
+univerAPI.registerComponent('MyVue3Component', Vue3Component, {
+  // [!code word:vue3]
+  framework: 'vue3',
+})
+```
+
+#### Vue 2.x
+
+Vue 2.x는 지원 종료(EOL)되어 더 이상 유지 관리되지 않으므로 Univer는 현재 Vue 2.x용 UI 어댑터 플러그인을 제공하지 않습니다. 하지만 사용자 지정 플러그인을 만들어 Vue 2.x 어댑터를 구현할 수 있습니다. 다음은 Vue 2.x 어댑터 플러그인을 만드는 예입니다.
+
+```typescript title="ui-adapter-vue2.ts"
+import { DependentOn, Inject, Injector, Plugin } from '@univerjs/core'
+import { ComponentManager, UniverUIPlugin } from '@univerjs/ui'
+import Vue from 'vue'
+
+/**
+ * The plugin that allows Univer to use Vue 2 components as UI components.
+ */
+@DependentOn(UniverUIPlugin)
+export class UniverVue2AdapterPlugin extends Plugin {
+  static override pluginName = 'UNIVER_UI_VUE2_ADAPTER_PLUGIN'
+
+  constructor(
+    private readonly _config = {},
+    @Inject(Injector) protected readonly _injector: Injector,
+    @Inject(ComponentManager) protected readonly _componentManager: ComponentManager,
+  ) {
+    super()
+  }
+
+  override onStarting(): void {
+    const { createElement, useEffect, useRef } = this._componentManager.reactUtils
+
+    this._componentManager.setHandler('vue2', (component: any) => {
+      return (props: Record<string, any>) =>
+        createElement(VueComponentWrapper, {
+          component,
+          props: Object.keys(props).reduce<Record<string, any>>((acc, key) => {
+            if (key !== 'key') {
+              acc[key] = props[key]
+            }
+            return acc
+          }, {}),
+          reactUtils: { createElement, useEffect, useRef },
+        })
+    })
+  }
+}
+
+export function VueComponentWrapper(options: {
+  component: any
+  props: Record<string, any>
+  reactUtils: typeof ComponentManager.prototype.reactUtils
+}) {
+  const { component, props, reactUtils } = options
+  const { createElement, useEffect, useRef } = reactUtils
+
+  const domRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!domRef.current) return
+
+    const Constructor = Vue.extend(component)
+
+    const instance = new Constructor({
+      data: props,
+    })
+    instance.$mount()
+
+    domRef.current.appendChild(instance.$el)
+
+    return () => {
+      instance.$destroy()
+    }
+  }, [props])
+
+  return createElement('div', { ref: domRef })
+}
+```
+
+그런 다음 플러그인을 등록합니다.
+
+```typescript
+import { UniverVue2AdapterPlugin } from './ui-adapter-vue2' // [!code ++]
+
+univer.registerPlugin(UniverUIPlugin)
+univer.registerPlugin(UniverVue2AdapterPlugin) // [!code ++]
+```
+
+Vue 2.x 컴포넌트를 등록할 때는 `framework` 옵션을 `'vue2'`로 지정해야 합니다.
+
+```tsx
+const Vue2Component = Vue.component('MyVue2Component', {
+  template: '<div>Hello, Univer!</div>',
+})
+
+univerAPI.registerComponent('MyVue2Component', Vue2Component, {
+  // [!code word:vue2]
+  framework: 'vue2',
+})
+```
+
+### Web Components [#web-component]
+
+Web Components를 등록하려면 컴포넌트가 Web Components 표준을 준수하는지 확인하고, `UniverWebComponentAdapterPlugin`을 `@univerjs/ui-adapter-web-component` 패키지에서 설치하고 등록해야 합니다.
+
+```package-install
+npm install @univerjs/ui-adapter-web-component
+```
+
+```typescript
+import { UniverWebComponentAdapterPlugin } from '@univerjs/ui-adapter-web-component'
+
+univer.registerPlugin(UniverWebComponentAdapterPlugin)
+```
+
+Web Components를 등록할 때는 `framework` 옵션을 `'web-component'`로 지정해야 합니다.
+
+```tsx
+class WebComponent extends HTMLElement {
+  constructor() {
+    super()
+    const shadow = this.attachShadow({ mode: 'open' })
+    const div = document.createElement('div')
+    div.textContent = 'Hello Univer!'
+    shadow.appendChild(div)
+  }
+}
+
+univerAPI.registerComponent('my-web-component', WebComponent, {
+  // [!code word:web-component]
+  framework: 'web-component',
+})
+```
+
+## 사용자 지정 컴포넌트 사용
+
+다음 메서드를 사용하면 다양한 사용자 지정 컴포넌트를 Univer에 유연하게 통합하여 기능을 확장하고 맞춤 설정할 수 있습니다.
+
+<Callout type="warning" title="주의">
+  1. 이 메서드를 사용하기 전에 Univer의 렌더링이 완료되었는지 확인하세요. 2. 등록이 필요한 컴포넌트는 사용하기 전에
+  올바르게 등록되었는지 확인하세요. 3. 메모리 누수를 방지하려면 `dispose()` 메서드로 추가한 컴포넌트를 정리하고
+  제거하세요.
+</Callout>
+
+### 사용자 지정 메뉴 항목 추가
+
+상단 메뉴 모음(Ribbon)과 오른쪽 클릭 메뉴(Context Menu) 모두에 사용자 지정 컴포넌트를 넣을 수 있습니다. 메뉴 항목에 사용자 지정 컴포넌트를 추가하려면 사용자 지정 플러그인을 만들어야 합니다. 빠르게 시작할 수 있도록 [사용자 지정 메뉴 항목 추가 모범 사례](/blog/custom-plugin)를 준비했습니다.
+
+### 기본 제공 컴포넌트 교체
+
+<Callout type="error" title="경고">
+  기본 제공 컴포넌트를 교체하면 일부 기능이 제대로 작동하지 않을 수 있습니다. 컴포넌트를 교체하기 전에 소스 코드와
+  문서를 충분히 읽고 신중하게 진행하세요.
+</Callout>
+
+`univerAPI.registerComponent` 메서드로 컴포넌트를 등록할 때 `componentKey`가 이미 존재하면 Univer는 기존 컴포넌트를 새 컴포넌트로 교체합니다.
+
+예를 들어 기본 제공 ColorPicker 컴포넌트는 다음과 같이 간단히 교체할 수 있습니다.
+
+```tsx
+// Following code only replaces the UI of the built-in ColorPicker component, not its functionality
+univerAPI.registerComponent('UI_COLOR_PICKER_COMPONENT', () => <input type="color" />)
+```
+
+### 콘텐츠 컴포넌트로 사용
+
+#### 사이드바에서 사용
+
+`univerAPI.openSidebar` 메서드를 사용하면 Univer 인터페이스에서 사용자 지정 컴포넌트가 포함된 사이드바를 열 수 있습니다.
+
+```tsx
+// [!code word:MyCustomSidebarComponent]
+// You should register the component at an appropriate time (e.g., after Univer has loaded)
+univerAPI.registerComponent('MyCustomSidebarComponent', () => <div>Hello Univer!</div>)
+
+const sidebar = univerAPI.openSidebar({
+  header: { title: 'My Sidebar' },
+  children: { label: 'MyCustomSidebarComponent' },
+  onClose: () => {
+    console.log('close')
+  },
+  width: 360,
+})
+
+// Later close the sidebar
+sidebar.dispose()
+```
+
+참조: [`univerAPI.openSidebar`](/reference/facade/univer#opensidebar)
+
+#### 대화 상자에서 사용
+
+`univerAPI.openDialog` 메서드를 사용하면 사용자 지정 컴포넌트가 포함된 대화 상자를 열 수 있습니다.
+
+```tsx
+// [!code word:MyCustomDialogComponent]
+// You should register the component at an appropriate time (e.g., after Univer has loaded)
+univerAPI.registerComponent('MyCustomDialogComponent', () => <div>Hello Univer!</div>)
+
+const dialog = univerAPI.openDialog({
+  id: 'unique-dialog-id', // The unique identifier for the dialog
+  draggable: true,
+  width: 300,
+  title: { title: 'My Dialog' },
+  children: {
+    label: 'MyCustomDialogComponent',
+  },
+  destroyOnClose: true,
+  preservePositionOnDestroy: true,
+  onClose: () => {},
+})
+
+// Later close the dialog
+dialog.dispose()
+```
+
+참조: [`univerAPI.openDialog`](/reference/facade/univer#opendialog)

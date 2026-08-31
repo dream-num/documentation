@@ -3,4 +3,80 @@ title: 수명 주기
 icon: Recycle
 ---
 
-<include cwd>content/guides/shared/getting-started/lifecycle.ko-KR.mdx</include>
+
+Univer 애플리케이션이 실행되면 정해진 순서에 따라 일련의 생명 주기 단계를 거칩니다. 이 생명 주기를 이해하면 비즈니스 인스턴스나 DOM 요소에 안전하게 접근할 수 있는 시점, 또는 시간이 오래 걸리는 비동기 작업을 수행할 수 있는 시점을 판단할 수 있으므로 개발자에게 매우 중요합니다. 초기화, 렌더링, 성능 최적화 작업의 종류에 따라 적합한 단계가 다릅니다. 개발자는 생명 주기 변경을 수신하여 시스템 상태 변화에 가장 적절한 시점에 대응함으로써 기능을 확장하고 성능이나 사용자 경험을 개선할 수 있습니다.
+
+Univer의 생명 주기는 주로 다음 네 단계로 구성됩니다.
+
+<Mermaid chart="flowchart LR; A([Starting]) --> B([Ready]) --> C([Rendered]) -->D([Steady])" />
+
+1. **Starting**: 시스템이 초기화를 시작하며, 플러그인은 의존성 주입과 기본 구성을 수행합니다.
+2. **Ready**: 첫 번째 비즈니스 인스턴스가 생성되고, 플러그인은 핵심 기능을 초기화합니다.
+3. **Rendered**: 인터페이스가 처음으로 렌더링되어 DOM을 안전하게 조작하거나 인터페이스 관련 초기화를 수행할 수 있습니다.
+4. **Steady**: 시스템이 안정 상태에 진입하여 지연 로딩, 중요도가 낮은 작업 및 기타 최적화 작업을 수행하기에 적합합니다.
+
+플러그인이나 컴포넌트의 유형에 따라 생명 주기에서 시작되는 시점은 다를 수 있지만, 전체 과정은 위에 설명한 순서를 따릅니다. 개발자는 생명 주기 이벤트를 사용하여 기능을 로드하고 실행하는 시점을 정밀하게 제어할 수 있습니다.
+
+<Callout>
+  Univer의 생명 주기 설계와 플러그인의 구체적인 시작 시점에 관한 자세한 내용은 [《Univer 아키텍처#플러그인 생명
+  주기》](/blog/univer#plugin-lifecycle)에서 확인할 수 있습니다.
+</Callout>
+
+## Facade API
+
+### 리스너 추가
+
+Univer는 통합 이벤트 구독 인터페이스를 제공하므로 개발자는 Facade API를 통해 생명 주기 변경을 수신할 수 있습니다.
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+  if (stage === univerAPI.Enum.LifecycleStages.Steady) {
+    // Execute custom logic in the Steady stage
+  }
+})
+```
+
+### 리스너 제거
+
+리스너를 제거하려면 반환된 `disposable` 객체를 사용합니다.
+
+```typescript
+disposable.dispose()
+```
+
+### 생명 주기 이벤트 및 열거형
+
+Univer는 개발자가 사용할 수 있도록 다음과 같은 생명 주기 이벤트와 열거형을 제공합니다.
+
+- 이벤트 이름: `univerAPI.Event.LifeCycleChanged`
+
+- 생명 주기 단계 열거형:
+  - `univerAPI.Enum.LifecycleStages.Starting`
+  - `univerAPI.Enum.LifecycleStages.Ready`
+  - `univerAPI.Enum.LifecycleStages.Rendered`
+  - `univerAPI.Enum.LifecycleStages.Steady`
+
+### 예시
+
+<Callout type="warning" title="주의">
+  `univerAPI.Event.LifeCycleChanged`는 생명 주기 변경만 반영하므로 `Starting` 단계에서는 이벤트가 발생하지 않습니다.
+</Callout>
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+  switch (stage) {
+    case univerAPI.Enum.LifecycleStages.Ready:
+      console.log('The business instance has been created, you can perform core initialization')
+      break
+    case univerAPI.Enum.LifecycleStages.Rendered:
+      console.log('The interface has been rendered, you can safely manipulate the DOM')
+      break
+    case univerAPI.Enum.LifecycleStages.Steady:
+      console.log('The system is stable, you can perform delayed loading and other optimization operations')
+      break
+  }
+})
+
+// Remove the listener
+disposable.dispose()
+```

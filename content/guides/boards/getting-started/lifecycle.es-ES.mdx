@@ -3,4 +3,82 @@ title: Ciclo de vida
 icon: Recycle
 ---
 
-<include cwd>content/guides/shared/getting-started/lifecycle.es-ES.mdx</include>
+
+Cuando se ejecuta una aplicación de Univer, pasa por una serie de etapas ordenadas del ciclo de vida. Comprender estos ciclos de vida es crucial para los desarrolladores, ya que ayuda a determinar cuándo es seguro acceder a instancias comerciales, elementos DOM o realizar operaciones asincrónicas que requieren mucho tiempo. Las diferentes etapas son adecuadas para ejecutar varios tipos de tareas de inicialización, renderizado y optimización del rendimiento. Al escuchar los cambios del ciclo de vida, los desarrolladores pueden responder en el momento óptimo a los cambios de estado del sistema, logrando expansión de la funcionalidad, mejora del rendimiento u optimización de la experiencia del usuario.
+
+El ciclo de vida de Univer incluye principalmente las siguientes cuatro etapas:
+
+<Mermaid chart="flowchart LR; A([Starting]) --> B([Ready]) --> C([Rendered]) -->D([Steady])" />
+
+1. **Iniciando**: el sistema comienza la inicialización, donde los complementos realizan la inyección de dependencias y la inyección básica configuración.
+2. **Listo**: se crea la primera instancia empresarial y los complementos realizan la inicialización de la funcionalidad principal.
+3. **Renderizado**: la interfaz se representa por primera vez, lo que permite la manipulación segura del DOM o la inicialización relacionada con la interfaz.
+4. **Estable**: el sistema entra en un estado estable, adecuado para ejecutar cargas retrasadas, tareas no críticas y otras operaciones de optimización.
+
+Los diferentes tipos de complementos o componentes pueden tener diferentes tiempos de inicio en su ciclo de vida, pero el proceso general sigue el orden descrito anteriormente. Los desarrolladores pueden usar eventos del ciclo de vida para controlar con precisión el tiempo de carga y ejecución de la funcionalidad.
+
+<Callout>
+  Para obtener más información sobre el diseño del ciclo de vida de Univer y el tiempo de inicio específico de los
+  complementos, puede encontrar información relevante en [《Univer Architecture#Plugin
+  Lifecycle》](/blog/univer#plugin-lifecycle).
+</Callout>
+
+## API de Facade
+
+### Agregar oyentes
+
+Univer proporciona un unificado interfaz de suscripción de eventos, que permite a los desarrolladores escuchar los cambios del ciclo de vida a través de la API de Facade:
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+  if (stage === univerAPI.Enum.LifecycleStages.Steady) {
+    // Execute custom logic in the Steady stage
+  }
+})
+```
+
+### Eliminar oyentes
+
+Para eliminar un oyente, puede usar el objeto `disposable` devuelto:
+
+```typescript
+disposable.dispose()
+```
+
+### Eventos y enumeraciones del ciclo de vida
+
+Univer proporciona los siguientes eventos y enumeraciones del ciclo de vida para que los utilicen los desarrolladores:
+
+- Nombre del evento: `univerAPI.Event.LifeCycleChanged`
+
+- Enumeraciones de etapas del ciclo de vida:
+  - `univerAPI.Enum.LifecycleStages.Starting`
+  - `univerAPI.Enum.LifecycleStages.Ready`
+  - `univerAPI.Enum.LifecycleStages.Rendered`
+  - `univerAPI.Enum.LifecycleStages.Steady`
+
+### Ejemplo
+
+<Callout type="warning" title="Caution">
+  `univerAPI.Event.LifeCycleChanged` solo refleja los cambios del ciclo de vida, por lo que no se activarán eventos
+  durante la etapa `Starting`.
+</Callout>
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+  switch (stage) {
+    case univerAPI.Enum.LifecycleStages.Ready:
+      console.log('The business instance has been created, you can perform core initialization')
+      break
+    case univerAPI.Enum.LifecycleStages.Rendered:
+      console.log('The interface has been rendered, you can safely manipulate the DOM')
+      break
+    case univerAPI.Enum.LifecycleStages.Steady:
+      console.log('The system is stable, you can perform delayed loading and other optimization operations')
+      break
+  }
+})
+
+// Remove the listener
+disposable.dispose()
+```
