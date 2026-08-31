@@ -389,13 +389,27 @@ async function crawlAssets(baseUrl, expected, roots) {
 
 async function verifySemanticProjection(baseUrl) {
   const checks = [
+    [
+      '/llms.txt',
+      [
+        '## Product guides',
+        '/guides/sheets.md): ',
+        '/guides/docs.md): ',
+        '/guides/slides.md): ',
+        '/guides/boards.md): ',
+        '/guides/bases.md): ',
+        '/guides/pdfs.md): ',
+        '/guides/pro.md): ',
+        '## Documentation indexes',
+      ],
+    ],
     ['/guides/sheets/features/core.md', ['`createUniver`', '**@univerjs/core**']],
     ['/guides/sheets/features/core/general-api.md', ['Facade API available varies']],
     ['/guides/sheets/getting-started/installation.md', ['npm', 'pnpm', 'yarn']],
     ['/guides/docs/features/watermark.md', ['@univerjs/watermark', '/playground/']],
     ['/guides/pro/api.md', ['POST', 'snapshot']],
     ['/reference/classes/univer.md', ['UniverParameter']],
-    ['/guides/shared/getting-started/lifecycle.md', ['```mermaid', 'flowchart']],
+    ['/guides/sheets/getting-started/lifecycle.md', ['```mermaid', 'flowchart']],
     ['/icons/all-icons.md', ['Available icon components']],
   ]
 

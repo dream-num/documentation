@@ -14,6 +14,7 @@ import { resolveGuideContentSlug } from '@/lib/guides/content-placements'
 import { withLocale } from '@/lib/locale-path'
 import { guides, icons, reference } from '@/lib/source'
 
+import guidesMeta from '../../content/guides/meta.json'
 import packageJson from '../../package.json'
 
 interface IAgentDocsRequest {
@@ -162,6 +163,13 @@ function getDigest(body: string) {
 
 function oneLine(value: string | undefined) {
   return value?.replace(/\s+/g, ' ').trim()
+}
+
+function renderIndexPageEntry(lang: Locale, page: AgentDocsPage) {
+  const description = oneLine(page.data.description)
+  const contentLocale = getContentLocale(page.path)
+  const fallback = contentLocale === lang ? '' : ` _(content in ${contentLocale})_`
+  return `- [${page.data.title}](${DOCS_ORIGIN}${getAgentMarkdownPath(lang, page.url)})${description ? `: ${description}` : ''}${fallback}`
 }
 
 function restoreMarkdownDelimiters(markdown: string) {
@@ -354,19 +362,26 @@ async function renderPage(
 
 function renderRootIndex(lang: Locale): IAgentDocsArtifact {
   const canonicalPath = getRootIndexPath(lang)
+  const productPages = guidesMeta.pages
+    .map((slug) => getPage('guides', [slug], lang))
+    .filter((page): page is AgentDocsPage => page !== undefined)
   const body = [
     '# Univer Documentation',
     '',
-    '> Agent-readable guides, API reference, and icon documentation for Univer.',
+    '> Agent-readable documentation for Univer, a full-stack framework for building productivity applications.',
     '',
     `- Language: \`${lang}\``,
     `- Documentation version: \`${packageJson.version}\``,
     '',
-    '## Collections',
+    '## Product guides',
     '',
-    ...agentDocsCollections.map(
-      (collection) => `- [${collection}](${DOCS_ORIGIN}${getCollectionIndexPath(lang, collection)})`,
-    ),
+    ...productPages.map((page) => renderIndexPageEntry(lang, page)),
+    '',
+    '## Documentation indexes',
+    '',
+    `- [Guides](${DOCS_ORIGIN}${getCollectionIndexPath(lang, 'guides')}): Product setup, concepts, features, UI, recipes, and Univer Pro deployment.`,
+    `- [API reference](${DOCS_ORIGIN}${getCollectionIndexPath(lang, 'reference')}): Packages, presets, plugins, classes, methods, types, and Facade APIs.`,
+    `- [Icons](${DOCS_ORIGIN}${getCollectionIndexPath(lang, 'icons')}): Icon setup, framework integrations, and the complete component catalog.`,
     '',
   ].join('\n')
 
@@ -394,12 +409,7 @@ function renderCollectionIndex(lang: Locale, collection: AgentDocsCollection): I
     '',
     '## Pages',
     '',
-    ...pages.map((page) => {
-      const description = oneLine(page.data.description)
-      const contentLocale = getContentLocale(page.path)
-      const fallback = contentLocale === lang ? '' : ` _(content in ${contentLocale})_`
-      return `- [${page.data.title}](${DOCS_ORIGIN}${getAgentMarkdownPath(lang, page.url)})${description ? `: ${description}` : ''}${fallback}`
-    }),
+    ...pages.map((page) => renderIndexPageEntry(lang, page)),
     '',
   ].join('\n')
 
