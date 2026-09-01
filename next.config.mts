@@ -2,10 +2,11 @@ import { execFileSync } from 'node:child_process'
 import process from 'node:process'
 
 import type { NextConfig } from 'next'
-import { createMDX } from 'fumadocs-mdx/next'
+import { withAmamoMdx } from '@amamo/mdx/next'
 import createNextIntlPlugin from 'next-intl/plugin'
 
-const withMDX = createMDX({})
+import amamo from './amamo.config.mjs'
+
 const withNextIntl = createNextIntlPlugin()
 const DEV_API_ORIGIN = 'https://dev.univer.plus'
 
@@ -33,7 +34,12 @@ const config: NextConfig = {
   output: 'standalone',
 
   outputFileTracingIncludes: {
-    '/*': ['node_modules/.pnpm/@swc+helpers@*/node_modules/@swc/helpers/esm/**/*'],
+    '/*': [
+      '.amamo-mdx/index.json',
+      'content/**/*.json',
+      'content/**/*.mdx',
+      'node_modules/.pnpm/@swc+helpers@*/node_modules/@swc/helpers/esm/**/*',
+    ],
   },
 
   experimental: {
@@ -57,4 +63,4 @@ const config: NextConfig = {
   },
 }
 
-export default withNextIntl(withMDX(config))
+export default withAmamoMdx(amamo)(withNextIntl(config))

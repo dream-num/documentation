@@ -1,24 +1,48 @@
 // See https://fumadocs.vercel.app/docs/headless/source-api for more info
 import { loader } from 'fumadocs-core/source'
-import {
-  blog as blogPosts,
-  guides as guidesPosts,
-  icons as iconsPosts,
-  reference as referencePosts,
-} from 'fumadocs-mdx:collections/server'
 import { icons as lucideIcons } from 'lucide-react'
 import { createElement } from 'react'
 
+import type { IAmamoDocument } from '@/lib/amamo-source'
+import { collections } from '@/.amamo-mdx/collections.mjs'
 import { IconWrapper } from '@/components/icon-wrapper'
 import { UniverIcon } from '@/components/univer-icon'
 import { fumadocsI18n } from '@/i18n/fumadocs'
+import { createAmamoSource } from '@/lib/amamo-source'
 import { getGuideContentPlacementTargetFromUrl } from '@/lib/guides/content-placements'
 
 import { isUniverIconName } from './univer-icons'
 
+interface IDocumentFrontmatter {
+  description?: string
+  icon?: string
+  title: string
+}
+
+interface IBlogFrontmatter extends IDocumentFrontmatter {
+  author: string
+  date: string
+  deprecated?: boolean
+}
+
+const guidesPosts = collections.guides as readonly IAmamoDocument<IDocumentFrontmatter>[]
+const referencePosts = collections.reference as readonly IAmamoDocument<IDocumentFrontmatter>[]
+const iconsPosts = collections.icons as readonly IAmamoDocument<IDocumentFrontmatter>[]
+const blogPosts = collections.blog as readonly IAmamoDocument<IBlogFrontmatter>[]
+const [guidesSource, referenceSource, iconsSource, blogSource] = await Promise.all([
+  createAmamoSource('guides', 'content/guides', guidesPosts),
+  createAmamoSource('reference', 'content/reference', referencePosts),
+  createAmamoSource('icons', 'content/icons', iconsPosts),
+  createAmamoSource(
+    'blog',
+    'content/blog',
+    blogPosts.filter((document) => !document.key.split(':').at(-1)?.startsWith('weekly-')),
+  ),
+])
+
 export const guides = loader({
   baseUrl: '/guides',
-  source: guidesPosts.toFumadocsSource(),
+  source: guidesSource,
   i18n: fumadocsI18n,
   pageTree: {
     transformers: [
@@ -72,7 +96,7 @@ export const guides = loader({
 
 export const reference = loader({
   baseUrl: '/reference',
-  source: referencePosts.toFumadocsSource(),
+  source: referenceSource,
   i18n: fumadocsI18n,
   icon(icon) {
     if (!icon) return
@@ -89,7 +113,7 @@ export const reference = loader({
 
 export const icons = loader({
   baseUrl: '/icons',
-  source: iconsPosts.toFumadocsSource(),
+  source: iconsSource,
   i18n: fumadocsI18n,
   icon(icon) {
     if (!icon) return
@@ -110,7 +134,7 @@ export const icons = loader({
 
 export const blog = loader({
   baseUrl: '/blog',
-  source: blogPosts.toFumadocsSource(),
+  source: blogSource,
   i18n: fumadocsI18n,
 })
 

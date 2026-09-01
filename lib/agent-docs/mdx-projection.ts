@@ -1,10 +1,14 @@
 import type { LLMsOptions } from 'fumadocs-core/mdx-plugins/remark-llms'
+import { createProcessor } from '@mdx-js/mdx'
 import enUS from '@univerjs/engine-formula/locale/en-US'
 import frFR from '@univerjs/engine-formula/locale/fr-FR'
 import koKR from '@univerjs/engine-formula/locale/ko-KR'
 import ruRU from '@univerjs/engine-formula/locale/ru-RU'
 import zhCN from '@univerjs/engine-formula/locale/zh-CN'
 import * as univerIcons from '@univerjs/icons'
+import { frontmatter } from 'fumadocs-core/content/md/frontmatter'
+import { mdxPreset } from 'fumadocs-core/content/mdx/preset-runtime'
+import { remarkLLMs } from 'fumadocs-core/mdx-plugins/remark-llms'
 
 import packageJson from '../../package.json'
 
@@ -139,13 +143,13 @@ function annotateImageSources(value: unknown, imports: ReadonlyMap<string, strin
   }
 }
 
-export function remarkAgentImageSources() {
+function remarkAgentImageSources() {
   return (tree: unknown) => {
     annotateImageSources(tree, collectImageImports(tree))
   }
 }
 
-export function remarkStripMdxComments() {
+function remarkStripMdxComments() {
   return (tree: unknown) => {
     removeMdxComments(tree)
   }
@@ -654,3 +658,22 @@ export const agentMarkdownOptions = {
   headingIds: false,
   stringify: stringifyAgentMdx,
 } satisfies LLMsOptions
+
+const agentMarkdownProcessor = mdxPreset({
+  rehypeCodeOptions: false,
+  remarkPlugins: [
+    remarkStripMdxComments,
+    remarkAgentImageSources,
+    [remarkLLMs, { ...agentMarkdownOptions, _data: true }],
+  ],
+  remarkStructureOptions: false,
+}).then((options) => createProcessor(options))
+
+export async function renderAgentMarkdown(source: string, filePath: string) {
+  const processor = await agentMarkdownProcessor
+  const file = await processor.process({ path: filePath, value: frontmatter(source).content })
+  if (typeof file.data.markdown !== 'string') {
+    throw new Error(`Agent Markdown was not generated for ${filePath}`)
+  }
+  return file.data.markdown
+}

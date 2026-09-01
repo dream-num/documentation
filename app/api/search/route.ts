@@ -1,30 +1,29 @@
-import type { SearchResultSource } from '@/lib/guides/search'
 import { createTokenizer } from '@orama/tokenizers/mandarin'
 import { createFromSource } from 'fumadocs-core/search/server'
+
+import type { SearchResultSource } from '@/lib/guides/search'
 import { searchLocaleProfiles } from '@/i18n/locale-config'
 import { routing } from '@/i18n/routing'
-import {
-  normalizeScopedSearchResults,
-  parseSearchScope,
-
-} from '@/lib/guides/search'
+import { normalizeScopedSearchResults, parseSearchScope } from '@/lib/guides/search'
 import { guides, icons, reference } from '@/lib/source'
 
 const searchOptions = {
-  localeMap: Object.fromEntries(routing.locales.map(locale => [
-    locale,
-    searchLocaleProfiles[locale] === 'english'
-      ? { language: 'english' }
-      : {
-          components: {
-            tokenizer: createTokenizer(),
+  localeMap: Object.fromEntries(
+    routing.locales.map((locale) => [
+      locale,
+      searchLocaleProfiles[locale] === 'english'
+        ? { language: 'english' }
+        : {
+            components: {
+              tokenizer: createTokenizer(),
+            },
+            search: {
+              threshold: 0,
+              tolerance: 0,
+            },
           },
-          search: {
-            threshold: 0,
-            tolerance: 0,
-          },
-        },
-  ])),
+    ]),
+  ),
 }
 
 const sourceHandlers = {

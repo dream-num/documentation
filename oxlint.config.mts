@@ -1,7 +1,7 @@
 import amamo from '@amamo/oxlint-config'
 
 export default amamo({
-  ignores: ['**/.angular/**', '**/.astro/**', '.next/**', '.source/**', 'out/**'],
+  ignores: ['**/.angular/**', '**/.astro/**', '.amamo-mdx/**', '.next/**', 'out/**'],
   jsxA11y: false,
   nextjs: true,
   node: true,
