@@ -1,0 +1,100 @@
+---
+title: 核心功能
+icon: 'Cpu'
+---
+
+<MetaData
+  isPro
+  lang="zh-TW"
+  meta={{
+    preset: [],
+    plugins: [
+      {
+        client: '@univerjs-pro/pdfs',
+        facade: '@univerjs-pro/pdfs/facade',
+      },
+      {
+        client: '@univerjs-pro/pdfs-ui',
+        locale: '@univerjs-pro/pdfs-ui/locale/zh-TW',
+        style: '@univerjs-pro/pdfs-ui/lib/index.css',
+      },
+    ],
+    server: false,
+  }}
+/>
+
+Univer PDFs 核心功能包括正式的 PDF Unit、持久化編輯層和瀏覽器工作台。匯入的 PDF 內容會保留為來源基準，已接受的修改則儲存在 Unit 快照中，並算繪為目前文件。
+
+## 功能
+
+- **PDF Unit 模型**：在 `IPdfUnitData` 中儲存來源文件、頁面結構、資源和持久化編輯意圖。
+- **頁面與元素操作**：支援頁面導覽和插入，以及可編輯的文字、清單、表格、影像、分隔線和註解。
+- **瀏覽器工作台**：提供 PDF 頁面算繪、縮圖、選取、編輯控制項、剪貼簿行為和檢查器介面。
+- **命令管線**：透過持久化命令和變更批次套用已接受的修改，使儲存、復原和重做共用同一模型。
+- **Facade API**：透過 PDF、頁面、元素和原生文字物件建立、尋找、編輯和儲存 PDF Unit。
+
+## 預設模式
+
+Univer PDFs 目前沒有提供預設套件。請使用外掛程式模式建立 PDF 應用程式。
+
+## 外掛程式模式
+
+### 安裝
+
+```package-install
+npm install @univerjs/core @univerjs/design @univerjs/ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-ui
+```
+
+### 使用
+
+```ts
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import { UniverPdfsPlugin } from '@univerjs-pro/pdfs'
+import { UniverPdfsUIPlugin } from '@univerjs-pro/pdfs-ui'
+import PdfsUIEnUS from '@univerjs-pro/pdfs-ui/locale/en-US'
+import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+import { FUniver } from '@univerjs/core/facade'
+import DesignEnUS from '@univerjs/design/locale/en-US'
+import { UniverUIPlugin } from '@univerjs/ui'
+import UIEnUS from '@univerjs/ui/locale/en-US'
+
+import '@univerjs-pro/pdfs/facade'
+
+import '@univerjs/design/lib/index.css'
+import '@univerjs/ui/lib/index.css'
+import '@univerjs-pro/pdfs-ui/lib/index.css'
+
+const univer = new Univer({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(DesignEnUS, UIEnUS, PdfsUIEnUS),
+  },
+})
+
+univer.registerPlugin(UniverUIPlugin, { container: 'app' })
+univer.registerPlugin(UniverLicensePlugin, {
+  license: process.env.CLIENT_LICENSE_TEXT,
+})
+univer.registerPlugin(UniverPdfsPlugin)
+univer.registerPlugin(UniverPdfsUIPlugin)
+
+const univerAPI = FUniver.newAPI(univer)
+const pdf = univerAPI.createPdf({ name: 'Untitled PDF' })
+```
+
+`UniverPdfsPlugin` 負責 PDF Unit 和持久化命令，`UniverPdfsUIPlugin` 負責瀏覽器檢視器及其編輯控制項。僅需檢視介面時，請用 `{ editor: { enabled: false } }` 註冊 `UniverPdfsUIPlugin`。採用協作的應用程式可以另外安裝 `@univerjs-pro/pdfs-editor`，並同時註冊它所依賴的協作外掛程式。
+
+## Facade API
+
+副作用匯入 `@univerjs-pro/pdfs/facade` 會為 `FUniver` 擴充 PDF API。不傳來源文件呼叫 `createPdf()` 會建立空白 A4 PDF；傳入 `save()` 傳回的快照可以還原該 Unit。
+
+```ts
+const pdf = univerAPI.getActivePdf()
+
+if (pdf) {
+  const page = pdf.getPageByIndex(0) ?? pdf.insertPage()
+  const snapshot = pdf.save()
+}
+```
+
+請使用 Facade 方法或命令更新執行中的 PDF，不要直接修改 `snapshot.document` 或 `snapshot.editState`。

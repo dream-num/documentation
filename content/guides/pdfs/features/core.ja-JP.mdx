@@ -1,0 +1,100 @@
+---
+title: コア機能
+icon: 'Cpu'
+---
+
+<MetaData
+  isPro
+  lang="ja-JP"
+  meta={{
+    preset: [],
+    plugins: [
+      {
+        client: '@univerjs-pro/pdfs',
+        facade: '@univerjs-pro/pdfs/facade',
+      },
+      {
+        client: '@univerjs-pro/pdfs-ui',
+        locale: '@univerjs-pro/pdfs-ui/locale/ja-JP',
+        style: '@univerjs-pro/pdfs-ui/lib/index.css',
+      },
+    ],
+    server: false,
+  }}
+/>
+
+Univer PDFs のコア機能は、正式な PDF Unit、永続的な編集レイヤー、ブラウザーワークベンチで構成されます。インポートした PDF はソースの基準として保持され、確定した変更は Unit スナップショットに保存されて現在の文書として描画されます。
+
+## 機能
+
+- **PDF Unit モデル**：ソース文書、ページ構造、リソース、永続的な編集内容を `IPdfUnitData` に保存します。
+- **ページと要素の操作**：ページの移動と挿入に加え、テキスト、リスト、表、画像、区切り線、注釈を編集できます。
+- **ブラウザーワークベンチ**：PDF ページの描画、サムネイル、選択、編集コントロール、クリップボード、インスペクター UI を提供します。
+- **コマンドパイプライン**：確定した変更を永続的なコマンドとミューテーションバッチで適用し、保存、元に戻す、やり直しで同じモデルを使用します。
+- **Facade API**：PDF、ページ、要素、ネイティブテキストの各オブジェクトから PDF Unit を作成、検索、編集、保存できます。
+
+## プリセットモード
+
+Univer PDFs は現在プリセットパッケージを提供していません。PDF アプリケーションはプラグインモードで作成してください。
+
+## プラグインモード
+
+### インストール
+
+```package-install
+npm install @univerjs/core @univerjs/design @univerjs/ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-ui
+```
+
+### 使用方法
+
+```ts
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import { UniverPdfsPlugin } from '@univerjs-pro/pdfs'
+import { UniverPdfsUIPlugin } from '@univerjs-pro/pdfs-ui'
+import PdfsUIEnUS from '@univerjs-pro/pdfs-ui/locale/en-US'
+import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+import { FUniver } from '@univerjs/core/facade'
+import DesignEnUS from '@univerjs/design/locale/en-US'
+import { UniverUIPlugin } from '@univerjs/ui'
+import UIEnUS from '@univerjs/ui/locale/en-US'
+
+import '@univerjs-pro/pdfs/facade'
+
+import '@univerjs/design/lib/index.css'
+import '@univerjs/ui/lib/index.css'
+import '@univerjs-pro/pdfs-ui/lib/index.css'
+
+const univer = new Univer({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(DesignEnUS, UIEnUS, PdfsUIEnUS),
+  },
+})
+
+univer.registerPlugin(UniverUIPlugin, { container: 'app' })
+univer.registerPlugin(UniverLicensePlugin, {
+  license: process.env.CLIENT_LICENSE_TEXT,
+})
+univer.registerPlugin(UniverPdfsPlugin)
+univer.registerPlugin(UniverPdfsUIPlugin)
+
+const univerAPI = FUniver.newAPI(univer)
+const pdf = univerAPI.createPdf({ name: 'Untitled PDF' })
+```
+
+`UniverPdfsPlugin` は PDF Unit と永続的なコマンドを担当し、`UniverPdfsUIPlugin` はブラウザーのビューアーと編集コントロールを担当します。閲覧専用 UI では `{ editor: { enabled: false } }` を指定します。コラボレーションを使うアプリケーションでは、必要なコラボレーションプラグインとともに `@univerjs-pro/pdfs-editor` を追加できます。
+
+## Facade API
+
+副作用インポート `@univerjs-pro/pdfs/facade` は `FUniver` に PDF API を追加します。ソース文書なしで `createPdf()` を呼ぶと空の A4 PDF を作成し、`save()` が返したスナップショットを渡すと Unit を復元します。
+
+```ts
+const pdf = univerAPI.getActivePdf()
+
+if (pdf) {
+  const page = pdf.getPageByIndex(0) ?? pdf.insertPage()
+  const snapshot = pdf.save()
+}
+```
+
+実行中の PDF は Facade メソッドまたはコマンドで更新し、`snapshot.document` や `snapshot.editState` を直接変更しないでください。

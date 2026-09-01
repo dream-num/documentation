@@ -648,6 +648,7 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
         '#### Ribbon layouts',
         '',
         '- `classic`: grouped tabs above the toolbar.',
+        '- `grid`: grouped tabs above a two-row tool grid.',
         '- `collapsed`: compact tabs and tools on one row.',
         '- `simple`: an ungrouped, flat tool list.',
       ].join('\n')
