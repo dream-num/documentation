@@ -10,6 +10,7 @@ import { frontmatter } from 'fumadocs-core/content/md/frontmatter'
 import { mdxPreset } from 'fumadocs-core/content/mdx/preset-runtime'
 import { remarkLLMs } from 'fumadocs-core/mdx-plugins/remark-llms'
 
+import { buildInstallCommand, PACKAGE_MANAGERS } from '../../components/mdx/install-command'
 import packageJson from '../../package.json'
 
 type StringifyAgentMdx = NonNullable<LLMsOptions['stringify']>
@@ -40,6 +41,7 @@ const AGENT_MDX_ELEMENTS = new Set([
   'IconsGallery',
   'IconsVersion',
   'IconWrapper',
+  'InstallTabs',
   'Mermaid',
   'MetaData',
   'MigrationCell',
@@ -464,6 +466,40 @@ function renderIconsGallery() {
   ].join('\n')
 }
 
+function renderInstallTabs(attributes: Record<string, StaticValue>) {
+  const packageValue = attributes.packages
+  const packages =
+    typeof packageValue === 'string'
+      ? packageValue
+      : Array.isArray(packageValue) && packageValue.every((value): value is string => typeof value === 'string')
+        ? packageValue
+        : undefined
+  if (!packages) throw new Error('Agent Markdown expected InstallTabs.packages')
+  if (attributes.dev !== undefined && typeof attributes.dev !== 'boolean') {
+    throw new TypeError('Agent Markdown expected InstallTabs.dev to be boolean')
+  }
+
+  const overrides =
+    attributes.overrides === undefined ? {} : getStaticRecord(attributes.overrides, 'InstallTabs.overrides')
+  return PACKAGE_MANAGERS.map((manager) => {
+    const value = overrides[manager]
+    const override = value === undefined ? undefined : getStaticRecord(value, `InstallTabs.overrides.${manager}`)
+    const append = override ? getString(override, 'append') : undefined
+    const replace = override ? getString(override, 'replace') : undefined
+    if (append && replace) {
+      throw new Error(`Agent Markdown received both append and replace for InstallTabs.overrides.${manager}`)
+    }
+
+    const command = buildInstallCommand(
+      manager,
+      packages,
+      attributes.dev === true,
+      replace ? { replace } : append ? { append } : undefined,
+    )
+    return `#### ${manager}\n\n\`\`\`shell\n${command}\n\`\`\``
+  }).join('\n\n')
+}
+
 function renderTabs(node: MdxElement, state: Parameters<StringifyAgentMdx>[2], info: Parameters<StringifyAgentMdx>[3]) {
   const attributes = readAttributes(node)
   const labels = Array.isArray(attributes.items) ? attributes.items.filter((item) => typeof item === 'string') : []
@@ -585,6 +621,8 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
       return `\`${packageJson.dependencies['@univerjs/icons']}\``
     case 'IconWrapper':
       return attributes.type === 'pro' ? '**Univer Pro**' : children
+    case 'InstallTabs':
+      return renderInstallTabs(attributes)
     case 'Mermaid': {
       const chart = getString(attributes, 'chart')
       if (!chart) throw new Error('Agent Markdown expected Mermaid.chart')

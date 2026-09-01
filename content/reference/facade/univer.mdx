@@ -3,7 +3,7 @@ title: univerAPI
 icon: '#ref/F'
 ---
 
-| Packages | `@univerjs/core`, `@univerjs/ui`, `@univerjs/watermark`, `@univerjs/network`, `@univerjs/sheets-find-replace`, `@univerjs/docs`, `@univerjs/sheets`, `@univerjs/sheets-ui`, `@univerjs-pro/exchange-client`, `@univerjs-pro/bases-exchange-client`, `@univerjs-pro/boards-exchange-client`, `@univerjs-pro/docs-exchange-client`, `@univerjs-pro/pdfs-exchange-client`, `@univerjs-pro/sheets-exchange-client`, `@univerjs-pro/slides-exchange-client`, `@univerjs-pro/collaboration-client`, `@univerjs/sheets-crosshair-highlight`, `@univerjs/engine-formula`, `@univerjs-pro/live-share`, `@univerjs/sheets-data-validation`, `@univerjs/sheets-thread-comment`, `@univerjs/sheets-formula`, `@univerjs/sheets-drawing-ui`, `@univerjs-pro/collaboration-client-ui`, `@univerjs/sheets-formula-ui` |
+| Packages | `@univerjs/core`, `@univerjs/ui`, `@univerjs/watermark`, `@univerjs/network`, `@univerjs/sheets-find-replace`, `@univerjs/docs`, `@univerjs/sheets`, `@univerjs/sheets-ui`, `@univerjs/thread-comment`, `@univerjs-pro/exchange-client`, `@univerjs-pro/bases-exchange-client`, `@univerjs-pro/boards-exchange-client`, `@univerjs-pro/docs-exchange-client`, `@univerjs-pro/pdfs-exchange-client`, `@univerjs-pro/sheets-exchange-client`, `@univerjs-pro/slides-exchange-client`, `@univerjs-pro/collaboration-client`, `@univerjs/sheets-crosshair-highlight`, `@univerjs/engine-formula`, `@univerjs-pro/live-share`, `@univerjs/sheets-data-validation`, `@univerjs/sheets-thread-comment`, `@univerjs/sheets-formula`, `@univerjs/sheets-drawing-ui`, `@univerjs-pro/collaboration-client-ui`, `@univerjs/sheets-formula-ui`, `@univerjs-pro/edit-history` |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 
 <span className="rounded bg-fd-primary/10 px-1.5 py-0.5 text-xs font-medium text-fd-primary">CORE</span>
@@ -26,6 +26,7 @@ to create a new instance.
 | [`fireEvent`](#fireevent)                               | Fire an event, used in internal only                                                              |
 | [`getCurrentLifecycleStage`](#getcurrentlifecyclestage) | Get the current lifecycle stage                                                                   |
 | [`getCurrentLocale`](#getcurrentlocale)                 | Get the current locale                                                                            |
+| `getCurrentRegion`                                      | Get the current region used by locale-sensitive behavior                                          |
 | [`getCurrentTheme`](#getcurrenttheme)                   | Get the active theme                                                                              |
 | [`getLocales`](#getlocales)                             | Get loaded locale messages                                                                        |
 | [`isDarkMode`](#isdarkmode)                             | Check whether the active theme is dark                                                            |
@@ -43,6 +44,8 @@ to create a new instance.
 | [`redo`](#redo)                                         | Redo an editing on the currently focused document                                                 |
 | [`registerEventHandler`](#registereventhandler)         | -                                                                                                 |
 | [`setLocale`](#setlocale)                               | Set the current locale                                                                            |
+| `setRegion`                                             | Set the current region independently of the message locale                                         |
+| `setDirection`                                          | Set the runtime layout direction to `ltr` or `rtl`                                                 |
 | [`setTheme`](#settheme)                                 | Replace the active theme at runtime                                                               |
 | [`syncExecuteCommand`](#syncexecutecommand)             | Execute a command with the given id and parameters synchronously                                  |
 | [`toggleDarkMode`](#toggledarkmode)                     | Toggle dark mode on or off                                                                        |
@@ -117,6 +120,18 @@ to create a new instance.
 | ------------------------------------- | ----------- |
 | [`newTheadComment`](#newtheadcomment) | -           |
 
+### @univerjs/thread-comment
+
+| Method | Description |
+| --- | --- |
+| `createCommentAsync` | Create a root thread on a serialized product anchor |
+| `replyCommentAsync` | Add a reply to a loaded thread |
+| `updateCommentAsync` | Update root or reply content and attachments |
+| `deleteCommentAsync` | Delete one comment or a complete thread |
+| `resolveCommentAsync` | Resolve or reopen a thread |
+| `getComments` | Query locally loaded threads |
+| `listCommentsAsync` | Synchronize known threads and query them |
+
 ### @univerjs/sheets-ui
 
 | Method                                                                      | Description                    |
@@ -155,6 +170,7 @@ to create a new instance.
 | [`registerComponent`](#registercomponent)     | -           |
 | [`registerUIPart`](#registeruipart)           | -           |
 | [`setCurrent`](#setcurrent)                   | -           |
+| [`setRibbonType`](#setribbontype)             | Change the ribbon layout |
 | [`setUIVisible`](#setuivisible)               | -           |
 | [`showMessage`](#showmessage)                 | -           |
 
@@ -185,6 +201,12 @@ to create a new instance.
 | ------------------------------- | --------------------------------------------- |
 | [`downloadFile`](#downloadfile) | Trigger a browser download for a file or blob |
 
+### @univerjs-pro/edit-history
+
+| Method | Description |
+| --- | --- |
+| `compareUnitData` | Semantically compare two fully materialized unit snapshots with the registered product adapter |
+
 Import and export methods are registered by their host Facade entries:
 
 | Package                                | Methods                                                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -205,6 +227,53 @@ Import and export methods are registered by their host Facade entries:
 | [`startPresenting`](#startpresenting)       | -           |
 | [`stopFollowing`](#stopfollowing)           | -           |
 | [`stopPresenting`](#stoppresenting)         | -           |
+
+## Cross-product extensions
+
+### Locale, region, and direction
+
+`setLocale()` switches loaded messages. Region and layout direction can be controlled independently:
+
+```typescript
+univerAPI.setRegion('SG')
+univerAPI.setDirection('rtl')
+
+console.log(univerAPI.getCurrentRegion())
+```
+
+### Thread comments
+
+Import the shared Facade entry once, then import the matching product Facade for anchor-specific helpers.
+
+```typescript
+import '@univerjs/thread-comment/facade'
+
+const openComments = univerAPI.getComments({ resolved: false })
+await univerAPI.listCommentsAsync({
+  anchorKinds: [univerAPI.Enum.ThreadCommentAnchorKind.DOC_TEXT_RANGE],
+})
+```
+
+`listCommentsAsync()` synchronizes thread IDs already known to the configured datasource; it is not a server-wide discovery API.
+
+### Semantic unit comparison
+
+```typescript
+import { UnitComparisonFidelity } from '@univerjs-pro/edit-history'
+
+import '@univerjs-pro/edit-history/facade'
+
+const result = univerAPI.compareUnitData({
+  comparisonId: 'review-42',
+  unitId: 'doc-1',
+  type: univerAPI.Enum.UniverInstanceType.UNIVER_DOC,
+  fidelity: UnitComparisonFidelity.SNAPSHOT,
+  leftData,
+  rightData,
+})
+```
+
+Register the matching history adapter before calling `compareUnitData()`. This API compares semantic content; it does not merge snapshots or replay mutations.
 
 ## APIs
 
@@ -1821,13 +1890,13 @@ pasteIntoSheet(htmlContent?: string, textContent?: string, files?: File[]): Prom
 **Signature**
 
 ```typescript
-registerComponent(name: string, component: any, options?: IComponentOptions): IDisposable
+registerComponent(name: string, component: ComponentType, options?: IComponentOptions): IDisposable
 ```
 
 **Parameters**
 
 - `name` `string` — _No description_
-- `component` `any` — _No description_
+- `component` `ComponentType` — _No description_
 - `options` `IComponentOptions` _(optional)_ — _No description_
 
 **Returns**
@@ -1898,13 +1967,13 @@ registerSheetRowHeaderExtension(unitId: string, ...extensions: SheetExtension[])
 **Signature**
 
 ```typescript
-registerUIPart(key: BuiltInUIPart, component: any): IDisposable
+registerUIPart(key: BuiltInUIPart, component: ComponentType): IDisposable
 ```
 
 **Parameters**
 
 - `key` `BuiltInUIPart` — _No description_
-- `component` `any` — _No description_
+- `component` `ComponentType` — _No description_
 
 **Returns**
 
@@ -2023,6 +2092,22 @@ setProtectedRangeShadowStrategy(strategy: 'always' | 'non-editable' | 'non-viewa
 - `strategy` `"always" | "non-editable" | "non-viewable" | "none"` — _No description_
 
 <span className="text-xs text-fd-muted-foreground">Source: `@univerjs/sheets-ui`</span>
+
+### `setRibbonType`
+
+**Signature**
+
+```typescript
+setRibbonType(ribbonType: 'collapsed' | 'simple' | 'classic' | 'grid'): FUniver
+```
+
+Changes the current ribbon layout while preserving the rest of the UI plugin configuration.
+
+**Returns**
+
+- `FUniver` — The current Facade instance for chaining.
+
+<span className="text-xs text-fd-muted-foreground">Source: `@univerjs/ui`</span>
 
 ### `setUIVisible`
 

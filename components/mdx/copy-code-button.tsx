@@ -3,6 +3,7 @@
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
+
 import { Button } from '@/components/ui/button'
 
 export function CopyCodeButton({ code }: { code: string }) {
@@ -12,11 +13,7 @@ export function CopyCodeButton({ code }: { code: string }) {
   return (
     <Button
       aria-label={t('common.copy-code')}
-      className="
-        size-7 border bg-background/80 text-muted-foreground shadow-xs transition-colors
-        hover:text-foreground
-        focus:text-foreground
-      "
+      className="bg-background/80 text-muted-foreground hover:text-foreground focus:text-foreground size-7 border shadow-xs transition-colors"
       size="icon"
       type="button"
       variant="secondary"

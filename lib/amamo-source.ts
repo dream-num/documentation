@@ -39,12 +39,10 @@ interface IAmamoMetaData extends MetaData {
 }
 
 type AmamoPageData<TFrontmatter extends PageData> = TFrontmatter & {
-  _exports: IAmamoModule<TFrontmatter>
-  body: MDXContent
   getText: (type: 'processed' | 'raw') => Promise<string>
   info: IFileInfo
-  structuredData: StructuredData
-  toc: ITocItem[]
+  load: () => Promise<IAmamoModule<TFrontmatter>>
+  structuredData: () => Promise<StructuredData>
 }
 
 export interface IAmamoDocument<TFrontmatter extends PageData> {
@@ -92,40 +90,39 @@ export async function createAmamoSource<TFrontmatter extends PageData>(
         return [`${document.collection}\0${document.key}`, relativePath]
       }),
   )
-  const pages = await Promise.all(
-    documents.map(async (document) => {
-      const relativePath = documentPaths.get(`${collection}\0${document.key}`)
-      if (!relativePath) throw new Error(`Missing generated source path for ${collection}/${document.key}`)
+  const pages = documents.map((document) => {
+    const relativePath = documentPaths.get(`${collection}\0${document.key}`)
+    if (!relativePath) throw new Error(`Missing generated source path for ${collection}/${document.key}`)
 
-      const fullPath = path.join(collectionDirectory, relativePath)
-      const contentModule = await document.load()
-      const info = { fullPath, path: relativePath }
-      let sourcePromise: Promise<string> | undefined
-      let processedPromise: Promise<string> | undefined
-      const readSource = () => (sourcePromise ??= readFile(fullPath, 'utf8'))
+    const fullPath = path.join(collectionDirectory, relativePath)
+    const info = { fullPath, path: relativePath }
+    let contentModulePromise: Promise<IAmamoModule<TFrontmatter>> | undefined
+    let sourcePromise: Promise<string> | undefined
+    let processedPromise: Promise<string> | undefined
+    const load = () => (contentModulePromise ??= document.load())
+    const readSource = () => (sourcePromise ??= readFile(fullPath, 'utf8'))
 
-      return {
-        type: 'page' as const,
-        path: relativePath,
-        absolutePath: fullPath,
-        data: {
-          body: contentModule.default,
-          toc: [...contentModule.toc],
-          structuredData: toFumadocsStructuredData(contentModule.structuredData),
-          _exports: contentModule,
-          ...contentModule.frontmatter,
-          info,
-          async getText(type: 'processed' | 'raw') {
-            const source = await readSource()
-            if (type === 'raw') return source
-
-            processedPromise ??= renderAgentMarkdown(source, fullPath)
-            return processedPromise
-          },
+    return {
+      type: 'page' as const,
+      path: relativePath,
+      absolutePath: fullPath,
+      data: {
+        ...document.frontmatter,
+        info,
+        load,
+        async structuredData() {
+          return toFumadocsStructuredData((await load()).structuredData)
         },
-      }
-    }),
-  )
+        async getText(type: 'processed' | 'raw') {
+          const source = await readSource()
+          if (type === 'raw') return source
+
+          processedPromise ??= renderAgentMarkdown(source, fullPath)
+          return processedPromise
+        },
+      },
+    }
+  })
   const metas = await Promise.all(
     globSync('**/meta*.json', { cwd: collectionDirectory }).map(async (file) => {
       const fullPath = path.join(collectionDirectory, file)

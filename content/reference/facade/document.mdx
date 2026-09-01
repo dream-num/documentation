@@ -3,7 +3,7 @@ title: Document
 icon: '#ref/F'
 ---
 
-| Packages | `@univerjs/docs`, `@univerjs/docs-ui`, `@univerjs/docs-drawing` |
+| Packages | `@univerjs/docs`, `@univerjs/docs-ui`, `@univerjs/docs-drawing`, `@univerjs/docs-thread-comment` |
 | -------- | --------------------------------------------------------------- |
 
 <span className="rounded bg-fd-primary/10 px-1.5 py-0.5 text-xs font-medium text-fd-primary">CORE</span>
@@ -25,6 +25,7 @@ The facade classes for Univer Docs documents and paragraphs.
 | `FDocument`          | [`getBody`](#getbody)                                             | Get the main body or a header/footer body by segment id.    |
 | `FDocument`          | [`dispose`](#dispose)                                             | Dispose the facade wrapper.                                 |
 | `FDocument`          | [`getId`](#getid)                                                 | Get the document id.                                        |
+| `FDocument`          | `getPermission`, `getEntityPermission`                            | Access command-backed unit and object permissions.          |
 | `FDocument`          | [`getName`](#getname)                                             | Get the document name.                                      |
 | `FDocument`          | [`setName`](#setname)                                             | Update the document name.                                   |
 | `FDocument`          | `getDocumentFlavor`                                               | Get the document flavor.                                    |
@@ -49,6 +50,7 @@ The facade classes for Univer Docs documents and paragraphs.
 | `FDocument`          | [`deleteRange`](#deleterange)                                     | Delete a text range from the body.                          |
 | `FDocumentParagraph` | [`getSegmentId`](#getsegmentid)                                   | Get the paragraph segment id.                               |
 | `FDocumentParagraph` | `getId`                                                           | Get the stable paragraph id.                                |
+| `FDocumentParagraph` | `getPermission`                                                   | Access the paragraph's effective edit permission.           |
 | `FDocumentParagraph` | [`getInfo`](#getinfo)                                             | Get resolved paragraph metadata.                            |
 | `FDocumentParagraph` | [`getRange`](#getrange)                                           | Get the paragraph text range.                               |
 | `FDocumentParagraph` | `getTextRange`, `findText`, `findAllText`                         | Create or find fixed text ranges in the paragraph.          |
@@ -60,6 +62,12 @@ The facade classes for Univer Docs documents and paragraphs.
 | `FDocumentParagraph` | [`isTask`](#istask)                                               | Check whether the paragraph is a checklist item.            |
 | `FDocumentParagraph` | [`setTaskChecked`](#settaskchecked)                               | Set checklist state for a task paragraph.                   |
 | `FDocumentParagraph` | [`remove`](#remove)                                               | Remove the paragraph.                                       |
+
+### @univerjs/docs-thread-comment
+
+| Class | Methods | Description |
+| --- | --- | --- |
+| `FDocumentTextRange` | `createCommentAsync`, `getComments`, `listCommentsAsync` | Create and query comments anchored to a fixed text range. |
 
 ### @univerjs/docs-ui
 
@@ -77,6 +85,37 @@ The facade classes for Univer Docs documents and paragraphs.
 | `FDocumentImage` | `getId`, `getSource`, `getSize`, `getAngle`                                      | Read image identity, source, and transform. |
 | `FDocumentImage` | `setSize`, `setRotate`, `setPositionH`, `setPositionV`                           | Update image geometry.                      |
 | `FDocumentImage` | `setWrappingStyle`, `setForward`, `setBackward`, `setFront`, `setBack`, `remove` | Update layout or remove the image.          |
+
+## Permissions
+
+Unit permissions expose Edit, Copy, Export, and Comment points. Paragraph and section permissions use the object's stable ID and apply the document-level permission as a ceiling.
+
+```typescript
+import { UnitAction } from '@univerjs/protocol'
+
+const document = univerAPI.getActiveDocument()
+if (!document) throw new Error('No active document')
+
+await document.getPermission().setPoint(UnitAction.Copy, false)
+await document.getParagraphs()[0]?.getPermission().setReadOnly()
+
+console.log(document.getPermission().canEdit())
+```
+
+Use `getEntityPermission(segmentId, entityType, entityId)` for a stable document object that does not have its own Facade wrapper.
+
+## Text-range comments
+
+```typescript
+import '@univerjs/docs-thread-comment/facade'
+
+const range = univerAPI.getActiveDocument()?.getTextRange(0, 12)
+await range?.createCommentAsync('Verify this introduction.', { id: 'review-intro' })
+
+const comments = await range?.listCommentsAsync()
+```
+
+`getComments()` reads locally loaded overlapping threads. `listCommentsAsync()` first synchronizes known threads through the configured datasource.
 
 ## Structure and text ranges
 

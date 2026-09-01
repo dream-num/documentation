@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation'
 import type { Locale } from '@/i18n/routing'
 import { DocsToc } from '@/components/docs-shell/toc'
 import { Footer } from '@/components/footer'
-import { getGuidesMDXComponents } from '@/components/mdx-docs'
+import { getGuidesMDXComponents } from '@/components/mdx'
 import { Button } from '@/components/ui/button'
 import { formatLocalDate } from '@/lib/dayjs'
 import { createDocsRelativeLink } from '@/lib/docs/links'
@@ -46,7 +46,7 @@ export default async function Page({ params }: IProps) {
     notFound()
   }
 
-  const MDXContent = page.data.body
+  const { default: MDXContent, toc } = await page.data.load()
   const BlogLink = createDocsRelativeLink(blog, page)
 
   return (
@@ -77,7 +77,7 @@ export default async function Page({ params }: IProps) {
                 <bdo dir="ltr">{formatLocalDate(page.data.date, lang)}</bdo>
               </time>
             </div>
-            {page.data.toc.length > 0 ? <DocsToc compact items={page.data.toc} lang={lang} /> : null}
+            {toc.length > 0 ? <DocsToc compact items={[...toc]} lang={lang} /> : null}
             <Button className="w-full" render={<Link href="/blog" />}>
               {t('blog.back')}
             </Button>

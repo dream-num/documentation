@@ -1,20 +1,16 @@
 import type { MDXComponents } from 'mdx/types'
+
 import { APITable } from '@/components/mdx/api-table'
 import { Mermaid } from '@/components/mdx/mermaid'
 import { MetaData } from '@/components/mdx/meta-data'
 import { PlaygroundFrame } from '@/components/playground'
+
 import { Callout } from './callout'
 import { Card, Cards } from './cards'
-import {
-  CodeBlock,
-  CodeBlockTab,
-  CodeBlockTabs,
-  CodeBlockTabsList,
-  CodeBlockTabsTrigger,
-  InlineCode,
-} from './code-block'
+import { CodeBlockTab, CodeBlockTabs, CodeBlockTabsList, CodeBlockTabsTrigger, InlineCode } from './code-block'
 import { createHeading } from './heading'
 import { DocsImage } from './image'
+import { InstallTabs, PackageInstallPre } from './install-tabs'
 import { Step, Steps } from './steps'
 import { DocsTable } from './table'
 import { Tab, Tabs } from './tabs'
@@ -30,12 +26,13 @@ export function getGuidesMDXComponents(components?: MDXComponents): MDXComponent
     h4: createHeading('h4'),
     img: DocsImage,
     table: DocsTable,
-    pre: CodeBlock,
+    pre: PackageInstallPre,
     code: InlineCode,
     CodeBlockTabs,
     CodeBlockTabsList,
     CodeBlockTabsTrigger,
     CodeBlockTab,
+    InstallTabs,
     Tabs,
     Tab,
     Steps,

@@ -50,5 +50,6 @@ export default defineConfig({
     extensions: {
       headingIds: true,
     },
+    namespaceFootnotes: false,
   },
 })

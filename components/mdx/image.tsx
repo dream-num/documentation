@@ -1,4 +1,5 @@
 import type { ComponentProps } from 'react'
+
 import { clsx } from '@/lib/clsx'
 
 function resolveImageSrc(src: ComponentProps<'img'>['src'] | { src?: unknown }) {
@@ -19,11 +20,5 @@ export function DocsImage({
 
   if (!resolvedSrc) return null
 
-  return (
-    <img
-      className={clsx('my-6 rounded-lg border bg-card', className)}
-      src={resolvedSrc}
-      {...props}
-    />
-  )
+  return <img className={clsx('bg-card my-6 rounded-lg border', className)} src={resolvedSrc} {...props} />
 }

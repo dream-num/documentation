@@ -5,7 +5,7 @@ import type { NextConfig } from 'next'
 import { withAmamoMdx } from '@amamo/mdx/next'
 import createNextIntlPlugin from 'next-intl/plugin'
 
-import amamo from './amamo.config.mjs'
+import amamo from './amamo.config.mts'
 
 const withNextIntl = createNextIntlPlugin()
 const DEV_API_ORIGIN = 'https://dev.univer.plus'

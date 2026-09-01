@@ -8,7 +8,7 @@ import type { Locale } from '@/i18n/routing'
 import { AgentDocsLinks } from '@/components/agent-docs-links'
 import { DocsArticle } from '@/components/docs-shell/article'
 import { DocsShellLayout } from '@/components/docs-shell/layout'
-import { getGuidesMDXComponents } from '@/components/mdx-docs'
+import { getGuidesMDXComponents } from '@/components/mdx'
 import { SponsorCard } from '@/components/sponsor-card'
 import { getAgentDocsSourceUrl, getAgentMarkdownPath } from '@/lib/agent-docs/links'
 import { createDocsRelativeLink } from '@/lib/docs/links'
@@ -47,7 +47,7 @@ export default async function Page({ params }: IProps) {
     notFound()
   }
 
-  const MDXContent = page.data.body
+  const { default: MDXContent, toc } = await page.data.load()
   const navigation = createDocsNavigation(reference.pageTree[lang], page.url)
   const ReferenceLink = createDocsRelativeLink(reference, page)
 
@@ -60,7 +60,7 @@ export default async function Page({ params }: IProps) {
         pathname={page.url}
         searchScope="reference"
         title={t('navigation.reference')}
-        toc={page.data.toc}
+        toc={[...toc]}
         tocFooter={<SponsorCard />}
       >
         <DocsArticle

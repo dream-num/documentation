@@ -6,7 +6,7 @@ import { PostHog } from 'posthog-node'
 import { AgentDocsLinks } from '@/components/agent-docs-links'
 import { GuidesArticle } from '@/components/guides/article'
 import { GuidesLayout } from '@/components/guides/layout'
-import { getGuidesMDXComponents } from '@/components/mdx-docs'
+import { getGuidesMDXComponents } from '@/components/mdx'
 import { SponsorCard } from '@/components/sponsor-card'
 import { getAgentDocsSourceUrl, getAgentMarkdownPath } from '@/lib/agent-docs/links'
 import { createDocsRelativeLink } from '@/lib/docs/links'
@@ -61,20 +61,14 @@ export default async function Page({ params }: IProps) {
   }
 
   const pathname = placementTarget && slug ? `/guides/${slug.join('/')}` : page.url
-  const MDXContent = page.data.body
+  const { default: MDXContent, toc } = await page.data.load()
   const navigation = createGuideNavigation(guides.pageTree[lang], pathname)
   const GuideLink = createDocsRelativeLink(guides, page)
 
   return (
     <>
       <AgentDocsLinks collection="guides" lang={lang} pageUrl={page.url} />
-      <GuidesLayout
-        navigation={navigation}
-        lang={lang}
-        pathname={pathname}
-        toc={page.data.toc}
-        tocFooter={<SponsorCard />}
-      >
+      <GuidesLayout navigation={navigation} lang={lang} pathname={pathname} toc={[...toc]} tocFooter={<SponsorCard />}>
         <GuidesArticle
           title={page.data.title}
           description={page.data.description}

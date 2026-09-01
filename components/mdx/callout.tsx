@@ -1,5 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react'
 import { CircleAlertIcon, InfoIcon, TriangleAlertIcon } from 'lucide-react'
+
 import { clsx } from '@/lib/clsx'
 
 const calloutStyles = {
@@ -9,7 +10,8 @@ const calloutStyles = {
   },
   warning: {
     icon: TriangleAlertIcon,
-    className: 'border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100',
+    className:
+      'border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100',
   },
   error: {
     icon: CircleAlertIcon,
@@ -37,20 +39,9 @@ export function Callout({
   const Icon = style.icon
 
   return (
-    <div
-      className={clsx(
-        `
-          my-6 flex gap-3 rounded-md border p-4 text-sm
-          [&_p:first-child]:mt-0
-          [&_p:last-child]:mb-0
-        `,
-        style.className,
-        className,
-      )}
-      {...props}
-    >
+    <div className={clsx(`my-6 flex gap-3 rounded-md border p-4 text-sm`, style.className, className)} {...props}>
       <Icon className="mt-0.5 size-4 shrink-0" />
-      <div className="min-w-0">
+      <div className="min-w-0 [&_li:first-child]:mt-0 [&_li:last-child]:mb-0 [&>:first-child]:mt-0 [&>:last-child]:mb-0">
         {title ? <p className="mb-2 font-medium">{title}</p> : null}
         {children}
       </div>
