@@ -1,5 +1,6 @@
 import type { ElementType, ReactNode } from 'react'
 import { SparklesIcon } from 'lucide-react'
+
 import { Tooltip } from '@/components/tooltip'
 import { clsx } from '@/lib/clsx'
 
@@ -26,7 +27,7 @@ interface ITextProps {
   text: string
 }
 
-const REF_COLORS: Record<string, { border: string, bg: string, text: string }> = {
+const REF_COLORS: Record<string, { border: string; bg: string; text: string }> = {
   M: { border: 'border-blue-600', bg: 'bg-blue-50', text: 'text-blue-600' },
   E: { border: 'border-yellow-600', bg: 'bg-yellow-50', text: 'text-yellow-600' },
   C: { border: 'border-indigo-600', bg: 'bg-indigo-50', text: 'text-indigo-600' },
@@ -42,7 +43,9 @@ export function IconWrapper(props: (IIconProps | IProProps | ITextProps | IRefPr
     const { icon: IconComponent } = props
 
     return (
-      <span className={clsx('inline-block rounded-md border bg-linear-to-b from-secondary p-1 shadow-sm', className)}>
+      <span
+        className={clsx('inline-block rounded-md border bg-linear-to-b p-1 shadow-sm', 'from-secondary', className)}
+      >
         <IconComponent className="size-6" />
       </span>
     )
@@ -60,10 +63,10 @@ export function IconWrapper(props: (IIconProps | IProProps | ITextProps | IRefPr
     return (
       <Tooltip content="Univer Pro feature">
         <span
-          className={clsx(`
-            inline-block rounded-md bg-linear-to-b from-[#5357ED] to-[#40B9FF] p-[5px] text-white shadow-lg
-            dark:from-[#1d1f54] dark:to-[#2d3048]
-          `, className)}
+          className={clsx(
+            `inline-block rounded-md bg-linear-[145deg,#18181B_0%,#71717A_48%,#27272A_100%] p-[5px] text-zinc-50 shadow-[0_2px_8px_rgba(24,24,27,0.24)] ring-1 ring-black/10 dark:bg-linear-[145deg,#FAFAFA_0%,#A1A1AA_48%,#E4E4E7_100%] dark:text-zinc-950 dark:shadow-[0_2px_8px_rgba(0,0,0,0.35)] dark:ring-white/10`,
+            className,
+          )}
         >
           {IconComponent ? <IconComponent className={iconClassName} /> : <SparklesIcon className={iconClassName} />}
         </span>
@@ -74,11 +77,7 @@ export function IconWrapper(props: (IIconProps | IProProps | ITextProps | IRefPr
   if (type === 'text') {
     const { text } = props
 
-    return (
-      <span className={clsx('inline-flex size-8 items-center justify-center text-lg', className)}>
-        {text}
-      </span>
-    )
+    return <span className={clsx('inline-flex size-8 items-center justify-center text-lg', className)}>{text}</span>
   }
 
   if (type === 'ref') {
@@ -87,16 +86,12 @@ export function IconWrapper(props: (IIconProps | IProProps | ITextProps | IRefPr
 
     return (
       <span
-        className={clsx(`
-          inline-flex size-6 shrink-0 items-center justify-center rounded-md border bg-linear-to-b from-secondary
-          font-semibold shadow-sm
-        `, colors
-          ? `
-            ${colors.border}
-            ${colors.bg}
-            ${colors.text}
-          `
-          : '', className)}
+        className={clsx(
+          `inline-flex size-6 shrink-0 items-center justify-center rounded-md border bg-linear-to-b font-semibold shadow-sm`,
+          'from-secondary',
+          colors ? ` ${colors.border} ${colors.bg} ${colors.text} ` : '',
+          className,
+        )}
       >
         {text}
       </span>

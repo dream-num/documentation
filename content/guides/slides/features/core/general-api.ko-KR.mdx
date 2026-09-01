@@ -1,0 +1,108 @@
+---
+title: 일반 API
+---
+
+루트 Facade API는 공통 Univer 런타임과 이 애플리케이션에 등록된 Slides 플러그인을 하나로 결합합니다. 이 페이지에서는 다른 Univer 문서 유형을 사용해 봤다고 가정하지 않고 명령, 이벤트, 기록, Unit 수명 주기를 설명합니다. 프레젠테이션 객체는 [Univer Slides API](/guides/slides/features/core/slides-api)를 참고하세요.
+
+## API 객체 만들기
+
+Univer 인스턴스와 필요한 플러그인을 등록한 후 `FUniver` 래퍼를 만듭니다.
+
+```ts
+import { FUniver } from '@univerjs/core/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+이 호출 전에 가져온 Facade 엔트리는 같은 객체에 Slides 메서드를 추가합니다.
+
+## 명령
+
+`executeCommand()`는 등록된 명령을 비동기로 실행합니다. `syncExecuteCommand()`는 해당 명령이 동기 실행을 명시적으로 지원할 때만 사용하세요. 일반적인 Slides 작업에는 Facade 메서드를 우선 사용합니다.
+
+## 이벤트
+
+```ts
+const commandLog = univerAPI.addEvent(
+  univerAPI.Event.CommandExecuted,
+  ({ id }) => console.log('Executed:', id)
+)
+
+// 더 이상 필요하지 않은 리스너를 제거합니다.
+commandLog.dispose()
+```
+
+명령을 검사하거나 취소해야 할 때는 `BeforeCommandExecute`를 사용합니다. `LifeCycleChanged`는 편집기가 `Rendered`, `Steady` 같은 단계에 도달했음을 알립니다.
+
+## 실행 취소와 다시 실행
+
+실행 취소와 다시 실행은 현재 포커스된 Univer Unit에 적용되며 Promise를 반환합니다.
+
+```ts
+await univerAPI.undo()
+await univerAPI.redo()
+```
+
+Slides Facade 변경은 명령 파이프라인을 사용하므로 지원되는 변경은 같은 기록에 참여합니다.
+
+## 시스템 클립보드
+
+`UniverSlidesUIPlugin`을 등록하면 `copy()`가 UI 명령으로 현재 Slides 선택을 복사합니다. Slides는 이에 대응하는 Facade 붙여넣기 구현을 아직 등록하지 않으므로 이 가이드는 `paste()`를 보장하지 않습니다.
+
+```ts
+import '@univerjs/ui/facade'
+
+await univerAPI.copy()
+```
+
+클립보드 작업은 포커스된 브라우저 편집기가 필요하며 모델 전용 Node.js 환경에서는 사용할 수 없습니다.
+
+## UI
+
+UI Facade는 메시지, 대화상자, 사이드바, 컴포넌트 등록, 기본 UI 영역 제어 기능을 제공합니다.
+
+```ts
+univerAPI
+  .showMessage({ content: 'Presentation saved', type: 'success' })
+  .setUIVisible(univerAPI.Enum.BuiltInUIPart.TOOLBAR, true)
+```
+
+이 메서드는 `UniverUIPlugin`이 필요하며 Slides 편집 컨트롤에는 `UniverSlidesUIPlugin`도 필요합니다.
+
+## WebSocket
+
+WebSocket은 Network Facade의 선택 기능입니다.
+
+```ts
+import { UniverNetworkPlugin } from '@univerjs/network'
+
+import '@univerjs/network/facade'
+
+univer.registerPlugin(UniverNetworkPlugin)
+
+const socket = univerAPI.createSocket('wss://example.com/slides')
+socket.open$.subscribe(() => socket.send('ready'))
+```
+
+메시지 프로토콜, 인증, 재연결, 충돌 처리는 호스트 애플리케이션의 책임입니다.
+
+## 열거형
+
+`univerAPI.Enum`은 공통 열거형과 Slides가 추가한 열거형을 제공합니다.
+
+```ts
+const lifecycle = univerAPI.Enum.LifecycleStages.Steady
+const transition = univerAPI.Enum.SlideTransitionTypeEnum.Fade
+const elementType = univerAPI.Enum.SlidePageElementTypeEnum.Shape
+```
+
+## 유틸리티
+
+`univerAPI.Util`은 숫자 서식, 사각형 연산 및 공통 도구 같은 공유 헬퍼를 제공합니다.
+
+```ts
+const payload = univerAPI.Util.tools.deepClone({
+  slideId: 'slide-1',
+  selectedElementIds: ['element-1'],
+})
+```

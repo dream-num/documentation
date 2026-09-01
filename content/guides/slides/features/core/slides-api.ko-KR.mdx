@@ -1,0 +1,87 @@
+---
+title: Univer Slides API
+---
+
+Slides Facade는 `FUniver`에 프레젠테이션과 슬라이드 객체를 추가합니다. API 객체를 만들기 전에 부수 효과 엔트리를 가져오세요.
+
+```ts
+import { FUniver } from '@univerjs/core/facade'
+
+import '@univerjs-pro/slides/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+## 프레젠테이션 만들기와 찾기
+
+```ts
+const presentation = univerAPI.createPresentation({
+  id: 'quarterly-review',
+  name: 'Quarterly review',
+})
+
+const activePresentation = univerAPI.getActivePresentation()
+const samePresentation = univerAPI.getPresentation(presentation.getId())
+```
+
+`createPresentation()`은 부분 `ISlideData` 스냅샷을 받습니다. `save()`가 반환한 스냅샷을 전달하면 프레젠테이션을 복원할 수 있습니다.
+
+## 프레젠테이션 Unit 다루기
+
+`FPresentation`은 ID, 이름, 페이지 크기, 슬라이드, 활성 슬라이드, 전환, 권한, 분리된 스냅샷을 제공합니다.
+
+```ts
+presentation.setName('FY 2027 review')
+
+const opening = presentation.getSlideByIndex(0) ?? presentation.appendSlide({
+  name: 'Opening',
+})
+
+presentation.setActiveSlide(opening)
+const snapshot = presentation.save()
+```
+
+실행 중인 프레젠테이션을 변경하기 위해 `snapshot`을 직접 수정하지 마세요. 렌더링과 기록이 동기화되도록 Facade 메서드나 명령을 사용합니다.
+
+## 슬라이드로 들어가기
+
+`FSlide`는 슬라이드 배경, 발표자 노트, 전환, 요소의 진입점입니다.
+
+```ts
+const slide = presentation.getActiveSlide()
+
+if (slide) {
+  const elements = slide.getElements()
+  const notes = slide.getSpeakerNotes()
+}
+```
+
+자세한 작업은 [슬라이드와 레이아웃](/guides/slides/features/core/slides-and-layouts), [도형과 텍스트](/guides/slides/features/core/shapes-and-text), [이미지와 그룹](/guides/slides/features/core/images-and-groups)을 참고하세요.
+
+## 명령 대상 확인
+
+명령 이벤트 매개변수에는 프레젠테이션과 슬라이드 ID가 포함될 수 있습니다. 현재 선택에 의존하지 않고 대상을 확인하세요.
+
+```ts
+const listener = univerAPI.addEvent(
+  univerAPI.Event.CommandExecuted,
+  ({ params }) => {
+    const target = univerAPI.getSlideCommandTarget(params)
+    console.log(target?.presentation.getId(), target?.slide.getId())
+  }
+)
+```
+
+호스트 컴포넌트가 제거될 때 리스너도 폐기하세요.
+
+## 프레젠테이션 언로드
+
+더 이상 필요하지 않은 Slides 유닛은 ID로 언로드하세요. 전체 애플리케이션을 종료할 때만 루트 `univer` 인스턴스를 폐기하세요.
+
+```ts
+const presentation = univerAPI.getActivePresentation()
+
+if (presentation) {
+  univerAPI.disposeUnit(presentation.getId())
+}
+```

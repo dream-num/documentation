@@ -1,0 +1,82 @@
+---
+title: 元素
+---
+
+元素是 Board 中可见的内容，包括文本、图片、形状和连接线。通过 `FBoard` facade 修改元素时，会沿用标准命令链路，因此能够参与撤销、重做和协同编辑。
+
+## 读取元素
+
+读取活动页面前，先获取活动 Board。如果只需要稳定的 ID、类型、边界和层级顺序，请使用描述信息，避免依赖完整的内部快照结构。
+
+```ts
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board')
+
+const elements = board.describeElements()
+const shapes = board.findElements({
+  elementType: univerAPI.Enum.BoardElementType.Shape,
+})
+```
+
+## 插入形状和文本
+
+优先使用语义明确的插入方法，而不是自行构造底层元素快照。`insertShape` 的几何信息放在 `transform` 中；返回的实时形状对象还提供文本和样式 API。
+
+```ts
+const shape = board.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.RoundRect,
+  transform: { left: 80, top: 80, width: 180, height: 100 },
+  name: 'Review card',
+})
+if (!shape) throw new Error('Cannot insert shape')
+
+shape.getText().setText('Review')
+shape.setRotation(6)
+```
+
+独立文本使用 `insertText`，图片使用 `insertImage`；需要在一个命令中添加多个元素时，使用对应的批量方法。
+
+## 连接元素
+
+连接线可以关联已有元素的 ID。如果后续需要修改样式、标签或端点，请保存返回的连接线或其 ID。
+
+```ts
+const target = board.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.Rect,
+  transform: { left: 360, top: 80, width: 180, height: 100 },
+})
+if (!target) throw new Error('Cannot insert target')
+
+const connector = board.insertConnector({
+  fromElementId: shape.getId(),
+  toElementId: target.getId(),
+  style: { endMarker: { type: 'filledTriangle', size: 'md' } },
+})
+if (!connector) throw new Error('Cannot insert connector')
+```
+
+## 变换和排列元素
+
+只传入需要修改的属性。层级顺序、对齐、分布和自动布局方法同样通过元素 ID 定位对象。
+
+```ts
+if (!board.setElementTransform(shape.getId(), { left: 120, top: 140, rotation: 12 })) {
+  throw new Error('Cannot transform shape')
+}
+
+if (!board.bringElementsToFront([shape.getId()])) {
+  throw new Error('Cannot bring shape to front')
+}
+```
+
+## 删除元素
+
+删除单个元素使用 `removeElement`，原子化批量删除使用 `removeElements`。两者都会返回命令是否执行成功。
+
+```ts
+if (!board.removeElements([connector.id, target.getId()])) {
+  throw new Error('Cannot remove elements')
+}
+```
+
+如果要创建带边框的分组或泳道，请继续阅读[容器与泳道](/guides/boards/features/core/containers)。另请参考 [Boards facade API](/reference/facade/boards) 和 [Board 元素数据模型](/guides/boards/model/board-elements)。

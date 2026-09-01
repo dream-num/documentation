@@ -1,0 +1,82 @@
+---
+title: Элементы
+---
+
+Элементы — это видимое содержимое Board: текст, изображения, фигуры и соединители. Facade `FBoard` проводит их изменения через обычную систему команд, поэтому они участвуют в отмене, повторе и совместной работе.
+
+## Чтение элементов
+
+Перед чтением активной страницы получите активный Board. Используйте дескрипторы, когда нужны стабильные идентификаторы, типы, границы и порядок без зависимости от полного внутреннего снимка.
+
+```ts
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board')
+
+const elements = board.describeElements()
+const shapes = board.findElements({
+  elementType: univerAPI.Enum.BoardElementType.Shape,
+})
+```
+
+## Вставка фигур и текста
+
+Используйте семантические методы вставки вместо создания низкоуровневых снимков элементов. Для `insertShape` геометрия задаётся в `transform`, а возвращённый объект фигуры предоставляет API текста и стиля.
+
+```ts
+const shape = board.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.RoundRect,
+  transform: { left: 80, top: 80, width: 180, height: 100 },
+  name: 'Review card',
+})
+if (!shape) throw new Error('Cannot insert shape')
+
+shape.getText().setText('Review')
+shape.setRotation(6)
+```
+
+Для отдельного текста используйте `insertText`, для изображений — `insertImage`, а для добавления нескольких элементов одной командой — пакетные варианты.
+
+## Соединение элементов
+
+Соединители можно прикреплять к существующим идентификаторам элементов. Сохраните возвращённый соединитель или его идентификатор, чтобы позднее изменить стиль, подпись или конечные точки.
+
+```ts
+const target = board.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.Rect,
+  transform: { left: 360, top: 80, width: 180, height: 100 },
+})
+if (!target) throw new Error('Cannot insert target')
+
+const connector = board.insertConnector({
+  fromElementId: shape.getId(),
+  toElementId: target.getId(),
+  style: { endMarker: { type: 'filledTriangle', size: 'md' } },
+})
+if (!connector) throw new Error('Cannot insert connector')
+```
+
+## Преобразование и размещение элементов
+
+Изменяйте только необходимые свойства. Методы порядка наложения, выравнивания, распределения и автоматической компоновки также принимают идентификаторы элементов.
+
+```ts
+if (!board.setElementTransform(shape.getId(), { left: 120, top: 140, rotation: 12 })) {
+  throw new Error('Cannot transform shape')
+}
+
+if (!board.bringElementsToFront([shape.getId()])) {
+  throw new Error('Cannot bring shape to front')
+}
+```
+
+## Удаление элементов
+
+Для одного элемента используйте `removeElement`, а для атомарного пакетного удаления — `removeElements`. Оба метода сообщают, успешно ли выполнена команда.
+
+```ts
+if (!board.removeElements([connector.id, target.getId()])) {
+  throw new Error('Cannot remove elements')
+}
+```
+
+Для групп с рамками и дорожек перейдите к разделу [Контейнеры и дорожки](/guides/boards/features/core/containers). См. также [справочник facade Boards](/reference/facade/boards) и [модель данных элементов Board](/guides/boards/model/board-elements).

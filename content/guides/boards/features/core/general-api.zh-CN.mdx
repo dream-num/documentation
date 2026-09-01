@@ -1,0 +1,138 @@
+---
+title: 通用 API
+---
+
+Univer 可用的 Facade API 取决于当前单元类型和已注册的插件。本文介绍 Univer Boards 应用会用到的通用 API。
+
+## 引入
+
+```typescript
+import { FUniver } from '@univerjs/core/facade'
+import '@univerjs-pro/boards/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+## 命令
+
+Univer 中的大多数操作都会注册到命令系统。统一的执行路径为撤销、重做和协同等能力提供了基础。
+
+<Callout>
+  如需了解设计细节，请阅读 [Univer 命令系统](/blog/univer#command-system)。
+</Callout>
+
+### 监听命令
+
+使用 `Event.BeforeCommandExecute` 在命令执行前运行逻辑，使用 `Event.CommandExecuted` 在命令执行后运行逻辑。
+
+```typescript
+const beforeDisposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, ({ id, params }) => {
+  console.log('命令执行前：', id, params)
+})
+
+const afterDisposable = univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, params }) => {
+  console.log('命令执行后：', id, params)
+})
+```
+
+如需阻止命令执行，请在 `BeforeCommandExecute` 监听器中将 `event.cancel` 设为 `true`。
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (event) => {
+  if (event.id === 'board.command.set-name') {
+    event.cancel = true
+  }
+})
+```
+
+监听器会返回 `IDisposable`，不再需要时应及时销毁。
+
+```typescript
+beforeDisposable.dispose()
+afterDisposable.dispose()
+disposable.dispose()
+```
+
+### 执行命令
+
+如果已经知道命令 ID 和参数，可以通过 `FUniver.executeCommand` 执行命令。例如，下面的 Boards 命令会重命名当前Board：
+
+```typescript
+const board = univerAPI.getActiveBoard()
+
+if (board) {
+  await univerAPI.executeCommand('board.command.set-name', {
+    unitId: board.getId(),
+    name: '项目笔记',
+  })
+}
+```
+
+## 事件 API
+
+`univerAPI.Event` 暴露的事件来自 Univer Core 和当前应用已注册的插件。Core 提供通用的命令和单元事件，已注册的插件可以继续扩展事件集合。使用事件前，请先确认提供该事件的插件已经注册。
+
+当前版本可用的事件名称和参数类型请参阅 [Facade Events 参考](/reference/facade/events#properties)。
+
+使用 `addEvent` 订阅事件，并销毁返回的对象来取消订阅：
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id }) => {
+  if (id === 'board.command.set-name') {
+    console.log('Board名称已更改')
+  }
+})
+
+// 不再需要时移除监听器
+disposable.dispose()
+```
+
+## 撤销和重做
+
+```typescript
+await univerAPI.undo()
+await univerAPI.redo()
+```
+
+## UI
+
+如需扩展菜单、工具栏和其他 Boards 界面区域，请参阅 [Boards UI 组件](/guides/boards/ui/components)。
+
+## WebSocket
+
+如需使用 WebSocket API，请安装 `@univerjs/network`、注册 `UniverNetworkPlugin`，并引入它的 Facade 扩展。
+
+```typescript
+import { UniverNetworkPlugin } from '@univerjs/network'
+import '@univerjs/network/facade'
+
+univer.registerPlugin(UniverNetworkPlugin)
+```
+
+之后即可订阅 Socket 事件、发送消息并关闭连接：
+
+```typescript
+const socket = univerAPI.createSocket('wss://example.com/boards')
+
+socket.open$.subscribe(() => socket.send('hello'))
+socket.message$.subscribe((message) => console.log('WebSocket 消息：', message.data))
+socket.error$.subscribe((error) => console.error('WebSocket 错误：', error))
+socket.close()
+```
+
+## 枚举 API
+
+通用枚举类型通过 `univerAPI.Enum` 暴露：
+
+```typescript
+console.log(univerAPI.Enum.UniverInstanceType.UNIVER_BOARD)
+console.log(univerAPI.Enum.BoardElementType.Shape)
+```
+
+## 工具方法 API
+
+通用工具方法通过 `univerAPI.Util` 暴露：
+
+```typescript
+console.log(univerAPI.Util.tools.isString('Univer Boards')) // true
+```

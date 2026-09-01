@@ -1,0 +1,109 @@
+---
+title: API general
+description: Use comandos, eventos, historial, portapapeles, UI, WebSocket, enumeraciones y utilidades comunes en una aplicación PDF.
+---
+
+La API Facade raíz combina el entorno de ejecución común de Univer con los plugins registrados por esta aplicación PDF. Esta página explica mecanismos compartidos sin suponer experiencia con otro tipo de documento de Univer. Para las unidades PDF y los puntos de entrada de página, continúe con [Univer PDFs API](/guides/pdfs/features/core/pdfs-api).
+
+## Crear el objeto API
+
+Cree un único wrapper `FUniver` después de registrar la instancia de Univer y los plugins necesarios:
+
+```ts
+import { FUniver } from '@univerjs/core/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+Las entradas Facade importadas antes de esta llamada amplían el mismo objeto con métodos adicionales.
+
+## Comandos
+
+`executeCommand()` ejecuta un comando registrado de forma asíncrona. Use `syncExecuteCommand()` solo cuando ese comando admita explícitamente la ejecución síncrona. Los métodos Facade siguen siendo la entrada preferida para las operaciones PDF habituales.
+
+## Eventos
+
+```ts
+const commandLog = univerAPI.addEvent(
+  univerAPI.Event.CommandExecuted,
+  ({ id }) => console.log('Executed:', id)
+)
+
+// Más adelante, elimine el listener.
+commandLog.dispose()
+```
+
+Use `BeforeCommandExecute` cuando la aplicación deba inspeccionar o cancelar un comando. `LifeCycleChanged` informa de etapas comunes del editor como `Rendered` y `Steady`.
+
+## Deshacer y rehacer
+
+Deshacer y rehacer actúan sobre la unidad de Univer enfocada y devuelven promesas:
+
+```ts
+await univerAPI.undo()
+await univerAPI.redo()
+```
+
+Los cambios de PDF Facade que tienen una operación inversa participan en el historial de la unidad PDF enfocada.
+
+## Portapapeles del sistema
+
+Con `UniverPdfsUIPlugin` registrado y la edición PDF habilitada, `copy()` y `paste()` de UI Facade envían comandos de portapapeles a la unidad PDF enfocada:
+
+```ts
+import '@univerjs/ui/facade'
+
+await univerAPI.copy()
+await univerAPI.paste()
+```
+
+Para los objetos PDF editables, el plugin PDF UI conserva el contenido copiado en la sesión actual del navegador, no en el portapapeles del sistema operativo. La edición de texto nativa del navegador mantiene el comportamiento de portapapeles del navegador.
+
+## UI
+
+UI Facade puede mostrar mensajes, abrir diálogos o barras laterales, registrar componentes y controlar las áreas de UI integradas:
+
+```ts
+univerAPI.setUIVisible(univerAPI.Enum.BuiltInUIPart.TOOLBAR, true)
+```
+
+Estos métodos requieren `UniverUIPlugin`; los controles de edición PDF también requieren `UniverPdfsUIPlugin`.
+
+## WebSocket
+
+WebSocket es opcional. Registre el plugin Network e importe su entrada Facade antes de crear el objeto API:
+
+```ts
+import { UniverNetworkPlugin } from '@univerjs/network'
+
+import '@univerjs/network/facade'
+
+univer.registerPlugin(UniverNetworkPlugin)
+
+const socket = univerAPI.createSocket('wss://example.com/pdfs')
+socket.open$.subscribe(() => socket.send('ready'))
+```
+
+El protocolo de mensajes, la autenticación, la reconexión y la resolución de conflictos de colaboración son responsabilidad de la aplicación anfitriona.
+
+## Enumeraciones
+
+`univerAPI.Enum` expone las enumeraciones comunes del entorno de ejecución y las añadidas por PDF Facade:
+
+```ts
+const lifecycle = univerAPI.Enum.LifecycleStages.Steady
+const annotationType = univerAPI.Enum.PdfAnnotationType.HIGHLIGHT
+```
+
+## Utilidades
+
+`univerAPI.Util` expone ayudas compartidas como el formato numérico, las operaciones con rectángulos y las herramientas comunes:
+
+```ts
+const payload = univerAPI.Util.tools.deepClone({
+  pageId: 'page-1',
+  selectedElementIds: ['element-1'],
+})
+```
+
+Consulte la [referencia de Facade](/reference/facade/univer) para ver la API común completa.

@@ -1,0 +1,82 @@
+---
+title: 요소
+---
+
+요소는 텍스트, 이미지, 도형, 커넥터처럼 Board에 표시되는 콘텐츠입니다. `FBoard` facade를 통한 요소 변경은 일반 명령 경로를 사용하므로 실행 취소, 다시 실행 및 공동 작업에 포함됩니다.
+
+## 요소 읽기
+
+활성 페이지를 읽기 전에 활성 Board를 가져옵니다. 전체 내부 스냅샷에 의존하지 않고 안정적인 ID, 유형, 경계 및 순서가 필요하면 설명자를 사용합니다.
+
+```ts
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board')
+
+const elements = board.describeElements()
+const shapes = board.findElements({
+  elementType: univerAPI.Enum.BoardElementType.Shape,
+})
+```
+
+## 도형 및 텍스트 삽입
+
+저수준 요소 스냅샷을 직접 만드는 대신 의미에 맞는 삽입 메서드를 사용하세요. `insertShape`의 기하 정보는 `transform`에 지정하며, 반환된 도형 핸들에서 텍스트와 스타일 API를 사용할 수 있습니다.
+
+```ts
+const shape = board.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.RoundRect,
+  transform: { left: 80, top: 80, width: 180, height: 100 },
+  name: 'Review card',
+})
+if (!shape) throw new Error('Cannot insert shape')
+
+shape.getText().setText('Review')
+shape.setRotation(6)
+```
+
+독립 텍스트에는 `insertText`, 이미지에는 `insertImage`, 여러 요소를 하나의 명령으로 추가할 때는 일괄 메서드를 사용합니다.
+
+## 요소 연결
+
+커넥터를 기존 요소 ID에 연결할 수 있습니다. 나중에 스타일, 레이블 또는 끝점을 수정하려면 반환된 커넥터나 ID를 보관하세요.
+
+```ts
+const target = board.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.Rect,
+  transform: { left: 360, top: 80, width: 180, height: 100 },
+})
+if (!target) throw new Error('Cannot insert target')
+
+const connector = board.insertConnector({
+  fromElementId: shape.getId(),
+  toElementId: target.getId(),
+  style: { endMarker: { type: 'filledTriangle', size: 'md' } },
+})
+if (!connector) throw new Error('Cannot insert connector')
+```
+
+## 요소 변형 및 배치
+
+필요한 속성만 변경하세요. 쌓임 순서, 정렬, 분배 및 자동 레이아웃 메서드도 요소 ID를 받습니다.
+
+```ts
+if (!board.setElementTransform(shape.getId(), { left: 120, top: 140, rotation: 12 })) {
+  throw new Error('Cannot transform shape')
+}
+
+if (!board.bringElementsToFront([shape.getId()])) {
+  throw new Error('Cannot bring shape to front')
+}
+```
+
+## 요소 삭제
+
+요소 하나에는 `removeElement`, 여러 요소의 원자적 삭제에는 `removeElements`를 사용합니다. 두 메서드 모두 명령 성공 여부를 반환합니다.
+
+```ts
+if (!board.removeElements([connector.id, target.getId()])) {
+  throw new Error('Cannot remove elements')
+}
+```
+
+프레임 그룹과 스윔레인은 [컨테이너 및 스윔레인](/guides/boards/features/core/containers)을 참고하세요. [Boards facade 레퍼런스](/reference/facade/boards)와 [Board 요소 데이터 모델](/guides/boards/model/board-elements)도 확인할 수 있습니다.

@@ -1,0 +1,138 @@
+---
+title: 일반 API
+---
+
+Univer에서 사용할 수 있는 Facade API는 현재 유닛 유형과 등록한 플러그인에 따라 달라집니다. 이 페이지에서는 Univer Boards 애플리케이션에서 사용하는 공통 API를 설명합니다.
+
+## 가져오기
+
+```typescript
+import { FUniver } from '@univerjs/core/facade'
+import '@univerjs-pro/boards/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+## 명령
+
+Univer의 대부분의 작업은 명령 시스템에 등록됩니다. 이 통합 실행 경로를 통해 실행 취소, 다시 실행, 협업 등의 기능을 구현할 수 있습니다.
+
+<Callout>
+  자세한 설계는 [Univer 명령 시스템](/blog/univer#command-system)을 참고하세요.
+</Callout>
+
+### 명령 수신
+
+명령 실행 전에는 `Event.BeforeCommandExecute`, 실행 후에는 `Event.CommandExecuted`를 사용합니다.
+
+```typescript
+const beforeDisposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, ({ id, params }) => {
+  console.log('명령 실행 전:', id, params)
+})
+
+const afterDisposable = univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, params }) => {
+  console.log('명령 실행 후:', id, params)
+})
+```
+
+명령 실행을 막으려면 `BeforeCommandExecute` 리스너에서 `event.cancel`을 `true`로 설정하세요.
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (event) => {
+  if (event.id === 'board.command.set-name') {
+    event.cancel = true
+  }
+})
+```
+
+리스너는 `IDisposable`을 반환합니다. 더 이상 필요하지 않으면 폐기하세요.
+
+```typescript
+beforeDisposable.dispose()
+afterDisposable.dispose()
+disposable.dispose()
+```
+
+### 명령 실행
+
+명령 ID와 매개변수를 알고 있다면 `FUniver.executeCommand`로 실행할 수 있습니다. 다음 Boards 명령은 활성 Board의 이름을 변경합니다.
+
+```typescript
+const board = univerAPI.getActiveBoard()
+
+if (board) {
+  await univerAPI.executeCommand('board.command.set-name', {
+    unitId: board.getId(),
+    name: '프로젝트 노트',
+  })
+}
+```
+
+## 이벤트 API
+
+`univerAPI.Event`에 공개되는 이벤트는 Univer 코어와 애플리케이션에 등록된 플러그인에서 제공됩니다. 코어는 공통 명령 및 유닛 이벤트를 제공하며 등록된 플러그인이 이벤트를 추가할 수 있습니다. 사용하려는 이벤트를 제공하는 플러그인이 등록되어 있는지 먼저 확인하세요.
+
+현재 릴리스의 이벤트 이름과 매개변수 유형은 [Facade Events 레퍼런스](/reference/facade/events#properties)를 참고하세요.
+
+`addEvent`로 구독하고 반환된 객체를 폐기하여 구독을 해제합니다.
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id }) => {
+  if (id === 'board.command.set-name') {
+    console.log('Board 이름이 변경되었습니다')
+  }
+})
+
+// 더 이상 필요하지 않은 리스너를 제거합니다
+disposable.dispose()
+```
+
+## 실행 취소 및 다시 실행
+
+```typescript
+await univerAPI.undo()
+await univerAPI.redo()
+```
+
+## UI
+
+메뉴, 도구 모음 및 기타 Boards 인터페이스 영역을 확장하는 방법은 [Boards UI 컴포넌트](/guides/boards/ui/components)를 참고하세요.
+
+## WebSocket
+
+WebSocket API를 사용하려면 `@univerjs/network`를 설치하고 `UniverNetworkPlugin`을 등록한 다음 Facade 확장을 가져오세요.
+
+```typescript
+import { UniverNetworkPlugin } from '@univerjs/network'
+import '@univerjs/network/facade'
+
+univer.registerPlugin(UniverNetworkPlugin)
+```
+
+이후 소켓 이벤트를 구독하고 메시지를 보내고 연결을 닫을 수 있습니다.
+
+```typescript
+const socket = univerAPI.createSocket('wss://example.com/boards')
+
+socket.open$.subscribe(() => socket.send('hello'))
+socket.message$.subscribe((message) => console.log('WebSocket 메시지:', message.data))
+socket.error$.subscribe((error) => console.error('WebSocket 오류:', error))
+socket.close()
+```
+
+## 열거형 API
+
+공통 열거형은 `univerAPI.Enum`에서 사용할 수 있습니다.
+
+```typescript
+console.log(univerAPI.Enum.UniverInstanceType.UNIVER_BOARD)
+console.log(univerAPI.Enum.BoardElementType.Shape)
+```
+
+## 유틸리티 메서드 API
+
+공통 유틸리티는 `univerAPI.Util`에서 사용할 수 있습니다.
+
+```typescript
+console.log(univerAPI.Util.tools.isString('Univer Boards')) // true
+```

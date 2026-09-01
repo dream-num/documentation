@@ -1,0 +1,163 @@
+---
+title: API general
+---
+
+La API Facade disponible en Univer depende del tipo de unidad actual y de los complementos registrados. Esta página presenta las API comunes de una aplicación Univer Bases.
+
+## Importación
+
+```typescript
+import { FUniver } from '@univerjs/core/facade'
+import '@univerjs-pro/bases/facade'
+import '@univerjs/ui/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+## Comandos
+
+La mayoría de las operaciones de Univer se registran en el sistema de comandos. Esta ruta de ejecución unificada permite funciones como deshacer, rehacer y la colaboración.
+
+<Callout>
+  Para conocer el diseño con más detalle, consulte el [sistema de comandos de Univer](/blog/univer#command-system).
+</Callout>
+
+### Escuchar comandos
+
+Use `Event.BeforeCommandExecute` para ejecutar lógica antes de un comando y `Event.CommandExecuted` para ejecutarla cuando termine.
+
+```typescript
+const beforeDisposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, ({ id, params }) => {
+  console.log('Antes del comando:', id, params)
+})
+
+const afterDisposable = univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, params }) => {
+  console.log('Comando ejecutado:', id, params)
+})
+```
+
+Para impedir que se ejecute un comando, establezca `event.cancel` en `true` desde un listener de `BeforeCommandExecute`.
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (event) => {
+  if (event.id === 'base.command.set-base-name') {
+    event.cancel = true
+  }
+})
+```
+
+Los listeners devuelven un objeto `IDisposable`. Destrúyalos cuando ya no sean necesarios.
+
+```typescript
+beforeDisposable.dispose()
+afterDisposable.dispose()
+disposable.dispose()
+```
+
+### Ejecutar comandos
+
+Si conoce el ID de un comando y sus parámetros, ejecútelo con `FUniver.executeCommand`. Por ejemplo, este comando de Bases cambia el nombre del Base activo:
+
+```typescript
+const base = univerAPI.getActiveBase()
+
+if (base) {
+  await univerAPI.executeCommand('base.command.set-base-name', {
+    unitId: base.getId(),
+    name: 'Notas del proyecto',
+  })
+}
+```
+
+## API de eventos
+
+Los eventos expuestos a través de `univerAPI.Event` proceden del núcleo de Univer y de los complementos registrados en la aplicación. El núcleo aporta eventos compartidos de comandos y unidades; los complementos de Bases añaden eventos para tablas, campos, registros, vistas y otros cambios de Base. Antes de usar un evento, compruebe que pertenece a un complemento registrado.
+
+Consulte la [referencia de eventos de Facade](/reference/facade/events#properties) para ver los nombres y tipos de parámetros disponibles en la versión actual.
+
+Use `addEvent` para suscribirse y destruya el objeto devuelto para cancelar la suscripción:
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id }) => {
+  if (id === 'base.command.set-base-name') {
+    console.log('El nombre del Base ha cambiado')
+  }
+})
+
+// Elimine el listener cuando ya no sea necesario
+disposable.dispose()
+```
+
+## Deshacer y rehacer
+
+```typescript
+await univerAPI.undo()
+await univerAPI.redo()
+```
+
+## Portapapeles del sistema
+
+Después de registrar el complemento de interfaz de Bases, `copy` y `paste` actúan sobre la selección y la posición del cursor actuales del Base.
+
+```typescript
+await univerAPI.copy()
+await univerAPI.paste()
+```
+
+<Callout>
+  Copiar y pegar dependen de la API nativa del portapapeles del navegador. Pueden fallar si la página no tiene el foco,
+  si la llamada no se inicia mediante una acción del usuario o si no hay permiso para acceder al portapapeles. Consulte la
+  [documentación de MDN](https://developer.mozilla.org/en-US/docs/Web/API/Clipboard_API).
+</Callout>
+
+## UI
+
+Consulte [Componentes de la interfaz de Bases](/guides/bases/ui/components) para ampliar los menús, la barra de herramientas y otras zonas de la interfaz de Bases.
+
+## WebSocket
+
+Para usar las API de WebSocket, instale `@univerjs/network`, registre `UniverNetworkPlugin` e importe su extensión Facade.
+
+```typescript
+import { UniverNetworkPlugin } from '@univerjs/network'
+import '@univerjs/network/facade'
+
+univer.registerPlugin(UniverNetworkPlugin)
+```
+
+Después puede suscribirse a los eventos del socket, enviar mensajes y cerrar la conexión:
+
+```typescript
+const socket = univerAPI.createSocket('wss://example.com/bases')
+
+socket.open$.subscribe(() => {
+  socket.send('hello')
+})
+
+socket.message$.subscribe((message) => {
+  console.log('Mensaje WebSocket:', message.data)
+})
+
+socket.error$.subscribe((error) => {
+  console.error('Error de WebSocket:', error)
+})
+
+socket.close()
+```
+
+## API de enumeración
+
+Facade expone enumeraciones comunes mediante `univerAPI.Enum`:
+
+```typescript
+console.log(univerAPI.Enum.UniverInstanceType.UNIVER_BASE)
+console.log(univerAPI.Enum.BaseFieldType.Text)
+```
+
+## API de métodos de utilidad
+
+Facade expone utilidades compartidas mediante `univerAPI.Util`:
+
+```typescript
+console.log(univerAPI.Util.tools.isString('Univer Bases')) // true
+```

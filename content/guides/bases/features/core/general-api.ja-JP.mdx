@@ -1,0 +1,152 @@
+---
+title: 一般 API
+---
+
+Univer で利用できる Facade API は、現在のユニットタイプと登録済みプラグインによって異なります。このページでは、Univer Bases アプリケーションで使用する共通 API を説明します。
+
+## インポート
+
+```typescript
+import { FUniver } from '@univerjs/core/facade'
+import '@univerjs-pro/bases/facade'
+import '@univerjs/ui/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+## コマンド
+
+Univer のほとんどの操作はコマンドシステムに登録されます。統一された実行経路により、元に戻す、やり直し、共同編集などの機能を実現できます。
+
+<Callout>
+  設計の詳細は [Univer コマンドシステム](/blog/univer#command-system)を参照してください。
+</Callout>
+
+### コマンドの監視
+
+コマンドの実行前には `Event.BeforeCommandExecute`、実行後には `Event.CommandExecuted` を使用します。
+
+```typescript
+const beforeDisposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, ({ id, params }) => {
+  console.log('コマンド実行前:', id, params)
+})
+
+const afterDisposable = univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, params }) => {
+  console.log('コマンド実行後:', id, params)
+})
+```
+
+コマンドを中止するには、`BeforeCommandExecute` リスナーで `event.cancel` を `true` に設定します。
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (event) => {
+  if (event.id === 'base.command.set-base-name') {
+    event.cancel = true
+  }
+})
+```
+
+リスナーは `IDisposable` を返します。不要になったら破棄してください。
+
+```typescript
+beforeDisposable.dispose()
+afterDisposable.dispose()
+disposable.dispose()
+```
+
+### コマンドの実行
+
+コマンド ID とパラメーターが分かっている場合は、`FUniver.executeCommand` で実行できます。次の Bases コマンドはアクティブなBaseの名前を変更します。
+
+```typescript
+const base = univerAPI.getActiveBase()
+
+if (base) {
+  await univerAPI.executeCommand('base.command.set-base-name', {
+    unitId: base.getId(),
+    name: 'プロジェクトノート',
+  })
+}
+```
+
+## イベント API
+
+`univerAPI.Event` に公開されるイベントは、Univer コアとアプリケーションに登録されたプラグインによって決まります。コアは共通のコマンドとユニットのイベントを提供し、Bases プラグインはテーブル、フィールド、レコード、ビューなどの Base 変更イベントを追加します。使用前に、そのイベントを提供するプラグインが登録済みか確認してください。
+
+現在のリリースで利用できるイベント名とパラメーター型は、[Facade Events リファレンス](/reference/facade/events#properties)を参照してください。
+
+`addEvent` で購読し、返されたオブジェクトを破棄して購読を解除します。
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id }) => {
+  if (id === 'base.command.set-base-name') {
+    console.log('Base名が変更されました')
+  }
+})
+
+// 不要になったリスナーを削除します
+disposable.dispose()
+```
+
+## 元に戻すとやり直し
+
+```typescript
+await univerAPI.undo()
+await univerAPI.redo()
+```
+
+## システムクリップボード
+
+Bases UI プラグインを登録すると、`copy` と `paste` は現在のBase選択範囲とキャレット位置に対して動作します。
+
+```typescript
+await univerAPI.copy()
+await univerAPI.paste()
+```
+
+<Callout>
+  コピーと貼り付けはブラウザーのネイティブ Clipboard API に依存します。ページにフォーカスがない場合、ユーザー操作から呼び出されていない場合、または権限がない場合は失敗することがあります。[MDN のドキュメント](https://developer.mozilla.org/en-US/docs/Web/API/Clipboard_API)を参照してください。
+</Callout>
+
+## UI
+
+メニュー、ツールバー、その他の Bases UI を拡張する方法は、[Bases UI コンポーネント](/guides/bases/ui/components)を参照してください。
+
+## WebSocket
+
+WebSocket API を使うには、`@univerjs/network` をインストールし、`UniverNetworkPlugin` を登録して Facade 拡張をインポートします。
+
+```typescript
+import { UniverNetworkPlugin } from '@univerjs/network'
+import '@univerjs/network/facade'
+
+univer.registerPlugin(UniverNetworkPlugin)
+```
+
+ソケットイベントの購読、メッセージ送信、接続終了ができます。
+
+```typescript
+const socket = univerAPI.createSocket('wss://example.com/bases')
+
+socket.open$.subscribe(() => socket.send('hello'))
+socket.message$.subscribe((message) => console.log('WebSocket メッセージ:', message.data))
+socket.error$.subscribe((error) => console.error('WebSocket エラー:', error))
+socket.close()
+```
+
+## 列挙型 API
+
+共通の列挙型は `univerAPI.Enum` から利用できます。
+
+```typescript
+console.log(univerAPI.Enum.UniverInstanceType.UNIVER_BASE)
+console.log(univerAPI.Enum.BaseFieldType.Text)
+```
+
+## ユーティリティメソッド API
+
+共通ユーティリティは `univerAPI.Util` から利用できます。
+
+```typescript
+console.log(univerAPI.Util.tools.isString('Univer Bases')) // true
+```

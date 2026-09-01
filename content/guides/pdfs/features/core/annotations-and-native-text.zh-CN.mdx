@@ -1,0 +1,55 @@
+---
+title: 批注与原生文本
+description: 插入受支持的 PDF 批注，并将导入的原生文本提升为可编辑文本框。
+---
+
+可编辑批注是持久化叠加层。导入文本会保持原生状态，直到通过 Facade 提升某个可见文本片段。
+
+## 插入批注
+
+```ts
+const highlight = page.insertAnnotation({
+  annotationType: univerAPI.Enum.PdfAnnotationType.HIGHLIGHT,
+  left: 36,
+  top: 72,
+  width: 180,
+  height: 18,
+  markup: {
+    color: '#fde047',
+    opacity: 0.6,
+  },
+})
+```
+
+Facade 插入支持高亮、下划线、删除线、波浪线和墨迹批注。墨迹必须包含非空路径；此插入 API 不接受其他核心批注子类型。
+
+## 读取批注数据与样式
+
+```ts
+const markup = highlight.getMarkup()
+const style = highlight.getStyle()
+
+highlight.setStyle({
+  stroke: { color: '#ca8a04', width: 1 },
+  opacity: 0.75,
+})
+```
+
+`getMarkup()` 和 `getInk()` 返回以 PDF 点表示的分离几何。`setStyle()` 更新受支持的填充、描边和不透明度；不透明度必须介于 `0` 和 `1` 之间。
+
+## 替换导入的原生文本
+
+```ts
+const matchingSpan = page
+  .getTextSpans()
+  .find((span) => span.getText().includes('Draft'))
+
+if (matchingSpan) {
+  const textBox = matchingSpan.replaceText('Final')
+  textBox.setTextStyle({ bold: true })
+}
+```
+
+`getTextSpans()` 返回当前可见且未被抑制的原生文本快照。`replaceText()` 会原子化地抑制源操作，并在捕获位置插入可编辑的 `FPdfTextBox`。
+
+`FPdfTextSpan` 是快照句柄。替换后该句柄即失效，因此下一次原生文本操作前应重新枚举 `getTextSpans()`。

@@ -1,0 +1,82 @@
+---
+title: Elements
+---
+
+Elements are the visible content of a Board: text, images, shapes, and connectors. The `FBoard` facade keeps element changes on the normal command path, so they participate in undo, redo, and collaboration.
+
+## Read elements
+
+Get the active Board before reading its active page. Use descriptors when you need stable IDs, types, bounds, and ordering without depending on the full internal snapshot.
+
+```ts
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board')
+
+const elements = board.describeElements()
+const shapes = board.findElements({
+  elementType: univerAPI.Enum.BoardElementType.Shape,
+})
+```
+
+## Insert shapes and text
+
+Prefer semantic insert methods over constructing low-level element snapshots. Geometry for `insertShape` belongs in `transform`; the returned live shape handle exposes its text and style APIs.
+
+```ts
+const shape = board.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.RoundRect,
+  transform: { left: 80, top: 80, width: 180, height: 100 },
+  name: 'Review card',
+})
+if (!shape) throw new Error('Cannot insert shape')
+
+shape.getText().setText('Review')
+shape.setRotation(6)
+```
+
+Use `insertText` for standalone text, `insertImage` for images, and the batch variants when several elements should be added in one command.
+
+## Connect elements
+
+Connectors can attach to existing element IDs. Keep the returned connector or its ID when you need to update its style, label, or endpoints later.
+
+```ts
+const target = board.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.Rect,
+  transform: { left: 360, top: 80, width: 180, height: 100 },
+})
+if (!target) throw new Error('Cannot insert target')
+
+const connector = board.insertConnector({
+  fromElementId: shape.getId(),
+  toElementId: target.getId(),
+  style: { endMarker: { type: 'filledTriangle', size: 'md' } },
+})
+if (!connector) throw new Error('Cannot insert connector')
+```
+
+## Transform and arrange elements
+
+Transform only the properties that need to change. Ordering, alignment, distribution, and automatic layout methods also accept element IDs.
+
+```ts
+if (!board.setElementTransform(shape.getId(), { left: 120, top: 140, rotation: 12 })) {
+  throw new Error('Cannot transform shape')
+}
+
+if (!board.bringElementsToFront([shape.getId()])) {
+  throw new Error('Cannot bring shape to front')
+}
+```
+
+## Remove elements
+
+Use `removeElement` for one element or `removeElements` for an atomic batch removal. Both return whether the command succeeded.
+
+```ts
+if (!board.removeElements([connector.id, target.getId()])) {
+  throw new Error('Cannot remove elements')
+}
+```
+
+For framed groups and swimlanes, continue with [Containers & Swimlanes](/guides/boards/features/core/containers). See also the [Boards facade reference](/reference/facade/boards) and the [Board element data model](/guides/boards/model/board-elements).

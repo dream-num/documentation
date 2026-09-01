@@ -1,0 +1,152 @@
+---
+title: 通用 API
+---
+
+Univer 可用的 Facade API 取決於目前的單元類型和已註冊的外掛。本文介紹 Univer Bases 應用程式會使用的通用 API。
+
+## 導入
+
+```typescript
+import { FUniver } from '@univerjs/core/facade'
+import '@univerjs-pro/bases/facade'
+import '@univerjs/ui/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+## 命令
+
+Univer 中的大多數操作都會註冊到命令系統。統一的執行路徑為復原、重做和協同等能力提供基礎。
+
+<Callout>
+  如需瞭解設計細節，請閱讀 [Univer 命令系統](/blog/univer#command-system)。
+</Callout>
+
+### 監聽命令
+
+使用 `Event.BeforeCommandExecute` 在命令執行前執行邏輯，使用 `Event.CommandExecuted` 在命令執行後執行邏輯。
+
+```typescript
+const beforeDisposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, ({ id, params }) => {
+  console.log('命令執行前：', id, params)
+})
+
+const afterDisposable = univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, params }) => {
+  console.log('命令執行後：', id, params)
+})
+```
+
+如需阻止命令執行，請在 `BeforeCommandExecute` 監聽器中將 `event.cancel` 設為 `true`。
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (event) => {
+  if (event.id === 'base.command.set-base-name') {
+    event.cancel = true
+  }
+})
+```
+
+監聽器會傳回 `IDisposable`，不再需要時應及時銷毀。
+
+```typescript
+beforeDisposable.dispose()
+afterDisposable.dispose()
+disposable.dispose()
+```
+
+### 執行命令
+
+如果已知命令 ID 和參數，可以透過 `FUniver.executeCommand` 執行命令。例如，以下 Bases 命令會重新命名目前的Base：
+
+```typescript
+const base = univerAPI.getActiveBase()
+
+if (base) {
+  await univerAPI.executeCommand('base.command.set-base-name', {
+    unitId: base.getId(),
+    name: '專案筆記',
+  })
+}
+```
+
+## 事件 API
+
+`univerAPI.Event` 公開的事件來自 Univer Core 和目前應用程式已註冊的外掛。Core 提供通用的命令和單元事件；Bases 外掛會補充資料表、欄位、記錄、檢視以及其他 Base 變更事件。使用事件前，請先確認提供該事件的外掛已經註冊。
+
+目前版本可用的事件名稱和參數類型請參閱 [Facade Events 參考](/reference/facade/events#properties)。
+
+使用 `addEvent` 訂閱事件，並銷毀傳回的物件來取消訂閱：
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id }) => {
+  if (id === 'base.command.set-base-name') {
+    console.log('Base名稱已變更')
+  }
+})
+
+// 不再需要時移除監聽器
+disposable.dispose()
+```
+
+## 復原和重做
+
+```typescript
+await univerAPI.undo()
+await univerAPI.redo()
+```
+
+## 系統剪貼簿
+
+註冊 Bases UI 外掛後，`copy` 和 `paste` 會作用於Base目前的選取範圍和游標位置。
+
+```typescript
+await univerAPI.copy()
+await univerAPI.paste()
+```
+
+<Callout>
+  複製和貼上依賴瀏覽器原生 Clipboard API。頁面未聚焦、呼叫並非由使用者操作觸發或沒有剪貼簿權限時，操作可能失敗。詳情請參閱 [MDN 文件](https://developer.mozilla.org/en-US/docs/Web/API/Clipboard_API)。
+</Callout>
+
+## UI
+
+如需擴充選單、工具列和其他 Bases 介面區域，請參閱 [Bases UI 元件](/guides/bases/ui/components)。
+
+## WebSocket
+
+如需使用 WebSocket API，請安裝 `@univerjs/network`、註冊 `UniverNetworkPlugin`，並導入它的 Facade 擴充。
+
+```typescript
+import { UniverNetworkPlugin } from '@univerjs/network'
+import '@univerjs/network/facade'
+
+univer.registerPlugin(UniverNetworkPlugin)
+```
+
+之後即可訂閱 Socket 事件、傳送訊息並關閉連線：
+
+```typescript
+const socket = univerAPI.createSocket('wss://example.com/bases')
+
+socket.open$.subscribe(() => socket.send('hello'))
+socket.message$.subscribe((message) => console.log('WebSocket 訊息：', message.data))
+socket.error$.subscribe((error) => console.error('WebSocket 錯誤：', error))
+socket.close()
+```
+
+## 列舉 API
+
+通用列舉類型透過 `univerAPI.Enum` 公開：
+
+```typescript
+console.log(univerAPI.Enum.UniverInstanceType.UNIVER_BASE)
+console.log(univerAPI.Enum.BaseFieldType.Text)
+```
+
+## 工具方法 API
+
+通用工具方法透過 `univerAPI.Util` 公開：
+
+```typescript
+console.log(univerAPI.Util.tools.isString('Univer Bases')) // true
+```

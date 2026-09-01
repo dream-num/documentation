@@ -1,0 +1,109 @@
+---
+title: Общий API
+description: Используйте общие команды, события, историю, буфер обмена, UI, WebSocket, перечисления и утилиты в приложении PDF.
+---
+
+Корневой Facade API объединяет общую среду выполнения Univer с плагинами, зарегистрированными в этом приложении PDF. Страница описывает общие механизмы, не предполагая опыта работы с другим типом документов Univer. Для модулей PDF и точек входа страниц перейдите к [Univer PDFs API](/guides/pdfs/features/core/pdfs-api).
+
+## Создание объекта API
+
+Создайте одну обёртку `FUniver` после регистрации экземпляра Univer и необходимых плагинов:
+
+```ts
+import { FUniver } from '@univerjs/core/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+Точки входа Facade, импортированные до этого вызова, дополняют тот же объект новыми методами.
+
+## Команды
+
+`executeCommand()` асинхронно выполняет зарегистрированную команду. Используйте `syncExecuteCommand()` только для команд, которые явно поддерживают синхронное выполнение. Для обычных операций PDF предпочтительны методы Facade.
+
+## События
+
+```ts
+const commandLog = univerAPI.addEvent(
+  univerAPI.Event.CommandExecuted,
+  ({ id }) => console.log('Executed:', id)
+)
+
+// Позже удалите слушатель.
+commandLog.dispose()
+```
+
+Используйте `BeforeCommandExecute`, когда приложению нужно проверить или отменить команду. `LifeCycleChanged` сообщает об общих стадиях редактора, таких как `Rendered` и `Steady`.
+
+## Отмена и повтор
+
+Отмена и повтор действуют на текущий активный модуль Univer и возвращают Promise:
+
+```ts
+await univerAPI.undo()
+await univerAPI.redo()
+```
+
+Изменения PDF Facade с обратными операциями входят в историю активного модуля PDF.
+
+## Системный буфер обмена
+
+Если зарегистрирован `UniverPdfsUIPlugin` и включено редактирование PDF, методы `copy()` и `paste()` UI Facade отправляют команды буфера обмена активному модулю PDF:
+
+```ts
+import '@univerjs/ui/facade'
+
+await univerAPI.copy()
+await univerAPI.paste()
+```
+
+Для редактируемых объектов PDF плагин PDF UI хранит скопированные данные в текущем сеансе браузера, а не в буфере обмена операционной системы. Нативное редактирование текста в браузере продолжает использовать поведение буфера обмена браузера.
+
+## UI
+
+UI Facade позволяет показывать сообщения, открывать диалоги и боковые панели, регистрировать компоненты и управлять встроенными областями интерфейса:
+
+```ts
+univerAPI.setUIVisible(univerAPI.Enum.BuiltInUIPart.TOOLBAR, true)
+```
+
+Для этих методов требуется `UniverUIPlugin`; для элементов управления редактированием PDF также нужен `UniverPdfsUIPlugin`.
+
+## WebSocket
+
+WebSocket — необязательная возможность. Зарегистрируйте плагин Network и импортируйте его точку входа Facade до создания объекта API:
+
+```ts
+import { UniverNetworkPlugin } from '@univerjs/network'
+
+import '@univerjs/network/facade'
+
+univer.registerPlugin(UniverNetworkPlugin)
+
+const socket = univerAPI.createSocket('wss://example.com/pdfs')
+socket.open$.subscribe(() => socket.send('ready'))
+```
+
+Протокол сообщений, аутентификация, переподключение и обработка конфликтов совместной работы остаются ответственностью приложения-хозяина.
+
+## Перечисления
+
+`univerAPI.Enum` предоставляет общие перечисления среды выполнения и перечисления, добавленные PDF Facade:
+
+```ts
+const lifecycle = univerAPI.Enum.LifecycleStages.Steady
+const annotationType = univerAPI.Enum.PdfAnnotationType.HIGHLIGHT
+```
+
+## Утилиты
+
+`univerAPI.Util` предоставляет общие средства форматирования чисел, операций с прямоугольниками и другие инструменты:
+
+```ts
+const payload = univerAPI.Util.tools.deepClone({
+  pageId: 'page-1',
+  selectedElementIds: ['element-1'],
+})
+```
+
+Полный общий API приведён в [справочнике Facade](/reference/facade/univer).

@@ -1,0 +1,108 @@
+---
+title: Общий API
+---
+
+Корневой Facade API объединяет общий рантайм Univer с плагинами Slides, зарегистрированными в приложении. На этой странице описаны команды, события, история и жизненный цикл Unit без предположения, что читатель знаком с другим типом документов Univer. Объекты презентации описаны в разделе [API Univer Slides](/guides/slides/features/core/slides-api).
+
+## Создание объекта API
+
+Создайте обёртку `FUniver` после регистрации экземпляра Univer и необходимых плагинов:
+
+```ts
+import { FUniver } from '@univerjs/core/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+Импортированные до этого вызова Facade-модули добавляют методы Slides в тот же объект.
+
+## Команды
+
+`executeCommand()` асинхронно выполняет зарегистрированную команду. Используйте `syncExecuteCommand()` только для команд, которые явно поддерживают синхронное выполнение. Для обычных операций Slides предпочтительны методы Facade.
+
+## События
+
+```ts
+const commandLog = univerAPI.addEvent(
+  univerAPI.Event.CommandExecuted,
+  ({ id }) => console.log('Executed:', id)
+)
+
+// Удалите слушатель, когда он больше не нужен.
+commandLog.dispose()
+```
+
+Событие `BeforeCommandExecute` позволяет проверить или отменить команду. `LifeCycleChanged` сообщает о достижении редактором этапов `Rendered`, `Steady` и других.
+
+## Отмена и повтор
+
+Отмена и повтор действуют на текущий Unit Univer в фокусе и возвращают Promise:
+
+```ts
+await univerAPI.undo()
+await univerAPI.redo()
+```
+
+Изменения Slides Facade проходят через командный конвейер, поэтому поддерживаемые операции входят в ту же историю.
+
+## Системный буфер обмена
+
+После регистрации `UniverSlidesUIPlugin` метод `copy()` копирует текущее выделение Slides через UI-команду. Slides пока не регистрирует соответствующую Facade-реализацию вставки, поэтому это руководство не обещает работу `paste()`.
+
+```ts
+import '@univerjs/ui/facade'
+
+await univerAPI.copy()
+```
+
+Буфер обмена требует фокуса браузерного редактора и недоступен в модельном окружении Node.js.
+
+## UI
+
+Facade UI умеет показывать сообщения, открывать диалоги и боковые панели, регистрировать компоненты и управлять встроенными областями:
+
+```ts
+univerAPI
+  .showMessage({ content: 'Presentation saved', type: 'success' })
+  .setUIVisible(univerAPI.Enum.BuiltInUIPart.TOOLBAR, true)
+```
+
+Эти методы требуют `UniverUIPlugin`, а элементы редактирования Slides — также `UniverSlidesUIPlugin`.
+
+## WebSocket
+
+WebSocket — необязательная возможность Network Facade:
+
+```ts
+import { UniverNetworkPlugin } from '@univerjs/network'
+
+import '@univerjs/network/facade'
+
+univer.registerPlugin(UniverNetworkPlugin)
+
+const socket = univerAPI.createSocket('wss://example.com/slides')
+socket.open$.subscribe(() => socket.send('ready'))
+```
+
+Протокол, аутентификация, переподключение и конфликты остаются ответственностью приложения.
+
+## Перечисления
+
+`univerAPI.Enum` содержит общие перечисления и перечисления Slides:
+
+```ts
+const lifecycle = univerAPI.Enum.LifecycleStages.Steady
+const transition = univerAPI.Enum.SlideTransitionTypeEnum.Fade
+const elementType = univerAPI.Enum.SlidePageElementTypeEnum.Shape
+```
+
+## Утилиты
+
+`univerAPI.Util` предоставляет общие средства форматирования чисел, операций с прямоугольниками и другие инструменты:
+
+```ts
+const payload = univerAPI.Util.tools.deepClone({
+  slideId: 'slide-1',
+  selectedElementIds: ['element-1'],
+})
+```

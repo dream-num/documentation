@@ -1,0 +1,147 @@
+---
+title: General API
+---
+
+The Facade API available in Univer depends on the current unit type and the plugins you register. This page covers the common APIs used in a Univer Boards application.
+
+## Importing
+
+```typescript
+import { FUniver } from '@univerjs/core/facade'
+import '@univerjs-pro/boards/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+## Commands
+
+Most operations in Univer are registered with the command system. This unified execution path supports features such as undo, redo, and collaboration.
+
+<Callout>
+  For more details on the design, see the [Univer command system](/blog/univer#command-system).
+</Callout>
+
+### Listening to commands
+
+Use `Event.BeforeCommandExecute` to run logic before a command, or `Event.CommandExecuted` to run logic after it finishes.
+
+```typescript
+const beforeDisposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, ({ id, params }) => {
+  console.log('Before command:', id, params)
+})
+
+const afterDisposable = univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, params }) => {
+  console.log('Command executed:', id, params)
+})
+```
+
+To prevent a command from running, set `event.cancel` to `true` in a `BeforeCommandExecute` listener.
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (event) => {
+  if (event.id === 'board.command.set-name') {
+    event.cancel = true
+  }
+})
+```
+
+Event listeners return an `IDisposable`. Dispose listeners when you no longer need them.
+
+```typescript
+beforeDisposable.dispose()
+afterDisposable.dispose()
+disposable.dispose()
+```
+
+### Executing commands
+
+If you know a command ID and its parameters, run it with `FUniver.executeCommand`. For example, the following Boards command renames the active Board:
+
+```typescript
+const board = univerAPI.getActiveBoard()
+
+if (board) {
+  await univerAPI.executeCommand('board.command.set-name', {
+    unitId: board.getId(),
+    name: 'Planning Board',
+  })
+}
+```
+
+## Events API
+
+The event names exposed through `univerAPI.Event` come from Univer core and the plugins registered in the current application. Core provides shared command and unit events, and registered plugins may extend the event surface. Check that an event belongs to a plugin you have registered before using it.
+
+See the [Facade Events reference](/reference/facade/events#properties) for the event names and parameter types available in the current release.
+
+Use `addEvent` to subscribe and dispose the returned object to unsubscribe:
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id }) => {
+  if (id === 'board.command.set-name') {
+    console.log('The Board name changed')
+  }
+})
+
+// Remove the listener when it is no longer needed
+disposable.dispose()
+```
+
+## Undo and Redo
+
+```typescript
+await univerAPI.undo()
+await univerAPI.redo()
+```
+
+## UI
+
+See [Boards UI components](/guides/boards/ui/components) to learn how to extend menus, the toolbar, and other Boards interface areas.
+
+## WebSocket
+
+To use WebSocket APIs, install `@univerjs/network`, register `UniverNetworkPlugin`, and import its Facade extension.
+
+```typescript
+import { UniverNetworkPlugin } from '@univerjs/network'
+import '@univerjs/network/facade'
+
+univer.registerPlugin(UniverNetworkPlugin)
+```
+
+You can then subscribe to socket events, send messages, and close the connection:
+
+```typescript
+const socket = univerAPI.createSocket('wss://example.com/boards')
+
+socket.open$.subscribe(() => {
+  socket.send('hello')
+})
+
+socket.message$.subscribe((message) => {
+  console.log('WebSocket message:', message.data)
+})
+
+socket.error$.subscribe((error) => {
+  console.error('WebSocket error:', error)
+})
+
+socket.close()
+```
+
+## Enum API
+
+Facade exposes common enum types through `univerAPI.Enum`:
+
+```typescript
+console.log(univerAPI.Enum.UniverInstanceType.UNIVER_BOARD)
+console.log(univerAPI.Enum.BoardElementType.Shape)
+```
+
+## Utility Method API
+
+Facade exposes shared utilities through `univerAPI.Util`:
+
+```typescript
+console.log(univerAPI.Util.tools.isString('Univer Boards')) // true
+```

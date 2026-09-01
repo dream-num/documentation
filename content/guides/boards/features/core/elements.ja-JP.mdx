@@ -1,0 +1,82 @@
+---
+title: 要素
+---
+
+要素は、テキスト、画像、図形、コネクターなど Board 上に表示されるコンテンツです。`FBoard` facade による要素の変更は通常のコマンド経路を通るため、元に戻す、やり直し、共同編集の対象になります。
+
+## 要素を読み取る
+
+アクティブページを読む前に、アクティブな Board を取得します。内部スナップショット全体に依存せず、安定した ID、種類、境界、順序が必要な場合はディスクリプターを使用します。
+
+```ts
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board')
+
+const elements = board.describeElements()
+const shapes = board.findElements({
+  elementType: univerAPI.Enum.BoardElementType.Shape,
+})
+```
+
+## 図形とテキストを挿入する
+
+低レベルの要素スナップショットを組み立てる代わりに、用途別の挿入メソッドを使用します。`insertShape` のジオメトリは `transform` に指定し、返された図形ハンドルからテキストやスタイルの API を利用できます。
+
+```ts
+const shape = board.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.RoundRect,
+  transform: { left: 80, top: 80, width: 180, height: 100 },
+  name: 'Review card',
+})
+if (!shape) throw new Error('Cannot insert shape')
+
+shape.getText().setText('Review')
+shape.setRotation(6)
+```
+
+独立したテキストには `insertText`、画像には `insertImage`、複数の要素を 1 つのコマンドで追加する場合は一括メソッドを使用します。
+
+## 要素を接続する
+
+コネクターは既存要素の ID に接続できます。後でスタイル、ラベル、端点を更新できるよう、返されたコネクターまたはその ID を保持します。
+
+```ts
+const target = board.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.Rect,
+  transform: { left: 360, top: 80, width: 180, height: 100 },
+})
+if (!target) throw new Error('Cannot insert target')
+
+const connector = board.insertConnector({
+  fromElementId: shape.getId(),
+  toElementId: target.getId(),
+  style: { endMarker: { type: 'filledTriangle', size: 'md' } },
+})
+if (!connector) throw new Error('Cannot insert connector')
+```
+
+## 要素を変形・配置する
+
+必要なプロパティだけを変更します。重なり順、整列、分布、自動レイアウトのメソッドも要素 ID を受け取ります。
+
+```ts
+if (!board.setElementTransform(shape.getId(), { left: 120, top: 140, rotation: 12 })) {
+  throw new Error('Cannot transform shape')
+}
+
+if (!board.bringElementsToFront([shape.getId()])) {
+  throw new Error('Cannot bring shape to front')
+}
+```
+
+## 要素を削除する
+
+1 つの要素には `removeElement`、複数要素のアトミックな削除には `removeElements` を使用します。どちらもコマンドが成功したかを返します。
+
+```ts
+if (!board.removeElements([connector.id, target.getId()])) {
+  throw new Error('Cannot remove elements')
+}
+```
+
+枠付きグループとスイムレーンについては、[コンテナーとスイムレーン](/guides/boards/features/core/containers) に進んでください。[Boards facade リファレンス](/reference/facade/boards)と[Board 要素のデータモデル](/guides/boards/model/board-elements)も参照してください。

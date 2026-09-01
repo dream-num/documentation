@@ -1,0 +1,109 @@
+---
+title: 一般 API
+description: PDF アプリケーションで共通のコマンド、イベント、履歴、クリップボード、UI、WebSocket、列挙型、ユーティリティを使用します。
+---
+
+ルート Facade API は、Univer の共通ランタイムとこの PDF アプリケーションに登録されたプラグインによって拡張されます。このページでは、ほかの Univer 品類の経験を前提にせず、品類間で共通する仕組みを説明します。PDF ユニットとページの入口については [Univer PDFs API](/guides/pdfs/features/core/pdfs-api) を参照してください。
+
+## API オブジェクトを作成する
+
+Univer インスタンスと必要なプラグインを登録した後で、`FUniver` ラッパーを 1 つ作成します。
+
+```ts
+import { FUniver } from '@univerjs/core/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+この呼び出しより前にインポートした Facade エントリが、同じオブジェクトへ追加のメソッドを拡張します。
+
+## コマンド
+
+`executeCommand()` は登録済みコマンドを非同期で実行します。`syncExecuteCommand()` は、そのコマンドが同期実行を明示的にサポートする場合だけ使用してください。一般的な PDF 操作では Facade メソッドを優先します。
+
+## イベント
+
+```ts
+const commandLog = univerAPI.addEvent(
+  univerAPI.Event.CommandExecuted,
+  ({ id }) => console.log('Executed:', id)
+)
+
+// 不要になったらリスナーを削除します。
+commandLog.dispose()
+```
+
+アプリケーションでコマンドを検査またはキャンセルする必要がある場合は `BeforeCommandExecute` を使用します。`LifeCycleChanged` は `Rendered` や `Steady` など共通のエディターステージを通知します。
+
+## 元に戻す／やり直す
+
+元に戻す／やり直すは現在フォーカス中の Univer ユニットに作用し、Promise を返します。
+
+```ts
+await univerAPI.undo()
+await univerAPI.redo()
+```
+
+逆操作を持つ PDF Facade の変更は、フォーカス中の PDF ユニットの履歴に追加されます。
+
+## システムクリップボード
+
+`UniverPdfsUIPlugin` を登録して PDF 編集を有効にすると、UI Facade の `copy()` と `paste()` がフォーカス中の PDF ユニットへクリップボードコマンドを送ります。
+
+```ts
+import '@univerjs/ui/facade'
+
+await univerAPI.copy()
+await univerAPI.paste()
+```
+
+編集可能な PDF オブジェクトの場合、PDF UI プラグインはコピー内容を OS のクリップボードではなく現在のブラウザーセッション内に保持します。ブラウザー標準のテキスト編集にはブラウザーのクリップボード動作が適用されます。
+
+## UI
+
+UI Facade はメッセージ、ダイアログ、サイドバー、コンポーネント登録、組み込み UI 領域の表示状態を扱えます。
+
+```ts
+univerAPI.setUIVisible(univerAPI.Enum.BuiltInUIPart.TOOLBAR, true)
+```
+
+これらのメソッドには `UniverUIPlugin` が必要です。PDF 編集コントロールにはさらに `UniverPdfsUIPlugin` が必要です。
+
+## WebSocket
+
+WebSocket は任意機能です。API オブジェクトを作成する前に Network プラグインを登録し、その Facade エントリをインポートします。
+
+```ts
+import { UniverNetworkPlugin } from '@univerjs/network'
+
+import '@univerjs/network/facade'
+
+univer.registerPlugin(UniverNetworkPlugin)
+
+const socket = univerAPI.createSocket('wss://example.com/pdfs')
+socket.open$.subscribe(() => socket.send('ready'))
+```
+
+メッセージプロトコル、認証、再接続、共同編集の競合処理はホストアプリケーションが担当します。
+
+## 列挙型
+
+`univerAPI.Enum` は共通ランタイム列挙型と PDF Facade が追加する列挙型を提供します。
+
+```ts
+const lifecycle = univerAPI.Enum.LifecycleStages.Steady
+const annotationType = univerAPI.Enum.PdfAnnotationType.HIGHLIGHT
+```
+
+## ユーティリティ
+
+`univerAPI.Util` は数値書式、矩形演算、共通ツールなどの共有ヘルパーを提供します。
+
+```ts
+const payload = univerAPI.Util.tools.deepClone({
+  pageId: 'page-1',
+  selectedElementIds: ['element-1'],
+})
+```
+
+共通 API の全一覧は [Facade リファレンス](/reference/facade/univer)を参照してください。

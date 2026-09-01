@@ -1,0 +1,82 @@
+---
+title: Éléments
+---
+
+Les éléments constituent le contenu visible d’un Board : textes, images, formes et connecteurs. La facade `FBoard` fait passer leurs modifications par le système de commandes normal, afin qu’elles prennent part à l’annulation, au rétablissement et à la collaboration.
+
+## Lire les éléments
+
+Récupérez le Board actif avant de lire sa page active. Utilisez les descripteurs pour obtenir des identifiants, types, limites et ordres stables sans dépendre de l’instantané interne complet.
+
+```ts
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board')
+
+const elements = board.describeElements()
+const shapes = board.findElements({
+  elementType: univerAPI.Enum.BoardElementType.Shape,
+})
+```
+
+## Insérer des formes et du texte
+
+Préférez les méthodes d’insertion sémantiques à la construction d’instantanés de bas niveau. Avec `insertShape`, la géométrie se place dans `transform` ; l’objet forme renvoyé expose ses API de texte et de style.
+
+```ts
+const shape = board.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.RoundRect,
+  transform: { left: 80, top: 80, width: 180, height: 100 },
+  name: 'Review card',
+})
+if (!shape) throw new Error('Cannot insert shape')
+
+shape.getText().setText('Review')
+shape.setRotation(6)
+```
+
+Utilisez `insertText` pour un texte autonome, `insertImage` pour une image et les variantes par lot pour ajouter plusieurs éléments avec une seule commande.
+
+## Relier les éléments
+
+Les connecteurs peuvent s’attacher aux identifiants d’éléments existants. Conservez le connecteur renvoyé ou son identifiant pour modifier ensuite son style, son libellé ou ses extrémités.
+
+```ts
+const target = board.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.Rect,
+  transform: { left: 360, top: 80, width: 180, height: 100 },
+})
+if (!target) throw new Error('Cannot insert target')
+
+const connector = board.insertConnector({
+  fromElementId: shape.getId(),
+  toElementId: target.getId(),
+  style: { endMarker: { type: 'filledTriangle', size: 'md' } },
+})
+if (!connector) throw new Error('Cannot insert connector')
+```
+
+## Transformer et organiser les éléments
+
+Ne modifiez que les propriétés nécessaires. Les méthodes d’ordre, d’alignement, de distribution et de disposition automatique acceptent également les identifiants d’éléments.
+
+```ts
+if (!board.setElementTransform(shape.getId(), { left: 120, top: 140, rotation: 12 })) {
+  throw new Error('Cannot transform shape')
+}
+
+if (!board.bringElementsToFront([shape.getId()])) {
+  throw new Error('Cannot bring shape to front')
+}
+```
+
+## Supprimer des éléments
+
+Utilisez `removeElement` pour un élément ou `removeElements` pour une suppression atomique par lot. Les deux méthodes indiquent si la commande a réussi.
+
+```ts
+if (!board.removeElements([connector.id, target.getId()])) {
+  throw new Error('Cannot remove elements')
+}
+```
+
+Pour les groupes encadrés et les couloirs, poursuivez avec [Conteneurs et couloirs](/guides/boards/features/core/containers). Consultez aussi la [référence de la facade Boards](/reference/facade/boards) et le [modèle de données des éléments](/guides/boards/model/board-elements).

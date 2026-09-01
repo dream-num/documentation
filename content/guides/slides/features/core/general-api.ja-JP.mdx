@@ -1,0 +1,108 @@
+---
+title: 一般 API
+---
+
+ルート Facade API は、共通の Univer ランタイムと、このアプリケーションに登録された Slides プラグインを一つにまとめます。このページでは、他の Univer 文書タイプを使った経験を前提にせず、コマンド、イベント、履歴、Unit のライフサイクルを説明します。プレゼンテーションオブジェクトについては、[Univer Slides API](/guides/slides/features/core/slides-api) を参照してください。
+
+## API オブジェクトを作成する
+
+Univer インスタンスと必要なプラグインを登録した後に、`FUniver` ラッパーを作成します。
+
+```ts
+import { FUniver } from '@univerjs/core/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+この呼び出しより前に読み込んだ Facade エントリは、同じオブジェクトに Slides メソッドを追加します。
+
+## コマンド
+
+`executeCommand()` は登録済みコマンドを非同期で実行します。`syncExecuteCommand()` は、そのコマンドが同期実行を明示的にサポートする場合だけ使用してください。一般的な Slides 操作には Facade メソッドを優先します。
+
+## イベント
+
+```ts
+const commandLog = univerAPI.addEvent(
+  univerAPI.Event.CommandExecuted,
+  ({ id }) => console.log('Executed:', id)
+)
+
+// 不要になったリスナーを解除します。
+commandLog.dispose()
+```
+
+コマンドを検査またはキャンセルする場合は `BeforeCommandExecute` を使用します。`LifeCycleChanged` は、エディターが `Rendered` や `Steady` などの段階に到達したことを通知します。
+
+## 元に戻す／やり直す
+
+元に戻す／やり直すは、現在フォーカスされている Univer Unit に作用し、Promise を返します。
+
+```ts
+await univerAPI.undo()
+await univerAPI.redo()
+```
+
+Slides Facade の変更はコマンドパイプラインを通るため、対応する変更は同じ履歴に記録されます。
+
+## システムクリップボード
+
+`UniverSlidesUIPlugin` を登録すると、`copy()` は UI コマンドで現在の Slides 選択をコピーします。Slides は対応する Facade の貼り付け実装を現在登録していないため、このガイドでは `paste()` を保証しません。
+
+```ts
+import '@univerjs/ui/facade'
+
+await univerAPI.copy()
+```
+
+クリップボード操作にはフォーカスされたブラウザーエディターが必要で、モデルのみの Node.js 環境では利用できません。
+
+## UI
+
+UI Facade はメッセージ表示、ダイアログやサイドバーの表示、コンポーネント登録、組み込み UI 領域の制御を提供します。
+
+```ts
+univerAPI
+  .showMessage({ content: 'Presentation saved', type: 'success' })
+  .setUIVisible(univerAPI.Enum.BuiltInUIPart.TOOLBAR, true)
+```
+
+これらは `UniverUIPlugin` を必要とし、Slides 編集コントロールにはさらに `UniverSlidesUIPlugin` が必要です。
+
+## WebSocket
+
+WebSocket は Network Facade が提供する任意機能です。
+
+```ts
+import { UniverNetworkPlugin } from '@univerjs/network'
+
+import '@univerjs/network/facade'
+
+univer.registerPlugin(UniverNetworkPlugin)
+
+const socket = univerAPI.createSocket('wss://example.com/slides')
+socket.open$.subscribe(() => socket.send('ready'))
+```
+
+プロトコル、認証、再接続、競合処理はホストアプリケーションが実装します。
+
+## 列挙型
+
+`univerAPI.Enum` は共通列挙型と Slides が追加する列挙型を公開します。
+
+```ts
+const lifecycle = univerAPI.Enum.LifecycleStages.Steady
+const transition = univerAPI.Enum.SlideTransitionTypeEnum.Fade
+const elementType = univerAPI.Enum.SlidePageElementTypeEnum.Shape
+```
+
+## ユーティリティ
+
+`univerAPI.Util` は数値書式、矩形演算、共通ツールなどの共有ヘルパーを提供します。
+
+```ts
+const payload = univerAPI.Util.tools.deepClone({
+  slideId: 'slide-1',
+  selectedElementIds: ['element-1'],
+})
+```

@@ -1,0 +1,152 @@
+---
+title: Общий API
+---
+
+Набор Facade API в Univer зависит от типа текущего юнита и зарегистрированных плагинов. На этой странице описаны общие API приложения Univer Bases.
+
+## Импорт
+
+```typescript
+import { FUniver } from '@univerjs/core/facade'
+import '@univerjs-pro/bases/facade'
+import '@univerjs/ui/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+## Команды
+
+Большинство операций Univer регистрируются в системе команд. Единый путь выполнения поддерживает отмену, повтор действий и совместную работу.
+
+<Callout>
+  Подробнее об устройстве системы читайте в разделе [Система команд Univer](/blog/univer#command-system).
+</Callout>
+
+### Прослушивание команд
+
+Используйте `Event.BeforeCommandExecute` для логики перед выполнением команды и `Event.CommandExecuted` — после её завершения.
+
+```typescript
+const beforeDisposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, ({ id, params }) => {
+  console.log('Перед командой:', id, params)
+})
+
+const afterDisposable = univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, params }) => {
+  console.log('Команда выполнена:', id, params)
+})
+```
+
+Чтобы отменить команду, установите `event.cancel` в `true` в обработчике `BeforeCommandExecute`.
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (event) => {
+  if (event.id === 'base.command.set-base-name') {
+    event.cancel = true
+  }
+})
+```
+
+Обработчики возвращают `IDisposable`. Освобождайте их, когда они больше не нужны.
+
+```typescript
+beforeDisposable.dispose()
+afterDisposable.dispose()
+disposable.dispose()
+```
+
+### Выполнение команд
+
+Если известны идентификатор команды и её параметры, выполните её через `FUniver.executeCommand`. Например, следующая команда Bases переименовывает активный Base.
+
+```typescript
+const base = univerAPI.getActiveBase()
+
+if (base) {
+  await univerAPI.executeCommand('base.command.set-base-name', {
+    unitId: base.getId(),
+    name: 'Заметки проекта',
+  })
+}
+```
+
+## API событий
+
+События в `univerAPI.Event` предоставляются ядром Univer и плагинами, зарегистрированными в приложении. Ядро предоставляет общие события команд и модулей, а плагины Bases добавляют события для таблиц, полей, записей, представлений и других изменений Base. Перед использованием события убедитесь, что предоставляющий его плагин зарегистрирован.
+
+Имена событий и типы параметров текущей версии приведены в [справочнике Facade Events](/reference/facade/events#properties).
+
+Подпишитесь через `addEvent` и освободите возвращённый объект, чтобы отменить подписку.
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id }) => {
+  if (id === 'base.command.set-base-name') {
+    console.log('Имя Base изменено')
+  }
+})
+
+// Удалите обработчик, когда он больше не нужен
+disposable.dispose()
+```
+
+## Отмена и повтор действий
+
+```typescript
+await univerAPI.undo()
+await univerAPI.redo()
+```
+
+## Системный буфер обмена
+
+После регистрации плагина интерфейса Bases методы `copy` и `paste` работают с текущим выделением и позицией курсора в Base.
+
+```typescript
+await univerAPI.copy()
+await univerAPI.paste()
+```
+
+<Callout>
+  Копирование и вставка используют нативный Clipboard API браузера. Они могут не сработать, если страница не в фокусе, вызов инициирован не действием пользователя или нет разрешения на доступ к буферу обмена. Подробнее см. в [документации MDN](https://developer.mozilla.org/en-US/docs/Web/API/Clipboard_API).
+</Callout>
+
+## UI
+
+О расширении меню, панели инструментов и других областей интерфейса читайте в разделе [Компоненты интерфейса Bases](/guides/bases/ui/components).
+
+## WebSocket
+
+Для работы с WebSocket установите `@univerjs/network`, зарегистрируйте `UniverNetworkPlugin` и импортируйте его Facade-расширение.
+
+```typescript
+import { UniverNetworkPlugin } from '@univerjs/network'
+import '@univerjs/network/facade'
+
+univer.registerPlugin(UniverNetworkPlugin)
+```
+
+После этого можно подписываться на события сокета, отправлять сообщения и закрывать соединение.
+
+```typescript
+const socket = univerAPI.createSocket('wss://example.com/bases')
+
+socket.open$.subscribe(() => socket.send('hello'))
+socket.message$.subscribe((message) => console.log('Сообщение WebSocket:', message.data))
+socket.error$.subscribe((error) => console.error('Ошибка WebSocket:', error))
+socket.close()
+```
+
+## API перечислений
+
+Общие перечисления доступны через `univerAPI.Enum`.
+
+```typescript
+console.log(univerAPI.Enum.UniverInstanceType.UNIVER_BASE)
+console.log(univerAPI.Enum.BaseFieldType.Text)
+```
+
+## API вспомогательных методов
+
+Общие вспомогательные методы доступны через `univerAPI.Util`.
+
+```typescript
+console.log(univerAPI.Util.tools.isString('Univer Bases')) // true
+```

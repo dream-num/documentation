@@ -1,0 +1,109 @@
+---
+title: 通用 API
+---
+
+根 Facade API 將通用 Univer 執行環境與目前應用程式註冊的 Slides 外掛程式組合在一起。本頁介紹命令、事件、歷史記錄和 Unit 生命週期，不假設讀者使用過其他 Univer 品類。簡報物件請繼續閱讀 [Univer Slides API](/guides/slides/features/core/slides-api)。
+
+## 建立 API 物件
+
+註冊 Univer 執行個體及所需外掛程式後，建立一個 `FUniver` 包裝物件：
+
+```ts
+import { FUniver } from '@univerjs/core/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+在此之前匯入的 Facade 入口會在同一個物件上擴充 Slides 方法。
+
+## 命令
+
+`executeCommand()` 會非同步執行已註冊的命令。只有命令明確支援同步執行時才使用 `syncExecuteCommand()`。常用 Slides 操作應優先使用 Facade 方法。
+
+## 事件
+
+```ts
+const commandLog = univerAPI.addEvent(
+  univerAPI.Event.CommandExecuted,
+  ({ id }) => console.log('Executed:', id)
+)
+
+// 不再需要監聽時釋放它。
+commandLog.dispose()
+```
+
+應用程式需要檢查或取消命令時，可以監聽 `BeforeCommandExecute`。`LifeCycleChanged` 會回報編輯器進入 `Rendered`、`Steady` 等階段。
+
+## 復原與重做
+
+復原和重做作用於目前取得焦點的 Univer Unit，並傳回 Promise：
+
+```ts
+await univerAPI.undo()
+await univerAPI.redo()
+```
+
+Slides Facade 變更透過命令管線執行，因此支援的變更會進入同一份歷史記錄。
+
+## 系統剪貼簿
+
+註冊 `UniverSlidesUIPlugin` 後，`copy()` 會透過 UI 命令複製目前 Slides 選取項目。Slides 目前沒有註冊相對應的 Facade 貼上實作，因此本指南不承諾 `paste()`。
+
+```ts
+import '@univerjs/ui/facade'
+
+await univerAPI.copy()
+```
+
+剪貼簿操作要求瀏覽器編輯器取得焦點，在僅模型的 Node.js 執行環境中無法使用。
+
+## UI
+
+UI Facade 可以顯示訊息、開啟對話方塊或側邊欄、註冊元件，並控制內建 UI 區域：
+
+```ts
+univerAPI
+  .showMessage({ content: 'Presentation saved', type: 'success' })
+  .setUIVisible(univerAPI.Enum.BuiltInUIPart.TOOLBAR, true)
+```
+
+這些方法依賴 `UniverUIPlugin`；Slides 編輯控制項還需要 `UniverSlidesUIPlugin`。
+
+## WebSocket
+
+WebSocket 是由 Network Facade 提供的選用能力：
+
+```ts
+import { UniverNetworkPlugin } from '@univerjs/network'
+
+import '@univerjs/network/facade'
+
+univer.registerPlugin(UniverNetworkPlugin)
+
+const socket = univerAPI.createSocket('wss://example.com/slides')
+
+socket.open$.subscribe(() => socket.send('ready'))
+```
+
+訊息協定、身分驗證、重新連線和協作衝突處理仍由宿主應用程式負責。
+
+## 列舉
+
+`univerAPI.Enum` 提供通用執行環境列舉，以及 Slides 擴充的列舉：
+
+```ts
+const lifecycle = univerAPI.Enum.LifecycleStages.Steady
+const transition = univerAPI.Enum.SlideTransitionTypeEnum.Fade
+const elementType = univerAPI.Enum.SlidePageElementTypeEnum.Shape
+```
+
+## 工具
+
+`univerAPI.Util` 提供數字格式化、矩形運算和通用工具等共享輔助能力：
+
+```ts
+const payload = univerAPI.Util.tools.deepClone({
+  slideId: 'slide-1',
+  selectedElementIds: ['element-1'],
+})
+```

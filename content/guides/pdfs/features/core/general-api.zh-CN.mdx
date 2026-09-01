@@ -1,0 +1,109 @@
+---
+title: 通用 API
+description: 在 PDF 应用中使用通用的命令、事件、历史记录、剪贴板、UI、WebSocket、枚举和工具。
+---
+
+根 Facade API 由 Univer 通用运行时和当前 PDF 应用注册的插件共同扩展。本页介绍跨品类机制，不假设读者使用过其他 Univer 品类。PDF 单元和页面入口请继续阅读 [Univer PDFs API](/guides/pdfs/features/core/pdfs-api)。
+
+## 创建 API 对象
+
+注册 Univer 实例和所需插件后，创建一个 `FUniver` 包装对象：
+
+```ts
+import { FUniver } from '@univerjs/core/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+在此之前导入的 Facade 入口会为同一个对象扩展更多方法。
+
+## 命令
+
+`executeCommand()` 异步执行已注册命令。只有命令明确支持同步执行时才使用 `syncExecuteCommand()`。常用 PDF 操作仍应优先使用 Facade 方法。
+
+## 事件
+
+```ts
+const commandLog = univerAPI.addEvent(
+  univerAPI.Event.CommandExecuted,
+  ({ id }) => console.log('Executed:', id)
+)
+
+// 不再需要时移除监听器。
+commandLog.dispose()
+```
+
+应用需要检查或取消命令时，可监听 `BeforeCommandExecute`。`LifeCycleChanged` 会报告 `Rendered`、`Steady` 等通用编辑器阶段。
+
+## 撤销与重做
+
+撤销和重做作用于当前聚焦的 Univer 单元，并返回 Promise：
+
+```ts
+await univerAPI.undo()
+await univerAPI.redo()
+```
+
+具有逆操作的 PDF Facade 变更会进入当前聚焦 PDF 单元的历史记录。
+
+## 系统剪贴板
+
+注册 `UniverPdfsUIPlugin` 并启用 PDF 编辑后，UI Facade 的 `copy()` 和 `paste()` 会把剪贴板命令分发到当前聚焦的 PDF 单元：
+
+```ts
+import '@univerjs/ui/facade'
+
+await univerAPI.copy()
+await univerAPI.paste()
+```
+
+对于可编辑 PDF 对象，PDF UI 插件会把复制内容保存在当前浏览器会话中，而不是写入操作系统剪贴板；浏览器原生文本编辑仍遵循浏览器的剪贴板行为。
+
+## UI
+
+UI Facade 可以显示消息、打开对话框或侧边栏、注册组件，以及控制内置 UI 区域：
+
+```ts
+univerAPI.setUIVisible(univerAPI.Enum.BuiltInUIPart.TOOLBAR, true)
+```
+
+这些方法需要 `UniverUIPlugin`；PDF 编辑控件还需要 `UniverPdfsUIPlugin`。
+
+## WebSocket
+
+WebSocket 是可选能力。创建 API 对象前，请注册 Network 插件并导入其 Facade 入口：
+
+```ts
+import { UniverNetworkPlugin } from '@univerjs/network'
+
+import '@univerjs/network/facade'
+
+univer.registerPlugin(UniverNetworkPlugin)
+
+const socket = univerAPI.createSocket('wss://example.com/pdfs')
+socket.open$.subscribe(() => socket.send('ready'))
+```
+
+消息协议、鉴权、重连和协同冲突处理仍由宿主应用负责。
+
+## 枚举
+
+`univerAPI.Enum` 提供通用运行时枚举，以及 PDF Facade 扩展的枚举：
+
+```ts
+const lifecycle = univerAPI.Enum.LifecycleStages.Steady
+const annotationType = univerAPI.Enum.PdfAnnotationType.HIGHLIGHT
+```
+
+## 工具
+
+`univerAPI.Util` 提供数字格式化、矩形运算和通用工具等共享辅助能力：
+
+```ts
+const payload = univerAPI.Util.tools.deepClone({
+  pageId: 'page-1',
+  selectedElementIds: ['element-1'],
+})
+```
+
+完整通用 API 请参阅 [Facade 参考](/reference/facade/univer)。

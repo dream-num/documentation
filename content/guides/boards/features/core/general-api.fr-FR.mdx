@@ -1,0 +1,147 @@
+---
+title: API générale
+---
+
+L’API Facade disponible dans Univer dépend du type d’unité actif et des plugins enregistrés. Cette page présente les API communes à une application Univer Boards.
+
+## Importation
+
+```typescript
+import { FUniver } from '@univerjs/core/facade'
+import '@univerjs-pro/boards/facade'
+
+const univerAPI = FUniver.newAPI(univer)
+```
+
+## Commandes
+
+La plupart des opérations Univer sont enregistrées dans le système de commandes. Ce chemin d’exécution unifié permet notamment l’annulation, le rétablissement et la collaboration.
+
+<Callout>
+  Pour plus de détails sur la conception, consultez le [système de commandes Univer](/blog/univer#command-system).
+</Callout>
+
+### Écoute des commandes
+
+Utilisez `Event.BeforeCommandExecute` pour exécuter une logique avant une commande et `Event.CommandExecuted` pour l’exécuter une fois la commande terminée.
+
+```typescript
+const beforeDisposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, ({ id, params }) => {
+  console.log('Avant la commande :', id, params)
+})
+
+const afterDisposable = univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, params }) => {
+  console.log('Commande exécutée :', id, params)
+})
+```
+
+Pour empêcher l’exécution d’une commande, définissez `event.cancel` sur `true` dans un écouteur `BeforeCommandExecute`.
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (event) => {
+  if (event.id === 'board.command.set-name') {
+    event.cancel = true
+  }
+})
+```
+
+Les écouteurs renvoient un objet `IDisposable`. Supprimez-les lorsqu’ils ne sont plus nécessaires.
+
+```typescript
+beforeDisposable.dispose()
+afterDisposable.dispose()
+disposable.dispose()
+```
+
+### Exécution de commandes
+
+Si vous connaissez l’identifiant et les paramètres d’une commande, exécutez-la avec `FUniver.executeCommand`. Par exemple, cette commande Boards renomme le Board actif :
+
+```typescript
+const board = univerAPI.getActiveBoard()
+
+if (board) {
+  await univerAPI.executeCommand('board.command.set-name', {
+    unitId: board.getId(),
+    name: 'Notes du projet',
+  })
+}
+```
+
+## API des événements
+
+Les événements exposés par `univerAPI.Event` proviennent du noyau Univer et des plugins enregistrés dans l’application. Le noyau fournit les événements partagés de commande et d’unité, et les plugins enregistrés peuvent enrichir cette surface. Avant d’utiliser un événement, vérifiez qu’il appartient à un plugin enregistré.
+
+Consultez la [référence des événements Facade](/reference/facade/events#properties) pour connaître les noms et les types de paramètres disponibles dans la version actuelle.
+
+Utilisez `addEvent` pour vous abonner, puis supprimez l’objet renvoyé pour vous désabonner :
+
+```typescript
+const disposable = univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id }) => {
+  if (id === 'board.command.set-name') {
+    console.log('Le nom du Board a changé')
+  }
+})
+
+// Supprimez l’écouteur lorsqu’il n’est plus nécessaire
+disposable.dispose()
+```
+
+## Annulation et rétablissement
+
+```typescript
+await univerAPI.undo()
+await univerAPI.redo()
+```
+
+## Interface utilisateur
+
+Consultez [Composants de l’interface Boards](/guides/boards/ui/components) pour étendre les menus, la barre d’outils et les autres zones de l’interface Boards.
+
+## WebSocket
+
+Pour utiliser les API WebSocket, installez `@univerjs/network`, enregistrez `UniverNetworkPlugin`, puis importez son extension Facade.
+
+```typescript
+import { UniverNetworkPlugin } from '@univerjs/network'
+import '@univerjs/network/facade'
+
+univer.registerPlugin(UniverNetworkPlugin)
+```
+
+Vous pouvez ensuite vous abonner aux événements du socket, envoyer des messages et fermer la connexion :
+
+```typescript
+const socket = univerAPI.createSocket('wss://example.com/boards')
+
+socket.open$.subscribe(() => {
+  socket.send('hello')
+})
+
+socket.message$.subscribe((message) => {
+  console.log('Message WebSocket :', message.data)
+})
+
+socket.error$.subscribe((error) => {
+  console.error('Erreur WebSocket :', error)
+})
+
+socket.close()
+```
+
+## API des énumérations
+
+Facade expose des énumérations communes par l’intermédiaire de `univerAPI.Enum` :
+
+```typescript
+console.log(univerAPI.Enum.UniverInstanceType.UNIVER_BOARD)
+console.log(univerAPI.Enum.BoardElementType.Shape)
+```
+
+## API des méthodes utilitaires
+
+Facade expose les utilitaires partagés par l’intermédiaire de `univerAPI.Util` :
+
+```typescript
+console.log(univerAPI.Util.tools.isString('Univer Boards')) // true
+```
