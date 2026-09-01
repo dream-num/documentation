@@ -1,0 +1,122 @@
+---
+title: Instalación y uso básico
+icon: 'Blocks'
+---
+
+Univer PDFs es un producto de Univer Pro y actualmente no proporciona un preset. Cree aplicaciones PDF en modo de plugins.
+
+## Instalar el editor para el navegador
+
+<Tabs items={['npm', 'pnpm', 'yarn']}>
+  <Tab>
+
+    ```shell
+    npm install @univerjs/core @univerjs/design @univerjs/ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-editor @univerjs-pro/pdfs-ui
+    ```
+
+  </Tab>
+  <Tab>
+
+    ```shell
+    pnpm add @univerjs/core @univerjs/design @univerjs/ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-editor @univerjs-pro/pdfs-ui
+    ```
+
+  </Tab>
+  <Tab>
+
+    ```shell
+    yarn add @univerjs/core @univerjs/design @univerjs/ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-editor @univerjs-pro/pdfs-ui react react-dom rxjs
+    ```
+
+  </Tab>
+</Tabs>
+
+Mantenga todos los paquetes `@univerjs/*` y `@univerjs-pro/*` en la misma versión.
+
+## Registrar los plugins
+
+<Steps>
+  <Step>
+    Importe los estilos de la interfaz compartida antes del estilo de la interfaz PDF y combine los paquetes de configuración regional habilitados por su aplicación:
+
+    ```ts
+    import { UniverLicensePlugin } from '@univerjs-pro/license'
+    import { UniverPdfsPlugin } from '@univerjs-pro/pdfs'
+    import { UniverPdfEditorPlugin } from '@univerjs-pro/pdfs-editor'
+    import { UniverPdfsUIPlugin } from '@univerjs-pro/pdfs-ui'
+    import PdfsUIEnUS from '@univerjs-pro/pdfs-ui/locale/en-US'
+    import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+    import { FUniver } from '@univerjs/core/facade'
+    import DesignEnUS from '@univerjs/design/locale/en-US'
+    import { UniverUIPlugin } from '@univerjs/ui'
+    import UIEnUS from '@univerjs/ui/locale/en-US'
+
+    import '@univerjs/design/lib/index.css'
+    import '@univerjs/ui/lib/index.css'
+    import '@univerjs-pro/pdfs-ui/lib/index.css'
+    ```
+
+  </Step>
+  <Step>
+    Importe la entrada Facade de PDF. Esta importación por efecto secundario añade métodos y enumeraciones de PDF a `FUniver`:
+
+    ```ts
+    import '@univerjs-pro/pdfs/facade'
+    ```
+
+  </Step>
+  <Step>
+    Cree el entorno de ejecución, registre la pila explícita de plugins y cree un PDF:
+
+    ```ts
+    const univer = new Univer({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: mergeLocales(
+          DesignEnUS,
+          UIEnUS,
+          PdfsUIEnUS,
+        ),
+      },
+    })
+
+    univer.registerPlugin(UniverUIPlugin, { container: 'app' })
+    univer.registerPlugin(UniverLicensePlugin, {
+      license: process.env.CLIENT_LICENSE_TEXT,
+    })
+    univer.registerPlugin(UniverPdfsPlugin)
+    univer.registerPlugin(UniverPdfEditorPlugin)
+    univer.registerPlugin(UniverPdfsUIPlugin)
+
+    const univerAPI = FUniver.newAPI(univer)
+    univerAPI.createPdf({ name: 'Untitled PDF' })
+    ```
+
+  </Step>
+</Steps>
+
+## Worker de miniaturas opcional
+
+Las miniaturas de página pueden renderizarse en el hilo principal sin configuración adicional. Para documentos más grandes, proporcione un worker de módulo dedicado mediante `thumbnailWorkerURL`.
+
+Cree una entrada de worker como `pdf-thumbnail.worker.ts`:
+
+```ts
+import { startPdfPageThumbnailWorker } from '@univerjs-pro/pdfs-ui'
+
+startPdfPageThumbnailWorker()
+```
+
+A continuación, pase su URL al registrar el plugin de interfaz PDF:
+
+```ts
+univer.registerPlugin(UniverPdfsUIPlugin, {
+  thumbnailWorkerURL: new Worker(new URL('./pdf-thumbnail.worker.ts', import.meta.url), { type: 'module' }),
+})
+```
+
+La opción también acepta una URL como cadena o un `Worker` existente. Si los workers u `OffscreenCanvas` no están disponibles, el renderizado de miniaturas vuelve al hilo principal.
+
+## Uso con Node.js
+
+Los servicios de Node.js pueden registrar `UniverPdfsPlugin` y `UniverPdfEditorPlugin` sin paquetes de interfaz para el navegador. Añada el cliente de colaboración solo cuando el servicio necesite cargar o sincronizar unidades PDF persistentes.

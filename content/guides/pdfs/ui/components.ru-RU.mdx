@@ -1,276 +1,43 @@
 ---
 title: Пользовательские компоненты
-icon: '#pro/Component'
+icon: Component
 ---
 
+`UniverPdfsUIPlugin` собирает интерфейс PDF из стандартных областей рабочей среды Univer.
 
-## Регистрация пользовательских компонентов
+| Режим | Компоненты, монтируемые плагином PDF UI |
+| --- | --- |
+| Всегда | Панель миниатюр в левой боковой панели, холст PDF в области содержимого и нижняя панель PDF. |
+| `editor.enabled: true` | Лента и контекстные меню, инспектор свойств, интеграция буфера обмена, элементы вставки и компоненты меню редактора. |
 
-```typescript
-// [!code word:componentKey]
-// [!code word:CustomComponent]
-// [!code word:options]
-univerAPI.registerComponent(componentKey, CustomComponent, options)
-```
+При `editor.enabled: false` части просмотрщика сохраняются, а компоненты и службы только для редактора не регистрируются.
 
-Для регистрации пользовательских компонентов используйте метод `univerAPI.registerComponent`. Он принимает три параметра:
+## Граница компонентов PDF
 
-- `componentKey`: уникальный идентификатор компонента, по которому к нему можно обращаться в Univer.
-- `CustomComponent`: реализация компонента — это может быть компонент React, Vue или Web Component.
-- `options`: необязательные параметры конфигурации, с помощью которых можно указать фреймворк, от которого зависит компонент, и другие связанные настройки.
+React-представления и идентификаторы холста, панели миниатюр, нижней панели, инспектора, выбора таблицы и метки режима — внутренние детали реализации. Корневая точка входа `@univerjs-pro/pdfs-ui` их не экспортирует, и они не являются поддерживаемыми слотами замены.
 
-### Компоненты React [#react]
+Не угадывайте и не копируйте внутренний ключ для замены этих представлений через `univerAPI.registerComponent`. Управляйте поведением PDF через поддерживаемые API из [руководства по PDF Facade](/guides/pdfs/getting-started/facade).
 
-Для регистрации компонента React дополнительная настройка не требуется — достаточно убедиться, что это корректный компонент React. Простой пример:
+## Добавление интерфейса приложения рядом с PDF
 
-```tsx
-function ReactComponent(props: Record<string, any>) {
-  return <div>Hello Univer!</div>
-}
-
-univerAPI.registerComponent('MyReactComponent', ReactComponent)
-```
-
-### Компоненты Vue [#vue]
-
-#### Vue 3.x
-
-Чтобы зарегистрировать компоненты Vue, установите и зарегистрируйте плагин `UniverVue3AdapterPlugin` из пакета `@univerjs/ui-adapter-vue3`:
-
-```package-install
-npm install @univerjs/ui-adapter-vue3
-```
-
-```typescript
-import { UniverVue3AdapterPlugin } from '@univerjs/ui-adapter-vue3'
-
-univer.registerPlugin(UniverVue3AdapterPlugin)
-```
-
-При регистрации компонентов Vue необходимо задать для параметра `framework` значение `'vue3'`:
+Общий UI Facade позволяет зарегистрировать компонент приложения и показать его в обычной боковой панели или диалоге Univer. Это расширяет окружающее приложение, но не заменяет компонент PDF-плагина.
 
 ```tsx
-const Vue3Component = defineComponent({
-  setup(props) {
-    return () => <div>Hello Univer!</div>
-  },
-})
-
-univerAPI.registerComponent('MyVue3Component', Vue3Component, {
-  // [!code word:vue3]
-  framework: 'vue3',
-})
-```
-
-#### Vue 2.x
-
-Поскольку поддержка Vue 2.x прекращена (EOL) и эта версия больше не сопровождается, сейчас Univer не предоставляет для нее плагин UI-адаптера. Однако вы можете реализовать адаптер Vue 2.x с помощью пользовательского плагина. Ниже приведен пример такого плагина:
-
-```typescript title="ui-adapter-vue2.ts"
-import { DependentOn, Inject, Injector, Plugin } from '@univerjs/core'
-import { ComponentManager, UniverUIPlugin } from '@univerjs/ui'
-import Vue from 'vue'
-
-/**
- * The plugin that allows Univer to use Vue 2 components as UI components.
- */
-@DependentOn(UniverUIPlugin)
-export class UniverVue2AdapterPlugin extends Plugin {
-  static override pluginName = 'UNIVER_UI_VUE2_ADAPTER_PLUGIN'
-
-  constructor(
-    private readonly _config = {},
-    @Inject(Injector) protected readonly _injector: Injector,
-    @Inject(ComponentManager) protected readonly _componentManager: ComponentManager,
-  ) {
-    super()
-  }
-
-  override onStarting(): void {
-    const { createElement, useEffect, useRef } = this._componentManager.reactUtils
-
-    this._componentManager.setHandler('vue2', (component: any) => {
-      return (props: Record<string, any>) =>
-        createElement(VueComponentWrapper, {
-          component,
-          props: Object.keys(props).reduce<Record<string, any>>((acc, key) => {
-            if (key !== 'key') {
-              acc[key] = props[key]
-            }
-            return acc
-          }, {}),
-          reactUtils: { createElement, useEffect, useRef },
-        })
-    })
-  }
-}
-
-export function VueComponentWrapper(options: {
-  component: any
-  props: Record<string, any>
-  reactUtils: typeof ComponentManager.prototype.reactUtils
-}) {
-  const { component, props, reactUtils } = options
-  const { createElement, useEffect, useRef } = reactUtils
-
-  const domRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!domRef.current) return
-
-    const Constructor = Vue.extend(component)
-
-    const instance = new Constructor({
-      data: props,
-    })
-    instance.$mount()
-
-    domRef.current.appendChild(instance.$el)
-
-    return () => {
-      instance.$destroy()
-    }
-  }, [props])
-
-  return createElement('div', { ref: domRef })
-}
-```
-
-Затем зарегистрируйте его:
-
-```typescript
-import { UniverVue2AdapterPlugin } from './ui-adapter-vue2' // [!code ++]
-
-univer.registerPlugin(UniverUIPlugin)
-univer.registerPlugin(UniverVue2AdapterPlugin) // [!code ++]
-```
-
-При регистрации компонентов Vue 2.x необходимо задать для параметра `framework` значение `'vue2'`:
-
-```tsx
-const Vue2Component = Vue.component('MyVue2Component', {
-  template: '<div>Hello, Univer!</div>',
-})
-
-univerAPI.registerComponent('MyVue2Component', Vue2Component, {
-  // [!code word:vue2]
-  framework: 'vue2',
-})
-```
-
-### Web Components [#web-component]
-
-Чтобы зарегистрировать Web Components, убедитесь, что компонент соответствует стандарту Web Components, а затем установите и зарегистрируйте плагин `UniverWebComponentAdapterPlugin` из пакета `@univerjs/ui-adapter-web-component`:
-
-```package-install
-npm install @univerjs/ui-adapter-web-component
-```
-
-```typescript
-import { UniverWebComponentAdapterPlugin } from '@univerjs/ui-adapter-web-component'
-
-univer.registerPlugin(UniverWebComponentAdapterPlugin)
-```
-
-При регистрации Web Components необходимо задать для параметра `framework` значение `'web-component'`:
-
-```tsx
-class WebComponent extends HTMLElement {
-  constructor() {
-    super()
-    const shadow = this.attachShadow({ mode: 'open' })
-    const div = document.createElement('div')
-    div.textContent = 'Hello Univer!'
-    shadow.appendChild(div)
-  }
-}
-
-univerAPI.registerComponent('my-web-component', WebComponent, {
-  // [!code word:web-component]
-  framework: 'web-component',
-})
-```
-
-## Использование пользовательских компонентов
-
-С помощью следующих методов можно гибко интегрировать в Univer различные пользовательские компоненты, расширяя и настраивая его возможности.
-
-<Callout type="warning" title="Внимание">
-  1. Перед использованием этих методов убедитесь, что Univer завершил отрисовку. 2. Если компонент требуется
-  зарегистрировать, перед использованием убедитесь, что регистрация выполнена правильно. 3. Используйте метод
-  `dispose()`, чтобы очищать и удалять добавленные компоненты и тем самым избегать утечек памяти.
-</Callout>
-
-### Добавление пользовательских пунктов меню
-
-Пользовательские компоненты можно добавлять как на верхнюю панель меню (Ribbon), так и в контекстное меню (Context Menu). Для этого необходимо создать пользовательский плагин. Чтобы вам было проще начать, мы подготовили [рекомендации по добавлению пользовательских пунктов меню](/blog/custom-plugin).
-
-### Замена встроенных компонентов
-
-<Callout type="error" title="Предупреждение">
-  Замена встроенных компонентов может нарушить работу некоторых функций. Прежде чем заменять компоненты, внимательно
-  изучите исходный код и документацию и действуйте осторожно.
-</Callout>
-
-Если при регистрации компонента методом `univerAPI.registerComponent` указанный `componentKey` уже существует, Univer заменит существующий компонент новым.
-
-Например, встроенный компонент ColorPicker можно заменить следующим образом:
-
-```tsx
-// Following code only replaces the UI of the built-in ColorPicker component, not its functionality
-univerAPI.registerComponent('UI_COLOR_PICKER_COMPONENT', () => <input type="color" />)
-```
-
-### Использование в качестве компонентов содержимого
-
-#### На боковой панели
-
-Метод `univerAPI.openSidebar` позволяет открыть в интерфейсе Univer боковую панель с пользовательским компонентом.
-
-```tsx
-// [!code word:MyCustomSidebarComponent]
-// You should register the component at an appropriate time (e.g., after Univer has loaded)
-univerAPI.registerComponent('MyCustomSidebarComponent', () => <div>Hello Univer!</div>)
+const registration = univerAPI.registerComponent(
+  'pdf-help-panel',
+  () => <div>PDF workflow help</div>,
+)
 
 const sidebar = univerAPI.openSidebar({
-  header: { title: 'My Sidebar' },
-  children: { label: 'MyCustomSidebarComponent' },
-  onClose: () => {
-    console.log('close')
-  },
-  width: 360,
+  id: 'pdf-help',
+  header: { title: 'PDF help' },
+  children: { label: 'pdf-help-panel' },
+  width: 320,
 })
 
-// Later close the sidebar
+// Когда расширение больше не нужно:
 sidebar.dispose()
+registration.dispose()
 ```
 
-Справочник: [`univerAPI.openSidebar`](/reference/facade/univer#opensidebar)
-
-#### В диалоговом окне
-
-Метод `univerAPI.openDialog` позволяет открыть диалоговое окно с пользовательским компонентом.
-
-```tsx
-// [!code word:MyCustomDialogComponent]
-// You should register the component at an appropriate time (e.g., after Univer has loaded)
-univerAPI.registerComponent('MyCustomDialogComponent', () => <div>Hello Univer!</div>)
-
-const dialog = univerAPI.openDialog({
-  id: 'unique-dialog-id', // The unique identifier for the dialog
-  draggable: true,
-  width: 300,
-  title: { title: 'My Dialog' },
-  children: {
-    label: 'MyCustomDialogComponent',
-  },
-  destroyOnClose: true,
-  preservePositionOnDestroy: true,
-  onClose: () => {},
-})
-
-// Later close the dialog
-dialog.dispose()
-```
-
-Справочник: [`univerAPI.openDialog`](/reference/facade/univer#opendialog)
+Регистрируйте компонент после загрузки UI Facade и освобождайте оба дескриптора при удалении расширения.

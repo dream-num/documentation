@@ -1,4 +1,6 @@
 const guideContentPlacements = new Map([
+  ['bases/ui/themes', 'fundamentals/ui/themes'],
+  ['boards/ui/themes', 'fundamentals/ui/themes'],
   ['docs/ui/themes', 'fundamentals/ui/themes'],
   ['pdfs/ui/themes', 'fundamentals/ui/themes'],
   ['sheets/ui/themes', 'fundamentals/ui/themes'],

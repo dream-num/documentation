@@ -1,62 +1,76 @@
 ---
 title: Structure des données des diapositives
-icon: '#pro/Presentation'
+icon: 'Presentation'
 ---
 
 ## ISlideData
 
-`ISlideData` est le format d’instantané utilisé par Univer Slides. Il décrit une unité de présentation, notamment son identifiant, son titre, la taille de ses pages, ses diapositives et ses pages de référence réutilisables, telles que les masques et les dispositions.
+`ISlideData` est le snapshot persistant d’une présentation Univer Slides. Il stocke les métadonnées de la présentation, la collection ordonnée de diapositives, les couches optionnelles de masques et de dispositions, les transitions, les thèmes et les ressources.
 
-### Propriétés
+### Propriétés obligatoires
 
 | Propriété | Type | Description |
 | --- | --- | --- |
-| id | `string` | Identifiant unique de l’unité Univer Slides. |
-| locale? | `LocaleType` | Paramètres régionaux de la présentation. |
-| title | `string` | Titre de la présentation. |
-| pageSize | `ISize` | Taille de page par défaut des diapositives de la présentation. |
-| body? | `ISlidePageBody` | Diapositives et ordre dans lequel elles apparaissent. |
-| master? | `{ [id: string]: ISlidePage }` | Masques partagés par les diapositives et les dispositions. |
-| layouts? | `{ [id: string]: ISlidePage }` | Dispositions référencées par les diapositives standard. |
-| handoutMaster? | `{ [id: string]: ISlidePage }` | Masques des documents à distribuer. |
-| notesMaster? | `{ [id: string]: ISlidePage }` | Masques des pages de notes. |
-| lists? | `ILists` | Définitions de listes utilisées par les éléments de texte enrichi. |
+| `id` | `string` | ID unique de l’unité de présentation. |
+| `name` | `string` | Nom affiché de la présentation. |
+| `defaultPageSize` | `ISlidePageSize` | Largeur et hauteur par défaut lorsqu’une page ne définit pas sa propre taille. |
+| `slideOrder` | `string[]` | IDs des diapositives dans l’ordre de la présentation. |
+| `slides` | `Record<string, ISlidePage>` | Diapositives normales indexées par ID. |
 
-### Corps
+### Propriétés optionnelles
 
-`body.pages` stocke les diapositives par identifiant de page, tandis que `body.pageOrder` enregistre leur ordre d’affichage. Veillez à maintenir ces deux propriétés synchronisées lorsque vous créez un instantané.
+| Propriété | Type | Description |
+| --- | --- | --- |
+| `rev?` | `number` | Révision du snapshot. |
+| `appVersion?` | `string` | Version d’Univer ayant produit le snapshot. |
+| `locale?` | `LocaleType` | Locale de la présentation. |
+| `masterPageOrder?` | `string[]` | IDs des masques dans l’ordre stocké. |
+| `masterPages?` | `Record<string, ISlideMasterPage>` | Masques indexés par ID. |
+| `layoutPageOrder?` | `string[]` | IDs des dispositions dans l’ordre stocké. |
+| `layoutPages?` | `Record<string, ISlideLayoutPage>` | Dispositions indexées par ID. |
+| `handoutMasterPageOrder?` | `string[]` | IDs des masques de documents dans l’ordre stocké. |
+| `handoutMasterPages?` | `Record<string, ISlideHandoutMasterPage>` | Masques de documents indexés par ID. |
+| `notesMasterPageOrder?` | `string[]` | IDs des masques de notes dans l’ordre stocké. |
+| `notesMasterPages?` | `Record<string, ISlideNotesMasterPage>` | Masques de notes indexés par ID. |
+| `activeSlideId?` | `string` | ID de la diapositive active. |
+| `transitionRecords?` | `Record<string, ISlideTransition>` | Transitions réutilisables indexées par ID. |
+| `slideTransitionRefs?` | `Record<string, string>` | Association des IDs de diapositives aux IDs de transitions. |
+| `theme?` | `ISlideThemeData` | Thème par défaut de la présentation. |
+| `themes?` | `Record<string, ISlideThemeData>` | Thèmes supplémentaires indexés par ID. |
+| `zoomRatio?` | `number` | Niveau de zoom persistant de la présentation. |
+| `resources?` | `IResources` | Ressources fournies par Slides et ses plugins fonctionnels. |
+| `custom?` | `SlideCustomData` | Métadonnées de présentation définies par l’application. |
+
+### Enregistrements de pages ordonnés
+
+Chaque ID de `slideOrder` doit correspondre à une entrée de `slides`. Les couches optionnelles de masques, de dispositions, de masques de documents et de masques de notes suivent le même modèle de liste d’ordre et d’enregistrement indexé par ID. `activeSlideId`, s’il est défini, doit correspondre à une entrée de `slides`.
 
 ```typescript
+import type { ISlideData } from '@univerjs-pro/slides'
+import { PageTypeEnum } from '@univerjs-pro/slides'
+
 const slideData: ISlideData = {
   id: 'deck-1',
-  title: 'Product roadmap',
-  pageSize: { width: 960, height: 540 },
-  body: {
-    pageOrder: ['slide-1'],
-    pages: {
-      'slide-1': {
-        id: 'slide-1',
-        pageType: PageType.SLIDE,
-        zIndex: 10,
-        title: 'Opening',
-        description: '',
-        pageBackgroundFill: { rgb: 'rgb(255,255,255)' },
-        pageElements: {},
-      },
+  name: 'Feuille de route produit',
+  defaultPageSize: { width: 960, height: 540 },
+  slideOrder: ['slide-1'],
+  slides: {
+    'slide-1': {
+      id: 'slide-1',
+      name: 'Ouverture',
+      pageType: PageTypeEnum.Slide,
+      elementOrder: [],
+      elements: {},
     },
   },
+  activeSlideId: 'slide-1',
 }
 ```
 
 ### Utilisation
 
-`ISlideData` sert principalement à :
+Passez un snapshot à `univerAPI.createPresentation(slideData)` pour restaurer une présentation. Utilisez `presentation.save()` pour obtenir le snapshot `ISlideData` actuel afin de le persister, de l’exporter, de l’imprimer ou de le traiter côté serveur.
 
-1. Créer une unité `UniverInstanceType.UNIVER_SLIDE`.
-2. Enregistrer ou restaurer l’instantané d’une présentation.
-3. Préparer des données pour l’importation, l’exportation, l’impression ou le traitement côté serveur.
-4. Fournir l’instantané source utilisé par `SlideDataModel`.
-
-<Callout type="warning">
-  Les objets d’instantané sont des données persistantes. Une fois la présentation en cours d’exécution, utilisez de préférence les API Facade plutôt que de modifier directement l’objet d’instantané.
+<Callout type="warning" title="Attention">
+  Un snapshot est une donnée de persistance, pas le `SlideModel` actif. Après le démarrage de la présentation, utilisez les méthodes Facade de Slides ou des commandes enregistrées au lieu de modifier l’objet snapshot.
 </Callout>

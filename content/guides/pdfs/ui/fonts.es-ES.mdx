@@ -1,99 +1,66 @@
 ---
 title: Lista de fuentes personalizadas
-icon: '#pro/BookType'
+icon: BookType
 ---
 
+El texto PDF y el menú de fuentes del editor usan dos fuentes de datos relacionadas, pero distintas.
 
-## Definición de estructura de fuentes
+| Fuente | Qué controla |
+| --- | --- |
+| `document.assets.fonts` y el `fontId` de un fragmento | Metadatos y recursos de fuentes PDF importadas que reconstruyen el contenido nativo. |
+| `fontFamily` de un fragmento editable | La familia CSS utilizada para componer y renderizar texto editable. |
+| La lista de fuentes compartida de Univer | Las opciones del selector de fuentes del inspector PDF. |
 
-En Univer, las fuentes se definen usando la interfaz `IFontConfig`:
+Añadir una opción a la lista compartida no crea un recurso en `document.assets.fonts` ni descarga o incrusta un archivo de fuente.
 
-| Propiedad | Tipo | Descripción |
-| --- | --- | --- |
-| `value` | `string` | El identificador único de la fuente, normalmente el valor preferido para la familia de fuentes CSS. |
-| `label` | `string` | La clave de traducción para la internacionalización. Si esta clave no se especifica cuando se crea la instancia de Univer, el valor pasado se muestra directamente. |
-| `category` | `'sans-serif' \| 'serif' \| 'monospace' \| 'display' \| 'handwriting'` | Categoría de fuente, utilizada para agrupar la interfaz de usuario (opcional). |
+## Configurar la lista del editor
 
-<Callout>
-Univer no impide que los usuarios seleccionen fuentes desinstaladas. Si una fuente no está instalada en el cliente, el navegador la sustituirá por la fuente predeterminada.
-</Callout>
+Cuando `editor.enabled` es `true`, el inspector PDF usa el `FontFamilyDropdown` compartido. Configura su lista en `UniverUIPlugin`:
 
-{/* <AutoTypeTable
-  name="IFontConfig"
-  type={`
-    export type { IFontConfig } from '@univerjs/ui'
-  `}
-/> */}
+```ts
+import { UniverUIPlugin } from '@univerjs/ui'
 
-## Uso de fuentes personalizadas
-
-Puede definir las opciones en el menú desplegable de fuentes configurando el parámetro `customFontFamily` para `UniverSheetsCorePreset` (modo preestablecido) o `UniverUIPlugin` (modo complemento).
-
-<Tabs items={['Preset Mode', 'Plugin Mode']}>
-  <Tab>
-    ```typescript
-    const { univerAPI } = createUniver({
-      presets: [
-        UniverSheetsCorePreset({
-          container: 'app',
-          customFontFamily: {
-            list: [
-              {
-                value: 'PingFang SC',
-                label: '苹方（简）',
-                category: 'sans-serif',
-              },
-              {
-                value: 'Helvetica Neue',
-                label: 'Helvetica Neue',
-                category: 'sans-serif',
-              },
-            ],
-            // Whether to override the default font list, defaults to false
-            override: true,
-          },
-        }),
-      ],
-    })
-    ```
-  </Tab>
-  <Tab>
-    ```typescript
-    univer.registerPlugin(UniverUIPlugin, {
-      container: 'app',
-      customFontFamily: {
-        list: [
-          {
-            value: 'PingFang SC',
-            label: '苹方（简）',
-            category: 'sans-serif',
-          },
-          {
-            value: 'Helvetica Neue',
-            label: 'Helvetica Neue',
-            category: 'sans-serif',
-          },
-        ],
-        // Whether to override the default font list, defaults to false
-        override: true,
-      },
-    })
-    ```
-  </Tab>
-</Tabs>
-
-### API de Facade
-
-Además de la configuración durante la inicialización, también puede registrar dinámicamente nuevas fuentes en tiempo de ejecución mediante la API de fachada. Esto es muy útil en escenarios donde los recursos de fuentes deben cargarse de forma asincrónica.
-
-```typescript
-univerAPI.addFonts([{
-  value: 'PingFang SC',
-  label: 'PingFang SC',
-  category: 'sans-serif',
-}, {
-  value: 'Helvetica Neue',
-  label: 'Helvetica Neue',
-  category: 'sans-serif',
-}])
+univer.registerPlugin(UniverUIPlugin, {
+  container: 'app',
+  customFontFamily: {
+    list: [
+      { value: 'Inter', label: 'Inter', category: 'sans-serif' },
+      { value: 'Noto Serif', label: 'Noto Serif', category: 'serif' },
+    ],
+    override: false,
+  },
+})
 ```
+
+Carga cada fuente del navegador mediante `@font-face` o una hoja de estilos. De lo contrario, Canvas usa una fuente de reserva del navegador.
+
+## Añadir opciones en tiempo de ejecución
+
+Después de cargar la Facade de UI, añade opciones a la misma lista compartida con `addFonts`:
+
+```ts
+univerAPI.addFonts([
+  { value: 'Inter', label: 'Inter', category: 'sans-serif' },
+])
+```
+
+Esto solo actualiza la lista de la aplicación; no carga los bytes de la fuente ni reescribe fragmentos PDF existentes.
+
+## Aplicar una fuente a texto PDF editable
+
+Pasa `fontFamily` al insertar texto o actualiza un cuadro de texto mediante la Facade PDF:
+
+```ts
+const page = univerAPI.getActivePdf()?.getPageByIndex(0)
+const textBox = page?.insertTextBox({
+  text: 'Hello PDF',
+  fontFamily: 'Inter',
+  fontSize: 14,
+  left: 36,
+  top: 36,
+})
+
+textBox?.setTextStyle({ fontFamily: 'Noto Serif' })
+```
+
+El texto nativo importado que devuelve `page.getTextSpans()` es una instantánea y no se puede estilizar directamente. Usa `replaceText(...)` para convertirlo en un cuadro editable antes de llamar a `setTextStyle`.

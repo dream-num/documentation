@@ -1,42 +1,20 @@
 ---
-title: PDF UI
-description: Configure the PDF canvas, editor controls, locales, and thumbnail worker.
-icon: '#pro/LayoutPanelTop'
+title: UI Overview
+description: Configure the PDF canvas, editor controls, locale, and thumbnail worker.
+icon: LayoutDashboard
 ---
 
+`@univerjs-pro/pdfs-ui` mounts PDF units in the standard Univer workbench and is licensed through Univer Pro.
 
-import { UIArchitecture } from '@/components/ui-architecture'
+## Package responsibilities
 
-## Architecture
+| Package | Responsibility |
+| --- | --- |
+| `@univerjs-pro/pdfs` | Registers the `UNIVER_PDF` unit, document model, and durable PDF commands. |
+| `@univerjs-pro/pdfs-ui` | Mounts the browser canvas, thumbnail rail, and footer. Its local editing controls are enabled by default. |
+| `@univerjs-pro/pdfs-editor` | Declares the collaboration-side editor dependencies. It does not mount the PDF UI or control `editor.enabled`. |
 
-The UI base of Univer is designed based on the following diagram:
-
-<UIArchitecture />
-
-By combining different plugins, various functionalities and views are added to the base, ultimately forming a complete application.
-
-## Design System
-
-Univer's design system is built on Tailwind CSS, creating a series of design tokens that are reused by the rendering engine to ensure consistent styling between the rendering engine and the view layer. You can customize your application's styles by modifying these tokens, which are stored in the `@univerjs/themes` package.
-
-
-
-## Components
-
-Univer uses React components to build the view layer, making it very easy for developers who also use React to either use Univer's components or register custom components. However, this does not mean you can only use React to create custom components; Univer also supports other frameworks, such as Vue (version 3.x) and Web Components.
-
-All basic components are stored in the `@univerjs/design` package, and icon components are stored in the `@univerjs/icons` package. These components can also be used independently of Univer.
-
-Custom components are often used in the following scenarios:
-
-- Adding custom buttons in Ribbon / Context Menu
-- Integrating custom components in Sidebar / Popup, etc.
-- Replacing built-in components
-
-We will provide detailed instructions on how to register and use custom components in the following chapters.
-
-
-`@univerjs-pro/pdfs-ui` renders `UNIVER_PDF` units in the browser. It provides the continuous page canvas, page thumbnails and organizer, selection and editing modes, search, ribbon and context-menu actions, inspector controls, and runtime services used by images and printing.
+`UniverPdfsUIPlugin` depends on `UniverLicensePlugin` and `UniverPdfsPlugin`. Complete the licensed PDF setup before registering the UI plugin.
 
 ## Register the UI plugin
 
@@ -46,17 +24,16 @@ import PdfsUIEnUS from '@univerjs-pro/pdfs-ui/locale/en-US'
 
 import '@univerjs-pro/pdfs-ui/lib/index.css'
 
-univer.registerPlugin(UniverPdfsUIPlugin, {
-  editor: { enabled: true },
-  thumbnailWorkerURL: new URL('./pdf-thumbnail-worker.js', import.meta.url),
-})
+univer.registerPlugin(UniverPdfsUIPlugin)
 ```
 
-Merge `PdfsUIEnUS` with the shared design and UI locale packs passed to `new Univer(...)`.
+Merge `PdfsUIEnUS` into the locales passed to `new Univer(...)`. The locale pack translates PDF-specific ribbon, inspector, context-menu, and page-rail labels.
 
-## Viewer-only mode
+## Viewer and editor modes
 
-Editing is enabled by default. Disable the editor controllers while retaining the PDF canvas and viewing UI:
+The plugin always mounts the page-thumbnail rail, PDF canvas, and footer. Editing is enabled by default and additionally registers the ribbon, context menus, inspector, clipboard, insertion commands, and editing actions and controllers.
+
+Use viewer-only mode when the current application must not expose those editing controls:
 
 ```ts
 univer.registerPlugin(UniverPdfsUIPlugin, {
@@ -64,11 +41,11 @@ univer.registerPlugin(UniverPdfsUIPlugin, {
 })
 ```
 
-This configuration controls UI and local editor services. It does not change the persisted PDF snapshot or grant application-level access control.
+This option changes the mounted UI and editing-specific controllers and services. It is not an authorization policy and does not alter a saved PDF snapshot.
 
 ## Thumbnail worker
 
-`thumbnailWorkerURL` accepts a string, `URL`, or an existing `Worker`. The worker module must start the exported PDF thumbnail runtime:
+`thumbnailWorkerURL` accepts a string, `URL`, or existing `Worker`. The referenced module must start the exported worker runtime:
 
 ```ts title="pdf-thumbnail-worker.ts"
 import { startPdfPageThumbnailWorker } from '@univerjs-pro/pdfs-ui'
@@ -76,12 +53,14 @@ import { startPdfPageThumbnailWorker } from '@univerjs-pro/pdfs-ui'
 startPdfPageThumbnailWorker()
 ```
 
-Point the plugin configuration at the built worker module. When no compatible worker is configured, thumbnail rendering falls back to the main-thread renderer.
+```ts
+univer.registerPlugin(UniverPdfsUIPlugin, {
+  thumbnailWorkerURL: new URL('./pdf-thumbnail-worker.js', import.meta.url),
+})
+```
 
-The worker path is an application asset, so its final URL depends on the bundler and deployment base path.
+The worker requires a dedicated Worker scope. If no worker is configured, the browser lacks the required APIs, or a page needs a main-thread-only resource, thumbnail rendering uses the main thread.
 
-## UI capabilities and Facade APIs
+## Public API boundary
 
-The UI includes tools for page organization, search, selection, native-text editing, text boxes, paragraphs, lists, tables, images, dividers, annotations, and undo and redo. These UI actions use PDF commands and runtime services internally.
-
-Do not infer a public Facade method from the presence of a ribbon button. Use the [PDF Facade reference](/reference/facade/pdf) for supported programmatic APIs, [Import & Export](/guides/pdfs/features/import-export) for exchange methods, and [Print](/guides/pdfs/features/print) for the browser print menu.
+The UI invokes PDF commands and services internally. A ribbon button does not imply a matching public method. Use the [PDF Facade guide](/guides/pdfs/getting-started/facade) for supported programmatic editing, [Import & Export](/guides/pdfs/features/import-export) for conversion, and [Print](/guides/pdfs/features/print) for browser printing.

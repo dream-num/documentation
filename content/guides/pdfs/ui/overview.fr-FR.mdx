@@ -1,62 +1,39 @@
 ---
-title: Interface PDF
-description: Configurez le canevas PDF, les commandes de l'éditeur, les locales et le worker de miniatures.
-icon: '#pro/LayoutPanelTop'
+title: Présentation de l’interface utilisateur
+description: Configurez le canevas PDF, les contrôles d’édition, la locale et le worker de miniatures.
+icon: LayoutDashboard
 ---
 
+`@univerjs-pro/pdfs-ui` monte les unités PDF dans l’espace de travail Univer standard et est fourni sous licence Univer Pro.
 
-import { UIArchitecture } from '@/components/ui-architecture'
+## Responsabilités des packages
 
-## Architecture
+| Package | Responsabilité |
+| --- | --- |
+| `@univerjs-pro/pdfs` | Enregistre l’unité `UNIVER_PDF`, le modèle de document et les commandes PDF persistantes. |
+| `@univerjs-pro/pdfs-ui` | Monte le canevas du navigateur, le rail de miniatures et le pied de page. Ses contrôles d’édition locale sont activés par défaut. |
+| `@univerjs-pro/pdfs-editor` | Déclare les dépendances de l’éditeur collaboratif. Il ne monte pas l’interface PDF et ne contrôle pas `editor.enabled`. |
 
-L’interface utilisateur de base d’Univer est conçue selon le schéma suivant :
+`UniverPdfsUIPlugin` dépend de `UniverLicensePlugin` et de `UniverPdfsPlugin`. Terminez d’abord la configuration PDF sous licence, puis enregistrez le plugin d’interface.
 
-<UIArchitecture />
-
-La combinaison de différents plugins permet d’ajouter diverses fonctionnalités et vues à cette base, jusqu’à former une application complète.
-
-## Système de design
-
-Le système de design d’Univer repose sur Tailwind CSS. Il définit un ensemble de design tokens qui sont réutilisés par le moteur de rendu afin de garantir la cohérence des styles entre ce dernier et la couche de présentation. Vous pouvez personnaliser les styles de votre application en modifiant ces tokens, qui se trouvent dans le package `@univerjs/themes`.
-
-
-
-## Composants
-
-Univer utilise des composants React pour construire la couche de présentation. Les développeurs qui utilisent également React peuvent ainsi très facilement employer les composants d’Univer ou enregistrer leurs propres composants. Cela ne signifie toutefois pas que React est le seul moyen de créer des composants personnalisés : Univer prend aussi en charge d’autres technologies, telles que Vue (version 3.x) et les Web Components.
-
-Tous les composants de base se trouvent dans le package `@univerjs/design`, tandis que les composants d’icônes sont regroupés dans le package `@univerjs/icons`. Ces composants peuvent également être utilisés indépendamment d’Univer.
-
-Les composants personnalisés sont souvent utilisés dans les cas suivants :
-
-- Ajout de boutons personnalisés dans le Ribbon / Context Menu
-- Intégration de composants personnalisés dans la Sidebar / Popup, etc.
-- Remplacement des composants intégrés
-
-Les chapitres suivants expliquent en détail comment enregistrer et utiliser des composants personnalisés.
-
-
-`@univerjs-pro/pdfs-ui` affiche les unités `UNIVER_PDF` dans le navigateur. Il fournit le canevas de pages continues, les miniatures et l'organisateur de pages, les modes de sélection et de modification, la recherche, les actions du ruban et du menu contextuel, les commandes de l'inspecteur et les services d'exécution utilisés par les images et l'impression.
-
-## Enregistrer le plugin d'interface
+## Enregistrer le plugin d’interface
 
 ```ts
 import { UniverPdfsUIPlugin } from '@univerjs-pro/pdfs-ui'
-import PdfsUIEnUS from '@univerjs-pro/pdfs-ui/locale/en-US'
+import PdfsUIFrFR from '@univerjs-pro/pdfs-ui/locale/fr-FR'
 
 import '@univerjs-pro/pdfs-ui/lib/index.css'
 
-univer.registerPlugin(UniverPdfsUIPlugin, {
-  editor: { enabled: true },
-  thumbnailWorkerURL: new URL('./pdf-thumbnail-worker.js', import.meta.url),
-})
+univer.registerPlugin(UniverPdfsUIPlugin)
 ```
 
-Fusionnez `PdfsUIEnUS` avec les packs de locales partagés du design et de l'interface transmis à `new Univer(...)`.
+Fusionnez `PdfsUIFrFR` avec les locales transmises à `new Univer(...)`. Ce pack traduit le ruban, l’inspecteur, les menus contextuels et le rail de pages propres au PDF.
 
-## Mode visionneuse uniquement
+## Modes visionneuse et éditeur
 
-La modification est activée par défaut. Désactivez les contrôleurs de l'éditeur tout en conservant le canevas PDF et l'interface de consultation :
+Le plugin monte toujours le rail de miniatures, le canevas PDF et le pied de page. L’édition est activée par défaut et enregistre en plus le ruban, les menus contextuels, l’inspecteur, le presse-papiers, les commandes d’insertion ainsi que les actions et contrôleurs d’édition.
+
+Utilisez le mode lecture seule lorsque l’application ne doit pas exposer ces contrôles :
 
 ```ts
 univer.registerPlugin(UniverPdfsUIPlugin, {
@@ -64,11 +41,11 @@ univer.registerPlugin(UniverPdfsUIPlugin, {
 })
 ```
 
-Cette configuration contrôle l'interface et les services locaux de l'éditeur. Elle ne modifie pas le snapshot PDF conservé et n'accorde aucun contrôle d'accès au niveau de l'application.
+Cette option modifie l’interface montée ainsi que les contrôleurs et services propres à l’édition. Ce n’est pas une règle d’autorisation et elle ne modifie pas un instantané PDF enregistré.
 
 ## Worker de miniatures
 
-`thumbnailWorkerURL` accepte une chaîne, une `URL` ou un `Worker` existant. Le module du worker doit démarrer l'environnement d'exécution exporté pour les miniatures PDF :
+`thumbnailWorkerURL` accepte une chaîne, une `URL` ou un `Worker` existant. Le module référencé doit démarrer le runtime exporté :
 
 ```ts title="pdf-thumbnail-worker.ts"
 import { startPdfPageThumbnailWorker } from '@univerjs-pro/pdfs-ui'
@@ -76,12 +53,14 @@ import { startPdfPageThumbnailWorker } from '@univerjs-pro/pdfs-ui'
 startPdfPageThumbnailWorker()
 ```
 
-Faites pointer la configuration du plugin vers le module de worker compilé. Lorsqu'aucun worker compatible n'est configuré, l'affichage des miniatures revient au moteur de rendu du thread principal.
+```ts
+univer.registerPlugin(UniverPdfsUIPlugin, {
+  thumbnailWorkerURL: new URL('./pdf-thumbnail-worker.js', import.meta.url),
+})
+```
 
-Le chemin du worker est une ressource de l'application ; son URL finale dépend donc du bundler et du chemin de base du déploiement.
+Le worker exige un contexte Worker dédié. S’il n’est pas configuré, si le navigateur ne fournit pas les API nécessaires ou si une page dépend d’une ressource réservée au thread principal, les miniatures sont rendues sur le thread principal.
 
-## Fonctionnalités de l'interface et API de façade
+## Limite de l’API publique
 
-L'interface comprend des outils pour l'organisation des pages, la recherche, la sélection, la modification du texte natif, les zones de texte, les paragraphes, les listes, les tableaux, les images, les séparateurs, les annotations, ainsi que l'annulation et le rétablissement. Ces actions utilisent les commandes PDF et les services d'exécution en interne.
-
-Ne déduisez pas l'existence d'une méthode publique de la façade de celle d'un bouton dans le ruban. Consultez la [référence de la façade PDF](/reference/facade/pdf) pour les API programmatiques prises en charge, [Importation et exportation](/guides/pdfs/features/import-export) pour les méthodes Exchange et [Impression](/guides/pdfs/features/print) pour le menu d'impression du navigateur.
+L’interface appelle des commandes et services PDF en interne. Un bouton du ruban n’implique pas une méthode publique équivalente. Consultez le [guide de la Facade PDF](/guides/pdfs/getting-started/facade) pour l’édition programmatique prise en charge, [Import et export](/guides/pdfs/features/import-export) pour la conversion et [Impression](/guides/pdfs/features/print) pour l’impression dans le navigateur.

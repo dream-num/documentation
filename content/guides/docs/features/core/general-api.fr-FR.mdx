@@ -2,8 +2,7 @@
 title: API générale
 ---
 
-
-Dans Univer, l’API Facade disponible varie selon le type de document. Cette section présente l’API Facade générale qui s’applique à tous les types de documents.
+L’API Facade disponible dans Univer dépend du type d’unité actif et des plugins enregistrés. Cette page présente les API communes à une application Univer Docs.
 
 ## Importation
 
@@ -13,547 +12,150 @@ import { FUniver } from '@univerjs/core/facade'
 const univerAPI = FUniver.newAPI(univer)
 ```
 
-## Concepts
+## Commandes
 
-### Commandes
-
-La plupart des opérations d’Univer sont enregistrées dans le système de commandes et déclenchées par son intermédiaire. Cette approche unifiée des opérations permet à Univer de mettre facilement en œuvre des fonctionnalités comme l’annulation, le rétablissement et la collaboration.
+La plupart des opérations Univer sont enregistrées dans le système de commandes. Ce chemin d’exécution unifié permet notamment l’annulation, le rétablissement et la collaboration.
 
 <Callout>
-  Pour en savoir plus sur la conception, consultez [le système de commandes d’Univer](/blog/univer#command-system).
-</Callout>
-
-### Commandes
-
-La plupart des opérations d’Univer sont enregistrées dans le système de commandes et déclenchées par son intermédiaire. Cette approche unifiée des opérations permet à Univer de mettre facilement en œuvre des fonctionnalités comme l’annulation, le rétablissement et la collaboration.
-
-<Callout>
-  Les commandes peuvent être considérées simplement comme des « événements » uniques au sein d’Univer. Pour en savoir
-  plus sur leur conception, consultez [command-system](/blog/univer#command-system).
+  Pour plus de détails sur la conception, consultez le [système de commandes Univer](/blog/univer#command-system).
 </Callout>
 
 ### Écoute des commandes
 
-Univer permet d’écouter les commandes de deux façons : avant leur exécution et après leur exécution :
-
-- `Event.BeforeCommandExecute` : exécute une logique personnalisée avant l’exécution de la commande.
-- `Event.CommandExecuted` : exécute une logique personnalisée après l’exécution de la commande.
-
-#### Écoute des commandes avant leur exécution
-
-Avant l’exécution, transmettez `Event.BeforeCommandExecute` à `FUniver.addEvent` pour enregistrer un écouteur de prétraitement.
-
-Lorsque la commande est exécutée, la logique contenue dans l’écouteur de prétraitement s’exécute.
+Utilisez `Event.BeforeCommandExecute` pour exécuter une logique avant une commande et `Event.CommandExecuted` pour l’exécuter une fois la commande terminée.
 
 ```typescript
-const univerAPI = FUniver.newAPI(univer)
+const beforeDisposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, ({ id, params }) => {
+  console.log('Avant la commande :', id, params)
+})
 
-univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, ({ id, type, params }) => {
-  // Custom logic executed before the command is executed
+const afterDisposable = univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, params }) => {
+  console.log('Commande exécutée :', id, params)
 })
 ```
 
-Pour empêcher l’exécution d’une commande, définissez `event.cancel` sur `true` dans la fonction de rappel.
+Pour empêcher l’exécution d’une commande, définissez `event.cancel` sur `true` dans un écouteur `BeforeCommandExecute`.
 
 ```typescript
-const univerAPI = FUniver.newAPI(univer)
-
-univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (event) => {
-  event.cancel = true
+const disposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (event) => {
+  if (event.id === 'doc.command.set-name') {
+    event.cancel = true
+  }
 })
 ```
 
-#### Écoute des commandes après leur exécution
-
-Après l’exécution, transmettez `Event.CommandExecuted` à `FUniver.addEvent` pour enregistrer un écouteur de post-traitement.
-
-Lorsque la commande est exécutée, la logique contenue dans l’écouteur de post-traitement s’exécute.
+Les écouteurs renvoient un objet `IDisposable`. Supprimez-les lorsqu’ils ne sont plus nécessaires.
 
 ```typescript
-const univerAPI = FUniver.newAPI(univer)
-
-univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, type, params }) => {
-  // Custom logic executed after the command is executed
-})
-```
-
-### Arrêt de l’écoute
-
-La méthode qui enregistre un écouteur de commande renvoie un objet `IDisposable`, que vous pouvez détruire en appelant `IDisposable.dispose`.
-
-Il est recommandé de détruire les écouteurs qui ne sont plus utilisés afin d’améliorer la robustesse de votre programme.
-
-```typescript
-const univerAPI = FUniver.newAPI(univer)
-
-// Register a listener
-const disposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, () => {
-  // custom preprocessing logic before the command is executed
-})
-
-// Example: Destroy the listener after 1 second
-setTimeout(() => {
-  // Destroy the listener
-  disposable.dispose()
-}, 1000)
+beforeDisposable.dispose()
+afterDisposable.dispose()
+disposable.dispose()
 ```
 
 ### Exécution de commandes
 
-Si vous connaissez déjà l’ID de la commande et les paramètres à transmettre, vous pouvez aussi exécuter la commande à l’aide de la méthode `FUniver.executeCommand`.
-
-Par exemple, vous pouvez définir la valeur de la cellule A1 à l’aide de la commande `sheet.command.set-range-values` :
+Si vous connaissez l’identifiant et les paramètres d’une commande, exécutez-la avec `FUniver.executeCommand`. Par exemple, cette commande Docs renomme le document actif :
 
 ```typescript
-const univerAPI = FUniver.newAPI(univer)
+const document = univerAPI.getActiveDocument()
 
-// Execute the command
-univerAPI.executeCommand('sheet.command.set-range-values', {
-  value: { v: 'Hello, Univer!' },
-  range: { startRow: 0, startColumn: 0, endRow: 0, endColumn: 0 },
-})
+if (document) {
+  await univerAPI.executeCommand('doc.command.set-name', {
+    unitId: document.getId(),
+    name: 'Notes du projet',
+  })
+}
 ```
 
 ## API des événements
 
-Univer propose un système d’événements complet qui permet d’écouter les différentes modifications d’une feuille de calcul et d’y réagir. Les événements se répartissent en plusieurs grandes catégories, notamment les opérations du presse-papiers, les changements de sélection, les interactions avec les cellules et les modifications apportées aux feuilles.
+Les événements exposés par `univerAPI.Event` proviennent du noyau Univer et des plugins enregistrés dans l’application. Le noyau fournit les événements de commande et du cycle de vie des documents ; les plugins Docs peuvent enrichir cette surface. Avant d’utiliser un événement, vérifiez qu’il appartient à un plugin enregistré.
 
-### Catégories d’événements
+Consultez la [référence des événements Facade](/reference/facade/events#properties) pour connaître les noms et les types de paramètres disponibles dans la version actuelle.
 
-Liste complète des événements : /reference/facade/events#properties
-
-1. **Événements du presse-papiers**
-   - `BeforeClipboardChange` : déclenché avant la modification du contenu du presse-papiers ; permet d’empêcher la modification en définissant `params.cancel = true`
-   - `BeforeClipboardPaste` : déclenché avant le collage du contenu ; permet d’empêcher le collage en définissant `params.cancel = true`
-   - `ClipboardChanged` : déclenché après la modification du contenu du presse-papiers ; fournit son nouveau contenu
-   - `ClipboardPasted` : déclenché après le collage du contenu ; fournit le contenu collé
-
-2. **Événements de sélection**
-   - `SelectionChanged` : déclenché lorsque la sélection change ; fournit les informations sur la nouvelle plage sélectionnée
-   - `SelectionMoveStart` : déclenché au début du déplacement de la sélection ; utile pour créer des effets de sélection personnalisés
-   - `SelectionMoveEnd` : déclenché à la fin du déplacement de la sélection ; fournit la plage sélectionnée finale
-   - `SelectionMoving` : déclenché pendant le déplacement de la sélection ; utile pour mettre à jour l’interface utilisateur en temps réel
-   - `DragOver` : déclenché lors d’un glissement au-dessus des cellules
-   - `Drop` : déclenché lorsque le contenu sélectionné est déposé
-
-3. **Événements de cellule**
-   - `CellClicked` : déclenché lorsqu’on clique sur une cellule ; fournit sa position et des informations sur son contenu
-   - `CellHover` : déclenché lors du survol d’une cellule ; utile pour afficher des infobulles
-   - `CellPointerDown` : déclenché lorsque le pointeur est enfoncé sur une cellule ; sert à lancer une opération de glissement ou de sélection
-   - `CellPointerUp` : déclenché lorsque le pointeur est relâché sur une cellule ; sert à terminer une opération
-   - `CellPointerMove` : déclenché lorsque le pointeur se déplace au-dessus des cellules
-
-4. **Événements de feuille**
-   - `SheetValueChanged` : déclenché lorsque les valeurs de la feuille changent ; fournit la plage modifiée et les nouvelles valeurs
-   - `SheetZoomChanged` : déclenché lorsque le niveau de zoom change ; fournit le nouveau facteur de zoom
-   - `SheetSkeletonChanged` : déclenché lorsque la structure de la feuille change, par exemple lors de l’insertion ou de la suppression de lignes ou de colonnes
-   - `BeforeSheetEditStart` : déclenché avant le début de la modification d’une cellule ; permet de contrôler si la modification est autorisée
-   - `SheetEditStarted` : déclenché au début de la modification d’une cellule ; utile pour personnaliser le comportement de l’éditeur
-   - `BeforeSheetEditEnd` : déclenché avant la fin de la modification d’une cellule ; peut servir à valider le contenu
-   - `SheetEditEnded` : déclenché à la fin de la modification d’une cellule ; fournit la valeur modifiée
-   - `SheetEditChanging` : déclenché pendant la modification d’une cellule ; utile pour la validation ou la mise en forme en temps réel
-   - `Scroll` : déclenché lors du défilement de la feuille ; fournit des informations sur la position de défilement
-   - `CrosshairHighlightColorChanged` : déclenché lorsque la couleur de mise en évidence du réticule change
-   - `CrosshairHighlightEnabledChanged` : déclenché lorsque la mise en évidence du réticule est activée ou désactivée
-
-5. **Événements d’en-tête**
-   - `RowHeaderClick` : déclenché lorsqu’on clique sur un en-tête de ligne
-   - `RowHeaderHover` : déclenché lors du survol d’un en-tête de ligne
-   - `ColumnHeaderClick` : déclenché lorsqu’on clique sur un en-tête de colonne
-   - `ColumnHeaderHover` : déclenché lors du survol d’un en-tête de colonne
-
-6. **Événements de validation des données**
-   - `BeforeSheetDataValidationAdd` : déclenché avant l’ajout d’une règle de validation des données
-   - `SheetDataValidationChanged` : déclenché lorsque les règles de validation des données changent
-   - `SheetDataValidatorStatusChanged` : déclenché lorsque l’état de validation des données change
-
-7. **Événements de commentaire**
-   - `BeforeCommentAdd` : déclenché avant l’ajout d’un commentaire
-   - `CommentAdded` : déclenché après l’ajout d’un commentaire
-   - `BeforeCommentUpdate` : déclenché avant la mise à jour d’un commentaire
-   - `CommentUpdated` : déclenché après la mise à jour d’un commentaire
-   - `BeforeCommentDeleted` : déclenché avant la suppression d’un commentaire
-   - `CommentDeleted` : déclenché après la suppression d’un commentaire
-
-8. **Événements de traitement des données**
-   - `SheetBeforeRangeSort` : déclenché avant le tri d’une plage
-   - `SheetRangeSorted` : déclenché après le tri d’une plage
-   - `SheetBeforeRangeFilter` : déclenché avant le filtrage d’une plage
-   - `SheetRangeFiltered` : déclenché après le filtrage d’une plage
-   - `BeforePivotTableAdd` : déclenché avant l’ajout d’un tableau croisé dynamique
-   - `PivotTableAdded` : déclenché après l’ajout d’un tableau croisé dynamique
-
-### Utilisation des événements
-
-Vous pouvez écouter les événements avec la méthode `addEvent` de `univerAPI`. Voici le modèle de base :
+Utilisez `addEvent` pour vous abonner, puis supprimez l’objet renvoyé pour vous désabonner :
 
 ```typescript
-univerAPI.addEvent(univerAPI.Event.EventName, (params) => {
-  // Handle event parameters
-})
-```
-
-#### Exemple : écouter les clics sur les cellules
-
-```typescript
-univerAPI.addEvent(univerAPI.Event.CellClicked, (params) => {
-  const { worksheet, workbook, row, column } = params
-  console.log(`Cell clicked at row ${row}, column ${column}`)
-})
-```
-
-#### Exemple : surveiller les opérations du presse-papiers
-
-```typescript
-univerAPI.addEvent(univerAPI.Event.BeforeClipboardPaste, (params) => {
-  const { text, html } = params
-  // If you want to cancel the clipboard paste
-  params.cancel = true
-})
-```
-
-#### Exemple : suivre les changements de sélection
-
-```typescript
-univerAPI.addEvent(univerAPI.Event.SelectionChanged, (params) => {
-  const { worksheet, workbook, selections } = params
-  console.log('Selection changed:', selections)
-})
-```
-
-### Suppression des écouteurs d’événements
-
-Les écouteurs d’événements renvoient un objet `IDisposable` qui permet de supprimer l’écouteur lorsqu’il n’est plus nécessaire :
-
-```typescript
-const disposable = univerAPI.addEvent(univerAPI.Event.SheetValueChanged, (params) => {
-  // Handle value changes
+const disposable = univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id }) => {
+  if (id === 'doc.command.set-name') {
+    console.log('Le nom du document a changé')
+  }
 })
 
-// Later, when you want to remove the listener:
+// Supprimez l’écouteur lorsqu’il n’est plus nécessaire
 disposable.dispose()
 ```
 
-### Bonnes pratiques
-
-1. Supprimez toujours les écouteurs d’événements lorsqu’ils ne sont plus nécessaires afin d’éviter les fuites de mémoire
-2. Utilisez l’événement adapté à votre cas d’usage : privilégiez les événements spécifiques aux événements généraux
-3. Veillez à ce que les gestionnaires d’événements restent légers pour préserver les performances
-4. Envisagez d’utiliser `BeforeClipboardChange` et les événements « avant » similaires lorsque vous devez empêcher le comportement par défaut
-
 ## Annulation et rétablissement
-
-### Annuler
 
 ```typescript
 await univerAPI.undo()
-```
-
-### Rétablir
-
-```typescript
 await univerAPI.redo()
 ```
 
 ## Presse-papiers système
 
-Les méthodes `FUniver.copy()` et `FUniver.paste()` permettent de lire et d’écrire dans le presse-papiers système.
+Après l’enregistrement du plugin d’interface Docs, `copy` et `paste` agissent sur la sélection et la position du curseur actuelles dans le document.
+
+```typescript
+await univerAPI.copy()
+await univerAPI.paste()
+```
 
 <Callout>
-  Le copier-coller repose sur l’API native du navigateur. Si l’environnement ou les autorisations ne sont pas adéquats,
-  les fonctions de copier-coller ne fonctionneront pas. Pour en savoir plus, consultez la [documentation
-  MDN](https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText).
+  Le copier-coller repose sur l’API native du presse-papiers du navigateur. Il peut échouer si la page n’a pas le focus,
+  si l’appel ne provient pas d’une action de l’utilisateur ou si l’autorisation d’accès au presse-papiers est indisponible.
+  Consultez la [documentation MDN](https://developer.mozilla.org/en-US/docs/Web/API/Clipboard_API).
 </Callout>
-
-Exemple : copier-coller dans une plage de feuille
-
-```typescript
-// Prevent failure due to loss of focus when executing copy and paste code in the console,
-// this example listens for the cell click event and executes the copy and paste code.
-univerAPI.addEvent(univerAPI.Event.CellClicked, async (params) => {
-  const fWorkbook = univerAPI.getActiveWorkbook()
-  const fWorksheet = fWorkbook.getActiveSheet()
-
-  // Copy the range A1:B2 to the clipboard
-  const fRange = fWorksheet.getRange('A1:B2')
-  fRange.activate().setValues([
-    [1, 2],
-    [3, 4],
-  ])
-  await univerAPI.copy()
-
-  // Paste the copied content to the range C1:D2
-  const fRange2 = fWorksheet.getRange('C1')
-  fRange2.activate()
-  await univerAPI.paste()
-
-  // Check the pasted content
-  console.log(fWorksheet.getRange('C1:D2').getValues()) // [[1, 2], [3, 4]]
-})
-```
-
-Vous pouvez également appeler les fonctionnalités du presse-papiers par l’intermédiaire du système de commandes :
-
-```typescript
-import { CopyCommand, PasteCommand } from '@univerjs/ui'
-
-// Copy
-univerAPI.executeCommand(CopyCommand.id)
-// Paste
-univerAPI.executeCommand(PasteCommand.id)
-```
 
 ## Interface utilisateur
 
-Pour étendre l’interface utilisateur d’Univer, consultez la documentation suivante :
-
-- [Extension du canevas](/blog/custom-canvas)
+Consultez [Composants de l’interface Docs](/guides/docs/ui/components) pour étendre les menus, la barre d’outils et les autres zones de l’interface Docs.
 
 ## WebSocket
 
-L’API Facade propose une méthode pratique, `createSocket`, qui permet de créer un WebSocket à partir d’une URL.
-Vous pouvez ensuite écouter les événements d’ouverture, de message, de fermeture et d’erreur, mais aussi envoyer activement des messages avec la méthode `send` et fermer la connexion avec la méthode `close`.
-
-Avec l’installation par Presets, utilisez directement `univerAPI.createSocket(url)`.
-Avec une installation à la carte, vous devez installer le paquet de dépendances [`@univerjs/network`](/reference/packages/plugins/univerjs/network) et enregistrer le plugin `UniverNetworkPlugin`.
+Les installations avec prédéfinis exposent `univerAPI.createSocket(url)`. En mode plugin, installez `@univerjs/network`, enregistrez `UniverNetworkPlugin`, puis importez son extension Facade.
 
 ```typescript
-// ... Omits other plugin imports
 import { UniverNetworkPlugin } from '@univerjs/network'
-
-// ... Omits other facade imports
 import '@univerjs/network/facade'
 
-// ... Omits other plugin registrations
 univer.registerPlugin(UniverNetworkPlugin)
 ```
 
-Voici un exemple simple :
+Vous pouvez ensuite vous abonner aux événements du socket, envoyer des messages et fermer la connexion :
 
 ```typescript
-// Replace the URL with the address of your own WebSocket service
-const ws = univerAPI.createSocket('ws://47.100.177.253:8449/ws')
+const socket = univerAPI.createSocket('wss://example.com/docs')
 
-ws.open$.subscribe(() => {
-  console.log('websocket opened')
-  ws.send('hello')
+socket.open$.subscribe(() => {
+  socket.send('hello')
 })
 
-ws.message$.subscribe((message) => {
-  console.log('websocket message', message)
-  const content = JSON.parse(message.data).content
-  if (!content.includes('command')) {
-    return
-  }
-
-  const commandInfo = JSON.parse(content)
-  const { command, options } = commandInfo
-  const { id, params } = command
-
-  // Upon receiving collaborative data, it is locally saved
-  univerAPI.executeCommand(id, params, options)
+socket.message$.subscribe((message) => {
+  console.log('Message WebSocket :', message.data)
 })
 
-ws.close$.subscribe(() => {
-  console.log('websocket closed')
+socket.error$.subscribe((error) => {
+  console.error('Erreur WebSocket :', error)
 })
 
-ws.error$.subscribe((error) => {
-  console.log('websocket error', error)
-})
-
-univerAPI.addEvent(univerAPI.Event.CommandExecuted, ({ id, type, params, options }) => {
-  // Only synchronize local mutations
-  if (
-    type !== univerAPI.Enum.CommandType.MUTATION ||
-    options?.fromCollab ||
-    options?.onlyLocal ||
-    id === 'doc.mutation.rich-text-editing'
-  ) {
-    return
-  }
-
-  const commandInfo = JSON.stringify({ command: { id, type, params }, options: { fromCollab: true } })
-  ws.send(commandInfo)
-})
+socket.close()
 ```
-
-Remarque : veillez à définir un unitID au démarrage d’Univer. Sans unitID, la collaboration ne fonctionnera pas.
-
-## Enregistrement d’une formule
-
-Avec l’API Facade, vous pouvez enregistrer rapidement et facilement des formules personnalisées dans l’instance Univer actuelle.
-
-Dans l’exemple suivant, utilisez [`registerFunction`](https://docs.univer.ai/reference/facade/formula#registerfunction) pour enregistrer en une seule fois dans le plugin de formule l’algorithme, le nom et la description nécessaires à une formule `CUSTOMSUM`. Une fois l’opération terminée, la formule peut être utilisée. Saisissez `=CUSTOMSUM` dans une cellule vide pour afficher la suggestion.
-
-```typescript
-// Registered formulas support lambda functions
-const formulaEngine = univerAPI.getFormula()
-formulaEngine.registerFunction(
-  'CUSTOMSUM',
-  (...variants) => {
-    let sum = 0
-    const last = variants[variants.length - 1]
-
-    if (last.isLambda && last.isLambda()) {
-      variants.pop()
-      const variantsList = variants.map((variant) => (Array.isArray(variant) ? variant[0][0] : variant))
-      sum += last.executeCustom(...variantsList).getValue()
-    }
-
-    for (const variant of variants) {
-      sum += Number(variant) || 0
-    }
-
-    return sum
-  },
-  'Adds its arguments',
-)
-
-// Use the function in a cell
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const cellA1 = fWorksheet.getRange('A1')
-cellA1.setValue(1)
-const cellA2 = fWorksheet.getRange('A2')
-cellA2.setValue(2)
-const cellA3 = fWorksheet.getRange('A3')
-cellA3.setValue({ f: '=CUSTOMSUM(A1,A2,LAMBDA(x,y,x*y))' })
-
-// A3 will display: 5
-formulaEngine.calculationEnd((functionsExecutedState) => {
-  if (functionsExecutedState === 3) {
-    console.log(cellA3.getValue()) // 5
-  }
-})
-```
-
-Pour désenregistrer la formule, vous pouvez appeler la méthode `dispose`.
-
-```typescript
-const functionDisposable = formulaEngine.registerFunction({
-  // calculate
-})
-
-// Unregister the function
-functionDisposable.dispose()
-```
-
-Pour proposer un contenu et une description multilingues plus complets, vous pouvez également configurer les champs `locales` et `description`, comme dans l’exemple suivant.
-
-```typescript
-formulaEngine.registerFunction(
-  'CUSTOMSUM',
-  (...variants) => {
-    let sum = 0
-    const last = variants[variants.length - 1]
-
-    if (last.isLambda && last.isLambda()) {
-      variants.pop()
-      const variantsList = variants.map((variant) => (Array.isArray(variant) ? variant[0][0] : variant))
-      sum += last.executeCustom(...variantsList).getValue()
-    }
-
-    for (const variant of variants) {
-      sum += Number(variant) || 0
-    }
-
-    return sum
-  },
-  {
-    description: {
-      functionName: 'CUSTOMSUM',
-      description: 'formulaCustom.CUSTOMSUM.description',
-      abstract: 'formulaCustom.CUSTOMSUM.abstract',
-      functionParameter: [
-        {
-          name: 'formulaCustom.CUSTOMSUM.functionParameter.number1.name',
-          detail: 'formulaCustom.CUSTOMSUM.functionParameter.number1.detail',
-          example: 'A1:A20',
-          require: 1,
-          repeat: 0,
-        },
-        {
-          name: 'formulaCustom.CUSTOMSUM.functionParameter.number2.name',
-          detail: 'formulaCustom.CUSTOMSUM.functionParameter.number2.detail',
-          example: 'B2:B10',
-          require: 0,
-          repeat: 1,
-        },
-      ],
-    },
-    locales: {
-      zhCN: {
-        formulaCustom: {
-          CUSTOMSUM: {
-            description: '将单个值、单元格引用或是区域相加，或者将三者的组合相加。',
-            abstract: '求参数的和',
-            functionParameter: {
-              number1: {
-                name: '数值1',
-                detail:
-                  '要相加的第一个数字。 该数字可以是 4 之类的数字，B6 之类的单元格引用或 B2:B8 之类的单元格范围。',
-              },
-              number2: {
-                name: '数值2',
-                detail: '这是要相加的第二个数字。 可以按照这种方式最多指定 255 个数字。',
-              },
-            },
-          },
-        },
-      },
-      enUS: {
-        formulaCustom: {
-          CUSTOMSUM: {
-            description: `You can add individual values, cell references or ranges or a mix of all three.`,
-            abstract: `Adds its arguments`,
-            functionParameter: {
-              number1: {
-                name: 'number1',
-                detail:
-                  'The first number you want to add. The number can be like 4, a cell reference like B6, or a cell range like B2:B8.',
-              },
-              number2: {
-                name: 'number2',
-                detail: 'This is the second number you want to add. You can specify up to 255 numbers in this way.',
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-)
-```
-
-Remarque
-
-- `func` définit l’algorithme précis et la correspondance de nom de la formule de calcul. Le paramètre d’entrée correspond au contenu saisi par l’utilisateur lorsqu’il emploie la formule ; il peut s’agir d’un nombre, d’une chaîne, d’une valeur booléenne ou d’un tableau.
-- `description` définit la description de la formule personnalisée.
-- Plusieurs langues peuvent être définies sous `locales`. Pour les règles de nommage, consultez [LocaleType](https://reference.univer.ai/en-US/globals#localetype). Les traductions de plusieurs formules peuvent être ajoutées sous `functionList`. Pour une description détaillée des champs, consultez la section [Ajouter des formules au moteur de formules](/blog/custom-formula#how-to-add-formulas-in-formula-engine).
-
-<Callout>
-  Si vous souhaitez réutiliser l’algorithme fourni par le système de formules et étendre ses possibilités, vous pouvez
-  enregistrer une formule personnalisée par l’intermédiaire de la configuration d’un plugin. Pour obtenir un guide
-  détaillé, consultez [Formule personnalisée](/blog/custom-formula).
-</Callout>
 
 ## API des énumérations
 
-L’API Facade fournit des types d’énumération courants que vous pouvez utiliser pendant le développement. Par exemple :
+Facade expose des énumérations communes par l’intermédiaire de `univerAPI.Enum` :
 
 ```typescript
-console.log(univerAPI.Enum)
-console.log(univerAPI.Enum.UniverInstanceType.UNIVER_SHEET)
+console.log(univerAPI.Enum.UniverInstanceType.UNIVER_DOC)
 console.log(univerAPI.Enum.LifecycleStages.Rendered)
 ```
 
 ## API des méthodes utilitaires
 
-L’API Facade fournit des méthodes utilitaires courantes que vous pouvez utiliser pendant le développement. Par exemple :
+Facade expose les utilitaires partagés par l’intermédiaire de `univerAPI.Util` :
 
 ```typescript
-console.log(univerAPI.Util)
-console.log(univerAPI.Util.tools.chatAtABC(10))
-console.log(univerAPI.Util.tools.ABCatNum('K'))
+console.log(univerAPI.Util.tools.isString('Univer Docs')) // true
 ```

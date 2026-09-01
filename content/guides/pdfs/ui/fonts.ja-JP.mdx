@@ -1,99 +1,78 @@
 ---
 title: カスタムフォントリスト
-icon: '#pro/BookType'
+icon: BookType
 ---
 
+PDF テキストとエディターのフォントメニューは、関連はあるものの異なるデータソースを使います。
 
-## フォント構造の定義
+| データソース | 制御する内容 |
+| --- | --- |
+| `document.assets.fonts` とテキストランの `fontId` | ネイティブ内容の再現に使う、インポート済み PDF フォントのメタデータとリソース。 |
+| 編集可能なテキストランの `fontFamily` | 編集可能テキストのレイアウトと描画に使う CSS フォントファミリー。 |
+| Univer の共有フォントリスト | PDF インスペクターのフォントドロップダウンに表示する選択肢。 |
 
-Univer では、フォントは `IFontConfig` インターフェースを使用して定義されます：
+共有リストに選択肢を追加しても、`document.assets.fonts` にアセットは追加されず、フォントファイルのダウンロードや埋め込みも行われません。
 
-| プロパティ | 型 | 説明 |
-| --- | --- | --- |
-| `value` | `string` | フォントの一意の識別子。通常は CSS font-family の優先値でもあります。 |
-| `label` | `string` | 国際化のための翻訳キー。Univer インスタンス作成時にこのキーが指定されていない場合、渡された値がそのまま表示されます。 |
-| `category` | `'sans-serif' \| 'serif' \| 'monospace' \| 'display' \| 'handwriting'` | フォントカテゴリ。UI のグループ化に使用されます（オプション）。 |
+## エディターのフォントリストを設定する
 
-<Callout>
-  Univer は、ユーザーがインストールされていないフォントを選択することを防ぎません。クライアントに特定のフォントがインストールされていない場合、ブラウザはデフォルトのフォントを使用して代替表示します。
-</Callout>
+`editor.enabled` が `true` の場合、PDF インスペクターは共有の `FontFamilyDropdown` を使います。ブラウザー設定の `UniverUIPlugin` でリストを指定します。
 
-{/* <AutoTypeTable
-  name="IFontConfig"
-  type={`
-    export type { IFontConfig } from '@univerjs/ui'
-  `}
-/> */}
+```ts
+import { UniverUIPlugin } from '@univerjs/ui'
 
-## カスタムフォントの使用
-
-`UniverSheetsCorePreset`（プリセットモード）または `UniverUIPlugin`（プラグインモード）の `customFontFamily` パラメータを設定することで、フォントドロップダウンメニューのオプションを定義できます。
-
-<Tabs items={['プリセットモード', 'プラグインモード']}>
-  <Tab>
-    ```typescript
-    const { univerAPI } = createUniver({
-      presets: [
-        UniverSheetsCorePreset({
-          container: 'app',
-          customFontFamily: {
-            list: [
-              {
-                value: 'PingFang SC',
-                label: '苹方（简）',
-                category: 'sans-serif',
-              },
-              {
-                value: 'Helvetica Neue',
-                label: 'Helvetica Neue',
-                category: 'sans-serif',
-              },
-            ],
-            // デフォルトのフォントリストを上書きするかどうか、デフォルトは false
-            override: true,
-          },
-        }),
-      ],
-    })
-    ```
-  </Tab>
-  <Tab>
-    ```typescript
-    univer.registerPlugin(UniverUIPlugin, {
-      container: 'app',
-      customFontFamily: {
-        list: [
-          {
-            value: 'PingFang SC',
-            label: '苹方（简）',
-            category: 'sans-serif',
-          },
-          {
-            value: 'Helvetica Neue',
-            label: 'Helvetica Neue',
-            category: 'sans-serif',
-          },
-        ],
-        // デフォルトのフォントリストを上書きするかどうか、デフォルトは false
-        override: true,
+univer.registerPlugin(UniverUIPlugin, {
+  container: 'app',
+  customFontFamily: {
+    list: [
+      {
+        value: 'Inter',
+        label: 'Inter',
+        category: 'sans-serif',
       },
-    })
-    ```
-  </Tab>
-</Tabs>
-
-### Facade API
-
-初期化時の設定に加えて、Facade API を使用して実行時に新しいフォントを動的に登録することもできます。これは、フォントリソースを非同期にロードする必要があるシナリオで非常に役立ちます。
-
-```typescript
-univerAPI.addFonts([{
-  value: 'PingFang SC',
-  label: 'PingFang SC',
-  category: 'sans-serif',
-}, {
-  value: 'Helvetica Neue',
-  label: 'Helvetica Neue',
-  category: 'sans-serif',
-}])
+      {
+        value: 'Noto Serif',
+        label: 'Noto Serif',
+        category: 'serif',
+      },
+    ],
+    override: false,
+  },
+})
 ```
+
+ブラウザーフォントは `@font-face` やスタイルシートで別途読み込んでください。読み込まれていない場合、Canvas はブラウザーの代替フォントを使います。
+
+## 実行時に選択肢を追加する
+
+UI Facade の読み込み後は、`addFonts` で同じ共有リストに選択肢を追加できます。
+
+```ts
+univerAPI.addFonts([
+  {
+    value: 'Inter',
+    label: 'Inter',
+    category: 'sans-serif',
+  },
+])
+```
+
+このメソッドが更新するのはアプリケーションのフォントリストだけです。フォントバイトの読み込みや既存 PDF ランの書き換えは行いません。
+
+## 編集可能な PDF テキストにフォントを設定する
+
+テキスト挿入時に `fontFamily` を渡すか、PDF Facade で編集可能なテキストボックスを更新します。
+
+```ts
+const page = univerAPI.getActivePdf()?.getPageByIndex(0)
+const textBox = page?.insertTextBox({
+  text: 'Hello PDF',
+  fontFamily: 'Inter',
+  fontSize: 14,
+  left: 36,
+  top: 36,
+})
+
+textBox?.setTextStyle({ fontFamily: 'Noto Serif' })
+```
+
+`page.getTextSpans()` が返すインポート済みネイティブテキストはスナップショットであり、その場ではスタイルを変更できません。`replaceText(...)` で編集可能なテキストボックスへ昇格してから `setTextStyle` を呼び出してください。

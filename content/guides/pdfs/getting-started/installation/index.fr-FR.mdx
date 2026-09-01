@@ -1,0 +1,122 @@
+---
+title: Installation et utilisation de base
+icon: 'Blocks'
+---
+
+Univer PDFs est un produit Univer Pro et ne propose actuellement aucun préréglage. Créez les applications PDF en mode plugin.
+
+## Installer l'éditeur pour navigateur
+
+<Tabs items={['npm', 'pnpm', 'yarn']}>
+  <Tab>
+
+    ```shell
+    npm install @univerjs/core @univerjs/design @univerjs/ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-editor @univerjs-pro/pdfs-ui
+    ```
+
+  </Tab>
+  <Tab>
+
+    ```shell
+    pnpm add @univerjs/core @univerjs/design @univerjs/ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-editor @univerjs-pro/pdfs-ui
+    ```
+
+  </Tab>
+  <Tab>
+
+    ```shell
+    yarn add @univerjs/core @univerjs/design @univerjs/ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-editor @univerjs-pro/pdfs-ui react react-dom rxjs
+    ```
+
+  </Tab>
+</Tabs>
+
+Conservez tous les packages `@univerjs/*` et `@univerjs-pro/*` à la même version.
+
+## Enregistrer les plugins
+
+<Steps>
+  <Step>
+    Importez les styles de l'interface partagée avant celui de l'interface PDF, puis fusionnez les packs de locales activés par votre application :
+
+    ```ts
+    import { UniverLicensePlugin } from '@univerjs-pro/license'
+    import { UniverPdfsPlugin } from '@univerjs-pro/pdfs'
+    import { UniverPdfEditorPlugin } from '@univerjs-pro/pdfs-editor'
+    import { UniverPdfsUIPlugin } from '@univerjs-pro/pdfs-ui'
+    import PdfsUIEnUS from '@univerjs-pro/pdfs-ui/locale/en-US'
+    import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+    import { FUniver } from '@univerjs/core/facade'
+    import DesignEnUS from '@univerjs/design/locale/en-US'
+    import { UniverUIPlugin } from '@univerjs/ui'
+    import UIEnUS from '@univerjs/ui/locale/en-US'
+
+    import '@univerjs/design/lib/index.css'
+    import '@univerjs/ui/lib/index.css'
+    import '@univerjs-pro/pdfs-ui/lib/index.css'
+    ```
+
+  </Step>
+  <Step>
+    Importez le point d'entrée de la façade PDF. Cet import à effet de bord ajoute les méthodes et les énumérations PDF à `FUniver` :
+
+    ```ts
+    import '@univerjs-pro/pdfs/facade'
+    ```
+
+  </Step>
+  <Step>
+    Créez l'environnement d'exécution, enregistrez explicitement l'ensemble des plugins, puis créez un PDF :
+
+    ```ts
+    const univer = new Univer({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: mergeLocales(
+          DesignEnUS,
+          UIEnUS,
+          PdfsUIEnUS,
+        ),
+      },
+    })
+
+    univer.registerPlugin(UniverUIPlugin, { container: 'app' })
+    univer.registerPlugin(UniverLicensePlugin, {
+      license: process.env.CLIENT_LICENSE_TEXT,
+    })
+    univer.registerPlugin(UniverPdfsPlugin)
+    univer.registerPlugin(UniverPdfEditorPlugin)
+    univer.registerPlugin(UniverPdfsUIPlugin)
+
+    const univerAPI = FUniver.newAPI(univer)
+    univerAPI.createPdf({ name: 'Untitled PDF' })
+    ```
+
+  </Step>
+</Steps>
+
+## Worker de miniatures facultatif
+
+Les miniatures des pages peuvent être affichées sur le thread principal sans configuration supplémentaire. Pour les documents plus volumineux, fournissez un worker de module dédié avec `thumbnailWorkerURL`.
+
+Créez un point d'entrée de worker tel que `pdf-thumbnail.worker.ts` :
+
+```ts
+import { startPdfPageThumbnailWorker } from '@univerjs-pro/pdfs-ui'
+
+startPdfPageThumbnailWorker()
+```
+
+Transmettez ensuite son URL lors de l'enregistrement du plugin d'interface PDF :
+
+```ts
+univer.registerPlugin(UniverPdfsUIPlugin, {
+  thumbnailWorkerURL: new Worker(new URL('./pdf-thumbnail.worker.ts', import.meta.url), { type: 'module' }),
+})
+```
+
+L'option accepte également une URL sous forme de chaîne ou un `Worker` existant. Si les workers ou `OffscreenCanvas` ne sont pas disponibles, l'affichage des miniatures revient au thread principal.
+
+## Utilisation avec Node.js
+
+Les services Node.js peuvent enregistrer `UniverPdfsPlugin` et `UniverPdfEditorPlugin` sans les packages d'interface du navigateur. Ajoutez le client de collaboration uniquement si le service doit charger ou synchroniser des unités PDF conservées.

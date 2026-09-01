@@ -1,62 +1,76 @@
 ---
 title: Slide Data Structure
-icon: '#pro/Presentation'
+icon: 'Presentation'
 ---
 
 ## ISlideData
 
-`ISlideData` is the snapshot format used by Univer Slides. It describes one presentation unit, including the presentation id, title, page size, slide pages, and reusable reference pages such as masters and layouts.
+`ISlideData` is the persisted snapshot for one Univer Slides presentation. It stores presentation metadata, the ordered slide collection, optional master and layout layers, transitions, themes, and resources.
 
-### Properties
+### Required properties
 
 | Property | Type | Description |
 | --- | --- | --- |
-| id | `string` | Unique id of the Univer Slides unit. |
-| locale? | `LocaleType` | Locale of the presentation. |
-| title | `string` | Presentation title. |
-| pageSize | `ISize` | Default page size used by slides in the presentation. |
-| body? | `ISlidePageBody` | Slide pages and their order. |
-| master? | `{ [id: string]: ISlidePage }` | Master pages shared by slides and layouts. |
-| layouts? | `{ [id: string]: ISlidePage }` | Layout pages referenced by normal slides. |
-| handoutMaster? | `{ [id: string]: ISlidePage }` | Handout master pages. |
-| notesMaster? | `{ [id: string]: ISlidePage }` | Notes master pages. |
-| lists? | `ILists` | List definitions used by rich-text elements. |
+| `id` | `string` | Unique ID of the presentation unit. |
+| `name` | `string` | Display name of the presentation. |
+| `defaultPageSize` | `ISlidePageSize` | Default width and height used when a page has no own size. |
+| `slideOrder` | `string[]` | Slide IDs in presentation order. |
+| `slides` | `Record<string, ISlidePage>` | Normal slide pages keyed by slide ID. |
 
-### Body
+### Optional properties
 
-`body.pages` stores slide pages by page id, while `body.pageOrder` stores the visible order. Keep both in sync when constructing a snapshot.
+| Property | Type | Description |
+| --- | --- | --- |
+| `rev?` | `number` | Snapshot revision. |
+| `appVersion?` | `string` | Univer version that produced the snapshot. |
+| `locale?` | `LocaleType` | Presentation locale. |
+| `masterPageOrder?` | `string[]` | Master page IDs in stored order. |
+| `masterPages?` | `Record<string, ISlideMasterPage>` | Master pages keyed by ID. |
+| `layoutPageOrder?` | `string[]` | Layout page IDs in stored order. |
+| `layoutPages?` | `Record<string, ISlideLayoutPage>` | Layout pages keyed by ID. |
+| `handoutMasterPageOrder?` | `string[]` | Handout master IDs in stored order. |
+| `handoutMasterPages?` | `Record<string, ISlideHandoutMasterPage>` | Handout masters keyed by ID. |
+| `notesMasterPageOrder?` | `string[]` | Notes master IDs in stored order. |
+| `notesMasterPages?` | `Record<string, ISlideNotesMasterPage>` | Notes masters keyed by ID. |
+| `activeSlideId?` | `string` | ID of the active slide. |
+| `transitionRecords?` | `Record<string, ISlideTransition>` | Reusable transition records keyed by transition ID. |
+| `slideTransitionRefs?` | `Record<string, string>` | Mapping from slide IDs to transition IDs. |
+| `theme?` | `ISlideThemeData` | Default presentation theme. |
+| `themes?` | `Record<string, ISlideThemeData>` | Additional themes keyed by theme ID. |
+| `zoomRatio?` | `number` | Persisted presentation zoom ratio. |
+| `resources?` | `IResources` | Resources contributed by Slides and feature plugins. |
+| `custom?` | `SlideCustomData` | Application-defined presentation metadata. |
+
+### Ordered page records
+
+Every ID in `slideOrder` should resolve to an entry in `slides`. The optional master, layout, handout-master, and notes-master layers follow the same order-array and keyed-record pattern. `activeSlideId`, when present, should resolve to an entry in `slides`.
 
 ```typescript
+import type { ISlideData } from '@univerjs-pro/slides'
+import { PageTypeEnum } from '@univerjs-pro/slides'
+
 const slideData: ISlideData = {
   id: 'deck-1',
-  title: 'Product roadmap',
-  pageSize: { width: 960, height: 540 },
-  body: {
-    pageOrder: ['slide-1'],
-    pages: {
-      'slide-1': {
-        id: 'slide-1',
-        pageType: PageType.SLIDE,
-        zIndex: 10,
-        title: 'Opening',
-        description: '',
-        pageBackgroundFill: { rgb: 'rgb(255,255,255)' },
-        pageElements: {},
-      },
+  name: 'Product roadmap',
+  defaultPageSize: { width: 960, height: 540 },
+  slideOrder: ['slide-1'],
+  slides: {
+    'slide-1': {
+      id: 'slide-1',
+      name: 'Opening',
+      pageType: PageTypeEnum.Slide,
+      elementOrder: [],
+      elements: {},
     },
   },
+  activeSlideId: 'slide-1',
 }
 ```
 
 ### Usage
 
-`ISlideData` is mainly used to:
+Pass a snapshot to `univerAPI.createPresentation(slideData)` to restore a presentation. Use `presentation.save()` to obtain the current `ISlideData` snapshot for persistence, export, print, or server-side processing.
 
-1. Create a `UniverInstanceType.UNIVER_SLIDE` unit.
-2. Persist or restore a presentation snapshot.
-3. Prepare data for import, export, print, or server-side processing.
-4. Provide the source snapshot consumed by `SlideDataModel`.
-
-<Callout type="warning">
-  Snapshot objects are persistence data. After the presentation is running, prefer Facade APIs instead of mutating the snapshot object directly.
+<Callout type="warning" title="Caution">
+  A snapshot is persistence data, not the live `SlideModel`. After the presentation starts, use Slides Facade methods or registered commands instead of mutating the snapshot object.
 </Callout>

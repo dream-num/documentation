@@ -1,99 +1,66 @@
 ---
 title: Liste de polices personnalisée
-icon: '#pro/BookType'
+icon: BookType
 ---
 
+Le texte PDF et le menu des polices de l’éditeur utilisent deux sources liées, mais distinctes.
 
-## Structure d’une police
+| Source | Ce qu’elle contrôle |
+| --- | --- |
+| `document.assets.fonts` et le `fontId` d’un segment | Métadonnées et ressources des polices PDF importées servant à reconstruire le contenu natif. |
+| `fontFamily` d’un segment éditable | Famille CSS utilisée pour mettre en page et rendre le texte éditable. |
+| La liste de polices partagée d’Univer | Options affichées dans le sélecteur de l’inspecteur PDF. |
 
-Dans Univer, les polices sont définies à l’aide de l’interface `IFontConfig` :
+Ajouter une option à la liste partagée n’ajoute pas de ressource à `document.assets.fonts` et ne télécharge ni n’incorpore de fichier de police.
 
-| Propriété | Type | Description |
-| --- | --- | --- |
-| `value` | `string` | Identifiant unique de la police, généralement la valeur à privilégier pour la propriété CSS font-family. |
-| `label` | `string` | Clé de traduction utilisée pour l’internationalisation. Si cette clé n’est pas définie lors de la création de l’instance Univer, la valeur transmise est affichée telle quelle. |
-| `category` | `'sans-serif' \| 'serif' \| 'monospace' \| 'display' \| 'handwriting'` | Catégorie de la police, utilisée pour le regroupement dans l’interface utilisateur (facultatif). |
+## Configurer la liste de l’éditeur
 
-<Callout>
-  Univer n’empêche pas les utilisateurs de sélectionner des polices qui ne sont pas installées. Si une police n’est pas installée sur le client, le navigateur la remplace par la police par défaut.
-</Callout>
+Lorsque `editor.enabled` vaut `true`, l’inspecteur PDF utilise le `FontFamilyDropdown` partagé. Configurez sa liste dans `UniverUIPlugin` :
 
-{/* <AutoTypeTable
-  name="IFontConfig"
-  type={`
-    export type { IFontConfig } from '@univerjs/ui'
-  `}
-/> */}
+```ts
+import { UniverUIPlugin } from '@univerjs/ui'
 
-## Utiliser des polices personnalisées
-
-Vous pouvez définir les options du menu déroulant des polices en configurant le paramètre `customFontFamily` de `UniverSheetsCorePreset` (mode prédéfini) ou de `UniverUIPlugin` (mode plugin).
-
-<Tabs items={['Mode prédéfini', 'Mode plugin']}>
-  <Tab>
-    ```typescript
-    const { univerAPI } = createUniver({
-      presets: [
-        UniverSheetsCorePreset({
-          container: 'app',
-          customFontFamily: {
-            list: [
-              {
-                value: 'PingFang SC',
-                label: '苹方（简）',
-                category: 'sans-serif',
-              },
-              {
-                value: 'Helvetica Neue',
-                label: 'Helvetica Neue',
-                category: 'sans-serif',
-              },
-            ],
-            // Whether to override the default font list, defaults to false
-            override: true,
-          },
-        }),
-      ],
-    })
-    ```
-  </Tab>
-  <Tab>
-    ```typescript
-    univer.registerPlugin(UniverUIPlugin, {
-      container: 'app',
-      customFontFamily: {
-        list: [
-          {
-            value: 'PingFang SC',
-            label: '苹方（简）',
-            category: 'sans-serif',
-          },
-          {
-            value: 'Helvetica Neue',
-            label: 'Helvetica Neue',
-            category: 'sans-serif',
-          },
-        ],
-        // Whether to override the default font list, defaults to false
-        override: true,
-      },
-    })
-    ```
-  </Tab>
-</Tabs>
-
-### Facade API
-
-Outre la configuration lors de l’initialisation, vous pouvez enregistrer dynamiquement de nouvelles polices pendant l’exécution à l’aide de la Facade API. Cette possibilité est particulièrement utile lorsque les ressources de police doivent être chargées de manière asynchrone.
-
-```typescript
-univerAPI.addFonts([{
-  value: 'PingFang SC',
-  label: 'PingFang SC',
-  category: 'sans-serif',
-}, {
-  value: 'Helvetica Neue',
-  label: 'Helvetica Neue',
-  category: 'sans-serif',
-}])
+univer.registerPlugin(UniverUIPlugin, {
+  container: 'app',
+  customFontFamily: {
+    list: [
+      { value: 'Inter', label: 'Inter', category: 'sans-serif' },
+      { value: 'Noto Serif', label: 'Noto Serif', category: 'serif' },
+    ],
+    override: false,
+  },
+})
 ```
+
+Chargez chaque police du navigateur avec `@font-face` ou une feuille de style. Sinon, Canvas utilise une police de remplacement du navigateur.
+
+## Ajouter des choix à l’exécution
+
+Après le chargement de la Facade UI, ajoutez des choix à la même liste partagée avec `addFonts` :
+
+```ts
+univerAPI.addFonts([
+  { value: 'Inter', label: 'Inter', category: 'sans-serif' },
+])
+```
+
+Cette méthode ne met à jour que la liste de l’application ; elle ne charge pas les octets de la police et ne réécrit pas les segments PDF existants.
+
+## Appliquer une police au texte PDF éditable
+
+Passez `fontFamily` lors de l’insertion ou mettez à jour une zone de texte avec la Facade PDF :
+
+```ts
+const page = univerAPI.getActivePdf()?.getPageByIndex(0)
+const textBox = page?.insertTextBox({
+  text: 'Hello PDF',
+  fontFamily: 'Inter',
+  fontSize: 14,
+  left: 36,
+  top: 36,
+})
+
+textBox?.setTextStyle({ fontFamily: 'Noto Serif' })
+```
+
+Le texte natif importé renvoyé par `page.getTextSpans()` est un instantané et ne peut pas être stylé sur place. Appelez `replaceText(...)` pour le convertir en zone éditable avant `setTextStyle`.

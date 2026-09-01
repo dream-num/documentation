@@ -1,0 +1,122 @@
+---
+title: 安装和基本使用
+icon: 'Blocks'
+---
+
+Univer PDFs 是 Univer Pro 产品，目前不提供预设。请使用插件模式创建 PDF 应用。
+
+## 安装浏览器编辑器
+
+<Tabs items={['npm', 'pnpm', 'yarn']}>
+  <Tab>
+
+    ```shell
+    npm install @univerjs/core @univerjs/design @univerjs/ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-editor @univerjs-pro/pdfs-ui
+    ```
+
+  </Tab>
+  <Tab>
+
+    ```shell
+    pnpm add @univerjs/core @univerjs/design @univerjs/ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-editor @univerjs-pro/pdfs-ui
+    ```
+
+  </Tab>
+  <Tab>
+
+    ```shell
+    yarn add @univerjs/core @univerjs/design @univerjs/ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-editor @univerjs-pro/pdfs-ui react react-dom rxjs
+    ```
+
+  </Tab>
+</Tabs>
+
+请让所有 `@univerjs/*` 和 `@univerjs-pro/*` 包保持相同版本。
+
+## 注册插件
+
+<Steps>
+  <Step>
+    先导入公共 UI 样式，再导入 PDF UI 样式，并合并应用启用的语言包：
+
+    ```ts
+    import { UniverLicensePlugin } from '@univerjs-pro/license'
+    import { UniverPdfsPlugin } from '@univerjs-pro/pdfs'
+    import { UniverPdfEditorPlugin } from '@univerjs-pro/pdfs-editor'
+    import { UniverPdfsUIPlugin } from '@univerjs-pro/pdfs-ui'
+    import PdfsUIEnUS from '@univerjs-pro/pdfs-ui/locale/en-US'
+    import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+    import { FUniver } from '@univerjs/core/facade'
+    import DesignEnUS from '@univerjs/design/locale/en-US'
+    import { UniverUIPlugin } from '@univerjs/ui'
+    import UIEnUS from '@univerjs/ui/locale/en-US'
+
+    import '@univerjs/design/lib/index.css'
+    import '@univerjs/ui/lib/index.css'
+    import '@univerjs-pro/pdfs-ui/lib/index.css'
+    ```
+
+  </Step>
+  <Step>
+    导入 PDF Facade 入口。这个副作用导入会向 `FUniver` 添加 PDF 方法和枚举：
+
+    ```ts
+    import '@univerjs-pro/pdfs/facade'
+    ```
+
+  </Step>
+  <Step>
+    创建运行时，注册显式插件栈，然后创建 PDF：
+
+    ```ts
+    const univer = new Univer({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: mergeLocales(
+          DesignEnUS,
+          UIEnUS,
+          PdfsUIEnUS,
+        ),
+      },
+    })
+
+    univer.registerPlugin(UniverUIPlugin, { container: 'app' })
+    univer.registerPlugin(UniverLicensePlugin, {
+      license: process.env.CLIENT_LICENSE_TEXT,
+    })
+    univer.registerPlugin(UniverPdfsPlugin)
+    univer.registerPlugin(UniverPdfEditorPlugin)
+    univer.registerPlugin(UniverPdfsUIPlugin)
+
+    const univerAPI = FUniver.newAPI(univer)
+    univerAPI.createPdf({ name: 'Untitled PDF' })
+    ```
+
+  </Step>
+</Steps>
+
+## 可选的缩略图 Worker
+
+无需额外配置，页面缩略图也可以在主线程渲染。对于较大的文档，可通过 `thumbnailWorkerURL` 提供专用模块 Worker。
+
+创建一个 Worker 入口，例如 `pdf-thumbnail.worker.ts`：
+
+```ts
+import { startPdfPageThumbnailWorker } from '@univerjs-pro/pdfs-ui'
+
+startPdfPageThumbnailWorker()
+```
+
+注册 PDF UI 插件时传入其 URL：
+
+```ts
+univer.registerPlugin(UniverPdfsUIPlugin, {
+  thumbnailWorkerURL: new Worker(new URL('./pdf-thumbnail.worker.ts', import.meta.url), { type: 'module' }),
+})
+```
+
+该选项也接受字符串 URL 或现有的 `Worker`。如果 Worker 或 `OffscreenCanvas` 不可用，缩略图渲染会回退到主线程。
+
+## Node.js 用法
+
+Node.js 服务可以注册 `UniverPdfsPlugin` 和 `UniverPdfEditorPlugin`，无需浏览器 UI 包。仅当服务需要加载或同步已持久化的 PDF 单元时，才添加协作客户端。

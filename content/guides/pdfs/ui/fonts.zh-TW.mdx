@@ -1,99 +1,78 @@
 ---
-title: 自訂字型列表
-icon: '#pro/BookType'
+title: 自订字体列表
+icon: BookType
 ---
 
+PDF 文字與編輯器的字型選單使用兩個相關但不同的資料來源。
 
-## 字型結構定義
+| 資料來源 | 控制內容 |
+| --- | --- |
+| `document.assets.fonts` 與文字片段的 `fontId` | 用來還原原生內容的已匯入 PDF 字型中繼資料與資源。 |
+| 可編輯文字片段的 `fontFamily` | 可編輯文字配置與繪製時使用的 CSS 字型家族。 |
+| Univer 共用字型清單 | PDF 屬性面板字型下拉選單顯示的選項。 |
 
-在 Univer 中，字型使用 `IFontConfig` 介面進行定義：
+在共用清單加入選項，不會在 `document.assets.fonts` 新增資源，也不會下載或嵌入字型檔案。
 
-| 屬性 | 類型 | 說明 |
-| --- | --- | --- |
-| `value` | `string` | 字型的唯一識別碼，通常也是 CSS font-family 的首選值。 |
-| `label` | `string` | 用於國際化的翻譯鍵，如果在 Univer 實例建立時沒有指定該鍵值時，則直接顯示傳入值。|
-| `category` | `'sans-serif' \| 'serif' \| 'monospace' \| 'display' \| 'handwriting'` | 字型類別，用於 UI 分組（可選）。 |
+## 設定編輯器字型清單
 
-<Callout>
-  Univer 不會阻止使用者選擇未安裝的字型，如果客戶端沒有安裝某個字型，瀏覽器會直接使用預設字型進行替代顯示。
-</Callout>
+當 `editor.enabled` 為 `true` 時，PDF 屬性面板使用共用的 `FontFamilyDropdown`。請在瀏覽器設定的 `UniverUIPlugin` 中設定清單：
 
-{/* <AutoTypeTable
-  name="IFontConfig"
-  type={`
-    export type { IFontConfig } from '@univerjs/ui'
-  `}
-/> */}
+```ts
+import { UniverUIPlugin } from '@univerjs/ui'
 
-## 使用自訂字型
-
-你可以透過為 `UniverSheetsCorePreset`（預設模式）或 `UniverUIPlugin`（外掛模式）配置 `customFontFamily` 參數來定義字型下拉選單中的選項。
-
-<Tabs items={['預設模式', '外掛模式']}>
-  <Tab>
-    ```typescript
-    const { univerAPI } = createUniver({
-      presets: [
-        UniverSheetsCorePreset({
-          container: 'app',
-          customFontFamily: {
-            list: [
-              {
-                value: 'PingFang SC',
-                label: '苹方（简）',
-                category: 'sans-serif',
-              },
-              {
-                value: 'Helvetica Neue',
-                label: 'Helvetica Neue',
-                category: 'sans-serif',
-              },
-            ],
-            // 是否覆蓋預設字型列表，預設為 false
-            override: true,
-          },
-        }),
-      ],
-    })
-    ```
-  </Tab>
-  <Tab>
-    ```typescript
-    univer.registerPlugin(UniverUIPlugin, {
-      container: 'app',
-      customFontFamily: {
-        list: [
-          {
-            value: 'PingFang SC',
-            label: '苹方（简）',
-            category: 'sans-serif',
-          },
-          {
-            value: 'Helvetica Neue',
-            label: 'Helvetica Neue',
-            category: 'sans-serif',
-          },
-        ],
-        // 是否覆蓋預設字型列表，預設為 false
-        override: true,
+univer.registerPlugin(UniverUIPlugin, {
+  container: 'app',
+  customFontFamily: {
+    list: [
+      {
+        value: 'Inter',
+        label: 'Inter',
+        category: 'sans-serif',
       },
-    })
-    ```
-  </Tab>
-</Tabs>
-
-### Facade API
-
-除了在初始化時配置，你還可以透過 Facade API 在執行時動態註冊新的字型。這在需要非同步載入字型資源的場景下非常有用。
-
-```typescript
-univerAPI.addFonts([{
-  value: 'PingFang SC',
-  label: 'PingFang SC',
-  category: 'sans-serif',
-}, {
-  value: 'Helvetica Neue',
-  label: 'Helvetica Neue',
-  category: 'sans-serif',
-}])
+      {
+        value: 'Noto Serif',
+        label: 'Noto Serif',
+        category: 'serif',
+      },
+    ],
+    override: false,
+  },
+})
 ```
+
+請透過 `@font-face` 或樣式表自行載入瀏覽器字型，否則 Canvas 會使用瀏覽器的替代字型。
+
+## 在執行階段新增選項
+
+載入 UI Facade 後，可以用 `addFonts` 向同一個共用清單追加選項：
+
+```ts
+univerAPI.addFonts([
+  {
+    value: 'Inter',
+    label: 'Inter',
+    category: 'sans-serif',
+  },
+])
+```
+
+此方法只會更新應用程式字型清單，不會載入字型二進位資料，也不會改寫既有 PDF 文字片段。
+
+## 為可編輯 PDF 文字設定字型
+
+插入文字時傳入 `fontFamily`，或透過 PDF Facade 更新可編輯文字方塊：
+
+```ts
+const page = univerAPI.getActivePdf()?.getPageByIndex(0)
+const textBox = page?.insertTextBox({
+  text: 'Hello PDF',
+  fontFamily: 'Inter',
+  fontSize: 14,
+  left: 36,
+  top: 36,
+})
+
+textBox?.setTextStyle({ fontFamily: 'Noto Serif' })
+```
+
+`page.getTextSpans()` 傳回的原生匯入文字是快照，不能直接修改樣式。請先呼叫 `replaceText(...)` 將其提升為可編輯文字方塊，再呼叫 `setTextStyle`。

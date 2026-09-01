@@ -1,99 +1,66 @@
 ---
-title: Пользовательский список шрифтов
-icon: '#pro/BookType'
+title: Список пользовательских шрифтов
+icon: BookType
 ---
 
+Текст PDF и меню шрифтов редактора используют связанные, но разные источники данных.
 
-## Структура описания шрифта
+| Источник | Что он определяет |
+| --- | --- |
+| `document.assets.fonts` и `fontId` текстового фрагмента | Метаданные и ресурсы импортированных PDF-шрифтов для восстановления исходного содержимого. |
+| `fontFamily` редактируемого фрагмента | CSS-семейство для компоновки и отрисовки редактируемого текста. |
+| Общий список шрифтов Univer | Варианты в списке шрифтов инспектора PDF. |
 
-В Univer шрифты определяются с помощью интерфейса `IFontConfig`:
+Добавление варианта в общий список не создаёт ресурс в `document.assets.fonts`, не загружает и не встраивает файл шрифта.
 
-| Свойство | Тип | Описание |
-| --- | --- | --- |
-| `value` | `string` | Уникальный идентификатор шрифта, обычно также предпочтительное значение CSS-свойства font-family. |
-| `label` | `string` | Ключ перевода для интернационализации. Если при создании экземпляра Univer этот ключ не задан, значение отображается без изменений. |
-| `category` | `'sans-serif' \| 'serif' \| 'monospace' \| 'display' \| 'handwriting'` | Категория шрифта, используемая для группировки в интерфейсе (необязательно). |
+## Настройка списка редактора
 
-<Callout>
-  Univer не запрещает пользователям выбирать неустановленные шрифты. Если шрифт не установлен на устройстве, браузер заменит его шрифтом по умолчанию.
-</Callout>
+Когда `editor.enabled` имеет значение `true`, инспектор PDF использует общий `FontFamilyDropdown`. Настройте список в `UniverUIPlugin`:
 
-{/* <AutoTypeTable
-  name="IFontConfig"
-  type={`
-    export type { IFontConfig } from '@univerjs/ui'
-  `}
-/> */}
+```ts
+import { UniverUIPlugin } from '@univerjs/ui'
 
-## Использование пользовательских шрифтов
-
-Пункты раскрывающегося списка шрифтов можно задать с помощью параметра `customFontFamily` для `UniverSheetsCorePreset` (режим предустановок) или `UniverUIPlugin` (режим плагинов).
-
-<Tabs items={['Режим предустановок', 'Режим плагинов']}>
-  <Tab>
-    ```typescript
-    const { univerAPI } = createUniver({
-      presets: [
-        UniverSheetsCorePreset({
-          container: 'app',
-          customFontFamily: {
-            list: [
-              {
-                value: 'PingFang SC',
-                label: '苹方（简）',
-                category: 'sans-serif',
-              },
-              {
-                value: 'Helvetica Neue',
-                label: 'Helvetica Neue',
-                category: 'sans-serif',
-              },
-            ],
-            // Whether to override the default font list, defaults to false
-            override: true,
-          },
-        }),
-      ],
-    })
-    ```
-  </Tab>
-  <Tab>
-    ```typescript
-    univer.registerPlugin(UniverUIPlugin, {
-      container: 'app',
-      customFontFamily: {
-        list: [
-          {
-            value: 'PingFang SC',
-            label: '苹方（简）',
-            category: 'sans-serif',
-          },
-          {
-            value: 'Helvetica Neue',
-            label: 'Helvetica Neue',
-            category: 'sans-serif',
-          },
-        ],
-        // Whether to override the default font list, defaults to false
-        override: true,
-      },
-    })
-    ```
-  </Tab>
-</Tabs>
-
-### Facade API
-
-Помимо настройки при инициализации, новые шрифты можно динамически регистрировать во время выполнения через Facade API. Это особенно удобно, когда файлы шрифтов необходимо загружать асинхронно.
-
-```typescript
-univerAPI.addFonts([{
-  value: 'PingFang SC',
-  label: 'PingFang SC',
-  category: 'sans-serif',
-}, {
-  value: 'Helvetica Neue',
-  label: 'Helvetica Neue',
-  category: 'sans-serif',
-}])
+univer.registerPlugin(UniverUIPlugin, {
+  container: 'app',
+  customFontFamily: {
+    list: [
+      { value: 'Inter', label: 'Inter', category: 'sans-serif' },
+      { value: 'Noto Serif', label: 'Noto Serif', category: 'serif' },
+    ],
+    override: false,
+  },
+})
 ```
+
+Загрузите каждый браузерный шрифт через `@font-face` или таблицу стилей. Иначе Canvas использует резервный шрифт браузера.
+
+## Добавление вариантов во время выполнения
+
+После загрузки UI Facade добавляйте варианты в тот же общий список с помощью `addFonts`:
+
+```ts
+univerAPI.addFonts([
+  { value: 'Inter', label: 'Inter', category: 'sans-serif' },
+])
+```
+
+Метод обновляет только список приложения: он не загружает данные шрифта и не переписывает существующие фрагменты PDF.
+
+## Применение шрифта к редактируемому тексту PDF
+
+Передайте `fontFamily` при вставке текста или обновите текстовое поле через PDF Facade:
+
+```ts
+const page = univerAPI.getActivePdf()?.getPageByIndex(0)
+const textBox = page?.insertTextBox({
+  text: 'Hello PDF',
+  fontFamily: 'Inter',
+  fontSize: 14,
+  left: 36,
+  top: 36,
+})
+
+textBox?.setTextStyle({ fontFamily: 'Noto Serif' })
+```
+
+Импортированный нативный текст из `page.getTextSpans()` является снимком и не изменяется напрямую. Сначала вызовите `replaceText(...)`, чтобы преобразовать его в редактируемое поле, затем вызовите `setTextStyle`.

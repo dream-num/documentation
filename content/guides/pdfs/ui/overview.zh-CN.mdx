@@ -1,62 +1,39 @@
 ---
-title: PDF UI
+title: UI 概览
 description: 配置 PDF Canvas、编辑器控件、语言包和缩略图 Worker。
-icon: '#pro/LayoutPanelTop'
+icon: LayoutDashboard
 ---
 
+`@univerjs-pro/pdfs-ui` 将 PDF 单元挂载到 Univer 的标准工作台中，并通过 Univer Pro 许可证授权。
 
-import { UIArchitecture } from '@/components/ui-architecture'
+## 包的职责
 
-## 架构
+| 包 | 职责 |
+| --- | --- |
+| `@univerjs-pro/pdfs` | 注册 `UNIVER_PDF` 单元、文档模型和可持久化的 PDF 命令。 |
+| `@univerjs-pro/pdfs-ui` | 挂载浏览器 Canvas、缩略图栏和底栏；默认启用本地编辑控件。 |
+| `@univerjs-pro/pdfs-editor` | 声明协同编辑侧的依赖，不挂载 PDF UI，也不控制 `editor.enabled`。 |
 
-Univer 的 UI 基座基于下图设计：
-
-<UIArchitecture />
-
-通过不同的插件相结合，向基座中添加各种功能和视图，最终形成一个完整的应用。
-
-## 设计系统
-
-Univer 的设计系统基于 Tailwind CSS 构建了一系列的设计 Tokens，这些 Tokens 会被渲染引擎复用，以确保渲染引擎与视图层的样式一致。你可以通过修改这些 Tokens 来定制你的应用的样式，Tokens 被存储在 `@univerjs/themes` 包中。
-
-
-
-## 组件
-
-Univer 使用了 React 组件来构建视图层，因此对于同样使用 React 的开发者来说，无论是使用 Univer 的组件还是注册自定义组件，都会是一件非常简单的事情。但这并不意味着你只能使用 React 来自定义组件，Univer 也提供了对其他框架的支持，比如 Vue（3.x 版本）和 Web Components。
-
-所有的基础组件都被存放在 `@univerjs/design` 包中。图标组件被存放在 `@univerjs/icons` 包中。这些组件也可以独立于 Univer 单独使用。
-
-自定义组件常用于以下场景：
-
-- 在 Ribbon / Context Menu 中添加自定义按钮
-- 在 Sidebar / Popup 等组件中集成自定义组件
-- 替换内置组件
-
-我们会在后续章节中详细介绍如何注册和使用自定义组件。
-
-
-`@univerjs-pro/pdfs-ui` 在浏览器中渲染 `UNIVER_PDF` 单元。它提供连续页面 Canvas、页面缩略图和管理器、选择与编辑模式、搜索、功能区和上下文菜单操作、检查器控件，以及图片和打印所使用的运行时服务。
+`UniverPdfsUIPlugin` 依赖 `UniverLicensePlugin` 和 `UniverPdfsPlugin`。请先完成带许可证的 PDF 基础配置，再注册 UI 插件。
 
 ## 注册 UI 插件
 
 ```ts
 import { UniverPdfsUIPlugin } from '@univerjs-pro/pdfs-ui'
-import PdfsUIEnUS from '@univerjs-pro/pdfs-ui/locale/en-US'
+import PdfsUIZhCN from '@univerjs-pro/pdfs-ui/locale/zh-CN'
 
 import '@univerjs-pro/pdfs-ui/lib/index.css'
 
-univer.registerPlugin(UniverPdfsUIPlugin, {
-  editor: { enabled: true },
-  thumbnailWorkerURL: new URL('./pdf-thumbnail-worker.js', import.meta.url),
-})
+univer.registerPlugin(UniverPdfsUIPlugin)
 ```
 
-将 `PdfsUIEnUS` 与传给 `new Univer(...)` 的公共 Design 和 UI 语言包合并。
+将 `PdfsUIZhCN` 合并到传给 `new Univer(...)` 的语言包中。该语言包包含 PDF 功能区、检查器、右键菜单和页面栏的文案。
 
-## 仅查看模式
+## 查看和编辑模式
 
-编辑默认启用。可以禁用编辑器控制器，同时保留 PDF Canvas 和查看 UI：
+插件始终挂载页面缩略图栏、PDF Canvas 和底栏。编辑默认开启，并额外注册功能区、右键菜单、检查器、剪贴板、插入命令，以及编辑操作和控制器。
+
+如果当前应用只需查看 PDF，可以关闭编辑控件：
 
 ```ts
 univer.registerPlugin(UniverPdfsUIPlugin, {
@@ -64,11 +41,11 @@ univer.registerPlugin(UniverPdfsUIPlugin, {
 })
 ```
 
-该配置控制 UI 和本地编辑器服务。它不会更改持久化的 PDF 快照，也不会授予应用级访问控制。
+此选项只改变已挂载的 UI 以及编辑专用控制器和服务，不是权限策略，也不会修改已保存的 PDF 快照。
 
 ## 缩略图 Worker
 
-`thumbnailWorkerURL` 接受字符串、`URL` 或现有的 `Worker`。Worker 模块必须启动导出的 PDF 缩略图运行时：
+`thumbnailWorkerURL` 接受字符串、`URL` 或现有 `Worker`。对应模块必须启动包导出的 Worker 运行时：
 
 ```ts title="pdf-thumbnail-worker.ts"
 import { startPdfPageThumbnailWorker } from '@univerjs-pro/pdfs-ui'
@@ -76,12 +53,14 @@ import { startPdfPageThumbnailWorker } from '@univerjs-pro/pdfs-ui'
 startPdfPageThumbnailWorker()
 ```
 
-让插件配置指向构建后的 Worker 模块。未配置兼容 Worker 时，缩略图渲染会回退到主线程渲染器。
+```ts
+univer.registerPlugin(UniverPdfsUIPlugin, {
+  thumbnailWorkerURL: new URL('./pdf-thumbnail-worker.js', import.meta.url),
+})
+```
 
-Worker 路径是应用资源，因此其最终 URL 取决于打包器和部署基础路径。
+该 Worker 必须运行在专用 Worker 作用域中。未配置 Worker、浏览器缺少所需 API，或页面依赖只能在主线程解析的资源时，缩略图会回退到主线程渲染。
 
-## UI 能力和 Facade API
+## 公共 API 边界
 
-UI 包含页面管理、搜索、选择、原生文本编辑、文本框、段落、列表、表格、图片、分隔线、批注以及撤销和重做工具。这些 UI 操作在内部使用 PDF 命令和运行时服务。
-
-不要根据功能区按钮的存在推断公共 Facade 方法。请通过 [PDF Facade 参考](/reference/facade/pdf)了解受支持的编程 API，通过[导入与导出](/guides/pdfs/features/import-export)了解 Exchange 方法，并通过[打印](/guides/pdfs/features/print)了解浏览器打印菜单。
+UI 会在内部调用 PDF 命令和服务，功能区中有按钮并不代表存在同名公共方法。支持的编程式编辑请查看 [PDF Facade 指南](/guides/pdfs/getting-started/facade)，格式转换请查看[导入与导出](/guides/pdfs/features/import-export)，浏览器打印请查看[打印](/guides/pdfs/features/print)。
