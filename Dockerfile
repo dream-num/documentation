@@ -9,14 +9,14 @@ WORKDIR /app
 
 # Optional proxy used by build commands such as pnpm install.
 ARG HTTP_PROXY=""
-ARG PNPM_STRICT_SSL="true"
+ARG PNPM_STRICT_SSL=1
 
 ARG NPM_REGISTRY=""
 RUN [[ "${NPM_REGISTRY}" != "" ]] && npm config set registry ${NPM_REGISTRY} || echo "Skip setting NPM_REGISTRY"
 
 COPY . .
 RUN corepack enable pnpm \
-  && pnpm config set strict-ssl "${PNPM_STRICT_SSL}" \
+  && NODE_TLS_REJECT_UNAUTHORIZED=${PNPM_STRICT_SSL} \
   && HTTP_PROXY="${HTTP_PROXY}" HTTPS_PROXY="${HTTP_PROXY}" pnpm i
 
 # Environment variables
