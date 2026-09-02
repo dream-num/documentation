@@ -69,7 +69,6 @@ import { useTheme } from 'next-themes'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import Spinner from '@/components/animata/spinner'
-import { BorderBeam } from '@/components/magicui/border-beam'
 import { clsx } from '@/lib/clsx'
 
 import { modernDocumentData, traditionalDocumentData, workbookData } from './data'
@@ -1584,52 +1583,38 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       label: 'Sheets',
       fullLabel: 'Univer Sheets',
       icon: SheetsMultiIcon,
-      activeClass: 'text-green-700 dark:text-green-300',
-      beamColor: '#35BD4B',
     },
     {
       key: 'docs' as const,
       label: 'Docs',
       fullLabel: 'Univer Docs',
       icon: DocsMultiIcon,
-      activeClass: 'text-blue-700 dark:text-blue-300',
-      beamColor: '#4B7DFF',
     },
     {
       key: 'slides' as const,
       label: 'Slides',
       fullLabel: 'Univer Slides',
       icon: SlidesMultiIcon,
-      activeClass: 'text-orange-700 dark:text-orange-300',
-      beamColor: '#FF6B4B',
     },
     {
       key: 'bases' as const,
       label: 'Bases',
       fullLabel: 'Univer Bases',
       icon: BasesMultiIcon,
-      activeClass: 'text-teal-700 dark:text-teal-300',
-      beamColor: '#14B8A6',
     },
     {
       key: 'boards' as const,
       label: 'Boards',
       fullLabel: 'Univer Boards',
       icon: BoardsMultiIcon,
-      activeClass: 'text-violet-700 dark:text-violet-300',
-      beamColor: '#8B5CF6',
     },
     {
       key: 'pdfs' as const,
       label: 'PDFs',
       fullLabel: 'Univer PDFs',
       icon: PdfMultiIcon,
-      activeClass: 'text-red-700 dark:text-red-300',
-      beamColor: '#E5484D',
     },
   ]
-
-  const activeIndex = tabs.findIndex((tab) => tab.key === type)
 
   return (
     <div className="w-full">
@@ -1637,7 +1622,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         <div
           role="tablist"
           aria-label={tablistLabel}
-          className="relative grid w-full max-w-sm grid-cols-3 gap-0.5 rounded-xl border border-neutral-200/80 bg-neutral-100/80 p-0.5 sm:inline-flex sm:w-auto sm:max-w-none dark:border-neutral-700/80 dark:bg-neutral-800/80"
+          className="border-border bg-card relative grid w-full max-w-sm grid-cols-3 gap-0.5 rounded-md border p-1 sm:inline-flex sm:w-auto sm:max-w-none"
         >
           {tabs.map((tab) => {
             const isActive = type === tab.key
@@ -1653,16 +1638,14 @@ export default function Univer({ tablistLabel }: IUniverProps) {
                 aria-selected={isActive}
                 onClick={() => handleChangeType(tab.key)}
                 className={clsx(
-                  'relative flex min-h-8.5 items-center justify-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] leading-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:outline-none sm:px-3 sm:text-xs',
-                  isActive
-                    ? clsx('font-semibold', tab.activeClass)
-                    : `font-medium text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 hover:dark:text-neutral-300`,
+                  'focus-visible:ring-ring relative flex min-h-9 items-center justify-center gap-1.5 rounded-sm px-2.5 py-1 text-[11px] leading-none transition-colors duration-150 focus-visible:ring-2 focus-visible:outline-none sm:px-3 sm:text-xs',
+                  isActive ? 'text-primary font-semibold' : 'text-muted-foreground hover:text-foreground font-medium',
                 )}
               >
                 {isActive && (
                   <motion.div
                     layoutId="univer-active-tab"
-                    className="absolute inset-0 rounded-lg border border-neutral-200/90 bg-white shadow-xs dark:border-neutral-600 dark:bg-neutral-700"
+                    className="border-primary/20 bg-accent absolute inset-0 rounded-sm border"
                     transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
                   />
                 )}
@@ -1686,7 +1669,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
           <div
             role="tablist"
             aria-label="Document layout mode"
-            className="inline-grid grid-cols-2 rounded-xl border border-neutral-200 bg-white/80 p-1 shadow-sm dark:border-neutral-700 dark:bg-neutral-900/80"
+            className="border-border bg-card inline-grid grid-cols-2 rounded-md border p-1"
           >
             {(['modern', 'traditional'] as const).map((mode) => {
               const isActive = documentMode === mode
@@ -1699,10 +1682,10 @@ export default function Univer({ tablistLabel }: IUniverProps) {
                   aria-selected={isActive}
                   onClick={() => handleChangeDocumentMode(mode)}
                   className={clsx(
-                    'rounded-lg px-4 py-1.5 text-xs font-semibold transition-colors',
+                    'rounded-sm px-4 py-1.5 text-xs font-semibold transition-colors',
                     isActive
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800 dark:text-neutral-400 hover:dark:bg-neutral-800 hover:dark:text-neutral-100',
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                   )}
                 >
                   {mode === 'modern' ? 'Modern' : 'Traditional'}
@@ -1718,13 +1701,13 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         id="univer-product-demo"
         role="tabpanel"
         aria-labelledby={`univer-tab-${type}`}
-        className="relative mx-auto h-[34rem] w-7xl max-w-full overflow-hidden rounded-2xl border border-white/80 bg-white/50 p-0.5 shadow-2xl shadow-sky-950/10 sm:h-160 dark:border-neutral-800 dark:bg-neutral-950/50"
+        className="border-border bg-card relative mx-auto h-[34rem] w-7xl max-w-full overflow-hidden rounded-lg border sm:h-160"
       >
         {/* Mask / Loading */}
         <AnimatePresence>
           {!steady && (
             <motion.div
-              className={`pointer-events-auto absolute inset-0 z-10 flex size-full items-center justify-center bg-white/30 backdrop-blur-sm dark:bg-neutral-900/30`}
+              className="bg-background/90 pointer-events-auto absolute inset-0 z-10 flex size-full items-center justify-center"
               initial={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
@@ -1736,23 +1719,13 @@ export default function Univer({ tablistLabel }: IUniverProps) {
 
         {/* Univer Container */}
         <div
-          className={clsx('relative z-1 size-full blur-3xl transition-all duration-300', {
-            'blur-none': steady,
+          className={clsx('relative z-1 size-full transition-opacity duration-200', {
+            'opacity-35': !steady,
+            'opacity-100': steady,
           })}
         >
           <div ref={divRef} className="home-univer-demo h-full" />
         </div>
-
-        {/* Border Beam */}
-        <BorderBeam
-          key={type === 'docs' ? `${type}-${documentMode}` : type}
-          delay={0}
-          size={600}
-          borderWidth={2}
-          colorFrom={tabs[activeIndex].beamColor}
-          colorTo={tabs[activeIndex].beamColor}
-          className="opacity-40"
-        />
       </div>
     </div>
   )
