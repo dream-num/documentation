@@ -10,7 +10,7 @@ ADD_HOST ?=
 NPM_REGISTRY ?= ""
 BASE_IMAGE ?=
 HTTP_PROXY ?=
-PNPM_STRICT_SSL ?= 1
+PROXY_SSL ?= 
 
 BUILDKIT_IMAGE_OPT =
 ifneq ($(strip $(BUILDKIT_IMAGE)),)
@@ -59,7 +59,7 @@ endif
 	$(ADD_HOST_OPT) \
 	--build-arg CR=$(CR) \
 	--build-arg NPM_REGISTRY=$(NPM_REGISTRY) \
-	--build-arg PNPM_STRICT_SSL=$(PNPM_STRICT_SSL) \
+	--build-arg PROXY_SSL=$(PROXY_SSL) \
 	$(HTTP_PROXY_ARG) \
 	--build-arg NEXT_POSTHOG_APIKEY=$(NEXT_POSTHOG_APIKEY) \
 	--build-arg NEXT_PUBLIC_DOCS_SOURCE_REF=$(NEXT_PUBLIC_DOCS_SOURCE_REF) \
@@ -81,7 +81,7 @@ build_image: create_builder
 	$(CTR) buildx build \
 	$(BASE_IMAGE_ARG) \
 	$(ADD_HOST_OPT) \
-	--build-arg PNPM_STRICT_SSL=$(PNPM_STRICT_SSL) \
+	--build-arg PROXY_SSL=$(PROXY_SSL) \
 	--build-arg NEXT_PUBLIC_DOCS_SOURCE_REF=$(NEXT_PUBLIC_DOCS_SOURCE_REF) \
 	--builder $(BUILDER) \
 	--platform $(OSARCH) \
