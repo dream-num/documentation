@@ -63,6 +63,7 @@ export function IconWrapper(props: (IIconProps | IProProps | ITextProps | IRefPr
     return (
       <Tooltip content="Univer Pro feature">
         <span
+          data-icon-variant="pro"
           className={clsx(
             `inline-block rounded-md bg-linear-[145deg,#18181B_0%,#71717A_48%,#27272A_100%] p-[5px] text-zinc-50 shadow-[0_2px_8px_rgba(24,24,27,0.24)] ring-1 ring-black/10 dark:bg-linear-[145deg,#FAFAFA_0%,#A1A1AA_48%,#E4E4E7_100%] dark:text-zinc-950 dark:shadow-[0_2px_8px_rgba(0,0,0,0.35)] dark:ring-white/10`,
             className,
