@@ -7,7 +7,10 @@ function ScrollArea({ className, children, ...props }: BaseScrollArea.ScrollArea
     <BaseScrollArea.ScrollArea.Root data-slot="scroll-area" className={clsx('relative', className)} {...props}>
       <BaseScrollArea.ScrollArea.Viewport
         data-slot="scroll-area-viewport"
-        className={`focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1`}
+        className={clsx(
+          'size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1',
+          'focus-visible:ring-ring/50',
+        )}
       >
         {children}
       </BaseScrollArea.ScrollArea.Viewport>
@@ -23,7 +26,7 @@ function ScrollBar({ className, orientation = 'vertical', ...props }: BaseScroll
       data-slot="scroll-area-scrollbar"
       orientation={orientation}
       className={clsx(
-        'flex touch-none p-px transition-colors select-none',
+        'group/scrollbar flex touch-none p-0.5 select-none',
         orientation === 'vertical' && 'h-full w-2.5 border-l border-l-transparent',
         orientation === 'horizontal' && 'h-2.5 flex-col border-t border-t-transparent',
         className,
@@ -32,7 +35,10 @@ function ScrollBar({ className, orientation = 'vertical', ...props }: BaseScroll
     >
       <BaseScrollArea.ScrollArea.Thumb
         data-slot="scroll-area-thumb"
-        className="bg-border relative flex-1 rounded-full"
+        className={clsx(
+          'relative flex-1 rounded-full transition-colors',
+          'bg-muted-foreground/35 group-hover/scrollbar:bg-muted-foreground/55',
+        )}
       />
     </BaseScrollArea.ScrollArea.Scrollbar>
   )
