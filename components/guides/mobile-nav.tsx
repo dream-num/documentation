@@ -9,7 +9,6 @@ export function GuidesMobileNav({
   labels,
   navigationLabel,
   openLabel,
-  pathname,
   title,
 }: {
   items: IGuideNavItem[]
@@ -19,7 +18,6 @@ export function GuidesMobileNav({
   }
   navigationLabel: string
   openLabel: string
-  pathname: string
   title: string
 }) {
   return (
@@ -35,7 +33,7 @@ export function GuidesMobileNav({
           <p className="text-lg font-semibold tracking-normal">{title}</p>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-          <GuidesSidebar items={items} label={navigationLabel} labels={labels} pathname={pathname} />
+          <GuidesSidebar items={items} label={navigationLabel} labels={labels} />
         </div>
       </div>
     </details>

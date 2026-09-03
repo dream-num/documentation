@@ -1,3 +1,5 @@
+'use client'
+
 import type { ReactNode } from 'react'
 import { CheckIcon, ChevronsUpDownIcon } from 'lucide-react'
 
@@ -5,7 +7,7 @@ import type { IGuideNavItem } from '@/lib/guides/navigation'
 import { NavIconFrame } from '@/components/docs-shell/nav-icon-frame'
 import { SidebarVersionSwitcher } from '@/components/docs-shell/sidebar-version-switcher'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Link } from '@/i18n/navigation'
+import { Link, usePathname } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 import { getActiveGuideProduct, getGuideNavItemHref, getGuideProductItems } from '@/lib/guides/navigation'
 
@@ -71,7 +73,6 @@ export function GuidesSidebarControls({
   includeIcons = false,
   items,
   labels,
-  pathname,
   showVersion = true,
 }: {
   includeIcons?: boolean
@@ -80,9 +81,9 @@ export function GuidesSidebarControls({
     guides: string
     products: string
   }
-  pathname: string
   showVersion?: boolean
 }) {
+  const pathname = usePathname()
   const iconsProduct = getIconsProductItem()
   const productItems = includeIcons ? [...getGuideProductItems(items), iconsProduct] : getGuideProductItems(items)
   const currentProduct = includeIcons && isIconsPath(pathname) ? iconsProduct : getActiveGuideProduct(items, pathname)

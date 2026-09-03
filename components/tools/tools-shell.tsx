@@ -29,7 +29,6 @@ export async function ToolsShell({
         guideItems={guideNavigation.items}
         items={navigation.items}
         lang={lang}
-        pathname={pathname}
         searchScope="all"
         title={t('tools.section')}
       />

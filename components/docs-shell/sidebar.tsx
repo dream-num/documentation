@@ -1,26 +1,19 @@
-import type { DocsNavItem } from '@/lib/docs/navigation'
+'use client'
+
+import type { IDocsNavItem } from '@/lib/docs/navigation'
+import { usePathname } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
+
 import { ActiveNavScroller } from './active-nav-scroller'
 import { NavTree } from './nav-tree'
 
-export function DocsSidebar({
-  items,
-  pathname,
-  label,
-  className,
-}: {
-  items: DocsNavItem[]
-  pathname: string
-  label: string
-  className?: string
-}) {
+export function DocsSidebar({ items, label, className }: { items: IDocsNavItem[]; label: string; className?: string }) {
+  const pathname = usePathname()
+
   return (
-    <nav
-      aria-label={label}
-      className={clsx('text-sm', className)}
-    >
+    <nav aria-label={label} className={clsx('text-sm', className)}>
       <NavTree items={items} pathname={pathname} />
-      <ActiveNavScroller pathname={pathname} />
+      <ActiveNavScroller />
     </nav>
   )
 }

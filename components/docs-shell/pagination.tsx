@@ -1,6 +1,6 @@
 import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react'
 
-import type { DocsNavItem } from '@/lib/docs/navigation'
+import type { IDocsNavItem } from '@/lib/docs/navigation'
 import { Link } from '@/i18n/navigation'
 
 export function DocsPagination({
@@ -8,8 +8,8 @@ export function DocsPagination({
   next,
   labels,
 }: {
-  previous?: DocsNavItem
-  next?: DocsNavItem
+  previous?: IDocsNavItem
+  next?: IDocsNavItem
   labels: {
     next: string
     pagination: string

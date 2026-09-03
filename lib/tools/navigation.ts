@@ -1,7 +1,7 @@
 import { PaintbrushIcon } from 'lucide-react'
 import { createElement } from 'react'
 
-import type { DocsNavigation, DocsNavItem } from '@/lib/docs/navigation'
+import type { IDocsNavigation, IDocsNavItem } from '@/lib/docs/navigation'
 import { IconWrapper } from '@/components/icon-wrapper'
 import { isPathActive } from '@/lib/locale-path'
 
@@ -9,7 +9,7 @@ export interface IToolsNavigationLabels {
   themeCustomizer: string
 }
 
-export function createToolsNavigation(pathname: string, labels: IToolsNavigationLabels): DocsNavigation {
+export function createToolsNavigation(pathname: string, labels: IToolsNavigationLabels): IDocsNavigation {
   const themeCustomizer = {
     id: 'theme-customizer',
     type: 'page',
@@ -20,7 +20,7 @@ export function createToolsNavigation(pathname: string, labels: IToolsNavigation
       icon: PaintbrushIcon,
     }),
     children: [],
-  } satisfies DocsNavItem
+  } satisfies IDocsNavItem
 
   return {
     items: [themeCustomizer],

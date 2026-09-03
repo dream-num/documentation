@@ -5,7 +5,7 @@ import { PostHog } from 'posthog-node'
 
 import { AgentDocsLinks } from '@/components/agent-docs-links'
 import { GuidesArticle } from '@/components/guides/article'
-import { GuidesLayout } from '@/components/guides/layout'
+import { GuidesPageLayout } from '@/components/guides/layout'
 import { getGuidesMDXComponents } from '@/components/mdx'
 import { SponsorCard } from '@/components/sponsor-card'
 import { getAgentDocsSourceUrl, getAgentMarkdownPath } from '@/lib/agent-docs/links'
@@ -66,44 +66,42 @@ export default async function Page({ params }: IProps) {
   const GuideLink = createDocsRelativeLink(guides, page)
 
   return (
-    <>
+    <GuidesPageLayout lang={lang} toc={[...toc]} tocFooter={<SponsorCard />}>
       <AgentDocsLinks collection="guides" lang={lang} pageUrl={page.url} />
-      <GuidesLayout navigation={navigation} lang={lang} pathname={pathname} toc={[...toc]} tocFooter={<SponsorCard />}>
-        <GuidesArticle
-          title={page.data.title}
-          description={page.data.description}
-          githubUrl={getAgentDocsSourceUrl('guides', page.path)}
-          markdownUrl={getAgentMarkdownPath(lang, page.url)}
-          navigation={navigation}
-          lang={lang}
-          onRateAction={async (url, feedback) => {
-            'use server'
+      <GuidesArticle
+        title={page.data.title}
+        description={page.data.description}
+        githubUrl={getAgentDocsSourceUrl('guides', page.path)}
+        markdownUrl={getAgentMarkdownPath(lang, page.url)}
+        navigation={navigation}
+        lang={lang}
+        onRateAction={async (url, feedback) => {
+          'use server'
 
-            if (!process.env.NEXT_POSTHOG_APIKEY) return
+          if (!process.env.NEXT_POSTHOG_APIKEY) return
 
-            const posthog = new PostHog(process.env.NEXT_POSTHOG_APIKEY, { host: 'https://us.i.posthog.com' })
+          const posthog = new PostHog(process.env.NEXT_POSTHOG_APIKEY, { host: 'https://us.i.posthog.com' })
 
-            posthog.capture({
-              event: 'on_rate_docs',
-              timestamp: new Date(),
-              distinctId: 'anonymous',
-              properties: {
-                ...feedback,
-                url,
-                lang,
-              },
-            })
-          }}
-        >
-          <div data-docs-body>
-            <MDXContent
-              components={getGuidesMDXComponents({
-                a: GuideLink,
-              })}
-            />
-          </div>
-        </GuidesArticle>
-      </GuidesLayout>
-    </>
+          posthog.capture({
+            event: 'on_rate_docs',
+            timestamp: new Date(),
+            distinctId: 'anonymous',
+            properties: {
+              ...feedback,
+              url,
+              lang,
+            },
+          })
+        }}
+      >
+        <div data-docs-body>
+          <MDXContent
+            components={getGuidesMDXComponents({
+              a: GuideLink,
+            })}
+          />
+        </div>
+      </GuidesArticle>
+    </GuidesPageLayout>
   )
 }

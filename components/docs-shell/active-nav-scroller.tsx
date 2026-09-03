@@ -7,10 +7,7 @@ function getScrollParent(element: HTMLElement) {
 
   while (parent) {
     const { overflowY } = window.getComputedStyle(parent)
-    if (
-      (overflowY === 'auto' || overflowY === 'scroll')
-      && parent.scrollHeight > parent.clientHeight
-    ) {
+    if ((overflowY === 'auto' || overflowY === 'scroll') && parent.scrollHeight > parent.clientHeight) {
       return parent
     }
 
@@ -35,11 +32,7 @@ function scrollIntoContainerView(container: HTMLElement, item: HTMLElement) {
   }
 }
 
-export function ActiveNavScroller({
-  pathname,
-}: {
-  pathname: string
-}) {
+export function ActiveNavScroller() {
   const markerRef = useRef<HTMLSpanElement>(null)
 
   useLayoutEffect(() => {
@@ -57,8 +50,10 @@ export function ActiveNavScroller({
       activeItem.scrollIntoView({ block: 'nearest' })
     })
 
-    return () => window.cancelAnimationFrame(frame)
-  }, [pathname])
+    return () => {
+      window.cancelAnimationFrame(frame)
+    }
+  }, [])
 
   return <span ref={markerRef} aria-hidden="true" hidden />
 }

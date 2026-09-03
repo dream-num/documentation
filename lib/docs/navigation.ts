@@ -1,35 +1,35 @@
 import type { ReactNode } from 'react'
 
-export interface DocsNavItem {
+export interface IDocsNavItem {
   id: string
   type: 'page' | 'folder' | 'link' | 'separator'
   name: string
   url?: string
   icon?: ReactNode
   external?: boolean
-  children: DocsNavItem[]
+  children: IDocsNavItem[]
 }
 
-export interface DocsNavigation {
-  items: DocsNavItem[]
-  flatPages: DocsNavItem[]
-  activeTrail: DocsNavItem[]
-  previous?: DocsNavItem
-  next?: DocsNavItem
+export interface IDocsNavigation {
+  items: IDocsNavItem[]
+  flatPages: IDocsNavItem[]
+  activeTrail: IDocsNavItem[]
+  previous?: IDocsNavItem
+  next?: IDocsNavItem
 }
 
-interface PageTreeNode {
+interface IPageTreeNode {
   type?: string
   name?: ReactNode
   url?: string
   icon?: ReactNode
   external?: boolean
-  children?: PageTreeNode[]
-  index?: PageTreeNode
+  children?: IPageTreeNode[]
+  index?: IPageTreeNode
   $id?: string
 }
 
-function getNodeId(node: PageTreeNode) {
+function getNodeId(node: IPageTreeNode) {
   const id = node.$id ?? node.url ?? (typeof node.name === 'string' ? node.name : undefined)
   if (!id) {
     throw new Error(`Unable to derive stable docs navigation key for node type: ${node.type}`)
@@ -37,11 +37,11 @@ function getNodeId(node: PageTreeNode) {
   return id
 }
 
-function getNodeName(node: PageTreeNode) {
+function getNodeName(node: IPageTreeNode) {
   return typeof node.name === 'string' ? node.name : 'Untitled'
 }
 
-function normalizeNode(node: PageTreeNode): DocsNavItem {
+function normalizeNode(node: IPageTreeNode): IDocsNavItem {
   const id = getNodeId(node)
 
   if (node.type === 'page') {
@@ -56,10 +56,7 @@ function normalizeNode(node: PageTreeNode): DocsNavItem {
   }
 
   if (node.type === 'folder') {
-    const children = [
-      ...(node.index ? [normalizeNode(node.index)] : []),
-      ...(node.children ?? []).map(normalizeNode),
-    ]
+    const children = [...(node.index ? [normalizeNode(node.index)] : []), ...(node.children ?? []).map(normalizeNode)]
 
     return {
       id,
@@ -96,14 +93,14 @@ function normalizeNode(node: PageTreeNode): DocsNavItem {
   throw new Error(`Unknown docs page-tree node type: ${node.type}`)
 }
 
-function getRootItems(pageTree: PageTreeNode | PageTreeNode[]) {
+function getRootItems(pageTree: IPageTreeNode | IPageTreeNode[]) {
   if (Array.isArray(pageTree)) {
     return pageTree
   }
   return pageTree.children ?? []
 }
 
-function flattenPages(items: DocsNavItem[]): DocsNavItem[] {
+function flattenPages(items: IDocsNavItem[]): IDocsNavItem[] {
   return items.flatMap((item) => {
     if (item.type === 'page' && item.url) {
       return [item]
@@ -112,11 +109,7 @@ function flattenPages(items: DocsNavItem[]): DocsNavItem[] {
   })
 }
 
-function findTrail(
-  items: DocsNavItem[],
-  pathname: string,
-  trail: DocsNavItem[] = [],
-): DocsNavItem[] {
+function findTrail(items: IDocsNavItem[], pathname: string, trail: IDocsNavItem[] = []): IDocsNavItem[] {
   for (const item of items) {
     const nextTrail = [...trail, item]
     if (item.url === pathname) {
@@ -132,22 +125,17 @@ function findTrail(
   return []
 }
 
-export function createDocsNavigation(
-  pageTree: PageTreeNode | PageTreeNode[],
-  pathname: string,
-): DocsNavigation {
+export function createDocsNavigation(pageTree: IPageTreeNode | IPageTreeNode[], pathname: string): IDocsNavigation {
   const items = getRootItems(pageTree).map(normalizeNode)
   const flatPages = flattenPages(items)
   const activeTrail = findTrail(items, pathname)
-  const activeIndex = flatPages.findIndex(item => item.url === pathname)
+  const activeIndex = flatPages.findIndex((item) => item.url === pathname)
 
   return {
     items,
     flatPages,
     activeTrail,
     previous: activeIndex > 0 ? flatPages[activeIndex - 1] : undefined,
-    next: activeIndex >= 0 && activeIndex < flatPages.length - 1
-      ? flatPages[activeIndex + 1]
-      : undefined,
+    next: activeIndex >= 0 && activeIndex < flatPages.length - 1 ? flatPages[activeIndex + 1] : undefined,
   }
 }

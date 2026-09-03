@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { getTranslations } from 'next-intl/server'
 
 import type { Locale } from '@/i18n/routing'
-import type { DocsNavigation } from '@/lib/docs/navigation'
+import type { IDocsNavigation } from '@/lib/docs/navigation'
 import { DocsPageActions } from '@/components/docs-page-actions'
 import { Rate } from '@/components/rate'
 import { Link } from '@/i18n/navigation'
@@ -23,7 +23,7 @@ export async function DocsArticle({
   description?: string
   githubUrl: string
   markdownUrl: string
-  navigation: DocsNavigation
+  navigation: IDocsNavigation
   lang: string
   children: ReactNode
   onRateAction: Parameters<typeof Rate>[0]['onRateAction']

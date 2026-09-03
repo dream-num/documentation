@@ -1,3 +1,5 @@
+'use client'
+
 import { ChevronDownIcon } from 'lucide-react'
 
 import type { IGuideNavItem } from '@/lib/guides/navigation'
@@ -5,7 +7,7 @@ import { NavIconFrame } from '@/components/docs-shell/nav-icon-frame'
 import { ActiveNavigationLink } from '@/components/site/active-navigation-link'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { UniverIcon } from '@/components/univer-icon'
-import { Link } from '@/i18n/navigation'
+import { Link, usePathname } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 import {
   getGuideNavItemHref,
@@ -82,15 +84,8 @@ function ProductSwitcher({ items, label, pathname }: { items: IGuideNavItem[]; l
   )
 }
 
-export function PrimaryNavigation({
-  items,
-  labels,
-  pathname,
-}: {
-  items: IGuideNavItem[]
-  labels: IPrimaryNavigationLabels
-  pathname: string
-}) {
+export function PrimaryNavigation({ items, labels }: { items: IGuideNavItem[]; labels: IPrimaryNavigationLabels }) {
+  const pathname = usePathname()
   const standaloneItems = getGuideStandaloneItems(items)
   const links = [
     {

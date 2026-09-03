@@ -41,7 +41,8 @@ function CopyableTag({
         onClick={handleCopy}
         type="button"
         className={clsx(
-          `group focus-visible:ring-primary/50 inline-flex cursor-pointer items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium transition-all outline-none focus-visible:ring-2`,
+          `group inline-flex cursor-pointer items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium transition-all outline-none focus-visible:ring-2`,
+          'focus-visible:ring-primary/50',
           copied
             ? `border-green-200 bg-green-50 text-green-600 dark:border-green-900/50 dark:bg-green-900/20 dark:text-green-400`
             : `border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-700 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400 hover:dark:border-neutral-600 hover:dark:bg-neutral-800 hover:dark:text-neutral-200`,
@@ -175,7 +176,8 @@ export function MetaData(props: {
             <div className="flex items-center gap-0.5 rounded-md bg-neutral-200/50 p-0.5 dark:bg-neutral-800/50">
               <button
                 className={clsx(
-                  `focus-visible:ring-primary/50 relative flex cursor-pointer items-center gap-1.5 rounded-sm px-2.5 py-1 text-xs font-medium transition-all outline-none focus-visible:ring-2`,
+                  `relative flex cursor-pointer items-center gap-1.5 rounded-sm px-2.5 py-1 text-xs font-medium transition-all outline-none focus-visible:ring-2`,
+                  'focus-visible:ring-primary/50',
                   mode === 'preset'
                     ? `bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white`
                     : `text-neutral-500 hover:bg-neutral-200/50 dark:text-neutral-400 hover:dark:bg-neutral-700/50`,
@@ -188,7 +190,8 @@ export function MetaData(props: {
               <button
                 onClick={() => setMode('plugin')}
                 className={clsx(
-                  `focus-visible:ring-primary/50 relative flex cursor-pointer items-center gap-1.5 rounded-sm px-2.5 py-1 text-xs font-medium transition-all outline-none focus-visible:ring-2`,
+                  `relative flex cursor-pointer items-center gap-1.5 rounded-sm px-2.5 py-1 text-xs font-medium transition-all outline-none focus-visible:ring-2`,
+                  'focus-visible:ring-primary/50',
                   mode === 'plugin'
                     ? `bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white`
                     : `text-neutral-500 hover:bg-neutral-200/50 dark:text-neutral-400 hover:dark:bg-neutral-700/50`,
@@ -214,7 +217,7 @@ export function MetaData(props: {
 
         {isPro && (
           <Link
-            className={`group inline-flex items-center gap-1 rounded-full bg-linear-to-r from-blue-600 to-indigo-600 px-2.5 py-2 text-xs font-semibold text-white no-underline shadow-sm shadow-blue-500/20 transition-all hover:shadow-md hover:shadow-blue-500/30 dark:from-blue-500 dark:to-indigo-500`}
+            className={`group inline-flex items-center gap-1 rounded-full bg-linear-[145deg,#18181B_0%,#71717A_48%,#27272A_100%] px-2.5 py-2 text-xs font-semibold text-zinc-50 no-underline shadow-[0_2px_8px_rgba(24,24,27,0.24)] ring-1 ring-black/10 transition-all hover:shadow-[0_4px_12px_rgba(24,24,27,0.3)] dark:bg-linear-[145deg,#FAFAFA_0%,#A1A1AA_48%,#E4E4E7_100%] dark:text-zinc-950 dark:shadow-[0_2px_8px_rgba(0,0,0,0.35)] dark:ring-white/10 hover:dark:shadow-[0_4px_12px_rgba(0,0,0,0.45)]`}
             href="/guides/pro"
           >
             Univer Pro

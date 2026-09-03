@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { MenuIcon } from 'lucide-react'
 
-import type { DocsNavItem } from '@/lib/docs/navigation'
+import type { IDocsNavItem } from '@/lib/docs/navigation'
 
 import { DocsSidebar } from './sidebar'
 
@@ -10,14 +10,12 @@ export function DocsMobileNav({
   items,
   navigationLabel,
   openLabel,
-  pathname,
   title,
 }: {
   headerExtra?: ReactNode
-  items: DocsNavItem[]
+  items: IDocsNavItem[]
   navigationLabel: string
   openLabel: string
-  pathname: string
   title: string
 }) {
   return (
@@ -34,7 +32,7 @@ export function DocsMobileNav({
           {headerExtra ? <div className="mt-3">{headerExtra}</div> : null}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-          <DocsSidebar items={items} label={navigationLabel} pathname={pathname} />
+          <DocsSidebar items={items} label={navigationLabel} />
         </div>
       </div>
     </details>

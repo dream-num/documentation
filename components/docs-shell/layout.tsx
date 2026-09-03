@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { getTranslations } from 'next-intl/server'
 
 import type { Locale } from '@/i18n/routing'
-import type { DocsNavigation } from '@/lib/docs/navigation'
+import type { IDocsNavigation } from '@/lib/docs/navigation'
 import { Footer } from '@/components/footer'
 import { GuidesSidebarControls } from '@/components/guides/sidebar-controls'
 import { clsx } from '@/lib/clsx'
@@ -19,24 +19,18 @@ import { DocsToc } from './toc'
 export async function DocsShellLayout({
   lang,
   navigation,
-  pathname,
   title,
-  toc,
   children,
-  tocFooter,
   searchScope,
 }: {
   lang: string
-  navigation: DocsNavigation
-  pathname: string
+  navigation: IDocsNavigation
   title: string
-  toc?: TOCItemType[]
   children: ReactNode
-  tocFooter?: ReactNode
   searchScope: 'reference' | 'icons' | 'all'
 }) {
   const t = await getTranslations({ locale: lang as Locale })
-  const guideNavigation = createGuideNavigation(guides.pageTree[lang], pathname)
+  const guideNavigation = createGuideNavigation(guides.pageTree[lang], '')
 
   return (
     <div
@@ -52,7 +46,6 @@ export async function DocsShellLayout({
         guideItems={guideNavigation.items}
         items={navigation.items}
         lang={lang}
-        pathname={pathname}
         searchScope={searchScope}
         title={title}
       />
@@ -74,27 +67,46 @@ export async function DocsShellLayout({
                 guides: t('search.scope.guides'),
                 products: t('navigation.products'),
               }}
-              pathname={pathname}
               showVersion={false}
             />
           ) : null}
-          <DocsSidebar items={navigation.items} label={t('docs.sidebar-navigation', { title })} pathname={pathname} />
+          <DocsSidebar items={navigation.items} label={t('docs.sidebar-navigation', { title })} />
         </aside>
-        <main
-          className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:px-6 lg:pt-8 lg:pb-8"
-          data-doc-scroll-container
-        >
-          {children}
-          <Footer variant="content" />
-        </main>
-        <aside
-          aria-label={t('docs.toc-panel')}
-          className="hidden xl:block xl:min-h-0 xl:overflow-y-auto xl:overscroll-contain xl:pt-8 xl:pb-8 xl:pl-4"
-        >
-          <DocsToc items={toc} lang={lang} />
-          {tocFooter ? <div className="mt-6">{tocFooter}</div> : null}
-        </aside>
+        {children}
       </div>
     </div>
+  )
+}
+
+export async function DocsShellPageLayout({
+  lang,
+  toc,
+  children,
+  tocFooter,
+}: {
+  lang: string
+  toc?: TOCItemType[]
+  children: ReactNode
+  tocFooter?: ReactNode
+}) {
+  const t = await getTranslations({ locale: lang as Locale })
+
+  return (
+    <>
+      <main
+        className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:px-6 lg:pt-8 lg:pb-8"
+        data-doc-scroll-container
+      >
+        {children}
+        <Footer variant="content" />
+      </main>
+      <aside
+        aria-label={t('docs.toc-panel')}
+        className="hidden xl:block xl:min-h-0 xl:overflow-y-auto xl:overscroll-contain xl:pt-8 xl:pb-8 xl:pl-4"
+      >
+        <DocsToc items={toc} lang={lang} />
+        {tocFooter ? <div className="mt-6">{tocFooter}</div> : null}
+      </aside>
+    </>
   )
 }

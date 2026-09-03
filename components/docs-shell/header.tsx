@@ -1,14 +1,12 @@
-import { LanguagesIcon } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 
 import type { Locale } from '@/i18n/routing'
-import type { DocsNavItem } from '@/lib/docs/navigation'
+import type { IDocsNavItem } from '@/lib/docs/navigation'
 import type { IGuideNavItem } from '@/lib/guides/navigation'
 import { GithubInfo } from '@/components/github-info/github-info'
 import { Logo } from '@/components/logo'
+import { SiteLanguageSwitcher } from '@/components/site/language-switcher'
 import { ThemeSwitcher } from '@/components/theme-switcher'
-import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Link } from '@/i18n/navigation'
 import { routing } from '@/i18n/routing'
 import { messagesByLocale } from '@/messages'
@@ -18,51 +16,16 @@ import { DocsMobileNav } from './mobile-nav'
 import { PrimaryNavigation } from './primary-navigation'
 import { SidebarVersionSwitcher } from './sidebar-version-switcher'
 
-function LanguageSwitcher({
-  lang,
-  currentPath,
-  currentLabel,
-  label,
-}: {
-  lang: string
-  currentPath: string
-  currentLabel: string
-  label: string
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={<Button aria-label={label} className="size-8" size="icon" type="button" variant="outline" />}
-      >
-        <LanguagesIcon className="size-4" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {routing.locales.map((locale) => (
-          <DropdownMenuItem
-            key={locale}
-            render={<Link className="justify-between" href={currentPath} locale={locale} />}
-          >
-            <span>{messagesByLocale[locale].common['display-name'] ?? locale}</span>
-            {locale === lang ? <span className="text-muted-foreground text-xs">{currentLabel}</span> : null}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
 export async function DocsHeader({
   lang,
   guideItems,
   items,
-  pathname,
   title,
   searchScope,
 }: {
   lang: string
   guideItems: IGuideNavItem[]
-  items: DocsNavItem[]
-  pathname: string
+  items: IDocsNavItem[]
   title: string
   searchScope: 'reference' | 'icons' | 'all'
 }) {
@@ -75,6 +38,10 @@ export async function DocsHeader({
     showcase: t('navigation.showcase'),
     tools: t('navigation.tools'),
   }
+  const locales = routing.locales.map((locale) => ({
+    displayName: messagesByLocale[locale].common['display-name'] ?? locale,
+    locale,
+  }))
 
   return (
     <header className="bg-background/95 supports-backdrop-filter:bg-background/80 sticky top-0 z-40 border-b backdrop-blur-sm lg:shrink-0">
@@ -84,13 +51,12 @@ export async function DocsHeader({
           openLabel={t('docs.open-navigation', { title })}
           headerExtra={searchScope === 'reference' ? <SidebarVersionSwitcher /> : null}
           items={items}
-          pathname={pathname}
           title={title}
         />
         <Link aria-label={t('navigation.univer-home')} className="flex shrink-0 items-center" href="/">
           <Logo className="h-8 w-auto" />
         </Link>
-        <PrimaryNavigation items={guideItems} labels={navigationLabels} pathname={pathname} />
+        <PrimaryNavigation items={guideItems} labels={navigationLabels} />
         <div className="min-w-0 flex-1" />
         <div className="md:hidden">
           <GuidesSearch compact lang={lang} defaultScope={searchScope} />
@@ -98,11 +64,11 @@ export async function DocsHeader({
         <div className="hidden md:block">
           <GuidesSearch lang={lang} defaultScope={searchScope} />
         </div>
-        <LanguageSwitcher
+        <SiteLanguageSwitcher
           currentLabel={t('navigation.current-locale')}
-          currentPath={pathname}
           label={t('common.choose-language')}
           lang={lang}
+          locales={locales}
         />
         <ThemeSwitcher label={t('common.choose-theme')} />
         <GithubInfo className="hidden xl:flex" owner="dream-num" repo="univer" />

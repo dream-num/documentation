@@ -1,4 +1,3 @@
-import { LanguagesIcon } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 
 import type { Locale } from '@/i18n/routing'
@@ -6,9 +5,8 @@ import type { IGuideNavItem } from '@/lib/guides/navigation'
 import { PrimaryNavigation } from '@/components/docs-shell/primary-navigation'
 import { GithubInfo } from '@/components/github-info/github-info'
 import { Logo } from '@/components/logo'
+import { SiteLanguageSwitcher } from '@/components/site/language-switcher'
 import { ThemeSwitcher } from '@/components/theme-switcher'
-import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Link } from '@/i18n/navigation'
 import { routing } from '@/i18n/routing'
 import { messagesByLocale } from '@/messages'
@@ -16,48 +14,7 @@ import { messagesByLocale } from '@/messages'
 import { GuidesMobileNav } from './mobile-nav'
 import { GuidesSearch } from './search'
 
-function LanguageSwitcher({
-  lang,
-  currentPath,
-  currentLabel,
-  label,
-}: {
-  lang: string
-  currentPath: string
-  currentLabel: string
-  label: string
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={<Button aria-label={label} className="size-8" size="icon" type="button" variant="outline" />}
-      >
-        <LanguagesIcon className="size-4" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {routing.locales.map((locale) => (
-          <DropdownMenuItem
-            key={locale}
-            render={<Link className="justify-between" href={currentPath} locale={locale} />}
-          >
-            <span>{messagesByLocale[locale].common['display-name']}</span>
-            {locale === lang ? <span className="text-muted-foreground text-xs">{currentLabel}</span> : null}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
-export async function GuidesHeader({
-  lang,
-  items,
-  pathname,
-}: {
-  lang: string
-  items: IGuideNavItem[]
-  pathname: string
-}) {
+export async function GuidesHeader({ lang, items }: { lang: string; items: IGuideNavItem[] }) {
   const t = await getTranslations({ locale: lang as Locale })
   const navigationLabels = {
     blog: t('navigation.blog'),
@@ -67,6 +24,10 @@ export async function GuidesHeader({
     showcase: t('navigation.showcase'),
     tools: t('navigation.tools'),
   }
+  const locales = routing.locales.map((locale) => ({
+    displayName: messagesByLocale[locale].common['display-name'],
+    locale,
+  }))
 
   return (
     <header className="bg-background/95 supports-backdrop-filter:bg-background/80 sticky top-0 z-40 border-b backdrop-blur-sm lg:shrink-0">
@@ -80,22 +41,21 @@ export async function GuidesHeader({
           openLabel={t('docs.open-guides-navigation')}
           title={t('search.scope.guides')}
           items={items}
-          pathname={pathname}
         />
         <Link aria-label={t('navigation.univer-home')} className="flex shrink-0 items-center" href="/">
           <Logo className="h-8 w-auto" />
         </Link>
-        <PrimaryNavigation items={items} labels={navigationLabels} pathname={pathname} />
+        <PrimaryNavigation items={items} labels={navigationLabels} />
         <div className="min-w-0 flex-1" />
         <div className="flex items-center gap-2">
           <div className="hidden sm:block">
             <GuidesSearch lang={lang} />
           </div>
-          <LanguageSwitcher
+          <SiteLanguageSwitcher
             currentLabel={t('navigation.current-locale')}
-            currentPath={pathname}
             label={t('common.choose-language')}
             lang={lang}
+            locales={locales}
           />
           <ThemeSwitcher label={t('common.choose-theme')} />
           <div className="hidden xl:block">

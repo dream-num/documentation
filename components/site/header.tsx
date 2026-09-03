@@ -21,14 +21,12 @@ export async function SiteHeader({
   links,
   documentationLinks,
   documentationTitle,
-  pathname = '',
 }: {
   guideItems: IGuideNavItem[]
   lang: string
   links: ISiteNavLink[]
   documentationLinks: ISiteDocumentationLink[]
   documentationTitle: string
-  pathname?: string
 }) {
   const t = await getTranslations({ locale: lang as Locale })
   const navigationLabels = {
@@ -57,7 +55,7 @@ export async function SiteHeader({
         <Link aria-label={t('navigation.univer-home')} className="flex shrink-0 items-center" href="/">
           <Logo className="h-8 w-auto" />
         </Link>
-        <PrimaryNavigation items={guideItems} labels={navigationLabels} pathname={pathname} />
+        <PrimaryNavigation items={guideItems} labels={navigationLabels} />
         <div className="min-w-0 flex-1" />
         <div className="md:hidden">
           <GuidesSearch compact lang={lang} defaultScope="all" />
