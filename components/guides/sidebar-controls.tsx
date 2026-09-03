@@ -53,22 +53,6 @@ function ProductIcon({ item }: { item?: IGuideNavItem }) {
   )
 }
 
-function SwitcherSummary({ icon, title, subtitle }: { icon: ReactNode; title: string; subtitle?: ReactNode }) {
-  return (
-    <button
-      className="hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-ring/60 flex w-full items-center gap-3 rounded-md p-1 text-left transition-colors focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset"
-      type="button"
-    >
-      {icon}
-      <span className="min-w-0 flex-1">
-        <span className="text-foreground block truncate text-sm font-semibold">{title}</span>
-        {subtitle ? <span className="text-muted-foreground block truncate text-sm">{subtitle}</span> : null}
-      </span>
-      <ChevronsUpDownIcon className="text-muted-foreground size-4 shrink-0" />
-    </button>
-  )
-}
-
 export function GuidesSidebarControls({
   includeIcons = false,
   items,
@@ -102,13 +86,23 @@ export function GuidesSidebarControls({
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <SwitcherSummary
-                icon={<ProductIcon item={currentProduct} />}
-                title={currentProduct?.name ?? labels.products}
-                subtitle={currentProduct?.description ?? labels.guides}
+              <button
+                className="hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-ring/60 flex w-full items-center gap-3 rounded-md p-1 text-left transition-colors focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset"
+                type="button"
               />
             }
-          />
+          >
+            <ProductIcon item={currentProduct} />
+            <span className="min-w-0 flex-1">
+              <span className="text-foreground block truncate text-sm font-semibold">
+                {currentProduct?.name ?? labels.products}
+              </span>
+              <span className="text-muted-foreground block truncate text-sm">
+                {currentProduct?.description ?? labels.guides}
+              </span>
+            </span>
+            <ChevronsUpDownIcon className="text-muted-foreground size-4 shrink-0" />
+          </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-64">
             {productItems.map((item) => (
               <DropdownMenuItem
