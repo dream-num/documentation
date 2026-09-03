@@ -61,7 +61,7 @@ export function IconWrapper(props: (IIconProps | IProProps | ITextProps | IRefPr
     })
 
     return (
-      <Tooltip content="Univer Pro feature">
+      <Tooltip content="Univer SDK Pro feature">
         <span
           data-icon-variant="pro"
           className={clsx(

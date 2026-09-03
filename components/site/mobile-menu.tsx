@@ -40,7 +40,7 @@ export function SiteMobileMenu({
       </summary>
       <div className="bg-background fixed top-12 left-0 z-50 flex h-[calc(100dvh-3rem)] w-[min(22rem,calc(100vw-2rem))] flex-col border-r shadow-lg">
         <div className="border-b p-4">
-          <p className="text-lg font-semibold tracking-normal">Univer</p>
+          <p className="text-lg font-semibold tracking-normal">Univer SDK</p>
         </div>
         <nav aria-label={navigationLabel} className="min-h-0 flex-1 overflow-y-auto p-4">
           <div className="space-y-1">

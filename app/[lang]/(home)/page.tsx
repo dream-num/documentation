@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: IProps) {
   const t = await getTranslations({ locale: lang as Locale })
 
   return {
-    title: 'Univer',
+    title: 'Univer SDK',
     description: t('home.description'),
   }
 }
@@ -77,7 +77,7 @@ export default async function Page({ params }: IProps) {
               >
                 <span className={`border-r border-neutral-300 py-1 pr-1.5 pl-3 dark:border-neutral-700`}>🎉</span>
                 <AnimatedShinyText className="py-1 pr-3 pl-1.5">
-                  Univer v{pkg.version} {t('home.banner-release')}
+                  Univer SDK v{pkg.version} {t('home.banner-release')}
                 </AnimatedShinyText>
               </Link>
             </div>

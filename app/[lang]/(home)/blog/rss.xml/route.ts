@@ -1,10 +1,11 @@
 import { Feed } from 'feed'
 import { NextResponse } from 'next/server'
+
 import { getActiveBlogPages } from '@/lib/source'
 
 export const revalidate = false
 
-const baseUrl = 'https://fumadocs.dev'
+const baseUrl = 'https://docs.univer.ai'
 
 interface IProps {
   params: Promise<{ lang: string }>
@@ -14,14 +15,14 @@ export async function GET(request: Request, { params }: IProps) {
   const { lang } = await params
 
   const feed = new Feed({
-    title: 'Univer Blog',
+    title: 'Univer SDK Blog',
     id: `${baseUrl}/blog`,
     link: `${baseUrl}/blog`,
     language: lang,
     copyright: 'All rights reserved 2025, ',
   })
 
-  for (const page of getActiveBlogPages(lang).sort((a, b) => {
+  for (const page of getActiveBlogPages(lang).toSorted((a, b) => {
     return new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
   })) {
     feed.addItem({

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
+
 import { Footer } from '@/components/footer'
-import { PlaygroundFrame } from '@/components/playground'
+import { PlaygroundFrame } from '@/components/playground/playground-frame'
 import { RelatedShowcases } from '@/components/showcase/related-showcases'
 import { ShowcaseDetailHeader } from '@/components/showcase/showcase-detail-header'
 import { ShowcaseSidebar } from '@/components/showcase/showcase-sidebar'
@@ -14,7 +15,7 @@ interface IProps {
 }
 
 export function generateStaticParams(): { slug: string[] }[] {
-  return Object.keys(showcase).map(key => ({
+  return Object.keys(showcase).map((key) => ({
     slug: key.split('/'),
   }))
 }
@@ -63,53 +64,50 @@ export default async function Page({ params }: IProps) {
     type: 'sheets' | 'docs' | 'slides'
   }> = []
 
-  for (const key of Object.keys(showcase)) {
-    const item = showcase[key as keyof typeof showcase]
-    const { metadata } = (await item).default
+  const showcaseEntries = await Promise.all(
+    Object.keys(showcase).map(async (key) => ({
+      key,
+      itemMetadata: (await showcase[key]).default.metadata,
+    })),
+  )
+
+  for (const { key, itemMetadata } of showcaseEntries) {
     const itemType = key.split('/')[0] as 'sheets' | 'docs' | 'slides'
     const displayType = `Univer ${itemType.charAt(0).toUpperCase() + itemType.slice(1)}`
 
     nav.push({
       type: displayType,
       typeKey: itemType,
-      title: metadata.title[lang],
+      title: itemMetadata.title[lang],
       slug: key,
     })
 
     if (itemType === type && key !== pathname) {
       relatedItems.push({
-        title: metadata.title[lang],
-        description: metadata.description[lang],
+        title: itemMetadata.title[lang],
+        description: itemMetadata.description[lang],
         slug: key,
         type: itemType,
       })
     }
   }
 
-  const groupedNav = nav.reduce((acc, item) => {
-    if (!acc[item.type]) {
-      acc[item.type] = []
-    }
-    acc[item.type].push(item)
-    return acc
-  }, {} as Record<string, typeof nav>)
+  const groupedNav = nav.reduce(
+    (acc, item) => {
+      if (!acc[item.type]) {
+        acc[item.type] = []
+      }
+      acc[item.type].push(item)
+      return acc
+    },
+    {} as Record<string, typeof nav>,
+  )
 
   return (
-    <div
-      className={`
-        container mx-auto flex min-h-[calc(100vh-108px)] flex-1 px-4 pt-12
-        max-sm:px-0
-        lg:px-0
-      `}
-    >
+    <div className={`container mx-auto flex min-h-[calc(100vh-108px)] flex-1 px-4 pt-12 max-sm:px-0 lg:px-0`}>
       <ShowcaseSidebar groupedNav={groupedNav} pathname={pathname} lang={lang} />
 
-      <div
-        className="
-          w-full px-2
-          lg:pr-0 lg:pl-74
-        "
-      >
+      <div className="w-full px-2 lg:pr-0 lg:pl-74">
         <ShowcaseDetailHeader
           lang={lang}
           title={metadata.title[lang]}
@@ -122,11 +120,7 @@ export default async function Page({ params }: IProps) {
           <PlaygroundFrame slug={pathname} lang={lang} />
         </section>
 
-        <RelatedShowcases
-          lang={lang}
-          items={relatedItems}
-          currentSlug={pathname}
-        />
+        <RelatedShowcases lang={lang} items={relatedItems} currentSlug={pathname} />
 
         <Footer className="mb-8 text-center" variant="content" />
       </div>

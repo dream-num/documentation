@@ -12,6 +12,7 @@ import { routing } from '@/i18n/routing'
 import { messagesByLocale } from '@/messages'
 
 import { GuidesSearch } from '../guides/search'
+import { OfficeSdkBanner } from '../site/office-sdk-banner'
 import { DocsMobileNav } from './mobile-nav'
 import { PrimaryNavigation } from './primary-navigation'
 import { SidebarVersionSwitcher } from './sidebar-version-switcher'
@@ -73,6 +74,7 @@ export async function DocsHeader({
         <ThemeSwitcher label={t('common.choose-theme')} />
         <GithubInfo className="hidden xl:flex" owner="dream-num" repo="univer" />
       </div>
+      <OfficeSdkBanner />
     </header>
   )
 }

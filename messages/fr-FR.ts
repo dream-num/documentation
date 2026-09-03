@@ -16,7 +16,7 @@ const frFRMessages = {
   tools: {
     section: 'Outils',
     'theme-customizer': 'Personnalisation du thème',
-    'theme-customizer-description': 'Ajustez les thèmes Univer, les design tokens et les aperçus en mode sombre.',
+    'theme-customizer-description': 'Ajustez les thèmes Univer SDK, les design tokens et les aperçus en mode sombre.',
   },
   navigation: {
     blog: 'Blog',
@@ -29,7 +29,14 @@ const frFRMessages = {
     'open-site-navigation': 'Ouvrir la navigation du site',
     'primary-navigation': 'Navigation principale',
     'site-navigation': 'Navigation du site',
-    'univer-home': 'Accueil d’Univer',
+    'univer-home': 'Accueil d’Univer SDK',
+  },
+  'office-sdk-banner': {
+    label: 'Annonce Univer Office SDK',
+    message:
+      'Vous développez avec Univer SDK ou Univer SDK Pro ? Ajoutez la collaboration auto-hébergée, l’accès CLI et les worktrees d’agents avec Univer Office SDK.',
+    action: 'Découvrir Univer Office SDK',
+    dismiss: 'Fermer l’annonce Univer Office SDK',
   },
   'theme-customizer': {
     apply: 'Appliquer',
@@ -89,7 +96,7 @@ const frFRMessages = {
   home: {
     slogan: 'Intégrez des outils de productivité pilotés par le serveur à votre workflow',
     description:
-      'Univer est une suite bureautique full-stack isomorphe, hautement extensible et performante, conçue pour aider les développeurs à créer et modifier librement ',
+      'Univer SDK est une suite bureautique full-stack isomorphe, hautement extensible et performante, conçue pour aider les développeurs à créer et modifier librement ',
     'description-split': ', ',
     'description-period': '.',
     'description-and': ' et ',
@@ -101,7 +108,7 @@ const frFRMessages = {
       eyebrow: 'Exemples interactifs',
       title: 'Un lancement, tous les espaces de travail',
       description:
-        'Explorez un lancement produit connecté dans six expériences Univer entièrement modifiables, de la planification et du récit à la collaboration visuelle et aux PDF.',
+        'Explorez un lancement produit connecté dans six expériences Univer SDK entièrement modifiables, de la planification et du récit à la collaboration visuelle et aux PDF.',
     },
     customer: {
       title: 'Adopté par des équipes et des entreprises de tous secteurs',
@@ -155,7 +162,7 @@ const frFRMessages = {
         'Un framework full-stack doté d’une architecture à micro-noyau et plugins. Lancez-vous en quelques minutes.',
       step1: {
         title: 'Installer',
-        desc: 'Installez les packages principaux d’Univer avec npm, yarn ou pnpm.',
+        desc: 'Installez les packages principaux d’Univer SDK avec npm, yarn ou pnpm.',
       },
       step2: {
         title: 'Choisir le mode',
@@ -163,7 +170,7 @@ const frFRMessages = {
       },
       step3: {
         title: 'Configurer',
-        desc: 'Initialisez l’instance Univer et chargez les plugins et ressources linguistiques nécessaires.',
+        desc: 'Initialisez l’instance Univer SDK et chargez les plugins et ressources linguistiques nécessaires.',
       },
       step4: {
         title: 'Afficher',
@@ -247,11 +254,11 @@ const frFRMessages = {
       },
     },
     headless: {
-      title: 'Univer headless',
+      title: 'Univer SDK headless',
       subtitle: 'Traitez les documents sur le serveur avec une prise en charge native de l’IA et de l’automatisation',
       feature1: {
         title: 'Prise en charge de Node.js',
-        desc: 'Exécutez Univer directement dans Node.js, sans navigateur.',
+        desc: 'Exécutez Univer SDK directement dans Node.js, sans navigateur.',
       },
       feature2: {
         title: 'Aucun rendu d’interface',
@@ -267,7 +274,7 @@ const frFRMessages = {
       },
     },
     ecosystem: {
-      title: 'Étendez Univer avec des plugins et des intégrations',
+      title: 'Étendez Univer SDK avec des plugins et des intégrations',
       subtitle: 'Appuyez-vous sur un écosystème riche',
       plugins: {
         title: 'Plugins',
@@ -305,7 +312,7 @@ const frFRMessages = {
   },
   blog: {
     title: 'Blog',
-    slogan: 'Découvrez les dernières actualités, l’architecture et les bonnes pratiques d’Univer',
+    slogan: 'Découvrez les dernières actualités, l’architecture et les bonnes pratiques d’Univer SDK',
     author: 'Auteur',
     date: 'Date de publication',
     back: 'Retour',
@@ -315,7 +322,7 @@ const frFRMessages = {
   },
   showcase: {
     title: 'Démonstrations',
-    slogan: 'Découvrez les puissantes fonctionnalités d’Univer à travers des exemples en ligne',
+    slogan: 'Découvrez les puissantes fonctionnalités d’Univer SDK à travers des exemples en ligne',
     back: 'Retour',
     'related-title': 'Exemples associés',
     breadcrumb: {

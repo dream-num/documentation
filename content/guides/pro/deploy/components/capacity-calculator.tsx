@@ -64,7 +64,7 @@ const T: Record<
 > = {
   'zh-CN': {
     title: '容量需求计算器',
-    subtitle: '输入你的业务参数，获取推荐的 Univer Pro 资源配置',
+    subtitle: '输入你的业务参数，获取推荐的 Univer SDK Pro 资源配置',
     docCount: '最大同时在线编辑文档数',
     saveInterval: '平均保存间隔',
     saveIntervalSuffix: '秒',
@@ -96,7 +96,7 @@ const T: Record<
   },
   'zh-TW': {
     title: '容量需求計算器',
-    subtitle: '輸入你的業務參數，取得推薦的 Univer Pro 資源配置',
+    subtitle: '輸入你的業務參數，取得推薦的 Univer SDK Pro 資源配置',
     docCount: '最大同時線上編輯文件數',
     saveInterval: '平均儲存間隔',
     saveIntervalSuffix: '秒',
@@ -128,7 +128,7 @@ const T: Record<
   },
   'en-US': {
     title: 'Capacity Calculator',
-    subtitle: 'Enter your business parameters to get recommended Univer Pro resource configurations',
+    subtitle: 'Enter your business parameters to get recommended Univer SDK Pro resource configurations',
     docCount: 'Max concurrent editing documents',
     saveInterval: 'Average save interval',
     saveIntervalSuffix: 's',
@@ -161,7 +161,7 @@ const T: Record<
   },
   'ja-JP': {
     title: '容量見積もりツール',
-    subtitle: '業務パラメータを入力して、推奨される Univer Pro リソース構成を取得',
+    subtitle: '業務パラメータを入力して、推奨される Univer SDK Pro リソース構成を取得',
     docCount: '最大同時編集ドキュメント数',
     saveInterval: '平均保存間隔',
     saveIntervalSuffix: '秒',
@@ -194,7 +194,7 @@ const T: Record<
   },
   'ko-KR': {
     title: '용량 요구 사항 계산기',
-    subtitle: '업무 매개변수를 입력하여 권장 Univer Pro 리소스 구성을 확인하세요',
+    subtitle: '업무 매개변수를 입력하여 권장 Univer SDK Pro 리소스 구성을 확인하세요',
     docCount: '최대 동시 편집 문서 수',
     saveInterval: '평균 저장 간격',
     saveIntervalSuffix: '초',
@@ -227,7 +227,7 @@ const T: Record<
   },
   'fr-FR': {
     title: 'Calculateur de capacité',
-    subtitle: 'Saisissez vos paramètres métier pour obtenir une configuration de ressources Univer Pro recommandée',
+    subtitle: 'Saisissez vos paramètres métier pour obtenir une configuration de ressources Univer SDK Pro recommandée',
     docCount: 'Nombre maximal de documents modifiés simultanément',
     saveInterval: 'Intervalle moyen entre les sauvegardes',
     saveIntervalSuffix: 's',
@@ -261,7 +261,7 @@ const T: Record<
   },
   'ru-RU': {
     title: 'Калькулятор производительности',
-    subtitle: 'Введите рабочие параметры, чтобы получить рекомендуемую конфигурацию ресурсов Univer Pro',
+    subtitle: 'Введите рабочие параметры, чтобы получить рекомендуемую конфигурацию ресурсов Univer SDK Pro',
     docCount: 'Максимум одновременно редактируемых документов',
     saveInterval: 'Средний интервал сохранения',
     saveIntervalSuffix: 'с',
@@ -363,31 +363,31 @@ export function CapacityCalculator({ locale = 'zh-CN' }: { locale?: Locale }) {
   const [spec, setSpec] = useState<SpecKey>('2c4g')
 
   const { editQps, broadcastQps, activeUsers, nodeInstances, universerInstances, dbSpec } = useMemo(() => {
-    const editQps = docCount / saveInterval
-    const activeUsers = docCount * (1 + (multiDocRatio / 100) * (avgCollaborators - 1))
-    const broadcastQps = editQps * (activeUsers / docCount - 1)
+    const calculatedEditQps = docCount / saveInterval
+    const calculatedActiveUsers = docCount * (1 + (multiDocRatio / 100) * (avgCollaborators - 1))
+    const calculatedBroadcastQps = calculatedEditQps * (calculatedActiveUsers / docCount - 1)
 
     const s = SPECS[spec]
     const broadcastCapacity = s.cores * s.broadcastPerCore
 
-    const baseNode = Math.ceil(editQps / s.nodeQps)
-    const baseUniverserEdit = Math.ceil(editQps / s.universerQps)
-    const baseUniverserBroadcast = Math.ceil(broadcastQps / broadcastCapacity)
+    const baseNode = Math.ceil(calculatedEditQps / s.nodeQps)
+    const baseUniverserEdit = Math.ceil(calculatedEditQps / s.universerQps)
+    const baseUniverserBroadcast = Math.ceil(calculatedBroadcastQps / broadcastCapacity)
     const baseUniverser = Math.max(baseUniverserEdit, baseUniverserBroadcast)
 
     const factor = 1 + redundancy
-    const nodeInstances = Math.ceil(baseNode * factor)
-    const universerInstances = Math.ceil(baseUniverser * factor)
+    const calculatedNodeInstances = Math.ceil(baseNode * factor)
+    const calculatedUniverserInstances = Math.ceil(baseUniverser * factor)
 
-    const dbSpec = editQps <= 1000 ? '2c4g × 1' : '4c8g'
+    const calculatedDbSpec = calculatedEditQps <= 1000 ? '2c4g × 1' : '4c8g'
 
     return {
-      editQps,
-      broadcastQps,
-      activeUsers,
-      nodeInstances,
-      universerInstances,
-      dbSpec,
+      editQps: calculatedEditQps,
+      broadcastQps: calculatedBroadcastQps,
+      activeUsers: calculatedActiveUsers,
+      nodeInstances: calculatedNodeInstances,
+      universerInstances: calculatedUniverserInstances,
+      dbSpec: calculatedDbSpec,
     }
   }, [docCount, saveInterval, multiDocRatio, avgCollaborators, redundancy, spec])
 

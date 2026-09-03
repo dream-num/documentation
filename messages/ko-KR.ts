@@ -18,7 +18,7 @@ const koKRMessages = {
   tools: {
     section: '도구',
     'theme-customizer': '테마 사용자 지정',
-    'theme-customizer-description': 'Univer 테마, 디자인 토큰, 다크 모드 미리보기를 조정합니다.',
+    'theme-customizer-description': 'Univer SDK 테마, 디자인 토큰, 다크 모드 미리보기를 조정합니다.',
   },
   navigation: {
     blog: '블로그',
@@ -31,7 +31,14 @@ const koKRMessages = {
     'open-site-navigation': '사이트 탐색 열기',
     'primary-navigation': '기본 탐색',
     'site-navigation': '사이트 탐색',
-    'univer-home': 'Univer 홈',
+    'univer-home': 'Univer SDK 홈',
+  },
+  'office-sdk-banner': {
+    label: 'Univer Office SDK 안내',
+    message:
+      'Univer SDK 또는 Univer SDK Pro로 개발하고 있나요? Univer Office SDK로 셀프 호스팅 협업, CLI 접근, Agent Worktree를 추가하세요.',
+    action: 'Univer Office SDK 살펴보기',
+    dismiss: 'Univer Office SDK 안내 닫기',
   },
   'theme-customizer': {
     apply: '적용',
@@ -90,7 +97,7 @@ const koKRMessages = {
   home: {
     slogan: '워크플로에 서버 기반 생산성 도구를 더하세요',
     description:
-      'Univer는 높은 확장성과 성능을 갖춘 풀스택 동형 오피스 제품군으로, 개발자가 자유롭게 구축하고 편집할 수 있도록 설계되었습니다. ',
+      'Univer SDK는 높은 확장성과 성능을 갖춘 풀스택 동형 오피스 제품군으로, 개발자가 자유롭게 구축하고 편집할 수 있도록 설계되었습니다. ',
     'description-split': ', ',
     'description-period': '을 자유롭게 다룰 수 있습니다.',
     'description-and': ' 및 ',
@@ -102,7 +109,7 @@ const koKRMessages = {
       eyebrow: '인터랙티브 예제',
       title: '하나의 출시, 모든 워크스페이스',
       description:
-        '기획과 스토리텔링부터 시각적 협업과 PDF까지, 편집 가능한 여섯 가지 Univer 경험으로 연결된 제품 출시 과정을 살펴보세요.',
+        '기획과 스토리텔링부터 시각적 협업과 PDF까지, 편집 가능한 여섯 가지 Univer SDK 경험으로 연결된 제품 출시 과정을 살펴보세요.',
     },
     customer: {
       title: '다양한 업계의 팀과 기업이 신뢰합니다',
@@ -155,7 +162,7 @@ const koKRMessages = {
       subtitle: '마이크로커널 + 플러그인 아키텍처 기반의 풀스택 프레임워크입니다. 몇 분 안에 시작할 수 있습니다.',
       step1: {
         title: '설치',
-        desc: 'npm, yarn 또는 pnpm으로 Univer 핵심 패키지를 설치합니다.',
+        desc: 'npm, yarn 또는 pnpm으로 Univer SDK 핵심 패키지를 설치합니다.',
       },
       step2: {
         title: '모드 선택',
@@ -163,7 +170,7 @@ const koKRMessages = {
       },
       step3: {
         title: '구성',
-        desc: 'Univer 인스턴스를 초기화하고 필요한 플러그인과 로케일 리소스를 로드합니다.',
+        desc: 'Univer SDK 인스턴스를 초기화하고 필요한 플러그인과 로케일 리소스를 로드합니다.',
       },
       step4: {
         title: '렌더링',
@@ -247,11 +254,11 @@ const koKRMessages = {
       },
     },
     headless: {
-      title: 'Headless Univer',
+      title: 'Headless Univer SDK',
       subtitle: 'AI와 자동화를 기본 지원하는 서버 측 문서 처리',
       feature1: {
         title: 'Node.js 지원',
-        desc: '브라우저 없이 Node.js에서 Univer를 직접 실행합니다.',
+        desc: '브라우저 없이 Node.js에서 Univer SDK를 직접 실행합니다.',
       },
       feature2: {
         title: 'UI 렌더링 없음',
@@ -305,7 +312,7 @@ const koKRMessages = {
   },
   blog: {
     title: '블로그',
-    slogan: 'Univer의 최신 소식, 아키텍처, 모범 사례를 살펴보세요',
+    slogan: 'Univer SDK의 최신 소식, 아키텍처, 모범 사례를 살펴보세요',
     author: '작성자',
     date: '게시일',
     back: '뒤로',
@@ -315,7 +322,7 @@ const koKRMessages = {
   },
   showcase: {
     title: '쇼케이스',
-    slogan: '온라인 예제로 Univer의 강력한 기능을 살펴보세요',
+    slogan: '온라인 예제로 Univer SDK의 강력한 기능을 살펴보세요',
     back: '뒤로',
     'related-title': '관련 예제',
     breadcrumb: {

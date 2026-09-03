@@ -3,7 +3,7 @@ import { LocaleType } from '@univerjs/core'
 
 export const WORKBOOK_DATA: Partial<IWorkbookData> = {
   id: 'univer-pro-collaboration-showcase',
-  name: 'Univer Pro Collaboration Showcase',
+  name: 'Univer SDK Pro Collaboration Showcase',
   sheetOrder: ['overview', 'endpoint-checklist'],
   sheets: {
     overview: {
@@ -29,12 +29,16 @@ export const WORKBOOK_DATA: Partial<IWorkbookData> = {
         },
         3: {
           0: { v: '3. Normalize the URL' },
-          1: { v: 'If the unit comes from local storage or a freshly created document, the showcase redirects to a URL with both unit and type.' },
+          1: {
+            v: 'If the unit comes from local storage or a freshly created document, the showcase redirects to a URL with both unit and type.',
+          },
           2: { v: 'This matches the collaboration guide in the repository.' },
         },
         4: {
           0: { v: '4. Create when missing' },
-          1: { v: 'If neither the URL nor local storage has a unit id, the showcase creates a new collaborative sheet on Universer.' },
+          1: {
+            v: 'If neither the URL nor local storage has a unit id, the showcase creates a new collaborative sheet on Universer.',
+          },
           2: { v: 'The new unit id is saved locally, then the page reloads with the required URL parameters.' },
         },
         6: {
@@ -45,15 +49,21 @@ export const WORKBOOK_DATA: Partial<IWorkbookData> = {
         8: {
           0: { v: 'Default behavior in docs' },
           1: { v: 'Reopen the last collaborative workbook through URL parameters' },
-          2: { v: 'If no explicit unit is passed, the showcase prefers the locally remembered unit, rewrites the URL, and lets the plugin load it automatically.' },
+          2: {
+            v: 'If no explicit unit is passed, the showcase prefers the locally remembered unit, rewrites the URL, and lets the plugin load it automatically.',
+          },
         },
         10: {
           0: { v: 'Fallback mode' },
-          1: { v: 'If create or load fails, the preview still opens this local workbook so the setup remains inspectable.' },
+          1: {
+            v: 'If create or load fails, the preview still opens this local workbook so the setup remains inspectable.',
+          },
         },
         12: {
           0: { v: 'Tip' },
-          1: { v: 'Reuse createCollaborationClientConfig() in your own app and swap the endpoint resolver if your server origin differs.' },
+          1: {
+            v: 'Reuse createCollaborationClientConfig() in your own app and swap the endpoint resolver if your server origin differs.',
+          },
         },
       },
     },

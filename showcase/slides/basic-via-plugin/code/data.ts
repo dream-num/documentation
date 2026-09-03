@@ -5,7 +5,7 @@ import { LocaleType } from '@univerjs/core'
 
 export const SLIDE_DATA: ISlideData = {
   id: 'slides-pro-demo',
-  name: 'Univer Slides Pro',
+  name: 'Univer SDK Pro Slides',
   appVersion: '1.0.0-beta.2',
   rev: 1,
   locale: LocaleType.EN_US,
@@ -52,7 +52,7 @@ export const SLIDE_DATA: ISlideData = {
             height: 92,
             rotation: 0,
           },
-          text: 'Univer Slides Pro',
+          text: 'Univer SDK Pro Slides',
           textStyle: {
             color: '#111827',
             fontSize: 46,

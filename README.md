@@ -1,6 +1,6 @@
-# Univer Documentation
+# Univer SDK Documentation
 
-This is the official documentation site for [Univer](https://github.com/dream-num/univer), built with [Next.js](https://nextjs.org/), Fumadocs headless content tooling, and project-owned UI.
+This is the official documentation site for [Univer SDK](https://github.com/dream-num/univer), built with [Next.js](https://nextjs.org/), Fumadocs headless content tooling, and project-owned UI.
 
 ## Prerequisites
 
@@ -49,7 +49,7 @@ pnpm build
 
 We welcome contributions to the documentation. Please ensure your changes follow the existing style and conventions. Run `pnpm lint` and `pnpm typecheck` before submitting.
 
-For more information about contributing to Univer, see the [main repository](https://github.com/dream-num/univer).
+For more information about contributing to Univer SDK, see the [main repository](https://github.com/dream-num/univer).
 
 ## Deploy Using ECS
 

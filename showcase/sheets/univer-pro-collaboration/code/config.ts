@@ -7,7 +7,8 @@ const PROD_API_ORIGIN = 'https://univer.ai'
 const PRO_API_PREFIX = '/universer-api'
 const COLLABORATION_UNIT_STORAGE_KEY = 'showcase:univer-pro-collaboration:unit-id'
 const COLLABORATION_DOCUMENT_TYPE = String(UniverInstanceType.UNIVER_SHEET)
-const COLLABORATION_LOGIN_URL = 'https://univer.ai/login?url=https%3A%2F%2Fdocs.univer.ai%2Fshowcase%2Fsheets%2Funiver-pro-collaboration&from=univer-website'
+const COLLABORATION_LOGIN_URL =
+  'https://univer.ai/login?url=https%3A%2F%2Fdocs.univer.ai%2Fshowcase%2Fsheets%2Funiver-pro-collaboration&from=univer-website'
 
 export class CollaborationUnauthorizedError extends Error {
   constructor() {
@@ -128,7 +129,7 @@ export async function createCollaborationSheetUnit() {
     },
     body: JSON.stringify({
       type: UniverInstanceType.UNIVER_SHEET,
-      name: 'Univer Pro Collaboration Showcase',
+      name: 'Univer SDK Pro Collaboration Showcase',
       creator: 'documentation-showcase',
     }),
   })
@@ -137,7 +138,7 @@ export async function createCollaborationSheetUnit() {
     throw new Error('create collaboration unit failed')
   }
 
-  const data = await response.json() as { unitID?: string }
+  const data = (await response.json()) as { unitID?: string }
 
   if (!data.unitID) {
     throw new Error('create collaboration unit failed')
@@ -185,9 +186,10 @@ export function getCollaborationBootstrapState(): ICollaborationBootstrapState {
       unitId: queryUnitId,
       source: 'query',
       shouldUpdateUrl: queryType !== COLLABORATION_DOCUMENT_TYPE,
-      reason: queryType === COLLABORATION_DOCUMENT_TYPE
-        ? `Attempting to connect to collaborative unit ${queryUnitId} from the URL.`
-        : `The URL already contains unit ${queryUnitId}, but the collaboration client also needs a Sheets type parameter. The showcase will normalize the URL before loading.`,
+      reason:
+        queryType === COLLABORATION_DOCUMENT_TYPE
+          ? `Attempting to connect to collaborative unit ${queryUnitId} from the URL.`
+          : `The URL already contains unit ${queryUnitId}, but the collaboration client also needs a Sheets type parameter. The showcase will normalize the URL before loading.`,
     }
   }
 
@@ -208,7 +210,8 @@ export function getCollaborationBootstrapState(): ICollaborationBootstrapState {
     unitId: null,
     source: 'create',
     shouldUpdateUrl: true,
-    reason: 'No unit query parameter or stored unit was found. The showcase will create a new collaborative sheet and save its unit id locally.',
+    reason:
+      'No unit query parameter or stored unit was found. The showcase will create a new collaborative sheet and save its unit id locally.',
   }
 }
 

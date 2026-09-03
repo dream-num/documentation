@@ -62,7 +62,7 @@ export default async function Layout({ params, children }: IProps) {
       iconClassName: 'bg-linear-[135deg,#0EA5E9_0%,#F0F9FF_100%] dark:bg-linear-[135deg,#0EA5E9_0%,#0C4A6E_100%]',
     },
     {
-      text: 'Univer Pro',
+      text: 'Univer SDK Pro',
       url: '/guides/pro',
       icon: <StarIcon />,
       iconClassName: 'bg-linear-[135deg,#F59E0B_0%,#FFFBEB_100%] dark:bg-linear-[135deg,#F59E0B_0%,#78350F_100%]',

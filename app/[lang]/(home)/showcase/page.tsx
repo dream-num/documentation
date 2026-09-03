@@ -15,8 +15,8 @@ interface IProps {
 }
 
 export const metadata = {
-  title: 'Univer Showcase',
-  description: 'Explore the Univer showcase',
+  title: 'Univer SDK Showcase',
+  description: 'Explore the Univer SDK showcase',
 }
 
 export default async function Page({ params }: IProps) {
@@ -36,9 +36,15 @@ export default async function Page({ params }: IProps) {
   let slidesCount = 0
 
   const keys = Object.keys(showcase)
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i]
-    const { metadata } = (await showcase[key]).default
+  const entries = await Promise.all(
+    keys.map(async (key) => ({
+      key,
+      itemMetadata: (await showcase[key]).default.metadata,
+    })),
+  )
+
+  for (let i = 0; i < entries.length; i++) {
+    const { key, itemMetadata } = entries[i]
     const type = key.split('/')[0] as 'sheets' | 'docs' | 'slides'
 
     if (type === 'sheets') sheetsCount++
@@ -46,9 +52,9 @@ export default async function Page({ params }: IProps) {
     else if (type === 'slides') slidesCount++
 
     items.push({
-      title: metadata.title[lang],
-      description: metadata.description[lang],
-      tags: metadata.tags[lang],
+      title: itemMetadata.title[lang],
+      description: itemMetadata.description[lang],
+      tags: itemMetadata.tags[lang],
       url: `/showcase/${key}`,
       type,
       index: i,
@@ -57,19 +63,8 @@ export default async function Page({ params }: IProps) {
 
   return (
     <>
-      <div
-        className={`
-          container mx-auto px-4 py-8
-          max-sm:px-0
-          md:py-12
-        `}
-      >
-        <ShowcaseHero
-          lang={lang}
-          sheetsCount={sheetsCount}
-          docsCount={docsCount}
-          slidesCount={slidesCount}
-        />
+      <div className={`container mx-auto px-4 py-8 max-sm:px-0 md:py-12`}>
+        <ShowcaseHero lang={lang} sheetsCount={sheetsCount} docsCount={docsCount} slidesCount={slidesCount} />
 
         <ShowcaseContent
           items={items}

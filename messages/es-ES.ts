@@ -18,7 +18,7 @@ const esESMessages = {
   tools: {
     section: 'Herramientas',
     'theme-customizer': 'Tema Personalizador',
-    'theme-customizer-description': 'Temas de Tune Univer, tokens de diseño y vistas previas en modo oscuro.',
+    'theme-customizer-description': 'Temas de Tune Univer SDK, tokens de diseño y vistas previas en modo oscuro.',
   },
   navigation: {
     blog: 'Blog',
@@ -31,7 +31,14 @@ const esESMessages = {
     'open-site-navigation': 'Navegación abierta del sitio',
     'primary-navigation': 'Navegación principal',
     'site-navigation': 'Navegación del sitio',
-    'univer-home': 'Univer inicio',
+    'univer-home': 'Univer SDK inicio',
+  },
+  'office-sdk-banner': {
+    label: 'Anuncio de Univer Office SDK',
+    message:
+      '¿Desarrolla con Univer SDK o Univer SDK Pro? Añada colaboración autohospedada, acceso mediante CLI y worktrees para agentes con Univer Office SDK.',
+    action: 'Explorar Univer Office SDK',
+    dismiss: 'Cerrar el anuncio de Univer Office SDK',
   },
   'theme-customizer': {
     apply: 'Aplicar',
@@ -91,7 +98,7 @@ const esESMessages = {
   home: {
     slogan: 'Incorporación de herramientas de productividad basadas en servidor en su flujo de trabajo',
     description:
-      'Univer es una suite ofimática isomórfica de pila completa con alta extensibilidad y rendimiento, diseñada para ayudar a los desarrolladores a crear y editar',
+      'Univer SDK es una suite ofimática isomórfica de pila completa con alta extensibilidad y rendimiento, diseñada para ayudar a los desarrolladores a crear y editar',
     'description-split': ',',
     'description-period': 'libremente.',
     'description-and': 'y',
@@ -103,7 +110,7 @@ const esESMessages = {
       eyebrow: 'Ejemplos interactivos',
       title: 'Un lanzamiento, cada espacio de trabajo',
       description:
-        'Explore un lanzamiento de producto conectado en seis experiencias de Univer totalmente editables, desde la planificación y la narrativa hasta la colaboración visual y los PDF.',
+        'Explore un lanzamiento de producto conectado en seis experiencias de Univer SDK totalmente editables, desde la planificación y la narrativa hasta la colaboración visual y los PDF.',
     },
     customer: {
       title: 'Con la confianza de equipos y empresas de todos los sectores',
@@ -156,7 +163,7 @@ const esESMessages = {
       subtitle: 'Un marco de trabajo completo con arquitectura de microkernel + complemento. Comience en minutos.',
       step1: {
         title: 'Instalar',
-        desc: 'Instale los paquetes principales de Univer mediante npm, hilo o pnpm.',
+        desc: 'Instale los paquetes principales de Univer SDK mediante npm, hilo o pnpm.',
       },
       step2: {
         title: 'Elija el modo',
@@ -164,7 +171,7 @@ const esESMessages = {
       },
       step3: {
         title: 'Configurar',
-        desc: 'Inicializar la instancia de Univer y cargar los complementos y recursos locales necesarios.',
+        desc: 'Inicializar la instancia de Univer SDK y cargar los complementos y recursos locales necesarios.',
       },
       step4: {
         title: 'Renderizar',
@@ -248,11 +255,11 @@ const esESMessages = {
       },
     },
     headless: {
-      title: 'Headless Univer',
+      title: 'Headless Univer SDK',
       subtitle: 'Procese documentos en el servidor con soporte nativo para IA y automatización',
       feature1: {
         title: 'Node.js Soporte',
-        desc: 'Ejecute Univer directamente en Node.js sin un navegador.',
+        desc: 'Ejecute Univer SDK directamente en Node.js sin un navegador.',
       },
       feature2: {
         title: 'Sin representación de interfaz de usuario',
@@ -306,7 +313,7 @@ const esESMessages = {
   },
   blog: {
     title: 'Blog',
-    slogan: 'Explore las últimas noticias, arquitectura y mejores prácticas de Univer',
+    slogan: 'Explore las últimas noticias, arquitectura y mejores prácticas de Univer SDK',
     author: 'Autor',
     date: 'Publicado Fecha',
     back: 'Volver',
@@ -316,7 +323,7 @@ const esESMessages = {
   },
   showcase: {
     title: 'Showcase',
-    slogan: 'Explore las potentes funciones de Univer a través de ejemplos en línea',
+    slogan: 'Explore las potentes funciones de Univer SDK a través de ejemplos en línea',
     back: 'Volver',
     'related-title': 'Ejemplos relacionados',
     breadcrumb: {

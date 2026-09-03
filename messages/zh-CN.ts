@@ -18,7 +18,7 @@ const zhCNMessages = {
   tools: {
     section: '工具',
     'theme-customizer': '主题定制器',
-    'theme-customizer-description': '编辑 Univer 主题、设计 Tokens 和暗黑模式预览。',
+    'theme-customizer-description': '编辑 Univer SDK 主题、设计 Tokens 和暗黑模式预览。',
   },
   navigation: {
     blog: '博客',
@@ -31,7 +31,13 @@ const zhCNMessages = {
     'open-site-navigation': '打开站点导航',
     'primary-navigation': '主导航',
     'site-navigation': '站点导航',
-    'univer-home': 'Univer 首页',
+    'univer-home': 'Univer SDK 首页',
+  },
+  'office-sdk-banner': {
+    label: 'Univer Office SDK 提示',
+    message: '正在使用 Univer SDK 或 Univer SDK Pro？通过 Univer Office SDK 接入自托管协同、CLI 与 Agent Worktree。',
+    action: '了解 Univer Office SDK',
+    dismiss: '关闭 Univer Office SDK 提示',
   },
   'theme-customizer': {
     apply: '应用',
@@ -89,7 +95,7 @@ const zhCNMessages = {
   },
   home: {
     slogan: '重塑工作流的全栈嵌入工具',
-    description: 'Univer 是一个前后端同构的全栈办公套件，具有高扩展性和高性能，旨在帮助开发者自由构建和编辑',
+    description: 'Univer SDK 是一个前后端同构的全栈办公套件，具有高扩展性和高性能，旨在帮助开发者自由构建和编辑',
     'description-split': '、',
     'description-period': '。',
     'description-and': '和',
@@ -100,13 +106,13 @@ const zhCNMessages = {
     examples: {
       eyebrow: '交互式示例',
       title: '一次发布，贯穿每个工作空间',
-      description: '通过六种可编辑的 Univer 体验，探索从规划、内容表达、视觉协作到 PDF 交付的完整产品发布流程。',
+      description: '通过六种可编辑的 Univer SDK 体验，探索从规划、内容表达、视觉协作到 PDF 交付的完整产品发布流程。',
     },
     customer: {
-      title: 'Univer 为各行业团队与公司赋能，提升工作效率',
+      title: 'Univer SDK 为各行业团队与公司赋能，提升工作效率',
     },
     logocloud: {
-      title: 'Univer 为各行业团队与公司赋能，提升工作效率',
+      title: 'Univer SDK 为各行业团队与公司赋能，提升工作效率',
     },
     scenes: {
       title: '驱动每一种工作流',
@@ -153,7 +159,7 @@ const zhCNMessages = {
       subtitle: '基于微内核 + 插件架构的全栈框架。几分钟即可上手。',
       step1: {
         title: '安装',
-        desc: '安装 Univer 核心依赖包，支持 npm、yarn 或 pnpm。',
+        desc: '安装 Univer SDK 核心依赖包，支持 npm、yarn 或 pnpm。',
       },
       step2: {
         title: '选择模式',
@@ -161,7 +167,7 @@ const zhCNMessages = {
       },
       step3: {
         title: '配置',
-        desc: '初始化 Univer 实例，加载所需插件与本地化资源。',
+        desc: '初始化 Univer SDK 实例，加载所需插件与本地化资源。',
       },
       step4: {
         title: '渲染',
@@ -249,7 +255,7 @@ const zhCNMessages = {
       subtitle: '在服务端处理文档，为 AI 与自动化提供原生支持',
       feature1: {
         title: 'Node.js 支持',
-        desc: '在 Node.js 环境中直接运行 Univer，无需浏览器。',
+        desc: '在 Node.js 环境中直接运行 Univer SDK，无需浏览器。',
       },
       feature2: {
         title: '无 UI 渲染',
@@ -303,7 +309,7 @@ const zhCNMessages = {
   },
   blog: {
     title: '博客',
-    slogan: '在此探索 Univer 的新闻、架构和最佳实践',
+    slogan: '在此探索 Univer SDK 的新闻、架构和最佳实践',
     author: '作者',
     date: '发表日期',
     back: '返回',
@@ -313,7 +319,7 @@ const zhCNMessages = {
   },
   showcase: {
     title: '在线演示',
-    slogan: '通过案例，了解 Univer 的强大功能',
+    slogan: '通过案例，了解 Univer SDK 的强大功能',
     back: '返回',
     'related-title': '相关案例',
     breadcrumb: {

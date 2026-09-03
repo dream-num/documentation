@@ -620,7 +620,7 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
     case 'IconsVersion':
       return `\`${packageJson.dependencies['@univerjs/icons']}\``
     case 'IconWrapper':
-      return attributes.type === 'pro' ? '**Univer Pro**' : children
+      return attributes.type === 'pro' ? '**Univer SDK Pro**' : children
     case 'InstallTabs':
       return renderInstallTabs(attributes)
     case 'Mermaid': {

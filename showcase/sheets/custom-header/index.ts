@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+
 import Preview from './preview'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -13,10 +14,12 @@ const metadata = {
     'ja-JP': 'カスタムヘッダー',
   },
   description: {
-    'en-US': 'Univer allows you to customize the text and style of row and column headers using the `customizeColumnHeader` and `customizeRowHeader` APIs.',
-    'zh-CN': 'Univer 支持使用 `customizeColumnHeader` 和 `customizeRowHeader` API 自定义行列头的文案和样式。',
-    'zh-TW': 'Univer 支援使用 `customizeColumnHeader` 和 `customizeRowHeader` API 自定義行列頭的文案和樣式。',
-    'ja-JP': 'Univer では、`customizeColumnHeader` および `customizeRowHeader` API を使用して、行および列ヘッダーのテキストとスタイルをカスタマイズできます。',
+    'en-US':
+      'Univer SDK allows you to customize the text and style of row and column headers using the `customizeColumnHeader` and `customizeRowHeader` APIs.',
+    'zh-CN': 'Univer SDK 支持使用 `customizeColumnHeader` 和 `customizeRowHeader` API 自定义行列头的文案和样式。',
+    'zh-TW': 'Univer SDK 支援使用 `customizeColumnHeader` 和 `customizeRowHeader` API 自定義行列頭的文案和樣式。',
+    'ja-JP':
+      'Univer SDK では、`customizeColumnHeader` および `customizeRowHeader` API を使用して、行および列ヘッダーのテキストとスタイルをカスタマイズできます。',
   },
   tags: {
     'en-US': ['Univer Sheets', 'Preset Mode'],

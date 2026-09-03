@@ -60,6 +60,7 @@ type AgentDocsTarget =
 
 const AGENT_IMAGE_SOURCE = 'agent-image:'
 const DOCS_ORIGIN = 'https://docs.univer.ai'
+const OFFICE_DOCS_ORIGIN = 'https://office.univer.ai'
 const MARKDOWN_LINK_DESTINATION = /(\]\()([^\s)]+)([^)]*\))/g
 const MARKDOWN_IMAGE_DESTINATION = /(!\[[^\]]*\]\()([^\s)]+)([^)]*\))/g
 const MARKDOWN_DELIMITER_ENTITY = /&#x(?:60|2a);/i
@@ -362,16 +363,26 @@ async function renderPage(
 
 function renderRootIndex(lang: Locale): IAgentDocsArtifact {
   const canonicalPath = getRootIndexPath(lang)
+  const guidesPath = withLocale(lang, '/guides')
+  const officeGettingStartedPath = lang === 'zh-CN' ? '/zh-CN/getting-started' : '/getting-started'
   const productPages = guidesMeta.pages
     .map((slug) => getPage('guides', [slug], lang))
     .filter((page): page is AgentDocsPage => page !== undefined)
   const body = [
-    '# Univer Documentation',
+    '# Univer SDK Documentation',
     '',
-    '> Agent-readable documentation for Univer, a full-stack framework for building productivity applications.',
+    '> Agent-readable documentation for Univer SDK and Univer SDK Pro, the browser and Node.js runtimes for building embedded Office experiences.',
     '',
     `- Language: \`${lang}\``,
     `- Documentation version: \`${packageJson.version}\``,
+    '',
+    '## Documentation scope',
+    '',
+    `- [Univer SDK documentation](${DOCS_ORIGIN}${guidesPath}): Runtime SDK setup, frontend editor features, presets, plugins, Facade APIs, packages, and icons.`,
+    `- [Univer Office SDK documentation](${OFFICE_DOCS_ORIGIN}${officeGettingStartedPath}): Application architecture, self-hosted Collaboration SDK, CLI SDK, and Agent Worktree.`,
+    `- [Univer Office SDK agent index](${OFFICE_DOCS_ORIGIN}/llms.txt): Agent-readable integration guidance and canonical examples.`,
+    '- Relationship: Univer Office SDK applications use Univer SDK and Univer SDK Pro for their Web editing surface, then compose the collaboration, CLI, and agent capabilities documented at office.univer.ai.',
+    '- Use this site when embedding or extending the editor. Continue to Univer Office SDK when the application needs self-hosted collaboration, a CLI or Agent entry point, or reviewable Agent changes.',
     '',
     '## Product guides',
     '',
@@ -379,7 +390,7 @@ function renderRootIndex(lang: Locale): IAgentDocsArtifact {
     '',
     '## Documentation indexes',
     '',
-    `- [Guides](${DOCS_ORIGIN}${getCollectionIndexPath(lang, 'guides')}): Product setup, concepts, features, UI, recipes, and Univer Pro deployment.`,
+    `- [Guides](${DOCS_ORIGIN}${getCollectionIndexPath(lang, 'guides')}): Product setup, concepts, features, UI, recipes, and Univer SDK Pro deployment.`,
     `- [API reference](${DOCS_ORIGIN}${getCollectionIndexPath(lang, 'reference')}): Packages, presets, plugins, classes, methods, types, and Facade APIs.`,
     `- [Icons](${DOCS_ORIGIN}${getCollectionIndexPath(lang, 'icons')}): Icon setup, framework integrations, and the complete component catalog.`,
     '',
@@ -399,7 +410,7 @@ function renderCollectionIndex(lang: Locale, collection: AgentDocsCollection): I
   const canonicalPath = getCollectionIndexPath(lang, collection)
   const pages = getPages(collection, lang).toSorted((a, b) => a.url.localeCompare(b.url))
   const body = [
-    `# Univer ${collection}`,
+    `# Univer SDK ${collection}`,
     '',
     `> Agent-readable index for the ${collection} collection.`,
     '',

@@ -14,6 +14,7 @@ import { messagesByLocale } from '@/messages'
 import type { ISiteDocumentationLink, ISiteNavLink } from './mobile-menu'
 import { SiteLanguageSwitcher } from './language-switcher'
 import { SiteMobileMenu } from './mobile-menu'
+import { OfficeSdkBanner } from './office-sdk-banner'
 
 export async function SiteHeader({
   guideItems,
@@ -72,6 +73,7 @@ export async function SiteHeader({
         <ThemeSwitcher label={t('common.choose-theme')} />
         <GithubInfo className="hidden xl:flex" owner="dream-num" repo="univer" />
       </div>
+      <OfficeSdkBanner />
     </header>
   )
 }

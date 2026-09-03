@@ -3,7 +3,7 @@ import { LocaleType } from '@univerjs/core'
 
 export const WORKBOOK_DATA: Partial<IWorkbookData> = {
   id: 'univer-pro-import-export-showcase',
-  name: 'Univer Pro Import Export Showcase',
+  name: 'Univer SDK Pro Import Export Showcase',
   sheetOrder: ['overview'],
   sheets: {
     overview: {

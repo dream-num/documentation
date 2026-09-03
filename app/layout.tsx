@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { hasLocale } from 'next-intl'
 import { cookies } from 'next/headers'
 import NextTopLoader from 'nextjs-toploader'
+
 import { routing } from '@/i18n/routing'
 
 import './global.css'
