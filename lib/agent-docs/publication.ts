@@ -49,6 +49,9 @@ type AgentDocsPage = GuidesPage | IconsPage | ReferencePage
 
 type AgentDocsTarget =
   | {
+      kind: 'full'
+    }
+  | {
       collection?: AgentDocsCollection
       kind: 'index'
     }
@@ -79,6 +82,10 @@ function parseTarget(asset: string[]): AgentDocsTarget | undefined {
 
   if (asset.length === 1 && asset[0] === 'llms.txt') {
     return { kind: 'index' }
+  }
+
+  if (asset.length === 1 && asset[0] === 'llms-full.txt') {
+    return { kind: 'full' }
   }
 
   if (asset.length === 2 && isAgentDocsCollection(asset[0]) && asset[1] === 'llms.txt') {
@@ -149,6 +156,10 @@ function getCollectionIndexPath(lang: Locale, collection: AgentDocsCollection) {
 
 function getRootIndexPath(lang: Locale) {
   return withLocale(lang, '/llms.txt')
+}
+
+function getRootFullPath(lang: Locale) {
+  return withLocale(lang, '/llms-full.txt')
 }
 
 function getPageAsset(collection: AgentDocsCollection, page: AgentDocsPage) {
@@ -375,6 +386,7 @@ function renderRootIndex(lang: Locale): IAgentDocsArtifact {
     '',
     `- Language: \`${lang}\``,
     `- Documentation version: \`${packageJson.version}\``,
+    `- [Full documentation bundle](${DOCS_ORIGIN}${getRootFullPath(lang)}): Detailed agent guidance followed by the complete Guides, API reference, and Icons content.`,
     '',
     '## Documentation scope',
     '',
@@ -402,6 +414,66 @@ function renderRootIndex(lang: Locale): IAgentDocsArtifact {
     contentLanguage: lang,
     contentType: 'text/plain; charset=utf-8',
     describedByPath: canonicalPath,
+    digest: getDigest(body),
+  }
+}
+
+async function renderRootFull(lang: Locale): Promise<IAgentDocsArtifact> {
+  const canonicalPath = getRootFullPath(lang)
+  const officeGettingStartedPath = lang === 'zh-CN' ? '/zh-CN/getting-started' : '/getting-started'
+  const pages = agentDocsCollections.flatMap((collection) =>
+    getPages(collection, lang)
+      .toSorted((a, b) => a.url.localeCompare(b.url))
+      .map((page) => ({ collection, page })),
+  )
+  const documents = await Promise.all(pages.map(({ collection, page }) => renderPage(lang, collection, page)))
+  const body = [
+    '# Univer SDK Documentation — Full',
+    '',
+    '> Complete agent-readable guidance and documentation for Univer SDK and Univer SDK Pro.',
+    '',
+    `- Language: \`${lang}\``,
+    `- Documentation version: \`${packageJson.version}\``,
+    `- Documents: \`${documents.length}\``,
+    `- Concise index: [${DOCS_ORIGIN}${getRootIndexPath(lang)}](${DOCS_ORIGIN}${getRootIndexPath(lang)})`,
+    '',
+    '## Recommended agent workflow',
+    '',
+    '1. Identify the target product: Sheets, Docs, Slides, Boards, Bases, PDFs, or Icons.',
+    '2. Begin with that product’s guide and installation page. Treat its package list, preset composition, and registration order as part of the integration contract.',
+    '3. Use feature guides to assemble the required capabilities. Do not infer that a feature is present merely because a related method appears in the API reference.',
+    '4. For application-level operations, start with the Facade API. Use lower-level plugin and service interfaces when the guide or required extension calls for them.',
+    '5. Consult the API reference for exact package exports, types, methods, parameters, and return values before writing code.',
+    '6. Follow the linked source and human documentation when a page is localized through fallback content or when implementation details need verification.',
+    '',
+    '## Product and documentation boundaries',
+    '',
+    '- This site is canonical for the Univer SDK runtime: browser and Node.js setup, presets, plugins, Facade APIs, frontend features, packages, and icons.',
+    '- Univer SDK Pro is the commercial extension of Univer SDK. Its packages and deployment guidance are documented alongside the open-source SDK where they are used.',
+    `- [Univer Office SDK documentation](${OFFICE_DOCS_ORIGIN}${officeGettingStartedPath}) is canonical for complete application architecture, self-hosted Collaboration SDK, CLI SDK, and Agent Worktree.`,
+    `- [Univer Office SDK agent index](${OFFICE_DOCS_ORIGIN}/llms.txt) provides its agent-readable integration map and canonical examples.`,
+    '- Use this bundle for embedded editor and runtime work. Continue to Univer Office SDK when the application needs self-hosted collaboration, a CLI or Agent entry point, or reviewable Agent changes.',
+    '',
+    '## Reading this bundle',
+    '',
+    '- Documents are grouped by collection in this order: Guides, API reference, then Icons. Within each collection, documents are sorted by canonical URL.',
+    '- Each document starts with its own H1 and metadata, including human documentation, Agent Markdown, requested language, content language, version, and source links.',
+    '- A language fallback notice means the requested locale does not yet have a dedicated source page; rely on the declared content language for interpretation.',
+    '- Use the concise index for targeted retrieval. This full bundle is intended for bulk indexing, offline use, or models with sufficiently large context windows.',
+    '',
+    '## Documentation corpus',
+    '',
+    ...documents.flatMap((document) => ['---', '', document.body.trim(), '']),
+  ]
+    .join('\n')
+    .concat('\n')
+
+  return {
+    body,
+    canonicalPath,
+    contentLanguage: lang,
+    contentType: 'text/markdown; charset=utf-8',
+    describedByPath: getRootIndexPath(lang),
     digest: getDigest(body),
   }
 }
@@ -440,6 +512,8 @@ async function publish({ asset, lang: langInput }: IAgentDocsRequest) {
   const target = parseTarget(asset)
   if (!target) return undefined
 
+  if (target.kind === 'full') return renderRootFull(lang)
+
   if (target.kind === 'index') {
     return target.collection ? renderCollectionIndex(lang, target.collection) : renderRootIndex(lang)
   }
@@ -457,7 +531,11 @@ async function enumerate() {
     const keys = new Set<string>()
 
     for (const lang of routing.locales) {
-      const indexAssets = [['llms.txt'], ...agentDocsCollections.map((collection) => [collection, 'llms.txt'])]
+      const indexAssets = [
+        ['llms.txt'],
+        ['llms-full.txt'],
+        ...agentDocsCollections.map((collection) => [collection, 'llms.txt']),
+      ]
       for (const asset of indexAssets) params.push({ asset, lang })
 
       for (const collection of agentDocsCollections) {

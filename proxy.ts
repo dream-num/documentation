@@ -6,7 +6,7 @@ import { routing } from '@/i18n/routing'
 
 const intlMiddleware = createMiddleware(routing)
 const agentDocsPath = new RegExp(
-  `^/(?:(?:(${routing.locales.join('|')})/))?(llms\\.txt|(?:guides|reference|icons)(?:\\.md|/llms\\.txt|/.+\\.md))$`,
+  `^/(?:(?:(${routing.locales.join('|')})/))?(llms(?:-full)?\\.txt|(?:guides|reference|icons)(?:\\.md|/llms\\.txt|/.+\\.md))$`,
 )
 
 export default function proxy(request: NextRequest) {
