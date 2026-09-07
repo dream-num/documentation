@@ -25,7 +25,16 @@ try {
       const mountOnly = rules.every((selector) =>
         selector.split(',').every((part) => ['html', 'body', '#app'].includes(part.trim())),
       )
-      const rootClass = mountOnly ? '' : /^\.([\w-]+)$/.exec(rules[0])?.[1]
+      const rootClass = mountOnly
+        ? ''
+        : rules
+            .flatMap((selector) => selector.split(','))
+            .map((selector) => /^\.([\w-]+)$/.exec(selector.trim())?.[1])
+            .find(
+              (candidate) =>
+                candidate &&
+                Object.values(files).some((source) => source.includes("root.className = '" + candidate + "'")),
+            )
       assert.ok(
         mountOnly || rootClass,
         slug + '/' + name + ': add an explicit DOM fixture for an unrecognized stylesheet root',
@@ -44,6 +53,33 @@ try {
           '"><label>Host<input></label><button>Host action</button></fieldset><details><summary>Host readout</summary></details><div id="sdk"><fieldset><label>Native<input type="number" aria-label="Title"></label><input aria-label="Label"><input aria-label="Alt text"><input type="checkbox"><button>Native action</button><select><option>Native choice</option></select><textarea></textarea></fieldset><p role="status"></p><p role="alert"></p><details><summary>Native details</summary><pre>Native text</pre></details><table><tbody><tr><th>Native heading</th><td>Native cell</td></tr></tbody></table><a href="#">Native link</a></div></div>',
       )
       await page.addStyleTag({ content: css })
+      let hostControl = page.getByRole('button', { name: 'Host action', exact: true })
+      if (rootClass === 'custom-shortcuts-demo') {
+        // The shortcut boundary is an input, not a host action button.
+        await page.locator('#app').evaluate((root) => {
+          const context = document.createElement('div')
+          context.className = 'shortcut-context'
+          context.innerHTML = '<label>Host<input aria-label="Host input"></label>'
+          root.querySelector(':scope > fieldset').replaceWith(context)
+          root.querySelector('#sdk').className = 'shortcuts-editor'
+        })
+        hostControl = page.getByRole('textbox', { name: 'Host input', exact: true })
+      }
+      if (['violet-embed', 'links-demo', 'knowledge-demo'].includes(rootClass)) {
+        // Match these factories' navigation wrappers, not their former control fieldsets.
+        await page.locator('#app').evaluate((root) => {
+          const [tag, navigationClass, editorClass] = {
+            'violet-embed': ['nav', 'violet-page-navigation', 'violet-workbench'],
+            'links-demo': ['div', 'links-navigation', 'links-editor'],
+            'knowledge-demo': ['nav', 'knowledge-navigation', 'knowledge-editor'],
+          }[root.className]
+          const navigation = document.createElement(tag)
+          navigation.className = navigationClass
+          navigation.append(root.querySelector(':scope > fieldset button'))
+          root.querySelector(':scope > fieldset').replaceWith(navigation)
+          root.querySelector('#sdk').className = editorClass
+        })
+      }
       if (
         [
           'pdf-markup',
@@ -155,18 +191,22 @@ try {
         }
         return found
       })
-      const host = await page.getByRole('button', { name: 'Host action', exact: true }).evaluate(
+      const host = await hostControl.evaluate(
         (button, selectors) => ({
           borderRadius: getComputedStyle(button).borderRadius,
           matchedSelectors: selectors.filter((selector) => button.matches(selector)),
         }),
         rules,
       )
-      const noAuthoredControls = !Object.values(files).some((source) =>
-        /<(?:button|fieldset|input|select)\b|createElement\(['"](?:button|fieldset|input|select)['"]\)/i.test(source),
+      const noAuthoredControls = !Object.entries(files).some(
+        ([name, source]) =>
+          name.startsWith('/src/') &&
+          /\.[cm]?[jt]sx?$/.test(name) &&
+          /<(?:button|fieldset|input|select)\b|createElement\(['"](?:button|fieldset|input|select)['"]\)/i.test(source),
       )
-      const layoutOnly =
-        rootClass === 'mobile-demo' || (noAuthoredControls && rules.every((rule) => rule === `.${rootClass}`))
+      // README recipes are not mounted controls. Native-only cases may still style
+      // an editor wrapper or startup alert; their SDK collision check remains mandatory.
+      const layoutOnly = rootClass === 'mobile-demo' || noAuthoredControls
       if (!mountOnly && !layoutOnly)
         assert.ok(host.matchedSelectors.length > 0, slug + ': host controls must retain their own styling')
       results.push({ slug, name, rootClass, mountOnly, collisions, host })
