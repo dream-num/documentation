@@ -2,7 +2,7 @@
 
 import { ExpandIcon, XIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { clsx } from '@/lib/clsx'
 import { ClickToShowButton } from './click-to-show-button'
 
@@ -22,19 +22,35 @@ export function PlaygroundFrame(props: IProps) {
 
   const src = `/playground/${slug}`
 
+  const measureFrame = useCallback(() => {
+    // The child can send its first resize before this parent hydrates.
+    // Read our same-origin frame on load and after subscribing to recover that missed event.
+    const frameDocument = iframeRef.current?.contentDocument
+    const height = frameDocument?.URL !== 'about:blank' ? frameDocument?.documentElement.scrollHeight : 0
+    if (height && Number.isFinite(height)) setIframeHeight(height)
+  }, [])
+
   useEffect(() => {
     const eventHandler = (event: MessageEvent) => {
-      if (event.data.type === 'setHeight') {
+      if (
+        event.source === iframeRef.current?.contentWindow &&
+        event.origin === window.location.origin &&
+        event.data?.type === 'setHeight' &&
+        typeof event.data.height === 'number' &&
+        Number.isFinite(event.data.height) &&
+        event.data.height > 0
+      ) {
         setIframeHeight(event.data.height)
       }
     }
 
     window.addEventListener('message', eventHandler)
+    measureFrame()
 
     return () => {
       window.removeEventListener('message', eventHandler)
     }
-  }, [])
+  }, [measureFrame])
 
   useEffect(() => {
     if (isFullscreen) {
@@ -56,6 +72,7 @@ export function PlaygroundFrame(props: IProps) {
     >
       <iframe
         ref={iframeRef}
+        onLoad={measureFrame}
         className={clsx(
           `
             h-fit w-full bg-white transition-opacity duration-300 ease-out

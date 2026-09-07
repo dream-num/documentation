@@ -1,47 +1,50 @@
 'use client'
 
-import {
-  BookTextIcon,
-  LayoutGridIcon,
-  ListIcon,
-  PresentationIcon,
-  SearchIcon,
-  SheetIcon,
-} from 'lucide-react'
+import { LayoutGridIcon, ListIcon, SearchIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
+
+import type { ShowcaseCatalogItem } from '@/showcase/catalog'
 import { clsx } from '@/lib/clsx'
+import { sectionLabel, categoryLabel, integrationProductLabel } from '@/showcase/catalog'
+import {
+  SECTION_IDS,
+  categoriesFor,
+  HOST_IDS,
+  HOST_LABELS,
+  INTEGRATION_PRODUCT_IDS,
+  type SectionId,
+} from '@/showcase/directory'
+import { localize } from '@/showcase/types'
+
 import { ShowcaseCard } from './showcase-card'
 import { ShowcaseListItem } from './showcase-list-item'
 
 interface ShowcaseContentProps {
-  items: Array<{
-    title: string
-    description: string
-    tags: string[]
-    url: string
-    type: 'sheets' | 'docs' | 'slides'
-    index: number
-  }>
+  items: ShowcaseCatalogItem[]
   lang: string
-  sheetsCount: number
-  docsCount: number
-  slidesCount: number
+  counts: Record<SectionId, number>
 }
 
-export function ShowcaseContent({
-  items,
-  sheetsCount,
-  docsCount,
-  slidesCount,
-}: ShowcaseContentProps) {
+export function ShowcaseContent({ items, lang, counts }: ShowcaseContentProps) {
   const t = useTranslations()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  const activeFilter = searchParams.get('filter') || 'all'
+  const requestedFilter = searchParams.get('filter')
+  const activeFilter: SectionId | 'all' = SECTION_IDS.includes(requestedFilter as SectionId)
+    ? (requestedFilter as SectionId)
+    : 'all'
+  const availableCategories = activeFilter === 'all' ? [] : categoriesFor(activeFilter)
+  const requestedCategory = searchParams.get('category')
+  const activeCategory = availableCategories.find((category) => category === requestedCategory)
+  const activeHost = activeFilter === 'embed' ? HOST_IDS.find((host) => host === searchParams.get('host')) : undefined
+  const activeProduct =
+    activeFilter === 'customization-integration'
+      ? INTEGRATION_PRODUCT_IDS.find((product) => product === searchParams.get('product'))
+      : undefined
   const currentView = (searchParams.get('view') as 'grid' | 'list') || 'grid'
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '')
 
@@ -74,184 +77,137 @@ export function ShowcaseContent({
     router.replace(`${pathname}${buildQuery({ q: value || undefined })}`)
   }
 
-  const filteredByType = useMemo(() => {
-    return activeFilter === 'all'
-      ? items
-      : items.filter(item => item.type === activeFilter)
-  }, [items, activeFilter])
-
-  const filteredItems = useMemo(() => {
-    if (!searchQuery.trim()) return filteredByType
-    const q = searchQuery.toLowerCase()
-    return filteredByType.filter(
-      item =>
-        item.title.toLowerCase().includes(q)
-        || item.description.toLowerCase().includes(q)
-        || item.tags.some(tag => tag.toLowerCase().includes(q)),
-    )
-  }, [filteredByType, searchQuery])
+  const sectionItems = activeFilter === 'all' ? items : items.filter((item) => item.section === activeFilter)
+  const filteredByType = activeProduct
+    ? sectionItems.filter((item) => item.integrationProduct === activeProduct)
+    : sectionItems
+  const query = searchQuery.trim().toLowerCase()
+  const filteredItems = filteredByType.filter(
+    (item) =>
+      (!activeCategory || item.category === activeCategory) &&
+      (!activeHost || item.host === activeHost) &&
+      (!query || item.searchText.includes(query)),
+  )
 
   return (
     <>
       {/* Filter */}
       <div className="mt-8 flex justify-center">
-        <div className="inline-flex h-10 items-center rounded-lg bg-muted p-[3px] text-muted-foreground">
+        <div
+          role="group"
+          aria-label={lang === 'zh-CN' ? '案例领域' : 'Demo sections'}
+          className="bg-muted text-muted-foreground flex flex-wrap items-center justify-center gap-1 rounded-lg p-[3px]"
+        >
           <button
             onClick={() => handleFilterClick('all')}
-            className={clsx(`
-              inline-flex h-[calc(100%-1px)] items-center justify-center gap-1.5 rounded-md border border-transparent
-              px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors
-              focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none
-              sm:px-4
-            `, activeFilter === 'all'
-              ? `
-                bg-background text-foreground shadow-sm
-                dark:border-input dark:bg-input/30
-              `
-              : 'hover:text-foreground')}
+            className={clsx(
+              `focus-visible:ring-ring inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-transparent px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none sm:px-4`,
+              activeFilter === 'all'
+                ? `bg-background text-foreground dark:border-input dark:bg-input/30 shadow-sm`
+                : 'hover:text-foreground',
+            )}
           >
             <span>{t('showcase.filter.all')}</span>
-            <span
-              className="
-                rounded-full bg-neutral-200 px-1.5 py-0 text-[10px] font-medium text-neutral-600
-                dark:bg-neutral-700 dark:text-neutral-300
-              "
-            >
+            <span className="rounded-full bg-neutral-200 px-1.5 py-0 text-[10px] font-medium text-neutral-600 dark:bg-neutral-700 dark:text-neutral-300">
               {items.length}
             </span>
           </button>
-          <button
-            onClick={() => handleFilterClick('sheets')}
-            className={clsx(`
-              inline-flex h-[calc(100%-1px)] items-center justify-center gap-1.5 rounded-md border border-transparent
-              px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors
-              focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none
-              sm:px-4
-            `, activeFilter === 'sheets'
-              ? `
-                bg-background text-foreground shadow-sm
-                dark:border-input dark:bg-input/30
-              `
-              : 'hover:text-foreground')}
-          >
-            <SheetIcon className="size-3.5" />
-            <span
-              className="
-                hidden
-                sm:inline
-              "
+          {SECTION_IDS.map((product) => (
+            <button
+              key={product}
+              onClick={() => handleFilterClick(product)}
+              className={clsx(
+                `focus-visible:ring-ring inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-transparent px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none`,
+                activeFilter === product
+                  ? 'bg-background text-foreground dark:border-input dark:bg-input/30 shadow-sm'
+                  : 'hover:text-foreground',
+              )}
             >
-              {t('showcase.filter.sheets')}
-            </span>
-            <span
-              className="
-                rounded-full bg-emerald-100 px-1.5 py-0 text-[10px] font-medium text-emerald-700
-                dark:bg-emerald-900/30 dark:text-emerald-400
-              "
-            >
-              {sheetsCount}
-            </span>
-          </button>
-          <button
-            onClick={() => handleFilterClick('docs')}
-            className={clsx(`
-              inline-flex h-[calc(100%-1px)] items-center justify-center gap-1.5 rounded-md border border-transparent
-              px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors
-              focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none
-              sm:px-4
-            `, activeFilter === 'docs'
-              ? `
-                bg-background text-foreground shadow-sm
-                dark:border-input dark:bg-input/30
-              `
-              : 'hover:text-foreground')}
-          >
-            <BookTextIcon className="size-3.5" />
-            <span
-              className="
-                hidden
-                sm:inline
-              "
-            >
-              {t('showcase.filter.docs')}
-            </span>
-            <span
-              className="
-                rounded-full bg-blue-100 px-1.5 py-0 text-[10px] font-medium text-blue-700
-                dark:bg-blue-900/30 dark:text-blue-400
-              "
-            >
-              {docsCount}
-            </span>
-          </button>
-          <button
-            onClick={() => handleFilterClick('slides')}
-            className={clsx(`
-              inline-flex h-[calc(100%-1px)] items-center justify-center gap-1.5 rounded-md border border-transparent
-              px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors
-              focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none
-              sm:px-4
-            `, activeFilter === 'slides'
-              ? `
-                bg-background text-foreground shadow-sm
-                dark:border-input dark:bg-input/30
-              `
-              : 'hover:text-foreground')}
-          >
-            <PresentationIcon className="size-3.5" />
-            <span
-              className="
-                hidden
-                sm:inline
-              "
-            >
-              {t('showcase.filter.slides')}
-            </span>
-            <span
-              className="
-                rounded-full bg-rose-100 px-1.5 py-0 text-[10px] font-medium text-rose-700
-                dark:bg-rose-900/30 dark:text-rose-400
-              "
-            >
-              {slidesCount}
-            </span>
-          </button>
+              <span>{sectionLabel(product, lang)}</span>
+              <span className="bg-background/70 rounded-full px-1.5 text-[10px]">{counts[product]}</span>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div
-        className="
-          mt-6 flex flex-col gap-4
-          sm:flex-row sm:items-center sm:justify-between
-        "
-      >
-        {/* Search */}
+      {activeFilter === 'customization-integration' && (
+        <label className="mt-4 flex flex-wrap items-center justify-center gap-2 text-sm">
+          {lang === 'zh-CN' ? '产品范围' : 'Product scope'}
+          <select
+            className="bg-background rounded-md border px-3 py-2"
+            value={activeProduct ?? ''}
+            onChange={(event) => router.push(`${pathname}${buildQuery({ product: event.target.value || undefined })}`)}
+          >
+            <option value="">{lang === 'zh-CN' ? '全部产品' : 'All products'}</option>
+            {INTEGRATION_PRODUCT_IDS.map((product) => (
+              <option key={product} value={product}>
+                {integrationProductLabel(product, lang)} ·{' '}
+                {sectionItems.filter((item) => item.integrationProduct === product).length}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {availableCategories.length > 0 && (
         <div
-          className="
-            relative w-full
-            sm:max-w-xs
-          "
+          className="mt-4 flex flex-wrap justify-center gap-2"
+          aria-label={lang === 'zh-CN' ? '案例类别' : 'Demo categories'}
         >
-          <SearchIcon className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          {[undefined, ...availableCategories].map((category) => (
+            <button
+              key={category ?? 'all'}
+              aria-pressed={activeCategory === category}
+              className={clsx(
+                'rounded-md border px-3 py-1.5 text-sm',
+                activeCategory === category && 'bg-muted font-medium',
+              )}
+              onClick={() => router.push(`${pathname}${buildQuery({ category })}`)}
+            >
+              {category ? categoryLabel(category, lang) : t('showcase.filter.all')}
+              {' · '}
+              {category ? filteredByType.filter((item) => item.category === category).length : filteredByType.length}
+            </button>
+          ))}
+        </div>
+      )}
+      {activeFilter === 'embed' && (
+        <label className="mt-4 flex items-center justify-center gap-2 text-sm">
+          {lang === 'zh-CN' ? '宿主产品' : 'Host product'}
+          <select
+            className="bg-background rounded-md border px-3 py-2"
+            value={activeHost ?? ''}
+            onChange={(event) => router.push(`${pathname}${buildQuery({ host: event.target.value || undefined })}`)}
+          >
+            <option value="">{lang === 'zh-CN' ? '全部宿主' : 'All hosts'}</option>
+            {HOST_IDS.map((host) => (
+              <option key={host} value={host}>
+                {localize(HOST_LABELS[host], lang, host)} ·{' '}
+                {
+                  filteredByType.filter(
+                    (item) => item.host === host && (!activeCategory || item.category === activeCategory),
+                  ).length
+                }
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {/* Toolbar */}
+      <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        {/* Search */}
+        <div className="relative w-full sm:max-w-xs">
+          <SearchIcon className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
-            onChange={e => handleSearchChange(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder={t('showcase.search.placeholder')}
-            className="
-              h-10 w-full rounded-lg border bg-background pr-8 pl-9 text-sm transition-colors outline-none
-              focus:border-ring focus:ring-2 focus:ring-ring/20
-              dark:bg-neutral-900/50
-            "
+            className="bg-background focus:border-ring focus:ring-ring/20 h-10 w-full rounded-lg border pr-8 pl-9 text-sm transition-colors outline-none focus:ring-2 dark:bg-neutral-900/50"
           />
           {searchQuery && (
             <button
               onClick={() => handleSearchChange('')}
-              className="
-                absolute top-1/2 right-3 -translate-y-1/2 text-xs text-muted-foreground
-                hover:text-foreground
-              "
+              className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 text-xs"
             >
               ✕
             </button>
@@ -259,35 +215,27 @@ export function ShowcaseContent({
         </div>
 
         {/* View Toggle */}
-        <div className="inline-flex h-10 items-center rounded-lg bg-muted p-[3px]">
+        <div className="bg-muted inline-flex h-10 items-center rounded-lg p-[3px]">
           <button
             onClick={() => handleViewClick('grid')}
-            className={clsx(`
-              inline-flex h-[calc(100%-1px)] items-center justify-center rounded-md border border-transparent px-3 py-1
-              text-sm font-medium whitespace-nowrap transition-colors
-              focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none
-            `, currentView === 'grid'
-              ? `
-                bg-background text-foreground shadow-sm
-                dark:border-input dark:bg-input/30
-              `
-              : 'hover:text-foreground')}
+            className={clsx(
+              `focus-visible:ring-ring inline-flex h-[calc(100%-1px)] items-center justify-center rounded-md border border-transparent px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none`,
+              currentView === 'grid'
+                ? `bg-background text-foreground dark:border-input dark:bg-input/30 shadow-sm`
+                : 'hover:text-foreground',
+            )}
             aria-label={t('showcase.view.grid')}
           >
             <LayoutGridIcon className="size-4" />
           </button>
           <button
             onClick={() => handleViewClick('list')}
-            className={clsx(`
-              inline-flex h-[calc(100%-1px)] items-center justify-center rounded-md border border-transparent px-3 py-1
-              text-sm font-medium whitespace-nowrap transition-colors
-              focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none
-            `, currentView === 'list'
-              ? `
-                bg-background text-foreground shadow-sm
-                dark:border-input dark:bg-input/30
-              `
-              : 'hover:text-foreground')}
+            className={clsx(
+              `focus-visible:ring-ring inline-flex h-[calc(100%-1px)] items-center justify-center rounded-md border border-transparent px-3 py-1 text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none`,
+              currentView === 'list'
+                ? `bg-background text-foreground dark:border-input dark:bg-input/30 shadow-sm`
+                : 'hover:text-foreground',
+            )}
             aria-label={t('showcase.view.list')}
           >
             <ListIcon className="size-4" />
@@ -297,51 +245,33 @@ export function ShowcaseContent({
 
       {/* Results count */}
       {searchQuery && (
-        <p className="mt-4 text-sm text-muted-foreground">
-          {filteredItems.length}
-          {' '}
-          {filteredItems.length === 1 ? t('showcase.search.result') : t('showcase.search.results')}
-          {' '}
+        <p className="text-muted-foreground mt-4 text-sm">
+          {filteredItems.length}{' '}
+          {filteredItems.length === 1 ? t('showcase.search.result') : t('showcase.search.results')}{' '}
           {t('showcase.search.result-for')}
           {' "'}
-          {searchQuery}
-          "
+          {searchQuery}"
         </p>
       )}
 
       {/* Grid / List */}
-      {currentView === 'grid'
-        ? (
-            <section
-              className="
-                mt-6 grid grid-cols-1 gap-5
-                md:grid-cols-2
-                lg:grid-cols-3
-              "
-            >
-              {filteredItems.map(item => (
-                <ShowcaseCard key={item.url} item={item} />
-              ))}
-            </section>
-          )
-        : (
-            <section className="mt-6 flex flex-col gap-3">
-              {filteredItems.map(item => (
-                <ShowcaseListItem key={item.url} item={item} />
-              ))}
-            </section>
-          )}
+      {currentView === 'grid' ? (
+        <section className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {filteredItems.map((item) => (
+            <ShowcaseCard key={item.slug} item={item} />
+          ))}
+        </section>
+      ) : (
+        <section className="mt-6 flex flex-col gap-3">
+          {filteredItems.map((item) => (
+            <ShowcaseListItem key={item.slug} item={item} />
+          ))}
+        </section>
+      )}
 
       {filteredItems.length === 0 && (
         <div className="py-24 text-center">
-          <p
-            className="
-              text-neutral-500
-              dark:text-neutral-400
-            "
-          >
-            {t('showcase.search.no-result')}
-          </p>
+          <p className="text-neutral-500 dark:text-neutral-400">{t('showcase.search.no-result')}</p>
         </div>
       )}
     </>

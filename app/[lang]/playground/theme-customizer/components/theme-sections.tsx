@@ -4,7 +4,7 @@ import type { Theme } from '@univerjs/themes'
 import type { ReactNode } from 'react'
 import { Button, clsx, FormLayout, Input, Select, Textarea } from '@univerjs/design'
 import { useTranslations } from 'next-intl'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { ColorPickerPopover } from '@/components/color-picker-popover'
 
@@ -25,9 +25,11 @@ export function ThemeColorField(props: { label: string; value: string; onChange:
   const t = useTranslations()
   const [draftValue, setDraftValue] = useState(value)
 
-  useEffect(() => {
+  const [previousValue, setPreviousValue] = useState(value)
+  if (value !== previousValue) {
+    setPreviousValue(value)
     setDraftValue(value)
-  }, [value])
+  }
 
   const error =
     draftValue.trim().length > 0 && !normalizeHexColor(draftValue) ? t('theme-customizer.invalid-hex') : undefined

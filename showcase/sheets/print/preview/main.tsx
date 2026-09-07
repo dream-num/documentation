@@ -1,61 +1,27 @@
 'use client'
-
-import { UniverSheetsAdvancedPreset } from '@univerjs/preset-sheets-advanced'
-import sheetsAdvancedEnUS from '@univerjs/preset-sheets-advanced/locales/en-US'
-import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
-import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing'
-import sheetsDrawingEnUS from '@univerjs/preset-sheets-drawing/locales/en-US'
-import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef } from 'react'
-import { WORKBOOK_DATA } from '../code/data'
 
-import '@univerjs/preset-sheets-core/lib/index.css'
-import '@univerjs/preset-sheets-drawing/lib/index.css'
-import '@univerjs/preset-sheets-advanced/lib/index.css'
-
+import { createPrintDemo } from '../code/create-demo'
 export default function Preview() {
-  const divRef = useRef<HTMLDivElement>(null!)
-
-  const { theme } = useTheme()
-
+  const containerRef = useRef<HTMLDivElement>(null!)
+  const demoRef = useRef<ReturnType<typeof createPrintDemo> | undefined>(undefined)
+  const darkModeRef = useRef(false)
+  const { resolvedTheme } = useTheme()
   useEffect(() => {
-    const { univerAPI } = createUniver({
-      darkMode: theme === 'dark',
-      locale: LocaleType.EN_US,
-      locales: {
-        [LocaleType.EN_US]: mergeLocales(
-          sheetsCoreEnUS,
-          sheetsDrawingEnUS,
-          sheetsAdvancedEnUS,
-        ),
-      },
-      presets: [
-        UniverSheetsCorePreset({
-          container: divRef.current,
-        }),
-        UniverSheetsDrawingPreset(),
-        UniverSheetsAdvancedPreset(),
-      ],
+    darkModeRef.current = resolvedTheme === 'dark'
+    demoRef.current?.univerAPI.toggleDarkMode(darkModeRef.current)
+  }, [resolvedTheme])
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      demoRef.current = createPrintDemo(containerRef.current, darkModeRef.current)
     })
-
-    univerAPI.createWorkbook(WORKBOOK_DATA)
-
-    univerAPI.addEvent(univerAPI.Event.CellClicked, (params) => {
-      const { worksheet, row, column } = params
-      if (worksheet.getRange(row, column).getA1Notation() === 'A7') {
-        const fWorkbook = univerAPI.getActiveWorkbook()
-        fWorkbook?.openPrintDialog()
-      }
-    })
-
     return () => {
-      univerAPI.dispose()
+      cancelAnimationFrame(frame)
+      const demo = demoRef.current
+      demoRef.current = undefined
+      queueMicrotask(() => demo?.dispose())
     }
-  }, [theme])
-
-  return (
-    <div ref={divRef} className="h-full" />
-  )
+  }, [])
+  return <div ref={containerRef} className="h-full min-h-0" />
 }

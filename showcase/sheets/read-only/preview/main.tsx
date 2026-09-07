@@ -1,61 +1,31 @@
 'use client'
 
-import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
-import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef } from 'react'
-import { WORKBOOK_DATA } from '../code/data'
 
-import '@univerjs/preset-sheets-core/lib/index.css'
+import { createDemo } from '../code/create-demo'
 
 export default function Preview() {
-  const divRef = useRef<HTMLDivElement>(null!)
-
-  const { theme } = useTheme()
+  const containerRef = useRef<HTMLDivElement>(null!)
+  const controllerRef = useRef<ReturnType<typeof createDemo> | undefined>(undefined)
+  const darkModeRef = useRef(false)
+  const { resolvedTheme } = useTheme()
 
   useEffect(() => {
-    const { univerAPI } = createUniver({
-      darkMode: theme === 'dark',
-      locale: LocaleType.EN_US,
-      locales: {
-        [LocaleType.EN_US]: mergeLocales(
-          sheetsCoreEnUS,
-        ),
-      },
-      presets: [
-        UniverSheetsCorePreset({
-          container: divRef.current,
-          toolbar: false, // hide toolbar
-          contextMenu: false, // disable context menu
-          formulaBar: false, // hide formula bar
-          footer: false, // hide footer
-        }),
-      ],
+    darkModeRef.current = resolvedTheme === 'dark'
+    controllerRef.current?.univerAPI.toggleDarkMode(darkModeRef.current)
+  }, [resolvedTheme])
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      controllerRef.current = createDemo(containerRef.current, darkModeRef.current)
     })
-
-    univerAPI.createWorkbook(WORKBOOK_DATA)
-
-    univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
-      if (stage === univerAPI.Enum.LifecycleStages.Rendered) {
-        const fWorkbook = univerAPI.getActiveWorkbook()!
-
-        // disable selection
-        fWorkbook.disableSelection()
-
-        // set read only
-        const permission = fWorkbook.getWorkbookPermission()
-        permission.setReadOnly()
-        univerAPI.setPermissionDialogVisible(false)
-      }
-    })
-
     return () => {
-      univerAPI.dispose()
+      cancelAnimationFrame(frame)
+      const controller = controllerRef.current
+      controllerRef.current = undefined
+      queueMicrotask(() => controller?.dispose())
     }
-  }, [theme])
+  }, [])
 
-  return (
-    <div ref={divRef} className="h-full" />
-  )
+  return <div ref={containerRef} className="h-full min-h-0" />
 }

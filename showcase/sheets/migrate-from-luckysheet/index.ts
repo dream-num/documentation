@@ -7,6 +7,67 @@ import Preview from './preview'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const metadata = {
+  product: 'sheets' as const,
+  category: 'integrations' as const,
+  group: { 'en-US': 'Migration and interoperability', 'zh-CN': '迁移与互操作' },
+  packages: [
+    '@univerjs/presets',
+    '@univerjs/preset-sheets-core',
+    '@univerjs/preset-sheets-conditional-formatting',
+    '@univerjs/preset-sheets-data-validation',
+  ],
+  apis: [
+    { name: 'luckyToUniver() host converter' },
+    { name: 'FUniver.createWorkbook()' },
+    { name: 'FUniver.Event.LifeCycleChanged / LifecycleStages.Steady' },
+    { name: 'Univer.dispose()' },
+  ],
+  guide: {
+    overview: {
+      'en-US':
+        'Convert a saved Luckysheet JSON snapshot in the browser, then load the resulting workbook through the installed Univer Preset and Facade APIs. Preview and export execute the same converter and SDK factory.',
+      'zh-CN':
+        '在浏览器中转换已保存的 Luckysheet JSON 快照，再通过已安装的 Univer Preset 与 Facade API 加载结果。Preview 与导出执行同一转换器和 SDK factory。',
+    },
+    tryIt: {
+      'en-US': [
+        'Compare cell values, formulas, styles, borders, merges, row heights and column widths on the Cell and Formula sheets.',
+        'Open ConditionalFormat and DataVerification to inspect the two converted plugin resources in native UI.',
+        'Review the converter source before extending it: the sample is a field-mapping reference, not a promise of 1:1 migration for every Luckysheet feature.',
+      ],
+      'zh-CN': [
+        '在 Cell 与 Formula 工作表中比较单元格值、公式、样式、边框、合并、行高与列宽。',
+        '打开 ConditionalFormat 与 DataVerification，通过原生 UI 检查两个已转换插件资源。',
+        '扩展前先查看转换器源码：本例是字段映射参考，不承诺 Luckysheet 所有功能都能 1:1 迁移。',
+      ],
+    },
+    expected: {
+      'en-US':
+        'The 11-sheet source snapshot becomes a runnable Univer workbook. Unsupported legacy structures remain migration work; the demo does not fabricate Charts, images, pivots, comments or sparklines that its converter does not implement.',
+      'zh-CN':
+        '包含 11 个工作表的源快照会变成可运行的 Univer 工作簿。未支持的旧结构仍属于迁移工作；本例不会伪造转换器尚未实现的图表、图片、透视表、批注或迷你图。',
+    },
+  },
+  variants: [
+    { id: 'cells', label: { 'en-US': 'Cells / formulas / number formats', 'zh-CN': '单元格 / 公式 / 数字格式' } },
+    {
+      id: 'layout',
+      label: { 'en-US': 'Borders / merges / dimensions / visibility', 'zh-CN': '边框 / 合并 / 尺寸 / 可见性' },
+    },
+    { id: 'conditional', label: { 'en-US': 'Conditional-format resources', 'zh-CN': '条件格式资源' } },
+    { id: 'validation', label: { 'en-US': 'Data-validation resources', 'zh-CN': '数据验证资源' } },
+    { id: 'unsupported', label: { 'en-US': 'Explicit unsupported-feature boundary', 'zh-CN': '明确的未支持功能边界' } },
+  ],
+  actions: [
+    { id: 'convert', label: { 'en-US': 'Convert JSON fields', 'zh-CN': '转换 JSON 字段' } },
+    { id: 'load', label: { 'en-US': 'Load via createWorkbook()', 'zh-CN': '通过 createWorkbook() 加载' } },
+    { id: 'inspect', label: { 'en-US': 'Inspect through native UI', 'zh-CN': '通过原生 UI 检查' } },
+  ],
+  states: [
+    { id: 'source', label: { 'en-US': 'Saved Luckysheet JSON', 'zh-CN': '已保存的 Luckysheet JSON' } },
+    { id: 'converted', label: { 'en-US': 'Converted Univer snapshot', 'zh-CN': '已转换的 Univer 快照' } },
+    { id: 'rendered', label: { 'en-US': 'Native rendered workbook', 'zh-CN': '原生渲染工作簿' } },
+  ],
   title: {
     'en-US': 'Migrate From Luckysheet to Univer SDK',
     'zh-CN': '从 Luckysheet 迁移到 Univer SDK',
@@ -32,7 +93,10 @@ const metadata = {
 }
 
 export const files = {
+  '/reference/preview.tsx.txt': fs.readFileSync(path.resolve(__dirname, './preview/main.tsx'), 'utf-8'),
   '/src/index.ts': fs.readFileSync(path.resolve(__dirname, './code/index.ts'), 'utf-8'),
+  '/src/create-demo.ts': fs.readFileSync(path.resolve(__dirname, './code/create-demo.ts'), 'utf-8'),
+  '/src/styles.css': fs.readFileSync(path.resolve(__dirname, './code/styles.css'), 'utf-8'),
   '/src/data.ts': fs.readFileSync(path.resolve(__dirname, './code/data.ts'), 'utf-8'),
   '/src/common/const/data-verification.ts': fs.readFileSync(
     path.resolve(__dirname, './code/common/const/data-verification.ts'),

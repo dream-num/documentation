@@ -1,64 +1,23 @@
 'use client'
 
-import type { ComponentType } from 'react'
-import { createComponent } from '@lit/react'
-import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
-import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
-import { html, LitElement } from 'lit'
 import { useTheme } from 'next-themes'
-import * as React from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
-import '@univerjs/preset-sheets-core/lib/index.css'
-
-class MyWebComponent extends LitElement {
-  theme = 'light'
-
-  override firstUpdated() {
-    const container = this.renderRoot.querySelector('#containerId') as HTMLDivElement
-
-    const { univerAPI } = createUniver({
-      darkMode: this.theme === 'dark',
-      locale: LocaleType.EN_US,
-      locales: {
-        [LocaleType.EN_US]: mergeLocales(
-          sheetsCoreEnUS,
-        ),
-      },
-      presets: [
-        UniverSheetsCorePreset({
-          container,
-        }),
-      ],
-    })
-
-    univerAPI.createWorkbook({})
-  }
-
-  override render() {
-    return html`
-      <link rel="stylesheet" href="https://unpkg.com/@univerjs/preset-sheets-core/lib/index.css">
-      <div style="height: 100%;" id="containerId" />
-    `
-  }
-}
-
-customElements.define('my-univer', MyWebComponent)
+import { createDemo } from '../code/create-demo'
 
 export default function Preview() {
-  const { theme } = useTheme()
-  const [Component, setComponent] = useState<ComponentType<{ theme?: string }> | null>(null)
-
+  const container = useRef<HTMLDivElement>(null!)
+  const { resolvedTheme } = useTheme()
   useEffect(() => {
-    const MyUniver = createComponent({
-      tagName: 'my-univer',
-      elementClass: MyWebComponent,
-      react: React,
+    if (!resolvedTheme) return
+    let demo: ReturnType<typeof createDemo> | undefined
+    const frame = requestAnimationFrame(() => {
+      demo = createDemo(container.current, resolvedTheme === 'dark')
     })
-
-    setComponent(MyUniver)
-  }, [theme])
-
-  return Component && <Component theme={theme} />
+    return () => {
+      cancelAnimationFrame(frame)
+      queueMicrotask(() => demo?.dispose())
+    }
+  }, [resolvedTheme])
+  return <div ref={container} className="h-full" />
 }

@@ -1,144 +1,129 @@
-import { spawn } from 'node:child_process'
-import fs from 'node:fs'
+/* eslint-disable no-await-in-loop -- Capture only explicitly selected demos, one at a time. */
+import assert from 'node:assert/strict'
+import fs from 'node:fs/promises'
+import path from 'node:path'
 import process from 'node:process'
+import { pathToFileURL } from 'node:url'
+
 import { chromium } from 'playwright'
 
-const PORT = 3999
-const BASE_URL = `http://localhost:${PORT}`
-const OUTPUT_DIR = 'public/assets/showcase'
+import scopeLoader from './showcase-scope-loader.cjs'
 
-const keys = [
-  'sheets/slim-via-plugin',
-  'sheets/slim-via-preset',
-  'sheets/basic-via-plugin',
-  'sheets/basic-via-preset',
-  'sheets/lit',
-  'sheets/node-via-plugin',
-  'sheets/big-data',
-  'sheets/csv-import-plugin',
-  'sheets/custom-canvas',
-  'sheets/custom-header',
-  'sheets/custom-menu',
-  'sheets/custom-formula',
-  'sheets/custom-shortcuts',
-  'sheets/custom-event',
-  'sheets/permission',
-  'sheets/images',
-  'sheets/hyper-link',
-  'sheets/find-replace',
-  'sheets/notes',
-  'sheets/crosshair-highlighting',
-  'sheets/watermark',
-  'sheets/charts',
-  'sheets/shapes',
-  'sheets/print',
-  'sheets/migrate-from-luckysheet',
-  'sheets/cross-workbook-formula',
-  'sheets/read-only',
-  'sheets/mobile-via-plugin',
-  'docs/slim-via-plugin',
-  'docs/slim-via-preset',
-  'docs/lit',
-  'docs/node-via-plugin',
-  'docs/big-data',
-  'docs/watermark',
-  'slides/basic-via-plugin',
-]
-
-// Ensure standalone static files are present to avoid 404s
-function ensureStandaloneStatic() {
-  const sourceStatic = '.next/static'
-  const targetStatic = '.next/standalone/.next/static'
-
-  if (!fs.existsSync(sourceStatic)) {
-    console.error('Missing .next/static. Please run "pnpm build" first.')
-    process.exit(1)
+// This is a capture gate, not a substitute for each demo's interaction/paint tests.
+export async function captureShowcase(page, { slug, origin, directory, timeout = 60000 }) {
+  const result = { slug, passed: false, errors: [] }
+  const onError = (error) => result.errors.push(error.stack || error.message)
+  const onConsole = (message) => {
+    if (message.type() === 'error') result.errors.push(message.text())
   }
-
-  if (!fs.existsSync(targetStatic)) {
-    console.log('Copying .next/static to standalone...')
-    fs.cpSync(sourceStatic, targetStatic, { recursive: true, force: true })
-  }
-}
-
-ensureStandaloneStatic()
-
-// Start the Next.js standalone server
-const server = spawn('node', ['.next/standalone/server.js'], {
-  env: { ...process.env, PORT: String(PORT) },
-  stdio: 'pipe',
-})
-
-await new Promise((resolve) => {
-  server.stdout.on('data', (data) => {
-    const msg = data.toString()
-    if (msg.includes('Ready') || msg.includes('started') || msg.includes('http://')) {
-      resolve()
-    }
-  })
-  server.stderr.on('data', () => {})
-  setTimeout(resolve, 5000)
-})
-
-console.log('Server started on', BASE_URL)
-
-const browser = await chromium.launch({ headless: true })
-
-for (const key of keys) {
-  const context = await browser.newContext({
-    viewport: { width: 1280, height: 900 },
-  })
-  const page = await context.newPage()
-  const url = `${BASE_URL}/playground/${key}`
-  console.log(`[${keys.indexOf(key) + 1}/${keys.length}] Screenshotting: ${key}`)
-
+  page.on('pageerror', onError)
+  page.on('console', onConsole)
+  page.setDefaultTimeout(timeout)
   try {
-    await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 })
-
-    // Inject h-160 style since Tailwind v4 may not include it in build output
-    await page.addStyleTag({
-      content: '.h-160 { height: 640px !important; min-height: 640px !important; }',
+    result.url = new URL(`/en-US/playground/${slug}`, origin).href
+    const response = await page.goto(result.url, { waitUntil: 'load', timeout })
+    assert.equal(response?.status(), 200, 'The selected playground must load successfully')
+    const preview = page.locator('[data-showcase-preview]').first()
+    await preview.waitFor()
+    if (slug === 'embed/lazy-load-editor') await preview.locator('.lazy-editor-target').scrollIntoViewIfNeeded()
+    const workbench = preview.locator('[data-u-comp="workbench-layout"], [data-u-comp="app-layout"]')
+    await workbench.first().waitFor()
+    assert.equal(await workbench.count(), 1, 'Capture exactly one native editor, not a fallback page')
+    await page.waitForFunction(
+      () => {
+        const root = document.querySelector('[data-showcase-preview]')
+        return root && [...root.querySelectorAll('[data-ready]')].every((el) => el.dataset.ready === 'true')
+      },
+      undefined,
+      { timeout },
+    )
+    // The formula bar can appear before the full editor; wait instead of taking a partial capture.
+    await page.waitForFunction(
+      (element) =>
+        [...element.querySelectorAll('canvas')].some((canvas) => {
+          const bounds = canvas.getBoundingClientRect()
+          return canvas.width > 100 && canvas.height > 100 && bounds.width > 100 && bounds.height > 100
+        }),
+      await workbench.elementHandle(),
+      { timeout },
+    )
+    // A full-size canvas may already exist underneath the SDK's loading overlay.
+    await preview.locator('[data-u-comp="workbench-skeleton-toolbar"]').waitFor({ state: 'hidden' })
+    await workbench.evaluate(async () => {
+      await document.fonts.ready
+      await Promise.all(
+        document
+          .getAnimations()
+          .filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
+          .map((animation) => animation.finished.catch(() => {})),
+      )
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
     })
-
-    // Wait for the preview container to render
-    await page.waitForSelector('.h-160', { timeout: 15000 })
-
-    // Wait for canvas OR terminal content (some showcases show JSON in Terminal)
-    await page.waitForFunction(() => {
-      const preview = document.querySelector('.h-160')
-      if (!preview)
-        return false
-      return preview.querySelector('canvas') !== null
-        || preview.textContent.length > 50
-    }, { timeout: 25000 })
-
-    // Extra wait for Univer to fully render
-    await page.waitForTimeout(5000)
-
-    // Screenshot the preview area
-    const previewEl = await page.locator('.h-160').first()
-    await previewEl.screenshot({
-      path: `${OUTPUT_DIR}/${key.replace(/\//g, '-')}.png`,
+    result.styles = await workbench.evaluate((element) => {
+      const css = getComputedStyle(element)
+      const opacity = []
+      for (let ancestor = element; ancestor; ancestor = ancestor.parentElement || ancestor.getRootNode().host)
+        opacity.push(getComputedStyle(ancestor).opacity)
+      const flex = element.querySelector('.univer-flex')
+      return {
+        background: css.backgroundColor,
+        sdkWhite: css.getPropertyValue('--univer-gray-0').trim(),
+        flexDisplay: flex && getComputedStyle(flex).display,
+        opacity,
+        width: element.getBoundingClientRect().width,
+        height: element.getBoundingClientRect().height,
+      }
     })
-    console.log(`  -> Saved ${key}`)
+    assert.equal(result.styles.background, 'rgb(255, 255, 255)', 'Native light workbench must be opaque white')
+    assert.equal(result.styles.sdkWhite.toUpperCase(), '#FFFFFF', 'SDK light theme must be loaded')
+    assert.equal(result.styles.flexDisplay, 'flex', 'SDK layout CSS must apply')
+    assert.ok(
+      result.styles.opacity.every((value) => value === '1'),
+      'No transparent editor ancestor',
+    )
+    assert.ok(result.styles.width > 100 && result.styles.height > 100, 'Editor geometry must be usable')
+    const png = await preview.screenshot({ omitBackground: false })
+    assert.deepEqual(result.errors, [], 'Browser errors invalidate the capture')
+    result.image = `${slug.replaceAll('/', '-')}.png`
+    await fs.writeFile(path.join(directory, result.image), png)
+    result.passed = true
+  } catch (error) {
+    result.failure = error.stack || String(error)
+  } finally {
+    page.off('pageerror', onError)
+    page.off('console', onConsole)
   }
-  catch (err) {
-    console.error(`  -> Failed ${key}:`, err.message)
-    // Fallback: screenshot top 640px
-    try {
-      await page.screenshot({
-        path: `${OUTPUT_DIR}/${key.replace(/\//g, '-')}.png`,
-        clip: { x: 0, y: 0, width: 1280, height: 640 },
-      })
-      console.log(`  -> Fallback saved ${key}`)
-    }
-    catch {}
-  }
-  finally {
-    await context.close()
-  }
+  return result
 }
 
-await browser.close()
-server.kill()
-console.log('All screenshots done')
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  const slugs = [...new Set(process.argv.slice(2))]
+  scopeLoader.filterRegistry(await fs.readFile('showcase/data.ts', 'utf8'), slugs)
+  const origin = process.env.SHOWCASE_ORIGIN || 'http://localhost:3030'
+  // Never overwrite catalog images automatically, or mix a failed run with stale images.
+  const parent = path.resolve(process.env.SHOWCASE_RESULTS_DIR || 'test-results')
+  await fs.mkdir(parent, { recursive: true })
+  const directory = await fs.mkdtemp(path.join(parent, 'showcase-screenshots-'))
+  console.log(`Capturing from ${origin}; start it with pnpm dev:showcase ${slugs.join(' ')}`)
+  console.log(`Evidence: ${directory}`)
+  const results = []
+  const browser = await chromium.launch()
+  try {
+    for (const slug of slugs) {
+      const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, colorScheme: 'light' })
+      try {
+        results.push(await captureShowcase(await context.newPage(), { slug, origin, directory, timeout: 180000 }))
+      } finally {
+        await context.close()
+        await fs.writeFile(path.join(directory, 'report.json'), JSON.stringify(results, null, 2))
+      }
+      console.log(JSON.stringify(results.at(-1)))
+    }
+  } finally {
+    await browser.close()
+  }
+  assert.ok(
+    results.every(({ passed }) => passed),
+    'Every selected capture must pass; no fallback images were saved',
+  )
+}

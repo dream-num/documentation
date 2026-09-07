@@ -6,12 +6,9 @@ import { createElement } from 'react'
 import type { IAmamoDocument } from '@/lib/amamo-source'
 import { collections } from '@/.amamo-mdx/collections.mjs'
 import { IconWrapper } from '@/components/icon-wrapper'
-import { UniverIcon } from '@/components/univer-icon'
 import { fumadocsI18n } from '@/i18n/fumadocs'
 import { createAmamoSource } from '@/lib/amamo-source'
-import { getGuideContentPlacementTargetFromUrl } from '@/lib/guides/content-placements'
-
-import { isUniverIconName } from './univer-icons'
+import { createGuidesLoader } from '@/lib/guides/loader'
 
 interface IDocumentFrontmatter {
   description?: string
@@ -40,59 +37,7 @@ const [guidesSource, referenceSource, iconsSource, blogSource] = await Promise.a
   ),
 ])
 
-export const guides = loader({
-  baseUrl: '/guides',
-  source: guidesSource,
-  i18n: fumadocsI18n,
-  pageTree: {
-    transformers: [
-      {
-        file(node, filePath) {
-          if (filePath) return node
-
-          const target = getGuideContentPlacementTargetFromUrl(node.url)
-          if (!target) return node
-
-          const targetPage = this.storage.read(`${target}.mdx`)
-          if (targetPage?.format !== 'page') {
-            throw new Error(`Guide content placement target not found: ${target}.mdx`)
-          }
-
-          return { ...node, name: targetPage.data.title ?? node.name }
-        },
-      },
-    ],
-  },
-  icon(icon) {
-    if (!icon) return
-
-    if (icon in lucideIcons) {
-      return createElement(IconWrapper, {
-        type: 'icon',
-        icon: lucideIcons[icon as keyof typeof lucideIcons],
-      })
-    }
-
-    if (isUniverIconName(icon)) {
-      return createElement(UniverIcon, {
-        name: icon,
-      })
-    }
-
-    if (icon.startsWith('#pro')) {
-      const [, iconName] = icon.split('/')
-      return createElement(IconWrapper, {
-        type: 'pro',
-        icon: lucideIcons[iconName as keyof typeof lucideIcons],
-      })
-    }
-
-    return createElement(IconWrapper, {
-      type: 'text',
-      text: icon,
-    })
-  },
-})
+export const guides = createGuidesLoader(guidesSource)
 
 export const reference = loader({
   baseUrl: '/reference',

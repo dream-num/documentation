@@ -19,7 +19,7 @@ import { createCollaborationClientConfig } from './config'
 export function registerCorePlugins(univer: Univer, container: HTMLElement | string) {
   univer.registerPlugin(UniverRenderEnginePlugin)
   univer.registerPlugin(UniverFormulaEnginePlugin)
-  univer.registerPlugin(UniverUIPlugin, { container })
+  univer.registerPlugin(UniverUIPlugin, { ribbonType: 'grid', container })
   univer.registerPlugin(UniverDocsPlugin)
   univer.registerPlugin(UniverDocsUIPlugin)
   univer.registerPlugin(UniverSheetsPlugin)

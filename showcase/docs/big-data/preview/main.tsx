@@ -1,43 +1,25 @@
 'use client'
 
-import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
-import docsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
-import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef } from 'react'
-import { DOCS_BIG_DATA } from '../code/data'
 
-import '@univerjs/preset-docs-core/lib/index.css'
+import { createDemo } from '../code/create-demo'
 
 export default function Preview() {
-  const divRef = useRef<HTMLDivElement>(null!)
-
-  const { theme } = useTheme()
+  const container = useRef<HTMLDivElement>(null!)
+  const { resolvedTheme } = useTheme()
 
   useEffect(() => {
-    const { univerAPI } = createUniver({
-      darkMode: theme === 'dark',
-      locale: LocaleType.EN_US,
-      locales: {
-        [LocaleType.EN_US]: mergeLocales(
-          docsCoreEnUS,
-        ),
-      },
-      presets: [
-        UniverDocsCorePreset({
-          container: divRef.current,
-        }),
-      ],
+    if (!resolvedTheme) return
+    let demo: ReturnType<typeof createDemo> | undefined
+    const frame = requestAnimationFrame(() => {
+      demo = createDemo(container.current, resolvedTheme === 'dark')
     })
-
-    univerAPI.createDocument(DOCS_BIG_DATA)
-
     return () => {
-      univerAPI.dispose()
+      cancelAnimationFrame(frame)
+      queueMicrotask(() => demo?.dispose())
     }
-  }, [theme])
+  }, [resolvedTheme])
 
-  return (
-    <div ref={divRef} className="h-full" />
-  )
+  return <div ref={container} className="h-full" />
 }

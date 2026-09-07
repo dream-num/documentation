@@ -6,7 +6,7 @@ import type { Locale } from '@/i18n/routing'
 import { SiteHeader } from '@/components/site/header'
 import { UniverIcon } from '@/components/univer-icon'
 import { createGuideNavigation } from '@/lib/guides/navigation'
-import { guides } from '@/lib/source'
+import { guideNavigationSource } from '@/lib/guides/navigation-source'
 
 interface IProps {
   params: Promise<{ lang: string }>
@@ -16,7 +16,7 @@ interface IProps {
 export default async function Layout({ params, children }: IProps) {
   const { lang } = await params
   const t = await getTranslations({ locale: lang as Locale })
-  const guideNavigation = createGuideNavigation(guides.pageTree[lang], '')
+  const guideNavigation = createGuideNavigation(guideNavigationSource.pageTree[lang], '')
   const documentationTitle = t('navigation.documentation')
   const documentationLinks = [
     {

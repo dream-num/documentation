@@ -23,23 +23,23 @@ export const WORKBOOK_DATA: Partial<IWorkbookData> = {
           2: { v: 'The demo keeps the same plugin-mode structure as the import/export showcase.' },
         },
         2: {
-          0: { v: '2. Read unit id' },
-          1: { v: 'Checks whether the URL already contains both ?unit=<unitId> and ?type=<sheetType>.' },
-          2: { v: 'The collaboration client UI auto-loader only starts when both parameters exist.' },
+          0: { v: '2. Read explicit unit' },
+          1: { v: 'Checks whether the URL contains both ?unit=<unitId> and ?type=<sheetType>.' },
+          2: { v: 'Collaboration is opt-in; no unit means no session, authz or WebSocket request.' },
         },
         3: {
-          0: { v: '3. Normalize the URL' },
+          0: { v: '3. Normalize explicit URL' },
           1: {
-            v: 'If the unit comes from local storage or a freshly created document, the showcase redirects to a URL with both unit and type.',
+            v: 'If an explicit unit is missing its type parameter, the showcase reloads once with both values.',
           },
-          2: { v: 'This matches the collaboration guide in the repository.' },
+          2: { v: 'The client auto-loader starts only after the URL is complete.' },
         },
         4: {
-          0: { v: '4. Create when missing' },
+          0: { v: '4. Local by default' },
           1: {
-            v: 'If neither the URL nor local storage has a unit id, the showcase creates a new collaborative sheet on Universer.',
+            v: 'Without a unit query, the frontend-only demo opens this local workbook and skips collaboration plugins.',
           },
-          2: { v: 'The new unit id is saved locally, then the page reloads with the required URL parameters.' },
+          2: { v: 'No unit is created, stored or synchronized implicitly.' },
         },
         6: {
           0: { v: 'Quick test' },
@@ -48,16 +48,17 @@ export const WORKBOOK_DATA: Partial<IWorkbookData> = {
         },
         8: {
           0: { v: 'Default behavior in docs' },
-          1: { v: 'Reopen the last collaborative workbook through URL parameters' },
+          1: { v: 'Open an inspectable local editor with no backend dependency.' },
           2: {
-            v: 'If no explicit unit is passed, the showcase prefers the locally remembered unit, rewrites the URL, and lets the plugin load it automatically.',
+            v: 'The Pro registration path remains in exported source and is activated only by an explicit unit URL.',
           },
         },
         10: {
-          0: { v: 'Fallback mode' },
+          0: { v: 'Configured failure' },
           1: {
-            v: 'If create or load fails, the preview still opens this local workbook so the setup remains inspectable.',
+            v: 'A non-authentication backend failure clears the remembered id and opens this local workbook.',
           },
+          2: { v: 'An unauthorized explicit unit follows the configured login path instead of simulating sync.' },
         },
         12: {
           0: { v: 'Tip' },

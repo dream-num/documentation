@@ -1,7 +1,172 @@
-import type { ISlideData } from '@univerjs-pro/slides'
-import { ShapeTypeEnum } from '@univerjs-pro/engine-shape'
+import type { ISlideData, ISlidePage, ISlideShapeElement } from '@univerjs-pro/slides'
+import { ShapeFillEnum, ShapeLineTypeEnum, ShapeTypeEnum } from '@univerjs-pro/engine-shape'
 import { PageElementTypeEnum, PageTypeEnum, SlideBackgroundTypeEnum } from '@univerjs-pro/slides'
 import { LocaleType } from '@univerjs/core'
+
+function text(
+  id: string,
+  value: string,
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+  fontSize: number,
+  color: string,
+  bold = false,
+): ISlideShapeElement {
+  return {
+    id,
+    type: PageElementTypeEnum.Shape,
+    transform: { left, top, width, height, rotation: 0 },
+    shapeData: {
+      shapeType: ShapeTypeEnum.Rect,
+      isTextBox: true,
+      fill: { fillType: ShapeFillEnum.NoFill },
+      stroke: { lineStrokeType: ShapeLineTypeEnum.NoLine, width: 0 },
+      textRectPadding: { left: 0, top: 0, right: 0, bottom: 0 },
+      shapeText: { isHorizontal: true, isRichText: false, text: value, fontFamily: 'Arial', fontSize, color, bold },
+    },
+  }
+}
+function shape(
+  id: string,
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+  color: string,
+  type = ShapeTypeEnum.RoundRect,
+  rotation = 0,
+): ISlideShapeElement {
+  return {
+    id,
+    type: PageElementTypeEnum.Shape,
+    transform: { left, top, width, height, rotation },
+    shapeData: {
+      shapeType: type,
+      ...(type === ShapeTypeEnum.RoundRect ? { adjustValues: { adj: 6500 } } : {}),
+      fill: { color },
+      stroke: { color, width: 0 },
+    },
+  }
+}
+function page(
+  id: string,
+  name: string,
+  color: string,
+  speakerNotes: string,
+  elements: ISlideShapeElement[],
+): ISlidePage {
+  return {
+    id,
+    name,
+    pageType: PageTypeEnum.Slide,
+    background: { type: SlideBackgroundTypeEnum.Solid, color },
+    speakerNotes,
+    elementOrder: elements.map((element) => element.id),
+    elements: Object.fromEntries(elements.map((element) => [element.id, element])),
+  }
+}
+function metricCard(id: string, left: number, color: string, value: string, label: string): ISlideShapeElement {
+  const card = shape(id, left, 292, 260, 190, color)
+  card.shapeData.shapeText = {
+    isHorizontal: true,
+    isRichText: false,
+    text: `${value}\n${label}`,
+    fontFamily: 'Arial',
+    fontSize: 23,
+    color: '#FFFFFF',
+    bold: true,
+  }
+  return card
+}
+
+export const SUMMARY_SLIDE = page(
+  'summary',
+  'Quarterly summary',
+  '#101A34',
+  'Q3 product momentum: pipeline growth +31%, customer retention 94%, and seven feature launches. These are three independent authored signals, not Formula or Chart outputs.',
+  [
+    text('summary-title', 'Q3 product momentum', 110, 88, 960, 72, 40, '#F5F7FF', true),
+    text(
+      'summary-copy',
+      'A generated summary slide with three deliberately different business signals.',
+      112,
+      174,
+      976,
+      76,
+      21,
+      '#C8D0E4',
+    ),
+    metricCard('metric-growth', 112, '#496BD8', '+31%', 'Pipeline growth'),
+    metricCard('metric-retention', 424, '#178871', '94%', 'Customer\nretention'),
+    metricCard('metric-launches', 736, '#AD6817', '7', 'Feature launches'),
+    text('summary-footnote', 'Independent signals / edit each value intentionally', 112, 552, 976, 36, 19, '#91A3C2'),
+  ],
+)
+
+const cover = page(
+  'cover',
+  'Cover',
+  '#F5F7FF',
+  'Plugin-mode introduction: edit the native title, then inspect the feature and Q3 summary pages. No backend or simulated analytics is required.',
+  [
+    shape('hero-bg', 72, 72, 1056, 528, '#101A34'),
+    shape('accent', 112, 120, 8, 410, '#50C8B0', ShapeTypeEnum.Rect),
+    text('eyebrow', 'BUILD / EDIT / EXTEND', 150, 128, 860, 36, 18, '#58C8FF', true),
+    text('title', 'Univer SDK Pro Slides', 150, 205, 900, 92, 46, '#F5F7FF', true),
+    text(
+      'subtitle',
+      'A minimal plugin-mode setup powered by @univerjs-pro/slides and @univerjs-pro/slides-ui.',
+      154,
+      316,
+      870,
+      86,
+      23,
+      '#C8D0E4',
+    ),
+    {
+      ...shape('badge', 154, 444, 280, 58, '#DDE5FF'),
+      shapeData: {
+        shapeType: ShapeTypeEnum.RoundRect,
+        fill: { color: '#DDE5FF' },
+        stroke: { color: '#DDE5FF', width: 0 },
+        shapeText: {
+          isHorizontal: true,
+          isRichText: false,
+          text: '@univerjs-pro',
+          fontFamily: 'Arial',
+          fontSize: 24,
+          color: '#172B52',
+          bold: true,
+        },
+      },
+    },
+  ],
+)
+const feature = page(
+  'feature',
+  'Feature',
+  '#FFF8ED',
+  'Register the core UI, Docs, Drawing, License, Slides Pro and Slides Pro UI plugins before creating a slide unit. The ellipse and hexagon are native editable shapes.',
+  [
+    shape('panel', 96, 96, 1008, 480, '#EAE2FF'),
+    text('heading', 'Plugin mode', 150, 150, 630, 64, 34, '#111A2E', true),
+    text(
+      'copy',
+      'Register core UI, Docs, Drawing, License, Slides Pro and Slides Pro UI plugins before creating a slide unit.',
+      152,
+      246,
+      610,
+      170,
+      22,
+      '#42526C',
+    ),
+    shape('shape-a', 815, 178, 140, 140, '#50C8B0', ShapeTypeEnum.Ellipse, 8),
+    shape('shape-b', 900, 348, 150, 112, '#D98C5F', ShapeTypeEnum.Hexagon, -8),
+    text('feature-footnote', 'Native text and geometry / one editable presentation', 150, 502, 900, 36, 19, '#536078'),
+  ],
+)
 
 export const SLIDE_DATA: ISlideData = {
   id: 'slides-pro-demo',
@@ -9,190 +174,8 @@ export const SLIDE_DATA: ISlideData = {
   appVersion: '1.0.0-beta.2',
   rev: 1,
   locale: LocaleType.EN_US,
-  defaultPageSize: {
-    width: 1200,
-    height: 675,
-  },
-  slideOrder: ['cover', 'feature'],
+  defaultPageSize: { width: 1200, height: 675 },
+  slideOrder: ['cover', 'feature', 'summary'],
   activeSlideId: 'cover',
-  slides: {
-    cover: {
-      id: 'cover',
-      pageType: PageTypeEnum.Slide,
-      name: 'Cover',
-      background: {
-        type: SlideBackgroundTypeEnum.Solid,
-        color: '#F8FAFC',
-      },
-      elementOrder: ['hero-bg', 'title', 'subtitle', 'badge'],
-      elements: {
-        'hero-bg': {
-          id: 'hero-bg',
-          type: PageElementTypeEnum.Shape,
-          transform: {
-            left: 72,
-            top: 72,
-            width: 1056,
-            height: 528,
-            rotation: 0,
-          },
-          shapeData: {
-            shapeType: ShapeTypeEnum.RoundRect,
-            fill: { color: '#EEF6FF' },
-            stroke: { color: '#BBD7FF', width: 1.5 },
-          },
-        },
-        title: {
-          id: 'title',
-          type: PageElementTypeEnum.Text,
-          transform: {
-            left: 150,
-            top: 205,
-            width: 720,
-            height: 92,
-            rotation: 0,
-          },
-          text: 'Univer SDK Pro Slides',
-          textStyle: {
-            color: '#111827',
-            fontSize: 46,
-            bold: true,
-          },
-        },
-        subtitle: {
-          id: 'subtitle',
-          type: PageElementTypeEnum.Text,
-          transform: {
-            left: 154,
-            top: 316,
-            width: 760,
-            height: 72,
-            rotation: 0,
-          },
-          text: 'A minimal plugin-mode setup powered by @univerjs-pro/slides and @univerjs-pro/slides-ui.',
-          textStyle: {
-            color: '#4B5563',
-            fontSize: 22,
-          },
-        },
-        badge: {
-          id: 'badge',
-          type: PageElementTypeEnum.Shape,
-          transform: {
-            left: 154,
-            top: 420,
-            width: 260,
-            height: 58,
-            rotation: 0,
-          },
-          shapeData: {
-            shapeType: ShapeTypeEnum.RoundRect,
-            fill: { color: '#2563EB' },
-            stroke: { color: '#1D4ED8', width: 1 },
-            shapeText: {
-              isHorizontal: true,
-              isRichText: false,
-              text: '@univerjs-pro',
-              fontSize: 24,
-              color: '#FFFFFF',
-              bold: true,
-            },
-          },
-        },
-      },
-    },
-    feature: {
-      id: 'feature',
-      pageType: PageTypeEnum.Slide,
-      name: 'Feature',
-      background: {
-        type: SlideBackgroundTypeEnum.Solid,
-        color: '#FFFFFF',
-      },
-      elementOrder: ['panel', 'heading', 'copy', 'shape-a', 'shape-b'],
-      elements: {
-        panel: {
-          id: 'panel',
-          type: PageElementTypeEnum.Shape,
-          transform: {
-            left: 96,
-            top: 96,
-            width: 1008,
-            height: 480,
-            rotation: 0,
-          },
-          shapeData: {
-            shapeType: ShapeTypeEnum.RoundRect,
-            fill: { color: '#F9FAFB' },
-            stroke: { color: '#E5E7EB', width: 1 },
-          },
-        },
-        heading: {
-          id: 'heading',
-          type: PageElementTypeEnum.Text,
-          transform: {
-            left: 150,
-            top: 150,
-            width: 560,
-            height: 64,
-            rotation: 0,
-          },
-          text: 'Plugin mode',
-          textStyle: {
-            color: '#111827',
-            fontSize: 34,
-            bold: true,
-          },
-        },
-        copy: {
-          id: 'copy',
-          type: PageElementTypeEnum.Text,
-          transform: {
-            left: 152,
-            top: 230,
-            width: 650,
-            height: 100,
-            rotation: 0,
-          },
-          text: 'Register core UI, Docs, Drawing, License, Slides Pro and Slides Pro UI plugins before creating a slide unit.',
-          textStyle: {
-            color: '#4B5563',
-            fontSize: 22,
-          },
-        },
-        'shape-a': {
-          id: 'shape-a',
-          type: PageElementTypeEnum.Shape,
-          transform: {
-            left: 815,
-            top: 178,
-            width: 140,
-            height: 140,
-            rotation: 8,
-          },
-          shapeData: {
-            shapeType: ShapeTypeEnum.Ellipse,
-            fill: { color: '#10B981' },
-            stroke: { color: '#059669', width: 2 },
-          },
-        },
-        'shape-b': {
-          id: 'shape-b',
-          type: PageElementTypeEnum.Shape,
-          transform: {
-            left: 900,
-            top: 318,
-            width: 150,
-            height: 112,
-            rotation: -8,
-          },
-          shapeData: {
-            shapeType: ShapeTypeEnum.Hexagon,
-            fill: { color: '#F97316' },
-            stroke: { color: '#EA580C', width: 2 },
-          },
-        },
-      },
-    },
-  },
+  slides: { cover, feature, summary: SUMMARY_SLIDE },
 }
