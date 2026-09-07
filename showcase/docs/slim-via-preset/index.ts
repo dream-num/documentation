@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const metadata = {
   title: {
-    'en-US': 'Minimal Example (Plugin Mode)',
+    'en-US': 'Minimal Example (Preset Mode)',
     'zh-CN': '精简示例（预设模式）',
     'zh-TW': '精簡範例（預設模式）',
     'ja-JP': '最小限の例（プリセットモード）',

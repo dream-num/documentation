@@ -1,4 +1,12 @@
-import type { ShowcaseCategory, ShowcaseMetadata } from './types'
+import type { ShowcaseMetadata } from './types'
+import {
+  directoryPlacement,
+  DIRECTORY_LABELS,
+  integrationProductFor,
+  type IntegrationProduct,
+  type DirectoryCategory,
+  type SectionId,
+} from './directory'
 import { localize, PRODUCT_IDS, type ProductId } from './types'
 
 export const PRODUCT_CONFIG: Record<
@@ -15,16 +23,8 @@ export const PRODUCT_CONFIG: Record<
   boards: { label: { 'en-US': 'Boards', 'zh-CN': '白板' }, color: 'amber' },
   bases: { label: { 'en-US': 'Bases', 'zh-CN': '多维表格' }, color: 'violet' },
   pdfs: { label: { 'en-US': 'PDFs', 'zh-CN': 'PDF' }, color: 'red' },
-  embed: { label: { 'en-US': 'Embed', 'zh-CN': '嵌入集成' }, color: 'cyan' },
+  embed: { label: { 'en-US': 'Compose & Embed', 'zh-CN': '组合与嵌套' }, color: 'cyan' },
 }
-
-export const CATEGORY_LABELS: Record<ShowcaseCategory, Record<string, string>> = {
-  features: { 'en-US': 'Features', 'zh-CN': '功能' },
-  showcases: { 'en-US': 'Showcases', 'zh-CN': '综合案例' },
-  integrations: { 'en-US': 'Integrations', 'zh-CN': '集成' },
-}
-
-const integrationSlugs = /(?:via-|\blit\b|\bnode\b|mobile|collaboration|import-export|migrate|embed)/
 
 export interface ShowcaseCatalogItem {
   image?: string
@@ -35,7 +35,13 @@ export interface ShowcaseCatalogItem {
   searchText: string
   product: ProductId
   productName: string
-  category: ShowcaseCategory
+  section: SectionId
+  sectionName: string
+  integrationProduct?: IntegrationProduct
+  integrationProductName?: string
+  composition?: ReturnType<typeof directoryPlacement>['composition']
+  host?: string
+  category: DirectoryCategory
   group: string
   index: number
 }
@@ -47,31 +53,26 @@ export function resolveProduct(slug: string, metadata: ShowcaseMetadata): Produc
   return PRODUCT_IDS.includes(root as ProductId) ? (root as ProductId) : 'embed'
 }
 
-export function resolveCategory(slug: string, metadata: ShowcaseMetadata): ShowcaseCategory {
-  return metadata.category ?? (integrationSlugs.test(slug) ? 'integrations' : 'features')
-}
-
-function inferGroup(slug: string, category: ShowcaseCategory) {
-  if (category === 'integrations') return { 'en-US': 'Frameworks and delivery', 'zh-CN': '框架与交付' }
-  if (/big-data|cross-workbook/.test(slug)) return { 'en-US': 'Scale and calculation', 'zh-CN': '规模与计算' }
-  if (/custom-|watermark|header|crosshair|hide-headers/.test(slug)) return { 'en-US': 'Customization', 'zh-CN': '定制' }
-  if (/chart|shape|image|outline/.test(slug)) return { 'en-US': 'Visual content', 'zh-CN': '可视内容' }
-  if (/permission|read-only/.test(slug)) return { 'en-US': 'Security', 'zh-CN': '安全' }
-  if (/print|export|import|csv/.test(slug)) return { 'en-US': 'Files and output', 'zh-CN': '文件与输出' }
-  return { 'en-US': 'Core editing', 'zh-CN': '核心编辑' }
-}
-
 export function createCatalogItem(
   slug: string,
   metadata: ShowcaseMetadata,
   locale: string,
   index: number,
 ): ShowcaseCatalogItem {
-  const category = resolveCategory(slug, metadata)
-  const title = localize(metadata.title, locale, slug)
+  const product = resolveProduct(slug, metadata)
+  const placement = directoryPlacement(slug, metadata, product)
+  const { section, category, composition } = placement
+  const integrationProduct = section === 'customization-integration' ? integrationProductFor(slug, product) : undefined
+  const storyTitle = localize(metadata.title, locale, slug)
+  const readableProduct = (id: string) =>
+    id === 'charts' ? (locale === 'zh-CN' ? '图表' : 'Charts') : productLabel(id as ProductId, locale)
+  const title =
+    category === 'cross-file-formulas' && composition
+      ? `${composition.sources.map(readableProduct).join(' + ')} → ${(composition.targets.length ? composition.targets : [composition.container]).map(readableProduct).join(' + ')} · ${storyTitle}`
+      : storyTitle
   const description = localize(metadata.description, locale, '')
   const tags = localize(metadata.tags, locale, [])
-  const group = localize(metadata.group ?? inferGroup(slug, category), locale, '')
+  const group = localize(placement.group, locale, '')
 
   return {
     image: metadata.image,
@@ -80,15 +81,26 @@ export function createCatalogItem(
     description,
     tags,
     searchText: [
+      title,
       ...Object.values(metadata.title),
       ...Object.values(metadata.description),
       ...Object.values(metadata.tags).flat(),
-      ...Object.values(metadata.group ?? {}),
+      ...Object.values(placement.group),
+      ...Object.values(DIRECTORY_LABELS[category]),
+      sectionLabel(section, locale),
+      integrationProduct ? integrationProductLabel(integrationProduct, locale) : '',
+      ...(composition ? [composition.container, ...composition.sources, ...composition.targets, composition.mode] : []),
     ]
       .join(' ')
       .toLocaleLowerCase(),
     product: resolveProduct(slug, metadata),
     productName: productLabel(resolveProduct(slug, metadata), locale),
+    section,
+    sectionName: sectionLabel(section, locale),
+    integrationProduct,
+    integrationProductName: integrationProduct ? integrationProductLabel(integrationProduct, locale) : undefined,
+    composition,
+    host: placement.host,
     category,
     group,
     index,
@@ -99,6 +111,18 @@ export function productLabel(product: ProductId, locale: string) {
   return localize<string>(PRODUCT_CONFIG[product].label, locale, product)
 }
 
-export function categoryLabel(category: ShowcaseCategory, locale: string) {
-  return localize<string>(CATEGORY_LABELS[category], locale, category)
+export function categoryLabel(category: DirectoryCategory, locale: string) {
+  return localize<string>(DIRECTORY_LABELS[category], locale, category)
+}
+
+export function sectionLabel(section: SectionId, locale: string) {
+  return section === 'customization-integration'
+    ? localize({ 'en-US': 'Customization & Integration', 'zh-CN': '定制化与系统接入' }, locale, section)
+    : productLabel(section, locale)
+}
+
+export function integrationProductLabel(product: IntegrationProduct, locale: string) {
+  return product === 'cross-product'
+    ? localize({ 'en-US': 'Cross-product', 'zh-CN': '综合（跨产品）' }, locale, product)
+    : productLabel(product, locale)
 }

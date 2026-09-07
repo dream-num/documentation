@@ -10,14 +10,15 @@ import {
   PresentationIcon,
   SheetIcon,
   SparklesIcon,
+  SettingsIcon,
   WorkflowIcon,
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 import { BlurFade } from '@/components/magicui/blur-fade'
 import { clsx } from '@/lib/clsx'
-import { productLabel } from '@/showcase/catalog'
-import { PRODUCT_IDS, type ProductId } from '@/showcase/types'
+import { sectionLabel } from '@/showcase/catalog'
+import { SECTION_IDS, type SectionId } from '@/showcase/directory'
 
 interface StatItemProps {
   icon: React.ReactNode
@@ -30,14 +31,14 @@ function StatItem({ icon, label, value, colorClass }: StatItemProps) {
   return (
     <BlurFade delay={0.3} inView>
       <div
-        className={`flex items-center gap-3 rounded-xl border bg-card/60 px-4 py-3 shadow-sm backdrop-blur-sm dark:bg-card/40`}
+        className={`bg-card/60 dark:bg-card/40 flex items-center gap-3 rounded-xl border px-4 py-3 shadow-sm backdrop-blur-sm`}
       >
         <div className={clsx(`flex size-10 shrink-0 items-center justify-center rounded-lg text-white`, colorClass)}>
           {icon}
         </div>
         <div>
           <div className="text-xl leading-none font-bold tracking-tight">{value}</div>
-          <div className="mt-1 text-xs text-muted-foreground">{label}</div>
+          <div className="text-muted-foreground mt-1 text-xs">{label}</div>
         </div>
       </div>
     </BlurFade>
@@ -46,10 +47,10 @@ function StatItem({ icon, label, value, colorClass }: StatItemProps) {
 
 interface ShowcaseHeroProps {
   lang: string
-  counts: Record<ProductId, number>
+  counts: Record<SectionId, number>
 }
 
-const productIcons: Record<ProductId, ComponentType<{ className?: string }>> = {
+const productIcons: Record<SectionId, ComponentType<{ className?: string }>> = {
   sheets: SheetIcon,
   'docs-modern': FileTextIcon,
   'docs-traditional': BookOpenIcon,
@@ -58,9 +59,10 @@ const productIcons: Record<ProductId, ComponentType<{ className?: string }>> = {
   bases: DatabaseIcon,
   pdfs: FileStackIcon,
   embed: PanelsTopLeftIcon,
+  'customization-integration': SettingsIcon,
 }
 
-const productColors: Record<ProductId, string> = {
+const productColors: Record<SectionId, string> = {
   sheets: 'bg-linear-to-br from-emerald-500 to-emerald-700',
   'docs-modern': 'bg-linear-to-br from-blue-500 to-blue-700',
   'docs-traditional': 'bg-linear-to-br from-indigo-500 to-indigo-700',
@@ -69,6 +71,7 @@ const productColors: Record<ProductId, string> = {
   bases: 'bg-linear-to-br from-violet-500 to-violet-700',
   pdfs: 'bg-linear-to-br from-red-500 to-red-700',
   embed: 'bg-linear-to-br from-cyan-500 to-cyan-700',
+  'customization-integration': 'bg-linear-to-br from-slate-500 to-slate-700',
 }
 
 export function ShowcaseHero({ lang, counts }: ShowcaseHeroProps) {
@@ -115,13 +118,13 @@ export function ShowcaseHero({ lang, counts }: ShowcaseHeroProps) {
         </BlurFade>
 
         <div className="mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-4">
-          {PRODUCT_IDS.map((product) => {
+          {SECTION_IDS.map((product) => {
             const Icon = productIcons[product]
             return (
               <StatItem
                 key={product}
                 icon={<Icon className="size-5" />}
-                label={productLabel(product, lang)}
+                label={sectionLabel(product, lang)}
                 value={counts[product]}
                 colorClass={productColors[product]}
               />

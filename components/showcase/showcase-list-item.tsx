@@ -19,7 +19,7 @@ export function ShowcaseListItem({ item }: ShowcaseListItemProps) {
     <a
       href={`/showcase/${item.slug}`}
       className={clsx(
-        `group flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm transition-all duration-300 hover:shadow-md dark:bg-neutral-900/50`,
+        `group bg-card flex items-center gap-4 rounded-xl border p-4 shadow-sm transition-all duration-300 hover:shadow-md dark:bg-neutral-900/50`,
         config.borderColor,
       )}
     >
@@ -36,7 +36,9 @@ export function ShowcaseListItem({ item }: ShowcaseListItemProps) {
       {/* Content */}
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center gap-2">
-          <Badge className={clsx(`h-5 px-1.5 text-[10px] font-semibold`, config.badgeColor)}>{item.productName}</Badge>
+          <Badge className={clsx(`h-5 px-1.5 text-[10px] font-semibold`, config.badgeColor)}>
+            {item.integrationProductName ?? item.sectionName}
+          </Badge>
         </div>
         <h3 className="truncate text-base font-semibold text-neutral-800 dark:text-neutral-100">{item.title}</h3>
         <p className="truncate text-sm text-neutral-500 dark:text-neutral-400">{item.description}</p>

@@ -7,8 +7,8 @@ import { useMemo, useState } from 'react'
 import type { ShowcaseCatalogItem } from '@/showcase/catalog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { clsx } from '@/lib/clsx'
-import { categoryLabel, productLabel } from '@/showcase/catalog'
-import { PRODUCT_IDS, type ShowcaseCategory } from '@/showcase/types'
+import { categoryLabel, sectionLabel, integrationProductLabel } from '@/showcase/catalog'
+import { SECTION_IDS, categoriesFor, directoryGroups, INTEGRATION_PRODUCT_IDS } from '@/showcase/directory'
 
 interface ShowcaseSidebarProps {
   items: ShowcaseCatalogItem[]
@@ -16,17 +16,17 @@ interface ShowcaseSidebarProps {
   lang: string
 }
 
-const categoryOrder: ShowcaseCategory[] = ['features', 'showcases', 'integrations']
-
 export function ShowcaseSidebar({ items, pathname, lang }: ShowcaseSidebarProps) {
   const current = items.find((item) => item.slug === pathname)
   const [query, setQuery] = useState('')
   const [expanded, setExpanded] = useState(
     () =>
       new Set([
-        `product:${current?.product}`,
-        `category:${current?.product}:${current?.category}`,
-        `group:${current?.product}:${current?.category}:${current?.group}`,
+        `product:${current?.section}`,
+        `integration-product:${current?.integrationProduct}`,
+        `integration-category:${current?.integrationProduct}:${current?.category}`,
+        `category:${current?.section}:${current?.category}`,
+        `group:${current?.section}:${current?.category}:${current?.group}`,
       ]),
   )
 
@@ -45,6 +45,30 @@ export function ShowcaseSidebar({ items, pathname, lang }: ShowcaseSidebarProps)
   }
 
   const isOpen = (key: string) => Boolean(query.trim()) || expanded.has(key)
+  const renderItems = (entries: ShowcaseCatalogItem[]) => (
+    <>
+      {!entries.length && (
+        <p className="px-7 py-2 text-xs text-neutral-500">{lang === 'zh-CN' ? '暂无案例' : 'No demos yet'}</p>
+      )}
+      {entries
+        .toSorted((a, b) => a.title.localeCompare(b.title, lang))
+        .map((item) => (
+          <Link
+            key={item.slug}
+            href={`/${lang}/showcase/${item.slug}`}
+            aria-current={item.slug === pathname ? 'page' : undefined}
+            className={clsx(
+              'block rounded-md py-1.5 pr-2 pl-8 text-xs transition-colors',
+              item.slug === pathname
+                ? 'bg-neutral-100 font-medium text-neutral-950 dark:bg-neutral-800 dark:text-neutral-50'
+                : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-950 dark:text-neutral-400 hover:dark:bg-neutral-800/50 hover:dark:text-neutral-100',
+            )}
+          >
+            <span className="line-clamp-2">{item.title}</span>
+          </Link>
+        ))}
+    </>
+  )
 
   return (
     <aside className="fixed hidden h-[calc(100vh-108px)] w-68 shrink-0 overflow-hidden lg:block">
@@ -55,30 +79,80 @@ export function ShowcaseSidebar({ items, pathname, lang }: ShowcaseSidebarProps)
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={lang === 'zh-CN' ? '搜索功能、变体和 API…' : 'Search features, variants, and APIs…'}
-            className="h-9 w-full rounded-md border bg-background pr-2 pl-8 text-xs outline-none focus:ring-2 focus:ring-ring/20"
+            className="bg-background focus:ring-ring/20 h-9 w-full rounded-md border pr-2 pl-8 text-xs outline-none focus:ring-2"
           />
         </label>
 
         <ScrollArea className="min-h-0 flex-1">
-          {PRODUCT_IDS.map((product) => {
-            const productItems = filteredItems.filter((item) => item.product === product)
-            if (!productItems.length) return null
+          {SECTION_IDS.map((product) => {
+            const productItems = filteredItems.filter((item) => item.section === product)
+            if (!productItems.length && query.trim()) return null
             const productKey = `product:${product}`
+            if (product === 'customization-integration')
+              return (
+                <TreeBranch
+                  key={product}
+                  depth={0}
+                  label={sectionLabel(product, lang)}
+                  count={productItems.length}
+                  open={isOpen(productKey)}
+                  onToggle={() => toggle(productKey)}
+                >
+                  {INTEGRATION_PRODUCT_IDS.map((scope) => {
+                    const scoped = productItems.filter((item) => item.integrationProduct === scope)
+                    if (!scoped.length && query.trim()) return null
+                    const scopeKey = `integration-product:${scope}`
+                    return (
+                      <TreeBranch
+                        key={scope}
+                        depth={1}
+                        label={integrationProductLabel(scope, lang)}
+                        count={scoped.length}
+                        open={isOpen(scopeKey)}
+                        onToggle={() => toggle(scopeKey)}
+                      >
+                        {categoriesFor(product).map((category) => {
+                          const entries = scoped.filter((item) => item.category === category)
+                          if (!entries.length && query.trim()) return null
+                          const categoryKey = `integration-category:${scope}:${category}`
+                          return (
+                            <TreeBranch
+                              key={category}
+                              depth={2}
+                              label={categoryLabel(category, lang)}
+                              count={entries.length}
+                              open={isOpen(categoryKey)}
+                              onToggle={() => toggle(categoryKey)}
+                            >
+                              {renderItems(entries)}
+                            </TreeBranch>
+                          )
+                        })}
+                      </TreeBranch>
+                    )
+                  })}
+                </TreeBranch>
+              )
 
             return (
               <TreeBranch
                 key={product}
                 depth={0}
-                label={productLabel(product, lang)}
+                label={sectionLabel(product, lang)}
                 count={productItems.length}
                 open={isOpen(productKey)}
                 onToggle={() => toggle(productKey)}
               >
-                {categoryOrder.map((category) => {
+                {categoriesFor(product).map((category) => {
                   const categoryItems = productItems.filter((item) => item.category === category)
-                  if (!categoryItems.length) return null
+                  if (!categoryItems.length && query.trim()) return null
                   const categoryKey = `category:${product}:${category}`
-                  const groups = [...new Set(categoryItems.map((item) => item.group))]
+                  const groups = directoryGroups(
+                    product,
+                    category,
+                    categoryItems.map((item) => item.group),
+                    lang,
+                  ).filter((group) => !query.trim() || categoryItems.some((item) => item.group === group))
 
                   return (
                     <TreeBranch
@@ -89,6 +163,11 @@ export function ShowcaseSidebar({ items, pathname, lang }: ShowcaseSidebarProps)
                       open={isOpen(categoryKey)}
                       onToggle={() => toggle(categoryKey)}
                     >
+                      {!groups.length && (
+                        <p className="px-5 py-2 text-xs text-neutral-500">
+                          {lang === 'zh-CN' ? '暂无案例' : 'No demos yet'}
+                        </p>
+                      )}
                       {groups.map((group) => {
                         const groupItems = categoryItems.filter((item) => item.group === group)
                         const groupKey = `group:${product}:${category}:${group}`
@@ -101,20 +180,7 @@ export function ShowcaseSidebar({ items, pathname, lang }: ShowcaseSidebarProps)
                             open={isOpen(groupKey)}
                             onToggle={() => toggle(groupKey)}
                           >
-                            {groupItems.map((item) => (
-                              <Link
-                                key={item.slug}
-                                href={`/showcase/${item.slug}`}
-                                className={clsx(
-                                  'block rounded-md py-1.5 pr-2 pl-8 text-xs transition-colors',
-                                  item.slug === pathname
-                                    ? 'bg-neutral-100 font-medium text-neutral-950 dark:bg-neutral-800 dark:text-neutral-50'
-                                    : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-950 dark:text-neutral-400 hover:dark:bg-neutral-800/50 hover:dark:text-neutral-100',
-                                )}
-                              >
-                                <span className="line-clamp-2">{item.title}</span>
-                              </Link>
-                            ))}
+                            {renderItems(groupItems)}
                           </TreeBranch>
                         )
                       })}
@@ -168,7 +234,9 @@ function TreeBranch({
         )}
       >
         <ChevronRightIcon className={clsx('size-3.5 shrink-0 transition-transform', open && 'rotate-90')} />
-        <span className="min-w-0 flex-1 truncate">{label}</span>
+        <span className="min-w-0 flex-1" title={label}>
+          {label}
+        </span>
         <span className="text-[10px] font-normal text-neutral-400">{count}</span>
       </button>
       {open && children}

@@ -104,7 +104,7 @@ export function ShowcaseCard({ item }: ShowcaseCardProps) {
     <a
       href={`/showcase/${item.slug}`}
       className={clsx(
-        `group flex h-full flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:bg-neutral-900/50`,
+        `group bg-card flex h-full flex-col overflow-hidden rounded-xl border shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:bg-neutral-900/50`,
         config.borderColor,
       )}
     >
@@ -155,7 +155,9 @@ export function ShowcaseCard({ item }: ShowcaseCardProps) {
       {/* Content */}
       <div className="flex flex-1 flex-col p-4">
         <div className="mb-2 flex items-center gap-2">
-          <Badge className={clsx(`h-5 px-1.5 text-[10px] font-semibold`, config.badgeColor)}>{item.productName}</Badge>
+          <Badge className={clsx(`h-5 px-1.5 text-[10px] font-semibold`, config.badgeColor)}>
+            {item.integrationProductName ?? item.sectionName}
+          </Badge>
         </div>
 
         <h3 className={`mb-1 text-base font-semibold text-neutral-800 dark:text-neutral-100`}>{item.title}</h3>
