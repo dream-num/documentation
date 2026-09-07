@@ -3,7 +3,7 @@
 import type { MotionValue, SpringOptions, UseInViewOptions } from 'motion/react'
 import type { ComponentProps } from 'react'
 import { motion, useInView, useSpring, useTransform } from 'motion/react'
-import { useCallback, useEffect, useImperativeHandle, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import useMeasure from 'react-use-measure'
 import { clsx } from '@/lib/clsx'
 
@@ -120,12 +120,16 @@ function SlidingNumber({
   })
   const isInView = !inView || inViewResult
 
-  const prevNumberRef = useRef<number>(0)
-
   const effectiveNumber = useMemo(
     () => (!isInView ? 0 : Math.abs(Number(number))),
     [number, isInView],
   )
+  const [lastNumber, setLastNumber] = useState(0)
+  const [previousNumber, setPreviousNumber] = useState(0)
+  if (lastNumber !== effectiveNumber) {
+    setPreviousNumber(lastNumber)
+    setLastNumber(effectiveNumber)
+  }
 
   const formatNumber = useCallback(
     (num: number) =>
@@ -138,7 +142,7 @@ function SlidingNumber({
   const newIntStr
     = padStart && newIntStrRaw?.length === 1 ? `0${newIntStrRaw}` : newIntStrRaw
 
-  const prevFormatted = formatNumber(prevNumberRef.current)
+  const prevFormatted = formatNumber(previousNumber)
   const [prevIntStrRaw = '', prevDecStrRaw = ''] = prevFormatted.split('.')
   const prevIntStr
     = padStart && prevIntStrRaw.length === 1
@@ -157,10 +161,6 @@ function SlidingNumber({
       ? prevDecStrRaw.slice(0, newDecStrRaw.length)
       : prevDecStrRaw.padEnd(newDecStrRaw.length, '0')
   }, [prevDecStrRaw, newDecStrRaw])
-
-  useEffect(() => {
-    if (isInView) prevNumberRef.current = effectiveNumber
-  }, [effectiveNumber, isInView])
 
   const intDigitCount = newIntStr?.length ?? 0
   const intPlaces = useMemo(

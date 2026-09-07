@@ -43,26 +43,25 @@ export type ColorPickerProps = HTMLAttributes<HTMLDivElement> & {
 }
 
 export function ColorPicker({ value, defaultValue = '#000000', onChange, className, ...props }: ColorPickerProps) {
-  const selectedColor = Color(value)
-  const defaultColor = Color(defaultValue)
+  const selectedColor = Color(value ?? defaultValue)
 
-  const [hue, setHue] = useState(selectedColor.hue() || defaultColor.hue() || 0)
-  const [saturation, setSaturation] = useState(selectedColor.saturationl() || defaultColor.saturationl() || 100)
-  const [lightness, setLightness] = useState(selectedColor.lightness() || defaultColor.lightness() || 50)
-  const [alpha, setAlpha] = useState(selectedColor.alpha() * 100 || defaultColor.alpha() * 100)
+  const [hue, setHue] = useState(selectedColor.hue())
+  const [saturation, setSaturation] = useState(selectedColor.saturationl())
+  const [lightness, setLightness] = useState(selectedColor.lightness())
+  const [alpha, setAlpha] = useState(selectedColor.alpha() * 100)
   const [mode, setMode] = useState('hex')
 
-  // Update color when controlled value changes
-  useEffect(() => {
-    if (value) {
-      const color = Color.rgb(value).rgb().object()
-
-      setHue(color.r)
-      setSaturation(color.g)
-      setLightness(color.b)
-      setAlpha(color.a)
+  const controlledColor = value == null ? undefined : selectedColor.hexa()
+  const [previousColor, setPreviousColor] = useState(controlledColor)
+  if (controlledColor !== previousColor) {
+    setPreviousColor(controlledColor)
+    if (controlledColor !== undefined) {
+      setHue(selectedColor.hue())
+      setSaturation(selectedColor.saturationl())
+      setLightness(selectedColor.lightness())
+      setAlpha(selectedColor.alpha() * 100)
     }
-  }, [value])
+  }
 
   // Notify parent of changes
   useEffect(() => {

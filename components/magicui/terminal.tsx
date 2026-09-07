@@ -1,9 +1,8 @@
 'use client'
 
 import type { MotionProps } from 'motion/react'
-import type { ElementType, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { motion } from 'motion/react'
-import { useEffect, useRef, useState } from 'react'
 import { clsx } from '@/lib/clsx'
 
 interface IAnimatedSpanProps extends MotionProps {
@@ -28,70 +27,6 @@ export function AnimatedSpan({
     >
       {children}
     </motion.div>
-  )
-}
-
-interface TypingAnimationProps extends MotionProps {
-  children: string
-  className?: string
-  duration?: number
-  delay?: number
-  as?: ElementType
-}
-
-export function TypingAnimation({
-  children,
-  className,
-  duration = 60,
-  delay = 0,
-  as: Component = 'span',
-  ...props
-}: TypingAnimationProps) {
-  if (typeof children !== 'string') {
-    throw new TypeError('TypingAnimation: children must be a string. Received:')
-  }
-
-  const MotionComponent = motion.create(Component, {
-    forwardMotionProps: true,
-  })
-
-  const [displayedText, setDisplayedText] = useState<string>('')
-  const [started, setStarted] = useState(false)
-  const elementRef = useRef<HTMLElement | null>(null)
-
-  useEffect(() => {
-    const startTimeout = setTimeout(() => {
-      setStarted(true)
-    }, delay)
-    return () => clearTimeout(startTimeout)
-  }, [delay])
-
-  useEffect(() => {
-    if (!started) return
-
-    let i = 0
-    const typingEffect = setInterval(() => {
-      if (i < children.length) {
-        setDisplayedText(children.substring(0, i + 1))
-        i++
-      } else {
-        clearInterval(typingEffect)
-      }
-    }, duration)
-
-    return () => {
-      clearInterval(typingEffect)
-    }
-  }, [children, duration, started])
-
-  return (
-    <MotionComponent
-      ref={elementRef}
-      className={clsx('font-mono text-sm tracking-tight', className)}
-      {...props}
-    >
-      {displayedText}
-    </MotionComponent>
   )
 }
 

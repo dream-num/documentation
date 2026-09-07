@@ -5,15 +5,12 @@ import { IUniverInstanceService, LocaleType, Univer, UniverInstanceType } from '
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
-import { useTheme } from 'next-themes'
-import { useEffect, useState } from 'react'
-import { Terminal, TypingAnimation } from '@/components/magicui/terminal'
+import { useEffect, useRef } from 'react'
+import { Terminal } from '@/components/magicui/terminal'
 import { DOCUMENT_DATA } from '../code/data'
 
 export default function Preview() {
-  const [snapshots, setSnapshots] = useState<string>('')
-
-  const { theme } = useTheme()
+  const outputRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
     const univer = new Univer({
@@ -37,17 +34,18 @@ export default function Preview() {
 
     const snapshots = units.map(unit => unit.getSnapshot())
 
-    setSnapshots(JSON.stringify(snapshots, null, 2))
+    // Render the actual headless SDK result into its dedicated output node.
+    if (outputRef.current) outputRef.current.textContent = JSON.stringify(snapshots, null, 2)
 
     return () => {
       univer.dispose()
     }
-  }, [theme])
+  }, [])
 
   return (
     <div className="h-full">
       <Terminal>
-        <TypingAnimation duration={0}>{snapshots}</TypingAnimation>
+        <span ref={outputRef} />
       </Terminal>
     </div>
   )

@@ -143,7 +143,9 @@ export function RealUniverPreview({
   const latestConfigRef = useRef({ darkMode, theme })
   const univerRef = useRef<Univer | null>(null)
 
-  latestConfigRef.current = { darkMode, theme }
+  useEffect(() => {
+    latestConfigRef.current = { darkMode, theme }
+  }, [darkMode, theme])
 
   useEffect(() => {
     if (!containerRef.current) return undefined
