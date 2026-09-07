@@ -85,6 +85,9 @@ const config: NextConfig = {
       '.amamo-mdx/guides-navigation.json',
       'content/**/*.json',
       'content/**/*.mdx',
+      // Runnable source exports resolve exact installed package versions at runtime.
+      'node_modules/*/package.json',
+      'node_modules/@*/*/package.json',
       'node_modules/.pnpm/@swc+helpers@*/node_modules/@swc/helpers/esm/**/*',
     ],
   },

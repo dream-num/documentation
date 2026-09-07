@@ -3,7 +3,9 @@ import fs from 'node:fs/promises'
 
 const origin = process.env.SHOWCASE_ORIGIN || 'http://localhost:4335'
 const catalog = JSON.parse(await fs.readFile('showcase/catalog.generated.json', 'utf8'))
-const queue = ['en-US', 'zh-CN'].flatMap((locale) => catalog.map(({ slug }) => `/${locale}/showcase/${slug}`))
+const queue = ['en-US', 'zh-CN'].flatMap((locale) =>
+  ['showcase', 'playground'].flatMap((surface) => catalog.map(({ slug }) => `/${locale}/${surface}/${slug}`)),
+)
 const results = []
 await Promise.all(Array.from({ length: 4 }, async () => {
   while (queue.length) {
