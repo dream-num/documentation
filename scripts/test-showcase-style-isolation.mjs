@@ -199,9 +199,9 @@ try {
         rules,
       )
       const noAuthoredControls = !Object.entries(files).some(
-        ([name, source]) =>
-          name.startsWith('/src/') &&
-          /\.[cm]?[jt]sx?$/.test(name) &&
+        ([sourceName, source]) =>
+          sourceName.startsWith('/src/') &&
+          /\.[cm]?[jt]sx?$/.test(sourceName) &&
           /<(?:button|fieldset|input|select)\b|createElement\(['"](?:button|fieldset|input|select)['"]\)/i.test(source),
       )
       // README recipes are not mounted controls. Native-only cases may still style
