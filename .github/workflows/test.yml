@@ -7,8 +7,8 @@ on:
   workflow_call:
 
 concurrency:
-  group: ci-test-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ci-test-${{ github.sha }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -23,109 +23,55 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          submodules: recursive
+          token: ${{ secrets.GH_TOKEN }}
           persist-credentials: false
 
       - name: Setup Node.js
         uses: ./.github/actions/setup-node
-
-      - name: Cache Next.js build
-        uses: actions/cache@v4
-        with:
-          path: .next/cache
-          key: ${{ runner.os }}-node24-next-v1-${{ hashFiles('pnpm-lock.yaml', 'patches/**', 'next.config.mts') }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-node24-next-v1-${{ hashFiles('pnpm-lock.yaml', 'patches/**', 'next.config.mts') }}-
 
       - name: Check Build
         run: pnpm build
 
-  static-checks:
+  lint:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
+          submodules: recursive
+          token: ${{ secrets.GH_TOKEN }}
           persist-credentials: false
 
       - name: Setup Node.js
-        id: setup
         uses: ./.github/actions/setup-node
 
       - name: Validate Showcase
-        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: pnpm validate:showcase
 
       - name: Validate Showcase directory
-        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: pnpm test:showcase:directory
 
       - name: Typecheck Showcase
-        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: pnpm typecheck:showcase
 
       - name: Test Showcase source parity
-        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: pnpm test:showcase:source
 
       - name: Test catalog CSS exports
-        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: pnpm test:showcase:css
 
-      - name: Test Showcase compile scope
-        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
-        run: pnpm test:showcase:scope
-
-      - name: Check lint
-        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
-        run: pnpm lint
-
-  browser-checks:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Setup Node.js
-        uses: ./.github/actions/setup-node
-
-      - name: Install Chromium
-        id: chromium
+      - name: Install Chromium for stylesheet isolation checks
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Test exported Showcase style isolation
-        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
-        env:
-          SHOWCASE_RESULTS_DIR: test-results/ci-style-isolation
         run: pnpm test:showcase:style-isolation
 
       - name: Test Showcase screenshot capture contract
-        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
         run: pnpm test:showcase:screenshot
 
-      - name: Upload browser check reports
-        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: showcase-browser-checks-${{ github.run_attempt }}
-          path: |
-            test-results/ci-style-isolation/report.json
-            test-results/screenshot-contract-*/report.json
-          retention-days: 7
-          if-no-files-found: warn
+      - name: Test Showcase compile scope
+        run: pnpm test:showcase:scope
 
-  # Keep the existing required check name; neither failures nor skipped jobs pass.
-  lint:
-    if: ${{ always() }}
-    needs: [static-checks, browser-checks]
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    steps:
-      - name: Require all quality checks
-        env:
-          STATIC_RESULT: ${{ needs.static-checks.result }}
-          BROWSER_RESULT: ${{ needs.browser-checks.result }}
-        run: |
-          test "$STATIC_RESULT" = success
-          test "$BROWSER_RESULT" = success
+      - name: Check lint
+        run: pnpm lint
