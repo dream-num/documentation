@@ -23,7 +23,7 @@ if (process.argv.includes('--prepare')) {
   for (const [name, version] of Object.entries({ ...pkg.dependencies, ...pkg.devDependencies })) {
     const target =
       name === 'vite'
-        ? 'C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
+        ? process.env.SHOWCASE_VITE_DIR || path.resolve('node_modules/vite')
         : path.resolve('node_modules', name)
     const installed = JSON.parse(await fs.readFile(path.join(target, 'package.json'), 'utf8')).version
     assert.equal(installed, version)

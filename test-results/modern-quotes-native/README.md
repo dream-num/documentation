@@ -33,7 +33,7 @@ Redo after failed Undo is unaccepted on that path. The previous custom narrow-sc
 ## Commands and artifacts
 
 - `node scripts/test-modern-quotes-native.mjs test-results/modern-quotes-export/manifest.json`, with `SHOWCASE_DEMO_URL=http://127.0.0.1:4414` set in the appropriate shell. Default URL matches localhost:3030 `dev:showcase`; `SHOWCASE_BASE_URL` and `SHOWCASE_RESULTS_DIR` supported.
-- Normal source manifest: `test-results/modern-quotes-export/manifest.json`; nine exported source files verified byte-for-byte. Temp project: `C:/Users/wbfsa/AppData/Local/Temp/univer-harbor-quotes-lcfT3g`.
+- Normal source manifest: `test-results/modern-quotes-export/manifest.json`; nine exported source files verified byte-for-byte. Temp project: `<USERPROFILE>/AppData/Local/Temp/univer-harbor-quotes-lcfT3g`.
 - 14 independent exact-version package junctions; no installation or whole-node_modules junction. Selected production build PASS (1794 modules), case TypeScript check PASS, Oxfmt/Oxlint PASS. Only this case built.
 - Machine results: `report.json`; strict post-failure models `*-snapshot.json`; relevant baseline models `literal-*-before.json`.
 - Cover candidate: `opening-settled.png`. Actually viewed: opening-settled, native-input, native-grid-quote, community-research, neighboring-blocks and attributed-scope. Original code, tasks, caution and hyperlink are visibly intact.

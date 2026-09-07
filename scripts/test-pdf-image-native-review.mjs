@@ -34,7 +34,7 @@ try {
   for (const [name, version] of Object.entries({ ...packageJson.dependencies, ...packageJson.devDependencies })) {
     const installed =
       name === 'vite'
-        ? 'C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
+        ? process.env.SHOWCASE_VITE_DIR || path.resolve('node_modules/vite')
         : path.resolve('node_modules', name)
     const actual = JSON.parse(await fs.readFile(path.join(installed, 'package.json'), 'utf8')).version
     assert.equal(version, actual, name + ' must use the exact exported version')
@@ -47,7 +47,7 @@ try {
   await fs.writeFile(path.join(directory, 'exports.json'), JSON.stringify(manifest, null, 2))
   report.sourceFiles = Object.keys(exported.files).length
   const { build, preview } = await import(
-    pathToFileURL('C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite/dist/node/index.js')
+    pathToFileURL(path.join(project, 'node_modules/vite/dist/node/index.js'))
   )
   await build({ configFile: false, root: project, logLevel: 'warn' })
   server = await preview({

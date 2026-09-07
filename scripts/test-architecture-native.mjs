@@ -23,7 +23,7 @@ const manifest = JSON.parse(source.files['/package.json'])
 for (const [name, version] of Object.entries({ ...manifest.dependencies, ...manifest.devDependencies })) {
   const installed = await fs.realpath(
     name === 'vite'
-      ? 'C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
+      ? process.env.SHOWCASE_VITE_DIR || path.resolve('node_modules/vite')
       : path.join('node_modules', name),
   )
   assert.equal(JSON.parse(await fs.readFile(path.join(installed, 'package.json'), 'utf8')).version, version)

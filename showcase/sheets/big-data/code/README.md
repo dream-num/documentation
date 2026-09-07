@@ -106,6 +106,23 @@ not XLSX conversion, and does not claim the size of a workbook with ten million
 resident populated cells. JSON serialization omits undefined properties; live
 history validation must compare the unmodified model before serialization.
 
+## Strict history boundary
+
+The selected native test currently passes 18 of 21 gates and executes all four
+literal recipes. Three complete Undo comparisons fail in beta.2: native typing,
+bulk overwrite and clearing A2:J101 with the native Delete key add `t: 1` / `t: 2`
+fields to previously untyped cells when undone. Native typing additionally leaves
+a style entry. Visible values restore, but complete models do not. All three
+Redo snapshots match their edited models exactly. The original data is not padded
+with types/styles and snapshots are not normalized to hide these differences.
+
+The 100 initial measurements, actual middle/end canvas values, more than eight
+loads, 5,000→250-row overlap tails, native edits outside loaded windows, all three
+capacities, invalid custom input, JSON bytes, stable themes, initial Chinese UI
+and pending/double disposal have separate positive evidence. Those passes do not
+erase the complete-history failures. The retained old panel-based test is not
+current native acceptance evidence.
+
 ## Running the selected example
 
 Run the documentation dev:showcase server on port 3030, then

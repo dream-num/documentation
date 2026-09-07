@@ -10,8 +10,11 @@ import { chromium } from 'playwright'
 import { readShowcaseSources } from './showcase-sources.mjs'
 
 const output = path.resolve(process.env.SHOWCASE_RESULTS_DIR || 'test-results/crosshair-native-complete')
-const project =
-  process.env.SHOWCASE_EXPORT_DIRECTORY || 'C:/Users/wbfsa/AppData/Local/Temp/univer-crosshair-native-LVqoeR'
+assert.ok(
+  process.env.SHOWCASE_EXPORT_DIRECTORY,
+  'Set SHOWCASE_EXPORT_DIRECTORY to a dedicated sheets/crosshair-highlighting export with its exact-version dependencies already available in node_modules. This test rewrites and rebuilds that export.',
+)
+const project = path.resolve(process.env.SHOWCASE_EXPORT_DIRECTORY)
 const report = { passed: false, gates: {}, history: {}, literals: [], errors: [], backendRequests: [] }
 let browser, server
 await fs.mkdir(output, { recursive: true })

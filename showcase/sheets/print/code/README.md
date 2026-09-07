@@ -166,7 +166,7 @@ PowerShell, from the documentation repository, selected case only:
 
 ```powershell
 $env:SHOWCASE_BUILD_STANDALONE = '1'
-$env:SHOWCASE_VITE_DIRECTORY = 'C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
+$env:SHOWCASE_VITE_DIRECTORY = '<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
 $env:SHOWCASE_RESULTS_DIR = 'test-results/sheets-print-native'
 node scripts/test-sheets-print-native.mjs
 ```

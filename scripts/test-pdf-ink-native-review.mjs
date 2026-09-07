@@ -36,7 +36,7 @@ try {
       await fs.symlink(path.resolve('node_modules', name), path.join(project, 'node_modules', name), 'junction')
   }
   await fs.symlink(
-    'C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite',
+    process.env.SHOWCASE_VITE_DIR || path.resolve('node_modules/vite'),
     path.join(project, 'node_modules/vite'),
     'junction',
   )
@@ -44,7 +44,7 @@ try {
   await fs.writeFile(path.join(directory, 'exports.json'), JSON.stringify(manifest, null, 2))
   report.sourceFiles = Object.keys(exported.files).length
   const { build, preview } = await import(
-    pathToFileURL('C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite/dist/node/index.js')
+    pathToFileURL(path.join(project, 'node_modules/vite/dist/node/index.js'))
   )
   await build({ configFile: false, root: project, logLevel: 'warn' })
   server = await preview({

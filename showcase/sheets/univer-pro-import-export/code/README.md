@@ -139,7 +139,7 @@ Default guide test target is `http://localhost:3030/en-US/playground/sheets/univ
 
 ```powershell
 $env:SHOWCASE_BUILD_STANDALONE='1'
-$env:SHOWCASE_VITE_DIRECTORY='C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
+$env:SHOWCASE_VITE_DIRECTORY='<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
 $env:SHOWCASE_RESULTS_DIR='test-results/sheets-exchange-local-native'
 node scripts/test-sheets-exchange-local-native.mjs
 ```

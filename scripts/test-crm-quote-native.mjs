@@ -30,7 +30,7 @@ for (const [name, content] of Object.entries(source.files)) {
 }
 const pkg = JSON.parse(source.files['/package.json'])
 const vite =
-  process.env.SHOWCASE_VITE_PACKAGE || 'C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
+  process.env.SHOWCASE_VITE_DIR || process.env.SHOWCASE_VITE_PACKAGE || path.resolve('node_modules/vite')
 report.dependencies = {}
 for (const [name, version] of Object.entries({ ...pkg.dependencies, ...pkg.devDependencies })) {
   const installed = name === 'vite' ? vite : path.resolve('node_modules', name)

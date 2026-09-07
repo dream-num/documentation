@@ -1,6 +1,7 @@
 /* eslint-disable no-await-in-loop -- Native owners, literal source builds and teardown are ordered. */
 import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
+import os from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 import { pathToFileURL } from 'node:url'
@@ -12,8 +13,9 @@ import { readShowcaseSources } from './showcase-sources.mjs'
 
 const output = path.resolve(process.env.SHOWCASE_RESULTS_DIR || 'test-results/isolated-native-complete')
 await fs.mkdir(output, { recursive: true })
-const project =
-  process.env.SHOWCASE_EXPORT_DIRECTORY || 'C:/Users/wbfsa/AppData/Local/Temp/univer-isolated-native-Ebwli4'
+const project = process.env.SHOWCASE_EXPORT_DIRECTORY
+  ? path.resolve(process.env.SHOWCASE_EXPORT_DIRECTORY)
+  : await fs.mkdtemp(path.join(os.tmpdir(), 'univer-isolated-native-'))
 const report = {
   passed: false,
   gates: {},
@@ -57,7 +59,7 @@ try {
   for (const [name, version] of Object.entries(dependencies)) {
     const installed = await fs.realpath(
       name === 'vite'
-        ? 'C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
+        ? process.env.SHOWCASE_VITE_DIR || path.resolve('node_modules/vite')
         : path.resolve('node_modules', name),
     )
     assert.equal(JSON.parse(await fs.readFile(path.join(installed, 'package.json'), 'utf8')).version, version)

@@ -41,7 +41,7 @@ Automatic narrow-viewport fit from the old internal adapter was removed and is n
 
 ## Commands and artifacts
 
-Working directory: `C:/Users/wbfsa/Documents/GitHub/office_document/documentation`.
+Working directory: `<USERPROFILE>/Documents/GitHub/office_document/documentation`.
 
 ```powershell
 $env:SHOWCASE_DEMO_URL='http://127.0.0.1:4414'
@@ -51,11 +51,11 @@ node scripts/test-modern-code-native.mjs test-results/modern-code-export/manifes
 Without environment overrides the script uses `http://localhost:3030/en-US/playground/docs-modern/code-blocks`, matching `dev:showcase`. `SHOWCASE_BASE_URL` and `SHOWCASE_RESULTS_DIR` are also supported.
 
 Selected export manifest: `test-results/modern-code-export/manifest.json`.
-Selected directory: `C:/Users/wbfsa/AppData/Local/Temp/univer-beacon-code-avQuL2`.
+Selected directory: `<USERPROFILE>/AppData/Local/Temp/univer-beacon-code-avQuL2`.
 Its 14 individual package junctions are 13 exact beta.2 SDK packages and existing Vite 8.2.2. No installation or whole-node_modules link was used. Build command in that selected directory:
 
 ```powershell
-node C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite/bin/vite.js build
+node <USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite/bin/vite.js build
 ```
 
 Actually viewed images: `opening-settled.png` (229 words, proposed cover), `comparison-json.png`, `python-sql.png`, `native-language-picker.png`, `native-language-plaintext.png`, `native-grid-code.png`, `native-input.png` (230 words after typing). Runtime interactions may be captured while native word-count debounce is pending; only the settled opening is proposed as cover. Strict failing gates write their complete actual snapshot plus failure image; `report.json` identifies the current failures, while earlier probe artifacts may remain in this isolated directory.

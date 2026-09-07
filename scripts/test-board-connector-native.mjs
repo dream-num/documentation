@@ -35,7 +35,7 @@ try {
   for (const [name, version] of Object.entries({ ...manifest.dependencies, ...manifest.devDependencies })) {
     const installed =
       name === 'vite'
-        ? 'C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
+        ? process.env.SHOWCASE_VITE_DIR || path.resolve('node_modules/vite')
         : path.resolve('node_modules', name)
     assert.equal(JSON.parse(await fs.readFile(path.join(installed, 'package.json'), 'utf8')).version, version)
     const target = path.join(project, 'node_modules', name)
@@ -49,7 +49,7 @@ try {
     JSON.stringify([{ slug: exported.slug, directory: project }], null, 2),
   )
   const { build, preview } = await import(
-    pathToFileURL('C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite/dist/node/index.js')
+    pathToFileURL(path.join(project, 'node_modules/vite/dist/node/index.js'))
   )
   await build({ root: project, configFile: false, logLevel: 'warn' })
   server = await preview({

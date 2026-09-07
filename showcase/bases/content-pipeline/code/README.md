@@ -169,7 +169,7 @@ PowerShell from documentation:
 
 ```powershell
 $env:SHOWCASE_BUILD_STANDALONE = '1'
-$env:SHOWCASE_VITE_DIRECTORY = 'C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
+$env:SHOWCASE_VITE_DIRECTORY = '<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
 $env:SHOWCASE_RESULTS_DIR = 'test-results/content-pipeline-native'
 node scripts/test-content-pipeline-native.mjs
 Remove-Item Env:SHOWCASE_RESULTS_DIR

@@ -83,7 +83,7 @@ accepts SHOWCASE_DEMO_URL, SHOWCASE_BASE_URL and SHOWCASE_RESULTS_DIR.
 
 Preparation: `node scripts/test-willow-responsive-native.mjs --prepare`.
 Normal selected export manifest: test-results/willow-responsive-native-export/manifest.json.
-Directory: C:/Users/wbfsa/AppData/Local/Temp/univer-willow-native-wSL6yT.
+Directory: <USERPROFILE>/AppData/Local/Temp/univer-willow-native-wSL6yT.
 All **10 normal source files** match exactly, including README and Preview source.
 Only individual, exact-version package junctions are used; no installation or
 whole-node_modules link. No harness-only renderer or bundle is involved.

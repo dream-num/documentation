@@ -18,7 +18,7 @@ Run the guide-target test with `node scripts/test-embed-kestrel-lifecycle-native
 
 ```powershell
 $env:SHOWCASE_BUILD_STANDALONE='1'
-$env:SHOWCASE_VITE_DIRECTORY='C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
+$env:SHOWCASE_VITE_DIRECTORY='<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
 $env:SHOWCASE_RESULTS_DIR='test-results/kestrel-lifecycle-native'
 node scripts/test-embed-kestrel-lifecycle-native.mjs
 ```

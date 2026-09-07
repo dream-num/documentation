@@ -10,8 +10,11 @@ import { chromium } from 'playwright'
 import { readShowcaseSources } from './showcase-sources.mjs'
 
 const output = path.resolve(process.env.SHOWCASE_RESULTS_DIR || 'test-results/aster-custom-event-native')
-const project =
-  process.env.SHOWCASE_EXPORT_DIRECTORY || 'C:/Users/wbfsa/AppData/Local/Temp/univer-aster-events-native-q6bpHa'
+assert.ok(
+  process.env.SHOWCASE_EXPORT_DIRECTORY,
+  'Set SHOWCASE_EXPORT_DIRECTORY to a dedicated sheets/custom-event export with its exact-version dependencies already available in node_modules. This test rewrites and rebuilds that export.',
+)
+const project = path.resolve(process.env.SHOWCASE_EXPORT_DIRECTORY)
 const report = {
   passed: false,
   gates: {},

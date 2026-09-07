@@ -28,7 +28,7 @@ for (const name of Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }))
   await fs.mkdir(path.dirname(link), { recursive: true })
   await fs.symlink(
     name === 'vite'
-      ? 'C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
+      ? process.env.SHOWCASE_VITE_DIR || path.resolve('node_modules/vite')
       : path.resolve('node_modules', name),
     link,
     'junction',

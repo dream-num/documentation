@@ -93,9 +93,9 @@ Print preparation can load embedded content and images. Shared contributions run
 
 ## Installed beta.2 versus checkout
 
-Checkout root: `C:/Users/wbfsa/Documents/GitHub/office_document/univer-pro`.
+Checkout root: `<USERPROFILE>/Documents/GitHub/office_document/univer-pro`.
 Checkout HEAD: `a58c4237e86bf8fcaad7863aa1d1919a647624f7`. Working tree source was inspected as present; HEAD alone does not identify uncommitted content.
-Installed root: `C:/Users/wbfsa/Documents/GitHub/office_document/documentation/node_modules/@univerjs-pro`.
+Installed root: `<USERPROFILE>/Documents/GitHub/office_document/documentation/node_modules/@univerjs-pro`.
 
 | Package | Directly installed here | Checkout package |
 | --- | --- | --- |

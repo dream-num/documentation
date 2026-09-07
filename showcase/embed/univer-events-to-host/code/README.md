@@ -178,7 +178,7 @@ Two gates remain strict FAIL: native E4 Undo and fresh-owner E4 Undo each leave 
 
 ```powershell
 $env:SHOWCASE_BUILD_STANDALONE='1'
-$env:SHOWCASE_VITE_DIRECTORY='C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
+$env:SHOWCASE_VITE_DIRECTORY='<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
 $env:SHOWCASE_RESULTS_DIR='test-results/univer-events-native'
 node scripts/test-univer-events-native.mjs
 ```

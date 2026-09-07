@@ -131,7 +131,7 @@ The default test target is `http://localhost:3030/en-US/playground/boards/incide
 
 ```powershell
 $env:SHOWCASE_BUILD_STANDALONE='1'
-$env:SHOWCASE_VITE_DIRECTORY='C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
+$env:SHOWCASE_VITE_DIRECTORY='<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
 $env:SHOWCASE_RESULTS_DIR='test-results/incident-response-native'
 node scripts/test-incident-response-native.mjs
 ```

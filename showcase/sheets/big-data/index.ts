@@ -38,9 +38,9 @@ const metadata = {
     },
     expected: {
       'en-US':
-        'Preview and export share one owner, fixture, handlers and Core CSS. All SDK controls use installed public Facades and no backend. Data generation and timing are explicitly host integration. This demonstrates large-grid capacity, sparse windows, bulk writes and navigation; it does not claim automatic incremental loading, ten million resident cells, FPS, memory or universal performance.',
+        'Preview and export share the factory, original data, Core CSS and complete EN/ZH packs. Theme changes retain the edited owner. Capacity cleanup reads actual sparse values, not a load-history cache, and covers overlapping windows and native edits. Native loading, navigation and JSON download work without a backend. Strict beta.2 history gaps remain: Undo after native typing, bulk overwrite or clearing the initial data window adds cell type fields; native typing also leaves an additional style entry. All three Redo snapshots match exactly. No model fields are normalized to claim a pass. Capacity cleanup is a compound action, not a single atomic Undo transaction. Data generation and timing are host integration; this does not claim automatic loading, ten million resident cells, FPS, memory or universal performance.',
       'zh-CN':
-        '预览与导出共享同一 owner、数据、处理函数和 Core CSS。所有 SDK 控件调用已安装的公开 Facade，不需要后端。数据生成和计时明确属于宿主集成。本例演示大网格容量、稀疏窗口、批量写入与导航，不声称自动增量载入、一千万常驻单元格、FPS、内存或通用性能结论。',
+        '预览与导出共享工厂、原创数据、Core CSS 和完整中英文依赖包，主题切换保留已编辑实例。容量清理依据实际稀疏数值而非加载历史缓存，覆盖重叠窗口和原生编辑。原生载入、导航与 JSON 下载无需后端。beta.2 仍有严格历史缺口：原生输入、批量覆写、清空初始数据区域后的撤销会增加单元格类型字段；原生输入还留下额外样式条目。三项重做快照均精确通过，未通过归一化模型字段伪造通过。容量清理是复合操作，不是单步原子撤销事务。数据生成和计时属于宿主集成，不声称自动载入、一千万常驻单元格、FPS、内存或通用性能结论。',
     },
   },
   variants: [
@@ -60,8 +60,8 @@ const metadata = {
     ['default', 'One million rows / 100 records', '百万行 / 100 条记录'],
     ['loaded', 'Additional loaded windows', '更多已载入窗口'],
     ['reduced', 'Reduced worksheet capacity', '缩小工作表容量'],
-    ['empty', 'No values in tracked windows', '已跟踪窗口无数值'],
-    ['error', 'Invalid address, row or numeric value', '地址、行或数值无效'],
+    ['empty', 'Native-cleared data window / header retained', '原生清空数据区域 / 保留表头'],
+    ['error', 'Invalid custom row or capacity', '自定义行或容量无效'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   title: {
     'en-US': 'Large Grid and Bulk Data',

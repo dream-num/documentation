@@ -11,7 +11,11 @@ import { chromium } from 'playwright'
 import { readShowcaseSources } from './showcase-sources.mjs'
 
 const output = path.resolve(process.env.SHOWCASE_RESULTS_DIR || 'test-results/mossbrook-native-complete')
-const project = 'C:/Users/wbfsa/AppData/Local/Temp/univer-mossbrook-native-Atni0k'
+assert.ok(
+  process.env.SHOWCASE_EXPORT_DIRECTORY,
+  'Set SHOWCASE_EXPORT_DIRECTORY to a dedicated sheets/custom-canvas export with its exact-version dependencies already available in node_modules. This test uses that export for builds and temporary harness writes.',
+)
+const project = path.resolve(process.env.SHOWCASE_EXPORT_DIRECTORY)
 const reuseBuild = process.env.SHOWCASE_REUSE_EXACT_BUILD === '1'
 const report = { passed: false, gates: {}, history: {}, errors: [], requests: [], literals: [] }
 let browser, page, server

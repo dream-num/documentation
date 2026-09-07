@@ -25,9 +25,9 @@ Full snapshots are compared without deleting empty arrays, repairing paragraph I
 ## Build and commands
 
 - Normal selected-case source export: `test-results/mosaic-lists-export/manifest.json`, **9 files**.
-- Standalone directory: `C:/Users/wbfsa/AppData/Local/Temp/univer-mosaic-lists-VfwGuR`.
+- Standalone directory: `<USERPROFILE>/AppData/Local/Temp/univer-mosaic-lists-VfwGuR`.
 - **14 separate exact-version package junctions**, including Vite 8.2.2 and SDK beta.2. No whole-node_modules junction, installation or dependency copying.
-- Selected-only production build: `node C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite/bin/vite.js build` in that directory: PASS (bundle-size warning only).
+- Selected-only production build: `node <USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite/bin/vite.js build` in that directory: PASS (bundle-size warning only).
 - Runtime: set `SHOWCASE_DEMO_URL=http://127.0.0.1:4392/`, then `node scripts/test-mosaic-lists-native.mjs test-results/mosaic-lists-export/manifest.json`: exits 1 intentionally for the three retained failures.
 - Targeted TypeScript with `--ignoreConfig --noEmit --skipLibCheck --target ES2022 --module ESNext --moduleResolution bundler --jsx react-jsx`, existing Vite `client.d.ts`, and this case's factory/data/Preview: PASS.
 - `node node_modules/oxlint/bin/oxlint showcase/docs-modern/lists-task-items scripts/test-mosaic-lists-native.mjs`: PASS; targeted `oxfmt` and `git diff --check`: PASS.

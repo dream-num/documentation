@@ -144,7 +144,7 @@ PowerShell, from the documentation repository:
 
 ```powershell
 $env:SHOWCASE_BUILD_STANDALONE = '1'
-$env:SHOWCASE_VITE_DIRECTORY = 'C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
+$env:SHOWCASE_VITE_DIRECTORY = '<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
 $env:SHOWCASE_RESULTS_DIR = 'test-results/harbor-page-setup-native'
 node scripts/test-docs-harbor-page-setup-native.mjs
 Remove-Item Env:SHOWCASE_RESULTS_DIR

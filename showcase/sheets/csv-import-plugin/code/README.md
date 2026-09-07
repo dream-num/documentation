@@ -160,7 +160,7 @@ Run the unchanged parser checks with `node scripts/test-csv-parser.mjs` and nati
 
 ```powershell
 $env:SHOWCASE_BUILD_STANDALONE = '1'
-$env:SHOWCASE_VITE_DIRECTORY = 'C:/Users/wbfsa/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
+$env:SHOWCASE_VITE_DIRECTORY = '<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
 $env:SHOWCASE_RESULTS_DIR = 'test-results/csv-import-native'
 node scripts/test-csv-import-native.mjs
 ```

@@ -1,5 +1,10 @@
 # next-themes 0.4.6: SSR bootstrap ownership
 
+The patch includes portions of next-themes 0.4.6 under the MIT license.
+Copyright (c) 2022 Paco Coursey. The complete notice is retained in
+[next-themes.LICENSE.txt](./next-themes.LICENSE.txt), sourced from the
+[upstream v0.4.6 license](https://github.com/pacocoursey/next-themes/blob/v0.4.6/license.md).
+
 This app uses React 19. `next-themes` 0.4.6 renders its inline theme bootstrap on both server and client-only mounts. The latter creates an inert script and React reports it as an error. The real selected-route reproduction and component trace are retained in `test-results/theme-script-baseline/report.json`. This is not an SDK stylesheet or Facade failure.
 
 The version-specific pnpm patch changes only `ThemeScript` in the shipped CommonJS and ESM entries. It uses React's `useSyncExternalStore` server snapshot to retain the original script during SSR **and hydration**, then omits it on client renders. The original bootstrap still applies stored/system/forced theme and `color-scheme` before hydration. Existing provider effects continue to handle subsequent changes. There is no console filtering, SDK styling override, replacement theme provider or dependency upgrade.
