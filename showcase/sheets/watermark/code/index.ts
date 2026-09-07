@@ -1,45 +1,6 @@
-import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
-import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
-import { UniverWatermarkPlugin } from '@univerjs/watermark'
-import { WORKBOOK_DATA } from './data'
+import { createDemo } from './create-demo'
+
 import './styles.css'
 
-import '@univerjs/preset-sheets-core/lib/index.css'
-
-import '@univerjs/watermark/facade'
-
-const { univerAPI } = createUniver({
-  locale: LocaleType.EN_US,
-  locales: {
-    [LocaleType.EN_US]: mergeLocales(
-      sheetsCoreEnUS,
-    ),
-  },
-  presets: [
-    UniverSheetsCorePreset({
-      container: 'app',
-    }),
-  ],
-  plugins: [
-    [UniverWatermarkPlugin, {
-      textWatermarkSettings: {
-        content: 'Hello, Univer!',
-        fontSize: 16,
-        color: 'rgb(0,0,0)',
-        bold: false,
-        italic: false,
-        direction: 'ltr',
-        x: 60,
-        y: 36,
-        repeat: true,
-        spacingX: 200,
-        spacingY: 100,
-        rotate: 0,
-        opacity: 0.15,
-      },
-    }],
-  ],
-})
-
-univerAPI.createWorkbook(WORKBOOK_DATA)
+const demo = createDemo(document.getElementById('app')!)
+window.addEventListener('pagehide', () => demo.dispose(), { once: true })

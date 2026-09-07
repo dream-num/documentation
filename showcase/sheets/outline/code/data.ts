@@ -1,339 +1,106 @@
-import type { IWorkbookData } from '@univerjs/presets'
+import type { ICellData, IWorkbookData } from '@univerjs/presets'
 
-export const WORKBOOK_DATA: Partial<IWorkbookData> = {
-  id: 'workbook-01',
-  sheetOrder: [
-    'sheet-01',
-  ],
-  name: 'Sheets Outline Demo',
-  styles: {
-    title: {
-      fs: 18,
-      bl: 1,
-      cl: {
-        rgb: '#0f172a',
-      },
-    },
-    header: {
-      bg: {
-        rgb: '#2563eb',
-      },
-      cl: {
-        rgb: '#ffffff',
-      },
-      bl: 1,
-      ht: 2,
-      vt: 2,
-    },
-    section: {
-      bg: {
-        rgb: '#e0f2fe',
-      },
-      bl: 1,
-      ht: 2,
-      vt: 2,
-    },
-    text: {
-      ht: 2,
-      vt: 2,
-    },
-    number: {
-      ht: 2,
-      vt: 2,
-      n: {
-        pattern: '#,##0',
-      },
-    },
-  },
-  sheets: {
-    'sheet-01': {
-      id: 'sheet-01',
-      name: 'Outline',
-      rowCount: 30,
-      columnCount: 12,
-      defaultRowHeight: 28,
-      defaultColumnWidth: 96,
-      showGridlines: 1,
-      columnData: {
-        0: {
-          w: 150,
-        },
-        1: {
-          w: 120,
-        },
-        2: {
-          w: 120,
-        },
-        3: {
-          w: 120,
-        },
-        4: {
-          w: 120,
-        },
-      },
-      mergeData: [
-        {
-          startRow: 0,
-          startColumn: 0,
-          endRow: 0,
-          endColumn: 4,
-          rangeType: 0,
-          unitId: 'workbook-01',
-          sheetId: 'sheet-01',
-        },
+export const FIXTURE_CLOCK = '2027-03-31T09:00:00Z'
+export const SHEET_ID = 'orders'
+export const QUARTERS = Array.from({ length: 4 }, (_, q) => ({
+  label: 'Q' + (q + 1),
+  summary: 1 + q * 34,
+  start: 2 + q * 34,
+  end: 34 + q * 34,
+  months: Array.from({ length: 3 }, (_month, m) => ({
+    label: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][q * 3 + m],
+    summary: 2 + q * 34 + m * 11,
+    start: 3 + q * 34 + m * 11,
+    end: 12 + q * 34 + m * 11,
+  })),
+}))
+const header = ['Period / order', 'Region', 'Equipment', 'Scenario', 'Units', 'Rate', 'Amount']
+const regions = ['North', 'Coast', 'Highlands', 'South']
+const categories = ['Rain shells', 'Trail lamps', 'Tents', 'Water filters', 'Repair kits', 'Snow shoes']
+const cellData: Record<number, Record<number, ICellData>> = {}
+function row(index: number, values: (string | number | null | ICellData)[], style?: string) {
+  cellData[index] = Object.fromEntries(
+    values.map((v, col) => [
+      col,
+      { ...(typeof v === 'object' && v !== null ? v : { v }), ...(style ? { s: style } : {}) },
+    ]),
+  )
+}
+row(0, header, 'header')
+// Original fictional seasonal equipment orders: 12 months x 10 records, not copied template content.
+for (const [q, quarter] of QUARTERS.entries()) {
+  row(
+    quarter.summary,
+    [
+      quarter.label + ' · 2027',
+      null,
+      null,
+      null,
+      null,
+      null,
+      { f: '=' + quarter.months.map((m) => 'G' + (m.summary + 1)).join('+') },
+    ],
+    'quarter',
+  )
+  for (const [m, month] of quarter.months.entries()) {
+    row(
+      month.summary,
+      [
+        month.label + ' · 10 orders',
+        null,
+        null,
+        null,
+        null,
+        null,
+        { f: '=SUM(G' + (month.start + 1) + ':G' + (month.end + 1) + ')' },
       ],
-      cellData: {
-        0: {
-          0: {
-            v: 'Quarterly Department Budget',
-            t: 1,
-            s: 'title',
-          },
+      'month',
+    )
+    for (let n = 0; n < 10; n++) {
+      const ordinal = (q * 3 + m) * 10 + n
+      const r = month.start + n
+      row(r, [
+        'AL-' + String(ordinal + 1).padStart(3, '0'),
+        regions[(n + q) % regions.length],
+        categories[(n + m + q) % categories.length],
+        n % 3 === 0 ? 'Plan' : 'Actual',
+        ordinal % 17 === 0 ? 0 : 3 + ((ordinal * 7) % 39),
+        12 + ((ordinal * 11) % 88),
+        { f: '=E' + (r + 1) + '*F' + (r + 1) },
+      ])
+    }
+  }
+}
+export function createFixture(empty = false): Partial<IWorkbookData> {
+  return {
+    id: 'alder-seasonal-orders',
+    name: 'Alder seasonal equipment',
+    sheetOrder: [SHEET_ID],
+    styles: {
+      header: { bl: 1, bg: { rgb: '#dbeafe' } },
+      quarter: { bl: 1, bg: { rgb: '#d1fae5' } },
+      month: { bl: 1, bg: { rgb: '#f1f5f9' } },
+    },
+    sheets: {
+      [SHEET_ID]: {
+        id: SHEET_ID,
+        name: 'Seasonal orders',
+        rowCount: empty ? 20 : 137,
+        columnCount: 7,
+        defaultRowHeight: 28,
+        rowHeader: { width: 46 },
+        columnHeader: { height: 28 },
+        columnData: {
+          0: { w: 190 },
+          1: { w: 115 },
+          2: { w: 145 },
+          3: { w: 105 },
+          4: { w: 80 },
+          5: { w: 85 },
+          6: { w: 120 },
         },
-        2: {
-          0: {
-            v: 'Department',
-            t: 1,
-            s: 'header',
-          },
-          1: {
-            v: 'Owner',
-            t: 1,
-            s: 'header',
-          },
-          2: {
-            v: 'Q1',
-            t: 1,
-            s: 'header',
-          },
-          3: {
-            v: 'Q2',
-            t: 1,
-            s: 'header',
-          },
-          4: {
-            v: 'Total',
-            t: 1,
-            s: 'header',
-          },
-        },
-        3: {
-          0: {
-            v: 'Operations',
-            t: 1,
-            s: 'section',
-          },
-          1: {
-            v: 'Mina',
-            t: 1,
-            s: 'section',
-          },
-          2: {
-            v: 18000,
-            t: 2,
-            s: 'number',
-          },
-          3: {
-            v: 21000,
-            t: 2,
-            s: 'number',
-          },
-          4: {
-            v: 39000,
-            t: 2,
-            s: 'number',
-          },
-        },
-        4: {
-          0: {
-            v: 'Facilities',
-            t: 1,
-            s: 'text',
-          },
-          1: {
-            v: 'Mina',
-            t: 1,
-            s: 'text',
-          },
-          2: {
-            v: 7200,
-            t: 2,
-            s: 'number',
-          },
-          3: {
-            v: 8100,
-            t: 2,
-            s: 'number',
-          },
-          4: {
-            v: 15300,
-            t: 2,
-            s: 'number',
-          },
-        },
-        5: {
-          0: {
-            v: 'Support',
-            t: 1,
-            s: 'text',
-          },
-          1: {
-            v: 'Noah',
-            t: 1,
-            s: 'text',
-          },
-          2: {
-            v: 5400,
-            t: 2,
-            s: 'number',
-          },
-          3: {
-            v: 6200,
-            t: 2,
-            s: 'number',
-          },
-          4: {
-            v: 11600,
-            t: 2,
-            s: 'number',
-          },
-        },
-        6: {
-          0: {
-            v: 'Logistics',
-            t: 1,
-            s: 'text',
-          },
-          1: {
-            v: 'Ava',
-            t: 1,
-            s: 'text',
-          },
-          2: {
-            v: 5400,
-            t: 2,
-            s: 'number',
-          },
-          3: {
-            v: 6700,
-            t: 2,
-            s: 'number',
-          },
-          4: {
-            v: 12100,
-            t: 2,
-            s: 'number',
-          },
-        },
-        8: {
-          0: {
-            v: 'Product',
-            t: 1,
-            s: 'section',
-          },
-          1: {
-            v: 'Kai',
-            t: 1,
-            s: 'section',
-          },
-          2: {
-            v: 26000,
-            t: 2,
-            s: 'number',
-          },
-          3: {
-            v: 28500,
-            t: 2,
-            s: 'number',
-          },
-          4: {
-            v: 54500,
-            t: 2,
-            s: 'number',
-          },
-        },
-        9: {
-          0: {
-            v: 'Research',
-            t: 1,
-            s: 'text',
-          },
-          1: {
-            v: 'Kai',
-            t: 1,
-            s: 'text',
-          },
-          2: {
-            v: 9000,
-            t: 2,
-            s: 'number',
-          },
-          3: {
-            v: 10200,
-            t: 2,
-            s: 'number',
-          },
-          4: {
-            v: 19200,
-            t: 2,
-            s: 'number',
-          },
-        },
-        10: {
-          0: {
-            v: 'Design',
-            t: 1,
-            s: 'text',
-          },
-          1: {
-            v: 'Leah',
-            t: 1,
-            s: 'text',
-          },
-          2: {
-            v: 8200,
-            t: 2,
-            s: 'number',
-          },
-          3: {
-            v: 9300,
-            t: 2,
-            s: 'number',
-          },
-          4: {
-            v: 17500,
-            t: 2,
-            s: 'number',
-          },
-        },
-        11: {
-          0: {
-            v: 'Engineering',
-            t: 1,
-            s: 'text',
-          },
-          1: {
-            v: 'Sam',
-            t: 1,
-            s: 'text',
-          },
-          2: {
-            v: 8800,
-            t: 2,
-            s: 'number',
-          },
-          3: {
-            v: 9000,
-            t: 2,
-            s: 'number',
-          },
-          4: {
-            v: 17800,
-            t: 2,
-            s: 'number',
-          },
-        },
+        cellData: structuredClone(empty ? { 0: cellData[0] } : cellData),
       },
     },
-  },
+  }
 }

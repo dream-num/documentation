@@ -1,528 +1,117 @@
-import type { IWorkbookData } from '@univerjs/presets'
+import type { ICellData, IWorkbookData, IWorksheetData } from '@univerjs/presets'
+import { CustomRangeType } from '@univerjs/presets'
 
-export const WORKBOOK_DATA = {
-  id: 'xf_VBt',
-  sheetOrder: [
-    'SHh40QNCykVZr7CbKqQdv',
-    'taD48dfko_8rmUoh441E7',
-  ],
-  name: '',
-  styles: {
-    '9vlA-A': {
-      ff: 'Arial',
-      fs: 11,
-      it: 0,
-      bl: 0,
-      ul: {
-        s: 0,
-      },
-      st: {
-        s: 0,
-      },
-      ol: {
-        s: 0,
-      },
-      tr: {
-        a: 0,
-      },
-      td: 0,
-      ht: 0,
-      vt: 0,
-      tb: 0,
-      pd: {
-        t: 0,
-        b: 2,
-        l: 2,
-        r: 2,
+export const EXTERNAL_URL = 'https://univer.ai/?source=showcase&topic=links#features'
+function linked(text: string, spans: { label: string; url: string }[]): ICellData {
+  return {
+    p: {
+      id: 'driftwood-' + text,
+      documentStyle: { marginTop: 0, marginBottom: 2, marginLeft: 2, marginRight: 2 },
+      body: {
+        dataStream: text + '\r\n',
+        paragraphs: [{ startIndex: text.length, paragraphId: 'paragraph-' + text }],
+        sectionBreaks: [{ startIndex: text.length + 1, sectionId: 'section-' + text }],
+        customRanges: spans.map(({ label, url }, index) => ({
+          rangeId: 'link-' + text + '-' + index,
+          rangeType: CustomRangeType.HYPERLINK,
+          startIndex: text.indexOf(label),
+          endIndex: text.indexOf(label) + label.length - 1,
+          properties: { url },
+        })),
       },
     },
-  },
+  }
+}
+function sheet(id: string, name: string, rows: (string | number | null | ICellData)[][]): Partial<IWorksheetData> {
+  return {
+    id,
+    name,
+    rowCount: 30,
+    columnCount: 8,
+    defaultRowHeight: 34,
+    rowHeader: { width: 46 },
+    columnHeader: { height: 28 },
+    columnData: { 0: { w: 160 }, 1: { w: 230 }, 2: { w: 250 }, 3: { w: 120 } },
+    cellData: Object.fromEntries(
+      rows.map((values, row) => [
+        row,
+        Object.fromEntries(
+          values.map((value, col) => [
+            col,
+            typeof value === 'object' && value !== null
+              ? value
+              : { v: value, ...(row === 0 ? { s: { bl: 1, bg: { rgb: '#fef3c7' } } } : {}) },
+          ]),
+        ),
+      ]),
+    ),
+  }
+}
+// Original fictional harbor lighting records; no network fixtures.
+export const WORKBOOK_DATA: Partial<IWorkbookData> = {
+  id: 'driftwood-links',
+  name: 'Driftwood harbor lighting',
+  sheetOrder: ['index', 'workshop'],
   sheets: {
-    SHh40QNCykVZr7CbKqQdv: {
-      id: 'SHh40QNCykVZr7CbKqQdv',
-      name: 'Sheet1',
-      tabColor: '',
-      hidden: 0,
-      rowCount: 1000,
-      columnCount: 20,
-      zoomRatio: 1,
-      freeze: {
-        xSplit: 0,
-        ySplit: 0,
-        startRow: -1,
-        startColumn: -1,
-      },
-      scrollTop: 0,
-      scrollLeft: 0,
-      defaultColumnWidth: 88,
-      defaultRowHeight: 24,
-      mergeData: [],
-      cellData: {
-        0: {
-          0: {
-            v: 'B1',
-            t: 1,
-            p: {
-              id: 'd',
-              documentStyle: {
-                pageSize: {
-                  width: undefined,
-                  height: undefined,
-                },
-                marginTop: 0,
-                marginBottom: 2,
-                marginRight: 2,
-                marginLeft: 2,
-                renderConfig: {
-                  horizontalAlign: 0,
-                  verticalAlign: 0,
-                  centerAngle: 0,
-                  vertexAngle: 0,
-                  wrapStrategy: 0,
-                  cellValueType: 1,
-                  zeroWidthParagraphBreak: 1,
-                },
-              },
-              body: {
-                dataStream: 'B1\r\n',
-                textRuns: [
-                  {
-                    ts: {},
-                    st: 0,
-                    ed: 2,
-                  },
-                ],
-                paragraphs: [
-                  {
-                    startIndex: 2,
-                    paragraphStyle: {
-                      horizontalAlign: 0,
-                    },
-                  },
-                ],
-                sectionBreaks: [
-                  {
-                    startIndex: 3,
-                  },
-                ],
-                customRanges: [
-                  {
-                    rangeId: 'IYEwpTgCK5S9kb780vXwH',
-                    rangeType: 0,
-                    startIndex: 0,
-                    endIndex: 1,
-                    properties: {
-                      url: '#rangeid=mkw9lu4RMX',
-                      refId: 'IYEwpTgCK5S9kb780vXwH',
-                    },
-                  },
-                ],
-                customDecorations: [],
-              },
-              drawings: {},
-              drawingsOrder: [],
-            },
-          },
-        },
-        1: {
-          1: {
-            v: 'univer.ai',
-            p: {
-              id: '__INTERNAL_EDITOR__DOCS_NORMAL',
-              body: {
-                dataStream: 'univer.ai\r\n',
-                textRuns: [
-                  {
-                    ts: {},
-                    st: 0,
-                    ed: 9,
-                  },
-                ],
-                paragraphs: [
-                  {
-                    startIndex: 9,
-                    paragraphStyle: {
-                      horizontalAlign: 0,
-                    },
-                  },
-                ],
-                sectionBreaks: [
-                  {
-                    startIndex: 10,
-                  },
-                ],
-                customRanges: [
-                  {
-                    startIndex: 0,
-                    endIndex: 8,
-                    rangeId: '2Z_pkbLnt7iGpERVfT7NR',
-                    rangeType: 0,
-                    properties: {
-                      url: 'https://docs.univer.ai',
-                    },
-                  },
-                ],
-                customDecorations: [],
-              },
-              documentStyle: {
-                pageSize: {
-                  width: undefined,
-                  height: undefined,
-                },
-                marginTop: 0,
-                marginBottom: 2,
-                marginLeft: 2,
-                marginRight: 2,
-                renderConfig: {
-                  horizontalAlign: 0,
-                  verticalAlign: 0,
-                  centerAngle: 0,
-                  vertexAngle: 0,
-                  wrapStrategy: 0,
-                  zeroWidthParagraphBreak: 1,
-                },
-              },
-            },
-            t: 1,
-          },
-          2: {
-            v: 'Sheets2',
-            t: 1,
-            p: {
-              id: 'd',
-              documentStyle: {
-                pageSize: {
-                  width: undefined,
-                  height: undefined,
-                },
-                marginTop: 0,
-                marginBottom: 2,
-                marginRight: 2,
-                marginLeft: 2,
-                renderConfig: {
-                  horizontalAlign: 0,
-                  verticalAlign: 0,
-                  centerAngle: 0,
-                  vertexAngle: 0,
-                  wrapStrategy: 0,
-                  cellValueType: 1,
-                  zeroWidthParagraphBreak: 1,
-                },
-              },
-              body: {
-                dataStream: 'Sheets2\r\n',
-                textRuns: [
-                  {
-                    ts: {},
-                    st: 0,
-                    ed: 7,
-                  },
-                ],
-                paragraphs: [
-                  {
-                    startIndex: 7,
-                    paragraphStyle: {
-                      horizontalAlign: 0,
-                    },
-                  },
-                ],
-                sectionBreaks: [
-                  {
-                    startIndex: 8,
-                  },
-                ],
-                customRanges: [
-                  {
-                    rangeId: '20EZT5tKoGY_Nz7xh2Y-8',
-                    rangeType: 0,
-                    startIndex: 0,
-                    endIndex: 6,
-                    properties: {
-                      url: '#gid=taD48dfko_8rmUoh441E7',
-                      refId: '20EZT5tKoGY_Nz7xh2Y-8',
-                    },
-                  },
-                ],
-                customDecorations: [],
-              },
-              drawings: {},
-              drawingsOrder: [],
-            },
-          },
-        },
-        2: {
-          1: {
-            p: {
-              id: '__INTERNAL_EDITOR__DOCS_NORMAL',
-              drawings: {},
-              drawingsOrder: [],
-              body: {
-                dataStream: 'Rich Text\r\n',
-                textRuns: [
-                  {
-                    ts: {},
-                    st: 0,
-                    ed: 9,
-                  },
-                ],
-                paragraphs: [
-                  {
-                    startIndex: 9,
-                    paragraphStyle: {
-                      horizontalAlign: 0,
-                    },
-                  },
-                ],
-                sectionBreaks: [
-                  {
-                    startIndex: 10,
-                  },
-                ],
-                customRanges: [
-                  {
-                    rangeId: 'u1sUUU7k3Yb2Atf8sCZGu',
-                    rangeType: 0,
-                    startIndex: 0,
-                    endIndex: 3,
-                    properties: {
-                      url: '#gid=taD48dfko_8rmUoh441E7',
-                      refId: 'u1sUUU7k3Yb2Atf8sCZGu',
-                    },
-                  },
-                  {
-                    rangeId: '1N30ZgA2Sryfy9rHG5R_X',
-                    rangeType: 0,
-                    startIndex: 5,
-                    endIndex: 8,
-                    properties: {
-                      url: '#gid=SHh40QNCykVZr7CbKqQdv&range=C1',
-                      refId: '1N30ZgA2Sryfy9rHG5R_X',
-                    },
-                  },
-                ],
-                customDecorations: [],
-              },
-              documentStyle: {
-                pageSize: {
-                  width: undefined,
-                  height: undefined,
-                },
-                marginTop: 0,
-                marginBottom: 2,
-                marginRight: 2,
-                marginLeft: 2,
-                renderConfig: {
-                  horizontalAlign: 0,
-                  verticalAlign: 0,
-                  centerAngle: 0,
-                  vertexAngle: 0,
-                  wrapStrategy: 0,
-                  zeroWidthParagraphBreak: 1,
-                },
-              },
-            },
-          },
-        },
-        3: {
-          0: {
-            p: {
-              id: '__INTERNAL_EDITOR__DOCS_NORMAL',
-              drawings: {},
-              drawingsOrder: [],
-              documentStyle: {
-                pageSize: {
-                  width: 103.420166015625,
-                  height: undefined,
-                },
-                marginTop: 0,
-                marginBottom: 2,
-                marginRight: 2,
-                marginLeft: 2,
-                renderConfig: {
-                  horizontalAlign: 0,
-                  verticalAlign: 0,
-                  centerAngle: 0,
-                  vertexAngle: 0,
-                  wrapStrategy: 0,
-                  zeroWidthParagraphBreak: 1,
-                },
-              },
-              body: {
-                dataStream: 'Sheets1!C4:D5\r\n',
-                textRuns: [],
-                paragraphs: [
-                  {
-                    startIndex: 13,
-                    paragraphStyle: {
-                      horizontalAlign: 0,
-                    },
-                  },
-                ],
-                sectionBreaks: [
-                  {
-                    startIndex: 14,
-                  },
-                ],
-                customRanges: [
-                  {
-                    rangeId: 'HQP5uD0RVtSjeB-hQ67v3',
-                    rangeType: 0,
-                    startIndex: 0,
-                    endIndex: 12,
-                    properties: {
-                      url: '#gid=SHh40QNCykVZr7CbKqQdv&range=C4:D5',
-                      refId: 'HQP5uD0RVtSjeB-hQ67v3',
-                    },
-                  },
-                ],
-                customDecorations: [],
-              },
-            },
-          },
-        },
-      },
-      rowData: {},
-      columnData: {},
-      showGridlines: 1,
-      rowHeader: {
-        width: 46,
-        hidden: 0,
-      },
-      columnHeader: {
-        height: 20,
-        hidden: 0,
-      },
-      rightToLeft: 0,
-    },
-    taD48dfko_8rmUoh441E7: {
-      name: 'Sheet2',
-      id: 'taD48dfko_8rmUoh441E7',
-      tabColor: '',
-      hidden: 0,
-      rowCount: 1000,
-      columnCount: 20,
-      zoomRatio: 1,
-      freeze: {
-        xSplit: 0,
-        ySplit: 0,
-        startRow: -1,
-        startColumn: -1,
-      },
-      scrollTop: 0,
-      scrollLeft: 0,
-      defaultColumnWidth: 88,
-      defaultRowHeight: 24,
-      mergeData: [],
-      cellData: {
-        0: {
-          0: {
-            v: 'Sheet1',
-            t: 1,
-            p: {
-              id: 'd',
-              documentStyle: {
-                pageSize: {
-                  width: undefined,
-                  height: undefined,
-                },
-                marginTop: 0,
-                marginBottom: 2,
-                marginRight: 2,
-                marginLeft: 2,
-                renderConfig: {
-                  horizontalAlign: 0,
-                  verticalAlign: 0,
-                  centerAngle: 0,
-                  vertexAngle: 0,
-                  wrapStrategy: 0,
-                  cellValueType: 1,
-                  zeroWidthParagraphBreak: 1,
-                },
-              },
-              body: {
-                dataStream: 'Sheet1\r\n',
-                textRuns: [
-                  {
-                    ts: {},
-                    st: 0,
-                    ed: 6,
-                  },
-                ],
-                paragraphs: [
-                  {
-                    startIndex: 6,
-                    paragraphStyle: {
-                      horizontalAlign: 0,
-                    },
-                  },
-                ],
-                sectionBreaks: [
-                  {
-                    startIndex: 7,
-                  },
-                ],
-                customRanges: [
-                  {
-                    rangeId: 'ImIB6EFHLigHQ3wj34cmj',
-                    rangeType: 0,
-                    startIndex: 0,
-                    endIndex: 5,
-                    properties: {
-                      url: '#gid=SHh40QNCykVZr7CbKqQdv',
-                      refId: 'ImIB6EFHLigHQ3wj34cmj',
-                    },
-                  },
-                ],
-                customDecorations: [],
-              },
-              drawings: {},
-              drawingsOrder: [],
-            },
-          },
-        },
-      },
-      rowData: {},
-      columnData: {},
-      showGridlines: 1,
-      rowHeader: {
-        width: 46,
-        hidden: 0,
-      },
-      columnHeader: {
-        height: 20,
-        hidden: 0,
-      },
-      rightToLeft: 0,
-    },
+    index: sheet('index', 'Field index', [
+      ['Route card', 'Reference', 'Purpose', 'Open tasks'],
+      [
+        'Cedar pier',
+        linked('Univer website', [{ label: 'Univer website', url: EXTERNAL_URL }]),
+        'External URL: query + fragment',
+        0,
+      ],
+      [
+        'Lamp workshop',
+        linked('Workshop sheet', [{ label: 'Workshop sheet', url: '#gid=workshop' }]),
+        'Whole worksheet',
+        3,
+      ],
+      [
+        'Bay inspection',
+        linked('Repair window', [{ label: 'Repair window', url: '#gid=workshop&range=B3:D4' }]),
+        'Specific repair cells',
+        2,
+      ],
+      [
+        'Inventory reserve',
+        linked('Reserved lamps', [{ label: 'Reserved lamps', url: '#rangeid=reserved-lamps' }]),
+        'Named range',
+        5,
+      ],
+      [
+        'Two references',
+        linked('Permits | Routing', [
+          { label: 'Permits', url: '#gid=workshop&range=A2' },
+          { label: 'Routing', url: EXTERNAL_URL },
+        ]),
+        'Two independent text spans',
+        1,
+      ],
+      ['Night survey', null, 'Empty target for insertion', 0],
+      ['Harbor gate', 'Not yet linked', 'Plain text target', 4],
+    ]),
+    workshop: sheet('workshop', 'Workshop', [
+      ['Asset', 'Lantern type', 'Location', 'Stock'],
+      ['DW-104', 'Shielded amber', 'Cedar pier', 3],
+      ['DW-207', 'Low-glare white', 'West quay', 0],
+      ['DW-318', 'Solar marker', 'North basin', 6],
+      ['DW-425', 'Emergency beacon', null, 2],
+      [null, 'Reserve amber', 'Stores', 5],
+    ]),
   },
   resources: [
     {
-      name: 'SHEET_RANGE_PROTECTION_PLUGIN',
-      data: '',
-    },
-    {
-      name: 'SHEET_AuthzIoMockService_PLUGIN',
-      data: '{}',
-    },
-    {
-      name: 'SHEET_WORKSHEET_PROTECTION_PLUGIN',
-      data: '{}',
-    },
-    {
-      name: 'SHEET_WORKSHEET_PROTECTION_POINT_PLUGIN',
-      data: '{}',
-    },
-    {
-      name: 'SHEET_HYPER_LINK_PLUGIN',
-      data: '{"SHh40QNCykVZr7CbKqQdv":[],"taD48dfko_8rmUoh441E7":[]}',
-    },
-    {
       name: 'SHEET_DEFINED_NAME_PLUGIN',
-      data: '{"mkw9lu4RMX":{"id":"mkw9lu4RMX","name":"UniverB1","formulaOrRefString":"Sheet1!$B$1","comment":"","localSheetId":"AllDefaultWorkbook"}}',
-    },
-    {
-      name: 'SHEET_RANGE_THEME_MODEL_PLUGIN',
-      data: '{}',
+      data: JSON.stringify({
+        'reserved-lamps': {
+          id: 'reserved-lamps',
+          name: 'ReservedLamps',
+          formulaOrRefString: 'Workshop!$B$6:$D$6',
+          comment: 'Original reserve inventory',
+          localSheetId: 'AllDefaultWorkbook',
+        },
+      }),
     },
   ],
-} as unknown as Partial<IWorkbookData>
+}

@@ -2,16 +2,7 @@ import type { IWorkbookData } from '@univerjs/core'
 
 export const WORKBOOK_DATA = {
   id: 'workbook-01',
-  sheetOrder: [
-    'sheet-01',
-    'sheet-02',
-    'sheet-03',
-    'sheet-04',
-    'sheet-05',
-    'sheet-06',
-    'sheet-07',
-    'sheet-08',
-  ],
+  sheetOrder: ['sheet-01', 'sheet-02', 'sheet-03', 'sheet-04', 'sheet-05', 'sheet-06', 'sheet-07', 'sheet-08'],
   name: 'Sheets Feature',
   styles: {
     AifWG9: {
@@ -3468,7 +3459,7 @@ export const WORKBOOK_DATA = {
             t: 1,
           },
           8: {
-            v: '\'=INDIRECT(I2)',
+            v: "'=INDIRECT(I2)",
           },
           9: {
             f: '=INDIRECT(I2)',
@@ -3557,7 +3548,7 @@ export const WORKBOOK_DATA = {
             t: 1,
           },
           8: {
-            v: '\'=INDIRECT(I4&J3)',
+            v: "'=INDIRECT(I4&J3)",
           },
           9: {
             f: '=INDIRECT(I4&J3)',
@@ -5800,7 +5791,8 @@ export const WORKBOOK_DATA = {
                 },
               },
               body: {
-                dataStream: 'You can use a set of icons to indicate the status of each value. For example, if the value is greater than 300, it should be displayed with a green upward arrow. If the value is less than or equal to 300 and greater than 100, it should be displayed with a yellow right arrow icon. In all other cases, it should be displayed with a red downward arrow icon.\r\n',
+                dataStream:
+                  'You can use a set of icons to indicate the status of each value. For example, if the value is greater than 300, it should be displayed with a green upward arrow. If the value is less than or equal to 300 and greater than 100, it should be displayed with a yellow right arrow icon. In all other cases, it should be displayed with a red downward arrow icon.\r\n',
                 textRuns: [
                   {
                     ts: {
@@ -6529,7 +6521,8 @@ export const WORKBOOK_DATA = {
                 },
               },
               body: {
-                dataStream: 'You can use a color gradient to indicate the style of each cell. Here, we assign a darker purple color to values close to the maximum, and a lighter color to values close to the minimum.\r\n',
+                dataStream:
+                  'You can use a color gradient to indicate the style of each cell. Here, we assign a darker purple color to values close to the maximum, and a lighter color to values close to the minimum.\r\n',
                 textRuns: [
                   {
                     ts: {
@@ -7408,7 +7401,8 @@ export const WORKBOOK_DATA = {
                 },
               },
               body: {
-                dataStream: 'You can use the "top" and "bottom" rules to highlight cells that are ranked at the top or bottom within a range. For example, you can set the top 10 values in a range to be highlighted in yellow.\r\n',
+                dataStream:
+                  'You can use the "top" and "bottom" rules to highlight cells that are ranked at the top or bottom within a range. For example, you can set the top 10 values in a range to be highlighted in yellow.\r\n',
                 textRuns: [
                   {
                     ts: {
@@ -8360,7 +8354,8 @@ export const WORKBOOK_DATA = {
                 },
               },
               body: {
-                dataStream: 'You can use text rules to highlight cells that contain a specific character. For example, you can choose to highlight cells that contain the character "4" and set them to yellow.\r\n',
+                dataStream:
+                  'You can use text rules to highlight cells that contain a specific character. For example, you can choose to highlight cells that contain the character "4" and set them to yellow.\r\n',
                 textRuns: [
                   {
                     ts: {
@@ -8784,7 +8779,8 @@ export const WORKBOOK_DATA = {
                 },
               },
               body: {
-                dataStream: 'You can use a number rule to highlight cells that are less than 100 and set them to yellow.\r\n',
+                dataStream:
+                  'You can use a number rule to highlight cells that are less than 100 and set them to yellow.\r\n',
                 textRuns: [
                   {
                     ts: {
@@ -9207,7 +9203,8 @@ export const WORKBOOK_DATA = {
                 },
               },
               body: {
-                dataStream: 'You can use the "duplicate values" option to highlight cells that contain duplicate content. In this case, we can highlight the duplicate cells in yellow.\r\n',
+                dataStream:
+                  'You can use the "duplicate values" option to highlight cells that contain duplicate content. In this case, we can highlight the duplicate cells in yellow.\r\n',
                 textRuns: [
                   {
                     ts: {
@@ -9573,7 +9570,8 @@ export const WORKBOOK_DATA = {
                 },
               },
               body: {
-                dataStream: 'You can use a custom formula to highlight the background color of even columns as gray.\r\n',
+                dataStream:
+                  'You can use a custom formula to highlight the background color of even columns as gray.\r\n',
                 textRuns: [
                   {
                     ts: {
@@ -10420,7 +10418,7 @@ export const WORKBOOK_DATA = {
             s: 'ZJq5XB',
           },
           3: {
-            v: 'Xi\'an',
+            v: "Xi'an",
             t: 1,
             s: 'ZJq5XB',
           },

@@ -4,6 +4,7 @@ import { ChevronRightIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 
+import type { ProductId } from '@/showcase/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { clsx } from '@/lib/clsx'
@@ -13,27 +14,30 @@ interface IShowcaseDetailHeaderProps {
   title: string
   description: string
   tags: string[]
-  type: 'sheets' | 'docs' | 'slides'
+  product: ProductId
+  productName: string
 }
 
-const typeConfig = {
-  sheets: {
-    label: 'Univer Sheets',
-    badgeColor: 'bg-emerald-500 text-white dark:bg-emerald-600',
-  },
-  docs: {
-    label: 'Univer Docs',
-    badgeColor: 'bg-blue-500 text-white dark:bg-blue-600',
-  },
-  slides: {
-    label: 'Univer Slides',
-    badgeColor: 'bg-rose-500 text-white dark:bg-rose-600',
-  },
+const badgeColors: Record<ProductId, string> = {
+  sheets: 'bg-emerald-500 text-white dark:bg-emerald-600',
+  'docs-modern': 'bg-blue-500 text-white dark:bg-blue-600',
+  'docs-traditional': 'bg-indigo-500 text-white dark:bg-indigo-600',
+  slides: 'bg-rose-500 text-white dark:bg-rose-600',
+  boards: 'bg-amber-500 text-white dark:bg-amber-600',
+  bases: 'bg-violet-500 text-white dark:bg-violet-600',
+  pdfs: 'bg-red-500 text-white dark:bg-red-600',
+  embed: 'bg-cyan-500 text-white dark:bg-cyan-600',
 }
 
-export function ShowcaseDetailHeader({ lang, title, description, tags, type }: IShowcaseDetailHeaderProps) {
+export function ShowcaseDetailHeader({
+  lang,
+  title,
+  description,
+  tags,
+  product,
+  productName,
+}: IShowcaseDetailHeaderProps) {
   const t = useTranslations()
-  const config = typeConfig[type]
 
   return (
     <div>
@@ -53,7 +57,7 @@ export function ShowcaseDetailHeader({ lang, title, description, tags, type }: I
       <div className={`flex flex-col-reverse justify-between gap-4 md:flex-row md:items-start`}>
         <div className="flex-1">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <Badge className={clsx('h-5 px-2 text-[10px] font-semibold', config.badgeColor)}>{config.label}</Badge>
+            <Badge className={clsx('h-5 px-2 text-[10px] font-semibold', badgeColors[product])}>{productName}</Badge>
             {tags?.map((tag) => (
               <Badge key={tag} variant="secondary" className="h-5 px-2 text-[10px]">
                 {tag}
@@ -71,7 +75,7 @@ export function ShowcaseDetailHeader({ lang, title, description, tags, type }: I
         </div>
 
         <div className="shrink-0">
-          <Button render={<Link href="/showcase" />} variant="outline" size="sm">
+          <Button nativeButton={false} render={<Link href="/showcase" />} variant="outline" size="sm">
             {t('showcase.back')}
           </Button>
         </div>

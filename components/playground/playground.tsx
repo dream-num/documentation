@@ -4,73 +4,37 @@ import type { ReactNode } from 'react'
 import { SandpackCodeEditor, SandpackFileExplorer, SandpackLayout, SandpackProvider } from '@codesandbox/sandpack-react'
 import { useTheme } from 'next-themes'
 
-import { transformLocaleCodeSample } from '@/i18n/locale-config'
-
 export type Files = Record<string, string>
 
 interface IProps {
-  lang: string
   files: Files
+  dependencies: Record<string, string>
   preview: ReactNode
+  previewHeight?: number
 }
 
 export function Playground(props: IProps) {
-  const { lang, preview, files } = props
+  const { preview, files, dependencies, previewHeight = 640 } = props
 
   const { theme } = useTheme()
-
-  const transformedFiles = Object.keys(files).reduce((acc, key) => {
-    acc[key] = transformLocaleCodeSample(files[key], lang)
-
-    return acc
-  }, {} as Files)
-
-  transformedFiles['package.json'] = JSON.stringify(
-    {
-      name: 'univer-playground',
-      version: '1.0.0',
-      main: 'src/index.ts',
-      dependencies: {},
-    },
-    null,
-    2,
-  )
-
-  transformedFiles['index.html'] = `<!doctype html>
-<html>
-  <head>
-    <title>Univer SDK</title>
-    <meta charset="UTF-8" />
-  </head>
-  <body>
-    <div id="app"></div>
-    <script src="index.js"></script>
-  </body>
-</html>
-`
-  transformedFiles['src/styles.css'] = `html,
-body,
-#app {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-}
-`
 
   return (
     <section>
       <SandpackProvider
+        options={{ autorun: false, activeFile: '/src/index.ts' }}
         theme={theme === 'dark' ? 'dark' : 'light'}
         customSetup={{
-          dependencies: {},
-          entry: '/index.ts',
+          dependencies,
+          entry: '/src/index.ts',
         }}
-        files={transformedFiles}
+        files={files}
       >
-        <SandpackLayout className="grid!">
-          <div className="h-160">{preview}</div>
+        <SandpackLayout className="grid! grid-cols-1">
+          <div data-showcase-preview className="min-w-0" style={{ height: previewHeight }}>
+            {preview}
+          </div>
 
-          <div className="grid grid-cols-12">
+          <div className="grid min-w-0 grid-cols-12">
             <SandpackFileExplorer className="col-span-3 h-180! border-r border-neutral-100 dark:border-neutral-800" />
             <SandpackCodeEditor
               className="col-span-9 h-180!"

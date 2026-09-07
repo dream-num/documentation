@@ -1,29 +1,17 @@
-import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
-import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import { UniverSheetsFindReplacePreset } from '@univerjs/preset-sheets-find-replace'
-import sheetsFindReplaceEnUS from '@univerjs/preset-sheets-find-replace/locales/en-US'
-import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
-import { WORKBOOK_DATA } from './data'
+import { createDemo } from './create-demo'
 
-import './styles.css'
-
-import '@univerjs/preset-sheets-core/lib/index.css'
-import '@univerjs/preset-sheets-find-replace/lib/index.css'
-
-const { univerAPI } = createUniver({
-  locale: LocaleType.EN_US,
-  locales: {
-    [LocaleType.EN_US]: mergeLocales(
-      sheetsCoreEnUS,
-      sheetsFindReplaceEnUS,
-    ),
+const container = document.getElementById('app')
+if (!container) throw new Error('Add <div id="app"></div> to the page.')
+document.documentElement.style.height = '100%'
+document.body.style.cssText = 'height:100%;margin:0'
+container.style.height = '100%'
+const demo = createDemo(container)
+window.addEventListener(
+  'pagehide',
+  () => {
+    const current = (window as typeof window & { pelicanDemo?: ReturnType<typeof createDemo> }).pelicanDemo
+    if (current?.container === container) current.dispose()
+    demo.dispose()
   },
-  presets: [
-    UniverSheetsCorePreset({
-      container: 'app',
-    }),
-    UniverSheetsFindReplacePreset(),
-  ],
-})
-
-univerAPI.createWorkbook(WORKBOOK_DATA)
+  { once: true },
+)

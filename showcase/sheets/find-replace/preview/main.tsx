@@ -1,48 +1,32 @@
 'use client'
 
-import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
-import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import { UniverSheetsFindReplacePreset } from '@univerjs/preset-sheets-find-replace'
-import sheetsFindReplaceEnUS from '@univerjs/preset-sheets-find-replace/locales/en-US'
-import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef } from 'react'
-import { WORKBOOK_DATA } from '../code/data'
 
-import '@univerjs/preset-sheets-core/lib/index.css'
-import '@univerjs/preset-sheets-find-replace/lib/index.css'
+import { createDemo } from '../code/create-demo'
 
 export default function Preview() {
-  const divRef = useRef<HTMLDivElement>(null!)
-
-  const { theme } = useTheme()
-
+  const container = useRef<HTMLDivElement>(null!)
+  const demoRef = useRef<ReturnType<typeof createDemo> | undefined>(undefined)
+  const darkRef = useRef(false)
+  const { resolvedTheme } = useTheme()
   useEffect(() => {
-    const { univerAPI } = createUniver({
-      darkMode: theme === 'dark',
-      locale: LocaleType.EN_US,
-      locales: {
-        [LocaleType.EN_US]: mergeLocales(
-          sheetsCoreEnUS,
-          sheetsFindReplaceEnUS,
-        ),
-      },
-      presets: [
-        UniverSheetsCorePreset({
-          container: divRef.current,
-        }),
-        UniverSheetsFindReplacePreset(),
-      ],
+    darkRef.current = resolvedTheme === 'dark'
+    const current = (window as typeof window & { pelicanDemo?: ReturnType<typeof createDemo> }).pelicanDemo
+    if (current?.container === container.current) current.univerAPI.toggleDarkMode(darkRef.current)
+  }, [resolvedTheme])
+  useEffect(() => {
+    const element = container.current
+    const frame = requestAnimationFrame(() => {
+      demoRef.current = createDemo(element, darkRef.current)
     })
-
-    univerAPI.createWorkbook(WORKBOOK_DATA)
-
     return () => {
-      univerAPI.dispose()
+      cancelAnimationFrame(frame)
+      const current = (window as typeof window & { pelicanDemo?: ReturnType<typeof createDemo> }).pelicanDemo
+      const demo = current?.container === element ? current : demoRef.current
+      demoRef.current = undefined
+      queueMicrotask(() => demo?.dispose())
     }
-  }, [theme])
-
-  return (
-    <div ref={divRef} className="h-full" />
-  )
+  }, [])
+  return <div ref={container} className="h-full" />
 }

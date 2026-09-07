@@ -1,27 +1,8 @@
-import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
-import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
-import { customRegisterEvent } from './custom-register-event'
-import { WORKBOOK_DATA } from './data'
+import { createDemo } from './create-demo'
 
-import './styles.css'
-
-import '@univerjs/preset-sheets-core/lib/index.css'
-
-const { univer, univerAPI } = createUniver({
-  locale: LocaleType.EN_US,
-  locales: {
-    [LocaleType.EN_US]: mergeLocales(
-      sheetsCoreEnUS,
-    ),
-  },
-  presets: [
-    UniverSheetsCorePreset({
-      container: 'app',
-    }),
-  ],
-})
-
-univerAPI.createWorkbook(WORKBOOK_DATA)
-
-customRegisterEvent(univer, univerAPI)
+const container = document.getElementById('app')!
+document.documentElement.style.height = '100%'
+document.body.style.cssText = 'height:100%;margin:0'
+container.style.height = '100%'
+const demo = createDemo(container)
+window.addEventListener('pagehide', () => demo.dispose(), { once: true })

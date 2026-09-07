@@ -2,9 +2,7 @@ import type { IWorkbookData } from '@univerjs/presets'
 
 export const WORKBOOK_DATA: Partial<IWorkbookData> = {
   id: 'oiQGjk',
-  sheetOrder: [
-    'Sh6VlTxjEi2wdfOkplhhP',
-  ],
+  sheetOrder: ['Sh6VlTxjEi2wdfOkplhhP'],
   name: '',
   styles: {
     N2R3rl: {
@@ -724,7 +722,7 @@ export const WORKBOOK_DATA: Partial<IWorkbookData> = {
         6: {
           0: {
             s: 'zk2Q2D',
-            v: 'CLICK ME TO PRINT',
+            v: 'Portfolio review',
             t: 1,
           },
         },

@@ -12,6 +12,14 @@ const documentSchema = z.object({
 
 export default defineConfig({
   root: import.meta.dirname,
+  manifests: {
+    guidesNavigation: {
+      collections: ['guides'],
+      output: '.amamo-mdx/guides-navigation.json',
+      fields: { key: 'key', frontmatter: 'frontmatter' },
+      sort: [{ field: 'key', direction: 'asc' }],
+    },
+  },
   collections: {
     guides: {
       directory: 'content/guides',

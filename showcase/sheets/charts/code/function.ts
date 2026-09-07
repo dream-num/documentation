@@ -1,73 +1,48 @@
+import type { ChartSourceSpec, FChart, ISheetChartInfo, ISheetChartMethods } from '@univerjs/preset-sheets-advanced'
 import type { FWorksheet } from '@univerjs/preset-sheets-core'
 import type { FUniver } from '@univerjs/presets'
 
-import themeJson from './theme.json'
+// beta.2 omits FSheetChart's declaration. Its public FChart base is fully typed;
+// no injected service, invented facade method or patched SDK declaration is used.
+export type SheetChart = FChart<ChartSourceSpec, ChartSourceSpec, ISheetChartInfo, ISheetChartMethods>
 
-export async function insertChart(univerAPI: FUniver) {
-  const fWorkbook = univerAPI.getActiveWorkbook()!
-  const fWorksheet = fWorkbook.getActiveSheet()
-
-  univerAPI.registerTheme('theme1', themeJson)
-
-  await insertLineChart(fWorksheet, univerAPI)
-  await insertBarChart(fWorksheet, univerAPI)
-  await insertColumnChart(fWorksheet, univerAPI)
-  await insertMultiLevelCategoryChart(fWorksheet, univerAPI)
+export function chartSource(api: FUniver, period: string): ChartSourceSpec {
+  if (period === 'all')
+    return { sheetName: 'Energy', range: 'A3:D27', orientation: api.Enum.ChartSourceOrientation.Columns }
+  const first = period === '2026' ? 16 : 4,
+    last = period === '2026' ? 27 : 15
+  return {
+    sheetName: 'Energy',
+    orientation: api.Enum.ChartSourceOrientation.Columns,
+    ranges: ['A', 'B', 'C', 'D'].map((column) => ({
+      header: column + '3',
+      range: column + first + ':' + column + last,
+    })),
+  }
 }
 
-async function insertLineChart(fWorksheet: FWorksheet, univerAPI: FUniver) {
-  const lineChartBuildInfo = fWorksheet
-    .newChart(univerAPI.Enum.ChartTypeString.Line)
-    .setSource('Sheet1!B3:F14')
-    .setPosition({ row: 1, column: 7 })
-    .setLegend({
-      position: univerAPI.Enum.ChartLegendPositionEnum.Top,
-    })
-    .build()
-  await fWorksheet.insertChart(lineChartBuildInfo)
-}
-
-async function insertBarChart(fWorksheet: FWorksheet, univerAPI: FUniver) {
-  const barChartBuildInfo = fWorksheet
-    .newChart(univerAPI.Enum.ChartTypeString.Bar)
-    .setSource('Sheet1!B3:F14')
-    .setPosition({ row: 1, column: 13 })
-    .setLegend({
-      selectMode: univerAPI.Enum.ChartSelectModeEnum.Multiple,
-    })
-    .build()
-  await fWorksheet.insertChart(barChartBuildInfo)
-}
-
-async function insertColumnChart(fWorksheet: FWorksheet, univerAPI: FUniver) {
-  const columnChartBuildInfo = fWorksheet
-    .newChart(univerAPI.Enum.ChartTypeString.Column)
-    .setSource('Sheet1!B16:F17')
-    .setPosition({ row: 18, column: 1 })
-    .setTheme('theme1')
-    .setTitle({
-      text: 'Average Consumption',
-      color: '#ff0000',
-      alignment: univerAPI.Enum.ChartLabelAlignEnum.Left,
-    })
-    .setLegend({
-      selectMode: univerAPI.Enum.ChartSelectModeEnum.Multiple,
-    })
-    .setSize(600, 360)
-    .build()
-  await fWorksheet.insertChart(columnChartBuildInfo)
-}
-
-async function insertMultiLevelCategoryChart(fWorksheet: FWorksheet, univerAPI: FUniver) {
-  const multiLevelChartBuildInfo = fWorksheet
-    .newChart(univerAPI.Enum.ChartTypeString.Column)
-    .setSource('Sheet1!B31:E37')
-    .setPosition({ row: 18, column: 8 })
-    .setCategoryFields([0, 1])
-    .setMultiLevelCategoryAxis(true)
-    .setValueFields([2, 3])
-    .setTitle('Revenue by Region and Quarter')
-    .setSize(600, 360)
-    .build()
-  await fWorksheet.insertChart(multiLevelChartBuildInfo)
+export function buildChart(sheet: FWorksheet, api: FUniver, variant: string, source: ChartSourceSpec): ISheetChartInfo {
+  const types = api.Enum.ChartTypeString
+  const type =
+    variant === 'line' ? types.Line : variant === 'bar' ? types.Bar : variant === 'area' ? types.Area : types.Column
+  const builder = sheet
+    .newChart(type)
+    .setSource(source)
+    .setPosition({ row: 0, column: 5 })
+    .setSize(640, 350)
+    .setCategoryField(0)
+    .setValueFields([1, 2, 3])
+    .setXAxis({ label: { rotate: variant === 'bar' ? 0 : -45 } })
+    .setTitle('Aster observatory · monthly energy (MWh)')
+    .setLegend({ position: api.Enum.ChartLegendPositionEnum.Top, selectMode: api.Enum.ChartSelectModeEnum.Multiple })
+  if (variant === 'theme')
+    builder.setTheme('aster-warm').setTitle({ text: 'Aster observatory · warm theme', color: '#893448' })
+  if (variant === 'multilevel')
+    builder
+      .setSource({ sheetName: 'Energy', range: 'A31:D39', orientation: api.Enum.ChartSourceOrientation.Columns })
+      .setCategoryFields([0, 1])
+      .setMultiLevelCategoryAxis(true)
+      .setValueFields([2, 3])
+      .setTitle('Station and quarter · observed / budget')
+  return builder.build()
 }

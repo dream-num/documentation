@@ -1,82 +1,94 @@
-import type { IWorkbookData } from '@univerjs/presets'
+import type { IWorkbookData, IWorksheetData } from '@univerjs/presets'
 
-export const WORKBOOK_DATA: Partial<IWorkbookData> = {
-  id: '8fa7DI',
-  sheetOrder: [
-    'OLRIuX3bOBBG69xuhV_lD',
-  ],
-  name: '',
-  styles: {},
-  sheets: {
-    OLRIuX3bOBBG69xuhV_lD: {
-      id: 'OLRIuX3bOBBG69xuhV_lD',
-      name: 'Sheet1',
-      tabColor: '',
-      hidden: 0,
-      rowCount: 1000,
-      columnCount: 20,
-      zoomRatio: 1,
-      freeze: {
-        xSplit: 0,
-        ySplit: 0,
-        startRow: -1,
-        startColumn: -1,
+function sheet(id: string, name: string, rows: (string | number | null)[][]): Partial<IWorksheetData> {
+  return {
+    id,
+    name,
+    rowCount: 30,
+    columnCount: 8,
+    defaultRowHeight: 32,
+    rowHeader: { width: 46 },
+    columnHeader: { height: 28 },
+    columnData: { 0: { w: 120 }, 1: { w: 210 }, 2: { w: 160 }, 3: { w: 140 }, 4: { w: 150 } },
+    cellData: Object.fromEntries(
+      rows.map((values, row) => [
+        row,
+        Object.fromEntries(
+          values.map((v, col) => [col, { v, ...(row === 0 ? { s: { bg: { rgb: '#ccfbf1' }, bl: 1 } } : {}) }]),
+        ),
+      ]),
+    ),
+  }
+}
+// Original fictional textile-conservation records and notes. No external comments/accounts.
+const notes = {
+  intake: {
+    1: {
+      1: {
+        id: 'linen-humidity',
+        row: 1,
+        col: 1,
+        note: 'Humidity check before unpacking.',
+        width: 220,
+        height: 110,
+        show: true,
       },
-      scrollTop: 0,
-      scrollLeft: 0,
-      defaultColumnWidth: 88,
-      defaultRowHeight: 24,
-      mergeData: [],
-      cellData: {
-        0: {
-          0: {
-            v: 'Hover Me!',
-            t: 1,
-          },
-        },
+    },
+    2: {
+      1: {
+        id: 'silk-light',
+        row: 2,
+        col: 1,
+        note: 'Light-sensitive dye.\nUse covered storage.\n复查 after 48 hours.',
+        width: 250,
+        height: 140,
+        show: false,
       },
-      rowData: {},
-      columnData: {},
-      showGridlines: 1,
-      rowHeader: {
-        width: 46,
-        hidden: 0,
+    },
+    3: {
+      2: {
+        id: 'lining-boundary',
+        row: 3,
+        col: 2,
+        note: 'Keep the lining attached.',
+        width: 210,
+        height: 100,
+        show: false,
       },
-      columnHeader: {
-        height: 20,
-        hidden: 0,
-      },
-      rightToLeft: 0,
     },
   },
-  resources: [
-    {
-      name: 'SHEET_RANGE_PROTECTION_PLUGIN',
-      data: '',
+  storage: {
+    1: {
+      1: {
+        id: 'box-monitor',
+        row: 1,
+        col: 1,
+        note: 'Sensor battery replaced on 2026-08-29.',
+        width: 240,
+        height: 100,
+        show: false,
+      },
     },
-    {
-      name: 'SHEET_AuthzIoMockService_PLUGIN',
-      data: '{}',
-    },
-    {
-      name: 'SHEET_WORKSHEET_PROTECTION_PLUGIN',
-      data: '{}',
-    },
-    {
-      name: 'SHEET_WORKSHEET_PROTECTION_POINT_PLUGIN',
-      data: '{}',
-    },
-    {
-      name: 'SHEET_NOTE_PLUGIN',
-      data: '{"OLRIuX3bOBBG69xuhV_lD":{"0":{"0":{"width":160,"height":72,"note":"Hello Univer!"}},"3":{"1":{"width":160,"height":72,"note":"Have a nice day :)","show":true}}}}',
-    },
-    {
-      name: 'SHEET_DEFINED_NAME_PLUGIN',
-      data: '',
-    },
-    {
-      name: 'SHEET_RANGE_THEME_MODEL_PLUGIN',
-      data: '{}',
-    },
-  ],
+  },
+}
+export const WORKBOOK_DATA: Partial<IWorkbookData> = {
+  id: 'riverside-textiles',
+  name: 'Riverside textile conservation',
+  sheetOrder: ['intake', 'storage'],
+  sheets: {
+    intake: sheet('intake', 'Intake', [
+      ['Object ID', 'Textile', 'Condition', 'Pieces', 'Location'],
+      ['TX-014', 'Linen banner', 'Humidity review', 1, 'Bench A'],
+      ['TX-027', 'Silk sash', 'Light sensitive', 2, 'Covered tray'],
+      ['TX-033', 'Wool fragment', 'Lining retained', 5, 'Bench C'],
+      ['TX-049', 'Painted cotton', 'Stable', 0, null],
+    ]),
+    storage: sheet('storage', 'Storage', [
+      ['Container', 'Contents', 'Check', 'Sensors', 'Location'],
+      ['BX-006', 'Archival box', 'Monitor monthly', 2, 'North shelf'],
+      ['BX-012', 'Silk wrapping', 'Sealed', 1, 'Low-light bay'],
+      ['BX-018', 'Empty mounts', 'Ready', 0, null],
+    ]),
+  },
+  resources: [{ name: 'SHEET_NOTE_PLUGIN', data: JSON.stringify(notes) }],
 }

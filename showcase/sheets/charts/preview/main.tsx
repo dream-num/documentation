@@ -1,54 +1,23 @@
 'use client'
 
-import { UniverSheetsAdvancedPreset } from '@univerjs/preset-sheets-advanced'
-import sheetsAdvancedEnUS from '@univerjs/preset-sheets-advanced/locales/en-US'
-import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
-import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing'
-import sheetsDrawingEnUS from '@univerjs/preset-sheets-drawing/locales/en-US'
-import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef } from 'react'
 
-import { WORKBOOK_DATA } from '../code/data'
-import { insertChart } from '../code/function'
-
-import '@univerjs/preset-sheets-core/lib/index.css'
-import '@univerjs/preset-sheets-drawing/lib/index.css'
-import '@univerjs/preset-sheets-advanced/lib/index.css'
+import { createDemo } from '../code/create-demo'
 
 export default function Preview() {
-  const divRef = useRef<HTMLDivElement>(null!)
-
-  const { theme } = useTheme()
-
+  const container = useRef<HTMLDivElement>(null!)
+  const { resolvedTheme } = useTheme()
   useEffect(() => {
-    const { univerAPI } = createUniver({
-      darkMode: theme === 'dark',
-      locale: LocaleType.EN_US,
-      locales: {
-        [LocaleType.EN_US]: mergeLocales(sheetsCoreEnUS, sheetsDrawingEnUS, sheetsAdvancedEnUS),
-      },
-      presets: [
-        UniverSheetsCorePreset({
-          container: divRef.current,
-        }),
-        UniverSheetsDrawingPreset(),
-        UniverSheetsAdvancedPreset(),
-      ],
+    if (!resolvedTheme) return
+    let demo: ReturnType<typeof createDemo> | undefined
+    const frame = requestAnimationFrame(() => {
+      demo = createDemo(container.current, resolvedTheme === 'dark')
     })
-
-    univerAPI.createWorkbook(WORKBOOK_DATA)
-    univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, async ({ stage }) => {
-      if (stage === univerAPI.Enum.LifecycleStages.Rendered) {
-        await insertChart(univerAPI)
-      }
-    })
-
     return () => {
-      univerAPI.dispose()
+      cancelAnimationFrame(frame)
+      queueMicrotask(() => demo?.dispose())
     }
-  }, [theme])
-
-  return <div ref={divRef} className="h-full" />
+  }, [resolvedTheme])
+  return <div ref={container} className="h-full" />
 }

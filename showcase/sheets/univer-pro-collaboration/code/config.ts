@@ -193,25 +193,13 @@ export function getCollaborationBootstrapState(): ICollaborationBootstrapState {
     }
   }
 
-  const storedUnitId = getStoredCollaborationUnitId()
-
-  if (storedUnitId) {
-    return {
-      enableCollaboration: true,
-      unitId: storedUnitId,
-      source: 'local-storage',
-      shouldUpdateUrl: true,
-      reason: `No unit query parameter was found. Reusing the last collaborative unit ${storedUnitId} from local storage.`,
-    }
-  }
-
   return {
-    enableCollaboration: true,
+    enableCollaboration: false,
     unitId: null,
-    source: 'create',
-    shouldUpdateUrl: true,
+    source: 'fallback',
+    shouldUpdateUrl: false,
     reason:
-      'No unit query parameter or stored unit was found. The showcase will create a new collaborative sheet and save its unit id locally.',
+      'No unit query parameter was provided. The frontend-only showcase will load its local workbook without making collaboration requests.',
   }
 }
 

@@ -1,33 +1,8 @@
-import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
-import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
-import { UniverSheetsCrosshairHighlightPlugin } from '@univerjs/sheets-crosshair-highlight'
-import sheetsCrosshairHighlightEnUS from '@univerjs/sheets-crosshair-highlight/locale/en-US'
-import { WORKBOOK_DATA } from './data'
+import { createDemo } from './create-demo'
 
-import '@univerjs/sheets-crosshair-highlight/facade'
-
-import './styles.css'
-import '@univerjs/preset-sheets-core/lib/index.css'
-import '@univerjs/sheets-crosshair-highlight/lib/index.css'
-
-const { univerAPI } = createUniver({
-  locale: LocaleType.EN_US,
-  locales: {
-    [LocaleType.EN_US]: mergeLocales(
-      sheetsCoreEnUS,
-      sheetsCrosshairHighlightEnUS,
-    ),
-  },
-  presets: [
-    UniverSheetsCorePreset({
-      container: 'app',
-    }),
-  ],
-  plugins: [
-    UniverSheetsCrosshairHighlightPlugin,
-  ],
-})
-
-univerAPI.createWorkbook(WORKBOOK_DATA)
-univerAPI.setCrosshairHighlightEnabled(true)
+const container = document.getElementById('app')!
+document.documentElement.style.height = '100%'
+document.body.style.cssText = 'height:100%;margin:0'
+container.style.height = '100%'
+const demo = createDemo(container)
+window.addEventListener('pagehide', () => demo.dispose(), { once: true })
