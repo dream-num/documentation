@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { defineI18nUI } from 'fumadocs-ui/i18n'
 import { RootProvider } from 'fumadocs-ui/provider/next'
+
+import { ArchivedVersionBanner } from '@/components/archived-version-banner'
 import { i18nConfig, translations } from '@/lib/i18n'
 import { Wrapper } from './layout.client'
 
@@ -20,6 +22,7 @@ export default async function Layout({ params, children }: IProps) {
 
   return (
     <RootProvider i18n={provider(lang)}>
+      <ArchivedVersionBanner lang={lang} />
       <Wrapper>
         {children}
       </Wrapper>

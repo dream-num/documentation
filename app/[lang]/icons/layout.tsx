@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { DocsLayout } from 'fumadocs-ui/layouts/notebook'
+
 import { baseOptions } from '@/app/layout.config'
+import { SidebarVersionSwitcher } from '@/components/sidebar-version-switcher'
 import { icons } from '@/lib/source'
 
 interface IProps {
@@ -17,6 +19,7 @@ export default async function Layout({ params, children }: IProps) {
       tree={icons.pageTree[lang]}
       tabMode="navbar"
       sidebar={{
+        banner: <SidebarVersionSwitcher key="version" lang={lang} />,
         defaultOpenLevel: 0,
       }}
     >
