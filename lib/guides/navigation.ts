@@ -32,7 +32,7 @@ interface IPageTreeNode {
 }
 
 const guideProductSegments = ['sheets', 'docs', 'slides', 'boards', 'bases', 'pdfs']
-const guideStandaloneSegments = ['pro']
+const guideStandaloneSegments = ['server-integration']
 
 function getNodeId(node: IPageTreeNode) {
   const id = node.$id ?? node.url ?? (typeof node.name === 'string' ? node.name : undefined)

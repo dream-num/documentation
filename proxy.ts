@@ -5,11 +5,28 @@ import { NextResponse } from 'next/server'
 import { routing } from '@/i18n/routing'
 
 const intlMiddleware = createMiddleware(routing)
+const showcaseMiddleware = createMiddleware({
+  ...routing,
+  locales: ['en-US', 'zh-CN'],
+  localeDetection: false,
+})
+const showcasePath = new RegExp(`^/(?:(${routing.locales.join('|')})/)?(showcase(?:/.*)?)$`)
 const agentDocsPath = new RegExp(
   `^/(?:(?:(${routing.locales.join('|')})/))?(llms(?:-full)?\\.txt|(?:guides|reference|icons)(?:\\.md|/llms\\.txt|/.+\\.md))$`,
 )
 
 export default function proxy(request: NextRequest) {
+  const showcaseMatch = request.nextUrl.pathname.match(showcasePath)
+  if (showcaseMatch) {
+    const locale = showcaseMatch[1]
+    if (locale && locale !== 'en-US' && locale !== 'zh-CN') {
+      const destination = request.nextUrl.clone()
+      destination.pathname = `${locale === 'zh-TW' ? '/zh-CN' : ''}/${showcaseMatch[2]}`
+      return NextResponse.redirect(destination, 308)
+    }
+    return showcaseMiddleware(request)
+  }
+
   const match = request.nextUrl.pathname.match(agentDocsPath)
   if (!match) return intlMiddleware(request)
 

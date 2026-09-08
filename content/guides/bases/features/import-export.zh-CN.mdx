@@ -1,0 +1,133 @@
+---
+title: 导入导出
+icon: '#pro/FolderSync'
+---
+
+Bases 可以导入 **XLSX、XLS、CSV、TSV**，导出 **XLSX、CSV、TSV**。例如，将已有 Excel 客户名单导入为 Base，添加字段和视图后，再导出表数据。
+
+这些 API 需要转换后端。请先阅读[导入导出集成](/guides/server-integration/import-export)，并确认后端支持 Bases 文档类型。前端插件安装成功，不代表服务端已经支持对应格式。
+
+<Callout type="warning">
+  如果使用 **0.25.x**，请阅读 [0.25.x 旧版 Pro 文档](https://dream-num.github.io/documentation/v0.25/zh-CN/guides/pro/)。
+</Callout>
+
+## 支持的格式
+
+下表列出本页前端 API 支持的格式。Office 文件转换还需要后端支持对应的文档类型和格式。
+
+| 导入 | 导出 |
+| --- | --- |
+| `.xls`, `.xlsx`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` |
+
+CSV、TSV 每次导出一张数据表，通过 `tableId` 指定。它们不保留视图、权限和其他 Base 资源；完整的应用备份应保存 Base 快照。
+
+## 安装和注册
+
+在[已初始化的 Bases 编辑器](/guides/bases/getting-started/installation)中添加：
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/bases-exchange-client
+```
+
+```ts
+import { UniverBasesExchangeClientPlugin } from '@univerjs-pro/bases-exchange-client'
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
+
+import '@univerjs-pro/bases/facade'
+import '@univerjs-pro/bases-exchange-client/facade'
+import '@univerjs-pro/exchange-client/facade'
+import '@univerjs-pro/exchange-client/lib/index.css'
+import '@univerjs-pro/bases-exchange-client/lib/index.css'
+
+univer.registerPlugin(UniverExchangeClientPlugin, exchangeConfig)
+univer.registerPlugin(UniverBasesExchangeClientPlugin)
+```
+
+`exchangeConfig` 是业务后端的上传、转换、任务查询和下载配置，按[服务端集成指南](/guides/server-integration/import-export)准备。国际化还需将两个包的 `locale/zh-CN` 合并到 `locales`，方法见[国际化](/guides/bases/getting-started/i18n)。
+
+## 导入后在当前页面编辑
+
+`file` 可以是用户选择的 `File`，也可以是远程文件 URL。返回的快照就是编辑器可以加载的 Base 数据：
+
+```ts
+const snapshot = await univerAPI.importBaseToSnapshotAsync(file)
+if (snapshot) {
+  univerAPI.createBase(snapshot)
+}
+```
+
+快照方式不要求协同服务，但仍需要后端转换文件。要让用户下次继续编辑，请保存 `base.save()` 的结果，见[快照保存与恢复](/guides/bases/model/base-snapshot)。
+
+## 导出文件
+
+导出当前 Base 为 Excel：
+
+```ts
+import { ExchangeFormat } from '@univerjs-pro/exchange-client'
+
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('Open a Base first')
+
+const file = await univerAPI.exportBaseBySnapshotAsync(base.save(), ExchangeFormat.XLSX)
+if (file) {
+  univerAPI.downloadFile(file, 'database', ExchangeFormat.XLSX)
+}
+```
+
+CSV 和 TSV 只能表示一张表。多表 Base 导出时，请显式传入 `tableId`：
+
+```ts
+const table = base.getTables()[0]
+if (!table) throw new Error('Create a table first')
+
+const file = await univerAPI.exportBaseBySnapshotAsync(
+  base.save(),
+  ExchangeFormat.CSV,
+  table.getId(),
+)
+if (file) {
+  univerAPI.downloadFile(file, table.getName(), ExchangeFormat.CSV)
+}
+```
+
+导出 TSV 时将 `ExchangeFormat.CSV` 换成 `ExchangeFormat.TSV`。文件导出用于交换表数据；完整备份应保存 Base 快照，不应把 CSV 当成保留视图、权限和其他资源的备份格式。
+
+## 导入为协同文档
+
+先接好[Bases 协同编辑](/guides/bases/features/collaboration)，再导入并加载服务端返回的文档 ID：
+
+```ts
+import '@univerjs-pro/collaboration-client/facade'
+
+const unitId = await univerAPI.importBaseToUnitIdAsync(file)
+if (unitId) {
+  await univerAPI.getCollaboration().loadBaseAsync(unitId)
+}
+```
+
+导出服务端文档使用 `exportBaseByUnitIdAsync(unitId, format, tableId?)`。导出前应等待浏览器修改同步完成，避免漏掉刚刚编辑的内容。
+
+## Excel 表结构和公式
+
+可以在注册 Bases 导入导出插件时调整行为。以下是默认值，替换上面的无参数注册即可：
+
+```ts
+import {
+  ExchangeBaseExportMode,
+  ExchangeBaseFormulaPolicy,
+  ExchangeBaseImportMode,
+} from '@univerjs-pro/exchange-client'
+
+univer.registerPlugin(UniverBasesExchangeClientPlugin, {
+  importSourceMode: ExchangeBaseImportMode.AUTO,
+  importFormulaPolicy: ExchangeBaseFormulaPolicy.CONVERT_THEN_VALUES,
+  exportStructureMode: ExchangeBaseExportMode.TABLES,
+  exportFormulaPolicy: ExchangeBaseFormulaPolicy.FAIL,
+})
+```
+
+- 导入来源：`AUTO` 自动选择 Excel 表格和可见工作表；`TABLES` 只导入 Excel 表格；`SHEETS` 按可见工作表导入；`HYBRID` 导入 Excel 表格以及不含 Excel 表格的可见工作表。
+- 导出结构：`TABLES` 将非空 Base 表导出为 Excel 表格，空表保留为普通区域；`RANGES` 全部导出为普通工作表区域。
+- 公式：默认导入先尝试转换，不支持的公式使用缓存结果；默认导出要求公式转换成功，否则失败。若只需要结果值，可选择 `VALUES`；`TEXT` 将原公式保留为文本。`CONVERT_THEN_VALUES` 在导出时遇到无法转换的公式仍会失败。
+
+使用实际业务文件验证公式和字段转换结果。上述方法可能返回 `undefined`，也可能抛出请求或转换异常，业务界面需要处理这两种情况。

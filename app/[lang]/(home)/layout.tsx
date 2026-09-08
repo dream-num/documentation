@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react'
-import { StarIcon } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 
 import type { Locale } from '@/i18n/routing'
 import { SiteHeader } from '@/components/site/header'
 import { UniverIcon } from '@/components/univer-icon'
-import { createGuideNavigation } from '@/lib/guides/navigation'
+import { clsx } from '@/lib/clsx'
+import { createGuideNavigation, getGuideNavItemHref, getGuideStandaloneItems } from '@/lib/guides/navigation'
 import { guideNavigationSource } from '@/lib/guides/navigation-source'
 
 interface IProps {
@@ -61,12 +61,16 @@ export default async function Layout({ params, children }: IProps) {
       icon: <UniverIcon name="SymbolsIcon" />,
       iconClassName: 'bg-linear-[135deg,#0EA5E9_0%,#F0F9FF_100%] dark:bg-linear-[135deg,#0EA5E9_0%,#0C4A6E_100%]',
     },
-    {
-      text: 'Univer SDK Pro',
-      url: '/guides/pro',
-      icon: <StarIcon />,
-      iconClassName: 'bg-linear-[135deg,#F59E0B_0%,#FFFBEB_100%] dark:bg-linear-[135deg,#F59E0B_0%,#78350F_100%]',
-    },
+    ...getGuideStandaloneItems(guideNavigation.items).map((item) => {
+      const url = getGuideNavItemHref(item)
+      if (!url) throw new Error(`Integration guide has no URL: ${item.id}`)
+      return {
+        text: item.name,
+        url,
+        icon: item.icon,
+        iconClassName: 'bg-linear-[135deg,#F59E0B_0%,#FFFBEB_100%] dark:bg-linear-[135deg,#F59E0B_0%,#78350F_100%]',
+      }
+    }),
   ]
 
   const links = [
@@ -85,7 +89,7 @@ export default async function Layout({ params, children }: IProps) {
   ]
 
   return (
-    <div className="bg-background text-foreground min-h-screen">
+    <div className={clsx('min-h-screen', 'bg-background', 'text-foreground')}>
       <SiteHeader
         documentationLinks={documentationLinks}
         documentationTitle={documentationTitle}

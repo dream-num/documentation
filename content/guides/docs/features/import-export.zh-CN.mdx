@@ -3,6 +3,12 @@ title: 导入 & 导出
 icon: '#pro/FolderSync'
 ---
 
+<Callout type="warning">
+  如果使用 **0.25.x**，请阅读 [0.25.x 旧版 Pro 文档](https://dream-num.github.io/documentation/v0.25/zh-CN/guides/pro/)。新版接入使用自托管 Collaboration SDK，旧 Univer Server 的部署方式和 API 不适用。
+</Callout>
+
+下方 API 需要配套的转换后端。请先按[导入导出集成](/guides/server-integration/import-export)接好文件上传、转换、任务查询和下载，再配置前端插件。快照 API 也需要转换后端，但不要求创建协同文档。官方协同 Exchange 示例演示 Sheets，接入前请确认目标版本支持所需的文件类型。
+
 <MetaData
   lang="zh-CN"
   isPro
@@ -31,158 +37,15 @@ icon: '#pro/FolderSync'
   }}
 />
 
-<Callout type="warning" title="注意事项">
-  导入导出功能需要 Univer 服务端支持，请确保你已经正确安装并配置了 Univer 服务端。具体请参考：[升级到 Pro](/guides/pro)
-</Callout>
+## 支持的格式
 
-导入和导出功能允许用户通过 Univer 服务端将 `.docx` 文件导入到 Univer 文档中，或将文档内容导出为 `.docx` 文件，便于与其他办公软件或平台进行交互。
+下表列出本页前端 API 支持的格式。Office 文件转换还需要后端支持对应的文档类型和格式。
 
-<Callout title="为什么 Univer SDK 通过后端服务实现导入导出？">
-  仅通过前端实现的导入导出无论是从性能还是效果上来说都无法满足企业需求，因此我们提供了后端服务来实现导入导出功能。你可以通过一些开源的
-  DOCX 解析库将文件解析为符合 `IDocumentData` 接口的数据结构，然后通过 Facade API 将数据导入到 Univer 中。
-</Callout>
+| 导入 | 导出 |
+| --- | --- |
+| `.doc`, `.docx` | `.docx` |
 
-通过菜单栏的导入入口成功导入后，页面左下角会弹出提示框，显示导入成功的信息，并提供访问导入文档的链接。若默认的导入导出行为无法满足你的需求，请查看[《自定义导入文档》](/blog/custom-import)以了解如何自定义导入行为。
-
-## 如何选择导入/导出方式
-
-导入导出有两条路径，区别在于是否依赖协同服务：
-
-| 方式                 | 是否需要协同 | 适用场景                                | 对应 API                                                |
-| -------------------- | ------------ | --------------------------------------- | ------------------------------------------------------- |
-| 通过 `unitId`        | 需要         | 已启用协同、需要多人共享/继续协作的文档 | `importDocToUnitIdAsync` / `exportDocByUnitIdAsync`     |
-| 通过快照（snapshot） | 不需要       | 本地/单人/离线导入导出，或仅做格式转换  | `importDocToSnapshotAsync` / `exportDocBySnapshotAsync` |
-
-如果你的项目已接入协同（服务端可持久化文档并通过 `unitId` 打开），优先使用 `unitId` 路径；如果你不需要协同能力或只想在本地处理数据，使用快照路径。
-
-## 预设模式
-
-### 安装
-
-<Callout>
-  @univerjs/preset-docs-advanced 的 `UniverDocsAdvancedPreset` 预设在运行时依赖 `UniverDocsDrawingPreset` 预设，请先安装
-  @univerjs/preset-docs-drawing。
-</Callout>
-
-```package-install
-npm install @univerjs/preset-docs-drawing @univerjs/preset-docs-advanced
-```
-
-### 使用
-
-```typescript
-import { UniverDocsAdvancedPreset } from '@univerjs/preset-docs-advanced' // [!code ++]
-import UniverPresetDocsAdvancedZhCN from '@univerjs/preset-docs-advanced/locales/zh-CN' // [!code ++]
-import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
-import UniverPresetDocsCoreZhCN from '@univerjs/preset-docs-core/locales/zh-CN'
-import { UniverDocsDrawingPreset } from '@univerjs/preset-docs-drawing' // [!code ++]
-import UniverPresetDocsDrawingZhCN from '@univerjs/preset-docs-drawing/locales/zh-CN' // [!code ++]
-import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
-
-import '@univerjs/preset-docs-core/lib/index.css'
-import '@univerjs/preset-docs-drawing/lib/index.css' // [!code ++]
-import '@univerjs/preset-docs-advanced/lib/index.css' // [!code ++]
-
-const { univer, univerAPI } = createUniver({
-  locale: LocaleType.ZH_CN,
-  locales: {
-    [LocaleType.ZH_CN]: mergeLocales(
-      UniverPresetDocsCoreZhCN,
-      UniverPresetDocsDrawingZhCN, // [!code ++]
-      UniverPresetDocsAdvancedZhCN, // [!code ++]
-    ),
-  },
-  presets: [
-    UniverDocsCorePreset(),
-    UniverDocsDrawingPreset(), // [!code ++]
-    UniverDocsAdvancedPreset({
-      // [!code ++]
-      universerEndpoint: 'http://localhost:3010', // [!code ++]
-    }), // [!code ++]
-  ],
-})
-```
-
-如果你拥有 Univer 的商业许可证，请参考[在客户端使用许可证](/guides/pro/license#在预设模式中使用)进行配置。
-
-### 预设与配置
-
-`UniverDocsAdvancedPreset` 配置项：
-
-```typescript
-interface IUniverDocsAdvancedPresetConfig {
-  // Univer Server 的端点地址
-  universerEndpoint?: string
-  // Univer SDK Pro 商业许可证
-  license?: string
-}
-```
-
-## 插件模式
-
-### 安装
-
-```package-install
-npm install @univerjs-pro/exchange-client @univerjs-pro/docs-exchange-client
-```
-
-### 使用
-
-```typescript
-import { UniverDocsExchangeClientPlugin } from '@univerjs-pro/docs-exchange-client' // [!code ++]
-import DocsExchangeClientZhCN from '@univerjs-pro/docs-exchange-client/locale/zh-CN' // [!code ++]
-import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client' // [!code ++]
-import ExchangeClientZhCN from '@univerjs-pro/exchange-client/locale/zh-CN' // [!code ++]
-import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
-
-import '@univerjs-pro/exchange-client/facade' // [!code ++]
-import '@univerjs-pro/docs-exchange-client/facade' // [!code ++]
-
-import '@univerjs-pro/exchange-client/lib/index.css' // [!code ++]
-
-const univer = new Univer({
-  locale: LocaleType.ZH_CN,
-  locales: {
-    [LocaleType.ZH_CN]: mergeLocales(
-      ExchangeClientZhCN, // [!code ++]
-      DocsExchangeClientZhCN, // [!code ++]
-    ),
-  },
-})
-
-const UNIVER_SERVER_ENDPOINT = `http://localhost:8000` // [!code ++]
-
-univer.registerPlugin(UniverExchangeClientPlugin, {
-  // [!code ++]
-  uploadFileServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/stream/file/upload`, // [!code ++]
-  importServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/{type}/import`, // [!code ++]
-  exportServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/{type}/export`, // [!code ++]
-  getTaskServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/task/{taskID}`, // [!code ++]
-  signUrlServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/file/{fileID}/sign-url`, // [!code ++]
-  downloadEndpointUrl: `${UNIVER_SERVER_ENDPOINT}/`, // [!code ++]
-}) // [!code ++]
-univer.registerPlugin(UniverDocsExchangeClientPlugin) // [!code ++]
-```
-
-如果你拥有 Univer 的商业许可证，请参考[在客户端使用许可证](/guides/pro/license#在插件模式中使用)进行配置。
-
-### 插件与配置
-
-`UniverExchangeClientPlugin` 配置项：
-
-```typescript
-interface IUniverExchangeClientConfig {
-  // Univer Server 的配置
-  downloadEndpointUrl?: string
-  uploadFileServerUrl?: string
-  importServerUrl?: string
-  exportServerUrl?: string
-  getTaskServerUrl?: string
-  signUrlServerUrl?: string
-  // 最大超时时间，单位为毫秒
-  maxTimeoutTime?: number
-}
-```
+`.doc` 和 `.docx` 都使用下方的导入 API。导出统一生成 `.docx`，不支持导出旧版 `.doc`。
 
 ## Facade API
 
@@ -208,23 +71,16 @@ import '@univerjs-pro/docs-exchange-client/facade'
 在启用协同编辑的时候，每个文档都有一个唯一的 `unitId`。使用 `univerAPI.importDocToUnitIdAsync` 传入 `file` 参数会返回 `unitId`，可以通过 `unitId` 来访问文档。 `file` 参数可以是一个 `File` 对象，也可以是远程文件的 URL。
 
 ```typescript
-// 接受 File 对象
+import '@univerjs-pro/collaboration-client/facade'
+
 const unitId = await univerAPI.importDocToUnitIdAsync(file)
-// 或者接受远程文件的 URL
-// const unitId = await univerAPI.importDocToUnitIdAsync('https://example.com/filename.docx');
 
-// 配合协同编辑自动加载数据一同使用 https://docs.univer.ai/zh-CN/guides/docs/features/collaboration#loading-collaborative-documents
-const url = new URL(window.location.href)
-url.searchParams.set('unit', unitId)
-url.searchParams.set('type', '1') // 1 的意思是 String(UniverInstanceType.UNIVER_DOC)
-window.location.href = url.toString()
-
-// 或者调用API: univerAPI.loadServerUnit(unitId, 1) 加载文档，具体参数参考 /reference/facade/univer#loadserverunit
+if (unitId) {
+  await univerAPI.getCollaboration().loadDocAsync(unitId)
+}
 ```
 
 #### 导入 `.docx` 文件并获取 `IDocumentData`
-
-<Callout>快照导入不依赖协同服务，适合本地/单人/离线场景。需要协同文档请使用 `unitId` 导入。</Callout>
 
 使用 `univerAPI.importDocToSnapshotAsync` 导入 `.docx` 文件，会返回 `IDocumentData` 格式的文档数据。
 
@@ -235,7 +91,7 @@ const snapshot = await univerAPI.importDocToSnapshotAsync(file)
 // const snapshot = await univerAPI.importDocToSnapshotAsync('https://example.com/filename.docx');
 
 // 通过快照创建一个新的文档
-univerAPI.createDocument(snapshot)
+if (snapshot) univerAPI.createDocument(snapshot)
 ```
 
 ### 导出 `.docx`

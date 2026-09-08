@@ -1,0 +1,76 @@
+---
+title: 仪表盘与透视视图
+icon: '#pro/ChartColumn'
+---
+
+透视视图用于汇总一张表的数据，例如按地区统计销售额；仪表盘把图表、筛选控件、文字和图片放在同一个页面中。两者由独立插件提供，无需为了本地展示而接入协同服务。
+
+## 注册插件
+
+在 Bases 核心和 UI 插件之后注册：
+
+```package-install
+npm install @univerjs-pro/bases-dashboard @univerjs-pro/bases-dashboard-ui
+```
+
+```ts
+import { UniverBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+import { UniverBaseDashboardUIPlugin } from '@univerjs-pro/bases-dashboard-ui'
+
+import '@univerjs-pro/bases-dashboard/facade'
+
+univer.registerPlugin(UniverBaseDashboardPlugin)
+univer.registerPlugin(UniverBaseDashboardUIPlugin)
+```
+
+将新增包的语言资源合并到应用 `locales`。插件会声明图表、文档和形状等依赖；需要自定义这些依赖的配置时，先注册它们，再注册仪表盘插件。
+
+## 创建销售额透视视图
+
+下面创建一张示例表，按地区汇总销售额：
+
+```ts
+import { PivotTableFiledAreaEnum } from '@univerjs-pro/engine-pivot'
+
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('Open a Base first')
+
+const table = base.insertTable('Orders', { primaryFieldName: 'Region' })
+const revenue = table.addField('Revenue', univerAPI.Enum.BaseFieldType.Number)
+table.addRecords([
+  { values: { [table.getPrimaryFieldId()]: 'East', [revenue.getId()]: 120 } },
+  { values: { [table.getPrimaryFieldId()]: 'West', [revenue.getId()]: 80 } },
+])
+
+const pivot = base.createPivotView('Revenue by region', table.getId())
+const pivotTable = pivot.getPivotTable()
+pivotTable.addFieldWithSourceId(table.getPrimaryFieldId(), PivotTableFiledAreaEnum.Row)
+pivotTable.addFieldWithSourceId(revenue.getId(), PivotTableFiledAreaEnum.Value)
+pivot.updateConfig({ pivot: pivotTable.toJSON(), displayMode: 'chart-and-table' })
+
+const baseUI = univerAPI.getBaseUI()
+await baseUI.activateTable(table.getId())
+await baseUI.activateView(pivot.getId())
+```
+
+`getPivotTable()` 返回可单独修改的计算模型。修改后必须调用 `updateConfig()`，才会保存到 Base。`displayMode` 支持 `table`、`chart` 和 `chart-and-table`。
+
+## 将图表加入仪表盘
+
+```ts
+const dashboard = base.createDashboard('Sales overview')
+dashboard.addPivotChart(table.getId(), pivot.getId(), {
+  title: 'Revenue by region',
+  layout: { column: 0, row: 0, columnSpan: 6, rowSpan: 6 },
+})
+```
+
+图表引用已有透视视图。汇总字段和计算规则由透视视图管理，仪表盘负责组件布局和展示。创建后，可从 Bases 侧边栏打开仪表盘。
+
+仪表盘还提供 `addTableFilter()`、`addText()`、`addImage()` 和 `addFormulaShape()`，分别添加筛选控件、富文本、图片和公式形状。用 `getWidgets()` 读取组件，`removeWidget()` 删除组件。
+
+## 保存和权限
+
+使用 `base.save()` 保存完整快照，其中包含仪表盘资源；只保存表记录会丢失这些配置。恢复时先注册仪表盘插件，再加载快照。
+
+仪表盘和透视视图都有 `getPermission()`，可以单独设为只读，详见[权限](/guides/bases/features/core/permissions)。完整方法见 [Bases Facade](/reference/facade/bases)。

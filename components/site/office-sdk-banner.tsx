@@ -53,7 +53,7 @@ export function OfficeSdkBanner() {
       data-office-sdk-banner
       role="region"
     >
-      <div className="relative mx-auto flex min-h-12 max-w-384 items-center justify-center px-14 py-2 text-center text-xs sm:px-16 sm:text-sm lg:px-20">
+      <div className="relative mx-auto flex min-h-11 max-w-384 items-center justify-center px-14 py-1 text-center text-xs sm:min-h-9 sm:px-16 sm:text-sm lg:px-20">
         <p className="text-pretty">
           {t('message')}{' '}
           <a
@@ -68,7 +68,7 @@ export function OfficeSdkBanner() {
         </p>
         <Button
           aria-label={t('dismiss')}
-          className="text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground focus-visible:ring-primary-foreground/70 absolute top-1/2 right-1 size-11 -translate-y-1/2 sm:right-3 lg:right-5"
+          className="text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground focus-visible:ring-primary-foreground/70 absolute top-1/2 right-1 size-11 -translate-y-1/2 sm:right-3 sm:size-8 lg:right-5"
           size="icon"
           type="button"
           variant="ghost"

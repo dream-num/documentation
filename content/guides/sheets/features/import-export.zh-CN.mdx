@@ -3,6 +3,12 @@ title: 导入 & 导出
 icon: '#pro/FolderSync'
 ---
 
+<Callout type="warning">
+  如果使用 **0.25.x**，请阅读 [0.25.x 旧版 Pro 文档](https://dream-num.github.io/documentation/v0.25/zh-CN/guides/pro/)。新版接入使用自托管 Collaboration SDK，旧 Univer Server 的部署方式和 API 不适用。
+</Callout>
+
+下方 API 需要配套的转换后端。请先按[导入导出集成](/guides/server-integration/import-export)接好文件上传、转换、任务查询和下载，再配置前端插件。快照 API 也需要转换后端，但不要求创建协同文档。
+
 <MetaData
   lang="zh-CN"
   isPro
@@ -31,186 +37,15 @@ icon: '#pro/FolderSync'
   }}
 />
 
-<Callout type="warning" title="注意事项">
-  导入导出功能需要 Univer 服务端支持，请确保你已经正确安装并配置了 Univer 服务端。具体请参考：[升级到
-  Pro](/guides/sheets/getting-started/pro)
-</Callout>
+## 支持的格式
 
-导入和导出功能允许用户通过 Univer 服务端将 `.xlsx` 文件导入到 Univer 文档中，或将文档内容导出为 `.xlsx` 文件，便于与其他办公软件或平台进行交互。
+下表列出本页前端 API 支持的格式。Office 文件转换还需要后端支持对应的文档类型和格式。
 
-<PlaygroundFrame lang="zh-CN" slug="sheets/univer-pro-import-export" clickToShow />
+| 导入 | 导出 |
+| --- | --- |
+| `.xls`, `.xlsx`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` |
 
-<Callout title="为什么 Univer SDK 通过后端服务实现导入导出？">
-  仅通过前端实现的导入导出无论是从性能还是效果上来说都无法满足企业需求，因此我们提供了后端服务来实现导入导出功能。你可以通过一些开源的
-  XLSX 解析库将文件解析为符合 [`IWorksheetData`](https://reference.univer.ai/zh-CN/interfaces/IWorkbookData)
-  接口的数据结构，然后通过 Facade API 将数据导入到 Univer 中。
-</Callout>
-
-通过菜单栏的导入入口成功导入后，页面左下角会弹出提示框，显示导入成功的信息，并提供访问导入文档的链接。若默认的导入导出行为无法满足你的需求，请查看[《自定义导入文档》](/blog/custom-import)以了解如何自定义导入行为。
-
-## 如何选择导入/导出方式
-
-导入导出有两条路径，区别在于是否依赖协同服务：
-
-| 方式                 | 是否需要协同 | 适用场景                                | 对应 API                                                    |
-| -------------------- | ------------ | --------------------------------------- | ----------------------------------------------------------- |
-| 通过 `unitId`        | 需要         | 已启用协同、需要多人共享/继续协作的文档 | `importSheetToUnitIdAsync` / `exportSheetByUnitIdAsync`     |
-| 通过快照（snapshot） | 不需要       | 本地/单人/离线导入导出，或仅做格式转换  | `importSheetToSnapshotAsync` / `exportSheetBySnapshotAsync` |
-
-如果你的项目已接入协同（服务端可持久化文档并通过 `unitId` 打开），优先使用 `unitId` 路径；如果你不需要协同能力或只想在本地处理数据，使用快照路径。
-
-## 预设模式
-
-### 安装
-
-<Callout>
-  @univerjs/preset-sheets-advanced 的 `UniverSheetsAdvancedPreset` 预设在运行时依赖 `UniverSheetsDrawingPreset`
-  预设，请先安装 @univerjs/preset-sheets-drawing。
-</Callout>
-
-```package-install
-npm install @univerjs/preset-sheets-drawing @univerjs/preset-sheets-advanced
-```
-
-### 使用
-
-```typescript
-import { UniverSheetsAdvancedPreset } from '@univerjs/preset-sheets-advanced' // [!code ++]
-import UniverPresetSheetsAdvancedZhCN from '@univerjs/preset-sheets-advanced/locales/zh-CN' // [!code ++]
-import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
-import UniverPresetSheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
-import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing' // [!code ++]
-import UniverPresetSheetsDrawingZhCN from '@univerjs/preset-sheets-drawing/locales/zh-CN' // [!code ++]
-import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
-
-import '@univerjs/preset-sheets-core/lib/index.css'
-import '@univerjs/preset-sheets-drawing/lib/index.css' // [!code ++]
-import '@univerjs/preset-sheets-advanced/lib/index.css' // [!code ++]
-
-const { univerAPI } = createUniver({
-  locale: LocaleType.ZH_CN,
-  locales: {
-    [LocaleType.ZH_CN]: mergeLocales(
-      UniverPresetSheetsCoreZhCN,
-      UniverPresetSheetsDrawingZhCN, // [!code ++]
-      UniverPresetSheetsAdvancedZhCN, // [!code ++]
-    ),
-  },
-  presets: [
-    UniverSheetsCorePreset(),
-    UniverSheetsDrawingPreset(), // [!code ++]
-    UniverSheetsAdvancedPreset({
-      // [!code ++]
-      universerEndpoint: 'http://localhost:3010', // [!code ++]
-    }), // [!code ++]
-  ],
-})
-```
-
-如果你拥有 Univer 的商业许可证，请参考[在客户端使用许可证](/guides/pro/license#在预设模式中使用)进行配置。
-
-### 预设与配置
-
-`UniverSheetsAdvancedPreset` 配置项：
-
-```typescript
-interface IUniverSheetsAdvancedPresetConfig {
-  // Univer Server 的端口地址
-  universerEndpoint?: string
-  exchangeClientOptions?: {
-    // 导入后工作表的最小行数
-    minSheetRowCount?: number
-    // 导入后工作表的最小列数
-    minSheetColumnCount?: number
-    /**
-     * 导出是否启用服务器端公式计算。启用后，每次导出都会触发服务端公式计算。解决如下问题：
-     * 1. WPS 等办公软件打开文件时公式无默认值
-     * 2. EXCEL 不启用编辑，无法看到公式计算结果
-     * 3. 数组公式存在前缀@，导致无法展开计算结果
-     * 注意，此配置需要在协同编辑环境下使用，服务端配置文件需要配置 SSC_SERVER_ENABLED=true。
-     */
-    enableServerSideComputing?: boolean
-    /**
-     * 是否在导出时禁用将单元格图片转换为链接。
-     * 如果单元格图片源是一个 URL，默认行为是在导出时将该 URL 转换为单元格的值。
-     * 由于服务器会下载所有的资源文件，当图片较多时，会消耗大量资源并且耗时较长。
-     * @default true
-     */
-    disableCellImageConversion?: boolean
-    /**
-     * 导出时是否忽略 Table。
-     * @default false
-     */
-    ignoreTableExport?: boolean
-  }
-}
-```
-
-## 插件模式
-
-### 安装
-
-```package-install
-npm install @univerjs-pro/exchange-client @univerjs-pro/sheets-exchange-client
-```
-
-### 使用
-
-```typescript
-import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client' // [!code ++]
-import ExchangeClientZhCN from '@univerjs-pro/exchange-client/locale/zh-CN' // [!code ++]
-import { UniverSheetsExchangeClientPlugin } from '@univerjs-pro/sheets-exchange-client' // [!code ++]
-import SheetsExchangeClientZhCN from '@univerjs-pro/sheets-exchange-client/locale/zh-CN' // [!code ++]
-import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
-
-import '@univerjs-pro/exchange-client/facade' // [!code ++]
-import '@univerjs-pro/sheets-exchange-client/facade' // [!code ++]
-
-import '@univerjs-pro/exchange-client/lib/index.css' // [!code ++]
-
-const univer = new Univer({
-  locale: LocaleType.ZH_CN,
-  locales: {
-    [LocaleType.ZH_CN]: mergeLocales(
-      ExchangeClientZhCN, // [!code ++]
-      SheetsExchangeClientZhCN, // [!code ++]
-    ),
-  },
-})
-
-const UNIVER_SERVER_ENDPOINT = `http://localhost:8000` // [!code ++]
-
-univer.registerPlugin(UniverExchangeClientPlugin, {
-  // [!code ++]
-  uploadFileServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/stream/file/upload`, // [!code ++]
-  importServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/{type}/import`, // [!code ++]
-  exportServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/{type}/export`, // [!code ++]
-  getTaskServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/task/{taskID}`, // [!code ++]
-  signUrlServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/file/{fileID}/sign-url`, // [!code ++]
-  downloadEndpointUrl: `${UNIVER_SERVER_ENDPOINT}/`, // [!code ++]
-}) // [!code ++]
-univer.registerPlugin(UniverSheetsExchangeClientPlugin) // [!code ++]
-```
-
-如果你拥有 Univer 的商业许可证，请参考[在客户端使用许可证](/guides/pro/license#在插件模式中使用)进行配置。
-
-### 插件与配置
-
-`UniverExchangeClientPlugin` 配置项：
-
-```typescript
-interface IUniverExchangeClientConfig {
-  // Univer Server 的配置
-  downloadEndpointUrl?: string
-  uploadFileServerUrl?: string
-  importServerUrl?: string
-  exportServerUrl?: string
-  getTaskServerUrl?: string
-  signUrlServerUrl?: string
-  // 最大超时时间，单位为毫秒
-  maxTimeoutTime?: number
-}
-```
+CSV、TSV 每次导出一个工作表，不保留工作簿样式和多个工作表。导出时传入 `ExchangeFormat.CSV` 或 `ExchangeFormat.TSV` 及 `sheetId`；默认导出 XLSX。前端 API 不接受 `.xlsm`，即使转换后端支持该格式也不能直接传入。
 
 ## Facade API [#facade-api]
 
@@ -236,24 +71,16 @@ import '@univerjs-pro/sheets-exchange-client/facade'
 在启用协同编辑的时候，每个文档都有一个唯一的 `unitId`。使用 `univerAPI.importSheetToUnitIdAsync` 传入 `file` 参数会返回 `unitId`，可以通过 `unitId` 来访问文档。 `file` 参数可以是一个 `File` 对象，也可以是远程文件的 URL。
 
 ```typescript
-// 接受 File 对象
+import '@univerjs-pro/collaboration-client/facade'
+
 const unitId = await univerAPI.importSheetToUnitIdAsync(file)
-// 或者接受远程文件的 URL
-// const unitId = await univerAPI.importSheetToUnitIdAsync('https://example.com/filename.xlsx');
 
-// 配合协同编辑自动加载数据一同使用 https://docs.univer.ai/zh-CN/guides/sheets/features/collaboration#loading-collaborative-documents
-const url = new URL(window.location.href)
-url.searchParams.set('unit', unitId)
-url.searchParams.set('type', '2') // 2 的意思是 String(UniverInstanceType.UNIVER_SHEET)
-
-window.location.href = url.toString()
-
-// 或者调用API: univerAPI.loadServerUnit(unitId, 2) 加载文档，具体参数参考 /reference/facade/univer#loadserverunit
+if (unitId) {
+  await univerAPI.getCollaboration().loadSheetAsync(unitId)
+}
 ```
 
 #### 导入 `.xlsx` 文件并获取 `IWorkbookData`
-
-<Callout>快照导入不依赖协同服务，适合本地/单人/离线场景。需要协同文档请使用 `unitId` 导入。</Callout>
 
 使用 `univerAPI.importSheetToSnapshotAsync` 导入 `.xlsx` 文件，会返回 `IWorkbookData` 格式的文档数据。
 
@@ -264,7 +91,7 @@ const snapshot = await univerAPI.importSheetToSnapshotAsync(file)
 // const snapshot = await univerAPI.importSheetToSnapshotAsync('https://example.com/filename.xlsx');
 
 // 通过快照创建一个新的工作簿
-univerAPI.createWorkbook(snapshot)
+if (snapshot) univerAPI.createWorkbook(snapshot)
 ```
 
 ### 导出 `.xlsx`
@@ -294,30 +121,9 @@ if (file) univerAPI.downloadFile(file, 'univer', 'xlsx')
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
-const snapshot = fWorkbook.getSnapshot()
+const snapshot = fWorkbook.save()
 const file = await univerAPI.exportSheetBySnapshotAsync(snapshot)
 
 // 通过 Facade API 下载文件
 if (file) univerAPI.downloadFile(file, 'univer', 'xlsx')
-```
-
-## 在 Node.js 服务端进行数据转换 [#server-side-data-conversion]
-
-Univer 服务端提供了导入导出的 API，但是服务端转换的数据和 Univer 格式不一致。在 Node.js 进程中初始化 Univer 并注册 `@univerjs-pro/exchange-client` 后，请通过 Facade API 转换数据。
-
-### Snapshot 转化为 `IWorkbookData`
-
-导入后得到的 Snapshot JSON 数据需要转化为 `IWorkbookData` 格式的数据才能在 Univer 中使用。
-
-```typescript
-// json 数据包含 snapshot 和 sheetBlocks
-const workbookData = await univerAPI.transformSnapshotJsonToWorkbookDataAsync(json)
-```
-
-### `IWorkbookData` 转化为 Snapshot
-
-导出前需要将 `IWorkbookData` 格式的数据转化为 Snapshot JSON 数据，才能传给服务端进行导出。
-
-```typescript
-const snapshotJson = await univerAPI.transformWorkbookDataToSnapshotJsonAsync(workbookData)
 ```

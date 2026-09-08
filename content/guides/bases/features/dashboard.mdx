@@ -1,0 +1,76 @@
+---
+title: Dashboards and pivot views
+icon: '#pro/ChartColumn'
+---
+
+A pivot view summarizes a table, such as revenue by region. A dashboard combines charts, filters, text, and images on one page. Separate plugins provide these features; local display does not require collaboration.
+
+## Register the plugins
+
+Register these after the Bases core and UI plugins:
+
+```package-install
+npm install @univerjs-pro/bases-dashboard @univerjs-pro/bases-dashboard-ui
+```
+
+```ts
+import { UniverBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+import { UniverBaseDashboardUIPlugin } from '@univerjs-pro/bases-dashboard-ui'
+
+import '@univerjs-pro/bases-dashboard/facade'
+
+univer.registerPlugin(UniverBaseDashboardPlugin)
+univer.registerPlugin(UniverBaseDashboardUIPlugin)
+```
+
+Merge the added packages' locales into your application. The plugins declare chart, document, and shape dependencies. Register those dependencies first if you need custom configuration for them.
+
+## Create a revenue pivot view
+
+This example creates a table and groups revenue by region:
+
+```ts
+import { PivotTableFiledAreaEnum } from '@univerjs-pro/engine-pivot'
+
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('Open a Base first')
+
+const table = base.insertTable('Orders', { primaryFieldName: 'Region' })
+const revenue = table.addField('Revenue', univerAPI.Enum.BaseFieldType.Number)
+table.addRecords([
+  { values: { [table.getPrimaryFieldId()]: 'East', [revenue.getId()]: 120 } },
+  { values: { [table.getPrimaryFieldId()]: 'West', [revenue.getId()]: 80 } },
+])
+
+const pivot = base.createPivotView('Revenue by region', table.getId())
+const pivotTable = pivot.getPivotTable()
+pivotTable.addFieldWithSourceId(table.getPrimaryFieldId(), PivotTableFiledAreaEnum.Row)
+pivotTable.addFieldWithSourceId(revenue.getId(), PivotTableFiledAreaEnum.Value)
+pivot.updateConfig({ pivot: pivotTable.toJSON(), displayMode: 'chart-and-table' })
+
+const baseUI = univerAPI.getBaseUI()
+await baseUI.activateTable(table.getId())
+await baseUI.activateView(pivot.getId())
+```
+
+`getPivotTable()` returns a detached calculation model. Call `updateConfig()` after editing it to persist changes in the Base. `displayMode` accepts `table`, `chart`, or `chart-and-table`.
+
+## Add its chart to a dashboard
+
+```ts
+const dashboard = base.createDashboard('Sales overview')
+dashboard.addPivotChart(table.getId(), pivot.getId(), {
+  title: 'Revenue by region',
+  layout: { column: 0, row: 0, columnSpan: 6, rowSpan: 6 },
+})
+```
+
+The chart references an existing pivot view. That view owns aggregation fields and calculations; the dashboard owns layout and presentation. Open the new dashboard from the Bases sidebar.
+
+Use `addTableFilter()`, `addText()`, `addImage()`, and `addFormulaShape()` to add filters, rich text, images, and formula shapes. Read widgets with `getWidgets()` and remove them with `removeWidget()`.
+
+## Saving and permissions
+
+Save the complete snapshot with `base.save()`, including dashboard resources. Saving table records alone loses this configuration. Register the dashboard plugins before restoring a snapshot.
+
+Dashboards and pivot views expose `getPermission()` for individual read-only settings; see [permissions](/guides/bases/features/core/permissions). See [Bases Facade](/reference/facade/bases) for the full API.

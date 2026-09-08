@@ -3,6 +3,12 @@ title: 导入 & 导出
 icon: '#pro/FolderSync'
 ---
 
+<Callout type="warning">
+  如果使用 **0.25.x**，请阅读 [0.25.x 旧版 Pro 文档](https://dream-num.github.io/documentation/v0.25/zh-CN/guides/pro/)。新版接入使用自托管 Collaboration SDK，旧 Univer Server 的部署方式和 API 不适用。
+</Callout>
+
+下方 API 需要配套的转换后端。请先按[导入导出集成](/guides/server-integration/import-export)接好文件上传、转换、任务查询和下载，再配置前端插件。快照 API 也需要转换后端，但不要求创建协同文档。官方协同 Exchange 示例演示 Sheets，接入前请确认目标版本支持所需的文件类型。
+
 <MetaData
   lang="zh-CN"
   isPro
@@ -25,49 +31,15 @@ icon: '#pro/FolderSync'
   }}
 />
 
-## 概览
+## 支持的格式
 
-Slides 导入导出属于 Pro 能力。浏览器端需要注册通用 exchange client 和 Slides exchange client，实际的转换、任务轮询、存储和签名下载地址由你的 Pro 部署提供。
+下表列出本页前端 API 支持的格式。Office 文件转换还需要后端支持对应的文档类型和格式。
 
-```ts
-import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
-import ExchangeClientEnUS from '@univerjs-pro/exchange-client/locale/en-US'
-import { UniverSlidesExchangeClientPlugin } from '@univerjs-pro/slides-exchange-client'
-import SlidesExchangeClientEnUS from '@univerjs-pro/slides-exchange-client/locale/en-US'
+| 导入 | 导出 |
+| --- | --- |
+| `.ppt`, `.pptx` | `.pptx` |
 
-import '@univerjs-pro/exchange-client/lib/index.css'
-import '@univerjs-pro/exchange-client/facade'
-import '@univerjs-pro/slides-exchange-client/facade'
-
-univer.registerPlugin(UniverExchangeClientPlugin)
-univer.registerPlugin(UniverSlidesExchangeClientPlugin)
-```
-
-## 安装
-
-```package-install
-npm install @univerjs-pro/exchange-client @univerjs-pro/slides-exchange-client
-```
-
-## 配置端点
-
-`@univerjs-pro/slides-exchange-client` 依赖 `@univerjs-pro/exchange-client`。服务端地址配置在通用 exchange client 上，然后再注册 Slides client 来提供 PPTX 菜单操作。使用 Facade API 时需导入通用样式和 `@univerjs-pro/slides-exchange-client/facade`。
-
-```ts
-univer.registerPlugin(UniverExchangeClientPlugin, {
-  uploadFileServerUrl: '/universer-api/stream/file/upload',
-  importServerUrl: '/universer-api/exchange/{type}/import',
-  exportServerUrl: '/universer-api/exchange/{type}/export',
-  getTaskServerUrl: '/universer-api/exchange/task/{taskID}',
-  signUrlServerUrl: '/universer-api/file/{fileID}/sign-url',
-  downloadEndpointUrl: location.origin,
-  maxTimeoutTime: 120000,
-})
-
-univer.registerPlugin(UniverSlidesExchangeClientPlugin)
-```
-
-`{type}` 会被替换为 `UniverInstanceType.UNIVER_SLIDE`。导入可以返回服务端 unit id，也可以返回 snapshot JSON。导出会把 slide snapshot 上传到 exchange 服务，等待任务结果，给返回的 file id 签名，然后下载 PPTX 文件。
+`.ppt` 和 `.pptx` 都使用下方的导入 API，导出统一生成 `.pptx`。前端 API 不接受 `.pptm`、`.ppsx`、`.ppsm`、`.potx`；后端支持这些格式，不等于可以通过当前前端 API 导入。
 
 ## Facade API
 
@@ -106,18 +78,3 @@ const file = await univerAPI.exportSlideBySnapshotAsync(presentation.save())
 ```ts
 const file = await univerAPI.exportSlideByUnitIdAsync(unitId)
 ```
-
-## 菜单行为
-
-Slides exchange client 提供 PPTX 菜单操作：
-
-- `ImportPPTXOperation` 会在当前 URL 存在 `unit` query 参数时导入到已有 unit，否则导入为本地 snapshot。
-- `ExportPPTXOperation` 会按当前 slide deck 的 snapshot 导出。
-
-如果需要合并自定义菜单显隐或顺序，可以给 `UniverSlidesExchangeClientPlugin` 传入 `menu` 配置。
-
-## 相关设置
-
-- 先注册 `UniverSlidesPlugin`，确保 Slides unit 已经可用。
-- 使用 Pro 服务端 API 处理鉴权、存储、转换、任务轮询和签名下载地址。
-- 如果导入 PPTX 可能包含表格、图表或打印相关信息，请同时启用对应插件。

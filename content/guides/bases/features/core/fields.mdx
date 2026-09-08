@@ -4,6 +4,19 @@ title: Fields
 
 Fields define the schema of a Base table. Each field has a type, configuration, default value, and capabilities such as sorting, filtering, grouping, or card display.
 
+## Field types
+
+| Purpose | `BaseFieldType` |
+| --- | --- |
+| Text and contact details | `Text`, `Link`, `Phone`, `Email` |
+| Numbers and progress | `Number`, `Currency`, `Progress`, `Rating` |
+| Choices and members | `Checkbox`, `SingleSelect`, `MultiSelect`, `Person`, `Group` |
+| Dates and attachments | `Date`, `Attachment` |
+| Calculations and relationships | `Formula`, `RecordLink` |
+| Generated values and audit fields | `Numbering`, `RecordId`, `CreatedBy`, `UpdatedBy`, `CreatedAt`, `UpdatedAt` |
+
+Use option IDs for select values and application member IDs for people and groups. Numbering and audit fields are system-managed. See [formulas](/guides/bases/features/core/formulas) for calculations and [records, links, and hierarchy](/guides/bases/features/core/records) for relationships.
+
 ## Add fields
 
 ```ts
@@ -48,3 +61,40 @@ priority.changeType(univerAPI.Enum.BaseFieldType.Text, {})
 ```
 
 Changing a field type may normalize existing values. Validate data in your application before applying schema changes to production tables.
+
+## Attachment fields
+
+Attachments need a stable ID, name, and accessible source. This example assumes your application has already uploaded the file:
+
+```ts
+const attachments = table.addField('Files', univerAPI.Enum.BaseFieldType.Attachment)
+const record = table.getRecords()[0]
+if (!record) throw new Error('Create a record first')
+
+record.setAttachments(attachments.getId(), [{
+  id: 'brief-1',
+  name: 'brief.pdf',
+  mimeType: 'application/pdf',
+  source: 'https://example.com/files/brief.pdf',
+}])
+```
+
+`setAttachments()` replaces the whole cell's attachment list. Use `getAttachments()` to read it and `deleteAttachments()` to remove selected entries. Replace the example URL with an accessible file address.
+
+Configure upload handling in your existing Bases UI registration:
+
+```ts
+univer.registerPlugin(UniverBasesUIPlugin, {
+  attachment: {
+    accept: ['image/*', '.pdf'],
+    maxSize: 10 * 1024 * 1024,
+    upload: uploadAttachment,
+  },
+})
+```
+
+`uploadAttachment` is your application function, with signature `(file: File) => Promise<IBaseAttachment>`, returning attachment data like the example above. `maxSize` is in bytes. Without a custom uploader, the plugin tries image IO and then Base64, which increases snapshot size. For production, connect file storage and validate file type, size, and download permissions on the backend.
+
+## People and groups
+
+Provide picker candidates through the Bases UI plugin's `personOptions` and `groupOptions`. Each item has `id`, `name`, and optional `avatar`. These options configure display only; your application still owns login and access permissions.

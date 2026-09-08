@@ -3,6 +3,12 @@ title: Import & Export
 icon: '#pro/FolderSync'
 ---
 
+<Callout type="warning">
+  Using **0.25.x**? Read the [archived Pro documentation](https://dream-num.github.io/documentation/v0.25/zh-CN/guides/pro/). New integrations use the self-hosted Collaboration SDK; legacy Univer Server deployment and APIs do not apply.
+</Callout>
+
+The APIs below need a conversion backend. Follow [file exchange integration](/guides/server-integration/import-export) to connect uploads, conversion, task queries, and downloads, then configure the browser plugins. Snapshot APIs also need that backend, but do not require a collaborative document.
+
 <MetaData
   lang="en-US"
   isPro
@@ -31,187 +37,15 @@ icon: '#pro/FolderSync'
   }}
 />
 
-<Callout type="warning" title="Caution">
-  The import and export functionality requires support from the Univer server. Please ensure that you have correctly
-  installed and configured the Univer server. For details, please refer to: [Upgrading to Pro](/guides/pro)
-</Callout>
+## Supported formats
 
-Import and export functionality allows users to import `.xlsx` files into Univer documents or export document content as `.xlsx` files through the Univer server, facilitating interaction with other office software or platforms.
+The table describes the browser APIs on this page. Office file conversion requires a backend that supports the same document type and format.
 
-<PlaygroundFrame lang="en-US" slug="sheets/univer-pro-import-export" clickToShow />
+| Import | Export |
+| --- | --- |
+| `.xls`, `.xlsx`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` |
 
-<Callout title="Why does Univer SDK implement import and export through backend services?">
-  Importing and exporting implemented solely through the frontend cannot meet enterprise needs in terms of performance
-  and results. Therefore, we provide backend services to implement import and export functionality. You can use
-  open-source DOCX parsing libraries to parse files into data structures that conform to the `IDocumentData` interface,
-  and then use the Facade API to import data into Univer.
-</Callout>
-
-After successfully importing through the import entry in the menu bar, a notification will pop up in the lower left corner of the page, displaying information about the successful import and providing a link to access the imported document. If the default import and export behavior does not meet your needs, please refer to [Custom Import Documents](/blog/custom-import) to learn how to customize the import behavior.
-
-## How to Choose Import/Export
-
-There are two paths, depending on whether collaboration is required:
-
-| Path        | Requires Collaboration | Best For                                                 | API                                                         |
-| ----------- | ---------------------- | -------------------------------------------------------- | ----------------------------------------------------------- |
-| By `unitId` | Yes                    | Collaborative documents that are persisted on the server | `importSheetToUnitIdAsync` / `exportSheetByUnitIdAsync`     |
-| By snapshot | No                     | Local or offline workflows, or format conversion only    | `importSheetToSnapshotAsync` / `exportSheetBySnapshotAsync` |
-
-If your project uses collaboration (server-persisted docs opened via `unitId`), choose the `unitId` path. Otherwise, use the snapshot path.
-
-## Preset Mode
-
-### Installation
-
-<Callout>
-  The `UniverSheetsAdvancedPreset` preset from `@univerjs/preset-sheets-advanced` depends on the
-  `UniverSheetsDrawingPreset` preset at runtime. Please install `@univerjs/preset-sheets-drawing` first.
-</Callout>
-
-```package-install
-npm install @univerjs/preset-sheets-drawing @univerjs/preset-sheets-advanced
-```
-
-### Usage
-
-```typescript
-import { UniverSheetsAdvancedPreset } from '@univerjs/preset-sheets-advanced' // [!code ++]
-import UniverPresetSheetsAdvancedEnUS from '@univerjs/preset-sheets-advanced/locales/en-US' // [!code ++]
-import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
-import UniverPresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing' // [!code ++]
-import UniverPresetSheetsDrawingEnUS from '@univerjs/preset-sheets-drawing/locales/en-US' // [!code ++]
-import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
-
-import '@univerjs/preset-sheets-core/lib/index.css'
-import '@univerjs/preset-sheets-drawing/lib/index.css' // [!code ++]
-import '@univerjs/preset-sheets-advanced/lib/index.css' // [!code ++]
-
-const { univerAPI } = createUniver({
-  locale: LocaleType.EN_US,
-  locales: {
-    [LocaleType.EN_US]: mergeLocales(
-      UniverPresetSheetsCoreEnUS,
-      UniverPresetSheetsDrawingEnUS, // [!code ++]
-      UniverPresetSheetsAdvancedEnUS, // [!code ++]
-    ),
-  },
-  presets: [
-    UniverSheetsCorePreset(),
-    UniverSheetsDrawingPreset(), // [!code ++]
-    UniverSheetsAdvancedPreset({
-      // [!code ++]
-      universerEndpoint: 'http://localhost:3010', // [!code ++]
-    }), // [!code ++]
-  ],
-})
-```
-
-If you have a commercial license for Univer, please refer to [Using License in Client](/guides/pro/license#in-preset-mode) for configuration.
-
-### Presets and Configuration
-
-The configuration options for `UniverSheetsAdvancedPreset` are as follows:
-
-```typescript
-interface IUniverSheetsAdvancedPresetConfig {
-  // This is the endpoint for the Univer server
-  universerEndpoint?: string
-  exchangeClientOptions?: {
-    // The minimum number of rows in the imported worksheet
-    minSheetRowCount?: number
-    // The minimum number of columns in the imported worksheet
-    minSheetColumnCount?: number
-    /**
-     * Export whether to enable server-side formula calculation. When enabled, each export will trigger server-side formula calculation, addressing the following issues:
-     * 1. Formulas have no default values when opening files in office software like WPS
-     * 2. Excel does not show formula results unless editing is enabled
-     * 3. Array formulas with the @ prefix cannot expand calculation results
-     * Note: This configuration needs to be used in a collaborative editing environment, and the server configuration file needs to set `SSC_SERVER_ENABLED=true`.
-     */
-    enableServerSideComputing?: boolean
-    /**
-     * Whether to disable converting cell images to link on export.
-     * If the cell image source is a URL, the default behavior is to convert the url to the cell value on export.
-     * Because the server will download all the resource files, when there are many images, it will consume a lot of resources and take a long time.
-     * @default true
-     */
-    disableCellImageConversion?: boolean
-    /**
-     * Whether to ignore Table when exporting.
-     * @default false
-     */
-    ignoreTableExport?: boolean
-  }
-}
-```
-
-## Plugin Mode
-
-### Installation
-
-```package-install
-npm install @univerjs-pro/exchange-client @univerjs-pro/sheets-exchange-client
-```
-
-### Usage
-
-```typescript
-import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client' // [!code ++]
-import ExchangeClientEnUS from '@univerjs-pro/exchange-client/locale/en-US' // [!code ++]
-import { UniverSheetsExchangeClientPlugin } from '@univerjs-pro/sheets-exchange-client' // [!code ++]
-import SheetsExchangeClientEnUS from '@univerjs-pro/sheets-exchange-client/locale/en-US' // [!code ++]
-import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
-
-import '@univerjs-pro/exchange-client/facade' // [!code ++]
-import '@univerjs-pro/sheets-exchange-client/facade' // [!code ++]
-
-import '@univerjs-pro/exchange-client/lib/index.css' // [!code ++]
-
-const univer = new Univer({
-  locale: LocaleType.EN_US,
-  locales: {
-    [LocaleType.EN_US]: mergeLocales(
-      ExchangeClientEnUS, // [!code ++]
-      SheetsExchangeClientEnUS, // [!code ++]
-    ),
-  },
-})
-
-const UNIVER_SERVER_ENDPOINT = `http://localhost:8000` // [!code ++]
-
-univer.registerPlugin(UniverExchangeClientPlugin, {
-  // [!code ++]
-  uploadFileServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/stream/file/upload`, // [!code ++]
-  importServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/{type}/import`, // [!code ++]
-  exportServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/{type}/export`, // [!code ++]
-  getTaskServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/exchange/task/{taskID}`, // [!code ++]
-  signUrlServerUrl: `${UNIVER_SERVER_ENDPOINT}/universer-api/file/{fileID}/sign-url`, // [!code ++]
-  downloadEndpointUrl: `${UNIVER_SERVER_ENDPOINT}/`, // [!code ++]
-}) // [!code ++]
-univer.registerPlugin(UniverSheetsExchangeClientPlugin) // [!code ++]
-```
-
-If you have a commercial license for Univer, please refer to [Using License in Client](/guides/pro/license#in-plugin-mode) for configuration.
-
-### Plugins and Configuration
-
-The configuration options for `UniverExchangeClientPlugin` are as follows:
-
-```typescript
-interface IUniverExchangeClientConfig {
-  // Configuration for the Univer server
-  downloadEndpointUrl?: string
-  uploadFileServerUrl?: string
-  importServerUrl?: string
-  exportServerUrl?: string
-  getTaskServerUrl?: string
-  signUrlServerUrl?: string
-  // The maximum timeout time, in milliseconds
-  maxTimeoutTime?: number
-}
-```
+CSV and TSV export one worksheet. They do not preserve workbook formatting or multiple sheets. Pass `ExchangeFormat.CSV` or `ExchangeFormat.TSV` and the `sheetId` to the export API; XLSX is the default. The browser API does not accept `.xlsm`, even when the conversion backend supports it.
 
 ## Facade API [#facade-api]
 
@@ -239,19 +73,13 @@ import '@univerjs-pro/sheets-exchange-client/facade'
 When collaborative editing is enabled, each document has a unique `unitId`. Using `univerAPI.importSheetToUnitIdAsync` with the `file` parameter will return the `unitId`, which can be used to access the document. The `file` parameter can be a `File` object or a remote file URL.
 
 ```typescript
-// Accept a File object
+import '@univerjs-pro/collaboration-client/facade'
+
 const unitId = await univerAPI.importSheetToUnitIdAsync(file)
-// Or accept a remote file URL
-// const unitId = await univerAPI.importSheetToUnitIdAsync('https://example.com/filename.xlsx');
 
-// Using with collaborative editing to automatically load data https://docs.univer.ai/en-US/guides/docs/features/collaboration#loading-collaborative-documents
-const url = new URL(window.location.href)
-url.searchParams.set('unit', unitId)
-url.searchParams.set('type', '2') // The meaning of 2 is UniverInstanceType.UNIVER_SHEET
-
-window.location.href = url.toString()
-
-// Or call the API: univerAPI.loadServerUnit(unitId, 2) to load the document, refer to /reference/facade/univer#loadserverunit for specific parameters
+if (unitId) {
+  await univerAPI.getCollaboration().loadSheetAsync(unitId)
+}
 ```
 
 #### Import `.xlsx` file and get `IWorkbookData`
@@ -267,7 +95,7 @@ const snapshot = await univerAPI.importSheetToSnapshotAsync(file)
 // const snapshot = await univerAPI.importSheetToSnapshotAsync('https://example.com/filename.xlsx');
 
 // Create a new workbook via snapshot
-univerAPI.createWorkbook(snapshot)
+if (snapshot) univerAPI.createWorkbook(snapshot)
 ```
 
 ### Exporting `.xlsx`
@@ -297,30 +125,9 @@ Using `univerAPI.exportSheetBySnapshotAsync` with the `IWorkbookData` will retur
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
-const snapshot = fWorkbook.getSnapshot()
+const snapshot = fWorkbook.save()
 const file = await univerAPI.exportSheetBySnapshotAsync(snapshot)
 
 // Download the file through the Facade API
 if (file) univerAPI.downloadFile(file, 'univer', 'xlsx')
-```
-
-## Converting Data on the Node.js Server [#server-side-data-conversion]
-
-Univer server provides APIs for import and export, but the data format converted on the server does not match the Univer format. After initializing Univer and registering `@univerjs-pro/exchange-client` in the Node.js process, use the Facade API to transform the data.
-
-### Transform Snapshot to `IWorkbookData`
-
-After importing, the Snapshot JSON data needs to be transformed into the `IWorkbookData` format to be used in Univer.
-
-```typescript
-// The json data contains snapshot and sheetBlocks
-const workbookData = await univerAPI.transformSnapshotJsonToWorkbookDataAsync(json)
-```
-
-### Transform `IWorkbookData` to Snapshot JSON
-
-Before exporting, the `IWorkbookData` format data needs to be transformed into Snapshot JSON data, which can then be sent to the server for export.
-
-```typescript
-const snapshotJson = await univerAPI.transformWorkbookDataToSnapshotJsonAsync(workbookData)
 ```

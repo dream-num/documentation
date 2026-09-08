@@ -29,6 +29,8 @@ function getDocsSourceRef() {
 }
 
 const config: NextConfig = {
+  // MDX modules also need Next's server React and JSX runtime aliases.
+  pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'mdx'],
   webpack(webpackConfig, { dev, isServer }) {
     if (dev && !isServer) {
       const cssPlugin = webpackConfig.plugins.find(

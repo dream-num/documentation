@@ -1,0 +1,57 @@
+---
+title: 历史记录
+icon: '#pro/RotateCcwClock'
+---
+
+例如，修改幻灯片文字、形状或页面顺序后，可以打开历史记录查看先前版本、比较变化，并在有权限时恢复版本。历史记录读取服务端保存的版本；当前页面的撤销、重做不需要历史服务，两者不能互相替代。
+
+<Callout type="warning" title="0.25.x 用户">
+  如果使用 **0.25.x**，请阅读 [0.25.x 旧版 Pro 文档](https://dream-num.github.io/documentation/v0.25/zh-CN/guides/pro/)。
+</Callout>
+
+## 先准备协同和历史服务
+
+先按[协同集成](/guides/server-integration/collaboration)连接编辑器，并完成[许可证配置](/guides/server-integration/license)。确认两端能编辑同一份 Slides 文档，刷新后内容仍然保留。
+
+然后按 [Office 协同扩展模块](https://office.univer.ai/zh-CN/collaboration/extensions)和 [History 示例](https://office.univer.ai/zh-CN/collaboration/examples#history)接入历史服务、存储和权限。核心协同不会自动启用历史记录；后端还需提供历史列表、版本内容和恢复操作所需的能力。
+
+## 添加历史记录插件
+
+在已有产品、许可证和协同插件配置中添加以下代码。若预设或现有配置已注册这些插件，修改原配置即可，不要重复注册。
+
+```package-install
+npm install @univerjs-pro/edit-history @univerjs-pro/edit-history-ui @univerjs-pro/slides-history @univerjs-pro/slides-history-ui
+```
+
+```ts
+import { UniverEditHistoryPlugin } from '@univerjs-pro/edit-history'
+import EditHistoryLocale from '@univerjs-pro/edit-history-ui/locale/zh-CN'
+import { UniverSlidesHistoryPlugin } from '@univerjs-pro/slides-history'
+import { UniverSlidesHistoryUIPlugin } from '@univerjs-pro/slides-history-ui'
+import HistoryLocale from '@univerjs-pro/slides-history-ui/locale/zh-CN'
+import { LocaleType, mergeLocales } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history-ui/lib/index.css'
+
+const historyServerUrl = '/api/history'
+
+univerAPI.loadLocales(LocaleType.ZH_CN, mergeLocales(EditHistoryLocale, HistoryLocale))
+univer.registerPlugin(UniverEditHistoryPlugin, { historyServerUrl })
+univer.registerPlugin(UniverSlidesHistoryPlugin)
+univer.registerPlugin(UniverSlidesHistoryUIPlugin, {
+  univerContainerId: 'app',
+  historyServerUrl,
+})
+```
+
+`/api/history` 是示例地址，请替换成应用实际提供的历史接口地址，并确保接口与客户端请求匹配。两个 `historyServerUrl` 保持一致，`univerContainerId` 与编辑器容器的 DOM ID 一致。语言资源应与编辑器当前语言一致。
+
+历史查看器会创建独立的只读编辑器。如果文档包含自定义内容，通过 `viewerPlugins` 添加查看器尚未内置的插件；不要重复添加内置插件。
+
+## 查看和恢复版本
+
+从编辑器菜单打开历史记录，选择版本查看内容和变化。恢复版本会修改当前共享文档，应只向有恢复权限的用户开放，并由服务端再次检查权限。
+
+接入后，修改幻灯片文字、形状或页面顺序，等待协同确认，再检查历史列表和版本内容。重新打开应用及重启服务后再次读取；恢复一个旧版本后，确认另一个浏览器会话也收到恢复结果。
+
+如果面板为空，先检查历史服务是否记录了当前文档，以及请求中的文档 ID 和服务地址是否正确。版本能查看但无法恢复时，检查恢复权限和协同连接。历史版本可能包含后来删除的数据，读取历史也必须执行权限检查。

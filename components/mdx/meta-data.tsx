@@ -229,7 +229,7 @@ export function MetaData(props: {
         {isPro && (
           <Link
             className={`group inline-flex items-center gap-1 rounded-full bg-linear-[145deg,#18181B_0%,#71717A_48%,#27272A_100%] px-2.5 py-2 text-xs font-semibold text-zinc-50 no-underline shadow-[0_2px_8px_rgba(24,24,27,0.24)] ring-1 ring-black/10 transition-all hover:shadow-[0_4px_12px_rgba(24,24,27,0.3)] dark:bg-linear-[145deg,#FAFAFA_0%,#A1A1AA_48%,#E4E4E7_100%] dark:text-zinc-950 dark:shadow-[0_2px_8px_rgba(0,0,0,0.35)] dark:ring-white/10 hover:dark:shadow-[0_4px_12px_rgba(0,0,0,0.45)]`}
-            href="/guides/pro"
+            href="/guides/server-integration/license"
           >
             Univer SDK Pro
             <SparkleIcon className="size-2.5" />

@@ -1,0 +1,69 @@
+---
+title: Records, links, and hierarchy
+---
+
+A record represents a task, customer, order, or another business object. Use the Facade API to write batches, read pages, link tables, and organize parent-child records.
+
+## Create and read records
+
+```ts
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('Open a Base first')
+
+const table = base.insertTable('Tasks', { primaryFieldName: 'Title' })
+const titleId = table.getPrimaryFieldId()
+const records = table.addRecords([
+  { values: { [titleId]: 'Write documentation' } },
+  { values: { [titleId]: 'Review examples' } },
+])
+records[0].setValue(titleId, 'Publish documentation')
+
+const page = table.queryRecords({ offset: 0, limit: 20 })
+console.log(page.total, page.records)
+```
+
+Values use field IDs as keys by default. Pass `univerAPI.Enum.BaseFieldKeyEnum.Name` for data keyed by field names. `queryRecords()` queries loaded local data; it does not fetch backend pages. Use `viewId` to read a view's scope or `sort` to specify ordering.
+
+Delete a batch with `table.deleteRecords(recordIds)` or duplicate a record with `record.duplicate()`. These operations use the command system and support undo/redo.
+
+## Search records
+
+Search text within selected fields:
+
+```ts
+const matches = table.search({ query: 'documentation', fieldIds: [titleId], limit: 20 })
+console.log(matches)
+```
+
+## Link another table
+
+For example, link each task to a project:
+
+```ts
+const projects = base.insertTable('Projects', { primaryFieldName: 'Name' })
+const project = projects.addRecord({ [projects.getPrimaryFieldId()]: 'Website' })
+const projectField = table.addField('Project', univerAPI.Enum.BaseFieldType.RecordLink, {
+  field: { config: { targetTableId: projects.getId(), multiple: false } },
+})
+records[0].setLinkedRecordIds(projectField.getId(), [project.getId()])
+console.log(records[0].getLinkedRecordIds(projectField.getId()))
+```
+
+Targets must belong to the same Base. Set `multiple: true` for multiple linked records, `displayFieldId` for the displayed label, and `pickerFieldIds` for additional picker context. Use the link APIs to read and write IDs instead of constructing internal storage strings.
+
+## Parent-child records
+
+Make an API review a child of the documentation task:
+
+```ts
+const parent = records[0]
+const parentFieldId = table.getHierarchyFieldId()
+const child = parent.addChild(parentFieldId, { [titleId]: 'Check API examples' })
+console.log(child.getParent(parentFieldId)?.getId())
+
+child.setParent(parentFieldId, null)
+```
+
+The first child insertion creates the required parent-link field automatically. Use `getChildren()`, `getAncestors()`, and `getDescendants()` to read relationships. Hierarchies support up to five levels; self-parenting and cycles are rejected. Handle invalid-operation errors in your UI.
+
+Hierarchy belongs to table data and does not change when switching or filtering views. See [Bases Facade](/reference/facade/bases) for more methods.

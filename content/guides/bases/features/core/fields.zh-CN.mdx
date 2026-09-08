@@ -4,6 +4,19 @@ title: 字段
 
 字段定义 Base 表的结构。每个字段都有相应的类型、配置、默认值，并支持排序、筛选、分组或卡片展示等功能。
 
+## 字段类型
+
+| 用途 | `BaseFieldType` |
+| --- | --- |
+| 文本与联系方式 | `Text`、`Link`、`Phone`、`Email` |
+| 数值与进度 | `Number`、`Currency`、`Progress`、`Rating` |
+| 选择与成员 | `Checkbox`、`SingleSelect`、`MultiSelect`、`Person`、`Group` |
+| 日期与附件 | `Date`、`Attachment` |
+| 计算与关联 | `Formula`、`RecordLink` |
+| 自动生成与审计 | `Numbering`、`RecordId`、`CreatedBy`、`UpdatedBy`、`CreatedAt`、`UpdatedAt` |
+
+单选和多选值应使用选项 ID，人员和分组值使用业务成员 ID。自动编号和审计字段由系统管理，不能当作普通文本字段写入。公式用法见[公式字段](/guides/bases/features/core/formulas)，跨表关联和父子记录见[记录、关联与层级](/guides/bases/features/core/records)。
+
 ## 添加字段
 
 ```ts
@@ -48,3 +61,40 @@ priority.changeType(univerAPI.Enum.BaseFieldType.Text, {})
 ```
 
 更改字段类型可能会对现有值进行规范化处理。将结构变更应用到生产环境的表之前，请先在应用中验证数据。
+
+## 附件字段
+
+附件需要稳定的文件 ID、名称和可访问的来源。下面假设文件已经由业务系统上传：
+
+```ts
+const attachments = table.addField('Files', univerAPI.Enum.BaseFieldType.Attachment)
+const record = table.getRecords()[0]
+if (!record) throw new Error('Create a record first')
+
+record.setAttachments(attachments.getId(), [{
+  id: 'brief-1',
+  name: 'brief.pdf',
+  mimeType: 'application/pdf',
+  source: 'https://example.com/files/brief.pdf',
+}])
+```
+
+`setAttachments()` 替换整个单元格的附件列表；`getAttachments()` 读取附件，`deleteAttachments()` 移除指定项。示例 URL 请换成实际可访问的文件地址。
+
+在已有 Bases UI 注册处配置上传处理：
+
+```ts
+univer.registerPlugin(UniverBasesUIPlugin, {
+  attachment: {
+    accept: ['image/*', '.pdf'],
+    maxSize: 10 * 1024 * 1024,
+    upload: uploadAttachment,
+  },
+})
+```
+
+`uploadAttachment` 是你的业务上传函数，签名为 `(file: File) => Promise<IBaseAttachment>`，上传成功后返回上例中的附件数据。`maxSize` 的单位是字节。未配置上传函数时会尝试图片 IO，无法使用时转为 Base64，这会增加快照大小；正式应用应接入文件存储，并在后端校验文件类型、大小和下载权限。
+
+## 人员和分组
+
+通过 `UniverBasesUIPlugin` 的 `personOptions` 和 `groupOptions` 提供候选成员，每项包含 `id`、`name` 和可选 `avatar`。这些配置只负责选择器显示，实际登录和访问权限仍由业务应用管理。
