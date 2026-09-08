@@ -1,6 +1,9 @@
 import type { ShowcaseRegistry } from './types'
 
 export const showcase: ShowcaseRegistry = {
+  'bases/column-summaries': () => import('./bases/column-summaries'),
+  'slides/table-merge-and-borders': () => import('./slides/table-merge-and-borders'),
+  'sheets/logical-and-error-handling-formulas': () => import('./sheets/logical-and-error-handling-formulas'),
   'slides/native-tables': () => import('./slides/native-tables'),
   'sheets/date-and-time-formulas': () => import('./sheets/date-and-time-formulas'),
   'docs-modern/long-document': () => import('./docs-modern/long-document'),
