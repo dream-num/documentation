@@ -1,6 +1,9 @@
 import type { ShowcaseRegistry } from './types'
 
 export const showcase: ShowcaseRegistry = {
+  'bases/contact-and-link-fields': () => import('./bases/contact-and-link-fields'),
+  'boards/shape-rotation-and-flipping': () => import('./boards/shape-rotation-and-flipping'),
+  'docs-modern/superscript-and-subscript': () => import('./docs-modern/superscript-and-subscript'),
   'sheets/rounding-and-remainder-formulas': () => import('./sheets/rounding-and-remainder-formulas'),
   'sheets/statistical-summary-formulas': () => import('./sheets/statistical-summary-formulas'),
   'slides/paragraph-alignment-and-spacing': () => import('./slides/paragraph-alignment-and-spacing'),
