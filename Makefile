@@ -11,6 +11,7 @@ NPM_REGISTRY ?= ""
 BASE_IMAGE ?=
 HTTP_PROXY ?=
 PROXY_SSL ?= 
+NODE_MAX_OLD_SPACE_SIZE ?= 4096
 
 BUILDKIT_IMAGE_OPT =
 ifneq ($(strip $(BUILDKIT_IMAGE)),)
@@ -63,6 +64,7 @@ endif
 	$(HTTP_PROXY_ARG) \
 	--build-arg NEXT_POSTHOG_APIKEY=$(NEXT_POSTHOG_APIKEY) \
 	--build-arg NEXT_PUBLIC_DOCS_SOURCE_REF=$(NEXT_PUBLIC_DOCS_SOURCE_REF) \
+	--build-arg NODE_MAX_OLD_SPACE_SIZE=$(NODE_MAX_OLD_SPACE_SIZE) \
 	--builder $(BUILDER) \
 	--platform $(OSARCH) \
 	--progress=plain \
@@ -83,6 +85,7 @@ build_image: create_builder
 	$(ADD_HOST_OPT) \
 	--build-arg PROXY_SSL=$(PROXY_SSL) \
 	--build-arg NEXT_PUBLIC_DOCS_SOURCE_REF=$(NEXT_PUBLIC_DOCS_SOURCE_REF) \
+	--build-arg NODE_MAX_OLD_SPACE_SIZE=$(NODE_MAX_OLD_SPACE_SIZE) \
 	--builder $(BUILDER) \
 	--platform $(OSARCH) \
 	--file Dockerfile \
