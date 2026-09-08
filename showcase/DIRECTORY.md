@@ -33,11 +33,8 @@ not fake links or a claim of supported SDK functionality. Performance retains
 Large Samples, Benchmarks, Lifecycle & Memory; large samples are not benchmarks.
 Templates are not a directory category.
 
-Sheet-in-Sheet demos `embed/cross-unit-formula` (Harbor / Fare Sensitivity) and
-`embed/sheet-to-chart` (Tide / Channel Comparison) are retired from the runtime
-registry and catalog. Their source folders remain for reference and recovery;
-they are not published demo routes. Ordinary cross-workbook
-formulas and Sheets driving embedded Docs, Slides or Boards remain available.
+Sheet-in-Sheet embedding is excluded. Ordinary cross-workbook formulas and
+Sheets driving embedded Docs, Slides or Boards remain available.
 
 `COMPOSITIONS` contains reviewed display relationships, not runtime state or
 acceptance evidence. Update it when adding a composition case, and run
