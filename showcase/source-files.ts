@@ -51,7 +51,7 @@ export function prepareShowcaseSource(files: Files, packageVersions: Record<stri
   source['/pnpm-workspace.yaml'] ??= 'allowBuilds:\n  protobufjs: true\n'
   source['/src/vite-env.d.ts'] ??= '/// <reference types="vite/client" />\n'
   source['/index.html'] ??=
-    '<!doctype html>\n<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="data:,"><title>Univer SDK</title></head><body><div id="app"></div><script type="module" src="/src/index.ts"></script></body></html>\n'
+    '<!doctype html>\n<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="icon" href="data:,"><title>Univer SDK</title><style>html, body, #app { height: 100%; margin: 0; padding: 0; }</style></head><body><div id="app"></div><script type="module" src="/src/index.ts"></script></body></html>\n'
   source['/src/styles.css'] ??= 'html, body, #app { height: 100%; margin: 0; padding: 0; }\n'
   return { files: source, dependencies }
 }

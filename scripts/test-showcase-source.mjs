@@ -25,6 +25,7 @@ assert.equal(result.files['/pnpm-workspace.yaml'], 'allowBuilds:\n  protobufjs: 
 assert.equal(result.files['/src/vite-env.d.ts'], '/// <reference types="vite/client" />\n')
 assert.match(result.files['/index.html'], /src="\/src\/index.ts"/)
 assert.match(result.files['/index.html'], /<link rel="icon" href="data:,">/)
+assert.match(result.files['/index.html'], /html, body, #app \{ height: 100%; margin: 0; padding: 0; \}/)
 assert.equal(Object.keys(result.files).filter((name) => name.endsWith('/styles.css')).length, 1)
 assert.throws(() => prepareShowcaseSource({ '/x.ts': "import 'missing-package'" }, {}), /Missing dependency version/)
 assert.throws(() => prepareShowcaseSource({ 'src/x.ts': 'one', '/src/x.ts': 'two' }, {}), /Conflicting source/)

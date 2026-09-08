@@ -4,8 +4,6 @@ import type { ReactNode } from 'react'
 import { SandpackCodeEditor, SandpackFileExplorer, SandpackLayout, SandpackProvider } from '@codesandbox/sandpack-react'
 import { useTheme } from 'next-themes'
 
-import styles from './playground.module.css'
-
 export type Files = Record<string, string>
 
 interface IProps {
@@ -21,7 +19,7 @@ export function Playground(props: IProps) {
   const { theme } = useTheme()
 
   return (
-    <section className={styles.root}>
+    <section className="in-[body:fullscreen]:fixed in-[body:fullscreen]:inset-0">
       <SandpackProvider
         options={{ autorun: false, activeFile: '/src/index.ts' }}
         theme={theme === 'dark' ? 'dark' : 'light'}
@@ -31,12 +29,16 @@ export function Playground(props: IProps) {
         }}
         files={files}
       >
-        <SandpackLayout className={`grid! grid-cols-1 ${styles.layout}`}>
-          <div data-showcase-preview className={`min-w-0 ${styles.preview}`} style={{ height: previewHeight }}>
+        <SandpackLayout className="grid! grid-cols-1 in-[body:fullscreen]:block! in-[body:fullscreen]:h-dvh in-[body:fullscreen]:rounded-none! in-[body:fullscreen]:border-0!">
+          <div
+            data-showcase-preview
+            className="min-w-0 overflow-hidden in-[body:fullscreen]:h-full!"
+            style={{ height: previewHeight }}
+          >
             {preview}
           </div>
 
-          <div data-showcase-code className={`grid min-w-0 grid-cols-12 ${styles.code}`}>
+          <div data-showcase-code className="grid min-w-0 grid-cols-12 in-[body:fullscreen]:hidden">
             <SandpackFileExplorer className="col-span-3 h-180! border-r border-neutral-100 dark:border-neutral-800" />
             <SandpackCodeEditor
               className="col-span-9 h-180!"

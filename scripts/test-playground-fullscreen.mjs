@@ -60,7 +60,7 @@ if (!process.env.SHOWCASE_FULLSCREEN_BUILD)
   })
 // CSS is emitted after Rollup's ordinary generateBundle hooks in this Vite version.
 const stylesheets = (await fs.readdir(path.join(output, 'assets'))).filter((name) => name.endsWith('.css'))
-assert.ok(stylesheets.length, 'Include actual application, CSS module and official SDK styles')
+assert.ok(stylesheets.length, 'Include actual application and official SDK styles')
 await fs.writeFile(
   path.join(output, 'index.html'),
   `<!doctype html><html><head><link rel="icon" href="data:,">${stylesheets.map((name) => `<link rel="stylesheet" href="/assets/${name}">`).join('')}</head><body style="margin:0"><div id="app"></div><script type="module" src="/assets/harness.js"></script></body></html>`,
@@ -105,25 +105,29 @@ try {
     const originalHeight = await iframe.evaluate((el) => el.clientHeight)
     await page.getByRole('button', { name: 'Fullscreen preview', exact: true }).click()
     await page.waitForFunction(() => Boolean(document.fullscreenElement))
-    await frame.waitForFunction(() => document.documentElement.hasAttribute('data-showcase-preview-only'))
+    await frame.waitForFunction(() => document.fullscreenElement === document.body)
     assert.equal(await iframe.count(), 1, 'No second editor/iframe')
     const checkFit = async () => {
       await page.waitForFunction(() => {
-        const el = document.querySelector('[data-playground-frame]')
+        const el = document.querySelector('[data-playground-frame] iframe')
         return Math.abs(el.getBoundingClientRect().height - innerHeight) < 2
       })
       await frame.waitForFunction(
         () =>
           Math.abs(document.querySelector('[data-showcase-preview]').getBoundingClientRect().height - innerHeight) < 2,
       )
-      assert.equal(await frame.locator('[data-showcase-code]').isVisible(), false)
       assert.ok(
-        await frame.evaluate(
-          () =>
-            document.documentElement.scrollHeight <= innerHeight + 1 &&
-            document.documentElement.scrollWidth <= innerWidth + 1,
-        ),
+        await frame.evaluate(() => {
+            const previewElement = document.querySelector('[data-showcase-preview]')
+          return (
+              previewElement &&
+              !previewElement.querySelector('[data-showcase-code]') &&
+              previewElement.contains(document.elementFromPoint(innerWidth / 2, innerHeight - 2)) &&
+              Math.abs(previewElement.getBoundingClientRect().width - innerWidth) < 2
+          )
+        }),
       )
+      assert.equal(await frame.locator('[data-showcase-code]').isVisible(), false)
       assert.ok(
         await frame.evaluate(
           () =>
@@ -143,6 +147,12 @@ try {
     )
     snapshot = await frame.evaluate(() => window.univerAPI.getActiveWorkbook().save())
     await checkFit()
+    // A fullscreen element must also contain native popups, not just the canvas.
+    await frame.locator('input[value="Arial"]').first().click()
+    await frame.getByText('Verdana', { exact: true }).last().click()
+    snapshot = await frame.evaluate(() => window.univerAPI.getActiveWorkbook().save())
+    assert.ok(JSON.stringify(snapshot).includes('Verdana'), 'Native font menu updates the saved cell style')
+    await checkFit()
     await frame.evaluate(() => parent.postMessage({ type: 'setHeight', height: 9000 }, location.origin))
     await checkFit()
     await page.screenshot({ path: path.join(directory, `${locale}-fullscreen.png`) })
@@ -156,10 +166,10 @@ try {
     })
     await checkFit()
     await frame.evaluate(() => window.scrollTo(0, 9000))
-    assert.equal(await frame.evaluate(() => window.scrollY), 0, 'No outer document scrolling')
-    await page.getByRole('button', { name: locale === 'zh-CN' ? '退出全屏' : 'Exit fullscreen', exact: true }).click()
+    await checkFit()
+    await frame.evaluate(() => document.exitFullscreen())
     await page.waitForFunction(() => !document.fullscreenElement)
-    await frame.waitForFunction(() => !document.documentElement.hasAttribute('data-showcase-preview-only'))
+    await frame.waitForFunction(() => !document.fullscreenElement)
     assert.ok(await frame.locator('[data-showcase-code]').isVisible())
     assert.deepEqual(await frame.evaluate(() => window.univerAPI.getActiveWorkbook().save()), snapshot)
     assert.equal(await iframe.evaluate((el) => el.clientHeight), originalHeight)
@@ -167,13 +177,14 @@ try {
     await page.getByRole('button', { name: 'Fullscreen preview', exact: true }).click()
     await page.waitForFunction(() => Boolean(document.fullscreenElement))
     await page.evaluate(() => document.exitFullscreen())
-    await frame.waitForFunction(() => !document.documentElement.hasAttribute('data-showcase-preview-only'))
+    await frame.waitForFunction(() => !document.fullscreenElement)
     assert.ok(await frame.locator('[data-showcase-code]').isVisible())
     report.results.push({
       locale,
       sameOwnerAndCanvas: true,
       editedSnapshotPreserved: true,
       nativeEditingInFullscreen: true,
+      nativePopupInFullscreen: true,
       previewOnly: true,
       resize: true,
       exitRestoresCodeAndHeight: true,
