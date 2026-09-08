@@ -1,5 +1,14 @@
 # Univer SDK Showcase
 
+## Local validation artifacts
+
+Generated reports and transient screenshots belong in the ignored `test-results/`
+directory, not in version control. Historical delivery notes below and in individual
+demo READMEs may reference local reports or diagnostic scripts that are not shipped.
+Those references record past investigations, not runnable repository resources or
+current acceptance guarantees. Use the retained `package.json` test commands for
+supported checks; coverage evidence only lists maintained repository files.
+
 ## Willow and Driftwood native delivery
 
 Both current ten-file standalone exports were independently compared byte for
