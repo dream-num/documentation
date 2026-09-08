@@ -1,6 +1,9 @@
 import type { ShowcaseRegistry } from './types'
 
 export const showcase: ShowcaseRegistry = {
+  'sheets/working-day-formulas': () => import('./sheets/working-day-formulas'),
+  'sheets/lookup-formulas': () => import('./sheets/lookup-formulas'),
+  'sheets/text-cleaning-formulas': () => import('./sheets/text-cleaning-formulas'),
   'boards/images-fit-and-crop': () => import('./boards/images-fit-and-crop'),
   'sheets/formula-errors-and-recovery': () => import('./sheets/formula-errors-and-recovery'),
   'pdfs/text-boxes-and-typography': () => import('./pdfs/text-boxes-and-typography'),
