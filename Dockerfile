@@ -22,6 +22,7 @@ RUN corepack enable pnpm \
 # Environment variables
 ARG NEXT_POSTHOG_APIKEY=""
 ARG NEXT_PUBLIC_DOCS_SOURCE_REF="dev"
+ARG NODE_MAX_OLD_SPACE_SIZE="4096"
 RUN echo "NEXT_POSTHOG_APIKEY=${NEXT_POSTHOG_APIKEY}" >> .env
 ENV NEXT_PUBLIC_DOCS_SOURCE_REF=${NEXT_PUBLIC_DOCS_SOURCE_REF}
 
@@ -29,7 +30,7 @@ ENV NEXT_PUBLIC_DOCS_SOURCE_REF=${NEXT_PUBLIC_DOCS_SOURCE_REF}
 # Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line in case you want to disable telemetry during the build.
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm build
+RUN NODE_OPTIONS="--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE}" pnpm build
 
 # Production image, copy all the files and run next
 FROM base AS runner
