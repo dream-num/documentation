@@ -105,6 +105,7 @@ try {
     }
     assert.equal(bySlug['sheets/big-data'].category, 'performance')
     assert.equal(bySlug['docs/big-data'].category, 'performance')
+    assert.equal(bySlug['docs-modern/long-document'].category, 'performance')
     const atlas = bySlug['embed/slides-in-sheets-formula-float']
     assert.equal(atlas.composition.container, 'sheets')
     assert.deepEqual(atlas.composition.targets, ['slides'])

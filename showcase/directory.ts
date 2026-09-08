@@ -370,7 +370,7 @@ export function directoryPlacement(slug: string, metadata: ShowcaseMetadata, pro
   let category: DirectoryCategory = metadata.category === 'showcases' ? 'showcases' : 'features'
   let section: SectionId = product
   let group = metadata.group ?? label('Core Editing', '基础编辑')
-  if (['sheets/big-data', 'docs/big-data'].includes(slug)) {
+  if (['sheets/big-data', 'docs/big-data', 'docs-modern/long-document'].includes(slug)) {
     category = 'performance'
     group = GROUPS.samples
   } else if (

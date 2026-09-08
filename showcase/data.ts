@@ -1,6 +1,9 @@
 import type { ShowcaseRegistry } from './types'
 
 export const showcase: ShowcaseRegistry = {
+  'slides/native-tables': () => import('./slides/native-tables'),
+  'sheets/date-and-time-formulas': () => import('./sheets/date-and-time-formulas'),
+  'docs-modern/long-document': () => import('./docs-modern/long-document'),
   'bases/contact-and-link-fields': () => import('./bases/contact-and-link-fields'),
   'boards/shape-rotation-and-flipping': () => import('./boards/shape-rotation-and-flipping'),
   'docs-modern/superscript-and-subscript': () => import('./docs-modern/superscript-and-subscript'),
