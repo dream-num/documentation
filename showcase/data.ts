@@ -1,6 +1,10 @@
 import type { ShowcaseRegistry } from './types'
 
 export const showcase: ShowcaseRegistry = {
+  'sheets/conditional-summary-formulas': () => import('./sheets/conditional-summary-formulas'),
+  'sheets/cell-rich-text': () => import('./sheets/cell-rich-text'),
+  'sheets/cell-borders-and-gridlines': () => import('./sheets/cell-borders-and-gridlines'),
+  'sheets/autofill-series': () => import('./sheets/autofill-series'),
   'sheets/row-column-sizing-and-visibility': () => import('./sheets/row-column-sizing-and-visibility'),
   'sheets/named-ranges': () => import('./sheets/named-ranges'),
   'sheets/cell-text-layout': () => import('./sheets/cell-text-layout'),
