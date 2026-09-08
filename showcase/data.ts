@@ -1,6 +1,9 @@
 import type { ShowcaseRegistry } from './types'
 
 export const showcase: ShowcaseRegistry = {
+  'sheets/rounding-and-remainder-formulas': () => import('./sheets/rounding-and-remainder-formulas'),
+  'sheets/statistical-summary-formulas': () => import('./sheets/statistical-summary-formulas'),
+  'slides/paragraph-alignment-and-spacing': () => import('./slides/paragraph-alignment-and-spacing'),
   'sheets/table-styles-and-headers': () => import('./sheets/table-styles-and-headers'),
   'sheets/financial-cash-flow-formulas': () => import('./sheets/financial-cash-flow-formulas'),
   'sheets/let-and-lambda-formulas': () => import('./sheets/let-and-lambda-formulas'),

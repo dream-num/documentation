@@ -63,7 +63,7 @@ export function createPrintDemo(
     root.dataset.error = String(error)
     const alert = document.createElement('p')
     alert.setAttribute('role', 'alert')
-    alert.textContent = 'The Portfolio portfolio could not start. Reload to retry; details are in the console.'
+    alert.textContent = 'The portfolio could not start. Reload to retry; details are in the console.'
     root.prepend(alert)
   }
   function waitForCanvas() {

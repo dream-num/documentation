@@ -141,7 +141,7 @@ setTimeout(() => URL.revokeObjectURL(url), 1000)
 
 ### 12. Destroy and recreate the complete owner
 
-In `/src/index.ts`, where `container` and mutable `demo` are in scope (the standalone test exposes those bindings only in its harness):
+In `/src/index.ts`, where `container` and mutable `demo` are in scope:
 
 ```js
 const snapshot = structuredClone(demo.univerAPI.getActiveWorkbook().save())
@@ -154,14 +154,10 @@ await demo.ready
 
 Compare the complete before/after snapshots without removing IDs, resources or default fields. Print preferences are not silently appended to workbook JSON. History belongs to the disposed owner; a newly edited workbook must have fresh, independently working history.
 
-## Verification
+## Output and scope
 
-The default A4 portrait output is two 794 × 1124 canvases, split horizontally across the portfolio's eleven columns. The test saves every actual page PNG and the print-media DOM screenshot, checks nonempty pixels, SDK text drawing calls, paper dimensions and page-break CSS. Text calls can include clipped columns, so they are not an OCR/visibility assertion; inspect the saved page images for layout. This verifies generated browser-print content, not physical printer output or a PDF driver. Existing convenience-method and reconstruction failures remain separate regressions.
+At original scale, the eleven-column portfolio can span pages horizontally. Choose **Fit to width** to keep its columns together, or use the selected-range recipe for a smaller extract. Inspect the native preview before proceeding to the browser print dialog.
 
-The same test then selects native **Fit to width** and clicks NEXT again: the five holdings and all eleven columns fit on one actual A4 portrait page. Both locale-specific `*-fit-width.png` artifacts retain the complete column layout; printing cleanup again leaves the full workbook unchanged.
+Browser-generated pages do not verify physical printer output or a particular PDF driver. Print preferences are session state, not persisted workbook data. This example does not demonstrate server-side conversion or Office file export.
 
-A single follow-up run with error stacks and explicit rendering/afterprint/page-close phases did not reproduce the error. No SDK or teardown fix was applied; the earlier failure remains unresolved rather than reclassified as a test-only issue.
-
-PowerShell, from the documentation repository, selected case only (these repository test scripts are not included in the exported demo):
-
-For the standalone exported demo itself, run `npm install` followed by `npm run dev` in its directory.
+For the standalone exported demo, run `npm install` followed by `npm run dev` in its directory.
