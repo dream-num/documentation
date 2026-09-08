@@ -1,6 +1,9 @@
 import type { ShowcaseRegistry } from './types'
 
 export const showcase: ShowcaseRegistry = {
+  'sheets/pivot-table-layouts': () => import('./sheets/pivot-table-layouts'),
+  'boards/gradient-and-shadow': () => import('./boards/gradient-and-shadow'),
+  'pdfs/page-management': () => import('./pdfs/page-management'),
   'bases/column-summaries': () => import('./bases/column-summaries'),
   'slides/table-merge-and-borders': () => import('./slides/table-merge-and-borders'),
   'sheets/logical-and-error-handling-formulas': () => import('./sheets/logical-and-error-handling-formulas'),
