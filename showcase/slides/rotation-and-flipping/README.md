@@ -32,3 +32,5 @@ window.univerAPI.getActivePresentation().getSlideByIndex(0)
 ```
 
 Use native thumbnails and transform handles. Preview and export share the data factory, official CSS, complete English plugin locales and Grid ribbon. Shapes and labels are editable SDK objects, not SVG images or CSS transforms. This case does not demonstrate Docs flip behavior, text mirroring, animation or export fidelity.
+
+On a narrow preview, open the native zoom selector at the bottom right and choose 50% to see the whole slide. At 1024 px wide, the initial 100% view clips the slide; the example does not automatically fit it. Zoom changes the saved viewing ratio, not shape geometry or text.

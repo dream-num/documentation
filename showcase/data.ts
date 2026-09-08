@@ -1,6 +1,9 @@
 import type { ShowcaseRegistry } from './types'
 
 export const showcase: ShowcaseRegistry = {
+  'boards/shape-fill-and-outline': () => import('./boards/shape-fill-and-outline'),
+  'docs-traditional/paragraph-tab-stops': () => import('./docs-traditional/paragraph-tab-stops'),
+  'pdfs/page-insertion': () => import('./pdfs/page-insertion'),
   'docs-modern/inline-text-formatting': () => import('./docs-modern/inline-text-formatting'),
   'slides/rotation-and-flipping': () => import('./slides/rotation-and-flipping'),
   'bases/checkbox-and-rating-fields': () => import('./bases/checkbox-and-rating-fields'),
