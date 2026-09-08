@@ -1,6 +1,9 @@
 import type { ShowcaseRegistry } from './types'
 
 export const showcase: ShowcaseRegistry = {
+  'docs-modern/inline-text-formatting': () => import('./docs-modern/inline-text-formatting'),
+  'slides/rotation-and-flipping': () => import('./slides/rotation-and-flipping'),
+  'bases/checkbox-and-rating-fields': () => import('./bases/checkbox-and-rating-fields'),
   'sheets/conditional-summary-formulas': () => import('./sheets/conditional-summary-formulas'),
   'sheets/cell-rich-text': () => import('./sheets/cell-rich-text'),
   'sheets/cell-borders-and-gridlines': () => import('./sheets/cell-borders-and-gridlines'),
