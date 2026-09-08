@@ -1,4 +1,4 @@
-# Tidal / Canvas in Sheets Float
+# Tidal / Board in Sheets Float
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
@@ -7,7 +7,7 @@ official SDK styles remain shared by preview and export. Earlier EN/ZH reports
 below are historical interaction evidence, not current bilingual SDK acceptance.
 
 An original morning-shift training scenario pairs eight estimated cost lines
-with an editable dock-handoff Canvas. The $2,096 subtotal and 10% allowance total
+with an editable dock-handoff Board. The $2,096 subtotal and 10% allowance total
 $2,305.60. Six process nodes and six bound connectors distinguish a matched-count
 handoff from an unresolved crate count and a recheck loop.
 
@@ -17,14 +17,14 @@ authored content colors. No competitor artwork is redistributed.
 
 ## Native integration
 
-Sheets owns a real SheetFloating anchor and Embed loads a local Canvas through
+Sheets owns a real SheetFloating anchor and Embed loads a local Board through
 a provider honoring createOptions. The SDK owns the child canvas, native tools,
 activation and viewport fit. There is no iframe substitute or fixture panel.
 Sheets uses Grid. The shared factory imports thirteen official SDK stylesheets,
-including Canvases, Ink UI, shape-editor UI and Slides UI, for both preview and standalone.
-Embed's Canvas text editor depends on the shared Slides editor UI service in
+including Boards, Ink UI, shape-editor UI and Slides UI, for both preview and standalone.
+Embed's Board text editor depends on the shared Slides editor UI service in
 beta.2. Registering Slides plugins alone does not start their type-specific
-lifecycle without a Slides unit. The demo uses Canvases UI's public
+lifecycle without a Slides unit. The demo uses Boards UI's public
 registerRuntimeScopedDependencies extension point to provide an official
 EditorUIService owned by this child scope. It creates no dummy presentation
 and changes no installed SDK code.
@@ -45,7 +45,7 @@ run resolves it but fails the long text paint check due to native hyphenation.
 Shorter authored labels and a smaller node font fix the visible layout.
 
 `embed-board-float-history-focus` and `embed-board-float-production` additionally
-pass native Ctrl+Z/Ctrl+Y after a real pointer click establishes Canvas keyboard
+pass native Ctrl+Z/Ctrl+Y after a real pointer click establishes Board keyboard
 ownership. Host snapshots remain unchanged. The earlier history attempt without
 that pointer focus is retained as a failure, not a proven SDK history defect.
 
@@ -82,12 +82,12 @@ visible; no backend, Exchange conversion or Print workflow is registered.
 
 The preview updates its existing owner with `toggleDarkMode`. EN/ZH checks in
 `embed-sheet-board-themes-diagnostic` preserve both complete edited snapshots,
-then drag a native Canvas shape and unmount without browser errors. The host
+then drag a native Board shape and unmount without browser errors. The host
 value and child text changes in this check use public Facades; the shape drag
 uses real pointer input. This is not complete native keyboard/history coverage.
 The independent root now declares Arial/sans-serif and its startup failure alert
 is English-only. Official SDK CSS remains in the shared exported factory.
 
-Ink UI is a transitive Canvases UI dependency. Its official stylesheet is imported
+Ink UI is a transitive Boards UI dependency. Its official stylesheet is imported
 explicitly: the other SDK stylesheets do not supply all pen-toolbar positioning
 and dark-state rules. This source/CSS correction is not native pen acceptance.

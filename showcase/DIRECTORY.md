@@ -4,9 +4,9 @@ The visible directory is defined in `directory.ts` and projected by `catalog.ts`
 Existing source folders and URLs stay stable: moving a navigation entry does not
 copy its demo or change its capability acceptance status.
 
-Product display names are **Canvases** and **Relational Tables**, including the
+Product display names are **Boards** and **Bases**, including the
 EN/ZH directory, host filters, demo menus, guides and authored example content.
-Use Canvas / relational table when referring to an individual editable object.
+Use Board / base when referring to an individual editable object.
 Keep `boards`, `bases`, package imports, resource URLs, snapshot IDs and published
 SDK API names unchanged. Knowledge Base and a board of directors are unrelated
 business terms, not product names.
@@ -22,7 +22,7 @@ option. Do not patch SDK internals or disguise that remaining limitation.
 - Products: Features, Showcases, Performance, in that order.
 - Compose & Embed: Product Embedding, Cross-file Formula References, Showcases.
 - Customization & Integration: product first (Sheets, Modern Docs, Traditional
-  Docs, Slides, Canvases, Relational Tables, PDFs, Cross-product), then Customization / Integration.
+  Docs, Slides, Boards, Bases, PDFs, Cross-product), then Customization / Integration.
   These branches go directly to demos, keeping the tree at four levels. Topic
   groups remain searchable rather than adding another level. The current CRM,
   mount/dispose, lazy-load, multiple-instance and host-event cases all use Sheets;
@@ -46,7 +46,7 @@ Sheet-in-Sheet demos `embed/cross-unit-formula` (Harbor / Fare Sensitivity) and
 `embed/sheet-to-chart` (Tide / Channel Comparison) are retired from the runtime
 registry and catalog. Their source folders and regression evidence remain for
 reference and recovery; they are not published demo routes. Ordinary cross-workbook
-formulas and Sheets driving embedded Docs, Slides or Canvases remain available.
+formulas and Sheets driving embedded Docs, Slides or Boards remain available.
 
 `COMPOSITIONS` contains reviewed display relationships, not runtime state or
 acceptance evidence. Update it when adding a composition case, and run

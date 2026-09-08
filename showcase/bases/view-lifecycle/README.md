@@ -57,7 +57,7 @@ console.log(table.getViews().map(view => [view.getId(), view.getName()]))
 ## Scope
 
 Preview and standalone export share one independent factory, five complete English
-locale packs and four official stylesheets. Grid is configured; Relational Tables owns its native
+locale packs and four official stylesheets. Grid is configured; Bases owns its native
 toolbar and sidebar. Theme changes do not recreate the owner. No SDK modifications.
 
 Dashboard, personal/locked views, permissions, collaboration, native history and

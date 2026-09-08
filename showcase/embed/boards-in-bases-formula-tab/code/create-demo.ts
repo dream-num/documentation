@@ -103,57 +103,6 @@ export function createDemo(
         BoardsEnUS,
         ShapeEnUS,
         EmbedUnitEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'bases-ui': {
-            ...BasesUIEnUS['bases-ui'],
-            collaboration: {
-              ...BasesUIEnUS['bases-ui']['collaboration'],
-              localTooltip: 'Collaboration is disabled for these relational tables.',
-              notCollabTooltip: 'These relational tables are not in collaboration mode.',
-            },
-            fieldConfig: {
-              ...BasesUIEnUS['bases-ui']['fieldConfig'],
-              formulaReferenceError: 'A1 references and ranges are not supported in Relational Tables formulas.',
-              referenceCurrentField:
-                'Reference the "{0}" field in the current relational table. It will be saved as [[#This Row],[{1}]] for the formula engine.',
-            },
-            fieldMenu: {
-              ...BasesUIEnUS['bases-ui']['fieldMenu'],
-              createSharedBaseField: 'Create a shared Relational Tables field',
-            },
-            viewMenus: {
-              ...BasesUIEnUS['bases-ui']['viewMenus'],
-              setWorkingDaysDescription:
-                'Customize working days and days off, and apply them to the current relational tables',
-            },
-            formula: {
-              ...BasesUIEnUS['bases-ui']['formula'],
-              generic: {
-                ...BasesUIEnUS['bases-ui']['formula']['generic'],
-                engineDescription:
-                  '{0} is provided by the Univer formula engine. Relational Tables supports field references such as TableName[[#This Row],[Field]] and OtherTable[Field], but does not support A1 cells, A1:B10 ranges, or spilled array output in formula fields.',
-              },
-            },
-          },
-          'boards-ui': {
-            ...BoardsEnUS['boards-ui'],
-            settings: { ...BoardsEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
-          },
-          'shape-editor-ui': {
-            ...ShapeEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-          'embed-unit-ui': {
-            ...EmbedUnitEnUS['embed-unit-ui'],
-            referencedUnitViewer: {
-              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
-              base: 'Relational Tables',
-            },
-          },
-        },
       ),
     },
   })
@@ -259,7 +208,7 @@ export function createDemo(
       void (async () => {
         if (saved) {
           const embed = api.getEmbed({ hostUnitId: HOST_ID, embedId: 'reed-operations' })
-          if (!embed) throw new Error('The saved Reed Relational Table has no native canvas embed resource.')
+          if (!embed) throw new Error('The saved Reed Base has no native canvas embed resource.')
           await embed.loadAsync({ signal: abort.signal })
         } else {
           // Materialize the local board before restoring its native Base table-list anchor.

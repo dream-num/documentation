@@ -2,9 +2,9 @@
 
 This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
 
-A real Canvas tab lives beside its host Sheet in the native SheetBar. Six independent inputs drive fifteen Formula Shapes and three shape-bound connectors. **Canvas@Sheet Tab** describes composition; **Sheet -> Canvas** describes dependency. This is not a Float, manually regenerated dashboard or write-back service.
+A real Board tab lives beside its host Sheet in the native SheetBar. Six independent inputs drive fifteen Formula Shapes and three shape-bound connectors. **Board@Sheet Tab** describes composition; **Sheet -> Board** describes dependency. This is not a Float, manually regenerated dashboard or write-back service.
 
-The fictional community making studio compares low, relational table and high equivalent-unit volumes. Fixed cost is shared, unit contribution is after variable costs, and multipliers are scenarios rather than probabilities. Original plum, pale-gold, sage, slate and peach artwork borrows title/contrast hierarchy from the saved Gamma Budget Review cover, not its artwork.
+The fictional community making studio compares low, base and high equivalent-unit volumes. Fixed cost is shared, unit contribution is after variable costs, and multipliers are scenarios rather than probabilities. Original plum, pale-gold, sage, slate and peach artwork borrows title/contrast hierarchy from the saved Gamma Budget Review cover, not its artwork.
 
 ## Twenty-two literal examples
 
@@ -36,7 +36,7 @@ window.univerAPI.getWorkbook('juniper-workshop-model').getSheetBySheetId('assump
 
 ### 4. Change only the high scenario
 
-High multiplier becomes 1.4: 252 equivalent units, 5040 contribution, 2640 after fixed cost. Low and relational table results stay fixed.
+High multiplier becomes 1.4: 252 equivalent units, 5040 contribution, 2640 after fixed cost. Low and base results stay fixed.
 
 ```ts
 window.univerAPI.getWorkbook('juniper-workshop-model').getSheetBySheetId('assumptions').getRange('B13').setValue(1.4)
@@ -52,7 +52,7 @@ window.univerAPI.getWorkbook('juniper-workshop-model').getSheetBySheetId('assump
 
 ### 6. Change the base scenario independently
 
-Relational Table multiplier 0.9 gives 162 units, 3240 contribution and 840 after fixed cost. The reference-volume input is still 180.
+Base multiplier 0.9 gives 162 units, 3240 contribution and 840 after fixed cost. The reference-volume input is still 180.
 
 ```ts
 window.univerAPI.getWorkbook('juniper-workshop-model').getSheetBySheetId('assumptions').getRange('B12').setValue(0.9)
@@ -126,7 +126,7 @@ window.univerAPI.getWorkbook('juniper-workshop-model').setName('Juniper / Review
 
 ### 15. Prove a post-rename change
 
-Reference volume 175 updates all scenarios. Low / relational table / high units become 140 / 175 / 210.
+Reference volume 175 updates all scenarios. Low / base / high units become 140 / 175 / 210.
 
 ```ts
 window.univerAPI.getWorkbook('juniper-workshop-model').getSheetBySheetId('assumptions').getRange('B5').setValue(175)
@@ -158,7 +158,7 @@ window.univerAPI.getWorkbook('juniper-workshop-model').getSheetBySheetId('assump
 
 ### 19. Edit the authored workshop note
 
-Select Sensitivity workshop first. This native Canvas text edit does not write back to the Sheet or alter formulas.
+Select Sensitivity workshop first. This native Board text edit does not write back to the Sheet or alter formulas.
 
 ```ts
 window.univerAPI.getBoard('juniper-sensitivity-workshop').getShape('scenario-note-1').getText().setText('Reviewed / Keep the contribution assumption explicit.')
@@ -166,7 +166,7 @@ window.univerAPI.getBoard('juniper-sensitivity-workshop').getShape('scenario-not
 
 ### 20. Preview source Sheet Print
 
-Select the actual Sheet before opening its registered frontend Print plugin. This does not establish Canvas-to-PDF conversion fidelity.
+Select the actual Sheet before opening its registered frontend Print plugin. This does not establish Board-to-PDF conversion fidelity.
 
 ```ts
 window.univerAPI.getWorkbook('juniper-workshop-model').setActiveSheet('assumptions')
@@ -193,7 +193,7 @@ console.log({sheet:window.univerAPI.getWorkbook('juniper-workshop-model').save()
 
 Partial native runtime evidence: test-results/embed-juniper-formula-paper/report.json passes all twenty-two literal snippets and six selected gates, without browser errors, warnings or backend requests. Baseline quantities are 120 / 150 / 180, contributions 2160 / 2700 / 3240, after-cost values 360 / 900 / 1440, break-even 100 units and high-minus-low spread 1080. Values do not round equivalent units to whole products.
 
-Eighteen source steps alternate active Sheet and Canvas tabs. All fifteen current-canvas results, authored layout preservation, rendered shape-site connector routes, independent assumptions, blank/zero/text, native errors, rename and unavailable-source repair pass. Native Sheet keyboard input and exact Undo/Redo, separate Canvas text Facade history, fifteen complete EN/ZH dependency packs, whole-model light-dark-light and active-Canvas Tab disposal also pass. Source Print verifies the actual A4 paper with edited 175/22 inputs before cancellation, not just the dialog owner. Eleven-file standalone source/CSS parity is recorded in test-results/juniper-formula-export-ui/report.json.
+Eighteen source steps alternate active Sheet and Board tabs. All fifteen current-canvas results, authored layout preservation, rendered shape-site connector routes, independent assumptions, blank/zero/text, native errors, rename and unavailable-source repair pass. Native Sheet keyboard input and exact Undo/Redo, separate Board text Facade history, fifteen complete EN/ZH dependency packs, whole-model light-dark-light and active-Board Tab disposal also pass. Source Print verifies the actual A4 paper with edited 175/22 inputs before cancellation, not just the dialog owner. Eleven-file standalone source/CSS parity is recorded in test-results/juniper-formula-export-ui/report.json.
 
 The original source history probe exposed an implicit font-color entry after editing; explicit authored input colors now preserve the complete Sheet snapshots. The early Print screenshot was captured before paper paint, while the next test incorrectly excluded a Print portal inside the demo root. The corrected test targets the paper canvas itself. Neither correction patches SDK behavior or suppresses errors.
 

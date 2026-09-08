@@ -1,4 +1,4 @@
-# Fern / An editorial playbook inside a Relational Table
+# Fern / An editorial playbook inside a Base
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
@@ -11,7 +11,7 @@ guides, interviews and a photo essay across three linked issues: Everyday
 Water, After Hours and Repair Culture. Writers, word targets, draft stages
 and next checks vary by story. Issue dates are illustrative, not scheduled jobs.
 
-Open **Editorial playbook** in the native Relational Table list. A complete modern
+Open **Editorial playbook** in the native Base list. A complete modern
 Docs editor explains audience, story scope, evidence, voice, review and handoff.
 It is not a floating card, iframe, screenshot or traditional paginated document.
 The white native editor uses forest-green headings, warm rust for the review
@@ -40,15 +40,15 @@ window.univerAPI
 
 Use native Docs Undo/Redo, type in a paragraph and scroll to Handoff. Return to
 Assignments, then Editions. Rename Everyday Water to Water Stories: three
-linked assignment labels should follow the same edition ID. Relational Table history and
+linked assignment labels should follow the same edition ID. Base history and
 document history must remain independent. A stage named Review is a local
 record value, not an approval workflow or publishing command.
 
 ## Integration and acceptance
 
 The same createDemo factory supplies Preview and standalone source. Official
-Design, UI, Docs, Drawing, Relational Tables and Embed styles are imported and exported.
-The document uses Grid; Relational Table retains its native sidebar and table controls.
+Design, UI, Docs, Drawing, Bases and Embed styles are imported and exported.
+The document uses Grid; Base retains its native sidebar and table controls.
 Prepare, materialize and restore create a BasesTableListBlock anchor using
 tableIndex/tableName, following the local SDK host model. The provider accepts
 only this document ID and releases its owned resources on teardown.
@@ -56,7 +56,7 @@ only this document ID and releases its owned resources on teardown.
 Selected independent production verification passes at 1600px:
 `test-results/embed-doc-base-tab-production-final/report.json` covers both
 literal README examples, actual keyboard input, native Docs Ribbon and keyboard
-Undo/Redo, lower-section scrolling, native Relational Table edition rename and full-snapshot
+Undo/Redo, lower-section scrolling, native Base edition rename and full-snapshot
 Undo/Redo, three linked assignment labels with stable record IDs, tab navigation,
 live themes and active-child disposal. No browser errors or backend requests
 were observed. Host and document snapshots are checked independently.

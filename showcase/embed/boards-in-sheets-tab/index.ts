@@ -9,13 +9,13 @@ const metadata: ShowcaseMetadata = {
   image: '/assets/showcase/embed-boards-in-sheets-tab.png',
   previewHeight: 1040,
   group: { 'en-US': 'Sheets host / Tab', 'zh-CN': 'Sheets 宿主 / 标签嵌入' },
-  title: { 'en-US': 'Canvas in Sheets / Incident Review Tab', 'zh-CN': 'Canvas 嵌入 Sheets / 事故复盘标签' },
+  title: { 'en-US': 'Board in Sheets / Incident Review Tab', 'zh-CN': 'Board 嵌入 Sheets / 事故复盘标签' },
   description: {
     'en-US':
-      'An incident-cost workbook opens a native Canvas tab with a recovery timeline, a cause hypothesis and owned follow-ups.',
-    'zh-CN': '事故成本工作簿内置原生 Canvas 标签，展示恢复时间线、待确认原因与有责任人的改进事项。',
+      'An incident-cost workbook opens a native Board tab with a recovery timeline, a cause hypothesis and owned follow-ups.',
+    'zh-CN': '事故成本工作簿内置原生 Board 标签，展示恢复时间线、待确认原因与有责任人的改进事项。',
   },
-  tags: { 'en-US': ['Embed', 'Sheets', 'Canvases', 'Tab'], 'zh-CN': ['嵌入', '表格', 'Canvases', '标签'] },
+  tags: { 'en-US': ['Embed', 'Sheets', 'Boards', 'Tab'], 'zh-CN': ['嵌入', '表格', '白板', '标签'] },
   packages: [
     '@univerjs/core',
     '@univerjs/sheets-ui',
@@ -43,29 +43,29 @@ const metadata: ShowcaseMetadata = {
     tryIt: {
       'en-US': [
         'Review six assumptions in Loss estimate; quantities are highlighted in cream.',
-        'Select Incident timeline in the native sheet bar. Edit or reposition a Canvas card using native controls.',
-        'Return to Loss estimate and change B5 from 340 to 400. The planning envelope increases; Canvas edits remain independent.',
+        'Select Incident timeline in the native sheet bar. Edit or reposition a Board card using native controls.',
+        'Return to Loss estimate and change B5 from 340 to 400. The planning envelope increases; Board edits remain independent.',
         'Open Review gates to see the linked estimate and unresolved closure evidence.',
       ],
       'zh-CN': [
         '在 Loss estimate 查看六项假设，数量单元格以奶油色标注。',
-        '从原生工作表栏选择 Incident timeline，使用原生操作编辑或移动 Canvas 卡片。',
-        '返回 Loss estimate，把 B5 从 340 改为 400；规划金额增加，Canvas 修改保持独立。',
+        '从原生工作表栏选择 Incident timeline，使用原生操作编辑或移动 Board 卡片。',
+        '返回 Loss estimate，把 B5 从 340 改为 400；规划金额增加，Board 修改保持独立。',
         '打开 Review gates，查看关联成本与未完成的关闭证据。',
       ],
     },
     expected: {
       'en-US':
-        'SheetTab is a native peer tab, not a floating overlay or iframe. Switching tabs should preserve the local Canvas. Recovery does not confirm the root cause or approve closure. All data is fictional, reload loses edits, and this case provides no backend or Exchange/Print conversion. Boundary, lifecycle, accessibility and performance acceptance remain open.',
+        'SheetTab is a native peer tab, not a floating overlay or iframe. Switching tabs should preserve the local Board. Recovery does not confirm the root cause or approve closure. All data is fictional, reload loses edits, and this case provides no backend or Exchange/Print conversion. Boundary, lifecycle, accessibility and performance acceptance remain open.',
       'zh-CN':
-        'SheetTab 是原生同级标签，不是浮层或 iframe。切换标签应保留本地 Canvas。服务恢复不代表原因确认或批准关闭。数据均为虚构，刷新丢失修改；不提供后端或 Exchange/Print 转换。边界、生命周期、可访问性与性能仍待验收。',
+        'SheetTab 是原生同级标签，不是浮层或 iframe。切换标签应保留本地 Board。服务恢复不代表原因确认或批准关闭。数据均为虚构，刷新丢失修改；不提供后端或 Exchange/Print 转换。边界、生命周期、可访问性与性能仍待验收。',
     },
   },
   variants: [
     { id: 'cost', label: { 'en-US': 'Exposure estimate / Terracotta and cream', 'zh-CN': '影响估算 / 陶土与奶油色' } },
     {
       id: 'timeline',
-      label: { 'en-US': 'Incident timeline / Native Canvas tab', 'zh-CN': '故障时间线 / 原生 Canvas 标签' },
+      label: { 'en-US': 'Incident timeline / Native Board tab', 'zh-CN': '故障时间线 / 原生 Board 标签' },
     },
     { id: 'gates', label: { 'en-US': 'Review gates / Recovery is not closure', 'zh-CN': '复核关卡 / 恢复不等于关闭' } },
   ],

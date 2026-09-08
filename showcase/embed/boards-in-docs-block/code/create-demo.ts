@@ -63,19 +63,6 @@ export function createDemo(container: HTMLElement, darkMode = false, _legacyLoca
         BoardsUIEnUS,
         SlidesEnUS,
         ShapeEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'boards-ui': {
-            ...BoardsUIEnUS['boards-ui'],
-            settings: { ...BoardsUIEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
-          },
-          'shape-editor-ui': {
-            ...ShapeEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-        },
       ),
     },
   })
@@ -139,7 +126,7 @@ export function createDemo(container: HTMLElement, darkMode = false, _legacyLoca
                 input.ref.unit.selector !== CHILD_ID ||
                 input.unitType !== UniverInstanceType.UNIVER_BOARD
               )
-                throw new Error('Unknown Pine Canvas source')
+                throw new Error('Unknown Pine Board source')
               const instances = univer.__getInjector().get(IUniverInstanceService)
               if (!instances.getUnit(CHILD_ID, input.unitType))
                 instances.createUnit(input.unitType, createChildData(), input.createOptions)

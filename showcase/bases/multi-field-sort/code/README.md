@@ -2,7 +2,7 @@
 
 Native UI and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Bilingual runtime reports below describe earlier revisions, not acceptance of this English-only revision.
 
-The preview contains only the native Relational Table workbench. The original ten instruments retain distinct readiness scores, zones and calibration dates, including zero, a negative score, nulls and exact ties. There are no fixture selectors, custom sort/Inspect/Reset/Undo controls, limitation banners or audit panels. Native trial UI remains visible.
+The preview contains only the native Base workbench. The original ten instruments retain distinct readiness scores, zones and calibration dates, including zero, a negative score, nulls and exact ties. There are no fixture selectors, custom sort/Inspect/Reset/Undo controls, limitation banners or audit panels. Native trial UI remains visible.
 
 Preview and standalone share one factory, four official SDK stylesheets and all five English dependency packs. The runtime is always English; theme changes preserve the current owner and edits. No backend, custom comparator or SDK modification is used.
 

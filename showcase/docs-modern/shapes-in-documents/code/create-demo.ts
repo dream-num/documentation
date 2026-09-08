@@ -33,28 +33,7 @@ export function createDemo(container: HTMLElement, darkMode = false, _locale: Lo
     darkMode,
     locale: LocaleType.EN_US,
     locales: {
-      [LocaleType.EN_US]: mergeLocales(
-        DocsEnUS,
-        DrawingEnUS,
-        ShapeEnUS,
-        ShapeEditorEnUS,
-        EmbedUnitEnUS,
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'shape-editor-ui': {
-            ...ShapeEditorEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeEditorEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeEditorEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-          'embed-unit-ui': {
-            ...EmbedUnitEnUS['embed-unit-ui'],
-            referencedUnitViewer: {
-              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
-              base: 'Relational Tables',
-            },
-          },
-        },
-      ),
+      [LocaleType.EN_US]: mergeLocales(DocsEnUS, DrawingEnUS, ShapeEnUS, ShapeEditorEnUS, EmbedUnitEnUS),
     },
     presets: [
       UniverDocsCorePreset({ ribbonType: 'grid', container: root, header: true, toolbar: true, footer: true }),

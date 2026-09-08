@@ -58,7 +58,7 @@ export function createIncidentResponseDemo(
       !data.activePageId ||
       !data.pages?.[data.activePageId])
   )
-    throw new Error('Restore a Canvas ID and complete ordered pages with an active page.')
+    throw new Error('Restore a Board ID and complete ordered pages with an active page.')
   const root = document.createElement('div')
   root.className = 'incident-board'
   root.dataset.ready = 'false'
@@ -76,26 +76,6 @@ export function createIncidentResponseDemo(
         ShapeEditorEnUS,
         InkUIEnUS,
         EmbedUnitEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'boards-ui': {
-            ...BoardsUIEnUS['boards-ui'],
-            settings: { ...BoardsUIEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
-          },
-          'shape-editor-ui': {
-            ...ShapeEditorEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeEditorEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeEditorEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-          'embed-unit-ui': {
-            ...EmbedUnitEnUS['embed-unit-ui'],
-            referencedUnitViewer: {
-              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
-              base: 'Relational Tables',
-            },
-          },
-        },
       ),
     },
   })
@@ -128,7 +108,7 @@ export function createIncidentResponseDemo(
     }
     if (owner.univerAPI === api) delete owner.univerAPI
     root.remove()
-    if (errors.length) throw new AggregateError(errors, 'Incident Canvas cleanup failed')
+    if (errors.length) throw new AggregateError(errors, 'Incident Board cleanup failed')
   }
   try {
     univer.registerPlugin(UniverRenderEnginePlugin)
@@ -193,7 +173,7 @@ export function createIncidentResponseDemo(
       root.dataset.error = 'startup'
       const alert = document.createElement('p')
       alert.setAttribute('role', 'alert')
-      alert.textContent = 'The incident Canvas could not load. Reload to retry.'
+      alert.textContent = 'The incident Board could not load. Reload to retry.'
       root.prepend(alert)
       finish()
     }, 20000)

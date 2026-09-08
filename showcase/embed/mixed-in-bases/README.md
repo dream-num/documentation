@@ -7,9 +7,9 @@ not current bilingual SDK acceptance. English-only source/CSS/startup checks do
 not certify every native interaction or resolve the recorded SDK failures.
 
 A fictional touring-exhibition studio combines ten opportunities, six follow-ups
-linked to those opportunities, and four partner groups. Four native Relational Table
+linked to those opportunities, and four partner groups. Four native Base
 table-list tabs open a two-sheet forecast, modern delivery playbook, three-slide
-review and process Canvas. No custom product switcher, fixture toolbar or iframe
+review and process Board. No custom product switcher, fixture toolbar or iframe
 child substitutes are used. The documentation site's outer preview frame is not
 an embedded-product implementation.
 
@@ -17,7 +17,7 @@ an embedded-product implementation.
 
 Start with Opportunities, Follow-ups and Accounts. Each product tab owns a real
 SDK unit: Weighted forecast, Delivery playbook, Studio review, Service blueprint.
-The native Grid ribbon is used where applicable; Relational Table retains its own official
+The native Grid ribbon is used where applicable; Base retains its own official
 table UI. Use those menus for ordinary editing, formatting and Undo/Redo.
 
 Forecast begins at USD 375,500 gross and USD 228,400 weighted. Its ten rows use
@@ -25,7 +25,7 @@ VLOOKUP into Assumptions and ROUND on each result. Changing the Qualified weight
 from 40% to 50% changes three opportunities and the weighted total to USD 236,650.
 The USD 180,000 target is an illustrative planning input, not booked revenue.
 
-Written totals in the playbook and review are authored baselines. Relational Table values,
+Written totals in the playbook and review are authored baselines. Base values,
 Sheet values, prose and shapes are independent after startup. This case does not
 claim Formula Shape, CustomRange or automatic cross-product synchronization.
 
@@ -71,15 +71,15 @@ window.univerAPI.getBase('acorn-studio-operations').getTableById('tasks').getRec
 Preview and independent export execute the same create-demo.ts and data.ts.
 The export includes the official SDK CSS imports, the small container stylesheet
 and the React preview reference files. Color is authored in content: navy/cyan,
-sand inputs, mint totals, warm portfolio cards, plum review and multicolor Canvas
+sand inputs, mint totals, warm portfolio cards, plum review and multicolor Board
 nodes. No CSS overrides the native white workbench or removes license marks.
 
-The native Relational Table tab path uses exported EmbedCreationService and
+The native Base tab path uses exported EmbedCreationService and
 EmbedHostRestoreService to materialize a child before inserting its native
 table-list anchor. This setup is not claimed to be Facade-only; the five editing
 examples above use the public Facade. Providers match exact unit ID and type,
-honor cancellation and reject unknown sources. Slides initializes before Canvas;
-the Canvas's public runtime-scope dependency extension follows Canvas startup.
+honor cancellation and reject unknown sources. Slides initializes before Board;
+the Board's public runtime-scope dependency extension follows Board startup.
 
 Open the Sheet tab and select Forecast before using Print. Undo/Redo of an
 Assumptions edit can activate Assumptions instead. The public async call
@@ -100,21 +100,21 @@ Selected runtime evidence is partial, not complete acceptance:
 - `test-results/embed-mixed-bases-keyboard/report.json` verifies four native tabs,
   three Slides layouts, all five literal examples and model ownership, stage-weight
   recalculation, native Sheet input from 52,000 to 56,000 with Undo/Redo after
-  initialization, Relational Table partner rename with stable linked IDs, one-page Forecast
-  Print preview/cancel, normal navigation and selected active-Canvas disposal.
+  initialization, Base partner rename with stable linked IDs, one-page Forecast
+  Print preview/cancel, normal navigation and selected active-Board disposal.
   No browser errors or backend requests were observed in that run.
 - That strict report remains FAIL: first Undo creates empty validation arrays in
-  both touched worksheets and empty attachment maps in generated Relational Table tab tables.
+  both touched worksheets and empty attachment maps in generated Base tab tables.
   Values restore; this is not proven data loss. No snapshot normalization hides it.
 - `scripts/test-embed-base-tab-reselect.mjs` is a separate failing native navigation
   regression. Clicking the already-selected Weighted forecast tab again moves the
-  Relational Table canvas over the sidebar and blocks the next tab click. Reload restores the
+  Base canvas over the sidebar and blocks the next tab click. Reload restores the
   workspace. No custom controls, pointer-event override or SDK patch is used.
 - EN/ZH guide/theme checks preserve the API owner and five models, allowing only
-  native Canvas palette regeneration with the same theme ID. Independent export
+  native Board palette regeneration with the same theme ID. Independent export
   checks eleven exact source files and official SDK CSS imports.
 
-The first ribbon assertion searched inside the child, but the native Relational Table tab
+The first ribbon assertion searched inside the child, but the native Base tab
 replaces the shared host ribbon. It now checks the shared Grid's embed owner.
 The initial Print probe selected Assumptions through history while expecting
 Forecast; explicit native Forecast selection fixes that test expectation. A text
@@ -131,5 +131,5 @@ listener warning. These are observations, not performance acceptance. There is
 no Exchange conversion, actual PDF output or collaborative history in this case.
 
 The shared factory explicitly imports the official Ink UI English pack and CSS
-required by the registered Canvases UI dependency. Other product locale packs and
+required by the registered Boards UI dependency. Other product locale packs and
 styles remain intact. This is resource coverage, not native pen acceptance.

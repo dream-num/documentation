@@ -2,13 +2,13 @@
 
 This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
 
-Twelve original fictional release records drive twelve native inline formulas in a modern Doc embedded in the Relational Table list. This is **Doc@Relational Table Tab**, with **Relational Table -> Doc** calculation: embedding direction does not imply write-back.
+Twelve original fictional release records drive twelve native inline formulas in a modern Doc embedded in the Base list. This is **Doc@Base Tab**, with **Base -> Doc** calculation: embedding direction does not imply write-back.
 
 No hidden Sheet, JavaScript aggregation, generated prose or extra control panel. Native Grid ribbon and complete English dependency packs are included with official CSS in the standalone export. Authored content is English.
 
 ## Twenty literal examples
 
-Run in order in the standalone page or demo iframe. Switch between Changes and Release notes through native Relational Table navigation. Source changes must update formulas even while the other tab is selected; no manual refresh is required. Each formula has a stable external source binding.
+Run in order in the standalone page or demo iframe. Switch between Changes and Release notes through native Base navigation. Source changes must update formulas even while the other tab is selected; no manual refresh is required. Each formula has a stable external source binding.
 
 ### 1. Finish one review
 
@@ -118,9 +118,9 @@ for (let i = 1; i <= 12; i++) {
 }
 ```
 
-### 13. Rename the Relational Table display label
+### 13. Rename the Base display label
 
-The document binds the original qualifier to a stable Relational Table ID. Renaming the workspace must not detach it.
+The document binds the original qualifier to a stable Base ID. Renaming the workspace must not detach it.
 
 ```ts
 window.univerAPI.getBase('ember-release-register').setName('Ember / Release review')
@@ -144,7 +144,7 @@ window.univerAPI.getFormula().upsertExternalReference({ unitId: 'ember-release-n
 
 ### 16. Repair the actual source binding
 
-Restore the original stable Relational Table ID. Current values return without re-inserting formulas or replacing prose.
+Restore the original stable Base ID. Current values return without re-inserting formulas or replacing prose.
 
 ```ts
 window.univerAPI.getFormula().upsertExternalReference({ unitId: 'ember-release-notes', qualifier: 'Ember Release', sourceUnitId: 'ember-release-register', sourceUnitType: window.univerAPI.Enum.UniverInstanceType.UNIVER_BASE })
@@ -152,7 +152,7 @@ window.univerAPI.getFormula().upsertExternalReference({ unitId: 'ember-release-n
 
 ### 17. Reject an invalid numeric value
 
-Unlike a Sheet cell, this Relational Table Number field rejects non-numeric text. The call returns false and the SDK logs an invalid-number error. Migration remains 10 hours and every result stays unchanged. Keep this rejection visible; do not substitute zero or claim an import succeeded.
+Unlike a Sheet cell, this Base Number field rejects non-numeric text. The call returns false and the SDK logs an invalid-number error. Migration remains 10 hours and every result stays unchanged. Keep this rejection visible; do not substitute zero or claim an import succeeded.
 
 ```ts
 const accepted = window.univerAPI.getBase('ember-release-register').getTableById('changes').getRecordById('change-11').setValue('hours', 'Unpriced')
@@ -169,7 +169,7 @@ window.univerAPI.getBase('ember-release-register').getTableById('changes').getRe
 
 ### 19. Edit the authored review line
 
-Select Release notes first. This changes prose, not Relational Table records or formulas. Click inside the document to give keyboard shortcuts an editing target; selecting its Relational Table navigation item alone does not focus document text. Explicit document undo/redo is a separate Facade path.
+Select Release notes first. This changes prose, not Base records or formulas. Click inside the document to give keyboard shortcuts an editing target; selecting its Base navigation item alone does not focus document text. Explicit document undo/redo is a separate Facade path.
 
 ```ts
 window.univerAPI.getDocument('ember-release-notes').getParagraphs()[2].setText('Editorial draft / Reviewed by Noor')
@@ -185,9 +185,9 @@ console.log({ base: window.univerAPI.getBase('ember-release-register').save(), d
 
 ## Boundaries and acceptance
 
-Partial runtime evidence: test-results/embed-ember-formula-final/report.json runs all twenty literal examples. Eighteen source steps alternate Relational Table-visible and Doc-visible tabs, update twelve current-canvas results and preserve the complete authored body. Baseline is 12 records, 9 Complete, 2 Review, 1 Blocked; 75% complete; 12.5 remaining hours, 8 blocked hours and 4.1667 hours per unfinished row; 4 completed features, 3 fixes and 2 guides. Projected filter row IDs, hidden edits, null versus zero, numeric rejection, empty queues, rename, unavailable source and same-source repair have evidence. Status is manually maintained; unknown estimates and view filters are not completed work or scoped totals.
+Partial runtime evidence: test-results/embed-ember-formula-final/report.json runs all twenty literal examples. Eighteen source steps alternate Base-visible and Doc-visible tabs, update twelve current-canvas results and preserve the complete authored body. Baseline is 12 records, 9 Complete, 2 Review, 1 Blocked; 75% complete; 12.5 remaining hours, 8 blocked hours and 4.1667 hours per unfinished row; 4 completed features, 3 fixes and 2 guides. Projected filter row IDs, hidden edits, null versus zero, numeric rejection, empty queues, rename, unavailable source and same-source repair have evidence. Status is manually maintained; unknown estimates and view filters are not completed work or scoped totals.
 
-Native Relational Table typing with exact serialized Undo/Redo passes. Native Doc content-click, typing and body Undo/Redo preserve the Relational Table. Selecting the navigation item alone does not focus the document: keyboard Undo then leaves both owners unchanged. Explicit FDocument Undo/Redo restores authored content, formula IDs, expressions and formats; full Redo equality passes. Full Undo snapshot equality fails on native DOC_FORMULA_PLUGIN lastValue caches. Raw snapshots retain the strict comparison separately from authored-state checks; no cache is rewritten by the application.
+Native Base typing with exact serialized Undo/Redo passes. Native Doc content-click, typing and body Undo/Redo preserve the Base. Selecting the navigation item alone does not focus the document: keyboard Undo then leaves both owners unchanged. Explicit FDocument Undo/Redo restores authored content, formula IDs, expressions and formats; full Redo equality passes. Full Undo snapshot equality fails on native DOC_FORMULA_PLUGIN lastValue caches. Raw snapshots retain the strict comparison separately from authored-state checks; no cache is rewritten by the application.
 
 The strict report remains FAIL: twelve native error results are classified success/string, both EN/ZH formula-editor Number format buttons are intercepted by another popup layer, and full Doc Undo has the cache difference above. Ten complete locale packs are checked leaf-by-leaf independently of pointer interaction; both-model theme cycles and active-Doc Tab disposal pass. One deliberate invalid-number rejection is recorded with its SDK console error; there are no unexpected browser errors, warnings or backend requests. Independent eleven-file source/CSS checks pass at test-results/ember-formula-export-ui/report.json; nine official stylesheets retain the native white workbench.
 

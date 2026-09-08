@@ -15,8 +15,8 @@ const metadata: ShowcaseMetadata = {
     'zh-CN': '用 16 条不同记录比较七个原生网格视图：无分组、升降序、嵌套分组及空组设置边界。',
   },
   tags: {
-    'en-US': ['Relational Tables', 'Grouping', 'Native views'],
-    'zh-CN': ['Relational Tables', '分组', '原生视图'],
+    'en-US': ['Bases', 'Grouping', 'Native views'],
+    'zh-CN': ['多维表格', '分组', '原生视图'],
   },
   packages: ['@univerjs-pro/bases', '@univerjs-pro/bases-ui', '@univerjs-pro/license'],
   apis: ['FBaseTableView.setGroup()', 'FBaseTableView.getProjection()', 'FBaseRecord.setValue()', 'FBase.save()'].map(

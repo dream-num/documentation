@@ -8,7 +8,7 @@ not certify every native interaction or resolve the recorded SDK failures.
 
 An original refill-starter-kit pilot separates the retail story from execution
 records. Three native slides use copper, ivory, blue-gray and muted lavender.
-A fourth native page, inserted second, opens a real Relational Table with ten workstreams
+A fourth native page, inserted second, opens a real Base with ten workstreams
 and four linked sales channels. It is not an iframe or floating object.
 
 The saved Feishu sales-template catalog informs the channel/workstream story;
@@ -19,12 +19,12 @@ all text, records and SDK artwork are original. No competitor artwork ships.
 Open Launch workstream. Edit Counter demonstration and use native Undo/Redo.
 Open Channels, rename Harbor Home to Harbor Refill, and return to Workstreams:
 three linked channel labels should follow the unchanged channels-1 record ID.
-Visit the narrative pages and return to the Relational Table to check that local edits stay.
+Visit the narrative pages and return to the Base to check that local edits stay.
 Theme changes use the existing Facade owner; they must not reset the model.
 
 Preview and standalone share create-demo.ts, data.ts and all official host,
 child and Embed CSS. The browser-only Preview is loaded without SSR. Default
-host ribbon is Grid; Relational Table uses its native controls, not duplicate host buttons.
+host ribbon is Grid; Base uses its native controls, not duplicate host buttons.
 Native page creation follows the SDK slides-embed-local service sequence:
 prepareCreateEmbed, materializeDescriptor and restoreEmbed. The existing beta.2
 Facade create/load path did not populate Aster's page anchor, so this is not
@@ -34,7 +34,7 @@ claimed as Facade-only embed creation. No SDK/package patch is used.
 
 `test-results/embed-base-slide-tab-production-hit-test/report.json` passes the
 independent production build at 1220px: native page insertion, white SDK CSS,
-populated Start/View Grid host menus, both Relational Tables, Facade edit/paint,
+populated Start/View Grid host menus, both Bases, Facade edit/paint,
 native Undo/Redo, native keyboard channel rename and stable links, three host
 pages and rich-text editing, dark/light Facade switching, complete host/child
 snapshot preservation and active-child disposal. No browser errors or backend

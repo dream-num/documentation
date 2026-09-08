@@ -1,10 +1,10 @@
-# Launch Content Pipeline — one Relational Table, three native views
+# Launch Content Pipeline — one Base, three native views
 
 Native UI and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Bilingual runtime reports below describe earlier revisions, not acceptance of this English-only revision.
 
 Twelve fictional launch assets share one table: the original pricing page, migration playbook, webinar, security FAQ, Aeris customer story, and regional email sequence remain unchanged. Six additional editorial tasks add pre-launch video, APAC translation, undated interview notes, accessibility review, a retrospective, and a same-day follow-up. Six statuses, six channels, distinct owners, 0–100 progress, and both scheduled/unscheduled work make this an actual content-operations story.
 
-Only the native Relational Table UI is mounted. Use Editorial grid, Status board, and Publishing calendar in the native sidebar/view menu. Edit records and move statuses with the native controls. There is no external view switch, Add record, Reset, or activity panel.
+Only the native Base UI is mounted. Use Editorial grid, Status board, and Publishing calendar in the native sidebar/view menu. Edit records and move statuses with the native controls. There is no external view switch, Add record, Reset, or activity panel.
 
 The authored dates are fixed launch-plan dates around September 2026, initially stored as UTC milliseconds. The native calendar initially anchors on the first dated item in August; use its navigation controls to inspect September. The demo does not replace the computer clock. The interview starts without a publication date and should remain absent from dated calendar events until scheduled. Null is not the Unix epoch. Trial/license UI is retained.
 
@@ -12,7 +12,7 @@ Native date edits may store the SDK's supported Excel date serial representation
 
 ## Sixteen literal Facade examples
 
-Run the blocks in order in the loaded demo console. Stable model IDs are defined in data.ts. These examples integrate the real Relational Table; they do not manufacture a separate host calendar or Kanban renderer. Native editing and public Facade commands share the SDK's history.
+Run the blocks in order in the loaded demo console. Stable model IDs are defined in data.ts. These examples integrate the real Base; they do not manufacture a separate host calendar or Kanban renderer. Native editing and public Facade commands share the SDK's history.
 
 ### 1. Read the shared source and projections
 
@@ -186,4 +186,4 @@ Only this case is built on the selected strict port (4416 by default). The Vite 
 - Calendar weekday labels are shifted: the native September 5 webinar is drawn beneath “Fri”, although September 5, 2026 is Saturday. The test saves actual canvas text coordinates, the unchanged source timestamp, and the expected weekday. No replacement calendar or header patch is applied.
 - Clicking Next once from the initial August 31 anchor skips September and opens October. The separate date-drag setup uses one explicit Previous after this observed rollover to reach September; the original next-month gate remains FAIL.
 
-The declared getRenderedView() Facade currently returns null in this SDK. It is not used by production or the literal examples. Native pointer tests locate actual SDK canvas paint instead; the early diagnostic report is retained. Full owner recovery includes the complete resources emitted by this text-only Relational Table, but does not claim attachment-file recovery.
+The declared getRenderedView() Facade currently returns null in this SDK. It is not used by production or the literal examples. Native pointer tests locate actual SDK canvas paint instead; the early diagnostic report is retained. Full owner recovery includes the complete resources emitted by this text-only Base, but does not claim attachment-file recovery.

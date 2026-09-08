@@ -7,12 +7,12 @@ not current bilingual SDK acceptance. English-only source/CSS/startup checks do
 not certify every native interaction or resolve the recorded SDK failures.
 
 Three original slides propose offline ingestion for twelve fictional observation
-stations. The independently editable Canvas separates a field station, local
+stations. The independently editable Board separates a field station, local
 buffer, ingest gateway, validation, accepted archive and quarantine review.
 Six bound connectors carry the sample, upload, validation and recheck paths.
 The 24-hour buffer is a design target, not a measured reliability guarantee.
 
-Double-click the native floating Canvas to edit it. It is not a tab, iframe,
+Double-click the native floating Board to edit it. It is not a tab, iframe,
 static drawing or screenshot. Use the SDK's own selection and editing tools;
 no fixture selector, reset panel or duplicate host toolbar is mounted.
 
@@ -28,7 +28,7 @@ window.univerAPI
   .setText('Quarantine\nReview today')
 ```
 
-Change the host headline without altering the Canvas:
+Change the host headline without altering the Board:
 
 ```ts
 window.univerAPI
@@ -45,23 +45,23 @@ window.univerAPI
   )
 ```
 
-The slide labels and Canvas nodes are independent, not formula-linked.
+The slide labels and Board nodes are independent, not formula-linked.
 Reload restores authored data. Theme changes should preserve edits.
 
 ## Integration and current acceptance
 
-A self resource provider creates only the requested Canvas. The public Embed
+A self resource provider creates only the requested Board. The public Embed
 Facade creates a SlideFloating anchor and loads it with an abort signal.
 Preview and standalone source use the same factory and all eight official
-Design, UI, Docs, Drawing, Slides, Shape Editor, Canvases and Embed styles.
+Design, UI, Docs, Drawing, Slides, Shape Editor, Boards and Embed styles.
 
 The full native runtime gate is FAILING: Enter fullscreen does not open a shell.
 The native button is retained; no replacement control hides this failure.
-The root cause has not been independently established for this Canvas case.
+The root cause has not been independently established for this Board case.
 
 Selected independent production at 1220px passes native activation, both literal
 README examples, keyboard Undo/Redo, pointer selection and ArrowRight movement
-with Undo restoring the serialized Canvas, all six connector snapshots, three
+with Undo restoring the serialized Board, all six connector snapshots, three
 host pages, theme changes and owned active-child disposal. No browser errors or
 backend requests were observed. Report: test-results/embed-board-slide-float-production-final/report.json.
 
@@ -93,5 +93,5 @@ The saved Gamma dark engineering reference informs the navy editorial palette
 only; all diagrams, labels and data are original. No reference artwork is exported.
 
 The shared factory explicitly imports the official Ink UI English pack and CSS
-required by the registered Canvases UI dependency. Other product locale packs and
+required by the registered Boards UI dependency. Other product locale packs and
 styles remain intact. This is resource coverage, not native pen acceptance.

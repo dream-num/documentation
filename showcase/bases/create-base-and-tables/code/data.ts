@@ -158,7 +158,7 @@ function table(
 
 export function createData(state = 'default'): IBaseSnapshot {
   if (!['default', 'empty', 'boundary', 'error'].includes(state))
-    throw new Error('Unknown Relational Table state; existing data was not replaced.')
+    throw new Error('Unknown Base state; existing data was not replaced.')
   const projects = table(
     'projects',
     'Renovation projects',

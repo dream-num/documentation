@@ -1,4 +1,4 @@
-# Kite / A retrospective Canvas as a native Slides page
+# Kite / A retrospective Board as a native Slides page
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
@@ -12,7 +12,7 @@ fifteen to choose small experiments. Seven contributors share nine authored
 observations. The follow-up proposes a two-shift buddy trial, one loan shelf
 and a five-minute closing checklist, reviewed after two weeks.
 
-Open **Retrospective Canvas** in the native page list. It is a complete Canvas
+Open **Retrospective Board** in the native page list. It is a complete Board
 page, not a floating card, iframe or screenshot. Nine editable native shape
 cards sit in Keep / Change / Try columns. Dragging a card changes its position,
 not an underlying category field. No voting, automatic clustering or task
@@ -30,7 +30,7 @@ window.univerAPI
   .setText('Buddy trial\nStart next Saturday.')
 ```
 
-Change the host heading without replacing the Canvas:
+Change the host heading without replacing the Board:
 
 ```ts
 window.univerAPI
@@ -47,7 +47,7 @@ window.univerAPI
   )
 ```
 
-Slide commitments and Canvas notes remain independent, not formula-linked.
+Slide commitments and Board notes remain independent, not formula-linked.
 Native history affects the focused child. Typing can create multiple history
 entries: the verified ` Reviewed.` insertion took three Undo steps to restore
 the complete pre-edit snapshot, and three Redo steps restored the committed edit.
@@ -56,19 +56,19 @@ initial data, not persisted changes.
 
 ## Integration and current acceptance
 
-The self resource provider creates only the requested Canvas. Native page setup
+The self resource provider creates only the requested Board. Native page setup
 follows the SDK local Slides example: prepareCreateEmbed, materializeDescriptor,
 then restoreEmbed. The same factory powers Preview and standalone source, with
-official Design, UI, Docs, Drawing, Slides, Shape Editor, Canvases and Embed
-styles. Host slides use Grid; the child uses native Canvas tools.
+official Design, UI, Docs, Drawing, Slides, Shape Editor, Boards and Embed
+styles. Host slides use Grid; the child uses native Board tools.
 
 Selected production verification at 1220px passes native menu Undo/Redo,
 keyboard history, card selection and ArrowRight movement with Undo, direct
 text insertion with multi-step Undo/Redo, both literal README examples, all
 three host pages, theme ownership and active-child disposal. Full serialized
-host/child snapshots are compared, with only the regenerated Canvas theme
+host/child snapshots are compared, with only the regenerated Board theme
 palette allowed during theme changes. No browser errors or backend requests
-were observed in that run. The owned Canvas content React root is unmounted
+were observed in that run. The owned Board content React root is unmounted
 before native host teardown to avoid accessing its disposed scoped injector.
 
 EN/ZH Next guides and live media-theme changes preserve the same API owner and
@@ -91,5 +91,5 @@ framing; mint, lilac and warm yellow distinguish the original working material.
 No competitor artwork is exported.
 
 The shared factory explicitly imports the official Ink UI English pack and CSS
-required by the registered Canvases UI dependency. Other product locale packs and
+required by the registered Boards UI dependency. Other product locale packs and
 styles remain intact. This is resource coverage, not native pen acceptance.

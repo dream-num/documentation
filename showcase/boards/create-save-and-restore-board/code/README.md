@@ -1,14 +1,14 @@
-# Tern field station — native Canvas lifecycle
+# Tern field station — native Board lifecycle
 
 Native UI, demo labels and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Earlier bilingual acceptance reports below remain historical evidence, not validation of this English-only revision.
 
-The preview contains only the native Canvas workbench and its own floating tools. There are no fixture selectors, duplicated Move/Text/Undo buttons, audit panels or live snapshot inspectors. The two original pages remain: an opening plan with three different crew stickies, standalone headings, a background zone and the local SVG field-map placeholder; and a distinct evening handover. Authored review date, page sizes, page order and layer order remain part of the sample data.
+The preview contains only the native Board workbench and its own floating tools. There are no fixture selectors, duplicated Move/Text/Undo buttons, audit panels or live snapshot inspectors. The two original pages remain: an opening plan with three different crew stickies, standalone headings, a background zone and the local SVG field-map placeholder; and a distinct evening handover. Authored review date, page sizes, page order and layer order remain part of the sample data.
 
-Install the selected export with `pnpm install`, then `pnpm dev` or `pnpm build`. Build only this selected case. Preview and standalone use the same factory and eight official stylesheets, including Canvases' Shape Editor, Ink UI and transitive Embed Unit UI dependencies. Eight complete English dependency locale packs are registered. Changing theme updates the current owner rather than recreating it. Canvases keeps its native floating toolbar; the host UI is configured with Grid preference rather than a redundant Sheets-style ribbon. Native trial notices remain intact.
+Install the selected export with `pnpm install`, then `pnpm dev` or `pnpm build`. Build only this selected case. Preview and standalone use the same factory and eight official stylesheets, including Boards' Shape Editor, Ink UI and transitive Embed Unit UI dependencies. Eight complete English dependency locale packs are registered. Changing theme updates the current owner rather than recreating it. Boards keeps its native floating toolbar; the host UI is configured with Grid preference rather than a redundant Sheets-style ribbon. Native trial notices remain intact.
 
 ## Nine executable Facade examples
 
-Run in order in the standalone console, after the Canvas has loaded. These demonstrate integration variants; normal interaction is through native dragging, double-click text editing and shortcuts.
+Run in order in the standalone console, after the Board has loaded. These demonstrate integration variants; normal interaction is through native dragging, double-click text editing and shortcuts.
 
 ### 1. Inspect every page
 
@@ -128,7 +128,7 @@ Every serialized field is retained and compared; no geometry/default fields are 
 
 ## Reload current edits
 
-Reload saves the current content rather than an earlier checkpoint. All pages are part of this single Canvas owner.
+Reload saves the current content rather than an earlier checkpoint. All pages are part of this single Board owner.
 
 ```js
 const saved = JSON.parse(JSON.stringify(demo.univerAPI.getBoard('tern-station-lifecycle').save()))
@@ -148,7 +148,7 @@ Import `createData` from `./data` in the same application entry. After disposing
 - `boundary`: reversed pages and layers, active handover page, a rotated sticky at negative coordinates.
 - `error`: original full data used with example 7's genuine missing-target rejection. It does not generate a fake SDK alert.
 
-The installed Canvas Facade does not expose a page-navigation method, so active-page changes are supplied in data when reconstructing. The sample does not invent one. Resetting means constructing `createData('default')`, not simulating native Undo. Saved checkpoints remain under the host application's lifetime policy.
+The installed Board Facade does not expose a page-navigation method, so active-page changes are supplied in data when reconstructing. The sample does not invent one. Resetting means constructing `createData('default')`, not simulating native Undo. Saved checkpoints remain under the host application's lifetime policy.
 
 The factory's `await demo.fit()` helper calls the public `BoardViewportService.fitContent()`; it is explicitly a host helper, not a Facade method. It also runs once at startup. Use native viewport controls during normal editing. Empty content is a no-op.
 

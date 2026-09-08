@@ -12,7 +12,7 @@ at least two shapes; distribution needs at least three. Supporting nodes should
 remain outside the selection. Native keyboard shortcuts and Undo/Redo remain SDK
 operations. There is no fixture selector, host layout toolbar, reset or inspector.
 
-Preview and export include all eight English dependency packs and official Design, UI, Docs UI, Drawing UI, Canvases UI, Shape Editor, Ink UI and transitive Embed Unit UI CSS.
+Preview and export include all eight English dependency packs and official Design, UI, Docs UI, Drawing UI, Boards UI, Shape Editor, Ink UI and transitive Embed Unit UI CSS.
 
 ## Equivalent SDK code
 
@@ -64,7 +64,7 @@ obstacle avoidance. For an empty starting point clear `pages.desk.elements` and
   restores the five card bounds after each drag.
 - `test-results/boards-alignment-native-next/report.json`: EN/ZH guides expose
   ten variants, four actions and four states. Actual media-theme transitions
-  preserve the same SDK API owner and edited Canvas snapshot. Canvases uses its
+  preserve the same SDK API owner and edited Board snapshot. Boards uses its
   own native floating tools; there is no empty global ribbon or host toolbar.
 - `test-results/boards-alignment-native-export/report.json`: all eleven exported
   files match the displayed source, including official CSS and Preview references.

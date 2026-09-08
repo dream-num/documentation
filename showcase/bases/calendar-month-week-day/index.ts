@@ -15,8 +15,8 @@ const metadata: ShowcaseMetadata = {
       'Compare native month, week and day schedules for seven repair-studio appointments, including overlapping sessions, a multi-day interval and an undated request.',
   },
   tags: {
-    'en-US': ['Relational Tables', 'Calendar', 'Dates', 'Views'],
-    'zh-CN': ['Relational Tables', 'Calendar', 'Dates', 'Views'],
+    'en-US': ['Bases', 'Calendar', 'Dates', 'Views'],
+    'zh-CN': ['Bases', 'Calendar', 'Dates', 'Views'],
   },
   packages: ['@univerjs-pro/bases', '@univerjs-pro/bases-ui', '@univerjs-pro/license'],
   apis: [

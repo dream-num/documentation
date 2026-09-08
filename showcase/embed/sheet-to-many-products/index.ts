@@ -15,8 +15,8 @@ const metadata: ShowcaseMetadata = {
     'zh-CN': '同一份部门预算驱动现代简报、三页评审演示、关联分配图和原生图表。',
   },
   tags: {
-    'en-US': ['Formula', 'Sheets', 'Docs', 'Slides', 'Canvases', 'Charts', 'Native tabs'],
-    'zh-CN': ['公式', '电子表格', '文档', '演示', 'Canvases', '图表', '原生标签页'],
+    'en-US': ['Formula', 'Sheets', 'Docs', 'Slides', 'Boards', 'Charts', 'Native tabs'],
+    'zh-CN': ['公式', '电子表格', '文档', '演示', '白板', '图表', '原生标签页'],
   },
   packages: [
     '@univerjs-pro/embed',

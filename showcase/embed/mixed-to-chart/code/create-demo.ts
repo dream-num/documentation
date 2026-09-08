@@ -99,7 +99,7 @@ export function createDemo(
       !saved.host.sheets?.[embed.hostAnchorId] ||
       !saved.host.sheetOrder?.includes(embed.hostAnchorId)
     )
-      throw new Error('Restore the original Prism Relational Table tab resource and its native Sheet anchor.')
+      throw new Error('Restore the original Prism Base tab resource and its native Sheet anchor.')
   }
   const hostData = structuredClone(saved?.host ?? createHostData())
   const sourceData = structuredClone(saved?.source ?? createSourceData())
@@ -132,48 +132,6 @@ export function createDemo(
         DrawingEnUS,
         SheetDrawingEnUS,
         PrintEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'bases-ui': {
-            ...BasesUIEnUS['bases-ui'],
-            collaboration: {
-              ...BasesUIEnUS['bases-ui']['collaboration'],
-              localTooltip: 'Collaboration is disabled for these relational tables.',
-              notCollabTooltip: 'These relational tables are not in collaboration mode.',
-            },
-            fieldConfig: {
-              ...BasesUIEnUS['bases-ui']['fieldConfig'],
-              formulaReferenceError: 'A1 references and ranges are not supported in Relational Tables formulas.',
-              referenceCurrentField:
-                'Reference the "{0}" field in the current relational table. It will be saved as [[#This Row],[{1}]] for the formula engine.',
-            },
-            fieldMenu: {
-              ...BasesUIEnUS['bases-ui']['fieldMenu'],
-              createSharedBaseField: 'Create a shared Relational Tables field',
-            },
-            viewMenus: {
-              ...BasesUIEnUS['bases-ui']['viewMenus'],
-              setWorkingDaysDescription:
-                'Customize working days and days off, and apply them to the current relational tables',
-            },
-            formula: {
-              ...BasesUIEnUS['bases-ui']['formula'],
-              generic: {
-                ...BasesUIEnUS['bases-ui']['formula']['generic'],
-                engineDescription:
-                  '{0} is provided by the Univer formula engine. Relational Tables supports field references such as TableName[[#This Row],[Field]] and OtherTable[Field], but does not support A1 cells, A1:B10 ranges, or spilled array output in formula fields.',
-              },
-            },
-          },
-          'embed-unit-ui': {
-            ...EmbedUnitEnUS['embed-unit-ui'],
-            referencedUnitViewer: {
-              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
-              base: 'Relational Tables',
-            },
-          },
-        },
       ),
     },
   })
@@ -241,7 +199,7 @@ export function createDemo(
                 input.ref.unit.selector !== SOURCE_ID ||
                 input.unitType !== UniverInstanceType.UNIVER_BASE
               )
-                throw new Error('Unknown Prism Relational Table source')
+                throw new Error('Unknown Prism Base source')
               const existing = univer.__getInjector().get(IUniverInstanceService).getUnit(SOURCE_ID, input.unitType)
               if (!existing)
                 univer
@@ -282,7 +240,7 @@ export function createDemo(
               content: { unitType: UniverInstanceType.UNIVER_BASE, ref: `#unit=${SOURCE_ID}&type=base` },
               displayTarget: { tableId: 'income', viewId: 'income-grid' },
             })
-        if (!embed) throw new Error('The saved Prism workbook has no native Relational Table embed resource.')
+        if (!embed) throw new Error('The saved Prism workbook has no native Base embed resource.')
         await embed.loadAsync({ signal: abort.signal })
         if (disposed) return
         if (
@@ -333,8 +291,7 @@ export function createDemo(
         root.dataset.error = String(error)
         const message = document.createElement('p')
         message.setAttribute('role', 'alert')
-        message.textContent =
-          'The embedded Relational Table could not load. Reload to retry; details are in the console.'
+        message.textContent = 'The embedded Base could not load. Reload to retry; details are in the console.'
         root.prepend(message)
         console.error(error)
       })

@@ -102,7 +102,7 @@ export function createDemo(
       !saved.host.sheets?.[SHEET_ID] ||
       !saved.board.pages?.[PAGE_ID]
     )
-      throw new Error('Restore both original Delta unit IDs, the allocation Sheet and the capacity Canvas page.')
+      throw new Error('Restore both original Delta unit IDs, the allocation Sheet and the capacity Board page.')
     const resource = saved.host.resources?.find((entry) => entry.name === 'UNIVER_EMBED_RESOURCE_PLUGIN')
     const embed = JSON.parse(resource?.data || '{}').embeds?.['delta-board-float']
     const drawings = saved.host.resources?.find((entry) => entry.name === 'SHEET_DRAWING_PLUGIN')
@@ -115,7 +115,7 @@ export function createDemo(
       drawing?.data?.embedId !== 'delta-board-float' ||
       !sheetDrawings?.order?.includes(embed.hostAnchorId)
     )
-      throw new Error('Restore the original Delta Canvas Float resource and its native Sheet drawing anchor.')
+      throw new Error('Restore the original Delta Board Float resource and its native Sheet drawing anchor.')
   }
   const hostData = structuredClone(saved?.host ?? createHostData())
   const boardData = structuredClone(saved?.board ?? createChildData())
@@ -148,26 +148,6 @@ export function createDemo(
         SheetDrawingEnUS,
         PrintEnUS,
         ShapeEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'boards-ui': {
-            ...BoardsEnUS['boards-ui'],
-            settings: { ...BoardsEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
-          },
-          'embed-unit-ui': {
-            ...EmbedUnitEnUS['embed-unit-ui'],
-            referencedUnitViewer: {
-              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
-              base: 'Relational Tables',
-            },
-          },
-          'shape-editor-ui': {
-            ...ShapeEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-        },
       ),
     },
   })
@@ -246,7 +226,7 @@ export function createDemo(
                 input.ref.unit.selector !== CHILD_ID ||
                 input.unitType !== UniverInstanceType.UNIVER_BOARD
               )
-                throw new Error('Unknown Delta Canvas source')
+                throw new Error('Unknown Delta Board source')
               const existing = univer.__getInjector().get(IUniverInstanceService).getUnit(CHILD_ID, input.unitType)
               if (!existing) {
                 const data = structuredClone(boardData)
@@ -321,7 +301,7 @@ export function createDemo(
               },
               content: { unitType: UniverInstanceType.UNIVER_BOARD, ref: `#unit=${CHILD_ID}&type=board` },
             })
-        if (!embed) throw new Error('The saved Delta workbook has no native Canvas Float resource.')
+        if (!embed) throw new Error('The saved Delta workbook has no native Board Float resource.')
         await embed.loadAsync({ signal: abort.signal })
         if (disposed) return
         // Saved formulas, animation settings and external bindings belong to the user.
@@ -351,7 +331,7 @@ export function createDemo(
         root.dataset.error = String(error)
         const message = document.createElement('p')
         message.setAttribute('role', 'alert')
-        message.textContent = 'The embedded Canvas could not load. Reload to retry; details are in the console.'
+        message.textContent = 'The embedded Board could not load. Reload to retry; details are in the console.'
         root.prepend(message)
         console.error(error)
       })

@@ -12,8 +12,8 @@ const metadata: ShowcaseMetadata = {
     'zh-CN': '在原创海岸观测站中体验原生优先级单选与栖息地多选。',
   },
   tags: {
-    'en-US': ['Relational Tables', 'Single select', 'Multi-select', 'Option identity'],
-    'zh-CN': ['Relational Tables', '单选', '多选', '选项标识'],
+    'en-US': ['Bases', 'Single select', 'Multi-select', 'Option identity'],
+    'zh-CN': ['多维表格', '单选', '多选', '选项标识'],
   },
   packages: ['@univerjs-pro/bases', '@univerjs-pro/bases-ui', '@univerjs-pro/license'],
   apis: [
@@ -47,9 +47,9 @@ const metadata: ShowcaseMetadata = {
     },
     expected: {
       'en-US':
-        'Rename changes labels, not stored IDs. Color/order changes do not reorder records. Null and empty arrays clear their respective choice types. Raw unknown-ID acceptance and used-option deletion remain SDK defects, not validated-input examples. Save returns Relational Table JSON, not a binary Office export.',
+        'Rename changes labels, not stored IDs. Color/order changes do not reorder records. Null and empty arrays clear their respective choice types. Raw unknown-ID acceptance and used-option deletion remain SDK defects, not validated-input examples. Save returns Base JSON, not a binary Office export.',
       'zh-CN':
-        '改名只改变标签，不改存储 ID；颜色与选项排序不重排记录。null 与空数组分别清空单选和多选。原始未知 ID 写入及已用选项删除仍有 SDK 缺陷，不代表输入校验。Save 返回 Relational Table JSON，不是 Office 二进制导出。',
+        '改名只改变标签，不改存储 ID；颜色与选项排序不重排记录。null 与空数组分别清空单选和多选。原始未知 ID 写入及已用选项删除仍有 SDK 缺陷，不代表输入校验。Save 返回 Base JSON，不是 Office 二进制导出。',
     },
   },
   variants: [

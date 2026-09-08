@@ -10,9 +10,9 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Search and Element Query', 'zh-CN': '搜索与元素查询' },
   description: {
     'en-US': 'Query native canvas text or element types, deduplicate hits, and focus matching elements.',
-    'zh-CN': '查询原生 Canvases 文字或元素类型，对命中结果去重并聚焦对应元素。',
+    'zh-CN': '查询原生 Boards 文字或元素类型，对命中结果去重并聚焦对应元素。',
   },
-  tags: { 'en-US': ['Canvases', 'Single feature', 'Search'], 'zh-CN': ['Canvases', '单功能', '搜索'] },
+  tags: { 'en-US': ['Boards', 'Single feature', 'Search'], 'zh-CN': ['白板', '单功能', '搜索'] },
   packages: ['@univerjs-pro/boards', '@univerjs-pro/boards-ui', '@univerjs-pro/license'],
   apis: [
     'FBoard.findElementsByText()',
@@ -26,7 +26,7 @@ const metadata: ShowcaseMetadata = {
       'en-US':
         'Four cards and two connectors demonstrate case-insensitive text, type filters, connector labels and duplicate hits. Search and the result list are the API integration; the canvas retains its native editing controls.',
       'zh-CN':
-        '四张卡片和两条连接线展示不区分大小写的文字、类型过滤、连接线标签及重复命中。搜索与结果列表用于展示 API 集成；Canvases 保留原生编辑控件。',
+        '四张卡片和两条连接线展示不区分大小写的文字、类型过滤、连接线标签及重复命中。搜索与结果列表用于展示 API 集成；Boards 保留原生编辑控件。',
     },
     tryIt: {
       'en-US': [

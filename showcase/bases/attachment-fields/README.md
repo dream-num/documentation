@@ -2,7 +2,7 @@
 
 Five original repair packets compare a single SVG illustration, two illustrations, a plain-text note, an image plus a CSV parts list, and an empty attachment field. All file bytes are authored locally and stored as native attachments; images are not host-rendered decorations. Open a native attachment cell or record detail to inspect its files.
 
-The entire interface is the native Relational Table Grid. English uses the five complete Design, UI, Docs UI, Relational Tables and Relational Tables UI locale packs and four official stylesheets. Preview and standalone export share this independent factory.
+The entire interface is the native Base Grid. English uses the five complete Design, UI, Docs UI, Bases and Bases UI locale packs and four official stylesheets. Preview and standalone export share this independent factory.
 
 ## 1. Read a packet
 
@@ -48,4 +48,4 @@ The clock packet becomes empty again. Reload restores the original five packets.
 
 No upload callback, backend, remote URL, custom file picker or redundant control panel is provided. Native add-file controls belong to the installed editor; this case does not certify uploads or persistence. Image previews and non-image file opening are distinct: the browser decides how text/CSV opens or downloads. No PDF/archive preview, file conversion, cross-browser guarantee, binary export or attachment-resource Undo fidelity is claimed.
 
-The selected native test opens the chair image in the editor's image gallery, uses its Next and Close controls, and clears the chair attachment cell with the native Delete key after closing its cell editor. This clears the whole field; no per-file remove button is claimed. Record-detail setup uses the public Relational Table UI Facade; image opening and cell editing use real pointer/keyboard actions. Literal recipes and exact full-model theme preservation are checked separately. Attachment resource cleanup and Undo are not certified by clearing the field.
+The selected native test opens the chair image in the editor's image gallery, uses its Next and Close controls, and clears the chair attachment cell with the native Delete key after closing its cell editor. This clears the whole field; no per-file remove button is claimed. Record-detail setup uses the public Base UI Facade; image opening and cell editing use real pointer/keyboard actions. Literal recipes and exact full-model theme preservation are checked separately. Attachment resource cleanup and Undo are not certified by clearing the field.

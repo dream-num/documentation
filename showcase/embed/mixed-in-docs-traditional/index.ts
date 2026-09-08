@@ -12,12 +12,12 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Estuary / Grant Review Dossier', 'zh-CN': 'Estuary / 资助评审卷宗' },
   description: {
     'en-US':
-      'An A4 review dossier integrates a cost Sheet, evidence Relational Table, hearing Slides and release Canvas in four native chapters.',
-    'zh-CN': 'A4 评审卷宗将成本 Sheet、证据 Relational Table、听证 Slides 和审阅 Canvas 嵌入四个原生章节。',
+      'An A4 review dossier integrates a cost Sheet, evidence Base, hearing Slides and release Board in four native chapters.',
+    'zh-CN': 'A4 评审卷宗将成本 Sheet、证据 Base、听证 Slides 和审阅 Board 嵌入四个原生章节。',
   },
   tags: {
-    'en-US': ['Embed', 'Traditional Docs', 'Pagination', 'Sheets', 'Relational Tables', 'Slides', 'Canvases'],
-    'zh-CN': ['嵌入', '传统文档', '分页', '表格', 'Relational Tables', '幻灯片', 'Canvases'],
+    'en-US': ['Embed', 'Traditional Docs', 'Pagination', 'Sheets', 'Bases', 'Slides', 'Boards'],
+    'zh-CN': ['嵌入', '传统文档', '分页', '表格', '多维表格', '幻灯片', '白板'],
   },
   packages: [
     '@univerjs/core',

@@ -3,7 +3,7 @@ import { CellValueType, LocaleType } from '@univerjs/core'
 
 export const BOOKINGS = [
   ['R01', 'West', 30, 'Desk lamp', 1],
-  ['R02', 'East', 45, 'Canvas backpack', 2],
+  ['R02', 'East', 45, 'Board backpack', 2],
   ['R03', 'East', 20, 'Kitchen timer', 3],
   ['R04', 'West', 60, 'Portable radio', 4],
   ['R05', 'North', 15, 'Garden secateurs', 5],

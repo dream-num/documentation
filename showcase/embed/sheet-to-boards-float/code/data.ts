@@ -221,7 +221,7 @@ export function createChildData(): Partial<IWorkbookData> {
     },
     10: { 0: { v: 'Utilization', s: 'header' }, 3: { f: '=C10/B10', s: 'percent' } },
     12: { 0: { v: 'A positive total can hide a team overload. Compare the three branch cards.', s: 'muted' } },
-    14: { 0: { v: 'Amber cells are inputs; the Canvas reads their live external references.', s: 'muted' } },
+    14: { 0: { v: 'Amber cells are inputs; the Board reads their live external references.', s: 'muted' } },
   }
   const rows = [
     ['Editorial', 128, 92, 'Research and story'],

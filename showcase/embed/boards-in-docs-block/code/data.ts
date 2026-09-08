@@ -18,7 +18,7 @@ export const BRIEF = [
   ],
   ['02 / Proposed service boundaries', 'heading'],
   [
-    'The native Canvas below separates the booking transaction from asynchronous delivery. Blue nodes own the visitor request, green nodes own durable state, and amber nodes own retry work. Expand the diagram to inspect or move its connected shapes.',
+    'The native Board below separates the booking transaction from asynchronous delivery. Blue nodes own the visitor request, green nodes own durable state, and amber nodes own retry work. Expand the diagram to inspect or move its connected shapes.',
     'body',
   ],
   ['', 'body'],
@@ -37,7 +37,7 @@ export const BRIEF = [
   ],
   ['Status: proposed, not deployed.', 'warning'],
   [
-    'Editing a Canvas label or moving a shape does not change this decision record. All services, names and dates are fictional. No bookings, messages or backend calls are sent. Reload loses local edits.',
+    'Editing a Board label or moving a shape does not change this decision record. All services, names and dates are fictional. No bookings, messages or backend calls are sent. Reload loses local edits.',
     'body',
   ],
 ] as const

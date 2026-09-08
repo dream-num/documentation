@@ -14,8 +14,8 @@ const metadata: ShowcaseMetadata = {
       '以四个独立原生网格视图展示野外研究记录，调整字段显隐、顺序、宽度、冻结列和行高，不删除字段、不影响另一个视图。',
   },
   tags: {
-    'en-US': ['Relational Tables', 'Single feature', 'SDK projection'],
-    'zh-CN': ['Relational Tables', '单功能', 'SDK 投影'],
+    'en-US': ['Bases', 'Single feature', 'SDK projection'],
+    'zh-CN': ['多维表格', '单功能', 'SDK 投影'],
   },
   packages: ['@univerjs-pro/bases', '@univerjs-pro/bases-ui', '@univerjs-pro/license'],
   apis: [
@@ -46,8 +46,8 @@ const metadata: ShowcaseMetadata = {
     },
     expected: {
       'en-US':
-        'Settings belong to the active view. The table field order and records remain unchanged. Hidden fields are not a security boundary: their values still exist in the Relational Table.',
-      'zh-CN': '设置归属当前视图，表字段顺序和记录不变。隐藏字段不是安全权限控制，其值仍保留在 Relational Table 内。',
+        'Settings belong to the active view. The table field order and records remain unchanged. Hidden fields are not a security boundary: their values still exist in the Base.',
+      'zh-CN': '设置归属当前视图，表字段顺序和记录不变。隐藏字段不是安全权限控制，其值仍保留在 Base 内。',
     },
   },
   variants: [

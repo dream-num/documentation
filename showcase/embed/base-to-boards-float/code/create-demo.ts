@@ -103,57 +103,6 @@ export function createDemo(
         EmbedEnUS,
         BasesEnUS,
         BasesUIEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'embed-unit-ui': {
-            ...EmbedUnitEnUS['embed-unit-ui'],
-            referencedUnitViewer: {
-              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
-              base: 'Relational Tables',
-            },
-          },
-          'boards-ui': {
-            ...BoardsEnUS['boards-ui'],
-            settings: { ...BoardsEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
-          },
-          'shape-editor-ui': {
-            ...ShapeEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-          'bases-ui': {
-            ...BasesUIEnUS['bases-ui'],
-            collaboration: {
-              ...BasesUIEnUS['bases-ui']['collaboration'],
-              localTooltip: 'Collaboration is disabled for these relational tables.',
-              notCollabTooltip: 'These relational tables are not in collaboration mode.',
-            },
-            fieldConfig: {
-              ...BasesUIEnUS['bases-ui']['fieldConfig'],
-              formulaReferenceError: 'A1 references and ranges are not supported in Relational Tables formulas.',
-              referenceCurrentField:
-                'Reference the "{0}" field in the current relational table. It will be saved as [[#This Row],[{1}]] for the formula engine.',
-            },
-            fieldMenu: {
-              ...BasesUIEnUS['bases-ui']['fieldMenu'],
-              createSharedBaseField: 'Create a shared Relational Tables field',
-            },
-            viewMenus: {
-              ...BasesUIEnUS['bases-ui']['viewMenus'],
-              setWorkingDaysDescription:
-                'Customize working days and days off, and apply them to the current relational tables',
-            },
-            formula: {
-              ...BasesUIEnUS['bases-ui']['formula'],
-              generic: {
-                ...BasesUIEnUS['bases-ui']['formula']['generic'],
-                engineDescription:
-                  '{0} is provided by the Univer formula engine. Relational Tables supports field references such as TableName[[#This Row],[Field]] and OtherTable[Field], but does not support A1 cells, A1:B10 ranges, or spilled array output in formula fields.',
-              },
-            },
-          },
-        },
       ),
     },
   })
@@ -227,7 +176,7 @@ export function createDemo(
             ensureUnit(input) {
               input.signal?.throwIfAborted()
               if (disposed || input.ref.unit.selector !== CHILD_ID || input.unitType !== UniverInstanceType.UNIVER_BASE)
-                throw new Error('Unknown Flint Relational Table source')
+                throw new Error('Unknown Flint Base source')
               const instances = univer.__getInjector().get(IUniverInstanceService)
               if (!instances.getUnit(CHILD_ID, input.unitType))
                 instances.createUnit(input.unitType, structuredClone(sourceData), input.createOptions)
@@ -275,7 +224,7 @@ export function createDemo(
               content: { unitType: UniverInstanceType.UNIVER_BASE, ref: `#unit=${CHILD_ID}&type=base` },
               displayTarget: { tableId: 'tasks', viewId: 'tasks-grid' },
             })
-        if (!embed) throw new Error('The saved Flint Canvas has no native Relational Table embed resource.')
+        if (!embed) throw new Error('The saved Flint Board has no native Base embed resource.')
         await embed.loadAsync({ signal: abort.signal })
         if (disposed) return
         // Restore saved bindings verbatim. Do not overwrite edited formulas with the starter definitions.
@@ -307,7 +256,7 @@ export function createDemo(
             .__getInjector()
             .get(IUniverInstanceService)
             .getUnit<BoardModel>(HOST_ID, UniverInstanceType.UNIVER_BOARD)
-          if (!board) throw new Error('The delivery Canvas is unavailable')
+          if (!board) throw new Error('The delivery Board is unavailable')
           univer
             .__getInjector()
             .get(BoardViewportService)
@@ -322,8 +271,7 @@ export function createDemo(
         root.dataset.error = String(error)
         const message = document.createElement('p')
         message.setAttribute('role', 'alert')
-        message.textContent =
-          'The delivery Relational Table could not load. Reload to retry; details are in the console.'
+        message.textContent = 'The delivery Base could not load. Reload to retry; details are in the console.'
         root.prepend(message)
         console.error(error)
       })

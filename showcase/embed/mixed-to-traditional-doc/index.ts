@@ -10,12 +10,12 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Cobalt / Operating Review', 'zh-CN': 'Cobalt / 年度经营评审' },
   description: {
     'en-US':
-      'A revenue Sheet and independent cost Relational Table drive fourteen inline formulas across a four-page traditional operating review.',
-    'zh-CN': '收入 Sheet 与独立成本 Relational Table 共同驱动四页传统经营报告中的十四个行内公式。',
+      'A revenue Sheet and independent cost Base drive fourteen inline formulas across a four-page traditional operating review.',
+    'zh-CN': '收入 Sheet 与独立成本 Base 共同驱动四页传统经营报告中的十四个行内公式。',
   },
   tags: {
-    'en-US': ['Formula', 'Traditional Docs', 'Sheets', 'Relational Tables', 'DocBlock'],
-    'zh-CN': ['公式', '传统文档', '表格', 'Relational Tables', '文档块'],
+    'en-US': ['Formula', 'Traditional Docs', 'Sheets', 'Bases', 'DocBlock'],
+    'zh-CN': ['公式', '传统文档', '表格', '多维表格', '文档块'],
   },
   packages: [
     '@univerjs-pro/docs-formula',
@@ -45,13 +45,13 @@ const metadata: ShowcaseMetadata = {
     tryIt: {
       'en-US': [
         'Expand the Sheet and change revenue B5 to 26000.',
-        'Expand the Relational Table and revise Shared venue to 15700.',
+        'Expand the Base and revise Shared venue to 15700.',
         'Change E5 to 40%; review the target gap without changing income or costs.',
         'Run the twenty literal examples for filtering, missing values and independent binding repair.',
       ],
       'zh-CN': [
         '展开 Sheet，将收入 B5 改为 26000。',
-        '展开 Relational Table，将 Shared venue 成本改为 15700。',
+        '展开 Base，将 Shared venue 成本改为 15700。',
         '将 E5 改为 40%，观察目标差异，收入和成本不变。',
         '运行二十段原样代码，验证筛选、缺失值及独立绑定修复。',
       ],
@@ -64,7 +64,7 @@ const metadata: ShowcaseMetadata = {
     },
   },
   variants: [
-    ['sources', 'Independent Sheet / Relational Table inputs', '独立 Sheet / Relational Table 输入'],
+    ['sources', 'Independent Sheet / Base inputs', '独立 Sheet / Base 输入'],
     ['scope', 'Scope / View filter / Hidden edits', '范围 / 视图筛选 / 隐藏记录修改'],
     ['target', 'Target / Gap / Discussion signal', '目标 / 差异 / 讨论提示'],
     ['binding', 'Missing source / Independent repair', '来源缺失 / 独立修复'],

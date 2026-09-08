@@ -32,7 +32,7 @@ export const BRIEF = [
   ],
   ['02 / Editable method and exception path', 'heading'],
   [
-    'The native Canvas below shows eight process cards and ten bound connectors. Follow the top row from intake to staging, then inspect the lower return path. Expand the Canvas to move the exception card, edit its status and use native Undo or Redo. The formal report remains an independent document.',
+    'The native Board below shows eight process cards and ten bound connectors. Follow the top row from intake to staging, then inspect the lower return path. Expand the Board to move the exception card, edit its status and use native Undo or Redo. The formal report remains an independent document.',
     'body',
   ],
   ['', 'body'],
@@ -50,9 +50,9 @@ export const BRIEF = [
     'body',
   ],
   ['Disposition: draft method, not a released collection.', 'warning'],
-  ['Appendix / Document and Canvas ownership', 'heading'],
+  ['Appendix / Document and Board ownership', 'heading'],
   [
-    'Traditional A4 chapters and explicit page breaks frame the method. The Canvas is a native body block, not a picture or iframe. Appending text to the report title moves its UTF-16 anchor while preserving the complete Canvas snapshot. Reload restores the original local data and discards edits.',
+    'Traditional A4 chapters and explicit page breaks frame the method. The Board is a native body block, not a picture or iframe. Appending text to the report title moves its UTF-16 anchor while preserving the complete Board snapshot. Reload restores the original local data and discards edits.',
     'body',
   ],
 ] as const

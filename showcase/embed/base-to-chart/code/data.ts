@@ -132,7 +132,7 @@ export function createHostData(): Partial<IWorkbookData> {
     },
     12: {
       0: {
-        v: 'Relational Table records → SUMIFS by week and channel → Visible range A6:C9 → Native chart',
+        v: 'Base records → SUMIFS by week and channel → Visible range A6:C9 → Native chart',
         s: 'muted',
       },
     },
@@ -144,7 +144,7 @@ export function createHostData(): Partial<IWorkbookData> {
     },
     14: {
       0: {
-        v: 'A Relational Table view filter changes visible records, not these whole-table formulas. Empty denominators retain native errors.',
+        v: 'A Base view filter changes visible records, not these whole-table formulas. Empty denominators retain native errors.',
         s: 'muted',
       },
     },

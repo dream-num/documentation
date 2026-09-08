@@ -3,23 +3,23 @@
 This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
 
 An original fictional print studio schedules two editions: Atlas, 40 copies,
-and Fieldnotes, 60 copies. Relational Table owns the records. A visible Sheet aggregates
+and Fieldnotes, 60 copies. Base owns the records. A visible Sheet aggregates
 scheduled quantities, applies the editable unit rate of 25 and totals 2,500.
-Eleven inline Doc formulas, nine Formula Shapes across three slides, six Canvas
+Eleven inline Doc formulas, nine Formula Shapes across three slides, six Board
 Formula Shapes and a native column chart read that Sheet calculation layer.
 
 This is a two-hop dependency, not two parallel data sources:
 
-Relational Table records → Sheet quantities → Sheet amounts → Doc / Slides / Canvas / Chart.
+Base records → Sheet quantities → Sheet amounts → Doc / Slides / Board / Chart.
 
 Use the native Production model, Edition register, Review deck, Brief and
 Production map tabs. The chart reads A9:D11, category field 0 and value field 3.
-The outputs do not query Relational Table directly. Source edits never replace authored prose
+The outputs do not query Base directly. Source edits never replace authored prose
 or card layouts. There are no JavaScript business totals or refresh buttons.
 
 ## Nine literal examples
 
-Run in order. Activate Edition register for Relational Table edits and Production model for
+Run in order. Activate Edition register for Base edits and Production model for
 Sheet edits, using the native tabs. These are the actual public Facade calls
 used by the runnable preview and standalone source.
 
@@ -45,7 +45,7 @@ window.univerAPI.getWorkbook('meridian-production-model').getSheetBySheetId('pro
 
 ### 3. Exclude an edition by business status
 
-With Edition register active, place Atlas on hold. It remains a real Relational Table
+With Edition register active, place Atlas on hold. It remains a real Base
 record, but the SUMIFS calculation excludes its quantity. One scheduled edition,
 80 copies, 2,400 total and Fieldnotes share 100%. The first chart bar disappears.
 
@@ -136,10 +136,10 @@ Partial, not fully accepted. The selected run in
 test-results/embed-meridian-formula-native-keyboard/report.json exercises all
 nine literal examples. All 26 results are checked on current native canvases;
 actual chart column heights follow the calculated amounts, including no positive
-columns for zero amounts. Native Relational Table quantity input 80→100 produces 3,500;
+columns for zero amounts. Native Base quantity input 80→100 produces 3,500;
 native Sheet rate input 25→20 then produces 2,800. Authored Doc content and
-Slides/Canvas pages remain unchanged, excluding only Formula Shape lastValue
-caches. Both reference layers appear in native snapshots. Active-Canvas disposal
+Slides/Board pages remain unchanged, excluding only Formula Shape lastValue
+caches. Both reference layers appear in native snapshots. Active-Board disposal
 passes, with no observed browser errors or backend requests.
 
 The strict report remains FAIL: Doc displays #DIV/0! but returns success/string

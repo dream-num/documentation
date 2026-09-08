@@ -47,25 +47,6 @@ export function createDemo(container: HTMLElement, darkMode = false) {
         ShapeEditorUIEnUS,
         EmbedUnitUIEnUS,
         SlidesUIEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'shape-editor-ui': {
-            ...ShapeEditorUIEnUS['shape-editor-ui'],
-            formulaBinding: {
-              ...ShapeEditorUIEnUS['shape-editor-ui']['formulaBinding'],
-              baseUnit: 'Relational Tables',
-            },
-            formulaShape: { ...ShapeEditorUIEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-          'embed-unit-ui': {
-            ...EmbedUnitUIEnUS['embed-unit-ui'],
-            referencedUnitViewer: {
-              ...EmbedUnitUIEnUS['embed-unit-ui']['referencedUnitViewer'],
-              base: 'Relational Tables',
-            },
-          },
-        },
       ),
     },
   })

@@ -146,7 +146,7 @@ export function createHostData(): Partial<IWorkbookData> {
     17: { 0: { v: 'Estimate incl. allowance', s: 'header' }, 3: { f: '=D14+D16', s: 'total' } },
     20: { 0: { v: 'COST IS NOT CLEARANCE', s: 'section' } },
     22: { 0: { v: '42 expected / 41 counted: one crate unresolved.', s: 'warning' } },
-    24: { 0: { v: 'Double-click the Canvas to edit the handoff.', s: 'muted' } },
+    24: { 0: { v: 'Double-click the Board to edit the handoff.', s: 'muted' } },
     25: { 0: { v: 'Cost edits do not change the diagram.', s: 'muted' } },
     27: { 0: { v: 'Training only. No live dispatch or approval.', s: 'muted' } },
   }

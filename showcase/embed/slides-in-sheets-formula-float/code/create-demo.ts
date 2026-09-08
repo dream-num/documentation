@@ -88,22 +88,6 @@ export function createDemo(container: HTMLElement, darkMode = false, _legacyLoca
         SheetsFormulaEnUS,
         SlidesCoreEnUS,
         EmbedUnitEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'shape-editor-ui': {
-            ...ShapeEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-          'embed-unit-ui': {
-            ...EmbedUnitEnUS['embed-unit-ui'],
-            referencedUnitViewer: {
-              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
-              base: 'Relational Tables',
-            },
-          },
-        },
       ),
     },
   })

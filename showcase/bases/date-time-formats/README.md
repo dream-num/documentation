@@ -8,7 +8,7 @@ Use the native field editor to change a format, or open a date cell to edit its 
 
 Double-click the first appointment's 24-hour cell. Selecting 28 February changes the date while retaining 09:30. Open the cell again, enter 10:45 in the native time input and press Enter: the displayed and stored time changes without changing the day. The other three date fields stay unchanged because they are independent columns. If a selected cell does not reopen immediately after Escape, select another row before returning to it.
 
-The native regression test exercises these two submissions separately from the four Facade recipes, in English on both English- and Chinese-language host pages with Shanghai and UTC browser timezones. It checks actual canvas text, other-field preservation and the complete edited Relational Table model through themes. This is not a claim of exhaustive calendar navigation, date-field settings or keyboard accessibility coverage.
+The native regression test exercises these two submissions separately from the four Facade recipes, in English on both English- and Chinese-language host pages with Shanghai and UTC browser timezones. It checks actual canvas text, other-field preservation and the complete edited Base model through themes. This is not a claim of exhaustive calendar navigation, date-field settings or keyboard accessibility coverage.
 
 ## 1. Show the existing time without changing it
 
@@ -56,6 +56,6 @@ if (record.getValue('clock12') !== null) throw new Error('The date was not clear
 
 ## Standalone export
 
-Run `pnpm install` and `pnpm dev` in the exported project. Preview and export share the same factory with Grid configuration, complete Design/UI/Docs UI/Relational Tables/Relational Tables UI English locale packs, and all four official CSS imports. Theme changes retain the existing SDK owner and edited values. Original synthetic data needs no external assets, backend, or upload service. Native license notices remain visible.
+Run `pnpm install` and `pnpm dev` in the exported project. Preview and export share the same factory with Grid configuration, complete Design/UI/Docs UI/Bases/Bases UI English locale packs, and all four official CSS imports. Theme changes retain the existing SDK owner and edited values. Original synthetic data needs no external assets, backend, or upload service. Native license notices remain visible.
 
 The data factory converts explicit local calendar components with the installed public `dateToExcelSerial(new Date(year, monthIndex, day, hour, minute))`. In beta.2, native formatting applies the browser timezone: a raw UTC-midnight serial is not a timezone-independent local date. Fresh owners author the same local clock labels in each browser timezone; saved snapshots are not promised to retain those labels when moved between timezones. The sample does not promise timezone scheduling, recurrence, or date-system switching. These source examples use public installed Facades; actual native picker, rendered format, locale and export acceptance must be checked separately from type checking.

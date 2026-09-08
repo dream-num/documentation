@@ -67,13 +67,13 @@ The full native runtime gate is **failing**, not accepted:
 - Native activation, all fourteen paragraphs, both verbatim README examples,
   ordinary keyboard insertion and Ctrl+Z/Ctrl+Y pass. The complete child snapshot
   restores on Undo and Redo; the complete host stays unchanged. The Docs floating
-  menu has fullscreen and removal, not Relational Table-style Undo/Redo buttons.
+  menu has fullscreen and removal, not Base-style Undo/Redo buttons.
 - Native child scrolling paints the lower stop/review section. Three native
   thumbnail pages, independent host title editing, live Facade dark/light changes
   and owned active-child disposal preserve the expected models. No browser errors
   or backend requests were observed.
 - **Native Enter fullscreen opens no shell.** Its direct test fails; there is no
-  custom replacement button or hidden failure. Similar failures in Sheets/Relational Table
+  custom replacement button or hidden failure. Similar failures in Sheets/Base
   Slides Float are related observations, not proof of the root cause here.
 - The first source check combined Ctrl+Home with `Reviewed / ` typing. The caret
   did not move to the document beginning and the slash did not appear as expected.

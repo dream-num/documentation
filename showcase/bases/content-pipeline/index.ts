@@ -12,7 +12,7 @@ const metadata = {
     'en-US': 'Manage a launch content calendar across grid, Kanban, and calendar views.',
     'zh-CN': '通过表格、看板和日历视图管理发布内容计划。',
   },
-  tags: { 'en-US': ['Relational Tables', 'Multi-view', 'Records'], 'zh-CN': ['Relational Tables', '多视图', '记录'] },
+  tags: { 'en-US': ['Bases', 'Multi-view', 'Records'], 'zh-CN': ['多维表格', '多视图', '记录'] },
   packages: ['@univerjs-pro/bases', '@univerjs-pro/bases-ui'],
   apis: [
     { name: 'FUniver.createBase()' },
@@ -26,19 +26,19 @@ const metadata = {
   previewHeight: 1040,
   guide: {
     overview: {
-      'en-US': 'A real Relational Table with typed fields, twelve varied records, and three user-visible views.',
-      'zh-CN': '一个包含类型化字段、十二条差异化记录和三种可见视图的真实 Relational Table。',
+      'en-US': 'A real Base with typed fields, twelve varied records, and three user-visible views.',
+      'zh-CN': '一个包含类型化字段、十二条差异化记录和三种可见视图的真实 Base。',
     },
     tryIt: {
       'en-US': [
         'Switch among native Editorial grid, Status board, and Publishing calendar.',
         'Edit an asset, change its status, and inspect its publication date in the native UI.',
-        'Use the README to add the analyst briefing, schedule undated work, and restore the complete Relational Table.',
+        'Use the README to add the analyst briefing, schedule undated work, and restore the complete Base.',
       ],
       'zh-CN': [
         '切换原生编辑表格、状态看板与发布日历。',
         '原生编辑内容、调整状态并查看发布日期。',
-        '运行 README 以添加分析师简报、安排未定日期任务及完整恢复 Relational Table。',
+        '运行 README 以添加分析师简报、安排未定日期任务及完整恢复 Base。',
       ],
     },
     expected: {

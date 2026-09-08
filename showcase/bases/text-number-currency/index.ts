@@ -14,8 +14,8 @@ const metadata: ShowcaseMetadata = {
     'zh-CN': '在修理咖啡馆的三张表、60 条多样记录中，逐项演示字段创建、数值格式、类型化写入、默认值与类型转换。',
   },
   tags: {
-    'en-US': ['Relational Tables', 'Field types', 'Defaults', 'Conversion'],
-    'zh-CN': ['Relational Tables', '字段类型', '默认值', '类型转换'],
+    'en-US': ['Bases', 'Field types', 'Defaults', 'Conversion'],
+    'zh-CN': ['多维表格', '字段类型', '默认值', '类型转换'],
   },
   packages: ['@univerjs-pro/bases', '@univerjs-pro/bases-ui', '@univerjs-pro/license'],
   apis: [
@@ -36,9 +36,9 @@ const metadata: ShowcaseMetadata = {
   guide: {
     overview: {
       'en-US':
-        'Bracken repair café has 30 distinct repair jobs, 12 workshop projects and 18 return checks. Parts units and reserves are stored as numbers; submitted quotes intentionally include numeric strings, blanks and unparseable text. Unicode notes, people, canonical dates, original local attachments and real linked records provide varied context. The native Relational Table Grid, its product-specific toolbar and four official SDK stylesheets are shared by Preview and the independent export.',
+        'Bracken repair café has 30 distinct repair jobs, 12 workshop projects and 18 return checks. Parts units and reserves are stored as numbers; submitted quotes intentionally include numeric strings, blanks and unparseable text. Unicode notes, people, canonical dates, original local attachments and real linked records provide varied context. The native Base Grid, its product-specific toolbar and four official SDK stylesheets are shared by Preview and the independent export.',
       'zh-CN':
-        'Bracken 修理咖啡馆包含 30 个不同维修任务、12 个工作坊项目及 18 个归还检查。零件数量和预留金额以数字存储；提交报价有意包含数字字符串、空白及不可解析文本。Unicode 英文备注、人员、规范日期、原创本地附件和真实关联记录提供不同数据场景。预览与独立导出共用原生 Relational Table Grid、产品专用工具栏和四份官方 SDK 样式。',
+        'Bracken 修理咖啡馆包含 30 个不同维修任务、12 个工作坊项目及 18 个归还检查。零件数量和预留金额以数字存储；提交报价有意包含数字字符串、空白及不可解析文本。Unicode 英文备注、人员、规范日期、原创本地附件和真实关联记录提供不同数据场景。预览与独立导出共用原生 Base Grid、产品专用工具栏和四份官方 SDK 样式。',
     },
     tryIt: {
       'en-US': [

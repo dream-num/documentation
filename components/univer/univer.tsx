@@ -1493,53 +1493,6 @@ export default function Univer({ tablistLabel }: IUniverProps) {
           BasesUIEnUS,
           BoardsUIEnUS,
           PdfsUIEnUS,
-
-          // Demo-only product names; preserve every other official English translation.
-          {
-            'shape-editor-ui': {
-              ...ShapeEditorUIEnUS['shape-editor-ui'],
-              formulaBinding: {
-                ...ShapeEditorUIEnUS['shape-editor-ui']['formulaBinding'],
-                baseUnit: 'Relational Tables',
-              },
-              formulaShape: { ...ShapeEditorUIEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-            },
-            'bases-ui': {
-              ...BasesUIEnUS['bases-ui'],
-              collaboration: {
-                ...BasesUIEnUS['bases-ui']['collaboration'],
-                localTooltip: 'Collaboration is disabled for these relational tables.',
-                notCollabTooltip: 'These relational tables are not in collaboration mode.',
-              },
-              fieldConfig: {
-                ...BasesUIEnUS['bases-ui']['fieldConfig'],
-                formulaReferenceError: 'A1 references and ranges are not supported in Relational Tables formulas.',
-                referenceCurrentField:
-                  'Reference the "{0}" field in the current relational table. It will be saved as [[#This Row],[{1}]] for the formula engine.',
-              },
-              fieldMenu: {
-                ...BasesUIEnUS['bases-ui']['fieldMenu'],
-                createSharedBaseField: 'Create a shared Relational Tables field',
-              },
-              viewMenus: {
-                ...BasesUIEnUS['bases-ui']['viewMenus'],
-                setWorkingDaysDescription:
-                  'Customize working days and days off, and apply them to the current relational tables',
-              },
-              formula: {
-                ...BasesUIEnUS['bases-ui']['formula'],
-                generic: {
-                  ...BasesUIEnUS['bases-ui']['formula']['generic'],
-                  engineDescription:
-                    '{0} is provided by the Univer formula engine. Relational Tables supports field references such as TableName[[#This Row],[Field]] and OtherTable[Field], but does not support A1 cells, A1:B10 ranges, or spilled array output in formula fields.',
-                },
-              },
-            },
-            'boards-ui': {
-              ...BoardsUIEnUS['boards-ui'],
-              settings: { ...BoardsUIEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
-            },
-          },
         ),
       },
     })
@@ -1645,14 +1598,14 @@ export default function Univer({ tablistLabel }: IUniverProps) {
     },
     {
       key: 'bases' as const,
-      label: 'Relational Tables',
-      fullLabel: 'Univer Relational Tables',
+      label: 'Bases',
+      fullLabel: 'Univer Bases',
       icon: BasesMultiIcon,
     },
     {
       key: 'boards' as const,
-      label: 'Canvases',
-      fullLabel: 'Univer Canvases',
+      label: 'Boards',
+      fullLabel: 'Univer Boards',
       icon: BoardsMultiIcon,
     },
     {

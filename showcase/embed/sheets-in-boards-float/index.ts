@@ -6,16 +6,16 @@ const metadata: ShowcaseMetadata = {
   product: 'embed',
   category: 'features',
   previewHeight: 1100,
-  group: { 'en-US': 'Canvases host / Float', 'zh-CN': 'Canvases 宿主 / 浮动' },
-  title: { 'en-US': 'Sheets in Canvases / Workshop Budget', 'zh-CN': 'Sheets 嵌入 Canvases / 工作坊预算' },
+  group: { 'en-US': 'Boards host / Float', 'zh-CN': 'Boards 宿主 / 浮动' },
+  title: { 'en-US': 'Sheets in Boards / Workshop Budget', 'zh-CN': 'Sheets 嵌入 Boards / 工作坊预算' },
   description: {
     'en-US':
       'Plan a repair workshop with activity cards and a native floating eight-line budget, reserve scenarios and independent editing.',
-    'zh-CN': '在修缮工作坊 Canvases 旁编辑八项预算，比较预备金方案，保持两个产品的数据独立。',
+    'zh-CN': '在修缮工作坊 Boards 旁编辑八项预算，比较预备金方案，保持两个产品的数据独立。',
   },
   tags: {
-    'en-US': ['Embed', 'Canvases', 'Sheets', 'Float', 'Budget'],
-    'zh-CN': ['嵌入', 'Canvases', '表格', '浮动', '预算'],
+    'en-US': ['Embed', 'Boards', 'Sheets', 'Float', 'Budget'],
+    'zh-CN': ['嵌入', '白板', '表格', '浮动', '预算'],
   },
   packages: [
     '@univerjs-pro/boards',
@@ -44,13 +44,13 @@ const metadata: ShowcaseMetadata = {
         'Double-click the budget to activate its native editor.',
         'Run the workbook README example and inspect costs, reserve and room remaining.',
         'Try native Undo/Redo and compare rates in Sensitivity.',
-        'Return to the Canvas and edit the pending access-support decision.',
+        'Return to the Board and edit the pending access-support decision.',
       ],
       'zh-CN': [
         '双击预算以激活原生编辑器。',
         '运行 README 表格示例，查看成本、预备金和剩余额度。',
         '尝试原生撤销重做，在 Sensitivity 中比较不同预备金率。',
-        '返回 Canvases，编辑待确认的无障碍支持事项。',
+        '返回 Boards，编辑待确认的无障碍支持事项。',
       ],
     },
     expected: {
@@ -68,7 +68,7 @@ const metadata: ShowcaseMetadata = {
   actions: [
     ['edit', 'Edit the native budget', '编辑原生预算'],
     ['compare', 'Compare reserve scenarios', '比较预备金方案'],
-    ['note', 'Update the Canvas decision independently', '独立更新 Canvases 事项'],
+    ['note', 'Update the Board decision independently', '独立更新 Boards 事项'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   states: [
     ['passive', 'Budget beside the workshop plan', '工作坊旁的预算'],

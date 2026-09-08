@@ -12,12 +12,12 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Estuary / Data-linked Narrative', 'zh-CN': 'Estuary / 数据联动正文' },
   description: {
     'en-US':
-      'Sheet funding and Relational Table commitments drive four native inline formulas in a modern document, with both sources embedded as body blocks.',
-    'zh-CN': 'Sheet 资金与 Relational Table 支出驱动现代文档中的四个原生行内公式，两个来源均作为正文块嵌入。',
+      'Sheet funding and Base commitments drive four native inline formulas in a modern document, with both sources embedded as body blocks.',
+    'zh-CN': 'Sheet 资金与 Base 支出驱动现代文档中的四个原生行内公式，两个来源均作为正文块嵌入。',
   },
   tags: {
-    'en-US': ['Formula', 'Modern Docs', 'Sheets', 'Relational Tables', 'Inline', 'Embed'],
-    'zh-CN': ['公式', '现代文档', '表格', 'Relational Tables', '行内公式', '嵌入'],
+    'en-US': ['Formula', 'Modern Docs', 'Sheets', 'Bases', 'Inline', 'Embed'],
+    'zh-CN': ['公式', '现代文档', '表格', '多维表格', '行内公式', '嵌入'],
   },
   packages: [
     '@univerjs/core',
@@ -72,7 +72,7 @@ const metadata: ShowcaseMetadata = {
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   actions: [
     ['funding', 'Revise funding in the Sheet', '修改 Sheet 资金'],
-    ['commitments', 'Revise commitments in the Relational Table', '修改 Relational Table 支出'],
+    ['commitments', 'Revise commitments in the Base', '修改 Base 支出'],
     ['inspect', 'Inspect formula bindings and results', '检查公式绑定与结果'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   states: [

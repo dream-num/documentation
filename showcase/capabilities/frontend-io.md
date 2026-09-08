@@ -43,7 +43,7 @@ production export in EN/ZH. It suppresses only the OS print call, dispatches the
 browser print lifecycle events and preserves the SDK's actual page renderer.
 It captures every generated canvas plus print-media DOM, verifies paper dimensions,
 page-break CSS and populated pixels, and checks complete workbook preservation
-after `afterprint` cleanup. Canvas text calls can include clipped text; reviewed
+after `afterprint` cleanup. Board text calls can include clipped text; reviewed
 page images, not those calls alone, establish visible content.
 
 ## Authority still needed for Exchange

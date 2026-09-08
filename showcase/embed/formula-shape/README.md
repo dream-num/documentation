@@ -3,7 +3,7 @@
 Native UI and authored data are English-only, including on Chinese documentation pages. The legacy third locale argument is ignored; the factory does not change the host page language. Historical bilingual reports below remain evidence of earlier revisions, not acceptance of this English-only revision.
 
 Four native Slides pages demonstrate a data dependency, not copied KPI text:
-Sheet workshop fees and Relational Table delivery costs drive eight native Formula Shapes.
+Sheet workshop fees and Base delivery costs drive eight native Formula Shapes.
 The revenue and costs pages contain the two real source Floats. Overview and
 Bridge show separate-source totals, contribution and margin in authored layouts.
 
@@ -18,7 +18,7 @@ Run each snippet in the demo iframe or standalone preview. No copy of the data,
 manual refresh button or JavaScript calculation is involved. Use explicit source
 IDs, not whichever unit happens to own focus. Examples below run in order.
 
-Known beta.2 limitation: the Relational Table write in example 2 recalculates the model but
+Known beta.2 limitation: the Base write in example 2 recalculates the model but
 can replace the Slides workbench with an empty surface. The sequence below is
 therefore not yet an accepted end-to-end walkthrough. Do not add a custom refresh
 or focus-restoration button to disguise this failure.
@@ -29,7 +29,7 @@ or focus-restoration button to disguise this failure.
 window.univerAPI.getWorkbook('beacon-learning-revenue').getSheetByName('Workshop revenue').getRange('C5').setValue(50)
 ```
 
-### 2. Relational Table / Revise room allocation
+### 2. Base / Revise room allocation
 
 ```ts
 window.univerAPI.getBase('beacon-learning-costs').getTableById('costs').getRecordById('cost-1').setValue('amount', 2100)
@@ -50,13 +50,13 @@ window.univerAPI.getWorkbook('beacon-learning-revenue').getSheetByName('Workshop
 window.univerAPI.getWorkbook('beacon-learning-revenue').getSheetByName('Workshop revenue').getRange('B5:B10').setValues([[40], [28], [36], [22], [30], [18]])
 ```
 
-### 5. Relational Table / A deliberate zero-cost allocation
+### 5. Base / A deliberate zero-cost allocation
 
 ```ts
 window.univerAPI.getBase('beacon-learning-costs').getTableById('costs').getRecordById('cost-1').setValue('amount', 0)
 ```
 
-### 6. Relational Table / Restore the allocation
+### 6. Base / Restore the allocation
 
 ```ts
 window.univerAPI.getBase('beacon-learning-costs').getTableById('costs').getRecordById('cost-1').setValue('amount', 2100)
@@ -103,7 +103,7 @@ window.univerAPI.getWorkbook('beacon-learning-revenue').getSheetByName('Workshop
 ### 11. Sheet / Text cannot become a fee
 
 The source row and dependent revenue/contribution/margin cards must retain the
-native error. The two Relational Table-only cost cards remain 5600.
+native error. The two Base-only cost cards remain 5600.
 
 ```ts
 window.univerAPI.getWorkbook('beacon-learning-revenue').getSheetByName('Workshop revenue').getRange('C5').setValue('pending')
@@ -115,7 +115,7 @@ window.univerAPI.getWorkbook('beacon-learning-revenue').getSheetByName('Workshop
 window.univerAPI.getWorkbook('beacon-learning-revenue').getSheetByName('Workshop revenue').getRange('C5').setValue(45)
 ```
 
-### 13. Relational Table / Remove an undecided room allowance
+### 13. Base / Remove an undecided room allowance
 
 The room amount becomes null, not zero. SUM excludes it: total cost 3800.
 
@@ -123,13 +123,13 @@ The room amount becomes null, not zero. SUM excludes it: total cost 3800.
 window.univerAPI.getBase('beacon-learning-costs').getTableById('costs').getRecordById('cost-1').setValue('amount', null)
 ```
 
-### 14. Relational Table / Recover the room allowance
+### 14. Base / Recover the room allowance
 
 ```ts
 window.univerAPI.getBase('beacon-learning-costs').getTableById('costs').getRecordById('cost-1').setValue('amount', 1800)
 ```
 
-### 15. Relational Table / Preserve allocation precision
+### 15. Base / Preserve allocation precision
 
 The room allowance 1825.50 produces cost 5625.50 and contribution 4464.50.
 
@@ -137,7 +137,7 @@ The room allowance 1825.50 produces cost 5625.50 and contribution 4464.50.
 window.univerAPI.getBase('beacon-learning-costs').getTableById('costs').getRecordById('cost-1').setValue('amount', 1825.5)
 ```
 
-### 16. Relational Table / Edit context without changing a total
+### 16. Base / Edit context without changing a total
 
 Changing a planning note must preserve all eight Formula Shape values.
 
@@ -145,7 +145,7 @@ Changing a planning note must preserve all eight Formula Shape values.
 window.univerAPI.getBase('beacon-learning-costs').getTableById('costs').getRecordById('cost-1').setValue('note', 'Room allocation reviewed; quantities remain illustrative.')
 ```
 
-### 17. Relational Table / Fully donated delivery
+### 17. Base / Fully donated delivery
 
 All six allocations are explicitly zero. Revenue and contribution are 10090;
 margin is 100%. This differs from the zero-revenue division boundary.
@@ -155,7 +155,7 @@ const costs = window.univerAPI.getBase('beacon-learning-costs').getTableById('co
 for (let i = 1; i <= 6; i++) costs.getRecordById('cost-' + i).setValue('amount', 0)
 ```
 
-### 18. Relational Table / Restore the six allocations
+### 18. Base / Restore the six allocations
 
 ```ts
 const costs = window.univerAPI.getBase('beacon-learning-costs').getTableById('costs')
@@ -170,7 +170,7 @@ the corresponding readable qualifiers. FShape.getFormulaResult() reports the
 native value, displayText and status. No formula result is copied into a text box.
 
 Formula expression examples are SUM of the external Sheet revenue range,
-SUM of the Relational Table Costs[Amount] field, their difference and the ratio. The Sheet
+SUM of the Base Costs[Amount] field, their difference and the ratio. The Sheet
 range itself contains quantity-times-fee formulas, so this includes a real
 Sheet calculation -> slide Formula Shape chain.
 
@@ -200,16 +200,16 @@ The strict runtime report remains FAIL:
   and repair. Open the revenue source page before a Sheet Facade write. A passive
   source with no render may mutate and recalculate, then throw in native
   auto-height; explicit unit IDs do not remove that beta.2 limitation.
-- Root Relational Table Facade writes update the eight native results and preserve the Sheet
+- Root Base Facade writes update the eight native results and preserve the Sheet
   and authored slide layout, but remove the Slides workbench. Later navigation
   failures in the same sequence are downstream effects, not separate defects.
   The zero-revenue/recovery writes after this failure also throw from the missing
   Sheet render. No forced-focus listener or refresh button hides the problem.
-- Editing the real Relational Table Float grid is a distinct path: entering 2250 for Studio
+- Editing the real Base Float grid is a distinct path: entering 2250 for Studio
   rooms produces cost 6050, contribution 4040 and 40.04% margin; all four main
   slide canvases update. This does not establish that the root Facade path works.
 - The native Sheet Float input also passes: typing 52 into C5 produces revenue
-  10370 while Relational Table costs remain 5600, with all eight results and four main slide
+  10370 while Base costs remain 5600, with all eight results and four main slide
   canvases checked. This input test does not require fullscreen to work.
 - All 22 dependency locale packs are checked leaf-by-leaf for EN/ZH. Locale and
   light/dark/light changes preserve all three serialized owners after native

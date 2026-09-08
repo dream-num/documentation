@@ -76,7 +76,7 @@ export function createData(): IBaseSnapshot {
     ],
     [
       'pouch',
-      'Canvas tool pouch',
+      'Board tool pouch',
       'Mixed image and CSV',
       [pouch, file('pouch-parts', 'pouch-parts.csv', 'text/csv', 'part,quantity\nlinen thread,2\nbrass snap,3\n')],
     ],

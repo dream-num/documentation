@@ -56,7 +56,7 @@ function slide(id: string, name: string, background: string, elements: SlideElem
     elements: Object.fromEntries(elements.map((element) => [element.id, element])),
     elementOrder: elements.map((element) => element.id),
     speakerNotes:
-      'Fictional community makerspace retrospective. Native Canvas cards remain independent of slide commitments. No invitations, approvals or team messages are sent.',
+      'Fictional community makerspace retrospective. Native Board cards remain independent of slide commitments. No invitations, approvals or team messages are sent.',
   }
 }
 
@@ -74,7 +74,7 @@ export function createHostData(): ISlideData {
       text('phase-three', '15 min / Choose the next tests', 325, 500, 620, 48, 27, '#A6D1BF', true),
       text(
         'footer',
-        '7 contributors · 9 authored observations · Open Retrospective Canvas in the page list',
+        '7 contributors · 9 authored observations · Open Retrospective Board in the page list',
         42,
         604,
         920,
@@ -100,7 +100,7 @@ export function createHostData(): ISlideData {
       text('handoff-copy', 'Closing checklist\nName next owner\nReview in 2 weeks', 696, 400, 242, 85, 18, '#335E51'),
       text(
         'experiment-footer',
-        'Draft experiments, not assigned tasks. Editing the Canvas does not update these slides.',
+        'Draft experiments, not assigned tasks. Editing the Board does not update these slides.',
         42,
         562,
         915,

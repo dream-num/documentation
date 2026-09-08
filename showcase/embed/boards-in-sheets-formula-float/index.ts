@@ -9,12 +9,12 @@ const metadata: ShowcaseMetadata = {
   group: { 'en-US': 'Formula / Data-driven composition', 'zh-CN': 'Formula / 数据驱动组合' },
   title: { 'en-US': 'Delta / Resource Allocation Map', 'zh-CN': 'Delta / 资源分配图' },
   description: {
-    'en-US': 'A floating native Canvas reveals local team overload hidden by a positive Sheet capacity total.',
-    'zh-CN': '浮动原生 Canvas 揭示 Sheet 总容量盈余掩盖的局部团队超载。',
+    'en-US': 'A floating native Board reveals local team overload hidden by a positive Sheet capacity total.',
+    'zh-CN': '浮动原生 Board 揭示 Sheet 总容量盈余掩盖的局部团队超载。',
   },
   tags: {
-    'en-US': ['Formula', 'Sheets', 'Canvases', 'Native float', 'Print'],
-    'zh-CN': ['公式', '表格', 'Canvases', '原生浮动', '打印'],
+    'en-US': ['Formula', 'Sheets', 'Boards', 'Native float', 'Print'],
+    'zh-CN': ['公式', '表格', '白板', '原生浮动', '打印'],
   },
   packages: [
     '@univerjs/sheets',
@@ -41,13 +41,13 @@ const metadata: ShowcaseMetadata = {
     tryIt: {
       'en-US': [
         'Edit the six highlighted Sheet inputs.',
-        'Double-click the Canvas; compare total and local buffers.',
+        'Double-click the Board; compare total and local buffers.',
         'Use the native fullscreen control, then return to the same edited Sheet.',
         'Try blank/zero/text, source rename, missing-source recovery and native Sheet Print.',
       ],
       'zh-CN': [
         '编辑六个高亮 Sheet 输入。',
-        '双击 Canvas，比较总余量与团队余量。',
+        '双击 Board，比较总余量与团队余量。',
         '使用原生全屏，再返回同一个已编辑 Sheet。',
         '尝试空值/零值/文本、改名、来源缺失恢复与 Sheet 打印。',
       ],

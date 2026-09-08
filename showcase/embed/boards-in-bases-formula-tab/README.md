@@ -2,9 +2,9 @@
 
 This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
 
-A native Relational Table is both host and source. Its Operations map tab contains a native
-Canvas with twelve Formula Shapes and three bound connectors. This is Canvas@Relational Table
-Tab, with Relational Table -> Canvas calculation; moving a card does not update a record.
+A native Base is both host and source. Its Operations map tab contains a native
+Board with twelve Formula Shapes and three bound connectors. This is Board@Base
+Tab, with Base -> Board calculation; moving a card does not update a record.
 
 Three fictional repair-station workstreams start with assigned loads 14, 9 and
 7 hours against capacities 18, 12 and 10 hours. Total load is 30 of 40 hours (75%).
@@ -17,8 +17,8 @@ workflow automation. A negative remainder is visible rather than clamped to zero
 
 Run these in order in the demo iframe or standalone console. Use Workstream
 register for native cell editing and Operations map for the live outputs. No
-manual refresh or extra action panel is required. Native Canvas tools edit the
-authored map; Relational Table record edits drive the formula values.
+manual refresh or extra action panel is required. Native Board tools edit the
+authored map; Base record edits drive the formula values.
 
 ### 1. A fuller repair bench
 
@@ -144,7 +144,7 @@ base.getTableById('streams').getRecordById('stream-2').setValue('load', 12)
 
 ### 14. Unavailable source
 
-The real Relational Table remains intact; this changes the Canvas's qualifier mapping. Native
+The real Base remains intact; this changes the Board's qualifier mapping. Native
 errors must remain visible, not become cached totals or estimated values.
 
 ```ts
@@ -159,8 +159,8 @@ window.univerAPI.getFormula().upsertExternalReference({ unitId: 'reed-operations
 
 ### 16. Inspect both native snapshots
 
-Reading snapshots is not persistence or file conversion. The Relational Table contains the
-embed reference, not the Canvas's complete content.
+Reading snapshots is not persistence or file conversion. The Base contains the
+embed reference, not the Board's complete content.
 
 ```ts
 console.log({ host: window.univerAPI.getBase('reed-repair-station').save(), board: window.univerAPI.getBoard('reed-operations-map').save() })
@@ -175,14 +175,14 @@ the node moves and all three bound connectors follow it. Double-click its text
 to append a note. Click outside to commit; the native text box may grow and its
 connectors follow the new bounds. Click the canvas again before using keyboard
 Undo/Redo, since committing unmounts the floating text editor. Map editing does
-not write back to Relational Table records or replace their formulas.
+not write back to Base records or replace their formulas.
 
 ### Reconstruct the edited pair
 
 In the standalone entry module, declare the factory result with `let demo`
 instead of `const demo`. Keep its existing `createDemo` import and `container`.
 This example serializes both native snapshots and replaces the owner; it does
-not reset the Canvas to its seed formulas or map. Run it after editing the source
+not reset the Board to its seed formulas or map. Run it after editing the source
 and map, then change another source record to check fresh calculation.
 
 ```js
@@ -197,17 +197,17 @@ demo = createDemo(container, darkMode, locale, saved)
 ```
 
 This is same-pair native snapshot recovery, not arbitrary file import or durable
-storage. A Relational Table snapshot holds the embed reference, not the complete Canvas.
+storage. A Base snapshot holds the embed reference, not the complete Board.
 
-One factory powers Preview and standalone. Relational Table stays the root; the native Relational Table
+One factory powers Preview and standalone. Base stays the root; the native Base
 workbench owns its canvas. The renderer-only ownership rule excludes that canvas
-and thumbnails from the generic main-canvas focus switcher. Relational Table-list
+and thumbnails from the generic main-canvas focus switcher. Base-list
 prepare/materialize/restore uses SDK services as in the local example; it is not
-advertised as a public Facade method. Canvas text editing registers the SDK's real
-EditorUIService through Canvas's runtime-scoped extension, without a hidden Slides
+advertised as a public Facade method. Board text editing registers the SDK's real
+EditorUIService through Board's runtime-scoped extension, without a hidden Slides
 unit. User snippets use public Facade APIs. Ten official stylesheets and complete
-English packs cover the registered UI dependencies. Relational Table uses Grid where applicable;
-Canvas retains its native floating tools rather than receiving a duplicate ribbon.
+English packs cover the registered UI dependencies. Base uses Grid where applicable;
+Board retains its native floating tools rather than receiving a duplicate ribbon.
 
 Saved snapshots can be passed as the fourth factory argument, `{ host, board }`.
 Restore uses saved native resources without reinstalling initial formulas. This
@@ -222,23 +222,23 @@ no competitor artwork is redistributed.
 ## Acceptance status
 
 Partial, not fully accepted. test-results/embed-reed-formula-owned-ui/report.json
-passes all sixteen literal examples and twelve results on the current Canvas
+passes all sixteen literal examples and twelve results on the current Board
 canvas, not a historical paint log. The complete authored pages, order, geometry,
 text and name are preserved (only calculated formula lastValue is excluded).
 All three native rendered connector routes resolve to their actual bound sites.
 Empty filters, hidden-record edits, null/zero distinction, negative spare capacity,
 division/missing-source error status, explicit repair and source rename/fresh
-writes pass. Native Relational Table typing 9 -> 11 updates all outputs; exact full-Relational Table
-Undo/Redo and passive Canvas-visible source writes/return navigation pass.
+writes pass. Native Base typing 9 -> 11 updates all outputs; exact full-Base
+Undo/Redo and passive Board-visible source writes/return navigation pass.
 
-Ten entire EN/ZH dependency packs and complete Relational Table/Canvas snapshot preservation
-through theme changes pass. Active Canvas-tab disposal releases owned UI and API
+Ten entire EN/ZH dependency packs and complete Base/Board snapshot preservation
+through theme changes pass. Active Board-tab disposal releases owned UI and API
 with no observed errors, warnings or backend requests. The first report at
 test-results/embed-reed-formula-initial/report.json retained two setup failures:
 the initial fallback theme differed from the SDK's first resolved theme, and a
-Canvas content React root outlived its scoped injector. Fresh Canvas creation now
+Board content React root outlived its scoped injector. Fresh Board creation now
 uses the SDK createBoardThemePreset with ThemeService's resolver; saved themes
-are not overwritten. Disposal explicitly unmounts the owned native Canvas content
+are not overwritten. Disposal explicitly unmounts the owned native Board content
 root before child/host unit and injector disposal. No SDK package is patched.
 
 test-results/reed-formula-export-ui/report.json checks eleven-file exact source
@@ -257,7 +257,7 @@ number format, unavailable binding, Chinese dark appearance and a deleted Formul
 Shape. Both complete snapshots match, except the checked native embed activation
 timestamp. Five invalid pairs leave the current owner intact. A saved empty view
 still excludes every record without changing whole-table calculations; fresh
-hidden-record edits and real Relational Table keyboard input repaint all twelve results.
+hidden-record edits and real Base keyboard input repaint all twelve results.
 The custom total formula remains SUM(Load)+2 with one-decimal hours. Changed map
 text and all three connector routes survive recovery after FBoard.translateElement
 moves the source node. Deleting utilization stays respected after recovery and
@@ -269,9 +269,9 @@ Native interaction now has separate evidence at
 test-results/embed-reed-native-history/report.json. Actual painted-glyph clicks
 and ArrowRight move the node and bound routes in fresh, edited-source/formula,
 and Chinese dark states. Native movement Undo/Redo preserves the full serialized
-Canvas and leaves the Relational Table unchanged. Text typing/commit and full serialized
+Board and leaves the Base unchanged. Text typing/commit and full serialized
 Undo/Redo pass in EN/ZH; after editor commit, the surviving canvas is refocused
-before sending shortcuts. Fresh Relational Table writes still update the edited map.
+before sending shortcuts. Fresh Base writes still update the edited map.
 
 The stronger recovery report at
 test-results/embed-reed-roundtrip-native-layout/report.json repeats all four

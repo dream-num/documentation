@@ -34,7 +34,7 @@ export const BRIEF = [
   ],
   ['02 / Evidence register and owners', 'heading'],
   [
-    'Open the Relational Table block to inspect a review item, then expand it to read the evidence notes and Owners directory. Linked owner labels follow a renamed person without changing the record identifier. Dates describe fictional review slots, not a calendar integration.',
+    'Open the Base block to inspect a review item, then expand it to read the evidence notes and Owners directory. Linked owner labels follow a renamed person without changing the record identifier. Dates describe fictional review slots, not a calendar integration.',
     'body',
   ],
   ['', 'body'],
@@ -54,7 +54,7 @@ export const BRIEF = [
   ['Disposition: hold for evidence review.', 'warning'],
   ['Appendix / Independent records', 'heading'],
   [
-    'The Relational Table contains review work, not approvals. Editing the report moves its native body anchor without rewriting the evidence register. Editing a linked owner updates Relational Table labels but does not rewrite names in the report. Reload discards local edits; no notifications, certifications, external files or backend requests are produced.',
+    'The Base contains review work, not approvals. Editing the report moves its native body anchor without rewriting the evidence register. Editing a linked owner updates Base labels but does not rewrite names in the report. Reload discards local edits; no notifications, certifications, external files or backend requests are produced.',
     'body',
   ],
 ] as const

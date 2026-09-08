@@ -62,26 +62,6 @@ export function createDemo(container: HTMLElement, darkMode = false, _locale: Lo
         ShapeEditorEnUS,
         InkUIEnUS,
         EmbedUnitEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'boards-ui': {
-            ...BoardsUIEnUS['boards-ui'],
-            settings: { ...BoardsUIEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
-          },
-          'shape-editor-ui': {
-            ...ShapeEditorEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeEditorEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeEditorEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-          'embed-unit-ui': {
-            ...EmbedUnitEnUS['embed-unit-ui'],
-            referencedUnitViewer: {
-              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
-              base: 'Relational Tables',
-            },
-          },
-        },
       ),
     },
   })
@@ -106,7 +86,7 @@ export function createDemo(container: HTMLElement, darkMode = false, _locale: Lo
       delete demoWindow.univerAPI
     }
     root.remove()
-    if (errors.length) throw new AggregateError(errors, 'Canvas cleanup failed')
+    if (errors.length) throw new AggregateError(errors, 'Board cleanup failed')
   }
   try {
     univer.registerPlugin(UniverRenderEnginePlugin)
@@ -170,7 +150,7 @@ export function createDemo(container: HTMLElement, darkMode = false, _locale: Lo
     try {
       dispose()
     } catch (cleanupError) {
-      throw new AggregateError([error, cleanupError], 'Canvas startup and cleanup failed', { cause: cleanupError })
+      throw new AggregateError([error, cleanupError], 'Board startup and cleanup failed', { cause: cleanupError })
     }
     throw error
   }

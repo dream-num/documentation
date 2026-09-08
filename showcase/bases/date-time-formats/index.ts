@@ -15,8 +15,8 @@ const metadata: ShowcaseMetadata = {
     'zh-CN': '用六条工作室预约并排比较日期、日月顺序、24 小时制和 12 小时制。格式改变显示，不删除存储的时间。',
   },
   tags: {
-    'en-US': ['Relational Tables', 'Date', 'Time', 'Field formatting'],
-    'zh-CN': ['Relational Tables', '日期', '时间', '字段格式'],
+    'en-US': ['Bases', 'Date', 'Time', 'Field formatting'],
+    'zh-CN': ['Bases', '日期', '时间', '字段格式'],
   },
   packages: ['@univerjs-pro/bases', '@univerjs-pro/bases-ui', '@univerjs-pro/license'],
   apis: [

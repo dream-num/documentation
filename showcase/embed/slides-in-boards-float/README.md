@@ -17,12 +17,12 @@ learning review. Capacity, costs and dates are assumptions, not measured results
 Run pnpm install and pnpm dev in the standalone export. Double-click the deck
 to activate Slides, then use its native fullscreen control and thumbnails.
 Explore the dark cover, green visitor journey, warm resource plan and lavender
-decision page. Canvas keeps native floating tools; Slides uses Grid where exposed.
+decision page. Board keeps native floating tools; Slides uses Grid where exposed.
 No fixture/reset panels, duplicate editing buttons, iframe or screenshot replaces
 the native child presentation.
 
 This literal Facade example refines the first title paragraph, preserving its
-rich-text styling and the Canvas's independent story notes:
+rich-text styling and the Board's independent story notes:
 
 ```ts
 const text = window.univerAPI
@@ -36,7 +36,7 @@ text.setRichText(rich)
 ```
 
 Try native Undo/Redo, edit the title and move a shape. Visit the four native
-thumbnails. Return to the Canvas and change only its pending next step:
+thumbnails. Return to the Board and change only its pending next step:
 
 ```ts
 window.univerAPI
@@ -47,7 +47,7 @@ window.univerAPI
 ```
 
 Slide text and budget bars are independent editable shapes, not Formula Shapes
-or live charts. Changing a Canvas card does not change deck content, spend money,
+or live charts. Changing a Board card does not change deck content, spend money,
 book a venue or send invitations. Reload loses local edits.
 
 ## Integration and acceptance
@@ -60,10 +60,10 @@ Slides owns its four pages and edits. The default display target is invitation.
 Selected independent production passes the two literal README examples,
 native rich-text input and full-snapshot Undo/Redo, shape movement/history,
 four-page navigation and canvas palette checks, fullscreen Start/View Grid,
-independent Canvas text and movement/history, theme changes and active-child
+independent Board text and movement/history, theme changes and active-child
 disposal. The first native text edit materializes the SDK's internal rich-text
 model: the test enters and leaves editing once before measuring typing history.
-First-commit restoration is not certified. Canvas themes may regenerate palettes;
+First-commit restoration is not certified. Board themes may regenerate palettes;
 theme ID and all authored content remain strict. No SDK package is patched.
 
 EN/ZH guides pass three variants/actions/states and actual media-theme changes
@@ -90,5 +90,5 @@ not its artwork or copy. All story text, figures and geometry are original.
 Native SDK surfaces stay intact while the four slide palettes vary by purpose.
 
 The shared factory explicitly imports the official Ink UI English pack and CSS
-required by the registered Canvases UI dependency. Other product locale packs and
+required by the registered Boards UI dependency. Other product locale packs and
 styles remain intact. This is resource coverage, not native pen acceptance.

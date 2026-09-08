@@ -57,26 +57,6 @@ export function createDemo(container: HTMLElement, darkMode = false) {
         ShapeUIEnUS,
         InkUIEnUS,
         EmbedUnitEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'boards-ui': {
-            ...BoardsUIEnUS['boards-ui'],
-            settings: { ...BoardsUIEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
-          },
-          'shape-editor-ui': {
-            ...ShapeUIEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeUIEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeUIEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-          'embed-unit-ui': {
-            ...EmbedUnitEnUS['embed-unit-ui'],
-            referencedUnitViewer: {
-              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
-              base: 'Relational Tables',
-            },
-          },
-        },
       ),
     },
   })
@@ -102,7 +82,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     }
     if (demoWindow.univerAPI === api) delete demoWindow.univerAPI
     root.remove()
-    if (errors.length) throw new AggregateError(errors, 'Connector Canvas cleanup failed')
+    if (errors.length) throw new AggregateError(errors, 'Connector Board cleanup failed')
   }
   // Public SDK viewport service; no duplicate Fit button and no invented Facade.
   async function fit() {
@@ -176,7 +156,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
         root.dataset.error = String(error)
         const alert = document.createElement('p')
         alert.setAttribute('role', 'alert')
-        alert.textContent = 'The release-workflow Canvas could not load. Reload to retry; details are in the console.'
+        alert.textContent = 'The release-workflow Board could not load. Reload to retry; details are in the console.'
         root.prepend(alert)
         console.error(error)
       })

@@ -3,6 +3,13 @@ import { localize, PRODUCT_IDS } from './types'
 
 export const SECTION_IDS = [...PRODUCT_IDS, 'customization-integration'] as const
 export type SectionId = (typeof SECTION_IDS)[number]
+
+// Navigation aliases only; metadata, documentation and SDK locales retain product names.
+export function treeLabel(value: string) {
+  return value
+    .replace(/^(?:Boards|白板)(?=$| as Host| 作为宿主)/, 'Canvases')
+    .replace(/^(?:Bases|多维表格)(?=$| as Host| 作为宿主)/, 'Relational Tables')
+}
 export const INTEGRATION_PRODUCT_IDS = [
   'sheets',
   'docs-modern',
@@ -53,8 +60,8 @@ export const HOST_LABELS: Record<string, Localized<string>> = {
   'docs-modern': label('Modern Docs as Host', '现代文档作为宿主'),
   'docs-traditional': label('Traditional Docs as Host', '传统文档作为宿主'),
   slides: label('Slides as Host', 'Slides 作为宿主'),
-  boards: label('Canvases as Host', 'Canvases 作为宿主'),
-  bases: label('Relational Tables as Host', 'Relational Tables 作为宿主'),
+  boards: label('Boards as Host', 'Boards 作为宿主'),
+  bases: label('Bases as Host', 'Bases 作为宿主'),
 }
 const GROUPS = {
   appearance: label('UI & Appearance', '界面与外观'),

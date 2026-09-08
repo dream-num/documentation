@@ -260,7 +260,7 @@ export const MEMO = [
     'body',
   ],
   [
-    'Data boundary: original fictional stories. The playbook and Relational Table records are independent; changing prose does not update stage, word target, issue or release date. Reload loses local edits.',
+    'Data boundary: original fictional stories. The playbook and Base records are independent; changing prose does not update stage, word target, issue or release date. Reload loses local edits.',
     'meta',
   ],
 ] as const

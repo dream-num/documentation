@@ -3,8 +3,8 @@
 Current language contract: native UI, startup alerts and authored data stay English under either host language. The legacy third locale argument remains accepted but is ignored. All complete English plugin packs, official CSS, native Grid menus and independent host/child models are retained. Earlier bilingual evidence below is historical; this language migration does not resolve its recorded SDK limitations or certify every interaction.
 
 An original fictional neighborhood seed-library pilot combines a modern narrative
-with four native body blocks: resource Sheet, readiness Relational Table, strategy Slides
-and dependency Canvas. Six stations, 72 illustrative starter packs and six
+with four native body blocks: resource Sheet, readiness Base, strategy Slides
+and dependency Board. Six stations, 72 illustrative starter packs and six
 orientation sessions frame the discussion. Six workstreams link to four owners.
 
 The saved Notion project-brief reference informs the narrative structure; native
@@ -56,14 +56,14 @@ Preview and standalone export share the same factory, snapshots and all official
 CSS imports. Docs defaults to Grid; full native Sheet feature plugins match
 the embedded ribbon rather than displaying unregistered operations. No generic
 fixture panel, duplicate toolbar or iframe child substitute is introduced.
-The actual child-scoped Canvas editor-service registration follows Canvas startup,
+The actual child-scoped Board editor-service registration follows Board startup,
 after the real Slides unit supplies the root service.
 
 Selected production evidence is in
 `test-results/embed-mixed-docs-modern-print-release/report.json`.
 All four native blocks render and open fullscreen. All five literal examples
 modify their intended unit; the host edit moves all four anchors by nine UTF-16
-units without changing the children. Relational Table, Slides and Canvas literal edits pass
+units without changing the children. Base, Slides and Board literal edits pass
 native full-five-model Undo/Redo. Actual Sheet keyboard input changes 84 packs
 to 90 and Undo restores 84. Its native one-page Print preview opens and cancels
 without backend requests; this is not whole-document printing or a produced PDF.
@@ -76,7 +76,7 @@ establish lost user values; the test retains exact snapshots and does not silent
 normalize either difference. Other checks continue so those failures do not hide
 independent product results. Do not report this as full history acceptance.
 
-Disposal while the Canvas is fullscreen initially produced stale host/LocaleService
+Disposal while the Board is fullscreen initially produced stale host/LocaleService
 errors. The demo now waits for the SDK's actual `exited$` release signal and queued
 focus recovery before releasing its host. The selected fullscreen-disposal recheck
 passes. `dispose()` is asynchronous; await it when switching an owned demo yourself.
@@ -84,7 +84,7 @@ Repeated/racing mounts and background-tab disposal still require verification.
 
 EN/ZH guide/theme checks are in `test-results/embed-mixed-docs-modern-next-recheck/report.json`.
 They exercise all five literal examples, preserve the same API owner and edited
-models through theme changes; the native Canvas may rebuild its palette with the
+models through theme changes; the native Board may rebuild its palette with the
 same theme ID. The independent export contains eleven source files and 23 official
 CSS imports; see `test-results/embed-mixed-docs-modern-export-final/report.json`.
 The intermediate `next-final` run caught old server guide text versus updated

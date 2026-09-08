@@ -11,12 +11,12 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Orchid / Pipeline Review', 'zh-CN': 'Orchid / 商机预测复盘' },
   description: {
     'en-US':
-      'Six Relational Table opportunities drive twelve native slide formulas: face value, probability-weighted forecast, stage distribution and independent assumptions.',
-    'zh-CN': '六条 Relational Table 商机驱动十二个原生幻灯片公式：名义金额、概率加权预测、阶段分布与独立假设。',
+      'Six Base opportunities drive twelve native slide formulas: face value, probability-weighted forecast, stage distribution and independent assumptions.',
+    'zh-CN': '六条 Base 商机驱动十二个原生幻灯片公式：名义金额、概率加权预测、阶段分布与独立假设。',
   },
   tags: {
-    'en-US': ['Formula', 'Relational Tables', 'Slides', 'Float', 'Embed'],
-    'zh-CN': ['公式', 'Relational Tables', '幻灯片', '浮动嵌入'],
+    'en-US': ['Formula', 'Bases', 'Slides', 'Float', 'Embed'],
+    'zh-CN': ['公式', '多维表格', '幻灯片', '浮动嵌入'],
   },
   packages: [
     '@univerjs-pro/bases',
@@ -35,19 +35,18 @@ const metadata: ShowcaseMetadata = {
   guide: {
     overview: {
       'en-US':
-        'A fictional experience-design studio compares six opportunities. A native Relational Table Float supplies three Slides pages without a hidden Sheet or custom totals.',
-      'zh-CN':
-        '虚构体验设计工作室复盘六条商机。原生 Relational Table Float 驱动三页 Slides，不使用隐藏 Sheet 或自算总计。',
+        'A fictional experience-design studio compares six opportunities. A native Base Float supplies three Slides pages without a hidden Sheet or custom totals.',
+      'zh-CN': '虚构体验设计工作室复盘六条商机。原生 Base Float 驱动三页 Slides，不使用隐藏 Sheet 或自算总计。',
     },
     tryIt: {
       'en-US': [
-        'Open Pipeline and double-click inside the Relational Table Float until its native toolbar appears.',
+        'Open Pipeline and double-click inside the Base Float until its native toolbar appears.',
         'Run the twelve README snippets in order; return and activate the source before each snippet.',
         'Compare face value and probability-weighted forecast.',
         'Move a stage, filter the view and edit a hidden record.',
       ],
       'zh-CN': [
-        '打开 Pipeline，双击 Relational Table Float 内部，直到出现原生浮动工具栏。',
+        '打开 Pipeline，双击 Base Float 内部，直到出现原生浮动工具栏。',
         '依次运行 README 中十二段代码；每段之前返回并激活数据源。',
         '比较名义金额与概率加权预测。',
         '移动阶段、筛选视图并修改隐藏记录。',

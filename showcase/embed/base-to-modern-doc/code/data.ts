@@ -68,7 +68,7 @@ const paragraphs = [
   ['Briefing signal: {{signal}}.', 'signal'],
   ['02 / Working register', 'heading'],
   [
-    'Double-click the native Relational Table block and expand it to edit. Change a status or session count, then return to this summary. The numbers and signal are inline formulas; this prose is not regenerated.',
+    'Double-click the native Base block and expand it to edit. Change a status or session count, then return to this summary. The numbers and signal are inline formulas; this prose is not regenerated.',
     'body',
   ],
   ['', 'body'],
@@ -78,7 +78,7 @@ const paragraphs = [
     'body',
   ],
   [
-    'Owners and next steps provide context, not numerical inputs. Filtering the Relational Table view changes what is visible, not the whole-table references in this brief. A hidden record can still change a dependent total.',
+    'Owners and next steps provide context, not numerical inputs. Filtering the Base view changes what is visible, not the whole-table references in this brief. A hidden record can still change a dependent total.',
     'body',
   ],
   ['04 / Read an empty queue honestly', 'heading'],

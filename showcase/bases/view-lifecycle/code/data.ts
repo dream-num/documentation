@@ -18,7 +18,7 @@ export function createData(): IBaseSnapshot {
   ]
   const rows = [
     ['Brass desk lamp', 'Electrical', 2, 'Replace cord; retain original shade.'],
-    ['Canvas field bag', 'Textiles', 1, 'Stitch handle and return spare buckle.'],
+    ['Board field bag', 'Textiles', 1, 'Stitch handle and return spare buckle.'],
     ['Beech reading stool', 'Woodwork', 4, 'Tighten legs; keep felt pads.'],
     ['Hand-crank radio', 'Electrical', 0, 'Clean contacts before replacing parts.'],
     ['Garden tool roll', 'Textiles', 3, 'Label pockets for shared tools.'],

@@ -8,17 +8,16 @@ const metadata: ShowcaseMetadata = {
   product: 'embed',
   category: 'showcases',
   previewHeight: 1000,
-  group: { 'en-US': 'Relational Tables host / Mixed', 'zh-CN': 'Relational Tables 宿主 / 综合嵌入' },
+  group: { 'en-US': 'Bases host / Mixed', 'zh-CN': 'Bases 宿主 / 综合嵌入' },
   title: { 'en-US': 'Acorn / Complete Operating Workspace', 'zh-CN': 'Acorn / 完整运营工作区' },
   description: {
     'en-US':
-      'A touring-exhibition studio combines linked opportunities, follow-ups and partners with native Sheet, Doc, Slides and Canvas tabs.',
-    'zh-CN':
-      '巡回展陈工作室将关联的机会、跟进任务与合作方，以及原生表格、文档、幻灯片和 Canvases Tab 组合在同一工作区。',
+      'A touring-exhibition studio combines linked opportunities, follow-ups and partners with native Sheet, Doc, Slides and Board tabs.',
+    'zh-CN': '巡回展陈工作室将关联的机会、跟进任务与合作方，以及原生表格、文档、幻灯片和 Boards Tab 组合在同一工作区。',
   },
   tags: {
-    'en-US': ['Embed', 'Relational Tables', 'Tab', 'Sheets', 'Docs', 'Slides', 'Canvases'],
-    'zh-CN': ['嵌入', 'Relational Tables', 'Tab', '表格', '文档', '幻灯片', 'Canvases'],
+    'en-US': ['Embed', 'Bases', 'Tab', 'Sheets', 'Docs', 'Slides', 'Boards'],
+    'zh-CN': ['嵌入', '多维表格', 'Tab', '表格', '文档', '幻灯片', '白板'],
   },
   packages: [
     '@univerjs/core',
@@ -39,19 +38,19 @@ const metadata: ShowcaseMetadata = {
   guide: {
     overview: {
       'en-US':
-        'Ten opportunities, six linked follow-ups and four partner groups form the operating register. A two-sheet forecast exposes uncertainty; a playbook, three-slide review and bound-connector Canvas explain delivery. These are separate local models, not live CRM synchronization.',
+        'Ten opportunities, six linked follow-ups and four partner groups form the operating register. A two-sheet forecast exposes uncertainty; a playbook, three-slide review and bound-connector Board explain delivery. These are separate local models, not live CRM synchronization.',
       'zh-CN':
-        '十个机会、六项关联跟进和四类合作方组成运营记录。两张工作表展示预测假设，手册、三页评审和关联连线 Canvases 说明交付过程。各产品数据独立，不代表 CRM 实时同步。',
+        '十个机会、六项关联跟进和四类合作方组成运营记录。两张工作表展示预测假设，手册、三页评审和关联连线 Boards 说明交付过程。各产品数据独立，不代表 CRM 实时同步。',
     },
     tryIt: {
       'en-US': [
-        'Browse the three Relational Tables and four native product tabs.',
+        'Browse the three Bases and four native product tabs.',
         'Change Tidal Atlas value in Forecast; inspect the weighted total.',
         'Change a stage weight on Assumptions and compare its related opportunities.',
         'Run the five literal README examples after opening each product.',
       ],
       'zh-CN': [
-        '浏览三个 Relational Table 表和四个原生产品 Tab。',
+        '浏览三个 Base 表和四个原生产品 Tab。',
         '在 Forecast 修改 Tidal Atlas 金额，观察加权合计。',
         '在 Assumptions 修改阶段权重，对比相关机会。',
         '打开相应产品后运行 README 的五段原样示例。',

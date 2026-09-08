@@ -16,8 +16,8 @@ const metadata: ShowcaseMetadata = {
       'Compare a quarter-scale overview and working-week timeline for eight exhibition-installation tasks, with progress, phase colors and an editable source Grid.',
   },
   tags: {
-    'en-US': ['Relational Tables', 'Gantt', 'Working days', 'View comparison'],
-    'zh-CN': ['Relational Tables', 'Gantt', 'Working days', 'View comparison'],
+    'en-US': ['Bases', 'Gantt', 'Working days', 'View comparison'],
+    'zh-CN': ['Bases', 'Gantt', 'Working days', 'View comparison'],
   },
   packages: ['@univerjs-pro/bases', '@univerjs-pro/bases-ui', '@univerjs-pro/license'],
   apis: [

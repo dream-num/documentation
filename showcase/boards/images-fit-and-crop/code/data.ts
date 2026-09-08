@@ -55,7 +55,7 @@ export function createData(): IBoardData {
     label('title', 'Orchard signs / image frames', 60, 50, 1120, 36),
     label(
       'subtitle',
-      'Original SVG artwork in native Canvas images. Select and drag an image to edit its position.',
+      'Original SVG artwork in native Board images. Select and drag an image to edit its position.',
       60,
       115,
       1120,
@@ -95,7 +95,7 @@ export function createData(): IBoardData {
     label('crop-label', 'Initially: center crop', 980, 460, 220, 16),
     label(
       'footer',
-      'Fit means proportional dimensions; crop and source replacement use the public Canvas element API.',
+      'Fit means proportional dimensions; crop and source replacement use the public Board element API.',
       60,
       550,
       1130,

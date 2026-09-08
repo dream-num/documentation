@@ -57,7 +57,7 @@ function slide(id: string, name: string, background: string, elements: SlideElem
     elements: Object.fromEntries(elements.map((element) => [element.id, element])),
     elementOrder: elements.map((element) => element.id),
     speakerNotes:
-      'Original fictional observatory ingestion proposal. Canvas edits do not change slide text. No sensors, messages, deployments or backend calls.',
+      'Original fictional observatory ingestion proposal. Board edits do not change slide text. No sensors, messages, deployments or backend calls.',
   }
 }
 
@@ -82,7 +82,7 @@ export function createHostData(): ISlideData {
       ),
       text(
         'footer',
-        'Double-click the Canvas to edit the boundary diagram. Slides stay independent.',
+        'Double-click the Board to edit the boundary diagram. Slides stay independent.',
         40,
         610,
         920,

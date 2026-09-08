@@ -1,8 +1,8 @@
-# Canvas search and element query
+# Board search and element query
 
 Native UI, demo labels and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Earlier bilingual acceptance reports below remain historical evidence, not validation of this English-only revision.
 
-The small host form demonstrates SDK queries; native Canvas controls still handle editing. Preview and standalone entry use the same factory, official CSS and complete English locale bundles, including native shape-editor and ink dependencies. Theme changes preserve the canvas and query state. Native license notices remain visible.
+The small host form demonstrates SDK queries; native Board controls still handle editing. Preview and standalone entry use the same factory, official CSS and complete English locale bundles, including native shape-editor and ink dependencies. Theme changes preserve the canvas and query state. Native license notices remain visible.
 
 The four cards contain three `Risk` matches. One connector has `Risk` in both its name and label, illustrating multiple hits for one element. `Approved` matches the other connector's label. The English tokens cover uppercase/lowercase query variants.
 
@@ -47,4 +47,4 @@ if (id && !board.focusElement(id, { x: 400, y: 250 })) {
 const viewportPoint = id ? board.getElementViewportPoint(id) : null
 ```
 
-Coordinates are relative to the native Canvas viewport. The factory uses the canvas host's center. `focusElement()` selects that element and pans the viewport. This SDK exposes no public bulk-selection or clear-selection Facade; the demo does not substitute internal selection services.
+Coordinates are relative to the native Board viewport. The factory uses the canvas host's center. `focusElement()` selects that element and pans the viewport. This SDK exposes no public bulk-selection or clear-selection Facade; the demo does not substitute internal selection services.

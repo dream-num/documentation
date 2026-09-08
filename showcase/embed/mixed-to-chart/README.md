@@ -3,19 +3,19 @@
 This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
 
 A fictional learning studio compares September income with three target envelopes.
-The target worksheet supplies $60,000; six Confirmed Relational Table records supply $54,500.
+The target worksheet supplies $60,000; six Confirmed Base records supply $54,500.
 The $5,500 gap, 90.8% attainment and channel mix are native Sheet formulas.
 A real two-series column chart reads the visible range A6:C9.
 
 ## Exact composition
 
 - Target plan is an editable native Sheet within the host workbook.
-- Income register is a separate Relational Table embedded as a native Sheet Tab.
+- Income register is a separate Base embedded as a native Sheet Tab.
 - Plan versus actual contains the criteria, visible calculations and native chart.
-- This is Sheet + Relational Table → Sheet range → Chart, not Sheet@Sheet or an external-workbook demo.
+- This is Sheet + Base → Sheet range → Chart, not Sheet@Sheet or an external-workbook demo.
   The current SDK capability table does not declare Sheet@Sheet embedding; that
   separate coverage gap is not claimed as solved here.
-- Relational Table filters project the view only. Formula criteria define which records count.
+- Base filters project the view only. Formula criteria define which records count.
 
 The saved Gamma budget-review reference informs the review story and contrast,
 not copied artwork. Original navy, teal, gold and lilac separate the actuals,
@@ -29,7 +29,7 @@ tested against the running factory. Wait for native recalculation between steps.
 
 ### 1. Revise confirmed income
 
-New memberships become $12,500: actual $58,000, target $60,000, gap $2,000. Relational Table drives the teal series; Sheet targets do not change.
+New memberships become $12,500: actual $58,000, target $60,000, gap $2,000. Base drives the teal series; Sheet targets do not change.
 
 ```ts
 univerAPI.getBase('prism-income-register').getTableById('income').getRecordById('member-new').setValue('amount', 12500)
@@ -77,7 +77,7 @@ Actual $60,900 and target $62,000 return without replacing the chart.
 univerAPI.getWorkbook('prism-income-comparison').getSheetBySheetId('comparison').getRange('B4').setValue('September')
 ```
 
-### 7. Filter the Relational Table view
+### 7. Filter the Base view
 
 Only the remaining Draft record is visible. The whole-table SUMIFS still aggregates September Confirmed entries.
 
@@ -161,7 +161,7 @@ univerAPI.getBase('prism-income-register').getTableById('income').getRecordById(
 
 ### 16. Rename and persist the current qualifier
 
-The Relational Table ID remains prism-income-register. The SDK rewrites the displayed qualifier in formulas; explicitly bind that new qualifier for later reconstruction.
+The Base ID remains prism-income-register. The SDK rewrites the displayed qualifier in formulas; explicitly bind that new qualifier for later reconstruction.
 
 ```ts
 univerAPI.getBase('prism-income-register').setName('Prism / Reviewed income')
@@ -176,9 +176,9 @@ New memberships $9,300 makes actual $54,800 and gap $5,200. This checks more tha
 univerAPI.getBase('prism-income-register').getTableById('income').getRecordById('member-new').setValue('amount', 9300)
 ```
 
-### 18. Make the Relational Table mapping unavailable
+### 18. Make the Base mapping unavailable
 
-The real Relational Table stays intact. Native errors must replace actuals. Sheet targets still have their own source; do not substitute zeros for errors.
+The real Base stays intact. Native errors must replace actuals. Sheet targets still have their own source; do not substitute zeros for errors.
 
 ```ts
 univerAPI.getFormula().upsertExternalReference({ unitId: 'prism-income-comparison', qualifier: 'Prism / Reviewed income', sourceUnitId: 'prism-unavailable-register', sourceUnitType: univerAPI.Enum.UniverInstanceType.UNIVER_BASE })
@@ -244,7 +244,7 @@ Downloads a native chart PNG, not an application screenshot.
 
 ### 25. Inspect both owners and the chart source
 
-The host workbook contains both Target plan and Plan versus actual. The Relational Table snapshot is separate; the chart binds A6:C9, not a JavaScript series array.
+The host workbook contains both Target plan and Plan versus actual. The Base snapshot is separate; the chart binds A6:C9, not a JavaScript series array.
 
 ```ts
 const workbook = univerAPI.getWorkbook('prism-income-comparison')
@@ -257,7 +257,7 @@ console.log({ workbook: workbook.save(), base: univerAPI.getBase('prism-income-r
 In the standalone entry module use `let demo = createDemo(container)` so the
 application can replace its own handle. Keep the same imported factory and mount
 element. Run this only after calculation has settled. Both native snapshots are
-required; the workbook embeds a Relational Table reference, not its complete records.
+required; the workbook embeds a Base reference, not its complete records.
 
 ```js
 const saved = JSON.parse(JSON.stringify({
@@ -271,7 +271,7 @@ demo = createDemo(container, darkMode, locale, saved)
 ```
 
 The factory reuses saved formulas, source bindings, chart configuration, targets
-and Relational Table records. It does not reseed removed charts or repair unavailable source
+and Base records. It does not reseed removed charts or repair unavailable source
 mappings. Invalid unit IDs, missing worksheets/table, or missing native tab
 resources/anchors are rejected before a new owner is mounted. This is in-memory
 snapshot reconstruction, not durable storage, arbitrary file import or retained
@@ -285,7 +285,7 @@ not the edited models. Native Print and PNG export use the SDK Facade.
 
 Selected runtime checks pass all twenty-five literal examples, current native
 bar geometry, independent sources, native typing and exact source Undo/Redo,
-Print preview, chart PNG, complete EN/ZH packs, themes and active-Relational Table disposal.
+Print preview, chart PNG, complete EN/ZH packs, themes and active-Base disposal.
 See test-results/embed-prism-formula-final/report.json. Eleven-file source/CSS
 parity passes at test-results/prism-formula-export-ui/report.json.
 

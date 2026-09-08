@@ -127,26 +127,6 @@ export function createDemo(container: HTMLElement, darkMode = false, _legacyLoca
         SlidesEnUS,
         EmbedEnUS,
         BoardsUIEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'embed-unit-ui': {
-            ...EmbedUnitEnUS['embed-unit-ui'],
-            referencedUnitViewer: {
-              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
-              base: 'Relational Tables',
-            },
-          },
-          'shape-editor-ui': {
-            ...ShapeEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-          'boards-ui': {
-            ...BoardsUIEnUS['boards-ui'],
-            settings: { ...BoardsUIEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
-          },
-        },
       ),
     },
   })
@@ -304,7 +284,7 @@ export function createDemo(container: HTMLElement, darkMode = false, _legacyLoca
         const board = api.getBoard(BOARD_ID)!
         for (const spec of BOARD_FORMULAS) {
           const shape = board.getShape(spec.id)
-          if (!shape) throw new Error('Missing Canvas formula ' + spec.id)
+          if (!shape) throw new Error('Missing Board formula ' + spec.id)
           shape.setFormula({ formula: spec.formula, externalReferences })
           shape.setFormulaAnimationEnabled(false)
         }

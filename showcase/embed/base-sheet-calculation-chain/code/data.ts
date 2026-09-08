@@ -189,7 +189,7 @@ export function createHostData(): Partial<IWorkbookData> {
       3: { v: 'EDIT THE AMBER ASSUMPTIONS', s: 'meta' },
     },
     5: { 0: { v: 'Discussion envelope', s: 'header' }, 1: { v: 3500, s: 'input' } },
-    7: { 0: { v: 'Relational Table quantities → Sheet formulas → Native prose, cards and chart', s: 'meta' } },
+    7: { 0: { v: 'Base quantities → Sheet formulas → Native prose, cards and chart', s: 'meta' } },
     8: Object.fromEntries(
       ['Edition', 'Scheduled quantity', 'Unit rate', 'Production amount', 'Quantity share'].map((v, i) => [
         i,
@@ -228,7 +228,7 @@ export function createHostData(): Partial<IWorkbookData> {
     },
     17: {
       0: {
-        v: 'Read B10:B11 for Relational Table-backed quantities, D10:D11 for products, and D13 for the aggregate.',
+        v: 'Read B10:B11 for Base-backed quantities, D10:D11 for products, and D13 for the aggregate.',
         s: 'meta',
       },
     },
@@ -295,7 +295,7 @@ export function createDocsData(): IDocumentData {
     ],
     ['03 / What is included', 'heading'],
     [
-      'The register has {{count}} scheduled editions. On-hold editions remain in Relational Table, but their quantities do not enter this run. Filtering the register view does not change that whole-table rule.',
+      'The register has {{count}} scheduled editions. On-hold editions remain in Base, but their quantities do not enter this run. Filtering the register view does not change that whole-table rule.',
       'body',
     ],
     ['Discussion signal: {{signal}}.', 'signal'],
@@ -305,7 +305,7 @@ export function createDocsData(): IDocumentData {
       'body',
     ],
     [
-      'The note, review deck and production map read only Sheet result cells. They never query Relational Table directly. The intermediate quantity, multiplication and aggregate formulas remain visible and editable in the Sheet.',
+      'The note, review deck and production map read only Sheet result cells. They never query Base directly. The intermediate quantity, multiplication and aggregate formulas remain visible and editable in the Sheet.',
       'body',
     ],
     ['Local studio discussion / No backend, order placement, accounting approval or publication', 'meta'],
@@ -441,7 +441,7 @@ export function createSlidesData(): ISlideData {
       slideText(
         id,
         'footer',
-        'Relational Table records → Visible Sheet calculations → Native editorial outputs',
+        'Base records → Visible Sheet calculations → Native editorial outputs',
         40,
         626,
         1120,
@@ -575,7 +575,7 @@ export function createBoardData(): IBoardData {
     boardText('title', 'MERIDIAN / FOLLOW ONE NUMBER THROUGH', 40, 22, 1120, 58, 30, '#203F4C'),
     boardText(
       'subtitle',
-      'Relational Table is the record source. Sheet is the visible calculation layer.',
+      'Base is the record source. Sheet is the visible calculation layer.',
       44,
       88,
       1110,

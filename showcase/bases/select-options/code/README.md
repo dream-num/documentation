@@ -127,7 +127,7 @@ window.univerAPI.getBase('sable-option-lab').getTableById('surveys').getRecordBy
 
 ## 14. Inspect the complete model
 
-Save is a read-only Relational Table snapshot, not an XLSX/CSV export or collaborative history.
+Save is a read-only Base snapshot, not an XLSX/CSV export or collaborative history.
 
 ```ts
 console.log(window.univerAPI.getBase('sable-option-lab').save())

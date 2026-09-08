@@ -15,8 +15,8 @@ const metadata: ShowcaseMetadata = {
       'Compare compact and labeled native Kanban cards for six instrument repairs, four status columns and an editable source Grid.',
   },
   tags: {
-    'en-US': ['Relational Tables', 'Kanban', 'Cards', 'Columns'],
-    'zh-CN': ['Relational Tables', 'Kanban', 'Cards', 'Columns'],
+    'en-US': ['Bases', 'Kanban', 'Cards', 'Columns'],
+    'zh-CN': ['Bases', 'Kanban', 'Cards', 'Columns'],
   },
   packages: ['@univerjs-pro/bases', '@univerjs-pro/bases-ui', '@univerjs-pro/license'],
   apis: [

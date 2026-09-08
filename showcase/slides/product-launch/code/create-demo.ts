@@ -86,24 +86,7 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: ISl
     darkMode,
     locale: LocaleType.EN_US,
     locales: {
-      [LocaleType.EN_US]: mergeLocales(
-        DesignEnUS,
-        UIEnUS,
-        DocsUIEnUS,
-        ShapeEditorUIEnUS,
-        SlidesUIEnUS,
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'shape-editor-ui': {
-            ...ShapeEditorUIEnUS['shape-editor-ui'],
-            formulaBinding: {
-              ...ShapeEditorUIEnUS['shape-editor-ui']['formulaBinding'],
-              baseUnit: 'Relational Tables',
-            },
-            formulaShape: { ...ShapeEditorUIEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-        },
-      ),
+      [LocaleType.EN_US]: mergeLocales(DesignEnUS, UIEnUS, DocsUIEnUS, ShapeEditorUIEnUS, SlidesUIEnUS),
     },
   })
   univer.registerPlugin(UniverRenderEnginePlugin)

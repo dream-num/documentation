@@ -14,8 +14,8 @@ const metadata: ShowcaseMetadata = {
     'zh-CN': '按数值、文本和日期字段排列校准队列，使用零、负数、空值及相同值观察排序。',
   },
   tags: {
-    'en-US': ['Relational Tables', 'Single feature', 'SDK projection'],
-    'zh-CN': ['Relational Tables', '单功能', 'SDK 投影'],
+    'en-US': ['Bases', 'Single feature', 'SDK projection'],
+    'zh-CN': ['多维表格', '单功能', 'SDK 投影'],
   },
   packages: ['@univerjs-pro/bases', '@univerjs-pro/bases-ui', '@univerjs-pro/license'],
   apis: [

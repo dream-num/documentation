@@ -40,7 +40,7 @@ export function createDemo(container: HTMLElement, darkMode = false, _locale: Lo
   const editor = document.createElement('div')
   editor.className = 'text-sticky-editor'
   editor.tabIndex = 0
-  editor.setAttribute('aria-label', 'Canvas editor')
+  editor.setAttribute('aria-label', 'Board editor')
   const error = document.createElement('p')
   error.setAttribute('role', 'alert')
   error.hidden = true
@@ -59,26 +59,6 @@ export function createDemo(container: HTMLElement, darkMode = false, _locale: Lo
         ShapeEditorEnUS,
         EmbedUnitEnUS,
         InkUIEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'boards-ui': {
-            ...BoardsUIEnUS['boards-ui'],
-            settings: { ...BoardsUIEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
-          },
-          'shape-editor-ui': {
-            ...ShapeEditorEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeEditorEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeEditorEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-          'embed-unit-ui': {
-            ...EmbedUnitEnUS['embed-unit-ui'],
-            referencedUnitViewer: {
-              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
-              base: 'Relational Tables',
-            },
-          },
-        },
       ),
     },
   })
@@ -158,7 +138,7 @@ export function createDemo(container: HTMLElement, darkMode = false, _locale: Lo
     try {
       univer.dispose()
     } catch (cleanupError) {
-      throw new AggregateError([cause, cleanupError], 'Canvas startup and cleanup both failed.', {
+      throw new AggregateError([cause, cleanupError], 'Board startup and cleanup both failed.', {
         cause: cleanupError,
       })
     } finally {

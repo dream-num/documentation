@@ -26,7 +26,7 @@ export const BRIEF = [
   ],
   ['02 / Owners, evidence and open questions', 'heading'],
   [
-    'The live readiness register below separates completed checks from unresolved dependencies. Open a record to review evidence, or expand the Relational Table to see the People directory. Names are linked records, not copied text.',
+    'The live readiness register below separates completed checks from unresolved dependencies. Open a record to review evidence, or expand the Base to see the People directory. Names are linked records, not copied text.',
     'body',
   ],
   ['', 'body'],
@@ -45,7 +45,7 @@ export const BRIEF = [
   ],
   ['Decision: not released.', 'warning'],
   [
-    'Changing a Relational Table record does not rewrite this decision. The narrative and the register remain independent SDK documents. All names, dates and records are fictional; no invitations, notifications or approvals are sent. Reload loses local edits.',
+    'Changing a Base record does not rewrite this decision. The narrative and the register remain independent SDK documents. All names, dates and records are fictional; no invitations, notifications or approvals are sent. Reload loses local edits.',
     'body',
   ],
 ] as const

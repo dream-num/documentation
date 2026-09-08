@@ -1,16 +1,16 @@
 # Estuary / Data-linked narrative
 
-A fictional neighborhood listening project: four funding contributions in a Sheet and five delivery commitments in a Relational Table drive four native Doc Formula custom ranges. Both sources are real document blocks. Everything runs in this browser; reload discards local edits.
+A fictional neighborhood listening project: four funding contributions in a Sheet and five delivery commitments in a Base drive four native Doc Formula custom ranges. Both sources are real document blocks. Everything runs in this browser; reload discards local edits.
 
 ## What is live
 
 The first paragraph reports funding **16,000.00**, commitments **9,800.00**, unallocated funding **6,200.00**, and spending share **61.25%**. The native formula engine calculates these values; application code neither sums the source data nor rewrites the paragraph. Named external references are bound to stable unit IDs during `FDocument.insertFormula()`.
 
-The composition is Sheet + Relational Table @ Modern Docs. The data dependency is Sheet + Relational Table -> Docs, not automatic two-way writing. Docs uses native Block embeds, not tabs. A Relational Table aggregate covers the whole Costs table, not necessarily its filtered view.
+The composition is Sheet + Base @ Modern Docs. The data dependency is Sheet + Base -> Docs, not automatic two-way writing. Docs uses native Block embeds, not tabs. A Base aggregate covers the whole Costs table, not necessarily its filtered view.
 
 ## Six literal examples
 
-Run these exact snippets with the demo's `univerAPI`, in order. IDs identify the source regardless of which product currently has focus. Expand the Relational Table block before changing its record: beta.2 Relational Table commands can change global focus, which is tested separately from calculation correctness.
+Run these exact snippets with the demo's `univerAPI`, in order. IDs identify the source regardless of which product currently has focus. Expand the Base block before changing its record: beta.2 Base commands can change global focus, which is tested separately from calculation correctness.
 
 ### 1. A larger funding envelope
 
@@ -22,7 +22,7 @@ univerAPI.getWorkbook('estuary-funding-model').getSheetBySheetId('funding').getR
 
 ### 2. A larger listening programme
 
-The first Relational Table commitment increases by 600. Funding remains 17,500.00; commitments become 10,400.00; balance becomes 7,100.00; share becomes 59.43%.
+The first Base commitment increases by 600. Funding remains 17,500.00; commitments become 10,400.00; balance becomes 7,100.00; share becomes 59.43%.
 
 ```ts
 univerAPI.getBase('estuary-delivery-register').getTableById('costs').getRecordById('cost-1').setValue('amount', 3800)
@@ -46,7 +46,7 @@ univerAPI.getWorkbook('estuary-funding-model').getSheetBySheetId('funding').getR
 
 ### 5. Restore commitments
 
-All four results return to the baseline. This changes the Relational Table only, not the funding Sheet.
+All four results return to the baseline. This changes the Base only, not the funding Sheet.
 
 ```ts
 univerAPI.getBase('estuary-delivery-register').getTableById('costs').getRecordById('cost-1').setValue('amount', 3200)
@@ -106,7 +106,7 @@ interface labels. No visible translation keys or console errors were observed.
 
 `test-results/estuary-english-calculation/report.json` reruns all six literal
 examples, source-driven rendered values, unchanged body, detached projection
-and active Relational Table fullscreen cleanup. It remains strictly failing only for the
+and active Base fullscreen cleanup. It remains strictly failing only for the
 known zero-denominator result-status issue below. These scoped production runs
 do not certify every native source-editing path or resolve the earlier
 development-shell unmount issue. The historical bilingual runs below remain
@@ -143,7 +143,7 @@ run fails on four React synchronous-unmount console errors. Reproduce with
 production evidence does not certify this development-shell lifecycle path.
 Do not filter these errors or treat translated labels as full acceptance.
 
-Partial, not fully accepted. The six exact examples, four final rendered inline values, independent Sheet/Relational Table changes, unchanged complete document body, Relational Table fullscreen editing/return, zero-value display/recovery and a detached successful-state display-text snapshot have selected browser evidence. EN/ZH guides, the first literal example in each locale and theme changes preserve the API owner and all three models. Type checking and selected standalone build pass.
+Partial, not fully accepted. The six exact examples, four final rendered inline values, independent Sheet/Base changes, unchanged complete document body, Base fullscreen editing/return, zero-value display/recovery and a detached successful-state display-text snapshot have selected browser evidence. EN/ZH guides, the first literal example in each locale and theme changes preserve the API owner and all three models. Type checking and selected standalone build pass.
 
 **Known SDK issue:** the zero-denominator formula visibly displays `#DIV/0!`, but beta.2 returns `status: success` and a string cell type rather than an error status. The strict runtime report stays FAIL for this gate. The demo does not rewrite that result. Error-state persistence/projection semantics need separate verification; the successful-state snapshot check does not certify them.
 

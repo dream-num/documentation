@@ -11,7 +11,7 @@ const metadata: ShowcaseMetadata = {
     'en-US': 'Four native clusters compare overlaps, one-level groups, nested groups and locked versus movable shapes.',
     'zh-CN': '四组原生样张对照重叠层级、单层分组、嵌套分组和锁定／可移动图形。',
   },
-  tags: { 'en-US': ['Canvases', 'Groups', 'Layers'], 'zh-CN': ['Canvases', '分组', '图层'] },
+  tags: { 'en-US': ['Boards', 'Groups', 'Layers'], 'zh-CN': ['白板', '分组', '图层'] },
   packages: ['@univerjs-pro/boards', '@univerjs-pro/boards-ui', '@univerjs-pro/license'],
   apis: [
     'FBoard.wrapElementsInContainer()',
@@ -24,8 +24,8 @@ const metadata: ShowcaseMetadata = {
   guide: {
     overview: {
       'en-US':
-        'Simple colored shapes show organization directly. Native Canvas selection and contextual actions remain available; no duplicate host controls or JSON panels.',
-      'zh-CN': '简单彩色图形直接展示组织能力，保留原生 Canvases 选择和上下文操作，不提供重复宿主控件或 JSON 面板。',
+        'Simple colored shapes show organization directly. Native Board selection and contextual actions remain available; no duplicate host controls or JSON panels.',
+      'zh-CN': '简单彩色图形直接展示组织能力，保留原生 Boards 选择和上下文操作，不提供重复宿主控件或 JSON 面板。',
     },
     tryIt: {
       'en-US': [
@@ -41,9 +41,9 @@ const metadata: ShowcaseMetadata = {
     },
     expected: {
       'en-US':
-        'Grouping is initialized with real FBoard Facades. beta.2 lock Facades reject valid patches, so this demo uses the exported metadata operation. A known nested-disband Undo defect can change sibling z-order; this cleanup does not claim it fixed. Theme updates retain the Canvas instance.',
+        'Grouping is initialized with real FBoard Facades. beta.2 lock Facades reject valid patches, so this demo uses the exported metadata operation. A known nested-disband Undo defect can change sibling z-order; this cleanup does not claim it fixed. Theme updates retain the Board instance.',
       'zh-CN':
-        '使用真实 FBoard Facade 初始化分组。beta.2 锁定 Facade 拒绝合法补丁，因此使用导出的元数据操作。撤销嵌套解组可能改变兄弟层级的缺陷仍未宣称修复；主题更新保留 Canvases 实例。',
+        '使用真实 FBoard Facade 初始化分组。beta.2 锁定 Facade 拒绝合法补丁，因此使用导出的元数据操作。撤销嵌套解组可能改变兄弟层级的缺陷仍未宣称修复；主题更新保留 Boards 实例。',
     },
   },
   variants: [

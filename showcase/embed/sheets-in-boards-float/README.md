@@ -1,4 +1,4 @@
-# Ripple / Sheets floating on a Canvas
+# Ripple / Sheets floating on a Board
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
@@ -7,7 +7,7 @@ not current bilingual SDK acceptance. English-only source/CSS/startup checks do
 not certify every native interaction or resolve the recorded SDK failures.
 
 A fictional community repair workshop plans 24 attendees, four tables and two
-facilitators. The Canvas carries three activity cards and an access-support
+facilitators. The Board carries three activity cards and an access-support
 decision; its native floating Sheet contains eight cost lines, a reserve,
 a spending ceiling and a second worksheet comparing reserve rates.
 The baseline is USD 1,433 direct costs, 1,576.30 including 10% reserve,
@@ -16,7 +16,7 @@ and 223.70 remaining below the 1,800 ceiling.
 ## Run and explore
 
 Run pnpm install and pnpm dev in the standalone export. Double-click the
-budget to activate its native editor. Canvas keeps its floating tools; Sheets
+budget to activate its native editor. Board keeps its floating tools; Sheets
 uses native Grid menus where the SDK exposes them. No fixture or reset panels,
 duplicate editing buttons, backend or iframe stand-ins.
 
@@ -32,13 +32,13 @@ window.univerAPI
 
 Direct costs become 1,541, the planned total 1,695.10 and remaining room 104.90.
 Attendance and refreshments do not automatically change. Native Undo/Redo restores
-the workbook while preserving every Canvas note. Expand using the native floating
+the workbook while preserving every Board note. Expand using the native floating
 menu to see the five Grid tabs and Budget / Sensitivity worksheet navigation.
 Compare 5%, 10% and 20% reserves: planned totals are 1,618.05, 1,695.10 and
 1,849.20, so the last scenario exceeds the ceiling. Click B5 and type 36 to
 budget twelve spare kits: planned cost becomes 1,813.90 and remaining room -13.90.
 
-Return focus to the Canvas and update the pending decision independently:
+Return focus to the Board and update the pending decision independently:
 
 ```ts
 window.univerAPI
@@ -48,7 +48,7 @@ window.univerAPI
   .setText('READY TO TEST?\nConfirm the access contact.')
 ```
 
-Selected native history checks affect the focused product only. Canvas text is not a
+Selected native history checks affect the focused product only. Board text is not a
 Formula Shape and does not synchronize with workbook cells. The diagram describes
 an intended workshop; it does not invite people, book rooms or buy materials.
 
@@ -63,7 +63,7 @@ feature plugins, as in SDK local Embed examples.
 
 Selected independent production at 1600px passes both literal examples, actual
 mouse selection and keyboard input, whole-workbook Undo/Redo, five native Grid
-tabs with commands, reserve-sheet navigation, independent Canvas text history and
+tabs with commands, reserve-sheet navigation, independent Board text history and
 card movement/history, themes and active-child disposal. Print opens the actual
 one-page Budget preview and cancels successfully; no completed printer output or
 PDF download is claimed. The public print event leaves Embed fullscreen so the
@@ -73,7 +73,7 @@ were observed in that test.
 Evidence: test-results/embed-sheet-board-float-production-pointer/report.json;
 test-results/embed-sheet-board-float-next-canvas/report.json for EN/ZH guides,
 three variants/actions/states and actual media-theme transitions preserving the
-same owner and both edited snapshots. The Canvas palette may regenerate on theme
+same owner and both edited snapshots. The Board palette may regenerate on theme
 change; its theme ID and all authored content stay strict. The native Float
 interaction wrapper is transparent by design; its live-canvas surface is white.
 The earlier guide test checked the wrong wrapper. Official styles are not replaced.
@@ -98,5 +98,5 @@ use sage and apricot, with a warm-white worksheet. All geometry, names and
 data are original. No competitor artwork is exported. Reload loses local edits.
 
 The shared factory explicitly imports the official Ink UI English pack and CSS
-required by the registered Canvases UI dependency. Other product locale packs and
+required by the registered Boards UI dependency. Other product locale packs and
 styles remain intact. This is resource coverage, not native pen acceptance.

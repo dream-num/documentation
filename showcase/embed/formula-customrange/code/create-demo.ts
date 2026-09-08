@@ -160,53 +160,6 @@ export function createDemo(container: HTMLElement, darkMode = false, _legacyLoca
         BasesEnUS,
         BasesUIEnUS,
         ShapeEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'embed-unit-ui': {
-            ...EmbedUnitEnUS['embed-unit-ui'],
-            referencedUnitViewer: {
-              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
-              base: 'Relational Tables',
-            },
-          },
-          'bases-ui': {
-            ...BasesUIEnUS['bases-ui'],
-            collaboration: {
-              ...BasesUIEnUS['bases-ui']['collaboration'],
-              localTooltip: 'Collaboration is disabled for these relational tables.',
-              notCollabTooltip: 'These relational tables are not in collaboration mode.',
-            },
-            fieldConfig: {
-              ...BasesUIEnUS['bases-ui']['fieldConfig'],
-              formulaReferenceError: 'A1 references and ranges are not supported in Relational Tables formulas.',
-              referenceCurrentField:
-                'Reference the "{0}" field in the current relational table. It will be saved as [[#This Row],[{1}]] for the formula engine.',
-            },
-            fieldMenu: {
-              ...BasesUIEnUS['bases-ui']['fieldMenu'],
-              createSharedBaseField: 'Create a shared Relational Tables field',
-            },
-            viewMenus: {
-              ...BasesUIEnUS['bases-ui']['viewMenus'],
-              setWorkingDaysDescription:
-                'Customize working days and days off, and apply them to the current relational tables',
-            },
-            formula: {
-              ...BasesUIEnUS['bases-ui']['formula'],
-              generic: {
-                ...BasesUIEnUS['bases-ui']['formula']['generic'],
-                engineDescription:
-                  '{0} is provided by the Univer formula engine. Relational Tables supports field references such as TableName[[#This Row],[Field]] and OtherTable[Field], but does not support A1 cells, A1:B10 ranges, or spilled array output in formula fields.',
-              },
-            },
-          },
-          'shape-editor-ui': {
-            ...ShapeEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-        },
       ),
     },
   })

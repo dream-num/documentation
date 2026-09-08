@@ -11,12 +11,12 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Cinder / Incident Briefing', 'zh-CN': 'Cinder / 事故交接简报' },
   description: {
     'en-US':
-      'Eight Relational Table incidents drive ten native inline formulas in a modern document: status, affected sessions and a conditional handoff signal.',
-    'zh-CN': '八条 Relational Table 事故记录驱动现代文档中的十个原生行内公式：状态、受影响会话与条件交接结论。',
+      'Eight Base incidents drive ten native inline formulas in a modern document: status, affected sessions and a conditional handoff signal.',
+    'zh-CN': '八条 Base 事故记录驱动现代文档中的十个原生行内公式：状态、受影响会话与条件交接结论。',
   },
   tags: {
-    'en-US': ['Formula', 'Modern Docs', 'Relational Tables', 'Inline', 'Embed'],
-    'zh-CN': ['公式', '现代文档', 'Relational Tables', '行内公式', '嵌入'],
+    'en-US': ['Formula', 'Modern Docs', 'Bases', 'Inline', 'Embed'],
+    'zh-CN': ['公式', '现代文档', '多维表格', '行内公式', '嵌入'],
   },
   packages: [
     '@univerjs-pro/bases',
@@ -38,19 +38,18 @@ const metadata: ShowcaseMetadata = {
   guide: {
     overview: {
       'en-US':
-        'A fictional reliability handoff reads a native Relational Table register. Counts and session totals change inside authored paragraphs; no hidden Sheet or custom totals.',
-      'zh-CN':
-        '虚构服务可靠性交接从原生 Relational Table 读取记录。计数与会话总量在既有段落中变化，不用隐藏 Sheet 或自算统计。',
+        'A fictional reliability handoff reads a native Base register. Counts and session totals change inside authored paragraphs; no hidden Sheet or custom totals.',
+      'zh-CN': '虚构服务可靠性交接从原生 Base 读取记录。计数与会话总量在既有段落中变化，不用隐藏 Sheet 或自算统计。',
     },
     tryIt: {
       'en-US': [
-        'Read the live summary, then expand the native Relational Table block.',
+        'Read the live summary, then expand the native Base block.',
         'Run seventeen literal README examples in order, including source rename and mapping repair.',
         'Compare status changes, impact corrections and a hidden resolved record.',
         'Resolve every incident, inspect the native error, then recover.',
       ],
       'zh-CN': [
-        '阅读实时摘要，再展开原生 Relational Table 块。',
+        '阅读实时摘要，再展开原生 Base 块。',
         '依次运行 README 的十七段代码，包括来源改名与映射修复。',
         '比较状态变化、影响数修正和隐藏的已解决记录。',
         '解决全部记录，检查原生错误，再恢复。',

@@ -8,7 +8,7 @@ not certify every native interaction or resolve the recorded SDK failures.
 
 An original fictional portable reading-light release uses three narrative slides,
 seven distinct checks and three suppliers. The first slide hosts a real native
-SlideFloating Relational Table, not a replacement table, iframe or fixture panel. The Relational Table
+SlideFloating Base, not a replacement table, iframe or fixture panel. The Base
 owns its records, supplier links and history; the presentation owns its narrative.
 
 The internal `airtable-template-01.png` reference informed task/evidence structure
@@ -18,7 +18,7 @@ review from the Copper retail Tab case.
 
 ## Edit evidence without rewriting the review
 
-Double-click the register to activate its native Relational Table. Edit Enclosure finish, or
+Double-click the register to activate its native Base. Edit Enclosure finish, or
 execute this equivalent Facade example after activation:
 
 ```ts
@@ -76,7 +76,7 @@ The full runtime remains **failing**, not accepted:
   native narrative pages, host editing, theme preservation and disposal. Browser
   errors/backend requests are empty. Undo does not restore the record, therefore
   button Redo is not reached; Enter fullscreen opens no shell. Those gates keep
-  the overall report red. The Relational Table-specific root cause is not yet established.
+  the overall report red. The Base-specific root cause is not yet established.
 - `test-results/embed-base-slide-float-next/report.json`: EN/ZH guides, official
   white CSS, Grid and actual theme changes preserve the same API owner and edited
   snapshots. This does not certify the failing native buttons.

@@ -164,9 +164,9 @@ export function createHostData(): Partial<IWorkbookData> {
     15: { 0: { v: 'Committed / plan', s: 'muted' }, 1: { f: '=C12/B12', s: 'percent' } },
     18: { 0: { v: 'SPEND IS NOT READINESS', s: 'section' } },
     20: { 0: { f: '="Workshop variance: $"&(C7-B7)', s: 'warning' } },
-    22: { 0: { v: 'Double-click the Relational Table to edit owners.', s: 'muted' } },
+    22: { 0: { v: 'Double-click the Base to edit owners.', s: 'muted' } },
     23: { 0: { v: 'A ready task does not pay an invoice.', s: 'muted' } },
-    25: { 0: { v: 'Budget formulas and Relational Table records are independent.', s: 'muted' } },
+    25: { 0: { v: 'Budget formulas and Base records are independent.', s: 'muted' } },
     26: { 0: { v: 'No ad network, approval service or backend.', s: 'muted' } },
   }
   CHANNELS.forEach(([channel, planned, committed], index) => {

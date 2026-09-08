@@ -11,13 +11,12 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Indigo / Portfolio Presentation', 'zh-CN': 'Indigo / 资源分配演示' },
   description: {
     'en-US':
-      'A Relational Table-hosted Slides tab reads the host portfolio through twelve native Formula Shapes: totals, project shares and concentration across three pages.',
-    'zh-CN':
-      'Relational Table 主工作台中的 Slides 标签页，通过十二个原生 Formula Shape 展示三页总额、项目占比与集中度。',
+      'A Base-hosted Slides tab reads the host portfolio through twelve native Formula Shapes: totals, project shares and concentration across three pages.',
+    'zh-CN': 'Base 主工作台中的 Slides 标签页，通过十二个原生 Formula Shape 展示三页总额、项目占比与集中度。',
   },
   tags: {
-    'en-US': ['Formula', 'Slides@Relational Table', 'Tab', 'Allocation'],
-    'zh-CN': ['公式', 'Slides@Relational Table', '标签页', '资源分配'],
+    'en-US': ['Formula', 'Slides@Base', 'Tab', 'Allocation'],
+    'zh-CN': ['公式', 'Slides@Base', '标签页', '资源分配'],
   },
   packages: [
     '@univerjs-pro/bases',
@@ -39,20 +38,20 @@ const metadata: ShowcaseMetadata = {
   guide: {
     overview: {
       'en-US':
-        'The Relational Table is both host and source. The native presentation tab is the output, not a second source table.',
-      'zh-CN': 'Relational Table 同时是宿主和数据源，原生演示标签页是结果，不是另一份来源表。',
+        'The Base is both host and source. The native presentation tab is the output, not a second source table.',
+      'zh-CN': 'Base 同时是宿主和数据源，原生演示标签页是结果，不是另一份来源表。',
     },
     tryIt: {
       'en-US': [
         'Edit Evening makers allocation from 8000 to 10000.',
-        'Open Portfolio review in the native Relational Table list.',
+        'Open Portfolio review in the native Base list.',
         'Compare all three pages: total, individual shares and largest-project share.',
         'Try the literal examples for filters, hidden records, native errors and source recovery.',
         'Use the entry-module reconstruction example to retain both edited units and continue calculating after recovery.',
       ],
       'zh-CN': [
         '将 Evening makers 分配金额从 8000 改为 10000。',
-        '在 Relational Table 原生表列表中打开 Portfolio review。',
+        '在 Base 原生表列表中打开 Portfolio review。',
         '比较三页中的总额、各项目占比和最大项目占比。',
         '按原样示例验证筛选、隐藏记录、原生错误及来源恢复。',
         '使用入口模块中的重建示例保留两个单元的编辑，并在恢复后继续计算。',
@@ -73,7 +72,7 @@ const metadata: ShowcaseMetadata = {
     ['recovery', 'Serialized pair / Edited formulas / Deleted content', '双单元快照 / 修改的公式 / 删除的内容'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   actions: [
-    ['edit', 'Edit native Relational Table records', '编辑原生 Relational Table 记录'],
+    ['edit', 'Edit native Base records', '编辑原生 Base 记录'],
     ['review', 'Navigate native presentation pages', '切换原生演示页面'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   states: [

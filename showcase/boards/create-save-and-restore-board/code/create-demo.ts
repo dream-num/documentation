@@ -51,7 +51,7 @@ export function createDemo(
     !data.pages[data.activePageId || data.pageOrder[0]] ||
     !data.pageOrder.every((id) => data.pages[id])
   )
-    throw new Error('Restore the original Tern Canvas with a valid active page and page order.')
+    throw new Error('Restore the original Tern Board with a valid active page and page order.')
   const root = document.createElement('div')
   root.className = 'board-lifecycle'
   container.append(root)
@@ -68,26 +68,6 @@ export function createDemo(
         ShapeUIEnUS,
         InkUIEnUS,
         EmbedUnitEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'boards-ui': {
-            ...BoardsUIEnUS['boards-ui'],
-            settings: { ...BoardsUIEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
-          },
-          'shape-editor-ui': {
-            ...ShapeUIEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeUIEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeUIEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-          'embed-unit-ui': {
-            ...EmbedUnitEnUS['embed-unit-ui'],
-            referencedUnitViewer: {
-              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
-              base: 'Relational Tables',
-            },
-          },
-        },
       ),
     },
   })
@@ -113,7 +93,7 @@ export function createDemo(
     }
     if (demoWindow.univerAPI === api) delete demoWindow.univerAPI
     root.remove()
-    if (errors.length) throw new AggregateError(errors, 'Tern Canvas cleanup failed')
+    if (errors.length) throw new AggregateError(errors, 'Tern Board cleanup failed')
   }
   // Public SDK viewport service; no duplicate Fit button and no invented Facade.
   async function fit() {
@@ -180,7 +160,7 @@ export function createDemo(
         root.dataset.error = String(error)
         const alert = document.createElement('p')
         alert.setAttribute('role', 'alert')
-        alert.textContent = 'The field-station Canvas could not load. Reload to retry; details are in the console.'
+        alert.textContent = 'The field-station Board could not load. Reload to retry; details are in the console.'
         root.prepend(alert)
         console.error(error)
       })

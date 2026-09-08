@@ -47,7 +47,7 @@ export function createDemo(container: HTMLElement, darkMode = false, _locale: Lo
     elements: 'elements',
     hits: 'hits',
     bounds: 'Bounds',
-    canvas: 'Canvas editor',
+    canvas: 'Board editor',
     failed: 'Query failed: ',
     focusFailed: 'This element no longer exists or cannot be focused. Search again.',
   }
@@ -108,26 +108,6 @@ export function createDemo(container: HTMLElement, darkMode = false, _locale: Lo
         ShapeEditorEnUS,
         EmbedUnitEnUS,
         InkUIEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'boards-ui': {
-            ...BoardsUIEnUS['boards-ui'],
-            settings: { ...BoardsUIEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
-          },
-          'shape-editor-ui': {
-            ...ShapeEditorEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeEditorEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeEditorEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-          'embed-unit-ui': {
-            ...EmbedUnitEnUS['embed-unit-ui'],
-            referencedUnitViewer: {
-              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
-              base: 'Relational Tables',
-            },
-          },
-        },
       ),
     },
   })

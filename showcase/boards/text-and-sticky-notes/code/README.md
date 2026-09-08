@@ -1,6 +1,6 @@
 # Text and sticky notes
 
-One native Canvas compares standalone heading/body typography with three real sticky shapes: short, multiline and wide. No HTML cards, fixture selectors or duplicate formatting controls. Double-click text to enter the native editor; the Canvas's own floating tools remain available. The original English content is intentionally not a business workflow.
+One native Board compares standalone heading/body typography with three real sticky shapes: short, multiline and wide. No HTML cards, fixture selectors or duplicate formatting controls. Double-click text to enter the native editor; the Board's own floating tools remain available. The original English content is intentionally not a business workflow.
 
 Preview and standalone share the factory, eight complete English locale packs and eight official stylesheets, including the transitive Shape Editor, Embed Unit and Ink UI dependencies. Native UI remains English on Chinese host pages. Themes update the existing owner. Trial notices are not hidden. Startup fitting uses the published BoardViewportService; text edits below use public Facades.
 

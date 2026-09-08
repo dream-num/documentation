@@ -16,8 +16,8 @@ const metadata: ShowcaseMetadata = {
       'Six material samples share three native Gallery layouts and a source Grid. Compare attachment covers, an empty cover, card sizes, field order and labels.',
   },
   tags: {
-    'en-US': ['Relational Tables', 'Gallery', 'Attachments', 'Card layout'],
-    'zh-CN': ['Relational Tables', 'Gallery', 'Attachments', 'Card layout'],
+    'en-US': ['Bases', 'Gallery', 'Attachments', 'Card layout'],
+    'zh-CN': ['Bases', 'Gallery', 'Attachments', 'Card layout'],
   },
   packages: ['@univerjs-pro/bases', '@univerjs-pro/bases-ui', '@univerjs-pro/license'],
   apis: [

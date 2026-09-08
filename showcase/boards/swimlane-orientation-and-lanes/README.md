@@ -35,7 +35,7 @@ console.log(board.reorderSwimlaneLane('vertical', 'ready', 0))
 console.log(board.getElement('vertical').containerData.swimlane.lanes)
 ```
 
-Change one lane size in Canvas coordinates:
+Change one lane size in Board coordinates:
 
 ```ts
 const board = univerAPI.getActiveBoard()
@@ -47,9 +47,9 @@ console.log(board.getElement('horizontal').containerData.swimlane.lanes)
 
 Factories and exported SDK geometry helpers author the initial native snapshot;
 the four runtime edits use public Facades. Initial viewport fitting uses the
-exported Canvas viewport service, not a custom renderer. Preview and standalone
+exported Board viewport service, not a custom renderer. Preview and standalone
 export include eight complete English packs and eight official stylesheets.
-Canvas owns its native toolbar; the office UI is configured as Grid without
+Board owns its native toolbar; the office UI is configured as Grid without
 adding a second ribbon. No host action bar or SDK modifications.
 
 Locked lanes reject mutations; removing an occupied lane requires a deliberate

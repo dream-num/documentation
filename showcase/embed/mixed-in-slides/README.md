@@ -18,7 +18,7 @@ competitor artwork is redistributed. Native SDK UI stays white and Grid.
 - The economics page owns a native Sheet Float.
 - Decision memo, readiness register and delivery map are native page-list entries,
   not iframes or flattened screenshots.
-- Six readiness gates link to three hubs. The Canvas has seven cards, eight bound
+- Six readiness gates link to three hubs. The Board has seven cards, eight bound
   connectors and two revision paths. Nothing schedules clinics or sends orders.
 - Preview and standalone entry import the displayed `create-demo.ts`. Its official
   host/child/Embed CSS imports travel with the independent source export.
@@ -77,9 +77,9 @@ window.univerAPI.getPresentation('beacon-repair-review').getSlideById('cover').g
 The strict runner `scripts/test-embed-mixed-slides.mjs` retains failed gates and
 continues independent checks. Its async-print run verifies the seven-entry native
 page order, four distinct slide layouts, all four children, five literal Facade
-examples with five-model isolation, native Docs/Relational Table/Canvas/Slides Undo/Redo,
+examples with five-model isolation, native Docs/Base/Board/Slides Undo/Redo,
 native Sheet input from 156 to 168 and full history after initialization, page
-round trips and selected active-Canvas disposal. No browser errors or backend
+round trips and selected active-Board disposal. No browser errors or backend
 requests were observed in that independent build.
 
 Two gates remain failing: first Sheet Undo serializes empty validation data as
@@ -105,7 +105,7 @@ The EN/ZH guide/theme check passes after opening each product before its example
 Trying to mutate the as-yet-unmounted Sheet from the cover hits an SDK auto-height
 render dependency; the README workflow requires activating the corresponding
 product. All five edited models and the API owner survive theme changes, except
-the native Canvas palette regeneration with its same theme ID. The independent
+the native Board palette regeneration with its same theme ID. The independent
 export checks eleven exact files and all official CSS imports.
 
 The native keyboard probe initially appended text or lost characters. Explicit
@@ -124,5 +124,5 @@ the authored snapshots. No backend, participant data, collaboration history or
 cross-product Formula binding is part of this review.
 
 The shared factory explicitly imports the official Ink UI English pack and CSS
-required by the registered Canvases UI dependency. Other product locale packs and
+required by the registered Boards UI dependency. Other product locale packs and
 styles remain intact. This is resource coverage, not native pen acceptance.

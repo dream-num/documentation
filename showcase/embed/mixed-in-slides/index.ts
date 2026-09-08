@@ -12,12 +12,12 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Beacon / Complete Executive Review', 'zh-CN': 'Beacon / 完整试点评审' },
   description: {
     'en-US':
-      'A neighborhood repair pilot combines four authored slides, a floating cost Sheet and native pages for Docs, Relational Tables and Canvases.',
-    'zh-CN': '社区维修试点将四页原创演示、浮动成本表以及文档、Relational Tables、Canvases 原生页面组合为完整评审。',
+      'A neighborhood repair pilot combines four authored slides, a floating cost Sheet and native pages for Docs, Bases and Boards.',
+    'zh-CN': '社区维修试点将四页原创演示、浮动成本表以及文档、Bases、Boards 原生页面组合为完整评审。',
   },
   tags: {
-    'en-US': ['Embed', 'Slides', 'Float', 'Tab', 'Sheets', 'Docs', 'Relational Tables', 'Canvases'],
-    'zh-CN': ['嵌入', '幻灯片', '浮动', '页面', '表格', '文档', 'Relational Tables', 'Canvases'],
+    'en-US': ['Embed', 'Slides', 'Float', 'Tab', 'Sheets', 'Docs', 'Bases', 'Boards'],
+    'zh-CN': ['嵌入', '幻灯片', '浮动', '页面', '表格', '文档', '多维表格', '白板'],
   },
   packages: [
     '@univerjs/core',

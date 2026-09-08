@@ -35,7 +35,7 @@ export function createDemo(
   saved: IBaseSnapshot = DATA,
 ) {
   if (saved?.id !== 'filter-builder-base' || !saved.tables?.records?.views?.working)
-    throw new Error('Restore the partner Relational Table, records table and working view.')
+    throw new Error('Restore the partner Base, records table and working view.')
   const root = document.createElement('div')
   root.className = 'base-filter'
   container.append(root)
@@ -43,47 +43,7 @@ export function createDemo(
     darkMode,
     locale: LocaleType.EN_US,
     locales: {
-      [LocaleType.EN_US]: mergeLocales(
-        DesignEnUS,
-        UIEnUS,
-        DocsUIEnUS,
-        BasesEnUS,
-        BasesUIEnUS,
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'bases-ui': {
-            ...BasesUIEnUS['bases-ui'],
-            collaboration: {
-              ...BasesUIEnUS['bases-ui']['collaboration'],
-              localTooltip: 'Collaboration is disabled for these relational tables.',
-              notCollabTooltip: 'These relational tables are not in collaboration mode.',
-            },
-            fieldConfig: {
-              ...BasesUIEnUS['bases-ui']['fieldConfig'],
-              formulaReferenceError: 'A1 references and ranges are not supported in Relational Tables formulas.',
-              referenceCurrentField:
-                'Reference the "{0}" field in the current relational table. It will be saved as [[#This Row],[{1}]] for the formula engine.',
-            },
-            fieldMenu: {
-              ...BasesUIEnUS['bases-ui']['fieldMenu'],
-              createSharedBaseField: 'Create a shared Relational Tables field',
-            },
-            viewMenus: {
-              ...BasesUIEnUS['bases-ui']['viewMenus'],
-              setWorkingDaysDescription:
-                'Customize working days and days off, and apply them to the current relational tables',
-            },
-            formula: {
-              ...BasesUIEnUS['bases-ui']['formula'],
-              generic: {
-                ...BasesUIEnUS['bases-ui']['formula']['generic'],
-                engineDescription:
-                  '{0} is provided by the Univer formula engine. Relational Tables supports field references such as TableName[[#This Row],[Field]] and OtherTable[Field], but does not support A1 cells, A1:B10 ranges, or spilled array output in formula fields.',
-              },
-            },
-          },
-        },
-      ),
+      [LocaleType.EN_US]: mergeLocales(DesignEnUS, UIEnUS, DocsUIEnUS, BasesEnUS, BasesUIEnUS),
     },
   })
   const demoWindow = window as Window & { univerAPI?: FUniver }

@@ -141,7 +141,7 @@ export function createHostData(): ISlideData {
       text(
         id,
         'footer',
-        'Original fictional issue / Open Editorial data / Relational Table -> Slides, no publishing or backend',
+        'Original fictional issue / Open Editorial data / Base -> Slides, no publishing or backend',
         40,
         635,
         1120,
@@ -211,7 +211,7 @@ export function createHostData(): ISlideData {
       elements: Object.fromEntries(elements.map((e) => [e.id, e])),
       elementOrder: elements.map((e) => e.id),
       speakerNotes:
-        'Original fictional journal. Live native formulas read the full Relational Table; no article is published. Narrative and geometry remain authored.',
+        'Original fictional journal. Live native formulas read the full Base; no article is published. Narrative and geometry remain authored.',
     }
   })
   return {

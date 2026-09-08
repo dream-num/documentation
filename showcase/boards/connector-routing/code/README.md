@@ -5,7 +5,7 @@ Native UI, demo labels and authored data are English-only, including on Chinese 
 Run `pnpm install`, `pnpm dev`; use `pnpm build` and `pnpm preview` for production.
 Preview and independent export use the same factory, eight official CSS bundles and complete eight-pack English locales, including transitive Embed Unit UI.
 The native runtime is always English. Theme changes preserve the current SDK owner and edits.
-Canvases uses its own native floating toolbars and contextual editing, not a recreated full office ribbon.
+Boards uses its own native floating toolbars and contextual editing, not a recreated full office ribbon.
 
 ## Business diagram
 
@@ -22,7 +22,7 @@ Known SDK limitation in the pinned build: native label text editing resets the e
 and drops its background/line-break style. The edited text and native Undo/Redo work, but label placement is not preserved.
 The demo deliberately does not reposition the label or reconstruct its style after editing.
 
-Straight and curved routes do not guarantee obstacle avoidance. Manual waypoints are explicit Canvas coordinates;
+Straight and curved routes do not guarantee obstacle avoidance. Manual waypoints are explicit Board coordinates;
 free endpoints are not bound to a nearby shape. Rounded elbows, labels, line styles and connection identities are
 separate properties. Programmatic reads below do not replace rendered-route or pixel verification.
 

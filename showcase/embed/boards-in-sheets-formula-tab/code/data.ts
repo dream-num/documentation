@@ -242,7 +242,7 @@ export function createHostData(): Partial<IWorkbookData> {
     },
     23: {
       0: {
-        v: 'Open Sensitivity workshop in the native SheetBar. Source cells and Canvas notes are independent.',
+        v: 'Open Sensitivity workshop in the native SheetBar. Source cells and Board notes are independent.',
         s: 'muted',
       },
     },

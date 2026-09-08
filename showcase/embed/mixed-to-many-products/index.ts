@@ -11,12 +11,12 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Kestrel / Planning and Actuals Workspace', 'zh-CN': 'Kestrel / 计划与实际组合工作台' },
   description: {
     'en-US':
-      'Relational Table posted expenses and an independent Sheet plan drive a brief, three review slides, a variance Canvas and a native chart.',
-    'zh-CN': 'Relational Table 已入账支出与独立 Sheet 计划共同驱动简报、三页演示、差异 Canvases 和原生图表。',
+      'Base posted expenses and an independent Sheet plan drive a brief, three review slides, a variance Board and a native chart.',
+    'zh-CN': 'Base 已入账支出与独立 Sheet 计划共同驱动简报、三页演示、差异 Boards 和原生图表。',
   },
   tags: {
-    'en-US': ['Formula', 'Relational Table', 'Sheets', 'Docs', 'Slides', 'Canvases', 'Charts'],
-    'zh-CN': ['公式', 'Relational Tables', '电子表格', '文档', '演示', 'Canvases', '图表'],
+    'en-US': ['Formula', 'Base', 'Sheets', 'Docs', 'Slides', 'Boards', 'Charts'],
+    'zh-CN': ['公式', '多维表格', '电子表格', '文档', '演示', '白板', '图表'],
   },
   packages: [
     '@univerjs-pro/embed',
@@ -45,13 +45,13 @@ const metadata: ShowcaseMetadata = {
         'In Expenses, change Workshop mentors from 8,000 to 9,500.',
         'Compare Brief, Review deck and Variance map in the native table list.',
         'Open Plan & chart and increase Access B7 to 16,000.',
-        'Post a draft, filter the Relational Table view, then test zero and recovery with the literal examples.',
+        'Post a draft, filter the Base view, then test zero and recovery with the literal examples.',
       ],
       'zh-CN': [
         '在 Expenses 中把 Workshop mentors 从 8,000 改为 9,500。',
         '用原生表列表比较 Brief、Review deck 和 Variance map。',
         '打开 Plan & chart，把 Access 的 B7 改为 16,000。',
-        '将草稿设为已入账，筛选 Relational Table 视图，再按原样代码测试零值与恢复。',
+        '将草稿设为已入账，筛选 Base 视图，再按原样代码测试零值与恢复。',
       ],
     },
     expected: {

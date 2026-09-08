@@ -23,8 +23,8 @@ const metadata = {
   guide: {
     overview: {
       'en-US':
-        'Two native Relational Tables distinguish single and multiple links, stable record IDs and contextual picker labels.',
-      'zh-CN': '通过两张原生 Relational Table 表展示单选、多选关联、稳定记录 ID 和选择器上下文。',
+        'Two native Bases distinguish single and multiple links, stable record IDs and contextual picker labels.',
+      'zh-CN': '通过两张原生 Base 表展示单选、多选关联、稳定记录 ID 和选择器上下文。',
     },
     tryIt: {
       'en-US': [

@@ -2,7 +2,7 @@
 
 This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
 
-Sheet + Relational Table → sixteen native Canvas Formula Shapes, in one original fictional exhibition.
+Sheet + Base → sixteen native Board Formula Shapes, in one original fictional exhibition.
 Both inputs are real native Floats. There are no JavaScript-computed totals, fake
 control buttons, backend requests or copied competitor artwork.
 
@@ -143,7 +143,7 @@ univerAPI.getWorkbook('grove-budget-plan').getSheetBySheetId('budget').getRange(
 ### 14. Unavailable Sheet mapping
 
 The real workbook remains intact. The affected native formulas should show
-errors; Relational Table-only readiness and cost remain live. A missing mapping is not zero.
+errors; Base-only readiness and cost remain live. A missing mapping is not zero.
 
 ```ts
 univerAPI.getFormula().upsertExternalReference({ unitId: 'grove-exhibition-readiness', qualifier: 'GroveBudget', sourceUnitId: 'grove-unavailable-budget', sourceUnitType: univerAPI.Enum.UniverInstanceType.UNIVER_SHEET })
@@ -155,16 +155,16 @@ univerAPI.getFormula().upsertExternalReference({ unitId: 'grove-exhibition-readi
 univerAPI.getFormula().upsertExternalReference({ unitId: 'grove-exhibition-readiness', qualifier: 'GroveBudget', sourceUnitId: 'grove-budget-plan', sourceUnitType: univerAPI.Enum.UniverInstanceType.UNIVER_SHEET })
 ```
 
-### 16. Unavailable Relational Table mapping
+### 16. Unavailable Base mapping
 
-Budget and its ceiling still have a source, but Relational Table-dependent cost, readiness
+Budget and its ceiling still have a source, but Base-dependent cost, readiness
 and per-zone formulas should report native errors.
 
 ```ts
 univerAPI.getFormula().upsertExternalReference({ unitId: 'grove-exhibition-readiness', qualifier: 'GroveReadiness', sourceUnitId: 'grove-unavailable-register', sourceUnitType: univerAPI.Enum.UniverInstanceType.UNIVER_BASE })
 ```
 
-### 17. Repair the Relational Table mapping
+### 17. Repair the Base mapping
 
 ```ts
 univerAPI.getFormula().upsertExternalReference({ unitId: 'grove-exhibition-readiness', qualifier: 'GroveReadiness', sourceUnitId: 'grove-readiness-register', sourceUnitType: univerAPI.Enum.UniverInstanceType.UNIVER_BASE })
@@ -201,14 +201,14 @@ console.log({ board: board.save(), sheet: univerAPI.getWorkbook('grove-budget-pl
 ## Native interaction and source export
 
 Activate either Float and use its native expand control for detailed editing.
-The Sheet ribbon uses Grid; Canvas uses its own floating drawing tools. Move the
+The Sheet ribbon uses Grid; Board uses its own floating drawing tools. Move the
 FOLLOW BOTH SOURCES node to inspect its three bound connectors, or edit a native
 shape formula. Menu behavior and source ownership must be checked, not assumed.
 Sheet Print uses the registered frontend Print plugin, not browser-page printing.
 
 Preview and standalone export use the same factory, data and official SDK CSS.
 Complete English packs accompany registered feature menus, including Formula,
-Shape Editor, Embed Unit and native Canvas text editing dependencies. Authored
+Shape Editor, Embed Unit and native Board text editing dependencies. Authored
 business content is English. Theme changes do not recreate the three owners.
 
 The saved Miro diagrams reference informs only the connected review composition.
@@ -218,15 +218,15 @@ financial inputs, readiness and decisions; there is no overlay fixture panel.
 ## Acceptance boundary
 
 Selected runtime checks pass all twenty literal examples and all sixteen native
-results on the current Canvas editor, preserving authored prose, geometry,
+results on the current Board editor, preserving authored prose, geometry,
 connectors and unmodified source owners. Native error statuses pass for each
 missing source and zero-size Care zone. The total gate count uses ROWS, not
 COUNTA, so a source error is not counted as a single non-empty item.
 
-Actual Sheet/Relational Table keyboard input and exact serialized source Undo/Redo, Grid
-menus, correct-source Sheet Print preview/cancel and active-Relational Table disposal pass.
-Real Canvas ArrowRight movement updates all three bound rendered connector
-routes; full Canvas Undo/Redo and English/Chinese native text typing/history
+Actual Sheet/Base keyboard input and exact serialized source Undo/Redo, Grid
+menus, correct-source Sheet Print preview/cancel and active-Base disposal pass.
+Real Board ArrowRight movement updates all three bound rendered connector
+routes; full Board Undo/Redo and English/Chinese native text typing/history
 preserve both sources. Theme changes preserve all three models. Twenty-three
 full EN/ZH dependency packs are included. The strict selected report has no
 browser errors, warnings, backend requests or formula-status mismatches.
@@ -236,7 +236,7 @@ Evidence: `scripts/test-embed-grove-formula.mjs`,
 `test-results/grove-formula-export-ui/report.json`. Eleven-file source parity
 and opaque native white UI pass; all twenty-three official CSS imports are
 exported. Dependencies reuse exact-version-checked local package links, not a
-fresh install. Initial cached-glyph Canvas hit tests failed; resolving coordinates
+fresh install. Initial cached-glyph Board hit tests failed; resolving coordinates
 through the live Float viewport anchor fixes the test. No SDK/package edit.
 The selected Vite build retains its large-chunk performance warning.
 
@@ -250,14 +250,14 @@ No collaboration, publishing, history-record suite or backend conversion is clai
 
 A focused English-UI probe in `scripts/test-grove-source-lifecycle.mjs` exposes
 an additional boundary. Starting from the baseline, changing gate-1 cost to 4,400
-produces native cost 15,800 and balance 2,200. Disposing the Relational Table while the Float
+produces native cost 15,800 and balance 2,200. Disposing the Base while the Float
 is mounted causes it to reappear from this demo's baseline provider: cost becomes
 14,600 and balance 3,400, not a missing-source error or a preserved edit.
 
 Removing only `grove-base-float` first is also insufficient in the tested runtime:
-`removeEmbed` returns true and only `grove-sheet-float` remains listed; Relational Table disposal
-returns true, yet the Relational Table reappears at the same stable ID with baseline values.
-Creating the saved Relational Table at that ID then throws the native duplicate-unit-ID error.
+`removeEmbed` returns true and only `grove-sheet-float` remains listed; Base disposal
+returns true, yet the Base reappears at the same stable ID with baseline values.
+Creating the saved Base at that ID then throws the native duplicate-unit-ID error.
 The Sheet budget remains 18,000. This is not evidence of successful unload/restore.
 The focused report retains that strict failure and the original mounted-Float probe.
 No provider rewrite, substitute values or SDK change hides the behavior. Keep the

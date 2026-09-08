@@ -8,16 +8,16 @@ const metadata: ShowcaseMetadata = {
   product: 'embed',
   category: 'showcases',
   previewHeight: 1000,
-  group: { 'en-US': 'Canvases host / Mixed', 'zh-CN': 'Canvases 宿主 / 综合嵌入' },
+  group: { 'en-US': 'Boards host / Mixed', 'zh-CN': 'Boards 宿主 / 综合嵌入' },
   title: { 'en-US': 'Ripple / Complete Planning Workshop', 'zh-CN': 'Ripple / 完整共创工作坊' },
   description: {
     'en-US':
-      'A riverfront wayfinding workshop combines a resource Sheet, agenda Doc, review Slides and linked observation Relational Table in four native Canvas Floats.',
-    'zh-CN': '河岸导视共创工作坊在原生 Canvases 上浮动嵌入资源预算、议程文档、方案幻灯片和关联观察记录。',
+      'A riverfront wayfinding workshop combines a resource Sheet, agenda Doc, review Slides and linked observation Base in four native Board Floats.',
+    'zh-CN': '河岸导视共创工作坊在原生 Boards 上浮动嵌入资源预算、议程文档、方案幻灯片和关联观察记录。',
   },
   tags: {
-    'en-US': ['Embed', 'Canvases', 'Float', 'Sheets', 'Docs', 'Slides', 'Relational Tables'],
-    'zh-CN': ['嵌入', 'Canvases', 'Float', '表格', '文档', '幻灯片', 'Relational Tables'],
+    'en-US': ['Embed', 'Boards', 'Float', 'Sheets', 'Docs', 'Slides', 'Bases'],
+    'zh-CN': ['嵌入', '白板', 'Float', '表格', '文档', '幻灯片', '多维表格'],
   },
   packages: [
     '@univerjs/core',
@@ -47,13 +47,13 @@ const metadata: ShowcaseMetadata = {
     tryIt: {
       'en-US': [
         'Inspect the four regions, then double-click a Float to use its native editing tools.',
-        'Use native fullscreen for detailed editing; return to compare the Canvas overview.',
+        'Use native fullscreen for detailed editing; return to compare the Board overview.',
         'Change feedback card quantity in Workshop budget and inspect the reserve and total.',
         'Run each literal README example after opening its product.',
       ],
       'zh-CN': [
         '浏览四个区域，双击浮动内容使用原生编辑工具。',
-        '深入编辑使用原生全屏，再返回 Canvases 对比整体。',
+        '深入编辑使用原生全屏，再返回 Boards 对比整体。',
         '修改 Workshop budget 的反馈卡数量，观察备用金和合计。',
         '打开对应产品后运行 README 的原样示例。',
       ],

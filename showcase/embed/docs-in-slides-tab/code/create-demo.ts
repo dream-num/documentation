@@ -47,23 +47,7 @@ export function createDemo(container: HTMLElement, darkMode = false, _locale: Lo
     darkMode,
     locale: LocaleType.EN_US,
     locales: {
-      [LocaleType.EN_US]: mergeLocales(
-        DrawingUIEnUS,
-        DesignEnUS,
-        UIEnUS,
-        DocsEnUS,
-        SlidesEnUS,
-        ShapeEnUS,
-        EmbedEnUS,
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'shape-editor-ui': {
-            ...ShapeEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-        },
-      ),
+      [LocaleType.EN_US]: mergeLocales(DrawingUIEnUS, DesignEnUS, UIEnUS, DocsEnUS, SlidesEnUS, ShapeEnUS, EmbedEnUS),
     },
   })
   const demoWindow = window as Window & { univerAPI?: FUniver }

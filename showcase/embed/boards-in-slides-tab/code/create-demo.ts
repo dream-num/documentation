@@ -65,19 +65,6 @@ export function createDemo(container: HTMLElement, darkMode = false, _locale: Lo
         ShapeEnUS,
         EmbedEnUS,
         BoardsUIEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'shape-editor-ui': {
-            ...ShapeEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-          'boards-ui': {
-            ...BoardsUIEnUS['boards-ui'],
-            settings: { ...BoardsUIEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
-          },
-        },
       ),
     },
   })
@@ -136,7 +123,7 @@ export function createDemo(container: HTMLElement, darkMode = false, _locale: Lo
                 input.ref.unit.selector !== CHILD_ID ||
                 input.unitType !== UniverInstanceType.UNIVER_BOARD
               )
-                throw new Error('Unknown Kite Canvas source')
+                throw new Error('Unknown Kite Board source')
               const instances = univer.__getInjector().get(IUniverInstanceService)
               if (!instances.getUnit(CHILD_ID, input.unitType))
                 instances.createUnit(input.unitType, createChildData(), input.createOptions)
@@ -156,7 +143,7 @@ export function createDemo(container: HTMLElement, darkMode = false, _locale: Lo
       void (async () => {
         // Match slides-embed-local: prepare, materialize, then create the native page.
         // beta.2 createEmbed + loadAsync leaves childUnitId absent on an existing page anchor.
-        const hostContext = { pageIndex: 1, pageName: 'Retrospective Canvas' }
+        const hostContext = { pageIndex: 1, pageName: 'Retrospective Board' }
         const { descriptor } = univer
           .__getInjector()
           .get(EmbedCreationService)
@@ -194,7 +181,7 @@ export function createDemo(container: HTMLElement, darkMode = false, _locale: Lo
         root.dataset.error = String(error)
         const message = document.createElement('p')
         message.setAttribute('role', 'alert')
-        message.textContent = 'The retrospective Canvas could not load. Reload to retry; details are in the console.'
+        message.textContent = 'The retrospective Board could not load. Reload to retry; details are in the console.'
         root.prepend(message)
         console.error(error)
       })

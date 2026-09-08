@@ -51,26 +51,6 @@ export function createDemo(container: HTMLElement, darkMode = false) {
         ShapeEditorEnUS,
         EmbedUnitEnUS,
         InkUIEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'boards-ui': {
-            ...BoardsUIEnUS['boards-ui'],
-            settings: { ...BoardsUIEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
-          },
-          'shape-editor-ui': {
-            ...ShapeEditorEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeEditorEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeEditorEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-          'embed-unit-ui': {
-            ...EmbedUnitEnUS['embed-unit-ui'],
-            referencedUnitViewer: {
-              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
-              base: 'Relational Tables',
-            },
-          },
-        },
       ),
     },
   })
@@ -96,13 +76,13 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     }
     if (owner.univerAPI === api) delete owner.univerAPI
     root.remove()
-    if (errors.length) throw new AggregateError(errors, 'Canvas image cleanup failed')
+    if (errors.length) throw new AggregateError(errors, 'Board image cleanup failed')
   }
   function failure(cause: unknown) {
     try {
       dispose()
     } catch (cleanup) {
-      return new AggregateError([cause, cleanup], 'Canvas image startup and cleanup failed', { cause })
+      return new AggregateError([cause, cleanup], 'Board image startup and cleanup failed', { cause })
     }
     return cause
   }
@@ -146,7 +126,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
           const error = failure(cause)
           alert = document.createElement('p')
           alert.setAttribute('role', 'alert')
-          alert.textContent = 'The Canvas image gallery could not load. Reload to retry.'
+          alert.textContent = 'The Board image gallery could not load. Reload to retry.'
           container.append(alert)
           console.error(error)
         }

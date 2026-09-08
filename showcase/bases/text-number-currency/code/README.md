@@ -2,9 +2,9 @@
 
 Native UI and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Bilingual runtime reports below describe earlier revisions, not acceptance of this English-only revision.
 
-The entire preview is the native Relational Table Grid editor, with its own compact toolbar and native left sidebar. The UI plugin is configured for Grid ribbon; Relational Tables renders its product-specific toolbar rather than a Sheets-style ribbon. There are no fixture controls, duplicated ribbon buttons, comparison cards or snapshot panels. The original 30 repair jobs, 12 workshop projects and 18 return checks retain their structure, including varied amounts, submitted quotes, Unicode English notes, local people, dates, original text attachments and real record links.
+The entire preview is the native Base Grid editor, with its own compact toolbar and native left sidebar. The UI plugin is configured for Grid ribbon; Bases renders its product-specific toolbar rather than a Sheets-style ribbon. There are no fixture controls, duplicated ribbon buttons, comparison cards or snapshot panels. The original 30 repair jobs, 12 workshop projects and 18 return checks retain their structure, including varied amounts, submitted quotes, Unicode English notes, local people, dates, original text attachments and real record links.
 
-Install with `pnpm install`, then `pnpm dev` or `pnpm build`. Build only this selected case. Preview and standalone export use the same factory and all four official Design/UI/Docs UI/Relational Tables UI CSS imports. Complete English dependency locales are registered. Theme switching updates the existing SDK owner instead of resetting edits. Keep native license notices intact.
+Install with `pnpm install`, then `pnpm dev` or `pnpm build`. Build only this selected case. Preview and standalone export use the same factory and all four official Design/UI/Docs UI/Bases UI CSS imports. Complete English dependency locales are registered. Theme switching updates the existing SDK owner instead of resetting edits. Keep native license notices intact.
 
 ## Twenty-three executable Facade examples
 

@@ -85,19 +85,6 @@ export function createDemo(container: HTMLElement, darkMode = false, _locale: Lo
         EmbedEnUS,
         BoardsUIEnUS,
         SlidesEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'shape-editor-ui': {
-            ...ShapeEditorEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeEditorEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeEditorEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-          'boards-ui': {
-            ...BoardsUIEnUS['boards-ui'],
-            settings: { ...BoardsUIEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
-          },
-        },
       ),
     },
   })
@@ -171,7 +158,7 @@ export function createDemo(container: HTMLElement, darkMode = false, _locale: Lo
                 input.ref.unit.selector !== CHILD_ID ||
                 input.unitType !== UniverInstanceType.UNIVER_BOARD
               )
-                throw new Error('Unknown Tidal Canvas source')
+                throw new Error('Unknown Tidal Board source')
               const existing = univer.__getInjector().get(IUniverInstanceService).getUnit(CHILD_ID, input.unitType)
               if (!existing)
                 univer
@@ -225,7 +212,7 @@ export function createDemo(container: HTMLElement, darkMode = false, _locale: Lo
         root.dataset.error = String(error)
         const message = document.createElement('p')
         message.setAttribute('role', 'alert')
-        message.textContent = 'The embedded Canvas could not load. Reload to retry; details are in the console.'
+        message.textContent = 'The embedded Board could not load. Reload to retry; details are in the console.'
         root.prepend(message)
         console.error(error)
       })

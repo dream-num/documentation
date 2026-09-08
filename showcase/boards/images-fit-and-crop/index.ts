@@ -7,8 +7,8 @@ const metadata = {
   group: { 'en-US': 'Images', 'zh-CN': '图片' },
   title: { 'en-US': 'Images, fit and crop', 'zh-CN': '图片、适配与裁剪' },
   description: {
-    'en-US': 'Compare original wide, square and portrait Canvas images with a source crop and native transforms.',
-    'zh-CN': '对比原创宽幅、方形与纵向 Canvas 图片、源图裁剪及原生变换。',
+    'en-US': 'Compare original wide, square and portrait Board images with a source crop and native transforms.',
+    'zh-CN': '对比原创宽幅、方形与纵向 Board 图片、源图裁剪及原生变换。',
   },
   packages: ['@univerjs-pro/boards', '@univerjs-pro/boards-ui'],
   tags: { 'en-US': ['Images', 'Crop', 'Transform'], 'zh-CN': ['图片', '裁剪', '变换'] },

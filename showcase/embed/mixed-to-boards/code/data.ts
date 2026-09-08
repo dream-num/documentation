@@ -270,7 +270,7 @@ export function createSheetData(): Partial<IWorkbookData> {
     3: Object.fromEntries(['Zone', 'Budget', 'Scope', '', 'Spend ceiling'].map((v, i) => [i, { v, s: 'header' }])),
     8: { 0: { v: 'Total', s: 'header' }, 1: { f: '=SUM(B5:B7)', s: 'total' } },
     10: { 0: { v: 'Amber = envelopes · Lilac = independent ceiling', s: 'muted' } },
-    12: { 0: { v: 'Costs and gate statuses live in the separate Relational Table.', s: 'muted' } },
+    12: { 0: { v: 'Costs and gate statuses live in the separate Base.', s: 'muted' } },
   }
   ZONES.forEach(([, name, amount], i) => {
     cells[i + 4] = {

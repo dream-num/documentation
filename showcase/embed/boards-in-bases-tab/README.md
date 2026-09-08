@@ -1,4 +1,4 @@
-# Cove / Canvases in a native Relational Table tab
+# Cove / Boards in a native Base tab
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
@@ -8,17 +8,17 @@ not certify every native interaction or resolve the recorded SDK failures.
 
 The fictional equipment lending desk tracks eight different requests through
 four linked touchpoints: Reserve, Collect, Use and Return. Open Service blueprint
-from the native Relational Table sidebar to see twelve editable responsibility cards in
+from the native Base sidebar to see twelve editable responsibility cards in
 three lanes: borrower, front desk and backstage. Seventeen native bound
 connectors show sequences and handoffs. The map has 41 elements in total.
 
 ## Run and explore
 
-Use pnpm install and pnpm dev in the standalone export. Canvas uses its native
-floating tools; Relational Table keeps its native table controls. There are no fixture
+Use pnpm install and pnpm dev in the standalone export. Board uses its native
+floating tools; Base keeps its native table controls. There are no fixture
 selectors, diagnostics panels or duplicate editing buttons.
 
-This exact README example updates one handoff card. It does not change any Relational Table
+This exact README example updates one handoff card. It does not change any Base
 request or touchpoint:
 
 ```ts
@@ -29,7 +29,7 @@ window.univerAPI
   .setText('A clear handoff\nConfirm the return desk.')
 ```
 
-Use native Canvas Undo/Redo, edit the card directly, or move it with an arrow
+Use native Board Undo/Redo, edit the card directly, or move it with an arrow
 key. Bound connectors should keep their endpoints attached. Return to Requests:
 
 ```ts
@@ -41,40 +41,40 @@ window.univerAPI
 ```
 
 In Touchpoints, rename Reserve to Plan a loan. Three linked request labels
-should change while retaining the same record ID. The Canvas must stay unchanged:
-its headings and arrows are a service design, not live Relational Table fields or workflow
+should change while retaining the same record ID. The Board must stay unchanged:
+its headings and arrows are a service design, not live Base fields or workflow
 automation. Moving a card does not transfer ownership or change its stage.
 
 ## Integration and acceptance
 
-One createDemo factory powers the Preview and independent export. official stylesheets cover Design, UI, Docs, Drawing, Relational Tables, Canvases, Shape
+One createDemo factory powers the Preview and independent export. official stylesheets cover Design, UI, Docs, Drawing, Bases, Boards, Shape
 editor, Slides editor and Embed. The SDK chrome remains native; blue-gray, lavender and sand
 differentiate the authored responsibilities. The local provider validates the
-Canvas unit type and exact source ID. Prepare, materialize and restore create a
+Board unit type and exact source ID. Prepare, materialize and restore create a
 BasesTableListBlock anchor. Owned child content roots are released before SDK
 teardown; SDK packages and license watermarks are not patched.
 
-Canvas Embed mounts the floating editor exported by Slides UI. In beta.2,
+Board Embed mounts the floating editor exported by Slides UI. In beta.2,
 registering the Slides plugin does not start it without a Slides unit. This
 example uses UniverBoardsUIPlugin.registerRuntimeScopedDependencies with the
 SDK's real EditorUIService, following the SDK's child-scoped service extension
 and isolation test. No substitute editor or unrelated Slides document is created.
-Canvases do not accept Slides' pageId display target; activePageId selects the page.
+Boards do not accept Slides' pageId display target; activePageId selects the page.
 
 Selected production checks pass in
 test-results/embed-board-base-tab-production/report.json: both literal README
-examples, actual Canvas text input with two-step native Undo/Redo, menu and
+examples, actual Board text input with two-step native Undo/Redo, menu and
 keyboard history, arrow-key card movement, and all seventeen rendered routes'
-endpoints before/after movement and Undo. Relational Table keyboard rename/history updates
+endpoints before/after movement and Undo. Base keyboard rename/history updates
 three linked labels without changing their IDs. Full host/child snapshots remain
-independent across navigation; only the native Canvas theme palette may regenerate.
+independent across navigation; only the native Board theme palette may regenerate.
 Active-child disposal passes without observed browser errors or backend requests.
 
 The eleven-file standalone export and official white/flex/Canvas styling pass
 test-results/embed-board-base-tab-export/report.json. Source and export use the
 same factory and official CSS imports. EN/ZH guides pass
 test-results/embed-board-base-tab-next/report.json: all three variants, actions
-and states, native Canvas tools, white child CSS, the same owner and both edited
+and states, native Board tools, white child CSS, the same owner and both edited
 models across actual media-theme changes. Source parity is rechecked in
 test-results/embed-board-base-tab-export-final/report.json after documentation updates.
 The independently installed project uses 206 packages; main JS is 18,481.04 kB
@@ -98,5 +98,5 @@ process payments, approve condition checks or synchronize models. All request
 IDs, people and circumstances are fictional. Reload loses local edits.
 
 The shared factory explicitly imports the official Ink UI English pack and CSS
-required by the registered Canvases UI dependency. Other product locale packs and
+required by the registered Boards UI dependency. Other product locale packs and
 styles remain intact. This is resource coverage, not native pen acceptance.

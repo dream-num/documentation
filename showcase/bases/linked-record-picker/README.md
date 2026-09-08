@@ -1,6 +1,6 @@
 # Linked record picker
 
-Six original field requests borrow from five equipment records. Two devices intentionally share the name **Field recorder**; model and storage context distinguish them in the native picker. All records live in one Relational Table, with no backend or remote lookup.
+Six original field requests borrow from five equipment records. Two devices intentionally share the name **Field recorder**; model and storage context distinguish them in the native picker. All records live in one Base, with no backend or remote lookup.
 
 ## Try the native UI
 
@@ -58,14 +58,14 @@ Recipe 5 does not reconnect a link changed by recipe 1: label resolution follows
 
 ## Scope and persistence
 
-RecordLink stores canonical target IDs; `getLinkedRecordIds()` reads IDs rather than labels. `serializeRecordLinkIds()` authors initial snapshot values. Use the dedicated Facade methods for subsequent edits; a single-link field accepts at most one target and targets must exist in the same Relational Table. Multi-link order is preserved and duplicate IDs keep their first occurrence.
+RecordLink stores canonical target IDs; `getLinkedRecordIds()` reads IDs rather than labels. `serializeRecordLinkIds()` authors initial snapshot values. Use the dedicated Facade methods for subsequent edits; a single-link field accepts at most one target and targets must exist in the same Base. Multi-link order is preserved and duplicate IDs keep their first occurrence.
 
 `displayFieldId` chooses one target field for the chip label. `pickerFieldIds` supplies selection context only. This example does not implement reverse relationships, lookup fields, rollup totals, cross-file links or a custom picker. Saving with `base.save()` retains both tables, IDs and field configuration; restoring requires the complete snapshot, not copied display labels.
 
-Preview and export share one factory, five complete English locale packs, four official SDK stylesheets and native Grid UI. Theme changes keep the edited Relational Table owner. No SDK patches or host-side editing controls are included.
+Preview and export share one factory, five complete English locale packs, four official SDK stylesheets and native Grid UI. Theme changes keep the edited Base owner. No SDK patches or host-side editing controls are included.
 
 ## Native acceptance boundary
 
 The installed beta.2 runtime passed native single/multiple selection, removing one multi-link target, and target-name editing with live linked labels on both English and Chinese host pages. In the focused Delete check, the selected single-link cell and native keyboard input were confirmed, but the association remained. The inspected native context menu offered record operations rather than Clear content. These clear-operation checks remain failures; no SDK patch or replacement control hides them. Recipe 4 clears the link successfully through the Facade, which is a separate path.
 
-The focused test compares the entire saved Relational Table through same-owner theme changes and same-ID unit reconstruction. It does not establish outer-factory disposal/recreation or native Undo/Redo parity for record links.
+The focused test compares the entire saved Base through same-owner theme changes and same-ID unit reconstruction. It does not establish outer-factory disposal/recreation or native Undo/Redo parity for record links.

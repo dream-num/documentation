@@ -4,17 +4,17 @@ Native UI and authored data are English-only, including on Chinese documentation
 
 An original arts weekend contains 30 production tasks, 12 installations and 18 opening checkpoints. Explore the native sidebar, record grid, cell editor and context menus. Text, hours, status, people, dates, local attachment notes and real installation links vary across the three tables.
 
-The editor has no fixture controls, duplicated CRUD/Undo buttons, audit panel or explanatory card. Grid is the default workbench layout. Preview and standalone export use the same factory, data and four official SDK stylesheets. Five complete English dependency locale packs are provided. Authored business content stays English; changing the page theme does not recreate the Relational Table.
+The editor has no fixture controls, duplicated CRUD/Undo buttons, audit panel or explanatory card. Grid is the default workbench layout. Preview and standalone export use the same factory, data and four official SDK stylesheets. Five complete English dependency locale packs are provided. Authored business content stays English; changing the page theme does not recreate the Base.
 
 Person names use the native local directory. Beta.2 can display person IDs in grid cells even when the native picker resolves their names; IDs are not replaced with display strings. No backend, collaborative history plugin or conversion server is registered.
 
 ## Twenty literal Facade variants
 
-Run these in order in the standalone or preview-frame console. Start from a fresh page. Keep the native Relational Table focused for Undo/Redo. The window variables hold returned IDs or detached checkpoints only; they are not fake calculations and are not added to the exported Relational Table model.
+Run these in order in the standalone or preview-frame console. Start from a fresh page. Keep the native Base focused for Undo/Redo. The window variables hold returned IDs or detached checkpoints only; they are not fake calculations and are not added to the exported Base model.
 
 ### 1. Capture the original three-table checkpoint
 
-A detached snapshot includes all tables and attachment resources. This console variable is not part of Relational Table data.
+A detached snapshot includes all tables and attachment resources. This console variable is not part of Base data.
 
 ```ts
 window.harbourCheckpoint = structuredClone(window.univerAPI.getBase('harbour-record-lifecycle').save())
@@ -42,7 +42,7 @@ window.harbourBatch = window.univerAPI.getBase('harbour-record-lifecycle').getTa
 
 ### 4. Native Undo / full-resource limitation
 
-Use the focused Relational Table native history. The inserted records disappear, but beta.2 may retain their attachment resources. That full-snapshot difference is a strict failing acceptance gate, not fixed by a custom cleanup.
+Use the focused Base native history. The inserted records disappear, but beta.2 may retain their attachment resources. That full-snapshot difference is a strict failing acceptance gate, not fixed by a custom cleanup.
 
 ```ts
 await window.univerAPI.undo()
@@ -160,7 +160,7 @@ await window.univerAPI.getBaseUI().activateView('tasks-grid')
 
 ### 18. Save / inspect all resources
 
-The saved object is the actual current native Relational Table, not a manually assembled audit panel.
+The saved object is the actual current native Base, not a manually assembled audit panel.
 
 ```ts
 window.harbourSaved = structuredClone(window.univerAPI.getBase('harbour-record-lifecycle').save())
@@ -180,7 +180,7 @@ await window.univerAPI.getBaseUI().activateView('tasks-grid')
 
 ### 20. Download current JSON
 
-Download all actual tables/resources as Relational Table JSON. This is not XLSX, PDF, or a server conversion.
+Download all actual tables/resources as Base JSON. This is not XLSX, PDF, or a server conversion.
 
 ```ts
 const url = URL.createObjectURL(new Blob([JSON.stringify(window.univerAPI.getBase('harbour-record-lifecycle').save(), null, 2)], { type: 'application/json' }))
@@ -197,7 +197,7 @@ The runtime test defaults to the project's local preview at `http://localhost:30
 
 The strict standalone test is scripts/test-bases-record-lifecycle-native.mjs. Its selected report is test-results/record-lifecycle-native-acceptance/report.json. All twenty literal snippets produce their documented model results, including the intended invalid-range rejection; complete JSON restoration/reload/download checks pass. Native cell typing and native Undo/Redo preserve full snapshots. Five EN/ZH packs, per-locale theme/owner preservation after editing, and disposal pass with no runtime errors or backend requests.
 
-Full attachment-resource Undo fidelity remains a known beta.2 failure; no normalization or cleanup hides orphan attachment sets. Recreating the same Relational Table ID restores the saved model, but the native grid/footer can remain empty. The native Add Record form submission did not produce the expected new model record in this selected test; its cause is not isolated, so native form entry is not accepted. These failures do not prevent the independent keyboard-edit gate from running on a fresh browser owner. Browser reload restores the authored example; it is not equivalent to the tested same-ID reconstruction.
+Full attachment-resource Undo fidelity remains a known beta.2 failure; no normalization or cleanup hides orphan attachment sets. Recreating the same Base ID restores the saved model, but the native grid/footer can remain empty. The native Add Record form submission did not produce the expected new model record in this selected test; its cause is not isolated, so native form entry is not accepted. These failures do not prevent the independent keyboard-edit gate from running on a fresh browser owner. Browser reload restores the authored example; it is not equivalent to the tested same-ID reconstruction.
 
 The SDK language and authored business data remain English regardless of the host page language. Startup exceptions display a failure-only alert; no explanatory card is present in a healthy editor. Lifecycle timeout/cancellation behavior has not been accepted.
 

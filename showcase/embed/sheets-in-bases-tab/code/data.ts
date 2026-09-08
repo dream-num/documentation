@@ -167,7 +167,7 @@ export function createChildData(): Partial<IWorkbookData> {
     17: { 0: { v: 'Sand = editable values. Change stage weights on Assumptions.', s: 'muted' } },
     19: {
       0: {
-        v: 'Relational Table edits do not sync here. This workbook starts from the same authored deals.',
+        v: 'Base edits do not sync here. This workbook starts from the same authored deals.',
         s: 'muted',
       },
     },

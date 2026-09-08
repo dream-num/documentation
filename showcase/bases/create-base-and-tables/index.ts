@@ -9,15 +9,15 @@ const metadata: ShowcaseMetadata = {
   category: 'features',
   group: { 'en-US': 'Schema and lifecycle', 'zh-CN': '结构与生命周期' },
   title: {
-    'en-US': 'Lumen / Create a Relational Table and Tables',
-    'zh-CN': 'Lumen / 创建 Relational Tables 与数据表',
+    'en-US': 'Lumen / Create a Base and Tables',
+    'zh-CN': 'Lumen / 创建 Bases 与数据表',
   },
   description: {
     'en-US':
-      'Explore 60 original theatre-renewal records in the native Relational Table. Compare new-table placement, typed checklists, independent copies and snapshot restoration.',
-    'zh-CN': '在原生 Relational Table 中探索 60 条原创剧院改造记录，比较新表位置、类型化检查表、独立副本与快照恢复。',
+      'Explore 60 original theatre-renewal records in the native Base. Compare new-table placement, typed checklists, independent copies and snapshot restoration.',
+    'zh-CN': '在原生 Base 中探索 60 条原创剧院改造记录，比较新表位置、类型化检查表、独立副本与快照恢复。',
   },
-  tags: { 'en-US': ['Relational Tables', 'Schema', 'Lifecycle'], 'zh-CN': ['Relational Tables', '结构', '生命周期'] },
+  tags: { 'en-US': ['Bases', 'Schema', 'Lifecycle'], 'zh-CN': ['多维表格', '结构', '生命周期'] },
   packages: ['@univerjs-pro/bases', '@univerjs-pro/bases-ui', '@univerjs-pro/license'],
   apis: [
     'FUniver.createBase()',
@@ -70,7 +70,7 @@ const metadata: ShowcaseMetadata = {
     ['navigate', 'Native table navigation', '原生数据表导航'],
     ['edit', 'Native typed-cell editing', '原生类型化单元格编辑'],
     ['recipes', 'Run the literal Facade recipes', '运行原样 Facade 示例'],
-    ['reconstruct', 'Reconstruct from Relational Table JSON', '从 Relational Table JSON 重建'],
+    ['reconstruct', 'Reconstruct from Base JSON', '从 Base JSON 重建'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   states: [
     ['default', 'Three linked tables / 60 records', '三张关联表 / 60 条记录'],

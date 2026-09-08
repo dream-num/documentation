@@ -4,13 +4,13 @@ Native UI, demo labels and authored data are English-only, including on Chinese 
 
 A SEV-1 payment retry storm moves through **Detect → Contain → Recover**. The original three response cards, response frame, two directed free-endpoint connectors and follow-up risk are all visible at startup. The risk concerns 214 duplicate authorizations and a 17:00 UTC deadline. Rounded native Shape text boxes retain their distinct blue, amber, green and red business roles; they are not HTML cards or sticky-note substitutes.
 
-Use native Canvas tools to select, drag, resize and edit text. There is no host Add Risk, Reset, activity log, hidden-fixture flag or duplicate history editor. The response frame is a native container element, but the cards are not advertised as attached children. Both connectors use **free endpoints**: moving a card does not automatically move those endpoints. Attachment/routing is a separate capability, not silently added here.
+Use native Board tools to select, drag, resize and edit text. There is no host Add Risk, Reset, activity log, hidden-fixture flag or duplicate history editor. The response frame is a native container element, but the cards are not advertised as attached children. Both connectors use **free endpoints**: moving a card does not automatically move those endpoints. Attachment/routing is a separate capability, not silently added here.
 
 ## Start and native interaction
 
 In the generated project run `npm install` then `npm run dev`. The documentation target is `/en-US/playground/boards/incident-response`. Drag the Detect card a small distance, observe that the arrow stays in place, and use native Undo/Redo. Double-click a card to edit its text, commit by clicking the empty canvas, then inspect native history. Use the native resize handles on the risk card rather than a host size control.
 
-Preview and export share `createIncidentResponseDemo`, eight official CSS imports and all eight English dependency packs, including Shape Editor, Ink UI and transitive Embed Unit UI. The native runtime is always English. Theme changes call `toggleDarkMode` on the existing owner. `ready` waits up to 20 seconds for the actual Canvas editor without a skeleton; failure is visible. Disposal is idempotent and removes only this owner's DOM and unit.
+Preview and export share `createIncidentResponseDemo`, eight official CSS imports and all eight English dependency packs, including Shape Editor, Ink UI and transitive Embed Unit UI. The native runtime is always English. Theme changes call `toggleDarkMode` on the existing owner. `ready` waits up to 20 seconds for the actual Board editor without a skeleton; failure is visible. Disposal is idempotent and removes only this owner's DOM and unit.
 
 ## Literal Facade variants
 
@@ -90,7 +90,7 @@ console.assert(window.univerAPI === api)
 api.toggleDarkMode(dark)
 ```
 
-### 9. Download the complete Canvas snapshot as genuine JSON
+### 9. Download the complete Board snapshot as genuine JSON
 
 ```ts
 const saved = window.univerAPI.getActiveBoard().save()

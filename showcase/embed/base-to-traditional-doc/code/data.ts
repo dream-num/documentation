@@ -94,13 +94,13 @@ const paragraphs = [
     'body',
   ],
   [
-    'Each figure is a native inline formula reading the Relational Table register. The wording, headings and page structure remain authored document content when a fee or status changes.',
+    'Each figure is a native inline formula reading the Base register. The wording, headings and page structure remain authored document content when a fee or status changes.',
     'body',
   ],
   ['Reading order / Summary · Working register · Phase allocation', 'caption'],
   ['02 / Working service register', 'heading'],
   [
-    'Double-click the native Relational Table block, then expand it to edit. Correct the facilitation fee from 850 to 1000: the included total becomes 2650. Include the clinic only when you want its fee and hours counted.',
+    'Double-click the native Base block, then expand it to edit. Correct the facilitation fee from 850 to 1000: the included total becomes 2650. Include the clinic only when you want its fee and hours counted.',
     'body',
   ],
   [
@@ -126,7 +126,7 @@ const paragraphs = [
     'body',
   ],
   [
-    'READING COPY / A display-text snapshot detaches the current results for reading. It does not save the separate Relational Table, perform DOCX/PDF conversion or replace the live document.',
+    'READING COPY / A display-text snapshot detaches the current results for reading. It does not save the separate Base, perform DOCX/PDF conversion or replace the live document.',
     'body',
   ],
   ['Prepared for discussion / No approval workflow, billing integration or backend connection.', 'caption'],

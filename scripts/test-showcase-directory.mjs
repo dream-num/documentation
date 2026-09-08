@@ -11,7 +11,7 @@ const hooks = registerHooks({
 })
 try {
   const { createCatalogItem, productLabel, integrationProductLabel } = await import('../showcase/catalog.ts')
-  const { SECTION_IDS, categoriesFor, directoryGroups, COMPOSITIONS, HOST_LABELS } =
+  const { SECTION_IDS, categoriesFor, directoryGroups, COMPOSITIONS, HOST_LABELS, treeLabel } =
     await import('../showcase/directory.ts')
   const catalog = JSON.parse(fs.readFileSync('showcase/catalog.generated.json', 'utf8'))
   const { showcase: registry } = await import('../showcase/data.ts')
@@ -23,20 +23,24 @@ try {
   assert.ok(registered.includes('sheets/cross-workbook-formula'), 'Keep ordinary cross-workbook formulas')
   assert.deepEqual(catalog.map((item) => item.slug).toSorted(), registered.toSorted())
   for (const locale of ['en-US', 'zh-CN']) {
-    assert.equal(productLabel('boards', locale), 'Canvases')
-    assert.equal(productLabel('bases', locale), 'Relational Tables')
-    assert.equal(integrationProductLabel('boards', locale), 'Canvases')
-    assert.equal(integrationProductLabel('bases', locale), 'Relational Tables')
+    assert.equal(productLabel('boards', locale), locale === 'en-US' ? 'Boards' : '白板')
+    assert.equal(productLabel('bases', locale), locale === 'en-US' ? 'Bases' : '多维表格')
+    assert.equal(treeLabel(productLabel('boards', locale)), 'Canvases')
+    assert.equal(treeLabel(productLabel('bases', locale)), 'Relational Tables')
+    assert.equal(treeLabel(integrationProductLabel('boards', locale)), 'Canvases')
+    assert.equal(treeLabel(integrationProductLabel('bases', locale)), 'Relational Tables')
+    assert.equal(treeLabel(HOST_LABELS.boards[locale]), locale === 'en-US' ? 'Canvases as Host' : 'Canvases 作为宿主')
+    assert.equal(
+      treeLabel(HOST_LABELS.bases[locale]),
+      locale === 'en-US' ? 'Relational Tables as Host' : 'Relational Tables 作为宿主',
+    )
+    assert.equal(treeLabel('Knowledge Base'), 'Knowledge Base')
     const items = catalog.map(({ slug, metadata }, index) => createCatalogItem(slug, metadata, locale, index))
     assert.equal(new Set(items.map((item) => item.slug)).size, registered.length)
     for (const item of items) {
       assert.ok(SECTION_IDS.includes(item.section), item.slug)
       assert.ok(categoriesFor(item.section).includes(item.category), item.slug)
       assert.ok(item.group && item.sectionName, item.slug)
-      const display = [item.title, item.description, ...item.tags, item.group]
-        .join(' ')
-        .replace(/Knowledge Base|Board Review|Board review/g, '')
-      assert.doesNotMatch(display, /\b(?:Boards?|Bases?)\b|白板|画板|多维表格/, `${item.slug}: product display names`)
     }
     const bySlug = Object.fromEntries(items.map((item) => [item.slug, item]))
     const integration = items.filter((item) => item.section === 'customization-integration')
@@ -107,8 +111,8 @@ try {
     assert.equal(atlas.group, locale === 'en-US' ? 'Sheets as Host' : 'Sheets 作为宿主')
     assert.equal(directoryGroups('embed', 'cross-file-formulas', [], locale).length, 6)
     const formulaHosts = directoryGroups('embed', 'cross-file-formulas', [], locale)
-    assert.ok(formulaHosts.includes(locale === 'en-US' ? 'Canvases as Host' : 'Canvases 作为宿主'))
-    assert.ok(formulaHosts.includes(locale === 'en-US' ? 'Relational Tables as Host' : 'Relational Tables 作为宿主'))
+    assert.ok(formulaHosts.includes(HOST_LABELS.boards[locale]))
+    assert.ok(formulaHosts.includes(HOST_LABELS.bases[locale]))
     for (const section of SECTION_IDS.filter((value) => !['embed', 'customization-integration'].includes(value))) {
       assert.deepEqual(categoriesFor(section), ['features', 'showcases', 'performance'])
       assert.equal(directoryGroups(section, 'performance', [], locale).length, 3)

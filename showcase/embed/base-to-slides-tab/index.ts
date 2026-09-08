@@ -10,12 +10,12 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Violet / Editorial Review', 'zh-CN': 'Violet / 编辑选题复盘' },
   description: {
     'en-US':
-      'Eight Relational Table articles drive thirteen native slide formulas: ready counts, weighted word coverage, section subtotals and editorial blockers.',
-    'zh-CN': '八篇 Relational Table 内容驱动十三个原生幻灯片公式：就绪篇数、字数覆盖率、栏目小计和编辑阻塞。',
+      'Eight Base articles drive thirteen native slide formulas: ready counts, weighted word coverage, section subtotals and editorial blockers.',
+    'zh-CN': '八篇 Base 内容驱动十三个原生幻灯片公式：就绪篇数、字数覆盖率、栏目小计和编辑阻塞。',
   },
   tags: {
-    'en-US': ['Formula', 'Relational Tables', 'Slides', 'Tab', 'Embed'],
-    'zh-CN': ['公式', 'Relational Tables', '幻灯片', '页签', '嵌入'],
+    'en-US': ['Formula', 'Bases', 'Slides', 'Tab', 'Embed'],
+    'zh-CN': ['公式', '多维表格', '幻灯片', '页签', '嵌入'],
   },
   packages: [
     '@univerjs-pro/bases',
@@ -36,9 +36,9 @@ const metadata: ShowcaseMetadata = {
   guide: {
     overview: {
       'en-US':
-        'A fictional slow-living journal reviews eight articles. The native Relational Table data page sits inside the Slides page list; thirteen Formula Shapes read the full table without a hidden Sheet or custom totals.',
+        'A fictional slow-living journal reviews eight articles. The native Base data page sits inside the Slides page list; thirteen Formula Shapes read the full table without a hidden Sheet or custom totals.',
       'zh-CN':
-        '虚构慢生活刊物复盘八篇内容。原生 Relational Table 数据页位于 Slides 页面列表内，十三个公式图形读取整张表，不使用隐藏 Sheet 或自算总计。',
+        '虚构慢生活刊物复盘八篇内容。原生 Base 数据页位于 Slides 页面列表内，十三个公式图形读取整张表，不使用隐藏 Sheet 或自算总计。',
     },
     tryIt: {
       'en-US': [

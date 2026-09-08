@@ -111,7 +111,7 @@ const MEMO = [
   ['', 'body'],
   [BLOCK_MARKERS[0], 'heading'],
   [
-    'The Relational Table owns six workstreams and four linked coordinators. Review state describes the fictional planning conversation: it does not approve a location, contact a resident or dispatch materials. Expand the register to inspect the Owners table and edit a handover note.',
+    'The Base owns six workstreams and four linked coordinators. Review state describes the fictional planning conversation: it does not approve a location, contact a resident or dispatch materials. Expand the register to inspect the Owners table and edit a handover note.',
     'body',
   ],
   ['', 'body'],
@@ -123,7 +123,7 @@ const MEMO = [
   ['', 'body'],
   [BLOCK_MARKERS[2], 'heading'],
   [
-    'The Canvas makes hand-offs explicit: scope, hosts, materials, orientation, review and revision. The return path sends the planning discussion back to hosts; it does not run an automated workflow. Drag a card in the expanded Canvas to inspect native connection behavior.',
+    'The Board makes hand-offs explicit: scope, hosts, materials, orientation, review and revision. The return path sends the planning discussion back to hosts; it does not run an automated workflow. Drag a card in the expanded Board to inspect native connection behavior.',
     'body',
   ],
   ['', 'body'],
@@ -134,7 +134,7 @@ const MEMO = [
   ],
   ['07 / Read the five models honestly', 'heading'],
   [
-    'Only the Sheet recalculates its own formulas. Owner links resolve within the Relational Table. The document, slide copy and Canvas labels stay independent. Editing the title moves all four native body anchors without rewriting their children. Reload discards local edits and recreates the original story.',
+    'Only the Sheet recalculates its own formulas. Owner links resolve within the Base. The document, slide copy and Board labels stay independent. Editing the title moves all four native body anchors without rewriting their children. Reload discards local edits and recreates the original story.',
     'body',
   ],
   ['Decision / Draft for discussion, not a launch approval.', 'heading'],

@@ -2,13 +2,13 @@
 
 This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
 
-Six original fictional Relational Table records describe weekly support demand by channel,
+Six original fictional Base records describe weekly support demand by channel,
 not individual customers. Week 35 has Email 18, Live chat 12 and Community 6;
 Week 34 has 14, 10 and 6. The native Sheet exposes SUMIFS by channel and week,
 totals, differences, selected-week shares and growth. A native chart reads
 A6:C9 directly. It never receives a hand-built JavaScript series array.
 
-Demand register is a real Relational Table SheetTab. Demand comparison is the host Sheet.
+Demand register is a real Base SheetTab. Demand comparison is the host Sheet.
 Forest green and ochre distinguish the two periods; native light-mode editor UI
 stays white. A dark green heading and gold accent draw on the cached budget-review
 reference, with original content and no redistributed competitor artwork.
@@ -46,7 +46,7 @@ window.univerAPI.getBase('moss-demand-register').getTableById('demand').getRecor
 
 ### 4. Show only comparison-week records
 
-The Relational Table view shows three records. Sheet formulas still read the entire table,
+The Base view shows three records. Sheet formulas still read the entire table,
 so selected 40 and comparison 32 stay unchanged.
 
 ```ts
@@ -114,10 +114,10 @@ table.getRecordById('week-35-community').setValue('requests', 6)
 
 ### 11. Rename the source, then make a fresh edit
 
-The source retains its stable Relational Table ID. The SDK may rewrite the displayed Relational Table
+The source retains its stable Base ID. The SDK may rewrite the displayed Base
 name in native Sheet formulas after activation. Persist the new qualifier's
 explicit stable-ID binding as well: beta.2 can otherwise keep cached values after
-snapshot reconstruction without responding to new Relational Table edits. Selected Email 20
+snapshot reconstruction without responding to new Base edits. Selected Email 20
 must still give total 38; a cached result is not sufficient proof.
 
 ```ts
@@ -138,7 +138,7 @@ window.univerAPI.getWorkbook('moss-demand-comparison').getSheetBySheetId('compar
 
 ### 13. An unmatched period is not missing source data
 
-The known Relational Table contains no Week 36 records. SUMIFS correctly gives zero;
+The known Base contains no Week 36 records. SUMIFS correctly gives zero;
 selected shares have a zero denominator. Comparison remains 32.
 
 ```ts
@@ -201,7 +201,7 @@ console.log({ base: api.getBase('moss-demand-register').save(), workbook: api.ge
 
 The SDK has updated the formula qualifier after example 11. Deliberately bind
 that qualifier to an absent unit ID: this should expose a native reference error,
-not retain a cached total. The real Relational Table is not deleted. Removing an old alias
+not retain a cached total. The real Base is not deleted. Removing an old alias
 alone would not demonstrate a missing source when the displayed name resolves.
 
 ```ts
@@ -222,7 +222,7 @@ In your entry module, keep the lifecycle handle with `let demo = createDemo(cont
 instead of `const demo`. Use the same imported `createDemo` and original mount
 `container`. This integration example serializes both native snapshots, disposes
 the owner and constructs a new one. A workbook snapshot alone does not contain
-the embedded Relational Table records. No server or custom restore button is involved.
+the embedded Base records. No server or custom restore button is involved.
 
 ```js
 const saved = JSON.parse(JSON.stringify({
@@ -236,7 +236,7 @@ demo = createDemo(container, darkMode, locale, saved)
 ```
 
 The comparison Sheet opens after reconstruction. Saved formulas, source mappings,
-Relational Table records/view configuration and chart configuration are reused, not replaced
+Base records/view configuration and chart configuration are reused, not replaced
 with starter content. An intentionally removed chart stays removed. An unavailable
 source mapping is not repaired automatically. The input pair must retain the
 original unit IDs, comparison Sheet and demand table; a missing native embed
@@ -260,7 +260,7 @@ Filtered projections contain exactly the expected three records; a hidden edit
 still contributes to whole-table formulas. Null and explicit zero remain distinct
 stored values. Unknown weeks give zero aggregates with native share errors.
 
-Renaming the Relational Table preserves its ID and fresh edits; the SDK rewrites the displayed
+Renaming the Base preserves its ID and fresh edits; the SDK rewrites the displayed
 qualifier in native Sheet formulas. Explicitly binding the current qualifier to
 an unavailable source produces #VALUE! in the calculated range and removes both
 colored chart series. Repair restores live values without replacing the chart.
@@ -270,7 +270,7 @@ The native Print preview uses the correct Sheet and shows both chart colors on
 one fitted page; it is closed without submitting a print job. PNG export produces
 an 1840×730 chart image (86,091 bytes in this run), not an application screenshot.
 All leaves of five relevant official locale packs match in EN/ZH; theme switching
-preserves both complete native snapshots. Disposal from the active Relational Table tab
+preserves both complete native snapshots. Disposal from the active Base tab
 releases the owner, with no observed browser errors or backend requests.
 
 test-results/moss-formula-export-ui/report.json verifies eleven-file standalone
@@ -281,7 +281,7 @@ plus language chunks. This is not delivery-performance acceptance.
 
 test-results/embed-moss-roundtrip-native/report.json adds actual serialized
 two-unit reconstruction using the literal integration snippet above. It verifies
-the entire Relational Table and workbook snapshots, except the recorded embed activation
+the entire Base and workbook snapshots, except the recorded embed activation
 timestamp and exact empty-name serialization described above. Edited formulas,
 comparison criteria, chart title/identity, metadata and filters survive. A new
 hidden-record edit and native Sheet keyboard input update real chart bar heights.
@@ -297,7 +297,7 @@ the existing native input, Print, PNG, locale/theme and disposal checks pass.
 
 The earlier test-results/embed-moss-roundtrip-serialization/report.json fails:
 renaming without persisting the new qualifier left the restored Sheet at cached
-values after a new Relational Table edit. Example 11 now explicitly saves the new binding;
+values after a new Base edit. Example 11 now explicitly saves the new binding;
 this is not a claim that arbitrary native rename paths repair their own resources.
 
 Remaining: different valid-source rebinding, arbitrary source-rename paths, native

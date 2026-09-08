@@ -10,7 +10,7 @@ export const SAMPLES = [
       ['Ceramic bowls', 2, 'Foam dividers'],
       ['Glass jars', 4, 'Lidded crate'],
       ['Serving boards', 1, 'Corner guards'],
-      ['Cutlery rolls', 6, 'Canvas sleeves'],
+      ['Cutlery rolls', 6, 'Board sleeves'],
       ['Water pitchers', 3, 'Padded carton'],
       ['Linen bundles', 5, 'Dry shelf'],
     ],

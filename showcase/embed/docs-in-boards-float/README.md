@@ -1,4 +1,4 @@
-# Maple / Modern Docs floating on a Canvas
+# Maple / Modern Docs floating on a Board
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
@@ -17,7 +17,7 @@ story and four to reflection. None of these notes comes from real research.
 
 Run pnpm install and pnpm dev in the standalone export. Double-click the brief
 to activate native Docs editing. Use the floating menu to expand it, and scroll
-through the seven sections. Canvas keeps its own native floating tools; Docs uses
+through the seven sections. Board keeps its own native floating tools; Docs uses
 Grid where exposed by the SDK. There are no fixture/reset panels or duplicate
 editing buttons. This is native BoardFloating, not an iframe or HTML substitute.
 
@@ -30,8 +30,8 @@ window.univerAPI
   .setText('Make the next visit easier.')
 ```
 
-The Canvas's observation and hypothesis cards must remain unchanged. Try native
-typing and Undo/Redo in the focused document, then return to the Canvas:
+The Board's observation and hypothesis cards must remain unchanged. Try native
+typing and Undo/Redo in the focused document, then return to the Board:
 
 ```ts
 window.univerAPI
@@ -41,7 +41,7 @@ window.univerAPI
   .setText('NEXT / Check the hold-code step.')
 ```
 
-Only the Canvas decision changes. Move a card with the native Canvas tools and
+Only the Board decision changes. Move a card with the native Board tools and
 undo it; the document should retain its text. An observation is not a hypothesis,
 an edited brief is not consent, and no interview is scheduled or recorded.
 
@@ -50,19 +50,19 @@ an edited brief is not consent, and no interview is scheduled or recorded.
 The same createDemo factory powers Preview and the standalone export, including
 the official host, child, drawing, shape, UI and Embed CSS. A local provider
 accepts only the authored document ID and Doc type. This is DocumentFlavor.MODERN,
-not a paginated report or a Canvas text box. Content and history have distinct owners.
+not a paginated report or a Board text box. Content and history have distinct owners.
 
 Selected independent production at 1600px passes both literal README examples,
 actual Docs keyboard typing and whole-document Undo/Redo, native fullscreen with
 Start/Insert Grid menus, Ribbon history, scrolling to the final next-test section,
-Canvas text history, card movement/history, themes and active-child disposal.
+Board text history, card movement/history, themes and active-child disposal.
 Every product edit checks the other entire model for preservation. No browser
 errors or backend requests were observed. See
 test-results/embed-doc-board-float-production/report.json.
 
 EN/ZH guides pass three variants/actions/states, the native white page and actual
 media-theme changes retaining the same owner and both edited models; see
-test-results/embed-doc-board-float-next-final/report.json. Canvas theme following
+test-results/embed-doc-board-float-next-final/report.json. Board theme following
 can regenerate its palette; theme ID and all authored content remain strict.
 Native Docs Undo materializes three omitted empty body collections
 (customBlocks/customDecorations/customRanges); every other field is strict.
@@ -98,5 +98,5 @@ keeps native white SDK surfaces intact. All names, notes and geometry are author
 for this demo; no competitor artwork is exported.
 
 The shared factory explicitly imports the official Ink UI English pack and CSS
-required by the registered Canvases UI dependency. Other product locale packs and
+required by the registered Boards UI dependency. Other product locale packs and
 styles remain intact. This is resource coverage, not native pen acceptance.

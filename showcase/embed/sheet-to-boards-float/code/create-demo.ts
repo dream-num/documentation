@@ -148,19 +148,6 @@ export function createDemo(container: HTMLElement, darkMode = false, _legacyLoca
         FormulaEnUS,
         NumfmtEnUS,
         EmbedEnUS,
-
-        // Demo-only product names; preserve every other official English translation.
-        {
-          'boards-ui': {
-            ...BoardsEnUS['boards-ui'],
-            settings: { ...BoardsEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
-          },
-          'shape-editor-ui': {
-            ...ShapeEnUS['shape-editor-ui'],
-            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
-            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
-          },
-        },
       ),
     },
   })
@@ -387,7 +374,7 @@ export function createDemo(container: HTMLElement, darkMode = false, _legacyLoca
             .__getInjector()
             .get(IUniverInstanceService)
             .getUnit<BoardModel>(HOST_ID, UniverInstanceType.UNIVER_BOARD)
-          if (!board) throw new Error('The workshop Canvas is unavailable')
+          if (!board) throw new Error('The workshop Board is unavailable')
           univer
             .__getInjector()
             .get(BoardViewportService)
