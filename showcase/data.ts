@@ -1,6 +1,10 @@
 import type { ShowcaseRegistry } from './types'
 
 export const showcase: ShowcaseRegistry = {
+  'sheets/table-styles-and-headers': () => import('./sheets/table-styles-and-headers'),
+  'sheets/financial-cash-flow-formulas': () => import('./sheets/financial-cash-flow-formulas'),
+  'sheets/let-and-lambda-formulas': () => import('./sheets/let-and-lambda-formulas'),
+  'sheets/regex-formulas': () => import('./sheets/regex-formulas'),
   'boards/shape-fill-and-outline': () => import('./boards/shape-fill-and-outline'),
   'docs-traditional/paragraph-tab-stops': () => import('./docs-traditional/paragraph-tab-stops'),
   'pdfs/page-insertion': () => import('./pdfs/page-insertion'),
