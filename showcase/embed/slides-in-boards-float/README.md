@@ -2,8 +2,7 @@
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
-but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
-not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+but is ignored. Earlier  English-only source/CSS/startup checks do
 not certify every native interaction or resolve the recorded SDK failures.
 
 An original fictional night-sky pop-up proposal pairs four narrative notes with
@@ -70,10 +69,6 @@ EN/ZH guides pass three variants/actions/states and actual media-theme changes
 preserving the same owner and both edited models. Source parity checks the eleven
 exported files and official SDK stylesheets, including the white native
 workbench and the deliberately navy slide canvas. Evidence:
-
-- `test-results/embed-slide-board-float-production-final/report.json`
-- `test-results/embed-slide-board-float-next-final/report.json`
-- `test-results/embed-slide-board-float-export-final/report.json`
 
 Only this demo was built: 206 offline packages, 1,841 modules, main JavaScript
 18,104.47 kB / 4,497.78 kB gzip and CSS 125.97 kB / 18.63 kB gzip.

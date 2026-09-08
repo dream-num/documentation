@@ -150,19 +150,3 @@ window.asteriaSavedSnapshot = structuredClone(window.univerAPI.getActivePdf().sa
   api.createPdf(structuredClone(window.asteriaSavedSnapshot))
 }
 ```
-
-## Verification
-
-The case-specific strict test is `scripts/test-financial-report-native.mjs`. It builds only this independent
-export, verifies initial EN/ZH native UI, all fourteen native pages, actual page pixels, the literal blocks,
-native text/annotation interactions, same-owner theme changes and absence of conversion requests.
-Model-only changes are not sufficient evidence of painted editing. Any SDK failure is retained in its report.
-
-Current evidence: `test-results/financial-report-native-verified/report.json` passes all 24 strict checks,
-including all 15 literal blocks, fourteen different painted pages, native title/table typing,
-native highlight dragging/selection/Properties with pixel-verified Undo/Redo, initial Chinese UI,
-complete locale packs, same-owner theme changes, local JSON download/reload, invalid opacity and an empty page.
-The browser emitted no SDK errors, warnings or backend requests. The original `data.ts` SHA-256 is
-`ebc06a231b4d88d5144aec5d841389bd62c269866e5bf128f0b67b808818cd6d`.
-The first-run results remain separately preserved; its example/API-shape and test-selector issues were corrected.
-Binary conversion, printing, threaded comments and broad accessibility remain unverified, not passed by removal.

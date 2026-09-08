@@ -144,14 +144,6 @@ The dedicated test defaults to the documentation guide at `http://localhost:3030
 
 PowerShell, from the documentation repository:
 
-```powershell
-$env:SHOWCASE_BUILD_STANDALONE = '1'
-$env:SHOWCASE_VITE_DIRECTORY = '<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
-$env:SHOWCASE_RESULTS_DIR = 'test-results/harbor-page-setup-native'
-node scripts/test-docs-harbor-page-setup-native.mjs
-Remove-Item Env:SHOWCASE_RESULTS_DIR
-```
-
 Only this case is exported and built, on strict port 4406. Exact installed packages are linked individually into its own export directory; no SDK patches, installs, backend calls, or whole dependency-directory links are needed. The report retains complete snapshot differences and native failures. Read the current report before claiming all acceptance criteria pass.
 
 ## Retained acceptance gaps

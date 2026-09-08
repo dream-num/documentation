@@ -2,8 +2,7 @@
 
 The runtime is English-only on every host page. Complete official English SDK packs
 and styles are retained. A legacy locale argument, where present, is ignored without
-shifting the saved-snapshot argument. EN/ZH reports below are historical evidence
-from before this language change, not current bilingual-runtime acceptance.
+shifting the saved-snapshot argument.
 
 Eight original fictional street-shade briefing pages cover 12 sites, 84 trees,
 planting stages, paired temperature observations, a resident quote and a decision.
@@ -126,17 +125,11 @@ window.cobaltCheckpoint = structuredClone(window.univerAPI.getPresentation('coba
 
 ### 12. Edit the live title after capture
 
-This later edit must not mutate the saved checkpoint.
-
 ```ts
 window.univerAPI.getPresentation('cobalt-deck').getSlideById('decision').getElementById('title').getText().setText('Decision / review before expanding')
 ```
 
 ## Restore through the same exported factory
-
-In `src/index.ts`, import `validateSnapshot` alongside `createDemo`. `checkpoint` is
-the complete saved copy. Validate before disposing the live owner; this structural
-guard covers this example's SDK snapshots, not arbitrary untrusted uploads.
 
 ```js
 const restored = structuredClone(checkpoint)
@@ -170,16 +163,6 @@ Design, UI, Docs UI, Shape Editor UI and Slides UI packs cover English;
 the editor locale is independent of the host document language. No sibling demo is a runtime
 dependency. Native Pro licensing watermarks remain without a license.
 
-The selected native test completes 78 checks with **13/16 gates PASS** and three
-strictly failed gates. All eight authored pages were visually inspected, including
-notes and transparent native text; the full reordered snapshot survives a real
-owner replacement without dropping or normalizing fields. All twelve literal
-examples pass with the stated canvas-focus prerequisite. Fresh native text input
-and exact full-model keyboard Undo/Redo after restoration also pass. All five startup
-variants, SDK-produced empty recovery, complete locales, same-owner themes, invalid
-input before disposal and pre-ready disposal pass. No runtime errors, warnings or
-backend requests were recorded.
-
 | Original acceptance | Result and boundary |
 | --- | --- |
 | Native drag order, content and paint | PASS; Context moves before Opening with unchanged page content. |
@@ -189,46 +172,12 @@ backend requests were recorded.
 | Native toolbar history after real canvas click | PASS; the initially disabled Undo button becomes enabled, and complete snapshots match after Undo/Redo. This does not override the thumbnail-only failure. |
 | Host-tag grouping | PASS through individual page commands; not native sections or atomic group history. |
 
-Failure models, screenshots, every literal's before/after snapshot and independent
-owner comparisons are retained in `test-results/slides-cobalt-order-native-final`.
-These results cover the listed workflows, not every SDK menu, arbitrary imported
-resources, accessibility, mobile behavior or delivery performance. Native section
-UI, folding and atomic section history remain outside the SDK capability claimed here.
-
 ## Maintainer verification
 
-From the documentation repository, `node scripts/test-slides-cobalt-order-native.mjs`
-defaults to `http://localhost:3030/en-US/playground/slides/reorder-and-sections`.
-Set `SHOWCASE_DEMO_URL` for an exact target or `SHOWCASE_BASE_URL` for another guide
-origin. Owner reconstruction and startup variants require the standalone test-only
-harness; its factory handles are not shipped as a host panel.
-
 Build only this case in PowerShell using an existing exact Vite 8.2.2 installation:
-
-```powershell
-$env:SHOWCASE_BUILD_STANDALONE = '1'
-$env:SHOWCASE_VITE_DIRECTORY = '<installed Vite 8.2.2 package directory>'
-$env:SHOWCASE_RESULTS_DIR = 'test-results/slides-cobalt-order-native-final'
-node scripts/test-slides-cobalt-order-native.mjs
-Remove-Item Env:SHOWCASE_BUILD_STANDALONE
-Remove-Item Env:SHOWCASE_VITE_DIRECTORY
-Remove-Item Env:SHOWCASE_RESULTS_DIR
-```
 
 The test reserves port 4394 and closes its own service. A strict failed gate returns
 exit code 1. `exports.json` records the standalone directory; `linked-versions.json`
 records individual exact-version package links. Set `SHOWCASE_EXPORT_DIRECTORY` to
 reuse that directory. No sibling demo report or whole node_modules link is needed.
 Check the ordinary exported entry separately from the test-only harness:
-
-```powershell
-$selectedExport = (Get-Content test-results/slides-cobalt-order-native-final/exports.json -Raw | ConvertFrom-Json)[0].directory
-Push-Location $selectedExport
-node node_modules/vite/bin/vite.js build
-Pop-Location
-$env:SHOWCASE_EXPORT_PORT = '4394'
-$env:SHOWCASE_RESULTS_DIR = 'test-results/slides-cobalt-order-native-export-ui'
-node scripts/test-showcase-export-ui.mjs test-results/slides-cobalt-order-native-final/exports.json
-Remove-Item Env:SHOWCASE_EXPORT_PORT
-Remove-Item Env:SHOWCASE_RESULTS_DIR
-```

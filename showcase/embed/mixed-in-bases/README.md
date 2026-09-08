@@ -2,8 +2,7 @@
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
-but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
-not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+but is ignored. Earlier  English-only source/CSS/startup checks do
 not certify every native interaction or resolve the recorded SDK failures.
 
 A fictional touring-exhibition studio combines ten opportunities, six follow-ups
@@ -96,23 +95,6 @@ fictional; no reference artwork is redistributed. No email, orders, shipments,
 bookings, approvals or backend requests are implemented.
 
 Selected runtime evidence is partial, not complete acceptance:
-
-- `test-results/embed-mixed-bases-keyboard/report.json` verifies four native tabs,
-  three Slides layouts, all five literal examples and model ownership, stage-weight
-  recalculation, native Sheet input from 52,000 to 56,000 with Undo/Redo after
-  initialization, Base partner rename with stable linked IDs, one-page Forecast
-  Print preview/cancel, normal navigation and selected active-Board disposal.
-  No browser errors or backend requests were observed in that run.
-- That strict report remains FAIL: first Undo creates empty validation arrays in
-  both touched worksheets and empty attachment maps in generated Base tab tables.
-  Values restore; this is not proven data loss. No snapshot normalization hides it.
-- `scripts/test-embed-base-tab-reselect.mjs` is a separate failing native navigation
-  regression. Clicking the already-selected Weighted forecast tab again moves the
-  Base canvas over the sidebar and blocks the next tab click. Reload restores the
-  workspace. No custom controls, pointer-event override or SDK patch is used.
-- EN/ZH guide/theme checks preserve the API owner and five models, allowing only
-  native Board palette regeneration with the same theme ID. Independent export
-  checks eleven exact source files and official SDK CSS imports.
 
 The first ribbon assertion searched inside the child, but the native Base tab
 replaces the shared host ribbon. It now checks the shared Grid's embed owner.

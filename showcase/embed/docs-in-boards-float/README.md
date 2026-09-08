@@ -2,8 +2,7 @@
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
-but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
-not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+but is ignored. Earlier  English-only source/CSS/startup checks do
 not certify every native interaction or resolve the recorded SDK failures.
 
 A fictional library collection desk explores arrival, desk-finding and hold-code
@@ -52,21 +51,6 @@ the official host, child, drawing, shape, UI and Embed CSS. A local provider
 accepts only the authored document ID and Doc type. This is DocumentFlavor.MODERN,
 not a paginated report or a Board text box. Content and history have distinct owners.
 
-Selected independent production at 1600px passes both literal README examples,
-actual Docs keyboard typing and whole-document Undo/Redo, native fullscreen with
-Start/Insert Grid menus, Ribbon history, scrolling to the final next-test section,
-Board text history, card movement/history, themes and active-child disposal.
-Every product edit checks the other entire model for preservation. No browser
-errors or backend requests were observed. See
-test-results/embed-doc-board-float-production/report.json.
-
-EN/ZH guides pass three variants/actions/states, the native white page and actual
-media-theme changes retaining the same owner and both edited models; see
-test-results/embed-doc-board-float-next-final/report.json. Board theme following
-can regenerate its palette; theme ID and all authored content remain strict.
-Native Docs Undo materializes three omitted empty body collections
-(customBlocks/customDecorations/customRanges); every other field is strict.
-
 The initial CSS assertion incorrectly expected a white DOM canvas wrapper, as in
 Sheets. Docs paints its white page on Canvas instead; the corrected test checks
 an actual white page pixel alongside visible text and screenshots. No CSS
@@ -78,13 +62,6 @@ One later guide rerun recorded a React state-update-before-mount warning; its
 failed next-text report remains. The subsequent next-final run passes both
 locales without console errors, but this does not establish a root-cause fix.
 Repeated-mount/dev-integration reliability remains unaccepted.
-
-The eleven-file standalone export includes official CSS imports, checked
-separately in test-results/embed-doc-board-float-export-final/report.json. The
-selected build installs 206 packages offline and builds 1,839 modules; main JS is
-18,096.73 kB / 4,494.70 kB gzip and CSS 117.08 / 17.48 kB. Cold selected Next
-guide/playground requests took 49s/28.6s, with a Gzip drain-listener warning.
-These are observations, not an optimized performance result.
 
 Full menus, failed/empty/delayed providers, repeated mounts, persistence, complete
 focus boundaries, small screens, accessibility and performance remain open.

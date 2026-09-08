@@ -2,8 +2,7 @@
 
 The runtime is English-only on every host page. Complete official English SDK packs
 and styles are retained. A legacy locale argument, where present, is ignored without
-shifting the saved-snapshot argument. EN/ZH reports below are historical evidence
-from before this language change, not current bilingual-runtime acceptance.
+shifting the saved-snapshot argument.
 
 An original repair-library briefing uses sixty kits, forty-eight tickets and eight shift assignments. All people, outcomes and quotations are fictional. Eight native slides preserve seven narrative arrangements; the native slide sidebar is the gallery, not a fixture selector.
 
@@ -27,8 +26,6 @@ Native no-fill/no-line text-box shapes replace legacy white Text boxes. Eight au
 Run in order in the preview-frame or standalone console. All mutations use real Facades or registered native commands; keep the deck focused for Undo/Redo. The scale calculation is explicitly host geometry policy, not a claimed native automatic reflow.
 
 ### 1. Capture the complete deck
-
-Start on a fresh page. The detached checkpoint contains eight original pages and inherited master/layout content.
 
 ```ts
 window.rivetCheckpoint = structuredClone(window.univerAPI.getActivePresentation().save())
@@ -166,8 +163,6 @@ window.rivetInvalidAccepted = window.univerAPI.syncExecuteCommand('slide.command
 
 ### 15. Restore original opening geometry
 
-The real drawing command restores the owned elements from the checkpoint; inherited master content is not copied into the page.
-
 ```ts
 const deck = window.univerAPI.getActivePresentation()
 window.univerAPI.syncExecuteCommand('slide.command.update-drawing', { patches: Object.values(window.rivetCheckpoint.slides.opening.elements).map(element => ({ unitId: deck.getId(), subUnitId: 'opening', drawingId: element.id, element: structuredClone(element) })) })
@@ -182,8 +177,6 @@ window.univerAPI.getActivePresentation().getSlideById('opening').setPageSize({ w
 ```
 
 ### 17. Zero pages
-
-Destructively remove this fictional deck's pages; the checkpoint above supports recovery. The presentation still owns a default page size.
 
 ```ts
 const deck = window.univerAPI.getActivePresentation()
@@ -235,18 +228,8 @@ The factory retains snapshot identities, page overrides, edited text, masters, l
 
 ## Verification evidence
 
-Current selected evidence: `test-results/rivet-size-recovery-verified/report.json` passes 23 of 25 gates. The exact full-owner recipe restores the original checkpoint after the failing unit-only sequence, with native navigation and actual render objects on all eight pages. Edited content and an 800 × 600 override, a deliberately deleted page and Chinese dark mode each survive exact full-snapshot reconstruction; fresh native text edits and exact Undo/Redo work on each restored nonempty deck. Six invalid page/default-size snapshots leave the current owner intact, and disposal before readiness cancels the pending mount. The empty deck stays empty and usable, but its stale activeSlideId is removed by the SDK. The two retained strict failures are unit-only canvas attachment and that empty-deck serialization difference. No normalization hides either failure.
-
-The first recovery probes clicked/typed before the native shape editor had mounted; waiting for the editor paint boundary fixes those test input failures. Empty-deck validation now permits the SDK's stale active ID instead of rejecting its own saved output. These are integration/test corrections, not SDK patches. No browser errors or backend requests were observed in the current run. Independent production export at `test-results/rivet-size-recovery-export-ui/report.json` passes nine-file source parity, all five official CSS imports, native white workbench and absence of the startup skeleton. This is selected export evidence, not a fresh dependency-install or delivery-performance test.
-
 To include full-owner reconstruction gates, run with `SHOWCASE_BUILD_STANDALONE=1` and set `SHOWCASE_VITE_DIRECTORY` to an installed Vite directory matching the exported version (or reuse this case's installed `SHOWCASE_EXPORT_DIRECTORY`). The harness builds this case only on port 4374 and closes it afterward. Its factory globals exist only in test HTML; exported production code adds no debug panel or helper API.
 
 ### Earlier baseline
-
-Run `node scripts/test-slides-size-native.mjs` against the default `http://localhost:3030/en-US/playground/slides/page-size-and-overflow`, or set `SHOWCASE_DEMO_URL` to the selected standalone URL; `SHOWCASE_BASE_URL` overrides the documentation origin.
-
-The selected report at `test-results/rivet-size-native-visual/report.json` is strictly failing, not complete acceptance. It reads the actual SDK render objects (not only saved dimensions) and passes native navigation of all eight pages, inherited/explicit/custom size changes, all five boundary-marker cases including rotation, native scaled frames, two-step size/drawing Undo and Redo, invalid-size rejection, empty-deck sizing, real pointer/keyboard text editing with full-snapshot Undo/Redo, five complete EN/ZH locale packs, edited-model theme preservation and disposal. All twenty snippets execute; no backend request or runtime error was observed. Native Undo requires focus on the slide canvas; a console mutation or thumbnail click alone is not treated as proof of focus.
-
-One strict gate remains: a checkpoint reconstructed under a new root ID matches the saved data but fails to remount the main canvas within the tested twelve-second timeout. Native text-box shapes now pass the full edit/Undo/Redo snapshot gate; the earlier legacy Text result does not certify other element types. No resource normalization, fabricated render, manual history cleanup or SDK patch hides the remaining failure. The independent text-edit gate runs on a fresh browser owner after the reconstruction gate, so one failure cannot obscure another.
 
 Full menu, rich-text scaling/rejection variants, mobile/accessibility/performance and lifecycle-timeout acceptance remain outstanding. This selected build is still large; successful loading is not performance acceptance. No backend, printing/conversion guarantee or collaboration history is provided by this case.

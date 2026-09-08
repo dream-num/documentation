@@ -15,30 +15,12 @@ host buttons. The deck is a native child, not an iframe or screenshot.
 
 ## Selected evidence
 
-`test-results/embed-slide-doc-block-layout-history/report.json` passes source
-activation, rich-text Facade edit/paint, native keyboard Undo/Redo, Next page,
-fullscreen Grid/thumbnail navigation, title-anchor movement with the entire
-child preserved, and selected active-child disposal. The original host remains
-unchanged by the child edit. No browser errors or backend requests occurred.
-`embed-slide-doc-block-production-final/report.json` repeats these checks at
-1220px against the independent production build and final authored layout.
-
 The first test wrote through Facade while a native shape text editor was open;
 the updated path exits that editor and selects the child canvas first. The failed
 run is retained; concurrent editor/Facade writes are not certified. Screenshot
 inspection also found card descriptions overflowing. Shorter descriptions,
 smaller card-label fonts and a raised footer correct the authored layout without
 changing native CSS. Three different slide layouts and palettes are retained.
-
-`embed-slide-doc-block-next-final/report.json` verifies both EN/ZH guides,
-three variants/actions/states each, their real native previews and white/flex
-SDK CSS. `embed-slide-doc-block-export-final/report.json` verifies all eleven
-exported files against authored sources and live CSS/Canvas. The independent
-project installs 208 packages; main JS is about 18.13 MB / 4.50 MB gzip and CSS
-121.04 kB / 17.94 kB gzip. Large-bundle warnings remain unresolved.
-The selected Next server's first guide/playground responses took 63s/32.8s.
-It also emitted a Gzip `MaxListenersExceededWarning`; this remains a server-side
-diagnostic to investigate, not a clean performance or repeated-mount pass.
 
 ## Still open
 

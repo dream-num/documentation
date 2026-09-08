@@ -379,15 +379,7 @@ No regenerated document ID and no coordinate correction. Absolute placement roun
 
 Original unmet requirements remain explicit: beta.2 direct `setCrop`, `setRotate` and `setSource` have paint/history defects; absolute placement may shift by header offsets after save/reload; SVG bytes may download with a .png extension. The dedicated native regression must retain those failures independently of successful builder variants and unchanged authored spreadsheet content.
 
-Native drawing selection/drag/properties/history, real image pixels, exact snapshots and IDs, all literal variants, initial EN/ZH startup, owner-preserving theme and selected-export parity are checked by `scripts/test-sheets-images-native.mjs`. Filters, brightness/contrast, arbitrary masks, image formulas and comprehensive grouping/protection/clipboard/accessibility combinations are outside this case's claims. JSON snapshots are not XLSX conversion.
-
 ### Current independent evidence
-
-`test-results/sheets-images-native-acceptance/report.json` records **52/68 passed**, including **37/37 literal blocks**.
-Native drawing selection/drag and the native Edit Image width field both change actual pixels and model geometry.
-The native width field debounces commands by 300ms; acceptance waits for the actual drawing width.
-Both preset EN/ZH packs and official CSS, initial Chinese image properties, same-owner theme, local invalid-file rejection,
-empty/restore and no backend/runtime errors pass. One Chromium Canvas2D readback-performance warning is retained.
 
 The 16 failed assertions are intentionally not hidden:
 
@@ -398,10 +390,3 @@ The 16 failed assertions are intentionally not hidden:
 - SVG cell download preserves SVG bytes but supplies a .png filename.
 - Absolute placement reload changes bounds by +46px X / +20px Y and fails the complete snapshot check.
   Authored cell/checklist content and workbook ID remain intact; no coordinate correction is applied.
-
-Manifest: `test-results/sheets-images-native-acceptance/exports.json`.
-Screenshots include `baseline.png`, `native-properties-edited.png`, `initial-zh.png`, `literal-empty.png` and `absolute-reload.png`.
-The separate `test-results/sheets-images-native-export-ui/report.json` checks nine source files, official white SDK UI
-and absence of the startup skeleton; it is not a feature-coverage verdict.
-Native crop-handle dragging, OS file-picker cancellation, exhaustive local JPEG/dimension boundaries and broad accessibility
-remain unverified; the README retains the relevant source-validation and crop capabilities without claiming those UI tests passed.

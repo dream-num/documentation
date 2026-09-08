@@ -2,8 +2,7 @@
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
-but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
-not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+but is ignored. Earlier  English-only source/CSS/startup checks do
 not certify every native interaction or resolve the recorded SDK failures.
 
 An original fictional portable reading-light release uses three narrative slides,
@@ -63,25 +62,6 @@ conversion is claimed by this embedding example, and no SDK package is patched.
 ## Recorded evidence
 
 The full runtime remains **failing**, not accepted:
-
-- `test-results/embed-base-slide-float-source/report.json`: initial run reached
-  native loading and the first README edit, then incorrectly expected Suppliers
-  tabs in the compact float. That assumption was corrected from SDK source.
-- `test-results/embed-base-slide-float-source-layout/report.json`: corrected
-  source run preserves both data owners, linked names, theme and disposal, but
-  native floating-menu Undo and fullscreen still fail.
-- `test-results/embed-base-slide-float-production-keyboard/report.json`: selected
-  independent production verifies actual keyboard editing, both README examples
-  verbatim, linked supplier repaint without changing check/link records, three
-  native narrative pages, host editing, theme preservation and disposal. Browser
-  errors/backend requests are empty. Undo does not restore the record, therefore
-  button Redo is not reached; Enter fullscreen opens no shell. Those gates keep
-  the overall report red. The Base-specific root cause is not yet established.
-- `test-results/embed-base-slide-float-next/report.json`: EN/ZH guides, official
-  white CSS, Grid and actual theme changes preserve the same API owner and edited
-  snapshots. This does not certify the failing native buttons.
-- `test-results/embed-base-slide-float-export/report.json`: eleven-file authored
-  source/export parity and live official SDK CSS pass separately.
 
 Screenshot review corrected sidebar wrapping, menu/title overlap and quality-card
 overflow. Performance is not accepted: 206 offline dependencies, main JS

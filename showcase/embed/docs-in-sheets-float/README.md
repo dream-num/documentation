@@ -1,11 +1,5 @@
 # Cedar / Docs in Sheets Float
 
-The demo runtime, authored data and startup alerts are English-only, including on
-Chinese-language guide pages. The legacy third locale argument remains accepted
-but does not change the runtime language. All registered English locale packs and
-official SDK styles remain shared by preview and export. Earlier EN/ZH reports
-below are historical interaction evidence, not current bilingual SDK acceptance.
-
 ## Current selected Preview acceptance (2026-09-08)
 
 The actual React Preview runs with next-themes in an isolated Vite harness.
@@ -16,13 +10,6 @@ network writes. Root Arial inheritance and official white SDK CSS are checked;
 visible UI text and accessible labels are checked for untranslated keys.
 The shared factory uses an English visible startup failure message and the
 root stylesheet supplies its own sans-serif font instead of relying on Next CSS.
-
-Run `scripts/test-embed-docsheet-theme.mjs` with `SHOWCASE_MODE=float` and
-`SHOWCASE_VITE_MODULE` pointing to the installed Vite module. It binds only
-port 4427 and closes its server afterward. Evidence:
-`test-results/embed-docsheet-theme-float-final/report.json`.
-This is selected desktop interaction acceptance, not exhaustive keyboard,
-accessibility, error-injection, fullscreen or history-boundary certification.
 
 An original fictional library procurement story: three suppliers quote different
 prices and delivery dates for 24 accessible workbenches. The selected Moss quote
@@ -51,14 +38,6 @@ Next entry uses next/dynamic with ssr:false to keep browser canvas dependencies
 out of server prerendering. Both React files ship as reference text.
 
 ## Acceptance scope
-
-`test-results/embed-doc-float-scroll/report.json` passes the selected real SDK run:
-native activation, modern document title paint, paragraph mutation and repaint,
-scrolling to the lower approval section, a host premium update to $1,700 with the
-entire child document unchanged, official white/flex CSS, and active-child teardown
-without browser errors. Opening and approval screenshots are checked separately.
-Run `scripts/test-embed-doc-float.mjs` with `SHOWCASE_VITE_MODULE` pointing to Vite;
-it compiles only this case. `SHOWCASE_ORIGIN` targets an independently built export.
 
 `embed-doc-float-production` passes the same selected behavior in the independent
 build, and `embed-doc-float-export-parity` verifies eleven-file source parity and

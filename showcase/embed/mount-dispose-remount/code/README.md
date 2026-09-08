@@ -2,28 +2,9 @@
 
 A reusable host card with 18 original trailworks stock records. Edit the native grid, add or rename worksheets, use native Undo/Redo, then choose a lifecycle action. The six host buttons are real integration controls, not duplicate cell editors.
 
-- **Mount** creates a fresh default workbook only when no editor is mounted.
-- **Dispose editor** unloads the workbook and releases its SDK owner; the card and mount element remain.
-- **Remount content** saves the entire current workbook before replacing its owner.
-- **Save checkpoint / Restore checkpoint** keep an explicit independent snapshot in host memory.
-- **Download JSON** downloads the real current snapshot locally. This is not XLSX conversion.
-
-Content, worksheet IDs and resources are supplied unchanged to reconstruction. Focus, selection, scroll and Undo/Redo history are not persisted by a workbook snapshot. Checkpoints are local and disappear when the host itself is disposed. Theme changes retain the owner, edits and checkpoint; a subsequently mounted editor uses the current theme. Native UI, host labels and inventory data stay English on either documentation language, using the complete English preset pack. The legacy third argument is ignored without moving the saved snapshot argument. The complete official Sheets Core CSS is imported by the same factory used by Preview and the standalone entry.
-
 ## Run and verify
 
 Open `http://localhost:3030/en-US/playground/embed/mount-dispose-remount`. The independent export contains `src/create-demo.ts`, unchanged inventory data, official CSS imports and the React integration reference. Install the exact generated package versions in the exported directory, then run `npm run dev`.
-
-Run the guide-target test with `node scripts/test-embed-kestrel-lifecycle-native.mjs`; override `SHOWCASE_DEMO_URL` or `SHOWCASE_BASE_URL` as needed. Full ownership/startup tests require the test-only standalone harness:
-
-```powershell
-$env:SHOWCASE_BUILD_STANDALONE='1'
-$env:SHOWCASE_VITE_DIRECTORY='<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
-$env:SHOWCASE_RESULTS_DIR='test-results/kestrel-lifecycle-native'
-node scripts/test-embed-kestrel-lifecycle-native.mjs
-```
-
-Only this selected case is built on port 4416. The test resolves individually linked dependencies against the exact exported versions; it does not install packages or use another demo's report.
 
 ## Save complete content
 
@@ -124,18 +105,3 @@ await demo.dispose()
 Cleanup aborts pending mount readiness, waits for calculation settlement with a 10-second host deadline, calls `disposeUnit(id)`, verifies `getWorkbook(id) === null`, releases the lifecycle subscription, then calls core `Univer.dispose()`. It checks that the old canvases are disconnected instead of clearing the container to simulate disposal. Repeated host disposal shares the same cleanup promise.
 
 On calculation-wait failure, cleanup requests `stopCalculation()`, still attempts all cleanup steps and reports the original and subsequent failures as an AggregateError. A deadline cannot interrupt synchronous SDK work, and a stop request does not prove acknowledgment from an external custom formula. Internal SDK cleanup-failure recovery remains unproven without changing the SDK. This is a frontend owner-lifecycle example, not the nested Pro Embed plugin.
-
-## Strict verification boundaries
-
-Earlier bilingual native reports are historical. The English-only rerun in
-`test-results/kestrel-lifecycle-english-native/report.json` records 7/8 strict
-gates and 37 checks. Native edits, all five TypeScript/four JavaScript literals,
-same-ID remount, checkpoint restore/download, multi-sheet targeting, pending
-guards and English-on-Chinese-host checks pass. The ordinary production entry
-also passes native edit and complete remount comparison. The first native Undo
-still fails as described below. There are no observed browser errors or backend
-requests; startup alone is not interaction acceptance.
-
-The native first edit of D4 followed by Undo restores the displayed quantity but leaves the SDK-inferred numeric type at `sheets.stock.cellData.3.3.t = 2`, absent in the original saved model. This is a strict full-model history **FAIL**, not normalized away. Redo and the separately tested fresh edit after checkpoint restoration retain exact full-model comparisons. Native paper-white rendering, same-ID saved remount, checkpoint restoration, empty/boundary startup, pending-click guards and pre-ready cleanup have separate checks; their success does not resolve this Undo discrepancy.
-
-The original seed explicitly contains the defined-name resource data `'{}'`; arbitrary saved resources are never rewritten to match it. Full-model comparisons keep every field, style, inferred type and resource. Native Undo or SDK reconstruction differences must remain failures even if the visible value is correct. Runtime results and raw diffs are written independently of source/CSS checks; consult the latest dedicated lifecycle report for the exact accepted and unresolved checks.

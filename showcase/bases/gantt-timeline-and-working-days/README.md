@@ -71,8 +71,6 @@ This implementation targets a concise native view comparison. Dependency connect
 
 ## Current native interaction evidence
 
-`scripts/test-base-gantt-gallery.mjs` against selected build `test-results/selected-export-builds-uAVTBg/manifest.json` records English SDK rendering on both English and Chinese host pages. The current report is `test-results/base-gantt-native/report.json` and remains **FAIL**, not complete interaction acceptance.
-
 - Native dragging of the left-pane progress bar changes Build modular plinths from 65 to 19.05, preserving its dates, other records and all view settings. This is actual mouse interaction, separate from the progress Facade recipe above. The reviewed screenshot shows 19% in the left pane but the selected task's timeline bar appears absent or covered by the row highlight; the passing model-write gate does not certify complete post-edit timeline painting.
 - A bar-body drag changed the task dates but changed the stored interval from seven days to six. Duration-preserving movement is not accepted.
 - A right-edge resize attempt changed the start as well as the end; end-only resize is not accepted. The cause has not been isolated between date snapping/normalization and native hit handling, so this is an observed failure, not a claimed SDK root cause.

@@ -82,22 +82,6 @@ and Undo/Redo remain available without a duplicate host editor.
 
 ## Verification
 
-Run `node scripts/test-annual-native.mjs` from the documentation repository for
-the running guide at `http://localhost:3030/en-US/playground/docs-traditional/corporate-annual-report`.
-`SHOWCASE_DEMO_URL` overrides the full URL; `SHOWCASE_BASE_URL` overrides its origin.
-Full owner reconstruction, initial locale and disposal require the isolated harness:
-
-```powershell
-$env:SHOWCASE_BUILD_STANDALONE = '1'
-$env:SHOWCASE_RESULTS_DIR = 'test-results/annual-report-native-verification'
-$env:SHOWCASE_VITE_DIRECTORY = 'C:/path/to/existing/exact-version/node_modules/vite'
-node scripts/test-annual-native.mjs
-```
-
-The harness builds only this case, links each exact installed dependency version,
-and closes its port 4416 service. `SHOWCASE_EXPORT_DIRECTORY` can reuse an existing
-selected export. No installation or another case's report is needed.
-
 The earlier selected run verifies all three TypeScript literals and the owner
 restore literal, settled native word count, Georgia financial disclosure glyphs,
 header/footer paint, one-page default and two-page compact layout, native paper
@@ -109,11 +93,3 @@ disposal and immediate/idempotent cleanup. The earlier failed font-type test and
 hidden by snapshot normalization or a product patch. That one-page/two-page count
 predates the expanded ten-chapter narrative; current pagination is checked from
 the renderer rather than inferred from the old report.
-
-The expanded narrative is verified in `test-results/annual-rich-narrative/report.json`:
-all nine scoped gates pass, with two actual A4 pages and five compact pages.
-Every one of the ten headings stays with its following paragraph in the compact
-layout. Native input/history, page settings, complete owner recovery, locale
-packs and same-owner themes pass with no observed errors or network writes.
-The normal independent export also passes ten-file source parity and native
-editing. This is not certification of PDF/DOCX conversion or all Docs features.

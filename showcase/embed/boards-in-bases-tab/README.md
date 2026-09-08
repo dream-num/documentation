@@ -2,8 +2,7 @@
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
-but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
-not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+but is ignored. Earlier  English-only source/CSS/startup checks do
 not certify every native interaction or resolve the recorded SDK failures.
 
 The fictional equipment lending desk tracks eight different requests through
@@ -60,32 +59,6 @@ example uses UniverBoardsUIPlugin.registerRuntimeScopedDependencies with the
 SDK's real EditorUIService, following the SDK's child-scoped service extension
 and isolation test. No substitute editor or unrelated Slides document is created.
 Boards do not accept Slides' pageId display target; activePageId selects the page.
-
-Selected production checks pass in
-test-results/embed-board-base-tab-production/report.json: both literal README
-examples, actual Board text input with two-step native Undo/Redo, menu and
-keyboard history, arrow-key card movement, and all seventeen rendered routes'
-endpoints before/after movement and Undo. Base keyboard rename/history updates
-three linked labels without changing their IDs. Full host/child snapshots remain
-independent across navigation; only the native Board theme palette may regenerate.
-Active-child disposal passes without observed browser errors or backend requests.
-
-The eleven-file standalone export and official white/flex/Canvas styling pass
-test-results/embed-board-base-tab-export/report.json. Source and export use the
-same factory and official CSS imports. EN/ZH guides pass
-test-results/embed-board-base-tab-next/report.json: all three variants, actions
-and states, native Board tools, white child CSS, the same owner and both edited
-models across actual media-theme changes. Source parity is rechecked in
-test-results/embed-board-base-tab-export-final/report.json after documentation updates.
-The independently installed project uses 206 packages; main JS is 18,481.04 kB
-(4,555.99 kB gzip), CSS 154.79 kB (22.20 kB gzip), so load performance remains open.
-Selected cold Next guide/playground requests took 2.5 minutes / 51 seconds;
-the server also emitted a Gzip drain-listener warning. These are not optimized
-production timing measurements and are not performance acceptance.
-Earlier failed source reports are retained: display target, missing editor service
-and the incorrect setPlainText name. The public text API is setText. Visual review
-removed empty text-box placeholders from decorative lanes and shortened wrapped
-labels; content uses distinct blue-gray, lavender and sand responsibilities.
 
 Full menus, failed/empty/delayed providers,
 repeat mounts, resource persistence, narrow/touch layouts, accessibility and

@@ -70,15 +70,6 @@ univerAPI.getWorkbook('filter-gallery').getSheetBySheetId('none').getFilter().re
 
 ## Verification boundary
 
-The focused `scripts/test-sheet-filter-native.mjs` check covers all six initial
-visible-ID sets and actual canvas text, native value-list checkboxes, numeric AND
-inputs, clearing a no-match condition, native cell editing, retained source
-values, theme owner/full snapshot and disposal on English and Chinese hosts.
-The English SDK runtime is unchanged by host language. Source setup is not
-itself acceptance. Date-relative conditions,
-sorting, collaboration, persistence and performance are not demonstrated.
-No SDK patch, backend call, license hiding or custom filtering implementation.
-
 The feature comparison references MESCIUS's
 [Custom Filters](https://developer.mescius.com/spreadjs/demos/features/filters/custom-filter/react)
 and [Basic Filter](https://developer.mescius.com/spreadjs/demos/features/filters/basic-filter/vue3)

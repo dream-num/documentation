@@ -226,20 +226,6 @@ Preview and standalone share one factory, data, complete dependency locales and
 official CSS. Theme changes preserve owners. Source references use stable IDs.
 Native errors must remain visible; existing Doc error-status issues are not hidden.
 
-Partial evidence: test-results/embed-cypress-formula-current/report.json runs all
-twenty-three literal examples. Nineteen alternating Sheet-visible/Doc-visible
-source edits update thirteen current-canvas values and preserve the whole body.
-Native Sheet typing and exact serialized Undo/Redo, source-owned Print, separate
-Doc paragraph editing, fourteen complete EN/ZH packs, both-model theme preservation
-and active-Doc Tab disposal pass selected checks without browser errors, warnings
-or backend requests. Eleven-file source/CSS parity is checked independently at
-test-results/cypress-formula-export-ui/report.json.
-
-The strict report remains FAIL. Eighteen native formula errors display correctly
-but report success/string. Both EN/ZH formula-editor Number format buttons are
-intercepted by another child-popup layer even after stable bounds. The language
-packs themselves are complete; this is not an unresolved translation key.
-
 In this tested Tab sequence, keyboard Undo restores the authored Doc body and
 leaves the Sheet unchanged. Full Undo snapshot equality fails because native
 DOC_FORMULA_PLUGIN lastValue caches change; full Redo equality passes. Separate

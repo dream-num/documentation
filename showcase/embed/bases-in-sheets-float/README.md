@@ -1,11 +1,5 @@
 # Atlas / Base in Sheets Float
 
-The demo runtime, authored data and startup alerts are English-only, including on
-Chinese-language guide pages. The legacy third locale argument remains accepted
-but does not change the runtime language. All registered English locale packs and
-official SDK styles remain shared by preview and export. Earlier EN/ZH reports
-below are historical interaction evidence, not current bilingual SDK acceptance.
-
 An original community-launch campaign combines six different budget lines with
 eight operational deliverables. A $15,000 plan and $12,170 committed do not imply
 that the venue, accessible materials or partner approvals are ready. Teal sheet
@@ -30,13 +24,6 @@ small height wrapper. The Next entry is client-only for browser Embed dependenci
 both React adapters are exported as reference text. The host uses native Grid.
 
 ## Acceptance
-
-`scripts/test-embed-sheet-base-themes.mjs` tests the actual React Preview in an
-isolated selected Vite server. EN/ZH both pass native C7 input/recalculation,
-floating Base activation and native task text editing, complete host/child
-snapshot and owner preservation through next-themes storage events, and unmount
-with no browser errors. Light/dark screenshots were reviewed. This is selected
-preview evidence, not a new production-build or broad history certification.
 
 `embed-base-float-layout` passes real native Base paint and activation, a task
 Facade edit/repaint without host changes, budget recalculation to 2,580 with the

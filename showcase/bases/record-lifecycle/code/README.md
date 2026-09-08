@@ -1,7 +1,5 @@
 # Harbour Commons / Record Lifecycle
 
-Native UI and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Bilingual runtime reports below describe earlier revisions, not acceptance of this English-only revision.
-
 An original arts weekend contains 30 production tasks, 12 installations and 18 opening checkpoints. Explore the native sidebar, record grid, cell editor and context menus. Text, hours, status, people, dates, local attachment notes and real installation links vary across the three tables.
 
 The editor has no fixture controls, duplicated CRUD/Undo buttons, audit panel or explanatory card. Grid is the default workbench layout. Preview and standalone export use the same factory, data and four official SDK stylesheets. Five complete English dependency locale packs are provided. Authored business content stays English; changing the page theme does not recreate the Base.
@@ -124,8 +122,6 @@ window.univerAPI.getBase('harbour-record-lifecycle').getTableById('tasks').getRa
 
 ### 14. Single deletion
 
-Remove only the explicitly captured copy. These examples are destructive within the fictional in-memory demo; checkpoint restoration is below.
-
 ```ts
 window.univerAPI.getBase('harbour-record-lifecycle').getTableById('tasks').getRecordById(window.harbourCopy).delete()
 ```
@@ -168,8 +164,6 @@ window.harbourSaved = structuredClone(window.univerAPI.getBase('harbour-record-l
 
 ### 19. Reload current content
 
-Unlike restoring the earlier checkpoint, this recreates exactly what exists now, including any retained SDK resources.
-
 ```ts
 const current = structuredClone(window.univerAPI.getBase('harbour-record-lifecycle').save())
 window.univerAPI.disposeUnit('harbour-record-lifecycle')
@@ -192,10 +186,6 @@ URL.revokeObjectURL(url)
 ```
 
 ## Verification boundary
-
-The runtime test defaults to the project's local preview at `http://localhost:3030/en-US/playground/bases/record-lifecycle`. Set `SHOWCASE_BASE_URL` to another documentation origin, or `SHOWCASE_DEMO_URL` to an exact standalone URL such as `http://127.0.0.1:4358`, then run `node scripts/test-bases-record-lifecycle-native.mjs`.
-
-The strict standalone test is scripts/test-bases-record-lifecycle-native.mjs. Its selected report is test-results/record-lifecycle-native-acceptance/report.json. All twenty literal snippets produce their documented model results, including the intended invalid-range rejection; complete JSON restoration/reload/download checks pass. Native cell typing and native Undo/Redo preserve full snapshots. Five EN/ZH packs, per-locale theme/owner preservation after editing, and disposal pass with no runtime errors or backend requests.
 
 Full attachment-resource Undo fidelity remains a known beta.2 failure; no normalization or cleanup hides orphan attachment sets. Recreating the same Base ID restores the saved model, but the native grid/footer can remain empty. The native Add Record form submission did not produce the expected new model record in this selected test; its cause is not isolated, so native form entry is not accepted. These failures do not prevent the independent keyboard-edit gate from running on a fresh browser owner. Browser reload restores the authored example; it is not equivalent to the tested same-ID reconstruction.
 

@@ -1,7 +1,5 @@
 # Lumen / Create a Base and tables
 
-Native UI and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Bilingual runtime reports below describe earlier revisions, not acceptance of this English-only revision.
-
 Run `pnpm install` and `pnpm dev`. Preview and export share `createDemo()`, five complete English locale packs and four official SDK stylesheets. The native Base owns its sidebar, grid and toolbar; there is no fixture panel, duplicate editing/history toolbar or snapshot inspector. Theme changes keep the same owner and user edits.
 
 The community theatre renewal contains 12 renovation projects, 30 distinct work packages and 18 acceptance milestones. Text, number, select, person, date, attachment, checkbox and canonical RecordLink fields retain their original types. Original data-URL text attachments need no upload service. People IDs are stored in the snapshot; the local display-name directory is supplied separately by `setPersonOptions(PEOPLE)` on each mount.
@@ -231,15 +229,9 @@ await demo.univerAPI.getBaseUI().activateTable(tableId)
 await demo.univerAPI.getBaseUI().activateView(viewId)
 ```
 
-To keep a checkpoint, retain that detached `saved` value and its table/view IDs **before** later edits, then run the disposal/recreation portion using that checkpoint. To reset to original content, pass `createData()` instead. Import `createData` from `./data` for separately constructed variants: `empty` is one zero-record project table; `boundary` reverses table order and includes zero and 999999.99 budgets; `error` starts with the original data so the invalid-name snippets can be tried without replacing content. No state-selector panel is added.
-
 ## Acceptance boundary
 
 The beta.2 native Grid still paints raw person IDs such as `nia, imani` despite a valid local directory. Do not replace Person fields with text or fake names as IDs. The installed SDK also lacks a Facade/native sidebar operation to move an existing table: insertion index demonstrates only positioning a **new** table. Both limitations remain explicit.
-
-Maintainer test: `node scripts/test-bases-lumen-native.mjs` in the documentation repository. Set `SHOWCASE_BUILD_STANDALONE=1` for factory reconstruction tests, and `SHOWCASE_VITE_DIRECTORY` to the exact installed Vite package directory if the selected export has no Vite yet. It builds only this case on port 4366 and closes its test server afterward. `SHOWCASE_EXPORT_DIRECTORY` can reuse this case's prepared export. Without the harness, `SHOWCASE_DEMO_URL` selects an existing page; factory-only gates are explicitly unverified.
-
-The selected standalone report at `test-results/lumen-native-final/report.json` passes 29 of 30 gates: all 20 literal snippets; actual title typing and Person picker with exact full-snapshot Undo/Redo; native three-table navigation/current paint; five complete EN/ZH packs; same-owner themes; full-owner reconstruction with saved table/view selection, fresh native editing and exact Undo; detached checkpoint; all four constructed datasets; invalid input preserving the owner; active/pre-ready disposal. No browser errors, warnings or backend requests were observed. The strict report remains FAIL on native Person display names: first-row canvas text is `nia, imani` although the directory returns the real names.
 
 The first test run exposed three test/example mistakes that were corrected without SDK changes: the native Grid clips long text rather than painting an entire hidden suffix; a reconstructed owner initially selects the first saved table, which may be a newly inserted table; and the installed setName Facade throws on invalid input rather than returning false. The checklist recipe now sets a readable native column width. The current report tests the exact corrected README snippets, not replacement actions.
 

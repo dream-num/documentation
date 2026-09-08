@@ -150,17 +150,7 @@ await demo.ready
 
 Workbook JSON includes all SDK snapshot fields/resources; no IDs, empty arrays or defaults are stripped during comparison. An uncommitted CSV draft is host state, not workbook JSON. Recovery resets that draft to the original intake sample and starts new history; theme changes do neither.
 
-
 ## Verification
-
-Run the unchanged parser checks with `node scripts/test-csv-parser.mjs` and native tests with `node scripts/test-csv-import-native.mjs`. The default URL is `http://localhost:3030/en-US/playground/sheets/csv-import-plugin`; use `SHOWCASE_DEMO_URL` for a full override or `SHOWCASE_BASE_URL` for the guide origin. Full reconstruction and entry-scope literals need the standalone harness.
-
-```powershell
-$env:SHOWCASE_BUILD_STANDALONE = '1'
-$env:SHOWCASE_VITE_DIRECTORY = '<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
-$env:SHOWCASE_RESULTS_DIR = 'test-results/csv-import-native'
-node scripts/test-csv-import-native.mjs
-```
 
 Only this case is built, using exact installed dependency versions without installation. Tests close port 4416 and retain complete snapshot differences as strict failures. OS-level file-dialog Cancel cannot be automated here; its browser cancel-event contract is tested separately.
 

@@ -1,7 +1,5 @@
 # Launch Content Pipeline — one Base, three native views
 
-Native UI and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Bilingual runtime reports below describe earlier revisions, not acceptance of this English-only revision.
-
 Twelve fictional launch assets share one table: the original pricing page, migration playbook, webinar, security FAQ, Aeris customer story, and regional email sequence remain unchanged. Six additional editorial tasks add pre-launch video, APAC translation, undated interview notes, accessibility review, a retrospective, and a same-day follow-up. Six statuses, six channels, distinct owners, 0–100 progress, and both scheduled/unscheduled work make this an actual content-operations story.
 
 Only the native Base UI is mounted. Use Editorial grid, Status board, and Publishing calendar in the native sidebar/view menu. Edit records and move statuses with the native controls. There is no external view switch, Add record, Reset, or activity panel.
@@ -131,8 +129,6 @@ console.log(window.pipelineCheckpoint)
 
 ### 16. Download the real JSON snapshot
 
-This is a local JSON checkpoint, not XLSX/PDF conversion or a backend upload.
-
 ```ts
 const snapshot = window.univerAPI.getBase('content-pipeline-base').save()
 const url = URL.createObjectURL(new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' }))
@@ -168,15 +164,6 @@ Preview and exported source use the same factory, all five complete English pack
 The dedicated script defaults to http://localhost:3030/en-US/playground/bases/content-pipeline; SHOWCASE_DEMO_URL overrides it and SHOWCASE_BASE_URL changes the guide origin. Lifecycle tests require the standalone harness, not hooks added to production UI.
 
 PowerShell from documentation:
-
-```powershell
-$env:SHOWCASE_BUILD_STANDALONE = '1'
-$env:SHOWCASE_VITE_DIRECTORY = '<ABSOLUTE_PATH_TO_INSTALLED_VITE_PACKAGE>'
-$env:SHOWCASE_EXPORT_PORT = '4428'
-$env:SHOWCASE_RESULTS_DIR = 'test-results/content-pipeline-native'
-node scripts/test-content-pipeline-native.mjs
-Remove-Item Env:SHOWCASE_RESULTS_DIR
-```
 
 Only this case is built on the selected strict port (4416 by default). The Vite path must point to the exact version declared in the generated package; no other demo's temporary output is required. Dependencies are individually linked at the exported exact versions; no installation or whole node_modules junction is required. The report records complete snapshot differences, native view/render failures, and page errors rather than normalizing them away. These acceptance scripts run from the documentation repository; the standalone exported demo uses its own package install and dev scripts.
 

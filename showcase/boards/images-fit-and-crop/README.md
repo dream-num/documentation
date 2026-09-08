@@ -54,5 +54,3 @@ The saved image contains the square source, a 160 × 160 frame, and zero crop at
 ## Scope and verification
 
 The native Board toolbar is the only toolbar; there is no duplicate office ribbon or host control panel. Eight complete English locale packs and eight official CSS files cover Board's transitive native UI. Preview/export share the same independent factory. Initial viewport fitting uses the exported BoardViewportService, not an invented image Facade.
-
-Selected Chromium checks on English and Chinese host pages verify real pointer movement, initial expanded source drawing with a native crop clip, proportional resizing and rotation paint, all four literal recipes' saved values, same-owner exact full-model theme preservation, and pagehide teardown. Other elements stay unchanged during each edit. Strict live crop/source paint checks fail as described above, independently of the passing model checks; the overall native report remains failed. The demo UI remains English in both hosts. Native crop handles, replacement UI, upload/backend persistence, screenshot export and Undo fidelity are not claimed. No SDK or dependency edits.

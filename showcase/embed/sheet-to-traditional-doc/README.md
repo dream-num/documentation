@@ -8,8 +8,6 @@ The three chapters separate the summary, a real embedded observation workbook, a
 
 ## Nine literal examples
 
-Use this example's `univerAPI` and run the snippets in order. Initial observations are 7.5, 8, 8.5, 9 and 9.5 mm: count 5, sum 42.5, mean/median 8.5, minimum 7.5, maximum 9.5. Three of five meet the editable 8.5 mm target (60%). The interpretation repeats the mean and shows mean minus target, initially 0.00 mm. These exact source snippets are also used in runtime checks; they do not synthesize the report.
-
 ### 1. Revise a trial
 
 Change 7.5 to 10. The sum becomes 45, mean/median 9, minimum 8 and maximum 10. Four of five meet the target (80%); the repeated mean is 9 and difference +0.50 mm.
@@ -91,24 +89,10 @@ Formula UI, Shape Editor UI and Embed Unit UI. The latter two supply native form
 editor and source-selector labels. Their official CSS is included in the independent
 export. Runtime startup remains English regardless of the page's HTML language.
 
-Historical bilingual check: scripts/test-docs-formula-locales.mjs with SHOWCASE_CASE=aster and the
-selected SHOWCASE_ORIGIN. It checks all official leaves in the three formula
-editor packs, the native Edit formula action, the formula editor, more number
-formats, visible text/accessible labels/placeholders, and exact document/owner
-preservation after cancellation in both languages. Selected production evidence:
-test-results/docs-formula-locales-aster/report.json.
-This is language acceptance, not full layout acceptance: native dialog bounds
-are recorded separately. Cinder's development integration also retains React
-synchronous-unmount warnings when dismissing the source viewer; see sdk-issues.md.
-
 ## Acceptance boundaries
 
 **Partial evidence, not full acceptance.** Nine literal examples update all ten native results. Current-frame canvas text is checked on both the abstract and interpretation pages; the entire document body, styles, custom ranges and all three native 794 x 1123 page boundaries stay unchanged. Native Sheet fullscreen typing into B5 updates both chapters; exact full-workbook Undo/Redo, five populated Grid ribbon tabs, native source Print preview/cancel and active-source disposal have selected evidence. Print preview is for the observation Sheet, not PDF output or whole-report printing.
 
-The strict runtime report remains **FAIL**: in the empty-sample state, the SDK returns #DIV/0! for averages/ratio/difference and #NUM! for median, but labels all five results as success/string values rather than error values. These results and their visible error text are retained, not normalized. Both localized guides execute all nine examples and preserve the same API owner and complete source/document models through light/dark changes; guide checks do not certify the error-status contract.
-
 The first test incorrectly looked for a space-free prose phrase; actual rendered text contains spaces. The initial clearing snippet also incorrectly used `setValue(null)`, which this Sheet API rejects. Published snippets now use the native `clearContent()` method, preserving formatting. Both were test/example defects corrected without an SDK patch.
-
-Selected evidence: `scripts/test-embed-aster-formula.mjs`, `test-results/embed-aster-formula-final/report.json` (strict FAIL on error status), `scripts/test-embed-aster-formula-guide.mjs`, `test-results/embed-aster-formula-next-final/report.json` (selected PASS), and `test-results/aster-formula-export-ui-final/report.json` (source/CSS PASS). The eleven-file export installs 222 packages offline without new documentation dependencies and retains all twenty official CSS imports. All input columns fit its native source preview. The selected 1933-module production build is 18,374.82 kB JavaScript (4,562.44 kB gzip) and 128.29 kB CSS (19.61 kB gzip). Selected Next cold guide/playground loads took 68s/24.6s with a Gzip listener warning; delivery performance is not accepted.
 
 Missing/renamed/rebound sources, snapshot reconstruction, every native menu, client Exchange conversion, document printing, accessibility/touch and delivery performance remain unaccepted until separately tested. No backend, collaboration, real research data or submission workflow is included.

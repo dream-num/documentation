@@ -108,8 +108,6 @@ api.createDocument(saved)
 
 ### 12. Open an empty document without changing its identity
 
-The captured checkpoint remains untouched. Empty content is intentional, not failed loading.
-
 ```ts
 const api = window.univerAPI
 const empty = structuredClone(api.getActiveDocument().save())
@@ -142,25 +140,8 @@ or cross-document link resolver. The related-pages prose does not pretend to be 
 
 ## Strict evidence
 
-Run `node scripts/test-knowledge-space-native.mjs`. It builds only this selected demo and distinguishes complete model
-history, actual native paint, locale, lifecycle and literal-code gates. The final report is
-`test-results/knowledge-space-native-acceptance/report.json`: **32 / 37 strict gates pass; all 14 literal blocks pass**.
-All three authored pages paint, native typing changes visible content, heading styling changes actual glyphs and pixels,
-navigation retains complete edits, and same-ID unit/full-space reconstruction and empty/full restore pass.
-Initial EN/ZH, complete preset packs, official CSS, same-owner themes and idempotent active disposal pass.
-
 Five installed-SDK boundaries remain strict failures: ordinary native typing Undo, fresh typing Undo after rebuilding,
 and Facade review Undo add empty optional body arrays instead of restoring the exact original snapshot; heading
 `setStyle()` changes the target paragraph ID; typing ` / Reviewed` produces `  Reviewed`, consuming the literal slash.
 The review action itself preserves paragraph identities. Heading paint succeeds but identity retention does not.
 No empty-array normalization, new-ID recreation, hidden shortcut handler or SDK patch hides these differences.
-
-The nine-file normal export is identified by `test-results/knowledge-space-native-acceptance/exports.json` and uses a separate
-production build from the test controller harness. Final source/CSS parity is recorded in
-`test-results/knowledge-space-native-export-parity/report.json`. The generic CSS screenshot can occur before the document's
-first settled render even after the skeleton disappears; it is not content acceptance or a cover. The dedicated
-`normal-production-current-canvas-paint` gate waits for real current-canvas ink and native word count on the unmodified
-production entry. Its actually inspected `normal-production-settled.png` is the final cover candidate.
-Other actual screenshots include `baseline.png`, `page-api.png`,
-`page-legacy.png`, `literal-heading.png`, `full-owner-restored.png`, `empty-owner-restored.png` and `initial-zh-CN.png`
-in the acceptance directory. Earlier first/complete/verified/final outputs are historical diagnostic runs, not current acceptance.

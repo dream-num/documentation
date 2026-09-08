@@ -50,30 +50,6 @@ floating tools. No fixture panel, redundant action buttons or iframe replaces
 the native block. The official child-scoped EditorUIService extension supports
 Board text; no dummy Slides unit or installed-package patch is introduced.
 
-Selected production checks pass three rendered A4 pages, both literal examples,
-native fullscreen editing/dragging, all ten rendered connector endpoints,
-full Board snapshots across Undo/Redo, nine-unit anchor movement, independent
-models and active-child disposal without observed browser errors/backend calls.
-Fixed-size process cards retain geometry after editing through RoundRect,
-isTextBox=false and NoAutoFit. See
-test-results/embed-board-traditional-block-fixed-cards/report.json.
-
-EN/ZH guides pass three variants/actions/states, official white UI and preserved
-owner/edited models across themes. Only native Board palette regeneration is
-allowed; identity and the remaining model stay strict. Evidence:
-test-results/embed-board-traditional-block-next-fixed/report.json.
-Eleven-file exact source parity and official CSS rendering pass in
-test-results/embed-board-traditional-block-export-final/report.json.
-
-Earlier failures remain recorded. The production attempt could not undo native
-typing until the test returned keyboard focus to the Board editor; the focused
-history recheck passes full snapshots. The first Next process exited during
-compilation; its cause is not established by a passing restart. Initial process
-cards shrank after edits; the fixed-geometry change above has a strict production
-assertion. Reports remain in test-results/embed-board-traditional-block-production,
-embed-board-traditional-block-history-focus, embed-board-traditional-block-next
-and embed-board-traditional-block-next-recheck.
-
 Full host editing, native selection/menu coverage, enlarged-content pagination,
 first-edit history beyond this selected path, failure/pending sources, repeated
 mounts, saved resource reload, touch, accessibility and performance remain open.

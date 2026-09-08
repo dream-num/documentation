@@ -64,10 +64,3 @@ Dashboard, personal/locked views, permissions, collaboration, native history and
 saved-model reconstruction are not demonstrated. Native menu interaction and literal
 recipe acceptance are reported separately; a configured tab alone is not proof of
 interaction support.
-
-`scripts/test-base-view-lifecycle.mjs` checks native tab activation, Rename View,
-Duplicate view, confirmed Delete view and Add Grid, then all four recipes under
-English and Chinese host pages with English SDK UI. Records remain exactly unchanged,
-the source Dispatch projection survives the copy edit, and themes preserve the full
-saved model and owner. The strict native-copy gate remains failed solely for the
-empty-filter representation difference above; no snapshots are normalized to pass it.

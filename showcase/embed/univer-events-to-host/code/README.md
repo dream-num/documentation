@@ -168,25 +168,8 @@ Use `createMilestones('default')` for the original eight rows and 35/80 progress
 
 ## Verification and limits
 
-Current English-only evidence: `test-results/univer-events-english-native/report.json`
-records 8/10 strict gates and 30 checks. Full English packs on a Chinese host,
-all nine literal examples, native event payloads, unsubscribe/rebind, owner
-filtering, empty/boundary data and same-owner themes pass. The two complete Undo
-comparisons below still fail; there are no observed browser errors or backend
-requests. Independent production source/CSS/startup evidence is recorded in
-`test-results/embed-integration-english/report.json`.
-
 The historical bilingual independent native run records **8 of 10 gates passing, 30 checks**, zero browser errors/warnings and zero backend requests. Actual typing/selection payloads, three unsubscribe/rebind cycles without duplicate value events or replay, other-workbook native filtering, bounded safe text rendering, all nine literal subscription/validation/memory-save examples, empty/boundary/default variants, complete EN/ZH, same-owner theme/feed retention and 760/390/320px controls pass. All three lifecycle/startup `js` snippets execute against the shared factory. That run does not establish acceptance after the English-only migration; rerun the selected native test for current evidence.
 
 Two gates remain strict FAIL: native E4 Undo and fresh-owner E4 Undo each leave a generated style entry and add `t: 1` to the original cell. Both Redo snapshots match exactly. The complete same-ID owner snapshot itself matches exactly, and new native edits produce one real event without observable callbacks mutating the already-disposed host DOM. That DOM check does not claim to prove all SDK-internal heap lifetimes. No snapshot fields or IDs are normalized. The first run is retained separately; its empty-value assertion and pre-disposal DOM baseline were corrected in the second run without changing the SDK.
-
-`node scripts/test-univer-events-native.mjs` defaults to `http://localhost:3030/en-US/playground/embed/univer-events-to-host`; override `SHOWCASE_BASE_URL` or `SHOWCASE_DEMO_URL`. Lifecycle, other-owner filtering and startup variants require the standalone test-only harness:
-
-```powershell
-$env:SHOWCASE_BUILD_STANDALONE='1'
-$env:SHOWCASE_VITE_DIRECTORY='<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
-$env:SHOWCASE_RESULTS_DIR='test-results/univer-events-native'
-node scripts/test-univer-events-native.mjs
-```
 
 Only this case is built with exact-version package junctions and port 4416 is closed afterward. Preserve strict full-history/recovery differences and the original selection-callback boundary. The older `test-host-events.mjs` and ownership reports targeted removed controls and a theme-recreated owner; they are historical evidence, not acceptance of this migration. Callback-registration faults before a handle is returned, SDK-internal cleanup failures, concurrent overlapping owners and cross-browser behavior remain separate acceptance work. Feed retention is bounded by entry count, not payload bytes.

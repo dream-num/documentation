@@ -283,22 +283,6 @@ Preview and standalone export use the same factory, data, official CSS and
 complete EN/ZH registered dependency packs. Themes change the existing owner,
 not the edited models. Native Print and PNG export use the SDK Facade.
 
-Selected runtime checks pass all twenty-five literal examples, current native
-bar geometry, independent sources, native typing and exact source Undo/Redo,
-Print preview, chart PNG, complete EN/ZH packs, themes and active-Base disposal.
-See test-results/embed-prism-formula-final/report.json. Eleven-file source/CSS
-parity passes at test-results/prism-formula-export-ui/report.json.
-
-Four reconstructed owners preserve authored state and fresh calculation,
-including edited formulas/chart titles, hidden records, unavailable bindings,
-Chinese dark mode and a removed chart. Ten invalid bundles are rejected without
-changing the original owner. However, the strict reconstruction report remains
-FAIL: the first Sheet drawing reload adds five explicit transform defaults
-(flipX/flipY false, angle/skewX/skewY zero). The actual position and dimensions
-remain unchanged. Raw before/after snapshots and the independent authored-state
-checks are retained in test-results/embed-prism-roundtrip-authored/report.json;
-authored-state preservation is not full serialized-state equivalence.
-
 Different valid-source rebinding, every native menu path, full Print/Exchange,
 Next delivery, performance, mobile and accessibility remain open. Sheet@Sheet
 embedding is not covered by this in-workbook target worksheet. Saving snapshots

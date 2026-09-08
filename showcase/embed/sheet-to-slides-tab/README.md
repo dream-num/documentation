@@ -119,24 +119,9 @@ competitor artwork is not redistributed.
 
 ## Acceptance status
 
-Partial, not fully accepted. The strict report is FAIL:
-test-results/embed-nova-formula/report.json. All ten literal examples update
-thirteen native results and the current canvases of all three slides, preserving
-authored prose, page order and geometry. Zero, blank, invalid text, local/overall
-ratio errors and recovery are checked without replacement calculations.
-
 Native Operating data typing, value Undo/Redo, exact Redo, five populated Grid
 groups, correct-source Print menu preview/Cancel and active-source disposal pass.
 Two failures remain: writing to the source while a result slide is active throws
 in AutoHeightController because the source render is absent; first exact Undo
 retains an extra resolved input style in the workbook style pool. Values do undo.
 Neither failure is hidden by focus switching, normalization or an SDK patch.
-
-EN/ZH guides run all ten snippets and preserve the API owner and complete models
-through dark/light changes: test-results/embed-nova-formula-next/report.json.
-The eleven-file standalone export passes source/CSS parity and native white UI:
-test-results/nova-formula-export-ui/report.json. The selected build still has a
-large bundle; cold Next startup and a Gzip listener warning are not performance
-acceptance. Missing-source/rebinding, persistence/reload, exact history, every
-menu, accessibility and delivery performance remain open. No Exchange conversion,
-whole-deck printing, generated PDF, backend or collaborative history claim is made.

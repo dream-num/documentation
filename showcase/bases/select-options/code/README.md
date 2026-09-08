@@ -1,7 +1,5 @@
 # Sable coastal observatory / Native select options
 
-Native UI and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Bilingual runtime reports below describe earlier revisions, not acceptance of this English-only revision.
-
 Run `pnpm install`, then `pnpm dev` or `pnpm build`. Only this selected example is built. Preview and standalone export use the same factory, five complete English dependency locale packs and four official SDK stylesheets. Keep native license notices intact.
 
 The original coastal observatory retains 30 individually named survey tasks, 12 coastal projects and 18 sample handovers. Compare Priority single-select with Habitats multi-select through the native grid and field editor. Record IDs, labels, colors and option order are independent. The data includes blank choices, multiple habitats, notes, people, dates, local text attachments and linked sites. Fixed authored dates do not freeze the SDK clock.
@@ -134,7 +132,5 @@ console.log(window.univerAPI.getBase('sable-option-lab').save())
 ```
 
 ## Acceptance boundary
-
-test-results/sable-native-current/report.json runs all fourteen literal examples, native single/multi pickers with exact whole-model Undo/Redo, actual renamed/recolored chip pixels, unchanged unrelated tables and record order, five complete EN/ZH packs, whole-model theme switching and active-owner disposal. No browser errors, warnings or backend requests occur. The strict report remains FAIL because the raw unknown-ID write is accepted. Eleven-file source/CSS parity is recorded in test-results/sable-native-export-ui/report.json.
 
 Earlier host-control test reports do not certify this UI. Used-option deletion and raw unknown-ID acceptance remain known beta.2 integrity defects; this demo does not silently repair them or claim raw Facades validate external input. Native Grid may paint person IDs despite supplied names. Full field-menu coverage, referenced option sources, used-option cleanup, reconstruction, lifecycle races, actual supported Exchange, accessibility/touch/cross-browser and performance remain open. Exact-version local dependency links are not a clean install; trial notices and build-size warnings remain. No backend or binary export is claimed.

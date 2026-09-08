@@ -2,15 +2,8 @@
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
-but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
-not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+but is ignored. Earlier  English-only source/CSS/startup checks do
 not certify every native interaction or resolve the recorded SDK failures.
-
-An original neighborhood repair-network pilot: three hubs, twelve clinics and
-144 planned places. Four authored slides use ocean navy/cyan, warm white with
-three colored hub cards, a pale cost page, and a plum checkpoint with mint/coral
-panels. The reference Gamma deal-review composition informs hierarchy only; no
-competitor artwork is redistributed. Native SDK UI stays white and Grid.
 
 ## Native composition
 
@@ -73,14 +66,6 @@ window.univerAPI.getPresentation('beacon-repair-review').getSlideById('cover').g
 ```
 
 ## Selected evidence / not complete
-
-The strict runner `scripts/test-embed-mixed-slides.mjs` retains failed gates and
-continues independent checks. Its async-print run verifies the seven-entry native
-page order, four distinct slide layouts, all four children, five literal Facade
-examples with five-model isolation, native Docs/Base/Board/Slides Undo/Redo,
-native Sheet input from 156 to 168 and full history after initialization, page
-round trips and selected active-Board disposal. No browser errors or backend
-requests were observed in that independent build.
 
 Two gates remain failing: first Sheet Undo serializes empty validation data as
 `{resources:[]}` instead of `{}`, and the native Sheet Float fullscreen button

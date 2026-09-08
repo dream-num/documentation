@@ -123,19 +123,3 @@ capacities, invalid custom input, JSON bytes, stable themes, initial Chinese UI
 and pending/double disposal have separate positive evidence. Those passes do not
 erase the complete-history failures. The retained old panel-based test is not
 current native acceptance evidence.
-
-## Running the selected example
-
-`node scripts/test-big-data-preview.mjs` starts and closes only this actual React
-Preview on isolated port 4426. Its bounded EN/ZH check uses 10,000-row capacity,
-the initial 100 records plus 250 middle rows, native keyboard input in D2, and
-exact full edited snapshots through next-themes storage events and unmount.
-It does not rerun the 5,000-row end window or the strict history suite below.
-This bounded check and the independent export CSS/canvas check pass; neither
-clears the previously observed full-history differences or measures performance.
-
-Run the documentation dev:showcase server on port 3030, then
-`node scripts/test-marlow-big-data-native.mjs`. The test supports SHOWCASE_DEMO_URL,
-SHOWCASE_BASE_URL and SHOWCASE_RESULTS_DIR. Its --prepare command exports only
-this case and uses exact-version package junctions without installing dependencies.
-Strict SDK history differences remain failures, not normalized snapshots.

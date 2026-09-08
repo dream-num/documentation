@@ -157,16 +157,6 @@ No Base printing, Exchange conversion, collaboration or publishing is claimed.
 
 ## Acceptance status
 
-Partial. test-results/embed-orchid-formula-activated/report.json is a strict FAIL
-overall, with all twelve activated-source examples passing. They produce the
-expected twelve native values/statuses on all three current visible canvases,
-preserve authored layout and exercise amount/probability/stage independence,
-null versus zero, renamed labels, filtered projections, hidden writes and native
-zero-denominator recovery. currentCanvasVerified is true for every example.
-The separate off-page write still loses the native page list. The earlier
-test-results/embed-orchid-formula-native/report.json retains the passive-source
-failure; its missing updated canvases are not the current activated workflow.
-
 Separate fresh-instance checks verify native amount typing: changing $24,000 to
 $26,000 gives $82,000 nominal, $26,000 weighted and 31.71% coverage, with all three
 current canvases updated and authored layout preserved. Native title typing also
@@ -174,20 +164,3 @@ changes the source, but neither Ctrl+Z nor the floating toolbar Undo restores it
 Redo is therefore unverified. Enter fullscreen does not create a shell. Disposal
 after an activated Float passes; fullscreen-session disposal is not proven.
 No browser errors or backend calls were observed in this independent run.
-
-The inspected local SDK UpdateBaseCellCommand calls global focusUnit after a
-successful mutation. Native activation distinguishes the working root-Facade
-sequence from the passive/off-page failure. Obtaining a scoped FBase alone did
-not repair passive writes; no helper API, automatic refocus, hidden renderer,
-error normalization or modified SDK dependency is used.
-test-results/embed-orchid-formula-activated-next/report.json passes all twelve
-literal examples in both EN/ZH, redundant-card absence and theme changes with
-unchanged owner and full models. The earlier next report is historical, not the
-current integration result. These selected checks do not certify every Next path.
-
-The eleven-file standalone export retains all eight official SDK CSS imports and
-native white UI: test-results/orchid-formula-export-ui/report.json. The selected
-build has 1,845 modules, 18,435.34 kB JS (4,540.79 kB gzip) and 150.83 kB CSS
-(21.30 kB gzip). Large-bundle warnings remain. These are not performance acceptance.
-Source identity/rebinding, save/reload, invalid probability validation, complete
-native interaction, keyboard history, fullscreen and delivery remain open.

@@ -2,8 +2,7 @@
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
-but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
-not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+but is ignored. Earlier  English-only source/CSS/startup checks do
 not certify every native interaction or resolve the recorded SDK failures.
 
 Three original slides propose offline ingestion for twelve fictional observation
@@ -59,12 +58,6 @@ The full native runtime gate is FAILING: Enter fullscreen does not open a shell.
 The native button is retained; no replacement control hides this failure.
 The root cause has not been independently established for this Board case.
 
-Selected independent production at 1220px passes native activation, both literal
-README examples, keyboard Undo/Redo, pointer selection and ArrowRight movement
-with Undo restoring the serialized Board, all six connector snapshots, three
-host pages, theme changes and owned active-child disposal. No browser errors or
-backend requests were observed. Report: test-results/embed-board-slide-float-production-final/report.json.
-
 BoardSettingsService.syncFollowUniverTheme regenerates the native theme palette
 when the UI theme changes. The test permits only that field to change; every
 other serialized field, including explicit element colors and resources, is
@@ -72,13 +65,6 @@ compared strictly. Native movement Undo can add undefined flipX/flipY fields;
 JSON save snapshots omit them. Initial raw-snapshot and per-character canvas
 locator failures remain recorded. A long edited label wrapped with hyphenation;
 the example now uses the shorter Review today label, matching its visible text.
-
-EN/ZH Next guides preserve the same owner and edited content across media-theme
-changes (test-results/embed-board-slide-float-next-label/report.json).
-Eleven-file standalone source and official CSS parity are checked separately
-(test-results/embed-board-slide-float-export-final/report.json).
-The architecture, responsibility and recovery slides were visually reviewed;
-shorter node labels and card copy avoid observed text overflow.
 
 Full native menus/text editing, empty/error/delayed providers, repeated mounts,
 React unmount races, resource reload/persistence, accessibility and narrow/touch

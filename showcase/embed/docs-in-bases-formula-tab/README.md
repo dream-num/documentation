@@ -185,11 +185,7 @@ console.log({ base: window.univerAPI.getBase('ember-release-register').save(), d
 
 ## Boundaries and acceptance
 
-Partial runtime evidence: test-results/embed-ember-formula-final/report.json runs all twenty literal examples. Eighteen source steps alternate Base-visible and Doc-visible tabs, update twelve current-canvas results and preserve the complete authored body. Baseline is 12 records, 9 Complete, 2 Review, 1 Blocked; 75% complete; 12.5 remaining hours, 8 blocked hours and 4.1667 hours per unfinished row; 4 completed features, 3 fixes and 2 guides. Projected filter row IDs, hidden edits, null versus zero, numeric rejection, empty queues, rename, unavailable source and same-source repair have evidence. Status is manually maintained; unknown estimates and view filters are not completed work or scoped totals.
-
 Native Base typing with exact serialized Undo/Redo passes. Native Doc content-click, typing and body Undo/Redo preserve the Base. Selecting the navigation item alone does not focus the document: keyboard Undo then leaves both owners unchanged. Explicit FDocument Undo/Redo restores authored content, formula IDs, expressions and formats; full Redo equality passes. Full Undo snapshot equality fails on native DOC_FORMULA_PLUGIN lastValue caches. Raw snapshots retain the strict comparison separately from authored-state checks; no cache is rewritten by the application.
-
-The strict report remains FAIL: twelve native error results are classified success/string, both EN/ZH formula-editor Number format buttons are intercepted by another popup layer, and full Doc Undo has the cache difference above. Ten complete locale packs are checked leaf-by-leaf independently of pointer interaction; both-model theme cycles and active-Doc Tab disposal pass. One deliberate invalid-number rejection is recorded with its SDK console error; there are no unexpected browser errors, warnings or backend requests. Independent eleven-file source/CSS checks pass at test-results/ember-formula-export-ui/report.json; nine official stylesheets retain the native white workbench.
 
 The saved Gamma Budget Review cover informed title hierarchy and restrained contrast, not a release-notes template. All story, data and typography are original. No competitor artwork is redistributed. Modern continuous prose is separate from traditional paginated document cases.
 

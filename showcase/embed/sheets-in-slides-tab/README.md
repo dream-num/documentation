@@ -2,8 +2,7 @@
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
-but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
-not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+but is ignored. Earlier  English-only source/CSS/startup checks do
 not certify every native interaction or resolve the recorded SDK failures.
 
 An original community-radio team reviews an eight-week pilot. Three authored
@@ -40,14 +39,6 @@ backend, booking, broadcast, invoice or persistence is performed. Reload loses e
 
 ## Selected evidence
 
-`test-results/embed-sheet-slide-tab-production-paginated/report.json` passes the
-independent production build at 1220px: native page insertion and workbook UI,
-real formula recalculation, native Undo/Redo, five populated Grid tabs, Resources
-navigation, whole-host/child preservation, native host rich-text editing and
-active-child disposal without browser errors or backend requests. Resources
-prints as one populated native preview page at Fit to width and cancels back to
-the workbook. Physical printing, file conversion and Exchange are not claimed.
-
 The earlier `production-print` and `native-print` checks accepted the initial
 zero-page print shell too early. They are superseded by the stronger paginated
 gate, which waits for nonzero pages. The final screenshot was visually reviewed.
@@ -64,44 +55,6 @@ service integration is included in exported source; it is not a Facade-only
 creation claim. No SDK/package file or internal model is patched. A separate
 test selector initially clicked the formula-bar canvas; it now clicks the real
 worksheet area. All failed reports remain available.
-
-The selected source Grid test and EN/ZH guide/native-preview checks also pass.
-`embed-sheet-slide-tab-export-final/report.json` checks all eleven exported source
-files against the preview sources and verifies live official CSS/Canvas rendering.
-The standalone export contains official host, child and Embed CSS. Its 218
-packages install offline; main JS is 18,253.77 kB / 4,528.96 kB gzip and CSS is
-137.59 / 20.80 kB gzip. The first Next guide/playground responses took 78s/29.2s
-and emitted a Gzip MaxListenersExceededWarning. Performance is not accepted.
-
-## Editing and lifecycle follow-up
-
-`test-results/embed-sheet-slide-tab-production-theme/report.json` passes the
-extended independent production test: native D5 keyboard entry with Undo/Redo,
-both shared-rate variants with every episode's raw numeric result, plus live
-Facade dark/light switching that preserves complete edited host/child snapshots
-and the child canvas. All prior print, navigation and disposal gates still pass.
-The first `production-editing` run compared formatted strings such as `300.00`
-with numbers; the test now uses `getRawValues()`, not number coercion.
-
-`test-results/embed-sheet-slide-tab-source-lifecycle/report.json` passes four
-same-container factory recreations, alternating dark/light official SDK chrome.
-Each starts with fresh authored data, remains editable and releases its canvases
-and global API; repeated disposal and immediate disposal before readiness also
-pass. This is not a heap-leak proof or delayed-provider cancellation test.
-
-The Preview previously recreated the model whenever `resolvedTheme` changed,
-discarding edits. It now calls `FUniver.toggleDarkMode()` on its existing owner.
-`test-results/embed-sheet-slide-tab-next-theme-final/report.json` verifies actual
-next-themes media changes in both EN/ZH pages: the same API owner and canvas
-survive, with the complete edited presentation/workbook unchanged. The first
-`next-theme` run passed those interactions but failed its report-count assertion;
-theme results now have their own list and the complete rerun passes. This does
-not certify all React unmount races. The selected Next first responses were
-50s/19.2s and the Gzip warning remains; no performance acceptance is claimed.
-
-`test-results/embed-sheet-slide-tab-export-theme/report.json` is the follow-up
-eleven-file source/official CSS parity check, including the updated Preview
-reference and this README. The standalone factory/data/CSS bundle is unchanged.
 
 ## Still open
 

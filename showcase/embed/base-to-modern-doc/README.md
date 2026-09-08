@@ -238,28 +238,7 @@ Formula UI, Shape Editor UI and Embed Unit UI. The latter two supply native form
 editor and source-selector labels. Their official CSS is included in the independent
 export. Runtime startup remains English regardless of the page's HTML language.
 
-Historical bilingual check: scripts/test-docs-formula-locales.mjs with SHOWCASE_CASE=cinder and the
-selected SHOWCASE_ORIGIN. It checks all official leaves in the three formula
-editor packs, the native Edit formula action, the formula editor, more number
-formats, visible text/accessible labels/placeholders, and exact document/owner
-preservation after cancellation in both languages. Selected production evidence:
-test-results/docs-formula-locales-cinder/report.json.
-This is language acceptance, not full layout acceptance: native dialog bounds
-are recorded separately. Cinder's development integration also retains React
-synchronous-unmount warnings when dismissing the source viewer; see sdk-issues.md.
-
 ## Acceptance status
-
-test-results/embed-cinder-formula-binding-recovery/report.json remains a strict FAIL.
-Twelve source-edit examples update all ten expected results on the current native
-document canvas, preserving the complete authored body, paragraph styles and
-custom ranges. The thirteenth example produces a detached display-text projection
-without changing the live document or its ten formula bindings. Status versus
-impact, null versus zero, metadata isolation, filtered-view versus whole-table
-scope, hidden edits and empty-queue recovery all have selected evidence.
-Examples 14–17 additionally verify source rename with live current-canvas updates,
-persisted qualifier/ID mapping, idempotent binding with an unchanged full document,
-visible missing-binding errors and same-source repair without replacing prose.
 
 Native fullscreen input also passes: 120 becomes 140, open sessions become 200,
 total sessions 320 and the open average 66.7. Exact snapshot Undo/Redo passes
@@ -277,22 +256,6 @@ FFormula.upsertExternalReference API before insertion. Both rename and subsequen
 live editing pass. This is a demo initialization fix, not a patched SDK or a claim
 that insertFormula alone persists every supplied Base reference. No JavaScript
 fallback, automatic repair after edits or result-status normalization is used.
-
-The eleven-file independent export passes source parity and native white UI:
-test-results/cinder-formula-export-bound/report.json. All eight official SDK CSS
-imports are included. Selected build: 1,852 modules, 18,522.34 kB main JS
-(4,563.91 kB gzip), 134.30 kB CSS (19.04 kB gzip), plus language chunks.
-Large-bundle warnings remain; this is not performance acceptance.
-The final export check used port 4390 because another task owned 4190; that
-unrelated process was left running. The earlier port-collision report is retained.
-
-test-results/embed-cinder-formula-next-bound/report.json passes all seventeen
-literal examples in EN/ZH, unchanged authored body, redundant-card absence,
-official white UI and theme changes preserving the same owner and complete
-Doc/Base models. The first integration report failed because a frame handle was
-captured during iframe initialization; the corrected test waits for the live
-preview before acquiring its frame. No running service was restarted for that
-observation failure. Earlier thirteen-example and unbound-source reports remain historical.
 
 Complete save/reload, missing-unit recovery and different-source rebind, invalid field input, native
 menus, accessibility and delivery remain open. No claim is made that this one

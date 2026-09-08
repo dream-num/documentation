@@ -11,17 +11,6 @@ Use the native worksheet tabs and dropdowns, not a host control panel.
 
 All initial rules allow blanks and invalid input; invalid values are not silently replaced. Edit policies with the native Data validation menu. The factory exports both official preset CSS files, complete English locale packs, and the live `window.univerAPI` for exploring Facade calls.
 
-
-Run `node scripts/test-list-validation.mjs` against a selected local preview for runtime checks. Immediate disposal after rule edits must still be tested against the installed SDK; no pending SDK errors are suppressed here.
-
-Selected EN/ZH Next preview checks pass: no host panels, three native rule variants,
-white workbench, real single-dropdown selection with Undo/Redo, native multi-select
-pointer addition/removal with worksheet isolation, unchanged blank
-and invalid boundaries, and live source changes becoming valid then invalid after
-SDK recalculation. Source validation is asynchronous; the test waits for its real
-result rather than adding a manual refresh button. Captures and report are in
-`test-results/list-validation-native-gallery/`.
-
 Native dropdown Edit opens the rule sidebar in both languages. Clicking Allow
 blank values and Done updates the real rule, makes the existing blank invalid,
 and preserves all stored values. This replaces the removed duplicate rule panel;

@@ -86,16 +86,6 @@ Theme changes retain the same owner and complete model.
 
 ## Strict native evidence
 
-`scripts/test-mossbrook-native-complete.mjs` checks this selected export; see
-`test-results/mossbrook-native-complete/report.json`. All six literal recipes run
-in their original order, with intermediate models and actual pixels. Checks cover
-native percentage editing, real formula recalculation and repaint, complete raw
-Undo/Redo, continuous/dot layers and registration handles, resizing, hide/show,
-frozen/scrolled row 24, 75%/150% zoom, native sheet switching, same-ID reattachment,
-fresh restored input, empty/invalid data, historical bilingual startup, narrow viewports and
-disposal before Steady and after calculationStart but before completion. Normal
-export source/CSS and screenshots require real native paint without a skeleton.
-
 Four strict SDK boundaries remain: initial numeric Undo changes inline styles to
 style IDs and adds a type; Redo retains the extra style; row-height Undo leaves
 empty row records instead of restoring an empty rowData object; new-owner recovery

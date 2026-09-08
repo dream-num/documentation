@@ -1,6 +1,6 @@
 # Release workflow: native connector routing
 
-Native UI, demo labels and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Earlier bilingual acceptance reports below remain historical evidence, not validation of this English-only revision.
+Native UI, demo labels and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged.
 
 Run `pnpm install`, `pnpm dev`; use `pnpm build` and `pnpm preview` for production.
 Preview and independent export use the same factory, eight official CSS bundles and complete eight-pack English locales, including transitive Embed Unit UI.
@@ -164,23 +164,3 @@ This is a new blank document, not an edited persisted snapshot: the original `sa
   api.createBoard(structuredClone(window.releaseWorkflowSnapshot))
 }
 ```
-
-## Verification boundary
-
-The dedicated `scripts/test-board-connector-native.mjs` builds only this case's independent export and checks
-actual painted labels, rendered connector routes/endpoints, the literal variants, native selection/routing/drag/text,
-history, initial Chinese native controls and same-owner theme. Model-only mutations are not sufficient evidence.
-Any native failure or route warning remains in the strict report; no SDK or dependency patches are used.
-Keyboard accessibility beyond exercised interactions, full routing collision avoidance and backend collaboration are not certified.
-
-Current independent acceptance: `test-results/connector-native-complete/report.json` records **31 passed / 1 failed**
-gates, including **19/19 literal blocks**. The failure is `native-label-offset-preservation`; the report retains complete
-before/after label data, and `native-label-edited.png` shows the displacement. Native free-endpoint dragging and connected
-node dragging both verify actual rendered endpoints and native history. Free-endpoint history additionally passes a separate
-complete serialized-model Undo/Redo comparison, preserving all four snapshots without omitting derived fields.
-Every mutating non-replacement literal also checks
-changed document data and changed canvas pixels. Initial Chinese startup, all seven EN/ZH packs/CSS, owner-preserving theme,
-empty/restore, disposal, and zero backend requests/runtime errors pass. The manifest is
-`test-results/connector-native-complete/exports.json`; earlier `connector-native*` runs remain historical, not the latest verdict.
-The separate `test-results/connector-native-export-ui/report.json` verifies all nine exported source files, official white SDK UI,
-actual text paint and an absent startup skeleton; it is not a substitute for the strict native interaction report.

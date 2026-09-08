@@ -1,7 +1,5 @@
 # Calibration queue — native multi-field sorting
 
-Native UI and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Bilingual runtime reports below describe earlier revisions, not acceptance of this English-only revision.
-
 The preview contains only the native Base workbench. The original ten instruments retain distinct readiness scores, zones and calibration dates, including zero, a negative score, nulls and exact ties. There are no fixture selectors, custom sort/Inspect/Reset/Undo controls, limitation banners or audit panels. Native trial UI remains visible.
 
 Preview and standalone share one factory, four official SDK stylesheets and all five English dependency packs. The runtime is always English; theme changes preserve the current owner and edits. No backend, custom comparator or SDK modification is used.
@@ -161,11 +159,5 @@ Selected native verification on SDK `1.0.0-beta.2` confirms two defects without 
 Passing checks cover all six original sort variants, native numeric/multiple-field criteria, stable Beacon/Cobalt and Flux/Indigo ties, clearing criteria without changing source data, native toolbar sort Undo/Redo and native grid-keyboard cell Undo/Redo with complete-model comparisons. All ten literal snippets execute; the live-sort snippet is not marked functionally passed. Source record order stays unchanged. Complete edited-owner destruction/reconstruction preserves every serialized field and correctly recalculates the 98-point order in a fresh owner; a subsequent fresh edit paints. Five complete EN/ZH packs, initial Chinese language, same-owner theme changes, local download parity and owned disposal also pass. These scoped results are not 100% SDK acceptance.
 
 ## Maintainer checks
-
-From documentation, `node scripts/test-bases-calibration-sort-native.mjs` targets `http://localhost:3030/en-US/playground/bases/multi-field-sort`. Override `SHOWCASE_DEMO_URL` or `SHOWCASE_BASE_URL` as appropriate. The guide route does not expose application lifecycle handles; standalone-only reconstruction is explicitly marked unverified there.
-
-For a complete selected-only harness, first check port 4376 is free. Set `SHOWCASE_BUILD_STANDALONE=1` and supply this case's installed `SHOWCASE_EXPORT_DIRECTORY`, or an exact installed `SHOWCASE_VITE_DIRECTORY`. Run the same script. It creates individual exact-version dependency junctions, never a whole node_modules junction, never installs packages and never reads another case's report to find Vite. Results default to `test-results/calibration-sort-native`; its `exports.json` identifies this selected export.
-
-Build only that export with `pnpm build`, then from documentation run `node scripts/test-showcase-export-ui.mjs test-results/calibration-sort-native/exports.json` with `SHOWCASE_EXPORT_PORT=4376` and `SHOWCASE_RESULTS_DIR=test-results/calibration-sort-native-export-ui`. Keep this UI result directory separate from static source/CSS reports. The normal export entry and harness lifecycle handles are verified separately.
 
 Full operator/locale/browser/touch/accessibility matrices, pending-operation teardown and performance remain separate work. The factory has no host startup timeout; the test enforces a 60-second readiness deadline. Any SDK defect remains strict FAIL, without normalized snapshots or host-side sorting.

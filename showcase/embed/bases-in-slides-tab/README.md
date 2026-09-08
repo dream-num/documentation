@@ -2,8 +2,7 @@
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
-but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
-not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+but is ignored. Earlier  English-only source/CSS/startup checks do
 not certify every native interaction or resolve the recorded SDK failures.
 
 An original refill-starter-kit pilot separates the retail story from execution
@@ -32,31 +31,12 @@ claimed as Facade-only embed creation. No SDK/package patch is used.
 
 ## Selected evidence
 
-`test-results/embed-base-slide-tab-production-hit-test/report.json` passes the
-independent production build at 1220px: native page insertion, white SDK CSS,
-populated Start/View Grid host menus, both Bases, Facade edit/paint,
-native Undo/Redo, native keyboard channel rename and stable links, three host
-pages and rich-text editing, dark/light Facade switching, complete host/child
-snapshot preservation and active-child disposal. No browser errors or backend
-requests were observed. This does not certify every menu or dialog.
-
 The earlier source test assumed a Slides Insert tab, but this native host has
 Start/View. The first production keyboard test used a stale paint coordinate
 after table layout and edited Pilot lead instead of Channel. The runner now
 repaints at the final viewport and targets only the actual child canvas, not
 thumbnail/offscreen drawings. The complete production rerun passes. Both failed
 reports remain available. Card copy was shortened after visual inspection.
-
-`test-results/embed-base-slide-tab-next/report.json` separately passes EN/ZH
-guide structure, native preview, and actual next-themes dark/light transitions
-with unchanged API owner and complete edited snapshots. Only this demo was
-compiled. First guide/playground responses took 60s/21.9s; a Gzip warning remains.
-
-The standalone installs 206 packages offline and builds successfully. Main JS
-is 18,424.79 kB / 4,537.69 kB gzip; CSS is 150.83 / 21.30 kB gzip. Loading and
-bundle performance are not accepted. The follow-up eleven-file source/export
-and live official CSS check is recorded in
-`test-results/embed-base-slide-tab-export-final/report.json`.
 
 ## Acceptance still open
 

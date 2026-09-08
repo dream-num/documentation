@@ -216,31 +216,6 @@ plugins or custom history controls.
 
 ## Acceptance
 
-Current English-only evidence: `test-results/crm-quote-english-native/report.json`
-records 28/29 strict gates. All fourteen literal examples, the two host actions,
-actual native edits/calculations/paint, draft preservation, full snapshot reload,
-source isolation/recovery, same-owner themes and narrow layouts pass. A Chinese
-host retains the complete English preset and English invalid-input errors,
-without writing rejected inputs. The native Undo difference below remains a
-strict failure. There are no observed browser errors, warnings or backend requests.
-
-The selected standalone check is scripts/test-crm-quote-native.mjs; historical
-bilingual evidence is test-results/crm-quote-native-verified/report.json. All fourteen
-literal examples, actual native cell editing and current canvas values, two host
-actions, invalid-input preservation, same-ID full snapshot reconstruction/JSON
-download, source-tab isolation, missing-source recovery, complete EN/ZH packs,
-same-owner themes/drafts and 760/390/320px host actions have selected evidence.
-That report predates English-only migration; rerun the selected native check for
-current evidence rather than inferring interaction acceptance from startup.
-
-Strict native Undo remains a failure: the value and displayed total return, but
-B4 gains t: 2 in the complete snapshot. Redo exactly matches the edited snapshot.
-No type-field normalization changes that result. The initial report retained a
-real format-only host-readback bug, now addressed by CommandExecuted, plus two
-test errors: fieldset isDisabled did not inspect its disabled property, and the
-mobile assertion expected Enterprise pricing despite the intentionally preserved
-Business draft. Both old screenshots/reports remain in test-results/crm-quote-native.
-
 A route or source scan is not full acceptance. Complete Next guide/React remount,
 every native editor action, in-flight lifecycle, touch/accessibility and delivery
 performance remain broader acceptance work. Native Undo is tested for data

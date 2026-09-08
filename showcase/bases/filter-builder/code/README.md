@@ -1,7 +1,5 @@
 # Partner opportunities — native typed filters
 
-Native UI and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Bilingual runtime reports below describe earlier revisions, not acceptance of this English-only revision.
-
 Only the native Base workbench is mounted: no fixture selector, duplicated budget input, Inspect/Reset controls or audit panel. The original ten-company pipeline retains distinct company, region, budget, stage and owner values, including zero, null and empty-string boundaries.
 
 Preview and standalone use the same factory, four official SDK stylesheets and all five English locale packs. The runtime is always English; theme toggles preserve the current owner and edits. Native trial UI is retained. No backend or external assets are required.
@@ -188,9 +186,5 @@ On SDK `1.0.0-beta.2`, the selected native check remains **strict FAIL** for pre
 Passing checks cover all twelve literal examples, exact visible record IDs and current canvas membership (including no matches), real native text and numeric filters, native condition deletion with toolbar Undo/Redo, actual budget cell typing with keyboard Undo/Redo, local JSON download parity, complete EN/ZH packs, same-owner theme changes, edited-owner destruction/reconstruction and fresh edits afterwards. The original ten source records remain intact. Toolbar history is tested for filter configuration; keyboard history is tested with the grid focused after an actual cell edit. These are scoped checks, not a claim that every operator or keyboard focus context is accepted.
 
 ## Maintainer checks
-
-From documentation, `node scripts/test-bases-partner-filter-native.mjs` defaults to `http://localhost:3030/en-US/playground/bases/filter-builder`. Set `SHOWCASE_DEMO_URL` or `SHOWCASE_BASE_URL` to override that target. The guide target cannot expose application-owned reconstruction handles; those checks are explicitly marked unverified there.
-
-For complete selected-only verification, first check port 4368 is free, then set `SHOWCASE_BUILD_STANDALONE=1`. Supply `SHOWCASE_EXPORT_DIRECTORY` pointing to this case's installed export or `SHOWCASE_VITE_DIRECTORY` pointing to an exact matching installed Vite package. Run the same script. It links existing exact dependency versions, does not install anything, and never reads another demo report to find Vite. Results default to `test-results/partner-filter-native`; `exports.json` identifies the selected export. Build only that export with `pnpm build`, then run `node scripts/test-showcase-export-ui.mjs test-results/partner-filter-native/exports.json` with `SHOWCASE_EXPORT_PORT=4368` and `SHOWCASE_RESULTS_DIR=test-results/partner-filter-native-export-ui`. Keep that UI report directory separate from static source/CSS checks.
 
 Full menu/operator matrices, accessibility, browser/touch coverage, pending-operation disposal and performance are separate acceptance work. The factory waits for the SDK Rendered lifecycle without its own startup timeout; the runtime test enforces a 60-second readiness deadline. Timeout/retry UX remains future integration work. SDK failures remain failures; no SDK modifications or snapshot normalization are used.

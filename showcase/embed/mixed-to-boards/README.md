@@ -217,29 +217,6 @@ financial inputs, readiness and decisions; there is no overlay fixture panel.
 
 ## Acceptance boundary
 
-Selected runtime checks pass all twenty literal examples and all sixteen native
-results on the current Board editor, preserving authored prose, geometry,
-connectors and unmodified source owners. Native error statuses pass for each
-missing source and zero-size Care zone. The total gate count uses ROWS, not
-COUNTA, so a source error is not counted as a single non-empty item.
-
-Actual Sheet/Base keyboard input and exact serialized source Undo/Redo, Grid
-menus, correct-source Sheet Print preview/cancel and active-Base disposal pass.
-Real Board ArrowRight movement updates all three bound rendered connector
-routes; full Board Undo/Redo and English/Chinese native text typing/history
-preserve both sources. Theme changes preserve all three models. Twenty-three
-full EN/ZH dependency packs are included. The strict selected report has no
-browser errors, warnings, backend requests or formula-status mismatches.
-
-Evidence: `scripts/test-embed-grove-formula.mjs`,
-`test-results/embed-grove-formula-native-anchor/report.json`, and
-`test-results/grove-formula-export-ui/report.json`. Eleven-file source parity
-and opaque native white UI pass; all twenty-three official CSS imports are
-exported. Dependencies reuse exact-version-checked local package links, not a
-fresh install. Initial cached-glyph Board hit tests failed; resolving coordinates
-through the live Float viewport anchor fixes the test. No SDK/package edit.
-The selected Vite build retains its large-chunk performance warning.
-
 This is partial capability evidence, not complete acceptance. Save inspection
 is not reload support: this factory starts a new
 local baseline. Three-unit reconstruction, durable persistence, arbitrary import,
@@ -247,12 +224,6 @@ all native menus, mobile/accessibility and delivery performance remain open.
 No collaboration, publishing, history-record suite or backend conversion is claimed.
 
 ### Source disposal is not a saved-source restore workflow
-
-A focused English-UI probe in `scripts/test-grove-source-lifecycle.mjs` exposes
-an additional boundary. Starting from the baseline, changing gate-1 cost to 4,400
-produces native cost 15,800 and balance 2,200. Disposing the Base while the Float
-is mounted causes it to reappear from this demo's baseline provider: cost becomes
-14,600 and balance 3,400, not a missing-source error or a preserved edit.
 
 Removing only `grove-base-float` first is also insufficient in the tested runtime:
 `removeEmbed` returns true and only `grove-sheet-float` remains listed; Base disposal

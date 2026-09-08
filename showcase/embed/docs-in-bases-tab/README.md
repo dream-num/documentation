@@ -2,8 +2,7 @@
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
-but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
-not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+but is ignored. Earlier  English-only source/CSS/startup checks do
 not certify every native interaction or resolve the recorded SDK failures.
 
 Fern is a fictional neighborhood journal. Eight assignments span features,
@@ -53,24 +52,7 @@ Prepare, materialize and restore create a BasesTableListBlock anchor using
 tableIndex/tableName, following the local SDK host model. The provider accepts
 only this document ID and releases its owned resources on teardown.
 
-Selected independent production verification passes at 1600px:
-`test-results/embed-doc-base-tab-production-final/report.json` covers both
-literal README examples, actual keyboard input, native Docs Ribbon and keyboard
-Undo/Redo, lower-section scrolling, native Base edition rename and full-snapshot
-Undo/Redo, three linked assignment labels with stable record IDs, tab navigation,
-live themes and active-child disposal. No browser errors or backend requests
-were observed. Host and document snapshots are checked independently.
-
-`test-results/embed-doc-base-tab-next/report.json` passes EN/ZH guides,
-Grid, white child CSS and actual media-theme transitions retaining the same
-owner and both edited snapshots. Independent source/CSS parity is checked by
-`scripts/test-showcase-export-ui.mjs test-results/fern-tab-export/exports.json`.
-The export contains eleven files, including all six official CSS imports.
-
-The first runtime failed native typing because its fixed click was in the
-document's left whitespace. The corrected test clicks visible paragraph text
-and verifies the resulting model; the original failure is retained. Native Docs
-Undo materializes omitted customBlocks/customDecorations/customRanges as empty
+Native Docs Undo materializes omitted customBlocks/customDecorations/customRanges as empty
 arrays; every other saved field remains strict. Grid history buttons currently
 expose command IDs without accessible names; that accessibility issue remains.
 

@@ -62,8 +62,6 @@ Only F5:F8 labels change. Existing numeric destination cells remain available fo
 
 ## Implementation boundary
 
-The factory loads the complete English core preset and official CSS with native Grid ribbon. Preview and standalone share data and initialization; no backend, dependency changes or SDK modifications are used. Native actions, public payload ingestion and strict history/snapshot checks are reported separately.
-
 Current strict history checks retain a snapshot limitation: Undo interns the original destination's inline styles into the workbook style table, and Redo retains those extra style entries. Cell values return correctly, but the complete saved workbook is not byte-for-byte equivalent. The test preserves both failures without normalizing snapshots. Cut/move, cross-workbook copy and OS-specific clipboard behavior are not certified by these comparisons.
 
 Capability reference: [SpreadJS Paste Special](https://developer.mescius.com/spreadjs/demos/features/cells/copy-paste/paste-special/purejs). The original Univer specimen covers the modes listed above, not the benchmark's entire feature set.

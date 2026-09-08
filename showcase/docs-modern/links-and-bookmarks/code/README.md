@@ -118,10 +118,3 @@ queries the active document each time. A new owner can instead receive the saved
 snapshot as createDemo(container, darkMode, snapshot). No generation IDs or
 snapshot normalization are used. Empty documents are supported with the original
 ID and a valid terminal CR/LF body. This is JSON recovery, not binary conversion.
-
-Both preset stylesheets and all four block UI stylesheets are included in the
-shared Preview/export factory. Six complete English packs are loaded initially;
-theme changes preserve the same owner. Fit-width zoom is a real SDK view setting
-and may change the saved zoom on resize. Native acceptance and strict known
-failures are recorded by scripts/test-atlas-links-native.mjs; old host-panel
-tests are historical and do not certify this UI.

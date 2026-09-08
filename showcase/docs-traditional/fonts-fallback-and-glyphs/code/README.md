@@ -11,5 +11,3 @@ No font files are downloaded or bundled. A requested family does not identify th
 Preview and standalone share createDemo(), FUniver.createDocument(), the complete English Docs Core locale pack and official Docs Core CSS. DevTools can inspect window.univerAPI.getActiveDocument().save(). No unrelated Pro table/drawing plugins are needed.
 
 The former twelve-chapter report, table/figure and host controls were removed to focus this feature. Historical panel-based acceptance reports do not validate this version. The separate test-doc-font-history-sdk.mjs remains an SDK history regression, not a claim about this UI.
-
-Historical browser check: `node scripts/test-doc-fonts.mjs` (from the repository root, selected preview on port 4336; override `SHOWCASE_ORIGIN` if needed). The earlier EN/ZH checks passed for two physical pages, four stacks, six script markers, real range-style readback and native Ctrl+B on/off. Screenshots/report: `test-results/doc-font-native-gallery`. Complete RTL/glyph, all ribbon controls and standalone lifecycle acceptance remain open.

@@ -17,11 +17,4 @@ resizing and split panes are separate capabilities, not claimed here.
 
 ## Native menu and scrolling acceptance
 
-`scripts/test-freeze-panes-scroll.mjs` mounts the actual Preview in EN/ZH. It uses real mouse-wheel scrolling on all three tabs, compares frozen-region pixels byte-for-byte, verifies that unfrozen grid pixels and scroll state change, and confirms cell data are unchanged. It also exercises the native View freeze menu and preserves the full edited workbook and API owner across next-themes dark/light updates.
-
 In installed `1.0.0-beta.2`, native **Freeze first row/column** targets the first visible row/column after scrolling, not necessarily worksheet row 1/column A. `getFreeze().ySplit/xSplit` gives the frozen count; `getFrozenRows()/getFrozenColumns()` return the ending boundary for offset panes. Return to the top-left before selecting these commands if worksheet row 1/column A is intended. This is the installed SDK behavior, not a demo approximation.
-
-Earlier bilingual results are historical. The current English-only run in
-`test-results/sheets-galleries-english-native/freeze/report.json` passes the
-same native menu, scroll-pixel, data and actual Preview theme/owner checks on
-English and Chinese host pages. This is not full navigation capability acceptance.

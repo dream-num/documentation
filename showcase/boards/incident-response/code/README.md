@@ -1,6 +1,6 @@
 # Payments incident response
 
-Native UI, demo labels and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Earlier bilingual acceptance reports below remain historical evidence, not validation of this English-only revision.
+Native UI, demo labels and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged.
 
 A SEV-1 payment retry storm moves through **Detect → Contain → Recover**. The original three response cards, response frame, two directed free-endpoint connectors and follow-up risk are all visible at startup. The risk concerns 214 duplicate authorizations and a 17:00 UTC deadline. Rounded native Shape text boxes retain their distinct blue, amber, green and red business roles; they are not HTML cards or sticky-note substitutes.
 
@@ -128,13 +128,5 @@ The independent run passes **8 of 9 gates, with 27 checks**, zero browser errors
 Native multiline text replacement remains **strict FAIL**: after double-clicking the risk card, pressing Ctrl+A and typing three lines with actual Enter keys, the old `FOLLOW-UP RISK` first line remains above the replacement. One native Undo restores only part of the editing session, not its initial whole snapshot; 46 differences remain across the native `pages` and `slides` representations (text/paragraphs, internal document ID, rendering configuration, transform and parent attachment). The subsequent Redo matches the edited snapshot exactly. This does not claim that an entire multiline session is one SDK history transaction, nor that the full selection/replacement requirement has passed. No fields or IDs are normalized. The earlier bulk-insert multiline run is retained separately and does not replace the actual-Enter evidence.
 
 The default test target is `http://localhost:3030/en-US/playground/boards/incident-response`; `SHOWCASE_BASE_URL` or `SHOWCASE_DEMO_URL` can override it. Full owner lifecycle and the reconstruction literal require the standalone test-only harness. Normal export has no harness globals or panels.
-
-```powershell
-$env:SHOWCASE_BUILD_STANDALONE='1'
-$env:SHOWCASE_VITE_DIRECTORY='<ABSOLUTE_PATH_TO_INSTALLED_VITE_PACKAGE>'
-$env:SHOWCASE_EXPORT_PORT='4428'
-$env:SHOWCASE_RESULTS_DIR='test-results/incident-response-native'
-node scripts/test-incident-response-native.mjs
-```
 
 Only this selected case is built, with exact-version per-package junctions and no installation. The Vite path must point to the exact version declared in the generated package; no other demo's temporary output is required. The script closes its own selected port (4416 by default) and writes a source export manifest, actual screenshots, complete model comparisons and strict failures. These acceptance scripts run from the documentation repository; the standalone exported demo uses its own package install and dev scripts. No HTTP service or SDK patch is used.

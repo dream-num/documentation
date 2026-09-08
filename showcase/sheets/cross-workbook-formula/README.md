@@ -10,8 +10,6 @@ Expected initial B4:B9: 1500, 2700, 1920, 42, #REF!, #NAME?. Sales B4=180 change
 
 Startup waits for SDK Steady before selecting a rendered workbook and requesting calculation. `setCurrent()` before a render unit exists throws `Unit not found`. For numeric assertions use `getRawValues()`; `getValue()` can return formatted strings such as `1500.00`.
 
-Run scripts/test-cross-workbook-native-gallery.mjs with this case selected in the local server. The old scripts/test-cross-workbook.mjs targets the removed control-panel revision and is historical evidence only. Arbitrary remote references, cross-instance workbooks, XLSX external caches and complete lifecycle/rename/clipboard combinations remain outside this acceptance scope.
-
 Earlier bilingual test results are historical; current English-only native editing
 and theme behavior need rerunning. Startup/source checks do not certify all
 cross-file formula capabilities.

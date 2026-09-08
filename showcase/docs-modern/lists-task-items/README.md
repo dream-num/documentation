@@ -220,6 +220,4 @@ window.mosaicMove = (marker, direction) => {
 
 ## Verification
 
-Run the selected showcase only with `dev:showcase`; the normal test URL uses localhost:3030. Run `node scripts/test-mosaic-lists-native.mjs [selected-export-manifest.json]`, or set `SHOWCASE_DEMO_URL` / `SHOWCASE_BASE_URL` for another server. `SHOWCASE_RESULTS_DIR` changes the unique output directory.
-
 Native keyboard/menu changes, complete-model Undo/Redo, list glyphs/positions and actual pixels are separate checks. Known scope/history defects remain strict failures. Initial nesting boundaries are SDK behavior, not silently intercepted host no-ops. Browser export reconstruction, English UI on either host language and same-owner theme checks must be accepted independently. No backend is needed for this native list/task case; the guide URL is a fictional attribution target, not a data dependency.

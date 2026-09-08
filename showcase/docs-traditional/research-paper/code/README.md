@@ -147,22 +147,7 @@ No snapshot normalization or new recovery IDs hide SDK defects.
 
 ## Strict evidence
 
-Run `node scripts/test-research-paper-native.mjs` for the selected-only production export and independent native harness.
-The report separates original facts/pagination, actual painted text, keyboard input, complete history, literal API behavior,
-same-ID recovery, initial EN/ZH, stable-owner themes and disposal. Final evidence is stored under
-`test-results/research-paper-native-acceptance`: **29 / 33 strict gates pass, and all 14 literal blocks pass**.
-The original two-page manuscript, native Appendix A on page two, and distinct appended Appendix B on page three all paint.
-True keyboard edits, same-ID full-owner recovery and fresh editing, empty/full recovery, initial EN/ZH, stable themes and
-idempotent disposal pass. The original paragraph identities remain intact when appending Appendix B.
-
 Four strict SDK differences remain: ordinary native typing Undo and fresh typing Undo after recovery add empty optional
 body arrays; the margins Undo changes the section identity; Method heading styling replaces that paragraph's identity.
 Their complete before/after/undo/redo models are retained, without filling arrays or replacing IDs to normalize equality.
 Heading glyph color and page geometry pass independently from identity/history fidelity.
-
-The nine-file normal export manifest is `test-results/research-paper-native-acceptance/exports.json`.
-Final current source/CSS parity is `test-results/research-paper-native-export-parity/report.json`.
-The dedicated normal-production gate waits for current-canvas ink, native word count and no startup skeleton on the
-unmodified production entry. Its actually inspected `normal-production-settled.png` is the cover candidate; a generic
-CSS screenshot alone is not proof that body content has painted. Other inspected images include `baseline.png`,
-`appendix-a.png`, and `appendix-b.png`. Earlier first/complete runs remain historical visual/test iterations.

@@ -2,8 +2,7 @@
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
-but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
-not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+but is ignored. Earlier  English-only source/CSS/startup checks do
 not certify every native interaction or resolve the recorded SDK failures.
 
 A fictional riverfront wayfinding workshop plans for 32 participants, four tables
@@ -85,23 +84,6 @@ binding, collaborative history, bookings, purchases, installed signs or approval
 ## Acceptance status
 
 Selected evidence is partial, not complete acceptance:
-
-- `test-results/embed-mixed-boards-final/report.json` checks all four real native
-  Float/fullscreen paths, three distinct slide layouts, all five literal examples
-  and complete-model isolation. Keyboard input B5=48 recalculates the total to
-  USD 1,839.20. One-page budget Print/cancel, native Board card movement, four
-  fullscreen round-trips and selected active-Base-fullscreen disposal are checked.
-  No browser errors or backend requests were observed in this production run.
-- The strict report remains FAIL: the first Sheet Undo adds an empty validation
-  array for resources. Values restore, but the full snapshot is not identical.
-  No normalization hides the difference. Docs, Slides, Base and Board literal
-  history pass; subsequent Sheet keyboard history passes after initialization.
-- `test-results/embed-mixed-boards-next-layout/report.json` checks EN/ZH guide
-  content, all five literal examples and theme changes without replacing the API
-  owner or losing edits. Only native Board palette regeneration with the same
-  theme ID is allowed; the other four models are compared exactly.
-- Independent export is checked separately for eleven exact source files,
-  official white SDK background and all official CSS imports.
 
 Earlier reports are retained. Initial setText-only examples lost the slide
 headline's rich styling; the current single-mutation setRichText examples include

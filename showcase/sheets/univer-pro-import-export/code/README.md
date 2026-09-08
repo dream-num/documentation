@@ -4,7 +4,6 @@ This frontend-only sample preserves the original August regional sales workbook:
 
 **Office conversion is not implemented under the frontend-only constraint.** XLSX/XLS/CSV/TSV import, XLSX workbook export and active-sheet CSV export remain original, open requirements. Registering the installed `@univerjs-pro/exchange-client` and `@univerjs-pro/sheets-exchange-client` **1.0.0-beta.2** supplies an HTTP client, not a browser Office converter. Their HTTP menu entries are hidden through public menu configuration. No conversion API is invoked, no files are uploaded and no development service origin is configured. Do not mistake a native workbook, JSON download or protocol snapshot codec for XLSX support.
 
-
 ## Run and native interaction
 
 Run the generated project's `npm install` and `npm run dev`, or open `/en-US/playground/sheets/univer-pro-import-export` in the documentation app. Select D2 with the native name box, type `95`, press Enter: F2 becomes 13889 and F8 becomes 76593.4. Use native Undo/Redo and verify both formulas. Edit an account name, format a number or resize a column through the SDK UI. This workbook has no original Print plugin; none is added here.
@@ -110,18 +109,6 @@ console.assert(demo.univerAPI.getActiveWorkbook().getId() === saved.id)
 
 ## Original conversion requirements and exact source evidence
 
-| Requirement / implementation | Evidence in this workspace | Frontend-only status |
-| --- | --- | --- |
-| XLSX, XLS, CSV, TSV → workbook snapshot | `univer-pro/packages/sheets-exchange-client/src/services/sheet-exchange.service.ts`: `importSheetToSnapshot` calls `IExchangeService.importFileToJson` | Open; not executed |
-| Live workbook → XLSX; active sheet → CSV | Same file: `exportSheetBySnapshot` encodes protocol then calls `exportFileBySnapshot` | Open; not executed |
-| Actual conversion transport | `univer-pro/packages/exchange-client/src/services/exchange.service.ts`: `_importToJson` uploads, submits import, polls, resolves signed URL; `_exportBySnapshot` deflates protocol, uploads, submits export, polls and downloads | Requires a conversion service |
-| HTTP implementation | `univer-pro/packages/exchange-client/src/services/request.service.ts`: `upload`, `import`, `export` use `HTTPService.post`; task/sign URL/file use GET | Not permitted in this demo |
-| Advanced example | `univer-pro/examples/src/sheets-advanced/main.ts`, Exchange registration around lines 187–195 explicitly configures upload/import/export/task/sign/download URLs | Not a frontend conversion engine |
-| Local example | `univer-pro/examples/src/sheets-local/main.ts`, `lazy.ts`, `very-lazy.ts` do not register Exchange | Does not establish local Office conversion |
-| Installed public contracts | `node_modules/@univerjs-pro/sheets-exchange-client/lib/types/facade/f-univer.d.ts`; `node_modules/@univerjs-pro/exchange-client/lib/types/services/utils/snapshot.d.ts` | Encode/decode JSON protocol contracts are not Office codecs |
-| Genuine local operations | `exchange-client/src/services/utils/snapshot.ts` metadata/base64 and local sheet-block cache; `exchange.service.ts` `downloadFile` uses Blob/object URL | Partial local evidence only |
-| Old test | `scripts/test-import-export.mjs` mocks every conversion HTTP endpoint and returns six bytes starting with `PK` as XLSX | Plumbing mock, not valid XLSX conversion acceptance |
-
 The package source paths above are in the sibling local `univer-pro` checkout; installed versions are separately recorded by the test. No SDK, conversion algorithm or HTTP service is patched. A future integration must resolve the actual frontend converter or explicitly change the no-backend requirement, then test valid files and errors end to end. The original binary requirements remain open until then.
 
 ## Maintainer verification
@@ -135,12 +122,5 @@ Three gates remain strict failures: (1) the six original Office conversion requi
 Early test reports are retained separately: the first used formatted `getValue()` as a number, and the second incorrectly expected the rounded integer instead of the exact floating-point expression. The corrected checks use actual public raw-value access without modifying or normalizing the workbook.
 
 Default guide test target is `http://localhost:3030/en-US/playground/sheets/univer-pro-import-export`; override `SHOWCASE_BASE_URL` or `SHOWCASE_DEMO_URL`. Complete owner lifecycle and literal reconstruction need the standalone test-only harness; normal exported source contains no test globals or test panels.
-
-```powershell
-$env:SHOWCASE_BUILD_STANDALONE='1'
-$env:SHOWCASE_VITE_DIRECTORY='<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
-$env:SHOWCASE_RESULTS_DIR='test-results/sheets-exchange-local-native'
-node scripts/test-sheets-exchange-local-native.mjs
-```
 
 The script builds this case only, uses per-package exact-version junctions, records the full source export manifest and closes its own port 4416. Keep failure artifacts: partial native/JSON passes never satisfy the blocked Office conversion gate. Full model history and restore are checked without field normalization.

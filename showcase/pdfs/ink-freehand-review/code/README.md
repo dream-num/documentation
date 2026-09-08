@@ -114,13 +114,3 @@ The authored reference date is fixed; SDK-generated timestamps/IDs are not globa
 The native PDF model is authored locally; this is not proof of binary PDF import.
 No client-only binary PDF Exchange/Print provider is registered or claimed here.
 There is no backend conversion, fake PDF download, host browser-print replacement or snapshot-download panel.
-
-The selected acceptance script is `scripts/test-pdf-ink-native-review.mjs`; evidence is written under
-`test-results/pdf-ink-native-review-verified/`. It checks literal code, real canvas painting, native pointer drawing,
-selection/properties and history, initial Chinese UI, theme preservation and independent source parity.
-The current strict report has a known native property-position failure: changing the circle's X to
-100 CSS pixels updates its model position and selection bounds, but does not move the actual ink path pixels.
-The test preserves this failure, captures the mismatch, and separately checks that native Undo restores the model.
-The 12 literal variants, native pointer drawing/history, selection readback and locale/theme checks are separate gates.
-Full property editing, pressure/pen devices, partial-path erasing,
-binary import/export, Print, save/reopen, cross-browser, accessibility, mobile and performance require separate acceptance.

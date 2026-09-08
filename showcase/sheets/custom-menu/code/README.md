@@ -151,18 +151,6 @@ All measured Redo snapshots match exactly. The same raw Undo boundary is retaine
 for fresh editing after restore and in the normal production export. The default
 menu remains direct ribbon items; native ribbon-submenu support stays open.
 
-Run `node scripts/test-custom-menu-native.mjs` against the default guide at
-`http://localhost:3030/en-US/playground/sheets/custom-menu`; `SHOWCASE_DEMO_URL`
-and `SHOWCASE_BASE_URL` override its URL and origin. Full lifecycle/startup/normal
-production export checks need the selected standalone harness:
-
-```powershell
-$env:SHOWCASE_BUILD_STANDALONE = '1'
-$env:SHOWCASE_RESULTS_DIR = 'test-results/custom-menu-native-verification'
-$env:SHOWCASE_VITE_DIRECTORY = 'C:/path/to/exact-version/node_modules/vite'
-node scripts/test-custom-menu-native.mjs
-```
-
 The test builds only this case and links individual exact installed packages.
 `SHOWCASE_EXPORT_DIRECTORY` can reuse its selected export. It does not install
 dependencies or require another demo's report. Port 4416 closes when it finishes.

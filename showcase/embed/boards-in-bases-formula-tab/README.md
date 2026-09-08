@@ -221,65 +221,6 @@ no competitor artwork is redistributed.
 
 ## Acceptance status
 
-Partial, not fully accepted. test-results/embed-reed-formula-owned-ui/report.json
-passes all sixteen literal examples and twelve results on the current Board
-canvas, not a historical paint log. The complete authored pages, order, geometry,
-text and name are preserved (only calculated formula lastValue is excluded).
-All three native rendered connector routes resolve to their actual bound sites.
-Empty filters, hidden-record edits, null/zero distinction, negative spare capacity,
-division/missing-source error status, explicit repair and source rename/fresh
-writes pass. Native Base typing 9 -> 11 updates all outputs; exact full-Base
-Undo/Redo and passive Board-visible source writes/return navigation pass.
-
-Ten entire EN/ZH dependency packs and complete Base/Board snapshot preservation
-through theme changes pass. Active Board-tab disposal releases owned UI and API
-with no observed errors, warnings or backend requests. The first report at
-test-results/embed-reed-formula-initial/report.json retained two setup failures:
-the initial fallback theme differed from the SDK's first resolved theme, and a
-Board content React root outlived its scoped injector. Fresh Board creation now
-uses the SDK createBoardThemePreset with ThemeService's resolver; saved themes
-are not overwritten. Disposal explicitly unmounts the owned native Board content
-root before child/host unit and injector disposal. No SDK package is patched.
-
-test-results/reed-formula-export-ui/report.json checks eleven-file exact source
-parity and native white/flex/canvas styling. Ten official CSS imports are included.
-The selected production export reuses an installed dependency tree only after
-checking every requested dependency/devDependency version, avoiding a second
-large installation. This does not establish optimized delivery performance.
-The updated README export also passes eleven-file parity and live official-CSS
-checks in test-results/reed-recovery-export-ui/report.json.
-The native-editing guide update is checked by
-test-results/reed-native-export-ui/report.json using the same eleven-file export.
-
-test-results/embed-reed-roundtrip-preserved/report.json passes the literal
-two-unit reconstruction across four replacement owners: edited content/formula/
-number format, unavailable binding, Chinese dark appearance and a deleted Formula
-Shape. Both complete snapshots match, except the checked native embed activation
-timestamp. Five invalid pairs leave the current owner intact. A saved empty view
-still excludes every record without changing whole-table calculations; fresh
-hidden-record edits and real Base keyboard input repaint all twelve results.
-The custom total formula remains SUM(Load)+2 with one-decimal hours. Changed map
-text and all three connector routes survive recovery after FBoard.translateElement
-moves the source node. Deleting utilization stays respected after recovery and
-another fresh input updates the other eleven results. Missing bindings remain
-native errors until explicit repair. Disposal has no errors, warnings or backend
-requests in this selected test.
-
-Native interaction now has separate evidence at
-test-results/embed-reed-native-history/report.json. Actual painted-glyph clicks
-and ArrowRight move the node and bound routes in fresh, edited-source/formula,
-and Chinese dark states. Native movement Undo/Redo preserves the full serialized
-Board and leaves the Base unchanged. Text typing/commit and full serialized
-Undo/Redo pass in EN/ZH; after editor commit, the surviving canvas is refocused
-before sending shortcuts. Fresh Base writes still update the edited map.
-
-The stronger recovery report at
-test-results/embed-reed-roundtrip-native-layout/report.json repeats all four
-saved-state variants after real keyboard movement and native text typing, not
-Facade translation alone. Connector comparison uses the post-text-edit bounds:
-native text auto-fit legitimately grows the node before saving. No runtime
-factory or SDK package was changed for these tests.
-
 Earlier coordinate/selection attempts in embed-reed-roundtrip and
 embed-reed-roundtrip-native timed out; the actual painted-text interaction passes
 the equivalent edited-source flow. Intermediate embed-reed-native-paint also

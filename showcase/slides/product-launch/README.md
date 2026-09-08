@@ -2,8 +2,7 @@
 
 The runtime is English-only on every host page. Complete official English SDK packs
 and styles are retained. A legacy locale argument, where present, is ignored without
-shifting the saved-snapshot argument. EN/ZH reports below are historical evidence
-from before this language change, not current bilingual-runtime acceptance.
+shifting the saved-snapshot argument.
 
 Eleven original pages tell one fictional launch: three personas, four pain points, five capabilities and six milestones. The pilot measures remain explicitly synthetic: 30 → 12.5 minutes (2.4×), 18-minute median setup, and 43 active of 50 invited (86%). Availability of 99.95% is a target, not a verified service result. All original page, element and presentation IDs and speaker notes remain.
 

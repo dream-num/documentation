@@ -79,72 +79,10 @@ starts in English, independently of the page's HTML language or a legacy locale
 argument. The document and both source datasets are English as well. It does not
 change the documentation host language or provide a demo language switch.
 
-Run scripts/test-docs-formula-locales.mjs with SHOWCASE_CASE=estuary,
-SHOWCASE_ENGLISH_ONLY=1 and the selected build manifest as its argument.
-It checks all official leaves in the three formula
-editor packs, the native Edit formula action, the formula editor, more number
-formats, visible text/accessible labels/placeholders, and exact document/owner
-preservation after cancellation on both English and Chinese host pages with
-English native UI. Earlier bilingual evidence is historical:
-test-results/docs-formula-locales-estuary/report.json.
-This is language acceptance, not full layout acceptance: native dialog bounds
-are recorded separately. Cinder's development integration also retains React
-synchronous-unmount warnings when dismissing the source viewer; see sdk-issues.md.
-
 ## Acceptance status
-
-The English-only factory passes selected independent source/CSS startup in
-`test-results/estuary-english-export/report.json`. Native editor evidence in
-`test-results/estuary-english-dialogs/report.json` passes both host languages:
-complete formula-related English packs, Edit formula, number formats, Cancel,
-and preservation of the document and both source owners/snapshots. A real
-keyboard edit to `=1+2` followed by Confirm displays `3.00`; native editing
-restores the original external formula and its `16,000.00` result without
-changing the other formulas or source datasets. International date format codes
-containing quoted year/month/day literals remain SDK format data, not untranslated
-interface labels. No visible translation keys or console errors were observed.
-
-`test-results/estuary-english-calculation/report.json` reruns all six literal
-examples, source-driven rendered values, unchanged body, detached projection
-and active Base fullscreen cleanup. It remains strictly failing only for the
-known zero-denominator result-status issue below. These scoped production runs
-do not certify every native source-editing path or resolve the earlier
-development-shell unmount issue. The historical bilingual runs below remain
-evidence of their original scopes, not current English-language acceptance.
-
-Isolated export recheck (2026-09-08): the exact selected export builds and its
-production native editor passes EN/ZH pack, Edit formula, number-format dialog,
-viewport and cancellation-preservation checks with no console errors. Evidence:
-`test-results/estuary-formula-4427-locales/report.json`. The untranslated key is
-not reproducible with the current exported packs; no replacement labels were added.
-
-The same export served by Vite in development reproduces the four synchronous
-React-unmount errors, independently of the Next preview. The minimal dedicated
-`scripts/test-embed-estuary-formula-unmount.mjs` retains a failing assertion and
-full console-origin trace. Native Cancel runs the installed Embed Unit UI
-ReferencedUnitViewer effect cleanup, which calls session.unmount, disposes its
-child Univer, and reaches DesktopUIController/React root.unmount during React's
-passive-effect commit. The host owner stays alive and the demo's dispose is not
-called. Evidence: `test-results/estuary-formula-4427-unmount-fulltrace/report.json`.
-This is an SDK-owned lifecycle problem; production's lack of the development
-warning is not proof it is fixed. No SDK package or console error was patched.
 
 The calculation regression also checks the embedded Sheet's real B10 SUM result
 after each funding change, in addition to all four native Doc formula results.
 The strict zero-denominator status requirement remains unresolved.
 
-Current selected Next development regression (2026-09-07): both language packs,
-native Edit formula actions, formula/number-format dialogs and cancellation
-preservation pass; both desktop dialogs fit the viewport. However, the strict
-run fails on four React synchronous-unmount console errors. Reproduce with
-`SHOWCASE_CASE=estuary` and `SHOWCASE_ORIGIN` pointing to this playground using
-`scripts/test-docs-formula-locales.mjs`. The current report is
-`test-results/docs-formula-locales-estuary-current/report.json`. Earlier selected
-production evidence does not certify this development-shell lifecycle path.
-Do not filter these errors or treat translated labels as full acceptance.
-
 Partial, not fully accepted. The six exact examples, four final rendered inline values, independent Sheet/Base changes, unchanged complete document body, Base fullscreen editing/return, zero-value display/recovery and a detached successful-state display-text snapshot have selected browser evidence. EN/ZH guides, the first literal example in each locale and theme changes preserve the API owner and all three models. Type checking and selected standalone build pass.
-
-**Known SDK issue:** the zero-denominator formula visibly displays `#DIV/0!`, but beta.2 returns `status: success` and a string cell type rather than an error status. The strict runtime report stays FAIL for this gate. The demo does not rewrite that result. Error-state persistence/projection semantics need separate verification; the successful-state snapshot check does not certify them.
-
-Evidence: `scripts/test-embed-estuary-formula.mjs`, `test-results/embed-estuary-formula-final/report.json`, `scripts/test-embed-estuary-formula-guide.mjs` and `test-results/embed-estuary-formula-next/report.json`. Full native source editing/history, saved-resource reload/rebind, unavailable/invalid sources, racing/in-flight disposal, printing, Exchange export, touch and performance remain open. A Pro license is required for a watermark-free published experience; the demo does not hide SDK license notices.

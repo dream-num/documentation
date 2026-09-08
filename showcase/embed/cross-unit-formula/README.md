@@ -113,13 +113,6 @@ display Fare card while keyboard input changes the host Budget C5 formula instea
 Use the six explicit-workbook-ID Facade snippets to inspect formula behavior.
 The original authored data is restored by browser reload.
 
-`scripts/test-embed-cross-unit-formula.mjs` verifies the opening 2525 / 922.50,
-six literal examples (1003.50, 1084.50, #VALUE!, recovery, missing binding repair,
-and a built reference returning 7), native host tabs and selected disposal.
-The first narrow report passed but screenshots exposed a blank inactive Float;
-the expanded native test correctly fails and is the relevant acceptance gate.
-Source cell/range/VLOOKUP calculation works without a backend or manual totals.
-
 The native Sheet-in-Sheet policy defers live mounting until stage2. Its current
 inactive drawing is blank in the captured UI, so a resolved descriptor does not
 prove usable rendering. Removing the demo's startup setCurrent/setActiveSheet did
@@ -134,26 +127,3 @@ menus and Print, readable passive Float, source/fullscreen focus, saved-resource
 reload, failure/delay/empty states, racing disposal, smaller screens, accessibility
 and performance. A selected export build is about 18.23 MB JS / 4.52 MB gzip plus
 128 KB CSS; this is not performance acceptance or proof of actual PDF generation.
-
-### Focused revalidation / 7 September 2026
-
-`scripts/test-embed-harbor-validation.mjs` is the stricter, standalone follow-up.
-It runs all six README snippets unchanged, checks the real Print owner and requires
-the Print canvas to contain the source title and fare code, and reloads after the
-source tests so a native failure cannot prevent independent host-tab, locale or
-disposal checks. English and Chinese packs are checked leaf by leaf against all
-eighteen imported dependency packs. Native white/Grid UI and both complete model
-snapshots are also checked; resource serialization is not normalized away.
-
-This is still not an accepted editing or printing example. The source Float is
-blank while passive, source fullscreen typing overwrites the host lookup, and
-source Print raises a native missing-render error (`targetRender.with`) rather
-than painting the fare card. Removing the demo's Float deactivation did not repair
-Print, so that speculative change was reverted. Final standalone evidence is in
-`test-results/harbor-native-final/report.json`: all six literal examples, both
-eighteen-pack locale checks, each locale's theme round-trip, host tabs and disposal
-pass; the passive Float, native source input and Print gates fail. The first
-cross-locale probe additionally saw an empty `SHEET_NOTE_PLUGIN` resource serialize
-from `''` to `'{}'`; locale/theme normalization remains a separate follow-up, even
-though the final per-locale full-snapshot checks pass without filtering resources.
-No SDK patch, fake printed image or manually recomputed formula value is used.

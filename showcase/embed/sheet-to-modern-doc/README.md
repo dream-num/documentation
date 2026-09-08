@@ -176,32 +176,6 @@ claimed without Exchange verification.
 
 ## Acceptance status
 
-Partial, not fully accepted. test-results/embed-pollen-formula-owned/report.json
-passes selected checks for all seventeen literal snippets and thirteen values
-on the current document canvas, preserving every authored body character, style
-and custom range. Blended/channel ratios, independent inputs, stored blank/zero,
-invalid text, explicit source mapping/repair and fresh post-rename calculation
-pass. Native Sheet B5 typing, exact full-workbook Undo/Redo, Grid menus,
-correct-source Print preview/cancel, twenty-one entire EN/ZH dependency packs,
-full-model theme preservation and active-source disposal have evidence.
-
-The strict report remains FAIL: twenty-one native error results are visibly
-correct but beta.2 reports their status as success/string. No result override
-or substitute JavaScript calculation hides this issue. An earlier report at
-test-results/embed-pollen-formula-native/report.json also recorded thirteen
-formula-removal warnings during teardown. The factory now explicitly disposes
-the Doc, then the Sheet, before their injector. The current report has no browser
-errors, warnings or backend requests; no SDK package was patched.
-
-test-results/docs-formula-locales-pollen/report.json passes actual EN/ZH Edit
-formula and number-format dialogs/cancellation, complete document preservation
-and visible dependency labels. This verifies usable actions, not just loaded keys.
-test-results/pollen-owned-export-ui/report.json checks eleven-file exact source
-parity and live native white/flex/canvas styling; twenty-two official CSS imports
-are included. A separate production build reuses a dependency tree only after
-checking every requested dependency/devDependency version. The SDK trial watermark
-and license notice are retained; this demo does not supply a production license.
-
 Full persistence/reconstruction, another valid source, every native action,
 Exchange conversion, all Print options, Next integration, accessibility/
 responsiveness and delivery performance remain open.

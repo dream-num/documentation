@@ -114,14 +114,3 @@ English packs, theme ownership and export parity require separate checks. A
 successful Facade call alone is insufficient. Printing, binary conversion,
 collaboration, full lifecycle failure recovery, keyboard-only accessibility and
 delivery performance are not supplied by this core-only template.
-
-Selected evidence: test-results/product-brief-native/report.json passes 17/17
-gates: all eight literal blocks, eight sections on the current canvas, actual
-native title typing and exact full Undo/Redo, edited snapshot reconstruction,
-real JSON download, complete initial EN/ZH packs, edited-owner themes and disposal.
-No browser errors, warnings or backend requests were observed in this run.
-Two earlier probe failures were test assumptions about paragraph endOffset,
-slash-menu input and native line hyphenation; their screenshots and diagnoses
-remain in product-brief-native-initial-probe and product-brief-native-wrap-probe.
-No SDK data was normalized or package patched. These are selected checks, not
-full-site Next, mobile, accessibility, Print or file-conversion acceptance.

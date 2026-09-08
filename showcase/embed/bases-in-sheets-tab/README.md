@@ -1,11 +1,5 @@
 # Willow / Base in Sheets Tab
 
-The demo runtime, authored data and startup alerts are English-only, including on
-Chinese-language guide pages. The legacy third locale argument remains accepted
-but does not change the runtime language. All registered English locale packs and
-official SDK styles remain shared by preview and export. Earlier EN/ZH reports
-below are historical interaction evidence, not current bilingual SDK acceptance.
-
 An original autumn-collection procurement story pairs a 3,500-item, $38,985
 landed-cost estimate with supplier operations. Six suppliers have different
 payment terms, review states and notes; eight follow-ups use actual Base record
@@ -29,29 +23,11 @@ reference text, not Vite dependencies. Sheets uses the native Grid ribbon.
 
 ## Acceptance
 
-`scripts/test-embed-sheet-base-themes.mjs` tests the actual React Preview in an
-isolated selected Vite server. EN/ZH both pass native E5 input/recalculation,
-native Supplier operations activation and supplier text editing, complete
-host/child snapshot and owner preservation through next-themes storage events,
-and unmount with no browser errors. Light/dark screenshots were reviewed. This
-does not expand the existing production-build or broad history acceptance.
-
-`test-results/embed-base-tab-owned-cleanup/report.json` passes selected source
-runtime checks: native Base paint/table navigation, a supplier Facade edit and
-native Undo/Redo, updated record-link labels, freight recalculation to $39,135,
-Release checks narrative updates and exact preservation of the edited Base.
-The opening workbook and linked follow-ups screenshots were visually reviewed.
-
 The first run (`embed-base-tab-first`) failed with an asynchronous LocaleService
 error during disposal. In beta.2 the child React unmount is deferred past its
 locale scope; this demo unmounts only its owned Base workbench first, using the
 official design unmount. Selected active-child teardown now passes with no
 browser errors. This is not full lifecycle or native keyboard acceptance.
-
-`embed-base-tab-production-keyboard/report.json` also passes the independent
-production build, including actual double-click/keyboard supplier editing,
-painted and stored values, native Undo, host isolation and all selected source
-interactions above. Broader keyboard/history coverage remains open.
 
 The eleven-file export installs 206 packages and builds only this demo (1,845
 modules). Main JS `index-YnB4tlNV.js` is 18,444.84 kB / 4,531.97 kB gzip; official

@@ -1,7 +1,5 @@
 # Native record grouping
 
-Native UI and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Bilingual runtime reports below describe earlier revisions, not acceptance of this English-only revision.
-
 Use the native sidebar to compare seven independent views over 16 shared records.
 The factory initializes grouping with public `view.setGroup(rules)`; the native
 group menu and disclosure arrows own all subsequent interaction. Native cell

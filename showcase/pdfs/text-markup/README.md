@@ -147,36 +147,6 @@ provider. Registering Exchange elsewhere does not establish PDF conversion
 support here; no conversion-service request is sent. Native controls are not
 replaced with browser print, handcrafted PDF output or fake success messages.
 
-Selected acceptance passes in `test-results/pdf-markup-native-final/report.json`
-and independent export parity in `test-results/pdf-markup-native-export-ui/report.json`.
-The original generic export check was insufficient: its screenshot still showed
-the SDK startup skeleton despite a PASS report. That superseded evidence is kept
-in `test-results/pdf-markup-export-skeleton-history/`; it must not be used as proof
-of a rendered PDF. The factory now publishes `data-ready="false"` immediately,
-waits for the actual PDF viewport and removal of the startup skeleton, and only
-then publishes readiness.
-
-`node scripts/test-pdf-markup-export-startup.mjs` independently checks the exported
-10 files, explicit readiness, absence of the skeleton, the current main-canvas
-page titles/date/fee/old-procedure text, colored pixels for all three annotations,
-native pointer selection with Properties readback, white SDK background and
-disposal. Its strict report and real PDF screenshots are in
-`test-results/pdf-markup-export-startup/`. The corrected generic export check also
-records `startupOverlayAbsent: true`; any-canvas readiness alone is not accepted.
-The startup test also loads a fresh Chinese-language document before SDK
-initialization, checks native Highlight and Properties labels without calling
-`setLocale`, and captures `initial-zh-CN.png`. This is separate from the edited
-instance language/theme preservation checks in the 12-snippet regression.
-
-The runtime report has 17 passing gates: all 12 literal snippets, native page
-navigation and initial marks, pointer selection with native Properties readback,
-native Highlight rectangle drag, complete EN/ZH packs with edited-snapshot theme
-preservation, and selected disposal. Annotation-region pixels prove real changes
-to highlight, underline, strikeout, squiggly and paired-target appearances; all
-original text/geometry and the review date remain unchanged. Console errors,
-warnings and backend requests are zero. Initial authoring is excluded from the
-native Undo stack; user operations still use the SDK's own history normally.
-
 This is selected runtime evidence, not full product coverage. Binary PDF import/export, native Print,
 save/reopen roundtrip, all annotation property controls, browser lifecycle,
 mobile, accessibility and performance remain separate acceptance work.

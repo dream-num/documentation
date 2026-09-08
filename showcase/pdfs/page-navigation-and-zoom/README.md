@@ -43,10 +43,3 @@ The document is an editable SDK snapshot, not imported PDF bytes. Binary import/
 print, OCR, bookmarks, fit-width, pinch gestures and keyboard accessibility are not
 certified. Native interactions and exact saved-content preservation require separate
 runtime acceptance; configured pages alone do not prove viewport behavior.
-
-`scripts/test-pdf-navigation-zoom.mjs` verifies four native thumbnail fits against
-rendered page dimensions, footer navigation retaining 100%, the native 50% preset,
-all three literal readbacks and exact saved-content preservation through themes on
-English and Chinese host pages. The SDK UI remains English. Direct zoom text entry
-is not certified: an automated fill attempt produced 400% instead of 100%; the
-native preset path is tested separately without changing the SDK.

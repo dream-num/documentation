@@ -73,16 +73,6 @@ of `createFixture()`, then build that selected case. No fixture picker is render
 
 ## Strict native acceptance
 
-`scripts/test-crosshair-native-complete.mjs` runs the six snippets verbatim against
-this selected production export. Evidence is in
-`test-results/crosshair-native-complete/report.json`: real drag/arrow/header
-selections, merged and edge selections, scrolled H24, both sheets, 30%/15% native
-palette pixels, native typing with SUM recalculation, full raw histories, saved
-and header-only recovery, invalid input rejection, 760/390/320 px viewports,
-initial complete EN/ZH packs, same-owner themes, active/pending double disposal,
-normal source/CSS parity and actual pagehide cleanup. Screenshots wait for the
-native page to paint and for the startup skeleton to disappear.
-
 Three SDK boundaries remain explicit: palette auto-enable omits EnabledChanged;
 the first native numeric Undo restores the value but leaves `t: 2` and an allocated
 style in the raw snapshot; new-owner reconstruction changes the defined-name

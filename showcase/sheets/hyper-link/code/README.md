@@ -61,28 +61,9 @@ navigation result is used.
 
 ## Native acceptance and boundaries
 
-scripts/test-driftwood-native.mjs records 38/40 strict gates passing in
-test-results/driftwood-native/report.json. All four literal recipes execute in
-order. Real native popups navigate to the worksheet, range and named range; both
-B6 spans have independent popups. External windows preserve the query/fragment
-with no opener; all remote test requests are intercepted, never sent to the site.
-Native B7 insertion, B8 existing-text insertion, popup editing/removal, complete
-update/removal Undo/Redo, exact same-ID unit/owner restoration and fresh edits pass.
-The B8 insert form preserves the original text and intentionally has no label field.
-
 Two strict SDK limitations remain, without model normalization:
 
 - getHyperLinks() reports one of B6's two authored spans.
 - Undo of the first native insertion into B7 removes its original { v: null }
   cell record. The visual empty cell returns, but the complete snapshot differs.
   Redo is exact; subsequent native update/removal histories are exact.
-
-Initial EN/ZH complete packs and native edit forms, 760px viewport, same-owner
-theme, invalid/empty saved inputs, double disposal, disposal before Steady,
-unsettled link-write disposal, immediate navigation disposal and normal export
-pagehide pass. No runtime errors were observed. Normal export source/CSS parity
-and actual white Grid paint are checked after the startup skeleton disappears.
-The normal-production-cover.png in that report directory shows this native UI.
-Earlier reports with locator/form-contract failures are preserved as test history,
-not current SDK failures. Browser popup policy and platform-specific behavior
-outside this Chromium run remain outside this acceptance.

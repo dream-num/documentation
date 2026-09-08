@@ -49,13 +49,3 @@ Preview and export share one factory, Grid ribbon, five complete English locale
 packs and five official CSS bundles. UI and authored content stay English under
 any host language. Theme changes update the existing owner. The initial fit uses
 the installed exported `IPdfEditorRuntimeService`, separately from the Facade.
-
-This is a frontend-authored PDF model. `save()` returns an SDK snapshot, not PDF
-bytes. No Exchange, binary import/export, printing, formula recalculation, automatic
-pagination, merge/split, or accessibility certification is implied. A direct cell
-override is not a conditional-format rule. Native theme controls and cell typing
-are exercised by `scripts/test-pdf-table-themes-native.mjs`: both English and
-Chinese host pages retain English UI, five distinct painted tables, real cell
-typing, native Properties theme/row-band changes, four literal recipes, and exact
-edited-snapshot preservation through themes. This selected browser evidence is
-not proof of every Properties control, native Undo/Redo, or other browsers.

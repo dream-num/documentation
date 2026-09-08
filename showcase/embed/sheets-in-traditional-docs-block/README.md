@@ -53,26 +53,6 @@ and its workbook on the same page and chapter 03 starting the third. Both
 worksheets retain 22 rows: the previous 40-row Costs sheet made the native block
 1163 pixels tall and caused a five-page report. No business rows were removed.
 
-Native keyboard input, both literal examples, formula recomputation, full workbook
-history, independent host state, five populated Grid tabs, fullscreen, one-page
-Sheet Print preview/cancel, moved UTF-16 anchor and disposal have selected runtime
-coverage. History comparison only equates absent and empty per-sheet validation
-rule lists; other snapshot fields remain strict. An earlier strict comparison
-failure is retained in test-results/embed-sheet-traditional-block-pagination.
-EN/ZH guide tests verify three variants/actions/states and unchanged owner and
-both edited snapshots across light/dark changes. Full acceptance remains open.
-
-Known intermittent failures are retained, not treated as fixed: the production
-final run failed to mount Print after fullscreen exit (missing renderer/clientWidth),
-while the same-build recheck passed. The Next final run timed out after its
-playground returned HTTP 500 with an unexpected end of JSON error; an earlier
-EN/ZH run passed. Print and documentation-loading reliability remain open.
-Selected production evidence is in test-results/embed-sheet-traditional-block-recheck;
-source/CSS parity is in test-results/embed-sheet-traditional-block-export-final.
-The build contains 1928 modules; main JS is 18304.65 kB (4538.89 kB gzip),
-CSS 128.30 kB (19.59 kB gzip). Cold Next requests took about 80s/33s and emitted
-a Gzip drain-listener warning. These measurements do not meet a performance budget.
-
 The Sheet Print plugin prepares the child and exits Embed fullscreen when its
 native print preview opens. Registration is not proof of actual output.
 No grant approval, real rights review, recordings, publishing, backend service,

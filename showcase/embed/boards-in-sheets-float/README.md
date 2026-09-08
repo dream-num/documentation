@@ -1,11 +1,5 @@
 # Tidal / Board in Sheets Float
 
-The demo runtime, authored data and startup alerts are English-only, including on
-Chinese-language guide pages. The legacy third locale argument remains accepted
-but does not change the runtime language. All registered English locale packs and
-official SDK styles remain shared by preview and export. Earlier EN/ZH reports
-below are historical interaction evidence, not current bilingual SDK acceptance.
-
 An original morning-shift training scenario pairs eight estimated cost lines
 with an editable dock-handoff Board. The $2,096 subtotal and 10% allowance total
 $2,305.60. Six process nodes and six bound connectors distinguish a matched-count
@@ -48,13 +42,6 @@ Shorter authored labels and a smaller node font fix the visible layout.
 pass native Ctrl+Z/Ctrl+Y after a real pointer click establishes Board keyboard
 ownership. Host snapshots remain unchanged. The earlier history attempt without
 that pointer focus is retained as a failure, not a proven SDK history defect.
-
-The first export parity report predates the documentation-width correction.
-The current factory caps initial floating width to leave the four cost columns
-visible inside the 1220px documentation preview. `embed-board-float-production-width`
-and `embed-board-float-production-1220` pass all selected interactions at 1600px
-and 1220px; the latter also checks containment. The 1220px screenshot was reviewed.
-Dynamic resize and mobile widths are not certified.
 
 The independent build installs 206 packages and transforms 1,847 modules. Main
 JS `index-Da7aoDls.js` is 18,155.77 kB / 4,504.02 kB gzip; CSS

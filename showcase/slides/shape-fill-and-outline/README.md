@@ -96,6 +96,4 @@ The text labels describe the initial authored settings, not live property readou
 
 ## Scoped verification
 
-`scripts/test-slides-shape-gallery.mjs` executes all seven code blocks verbatim against the selected independent export in English on both English- and Chinese-language host pages. It checks native thumbnail navigation, each documented model change, geometry/stroke preservation where promised, and complete edited snapshots plus the underlying presentation owner across theme switches. Screenshots cover all pages and each recipe. The test uses internal owner identity only for diagnostics; demo recipes use public Facades.
-
 This does not certify every native formatting-menu action, full keyboard accessibility, all export formats or all SDK shape features. A first paint write may add optional undefined flip fields without changing geometry.

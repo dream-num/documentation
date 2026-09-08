@@ -205,37 +205,11 @@ Exchange, persistence and collaboration are not claimed as accepted here.
 
 ## Acceptance status
 
-Partial, not fully accepted. test-results/embed-kestrel-formula-native/report.json
-records seventeen literal examples, 26 live values on the current Doc, three
-Slides and Board editores, visible Sheet totals and the actual heights of both
-native chart series. Independent source changes, posted versus draft, unrelated
-context, null/zero, zero-plan errors/recovery, filtered-view isolation, hidden
-record edits and saved identities after source display renames pass selected checks.
-
 Native keyboard input changes the first Base amount to 10,000, then Sheet B7
 to 15,000. All 26 dependent values and chart geometry update; complete authored
 Doc content and Slides/Board pages remain unchanged except the SDK's persisted
 formulaBinding.lastValue calculation cache. Active-Board disposal passes.
 The run observes no browser errors or backend requests.
-
-The strict report remains FAIL. Doc usage displays #DIV/0! but reports
-success/string, not an error result. A separate fresh-owner probe reproduces
-off-page Base rename covering native navigation with a Base canvas. The documented
-workflow activates each source through its native table-list entry before editing.
-It does not force clicks, remove canvases or automatically repair SDK focus.
-
-test-results/embed-kestrel-formula-next/report.json passes selected EN/ZH guide
-checks: the first exact snippet, initial locale labels, native white UI, absence
-of redundant controls and theme changes preserving the owner and all five models.
-The guide check does not execute all seventeen snippets in both languages.
-
-test-results/docs-formula-locales-kestrel-actions/report.json is a strict FAIL on
-the number-format dropdown. Both locales supply every leaf of the three official
-Formula editor dependency packs. Native Edit formula actions, editor labels,
-desktop dialog bounds and cancellation preserving the owner/full document pass.
-However, the visible Number format button has pointer-events none and cannot be
-clicked in either locale. No raw locale keys were observed; language completeness
-does not imply that all editor interactions work. No CSS override hides this issue.
 
 The independent export retains eleven files and 25 explicit official SDK CSS
 imports. The selected build transforms 2,008 modules; its combined SDK bundle is

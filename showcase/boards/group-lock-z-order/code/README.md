@@ -1,6 +1,6 @@
 # Groups, locks and layers
 
-Native UI, demo labels and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Earlier bilingual acceptance reports below remain historical evidence, not validation of this English-only revision.
+Native UI, demo labels and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged.
 
 Four native Board clusters: three overlapping cards; one group of three shapes; an inner pair nested with a peer in an outer group; one locked and one movable shape. Four native text labels replace the museum story, unrelated connectors and host property/history/JSON panels.
 

@@ -1,6 +1,6 @@
 # Board search and element query
 
-Native UI, demo labels and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Earlier bilingual acceptance reports below remain historical evidence, not validation of this English-only revision.
+Native UI, demo labels and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged.
 
 The small host form demonstrates SDK queries; native Board controls still handle editing. Preview and standalone entry use the same factory, official CSS and complete English locale bundles, including native shape-editor and ink dependencies. Theme changes preserve the canvas and query state. Native license notices remain visible.
 

@@ -258,15 +258,7 @@ This factory does not automatically unpin/re-pin or edit popup DOM to conceal th
 commands; wait for actual getNote() data before saving. Model content, rendered popup and complete raw snapshot history
 are separate strict checks, with no normalization or regenerated IDs.
 
-`scripts/test-sheets-notes-native.mjs` builds only this case and runs the literal snippets, native edit/layout/history,
-initial Chinese native UI, full EN/ZH packs/CSS, same-owner theme and same-ID restore. Original mobile/keyboard combinations,
-threaded review workflows and broad accessibility are not automatically certified by removing the host controls.
-
 ## Strict native acceptance
-
-`test-results/sheets-notes-native-complete/report.json` records **43/48 gates PASS**, with all **25/25 literal blocks PASS**
-(including the expected application-input rejection). The selected independent production export uses exact dependency
-versions and retains all 10 exported source files in `test-results/sheets-notes-native-complete/exports.json`.
 
 Real textarea edits, native resize-handle drags, native menu pin/delete, hover, sheet tabs and keyboard Undo/Redo were tested.
 Complete raw snapshots, including serialized resources and stable IDs, pass native edit/resize/pin/delete history and
@@ -282,9 +274,3 @@ Five strict failures remain, without a host workaround or SDK patch:
 - Direct Facade text updates leave the existing popup text unchanged.
 - Direct Facade size changes store 320×180 while the popup remains 220×110.
 - Direct Facade note mutations do not enter native Undo history.
-
-The before/after/undo/redo evidence is preserved in the report. `baseline.png`, `native-text.png`, `native-resize.png`,
-`nativeText-undo.png`, `native-pin.png`, `initial-zh.png` and `empty.png` are actual native UI screenshots in that directory.
-Earlier `sheets-notes-native-first` and `sheets-notes-native-acceptance` reports remain historical; the latter also records
-a corrected test-locator error, not an additional SDK defect. The older `scripts/test-notes.mjs` targets the removed host
-panel and is not the acceptance entry point for this native demo.

@@ -8,16 +8,6 @@ The host contains no SDK runtime imports, fixture selector, synthetic failure, f
 
 Open `http://localhost:3030/en-US/playground/embed/lazy-load-editor`. Install the exact generated dependencies in the independent export, then run `npm run dev`. Use a production build to inspect real asset splitting; an import statement alone is not evidence that network bytes were deferred.
 
-Run `node scripts/test-cedar-lazy-native.mjs` against the guide, with optional `SHOWCASE_DEMO_URL` or `SHOWCASE_BASE_URL`. Full independent network and owner-lifecycle checks use:
-
-```powershell
-$env:SHOWCASE_BUILD_STANDALONE='1'
-$env:SHOWCASE_VITE_DIRECTORY='<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
-$env:SHOWCASE_RESULTS_DIR='test-results/cedar-lazy-native'
-$env:SHOWCASE_EXPORT_PORT='4428'
-node scripts/test-cedar-lazy-native.mjs
-```
-
 The test builds only this case on isolated port 4428 (override with `SHOWCASE_EXPORT_PORT`), links each installed dependency at its exact exported version, and records actual requests. It creates its own temporary export unless `SHOWCASE_EXPORT_DIRECTORY` is explicitly set; never point it at a running user preview. It holds or aborts real deferred asset requests using browser network interception, not a modified SDK or fake loader. The normal production entry is separately tested without the harness.
 
 ## Host loading, cancellation and retry
@@ -124,5 +114,3 @@ Calculation teardown failures request `stopCalculation()`, then still attempt al
 Native C4 editing followed by Undo restores the displayed runs but leaves `sheets.routes.cellData.3.2.t = 2`, absent in the baseline full snapshot. This remains a strict history failure. Redo and separately tested editing/history after full saved restoration compare exactly. Historical reports also retain the original same-URL Retry failure after a genuine aborted editor JavaScript request. The corrected host no longer offers that ineffective action: it tells users to save other page work and explicitly refresh. The current full test checks this guidance and browser reload recovery with English UI independently on English and Chinese host pages. No synthetic failure toggle, automatic reload or cache-busting module URL masks the boundary.
 
 The seed's existing explicit defined-name `'{}'` resource is unchanged. Tests compare full raw snapshots without normalizing SDK-inferred types/styles, resource strings or IDs. Historical fault-injection reports patched Facade methods and do not establish production network behavior; they are retained as historical evidence, not reused as current acceptance. Internal core-disposal failure recovery and external formula-stop acknowledgment remain unverified without modifying the SDK. This is frontend HTML integration, not the Pro Embed plugin or an iframe bridge.
-
-The host now distinguishes import failure from initialization failure instead of offering a known ineffective same-URL Retry after import rejection. The earlier strict network report is retained. `scripts/test-cedar-import-recovery.mjs` verifies an actually aborted production editor chunk, disabled retry, save-before-refresh instructions and successful explicit browser reload with a real workbook/formula result and official white SDK workbench. See `test-results/cedar-import-recovery/report.json`. This selected recovery check does not resolve the separate native Undo failure or certify every initialization-error path.

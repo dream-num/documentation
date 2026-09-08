@@ -201,27 +201,12 @@ Preview and standalone export share the same data/factory, official CSS and
 complete English dependency packs. Theme changes preserve the owner. There is no
 fixture toolbar or extra feature-description card. Native Formula UI is registered.
 
-Partial runtime evidence is recorded at
-test-results/embed-saffron-formula-authored-history/report.json. Twenty-one
-literal examples cover twelve current-canvas results, complete-body preservation
-through source edits, native Sheet typing/exact history, source-owned Print,
-independent Doc review-line editing, fourteen complete EN/ZH packs and both model
-theme preservation. Eleven-file source/CSS parity is checked separately at
-test-results/saffron-formula-export-ui/report.json.
-
 Strict acceptance remains FAIL. Twenty native error results display correctly
 but report success/string. The Chinese formula dialog's Number format button
 is intercepted by another child-popup layer; waiting for stable bounds does not
 resolve it. In the tested Float activation/Doc Facade editing sequence, Ctrl+Z
 targets the previous host Sheet edit, not the document. Do not assume keyboard
 history ownership from which model a Facade call modified.
-
-Explicit document history is assessed separately after restoring that exact
-host edit with native Redo. Full Doc snapshot equality retains changed native
-DOC_FORMULA_PLUGIN lastValue caches. Raw before/after states are kept; independent
-authored-state comparisons do not convert this into complete state preservation.
-The isolated basic Doc undo/redo probe at
-test-results/saffron-history-isolated/report.json is not a complete sequence test.
 
 An earlier test attempted to serialize the live FWorkbook returned by redo(),
 causing test-process memory exhaustion. The test now executes that method without

@@ -1,11 +1,5 @@
 # Ember / Incident review tab
 
-The demo runtime, authored data and startup alerts are English-only, including on
-Chinese-language guide pages. The legacy third locale argument remains accepted
-but does not change the runtime language. All registered English locale packs and
-official SDK styles remain shared by preview and export. Earlier EN/ZH reports
-below are historical interaction evidence, not current bilingual SDK acceptance.
-
 A fictional checkout incident pairs an assumption-led cost workbook with a
 native Board SheetTab. Four recovery milestones sit above an unconfirmed cause
 and two owned follow-ups. Review gates separates recovery from closure.
@@ -25,20 +19,6 @@ an insurance claim or a live incident feed. Cause and action cards are independe
 editable; cost edits must not silently change their text. Reload loses edits.
 
 ## Acceptance in progress
-
-The selected runner is scripts/test-embed-board-tab.mjs. The first source run
-passes native tabs, Shape text edit and paint, native keyboard Undo/Redo,
-linked worksheet recalculation and full child preservation across tab switches.
-The initial drag harness incorrectly parsed the SDK's comma-separated pan
-attribute as JSON; its failure is retained. The corrected native-drag run also
-passes real pointer movement and full snapshot restoration through native Undo.
-
-Independent production passes the same interactions. The current
-embed-board-tab-production-1220 report additionally exercises the revised
-section-heading geometry at 1220px; its screenshot was reviewed. B5 340 to 400
-changes D16 from 8268.50 to 9096.50 and updates Review gates B3 without changing
-the Board. Active-child teardown emits no browser errors in these selected runs.
-These checks do not certify all native editing or lifecycle boundaries.
 
 The independent export installs 206 offline packages and builds 1847 modules.
 Current main JS index-wV5Rx9at.js is 18,157.15 kB / 4,504.30 kB gzip; CSS

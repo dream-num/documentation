@@ -20,27 +20,10 @@ directory; its stable record IDs resolve linked names in Readiness.
 
 ## Selected evidence
 
-Historical locale follow-up: `test-embed-locales-native.mjs` verified the former bilingual host Insert menus and Base child activation. Those screenshots remain in `test-results/embed-locales-native`; they do not certify the current English-only runtime or every dialog.
-
-`test-results/embed-base-doc-block-fixed-viewport/report.json` passes the selected
-source runtime at 1600px. `embed-base-doc-block-production/report.json` passes
-the independent build at 1220px: native activation, real record edit and paint,
-native Undo/Redo, fullscreen People navigation and keyboard rename, stable
-RecordLink label updates, unchanged whole host, title-anchor movement with
-unchanged whole Base, and active-child disposal. No browser errors or backend
-requests occurred. Production screenshots were inspected.
-`embed-base-doc-block-production-menus/report.json` repeats those checks and
-also opens populated native Start/Insert host Grid menus without dependency errors.
-
 The first keyboard harness edited the duplicate name in Fallback contact;
 the second resized the viewport and changed native drawing coordinates.
 Both failed reports are retained. The corrected test targets the primary Name
 cell in the visible fullscreen Base and leaves the viewport unchanged.
-
-`embed-base-doc-block-export-final/report.json` passes eleven-file source
-equality and live official white/flex/Canvas styling. The fresh independent
-project installs 208 packages. Main JS is 18,445.74 kB / 4,537.85 kB gzip;
-CSS is 134.30 / 18.98 kB gzip. Large-bundle warnings remain unresolved.
 
 `embed-base-doc-block-next/report.json` passes EN/ZH guides (three variants,
 actions and states each), their real native preview and official white/flex CSS.

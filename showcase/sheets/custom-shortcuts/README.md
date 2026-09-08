@@ -111,5 +111,3 @@ window.swiftReinstalled.dispose()
 ## Verification boundary
 
 The dedicated native test compares complete live snapshots without JSON normalization or replacement IDs, checks actual glyphs/canvas and keyboard focus, row/range clearing, repeated empty no-op, history, release/fallback, same-ID recovery, disposal, locales/themes and exact normal source export parity. Any SDK history/recovery differences remain strict failures. Chromium with a simulated macOS platform can verify key mapping but is not physical macOS validation.
-
-Run `node scripts/test-swift-shortcuts-native.mjs`. Default URL uses port 3030; SHOWCASE_DEMO_URL / SHOWCASE_BASE_URL and SHOWCASE_RESULTS_DIR support isolated selected builds. No backend is required.

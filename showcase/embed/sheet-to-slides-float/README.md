@@ -134,13 +134,6 @@ and teal authored pages. The SDK workbench retains its native styling.
 
 ## Acceptance status
 
-Partial evidence, not completed acceptance. The strict production report remains
-FAIL: test-results/embed-lumen-formula-print/report.json. Ten literal examples
-update all nine native results and the actual current canvas on all three pages;
-authored prose, layout and element order remain unchanged. The source preview is
-painted, and blank quantity returns null while zero returns numeric zero.
-Invalid quantity and zero spread expose native errors and recover correctly.
-
 Native inline B6 typing changes 45 to 48. Undo/Redo restores the checked values,
 and the Redo snapshot is exact, but the first Undo leaves an extra style-pool
 entry. The complete snapshot comparison intentionally fails. No normalization
@@ -153,14 +146,6 @@ The async Print command opens a one-page native preview of the correct pricing
 workbook/sheet and Cancel works. Ordinary owned-demo disposal removes its API,
 root and floating chrome. No observed browser errors or backend requests occur
 outside the explicitly captured failed API operation.
-
-Both EN/ZH guides execute all ten snippets and preserve the same API owner and
-complete models through dark/light changes: test-results/embed-lumen-formula-next/report.json.
-Independent eleven-file source/CSS parity and native white UI pass:
-test-results/lumen-formula-export-ui-final/report.json. The selected build contains
-1933 modules, JS 18,370.71 kB / 4,559.09 kB gzip and CSS 137.60 kB / 20.89 kB gzip;
-cold Next routes take 66 s / 18.6 s and emit a Gzip listener warning. These figures
-are not performance acceptance. No SDK patch or root dependency was added.
 
 Complete source identity/missing/rebind/reload, exact history, all native menus,
 fullscreen, Exchange conversion, whole-deck printing, accessibility and delivery

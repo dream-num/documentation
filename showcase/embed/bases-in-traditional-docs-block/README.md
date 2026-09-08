@@ -50,13 +50,6 @@ and active-child disposal pass without observed browser errors or backend calls.
 The host snapshot remains strict across Base edits; the Base remains strict
 across narrative edits. Expanded columns keep owner handover notes readable.
 
-EN/ZH guides verify three variants/actions/states and preserve the same owner
-and both edited models across actual light/dark media changes. Independent
-eleven-file source and official CSS parity also pass. Evidence is recorded in
-test-results/embed-base-traditional-block-production-final,
-test-results/embed-base-traditional-block-next and
-test-results/embed-base-traditional-block-export-final.
-
 Build: 208 offline packages, 1845 modules; main JS 18451.72 kB / 4539.57 kB gzip,
 CSS 134.30 kB / 18.98 kB gzip. Cold selected Next requests took 104s/78s and
 emitted a Gzip drain-listener warning. Loading performance is not accepted.

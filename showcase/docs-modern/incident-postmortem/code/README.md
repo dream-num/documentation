@@ -42,20 +42,6 @@ strip resources. No binary import/export or server conversion is implied.
 
 ## Verification boundary
 
-Selected acceptance: 12/12 native gates and 4/4 recovery gates pass in
-test-results/postmortem-follow-up-native/report.json and
-test-results/postmortem-follow-up-recovery/report.json. Both literal recipes, current
-remediation paint, repeated execution, native title input with complete Undo/Redo,
-same-owner themes, initial Chinese UI and repeated entry disposal are checked.
-The recovery harness uses this exact factory: full edited snapshot/ID equality,
-fresh native input, invalid-input preservation and pre-ready double disposal pass.
-The added review is reached with native end-of-document navigation. No snapshot
-fields are removed or rewritten to make equality pass.
-
-The actual React Preview also passes EN/ZH keyboard input, full edited snapshot
-and owner retention across site-theme storage events, and unmount cleanup in
-test-results/modern-story-previews/report.json.
-
 These are selected checks, not full capability acceptance. Complete formatting,
 accessibility, mobile/cross-browser, full Next routing, all error/recovery combinations
 and binary conversion remain outside this evidence. Initial canvas text calls

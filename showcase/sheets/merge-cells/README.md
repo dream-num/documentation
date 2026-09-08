@@ -30,17 +30,3 @@ Preview and standalone export share the same factory, English data, the complete
 English preset locale and bundled official CSS, regardless of host language.
 The data factory ignores its legacy language argument. Site theme changes retain the
 same workbook; standalone sizing lives in the entry point, not global demo CSS.
-
-## Selected verification
-
-`scripts/test-merge-cells-native.mjs` runs the actual Preview on EN/ZH host pages and checks
-all eight gallery merge ranges, native Merge all, merged-label keyboard input,
-native Cancel merge and its full-snapshot Undo/Redo, the four Facade variants,
-unchanged gallery data, full edited snapshot/owner across themes and teardown.
-It does not certify populated-cell conflict dialogs, forced overlapping merges,
-all invalid ranges, reload persistence or comprehensive accessibility. Those
-boundaries are not replaced by success messages or simulated SDK operations.
-Earlier bilingual results are historical. The current English-only run in
-`test-results/sheets-galleries-english-native/merge/report.json` passes these
-same scoped native and Facade checks on English and Chinese host pages, with
-no browser errors or backend writes. The unverified boundaries above remain open.

@@ -2,8 +2,7 @@
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
-but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
-not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+but is ignored. Earlier  English-only source/CSS/startup checks do
 not certify every native interaction or resolve the recorded SDK failures.
 
 Eight original campaign deliverables belong to three linked channels. Open
@@ -58,21 +57,6 @@ The local provider accepts only the exact presentation ID and slide unit type.
 Prepare, materialize and restore create a BasesTableListBlock anchor with
 tableIndex/tableName and an initial brief page. Owned child roots are released
 before SDK teardown. SDK packages and license watermarks are unchanged.
-
-Selected independent production at 1600px passes in
-test-results/embed-slide-base-tab-production-pointer/report.json: all four
-native thumbnails and palette pixels, both literal README examples, native
-Ribbon Undo/Redo, actual shape movement and Undo, native text input and complete
-keyboard Undo/Redo snapshots, Base channel rename/history, three linked labels,
-tab navigation, full host/child theme preservation and active-child disposal.
-No browser errors or backend requests were observed.
-
-test-results/embed-slide-base-tab-next/report.json passes EN/ZH guides, native
-Grid, white child CSS and actual media-theme transitions retaining the same
-owner and both edited snapshots. The eleven-file standalone export is recorded
-in test-results/avenue-tab-export/exports.json; run the existing
-scripts/test-showcase-export-ui.mjs against that manifest for exact source/CSS
-parity. All official stylesheets are included.
 
 Failed early interaction reports are retained. The first paint locator selected
 small sidebar-card text rather than the title; the final locator includes the

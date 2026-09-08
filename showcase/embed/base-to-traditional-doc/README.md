@@ -159,32 +159,6 @@ console.log({ live: doc.save(), readingCopy: doc.saveFormulaDisplayTextSnapshot(
 
 ## Acceptance status
 
-Partial capability coverage. test-results/embed-linen-formula-rows/report.json
-exercises all fifteen literal examples and verifies all twelve current native
-values on both output-page canvases. The entire document body and all three
-794x1123 page boundaries stay unchanged. Included/optional scope, independent
-hours, metadata, exact filtered projections, hidden-record edits, stored null
-versus zero, zero-fee recovery, source rename and missing-binding repair have
-selected runtime evidence. Native Base fee typing 850 to 925 updates the report
-to 2625 without replacing its prose. The detached reading copy preserves the live
-document. Four complete EN/ZH plugin packs, model-preserving theme switches and
-disposal from the active Base fullscreen shell also pass, without browser errors
-or backend requests.
-
-The strict report is still FAIL: native error text is classified as success/string
-by beta.2 (one zero-fee share error and twelve unavailable-source results). Source
-unavailability produces #N/A for ROWS and #VALUE! for the other eleven formulas.
-The earlier COUNTA attempt counted the error as one item; ROWS avoids that misleading
-record count. Neither the demo nor its test rewrites SDK result status.
-
-test-results/docs-formula-locales-linen/report.json passes the real EN/ZH Edit
-formula button, number-format dialog and cancellation, without visible locale
-keys and without changing the complete document. The eleven-file independent
-export and native white styling pass test-results/linen-formula-export-ui/report.json;
-ten official CSS imports are included. The local export reuses the identical,
-version-checked installed dependency tree through a junction to avoid duplicating
-packages; its source files and production output are separate.
-
 Remaining: native error classification, every menu/editor action, actual two-unit
 reload, rebinding to another valid source, Print/Exchange conversion, Next
 integration, responsive/accessibility and delivery-performance acceptance.

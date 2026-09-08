@@ -2,8 +2,7 @@
 
 The demo runtime, authored data and startup alerts are English-only, including on
 Chinese-language guide pages. The legacy third locale argument remains accepted
-but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
-not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+but is ignored. Earlier  English-only source/CSS/startup checks do
 not certify every native interaction or resolve the recorded SDK failures.
 
 An original park-route discovery story places nine research questions beside
@@ -63,22 +62,11 @@ preserving the same owner and both edited snapshots. Eleven-file export parity
 includes official CSS imports and the white native workbench. Board themes
 may regenerate a palette; its theme ID and all authored content stay strict.
 
-- Production: `test-results/embed-base-board-float-production-final/report.json`
-- Guides: `test-results/embed-base-board-float-next-recheck/report.json`
-- Export: `test-results/embed-base-board-float-export-final/report.json`
-
 The first production test incorrectly looked for a workbench inside fullscreen.
 The actual Base fullscreen is its own native shell; the test now checks the
 observed base-canvas-root and official white background. No CSS override was
 added. The failed report remains. Screenshot review separated the heading from
 native floating menus and widened the theme scope/method columns.
-
-One later Next run failed with an invalid-token/ChunkLoadError before the child
-mounted (`embed-base-board-float-next-final`). The same live server passed the
-recheck without restart. Its current 97,899,092-byte development chunk matches
-the served/disk SHA-256 and parses along with all 1,008 wrapped modules
-(`test-results/grove-next-chunk`). This does not establish or fix the cause of
-the earlier failure; development loading reliability remains open.
 
 The selected build installs 206 packages offline and transforms 1,847 modules.
 Its main JavaScript is about 18.48 MB / 4.56 MB gzip. Cold selected Next requests
