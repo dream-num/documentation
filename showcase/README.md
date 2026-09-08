@@ -31,8 +31,8 @@ Run `pnpm validate:showcase`, `pnpm test:showcase:directory`, and
 `pnpm test:showcase:source` before submitting. Additional maintained checks are
 listed in `package.json`.
 
-See the [cross-file formula guide](capabilities/formula-demo-catalog.md) for
-composition examples. A registered route is not complete feature acceptance:
-`capabilities/coverage.json` retains assessed gaps, and unlisted capabilities are
-unassessed. Frontend examples do not imply backend persistence, offline Office
-conversion, or production licensing; keep these boundaries explicit per case.
+Browse Compose & Embed for cross-file formula and product-embedding examples.
+A registered route is not complete feature acceptance. Frontend examples do not
+imply backend persistence, offline Office conversion, or production licensing;
+keep these boundaries explicit per case. Internal plans and acceptance records
+are maintained locally, not shipped with the demo catalog.
