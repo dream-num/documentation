@@ -156,7 +156,7 @@ export function createDocsData(): IDocumentData {
       'body',
     ],
     [
-      'The prose, slide layouts and Board connections are authored independently. Only their Formula values depend on the workbook; changing a source number does not regenerate the surrounding content.',
+      'The prose, slide layouts and Canvas connections are authored independently. Only their Formula values depend on the workbook; changing a source number does not regenerate the surrounding content.',
       'body',
     ],
     ['Local demonstration / No server, purchase, publication or automatic approval', 'meta'],

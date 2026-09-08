@@ -10,20 +10,33 @@ const hooks = registerHooks({
   },
 })
 try {
-  const { createCatalogItem } = await import('../showcase/catalog.ts')
-  const { SECTION_IDS, categoriesFor, directoryGroups, COMPOSITIONS } = await import('../showcase/directory.ts')
+  const { createCatalogItem, productLabel, integrationProductLabel } = await import('../showcase/catalog.ts')
+  const { SECTION_IDS, categoriesFor, directoryGroups, COMPOSITIONS, HOST_LABELS } =
+    await import('../showcase/directory.ts')
   const catalog = JSON.parse(fs.readFileSync('showcase/catalog.generated.json', 'utf8'))
-  const registered = [...fs.readFileSync('showcase/data.ts', 'utf8').matchAll(/^\s*'([^']+)':.*import/gm)].map(
-    (match) => match[1],
-  )
+  const { showcase: registry } = await import('../showcase/data.ts')
+  const registered = Object.keys(registry)
+  for (const slug of ['embed/cross-unit-formula', 'embed/sheet-to-chart']) {
+    assert.ok(!registered.includes(slug), `${slug}: Sheet-in-Sheet demo stays unregistered`)
+    assert.ok(!COMPOSITIONS[slug], `${slug}: no retired composition in navigation`)
+  }
+  assert.ok(registered.includes('sheets/cross-workbook-formula'), 'Keep ordinary cross-workbook formulas')
   assert.deepEqual(catalog.map((item) => item.slug).toSorted(), registered.toSorted())
   for (const locale of ['en-US', 'zh-CN']) {
+    assert.equal(productLabel('boards', locale), 'Canvases')
+    assert.equal(productLabel('bases', locale), 'Relational Tables')
+    assert.equal(integrationProductLabel('boards', locale), 'Canvases')
+    assert.equal(integrationProductLabel('bases', locale), 'Relational Tables')
     const items = catalog.map(({ slug, metadata }, index) => createCatalogItem(slug, metadata, locale, index))
-    assert.equal(new Set(items.map((item) => item.slug)).size, 165)
+    assert.equal(new Set(items.map((item) => item.slug)).size, registered.length)
     for (const item of items) {
       assert.ok(SECTION_IDS.includes(item.section), item.slug)
       assert.ok(categoriesFor(item.section).includes(item.category), item.slug)
       assert.ok(item.group && item.sectionName, item.slug)
+      const display = [item.title, item.description, ...item.tags, item.group]
+        .join(' ')
+        .replace(/Knowledge Base|Board Review|Board review/g, '')
+      assert.doesNotMatch(display, /\b(?:Boards?|Bases?)\b|白板|画板|多维表格/, `${item.slug}: product display names`)
     }
     const bySlug = Object.fromEntries(items.map((item) => [item.slug, item]))
     const integration = items.filter((item) => item.section === 'customization-integration')
@@ -39,11 +52,25 @@ try {
     assert.equal(bySlug['docs/slim-via-preset'].integrationProduct, 'docs-modern')
     assert.notEqual(bySlug['docs/slim-via-preset'].title, bySlug['docs/slim-via-plugin'].title)
     const compose = items.filter((item) => item.section === 'embed')
-    assert.equal(compose.length, 68)
+    assert.equal(compose.length, 66)
     assert.equal(compose.filter((item) => item.category === 'product-embedding').length, 32)
-    assert.equal(compose.filter((item) => item.category === 'cross-file-formulas').length, 27)
+    assert.equal(compose.filter((item) => item.category === 'cross-file-formulas').length, 25)
     assert.equal(compose.filter((item) => item.category === 'showcases').length, 9)
     assert.ok(compose.every((item) => COMPOSITIONS[item.slug]))
+    for (const item of compose) {
+      assert.equal(item.host, COMPOSITIONS[item.slug].container, `${item.slug}: Host metadata matches the outer editor`)
+      assert.equal(
+        item.group,
+        HOST_LABELS[COMPOSITIONS[item.slug].container][locale],
+        `${item.slug}: outer editor is Host`,
+      )
+    }
+    for (const child of ['docs', 'slides', 'boards']) {
+      for (const mode of ['float', 'tab']) {
+        assert.equal(bySlug[`embed/${child}-in-sheets-formula-${mode}`].group, HOST_LABELS.sheets[locale])
+      }
+      assert.equal(bySlug[`embed/${child}-in-bases-formula-tab`].group, HOST_LABELS.bases[locale])
+    }
     for (const slug of [
       'embed/crm-quote-calculator',
       'embed/lazy-load-editor',
@@ -55,18 +82,40 @@ try {
       assert.equal(bySlug[slug].section, 'customization-integration', slug)
     assert.equal(bySlug['slides/basic-via-plugin'].section, 'slides')
     assert.equal(bySlug['sheets/univer-pro-import-export'].category, 'features')
+    for (const slug of [
+      'sheets/dynamic-array-formulas',
+      'sheets/checkbox-validation',
+      'sheets/filter-values-and-conditions',
+      'sheets/conditional-format-rules',
+    ]) {
+      assert.equal(bySlug[slug].section, 'sheets', slug)
+      assert.equal(bySlug[slug].category, 'features', slug)
+    }
+    assert.equal(bySlug['sheets/dynamic-array-formulas'].group, locale === 'en-US' ? 'Formulas' : '公式')
+    for (const slug of [
+      'docs-traditional/headers-footers-and-section-links',
+      'boards/swimlane-orientation-and-lanes',
+    ]) {
+      assert.equal(bySlug[slug].section, slug.split('/')[0], slug)
+      assert.equal(bySlug[slug].category, 'features', slug)
+    }
     assert.equal(bySlug['sheets/big-data'].category, 'performance')
     assert.equal(bySlug['docs/big-data'].category, 'performance')
     const atlas = bySlug['embed/slides-in-sheets-formula-float']
     assert.equal(atlas.composition.container, 'sheets')
     assert.deepEqual(atlas.composition.targets, ['slides'])
-    assert.equal(atlas.group, locale === 'en-US' ? 'Slides as Host' : 'Slides 作为宿主')
+    assert.equal(atlas.group, locale === 'en-US' ? 'Sheets as Host' : 'Sheets 作为宿主')
     assert.equal(directoryGroups('embed', 'cross-file-formulas', [], locale).length, 6)
+    const formulaHosts = directoryGroups('embed', 'cross-file-formulas', [], locale)
+    assert.ok(formulaHosts.includes(locale === 'en-US' ? 'Canvases as Host' : 'Canvases 作为宿主'))
+    assert.ok(formulaHosts.includes(locale === 'en-US' ? 'Relational Tables as Host' : 'Relational Tables 作为宿主'))
     for (const section of SECTION_IDS.filter((value) => !['embed', 'customization-integration'].includes(value))) {
       assert.deepEqual(categoriesFor(section), ['features', 'showcases', 'performance'])
       assert.equal(directoryGroups(section, 'performance', [], locale).length, 3)
     }
-    console.log(`PASS ${locale}: 165 unique routes, 68 Compose & Embed, target-based formula hosts and empty folders`)
+    console.log(
+      `PASS ${locale}: ${registered.length} unique routes, 66 Compose & Embed, outer-editor hosts and empty folders`,
+    )
   }
 } finally {
   hooks.deregister()

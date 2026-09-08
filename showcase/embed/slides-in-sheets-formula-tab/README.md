@@ -1,5 +1,7 @@
 # Solstice / Scenario review deck
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 Slide@Sheet Tab composition; Sheet -> Slides formula dependency. Three original
 evening-programme scenarios share ticket price 32, variable cost 18 per guest and
 fixed cost 600. Guest counts 80, 100 and 125 produce revenues 2560, 3200 and 4000.

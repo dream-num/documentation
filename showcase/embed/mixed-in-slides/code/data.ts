@@ -109,12 +109,12 @@ const MEMO = [
   ],
   ['04 / Decide after clinic four', 'heading'],
   [
-    'Compare aggregate participation notes, consumable use and unresolved requests after the fourth clinic. The Board shows a return path to revise the remaining clinics; it does not run an automation.',
+    'Compare aggregate participation notes, consumable use and unresolved requests after the fourth clinic. The Canvas shows a return path to revise the remaining clinics; it does not run an automation.',
     'body',
   ],
   ['05 / Ownership in this review', 'heading'],
   [
-    'The cost model floats on the economics slide. This memo, the Base and the Board open as native pages in the left page list. Their edits and histories are independent of slide text. No Formula Shape, cross-product binding or backend is claimed.',
+    'The cost model floats on the economics slide. This memo, the Relational Table and the Canvas open as native pages in the left page list. Their edits and histories are independent of slide text. No Formula Shape, cross-product binding or backend is claimed.',
     'body',
   ],
   ['Recommendation / Request missing evidence before scheduling.', 'heading'],
@@ -326,7 +326,7 @@ export function createHostData(): ISlideData {
               ),
               t(
                 'note',
-                '12 places per clinic is a planning assumption. Readiness is reviewed separately in the Base.',
+                '12 places per clinic is a planning assumption. Readiness is reviewed separately in the Relational Table.',
                 40,
                 405,
                 915,

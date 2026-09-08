@@ -46,9 +46,7 @@ try {
   const manifest = [{ slug: exported.slug, directory: project }]
   await fs.writeFile(path.join(directory, 'exports.json'), JSON.stringify(manifest, null, 2))
   report.sourceFiles = Object.keys(exported.files).length
-  const { build, preview } = await import(
-    pathToFileURL(path.join(project, 'node_modules/vite/dist/node/index.js'))
-  )
+  const { build, preview } = await import(pathToFileURL(path.join(project, 'node_modules/vite/dist/node/index.js')))
   await build({ configFile: false, root: project, logLevel: 'warn' })
   server = await preview({
     configFile: false,
@@ -447,10 +445,7 @@ try {
     const packs = [...factory.matchAll(/^import \w+EnUS from '([^']+)en-US'/gm)]
     assert.equal(packs.length, 5)
     assert.equal([...factory.matchAll(/^import '.+\/lib\/index.css'/gm)].length, 5)
-    for (const [locale, code] of [
-      ['en-US', 'enUS'],
-      ['zh-CN', 'zhCN'],
-    ]) {
+    for (const [locale, code] of [['en-US', 'enUS']]) {
       await page.evaluate((value) => window.univerAPI.setLocale(value), code)
       for (const [, prefix] of packs)
         includesPack(await page.evaluate(() => window.univerAPI.getLocales()), (await import(prefix + locale)).default)
@@ -462,7 +457,7 @@ try {
     await root.waitFor({ state: 'detached' })
     assert.equal(await page.evaluate(() => typeof window.univerAPI), 'undefined')
   })
-  await gate('initial-chinese-native-ui', async () => {
+  await gate('chinese-host-english-native-ui', async () => {
     await page.route('http://127.0.0.1:4384/', async (route) => {
       const response = await route.fetch()
       await route.fulfill({ response, body: (await response.text()).replace(/<html[^>]*>/, '<html lang="zh-CN">') })
@@ -472,9 +467,10 @@ try {
     await paintText(0, 'Annual performance overview')
     const p = await point(0, 150, 105)
     await page.mouse.click(p.x, p.y)
-    await page.getByRole('tab', { name: '视图', exact: true }).click()
-    await page.getByRole('button', { name: '属性', exact: true }).click()
-    await page.getByText('位置和大小', { exact: true }).waitFor()
+    assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
+    await page.getByRole('tab', { name: 'View', exact: true }).click()
+    await page.getByRole('button', { name: 'Properties', exact: true }).click()
+    await page.getByText('Transform', { exact: true }).waitFor()
     assert.equal(/pdfs-ui\.[\w.-]+/.test(await page.locator('body').innerText()), false)
     await page.screenshot({ path: path.join(directory, 'initial-zh-CN.png') })
   })

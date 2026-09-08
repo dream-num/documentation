@@ -48,10 +48,7 @@ const metadata = {
     { id: 'reserved', label: { 'en-US': 'Version 3.2 · pending', 'zh-CN': '版本 3.2 · 待定' } },
     { id: 'accepted', label: { 'en-US': 'Limitation accepted', 'zh-CN': '责任限制已接受' } },
   ],
-  actions: [
-    { id: 'accept-clause', label: { 'en-US': 'Accept Clause 15', 'zh-CN': '接受第 15 条' } },
-    { id: 'save', label: { 'en-US': 'Save native document', 'zh-CN': '保存原生文档' } },
-  ],
+  actions: [],
   states: [
     { id: 'pending', label: { 'en-US': 'Commercial approval pending', 'zh-CN': '商业审批待定' } },
     { id: 'approved', label: { 'en-US': 'Clause and reference approved', 'zh-CN': '条款和引用已批准' } },

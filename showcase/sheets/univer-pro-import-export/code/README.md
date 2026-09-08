@@ -4,13 +4,12 @@ This frontend-only sample preserves the original August regional sales workbook:
 
 **Office conversion is not implemented under the frontend-only constraint.** XLSX/XLS/CSV/TSV import, XLSX workbook export and active-sheet CSV export remain original, open requirements. Registering the installed `@univerjs-pro/exchange-client` and `@univerjs-pro/sheets-exchange-client` **1.0.0-beta.2** supplies an HTTP client, not a browser Office converter. Their HTTP menu entries are hidden through public menu configuration. No conversion API is invoked, no files are uploaded and no development service origin is configured. Do not mistake a native workbook, JSON download or protocol snapshot codec for XLSX support.
 
-中文：本示例保留原五地区销售故事、原生编辑和公式；完整导入导出需求仍待实现。当前 Exchange 版本的 Office 格式转换需要 HTTP 服务，不符合本轮纯前端约束；隐藏转换菜单并不改变这一事实。本文的 JSON 下载不是 XLSX 文件。
 
 ## Run and native interaction
 
 Run the generated project's `npm install` and `npm run dev`, or open `/en-US/playground/sheets/univer-pro-import-export` in the documentation app. Select D2 with the native name box, type `95`, press Enter: F2 becomes 13889 and F8 becomes 76593.4. Use native Undo/Redo and verify both formulas. Edit an account name, format a number or resize a column through the SDK UI. This workbook has no original Print plugin; none is added here.
 
-Preview and standalone both use `createImportExportDemo`. All nine dependency locale packs are merged in EN/ ZH; initial language follows `document.documentElement.lang`. All seven available official dependency stylesheets are imported from this same factory. Changing theme calls `toggleDarkMode` on the existing owner; it does not discard edits. `ready` has a 20-second canvas/skeleton bound and startup failure is visible. Disposal is idempotent, removes only its own DOM and disposes its workbook and owner.
+Preview and standalone both use `createImportExportDemo`. All eleven complete English dependency locale packs are merged, including formula engine and formula model messages; the SDK stays English on every host language. All seven available official dependency stylesheets are imported from this same factory. Changing theme calls `toggleDarkMode` on the existing owner; it does not discard edits. `ready` has a 20-second canvas/skeleton bound and startup failure is visible. Disposal is idempotent, removes only its own DOM and disposes its workbook and owner.
 
 ## Literal Facade examples
 
@@ -40,8 +39,8 @@ Formula calculation is asynchronous; observe formatted F2 = $13,889.00 and F8 = 
 
 ```ts
 const sheet = window.univerAPI.getActiveWorkbook().getActiveSheet()
-sheet.getRange('B2').setValue('Aurora Outfitters · 北区')
-console.assert(sheet.getRange('B2').getRawValue() === 'Aurora Outfitters · 北区')
+sheet.getRange('B2').setValue('Aurora Outfitters · North — reviewed')
+console.assert(sheet.getRange('B2').getRawValue() === 'Aurora Outfitters · North — reviewed')
 ```
 
 ### 4. Undo and redo the account change
@@ -51,7 +50,7 @@ const api = window.univerAPI
 await api.undo()
 console.assert(api.getActiveWorkbook().getActiveSheet().getRange('B2').getRawValue() === 'Aurora Outfitters')
 await api.redo()
-console.assert(api.getActiveWorkbook().getActiveSheet().getRange('B2').getRawValue() === 'Aurora Outfitters · 北区')
+console.assert(api.getActiveWorkbook().getActiveSheet().getRange('B2').getRawValue() === 'Aurora Outfitters · North — reviewed')
 ```
 
 ### 5. Encode the live workbook into Exchange protocol JSON locally
@@ -129,7 +128,7 @@ The package source paths above are in the sibling local `univer-pro` checkout; i
 
 ### Retained acceptance gaps
 
-The dedicated run records **5 of 8 gates passing, 19 individual checks**, zero browser errors and zero conversion requests. Passing native input/formula paint, eight literal examples including a real JSON download, local protocol encoding, nine EN/ZH packs/seven CSS/same-owner themes, and initial Chinese/invalid/pre-ready/idempotent lifecycle are only partial evidence.
+The dedicated run records **5 of 8 gates passing, 19 individual checks**, zero browser errors and zero conversion requests. Passing native input/formula paint, eight literal examples including a real JSON download, local protocol encoding, historical nine bilingual packs/seven CSS/same-owner themes, and initial Chinese/invalid/pre-ready/idempotent lifecycle are only partial evidence.
 
 Three gates remain strict failures: (1) the six original Office conversion requirements need HTTP and remain blocked; (2) native account Undo leaves one generated style entry and adds `t: 1` to B2; (3) complete owner restoration changes `SHEET_DEFINED_NAME_PLUGIN` resource data from an empty string to `'{}'`, and fresh-owner account Undo adds `t: 1` to B2. Both native Redo comparisons pass exactly. All fields, including styles, resources, cell types and floating-point values, remain in the comparison. The UI can appear restored while its full model is not identical.
 

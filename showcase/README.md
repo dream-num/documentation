@@ -474,7 +474,7 @@ lifecycle matrices still need updated checks. The old panel-based scripts are
 historical, not acceptance of this revision. Do not count this case as cleared yet.
 
 
-## Research, document tables and incident Board delivery
+## Research, document tables and incident Canvas delivery
 
 Three inspected native covers are now connected to the bilingual catalog and
 their package test entries point at the current native acceptance scripts.
@@ -484,7 +484,7 @@ These are partial capability results, not three fully accepted products:
 | --- | --- | --- | --- |
 | Research paper | 29/33 | 14/14 | `test-results/research-paper-native-acceptance/report.json` |
 | Cedar document tables | 35/46 | 25/25 executed | `test-results/cedar-tables-native/report.json` |
-| Incident response Board | 8/9 | 9 TS + 1 JS | `test-results/incident-response-native-r2/report.json` |
+| Incident response Canvas | 8/9 | 9 TS + 1 JS | `test-results/incident-response-native-r2/report.json` |
 
 Research retains the original two-page paper and Appendix A; the guarded Appendix B
 recipe creates page three. Four failures retain typing/fresh-owner Undo optional
@@ -523,7 +523,7 @@ The shared regression now uses actual Facade operations for knowledge review,
 architecture positioning and content-pipeline record insertion instead of removed
 fixture buttons. All three branches pass against their individually selected
 standalone production builds. Pipeline retains twelve original records, inserts
-a thirteenth, switches native Board/Grid views and reloads without duplicate
+a thirteenth, switches native Canvas/Grid views and reloads without duplicate
 canvases. Architecture retains its three pages and updates the native element
 position and label. This does not certify the Next wrapper, the unchanged
 product-launch branch, or replace each case's deeper native-history acceptance.
@@ -548,7 +548,7 @@ current native test. Final independent delivery passes eleven-file source parity
 white SDK CSS and no startup skeleton in
 `test-results/sheets-exchange-local-export-ui/report.json`.
 
-## In progress: incident response Board
+## In progress: incident response Canvas
 
 The original three response stages, free-endpoint connectors, container and risk
 content/IDs remain. The risk is now present at startup, not behind a redundant
@@ -567,7 +567,7 @@ Latest reconciled fixture-panel inventory: **22 cleared / 39 remaining** from
 the original 61-case residual list. See
 `test-results/native-panel-cleanup-followup-7/report.json` for original/current
 source hashes and remaining routes. This adds CSV and Exchange to followup 6;
-research, Cedar and incident Board are integrated above but not yet reconciled
+research, Cedar and incident Canvas are integrated above but not yet reconciled
 into this panel inventory. It is not a capability-completion percentage. The
 postmortem README and normal export were synchronized and all eleven native gates
 rerun in `test-results/postmortem-native-delivery-final/report.json`.
@@ -730,7 +730,7 @@ current panel follow-up is now **17 cleared / 44 remaining** out of the original
 The four new entries include original/current source hashes and strict runtime
 reports. The 13/48 batch below is historical. No all-demo production build or SDK
 patch is used. Remaining panel cases: Sheets 19, Modern Docs 9, Traditional Docs 5,
-Slides 1, Base 2, Boards 3, PDFs 1 and Embed 4.
+Slides 1, Relational Table 2, Canvases 3, PDFs 1 and Embed 4.
 
 The current four-case independent delivery recheck is
 `test-results/native-panel-cleanup-followup-4/export-ui-verified/report.json`:
@@ -827,7 +827,7 @@ acceptance test or a complete Next/React interaction audit.
 
 The original 61-case residual-panel list now has nine cleared entries, leaving
 **52** from that point-in-time audit: Sheets 21, Modern Docs 11, Traditional Docs 5,
-Slides 4, Bases 3, Boards 3, PDFs 1 and Embed 4. See the
+Slides 4, Relational Tables 3, Canvases 3, PDFs 1 and Embed 4. See the
 [second follow-up inventory](../test-results/native-panel-cleanup-followup-2/README.md)
 for exact source hashes and remaining slugs. Earlier batch counts below are
 historical snapshots, not the latest total. The goal remains active: all 30 Formula
@@ -851,7 +851,7 @@ evidence; proposed offline-sync behavior is story content, not an SDK capability
 | Atlas / Product Brief | 17/17 gates; eight literals, current paint for all eight sections, real native title input and exact full Undo/Redo, same-ID edited snapshot restore, actual JSON download, full preset EN/ZH and same-owner themes | None in the selected run; full native/Next/React lifecycle, accessibility, Print, binary conversion and delivery remain unaccepted |
 | Mosaic / Lists and tasks | 32/35 gates; 27 literals executed, real list glyphs/scopes/numbering/tasks, exact native text history, same-ID full edited/baseline reconstruction and empty restore, six full EN/ZH packs | Level-to-item marker change leaks into LIGHT; native bullet Undo changes OPEN paragraph ID; native checkbox Undo changes KEYS paragraph ID |
 | Cobalt / Slide order | 13/16 gates, 78 checks; twelve literals, all eight page paints, five startup variants, full reordered-owner recovery/fresh text history, five full EN/ZH packs | Thumbnail Enter/Space cannot focus; Ctrl+Z after thumbnail drag or menu Delete does not work before canvas focus. Real canvas-focused toolbar history passes separately |
-| Release workflow / Board connectors | 31/32 gates; nineteen literals, twelve native labels, four route modes, real endpoints, connected-node/free-endpoint drag and separate exact full-model endpoint history, seven full EN/ZH packs | Native label text edit resets offset.y from -58 to 0 and drops previous style, visibly moving the label onto its route |
+| Release workflow / Canvas connectors | 31/32 gates; nineteen literals, twelve native labels, four route modes, real endpoints, connected-node/free-endpoint drag and separate exact full-model endpoint history, seven full EN/ZH packs | Native label text edit resets offset.y from -58 to 0 and drops previous style, visibly moving the label onto its route |
 
 Current runtime reports: `test-results/product-brief-native/report.json`,
 `test-results/mosaic-lists-native/report.json`,
@@ -862,8 +862,8 @@ the two `product-brief-native-*-probe` directories, not by changing SDK behavior
 Mosaic's restoration now compares the full snapshot including its original unit
 ID directly; no Date.now replacement or test-side ID substitution remains.
 
-Grid is the default for Docs and Slides; Boards retains its native floating
-toolbars. Atlas/Mosaic/Cobalt/Board export 1/6/5/7 official CSS imports respectively;
+Grid is the default for Docs and Slides; Canvases retains its native floating
+toolbars. Atlas/Mosaic/Cobalt/Canvas export 1/6/5/7 official CSS imports respectively;
 Atlas's single preset stylesheet bundles its core dependencies. The selected
 four-case independent export check is
 `test-results/native-brief-lists-order-connectors/export-ui-final/report.json`:
@@ -893,7 +893,7 @@ counting source changes alone as accepted runtime behavior.
 
 | Case | Current selected evidence | Strict remaining failures |
 | --- | --- | --- |
-| Calibration / Base sorting | 4/7 gates; native multi-field criteria, stable ties, full sort/cell history, exact edited-owner recovery, five EN/ZH packs and same-owner themes | Null paints 0.00; native and Facade edits change a sort key without live row reordering |
+| Calibration / Relational Table sorting | 4/7 gates; native multi-field criteria, stable ties, full sort/cell history, exact edited-owner recovery, five EN/ZH packs and same-owner themes | Null paints 0.00; native and Facade edits change a sort key without live row reordering |
 | Ridgeway / PDF images | 20/24 gates; fourteen of sixteen literal blocks pass actual source/crop/rotation/opacity pixels, native Properties position/history, initial Chinese, five packs and themes | Removal throws; dependent Undo is not accepted; native drag paint disagrees with Facade coordinates; native Crop image UI is absent |
 | North / Traditional paragraph typesetting | 21/25 gates; 20 literal examples, actual three-page/24-paragraph story, 13 measured layout variants, native typing/center paint, full preset EN/ZH, themes and reconstructed canvas | Literal/native history adds empty body collections; alignment Undo changes paragraph IDs |
 | Tern / Slides snapshot recovery | Strict retained run 12/13; initial and three bounded diagnostic runs 13/13. Complete eight-page reviewed/seven-page audience snapshots, per-page paint, 10 literals/download, startup variants, complete EN/ZH, themes and invalid-input preservation | Intermittent restored-title double-click selects the shape without opening the text editor; subsequent passes do not establish a fix |
@@ -908,7 +908,7 @@ production exports pass nine-file source parity, official white workbench and
 startup-overlay absence in
 `test-results/native-sort-typeset-image-deck/export-ui-final/report.json`. Calibration,
 North, Ridgeway, Tern and Asteria include 4/1/5/5/5 official CSS imports respectively;
-North uses the bundled Docs Core preset stylesheet. The Base startup error is also
+North uses the bundled Docs Core preset stylesheet. The Relational Table startup error is also
 localized in the refreshed export. Reviewed native covers are connected to the
 existing EN/ZH catalog cards; the image check now covers twelve reviewed cases.
 
@@ -929,8 +929,8 @@ sufficient. Global proxy configuration was not changed and no file was uploaded.
 
 The six-product [Exchange/Print source audit](../test-results/frontend-exchange-print-capabilities/README.md)
 distinguishes HTTP-backed Exchange conversion from browser-native Print. Sheets,
-Docs, Slides, Boards and PDFs have browser print implementations in the inspected
-SDK source; a dedicated Base Print path was not established. Checkout source is
+Docs, Slides, Canvases and PDFs have browser print implementations in the inspected
+SDK source; a dedicated Relational Table Print path was not established. Checkout source is
 not proof that a package is installed or its runtime accepted. Official PDF
 in-memory/qpdf-JSON providers are not arbitrary local binary file converters.
 
@@ -949,8 +949,8 @@ residual detected by this audit, which is not runtime or full visual acceptance.
 | Traditional Docs | 7 | 6 |
 | Legacy Docs | 6 | 0 |
 | Slides | 11 | 5 |
-| Bases | 9 | 3 |
-| Boards | 6 | 4 |
+| Relational Tables | 9 | 3 |
+| Canvases | 6 | 4 |
 | PDFs | 5 | 2 |
 | Embed | 73 | 5 |
 
@@ -963,7 +963,7 @@ contain remote Exchange paths at the audit timestamp; do not describe those
 paths as offline conversion. Asteria has since removed its residual panels and
 remote path, leaving 60 entries from that original residual list before the next
 batch; the immutable audit's 61 count is not silently rewritten. Modern lists,
-Slides reorder and Board connector cases are being migrated and are not counted
+Slides reorder and Canvas connector cases are being migrated and are not counted
 as cleared until their implementation and selected runtime checks are inspected.
 That next batch is now recorded at the top of this document, together with Atlas;
 the 60-entry checkpoint above remains historical.
@@ -974,12 +974,12 @@ Three existing routes now remove fixture/description/outline/audit panels and
 duplicate editing/history handlers; Rivet adds real full-owner reconstruction.
 The four cases contain 12/21/12/20 literal Facade examples, respectively (65 total,
 not 65 new features or routes). Original business content remains varied. Native
-Grid is the default, with Base's own sparse toolbar retained. No SDK or installed
+Grid is the default, with Relational Table's own sparse toolbar retained. No SDK or installed
 package source was patched.
 
 | Case | Current selected runtime evidence | Retained strict failures |
 | --- | --- | --- |
-| Partner / Base filters | 6/7 gates; all 12 recipes, real filter toolbar and cell input, exact history, edited-owner recovery, five complete EN/ZH packs and themes | Native editing changes existing OR/greater-or-equal settings into AND/is |
+| Partner / Relational Table filters | 6/7 gates; all 12 recipes, real filter toolbar and cell input, exact history, edited-owner recovery, five complete EN/ZH packs and themes | Native editing changes existing OR/greater-or-equal settings into AND/is |
 | Lumen / Modern heading blocks | 20/21 runtime gates plus nine-file parity; all 21 recipes, actual heading glyph sizes and paragraph geometry, native typing/history, reconstruction/empty restore, six complete EN/ZH packs and themes | Heading-format Undo changes the following paragraph ID; subsequent format Redo is not certified |
 | Meridian / PDF ink | 19/20 gates; all 12 recipes, native freehand pointer/history, real annotation pixels, selection/Properties, initial Chinese, five complete packs and same-owner themes | Native X changes model/selection but not ink pixels; Undo restores the model |
 | Rivet / Slides sizes | 23/25 gates; all 20 recipes, full-owner checkpoint and edited/deleted-page/Chinese-dark recovery, fresh native text/history, six invalid-input checks and pre-ready disposal | Unit-only recovery leaves no main canvas in the continuous flow; empty snapshot reconstruction removes stale activeSlideId |
@@ -1011,13 +1011,13 @@ Four existing routes now remove their fixture/duplicate editing/history/audit
 panels and handlers while retaining varied original business data. They provide
 61 literal Facade examples in total, not 61 new features or new demo routes.
 
-- Base creation / Lumen: 20 snippets; 29/30 selected gates pass, including actual
+- Relational Table creation / Lumen: 20 snippets; 29/30 selected gates pass, including actual
   title/Person editing with exact full Undo/Redo, all table recipes, whole-owner
   reconstruction, checkpoint, four datasets, five full EN/ZH packs and themes.
   Strict native Person-name painting still fails. Current report:
   `test-results/lumen-native-final/report.json`; nine-file/four-CSS export:
   `test-results/lumen-native-export-ui/report.json`.
-- Board lifecycle / Tern: nine snippets plus two reconstruction recipes; seven
+- Canvas lifecycle / Tern: nine snippets plus two reconstruction recipes; seven
   of nine selected gates pass, including real pointer/ArrowRight history, exact
   owner recovery and seven complete EN/ZH/CSS packs. Sticky replacement/editor
   errors and heading Undo remain strict failures. Reports:
@@ -1056,7 +1056,7 @@ a canvas painting underneath an overlay is not a usable screenshot.
 ## Formula scope expansion / data-driven product compositions
 
 The Formula catalog now contains **30 implemented routes, all partial**, up from three:
-Sheet/Base sources drive Modern Docs, Traditional Docs, Slides, Boards and native
+Sheet/Relational Table sources drive Modern Docs, Traditional Docs, Slides, Canvases and native
 formula-backed charts. Both Sheet@Slide and Slide@Sheet have independent Float/Tab
 plans; embedding direction is distinct from data dependency. Multi-source and
 multi-output business scenarios are included. See the
@@ -1070,7 +1070,7 @@ runtime evidence, but native source keyboard input changes the host, inactive
 Float rendering is blank, and native source Print fails. Its new runtime evidence
 has not yet been added to the capability ledger. Beacon's new four-page native
 Formula Shape demo has eight successful initial results and working selected
-source recalculations, but Base editing disrupts the Slides workbench; its strict
+source recalculations, but Relational Table editing disrupts the Slides workbench; its strict
 runtime report fails and it is not yet ledgered. Earlier snapshots below are historical.
 
 Nova / `embed/sheet-to-slides-tab` adds a real Sheet data page in the native
@@ -1090,7 +1090,7 @@ pass selected production tests. Eleven-file source/CSS export passes. Formula
 at that checkpoint had 14 implemented routes out of 30 planned, with 12 ledgered partial; none
 are fully accepted.
 
-Orchid / `embed/base-to-slides-float` adds a separate Base Float pipeline story:
+Orchid / `embed/base-to-slides-float` adds a separate Relational Table Float pipeline story:
 six opportunities, twelve native formulas and three forest/paper/plum slides.
 After native source activation, all twelve literal snippets update all three
 current canvases and preserve authored layouts. Separate native amount typing,
@@ -1102,7 +1102,7 @@ writes, native title Undo and fullscreen. Passive writes also retain historical
 failures. This is not a completed demo or a global SDK focus fix.
 
 Cinder / `embed/base-to-modern-doc` adds an original incident-handoff story:
-eight Base records drive ten inline formulas without rewriting the modern prose.
+eight Relational Table records drive ten inline formulas without rewriting the modern prose.
 Seventeen literal examples, native current-canvas results, filtering/hidden edits,
 empty-queue recovery, native typing, same-fullscreen exact Undo/Redo, disposal and
 eleven-file official-CSS export pass selected checks. The strict native report
@@ -1126,7 +1126,7 @@ native-behavior requirements and known failures.
 The earlier `test-results/showcase-card-free-final/report.json` passes EN/ZH selected-page
 checks at 1440/390/320px: all sixteen old card headings are absent, an injected
 heading is correctly rejected, README/source navigation remains usable, and the
-Violet Base/Slides models and API owner survive layout changes without horizontal
+Violet Relational Table/Slides models and API owner survive layout changes without horizontal
 page overflow. This is outer-page layout evidence, not mobile editor acceptance:
 at 320px the native Slides thumbnail pane consumes almost the entire preview,
 so the editable slide was not usefully visible in that build. Earlier failures from capturing a replaced cold-start iframe and
@@ -1143,7 +1143,7 @@ eleven-file export and native white CSS. The outer EN/ZH card-free checks finish
 at all widths, preserving data/content and owner (native saved view zoom may
 change), but `test-results/showcase-card-free-responsive/report.json` remains FAIL
 because Next's development RSC client throws Performance.measure negative-time
-errors. Full narrow-screen Grid/Base editing and delivery remain unaccepted.
+errors. Full narrow-screen Grid/Relational Table editing and delivery remain unaccepted.
 
 Atlas / `embed/slides-in-sheets-formula-float` now has partial evidence: a real
 Sheet host drives six native Formula Shapes in an embedded two-slide quote deck.
@@ -1159,7 +1159,7 @@ comparison figures at their final values.
 
 Estuary / `embed/formula-customrange` adds two native source blocks and four
 inline formulas in a modern field brief. All six literal examples preserve the
-complete document body and show updated native values; Base fullscreen return,
+complete document body and show updated native values; Relational Table fullscreen return,
 selected disposal, EN/ZH themes and independent CSS/source export have evidence.
 The strict report remains FAIL because #DIV/0! is reported as success by beta.2.
 
@@ -1176,10 +1176,10 @@ EN/ZH themes, active-source disposal and independent source/CSS parity have
 selected evidence. Its strict report remains FAIL: inactive source preview is
 blank and fullscreen typing replaces a host formula rather than the source cell.
 
-Flint / `embed/base-to-boards-float` adds five Base delivery records driving nine
-native Board formulas and three connected workstreams. Thirteen literal examples
+Flint / `embed/base-to-boards-float` adds five Relational Table delivery records driving nine
+native Canvas formulas and three connected workstreams. Thirteen literal examples
 distinguish open effort, retained estimates, completion, blockers, blank/zero and
-unrelated metadata. Visible native results, source title/Hours typing, exact Base
+unrelated metadata. Visible native results, source title/Hours typing, exact Relational Table
 Undo/Redo, active-fullscreen disposal and source/CSS parity pass selected checks.
 Display-name stability, whole-table versus view-filter behavior, hidden-record
 edits and two-snapshot reconstruction retaining edited formulas/live updates are
@@ -1218,13 +1218,13 @@ Formula cases remain planned. Counts below are historical snapshots.
 
 `embed/mixed-in-boards` adds an original riverfront wayfinding workshop: eight
 budget lines, a five-section agenda, three review slides, eight observations
-linked to three locations, and a four-step native Board connector loop. Four
+linked to three locations, and a four-step native Canvas connector loop. Four
 native Float/fullscreen paths, five literal editing examples, model ownership,
-Sheet keyboard input/recalculation, one-page Sheet Print/cancel, native Board
-movement and active-Base-fullscreen disposal have evidence. EN/ZH themes and
+Sheet keyboard input/recalculation, one-page Sheet Print/cancel, native Canvas
+movement and active-Relational Table-fullscreen disposal have evidence. EN/ZH themes and
 eleven-file/23-CSS independent export are checked separately. The strict report
 still fails on first Sheet Undo adding empty validation metadata. Rich-text
-examples preserve readable titles; Base sits on the left to leave room for its
+examples preserve readable titles; Relational Table sits on the left to leave room for its
 native floating menu in the documentation preview. Full native editing, reload,
 failure/lifecycle matrices, smaller screens and performance remain unaccepted.
 
@@ -1232,17 +1232,17 @@ failure/lifecycle matrices, smaller screens and performance remain unaccepted.
 
 Current registry and ledger: **134 pages, 243 capability blueprints, 96 partial,
 0 fully verified and 147 unassessed**. Thirty-seven of 41 native Embed cases have
-partial evidence: 32 independent pairs and five mixed cases. Boards mixed and
+partial evidence: 32 independent pairs and five mixed cases. Canvases mixed and
 three Formula cases remain planned. Counts below are historical snapshots.
 
 `embed/mixed-in-bases` adds an original touring-exhibition studio: ten opportunities,
 six linked follow-ups and four partner groups, plus native tabs for a two-sheet
-forecast, delivery playbook, three-slide review and process Board. Five literal
-examples, ownership, formulas, native Sheet/Base typing and post-initialization
-history, correct-source one-page Sheet Print and selected Board disposal have
+forecast, delivery playbook, three-slide review and process Canvas. Five literal
+examples, ownership, formulas, native Sheet/Relational Table typing and post-initialization
+history, correct-source one-page Sheet Print and selected Canvas disposal have
 evidence. EN/ZH themes and eleven-file/23-CSS export are checked separately.
 Strict first-Undo serialization gates remain failing. An independent regression
-also reproduces clicking an already-active Sheet tab remounting the Base canvas
+also reproduces clicking an already-active Sheet tab remounting the Relational Table canvas
 over the sidebar. No SDK patch or custom CSS/button hides it. Full menus, native
 editing, reload, failure/lifecycle matrices and performance remain unaccepted.
 
@@ -1250,14 +1250,14 @@ editing, reload, failure/lifecycle matrices and performance remain unaccepted.
 
 Current registry and ledger: **133 pages, 243 capability blueprints, 95 partial,
 0 fully verified and 148 unassessed**. Thirty-six of 41 native Embed cases have
-partial evidence: 32 independent pairs and four mixed cases. Bases/Boards mixed
+partial evidence: 32 independent pairs and four mixed cases. Relational Tables/Canvases mixed
 cases and three Formula cases remain planned. Counts below are historical snapshots.
 
 `embed/mixed-in-slides` adds an original three-hub repair-network review: four
 distinct authored slides, one cost Sheet Float and three native product pages
-for a memo, linked readiness register and delivery Board. Five literal Facade
+for a memo, linked readiness register and delivery Canvas. Five literal Facade
 examples, native editing/history after initialization, model ownership, page
-round trips, async-command Sheet Print preview/cancel and selected Board disposal
+round trips, async-command Sheet Print preview/cancel and selected Canvas disposal
 have evidence. EN/ZH themes and eleven-file/23-CSS export pass independently.
 The strict report still fails on first Sheet Undo's empty validation metadata
 and the native Sheet Float fullscreen button. A beta.2 synchronous Print Facade
@@ -1273,12 +1273,12 @@ partial evidence: 32 independent pairs and three mixed cases. Three mixed cases
 and three Formula cases remain planned. Counts below are historical snapshots.
 
 `embed/mixed-in-docs-traditional` adds an original maritime-museum grant review:
-five actual A4 pages, with cost Sheet, evidence Base, hearing Slides and release
-Board in four chapters. Serif/navy reporting, blue-gray costs, warm inputs, wine
+five actual A4 pages, with cost Sheet, evidence Relational Table, hearing Slides and release
+Canvas in four chapters. Serif/navy reporting, blue-gray costs, warm inputs, wine
 slides and multicolor process cards distinguish it from the modern brief.
 Selected page flow, native fullscreen/navigation, five literal examples, model
 isolation, anchor movement, native Sheet input/history after initialization,
-one-page Sheet Print preview/cancel and fullscreen-Board disposal have evidence.
+one-page Sheet Print preview/cancel and fullscreen-Canvas disposal have evidence.
 The strict report still fails on first Sheet Undo's empty validation metadata;
 values restore, but complete snapshot equality does not. EN/ZH themes and an
 eleven-file/23-CSS export pass separately. Full menus, every native editing path,
@@ -1293,14 +1293,14 @@ partial evidence: 32 independent pairs and two mixed cases. Four mixed cases
 and three Formula cases remain planned. Counts below are historical snapshots.
 
 `embed/mixed-in-docs-modern` adds an original seed-library project narrative with
-resource Sheet, linked-owner Base, three strategy Slides and dependency Board.
+resource Sheet, linked-owner Relational Table, three strategy Slides and dependency Canvas.
 Forest/sage/sand/lavender vary the content under official white/Grid native UI.
 Four-block rendering/fullscreen, five literal examples, model isolation, host
 anchor movement, native Sheet input/value restoration, one-page Sheet Print
-preview/cancel and selected fullscreen-Board disposal have runtime evidence.
+preview/cancel and selected fullscreen-Canvas disposal have runtime evidence.
 The strict production report remains **failing**: first Sheet Undo materializes
 an empty validation map, and native typing leaves an input-style cache entry.
-Base/Slides/Board literal full-snapshot history passes; Sheet snapshot equality
+Relational Table/Slides/Canvas literal full-snapshot history passes; Sheet snapshot equality
 does not. Async teardown waits for native fullscreen scope release before host
 destruction. EN/ZH themes and eleven-file/23-CSS independent export are checked
 separately. See the case README and ledger for remaining lifecycle, native editing,
@@ -1315,14 +1315,14 @@ and three Formula cases remain planned. Counts below are historical snapshots.
 
 `embed/mixed-in-sheets` adds an original reading-room pilot: eight budget lines,
 three briefing slides, a decision memo, six suppliers with six linked follow-ups
-and a six-card delivery Board. Navy/cyan, warm inputs, lavender headings and
+and a six-card delivery Canvas. Navy/cyan, warm inputs, lavender headings and
 mint/amber/coral process cards vary the visual story. One native Float and three
 native Tabs share the workbook; there is no fixture panel. Selected production
-passes literal examples, native five-model history isolation, actual Board text
+passes literal examples, native five-model history isolation, actual Canvas text
 editing/history, budget recalculation, Slides navigation, Tab round trips and
-active-Board disposal. EN/ZH themes and eleven-file/thirteen-CSS export pass.
-Composition exposed duplicate root editor-service registration: the public Board
-child-scope extension now follows Board startup. Full menus, native editing in
+active-Canvas disposal. EN/ZH themes and eleven-file/thirteen-CSS export pass.
+Composition exposed duplicate root editor-service registration: the public Canvas
+child-scope extension now follows Canvas startup. Full menus, native editing in
 every child, saved reload, failure/lifecycle matrices and performance remain open.
 
 ## Latest verified progress snapshot / Delta
@@ -1402,9 +1402,9 @@ partial evidence; thirteen remain planned. Counts below are historical snapshots
 
 `embed/bases-in-boards-float` adds Grove: nine original park-route research tasks,
 four linked themes and four distinct observation/question cards. Forest, blue,
-sand, lavender and rose vary the story while Board floating tools and native Base
+sand, lavender and rose vary the story while Canvas floating tools and native Relational Table
 controls remain intact. Selected production passes actual keyboard editing,
-full-snapshot history, linked labels, fullscreen, independent Board edits and
+full-snapshot history, linked labels, fullscreen, independent Canvas edits and
 movement, themes and disposal. EN/ZH recheck and eleven-file/nine-CSS export pass.
 An earlier Next chunk-load/syntax failure remains unresolved despite a passing
 same-server recheck; full menus, lifecycle, loading reliability and performance
@@ -1420,9 +1420,9 @@ partial evidence; fourteen remain planned. Counts below are historical snapshots
 `embed/slides-in-boards-float` adds Prism: an original night-sky pilot with four
 narrative cards and four native Slides pages, eight sessions, 160 planned places
 and a USD 8,400 illustrative resource plan. Navy, green, warm white and lavender
-vary by layout while native Board floating tools and fullscreen Slides Grid stay
+vary by layout while native Canvas floating tools and fullscreen Slides Grid stay
 intact. Selected independent production passes actual text/history, shape
-movement/history, native page navigation/fullscreen, independent Board edits and
+movement/history, native page navigation/fullscreen, independent Canvas edits and
 history, themes and active-child disposal. EN/ZH guides and eleven-file export
 with eight official CSS imports pass separately. First-native-edit model
 materialization, full menus/playback, lifecycle and performance remain open;
@@ -1437,9 +1437,9 @@ partial evidence; fifteen remain planned. Counts below are historical snapshots.
 `embed/docs-in-boards-float` adds Maple: three synthetic library-visit observations,
 three distinct hypotheses and a seven-section modern interview brief. Deep purple,
 lavender, muted green and apricot distinguish the original story; Docs retains its
-native white page and Board its floating tools. Selected production passes actual
+native white page and Canvas its floating tools. Selected production passes actual
 typing, complete document history checks, fullscreen Grid, scroll, independent
-Board edits and movement/history, themes and active-child disposal. EN/ZH guides
+Canvas edits and movement/history, themes and active-child disposal. EN/ZH guides
 and eleven-file export with seven official CSS imports pass separately. Full
 menus, lifecycle/failure cases, accessibility, performance and wider coverage are
 still open. See the case README and ledger; this is not full SDK acceptance.
@@ -1455,7 +1455,7 @@ repair workshop, three activity cards, an access-support decision and a native
 floating eight-line budget with a separate reserve-scenario worksheet. Dark green,
 lime, sage and apricot vary the story; native white SDK surfaces remain intact.
 Selected independent production passes actual Sheet keyboard input and full
-history, Board text and movement/history, five Grid tabs, worksheet navigation,
+history, Canvas text and movement/history, five Grid tabs, worksheet navigation,
 one-page print-preview open/cancel, themes and active-child disposal. EN/ZH guides
 and eleven-file source parity with twenty official CSS imports pass separately.
 The fullscreen name-box attempt failed and remains disclosed; full acceptance,
@@ -1469,14 +1469,14 @@ Current registry and ledger: **121 pages, 243 capability blueprints, 83 partial,
 partial evidence; seventeen remain planned. Counts below are historical snapshots.
 
 `embed/boards-in-bases-tab` adds Cove: eight equipment-lending requests, four
-linked touchpoints and a native service-blueprint Board with twelve responsibility
+linked touchpoints and a native service-blueprint Canvas with twelve responsibility
 cards and seventeen bound connectors. Blue-gray, lavender and sand distinguish
 the borrower, front-desk and backstage lanes; native white SDK tools remain intact.
 Selected independent production passes literal README examples, actual editing,
 native history, card movement and rendered connector endpoint following, linked
-Base labels, themes and active-child disposal. Eleven-file source/CSS parity and
+Relational Table labels, themes and active-child disposal. Eleven-file source/CSS parity and
 EN/ZH integration pass. The real SDK editor service is registered via
-Board's public runtime-scoped dependency extension without an unrelated Slides unit.
+Canvas's public runtime-scoped dependency extension without an unrelated Slides unit.
 See the case README and ledger for failed attempts and open acceptance/performance.
 
 ## Latest verified progress snapshot / Avenue
@@ -1492,7 +1492,7 @@ nine sessions and 72 planned seats support an original invitation, budget,
 three-week sequence and readiness review. Deep Ocean navy, coral, lavender,
 warm white and sea green vary by page while the native UI remains white.
 Selected production checks pass actual text/history, shape movement/history,
-Base edits and linked labels, native navigation, themes and disposal. EN/ZH
+Relational Table edits and linked labels, native navigation, themes and disposal. EN/ZH
 guides preserve both edited models, and the eleven-file export includes eight
 official stylesheets. Full acceptance remains partial, with first-native-edit
 materialization, broader menus/playback and performance limits in the README.
@@ -1501,7 +1501,7 @@ materialization, broader menus/playback and performance limits in the README.
 assignments, three linked issues and a six-section modern editorial playbook.
 Forest green, rust, blue and lilac distinguish content while the native SDK
 chrome stays white. There are no fixture panels or duplicate editing buttons.
-Selected independent production and EN/ZH guide tests pass native Docs/Base
+Selected independent production and EN/ZH guide tests pass native Docs/Relational Table
 editing and history, literal README examples, scroll, linked labels, navigation,
 theme ownership and disposal. The same factory and six official CSS imports
 are included in the eleven-file standalone export. See the case README and
@@ -1532,7 +1532,7 @@ Current totals: 108 registered pages, 70 partial, 0 verified and 173 unassessed
 capabilities. Eleven of 41 native Embed cases are partial; 30 remain planned.
 Counts in older sections below are historical snapshots, not current progress.
 
-### Orchard / Native Base Block in Modern Docs
+### Orchard / Native Relational Table Block in Modern Docs
 
 `embed/bases-in-docs-block` adds an original library collection-service brief
 for 40 fictional readers, eight readiness checks and five linked people.
@@ -1581,22 +1581,22 @@ failures are retained. See the case README for broader acceptance still required
 Totals remain 106 registered pages, 68 partial, 0 verified and 175 unassessed
 capabilities. Nine of the 41 native Embed cases are partial; 32 are planned.
 
-### Ember / Native Board in a Sheet Tab
+### Ember / Native Canvas in a Sheet Tab
 
 `embed/boards-in-sheets-tab` adds an original 34-minute checkout incident:
-six cost assumptions, a native Board timeline with four milestones and three
+six cost assumptions, a native Canvas timeline with four milestones and three
 cause/action cards, and a linked Review gates worksheet. Terracotta, cream,
 blue, sage and lavender distinguish the story. Grid and twelve official SDK
 stylesheets are retained; there are no fixture controls or iframe substitutes.
 `embed-board-tab-first` passes selected native activation, Shape edit/paint,
 keyboard history, recalculation and child preservation. After correcting the
 test's comma-separated pan parser, `embed-board-tab-native-drag` also passes
-real canvas drag and native Undo restoring the full Board snapshot.
+real canvas drag and native Undo restoring the full Canvas snapshot.
 
 `embed-board-tab-production-1220` passes the current independent build and
 revised heading layout. Its screenshot was reviewed. B5 340 to 400 raises
 the planning envelope from 8268.50 to 9096.50; the linked review worksheet updates
-while the full edited Board remains unchanged across tabs. Selected disposal
+while the full edited Canvas remains unchanged across tabs. Selected disposal
 passes without browser errors. Main JS is 18,157.15 kB / 4,504.30 kB gzip, so
 performance is not accepted. Current source parity/Next integration and broader
 typing, connector, accessibility and lifecycle acceptance remain open.
@@ -1604,7 +1604,7 @@ The catalog now contains 105 pages; the ledger records 67 partial, 0 verified
 and 176 unassessed capabilities. Eight of 41 native Embed plans are partial.
 
 `embed-board-tab-next` now passes both EN/ZH guides (three variants, actions and
-states), the real Board tab and official white/flex CSS without browser errors.
+states), the real Canvas tab and official white/flex CSS without browser errors.
 The English screenshot was reviewed. The scope audit confirms only this demo
 and zero document MDX modules; first guide/playground responses took 95s/9.5s.
 `embed-board-tab-export-current` passes all eleven updated files and live CSS;
@@ -1613,14 +1613,14 @@ The specifically owned Next verification service is stopped after testing;
 the independent production preview is retained on port 4204. The case remains
 partial, with the broader acceptance gaps described in its own README.
 
-### Tidal / Native Board in a Sheet Float
+### Tidal / Native Canvas in a Sheet Float
 
 `embed/boards-in-sheets-float` pairs eight original shift-cost lines with a dock
 handoff diagram: six colored process nodes, six bound connectors and distinct
 matched/exception paths. `embed-board-float-layout` passes activation, actual
 Shape text Facade edit/paint, host recalculation to 2,376, full child preservation
 and selected teardown without browser errors. The edited screenshot was reviewed
-after fixing overflowing node labels. Boards UI's public runtime dependency
+after fixing overflowing node labels. Canvases UI's public runtime dependency
 extension registers an official child-owned EditorUIService; no dummy Slides
 unit or installed-package patch is used. Independent export, Next integration,
 broader native operations, lifecycle and performance remain open.
@@ -1650,16 +1650,16 @@ was stopped; the independent production preview is retained. The current English
 guide screenshot was visually reviewed. Mobile, dynamic resizing, native typing,
 connector manipulation and full lifecycle acceptance remain open.
 
-### Willow / Native Base in a Sheet Tab
+### Willow / Native Relational Table in a Sheet Tab
 
 `embed/bases-in-sheets-tab` pairs an original six-supplier landed-cost workbook
-with a full Base tab: supplier terms/review dates and eight linked follow-ups.
-Wine, sand and sage accents accompany native Grid and Base controls; there is no
+with a full Relational Table tab: supplier terms/review dates and eight linked follow-ups.
+Wine, sand and sage accents accompany native Grid and Relational Table controls; there is no
 fixture panel. `embed-base-tab-owned-cleanup` passes selected source interactions:
 supplier edit/paint and native Undo/Redo, table navigation with updated linked
 supplier labels, freight recalculation to 39,135, Release checks updates, exact
 child snapshot preservation and selected active-child disposal. The first run's
-LocaleService teardown failure is retained; only the owned Base React root is
+LocaleService teardown failure is retained; only the owned Relational Table React root is
 unmounted early, without SDK changes. `embed-base-tab-production-keyboard` also
 passes the independent build, including actual native cell keyboard editing and
 Undo with host isolation. Its main JS is 18,444.84 kB / 4,531.97 kB gzip; CSS is
@@ -1678,7 +1678,7 @@ the passing independent production tests; they do not establish a sole cause or
 certify cold-start acceptance.
 
 `embed-base-tab-next-settled` subsequently passes both EN/ZH guides, three
-variants/actions/states each, real native Base tab/table navigation and official
+variants/actions/states each, real native Relational Table tab/table navigation and official
 white/flex CSS with zero browser errors. The English preview was visually
 reviewed. The same selected development chunk loads in approximately 6.0s and
 2.5s for the two visits; this is warm integration, not a cold-start fix. The
@@ -1689,21 +1689,21 @@ README evidence update, plus real canvas paint and official CSS. Runtime factory
 and production assets are unchanged. Selected TypeScript/lint checks and all
 103 static source/CSS checks pass; none of these promotes a capability to verified.
 
-### Atlas / Native Base in a Sheet Float
+### Atlas / Native Relational Table in a Sheet Float
 
 `embed/bases-in-sheets-float` adds an original community-launch campaign: six
 budget lines and eight deliverables with different statuses, local text owners,
 dates and next evidence. Teal headers and warm overrun emphasis distinguish it
 from the other native Embed stories. `embed-base-float-layout` passes native
-SheetFloating Base paint/activation, actual task Facade edit and repaint, host
-available-budget recalculation from 2,830 to 2,580 with unchanged Base data, and
+SheetFloating Relational Table paint/activation, actual task Facade edit and repaint, host
+available-budget recalculation from 2,830 to 2,580 with unchanged Relational Table data, and
 selected active-child disposal without browser errors. The opening screenshot
 was visually reviewed; its floating placement leaves all three budget columns
 visible. The first run's long-text paint assertion failed on native ellipsis;
 the complete value remains checked through the Facade. Full acceptance is open.
 
 `embed-base-float-production` now passes the independently installed build,
-including native Base Undo/Redo, horizontal scrolling to evidence, host/child
+including native Relational Table Undo/Redo, horizontal scrolling to evidence, host/child
 state independence and selected teardown. `embed-base-float-export-parity`
 passes eleven-file source parity and official white/flex CSS. The selected build
 installs 206 packages and transforms 1,845 modules; main JS `index-6EPbYvVa.js`
@@ -1724,7 +1724,7 @@ Atlas Next integration still fails: `embed-base-float-next-guides` exceeds the
 child-readiness timeout. No EN/ZH acceptance is claimed. The failed test process
 completed; the specifically verified Atlas-only Next service was then stopped
 before independent Willow runtime work. These failures do not invalidate the
-separate production interaction/export results or prove an SDK Base failure.
+separate production interaction/export results or prove an SDK Relational Table failure.
 
 ### Juniper / Native modern document in a Sheet Tab
 
@@ -1829,7 +1829,7 @@ verifies nine-file source parity and official SDK CSS. The beta.2 portal cleanup
 workaround and remaining lifecycle/performance gaps are documented
 in the case README and `capabilities/sdk-issues.md`. This remains partial coverage.
 
-Collaborative version/revision history is outside this frontend-only collection. Four unimplemented history blueprints have been moved to `capabilities/excluded-collaborative-history.json` for traceability and are no longer counted: Sheets, Modern Docs, Slides and Boards. Refer to the current ledger above; pages and capabilities are not interchangeable completion units. Ordinary native Undo/Redo and explicitly labelled local snapshot serialization are distinct from collaborative revision history. Reference local/advanced SDK demos when deciding which plugins and operations belong in this collection.
+Collaborative version/revision history is outside this frontend-only collection. Four unimplemented history blueprints have been moved to `capabilities/excluded-collaborative-history.json` for traceability and are no longer counted: Sheets, Modern Docs, Slides and Canvases. Refer to the current ledger above; pages and capabilities are not interchangeable completion units. Ordinary native Undo/Redo and explicitly labelled local snapshot serialization are distinct from collaborative revision history. Reference local/advanced SDK demos when deciding which plugins and operations belong in this collection.
 
 The current interaction policy is visual-first: authored pages demonstrate basic formatting, while users operate the native Ribbon. The user explicitly removed the exception for generic fixture controls: no fixture selector, Load, Reset or Inspect toolbar should cover the editor. Collapsing or hiding duplicate buttons is insufficient; remove their UI and handlers. Native Exchange and Print plugins should provide client file/print workflows. Audit each demo before claiming this policy is complete.
 
@@ -1899,7 +1899,7 @@ The previous cleanup reports proved DOM behavior but did not prove parent-unmoun
 
 The independent project is listed in `test-results/isolated-regions-export/exports.json`. It builds only this case with Vite 8.2.2 and SDK 1.0.0-beta.2. Its current JS is 6,251.52 kB / 1,587.94 kB gzip, with 102.33 kB / 15.41 kB gzip combined official/host CSS and lazy language chunks. The large-bundle warning remains. Strict independent/project TypeScript and targeted lint/format pass; 95-case source/CSS/ribbon checks are static policy checks, not all-feature acceptance. Coverage is 0 verified / 57 partial / 149 unassessed. Full accessibility, additional resource fault instrumentation and frozen time remain outstanding in the ledger.
 
-The Showcase is the public, runnable demo catalog for Univer SDK. It covers Sheets, Modern Docs, Traditional Docs, Slides, Boards, Bases, PDFs, and Embed.
+The Showcase is the public, runnable demo catalog for Univer SDK. It covers Sheets, Modern Docs, Traditional Docs, Slides, Canvases, Relational Tables, PDFs, and Embed.
 
 ## Deferred editor delivery
 
@@ -2003,7 +2003,7 @@ The final visually inspected `crm-host-capture-final/showcase-screenshots-g3PdPJ
 
 The authored date is fixed, but global SDK time is not frozen. Missing-unit recovery, broader SDK-write failures/coercion, in-flight calculation cancellation, full native accessibility and cross-browser/DPR still keep this blueprint partial. At this CRM checkpoint the registry had 92 demos and the ledger had 0 verified / 54 partial / 152 unassessed; see the latest lifecycle checkpoint above for current totals. Only explicitly selected demos are compiled for browser verification.
 
-## Bases single and multi-select option lab
+## Relational Tables single and multi-select option lab
 
 Run `pnpm dev:showcase bases/select-options` and `pnpm test:showcase:bases-options` against its default 3030 playground, or set `SHOWCASE_DEMO_URL` for a selected standalone preview. Only the chosen case is compiled. Sable retains 30 original coastal survey tasks, 12 projects and 18 sample handovers, without fixture controls, duplicate editing/history buttons or readback panels.
 
@@ -2011,7 +2011,7 @@ Fourteen literal README snippets explain stable IDs, names/colors/order, single/
 
 The current eleven-file source/CSS report is `test-results/sable-native-export-ui/report.json`; four official stylesheets ship with the same native factory. The refreshed cover comes from the current native-only baseline. Earlier host-control tests, fixture/reset checks and older screenshots are historical evidence, not acceptance of this UI. Complete native field menus, referenced option sources, clipboard/import validation, used-option integrity, reconstruction/lifecycle, accessibility and performance remain open.
 
-## Bases text, number and currency field lab
+## Relational Tables text, number and currency field lab
 
 Current native-only implementation removes the fixture/editing/history and audit panels, retaining the repair-cafe data and 23 literal README examples. See `test-results/bracken-native-final/report.json` and `test-results/bracken-native-export-ui/report.json`. Native input/history, real formatted canvas values, full EN/ZH packs, themes and selected reconstruction pass; schema/default/null-display defects keep strict acceptance FAIL. The maintainer README explains the explicit standalone harness for reconstruction checks. The following paragraphs record the superseded host-control implementation, not the current UI.
 
@@ -2045,7 +2045,7 @@ Current evidence: `test-results/ribbon-menu-documentation-ready/report.json` and
 
 `ribbon-defaults-ui/report.json` verifies the three selected default layouts. The inspected `ribbon-list-dropdown/sheets-list-validation-grid-dropdown.png` and `ribbon-menu-standalone-capture/light.png` replace the two public thumbnails; both check native white backgrounds and settled ancestor opacity. Prior thumbnails are retained in `test-results/ribbon-prior-thumbnails`. Earlier failed runs remain available: raw empty-resource equality, closing-overflow timing, an unintended double-click entering cell edit mode in a test, and a missing iframe-readiness wait were diagnosed and the checks corrected without hiding SDK errors. A cold concurrent Next dev run also produced a chunk-load error and React script warning; subsequent isolated warm runs pass, but broader cold/HMR reliability is not certified.
 
-## Bases record lifecycle and batch editing
+## Relational Tables record lifecycle and batch editing
 
 Current native-only implementation retains the arts-festival three tables and 20 literal README examples without fixture/CRUD/history or audit panels. See `test-results/record-lifecycle-native-acceptance/report.json` and `test-results/record-lifecycle-export-ui/report.json`. Actual native typing/history, full EN/ZH packs, themes and source parity pass; attachment Undo and empty reconstructed view remain strict failures, and native Add form submission awaits diagnosis. The following paragraphs describe the removed host controls, not current UI acceptance.
 
@@ -2063,7 +2063,7 @@ The exact nine-file export at `<USERPROFILE>/AppData/Local/Temp/univer-base-reco
 
 The blueprint remains **partial**: insertion-Undo attachment resources, Grid person-name display, full native accessibility/clipboard/link handling, global frozen-clock/cross-session determinism, pending-operation safety and delivery cost remain open. Current catalog: 90 registered cases; 206 blueprints, **0 verified / 52 partial / 154 unassessed**. Registration and known-defect observation are not completion percentages.
 
-## Historical Bases creation controls and snapshot restoration
+## Historical Relational Tables creation controls and snapshot restoration
 
 Run `pnpm dev:showcase bases/create-base-and-tables`, then `pnpm test:showcase:bases-lifecycle`. The normal browser test **currently fails** the native person-name rendering requirement; `SHOWCASE_OBSERVE_KNOWN_DEFECTS=1` explicitly observes that beta.2 defect and tests the other operations. `SHOWCASE_BASE_URL` selects the documentation origin, `SHOWCASE_DEMO_URL` a standalone URL, and `SHOWCASE_DETAILS=1` includes EN/ZH guides and iframes. `pnpm test:showcase:bases-lifecycle-sdk` checks models without compiling any demo.
 
@@ -2077,7 +2077,7 @@ The nine-file independent project at `<USERPROFILE>/AppData/Local/Temp/univer-ba
 
 Blueprint 001 stays **partial**, retaining Grid display names, existing-table move, frozen SDK time, cross-session resources, pending-operation/cold-start safety, native accessibility/cross-browser/mobile acceptance and delivery cost. Current catalog: 89 cases; 206 blueprints, **0 verified / 51 partial / 155 unassessed**. Neither registration nor a known-defect observation pass means complete capability coverage.
 
-## Historical Board lifecycle controls and snapshot restoration
+## Historical Canvas lifecycle controls and snapshot restoration
 
 Run `pnpm dev:showcase boards/create-save-and-restore-board`, then `pnpm test:showcase:boards-roundtrip` in another terminal. `SHOWCASE_BASE_URL` selects a different documentation origin; `SHOWCASE_DEMO_URL` selects a standalone build. Set `SHOWCASE_DETAILS=1` to include both localized guide/iframe checks. `pnpm test:showcase:boards-roundtrip-sdk` runs the model-only JSON/history regression without starting a browser or compiling a demo.
 
@@ -2085,13 +2085,13 @@ Run `pnpm dev:showcase boards/create-save-and-restore-board`, then `pnpm test:sh
 
 `scripts/test-boards-roundtrip-sdk.mjs` passes all four states with full serialized JSON comparisons: page order, active page, element order, text, transforms, inactive pages, native history and rejected-target preservation. UI coverage in `test-results/board-roundtrip-padded-standalone/report.json` and `board-roundtrip-details-final/report.json` additionally verifies actual render bounds, native keyboard and pointer movement, checkpoints after native edits, exact browser downloads, disabled no-op/missing/history controls, repeated Reset/reload, all state boundaries and 760/390/320px keyboard/layout checks. The detail run verifies EN/ZH 4/9/4 explanations, interactive four-level navigation and real iframe restore. Demo/iframe write requests are empty; the documentation shell's four Next server-action requests are recorded separately, not hidden or attributed to the standalone demo.
 
-The first browser tests caught an integration error: outer controls read focused-unit history while a transient text unit or no unit was focused. The factory now focuses the Board after an explicit outer action before reading the public history service; Undo/Redo still execute actual `FBoard` methods. `board-roundtrip` and `board-roundtrip-standalone` retain those failures. `board-roundtrip-history-focus` completed functional checks but failed on development React/script errors; the unchanged-server clean repeat passed. `board-roundtrip-details` retains a test locator failure when an expanded-only locator stopped matching after collapse. These failures are not counted as acceptance passes.
+The first browser tests caught an integration error: outer controls read focused-unit history while a transient text unit or no unit was focused. The factory now focuses the Canvas after an explicit outer action before reading the public history service; Undo/Redo still execute actual `FBoard` methods. `board-roundtrip` and `board-roundtrip-standalone` retain those failures. `board-roundtrip-history-focus` completed functional checks but failed on development React/script errors; the unchanged-server clean repeat passed. `board-roundtrip-details` retains a test locator failure when an expanded-only locator stopped matching after collapse. These failures are not counted as acceptance passes.
 
 The fresh nine-file export `<USERPROFILE>/AppData/Local/Temp/univer-board-roundtrip-GwgOju` installs 169 packages and passes Vite 8.2.2 production build (1,796 modules) and strict standalone TypeScript. `board-roundtrip-export-ui-final/report.json` verifies exact source parity, official white/flex/theme styles and native text painting. Entry `index-5ZX1rPO8.js` is approximately 15.02 MB / 3.59 MB gzip; CSS `index-D752LRRN.css` is 102.52 kB / 15.34 kB gzip. This large delivery cost remains open. `board-roundtrip-ownership/report.json` passes seven disposed owners and dark/light/dark replacement with one native canvas and no errors. The visually inspected, opacity-checked native capture at `board-roundtrip-capture-final/showcase-screenshots-JU45y0` supplies `public/assets/showcase/boards-create-save-and-restore-board.png`.
 
 The final padded/wrapped fixture was also rerun through `test-results/board-roundtrip-ownership-final/report.json`: all seven owners disposed, one native canvas per theme, and zero browser errors.
 
-This is partial capability coverage, not full SDK certification. The authored review date is fixed, not the global SDK clock; cross-session resources, edited-text/composition teardown races, touch/screen-reader support, browser coverage and delivery performance remain open. Fit uses the public `BoardViewportService`, clearly separate from Facades. Installed Boards exposes no page-navigation Facade, so the boundary fixture selects and orders pages at creation. Snapshot JSON is not binary image/PDF conversion. Trial UI is unmodified.
+This is partial capability coverage, not full SDK certification. The authored review date is fixed, not the global SDK clock; cross-session resources, edited-text/composition teardown races, touch/screen-reader support, browser coverage and delivery performance remain open. Fit uses the public `BoardViewportService`, clearly separate from Facades. Installed Canvases exposes no page-navigation Facade, so the boundary fixture selects and orders pages at creation. Snapshot JSON is not binary image/PDF conversion. Trial UI is unmodified.
 
 ## Capturing native UI without masking CSS defects
 
@@ -2113,8 +2113,8 @@ The coverage backlog currently contains 206 capability blueprints. The image, cr
 | Modern Docs | 24 | 21 |
 | Traditional Docs | 22 | 7 |
 | Slides | 24 | 10 |
-| Boards | 22 | 6 |
-| Bases | 28 | 9 |
+| Canvases | 22 | 6 |
+| Relational Tables | 28 | 9 |
 | PDFs | 25 | 5 |
 | Embed | 24 | 2 |
 | **Total** | **206** | **93** |
@@ -2507,13 +2507,13 @@ The independent production build is `<USERPROFILE>/AppData/Local/Temp/univer-rea
 
 On 2026-09-04, visual review exposed a gap in the earlier CSS export audit: imported SDK styles were present, but broad host selectors such as `.product-launch button` overrode native Univer controls. The live Add slide button had white background, host text color, a 5px radius and a 235px maximum width instead of its SDK primary styling. A passing import/dependency audit did not establish visual correctness.
 
-The first correction restricted host form/readout rules in seven enhanced Slides cases and Bases Group Records. The catalog-wide follow-up found and corrected 22 more cases: twelve Modern Docs examples had overly broad focus rules (four also matched native number/title/label inputs); three Traditional Docs and three Bases examples had unscoped readout/alert rules; four Boards examples had unscoped readout, form or focus rules. Host outline navigation, query-result buttons and focusable board wrappers retain explicit keyboard focus styling. No SDK package or native theme is patched.
+The first correction restricted host form/readout rules in seven enhanced Slides cases and Relational Tables Group Records. The catalog-wide follow-up found and corrected 22 more cases: twelve Modern Docs examples had overly broad focus rules (four also matched native number/title/label inputs); three Traditional Docs and three Relational Tables examples had unscoped readout/alert rules; four Canvases examples had unscoped readout, form or focus rules. Host outline navigation, query-result buttons and focusable board wrappers retain explicit keyboard focus styling. No SDK package or native theme is patched.
 
 `pnpm test:showcase:style-isolation` now uses the actual catalog metadata and source exporter, shared with the CSS import audit through `scripts/showcase-sources.mjs`. It tests all 81 exported stylesheets: 30 custom host styles and 51 mount-only styles. The initial `test-results/showcase-style-isolation-before/report.json` records the 22 failing cases; the final `test-results/showcase-style-isolation/report.json` has no collisions. Browser DOM probes include nested form controls, number/title/label/alt inputs, status/alert roles, details, tables and links, with keyboard focus and light/dark states; conditional selectors are checked even when their viewport condition is inactive. Host buttons must still match their own stylesheet rules. Unrecognized stylesheet roots fail explicitly instead of being silently skipped. This gate does not certify every live SDK component, arbitrary dynamic styles, pseudo-elements, inherited properties or all interaction states. CI now installs Chromium and runs the gate without compiling SDK demos; that CI configuration has been checked locally but not executed on a remote runner.
 
-Scoped live regressions passed for Modern Docs Shapes (30 host controls, keyboard editing/Undo, theme recreation and reload), Boards Search (native query/selection/movement/history, keyboard submission, narrow layout and reload) and Traditional Docs Page Setup (variants, margins, invalid input, history, reset and remount). Reports are in `test-results/modern-shape-style-boundary/`, `boards-query-style-boundary/` and `traditional-style-boundary/`. A separate live DOM probe found no host-selector matches on 24 visible native Page Setup controls or 23 visible native Boards controls (`test-results/native-style-boundary/report.json`). Only those three demos were compiled, with zero document MDX modules. These are scoped regression results, not full capability completion or accessibility certification.
+Scoped live regressions passed for Modern Docs Shapes (30 host controls, keyboard editing/Undo, theme recreation and reload), Canvases Search (native query/selection/movement/history, keyboard submission, narrow layout and reload) and Traditional Docs Page Setup (variants, margins, invalid input, history, reset and remount). Reports are in `test-results/modern-shape-style-boundary/`, `boards-query-style-boundary/` and `traditional-style-boundary/`. A separate live DOM probe found no host-selector matches on 24 visible native Page Setup controls or 23 visible native Canvases controls (`test-results/native-style-boundary/report.json`). Only those three demos were compiled, with zero document MDX modules. These are scoped regression results, not full capability completion or accessibility certification.
 
-Modern Shapes and Boards Search were also exported and tested as independent production builds. Their earlier temporary dependency trees lacked Vite even though pnpm reported them up to date; those failed builds are not counted as validation. New directories were generated from the actual source exporter and freshly installed: `<USERPROFILE>/AppData/Local/Temp/univer-style-docs-modern-SlvkfM` (180 packages) and `<USERPROFILE>/AppData/Local/Temp/univer-style-boards-lZLv1J` (169 packages). Both corresponding `-standalone` browser regression reports pass. Vite 8.2.2 emits Modern Shapes entry `index-BaH2njlk.js` (15,168.15 kB / 3,578.61 kB gzip) with 107.76 kB CSS, and Boards Search entry `index-P-GYr_d5.js` (15,014.96 kB / 3,584.69 kB gzip) with 102.90 kB CSS. Source/project-file parity, scoped TypeScript, targeted lint and both catalog CSS gates pass; bundle-size warnings remain. This follow-up changes no capability coverage counts.
+Modern Shapes and Canvases Search were also exported and tested as independent production builds. Their earlier temporary dependency trees lacked Vite even though pnpm reported them up to date; those failed builds are not counted as validation. New directories were generated from the actual source exporter and freshly installed: `<USERPROFILE>/AppData/Local/Temp/univer-style-docs-modern-SlvkfM` (180 packages) and `<USERPROFILE>/AppData/Local/Temp/univer-style-boards-lZLv1J` (169 packages). Both corresponding `-standalone` browser regression reports pass. Vite 8.2.2 emits Modern Shapes entry `index-BaH2njlk.js` (15,168.15 kB / 3,578.61 kB gzip) with 107.76 kB CSS, and Canvases Search entry `index-P-GYr_d5.js` (15,014.96 kB / 3,584.69 kB gzip) with 102.90 kB CSS. Source/project-file parity, scoped TypeScript, targeted lint and both catalog CSS gates pass; bundle-size warnings remain. This follow-up changes no capability coverage counts.
 
 Product Launch additionally restores the native grid ribbon/header and reserves 560px minimum editor height (the embedded playground can scroll). Its browser test checks real SDK controls rather than merely searching for stylesheet imports: Add slide resolves to the SDK primary background `rgb(44, 83, 241)`, white text, 8px radius and no host maximum width; loaded demo rules match no sampled native controls. Both preview and an independently installed production build pass the launch interaction/geometry/source-data/download gates. Preview also passes light/dark native-control checks. The native Themes popover was inspected after its opening animation settled. Screenshots are under `test-results/slides-launch-css-isolation/`; `themes.png` is an intermediate animation frame, not final visual evidence. Use `themes-settled.png` and `restored-native-ui.png` instead. Canvas text-box appearance is authored/native drawing content, separate from DOM control CSS.
 
@@ -2625,7 +2625,7 @@ The independent source project is `<USERPROFILE>/AppData/Local/Temp/univer-slide
 
 Regenerable final reports and screenshots are `test-results/slides-roundtrip-typography-final` and `test-results/slides-roundtrip-typography-final-standalone`. Both reports say `passed`, with no failures or browser errors. Earlier bounds-only passes, temporary test assumptions and failed server runs are not final acceptance. The original documentation server exited during first detail-page compilation, and one subsequent non-PTY startup also exited without a useful diagnostic. After their terminal status was confirmed, a fresh scoped server completed both detail routes and the full final test. The observed restart passed but does not identify or fix the earlier development-server exit cause. This entry verifies `standalone-slides-001`, not the entire Slides product or catalog.
 
-## Base grouping delivery checks
+## Relational Table grouping delivery checks
 
 Run `pnpm dev:showcase bases/group-records` and `pnpm test:showcase:bases-groups`. Mistral is an original 90-record touring-equipment returns pipeline, frozen at 2027-03-31 09:00 UTC. It includes repeated kit names, blank statuses/owners, dates, regions, missing estimates, real zeros, and an unused Archived option. Seven variants cover no grouping, status ascending/descending, status → owner, region → status and both empty-group flags. The grouped and reference Grid views share data but not grouping configuration. Preview and standalone use the same implementation.
 
@@ -2816,25 +2816,25 @@ The scoped loader removes other registry imports before webpack constructs its d
 
 For Traditional features, start `pnpm dev:showcase docs-traditional/page-setup docs-traditional/paragraph-typesetting docs-traditional/pagination-rules`, then run `pnpm test:showcase:traditional`. Both browser test commands accept individual case slugs. Screenshots/reports go under the ignored `test-results` directory. Do not run a full catalog build to check one demo.
 
-The Bases sort check currently fails on the beta.2 live-sort defect recorded in `capabilities/sdk-issues.md`. `pnpm test:showcase:bases-sort-sdk` is a strict, UI-free reproduction that also fails until the defect is fixed. Neither is a green acceptance gate at present; the filter/layout checks can be run separately with `pnpm test:showcase:bases filter-builder view-field-layout`.
+The Relational Tables sort check currently fails on the beta.2 live-sort defect recorded in `capabilities/sdk-issues.md`. `pnpm test:showcase:bases-sort-sdk` is a strict, UI-free reproduction that also fails until the defect is fixed. Neither is a green acceptance gate at present; the filter/layout checks can be run separately with `pnpm test:showcase:bases filter-builder view-field-layout`.
 
 For a focused Content Pipeline lifecycle regression, start `pnpm dev:showcase bases/content-pipeline` and run `node scripts/test-showcase-regressions.mjs bases/content-pipeline`. The regression script also accepts the other individual slugs listed in that script; keep its selection aligned with the scoped server.
 
-For Boards connectors, start `pnpm dev:showcase boards/connector-routing`, then run `pnpm test:showcase:boards`. This checks all twelve rendered endpoint pairs, routing variants, node movement through the API, native canvas drag, and a keyboard-only focus/move path, binding repair, styles, invalid input, Undo/Redo, empty/reset/remount, rapid live theme changes, narrow layout, and browser errors. It does not establish collision-free routing or complete screen-reader semantics for the SDK canvas.
+For Canvases connectors, start `pnpm dev:showcase boards/connector-routing`, then run `pnpm test:showcase:boards`. This checks all twelve rendered endpoint pairs, routing variants, node movement through the API, native canvas drag, and a keyboard-only focus/move path, binding repair, styles, invalid input, Undo/Redo, empty/reset/remount, rapid live theme changes, narrow layout, and browser errors. It does not establish collision-free routing or complete screen-reader semantics for the SDK canvas.
 
-For Boards layout, start `pnpm dev:showcase boards/alignment-spacing`, then run `pnpm test:showcase:boards-alignment`. Eight publishing-workflow nodes (including five unequal-sized editorial cards) and twelve connectors replace the release-pipeline dataset. Checks compare actual render-object bounds against the model for all six alignments, equal edge gaps, custom-gap boundaries, two-command Undo, an atomic 32px grid-coordinate batch with one-step Undo/Redo, native soft/hard/breakaway snapping and Ctrl bypass at 100% zoom, keyboard focus/move, theme remount, narrow layout, errors, empty/reset/remount. Toggling the visual grid does not itself quantize geometry; the separately labeled `setElementsTransform()` action does.
+For Canvases layout, start `pnpm dev:showcase boards/alignment-spacing`, then run `pnpm test:showcase:boards-alignment`. Eight publishing-workflow nodes (including five unequal-sized editorial cards) and twelve connectors replace the release-pipeline dataset. Checks compare actual render-object bounds against the model for all six alignments, equal edge gaps, custom-gap boundaries, two-command Undo, an atomic 32px grid-coordinate batch with one-step Undo/Redo, native soft/hard/breakaway snapping and Ctrl bypass at 100% zoom, keyboard focus/move, theme remount, narrow layout, errors, empty/reset/remount. Toggling the visual grid does not itself quantize geometry; the separately labeled `setElementsTransform()` action does.
 
-For Boards element organization, start `pnpm dev:showcase boards/group-lock-z-order`, then run `pnpm test:showcase:boards-groups`. The museum campaign uses eight differently sized assets, deliberate overlaps, two decisions, twelve routes, and one detached route. Checks cover all four exact z-order variants, generated group IDs, two-level parent/descendant readback, nested focus and keyboard movement, atomic metadata locking through the exported operation, blocked locked movement, group movement with two-step Undo/Redo, ungrouping, render/model bounds parity, errors, empty/reset/remount, theme, and narrow layout. The beta.2 Facade lock-helper defect is recorded in `capabilities/sdk-issues.md`; this case does not disguise it.
+For Canvases element organization, start `pnpm dev:showcase boards/group-lock-z-order`, then run `pnpm test:showcase:boards-groups`. The museum campaign uses eight differently sized assets, deliberate overlaps, two decisions, twelve routes, and one detached route. Checks cover all four exact z-order variants, generated group IDs, two-level parent/descendant readback, nested focus and keyboard movement, atomic metadata locking through the exported operation, blocked locked movement, group movement with two-step Undo/Redo, ungrouping, render/model bounds parity, errors, empty/reset/remount, theme, and narrow layout. The beta.2 Facade lock-helper defect is recorded in `capabilities/sdk-issues.md`; this case does not disguise it.
 
 The grouping checks also verify that Undo/Redo refreshes group IDs and that grouping again reuses a restored container. IDs are derived from SDK membership, not retained in a separate host cache. An expanded regression discovered that nested disband Undo restores membership but changes sibling z-order. `pnpm test:showcase:boards-group-undo-sdk` is a strict UI-free reproduction and currently fails on beta.2. The browser check verifies membership recovery, not correct restored sibling order; this limitation is visible in the demo and the capability is now partial.
 
-For Boards discovery, start `pnpm dev:showcase boards/search-element-query`, then run `pnpm test:showcase:boards-query`. The original Orion release-review fixture has eight nodes, two decisions, twelve routes, and one detached route. The SDK's Find index returns three shapes for Risk, or five hits across four unique elements when a connector name and label both match. Checks cover case/whitespace/substring rules, shape/connector/all-type queries, deduplicated real SDK selection, exact union bounds, native keyboard movement, per-result focus, text editing with Undo/Redo, blank/unmatched queries, missing IDs, empty/reset/remount, renderer parity, theme, and narrow layout. Native edits require the explicitly labeled Refresh query action; this is not an automatically updating search panel. Host styles are scoped to the direct results section so they do not alter SDK layout.
+For Canvases discovery, start `pnpm dev:showcase boards/search-element-query`, then run `pnpm test:showcase:boards-query`. The original Orion release-review fixture has eight nodes, two decisions, twelve routes, and one detached route. The SDK's Find index returns three shapes for Risk, or five hits across four unique elements when a connector name and label both match. Checks cover case/whitespace/substring rules, shape/connector/all-type queries, deduplicated real SDK selection, exact union bounds, native keyboard movement, per-result focus, text editing with Undo/Redo, blank/unmatched queries, missing IDs, empty/reset/remount, renderer parity, theme, and narrow layout. Native edits require the explicitly labeled Refresh query action; this is not an automatically updating search panel. Host styles are scoped to the direct results section so they do not alter SDK layout.
 
 For Modern Docs paragraphs and headings, start `pnpm dev:showcase docs-modern/paragraph-heading-blocks`, then run `pnpm test:showcase:modern-headings`. The Lumen brief has six sections, two audience list items, one consent task, a risk callout, two lines of TypeScript, a quote, and a hyperlink backed by the corresponding SDK plugins. Checks cover H1–H5/body, both marked sections, invalid promotion/demotion boundaries, rendered font sizes, paragraph alignment/indentation/line height, content preservation, host-outline parity, Undo/Redo, native selection and typing, missing markers, empty/reset, full snapshot round trip, theme, narrow layout, one canvas after remount, and browser errors. The host outline derives from SDK metadata; it is not a native outline plugin. Narrow screens use fit-width zoom, not responsive text reflow. Unlicensed runs retain the SDK trial watermark. Lifecycle precautions and the same-ID SDK defect are described in `capabilities/sdk-issues.md`.
 
 For Modern Docs lists, start `pnpm dev:showcase docs-modern/lists-task-items` and run `pnpm test:showcase:modern-lists`. The original Mosaic museum opening brief has three object bullets, five installation steps, two partner steps, and three tasks (one completed), plus actual callout/code/quote/link structures. Checks cover two-item nesting, levels 0–8, marker glyphs and positions in the renderer, decimal/letter/Roman/diamond variants, item/level/list selection, restart/continue numbering, Step n: formatting, validation, task toggle, text preservation, Undo/Redo, snapshot reload, native typing, empty/reset, theme/narrow/remount, and browser errors. The exported SDK scroll controller reveals affected content. The script explicitly observes a known item-scope defect; `pnpm test:showcase:docs-list-scope-sdk` is the strict isolated gate and currently fails. Do not treat the browser pass as full capability acceptance.
 
-`pnpm test:showcase:source` checks exact source preservation, CSS preservation, dependencies, entry paths, and twenty thin Preview adapters (ten Modern features, three Traditional features, three Bases features, and four Boards features). Generated standalone projects include Vite dev/build/preview scripts, a Node engine requirement, and a pnpm 12 workspace policy that permits only the known `protobufjs` transitive build script. Static source checks do not prove installation or browser behavior; independent-project checks supply that evidence per case, not for the whole catalog.
+`pnpm test:showcase:source` checks exact source preservation, CSS preservation, dependencies, entry paths, and twenty thin Preview adapters (ten Modern features, three Traditional features, three Relational Tables features, and four Canvases features). Generated standalone projects include Vite dev/build/preview scripts, a Node engine requirement, and a pnpm 12 workspace policy that permits only the known `protobufjs` transitive build script. Static source checks do not prove installation or browser behavior; independent-project checks supply that evidence per case, not for the whole catalog.
 
 ### Independent source-project verification
 
@@ -2850,11 +2850,11 @@ For any copied case, set `SHOWCASE_SOURCE_DIR` to its independent project direct
 
 The alignment project also passed isolated installation, exact source comparison, a targeted Vite production build, and the same browser checks against that build on 2026-09-04. Its results and screenshots are under `test-results/boards-alignment` and `test-results/boards-alignment-standalone`. It shares the approximately 15 MB SDK bundle-size concern below; that catalog-level optimization concern does not invalidate its verified layout behavior.
 
-On 2026-09-04, the Boards connector project installed and built independently with SDK `1.0.0-beta.2` and Vite `8.2.2`; both the standalone production preview and the scoped documentation Preview passed the interaction checks. The independent build emitted a large-chunk warning: the main JavaScript chunk was approximately 15.02 MB (3.58 MB gzip). This catalog-level delivery-performance concern is recorded in `capabilities/sdk-issues.md`; it does not invalidate the connector behavior proved by the targeted production build. Local screenshots and reports are under `test-results/boards-connectors` and `test-results/boards-connectors-standalone`; they are ignored artifacts and must be regenerated on a fresh checkout.
+On 2026-09-04, the Canvases connector project installed and built independently with SDK `1.0.0-beta.2` and Vite `8.2.2`; both the standalone production preview and the scoped documentation Preview passed the interaction checks. The independent build emitted a large-chunk warning: the main JavaScript chunk was approximately 15.02 MB (3.58 MB gzip). This catalog-level delivery-performance concern is recorded in `capabilities/sdk-issues.md`; it does not invalidate the connector behavior proved by the targeted production build. Local screenshots and reports are under `test-results/boards-connectors` and `test-results/boards-connectors-standalone`; they are ignored artifacts and must be regenerated on a fresh checkout.
 
-On 2026-09-04, the Boards group/lock/z-order project was generated from the displayed source into a directory outside the documentation workspace. Its isolated `pnpm install`, exact source comparison, targeted Vite `8.2.2` production build, and browser interaction checks against that production preview passed with SDK `1.0.0-beta.2`. The build produced an approximately 15.02 MB main JavaScript chunk (3.59 MB gzip), so it remains subject to the same catalog-level delivery-size observation. These checks do not prove complete Undo fidelity: the later strict nested-disband regression described above fails. Regenerable reports and screenshots are under `test-results/boards-groups` and `test-results/boards-groups-standalone`.
+On 2026-09-04, the Canvases group/lock/z-order project was generated from the displayed source into a directory outside the documentation workspace. Its isolated `pnpm install`, exact source comparison, targeted Vite `8.2.2` production build, and browser interaction checks against that production preview passed with SDK `1.0.0-beta.2`. The build produced an approximately 15.02 MB main JavaScript chunk (3.59 MB gzip), so it remains subject to the same catalog-level delivery-size observation. These checks do not prove complete Undo fidelity: the later strict nested-disband regression described above fails. Regenerable reports and screenshots are under `test-results/boards-groups` and `test-results/boards-groups-standalone`.
 
-The Boards search/element-query project was also generated outside the documentation workspace on 2026-09-04. A fresh `pnpm 12.1.0 install` completed, exact source comparison passed, and its Vite `8.2.2` production build and the full interaction script passed with SDK `1.0.0-beta.2`. The main JavaScript chunk was approximately 15.01 MB (3.58 MB gzip); the existing delivery-size concern applies. Regenerable screenshots and reports are in `test-results/boards-query` and `test-results/boards-query-standalone`. The same test passed as the first page request after stopping and restarting the scoped Next server (`test-results/boards-query-restart`). Earlier hot-update runs had intermittent script parse errors; those were not reproduced in the final stable or restarted runs, and their exact cause has not been established.
+The Canvases search/element-query project was also generated outside the documentation workspace on 2026-09-04. A fresh `pnpm 12.1.0 install` completed, exact source comparison passed, and its Vite `8.2.2` production build and the full interaction script passed with SDK `1.0.0-beta.2`. The main JavaScript chunk was approximately 15.01 MB (3.58 MB gzip); the existing delivery-size concern applies. Regenerable screenshots and reports are in `test-results/boards-query` and `test-results/boards-query-standalone`. The same test passed as the first page request after stopping and restarting the scoped Next server (`test-results/boards-query-restart`). Earlier hot-update runs had intermittent script parse errors; those were not reproduced in the final stable or restarted runs, and their exact cause has not been established.
 
 The Modern Docs paragraph/heading project passed a fresh isolated install of 148 packages with pnpm 12.1.0, exact displayed-source comparison, a Vite 8.2.2 production build, and the same browser test against that production preview on 2026-09-04. Results/screenshots are under `test-results/modern-headings` and `test-results/modern-headings-standalone`. Its main JavaScript chunk is approximately 4.91 MB (1.16 MB gzip), plus language/hyphenation chunks, and still triggers the large-chunk warning. Earlier Next hot-update runs had intermittent script parse errors; a restarted stable server passed. An intermediate incremental pnpm install produced a broken direct docs-ui junction after its manifest changed; the final evidence uses a fresh source project and clean installation, not that broken directory.
 

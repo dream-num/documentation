@@ -7,8 +7,11 @@ ordinary editable data, not fake headers. Use native sheet tabs to compare scope
 The four host buttons expose header Facade settings not present in the native
 ribbon: apply labels/style at sheet or workbook scope, clear the active override,
 clear all defaults/overrides, and toggle dimensions. There is no Reset or raw
-model inspector. Official CSS and full EN/ZH core packs are exported. Themes keep
-the same owner and edits.
+model inspector. Official CSS and the complete English core pack are exported.
+Native UI and host controls stay English on either host language. The ignored
+third locale argument preserves saved-snapshot positions. Themes keep the same
+owner and edits. Earlier bilingual test reports are historical; rerun the native
+suite before claiming current interaction acceptance.
 
 ## Workbook labels and worksheet precedence
 

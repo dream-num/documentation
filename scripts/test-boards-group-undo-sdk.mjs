@@ -5,7 +5,7 @@ import { UniverBoardsPlugin } from '@univerjs-pro/boards'
 import { Univer } from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
 
-import { DATA, MEDIA_IDS } from '../showcase/boards/group-lock-z-order/code/data.ts'
+import { DATA, MEDIA_IDS } from './fixtures/board-groups-mixed-data.ts'
 
 import '@univerjs-pro/boards/facade'
 

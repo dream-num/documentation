@@ -25,6 +25,7 @@ const metadata = {
   apis: [
     { name: 'UniverCollaborationClientPlugin / UniverCollaborationClientUIPlugin' },
     { name: 'FUniver.newAPI()' },
+    { name: 'FUniver.toggleDarkMode()' },
     { name: 'Univer.createUnit() / Univer.dispose()' },
     { name: 'FUniver.Event.LifeCycleChanged / LifecycleStages.Steady' },
   ],
@@ -38,11 +39,13 @@ const metadata = {
     tryIt: {
       'en-US': [
         'Open the normal exported URL and verify the local-fallback workbook loads without collaboration requests or redirects.',
+        'Edit a cell in the local preview, then switch the site theme; the same workbook and edits remain.',
         'Inspect createCollaborationClientConfig() to map authorization, snapshot, changeset, WebSocket, file and formula-limit endpoints.',
         'With your own Universer backend and authenticated session, add ?unit=<id>&type=2 to connect two tabs to the same unit.',
       ],
       'zh-CN': [
         '打开普通导出 URL，确认本地 fallback 工作簿无需协同请求或重定向即可加载。',
+        '在本地预览中编辑单元格，再切换站点主题；工作簿实例与编辑内容保持不变。',
         '检查 createCollaborationClientConfig() 对授权、快照、变更集、WebSocket、文件和公式限制端点的映射。',
         '准备自己的 Universer 后端与登录会话后，添加 ?unit=<id>&type=2，让两个标签页连接同一 unit。',
       ],

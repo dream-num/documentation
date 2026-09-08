@@ -196,7 +196,7 @@ export function createHostData(): Partial<IWorkbookData> {
     11: { 0: { v: 'Remaining buffer', s: 'header' }, 1: { f: '=B10-B11', s: 'total' } },
     13: { 0: { v: 'A surplus can hide an overload.', s: 'warning' } },
     15: { 0: { v: 'Edit the six highlighted inputs.', s: 'muted' } },
-    16: { 0: { v: 'Double-click the native Board to edit.', s: 'muted' } },
+    16: { 0: { v: 'Double-click the native Canvas to edit.', s: 'muted' } },
     17: { 0: { v: 'Use its fullscreen menu for more room.', s: 'muted' } },
     19: { 0: { v: 'Team names are labels, not formula keys.', s: 'muted' } },
     21: { 0: { v: 'Hours are estimates, not headcount.', s: 'muted' } },

@@ -7,16 +7,19 @@ const metadata: ShowcaseMetadata = {
   product: 'embed',
   category: 'features',
   previewHeight: 1100,
-  group: { 'en-US': 'Bases host / Tab', 'zh-CN': 'Bases 宿主 / 标签' },
-  title: { 'en-US': 'Slides in Bases / Campaign Review', 'zh-CN': 'Slides 嵌入 Bases / 活动评审' },
+  group: { 'en-US': 'Relational Tables host / Tab', 'zh-CN': 'Relational Tables 宿主 / 标签' },
+  title: {
+    'en-US': 'Slides in Relational Tables / Campaign Review',
+    'zh-CN': 'Slides 嵌入 Relational Tables / 活动评审',
+  },
   description: {
     'en-US':
-      'Open a four-page campaign review beside eight deliverables and three linked channels in a native Base tab.',
-    'zh-CN': '在八项执行物料、三个关联渠道旁，以原生 Base 标签打开四页活动评审演示稿。',
+      'Open a four-page campaign review beside eight deliverables and three linked channels in a native Relational Table tab.',
+    'zh-CN': '在八项执行物料、三个关联渠道旁，以原生 Relational Table 标签打开四页活动评审演示稿。',
   },
   tags: {
-    'en-US': ['Embed', 'Bases', 'Slides', 'Tab', 'Campaign'],
-    'zh-CN': ['嵌入', '多维表格', '演示文稿', '标签', '活动'],
+    'en-US': ['Embed', 'Relational Tables', 'Slides', 'Tab', 'Campaign'],
+    'zh-CN': ['嵌入', 'Relational Tables', '演示文稿', '标签', '活动'],
   },
   packages: [
     '@univerjs-pro/bases',
@@ -44,23 +47,23 @@ const metadata: ShowcaseMetadata = {
     },
     tryIt: {
       'en-US': [
-        'Open Campaign review from the native Base sidebar and visit all four slide thumbnails.',
+        'Open Campaign review from the native Relational Table sidebar and visit all four slide thumbnails.',
         'Run the slide README example; use native history, edit a title and move a shape.',
-        'Return to Deliverables and run the Base example without changing the deck.',
+        'Return to Deliverables and run the Relational Table example without changing the deck.',
         'Rename Studio partners in Channels and inspect its three linked labels; return to the deck and change theme.',
       ],
       'zh-CN': [
-        '从 Base 原生侧栏打开 Campaign review，逐页查看四个缩略图。',
+        '从 Relational Table 原生侧栏打开 Campaign review，逐页查看四个缩略图。',
         '运行 README 幻灯片示例，使用原生历史、编辑标题并移动形状。',
-        '返回 Deliverables 运行 Base 示例，演示稿应保持不变。',
+        '返回 Deliverables 运行 Relational Table 示例，演示稿应保持不变。',
         '在 Channels 重命名 Studio partners，检查三个关联标签；返回演示稿并切换主题。',
       ],
     },
     expected: {
       'en-US':
-        'Native Slides Grid within a Base tab, with eight official stylesheets and no duplicate toolbar. Selected text/history, shape movement, linked-label, theme and disposal checks pass. Both models remain independent; full acceptance remains partial. No publication, backend or field synchronization. Reload loses edits; see README.',
+        'Native Slides Grid within a Relational Table tab, with eight official stylesheets and no duplicate toolbar. Selected text/history, shape movement, linked-label, theme and disposal checks pass. Both models remain independent; full acceptance remains partial. No publication, backend or field synchronization. Reload loses edits; see README.',
       'zh-CN':
-        'Base 标签内原生 Slides Grid，包含八份官方样式，不添加重复工具栏。选定的文字历史、形状移动、关联标签、主题和销毁检查已通过。两份模型相互独立，完整验收仍为部分覆盖。没有发布、后端或字段自动同步；刷新丢失修改，详见 README。',
+        'Relational Table 标签内原生 Slides Grid，包含八份官方样式，不添加重复工具栏。选定的文字历史、形状移动、关联标签、主题和销毁检查已通过。两份模型相互独立，完整验收仍为部分覆盖。没有发布、后端或字段自动同步；刷新丢失修改，详见 README。',
     },
   },
   variants: [

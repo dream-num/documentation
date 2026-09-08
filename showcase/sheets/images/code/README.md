@@ -1,8 +1,10 @@
 # Cedar field station: native cell and floating images
 
+Native UI and authored data are English-only. Earlier bilingual/native reports below are historical evidence, not acceptance of this migration.
+
 Run `pnpm install`, `pnpm dev`; `pnpm build` / `pnpm preview` produce the standalone frontend.
-Preview/export share one factory, the official core/drawing preset CSS and complete EN/ZH preset packs.
-Initial `html lang="zh-CN"` selects Chinese. Theme changes keep the same SDK owner and current edits.
+Preview/export share one factory, the official core/drawing preset CSS and complete English preset packs.
+The SDK UI and authored content stay English on every host language. Theme changes keep the same SDK owner and current edits.
 
 ## Original business document
 

@@ -1,5 +1,7 @@
 # Harbor — page size, orientation, and margins
 
+Current language contract: native UI, startup alerts and authored content are English under either host language. The full English Docs Core locale pack and official CSS remain in the independent export. Existing saved-snapshot argument positions are unchanged; any legacy locale argument is accepted but ignored. Earlier bilingual acceptance is historical, and its SDK limitations remain unresolved unless separately verified.
+
 The fictional Harbor Field Guide keeps its fourteen original paragraphs: arrival, fog and visibility, visitor handover, supplies, departure, and publication. Four startup datasets use exactly the same narrative: A4 portrait (794 × 1123), A4 landscape (1123 × 794), US Letter (816 × 1056), and a compact field guide (560 × 720). Dimensions and margins are nominal 96-DPI layout pixels, not millimetres.
 
 The preview contains only Univer's native Grid ribbon and paginated document. Use its Start ribbon → Page setup to change paper and margins; click the paper to type, and use native Undo/Redo. There is no second host editor, fixture selector, inspector, or history toolbar. The installed native dialog has no orientation or arbitrary width/height controls: landscape and compact custom sizes are available through the tested Facade examples and startup data. Its “Custom Paper size” label currently describes the four margin inputs, not custom dimensions. Browser/printer margins, mirrored margins, mixed-section geometry, and format conversion are not claimed.
@@ -134,7 +136,7 @@ await demo.ready
 if (demo.univerAPI.getActiveDocument().getId() !== saved.id) throw new Error('The restored owner ID changed.')
 ```
 
-Production preview and standalone export use the same factory, data, complete Docs Core EN/ZH locale packs, and official preset CSS. Initial locale follows `document.documentElement.lang`. Theme changes call `toggleDarkMode` on the existing owner and do not recreate it. `ready` signals native canvas availability; it is not a guarantee that every page has been painted.
+Production preview and standalone export use the same factory, data, the complete English Docs Core locale pack, and official preset CSS. Native UI remains English regardless of `document.documentElement.lang`. Theme changes call `toggleDarkMode` on the existing owner and do not recreate it. `ready` signals native canvas availability; it is not a guarantee that every page has been painted.
 
 ## Run and verify
 

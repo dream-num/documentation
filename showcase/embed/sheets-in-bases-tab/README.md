@@ -1,14 +1,20 @@
-# Acorn / A forecast tab inside a sales Base
+# Acorn / A forecast tab inside a sales Relational Table
+
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
+not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+not certify every native interaction or resolve the recorded SDK failures.
 
 Ten fictional opportunities cover refill stations, library lockers, clinic
-storage, lab benches and other modular installations. The Base holds four
+storage, lab benches and other modular installations. The Relational Table holds four
 linked customer groups, owners, stages and distinct next conversations.
-Open **Weighted forecast** from the native Base table list to work in Sheets.
+Open **Weighted forecast** from the native Relational Table list to work in Sheets.
 This is a real embedded workbook, not an iframe or a screenshot.
 
 The workbook starts from the same authored deals but is an independent what-if
-snapshot. Changing Base records does not synchronize it, and workbook edits
-do not change the Base. Cross-product formulas are a separate demonstration.
+snapshot. Changing Relational Table records does not synchronize it, and workbook edits
+do not change the Relational Table. Cross-product formulas are a separate demonstration.
 Within the workbook, real VLOOKUP and ROUND formulas calculate stage-weighted
 values; SUM totals them. Assumptions links back to the forecast and subtracts
 it from an editable USD 210,000 working target. No cached result fakes a formula.
@@ -25,7 +31,7 @@ window.univerAPI
   .setValue(0.5)
 ```
 
-Update the Base follow-up without changing the workbook:
+Update the Relational Table follow-up without changing the workbook:
 
 ```ts
 window.univerAPI
@@ -43,8 +49,8 @@ Use the native table list to return to the forecast without replacing its data.
 ## Integration and acceptance
 
 The same factory powers Preview and the standalone export, including official
-Base, Sheets, Embed and feature-plugin CSS. Default Sheets ribbon is Grid;
-Base uses its native sidebar and controls. There is no fixture selector or
+Relational Table, Sheets, Embed and feature-plugin CSS. Default Sheets ribbon is Grid;
+Relational Table uses its native sidebar and controls. There is no fixture selector or
 duplicate toolbar. Prepare, materialize and restore create the native
 BasesTableListBlock anchor, using the SDK local example's tableIndex/tableName
 context. The local source provider accepts only this workbook ID.
@@ -52,8 +58,8 @@ context. The local source provider accepts only this workbook ID.
 Selected independent production at 1600px passes both literal README examples,
 native Sheets typing and Undo/Redo, all three probability variants, five Grid
 menu tabs, native host/child navigation, and complete edited snapshot/theme
-preservation. Native Accounts keyboard rename and Base Undo/Redo restore the
-complete Base snapshots without changing the workbook. Two linked opportunity
+preservation. Native Accounts keyboard rename and Relational Table Undo/Redo restore the
+complete Relational Table snapshots without changing the workbook. Two linked opportunity
 labels follow the unchanged account ID. Active-child disposal removes the owned
 UI and API without observed browser errors or backend requests.
 
@@ -63,7 +69,7 @@ in Forecast C5 at 50% gives 226,725. The test checks recalculated row values,
 totals and the target gap, not only formula strings.
 
 The native Print command opens one populated Assumptions page and cancels
-without changing the Base. This proves browser preview, not physical output
+without changing the Relational Table. This proves browser preview, not physical output
 or Exchange conversion. EN/ZH Next guides preserve the same API owner and full
 edited snapshots across actual media-theme changes. The standalone exports
 the same eleven files with the official white SDK CSS.
@@ -72,7 +78,7 @@ Evidence: `test-results/embed-sheet-base-tab-production-history/report.json`,
 `test-results/embed-sheet-base-tab-next-ready/report.json`, and
 `test-results/embed-sheet-base-tab-export-final/report.json`.
 An earlier source run reloaded while files were being formatted and the test
-server did not serve Base query URLs; the source harness now accepts them.
+server did not serve Relational Table query URLs; the source harness now accepts them.
 Another test waited for an untruncated linked label; original shorter account
 names now fit the native chips and both visible linked labels are checked.
 The first Next test held a pre-hydration frame; the final test waits for the

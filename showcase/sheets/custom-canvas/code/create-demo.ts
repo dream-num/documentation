@@ -1,7 +1,6 @@
 import type { IDisposable, IWorkbookData } from '@univerjs/presets'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import enUS from '@univerjs/preset-sheets-core/locales/en-US'
-import zhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
 import { createUniver, LifecycleStages, LocaleType } from '@univerjs/presets'
 
 import type { RenderMode } from './extensions'
@@ -33,16 +32,15 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: IWo
       }))
   )
     throw new Error('Restore a Mossbrook snapshot with both original sheet IDs and positive dimensions')
-  const zh = document.documentElement.lang === 'zh-CN'
-  const t = (en: string, cn: string) => (zh ? cn : en)
+
   const root = document.createElement('div')
   root.className = 'seed-canvas-demo'
   root.dataset.theme = darkMode ? 'dark' : 'light'
   root.dataset.ready = 'false'
   root.innerHTML = `<div class="seed-canvas-controls">
-    <label>${t('Style', '样式')} <select data-control="style" aria-label="${t('Render style', '绘制样式')}" disabled><option value="bar">${t('Continuous bars', '连续进度条')}</option><option value="dots">${t('Dots · nearest 10%', '圆点 · 舍入到 10%')}</option></select></label>
-    <label>${t('Layers', '绘制层')} <select data-control="layers" aria-label="${t('Render layers', '绘制层')}" disabled><option value="all">${t('All three layers', '全部三层')}</option><option value="main">${t('Cells only', '仅单元格')}</option><option value="headers">${t('Headers only', '仅表头')}</option><option value="none">${t('Native only', '仅原生')}</option></select></label>
-    <button data-action="apply" disabled>${t('Apply renderers', '应用绘制扩展')}</button><span role="status" aria-live="polite"></span>
+    <label>Style <select data-control="style" aria-label="Render style" disabled><option value="bar">Continuous bars</option><option value="dots">Dots · nearest 10%</option></select></label>
+    <label>Layers <select data-control="layers" aria-label="Render layers" disabled><option value="all">All three layers</option><option value="main">Cells only</option><option value="headers">Headers only</option><option value="none">Native only</option></select></label>
+    <button data-action="apply" disabled>Apply renderers</button><span role="status" aria-live="polite"></span>
   </div><div class="seed-canvas-editor"></div>`
   container.append(root)
   const style = root.querySelector<HTMLSelectElement>('[data-control="style"]')!
@@ -51,8 +49,8 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: IWo
   const status = root.querySelector<HTMLElement>('[role="status"]')!
   const { univer, univerAPI } = createUniver({
     darkMode,
-    locale: zh ? LocaleType.ZH_CN : LocaleType.EN_US,
-    locales: { [LocaleType.EN_US]: enUS, [LocaleType.ZH_CN]: zhCN },
+    locale: LocaleType.EN_US,
+    locales: { [LocaleType.EN_US]: enUS },
     presets: [
       UniverSheetsCorePreset({
         ribbonType: 'grid',
@@ -120,9 +118,7 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: IWo
         apply()
         status.textContent = ''
       } catch (error) {
-        status.textContent =
-          t('Renderer registration failed: ', '绘制扩展注册失败：') +
-          (error instanceof Error ? error.message : String(error))
+        status.textContent = 'Renderer registration failed: ' + (error instanceof Error ? error.message : String(error))
       }
     },
     { signal: dom.signal },

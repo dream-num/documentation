@@ -1,9 +1,7 @@
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import coreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import coreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
 import { UniverSheetsFindReplacePreset } from '@univerjs/preset-sheets-find-replace'
 import findEnUS from '@univerjs/preset-sheets-find-replace/locales/en-US'
-import findZhCN from '@univerjs/preset-sheets-find-replace/locales/zh-CN'
 import { createUniver, LifecycleStages, LocaleType, mergeLocales, type IWorkbookData } from '@univerjs/presets'
 
 import { WORKBOOK_DATA } from './data'
@@ -27,10 +25,9 @@ export function createDemo(container: HTMLElement, darkMode = false, saved: Part
   container.append(root)
   const { univer, univerAPI } = createUniver({
     darkMode,
-    locale: document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(coreEnUS, findEnUS),
-      [LocaleType.ZH_CN]: mergeLocales(coreZhCN, findZhCN),
     },
     presets: [UniverSheetsCorePreset({ ribbonType: 'grid', container: root }), UniverSheetsFindReplacePreset()],
   })
@@ -63,8 +60,7 @@ export function createDemo(container: HTMLElement, darkMode = false, saved: Part
     root.dataset.ready = 'error'
     const alert = document.createElement('p')
     alert.role = 'alert'
-    alert.textContent =
-      (document.documentElement.lang === 'zh-CN' ? '工作簿启动失败：' : 'Workbook startup failed: ') + String(error)
+    alert.textContent = 'Workbook startup failed: ' + String(error)
     root.append(alert)
     console.error(error)
   }

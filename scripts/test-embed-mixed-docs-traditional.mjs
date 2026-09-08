@@ -16,6 +16,7 @@ const examples = [
 assert.equal(examples.length, 5)
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 1600, height: 1100 } })
+page.setDefaultTimeout(30000)
 const report = { passed: false, checks: [], historyFailures: [], errors: [], backendRequests: [] }
 page.on('pageerror', (e) => report.errors.push(e.stack || e.message))
 page.on('console', (m) => {
@@ -68,6 +69,7 @@ async function expand(kind) {
     await settle()
   }
   const rect = await child.boundingBox()
+  await page.screenshot({ path: path.join(directory, kind + '-inline.png') })
   await page.mouse.dblclick(rect.x + 180, rect.y + 110)
   await page.waitForFunction(
     (id) =>
@@ -133,12 +135,13 @@ try {
   await page.waitForFunction(
     () => {
       const e = document.querySelector('.estuary-dossier-embed')
-      return e?.dataset.ready || e?.dataset.error
+      return e?.dataset.ready === 'true' || e?.dataset.ready === 'error'
     },
     {},
     { timeout: 120000 },
   )
   assert.equal(await page.locator('.estuary-dossier-embed').getAttribute('data-error'), null)
+  assert.equal(await page.locator('.estuary-dossier-embed').getAttribute('data-ready'), 'true')
   await page.locator('[data-u-comp="ribbon-grid-toolbar"]').waitFor()
   assert.equal(
     await page.locator('iframe,.estuary-dossier-embed fieldset,.estuary-dossier-embed [data-action]').count(),

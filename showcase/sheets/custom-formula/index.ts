@@ -3,6 +3,7 @@ import { readShowcaseFiles } from '@/showcase/read-files'
 import Preview from './preview'
 
 const metadata = {
+  image: '/assets/showcase/sheets-custom-formula.png',
   product: 'sheets' as const,
   category: 'features' as const,
   group: { 'en-US': 'Formula extensions', 'zh-CN': '公式扩展' },
@@ -13,10 +14,7 @@ const metadata = {
     { name: 'FFormula.executeCalculation()' },
     { name: 'FFormula.stopCalculation()' },
     { name: 'FFormula.calculationResultApplied()' },
-    { name: 'FRange.setValue()' },
-    { name: 'FRange.getRawValues()' },
-    { name: 'FRange.getValues()' },
-    { name: 'FRange.getFormulas()' },
+    { name: 'FUniver.toggleDarkMode()' },
     { name: 'FWorkbook.save()' },
     { name: 'FUniver.disposeUnit() / createWorkbook()' },
   ],
@@ -30,26 +28,28 @@ const metadata = {
     tryIt: {
       'en-US': [
         'NORTH loads a route status and a four-row stop table; B13 is 35 and the dependent B14 is 70. B15 intentionally produces a real #VALUE! error.',
-        'Select EAST and Apply route: the table shrinks to three rows. EMPTY returns only the header; it does not invent deliveries.',
-        'MISSING produces #N/A, FAULT maps a simulated source failure to #VALUE!, and TIMEOUT returns #N/A after the 800ms deadline. Inspect source diagnostics separately from SDK cell values.',
+        'Edit B4 to EAST in the native grid: the table shrinks to three rows. EMPTY returns only the header; it does not invent deliveries.',
+        'MISSING produces #N/A, FAULT maps a simulated source failure to #VALUE!, and TIMEOUT returns #N/A after the 800ms deadline. Source request/cache/pending counts are separate from native cell results.',
         'Recalculate with cache invokes the engine without changing input. Reload source clears the local cache and forces fresh simulated work.',
         'Unregister lookups and recalculate to observe #NAME?. Register & reload snapshot recovers through a new unit because beta.2 retains stale unknown-function nodes. Cell edits are preserved, Undo history is discarded. CUSTOMSUM stays registered.',
-        'Edit B9 using F2 and select-all: changing 12 to 15 makes the custom sum 38 and its dependent 76. Reset discards edits and restores NORTH.',
+        'Edit B9 using F2 and select-all: changing 12 to 15 makes the custom sum 38 and its dependent 76. Theme changes preserve edits and Undo history.',
+        'Compare B19:B24: blank input yields 5, zero yields 0, negative/fractional input yields -1.5, numeric text and booleans yield #VALUE!, and numeric overflow yields #NUM!.',
       ],
       'zh-CN': [
         'NORTH 加载路线状态及四行站点表；B13 为 35，依赖值 B14 为 70。B15 故意产生真正的 #VALUE! 错误。',
-        '选择 EAST 并 Apply route：表格缩短到三行。EMPTY 只返回表头，不编造配送记录。',
-        'MISSING 返回 #N/A，FAULT 将模拟数据源故障映射为 #VALUE!，TIMEOUT 在 800ms 截止后返回 #N/A。数据源诊断与 SDK 单元格值分别显示。',
+        '在原生表格中将 B4 改为 EAST：表格缩短到三行。EMPTY 只返回表头，不编造配送记录。',
+        'MISSING 返回 #N/A，FAULT 将模拟数据源故障映射为 #VALUE!，TIMEOUT 在 800ms 截止后返回 #N/A。请求、缓存命中和等待数与原生单元格结果分别显示。',
         'Recalculate with cache 不改输入而重新计算；Reload source 清空本地缓存并请求新的模拟结果。',
         '注销查询函数后重算，观察 #NAME?。Register & reload snapshot 重新注册并创建新单元，避开 beta.2 未更新的未知函数节点；保留单元格编辑，丢弃撤销历史。CUSTOMSUM 始终注册。',
-        '用 F2 和全选编辑 B9：将 12 改为 15，求和应为 38，依赖结果为 76。Reset 丢弃编辑并恢复 NORTH。',
+        '用 F2 和全选编辑 B9：将 12 改为 15，求和应为 38，依赖结果为 76。主题切换保留编辑和撤销历史。',
+        '对照 B19:B24：空区域得到 5，零得到 0，负数与小数得到 -1.5，数字文本与布尔值得到 #VALUE!，数值溢出得到 #NUM!。',
       ],
     },
     expected: {
       'en-US':
-        'Scalar/table lookups share in-flight requests and successful results. A normal response takes 400ms; timeout is 800ms. Pending cells may retain their previous SDK value until calculation finishes; source diagnostics are not replacement results. CUSTOMSUM ignores blanks, preserves zero and rejects text/booleans; it is not a SUM-compatibility implementation. Error checks use native ISERROR. Registration handles and source timers are owned by the demo. Reset and theme changes discard edits.',
+        'Scalar/table lookups share in-flight requests and successful results. A normal response takes 400ms; timeout is 800ms. Pending cells may retain their previous SDK value until calculation finishes; source counters are not replacement results. CUSTOMSUM ignores blanks, preserves zero and rejects text/booleans; it is not a SUM-compatibility implementation. Error checks use native ISERROR. Registration handles and source timers are owned by the demo. Theme changes retain the same instance.',
       'zh-CN':
-        '单值和表格查询共享进行中的请求及成功缓存。正常响应 400ms，超时 800ms；等待时单元格可能保留先前 SDK 值，数据源诊断不冒充结果。CUSTOMSUM 忽略空值、保留零并拒绝文本/布尔值，不宣称完全兼容 SUM。错误通过原生 ISERROR 验证。示例管理注册句柄及数据源定时器。重置和主题切换会丢弃编辑。',
+        '单值和表格查询共享进行中的请求及成功缓存。正常响应 400ms，超时 800ms；等待时单元格可能保留先前 SDK 值，数据源计数不冒充结果。CUSTOMSUM 忽略空值、保留零并拒绝文本/布尔值，不宣称完全兼容 SUM。错误通过原生 ISERROR 验证。示例管理注册句柄及数据源定时器。主题切换保持同一实例。',
     },
   },
   variants: [
@@ -61,15 +61,6 @@ const metadata = {
     { id: 'registration', label: { 'en-US': 'Unregister and recover', 'zh-CN': '注销并恢复注册' } },
   ],
   actions: [
-    {
-      id: 'apply',
-      label: { 'en-US': 'Apply route', 'zh-CN': '应用路线' },
-      description: {
-        'en-US':
-          'FRange.setValue() updates B4 and schedules dependent calculations; matching input disables the button.',
-        'zh-CN': 'FRange.setValue() 修改 B4 并触发依赖计算；相同输入时禁用按钮。',
-      },
-    },
     {
       id: 'cached',
       label: { 'en-US': 'Recalculate with cache', 'zh-CN': '使用缓存重算' },
@@ -95,14 +86,6 @@ const metadata = {
           'Dispose registration handles; recovery calls registerAsyncFunction(), save(), disposeUnit() and createWorkbook(). Preserves cell edits, discards Undo history.',
         'zh-CN':
           '释放注册句柄；恢复调用 registerAsyncFunction()、save()、disposeUnit() 和 createWorkbook()，保留单元格编辑但丢弃撤销历史。',
-      },
-    },
-    {
-      id: 'reset',
-      label: { 'en-US': 'Reset deliveries', 'zh-CN': '重置配送案例' },
-      description: {
-        'en-US': 'Stop calculation, clear source cache, disposeUnit() and createWorkbook() from a fresh fixture.',
-        'zh-CN': '停止计算、清空数据源缓存，再通过 disposeUnit() 和 createWorkbook() 恢复案例。',
       },
     },
   ],
@@ -136,6 +119,7 @@ const metadata = {
 }
 
 export const files = readShowcaseFiles(import.meta.url, {
+  '/README.md': './code/README.md',
   '/src/index.ts': './code/index.ts',
   '/src/create-demo.ts': './code/create-demo.ts',
   '/src/custom-function.ts': './code/custom-function.ts',

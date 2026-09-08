@@ -1,5 +1,11 @@
 # Marigold / Slides in Sheets Tab
 
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but does not change the runtime language. All registered English locale packs and
+official SDK styles remain shared by preview and export. Earlier EN/ZH reports
+below are historical interaction evidence, not current bilingual SDK acceptance.
+
 A fictional community arts centre compares eight monthly operating lines and
 reviews a proposed $450 reallocation to live captioning. The plan totals $42,000;
 actual spending totals $42,480. Cost ledger and Assumptions are native worksheets.
@@ -51,3 +57,21 @@ pending-load disposal, repeated navigation, reload/resource preservation and
 production performance remain acceptance items. Exchange and Print are not
 registered here. Trial watermarks stay visible; the authored October 2027 dates
 do not freeze the SDK clock.
+
+## Theme and readiness follow-up
+
+The React Preview retains its owner and calls `toggleDarkMode()`; theme changes
+do not reload authored data. Pending readiness exists before DOM insertion and
+source failures keep an explicit error with an English alert. The SDK may open
+Board review immediately after creating its native tab; use Cost ledger before
+editing host cells.
+
+`scripts/test-embed-sheet-slide-themes.mjs` verifies EN/ZH native host input
+(C5 to 7500, C14 to 42580), a distinct Facade rich-text child edit with actual
+repaint, complete host/child snapshots through both themes, and native tab
+round trips afterwards. Evidence: `embed-sheet-slide-themes-models`. The SDK
+refreshes thumbnail canvases during theme changes; the main owner, root,
+visible child and data remain. The earlier canvas-identity-only failure is kept
+separately and is not evidence of data loss. Native child keyboard/history and
+broader lifecycle/failure paths still require acceptance. The eleven-file
+independent export and official CSS pass `embed-sheet-slide-theme-exports`.

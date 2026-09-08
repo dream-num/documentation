@@ -1,5 +1,7 @@
 # Estuary / Grant cost schedule in a traditional report
 
+Current language contract: native UI, startup alerts and authored data stay English under either host language. The legacy third locale argument remains accepted but is ignored. All complete English plugin packs, official CSS, native Grid menus and independent host/child models are retained. Earlier bilingual evidence below is historical; this language migration does not resolve its recorded SDK limitations or certify every interaction.
+
 An original fictional community archive memorandum separates purpose, a cost
 schedule and review gates on traditional A4 pages. Serif body text, numbered
 chapters and explicit chapter breaks are inspired by technical reports in the

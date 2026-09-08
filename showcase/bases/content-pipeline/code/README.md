@@ -1,8 +1,10 @@
-# Launch Content Pipeline — one Base, three native views
+# Launch Content Pipeline — one Relational Table, three native views
+
+Native UI and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Bilingual runtime reports below describe earlier revisions, not acceptance of this English-only revision.
 
 Twelve fictional launch assets share one table: the original pricing page, migration playbook, webinar, security FAQ, Aeris customer story, and regional email sequence remain unchanged. Six additional editorial tasks add pre-launch video, APAC translation, undated interview notes, accessibility review, a retrospective, and a same-day follow-up. Six statuses, six channels, distinct owners, 0–100 progress, and both scheduled/unscheduled work make this an actual content-operations story.
 
-Only the native Base UI is mounted. Use Editorial grid, Status board, and Publishing calendar in the native sidebar/view menu. Edit records and move statuses with the native controls. There is no external view switch, Add record, Reset, or activity panel.
+Only the native Relational Table UI is mounted. Use Editorial grid, Status board, and Publishing calendar in the native sidebar/view menu. Edit records and move statuses with the native controls. There is no external view switch, Add record, Reset, or activity panel.
 
 The authored dates are fixed launch-plan dates around September 2026, initially stored as UTC milliseconds. The native calendar initially anchors on the first dated item in August; use its navigation controls to inspect September. The demo does not replace the computer clock. The interview starts without a publication date and should remain absent from dated calendar events until scheduled. Null is not the Unix epoch. Trial/license UI is retained.
 
@@ -10,7 +12,7 @@ Native date edits may store the SDK's supported Excel date serial representation
 
 ## Sixteen literal Facade examples
 
-Run the blocks in order in the loaded demo console. Stable model IDs are defined in data.ts. These examples integrate the real Base; they do not manufacture a separate host calendar or Kanban renderer. Native editing and public Facade commands share the SDK's history.
+Run the blocks in order in the loaded demo console. Stable model IDs are defined in data.ts. These examples integrate the real Relational Table; they do not manufacture a separate host calendar or Kanban renderer. Native editing and public Facade commands share the SDK's history.
 
 ### 1. Read the shared source and projections
 
@@ -159,7 +161,7 @@ await demo.ready
 if (viewId) await demo.univerAPI.getBaseUI().activateView(viewId)
 ```
 
-Preview and exported source use the same factory, all five complete EN/ZH packs, and four official SDK CSS imports. Initial locale follows document.documentElement.lang. Theme toggles keep the existing owner and edited values. There is no backend, copied template screenshot, or fabricated API.
+Preview and exported source use the same factory, all five complete English packs, and four official SDK CSS imports. The runtime locale is always English. Theme toggles keep the existing owner and edited values. There is no backend, copied template screenshot, or fabricated API.
 
 ## Verification
 
@@ -169,18 +171,19 @@ PowerShell from documentation:
 
 ```powershell
 $env:SHOWCASE_BUILD_STANDALONE = '1'
-$env:SHOWCASE_VITE_DIRECTORY = '<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
+$env:SHOWCASE_VITE_DIRECTORY = '<ABSOLUTE_PATH_TO_INSTALLED_VITE_PACKAGE>'
+$env:SHOWCASE_EXPORT_PORT = '4428'
 $env:SHOWCASE_RESULTS_DIR = 'test-results/content-pipeline-native'
 node scripts/test-content-pipeline-native.mjs
 Remove-Item Env:SHOWCASE_RESULTS_DIR
 ```
 
-Only this case is built on strict port 4416. Dependencies are individually linked at the exported exact versions; no installation or whole node_modules junction is required. The report records complete snapshot differences, native view/render failures, and page errors rather than normalizing them away.
+Only this case is built on the selected strict port (4416 by default). The Vite path must point to the exact version declared in the generated package; no other demo's temporary output is required. Dependencies are individually linked at the exported exact versions; no installation or whole node_modules junction is required. The report records complete snapshot differences, native view/render failures, and page errors rather than normalizing them away. These acceptance scripts run from the documentation repository; the standalone exported demo uses its own package install and dev scripts.
 
 ## Retained native acceptance gaps
 
-- After a native status edit and switching to the board and back, Ctrl+Z currently does not revert the status. The strict comparison retains status, cellData, and updatedAt differences. Clicking the grid and using native toolbar Undo/Redo passes separately; that does not erase the cross-view shortcut failure or establish its cause.
+- After a native status edit and switching to the canvas and back, Ctrl+Z currently does not revert the status. The strict comparison retains status, cellData, and updatedAt differences. Clicking the grid and using native toolbar Undo/Redo passes separately; that does not erase the cross-view shortcut failure or establish its cause.
 - Calendar weekday labels are shifted: the native September 5 webinar is drawn beneath “Fri”, although September 5, 2026 is Saturday. The test saves actual canvas text coordinates, the unchanged source timestamp, and the expected weekday. No replacement calendar or header patch is applied.
 - Clicking Next once from the initial August 31 anchor skips September and opens October. The separate date-drag setup uses one explicit Previous after this observed rollover to reach September; the original next-month gate remains FAIL.
 
-The declared getRenderedView() Facade currently returns null in this SDK. It is not used by production or the literal examples. Native pointer tests locate actual SDK canvas paint instead; the early diagnostic report is retained. Full owner recovery includes the complete resources emitted by this text-only Base, but does not claim attachment-file recovery.
+The declared getRenderedView() Facade currently returns null in this SDK. It is not used by production or the literal examples. Native pointer tests locate actual SDK canvas paint instead; the early diagnostic report is retained. Full owner recovery includes the complete resources emitted by this text-only Relational Table, but does not claim attachment-file recovery.

@@ -1,5 +1,7 @@
 # Rowan / Field-station evidence review
 
+Current language contract: native UI, startup alerts and authored data stay English under either host language. The legacy third locale argument remains accepted but is ignored. All complete English plugin packs, official CSS, native Grid menus and independent host/child models are retained. Earlier bilingual evidence below is historical; this language migration does not resolve its recorded SDK limitations or certify every interaction.
+
 An original fictional review uses traditional A4 pages, wine-colored headings
 and serif body text. Seven evidence items cover calibration, clock drift,
 battery endurance, enclosure observations, recovery, storage and exposure.
@@ -9,7 +11,7 @@ informs the formal report composition; no competitor artwork is redistributed.
 ## Run and explore
 
 Run pnpm install and pnpm dev in the independent export. Scroll to chapter 02,
-activate the Base, and expand it to see all evidence notes and the Owners table.
+activate the Relational Table, and expand it to see all evidence notes and the Owners table.
 This literal example updates the first review item:
 
 ```ts
@@ -31,7 +33,7 @@ window.univerAPI
   .appendText(' Revised.')
 ```
 
-The anchor should move nine UTF-16 units while the entire Base remains unchanged.
+The anchor should move nine UTF-16 units while the entire Relational Table remains unchanged.
 This does not synchronize narrative names or implement Formula CustomRange.
 
 ## Acceptance and limits
@@ -39,13 +41,13 @@ This does not synchronize narrative names or implement Formula CustomRange.
 Preview and the eleven-file independent export share one factory and seven
 official CSS imports. The host explicitly uses DocumentFlavor.TRADITIONAL,
 794 by 1123 layout pixels and numbered chapter breaks. The host defaults to
-Grid; Base uses its native record controls. No fixture panel or duplicate toolbar.
+Grid; Relational Table uses its native record controls. No fixture panel or duplicate toolbar.
 Selected production verifies three real A4 skeleton pages, with the complete
-native Base on the evidence chapter page. Both literal examples, actual owner
-keyboard editing, full Base snapshots across native Undo/Redo, stable owner IDs
+native Relational Table on the evidence chapter page. Both literal examples, actual owner
+keyboard editing, full Relational Table snapshots across native Undo/Redo, stable owner IDs
 and repainted linked labels, fullscreen navigation, the moving UTF-16 body anchor
 and active-child disposal pass without observed browser errors or backend calls.
-The host snapshot remains strict across Base edits; the Base remains strict
+The host snapshot remains strict across Relational Table edits; the Relational Table remains strict
 across narrative edits. Expanded columns keep owner handover notes readable.
 
 EN/ZH guides verify three variants/actions/states and preserve the same owner

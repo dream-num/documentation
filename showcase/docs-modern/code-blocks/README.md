@@ -1,8 +1,10 @@
 # Beacon / Code Blocks
 
+The demo runtime and authored data are English-only, including on a Chinese documentation page. Complete official English locale packs are retained. Any legacy locale argument is accepted but ignored; saved-snapshot argument positions are unchanged. Earlier bilingual test reports below describe the previous revision, not current language acceptance.
+
 An original Community Lighting Digest, with fictional sensor data rather than real safety thresholds. The six-section brief preserves its TypeScript ingestion, independent SQL comparison, review rules, tasks, caution, editorial quotation and link. The original JSON manifest, Python filter and SQL summary now appear as separate native business blocks in the same document. Tabs, a blank line, long source lines and the Unicode dash are deliberate content, not host-rendered examples.
 
-Native Grid and the code language picker provide the UI. There are no sample loaders, language/layout/tab forms, duplicate editing/history controls or readback panels. Preview and export share one factory, six official stylesheets, all six EN/ZH packs, initial page language and same-owner theme changes. The owner has idempotent disposal; trial watermarks remain untouched.
+Native Grid and the code language picker provide the UI. There are no sample loaders, language/layout/tab forms, duplicate editing/history controls or readback panels. Preview and export share one factory, six official stylesheets, all six English packs, English UI and same-owner theme changes. The owner has idempotent disposal; trial watermarks remain untouched.
 
 ## Literal Facade examples
 

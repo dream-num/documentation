@@ -4,11 +4,11 @@ The native worksheet has **1,000,000 rows and ten columns**, but starts with onl
 100 fictional reservoir measurements plus headers. Capacity is not populated
 cell count. The original deterministic source varies text, decimals, zero flow,
 missing pH, negative variance, status and owner. No backend or automatic infinite
-loader is involved, and host API elapsed time is not an FPS/render benchmark.
+loader is involved. No elapsed-time, FPS or memory benchmark is claimed.
 
-Only capacity, load, jump and sparse JSON controls are outside the native Grid.
+Only capacity, load and jump controls are outside the native Grid.
 Use native cells, selection and Undo/Redo for editing. Preview and normal export
-share this factory, official Core CSS and complete Core EN/ZH packs. Theme changes
+share this factory, official Core CSS and complete Core English packs. Theme changes
 retain the owner and edited workbook.
 
 ## 1. Resize capacity without leaving hidden values beyond the boundary
@@ -85,7 +85,7 @@ clamps backward to fit the chosen whole chunk. Empty, fractional and out-of-rang
 custom input is rejected without changing the workbook. Jump does not populate
 empty rows.
 
-## 4. Download the actual sparse workbook JSON
+## 4. Download the actual sparse workbook JSON (optional integration recipe)
 
 ```ts
 const book = univerAPI.getWorkbook('marlow-million-grid')
@@ -100,7 +100,8 @@ link.remove()
 setTimeout(() => URL.revokeObjectURL(href), 1000)
 ```
 
-Only save is a Facade operation here; Blob/download are browser integration.
+There is no host download button. Only save is a Facade operation here;
+Blob/download are optional browser integration.
 This preserves the original workbook ID and current edited values. It is JSON,
 not XLSX conversion, and does not claim the size of a workbook with ten million
 resident populated cells. JSON serialization omits undefined properties; live
@@ -108,7 +109,7 @@ history validation must compare the unmodified model before serialization.
 
 ## Strict history boundary
 
-The selected native test currently passes 18 of 21 gates and executes all four
+The prior selected native run passed 18 of 21 gates and executed all four
 literal recipes. Three complete Undo comparisons fail in beta.2: native typing,
 bulk overwrite and clearing A2:J101 with the native Delete key add `t: 1` / `t: 2`
 fields to previously untyped cells when undone. Native typing additionally leaves
@@ -124,6 +125,14 @@ erase the complete-history failures. The retained old panel-based test is not
 current native acceptance evidence.
 
 ## Running the selected example
+
+`node scripts/test-big-data-preview.mjs` starts and closes only this actual React
+Preview on isolated port 4426. Its bounded EN/ZH check uses 10,000-row capacity,
+the initial 100 records plus 250 middle rows, native keyboard input in D2, and
+exact full edited snapshots through next-themes storage events and unmount.
+It does not rerun the 5,000-row end window or the strict history suite below.
+This bounded check and the independent export CSS/canvas check pass; neither
+clears the previously observed full-history differences or measures performance.
 
 Run the documentation dev:showcase server on port 3030, then
 `node scripts/test-marlow-big-data-native.mjs`. The test supports SHOWCASE_DEMO_URL,

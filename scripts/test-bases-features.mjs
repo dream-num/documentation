@@ -18,6 +18,12 @@ const allIds = (count) => Array.from({ length: count }, (_, index) => 'r' + Stri
 
 try {
   for (const slug of selected) {
+    if (slug === 'view-field-layout') {
+      process.env.SHOWCASE_ORIGIN = baseURL
+      await import('./test-base-field-layout-native.mjs')
+      results.push({ slug, passed: true, checks: 'native field-layout views; see base-field-layout-native report' })
+      continue
+    }
     const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } })
     try {
       const errors = []
@@ -81,7 +87,7 @@ try {
         return page.evaluate((value) => globalThis.__basePaint.findLast((entry) => entry.text === value), text)
       }
       const baseline = await model()
-      assert.deepEqual(baseline.visibleRecordIds, allIds(slug === 'view-field-layout' ? 8 : 10))
+      assert.deepEqual(baseline.visibleRecordIds, allIds(10))
       await capture('baseline')
 
       if (slug === 'filter-builder') {
@@ -151,39 +157,6 @@ try {
           'r02',
         ])
         assert.deepEqual((await choose('original')).visibleRecordIds, baseline.sourceRecordIds)
-      } else {
-        assert.deepEqual(baseline.visibleFieldIds, ['sample', 'habitat', 'temperature', 'ph', 'notes', 'batch'])
-        const review = await choose('review')
-        assert.deepEqual(review.visibleFieldIds, ['sample', 'notes', 'habitat', 'temperature', 'ph', 'batch'])
-        assert.equal(review.config.rowHeight, 'extraTall')
-        assert.equal(review.config.frozenFieldCount, 2)
-        assert.equal(review.fieldWidths.sample, 280)
-        assert.deepEqual(review.reference, baseline.reference, 'Changing working view must not modify reference view')
-        await capture('notes-review')
-        const noteHeader = await painted('Field notes')
-        const habitatHeader = await painted('Habitat')
-        assert.ok(noteHeader.x < habitatHeader.x, 'The canvas, not just the projection, moves notes before habitat')
-        await controls.getByRole('combobox', { name: 'Active view', exact: true }).selectOption('reference')
-        await idle()
-        assert.deepEqual((await model()).visibleFieldIds, baseline.visibleFieldIds)
-        assert.equal((await model()).config.rowHeight, 'medium')
-        await controls.getByRole('combobox', { name: 'Active view', exact: true }).selectOption('working')
-        await idle()
-        assert.deepEqual(await model(), review)
-        assert.deepEqual((await choose('compact')).visibleFieldIds, ['sample', 'habitat', 'temperature', 'ph'])
-        assert.deepEqual((await choose('lab')).visibleFieldIds, ['sample', 'batch', 'ph', 'temperature'])
-        await click('Toggle field notes')
-        assert.ok((await model()).visibleFieldIds.includes('notes'))
-        await controls.getByRole('spinbutton', { name: 'Sample width', exact: true }).fill('360')
-        await click('Apply width')
-        const valid = await model()
-        assert.equal(valid.fieldWidths.sample, 360)
-        await controls.getByRole('spinbutton', { name: 'Sample width', exact: true }).fill('20')
-        await click('Apply width')
-        assert.match(await page.locator('.base-feature [role="alert"]').innerText(), /80 and 640/)
-        assert.deepEqual(await model(), valid)
-        assert.deepEqual(valid.tableFieldOrder, baseline.tableFieldOrder)
-        assert.deepEqual(valid.sourceValues, baseline.sourceValues, 'View changes must preserve all cell values')
       }
 
       await click('Reset')

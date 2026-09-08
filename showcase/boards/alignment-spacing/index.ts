@@ -13,7 +13,7 @@ const metadata: ShowcaseMetadata = {
       'Arrange five differently sized editorial cards. Compare edge and center alignment, equal gaps, custom spacing, and native drag guides.',
     'zh-CN': '排列五张不同尺寸的编辑卡片，比较边缘和中心对齐、等距、自定义间距及原生拖拽辅助线。',
   },
-  tags: { 'en-US': ['Boards', 'Single feature', 'Layout'], 'zh-CN': ['白板', '单功能', '布局'] },
+  tags: { 'en-US': ['Canvases', 'Single feature', 'Layout'], 'zh-CN': ['Canvases', '单功能', '布局'] },
   packages: ['@univerjs-pro/boards', '@univerjs-pro/boards-ui', '@univerjs-pro/license'],
   apis: [
     'FBoard.alignElements()',
@@ -48,9 +48,9 @@ const metadata: ShowcaseMetadata = {
     },
     expected: {
       'en-US':
-        'The native Board fills the preview; twelve duplicate host buttons and the inspector are removed. Equal gaps are edge-to-edge distances. The README row example issues two SDK commands, so Undo can reverse distribution and alignment separately. Soft, hard and breakaway snapping must be tested independently; a guide alone does not prove exact alignment. Fixed-grid placement is an explicit Facade batch, not a claim about native drag behavior. Source-only boundaries and current acceptance limits are documented in README.',
+        'The native Canvas fills the preview; twelve duplicate host buttons and the inspector are removed. Equal gaps are edge-to-edge distances. The README row example issues two SDK commands, so Undo can reverse distribution and alignment separately. Soft, hard and breakaway snapping must be tested independently; a guide alone does not prove exact alignment. Fixed-grid placement is an explicit Facade batch, not a claim about native drag behavior. Source-only boundaries and current acceptance limits are documented in README.',
       'zh-CN':
-        '预览空间交给原生 Board，已移除十二个重复宿主按钮和检查器。等距指边到边距离。README 的对齐加分布示例发出两条 SDK 命令，撤销可分别回退。软吸附、精确吸附与脱离需分别验证，辅助线本身不证明精确对齐。固定网格定位由明确的 Facade 批处理实现，不冒充原生拖拽能力。源码边界变体与当前验收限制见 README。',
+        '预览空间交给原生 Canvas，已移除十二个重复宿主按钮和检查器。等距指边到边距离。README 的对齐加分布示例发出两条 SDK 命令，撤销可分别回退。软吸附、精确吸附与脱离需分别验证，辅助线本身不证明精确对齐。固定网格定位由明确的 Facade 批处理实现，不冒充原生拖拽能力。源码边界变体与当前验收限制见 README。',
     },
   },
   variants: [

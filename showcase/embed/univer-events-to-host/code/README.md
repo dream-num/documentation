@@ -4,13 +4,11 @@ Eight original milestones cover accessibility, migration rehearsal, translation,
 
 The latest 12 events retain monotonically increasing sequence numbers. Value events contain SDK-reported sheet IDs, A1 ranges and raw values; selection callbacks contain zero-based coordinates. Payloads are cloned when received and rendered with `textContent`, never HTML. Filtering excludes other workbook owners. Unsubscribe disposes both handles without disabling editing. Resubscribe receives future events; the SDK may immediately report the current selection, but missed value changes are not replayed. Clear removes entries only, not sequence numbers, subscriptions or workbook data. No invented timestamps or synthetic SDK events are used.
 
-中文：保留 Juniper 发布计划八项业务里程碑。原生输入和选区动作产生真实 SDK 事件，宿主仅保留订阅开关、清空日志与最近 12 条记录。空数据、边界、校验和内存快照放在下方逐字示例，不占据原生编辑区。
-
 ## Run and use
 
 Generated project: `npm install`, then `npm run dev`. Documentation: `/en-US/playground/embed/univer-events-to-host`. Use the native name box to choose C4, type a new progress value and press Enter. Click E4 directly to observe `onSelectionChange`; `FRange.activate()` changes selection but did not emit that move-end callback in the earlier SDK acceptance. Keep this distinction—do not synthesize a selection event.
 
-Preview and export share the same factory, official Sheets core CSS and complete preset EN/ZH locale packs. Initial locale follows the document language. Theme changes retain the owner, edits and feed; host chrome follows the same theme. Startup is bounded to 20 seconds and requires a live Grid without the skeleton. Disposal aborts DOM listeners, cancels frames, releases activity handles and removes its own owner/DOM. There is no extra CommandExecuted readback listener now that the inspector is gone.
+Preview and export share the same factory, official Sheets core CSS and complete English preset locale pack. The native editor, host controls and original data stay English on either documentation language. The legacy third argument is ignored so saved snapshots remain in the fourth position. Theme changes retain the owner, edits and feed; host chrome follows the same theme. Startup is bounded to 20 seconds and requires a live Grid without the skeleton. Disposal aborts DOM listeners, cancels frames, releases activity handles and removes its own owner/DOM. There is no extra CommandExecuted readback listener now that the inspector is gone.
 
 ## Literal host integration
 
@@ -170,7 +168,15 @@ Use `createMilestones('default')` for the original eight rows and 35/80 progress
 
 ## Verification and limits
 
-The independent native run records **8 of 10 gates passing, 30 checks**, zero browser errors/warnings and zero backend requests. Actual typing/selection payloads, three unsubscribe/rebind cycles without duplicate value events or replay, other-workbook native filtering, bounded safe text rendering, all nine literal subscription/validation/memory-save examples, empty/boundary/default variants, complete EN/ZH, same-owner theme/feed retention and 760/390/320px controls pass. All three lifecycle/startup `js` snippets execute against the shared factory.
+Current English-only evidence: `test-results/univer-events-english-native/report.json`
+records 8/10 strict gates and 30 checks. Full English packs on a Chinese host,
+all nine literal examples, native event payloads, unsubscribe/rebind, owner
+filtering, empty/boundary data and same-owner themes pass. The two complete Undo
+comparisons below still fail; there are no observed browser errors or backend
+requests. Independent production source/CSS/startup evidence is recorded in
+`test-results/embed-integration-english/report.json`.
+
+The historical bilingual independent native run records **8 of 10 gates passing, 30 checks**, zero browser errors/warnings and zero backend requests. Actual typing/selection payloads, three unsubscribe/rebind cycles without duplicate value events or replay, other-workbook native filtering, bounded safe text rendering, all nine literal subscription/validation/memory-save examples, empty/boundary/default variants, complete EN/ZH, same-owner theme/feed retention and 760/390/320px controls pass. All three lifecycle/startup `js` snippets execute against the shared factory. That run does not establish acceptance after the English-only migration; rerun the selected native test for current evidence.
 
 Two gates remain strict FAIL: native E4 Undo and fresh-owner E4 Undo each leave a generated style entry and add `t: 1` to the original cell. Both Redo snapshots match exactly. The complete same-ID owner snapshot itself matches exactly, and new native edits produce one real event without observable callbacks mutating the already-disposed host DOM. That DOM check does not claim to prove all SDK-internal heap lifetimes. No snapshot fields or IDs are normalized. The first run is retained separately; its empty-value assertion and pre-disposal DOM baseline were corrected in the second run without changing the SDK.
 

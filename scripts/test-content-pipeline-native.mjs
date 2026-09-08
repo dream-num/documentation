@@ -17,10 +17,11 @@ const examples = [...readme.matchAll(/\x60\x60\x60ts\r?\n([\s\S]*?)\x60\x60\x60/
 assert.equal(examples.length, 16)
 const restore = [...readme.matchAll(/\x60\x60\x60js\r?\n([\s\S]*?)\x60\x60\x60/g)][0][1]
 const buildStandalone = process.env.SHOWCASE_BUILD_STANDALONE === '1'
+const port = Number(process.env.SHOWCASE_EXPORT_PORT || 4416)
 const url =
   process.env.SHOWCASE_DEMO_URL ||
   (buildStandalone
-    ? 'http://127.0.0.1:4416'
+    ? `http://127.0.0.1:${port}`
     : `${process.env.SHOWCASE_BASE_URL || 'http://localhost:3030'}/en-US/playground/bases/content-pipeline`)
 let server
 if (buildStandalone) {
@@ -83,7 +84,7 @@ import {createDemo} from '/src/create-demo.ts';import {DATA} from '/src/data.ts'
     root: exportDirectory,
     configFile: false,
     build: { outDir },
-    preview: { host: '127.0.0.1', port: 4416, strictPort: true },
+    preview: { host: '127.0.0.1', port, strictPort: true },
   })
 }
 const browser = await chromium.launch()

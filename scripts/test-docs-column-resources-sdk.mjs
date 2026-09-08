@@ -8,7 +8,7 @@ import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverDocsDrawingPlugin, UniverDrawingPlugin } from '@univerjs/preset-docs-drawing'
 
-import { BOOKINGS, createData, TOOLS_SVG } from '../showcase/docs-modern/column-layouts/code/data.ts'
+import { BOOKINGS, createData, TOOLS_SVG } from './fixtures/doc-columns-mixed-data.ts'
 
 import '@univerjs/docs/facade'
 import '@univerjs-pro/docs-column/facade'

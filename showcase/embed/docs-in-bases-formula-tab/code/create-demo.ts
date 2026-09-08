@@ -1,40 +1,33 @@
 import { UniverBasesPlugin } from '@univerjs-pro/bases'
 import { UniverBasesUIPlugin } from '@univerjs-pro/bases-ui'
 import BasesUIEnUS from '@univerjs-pro/bases-ui/locale/en-US'
-import BasesUIZhCN from '@univerjs-pro/bases-ui/locale/zh-CN'
 import BasesEnUS from '@univerjs-pro/bases/locale/en-US'
-import BasesZhCN from '@univerjs-pro/bases/locale/zh-CN'
 import { UniverDocsFormulaPlugin } from '@univerjs-pro/docs-formula'
 import { UniverDocsFormulaUIPlugin } from '@univerjs-pro/docs-formula-ui'
 import DocsFormulaEnUS from '@univerjs-pro/docs-formula-ui/locale/en-US'
-import DocsFormulaZhCN from '@univerjs-pro/docs-formula-ui/locale/zh-CN'
 import { EmbedCreationService, EmbedHostEntryEnum, UniverEmbedPlugin } from '@univerjs-pro/embed'
 import { EmbedHostRestoreService, UniverEmbedUIPlugin } from '@univerjs-pro/embed-ui'
 import EmbedEnUS from '@univerjs-pro/embed-ui/locale/en-US'
-import EmbedZhCN from '@univerjs-pro/embed-ui/locale/zh-CN'
 import EmbedUnitEnUS from '@univerjs-pro/embed-unit-ui/locale/en-US'
-import EmbedUnitZhCN from '@univerjs-pro/embed-unit-ui/locale/zh-CN'
 import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import ShapeEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
-import ShapeZhCN from '@univerjs-pro/shape-editor-ui/locale/zh-CN'
 import { IUniverInstanceService, LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
 import { unmount } from '@univerjs/design'
 import DesignEnUS from '@univerjs/design/locale/en-US'
-import DesignZhCN from '@univerjs/design/locale/zh-CN'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsEnUS from '@univerjs/docs-ui/locale/en-US'
-import DocsZhCN from '@univerjs/docs-ui/locale/zh-CN'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
 import DrawingEnUS from '@univerjs/drawing-ui/locale/en-US'
-import DrawingZhCN from '@univerjs/drawing-ui/locale/zh-CN'
+import EngineFormulaEnUS from '@univerjs/engine-formula/locale/en-US'
 import { IRenderManagerService, UniverRenderEnginePlugin } from '@univerjs/engine-render'
+import FormulaEditorEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
+import SheetsFormulaEnUS from '@univerjs/sheets-formula/locale/en-US'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
-import UIZhCN from '@univerjs/ui/locale/zh-CN'
 
 import { CHILD_ID, createChildData, createHostData, HOST_ID, SOURCE_NAME, INLINE_FORMULAS } from './data'
 
@@ -47,6 +40,7 @@ import '@univerjs-pro/embed-ui/lib/index.css'
 import '@univerjs-pro/docs-formula-ui/lib/index.css'
 import '@univerjs-pro/shape-editor-ui/lib/index.css'
 import '@univerjs-pro/embed-unit-ui/lib/index.css'
+import '@univerjs/sheets-formula-ui/lib/index.css'
 import './styles.css'
 
 import '@univerjs-pro/bases/facade'
@@ -58,11 +52,7 @@ import '@univerjs/ui/facade'
 import '@univerjs/docs/facade'
 import '@univerjs-pro/embed/facade'
 
-export function createDemo(
-  container: HTMLElement,
-  darkMode = false,
-  locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
-) {
+export function createDemo(container: HTMLElement, darkMode = false, _legacyLocale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
   root.className = 'ember-embed'
   container.append(root)
@@ -71,9 +61,12 @@ export function createDemo(
   let disposed = false
   const univer = new Univer({
     darkMode,
-    locale,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
+        SheetsFormulaEnUS,
+        FormulaEditorEnUS,
+        EngineFormulaEnUS,
         DesignEnUS,
         UIEnUS,
         DocsEnUS,
@@ -84,18 +77,53 @@ export function createDemo(
         EmbedUnitEnUS,
         DrawingEnUS,
         ShapeEnUS,
-      ),
-      [LocaleType.ZH_CN]: mergeLocales(
-        DesignZhCN,
-        UIZhCN,
-        DocsZhCN,
-        BasesZhCN,
-        BasesUIZhCN,
-        EmbedZhCN,
-        DocsFormulaZhCN,
-        EmbedUnitZhCN,
-        DrawingZhCN,
-        ShapeZhCN,
+
+        // Demo-only product names; preserve every other official English translation.
+        {
+          'bases-ui': {
+            ...BasesUIEnUS['bases-ui'],
+            collaboration: {
+              ...BasesUIEnUS['bases-ui']['collaboration'],
+              localTooltip: 'Collaboration is disabled for these relational tables.',
+              notCollabTooltip: 'These relational tables are not in collaboration mode.',
+            },
+            fieldConfig: {
+              ...BasesUIEnUS['bases-ui']['fieldConfig'],
+              formulaReferenceError: 'A1 references and ranges are not supported in Relational Tables formulas.',
+              referenceCurrentField:
+                'Reference the "{0}" field in the current relational table. It will be saved as [[#This Row],[{1}]] for the formula engine.',
+            },
+            fieldMenu: {
+              ...BasesUIEnUS['bases-ui']['fieldMenu'],
+              createSharedBaseField: 'Create a shared Relational Tables field',
+            },
+            viewMenus: {
+              ...BasesUIEnUS['bases-ui']['viewMenus'],
+              setWorkingDaysDescription:
+                'Customize working days and days off, and apply them to the current relational tables',
+            },
+            formula: {
+              ...BasesUIEnUS['bases-ui']['formula'],
+              generic: {
+                ...BasesUIEnUS['bases-ui']['formula']['generic'],
+                engineDescription:
+                  '{0} is provided by the Univer formula engine. Relational Tables supports field references such as TableName[[#This Row],[Field]] and OtherTable[Field], but does not support A1 cells, A1:B10 ranges, or spilled array output in formula fields.',
+              },
+            },
+          },
+          'embed-unit-ui': {
+            ...EmbedUnitEnUS['embed-unit-ui'],
+            referencedUnitViewer: {
+              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
+              base: 'Relational Tables',
+            },
+          },
+          'shape-editor-ui': {
+            ...ShapeEnUS['shape-editor-ui'],
+            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
+            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
+          },
+        },
       ),
     },
   })
@@ -202,7 +230,7 @@ export function createDemo(
           { qualifier: SOURCE_NAME, sourceUnitId: HOST_ID, sourceUnitType: UniverInstanceType.UNIVER_BASE },
         ] as const
         if (!api.getFormula().upsertExternalReference({ unitId: CHILD_ID, ...externalReferences[0] }))
-          throw new Error('Native Base source mapping failed')
+          throw new Error('Native Relational Table source mapping failed')
         for (const spec of INLINE_FORMULAS) {
           const startOffset = doc.getBody()!.dataStream.indexOf(spec.marker)
           if (

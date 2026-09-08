@@ -261,7 +261,7 @@ try {
   await gate('native-edit-history-complete-model-and-event-content', async () => {
     await fresh()
     const before = await snapshot()
-    await typed('E4', 'Keyboard review complete 北区')
+    await typed('E4', 'Keyboard review complete — north region')
     const after = await snapshot()
     await page.keyboard.press('Control+z')
     await settle()
@@ -497,7 +497,7 @@ try {
     true,
   )
   await gate(
-    'complete-en-zh-css-same-owner-theme-and-feed',
+    'complete-english-css-same-owner-theme-and-feed',
     async () => {
       await fresh()
       await typed('E4', 'Theme retained')
@@ -508,20 +508,20 @@ try {
         factory = src.files['/src/create-demo.ts']
       assert.equal(Object.keys(src.files).length, 10)
       assert.equal([...factory.matchAll(/import '@[^']+\/lib\/index.css'/g)].length, 1)
-      for (const [lang, locale] of [
-        ['en-US', 'enUS'],
-        ['zh-CN', 'zhCN'],
-      ]) {
-        await page.evaluate((l) => window.univerAPI.setLocale(l), locale)
+      for (const lang of ['en-US', 'zh-CN']) {
+        await page.evaluate((l) => {
+          document.documentElement.lang = l
+        }, lang)
+        assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
         pack(
           await page.evaluate(() => window.univerAPI.getLocales()),
-          (await import('@univerjs/preset-sheets-core/locales/' + lang)).default,
+          (await import('@univerjs/preset-sheets-core/locales/en-US')).default,
         )
         for (const dark of [true, false]) {
           await page.evaluate((d) => window.demo.setDarkMode(d), dark)
           await settle()
           assert(await page.evaluate(() => window.ownerAPI === window.univerAPI))
-          await exact('theme-' + locale + '-' + dark, before, await snapshot())
+          await exact('theme-' + lang + '-' + dark, before, await snapshot())
           assert.deepEqual(await feed(), entries)
         }
       }
@@ -554,8 +554,9 @@ try {
         await window.demo.ready
       })
       await ready()
-      assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'zhCN')
-      assert.equal(await root.getByRole('button', { name: '取消订阅', exact: true }).count(), 1)
+      assert.equal(await page.evaluate(() => document.documentElement.lang), 'zh-CN')
+      assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
+      assert.equal(await root.getByRole('button', { name: 'Unsubscribe', exact: true }).count(), 1)
       await capture('initial-zh')
       for (const width of [760, 390, 320]) {
         await page.setViewportSize({ width, height: 1050 })

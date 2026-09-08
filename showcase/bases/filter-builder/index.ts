@@ -13,7 +13,10 @@ const metadata: ShowcaseMetadata = {
       'Filter a ten-company partner pipeline using SDK view settings. Compare AND, OR, text matching, missing owners, and an empty result without deleting records.',
     'zh-CN': '使用 SDK 视图设置筛选十家合作伙伴，比较 AND、OR、文本匹配、负责人空值与无匹配结果，筛选不会删除记录。',
   },
-  tags: { 'en-US': ['Bases', 'Single feature', 'SDK projection'], 'zh-CN': ['多维表格', '单功能', 'SDK 投影'] },
+  tags: {
+    'en-US': ['Relational Tables', 'Single feature', 'SDK projection'],
+    'zh-CN': ['Relational Tables', '单功能', 'SDK 投影'],
+  },
   packages: ['@univerjs-pro/bases', '@univerjs-pro/bases-ui', '@univerjs-pro/license'],
   apis: [
     { name: 'FBaseTableView.setFilter()' },

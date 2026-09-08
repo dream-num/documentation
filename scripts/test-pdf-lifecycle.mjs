@@ -11,7 +11,7 @@ import {
   PAGE_TITLES,
   PENDING_SIGNOFF,
   REVIEWED_SIGNOFF,
-} from '../showcase/pdfs/create-load-viewer/code/data.ts'
+} from './fixtures/pdf-audit-packet.ts'
 
 const url = process.env.SHOWCASE_DEMO_URL || 'http://localhost:3030/en-US/playground/pdfs/create-load-viewer'
 const directory = path.resolve(process.env.SHOWCASE_RESULTS_DIR || 'test-results/pdf-lifecycle')

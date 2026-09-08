@@ -1,5 +1,7 @@
 # Lumen / Launch economics
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 A fictional desk-lamp launch demonstrates **Sheet@Slide Float**, with **Sheet ->
 Slides** calculation. The presentation owns the workspace; the real pricing Sheet
 is embedded on its first page. Nine native Formula Shapes across three pages read

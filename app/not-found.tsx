@@ -1,5 +1,1 @@
-import { redirect } from 'next/navigation'
-
-export default function NotFound() {
-  redirect('/')
-}
+export { default } from './[lang]/not-found'

@@ -11,12 +11,12 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Willow / Capacity Map', 'zh-CN': 'Willow / 容量规划图' },
   description: {
     'en-US':
-      'A native floating Sheet drives eight Board Formula Shapes: shared capacity, team headroom, utilization and a planning signal.',
-    'zh-CN': '原生浮动 Sheet 驱动八个白板公式图形：总容量、各团队余量、利用率与规划提示。',
+      'A native floating Sheet drives eight Canvas Formula Shapes: shared capacity, team headroom, utilization and a planning signal.',
+    'zh-CN': '原生浮动 Sheet 驱动八个 Canvases 公式图形：总容量、各团队余量、利用率与规划提示。',
   },
   tags: {
-    'en-US': ['Formula', 'Boards', 'Sheets', 'Float', 'Capacity', 'Embed'],
-    'zh-CN': ['公式', '白板', '表格', '浮动嵌入', '容量规划', '嵌入'],
+    'en-US': ['Formula', 'Canvases', 'Sheets', 'Float', 'Capacity', 'Embed'],
+    'zh-CN': ['公式', 'Canvases', '表格', '浮动嵌入', '容量规划', '嵌入'],
   },
   packages: [
     '@univerjs/core',

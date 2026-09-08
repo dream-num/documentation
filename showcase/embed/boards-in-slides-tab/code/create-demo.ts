@@ -4,6 +4,7 @@ import BoardsUIEnUS from '@univerjs-pro/boards-ui/locale/en-US'
 import { EmbedCreationService, EmbedHostEntryEnum, UniverEmbedPlugin } from '@univerjs-pro/embed'
 import { EmbedHostRestoreService, UniverEmbedUIPlugin } from '@univerjs-pro/embed-ui'
 import EmbedEnUS from '@univerjs-pro/embed-ui/locale/en-US'
+import InkUIEnUS from '@univerjs-pro/ink-ui/locale/en-US'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import ShapeEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
 import { SetSlideZoomRatioOperation, UniverSlidesPlugin } from '@univerjs-pro/slides'
@@ -18,6 +19,7 @@ import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
+import DrawingUIEnUS from '@univerjs/drawing-ui/locale/en-US'
 import { IRenderManagerService, UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
@@ -32,6 +34,7 @@ import '@univerjs-pro/shape-editor-ui/lib/index.css'
 import '@univerjs/drawing-ui/lib/index.css'
 import '@univerjs-pro/embed-ui/lib/index.css'
 import '@univerjs-pro/boards-ui/lib/index.css'
+import '@univerjs-pro/ink-ui/lib/index.css'
 import './styles.css'
 
 import '@univerjs-pro/slides/facade'
@@ -41,7 +44,7 @@ import '@univerjs/docs/facade'
 import '@univerjs/ui/facade'
 import '@univerjs-pro/embed/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _locale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
   root.className = 'kite-embed'
   container.append(root)
@@ -52,7 +55,30 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     darkMode,
     locale: LocaleType.EN_US,
     locales: {
-      [LocaleType.EN_US]: mergeLocales(DesignEnUS, UIEnUS, DocsEnUS, SlidesEnUS, ShapeEnUS, EmbedEnUS, BoardsUIEnUS),
+      [LocaleType.EN_US]: mergeLocales(
+        DrawingUIEnUS,
+        InkUIEnUS,
+        DesignEnUS,
+        UIEnUS,
+        DocsEnUS,
+        SlidesEnUS,
+        ShapeEnUS,
+        EmbedEnUS,
+        BoardsUIEnUS,
+
+        // Demo-only product names; preserve every other official English translation.
+        {
+          'shape-editor-ui': {
+            ...ShapeEnUS['shape-editor-ui'],
+            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
+            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
+          },
+          'boards-ui': {
+            ...BoardsUIEnUS['boards-ui'],
+            settings: { ...BoardsUIEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
+          },
+        },
+      ),
     },
   })
   const demoWindow = window as Window & { univerAPI?: FUniver }
@@ -110,7 +136,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
                 input.ref.unit.selector !== CHILD_ID ||
                 input.unitType !== UniverInstanceType.UNIVER_BOARD
               )
-                throw new Error('Unknown Kite Board source')
+                throw new Error('Unknown Kite Canvas source')
               const instances = univer.__getInjector().get(IUniverInstanceService)
               if (!instances.getUnit(CHILD_ID, input.unitType))
                 instances.createUnit(input.unitType, createChildData(), input.createOptions)
@@ -130,7 +156,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
       void (async () => {
         // Match slides-embed-local: prepare, materialize, then create the native page.
         // beta.2 createEmbed + loadAsync leaves childUnitId absent on an existing page anchor.
-        const hostContext = { pageIndex: 1, pageName: 'Retrospective Board' }
+        const hostContext = { pageIndex: 1, pageName: 'Retrospective Canvas' }
         const { descriptor } = univer
           .__getInjector()
           .get(EmbedCreationService)
@@ -168,7 +194,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
         root.dataset.error = String(error)
         const message = document.createElement('p')
         message.setAttribute('role', 'alert')
-        message.textContent = 'The retrospective Board could not load. Reload to retry; details are in the console.'
+        message.textContent = 'The retrospective Canvas could not load. Reload to retry; details are in the console.'
         root.prepend(message)
         console.error(error)
       })

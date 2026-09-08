@@ -1,19 +1,21 @@
 # Cinder / Incident briefing
 
-Eight fictional service incidents live in one native Base DocBlock. Ten inline
+Current language contract: the native UI, startup alerts and authored data are English under either host language. The legacy third locale argument remains accepted but is ignored. Complete English dependency packs, official CSS, native Grid menus and the distinct source/document story are preserved. Earlier bilingual evidence below is historical; this migration does not resolve its recorded SDK limitations.
+
+Eight fictional service incidents live in one native Relational Table DocBlock. Ten inline
 formulas drive an authored modern document: status counts, session totals,
 resolution share, open-incident average and a conditional handoff signal.
 No hidden Sheet, backend, JavaScript aggregation or custom control panel is used.
 
 This is a partial SDK demo. Native source binding now preserves calculations
-after renaming the Base. Native error status and Undo after fullscreen reentry
+after renaming the Relational Table. Native error status and Undo after fullscreen reentry
 retain failures. See Acceptance status below.
 
 ## Seventeen literal examples
 
-Run these in order in the standalone page or demo iframe. Double-click the Base
+Run these in order in the standalone page or demo iframe. Double-click the Relational Table
 block, use its native Enter fullscreen control, run one snippet, then exit
-fullscreen to read the summary. Repeat for the next source edit. Native Base
+fullscreen to read the summary. Repeat for the next source edit. Native Relational Table
 editing uses the same source model. No manual recalculation is needed.
 
 Status is a manually maintained field. Monitoring is not Resolved. Session counts
@@ -149,7 +151,7 @@ console.log(doc.saveFormulaDisplayTextSnapshot())
 
 ### 14. Rename and prove the next edit still calculates
 
-Run with the Base expanded. All ten formulas remain live: open sessions become
+Run with the Relational Table expanded. All ten formulas remain live: open sessions become
 181, all sessions 301 and the open average 60.3333 (displayed as 60.3). The factory
 persists the source mapping with FFormula.upsertExternalReference before inserting
 hand-authored formulas. The qualifier Cinder Incidents stays bound to the stable
@@ -180,10 +182,10 @@ if (!bound) throw new Error('Could not bind the incident register')
 
 ### 16. Remove the mapping without deleting the source
 
-The Base still exists and accepts 122 sessions. Its renamed display label no
+The Relational Table still exists and accepts 122 sessions. Its renamed display label no
 longer matches the formula qualifier, and the explicit mapping is now absent.
 Native reference/value errors must remain visible in the summary. This removes
-a binding, not a Base unit, record, paragraph or formula. Error-status metadata
+a binding, not a Relational Table unit, record, paragraph or formula. Error-status metadata
 is a separate known SDK limitation, not something this demo normalizes.
 
 ```ts
@@ -199,7 +201,7 @@ window.univerAPI.getBase('cinder-incident-register').getTableById('incidents').g
 Bind the existing renamed source again, then change its sessions to 123. Open
 sessions become 183, total sessions 303 and average 61.0. All ten formulas recover
 in place without reloading the document. This repairs the same-source mapping;
-it does not demonstrate replacing the Base with a different unit.
+it does not demonstrate replacing the Relational Table with a different unit.
 
 ```ts
 const bound = window.univerAPI.getFormula().upsertExternalReference({
@@ -227,19 +229,16 @@ artwork is redistributed.
 
 Preview and standalone share one factory, Grid ribbon and all required official
 SDK CSS. The only controls are native editor controls. This case does not claim
-Base Print, Exchange conversion, collaboration, paging or status-page publishing.
+Relational Table Print, Exchange conversion, collaboration, paging or status-page publishing.
 
 ## Formula editor language coverage
 
-The shared factory includes official English and Simplified Chinese locale packs
-for every previously configured locale import, including Docs Formula UI, Shape
-Editor UI and Embed Unit UI. The last two are dependencies of the native formula
-editor and source selector; loading only Docs Formula UI does not translate them.
-Their official CSS is included in the independent export. The factory follows
-the page's HTML language at startup (English otherwise); FUniver.setLocale can
-switch between enUS and zhCN without recreating the document.
+The shared factory includes complete official English locale packs, including Docs
+Formula UI, Shape Editor UI and Embed Unit UI. The latter two supply native formula
+editor and source-selector labels. Their official CSS is included in the independent
+export. Runtime startup remains English regardless of the page's HTML language.
 
-Run scripts/test-docs-formula-locales.mjs with SHOWCASE_CASE=cinder and the
+Historical bilingual check: scripts/test-docs-formula-locales.mjs with SHOWCASE_CASE=cinder and the
 selected SHOWCASE_ORIGIN. It checks all official leaves in the three formula
 editor packs, the native Edit formula action, the formula editor, more number
 formats, visible text/accessible labels/placeholders, and exact document/owner
@@ -265,9 +264,9 @@ visible missing-binding errors and same-source repair without replacing prose.
 Native fullscreen input also passes: 120 becomes 140, open sessions become 200,
 total sessions 320 and the open average 66.7. Exact snapshot Undo/Redo passes
 within that same fullscreen session. After leaving and reentering fullscreen,
-Undo does not restore the Base input; Redo for that path is unverified. The
+Undo does not restore the Relational Table input; Redo for that path is unverified. The
 rename/disposal check therefore uses a fresh owner, rather than hiding the history
-failure with a model repair. Active Base fullscreen disposal passes. No browser
+failure with a model repair. Active Relational Table fullscreen disposal passes. No browser
 errors or backend calls were observed in the independent run.
 
 The zero-open average displays #DIV/0! but its result reports success/string
@@ -276,7 +275,7 @@ The earlier rename failure in embed-cinder-formula-history/report.json is histor
 the factory now explicitly persists hand-authored references with the documented
 FFormula.upsertExternalReference API before insertion. Both rename and subsequent
 live editing pass. This is a demo initialization fix, not a patched SDK or a claim
-that insertFormula alone persists every supplied Base reference. No JavaScript
+that insertFormula alone persists every supplied Relational Table reference. No JavaScript
 fallback, automatic repair after edits or result-status normalization is used.
 
 The eleven-file independent export passes source parity and native white UI:
@@ -290,7 +289,7 @@ unrelated process was left running. The earlier port-collision report is retaine
 test-results/embed-cinder-formula-next-bound/report.json passes all seventeen
 literal examples in EN/ZH, unchanged authored body, redundant-card absence,
 official white UI and theme changes preserving the same owner and complete
-Doc/Base models. The first integration report failed because a frame handle was
+Doc/Relational Table models. The first integration report failed because a frame handle was
 captured during iframe initialization; the corrected test waits for the live
 preview before acquiring its frame. No running service was restarted for that
 observation failure. Earlier thirteen-example and unbound-source reports remain historical.

@@ -1,11 +1,13 @@
 # Linen / Services schedule
 
+Current language contract: the native UI, startup alerts and authored data are English under either host language. The legacy third locale argument remains accepted but is ignored. Complete English dependency packs, official CSS, native Grid menus and the distinct source/document story are preserved. Earlier bilingual evidence below is historical; this migration does not resolve its recorded SDK limitations.
+
 Four original fictional service records drive twelve native inline formulas across
 three A4 chapters. Included discovery 1200, facilitation 850 and handoff 450 total
 2500; the optional clinic 300 is separate. The phases, fees and hours are independent
 recorded inputs, not a generated invoice or legal agreement.
 
-Base@Traditional Doc uses a real DocBlock on page two. The document reads Base
+Relational Table@Traditional Doc uses a real DocBlock on page two. The document reads Relational Table
 structured references directly, without a hidden Sheet or JavaScript totals.
 The service count uses ROWS, not COUNTA: an unavailable reference must propagate
 an error rather than count the error value as one nonempty service.
@@ -15,7 +17,7 @@ is redistributed. Native Grid UI and official plugin CSS are included in the exp
 
 ## Fifteen literal examples
 
-Run these in order inside the demo iframe or standalone page. Double-click the Base
+Run these in order inside the demo iframe or standalone page. Double-click the Relational Table
 block and use its native fullscreen control for editing. Return to page one and
 page three to compare results. There is no refresh button or fixture panel.
 
@@ -116,7 +118,7 @@ Included hours 24 → 26. Fees, fee shares and line counts stay unchanged.
 window.univerAPI.getBase('linen-service-register').getTableById('services').getRecordById('service-2').setValue('hours', 10)
 ```
 
-### 12. Rename the Base without changing the formula qualifier
+### 12. Rename the Relational Table without changing the formula qualifier
 
 The Doc's explicit Linen Services binding still points to the same source ID.
 Changing handoff fee 450 → 500 must produce 2550; a cached result is not enough.
@@ -129,7 +131,7 @@ base.getTableById('services').getRecordById('service-3').setValue('fee', 500)
 
 ### 13. An unavailable source is not zero scope
 
-The real Base remains present. Point the known qualifier to an unavailable ID and
+The real Relational Table remains present. Point the known qualifier to an unavailable ID and
 inspect native errors in both chapters; do not replace them with zero values.
 
 ```ts
@@ -163,10 +165,10 @@ values on both output-page canvases. The entire document body and all three
 794x1123 page boundaries stay unchanged. Included/optional scope, independent
 hours, metadata, exact filtered projections, hidden-record edits, stored null
 versus zero, zero-fee recovery, source rename and missing-binding repair have
-selected runtime evidence. Native Base fee typing 850 to 925 updates the report
+selected runtime evidence. Native Relational Table fee typing 850 to 925 updates the report
 to 2625 without replacing its prose. The detached reading copy preserves the live
 document. Four complete EN/ZH plugin packs, model-preserving theme switches and
-disposal from the active Base fullscreen shell also pass, without browser errors
+disposal from the active Relational Table fullscreen shell also pass, without browser errors
 or backend requests.
 
 The strict report is still FAIL: native error text is classified as success/string

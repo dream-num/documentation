@@ -1,5 +1,7 @@
 # Saffron / Budget explanation
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 A native modern Doc Float lives inside the Sheet it reads. The budget and the
 explanation remain separate owners. Twelve native inline formulas read the real
 Sheet; no JavaScript totals, fake document cards or manual refresh button.
@@ -196,7 +198,7 @@ not measured zero even where SUM ignores them. Reserve coverage is a discussion
 prompt, not spending approval. No collaboration, backend or external publishing.
 
 Preview and standalone export share the same data/factory, official CSS and
-complete EN/ZH dependency packs. Theme changes preserve the owner. There is no
+complete English dependency packs. Theme changes preserve the owner. There is no
 fixture toolbar or extra feature-description card. Native Formula UI is registered.
 
 Partial runtime evidence is recorded at

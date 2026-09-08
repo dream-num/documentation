@@ -1,23 +1,18 @@
 import { UniverBasesPlugin } from '@univerjs-pro/bases'
 import { UniverBasesUIPlugin } from '@univerjs-pro/bases-ui'
 import BasesUIEnUS from '@univerjs-pro/bases-ui/locale/en-US'
-import BasesUIZhCN from '@univerjs-pro/bases-ui/locale/zh-CN'
 import BasesEnUS from '@univerjs-pro/bases/locale/en-US'
-import BasesZhCN from '@univerjs-pro/bases/locale/zh-CN'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
 import DesignEnUS from '@univerjs/design/locale/en-US'
-import DesignZhCN from '@univerjs/design/locale/zh-CN'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
-import DocsUIZhCN from '@univerjs/docs-ui/locale/zh-CN'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
-import UIZhCN from '@univerjs/ui/locale/zh-CN'
 
 import { createData, PEOPLE } from './data'
 
@@ -40,10 +35,49 @@ export function createDemo(container: HTMLElement, darkMode = false) {
   container.append(root)
   const univer = new Univer({
     darkMode,
-    locale: document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+    locale: LocaleType.EN_US,
     locales: {
-      [LocaleType.EN_US]: mergeLocales(DesignEnUS, UIEnUS, DocsUIEnUS, BasesEnUS, BasesUIEnUS),
-      [LocaleType.ZH_CN]: mergeLocales(DesignZhCN, UIZhCN, DocsUIZhCN, BasesZhCN, BasesUIZhCN),
+      [LocaleType.EN_US]: mergeLocales(
+        DesignEnUS,
+        UIEnUS,
+        DocsUIEnUS,
+        BasesEnUS,
+        BasesUIEnUS,
+        // Demo-only product names; preserve every other official English translation.
+        {
+          'bases-ui': {
+            ...BasesUIEnUS['bases-ui'],
+            collaboration: {
+              ...BasesUIEnUS['bases-ui']['collaboration'],
+              localTooltip: 'Collaboration is disabled for these relational tables.',
+              notCollabTooltip: 'These relational tables are not in collaboration mode.',
+            },
+            fieldConfig: {
+              ...BasesUIEnUS['bases-ui']['fieldConfig'],
+              formulaReferenceError: 'A1 references and ranges are not supported in Relational Tables formulas.',
+              referenceCurrentField:
+                'Reference the "{0}" field in the current relational table. It will be saved as [[#This Row],[{1}]] for the formula engine.',
+            },
+            fieldMenu: {
+              ...BasesUIEnUS['bases-ui']['fieldMenu'],
+              createSharedBaseField: 'Create a shared Relational Tables field',
+            },
+            viewMenus: {
+              ...BasesUIEnUS['bases-ui']['viewMenus'],
+              setWorkingDaysDescription:
+                'Customize working days and days off, and apply them to the current relational tables',
+            },
+            formula: {
+              ...BasesUIEnUS['bases-ui']['formula'],
+              generic: {
+                ...BasesUIEnUS['bases-ui']['formula']['generic'],
+                engineDescription:
+                  '{0} is provided by the Univer formula engine. Relational Tables supports field references such as TableName[[#This Row],[Field]] and OtherTable[Field], but does not support A1 cells, A1:B10 ranges, or spilled array output in formula fields.',
+              },
+            },
+          },
+        },
+      ),
     },
   })
   const demoWindow = window as Window & { univerAPI?: FUniver }
@@ -79,7 +113,10 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     demoWindow.univerAPI = owner
     const ready = new Promise<void>((resolve, reject) => {
       cancelReady = resolve
-      timer = setTimeout(() => reject(new Error('Base renderer did not become ready within 15 seconds.')), 15000)
+      timer = setTimeout(
+        () => reject(new Error('Relational Table renderer did not become ready within 15 seconds.')),
+        15000,
+      )
       lifecycle = owner.addEvent(owner.Event.LifeCycleChanged, ({ stage }) => {
         if (stage === owner.Enum.LifecycleStages.Rendered) resolve()
       })

@@ -209,7 +209,7 @@ export function createSheetData(): Partial<IWorkbookData> {
     },
     13: {
       0: {
-        v: 'The chart reads B5:C7, including native Base-backed formulas. No copied actuals or manual refresh.',
+        v: 'The chart reads B5:C7, including native Relational Table-backed formulas. No copied actuals or manual refresh.',
         s: 'meta',
       },
     },
@@ -263,7 +263,7 @@ export function createDocsData(): IDocumentData {
     ['Community maker lab / 12 July 2029 / Original fictional model', 'meta'],
     ['01 / Read the difference', 'heading'],
     [
-      'The Sheet plan is {{plan}}. The Base register has {{actual}} in posted actuals, leaving {{gap}} against the plan. Actuals represent {{coverage}} of the plan. These are illustrative allocations, not audited accounts.',
+      'The Sheet plan is {{plan}}. The Relational Table register has {{actual}} in posted actuals, leaving {{gap}} against the plan. Actuals represent {{coverage}} of the plan. These are illustrative allocations, not audited accounts.',
       'body',
     ],
     ['02 / Separate posted from proposed', 'heading'],
@@ -283,7 +283,7 @@ export function createDocsData(): IDocumentData {
       'body',
     ],
     [
-      'Base filters change the visible records, not the whole-table references. The Slides and Board read both sources directly; the chart reads the visible Sheet calculation range. No prose or layout is regenerated.',
+      'Relational Table filters change the visible records, not the whole-table references. The Slides and Canvas read both sources directly; the chart reads the visible Sheet calculation range. No prose or layout is regenerated.',
       'body',
     ],
     ['Local discussion model / No server, purchase, accounting approval or publication', 'meta'],
@@ -419,7 +419,7 @@ export function createSlidesData(): ISlideData {
       slideText(
         id,
         'footer',
-        'Original fictional data / Base actuals + Sheet plan / No automatic approval',
+        'Original fictional data / Relational Table actuals + Sheet plan / No automatic approval',
         40,
         626,
         1120,
@@ -440,7 +440,7 @@ export function createSlidesData(): ISlideData {
         slideText(
           id,
           'note',
-          'Plan values live in the Sheet. Posted amounts live in Base. This review reads both, without copying either source.',
+          'Plan values live in the Sheet. Posted amounts live in Relational Table. This review reads both, without copying either source.',
           44,
           420,
           1070,
@@ -578,7 +578,7 @@ export function createBoardData(): IBoardData {
     ...boardCard('signal', 'MODEL SIGNAL / NOT AN APPROVAL', 320, 770, 580, '#E2E9F4', '#294660'),
     boardText(
       'footer',
-      'Edit either source. Keep the discussion, notes and connections in this native Board.',
+      'Edit either source. Keep the discussion, notes and connections in this native Canvas.',
       44,
       925,
       1110,

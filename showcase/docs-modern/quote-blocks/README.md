@@ -1,8 +1,10 @@
 # Harbor / Quote Blocks
 
+The demo runtime and authored data are English-only, including on a Chinese documentation page. Complete official English locale packs are retained. Any legacy locale argument is accepted but ignored; saved-snapshot argument positions are unchanged. Earlier bilingual test reports below describe the previous revision, not current language acceptance.
+
 An original fictional walking-guide pilot, not real navigation advice. The original 21 paragraphs remain: a steward’s voice, context and attribution, a contrasting observation, routes, acceptance tasks, caution, TypeScript configuration and review link. Five new community/research paragraphs make four native business quotes visible: editorial blue, community green, research violet and high contrast. The latter two demonstrate two- and three-paragraph boundaries. `visible route` remains bold and italic; `clear directions` remains bold.
 
-Edit with native Grid and document canvas. The registered quote UI also supplies a floating toolbar, but its opening click path is currently a strict failure in this installed build; do not assume it is available from the screenshot. There is no host property form, fixture picker, history toolbar or raw-readback panel. Preview/export use one factory, all six official stylesheets and six complete EN/ZH locale packs. Initial language follows the page; the fictional business prose stays English. Theme switching preserves the current editor and edits. Trial watermarks are not hidden.
+Edit with native Grid and document canvas. The registered quote UI also supplies a floating toolbar, but its opening click path is currently a strict failure in this installed build; do not assume it is available from the screenshot. There is no host property form, fixture picker, history toolbar or raw-readback panel. Preview/export use one factory, all six official stylesheets and six complete English locale packs. The UI stays English; the fictional business prose stays English. Theme switching preserves the current editor and edits. Trial watermarks are not hidden.
 
 ## Literal Facade examples
 

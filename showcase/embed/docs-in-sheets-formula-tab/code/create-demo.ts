@@ -1,54 +1,42 @@
 import { UniverDocsFormulaPlugin } from '@univerjs-pro/docs-formula'
 import { UniverDocsFormulaUIPlugin } from '@univerjs-pro/docs-formula-ui'
 import DocsFormulaEnUS from '@univerjs-pro/docs-formula-ui/locale/en-US'
-import DocsFormulaZhCN from '@univerjs-pro/docs-formula-ui/locale/zh-CN'
 import { UniverEmbedPlugin } from '@univerjs-pro/embed'
 import { UniverEmbedUIPlugin } from '@univerjs-pro/embed-ui'
 import EmbedEnUS from '@univerjs-pro/embed-ui/locale/en-US'
-import EmbedZhCN from '@univerjs-pro/embed-ui/locale/zh-CN'
 import EmbedUnitEnUS from '@univerjs-pro/embed-unit-ui/locale/en-US'
-import EmbedUnitZhCN from '@univerjs-pro/embed-unit-ui/locale/zh-CN'
 import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import ShapeEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
-import ShapeZhCN from '@univerjs-pro/shape-editor-ui/locale/zh-CN'
 import { ISheetPrintManagerService, UniverSheetsPrintPlugin } from '@univerjs-pro/sheets-print'
 import PrintEnUS from '@univerjs-pro/sheets-print/locale/en-US'
-import PrintZhCN from '@univerjs-pro/sheets-print/locale/zh-CN'
 import { IUniverInstanceService, LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
 import { unmount } from '@univerjs/design'
 import DesignEnUS from '@univerjs/design/locale/en-US'
-import DesignZhCN from '@univerjs/design/locale/zh-CN'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsEnUS from '@univerjs/docs-ui/locale/en-US'
-import DocsZhCN from '@univerjs/docs-ui/locale/zh-CN'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
 import DrawingEnUS from '@univerjs/drawing-ui/locale/en-US'
-import DrawingZhCN from '@univerjs/drawing-ui/locale/zh-CN'
+import EngineFormulaEnUS from '@univerjs/engine-formula/locale/en-US'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
 import { UniverSheetsDrawingPlugin } from '@univerjs/sheets-drawing'
 import { UniverSheetsDrawingUIPlugin } from '@univerjs/sheets-drawing-ui'
 import SheetDrawingEnUS from '@univerjs/sheets-drawing-ui/locale/en-US'
-import SheetDrawingZhCN from '@univerjs/sheets-drawing-ui/locale/zh-CN'
 import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
 import { UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
 import FormulaEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
-import FormulaZhCN from '@univerjs/sheets-formula-ui/locale/zh-CN'
+import SheetsFormulaEnUS from '@univerjs/sheets-formula/locale/en-US'
 import { UniverSheetsNumfmtUIPlugin } from '@univerjs/sheets-numfmt-ui'
 import NumfmtEnUS from '@univerjs/sheets-numfmt-ui/locale/en-US'
-import NumfmtZhCN from '@univerjs/sheets-numfmt-ui/locale/zh-CN'
 import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
 import SheetsUIEnUS from '@univerjs/sheets-ui/locale/en-US'
-import SheetsUIZhCN from '@univerjs/sheets-ui/locale/zh-CN'
 import SheetsEnUS from '@univerjs/sheets/locale/en-US'
-import SheetsZhCN from '@univerjs/sheets/locale/zh-CN'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
-import UIZhCN from '@univerjs/ui/locale/zh-CN'
 
 import { CHILD_ID, createChildData, createHostData, HOST_ID, SHEET_ID, SOURCE_NAME, INLINE_FORMULAS } from './data'
 
@@ -76,11 +64,7 @@ import '@univerjs/sheets/facade'
 import '@univerjs/docs/facade'
 import '@univerjs-pro/embed/facade'
 
-export function createDemo(
-  container: HTMLElement,
-  darkMode = false,
-  locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
-) {
+export function createDemo(container: HTMLElement, darkMode = false, _legacyLocale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
   root.className = 'cypress-embed'
   container.append(root)
@@ -89,9 +73,11 @@ export function createDemo(
   let disposed = false
   const univer = new Univer({
     darkMode,
-    locale,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
+        SheetsFormulaEnUS,
+        EngineFormulaEnUS,
         DesignEnUS,
         UIEnUS,
         DocsEnUS,
@@ -106,22 +92,22 @@ export function createDemo(
         SheetDrawingEnUS,
         PrintEnUS,
         ShapeEnUS,
-      ),
-      [LocaleType.ZH_CN]: mergeLocales(
-        DesignZhCN,
-        UIZhCN,
-        DocsZhCN,
-        SheetsZhCN,
-        SheetsUIZhCN,
-        FormulaZhCN,
-        NumfmtZhCN,
-        EmbedZhCN,
-        DocsFormulaZhCN,
-        EmbedUnitZhCN,
-        DrawingZhCN,
-        SheetDrawingZhCN,
-        PrintZhCN,
-        ShapeZhCN,
+
+        // Demo-only product names; preserve every other official English translation.
+        {
+          'embed-unit-ui': {
+            ...EmbedUnitEnUS['embed-unit-ui'],
+            referencedUnitViewer: {
+              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
+              base: 'Relational Tables',
+            },
+          },
+          'shape-editor-ui': {
+            ...ShapeEnUS['shape-editor-ui'],
+            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
+            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
+          },
+        },
       ),
     },
   })

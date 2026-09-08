@@ -2,7 +2,6 @@ import type { IWorkbookData } from '@univerjs/core'
 import { unmount } from '@univerjs/design'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import enUS from '@univerjs/preset-sheets-core/locales/en-US'
-import zhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
 import { createUniver, LocaleType } from '@univerjs/presets'
 
 import { createMilestones } from './data'
@@ -17,7 +16,7 @@ import '@univerjs/ui/facade'
 export function createDemo(
   container: HTMLElement,
   darkMode = false,
-  locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+  _locale: LocaleType = LocaleType.EN_US,
   saved?: Partial<IWorkbookData>,
 ) {
   const data = structuredClone(saved ?? createMilestones('default'))
@@ -49,31 +48,18 @@ export function createDemo(
   const activity: { sequence: number; source: string; detail: unknown }[] = []
   function refresh() {
     if (closed) return
-    const zh = (api?.getCurrentLocale() ?? locale) === LocaleType.ZH_CN
     root.dataset.listening = String(!!subscriptions.length)
-    root.querySelector('strong')!.textContent = zh ? '宿主事件 · 最近 12 条' : 'Host events · latest 12'
-    root.querySelector('[role="status"]')!.textContent = zh
-      ? subscriptions.length
-        ? '正在监听'
-        : '已取消订阅'
-      : subscriptions.length
-        ? 'Listening'
-        : 'Unsubscribed'
+    root.querySelector('strong')!.textContent = 'Host events · latest 12'
+    root.querySelector('[role="status"]')!.textContent = subscriptions.length ? 'Listening' : 'Unsubscribed'
     const toggle = root.querySelector<HTMLButtonElement>('[data-action="subscription"]')!
-    toggle.textContent = zh
-      ? subscriptions.length
-        ? '取消订阅'
-        : '恢复订阅'
-      : subscriptions.length
-        ? 'Unsubscribe'
-        : 'Subscribe'
+    toggle.textContent = subscriptions.length ? 'Unsubscribe' : 'Subscribe'
     toggle.disabled = !isReady
     const clear = root.querySelector<HTMLButtonElement>('[data-action="clear"]')!
-    clear.textContent = zh ? '清空日志' : 'Clear log'
+    clear.textContent = 'Clear log'
     clear.disabled = !activity.length || !isReady
     root.querySelector('[role="alert"]')!.textContent = error
     const list = root.querySelector('ol')!
-    list.setAttribute('aria-label', zh ? '宿主活动' : 'Host activity')
+    list.setAttribute('aria-label', 'Host activity')
     list.replaceChildren(
       ...activity.map((entry) => {
         const item = document.createElement('li')
@@ -168,8 +154,8 @@ export function createDemo(
   try {
     runtime = createUniver({
       darkMode,
-      locale,
-      locales: { [LocaleType.EN_US]: enUS, [LocaleType.ZH_CN]: zhCN },
+      locale: LocaleType.EN_US,
+      locales: { [LocaleType.EN_US]: enUS },
       presets: [
         UniverSheetsCorePreset({
           container: root.querySelector<HTMLElement>('.host-events-editor')!,
@@ -217,10 +203,7 @@ export function createDemo(
     timer = setTimeout(() => {
       if (closed) return
       cancelAnimationFrame(readyFrame)
-      error =
-        locale === LocaleType.ZH_CN
-          ? '里程碑表未能启动，请重新加载。'
-          : 'The milestone workbook could not load. Reload to retry.'
+      error = 'The milestone workbook could not load. Reload to retry.'
       root.dataset.error = 'startup'
       refresh()
       finish()

@@ -461,22 +461,19 @@ try {
     await page.evaluate(() => {
       window.originalAPI = window.univerAPI
     })
-    for (const [locale, code] of [
-      ['en-US', 'enUS'],
-      ['zh-CN', 'zhCN'],
-    ]) {
-      await page.evaluate((value) => window.univerAPI.setLocale(value), code)
-      for (const [, prefix] of packs)
-        includesPack(await page.evaluate(() => window.univerAPI.getLocales()), (await import(prefix + locale)).default)
-      for (const dark of [true, false]) {
-        await page.evaluate((value) => window.univerAPI.toggleDarkMode(value), dark)
-        await settle()
-      }
+    assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
+    assert.equal(factory.includes('/locale/zh-CN'), false)
+    assert.equal([...factory.matchAll(/^import '.+\/lib\/index.css'/gm)].length, 7)
+    for (const [, prefix] of packs)
+      includesPack(await page.evaluate(() => window.univerAPI.getLocales()), (await import(prefix + 'en-US')).default)
+    for (const dark of [true, false]) {
+      await page.evaluate((value) => window.univerAPI.toggleDarkMode(value), dark)
+      await settle()
       assert.equal(await page.evaluate(() => window.originalAPI === window.univerAPI), true)
-      await exact(locale + '-theme-cycle', before, await snapshot())
-      await capture(locale + '-native')
-      assert.equal(/(?:shape-editor-ui|ink-ui|boards-ui)\.[\w.]+/.test(await page.locator('body').innerText()), false)
+      await exact('en-US-theme-' + dark, before, await snapshot())
     }
+    await capture('en-US-native')
+    assert.equal(/(?:shape-editor-ui|ink-ui|boards-ui)\.[\w.]+/.test(await page.locator('body').innerText()), false)
   })
   await gate(
     'data-variants-and-boundary-reconstruction',
@@ -520,7 +517,7 @@ try {
     true,
   )
   await gate(
-    'initial-chinese-locale-and-disposal',
+    'chinese-host-english-locale-and-disposal',
     async () => {
       await page.evaluate(async () => {
         window.demo.dispose()
@@ -529,7 +526,17 @@ try {
         await window.demo.ready
       })
       await ready()
-      assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'zhCN')
+      assert.equal(await page.evaluate(() => document.documentElement.lang), 'zh-CN')
+      assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
+      await root.getByRole('button', { name: 'Sticky Note', exact: true }).waitFor({ state: 'visible' })
+      const labels = await root
+        .locator('button[aria-label]')
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('aria-label')))
+      assert.ok(labels.includes('Shape') && labels.includes('Sticky Note'))
+      assert.equal(
+        /(?:shape-editor-ui|ink-ui|boards-ui)\.[\w.]+/.test((await root.innerText()) + labels.join(' ')),
+        false,
+      )
       await paint('Tern field station / Opening plan')
       await page.evaluate(() => window.demo.dispose())
       await root.waitFor({ state: 'detached' })

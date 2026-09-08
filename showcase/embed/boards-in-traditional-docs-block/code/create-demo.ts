@@ -42,7 +42,8 @@ import '@univerjs-pro/boards/facade'
 import '@univerjs-pro/boards-ui/facade'
 import '@univerjs-pro/embed/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _legacyLocale: LocaleType = LocaleType.EN_US) {
+  const locale = LocaleType.EN_US
   const root = document.createElement('div')
   root.className = 'delta-embed'
   container.append(root)
@@ -51,7 +52,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
   let disposed = false
   const univer = new Univer({
     darkMode,
-    locale: LocaleType.EN_US,
+    locale,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
         DesignEnUS,
@@ -62,6 +63,19 @@ export function createDemo(container: HTMLElement, darkMode = false) {
         BoardsUIEnUS,
         SlidesEnUS,
         ShapeEnUS,
+
+        // Demo-only product names; preserve every other official English translation.
+        {
+          'boards-ui': {
+            ...BoardsUIEnUS['boards-ui'],
+            settings: { ...BoardsUIEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
+          },
+          'shape-editor-ui': {
+            ...ShapeEnUS['shape-editor-ui'],
+            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
+            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
+          },
+        },
       ),
     },
   })
@@ -125,7 +139,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
                 input.ref.unit.selector !== CHILD_ID ||
                 input.unitType !== UniverInstanceType.UNIVER_BOARD
               )
-                throw new Error('Unknown Delta Board source')
+                throw new Error('Unknown Delta Canvas source')
               const instances = univer.__getInjector().get(IUniverInstanceService)
               if (!instances.getUnit(CHILD_ID, input.unitType))
                 instances.createUnit(input.unitType, createChildData(), input.createOptions)

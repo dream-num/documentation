@@ -38,7 +38,8 @@ import '@univerjs/ui/facade'
 import '@univerjs-pro/slides/facade'
 import '@univerjs-pro/embed/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _legacyLocale: LocaleType = LocaleType.EN_US) {
+  const locale = LocaleType.EN_US
   const root = document.createElement('div')
   root.className = 'summit-embed'
   container.append(root)
@@ -47,9 +48,25 @@ export function createDemo(container: HTMLElement, darkMode = false) {
   let disposed = false
   const univer = new Univer({
     darkMode,
-    locale: LocaleType.EN_US,
+    locale,
     locales: {
-      [LocaleType.EN_US]: mergeLocales(DesignEnUS, UIEnUS, DocsEnUS, DocsDrawingEnUS, EmbedEnUS, SlidesEnUS, ShapeEnUS),
+      [LocaleType.EN_US]: mergeLocales(
+        DesignEnUS,
+        UIEnUS,
+        DocsEnUS,
+        DocsDrawingEnUS,
+        EmbedEnUS,
+        SlidesEnUS,
+        ShapeEnUS,
+        // Demo-only product names; preserve every other official English translation.
+        {
+          'shape-editor-ui': {
+            ...ShapeEnUS['shape-editor-ui'],
+            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
+            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
+          },
+        },
+      ),
     },
   })
   const demoWindow = window as Window & { univerAPI?: FUniver }

@@ -1,8 +1,8 @@
 # Ink and freehand review
 
 Run `pnpm install`, `pnpm dev`; use `pnpm build` and `pnpm preview` for production verification.
-Preview and independent export use the same factory, five official CSS files and complete EN/ZH locale packs.
-Initial language follows the page's `lang` (`zh-CN` selects Chinese, otherwise English).
+Preview and independent export use the same factory, five official CSS files and five complete English locale packs.
+Native UI and authored data stay English regardless of the host page language. Bilingual reports below describe historical revisions, not current English-only acceptance.
 Theme changes preserve the current PDF instance, edits and native history.
 
 ## Native workflow

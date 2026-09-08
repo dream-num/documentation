@@ -123,7 +123,7 @@ export function createChildData(): ISlideData {
       text(
         id,
         'footer',
-        '0' + (index + 1) + ' / 03    Original fictional portfolio / USD planning amounts / Base -> Slides',
+        '0' + (index + 1) + ' / 03    Original fictional portfolio / USD planning amounts / Relational Table -> Slides',
         48,
         632,
         1104,
@@ -136,7 +136,7 @@ export function createChildData(): ISlideData {
       elements.push(
         text(id, 'story', 'A place to read.\nA bench to repair.\nAn evening to make.', 48, 210, 535, 140, 26, ink),
         text(id, 'purpose', 'One source for every figure.\nNo copied totals.', 48, 375, 500, 70, 21, '#C8D0E4'),
-        ...card(id, 'total', 'TOTAL ALLOCATION / Whole Base table', 640, 185, 510, '#DDE5FF', '#22365F', 48),
+        ...card(id, 'total', 'TOTAL ALLOCATION / Whole Relational Table', 640, 185, 510, '#DDE5FF', '#22365F', 48),
         ...card(id, 'count', 'SCOPE / All records', 640, 350, 510, '#BDEADE', '#234D43'),
         ...card(id, 'average', 'MEAN / Allocation per project', 48, 465, 510, '#E7DFF9', '#5B4678'),
       )
@@ -188,7 +188,7 @@ export function createChildData(): ISlideData {
       elements: Object.fromEntries(elements.map((e) => [e.id, e])),
       elementOrder: elements.map((e) => e.id),
       speakerNotes:
-        'Fictional community programmes. Amounts are planning allocations, not payments. Formula Shapes read the full Base table. Project labels, prose and geometry remain authored.',
+        'Fictional community programmes. Amounts are planning allocations, not payments. Formula Shapes read the full Relational Table. Project labels, prose and geometry remain authored.',
     }
   })
   return {

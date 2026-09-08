@@ -1,6 +1,5 @@
 import { FormulaExecutedStateType, UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import sheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
 import { createUniver, LocaleType } from '@univerjs/presets'
 
 import type { Currency } from './data'
@@ -53,8 +52,8 @@ export function createDemo(container: HTMLElement, darkMode = false) {
   const events = new AbortController()
   const { univer, univerAPI } = createUniver({
     darkMode,
-    locale: document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
-    locales: { [LocaleType.EN_US]: sheetsCoreEnUS, [LocaleType.ZH_CN]: sheetsCoreZhCN },
+    locale: LocaleType.EN_US,
+    locales: { [LocaleType.EN_US]: sheetsCoreEnUS },
     presets: [UniverSheetsCorePreset({ ribbonType: 'grid', container: editor })],
   })
   const owner = window as typeof window & { univerAPI?: typeof univerAPI }
@@ -217,7 +216,9 @@ export function createDemo(container: HTMLElement, darkMode = false) {
           )
           if (invalid) {
             invalid.focus()
-            throw new Error(`Invalid ${invalid.name}: ${invalid.validationMessage} No workbook values were written.`)
+            throw new Error(
+              `Invalid ${invalid.name}: enter a number from ${invalid.min} to ${invalid.max}${invalid.step === 'any' ? '' : ` in steps of ${invalid.step}`}. No workbook values were written.`,
+            )
           }
           const currency = field('currency').value as Currency
           if (

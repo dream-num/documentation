@@ -1,5 +1,10 @@
 # Rivet / Page Size and Overflow
 
+The runtime is English-only on every host page. Complete official English SDK packs
+and styles are retained. A legacy locale argument, where present, is ignored without
+shifting the saved-snapshot argument. EN/ZH reports below are historical evidence
+from before this language change, not current bilingual-runtime acceptance.
+
 An original repair-library briefing uses sixty kits, forty-eight tickets and eight shift assignments. All people, outcomes and quotations are fictional. Eight native slides preserve seven narrative arrangements; the native slide sidebar is the gallery, not a fixture selector.
 
 | Page | Comparison |
@@ -13,7 +18,7 @@ An original repair-library briefing uses sixty kits, forty-eight tickets and eig
 
 Size-only changes leave owned geometry intact. Master graphics resolve against page size. Frame overflow does not prove text glyph clipping: stroke, shadow, rich-text layout and nested groups require separate verification. Boundary markers are intentionally visible, not errors to silently clamp. Trial marks remain.
 
-Preview and export share the same factory, five official SDK stylesheets and five EN/ZH locale packs. The initial UI language follows page lang; authored content stays English. Grid is the default ribbon. Theme changes retain the same editor and model. No fixture, duplicated edit/Undo controls, status explanation card, or audit panel is added; startup errors alone show an alert.
+Preview and export share the same factory, five official SDK stylesheets and five English locale packs. Both initial UI and authored content are English. Grid is the default ribbon. Theme changes retain the same editor and model. No fixture, duplicated edit/Undo controls, status explanation card, or audit panel is added; startup errors alone show an alert.
 
 Native no-fill/no-line text-box shapes replace legacy white Text boxes. Eight authored page backgrounds alternate deep ocean, cream, mint and coral; narrow accent rules leave the content open. Text color and fill are SDK data, with native centered text layout and no CSS overrides. Size comparisons and all five geometry markers are unchanged.
 

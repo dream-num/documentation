@@ -4,6 +4,8 @@ import type { ReactNode } from 'react'
 import { SandpackCodeEditor, SandpackFileExplorer, SandpackLayout, SandpackProvider } from '@codesandbox/sandpack-react'
 import { useTheme } from 'next-themes'
 
+import styles from './playground.module.css'
+
 export type Files = Record<string, string>
 
 interface IProps {
@@ -19,7 +21,7 @@ export function Playground(props: IProps) {
   const { theme } = useTheme()
 
   return (
-    <section>
+    <section className={styles.root}>
       <SandpackProvider
         options={{ autorun: false, activeFile: '/src/index.ts' }}
         theme={theme === 'dark' ? 'dark' : 'light'}
@@ -29,12 +31,12 @@ export function Playground(props: IProps) {
         }}
         files={files}
       >
-        <SandpackLayout className="grid! grid-cols-1">
-          <div data-showcase-preview className="min-w-0" style={{ height: previewHeight }}>
+        <SandpackLayout className={`grid! grid-cols-1 ${styles.layout}`}>
+          <div data-showcase-preview className={`min-w-0 ${styles.preview}`} style={{ height: previewHeight }}>
             {preview}
           </div>
 
-          <div className="grid min-w-0 grid-cols-12">
+          <div data-showcase-code className={`grid min-w-0 grid-cols-12 ${styles.code}`}>
             <SandpackFileExplorer className="col-span-3 h-180! border-r border-neutral-100 dark:border-neutral-800" />
             <SandpackCodeEditor
               className="col-span-9 h-180!"

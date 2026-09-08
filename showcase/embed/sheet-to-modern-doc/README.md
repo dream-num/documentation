@@ -1,5 +1,7 @@
 # Pollen / Campaign pulse
 
+Current language contract: the native UI, startup alerts and authored data are English under either host language. The legacy third locale argument remains accepted but is ignored. Complete English dependency packs, official CSS, native Grid menus and the distinct source/document story are preserved. Earlier bilingual evidence below is historical; this migration does not resolve its recorded SDK limitations.
+
 A modern document hosts a real Sheet DocBlock. Three fictional campaign channels
 drive thirteen native inline formulas: total spend/revenue, their difference,
 blended and per-channel attributed returns, visits/orders, conversion, an
@@ -164,7 +166,7 @@ section hierarchy only. Navy, teal, amber and lavender follow the supplied Deep
 Ocean palette. All prose, channel data and styling are original; no competitor
 template artwork is redistributed.
 
-Preview and standalone use the same factory and official CSS imports. Full EN/ZH
+Preview and standalone use the same factory and official CSS imports. Full English
 dependency packs include Docs Formula, Shape Editor and Embed Unit labels. The
 Sheet feature registrations follow the SDK local DocBlock example because its
 native ribbon invokes those feature factories. There is no collaboration backend

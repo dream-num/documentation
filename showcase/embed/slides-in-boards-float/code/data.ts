@@ -192,7 +192,7 @@ function slide(id: string, name: string, background: string, elements: SlideElem
     elements: Object.fromEntries(elements.map((element) => [element.id, element])),
     elementOrder: elements.map((element) => element.id),
     speakerNotes:
-      'Original fictional astronomy pop-up proposal. Slides and Board are independent, not live bookings or a Formula Shape integration. No invitations, approvals, purchases or tracking.',
+      'Original fictional astronomy pop-up proposal. Slides and Canvas are independent, not live bookings or a Formula Shape integration. No invitations, approvals, purchases or tracking.',
   }
 }
 
@@ -299,7 +299,7 @@ export function createChildData(): ISlideData {
       }),
       text(
         'decision-footer',
-        'No recruitment, approvals, purchases or automatic updates to the Board.',
+        'No recruitment, approvals, purchases or automatic updates to the Canvas.',
         40,
         407,
         720,

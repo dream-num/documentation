@@ -5,20 +5,23 @@ import Preview from './preview'
 
 const metadata: ShowcaseMetadata = {
   product: 'docs-traditional',
+  image: '/assets/showcase/docs-traditional-pagination-rules.png',
   category: 'features',
   group: { 'en-US': 'Typesetting', 'zh-CN': '排版' },
-  title: { 'en-US': 'Widow, Orphan, and Keep Rules', 'zh-CN': '孤行、寡行与分页保持' },
+  title: { 'en-US': 'Page Breaks, Sections, and Keep Rules', 'zh-CN': '分页、分节与分页保持' },
   description: {
     'en-US':
-      'Use a compact inspection bulletin to compare natural flow, keep-with-next, keep-lines, widow/orphan control, and explicit page-break-before.',
-    'zh-CN': '使用紧凑检查通报比较自然分页、与下段同页、段中不分页、孤行控制及段前分页。',
+      'Compare manual page breaks and continuous/next/odd/even section starts, followed by the original keep and widow/orphan specimens.',
+    'zh-CN': '比较手动分页及连续／下一页／奇数页／偶数页分节，再查看原有分页保持与孤行控制样张。',
   },
   tags: {
-    'en-US': ['Traditional Docs', 'Single feature', 'SDK readback'],
-    'zh-CN': ['传统文档', '单功能', 'SDK 回读'],
+    'en-US': ['Traditional Docs', 'Single feature', 'Native pagination'],
+    'zh-CN': ['传统文档', '单功能', '原生分页'],
   },
   packages: ['@univerjs/preset-docs-core'],
   apis: [
+    { name: 'FDocument.insertSectionBreak()' },
+    { name: 'FDocumentSection.setSectionType()' },
     { name: 'FDocumentParagraph.setStyle()' },
     { name: 'IParagraphStyle.keepNext' },
     { name: 'IParagraphStyle.keepLines' },
@@ -28,53 +31,50 @@ const metadata: ShowcaseMetadata = {
   guide: {
     overview: {
       'en-US':
-        'Use a compact inspection bulletin to compare natural flow, keep-with-next, keep-lines, widow/orphan control, and explicit page-break-before.',
-      'zh-CN': '使用紧凑检查通报比较自然分页、与下段同页、段中不分页、孤行控制及段前分页。',
+        'A compact opening lab compares manual page breaks and four native section-start types. The original seven keep/widow rule specimens remain below.',
+      'zh-CN': '开头的小样张比较手动分页及四种原生分节起始方式；后面保留原有七组分页保持与孤行控制样张。',
     },
     tryIt: {
       'en-US': [
-        'Start with Natural flow and inspect the small-page boundaries.',
-        'Choose Keep heading with next; the heading should travel with the next paragraph when they fit.',
-        'Compare Keep paragraph lines and Widow / orphan control.',
-        'Choose Page break before heading, then Undo and Reset. Inspect reports model rules, while the canvas shows pagination.',
+        'Start with continuous, manual-page-break and next/odd/even-section specimens, then scroll to the original seven pagination rules.',
+        'Compare heading-reference with heading at 270 points of lead-in spacing under either host language; compare natural/together/widow/break at 245 points.',
+        'The oversized section repeats one paragraph eight times without paragraph breaks. Keeping all lines cannot fit it on one page; inspect the actual split.',
       ],
       'zh-CN': [
-        '从自然分页开始，观察小页面边界。',
-        '选择与下段同页，空间允许时标题应随下段一起移动。',
-        '比较段中不分页与孤行控制。',
-        '选择段前分页，再撤销、重置；Inspect 显示模型规则，画布展示分页。',
+        '先查看连续分节、手动分页及下一页／奇数页／偶数页分节，再滚动查看原有七组分页规则样张。',
+        '两种宿主语言均使用英文内容；heading-reference 与 heading 使用 270 点前置间距，其他对照使用 245 点。',
+        '超长样张把正文重复八次但不分段，整段无法放进一页；检查实际拆页行为。',
       ],
     },
     expected: {
       'en-US':
-        'Each variant changes the persisted pagination rules of the marked heading and paragraphs. The editor reflows them on small physical pages. Oversized paragraphs may still split; Inspect does not claim to measure rendered page count.',
+        'Rules use public paragraph and section Facades. Earlier Chinese widow-control failures remain historical evidence, not a current Chinese data variant. Real page placement must be checked independently of flags.',
       'zh-CN':
-        '每种变体改变标记标题与段落的分页规则，编辑器在小尺寸页面重新排版。过长段落仍可能拆页，Inspect 不宣称测量实际渲染页数。',
+        '规则使用公开段落及分节 Facade；早期中文孤行控制失败保留为历史证据，当前数据均为英文。实际页面位置需独立于模型标志验证。',
     },
   },
   variants: [
-    { id: 'natural', label: { 'en-US': 'Natural flow' } },
-    { id: 'heading', label: { 'en-US': 'Keep heading with next' } },
-    { id: 'together', label: { 'en-US': 'Keep paragraph lines' } },
-    { id: 'widow', label: { 'en-US': 'Widow / orphan control' } },
-    { id: 'break', label: { 'en-US': 'Page break before heading' } },
+    { id: 'continuous-section', label: { 'en-US': 'Continuous section', 'zh-CN': '连续分节' } },
+    { id: 'manual-page', label: { 'en-US': 'Manual page break', 'zh-CN': '手动分页' } },
+    { id: 'next-section', label: { 'en-US': 'Next-page section', 'zh-CN': '下一页分节' } },
+    { id: 'odd-section', label: { 'en-US': 'Odd-page section', 'zh-CN': '奇数页分节' } },
+    { id: 'even-section', label: { 'en-US': 'Even-page section', 'zh-CN': '偶数页分节' } },
+    { id: 'natural', label: { 'en-US': 'Natural flow', 'zh-CN': '自然分页' } },
+    { id: 'heading-reference', label: { 'en-US': 'Heading reference', 'zh-CN': '标题自然分页对照' } },
+    { id: 'heading', label: { 'en-US': 'Keep heading with next', 'zh-CN': '与下段同页' } },
+    { id: 'together', label: { 'en-US': 'Keep paragraph lines', 'zh-CN': '段中不分页' } },
+    { id: 'widow', label: { 'en-US': 'Widow / orphan control', 'zh-CN': '孤行控制' } },
+    { id: 'break', label: { 'en-US': 'Page break before heading', 'zh-CN': '段前分页' } },
+    { id: 'oversized', label: { 'en-US': 'Oversized paragraph', 'zh-CN': '超长段落边界' } },
   ],
-  actions: [
-    { id: 'inspect', label: { 'en-US': 'Inspect' } },
-    { id: 'undo', label: { 'en-US': 'Undo' } },
-    { id: 'redo', label: { 'en-US': 'Redo' } },
-    { id: 'reset', label: { 'en-US': 'Reset' } },
-  ],
-  states: [
-    { id: 'baseline', label: { 'en-US': 'Deterministic baseline', 'zh-CN': '确定性初始状态' } },
-    { id: 'modified', label: { 'en-US': 'Modified model', 'zh-CN': '已修改模型' } },
-    { id: 'error', label: { 'en-US': 'Visible operation error', 'zh-CN': '可见操作错误' } },
-  ],
+  actions: [],
+  states: [],
 }
 const files = readShowcaseFiles(import.meta.url, {
   '/src/index.ts': './code/index.ts',
   '/src/create-demo.ts': './code/create-demo.ts',
   '/src/data.ts': './code/data.ts',
   '/src/styles.css': './code/styles.css',
+  '/README.md': './README.md',
 })
 export default { metadata, files, Preview }

@@ -8,13 +8,13 @@ const metadata: ShowcaseMetadata = {
   category: 'features',
   previewHeight: 1100,
   group: { 'en-US': 'Modern Docs host / Block', 'zh-CN': '现代文档宿主 / 块嵌入' },
-  title: { 'en-US': 'Board in Docs / Architecture Decision', 'zh-CN': 'Board 嵌入现代文档 / 技术决策' },
+  title: { 'en-US': 'Canvas in Docs / Architecture Decision', 'zh-CN': 'Canvas 嵌入现代文档 / 技术决策' },
   description: {
     'en-US':
-      'A technical decision record embeds a native service-boundary Board. Edit and move connected shapes without changing the host decision.',
-    'zh-CN': '技术决策记录内嵌原生服务边界 Board，编辑文字、拖动连接节点不会改写宿主决策。',
+      'A technical decision record embeds a native service-boundary Canvas. Edit and move connected shapes without changing the host decision.',
+    'zh-CN': '技术决策记录内嵌原生服务边界 Canvas，编辑文字、拖动连接节点不会改写宿主决策。',
   },
-  tags: { 'en-US': ['Embed', 'Modern Docs', 'Boards', 'Block'], 'zh-CN': ['嵌入', '现代文档', '白板', '块'] },
+  tags: { 'en-US': ['Embed', 'Modern Docs', 'Canvases', 'Block'], 'zh-CN': ['嵌入', '现代文档', 'Canvases', '块'] },
   packages: [
     '@univerjs/core',
     '@univerjs/docs-ui',
@@ -41,23 +41,23 @@ const metadata: ShowcaseMetadata = {
     },
     tryIt: {
       'en-US': [
-        'Read the proposed decision, then activate the embedded Board.',
+        'Read the proposed decision, then activate the embedded Canvas.',
         'Change Retry queue from 30 min / Open to 30 min / In review using native shape text editing. The host still says Status: proposed, not deployed.',
-        'Drag the Retry queue node and use native Undo to restore it. Expand the Board to inspect the complete diagram.',
-        'Edit the document title above the Board. Its native block anchor moves while the diagram remains unchanged.',
+        'Drag the Retry queue node and use native Undo to restore it. Expand the Canvas to inspect the complete diagram.',
+        'Edit the document title above the Canvas. Its native block anchor moves while the diagram remains unchanged.',
       ],
       'zh-CN': [
-        '阅读拟议决策并激活内嵌 Board。',
+        '阅读拟议决策并激活内嵌 Canvas。',
         '用原生形状文字编辑将 Retry queue 的 30 min / Open 改为 30 min / In review；宿主仍显示 Status: proposed, not deployed。',
-        '拖动 Retry queue 节点，并用原生 Undo 恢复；展开 Board 查看完整图。',
-        '修改 Board 上方的文档标题；块锚点随正文移动，图中内容保持不变。',
+        '拖动 Retry queue 节点，并用原生 Undo 恢复；展开 Canvas 查看完整图。',
+        '修改 Canvas 上方的文档标题；块锚点随正文移动，图中内容保持不变。',
       ],
     },
     expected: {
       'en-US':
-        'A real Docs custom block contains a native Board, not an iframe or diagram image. Board edits do not deploy a service or rewrite the decision. All content is fictional; no backend, booking, message or Exchange/Print conversion is provided. Reload loses edits. License watermarks and broader lifecycle/performance acceptance remain open.',
+        'A real Docs custom block contains a native Canvas, not an iframe or diagram image. Canvas edits do not deploy a service or rewrite the decision. All content is fictional; no backend, booking, message or Exchange/Print conversion is provided. Reload loses edits. License watermarks and broader lifecycle/performance acceptance remain open.',
       'zh-CN':
-        '真实 Docs 自定义块包含原生 Board，不是 iframe 或图片。修改 Board 不会部署服务或改写决策。内容均为虚构，不提供后端、预约、消息或 Exchange / Print 转换。刷新丢失修改；授权水印与完整生命周期、性能仍待验收。',
+        '真实 Docs 自定义块包含原生 Canvas，不是 iframe 或图片。修改 Canvas 不会部署服务或改写决策。内容均为虚构，不提供后端、预约、消息或 Exchange / Print 转换。刷新丢失修改；授权水印与完整生命周期、性能仍待验收。',
     },
   },
   variants: [
@@ -69,7 +69,7 @@ const metadata: ShowcaseMetadata = {
     },
   ],
   actions: [
-    { id: 'edit', label: { 'en-US': 'Edit a native Board label', 'zh-CN': '编辑原生 Board 文字' } },
+    { id: 'edit', label: { 'en-US': 'Edit a native Canvas label', 'zh-CN': '编辑原生 Canvas 文字' } },
     { id: 'drag', label: { 'en-US': 'Move a connected shape and undo', 'zh-CN': '移动连接节点并撤销' } },
     { id: 'anchor', label: { 'en-US': 'Move the block by editing narrative', 'zh-CN': '编辑正文并移动块锚点' } },
   ],

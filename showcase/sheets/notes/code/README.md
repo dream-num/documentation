@@ -1,8 +1,10 @@
 # Riverside textiles: native cell notes
 
+Native UI and authored data are English-only. Earlier bilingual/native reports below are historical evidence, not acceptance of this migration.
+
 Run `pnpm install`, `pnpm dev`; use `pnpm build` and `pnpm preview` for the independent frontend.
-Preview and export share the same factory, official core/note preset CSS and complete EN/ZH preset packs.
-Initial `html lang="zh-CN"` selects Chinese. Theme changes preserve the same owner and edited document.
+Preview and export share the same factory, official core/note preset CSS and complete English preset packs.
+The SDK UI and authored content stay English on every host language. Theme changes preserve the same owner and edited document.
 
 ## Original conservation records
 
@@ -65,7 +67,7 @@ Hover B2 afterward: the native note appears temporarily without persisting show=
 ```ts
 {
   const range = window.univerAPI.getActiveWorkbook().getSheetBySheetId('intake').getRange('B2')
-  range.createOrUpdateNote({ ...range.getNote(), note: 'Humidity 48%; inspected by River team.\n复查 tomorrow.' })
+  range.createOrUpdateNote({ ...range.getNote(), note: 'Humidity 48%; inspected by River team.\nRecheck — tomorrow.' })
 }
 ```
 

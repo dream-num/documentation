@@ -1,9 +1,11 @@
 # Delta / Capture methods and exception review
 
+Current language contract: native UI, startup alerts and authored data stay English under either host language. The legacy third locale argument remains accepted but is ignored. All complete English plugin packs, official CSS, native Grid menus and independent host/child models are retained. Earlier bilingual evidence below is historical; this language migration does not resolve its recorded SDK limitations or certify every interaction.
+
 An original three-chapter A4 methods note embeds eight colored process cards,
 ten bound orthogonal connectors and three explanatory labels. Eighteen draft
 images, sixteen clear labels and two open items make the review story concrete.
-The Board is an editable design artifact, not an image-processing service.
+The Canvas is an editable design artifact, not an image-processing service.
 
 Saved Typst catalog and Miro diagram-library references inform the report and
 return-path composition. Teal serif headings, blue-gray body text, blue process
@@ -13,7 +15,7 @@ the visual roles. All content is original; no competitor artwork is redistribute
 ## Run and explore
 
 Run pnpm install and pnpm dev in the standalone export. Scroll to chapter 02,
-activate the Board and expand it with its native fullscreen control.
+activate the Canvas and expand it with its native fullscreen control.
 This literal Facade example updates only the exception card:
 
 ```ts
@@ -37,34 +39,34 @@ window.univerAPI
   .appendText(' Revised.')
 ```
 
-The anchor should move nine UTF-16 units without modifying the Board.
+The anchor should move nine UTF-16 units without modifying the Canvas.
 
 ## Acceptance and limits
 
 Preview and the independent export share the same factory, data and nine official
 CSS imports. The host uses traditional 794 by 1123 layout pixels, serif body
-text and explicit chapter page breaks. Docs uses Grid; Boards retains native
+text and explicit chapter page breaks. Docs uses Grid; Canvases retains native
 floating tools. No fixture panel, redundant action buttons or iframe replaces
 the native block. The official child-scoped EditorUIService extension supports
-Board text; no dummy Slides unit or installed-package patch is introduced.
+Canvas text; no dummy Slides unit or installed-package patch is introduced.
 
 Selected production checks pass three rendered A4 pages, both literal examples,
 native fullscreen editing/dragging, all ten rendered connector endpoints,
-full Board snapshots across Undo/Redo, nine-unit anchor movement, independent
+full Canvas snapshots across Undo/Redo, nine-unit anchor movement, independent
 models and active-child disposal without observed browser errors/backend calls.
 Fixed-size process cards retain geometry after editing through RoundRect,
 isTextBox=false and NoAutoFit. See
 test-results/embed-board-traditional-block-fixed-cards/report.json.
 
 EN/ZH guides pass three variants/actions/states, official white UI and preserved
-owner/edited models across themes. Only native Board palette regeneration is
+owner/edited models across themes. Only native Canvas palette regeneration is
 allowed; identity and the remaining model stay strict. Evidence:
 test-results/embed-board-traditional-block-next-fixed/report.json.
 Eleven-file exact source parity and official CSS rendering pass in
 test-results/embed-board-traditional-block-export-final/report.json.
 
 Earlier failures remain recorded. The production attempt could not undo native
-typing until the test returned keyboard focus to the Board canvas; the focused
+typing until the test returned keyboard focus to the Canvas editor; the focused
 history recheck passes full snapshots. The first Next process exited during
 compilation; its cause is not established by a passing restart. Initial process
 cards shrank after edits; the fixed-geometry change above has a strict production

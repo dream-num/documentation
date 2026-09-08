@@ -149,7 +149,7 @@ function table(
 }
 export function createData(state = 'default'): IBaseSnapshot {
   if (!['default', 'empty', 'boundary', 'error'].includes(state))
-    throw new Error('Unknown fixture; current Base is unchanged.')
+    throw new Error('Unknown fixture; current Relational Table is unchanged.')
   const projectTable = table(
     'projects',
     'Festival installations',

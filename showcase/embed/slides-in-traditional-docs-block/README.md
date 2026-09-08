@@ -1,5 +1,7 @@
 # Summit / Conference handout with a native discussion deck
 
+Current language contract: native UI, startup alerts and authored data stay English under either host language. The legacy third locale argument remains accepted but is ignored. All complete English plugin packs, official CSS, native Grid menus and independent host/child models are retained. Earlier bilingual evidence below is historical; this language migration does not resolve its recorded SDK limitations or certify every interaction.
+
 An original synthetic route-study handout separates method, a four-slide
 discussion and limitations on traditional A4 pages. The deck uses an ocean-blue
 cover, gray-blue process cards, warm comparison bars and a lavender review page.

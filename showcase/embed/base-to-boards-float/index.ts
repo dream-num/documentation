@@ -10,12 +10,12 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Flint / Delivery Control Room', 'zh-CN': 'Flint / 交付控制室' },
   description: {
     'en-US':
-      'Base statuses and effort drive nine native Board formulas: conditional totals, blockers, completion and independent workstreams.',
-    'zh-CN': 'Base 状态与工时驱动九个原生 Board 公式：条件汇总、阻塞数量、完成率和独立工作流。',
+      'Relational Table statuses and effort drive nine native Canvas formulas: conditional totals, blockers, completion and independent workstreams.',
+    'zh-CN': 'Relational Table 状态与工时驱动九个原生 Canvas 公式：条件汇总、阻塞数量、完成率和独立工作流。',
   },
   tags: {
-    'en-US': ['Formula', 'Bases', 'Boards', 'Float', 'Embed'],
-    'zh-CN': ['公式', '多维表格', '白板', '浮动嵌入', '嵌入'],
+    'en-US': ['Formula', 'Relational Tables', 'Canvases', 'Float', 'Embed'],
+    'zh-CN': ['公式', 'Relational Tables', 'Canvases', '浮动嵌入', '嵌入'],
   },
   packages: [
     '@univerjs-pro/bases',
@@ -47,13 +47,13 @@ const metadata: ShowcaseMetadata = {
     },
     tryIt: {
       'en-US': [
-        'Read the Base and the three dependent workstreams.',
+        'Read the Relational Table and the three dependent workstreams.',
         'Run all thirteen literal README examples in order.',
         'Compare Done, unblocked, blank and zero estimates.',
         'Compare view filtering with whole-table formulas, then restore both native snapshots.',
       ],
       'zh-CN': [
-        '查看 Base 和三个依赖工作流。',
+        '查看 Relational Table 和三个依赖工作流。',
         '按顺序运行 README 十三段原样代码。',
         '比较完成、解除阻塞、空白和零值估算。',
         '比较视图筛选与整表公式，再恢复两份原生快照。',

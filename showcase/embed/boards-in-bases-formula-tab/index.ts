@@ -11,10 +11,13 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Reed / Operations Map', 'zh-CN': 'Reed / 运营负载地图' },
   description: {
     'en-US':
-      'A Base-hosted Board tab turns workstream load, capacity and blockers into twelve native formulas and a connected operations map.',
-    'zh-CN': 'Base 宿主中的 Board 标签页，通过十二个原生公式和连接线展示各工作流负载、容量与阻塞状态。',
+      'A Relational Table-hosted Canvas tab turns workstream load, capacity and blockers into twelve native formulas and a connected operations map.',
+    'zh-CN': 'Relational Table 宿主中的 Canvas 标签页，通过十二个原生公式和连接线展示各工作流负载、容量与阻塞状态。',
   },
-  tags: { 'en-US': ['Formula', 'Board@Base', 'Tab', 'Capacity'], 'zh-CN': ['公式', 'Board@Base', '标签页', '产能'] },
+  tags: {
+    'en-US': ['Formula', 'Canvas@Relational Table', 'Tab', 'Capacity'],
+    'zh-CN': ['公式', 'Canvas@Relational Table', '标签页', '产能'],
+  },
   packages: [
     '@univerjs-pro/bases',
     '@univerjs-pro/boards',
@@ -34,8 +37,8 @@ const metadata: ShowcaseMetadata = {
   guide: {
     overview: {
       'en-US':
-        'Base is both host and source. The Board is a native editable map whose numbers follow the source, not a copied summary.',
-      'zh-CN': 'Base 同时是宿主和来源；Board 是原生可编辑地图，数字随来源更新，而不是复制的汇总。',
+        'Relational Table is both host and source. The Canvas is a native editable map whose numbers follow the source, not a copied summary.',
+      'zh-CN': 'Relational Table 同时是宿主和来源；Canvas 是原生可编辑地图，数字随来源更新，而不是复制的汇总。',
     },
     tryIt: {
       'en-US': [
@@ -67,8 +70,8 @@ const metadata: ShowcaseMetadata = {
     ['recovery', 'Edited pair / Restore / Fresh calculation', '已编辑双单元 / 恢复 / 继续计算'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   actions: [
-    ['edit', 'Edit native Base records', '编辑原生 Base 记录'],
-    ['map', 'Explore native Board objects', '查看原生 Board 对象'],
+    ['edit', 'Edit native Relational Table records', '编辑原生 Relational Table 记录'],
+    ['map', 'Explore native Canvas objects', '查看原生 Canvas 对象'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   states: [
     ['live', 'Connected workstream map', '联动工作流地图'],

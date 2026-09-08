@@ -154,21 +154,32 @@ await demo.ready
 
 Compare the complete before/after snapshots without removing IDs, resources or default fields. Print preferences are not silently appended to workbook JSON. History belongs to the disposed owner; a newly edited workbook must have fresh, independently working history.
 
-## 中文说明
-
-原生打印菜单和预览负责范围、纸张、方向、缩放、页边距及取消。报表保留原始五条持仓、负收益、日期格式和全部资源；A7 仅为标题。预览与导出共用 factory、三个预设的官方样式及完整中英文语言包，初始语言读取页面 lang，主题切换不销毁数据。上述每段代码均可独立执行；打印设置属于会话配置，不能把工作簿保存等同于打印设置持久化。无需后端，不注册 HTTP Exchange 客户端。
 
 ## Verification
 
+`scripts/test-sheets-print-output.mjs` additionally clicks native Print → NEXT in both locales on a selected production export. Set `SHOWCASE_EXPORT_MANIFEST` to the selected-build manifest and `SHOWCASE_VITE_MODULE` to the local Vite `dist/node/index.js`, then run the script. It starts and closes port 4427. Only `window.print()` is intercepted to prevent an OS print job; the SDK's actual `beforeprint` handler renders the real `.printing-canvas-container` pages, and `afterprint` verifies cleanup and the unchanged complete workbook.
+
+The default A4 portrait output is two 794 × 1124 canvases, split horizontally across the portfolio's eleven columns. The test saves every actual page PNG and the print-media DOM screenshot, checks nonempty pixels, SDK text drawing calls, paper dimensions and page-break CSS. Text calls can include clipped columns, so they are not an OCR/visibility assertion; inspect the saved page images for layout. This verifies generated browser-print content, not physical printer output or a PDF driver. Existing convenience-method and reconstruction failures remain separate regressions.
+
+The same test then selects native **Fit to width** and clicks NEXT again: the five holdings and all eleven columns fit on one actual A4 portrait page. Both locale-specific `*-fit-width.png` artifacts retain the complete column layout; printing cleanup again leaves the full workbook unchanged.
+
+One expanded run passed strictly; a subsequent run generated both layouts and preserved both workbooks but raised `Cannot read properties of null (reading 'clientWidth')`. That run remains an overall FAIL in the strict report. The asynchronous error's cause is not established; successful page generation does not certify error-free repeated print lifecycle behavior.
+
+A single follow-up run with error stacks and explicit rendering/afterprint/page-close phases did not reproduce the error. No SDK or teardown fix was applied; the earlier failure remains unresolved rather than reclassified as a test-only issue.
+
+
+
 Default guide target: `http://localhost:3030/en-US/playground/sheets/print`. Run `node scripts/test-sheets-print-native.mjs`; `SHOWCASE_DEMO_URL` overrides the complete URL and `SHOWCASE_BASE_URL` overrides the guide origin. Full owner reconstruction requires the standalone harness.
 
-PowerShell, from the documentation repository, selected case only:
+PowerShell, from the documentation repository, selected case only (these repository test scripts are not included in the exported demo):
 
 ```powershell
 $env:SHOWCASE_BUILD_STANDALONE = '1'
-$env:SHOWCASE_VITE_DIRECTORY = '<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
+$env:SHOWCASE_VITE_DIRECTORY = '<ABSOLUTE_PATH_TO_INSTALLED_VITE_PACKAGE>'
 $env:SHOWCASE_RESULTS_DIR = 'test-results/sheets-print-native'
 node scripts/test-sheets-print-native.mjs
 ```
+
+For the standalone exported demo itself, run `npm install` followed by `npm run dev` in its directory.
 
 The test uses exact installed dependency versions without installation; it closes its port 4416 server. Physical printer output, OS dialogs and licensed clipboard export are outside the automated preview/cancel checks. The dedicated report retains strict SDK failures. In this installed beta, `FWorkbook.openPrintDialog()` calls a synchronous dispatcher for the now-async command handler and throws `Command handler should not return a promise`. The runnable blocks use the public async `executeCommand('sheet.operation.print-open')` path; the test separately retains the broken convenience method as FAIL. No SDK code is patched.

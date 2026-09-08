@@ -5527,7 +5527,7 @@ export const luckyJson: Partial<ILuckyJson> = {
           c: 6,
           v: {
             ct: {
-              fa: 'yyyy"年"M"月"d"日"',
+              fa: 'yyyy-mm-dd',
               t: 'd',
             },
             bg: null,
@@ -5539,7 +5539,7 @@ export const luckyJson: Partial<ILuckyJson> = {
             ht: 1,
             vt: 1,
             v: 44032,
-            m: '2020年7月20日',
+            m: '2020-07-20',
           },
         },
         {
@@ -9721,7 +9721,7 @@ export const luckyJson: Partial<ILuckyJson> = {
           },
           {
             ct: {
-              fa: 'yyyy"年"M"月"d"日"',
+              fa: 'yyyy-mm-dd',
               t: 'd',
             },
             bg: null,
@@ -9733,7 +9733,7 @@ export const luckyJson: Partial<ILuckyJson> = {
             ht: 1,
             vt: 1,
             v: 44032,
-            m: '2020年7月20日',
+            m: '2020-07-20',
           },
           {
             bg: null,
@@ -66360,7 +66360,7 @@ export const luckyJson: Partial<ILuckyJson> = {
             defaultOption: {
               title: {
                 show: false,
-                text: '默认标题',
+                text: 'Category totals',
                 label: {
                   fontSize: 12,
                   color: '#333',
@@ -66405,15 +66405,15 @@ export const luckyJson: Partial<ILuckyJson> = {
                 selectMode: 'multiple',
                 selected: [
                   {
-                    seriesName: '衣服',
+                    seriesName: 'Clothing',
                     isShow: true,
                   },
                   {
-                    seriesName: '食材',
+                    seriesName: 'Food',
                     isShow: true,
                   },
                   {
-                    seriesName: '图书',
+                    seriesName: 'Books',
                     isShow: true,
                   },
                 ],
@@ -66475,21 +66475,21 @@ export const luckyJson: Partial<ILuckyJson> = {
                 },
                 format: [
                   {
-                    seriesName: '衣服',
+                    seriesName: 'Clothing',
                     prefix: '',
                     suffix: '',
                     ratio: 1,
                     digit: 'auto',
                   },
                   {
-                    seriesName: '食材',
+                    seriesName: 'Food',
                     prefix: '',
                     suffix: '',
                     ratio: 1,
                     digit: 'auto',
                   },
                   {
-                    seriesName: '图书',
+                    seriesName: 'Books',
                     prefix: '',
                     suffix: '',
                     ratio: 1,
@@ -66516,7 +66516,7 @@ export const luckyJson: Partial<ILuckyJson> = {
                     },
                     fzPosition: 'end',
                   },
-                  name: '显示X轴',
+                  name: 'Show X axis',
                   inverse: false,
                   tickLine: {
                     show: true,
@@ -66588,7 +66588,7 @@ export const luckyJson: Partial<ILuckyJson> = {
                     },
                     fzPosition: 'end',
                   },
-                  name: '显示X轴',
+                  name: 'Show X axis',
                   inverse: false,
                   tickLine: {
                     show: true,
@@ -66664,7 +66664,7 @@ export const luckyJson: Partial<ILuckyJson> = {
                     },
                     fzPosition: 'end',
                   },
-                  name: '显示Y轴',
+                  name: 'Show Y axis',
                   inverse: false,
                   tickLine: {
                     show: true,
@@ -66740,7 +66740,7 @@ export const luckyJson: Partial<ILuckyJson> = {
                     },
                     fzPosition: 'end',
                   },
-                  name: '显示Y轴',
+                  name: 'Show Y axis',
                   inverse: false,
                   tickLine: {
                     show: true,
@@ -67900,7 +67900,7 @@ export const luckyJson: Partial<ILuckyJson> = {
             defaultOption: {
               title: {
                 show: false,
-                text: '默认标题',
+                text: 'Category totals',
                 label: {
                   fontSize: 12,
                   color: '#333',
@@ -67945,15 +67945,15 @@ export const luckyJson: Partial<ILuckyJson> = {
                 selectMode: 'multiple',
                 selected: [
                   {
-                    seriesName: '衣服',
+                    seriesName: 'Clothing',
                     isShow: true,
                   },
                   {
-                    seriesName: '食材',
+                    seriesName: 'Food',
                     isShow: true,
                   },
                   {
-                    seriesName: '图书',
+                    seriesName: 'Books',
                     isShow: true,
                   },
                 ],
@@ -68015,21 +68015,21 @@ export const luckyJson: Partial<ILuckyJson> = {
                 },
                 format: [
                   {
-                    seriesName: '衣服',
+                    seriesName: 'Clothing',
                     prefix: '',
                     suffix: '',
                     ratio: 1,
                     digit: 'auto',
                   },
                   {
-                    seriesName: '食材',
+                    seriesName: 'Food',
                     prefix: '',
                     suffix: '',
                     ratio: 1,
                     digit: 'auto',
                   },
                   {
-                    seriesName: '图书',
+                    seriesName: 'Books',
                     prefix: '',
                     suffix: '',
                     ratio: 1,
@@ -68056,7 +68056,7 @@ export const luckyJson: Partial<ILuckyJson> = {
                     },
                     fzPosition: 'end',
                   },
-                  name: '显示X轴',
+                  name: 'Show X axis',
                   inverse: false,
                   tickLine: {
                     show: true,
@@ -68128,7 +68128,7 @@ export const luckyJson: Partial<ILuckyJson> = {
                     },
                     fzPosition: 'end',
                   },
-                  name: '显示X轴',
+                  name: 'Show X axis',
                   inverse: false,
                   tickLine: {
                     show: true,
@@ -68204,7 +68204,7 @@ export const luckyJson: Partial<ILuckyJson> = {
                     },
                     fzPosition: 'end',
                   },
-                  name: '显示Y轴',
+                  name: 'Show Y axis',
                   inverse: false,
                   tickLine: {
                     show: true,
@@ -68280,7 +68280,7 @@ export const luckyJson: Partial<ILuckyJson> = {
                     },
                     fzPosition: 'end',
                   },
-                  name: '显示Y轴',
+                  name: 'Show Y axis',
                   inverse: false,
                   tickLine: {
                     show: true,
@@ -69188,7 +69188,7 @@ export const luckyJson: Partial<ILuckyJson> = {
             defaultOption: {
               title: {
                 show: false,
-                text: '默认标题',
+                text: 'Category totals',
                 label: {
                   fontSize: 12,
                   color: '#333',
@@ -69233,15 +69233,15 @@ export const luckyJson: Partial<ILuckyJson> = {
                 selectMode: 'multiple',
                 selected: [
                   {
-                    seriesName: '衣服',
+                    seriesName: 'Clothing',
                     isShow: true,
                   },
                   {
-                    seriesName: '食材',
+                    seriesName: 'Food',
                     isShow: true,
                   },
                   {
-                    seriesName: '图书',
+                    seriesName: 'Books',
                     isShow: true,
                   },
                 ],
@@ -69373,21 +69373,21 @@ export const luckyJson: Partial<ILuckyJson> = {
                 },
                 format: [
                   {
-                    seriesName: '衣服',
+                    seriesName: 'Clothing',
                     prefix: '',
                     suffix: '',
                     ratio: 1,
                     digit: 'auto',
                   },
                   {
-                    seriesName: '食材',
+                    seriesName: 'Food',
                     prefix: '',
                     suffix: '',
                     ratio: 1,
                     digit: 'auto',
                   },
                   {
-                    seriesName: '图书',
+                    seriesName: 'Books',
                     prefix: '',
                     suffix: '',
                     ratio: 1,
@@ -69414,7 +69414,7 @@ export const luckyJson: Partial<ILuckyJson> = {
                     },
                     fzPosition: 'end',
                   },
-                  name: '显示X轴',
+                  name: 'Show X axis',
                   inverse: false,
                   tickLine: {
                     show: true,
@@ -69486,7 +69486,7 @@ export const luckyJson: Partial<ILuckyJson> = {
                     },
                     fzPosition: 'end',
                   },
-                  name: '显示X轴',
+                  name: 'Show X axis',
                   inverse: false,
                   tickLine: {
                     show: true,
@@ -69569,7 +69569,7 @@ export const luckyJson: Partial<ILuckyJson> = {
                     },
                     fzPosition: 'end',
                   },
-                  name: '显示Y轴',
+                  name: 'Show Y axis',
                   inverse: false,
                   tickLine: {
                     show: true,
@@ -69645,7 +69645,7 @@ export const luckyJson: Partial<ILuckyJson> = {
                     },
                     fzPosition: 'end',
                   },
-                  name: '显示Y轴',
+                  name: 'Show Y axis',
                   inverse: false,
                   tickLine: {
                     show: true,

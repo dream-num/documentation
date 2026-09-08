@@ -5,7 +5,7 @@ import { UniverBasesPlugin } from '@univerjs-pro/bases'
 import { BaseSortDirection, Univer } from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
 
-import { createData } from '../showcase/bases/group-records/code/data.ts'
+import { createData } from './fixtures/base-groups-empty-options.ts'
 
 import '@univerjs-pro/bases/facade'
 

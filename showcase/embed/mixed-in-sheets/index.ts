@@ -4,6 +4,7 @@ import { readShowcaseFiles } from '@/showcase/read-files'
 import Preview from './preview'
 
 const metadata: ShowcaseMetadata = {
+  image: '/assets/showcase/embed-mixed-in-sheets.png',
   product: 'embed',
   category: 'showcases',
   previewHeight: 1100,
@@ -11,12 +12,12 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Harbor / Operations Decision Room', 'zh-CN': 'Harbor / 运营决策工作台' },
   description: {
     'en-US':
-      'A reading-room pilot combines a live budget, floating briefing, supplier Base, decision memo and delivery Board in one native workspace.',
-    'zh-CN': '阅读活动试点将实时预算、浮动简报、供应商 Base、决策说明和交付 Board 组合在同一原生工作区。',
+      'A reading-room pilot combines a live budget, floating briefing, supplier Relational Table, decision memo and delivery Canvas in one native workspace.',
+    'zh-CN': '阅读活动试点将实时预算、浮动简报、供应商 Relational Table、决策说明和交付 Canvas 组合在同一原生工作区。',
   },
   tags: {
-    'en-US': ['Embed', 'Sheets', 'Docs', 'Slides', 'Bases', 'Boards', 'Mixed'],
-    'zh-CN': ['嵌入', '表格', '文档', '幻灯片', '多维表格', '白板', '综合'],
+    'en-US': ['Embed', 'Sheets', 'Docs', 'Slides', 'Relational Tables', 'Canvases', 'Mixed'],
+    'zh-CN': ['嵌入', '表格', '文档', '幻灯片', 'Relational Tables', 'Canvases', '综合'],
   },
   packages: [
     '@univerjs/core',
@@ -59,9 +60,9 @@ const metadata: ShowcaseMetadata = {
     },
     expected: {
       'en-US':
-        'Budget formulas recalculate locally. Selected native navigation, four literal examples, five-model history isolation, Board typing and export checks pass. Child edits remain independent; this is not Formula Shape, Formula CustomRange or an approval system. Full acceptance remains open; see README.',
+        'Budget formulas recalculate locally. Selected native navigation, four literal examples, five-model history isolation, Canvas typing and export checks pass. Child edits remain independent; this is not Formula Shape, Formula CustomRange or an approval system. Full acceptance remains open; see README.',
       'zh-CN':
-        '预算公式在本地重算。选定原生导航、四段原样示例、五文档历史隔离、Board 输入和导出检查通过。各子文档编辑独立；这不是 Formula Shape、Formula CustomRange 或审批系统。完整验收仍未完成，详见 README。',
+        '预算公式在本地重算。选定原生导航、四段原样示例、五文档历史隔离、Canvas 输入和导出检查通过。各子文档编辑独立；这不是 Formula Shape、Formula CustomRange 或审批系统。完整验收仍未完成，详见 README。',
     },
   },
   variants: [
@@ -69,11 +70,7 @@ const metadata: ShowcaseMetadata = {
     ['tabs', 'Memo, supplier and workflow tabs', '说明、供应商与流程 Tab'],
     ['ownership', 'One host / Four independent children', '一个宿主 / 四个独立子文档'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
-  actions: [
-    ['budget', 'Recalculate the pilot envelope', '重算试点预算'],
-    ['children', 'Edit the appropriate native child', '编辑对应原生子文档'],
-    ['switch', 'Switch tabs and retain edits', '切换 Tab 并保留编辑'],
-  ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
+  actions: [],
   states: [
     ['reading', 'Read budget and briefing together', '同时阅读预算和简报'],
     ['editing', 'Edit one child at a time', '逐个编辑子文档'],

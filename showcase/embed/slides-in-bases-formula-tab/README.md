@@ -1,8 +1,10 @@
 # Indigo / Portfolio presentation
 
-The Base is **both host and data source**. A native Slides tab inside its table
-list presents twelve Formula Shapes on three authored pages. This is Slides@Base
-Tab with Base -> Slides calculation, the reverse placement of Violet Base@Slide.
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
+The Relational Table is **both host and data source**. A native Slides tab inside its table
+list presents twelve Formula Shapes on three authored pages. This is Slides@Relational Table
+Tab with Relational Table -> Slides calculation, the reverse placement of Violet Relational Table@Slide.
 No hidden Sheet, iframe, JavaScript aggregation or manual refresh is involved.
 
 Three fictional community programmes start at USD 15,000, 22,000 and 8,000: total
@@ -120,7 +122,7 @@ base.getTableById('projects').getRecordById('project-3').setValue('allocation', 
 
 ### 12. Point to an unavailable source
 
-The real Base remains intact. The presentation's qualifier now points to a missing
+The real Relational Table remains intact. The presentation's qualifier now points to a missing
 ID. Inspect native error results instead of substituting cached or zero values.
 
 ```ts
@@ -135,7 +137,7 @@ window.univerAPI.getFormula().upsertExternalReference({ unitId: 'indigo-allocati
 
 ### 14. Inspect both native snapshots
 
-The host and child need to be persisted together; the Base snapshot contains an
+The host and child need to be persisted together; the Relational Table snapshot contains an
 embed reference, not the whole presentation. Reading them alone does not test
 recovery. Use the reconstruction example below to restore a serialized pair.
 Neither example performs PPTX or PDF conversion.
@@ -177,23 +179,23 @@ navigation metadata, not changes to records or authored slide content.
 
 ## Implementation and visual reference
 
-The factory reuses the SDK local Base Tab prepare/materialize/restore sequence:
+The factory reuses the SDK local Relational Table Tab prepare/materialize/restore sequence:
 BasesTableListBlock, not a custom navigation widget. This setup uses internal
 SDK services as in the existing local example; it is not advertised as a public
 Facade method. User examples use actual Facade methods. Formula bindings point
-from each child presentation Shape to the stable host Base ID.
+from each child presentation Shape to the stable host Relational Table ID.
 
-The Base remains the root unit. Its renderer is marked non-main when created,
-because the native Base workbench owns that canvas. The generic single-canvas
+The Relational Table remains the root unit. Its renderer is marked non-main when created,
+because the native Relational Table workbench owns that canvas. The generic single-canvas
 focus switcher must not remount it over the embedded presentation. This is SDK
 render-service configuration, not a public Facade method or a unit creation
-embeddedRender option; the latter would remove the root Base navigation.
+embeddedRender option; the latter would remove the root Relational Table navigation.
 The same scoped rule excludes native thumbnails: restored embeds may create them
 before the generic workbench starts. A thumbnail canvas is not an activatable
 main render, and must remain inside its thumbnail container.
 
 Preview and standalone share one factory, Grid configuration, all nine required
-official CSS imports and complete EN/ZH packs for the registered dependency UIs.
+official CSS imports and complete English packs for the registered dependency UIs.
 The cached Gamma Budget Review cover informs editorial hierarchy only. Original
 navy/cyan, warm-paper/indigo and teal/apricot pages adapt the supplied Deep Ocean
 palette. No competitor artwork is redistributed.
@@ -208,17 +210,17 @@ null versus zero, native division/missing-source errors and recovery, source
 rename and fresh writes all have evidence. Unlike the current Doc formula cases,
 these Shape error results are correctly classified as errors.
 
-Native Base typing 22000 -> 24000 and exact full-Base Undo/Redo pass, with all three
-result pages updated. Nine complete EN/ZH dependency packs and complete Base/Slides
+Native Relational Table typing 22000 -> 24000 and exact full-Relational Table Undo/Redo pass, with all three
+result pages updated. Nine complete EN/ZH dependency packs and complete Relational Table/Slides
 snapshots are preserved through theme changes, with the same API owner.
 
-The selected strict report now passes. Writing the Base while the Slides tab is
+The selected strict report now passes. Writing the Relational Table while the Slides tab is
 active updates the current canvas before any navigation or refresh; the native
-Project register menu remains clickable. Native Base editing then continues in
+Project register menu remains clickable. Native Relational Table editing then continues in
 the same owner without reloading. The earlier twelve disposed CommandService
 warnings are also resolved:
 after unmounting owned UI roots, the factory uses FUniver.disposeUnit for the child
-presentation and then the host Base, before disposing the SDK injector. Formula
+presentation and then the host Relational Table, before disposing the SDK injector. Formula
 Shape lifecycle listeners can unregister their calculations while commands still
 exist. This does not clear formulas or change snapshots during normal use.
 

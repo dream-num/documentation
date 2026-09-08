@@ -1,8 +1,10 @@
 # Cedar / Document Tables
 
+The demo runtime and authored data are English-only, including on a Chinese documentation page. Complete official English locale packs are retained. Any legacy locale argument is accepted but ignored; saved-snapshot argument positions are unchanged. Earlier bilingual test reports below describe the previous revision, not current language acceptance.
+
 The Seed Library Pilot now contains all three original decision datasets at once: packing, inventory reconciliation and weekend handoff. A fourth, independent packaging comparison table sits beside a two-column narrative. The original CC0 SVG illustration and all three native collection charts preserve the different packet counts. Table IDs, original chart/image IDs and business content are retained; new comparison instances have stable descriptive IDs. Nothing is rendered as host HTML.
 
-Use the native Grid and the table's native controls to select and edit. There are no dataset loaders, row/column/cell forms, duplicate history/reset controls or readback panels. The factory waits for Rendered before inserting drawing content. Preview and export share that factory, all five official stylesheets and five complete EN/ZH pack pairs. Theme changes keep the owner and its edits. No internal history clearing, fit-width controller or replacement unit ID is used. Native zoom remains available; automatic narrow-screen fit is not claimed.
+Use the native Grid and the table's native controls to select and edit. There are no dataset loaders, row/column/cell forms, duplicate history/reset controls or readback panels. The factory waits for Rendered before inserting drawing content. Preview and export share that factory, all five official stylesheets and five complete English packs. Theme changes keep the owner and its edits. No internal history clearing, fit-width controller or replacement unit ID is used. Native zoom remains available; automatic narrow-screen fit is not claimed.
 
 ## Literal Facade recipes
 

@@ -35,12 +35,12 @@ const metadata = {
     tryIt: {
       'en-US': [
         'Edit a cell in the native grid and use the native toolbar, formula bar, Undo and Redo controls.',
-        'Switch the documentation theme. The Preview disposes the old owner and starts the same implementation with the matching SDK darkMode value.',
+        'Switch the documentation theme. The Preview updates the existing SDK owner and preserves edited cells.',
         'Open the source files: create-demo.ts contains the reusable plugin registration, while index.ts only mounts and disposes it.',
       ],
       'zh-CN': [
         '在原生表格中编辑单元格，并使用原生工具栏、公式栏以及撤销和重做控件。',
-        '切换文档站主题。Preview 会销毁旧 owner，再以匹配的 SDK darkMode 值启动同一实现。',
+        '切换文档站主题。Preview 更新现有 SDK 实例并保留已编辑单元格。',
         '查看源码：create-demo.ts 包含可复用的插件注册，index.ts 只负责挂载与销毁。',
       ],
     },

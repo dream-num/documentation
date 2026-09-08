@@ -1,10 +1,35 @@
 # Saffron / Text editing and autofit
 
+The runtime is English-only on every host page. Complete official English SDK packs
+and styles are retained. A legacy locale argument, where present, is ignored without
+shifting the saved-snapshot argument. EN/ZH reports below are historical evidence
+from before this language change, not current bilingual-runtime acceptance.
+
 ## Current native-only revision
 
 The editor opens directly on three authored pages: coral/cream emphasis, mint native lists and lilac paragraph alignment. All 17 host actions and their fixture panel have been removed, including collapsed controls and duplicated Undo/Redo. Use native thumbnails and edit actual canvas text. The Grid ribbon and native Print plugin remain visible. Six official SDK CSS imports travel with the exported factory; host CSS only sizes its root.
 
 The same factory and data power Preview and the independent export. Source-only data variants remain available for developer diagnostics. The old actions module is retained locally for SDK regression reproduction, but is no longer shipped as unused runnable demo code. Autofit renderer failures are not fixed or hidden by this UI revision. Print settings registration is not output-fidelity acceptance; no server-backed Exchange menu is added to this frontend-only case.
+
+Current actual-Preview acceptance: `slides-text-native-gallery-committed/report.json`
+passes EN/ZH native thumbnail navigation and keyboard editing, independent Arial
+root styling, complete edited presentation snapshots and the same owner across
+dark/light theme changes, plus final React unmount without browser errors or
+backend writes. All three initial page screenshots and the edited dark preview
+were inspected. Click blank canvas to commit an active text edit; Escape cancels
+it. The earlier theme-recreation ownership reports below are historical.
+
+`scripts/test-slides-text-native-autofit.mjs` probes this exact case's text box,
+not the separate Theme and Background example. It retains strict painted-size
+and box-growth assertions; mode readback alone does not establish success.
+
+`test-results/slides-text-native-autofit-steady/report.json` retains a strict
+failure for beta.2: all three modes paint at the same 37.3333px size and retain
+the 250 × 80 box. The explicit smaller-font control changes the painted size,
+but shrink does not shrink and grow does not increase box height. The run waits
+for SDK Steady and records no browser errors or warnings. These failed fitting
+checks are separate from the passing native editing and theme-preservation
+acceptance above; no host-side fitting workaround is applied.
 
 ## Historical evidence — preceding implementations
 

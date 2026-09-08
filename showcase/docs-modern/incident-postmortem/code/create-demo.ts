@@ -1,7 +1,6 @@
 import { BooleanNumber, type IDocumentData } from '@univerjs/core'
 import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
 import docsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
-import docsCoreZhCN from '@univerjs/preset-docs-core/locales/zh-CN'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 
 import { POSTMORTEM } from './data'
@@ -12,7 +11,7 @@ import './styles.css'
 export function createIncidentPostmortemDemo(
   container: HTMLElement,
   darkMode = false,
-  locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+  _locale: LocaleType = LocaleType.EN_US,
   saved?: IDocumentData,
 ) {
   if (saved && (!saved.id || typeof saved.body?.dataStream !== 'string'))
@@ -22,10 +21,9 @@ export function createIncidentPostmortemDemo(
   container.append(root)
   const { univer, univerAPI } = createUniver({
     darkMode,
-    locale,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(docsCoreEnUS),
-      [LocaleType.ZH_CN]: mergeLocales(docsCoreZhCN),
     },
     presets: [UniverDocsCorePreset({ ribbonType: 'grid', container: root })],
   })
@@ -65,6 +63,15 @@ export function createIncidentPostmortemDemo(
       textStyle: { fs: 11, cl: { rgb: '#B54708' } },
       spaceBelow: { v: 12 },
     })
+    for (const [heading, body] of POSTMORTEM.review) {
+      doc.appendParagraph(heading).setStyle({
+        textStyle: { bl: BooleanNumber.TRUE, fs: 15, cl: { rgb: '#226C68' } },
+      })
+      doc.appendParagraph(body).setStyle({
+        textStyle: { fs: 11, cl: { rgb: '#475467' } },
+        spaceBelow: { v: 12 },
+      })
+    }
   }
   const owner = window as Window & { univerAPI?: typeof univerAPI }
   owner.univerAPI = univerAPI

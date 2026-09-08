@@ -3,15 +3,12 @@ import type { IDocImage } from '@univerjs/preset-docs-drawing'
 import { InsertDocChartCommand, UniverDocsChartPlugin } from '@univerjs-pro/docs-chart'
 import { UniverDocsChartUIPlugin } from '@univerjs-pro/docs-chart-ui'
 import ChartEnUS from '@univerjs-pro/docs-chart-ui/locale/en-US'
-import ChartZhCN from '@univerjs-pro/docs-chart-ui/locale/zh-CN'
 import { UniverDocsColumnPlugin } from '@univerjs-pro/docs-column'
 import { UniverDocsColumnUIPlugin } from '@univerjs-pro/docs-column-ui'
 import ColumnEnUS from '@univerjs-pro/docs-column-ui/locale/en-US'
-import ColumnZhCN from '@univerjs-pro/docs-column-ui/locale/zh-CN'
 import { UniverDocsTablePlugin } from '@univerjs-pro/docs-table'
 import { UniverDocsTableUIPlugin } from '@univerjs-pro/docs-table-ui'
 import TableEnUS from '@univerjs-pro/docs-table-ui/locale/en-US'
-import TableZhCN from '@univerjs-pro/docs-table-ui/locale/zh-CN'
 import { ChartTypeBits } from '@univerjs-pro/engine-chart'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import {
@@ -24,10 +21,8 @@ import {
 import { buildDocTransform, docDrawingPositionToTransform } from '@univerjs/docs'
 import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
 import DocsEnUS from '@univerjs/preset-docs-core/locales/en-US'
-import DocsZhCN from '@univerjs/preset-docs-core/locales/zh-CN'
 import { InsertDocDrawingCommand, UniverDocsDrawingPreset } from '@univerjs/preset-docs-drawing'
 import DrawingEnUS from '@univerjs/preset-docs-drawing/locales/en-US'
-import DrawingZhCN from '@univerjs/preset-docs-drawing/locales/zh-CN'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 
 import { COLLECTION, COMPARISON, createData, PACKAGING_SVG, PRIMARY_ID, SAMPLES } from './data'
@@ -53,13 +48,11 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: IDo
   root.className = 'table-demo'
   root.dataset.ready = 'false'
   container.append(root)
-  const locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US
   const { univer, univerAPI: api } = createUniver({
     darkMode,
-    locale,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(DocsEnUS, TableEnUS, DrawingEnUS, ChartEnUS, ColumnEnUS),
-      [LocaleType.ZH_CN]: mergeLocales(DocsZhCN, TableZhCN, DrawingZhCN, ChartZhCN, ColumnZhCN),
     },
     presets: [
       UniverDocsCorePreset({ ribbonType: 'grid', container: root, header: true, toolbar: true, footer: true }),
@@ -182,9 +175,7 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: IDo
       root.dataset.ready = 'error'
       const alert = document.createElement('p')
       alert.role = 'alert'
-      alert.textContent =
-        (locale === LocaleType.ZH_CN ? '文档启动失败：' : 'Document startup failed: ') +
-        (cause instanceof Error ? cause.message : String(cause))
+      alert.textContent = 'Document startup failed: ' + (cause instanceof Error ? cause.message : String(cause))
       root.append(alert)
       console.error(cause)
     }

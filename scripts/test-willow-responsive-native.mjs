@@ -6,7 +6,8 @@ import path from 'node:path'
 import process from 'node:process'
 import { isDeepStrictEqual } from 'node:util'
 import { chromium } from 'playwright'
-import { createData, COUNTS, TASKS, MAP_SVG } from '../showcase/docs-modern/responsive-width-and-zoom/code/data.ts'
+// Historical mixed-layout harness; use test-doc-width-native-gallery.mjs for the current gallery.
+import { createData, COUNTS, TASKS, MAP_SVG } from './fixtures/doc-width-mixed-data.ts'
 import { readShowcaseSources } from './showcase-sources.mjs'
 
 const manifestPath = 'test-results/willow-responsive-native-export/manifest.json'

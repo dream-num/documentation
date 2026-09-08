@@ -1,4 +1,5 @@
 /* eslint-disable no-await-in-loop -- Compare each permission state with actual native paint and editing. */
+// Historical host-profile harness; current gallery acceptance is test-sheet-protection-native-gallery.mjs.
 import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
 import path from 'node:path'

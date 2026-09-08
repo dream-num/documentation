@@ -1,6 +1,8 @@
 # Sable coastal observatory / Native select options
 
-Run `pnpm install`, then `pnpm dev` or `pnpm build`. Only this selected example is built. Preview and standalone export use the same factory, five complete EN/ZH dependency locale packs and four official SDK stylesheets. Keep native license notices intact.
+Native UI and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Bilingual runtime reports below describe earlier revisions, not acceptance of this English-only revision.
+
+Run `pnpm install`, then `pnpm dev` or `pnpm build`. Only this selected example is built. Preview and standalone export use the same factory, five complete English dependency locale packs and four official SDK stylesheets. Keep native license notices intact.
 
 The original coastal observatory retains 30 individually named survey tasks, 12 coastal projects and 18 sample handovers. Compare Priority single-select with Habitats multi-select through the native grid and field editor. Record IDs, labels, colors and option order are independent. The data includes blank choices, multiple habitats, notes, people, dates, local text attachments and linked sites. Fixed authored dates do not freeze the SDK clock.
 
@@ -125,7 +127,7 @@ window.univerAPI.getBase('sable-option-lab').getTableById('surveys').getRecordBy
 
 ## 14. Inspect the complete model
 
-Save is a read-only Base snapshot, not an XLSX/CSV export or collaborative history.
+Save is a read-only Relational Table snapshot, not an XLSX/CSV export or collaborative history.
 
 ```ts
 console.log(window.univerAPI.getBase('sable-option-lab').save())

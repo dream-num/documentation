@@ -9,6 +9,7 @@ import BoardsEnUS from '@univerjs-pro/boards-ui/locale/en-US'
 import { UniverEmbedPlugin } from '@univerjs-pro/embed'
 import { UniverEmbedUIPlugin } from '@univerjs-pro/embed-ui'
 import EmbedEnUS from '@univerjs-pro/embed-ui/locale/en-US'
+import InkUIEnUS from '@univerjs-pro/ink-ui/locale/en-US'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import ShapeEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
 import { EditorUIService, IEditorUIService } from '@univerjs-pro/slides-ui'
@@ -22,6 +23,7 @@ import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
+import DrawingUIEnUS from '@univerjs/drawing-ui/locale/en-US'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
@@ -32,6 +34,7 @@ import '@univerjs/design/lib/index.css'
 import '@univerjs/ui/lib/index.css'
 import '@univerjs/docs-ui/lib/index.css'
 import '@univerjs-pro/boards-ui/lib/index.css'
+import '@univerjs-pro/ink-ui/lib/index.css'
 import '@univerjs-pro/shape-editor-ui/lib/index.css'
 import '@univerjs/drawing-ui/lib/index.css'
 import '@univerjs-pro/embed-ui/lib/index.css'
@@ -46,7 +49,7 @@ import '@univerjs-pro/bases-ui/facade'
 import '@univerjs/ui/facade'
 import '@univerjs-pro/embed/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _locale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
   root.className = 'grove-embed'
   container.append(root)
@@ -58,6 +61,8 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
+        DrawingUIEnUS,
+        InkUIEnUS,
         DesignEnUS,
         UIEnUS,
         DocsEnUS,
@@ -67,6 +72,50 @@ export function createDemo(container: HTMLElement, darkMode = false) {
         EmbedEnUS,
         BasesEnUS,
         BasesUIEnUS,
+
+        // Demo-only product names; preserve every other official English translation.
+        {
+          'boards-ui': {
+            ...BoardsEnUS['boards-ui'],
+            settings: { ...BoardsEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
+          },
+          'shape-editor-ui': {
+            ...ShapeEnUS['shape-editor-ui'],
+            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
+            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
+          },
+          'bases-ui': {
+            ...BasesUIEnUS['bases-ui'],
+            collaboration: {
+              ...BasesUIEnUS['bases-ui']['collaboration'],
+              localTooltip: 'Collaboration is disabled for these relational tables.',
+              notCollabTooltip: 'These relational tables are not in collaboration mode.',
+            },
+            fieldConfig: {
+              ...BasesUIEnUS['bases-ui']['fieldConfig'],
+              formulaReferenceError: 'A1 references and ranges are not supported in Relational Tables formulas.',
+              referenceCurrentField:
+                'Reference the "{0}" field in the current relational table. It will be saved as [[#This Row],[{1}]] for the formula engine.',
+            },
+            fieldMenu: {
+              ...BasesUIEnUS['bases-ui']['fieldMenu'],
+              createSharedBaseField: 'Create a shared Relational Tables field',
+            },
+            viewMenus: {
+              ...BasesUIEnUS['bases-ui']['viewMenus'],
+              setWorkingDaysDescription:
+                'Customize working days and days off, and apply them to the current relational tables',
+            },
+            formula: {
+              ...BasesUIEnUS['bases-ui']['formula'],
+              generic: {
+                ...BasesUIEnUS['bases-ui']['formula']['generic'],
+                engineDescription:
+                  '{0} is provided by the Univer formula engine. Relational Tables supports field references such as TableName[[#This Row],[Field]] and OtherTable[Field], but does not support A1 cells, A1:B10 ranges, or spilled array output in formula fields.',
+              },
+            },
+          },
+        },
       ),
     },
   })
@@ -133,7 +182,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
             ensureUnit(input) {
               input.signal?.throwIfAborted()
               if (disposed || input.ref.unit.selector !== CHILD_ID || input.unitType !== UniverInstanceType.UNIVER_BASE)
-                throw new Error('Unknown Grove Base source')
+                throw new Error('Unknown Grove Relational Table source')
               const instances = univer.__getInjector().get(IUniverInstanceService)
               if (!instances.getUnit(CHILD_ID, input.unitType))
                 instances.createUnit(input.unitType, createChildData(), input.createOptions)
@@ -174,7 +223,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
             .__getInjector()
             .get(IUniverInstanceService)
             .getUnit<BoardModel>(HOST_ID, UniverInstanceType.UNIVER_BOARD)
-          if (!board) throw new Error('The research Board is unavailable')
+          if (!board) throw new Error('The research Canvas is unavailable')
           univer
             .__getInjector()
             .get(BoardViewportService)
@@ -189,7 +238,8 @@ export function createDemo(container: HTMLElement, darkMode = false) {
         root.dataset.error = String(error)
         const message = document.createElement('p')
         message.setAttribute('role', 'alert')
-        message.textContent = 'The research Base could not load. Reload to retry; details are in the console.'
+        message.textContent =
+          'The research Relational Table could not load. Reload to retry; details are in the console.'
         root.prepend(message)
         console.error(error)
       })

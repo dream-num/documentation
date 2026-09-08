@@ -1,4 +1,10 @@
-# Grove / Research backlog on a Board
+# Grove / Research backlog on a Canvas
+
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
+not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+not certify every native interaction or resolve the recorded SDK failures.
 
 An original park-route discovery story places nine research questions beside
 four visual notes: wayfinding, comfort, access and trust. Linked Themes records
@@ -8,12 +14,12 @@ An evidence state is not an accessibility certification or release approval.
 
 ## Run and explore
 
-Run pnpm install and pnpm dev in the standalone export. Double-click the Base
+Run pnpm install and pnpm dev in the standalone export. Double-click the Relational Table
 to activate native record editing; use the native fullscreen control to explore
 Questions and Themes. Rename a theme and inspect its linked labels in Questions.
 
 This literal Facade example updates a research question without changing the
-Board's narrative cards:
+Canvas's narrative cards:
 
 ```ts
 window.univerAPI
@@ -23,7 +29,7 @@ window.univerAPI
   .setValue('title', 'Move the cue before the turn')
 ```
 
-Try native Undo/Redo. Return to the Board and refine its pending next step:
+Try native Undo/Redo. Return to the Canvas and refine its pending next step:
 
 ```ts
 window.univerAPI
@@ -34,27 +40,27 @@ window.univerAPI
 ```
 
 Record links retain theme IDs when labels change. They are not Formula Shapes
-and do not rewrite Board notes. No route is approved, measured or published;
+and do not rewrite Canvas notes. No route is approved, measured or published;
 no notifications or assignments are sent. Reload loses local edits.
 
 ## Integration and acceptance
 
 Preview and the eleven-file standalone export share one factory and official
 host, child, Embed, drawing and shape CSS. The local provider accepts only the
-authored Base ID/type. BoardFloating owns geometry while Base owns its tables.
-Board text editing uses the SDK's real EditorUIService registered through
-Board's public runtime dependency extension; no unrelated Slides unit is created.
+authored Relational Table ID/type. BoardFloating owns geometry while Relational Table owns its tables.
+Canvas text editing uses the SDK's real EditorUIService registered through
+Canvas's public runtime dependency extension; no unrelated Slides unit is created.
 
-Selected independent production passes both literal README examples, full Base
+Selected independent production passes both literal README examples, full Relational Table
 snapshots across native Undo/Redo, actual keyboard theme rename and history,
 three visible linked labels preserving their theme IDs, native fullscreen/table
-navigation, independent Board text and movement/history, theme changes and
+navigation, independent Canvas text and movement/history, theme changes and
 active-child disposal without observed browser errors or backend requests.
-The host keeps Board floating tools; the child keeps its native Base controls.
+The host keeps Canvas floating tools; the child keeps its native Relational Table controls.
 
 EN/ZH guides pass three variants/actions/states and actual media-theme changes
 preserving the same owner and both edited snapshots. Eleven-file export parity
-includes nine official CSS imports and the white native workbench. Board themes
+includes official CSS imports and the white native workbench. Canvas themes
 may regenerate a palette; its theme ID and all authored content stay strict.
 
 - Production: `test-results/embed-base-board-float-production-final/report.json`
@@ -62,7 +68,7 @@ may regenerate a palette; its theme ID and all authored content stay strict.
 - Export: `test-results/embed-base-board-float-export-final/report.json`
 
 The first production test incorrectly looked for a workbench inside fullscreen.
-The actual Base fullscreen is its own native shell; the test now checks the
+The actual Relational Table fullscreen is its own native shell; the test now checks the
 observed base-canvas-root and official white background. No CSS override was
 added. The failed report remains. Screenshot review separated the heading from
 native floating menus and widened the theme scope/method columns.
@@ -85,5 +91,9 @@ performance remain open. No Exchange conversion or Print output is claimed.
 No SDK package or license watermark is patched.
 
 The saved Airtable calendar reference informs category colors and dated work
-items, not a claim that this Grid is a calendar. All business content and Board
+items, not a claim that this Grid is a calendar. All business content and Canvas
 geometry are original; no competitor artwork is redistributed.
+
+The shared factory explicitly imports the official Ink UI English pack and CSS
+required by the registered Canvases UI dependency. Other product locale packs and
+styles remain intact. This is resource coverage, not native pen acceptance.

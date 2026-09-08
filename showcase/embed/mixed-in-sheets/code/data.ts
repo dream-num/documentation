@@ -132,7 +132,7 @@ const MEMO = [
   ],
   ['06 / Change the right source', 'heading'],
   [
-    'Budget quantities recalculate the workbook. Editing a supplier note changes the Base only. Moving a workflow card changes the Board. Briefing text and this memo remain independent; no cross-product formula binding is claimed.',
+    'Budget quantities recalculate the workbook. Editing a supplier note changes the Relational Table only. Moving a workflow card changes the Canvas. Briefing text and this memo remain independent; no cross-product formula binding is claimed.',
     'body',
   ],
   ['Disposition / Discussion draft, not a booking or order.', 'heading'],
@@ -476,7 +476,7 @@ export function createBoardData(): IBoardData {
   })
   const footer = createBoardTextBoxShapeElement({
     id: 'footer',
-    text: 'Authored hand-offs, not task automation. Statuses stay independent of the Base.',
+    text: 'Authored hand-offs, not task automation. Statuses stay independent of the Relational Table.',
     left: 40,
     top: 485,
     width: 790,

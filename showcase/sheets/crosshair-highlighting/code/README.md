@@ -1,9 +1,11 @@
 # Oriole / Native reading bands
 
+Native UI and authored data are English-only. Earlier bilingual/native reports below are historical evidence, not acceptance of this migration.
+
 Use View > Crosshair Highlight for the native toggle and sixteen color/opacity
 presets. Click or drag cells and use native sheet tabs; no external controls are
 needed. Original small schedules and formulas remain unchanged. Two official CSS
-imports and complete core/crosshair EN/ZH packs ship with the shared factory.
+imports and complete core/crosshair English packs ship with the shared factory.
 Theme changes retain the current owner and edits.
 
 Run these exact snippets inside the preview or standalone page.

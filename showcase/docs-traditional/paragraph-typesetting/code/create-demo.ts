@@ -1,6 +1,5 @@
 import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
 import docsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
-import docsCoreZhCN from '@univerjs/preset-docs-core/locales/zh-CN'
 import { createUniver, LocaleType } from '@univerjs/presets'
 
 import { createData } from './data'
@@ -12,11 +11,11 @@ export function createDemo(container: HTMLElement, darkMode = false) {
   const root = document.createElement('div')
   root.className = 'north-typesetting'
   container.append(root)
-  const locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US
+  const locale = LocaleType.EN_US
   const { univer, univerAPI } = createUniver({
     darkMode,
     locale,
-    locales: { [LocaleType.EN_US]: docsCoreEnUS, [LocaleType.ZH_CN]: docsCoreZhCN },
+    locales: { [LocaleType.EN_US]: docsCoreEnUS },
     presets: [UniverDocsCorePreset({ ribbonType: 'grid', container: root, header: true, toolbar: true, footer: true })],
   })
   const owner = window as typeof window & { univerAPI?: typeof univerAPI }
@@ -32,9 +31,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     root.dataset.ready = 'error'
     const alert = document.createElement('p')
     alert.role = 'alert'
-    alert.textContent =
-      (locale === LocaleType.ZH_CN ? '文档启动失败：' : 'Document startup failed: ') +
-      (cause instanceof Error ? cause.message : String(cause))
+    alert.textContent = 'Document startup failed: ' + (cause instanceof Error ? cause.message : String(cause))
     root.append(alert)
     console.error(cause)
   }

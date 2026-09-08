@@ -3,24 +3,19 @@ import { UniverPdfsPlugin } from '@univerjs-pro/pdfs'
 import { UniverPdfEditorPlugin } from '@univerjs-pro/pdfs-editor'
 import { IPdfEditorRuntimeService, UniverPdfsUIPlugin } from '@univerjs-pro/pdfs-ui'
 import PdfsUIEnUS from '@univerjs-pro/pdfs-ui/locale/en-US'
-import PdfsUIZhCN from '@univerjs-pro/pdfs-ui/locale/zh-CN'
 import { IUndoRedoService, LocaleType, mergeLocales, Univer } from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
 import { unmount } from '@univerjs/design'
 import DesignEnUS from '@univerjs/design/locale/en-US'
-import DesignZhCN from '@univerjs/design/locale/zh-CN'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
-import DocsUIZhCN from '@univerjs/docs-ui/locale/zh-CN'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
 import DrawingUIEnUS from '@univerjs/drawing-ui/locale/en-US'
-import DrawingUIZhCN from '@univerjs/drawing-ui/locale/zh-CN'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { BuiltInUIPart, UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
-import UIZhCN from '@univerjs/ui/locale/zh-CN'
 
 import { createPlan } from './data'
 
@@ -48,10 +43,9 @@ export function createDemo(container: HTMLElement, darkMode = false) {
   let disposed = false
   const univer = new Univer({
     darkMode,
-    locale: document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(DesignEnUS, UIEnUS, DocsUIEnUS, DrawingUIEnUS, PdfsUIEnUS),
-      [LocaleType.ZH_CN]: mergeLocales(DesignZhCN, UIZhCN, DocsUIZhCN, DrawingUIZhCN, PdfsUIZhCN),
     },
   })
   const demoWindow = window as Window & { univerAPI?: FUniver }

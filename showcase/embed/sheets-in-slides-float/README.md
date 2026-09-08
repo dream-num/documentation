@@ -1,5 +1,11 @@
 # Tamar / Quarterly assumptions
 
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
+not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+not certify every native interaction or resolve the recorded SDK failures.
+
 An original independent print-studio review embeds a native two-sheet workbook
 inside a three-slide presentation. Direct editions, bookshop partners and print
 workshops have different prices and unit costs. Volume sensitivity keeps fixed
@@ -17,6 +23,14 @@ host buttons. Preview and standalone share the same factory, data and official
 SDK CSS. The native Sheets ribbon registers its actual feature dependencies.
 
 ## Selected evidence and a failing gate
+
+`test-results/embed-sheet-child-themes-visible/report.json` passes the actual
+React Preview in EN/ZH without fullscreen: native float activation and inline
+B5 typing to 1,800 yield operating result 13,932; a public Facade slide-title edit
+is independent of the child. Dark/light next-themes storage events preserve the
+same owner and full edited snapshots, and active-child React unmount has no
+browser errors. Official CSS/locales and reviewed screenshots confirm the
+selected surfaces. This does not resolve the native fullscreen failure below.
 
 `test-results/embed-sheet-slide-float-fullscreen-keyboard/report.json` verifies
 the final independent production build at 1220px up to fullscreen: native float
@@ -71,8 +85,8 @@ package files or production event handlers were patched. The full gate remains
 failing; `SHOWCASE_DIAGNOSTIC=1` enables observational traces in the source runner.
 
 Fix native fullscreen first, then finish five-tab menu dependencies, Sensitivity
-navigation, native cell typing, host navigation/preservation, active-child
-disposal, print, failed resources, repeat mounting/theme changes, narrow layouts,
+navigation, broader native cell typing, host navigation/preservation,
+print, failed resources, repeat mounting, narrow layouts,
 touch/accessibility and performance. This is a partial implementation with a
 known runtime failure, not a completed demo. No backend, sales orders, payments,
 Exchange conversion or persistence is provided. Reload loses edits.

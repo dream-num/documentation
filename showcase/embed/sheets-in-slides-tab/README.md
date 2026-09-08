@@ -1,5 +1,11 @@
 # Aster / Pilot appendix
 
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
+not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+not certify every native interaction or resolve the recorded SDK failures.
+
 An original community-radio team reviews an eight-week pilot. Three authored
 slides frame the editorial mix and commissioning decision. A native SlidePage
 embed inserted second in the page list opens the real two-sheet production

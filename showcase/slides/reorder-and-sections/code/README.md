@@ -1,5 +1,10 @@
 # Cobalt / Slide order and host section metadata
 
+The runtime is English-only on every host page. Complete official English SDK packs
+and styles are retained. A legacy locale argument, where present, is ignored without
+shifting the saved-snapshot argument. EN/ZH reports below are historical evidence
+from before this language change, not current bilingual-runtime acceptance.
+
 Eight original fictional street-shade briefing pages cover 12 sites, 84 trees,
 planting stages, paired temperature observations, a resident quote and a decision.
 The figures are illustrative, not evidence of a causal effect.
@@ -161,8 +166,8 @@ not assumed to be rejected by the SDK.
 ## Source and acceptance
 
 Preview and export share the factory and all five official stylesheets. Complete
-Design, UI, Docs UI, Shape Editor UI and Slides UI packs cover English and Chinese;
-the initial document language selects the UI locale. No sibling demo is a runtime
+Design, UI, Docs UI, Shape Editor UI and Slides UI packs cover English;
+the editor locale is independent of the host document language. No sibling demo is a runtime
 dependency. Native Pro licensing watermarks remain without a license.
 
 The selected native test completes 78 checks with **13/16 gates PASS** and three

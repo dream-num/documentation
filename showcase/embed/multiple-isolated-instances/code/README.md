@@ -4,7 +4,8 @@ North has six workshop maintenance items; South has six different garden items.
 Native formulas calculate each budget. North stays light and South dark, with
 separate iframe documents, JavaScript realms and stable workbook IDs. This is
 trusted same-origin HTML embedding, not a sandbox security boundary or a Pro Embed
-plugin example. Both use Grid and complete EN/ZH Sheets core resources and CSS.
+plugin example. Both use Grid, complete English Sheets Core resources and official CSS.
+Native UI and host controls stay English on every host language.
 
 Run `pnpm install`, then `pnpm dev`, or `pnpm build` and `pnpm preview`.
 The same entry serves the parent and children. The `isolatedRegion` query is
@@ -107,7 +108,7 @@ text are checked; default content and independent white/dark official CSS are re
 
 The same suite checks full opposite-owner snapshots, both real JSON downloads,
 saved same-ID owner recovery and fresh native edits, invalid-input guards before
-owner mutation, both initial EN/ZH packs, independent theme/locale changes,
+owner mutation, full English packs on both host languages, independent theme changes,
 320/390/760px stacked hosts and genuine native text editing. It mounts the exact
 React Preview under development StrictMode, observes one SDK owner per child and
 none in the parent, then tests teardown during native writes, Release, Mount and

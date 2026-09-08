@@ -83,7 +83,7 @@ export function ShowcaseSidebar({ items, pathname, lang }: ShowcaseSidebarProps)
           />
         </label>
 
-        <ScrollArea className="min-h-0 flex-1">
+        <ScrollArea className="min-h-0 flex-1 [&_[data-slot=scroll-area-viewport]]:pr-3">
           {SECTION_IDS.map((product) => {
             const productItems = filteredItems.filter((item) => item.section === product)
             if (!productItems.length && query.trim()) return null
@@ -237,7 +237,7 @@ function TreeBranch({
         <span className="min-w-0 flex-1" title={label}>
           {label}
         </span>
-        <span className="text-[10px] font-normal text-neutral-400">{count}</span>
+        <span className="shrink-0 text-[10px] font-normal text-neutral-400 tabular-nums">{count}</span>
       </button>
       {open && children}
     </div>

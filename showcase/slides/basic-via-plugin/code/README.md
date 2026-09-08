@@ -1,5 +1,10 @@
 # Build / edit / extend a presentation
 
+The runtime is English-only on every host page. Complete official English SDK packs
+and styles are retained. A legacy locale argument, where present, is ignored without
+shifting the saved-snapshot argument. EN/ZH reports below are historical evidence
+from before this language change, not current bilingual-runtime acceptance.
+
 The original plugin-mode introduction now includes all three authored pages: the SDK cover,
 plugin registration with native ellipse/hexagon geometry, and Q3 product momentum. The independent
 signals remain +31% pipeline growth, 94% customer retention and seven feature launches. They are
@@ -10,8 +15,8 @@ Use the actual Grid ribbon, slide thumbnails, text/shape editor and Speaker note
 host summary button, reset button, activity panel or hidden one-shot summary flag. Legacy Text
 records are expressed as native text-box Shapes while retaining the original text and element IDs.
 
-Preview and export share one factory, all five official CSS files and five complete EN/ZH packs.
-Initial html lang selects English or Chinese. A theme toggle preserves the existing edited owner.
+Preview and export share one factory, all five official CSS files and five complete English packs.
+The editor always uses English. A theme toggle preserves the existing edited owner.
 Run pnpm install / pnpm dev in the independent export, or pnpm build / pnpm preview for production.
 
 ## Literal Facade recipes
@@ -47,7 +52,7 @@ window.univerAPI.getPresentation('slides-pro-demo').getSlideById('feature').getE
 ### 5. Record the integration decision
 
 ```ts
-window.univerAPI.getPresentation('slides-pro-demo').getSlideById('feature').setSpeakerNotes('Register the selected plugins before creating the presentation. Keep theme changes on the same owner. 复查')
+window.univerAPI.getPresentation('slides-pro-demo').getSlideById('feature').setSpeakerNotes('Register the selected plugins before creating the presentation. Keep theme changes on the same owner. Review.')
 ```
 
 ### 6. Read the authored summary as actual page data

@@ -11,12 +11,12 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Moss / Support Demand', 'zh-CN': 'Moss / 支持需求对比' },
   description: {
     'en-US':
-      'Native Base records feed week/channel formulas and two real chart series. Change counts or comparison weeks without rebuilding the chart.',
-    'zh-CN': '原生 Base 记录驱动按周和渠道汇总的公式及两组真实图表系列。修改数量或比较周，无需重建图表。',
+      'Native Relational Table records feed week/channel formulas and two real chart series. Change counts or comparison weeks without rebuilding the chart.',
+    'zh-CN': '原生 Relational Table 记录驱动按周和渠道汇总的公式及两组真实图表系列。修改数量或比较周，无需重建图表。',
   },
   tags: {
-    'en-US': ['Formula', 'Base', 'Sheets', 'Charts', 'Native tabs', 'Print'],
-    'zh-CN': ['公式', '多维表格', '电子表格', '图表', '原生标签页', '打印'],
+    'en-US': ['Formula', 'Relational Table', 'Sheets', 'Charts', 'Native tabs', 'Print'],
+    'zh-CN': ['公式', 'Relational Tables', '电子表格', '图表', '原生标签页', '打印'],
   },
   packages: [
     '@univerjs-pro/embed',

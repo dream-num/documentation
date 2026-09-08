@@ -6,6 +6,12 @@ const metadata = {
   product: 'sheets' as const,
   category: 'features' as const,
   group: { 'en-US': 'Charts and drawings', 'zh-CN': '图表与绘图' },
+  title: { 'en-US': 'Shapes', 'zh-CN': '形状' },
+  tags: { 'en-US': ['Univer Sheets', 'Shapes'], 'zh-CN': ['Univer Sheets', '形状'] },
+  description: {
+    'en-US': 'Native galleries for shape geometry, fills, text, connectors and cell anchoring.',
+    'zh-CN': '通过原生画廊对比几何、填充、文字、连接线及单元格锚定。',
+  },
   packages: [
     '@univerjs/presets',
     '@univerjs/preset-sheets-core',
@@ -15,110 +21,58 @@ const metadata = {
     '@univerjs-pro/sheets-shape',
   ],
   apis: [
+    { name: 'FWorksheet.insertShape() / getShapes()' },
+    { name: 'FShape.setCustomGeometryFromSvgPath() / setAdjustValues()' },
     {
-      name: 'FWorksheet.insertShape() / getShapes() / getShape() / getDrawingLayout() / setRowHeight() / scrollToCell()',
+      name: 'FShape.setGradientFill() / setImageFill() / setNoneFill() / setStroke() / setRotation() / bringToFront()',
     },
-    {
-      name: 'FShape.getSnapshot() / getShapeData() / setShapeData() / setCustomGeometryFromSvgPath() / setAdjustValues()',
-    },
-    { name: 'FShape.setSolidFill() / setGradientFill() / setImageFill() / setNoneFill() / setStroke()' },
     { name: 'FShape.getText(); FShapeText.setText() / setTextStyle() / setHorizontalAlign() / setVerticalAlign()' },
-    {
-      name: 'FShape.setAbsolutePosition() / setSize() / setRotation() / bringToFront() / sendToBack() / setVisible() / setSelectable() / remove()',
-    },
-    { name: 'FSheetShape.getPlacement() / setPlacement(); FShape.getConnectionSites()' },
-    {
-      name: 'FConnectorShape.bindStart() / bindEnd() / unbindStart() / unbindEnd() / setShapeType() / setStartArrow() / setEndArrow() / getRoutePoints()',
-    },
-    { name: 'FUniver.undo() / redo() / disposeUnit(); FWorkbook.save() / setActiveSheet()' },
+    { name: 'FConnectorShape.bindStart() / bindEnd() / setStartArrow() / setEndArrow(); FShape.getConnectionSites()' },
+    { name: 'FSheetShape.setPlacement() / getPlacement()' },
   ],
   guide: {
     overview: {
       'en-US':
-        'Explore an original Marlow reservoir commissioning flow using four native shapes and two bound connectors. The independent task table includes 6.5 hours, zero, a missing estimate and 3.25 hours. The original flowchart, image-fill and cropped-image reference galleries remain separate worksheets.',
-      'zh-CN':
-        '用四个原生形状和两条绑定连接线探索原创 Marlow 水库调试流程。独立任务表包含 6.5 小时、零、缺失估算和 3.25 小时；原有流程图、图片填充与图片裁剪参考页分别保留。',
+        'Four worksheets show focused native shape variants without a duplicate control panel. Select and edit shapes with the native drawing tools.',
+      'zh-CN': '四张工作表直接展示形状变体，不提供重复控制面板。选择形状，使用原生绘图工具编辑。',
     },
     tryIt: {
       'en-US': [
-        'Choose Intake. Compare eight presets, a custom SVG path and RoundRect adjustment. Create adds another shape; applying a preset preserves the target ID. The selector is a host target, not native drawing selection.',
-        'Compare solid, gradient, image, cropped-image and no-fill variants, then change stroke, editable text, text style and alignment. The original image is embedded SVG; crop values are percentages.',
-        'Move, rotate, resize or overlap two shapes, then compare front/back order, visibility and selectability. Selectability is not security. Placement preserves bounds; toggle row 1 (before Intake) and row 3 (inside Intake) between 28/68px to compare one-cell, two-cell and absolute anchoring.',
-        'Choose a connector and compare straight, elbow, curved and arrowhead variants. Unbind both endpoints, move Intake, then bind Intake to Sample again. Read connection sites, endpoint bindings and actual routes.',
-        'Use native editing and inspect actual state. Undo/Redo applies one SDK step; a host action that calls several setters is not an atomic transaction. Empty removes shapes on the active sheet, not cells or floating images. Save JSON, reload the snapshot or reset all four sheets.',
+        'Open Geometry & fills: compare eight presets, rounded-corner adjustment and a custom SVG path. Compare image and cropped-image fills using the original inline illustration.',
+        'Open Text & strokes: compare alignment, bold and italic text, dashed and translucent strokes, rotation and overlapping layers. Select a shape to reveal native drawing tools.',
+        'Open Bound connectors: drag a start node to compare straight, elbow and curved routes with end-only, two-ended and no arrowheads.',
+        'Open Cell anchoring: resize row 1 (before the shapes), then row 3 (inside the shapes) to compare move-only, move-and-size and fixed placement.',
       ],
       'zh-CN': [
-        '选择 Intake，对比八种预设、自定义 SVG 路径及圆角调节。Create 新增形状，应用预设保留目标 ID。宿主目标选择不等于原生绘图选中。',
-        '对比纯色、渐变、图片、裁剪图片及无填充，再修改描边、文字、文字样式与对齐。原创图片使用内嵌 SVG，裁剪参数采用百分比。',
-        '移动、旋转、缩放或叠放两个形状，对比前后层级、可见性及可选中性。可选中性不是权限控制。锚定操作保留边界；将 Intake 前方的第 1 行及其内部的第 3 行在 28/68px 间切换，对比单单元格、双单元格和绝对位置。',
-        '选择连接线，对比直线、折线、曲线及箭头。解绑两端后移动 Intake，再绑定 Intake 到 Sample，读取连接点、端点绑定和实际路径。',
-        '使用原生编辑并检查真实状态。撤销/重做执行一个 SDK 步骤；多个 setter 组成的宿主操作不是原子事务。Empty 删除当前表的形状，不删单元格或浮动图片。保存 JSON、重新载入快照或重置全部四张表。',
+        '打开“几何与填充”，对比八种预设、圆角调节、自定义 SVG 路径，以及原创内嵌图片的完整与裁剪填充。',
+        '打开“文字与描边”，对比对齐、粗体与斜体、虚线与透明描边、旋转和层叠；选择形状显示原生绘图工具。',
+        '打开“绑定连接线”，拖动起点形状，对比直线、折线和曲线，以及末端箭头、双端箭头和无箭头。',
+        '打开“单元格锚定”，调整形状前方的第 1 行和内部的第 3 行高度，对比仅移动、移动并缩放、固定位置。',
       ],
     },
     expected: {
       'en-US':
-        'Preview and standalone export share one implementation, fixtures, and Core/Drawing/Advanced CSS. Controls use installed public Facades without a backend or private SDK services. Reset/reload use new unit IDs; theme changes discard edits. JSON is not XLSX. Compatible controls are enabled by handle type; SmartArt and exhaustive native preset coverage remain outside this case. SDK trial restrictions are not hidden.',
+        'Preview and exported source use the same factory, complete English locale packs and official Core/Drawing/Advanced CSS. Theme switches preserve edits. This is not an exhaustive preset or SmartArt catalog; trial notices remain visible.',
       'zh-CN':
-        '预览与独立导出共享实现、数据和 Core/Drawing/Advanced CSS。控件调用已安装的公开 Facade，不依赖后端或私有 SDK 服务。重置/重载使用新单元 ID，主题切换丢弃编辑。JSON 不等于 XLSX。根据句柄类型启用兼容操作；SmartArt 与全部原生预设穷举不属于本例范围，不隐藏试用限制。',
+        '预览与导出源码共用创建逻辑、完整英文语言包及 Core/Drawing/Advanced 官方 CSS。切换主题保留编辑。本例不声称穷举所有预设或支持 SmartArt；保留试用提示。',
     },
   },
   variants: [
-    ['presets', 'Eight basic presets', '八种基本预设'],
-    ['custom', 'Custom SVG path / rounded-corner adjustment', '自定义路径 / 圆角调节'],
-    ['fill', 'Solid / gradient / image / crop / none', '纯色 / 渐变 / 图片 / 裁剪 / 无填充'],
-    ['stroke', 'Solid / dash / opacity', '实线 / 虚线 / 透明度'],
-    ['text', 'Plain / bold / italic and alignment', '普通 / 加粗 / 斜体及对齐'],
-    ['placement', 'One-cell / two-cell / absolute placement', '单单元格 / 双单元格 / 绝对锚定'],
-    ['connectors', 'Straight / elbow / curved connectors', '直线 / 折线 / 曲线连接'],
-    ['arrows', 'End / both / no arrowheads', '末端 / 两端 / 无箭头'],
-    ['galleries', 'Flowchart / image-fill / cropped-image references', '流程图 / 图片填充 / 裁剪参考'],
+    ['geometry', 'Eight presets and custom path', '八种预设与自定义路径'],
+    ['fills', 'Solid / gradient / image / crop / none', '纯色 / 渐变 / 图片 / 裁剪 / 无填充'],
+    ['text', 'Text, strokes, rotation and layers', '文字、描边、旋转与层叠'],
+    ['connectors', 'Three bound routes and arrowheads', '三种绑定路径与箭头'],
+    ['placement', 'Move / move and size / fixed', '移动 / 移动并缩放 / 固定'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
-  actions: [
-    ['geometry', 'Create / geometry / style / text', '创建 / 几何 / 样式 / 文字'],
-    ['placement', 'Move / resize / rotate / anchoring', '移动 / 缩放 / 旋转 / 锚定'],
-    ['order', 'Order / visibility / selectability', '层级 / 可见性 / 可选中性'],
-    ['connector', 'Route / arrows / bind / unbind', '路径 / 箭头 / 绑定 / 解绑'],
-    ['history', 'Remove / empty / Undo / Redo', '删除 / 清空 / 撤销 / 重做'],
-    ['snapshot', 'Inspect / JSON / reload / reset', '检查 / JSON / 重载 / 重置'],
-  ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
-  states: [
-    ['default', 'Bound workflow', '绑定流程'],
-    ['hidden', 'Hidden / non-selectable target', '隐藏 / 不可选目标'],
-    ['unbound', 'Free connector endpoints', '自由连接端点'],
-    ['empty', 'No shapes on active sheet', '当前表无形状'],
-    ['error', 'Invalid input or SDK failure', '输入无效或 SDK 失败'],
-  ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
-  title: {
-    'en-US': 'Shapes',
-    'zh-CN': '形状',
-    'zh-TW': '形狀',
-    'ja-JP': 'シェイプ',
-  },
-  description: {
-    'en-US': 'This example demonstrates how to create and manipulate shapes in Univer Sheets',
-    'zh-CN': '本示例演示了如何使用 Univer Sheets 创建和操作形状',
-    'zh-TW': '本範例演示了如何在 Univer Sheets 中創建和操作形狀',
-    'ja-JP': 'この例では、Univer Sheets でシェイプを作成し、操作する方法を示します',
-  },
-  tags: {
-    'en-US': ['Univer Sheets', 'Preset Mode'],
-    'zh-CN': ['Univer Sheets', '预设模式'],
-    'zh-TW': ['Univer Sheets', '預設模式'],
-    'ja-JP': ['Univer Sheets', 'プリセットモード'],
-  },
+  actions: [],
+  states: [{ id: 'gallery', label: { 'en-US': 'Editable native shapes', 'zh-CN': '可编辑原生形状' } }],
 }
-
 export const files = readShowcaseFiles(import.meta.url, {
+  '/README.md': './README.md',
   '/src/index.ts': './code/index.ts',
   '/src/function.ts': './code/function.ts',
   '/src/data.ts': './code/data.ts',
-  '/src/fixture.ts': './code/fixture.ts',
   '/src/create-demo.ts': './code/create-demo.ts',
   '/src/styles.css': './code/styles.css',
 })
-
-export default {
-  metadata,
-  files,
-  Preview,
-}
+export default { metadata, files, Preview }

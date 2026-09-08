@@ -105,17 +105,17 @@ const MEMO = [
   ],
   ['03 / Try the reading / 30 minutes', 'heading'],
   [
-    'Exchange paper prototypes between tables. Read each label aloud, explain the next decision and record one uncertainty. The linked Base keeps observations and next questions separate from proposed answers.',
+    'Exchange paper prototypes between tables. Read each label aloud, explain the next decision and record one uncertainty. The linked Relational Table keeps observations and next questions separate from proposed answers.',
     'body',
   ],
   ['04 / Revise the brief / 20 minutes', 'heading'],
   [
-    'Review three locations in the Slides, then update the Board discussion loop. The opening resource estimate is USD 1,632 plus a ten-percent reserve: USD 1,795.20. These written numbers are authored baselines; only the Sheet recalculates.',
+    'Review three locations in the Slides, then update the Canvas discussion loop. The opening resource estimate is USD 1,632 plus a ten-percent reserve: USD 1,795.20. These written numbers are authored baselines; only the Sheet recalculates.',
     'body',
   ],
   ['05 / Respect the boundaries', 'heading'],
   [
-    'Each floating product has its own local model. Edit through native tools or fullscreen; return to the Board to compare evidence. Links describe relationships, not workflow automation. No participant profiles, booking, purchases, approvals or backend are used.',
+    'Each floating product has its own local model. Edit through native tools or fullscreen; return to the Canvas to compare evidence. Links describe relationships, not workflow automation. No participant profiles, booking, purchases, approvals or backend are used.',
     'body',
   ],
 ] as const
@@ -318,7 +318,7 @@ export function createSlidesData(): ISlideData {
       elements: Object.fromEntries(elements.map((e) => [e.id, e])),
       elementOrder: elements.map((e) => e.id),
       speakerNotes:
-        'Return to the Board overview after reviewing each location. Budget, observations, narrative and shapes remain independent.',
+        'Return to the Canvas overview after reviewing each location. Budget, observations, narrative and shapes remain independent.',
     }
   })
   return {

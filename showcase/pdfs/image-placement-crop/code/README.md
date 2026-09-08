@@ -2,7 +2,7 @@
 
 Run `pnpm install`, `pnpm dev`; verify production with `pnpm build` and `pnpm preview`.
 The documentation Preview and independent export use the same factory, all five official SDK CSS imports,
-and complete EN/ZH locale packs. Initial `html lang="zh-CN"` selects Chinese; other languages select English.
+and five complete English locale packs. Native UI and authored data remain English regardless of host language. Bilingual evidence below is historical, not current English-only acceptance.
 Changing theme preserves the current document owner and edits.
 
 ## Native editing workflow

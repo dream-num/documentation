@@ -1,5 +1,7 @@
 # Aster / Research results
 
+Current language contract: the native UI, startup alerts and authored data are English under either host language. The legacy third locale argument remains accepted but is ignored. Complete English dependency packs, official CSS, native Grid menus and the distinct source/document story are preserved. Earlier bilingual evidence below is historical; this migration does not resolve its recorded SDK limitations.
+
 Five original simulated folded-paper rebound distances drive ten native inline Formula Custom Ranges in a traditional A4 report. This is **Sheet -> Traditional Doc** data flow and **Sheet@Doc Block** composition. It is not an infinite modern page, a real experiment, a statistical finding or a certified material test. The saved Typst Universe reference informs the technical-publication direction; all prose, data and styling are original.
 
 The three chapters separate the summary, a real embedded observation workbook, and interpretation. Ink/indigo headings, muted violet sections, amber observation inputs and a sage target complement the SDK's official white workbench. The native menus use Grid. No custom fixture toolbar, manual refresh or JavaScript-computed document totals.
@@ -84,15 +86,12 @@ console.log(doc.save(), doc.saveFormulaDisplayTextSnapshot())
 
 ## Formula editor language coverage
 
-The shared factory includes official English and Simplified Chinese locale packs
-for every previously configured locale import, including Docs Formula UI, Shape
-Editor UI and Embed Unit UI. The last two are dependencies of the native formula
-editor and source selector; loading only Docs Formula UI does not translate them.
-Their official CSS is included in the independent export. The factory follows
-the page's HTML language at startup (English otherwise); FUniver.setLocale can
-switch between enUS and zhCN without recreating the document.
+The shared factory includes complete official English locale packs, including Docs
+Formula UI, Shape Editor UI and Embed Unit UI. The latter two supply native formula
+editor and source-selector labels. Their official CSS is included in the independent
+export. Runtime startup remains English regardless of the page's HTML language.
 
-Run scripts/test-docs-formula-locales.mjs with SHOWCASE_CASE=aster and the
+Historical bilingual check: scripts/test-docs-formula-locales.mjs with SHOWCASE_CASE=aster and the
 selected SHOWCASE_ORIGIN. It checks all official leaves in the three formula
 editor packs, the native Edit formula action, the formula editor, more number
 formats, visible text/accessible labels/placeholders, and exact document/owner

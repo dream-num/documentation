@@ -4,7 +4,7 @@ Open native Find with Ctrl/Cmd+F while the sheet has focus. The existing two sma
 seed-library tables distinguish mixed case, repeated occurrences, zero, Unicode,
 missing notes and formula text versus calculated results. No host search engine,
 fixture picker, Reset or inspector is rendered. Both official CSS imports and
-complete EN/ZH core/find packs ship in the exported factory. Themes retain edits.
+complete English core/find packs ship in the exported factory. Themes retain edits.
 
 In Advanced Searching & Replace, changing Match the Whole Cell invalidates the
 old results. Wait for that native state change, then click Find to run the
@@ -87,12 +87,12 @@ window.pelicanFinder.dispose()
 
 ## Replace the current actual match with empty text
 
-On Current stock, this removes only the matched Unicode fragment in E8.
+On Current stock, this removes only the matched text fragment in E8.
 
 ```ts
 window.univerAPI.getWorkbook('pelican-seeds').setActiveSheet('current')
 window.univerAPI.getWorkbook('pelican-seeds').getActiveSheet().getRange('A1').activate()
-window.pelicanFinder = await window.univerAPI.createTextFinderAsync('海岸')
+window.pelicanFinder = await window.univerAPI.createTextFinderAsync('Café')
 window.pelicanFinder.getCurrentMatch()?.activate()
 console.log(await window.pelicanFinder.replaceWithAsync(''))
 window.pelicanFinder.dispose()
@@ -120,7 +120,7 @@ old.dispose()
 old.createDemo(old.container,false,structuredClone(window.pelicanSaved))
 ```
 
-Try `0`, `海岸`, `A.B`, `A*B` and an unmatched term in the native panel. Empty
+Try `0`, `Café`, `A.B`, `A*B` and an unmatched term in the native panel. Empty
 replacement removes matched text; the SDK trims query whitespace. **Do not use
 a whitespace-only query for replacement:** in this SDK it matches all 43 non-empty
 cells of Current stock, unlike an empty string. Partial `0` also matches batch

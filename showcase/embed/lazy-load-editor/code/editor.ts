@@ -1,7 +1,6 @@
 import type { IDisposable, IWorkbookData } from '@univerjs/core'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import sheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
 import { createUniver, LocaleType } from '@univerjs/presets'
 
 import { validateSnapshot } from './data'
@@ -16,13 +15,13 @@ export function createEditor(
   container: HTMLElement,
   saved: Partial<IWorkbookData>,
   darkMode: boolean,
-  language: string,
+  _legacyLanguage: string,
 ) {
   const snapshot = validateSnapshot(saved)
   const { univer, univerAPI } = createUniver({
     darkMode,
-    locale: language === 'zhCN' ? LocaleType.ZH_CN : LocaleType.EN_US,
-    locales: { [LocaleType.EN_US]: sheetsCoreEnUS, [LocaleType.ZH_CN]: sheetsCoreZhCN },
+    locale: LocaleType.EN_US,
+    locales: { [LocaleType.EN_US]: sheetsCoreEnUS },
     presets: [UniverSheetsCorePreset({ ribbonType: 'grid', container })],
   })
   const hostWindow = window as Window & { univerAPI?: typeof univerAPI }

@@ -202,7 +202,7 @@ export function createHostData(): ISlideData {
       ),
       text(
         'channels-footer',
-        'Rename a channel in the Base. Linked workstream labels follow its stable record ID.',
+        'Rename a channel in the Relational Table. Linked workstream labels follow its stable record ID.',
         48,
         480,
         905,
@@ -229,7 +229,7 @@ export function createHostData(): ISlideData {
       ),
       text(
         'gate-footer',
-        'Narrative slides remain independent of Base edits. Reload resets local data; changing theme preserves it.',
+        'Narrative slides remain independent of Relational Table edits. Reload resets local data; changing theme preserves it.',
         48,
         510,
         904,

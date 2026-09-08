@@ -1,5 +1,11 @@
 # Vale / A decision memo beside the proposal
 
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
+not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+not certify every native interaction or resolve the recorded SDK failures.
+
 A six-week, two-route walking pilot proposes 36 participants and an $18,600
 budget. Three native slides compare a research-only option ($4,200), the pilot
 and a full-scale option ($54,000). The independently editable modern document
@@ -8,8 +14,9 @@ stop criteria. All content and data are original and fictional.
 
 Double-click the memo on the first slide to activate Docs. Edit text in the
 native editor and scroll within it. Use native slide thumbnails to compare the
-options and review criteria. This is a SlideFloating case; a separate Tab case
-is planned. It is not an iframe, screenshot, slide text box or paginated
+options and review criteria. This is a SlideFloating case; the separate
+`embed/docs-in-slides-tab` case demonstrates a research appendix as a native
+presentation page. This Float is not an iframe, screenshot, slide text box or paginated
 traditional document. No generic fixture, reset or inspector panel is mounted.
 
 ## Code that matches the preview
@@ -60,13 +67,13 @@ The full native runtime gate is **failing**, not accepted:
 - Native activation, all fourteen paragraphs, both verbatim README examples,
   ordinary keyboard insertion and Ctrl+Z/Ctrl+Y pass. The complete child snapshot
   restores on Undo and Redo; the complete host stays unchanged. The Docs floating
-  menu has fullscreen and removal, not Base-style Undo/Redo buttons.
+  menu has fullscreen and removal, not Relational Table-style Undo/Redo buttons.
 - Native child scrolling paints the lower stop/review section. Three native
   thumbnail pages, independent host title editing, live Facade dark/light changes
   and owned active-child disposal preserve the expected models. No browser errors
   or backend requests were observed.
 - **Native Enter fullscreen opens no shell.** Its direct test fails; there is no
-  custom replacement button or hidden failure. Similar failures in Sheets/Base
+  custom replacement button or hidden failure. Similar failures in Sheets/Relational Table
   Slides Float are related observations, not proof of the root cause here.
 - The first source check combined Ctrl+Home with `Reviewed / ` typing. The caret
   did not move to the document beginning and the slash did not appear as expected.
@@ -88,6 +95,21 @@ reload persistence, narrow/touch layouts and accessibility. The license watermar
 is unchanged and can overlap document content. No SDK/package patch, backend,
 invitations, booking, approval, persistence, Exchange conversion or print output
 is provided.
+
+Selected production diagnostic (2026-09-08):
+`test-results/vale-fullscreen-keyboard-trace/report.json` still fails fullscreen.
+The native menu has the correct host/embed props and a resolved descriptor.
+Its button receives pointerdown, mousedown and mouseup, but no observed click;
+the traced root fullscreen service never enters a session. Focusing the same
+button and pressing Enter also opens no shell. Native text input/history,
+scrolling, both literal examples, slide navigation, themes and disposal still
+pass without observed browser errors or backend writes. This narrows the failure
+to the activation path; it does not establish the exact event-interception cause.
+
+The local SDK source has `installMissingClickFallback` in its floating-menu
+container, while the installed beta.2 type declarations do not expose that
+function. This is source/package divergence, not proof that upgrading fixes it.
+No package version, SDK handler or replacement fullscreen control was changed.
 
 Composition reference: the locally saved Beautiful.ai clean proposal cover,
 used only to inform a calm editorial hierarchy and olive/cream palette. Its

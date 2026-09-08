@@ -80,8 +80,8 @@ renderers** after the new renderer has attached. The callback resolves the curre
 workbook, not the disposed Facade captured by the previous unit. Reload resets unit
 history; a new owner starts with the default three bar extensions.
 
-The factory imports official core CSS and complete EN/ZH core locale packs.
-Both native UI and the two host selectors/button follow the initial page language.
+The factory imports official core CSS and complete English core locale packs.
+The native UI and host controls stay English on every page language.
 Theme changes retain the same owner and complete model.
 
 ## Strict native evidence
@@ -92,7 +92,7 @@ in their original order, with intermediate models and actual pixels. Checks cove
 native percentage editing, real formula recalculation and repaint, complete raw
 Undo/Redo, continuous/dot layers and registration handles, resizing, hide/show,
 frozen/scrolled row 24, 75%/150% zoom, native sheet switching, same-ID reattachment,
-fresh restored input, empty/invalid data, initial EN/ZH, narrow viewports and
+fresh restored input, empty/invalid data, historical bilingual startup, narrow viewports and
 disposal before Steady and after calculationStart but before completion. Normal
 export source/CSS and screenshots require real native paint without a skeleton.
 

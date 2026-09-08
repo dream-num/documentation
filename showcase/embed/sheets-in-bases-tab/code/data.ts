@@ -165,7 +165,12 @@ export function createChildData(): Partial<IWorkbookData> {
       4: { f: '=SUM(E5:E14)', s: 'total' },
     },
     17: { 0: { v: 'Sand = editable values. Change stage weights on Assumptions.', s: 'muted' } },
-    19: { 0: { v: 'Base edits do not sync here. This workbook starts from the same authored deals.', s: 'muted' } },
+    19: {
+      0: {
+        v: 'Relational Table edits do not sync here. This workbook starts from the same authored deals.',
+        s: 'muted',
+      },
+    },
     21: { 0: { v: 'Weighted pipeline is a planning scenario, not booked revenue or an order.', s: 'muted' } },
   }
   DEALS.forEach(([title, stage, amount], index) => {

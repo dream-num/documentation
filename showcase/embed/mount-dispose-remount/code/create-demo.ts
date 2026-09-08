@@ -2,7 +2,6 @@ import type { IDisposable, IWorkbookData } from '@univerjs/presets'
 import type { FWorkbook } from '@univerjs/sheets/facade'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import sheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
 import { createUniver, LocaleType } from '@univerjs/presets'
 
 import { createInventory } from './data'
@@ -37,19 +36,23 @@ function cleanupError(phase: string, failures: unknown[]) {
 export function createDemo(
   container: HTMLElement,
   darkMode = false,
-  locale = document.documentElement.lang.toLowerCase().startsWith('zh') ? LocaleType.ZH_CN : LocaleType.EN_US,
+  _locale: LocaleType = LocaleType.EN_US,
   saved: Partial<IWorkbookData> = createInventory('default'),
 ) {
   const initial = validateSnapshot(saved)
   const hostWindow = window as Window & { univerAPI?: ReturnType<typeof createUniver>['univerAPI'] }
-  const zh = locale === LocaleType.ZH_CN
-  const labels = zh
-    ? ['挂载', '释放编辑器', '保留内容重新挂载', '保存检查点', '恢复检查点', '下载 JSON']
-    : ['Mount', 'Dispose editor', 'Remount content', 'Save checkpoint', 'Restore checkpoint', 'Download JSON']
+  const labels = [
+    'Mount',
+    'Dispose editor',
+    'Remount content',
+    'Save checkpoint',
+    'Restore checkpoint',
+    'Download JSON',
+  ]
   const root = document.createElement('div')
   root.className = 'embed-lifecycle'
   root.dataset.theme = darkMode ? 'dark' : 'light'
-  root.innerHTML = `<div class="embed-lifecycle-controls" role="group" aria-label="${zh ? '编辑器生命周期' : 'Editor lifecycle'}">${['mount', 'dispose', 'remount', 'checkpoint', 'restore', 'download'].map((action, i) => `<button type="button" data-action="${action}">${labels[i]}</button>`).join('')}<span class="mount-status" role="status"></span></div><p class="mount-error" role="alert" hidden></p><section class="inventory-card" aria-label="${zh ? '库存编辑器' : 'Inventory editor'}"><p class="mount-placeholder" hidden>${zh ? '编辑器已释放。挂载新库存或恢复检查点。' : 'Editor disposed. Mount fresh inventory or restore a checkpoint.'}</p><div class="mount-slot"></div></section>`
+  root.innerHTML = `<div class="embed-lifecycle-controls" role="group" aria-label="Editor lifecycle">${['mount', 'dispose', 'remount', 'checkpoint', 'restore', 'download'].map((action, i) => `<button type="button" data-action="${action}">${labels[i]}</button>`).join('')}<span class="mount-status" role="status"></span></div><p class="mount-error" role="alert" hidden></p><section class="inventory-card" aria-label="Inventory editor"><p class="mount-placeholder" hidden>Editor disposed. Mount fresh inventory or restore a checkpoint.</p><div class="mount-slot"></div></section>`
   container.append(root)
   const controls = root.querySelector<HTMLElement>('.embed-lifecycle-controls')!
   const slot = root.querySelector<HTMLElement>('.mount-slot')!
@@ -81,20 +84,12 @@ export function createDemo(
         (action === 'restore' && !checkpoint)
     }
     status.textContent = busy
-      ? zh
-        ? '处理中…'
-        : 'Working…'
+      ? 'Working…'
       : mounted
         ? checkpoint
-          ? zh
-            ? '已挂载 · 已保存检查点'
-            : 'Mounted · checkpoint saved'
-          : zh
-            ? '已挂载'
-            : 'Mounted'
-        : zh
-          ? '已释放'
-          : 'Disposed'
+          ? 'Mounted · checkpoint saved'
+          : 'Mounted'
+        : 'Disposed'
     alert.hidden = !error
     alert.textContent = error
   }
@@ -138,8 +133,8 @@ export function createDemo(
     if (active) throw new Error('Dispose the current owner before mounting another editor.')
     const instance = createUniver({
       darkMode,
-      locale,
-      locales: { [LocaleType.EN_US]: sheetsCoreEnUS, [LocaleType.ZH_CN]: sheetsCoreZhCN },
+      locale: LocaleType.EN_US,
+      locales: { [LocaleType.EN_US]: sheetsCoreEnUS },
       presets: [UniverSheetsCorePreset({ ribbonType: 'grid', container: slot })],
     })
     const handles: IDisposable[] = []

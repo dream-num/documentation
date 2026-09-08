@@ -8,15 +8,18 @@ const metadata: ShowcaseMetadata = {
   category: 'features',
   previewHeight: 1000,
   group: { 'en-US': 'Slides host / Tab', 'zh-CN': 'Slides 宿主 / 页面嵌入' },
-  title: { 'en-US': 'Bases in Slides / Launch Workstream', 'zh-CN': 'Bases 嵌入 Slides / 上市工作流' },
+  title: {
+    'en-US': 'Relational Tables in Slides / Launch Workstream',
+    'zh-CN': 'Relational Tables 嵌入 Slides / 上市工作流',
+  },
   description: {
     'en-US':
-      'A retail pilot deck opens a native Base page with ten workstreams linked to four sales channels. Review evidence without leaving the presentation.',
-    'zh-CN': '零售试点演示文稿以原生 Bases 页面呈现十条工作流和四个关联渠道，在演示文稿内审查证据。',
+      'A retail pilot deck opens a native Relational Table page with ten workstreams linked to four sales channels. Review evidence without leaving the presentation.',
+    'zh-CN': '零售试点演示文稿以原生 Relational Tables 页面呈现十条工作流和四个关联渠道，在演示文稿内审查证据。',
   },
   tags: {
-    'en-US': ['Embed', 'Slides', 'Bases', 'Tab', 'Retail'],
-    'zh-CN': ['嵌入', '幻灯片', '多维表格', '页面', '零售'],
+    'en-US': ['Embed', 'Slides', 'Relational Tables', 'Tab', 'Retail'],
+    'zh-CN': ['嵌入', '幻灯片', 'Relational Tables', '页面', '零售'],
   },
   packages: [
     '@univerjs/core',
@@ -39,29 +42,29 @@ const metadata: ShowcaseMetadata = {
   guide: {
     overview: {
       'en-US':
-        'Copper separates the launch narrative from the live workstream register. Native Slides pages frame the channel strategy and decision gate; page two is a real two-table Base. Copper, warm ivory and blue-gray give each part a different visual role while official SDK controls remain intact.',
+        'Copper separates the launch narrative from the live workstream register. Native Slides pages frame the channel strategy and decision gate; page two is a real two-table Relational Table. Copper, warm ivory and blue-gray give each part a different visual role while official SDK controls remain intact.',
       'zh-CN':
-        'Copper 将上市叙事与工作流登记表分开。原生 Slides 页面说明渠道策略和决策条件，第二页是真正的双表 Base。铜色、暖白和灰蓝区分内容，保留官方 SDK 控件。',
+        'Copper 将上市叙事与工作流登记表分开。原生 Slides 页面说明渠道策略和决策条件，第二页是真正的双表 Relational Table。铜色、暖白和灰蓝区分内容，保留官方 SDK 控件。',
     },
     tryIt: {
       'en-US': [
         'Open Launch workstream in the native page list. Workstreams contains ten different checks, with evidence and review dates.',
-        'Edit Counter demonstration in the native Base. Use Undo and Redo; narrative slides should not change.',
+        'Edit Counter demonstration in the native Relational Table. Use Undo and Redo; narrative slides should not change.',
         'Open Channels and rename Harbor Home to Harbor Refill. Return to Workstreams: three linked channel labels should update without replacing their record IDs.',
-        'Visit Channel design and Review gate, then return to the Base. The local edits remain. Changing theme should also keep the current model.',
+        'Visit Channel design and Review gate, then return to the Relational Table. The local edits remain. Changing theme should also keep the current model.',
       ],
       'zh-CN': [
         '在原生页面列表打开 Launch workstream，Workstreams 包含十项不同检查及证据、审查日期。',
-        '在原生 Base 中编辑 Counter demonstration，再使用 Undo 和 Redo；叙事幻灯片不应改变。',
+        '在原生 Relational Table 中编辑 Counter demonstration，再使用 Undo 和 Redo；叙事幻灯片不应改变。',
         '打开 Channels，将 Harbor Home 改为 Harbor Refill，再返回 Workstreams；三条关联渠道名称应更新，记录 ID 保持不变。',
-        '查看渠道设计和决策条件页面，再返回 Base，局部编辑应保留；切换主题也应保持当前模型。',
+        '查看渠道设计和决策条件页面，再返回 Relational Table，局部编辑应保留；切换主题也应保持当前模型。',
       ],
     },
     expected: {
       'en-US':
-        'The Base occupies its own native Slides page, not an inline float or iframe. Its table navigation, record editing and history belong to the child. Narrative slides are independent, not formula-linked. All data is fictional; no orders, approvals, messages, backend or persistence are provided. Reload restores the original data. Full acceptance remains in progress.',
+        'The Relational Table occupies its own native Slides page, not an inline float or iframe. Its table navigation, record editing and history belong to the child. Narrative slides are independent, not formula-linked. All data is fictional; no orders, approvals, messages, backend or persistence are provided. Reload restores the original data. Full acceptance remains in progress.',
       'zh-CN':
-        'Base 占据独立原生 Slides 页面，不是浮动对象或 iframe。表切换、记录编辑与撤销历史属于子单元。叙事幻灯片保持独立，没有公式联动。所有数据均为虚构，不提供下单、审批、消息、后端或持久化；刷新恢复初始数据。完整验收仍在进行。',
+        'Relational Table 占据独立原生 Slides 页面，不是浮动对象或 iframe。表切换、记录编辑与撤销历史属于子单元。叙事幻灯片保持独立，没有公式联动。所有数据均为虚构，不提供下单、审批、消息、后端或持久化；刷新恢复初始数据。完整验收仍在进行。',
     },
   },
   variants: [
@@ -70,7 +73,10 @@ const metadata: ShowcaseMetadata = {
     { id: 'channels', label: { 'en-US': 'Channels / Linked record labels', 'zh-CN': '渠道 / 关联记录名称' } },
   ],
   actions: [
-    { id: 'open', label: { 'en-US': 'Open the native Base page', 'zh-CN': '打开原生 Base 页面' } },
+    {
+      id: 'open',
+      label: { 'en-US': 'Open the native Relational Table page', 'zh-CN': '打开原生 Relational Table 页面' },
+    },
     { id: 'edit', label: { 'en-US': 'Edit records with native Undo/Redo', 'zh-CN': '编辑记录并使用原生撤销重做' } },
     { id: 'rename', label: { 'en-US': 'Rename a linked channel', 'zh-CN': '重命名关联渠道' } },
   ],

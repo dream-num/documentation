@@ -1,9 +1,11 @@
 # Services agreement / paged clause revision
 
+Current language contract: native UI, startup alerts and authored content are English under either host language. The full English Docs Core locale pack and official CSS remain in the independent export. Existing saved-snapshot argument positions are unchanged; any legacy locale argument is accepted but ignored. Earlier bilingual acceptance is historical, and its SDK limitations remain unresolved unless separately verified.
+
 Fictional sample content, not a legal template for production use. The original
 sixteen clauses, $184,000 fee, parties, footer and dedicated signature-page break
 remain. Use the native Grid editor for text and formatting; there is no external
-approval or Reset toolbar. Full EN/ZH core resources and official CSS are shared
+approval or Reset toolbar. Complete English core resources and official CSS are shared
 by Preview and the independent export.
 
 ## Revise Clause 15 and its authored reference
@@ -126,7 +128,7 @@ window.location.reload()
 
 ## Lifecycle and acceptance
 
-The factory's fourth argument accepts a complete saved native model; the third remains the initial locale.
+The factory's fourth argument accepts a complete saved native model; the third remains a legacy locale argument that is accepted but ignored.
 Validate with `validateSnapshot(saved)`, dispose the old controller and call
 `createServicesAgreementDemo(container, darkMode, locale, saved)`. Restores skip original initialization,
 so they never re-create the footer, rewrite paragraph IDs or reset edited clauses. Theme changes retain the current owner.

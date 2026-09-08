@@ -44,9 +44,9 @@ const metadata = {
     },
     expected: {
       'en-US':
-        'The compact log retains the latest 12 delivered messages, not a raw workbook inspector. Protection follows C–E positions, not field identities or security permissions. Listener removal is explicit. Preview and standalone share official CSS and complete EN/ZH packs. Theme changes retain the owner and edits. The README records raw Undo, new-owner resource and unchecked missing-column failures; its allowed-deletion recipe checks the current column count first.',
+        'The compact log retains the latest 12 delivered messages, not a raw workbook inspector. Protection follows C–E positions, not field identities or security permissions. Listener removal is explicit. Preview and standalone share official CSS and complete English packs. Theme changes retain the owner and edits. The README records raw Undo, new-owner resource and unchecked missing-column failures; its allowed-deletion recipe checks the current column count first.',
       'zh-CN':
-        '简短日志保留最近 12 条实际消息，不展示原始工作簿。规则保护 C–E 位置，不跟随字段身份，也不是安全权限。通过按钮明确取消监听。预览与导出共享官方 CSS 及完整中英文包；主题切换保留实例和编辑。README 保留原始撤销、新实例资源及越界删除失败；允许删除的代码先检查当前列数。',
+        '简短日志保留最近 12 条实际消息，不展示原始工作簿。规则保护 C–E 位置，不跟随字段身份，也不是安全权限。通过按钮明确取消监听。预览与导出共享官方 CSS 及完整英文包；主题切换保留实例和编辑。README 保留原始撤销、新实例资源及越界删除失败；允许删除的代码先检查当前列数。',
     },
   },
   variants: [

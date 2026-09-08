@@ -1,6 +1,8 @@
 # Willow / Capacity map
 
-A fictional exhibition studio plans one week of Editorial, Production and Access work. The native Board embeds its source Sheet as a real BoardFloating object. Eight native Formula Shapes read stable external references to that Sheet: available hours, planned hours, remaining hours, utilization, three team balances and a scope signal. The application never calculates displayed totals itself.
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
+A fictional exhibition studio plans one week of Editorial, Production and Access work. The native Canvas embeds its source Sheet as a real BoardFloating object. Eight native Formula Shapes read stable external references to that Sheet: available hours, planned hours, remaining hours, utilization, three team balances and a scope signal. The application never calculates displayed totals itself.
 
 ## Read the whole map
 
@@ -8,7 +10,7 @@ The initial capacities are 128 / 112 / 80 hours; planned work is 92 / 104 / 80. 
 
 The three bound connectors explain the shared source. They are not workflow automation. Moving a card does not allocate staff. The text and geometry stay authored while native formulas recalculate. Formula count-up animation is disabled through the public API so comparison values remain legible.
 
-Composition: Sheet@Board Float. Dependency: Sheet -> Board. There is no implicit write-back from a result card to its source. Double-click the Sheet and use the native fullscreen control to edit. Board uses its own native floating tools; the embedded Sheet uses the default Grid ribbon with its matching plugins.
+Composition: Sheet@Canvas Float. Dependency: Sheet -> Canvas. There is no implicit write-back from a result card to its source. Double-click the Sheet and use the native fullscreen control to edit. Canvas uses its own native floating tools; the embedded Sheet uses the default Grid ribbon with its matching plugins.
 
 ## Nine literal examples
 
@@ -48,7 +50,7 @@ univerAPI.getWorkbook('willow-studio-capacity').getSheetBySheetId('capacity').ge
 
 ### 5. Recover the original assumptions
 
-All eight outputs return to the baseline. Only the six Sheet inputs change; the authored Board text, card layout and connector bindings remain intact.
+All eight outputs return to the baseline. Only the six Sheet inputs change; the authored Canvas text, card layout and connector bindings remain intact.
 
 ```ts
 univerAPI.getWorkbook('willow-studio-capacity').getSheetBySheetId('capacity').getRange('B5:C7').setValues([[128, 92], [112, 104], [80, 80]])
@@ -72,7 +74,7 @@ univerAPI.getWorkbook('willow-studio-capacity').getSheetBySheetId('capacity').ge
 
 ### 8. Repair the input
 
-Restore the numeric value. All eight outputs return to their initial values without resetting the Board or refreshing the application.
+Restore the numeric value. All eight outputs return to their initial values without resetting the Canvas or refreshing the application.
 
 ```ts
 univerAPI.getWorkbook('willow-studio-capacity').getSheetBySheetId('capacity').getRange('C6').setValue(104)
@@ -96,6 +98,6 @@ The saved Miro diagram-library reference informs branching relationships, not ar
 
 Partial, not full acceptance. Selected browser checks verify the nine literal examples, all eight final native rendered results, shared versus isolated dependencies, unchanged authored text/geometry/connector bindings, zero/blank/non-numeric inputs, native error statuses and recovery. Native fullscreen Sheet canvas typing, exact workbook Undo/Redo, five populated Grid tabs and active-fullscreen disposal pass. No browser errors or backend requests were observed.
 
-Native Print opens the correct Capacity plan in a one-page preview and cancels successfully. This is not a generated PDF, actual printer output, Board printing or Exchange conversion claim. EN/ZH guide examples and theme changes preserve the API owner and both models except the Board's native palette regeneration; the theme ID and all authored content remain unchanged. Eleven-file independent export contains twenty official SDK CSS imports and a white native workbench.
+Native Print opens the correct Capacity plan in a one-page preview and cancels successfully. This is not a generated PDF, actual printer output, Canvas printing or Exchange conversion claim. EN/ZH guide examples and theme changes preserve the API owner and both models except the Canvas's native palette regeneration; the theme ID and all authored content remain unchanged. Eleven-file independent export contains twenty official SDK CSS imports and a white native workbench.
 
-Evidence: `scripts/test-embed-willow-formula.mjs`, `scripts/test-embed-willow-formula-guide.mjs`, and the selected reports under `test-results/embed-willow-formula-*` and `test-results/willow-formula-export-ui-final`. Full source save/reload/rename/rebind, missing resources, all native editor/menu paths, Board movement/history and connector rerouting, racing/in-flight disposal, touch/accessibility and performance remain open. The selected build is still large; source/CSS parity does not prove delivery-size optimization.
+Evidence: `scripts/test-embed-willow-formula.mjs`, `scripts/test-embed-willow-formula-guide.mjs`, and the selected reports under `test-results/embed-willow-formula-*` and `test-results/willow-formula-export-ui-final`. Full source save/reload/rename/rebind, missing resources, all native editor/menu paths, Canvas movement/history and connector rerouting, racing/in-flight disposal, touch/accessibility and performance remain open. The selected build is still large; source/CSS parity does not prove delivery-size optimization.

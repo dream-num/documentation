@@ -1,8 +1,10 @@
 # Tide / Callout Blocks
 
+The demo runtime and authored data are English-only, including on a Chinese documentation page. Complete official English locale packs are retained. Any legacy locale argument is accepted but ignored; saved-snapshot argument positions are unchanged. Earlier bilingual test reports below describe the previous revision, not current language acceptance.
+
 An original offline language-kit rollout brief. The original release risk and optional-audio note are joined by an approved-glossary success note and a blocking fallback-label warning. Each is real document content, with a different semantic visual treatment. The original content bullets, acceptance tasks, two-line TypeScript block, editorial quotation, bold emphasis and review-checklist link remain.
 
-Native Grid, document canvas and callout floating menus provide editing. No host property form, fixture picker, edit/history buttons or readback panel is added. Preview and standalone export share the same factory, six official stylesheets and all six EN/ZH locale packs. Initial UI language follows page lang; business prose stays English. Theme changes preserve the same editor and edited document.
+Native Grid, document canvas and callout floating menus provide editing. No host property form, fixture picker, edit/history buttons or readback panel is added. Preview and standalone export share the same factory, six official stylesheets and all six English locale packs. The UI stays English; business prose stays English. Theme changes preserve the same editor and edited document.
 
 ## Runnable Facade variants
 

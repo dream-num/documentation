@@ -75,7 +75,7 @@ try {
   })
   await page.waitForFunction(
     () =>
-      document.querySelector('.marigold-embed')?.getAttribute('data-ready') ||
+      document.querySelector('.marigold-embed')?.getAttribute('data-ready') === 'true' ||
       document.querySelector('.marigold-embed')?.getAttribute('data-error') ||
       window.startupFailure,
     {},

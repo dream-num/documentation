@@ -43,10 +43,7 @@ const metadata = {
     { id: 'paper', label: { 'en-US': 'Conference paper', 'zh-CN': '会议论文' } },
     { id: 'appendix', label: { 'en-US': 'Additional reviewer appendix', 'zh-CN': '追加审阅附录' } },
   ],
-  actions: [
-    { id: 'native-edit', label: { 'en-US': 'Native manuscript editing', 'zh-CN': '原生论文编辑' } },
-    { id: 'literal', label: { 'en-US': 'Run 14 Facade examples', 'zh-CN': '运行 14 段 Facade 示例' } },
-  ],
+  actions: [],
   states: [
     { id: 'normal', label: { 'en-US': 'Normal paper', 'zh-CN': '正常论文' } },
     { id: 'long-content', label: { 'en-US': 'Multi-page content', 'zh-CN': '多页内容' } },

@@ -136,18 +136,7 @@ export function createHostData(): IBoardData {
       '#F6DECF',
       true,
     ),
-    boardCard(
-      'brief-caption',
-      'EDITABLE INTERVIEW BRIEF',
-      795,
-      190,
-      300,
-      30,
-      12,
-      '#665088',
-      undefined,
-      true,
-    ),
+    boardCard('brief-caption', 'EDITABLE INTERVIEW BRIEF', 795, 190, 300, 30, 12, '#665088', undefined, true),
     boardCard(
       'board-footer',
       'All observations are fictional. Editing the brief does not change these cards or recruit participants.',
@@ -184,7 +173,7 @@ export const MEMO = [
   ['Draft 02 · 12 March 2028 · Research lead: Imani Cole', 'meta'],
   ['01 / The question', 'heading'],
   [
-    'Where does a first library collection become confusing? Explore the steps from arrival to finding the desk and presenting a hold code. The Board contains three synthetic observations and three hypotheses, not findings from real participants.',
+    'Where does a first library collection become confusing? Explore the steps from arrival to finding the desk and presenting a hold code. The Canvas contains three synthetic observations and three hypotheses, not findings from real participants.',
     'body',
   ],
   ['02 / A small, varied sample', 'heading'],
@@ -199,7 +188,7 @@ export const MEMO = [
   ],
   ['04 / Probe without leading', 'heading'],
   [
-    'Ask how the visitor found the collection desk and the hold code. If they mention several messages, ask what distinguished the useful one. Do not assume that more signage or a new app is the answer. Invite an example that contradicts the Board hypothesis.',
+    'Ask how the visitor found the collection desk and the hold code. If they mention several messages, ask what distinguished the useful one. Do not assume that more signage or a new app is the answer. Invite an example that contradicts the Canvas hypothesis.',
     'body',
   ],
   ['05 / Notes and participant choice', 'warning'],
@@ -218,7 +207,7 @@ export const MEMO = [
     'body',
   ],
   [
-    'Local boundary: all people, observations and plans are fictional. Board and Docs remain independent. Reload loses edits; no recruitment, recording, publishing or automatic card updates.',
+    'Local boundary: all people, observations and plans are fictional. Canvas and Docs remain independent. Reload loses edits; no recruitment, recording, publishing or automatic card updates.',
     'meta',
   ],
 ] as const

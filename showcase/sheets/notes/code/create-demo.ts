@@ -1,9 +1,7 @@
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import coreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import coreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
 import { UniverSheetsNotePreset } from '@univerjs/preset-sheets-note'
 import noteEnUS from '@univerjs/preset-sheets-note/locales/en-US'
-import noteZhCN from '@univerjs/preset-sheets-note/locales/zh-CN'
 import { createUniver, LifecycleStages, LocaleType, mergeLocales } from '@univerjs/presets'
 
 import { WORKBOOK_DATA } from './data'
@@ -19,10 +17,9 @@ export function createDemo(container: HTMLElement, darkMode = false) {
   container.append(root)
   const { univer, univerAPI } = createUniver({
     darkMode,
-    locale: document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(coreEnUS, noteEnUS),
-      [LocaleType.ZH_CN]: mergeLocales(coreZhCN, noteZhCN),
     },
     presets: [UniverSheetsCorePreset({ ribbonType: 'grid', container: root }), UniverSheetsNotePreset()],
   })
@@ -48,10 +45,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
       root.dataset.error = String(error)
       const alert = document.createElement('p')
       alert.setAttribute('role', 'alert')
-      alert.textContent =
-        document.documentElement.lang === 'zh-CN'
-          ? '纺织品备注加载失败，请重新加载；详细信息见控制台。'
-          : 'The textile notes could not load. Reload to retry; details are in the console.'
+      alert.textContent = 'The textile notes could not load. Reload to retry; details are in the console.'
       root.prepend(alert)
       console.error(error)
     })

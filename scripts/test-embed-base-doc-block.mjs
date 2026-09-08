@@ -95,7 +95,7 @@ try {
   await page.waitForFunction(
     () => {
       const root = document.querySelector('.orchard-embed')
-      return root?.dataset.ready || root?.dataset.error || window.startupFailure
+      return root?.dataset.ready === 'true' || root?.dataset.error || window.startupFailure
     },
     {},
     { timeout: 120000 },

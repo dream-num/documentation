@@ -1,8 +1,10 @@
 # Partner opportunities — native typed filters
 
-Only the native Base workbench is mounted: no fixture selector, duplicated budget input, Inspect/Reset controls or audit panel. The original ten-company pipeline retains distinct company, region, budget, stage and owner values, including zero, null and empty-string boundaries.
+Native UI and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Bilingual runtime reports below describe earlier revisions, not acceptance of this English-only revision.
 
-Preview and standalone use the same factory, four official SDK stylesheets and all five EN/ZH locale packs. Initial language follows document.lang; theme toggles preserve the current owner and edits. Native trial UI is retained. No backend or external assets are required.
+Only the native Relational Table workbench is mounted: no fixture selector, duplicated budget input, Inspect/Reset controls or audit panel. The original ten-company pipeline retains distinct company, region, budget, stage and owner values, including zero, null and empty-string boundaries.
+
+Preview and standalone use the same factory, four official SDK stylesheets and all five English locale packs. The runtime is always English; theme toggles preserve the current owner and edits. Native trial UI is retained. No backend or external assets are required.
 
 ## Twelve executable Facade examples
 
@@ -86,7 +88,7 @@ view.setFilter({ conjunction: api.Enum.BaseFilterConjunction.AND, conditions: [
 
 ### 7. No matches
 
-An empty projection is not an empty Base. All ten source records remain editable after clearing the filter.
+An empty projection is not an empty Relational Table. All ten source records remain editable after clearing the filter.
 
 ```ts
 const api = window.univerAPI
@@ -150,7 +152,7 @@ await window.univerAPI.undo()
 await window.univerAPI.redo()
 ```
 
-### 12. Download the edited Base
+### 12. Download the edited Relational Table
 
 A local JSON download preserves fields, records and view settings; it is not spreadsheet/PDF conversion.
 

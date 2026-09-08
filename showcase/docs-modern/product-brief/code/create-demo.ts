@@ -1,7 +1,6 @@
 import { BooleanNumber, IUndoRedoService } from '@univerjs/core'
 import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
 import docsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
-import docsCoreZhCN from '@univerjs/preset-docs-core/locales/zh-CN'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 
 import { PRODUCT_BRIEF } from './data'
@@ -14,13 +13,11 @@ export function createProductBriefDemo(container: HTMLElement, darkMode = false)
   root.className = 'product-brief-demo'
   root.dataset.ready = 'false'
   container.append(root)
-  const locale = window.document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US
   const { univer, univerAPI } = createUniver({
     darkMode,
-    locale,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(docsCoreEnUS),
-      [LocaleType.ZH_CN]: mergeLocales(docsCoreZhCN),
     },
     presets: [UniverDocsCorePreset({ ribbonType: 'grid', container: root })],
   })
@@ -50,9 +47,7 @@ export function createProductBriefDemo(container: HTMLElement, darkMode = false)
     root.dataset.ready = 'error'
     const alert = window.document.createElement('p')
     alert.role = 'alert'
-    alert.textContent =
-      (locale === LocaleType.ZH_CN ? '文档启动失败：' : 'Document startup failed: ') +
-      (cause instanceof Error ? cause.message : String(cause))
+    alert.textContent = 'Document startup failed: ' + (cause instanceof Error ? cause.message : String(cause))
     root.append(alert)
     console.error(cause)
   }

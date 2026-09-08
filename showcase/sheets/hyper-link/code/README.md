@@ -1,5 +1,7 @@
 # Driftwood / Native hyperlinks
 
+Native UI and authored data are English-only. Earlier bilingual/native reports below are historical evidence, not acceptance of this migration.
+
 Use native link popups and the native editor. The original route index includes
 external query/fragment, whole-sheet, range, defined-name and two-span links.
 There is no fixture selector, Reset, host link form or raw snapshot panel.
@@ -50,7 +52,7 @@ insertion/update address the top-left cell. getHyperLinks() reports only the fir
 span per cell in beta.2; B6 contains two spans and must not be treated as fully
 enumerated by that result. Missing defined-name lookup can throw before a write.
 
-Both official core/link stylesheets and full EN/ZH preset packs are exported.
+Both official core/link stylesheets and full English preset packs are exported.
 Theme changes retain the same owner. createDemo(container, darkMode, saved) accepts
 a saved Driftwood workbook with its original workbook and sheet IDs; invalid IDs,
 dimensions and cell maps are rejected before mounting. This is JSON snapshot

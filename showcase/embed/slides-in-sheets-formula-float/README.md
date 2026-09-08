@@ -1,5 +1,7 @@
 # Atlas / Floating quote decision
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 Composition: Slide@Sheet Float. Dependency: Sheet -> native Slides Formula Shapes.
 These directions are independent. The host contains the only editable commercial
 model; six formula shapes across two authored slides reference its stable unit ID.
@@ -73,21 +75,17 @@ This is a distinct case from Sheet@Slide; it does not claim bidirectional write-
 
 ## Interface language
 
-The factory selects EN/ZH from `document.documentElement.lang` before creating
-the owner; pass `LocaleType.EN_US` or `LocaleType.ZH_CN` as its third argument for
-an explicit integration choice. Business copy, stable IDs, formulas and USD
-formats stay original in both interfaces. Changing theme does not create a new
-owner or discard either model.
+The factory always selects English. Its legacy third locale argument is ignored. Business copy, stable IDs, formulas and USD formats remain unchanged; theme changes preserve the owner and both models.
 
-Both languages merge all sixteen applicable locale packs: Design, UI, Docs UI,
+The English interface merges all sixteen applicable locale packs: Design, UI, Docs UI,
 Sheets, Sheets UI, Sheets Formula UI, Sheets Numfmt UI, Shape Editor UI, Slides UI,
 Embed UI, Drawing UI, Sheets Drawing UI, Formula Engine, Sheets Formula, Slides
 core and Embed Unit UI. The last is the Shape Editor UI dependency used by the
 formula reference viewer; its official CSS is also included. No unused Ink
 plugin is registered or added. Native formula editing is the selected shape's
-floating-toolbar **Edit formula** / **编辑公式** button, not a custom host panel.
+floating-toolbar **Edit formula** button, not a custom host panel.
 
-Run `node scripts/test-atlas-locale-native.mjs` against the guide, with optional
+The historical bilingual runner `node scripts/test-atlas-locale-native.mjs` requires updated English-only expectations before use against the migrated guide, with optional
 `SHOWCASE_DEMO_URL` / `SHOWCASE_BASE_URL`. For isolated production validation set
 `SHOWCASE_BUILD_STANDALONE=1`, `SHOWCASE_RESULTS_DIR` to a unique output directory,
 and `SHOWCASE_VITE_DIRECTORY` to an existing exact-version Vite package directory.

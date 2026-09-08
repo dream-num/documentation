@@ -33,8 +33,14 @@ import '@univerjs/preset-sheets-hyper-link/lib/index.css'
 import '@univerjs/preset-sheets-find-replace/lib/index.css'
 import '@univerjs/preset-sheets-thread-comment/lib/index.css'
 import '@univerjs/sheets-crosshair-highlight/lib/index.css'
+import './styles.css'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _legacyLocale: LocaleType = LocaleType.EN_US) {
+  const root = document.createElement('div')
+  root.className = 'basic-preset-editor'
+  root.dataset.ready = 'false'
+  root.dataset.sdkReady = 'false'
+  container.append(root)
   const { univer, univerAPI } = createUniver({
     darkMode,
     locale: LocaleType.EN_US,
@@ -53,7 +59,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
       ),
     },
     presets: [
-      UniverSheetsCorePreset({ ribbonType: 'grid', container }),
+      UniverSheetsCorePreset({ ribbonType: 'grid', container: root }),
       UniverSheetsFindReplacePreset(),
       UniverSheetsSortPreset(),
       UniverSheetsFilterPreset(),
@@ -88,6 +94,26 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     ],
   })
 
+  // Optional providers (including Find/Replace) initialize after the first paint.
+  const lifecycle = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+    if (stage === univerAPI.Enum.LifecycleStages.Steady) {
+      root.dataset.sdkReady = 'true'
+      root.dataset.ready = 'true'
+    }
+  })
   univerAPI.createWorkbook(structuredClone(WORKBOOK_DATA))
-  return { dispose: () => univer.dispose() }
+  const owner = window as Window & { univerAPI?: typeof univerAPI }
+  owner.univerAPI = univerAPI
+  let disposed = false
+  return {
+    univerAPI,
+    dispose() {
+      if (disposed) return
+      disposed = true
+      lifecycle.dispose()
+      if (owner.univerAPI === univerAPI) delete owner.univerAPI
+      univer.dispose()
+      root.remove()
+    },
+  }
 }

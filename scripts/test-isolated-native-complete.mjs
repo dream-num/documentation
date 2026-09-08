@@ -191,6 +191,7 @@ try {
     const surfaces = {}
     for (const side of ['north', 'south']) {
       assert.equal(original[side].id, `regional-budget-${side}`)
+      assert.equal(original[side].locale, 'enUS')
       for (const [i, row] of ITEMS[side].entries()) {
         for (const [col, expected] of row.entries())
           assert.equal(original[side].sheets.budget.cellData[i + 3][col].v, expected)
@@ -352,17 +353,18 @@ try {
       assert.deepEqual(await snapshot(side), before)
     }
   })
-  await gate('same-owner-independent-theme-and-locale-full-models', async () => {
+  await gate('same-owner-independent-theme-and-English-full-models', async () => {
     const before = { north: await snapshot('north'), south: await snapshot('south') }
     await frames.north.evaluate(() => {
       window.themeAPI = window.regionalDemo.univerAPI
       window.themeAPI.toggleDarkMode(true)
-      window.themeAPI.setLocale('zhCN')
     })
-    await frames.north.getByText('开始', { exact: true }).first().waitFor()
+    await frames.north.getByText('Start', { exact: true }).first().waitFor()
     await frames.south.getByText('Start', { exact: true }).first().waitFor()
     assert.ok(await frames.south.evaluate(() => document.documentElement.classList.contains('univer-dark')))
     await frames.north.evaluate(() => window.regionalDemo.univerAPI.toggleDarkMode(false))
+    for (const side of ['north', 'south'])
+      assert.equal(await frames[side].evaluate(() => window.regionalDemo.univerAPI.getCurrentLocale()), 'enUS')
     assert.ok(await frames.north.evaluate(() => window.themeAPI === window.regionalDemo.univerAPI))
     assert.deepEqual(await snapshot('north'), before.north)
     assert.deepEqual(await snapshot('south'), before.south)
@@ -397,14 +399,13 @@ try {
     await page.reload()
     await ready()
     await gate(`initial-${locale}-both-full-core-packs-and-host-labels`, async () => {
-      const expected = (await import(`@univerjs/preset-sheets-core/locales/${locale}`)).default
+      const expected = (await import('@univerjs/preset-sheets-core/locales/en-US')).default
       for (const side of ['north', 'south']) {
         compareLeaves(await frames[side].evaluate(() => window.regionalDemo.univerAPI.getLocales()), expected)
-        await frames[side]
-          .getByText(locale === 'zh-CN' ? '开始' : 'Start', { exact: true })
-          .first()
-          .waitFor()
-        await frames[side].getByRole('button', { name: locale === 'zh-CN' ? '释放' : 'Release', exact: true }).waitFor()
+        assert.equal(await frames[side].evaluate(() => document.documentElement.lang), locale)
+        assert.equal(await frames[side].evaluate(() => window.regionalDemo.univerAPI.getCurrentLocale()), 'enUS')
+        await frames[side].getByText('Start', { exact: true }).first().waitFor()
+        await frames[side].getByRole('button', { name: 'Release', exact: true }).waitFor()
       }
       await capture(`initial-${locale}`)
     })
@@ -491,7 +492,6 @@ try {
         '@univerjs/presets',
         '@univerjs/preset-sheets-core',
         '@univerjs/preset-sheets-core/locales/en-US',
-        '@univerjs/preset-sheets-core/locales/zh-CN',
         '@univerjs/sheets/facade',
         '@univerjs/engine-formula/facade',
       ],

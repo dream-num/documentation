@@ -9,12 +9,13 @@ const metadata: ShowcaseMetadata = {
   group: { 'en-US': 'Formula / Data-driven composition', 'zh-CN': 'Formula / 数据驱动组合' },
   title: { 'en-US': 'Ember / Release Notes', 'zh-CN': 'Ember / 发布说明' },
   description: {
-    'en-US': 'A native Doc tab reads its host Base to separate completion, unfinished effort and release blockers.',
-    'zh-CN': '原生 Doc 标签页读取宿主 Base，区分完成比例、剩余工作量与发布阻塞。',
+    'en-US':
+      'A native Doc tab reads its host Relational Table to separate completion, unfinished effort and release blockers.',
+    'zh-CN': '原生 Doc 标签页读取宿主 Relational Table，区分完成比例、剩余工作量与发布阻塞。',
   },
   tags: {
-    'en-US': ['Formula', 'Bases', 'Modern Docs', 'Native tab'],
-    'zh-CN': ['公式', '多维表格', '现代文档', '原生标签页'],
+    'en-US': ['Formula', 'Relational Tables', 'Modern Docs', 'Native tab'],
+    'zh-CN': ['公式', 'Relational Tables', '现代文档', '原生标签页'],
   },
   packages: [
     '@univerjs-pro/bases',
@@ -34,20 +35,21 @@ const metadata: ShowcaseMetadata = {
   guide: {
     overview: {
       'en-US':
-        'A reading workspace prepares a release brief. Counts, estimated effort and editorial readiness tell different stories; the Base owns records, the Doc owns editable explanations.',
-      'zh-CN': '阅读工作区准备发布简报。完成数量、预计工时和编辑准备状态各有含义；Base 拥有记录，Doc 拥有可编辑说明。',
+        'A reading workspace prepares a release brief. Counts, estimated effort and editorial readiness tell different stories; the Relational Table owns records, the Doc owns editable explanations.',
+      'zh-CN':
+        '阅读工作区准备发布简报。完成数量、预计工时和编辑准备状态各有含义；Relational Table 拥有记录，Doc 拥有可编辑说明。',
     },
     tryIt: {
       'en-US': [
         'Switch between Changes and Release notes.',
         'Complete one review and revise the migration estimate.',
-        'Filter the Base and edit a hidden record: whole-table formulas still include it.',
+        'Filter the Relational Table and edit a hidden record: whole-table formulas still include it.',
         'Inspect empty queues, missing-source recovery and independent prose edits.',
       ],
       'zh-CN': [
         '切换 Changes 和 Release notes。',
         '完成一项评审并调整迁移估算。',
-        '筛选 Base 并修改隐藏记录：全表公式仍包含它。',
+        '筛选 Relational Table 并修改隐藏记录：全表公式仍包含它。',
         '检查空队列、来源缺失恢复与独立正文编辑。',
       ],
     },

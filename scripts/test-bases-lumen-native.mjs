@@ -358,14 +358,11 @@ try {
       report.checks.push({ example: i + 1, passed: true })
     })
   }
-  await gate('complete-locales-and-same-owner-themes', async () => {
+  await gate('complete-english-packs-and-same-owner-themes', async () => {
     const before = await snapshot()
     await run('window.originalAPI = window.univerAPI')
-    for (const [locale, code] of [
-      ['en-US', 'enUS'],
-      ['zh-CN', 'zhCN'],
-    ]) {
-      await page.evaluate((localeCode) => window.univerAPI.setLocale(localeCode), code)
+    for (const locale of ['en-US']) {
+      assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
       for (const name of [
         '@univerjs/design',
         '@univerjs/ui',

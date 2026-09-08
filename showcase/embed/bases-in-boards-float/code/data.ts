@@ -126,7 +126,7 @@ export function createHostData(): IBoardData {
     ),
     boardCard(
       'board-footer',
-      'All observations and names are fictional. Base records do not approve access, publish signs or update these notes.',
+      'All observations and names are fictional. Relational Table records do not approve access, publish signs or update these notes.',
       115,
       995,
       1420,

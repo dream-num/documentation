@@ -6,6 +6,7 @@ const metadata: ShowcaseMetadata = {
   product: 'slides',
   previewHeight: 1040,
   category: 'features',
+  image: '/assets/showcase/slides-layouts-and-placeholders.png',
   group: { 'en-US': 'Deck structure', 'zh-CN': '演示文稿结构' },
   title: { 'en-US': 'Layouts, Masters and Placeholder Placement', 'zh-CN': '布局、母版与占位符位置' },
   description: {
@@ -32,6 +33,7 @@ const metadata: ShowcaseMetadata = {
   apis: [
     'FUniver.createPresentation()',
     'FUniver.getActivePresentation()',
+    'FUniver.toggleDarkMode()',
     'FUniver.setUIVisible()',
     'FUniver.syncExecuteCommand()',
     'RichTextBuilder.span()',
@@ -49,6 +51,7 @@ const metadata: ShowcaseMetadata = {
         'Select a slide-owned placeholder on the canvas and explore native movement or text editing. Use the native Undo/Redo controls after an edit.',
         'Open Format Background to explore native background controls. Master graphics visibility is a separate capability from changing the page fill.',
         'Open native Print settings; final print-output fidelity remains under verification.',
+        'Edit a placeholder, commit by clicking outside its text editor, then switch the site theme. The preview keeps the same document and your edits.',
         'For source-level diagnostics, createData accepts broadcast, comparison, inherited and empty. layoutSlot resolves a matching slot, while rebuildLayout returns a detached snapshot. Neither is a native Apply Layout Facade; there is no hidden fixture toolbar.',
       ],
       'zh-CN': [
@@ -56,6 +59,7 @@ const metadata: ShowcaseMetadata = {
         '在画布上选择页内占位符，探索原生移动或文本编辑。编辑后使用原生撤销重做。',
         '打开背景格式面板探索原生背景控件。母版图形可见性与页面填充是不同的能力。',
         '打开原生打印设置；最终打印输出保真度仍待验收。',
+        '编辑占位符后点击文本编辑区域外提交，再切换站点主题；预览保留同一份文稿和已提交编辑。',
         '源码诊断可使用 createData 的 broadcast、comparison、inherited 和 empty 参数。layoutSlot 解析匹配位置，rebuildLayout 返回独立快照。两者都不是原生 Apply Layout Facade，也没有隐藏的 fixture 工具栏。',
       ],
     },

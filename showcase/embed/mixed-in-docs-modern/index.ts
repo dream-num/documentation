@@ -3,6 +3,7 @@ import { readShowcaseFiles } from '@/showcase/read-files'
 
 import Preview from './preview'
 const metadata: ShowcaseMetadata = {
+  image: '/assets/showcase/embed-mixed-in-docs-modern.png',
   product: 'embed',
   category: 'showcases',
   previewHeight: 1100,
@@ -10,12 +11,12 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Northstar / Complete Project Brief', 'zh-CN': 'Northstar / 完整项目说明' },
   description: {
     'en-US':
-      'A seed-library pilot integrates a resource Sheet, owner Base, strategy Slides and dependency Board as four native document blocks.',
-    'zh-CN': '种子图书馆试点将资源 Sheet、负责人 Base、策略 Slides 和依赖 Board 作为四个原生文档块组合。',
+      'A seed-library pilot integrates a resource Sheet, owner Relational Table, strategy Slides and dependency Canvas as four native document blocks.',
+    'zh-CN': '种子图书馆试点将资源 Sheet、负责人 Relational Table、策略 Slides 和依赖 Canvas 作为四个原生文档块组合。',
   },
   tags: {
-    'en-US': ['Embed', 'Modern Docs', 'Sheets', 'Bases', 'Slides', 'Boards', 'Mixed'],
-    'zh-CN': ['嵌入', '现代文档', '表格', '多维表格', '幻灯片', '白板', '综合'],
+    'en-US': ['Embed', 'Modern Docs', 'Sheets', 'Relational Tables', 'Slides', 'Canvases', 'Mixed'],
+    'zh-CN': ['嵌入', '现代文档', '表格', 'Relational Tables', '幻灯片', 'Canvases', '综合'],
   },
   packages: [
     '@univerjs/core',
@@ -69,11 +70,7 @@ const metadata: ShowcaseMetadata = {
     ['editing', 'Inline reading / Expanded editing', '正文阅读 / 展开编辑'],
     ['ownership', 'One narrative / Four independent resources', '一份说明 / 四个独立资源'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
-  actions: [
-    ['resources', 'Revise resources and readiness', '修改资源和准备情况'],
-    ['strategy', 'Edit strategy and dependencies', '编辑策略和依赖'],
-    ['anchors', 'Move all four body anchors', '移动四个正文锚点'],
-  ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
+  actions: [],
   states: [
     ['reading', 'Read the connected story', '阅读完整故事'],
     ['editing', 'Edit the active native resource', '编辑激活的原生资源'],

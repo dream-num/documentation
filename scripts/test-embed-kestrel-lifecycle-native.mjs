@@ -74,7 +74,7 @@ if (buildStandalone) {
           order: 'pre',
           handler:
             () => `<!doctype html><html lang="en-US"><head><link rel="icon" href="data:,"></head><body style="margin:0"><div id="app" style="height:100vh"></div><script type="module">
-import {createDemo,validateSnapshot} from '/src/create-demo.ts';import {createInventory} from '/src/data.ts';import en from '@univerjs/preset-sheets-core/locales/en-US';import zh from '@univerjs/preset-sheets-core/locales/zh-CN';window.createInventory=createInventory;window.packs={en,zh};window.createDemo=createDemo;window.validateSnapshot=validateSnapshot;document.documentElement.lang=new URLSearchParams(location.search).get('lang')||'en-US';window.container=document.getElementById('app');window.demo=createDemo(window.container);
+import {createDemo,validateSnapshot} from '/src/create-demo.ts';import {createInventory} from '/src/data.ts';import en from '@univerjs/preset-sheets-core/locales/en-US';window.createInventory=createInventory;window.packs={en};window.createDemo=createDemo;window.validateSnapshot=validateSnapshot;document.documentElement.lang=new URLSearchParams(location.search).get('lang')||'en-US';window.container=document.getElementById('app');window.demo=createDemo(window.container);
 </script></body></html>`,
         },
       },
@@ -474,15 +474,23 @@ try {
       await page.setViewportSize({ width: 1440, height: 1000 })
       await page.goto(url + '?lang=zh-CN')
       await ready()
-      assert.equal(await page.evaluate(() => univerAPI.getCurrentLocale()), 'zhCN')
-      pack(await page.evaluate(() => univerAPI.getLocales()), await page.evaluate(() => packs.zh))
-      assert.equal(await root.getByRole('button', { name: '保留内容重新挂载', exact: true }).count(), 1)
+      assert.equal(await page.evaluate(() => document.documentElement.lang), 'zh-CN')
+      assert.equal(await page.evaluate(() => univerAPI.getCurrentLocale()), 'enUS')
+      pack(await page.evaluate(() => univerAPI.getLocales()), await page.evaluate(() => packs.en))
+      assert.deepEqual(await root.locator('.embed-lifecycle-controls button').allTextContents(), [
+        'Mount',
+        'Dispose editor',
+        'Remount content',
+        'Save checkpoint',
+        'Restore checkpoint',
+        'Download JSON',
+      ])
       await capture('initial-zh')
       await run(restores[3])
       await settle()
       assert.equal(await canvas.count(), 0)
       report.checks.push({
-        name: 'Full EN/ZH core packs and all six translated host labels, same-owner themes, 760/390/320 keyboard checkpoint controls, fourth JS literal final disposal',
+        name: 'Full English core pack on Chinese host and all six English host labels, same-owner themes, 760/390/320 keyboard checkpoint controls, fourth JS literal final disposal',
       })
     },
     true,

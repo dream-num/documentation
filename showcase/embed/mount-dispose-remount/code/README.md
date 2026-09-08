@@ -8,7 +8,7 @@ A reusable host card with 18 original trailworks stock records. Edit the native 
 - **Save checkpoint / Restore checkpoint** keep an explicit independent snapshot in host memory.
 - **Download JSON** downloads the real current snapshot locally. This is not XLSX conversion.
 
-Content, worksheet IDs and resources are supplied unchanged to reconstruction. Focus, selection, scroll and Undo/Redo history are not persisted by a workbook snapshot. Checkpoints are local and disappear when the host itself is disposed. Theme changes retain the owner, edits and checkpoint; a subsequently mounted editor uses the current theme. EN/ZH SDK packs and host labels are selected from the initial document language. The complete official Sheets Core CSS is imported by the same factory used by Preview and the standalone entry.
+Content, worksheet IDs and resources are supplied unchanged to reconstruction. Focus, selection, scroll and Undo/Redo history are not persisted by a workbook snapshot. Checkpoints are local and disappear when the host itself is disposed. Theme changes retain the owner, edits and checkpoint; a subsequently mounted editor uses the current theme. Native UI, host labels and inventory data stay English on either documentation language, using the complete English preset pack. The legacy third argument is ignored without moving the saved snapshot argument. The complete official Sheets Core CSS is imported by the same factory used by Preview and the standalone entry.
 
 ## Run and verify
 
@@ -126,6 +126,15 @@ Cleanup aborts pending mount readiness, waits for calculation settlement with a 
 On calculation-wait failure, cleanup requests `stopCalculation()`, still attempts all cleanup steps and reports the original and subsequent failures as an AggregateError. A deadline cannot interrupt synchronous SDK work, and a stop request does not prove acknowledgment from an external custom formula. Internal SDK cleanup-failure recovery remains unproven without changing the SDK. This is a frontend owner-lifecycle example, not the nested Pro Embed plugin.
 
 ## Strict verification boundaries
+
+Earlier bilingual native reports are historical. The English-only rerun in
+`test-results/kestrel-lifecycle-english-native/report.json` records 7/8 strict
+gates and 37 checks. Native edits, all five TypeScript/four JavaScript literals,
+same-ID remount, checkpoint restore/download, multi-sheet targeting, pending
+guards and English-on-Chinese-host checks pass. The ordinary production entry
+also passes native edit and complete remount comparison. The first native Undo
+still fails as described below. There are no observed browser errors or backend
+requests; startup alone is not interaction acceptance.
 
 The native first edit of D4 followed by Undo restores the displayed quantity but leaves the SDK-inferred numeric type at `sheets.stock.cellData.3.3.t = 2`, absent in the original saved model. This is a strict full-model history **FAIL**, not normalized away. Redo and the separately tested fresh edit after checkpoint restoration retain exact full-model comparisons. Native paper-white rendering, same-ID saved remount, checkpoint restoration, empty/boundary startup, pending-click guards and pre-ready cleanup have separate checks; their success does not resolve this Undo discrepancy.
 

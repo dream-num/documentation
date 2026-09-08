@@ -20,6 +20,7 @@ import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
+import DrawingUIEnUS from '@univerjs/drawing-ui/locale/en-US'
 import { IRenderManagerService, UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import {
   ISheetPrintManagerService,
@@ -55,6 +56,7 @@ import CommentEnUS from '@univerjs/preset-sheets-thread-comment/locales/en-US'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
 import { UniverSheetsDrawingPlugin } from '@univerjs/sheets-drawing'
 import { UniverSheetsDrawingUIPlugin } from '@univerjs/sheets-drawing-ui'
+import SheetsDrawingUIEnUS from '@univerjs/sheets-drawing-ui/locale/en-US'
 import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
 import { SheetsFormulaUIMenuSchema, UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
 import FormulaEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
@@ -95,9 +97,10 @@ import '@univerjs-pro/slides/facade'
 import '@univerjs-pro/embed/facade'
 import '@univerjs-pro/sheets-print/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _locale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
   root.className = 'tamar-embed'
+  root.dataset.ready = 'false'
   container.append(root)
   const abort = new AbortController()
   const cleanup: Array<() => void> = []
@@ -107,6 +110,8 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
+        DrawingUIEnUS,
+        SheetsDrawingUIEnUS,
         DesignEnUS,
         UIEnUS,
         DocsEnUS,
@@ -126,6 +131,15 @@ export function createDemo(container: HTMLElement, darkMode = false) {
         FormulaEnUS,
         NumfmtEnUS,
         EmbedEnUS,
+
+        // Demo-only product names; preserve every other official English translation.
+        {
+          'shape-editor-ui': {
+            ...ShapeEnUS['shape-editor-ui'],
+            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
+            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
+          },
+        },
       ),
     },
   })
@@ -308,6 +322,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
         root.dataset.ready = 'true'
       })().catch((error) => {
         if (disposed) return
+        root.dataset.ready = 'false'
         root.dataset.error = String(error)
         const message = document.createElement('p')
         message.setAttribute('role', 'alert')

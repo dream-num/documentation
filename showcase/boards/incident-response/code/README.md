@@ -1,16 +1,16 @@
 # Payments incident response
 
+Native UI, demo labels and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Earlier bilingual acceptance reports below remain historical evidence, not validation of this English-only revision.
+
 A SEV-1 payment retry storm moves through **Detect → Contain → Recover**. The original three response cards, response frame, two directed free-endpoint connectors and follow-up risk are all visible at startup. The risk concerns 214 duplicate authorizations and a 17:00 UTC deadline. Rounded native Shape text boxes retain their distinct blue, amber, green and red business roles; they are not HTML cards or sticky-note substitutes.
 
-Use native Board tools to select, drag, resize and edit text. There is no host Add Risk, Reset, activity log, hidden-fixture flag or duplicate history editor. The response frame is a native container element, but the cards are not advertised as attached children. Both connectors use **free endpoints**: moving a card does not automatically move those endpoints. Attachment/routing is a separate capability, not silently added here.
-
-中文：支付重试风暴的三个响应阶段和后续风险均默认展示，直接操作原生白板。连接线端点自由，不承诺卡片移动后自动跟随；容器也不冒充已建立的父子关系。示例代码与实际效果共用同一个 factory。
+Use native Canvas tools to select, drag, resize and edit text. There is no host Add Risk, Reset, activity log, hidden-fixture flag or duplicate history editor. The response frame is a native container element, but the cards are not advertised as attached children. Both connectors use **free endpoints**: moving a card does not automatically move those endpoints. Attachment/routing is a separate capability, not silently added here.
 
 ## Start and native interaction
 
 In the generated project run `npm install` then `npm run dev`. The documentation target is `/en-US/playground/boards/incident-response`. Drag the Detect card a small distance, observe that the arrow stays in place, and use native Undo/Redo. Double-click a card to edit its text, commit by clicking the empty canvas, then inspect native history. Use the native resize handles on the risk card rather than a host size control.
 
-Preview and export share `createIncidentResponseDemo`, seven official CSS imports and all seven dependency EN/ZH packs, including Shape Editor and Ink UI. Initial locale follows `document.documentElement.lang`. Theme changes call `toggleDarkMode` on the existing owner. `ready` waits up to 20 seconds for the actual Board canvas without a skeleton; failure is visible. Disposal is idempotent and removes only this owner's DOM and unit.
+Preview and export share `createIncidentResponseDemo`, eight official CSS imports and all eight English dependency packs, including Shape Editor, Ink UI and transitive Embed Unit UI. The native runtime is always English. Theme changes call `toggleDarkMode` on the existing owner. `ready` waits up to 20 seconds for the actual Canvas editor without a skeleton; failure is visible. Disposal is idempotent and removes only this owner's DOM and unit.
 
 ## Literal Facade variants
 
@@ -90,7 +90,7 @@ console.assert(window.univerAPI === api)
 api.toggleDarkMode(dark)
 ```
 
-### 9. Download the complete Board snapshot as genuine JSON
+### 9. Download the complete Canvas snapshot as genuine JSON
 
 ```ts
 const saved = window.univerAPI.getActiveBoard().save()
@@ -131,9 +131,10 @@ The default test target is `http://localhost:3030/en-US/playground/boards/incide
 
 ```powershell
 $env:SHOWCASE_BUILD_STANDALONE='1'
-$env:SHOWCASE_VITE_DIRECTORY='<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
+$env:SHOWCASE_VITE_DIRECTORY='<ABSOLUTE_PATH_TO_INSTALLED_VITE_PACKAGE>'
+$env:SHOWCASE_EXPORT_PORT='4428'
 $env:SHOWCASE_RESULTS_DIR='test-results/incident-response-native'
 node scripts/test-incident-response-native.mjs
 ```
 
-Only this selected case is built, with exact-version per-package junctions and no installation. The script closes its own port 4416 and writes a source export manifest, actual screenshots, complete model comparisons and strict failures. No HTTP service or SDK patch is used.
+Only this selected case is built, with exact-version per-package junctions and no installation. The Vite path must point to the exact version declared in the generated package; no other demo's temporary output is required. The script closes its own selected port (4416 by default) and writes a source export manifest, actual screenshots, complete model comparisons and strict failures. These acceptance scripts run from the documentation repository; the standalone exported demo uses its own package install and dev scripts. No HTTP service or SDK patch is used.

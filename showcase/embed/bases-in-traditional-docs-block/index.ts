@@ -8,15 +8,18 @@ const metadata: ShowcaseMetadata = {
   category: 'features',
   previewHeight: 1100,
   group: { 'en-US': 'Traditional Docs host / Block', 'zh-CN': '传统文档宿主 / 块嵌入' },
-  title: { 'en-US': 'Bases in Traditional Docs / Evidence Review', 'zh-CN': 'Bases 嵌入传统文档 / 证据评审' },
+  title: {
+    'en-US': 'Relational Tables in Traditional Docs / Evidence Review',
+    'zh-CN': 'Relational Tables 嵌入传统文档 / 证据评审',
+  },
   description: {
     'en-US':
       'A formal field-station review embeds seven evidence records and four linked owners, keeping its written disposition independent.',
     'zh-CN': '正式野外观测站评审报告嵌入七项证据与四位关联责任人，正文结论保持独立。',
   },
   tags: {
-    'en-US': ['Embed', 'Traditional Docs', 'Bases', 'Evidence'],
-    'zh-CN': ['嵌入', '传统文档', '多维表格', '证据'],
+    'en-US': ['Embed', 'Traditional Docs', 'Relational Tables', 'Evidence'],
+    'zh-CN': ['嵌入', '传统文档', 'Relational Tables', '证据'],
   },
   packages: [
     '@univerjs/core',
@@ -43,16 +46,16 @@ const metadata: ShowcaseMetadata = {
     },
     tryIt: {
       'en-US': [
-        'Scroll to chapter 02 and activate the native Base.',
+        'Scroll to chapter 02 and activate the native Relational Table.',
         'Rename Calibration trace through the literal README example; try native Undo/Redo.',
-        'Expand the Base, open Owners and rename Imani Cole; linked evidence labels follow.',
-        'Append text to the report title: the anchor moves, but the Base stays unchanged.',
+        'Expand the Relational Table, open Owners and rename Imani Cole; linked evidence labels follow.',
+        'Append text to the report title: the anchor moves, but the Relational Table stays unchanged.',
       ],
       'zh-CN': [
-        '滚动到第 02 章并激活原生 Base。',
+        '滚动到第 02 章并激活原生 Relational Table。',
         '执行 README 示例重命名 Calibration trace，再尝试原生撤销/重做。',
-        '展开 Base，打开 Owners 并重命名 Imani Cole，关联证据标签随之更新。',
-        '在报告标题末尾追加文字：锚点移动，Base 保持不变。',
+        '展开 Relational Table，打开 Owners 并重命名 Imani Cole，关联证据标签随之更新。',
+        '在报告标题末尾追加文字：锚点移动，Relational Table 保持不变。',
       ],
     },
     expected: {
@@ -74,7 +77,7 @@ const metadata: ShowcaseMetadata = {
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   states: [
     ['reading', 'Traditional report reading', '传统报告阅读'],
-    ['editing', 'Native Base editing', '原生 Base 编辑'],
+    ['editing', 'Native Relational Table editing', '原生 Relational Table 编辑'],
     ['error', 'Source failure / Reload to retry', '资源失败 / 刷新重试'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
 }

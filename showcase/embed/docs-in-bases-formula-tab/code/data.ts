@@ -192,7 +192,7 @@ export const MEMO = [
   ],
   ['04 / Write with the live register', 'heading'],
   [
-    'Open Changes in the native Base table list to edit the source, then return to Release notes. Filtering the view does not filter these whole-table formulas. Changing an owner does not change completion; changing a hidden record can change a dependent count.',
+    'Open Changes in the native Relational Table list to edit the source, then return to Release notes. Filtering the view does not filter these whole-table formulas. Changing an owner does not change completion; changing a hidden record can change a dependent count.',
     'body',
   ],
   [

@@ -1,5 +1,11 @@
 # Mosaic / Research appendix as a native Slides page
 
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
+not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+not certify every native interaction or resolve the recorded SDK failures.
+
 Three original slides ask what helps a visitor return to a repair workshop.
 The fictional study has 18 interviews across three workshops, 24 observed visits
 and eight follow-up notes. Four primary barrier counts are 7, 5, 4 and 2.

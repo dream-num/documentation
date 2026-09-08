@@ -4,19 +4,21 @@ import { readShowcaseFiles } from '@/showcase/read-files'
 import Preview from './preview'
 
 const metadata: ShowcaseMetadata = {
+  image: '/assets/showcase/embed-mixed-in-bases.png',
   product: 'embed',
   category: 'showcases',
   previewHeight: 1000,
-  group: { 'en-US': 'Bases host / Mixed', 'zh-CN': '多维表格宿主 / 综合嵌入' },
+  group: { 'en-US': 'Relational Tables host / Mixed', 'zh-CN': 'Relational Tables 宿主 / 综合嵌入' },
   title: { 'en-US': 'Acorn / Complete Operating Workspace', 'zh-CN': 'Acorn / 完整运营工作区' },
   description: {
     'en-US':
-      'A touring-exhibition studio combines linked opportunities, follow-ups and partners with native Sheet, Doc, Slides and Board tabs.',
-    'zh-CN': '巡回展陈工作室将关联的机会、跟进任务与合作方，以及原生表格、文档、幻灯片和白板 Tab 组合在同一工作区。',
+      'A touring-exhibition studio combines linked opportunities, follow-ups and partners with native Sheet, Doc, Slides and Canvas tabs.',
+    'zh-CN':
+      '巡回展陈工作室将关联的机会、跟进任务与合作方，以及原生表格、文档、幻灯片和 Canvases Tab 组合在同一工作区。',
   },
   tags: {
-    'en-US': ['Embed', 'Bases', 'Tab', 'Sheets', 'Docs', 'Slides', 'Boards'],
-    'zh-CN': ['嵌入', '多维表格', 'Tab', '表格', '文档', '幻灯片', '白板'],
+    'en-US': ['Embed', 'Relational Tables', 'Tab', 'Sheets', 'Docs', 'Slides', 'Canvases'],
+    'zh-CN': ['嵌入', 'Relational Tables', 'Tab', '表格', '文档', '幻灯片', 'Canvases'],
   },
   packages: [
     '@univerjs/core',
@@ -37,19 +39,19 @@ const metadata: ShowcaseMetadata = {
   guide: {
     overview: {
       'en-US':
-        'Ten opportunities, six linked follow-ups and four partner groups form the operating register. A two-sheet forecast exposes uncertainty; a playbook, three-slide review and bound-connector Board explain delivery. These are separate local models, not live CRM synchronization.',
+        'Ten opportunities, six linked follow-ups and four partner groups form the operating register. A two-sheet forecast exposes uncertainty; a playbook, three-slide review and bound-connector Canvas explain delivery. These are separate local models, not live CRM synchronization.',
       'zh-CN':
-        '十个机会、六项关联跟进和四类合作方组成运营记录。两张工作表展示预测假设，手册、三页评审和关联连线白板说明交付过程。各产品数据独立，不代表 CRM 实时同步。',
+        '十个机会、六项关联跟进和四类合作方组成运营记录。两张工作表展示预测假设，手册、三页评审和关联连线 Canvases 说明交付过程。各产品数据独立，不代表 CRM 实时同步。',
     },
     tryIt: {
       'en-US': [
-        'Browse the three Base tables and four native product tabs.',
+        'Browse the three Relational Tables and four native product tabs.',
         'Change Tidal Atlas value in Forecast; inspect the weighted total.',
         'Change a stage weight on Assumptions and compare its related opportunities.',
         'Run the five literal README examples after opening each product.',
       ],
       'zh-CN': [
-        '浏览三个 Base 表和四个原生产品 Tab。',
+        '浏览三个 Relational Table 表和四个原生产品 Tab。',
         '在 Forecast 修改 Tidal Atlas 金额，观察加权合计。',
         '在 Assumptions 修改阶段权重，对比相关机会。',
         '打开相应产品后运行 README 的五段原样示例。',
@@ -67,11 +69,7 @@ const metadata: ShowcaseMetadata = {
     ['forecast', 'Two-sheet weighted forecast', '两张表组成的加权预测'],
     ['evidence', 'Narrative, review and process tabs', '说明、评审和流程 Tab'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
-  actions: [
-    ['value', 'Revise an opportunity value', '修改机会金额'],
-    ['follow-up', 'Clarify a linked evidence request', '明确关联证据请求'],
-    ['review', 'Edit the studio review headline', '修改工作室评审标题'],
-  ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
+  actions: [],
   states: [
     ['baseline', 'Illustrative operating baseline', '示意运营基线'],
     ['editing', 'Independent local edits', '独立本地编辑'],

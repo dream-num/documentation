@@ -10,12 +10,13 @@ const metadata: ShowcaseMetadata = {
   group: { 'en-US': 'Formula / Data-driven composition', 'zh-CN': 'Formula / 数据驱动组合' },
   title: { 'en-US': 'Prism / Plan versus Actual', 'zh-CN': 'Prism / 目标与实际' },
   description: {
-    'en-US': 'Native Sheet targets and Base income feed a visible reconciliation range and two real chart series.',
-    'zh-CN': '原生 Sheet 目标与 Base 收入共同驱动可见对账区及两组真实图表系列。',
+    'en-US':
+      'Native Sheet targets and Relational Table income feed a visible reconciliation range and two real chart series.',
+    'zh-CN': '原生 Sheet 目标与 Relational Table 收入共同驱动可见对账区及两组真实图表系列。',
   },
   tags: {
-    'en-US': ['Formula', 'Sheets', 'Base', 'Charts', 'Native tab', 'Print'],
-    'zh-CN': ['公式', '表格', '多维表格', '图表', '原生标签页', '打印'],
+    'en-US': ['Formula', 'Sheets', 'Relational Table', 'Charts', 'Native tab', 'Print'],
+    'zh-CN': ['公式', '表格', 'Relational Tables', '图表', '原生标签页', '打印'],
   },
   packages: [
     '@univerjs/sheets',
@@ -37,21 +38,21 @@ const metadata: ShowcaseMetadata = {
   guide: {
     overview: {
       'en-US':
-        'Three native tabs separate targets, actual records and reconciliation. Actuals honor explicit period/status criteria; target edits do not mutate the Base. This is an in-workbook target Sheet plus a separate Base, not Sheet@Sheet embedding.',
+        'Three native tabs separate targets, actual records and reconciliation. Actuals honor explicit period/status criteria; target edits do not mutate the Relational Table. This is an in-workbook target Sheet plus a separate Relational Table, not Sheet@Sheet embedding.',
       'zh-CN':
-        '三个原生标签页分开目标、实际记录和对账。实际值遵循明确的期间/状态条件；目标修改不会写入 Base。这里是工作簿内目标 Sheet 加独立 Base，不是 Sheet@Sheet 嵌入。',
+        '三个原生标签页分开目标、实际记录和对账。实际值遵循明确的期间/状态条件；目标修改不会写入 Relational Table。这里是工作簿内目标 Sheet 加独立 Relational Table，不是 Sheet@Sheet 嵌入。',
     },
     tryIt: {
       'en-US': [
         'Run the twenty-five literal snippets in order.',
         'Compare income edits, target edits and confirming a draft.',
-        'Filter the Base, edit hidden records and change reporting criteria.',
+        'Filter the Relational Table, edit hidden records and change reporting criteria.',
         'Inspect zero/invalid targets, missing source, native Print and PNG export.',
       ],
       'zh-CN': [
         '按顺序运行二十五段原样代码。',
         '比较收入修改、目标修改和草稿确认。',
-        '筛选 Base、修改隐藏记录并切换统计条件。',
+        '筛选 Relational Table、修改隐藏记录并切换统计条件。',
         '检查零值/无效目标、来源缺失、原生打印和 PNG 导出。',
       ],
     },

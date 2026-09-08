@@ -135,7 +135,7 @@ const MEMO = [
   ['', 'body'],
   [BLOCK_MARKERS[2], 'heading'],
   [
-    'The eight-card Board separates evidence checks from layout and staging. Three return paths make revision visible without running automation. Expand it to inspect native connectors and change a review label.',
+    'The eight-card Canvas separates evidence checks from layout and staging. Three return paths make revision visible without running automation. Expand it to inspect native connectors and change a review label.',
     'body',
   ],
   ['', 'body'],

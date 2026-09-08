@@ -1,10 +1,12 @@
 # Delta / Resource allocation map
 
-A Sheet owns six editable capacity/allocation inputs. Its native floating Board reads thirteen Formula Shapes and three bound connectors. **Board@Sheet Float** describes placement; **Sheet -> Board** describes calculation. This is not the reverse Sheet@Board example or a Tab surface.
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
+A Sheet owns six editable capacity/allocation inputs. Its native floating Canvas reads thirteen Formula Shapes and three bound connectors. **Canvas@Sheet Float** describes placement; **Sheet -> Canvas** describes calculation. This is not the reverse Sheet@Canvas example or a Tab surface.
 
 A fictional product studio has 480 hours of capacity and 425 assigned. Its 55-hour overall buffer hides a 10-hour Build overload. Original teal, clay, sage and amber artwork uses a clear title/contrast hierarchy inspired by the saved Gamma Budget Review cover; no competitor artwork is redistributed.
 
-Double-click the native Board to activate its editing tools. Use its own fullscreen control for more room. No custom feature card, fixture panel, duplicate ribbon buttons or JavaScript aggregation is included. The source uses native Grid ribbon; the Board retains its native floating tools. Full EN/ZH dependency packs and official CSS accompany the standalone source.
+Double-click the native Canvas to activate its editing tools. Use its own fullscreen control for more room. No custom feature card, fixture panel, duplicate ribbon buttons or JavaScript aggregation is included. The source uses native Grid ribbon; the Canvas retains its native floating tools. Full English dependency packs and official CSS accompany the standalone source.
 
 ## Twenty-one literal examples
 
@@ -118,7 +120,7 @@ window.univerAPI.getWorkbook('delta-studio-capacity').getSheetBySheetId('allocat
 
 ### 14. Rename a display label
 
-Changing the visible team label does not relocate cell-based references. The authored Board heading remains Build; it is intentionally not a formula-linked label.
+Changing the visible team label does not relocate cell-based references. The authored Canvas heading remains Build; it is intentionally not a formula-linked label.
 
 ```ts
 window.univerAPI.getWorkbook('delta-studio-capacity').getSheetBySheetId('allocation').getRange('A6').setValue('Engineering')
@@ -150,7 +152,7 @@ window.univerAPI.getFormula().upsertExternalReference({unitId:'delta-allocation-
 
 ### 18. Repair the same source
 
-Current values must return without replacing Board text, formulas or connectors.
+Current values must return without replacing Canvas text, formulas or connectors.
 
 ```ts
 window.univerAPI.getFormula().upsertExternalReference({unitId:'delta-allocation-map',qualifier:'Delta Capacity',sourceUnitId:'delta-studio-capacity',sourceUnitType:window.univerAPI.Enum.UniverInstanceType.UNIVER_SHEET})
@@ -158,7 +160,7 @@ window.univerAPI.getFormula().upsertExternalReference({unitId:'delta-allocation-
 
 ### 19. Preview Sheet Print
 
-Click the source Sheet first. This registered frontend plugin previews the Sheet; it is not a claim of embedded-Board print fidelity or PDF conversion.
+Click the source Sheet first. This registered frontend plugin previews the Sheet; it is not a claim of embedded-Canvas print fidelity or PDF conversion.
 
 ```ts
 window.univerAPI.getWorkbook('delta-studio-capacity').setActiveSheet('allocation')
@@ -175,7 +177,7 @@ window.univerAPI.getWorkbook('delta-studio-capacity').closePrintDialog()
 
 ### 21. Inspect independent owners
 
-Read-only snapshots preserve source and Board resources. They are not durable storage or a collaboration history.
+Read-only snapshots preserve source and Canvas resources. They are not durable storage or a collaboration history.
 
 ```ts
 console.log({sheet:window.univerAPI.getWorkbook('delta-studio-capacity').save(),board:window.univerAPI.getBoard('delta-allocation-map').save()})
@@ -183,7 +185,7 @@ console.log({sheet:window.univerAPI.getWorkbook('delta-studio-capacity').save(),
 
 ## Reconstruct both native owners
 
-In the standalone entry module use `let demo = createDemo(container)` so the application can replace its handle. Keep the imported factory and mount element. Wait for calculation to settle before saving. The Sheet contains a reference to its floating Board, not the Board's complete snapshot.
+In the standalone entry module use `let demo = createDemo(container)` so the application can replace its handle. Keep the imported factory and mount element. Wait for calculation to settle before saving. The Sheet contains a reference to its floating Canvas, not the Canvas's complete snapshot.
 
 ```js
 const saved = JSON.parse(JSON.stringify({
@@ -200,16 +202,16 @@ Both snapshots are cloned before use. Restore retains edited formulas, notes, co
 
 ## Acceptance boundary
 
-Partial native runtime: test-results/embed-delta-formula-native/report.json passes twenty-one literal examples and six selected gates. Eighteen source steps alternate active Sheet/Board contexts and update thirteen current-canvas results while preserving authored shapes, text, formulas and connector bindings. Three rendered connector routes resolve to the expected shape sites. Native Sheet keyboard input with exact serialized Undo/Redo, native Board text Facade editing with exact history/source isolation, host-owned Print preview/cancel, fifteen complete EN/ZH dependency packs, light-dark-light whole-model preservation, fullscreen source updates and active-fullscreen disposal pass. No unexpected browser errors, warnings, native error-status mismatches or backend requests occur.
+Partial native runtime: test-results/embed-delta-formula-native/report.json passes twenty-one literal examples and six selected gates. Eighteen source steps alternate active Sheet/Canvas contexts and update thirteen current-canvas results while preserving authored shapes, text, formulas and connector bindings. Three rendered connector routes resolve to the expected shape sites. Native Sheet keyboard input with exact serialized Undo/Redo, native Canvas text Facade editing with exact history/source isolation, host-owned Print preview/cancel, fifteen complete EN/ZH dependency packs, light-dark-light whole-model preservation, fullscreen source updates and active-fullscreen disposal pass. No unexpected browser errors, warnings, native error-status mismatches or backend requests occur.
 
-The earlier source-input test selected its canvas while the Board was active and failed before typing. The current test first leaves the Board and excludes embedded canvases before clicking the real Sheet cell. This is a test targeting correction, not an SDK patch. Whole-table and local calculations remain native, including blank direct values, SUM text exclusion and division/value/reference errors.
+The earlier source-input test selected its canvas while the Canvas was active and failed before typing. The current test first leaves the Canvas and excludes embedded canvases before clicking the real Sheet cell. This is a test targeting correction, not an SDK patch. Whole-table and local calculations remain native, including blank direct values, SUM text exclusion and division/value/reference errors.
 
 Independent source/CSS evidence is in test-results/delta-formula-export-ui/report.json: eleven files match the published source, including fourteen official stylesheets. Both visible workbenches retain SDK styling. Dependencies were exact-version checked and locally linked, not freshly installed; trial notices and selected-build large-chunk warnings remain.
 
-The additional test-results/delta-roundtrip-native/report.json is deliberately **strict FAIL**, not a full-roundtrip acceptance. Three real owner reconstructions pass edited-fullscreen disposal, unavailable-binding retention, and Chinese/dark appearance retention. Source cells, the entire Board page including edited notes/formulas and all three connectors, the saved theme, and the external-reference resource remain unchanged. Thirteen current-canvas results survive restoration and respond to fresh source edits; restoring a missing source keeps native errors until the published binding-repair API is called. Nine malformed owner/resource/anchor combinations are rejected without affecting the existing instance. There are no browser errors, warnings or backend requests.
+The additional test-results/delta-roundtrip-native/report.json is deliberately **strict FAIL**, not a full-roundtrip acceptance. Three real owner reconstructions pass edited-fullscreen disposal, unavailable-binding retention, and Chinese/dark appearance retention. Source cells, the entire Canvas page including edited notes/formulas and all three connectors, the saved theme, and the external-reference resource remain unchanged. Thirteen current-canvas results survive restoration and respond to fresh source edits; restoring a missing source keeps native errors until the published binding-repair API is called. Nine malformed owner/resource/anchor combinations are rejected without affecting the existing instance. There are no browser errors, warnings or backend requests.
 
 The exact complete-model comparison retains every difference without normalization: the first reconstruction adds native Sheet Drawing transform defaults (`flipX`/`flipY` false; `angle`/`skewX`/`skewY` zero), changes the empty defined-name resource from an empty string to `{}`, and updates the Embed activation timestamp. The subsequent two reconstructions change only that timestamp. The report saves both complete snapshots and field-level differences; authored content preservation is not mislabeled byte-for-byte equality. The illustrative edited buffer formula adds seven hours only to prove that restoration retains user-authored formulas; the baseline demo does not add this adjustment.
 
 The updated standalone factory also passes test-results/delta-roundtrip-export-ui/report.json: all eleven exported files match the current source, the native workbench background is white, and no browser errors occur. Only this selected demo was built; existing preview services were not replaced.
 
-Different valid-source rebinding, native Board pointer editing/movement and formula-editor/menu paths in both languages, all Sheet menus, actual embedded-Board print/conversion fidelity, supported Exchange, Next guides, responsive/accessibility and performance remain open. Print is only verified as a host Sheet preview and cancel; no job was submitted. Do not interpret a passing selected report or registered route as full SDK acceptance. No backend, publishing, automated work reassignment or SDK/package patch.
+Different valid-source rebinding, native Canvas pointer editing/movement and formula-editor/menu paths in both languages, all Sheet menus, actual embedded-Canvas print/conversion fidelity, supported Exchange, Next guides, responsive/accessibility and performance remain open. Print is only verified as a host Sheet preview and cancel; no job was submitted. Do not interpret a passing selected report or registered route as full SDK acceptance. No backend, publishing, automated work reassignment or SDK/package patch.

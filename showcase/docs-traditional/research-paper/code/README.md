@@ -1,5 +1,7 @@
 # Latency-aware reconciliation / Traditional research paper
 
+Current language contract: native UI, startup alerts and authored content are English under either host language. The full English Docs Core locale pack and official CSS remain in the independent export. Existing saved-snapshot argument positions are unchanged; any legacy locale argument is accepted but ignored. Earlier bilingual acceptance is historical, and its SDK limitations remain unresolved unless separately verified.
+
 This is an illustrative fictional manuscript, not a verified scientific publication or SDK benchmark. The original title,
 authors, abstract, sections, two reference entries and Appendix A are retained. In particular, 12,480 sessions, 37% conflict
 reduction, 80 / 240 / 1,200 ms latency, 142 / 611 ms reconciliation, 0.8% / 2.6% conflict density, the 25 MB limit and the
@@ -11,8 +13,7 @@ overlays inside the paper. The former Add appendix / Reset / activity panel and 
 The former factory relied on a random SDK document ID; this version assigns the stable `research-paper` ID at creation
 and never changes it during recovery.
 
-Preview and normal export use one factory with native Grid, official Docs Core preset CSS, complete EN/ZH preset locale
-packs and initial page language. Business prose remains English. Theme switching retains the owner and current edits.
+Preview and normal export use one factory with native Grid, official Docs Core preset CSS, the complete English preset locale pack and an English native interface. Business prose remains English. Theme switching retains the owner and current edits.
 Use native text editing, pagination, zoom and Page setup; the appendix examples below are real Facade operations.
 
 ## Literal Facade examples

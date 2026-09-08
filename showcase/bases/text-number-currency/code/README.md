@@ -1,8 +1,10 @@
 # Bracken repair café — native field types
 
-The entire preview is the native Base Grid editor, with its own compact toolbar and native left sidebar. The UI plugin is configured for Grid ribbon; Bases renders its product-specific toolbar rather than a Sheets-style ribbon. There are no fixture controls, duplicated ribbon buttons, comparison cards or snapshot panels. The original 30 repair jobs, 12 workshop projects and 18 return checks remain unchanged, including varied amounts, submitted quotes, multilingual notes, local people, dates, original text attachments and real record links.
+Native UI and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Bilingual runtime reports below describe earlier revisions, not acceptance of this English-only revision.
 
-Install with `pnpm install`, then `pnpm dev` or `pnpm build`. Build only this selected case. Preview and standalone export use the same factory and all four official Design/UI/Docs UI/Bases UI CSS imports. Complete EN/ZH dependency locales are registered. Theme switching updates the existing SDK owner instead of resetting edits. Keep native license notices intact.
+The entire preview is the native Relational Table Grid editor, with its own compact toolbar and native left sidebar. The UI plugin is configured for Grid ribbon; Relational Tables renders its product-specific toolbar rather than a Sheets-style ribbon. There are no fixture controls, duplicated ribbon buttons, comparison cards or snapshot panels. The original 30 repair jobs, 12 workshop projects and 18 return checks retain their structure, including varied amounts, submitted quotes, Unicode English notes, local people, dates, original text attachments and real record links.
+
+Install with `pnpm install`, then `pnpm dev` or `pnpm build`. Build only this selected case. Preview and standalone export use the same factory and all four official Design/UI/Docs UI/Relational Tables UI CSS imports. Complete English dependency locales are registered. Theme switching updates the existing SDK owner instead of resetting edits. Keep native license notices intact.
 
 ## Twenty-three executable Facade examples
 
@@ -178,12 +180,12 @@ field.changeType(api.Enum.BaseFieldType.Text, {})
 field.changeType(api.Enum.BaseFieldType.Number, { decimalPlaces: 2, allowNegative: true })
 ```
 
-### 18. Keep multilingual notes
+### 18. Keep Unicode English notes
 
-Authored text supports varied scripts and long notes, not one repeated sample string.
+English notes retain Unicode punctuation, accented words and long-text boundaries.
 
 ```ts
-window.univerAPI.getBase('bracken-field-lab').getTableById('repairs').getRecordById('repairs-03').setValue('note', 'Thread colour / 糸の色 / لون الخيط / couleur du fil — retain the original.')
+window.univerAPI.getBase('bracken-field-lab').getTableById('repairs').getRecordById('repairs-03').setValue('note', 'Thread colour — café repair; retain the original.')
 ```
 
 ### 19. Read fields, defaults and storage
@@ -250,9 +252,20 @@ demo = createDemo(container, darkMode, locale, saved)
 await demo.ready
 ```
 
-To inspect the original data variants, import `createData` from `./data` in that same application entry. After disposing the previous owner, pass `createData('empty')`, `createData('boundary')`, `createData('error')` or `createData()` as the fourth factory argument. Empty preserves 30 supporting records and all field schemas. Boundary includes 0.0001, 9999999.875 and a long multilingual note. Error retains unparseable and grouped submitted quote strings. The default factory resets to all 60 original records. These separate constructed datasets replace the old fixture panel without removing its scenarios. Reset/reconstruction starts a new local edit history.
+To inspect the original data variants, import `createData` from `./data` in that same application entry. After disposing the previous owner, pass `createData('empty')`, `createData('boundary')`, `createData('error')` or `createData()` as the fourth factory argument. Empty preserves 30 supporting records and all field schemas. Boundary includes 0.0001, 9999999.875 and a long Unicode English note. Error retains unparseable and grouped submitted quote strings. The default factory resets to all 60 original records. These separate constructed datasets replace the old fixture panel without removing its scenarios. Reset/reconstruction starts a new local edit history.
 
 ## Acceptance boundary
+
+`scripts/test-bases-number-preview.mjs` verifies the actual React Preview in an
+isolated selected server. EN/ZH both pass native first-record Number and Currency
+keyboard edits to 4321.125 and 98.25, three real numeric format paints
+(`4.321,13`, `4 321.125`, `4.32K`) without changing stored records, and exact full
+edited-snapshot/same-owner retention through dark/light next-themes storage
+events. Independent supporting tables, official white CSS, locales and active
+React unmount are checked with no browser errors. The reviewed screenshots and
+report are in `test-results/bases-number-preview-first-row`; the initial repeated
+value locator failure is retained in `bases-number-preview`. This focused pass
+does not clear the strict SDK defects below or certify language-route retention.
 
 Maintainer verification (from the documentation repository, not this exported project's folder): `node scripts/test-bases-bracken-native.mjs` targets `http://localhost:3030/en-US/playground/bases/text-number-currency` by default. `SHOWCASE_BASE_URL` changes the documentation origin; `SHOWCASE_DEMO_URL` selects an exact page. The ordinary documentation target exercises the native UI and literal examples; lifecycle-only checks are explicitly marked not run because the application owns its factory handle.
 

@@ -2,7 +2,6 @@ import { BooleanNumber, type IDocumentData } from '@univerjs/core'
 import { unmount } from '@univerjs/design'
 import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
 import docsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
-import docsCoreZhCN from '@univerjs/preset-docs-core/locales/zh-CN'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 
 import { AGREEMENT } from './data'
@@ -27,9 +26,10 @@ export function validateSnapshot(data: IDocumentData) {
 export function createServicesAgreementDemo(
   container: HTMLElement,
   darkMode = false,
-  locale = globalThis.document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+  _legacyLocale: LocaleType = LocaleType.EN_US,
   saved?: IDocumentData,
 ) {
+  const locale = LocaleType.EN_US
   if (saved) validateSnapshot(saved)
   const root = globalThis.document.createElement('div')
   root.className = 'services-agreement-demo'
@@ -38,7 +38,7 @@ export function createServicesAgreementDemo(
   const { univer, univerAPI } = createUniver({
     darkMode,
     locale,
-    locales: { [LocaleType.EN_US]: mergeLocales(docsCoreEnUS), [LocaleType.ZH_CN]: mergeLocales(docsCoreZhCN) },
+    locales: { [LocaleType.EN_US]: mergeLocales(docsCoreEnUS) },
     presets: [UniverDocsCorePreset({ ribbonType: 'grid', container: root, header: true, toolbar: true, footer: true })],
   })
   const owner = window as Window & { univerAPI?: typeof univerAPI }
@@ -91,8 +91,7 @@ export function createServicesAgreementDemo(
     root.dataset.ready = 'error'
     const alert = globalThis.document.createElement('p')
     alert.role = 'alert'
-    alert.textContent =
-      locale === LocaleType.ZH_CN ? '协议未能启动，请重新加载。' : 'The agreement could not start. Reload to retry.'
+    alert.textContent = 'The agreement could not start. Reload to retry.'
     root.prepend(alert)
     console.error(new Error('Services agreement native canvas startup timed out'))
     finish()

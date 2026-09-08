@@ -128,7 +128,7 @@ export function createHostData(): ISlideData {
       text(
         id,
         'footer',
-        'Original fictional opportunities / Base -> Slides / Illustrative assumptions, not booked revenue',
+        'Original fictional opportunities / Relational Table -> Slides / Illustrative assumptions, not booked revenue',
         40,
         639,
         1120,
@@ -200,7 +200,7 @@ export function createHostData(): ISlideData {
       elements: Object.fromEntries(elements.map((e) => [e.id, e])),
       elementOrder: elements.map((e) => e.id),
       speakerNotes:
-        'Original fictional studio. Probabilities are manually entered assumptions. Native formulas read the complete Base table, not only a filtered view.',
+        'Original fictional studio. Probabilities are manually entered assumptions. Native formulas read the complete Relational Table, not only a filtered view.',
     }
   })
   return {

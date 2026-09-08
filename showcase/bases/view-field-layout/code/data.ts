@@ -18,6 +18,13 @@ const fields: IFieldSnapshot[] = [
   { id: 'notes', name: 'Field notes', type: BaseFieldType.Text, config: {} },
   { id: 'batch', name: 'Lab batch', type: BaseFieldType.Text, config: {} },
 ]
+export function createData(_legacyLocale = false): IBaseSnapshot {
+  const data = structuredClone(DATA)
+  const table = data.tables.records
+  table.views = Object.fromEntries(VARIANTS.map((variant) => [variant.id, view(variant.id, variant.label)]))
+  table.viewOrder = VARIANTS.map((variant) => variant.id)
+  return data
+}
 const rows = [
   ['S-101 · North inlet', 'Reed bed', 16.8, 7.2, 'Collected after rainfall; low turbidity.', 'B-41'],
   ['S-102 · Sand bar', 'Intertidal', 18.4, 7.8, 'Duplicate bottle reserved for calibration.', 'B-41'],

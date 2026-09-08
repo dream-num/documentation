@@ -51,7 +51,7 @@ const paragraphs = [
   ['', 'body'],
   [BLOCK_MARKERS[0], 'heading'],
   [
-    'The Base tracks five work packages, each with a scope note and committed amount. Its formula sums the whole Costs table; filtering the view is not a claim that the document total follows that filter.',
+    'The Relational Table tracks five work packages, each with a scope note and committed amount. Its formula sums the whole Costs table; filtering the view is not a claim that the document total follows that filter.',
     'body',
   ],
   ['', 'body'],

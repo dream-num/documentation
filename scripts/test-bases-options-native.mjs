@@ -184,13 +184,10 @@ try {
     if (i === 12) assert.equal(record.priority, 'normal')
     report.checks.push({ example: i + 1, otherTablesPreserved: true })
   }
-  await gate('complete-locales-and-whole-model-themes', async () => {
+  await gate('complete-english-packs-and-whole-model-themes', async () => {
     const before = await snapshot()
-    for (const [locale, key] of [
-      ['en-US', 'enUS'],
-      ['zh-CN', 'zhCN'],
-    ]) {
-      await page.evaluate((k) => window.univerAPI.setLocale(k), key)
+    for (const locale of ['en-US']) {
+      assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
       const actual = await page.evaluate(() => window.univerAPI.getLocales())
       for (const name of [
         '@univerjs/design',

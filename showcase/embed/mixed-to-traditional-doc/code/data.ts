@@ -71,7 +71,7 @@ const paragraphs = [
     'body',
   ],
   [
-    'The income assumptions live in a Sheet; cost amounts, owners and scope live in a Base. Changing one source does not rewrite the other. Repeated figures in the final chapter read the same bindings.',
+    'The income assumptions live in a Sheet; cost amounts, owners and scope live in a Relational Table. Changing one source does not rewrite the other. Repeated figures in the final chapter read the same bindings.',
     'body',
   ],
   ['Reading order / Summary · Revenue plan · Cost register · Reconciliation', 'caption'],
@@ -81,13 +81,13 @@ const paragraphs = [
     'body',
   ],
   [
-    'Expand the native Sheet block and change B5 from 24,000 to 26,000. Revenue and the difference should rise by 2,000; no Base cost line should change.',
+    'Expand the native Sheet block and change B5 from 24,000 to 26,000. Revenue and the difference should rise by 2,000; no Relational Table cost line should change.',
     'body',
   ],
   ['', 'body'],
   [BLOCK_MARKERS[0], 'heading'],
   [
-    'Four Included lines total 57,500; the optional residency is outside that sum. Expand this native Base block to revise a cost or change its Scope. Notes and owners remain context, not arithmetic.',
+    'Four Included lines total 57,500; the optional residency is outside that sum. Expand this native Relational Table block to revise a cost or change its Scope. Notes and owners remain context, not arithmetic.',
     'body',
   ],
   [

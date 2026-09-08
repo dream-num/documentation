@@ -1,5 +1,7 @@
 # Northstar / Project investment block
 
+Current language contract: native UI, startup alerts and authored data stay English under either host language. The legacy third locale argument remains accepted but is ignored. All complete English plugin packs, official CSS, native Grid menus and independent host/child models are retained. Earlier bilingual evidence below is historical; this language migration does not resolve its recorded SDK limitations or certify every interaction.
+
 An original community-repair booking pilot pairs a modern narrative with a
 native Sheets DocBlock. Six effort assumptions yield a $35,320 subtotal and
 $38,852 envelope with 10% reserve. B7 30 to 34 yields $41,492 and $3,508 headroom.
@@ -46,6 +48,15 @@ This demonstrates local print preview, not a verified printer or binary export.
 
 ## Evidence and open acceptance
 
+`test-results/embed-sheet-child-themes-visible/report.json` passes the actual
+React Preview in EN/ZH: native inline B7 typing to 34 recalculates 41,492,
+an independent public Facade narrative edit preserves the child, dark/light
+next-themes storage events retain the same owner and complete edited snapshots,
+and active-child React unmount has no browser errors. Official CSS and locale
+are checked; screenshots were reviewed. The initial test selected a hidden
+SDK editor canvas; its failure report is retained separately. This focused
+preview test does not certify production performance or broader native history.
+
 embed-sheet-doc-block-first passes native DocBlock activation, visible authored
 text and cells, a real cell edit/recalculation to 41492, whole-host preservation,
 and a title append shifting the native anchor while preserving the full child
@@ -80,7 +91,7 @@ The selected Vite build transforms 1927 modules; main JS index-CPt2qk0P.js is
 18,298.38 kB / 4,536.80 kB gzip, CSS index-BhsyKkFe.css is 128.30 / 19.59 kB gzip.
 Bundle/cold-start performance is not accepted.
 The selected runner is scripts/test-embed-sheet-doc-block.mjs; SHOWCASE_PRINT=1
-also tests native print preview. Native typing, broader history/focus, scrolling,
+also tests native print preview. Broader native typing/history/focus, scrolling,
 narrow/touch layouts, lifecycle failures and performance remain open.
 Individual feature dialogs are not all certified merely
 because every ribbon tab opens. Reload loses edits. No backend, binary Exchange

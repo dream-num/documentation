@@ -11,12 +11,13 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Grove / Exhibition Readiness', 'zh-CN': 'Grove / 展览筹备评审' },
   description: {
     'en-US':
-      'A budget Sheet and readiness Base drive sixteen native Board results: budget, cost, status, ceiling and three connected zones.',
-    'zh-CN': '预算 Sheet 与筹备 Base 共同驱动十六个原生白板结果：预算、成本、状态、支出阈值与三个相连分区。',
+      'A budget Sheet and readiness Relational Table drive sixteen native Canvas results: budget, cost, status, ceiling and three connected zones.',
+    'zh-CN':
+      '预算 Sheet 与筹备 Relational Table 共同驱动十六个原生 Canvases 结果：预算、成本、状态、支出阈值与三个相连分区。',
   },
   tags: {
-    'en-US': ['Formula', 'Sheets', 'Bases', 'Boards', 'Float', 'Mixed sources'],
-    'zh-CN': ['公式', '表格', '多维表格', '白板', '浮动嵌入', '混合数据源'],
+    'en-US': ['Formula', 'Sheets', 'Relational Tables', 'Canvases', 'Float', 'Mixed sources'],
+    'zh-CN': ['公式', '表格', 'Relational Tables', 'Canvases', '浮动嵌入', '混合数据源'],
   },
   packages: [
     '@univerjs-pro/boards',
@@ -38,22 +39,22 @@ const metadata: ShowcaseMetadata = {
   guide: {
     overview: {
       'en-US':
-        'An original exhibition combines two independent native sources. Six gates carry costs and readiness; three Sheet envelopes and a separate ceiling guide a connected Board conversation.',
+        'An original exhibition combines two independent native sources. Six gates carry costs and readiness; three Sheet envelopes and a separate ceiling guide a connected Canvas conversation.',
       'zh-CN':
-        '原创展览场景组合两个独立原生来源。六项筹备记录保存成本和状态，Sheet 的三个预算分区和独立阈值共同驱动白板评审。',
+        '原创展览场景组合两个独立原生来源。六项筹备记录保存成本和状态，Sheet 的三个预算分区和独立阈值共同驱动 Canvases 评审。',
     },
     tryIt: {
       'en-US': [
         'Run the twenty literal README snippets in order.',
         'Compare a local overrun with positive total headroom.',
         'Change status without removing cost, then tighten the ceiling.',
-        'Filter the Base, edit a hidden gate, break and repair each source mapping.',
+        'Filter the Relational Table, edit a hidden gate, break and repair each source mapping.',
       ],
       'zh-CN': [
         '按顺序运行 README 的二十段原样代码。',
         '比较局部超支与仍有余量的总预算。',
         '只修改状态而不移除成本，再收紧支出阈值。',
-        '筛选 Base、修改隐藏记录，分别断开和恢复两个来源映射。',
+        '筛选 Relational Table、修改隐藏记录，分别断开和恢复两个来源映射。',
       ],
     },
     expected: {

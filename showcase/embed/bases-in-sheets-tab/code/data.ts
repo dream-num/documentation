@@ -206,7 +206,9 @@ export function createHostData(): Partial<IWorkbookData> {
       },
     },
     19: { 0: { v: 'This model excludes tax, duties, insurance and foreign-exchange conversion.', s: 'muted' } },
-    21: { 0: { v: 'Cost formulas do not approve samples or update independent Base records.', s: 'muted' } },
+    21: {
+      0: { v: 'Cost formulas do not approve samples or update independent Relational Table records.', s: 'muted' },
+    },
   }
   ORDERS.forEach(([supplier, item, units, price, freight, handling], index) => {
     const row = index + 4,

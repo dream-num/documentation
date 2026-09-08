@@ -2,24 +2,19 @@ import type { ISlideData } from '@univerjs-pro/slides'
 import { applyTextToShapeText } from '@univerjs-pro/engine-shape'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import ShapeEditorUIEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
-import ShapeEditorUIZhCN from '@univerjs-pro/shape-editor-ui/locale/zh-CN'
 import { UniverSlidesPlugin } from '@univerjs-pro/slides'
 import { UniverSlidesUIPlugin } from '@univerjs-pro/slides-ui'
 import SlidesUIEnUS from '@univerjs-pro/slides-ui/locale/en-US'
-import SlidesUIZhCN from '@univerjs-pro/slides-ui/locale/zh-CN'
 import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
 import DesignEnUS from '@univerjs/design/locale/en-US'
-import DesignZhCN from '@univerjs/design/locale/zh-CN'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
-import DocsUIZhCN from '@univerjs/docs-ui/locale/zh-CN'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
-import UIZhCN from '@univerjs/ui/locale/zh-CN'
 
 import { LAUNCH_METRICS, PRODUCT_LAUNCH_DATA, PRODUCT_LAUNCH_MEDIA_DATA, PRODUCT_LAUNCH_STARTER_DATA } from './data'
 
@@ -87,13 +82,28 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: ISl
   root.className = 'product-launch'
   root.dataset.ready = 'false'
   container.append(root)
-  const locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US
   const univer = new Univer({
     darkMode,
-    locale,
+    locale: LocaleType.EN_US,
     locales: {
-      [LocaleType.EN_US]: mergeLocales(DesignEnUS, UIEnUS, DocsUIEnUS, ShapeEditorUIEnUS, SlidesUIEnUS),
-      [LocaleType.ZH_CN]: mergeLocales(DesignZhCN, UIZhCN, DocsUIZhCN, ShapeEditorUIZhCN, SlidesUIZhCN),
+      [LocaleType.EN_US]: mergeLocales(
+        DesignEnUS,
+        UIEnUS,
+        DocsUIEnUS,
+        ShapeEditorUIEnUS,
+        SlidesUIEnUS,
+        // Demo-only product names; preserve every other official English translation.
+        {
+          'shape-editor-ui': {
+            ...ShapeEditorUIEnUS['shape-editor-ui'],
+            formulaBinding: {
+              ...ShapeEditorUIEnUS['shape-editor-ui']['formulaBinding'],
+              baseUnit: 'Relational Tables',
+            },
+            formulaShape: { ...ShapeEditorUIEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
+          },
+        },
+      ),
     },
   })
   univer.registerPlugin(UniverRenderEnginePlugin)
@@ -141,9 +151,7 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: ISl
     root.dataset.ready = 'error'
     const alert = document.createElement('p')
     alert.role = 'alert'
-    alert.textContent =
-      (locale === LocaleType.ZH_CN ? '演示文稿启动失败：' : 'Presentation startup failed: ') +
-      (cause instanceof Error ? cause.message : String(cause))
+    alert.textContent = 'Presentation startup failed: ' + (cause instanceof Error ? cause.message : String(cause))
     root.append(alert)
     console.error(cause)
   }

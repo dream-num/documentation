@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
+import { pathToFileURL } from 'node:url'
 
 import { chromium } from 'playwright'
 
@@ -14,6 +15,23 @@ const examples = [
   ),
 ].map((m) => m[1])
 assert.equal(examples.length, 6)
+let server
+let origin = process.env.SHOWCASE_ORIGIN || 'http://127.0.0.1:4280'
+if (process.argv[2]) {
+  const manifest = JSON.parse(await fs.readFile(process.argv[2], 'utf8'))
+  const entry = manifest.find(({ slug }) => slug === 'embed/formula-customrange')
+  assert.ok(entry?.passed, 'A successful selected Estuary export is required')
+  const vite = entry.links.find(({ name }) => name === 'vite')
+  const pkg = JSON.parse(await fs.readFile(path.join(vite.target, 'package.json'), 'utf8'))
+  assert.equal(pkg.version, vite.version)
+  const { preview } = await import(pathToFileURL(path.join(vite.target, 'dist/node/index.js')))
+  server = await preview({
+    root: entry.directory,
+    configFile: false,
+    preview: { host: '127.0.0.1', port: 4448, strictPort: true },
+  })
+  origin = 'http://127.0.0.1:4448'
+}
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 1700, height: 1100 } })
 page.setDefaultTimeout(15000)
@@ -87,6 +105,11 @@ async function values(funding, spending) {
     { timeout: 30000 },
   )
   report.results.push(await results())
+  await page.waitForFunction(
+    (expectedFunding) =>
+      window.univerAPI.getWorkbook('estuary-funding-model').save().sheets.funding.cellData[9][1].v === expectedFunding,
+    funding,
+  )
   if (!funding) {
     const result = (await results())[3]
     if (result.status !== 'error')
@@ -140,19 +163,21 @@ async function collapse() {
   await settle()
 }
 try {
-  await page.goto(process.env.SHOWCASE_ORIGIN || 'http://127.0.0.1:4280', {
+  await page.goto(origin, {
     waitUntil: 'domcontentloaded',
     timeout: 60000,
   })
   await page.waitForFunction(
     () => {
       const root = document.querySelector('.estuary-embed')
-      return root?.dataset.ready || root?.dataset.error
+      return root?.dataset.ready === 'true' || root?.dataset.ready === 'error'
     },
     null,
     { timeout: 60000 },
   )
   assert.equal(await page.locator('.estuary-embed').getAttribute('data-error'), null)
+  assert.equal(await page.locator('.estuary-embed').getAttribute('data-ready'), 'true')
+  assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
   assert.equal(await page.locator('[data-u-comp="embed-float-dom"]').count(), 2)
   await values(16000, 9800)
   const originalBody = await body()
@@ -217,6 +242,7 @@ try {
 } finally {
   await fs.writeFile(path.join(directory, 'report.json'), JSON.stringify(report, null, 2))
   await browser.close()
+  await server?.close()
 }
 console.log(JSON.stringify(report, null, 2))
 if (!report.passed) process.exitCode = 1

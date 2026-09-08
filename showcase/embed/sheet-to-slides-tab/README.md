@@ -1,5 +1,7 @@
 # Nova / Live operating deck
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 Three original operating-review slides read a real Sheet inserted as a fourth
 entry in the native Slides page list. This is **Sheet@Slide Tab**, implemented
 by the SDK's SlidesPageListBlock surface, not a Float or a custom bottom tab.

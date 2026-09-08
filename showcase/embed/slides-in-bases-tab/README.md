@@ -1,18 +1,24 @@
-# Avenue / Slides in a native Base tab
+# Avenue / Slides in a native Relational Table tab
+
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but is ignored. Earlier EN/ZH reports below describe historical interaction runs,
+not current bilingual SDK acceptance. English-only source/CSS/startup checks do
+not certify every native interaction or resolve the recorded SDK failures.
 
 Eight original campaign deliverables belong to three linked channels. Open
-Campaign review in the native Base sidebar to present four editable slides:
+Campaign review in the native Relational Table sidebar to present four editable slides:
 the invitation, CNY 9,600 allocation, three learning weeks and readiness
 questions. Nine sessions and 72 seats are planning assumptions, not results.
 
 ## Run and explore
 
-Use the native Base tables and Slides thumbnails, Grid ribbon and canvas.
+Use the native Relational Tables and Slides thumbnails, Grid ribbon and canvas.
 There is no fixture selector, reset panel or duplicate editing toolbar.
 Start the independent export with pnpm install and pnpm dev.
 
 The deck opens at The invitation. This exact Facade example changes its first
-title paragraph; it does not update any Base record:
+title paragraph; it does not update any Relational Table record:
 
 ```ts
 const text = window.univerAPI
@@ -45,8 +51,8 @@ shapes, not an interactive chart or Formula Shape integration.
 ## Integration and acceptance
 
 Preview and standalone export use the same createDemo factory. Eight official
-stylesheets cover Design, UI, Docs, Drawing, Bases, Slides, Shape editor and
-Embed. Base keeps its native sidebar and controls; Slides uses Grid.
+stylesheets cover Design, UI, Docs, Drawing, Relational Tables, Slides, Shape editor and
+Embed. Relational Table keeps its native sidebar and controls; Slides uses Grid.
 
 The local provider accepts only the exact presentation ID and slide unit type.
 Prepare, materialize and restore create a BasesTableListBlock anchor with
@@ -57,7 +63,7 @@ Selected independent production at 1600px passes in
 test-results/embed-slide-base-tab-production-pointer/report.json: all four
 native thumbnails and palette pixels, both literal README examples, native
 Ribbon Undo/Redo, actual shape movement and Undo, native text input and complete
-keyboard Undo/Redo snapshots, Base channel rename/history, three linked labels,
+keyboard Undo/Redo snapshots, Relational Table channel rename/history, three linked labels,
 tab navigation, full host/child theme preservation and active-child disposal.
 No browser errors or backend requests were observed.
 
@@ -66,7 +72,7 @@ Grid, white child CSS and actual media-theme transitions retaining the same
 owner and both edited snapshots. The eleven-file standalone export is recorded
 in test-results/avenue-tab-export/exports.json; run the existing
 scripts/test-showcase-export-ui.mjs against that manifest for exact source/CSS
-parity. All eight official stylesheets are included.
+parity. All official stylesheets are included.
 
 Failed early interaction reports are retained. The first paint locator selected
 small sidebar-card text rather than the title; the final locator includes the

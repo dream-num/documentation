@@ -2,7 +2,6 @@ import type { IDocumentData } from '@univerjs/core'
 import { unmount } from '@univerjs/design'
 import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
 import DocsEnUS from '@univerjs/preset-docs-core/locales/en-US'
-import DocsZhCN from '@univerjs/preset-docs-core/locales/zh-CN'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 
 import { createPaperData, PAPER_ID } from './data'
@@ -31,11 +30,11 @@ export function createResearchPaperDemo(container: HTMLElement, darkMode = false
   root.className = 'research-paper-demo'
   root.dataset.ready = 'false'
   container.append(root)
-  const locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US
+  const locale = LocaleType.EN_US
   const { univer, univerAPI } = createUniver({
     darkMode,
     locale,
-    locales: { [LocaleType.EN_US]: mergeLocales(DocsEnUS), [LocaleType.ZH_CN]: mergeLocales(DocsZhCN) },
+    locales: { [LocaleType.EN_US]: mergeLocales(DocsEnUS) },
     presets: [UniverDocsCorePreset({ ribbonType: 'grid', container: root, header: true, toolbar: true, footer: true })],
   })
   const owner = window as typeof window & { univerAPI?: typeof univerAPI }
@@ -84,8 +83,7 @@ export function createResearchPaperDemo(container: HTMLElement, darkMode = false
     root.dataset.ready = 'error'
     const alert = document.createElement('p')
     alert.role = 'alert'
-    alert.textContent =
-      locale === LocaleType.ZH_CN ? '论文未能启动，请重新加载。' : 'The paper could not start. Reload to retry.'
+    alert.textContent = 'The paper could not start. Reload to retry.'
     root.prepend(alert)
     console.error(new Error('Research paper native canvas startup timed out'))
     finish()

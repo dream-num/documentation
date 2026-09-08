@@ -1,11 +1,9 @@
 import type { IWorkbookData } from '@univerjs/presets'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import coreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import coreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
 import { createUniver, LifecycleStages, LocaleType, mergeLocales } from '@univerjs/presets'
 import { UniverSheetsCrosshairHighlightPlugin } from '@univerjs/sheets-crosshair-highlight'
 import crosshairEnUS from '@univerjs/sheets-crosshair-highlight/locale/en-US'
-import crosshairZhCN from '@univerjs/sheets-crosshair-highlight/locale/zh-CN'
 
 import { createFixture } from './data'
 
@@ -42,10 +40,9 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: IWo
   container.append(root)
   const { univer, univerAPI } = createUniver({
     darkMode,
-    locale: document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(coreEnUS, crosshairEnUS),
-      [LocaleType.ZH_CN]: mergeLocales(coreZhCN, crosshairZhCN),
     },
     presets: [UniverSheetsCorePreset({ ribbonType: 'grid', container: root })],
     plugins: [UniverSheetsCrosshairHighlightPlugin],

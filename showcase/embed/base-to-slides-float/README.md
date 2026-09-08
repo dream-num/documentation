@@ -1,12 +1,14 @@
 # Orchid / Pipeline review
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 Six original fictional opportunities for an experience-design studio live in a
-native Base Float on the Pipeline slide. This is **Base@Slides Float**, distinct
+native Relational Table Float on the Pipeline slide. This is **Relational Table@Slides Float**, distinct
 from Violet's native data-page Tab. Twelve Formula Shapes on three authored pages
-read the same Base through stable external references. No hidden Sheet, backend,
+read the same Relational Table through stable external references. No hidden Sheet, backend,
 JavaScript aggregation, refresh button or fixture control panel is used.
 
-The twelve literal Base Facade examples update all three visible pages when the
+The twelve literal Relational Table Facade examples update all three visible pages when the
 source Float is first activated through native double-click. Known beta.2
 limitations remain: passive/off-page writes can remove the Slides workbench;
 native title Undo and fullscreen entry fail selected checks. This is a partial
@@ -20,7 +22,7 @@ not booked revenue or an automatic probability model.
 ## Twelve literal examples
 
 Run these in order in the standalone page or demo iframe. Before each example,
-open Pipeline and double-click inside the Base Float until its native floating
+open Pipeline and double-click inside the Relational Table Float until its native floating
 toolbar appears. This enters the child-editing session; simply viewing Pipeline
 does not activate it. Run the literal snippet, then inspect Forecast and Review.
 Return and activate the source again before the next snippet. Probability values use
@@ -146,12 +148,12 @@ public Facade so comparison figures remain readable. Native errors are retained.
 The cached Gamma Budget Review reference informs a dark, restrained opening and
 strong visual hierarchy. Deep Ocean-inspired forest/gold, warm paper and plum
 palettes distinguish the three pages. All deal names and content are original;
-no reference artwork is redistributed. The Base retains its official white UI.
+no reference artwork is redistributed. The Relational Table retains its official white UI.
 
 Preview and standalone share one factory, all eight official SDK CSS imports and
 the host stylesheet. Grid ribbon is the default. There are no duplicate custom
-toolbar buttons. Native Base controls own record editing and view filters.
-No Base printing, Exchange conversion, collaboration or publishing is claimed.
+toolbar buttons. Native Relational Table controls own record editing and view filters.
+No Relational Table printing, Exchange conversion, collaboration or publishing is claimed.
 
 ## Acceptance status
 

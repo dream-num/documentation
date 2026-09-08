@@ -4,7 +4,7 @@ This single-feature example retains three original van assignments and three SDK
 
 Registration is the existing SDK **ICommandService + IShortcutService**, with priority 9999 and **whenSheetEditorFocused**. The predicate excludes active cell editors and non-Univer focus. There is no Facade shortcut-registration method. The command resolves the current worksheet/selection and calls the real **FRange.clearContent()**. `installClearShortcut` in create-demo.ts contains the complete registration and returns a disposable for both registrations; it is demo integration code, not an SDK Facade API.
 
-Native Grid, one official Sheets Core CSS bundle and its full EN/ZH packs share the Preview/export factory. Initial UI language follows document.documentElement.lang. Theme changes keep the current owner and edits. There are no fixed-selection buttons, Reset, fixture or raw-readback panels. The concise status reports actual clear/no-op/error results only.
+Native Grid, official Sheets Core CSS and its complete English pack share the Preview/export factory. Native UI and host messages stay English on either host language; the registration helper ignores its legacy language argument. Theme changes keep the current owner and edits. There are no fixed-selection buttons, Reset, fixture or raw-readback panels. The concise status reports actual clear/no-op/error results only. Earlier bilingual reports are historical; rerun native tests for current English-only acceptance.
 
 ## Literal recipes
 

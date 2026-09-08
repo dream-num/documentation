@@ -198,9 +198,10 @@ api.createWorkbook(snapshot)
 ## Styling, languages and ownership
 
 Preview and export call the same createDemo factory. Keep the complete official
-@univerjs/preset-sheets-core/lib/index.css import and both official EN/ZH preset
-locale packs. The initial editor language follows the page's zh-CN language,
-otherwise English; original business content and host labels remain English.
+@univerjs/preset-sheets-core/lib/index.css import and the complete official English
+preset locale pack. The native editor, original business content and host labels
+stay English on either documentation language. Invalid host-input messages also
+remain English without relying on the browser's localized validation text.
 Grid, formula bar and sheet tabs are visible. Core-only registration does not
 imply that every optional Sheets plugin, Print or Exchange is available.
 
@@ -215,12 +216,22 @@ plugins or custom history controls.
 
 ## Acceptance
 
-The selected standalone check is scripts/test-crm-quote-native.mjs; current
-evidence is test-results/crm-quote-native-verified/report.json. All fourteen
+Current English-only evidence: `test-results/crm-quote-english-native/report.json`
+records 28/29 strict gates. All fourteen literal examples, the two host actions,
+actual native edits/calculations/paint, draft preservation, full snapshot reload,
+source isolation/recovery, same-owner themes and narrow layouts pass. A Chinese
+host retains the complete English preset and English invalid-input errors,
+without writing rejected inputs. The native Undo difference below remains a
+strict failure. There are no observed browser errors, warnings or backend requests.
+
+The selected standalone check is scripts/test-crm-quote-native.mjs; historical
+bilingual evidence is test-results/crm-quote-native-verified/report.json. All fourteen
 literal examples, actual native cell editing and current canvas values, two host
 actions, invalid-input preservation, same-ID full snapshot reconstruction/JSON
 download, source-tab isolation, missing-source recovery, complete EN/ZH packs,
 same-owner themes/drafts and 760/390/320px host actions have selected evidence.
+That report predates English-only migration; rerun the selected native check for
+current evidence rather than inferring interaction acceptance from startup.
 
 Strict native Undo remains a failure: the value and displayed total return, but
 B4 gains t: 2 in the complete snapshot. Redo exactly matches the edited snapshot.

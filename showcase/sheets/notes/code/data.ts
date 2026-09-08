@@ -39,7 +39,7 @@ const notes = {
         id: 'silk-light',
         row: 2,
         col: 1,
-        note: 'Light-sensitive dye.\nUse covered storage.\n复查 after 48 hours.',
+        note: 'Light-sensitive dye.\nUse covered storage.\nRecheck — after 48 hours.',
         width: 250,
         height: 140,
         show: false,

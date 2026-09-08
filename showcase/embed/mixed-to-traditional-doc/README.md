@@ -1,7 +1,9 @@
 # Cobalt / Annual operating review
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 A traditional paginated document hosts two real DocBlocks: a revenue Sheet and
-an independently maintained cost Base. Fourteen native inline formulas connect
+an independently maintained cost Relational Table. Fourteen native inline formulas connect
 the executive reading and final reconciliation. A fictional community arts
 workshop supplies original, varied assumptions; no live accounts or backend.
 
@@ -15,7 +17,7 @@ an audit opinion, investment advice or an authorization to spend.
 Run these in order in the standalone console or demo iframe. Sources are always
 addressed by stable unit IDs, never by whichever product currently has focus.
 Single-click a native DocBlock, then use Enter fullscreen for normal editing and
-return to the report. Base commands in beta.2 may change global focus; visual
+return to the report. Relational Table commands in beta.2 may change global focus; visual
 return and native keyboard behavior are separate acceptance gates.
 
 ### 1. Increase workshop revenue
@@ -137,7 +139,7 @@ window.univerAPI.getWorkbook('cobalt-revenue-plan').getSheetBySheetId('revenue')
 
 ### 15. Restore revenue
 
-The original calculations recover without replacing the document or Base.
+The original calculations recover without replacing the document or Relational Table.
 
 ```ts
 window.univerAPI.getWorkbook('cobalt-revenue-plan').getSheetBySheetId('revenue').getRange('B5:B7').setValues([[24000],[28000],[34000]])
@@ -145,7 +147,7 @@ window.univerAPI.getWorkbook('cobalt-revenue-plan').getSheetBySheetId('revenue')
 
 ### 16. Disconnect only the Sheet binding
 
-Base-only costs and scope counts remain meaningful. Sheet-dependent calculations must not retain stale successful totals.
+Relational Table-only costs and scope counts remain meaningful. Sheet-dependent calculations must not retain stale successful totals.
 
 ```ts
 window.univerAPI.getFormula().upsertExternalReference({unitId:'cobalt-operating-review',qualifier:'Cobalt Revenue',sourceUnitId:'cobalt-unavailable-sheet',sourceUnitType:window.univerAPI.Enum.UniverInstanceType.UNIVER_SHEET})
@@ -159,15 +161,15 @@ Reconnect the same source ID. This does not prove rebinding to a different valid
 window.univerAPI.getFormula().upsertExternalReference({unitId:'cobalt-operating-review',qualifier:'Cobalt Revenue',sourceUnitId:'cobalt-revenue-plan',sourceUnitType:window.univerAPI.Enum.UniverInstanceType.UNIVER_SHEET})
 ```
 
-### 18. Disconnect only the Base binding
+### 18. Disconnect only the Relational Table binding
 
-Sheet-only revenue and target remain meaningful. Base-dependent calculations expose native errors.
+Sheet-only revenue and target remain meaningful. Relational Table-dependent calculations expose native errors.
 
 ```ts
 window.univerAPI.getFormula().upsertExternalReference({unitId:'cobalt-operating-review',qualifier:'Cobalt Costs',sourceUnitId:'cobalt-unavailable-base',sourceUnitType:window.univerAPI.Enum.UniverInstanceType.UNIVER_BASE})
 ```
 
-### 19. Repair the Base binding
+### 19. Repair the Relational Table binding
 
 Reconnect the same cost register without resetting either source.
 
@@ -217,13 +219,13 @@ body/title text and blue, teal, amber and lavender details inspired by the saved
 Deep Ocean reference. The cached Typst Universe and original corporate-report
 reference guide typography and reading order only; their artwork is not copied.
 
-Sheet rows 5:7 are a fixed revenue range; E5 is an independent target. Base
+Sheet rows 5:7 are a fixed revenue range; E5 is an independent target. Relational Table
 aggregates cover the entire Costs table, not its view. Scope is an explicit
 Included/Optional value. All arithmetic is performed by the native formula
 engine; application code does not compute totals or regenerate prose.
 
 Preview and standalone call the same factory. All twenty-three official CSS
-imports and twenty-three complete EN/ZH dependency packs are included. Grid menus
+imports and complete English dependency packs are included. Grid menus
 are native; there is no fixture panel, redundant button toolbar or collaboration
 history suite. The registered Sheet Print plugin does not by itself prove every
 Print option. No Exchange conversion success is claimed.
@@ -239,7 +241,7 @@ inputs, target/scope isolation, an empty view projection, hidden edits, stored
 null versus zero, ignored text, zero revenue and independent binding repair pass.
 
 Single-click fullscreen activation preserves the complete source models. Native
-Sheet B5 and Base venue-amount typing, complete serialized source Undo/Redo,
+Sheet B5 and Relational Table venue-amount typing, complete serialized source Undo/Redo,
 Grid menus, correct-source Sheet Print preview/cancel, twenty-three whole EN/ZH
 packs, all three model snapshots across theme changes and active-source disposal
 pass selected checks. There are no browser errors, warnings or backend requests.
@@ -255,22 +257,22 @@ into its temporary standalone export. This is not a fresh dependency installatio
 
 Earlier automation double-clicked DocBlocks. That also entered a native Sheet
 cell editor and could commit an empty title when leaving for fullscreen; in an
-empty Base it hit Add record. The current test uses the SDK's single-click
+empty Relational Table it hit Add record. The current test uses the SDK's single-click
 DocBlock activation and checks complete source preservation across entry. Empty
-Base re-entry, double-click/editor-exit behavior and other pointer paths remain
+Relational Table re-entry, double-click/editor-exit behavior and other pointer paths remain
 unaccepted; literal-code tests explicitly return focus to the report separately.
 Explicit amber/purple input text colors also avoid creating a redundant default
 color style during Sheet editing, allowing exact history checks. No SDK package
 was patched.
 
 The reconstruction test at test-results/embed-cobalt-roundtrip-layout/report.json
-creates five fresh owners: edited formula/format/prose with an empty Base filter;
+creates five fresh owners: edited formula/format/prose with an empty Relational Table filter;
 missing Sheet binding while leaving fullscreen; Chinese dark appearance;
-missing Base binding; and a formula replaced with authored reading text.
+missing Relational Table binding; and a formula replaced with authored reading text.
 All five preserve authored content, formula IDs/configuration, source data and
 four actual A4 pages with identical page boundaries. Ten invalid bundles leave
 the original owner and complete models untouched. Fresh native Sheet typing,
-value Undo/Redo, exact Base typing/history, hidden Base writes and fresh writes
+value Undo/Redo, exact Relational Table typing/history, hidden Relational Table writes and fresh writes
 after formula removal pass. The removed formula is not reseeded. No errors,
 warnings or backend requests occur.
 

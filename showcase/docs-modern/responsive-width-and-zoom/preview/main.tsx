@@ -11,8 +11,7 @@ export default function Preview() {
   const { resolvedTheme } = useTheme()
   useEffect(() => {
     darkModeRef.current = resolvedTheme === 'dark'
-    const current = (window as typeof window & { willowDemo?: ReturnType<typeof createDemo> }).willowDemo
-    if (current?.container === containerRef.current) current.setDarkMode(darkModeRef.current)
+    demoRef.current?.setDarkMode(darkModeRef.current)
   }, [resolvedTheme])
   useEffect(() => {
     const element = containerRef.current
@@ -21,8 +20,7 @@ export default function Preview() {
     })
     return () => {
       cancelAnimationFrame(frame)
-      const current = (window as typeof window & { willowDemo?: ReturnType<typeof createDemo> }).willowDemo
-      const demo = current?.container === element ? current : demoRef.current
+      const demo = demoRef.current
       demoRef.current = undefined
       queueMicrotask(() => demo?.dispose())
     }

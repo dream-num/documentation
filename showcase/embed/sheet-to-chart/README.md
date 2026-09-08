@@ -1,5 +1,7 @@
 # Tide / Channel comparison
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 An original fictional community programme tracks three acquisition channels. Two distinct workbooks demonstrate the full chain: source inputs -> host external-reference formulas -> native column chart. The visible `A4:C7` source range belongs to the host; application code never rebuilds chart series after an input edit.
 
 Actual confirmations start at **120 / 180 / 90**, totaling **390**. The separate plan is **140 / 160 / 100**, totaling **400**. These are illustrative RSVPs, not attendance, conversions or real personal records. The chart preserves native identity, configuration and source mapping when values change.

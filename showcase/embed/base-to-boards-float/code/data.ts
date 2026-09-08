@@ -124,7 +124,7 @@ export function createHostData(): IBoardData {
     ]),
     card(
       'source-caption',
-      'SOURCE / Five records, one live Base. Double-click to edit.',
+      'SOURCE / Five records, one live Relational Table. Double-click to edit.',
       85,
       340,
       920,

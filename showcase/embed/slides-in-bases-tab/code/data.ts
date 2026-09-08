@@ -206,7 +206,7 @@ function slide(id: string, name: string, background: string, elements: SlideElem
     elements: Object.fromEntries(elements.map((element) => [element.id, element])),
     elementOrder: elements.map((element) => element.id),
     speakerNotes:
-      'Original fictional campaign assumptions. Slides and Base records are independent snapshots; editing a value does not recalculate the other product. No messages, tracking, publication or Formula Shape integration.',
+      'Original fictional campaign assumptions. Slides and Relational Table records are independent snapshots; editing a value does not recalculate the other product. No messages, tracking, publication or Formula Shape integration.',
   }
 }
 
@@ -265,7 +265,7 @@ export function createChildData(): ISlideData {
       }),
       text(
         'budget-note',
-        'Eight deliverables share this starting plan.\nChannel labels and budgets in the deck are not live-linked to Base.',
+        'Eight deliverables share this starting plan.\nChannel labels and budgets in the deck are not live-linked to Relational Table.',
         40,
         362,
         710,

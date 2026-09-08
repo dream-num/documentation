@@ -1,27 +1,30 @@
 import { LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
+import { unmount } from '@univerjs/design'
 import DesignEnUS from '@univerjs/design/locale/en-US'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import EngineFormulaEnUS from '@univerjs/engine-formula/locale/en-US'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import FindReplaceEnUS from '@univerjs/find-replace/locale/en-US'
+import SheetsConditionalFormattingEnUS from '@univerjs/preset-sheets-conditional-formatting/locales/en-US'
+import SheetsDataValidationEnUS from '@univerjs/preset-sheets-data-validation/locales/en-US'
+import SheetsFilterEnUS from '@univerjs/preset-sheets-filter/locales/en-US'
+import SheetsHyperLinkEnUS from '@univerjs/preset-sheets-hyper-link/locales/en-US'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
 import { UniverSheetsConditionalFormattingMobileUIPlugin } from '@univerjs/sheets-conditional-formatting-ui'
-import SheetsConditionalFormattingUIEnUS from '@univerjs/sheets-conditional-formatting-ui/locale/en-US'
 import { UniverSheetsCrosshairHighlightPlugin } from '@univerjs/sheets-crosshair-highlight'
 import SheetsCrosshairHighlightEnUS from '@univerjs/sheets-crosshair-highlight/locale/en-US'
 import { UniverSheetsDataValidationPlugin } from '@univerjs/sheets-data-validation'
 import { UniverSheetsDataValidationMobileUIPlugin } from '@univerjs/sheets-data-validation-ui'
-import SheetsDataValidationUIEnUS from '@univerjs/sheets-data-validation-ui/locale/en-US'
 import { UniverSheetsFilterMobileUIPlugin } from '@univerjs/sheets-filter-ui'
-import SheetsFilterUIEnUS from '@univerjs/sheets-filter-ui/locale/en-US'
 import { UniverSheetsFindReplacePlugin } from '@univerjs/sheets-find-replace'
 import { UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
 import SheetsFormulaUIEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
+import SheetsFormulaEnUS from '@univerjs/sheets-formula/locale/en-US'
 import { UniverSheetsHyperLinkUIPlugin } from '@univerjs/sheets-hyper-link-ui'
-import SheetsHyperLinkUIEnUS from '@univerjs/sheets-hyper-link-ui/locale/en-US'
 import { UniverSheetsNoteUIPlugin } from '@univerjs/sheets-note-ui'
 import SheetsNoteUIEnUS from '@univerjs/sheets-note-ui/locale/en-US'
 import { UniverSheetsNumfmtUIPlugin } from '@univerjs/sheets-numfmt-ui'
@@ -59,9 +62,13 @@ import '@univerjs/sheets-hyper-link-ui/lib/index.css'
 import '@univerjs/sheets-note-ui/lib/index.css'
 import '@univerjs/sheets-table-ui/lib/index.css'
 import '@univerjs/thread-comment-ui/lib/index.css'
+import '@univerjs/sheets-thread-comment-ui/lib/index.css'
 import '@univerjs/sheets-crosshair-highlight/lib/index.css'
 
-export function createDemo(root: HTMLElement, darkMode = false) {
+import '@univerjs/sheets/facade'
+import '@univerjs/ui/facade'
+
+export function createDemo(root: HTMLElement, darkMode = false, _legacyLocale: LocaleType = LocaleType.EN_US) {
   const originalClassName = root.className
   const device = document.createElement('div')
   device.className = 'mobile-device'
@@ -74,6 +81,8 @@ export function createDemo(root: HTMLElement, darkMode = false) {
     locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
+        EngineFormulaEnUS,
+        SheetsFormulaEnUS,
         DesignEnUS,
         UIEnUS,
         DocsUIEnUS,
@@ -81,15 +90,15 @@ export function createDemo(root: HTMLElement, darkMode = false) {
         SheetsUIEnUS,
         SheetsFormulaUIEnUS,
         SheetsNumfmtUIEnUS,
-        SheetsFilterUIEnUS,
-        SheetsConditionalFormattingUIEnUS,
-        SheetsDataValidationUIEnUS,
+        SheetsFilterEnUS,
+        SheetsConditionalFormattingEnUS,
+        SheetsDataValidationEnUS,
         SheetsSortUIEnUS,
         FindReplaceEnUS,
         ThreadCommentUIEnUS,
         SheetsThreadCommentUIEnUS,
         SheetsNoteUIEnUS,
-        SheetsHyperLinkUIEnUS,
+        SheetsHyperLinkEnUS,
         SheetsTableUIEnUS,
         SheetsCrosshairHighlightEnUS,
       ),
@@ -135,15 +144,20 @@ export function createDemo(root: HTMLElement, darkMode = false) {
   })
   univer.registerPlugin(UniverSheetsCrosshairHighlightPlugin)
   const univerAPI = FUniver.newAPI(univer)
+  const demoWindow = window as Window & { univerAPI?: FUniver }
+  demoWindow.univerAPI = univerAPI
   const lifecycle = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
     if (stage === univerAPI.Enum.LifecycleStages.Steady) root.dataset.ready = 'true'
   })
   univer.createUnit(UniverInstanceType.UNIVER_SHEET, structuredClone(WORKBOOK_DATA))
 
   return {
+    univerAPI,
     dispose() {
       lifecycle.dispose()
+      unmount(device)
       univer.dispose()
+      if (demoWindow.univerAPI === univerAPI) delete demoWindow.univerAPI
       root.replaceChildren()
       root.className = originalClassName
       delete root.dataset.ready

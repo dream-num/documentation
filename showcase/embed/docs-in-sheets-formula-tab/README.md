@@ -1,5 +1,7 @@
 # Cypress / Forecast notebook
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 A fictional independent press separates total-period cash from collection timing.
 Opening $4,000 plus expected collections $12,500 less payments $9,800 yields
 $6,700. At 75% collected before payment, the balance is only $3,575: $1,425 below
@@ -13,7 +15,7 @@ Doc@Sheet describes placement; Sheet → Doc describes calculation, not write-ba
 
 The saved Gamma budget-review reference informs narrative hierarchy and contrast,
 not copied artwork. Original plum, moss and warm cream separate the story from
-Saffron. English business content and EN/ZH interface packs share official CSS.
+Saffron. English business content and English interface packs share official CSS.
 The native Grid ribbon supplies controls; no fixture panel or extra feature card.
 
 ## Run these examples in order

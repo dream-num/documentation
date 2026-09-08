@@ -1,4 +1,5 @@
 import type { IWorkbookData } from '@univerjs/core'
+import { LocaleType } from '@univerjs/core'
 
 export type Region = 'north' | 'south'
 export type Fixture = 'default' | 'empty' | 'boundary'
@@ -39,6 +40,7 @@ export function createBudget(region: Region, fixture: Fixture): Partial<IWorkboo
   return {
     id: `regional-budget-${region}`,
     name: `${region} maintenance budget`,
+    locale: LocaleType.EN_US,
     sheetOrder: ['budget'],
     resources: [{ name: 'SHEET_DEFINED_NAME_PLUGIN', data: '{}' }],
     styles: {

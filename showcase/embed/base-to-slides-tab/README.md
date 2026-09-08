@@ -1,8 +1,10 @@
 # Violet / Editorial review
 
-Eight original fictional articles live in a real Base data page inside the
-native Slides page list. This is **Base@Slide Tab**, not a Float or a bottom tab.
-Data flows **Base -> Slides** through thirteen native Formula Shapes on three
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
+Eight original fictional articles live in a real Relational Table data page inside the
+native Slides page list. This is **Relational Table@Slide Tab**, not a Float or a bottom tab.
+Data flows **Relational Table -> Slides** through thirteen native Formula Shapes on three
 authored pages. There is no hidden Sheet, JavaScript aggregation or refresh button.
 
 Initially 5 / 8 pieces are Ready (62.5%), but only 4,400 / 8,200 words are Ready
@@ -13,7 +15,7 @@ Initially 5 / 8 pieces are Ready (62.5%), but only 4,400 / 8,200 words are Ready
 
 Open Editorial data in the native page list before each example. Run these in
 order in the demo iframe or standalone preview. Inspect Overview, Sections and
-Decision after each edit. Each mutation uses explicit Base/table/record/field IDs.
+Decision after each edit. Each mutation uses explicit Relational Table/table/record/field IDs.
 
 ### 1. Mark the long essay ready
 
@@ -72,7 +74,7 @@ for (const [i, status, words] of [[1,'Ready',900],[2,'Ready',600],[3,'Ready',140
 
 ### 7. Change display labels without replacing identities
 
-The stable Base/table IDs and table formula name Pieces remain unchanged.
+The stable Relational Table/table IDs and table formula name Pieces remain unchanged.
 Subsequent edits must still recalculate; unchanged cached output alone is not proof.
 
 ```ts
@@ -133,8 +135,8 @@ for (const [i, words] of [[1,900],[2,600],[3,1400],[4,1100],[5,400],[6,1800],[7,
 
 The existing SDK local Slides Tab pattern prepares, materializes and restores a
 real SlidesPageListBlock. Formula bindings use a readable qualifier plus stable
-Base unit ID. Preview and standalone export share the factory and all eight
-official SDK CSS imports. Grid is the configured ribbon; the Base retains its own
+Relational Table unit ID. Preview and standalone export share the factory and all eight
+official SDK CSS imports. Grid is the configured ribbon; the Relational Table retains its own
 native view controls. There are no duplicate host toolbar actions or fixture panels.
 
 Below 640px, Show pages / Hide pages uses FUniver.setUIVisible with the native
@@ -147,7 +149,7 @@ The cached Gamma Team Retrospective cover informs the editorial review hierarchy
 the supplied Deep Ocean colors inform plum, warm paper and teal pages. All article
 names, people and prose are fictional and original. No competitor artwork is
 redistributed. No network publishing, Exchange conversion, whole-deck printing,
-collaborative history or Base print capability is implied.
+collaborative history or Relational Table print capability is implied.
 
 ## Acceptance status
 
@@ -160,7 +162,7 @@ test-results/violet-responsive-export-ui/report.json passes eleven-file source
 parity and official native white CSS. The rebuilt bundle has 1,846 modules,
 18,441.31 kB JS (4,542.23 kB gzip), 151.28 kB CSS (21.44 kB gzip).
 This is not complete mobile editing acceptance: Grid ribbon clipping, small
-slide text and the Base data page's own narrow-screen controls remain open.
+slide text and the Relational Table data page's own narrow-screen controls remain open.
 The EN/ZH outer-page checks complete at all three widths, but
 test-results/showcase-card-free-responsive/report.json is FAIL on Next development
 Performance.measure negative timestamp errors in the React Server Components
@@ -175,7 +177,7 @@ passes all twelve literal examples, thirteen native results and current canvases
 on all three result pages. Unchanged authored prose/layout, display-name stability,
 five-row filtered projection versus eight-record formula source, hidden-record
 edits, null versus zero, native zero-denominator error/recovery and off-page writes
-are checked. Native title and word editing, exact full-Base Undo/Redo and active
+are checked. Native title and word editing, exact full-Relational Table Undo/Redo and active
 data-page disposal pass with no observed browser errors or backend requests.
 
 Earlier test failures are retained: the test looked for the old title after a

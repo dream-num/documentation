@@ -1,4 +1,4 @@
-# Data-driven Formula Demo Catalog
+# Cross-file Formula References Demo Catalog
 
 Status: 30 registered and implemented Formula routes, all ledgered partial; zero fully accepted. This expands the previous three API-oriented examples. Route count is not capability completion. All authored content and code remain English with EN/ZH guide metadata.
 
@@ -21,7 +21,12 @@ View the existing native captures: [Sheet@Slide](../../public/assets/showcase/em
 
 ### Browse by capability, then by business example
 
-The intended navigation is `Features > Formula / Data-driven composition > Capability family > Example`. The families below organize the existing thirty routes; they do not introduce thirty more routes. Variants remain inside an example, not another navigation level.
+Single-output examples use `Compose & Embed > Cross-file Formula References > Host > Example`.
+The directory resolves formula targets and native containers into host groups.
+Multi-output workspaces use `Compose & Embed > Showcases > Host > Example`,
+grouped by their actual container. The capability
+families below are a reading guide, not a second directory hierarchy or thirty
+new routes. Variants remain inside an example, not another navigation level.
 
 | Capability family | Existing examples | Count |
 |---|---|---|

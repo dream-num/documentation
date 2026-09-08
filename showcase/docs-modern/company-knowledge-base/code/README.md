@@ -1,5 +1,7 @@
 # Team knowledge / Three modern documents
 
+The demo runtime and authored data are English-only, including on a Chinese documentation page. Complete official English locale packs are retained. Any legacy locale argument is accepted but ignored; saved-snapshot argument positions are unchanged. Earlier bilingual test reports below describe the previous revision, not current language acceptance.
+
 Engineering Handbook, API Standards and Legacy Deployment Guide retain their original prose, owners, tags, review dates
 and document IDs: `knowledge-handbook`, `knowledge-api`, `knowledge-legacy`. Each has native title/heading paragraphs and
 an individual blue, teal or amber accent. The archived story remains editable: archive is an application review policy,
@@ -8,7 +10,7 @@ not an SDK permission or read-only claim.
 The three page links are useful application navigation, not replacement editing controls. They save each complete SDK
 snapshot in memory before opening the next document. Editing uses the native Grid and document canvas. No Reset space,
 Mark reviewed, activity/readback or fixture panel is present. Preview and standalone export share the complete factory,
-official Docs Core preset CSS, full EN/ZH preset packs and stable editor ownership during theme changes.
+official Docs Core preset CSS, full English preset packs and stable editor ownership during theme changes.
 
 ## Literal Facade examples
 

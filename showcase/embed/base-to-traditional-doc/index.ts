@@ -11,12 +11,12 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Linen / Services Schedule', 'zh-CN': 'Linen / 分页服务明细' },
   description: {
     'en-US':
-      'Base service records drive twelve inline formulas across a three-page A4 schedule: included fees, optional scope, hours and phase allocation.',
-    'zh-CN': 'Base 服务记录驱动三页 A4 明细中的十二个行内公式：纳入费用、可选范围、工时与阶段分配。',
+      'Relational Table service records drive twelve inline formulas across a three-page A4 schedule: included fees, optional scope, hours and phase allocation.',
+    'zh-CN': 'Relational Table 服务记录驱动三页 A4 明细中的十二个行内公式：纳入费用、可选范围、工时与阶段分配。',
   },
   tags: {
-    'en-US': ['Formula', 'Traditional Docs', 'Bases', 'A4', 'Inline'],
-    'zh-CN': ['公式', '传统文档', '多维表格', 'A4', '行内公式'],
+    'en-US': ['Formula', 'Traditional Docs', 'Relational Tables', 'A4', 'Inline'],
+    'zh-CN': ['公式', '传统文档', 'Relational Tables', 'A4', '行内公式'],
   },
   packages: [
     '@univerjs-pro/bases',
@@ -37,18 +37,18 @@ const metadata: ShowcaseMetadata = {
   guide: {
     overview: {
       'en-US':
-        'An original community-programme studio keeps its paginated narrative linked to a native Base. No hidden Sheet, custom totals or regenerated report.',
-      'zh-CN': '原创社区活动工作室将分页说明关联至原生 Base，不使用隐藏 Sheet、自算统计或重新生成的报告。',
+        'An original community-programme studio keeps its paginated narrative linked to a native Relational Table. No hidden Sheet, custom totals or regenerated report.',
+      'zh-CN': '原创社区活动工作室将分页说明关联至原生 Relational Table，不使用隐藏 Sheet、自算统计或重新生成的报告。',
     },
     tryIt: {
       'en-US': [
-        'Read the summary, then expand the native Base block on page two.',
+        'Read the summary, then expand the native Relational Table block on page two.',
         'Change Workshop facilitation fee from 850 to 1000.',
         'Compare the summary and phase allocation on page three.',
         'Include optional work, filter the view, and try blank/zero and source repair using the literal examples.',
       ],
       'zh-CN': [
-        '阅读摘要，再展开第二页的原生 Base 块。',
+        '阅读摘要，再展开第二页的原生 Relational Table 块。',
         '将 Workshop facilitation 费用从 850 改为 1000。',
         '比较摘要和第三页的阶段分配。',
         '按原样示例体验纳入可选项目、视图筛选、空值/零值及来源修复。',

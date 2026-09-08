@@ -13,7 +13,7 @@ const metadata: ShowcaseMetadata = {
       'Compare four real routes, bound/free endpoints and editable business labels in a native release workflow.',
     'zh-CN': '在原生发布流程中比较四种真实路由、绑定与自由端点，以及可编辑的业务标签。',
   },
-  tags: { 'en-US': ['Boards', 'Connectors', 'Native editing'], 'zh-CN': ['白板', '连接线', '原生编辑'] },
+  tags: { 'en-US': ['Canvases', 'Connectors', 'Native editing'], 'zh-CN': ['Canvases', '连接线', '原生编辑'] },
   packages: ['@univerjs-pro/boards', '@univerjs-pro/boards-ui', '@univerjs-pro/license'],
   apis: [
     'FBoard.getConnectorConnection() / setConnectorConnection()',
@@ -46,9 +46,9 @@ const metadata: ShowcaseMetadata = {
     },
     expected: {
       'en-US':
-        'Native Board tools, seven official CSS/locale packs and same-owner themes. The graph retains endpoint identities when nodes move. Direct/curved routes are not guaranteed to avoid obstacles; the red promotion starts free. SDK limitations are not repaired with host simulation.',
+        'Native Canvas tools, seven official CSS/locale packs and same-owner themes. The graph retains endpoint identities when nodes move. Direct/curved routes are not guaranteed to avoid obstacles; the red promotion starts free. SDK limitations are not repaired with host simulation.',
       'zh-CN':
-        '使用原生白板工具、七套官方 CSS/语言包及同实例主题切换。节点移动保留端点身份。直线与曲线不保证避障，红色晋级路径初始为自由端点，不使用宿主模拟修补 SDK 限制。',
+        '使用原生 Canvases 工具、七套官方 CSS/语言包及同实例主题切换。节点移动保留端点身份。直线与曲线不保证避障，红色晋级路径初始为自由端点，不使用宿主模拟修补 SDK 限制。',
     },
   },
   variants: [
@@ -82,8 +82,8 @@ const metadata: ShowcaseMetadata = {
       id: 'native',
       label: { 'en-US': 'Native select, drag and edit', 'zh-CN': '原生选择、拖动与编辑' },
       description: {
-        'en-US': 'Use the Board floating toolbar, canvas and native history instead of duplicate host buttons.',
-        'zh-CN': '使用白板浮动工具条、画布与原生历史，不重复设置宿主按钮。',
+        'en-US': 'Use the Canvas floating toolbar, canvas and native history instead of duplicate host buttons.',
+        'zh-CN': '使用 Canvases 浮动工具条、画布与原生历史，不重复设置宿主按钮。',
       },
     },
     {

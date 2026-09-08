@@ -11,11 +11,19 @@ const stylesheet = new URL('@univerjs/preset-docs-core/lib/index.css', import.me
 const tag = 'univer-docs-lit-demo'
 
 class UniverElement extends LitElement {
+  locale = LocaleType.EN_US
   darkMode = false
   private univer?: ReturnType<typeof createUniver>['univer']
+  univerAPI?: ReturnType<typeof createUniver>['univerAPI']
+
+  setDarkMode(value: boolean) {
+    this.darkMode = value
+    this.univerAPI?.toggleDarkMode(value)
+  }
 
   override connectedCallback() {
     super.connectedCallback()
+    this.dataset.ready = 'false'
     void this.updateComplete.then(() => {
       if (!this.isConnected || this.univer) return
       const { univer, univerAPI } = createUniver({
@@ -30,14 +38,23 @@ class UniverElement extends LitElement {
         ],
       })
       this.univer = univer
+      this.univerAPI = univerAPI
+      const demoWindow = window as Window & { univerAPI?: typeof univerAPI }
+      demoWindow.univerAPI = univerAPI
+      univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
+        if (stage === univerAPI.Enum.LifecycleStages.Rendered && this.univer === univer) this.dataset.ready = 'true'
+      })
       univerAPI.createDocument(structuredClone(DOCUMENT_DATA))
-      this.dataset.ready = 'true'
     })
   }
 
   override disconnectedCallback() {
     const univer = this.univer
+    const api = this.univerAPI
     this.univer = undefined
+    this.univerAPI = undefined
+    const demoWindow = window as Window & { univerAPI?: typeof api }
+    if (demoWindow.univerAPI === api) delete demoWindow.univerAPI
     // Disconnection can happen inside an enclosing React commit; capture this owner.
     queueMicrotask(() => univer?.dispose())
     delete this.dataset.ready
@@ -49,6 +66,7 @@ class UniverElement extends LitElement {
         :host {
           display: block;
           height: 100%;
+          font-family: Arial, sans-serif;
         }
       </style>
       <link rel="stylesheet" href=${stylesheet} />
@@ -56,10 +74,13 @@ class UniverElement extends LitElement {
   }
 }
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _locale: LocaleType = LocaleType.EN_US) {
   if (!customElements.get(tag)) customElements.define(tag, UniverElement)
   const element = document.createElement(tag) as UniverElement
   element.darkMode = darkMode
   container.append(element)
-  return { dispose: () => element.remove() }
+  return {
+    setDarkMode: (value: boolean) => element.setDarkMode(value),
+    dispose: () => element.remove(),
+  }
 }

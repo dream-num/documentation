@@ -1,5 +1,7 @@
 # Atlas / Offline Review Product Brief
 
+The demo runtime and authored data are English-only, including on a Chinese documentation page. Complete official English locale packs are retained. Any legacy locale argument is accepted but ignored; saved-snapshot argument positions are unchanged. Earlier bilingual test reports below describe the previous revision, not current language acceptance.
+
 An original product proposal, not an implementation of offline synchronization,
 collaborative comments or attachment storage. Eight sections distinguish the
 problem, intended outcome, targets, launch plan, open questions, pilot boundaries,
@@ -9,7 +11,7 @@ the extra sections give the review an explicit scope and exit criteria.
 The document is the interface. Use its native Grid toolbar and direct text
 editing; there is no Preview-only decision button, Reset or activity strip.
 The exported entry and Preview call the same factory, with the official bundled
-Docs Core CSS and complete EN/ZH preset locales. Theme changes keep the owner and
+Docs Core CSS and complete English preset locales. Theme changes keep the owner and
 its edits. Content remains English. Teal section headings complement the navy
 title; the SDK workbench keeps its official styling.
 
@@ -108,7 +110,7 @@ api.createDocument(snapshot)
 ## Acceptance boundary
 
 Native runtime, literal snippets, actual painting, complete model history,
-EN/ZH packs, theme ownership and export parity require separate checks. A
+English packs, theme ownership and export parity require separate checks. A
 successful Facade call alone is insufficient. Printing, binary conversion,
 collaboration, full lifecycle failure recovery, keyboard-only accessibility and
 delivery performance are not supplied by this core-only template.

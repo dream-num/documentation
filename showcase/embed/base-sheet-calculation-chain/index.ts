@@ -11,12 +11,12 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Meridian / Follow the Calculation Chain', 'zh-CN': 'Meridian / 追踪跨产品计算链' },
   description: {
     'en-US':
-      'Base quantities feed a visible Sheet model, then drive a brief, three slides, a connected Board and a native chart.',
-    'zh-CN': 'Base 数量进入可见的 Sheet 模型，再驱动简报、三页演示、关联白板和原生图表。',
+      'Relational Table quantities feed a visible Sheet model, then drive a brief, three slides, a connected Canvas and a native chart.',
+    'zh-CN': 'Relational Table 数量进入可见的 Sheet 模型，再驱动简报、三页演示、关联 Canvases 和原生图表。',
   },
   tags: {
-    'en-US': ['Formula', 'Base', 'Sheets', 'Docs', 'Slides', 'Boards', 'Charts'],
-    'zh-CN': ['公式', '多维表格', '电子表格', '文档', '演示', '白板', '图表'],
+    'en-US': ['Formula', 'Relational Table', 'Sheets', 'Docs', 'Slides', 'Canvases', 'Charts'],
+    'zh-CN': ['公式', 'Relational Tables', '电子表格', '文档', '演示', 'Canvases', '图表'],
   },
   packages: [
     '@univerjs-pro/embed',
@@ -56,9 +56,9 @@ const metadata: ShowcaseMetadata = {
     },
     expected: {
       'en-US':
-        '40 + 60 copies at 25 gives 2,500. Changing 60 to 80 gives 3,000; changing the rate to 30 gives 3,600. All narrative outputs reference Sheet cells, not Base directly. See README for acceptance status.',
+        '40 + 60 copies at 25 gives 2,500. Changing 60 to 80 gives 3,000; changing the rate to 30 gives 3,600. All narrative outputs reference Sheet cells, not Relational Table directly. See README for acceptance status.',
       'zh-CN':
-        '40 + 60 份、单价 25 得到 2,500；60 改为 80 后为 3,000；单价改为 30 后为 3,600。内容输出只引用 Sheet 单元格，不直接读取 Base。验收状态见 README。',
+        '40 + 60 份、单价 25 得到 2,500；60 改为 80 后为 3,000；单价改为 30 后为 3,600。内容输出只引用 Sheet 单元格，不直接读取 Relational Table。验收状态见 README。',
     },
   },
   variants: [

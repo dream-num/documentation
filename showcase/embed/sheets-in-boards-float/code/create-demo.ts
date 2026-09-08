@@ -10,6 +10,7 @@ import {
 } from '@univerjs-pro/embed-ui'
 import EmbedEnUS from '@univerjs-pro/embed-ui/locale/en-US'
 import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import InkUIEnUS from '@univerjs-pro/ink-ui/locale/en-US'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import ShapeEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
 import { IUniverInstanceService, LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
@@ -21,6 +22,7 @@ import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
+import DrawingUIEnUS from '@univerjs/drawing-ui/locale/en-US'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import {
   ISheetPrintManagerService,
@@ -56,6 +58,7 @@ import CommentEnUS from '@univerjs/preset-sheets-thread-comment/locales/en-US'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
 import { UniverSheetsDrawingPlugin } from '@univerjs/sheets-drawing'
 import { UniverSheetsDrawingUIPlugin } from '@univerjs/sheets-drawing-ui'
+import SheetsDrawingUIEnUS from '@univerjs/sheets-drawing-ui/locale/en-US'
 import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
 import { SheetsFormulaUIMenuSchema, UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
 import FormulaEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
@@ -73,6 +76,7 @@ import '@univerjs/design/lib/index.css'
 import '@univerjs/ui/lib/index.css'
 import '@univerjs/docs-ui/lib/index.css'
 import '@univerjs-pro/boards-ui/lib/index.css'
+import '@univerjs-pro/ink-ui/lib/index.css'
 import '@univerjs-pro/shape-editor-ui/lib/index.css'
 import '@univerjs/preset-sheets-advanced/lib/index.css'
 import '@univerjs/preset-sheets-conditional-formatting/lib/index.css'
@@ -97,7 +101,7 @@ import '@univerjs-pro/boards-ui/facade'
 import '@univerjs-pro/embed/facade'
 import '@univerjs-pro/sheets-print/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _locale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
   root.className = 'ripple-embed'
   container.append(root)
@@ -109,6 +113,9 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
+        DrawingUIEnUS,
+        SheetsDrawingUIEnUS,
+        InkUIEnUS,
         DesignEnUS,
         UIEnUS,
         DocsEnUS,
@@ -128,6 +135,19 @@ export function createDemo(container: HTMLElement, darkMode = false) {
         FormulaEnUS,
         NumfmtEnUS,
         EmbedEnUS,
+
+        // Demo-only product names; preserve every other official English translation.
+        {
+          'boards-ui': {
+            ...BoardsEnUS['boards-ui'],
+            settings: { ...BoardsEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
+          },
+          'shape-editor-ui': {
+            ...ShapeEnUS['shape-editor-ui'],
+            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
+            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
+          },
+        },
       ),
     },
   })
@@ -311,7 +331,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
             .__getInjector()
             .get(IUniverInstanceService)
             .getUnit<BoardModel>(HOST_ID, UniverInstanceType.UNIVER_BOARD)
-          if (!board) throw new Error('The workshop Board is unavailable')
+          if (!board) throw new Error('The workshop Canvas is unavailable')
           univer
             .__getInjector()
             .get(BoardViewportService)

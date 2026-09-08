@@ -1,3 +1,4 @@
+import CollaborationClientUIEnUS from '@univerjs-pro/collaboration-client-ui/locale/en-US'
 import CollaborationClientEnUS from '@univerjs-pro/collaboration-client/locale/en-US'
 import {
   IAuthzIoService,
@@ -11,7 +12,9 @@ import {
 import { FUniver } from '@univerjs/core/facade'
 import DesignEnUS from '@univerjs/design/locale/en-US'
 import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
+import EngineFormulaEnUS from '@univerjs/engine-formula/locale/en-US'
 import SheetsFormulaUIEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
+import SheetsFormulaEnUS from '@univerjs/sheets-formula/locale/en-US'
 import SheetsNumfmtUIEnUS from '@univerjs/sheets-numfmt-ui/locale/en-US'
 import SheetsUIEnUS from '@univerjs/sheets-ui/locale/en-US'
 import SheetsEnUS from '@univerjs/sheets/locale/en-US'
@@ -38,12 +41,23 @@ import '@univerjs/sheets-numfmt-ui/lib/index.css'
 import '@univerjs/sheets-ui/lib/index.css'
 import '@univerjs/ui/lib/index.css'
 
-function createOwner(container: HTMLElement, darkMode: boolean, enableCollaboration: boolean) {
+import '@univerjs/sheets/facade'
+import '@univerjs/ui/facade'
+
+function createOwner(
+  container: HTMLElement,
+  darkMode: boolean,
+  _legacyLocale: LocaleType,
+  enableCollaboration: boolean,
+) {
   const univer = new Univer({
     darkMode,
     locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
+        EngineFormulaEnUS,
+        SheetsFormulaEnUS,
+        CollaborationClientUIEnUS,
         DesignEnUS,
         CollaborationClientEnUS,
         UIEnUS,
@@ -71,18 +85,24 @@ function createOwner(container: HTMLElement, darkMode: boolean, enableCollaborat
   return { univer, univerAPI }
 }
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _legacyLocale: LocaleType = LocaleType.EN_US) {
   let disposed = false
+  let latestDarkMode = darkMode
   let owner: ReturnType<typeof createOwner> | undefined
   let lifecycle: { dispose(): void } | undefined
-  container.dataset.ready = 'false'
+  const root = document.createElement('div')
+  root.className = 'collaboration-demo'
+  root.dataset.ready = 'false'
+  container.append(root)
+  const scope = window as Window & { univerAPI?: FUniver }
 
   const mount = (enableCollaboration: boolean) => {
     if (disposed) return
-    owner = createOwner(container, darkMode, enableCollaboration)
-    container.dataset.mode = enableCollaboration ? 'collaboration' : 'local-fallback'
+    owner = createOwner(root, latestDarkMode, LocaleType.EN_US, enableCollaboration)
+    scope.univerAPI = owner.univerAPI
+    root.dataset.mode = enableCollaboration ? 'collaboration' : 'local-fallback'
     lifecycle = owner.univerAPI.addEvent(owner.univerAPI.Event.LifeCycleChanged, ({ stage }) => {
-      if (stage === owner?.univerAPI.Enum.LifecycleStages.Steady) container.dataset.ready = 'true'
+      if (stage === owner?.univerAPI.Enum.LifecycleStages.Steady) root.dataset.ready = 'true'
     })
   }
 
@@ -118,12 +138,18 @@ export function createDemo(container: HTMLElement, darkMode = false) {
 
   return {
     ready,
+    setDarkMode(value: boolean) {
+      latestDarkMode = value
+      owner?.univerAPI.toggleDarkMode(value)
+    },
     dispose() {
+      if (disposed) return
       disposed = true
       lifecycle?.dispose()
+      if (scope.univerAPI === owner?.univerAPI) delete scope.univerAPI
       owner?.univer.dispose()
-      delete container.dataset.mode
-      delete container.dataset.ready
+      owner = undefined
+      root.remove()
     },
   }
 }

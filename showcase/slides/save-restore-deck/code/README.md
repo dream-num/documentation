@@ -1,5 +1,10 @@
 # Tern / Keep the field briefing intact
 
+The runtime is English-only on every host page. Complete official English SDK packs
+and styles are retained. A legacy locale argument, where present, is ignored without
+shifting the saved-snapshot argument. EN/ZH reports below are historical evidence
+from before this language change, not current bilingual-runtime acceptance.
+
 Eight original fictional coastal-observation pages cover a title, mission, habitat
 cards, sampling procedure, paired observation windows, sample comparison, quotation
 and handoff. The 126 sample observations are authored data; the three bars are native
@@ -141,7 +146,7 @@ from restoring an authored empty variant: the SDK may serialize a stale active I
 
 Preview and export call the same factory; the export includes all five official
 SDK stylesheets and complete Design, UI, Docs UI, Shape Editor UI and Slides UI
-locale packs in English and Chinese. Initial document language is respected.
+locale packs in English. Host document language does not change the editor locale.
 No sibling demo code or report is a runtime dependency.
 
 The selected native test covers 13 gates: all ten literal examples

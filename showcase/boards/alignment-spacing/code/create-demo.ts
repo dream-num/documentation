@@ -2,7 +2,10 @@ import type { BoardModel } from '@univerjs-pro/boards'
 import { UniverBoardsPlugin } from '@univerjs-pro/boards'
 import { BoardViewportService, UniverBoardsUIPlugin } from '@univerjs-pro/boards-ui'
 import BoardsUIEnUS from '@univerjs-pro/boards-ui/locale/en-US'
+import EmbedUnitEnUS from '@univerjs-pro/embed-unit-ui/locale/en-US'
+import InkUIEnUS from '@univerjs-pro/ink-ui/locale/en-US'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
+import ShapeEditorEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
 import { IUniverInstanceService, LocaleType, mergeLocales, Univer } from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
 import { unmount } from '@univerjs/design'
@@ -33,20 +36,54 @@ import '@univerjs/ui/lib/index.css'
 import '@univerjs/docs-ui/lib/index.css'
 import '@univerjs/drawing-ui/lib/index.css'
 import '@univerjs-pro/boards-ui/lib/index.css'
+import '@univerjs-pro/shape-editor-ui/lib/index.css'
+import '@univerjs-pro/ink-ui/lib/index.css'
+import '@univerjs-pro/embed-unit-ui/lib/index.css'
 import './styles.css'
 
 import '@univerjs-pro/boards/facade'
 import '@univerjs-pro/boards-ui/facade'
 import '@univerjs/ui/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _locale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
   root.className = 'alignment-demo'
   container.append(root)
   const univer = new Univer({
     darkMode,
     locale: LocaleType.EN_US,
-    locales: { [LocaleType.EN_US]: mergeLocales(DesignEnUS, UIEnUS, DocsUIEnUS, DrawingUIEnUS, BoardsUIEnUS) },
+    locales: {
+      [LocaleType.EN_US]: mergeLocales(
+        DesignEnUS,
+        UIEnUS,
+        DocsUIEnUS,
+        DrawingUIEnUS,
+        BoardsUIEnUS,
+        ShapeEditorEnUS,
+        InkUIEnUS,
+        EmbedUnitEnUS,
+
+        // Demo-only product names; preserve every other official English translation.
+        {
+          'boards-ui': {
+            ...BoardsUIEnUS['boards-ui'],
+            settings: { ...BoardsUIEnUS['boards-ui']['settings'], findBoardElements: 'Find canvas elements' },
+          },
+          'shape-editor-ui': {
+            ...ShapeEditorEnUS['shape-editor-ui'],
+            formulaBinding: { ...ShapeEditorEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
+            formulaShape: { ...ShapeEditorEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
+          },
+          'embed-unit-ui': {
+            ...EmbedUnitEnUS['embed-unit-ui'],
+            referencedUnitViewer: {
+              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
+              base: 'Relational Tables',
+            },
+          },
+        },
+      ),
+    },
   })
   const cleanup: Array<() => void> = []
   const demoWindow = window as Window & { univer?: Univer; univerAPI?: FUniver }
@@ -69,7 +106,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
       delete demoWindow.univerAPI
     }
     root.remove()
-    if (errors.length) throw new AggregateError(errors, 'Board cleanup failed')
+    if (errors.length) throw new AggregateError(errors, 'Canvas cleanup failed')
   }
   try {
     univer.registerPlugin(UniverRenderEnginePlugin)
@@ -133,7 +170,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     try {
       dispose()
     } catch (cleanupError) {
-      throw new AggregateError([error, cleanupError], 'Board startup and cleanup failed', { cause: cleanupError })
+      throw new AggregateError([error, cleanupError], 'Canvas startup and cleanup failed', { cause: cleanupError })
     }
     throw error
   }

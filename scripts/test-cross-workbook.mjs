@@ -1,4 +1,5 @@
 /* eslint-disable no-await-in-loop -- Exercise one local workbook graph and its native history in order. */
+// Historical theatre/host-panel harness; current gallery acceptance is test-cross-workbook-native-gallery.mjs.
 import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -6,7 +7,7 @@ import process from 'node:process'
 
 import { chromium } from 'playwright'
 
-import { REFERENCES } from '../showcase/sheets/cross-workbook-formula/code/data.ts'
+import { REFERENCES } from './fixtures/cross-workbook-theatre.ts'
 
 const url = process.env.SHOWCASE_DEMO_URL || 'http://localhost:3030/en-US/playground/sheets/cross-workbook-formula'
 const directory = path.resolve(process.env.SHOWCASE_RESULTS_DIR || 'test-results/cross-workbook')

@@ -11,8 +11,8 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Theme Bindings and Slide Backgrounds', 'zh-CN': '主题继承与单页背景' },
   description: {
     'en-US':
-      'Explore eight authored night-market slides: Deep Ocean, airy violet, mint and coral, with native themes, backgrounds, File and Print.',
-    'zh-CN': '直接浏览八页设计好的夜市简报：深海蓝、浅紫、薄荷与珊瑚色，使用原生主题、背景、文件和打印菜单。',
+      'Explore eight authored night-market slides: Deep Ocean, airy violet, mint and coral, with native themes, backgrounds and Print.',
+    'zh-CN': '直接浏览八页设计好的夜市简报：深海蓝、浅紫、薄荷与珊瑚色，使用原生主题、背景和打印菜单。',
   },
   tags: { 'en-US': ['Slides', 'Theme', 'Background', 'Client-side'], 'zh-CN': ['幻灯片', '主题', '背景', '客户端'] },
   packages: [
@@ -28,8 +28,6 @@ const metadata: ShowcaseMetadata = {
     '@univerjs-pro/slides',
     '@univerjs-pro/slides-ui',
     '@univerjs-pro/license',
-    '@univerjs-pro/exchange-client',
-    '@univerjs-pro/slides-exchange-client',
     '@univerjs-pro/slides-print',
   ],
   apis: [
@@ -50,14 +48,14 @@ const metadata: ShowcaseMetadata = {
         'Browse the native thumbnails: the first four pages demonstrate a dark solid fill, a cyan/lilac gradient, a mint pattern and an original coral/gold awning image.',
         'Choose native Themes presets. Compare the changing theme card with the fixed cyan identity and authored page background.',
         'Open Format Background. Reset Background restores the neutral master; native Undo/Redo reverse the edit. Native thumbnail navigation and theme selection add no undo entries.',
-        'Use the native File menu for client import/export and Print for print settings. These are registered SDK plugins, not simulated host buttons. License and conversion limitations must be checked with your files.',
+        'Open native Print settings. PPTX import/export is not included: the installed Exchange client requires a conversion service, which this frontend-only example does not configure.',
         'Reload the browser page to restore the authored deck. The real Univer and Facade are available as window.univer and window.univerAPI, as in the advanced SDK example.',
       ],
       'zh-CN': [
         '通过原生缩略图浏览：前四页展示深色纯色、青紫渐变、薄荷图案和原创珊瑚金色遮棚图片。',
         '选择原生 Themes 预设，比较变化的主题卡片、固定青色标识和预置页面背景。',
         '打开 Format Background。Reset Background 恢复中性母版，原生撤销重做恢复编辑；原生缩略图切页和主题选择不增加撤销记录。',
-        '使用原生 File 客户端导入导出与 Print 打印设置，均由真实 SDK 插件提供，不是模拟宿主按钮。请用实际文件核验授权与转换限制。',
+        '打开原生打印设置。本例不包含 PPTX 导入导出：当前 Exchange 客户端需要转换服务，纯前端案例不配置该服务。',
         '刷新浏览器恢复预置文稿。与 advanced SDK 示例一样，可通过 window.univer 和 window.univerAPI 使用真实内核及 Facade。',
       ],
     },
@@ -101,13 +99,6 @@ const metadata: ShowcaseMetadata = {
       'Reverse background edits, not thumbnail navigation.',
       '恢复背景编辑，不恢复缩略图切页。',
     ],
-    [
-      'file',
-      'Native File',
-      '原生文件菜单',
-      'Client import/export through Exchange plugins.',
-      '通过 Exchange 插件进行客户端导入导出。',
-    ],
     ['print', 'Native Print', '原生打印', 'Open the SDK print settings.', '打开 SDK 打印设置。'],
   ].map(([id, en, zh, ed, zd]) => ({
     id,
@@ -126,5 +117,6 @@ const files = readShowcaseFiles(import.meta.url, {
   '/src/create-demo.ts': './code/create-demo.ts',
   '/src/data.ts': './code/data.ts',
   '/src/styles.css': './code/styles.css',
+  '/README.md': './README.md',
 })
 export default { metadata, files, Preview }

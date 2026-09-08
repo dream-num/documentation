@@ -4,6 +4,7 @@ import { readShowcaseFiles } from '@/showcase/read-files'
 import Preview from './preview'
 
 const metadata: ShowcaseMetadata = {
+  image: '/assets/showcase/embed-slides-in-sheets-float.png',
   product: 'embed',
   previewHeight: 960,
   category: 'features',

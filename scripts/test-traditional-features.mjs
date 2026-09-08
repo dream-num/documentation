@@ -15,16 +15,14 @@ const directory = path.resolve(process.env.SHOWCASE_RESULTS_DIR || 'test-results
 await fs.mkdir(directory, { recursive: true })
 const browser = await chromium.launch({ executablePath: chromium.executablePath() })
 const results = []
-const rules = (value) =>
-  value.paragraphs.map(({ style }) => ({
-    keepNext: style.keepNext,
-    keepLines: style.keepLines,
-    widowControl: style.widowControl,
-    pageBreakBefore: style.pageBreakBefore,
-  }))
-
 try {
   for (const slug of selected) {
+    if (slug === 'pagination-rules') {
+      process.env.SHOWCASE_ORIGIN = baseURL
+      await import('./test-pagination-native-gallery.mjs')
+      results.push({ slug, checks: 'native gallery; detailed report in pagination-native-gallery', passed: true })
+      continue
+    }
     const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } })
     const errors = []
     page.on('pageerror', (error) => errors.push(error.message))
@@ -110,33 +108,6 @@ try {
       assert.equal(double.style.hanging.v, 0)
       assert.equal(double.style.indentEnd.v, 24)
       assert.deepEqual(await choose('compact'), baseline)
-    } else {
-      const baseRules = rules(baseline)
-      assert.ok(baseRules.every((rule) => Object.values(rule).every((value) => value === 0)))
-      const heading = await choose('heading')
-      assert.equal(rules(heading)[0].keepNext, 1)
-      assert.equal(rules(heading)[1].keepNext, 0, 'The body terminates the keep chain')
-      await capture('keep-heading')
-      const together = rules(await choose('together'))
-      assert.equal(together[0].keepNext, 0)
-      assert.equal(together[1].keepLines, 1)
-      assert.equal(together[2].keepLines, 1)
-      const widow = rules(await choose('widow'))
-      assert.equal(widow[1].widowControl, 1)
-      assert.equal(widow[1].keepLines, 0)
-      const forced = await choose('break')
-      assert.equal(rules(forced)[0].pageBreakBefore, 1)
-      assert.equal(rules(forced)[2].widowControl, 0)
-      assert.deepEqual(
-        forced.paragraphs.map((p) => p.text),
-        baseline.paragraphs.map((p) => p.text),
-      )
-      await capture('page-break')
-      // Variant application is three commands; the host documents command-level Undo.
-      await click('Undo')
-      await click('Redo')
-      assert.deepEqual(await model(), forced)
-      assert.deepEqual(await choose('natural'), baseline)
     }
 
     await click('Reset')

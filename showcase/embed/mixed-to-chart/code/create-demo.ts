@@ -2,60 +2,46 @@ import type { IBaseSnapshot, IWorkbookData } from '@univerjs/core'
 import { UniverBasesPlugin } from '@univerjs-pro/bases'
 import { UniverBasesUIPlugin } from '@univerjs-pro/bases-ui'
 import BasesUIEnUS from '@univerjs-pro/bases-ui/locale/en-US'
-import BasesUIZhCN from '@univerjs-pro/bases-ui/locale/zh-CN'
 import BasesEnUS from '@univerjs-pro/bases/locale/en-US'
-import BasesZhCN from '@univerjs-pro/bases/locale/zh-CN'
 import ChartEnUS from '@univerjs-pro/chart-ui/locale/en-US'
-import ChartZhCN from '@univerjs-pro/chart-ui/locale/zh-CN'
 import { UniverEmbedPlugin } from '@univerjs-pro/embed'
 import { UniverEmbedUIPlugin } from '@univerjs-pro/embed-ui'
 import EmbedEnUS from '@univerjs-pro/embed-ui/locale/en-US'
-import EmbedZhCN from '@univerjs-pro/embed-ui/locale/zh-CN'
 import EmbedUnitEnUS from '@univerjs-pro/embed-unit-ui/locale/en-US'
-import EmbedUnitZhCN from '@univerjs-pro/embed-unit-ui/locale/zh-CN'
 import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import { UniverSheetsChartPlugin } from '@univerjs-pro/sheets-chart'
 import { UniverSheetsChartUIPlugin } from '@univerjs-pro/sheets-chart-ui'
 import SheetChartEnUS from '@univerjs-pro/sheets-chart-ui/locale/en-US'
-import SheetChartZhCN from '@univerjs-pro/sheets-chart-ui/locale/zh-CN'
 import { ISheetPrintManagerService, UniverSheetsPrintPlugin } from '@univerjs-pro/sheets-print'
 import PrintEnUS from '@univerjs-pro/sheets-print/locale/en-US'
-import PrintZhCN from '@univerjs-pro/sheets-print/locale/zh-CN'
 import { IUniverInstanceService, LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
 import { unmount } from '@univerjs/design'
 import DesignEnUS from '@univerjs/design/locale/en-US'
-import DesignZhCN from '@univerjs/design/locale/zh-CN'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsEnUS from '@univerjs/docs-ui/locale/en-US'
-import DocsZhCN from '@univerjs/docs-ui/locale/zh-CN'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
 import DrawingEnUS from '@univerjs/drawing-ui/locale/en-US'
-import DrawingZhCN from '@univerjs/drawing-ui/locale/zh-CN'
+import EngineFormulaEnUS from '@univerjs/engine-formula/locale/en-US'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
 import { UniverSheetsDrawingPlugin } from '@univerjs/sheets-drawing'
 import { UniverSheetsDrawingUIPlugin } from '@univerjs/sheets-drawing-ui'
 import SheetDrawingEnUS from '@univerjs/sheets-drawing-ui/locale/en-US'
-import SheetDrawingZhCN from '@univerjs/sheets-drawing-ui/locale/zh-CN'
 import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
 import { UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
 import FormulaEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
-import FormulaZhCN from '@univerjs/sheets-formula-ui/locale/zh-CN'
+import SheetsFormulaEnUS from '@univerjs/sheets-formula/locale/en-US'
 import { UniverSheetsNumfmtUIPlugin } from '@univerjs/sheets-numfmt-ui'
 import NumfmtEnUS from '@univerjs/sheets-numfmt-ui/locale/en-US'
-import NumfmtZhCN from '@univerjs/sheets-numfmt-ui/locale/zh-CN'
 import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
 import SheetsUIEnUS from '@univerjs/sheets-ui/locale/en-US'
-import SheetsUIZhCN from '@univerjs/sheets-ui/locale/zh-CN'
 import SheetsEnUS from '@univerjs/sheets/locale/en-US'
-import SheetsZhCN from '@univerjs/sheets/locale/zh-CN'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
-import UIZhCN from '@univerjs/ui/locale/zh-CN'
 
 import { SOURCE_ID, createSourceData, createHostData, HOST_ID, SOURCE_NAME, SHEET_ID } from './data'
 
@@ -89,7 +75,7 @@ import '@univerjs-pro/embed/facade'
 export function createDemo(
   container: HTMLElement,
   darkMode = false,
-  locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+  _legacyLocale: LocaleType = LocaleType.EN_US,
   saved?: { host: IWorkbookData; source: IBaseSnapshot },
 ) {
   // Restore this example's two units, not arbitrary uploaded documents.
@@ -113,7 +99,7 @@ export function createDemo(
       !saved.host.sheets?.[embed.hostAnchorId] ||
       !saved.host.sheetOrder?.includes(embed.hostAnchorId)
     )
-      throw new Error('Restore the original Prism Base tab resource and its native Sheet anchor.')
+      throw new Error('Restore the original Prism Relational Table tab resource and its native Sheet anchor.')
   }
   const hostData = structuredClone(saved?.host ?? createHostData())
   const sourceData = structuredClone(saved?.source ?? createSourceData())
@@ -125,9 +111,11 @@ export function createDemo(
   let disposed = false
   const univer = new Univer({
     darkMode,
-    locale,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
+        SheetsFormulaEnUS,
+        EngineFormulaEnUS,
         DesignEnUS,
         UIEnUS,
         DocsEnUS,
@@ -144,24 +132,48 @@ export function createDemo(
         DrawingEnUS,
         SheetDrawingEnUS,
         PrintEnUS,
-      ),
-      [LocaleType.ZH_CN]: mergeLocales(
-        DesignZhCN,
-        UIZhCN,
-        DocsZhCN,
-        SheetsZhCN,
-        SheetsUIZhCN,
-        FormulaZhCN,
-        NumfmtZhCN,
-        EmbedZhCN,
-        BasesZhCN,
-        BasesUIZhCN,
-        ChartZhCN,
-        SheetChartZhCN,
-        EmbedUnitZhCN,
-        DrawingZhCN,
-        SheetDrawingZhCN,
-        PrintZhCN,
+
+        // Demo-only product names; preserve every other official English translation.
+        {
+          'bases-ui': {
+            ...BasesUIEnUS['bases-ui'],
+            collaboration: {
+              ...BasesUIEnUS['bases-ui']['collaboration'],
+              localTooltip: 'Collaboration is disabled for these relational tables.',
+              notCollabTooltip: 'These relational tables are not in collaboration mode.',
+            },
+            fieldConfig: {
+              ...BasesUIEnUS['bases-ui']['fieldConfig'],
+              formulaReferenceError: 'A1 references and ranges are not supported in Relational Tables formulas.',
+              referenceCurrentField:
+                'Reference the "{0}" field in the current relational table. It will be saved as [[#This Row],[{1}]] for the formula engine.',
+            },
+            fieldMenu: {
+              ...BasesUIEnUS['bases-ui']['fieldMenu'],
+              createSharedBaseField: 'Create a shared Relational Tables field',
+            },
+            viewMenus: {
+              ...BasesUIEnUS['bases-ui']['viewMenus'],
+              setWorkingDaysDescription:
+                'Customize working days and days off, and apply them to the current relational tables',
+            },
+            formula: {
+              ...BasesUIEnUS['bases-ui']['formula'],
+              generic: {
+                ...BasesUIEnUS['bases-ui']['formula']['generic'],
+                engineDescription:
+                  '{0} is provided by the Univer formula engine. Relational Tables supports field references such as TableName[[#This Row],[Field]] and OtherTable[Field], but does not support A1 cells, A1:B10 ranges, or spilled array output in formula fields.',
+              },
+            },
+          },
+          'embed-unit-ui': {
+            ...EmbedUnitEnUS['embed-unit-ui'],
+            referencedUnitViewer: {
+              ...EmbedUnitEnUS['embed-unit-ui']['referencedUnitViewer'],
+              base: 'Relational Tables',
+            },
+          },
+        },
       ),
     },
   })
@@ -229,7 +241,7 @@ export function createDemo(
                 input.ref.unit.selector !== SOURCE_ID ||
                 input.unitType !== UniverInstanceType.UNIVER_BASE
               )
-                throw new Error('Unknown Prism Base source')
+                throw new Error('Unknown Prism Relational Table source')
               const existing = univer.__getInjector().get(IUniverInstanceService).getUnit(SOURCE_ID, input.unitType)
               if (!existing)
                 univer
@@ -270,7 +282,7 @@ export function createDemo(
               content: { unitType: UniverInstanceType.UNIVER_BASE, ref: `#unit=${SOURCE_ID}&type=base` },
               displayTarget: { tableId: 'income', viewId: 'income-grid' },
             })
-        if (!embed) throw new Error('The saved Prism workbook has no native Base embed resource.')
+        if (!embed) throw new Error('The saved Prism workbook has no native Relational Table embed resource.')
         await embed.loadAsync({ signal: abort.signal })
         if (disposed) return
         if (
@@ -321,7 +333,8 @@ export function createDemo(
         root.dataset.error = String(error)
         const message = document.createElement('p')
         message.setAttribute('role', 'alert')
-        message.textContent = 'The embedded Base could not load. Reload to retry; details are in the console.'
+        message.textContent =
+          'The embedded Relational Table could not load. Reload to retry; details are in the console.'
         root.prepend(message)
         console.error(error)
       })

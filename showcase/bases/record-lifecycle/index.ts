@@ -10,9 +10,9 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Harbour Commons / Record Lifecycle', 'zh-CN': 'Harbour Commons / 记录生命周期' },
   description: {
     'en-US':
-      'Explore a native three-table arts festival Base, with twenty literal Facade variants for single and batch intake, named fields, ranges, order keys and stable identities.',
+      'Explore a native three-table arts festival Relational Table, with twenty literal Facade variants for single and batch intake, named fields, ranges, order keys and stable identities.',
     'zh-CN':
-      '以原生三表艺术节 Base 展示记录能力，通过二十个可运行 Facade 变体说明单条与批量录入、命名字段、范围、顺序键和稳定标识。',
+      '以原生三表艺术节 Relational Table 展示记录能力，通过二十个可运行 Facade 变体说明单条与批量录入、命名字段、范围、顺序键和稳定标识。',
   },
   tags: { 'en-US': ['Records', 'Batch editing', 'Stable IDs'], 'zh-CN': ['记录', '批量编辑', '稳定标识'] },
   packages: ['@univerjs-pro/bases', '@univerjs-pro/bases-ui', '@univerjs-pro/license'],

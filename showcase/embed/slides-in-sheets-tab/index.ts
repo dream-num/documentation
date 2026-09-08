@@ -4,6 +4,7 @@ import { readShowcaseFiles } from '@/showcase/read-files'
 import Preview from './preview'
 
 const metadata: ShowcaseMetadata = {
+  image: '/assets/showcase/embed-slides-in-sheets-tab.png',
   product: 'embed',
   category: 'features',
   previewHeight: 960,
@@ -55,9 +56,9 @@ const metadata: ShowcaseMetadata = {
     },
     expected: {
       'en-US':
-        'Host and child keep separate editable state. Native tabs, three page palettes, native Undo/Redo after a Facade text edit, host recalculation, independent production export and EN/ZH previews pass selected checks. These are not full native keyboard editing, persistence, failure recovery, lifecycle, narrow-layout or performance acceptance. Reload restores authored data; trial watermarks remain. Float and cross-unit formulas are separate cases. Exchange and Print are not registered.',
+        'Host and child keep separate editable state. Earlier selected checks cover native tabs, three page palettes, native Undo/Redo after a Facade text edit and host recalculation. Current independent export starts in English on either host language. This is not full native keyboard editing, persistence, failure recovery, lifecycle, narrow-layout or performance acceptance. Reload restores authored data; trial watermarks remain. Float and cross-unit formulas are separate cases. Exchange and Print are not registered.',
       'zh-CN':
-        '宿主和子单元保持独立可编辑状态。原生标签、三页配色、Facade 文本编辑后的原生撤销重做、宿主重算、独立生产导出及中英文预览已通过选定检查；这不是完整键盘编辑、持久化、故障恢复、生命周期、窄屏或性能验收。刷新恢复原始数据，保留试用水印。Float 和跨单元公式另有案例，本例未注册 Exchange 或 Print。',
+        '宿主和子单元保持独立可编辑状态。早期选定检查覆盖原生标签、三页配色、Facade 文本编辑后的原生撤销重做和宿主重算；当前独立导出在两种宿主语言下均以英文启动。这不是完整键盘编辑、持久化、故障恢复、生命周期、窄屏或性能验收。刷新恢复原始数据，保留试用水印。Float 和跨单元公式另有案例，本例未注册 Exchange 或 Print。',
     },
   },
   variants: [

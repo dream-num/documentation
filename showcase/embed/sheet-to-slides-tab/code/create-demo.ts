@@ -11,6 +11,7 @@ import ShapeEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
 import { SetSlideZoomRatioOperation, UniverSlidesPlugin } from '@univerjs-pro/slides'
 import { UniverSlidesUIPlugin } from '@univerjs-pro/slides-ui'
 import SlidesEnUS from '@univerjs-pro/slides-ui/locale/en-US'
+import SlidesCoreEnUS from '@univerjs-pro/slides/locale/en-US'
 import { IUniverInstanceService, LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
 import { unmount } from '@univerjs/design'
@@ -20,6 +21,8 @@ import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
+import DrawingEnUS from '@univerjs/drawing-ui/locale/en-US'
+import EngineFormulaEnUS from '@univerjs/engine-formula/locale/en-US'
 import { IRenderManagerService, UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import {
   ISheetPrintManagerService,
@@ -55,9 +58,11 @@ import CommentEnUS from '@univerjs/preset-sheets-thread-comment/locales/en-US'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
 import { UniverSheetsDrawingPlugin } from '@univerjs/sheets-drawing'
 import { UniverSheetsDrawingUIPlugin } from '@univerjs/sheets-drawing-ui'
+import SheetsDrawingEnUS from '@univerjs/sheets-drawing-ui/locale/en-US'
 import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
 import { SheetsFormulaUIMenuSchema, UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
 import FormulaEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
+import SheetsFormulaEnUS from '@univerjs/sheets-formula/locale/en-US'
 import { UniverSheetsNumfmtUIPlugin } from '@univerjs/sheets-numfmt-ui'
 import NumfmtEnUS from '@univerjs/sheets-numfmt-ui/locale/en-US'
 import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
@@ -99,7 +104,7 @@ import '@univerjs-pro/engine-formula/facade'
 import '@univerjs-pro/shape-editor/facade'
 import '@univerjs-pro/sheets-print/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _legacyLocale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
   root.className = 'nova-embed'
   container.append(root)
@@ -111,6 +116,11 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
+        SlidesCoreEnUS,
+        SheetsFormulaEnUS,
+        SheetsDrawingEnUS,
+        DrawingEnUS,
+        EngineFormulaEnUS,
         DesignEnUS,
         UIEnUS,
         DocsEnUS,
@@ -130,6 +140,15 @@ export function createDemo(container: HTMLElement, darkMode = false) {
         FormulaEnUS,
         NumfmtEnUS,
         EmbedEnUS,
+
+        // Demo-only product names; preserve every other official English translation.
+        {
+          'shape-editor-ui': {
+            ...ShapeEnUS['shape-editor-ui'],
+            formulaBinding: { ...ShapeEnUS['shape-editor-ui']['formulaBinding'], baseUnit: 'Relational Tables' },
+            formulaShape: { ...ShapeEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
+          },
+        },
       ),
     },
   })

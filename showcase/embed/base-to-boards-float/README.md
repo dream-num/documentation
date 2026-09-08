@@ -1,12 +1,14 @@
 # Flint / Delivery control room
 
-An original fictional visitor-centre installation uses five Base records to drive nine native Board Formula Shapes. The data flow is **Base -> Board**; the embedding direction is **Base@Board Float**. There is no hidden Sheet, JavaScript aggregation, manual refresh or custom action toolbar. Native conditional formulas distinguish retained estimates from unfinished effort.
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
+An original fictional visitor-centre installation uses five Relational Table records to drive nine native Canvas Formula Shapes. The data flow is **Relational Table -> Canvas**; the embedding direction is **Relational Table@Canvas Float**. There is no hidden Sheet, JavaScript aggregation, manual refresh or custom action toolbar. Native conditional formulas distinguish retained estimates from unfinished effort.
 
 Initial open effort is **25 h** (Content 12, Build 8, Access 5), with **3 open items, 2 blockers, 40% done**. Two completed records retain 4 h and 6 h, giving **35 h** of total recorded estimates. Completion is a record count, not effort-weighted progress. Estimates do not authorize work, guarantee delivery dates or publish a project.
 
 ## Nine literal examples
 
-Run these exact snippets in order with this demo's `univerAPI`. Explicit Base/table/record/field IDs define the mutation. Native focus, editing/history and visible Formula Shape repaint are separate acceptance gates.
+Run these exact snippets in order with this demo's `univerAPI`. Explicit Relational Table/table/record/field IDs define the mutation. Native focus, editing/history and visible Formula Shape repaint are separate acceptance gates.
 
 ### 1. Resolve the eight-hour blocker
 
@@ -70,7 +72,7 @@ for (const [id, status, hours] of [['task-1', 'Open', 12], ['task-2', 'Blocked',
 
 ### 8. Change unrelated metadata
 
-Renaming the owner does not alter any formula result or surrounding Board prose. This does not rename the external source or change its identity.
+Renaming the owner does not alter any formula result or surrounding Canvas prose. This does not rename the external source or change its identity.
 
 ```ts
 univerAPI.getBase('flint-delivery-register').getTableById('tasks').getRecordById('task-1').setValue('owner', 'Mira')
@@ -93,7 +95,7 @@ These additional examples start from the original five-record state. Display nam
 
 ### 10. Rename labels, not formula identities
 
-The Base unit ID stays `flint-delivery-register`; the table ID stays `tasks` and its stable formula name remains `Tasks`. Existing external qualifiers remain bound to that unit ID. This does not demonstrate field renaming.
+The Relational Table unit ID stays `flint-delivery-register`; the table ID stays `tasks` and its stable formula name remains `Tasks`. Existing external qualifiers remain bound to that unit ID. This does not demonstrate field renaming.
 
 ```ts
 const base = univerAPI.getBase('flint-delivery-register')
@@ -105,7 +107,7 @@ console.log(base.getId(), table.getId(), table.getFormulaName())
 
 ### 11. Show only completed records
 
-The view contains two Done records, but the Board still reports 25 h open and 40% complete. These formulas explicitly aggregate the entire table, not the view's filtered rows. `getProjection()` describes the view, not the formula source.
+The view contains two Done records, but the Canvas still reports 25 h open and 40% complete. These formulas explicitly aggregate the entire table, not the view's filtered rows. `getProjection()` describes the view, not the formula source.
 
 ```ts
 const view = univerAPI.getBase('flint-delivery-register').getTableById('tasks').getViewById('tasks-grid')
@@ -132,7 +134,7 @@ univerAPI.getBase('flint-delivery-register').getTableById('tasks').getViewById('
 
 ### Restore both native snapshots in the application
 
-This module-level integration example uses the same exported `createDemo` factory as Preview. `demo` and `container` are the existing application-owned handle and mount element from `src/index.ts`; use a mutable `let demo` for replacement. It is not an extra `univerAPI` method. Both native snapshots must be retained, including their resources; saving the Board alone cannot persist the separate Base records. No localStorage or backend write is performed.
+This module-level integration example uses the same exported `createDemo` factory as Preview. `demo` and `container` are the existing application-owned handle and mount element from `src/index.ts`; use a mutable `let demo` for replacement. It is not an extra `univerAPI` method. Both native snapshots must be retained, including their resources; saving the Canvas alone cannot persist the separate Relational Table records. No localStorage or backend write is performed.
 
 ```js
 const saved = structuredClone({
@@ -143,20 +145,20 @@ await demo.dispose()
 demo = createDemo(container, false, saved)
 ```
 
-The factory must recover the saved native embed and formula bindings rather than recreate the starter formulas or reset the Base records. Wait for `.flint-embed[data-ready="true"]` before interacting. After recovery, edit the source again to prove live recalculation; persisted display text alone is insufficient. This does not restore undo history or promise arbitrary-file import.
+The factory must recover the saved native embed and formula bindings rather than recreate the starter formulas or reset the Relational Table records. Wait for `.flint-embed[data-ready="true"]` before interacting. After recovery, edit the source again to prove live recalculation; persisted display text alone is insufficient. This does not restore undo history or promise arbitrary-file import.
 
 ## Composition and acceptance
 
-The saved Miro diagram reference informs source-to-dependent branches, not copied artwork. Original ink/slate, blue, terracotta, sage and lilac cards surround a real Base Float. Three native bound connectors show the relationship to Content, Build and Access. Board uses its native floating tools; embedded menus use Grid. Official SDK CSS is included in the same factory used by Preview and standalone export. License notices remain visible.
+The saved Miro diagram reference informs source-to-dependent branches, not copied artwork. Original ink/slate, blue, terracotta, sage and lilac cards surround a real Relational Table Float. Three native bound connectors show the relationship to Content, Build and Access. Canvas uses its native floating tools; embedded menus use Grid. Official SDK CSS is included in the same factory used by Preview and standalone export. License notices remain visible.
 
-**Partial evidence, not full acceptance.** All nine literal examples pass selected independent-production checks against nine native formula values/statuses and final canvas text. Conditional sums, counts, completion, stream isolation, completed-record estimates, blank versus zero and unrelated owner edits match their published expectations. The complete authored Board prose, geometry, order and bound connector data remain unchanged by source changes. The native Base preview is visible; source fullscreen text editing and exact Base Undo/Redo, status-change native history, host return and active-fullscreen disposal pass selected checks without observed browser errors or backend requests. These do not certify every native editor path.
+**Partial evidence, not full acceptance.** All nine literal examples pass selected independent-production checks against nine native formula values/statuses and final canvas text. Conditional sums, counts, completion, stream isolation, completed-record estimates, blank versus zero and unrelated owner edits match their published expectations. The complete authored Canvas prose, geometry, order and bound connector data remain unchanged by source changes. The native Relational Table preview is visible; source fullscreen text editing and exact Relational Table Undo/Redo, status-change native history, host return and active-fullscreen disposal pass selected checks without observed browser errors or backend requests. These do not certify every native editor path.
 
-Both English and Chinese guides execute all thirteen exact examples, including display-name changes, whole-table versus view-filter behavior and hidden-record edits. Light/dark changes preserve the API owner and Base snapshot; Board content is exact except for native palette regeneration with the same theme ID. However, the expanded guide run remains **FAIL** overall: the Next development server returns an initial playground HTTP 500 with `Unexpected end of JSON input` in `loadManifest`, then recovers. Completing both locales after recovery does not erase that delivery failure. An eleven-file independent export installs 206 packages offline, includes all nine official CSS imports, and passes actual native white workbench/source parity checks. No SDK or package patch was made.
+Both English and Chinese guides execute all thirteen exact examples, including display-name changes, whole-table versus view-filter behavior and hidden-record edits. Light/dark changes preserve the API owner and Relational Table snapshot; Canvas content is exact except for native palette regeneration with the same theme ID. However, the expanded guide run remains **FAIL** overall: the Next development server returns an initial playground HTTP 500 with `Unexpected end of JSON input` in `loadManifest`, then recovers. Completing both locales after recovery does not erase that delivery failure. An eleven-file independent export installs 206 packages offline, includes all nine official CSS imports, and passes actual native white workbench/source parity checks. No SDK or package patch was made.
 
-Native numeric editing also passes: after the kiosk is Done, typing 18 into Content Hours changes open effort 17 -> 23 h, Content 12 -> 18 h and retained estimates 35 -> 41 h. Exact full-Base Undo/Redo and unchanged authored Board content are checked. The first numeric test clicked the adjacent Owner field because a right-aligned paint anchor was treated as a left edge; the corrected cell hit point, not an SDK patch, fixes this test.
+Native numeric editing also passes: after the kiosk is Done, typing 18 into Content Hours changes open effort 17 -> 23 h, Content 12 -> 18 h and retained estimates 35 -> 41 h. Exact full-Relational Table Undo/Redo and unchanged authored Canvas content are checked. The first numeric test clicked the adjacent Owner field because a right-aligned paint anchor was treated as a left edge; the corrected cell hit point, not an SDK patch, fixes this test.
 
-The four additional identity/projection snippets and the exact application recovery snippet pass against the exported factory. Recovery retains an intentionally edited formula, Base records and Board content/resources in one new owner. A subsequent source edit updates and repaints the affected formulas. Base snapshots are exact; the native embed changes its `updatedAt` reactivation timestamp, so raw Board snapshot equality is **false**. The test isolates that one timestamp and compares everything else exactly. Four wrong-unit/missing-page/table snapshot cases are rejected before mounting or changing the existing owner. SDK cleanup emits 18 `formula.mutation.remove-other-formula` warnings across disposal/reconstruction; the test retains them and does not certify warning-free lifecycle behavior.
+The four additional identity/projection snippets and the exact application recovery snippet pass against the exported factory. Recovery retains an intentionally edited formula, Relational Table records and Canvas content/resources in one new owner. A subsequent source edit updates and repaints the affected formulas. Relational Table snapshots are exact; the native embed changes its `updatedAt` reactivation timestamp, so raw Canvas snapshot equality is **false**. The test isolates that one timestamp and compares everything else exactly. Four wrong-unit/missing-page/table snapshot cases are rejected before mounting or changing the existing owner. SDK cleanup emits 18 `formula.mutation.remove-other-formula` warnings across disposal/reconstruction; the test retains them and does not certify warning-free lifecycle behavior.
 
 Evidence in the documentation repository: `scripts/test-embed-flint-formula.mjs`, `test-results/embed-flint-formula-restorable/report.json`, `scripts/test-embed-flint-roundtrip.mjs`, `test-results/embed-flint-roundtrip-guards/report.json`, `scripts/test-embed-flint-formula-guide.mjs`, `test-results/embed-flint-formula-next-identity-final/report.json` (FAIL), and `test-results/flint-formula-export-ui-restorable/report.json`. The selected 1850-module production build has an 18,493.35 kB entry (4,559.91 kB gzip) and 154.80 kB CSS (21.95 kB gzip). Cold selected Next guide/playground requests previously took 66s/15.8s and emitted a Gzip listener warning; delivery performance is not accepted.
 
-These formulas aggregate the whole Base table, not its visible filtered view; the selected filter and hidden-record tests confirm this distinction. Missing/invalid external sources, field/formula-identity renaming and rebinding, arbitrary-file recovery, every native menu/editor path, warning-free lifecycle, Next delivery, Print/Exchange, accessibility, touch and performance remain separate gates. No collaboration, server persistence or export conversion is claimed.
+These formulas aggregate the whole Relational Table, not its visible filtered view; the selected filter and hidden-record tests confirm this distinction. Missing/invalid external sources, field/formula-identity renaming and rebinding, arbitrary-file recovery, every native menu/editor path, warning-free lifecycle, Next delivery, Print/Exchange, accessibility, touch and performance remain separate gates. No collaboration, server persistence or export conversion is claimed.

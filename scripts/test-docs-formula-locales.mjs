@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
+import { pathToFileURL } from 'node:url'
 
 import { chromium } from 'playwright'
 
@@ -19,6 +20,26 @@ const cases = {
 const name = process.env.SHOWCASE_CASE || 'cinder'
 const unitId = cases[name]
 assert.ok(unitId, 'Select a case listed in the locale test')
+const englishOnly = process.env.SHOWCASE_ENGLISH_ONLY === '1'
+let origin = process.env.SHOWCASE_ORIGIN || 'http://127.0.0.1:4300'
+let server
+if (process.argv[2]) {
+  const manifest = JSON.parse(await fs.readFile(process.argv[2], 'utf8'))
+  const entry = manifest.find((candidate) => candidate.slug === 'embed/formula-customrange')
+  assert.equal(name, 'estuary', 'Selected-manifest mode currently targets the independent Estuary export')
+  assert.ok(entry?.passed, 'Selected Estuary export must have a successful build')
+  const runtime = entry.links.find((link) => link.name === 'vite')
+  assert.ok(runtime?.target, 'Manifest provides the exact installed Vite runtime')
+  const runtimePackage = JSON.parse(await fs.readFile(path.join(runtime.target, 'package.json'), 'utf8'))
+  assert.equal(runtimePackage.version, runtime.version)
+  const { preview } = await import(pathToFileURL(path.join(runtime.target, 'dist/node/index.js')))
+  server = await preview({
+    root: entry.directory,
+    configFile: false,
+    preview: { host: '127.0.0.1', port: 4447, strictPort: true },
+  })
+  origin = 'http://127.0.0.1:4447'
+}
 const directory = path.resolve(process.env.SHOWCASE_RESULTS_DIR || 'test-results/docs-formula-locales-' + name)
 await fs.mkdir(directory, { recursive: true })
 const browser = await chromium.launch()
@@ -26,11 +47,13 @@ const page = await browser.newPage({ viewport: { width: 1500, height: 1100 }, co
 const report = {
   passed: false,
   case: name,
+  englishOnly,
   scope: 'Official locale packs and native labels, not full layout acceptance',
   checks: [],
   dialogBounds: [],
   interactionFailures: [],
   errors: [],
+  startup: [],
 }
 page.on('pageerror', (error) => report.errors.push(error.stack || error.message))
 page.on('console', (message) => {
@@ -48,6 +71,17 @@ async function noVisibleKeys() {
       ].join('\n'),
     )
   assert.doesNotMatch(rendered, /(?:docs-formula-ui|shape-editor-ui|embed-unit-ui)\.[\w.-]+/)
+  if (englishOnly) {
+    const chineseLines = rendered.split('\n').filter((line) => /[\u3400-\u9fff]/.test(line))
+    // Native international format-code options are data, not translated UI labels.
+    const formatCodes = new Set(['yyyy"年"MM"月"dd"日"', 'M"月"d"日"'])
+    if (chineseLines.length) report.internationalFormatCodeData = chineseLines
+    assert.deepEqual(
+      chineseLines.filter((line) => !formatCodes.has(line)),
+      [],
+      'Native UI labels remain English; retain exact international format-code evidence',
+    )
+  }
 }
 function includesPack(received, pack, prefix) {
   for (const [key, value] of Object.entries(pack)) {
@@ -76,21 +110,55 @@ async function settleDialog() {
   )
 }
 try {
-  await page.goto(process.env.SHOWCASE_ORIGIN || 'http://127.0.0.1:4300', { timeout: 120000 })
-  await page.waitForFunction(() => window.univerAPI && document.querySelector('[data-ready="true"]'), null, {
-    timeout: 90000,
-  })
-  if (name === 'kestrel' || name === 'meridian') await page.getByText('Brief', { exact: true }).click()
-  await page.evaluate(() => {
-    window.localeOwner = window.univerAPI
-  })
+  let hostLanguage = 'en-US'
+  if (englishOnly)
+    await page.route(origin + '/', async (route) => {
+      const response = await route.fetch()
+      await route.fulfill({
+        response,
+        body: (await response.text()).replace(/<html[^>]*>/, `<html lang="${hostLanguage}">`),
+      })
+    })
+  async function openHost() {
+    const previousErrorCount = report.errors.length
+    await page.goto(origin, { timeout: 120000 })
+    await page.waitForFunction(() => window.univerAPI && document.querySelector('[data-ready="true"]'), null, {
+      timeout: 90000,
+    })
+    if (name === 'kestrel' || name === 'meridian') await page.getByText('Brief', { exact: true }).click()
+    await page.evaluate(() => {
+      window.localeOwner = window.univerAPI
+    })
+    report.startup.push({ hostLanguage, errors: report.errors.slice(previousErrorCount), ready: true })
+  }
+  await openHost()
   const snapshot = () => page.evaluate((id) => window.univerAPI.getDocument(id).save(), unitId)
-  const before = await snapshot()
-  for (const [locale, code] of [
+  let before = await snapshot()
+  for (const [requestedLocale, code] of [
     ['en-US', 'enUS'],
     ['zh-CN', 'zhCN'],
   ]) {
-    await page.evaluate((value) => window.univerAPI.setLocale(value), code)
+    if (englishOnly && hostLanguage !== requestedLocale) {
+      hostLanguage = requestedLocale
+      await openHost()
+      before = await snapshot()
+    }
+    const locale = englishOnly ? 'en-US' : requestedLocale
+    const evidenceLocale = englishOnly ? requestedLocale + '-host-English' : locale
+    if (!englishOnly) await page.evaluate((value) => window.univerAPI.setLocale(value), code)
+    else assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
+    const sourceBefore =
+      name === 'estuary'
+        ? await page.evaluate(() => {
+            const api = window.univerAPI
+            window.localeSheetOwner = api.getWorkbook('estuary-funding-model').getWorkbook()
+            window.localeBaseOwner = api.getBase('estuary-delivery-register').getBase()
+            return {
+              sheet: api.getWorkbook('estuary-funding-model').save(),
+              base: api.getBase('estuary-delivery-register').save(),
+            }
+          })
+        : null
     const expected = {}
     for (const packageName of ['docs-formula-ui', 'shape-editor-ui', 'embed-unit-ui']) {
       expected[packageName] = (await import('@univerjs-pro/' + packageName + '/locale/' + locale)).default[packageName]
@@ -127,7 +195,15 @@ try {
     )
     assert.ok(report.dialogBounds.at(-1).fitsViewport, 'Stable desktop formula dialog fits the viewport')
     await noVisibleKeys()
-    await page.screenshot({ path: path.join(directory, locale + '-editor.png') })
+    if (englishOnly)
+      await fs.writeFile(
+        path.join(directory, evidenceLocale + '-editor-dom.html'),
+        await page
+          .getByRole('dialog')
+          .last()
+          .evaluate((node) => node.outerHTML),
+      )
+    await page.screenshot({ path: path.join(directory, evidenceLocale + '-editor.png') })
     let numberFormatChecked = false
     try {
       await page.getByRole('button', { name: labels.numberFormat, exact: true }).click({ timeout: 5000 })
@@ -135,12 +211,12 @@ try {
       await page.getByText(labels.formatTypes, { exact: true }).waitFor()
       await settleDialog()
       await noVisibleKeys()
-      await page.screenshot({ path: path.join(directory, locale + '-number-format.png') })
+      await page.screenshot({ path: path.join(directory, evidenceLocale + '-number-format.png') })
       await page.getByRole('button', { name: labels.cancel, exact: true }).last().click()
       numberFormatChecked = true
     } catch (error) {
       report.interactionFailures.push({ locale, action: 'number-format', failure: error.message })
-      await page.screenshot({ path: path.join(directory, locale + '-number-format-failure.png') })
+      await page.screenshot({ path: path.join(directory, evidenceLocale + '-number-format-failure.png') })
     }
     // The native close operation restores the formula selection; open its real action toolbar.
     assert.equal(await page.evaluate(() => window.univerAPI.executeCommand('docs-formula.operation.close-popup')), true)
@@ -152,21 +228,122 @@ try {
     for (const label of [menu.edit, menu.numberFormat, menu.convertToText, menu.delete])
       assert.equal(await page.getByRole('button', { name: label, exact: true }).count(), 1)
     await noVisibleKeys()
-    await page.screenshot({ path: path.join(directory, locale + '-actions.png') })
+    await page.screenshot({ path: path.join(directory, evidenceLocale + '-actions.png') })
     await page.getByRole('button', { name: menu.edit, exact: true }).click()
     await page.getByRole('button', { name: labels.confirm, exact: true }).waitFor()
     await noVisibleKeys()
     await page.getByRole('button', { name: labels.cancel, exact: true }).click()
     assert.deepEqual(await snapshot(), before, 'Locale changes and cancelled dialogs preserve the entire document')
     assert.equal(await page.evaluate(() => window.localeOwner === window.univerAPI), true)
-    report.checks.push({
+    const localeCheck = {
       locale,
+      hostLanguage: englishOnly ? requestedLocale : null,
       officialPacks: 3,
       nativeEditButton: true,
       editor: true,
       numberFormat: numberFormatChecked,
       preservedOwnerAndDocument: true,
-    })
+      nativeConfirmedEdit: false,
+      restoredNativeFormula: false,
+    }
+    report.checks.push(localeCheck)
+    if (englishOnly) {
+      const bindings = () =>
+        page.evaluate(
+          (id) =>
+            window.univerAPI
+              .getDocument(id)
+              .getFormulas()
+              .map((formula) => ({ id: formula.getId(), formula: formula.getFormula(), result: formula.getResult() })),
+          unitId,
+        )
+      const originalBindings = await bindings()
+      assert.equal(originalBindings.length, 4)
+      const originalBinding = originalBindings[0]
+      await page.evaluate(() => window.univerAPI.executeCommand('docs-formula.operation.open-selected-hover'))
+      await page.getByRole('button', { name: menu.edit, exact: true }).click()
+      const formulaEditor = page.getByPlaceholder('Enter a formula, for example =SUM(A1:A10)', { exact: true })
+      await formulaEditor.waitFor()
+      const originalInput = await formulaEditor.inputValue()
+      await formulaEditor.click()
+      await page.keyboard.press('Control+A')
+      await page.keyboard.type('=1+2')
+      await page.getByRole('button', { name: labels.confirm, exact: true }).click()
+      await page.waitForFunction(
+        (id) => window.univerAPI.getDocument(id).getFormulas()[0].getResult()?.value === 3,
+        unitId,
+      )
+      localeCheck.nativeConfirmedEdit = true
+      const editedBindings = await bindings()
+      assert.deepEqual(
+        editedBindings.slice(1),
+        originalBindings.slice(1),
+        'Changing the first formula preserves every sibling binding and result',
+      )
+      assert.equal(editedBindings[0].result.status, 'success')
+      assert.equal(editedBindings[0].result.value, 3)
+      await page.screenshot({ path: path.join(directory, evidenceLocale + '-confirmed-three.png') })
+      assert.deepEqual((await snapshot()).body, before.body, 'Native formula edit preserves the authored document body')
+      // Confirm clears the selection. Reopen the same range through its native editor operation.
+      assert.equal(
+        await page.evaluate(
+          (id) =>
+            window.univerAPI.executeCommand('docs-formula.operation.open-editor', {
+              unitId: id,
+              rangeId: window.univerAPI.getDocument(id).getFormulas()[0].getId(),
+            }),
+          unitId,
+        ),
+        true,
+      )
+      await formulaEditor.waitFor()
+      await formulaEditor.click()
+      await page.keyboard.press('Control+A')
+      await page.keyboard.type(originalInput)
+      await page.getByRole('button', { name: labels.confirm, exact: true }).click()
+      await page.waitForFunction(
+        ({ id, value }) => window.univerAPI.getDocument(id).getFormulas()[0].getResult()?.value === value,
+        { id: unitId, value: originalBinding.result.value },
+      )
+      assert.deepEqual(
+        await page.evaluate((id) => window.univerAPI.getDocument(id).getFormulas()[0].getFormula(), unitId),
+        originalBinding.formula,
+      )
+      assert.deepEqual((await snapshot()).body, before.body)
+      const restoredBindings = await bindings()
+      assert.deepEqual(
+        restoredBindings.slice(1),
+        originalBindings.slice(1),
+        'Restoring the first formula preserves every sibling binding and result',
+      )
+      assert.equal(restoredBindings[0].result.status, originalBinding.result.status)
+      assert.equal(restoredBindings[0].result.value, originalBinding.result.value)
+      localeCheck.preservedSiblingFormulas = true
+      await fs.writeFile(
+        path.join(directory, evidenceLocale + '-formula-bindings.json'),
+        JSON.stringify({ before: originalBindings, edited: editedBindings, restored: restoredBindings }, null, 2),
+      )
+      await page.screenshot({ path: path.join(directory, evidenceLocale + '-restored-formula.png') })
+      localeCheck.restoredNativeFormula = true
+    }
+    if (sourceBefore) {
+      const sourceAfter = await page.evaluate(() => {
+        const api = window.univerAPI
+        return {
+          sheet: api.getWorkbook('estuary-funding-model').save(),
+          base: api.getBase('estuary-delivery-register').save(),
+        }
+      })
+      assert.deepEqual(sourceAfter, sourceBefore, 'Cancelled dialogs preserve complete Sheet and Base source snapshots')
+      assert.equal(
+        await page.evaluate(
+          () =>
+            window.localeSheetOwner === window.univerAPI.getWorkbook('estuary-funding-model').getWorkbook() &&
+            window.localeBaseOwner === window.univerAPI.getBase('estuary-delivery-register').getBase(),
+        ),
+        true,
+      )
+    }
   }
   assert.deepEqual(report.errors, [])
   report.passed = report.interactionFailures.length === 0
@@ -177,5 +354,6 @@ try {
   await fs.writeFile(path.join(directory, 'report.json'), JSON.stringify(report, null, 2))
   console.log(JSON.stringify(report, null, 2))
   await browser.close()
+  if (server) await server.close()
 }
 if (!report.passed) process.exitCode = 1

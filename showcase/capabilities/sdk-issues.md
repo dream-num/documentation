@@ -1,5 +1,197 @@
 # SDK observations requiring follow-up
 
+## Traditional Docs: native break insertion remains unaccepted
+
+`test-results/section-break-native-final-readback/report.json` preserves both
+host-language attempts: Ctrl+Enter does not create a manual page-break token;
+the native Next Page section item emits an unregistered
+`doc.menu.section-break.next-page` command and creates no new section. This is
+not a proven keyboard root-cause analysis. Existing authored break tokens,
+continuous/next/odd/even physical placement and eight literal Facade executions
+pass independently. The manual initial token uses public insertText; it is not
+presented as a successful keyboard action. No SDK command registration patch or
+replacement host button is added.
+
+## Base formula date fields: negative-offset native date display
+
+`test-results/base-formula-native/timezone-cleanup/report.json` keeps a strict
+Los Angeles display failure. The original March 3 date-only serial is 46815 in
+all three tested timezones. UTC/Shanghai paint March 3, but Los Angeles paints
+March 2 while the formula subtracting DATE(2028,3,1) returns 2. Other calculated
+fields and native source edits pass separately in all three contexts. The
+inspected date config exposes pattern/includeTime/hourCycle, not a timezone
+override. No SDK patch, offset shim or host replacement date renderer is used.
+The native Number renderer also paints null as zero; the public source remains
+null and the conditional field correctly distinguishes missing from true zero.
+
+## Clipboard: strict history retains interned styles
+
+`test-results/clipboard-native/reviewed/report.json` passes 26/30 gates across
+both hosts. Native ordinary, values, formulas, formats and column-width paste
+work independently of four public external-payload recipes. After ordinary
+paste, Undo restores values but converts authored inline destination styles to
+interned style IDs and retains the style records. Redo retains those additional
+records relative to the first pasted snapshot. Both raw comparisons remain
+failed; visible/value restoration is not represented as byte-identical model
+history. No SDK patch, history replacement or snapshot normalization is used.
+
+## Sparklines: selection-sensitive config, blank native settings and Undo
+
+`test-results/sparkline-native/reviewed/report.json` retains four failures across
+two hosts: exact Undo keeps numeric t:2 and a generated font style, and the
+native settings sidebar shows no Basic/Advanced content after opening. The
+tests use the actual context menu and wait for settings content, not only the
+header. This is observed in the unlicensed configuration; no cause is inferred
+from the license notice alone. Group setConfig uses current selection in the
+tested path, so the demo and recipes explicitly activate their target cells.
+The three plot types, source-driven repaint, literal recipes, full-model themes
+and saved reconstruction pass independently. High-point marker paint is not
+certified. No host-rendered substitute, SDK patch or normalized Undo is used.
+
+## Sheets table range: strict Undo and reconstruction remain unaccepted
+
+`test-results/table-create-resize-native/referenced/report.json` passes 22/26
+gates across both hosts. Native create/expand/shrink and four literal recipes
+work, but Undo after expansion retains the expanded saved range rather than
+restoring the original. A subsequent matching Redo is not proof of working
+history. Save/recreate also regenerates range-theme resource IDs. Raw snapshots
+preserve both differences; no SDK patch or snapshot normalization masks them.
+Header hiding, footer/total rows and dragged resize handles are not advertised
+as accepted by this range-dialog gallery.
+
+## Boards sticky editing: Ctrl+A replaces the final paragraph in this probe
+
+`test-results/board-text-sticky-native-final/report.json` keeps two strict
+failures: entering the yellow sticky, Ctrl+A and typing leaves `One idea` plus
+the replacement paragraph rather than replacing all text. Native standalone
+text replacement passes; the separate public shape-text recipe also replaces
+the complete sticky text successfully. This records behavior, not a proven
+SDK root cause. No keyboard interception, error suppression or SDK patch is
+used to manufacture native acceptance.
+
+## Modern Docs outline and search: no native demo substitution
+
+The current installed Docs/Docs UI packages expose no native document-outline
+panel/Facade found in this audit. The existing paragraph-heading-blocks guide
+already distinguishes its removed host-built outline from a native feature;
+knowledge-base navigation switches documents, not headings within one document.
+Local SDK source includes a real docs-find-replace provider, but neither
+`@univerjs/docs-find-replace` nor its preset resolves in this dependency set.
+The generic installed find-replace package needs a product provider; paragraph
+queries alone do not provide that UI. Blueprints standalone-docs-modern-016 and
+018 remain unmet. No source package, custom outline/search panel or dependency
+change was substituted to claim coverage.
+
+## Base view duplication: empty filter representation differs
+
+`test-results/base-view-lifecycle/final/report.json` preserves a strict
+projection-copy failure on both hosts: the source filter is null, while native
+Duplicate view yields undefined (omitted by JSON serialization). Other compared
+projection settings and shared records are unchanged. Ten native/recipe gates
+per host pass separately, including a real edit visibly propagating to other
+views. This is not evidence of duplicated records or lost nonempty filter
+criteria. The test exits unsuccessfully for strict equality; no normalization,
+SDK patch or custom duplicate button masks the difference.
+
+## Slides grouped-object menu: use the verified native ribbon route
+
+The grouping gallery's selected runtime did not expose the object menu on
+right-click or Shift+F10 after group selection. Those attempts remain in
+`test-results/slides-grouping-native` and `slides-grouping-native-keyboard`.
+The native Shape Format ribbon does work: Group, Ungroup, Bring to Front and
+Send to Back pass in `test-results/slides-grouping-native-delivery/report.json`.
+README and native captions use that verified route; no pointer interception or
+SDK patch is added. Menu absence is not treated as failure of the Facades.
+
+## Slides: keep native layout and table gaps explicit
+
+The installed beta.2 Slides declarations expose `FPageElement.setPosition`
+and engine-shape `FShape.setTransform`, but the inspected Facades expose no
+element align/distribute operation or native slide-table creation/edit path.
+Text alignment is not element distribution; a manually placed rectangle grid
+is not a native table. Local Slides UI source registers drag alignment guides,
+which also do not establish an equal-gap distribution API. Blueprints
+standalone-slides-011 and standalone-slides-014 remain unmet; no SDK source is
+copied, package upgraded or host layout algorithm substituted. Actual
+group/ungroup and stacking Facades are investigated separately for blueprint 010.
+
+## Conditional formatting: Undo retains a generated style entry
+
+`test-results/conditional-format-rules-native/reviewed/report.json` passes
+28/30 checks. Both hosts restore the native numeric edit from 11 to 4 and remove
+its conditional amber fill, but the exact saved workbook retains a generated
+font-style entry (`cl.rgb` is `#1B1C1F`) rather than its original empty style table.
+Strict raw Undo checks remain failed. Redo is tested separately and restores
+the complete edited snapshot, value and paint. Original before/after/undo/redo
+snapshots are retained in the same result directory; no snapshot normalization,
+SDK patch or custom history handler is used. This does not imply broken value
+Undo or prevent demonstrating the four conditional-rule families.
+
+## Base linked records: native single-link clearing remains unaccepted
+
+`test-results/base-linked-record-picker/final/report.json` preserves 22/26 gates
+across both hosts. The selected requests/training/primary cell and native
+`base-canvas-keyboard-input` focus are confirmed before Delete, but the linked
+target remains. The separately inspected context menu has record operations and
+no Clear content entry; its missing action is an unavailable path, not proof of
+a second SDK defect. Single replacement, native multi-link removal, live target
+renaming and public Facade clearing pass independently. README distinguishes
+these paths; no keyboard interception, custom clear control or SDK patch is used.
+
+## Validation error metadata: numeric zero becomes null
+
+`test-results/date-number-validation-native/final/report.json` retains complete
+published validation error objects. Invalid numeric zero is correctly marked
+and has the right cell address/status, but `inputValue` is null instead of 0.
+The installed caller uses a truthiness fallback for the stored value. The demo
+does not rewrite these objects or patch SDK code; read actual cell values when
+inspecting the input. This does not invalidate the separately tested native
+boundary markers or imply that all error metadata is correct.
+
+## Dynamic arrays: stored Undo types and postfix spill references
+
+`test-results/dynamic-array-native/reviewed/report.json` verifies real
+`=A1:B10` spilling, FILTER/SORT/UNIQUE/SEQUENCE, blocked-destination preservation,
+native Delete recovery, shrinking and all three README recipes. The only two
+failed gates (English and Chinese hosts) are exact native Undo snapshot checks:
+B3 and its dependent output restore to 7, but stored B3 gains `t:2`. Full Redo
+matches. No normalization is used to turn these failures into passes.
+
+The installed beta.2 formula engine's `_handlerPound` recognizes postfix `#`
+but returns `#VALUE!` without implementing spill-reference evaluation.
+Consequently the gallery does not advertise `=SUM(A4#)` as a working recipe; it
+uses the explicit `=SUM(A4:B7)` range and documents the compatibility boundary.
+This is separate from ordinary dynamic-array spilling, which works natively.
+Demo and documentation changes only: no SDK edits, dependency upgrades or host
+replacement for the operator.
+
+## Bases view galleries: collapse and Calendar labels
+
+The installed beta.2 Kanban accepts `columnSettings.ready.collapsed=true`, but the native lane projection remains identical and the reviewed column stays expanded. `ready` is the actual lane key. `test-results/kanban-final-native/report.json` retains the strict collapse failure separately from passing native dragging, card layouts, field ordering, covers and six Facade recipes. Do not add a host-made collapse control or claim that configuration storage proves rendering.
+
+`test-results/base-calendar-compact/report.json` retains two Calendar failures: September 8, 2026 occupies the Monday column in Month mode, and a UTC browser shows a GMT+08 caption with `timeZone: 'local'`. Public source-clock values and actual timed-event positions pass in both Shanghai and UTC; no shifted fixture dates compensate for the labels. Short Day slots render 52 px/hour and are a supported demo configuration improvement, not an SDK fix. Both limitations remain asserted across English and Chinese host pages while the demo itself stays English. No SDK code or package versions were changed.
+
+## Vale Docs@Slides Float: native fullscreen activation never reaches the service
+
+Current selected beta.2 production evidence is retained in
+`test-results/vale-fullscreen-click-trace/report.json` and
+`test-results/vale-fullscreen-keyboard-trace/report.json`. The existing runner
+now records native button events, its React host/embed props, descriptor lookups
+and fullscreen service sessions while forwarding the original service calls.
+The correct `vale-walking-pilot` / `vale-doc-float` descriptor resolves. Pointer
+down, mouse down and mouse up reach the connected button; no click or service
+enter is observed. Keyboard Enter after focus also produces no fullscreen shell.
+Mouse and keyboard gates stay FAIL. Ordinary native child typing/history and
+scrolling pass, as do the literal source/host edits, navigation, themes and cleanup.
+
+Local SDK source `packages/embed-ui/src/services/embed-floating-menu-root.ts`
+contains a missing-click fallback; installed beta.2 declarations lack its exported
+function. The source is not interchangeable with the installed package. Registry
+inspection still reports beta tag `1.0.0-beta.2`; latest and insiders point to
+different dated builds, so changing tags blindly is not a verified fix. No SDK
+code or package was changed. Further activation-event diagnosis or a verified
+SDK release is needed; this report is not a CSS fix or a successful fullscreen test.
+
 ## Northstar QBR: notes keyboard focus
 
 `test-results/qbr-native-interaction-parity/report.json` is strict 15/16. Notes
@@ -207,6 +399,8 @@ facts do not waive their command/model/rendering gate failures. Independent
 exports pass in `test-results/native-filter-heading-ink-recovery/export-ui-final/report.json`.
 
 ## Current Lumen / Tern / Rivet native-only evidence
+
+The English-only Lumen rerun at `test-results/lumen-english-native/report.json` retains 29/30: complete English packs and the other scoped operations pass, while Person cells still paint `nia, imani` rather than their directory names. The SDK and stored IDs are unchanged. This is current reproduction, not a fix or a new language-related failure.
 
 Lumen Base lifecycle now has 29/30 passing selected gates in
 `test-results/lumen-native-final/report.json`. The remaining strict gate records

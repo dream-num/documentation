@@ -135,11 +135,11 @@ window.univerAPI.getActivePdf().getPageByIndex(0).getAnnotations().find(mark => 
 
 ## Runtime and export boundaries
 
-Five official SDK CSS imports and five complete EN/ZH locale packs are included
+Five official SDK CSS imports and five complete English locale packs are included
 in the exported factory. The default ribbon is Grid. Theme changes toggle the
 existing instance instead of rebuilding the PDF and losing edits. Initial SDK
-language follows `document.documentElement.lang`: `zh-CN` selects Chinese;
-other page languages select English.
+language is always English, independently of `document.documentElement.lang`.
+Earlier bilingual reports below are historical, not acceptance of this English-only revision.
 
 There is no custom JSON-download button masquerading as PDF export. This selected
 demo does not register a proven client-only binary PDF converter or PDF Print

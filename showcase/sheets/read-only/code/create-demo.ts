@@ -1,7 +1,6 @@
 import type { FWorkbook } from '@univerjs/preset-sheets-core'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import enUS from '@univerjs/preset-sheets-core/locales/en-US'
-import zhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
 import { createUniver, LocaleType, type IWorkbookData } from '@univerjs/presets'
 
 import { WORKBOOK_DATA } from './data'
@@ -14,31 +13,21 @@ type Mode = 'display' | 'selectable' | 'editable'
 export function createDemo(
   container: HTMLElement,
   darkMode = false,
-  locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+  _legacyLocale: LocaleType = LocaleType.EN_US,
   saved: Partial<IWorkbookData> = WORKBOOK_DATA,
 ) {
   if (!saved?.id || !saved.sheets || !saved.sheetOrder?.length)
     throw new Error('A saved workbook with its original ID, sheets and sheetOrder is required.')
-  const zh = locale === LocaleType.ZH_CN
-  const labels = zh
-    ? {
-        modes: '查看模式',
-        display: '仅展示',
-        selectable: '可选择只读',
-        editable: '可编辑对照',
-        pending: '正在应用权限…',
-        blocked: '只读模式：已阻止撤销或重做。',
-        error: '权限设置失败；交互仍禁用，可重试模式。',
-      }
-    : {
-        modes: 'Viewer mode',
-        display: 'Display only',
-        selectable: 'Selectable read-only',
-        editable: 'Editable comparison',
-        pending: 'Applying permissions…',
-        blocked: 'Read-only: Undo or Redo blocked.',
-        error: 'Permission setup failed; interaction stays disabled. Retry a mode.',
-      }
+
+  const labels = {
+    modes: 'Viewer mode',
+    display: 'Display only',
+    selectable: 'Selectable read-only',
+    editable: 'Editable comparison',
+    pending: 'Applying permissions…',
+    blocked: 'Read-only: Undo or Redo blocked.',
+    error: 'Permission setup failed; interaction stays disabled. Retry a mode.',
+  }
   const root = document.createElement('div')
   root.className = 'read-only-demo'
   root.dataset.ready = 'false'
@@ -75,8 +64,8 @@ export function createDemo(
   }
   const { univer, univerAPI } = createUniver({
     darkMode,
-    locale,
-    locales: { [LocaleType.EN_US]: enUS, [LocaleType.ZH_CN]: zhCN },
+    locale: LocaleType.EN_US,
+    locales: { [LocaleType.EN_US]: enUS },
     presets: [
       UniverSheetsCorePreset({
         ribbonType: 'grid',
@@ -130,16 +119,10 @@ export function createDemo(
       root.dataset.state = 'ready'
       status.textContent =
         next === 'display'
-          ? zh
-            ? '只读 · 禁止选择与快捷键'
-            : 'Read-only · selection and shortcuts disabled'
+          ? 'Read-only · selection and shortcuts disabled'
           : next === 'selectable'
-            ? zh
-              ? '只读 · 可选择和导航'
-              : 'Read-only · selection and navigation enabled'
-            : zh
-              ? '可编辑 · E4 预约人数驱动 F4 余位公式'
-              : 'Editable · E4 bookings drive F4 availability'
+            ? 'Read-only · selection and navigation enabled'
+            : 'Editable · E4 bookings drive F4 availability'
     })()
       .catch((error) => {
         if (disposed) return

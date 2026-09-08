@@ -4,6 +4,7 @@ import { readShowcaseFiles } from '@/showcase/read-files'
 import Preview from './preview'
 
 const metadata: ShowcaseMetadata = {
+  image: '/assets/showcase/embed-mixed-in-docs-traditional.png',
   product: 'embed',
   category: 'showcases',
   previewHeight: 1100,
@@ -11,12 +12,12 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Estuary / Grant Review Dossier', 'zh-CN': 'Estuary / 资助评审卷宗' },
   description: {
     'en-US':
-      'An A4 review dossier integrates a cost Sheet, evidence Base, hearing Slides and release Board in four native chapters.',
-    'zh-CN': 'A4 评审卷宗将成本 Sheet、证据 Base、听证 Slides 和审阅 Board 嵌入四个原生章节。',
+      'An A4 review dossier integrates a cost Sheet, evidence Relational Table, hearing Slides and release Canvas in four native chapters.',
+    'zh-CN': 'A4 评审卷宗将成本 Sheet、证据 Relational Table、听证 Slides 和审阅 Canvas 嵌入四个原生章节。',
   },
   tags: {
-    'en-US': ['Embed', 'Traditional Docs', 'Pagination', 'Sheets', 'Bases', 'Slides', 'Boards'],
-    'zh-CN': ['嵌入', '传统文档', '分页', '表格', '多维表格', '幻灯片', '白板'],
+    'en-US': ['Embed', 'Traditional Docs', 'Pagination', 'Sheets', 'Relational Tables', 'Slides', 'Canvases'],
+    'zh-CN': ['嵌入', '传统文档', '分页', '表格', 'Relational Tables', '幻灯片', 'Canvases'],
   },
   packages: [
     '@univerjs/core',
@@ -70,11 +71,7 @@ const metadata: ShowcaseMetadata = {
     ['resources', 'Inspect four native resources', '检查四个原生资源'],
     ['fullscreen', 'Edit in native fullscreen', '原生全屏编辑'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
-  actions: [
-    ['cost', 'Revise transcript workload', '调整转录工作量'],
-    ['evidence', 'Update a review note', '修改审阅备注'],
-    ['anchors', 'Revise the cover title', '修改封面标题'],
-  ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
+  actions: [],
   states: [
     ['draft', 'Draft for committee review', '委员会审阅草案'],
     ['editing', 'Independent local edits', '独立本地编辑'],

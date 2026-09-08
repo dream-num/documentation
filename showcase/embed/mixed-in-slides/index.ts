@@ -4,6 +4,7 @@ import { readShowcaseFiles } from '@/showcase/read-files'
 import Preview from './preview'
 
 const metadata: ShowcaseMetadata = {
+  image: '/assets/showcase/embed-mixed-in-slides.png',
   product: 'embed',
   category: 'showcases',
   previewHeight: 1000,
@@ -11,12 +12,12 @@ const metadata: ShowcaseMetadata = {
   title: { 'en-US': 'Beacon / Complete Executive Review', 'zh-CN': 'Beacon / 完整试点评审' },
   description: {
     'en-US':
-      'A neighborhood repair pilot combines four authored slides, a floating cost Sheet and native pages for Docs, Bases and Boards.',
-    'zh-CN': '社区维修试点将四页原创演示、浮动成本表以及文档、多维表格、白板原生页面组合为完整评审。',
+      'A neighborhood repair pilot combines four authored slides, a floating cost Sheet and native pages for Docs, Relational Tables and Canvases.',
+    'zh-CN': '社区维修试点将四页原创演示、浮动成本表以及文档、Relational Tables、Canvases 原生页面组合为完整评审。',
   },
   tags: {
-    'en-US': ['Embed', 'Slides', 'Float', 'Tab', 'Sheets', 'Docs', 'Bases', 'Boards'],
-    'zh-CN': ['嵌入', '幻灯片', '浮动', '页面', '表格', '文档', '多维表格', '白板'],
+    'en-US': ['Embed', 'Slides', 'Float', 'Tab', 'Sheets', 'Docs', 'Relational Tables', 'Canvases'],
+    'zh-CN': ['嵌入', '幻灯片', '浮动', '页面', '表格', '文档', 'Relational Tables', 'Canvases'],
   },
   packages: [
     '@univerjs/core',
@@ -69,11 +70,7 @@ const metadata: ShowcaseMetadata = {
     ['float', 'Editable cost model in context', '上下文中的成本表'],
     ['pages', 'Three native product pages', '三个原生产品页'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
-  actions: [
-    ['quantity', 'Change replacement-kit quantity', '修改材料包数量'],
-    ['gate', 'Revise a readiness note', '修改准备情况备注'],
-    ['title', 'Revise the executive headline', '修改评审标题'],
-  ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
+  actions: [],
   states: [
     ['draft', 'Discussion draft', '讨论草案'],
     ['editing', 'Independent local edits', '独立本地编辑'],

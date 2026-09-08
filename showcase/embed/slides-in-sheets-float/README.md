@@ -1,5 +1,11 @@
 # Harbor / Slides in Sheets Float
 
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but does not change the runtime language. All registered English locale packs and
+official SDK styles remain shared by preview and export. Earlier EN/ZH reports
+below are historical interaction evidence, not current bilingual SDK acceptance.
+
 Original fictional community-ferry operating budget with a two-page decision brief.
 The twelve monthly costs total $29,700. The host SUM formula is real; the child
 presentation is intentionally independent, not a linked formula demonstration.
@@ -56,3 +62,21 @@ in this case. The calendar is authored data, not a globally frozen SDK clock.
 The internal Gamma budget-review reference informed the side-by-side decision story.
 All prose, amounts and presentation content are authored originals. No competitor
 artwork or screenshots are distributed in this export.
+# Current locale follow-up
+
+The SDK always uses its complete registered English locale packs. Earlier
+`test-embed-locales-native` bilingual runs remain historical evidence; they do
+not describe the current English-only runtime.
+
+## Theme and readiness follow-up
+
+The React Preview now retains its owner and calls `toggleDarkMode()` instead of
+recreating the host and child. Pending readiness is set before DOM insertion;
+source failure retains an explicit error and an English alert. The selected
+EN/ZH test `scripts/test-embed-sheet-slide-themes.mjs` checks real host keyboard
+input (B5 to 13000, SUM to 30100), a separate Facade rich-text child edit with
+actual repaint, full host/child snapshots through dark/light changes, and native
+floating navigation afterwards. Evidence: `embed-sheet-slide-themes-models`.
+This does not certify native child keyboard history, every early-load/disposal
+race or all Embed products. The eleven-file independent export rebuild and
+official CSS/paint checks are recorded in `embed-sheet-slide-theme-exports`.

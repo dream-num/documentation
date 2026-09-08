@@ -53,8 +53,8 @@ export const HOST_LABELS: Record<string, Localized<string>> = {
   'docs-modern': label('Modern Docs as Host', '现代文档作为宿主'),
   'docs-traditional': label('Traditional Docs as Host', '传统文档作为宿主'),
   slides: label('Slides as Host', 'Slides 作为宿主'),
-  boards: label('Boards as Host', 'Boards 作为宿主'),
-  bases: label('Bases as Host', 'Bases 作为宿主'),
+  boards: label('Canvases as Host', 'Canvases 作为宿主'),
+  bases: label('Relational Tables as Host', 'Relational Tables 作为宿主'),
 }
 const GROUPS = {
   appearance: label('UI & Appearance', '界面与外观'),
@@ -76,7 +76,7 @@ interface Composition {
   child: string
 }
 // Reviewed navigation relationships, separate from acceptance/status evidence.
-// "container" is the outer editor; Formula groups use the result target instead.
+// Host always means the outer editor, including cross-file formula examples.
 export const COMPOSITIONS: Record<string, Composition> = {
   'embed/slides-in-sheets-float': { container: 'sheets', mode: 'float', sources: [], targets: [], child: 'slides' },
   'embed/slides-in-sheets-tab': { container: 'sheets', mode: 'tab', sources: [], targets: [], child: 'slides' },
@@ -146,13 +146,6 @@ export const COMPOSITIONS: Record<string, Composition> = {
   'embed/mixed-in-slides': { container: 'slides', mode: 'mixed', sources: [], targets: [], child: 'mixed' },
   'embed/mixed-in-bases': { container: 'bases', mode: 'mixed', sources: [], targets: [], child: 'mixed' },
   'embed/mixed-in-boards': { container: 'boards', mode: 'mixed', sources: [], targets: [], child: 'mixed' },
-  'embed/cross-unit-formula': {
-    container: 'sheets',
-    mode: 'formula',
-    sources: ['sheets'],
-    targets: [],
-    child: 'sheets',
-  },
   'embed/formula-shape': {
     container: 'slides',
     mode: 'formula-shape',
@@ -236,13 +229,6 @@ export const COMPOSITIONS: Record<string, Composition> = {
     sources: ['sheets', 'bases'],
     targets: ['boards'],
     child: 'sheets+bases',
-  },
-  'embed/sheet-to-chart': {
-    container: 'sheets',
-    mode: 'formula-sheet-range-chart',
-    sources: ['sheets'],
-    targets: ['charts'],
-    child: 'sheets',
   },
   'embed/base-to-chart': {
     container: 'sheets',
@@ -369,8 +355,7 @@ export function directoryPlacement(slug: string, metadata: ShowcaseMetadata, pro
   if (composition) {
     const formula = composition.mode.includes('formula')
     const multiOutput = composition.targets.length > 1
-    const target = composition.targets[0]
-    const host = formula && target && target !== 'charts' && !multiOutput ? target : composition.container
+    const host = composition.container
     const category: DirectoryCategory =
       composition.mode === 'mixed' || multiOutput ? 'showcases' : formula ? 'cross-file-formulas' : 'product-embedding'
     return { section: 'embed' as SectionId, category, group: HOST_LABELS[host], composition, host }

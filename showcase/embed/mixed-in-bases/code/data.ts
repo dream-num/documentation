@@ -267,7 +267,12 @@ export function createSheetData(): Partial<IWorkbookData> {
       4: { f: '=SUM(E5:E14)', s: 'total' },
     },
     17: { 0: { v: 'Sand = editable values. Change stage weights on Assumptions.', s: 'muted' } },
-    19: { 0: { v: 'Base edits do not sync here. This workbook starts from the same authored deals.', s: 'muted' } },
+    19: {
+      0: {
+        v: 'Relational Table edits do not sync here. This workbook starts from the same authored deals.',
+        s: 'muted',
+      },
+    },
     21: { 0: { v: 'Weighted pipeline is a planning scenario, not booked revenue or an order.', s: 'muted' } },
   }
   DEALS.forEach(([title, stage, amount], index) => {
@@ -348,12 +353,12 @@ const MEMO = [
   ['17 January 2029 / Original touring-studio scenario', 'meta'],
   ['01 / Start with a partner conversation', 'heading'],
   [
-    'Ten fictional opportunities span museums, festivals, learning partners and regional networks. Clarify the audience, access constraints and return journey before describing a deliverable. The Base links each opportunity to a partner group and six follow-ups to their opportunities.',
+    'Ten fictional opportunities span museums, festivals, learning partners and regional networks. Clarify the audience, access constraints and return journey before describing a deliverable. The Relational Table links each opportunity to a partner group and six follow-ups to their opportunities.',
     'body',
   ],
   ['02 / Price uncertainty explicitly', 'heading'],
   [
-    'The opening pipeline is USD 375,500; illustrative stage weights produce USD 228,400. The independent Forecast workbook exposes these assumptions. Its formulas recalculate, but the written totals and Base records do not automatically synchronize. No booked revenue is implied.',
+    'The opening pipeline is USD 375,500; illustrative stage weights produce USD 228,400. The independent Forecast workbook exposes these assumptions. Its formulas recalculate, but the written totals and Relational Table records do not automatically synchronize. No booked revenue is implied.',
     'body',
   ],
   ['03 / Review a physical sample', 'heading'],
@@ -368,7 +373,7 @@ const MEMO = [
   ],
   ['05 / Keep each working surface honest', 'heading'],
   [
-    'The Base owns records, the Sheet owns calculations, this document owns prose, Slides owns its visual review and the Board owns the process map. Open the native tab before editing its model. All data is local and fictional; no email, order, shipment or customer system is contacted.',
+    'The Relational Table owns records, the Sheet owns calculations, this document owns prose, Slides owns its visual review and the Canvas owns the process map. Open the native tab before editing its model. All data is local and fictional; no email, order, shipment or customer system is contacted.',
     'body',
   ],
   ['Next checkpoint / Resolve the six evidence requests before making commitments.', 'heading'],
@@ -578,7 +583,7 @@ export function createSlidesData(): ISlideData {
       elements: Object.fromEntries(elements.map((e) => [e.id, e])),
       elementOrder: elements.map((e) => e.id),
       speakerNotes:
-        'Use the native Base table list to move between records, forecasts and supporting evidence. Each product remains independently editable.',
+        'Use the native Relational Table list to move between records, forecasts and supporting evidence. Each product remains independently editable.',
     }
   })
   return {

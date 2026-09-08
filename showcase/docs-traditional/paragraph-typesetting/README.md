@@ -1,8 +1,10 @@
 # North Gallery / Paragraph Typesetting
 
+Current language contract: native UI, startup alerts and authored content are English under either host language. The full English Docs Core locale pack and official CSS remain in the independent export. Existing saved-snapshot argument positions are unchanged; any legacy locale argument is accepted but ignored. Earlier bilingual acceptance is historical, and its SDK limitations remain unresolved unless separately verified.
+
 An original fictional three-chapter museum dossier retains the blue vessel description, dimensions and provisional attribution. The catalog, provenance entries and display review use different paragraph treatments. The actual SDK paginates A4-sized pages; no host page cards or comparison controls simulate pagination.
 
-Native Grid menus own editing, alignment and history. Preview and standalone share one factory, the official Docs Core stylesheet and complete EN/ZH preset locale packs. Initial language follows page lang; business content remains English. Theme changes retain the owner and edited document. Only startup failures show a host alert.
+Native Grid menus own editing, alignment and history. Preview and standalone share one factory, the official Docs Core stylesheet and the complete English preset locale pack. Native UI and business content remain English under either documentation language. Theme changes retain the owner and edited document. Only startup failures show a host alert.
 
 ## Runnable Facade variants
 

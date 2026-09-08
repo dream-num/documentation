@@ -2,9 +2,11 @@ import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import EngineFormulaEnUS from '@univerjs/engine-formula/locale/en-US'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
 import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+import SheetsFormulaEnUS from '@univerjs/sheets-formula/locale/en-US'
 import { UniverSheetsNumfmtPlugin } from '@univerjs/sheets-numfmt'
 import SheetsEnUS from '@univerjs/sheets/locale/en-US'
 
@@ -15,10 +17,10 @@ import '@univerjs/sheets/facade'
 import '@univerjs/sheets-formula/facade'
 import '@univerjs/sheets-numfmt/facade'
 
-export function createHeadlessDemo() {
+export function createHeadlessDemo(_legacyLocale: LocaleType = LocaleType.EN_US) {
   const univer = new Univer({
     locale: LocaleType.EN_US,
-    locales: { [LocaleType.EN_US]: mergeLocales(SheetsEnUS) },
+    locales: { [LocaleType.EN_US]: mergeLocales(EngineFormulaEnUS, SheetsFormulaEnUS, SheetsEnUS) },
   })
 
   univer.registerPlugin(UniverRenderEnginePlugin)

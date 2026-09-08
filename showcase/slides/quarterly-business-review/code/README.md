@@ -1,5 +1,10 @@
 # Northstar / Quarterly Business Review
 
+The runtime is English-only on every host page. Complete official English SDK packs
+and styles are retained. A legacy locale argument, where present, is ignored without
+shifting the saved-snapshot argument. EN/ZH reports below are historical evidence
+from before this language change, not current bilingual-runtime acceptance.
+
 Eight original fictional leadership pages: scorecard, regional comparison, revenue movement,
 retention, pipeline, operating rhythm, risks and decisions. Deep Ocean navy, teal, lilac and
 warm paper separate the narrative sections. Original revenue 43.8, target 45.0, retention
@@ -7,7 +12,7 @@ warm paper separate the narrative sections. Original revenue 43.8, target 45.0, 
 
 Use the native Grid ribbon, slide list and Speaker notes. There is no external control
 panel, hidden one-shot target flag or reset button. Preview and standalone use the same
-factory, five official CSS files and five complete EN/ZH locale pairs. Theme changes
+factory, five official CSS files and five complete English locale packs. Theme changes
 toggle the existing owner, preserving edits.
 
 ## Literal Facade examples
@@ -89,7 +94,7 @@ Evidence: test-results/qbr-native-verified/report.json,
 test-results/qbr-native-interaction-parity/report.json and
 test-results/native-notes-quotes-pipeline-qbr/export-ui/report.json. Earlier interaction
 harnesses omitted entry heights or guessed the Chinese notes label; they are not the
-authoritative result. Current Chinese notes controls use the installed labels.
+authoritative result. That historical Chinese run used the installed labels.
 
 No Formula, binary Exchange, native Chart, collaboration, mobile or exhaustive keyboard
 acceptance is claimed. Regional bars and pipeline bands are editable native shapes. Quarterly movement

@@ -1,8 +1,8 @@
 # Asteria financial report: native front-end review
 
 Run `pnpm install`, `pnpm dev`; production verification uses `pnpm build` and `pnpm preview`.
-Preview and standalone export mount the same factory with five official CSS bundles and full EN/ZH packs.
-Initial `html lang="zh-CN"` selects Chinese. Theme changes keep the same SDK owner and document edits.
+Preview and standalone export mount the same factory with five official CSS bundles and five full English packs.
+Native UI and authored data remain English under any host page language. Theme changes keep the same SDK owner and document edits. Bilingual evidence below is historical, not current English-only acceptance.
 
 The fourteen original FY2026 sections in `data.ts` are unchanged: performance, income statement, financial position,
 cash flow, operating segments, recognition, margins, liquidity, working capital, projects, currency exposure,

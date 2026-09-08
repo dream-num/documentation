@@ -57,7 +57,7 @@ function slide(id: string, name: string, background: string, elements: SlideElem
     elements: Object.fromEntries(elements.map((element) => [element.id, element])),
     elementOrder: elements.map((element) => element.id),
     speakerNotes:
-      'Original fictional observatory ingestion proposal. Board edits do not change slide text. No sensors, messages, deployments or backend calls.',
+      'Original fictional observatory ingestion proposal. Canvas edits do not change slide text. No sensors, messages, deployments or backend calls.',
   }
 }
 
@@ -82,7 +82,7 @@ export function createHostData(): ISlideData {
       ),
       text(
         'footer',
-        'Double-click the Board to edit the boundary diagram. Slides stay independent.',
+        'Double-click the Canvas to edit the boundary diagram. Slides stay independent.',
         40,
         610,
         920,
@@ -102,16 +102,7 @@ export function createHostData(): ISlideData {
       text('edge-copy', 'Buffer target\nSequence each batch\nRetry after reconnect', 62, 397, 242, 90, 18, '#315B50'),
       text('ingest-title', 'INGEST / AMARA', 379, 247, 242, 35, 18, '#A5DAC5', true),
       text('ingest-value', '1 key', 379, 312, 242, 65, 40, '#F3F6F3', true),
-      text(
-        'ingest-copy',
-        'Station + sequence\nReject duplicates\nValidate payload',
-        379,
-        397,
-        242,
-        90,
-        18,
-        '#D0E0E4',
-      ),
+      text('ingest-copy', 'Station + sequence\nReject duplicates\nValidate payload', 379, 397, 242, 90, 18, '#D0E0E4'),
       text('review-title', 'REVIEW / OTTO', 696, 247, 242, 35, 19, '#795536', true),
       text('review-value', '3 checks', 696, 312, 242, 65, 40, '#092A42', true),
       text('review-copy', 'Clock drift\nSchema version\nOut-of-range samples', 696, 397, 242, 90, 18, '#795536'),

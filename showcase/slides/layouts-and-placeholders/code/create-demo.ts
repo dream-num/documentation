@@ -30,9 +30,10 @@ import '@univerjs-pro/slides/facade'
 import '@univerjs-pro/slides-print/facade'
 import '@univerjs/ui/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _locale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
   root.className = 'slide-layout'
+  root.dataset.ready = 'false'
   root.dataset.theme = darkMode ? 'dark' : 'light'
   container.append(root)
   const univer = new Univer({
@@ -46,6 +47,18 @@ export function createDemo(container: HTMLElement, darkMode = false) {
         ShapeEditorUIEnUS,
         SlidesUIEnUS,
         SlidesPrintEnUS,
+
+        // Demo-only product names; preserve every other official English translation.
+        {
+          'shape-editor-ui': {
+            ...ShapeEditorUIEnUS['shape-editor-ui'],
+            formulaBinding: {
+              ...ShapeEditorUIEnUS['shape-editor-ui']['formulaBinding'],
+              baseUnit: 'Relational Tables',
+            },
+            formulaShape: { ...ShapeEditorUIEnUS['shape-editor-ui']['formulaShape'], baseUnit: 'Relational Tables' },
+          },
+        },
       ),
     },
   })

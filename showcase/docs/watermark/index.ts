@@ -30,10 +30,12 @@ const metadata = {
 }
 
 export const files = {
+  '/README.md': fs.readFileSync(path.resolve(__dirname, './README.md'), 'utf-8'),
   '/src/create-demo.ts': fs.readFileSync(path.resolve(__dirname, './code/create-demo.ts'), 'utf-8'),
   '/reference/preview.tsx.txt': fs.readFileSync(path.resolve(__dirname, './preview/main.tsx'), 'utf-8'),
   '/src/index.ts': fs.readFileSync(path.resolve(__dirname, './code/index.ts'), 'utf-8'),
   '/src/data.ts': fs.readFileSync(path.resolve(__dirname, './code/data.ts'), 'utf-8'),
+  '/src/styles.css': fs.readFileSync(path.resolve(__dirname, './code/styles.css'), 'utf-8'),
 }
 
 export default {

@@ -2,7 +2,6 @@ import type { IDocumentData } from '@univerjs/core'
 import { BooleanNumber } from '@univerjs/core'
 import { UniverDocsCorePreset, unmount } from '@univerjs/preset-docs-core'
 import docsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
-import docsCoreZhCN from '@univerjs/preset-docs-core/locales/zh-CN'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 
 import { ANNUAL_REPORT } from './data'
@@ -13,9 +12,10 @@ import './styles.css'
 export function createAnnualReportDemo(
   container: HTMLElement,
   darkMode = false,
-  locale = globalThis.document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+  _legacyLocale: LocaleType = LocaleType.EN_US,
   saved?: IDocumentData,
 ) {
+  const locale = LocaleType.EN_US
   if (saved) validateSnapshot(saved)
   const root = globalThis.document.createElement('div')
   root.className = 'annual-report'
@@ -24,7 +24,7 @@ export function createAnnualReportDemo(
   const { univer, univerAPI } = createUniver({
     darkMode,
     locale,
-    locales: { [LocaleType.EN_US]: mergeLocales(docsCoreEnUS), [LocaleType.ZH_CN]: docsCoreZhCN },
+    locales: { [LocaleType.EN_US]: mergeLocales(docsCoreEnUS) },
     presets: [UniverDocsCorePreset({ ribbonType: 'grid', container: root })],
   })
   const document = univerAPI.createDocument(

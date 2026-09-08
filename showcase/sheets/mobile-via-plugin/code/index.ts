@@ -1,4 +1,7 @@
 import { createDemo } from './create-demo'
 
-const demo = createDemo(document.getElementById('app')!)
+document.body.style.margin = '0'
+const container = document.getElementById('app')!
+container.style.height = '100vh'
+const demo = createDemo(container)
 window.addEventListener('pagehide', () => demo.dispose(), { once: true })

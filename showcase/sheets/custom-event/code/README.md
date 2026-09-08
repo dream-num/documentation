@@ -58,8 +58,11 @@ unset; a later guard can still cancel the command. Do not treat that earlier
 observation as the final command result. Before reads the pre-deletion model;
 After reads the post-deletion model and is absent for a canceled deletion.
 
-Theme changes retain the owner and edits. Official Core CSS and complete EN/ZH
-resources are shared by the factory and standalone export. Original small sample
+Theme changes retain the owner and edits. Official Core CSS and the complete English
+pack are shared by the factory and standalone export. Native and custom-event UI
+stay English on either host language; saved-snapshot argument positions are unchanged.
+Earlier bilingual test results are historical, not current English-only acceptance.
+Original small sample
 tables are unchanged. `createDemo(container, darkMode, saved)` accepts a complete
 Aster snapshot with the original workbook and both sheet IDs, validating it before
 mounting and cloning it without normalization. Dispose the previous controller

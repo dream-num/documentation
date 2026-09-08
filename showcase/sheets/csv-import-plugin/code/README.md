@@ -150,9 +150,6 @@ await demo.ready
 
 Workbook JSON includes all SDK snapshot fields/resources; no IDs, empty arrays or defaults are stripped during comparison. An uncommitted CSV draft is host state, not workbook JSON. Recovery resets that draft to the original intake sample and starts new history; theme changes do neither.
 
-## 中文说明
-
-Kestrel 维修咖啡馆提供接件、零件台账及志愿者排班等七类原始 CSV/TSV。原生“打开 CSV”只读取本地 UTF-8 文件；检查草稿、分隔符与空行策略后，再从当前选区左上角导入。保留字面量文本、既有格式、导入矩形外内容及另一张 Reference 表。引号逗号、多行、Unicode、BOM、不等长行和非法输入均由同一个透明的 Papa Parse 工具处理。这里不是 XLSX Exchange，不上传文件；主题切换保留数据与草稿。容量与范围限制详见上述契约；解析器原始错误会作为具体拒绝原因显示。
 
 ## Verification
 

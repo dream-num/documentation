@@ -35,11 +35,12 @@ try {
     await page.waitForLoadState('networkidle')
     // Exercise hydration before screenshots: Playwright's hidden-caret styling can
     // otherwise race React's first render and create a test-induced mismatch.
-    const product = sidebar.getByRole('button').first()
+    const product = sidebar.getByRole('button', { expanded: true }).first()
+    const productElement = await product.elementHandle()
     await product.click()
-    await page.waitForFunction(() => document.querySelector('aside button')?.getAttribute('aria-expanded') === 'false')
-    await product.click()
-    await page.waitForFunction(() => document.querySelector('aside button')?.getAttribute('aria-expanded') === 'true')
+    await page.waitForFunction((button) => button.getAttribute('aria-expanded') === 'false', productElement)
+    await productElement.click()
+    await page.waitForFunction((button) => button.getAttribute('aria-expanded') === 'true', productElement)
     assert.equal(await sidebar.getByRole('link', { name: title, exact: true }).count(), 1)
     assert.equal(
       await sidebar.getByRole('button', { expanded: true }).count(),
@@ -50,17 +51,36 @@ try {
     const iframe = page.locator('iframe').first()
     await iframe.scrollIntoViewIfNeeded()
     const frame = page.frameLocator('iframe').first()
-    await frame.locator('.base-groups[data-ready=true]').waitFor({ timeout: 120000 })
-    await frame.getByRole('button', { name: 'Inspect', exact: true }).click()
-    await page.waitForTimeout(250)
-    const initial = JSON.parse(await frame.locator('.base-groups output').textContent())
-    assert.equal(initial.sourceRecordIds.length, 90)
-    await frame.getByRole('button', { name: 'Collapse Done', exact: true }).click()
-    await page.waitForTimeout(250)
-    const collapsed = JSON.parse(await frame.locator('.base-groups output').textContent())
-    assert.equal(collapsed.expandedRecordIds.length, 69)
-    assert.equal(collapsed.sourceRecordIds.length, 90)
-    await frame.getByRole('button', { name: 'Reset', exact: true }).click()
+    const editor = frame.locator('.base-groups-demo[data-ready=true]')
+    await editor.waitFor({ timeout: 120000 })
+    assert.equal(await editor.locator(':scope > fieldset, :scope > details, :scope > output').count(), 0)
+    const initial = await editor.evaluate(() => window.univerAPI.getActiveBase().save().tables.returns.records)
+    assert.equal(Object.keys(initial).length, 16)
+    await editor
+      .getByText(locale === 'zh-CN' ? '状态 → 负责人' : 'Status → owner', { exact: true })
+      .first()
+      .click()
+    await editor.evaluate(async () => {
+      const api = window.univerAPI
+      const deadline = performance.now() + 10000
+      while (api.getBaseUI().getActiveViewId() !== 'nested') {
+        if (performance.now() > deadline) throw new Error('Native nested view did not activate')
+        await new Promise((resolve) => requestAnimationFrame(resolve))
+      }
+    })
+    const nested = await editor.evaluate(() => {
+      const table = window.univerAPI.getActiveBase().getTableById('returns')
+      return {
+        rules: table.getViewById('nested').getGroup(),
+        records: window.univerAPI.getActiveBase().save().tables.returns.records,
+      }
+    })
+    assert.deepEqual(
+      nested.rules.map((rule) => rule.fieldId),
+      ['status', 'owner'],
+    )
+    assert.deepEqual(nested.records, initial, 'Native view switching must preserve the source records')
+    await iframe.screenshot({ path: path.join(directory, `${locale}-native-iframe.png`) })
     for (const width of [390, 320]) {
       await page.setViewportSize({ width, height: 900 })
       await page.getByRole('heading', { name: title, level: 1, exact: true }).scrollIntoViewIfNeeded()

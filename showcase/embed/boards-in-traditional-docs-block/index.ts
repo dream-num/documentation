@@ -8,13 +8,16 @@ const metadata: ShowcaseMetadata = {
   category: 'features',
   previewHeight: 1100,
   group: { 'en-US': 'Traditional Docs host / Block', 'zh-CN': '传统文档宿主 / 块嵌入' },
-  title: { 'en-US': 'Board in Traditional Docs / Engineering Methods', 'zh-CN': 'Board 嵌入传统文档 / 工程方法' },
+  title: { 'en-US': 'Canvas in Traditional Docs / Engineering Methods', 'zh-CN': 'Canvas 嵌入传统文档 / 工程方法' },
   description: {
     'en-US':
       'A three-chapter A4 methods note embeds an editable capture-and-review workflow with a bound exception path.',
     'zh-CN': '三个 A4 章节的方法说明内嵌可编辑采集与复核流程，异常路径使用绑定连接线。',
   },
-  tags: { 'en-US': ['Embed', 'Traditional Docs', 'Boards', 'Methods'], 'zh-CN': ['嵌入', '传统文档', '白板', '方法'] },
+  tags: {
+    'en-US': ['Embed', 'Traditional Docs', 'Canvases', 'Methods'],
+    'zh-CN': ['嵌入', '传统文档', 'Canvases', '方法'],
+  },
   packages: [
     '@univerjs/core',
     '@univerjs/docs-ui',
@@ -41,29 +44,29 @@ const metadata: ShowcaseMetadata = {
     },
     tryIt: {
       'en-US': [
-        'Read the method, then activate the Board in chapter 02.',
+        'Read the method, then activate the Canvas in chapter 02.',
         'Run the literal README example to change the exception status; use native Undo/Redo.',
-        'Expand the Board, drag the exception card and inspect its connected routes.',
+        'Expand the Canvas, drag the exception card and inspect its connected routes.',
         'Edit the report title and verify that the diagram remains unchanged.',
       ],
       'zh-CN': [
-        '阅读方法说明，然后激活第 02 章的 Board。',
+        '阅读方法说明，然后激活第 02 章的 Canvas。',
         '运行 README 原样示例修改异常状态，使用原生撤销/重做。',
-        '展开 Board，拖动异常卡片并观察绑定路径。',
+        '展开 Canvas，拖动异常卡片并观察绑定路径。',
         '修改报告标题，确认流程图不变。',
       ],
     },
     expected: {
       'en-US':
-        'Three rendered A4 pages and a live Board body block, not a flattened picture. Selected native editing, bound routing, history and independent export checks pass. Labels and report prose remain independent; arrows do not execute services or formulas. Full acceptance remains open; see README.',
+        'Three rendered A4 pages and a live Canvas body block, not a flattened picture. Selected native editing, bound routing, history and independent export checks pass. Labels and report prose remain independent; arrows do not execute services or formulas. Full acceptance remains open; see README.',
       'zh-CN':
-        '三个实际渲染的 A4 页面与可编辑 Board 正文块，不是扁平图片。选定原生编辑、绑定路径、历史和独立导出检查通过。标签与报告正文独立；箭头不执行服务或公式。完整验收仍未完成，详见 README。',
+        '三个实际渲染的 A4 页面与可编辑 Canvas 正文块，不是扁平图片。选定原生编辑、绑定路径、历史和独立导出检查通过。标签与报告正文独立；箭头不执行服务或公式。完整验收仍未完成，详见 README。',
     },
   },
   variants: [
     ['method', 'A4 methods / Serif report', 'A4 方法说明 / 衬线正文'],
     ['flow', 'Ordinary path / Exception return', '常规路径 / 异常返回'],
-    ['canvas', 'Inline Board / Fullscreen canvas', '正文 Board / 全屏画布'],
+    ['canvas', 'Inline Canvas / Fullscreen canvas', '正文 Canvas / 全屏画布'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   actions: [
     ['status', 'Edit exception text', '编辑异常文字'],
@@ -72,7 +75,7 @@ const metadata: ShowcaseMetadata = {
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   states: [
     ['reading', 'Paginated method reading', '分页方法阅读'],
-    ['editing', 'Native Board editing', '原生 Board 编辑'],
+    ['editing', 'Native Canvas editing', '原生 Canvas 编辑'],
     ['error', 'Source failure / Reload to retry', '资源失败 / 刷新重试'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
 }

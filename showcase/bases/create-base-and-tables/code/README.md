@@ -1,10 +1,12 @@
-# Lumen / Create a Base and tables
+# Lumen / Create a Relational Table and tables
 
-Run `pnpm install` and `pnpm dev`. Preview and export share `createDemo()`, five complete EN/ZH locale packs and four official SDK stylesheets. The native Base owns its sidebar, grid and toolbar; there is no fixture panel, duplicate editing/history toolbar or snapshot inspector. Theme changes keep the same owner and user edits.
+Native UI and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged. Bilingual runtime reports below describe earlier revisions, not acceptance of this English-only revision.
+
+Run `pnpm install` and `pnpm dev`. Preview and export share `createDemo()`, five complete English locale packs and four official SDK stylesheets. The native Relational Table owns its sidebar, grid and toolbar; there is no fixture panel, duplicate editing/history toolbar or snapshot inspector. Theme changes keep the same owner and user edits.
 
 The community theatre renewal contains 12 renovation projects, 30 distinct work packages and 18 acceptance milestones. Text, number, select, person, date, attachment, checkbox and canonical RecordLink fields retain their original types. Original data-URL text attachments need no upload service. People IDs are stored in the snapshot; the local display-name directory is supplied separately by `setPersonOptions(PEOPLE)` on each mount.
 
-Use the native sidebar to explore the three stories. Double-click a cell to edit it and use native Undo/Redo. The following application recipes show variations that were previously hidden behind demo-only buttons. Run each fenced example in order in the browser console after the Base is ready, or inside an async application function. Reload the example before starting the sequence again; table names intentionally identify the created objects.
+Use the native sidebar to explore the three stories. Double-click a cell to edit it and use native Undo/Redo. The following application recipes show variations that were previously hidden behind demo-only buttons. Run each fenced example in order in the browser console after the Relational Table is ready, or inside an async application function. Reload the example before starting the sequence again; table names intentionally identify the created objects.
 
 ## Literal Facade examples
 
@@ -28,7 +30,7 @@ await window.univerAPI.getBaseUI().activateView('milestones-grid')
 
 ### 3. Return to renovation projects
 
-Selection is native UI state, not a change to the stored Base.
+Selection is native UI state, not a change to the stored Relational Table.
 
 ```ts
 await window.univerAPI.getBaseUI().activateTable('projects')
@@ -191,7 +193,7 @@ console.log({ target: 'projects', references, mayDelete: saved.tableOrder.length
 
 ### 19. Download the complete current snapshot
 
-This is Base JSON, not CSV/XLSX conversion. No backend or upload is involved.
+This is Relational Table JSON, not CSV/XLSX conversion. No backend or upload is involved.
 
 ```ts
 const saved = window.univerAPI.getBase('lumen-base-lifecycle').save()
@@ -214,7 +216,7 @@ await window.univerAPI.getBaseUI().activateView('projects-grid')
 
 ## Save, reconstruct and restore a checkpoint
 
-In the application entry use `let demo = createDemo(container)` so the pagehide callback disposes the current handle. Keep the imported factory and mount element. The following literal example rebuilds the **whole owner**, restores a detached snapshot and then restores the selected table/view. The factory restores the person directory as well. History starts fresh; current locale and theme are retained.
+In the application entry use `let demo = createDemo(container)` so the pagehide callback disposes the current handle. Keep the imported factory and mount element. The following literal example rebuilds the **whole owner**, restores a detached snapshot and then restores the selected table/view. The factory restores the person directory as well. History starts fresh; English and the current theme are retained.
 
 ```js
 const saved = JSON.parse(JSON.stringify(demo.univerAPI.getBase('lumen-base-lifecycle').save()))

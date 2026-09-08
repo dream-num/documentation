@@ -1,5 +1,7 @@
 # Harbor / Fare Sensitivity
 
+Native UI and authored data are English-only, including on Chinese documentation pages. The legacy third locale argument is ignored; the factory does not change the host page language. Historical bilingual reports below remain evidence of earlier revisions, not acceptance of this English-only revision.
+
 A fictional one-day harbour shuttle plan keeps an editable Fare card inside a
 native Sheet@Sheet Float. The source workbook also contains Assumptions; the
 host contains Budget, Sensitivity and Reference lab. These are two distinct SDK
@@ -93,7 +95,7 @@ the ID is the source identity. Unknown Embed unit requests are rejected.
 Preview and independent export share code and snapshots, including the official
 SDK CSS imports. Navy headings, sand inputs, mint formula outputs and lavender
 notes distinguish authored content while the native white workbench remains intact.
-All eighteen dependency locale packs are registered in both English and Chinese;
+All eighteen complete English dependency locale packs are registered;
 the nineteen official SDK CSS imports are included in the standalone source.
 The cached gamma-budget-review.png is a hierarchy/color reference only; no artwork
 is redistributed. All data is original. No collaborative history plugin is used.

@@ -52,9 +52,9 @@ const metadata = {
     },
     expected: {
       'en-US':
-        'Preview and exported source include the same implementation, native UI CSS and initial EN/ZH controls. This is a rendering extension, not a custom editor, validation rule, conditional format or serialized drawing. Editor-only extensions do not claim print, image or file-export parity. Header labels remain native. Original local data needs no backend or remote assets. The README retains strict style/history, row-height Undo and new-owner resource differences; reapply extensions after same-ID unit replacement.',
+        'Preview and exported source include the same implementation, native UI CSS and initial English controls. This is a rendering extension, not a custom editor, validation rule, conditional format or serialized drawing. Editor-only extensions do not claim print, image or file-export parity. Header labels remain native. Original local data needs no backend or remote assets. The README retains strict style/history, row-height Undo and new-owner resource differences; reapply extensions after same-ID unit replacement.',
       'zh-CN':
-        '预览和导出包含相同实现、原生 UI CSS 及初始中英文控件。本例是绘制扩展，不是自定义编辑器、校验规则、条件格式或序列化绘图；不承诺打印、图片或文件导出一致性。保留原生表头标签。原创本地数据无需后端或远程资源。README 保留样式历史、行高撤销及新实例资源的严格差异；相同 ID 替换单元后重新应用绘制扩展。',
+        '预览和导出包含相同实现、原生 UI CSS 及初始英文控件。本例是绘制扩展，不是自定义编辑器、校验规则、条件格式或序列化绘图；不承诺打印、图片或文件导出一致性。保留原生表头标签。原创本地数据无需后端或远程资源。README 保留样式历史、行高撤销及新实例资源的严格差异；相同 ID 替换单元后重新应用绘制扩展。',
     },
   },
   variants: [

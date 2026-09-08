@@ -264,7 +264,7 @@ export function createHostData(): ISlideData {
             text(
               id,
               'intro',
-              'Sheet workshop fees + Base delivery costs -> slide-native results',
+              'Sheet workshop fees + Relational Table delivery costs -> slide-native results',
               40,
               158,
               1100,
@@ -273,7 +273,7 @@ export function createHostData(): ISlideData {
               '#C8D3E5',
             ),
             ...card(id, 'revenue-value', 'REVENUE / Sheet source', 40, 235, 535, '#D8ECF6', '#20354E'),
-            ...card(id, 'cost-value', 'COST / Base source', 625, 235, 535, '#F1DFC5', '#6C4B2D'),
+            ...card(id, 'cost-value', 'COST / Relational Table source', 625, 235, 535, '#F1DFC5', '#6C4B2D'),
             ...card(id, 'surplus-value', 'CONTRIBUTION / Both sources', 40, 415, 535, '#DCEEE5', '#27584E'),
             ...card(id, 'margin-value', 'MARGIN / Both sources', 625, 415, 535, '#E9DFF4', '#5E4779'),
           ]
@@ -283,7 +283,7 @@ export function createHostData(): ISlideData {
               text(
                 id,
                 'explain',
-                'The six workshop rows are the source.\n\nChange fee C5 from 45 to 50. Revenue rises by 200; Base costs stay unchanged.',
+                'The six workshop rows are the source.\n\nChange fee C5 from 45 to 50. Revenue rises by 200; Relational Table costs stay unchanged.',
                 840,
                 350,
                 320,
@@ -331,7 +331,7 @@ export function createHostData(): ISlideData {
       elements: Object.fromEntries(elements.map((e) => [e.id, e])),
       elementOrder: elements.map((e) => e.id),
       speakerNotes:
-        'Open the source pages and edit the real Sheet or Base. Only native Formula Shapes recalculate; surrounding narrative and layout are authored.',
+        'Open the source pages and edit the real Sheet or Relational Table. Only native Formula Shapes recalculate; surrounding narrative and layout are authored.',
     }
   })
   return {
