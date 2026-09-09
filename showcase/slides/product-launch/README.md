@@ -1,8 +1,12 @@
 # Atlas / Product Launch
 
+The runtime is English-only on every host page. Complete official English SDK packs
+and styles are retained. A legacy locale argument, where present, is ignored without
+shifting the saved-snapshot argument.
+
 Eleven original pages tell one fictional launch: three personas, four pain points, five capabilities and six milestones. The pilot measures remain explicitly synthetic: 30 → 12.5 minutes (2.4×), 18-minute median setup, and 43 active of 50 invited (86%). Availability of 99.95% is a target, not a verified service result. All original page, element and presentation IDs and speaker notes remain.
 
-Use native Grid, thumbnails, text editing, image insertion, speaker notes and zoom. There is no host mutation toolbar, Reset, Inspect, history panel or fixture loader. Plain pages remain opaque white; themed pages retain their original colors and native transparent text-box shapes. Preview/export share five official CSS files and five complete EN/ZH pack pairs. Theme changes retain the current owner and edits.
+Use native Grid, thumbnails, text editing, image insertion, speaker notes and zoom. There is no host mutation toolbar, Reset, Inspect, history panel or fixture loader. Plain pages remain opaque white; themed pages retain their original colors and native transparent text-box shapes. Preview/export share five official CSS files and five complete English packs. Theme changes retain the current owner and edits.
 
 ## Literal recipes
 

@@ -259,6 +259,19 @@ try {
     await fs.writeFile(path.join(directory, 'original.json'), JSON.stringify(original, null, 2))
     for (const value of ['$37.4M', '$42.8M', '$45.0M', '18.6%', '$9.2M', 'Risk and outlook'])
       assert(original.body.dataStream.includes(value), value)
+    for (const heading of [
+      'Business model and customer journey',
+      'Service reliability and delivery',
+      'Capital allocation priorities',
+      'Governance and review responsibilities',
+      'Reporting basis and reading the figures',
+    ])
+      assert(original.body.dataStream.includes(heading), heading)
+    assert(original.body.dataStream.includes('Fictional, unaudited SDK sample'))
+    assert.equal(
+      await page.locator('.annual-report').evaluate((root) => getComputedStyle(root).fontFamily),
+      'Arial, sans-serif',
+    )
     assert.equal(Object.keys(original.headers).length, 1)
     assert.equal(Object.keys(original.footers).length, 1)
     assert(Object.values(original.headers)[0].body.dataStream.includes('ATLAS SYSTEMS · ANNUAL REPORT 2027'))
@@ -268,6 +281,7 @@ try {
       0,
     )
     const current = await geometry('cover', 794, 1123)
+    assert(current.pages.length >= 2, 'The full annual narrative spans real A4 pages')
     for (const g of current.glyphs.filter((glyph) =>
       /^(FY202[567] Revenue · \$[\d.]+M$|Operating margin)/.test(glyph.text),
     )) {
@@ -373,6 +387,11 @@ try {
       'Financial performance',
       'Cash flows',
       'Risk and outlook',
+      'Business model and customer journey',
+      'Service reliability and delivery',
+      'Capital allocation priorities',
+      'Governance and review responsibilities',
+      'Reporting basis and reading the figures',
     ]) {
       const index = current.glyphs.findIndex((g) => g.text === heading)
       assert.equal(current.glyphs[index].page, current.glyphs[index + 1].page, heading + ': keep with next paragraph')

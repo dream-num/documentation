@@ -11,7 +11,7 @@ const metadata: ShowcaseMetadata = {
   description: {
     'en-US':
       'Plan a repair workshop with activity cards and a native floating eight-line budget, reserve scenarios and independent editing.',
-    'zh-CN': '在修缮工作坊白板旁编辑八项预算，比较预备金方案，保持两个产品的数据独立。',
+    'zh-CN': '在修缮工作坊 Boards 旁编辑八项预算，比较预备金方案，保持两个产品的数据独立。',
   },
   tags: {
     'en-US': ['Embed', 'Boards', 'Sheets', 'Float', 'Budget'],
@@ -50,7 +50,7 @@ const metadata: ShowcaseMetadata = {
         '双击预算以激活原生编辑器。',
         '运行 README 表格示例，查看成本、预备金和剩余额度。',
         '尝试原生撤销重做，在 Sensitivity 中比较不同预备金率。',
-        '返回白板，编辑待确认的无障碍支持事项。',
+        '返回 Boards，编辑待确认的无障碍支持事项。',
       ],
     },
     expected: {
@@ -68,7 +68,7 @@ const metadata: ShowcaseMetadata = {
   actions: [
     ['edit', 'Edit the native budget', '编辑原生预算'],
     ['compare', 'Compare reserve scenarios', '比较预备金方案'],
-    ['note', 'Update the Board decision independently', '独立更新白板事项'],
+    ['note', 'Update the Board decision independently', '独立更新 Boards 事项'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   states: [
     ['passive', 'Budget beside the workshop plan', '工作坊旁的预算'],

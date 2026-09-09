@@ -1,5 +1,10 @@
 # Ripple / Sheets floating on a Board
 
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but is ignored. Earlier  English-only source/CSS/startup checks do
+not certify every native interaction or resolve the recorded SDK failures.
+
 A fictional community repair workshop plans 24 attendees, four tables and two
 facilitators. The Board carries three activity cards and an access-support
 decision; its native floating Sheet contains eight cost lines, a reserve,
@@ -49,7 +54,7 @@ an intended workshop; it does not invite people, book rooms or buy materials.
 ## Integration and acceptance
 
 The same createDemo factory powers the Preview and eleven-file standalone export.
-Twenty official host, child, Embed and feature CSS imports travel with the source. The native
+official host, child, Embed and feature CSS imports travel with the source. The native
 BoardFloating anchor owns the floating geometry, while the workbook owns its
 cells, formulas, sheet selection and history. A local provider accepts only the
 authored workbook ID and Sheet type. Grid menu contributions use real matching
@@ -64,24 +69,6 @@ PDF download is claimed. The public print event leaves Embed fullscreen so the
 native host print dialog remains visible. No backend requests or browser errors
 were observed in that test.
 
-Evidence: test-results/embed-sheet-board-float-production-pointer/report.json;
-test-results/embed-sheet-board-float-next-canvas/report.json for EN/ZH guides,
-three variants/actions/states and actual media-theme transitions preserving the
-same owner and both edited snapshots. The Board palette may regenerate on theme
-change; its theme ID and all authored content stay strict. The native Float
-interaction wrapper is transparent by design; its live-canvas surface is white.
-The earlier guide test checked the wrong wrapper. Official styles are not replaced.
-
-Known limits: the fullscreen name-box attempt did not land on B5 as requested;
-direct canvas selection/typing is verified, name-box navigation is not. The
-failed production-namebox report is retained. Earlier input/tabs tests waited
-for fresh fillText calls, but cached grid tiles can remain visible without them;
-the final test derives B5 geometry from the snapshot, clicks the real canvas and
-asserts the selected A1 address before typing. Full menu dialogs, failed/empty/
-delayed providers, repeated mounts, persistence, narrow/touch layouts,
-accessibility, complete focus boundaries and performance remain open. Exchange
-conversion is not claimed. No SDK package or license watermark is patched.
-
 The selected standalone build installs 218 packages offline and builds 1,925
 modules. Main JS is 18,292.79 kB / 4,541.73 kB gzip; CSS is 133.87 / 20.46 kB.
 This is not an optimized delivery-size result. Independent eleven-file source
@@ -90,3 +77,7 @@ and official-CSS parity are tracked separately from behavioral acceptance.
 The saved Gamma Budget Review informs the dark/lime emphasis; activity cards
 use sage and apricot, with a warm-white worksheet. All geometry, names and
 data are original. No competitor artwork is exported. Reload loses local edits.
+
+The shared factory explicitly imports the official Ink UI English pack and CSS
+required by the registered Boards UI dependency. Other product locale packs and
+styles remain intact. This is resource coverage, not native pen acceptance.

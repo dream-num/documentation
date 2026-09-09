@@ -9,22 +9,20 @@ import { WORKBOOK_DATA } from './data'
 import '@univerjs/preset-sheets-core/lib/index.css'
 import './styles.css'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _legacyLocale?: LocaleType) {
   const root = document.createElement('div')
   root.className = 'custom-formula-demo'
   root.dataset.theme = darkMode ? 'dark' : 'light'
   root.dataset.ready = 'false'
-  root.innerHTML = `<p>Juniper cycle deliveries · fictional frontend source (400ms response / 800ms timeout). Scalar/table functions share requests and cache. In beta.2, re-registering reloads the current snapshot to clear stale #NAME? calculations: cell edits are preserved, Undo history is discarded.</p>
-    <fieldset><label>Route <select aria-label="Route key"><option>NORTH</option><option>EAST</option><option>EMPTY</option><option>MISSING</option><option>FAULT</option><option>TIMEOUT</option></select></label>
-    <button data-action="apply">Apply route</button><button data-action="cached">Recalculate with cache</button><button data-action="reload">Reload source</button><button data-action="registration">Unregister lookups</button><button data-action="reset">Reset deliveries</button></fieldset>
-    <p role="status" aria-live="polite">Waiting for the SDK to apply formula results…</p>
-    <details><summary>SDK results and separately labeled source diagnostics</summary><pre aria-label="Custom formula readback"></pre></details>
+  root.innerHTML = `<div class="formula-source-controls" aria-label="Simulated local source">
+    <button data-action="cached">Recalculate with cache</button>
+    <button data-action="reload">Reload source</button>
+    <button data-action="registration"></button>
+    <span role="status" aria-live="polite"></span>
+    <span>Requests: <span data-source="requests">0</span> · Cache hits: <span data-source="cacheHits">0</span> · Pending: <span data-source="pending">0</span></span></div>
     <div class="formula-editor"></div>`
   container.append(root)
   const status = root.querySelector<HTMLElement>('[role="status"]')!
-  const output = root.querySelector<HTMLElement>('pre')!
-  const choice = root.querySelector<HTMLSelectElement>('select')!
-  const apply = root.querySelector<HTMLButtonElement>('[data-action="apply"]')!
   const registration = root.querySelector<HTMLButtonElement>('[data-action="registration"]')!
   const { univer, univerAPI } = createUniver({
     darkMode,
@@ -35,6 +33,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     ],
   })
   const formula = univerAPI.getFormula()
+  Object.assign(window, { univerAPI })
   let disposed = false
   let frame = 0
   let generation = 0
@@ -43,21 +42,9 @@ export function createDemo(container: HTMLElement, darkMode = false) {
   let workbook = univerAPI.createWorkbook(structuredClone(WORKBOOK_DATA))
   const refresh = () => {
     if (disposed) return
-    const sheet = workbook.getActiveSheet()!
-    const range = sheet.getRange(0, 0, Math.min(16, sheet.getMaxRows()), Math.min(6, sheet.getMaxColumns()))
-    apply.disabled = sheet.getRange('B4').getRawValue() === choice.value
-    output.textContent = JSON.stringify(
-      {
-        hostRegistration: lookups.length ? 'registered' : 'unregistered',
-        sdkCalculationState: engineState,
-        sourceDiagnostics: source.snapshot(),
-        values: range.getValues(),
-        rawValues: range.getRawValues(),
-        formulas: range.getFormulas(),
-      },
-      null,
-      2,
-    )
+    const snapshot = source.snapshot()
+    for (const key of ['requests', 'cacheHits', 'pending'] as const)
+      root.querySelector(`[data-source="${key}"]`)!.textContent = String(snapshot[key])
   }
   const schedule = () => {
     cancelAnimationFrame(frame)
@@ -89,11 +76,15 @@ export function createDemo(container: HTMLElement, darkMode = false) {
       ),
     ]
     registration.textContent = 'Unregister lookups'
+    registration.dataset.registered = 'true'
+    registration.title =
+      'Re-registering preserves cell edits, but SDK beta.2 needs a workbook reload that discards Undo history.'
   }
   registerLookups()
   const subscriptions = [
     formula.calculationStart(() => {
       engineState = 'calculating'
+      status.textContent = 'Calculating…'
       schedule()
     }),
     formula.calculationEnd((state) => {
@@ -103,14 +94,11 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     formula.calculationResultApplied(() => {
       if (disposed) return
       root.dataset.ready = 'true'
-      status.textContent =
-        'SDK formula results applied. Edit yellow cells natively; CUSTOMSUM intentionally rejects text. Reset and theme changes discard edits.'
+      status.textContent = 'Results applied'
       refresh()
     }),
-    univerAPI.addEvent(univerAPI.Event.SheetValueChanged, schedule),
   ]
   const dom = new AbortController()
-  choice.addEventListener('change', refresh, { signal: dom.signal })
   for (const button of root.querySelectorAll<HTMLButtonElement>('[data-action]')) {
     button.addEventListener(
       'click',
@@ -118,9 +106,6 @@ export function createDemo(container: HTMLElement, darkMode = false) {
         if (disposed) return
         try {
           switch (button.dataset.action) {
-            case 'apply':
-              workbook.getActiveSheet()!.getRange('B4').setValue(choice.value)
-              break
             case 'cached':
               formula.executeCalculation()
               break
@@ -132,7 +117,8 @@ export function createDemo(container: HTMLElement, darkMode = false) {
               if (lookups.length) {
                 lookups.forEach((handle) => handle.dispose())
                 lookups = []
-                registration.textContent = 'Register & reload snapshot'
+                registration.textContent = 'Register & reload (clears Undo)'
+                registration.dataset.registered = 'false'
               } else {
                 registerLookups()
                 // Recalculation alone leaves previously unknown function nodes stale in beta.2.
@@ -144,17 +130,8 @@ export function createDemo(container: HTMLElement, darkMode = false) {
               }
               formula.executeCalculation()
               break
-            case 'reset':
-              formula.stopCalculation()
-              source.clearCache()
-              univerAPI.disposeUnit(workbook.getId())
-              if (!lookups.length) registerLookups()
-              workbook = univerAPI.createWorkbook({ ...structuredClone(WORKBOOK_DATA), id: `juniper-${++generation}` })
-              choice.value = 'NORTH'
-              break
           }
-          status.textContent =
-            'Action sent through Facade; waiting for SDK formula application. Source progress is available in diagnostics.'
+          status.textContent = 'Waiting for calculation…'
           refresh()
         } catch (error) {
           status.textContent = `Action failed: ${error instanceof Error ? error.message : String(error)}`
@@ -165,9 +142,15 @@ export function createDemo(container: HTMLElement, darkMode = false) {
   }
   schedule()
   return {
+    setDarkMode(value: boolean) {
+      root.dataset.theme = value ? 'dark' : 'light'
+      univerAPI.toggleDarkMode(value)
+    },
     dispose() {
       if (disposed) return
       disposed = true
+      const exposed = window as Window & { univerAPI?: typeof univerAPI }
+      if (exposed.univerAPI === univerAPI) delete exposed.univerAPI
       cancelAnimationFrame(frame)
       dom.abort()
       subscriptions.forEach((handle) => handle.dispose())

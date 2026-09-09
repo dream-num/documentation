@@ -83,7 +83,7 @@ const BASE: IBoardData = {
   custom: { reviewDate: REVIEW_DATE, scenario: 'Original Tern station fixture; no external image request' },
 }
 export function createData(state: string): IBoardData {
-  if (!STATES.some((id) => id === state)) throw new Error('Unknown board state; existing edits were not replaced.')
+  if (!STATES.some((id) => id === state)) throw new Error('Unknown canvas state; existing edits were not replaced.')
   const data = structuredClone(BASE)
   if (state === 'empty') {
     data.pageOrder = ['plan']

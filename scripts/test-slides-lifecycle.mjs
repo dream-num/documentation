@@ -9,6 +9,10 @@ import { chromium } from 'playwright'
 
 const { createServer } = await import(pathToFileURL(process.env.SHOWCASE_VITE_MODULE).href)
 const codeRoot = 'showcase/slides/slide-lifecycle/code'
+const locale = process.env.SHOWCASE_LOCALE || 'en-US'
+const zh = locale === 'zh-CN'
+const language = (await import(`@univerjs-pro/slides-ui/locale/${locale}`)).default['slides-ui']
+const port = Number(process.env.SHOWCASE_PORT || 4221)
 // Execute the displayed example verbatim so documentation/API drift fails the real preview test.
 const facadeExample = (await fs.readFile('showcase/slides/slide-lifecycle/README.md', 'utf8')).match(
   /```ts\n([\s\S]*?)```/,
@@ -34,7 +38,7 @@ const server = process.env.SHOWCASE_ORIGIN
       appType: 'custom',
       cacheDir: path.resolve('test-results/slides-lifecycle-native/.vite'),
       optimizeDeps: { noDiscovery: true, include: dependencies },
-      server: { host: '127.0.0.1', port: 4221, strictPort: true, watch: { ignored: ['**/.next/**'] } },
+      server: { host: '127.0.0.1', port, strictPort: true, watch: { ignored: ['**/.next/**'] } },
       plugins: [
         {
           name: 'one-embed-only',
@@ -43,7 +47,7 @@ const server = process.env.SHOWCASE_ORIGIN
               if (request.url !== '/') return next()
               response.setHeader('Content-Type', 'text/html')
               response.end(
-                `<html><head><link rel="icon" href="data:,"></head><body style="margin:0"><div id="app" style="height:100vh"></div><script type="module">import {createDemo} from '/${codeRoot}/create-demo.ts';window.createDemo=createDemo;window.demo=createDemo(document.getElementById('app'));window.addEventListener('pagehide',()=>window.demo.dispose(),{once:true});</script></body></html>`,
+                `<html lang="${locale}"><head><link rel="icon" href="data:,"></head><body style="margin:0"><div id="app" style="height:100vh"></div><script type="module">import {createDemo} from '/${codeRoot}/create-demo.ts';window.createDemo=createDemo;window.demo=createDemo(document.getElementById('app'));window.addEventListener('pagehide',()=>window.demo.dispose(),{once:true});</script></body></html>`,
               )
             })
           },
@@ -104,7 +108,8 @@ const show = async (id) => {
 }
 const menu = async (id, label) => {
   await item(id).click({ button: 'right' })
-  await page.getByRole('button', { name: label, exact: true }).click()
+  const key = { Copy: 'copy', Paste: 'paste', Delete: 'delete', 'Add slide below': 'addBelow' }[label]
+  await page.getByRole('button', { name: language.thumbnailBar.contextMenu[key], exact: true }).click()
   await settle()
 }
 const native = async (command) => {
@@ -117,12 +122,14 @@ const orderIs = (expected) =>
     expected,
   )
 try {
-  await page.goto(process.env.SHOWCASE_ORIGIN || 'http://127.0.0.1:4221/', {
+  await page.goto(process.env.SHOWCASE_ORIGIN || `http://127.0.0.1:${port}/`, {
     waitUntil: 'domcontentloaded',
     timeout: 180000,
   })
   await root.locator(':scope[data-ready="true"]').waitFor({ timeout: 120000 })
   await settle()
+  assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), zh ? 'zhCN' : 'enUS')
+  assert.equal(await root.locator('[data-u-command="slides-exchange-client.operation.exchange"]').count(), 0)
   assert.equal(await root.locator(':scope > fieldset,:scope > details,[data-action]').count(), 0)
   const styles = await root.locator('[data-u-comp="workbench-layout"]').evaluate((el) => ({
     background: getComputedStyle(el).backgroundColor,
@@ -145,7 +152,7 @@ try {
       title,
     )
     assert.equal(
-      await root.getByRole('textbox', { name: 'Speaker notes', exact: true }).inputValue(),
+      await root.getByRole('textbox', { name: language.presentation.speakerNotes, exact: true }).inputValue(),
       baseline.slides[id].speakerNotes,
     )
     await root.screenshot({ path: path.join(directory, id + '.png') })
@@ -189,7 +196,7 @@ try {
   )
   await show('atrium')
   await menu('atrium', 'Add slide below')
-  await page.getByRole('button', { name: 'Blank', exact: true }).click()
+  await page.getByRole('button', { name: language.thumbnailBar.layoutPicker.layouts.blank, exact: true }).click()
   await page.waitForFunction(() => window.univerAPI.getActivePresentation().save().slideOrder.length === 9)
   const added = await read()
   const addedId = added.slideOrder.find((id) => !baseline.slideOrder.includes(id))
@@ -211,16 +218,13 @@ try {
     await page.waitForFunction((value) => document.documentElement.classList.contains('univer-dark') === value, dark)
     assert.deepEqual(await read(), beforeTheme)
   }
-  await native('slides-exchange-client.operation.exchange')
-  await page.getByText('Open(File)', { exact: true }).waitFor()
-  await page.getByText('Save As', { exact: true }).waitFor()
-  await page.keyboard.press('Escape')
+  assert.equal(await root.locator('[data-u-command="slides-exchange-client.operation.exchange"]').count(), 0)
   await native('slide.operation.print-open')
-  await page.getByText('Print range', { exact: true }).waitFor()
+  await page.getByText(zh ? '打印范围' : 'Print range', { exact: true }).waitFor()
   await page.screenshot({ path: path.join(directory, 'print-settings.png'), fullPage: true })
-  await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await page.getByRole('button', { name: zh ? '取消' : 'Cancel', exact: true }).click()
   report.checks.push(
-    'Native File menu and Print settings open; live Facade theme switching preserves the complete model. No conversion or physical print claim',
+    'Backend-dependent Exchange conversion is absent; native Print settings open and cancel, and live Facade theme switching preserves the complete model. No physical print claim',
   )
   assert.deepEqual(report.errors, [])
   assert.deepEqual(report.backendRequests, [])

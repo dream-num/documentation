@@ -43,9 +43,7 @@ try {
   const manifest = [{ slug: exported.slug, directory: project }]
   await fs.writeFile(path.join(directory, 'exports.json'), JSON.stringify(manifest, null, 2))
   report.sourceFiles = Object.keys(exported.files).length
-  const { build, preview } = await import(
-    pathToFileURL(path.join(project, 'node_modules/vite/dist/node/index.js'))
-  )
+  const { build, preview } = await import(pathToFileURL(path.join(project, 'node_modules/vite/dist/node/index.js')))
   await build({ configFile: false, root: project, logLevel: 'warn' })
   server = await preview({
     configFile: false,
@@ -355,10 +353,7 @@ try {
     const packs = [...factory.matchAll(/^import \w+EnUS from '([^']+)en-US'/gm)]
     assert.equal(packs.length, 5)
     assert.equal([...factory.matchAll(/^import '.+\/lib\/index.css'/gm)].length, 5)
-    for (const [locale, code] of [
-      ['en-US', 'enUS'],
-      ['zh-CN', 'zhCN'],
-    ]) {
+    for (const [locale, code] of [['en-US', 'enUS']]) {
       const before = await snapshot()
       await page.evaluate((v) => window.univerAPI.setLocale(v), code)
       for (const [, prefix] of packs)
@@ -371,18 +366,19 @@ try {
     await root.waitFor({ state: 'detached' })
     assert.equal(await page.evaluate(() => typeof window.univerAPI), 'undefined')
   })
-  await gate('initial-chinese-native-labels', async () => {
+  await gate('chinese-host-english-native-labels', async () => {
     await page.route('http://127.0.0.1:4372/', async (r) => {
       const response = await r.fetch()
       await r.fulfill({ response, body: (await response.text()).replace(/<html[^>]*>/, '<html lang="zh-CN">') })
     })
     await page.reload({ waitUntil: 'domcontentloaded' })
     await ready()
-    await page.getByRole('tab', { name: '视图', exact: true }).click()
-    await page.getByRole('button', { name: '属性', exact: true }).waitFor()
-    await page.getByRole('tab', { name: '开始', exact: true }).click()
+    assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
+    await page.getByRole('tab', { name: 'View', exact: true }).click()
+    await page.getByRole('button', { name: 'Properties', exact: true }).waitFor()
+    await page.getByRole('tab', { name: 'Start', exact: true }).click()
     await page.locator('[data-u-command="pdf.menu.tool.ink"]').hover()
-    await page.getByRole('tooltip').filter({ hasText: '自由画笔' }).waitFor()
+    await page.getByRole('tooltip').filter({ hasText: 'Freehand drawing' }).waitFor()
     assert.equal(/pdfs-ui\.[\w.-]+/.test(await page.locator('body').innerText()), false)
     await page.screenshot({ path: path.join(directory, 'initial-zh-CN.png') })
   })

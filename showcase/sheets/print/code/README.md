@@ -141,7 +141,7 @@ setTimeout(() => URL.revokeObjectURL(url), 1000)
 
 ### 12. Destroy and recreate the complete owner
 
-In `/src/index.ts`, where `container` and mutable `demo` are in scope (the standalone test exposes those bindings only in its harness):
+In `/src/index.ts`, where `container` and mutable `demo` are in scope:
 
 ```js
 const snapshot = structuredClone(demo.univerAPI.getActiveWorkbook().save())
@@ -154,21 +154,10 @@ await demo.ready
 
 Compare the complete before/after snapshots without removing IDs, resources or default fields. Print preferences are not silently appended to workbook JSON. History belongs to the disposed owner; a newly edited workbook must have fresh, independently working history.
 
-## 中文说明
+## Output and scope
 
-原生打印菜单和预览负责范围、纸张、方向、缩放、页边距及取消。报表保留原始五条持仓、负收益、日期格式和全部资源；A7 仅为标题。预览与导出共用 factory、三个预设的官方样式及完整中英文语言包，初始语言读取页面 lang，主题切换不销毁数据。上述每段代码均可独立执行；打印设置属于会话配置，不能把工作簿保存等同于打印设置持久化。无需后端，不注册 HTTP Exchange 客户端。
+At original scale, the eleven-column portfolio can span pages horizontally. Choose **Fit to width** to keep its columns together, or use the selected-range recipe for a smaller extract. Inspect the native preview before proceeding to the browser print dialog.
 
-## Verification
+Browser-generated pages do not verify physical printer output or a particular PDF driver. Print preferences are session state, not persisted workbook data. This example does not demonstrate server-side conversion or Office file export.
 
-Default guide target: `http://localhost:3030/en-US/playground/sheets/print`. Run `node scripts/test-sheets-print-native.mjs`; `SHOWCASE_DEMO_URL` overrides the complete URL and `SHOWCASE_BASE_URL` overrides the guide origin. Full owner reconstruction requires the standalone harness.
-
-PowerShell, from the documentation repository, selected case only:
-
-```powershell
-$env:SHOWCASE_BUILD_STANDALONE = '1'
-$env:SHOWCASE_VITE_DIRECTORY = '<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
-$env:SHOWCASE_RESULTS_DIR = 'test-results/sheets-print-native'
-node scripts/test-sheets-print-native.mjs
-```
-
-The test uses exact installed dependency versions without installation; it closes its port 4416 server. Physical printer output, OS dialogs and licensed clipboard export are outside the automated preview/cancel checks. The dedicated report retains strict SDK failures. In this installed beta, `FWorkbook.openPrintDialog()` calls a synchronous dispatcher for the now-async command handler and throws `Command handler should not return a promise`. The runnable blocks use the public async `executeCommand('sheet.operation.print-open')` path; the test separately retains the broken convenience method as FAIL. No SDK code is patched.
+For the standalone exported demo, run `npm install` followed by `npm run dev` in its directory.

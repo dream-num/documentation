@@ -44,7 +44,7 @@ const metadata: ShowcaseMetadata = {
     tryIt: {
       'en-US': [
         'Edit Evening makers allocation from 8000 to 10000.',
-        'Open Portfolio review in the native Base table list.',
+        'Open Portfolio review in the native Base list.',
         'Compare all three pages: total, individual shares and largest-project share.',
         'Try the literal examples for filters, hidden records, native errors and source recovery.',
         'Use the entry-module reconstruction example to retain both edited units and continue calculating after recovery.',

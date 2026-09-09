@@ -8,7 +8,10 @@ const metadata: ShowcaseMetadata = {
   product: 'bases',
   category: 'features',
   group: { 'en-US': 'Schema and lifecycle', 'zh-CN': '结构与生命周期' },
-  title: { 'en-US': 'Lumen / Create a Base and Tables', 'zh-CN': 'Lumen / 创建多维表格与数据表' },
+  title: {
+    'en-US': 'Lumen / Create a Base and Tables',
+    'zh-CN': 'Lumen / 创建 Bases 与数据表',
+  },
   description: {
     'en-US':
       'Explore 60 original theatre-renewal records in the native Base. Compare new-table placement, typed checklists, independent copies and snapshot restoration.',

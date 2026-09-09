@@ -211,7 +211,7 @@ export function createHostData(): ISlideData {
       elements: Object.fromEntries(elements.map((e) => [e.id, e])),
       elementOrder: elements.map((e) => e.id),
       speakerNotes:
-        'Original fictional journal. Live native formulas read the full Base table; no article is published. Narrative and geometry remain authored.',
+        'Original fictional journal. Live native formulas read the full Base; no article is published. Narrative and geometry remain authored.',
     }
   })
   return {

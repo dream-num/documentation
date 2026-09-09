@@ -8,7 +8,10 @@ const metadata: ShowcaseMetadata = {
   category: 'features',
   previewHeight: 1000,
   group: { 'en-US': 'Slides host / Tab', 'zh-CN': 'Slides 宿主 / 页面嵌入' },
-  title: { 'en-US': 'Bases in Slides / Launch Workstream', 'zh-CN': 'Bases 嵌入 Slides / 上市工作流' },
+  title: {
+    'en-US': 'Bases in Slides / Launch Workstream',
+    'zh-CN': 'Bases 嵌入 Slides / 上市工作流',
+  },
   description: {
     'en-US':
       'A retail pilot deck opens a native Base page with ten workstreams linked to four sales channels. Review evidence without leaving the presentation.',
@@ -70,7 +73,10 @@ const metadata: ShowcaseMetadata = {
     { id: 'channels', label: { 'en-US': 'Channels / Linked record labels', 'zh-CN': '渠道 / 关联记录名称' } },
   ],
   actions: [
-    { id: 'open', label: { 'en-US': 'Open the native Base page', 'zh-CN': '打开原生 Base 页面' } },
+    {
+      id: 'open',
+      label: { 'en-US': 'Open the native Base page', 'zh-CN': '打开原生 Base 页面' },
+    },
     { id: 'edit', label: { 'en-US': 'Edit records with native Undo/Redo', 'zh-CN': '编辑记录并使用原生撤销重做' } },
     { id: 'rename', label: { 'en-US': 'Rename a linked channel', 'zh-CN': '重命名关联渠道' } },
   ],

@@ -150,7 +150,9 @@ export function createHostData(): Partial<IWorkbookData> {
     15: { 0: { v: 'Planning envelope', s: 'header' }, 3: { f: '=D12+D14', s: 'total' } },
     18: { 0: { v: '34 MINUTES / 09:12–09:46', s: 'section' } },
     20: { 0: { v: 'Service recovered; cause validation and follow-ups remain open.', s: 'muted' } },
-    22: { 0: { v: 'Open Incident timeline for the native Board. Open Review gates for closure criteria.', s: 'body' } },
+    22: {
+      0: { v: 'Open Incident timeline for the native Board. Open Review gates for closure criteria.', s: 'body' },
+    },
     24: { 0: { v: 'Yellow cells are assumptions. The model is not booked loss or an insurance claim.', s: 'warning' } },
   }
   COSTS.forEach(([label, quantity, cost, basis], i) => {

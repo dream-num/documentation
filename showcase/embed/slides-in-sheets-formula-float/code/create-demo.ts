@@ -1,57 +1,41 @@
 import { UniverEmbedPlugin } from '@univerjs-pro/embed'
 import { EmbedFullscreenService, UniverEmbedUIPlugin } from '@univerjs-pro/embed-ui'
 import EmbedEnUS from '@univerjs-pro/embed-ui/locale/en-US'
-import EmbedZhCN from '@univerjs-pro/embed-ui/locale/zh-CN'
 import EmbedUnitEnUS from '@univerjs-pro/embed-unit-ui/locale/en-US'
-import EmbedUnitZhCN from '@univerjs-pro/embed-unit-ui/locale/zh-CN'
 import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import ShapeEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
-import ShapeZhCN from '@univerjs-pro/shape-editor-ui/locale/zh-CN'
 import { UniverSlidesPlugin } from '@univerjs-pro/slides'
 import { UniverSlidesUIPlugin } from '@univerjs-pro/slides-ui'
 import SlidesEnUS from '@univerjs-pro/slides-ui/locale/en-US'
-import SlidesZhCN from '@univerjs-pro/slides-ui/locale/zh-CN'
 import SlidesCoreEnUS from '@univerjs-pro/slides/locale/en-US'
-import SlidesCoreZhCN from '@univerjs-pro/slides/locale/zh-CN'
 import { IUniverInstanceService, LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
 import { unmount } from '@univerjs/design'
 import DesignEnUS from '@univerjs/design/locale/en-US'
-import DesignZhCN from '@univerjs/design/locale/zh-CN'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsEnUS from '@univerjs/docs-ui/locale/en-US'
-import DocsZhCN from '@univerjs/docs-ui/locale/zh-CN'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
 import DrawingEnUS from '@univerjs/drawing-ui/locale/en-US'
-import DrawingZhCN from '@univerjs/drawing-ui/locale/zh-CN'
 import EngineFormulaEnUS from '@univerjs/engine-formula/locale/en-US'
-import EngineFormulaZhCN from '@univerjs/engine-formula/locale/zh-CN'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
 import { SheetDrawingAnchorType, UniverSheetsDrawingPlugin } from '@univerjs/sheets-drawing'
 import { UniverSheetsDrawingUIPlugin } from '@univerjs/sheets-drawing-ui'
 import SheetsDrawingEnUS from '@univerjs/sheets-drawing-ui/locale/en-US'
-import SheetsDrawingZhCN from '@univerjs/sheets-drawing-ui/locale/zh-CN'
 import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
 import { UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
 import FormulaEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
-import FormulaZhCN from '@univerjs/sheets-formula-ui/locale/zh-CN'
 import SheetsFormulaEnUS from '@univerjs/sheets-formula/locale/en-US'
-import SheetsFormulaZhCN from '@univerjs/sheets-formula/locale/zh-CN'
 import { UniverSheetsNumfmtUIPlugin } from '@univerjs/sheets-numfmt-ui'
 import NumfmtEnUS from '@univerjs/sheets-numfmt-ui/locale/en-US'
-import NumfmtZhCN from '@univerjs/sheets-numfmt-ui/locale/zh-CN'
 import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
 import SheetsUIEnUS from '@univerjs/sheets-ui/locale/en-US'
-import SheetsUIZhCN from '@univerjs/sheets-ui/locale/zh-CN'
 import SheetsEnUS from '@univerjs/sheets/locale/en-US'
-import SheetsZhCN from '@univerjs/sheets/locale/zh-CN'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
-import UIZhCN from '@univerjs/ui/locale/zh-CN'
 
 import { CHILD_ID, createChildData, createHostData, FORMULA_CARDS, HOST_ID, SHEET_ID, SOURCE_NAME } from './data'
 
@@ -76,11 +60,7 @@ import '@univerjs-pro/shape-editor/facade'
 import '@univerjs-pro/slides/facade'
 import '@univerjs-pro/embed/facade'
 
-export function createDemo(
-  container: HTMLElement,
-  darkMode = false,
-  locale = document.documentElement.lang.toLowerCase().startsWith('zh') ? LocaleType.ZH_CN : LocaleType.EN_US,
-) {
+export function createDemo(container: HTMLElement, darkMode = false, _legacyLocale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
   root.className = 'atlas-embed'
   container.append(root)
@@ -89,7 +69,7 @@ export function createDemo(
   let disposed = false
   const univer = new Univer({
     darkMode,
-    locale,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
         DesignEnUS,
@@ -108,24 +88,6 @@ export function createDemo(
         SheetsFormulaEnUS,
         SlidesCoreEnUS,
         EmbedUnitEnUS,
-      ),
-      [LocaleType.ZH_CN]: mergeLocales(
-        DesignZhCN,
-        UIZhCN,
-        DocsZhCN,
-        SheetsZhCN,
-        SheetsUIZhCN,
-        FormulaZhCN,
-        NumfmtZhCN,
-        ShapeZhCN,
-        SlidesZhCN,
-        EmbedZhCN,
-        DrawingZhCN,
-        SheetsDrawingZhCN,
-        EngineFormulaZhCN,
-        SheetsFormulaZhCN,
-        SlidesCoreZhCN,
-        EmbedUnitZhCN,
       ),
     },
   })
@@ -279,10 +241,7 @@ export function createDemo(
         root.dataset.error = String(error)
         const message = document.createElement('p')
         message.setAttribute('role', 'alert')
-        message.textContent =
-          locale === LocaleType.ZH_CN
-            ? '嵌入演示文稿加载失败。请刷新重试，详细信息见控制台。'
-            : 'The embedded presentation could not load. Reload to retry; details are in the console.'
+        message.textContent = 'The embedded presentation could not load. Reload to retry; details are in the console.'
         root.prepend(message)
         console.error(error)
       })

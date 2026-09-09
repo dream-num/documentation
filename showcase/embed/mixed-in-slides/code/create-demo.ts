@@ -15,6 +15,7 @@ import {
 } from '@univerjs-pro/embed-ui'
 import EmbedEnUS from '@univerjs-pro/embed-ui/locale/en-US'
 import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import InkUIEnUS from '@univerjs-pro/ink-ui/locale/en-US'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import ShapeEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
 import { SetSlideZoomRatioOperation, UniverSlidesPlugin } from '@univerjs-pro/slides'
@@ -66,6 +67,7 @@ import CommentEnUS from '@univerjs/preset-sheets-thread-comment/locales/en-US'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
 import { UniverSheetsDrawingPlugin } from '@univerjs/sheets-drawing'
 import { UniverSheetsDrawingUIPlugin } from '@univerjs/sheets-drawing-ui'
+import SheetsDrawingUIEnUS from '@univerjs/sheets-drawing-ui/locale/en-US'
 import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
 import { SheetsFormulaUIMenuSchema, UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
 import FormulaEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
@@ -112,6 +114,7 @@ import '@univerjs/sheets-numfmt-ui/lib/index.css'
 import '@univerjs-pro/embed-ui/lib/index.css'
 import '@univerjs-pro/bases-ui/lib/index.css'
 import '@univerjs-pro/boards-ui/lib/index.css'
+import '@univerjs-pro/ink-ui/lib/index.css'
 import '@univerjs-pro/slides-ui/lib/index.css'
 import '@univerjs-pro/shape-editor-ui/lib/index.css'
 import './styles.css'
@@ -127,9 +130,10 @@ import '@univerjs-pro/boards-ui/facade'
 import '@univerjs-pro/embed/facade'
 import '@univerjs-pro/sheets-print/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _locale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
   root.className = 'beacon-review-embed'
+  root.dataset.ready = 'false'
   container.append(root)
   const abort = new AbortController()
   const cleanup: Array<() => void> = []
@@ -139,6 +143,8 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
+        SheetsDrawingUIEnUS,
+        InkUIEnUS,
         DesignEnUS,
         UIEnUS,
         DocsEnUS,
@@ -417,6 +423,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
       })().catch((error) => {
         if (disposed) return
         root.dataset.error = String(error)
+        root.dataset.ready = 'error'
         const message = document.createElement('p')
         message.setAttribute('role', 'alert')
         message.textContent =

@@ -8,7 +8,10 @@ const metadata: ShowcaseMetadata = {
   category: 'features',
   previewHeight: 1100,
   group: { 'en-US': 'Bases host / Tab', 'zh-CN': 'Bases 宿主 / 标签' },
-  title: { 'en-US': 'Sheets in Bases / Pipeline Forecast', 'zh-CN': 'Sheets 嵌入 Bases / 商机预测' },
+  title: {
+    'en-US': 'Sheets in Bases / Pipeline Forecast',
+    'zh-CN': 'Sheets 嵌入 Bases / 商机预测',
+  },
   description: {
     'en-US':
       'Open a native workbook tab beside ten opportunities and four linked customer groups; explore real stage-weighted what-if formulas.',

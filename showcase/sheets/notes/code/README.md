@@ -1,8 +1,10 @@
 # Riverside textiles: native cell notes
 
+Native UI and authored data are English-only. Earlier bilingual/native reports below are historical evidence, not acceptance of this migration.
+
 Run `pnpm install`, `pnpm dev`; use `pnpm build` and `pnpm preview` for the independent frontend.
-Preview and export share the same factory, official core/note preset CSS and complete EN/ZH preset packs.
-Initial `html lang="zh-CN"` selects Chinese. Theme changes preserve the same owner and edited document.
+Preview and export share the same factory, official core/note preset CSS and complete English preset packs.
+The SDK UI and authored content stay English on every host language. Theme changes preserve the same owner and edited document.
 
 ## Original conservation records
 
@@ -65,7 +67,7 @@ Hover B2 afterward: the native note appears temporarily without persisting show=
 ```ts
 {
   const range = window.univerAPI.getActiveWorkbook().getSheetBySheetId('intake').getRange('B2')
-  range.createOrUpdateNote({ ...range.getNote(), note: 'Humidity 48%; inspected by River team.\n复查 tomorrow.' })
+  range.createOrUpdateNote({ ...range.getNote(), note: 'Humidity 48%; inspected by River team.\nRecheck — tomorrow.' })
 }
 ```
 
@@ -256,15 +258,7 @@ This factory does not automatically unpin/re-pin or edit popup DOM to conceal th
 commands; wait for actual getNote() data before saving. Model content, rendered popup and complete raw snapshot history
 are separate strict checks, with no normalization or regenerated IDs.
 
-`scripts/test-sheets-notes-native.mjs` builds only this case and runs the literal snippets, native edit/layout/history,
-initial Chinese native UI, full EN/ZH packs/CSS, same-owner theme and same-ID restore. Original mobile/keyboard combinations,
-threaded review workflows and broad accessibility are not automatically certified by removing the host controls.
-
 ## Strict native acceptance
-
-`test-results/sheets-notes-native-complete/report.json` records **43/48 gates PASS**, with all **25/25 literal blocks PASS**
-(including the expected application-input rejection). The selected independent production export uses exact dependency
-versions and retains all 10 exported source files in `test-results/sheets-notes-native-complete/exports.json`.
 
 Real textarea edits, native resize-handle drags, native menu pin/delete, hover, sheet tabs and keyboard Undo/Redo were tested.
 Complete raw snapshots, including serialized resources and stable IDs, pass native edit/resize/pin/delete history and
@@ -280,9 +274,3 @@ Five strict failures remain, without a host workaround or SDK patch:
 - Direct Facade text updates leave the existing popup text unchanged.
 - Direct Facade size changes store 320×180 while the popup remains 220×110.
 - Direct Facade note mutations do not enter native Undo history.
-
-The before/after/undo/redo evidence is preserved in the report. `baseline.png`, `native-text.png`, `native-resize.png`,
-`nativeText-undo.png`, `native-pin.png`, `initial-zh.png` and `empty.png` are actual native UI screenshots in that directory.
-Earlier `sheets-notes-native-first` and `sheets-notes-native-acceptance` reports remain historical; the latter also records
-a corrected test-locator error, not an additional SDK defect. The older `scripts/test-notes.mjs` targets the removed host
-panel and is not the acceptance entry point for this native demo.

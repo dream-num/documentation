@@ -5,25 +5,19 @@ import { createRoutes, ROUTES, validateSnapshot } from './data'
 
 import './styles.css'
 
-export function createDemo(
-  container: HTMLElement,
-  darkMode = false,
-  locale = document.documentElement.lang.toLowerCase().startsWith('zh') ? 'zhCN' : 'enUS',
-) {
-  const zh = locale === 'zhCN'
-  const t = (en: string, cn: string) => (zh ? cn : en)
+export function createDemo(container: HTMLElement, darkMode = false, _legacyLocale = 'enUS') {
   const root = document.createElement('div')
   root.className = 'lazy-load-demo'
   root.dataset.theme = darkMode ? 'dark' : 'light'
   root.innerHTML = `<section class="lazy-overview">
-    <h2>Cedar Community Logistics</h2><p>${t('Weekly route planning · March 29, 2027', '每周路线规划 · 2027 年 3 月 29 日')}</p>
-    <table aria-label="${t('Planning manifest', '计划清单')}"><thead><tr><th>${t('Route', '路线')}</th><th>${t('Hub', '站点')}</th><th>${t('Runs / week', '每周班次')}</th></tr></thead><tbody>${ROUTES.map((row) => `<tr><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td></tr>`).join('')}</tbody></table>
+    <h2>Cedar Community Logistics</h2><p>Weekly route planning · March 29, 2027</p>
+    <table aria-label="Planning manifest"><thead><tr><th>Route</th><th>Hub</th><th>Runs / week</th></tr></thead><tbody>${ROUTES.map((row) => `<tr><td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td></tr>`).join('')}</tbody></table>
     <div class="lazy-activation"><button type="button" data-action="load"></button><span role="status" class="lazy-status"></span></div>
     <p class="lazy-error" role="alert" hidden></p>
-    <p class="lazy-scroll-hint">${t('↓ Scroll to open the route editor', '↓ 滚动以打开路线编辑器')}</p>
-  </section><section class="lazy-editor-target" aria-label="${t('Deferred route editor', '按需加载的路线编辑器')}">
-    <div class="lazy-editor-controls"><button type="button" data-action="cancel">${t('Cancel loading', '取消加载')}</button><button type="button" data-action="release">${t('Release editor', '释放编辑器')}</button><button type="button" data-action="download">${t('Download JSON', '下载 JSON')}</button></div>
-    <p class="lazy-placeholder">${t('The editor loads when this section is visible.', '此区域进入视野时加载编辑器。')}</p><div class="lazy-mount"></div></section>`
+    <p class="lazy-scroll-hint">↓ Scroll to open the route editor</p>
+  </section><section class="lazy-editor-target" aria-label="Deferred route editor">
+    <div class="lazy-editor-controls"><button type="button" data-action="cancel">Cancel loading</button><button type="button" data-action="release">Release editor</button><button type="button" data-action="download">Download JSON</button></div>
+    <p class="lazy-placeholder">The editor loads when this section is visible.</p><div class="lazy-mount"></div></section>`
   container.append(root)
   const target = root.querySelector<HTMLElement>('.lazy-editor-target')!
   const slot = root.querySelector<HTMLElement>('.lazy-mount')!
@@ -43,11 +37,11 @@ export function createDemo(
     root.dataset.ready = String(phase === 'ready')
     root.dataset.phase = phase
     root.querySelector('.lazy-status')!.textContent = {
-      idle: t('Not loaded', '尚未加载'),
-      loading: t('Loading…', '加载中…'),
-      ready: t('Ready', '已就绪'),
-      error: t('Loading failed', '加载失败'),
-      releasing: t('Releasing…', '释放中…'),
+      idle: 'Not loaded',
+      loading: 'Loading…',
+      ready: 'Ready',
+      error: 'Loading failed',
+      releasing: 'Releasing…',
     }[phase]
     root.querySelector<HTMLElement>('.lazy-placeholder')!.hidden = phase === 'ready'
     alert.hidden = !error
@@ -62,10 +56,10 @@ export function createDemo(
         (action === 'download' && phase !== 'ready')
       if (action === 'load')
         button.textContent = moduleLoadFailed
-          ? t('Page refresh required', '需要刷新页面')
+          ? 'Page refresh required'
           : phase === 'error'
-            ? t('Retry editor load', '重试加载')
-            : t('Open route editor', '打开路线编辑器')
+            ? 'Retry editor load'
+            : 'Open route editor'
     }
   }
   const observer = new IntersectionObserver(
@@ -95,7 +89,7 @@ export function createDemo(
         const deferred = await import('./editor')
         imported = true
         if (closed || ticket !== generation) return
-        const owner = deferred.createEditor(slot, snapshot, darkMode, locale)
+        const owner = deferred.createEditor(slot, snapshot, darkMode, 'enUS')
         editor = owner
         await owner.ready
         if (closed || ticket !== generation) return
@@ -105,10 +99,7 @@ export function createDemo(
         error = cause instanceof Error ? cause.message : String(cause)
         if (!imported) {
           moduleLoadFailed = true
-          error += t(
-            ' Save other page work, then refresh this page to reload the editor module.',
-            ' 请先保存页面中的其他工作，再刷新页面重新加载编辑器模块。',
-          )
+          error += ' Save other page work, then refresh this page to reload the editor module.'
         }
         if (editor) {
           try {

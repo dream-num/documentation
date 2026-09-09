@@ -41,7 +41,7 @@ const metadata: ShowcaseMetadata = {
       'en-US':
         'Beacon proposes offline ingestion for twelve fictional observation stations. Three native slides explain a 24-hour buffer target, duplicate detection and review checks. The floating native Board contains six editable nodes, six bound connectors and four annotations. No fixture panel or substitute image is used.',
       'zh-CN':
-        'Beacon 为十二个虚构观测站设计离线回传。三页原生幻灯片说明 24 小时缓存目标、去重与评审检查；浮动原生白板包含六个可编辑节点、六条绑定连接线和四个注释，不使用通用测试面板或图片替代。',
+        'Beacon 为十二个虚构观测站设计离线回传。三页原生幻灯片说明 24 小时缓存目标、去重与评审检查；浮动原生 Boards 包含六个可编辑节点、六条绑定连接线和四个注释，不使用通用测试面板或图片替代。',
     },
     tryIt: {
       'en-US': [
@@ -51,17 +51,17 @@ const metadata: ShowcaseMetadata = {
         'Run the second README example to change the host headline. Switch theme and verify that the Board and slide edits remain independent.',
       ],
       'zh-CN': [
-        '双击架构图激活原生白板，选择节点并使用原生编辑工具。',
+        '双击架构图激活原生 Boards，选择节点并使用原生编辑工具。',
         '运行 README 第一段示例修改隔离队列决策，使用原生撤销重做并确认幻灯片叙事不变。',
-        '切换其他幻灯片比较责任分工与失败检查，再返回已编辑白板。',
-        '运行 README 第二段示例修改宿主标题，切换主题并确认白板与幻灯片编辑独立保留。',
+        '切换其他幻灯片比较责任分工与失败检查，再返回已编辑 Boards。',
+        '运行 README 第二段示例修改宿主标题，切换主题并确认 Boards 与幻灯片编辑独立保留。',
       ],
     },
     expected: {
       'en-US':
         'A real SlideFloating Board, not a tab, iframe or screenshot. Native Grid host menus and official Boards tools share the page. Targets are fictional; slide copy is not formula-linked. Native editing, movement and keyboard history have selected checks. Known failure: Enter fullscreen opens no shell, so the overall native runtime gate fails. Theme changes regenerate the native Board palette while preserving authored content. No sensors, messages, deployments, approvals or backend. Reload restores initial data; see README for remaining acceptance.',
       'zh-CN':
-        '真正的 SlideFloating 白板，不是标签页、iframe 或截图。原生 Grid 宿主菜单与官方白板工具共同工作。目标值均为虚构设计输入；幻灯片文案不使用公式关联。编辑、移动与键盘历史已完成选定检查。已知失败：Enter fullscreen 无法打开全屏视图，因此整体运行检查仍失败。主题切换会重新生成白板原生色表，但保留编写内容。不连接传感器、不发消息、不部署、不审批、不使用后端。刷新恢复初始数据；其余验收项见 README。',
+        '真正的 SlideFloating Boards，不是标签页、iframe 或截图。原生 Grid 宿主菜单与官方 Boards 工具共同工作。目标值均为虚构设计输入；幻灯片文案不使用公式关联。编辑、移动与键盘历史已完成选定检查。已知失败：Enter fullscreen 无法打开全屏视图，因此整体运行检查仍失败。主题切换会重新生成 Boards 原生色表，但保留编写内容。不连接传感器、不发消息、不部署、不审批、不使用后端。刷新恢复初始数据；其余验收项见 README。',
     },
   },
   variants: [
@@ -70,9 +70,9 @@ const metadata: ShowcaseMetadata = {
     ['checks', 'Disconnect, replay, quarantine / Review gates', '断网、重放、隔离 / 评审检查'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   actions: [
-    ['activate', 'Activate and edit the native Board', '激活并编辑原生白板'],
+    ['activate', 'Activate and edit the native Board', '激活并编辑原生 Boards'],
     ['history', 'Use native history on the diagram', '在架构图使用原生历史'],
-    ['navigate', 'Navigate the host without replacing the child', '切换宿主而不替换子白板'],
+    ['navigate', 'Navigate the host without replacing the child', '切换宿主而不替换子 Boards'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   states: [
     ['host', 'Architecture review slide', '架构评审幻灯片'],

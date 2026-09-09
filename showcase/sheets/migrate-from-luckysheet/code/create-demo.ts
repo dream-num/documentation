@@ -1,3 +1,4 @@
+import { unmount } from '@univerjs/design'
 import { UniverSheetsConditionalFormattingPreset } from '@univerjs/preset-sheets-conditional-formatting'
 import sheetsConditionalFormattingEnUS from '@univerjs/preset-sheets-conditional-formatting/locales/en-US'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
@@ -14,7 +15,10 @@ import '@univerjs/preset-sheets-core/lib/index.css'
 import '@univerjs/preset-sheets-conditional-formatting/lib/index.css'
 import '@univerjs/preset-sheets-data-validation/lib/index.css'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _legacyLocale: LocaleType = LocaleType.EN_US) {
+  const root = document.createElement('div')
+  root.className = 'migration-demo'
+  container.append(root)
   container.dataset.ready = 'false'
   const { univer, univerAPI } = createUniver({
     darkMode,
@@ -23,7 +27,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
       [LocaleType.EN_US]: mergeLocales(sheetsCoreEnUS, sheetsConditionalFormattingEnUS, sheetsDataValidationEnUS),
     },
     presets: [
-      UniverSheetsCorePreset({ ribbonType: 'grid', container }),
+      UniverSheetsCorePreset({ ribbonType: 'grid', container: root }),
       UniverSheetsConditionalFormattingPreset(),
       UniverSheetsDataValidationPreset(),
     ],
@@ -33,11 +37,17 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     if (stage === univerAPI.Enum.LifecycleStages.Steady) container.dataset.ready = 'true'
   })
   univerAPI.createWorkbook(luckyToUniver(luckyJson))
+  const demoWindow = window as Window & { univerAPI?: typeof univerAPI }
+  demoWindow.univerAPI = univerAPI
 
   return {
+    univerAPI,
     dispose() {
       lifecycle.dispose()
+      unmount(root)
       univer.dispose()
+      if (demoWindow.univerAPI === univerAPI) delete demoWindow.univerAPI
+      root.remove()
       delete container.dataset.ready
     },
   }

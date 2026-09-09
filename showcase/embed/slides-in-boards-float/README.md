@@ -1,5 +1,10 @@
 # Prism / Slides floating on a storyboard
 
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but is ignored. Earlier  English-only source/CSS/startup checks do
+not certify every native interaction or resolve the recorded SDK failures.
+
 An original fictional night-sky pop-up proposal pairs four narrative notes with
 a native four-page pitch deck. Eight sessions, twenty seats each, two venues and
 four learning weeks define a small pilot. The USD 8,400 resource plan allocates
@@ -62,12 +67,8 @@ theme ID and all authored content remain strict. No SDK package is patched.
 
 EN/ZH guides pass three variants/actions/states and actual media-theme changes
 preserving the same owner and both edited models. Source parity checks the eleven
-exported files and eight official SDK stylesheets, including the white native
+exported files and official SDK stylesheets, including the white native
 workbench and the deliberately navy slide canvas. Evidence:
-
-- `test-results/embed-slide-board-float-production-final/report.json`
-- `test-results/embed-slide-board-float-next-final/report.json`
-- `test-results/embed-slide-board-float-export-final/report.json`
 
 Only this demo was built: 206 offline packages, 1,841 modules, main JavaScript
 18,104.47 kB / 4,497.78 kB gzip and CSS 125.97 kB / 18.63 kB gzip.
@@ -82,3 +83,7 @@ No SDK package or license watermark is patched.
 The saved Beautiful.ai dark-pitch reference informs the strong title contrast,
 not its artwork or copy. All story text, figures and geometry are original.
 Native SDK surfaces stay intact while the four slide palettes vary by purpose.
+
+The shared factory explicitly imports the official Ink UI English pack and CSS
+required by the registered Boards UI dependency. Other product locale packs and
+styles remain intact. This is resource coverage, not native pen acceptance.

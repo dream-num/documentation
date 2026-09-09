@@ -1,13 +1,10 @@
 import { UniverBasesPlugin } from '@univerjs-pro/bases'
 import { UniverBasesUIPlugin } from '@univerjs-pro/bases-ui'
 import BasesUIEnUS from '@univerjs-pro/bases-ui/locale/en-US'
-import BasesUIZhCN from '@univerjs-pro/bases-ui/locale/zh-CN'
 import BasesEnUS from '@univerjs-pro/bases/locale/en-US'
-import BasesZhCN from '@univerjs-pro/bases/locale/zh-CN'
 import { UniverDocsFormulaPlugin } from '@univerjs-pro/docs-formula'
 import { UniverDocsFormulaUIPlugin } from '@univerjs-pro/docs-formula-ui'
 import DocsFormulaEnUS from '@univerjs-pro/docs-formula-ui/locale/en-US'
-import DocsFormulaZhCN from '@univerjs-pro/docs-formula-ui/locale/zh-CN'
 import { UniverEmbedPlugin } from '@univerjs-pro/embed'
 import {
   EmbedFullscreenService,
@@ -15,28 +12,22 @@ import {
   UniverEmbedUIPlugin,
 } from '@univerjs-pro/embed-ui'
 import EmbedEnUS from '@univerjs-pro/embed-ui/locale/en-US'
-import EmbedZhCN from '@univerjs-pro/embed-ui/locale/zh-CN'
 import EmbedUnitEnUS from '@univerjs-pro/embed-unit-ui/locale/en-US'
-import EmbedUnitZhCN from '@univerjs-pro/embed-unit-ui/locale/zh-CN'
 import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import ShapeEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
-import ShapeZhCN from '@univerjs-pro/shape-editor-ui/locale/zh-CN'
 import { IUniverInstanceService, LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
 import { unmount } from '@univerjs/design'
 import DesignEnUS from '@univerjs/design/locale/en-US'
-import DesignZhCN from '@univerjs/design/locale/zh-CN'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsEnUS from '@univerjs/docs-ui/locale/en-US'
-import DocsZhCN from '@univerjs/docs-ui/locale/zh-CN'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverDocsDrawingPlugin, UniverDocsDrawingUIPlugin } from '@univerjs/preset-docs-drawing'
 import DocsDrawingEnUS from '@univerjs/preset-docs-drawing/locales/en-US'
-import DocsDrawingZhCN from '@univerjs/preset-docs-drawing/locales/zh-CN'
 import {
   ISheetPrintManagerService,
   UniverSheetsChartPlugin,
@@ -52,49 +43,35 @@ import {
   UniverSheetSparklineUIPlugin,
 } from '@univerjs/preset-sheets-advanced'
 import AdvancedEnUS from '@univerjs/preset-sheets-advanced/locales/en-US'
-import AdvancedZhCN from '@univerjs/preset-sheets-advanced/locales/zh-CN'
 import { UniverSheetsConditionalFormattingPreset } from '@univerjs/preset-sheets-conditional-formatting'
 import ConditionalEnUS from '@univerjs/preset-sheets-conditional-formatting/locales/en-US'
-import ConditionalZhCN from '@univerjs/preset-sheets-conditional-formatting/locales/zh-CN'
 import { UniverSheetsDataValidationPreset } from '@univerjs/preset-sheets-data-validation'
 import ValidationEnUS from '@univerjs/preset-sheets-data-validation/locales/en-US'
-import ValidationZhCN from '@univerjs/preset-sheets-data-validation/locales/zh-CN'
 import { UniverSheetsFilterPreset } from '@univerjs/preset-sheets-filter'
 import FilterEnUS from '@univerjs/preset-sheets-filter/locales/en-US'
-import FilterZhCN from '@univerjs/preset-sheets-filter/locales/zh-CN'
 import { UniverSheetsHyperLinkPreset } from '@univerjs/preset-sheets-hyper-link'
 import LinkEnUS from '@univerjs/preset-sheets-hyper-link/locales/en-US'
-import LinkZhCN from '@univerjs/preset-sheets-hyper-link/locales/zh-CN'
 import { UniverSheetsNotePreset } from '@univerjs/preset-sheets-note'
 import NoteEnUS from '@univerjs/preset-sheets-note/locales/en-US'
-import NoteZhCN from '@univerjs/preset-sheets-note/locales/zh-CN'
 import { UniverSheetsSortPreset } from '@univerjs/preset-sheets-sort'
 import SortEnUS from '@univerjs/preset-sheets-sort/locales/en-US'
-import SortZhCN from '@univerjs/preset-sheets-sort/locales/zh-CN'
 import { UniverSheetsTablePreset } from '@univerjs/preset-sheets-table'
 import TableEnUS from '@univerjs/preset-sheets-table/locales/en-US'
-import TableZhCN from '@univerjs/preset-sheets-table/locales/zh-CN'
 import { UniverSheetsThreadCommentPreset } from '@univerjs/preset-sheets-thread-comment'
 import CommentEnUS from '@univerjs/preset-sheets-thread-comment/locales/en-US'
-import CommentZhCN from '@univerjs/preset-sheets-thread-comment/locales/zh-CN'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
 import { UniverSheetsDrawingPlugin } from '@univerjs/sheets-drawing'
 import { UniverSheetsDrawingUIPlugin } from '@univerjs/sheets-drawing-ui'
 import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
 import { SheetsFormulaUIMenuSchema, UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
 import FormulaEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
-import FormulaZhCN from '@univerjs/sheets-formula-ui/locale/zh-CN'
 import { UniverSheetsNumfmtUIPlugin } from '@univerjs/sheets-numfmt-ui'
 import NumfmtEnUS from '@univerjs/sheets-numfmt-ui/locale/en-US'
-import NumfmtZhCN from '@univerjs/sheets-numfmt-ui/locale/zh-CN'
 import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
 import SheetsUIEnUS from '@univerjs/sheets-ui/locale/en-US'
-import SheetsUIZhCN from '@univerjs/sheets-ui/locale/zh-CN'
 import SheetsEnUS from '@univerjs/sheets/locale/en-US'
-import SheetsZhCN from '@univerjs/sheets/locale/zh-CN'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
-import UIZhCN from '@univerjs/ui/locale/zh-CN'
 
 import {
   SHEET_UNIT_ID,
@@ -146,13 +123,11 @@ import '@univerjs-pro/bases-ui/facade'
 import '@univerjs-pro/embed/facade'
 import '@univerjs-pro/sheets-print/facade'
 
-export function createDemo(
-  container: HTMLElement,
-  darkMode = false,
-  locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
-) {
+export function createDemo(container: HTMLElement, darkMode = false, _legacyLocale?: LocaleType) {
+  const locale = LocaleType.EN_US
   const root = document.createElement('div')
   root.className = 'estuary-embed'
+  root.dataset.ready = 'false'
   container.append(root)
   const abort = new AbortController()
   const cleanup: Array<() => void> = []
@@ -185,31 +160,6 @@ export function createDemo(
         BasesEnUS,
         BasesUIEnUS,
         ShapeEnUS,
-      ),
-      [LocaleType.ZH_CN]: mergeLocales(
-        DesignZhCN,
-        UIZhCN,
-        DocsZhCN,
-        DocsFormulaZhCN,
-        DocsDrawingZhCN,
-        ConditionalZhCN,
-        AdvancedZhCN,
-        ValidationZhCN,
-        FilterZhCN,
-        LinkZhCN,
-        NoteZhCN,
-        SortZhCN,
-        TableZhCN,
-        CommentZhCN,
-        SheetsZhCN,
-        SheetsUIZhCN,
-        FormulaZhCN,
-        NumfmtZhCN,
-        EmbedZhCN,
-        EmbedUnitZhCN,
-        BasesZhCN,
-        BasesUIZhCN,
-        ShapeZhCN,
       ),
     },
   })
@@ -445,10 +395,11 @@ export function createDemo(
       })().catch((error) => {
         if (disposed) return
         root.dataset.error = String(error)
+        root.dataset.ready = 'error'
         const message = document.createElement('p')
         message.setAttribute('role', 'alert')
         message.textContent =
-          'The project brief could not load both data sources. Reload to retry; details are in the console.'
+          'The data-linked brief could not load and calculate both data sources. Reload to retry; details are in the console.'
         root.prepend(message)
         console.error(error)
       })

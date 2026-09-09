@@ -8,13 +8,19 @@ const metadata: ShowcaseMetadata = {
   category: 'features',
   previewHeight: 1040,
   group: { 'en-US': 'Sheets host / Tab', 'zh-CN': 'Sheets 宿主 / 标签嵌入' },
-  title: { 'en-US': 'Base in Sheets / Supplier Operations Tab', 'zh-CN': 'Base 嵌入 Sheets / 供应商运营标签' },
+  title: {
+    'en-US': 'Base in Sheets / Supplier Operations Tab',
+    'zh-CN': 'Base 嵌入 Sheets / 供应商运营标签',
+  },
   description: {
     'en-US':
       'A landed-cost workbook opens a native Base tab with supplier terms, review dates and linked follow-up records. Cost and operational decisions remain separate.',
     'zh-CN': '到岸成本工作簿内置原生 Base 标签，包含供应商条款、复核日期和关联跟进记录，区分成本计算与执行决策。',
   },
-  tags: { 'en-US': ['Embed', 'Sheets', 'Bases', 'Tab'], 'zh-CN': ['嵌入', '表格', '多维表格', '标签'] },
+  tags: {
+    'en-US': ['Embed', 'Sheets', 'Bases', 'Tab'],
+    'zh-CN': ['嵌入', '表格', '多维表格', '标签'],
+  },
   packages: [
     '@univerjs/core',
     '@univerjs/sheets-ui',
@@ -63,14 +69,20 @@ const metadata: ShowcaseMetadata = {
     { id: 'cost', label: { 'en-US': 'Landed-cost model / Wine and sand', 'zh-CN': '到岸成本模型 / 酒红与沙色' } },
     {
       id: 'suppliers',
-      label: { 'en-US': 'Supplier directory / Native Base tab', 'zh-CN': '供应商目录 / 原生 Base 标签' },
+      label: {
+        'en-US': 'Supplier directory / Native Base tab',
+        'zh-CN': '供应商目录 / 原生 Base 标签',
+      },
     },
     { id: 'followups', label: { 'en-US': 'Linked follow-ups / Record relationships', 'zh-CN': '关联跟进 / 记录关系' } },
   ],
   actions: [
     {
       id: 'navigate',
-      label: { 'en-US': 'Navigate native workbook tabs and Base tables', 'zh-CN': '切换原生工作簿标签与 Base 数据表' },
+      label: {
+        'en-US': 'Navigate native workbook tabs and Bases',
+        'zh-CN': '切换原生工作簿标签与 Base 数据表',
+      },
     },
     { id: 'edit', label: { 'en-US': 'Edit independent supplier records', 'zh-CN': '编辑独立供应商记录' } },
     { id: 'recalculate', label: { 'en-US': 'Recalculate freight and landed costs', 'zh-CN': '重算运费与到岸成本' } },

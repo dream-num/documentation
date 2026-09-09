@@ -38,7 +38,7 @@ scrolling to the next-evidence text with an unchanged child snapshot.
 build. `embed-base-float-export-parity` verifies eleven exported files and the
 native white/flex CSS. The build installs 206 packages and transforms 1,845
 modules: main JS is 18,443.24 kB / 4,531.31 kB gzip; CSS is 143.11 kB / 20.19 kB
-gzip. Large-bundle performance is not accepted. EN/ZH guide testing remains open.
+gzip. Large-bundle performance is not accepted. Full EN/ZH guide testing remains open.
 Verify full native editing, broader history and scrolling boundaries before
 claiming complete acceptance. Narrow layouts,
 keyboard/touch accessibility, invalid sources and performance remain open.

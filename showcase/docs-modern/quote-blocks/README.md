@@ -1,8 +1,10 @@
 # Harbor / Quote Blocks
 
+The demo runtime and authored data are English-only, including on a Chinese documentation page. Complete official English locale packs are retained. Any legacy locale argument is accepted but ignored; saved-snapshot argument positions are unchanged. Earlier bilingual test reports below describe the previous revision, not current language acceptance.
+
 An original fictional walking-guide pilot, not real navigation advice. The original 21 paragraphs remain: a steward’s voice, context and attribution, a contrasting observation, routes, acceptance tasks, caution, TypeScript configuration and review link. Five new community/research paragraphs make four native business quotes visible: editorial blue, community green, research violet and high contrast. The latter two demonstrate two- and three-paragraph boundaries. `visible route` remains bold and italic; `clear directions` remains bold.
 
-Edit with native Grid and document canvas. The registered quote UI also supplies a floating toolbar, but its opening click path is currently a strict failure in this installed build; do not assume it is available from the screenshot. There is no host property form, fixture picker, history toolbar or raw-readback panel. Preview/export use one factory, all six official stylesheets and six complete EN/ZH locale packs. Initial language follows the page; the fictional business prose stays English. Theme switching preserves the current editor and edits. Trial watermarks are not hidden.
+Edit with native Grid and document canvas. The registered quote UI also supplies a floating toolbar, but its opening click path is currently a strict failure in this installed build; do not assume it is available from the screenshot. There is no host property form, fixture picker, history toolbar or raw-readback panel. Preview/export use one factory, all six official stylesheets and six complete English locale packs. The UI stays English; the fictional business prose stays English. Theme switching preserves the current editor and edits. Trial watermarks are not hidden.
 
 ## Literal Facade examples
 
@@ -217,5 +219,3 @@ if (!window.harborParagraph('[VOICE]').appendText(' Reviewed with the accessibil
 The dedicated test executes these literal examples, inspects real native glyphs/rules and canvas pixels, exercises native menu/typing and compares complete history/recreation snapshots. Known beta.2 combined-color Undo failure stays a strict regression gate. Source examples are not a promise that every SDK history path passes; failures are neither hidden nor repaired.
 
 Current installed beta.2 boundaries: combined-style and text-only Undo return false; Facade append Undo splits an otherwise identical text-color run at the paragraph tail. The quote floating toolbar did not open at the actual VOICE hit region, so its picker/history remains unaccepted. Native Grid quote insertion and left-line-only/delete history are tested separately. Same-ID reconstruction retains complete saved data; no ID or text-run rewriting is used. The old host's internal fit-width/scroll adapter is removed; narrow viewport auto-fit is not claimed, and native zoom controls remain available.
-
-Run `node scripts/test-modern-quotes-native.mjs [selected-export-manifest.json]`. The default URL matches `dev:showcase` at localhost:3030. Use `SHOWCASE_DEMO_URL`, `SHOWCASE_BASE_URL` and `SHOWCASE_RESULTS_DIR` for independent selected-case verification. No backend is required. Build only this case.

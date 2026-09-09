@@ -27,8 +27,6 @@ const metadata: ShowcaseMetadata = {
     '@univerjs-pro/slides',
     '@univerjs-pro/slides-ui',
     '@univerjs-pro/license',
-    '@univerjs-pro/exchange-client',
-    '@univerjs-pro/slides-exchange-client',
     '@univerjs-pro/slides-print',
   ],
   apis: [
@@ -54,7 +52,7 @@ const metadata: ShowcaseMetadata = {
         'Edit the copied title in the native editor, or use the Facade example in README. Return to the original Atrium and compare its title, room capacity and notes.',
         'Right-click the copy and choose Delete. Use native ribbon Undo/Redo to restore or remove the page.',
         'Right-click Atrium, choose Add slide below, then Blank. The native layout picker creates the page at that position.',
-        'Use the native File and Print controls. Conversion and physical printing require separate verification. Browser reload restores the original deck; theme changes keep edits.',
+        'Open native Print settings. Binary file conversion requires a backend and is not registered here; physical printing remains unverified. Browser reload restores the original deck; theme changes keep edits.',
         'For repeated names, one-page and empty starting points, change the createData argument in source; these are source variants, not hidden fixture buttons.',
       ],
       'zh-CN': [
@@ -62,7 +60,7 @@ const metadata: ShowcaseMetadata = {
         '在原生编辑器修改副本标题，或使用 README 的 Facade 示例；返回原 Atrium，对比标题、房间容量和备注。',
         '右键副本选择 Delete，再用原生菜单 Undo/Redo 恢复或移除页面。',
         '右键 Atrium，选择 Add slide below，再选择 Blank，由原生布局选择器在该位置新建页面。',
-        '使用原生 File 和 Print 控件；文件转换与实际打印仍需单独验证。刷新恢复原始文稿，切换主题保留编辑。',
+        '打开原生打印设置。二进制文件转换需要后端，本例不注册；实际打印仍未验证。刷新恢复原始文稿，切换主题保留编辑。',
         '重复名称、单页和空文稿通过修改源码中的 createData 参数体验，不提供隐藏的 fixture 按钮。',
       ],
     },
@@ -131,10 +129,10 @@ const metadata: ShowcaseMetadata = {
     ],
     [
       'file',
-      'Native File / Print',
-      '原生文件／打印',
-      'Open registered Exchange and Print controls; full output acceptance remains open.',
-      '打开已注册的 Exchange 和 Print 控件；完整输出验收仍待完成。',
+      'Native Print settings',
+      '原生打印设置',
+      'Open native Print settings; backend-dependent Exchange conversion is not registered.',
+      '打开原生打印设置；不注册依赖后端的 Exchange 转换。',
     ],
   ].map(([id, en, zh, enDescription, zhDescription]) => ({
     id,

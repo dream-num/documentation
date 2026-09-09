@@ -30,10 +30,10 @@ import '@univerjs-pro/slides/facade'
 import '@univerjs-pro/slides-print/facade'
 import '@univerjs/ui/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _locale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
   root.className = 'slide-text-demo'
-  root.dataset.theme = darkMode ? 'dark' : 'light'
+  root.dataset.ready = 'false'
   container.append(root)
   const univer = new Univer({
     darkMode,

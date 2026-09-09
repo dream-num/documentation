@@ -2,7 +2,7 @@
 
 An original arts weekend contains 30 production tasks, 12 installations and 18 opening checkpoints. Explore the native sidebar, record grid, cell editor and context menus. Text, hours, status, people, dates, local attachment notes and real installation links vary across the three tables.
 
-The editor has no fixture controls, duplicated CRUD/Undo buttons, audit panel or explanatory card. Grid is the default workbench layout. Preview and standalone export use the same factory, data and four official SDK stylesheets. Five dependency locale packs are provided in English and Chinese. Authored business content stays English; changing the page theme does not recreate the Base.
+The editor has no fixture controls, duplicated CRUD/Undo buttons, audit panel or explanatory card. Grid is the default workbench layout. Preview and standalone export use the same factory, data and four official SDK stylesheets. Five complete English dependency locale packs are provided. Authored business content stays English; changing the page theme does not recreate the Base.
 
 Person names use the native local directory. Beta.2 can display person IDs in grid cells even when the native picker resolves their names; IDs are not replaced with display strings. No backend, collaborative history plugin or conversion server is registered.
 
@@ -122,8 +122,6 @@ window.univerAPI.getBase('harbour-record-lifecycle').getTableById('tasks').getRa
 
 ### 14. Single deletion
 
-Remove only the explicitly captured copy. These examples are destructive within the fictional in-memory demo; checkpoint restoration is below.
-
 ```ts
 window.univerAPI.getBase('harbour-record-lifecycle').getTableById('tasks').getRecordById(window.harbourCopy).delete()
 ```
@@ -166,8 +164,6 @@ window.harbourSaved = structuredClone(window.univerAPI.getBase('harbour-record-l
 
 ### 19. Reload current content
 
-Unlike restoring the earlier checkpoint, this recreates exactly what exists now, including any retained SDK resources.
-
 ```ts
 const current = structuredClone(window.univerAPI.getBase('harbour-record-lifecycle').save())
 window.univerAPI.disposeUnit('harbour-record-lifecycle')
@@ -191,12 +187,8 @@ URL.revokeObjectURL(url)
 
 ## Verification boundary
 
-The runtime test defaults to the project's local preview at `http://localhost:3030/en-US/playground/bases/record-lifecycle`. Set `SHOWCASE_BASE_URL` to another documentation origin, or `SHOWCASE_DEMO_URL` to an exact standalone URL such as `http://127.0.0.1:4358`, then run `node scripts/test-bases-record-lifecycle-native.mjs`.
-
-The strict standalone test is scripts/test-bases-record-lifecycle-native.mjs. Its selected report is test-results/record-lifecycle-native-acceptance/report.json. All twenty literal snippets produce their documented model results, including the intended invalid-range rejection; complete JSON restoration/reload/download checks pass. Native cell typing and native Undo/Redo preserve full snapshots. Five EN/ZH packs, per-locale theme/owner preservation after editing, and disposal pass with no runtime errors or backend requests.
-
 Full attachment-resource Undo fidelity remains a known beta.2 failure; no normalization or cleanup hides orphan attachment sets. Recreating the same Base ID restores the saved model, but the native grid/footer can remain empty. The native Add Record form submission did not produce the expected new model record in this selected test; its cause is not isolated, so native form entry is not accepted. These failures do not prevent the independent keyboard-edit gate from running on a fresh browser owner. Browser reload restores the authored example; it is not equivalent to the tested same-ID reconstruction.
 
-The initial SDK language follows the page's `document.documentElement.lang` (Chinese for `zh-CN`, English otherwise), while business data remains English. Startup exceptions display a failure-only alert; no explanatory card is present in a healthy editor. Lifecycle timeout/cancellation behavior has not been accepted.
+The SDK language and authored business data remain English regardless of the host page language. Startup exceptions display a failure-only alert; no explanatory card is present in a healthy editor. Lifecycle timeout/cancellation behavior has not been accepted.
 
 Full menus, localized-control interactions and mobile/accessibility/performance acceptance remain separate. A successful export proves exact source/CSS parity, not complete feature acceptance.

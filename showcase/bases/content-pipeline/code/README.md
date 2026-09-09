@@ -129,8 +129,6 @@ console.log(window.pipelineCheckpoint)
 
 ### 16. Download the real JSON snapshot
 
-This is a local JSON checkpoint, not XLSX/PDF conversion or a backend upload.
-
 ```ts
 const snapshot = window.univerAPI.getBase('content-pipeline-base').save()
 const url = URL.createObjectURL(new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' }))
@@ -159,7 +157,7 @@ await demo.ready
 if (viewId) await demo.univerAPI.getBaseUI().activateView(viewId)
 ```
 
-Preview and exported source use the same factory, all five complete EN/ZH packs, and four official SDK CSS imports. Initial locale follows document.documentElement.lang. Theme toggles keep the existing owner and edited values. There is no backend, copied template screenshot, or fabricated API.
+Preview and exported source use the same factory, all five complete English packs, and four official SDK CSS imports. The runtime locale is always English. Theme toggles keep the existing owner and edited values. There is no backend, copied template screenshot, or fabricated API.
 
 ## Verification
 
@@ -167,19 +165,11 @@ The dedicated script defaults to http://localhost:3030/en-US/playground/bases/co
 
 PowerShell from documentation:
 
-```powershell
-$env:SHOWCASE_BUILD_STANDALONE = '1'
-$env:SHOWCASE_VITE_DIRECTORY = '<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
-$env:SHOWCASE_RESULTS_DIR = 'test-results/content-pipeline-native'
-node scripts/test-content-pipeline-native.mjs
-Remove-Item Env:SHOWCASE_RESULTS_DIR
-```
-
-Only this case is built on strict port 4416. Dependencies are individually linked at the exported exact versions; no installation or whole node_modules junction is required. The report records complete snapshot differences, native view/render failures, and page errors rather than normalizing them away.
+Only this case is built on the selected strict port (4416 by default). The Vite path must point to the exact version declared in the generated package; no other demo's temporary output is required. Dependencies are individually linked at the exported exact versions; no installation or whole node_modules junction is required. The report records complete snapshot differences, native view/render failures, and page errors rather than normalizing them away. These acceptance scripts run from the documentation repository; the standalone exported demo uses its own package install and dev scripts.
 
 ## Retained native acceptance gaps
 
-- After a native status edit and switching to the board and back, Ctrl+Z currently does not revert the status. The strict comparison retains status, cellData, and updatedAt differences. Clicking the grid and using native toolbar Undo/Redo passes separately; that does not erase the cross-view shortcut failure or establish its cause.
+- After a native status edit and switching to the canvas and back, Ctrl+Z currently does not revert the status. The strict comparison retains status, cellData, and updatedAt differences. Clicking the grid and using native toolbar Undo/Redo passes separately; that does not erase the cross-view shortcut failure or establish its cause.
 - Calendar weekday labels are shifted: the native September 5 webinar is drawn beneath “Fri”, although September 5, 2026 is Saturday. The test saves actual canvas text coordinates, the unchanged source timestamp, and the expected weekday. No replacement calendar or header patch is applied.
 - Clicking Next once from the initial August 31 anchor skips September and opens October. The separate date-drag setup uses one explicit Previous after this observed rollover to reach September; the original next-month gate remains FAIL.
 

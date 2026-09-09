@@ -1,5 +1,7 @@
 # Grove / Exhibition readiness
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 Sheet + Base → sixteen native Board Formula Shapes, in one original fictional exhibition.
 Both inputs are real native Floats. There are no JavaScript-computed totals, fake
 control buttons, backend requests or copied competitor artwork.
@@ -205,7 +207,7 @@ shape formula. Menu behavior and source ownership must be checked, not assumed.
 Sheet Print uses the registered frontend Print plugin, not browser-page printing.
 
 Preview and standalone export use the same factory, data and official SDK CSS.
-Complete EN/ZH packs accompany registered feature menus, including Formula,
+Complete English packs accompany registered feature menus, including Formula,
 Shape Editor, Embed Unit and native Board text editing dependencies. Authored
 business content is English. Theme changes do not recreate the three owners.
 
@@ -215,31 +217,20 @@ financial inputs, readiness and decisions; there is no overlay fixture panel.
 
 ## Acceptance boundary
 
-Selected runtime checks pass all twenty literal examples and all sixteen native
-results on the current Board canvas, preserving authored prose, geometry,
-connectors and unmodified source owners. Native error statuses pass for each
-missing source and zero-size Care zone. The total gate count uses ROWS, not
-COUNTA, so a source error is not counted as a single non-empty item.
-
-Actual Sheet/Base keyboard input and exact serialized source Undo/Redo, Grid
-menus, correct-source Sheet Print preview/cancel and active-Base disposal pass.
-Real Board ArrowRight movement updates all three bound rendered connector
-routes; full Board Undo/Redo and English/Chinese native text typing/history
-preserve both sources. Theme changes preserve all three models. Twenty-three
-full EN/ZH dependency packs are included. The strict selected report has no
-browser errors, warnings, backend requests or formula-status mismatches.
-
-Evidence: `scripts/test-embed-grove-formula.mjs`,
-`test-results/embed-grove-formula-native-anchor/report.json`, and
-`test-results/grove-formula-export-ui/report.json`. Eleven-file source parity
-and opaque native white UI pass; all twenty-three official CSS imports are
-exported. Dependencies reuse exact-version-checked local package links, not a
-fresh install. Initial cached-glyph Board hit tests failed; resolving coordinates
-through the live Float viewport anchor fixes the test. No SDK/package edit.
-The selected Vite build retains its large-chunk performance warning.
-
 This is partial capability evidence, not complete acceptance. Save inspection
 is not reload support: this factory starts a new
 local baseline. Three-unit reconstruction, durable persistence, arbitrary import,
 all native menus, mobile/accessibility and delivery performance remain open.
 No collaboration, publishing, history-record suite or backend conversion is claimed.
+
+### Source disposal is not a saved-source restore workflow
+
+Removing only `grove-base-float` first is also insufficient in the tested runtime:
+`removeEmbed` returns true and only `grove-sheet-float` remains listed; Base disposal
+returns true, yet the Base reappears at the same stable ID with baseline values.
+Creating the saved Base at that ID then throws the native duplicate-unit-ID error.
+The Sheet budget remains 18,000. This is not evidence of successful unload/restore.
+The focused report retains that strict failure and the original mounted-Float probe.
+No provider rewrite, substitute values or SDK change hides the behavior. Keep the
+source loaded for the twenty supported examples above; save/reconstruction remains
+outside their acceptance.

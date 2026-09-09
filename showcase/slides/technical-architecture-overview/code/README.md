@@ -1,5 +1,9 @@
 # Technical Architecture Overview
 
+The runtime is English-only on every host page. Complete official English SDK packs
+and styles are retained. A legacy locale argument, where present, is ignored without
+shifting the saved-snapshot argument.
+
 Three authored slides explain component boundaries, host-to-Facade intent and local
 snapshot ownership. The original Host Application, Univer Runtime, Render Engine
 and Local Data Layer remain, with editable labels and speaker notes. Navy, teal,
@@ -70,7 +74,7 @@ await controller.ready
 ## Delivery and verification
 
 Preview and standalone use the same factory, five official CSS files and five
-complete EN/ZH locale packs. Theme changes update the existing owner. No backend,
+complete English locale packs. Theme changes update the existing owner. No backend,
 custom diagram renderer, fake command dispatcher or SDK patch is used. Selected
 rendering and all six literal snippets pass. The native interaction report is strict
 16/17: actual rendered shape positions and label changes, native text/full history,
@@ -81,9 +85,3 @@ Known boundary: Ctrl+Z/Y directly after Save in the notes area does not route to
 presentation. Selecting a native slide shape first passes complete notes history;
 the demo adds no custom focus or history workaround. Mobile, exhaustive editor
 paths and binary conversion are not accepted by these selected checks.
-
-Evidence: test-results/architecture-native-verified/report.json,
-test-results/architecture-native-interaction-final/report.json and
-test-results/architecture-export-ui/report.json. The earlier geometry assertion
-mistakenly compared scene coordinates with page-relative positions; the final test
-uses the actual rendered paper origin without changing any SDK model fields.

@@ -361,7 +361,7 @@ try {
         assert.equal(spare.type, 'number')
         assert.deepEqual(records(after), records(before))
       }
-      if (i === 17) assert.ok(records(after)['repairs-03'].values.note.includes('لون الخيط'))
+      if (i === 17) assert.ok(records(after)['repairs-03'].values.note.includes('Thread colour — café repair'))
       if (i === 18) assert.deepEqual(after, before)
       if (download) {
         const file = await download
@@ -441,7 +441,7 @@ try {
       report.checks.push({ nativeFormat: text, storageUnchanged: true })
     }
   })
-  await gate('complete-locales-and-theme-preservation', async () => {
+  await gate('complete-english-packs-and-theme-preservation', async () => {
     const factory = await fs.readFile('showcase/bases/text-number-currency/code/create-demo.ts', 'utf8'),
       packs = [...factory.matchAll(/^import \w+EnUS from '([^']+)en-US'/gm)]
     assert.equal(packs.length, 5)
@@ -449,11 +449,8 @@ try {
     await page.evaluate(() => {
       window.originalAPI = window.univerAPI
     })
-    for (const [locale, code] of [
-      ['en-US', 'enUS'],
-      ['zh-CN', 'zhCN'],
-    ]) {
-      await page.evaluate((value) => window.univerAPI.setLocale(value), code)
+    for (const locale of ['en-US']) {
+      assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
       for (const [, prefix] of packs)
         includesPack(await page.evaluate(() => window.univerAPI.getLocales()), (await import(prefix + locale)).default)
       for (const dark of [true, false]) {
@@ -505,7 +502,7 @@ try {
       if (state === 'boundary') {
         assert.equal(records(data)['repairs-01'].values.units, 0.0001)
         assert.equal(records(data)['repairs-02'].values.units, 9999999.875)
-        assert.ok(records(data)['repairs-03'].values.note.includes('لون الخيط'))
+        assert.ok(records(data)['repairs-03'].values.note.includes('Thread colour — café repair'))
       }
       if (state === 'error')
         assert.deepEqual(

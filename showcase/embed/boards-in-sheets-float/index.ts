@@ -6,6 +6,7 @@ import Preview from './preview'
 const metadata: ShowcaseMetadata = {
   product: 'embed',
   category: 'features',
+  image: '/assets/showcase/embed-boards-in-sheets-float.png',
   previewHeight: 1040,
   group: { 'en-US': 'Sheets host / Float', 'zh-CN': 'Sheets 宿主 / 浮动嵌入' },
   title: { 'en-US': 'Board in Sheets / Dock Handoff', 'zh-CN': 'Board 嵌入 Sheets / 码头交接' },

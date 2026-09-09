@@ -29,8 +29,7 @@ for (const [name, content] of Object.entries(source.files)) {
   assert.equal(await fs.readFile(file, 'utf8'), content)
 }
 const pkg = JSON.parse(source.files['/package.json'])
-const vite =
-  process.env.SHOWCASE_VITE_DIR || process.env.SHOWCASE_VITE_PACKAGE || path.resolve('node_modules/vite')
+const vite = process.env.SHOWCASE_VITE_DIR || process.env.SHOWCASE_VITE_PACKAGE || path.resolve('node_modules/vite')
 report.dependencies = {}
 for (const [name, version] of Object.entries({ ...pkg.dependencies, ...pkg.devDependencies })) {
   const installed = name === 'vite' ? vite : path.resolve('node_modules', name)
@@ -390,14 +389,14 @@ try {
       window.quoteOwner = window.univerAPI
     })
     report.hostThemes = []
-    for (const [locale, native] of [
-      ['en-US', 'enUS'],
-      ['zh-CN', 'zhCN'],
-    ]) {
-      await page.evaluate((value) => window.univerAPI.setLocale(value), native)
+    for (const locale of ['en-US', 'zh-CN']) {
+      await page.evaluate((value) => {
+        document.documentElement.lang = value
+      }, locale)
+      assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
       pack(
         await page.evaluate(() => window.univerAPI.getLocales()),
-        (await import('@univerjs/preset-sheets-core/locales/' + locale)).default,
+        (await import('@univerjs/preset-sheets-core/locales/en-US')).default,
       )
       for (const dark of [true, false]) {
         await page.evaluate((value) => window.univerAPI.toggleDarkMode(value), dark)
@@ -436,7 +435,7 @@ try {
     assert.equal(await page.evaluate(() => window.univerAPI === window.newQuoteOwner), true)
     assert.equal(await page.locator('[data-u-comp=workbench-layout]').count(), 0)
   })
-  await gate('initial-chinese-pack-and-native-grid', async () => {
+  await gate('chinese-host-english-pack-and-native-grid', async () => {
     await page.setViewportSize({ width: 1600, height: 1050 })
     await page.addInitScript(() => {
       const observer = new MutationObserver(() => {
@@ -448,10 +447,20 @@ try {
       observer.observe(document, { childList: true, subtree: true })
     })
     await fresh()
+    assert.equal(await page.evaluate(() => document.documentElement.lang), 'zh-CN')
+    assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
     pack(
       await page.evaluate(() => window.univerAPI.getLocales()),
-      (await import('@univerjs/preset-sheets-core/locales/zh-CN')).default,
+      (await import('@univerjs/preset-sheets-core/locales/en-US')).default,
     )
+    const before = await snapshot()
+    await input('seats').fill('-1')
+    await apply.click()
+    assert.equal(
+      await root.getByRole('alert').textContent(),
+      'Invalid seats: enter a number from 0 to 1000000 in steps of 1. No workbook values were written.',
+    )
+    assert.deepEqual(await snapshot(), before)
     await page.screenshot({ path: path.join(output, 'initial-zh.png') })
     await page.evaluate(() => window.dispatchEvent(new Event('pagehide')))
     assert.equal(await page.evaluate(() => typeof window.univerAPI), 'undefined')

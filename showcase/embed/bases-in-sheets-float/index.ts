@@ -8,13 +8,19 @@ const metadata: ShowcaseMetadata = {
   category: 'features',
   previewHeight: 1040,
   group: { 'en-US': 'Sheets host / Float', 'zh-CN': 'Sheets 宿主 / 浮动嵌入' },
-  title: { 'en-US': 'Base in Sheets / Campaign Owners', 'zh-CN': 'Base 嵌入 Sheets / 营销执行负责人' },
+  title: {
+    'en-US': 'Base in Sheets / Campaign Owners',
+    'zh-CN': 'Base 嵌入 Sheets / 营销执行负责人',
+  },
   description: {
     'en-US':
       'A campaign budget keeps its editable delivery Base beside the spend: different channels, owners, deadlines and evidence make readiness distinct from money committed.',
     'zh-CN': '营销预算旁嵌入可编辑的执行 Base，通过不同渠道、负责人、期限和证据，说明执行准备与预算占用并不相同。',
   },
-  tags: { 'en-US': ['Embed', 'Sheets', 'Bases', 'Float'], 'zh-CN': ['嵌入', '表格', '多维表格', '浮动'] },
+  tags: {
+    'en-US': ['Embed', 'Sheets', 'Bases', 'Float'],
+    'zh-CN': ['嵌入', '表格', '多维表格', '浮动'],
+  },
   packages: [
     '@univerjs/core',
     '@univerjs/sheets-ui',
@@ -62,17 +68,29 @@ const metadata: ShowcaseMetadata = {
     { id: 'spend', label: { 'en-US': 'Budget commitments / Teal and warm ochre', 'zh-CN': '预算占用 / 青绿与暖赭色' } },
     {
       id: 'delivery',
-      label: { 'en-US': 'Delivery readiness / Native Base grid', 'zh-CN': '执行准备 / 原生 Base 网格' },
+      label: {
+        'en-US': 'Delivery readiness / Native Base grid',
+        'zh-CN': '执行准备 / 原生 Base 网格',
+      },
     },
   ],
   actions: [
-    { id: 'activate', label: { 'en-US': 'Activate the native floating Base', 'zh-CN': '激活原生浮动 Base' } },
+    {
+      id: 'activate',
+      label: { 'en-US': 'Activate the native floating Base', 'zh-CN': '激活原生浮动 Base' },
+    },
     { id: 'edit', label: { 'en-US': 'Edit task ownership independently', 'zh-CN': '独立编辑任务负责人' } },
     { id: 'recalculate', label: { 'en-US': 'Recalculate committed spend', 'zh-CN': '重算已承诺支出' } },
   ],
   states: [
-    { id: 'passive', label: { 'en-US': 'Budget with passive Base preview', 'zh-CN': '预算与非激活 Base 预览' } },
-    { id: 'active', label: { 'en-US': 'Active native Base editing', 'zh-CN': '激活的原生 Base 编辑' } },
+    {
+      id: 'passive',
+      label: { 'en-US': 'Budget with passive Base preview', 'zh-CN': '预算与非激活 Base 预览' },
+    },
+    {
+      id: 'active',
+      label: { 'en-US': 'Active native Base editing', 'zh-CN': '激活的原生 Base 编辑' },
+    },
     { id: 'error', label: { 'en-US': 'Source failure / reload to retry', 'zh-CN': '资源失败 / 刷新重试' } },
   ],
 }

@@ -7,30 +7,24 @@ import {
 } from '@univerjs-pro/boards'
 import { UniverBoardsUIPlugin } from '@univerjs-pro/boards-ui'
 import BoardsUIEnUS from '@univerjs-pro/boards-ui/locale/en-US'
-import BoardsUIZhCN from '@univerjs-pro/boards-ui/locale/zh-CN'
+import EmbedUnitEnUS from '@univerjs-pro/embed-unit-ui/locale/en-US'
 import { ShapeFillEnum, ShapeLineTypeEnum, ShapeTextWrapType, ShapeTypeEnum } from '@univerjs-pro/engine-shape'
 import InkUIEnUS from '@univerjs-pro/ink-ui/locale/en-US'
-import InkUIZhCN from '@univerjs-pro/ink-ui/locale/zh-CN'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import ShapeEditorEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
-import ShapeEditorZhCN from '@univerjs-pro/shape-editor-ui/locale/zh-CN'
 import { BooleanNumber, HorizontalAlign, LocaleType, mergeLocales, Univer, VerticalAlign } from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
 import { unmount } from '@univerjs/design'
 import DesignEnUS from '@univerjs/design/locale/en-US'
-import DesignZhCN from '@univerjs/design/locale/zh-CN'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
-import DocsUIZhCN from '@univerjs/docs-ui/locale/zh-CN'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
 import DrawingUIEnUS from '@univerjs/drawing-ui/locale/en-US'
-import DrawingUIZhCN from '@univerjs/drawing-ui/locale/zh-CN'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
-import UIZhCN from '@univerjs/ui/locale/zh-CN'
 
 import { INCIDENT_STAGES, RISK_NOTE } from './data'
 
@@ -41,6 +35,7 @@ import '@univerjs/drawing-ui/lib/index.css'
 import '@univerjs-pro/boards-ui/lib/index.css'
 import '@univerjs-pro/shape-editor-ui/lib/index.css'
 import '@univerjs-pro/ink-ui/lib/index.css'
+import '@univerjs-pro/embed-unit-ui/lib/index.css'
 import './styles.css'
 
 import '@univerjs-pro/boards/facade'
@@ -51,7 +46,7 @@ import '@univerjs/ui/facade'
 export function createIncidentResponseDemo(
   container: HTMLElement,
   darkMode = false,
-  locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+  _locale: LocaleType = LocaleType.EN_US,
   saved?: IBoardData,
 ) {
   const data = saved ? structuredClone(saved) : undefined
@@ -70,7 +65,7 @@ export function createIncidentResponseDemo(
   container.append(root)
   const univer = new Univer({
     darkMode,
-    locale,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
         DesignEnUS,
@@ -80,15 +75,7 @@ export function createIncidentResponseDemo(
         BoardsUIEnUS,
         ShapeEditorEnUS,
         InkUIEnUS,
-      ),
-      [LocaleType.ZH_CN]: mergeLocales(
-        DesignZhCN,
-        UIZhCN,
-        DocsUIZhCN,
-        DrawingUIZhCN,
-        BoardsUIZhCN,
-        ShapeEditorZhCN,
-        InkUIZhCN,
+        EmbedUnitEnUS,
       ),
     },
   })
@@ -186,10 +173,7 @@ export function createIncidentResponseDemo(
       root.dataset.error = 'startup'
       const alert = document.createElement('p')
       alert.setAttribute('role', 'alert')
-      alert.textContent =
-        locale === LocaleType.ZH_CN
-          ? '事故响应白板未能启动，请重新加载。'
-          : 'The incident Board could not load. Reload to retry.'
+      alert.textContent = 'The incident Board could not load. Reload to retry.'
       root.prepend(alert)
       finish()
     }, 20000)

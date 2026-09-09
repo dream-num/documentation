@@ -1,5 +1,7 @@
 # Indigo / Portfolio presentation
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 The Base is **both host and data source**. A native Slides tab inside its table
 list presents twelve Formula Shapes on three authored pages. This is Slides@Base
 Tab with Base -> Slides calculation, the reverse placement of Violet Base@Slide.
@@ -193,49 +195,16 @@ before the generic workbench starts. A thumbnail canvas is not an activatable
 main render, and must remain inside its thumbnail container.
 
 Preview and standalone share one factory, Grid configuration, all nine required
-official CSS imports and complete EN/ZH packs for the registered dependency UIs.
+official CSS imports and complete English packs for the registered dependency UIs.
 The cached Gamma Budget Review cover informs editorial hierarchy only. Original
 navy/cyan, warm-paper/indigo and teal/apricot pages adapt the supplied Deep Ocean
 palette. No competitor artwork is redistributed.
 
 ## Acceptance status
 
-Partial, not fully accepted. test-results/embed-indigo-recovery-regression/report.json
-completes all fourteen literal examples, twelve native results and the current
-canvas on every output page. Complete authored slides (excluding only calculated
-formula lastValue) remain intact. Exact filtered projection, hidden-record edits,
-null versus zero, native division/missing-source errors and recovery, source
-rename and fresh writes all have evidence. Unlike the current Doc formula cases,
-these Shape error results are correctly classified as errors.
-
 Native Base typing 22000 -> 24000 and exact full-Base Undo/Redo pass, with all three
 result pages updated. Nine complete EN/ZH dependency packs and complete Base/Slides
 snapshots are preserved through theme changes, with the same API owner.
-
-The selected strict report now passes. Writing the Base while the Slides tab is
-active updates the current canvas before any navigation or refresh; the native
-Project register menu remains clickable. Native Base editing then continues in
-the same owner without reloading. The earlier twelve disposed CommandService
-warnings are also resolved:
-after unmounting owned UI roots, the factory uses FUniver.disposeUnit for the child
-presentation and then the host Base, before disposing the SDK injector. Formula
-Shape lifecycle listeners can unregister their calculations while commands still
-exist. This does not clear formulas or change snapshots during normal use.
-
-test-results/embed-indigo-recovery-disposal/report.json separately passes active-child,
-ZH native-cell editing, repeated disposal, newer-global-owner preservation and
-immediate pre-Steady teardown. It checks real unit-removal order and waits past
-the native startup timer to detect resurrection. No errors, warnings or backend
-requests occur. The old warning report remains at
-test-results/embed-indigo-formula-verified/report.json. A trial embeddedRender
-creation option hid the host navigation, so it was rejected and is not in the
-factory. No forced click, CSS event override, swallowed warning or SDK patch is used.
-
-test-results/indigo-recovery-export-ui/report.json passes eleven-file source parity
-and the official native white UI; nine CSS imports are exported. The separate
-production build reuses an identical, version-checked installed dependency tree
-via a junction to conserve disk. The initial selected bundle has 1,858 modules,
-about 19.3 MB main JS (4.7 MB gzip) and 150.9 kB CSS; this is not performance acceptance.
 
 Earlier test attempts are retained: a cached-canvas resize did not repaint numeric
 glyphs, a right-aligned text anchor put the click at the next field boundary, and
@@ -244,19 +213,6 @@ corrected native test uses an inside-cell click and compares the complete model
 against the same owner's baseline. Reload is only a diagnostic fallback on a
 failed return-navigation gate, not part of the passing continuous flow and never
 evidence of saved-state recovery.
-
-test-results/embed-indigo-roundtrip-preserved/report.json passes the literal
-entry-module serialization/reconstruction example through four new owners:
-edited data, unavailable binding, Chinese/dark appearance and deleted Formula
-Shape. Both full snapshots are compared, allowing only the recorded embed
-activation time and selection of its explicitly saved opening page. Five invalid
-unit-pair inputs are rejected without changing the existing owner or models.
-Source rename, filters, context, edited formula/number format, speaker notes and
-background survive. A hidden-record mutation and native numeric typing after
-recovery repaint all twelve outputs; after a Shape is deleted, another source
-edit repaints the remaining eleven without restoring it. Missing-source errors
-survive reconstruction and require explicit repair. No errors, warnings or
-backend requests occur.
 
 Earlier roundtrip attempts are retained. The current-canvas report exposed native
 thumbnail renders being offered to the generic workbench before Steady, causing

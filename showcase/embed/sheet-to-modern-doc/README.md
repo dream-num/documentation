@@ -1,5 +1,7 @@
 # Pollen / Campaign pulse
 
+Current language contract: the native UI, startup alerts and authored data are English under either host language. The legacy third locale argument remains accepted but is ignored. Complete English dependency packs, official CSS, native Grid menus and the distinct source/document story are preserved. Earlier bilingual evidence below is historical; this migration does not resolve its recorded SDK limitations.
+
 A modern document hosts a real Sheet DocBlock. Three fictional campaign channels
 drive thirteen native inline formulas: total spend/revenue, their difference,
 blended and per-channel attributed returns, visits/orders, conversion, an
@@ -164,7 +166,7 @@ section hierarchy only. Navy, teal, amber and lavender follow the supplied Deep
 Ocean palette. All prose, channel data and styling are original; no competitor
 template artwork is redistributed.
 
-Preview and standalone use the same factory and official CSS imports. Full EN/ZH
+Preview and standalone use the same factory and official CSS imports. Full English
 dependency packs include Docs Formula, Shape Editor and Embed Unit labels. The
 Sheet feature registrations follow the SDK local DocBlock example because its
 native ribbon invokes those feature factories. There is no collaboration backend
@@ -173,32 +175,6 @@ registering it does not establish runtime acceptance. No import/export success i
 claimed without Exchange verification.
 
 ## Acceptance status
-
-Partial, not fully accepted. test-results/embed-pollen-formula-owned/report.json
-passes selected checks for all seventeen literal snippets and thirteen values
-on the current document canvas, preserving every authored body character, style
-and custom range. Blended/channel ratios, independent inputs, stored blank/zero,
-invalid text, explicit source mapping/repair and fresh post-rename calculation
-pass. Native Sheet B5 typing, exact full-workbook Undo/Redo, Grid menus,
-correct-source Print preview/cancel, twenty-one entire EN/ZH dependency packs,
-full-model theme preservation and active-source disposal have evidence.
-
-The strict report remains FAIL: twenty-one native error results are visibly
-correct but beta.2 reports their status as success/string. No result override
-or substitute JavaScript calculation hides this issue. An earlier report at
-test-results/embed-pollen-formula-native/report.json also recorded thirteen
-formula-removal warnings during teardown. The factory now explicitly disposes
-the Doc, then the Sheet, before their injector. The current report has no browser
-errors, warnings or backend requests; no SDK package was patched.
-
-test-results/docs-formula-locales-pollen/report.json passes actual EN/ZH Edit
-formula and number-format dialogs/cancellation, complete document preservation
-and visible dependency labels. This verifies usable actions, not just loaded keys.
-test-results/pollen-owned-export-ui/report.json checks eleven-file exact source
-parity and live native white/flex/canvas styling; twenty-two official CSS imports
-are included. A separate production build reuses a dependency tree only after
-checking every requested dependency/devDependency version. The SDK trial watermark
-and license notice are retained; this demo does not supply a production license.
 
 Full persistence/reconstruction, another valid source, every native action,
 Exchange conversion, all Print options, Next integration, accessibility/

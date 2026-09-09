@@ -38,31 +38,31 @@ const metadata: ShowcaseMetadata = {
       'en-US':
         'Bracken repair café has 30 distinct repair jobs, 12 workshop projects and 18 return checks. Parts units and reserves are stored as numbers; submitted quotes intentionally include numeric strings, blanks and unparseable text. Unicode notes, people, canonical dates, original local attachments and real linked records provide varied context. The native Base Grid, its product-specific toolbar and four official SDK stylesheets are shared by Preview and the independent export.',
       'zh-CN':
-        'Bracken 修理咖啡馆包含 30 个不同维修任务、12 个工作坊项目及 18 个归还检查。零件数量和预留金额以数字存储；提交报价有意包含数字字符串、空白及不可解析文本。多语言备注、人员、规范日期、原创本地附件和真实关联记录提供不同数据场景。预览与独立导出共用原生 Base Grid、产品专用工具栏和四份官方 SDK 样式。',
+        'Bracken 修理咖啡馆包含 30 个不同维修任务、12 个工作坊项目及 18 个归还检查。零件数量和预留金额以数字存储；提交报价有意包含数字字符串、空白及不可解析文本。Unicode 英文备注、人员、规范日期、原创本地附件和真实关联记录提供不同数据场景。预览与独立导出共用原生 Base Grid、产品专用工具栏和四份官方 SDK 样式。',
     },
     tryIt: {
       'en-US': [
         'Edit Parts units and Reserve directly in the native Grid; use native field menus for schema and display settings.',
-        'Compare numeric storage with submitted quote strings, nulls, negative adjustments and multilingual notes.',
+        'Compare numeric storage with submitted quote strings, nulls, negative adjustments and Unicode English notes.',
         'Use the 23 executable README Facade examples for field creation, all numeric format variants, defaults, conversion and diagnostic probes.',
         'Navigate the native left sidebar to Workshop projects and Return checks; all 60 original records and record links remain.',
         'Use the native ribbon for local Undo/Redo. Reconstruct a saved snapshot or a separate Empty, Boundary or Error dataset in the application entry.',
-        'Change language or theme without recreating the owner or discarding edited data.',
+        'Change theme without recreating the owner or discarding edited data. Language-route navigation loads a new preview.',
       ],
       'zh-CN': [
         '直接在原生 Grid 编辑零件数量和预留金额；通过原生字段菜单调整结构与显示格式。',
-        '比较数字存储与报价字符串、空值、负数调整和多语言备注。',
+        '比较数字存储与报价字符串、空值、负数调整和Unicode 英文备注。',
         'README 的 23 个可执行 Facade 示例涵盖字段创建、所有数字格式变体、默认值、类型转换与诊断。',
         '原生左侧栏可切换工作坊项目和归还检查，保留全部 60 条原创记录与关联。',
         '使用原生菜单撤销/重做；在应用入口恢复快照或构建空白、边界、错误数据变体。',
-        '语言与主题切换不重建实例，不丢失已编辑数据。',
+        '主题切换不重建实例，不丢失已编辑数据；语言路由切换会加载新预览。',
       ],
     },
     expected: {
       'en-US':
-        'Only the native editor occupies the preview. Readbacks and diagnostics are executable source examples, not duplicate host panels. Schema conversion retains old strings, unsafe numeric defaults can be accepted, and numeric null can render as zero in beta.2; all remain strict acceptance gaps. Full EN/ZH packs and four official CSS imports accompany the source. No backend, upload, Office conversion or collaboration history is claimed.',
+        'Only the native editor occupies the preview. Readbacks and diagnostics are executable source examples, not duplicate host panels. Schema conversion retains old strings, unsafe numeric defaults can be accepted, and numeric null can render as zero in beta.2; all remain strict acceptance gaps. Complete English packs and four official CSS imports accompany the source. No backend, upload, Office conversion or collaboration history is claimed.',
       'zh-CN':
-        '预览仅包含原生编辑器；数据回读与诊断放在可执行源码示例，不添加重复宿主面板。beta.2 类型转换保留旧字符串、可能接受非法数字默认值，还可能将数字空值显示成零，这些仍是严格验收缺口。源码包含完整中英文包及四份官方 CSS，不宣称后端、上传、Office 转换或协作历史能力。',
+        '预览仅包含原生编辑器；数据回读与诊断放在可执行源码示例，不添加重复宿主面板。beta.2 类型转换保留旧字符串、可能接受非法数字默认值，还可能将数字空值显示成零，这些仍是严格验收缺口。源码包含完整英文包及四份官方 CSS，不宣称后端、上传、Office 转换或协作历史能力。',
     },
   },
   variants: [
@@ -142,10 +142,10 @@ const metadata: ShowcaseMetadata = {
     ],
     [
       'boundary',
-      'Precision and multilingual text',
-      '精度与多语言文本',
-      '0.0001, 9999999.875 and long multilingual notes expose formatting versus storage.',
-      '0.0001、9999999.875 和多语言长备注展示显示格式与存储的区别。',
+      'Precision and Unicode English text',
+      '精度与 Unicode 英文文本',
+      '0.0001, 9999999.875 and long Unicode English notes expose formatting versus storage.',
+      '0.0001、9999999.875 和 Unicode 英文长备注展示显示格式与存储的区别。',
     ],
     [
       'error',

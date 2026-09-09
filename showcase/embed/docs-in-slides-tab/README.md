@@ -1,5 +1,10 @@
 # Mosaic / Research appendix as a native Slides page
 
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but is ignored. Earlier  English-only source/CSS/startup checks do
+not certify every native interaction or resolve the recorded SDK failures.
+
 Three original slides ask what helps a visitor return to a repair workshop.
 The fictional study has 18 interviews across three workshops, 24 observed visits
 and eight follow-up notes. Four primary barrier counts are 7, 5, 4 and 2.
@@ -65,12 +70,6 @@ accessible name. The corrected test clicks their actual command-ID buttons;
 it does not invoke a replacement Facade undo. The earlier selector and raw
 serialization comparison failures are retained. Missing accessible names remain
 an accessibility issue, not a completed accessibility check.
-
-Actual EN/ZH Next guides and media-theme transitions preserve the same owner and
-edited snapshots. Eleven-file standalone source parity and official white CSS
-also pass. Evidence: test-results/embed-doc-slide-tab-production-history/report.json,
-test-results/embed-doc-slide-tab-next/report.json and
-test-results/embed-doc-slide-tab-export-final/report.json in the documentation repo.
 
 Full menus, empty/error/delayed providers, repeated mounts and React unmount races,
 resource reload/persistence, narrow/touch layouts and accessibility remain open.

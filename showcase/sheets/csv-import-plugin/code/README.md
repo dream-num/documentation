@@ -150,20 +150,7 @@ await demo.ready
 
 Workbook JSON includes all SDK snapshot fields/resources; no IDs, empty arrays or defaults are stripped during comparison. An uncommitted CSV draft is host state, not workbook JSON. Recovery resets that draft to the original intake sample and starts new history; theme changes do neither.
 
-## 中文说明
-
-Kestrel 维修咖啡馆提供接件、零件台账及志愿者排班等七类原始 CSV/TSV。原生“打开 CSV”只读取本地 UTF-8 文件；检查草稿、分隔符与空行策略后，再从当前选区左上角导入。保留字面量文本、既有格式、导入矩形外内容及另一张 Reference 表。引号逗号、多行、Unicode、BOM、不等长行和非法输入均由同一个透明的 Papa Parse 工具处理。这里不是 XLSX Exchange，不上传文件；主题切换保留数据与草稿。容量与范围限制详见上述契约；解析器原始错误会作为具体拒绝原因显示。
-
 ## Verification
-
-Run the unchanged parser checks with `node scripts/test-csv-parser.mjs` and native tests with `node scripts/test-csv-import-native.mjs`. The default URL is `http://localhost:3030/en-US/playground/sheets/csv-import-plugin`; use `SHOWCASE_DEMO_URL` for a full override or `SHOWCASE_BASE_URL` for the guide origin. Full reconstruction and entry-scope literals need the standalone harness.
-
-```powershell
-$env:SHOWCASE_BUILD_STANDALONE = '1'
-$env:SHOWCASE_VITE_DIRECTORY = '<USERPROFILE>/AppData/Local/Temp/univer-aster-formula-SHm1UE/node_modules/vite'
-$env:SHOWCASE_RESULTS_DIR = 'test-results/csv-import-native'
-node scripts/test-csv-import-native.mjs
-```
 
 Only this case is built, using exact installed dependency versions without installation. Tests close port 4416 and retain complete snapshot differences as strict failures. OS-level file-dialog Cancel cannot be automated here; its browser cancel-event contract is tested separately.
 

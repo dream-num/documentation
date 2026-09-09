@@ -2779,7 +2779,7 @@ export const WORKBOOK_DATA = {
             t: 1,
           },
           6: {
-            v: '2020年7月20日',
+            v: '2020-07-20',
             t: 1,
           },
           12: {
@@ -10984,7 +10984,7 @@ export const WORKBOOK_DATA = {
     },
     {
       name: 'SHEET_AuthzIoMockService_PLUGIN',
-      data: '{"kt0xKSZX":{"collaborators":[],"strategies":[],"unitID":"workbook-01","name":"工作表1(B2:E7)","objectType":3}}',
+      data: '{"kt0xKSZX":{"collaborators":[],"strategies":[],"unitID":"workbook-01","name":"Sheet1(B2:E7)","objectType":3}}',
     },
     {
       name: 'SHEET_WORKSHEET_PROTECTION_PLUGIN',

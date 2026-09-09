@@ -8,13 +8,19 @@ const metadata: ShowcaseMetadata = {
   category: 'features',
   previewHeight: 1100,
   group: { 'en-US': 'Modern Docs host / Block', 'zh-CN': '现代文档宿主 / 块嵌入' },
-  title: { 'en-US': 'Bases in Docs / Launch Responsibilities', 'zh-CN': 'Bases 嵌入现代文档 / 发布职责' },
+  title: {
+    'en-US': 'Bases in Docs / Launch Responsibilities',
+    'zh-CN': 'Bases 嵌入现代文档 / 发布职责',
+  },
   description: {
     'en-US':
       'A release brief embeds a real readiness register with linked owners. Edit the Base without rewriting the narrative decision, then expand to the People directory.',
     'zh-CN': '发布说明内嵌真实就绪清单与关联负责人。修改 Base 不会改写正文决策，展开后可访问人员目录。',
   },
-  tags: { 'en-US': ['Embed', 'Modern Docs', 'Bases', 'Block'], 'zh-CN': ['嵌入', '现代文档', '多维表格', '块'] },
+  tags: {
+    'en-US': ['Embed', 'Modern Docs', 'Bases', 'Block'],
+    'zh-CN': ['嵌入', '现代文档', '多维表格', '块'],
+  },
   packages: [
     '@univerjs/core',
     '@univerjs/docs-ui',
@@ -71,13 +77,22 @@ const metadata: ShowcaseMetadata = {
     },
   ],
   actions: [
-    { id: 'edit', label: { 'en-US': 'Edit a native Base record', 'zh-CN': '编辑原生 Base 记录' } },
+    {
+      id: 'edit',
+      label: { 'en-US': 'Edit a native Base record', 'zh-CN': '编辑原生 Base 记录' },
+    },
     { id: 'link', label: { 'en-US': 'Rename a linked owner', 'zh-CN': '重命名关联负责人' } },
     { id: 'anchor', label: { 'en-US': 'Move the block by editing narrative', 'zh-CN': '编辑正文并移动块锚点' } },
   ],
   states: [
     { id: 'passive', label: { 'en-US': 'Read the document and embedded register', 'zh-CN': '阅读文档与内嵌清单' } },
-    { id: 'active', label: { 'en-US': 'Edit the Base inline or expanded', 'zh-CN': '在正文内或展开后编辑 Base' } },
+    {
+      id: 'active',
+      label: {
+        'en-US': 'Edit the Base inline or expanded',
+        'zh-CN': '在正文内或展开后编辑 Base',
+      },
+    },
     { id: 'error', label: { 'en-US': 'Source failure / Reload to retry', 'zh-CN': '资源失败 / 刷新重试' } },
   ],
 }

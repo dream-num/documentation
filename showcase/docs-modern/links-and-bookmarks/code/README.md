@@ -1,5 +1,7 @@
 # Atlas / Native links and SDK bookmarks
 
+The demo runtime and authored data are English-only, including on a Chinese documentation page. Complete official English locale packs are retained. Any legacy locale argument is accepted but ignored; saved-snapshot argument positions are unchanged. Earlier bilingual test reports below describe the previous revision, not current language acceptance.
+
 The original tool-library brief keeps its three links, Returns desk bookmark,
 handoff heading, lists, caution, code and quotation. Edit text and links using
 the native Grid and link popup. The only host button opens the link at the
@@ -116,10 +118,3 @@ queries the active document each time. A new owner can instead receive the saved
 snapshot as createDemo(container, darkMode, snapshot). No generation IDs or
 snapshot normalization are used. Empty documents are supported with the original
 ID and a valid terminal CR/LF body. This is JSON recovery, not binary conversion.
-
-Both preset stylesheets and all four block UI stylesheets are included in the
-shared Preview/export factory. Six complete EN/ZH packs are loaded initially;
-theme changes preserve the same owner. Fit-width zoom is a real SDK view setting
-and may change the saved zoom on resize. Native acceptance and strict known
-failures are recorded by scripts/test-atlas-links-native.mjs; old host-panel
-tests are historical and do not certify this UI.

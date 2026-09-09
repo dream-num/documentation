@@ -1,5 +1,7 @@
 # Aurora / One model, four outputs
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 An original fictional community exhibition has three department allocations:
 Research 4,200, Production 3,600 and Access 2,200. One local Sheet drives eight
 inline formulas in a modern brief, eight Formula Shapes over three slides, six
@@ -152,13 +154,6 @@ Print capability is claimed by this particular composite.
 
 ## Acceptance status
 
-Partial, not fully accepted. The selected standalone run is recorded in
-test-results/embed-aurora-formula-native-final/report.json. All twelve literal
-examples pass their selected checks: eight inline Doc values, eight Formula
-Shapes across three Slides and six Board Formula Shapes update on the current
-native canvases. The chart reads the visible formula-backed E4:F7 range; F9 and
-actual column heights are checked against the edited department amounts.
-
 Independent department and ceiling edits, zero, blank, invalid text and recovery,
 unrelated context edits, source display-name changes and persisted source-ID
 bindings have evidence. Real keyboard input in B7 changes Access to 2,600 and
@@ -166,17 +161,6 @@ updates all outputs to a total of 10,400. Complete authored Doc content and
 Slides/Board pages remain unchanged, excluding only the SDK's persisted Formula
 Shape lastValue calculation cache. Disposal from the active Board tab passes.
 No browser errors or backend requests were observed in this selected run.
-
-The strict report remains FAIL: the Doc share displays #VALUE! but its native
-result reports status success and string type. Slides and Board error results
-are not normalized by the demo. This beta.2 SDK issue is retained in the report.
-
-test-results/embed-aurora-formula-next-final/report.json passes selected EN/ZH
-guide checks: the first exact snippet, initial locale labels, official white UI,
-absence of redundant controls and theme changes preserving the owner and full
-models. It does not exercise every Formula editor action or all twelve snippets
-in both guide locales. test-results/aurora-formula-export-ui/report.json checks
-eleven-file standalone source parity and native white SDK styling.
 
 Remaining: native error classification, actual multi-unit save/reload,
 missing-source and different-source rebinding, Undo/Redo, all native editor and

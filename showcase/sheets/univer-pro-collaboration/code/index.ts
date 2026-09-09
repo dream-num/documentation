@@ -1,4 +1,6 @@
 import { createDemo } from './create-demo'
 
-const demo = createDemo(document.getElementById('app')!)
+const container = document.getElementById('app')
+if (!container) throw new Error('Missing #app container')
+const demo = createDemo(container)
 window.addEventListener('pagehide', () => demo.dispose(), { once: true })

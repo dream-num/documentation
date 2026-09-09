@@ -39,7 +39,7 @@ const metadata: ShowcaseMetadata = {
       'en-US':
         'Prism proposes eight local night-sky sessions with 160 planned places and an illustrative USD 8,400 budget. Four narrative cards stay beside a four-page native deck: invitation, visitor journey, resources and readiness. Notes and Slides have independent models.',
       'zh-CN':
-        'Prism 提议八场本地夜空活动、160 个计划名额和示意性 8,400 美元预算。四张叙事卡片与邀请、体验流程、投入及准备情况四页原生演示并列；白板和 Slides 模型独立。',
+        'Prism 提议八场本地夜空活动、160 个计划名额和示意性 8,400 美元预算。四张叙事卡片与邀请、体验流程、投入及准备情况四页原生演示并列；Boards 和 Slides 模型独立。',
     },
     tryIt: {
       'en-US': [
@@ -52,14 +52,14 @@ const metadata: ShowcaseMetadata = {
         '双击演示并进入原生全屏。',
         '用缩略图比较四种版式。',
         '运行 README 富文本示例，尝试原生编辑、移动和撤销重做。',
-        '返回白板，独立完善待办事项。',
+        '返回 Boards，独立完善待办事项。',
       ],
     },
     expected: {
       'en-US':
         'A native BoardFloating presentation with four distinct palettes, real rich text and official CSS. Selected native editing/history, fullscreen navigation and independent Board edits pass. No fixture panel, duplicate toolbar, iframe or automatic synchronization; see README for remaining acceptance.',
       'zh-CN':
-        '原生 BoardFloating 演示，包含四套配色、真实富文本和官方 CSS。选定的原生编辑与撤销重做、全屏翻页及白板独立编辑通过验证。无 fixture 面板、重复工具栏、iframe 或自动同步；待验收项详见 README。',
+        '原生 BoardFloating 演示，包含四套配色、真实富文本和官方 CSS。选定的原生编辑与撤销重做、全屏翻页及 Boards 独立编辑通过验证。无 fixture 面板、重复工具栏、iframe 或自动同步；待验收项详见 README。',
     },
   },
   variants: [
@@ -70,7 +70,7 @@ const metadata: ShowcaseMetadata = {
   actions: [
     ['edit', 'Refine the native pitch', '完善原生提案'],
     ['navigate', 'Compare four slide layouts', '比较四页版式'],
-    ['board', 'Update the Board independently', '独立更新白板'],
+    ['board', 'Update the Board independently', '独立更新 Boards'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   states: [
     ['passive', 'Deck beside narrative notes', '叙事卡片旁的演示'],

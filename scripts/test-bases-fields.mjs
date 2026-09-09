@@ -280,7 +280,7 @@ try {
     if (state === 'boundary') {
       assert.equal(loaded.records[0].values.units, 0.0001)
       assert.equal(loaded.records[1].values.units, 9999999.875)
-      assert.ok(loaded.records[2].values.note.includes('لون الخيط'))
+      assert.ok(loaded.records[2].values.note.includes('Thread colour — café repair'))
     }
     if (state === 'error') assert.equal(loaded.records[0].values.quote, 'not a number')
     await input('state').selectOption(state)

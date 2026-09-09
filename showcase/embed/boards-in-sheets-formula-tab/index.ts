@@ -66,7 +66,7 @@ const metadata: ShowcaseMetadata = {
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   actions: [
     ['edit', 'Edit source assumptions', '编辑来源假设'],
-    ['compare', 'Compare native Board scenarios', '比较原生白板情景'],
+    ['compare', 'Compare native Board scenarios', '比较原生 Boards 情景'],
     ['print', 'Preview source Sheet Print', '预览来源表格打印'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   states: [

@@ -1,5 +1,7 @@
 # Violet / Editorial review
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 Eight original fictional articles live in a real Base data page inside the
 native Slides page list. This is **Base@Slide Tab**, not a Float or a bottom tab.
 Data flows **Base -> Slides** through thirteen native Formula Shapes on three
@@ -151,44 +153,6 @@ collaborative history or Base print capability is implied.
 
 ## Acceptance status
 
-Responsive update: test-results/embed-violet-responsive-native/report.json passes
-an initial 320px load, keyboard navigation through all three result pages at
-320/390px, desktop restoration and the complete existing twelve-snippet suite.
-Current-canvas text, source data, authored content and API ownership are checked;
-there are no observed browser errors or backend calls in this independent build.
-test-results/violet-responsive-export-ui/report.json passes eleven-file source
-parity and official native white CSS. The rebuilt bundle has 1,846 modules,
-18,441.31 kB JS (4,542.23 kB gzip), 151.28 kB CSS (21.44 kB gzip).
-This is not complete mobile editing acceptance: Grid ribbon clipping, small
-slide text and the Base data page's own narrow-screen controls remain open.
-The EN/ZH outer-page checks complete at all three widths, but
-test-results/showcase-card-free-responsive/report.json is FAIL on Next development
-Performance.measure negative timestamp errors in the React Server Components
-client. Those errors are retained, not suppressed. Earlier reports below describe
-the pre-responsive build and must not substitute for current-build verification.
-The current EN/ZH formula guide also completes twelve snippets, thirteen outputs
-and full-model theme preservation in both locales, but remains FAIL for the same
-development exception: test-results/embed-violet-responsive-next/report.json.
-
-Partial, not fully accepted. test-results/embed-violet-formula-native/report.json
-passes all twelve literal examples, thirteen native results and current canvases
-on all three result pages. Unchanged authored prose/layout, display-name stability,
-five-row filtered projection versus eight-record formula source, hidden-record
-edits, null versus zero, native zero-denominator error/recovery and off-page writes
-are checked. Native title and word editing, exact full-Base Undo/Redo and active
-data-page disposal pass with no observed browser errors or backend requests.
-
 Earlier test failures are retained: the test looked for the old title after a
 successful native rename, then for 900 instead of the native formatted 900.00.
 These were test assumptions, not SDK defects; the SDK was not patched.
-
-The eleven-file independent export passes source/CSS parity and native white UI:
-test-results/violet-formula-export-ui/report.json. The selected build has 1,846
-modules, 18,440.54 kB JS (4,541.90 kB gzip) and 150.83 kB CSS (21.30 kB gzip).
-Large-bundle warnings remain. EN/ZH pages also pass all twelve snippets, removal
-of the redundant explanation card, and API owner/full-model preservation through
-dark/light changes: test-results/embed-violet-formula-next/report.json. Cold Next
-startup took about two minutes for the guide and 22.8 seconds for the playground;
-a Gzip listener warning remains. These timings are not performance acceptance.
-Missing-source/rebinding, persistence/reload, all native menus, accessibility and
-delivery performance remain open. A registry entry is not complete acceptance.

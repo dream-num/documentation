@@ -1,10 +1,9 @@
 # Beacon / Complete executive review
 
-An original neighborhood repair-network pilot: three hubs, twelve clinics and
-144 planned places. Four authored slides use ocean navy/cyan, warm white with
-three colored hub cards, a pale cost page, and a plum checkpoint with mint/coral
-panels. The reference Gamma deal-review composition informs hierarchy only; no
-competitor artwork is redistributed. Native SDK UI stays white and Grid.
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but is ignored. Earlier  English-only source/CSS/startup checks do
+not certify every native interaction or resolve the recorded SDK failures.
 
 ## Native composition
 
@@ -68,14 +67,6 @@ window.univerAPI.getPresentation('beacon-repair-review').getSlideById('cover').g
 
 ## Selected evidence / not complete
 
-The strict runner `scripts/test-embed-mixed-slides.mjs` retains failed gates and
-continues independent checks. Its async-print run verifies the seven-entry native
-page order, four distinct slide layouts, all four children, five literal Facade
-examples with five-model isolation, native Docs/Base/Board/Slides Undo/Redo,
-native Sheet input from 156 to 168 and full history after initialization, page
-round trips and selected active-Board disposal. No browser errors or backend
-requests were observed in that independent build.
-
 Two gates remain failing: first Sheet Undo serializes empty validation data as
 `{resources:[]}` instead of `{}`, and the native Sheet Float fullscreen button
 does not open its shell. Values restore in the first case; data loss is not
@@ -100,7 +91,7 @@ Trying to mutate the as-yet-unmounted Sheet from the cover hits an SDK auto-heig
 render dependency; the README workflow requires activating the corresponding
 product. All five edited models and the API owner survive theme changes, except
 the native Board palette regeneration with its same theme ID. The independent
-export checks eleven exact files and all 23 official CSS imports.
+export checks eleven exact files and all official CSS imports.
 
 The native keyboard probe initially appended text or lost characters. Explicit
 cell editing and selection, then returning focus to a neutral Sheet cell before
@@ -116,3 +107,7 @@ Sheet Print is registered; generated PDF and whole-presentation printing are not
 claimed. No Exchange conversion is registered in this case. Browser reload resets
 the authored snapshots. No backend, participant data, collaboration history or
 cross-product Formula binding is part of this review.
+
+The shared factory explicitly imports the official Ink UI English pack and CSS
+required by the registered Boards UI dependency. Other product locale packs and
+styles remain intact. This is resource coverage, not native pen acceptance.

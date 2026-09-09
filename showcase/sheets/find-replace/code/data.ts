@@ -38,7 +38,7 @@ export const WORKBOOK_DATA: Partial<IWorkbookData> = {
       ['P-122', 'Sea beet', 'Draft review', 23, null],
       ['P-131', 'Rock samphire', 'Ready', 5, 'A.B label'],
       ['P-140', 'Sand leek', 'Ready', 2, 'A*B is literal text'],
-      ['P-153', 'Sea aster', 'Ready', 9, '海岸 nursery'],
+      ['P-153', 'Sea aster', 'Ready', 9, 'Café nursery'],
       ['Formula', '=UPPER(C2)', '=SUM(D2:D8)', null, 'Computed text / numeric total'],
     ]),
     archive: sheet('archive', 'Last season', [

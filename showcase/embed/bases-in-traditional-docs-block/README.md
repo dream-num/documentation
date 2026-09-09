@@ -1,5 +1,7 @@
 # Rowan / Field-station evidence review
 
+Current language contract: native UI, startup alerts and authored data stay English under either host language. The legacy third locale argument remains accepted but is ignored. All complete English plugin packs, official CSS, native Grid menus and independent host/child models are retained. Earlier bilingual evidence below is historical; this language migration does not resolve its recorded SDK limitations or certify every interaction.
+
 An original fictional review uses traditional A4 pages, wine-colored headings
 and serif body text. Seven evidence items cover calibration, clock drift,
 battery endurance, enclosure observations, recovery, storage and exposure.
@@ -47,13 +49,6 @@ and repainted linked labels, fullscreen navigation, the moving UTF-16 body ancho
 and active-child disposal pass without observed browser errors or backend calls.
 The host snapshot remains strict across Base edits; the Base remains strict
 across narrative edits. Expanded columns keep owner handover notes readable.
-
-EN/ZH guides verify three variants/actions/states and preserve the same owner
-and both edited models across actual light/dark media changes. Independent
-eleven-file source and official CSS parity also pass. Evidence is recorded in
-test-results/embed-base-traditional-block-production-final,
-test-results/embed-base-traditional-block-next and
-test-results/embed-base-traditional-block-export-final.
 
 Build: 208 offline packages, 1845 modules; main JS 18451.72 kB / 4539.57 kB gzip,
 CSS 134.30 kB / 18.98 kB gzip. Cold selected Next requests took 104s/78s and

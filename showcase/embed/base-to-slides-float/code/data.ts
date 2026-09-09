@@ -200,7 +200,7 @@ export function createHostData(): ISlideData {
       elements: Object.fromEntries(elements.map((e) => [e.id, e])),
       elementOrder: elements.map((e) => e.id),
       speakerNotes:
-        'Original fictional studio. Probabilities are manually entered assumptions. Native formulas read the complete Base table, not only a filtered view.',
+        'Original fictional studio. Probabilities are manually entered assumptions. Native formulas read the complete Base, not only a filtered view.',
     }
   })
   return {

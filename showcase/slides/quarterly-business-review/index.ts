@@ -58,11 +58,7 @@ const metadata = {
     { id: 'risks', label: { 'en-US': 'Risks and Responses', 'zh-CN': '风险与应对' } },
     { id: 'decision', label: { 'en-US': 'Leadership Decision', 'zh-CN': '经营决策' } },
   ],
-  actions: [
-    { id: 'raise-target', label: { 'en-US': 'Raise Q2 target', 'zh-CN': '提高 Q2 目标' } },
-    { id: 'show-regions', label: { 'en-US': 'Show regions', 'zh-CN': '显示区域表现' } },
-    { id: 'notes', label: { 'en-US': 'Edit speaker notes', 'zh-CN': '编辑演讲者备注' } },
-  ],
+  actions: [],
   states: [
     { id: 'baseline', label: { 'en-US': '$45.0M target', 'zh-CN': '45.0M 美元目标' } },
     { id: 'revised', label: { 'en-US': '$46.5M target', 'zh-CN': '46.5M 美元目标' } },

@@ -3,6 +3,7 @@ import { readShowcaseFiles } from '@/showcase/read-files'
 
 import Preview from './preview'
 const metadata: ShowcaseMetadata = {
+  image: '/assets/showcase/embed-mixed-in-docs-modern.png',
   product: 'embed',
   category: 'showcases',
   previewHeight: 1100,
@@ -69,11 +70,7 @@ const metadata: ShowcaseMetadata = {
     ['editing', 'Inline reading / Expanded editing', '正文阅读 / 展开编辑'],
     ['ownership', 'One narrative / Four independent resources', '一份说明 / 四个独立资源'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
-  actions: [
-    ['resources', 'Revise resources and readiness', '修改资源和准备情况'],
-    ['strategy', 'Edit strategy and dependencies', '编辑策略和依赖'],
-    ['anchors', 'Move all four body anchors', '移动四个正文锚点'],
-  ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
+  actions: [],
   states: [
     ['reading', 'Read the connected story', '阅读完整故事'],
     ['editing', 'Edit the active native resource', '编辑激活的原生资源'],

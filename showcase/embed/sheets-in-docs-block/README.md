@@ -1,5 +1,7 @@
 # Northstar / Project investment block
 
+Current language contract: native UI, startup alerts and authored data stay English under either host language. The legacy third locale argument remains accepted but is ignored. All complete English plugin packs, official CSS, native Grid menus and independent host/child models are retained. Earlier bilingual evidence below is historical; this language migration does not resolve its recorded SDK limitations or certify every interaction.
+
 An original community-repair booking pilot pairs a modern narrative with a
 native Sheets DocBlock. Six effort assumptions yield a $35,320 subtotal and
 $38,852 envelope with 10% reserve. B7 30 to 34 yields $41,492 and $3,508 headroom.
@@ -67,21 +69,3 @@ embed-sheet-doc-block-next-explicit-facade passes current EN/ZH guides and live
 native previews with official white/flex CSS. The explicit sheets-print/facade
 side-effect import is necessary in Next; relying on the preset's transitive
 facade import produced the retained empty-event failure.
-
-embed-sheet-doc-block-production-fresh passes all eight groups at 1220px,
-including five populated native Grid tabs, Phasing print preview/cancel, native
-history and active-child disposal. No browser errors or backend requests occur.
-Its active workbook screenshot was reviewed. embed-sheet-doc-block-export-final
-verifies all eleven exported files byte-for-byte and native CSS/Canvas paint.
-The independent project has 220 separately installed packages. A fresh install
-resolved the old temporary project's dangling sheets-print dependency junction;
-the failed old build is not counted as a pass. No installed package was patched.
-The selected Vite build transforms 1927 modules; main JS index-CPt2qk0P.js is
-18,298.38 kB / 4,536.80 kB gzip, CSS index-BhsyKkFe.css is 128.30 / 19.59 kB gzip.
-Bundle/cold-start performance is not accepted.
-The selected runner is scripts/test-embed-sheet-doc-block.mjs; SHOWCASE_PRINT=1
-also tests native print preview. Native typing, broader history/focus, scrolling,
-narrow/touch layouts, lifecycle failures and performance remain open.
-Individual feature dialogs are not all certified merely
-because every ribbon tab opens. Reload loses edits. No backend, binary Exchange
-conversion, physical printing, live booking or automatic approval is claimed.

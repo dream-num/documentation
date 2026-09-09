@@ -1,5 +1,7 @@
 # Solstice / Scenario review deck
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 Slide@Sheet Tab composition; Sheet -> Slides formula dependency. Three original
 evening-programme scenarios share ticket price 32, variable cost 18 per guest and
 fixed cost 600. Guest counts 80, 100 and 125 produce revenues 2560, 3200 and 4000.
@@ -90,25 +92,6 @@ not redistributed. No ticketing, backend, collaboration, Exchange or Print claim
 ## Acceptance
 
 Partial acceptance, not full capability completion.
-
-- `test-results/embed-solstice-formula-history/report.json` passes six literal
-  examples and twelve results, including final native canvas text on every page
-  after each edit. The expanded-only edit preserves both other scenarios. Native
-  host keyboard input, Undo/Redo, ordinary worksheet/Slides Tab round trips,
-  rich-text child edit and exact two-model native Undo/Redo ownership, unchanged
-  formula results after child edits, and active-child disposal pass. No browser
-  errors or backend requests were observed.
-- `test-results/embed-solstice-formula-next/report.json` passes both localized
-  guides, four variants/three actions/three states, six literal examples and twelve
-  results per locale, selected child Tab, theme transitions and unchanged instance
-  identity/two-model snapshots. The native Slides viewport fits the documentation
-  frame. This does not certify all smaller screens.
-- `test-results/solstice-formula-export-ui-final/report.json` checks eleven-file
-  source parity and actual official white SDK UI. Eleven CSS imports are included.
-- TypeScript and the selected 1847-module build pass. Entry JS is 18140.09 kB
-  (4498.64 kB gzip), CSS 129.65 kB (19.27 kB gzip). Initial Next guide/playground
-  compiles took about 74/21 seconds and emitted a Gzip listener warning; this is
-  not performance acceptance.
 
 Initial animated screenshots showed intermediate counts in thumbnail canvases.
 Scenario comparison now explicitly disables number transitions through the public

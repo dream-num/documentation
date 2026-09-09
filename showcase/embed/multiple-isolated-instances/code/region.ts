@@ -1,7 +1,6 @@
 import type { IWorkbookData } from '@univerjs/core'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import sheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
 import { createUniver, LocaleType } from '@univerjs/presets'
 
 import type { Fixture, Region } from './data'
@@ -64,12 +63,10 @@ export function createRegion(
   if (region !== 'north' && region !== 'south') throw new Error('Unknown isolated region')
   if (!['default', 'empty', 'boundary'].includes(fixture)) throw new Error('Unknown regional source variant')
   if (saved) validateRegionalSnapshot(saved, region)
-  const zh = document.documentElement.lang === 'zh-CN'
-  const t = (en: string, cn: string) => (zh ? cn : en)
   const root = document.createElement('div')
   root.className = 'isolated-region'
   root.dataset.region = region
-  root.innerHTML = `<div class="region-controls"><strong>${region === 'north' ? t('North · light', '北区 · 浅色') : t('South · dark', '南区 · 深色')}</strong><button data-action="dispose">${t('Release', '释放')}</button><button data-action="mount">${t('Mount', '挂载')}</button><button data-action="download">${t('Download JSON', '下载 JSON')}</button><span role="alert"></span></div><div class="region-mount"></div>`
+  root.innerHTML = `<div class="region-controls"><strong>${region === 'north' ? 'North · light' : 'South · dark'}</strong><button data-action="dispose">Release</button><button data-action="mount">Mount</button><button data-action="download">Download JSON</button><span role="alert"></span></div><div class="region-mount"></div>`
   container.append(root)
   const slot = root.querySelector<HTMLElement>('.region-mount')!
   const events = new AbortController()
@@ -134,8 +131,8 @@ export function createRegion(
     if (closed || owner) return
     owner = createUniver({
       darkMode: region === 'south',
-      locale: zh ? LocaleType.ZH_CN : LocaleType.EN_US,
-      locales: { [LocaleType.EN_US]: sheetsCoreEnUS, [LocaleType.ZH_CN]: sheetsCoreZhCN },
+      locale: LocaleType.EN_US,
+      locales: { [LocaleType.EN_US]: sheetsCoreEnUS },
       presets: [UniverSheetsCorePreset({ container: slot, ribbonType: 'grid' })],
     })
     const current = owner

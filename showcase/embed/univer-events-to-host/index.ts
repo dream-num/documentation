@@ -58,9 +58,9 @@ const metadata = {
     },
     expected: {
       'en-US':
-        'Latest 12 actual SDK callbacks retain sequence numbers and immutable received payloads. Unsubscribe releases both handles; rebinding does not replay missed value events. Native editing stays available. Preview/export share source, complete EN/ZH and official CSS; theme changes preserve the owner, edits and feed.',
+        'Latest 12 actual SDK callbacks retain sequence numbers and immutable received payloads. Unsubscribe releases both handles; rebinding does not replay missed value events. Native editing stays available. Preview/export share source, the complete English pack and official CSS; theme changes preserve the owner, edits and feed.',
       'zh-CN':
-        '最近 12 条真实 SDK 回调保留序号和收到时的独立载荷。取消订阅释放两项监听，恢复不重放遗漏值事件；原生编辑始终可用。预览与导出共享源码、完整 EN/ZH 及官方 CSS，主题保留 owner、编辑和日志。',
+        '最近 12 条真实 SDK 回调保留序号和收到时的独立载荷。取消订阅释放两项监听，恢复不重放遗漏值事件；原生编辑始终可用。预览与导出共享源码、完整英文语言包及官方 CSS，主题保留 owner、编辑和日志。',
     },
   },
   variants: [

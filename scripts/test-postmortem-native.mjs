@@ -47,6 +47,7 @@ await context.addInitScript(() => {
   }
 })
 const page = await context.newPage()
+page.setDefaultTimeout(30000)
 page.on('pageerror', (error) => report.errors.push(String(error)))
 page.on('request', (request) => {
   if (request.url().includes('/universer-api/') || !['GET', 'HEAD', 'OPTIONS'].includes(request.method()))
@@ -92,6 +93,17 @@ try {
     for (const text of ['42 minutes', '18%', '09:46', 'EVT-203', 'A-04 · OPEN'])
       assert.ok(model.body.dataStream.includes(text), text)
     await page.locator('[data-u-comp=ribbon-grid-toolbar]').waitFor()
+    assert.match(
+      await page.locator('[data-u-comp=workbench-layout]').evaluate((node) => getComputedStyle(node).fontFamily),
+      /Arial/,
+    )
+    for (const heading of [
+      'Containment decision',
+      'Customer communication',
+      'Validation and release gate',
+      'What remains uncertain',
+    ])
+      assert.ok(model.body.dataStream.includes(heading), heading)
     assert.equal(await page.getByRole('button', { name: 'Reset postmortem', exact: true }).count(), 0)
     await page.screenshot({ path: path.join(output, 'baseline.png') })
   })
@@ -155,6 +167,12 @@ try {
     await page.keyboard.press('Control+y')
     await settle()
     assert.deepEqual(await snapshot(), edited)
+  })
+  await gate('native-follow-up-review-navigation', async () => {
+    await page.keyboard.press('Control+End')
+    await paint('What remains uncertain')
+    assert.deepEqual(await snapshot(), edited, 'Navigating the report must not rewrite it')
+    await page.screenshot({ path: path.join(output, 'follow-up-review.png') })
   })
   await gate('actual-entry-idempotent-disposal', async () => {
     assert.equal(await page.evaluate(() => typeof window.incidentPagehide), 'function')

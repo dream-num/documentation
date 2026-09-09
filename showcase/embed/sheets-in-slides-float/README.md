@@ -1,5 +1,10 @@
 # Tamar / Quarterly assumptions
 
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but is ignored. Earlier  English-only source/CSS/startup checks do
+not certify every native interaction or resolve the recorded SDK failures.
+
 An original independent print-studio review embeds a native two-sheet workbook
 inside a three-slide presentation. Direct editions, bookshop partners and print
 workshops have different prices and unit costs. Volume sensitivity keeps fixed
@@ -18,17 +23,6 @@ SDK CSS. The native Sheets ribbon registers its actual feature dependencies.
 
 ## Selected evidence and a failing gate
 
-`test-results/embed-sheet-slide-float-fullscreen-keyboard/report.json` verifies
-the final independent production build at 1220px up to fullscreen: native float
-activation, official white/Grid CSS, recalculation from 1,600 to 1,800 direct
-units (revenue 49,680; operating result 13,932), native Undo/Redo and preservation
-of the whole host presentation. The overall report is **failing**: the native
-fullscreen button does not open a shell. Mouse activation also fails in the
-current-workbook and fullscreen-session reports; the latter observes a null
-root fullscreen session. An overlay selector is absent in the active child.
-The full test still requires fullscreen, populated menus, sensitivity navigation,
-host thumbnails and disposal; those later gates have not passed.
-
 The first source and production attempt hit the beta.2 number-format interceptor:
 it reads the current workbook even when FRange includes the unit ID. This demo
 owns one workbook and now explicitly selects that unit type after loading, while
@@ -41,24 +35,9 @@ The first layout clipped the contribution column. Narrower authored columns,
 fits the native render viewport without restyling SDK chrome. License text still
 overlays some cells and remains unmodified.
 
-`embed-sheet-slide-float-next-final/report.json` passes EN/ZH guide structure and native
-preview CSS; it does not exercise fullscreen. `embed-sheet-slide-float-export-final/report.json`
-checks eleven source files and live official CSS/Canvas. The standalone project
-installs 218 packages. Main JS is 18,254.36 kB / 4,528.73 kB gzip; CSS is 137.59 /
-20.80 kB gzip. Cold Next guide/playground responses took 61s/20.6s, with a Gzip
-MaxListenersExceededWarning. These are not acceptable-performance claims.
-
 ## Still open
 
 ### Native click diagnosis
-
-`test-results/embed-sheet-slide-float-dom-moves/report.json` records the same
-native button receiving pointerdown and mouseup, while its entire
-`embed-float-dom-chrome` ancestor is moved with `insertBefore` and `appendChild`.
-The stacks point to the SDK chrome-layout effect cleanup and registration.
-No click reaches even a window capture listener installed before SDK startup;
-`EmbedFullscreenService.enter` is not called. The button identity survives, so
-checking only `isConnected` missed this ancestor removal/reinsertion.
 
 The local SDK source supplies `hostFloatDomLayout$={of(viewState)}` on each
 `SlideEmbedFloatingLayer` render. `EmbedFloatDomRenderer` includes that observable
@@ -71,8 +50,8 @@ package files or production event handlers were patched. The full gate remains
 failing; `SHOWCASE_DIAGNOSTIC=1` enables observational traces in the source runner.
 
 Fix native fullscreen first, then finish five-tab menu dependencies, Sensitivity
-navigation, native cell typing, host navigation/preservation, active-child
-disposal, print, failed resources, repeat mounting/theme changes, narrow layouts,
+navigation, broader native cell typing, host navigation/preservation,
+print, failed resources, repeat mounting, narrow layouts,
 touch/accessibility and performance. This is a partial implementation with a
 known runtime failure, not a completed demo. No backend, sales orders, payments,
 Exchange conversion or persistence is provided. Reload loses edits.

@@ -1,8 +1,10 @@
 # Beacon / Code Blocks
 
+The demo runtime and authored data are English-only, including on a Chinese documentation page. Complete official English locale packs are retained. Any legacy locale argument is accepted but ignored; saved-snapshot argument positions are unchanged. Earlier bilingual test reports below describe the previous revision, not current language acceptance.
+
 An original Community Lighting Digest, with fictional sensor data rather than real safety thresholds. The six-section brief preserves its TypeScript ingestion, independent SQL comparison, review rules, tasks, caution, editorial quotation and link. The original JSON manifest, Python filter and SQL summary now appear as separate native business blocks in the same document. Tabs, a blank line, long source lines and the Unicode dash are deliberate content, not host-rendered examples.
 
-Native Grid and the code language picker provide the UI. There are no sample loaders, language/layout/tab forms, duplicate editing/history controls or readback panels. Preview and export share one factory, six official stylesheets, all six EN/ZH packs, initial page language and same-owner theme changes. The owner has idempotent disposal; trial watermarks remain untouched.
+Native Grid and the code language picker provide the UI. There are no sample loaders, language/layout/tab forms, duplicate editing/history controls or readback panels. Preview and export share one factory, six official stylesheets, all six English packs, English UI and same-owner theme changes. The owner has idempotent disposal; trial watermarks remain untouched.
 
 ## Literal Facade examples
 
@@ -319,5 +321,3 @@ if (!window.beaconParagraph('// Beacon batch:').appendText(' Review pending.')) 
 The dedicated test compares original multiline content, real native glyphs/draw calls and full saved models. Installed beta.2 can draw native syntax colors, change language through its picker, insert a code block through Grid, and undo ordinary code text/blank-line edits. Configuration success alone does not prove rendering: wrapping, line numbers and tab widths currently fail the actual-layout checks. getText() drops paragraph breaks, so copying it unchanged also fails whitespace preservation. The explicitly separate saved-model clipboard path preserves those breaks; Windows clipboard output is checked against exact CRLF transport text without normalizing returned values or saved models.
 
 Complete history remains strict: language Undo leaves the changed language in place and undoes an earlier checklist operation; deleting then undoing a code block does not restore its resource; Grid insertion then Undo leaves the new resource behind. Native slash-menu handling intercepts a slash inside code and fails literal slash input; ordinary typing is tested separately, never silently substituted. Explicit same-ID recreation and captured-baseline restore are separate passing recovery paths, not substitutes for history. The old internal fit-width/scroll adapter is removed: automatic narrow viewport fitting is not claimed, while native zoom remains available.
-
-Run `node scripts/test-modern-code-native.mjs [selected-export-manifest.json]`. Default URL matches `dev:showcase` at localhost:3030; use `SHOWCASE_DEMO_URL`, `SHOWCASE_BASE_URL` and `SHOWCASE_RESULTS_DIR` for independent runs. Build only this case. No backend is required.

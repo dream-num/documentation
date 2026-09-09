@@ -3,26 +3,20 @@ import type { IBaseSnapshot } from '@univerjs/core'
 import { UniverBasesPlugin } from '@univerjs-pro/bases'
 import { UniverBasesUIPlugin } from '@univerjs-pro/bases-ui'
 import BasesUIEnUS from '@univerjs-pro/bases-ui/locale/en-US'
-import BasesUIZhCN from '@univerjs-pro/bases-ui/locale/zh-CN'
 import BasesEnUS from '@univerjs-pro/bases/locale/en-US'
-import BasesZhCN from '@univerjs-pro/bases/locale/zh-CN'
 import { createBoardThemePreset, UniverBoardsPlugin } from '@univerjs-pro/boards'
 import { UniverBoardsUIPlugin } from '@univerjs-pro/boards-ui'
 import BoardsEnUS from '@univerjs-pro/boards-ui/locale/en-US'
-import BoardsZhCN from '@univerjs-pro/boards-ui/locale/zh-CN'
 import { EmbedCreationService, EmbedHostEntryEnum, UniverEmbedPlugin } from '@univerjs-pro/embed'
 import { EmbedHostRestoreService, UniverEmbedUIPlugin } from '@univerjs-pro/embed-ui'
 import EmbedEnUS from '@univerjs-pro/embed-ui/locale/en-US'
-import EmbedZhCN from '@univerjs-pro/embed-ui/locale/zh-CN'
 import EmbedUnitEnUS from '@univerjs-pro/embed-unit-ui/locale/en-US'
-import EmbedUnitZhCN from '@univerjs-pro/embed-unit-ui/locale/zh-CN'
 import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import ShapeEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
-import ShapeZhCN from '@univerjs-pro/shape-editor-ui/locale/zh-CN'
 import { EditorUIService, IEditorUIService } from '@univerjs-pro/slides-ui'
 import SlidesEnUS from '@univerjs-pro/slides-ui/locale/en-US'
-import SlidesZhCN from '@univerjs-pro/slides-ui/locale/zh-CN'
+import SlidesCoreEnUS from '@univerjs-pro/slides/locale/en-US'
 import {
   IUniverInstanceService,
   LocaleType,
@@ -34,17 +28,18 @@ import {
 import { FUniver } from '@univerjs/core/facade'
 import { unmount } from '@univerjs/design'
 import DesignEnUS from '@univerjs/design/locale/en-US'
-import DesignZhCN from '@univerjs/design/locale/zh-CN'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsEnUS from '@univerjs/docs-ui/locale/en-US'
-import DocsZhCN from '@univerjs/docs-ui/locale/zh-CN'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
+import DrawingEnUS from '@univerjs/drawing-ui/locale/en-US'
+import EngineFormulaEnUS from '@univerjs/engine-formula/locale/en-US'
 import { IRenderManagerService, UniverRenderEnginePlugin } from '@univerjs/engine-render'
+import FormulaEditorEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
+import SheetsFormulaEnUS from '@univerjs/sheets-formula/locale/en-US'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
-import UIZhCN from '@univerjs/ui/locale/zh-CN'
 
 import { CHILD_ID, createChildData, createHostData, HOST_ID, FORMULA_CARDS, SOURCE_NAME } from './data'
 
@@ -58,6 +53,7 @@ import '@univerjs-pro/slides-ui/lib/index.css'
 import '@univerjs-pro/boards-ui/lib/index.css'
 import '@univerjs-pro/shape-editor-ui/lib/index.css'
 import '@univerjs-pro/embed-unit-ui/lib/index.css'
+import '@univerjs/sheets-formula-ui/lib/index.css'
 import './styles.css'
 
 import '@univerjs-pro/shape-editor/facade'
@@ -73,7 +69,7 @@ import '@univerjs-pro/embed/facade'
 export function createDemo(
   container: HTMLElement,
   darkMode = false,
-  locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+  _legacyLocale: LocaleType = LocaleType.EN_US,
   saved?: { host: IBaseSnapshot; board: IBoardData },
 ) {
   // This restores the example's own pair, not arbitrary uploaded documents.
@@ -89,9 +85,14 @@ export function createDemo(
   let disposed = false
   const univer = new Univer({
     darkMode,
-    locale,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
+        SlidesCoreEnUS,
+        SheetsFormulaEnUS,
+        FormulaEditorEnUS,
+        DrawingEnUS,
+        EngineFormulaEnUS,
         DesignEnUS,
         UIEnUS,
         DocsEnUS,
@@ -102,18 +103,6 @@ export function createDemo(
         BoardsEnUS,
         ShapeEnUS,
         EmbedUnitEnUS,
-      ),
-      [LocaleType.ZH_CN]: mergeLocales(
-        DesignZhCN,
-        UIZhCN,
-        DocsZhCN,
-        BasesZhCN,
-        BasesUIZhCN,
-        EmbedZhCN,
-        SlidesZhCN,
-        BoardsZhCN,
-        ShapeZhCN,
-        EmbedUnitZhCN,
       ),
     },
   })
@@ -180,7 +169,7 @@ export function createDemo(
                 input.ref.unit.selector !== CHILD_ID ||
                 input.unitType !== UniverInstanceType.UNIVER_BOARD
               )
-                throw new Error('Unknown Reed board source')
+                throw new Error('Unknown Reed canvas source')
               const instances = univer.__getInjector().get(IUniverInstanceService)
               if (!instances.getUnit(CHILD_ID, input.unitType)) {
                 const data = structuredClone(boardData)
@@ -219,7 +208,7 @@ export function createDemo(
       void (async () => {
         if (saved) {
           const embed = api.getEmbed({ hostUnitId: HOST_ID, embedId: 'reed-operations' })
-          if (!embed) throw new Error('The saved Reed Base has no native board embed resource.')
+          if (!embed) throw new Error('The saved Reed Base has no native canvas embed resource.')
           await embed.loadAsync({ signal: abort.signal })
         } else {
           // Materialize the local board before restoring its native Base table-list anchor.

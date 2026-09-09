@@ -5,13 +5,10 @@ import {
   UniverSheetsAdvancedPreset,
 } from '@univerjs/preset-sheets-advanced'
 import sheetsAdvancedEnUS from '@univerjs/preset-sheets-advanced/locales/en-US'
-import sheetsAdvancedZhCN from '@univerjs/preset-sheets-advanced/locales/zh-CN'
 import { UniverSheetsCorePreset, unmount } from '@univerjs/preset-sheets-core'
 import sheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import sheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
 import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing'
 import sheetsDrawingEnUS from '@univerjs/preset-sheets-drawing/locales/en-US'
-import sheetsDrawingZhCN from '@univerjs/preset-sheets-drawing/locales/zh-CN'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 
 import { WORKBOOK_DATA } from './data'
@@ -30,7 +27,7 @@ export function validateSnapshot(data: Partial<IWorkbookData>) {
 export function createPrintDemo(
   container: HTMLElement,
   darkMode = false,
-  locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+  _legacyLocale: LocaleType = LocaleType.EN_US,
   saved?: Partial<IWorkbookData>,
 ) {
   const data = structuredClone(saved ?? WORKBOOK_DATA)
@@ -47,10 +44,9 @@ export function createPrintDemo(
   })
   const { univer, univerAPI } = createUniver({
     darkMode,
-    locale,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(sheetsCoreEnUS, sheetsDrawingEnUS, sheetsAdvancedEnUS),
-      [LocaleType.ZH_CN]: mergeLocales(sheetsCoreZhCN, sheetsDrawingZhCN, sheetsAdvancedZhCN),
     },
     presets: [UniverSheetsCorePreset({ ribbonType: 'grid', container: root }), UniverSheetsDrawingPreset(), advanced],
   })
@@ -67,10 +63,7 @@ export function createPrintDemo(
     root.dataset.error = String(error)
     const alert = document.createElement('p')
     alert.setAttribute('role', 'alert')
-    alert.textContent =
-      locale === LocaleType.ZH_CN
-        ? 'Portfolio 报表未能启动。请重新加载；详细错误请查看控制台。'
-        : 'The Portfolio portfolio could not start. Reload to retry; details are in the console.'
+    alert.textContent = 'The portfolio could not start. Reload to retry; details are in the console.'
     root.prepend(alert)
   }
   function waitForCanvas() {

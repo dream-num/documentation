@@ -1,5 +1,7 @@
 # Cypress / Forecast notebook
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 A fictional independent press separates total-period cash from collection timing.
 Opening $4,000 plus expected collections $12,500 less payments $9,800 yields
 $6,700. At 75% collected before payment, the balance is only $3,575: $1,425 below
@@ -13,7 +15,7 @@ Doc@Sheet describes placement; Sheet → Doc describes calculation, not write-ba
 
 The saved Gamma budget-review reference informs narrative hierarchy and contrast,
 not copied artwork. Original plum, moss and warm cream separate the story from
-Saffron. English business content and EN/ZH interface packs share official CSS.
+Saffron. English business content and English interface packs share official CSS.
 The native Grid ribbon supplies controls; no fixture panel or extra feature card.
 
 ## Run these examples in order
@@ -223,20 +225,6 @@ reserve floor is not financial advice. Null and unpriced text are not measured z
 Preview and standalone share one factory, data, complete dependency locales and
 official CSS. Theme changes preserve owners. Source references use stable IDs.
 Native errors must remain visible; existing Doc error-status issues are not hidden.
-
-Partial evidence: test-results/embed-cypress-formula-current/report.json runs all
-twenty-three literal examples. Nineteen alternating Sheet-visible/Doc-visible
-source edits update thirteen current-canvas values and preserve the whole body.
-Native Sheet typing and exact serialized Undo/Redo, source-owned Print, separate
-Doc paragraph editing, fourteen complete EN/ZH packs, both-model theme preservation
-and active-Doc Tab disposal pass selected checks without browser errors, warnings
-or backend requests. Eleven-file source/CSS parity is checked independently at
-test-results/cypress-formula-export-ui/report.json.
-
-The strict report remains FAIL. Eighteen native formula errors display correctly
-but report success/string. Both EN/ZH formula-editor Number format buttons are
-intercepted by another child-popup layer even after stable bounds. The language
-packs themselves are complete; this is not an unresolved translation key.
 
 In this tested Tab sequence, keyboard Undo restores the authored Doc body and
 leaves the Sheet unchanged. Full Undo snapshot equality fails because native

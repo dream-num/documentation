@@ -1,5 +1,7 @@
 # Northstar / Complete project brief
 
+Current language contract: native UI, startup alerts and authored data stay English under either host language. The legacy third locale argument remains accepted but is ignored. All complete English plugin packs, official CSS, native Grid menus and independent host/child models are retained. Earlier bilingual evidence below is historical; this language migration does not resolve its recorded SDK limitations or certify every interaction.
+
 An original fictional neighborhood seed-library pilot combines a modern narrative
 with four native body blocks: resource Sheet, readiness Base, strategy Slides
 and dependency Board. Six stations, 72 illustrative starter packs and six
@@ -57,40 +59,11 @@ fixture panel, duplicate toolbar or iframe child substitute is introduced.
 The actual child-scoped Board editor-service registration follows Board startup,
 after the real Slides unit supplies the root service.
 
-Selected production evidence is in
-`test-results/embed-mixed-docs-modern-print-release/report.json`.
-All four native blocks render and open fullscreen. All five literal examples
-modify their intended unit; the host edit moves all four anchors by nine UTF-16
-units without changing the children. Base, Slides and Board literal edits pass
-native full-five-model Undo/Redo. Actual Sheet keyboard input changes 84 packs
-to 90 and Undo restores 84. Its native one-page Print preview opens and cancels
-without backend requests; this is not whole-document printing or a produced PDF.
-
-The strict production gate remains **failing**, with three snapshot comparisons
-covering two Sheet serialization differences: the first Facade Undo leaves an
-empty validation map (`{}` becomes `{"resources":[]}`), and native text entry
-leaves a generated input-style cache entry after Undo. These observations do not
-establish lost user values; the test retains exact snapshots and does not silently
-normalize either difference. Other checks continue so those failures do not hide
-independent product results. Do not report this as full history acceptance.
-
 Disposal while the Board is fullscreen initially produced stale host/LocaleService
 errors. The demo now waits for the SDK's actual `exited$` release signal and queued
 focus recovery before releasing its host. The selected fullscreen-disposal recheck
 passes. `dispose()` is asynchronous; await it when switching an owned demo yourself.
 Repeated/racing mounts and background-tab disposal still require verification.
-
-EN/ZH guide/theme checks are in `test-results/embed-mixed-docs-modern-next-recheck/report.json`.
-They exercise all five literal examples, preserve the same API owner and edited
-models through theme changes; the native Board may rebuild its palette with the
-same theme ID. The independent export contains eleven source files and 23 official
-CSS imports; see `test-results/embed-mixed-docs-modern-export-final/report.json`.
-The intermediate `next-final` run caught old server guide text versus updated
-client metadata during development refresh, plus a React pre-mount update warning.
-A same-server recheck passes; that is not proof of general hydration reliability.
-The selected build transforms 1,944 modules: main JS about 18,833 kB / 4,645 kB gzip,
-CSS 170.48 kB / 25.10 kB gzip. Cold Next guide/playground took about 88s/29s with a
-Gzip listener warning; performance is not accepted.
 
 Complete menus, source failures, saved reload, repeated mounts, multiple owners,
 native editing in every child, mobile/touch, accessibility and performance require

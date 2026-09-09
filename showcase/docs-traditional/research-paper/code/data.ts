@@ -4,7 +4,7 @@ export const RESEARCH_PAPER = {
   title: 'Latency-Aware Reconciliation for Offline Collaborative Documents',
   authors: 'A. Rivera · M. Chen · S. Okafor — Univer Systems Research',
   abstract:
-    'This paper evaluates a deterministic reconciliation strategy for intermittently connected document clients. Across 12,480 replayed editing sessions, the strategy reduced user-visible conflicts by 37% while preserving a complete audit trail.',
+    'Typesetting sample only: all authors, references and measurements below are fictional, not Univer benchmark results. This paper evaluates a deterministic reconciliation strategy for intermittently connected document clients. Across 12,480 replayed editing sessions, the strategy reduced user-visible conflicts by 37% while preserving a complete audit trail.',
   sections: [
     [
       '1. Introduction',

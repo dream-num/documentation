@@ -1,10 +1,6 @@
-import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
-import ExchangeEnUS from '@univerjs-pro/exchange-client/locale/en-US'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import ShapeEditorUIEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
 import { SetSlideZoomRatioOperation, UniverSlidesPlugin } from '@univerjs-pro/slides'
-import { UniverSlidesExchangeClientPlugin } from '@univerjs-pro/slides-exchange-client'
-import SlidesExchangeEnUS from '@univerjs-pro/slides-exchange-client/locale/en-US'
 import { UniverSlidesPrintPlugin } from '@univerjs-pro/slides-print'
 import SlidesPrintEnUS from '@univerjs-pro/slides-print/locale/en-US'
 import { UniverSlidesUIPlugin } from '@univerjs-pro/slides-ui'
@@ -27,19 +23,17 @@ import '@univerjs/ui/lib/index.css'
 import '@univerjs/docs-ui/lib/index.css'
 import '@univerjs-pro/shape-editor-ui/lib/index.css'
 import '@univerjs-pro/slides-ui/lib/index.css'
-import '@univerjs-pro/exchange-client/lib/index.css'
 import '@univerjs-pro/slides-print/lib/index.css'
 import './styles.css'
 
 import '@univerjs-pro/slides/facade'
-import '@univerjs-pro/exchange-client/facade'
-import '@univerjs-pro/slides-exchange-client/facade'
 import '@univerjs-pro/slides-print/facade'
 import '@univerjs/ui/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _locale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
   root.className = 'slide-theme-demo'
+  root.dataset.ready = 'false'
   root.dataset.theme = darkMode ? 'dark' : 'light'
   container.append(root)
   const univer = new Univer({
@@ -52,8 +46,6 @@ export function createDemo(container: HTMLElement, darkMode = false) {
         DocsUIEnUS,
         ShapeEditorUIEnUS,
         SlidesUIEnUS,
-        ExchangeEnUS,
-        SlidesExchangeEnUS,
         SlidesPrintEnUS,
       ),
     },
@@ -86,8 +78,6 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     univer.registerPlugin(UniverLicensePlugin)
     univer.registerPlugin(UniverSlidesPlugin)
     univer.registerPlugin(UniverSlidesUIPlugin)
-    univer.registerPlugin(UniverExchangeClientPlugin)
-    univer.registerPlugin(UniverSlidesExchangeClientPlugin)
     univer.registerPlugin(UniverSlidesPrintPlugin)
     const api = FUniver.newAPI(univer)
     // Match the advanced SDK example: the console exposes real Facades, not a second toolbar.

@@ -1,7 +1,6 @@
 import type { IWorkbookData } from '@univerjs/core'
 import { MessageType, UniverSheetsCorePreset, unmount } from '@univerjs/preset-sheets-core'
 import enUS from '@univerjs/preset-sheets-core/locales/en-US'
-import zhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
 import { createUniver, LocaleType } from '@univerjs/presets'
 
 import { WORKBOOK_DATA } from './data'
@@ -25,7 +24,7 @@ export function validateSnapshot(data: Partial<IWorkbookData>) {
 export function createDemo(
   container: HTMLElement,
   darkMode = false,
-  locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+  _legacyLocale?: LocaleType,
   saved?: Partial<IWorkbookData>,
   ribbonType: 'grid' | 'classic' = 'grid',
   initialSelection = 'A4:E4',
@@ -37,14 +36,12 @@ export function createDemo(
   container.append(root)
   const { univer, univerAPI } = createUniver({
     darkMode,
-    locale,
-    locales: { [LocaleType.EN_US]: enUS, [LocaleType.ZH_CN]: zhCN },
+    locale: LocaleType.EN_US,
+    locales: { [LocaleType.EN_US]: enUS },
     presets: [UniverSheetsCorePreset({ container: root, ribbonType })],
   })
   const workbook = univerAPI.createWorkbook(snapshot)
   const sheet = workbook.getSheetBySheetId('orders')!
-  const zh = locale === LocaleType.ZH_CN
-  const t = (en: string, cn: string) => (zh ? cn : en)
   let disposed = false
   const target = () => {
     if (disposed) throw new Error('The menu owner has been disposed.')
@@ -52,9 +49,8 @@ export function createDemo(
       univerAPI.getActiveWorkbook()?.getId() !== workbook.getId() ||
       workbook.getActiveSheet()?.getSheetId() !== sheet.getSheetId()
     )
-      throw new Error(t('Return to the Orders sheet.', '请返回 Orders 工作表。'))
-    if (!workbook.getWorkbookPermission().canEdit())
-      throw new Error(t('This workbook is read-only.', '当前工作簿为只读。'))
+      throw new Error('Return to the Orders sheet.')
+    if (!workbook.getWorkbookPermission().canEdit()) throw new Error('This workbook is read-only.')
     const ranges = sheet.getSelection()?.getActiveRangeList() ?? []
     const range = ranges[0]
     if (
@@ -65,7 +61,7 @@ export function createDemo(
       range.getColumn() < 0 ||
       range.getLastColumn() > 4
     )
-      throw new Error(t('Select one contiguous range inside A4:E7.', '请选择 A4:E7 内的一个连续区域。'))
+      throw new Error('Select one contiguous range inside A4:E7.')
     return range
   }
   const run = (action: () => void) => {
@@ -82,8 +78,8 @@ export function createDemo(
   }
   const highlight = univerAPI.createMenu({
     id: 'harbor.review-highlight',
-    title: t('Review highlight', '复核标记'),
-    tooltip: t('Toggle pale-yellow fill on selected order cells', '切换所选订单单元格的淡黄色填充'),
+    title: 'Review highlight',
+    tooltip: 'Toggle pale-yellow fill on selected order cells',
     action: () =>
       run(() => {
         const range = target()
@@ -100,13 +96,13 @@ export function createDemo(
             .flat()
             .every((value) => value.toUpperCase() === color)
         )
-          throw new Error(t('The SDK did not apply the requested fill.', 'SDK 未应用请求的填充。'))
+          throw new Error('The SDK did not apply the requested fill.')
       }),
   })
   const approval = univerAPI.createSubmenu({
     id: 'harbor.approval',
-    title: t('Approval', '审批'),
-    tooltip: t('Update column E for selected order rows', '更新所选订单行的 E 列'),
+    title: 'Approval',
+    tooltip: 'Update column E for selected order rows',
   })
   approval.appendTo(['contextMenu.mainArea', 'contextMenu.others'])
   // beta.2 ribbon submenus dispatch a leaf ID instead of the callback command.
@@ -114,7 +110,7 @@ export function createDemo(
   for (const value of ['Approved', 'Needs changes']) {
     const item = univerAPI.createMenu({
       id: 'harbor.approval.' + (value === 'Approved' ? 'approve' : 'changes'),
-      title: value === 'Approved' ? t(value, '已批准') : t(value, '需要修改'),
+      title: value,
       action: () =>
         run(() => {
           const selection = target()
@@ -133,7 +129,7 @@ export function createDemo(
               .flat()
               .every((current) => current === value)
           )
-            throw new Error(t('The SDK did not apply the requested approval state.', 'SDK 未应用请求的审批状态。'))
+            throw new Error('The SDK did not apply the requested approval state.')
         }),
     })
     item.appendTo('ribbon.start.others')

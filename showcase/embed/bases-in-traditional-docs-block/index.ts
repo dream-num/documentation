@@ -8,7 +8,10 @@ const metadata: ShowcaseMetadata = {
   category: 'features',
   previewHeight: 1100,
   group: { 'en-US': 'Traditional Docs host / Block', 'zh-CN': '传统文档宿主 / 块嵌入' },
-  title: { 'en-US': 'Bases in Traditional Docs / Evidence Review', 'zh-CN': 'Bases 嵌入传统文档 / 证据评审' },
+  title: {
+    'en-US': 'Bases in Traditional Docs / Evidence Review',
+    'zh-CN': 'Bases 嵌入传统文档 / 证据评审',
+  },
   description: {
     'en-US':
       'A formal field-station review embeds seven evidence records and four linked owners, keeping its written disposition independent.',

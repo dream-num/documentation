@@ -53,14 +53,14 @@ const metadata = {
     tryIt: {
       'en-US': [
         'Read the lightweight planning manifest before scrolling: no editor owner exists.',
-        'Scroll inside the card to the editor, or activate Load editor now. Observe the real Grid toolbar and calculated budget.',
+        'Scroll inside the card to the editor, or activate Open route editor. Observe the English native Grid toolbar and calculated budget.',
         'Edit weekly runs directly in the native grid, use Undo/Redo, then download the current JSON.',
         'Use the README literal empty/boundary variants. Module import failures disable retry and request a page refresh after saving other page work; initialization failures can still be retried.',
         'Release or cancel a pending load. Explicit activation starts again; saved content can be restored with the README host example.',
       ],
       'zh-CN': [
         '滚动前查看轻量计划清单，此时没有编辑器实例。',
-        '在卡片内滚动到编辑区域，或点击立即加载，查看原生 Grid 工具栏与公式预算。',
+        '在卡片内滚动到编辑区域，或点击 Open route editor，查看英文原生 Grid 工具栏与公式预算。',
         '在原生网格直接修改每周班次、撤销/重做，再下载当前 JSON。',
         '运行 README 中的空和边界示例；模块导入失败会禁用重试并提示保存其他工作后刷新页面；初始化失败仍可重试。',
         '释放实例或取消尚未完成的加载；显式激活可重新开始，通过 README 宿主示例恢复保存内容。',
@@ -85,7 +85,7 @@ const metadata = {
       'explicit',
       'Explicit keyboard activation',
       '显式键盘激活',
-      'Load editor now uses the same import path without requiring a pointer scroll.',
+      'Open route editor uses the same import path without requiring a pointer scroll.',
       '立即加载复用相同导入路径，无需鼠标滚动。',
     ),
     option(

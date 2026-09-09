@@ -62,9 +62,9 @@ const metadata = {
     },
     expected: {
       'en-US':
-        'Native popups, navigation, same-ID recovery, EN/ZH, theme and disposal are verified. Navigation returns void; read the selected range list after paint. Strict limits remain: getHyperLinks reports only the first span, and first B7 insertion Undo removes its original null cell record. Update/removal Undo/Redo are exact.',
+        'Earlier bilingual runs verified native popups, navigation, same-ID recovery, themes and disposal. Current English-only startup passes; these native paths need a fresh rerun. Navigation returns void; read the selected range list after paint. Strict limits remain: getHyperLinks reports only the first span, and first B7 insertion Undo removes its original null cell record. Update/removal Undo/Redo are exact.',
       'zh-CN':
-        '已验证原生弹窗、导航、同 ID 恢复、中英文、主题和销毁。导航返回 void，绘制后读取选区列表。严格限制仍在：getHyperLinks 只返回第一段，首次插入 B7 后撤销会移除原始 null 单元格记录。更新和移除的撤销/重做完整一致。',
+        '早期双语回归验证过原生弹窗、导航、同 ID 恢复、主题和销毁；当前纯英文启动已通过，这些原生路径仍需重新回归。导航返回 void，绘制后读取选区列表。严格限制仍在：getHyperLinks 只返回第一段，首次插入 B7 后撤销会移除原始 null 单元格记录。更新和移除的撤销/重做完整一致。',
     },
   },
   variants: [

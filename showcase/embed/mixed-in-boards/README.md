@@ -1,5 +1,10 @@
 # Ripple / Complete Planning Workshop
 
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but is ignored. Earlier  English-only source/CSS/startup checks do
+not certify every native interaction or resolve the recorded SDK failures.
+
 A fictional riverfront wayfinding workshop plans for 32 participants, four tables
 and 90 minutes. Four native Board Floats contain a resource Sheet, a modern agenda
 Doc, three review Slides, and a Base with eight observations linked to three
@@ -57,7 +62,7 @@ window.univerAPI.getBoard('ripple-wayfinding-workshop').getShape('revise').getTe
 ## Source, styling and ownership
 
 Preview and independent export use the same create-demo.ts and data.ts, with all
-23 official SDK CSS imports and a minimal container stylesheet. Navy/cyan, warm
+official SDK CSS imports and a minimal container stylesheet. Navy/cyan, warm
 paper, mint and plum belong to authored content, not overrides of native UI.
 No license marks are removed. The cached miro-diagrams-library.png informs flow
 and visual hierarchy only; all scenario content is original and no reference
@@ -80,23 +85,6 @@ binding, collaborative history, bookings, purchases, installed signs or approval
 
 Selected evidence is partial, not complete acceptance:
 
-- `test-results/embed-mixed-boards-final/report.json` checks all four real native
-  Float/fullscreen paths, three distinct slide layouts, all five literal examples
-  and complete-model isolation. Keyboard input B5=48 recalculates the total to
-  USD 1,839.20. One-page budget Print/cancel, native Board card movement, four
-  fullscreen round-trips and selected active-Base-fullscreen disposal are checked.
-  No browser errors or backend requests were observed in this production run.
-- The strict report remains FAIL: the first Sheet Undo adds an empty validation
-  array for resources. Values restore, but the full snapshot is not identical.
-  No normalization hides the difference. Docs, Slides, Base and Board literal
-  history pass; subsequent Sheet keyboard history passes after initialization.
-- `test-results/embed-mixed-boards-next-layout/report.json` checks EN/ZH guide
-  content, all five literal examples and theme changes without replacing the API
-  owner or losing edits. Only native Board palette regeneration with the same
-  theme ID is allowed; the other four models are compared exactly.
-- Independent export is checked separately for eleven exact source files,
-  official white SDK background and all 23 official CSS imports.
-
 Earlier reports are retained. Initial setText-only examples lost the slide
 headline's rich styling; the current single-mutation setRichText examples include
 font size, color and weight. The first documentation check found the Base menu
@@ -111,3 +99,7 @@ contains 1,944 modules, approximately 18.83 MB main JS / 4.65 MB gzip; cold Next
 guide/playground compilation took about 54/30 seconds with a Gzip listener warning.
 These are observations, not performance acceptance. No Exchange conversion,
 actual PDF file or collaborative history is claimed.
+
+The shared factory explicitly imports the official Ink UI English pack and CSS
+required by the registered Boards UI dependency. Other product locale packs and
+styles remain intact. This is resource coverage, not native pen acceptance.

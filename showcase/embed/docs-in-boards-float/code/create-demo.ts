@@ -5,6 +5,7 @@ import BoardsEnUS from '@univerjs-pro/boards-ui/locale/en-US'
 import { UniverEmbedPlugin } from '@univerjs-pro/embed'
 import { UniverEmbedUIPlugin } from '@univerjs-pro/embed-ui'
 import EmbedEnUS from '@univerjs-pro/embed-ui/locale/en-US'
+import InkUIEnUS from '@univerjs-pro/ink-ui/locale/en-US'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import ShapeEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
 import { IUniverInstanceService, LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
@@ -16,6 +17,7 @@ import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
+import DrawingUIEnUS from '@univerjs/drawing-ui/locale/en-US'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
@@ -26,6 +28,7 @@ import '@univerjs/design/lib/index.css'
 import '@univerjs/ui/lib/index.css'
 import '@univerjs/docs-ui/lib/index.css'
 import '@univerjs-pro/boards-ui/lib/index.css'
+import '@univerjs-pro/ink-ui/lib/index.css'
 import '@univerjs-pro/shape-editor-ui/lib/index.css'
 import '@univerjs/drawing-ui/lib/index.css'
 import '@univerjs-pro/embed-ui/lib/index.css'
@@ -37,7 +40,7 @@ import '@univerjs/docs/facade'
 import '@univerjs/ui/facade'
 import '@univerjs-pro/embed/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _locale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
   root.className = 'maple-embed'
   container.append(root)
@@ -48,7 +51,16 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     darkMode,
     locale: LocaleType.EN_US,
     locales: {
-      [LocaleType.EN_US]: mergeLocales(DesignEnUS, UIEnUS, DocsEnUS, BoardsEnUS, ShapeEnUS, EmbedEnUS),
+      [LocaleType.EN_US]: mergeLocales(
+        DrawingUIEnUS,
+        InkUIEnUS,
+        DesignEnUS,
+        UIEnUS,
+        DocsEnUS,
+        BoardsEnUS,
+        ShapeEnUS,
+        EmbedEnUS,
+      ),
     },
   })
   const demoWindow = window as Window & { univerAPI?: FUniver }

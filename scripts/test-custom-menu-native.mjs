@@ -73,7 +73,7 @@ if (buildStandalone) {
           order: 'pre',
           handler:
             () => `<!doctype html><html lang="en-US"><head><link rel="icon" href="data:,"></head><body style="margin:0"><div id="app" style="height:100vh"></div><script type="module">
-import {createDemo,validateSnapshot} from '/src/create-demo.ts';import {MessageType} from '@univerjs/preset-sheets-core';import en from '@univerjs/preset-sheets-core/locales/en-US';import zh from '@univerjs/preset-sheets-core/locales/zh-CN';window.MessageType=MessageType;window.packs={en,zh};window.createDemo=createDemo;window.validateSnapshot=validateSnapshot;document.documentElement.lang=new URLSearchParams(location.search).get('lang')||'en-US';window.container=document.getElementById('app');window.demo=createDemo(window.container);
+import {createDemo,validateSnapshot} from '/src/create-demo.ts';import {MessageType} from '@univerjs/preset-sheets-core';import en from '@univerjs/preset-sheets-core/locales/en-US';window.MessageType=MessageType;window.packs={en};window.createDemo=createDemo;window.validateSnapshot=validateSnapshot;document.documentElement.lang=new URLSearchParams(location.search).get('lang')||'en-US';window.container=document.getElementById('app');window.demo=createDemo(window.container);
 </script></body></html>`,
         },
       },
@@ -496,17 +496,17 @@ try {
       await settle()
       await page.goto(url + '?lang=zh-CN')
       await ready()
-      assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'zhCN')
-      pack(await page.evaluate(() => window.univerAPI.getLocales()), await page.evaluate(() => window.packs.zh))
+      assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
+      pack(await page.evaluate(() => window.univerAPI.getLocales()), await page.evaluate(() => window.packs.en))
       await select('A4:E4')
-      await clickRibbon('已批准')
+      await clickRibbon('Approved')
       assert.equal((await values('E4'))[0][0], 'Approved')
       await capture('initial-zh')
       await run('demo.dispose();demo.dispose()')
       await settle()
       assert.equal(await canvas.count(), 0)
       report.checks.push({
-        name: 'Complete core EN/ZH, localized custom labels, theme owner identity, invalid/pre-ready/idempotent disposal',
+        name: 'Complete English core and custom labels on both host languages, theme owner identity, invalid/pre-ready/idempotent disposal',
       })
     },
     true,

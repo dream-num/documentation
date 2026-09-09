@@ -14,7 +14,10 @@ const metadata: ShowcaseMetadata = {
       'A Base-hosted Board tab turns workstream load, capacity and blockers into twelve native formulas and a connected operations map.',
     'zh-CN': 'Base 宿主中的 Board 标签页，通过十二个原生公式和连接线展示各工作流负载、容量与阻塞状态。',
   },
-  tags: { 'en-US': ['Formula', 'Board@Base', 'Tab', 'Capacity'], 'zh-CN': ['公式', 'Board@Base', '标签页', '产能'] },
+  tags: {
+    'en-US': ['Formula', 'Board@Base', 'Tab', 'Capacity'],
+    'zh-CN': ['公式', 'Board@Base', '标签页', '产能'],
+  },
   packages: [
     '@univerjs-pro/bases',
     '@univerjs-pro/boards',

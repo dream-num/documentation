@@ -45,9 +45,9 @@ const metadata = {
     },
     expected: {
       'en-US':
-        'Only C3 alone expands to its row. Other selections keep their bounds; clearing uses FRange.clearContent and native history. Host input and active cell editing are excluded. Native Grid has no selection/reset/readback toolbar. One official Core CSS bundle and complete EN/ZH packs share the Preview/export factory; themes retain the current owner and edits. Full-model history and recovery differences remain strict failures, not normalized results.',
+        'Only C3 alone expands to its row. Other selections keep their bounds; clearing uses FRange.clearContent and native history. Host input and active cell editing are excluded. Native Grid has no selection/reset/readback toolbar. One official Core CSS bundle and complete English packs share the Preview/export factory; themes retain the current owner and edits. Full-model history and recovery differences remain strict failures, not normalized results.',
       'zh-CN':
-        '仅 C3 单选扩展整行，其他选择保持原范围；FRange.clearContent 使用原生历史。宿主输入与单元格编辑不触发自定义命令。原生 Grid 无选择／重置／读回工具条。官方 Core CSS 及完整 EN/ZH 包共用预览和导出工厂；主题保留当前实例与编辑。完整模型历史及恢复差异保留严格失败，不归一化。',
+        '仅 C3 单选扩展整行，其他选择保持原范围；FRange.clearContent 使用原生历史。宿主输入与单元格编辑不触发自定义命令。原生 Grid 无选择／重置／读回工具条。官方 Core CSS 及完整 英文包共用预览和导出工厂；主题保留当前实例与编辑。完整模型历史及恢复差异保留严格失败，不归一化。',
     },
   },
   variants: [

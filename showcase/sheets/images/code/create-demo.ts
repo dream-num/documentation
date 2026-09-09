@@ -1,10 +1,8 @@
 /* eslint-disable no-await-in-loop -- Cell image layout follows the active cell and is seeded sequentially. */
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import coreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import coreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
 import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing'
 import drawingEnUS from '@univerjs/preset-sheets-drawing/locales/en-US'
-import drawingZhCN from '@univerjs/preset-sheets-drawing/locales/zh-CN'
 import { createUniver, LifecycleStages, LocaleType, mergeLocales } from '@univerjs/presets'
 
 import { ASSETS, WORKBOOK_DATA } from './data'
@@ -20,10 +18,9 @@ export function createDemo(container: HTMLElement, darkMode = false) {
   container.append(root)
   const { univer, univerAPI } = createUniver({
     darkMode,
-    locale: document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(coreEnUS, drawingEnUS),
-      [LocaleType.ZH_CN]: mergeLocales(coreZhCN, drawingZhCN),
     },
     presets: [UniverSheetsCorePreset({ ribbonType: 'grid', container: root }), UniverSheetsDrawingPreset()],
   })
@@ -82,10 +79,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
       root.dataset.error = String(error)
       const alert = document.createElement('p')
       alert.setAttribute('role', 'alert')
-      alert.textContent =
-        document.documentElement.lang === 'zh-CN'
-          ? '图片清单加载失败，请重新加载；详细信息见控制台。'
-          : 'The image inventory could not load. Reload to retry; details are in the console.'
+      alert.textContent = 'The image inventory could not load. Reload to retry; details are in the console.'
       root.prepend(alert)
       console.error(error)
     })

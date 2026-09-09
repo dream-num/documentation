@@ -1,6 +1,6 @@
 import { createDemo } from './create-demo'
 
-import './styles.css'
-
-const demo = createDemo(document.getElementById('app')!)
+const container = document.getElementById('app')
+if (!container) throw new Error('Add <div id="app"></div> to the page.')
+const demo = createDemo(container)
 window.addEventListener('pagehide', () => demo.dispose(), { once: true })

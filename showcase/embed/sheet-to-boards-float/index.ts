@@ -12,7 +12,7 @@ const metadata: ShowcaseMetadata = {
   description: {
     'en-US':
       'A native floating Sheet drives eight Board Formula Shapes: shared capacity, team headroom, utilization and a planning signal.',
-    'zh-CN': '原生浮动 Sheet 驱动八个白板公式图形：总容量、各团队余量、利用率与规划提示。',
+    'zh-CN': '原生浮动 Sheet 驱动八个 Boards 公式图形：总容量、各团队余量、利用率与规划提示。',
   },
   tags: {
     'en-US': ['Formula', 'Boards', 'Sheets', 'Float', 'Capacity', 'Embed'],

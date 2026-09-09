@@ -21,6 +21,7 @@ import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
+import DrawingUIEnUS from '@univerjs/drawing-ui/locale/en-US'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import {
   ISheetPrintManagerService,
@@ -56,6 +57,7 @@ import CommentEnUS from '@univerjs/preset-sheets-thread-comment/locales/en-US'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
 import { UniverSheetsDrawingPlugin } from '@univerjs/sheets-drawing'
 import { UniverSheetsDrawingUIPlugin } from '@univerjs/sheets-drawing-ui'
+import SheetsDrawingUIEnUS from '@univerjs/sheets-drawing-ui/locale/en-US'
 import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
 import { SheetsFormulaUIMenuSchema, UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
 import FormulaEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
@@ -97,7 +99,7 @@ import '@univerjs-pro/bases-ui/facade'
 import '@univerjs-pro/embed/facade'
 import '@univerjs-pro/sheets-print/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _locale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
   root.className = 'acorn-embed'
   container.append(root)
@@ -109,6 +111,8 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
+        DrawingUIEnUS,
+        SheetsDrawingUIEnUS,
         DesignEnUS,
         UIEnUS,
         DocsEnUS,

@@ -206,7 +206,7 @@ export function createData(state = 'default'): IBaseSnapshot {
         i % 7 === 0
           ? 'Ask before replacing original parts.'
           : i % 5 === 0
-            ? '保留原件 · retain original'
+            ? 'Retain original parts · owner’s request'
             : `Tray ${String.fromCharCode(65 + (i % 6))} / slot ${i + 1}`,
       status: ['triage', 'bench', 'done'][i % 3],
       owner: [PEOPLE[i % 4].id],
@@ -246,7 +246,7 @@ export function createData(state = 'default'): IBaseSnapshot {
   if (state === 'boundary') {
     repairs.records['repairs-01'].values.units = 0.0001
     repairs.records['repairs-02'].values.units = 9999999.875
-    repairs.records['repairs-03'].values.note = 'Thread colour / 糸の色 / لون الخيط / couleur du fil — '.repeat(8)
+    repairs.records['repairs-03'].values.note = 'Thread colour — café repair; retain the original. '.repeat(8)
   }
   if (state === 'error') {
     repairs.records['repairs-01'].values.quote = 'not a number'

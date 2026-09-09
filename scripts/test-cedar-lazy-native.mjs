@@ -527,15 +527,12 @@ try {
           assert.equal(await canvas.count(), 0)
           assert.equal(await page.evaluate(() => typeof window.univerAPI), 'undefined')
           const refresh = root.getByRole('button', {
-            name: language === 'zh-CN' ? '需要刷新页面' : 'Page refresh required',
+            name: 'Page refresh required',
             exact: true,
           })
           assert.equal(await refresh.isDisabled(), true)
           const message = await root.getByRole('alert').innerText()
-          assert.match(
-            message,
-            language === 'zh-CN' ? /请先保存.*再刷新页面/ : /Save other page work.*refresh this page/,
-          )
+          assert.match(message, /Save other page work.*refresh this page/)
           const currentURL = page.url()
           await run('document.querySelector("[data-action=load]").click()')
           await assert.rejects(() => run('await demo.load()'), /Save other page work before refreshing/)
@@ -595,17 +592,17 @@ try {
       await page.setViewportSize({ width: 1440, height: 1000 })
       await page.goto(url + '?lang=zh-CN')
       await phase('idle')
-      assert.equal(await root.getByRole('button', { name: '打开路线编辑器', exact: true }).count(), 1)
+      assert.equal(await root.getByRole('button', { name: 'Open route editor', exact: true }).count(), 1)
       await activate()
-      assert.equal(await page.evaluate(() => univerAPI.getCurrentLocale()), 'zhCN')
-      pack(await page.evaluate(() => univerAPI.getLocales()), require('@univerjs/preset-sheets-core/locales/zh-CN'))
+      assert.equal(await page.evaluate(() => univerAPI.getCurrentLocale()), 'enUS')
+      pack(await page.evaluate(() => univerAPI.getLocales()), require('@univerjs/preset-sheets-core/locales/en-US'))
       await capture('initial-zh')
       await run(restores[4])
       await settle()
       assert.equal(await root.count(), 0)
       assert.equal(await page.locator('canvas').count(), 0)
       report.checks.push({
-        name: 'Complete SDK EN/ZH, translated host labels, owner-stable themes, 760/390/320 keyboard activation and idempotent final host dispose',
+        name: 'Complete SDK English on EN/ZH hosts, English host labels, owner-stable themes, 760/390/320 keyboard activation and idempotent final host dispose',
       })
     },
     true,

@@ -19,6 +19,12 @@ try {
     const styles = Object.entries(files).filter(([name]) => name.endsWith('.css'))
     assert.ok(styles.length > 0, slug + ': exported mount styles must be included')
     for (const [name, css] of styles) {
+      const hasRootClass = (candidate) =>
+        Object.values(files).some(
+          (source) =>
+            source.includes("root.className = '" + candidate + "'") ||
+            source.includes("container.classList.add('" + candidate + "')"),
+        )
       const parsed = parse(css)
       const rules = []
       parsed.walkRules((rule) => rules.push(rule.selector))
@@ -30,20 +36,13 @@ try {
         : rules
             .flatMap((selector) => selector.split(','))
             .map((selector) => /^\.([\w-]+)$/.exec(selector.trim())?.[1])
-            .find(
-              (candidate) =>
-                candidate &&
-                Object.values(files).some((source) => source.includes("root.className = '" + candidate + "'")),
-            )
+            .find((candidate) => candidate && hasRootClass(candidate))
       assert.ok(
         mountOnly || rootClass,
         slug + '/' + name + ': add an explicit DOM fixture for an unrecognized stylesheet root',
       )
       if (rootClass)
-        assert.ok(
-          Object.values(files).some((source) => source.includes("root.className = '" + rootClass + "'")),
-          slug + ': probe root must match the actual exported implementation',
-        )
+        assert.ok(hasRootClass(rootClass), slug + ': probe root must match the actual exported implementation')
       const controlClasses = [...css.matchAll(/\.([\w-]+-controls)\b/g)].map((match) => match[1]).join(' ')
       await page.setContent(
         '<div id="app" class="' +
@@ -54,6 +53,30 @@ try {
       )
       await page.addStyleTag({ content: css })
       let hostControl = page.getByRole('button', { name: 'Host action', exact: true })
+      if (['permission-shadow-demo', 'cross-workbook-demo', 'responsive-demo'].includes(rootClass)) {
+        // These factories now own one labeled selector, not a fixture panel.
+        await page.locator('#app').evaluate((root) => {
+          const label = document.createElement('label')
+          if (root.className === 'cross-workbook-demo') label.className = 'workbook-picker'
+          if (root.className === 'responsive-demo') label.className = 'responsive-control'
+          label.innerHTML = 'Host<select aria-label="Host strategy"><option>None</option></select>'
+          root.querySelector(':scope > fieldset').replaceWith(label)
+          root.querySelector('#sdk').className = {
+            'permission-shadow-demo': 'permission-shadow-editor',
+            'cross-workbook-demo': 'cross-workbook-editor',
+            'responsive-demo': 'responsive-editor',
+          }[root.className]
+        })
+        hostControl = page.getByRole('combobox', { name: 'Host strategy', exact: true })
+      }
+      if (rootClass === 'query-demo') {
+        await page.locator('#app').evaluate((root) => {
+          const form = document.createElement('form')
+          form.append(root.querySelector(':scope > fieldset'))
+          root.prepend(form)
+          root.querySelector('#sdk').className = 'query-editor'
+        })
+      }
       if (rootClass === 'custom-shortcuts-demo') {
         // The shortcut boundary is an input, not a host action button.
         await page.locator('#app').evaluate((root) => {
@@ -87,7 +110,6 @@ try {
           'pdf-lifecycle',
           'pdf-ink',
           'pdf-image',
-          'font-demo',
           'board-lifecycle',
           'base-lifecycle',
           'base-records',
@@ -104,7 +126,6 @@ try {
             'pdf-lifecycle': 'lifecycle-controls',
             'pdf-ink': 'ink-controls',
             'pdf-image': 'image-controls',
-            'font-demo': 'font-controls',
             'board-lifecycle': 'board-lifecycle-controls',
             'base-lifecycle': 'base-lifecycle-controls',
             'base-records': 'base-records-controls',
@@ -151,9 +172,7 @@ try {
           'crosshair-demo',
           'csv-demo',
           'sheet-images-demo',
-          'cross-workbook-demo',
           'seed-canvas-demo',
-          'permission-shadow-demo',
           'sheet-charts-demo',
           'sheet-shapes-demo',
           'big-data-demo',
@@ -207,15 +226,14 @@ try {
       // README recipes are not mounted controls. Native-only cases may still style
       // an editor wrapper or startup alert; their SDK collision check remains mandatory.
       const layoutOnly = rootClass === 'mobile-demo' || noAuthoredControls
-      if (!mountOnly && !layoutOnly)
-        assert.ok(host.matchedSelectors.length > 0, slug + ': host controls must retain their own styling')
-      results.push({ slug, name, rootClass, mountOnly, collisions, host })
+      const hostUnstyled = !mountOnly && !layoutOnly && host.matchedSelectors.length === 0
+      results.push({ slug, name, rootClass, mountOnly, collisions, host, hostUnstyled })
     }
   }
 } finally {
   await browser.close()
 }
-const failures = results.filter((result) => result.collisions.length)
+const failures = results.filter((result) => result.collisions.length || result.hostUnstyled)
 const directory = path.resolve(process.env.SHOWCASE_RESULTS_DIR || 'test-results/showcase-style-isolation')
 await fs.mkdir(directory, { recursive: true })
 await fs.writeFile(
@@ -228,8 +246,9 @@ console.log(
       cases: sources.length,
       stylesheets: results.length,
       customStyles: results.filter((result) => !result.mountOnly).length,
-      failures: failures.map(({ slug, collisions }) => ({
+      failures: failures.map(({ slug, collisions, hostUnstyled }) => ({
         slug,
+        hostUnstyled,
         selectors: [...new Set(collisions.map((item) => item.selector))],
       })),
     },
@@ -237,4 +256,8 @@ console.log(
     2,
   ),
 )
-assert.equal(failures.length, 0, 'Exported host CSS must not match nested SDK form controls, readouts or tables')
+assert.equal(
+  failures.length,
+  0,
+  'Host controls must be styled without matching nested SDK controls, readouts or tables',
+)

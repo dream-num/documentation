@@ -1,5 +1,7 @@
 # Beacon / Live impact cards
 
+Native UI and authored data are English-only, including on Chinese documentation pages. The legacy third locale argument is ignored; the factory does not change the host page language. Historical bilingual reports below remain evidence of earlier revisions, not acceptance of this English-only revision.
+
 Four native Slides pages demonstrate a data dependency, not copied KPI text:
 Sheet workshop fees and Base delivery costs drive eight native Formula Shapes.
 The revenue and costs pages contain the two real source Floats. Overview and
@@ -180,18 +182,10 @@ export. Grid ribbon is the default. There is no generic fixture panel.
 
 ## Acceptance status
 
-Partial acceptance on 1.0.0-beta.2. Run the expanded strict check with
-`node scripts/test-embed-beacon-formula.mjs` and `SHOWCASE_ORIGIN` pointing to
-this selected standalone preview. The older `test-embed-formula-shape.mjs`
-retains the original six-step regression.
-
 The new check separates eight native calculation results from actual rendering
 on each of the four main slide canvases. It checks opposite-source snapshots and
 every authored non-formula element/shape geometry. It never accepts a thumbnail
 or a historical paint as evidence of a current-page result.
-
-The strict runtime report remains FAIL:
-`test-results/beacon-formula-verified/report.json`.
 
 - The baseline and independent Sheet changes have current four-page painting
   evidence, including smaller cohorts, fractional fees, blank fees, invalid text
@@ -224,8 +218,3 @@ different valid source rebinding, full native formula-editor/menu interactions,
 browser/navigation lifecycle, mobile, accessibility and performance still need
 their own acceptance evidence. Selected production build, TypeScript and source
 parity checks do not replace those runtime gates. No SDK package was patched.
-
-The displayed Preview and standalone entry call the same factory. Export retains
-all 22 official SDK CSS imports and both locale sets; there is no custom fixture
-panel or second implementation of the formulas. Independent source/UI verification
-is recorded separately in `test-results/beacon-export-ui/report.json`.

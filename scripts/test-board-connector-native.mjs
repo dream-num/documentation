@@ -48,9 +48,7 @@ try {
     path.join(directory, 'exports.json'),
     JSON.stringify([{ slug: exported.slug, directory: project }], null, 2),
   )
-  const { build, preview } = await import(
-    pathToFileURL(path.join(project, 'node_modules/vite/dist/node/index.js'))
-  )
+  const { build, preview } = await import(pathToFileURL(path.join(project, 'node_modules/vite/dist/node/index.js')))
   await build({ root: project, configFile: false, logLevel: 'warn' })
   server = await preview({
     root: project,
@@ -418,7 +416,7 @@ try {
       true,
     )
   })
-  await gate('initial-zh-native-locale', async () => {
+  await gate('chinese-host-english-native-locale', async () => {
     await page.route('http://127.0.0.1:4396/', async (route) => {
       const response = await route.fetch()
       await route.fulfill({ response, body: (await response.text()).replace(/<html[^>]*>/, '<html lang="zh-CN">') })
@@ -431,27 +429,24 @@ try {
     const labels = await page
       .locator('button[aria-label]')
       .evaluateAll((nodes) => nodes.map((n) => n.getAttribute('aria-label')))
-    assert.ok(labels.some((s) => /线|连接/.test(s)))
-    assert.ok(labels.every((s) => !s.includes('boards-ui.')))
+    assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
+    assert.ok(labels.some((s) => s.startsWith('Line settings')))
+    assert.ok(labels.every((s) => !/(?:shape-editor-ui|ink-ui|boards-ui)\.[\w.]+/.test(s)))
     await shot('initial-zh')
     return { labels }
   })
-  await gate('complete-en-zh-css-packs', async () => {
+  await gate('complete-english-css-packs', async () => {
     const factory = exported.files['/src/create-demo.ts']
     const packs = [...factory.matchAll(/^import \w+EnUS from '([^']+)en-US'/gm)]
     assert.equal(packs.length, 7)
     assert.equal([...factory.matchAll(/^import '.+\/lib\/index.css'/gm)].length, 7)
     const before = await snapshot()
-    for (const [locale, code] of [
-      ['en-US', 'enUS'],
-      ['zh-CN', 'zhCN'],
-    ]) {
-      await page.evaluate((value) => window.univerAPI.setLocale(value), code)
-      for (const [, prefix] of packs)
-        includesPack(await page.evaluate(() => window.univerAPI.getLocales()), (await import(prefix + locale)).default)
-      assert.deepEqual(await snapshot(), before)
-    }
-    return { officialCss: 7, enPacks: 7, zhPacks: 7 }
+    assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
+    assert.equal(factory.includes('/locale/zh-CN'), false)
+    for (const [, prefix] of packs)
+      includesPack(await page.evaluate(() => window.univerAPI.getLocales()), (await import(prefix + 'en-US')).default)
+    assert.deepEqual(await snapshot(), before)
+    return { officialCss: 7, enPacks: 7 }
   })
   await gate('disposal', async () => {
     await page.evaluate(() => window.dispatchEvent(new Event('pagehide')))

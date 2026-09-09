@@ -1,7 +1,6 @@
 import type { IWorkbookData } from '@univerjs/presets'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import enUS from '@univerjs/preset-sheets-core/locales/en-US'
-import zhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
 import { createUniver, LocaleType } from '@univerjs/presets'
 
 import { WORKBOOK_DATA } from './data'
@@ -35,18 +34,17 @@ export function validateHeaderSnapshot(snapshot: IWorkbookData) {
 export function createDemo(
   container: HTMLElement,
   darkMode = false,
-  locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+  _legacyLocale?: LocaleType,
   saved?: IWorkbookData,
 ) {
   if (saved !== undefined) validateHeaderSnapshot(saved)
-  const t = (en: string, zh: string) => (locale === LocaleType.ZH_CN ? zh : en)
   const root = document.createElement('div')
   root.className = 'custom-header-demo'
   root.dataset.theme = darkMode ? 'dark' : 'light'
   root.dataset.ready = 'false'
-  root.innerHTML = `<fieldset disabled><label>${t('Appearance', '外观')} <select data-control="appearance" aria-label="${t('Header appearance', '行列头外观')}"><option value="labels">${t('Labels only', '仅标签')}</option><option value="styled" selected>${t('Styled labels', '带样式标签')}</option></select></label>
-    <label>${t('Scope', '范围')} <select data-control="scope" aria-label="${t('Header scope', '行列头范围')}"><option value="sheet">${t('Active worksheet override', '当前表覆盖')}</option><option value="workbook">${t('Workbook default', '工作簿默认')}</option></select></label>
-    <button data-action="apply">${t('Apply headers', '应用行列头')}</button><button data-action="clear-sheet">${t('Clear active override', '清除当前覆盖')}</button><button data-action="clear-all">${t('Clear all headers', '清除全部行列头')}</button><button data-action="size">${t('Compact active headers', '紧凑行列头')}</button></fieldset>
+  root.innerHTML = `<fieldset disabled><label>Appearance <select data-control="appearance" aria-label="Header appearance"><option value="labels">Labels only</option><option value="styled" selected>Styled labels</option></select></label>
+    <label>Scope <select data-control="scope" aria-label="Header scope"><option value="sheet">Active worksheet override</option><option value="workbook">Workbook default</option></select></label>
+    <button data-action="apply">Apply headers</button><button data-action="clear-sheet">Clear active override</button><button data-action="clear-all">Clear all headers</button><button data-action="size">Compact active headers</button></fieldset>
     <p role="status" aria-live="polite"></p><div class="header-editor"></div>`
   container.append(root)
   const status = root.querySelector<HTMLElement>('[role="status"]')!
@@ -55,8 +53,8 @@ export function createDemo(
   const sizeButton = root.querySelector<HTMLButtonElement>('[data-action="size"]')!
   const { univer, univerAPI } = createUniver({
     darkMode,
-    locale,
-    locales: { [LocaleType.EN_US]: enUS, [LocaleType.ZH_CN]: zhCN },
+    locale: LocaleType.EN_US,
+    locales: { [LocaleType.EN_US]: enUS },
     presets: [
       UniverSheetsCorePreset({ ribbonType: 'grid', container: root.querySelector<HTMLElement>('.header-editor')! }),
     ],
@@ -77,7 +75,7 @@ export function createDemo(
   const timeout = setTimeout(() => {
     if (disposed || initialized) return
     root.dataset.ready = 'error'
-    const error = new Error(t('Native header startup timed out', '原生行列头启动超时'))
+    const error = new Error('Native header startup timed out')
     status.textContent = error.message
     fail(error)
   }, 20000)
@@ -88,10 +86,7 @@ export function createDemo(
     const sheet = workbook.getActiveSheet()!
     for (const button of root.querySelectorAll<HTMLButtonElement>('[data-action]')) button.disabled = !initialized
     const snapshot = workbook.save().sheets[sheet.getSheetId()]
-    sizeButton.textContent =
-      snapshot.rowHeader!.width > 46
-        ? t('Compact active headers', '紧凑行列头')
-        : t('Roomy active headers', '宽松行列头')
+    sizeButton.textContent = snapshot.rowHeader!.width > 46 ? 'Compact active headers' : 'Roomy active headers'
     root.querySelector<HTMLFieldSetElement>('fieldset')!.disabled = !initialized
   }
 
@@ -137,7 +132,7 @@ export function createDemo(
     } catch (error) {
       clearTimeout(timeout)
       root.dataset.ready = 'error'
-      status.textContent = `${t('Header setup failed', '行列头初始化失败')}: ${String(error)}`
+      status.textContent = `Header setup failed: ${String(error)}`
       fail(error)
     }
     refresh()
@@ -168,29 +163,27 @@ export function createDemo(
             case 'apply':
               applyHeaders(appearance.value === 'styled', scope.value === 'workbook')
               status.textContent =
-                scope.value === 'workbook'
-                  ? t('Workbook default applied.', '已应用工作簿默认配置。')
-                  : t('Worksheet override applied.', '已应用工作表覆盖。')
+                scope.value === 'workbook' ? 'Workbook default applied.' : 'Worksheet override applied.'
               break
             case 'clear-sheet':
               sheet.customizeColumnHeader({})
               sheet.customizeRowHeader({})
-              status.textContent = t('Worksheet override cleared.', '已清除工作表覆盖。')
+              status.textContent = 'Worksheet override cleared.'
               break
             case 'clear-all':
               clearHeaders()
-              status.textContent = t('Native labels restored.', '已恢复原生标签。')
+              status.textContent = 'Native labels restored.'
               break
             case 'size': {
               const compact = workbook.save().sheets[sheet.getSheetId()].rowHeader!.width > 46
               sheet.setRowHeaderWidth(compact ? 46 : 88)
               sheet.setColumnHeaderHeight(compact ? 24 : 36)
-              status.textContent = t('Header dimensions changed.', '已调整行列头尺寸。')
+              status.textContent = 'Header dimensions changed.'
               break
             }
           }
         } catch (error) {
-          status.textContent = `${t('Action failed', '操作失败')}: ${error instanceof Error ? error.message : String(error)}`
+          status.textContent = `Action failed: ${error instanceof Error ? error.message : String(error)}`
         }
         schedule()
       },
@@ -209,10 +202,7 @@ export function createDemo(
       univerAPI.disposeUnit(workbook.getId())
       workbook = univerAPI.createWorkbook(copy)
       clearHeaders()
-      status.textContent = t(
-        'Cells restored. Reapply header configuration explicitly.',
-        '已恢复单元格，请显式重新应用行列头配置。',
-      )
+      status.textContent = 'Cells restored. Reapply header configuration explicitly.'
       schedule()
     },
     setDarkMode(dark: boolean) {

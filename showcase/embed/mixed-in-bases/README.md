@@ -1,5 +1,10 @@
 # Acorn / Complete Operating Workspace
 
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but is ignored. Earlier  English-only source/CSS/startup checks do
+not certify every native interaction or resolve the recorded SDK failures.
+
 A fictional touring-exhibition studio combines ten opportunities, six follow-ups
 linked to those opportunities, and four partner groups. Four native Base
 table-list tabs open a two-sheet forecast, modern delivery playbook, three-slide
@@ -91,23 +96,6 @@ bookings, approvals or backend requests are implemented.
 
 Selected runtime evidence is partial, not complete acceptance:
 
-- `test-results/embed-mixed-bases-keyboard/report.json` verifies four native tabs,
-  three Slides layouts, all five literal examples and model ownership, stage-weight
-  recalculation, native Sheet input from 52,000 to 56,000 with Undo/Redo after
-  initialization, Base partner rename with stable linked IDs, one-page Forecast
-  Print preview/cancel, normal navigation and selected active-Board disposal.
-  No browser errors or backend requests were observed in that run.
-- That strict report remains FAIL: first Undo creates empty validation arrays in
-  both touched worksheets and empty attachment maps in generated Base tab tables.
-  Values restore; this is not proven data loss. No snapshot normalization hides it.
-- `scripts/test-embed-base-tab-reselect.mjs` is a separate failing native navigation
-  regression. Clicking the already-selected Weighted forecast tab again moves the
-  Base canvas over the sidebar and blocks the next tab click. Reload restores the
-  workspace. No custom controls, pointer-event override or SDK patch is used.
-- EN/ZH guide/theme checks preserve the API owner and five models, allowing only
-  native Board palette regeneration with the same theme ID. Independent export
-  checks eleven exact source files and 23 official SDK CSS imports.
-
 The first ribbon assertion searched inside the child, but the native Base tab
 replaces the shared host ribbon. It now checks the shared Grid's embed owner.
 The initial Print probe selected Assumptions through history while expecting
@@ -123,3 +111,7 @@ selected build includes 1,944 modules, about 18.84 MB main JS / 4.65 MB gzip;
 cold Next guide/playground compilation was about 56/16 seconds with a Gzip
 listener warning. These are observations, not performance acceptance. There is
 no Exchange conversion, actual PDF output or collaborative history in this case.
+
+The shared factory explicitly imports the official Ink UI English pack and CSS
+required by the registered Boards UI dependency. Other product locale packs and
+styles remain intact. This is resource coverage, not native pen acceptance.

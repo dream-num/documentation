@@ -2,7 +2,7 @@
 
 Run `pnpm install`, `pnpm dev`; verify production with `pnpm build` and `pnpm preview`.
 The documentation Preview and independent export use the same factory, all five official SDK CSS imports,
-and complete EN/ZH locale packs. Initial `html lang="zh-CN"` selects Chinese; other languages select English.
+and five complete English locale packs. Native UI and authored data remain English regardless of host language. Bilingual evidence below is historical, not current English-only acceptance.
 Changing theme preserves the current document owner and edits.
 
 ## Native editing workflow
@@ -129,14 +129,6 @@ await window.univerAPI.undo()
 ```
 
 ## Evidence and boundaries
-
-Run `node scripts/test-pdf-image-native-review.mjs` for the selected independent build and strict checks.
-Evidence is stored in `test-results/pdf-image-native-verified/`.
-Read its actual PASS/FAIL gates: they cover literal operations, original source/text preservation, real page pixels,
-native selection/property/drag/crop/history, initial Chinese UI, complete locale packs, theme owner and disposal.
-Screenshots must show a painted PDF with the startup skeleton absent. Current strict failures include
-the removal block and its dependent undo, native drag/Facade-transform parity, and unavailable native crop UI.
-Facade seasonal replacement, three crop windows, transform, opacity and invalid crop rejection are checked separately.
 
 This is a locally authored PDF model, not proof of binary PDF import. No client-only binary Exchange/Print provider
 is registered or claimed; no backend conversion, fake PDF download or host browser-print replacement is used.

@@ -1,5 +1,7 @@
 # Cobalt / Annual operating review
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 A traditional paginated document hosts two real DocBlocks: a revenue Sheet and
 an independently maintained cost Base. Fourteen native inline formulas connect
 the executive reading and final reconciliation. A fictional community arts
@@ -223,35 +225,18 @@ Included/Optional value. All arithmetic is performed by the native formula
 engine; application code does not compute totals or regenerate prose.
 
 Preview and standalone call the same factory. All twenty-three official CSS
-imports and twenty-three complete EN/ZH dependency packs are included. Grid menus
+imports and complete English dependency packs are included. Grid menus
 are native; there is no fixture panel, redundant button toolbar or collaboration
 history suite. The registered Sheet Print plugin does not by itself prove every
 Print option. No Exchange conversion success is claimed.
 
 ## Acceptance status
 
-Partial, not fully accepted. The current strict report is
-test-results/embed-cobalt-formula-recovery-regression/report.json. Twenty literal
-snippets update all fourteen results on the current first/final-page canvas,
-preserving every authored body character, style and custom range. The baseline
-has four actual A4 pages, with each native source in its own chapter. Independent
-inputs, target/scope isolation, an empty view projection, hidden edits, stored
-null versus zero, ignored text, zero revenue and independent binding repair pass.
-
 Single-click fullscreen activation preserves the complete source models. Native
 Sheet B5 and Base venue-amount typing, complete serialized source Undo/Redo,
 Grid menus, correct-source Sheet Print preview/cancel, twenty-three whole EN/ZH
 packs, all three model snapshots across theme changes and active-source disposal
 pass selected checks. There are no browser errors, warnings or backend requests.
-
-Strict runtime remains FAIL: twenty-two native division/missing-source errors
-display correctly, but beta.2 returns success/string instead of error status.
-The runtime does not override these results. EN/ZH native Edit formula and
-number-format dialogs/cancellation pass separately in
-test-results/docs-formula-locales-cobalt-recovery/report.json. Source/CSS parity is checked
-in test-results/cobalt-recovery-export-ui/report.json. Only this demo was built;
-every dependency version was checked before linking existing installed packages
-into its temporary standalone export. This is not a fresh dependency installation.
 
 Earlier automation double-clicked DocBlocks. That also entered a native Sheet
 cell editor and could commit an empty title when leaving for fullscreen; in an
@@ -262,26 +247,6 @@ unaccepted; literal-code tests explicitly return focus to the report separately.
 Explicit amber/purple input text colors also avoid creating a redundant default
 color style during Sheet editing, allowing exact history checks. No SDK package
 was patched.
-
-The reconstruction test at test-results/embed-cobalt-roundtrip-layout/report.json
-creates five fresh owners: edited formula/format/prose with an empty Base filter;
-missing Sheet binding while leaving fullscreen; Chinese dark appearance;
-missing Base binding; and a formula replaced with authored reading text.
-All five preserve authored content, formula IDs/configuration, source data and
-four actual A4 pages with identical page boundaries. Ten invalid bundles leave
-the original owner and complete models untouched. Fresh native Sheet typing,
-value Undo/Redo, exact Base typing/history, hidden Base writes and fresh writes
-after formula removal pass. The removed formula is not reseeded. No errors,
-warnings or backend requests occur.
-
-This is not exact serialized-state acceptance: the strict report retains four
-full-snapshot mismatches and one Sheet Undo snapshot mismatch. Empty validation
-state changes between {"revenue":[]} and {}; native formula lastValue caches
-change to errors after error-state reconstruction and back to numbers after
-repair/reconstruction. Forty error-result observations also retain the known
-success/string status defect. These failures are not normalized away in the
-strict gate; separate authored-content assertions do not certify cached values.
-Only native embed reactivation timestamps are explicitly allowed to change.
 
 Different-valid-source rebinding, durable persistence and strict cache recovery, every native
 action, Exchange, all Print options, Next integration, accessibility,

@@ -10,11 +10,13 @@ import BoardsEnUS from '@univerjs-pro/boards-ui/locale/en-US'
 import { UniverEmbedPlugin } from '@univerjs-pro/embed'
 import { EmbedFullscreenService, UniverEmbedUIPlugin } from '@univerjs-pro/embed-ui'
 import EmbedEnUS from '@univerjs-pro/embed-ui/locale/en-US'
+import EmbedUnitEnUS from '@univerjs-pro/embed-unit-ui/locale/en-US'
 import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import ShapeEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
 import { EditorUIService, IEditorUIService } from '@univerjs-pro/slides-ui'
 import SlidesEnUS from '@univerjs-pro/slides-ui/locale/en-US'
+import SlidesCoreEnUS from '@univerjs-pro/slides/locale/en-US'
 import { IUniverInstanceService, LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
 import { unmount } from '@univerjs/design'
@@ -24,7 +26,11 @@ import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
+import DrawingEnUS from '@univerjs/drawing-ui/locale/en-US'
+import EngineFormulaEnUS from '@univerjs/engine-formula/locale/en-US'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+import FormulaEditorEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
+import SheetsFormulaEnUS from '@univerjs/sheets-formula/locale/en-US'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
 
@@ -39,6 +45,8 @@ import '@univerjs/drawing-ui/lib/index.css'
 import '@univerjs-pro/embed-ui/lib/index.css'
 import '@univerjs-pro/slides-ui/lib/index.css'
 import '@univerjs-pro/bases-ui/lib/index.css'
+import '@univerjs/sheets-formula-ui/lib/index.css'
+import '@univerjs-pro/embed-unit-ui/lib/index.css'
 import './styles.css'
 
 import '@univerjs-pro/shape-editor/facade'
@@ -55,6 +63,7 @@ export function createDemo(
   container: HTMLElement,
   darkMode = false,
   saved?: { host: IBoardData; source: IBaseSnapshot },
+  _legacyLocale: LocaleType = LocaleType.EN_US,
 ) {
   // This example restores its own two units, not arbitrary uploaded documents.
   if (
@@ -79,6 +88,12 @@ export function createDemo(
     locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
+        SlidesCoreEnUS,
+        EmbedUnitEnUS,
+        SheetsFormulaEnUS,
+        FormulaEditorEnUS,
+        DrawingEnUS,
+        EngineFormulaEnUS,
         DesignEnUS,
         UIEnUS,
         DocsEnUS,

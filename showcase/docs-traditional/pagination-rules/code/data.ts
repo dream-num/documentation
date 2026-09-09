@@ -1,4 +1,11 @@
-import { BooleanNumber, type IParagraphStyle } from '@univerjs/core'
+import { BooleanNumber, SectionType, type IParagraphStyle } from '@univerjs/core'
+
+export const BREAK_SPECIMENS = [
+  { id: 'continuous', text: 'Continuous section: initially on the same page.', type: SectionType.CONTINUOUS },
+  { id: 'next-page', text: 'Next-page section: initially starts a new page.', type: SectionType.NEXT_PAGE },
+  { id: 'odd-page', text: 'Odd-page section: initially skips to an odd leaf.', type: SectionType.ODD_PAGE },
+  { id: 'even-page', text: 'Even-page section: initially starts on an even leaf.', type: SectionType.EVEN_PAGE },
+] as const
 
 // Original inspection bulletin. The short page deliberately creates boundary pressure.
 export const TITLE = 'River Station Bulletin — Pagination Rules'
@@ -18,30 +25,58 @@ export const BASE_RULES: IParagraphStyle = {
   widowControl: BooleanNumber.FALSE,
   pageBreakBefore: BooleanNumber.FALSE,
 }
-export const VARIANTS: { id: string; label: string; heading: IParagraphStyle; body: IParagraphStyle }[] = [
+export const VARIANTS: {
+  id: string
+  label: string
+  heading: IParagraphStyle
+  body: IParagraphStyle
+  spacer?: number
+  oversized?: boolean
+}[] = [
   { id: 'natural', label: 'Natural flow', heading: { ...BASE_RULES }, body: { ...BASE_RULES } },
   {
+    id: 'heading-reference',
+    label: 'Natural heading',
+
+    spacer: 270,
+    heading: { ...BASE_RULES },
+    body: { ...BASE_RULES },
+  },
+  {
     id: 'heading',
+    spacer: 270,
+
     label: 'Keep heading with next',
     heading: { ...BASE_RULES, keepNext: BooleanNumber.TRUE },
     body: { ...BASE_RULES },
   },
   {
     id: 'together',
+
     label: 'Keep paragraph lines',
     heading: { ...BASE_RULES },
     body: { ...BASE_RULES, keepLines: BooleanNumber.TRUE },
   },
   {
     id: 'widow',
+
     label: 'Widow / orphan control',
     heading: { ...BASE_RULES },
     body: { ...BASE_RULES, widowControl: BooleanNumber.TRUE },
   },
   {
     id: 'break',
+
     label: 'Page break before heading',
     heading: { ...BASE_RULES, pageBreakBefore: BooleanNumber.TRUE },
     body: { ...BASE_RULES },
+  },
+  {
+    id: 'oversized',
+    label: 'Oversized paragraph',
+
+    oversized: true,
+    heading: { ...BASE_RULES },
+    body: { ...BASE_RULES, keepLines: BooleanNumber.TRUE },
   },
 ]

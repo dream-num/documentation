@@ -388,24 +388,18 @@ try {
           )
         }
         if (slug === 'sheets/shapes') {
-          const panel = page.locator('.shape-controls')
-          if (!(await panel.evaluate((element) => element.open))) await panel.locator('summary').click()
-          await page.getByLabel('Shape text', { exact: true }).fill('Lifecycle checkpoint')
-          await page.locator('[data-action="text"]').click()
-          await page.waitForFunction(
-            () =>
-              JSON.parse(document.querySelector('.sheet-shapes-demo pre').textContent).shapes[0].text ===
-              'Lifecycle checkpoint',
-          )
+          await page.evaluate(() => {
+            const shape = window.univerAPI
+              .getActiveWorkbook()
+              .getActiveSheet()
+              .getShapes()
+              .find((candidate) => typeof candidate.getText === 'function')
+            if (!shape) throw new Error('Shape gallery has no editable native shape')
+            shape.getText().setText('Lifecycle checkpoint')
+          })
         }
         if (slug === 'sheets/charts') {
-          const panel = page.locator('.chart-controls')
-          if (!(await panel.evaluate((element) => element.open))) await panel.locator('summary').click()
-          await page.getByLabel('MWh', { exact: true }).fill('63')
-          await page.locator('[data-action="write"]').click()
-          await page.waitForFunction(
-            () => JSON.parse(document.querySelector('.sheet-charts-demo pre').textContent).monthly[1][1] === 63,
-          )
+          await page.evaluate(() => window.univerAPI.getActiveWorkbook().getActiveSheet().getRange('B4').setValue(63))
         }
         if (slug === 'sheets/custom-canvas') {
           const panel = page.locator('.seed-canvas-controls')
@@ -489,6 +483,10 @@ try {
           })
         }
         const before = await page.evaluate(() => window.ownership.owners.length)
+        const retainedSnapshot =
+          slug === 'sheets/custom-formula'
+            ? await page.evaluate(() => window.univerAPI.getActiveWorkbook().save())
+            : undefined
         await page.locator('#preview canvas').evaluateAll((nodes) => {
           window.ownership.previousCanvases = nodes
         })
@@ -499,16 +497,26 @@ try {
         } else await page.evaluate((nextTheme) => window.ownership.setTheme(nextTheme), theme)
         // Deferred previews need their explicit load action before an owner can exist.
         await mounted()
-        await page.waitForFunction(
-          (count) =>
-            window.ownership.owners.length === count + 1 &&
-            window.ownership.owners.slice(0, count).every((owner) => owner.disposed),
-          before,
-        )
-        assert.ok(
-          await page.evaluate(() => window.ownership.previousCanvases.every((node) => !node.isConnected)),
-          'Old canvases must be detached, not hidden behind the replacement',
-        )
+        if (slug === 'sheets/custom-formula') {
+          await page.locator(`.custom-formula-demo[data-theme="${theme}"]`).waitFor()
+          assert.equal(await page.evaluate(() => window.ownership.owners.length), before, 'Theme retains owner')
+          assert.ok(
+            await page.evaluate(() => window.ownership.previousCanvases.every((node) => node.isConnected)),
+            'Theme retains native canvases',
+          )
+          assert.deepEqual(await page.evaluate(() => window.univerAPI.getActiveWorkbook().save()), retainedSnapshot)
+        } else {
+          await page.waitForFunction(
+            (count) =>
+              window.ownership.owners.length === count + 1 &&
+              window.ownership.owners.slice(0, count).every((owner) => owner.disposed),
+            before,
+          )
+          assert.ok(
+            await page.evaluate(() => window.ownership.previousCanvases.every((node) => !node.isConnected)),
+            'Old canvases must be detached, not hidden behind the replacement',
+          )
+        }
         await page.evaluate(() => window.ownership.setMounted(false))
         await page.waitForFunction(() => window.ownership.owners.every((owner) => owner.disposed))
         assert.equal(await page.locator('#preview canvas').count(), 0)
@@ -517,7 +525,13 @@ try {
         await mounted()
         const canvasCount = await page.locator('#preview canvas').count()
         if (!headless) assert.ok(canvasCount > 0)
-        result.cycles.push({ theme, allOldOwnersDisposed: true, oldCanvasesDetached: true, canvasCount })
+        result.cycles.push({
+          theme,
+          themeRetainsOwner: slug === 'sheets/custom-formula',
+          allOldOwnersDisposed: true,
+          oldCanvasesDetached: true,
+          canvasCount,
+        })
       }
       if (slug === 'sheets/cross-workbook-formula') {
         await page.getByLabel('Source value', { exact: true }).fill('180')
@@ -612,15 +626,15 @@ try {
       }
       await page.screenshot({ path: path.join(directory, `${slug.replace('/', '-')}.png`) })
       if (slug === 'sheets/charts') {
-        const panel = page.locator('.chart-controls')
-        if (!(await panel.evaluate((element) => element.open))) await panel.locator('summary').click()
+        await page.evaluate(() => window.ownership.setMounted(false))
+        await page.waitForFunction(() => window.ownership.owners.every((owner) => owner.disposed))
         await page.evaluate(() => {
           window.ownership.holdChart = true
+          window.ownership.setMounted(true)
         })
-        await page.locator('[data-action="create"]').click()
-        await page.waitForFunction(() => window.ownership.heldCharts.length === 1)
+        await page.waitForFunction(() => window.ownership.heldCharts.length > 0)
         const prevented = await page
-          .locator('.charts-editor')
+          .locator('.sheet-charts-demo')
           .evaluate(
             (editor) =>
               !editor.dispatchEvent(new KeyboardEvent('keydown', { key: '9', bubbles: true, cancelable: true })),
@@ -636,14 +650,22 @@ try {
         await page.waitForFunction(() => window.ownership.owners.every((owner) => owner.disposed))
         await page.evaluate(() => window.ownership.setMounted(true))
         await mounted()
-        const state = JSON.parse(await page.locator('.sheet-charts-demo pre').textContent())
-        assert.equal(state.charts.length, 1)
-        assert.equal(state.monthly[1][1], 142)
+        const state = await page.evaluate(() =>
+          window.univerAPI
+            .getActiveWorkbook()
+            .getSheets()
+            .map((sheet) => ({
+              charts: sheet.getCharts().length,
+              id: sheet.getSheetId(),
+            })),
+        )
+        assert.equal(state.length, 6)
+        assert.ok(state.every((sheet) => sheet.charts === 1))
         result.pendingChartTeardown = {
           heldInsert: true,
           nativeInputGated: true,
           ownerRetainedUntilSettlement: true,
-          remountedWithOriginalData: true,
+          remountedSixChartVariants: true,
         }
       }
       if (slug === 'sheets/images') {
@@ -1217,12 +1239,13 @@ try {
         for (const request of ['reload', 'TIMEOUT']) {
           if (request === 'reload') await page.locator('[data-action="reload"]').click()
           else {
-            await page.getByRole('combobox', { name: 'Route key' }).selectOption(request)
-            await page.locator('[data-action="apply"]').click()
+            const box = page.locator('.custom-formula-demo input.univer-size-full')
+            await box.fill('B4')
+            await box.press('Enter')
+            await page.keyboard.type(request)
+            await page.keyboard.press('Enter')
           }
-          await page.waitForFunction(
-            () => JSON.parse(document.querySelector('pre[aria-label]').textContent).sourceDiagnostics.pending > 0,
-          )
+          await page.waitForFunction(() => Number(document.querySelector('[data-source="pending"]')?.textContent) > 0)
           await page.evaluate(() => window.ownership.setMounted(false))
           await page.waitForFunction(() => window.ownership.owners.every((owner) => owner.disposed))
           await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 1700)))
@@ -1230,7 +1253,7 @@ try {
           await page.evaluate(() => window.ownership.setMounted(true))
           await mounted()
           await page.waitForFunction(
-            () => JSON.parse(document.querySelector('pre[aria-label]').textContent).values[10][5] === 18,
+            () => window.univerAPI?.getActiveWorkbook()?.getActiveSheet()?.getRange('F11').getValue() === 18,
           )
         }
         result.pendingFormulaTeardown = {
@@ -1244,8 +1267,11 @@ try {
         // Keep rule mutation and React teardown in the same task: normal browser
         // round trips can accidentally wait out the SDK's 100ms auto-height buffer.
         await page.evaluate(() => {
-          document.querySelector('[aria-label="List selection"]').value = 'multiple'
-          document.querySelector('[data-action="apply"]').click()
+          const api = window.univerAPI
+          const sheet = api.getActiveWorkbook().getActiveSheet()
+          sheet
+            .getRange('B2:B7')
+            .setDataValidation(api.newDataValidation().requireValueInList(['Paper', 'Textiles'], true, true).build())
           window.ownership.setMounted(false)
         })
         result.pendingValidationTeardown = { ruleChangedImmediatelyBeforeUnmount: true }

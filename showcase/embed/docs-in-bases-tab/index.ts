@@ -8,7 +8,10 @@ const metadata: ShowcaseMetadata = {
   category: 'features',
   previewHeight: 1100,
   group: { 'en-US': 'Bases host / Tab', 'zh-CN': 'Bases 宿主 / 标签' },
-  title: { 'en-US': 'Docs in Bases / Editorial Playbook', 'zh-CN': 'Docs 嵌入 Bases / 编辑工作手册' },
+  title: {
+    'en-US': 'Docs in Bases / Editorial Playbook',
+    'zh-CN': 'Docs 嵌入 Bases / 编辑工作手册',
+  },
   description: {
     'en-US':
       'Keep a modern editorial playbook beside eight assignments and three linked issues in a native Base table-list tab.',

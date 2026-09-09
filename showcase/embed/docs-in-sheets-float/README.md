@@ -1,5 +1,16 @@
 # Cedar / Docs in Sheets Float
 
+## Current selected Preview acceptance (2026-09-08)
+
+The actual React Preview runs with next-themes in an isolated Vite harness.
+EN/ZH native activation and keyboard insertion, independent host formula edits,
+the same API owner and complete edited host/child snapshots through dark/light
+StorageEvents, and selected React unmount all pass with no console errors or
+network writes. Root Arial inheritance and official white SDK CSS are checked;
+visible UI text and accessible labels are checked for untranslated keys.
+The shared factory uses an English visible startup failure message and the
+root stylesheet supplies its own sans-serif font instead of relying on Next CSS.
+
 An original fictional library procurement story: three suppliers quote different
 prices and delivery dates for 24 accessible workbenches. The selected Moss quote
 is $19,750, a $1,350 premium over Alder, and leaves four days for inspection.
@@ -27,14 +38,6 @@ Next entry uses next/dynamic with ssr:false to keep browser canvas dependencies
 out of server prerendering. Both React files ship as reference text.
 
 ## Acceptance scope
-
-`test-results/embed-doc-float-scroll/report.json` passes the selected real SDK run:
-native activation, modern document title paint, paragraph mutation and repaint,
-scrolling to the lower approval section, a host premium update to $1,700 with the
-entire child document unchanged, official white/flex CSS, and active-child teardown
-without browser errors. Opening and approval screenshots are checked separately.
-Run `scripts/test-embed-doc-float.mjs` with `SHOWCASE_VITE_MODULE` pointing to Vite;
-it compiles only this case. `SHOWCASE_ORIGIN` targets an independently built export.
 
 `embed-doc-float-production` passes the same selected behavior in the independent
 build, and `embed-doc-float-export-parity` verifies eleven-file source parity and

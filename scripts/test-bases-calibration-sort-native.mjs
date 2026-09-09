@@ -471,7 +471,7 @@ try {
       })
     }
   })
-  await gate('complete-locales-and-theme', async () => {
+  await gate('complete-english-packs-and-theme', async () => {
     const factory = await fs.readFile('showcase/bases/multi-field-sort/code/create-demo.ts', 'utf8'),
       packs = [...factory.matchAll(/^import \w+EnUS from '([^']+)en-US'/gm)]
     assert.equal(packs.length, 5)
@@ -479,11 +479,8 @@ try {
     await page.evaluate(() => {
       window.previousAPI = window.univerAPI
     })
-    for (const [locale, code] of [
-      ['en-US', 'enUS'],
-      ['zh-CN', 'zhCN'],
-    ]) {
-      await page.evaluate((v) => window.univerAPI.setLocale(v), code)
+    for (const locale of ['en-US']) {
+      assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
       for (const [, prefix] of packs)
         includesPack(await page.evaluate(() => window.univerAPI.getLocales()), (await import(prefix + locale)).default)
       for (const dark of [true, false]) await page.evaluate((v) => window.univerAPI.toggleDarkMode(v), dark)
@@ -516,7 +513,7 @@ try {
     true,
   )
   await gate(
-    'initial-chinese-and-disposal',
+    'english-on-chinese-host-and-disposal',
     async () => {
       await page.evaluate(async () => {
         window.demo.dispose()
@@ -525,9 +522,11 @@ try {
         await window.demo.ready
       })
       await ready()
-      assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'zhCN')
+      assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
       await expectRows(orders.original)
-      await capture('initial-chinese')
+      await root.getByText('Filter', { exact: true }).first().waitFor({ state: 'visible' })
+      assert.equal(await page.evaluate(() => document.documentElement.lang), 'zh-CN')
+      await capture('english-on-chinese-host')
       await page.evaluate(() => window.demo.dispose())
       await root.waitFor({ state: 'detached' })
       assert.equal(await page.evaluate(() => typeof window.univerAPI), 'undefined')

@@ -48,7 +48,7 @@ const metadata: ShowcaseMetadata = {
       'en-US':
         'Native Board tools, seven official CSS/locale packs and same-owner themes. The graph retains endpoint identities when nodes move. Direct/curved routes are not guaranteed to avoid obstacles; the red promotion starts free. SDK limitations are not repaired with host simulation.',
       'zh-CN':
-        '使用原生白板工具、七套官方 CSS/语言包及同实例主题切换。节点移动保留端点身份。直线与曲线不保证避障，红色晋级路径初始为自由端点，不使用宿主模拟修补 SDK 限制。',
+        '使用原生 Boards 工具、七套官方 CSS/语言包及同实例主题切换。节点移动保留端点身份。直线与曲线不保证避障，红色晋级路径初始为自由端点，不使用宿主模拟修补 SDK 限制。',
     },
   },
   variants: [
@@ -83,7 +83,7 @@ const metadata: ShowcaseMetadata = {
       label: { 'en-US': 'Native select, drag and edit', 'zh-CN': '原生选择、拖动与编辑' },
       description: {
         'en-US': 'Use the Board floating toolbar, canvas and native history instead of duplicate host buttons.',
-        'zh-CN': '使用白板浮动工具条、画布与原生历史，不重复设置宿主按钮。',
+        'zh-CN': '使用 Boards 浮动工具条、画布与原生历史，不重复设置宿主按钮。',
       },
     },
     {

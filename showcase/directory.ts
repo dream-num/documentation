@@ -3,6 +3,13 @@ import { localize, PRODUCT_IDS } from './types'
 
 export const SECTION_IDS = [...PRODUCT_IDS, 'customization-integration'] as const
 export type SectionId = (typeof SECTION_IDS)[number]
+
+// Navigation aliases only; metadata, documentation and SDK locales retain product names.
+export function treeLabel(value: string) {
+  return value
+    .replace(/^(?:Boards|白板)(?=$| as Host| 作为宿主)/, 'Canvases')
+    .replace(/^(?:Bases|多维表格)(?=$| as Host| 作为宿主)/, 'Relational Tables')
+}
 export const INTEGRATION_PRODUCT_IDS = [
   'sheets',
   'docs-modern',
@@ -76,7 +83,7 @@ interface Composition {
   child: string
 }
 // Reviewed navigation relationships, separate from acceptance/status evidence.
-// "container" is the outer editor; Formula groups use the result target instead.
+// Host always means the outer editor, including cross-file formula examples.
 export const COMPOSITIONS: Record<string, Composition> = {
   'embed/slides-in-sheets-float': { container: 'sheets', mode: 'float', sources: [], targets: [], child: 'slides' },
   'embed/slides-in-sheets-tab': { container: 'sheets', mode: 'tab', sources: [], targets: [], child: 'slides' },
@@ -146,13 +153,6 @@ export const COMPOSITIONS: Record<string, Composition> = {
   'embed/mixed-in-slides': { container: 'slides', mode: 'mixed', sources: [], targets: [], child: 'mixed' },
   'embed/mixed-in-bases': { container: 'bases', mode: 'mixed', sources: [], targets: [], child: 'mixed' },
   'embed/mixed-in-boards': { container: 'boards', mode: 'mixed', sources: [], targets: [], child: 'mixed' },
-  'embed/cross-unit-formula': {
-    container: 'sheets',
-    mode: 'formula',
-    sources: ['sheets'],
-    targets: [],
-    child: 'sheets',
-  },
   'embed/formula-shape': {
     container: 'slides',
     mode: 'formula-shape',
@@ -236,13 +236,6 @@ export const COMPOSITIONS: Record<string, Composition> = {
     sources: ['sheets', 'bases'],
     targets: ['boards'],
     child: 'sheets+bases',
-  },
-  'embed/sheet-to-chart': {
-    container: 'sheets',
-    mode: 'formula-sheet-range-chart',
-    sources: ['sheets'],
-    targets: ['charts'],
-    child: 'sheets',
   },
   'embed/base-to-chart': {
     container: 'sheets',
@@ -369,8 +362,7 @@ export function directoryPlacement(slug: string, metadata: ShowcaseMetadata, pro
   if (composition) {
     const formula = composition.mode.includes('formula')
     const multiOutput = composition.targets.length > 1
-    const target = composition.targets[0]
-    const host = formula && target && target !== 'charts' && !multiOutput ? target : composition.container
+    const host = composition.container
     const category: DirectoryCategory =
       composition.mode === 'mixed' || multiOutput ? 'showcases' : formula ? 'cross-file-formulas' : 'product-embedding'
     return { section: 'embed' as SectionId, category, group: HOST_LABELS[host], composition, host }
@@ -378,7 +370,15 @@ export function directoryPlacement(slug: string, metadata: ShowcaseMetadata, pro
   let category: DirectoryCategory = metadata.category === 'showcases' ? 'showcases' : 'features'
   let section: SectionId = product
   let group = metadata.group ?? label('Core Editing', '基础编辑')
-  if (['sheets/big-data', 'docs/big-data'].includes(slug)) {
+  if (
+    [
+      'sheets/big-data',
+      'docs/big-data',
+      'docs-modern/long-document',
+      'bases/large-record-set',
+      'boards/large-diagram',
+    ].includes(slug)
+  ) {
     category = 'performance'
     group = GROUPS.samples
   } else if (

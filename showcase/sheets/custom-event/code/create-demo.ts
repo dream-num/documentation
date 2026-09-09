@@ -1,7 +1,6 @@
 import type { IDisposable, IWorkbookData } from '@univerjs/presets'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import enUS from '@univerjs/preset-sheets-core/locales/en-US'
-import zhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
 import { createUniver, LocaleType } from '@univerjs/presets'
 
 import { customRegisterEvent } from './custom-register-event'
@@ -32,20 +31,18 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: IWo
       }))
   )
     throw new Error('Restore an Aster snapshot with both original sheet IDs and positive dimensions')
-  const zh = document.documentElement.lang === 'zh-CN'
-  const t = (en: string, cn: string) => (zh ? cn : en)
   const root = document.createElement('div')
   root.className = 'custom-event-demo'
   root.dataset.theme = darkMode ? 'dark' : 'light'
   root.dataset.ready = 'false'
-  root.innerHTML = `<div class="event-controls"><button data-action="listener" disabled></button><span>${t('C–E deletion guard · event policy, not security', 'C–E 删除拦截 · 事件规则，不是安全权限')}</span></div><ol aria-label="${t('Recent events', '最近事件')}" aria-live="polite" class="event-log"></ol><div class="event-editor"></div>`
+  root.innerHTML = `<div class="event-controls"><button data-action="listener" disabled></button><span>C–E deletion guard · event policy, not security</span></div><ol aria-label="Recent events" aria-live="polite" class="event-log"></ol><div class="event-editor"></div>`
   container.append(root)
   const toggle = root.querySelector<HTMLButtonElement>('[data-action="listener"]')!
   const log = root.querySelector<HTMLOListElement>('.event-log')!
   const { univer, univerAPI } = createUniver({
     darkMode,
-    locale: zh ? LocaleType.ZH_CN : LocaleType.EN_US,
-    locales: { [LocaleType.EN_US]: enUS, [LocaleType.ZH_CN]: zhCN },
+    locale: LocaleType.EN_US,
+    locales: { [LocaleType.EN_US]: enUS },
     presets: [
       UniverSheetsCorePreset({ ribbonType: 'grid', container: root.querySelector<HTMLElement>('.event-editor')! }),
     ],
@@ -66,10 +63,10 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: IWo
     guard = univerAPI.addEvent('BeforeRemoveColumnEvent', (params) => {
       if (params.startColumn <= 4 && params.endColumn >= 2) {
         params.cancel = true
-        record(t('Blocked: deletion overlaps C–E.', '已拦截：删除范围与 C–E 重叠。'))
+        record('Blocked: deletion overlaps C–E.')
       }
     })
-    toggle.textContent = t('Remove guard listener', '移除保护监听器')
+    toggle.textContent = 'Remove guard listener'
   }
   const ready = () => {
     if (!disposed && univerAPI.getCurrentLifecycleStage() >= univerAPI.Enum.LifecycleStages.Rendered) {
@@ -82,17 +79,13 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: IWo
       if (params.row === undefined || params.column === undefined) return
       params.cancel = params.row === 0 && params.column === 0
       const address = `${univerAPI.Util.tools.chatAtABC(params.column)}${params.row + 1}`
-      record(`${address}: ${params.cancel ? t('menu suppressed', '菜单已隐藏') : t('menu allowed', '允许菜单')}`)
+      record(`${address}: ${params.cancel ? 'menu suppressed' : 'menu allowed'}`)
     }),
     univerAPI.addEvent('BeforeRemoveColumnEvent', (params) => {
-      record(
-        `${t('Before', '删除前')}: ${params.worksheet.getSheetName()} ${params.startColumn + 1}–${params.endColumn + 1}`,
-      )
+      record(`Before: ${params.worksheet.getSheetName()} ${params.startColumn + 1}–${params.endColumn + 1}`)
     }),
     univerAPI.addEvent('RemoveColumnEvent', (params) => {
-      record(
-        `${t('After', '删除后')}: ${params.worksheet.getSheetName()} ${params.startColumn + 1}–${params.endColumn + 1}`,
-      )
+      record(`After: ${params.worksheet.getSheetName()} ${params.startColumn + 1}–${params.endColumn + 1}`)
     }),
     univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ready),
   ]
@@ -105,11 +98,11 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: IWo
       if (guard) {
         guard.dispose()
         guard = undefined
-        toggle.textContent = t('Restore guard listener', '恢复保护监听器')
-        record(t('Guard removed; before/after listeners remain.', '已移除保护，前后事件监听仍保留。'))
+        toggle.textContent = 'Restore guard listener'
+        record('Guard removed; before/after listeners remain.')
       } else {
         arm()
-        record(t('Guard restored.', '已恢复保护。'))
+        record('Guard restored.')
       }
     },
     { signal: events.signal },

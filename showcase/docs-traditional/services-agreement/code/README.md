@@ -1,9 +1,11 @@
 # Services agreement / paged clause revision
 
+Current language contract: native UI, startup alerts and authored content are English under either host language. The full English Docs Core locale pack and official CSS remain in the independent export. Existing saved-snapshot argument positions are unchanged; any legacy locale argument is accepted but ignored. Earlier bilingual acceptance is historical, and its SDK limitations remain unresolved unless separately verified.
+
 Fictional sample content, not a legal template for production use. The original
 sixteen clauses, $184,000 fee, parties, footer and dedicated signature-page break
 remain. Use the native Grid editor for text and formatting; there is no external
-approval or Reset toolbar. Full EN/ZH core resources and official CSS are shared
+approval or Reset toolbar. Complete English core resources and official CSS are shared
 by Preview and the independent export.
 
 ## Revise Clause 15 and its authored reference
@@ -126,18 +128,7 @@ window.location.reload()
 
 ## Lifecycle and acceptance
 
-The factory's fourth argument accepts a complete saved native model; the third remains the initial locale.
+The factory's fourth argument accepts a complete saved native model; the third remains a legacy locale argument that is accepted but ignored.
 Validate with `validateSnapshot(saved)`, dispose the old controller and call
 `createServicesAgreementDemo(container, darkMode, locale, saved)`. Restores skip original initialization,
 so they never re-create the footer, rewrite paragraph IDs or reset edited clauses. Theme changes retain the current owner.
-
-This sample does not implement legal approval, access control, electronic signatures, automatic cross-reference fields,
-tracked-change acceptance, backend storage or binary conversion. The clause/reference update is authored text editing.
-Run `node scripts/test-services-agreement-native.mjs` for selected-only native tests. The report under
-`test-results/services-agreement-native-acceptance` distinguishes method returns, actual paint, raw history and identity.
-
-Selected acceptance: **33/33 gates passed, including all 12 literal recipes**. Coverage includes original sixteen-clause content, actual two-page layout and footer paint,
-native keyboard input and full raw Undo/Redo snapshots, the three-step revision history, same-ID owner recovery and fresh edits,
-empty-body recovery, invalid saved input rejection, initial EN/ZH, stable-owner theme and idempotent disposal.
-The normal production screenshot waits for current canvas text pixels and a settled native word count as well as no skeleton;
-stylesheet presence alone is not proof that the agreement is visible.

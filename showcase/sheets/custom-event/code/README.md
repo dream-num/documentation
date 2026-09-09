@@ -58,8 +58,11 @@ unset; a later guard can still cancel the command. Do not treat that earlier
 observation as the final command result. Before reads the pre-deletion model;
 After reads the post-deletion model and is absent for a canceled deletion.
 
-Theme changes retain the owner and edits. Official Core CSS and complete EN/ZH
-resources are shared by the factory and standalone export. Original small sample
+Theme changes retain the owner and edits. Official Core CSS and the complete English
+pack are shared by the factory and standalone export. Native and custom-event UI
+stay English on either host language; saved-snapshot argument positions are unchanged.
+Earlier bilingual test results are historical, not current English-only acceptance.
+Original small sample
 tables are unchanged. `createDemo(container, darkMode, saved)` accepts a complete
 Aster snapshot with the original workbook and both sheet IDs, validating it before
 mounting and cloning it without normalization. Dispose the previous controller
@@ -68,16 +71,6 @@ log are not snapshot data. Same-owner `disposeUnit()` / `createWorkbook(saved)`
 rebinds the actual renderer event sources and preserves the full saved model.
 
 ## Strict acceptance and remaining boundaries
-
-`scripts/test-aster-custom-event-native.mjs` tests this selected export; the strict
-report is `test-results/aster-custom-event-native/report.json`. All four literal
-recipes run verbatim. Real native context-menu deletion covers C cancellation,
-allowed F, partial overlap B–D, both sheets, actual B2 clicks inside A1:B2, event
-order, guard removal/rebinding and independent consumer disposal. Full snapshots,
-native editing/history, saved and empty recovery, invalid input, initial EN/ZH,
-760/390/320 px, stable-owner themes, active/pending double disposal, normal export
-CSS/source parity and pagehide cleanup are checked independently. Screenshots wait
-for native paint and the startup skeleton to disappear.
 
 Four raw SDK failures remain visible: deletion Undo restores values but adds
 `t: 1` to the four F cells; first text Undo adds `t: 1` and an allocated style;

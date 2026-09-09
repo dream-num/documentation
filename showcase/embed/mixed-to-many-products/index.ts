@@ -12,7 +12,7 @@ const metadata: ShowcaseMetadata = {
   description: {
     'en-US':
       'Base posted expenses and an independent Sheet plan drive a brief, three review slides, a variance Board and a native chart.',
-    'zh-CN': 'Base 已入账支出与独立 Sheet 计划共同驱动简报、三页演示、差异白板和原生图表。',
+    'zh-CN': 'Base 已入账支出与独立 Sheet 计划共同驱动简报、三页演示、差异 Boards 和原生图表。',
   },
   tags: {
     'en-US': ['Formula', 'Base', 'Sheets', 'Docs', 'Slides', 'Boards', 'Charts'],

@@ -209,7 +209,7 @@ export function createData(state = 'default'): IBaseSnapshot {
       site: serializeRecordLinkIds([`sites-${String((i % 12) + 1).padStart(2, '0')}`]),
       note:
         i % 6 === 0
-          ? 'Low tide only / marée basse / 仅低潮进入'
+          ? 'Low tide only — check access before entering'
           : `${sites[i % 12]} / transect ${String.fromCharCode(65 + (i % 5))} / ${i + 1} m`,
       brief:
         i % 10 === 0
@@ -247,7 +247,7 @@ export function createData(state = 'default'): IBaseSnapshot {
     surveys.records['surveys-02'].values.priority = null
     surveys.records['surveys-02'].values.habitats = []
     const clonedOptions = surveys.fields.habitats.config.options as SelectOption[]
-    clonedOptions.find((item) => item.id === 'rockpool')!.name = 'Rock pools / 潮だまり / mares résiduelles / برك المد'
+    clonedOptions.find((item) => item.id === 'rockpool')!.name = 'Rock pools — sheltered shoreline and tidal habitats'
   }
   if (state === 'error') {
     surveys.records['surveys-01'].values.priority = 'retired-priority'

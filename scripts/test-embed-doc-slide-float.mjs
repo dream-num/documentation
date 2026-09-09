@@ -50,6 +50,7 @@ const browser = await chromium.launch()
 const page = await browser.newPage({
   viewport: { width: Number(process.env.SHOWCASE_VIEWPORT_WIDTH || 1220), height: 1200 },
 })
+page.setDefaultTimeout(30000)
 const report = { passed: false, checks: [], errors: [], backendRequests: [], gates: {} }
 page.on('requestfailed', (request) => report.errors.push(`${request.url()}: ${request.failure()?.errorText}`))
 page.on('pageerror', (error) => report.errors.push(error.message))
@@ -201,6 +202,50 @@ try {
     report.gates.nativeHistory = { passed: false, failure: 'Not reached because native typing failed' }
     await page.keyboard.press('Escape')
   }
+  // Observe the installed SDK without replacing its click handler or entering fullscreen ourselves.
+  await page.evaluate(() => {
+    const injector = window.univerAPI._injector
+    window.fullscreenTrace = []
+    for (const key of injector.resolvedDependencyCollection.resolvedDependencies.keys()) {
+      const service = injector.get(key)
+      if (typeof service?.getDescriptor === 'function' && typeof service?.getDescriptors === 'function') {
+        const get = service.getDescriptor
+        service.getDescriptor = function (...args) {
+          const result = Reflect.apply(get, this, args)
+          window.fullscreenTrace.push({ event: 'descriptor', args, found: Boolean(result) })
+          return result
+        }
+      }
+      if (typeof service?.enter !== 'function' || typeof service?.getSession !== 'function' || !service?.exited$)
+        continue
+      const enter = service.enter
+      service.enter = function (...args) {
+        window.fullscreenTrace.push({ event: 'enter', descriptor: args[0] })
+        const result = Reflect.apply(enter, this, args)
+        window.fullscreenTrace.push({ event: 'entered', session: this.getSession() })
+        return result
+      }
+      service.session$.subscribe((session) => window.fullscreenTrace.push({ event: 'session', session }))
+    }
+  })
+  await page.getByRole('button', { name: 'Enter fullscreen', exact: true }).evaluate((button) => {
+    for (const name of ['pointerdown', 'mousedown', 'mouseup', 'click'])
+      button.addEventListener(name, () => window.fullscreenTrace.push({ event: name, connected: button.isConnected }), {
+        capture: true,
+      })
+    let fiber = button[Object.keys(button).find((key) => key.startsWith('__reactFiber$'))]
+    while (fiber) {
+      const props = fiber.memoizedProps
+      if (props?.hostUnitId || props?.embedId)
+        window.fullscreenTrace.push({
+          event: 'props',
+          hostUnitId: props.hostUnitId,
+          embedId: props.embedId,
+          variant: props.variant,
+        })
+      fiber = fiber.return
+    }
+  })
   try {
     await page.getByRole('button', { name: 'Enter fullscreen', exact: true }).click({ timeout: 5000 })
     await page.locator('[data-embed-fullscreen-shell="true"]').waitFor({ timeout: 5000 })
@@ -209,6 +254,30 @@ try {
     report.gates.nativeFullscreen = { passed: true }
   } catch (error) {
     report.gates.nativeFullscreen = { passed: false, failure: error.message }
+  }
+  report.fullscreenDiagnostic = await page.evaluate(() => ({
+    trace: window.fullscreenTrace,
+    shells: document.querySelectorAll('[data-embed-fullscreen-shell="true"]').length,
+    buttons: [...document.querySelectorAll('button')]
+      .filter((button) => button.getAttribute('aria-label') === 'Enter fullscreen')
+      .map((button) => button.outerHTML),
+  }))
+  if (!report.gates.nativeFullscreen.passed) {
+    try {
+      const before = await readChild()
+      await page.getByRole('button', { name: 'Enter fullscreen', exact: true }).focus()
+      await page.keyboard.press('Enter')
+      await page.locator('[data-embed-fullscreen-shell="true"]').waitFor({ timeout: 5000 })
+      await page.screenshot({ path: path.join(directory, 'keyboard-fullscreen.png'), fullPage: true })
+      await page.getByRole('button', { name: 'Exit fullscreen', exact: true }).click()
+      await page.locator('[data-embed-fullscreen-shell="true"]').waitFor({ state: 'detached', timeout: 5000 })
+      assert.deepEqual(await readChild(), before)
+      assert.deepEqual(await readHost(), hostBefore)
+      report.gates.keyboardFullscreen = { passed: true }
+    } catch (error) {
+      report.gates.keyboardFullscreen = { passed: false, failure: error.message }
+    }
+    report.keyboardFullscreenTrace = await page.evaluate(() => window.fullscreenTrace)
   }
   const edited = await readChild()
   try {

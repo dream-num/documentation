@@ -88,13 +88,11 @@ try {
     ['highlight', 'underline', 'strikeout'],
   )
   report.gates.nativeTwoPagesThreeMarks = true
-  report.styles = await root
-    .locator('[data-u-comp="workbench-layout"]')
-    .evaluate((e) => ({
-      background: getComputedStyle(e).backgroundColor,
-      width: e.getBoundingClientRect().width,
-      height: e.getBoundingClientRect().height,
-    }))
+  report.styles = await root.locator('[data-u-comp="workbench-layout"]').evaluate((e) => ({
+    background: getComputedStyle(e).backgroundColor,
+    width: e.getBoundingClientRect().width,
+    height: e.getBoundingClientRect().height,
+  }))
   assert.equal(report.styles.background, 'rgb(255, 255, 255)')
   async function painted(index, words) {
     const id = await page.evaluate((i) => window.univerAPI.getActivePdf().getPageByIndex(i).getId(), index)
@@ -180,7 +178,7 @@ try {
   assert.equal(await page.evaluate(() => typeof window.univerAPI), 'undefined')
   report.gates.disposal = true
   // Serve the same export with Chinese page language before its module initializes.
-  // No Facade setLocale call: this specifically proves the initial-language branch.
+  // No Facade setLocale call: the non-English host must still start the SDK in English.
   await page.route('http://127.0.0.1:4360/', async (route) => {
     const response = await route.fetch()
     await route.fulfill({ response, body: (await response.text()).replace(/<html[^>]*>/, '<html lang="zh-CN">') })
@@ -190,13 +188,14 @@ try {
   await page.locator('#app [data-u-comp="workbench-skeleton-content"]').waitFor({ state: 'detached' })
   await painted(0, ['Dates and commercial terms', 'Renewal review: 30 September 2027'])
   assert.equal(await page.locator('html').getAttribute('lang'), 'zh-CN')
-  await page.getByRole('tab', { name: '视图', exact: true }).click()
-  await page.getByRole('button', { name: '属性', exact: true }).waitFor()
-  await page.getByRole('tab', { name: '开始', exact: true }).click()
+  assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
+  await page.getByRole('tab', { name: 'View', exact: true }).click()
+  await page.getByRole('button', { name: 'Properties', exact: true }).waitFor()
+  await page.getByRole('tab', { name: 'Start', exact: true }).click()
   await page.locator('[data-u-command="pdf.menu.tool.highlight"]').hover()
-  await page.getByRole('tooltip').filter({ hasText: '高亮' }).waitFor()
+  await page.getByRole('tooltip').filter({ hasText: 'Highlight' }).waitFor()
   assert.equal(/pdfs-ui\.[\w.-]+/.test(await page.locator('body').innerText()), false)
-  report.gates.initialChineseNativeLabels = true
+  report.gates.chineseHostEnglishNativeLabels = true
   await page.screenshot({ path: path.join(directory, 'initial-zh-CN.png') })
   assert.deepEqual(report.errors, [])
   assert.deepEqual(report.warnings, [])

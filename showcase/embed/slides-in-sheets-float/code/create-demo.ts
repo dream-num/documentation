@@ -16,10 +16,12 @@ import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
+import DrawingUIEnUS from '@univerjs/drawing-ui/locale/en-US'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
 import { SheetDrawingAnchorType, UniverSheetsDrawingPlugin } from '@univerjs/sheets-drawing'
 import { UniverSheetsDrawingUIPlugin } from '@univerjs/sheets-drawing-ui'
+import SheetsDrawingUIEnUS from '@univerjs/sheets-drawing-ui/locale/en-US'
 import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
 import { UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
 import FormulaEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
@@ -50,8 +52,9 @@ import '@univerjs/sheets/facade'
 import '@univerjs-pro/slides/facade'
 import '@univerjs-pro/embed/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _locale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
+  root.dataset.ready = 'false'
   root.className = 'harbor-embed'
   container.append(root)
   const abort = new AbortController()
@@ -63,6 +66,8 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     locales: {
       [LocaleType.EN_US]: mergeLocales(
         DesignEnUS,
+        DrawingUIEnUS,
+        SheetsDrawingUIEnUS,
         UIEnUS,
         DocsEnUS,
         SheetsEnUS,
@@ -183,6 +188,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
       })().catch((error) => {
         if (disposed) return
         root.dataset.error = String(error)
+        root.dataset.ready = 'error'
         const message = document.createElement('p')
         message.setAttribute('role', 'alert')
         message.textContent = 'The embedded presentation could not load. Reload to retry; details are in the console.'

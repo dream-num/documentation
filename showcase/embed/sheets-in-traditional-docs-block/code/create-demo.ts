@@ -93,7 +93,8 @@ import '@univerjs/ui/facade'
 import '@univerjs-pro/embed/facade'
 import '@univerjs-pro/sheets-print/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _legacyLocale: LocaleType = LocaleType.EN_US) {
+  const locale = LocaleType.EN_US
   const root = document.createElement('div')
   root.className = 'estuary-embed'
   container.append(root)
@@ -102,7 +103,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
   let disposed = false
   const univer = new Univer({
     darkMode,
-    locale: LocaleType.EN_US,
+    locale,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
         DesignEnUS,

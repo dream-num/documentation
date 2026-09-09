@@ -2,24 +2,19 @@ import type { IBaseSnapshot } from '@univerjs/core'
 import { UniverBasesPlugin } from '@univerjs-pro/bases'
 import { UniverBasesUIPlugin } from '@univerjs-pro/bases-ui'
 import BasesUIEnUS from '@univerjs-pro/bases-ui/locale/en-US'
-import BasesUIZhCN from '@univerjs-pro/bases-ui/locale/zh-CN'
 import BasesEnUS from '@univerjs-pro/bases/locale/en-US'
-import BasesZhCN from '@univerjs-pro/bases/locale/zh-CN'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import { IUniverInstanceService, LocaleType, mergeLocales, Univer } from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
 import { unmount } from '@univerjs/design'
 import DesignEnUS from '@univerjs/design/locale/en-US'
-import DesignZhCN from '@univerjs/design/locale/zh-CN'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
-import DocsUIZhCN from '@univerjs/docs-ui/locale/zh-CN'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
-import UIZhCN from '@univerjs/ui/locale/zh-CN'
 
 import { DATA } from './data'
 
@@ -36,7 +31,7 @@ import '@univerjs-pro/bases-ui/facade'
 export function createDemo(
   container: HTMLElement,
   darkMode = false,
-  locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+  _locale: LocaleType = LocaleType.EN_US,
   saved: IBaseSnapshot = DATA,
 ) {
   if (saved?.id !== 'content-pipeline-base' || !saved.tables?.content?.views?.grid)
@@ -46,10 +41,9 @@ export function createDemo(
   container.append(root)
   const univer = new Univer({
     darkMode,
-    locale,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(DesignEnUS, UIEnUS, DocsUIEnUS, BasesEnUS, BasesUIEnUS),
-      [LocaleType.ZH_CN]: mergeLocales(DesignZhCN, UIZhCN, DocsUIZhCN, BasesZhCN, BasesUIZhCN),
     },
   })
   const demoWindow = window as Window & { univerAPI?: FUniver }
@@ -118,10 +112,7 @@ export function createDemo(
         root.dataset.error = String(error)
         const alert = document.createElement('p')
         alert.setAttribute('role', 'alert')
-        alert.textContent =
-          locale === LocaleType.ZH_CN
-            ? '内容流程未能启动。请重新加载，详细错误请查看控制台。'
-            : 'The content pipeline could not load. Reload to retry; details are in the console.'
+        alert.textContent = 'The content pipeline could not load. Reload to retry; details are in the console.'
         root.prepend(alert)
         console.error(error)
       })

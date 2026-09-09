@@ -1,8 +1,10 @@
 # Mosaic / Lists and Task Items
 
+The demo runtime and authored data are English-only, including on a Chinese documentation page. Complete official English locale packs are retained. Any legacy locale argument is accepted but ignored; saved-snapshot argument positions are unchanged. Earlier bilingual test reports below describe the previous revision, not current language acceptance.
+
 An original pop-up museum opening brief: three borrowed objects, five installation steps, a separate two-step partner handoff and three opening checks. LABEL and LIGHT are nested under the accessible-route step; collected keys are already complete. The warning, operating code, quotation and handling link remain real neighboring SDK blocks.
 
-Use the native Grid ribbon and editable document, including list menus, indentation, checkboxes, typing and native Undo/Redo. No fixture picker, duplicate formatting/history controls or model-readback panels are added. Preview and standalone export share the factory, six official stylesheets and all six EN/ZH locale packs. Initial UI language follows page lang; business content stays English. Theme changes preserve the owner and edits.
+Use the native Grid ribbon and editable document, including list menus, indentation, checkboxes, typing and native Undo/Redo. No fixture picker, duplicate formatting/history controls or model-readback panels are added. Preview and standalone export share the factory, six official stylesheets and all six English locale packs. The UI stays English; business content stays English. Theme changes preserve the owner and edits.
 
 ## Runnable Facade variants
 
@@ -218,6 +220,4 @@ window.mosaicMove = (marker, direction) => {
 
 ## Verification
 
-Run the selected showcase only with `dev:showcase`; the normal test URL uses localhost:3030. Run `node scripts/test-mosaic-lists-native.mjs [selected-export-manifest.json]`, or set `SHOWCASE_DEMO_URL` / `SHOWCASE_BASE_URL` for another server. `SHOWCASE_RESULTS_DIR` changes the unique output directory.
-
-Native keyboard/menu changes, complete-model Undo/Redo, list glyphs/positions and actual pixels are separate checks. Known scope/history defects remain strict failures. Initial nesting boundaries are SDK behavior, not silently intercepted host no-ops. Browser export reconstruction, bilingual UI and same-owner theme checks must be accepted independently. No backend is needed for this native list/task case; the guide URL is a fictional attribution target, not a data dependency.
+Native keyboard/menu changes, complete-model Undo/Redo, list glyphs/positions and actual pixels are separate checks. Known scope/history defects remain strict failures. Initial nesting boundaries are SDK behavior, not silently intercepted host no-ops. Browser export reconstruction, English UI on either host language and same-owner theme checks must be accepted independently. No backend is needed for this native list/task case; the guide URL is a fictional attribution target, not a data dependency.

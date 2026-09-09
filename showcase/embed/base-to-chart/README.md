@@ -1,5 +1,7 @@
 # Moss / Support demand
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 Six original fictional Base records describe weekly support demand by channel,
 not individual customers. Week 35 has Email 18, Live chat 12 and Community 6;
 Week 34 has 14, 10 and 6. The native Sheet exposes SUMIFS by channel and week,
@@ -250,14 +252,6 @@ the SDK also canonicalizes an initially empty named-range resource from `""` to
 
 ## Acceptance status
 
-Partial capability coverage. The selected production run in
-test-results/embed-moss-formula-verified/report.json passes all twenty literal
-examples. It checks actual native column heights across both series, totals,
-differences, shares and growth, plus unchanged chart identity/configuration.
-Filtered projections contain exactly the expected three records; a hidden edit
-still contributes to whole-table formulas. Null and explicit zero remain distinct
-stored values. Unknown weeks give zero aggregates with native share errors.
-
 Renaming the Base preserves its ID and fresh edits; the SDK rewrites the displayed
 qualifier in native Sheet formulas. Explicitly binding the current qualifier to
 an unavailable source produces #VALUE! in the calculated range and removes both
@@ -270,33 +264,6 @@ an 1840×730 chart image (86,091 bytes in this run), not an application screensh
 All leaves of five relevant official locale packs match in EN/ZH; theme switching
 preserves both complete native snapshots. Disposal from the active Base tab
 releases the owner, with no observed browser errors or backend requests.
-
-test-results/moss-formula-export-ui/report.json verifies eleven-file standalone
-source parity and native white styling. The shared factory includes Grid UI and
-fourteen explicit official CSS imports. The selected 1,879-module build has a
-19,390.73 kB main JS chunk (4,722.47 kB gzip) and 144.65 kB CSS (20.91 kB gzip),
-plus language chunks. This is not delivery-performance acceptance.
-
-test-results/embed-moss-roundtrip-native/report.json adds actual serialized
-two-unit reconstruction using the literal integration snippet above. It verifies
-the entire Base and workbook snapshots, except the recorded embed activation
-timestamp and exact empty-name serialization described above. Edited formulas,
-comparison criteria, chart title/identity, metadata and filters survive. A new
-hidden-record edit and native Sheet keyboard input update real chart bar heights.
-Unavailable bindings remain unavailable across reconstruction and recover only
-after explicit repair; deliberately removed charts stay removed. EN light and
-ZH dark owners preserve their locale/theme. Six invalid snapshot pairs are
-rejected before mounting or changing the existing owner. No browser errors,
-warnings or backend requests were observed in this selected run.
-
-test-results/embed-moss-formula-roundtrip-regression/report.json reruns all twenty
-literal examples after the reconstruction change and explicit rename binding;
-the existing native input, Print, PNG, locale/theme and disposal checks pass.
-
-The earlier test-results/embed-moss-roundtrip-serialization/report.json fails:
-renaming without persisting the new qualifier left the restored Sheet at cached
-values after a new Base edit. Example 11 now explicitly saves the new binding;
-this is not a claim that arbitrary native rename paths repair their own resources.
 
 Remaining: different valid-source rebinding, arbitrary source-rename paths, native
 history and every menu/editor path, full language interaction coverage, Next

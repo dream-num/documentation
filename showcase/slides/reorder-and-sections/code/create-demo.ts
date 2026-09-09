@@ -1,24 +1,19 @@
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import ShapeEditorUIEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
-import ShapeEditorUIZhCN from '@univerjs-pro/shape-editor-ui/locale/zh-CN'
 import { UniverSlidesPlugin, type ISlideData } from '@univerjs-pro/slides'
 import { UniverSlidesUIPlugin } from '@univerjs-pro/slides-ui'
 import SlidesUIEnUS from '@univerjs-pro/slides-ui/locale/en-US'
-import SlidesUIZhCN from '@univerjs-pro/slides-ui/locale/zh-CN'
 import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
 import { FUniver } from '@univerjs/core/facade'
 import { unmount } from '@univerjs/design'
 import DesignEnUS from '@univerjs/design/locale/en-US'
-import DesignZhCN from '@univerjs/design/locale/zh-CN'
 import { UniverDocsPlugin } from '@univerjs/docs'
 import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
-import DocsUIZhCN from '@univerjs/docs-ui/locale/zh-CN'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
-import UIZhCN from '@univerjs/ui/locale/zh-CN'
 
 import { createData } from './data'
 
@@ -58,7 +53,7 @@ export function validateSnapshot(data: ISlideData) {
 export function createDemo(
   container: HTMLElement,
   darkMode = false,
-  locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+  _locale: LocaleType = LocaleType.EN_US,
   saved?: ISlideData,
 ) {
   const data = structuredClone(saved ?? createData())
@@ -69,10 +64,9 @@ export function createDemo(
   container.append(root)
   const univer = new Univer({
     darkMode,
-    locale,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(DesignEnUS, UIEnUS, DocsUIEnUS, ShapeEditorUIEnUS, SlidesUIEnUS),
-      [LocaleType.ZH_CN]: mergeLocales(DesignZhCN, UIZhCN, DocsUIZhCN, ShapeEditorUIZhCN, SlidesUIZhCN),
     },
   })
   let disposed = false
@@ -89,10 +83,7 @@ export function createDemo(
     root.dataset.error = String(error)
     const message = document.createElement('p')
     message.setAttribute('role', 'alert')
-    message.textContent =
-      locale === LocaleType.ZH_CN
-        ? 'Cobalt 幻灯片未能启动。请重新加载；详细错误请查看控制台。'
-        : 'The Cobalt slides could not start. Reload to retry; details are in the console.'
+    message.textContent = 'The Cobalt slides could not start. Reload to retry; details are in the console.'
     root.prepend(message)
   }
   function dispose() {

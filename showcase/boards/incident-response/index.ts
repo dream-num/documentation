@@ -7,7 +7,7 @@ const metadata = {
   product: 'boards' as const,
   category: 'showcases' as const,
   group: { 'en-US': 'Operations and diagrams', 'zh-CN': '运营与图示' },
-  title: { 'en-US': 'Incident Response Board', 'zh-CN': '事故响应白板' },
+  title: { 'en-US': 'Incident Response Board', 'zh-CN': '事故响应 Boards' },
   description: {
     'en-US':
       'Coordinate a SEV-1 payment response with native cards, a frame, free-endpoint connectors and a reconciliation deadline.',
@@ -27,7 +27,7 @@ const metadata = {
   guide: {
     overview: {
       'en-US': 'A deterministic incident workflow rendered as real Board elements.',
-      'zh-CN': '以真实白板元素渲染的确定性事故工作流。',
+      'zh-CN': '以真实 Boards 元素渲染的确定性事故工作流。',
     },
     tryIt: {
       'en-US': [

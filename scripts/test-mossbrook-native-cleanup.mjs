@@ -7,19 +7,26 @@ import { pathToFileURL } from 'node:url'
 
 import { chromium } from 'playwright'
 
-const manifest = JSON.parse(await fs.readFile('test-results/mossbrook-native-export/exports.json', 'utf8'))[0]
-const output = path.resolve('test-results/mossbrook-native-cleanup')
+const manifest = process.env.SHOWCASE_EXPORT_DIRECTORY
+  ? { directory: path.resolve(process.env.SHOWCASE_EXPORT_DIRECTORY) }
+  : JSON.parse(await fs.readFile('test-results/mossbrook-native-export/exports.json', 'utf8'))[0]
+const output = path.resolve(process.env.SHOWCASE_RESULTS_DIR || 'test-results/mossbrook-native-cleanup')
+const port = Number(process.env.SHOWCASE_PORT || 4418)
 await fs.mkdir(output, { recursive: true })
 const { preview } = await import(pathToFileURL(path.join(manifest.directory, 'node_modules/vite/dist/node/index.js')))
 const server = await preview({
   root: manifest.directory,
   configFile: false,
-  preview: { host: '127.0.0.1', port: 4418, strictPort: true },
+  preview: { host: '127.0.0.1', port, strictPort: true },
 })
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
 const report = { passed: false, checks: [], errors: [] }
 page.on('pageerror', (e) => report.errors.push(e.message))
+page.on('console', (message) => {
+  if (message.type() === 'error') report.errors.push(message.text())
+})
+page.setDefaultTimeout(15000)
 const root = page.locator('.seed-canvas-demo')
 const snapshot = () => page.evaluate(() => window.univerAPI.getWorkbook('mossbrook-seed-bank').save())
 const paint = () =>
@@ -35,7 +42,7 @@ const paint = () =>
 const settle = () =>
   page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
 try {
-  await page.goto('http://127.0.0.1:4418', { waitUntil: 'load' })
+  await page.goto('http://127.0.0.1:' + port, { waitUntil: 'load' })
   await root.locator(':scope[data-ready="true"]').waitFor()
   await page.waitForFunction(
     () =>
@@ -98,6 +105,42 @@ try {
   assert.equal(await page.evaluate(() => window.originalOwner === window.univerAPI), true)
   assert.deepEqual(await snapshot(), edited)
   report.checks.push({ name: 'Same-owner full-model theme preservation', passed: true })
+  await root.getByLabel('Render style').selectOption('bar')
+  await root.getByLabel('Render layers').selectOption('all')
+  await root.getByRole('button', { name: 'Apply renderers' }).click()
+  const namebox = root.locator('.seed-canvas-editor input.univer-size-full').first()
+  await namebox.click()
+  await namebox.fill('C4')
+  await namebox.press('Enter')
+  await page.waitForFunction(
+    () =>
+      window.univerAPI.getActiveWorkbook().getActiveSheet().getSelection().getActiveRangeList()[0].getA1Notation() ===
+      'C4',
+  )
+  await page.keyboard.press('F2')
+  await page.waitForFunction(
+    () => document.activeElement?.getAttribute('contenteditable') === 'true' && document.getSelection().rangeCount > 0,
+  )
+  await page.keyboard.press('Control+A')
+  await page.keyboard.type('65')
+  await page.keyboard.press('Enter')
+  await page.waitForFunction(
+    () => window.univerAPI.getActiveWorkbook().getActiveSheet().getRange('C4').getRawValues()[0][0] === 65,
+  )
+  await settle()
+  assert.deepEqual(
+    await root
+      .locator('canvas[id^="univer-sheet-main-canvas"]:visible')
+      .evaluate((canvas) => Array.from(canvas.getContext('2d').getImageData(330, 182, 1, 1).data)),
+    [217, 119, 6, 255],
+    'Native percentage edit repaints the resized C4 amber bar',
+  )
+  await root.screenshot({ path: path.join(output, 'native-edited.png') })
+  await root.locator('button[data-u-command="univer.command.undo"]:visible').click()
+  await page.waitForFunction(
+    () => window.univerAPI.getActiveWorkbook().getActiveSheet().getRange('C4').getRawValues()[0][0] === 87,
+  )
+  report.checks.push({ name: 'Native C4 input with browser caret and native Undo value restoration', passed: true })
   assert.deepEqual(report.errors, [])
   report.passed = true
 } catch (error) {
@@ -108,5 +151,5 @@ try {
   await fs.writeFile(path.join(output, 'report.json'), JSON.stringify(report, null, 2))
   console.log(JSON.stringify(report, null, 2))
   await browser.close()
-  await server.close()
+  await new Promise((resolve) => server.httpServer.close(resolve))
 }

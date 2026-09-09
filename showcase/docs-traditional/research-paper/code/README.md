@@ -1,5 +1,7 @@
 # Latency-aware reconciliation / Traditional research paper
 
+Current language contract: native UI, startup alerts and authored content are English under either host language. The full English Docs Core locale pack and official CSS remain in the independent export. Existing saved-snapshot argument positions are unchanged; any legacy locale argument is accepted but ignored. Earlier bilingual acceptance is historical, and its SDK limitations remain unresolved unless separately verified.
+
 This is an illustrative fictional manuscript, not a verified scientific publication or SDK benchmark. The original title,
 authors, abstract, sections, two reference entries and Appendix A are retained. In particular, 12,480 sessions, 37% conflict
 reduction, 80 / 240 / 1,200 ms latency, 142 / 611 ms reconciliation, 0.8% / 2.6% conflict density, the 25 MB limit and the
@@ -11,8 +13,7 @@ overlays inside the paper. The former Add appendix / Reset / activity panel and 
 The former factory relied on a random SDK document ID; this version assigns the stable `research-paper` ID at creation
 and never changes it during recovery.
 
-Preview and normal export use one factory with native Grid, official Docs Core preset CSS, complete EN/ZH preset locale
-packs and initial page language. Business prose remains English. Theme switching retains the owner and current edits.
+Preview and normal export use one factory with native Grid, official Docs Core preset CSS, the complete English preset locale pack and an English native interface. Business prose remains English. Theme switching retains the owner and current edits.
 Use native text editing, pagination, zoom and Page setup; the appendix examples below are real Facade operations.
 
 ## Literal Facade examples
@@ -146,22 +147,7 @@ No snapshot normalization or new recovery IDs hide SDK defects.
 
 ## Strict evidence
 
-Run `node scripts/test-research-paper-native.mjs` for the selected-only production export and independent native harness.
-The report separates original facts/pagination, actual painted text, keyboard input, complete history, literal API behavior,
-same-ID recovery, initial EN/ZH, stable-owner themes and disposal. Final evidence is stored under
-`test-results/research-paper-native-acceptance`: **29 / 33 strict gates pass, and all 14 literal blocks pass**.
-The original two-page manuscript, native Appendix A on page two, and distinct appended Appendix B on page three all paint.
-True keyboard edits, same-ID full-owner recovery and fresh editing, empty/full recovery, initial EN/ZH, stable themes and
-idempotent disposal pass. The original paragraph identities remain intact when appending Appendix B.
-
 Four strict SDK differences remain: ordinary native typing Undo and fresh typing Undo after recovery add empty optional
 body arrays; the margins Undo changes the section identity; Method heading styling replaces that paragraph's identity.
 Their complete before/after/undo/redo models are retained, without filling arrays or replacing IDs to normalize equality.
 Heading glyph color and page geometry pass independently from identity/history fidelity.
-
-The nine-file normal export manifest is `test-results/research-paper-native-acceptance/exports.json`.
-Final current source/CSS parity is `test-results/research-paper-native-export-parity/report.json`.
-The dedicated normal-production gate waits for current-canvas ink, native word count and no startup skeleton on the
-unmodified production entry. Its actually inspected `normal-production-settled.png` is the cover candidate; a generic
-CSS screenshot alone is not proof that body content has painted. Other inspected images include `baseline.png`,
-`appendix-a.png`, and `appendix-b.png`. Earlier first/complete runs remain historical visual/test iterations.

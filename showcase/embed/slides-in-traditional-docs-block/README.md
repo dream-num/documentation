@@ -1,5 +1,7 @@
 # Summit / Conference handout with a native discussion deck
 
+Current language contract: native UI, startup alerts and authored data stay English under either host language. The legacy third locale argument remains accepted but is ignored. All complete English plugin packs, official CSS, native Grid menus and independent host/child models are retained. Earlier bilingual evidence below is historical; this language migration does not resolve its recorded SDK limitations or certify every interaction.
+
 An original synthetic route-study handout separates method, a four-slide
 discussion and limitations on traditional A4 pages. The deck uses an ocean-blue
 cover, gray-blue process cards, warm comparison bars and a lavender review page.
@@ -42,38 +44,11 @@ This is not Formula CustomRange or automatic synchronization between documents.
 
 ## Acceptance and limits
 
-Preview and the eleven-file independent export share one factory and eight
-official CSS imports. The host explicitly uses DocumentFlavor.TRADITIONAL,
-794 by 1123 layout pixels and chapter page breaks. Host and expanded Slides
-default to Grid; the embedded child retains its native floating controls.
-No fixture panel, duplicate editing buttons or iframe stands in for Slides.
-Selected independent production passes three actual A4 skeleton pages, both
-literal examples, full-snapshot Facade Undo/Redo, native shape movement and
-Undo/Redo, native text insertion/history, four-page navigation/fullscreen,
-the nine-unit anchor shift, independent models and active-child disposal.
-See test-results/embed-slide-traditional-block-production-final/report.json.
-EN/ZH guides and theme/model preservation pass separately in
-test-results/embed-slide-traditional-block-next-final/report.json.
-Eleven-file source parity and official white CSS pass in
-test-results/embed-slide-traditional-block-export-final/report.json.
-These are partial checks, not complete SDK acceptance.
-
 The first movement test selected a thumbnail glyph, not the main canvas.
 The retained geometry report exposes its 251px canvas; the final test uses the
 centered main canvas at the initial 100% zoom and checks real model movement.
 Process labels were shortened to avoid title/body overlap; card padding and
 two-line footers keep content clear of the unchanged license notice.
-
-Native selection remains unfinished: Ctrl+A followed by whole-title replacement
-duplicates the first paragraph, and Home then Shift+End does not replace the
-expected final line. Both still fail after animation-frame settling. Reproduce
-with scripts/test-embed-slide-traditional-block.mjs and SHOWCASE_NATIVE_TEXT_MODE
-set to replace-all or replace-line (default insert checks only insertion).
-Reports: test-results/embed-slide-traditional-block-select-all-settled and
-test-results/embed-slide-traditional-block-select-line-settled. No SDK patch or
-manual selection workaround is applied. Insertion/history passing does not
-certify caret placement, selection, or those shortcuts. The first native commit
-also materializes rich text; its exact pre-edit history restoration is not proven.
 
 The independent build contains 1844 modules, with main JS 18136.49 kB / 4502.53 kB
 gzip and CSS 121.04 kB / 17.94 kB gzip. Cold selected Next guide/playground requests

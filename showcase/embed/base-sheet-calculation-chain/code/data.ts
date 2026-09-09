@@ -227,7 +227,10 @@ export function createHostData(): Partial<IWorkbookData> {
       1: { f: '=IF(D13>B6,"Review scope","Within envelope")', s: 'signal' },
     },
     17: {
-      0: { v: 'Read B10:B11 for Base-backed quantities, D10:D11 for products, and D13 for the aggregate.', s: 'meta' },
+      0: {
+        v: 'Read B10:B11 for Base-backed quantities, D10:D11 for products, and D13 for the aggregate.',
+        s: 'meta',
+      },
     },
     18: {
       0: {

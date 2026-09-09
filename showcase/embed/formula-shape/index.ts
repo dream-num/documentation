@@ -49,15 +49,15 @@ const metadata: ShowcaseMetadata = {
       'zh-CN': [
         '查看四个原生幻灯片页面与来源 Float。',
         '按原样代码将 Sheet C5 票价从45改为50。',
-        '将 Base 场地金额从1800改为2100。',
+        '在 Base 原生网格中将场地金额从1800改为2100，并对比 README 中的 Facade 路径限制。',
         '把来源数量归零，观察原生错误，再恢复。',
       ],
     },
     expected: {
       'en-US':
-        'Opening revenue 10090 / cost 5600 / contribution 4490. Both source edits recalculate the overview, but Base editing currently disrupts the Slides workbench. Partial evidence only; see README.',
+        'Opening revenue 10090 / cost 5600 / contribution 4490. Native Sheet and Base grid edits update the slide results. Root Base Facade writes also recalculate, but currently remove the Slides workbench; this is a separate failing path. Partial evidence only; see README.',
       'zh-CN':
-        '初始收入10090、成本5600、结余4490。两个来源修改均可重算总览，但 Base 编辑目前会破坏 Slides 宿主界面。仅部分验证，详见 README。',
+        '初始收入10090、成本5600、结余4490。Sheet 与 Base 原生网格编辑可更新幻灯片结果；根实例 Base Facade 写入虽会重算，但目前会移除 Slides 宿主界面，这是单独的失败路径。仅部分验证，详见 README。',
     },
   },
   variants: [

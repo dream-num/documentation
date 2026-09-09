@@ -8,7 +8,7 @@ import type { ShowcaseCatalogItem } from '@/showcase/catalog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { clsx } from '@/lib/clsx'
 import { categoryLabel, sectionLabel, integrationProductLabel } from '@/showcase/catalog'
-import { SECTION_IDS, categoriesFor, directoryGroups, INTEGRATION_PRODUCT_IDS } from '@/showcase/directory'
+import { SECTION_IDS, categoriesFor, directoryGroups, INTEGRATION_PRODUCT_IDS, treeLabel } from '@/showcase/directory'
 
 interface ShowcaseSidebarProps {
   items: ShowcaseCatalogItem[]
@@ -32,7 +32,19 @@ export function ShowcaseSidebar({ items, pathname, lang }: ShowcaseSidebarProps)
 
   const filteredItems = useMemo(() => {
     const value = query.trim().toLocaleLowerCase()
-    return value ? items.filter((item) => item.searchText.includes(value)) : items
+    return value
+      ? items.filter((item) =>
+          [
+            item.searchText,
+            treeLabel(item.productName),
+            treeLabel(item.group),
+            treeLabel(item.integrationProductName ?? ''),
+          ]
+            .join(' ')
+            .toLocaleLowerCase()
+            .includes(value),
+        )
+      : items
   }, [items, query])
 
   const toggle = (key: string) => {
@@ -83,7 +95,7 @@ export function ShowcaseSidebar({ items, pathname, lang }: ShowcaseSidebarProps)
           />
         </label>
 
-        <ScrollArea className="min-h-0 flex-1">
+        <ScrollArea className="min-h-0 flex-1 [&_[data-slot=scroll-area-viewport]]:pr-3">
           {SECTION_IDS.map((product) => {
             const productItems = filteredItems.filter((item) => item.section === product)
             if (!productItems.length && query.trim()) return null
@@ -218,6 +230,7 @@ function TreeBranch({
   onToggle: () => void
   children: React.ReactNode
 }) {
+  const displayLabel = treeLabel(label)
   return (
     <div className={depth === 0 ? 'mb-2' : ''}>
       <button
@@ -234,10 +247,10 @@ function TreeBranch({
         )}
       >
         <ChevronRightIcon className={clsx('size-3.5 shrink-0 transition-transform', open && 'rotate-90')} />
-        <span className="min-w-0 flex-1" title={label}>
-          {label}
+        <span className="min-w-0 flex-1" title={displayLabel}>
+          {displayLabel}
         </span>
-        <span className="text-[10px] font-normal text-neutral-400">{count}</span>
+        <span className="shrink-0 text-[10px] font-normal text-neutral-400 tabular-nums">{count}</span>
       </button>
       {open && children}
     </div>

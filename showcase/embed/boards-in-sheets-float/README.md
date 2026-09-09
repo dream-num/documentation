@@ -14,8 +14,8 @@ authored content colors. No competitor artwork is redistributed.
 Sheets owns a real SheetFloating anchor and Embed loads a local Board through
 a provider honoring createOptions. The SDK owns the child canvas, native tools,
 activation and viewport fit. There is no iframe substitute or fixture panel.
-Sheets uses Grid. The shared factory imports twelve official SDK stylesheets,
-including Boards, shape-editor UI and Slides UI, for both preview and standalone.
+Sheets uses Grid. The shared factory imports thirteen official SDK stylesheets,
+including Boards, Ink UI, shape-editor UI and Slides UI, for both preview and standalone.
 Embed's Board text editor depends on the shared Slides editor UI service in
 beta.2. Registering Slides plugins alone does not start their type-specific
 lifecycle without a Slides unit. The demo uses Boards UI's public
@@ -43,13 +43,6 @@ pass native Ctrl+Z/Ctrl+Y after a real pointer click establishes Board keyboard
 ownership. Host snapshots remain unchanged. The earlier history attempt without
 that pointer focus is retained as a failure, not a proven SDK history defect.
 
-The first export parity report predates the documentation-width correction.
-The current factory caps initial floating width to leave the four cost columns
-visible inside the 1220px documentation preview. `embed-board-float-production-width`
-and `embed-board-float-production-1220` pass all selected interactions at 1600px
-and 1220px; the latter also checks containment. The 1220px screenshot was reviewed.
-Dynamic resize and mobile widths are not certified.
-
 The independent build installs 206 packages and transforms 1,847 modules. Main
 JS `index-Da7aoDls.js` is 18,155.77 kB / 4,504.02 kB gzip; CSS
 `index-sxiSDQ8R.css` is 134.46 kB / 19.90 kB gzip. The large-chunk warning remains.
@@ -71,3 +64,17 @@ Names and USD rates are fictional local data. This is not a live dispatch,
 approval or port-safety system. Changing the estimate does not resolve the
 missing crate or authorize a handoff. Reload loses edits. Trial marks remain
 visible; no backend, Exchange conversion or Print workflow is registered.
+
+### Preview theme and export follow-up
+
+The preview updates its existing owner with `toggleDarkMode`. EN/ZH checks in
+`embed-sheet-board-themes-diagnostic` preserve both complete edited snapshots,
+then drag a native Board shape and unmount without browser errors. The host
+value and child text changes in this check use public Facades; the shape drag
+uses real pointer input. This is not complete native keyboard/history coverage.
+The independent root now declares Arial/sans-serif and its startup failure alert
+is English-only. Official SDK CSS remains in the shared exported factory.
+
+Ink UI is a transitive Boards UI dependency. Its official stylesheet is imported
+explicitly: the other SDK stylesheets do not supply all pen-toolbar positioning
+and dark-state rules. This source/CSS correction is not native pen acceptance.

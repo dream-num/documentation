@@ -3,19 +3,15 @@ import type { IDocumentData } from '@univerjs/core'
 import { UniverDocsCalloutPlugin } from '@univerjs-pro/docs-callout'
 import { UniverDocsCalloutUIPlugin } from '@univerjs-pro/docs-callout-ui'
 import CalloutEnUS from '@univerjs-pro/docs-callout-ui/locale/en-US'
-import CalloutZhCN from '@univerjs-pro/docs-callout-ui/locale/zh-CN'
 import { UniverDocsCodePlugin } from '@univerjs-pro/docs-code'
 import { UniverDocsCodeUIPlugin } from '@univerjs-pro/docs-code-ui'
 import CodeEnUS from '@univerjs-pro/docs-code-ui/locale/en-US'
-import CodeZhCN from '@univerjs-pro/docs-code-ui/locale/zh-CN'
 import { UniverDocsListPlugin } from '@univerjs-pro/docs-list'
 import { UniverDocsListUIPlugin } from '@univerjs-pro/docs-list-ui'
 import ListEnUS from '@univerjs-pro/docs-list-ui/locale/en-US'
-import ListZhCN from '@univerjs-pro/docs-list-ui/locale/zh-CN'
 import { UniverDocsQuotePlugin } from '@univerjs-pro/docs-quote'
 import { UniverDocsQuoteUIPlugin } from '@univerjs-pro/docs-quote-ui'
 import QuoteEnUS from '@univerjs-pro/docs-quote-ui/locale/en-US'
-import QuoteZhCN from '@univerjs-pro/docs-quote-ui/locale/zh-CN'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import { CustomRangeType, IUndoRedoService, IUniverInstanceService, PresetListType } from '@univerjs/core'
 import { addCustomRangeBySelectionFactory, DocSelectionManagerService } from '@univerjs/docs'
@@ -23,10 +19,8 @@ import { DocBackScrollRenderController, SetDocZoomRatioOperation } from '@univer
 import { IRenderManagerService } from '@univerjs/engine-render'
 import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
 import DocsEnUS from '@univerjs/preset-docs-core/locales/en-US'
-import DocsZhCN from '@univerjs/preset-docs-core/locales/zh-CN'
 import { UniverDocsHyperLinkPreset } from '@univerjs/preset-docs-hyper-link'
 import HyperLinkEnUS from '@univerjs/preset-docs-hyper-link/locales/en-US'
-import HyperLinkZhCN from '@univerjs/preset-docs-hyper-link/locales/zh-CN'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 
 import { BOOKMARKS, createData, LINKS } from './data'
@@ -60,7 +54,6 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: IDo
       !Array.isArray(saved.body.paragraphs))
   )
     throw new Error('Restore an Atlas document with its original ID, body and paragraphs')
-  const chinese = document.documentElement.lang === 'zh-CN'
   const root = document.createElement('div')
   root.className = 'links-demo'
   root.dataset.ready = 'false'
@@ -68,7 +61,7 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: IDo
   navigation.className = 'links-navigation'
   const open = document.createElement('button')
   open.type = 'button'
-  open.textContent = chinese ? '打开所选链接（宿主）' : 'Open selected link (host)'
+  open.textContent = 'Open selected link (host)'
   open.disabled = true
   const error = document.createElement('p')
   error.role = 'alert'
@@ -81,10 +74,9 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: IDo
   let disposed = false
   const { univer, univerAPI } = createUniver({
     darkMode,
-    locale: chinese ? LocaleType.ZH_CN : LocaleType.EN_US,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(DocsEnUS, HyperLinkEnUS, CalloutEnUS, CodeEnUS, ListEnUS, QuoteEnUS),
-      [LocaleType.ZH_CN]: mergeLocales(DocsZhCN, HyperLinkZhCN, CalloutZhCN, CodeZhCN, ListZhCN, QuoteZhCN),
     },
     presets: [UniverDocsCorePreset({ ribbonType: 'grid', container: editor }), UniverDocsHyperLinkPreset()],
     plugins: [
@@ -147,13 +139,11 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: IDo
             selection.startOffset >= range.startIndex &&
             selection.startOffset <= range.endIndex + 1,
         )
-      if (!target)
-        throw new Error(chinese ? '请先在原生文档中选择链接文字。' : 'Select link text in the native document first.')
+      if (!target) throw new Error('Select link text in the native document first.')
       navigate(target.properties?.url ?? '')
       error.hidden = true
     } catch (cause) {
-      error.textContent =
-        (chinese ? '导航已阻止：' : 'Navigation blocked: ') + (cause instanceof Error ? cause.message : String(cause))
+      error.textContent = 'Navigation blocked: ' + (cause instanceof Error ? cause.message : String(cause))
       error.hidden = false
     }
   }

@@ -23,19 +23,21 @@ const metadata = {
   guide: {
     overview: {
       'en-US':
-        'A 42-minute incident report with impact, cause, timeline, evidence, and one idempotent remediation transition.',
-      'zh-CN': '一份 42 分钟事故报告，包含影响、根因、时间线、证据和一个幂等整改状态转换。',
+        'A 42-minute incident report with evidence, containment decisions, customer communication, release validation, open questions and one idempotent remediation transition.',
+      'zh-CN': '一份 42 分钟事故报告，包含证据、止损决策、客户沟通、发布验证、待确认问题和一个幂等整改状态转换。',
     },
     tryIt: {
       'en-US': [
         'Read the impact, cause, timeline and evidence.',
         'Edit the native remediation paragraph.',
         'Use the README Facade recipe to complete A-04 without replacing the report.',
+        'Scroll through the follow-up review: separate confirmed impact, release gates and remaining uncertainty.',
       ],
       'zh-CN': [
         '阅读影响、根因、时间线和证据。',
         '直接编辑原生整改段落。',
         '使用 README 中的 Facade 代码完成 A-04，不替换整份报告。',
+        '滚动阅读后续复核，区分确认的影响、发布门槛和仍待确认的问题。',
       ],
     },
     expected: {
@@ -46,15 +48,12 @@ const metadata = {
   },
   variants: [
     { id: 'resolved', label: { 'en-US': 'Resolved incident', 'zh-CN': '已解决事故' } },
-    { id: 'action-complete', label: { 'en-US': 'All remediation complete', 'zh-CN': '整改全部完成' } },
+    { id: 'action-complete', label: { 'en-US': 'A-04 completed', 'zh-CN': 'A-04 已完成' } },
   ],
-  actions: [
-    { id: 'complete-action', label: { 'en-US': 'Complete A-04', 'zh-CN': '完成 A-04' } },
-    { id: 'save', label: { 'en-US': 'Save the document snapshot', 'zh-CN': '保存文档快照' } },
-  ],
+  actions: [],
   states: [
     { id: 'open', label: { 'en-US': 'One action open', 'zh-CN': '一个开放任务' } },
-    { id: 'complete', label: { 'en-US': 'All actions complete', 'zh-CN': '任务全部完成' } },
+    { id: 'complete', label: { 'en-US': 'A-04 completed', 'zh-CN': 'A-04 已完成' } },
   ],
 }
 

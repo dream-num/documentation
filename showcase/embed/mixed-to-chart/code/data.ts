@@ -232,7 +232,12 @@ export function createHostData(): Partial<IWorkbookData> {
       4: { f: '=B11/C11', s: 'share' },
       5: { f: '=SUM(F7:F9)', s: 'share' },
     },
-    12: { 0: { v: 'Targets Sheet + Income Base → visible formulas A6:C9 → native comparison chart', s: 'muted' } },
+    12: {
+      0: {
+        v: 'Targets Sheet + Income Base → visible formulas A6:C9 → native comparison chart',
+        s: 'muted',
+      },
+    },
     13: {
       0: {
         v: 'Draft and other-period records are excluded by explicit criteria, not by the Base view filter.',
@@ -284,7 +289,9 @@ export function createHostData(): Partial<IWorkbookData> {
     3: { 0: { v: 'Channel', s: 'header' }, 1: { v: 'Target', s: 'header' }, 2: { v: 'Planning context', s: 'header' } },
     8: { 0: { v: 'Studio target', s: 'header' }, 1: { f: '=SUM(B5:B7)', s: 'total' } },
     10: { 0: { v: 'Amber amounts are inputs. The comparison and chart read these cells directly.', s: 'muted' } },
-    12: { 0: { v: 'Targets do not modify Base transactions, their statuses or selected periods.', s: 'muted' } },
+    12: {
+      0: { v: 'Targets do not modify Base transactions, their statuses or selected periods.', s: 'muted' },
+    },
   }
   CHANNELS.forEach((name, i) => {
     targets[i + 4] = {

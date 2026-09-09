@@ -1,16 +1,16 @@
 # North Gallery / Paragraph Typesetting
 
+Current language contract: native UI, startup alerts and authored content are English under either host language. The full English Docs Core locale pack and official CSS remain in the independent export. Existing saved-snapshot argument positions are unchanged; any legacy locale argument is accepted but ignored. Earlier bilingual acceptance is historical, and its SDK limitations remain unresolved unless separately verified.
+
 An original fictional three-chapter museum dossier retains the blue vessel description, dimensions and provisional attribution. The catalog, provenance entries and display review use different paragraph treatments. The actual SDK paginates A4-sized pages; no host page cards or comparison controls simulate pagination.
 
-Native Grid menus own editing, alignment and history. Preview and standalone share one factory, the official Docs Core stylesheet and complete EN/ZH preset locale packs. Initial language follows page lang; business content remains English. Theme changes retain the owner and edited document. Only startup failures show a host alert.
+Native Grid menus own editing, alignment and history. Preview and standalone share one factory, the official Docs Core stylesheet and the complete English preset locale pack. Native UI and business content remain English under either documentation language. Theme changes retain the owner and edited document. Only startup failures show a host alert.
 
 ## Runnable Facade variants
 
 Run the numbered examples in order in the preview frame or standalone console. Exact markers are resolved afresh; missing or duplicate targets throw rather than silently changing a different paragraph.
 
 ### 1. Capture and find a paragraph
-
-The checkpoint contains the original three-chapter dossier.
 
 ```ts
 window.northCheckpoint = structuredClone(window.univerAPI.getActiveDocument().save())
@@ -205,10 +205,4 @@ window.univerAPI.createDocument({ ...structuredClone(window.northCheckpoint), id
 
 ## Verification boundary
 
-Run `node scripts/test-north-typesetting-native.mjs`. Default URL: `http://localhost:3030/en-US/playground/docs-traditional/paragraph-typesetting`; `SHOWCASE_DEMO_URL` overrides the exact URL and `SHOWCASE_BASE_URL` the documentation origin. Native menu, keyboard, glyph/layout, full model history and lifecycle checks are strict gates. No backend, print conversion fidelity, mobile, exhaustive menus, accessibility or performance acceptance is implied.
-
-Selected evidence is in `test-results/north-typesetting-native/report.json`. All twenty examples execute. The three native 794 × 1123 pages, 24 original paragraphs, Georgia glyphs, thirteen layout variations including 22pt exact leading, native keyboard input, native menu centering, reconstruction/canvas, complete initial EN/ZH locale handling, edited-model theme ownership and disposal pass. Browser/runtime errors and backend requests are zero.
-
 Full history is not accepted: Facade text Undo/Redo adds an empty `customBlocks` field; native typing Undo adds empty range/decorations/block arrays; native alignment Undo changes paragraph IDs. These remain strict full-snapshot failures, without stripping fields, clearing history or patching the SDK. Native typing/alignment Redo is not certified after its failed Undo. The selected run passes 21 of 25 gates including source parity, not 100% acceptance.
-
-Pass `test-results/north-typesetting-export/manifest.json` as the test's first argument to verify all nine exported files byte-for-byte and every independently linked dependency's exact version. The export uses separate package junctions, never a junction of the entire project node_modules. The explicit existing Vite runtime builds only this demo.

@@ -10,8 +10,8 @@ const metadata = {
   title: { 'en-US': 'Corporate Annual Report', 'zh-CN': '企业年报' },
   description: {
     'en-US':
-      'Create a paged annual report with physical margins, header, footer, pagination rules, and an editable financial disclosure.',
-    'zh-CN': '创建具有物理页边距、页眉、页脚、分页规则和可编辑财务披露的分页年报。',
+      'Explore ten original annual-report chapters with physical pages, recurring headers and footers, and an editable financial disclosure.',
+    'zh-CN': '浏览十个原创年报章节，体验物理分页、重复页眉页脚及可编辑财务披露。',
   },
   tags: { 'en-US': ['Traditional Docs', 'Annual Report', 'Pagination'], 'zh-CN': ['传统文档', '年报', '分页'] },
   packages: ['@univerjs/preset-docs-core'],
@@ -27,8 +27,9 @@ const metadata = {
   guide: {
     overview: {
       'en-US':
-        'A Word-style financial report demonstrating physical pages, recurring segments, keep-with-next, widow control, and a visible data revision.',
-      'zh-CN': 'Word 风格财务报告，演示物理分页、重复区段、与下段同页、孤行控制和可见数据修订。',
+        'A fictional, unaudited ten-chapter report connects financial performance with the customer journey, reliability, capital allocation, governance and reporting basis. Physical pages, recurring segments, keep-with-next and widow control use native Docs.',
+      'zh-CN':
+        '虚构、未经审计的十章年报将财务业绩与客户流程、可靠性、资本配置、治理和报告口径结合；物理分页、重复区段、与下段同页及孤行控制均使用原生 Docs。',
     },
     tryIt: {
       'en-US': [
@@ -48,14 +49,11 @@ const metadata = {
     },
   },
   variants: [
-    { id: 'audited', label: { 'en-US': 'Illustrative baseline', 'zh-CN': '示例基线' } },
+    { id: 'baseline', label: { 'en-US': 'Illustrative baseline', 'zh-CN': '示例基线' } },
     { id: 'updated', label: { 'en-US': 'Updated outlook', 'zh-CN': '更新展望' } },
     { id: 'compact', label: { 'en-US': 'Compact review pages', 'zh-CN': '紧凑审阅分页' } },
   ],
-  actions: [
-    { id: 'update-revenue', label: { 'en-US': 'Update revenue', 'zh-CN': '更新收入' } },
-    { id: 'save', label: { 'en-US': 'Save native report', 'zh-CN': '保存原生报告' } },
-  ],
+  actions: [],
   states: [
     { id: 'baseline', label: { 'en-US': '$45.0M · 5.1%', 'zh-CN': '45.0M 美元 · 5.1%' } },
     { id: 'revised', label: { 'en-US': '$46.5M · 8.6%', 'zh-CN': '46.5M 美元 · 8.6%' } },

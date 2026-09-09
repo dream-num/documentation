@@ -46,7 +46,7 @@ const metadata = {
     },
     expected: {
       'en-US':
-        'Complete core/note EN/ZH and official CSS are shared by Preview/export; theme keeps edits and owner. Facade note mutations bypass Undo; existing popup text/size and native Undo repaint remain known strict boundaries. No automatic reopen, fake refresh or regenerated workbook ID masks these failures.',
+        'Complete English core/note packs and official CSS are shared by Preview/export; theme keeps edits and owner. Facade note mutations bypass Undo; existing popup text/size and native Undo repaint remain known strict boundaries. No automatic reopen, fake refresh or regenerated workbook ID masks these failures.',
       'zh-CN':
         '预览与导出共享完整核心/备注中英预设及官方 CSS；主题切换保留编辑与实例。Facade 备注 mutation 不进入撤销历史，已打开弹窗文本/尺寸及原生撤销重绘仍是严格边界；不以自动重开、伪造刷新或新工作簿 ID 掩盖。',
     },

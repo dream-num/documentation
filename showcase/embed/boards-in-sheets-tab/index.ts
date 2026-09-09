@@ -6,6 +6,7 @@ import Preview from './preview'
 const metadata: ShowcaseMetadata = {
   product: 'embed',
   category: 'features',
+  image: '/assets/showcase/embed-boards-in-sheets-tab.png',
   previewHeight: 1040,
   group: { 'en-US': 'Sheets host / Tab', 'zh-CN': 'Sheets 宿主 / 标签嵌入' },
   title: { 'en-US': 'Board in Sheets / Incident Review Tab', 'zh-CN': 'Board 嵌入 Sheets / 事故复盘标签' },

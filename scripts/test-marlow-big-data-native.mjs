@@ -197,7 +197,7 @@ try {
     )
     await page.waitForFunction(() => window.marlowGlyphs.includes('MR-0000001'))
     assert.equal(await root.locator('pre,details').count(), 0)
-    assert.equal(await root.locator('[data-action]').count(), 4)
+    assert.equal(await root.locator('[data-action]').count(), 3)
     assert.equal(
       await root.locator('[data-u-comp="workbench-layout"]').evaluate((e) => getComputedStyle(e).backgroundColor),
       'rgb(255, 255, 255)',
@@ -351,12 +351,12 @@ try {
       JSON.parse(JSON.stringify(await snapshot())),
     )
   })
-  await gate('native-edit-host-JSON-and-same-owner-theme', async () => {
+  await gate('native-edit-recipe-JSON-and-same-owner-theme', async () => {
     await fresh()
     await nativeCell('C2', 'JSON-EDIT')
     const before = await snapshot()
     const download = page.waitForEvent('download')
-    await action('json')
+    await run(4)
     await (await download).saveAs(path.join(output, 'host-sparse.json'))
     assert.deepEqual(
       JSON.parse(await fs.readFile(path.join(output, 'host-sparse.json'), 'utf8')),

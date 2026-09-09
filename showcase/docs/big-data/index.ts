@@ -27,12 +27,12 @@ const metadata = {
       'en-US': [
         'Wait for the public Facade lifecycle to reach Steady before evaluating the initial large-document render.',
         'Scroll across distant pages and inspect paragraph, list and text-style continuity.',
-        'Edit text through the native Docs UI and use native history; reload or theme replacement recreates the original fixture.',
+        'Edit text through the native Docs UI and use native history; theme changes retain the owner and edits, while reloading starts from the original fixture.',
       ],
       'zh-CN': [
         '等待公开 Facade 生命周期进入 Steady，再评估大文档的首次渲染。',
         '滚动到相距较远的页面，检查段落、列表和文本样式的连续性。',
-        '通过原生 Docs UI 编辑文本并使用原生历史；重载或主题切换会重建原始 fixture。',
+        '通过原生 Docs UI 编辑文本并使用原生历史；主题切换保留实例与编辑内容，重新加载会恢复原始 fixture。',
       ],
     },
     expected: {

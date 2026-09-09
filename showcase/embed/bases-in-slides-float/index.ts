@@ -8,7 +8,10 @@ const metadata: ShowcaseMetadata = {
   category: 'features',
   previewHeight: 1100,
   group: { 'en-US': 'Slides host / Float', 'zh-CN': 'Slides 宿主 / 浮动嵌入' },
-  title: { 'en-US': 'Bases in Slides / Delivery Readiness', 'zh-CN': 'Bases 嵌入 Slides / 交付就绪评审' },
+  title: {
+    'en-US': 'Bases in Slides / Delivery Readiness',
+    'zh-CN': 'Bases 嵌入 Slides / 交付就绪评审',
+  },
   description: {
     'en-US':
       'Keep seven release checks and three suppliers editable beside a reading-light delivery review, inside a native floating Base.',

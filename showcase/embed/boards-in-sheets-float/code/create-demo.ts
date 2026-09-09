@@ -5,7 +5,9 @@ import { UniverEmbedPlugin } from '@univerjs-pro/embed'
 import { UniverEmbedUIPlugin } from '@univerjs-pro/embed-ui'
 import EmbedEnUS from '@univerjs-pro/embed-ui/locale/en-US'
 import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import InkUIEnUS from '@univerjs-pro/ink-ui/locale/en-US'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
+import ShapeEditorEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
 import { EditorUIService, IEditorUIService } from '@univerjs-pro/slides-ui'
 import SlidesEnUS from '@univerjs-pro/slides-ui/locale/en-US'
 import { IUniverInstanceService, LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
@@ -17,10 +19,12 @@ import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
+import DrawingUIEnUS from '@univerjs/drawing-ui/locale/en-US'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
 import { SheetDrawingAnchorType, UniverSheetsDrawingPlugin } from '@univerjs/sheets-drawing'
 import { UniverSheetsDrawingUIPlugin } from '@univerjs/sheets-drawing-ui'
+import SheetsDrawingUIEnUS from '@univerjs/sheets-drawing-ui/locale/en-US'
 import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
 import { UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
 import FormulaEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
@@ -45,6 +49,7 @@ import '@univerjs/sheets-numfmt-ui/lib/index.css'
 import '@univerjs-pro/embed-ui/lib/index.css'
 import '@univerjs-pro/boards-ui/lib/index.css'
 import '@univerjs-pro/shape-editor-ui/lib/index.css'
+import '@univerjs-pro/ink-ui/lib/index.css'
 import '@univerjs-pro/slides-ui/lib/index.css'
 import './styles.css'
 
@@ -53,9 +58,10 @@ import '@univerjs-pro/boards/facade'
 import '@univerjs-pro/boards-ui/facade'
 import '@univerjs-pro/embed/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _locale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
   root.className = 'tidal-embed'
+  root.dataset.ready = 'false'
   container.append(root)
   const abort = new AbortController()
   const cleanup: Array<() => void> = []
@@ -66,6 +72,10 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     locales: {
       [LocaleType.EN_US]: mergeLocales(
         DesignEnUS,
+        DrawingUIEnUS,
+        SheetsDrawingUIEnUS,
+        ShapeEditorEnUS,
+        InkUIEnUS,
         UIEnUS,
         DocsEnUS,
         SheetsEnUS,
@@ -198,6 +208,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
         root.dataset.ready = 'true'
       })().catch((error) => {
         if (disposed) return
+        root.dataset.ready = 'false'
         root.dataset.error = String(error)
         const message = document.createElement('p')
         message.setAttribute('role', 'alert')

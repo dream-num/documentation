@@ -4,6 +4,7 @@ import { readShowcaseFiles } from '@/showcase/read-files'
 import Preview from './preview'
 
 const metadata: ShowcaseMetadata = {
+  image: '/assets/showcase/embed-mixed-in-docs-traditional.png',
   product: 'embed',
   category: 'showcases',
   previewHeight: 1100,
@@ -70,11 +71,7 @@ const metadata: ShowcaseMetadata = {
     ['resources', 'Inspect four native resources', '检查四个原生资源'],
     ['fullscreen', 'Edit in native fullscreen', '原生全屏编辑'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
-  actions: [
-    ['cost', 'Revise transcript workload', '调整转录工作量'],
-    ['evidence', 'Update a review note', '修改审阅备注'],
-    ['anchors', 'Revise the cover title', '修改封面标题'],
-  ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
+  actions: [],
   states: [
     ['draft', 'Draft for committee review', '委员会审阅草案'],
     ['editing', 'Independent local edits', '独立本地编辑'],

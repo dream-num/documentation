@@ -8,6 +8,7 @@ import BoardsUIEnUS from '@univerjs-pro/boards-ui/locale/en-US'
 import { EmbedCreationService, EmbedHostEntryEnum, UniverEmbedPlugin } from '@univerjs-pro/embed'
 import { EmbedHostRestoreService, UniverEmbedUIPlugin } from '@univerjs-pro/embed-ui'
 import EmbedEnUS from '@univerjs-pro/embed-ui/locale/en-US'
+import InkUIEnUS from '@univerjs-pro/ink-ui/locale/en-US'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import ShapeEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
 import { EditorUIService, IEditorUIService } from '@univerjs-pro/slides-ui'
@@ -21,6 +22,7 @@ import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
+import DrawingUIEnUS from '@univerjs/drawing-ui/locale/en-US'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
@@ -34,6 +36,7 @@ import '@univerjs-pro/bases-ui/lib/index.css'
 import '@univerjs/drawing-ui/lib/index.css'
 import '@univerjs-pro/embed-ui/lib/index.css'
 import '@univerjs-pro/boards-ui/lib/index.css'
+import '@univerjs-pro/ink-ui/lib/index.css'
 import '@univerjs-pro/shape-editor-ui/lib/index.css'
 import '@univerjs-pro/slides-ui/lib/index.css'
 import './styles.css'
@@ -45,7 +48,7 @@ import '@univerjs-pro/boards-ui/facade'
 import '@univerjs/ui/facade'
 import '@univerjs-pro/embed/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _locale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
   root.className = 'cove-embed'
   container.append(root)
@@ -57,6 +60,8 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
+        DrawingUIEnUS,
+        InkUIEnUS,
         DesignEnUS,
         UIEnUS,
         DocsEnUS,

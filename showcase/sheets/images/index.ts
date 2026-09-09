@@ -33,7 +33,7 @@ const metadata = {
   guide: {
     overview: {
       'en-US':
-        'Original wide, square and portrait artwork appears as three cell images and three floating drawings. The two-sheet inventory preserves zero stock, decimal mass and a separate checklist. Preview and export share native Grid, complete core/drawing EN/ZH packs and CSS; theme keeps edits.',
+        'Original wide, square and portrait artwork appears as three cell images and three floating drawings. The two-sheet inventory preserves zero stock, decimal mass and a separate checklist. Preview and export share native Grid, complete English core/drawing packs and CSS; theme keeps edits.',
       'zh-CN':
         '原创宽幅、方形、竖版图同时展示为三张单元格图和三张浮动图。两表清单保留零库存、小数质量和独立检查单。预览与导出共享原生 Grid、完整中英核心/绘图预设及 CSS；主题切换保留编辑。',
     },

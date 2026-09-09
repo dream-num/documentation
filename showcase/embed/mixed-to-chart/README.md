@@ -1,5 +1,7 @@
 # Prism / Plan versus actual
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 A fictional learning studio compares September income with three target envelopes.
 The target worksheet supplies $60,000; six Confirmed Base records supply $54,500.
 The $5,500 gap, 90.8% attainment and channel mix are native Sheet formulas.
@@ -17,8 +19,7 @@ A real two-series column chart reads the visible range A6:C9.
 
 The saved Gamma budget-review reference informs the review story and contrast,
 not copied artwork. Original navy, teal, gold and lilac separate the actuals,
-targets and variances. All business content is English; menus and guides support
-EN/ZH. The native Grid ribbon supplies the controls; there is no fixture toolbar.
+targets and variances. All business content and SDK menus are English, including on Chinese guide pages. The native Grid ribbon supplies the controls; there is no fixture toolbar.
 
 ## Run these examples in order
 
@@ -281,22 +282,6 @@ Undo history. Changing the selected period does not choose a different target pl
 Preview and standalone export use the same factory, data, official CSS and
 complete EN/ZH registered dependency packs. Themes change the existing owner,
 not the edited models. Native Print and PNG export use the SDK Facade.
-
-Selected runtime checks pass all twenty-five literal examples, current native
-bar geometry, independent sources, native typing and exact source Undo/Redo,
-Print preview, chart PNG, complete EN/ZH packs, themes and active-Base disposal.
-See test-results/embed-prism-formula-final/report.json. Eleven-file source/CSS
-parity passes at test-results/prism-formula-export-ui/report.json.
-
-Four reconstructed owners preserve authored state and fresh calculation,
-including edited formulas/chart titles, hidden records, unavailable bindings,
-Chinese dark mode and a removed chart. Ten invalid bundles are rejected without
-changing the original owner. However, the strict reconstruction report remains
-FAIL: the first Sheet drawing reload adds five explicit transform defaults
-(flipX/flipY false, angle/skewX/skewY zero). The actual position and dimensions
-remain unchanged. Raw before/after snapshots and the independent authored-state
-checks are retained in test-results/embed-prism-roundtrip-authored/report.json;
-authored-state preservation is not full serialized-state equivalence.
 
 Different valid-source rebinding, every native menu path, full Print/Exchange,
 Next delivery, performance, mobile and accessibility remain open. Sheet@Sheet

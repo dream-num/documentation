@@ -1,8 +1,8 @@
 # Bracken repair café — native field types
 
-The entire preview is the native Base Grid editor, with its own compact toolbar and native left sidebar. The UI plugin is configured for Grid ribbon; Bases renders its product-specific toolbar rather than a Sheets-style ribbon. There are no fixture controls, duplicated ribbon buttons, comparison cards or snapshot panels. The original 30 repair jobs, 12 workshop projects and 18 return checks remain unchanged, including varied amounts, submitted quotes, multilingual notes, local people, dates, original text attachments and real record links.
+The entire preview is the native Base Grid editor, with its own compact toolbar and native left sidebar. The UI plugin is configured for Grid ribbon; Bases renders its product-specific toolbar rather than a Sheets-style ribbon. There are no fixture controls, duplicated ribbon buttons, comparison cards or snapshot panels. The original 30 repair jobs, 12 workshop projects and 18 return checks retain their structure, including varied amounts, submitted quotes, Unicode English notes, local people, dates, original text attachments and real record links.
 
-Install with `pnpm install`, then `pnpm dev` or `pnpm build`. Build only this selected case. Preview and standalone export use the same factory and all four official Design/UI/Docs UI/Bases UI CSS imports. Complete EN/ZH dependency locales are registered. Theme switching updates the existing SDK owner instead of resetting edits. Keep native license notices intact.
+Install with `pnpm install`, then `pnpm dev` or `pnpm build`. Build only this selected case. Preview and standalone export use the same factory and all four official Design/UI/Docs UI/Bases UI CSS imports. Complete English dependency locales are registered. Theme switching updates the existing SDK owner instead of resetting edits. Keep native license notices intact.
 
 ## Twenty-three executable Facade examples
 
@@ -178,12 +178,12 @@ field.changeType(api.Enum.BaseFieldType.Text, {})
 field.changeType(api.Enum.BaseFieldType.Number, { decimalPlaces: 2, allowNegative: true })
 ```
 
-### 18. Keep multilingual notes
+### 18. Keep Unicode English notes
 
-Authored text supports varied scripts and long notes, not one repeated sample string.
+English notes retain Unicode punctuation, accented words and long-text boundaries.
 
 ```ts
-window.univerAPI.getBase('bracken-field-lab').getTableById('repairs').getRecordById('repairs-03').setValue('note', 'Thread colour / 糸の色 / لون الخيط / couleur du fil — retain the original.')
+window.univerAPI.getBase('bracken-field-lab').getTableById('repairs').getRecordById('repairs-03').setValue('note', 'Thread colour — café repair; retain the original.')
 ```
 
 ### 19. Read fields, defaults and storage
@@ -250,16 +250,8 @@ demo = createDemo(container, darkMode, locale, saved)
 await demo.ready
 ```
 
-To inspect the original data variants, import `createData` from `./data` in that same application entry. After disposing the previous owner, pass `createData('empty')`, `createData('boundary')`, `createData('error')` or `createData()` as the fourth factory argument. Empty preserves 30 supporting records and all field schemas. Boundary includes 0.0001, 9999999.875 and a long multilingual note. Error retains unparseable and grouped submitted quote strings. The default factory resets to all 60 original records. These separate constructed datasets replace the old fixture panel without removing its scenarios. Reset/reconstruction starts a new local edit history.
+To inspect the original data variants, import `createData` from `./data` in that same application entry. After disposing the previous owner, pass `createData('empty')`, `createData('boundary')`, `createData('error')` or `createData()` as the fourth factory argument. Empty preserves 30 supporting records and all field schemas. Boundary includes 0.0001, 9999999.875 and a long Unicode English note. Error retains unparseable and grouped submitted quote strings. The default factory resets to all 60 original records. These separate constructed datasets replace the old fixture panel without removing its scenarios. Reset/reconstruction starts a new local edit history.
 
 ## Acceptance boundary
 
-Maintainer verification (from the documentation repository, not this exported project's folder): `node scripts/test-bases-bracken-native.mjs` targets `http://localhost:3030/en-US/playground/bases/text-number-currency` by default. `SHOWCASE_BASE_URL` changes the documentation origin; `SHOWCASE_DEMO_URL` selects an exact page. The ordinary documentation target exercises the native UI and literal examples; lifecycle-only checks are explicitly marked not run because the application owns its factory handle.
-
-For the complete selected standalone harness, set `SHOWCASE_BUILD_STANDALONE=1`, `SHOWCASE_DEMO_URL=http://127.0.0.1:4356`, and `SHOWCASE_RESULTS_DIR=test-results/bracken-native-final`, then run the same script. This builds only this case and closes its 4356 server afterward. Set `SHOWCASE_EXPORT_DIRECTORY` to this case's existing selected export directory with an installed `node_modules/vite` to reuse it when disk space is limited. Alternatively set `SHOWCASE_VITE_DIRECTORY` to the exact installed Vite package directory (the folder containing its `package.json`); the version must match the exported dependency. If neither exists, the script prints the generated export path and installation guidance without installing anything. No other demo or its test report is needed. The strict test exits nonzero while the SDK gaps below remain; do not turn those observations into a passing result.
-
-The selected browser report at `test-results/bracken-native-final/report.json` exercises nine runtime checks, all 23 literal examples and eight native numeric-format paints. It verifies real numeric cell keyboard input with exact full-snapshot Undo/Redo, native three-table sidebar navigation, no host control/inspector panels, five complete EN/ZH packs, same-owner light-dark-light data preservation, exact edited-snapshot reconstruction and fresh post-reload edits. All four separate data variants retain the supporting tables; the original 60 records return on reset. The downloaded JSON exactly matches `FBase.save()`. Active-owner disposal leaves no browser errors, unexpected warnings or backend requests. Three expected SDK rejection diagnostics remain visible and separately recorded.
-
 The report remains **strict FAIL** for three genuine SDK acceptance gaps: Text-to-Number changes the schema but leaves the old numeric string `1250.75` as a string; an invalid numeric default `not a number` is accepted and copied into a record; and the native numeric renderer paints an explicit stored null as `0.00`. The null-rendering probe records the exact row/column canvas coordinates alongside the original snapshot, not just unrelated zero text elsewhere. Complete before/after and canvas evidence are in the report directory; the example does not silently normalize values or override native rendering. Native person-ID display is also still visible despite the supplied local names. There is no SDK patch or claim of full product acceptance.
-
-Standalone export/CSS parity passes in `test-results/bracken-native-export-ui/report.json`: all nine exported files match the published source, all four official stylesheets are included, and the native workbench background is white with no browser errors. The eleven dependency versions were checked exactly and locally linked; this was not a fresh install. Only this demo was built. The large-chunk warning remains a performance follow-up. Field creation uses generated IDs; authored dates are fixed but the SDK clock is not frozen. No backend, upload service, binary Office conversion, artificial Undo stack or SDK patch is included. Full keyboard-menu coverage, touch, screen-reader, cross-browser, pending-operation teardown and bundle performance require further acceptance. This native-only migration reused the existing story and removed the control framework instead of adding a second interaction layer.

@@ -1,5 +1,10 @@
 # Grove / Research backlog on a Board
 
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but is ignored. Earlier  English-only source/CSS/startup checks do
+not certify every native interaction or resolve the recorded SDK failures.
+
 An original park-route discovery story places nine research questions beside
 four visual notes: wayfinding, comfort, access and trust. Linked Themes records
 separate the research boundary and method from each question's owner, state,
@@ -54,25 +59,14 @@ The host keeps Board floating tools; the child keeps its native Base controls.
 
 EN/ZH guides pass three variants/actions/states and actual media-theme changes
 preserving the same owner and both edited snapshots. Eleven-file export parity
-includes nine official CSS imports and the white native workbench. Board themes
+includes official CSS imports and the white native workbench. Board themes
 may regenerate a palette; its theme ID and all authored content stay strict.
-
-- Production: `test-results/embed-base-board-float-production-final/report.json`
-- Guides: `test-results/embed-base-board-float-next-recheck/report.json`
-- Export: `test-results/embed-base-board-float-export-final/report.json`
 
 The first production test incorrectly looked for a workbench inside fullscreen.
 The actual Base fullscreen is its own native shell; the test now checks the
 observed base-canvas-root and official white background. No CSS override was
 added. The failed report remains. Screenshot review separated the heading from
 native floating menus and widened the theme scope/method columns.
-
-One later Next run failed with an invalid-token/ChunkLoadError before the child
-mounted (`embed-base-board-float-next-final`). The same live server passed the
-recheck without restart. Its current 97,899,092-byte development chunk matches
-the served/disk SHA-256 and parses along with all 1,008 wrapped modules
-(`test-results/grove-next-chunk`). This does not establish or fix the cause of
-the earlier failure; development loading reliability remains open.
 
 The selected build installs 206 packages offline and transforms 1,847 modules.
 Its main JavaScript is about 18.48 MB / 4.56 MB gzip. Cold selected Next requests
@@ -87,3 +81,7 @@ No SDK package or license watermark is patched.
 The saved Airtable calendar reference informs category colors and dated work
 items, not a claim that this Grid is a calendar. All business content and Board
 geometry are original; no competitor artwork is redistributed.
+
+The shared factory explicitly imports the official Ink UI English pack and CSS
+required by the registered Boards UI dependency. Other product locale packs and
+styles remain intact. This is resource coverage, not native pen acceptance.

@@ -1,12 +1,14 @@
 # Juniper / Sensitivity workshop
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 A real Board tab lives beside its host Sheet in the native SheetBar. Six independent inputs drive fifteen Formula Shapes and three shape-bound connectors. **Board@Sheet Tab** describes composition; **Sheet -> Board** describes dependency. This is not a Float, manually regenerated dashboard or write-back service.
 
 The fictional community making studio compares low, base and high equivalent-unit volumes. Fixed cost is shared, unit contribution is after variable costs, and multipliers are scenarios rather than probabilities. Original plum, pale-gold, sage, slate and peach artwork borrows title/contrast hierarchy from the saved Gamma Budget Review cover, not its artwork.
 
 ## Twenty-two literal examples
 
-Switch between Assumptions and Sensitivity workshop using the native SheetBar. Run each snippet as printed in the standalone page or demo iframe. The same factory, official CSS and complete EN/ZH packs are exported. No fixture panel, manual refresh button, duplicate ribbon tools, backend or JavaScript totals are added.
+Switch between Assumptions and Sensitivity workshop using the native SheetBar. Run each snippet as printed in the standalone page or demo iframe. The same factory, official CSS and complete English packs are exported. No fixture panel, manual refresh button, duplicate ribbon tools, backend or JavaScript totals are added.
 
 ### 1. Increase unit contribution
 
@@ -188,10 +190,6 @@ console.log({sheet:window.univerAPI.getWorkbook('juniper-workshop-model').save()
 ```
 
 ## Acceptance boundary
-
-Partial native runtime evidence: test-results/embed-juniper-formula-paper/report.json passes all twenty-two literal snippets and six selected gates, without browser errors, warnings or backend requests. Baseline quantities are 120 / 150 / 180, contributions 2160 / 2700 / 3240, after-cost values 360 / 900 / 1440, break-even 100 units and high-minus-low spread 1080. Values do not round equivalent units to whole products.
-
-Eighteen source steps alternate active Sheet and Board tabs. All fifteen current-canvas results, authored layout preservation, rendered shape-site connector routes, independent assumptions, blank/zero/text, native errors, rename and unavailable-source repair pass. Native Sheet keyboard input and exact Undo/Redo, separate Board text Facade history, fifteen complete EN/ZH dependency packs, whole-model light-dark-light and active-Board Tab disposal also pass. Source Print verifies the actual A4 paper with edited 175/22 inputs before cancellation, not just the dialog owner. Eleven-file standalone source/CSS parity is recorded in test-results/juniper-formula-export-ui/report.json.
 
 The original source history probe exposed an implicit font-color entry after editing; explicit authored input colors now preserve the complete Sheet snapshots. The early Print screenshot was captured before paper paint, while the next test incorrectly excluded a Print portal inside the demo root. The corrected test targets the paper canvas itself. Neither correction patches SDK behavior or suppresses errors.
 

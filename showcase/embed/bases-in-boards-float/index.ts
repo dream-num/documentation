@@ -8,11 +8,14 @@ const metadata: ShowcaseMetadata = {
   category: 'features',
   previewHeight: 1120,
   group: { 'en-US': 'Boards host / Float', 'zh-CN': 'Boards 宿主 / 浮动' },
-  title: { 'en-US': 'Bases in Boards / Research Backlog', 'zh-CN': 'Bases 嵌入 Boards / 研究任务' },
+  title: {
+    'en-US': 'Bases in Boards / Research Backlog',
+    'zh-CN': 'Bases 嵌入 Boards / 研究任务',
+  },
   description: {
     'en-US':
       'Pair park-route observations with nine research questions and four linked themes, using native Base records beside independent Board notes.',
-    'zh-CN': '将公园路线观察与九条研究任务、四个关联主题并列展示，原生 Base 记录与白板笔记相互独立。',
+    'zh-CN': '将公园路线观察与九条研究任务、四个关联主题并列展示，原生 Base 记录与 Boards 笔记相互独立。',
   },
   tags: {
     'en-US': ['Embed', 'Boards', 'Bases', 'Float', 'Research'],
@@ -39,7 +42,7 @@ const metadata: ShowcaseMetadata = {
       'en-US':
         'Grove studies how visitors choose a park route. Four colored Board notes frame wayfinding, comfort, access and trust. The floating Base contains nine distinct research tasks and four linked themes, with owners, dates, confidence and synthetic evidence. No observations were collected from real visitors.',
       'zh-CN':
-        'Grove 研究访客如何选择公园路线。四张彩色白板卡片概括导向、舒适、无障碍和信息可信度；浮动 Base 包含九条不同研究任务及四个关联主题，具有负责人、日期、信心程度和虚构证据。未采集真实访客数据。',
+        'Grove 研究访客如何选择公园路线。四张彩色 Boards 卡片概括导向、舒适、无障碍和信息可信度；浮动 Base 包含九条不同研究任务及四个关联主题，具有负责人、日期、信心程度和虚构证据。未采集真实访客数据。',
     },
     tryIt: {
       'en-US': [
@@ -52,14 +55,14 @@ const metadata: ShowcaseMetadata = {
         '双击 Base 激活原生编辑。',
         '运行 README 记录示例并尝试原生撤销重做。',
         '进入全屏，打开 Themes 重命名主题，再查看 Questions 中的关联标签。',
-        '返回白板，独立完善下一步。',
+        '返回 Boards，独立完善下一步。',
       ],
     },
     expected: {
       'en-US':
         'Native BoardFloating, real linked records and official white SDK surfaces, with forest, blue, sand, lavender and rose content accents. Selected native editing/history, fullscreen and linked labels pass. No fixture panel, duplicate toolbar, iframe or automatic Board synchronization; see README for remaining acceptance.',
       'zh-CN':
-        '原生 BoardFloating、真实关联记录和官方白色 SDK 界面，内容使用森林绿、蓝、沙色、淡紫和玫瑰色。选定的原生编辑与撤销重做、全屏和关联标签通过验证。无 fixture 面板、重复工具栏、iframe 或白板自动同步；待验收项详见 README。',
+        '原生 BoardFloating、真实关联记录和官方白色 SDK 界面，内容使用森林绿、蓝、沙色、淡紫和玫瑰色。选定的原生编辑与撤销重做、全屏和关联标签通过验证。无 fixture 面板、重复工具栏、iframe 或 Boards 自动同步；待验收项详见 README。',
     },
   },
   variants: [
@@ -70,7 +73,7 @@ const metadata: ShowcaseMetadata = {
   actions: [
     ['edit', 'Refine a research record', '完善研究记录'],
     ['link', 'Rename a linked theme', '重命名关联主题'],
-    ['board', 'Update the Board independently', '独立更新白板'],
+    ['board', 'Update the Board independently', '独立更新 Boards'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   states: [
     ['passive', 'Research queue beside observations', '观察旁的研究队列'],

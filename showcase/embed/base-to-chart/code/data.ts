@@ -130,7 +130,12 @@ export function createHostData(): Partial<IWorkbookData> {
       4: { f: '=SUM(E7:E9)', s: 'share' },
       5: { f: '=D11/C11', s: 'share' },
     },
-    12: { 0: { v: 'Base records → SUMIFS by week and channel → Visible range A6:C9 → Native chart', s: 'muted' } },
+    12: {
+      0: {
+        v: 'Base records → SUMIFS by week and channel → Visible range A6:C9 → Native chart',
+        s: 'muted',
+      },
+    },
     13: {
       0: {
         v: 'Select Demand register to edit counts. Change an amber week label to change the comparison.',

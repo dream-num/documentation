@@ -1,9 +1,11 @@
 # Oriole / Native reading bands
 
+Native UI and authored data are English-only. Earlier bilingual/native reports below are historical evidence, not acceptance of this migration.
+
 Use View > Crosshair Highlight for the native toggle and sixteen color/opacity
 presets. Click or drag cells and use native sheet tabs; no external controls are
 needed. Original small schedules and formulas remain unchanged. Two official CSS
-imports and complete core/crosshair EN/ZH packs ship with the shared factory.
+imports and complete core/crosshair English packs ship with the shared factory.
 Theme changes retain the current owner and edits.
 
 Run these exact snippets inside the preview or standalone page.
@@ -70,16 +72,6 @@ For a header-only source variant, use `createFixture(true)` in the factory inste
 of `createFixture()`, then build that selected case. No fixture picker is rendered.
 
 ## Strict native acceptance
-
-`scripts/test-crosshair-native-complete.mjs` runs the six snippets verbatim against
-this selected production export. Evidence is in
-`test-results/crosshair-native-complete/report.json`: real drag/arrow/header
-selections, merged and edge selections, scrolled H24, both sheets, 30%/15% native
-palette pixels, native typing with SUM recalculation, full raw histories, saved
-and header-only recovery, invalid input rejection, 760/390/320 px viewports,
-initial complete EN/ZH packs, same-owner themes, active/pending double disposal,
-normal source/CSS parity and actual pagehide cleanup. Screenshots wait for the
-native page to paint and for the startup skeleton to disappear.
 
 Three SDK boundaries remain explicit: palette auto-enable omits EnabledChanged;
 the first native numeric Undo restores the value but leaves `t: 2` and an allocated

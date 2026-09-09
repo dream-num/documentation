@@ -33,7 +33,7 @@ const fields: IFieldSnapshot[] = [
 ]
 const routes = ['Dune', 'Creek', 'Ridge', 'Harbor', 'Market', 'Orchard']
 const kits = ['Cable kit', 'LED wash', 'Monitor pair', 'Radio pack', 'Power rack']
-export const ROWS = Array.from({ length: 90 }, (_, i) => ({
+export const ROWS = Array.from({ length: 16 }, (_, i) => ({
   id: 'r' + String(i + 1).padStart(3, '0'),
   item: routes[i % 6] + ' / ' + kits[i % 5] + ' / batch ' + String(Math.floor(i / 30) + 1).padStart(2, '0'),
   status: i % 13 === 0 ? null : STATUSES[i % 4],
@@ -60,9 +60,9 @@ const view = (id: string, name: string) => ({
   group: [] as IGroupConfig[],
   config: { frozenFieldCount: 1, rowHeight: 'short' as const, showRecordIndex: true },
 })
-export function createData(empty = false): IBaseSnapshot {
+export function createData(_legacyLocale = false): IBaseSnapshot {
   const records = Object.fromEntries(
-    (empty ? [] : ROWS).map(({ id, ...values }, i) => [
+    ROWS.map(({ id, ...values }, i) => [
       id,
       {
         id,
@@ -75,7 +75,7 @@ export function createData(empty = false): IBaseSnapshot {
   )
   return {
     id: 'mistral-groups',
-    name: 'Mistral — Touring Returns',
+    name: 'Record grouping comparisons',
     schemaVersion: 1,
     createdAt: FROZEN_TIME,
     updatedAt: FROZEN_TIME,
@@ -83,18 +83,18 @@ export function createData(empty = false): IBaseSnapshot {
     tables: {
       returns: {
         id: 'returns',
-        name: 'Equipment returns',
+        name: 'Equipment',
         formulaName: 'TouringReturns',
         primaryFieldId: 'item',
         fields: {
           [BASE_RECORD_ID_FIELD_ID]: createBaseRecordIdField(),
-          ...Object.fromEntries(fields.map((field) => [field.id, field])),
+          ...Object.fromEntries(fields.map((field) => [field.id, { ...field }])),
         },
         fieldOrder,
         records,
         recordOrder: Object.keys(records),
-        views: { working: view('working', 'Grouped review'), reference: view('reference', 'Ungrouped reference') },
-        viewOrder: ['working', 'reference'],
+        views: Object.fromEntries(VARIANTS.map((variant) => [variant.id, view(variant.id, variant.label)])),
+        viewOrder: VARIANTS.map((variant) => variant.id),
       },
     },
   }

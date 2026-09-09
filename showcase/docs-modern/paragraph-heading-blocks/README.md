@@ -1,8 +1,10 @@
 # Lumen / Paragraph and Heading Blocks
 
+The demo runtime and authored data are English-only, including on a Chinese documentation page. Complete official English locale packs are retained. Any legacy locale argument is accepted but ignored; saved-snapshot argument positions are unchanged. Earlier bilingual test reports below describe the previous revision, not current language acceptance.
+
 Original fictional field-research brief. Six sections retain the audience list, consent task, risk callout, TypeScript code, quotation and protocol link. Edit through the native Grid ribbon and document canvas; no host outline, fixture selector, edit buttons or history controls are added.
 
-Preview and standalone export use the same factory, six official stylesheets and six complete EN/ZH locale packs. Initial UI language follows page lang. Authored business content remains English. Theme changes preserve the same editor and edited document. Startup failures alone show a visible alert.
+Preview and standalone export use the same factory, six official stylesheets and six complete English locale packs. The UI stays English. Authored business content remains English. Theme changes preserve the same editor and edited document. Startup failures alone show a visible alert.
 
 The authored document uses native named styles instead of directly overriding paragraph font size. This keeps the native heading menu and rendered typography aligned. The installed styles resolve H1–H5 to 20/18/16/14/12pt, title to 26pt, and this normal-text document to 11pt. Four summary-layout variants remain literal examples below, not a second formatting toolbar.
 
@@ -171,8 +173,6 @@ window.univerAPI.createDocument({ ...structuredClone(window.lumenCheckpoint), id
 
 ### 20. Empty modern document
 
-Remove all text/content blocks by creating a new empty document. The original checkpoint is retained.
-
 ```ts
 const data = structuredClone(window.lumenCheckpoint)
 data.id = 'lumen-empty'
@@ -191,9 +191,5 @@ window.univerAPI.createDocument({ ...structuredClone(window.lumenCheckpoint), id
 ```
 
 ## Verification boundary
-
-Run `node scripts/test-lumen-headings-native.mjs`. The default URL is `http://localhost:3030/en-US/playground/docs-modern/paragraph-heading-blocks`; `SHOWCASE_DEMO_URL` overrides the exact URL and `SHOWCASE_BASE_URL` the documentation origin. No backend is required. Full native editing/history/render and lifecycle results are recorded separately, never inferred from model-only checks. Trial marks remain. Narrow/mobile behavior, accessibility, exhaustive menus and performance are not certified by this selected check.
-
-Selected evidence: `test-results/lumen-headings-native/report.json` passes 20 of 21 runtime gates, plus the optional selected-export source-parity gate for all nine exported files. Pass `test-results/lumen-headings-export/manifest.json` as the test's first argument to include that comparison. All 21 literal examples execute; actual glyph sizes, line geometry, centered final-line positioning, supporting blocks, native heading input with full Undo/Redo, native Heading 3 formatting at 16pt, snapshot reconstruction with canvas repaint, empty/restore, initial Chinese UI, six complete locale packs, edited-model theme preservation and disposal pass. No runtime error or backend request was observed.
 
 The remaining strict failure is native heading-format Undo: the following summary paragraph's ID changes from its original ID even though the visible content is restored. Full-model equality fails, and heading-format Redo is not certified after that failure. No ID filtering, pending-history clearing, synthetic snapshot, or SDK modification hides this difference. The removed host outline was not a native outline capability and is not counted as coverage.

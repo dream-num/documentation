@@ -19,6 +19,7 @@ import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
 import DocsEnUS from '@univerjs/docs-ui/locale/en-US'
 import { UniverDrawingPlugin } from '@univerjs/drawing'
 import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
+import DrawingUIEnUS from '@univerjs/drawing-ui/locale/en-US'
 import { IRenderManagerService, UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
@@ -40,7 +41,7 @@ import '@univerjs-pro/bases/facade'
 import '@univerjs-pro/bases-ui/facade'
 import '@univerjs-pro/embed/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _locale: LocaleType = LocaleType.EN_US) {
   const root = document.createElement('div')
   root.className = 'solstice-embed'
   container.append(root)
@@ -52,6 +53,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
     locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
+        DrawingUIEnUS,
         DesignEnUS,
         UIEnUS,
         DocsEnUS,

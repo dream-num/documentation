@@ -14,7 +14,10 @@ const metadata: ShowcaseMetadata = {
       'A three-chapter A4 methods note embeds an editable capture-and-review workflow with a bound exception path.',
     'zh-CN': '三个 A4 章节的方法说明内嵌可编辑采集与复核流程，异常路径使用绑定连接线。',
   },
-  tags: { 'en-US': ['Embed', 'Traditional Docs', 'Boards', 'Methods'], 'zh-CN': ['嵌入', '传统文档', '白板', '方法'] },
+  tags: {
+    'en-US': ['Embed', 'Traditional Docs', 'Boards', 'Methods'],
+    'zh-CN': ['嵌入', '传统文档', '白板', '方法'],
+  },
   packages: [
     '@univerjs/core',
     '@univerjs/docs-ui',

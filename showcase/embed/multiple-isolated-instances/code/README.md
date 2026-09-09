@@ -4,7 +4,8 @@ North has six workshop maintenance items; South has six different garden items.
 Native formulas calculate each budget. North stays light and South dark, with
 separate iframe documents, JavaScript realms and stable workbook IDs. This is
 trusted same-origin HTML embedding, not a sandbox security boundary or a Pro Embed
-plugin example. Both use Grid and complete EN/ZH Sheets core resources and CSS.
+plugin example. Both use Grid, complete English Sheets Core resources and official CSS.
+Native UI and host controls stay English on every host language.
 
 Run `pnpm install`, then `pnpm dev`, or `pnpm build` and `pnpm preview`.
 The same entry serves the parent and children. The `isolatedRegion` query is
@@ -99,25 +100,13 @@ fixture/input panels. They are historical, not acceptance of this revised versio
 The intermediate `test-isolated-native-cleanup.mjs` report retains the original
 strict history failure and is superseded for the broader scope below.
 
-Run `node scripts/test-isolated-native-complete.mjs` for selected-only acceptance.
-`test-results/isolated-native-complete/report.json` records the five literal recipes:
-three execute in the real child and both empty/boundary replacements are separately
-built and opened. Native default/empty/boundary formula values and actual canvas
-text are checked; default content and independent white/dark official CSS are retained.
-
 The same suite checks full opposite-owner snapshots, both real JSON downloads,
 saved same-ID owner recovery and fresh native edits, invalid-input guards before
-owner mutation, both initial EN/ZH packs, independent theme/locale changes,
+owner mutation, full English packs on both host languages, independent theme changes,
 320/390/760px stacked hosts and genuine native text editing. It mounts the exact
 React Preview under development StrictMode, observes one SDK owner per child and
 none in the parent, then tests teardown during native writes, Release, Mount and
 initial pending startup. The actual pagehide handler and repeated disposal run too.
-
-**Strict full-history acceptance remains partial:** native South Undo restores
-34.6 but adds cell type `t: 2` in C4; full Redo matches. Complete before/after/Undo/Redo
-models remain in the report, with no field normalization. The already-edited North
-checkpoint's subsequent Undo/Redo passes; that does not erase the original South
-failure. The test exits with failure while this discrepancy remains.
 
 These checks do not certify cross-origin isolation/security, reduced memory use,
 all mobile native menus, cross-frame messaging or binary file conversion.

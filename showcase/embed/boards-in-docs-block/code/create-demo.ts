@@ -41,16 +41,18 @@ import '@univerjs-pro/boards/facade'
 import '@univerjs-pro/boards-ui/facade'
 import '@univerjs-pro/embed/facade'
 
-export function createDemo(container: HTMLElement, darkMode = false) {
+export function createDemo(container: HTMLElement, darkMode = false, _legacyLocale: LocaleType = LocaleType.EN_US) {
+  const locale = LocaleType.EN_US
   const root = document.createElement('div')
   root.className = 'pine-embed'
+  root.dataset.ready = 'false'
   container.append(root)
   const abort = new AbortController()
   const cleanup: Array<() => void> = []
   let disposed = false
   const univer = new Univer({
     darkMode,
-    locale: LocaleType.EN_US,
+    locale,
     locales: {
       [LocaleType.EN_US]: mergeLocales(
         DesignEnUS,
@@ -160,6 +162,7 @@ export function createDemo(container: HTMLElement, darkMode = false) {
         root.dataset.ready = 'true'
       })().catch((error) => {
         if (disposed) return
+        root.dataset.ready = 'false'
         root.dataset.error = String(error)
         const message = document.createElement('p')
         message.setAttribute('role', 'alert')

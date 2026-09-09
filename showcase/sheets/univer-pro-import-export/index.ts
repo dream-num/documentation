@@ -47,9 +47,9 @@ const metadata = {
     },
     expected: {
       'en-US':
-        'The workbook is editable without file uploads. Official SDK CSS and all EN/ZH packs are shared by Preview and export. Office import/export is explicitly blocked: the installed Exchange client requires upload/conversion/task/signed-download HTTP services. No mocked or mislabeled XLSX is provided.',
+        'The workbook is editable without file uploads. Official SDK CSS and all English packs are shared by Preview and export. Office import/export is explicitly blocked: the installed Exchange client requires upload/conversion/task/signed-download HTTP services. No mocked or mislabeled XLSX is provided.',
       'zh-CN':
-        '工作簿无需上传文件即可编辑。Preview 与导出共享官方 CSS 和完整 EN/ZH 包。Office 导入导出明确受阻：当前 Exchange 客户端需要上传、转换、任务、签名下载 HTTP 服务。不提供伪造或错误命名的 XLSX。',
+        '工作簿无需上传文件即可编辑。Preview 与导出共享官方 CSS 和完整 English 包。Office 导入导出明确受阻：当前 Exchange 客户端需要上传、转换、任务、签名下载 HTTP 服务。不提供伪造或错误命名的 XLSX。',
     },
   },
   variants: [

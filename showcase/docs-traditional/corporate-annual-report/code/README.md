@@ -1,11 +1,16 @@
 # Atlas / annual reporting narrative
 
+Current language contract: native UI, startup alerts and authored content are English under either host language. The full English Docs Core locale pack and official CSS remain in the independent export. Existing saved-snapshot argument positions are unchanged; any legacy locale argument is accepted but ignored. Earlier bilingual acceptance is historical, and its SDK limitations remain unresolved unless separately verified.
+
 Fictional SDK sample, not audited financial statements or investment guidance.
 The original shareholder letter, four business lines, three-year revenues,
 18.6% operating margin, $9.2M operating cash flow and risk outlook appear in
-the native document. The previously unused three-year disclosure is now rendered.
+the native document. Five additional chapters cover the customer journey, service
+reliability, capital allocation, governance and reporting basis. Their narrative
+distinguishes authoring from approvals and fictional figures from audited results.
+The subtitle labels the sample as fictional and unaudited in the visible document.
 Physical page margins, Georgia headings, recurring header/footer, keep-with-next
-and widow control use native Docs. Grid, official CSS and complete initial EN/ZH
+and widow control use native Docs. Grid, official CSS and complete English
 core resources are shared by Preview and export. There is no external revision,
 Reset, inspector or activity panel; theme changes retain the current owner.
 
@@ -71,30 +76,13 @@ demo = createAnnualReportDemo(container, darkMode, locale, saved)
 ```
 
 The factory clones the input and skips seed creation during restoration. Theme
-changes call `toggleDarkMode` on the current owner. EN/ZH follows the initial HTML
-language. Disposal unmounts the native UI and document and is safe to repeat.
+changes call `toggleDarkMode` on the current owner. Native UI stays English under either initial HTML language. Disposal unmounts the native UI and document and is safe to repeat.
 The native Page settings menu can change paper size and margins; native typing
 and Undo/Redo remain available without a duplicate host editor.
 
 ## Verification
 
-Run `node scripts/test-annual-native.mjs` from the documentation repository for
-the running guide at `http://localhost:3030/en-US/playground/docs-traditional/corporate-annual-report`.
-`SHOWCASE_DEMO_URL` overrides the full URL; `SHOWCASE_BASE_URL` overrides its origin.
-Full owner reconstruction, initial locale and disposal require the isolated harness:
-
-```powershell
-$env:SHOWCASE_BUILD_STANDALONE = '1'
-$env:SHOWCASE_RESULTS_DIR = 'test-results/annual-report-native-verification'
-$env:SHOWCASE_VITE_DIRECTORY = 'C:/path/to/existing/exact-version/node_modules/vite'
-node scripts/test-annual-native.mjs
-```
-
-The harness builds only this case, links each exact installed dependency version,
-and closes its port 4416 service. `SHOWCASE_EXPORT_DIRECTORY` can reuse an existing
-selected export. No installation or another case's report is needed.
-
-The current selected run verifies all three TypeScript literals and the owner
+The earlier selected run verifies all three TypeScript literals and the owner
 restore literal, settled native word count, Georgia financial disclosure glyphs,
 header/footer paint, one-page default and two-page compact layout, native paper
 and margin edits, body typing, and complete Undo/Redo snapshots. It also verifies
@@ -102,4 +90,6 @@ same-ID reconstruction without regenerating segment or paragraph IDs, fresh
 native editing afterwards, full EN/ZH packs, same-owner themes, validation before
 disposal and immediate/idempotent cleanup. The earlier failed font-type test and
 560 × 720 single-page assumption remain in the first run's report; neither was
-hidden by snapshot normalization or a product patch.
+hidden by snapshot normalization or a product patch. That one-page/two-page count
+predates the expanded ten-chapter narrative; current pagination is checked from
+the renderer rather than inferred from the old report.

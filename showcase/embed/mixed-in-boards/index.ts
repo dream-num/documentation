@@ -4,15 +4,16 @@ import { readShowcaseFiles } from '@/showcase/read-files'
 import Preview from './preview'
 
 const metadata: ShowcaseMetadata = {
+  image: '/assets/showcase/embed-mixed-in-boards.png',
   product: 'embed',
   category: 'showcases',
   previewHeight: 1000,
-  group: { 'en-US': 'Boards host / Mixed', 'zh-CN': '白板宿主 / 综合嵌入' },
+  group: { 'en-US': 'Boards host / Mixed', 'zh-CN': 'Boards 宿主 / 综合嵌入' },
   title: { 'en-US': 'Ripple / Complete Planning Workshop', 'zh-CN': 'Ripple / 完整共创工作坊' },
   description: {
     'en-US':
       'A riverfront wayfinding workshop combines a resource Sheet, agenda Doc, review Slides and linked observation Base in four native Board Floats.',
-    'zh-CN': '河岸导视共创工作坊在原生白板上浮动嵌入资源预算、议程文档、方案幻灯片和关联观察记录。',
+    'zh-CN': '河岸导视共创工作坊在原生 Boards 上浮动嵌入资源预算、议程文档、方案幻灯片和关联观察记录。',
   },
   tags: {
     'en-US': ['Embed', 'Boards', 'Float', 'Sheets', 'Docs', 'Slides', 'Bases'],
@@ -52,7 +53,7 @@ const metadata: ShowcaseMetadata = {
       ],
       'zh-CN': [
         '浏览四个区域，双击浮动内容使用原生编辑工具。',
-        '深入编辑使用原生全屏，再返回白板对比整体。',
+        '深入编辑使用原生全屏，再返回 Boards 对比整体。',
         '修改 Workshop budget 的反馈卡数量，观察备用金和合计。',
         '打开对应产品后运行 README 的原样示例。',
       ],
@@ -69,11 +70,7 @@ const metadata: ShowcaseMetadata = {
     ['review', 'Three authored review layouts', '三种评审版式'],
     ['records', 'Observations linked to locations', '观察关联地点'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
-  actions: [
-    ['budget', 'Revise the feedback-card quantity', '修改反馈卡数量'],
-    ['question', 'Clarify a next question', '明确下一步问题'],
-    ['flow', 'Revise the discussion loop', '修改讨论流程'],
-  ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
+  actions: [],
   states: [
     ['baseline', 'Illustrative workshop baseline', '示意工作坊基线'],
     ['editing', 'Independent local edits', '独立本地编辑'],

@@ -70,28 +70,19 @@ English authored content; EN/ZH guide metadata. Deep teal headings, slate prose 
 
 ## Formula editor language coverage
 
-The shared factory includes official English and Simplified Chinese locale packs
-for every previously configured locale import, including Docs Formula UI, Shape
+The shared factory includes complete official English locale packs
+for every configured locale import, including Docs Formula UI, Shape
 Editor UI and Embed Unit UI. The last two are dependencies of the native formula
 editor and source selector; loading only Docs Formula UI does not translate them.
-Their official CSS is included in the independent export. The factory follows
-the page's HTML language at startup (English otherwise); FUniver.setLocale can
-switch between enUS and zhCN without recreating the document.
-
-Run scripts/test-docs-formula-locales.mjs with SHOWCASE_CASE=estuary and the
-selected SHOWCASE_ORIGIN. It checks all official leaves in the three formula
-editor packs, the native Edit formula action, the formula editor, more number
-formats, visible text/accessible labels/placeholders, and exact document/owner
-preservation after cancellation in both languages. Selected production evidence:
-test-results/docs-formula-locales-estuary/report.json.
-This is language acceptance, not full layout acceptance: native dialog bounds
-are recorded separately. Cinder's development integration also retains React
-synchronous-unmount warnings when dismissing the source viewer; see sdk-issues.md.
+Their official CSS is included in the independent export. The factory always
+starts in English, independently of the page's HTML language or a legacy locale
+argument. The document and both source datasets are English as well. It does not
+change the documentation host language or provide a demo language switch.
 
 ## Acceptance status
 
+The calculation regression also checks the embedded Sheet's real B10 SUM result
+after each funding change, in addition to all four native Doc formula results.
+The strict zero-denominator status requirement remains unresolved.
+
 Partial, not fully accepted. The six exact examples, four final rendered inline values, independent Sheet/Base changes, unchanged complete document body, Base fullscreen editing/return, zero-value display/recovery and a detached successful-state display-text snapshot have selected browser evidence. EN/ZH guides, the first literal example in each locale and theme changes preserve the API owner and all three models. Type checking and selected standalone build pass.
-
-**Known SDK issue:** the zero-denominator formula visibly displays `#DIV/0!`, but beta.2 returns `status: success` and a string cell type rather than an error status. The strict runtime report stays FAIL for this gate. The demo does not rewrite that result. Error-state persistence/projection semantics need separate verification; the successful-state snapshot check does not certify them.
-
-Evidence: `scripts/test-embed-estuary-formula.mjs`, `test-results/embed-estuary-formula-final/report.json`, `scripts/test-embed-estuary-formula-guide.mjs` and `test-results/embed-estuary-formula-next/report.json`. Full native source editing/history, saved-resource reload/rebind, unavailable/invalid sources, racing/in-flight disposal, printing, Exchange export, touch and performance remain open. A Pro license is required for a watermark-free published experience; the demo does not hide SDK license notices.

@@ -10,8 +10,10 @@ an already-matching value is not rewritten. Highlight toggles pale yellow/white.
 The callbacks reject other owners/sheets, disjoint or outside selections and a
 read-only workbook before writing. Errors use the official native message UI,
 not a permanent explanation card. This is local sample editing, not authorization
-or a server approval workflow. EN/ZH UI labels are localized; the original sample
-values remain English. Preview and export use one factory and official core CSS.
+or a server approval workflow. Native UI, custom menu labels and sample values
+stay English on both host languages. Preview and export use one factory,
+the complete English core pack and official core CSS. The legacy third locale
+argument is ignored, preserving saved-snapshot and ribbon argument positions.
 
 ## Select an order with the public Facade
 
@@ -134,7 +136,8 @@ defined-name resource serialization change must not be normalized away.
 The current native run confirms real menu clicks, keyboard Enter, right-click
 multi-row approval, yellow canvas pixels, repeated approval without writes,
 outside/empty/read-only rejection, all six TypeScript and two lifecycle recipes,
-both layouts and same-owner EN/ZH themes. These do not imply full acceptance:
+both layouts and same-owner themes. Earlier bilingual runs are historical;
+rerun the native suite for English-only acceptance. These do not imply full acceptance:
 
 - Full Undo leaves inferred cell `t` values; highlight Undo additionally retains
   generated fill styles. Native text Undo also retains a font-color style.
@@ -147,18 +150,6 @@ both layouts and same-owner EN/ZH themes. These do not imply full acceptance:
 All measured Redo snapshots match exactly. The same raw Undo boundary is retained
 for fresh editing after restore and in the normal production export. The default
 menu remains direct ribbon items; native ribbon-submenu support stays open.
-
-Run `node scripts/test-custom-menu-native.mjs` against the default guide at
-`http://localhost:3030/en-US/playground/sheets/custom-menu`; `SHOWCASE_DEMO_URL`
-and `SHOWCASE_BASE_URL` override its URL and origin. Full lifecycle/startup/normal
-production export checks need the selected standalone harness:
-
-```powershell
-$env:SHOWCASE_BUILD_STANDALONE = '1'
-$env:SHOWCASE_RESULTS_DIR = 'test-results/custom-menu-native-verification'
-$env:SHOWCASE_VITE_DIRECTORY = 'C:/path/to/exact-version/node_modules/vite'
-node scripts/test-custom-menu-native.mjs
-```
 
 The test builds only this case and links individual exact installed packages.
 `SHOWCASE_EXPORT_DIRECTORY` can reuse its selected export. It does not install

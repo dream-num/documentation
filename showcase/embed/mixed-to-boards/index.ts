@@ -12,7 +12,7 @@ const metadata: ShowcaseMetadata = {
   description: {
     'en-US':
       'A budget Sheet and readiness Base drive sixteen native Board results: budget, cost, status, ceiling and three connected zones.',
-    'zh-CN': '预算 Sheet 与筹备 Base 共同驱动十六个原生白板结果：预算、成本、状态、支出阈值与三个相连分区。',
+    'zh-CN': '预算 Sheet 与筹备 Base 共同驱动十六个原生 Boards 结果：预算、成本、状态、支出阈值与三个相连分区。',
   },
   tags: {
     'en-US': ['Formula', 'Sheets', 'Bases', 'Boards', 'Float', 'Mixed sources'],
@@ -40,7 +40,7 @@ const metadata: ShowcaseMetadata = {
       'en-US':
         'An original exhibition combines two independent native sources. Six gates carry costs and readiness; three Sheet envelopes and a separate ceiling guide a connected Board conversation.',
       'zh-CN':
-        '原创展览场景组合两个独立原生来源。六项筹备记录保存成本和状态，Sheet 的三个预算分区和独立阈值共同驱动白板评审。',
+        '原创展览场景组合两个独立原生来源。六项筹备记录保存成本和状态，Sheet 的三个预算分区和独立阈值共同驱动 Boards 评审。',
     },
     tryIt: {
       'en-US': [

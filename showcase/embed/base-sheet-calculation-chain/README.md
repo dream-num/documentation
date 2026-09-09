@@ -1,5 +1,7 @@
 # Meridian / Follow the calculation chain
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 An original fictional print studio schedules two editions: Atlas, 40 copies,
 and Fieldnotes, 60 copies. Base owns the records. A visible Sheet aggregates
 scheduled quantities, applies the editable unit rate of 25 and totals 2,500.
@@ -126,32 +128,9 @@ subsequent edits use the SDK dependency engine without manual recalculation.
 The overview uses deep teal and amber, the edition comparison uses warm cream,
 blue and rose, and the decision slide uses plum. The native editor remains
 white in light mode. Preview and standalone share one factory, Grid ribbon,
-EN/ZH plugin locales and seventeen explicit official CSS imports.
+English plugin locales and explicit official CSS imports.
 
 ## Acceptance status
-
-Partial, not fully accepted. The selected run in
-test-results/embed-meridian-formula-native-keyboard/report.json exercises all
-nine literal examples. All 26 results are checked on current native canvases;
-actual chart column heights follow the calculated amounts, including no positive
-columns for zero amounts. Native Base quantity input 80→100 produces 3,500;
-native Sheet rate input 25→20 then produces 2,800. Authored Doc content and
-Slides/Board pages remain unchanged, excluding only Formula Shape lastValue
-caches. Both reference layers appear in native snapshots. Active-Board disposal
-passes, with no observed browser errors or backend requests.
-
-The strict report remains FAIL: Doc displays #DIV/0! but returns success/string
-instead of an error result. No result normalization or manual refresh hides it.
-
-test-results/docs-formula-locales-meridian/report.json checks all leaves in
-three Formula editor dependency packs, native Edit formula actions, cancellation,
-desktop dialog bounds and complete Doc preservation in both EN/ZH. No raw keys
-were observed. The strict locale report FAILS because the Number format trigger
-is intercepted by its parent in both languages. No forced clicks are used.
-
-test-results/meridian-formula-export-ui/report.json passes eleven-file source
-parity and native white styling. The selected build includes seventeen official
-CSS imports; the main JS bundle is still large (19,676.47 kB, 4,815.47 kB gzip).
 
 Remaining: source rename/missing/rebinding, actual five-unit save/reload, full
 native menu and editor actions, error classification, theme/Next integration,

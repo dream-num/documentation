@@ -5,18 +5,24 @@ import { useEffect, useRef } from 'react'
 import { createDemo } from '../code/create-demo'
 
 export default function Preview() {
-  const containerRef = useRef<HTMLDivElement>(null!)
+  const container = useRef<HTMLDivElement>(null!)
+  const controller = useRef<ReturnType<typeof createDemo> | undefined>(undefined)
+  const dark = useRef(false)
   const { resolvedTheme } = useTheme()
   useEffect(() => {
-    if (!resolvedTheme) return
-    let demo: ReturnType<typeof createDemo> | undefined
+    dark.current = resolvedTheme === 'dark'
+    controller.current?.univerAPI.toggleDarkMode(dark.current)
+  }, [resolvedTheme])
+  useEffect(() => {
     const frame = requestAnimationFrame(() => {
-      demo = createDemo(containerRef.current, resolvedTheme === 'dark')
+      controller.current = createDemo(container.current, dark.current)
     })
     return () => {
       cancelAnimationFrame(frame)
+      const demo = controller.current
+      controller.current = undefined
       queueMicrotask(() => demo?.dispose())
     }
-  }, [resolvedTheme])
-  return <div ref={containerRef} className="h-full min-h-0" />
+  }, [])
+  return <div ref={container} className="h-full min-h-0" />
 }

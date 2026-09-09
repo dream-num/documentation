@@ -5,6 +5,7 @@ import Preview from './preview'
 
 const metadata: ShowcaseMetadata = {
   product: 'embed',
+  image: '/assets/showcase/embed-formula-customrange.png',
   category: 'features',
   previewHeight: 1100,
   group: { 'en-US': 'Formula / Data-driven composition', 'zh-CN': 'Formula / 数据驱动组合' },

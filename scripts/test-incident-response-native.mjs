@@ -17,10 +17,11 @@ const examples = [...readme.matchAll(/\x60\x60\x60ts\r?\n([\s\S]*?)\x60\x60\x60/
 assert.equal(examples.length, 9)
 const restore = [...readme.matchAll(/\x60\x60\x60js\r?\n([\s\S]*?)\x60\x60\x60/g)].at(-1)[1]
 const buildStandalone = process.env.SHOWCASE_BUILD_STANDALONE === '1'
+const port = Number(process.env.SHOWCASE_EXPORT_PORT || 4416)
 const url =
   process.env.SHOWCASE_DEMO_URL ||
   (buildStandalone
-    ? 'http://127.0.0.1:4416'
+    ? `http://127.0.0.1:${port}`
     : `${process.env.SHOWCASE_BASE_URL || 'http://localhost:3030'}/en-US/playground/boards/incident-response`)
 let server
 if (buildStandalone) {
@@ -83,7 +84,7 @@ import {createIncidentResponseDemo} from '/src/create-demo.ts';window.createInci
     root: exportDirectory,
     configFile: false,
     build: { outDir },
-    preview: { host: '127.0.0.1', port: 4416, strictPort: true },
+    preview: { host: '127.0.0.1', port, strictPort: true },
   })
 }
 
@@ -426,8 +427,8 @@ try {
         factory = src.files['/src/create-demo.ts']
       assert.equal(Object.keys(src.files).length, 9)
       assert.equal([...factory.matchAll(/import '@[^']+\/lib\/index.css'/g)].length, 7)
-      for (const lang of ['en-US', 'zh-CN'])
-        assert.equal([...factory.matchAll(new RegExp("from '@[^']+/locale/" + lang + "'", 'g'))].length, 7)
+      assert.equal([...factory.matchAll(/from '@[^']+\/locale\/en-US'/g)].length, 7)
+      assert.equal(factory.includes('/locale/zh-CN'), false)
       const names = [
         '@univerjs/design',
         '@univerjs/ui',
@@ -438,26 +439,21 @@ try {
         '@univerjs-pro/ink-ui',
       ]
       const { mergeLocales } = await import('@univerjs/core')
-      for (const [lang, locale] of [
-        ['en-US', 'enUS'],
-        ['zh-CN', 'zhCN'],
-      ]) {
-        const packs = await Promise.all(names.map(async (n) => (await import(n + '/locale/' + lang)).default))
-        await page.evaluate((l) => window.univerAPI.setLocale(l), locale)
-        pack(await page.evaluate(() => window.univerAPI.getLocales()), mergeLocales(...packs))
-        for (const dark of [true, false]) {
-          await page.evaluate((d) => window.univerAPI.toggleDarkMode(d), dark)
-          await settle()
-          assert(await page.evaluate(() => window.ownerAPI === window.univerAPI))
-          await exact('theme-' + locale + '-' + dark, before, await snapshot())
-        }
+      assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
+      const packs = await Promise.all(names.map(async (n) => (await import(n + '/locale/en-US')).default))
+      pack(await page.evaluate(() => window.univerAPI.getLocales()), mergeLocales(...packs))
+      for (const dark of [true, false]) {
+        await page.evaluate((d) => window.univerAPI.toggleDarkMode(d), dark)
+        await settle()
+        assert(await page.evaluate(() => window.ownerAPI === window.univerAPI))
+        await exact('theme-enUS-' + dark, before, await snapshot())
       }
-      await capture('zh-edited')
+      await capture('english-edited')
     },
     true,
   )
   await gate(
-    'initial-zh-invalid-before-dispose-and-idempotent-lifecycle',
+    'chinese-host-english-invalid-before-dispose-and-idempotent-lifecycle',
     async () => {
       await fresh()
       await page.evaluate(async () => {
@@ -481,7 +477,17 @@ try {
         await window.demo.ready
       })
       await ready()
-      assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'zhCN')
+      assert.equal(await page.evaluate(() => document.documentElement.lang), 'zh-CN')
+      assert.equal(await page.evaluate(() => window.univerAPI.getCurrentLocale()), 'enUS')
+      await root.getByRole('button', { name: 'Sticky Note', exact: true }).waitFor({ state: 'visible' })
+      const labels = await root
+        .locator('button[aria-label]')
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('aria-label')))
+      assert.ok(labels.includes('Shape') && labels.includes('Sticky Note'))
+      assert.equal(
+        /(?:shape-editor-ui|ink-ui|boards-ui)\.[\w.]+/.test((await root.innerText()) + labels.join(' ')),
+        false,
+      )
       await capture('initial-zh')
       await page.evaluate(() => {
         window.demo.dispose()

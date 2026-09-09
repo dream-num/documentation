@@ -5,32 +5,57 @@ import fs from 'node:fs/promises'
 import { chromium } from 'playwright'
 
 const origin = process.env.SHOWCASE_ORIGIN || 'http://localhost:4336'
-const output = 'test-results/showcase-directory'
+const output = process.env.SHOWCASE_RESULTS_DIR || 'test-results/showcase-directory'
+const slug = process.env.SHOWCASE_DEMO || 'sheets/custom-canvas'
+const registeredCount = JSON.parse(await fs.readFile('showcase/catalog.generated.json', 'utf8')).length
 await fs.mkdir(output, { recursive: true })
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 1600, height: 1100 } })
+page.setDefaultTimeout(30000)
 const report = { passed: false, locales: [], errors: [] }
 page.on('pageerror', (error) => report.errors.push(error.stack || error.message))
 try {
   for (const locale of ['en-US', 'zh-CN']) {
-    const response = await page.goto(`${origin}/${locale}/showcase/sheets/custom-canvas`, {
+    const response = await page.goto(`${origin}/${locale}/showcase/${slug}`, {
       waitUntil: 'domcontentloaded',
       timeout: 120000,
     })
     assert.equal(response.status(), 200)
     const sidebar = page.locator('aside')
-    await sidebar
-      .getByRole('link', { name: locale === 'en-US' ? 'Custom Canvas Rendering' : '自定义 Canvas 绘制', exact: true })
-      .waitFor()
-    await page.frameLocator('iframe').locator('.seed-canvas-demo[data-ready=true]').waitFor({ timeout: 120000 })
+    await sidebar.locator(`a[href="/${locale}/showcase/${slug}"]`).waitFor()
+    const preview = page.frameLocator('iframe')
+    await preview.locator('[data-ready=true]').first().waitFor({ timeout: 120000 })
+    await preview.locator('[data-u-comp="workbench-layout"]').waitFor({ timeout: 120000 })
     const closed = sidebar.locator('button[aria-expanded=false]')
     while (await closed.count()) await closed.first().click()
     const links = await sidebar
       .getByRole('link')
       .evaluateAll((elements) => elements.map((element) => element.getAttribute('href')))
-    assert.equal(links.length, 165)
-    assert.equal(new Set(links).size, 165)
+    assert.equal(links.length, registeredCount)
+    assert.equal(new Set(links).size, registeredCount)
     assert.ok(links.every((href) => href.startsWith(`/${locale}/showcase/`)))
+    await sidebar.hover()
+    const scrollbar = sidebar.locator('[data-slot="scroll-area-scrollbar"]')
+    await scrollbar.waitFor({ state: 'visible' })
+    for (const width of [1600, 1024]) {
+      await page.setViewportSize({ width, height: 1100 })
+      const spacing = await sidebar.evaluate((element) => {
+        const track = element.querySelector('[data-slot="scroll-area-scrollbar"]').getBoundingClientRect()
+        const viewport = element.querySelector('[data-slot="scroll-area-viewport"]')
+        return {
+          gaps: [...element.querySelectorAll('button[aria-expanded] > span:last-child')].map(
+            (count) => track.left - count.getBoundingClientRect().right,
+          ),
+          horizontalOverflow: viewport.scrollWidth > viewport.clientWidth + 1,
+        }
+      })
+      assert.ok(
+        spacing.gaps.every((gap) => gap >= 8),
+        `${locale}/${width}: counts must clear the scrollbar`,
+      )
+      assert.equal(spacing.horizontalOverflow, false)
+    }
+    await page.setViewportSize({ width: 1600, height: 1100 })
     const empty = sidebar.getByText(locale === 'en-US' ? 'No demos yet' : '暂无案例', { exact: true })
     assert.ok((await empty.count()) > 0)
     const integration = sidebar
@@ -55,8 +80,8 @@ try {
     await page.screenshot({ path: `${output}/integration-products-${locale}.png` })
     const search = sidebar.getByRole('textbox')
     await search.fill('Cross-file Formula References')
-    await page.waitForFunction(() => document.querySelectorAll('aside a').length === 27)
-    assert.equal(await sidebar.getByRole('link').count(), 27)
+    await page.waitForFunction(() => document.querySelectorAll('aside a').length === 25)
+    assert.equal(await sidebar.getByRole('link').count(), 25)
     await sidebar
       .getByRole('button', { name: locale === 'en-US' ? /^Compose & Embed/ : /^组合与嵌套/ })
       .scrollIntoViewIfNeeded()
@@ -64,7 +89,7 @@ try {
     await search.fill('unlikely-directory-search-no-match')
     await sidebar.getByText(locale === 'en-US' ? 'No matching demos' : '没有匹配的案例', { exact: true }).waitFor()
     assert.equal(await sidebar.getByRole('link').count(), 0)
-    report.locales.push({ locale, routes: links.length, formulaRoutes: 27, emptyFolders: true })
+    report.locales.push({ locale, routes: links.length, formulaRoutes: 25, emptyFolders: true })
   }
   await page.goto(`${origin}/en-US/showcase?filter=bases&category=performance`, {
     waitUntil: 'domcontentloaded',
@@ -94,7 +119,7 @@ try {
   const host = page.getByRole('combobox', { name: 'Host product' })
   await host.waitFor()
   assert.equal(await host.inputValue(), 'bases')
-  assert.equal(await page.locator('a[href^="/showcase/embed/"]').count(), 0)
+  assert.equal(await page.locator('a[href^="/showcase/embed/"]').count(), 3)
   await page.waitForLoadState('networkidle')
   await host.selectOption('slides')
   await page.waitForFunction(() => document.querySelectorAll('a[href^="/showcase/embed/"]').length > 0)

@@ -4,6 +4,7 @@ import { readShowcaseFiles } from '@/showcase/read-files'
 import Preview from './preview'
 
 const metadata: ShowcaseMetadata = {
+  image: '/assets/showcase/embed-mixed-in-sheets.png',
   product: 'embed',
   category: 'showcases',
   previewHeight: 1100,
@@ -69,11 +70,7 @@ const metadata: ShowcaseMetadata = {
     ['tabs', 'Memo, supplier and workflow tabs', '说明、供应商与流程 Tab'],
     ['ownership', 'One host / Four independent children', '一个宿主 / 四个独立子文档'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
-  actions: [
-    ['budget', 'Recalculate the pilot envelope', '重算试点预算'],
-    ['children', 'Edit the appropriate native child', '编辑对应原生子文档'],
-    ['switch', 'Switch tabs and retain edits', '切换 Tab 并保留编辑'],
-  ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
+  actions: [],
   states: [
     ['reading', 'Read budget and briefing together', '同时阅读预算和简报'],
     ['editing', 'Edit one child at a time', '逐个编辑子文档'],

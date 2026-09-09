@@ -2,7 +2,6 @@ import type { IDocumentData } from '@univerjs/core'
 import { unmount } from '@univerjs/design'
 import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
 import DocsEnUS from '@univerjs/preset-docs-core/locales/en-US'
-import DocsZhCN from '@univerjs/preset-docs-core/locales/zh-CN'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
 
 import { createPageData, KNOWLEDGE_PAGES, type KnowledgePageId } from './data'
@@ -32,16 +31,14 @@ export function createKnowledgeBaseDemo(container: HTMLElement, darkMode = false
     },
   )
   validateSnapshot(state)
-  const locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US
-  const chinese = locale === LocaleType.ZH_CN
   const root = document.createElement('div')
   root.className = 'knowledge-demo'
   root.dataset.ready = 'false'
   const nav = document.createElement('nav')
   nav.className = 'knowledge-navigation'
-  nav.setAttribute('aria-label', chinese ? '知识库页面' : 'Knowledge pages')
+  nav.setAttribute('aria-label', 'Knowledge pages')
   const heading = document.createElement('h2')
-  heading.textContent = chinese ? '团队知识库' : 'Team knowledge'
+  heading.textContent = 'Team knowledge'
   nav.append(heading)
   const editor = document.createElement('div')
   editor.className = 'knowledge-editor'
@@ -49,10 +46,9 @@ export function createKnowledgeBaseDemo(container: HTMLElement, darkMode = false
   container.append(root)
   const { univer, univerAPI } = createUniver({
     darkMode,
-    locale,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(DocsEnUS),
-      [LocaleType.ZH_CN]: mergeLocales(DocsZhCN),
     },
     presets: [
       UniverDocsCorePreset({ ribbonType: 'grid', container: editor, header: true, toolbar: true, footer: true }),
@@ -99,12 +95,11 @@ export function createKnowledgeBaseDemo(container: HTMLElement, darkMode = false
       else button.removeAttribute('aria-current')
     }
   }
-  const labels = { handbook: '工程手册', api: 'API 规范', legacy: '旧版部署指南' }
   for (const id of Object.keys(KNOWLEDGE_PAGES) as KnowledgePageId[]) {
     const button = document.createElement('button')
     button.type = 'button'
     button.dataset.page = id
-    button.textContent = chinese ? labels[id] : KNOWLEDGE_PAGES[id].title
+    button.textContent = KNOWLEDGE_PAGES[id].title
     if (id === state.activePageId) button.setAttribute('aria-current', 'page')
     button.addEventListener('click', () => openPage(id))
     nav.append(button)
@@ -115,7 +110,7 @@ export function createKnowledgeBaseDemo(container: HTMLElement, darkMode = false
     root.dataset.ready = 'error'
     const alert = document.createElement('p')
     alert.role = 'alert'
-    alert.textContent = chinese ? '文档未能启动，请重新加载。' : 'The document could not start. Reload to retry.'
+    alert.textContent = 'The document could not start. Reload to retry.'
     editor.prepend(alert)
     console.error(new Error('Knowledge document canvas startup timed out'))
     finish()

@@ -23,22 +23,11 @@ reference text, not Vite dependencies. Sheets uses the native Grid ribbon.
 
 ## Acceptance
 
-`test-results/embed-base-tab-owned-cleanup/report.json` passes selected source
-runtime checks: native Base paint/table navigation, a supplier Facade edit and
-native Undo/Redo, updated record-link labels, freight recalculation to $39,135,
-Release checks narrative updates and exact preservation of the edited Base.
-The opening workbook and linked follow-ups screenshots were visually reviewed.
-
 The first run (`embed-base-tab-first`) failed with an asynchronous LocaleService
 error during disposal. In beta.2 the child React unmount is deferred past its
 locale scope; this demo unmounts only its owned Base workbench first, using the
 official design unmount. Selected active-child teardown now passes with no
 browser errors. This is not full lifecycle or native keyboard acceptance.
-
-`embed-base-tab-production-keyboard/report.json` also passes the independent
-production build, including actual double-click/keyboard supplier editing,
-painted and stored values, native Undo, host isolation and all selected source
-interactions above. Broader keyboard/history coverage remains open.
 
 The eleven-file export installs 206 packages and builds only this demo (1,845
 modules). Main JS `index-YnB4tlNV.js` is 18,444.84 kB / 4,531.97 kB gzip; official
@@ -49,7 +38,7 @@ evidence update is rechecked in `embed-base-tab-export-current`; runtime assets
 are unchanged.
 
 `embed-base-tab-next-settled` passes EN/ZH guide content (three variants, actions
-and states each), native Base table/tab navigation and official CSS with zero
+and states each), native Base/tab navigation and official CSS with zero
 browser errors. The English screenshot was visually reviewed. The preceding
 `embed-base-tab-next-timing` run lost its iframe during parent navigation; the
 server's first guide and playground responses took 103s and 29.4s. The selected

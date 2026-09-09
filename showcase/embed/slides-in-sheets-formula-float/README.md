@@ -1,5 +1,7 @@
 # Atlas / Floating quote decision
 
+This demo now uses English SDK UI on both English and Chinese host pages. The legacy locale argument remains in its original position but is ignored; saved-state arguments, formulas and authored data are unchanged. Complete English packs cover the registered UI and its formula-editor dependencies, with official CSS included in the independent export. Earlier bilingual evidence below is historical; existing native interaction failures remain open.
+
 Composition: Slide@Sheet Float. Dependency: Sheet -> native Slides Formula Shapes.
 These directions are independent. The host contains the only editable commercial
 model; six formula shapes across two authored slides reference its stable unit ID.
@@ -73,27 +75,15 @@ This is a distinct case from Sheet@Slide; it does not claim bidirectional write-
 
 ## Interface language
 
-The factory selects EN/ZH from `document.documentElement.lang` before creating
-the owner; pass `LocaleType.EN_US` or `LocaleType.ZH_CN` as its third argument for
-an explicit integration choice. Business copy, stable IDs, formulas and USD
-formats stay original in both interfaces. Changing theme does not create a new
-owner or discard either model.
+The factory always selects English. Its legacy third locale argument is ignored. Business copy, stable IDs, formulas and USD formats remain unchanged; theme changes preserve the owner and both models.
 
-Both languages merge all sixteen applicable locale packs: Design, UI, Docs UI,
+The English interface merges all sixteen applicable locale packs: Design, UI, Docs UI,
 Sheets, Sheets UI, Sheets Formula UI, Sheets Numfmt UI, Shape Editor UI, Slides UI,
 Embed UI, Drawing UI, Sheets Drawing UI, Formula Engine, Sheets Formula, Slides
 core and Embed Unit UI. The last is the Shape Editor UI dependency used by the
 formula reference viewer; its official CSS is also included. No unused Ink
 plugin is registered or added. Native formula editing is the selected shape's
-floating-toolbar **Edit formula** / **编辑公式** button, not a custom host panel.
-
-Run `node scripts/test-atlas-locale-native.mjs` against the guide, with optional
-`SHOWCASE_DEMO_URL` / `SHOWCASE_BASE_URL`. For isolated production validation set
-`SHOWCASE_BUILD_STANDALONE=1`, `SHOWCASE_RESULTS_DIR` to a unique output directory,
-and `SHOWCASE_VITE_DIRECTORY` to an existing exact-version Vite package directory.
-`SHOWCASE_EXPORT_PORT` defaults to 4428. Only this selected case is built, with
-individual exact-version dependency links. The normal entry is unchanged: the
-Chinese test serves an HTML response with `lang="zh-CN"` as the integration input.
+floating-toolbar **Edit formula** button, not a custom host panel.
 
 The locale test checks complete merged packs, true ready-and-painted Slide content,
 all five literal examples and six outputs per language, native source typing,
@@ -105,24 +95,6 @@ history, reload and other capability gaps listed below.
 ## Acceptance
 
 Partial acceptance, not full capability completion.
-
-- `test-results/embed-atlas-formula-lifecycle-final/report.json`: all five literal
-  snippets update all six formula results, including the off-page pair. Native
-  source keyboard input and Undo, Float page navigation, fullscreen enter/exit,
-  authored prose/geometry preservation and subsequent owner disposal pass. No
-  browser errors or backend requests were observed.
-- `test-results/embed-atlas-formula-active-disposal/report.json`: repeats the same
-  checks and additionally disposes with the native child fullscreen still active.
-  Reproduce with `SHOWCASE_DISPOSE_FULLSCREEN=1`; native release finishes before
-  the host is removed, with no observed asynchronous browser errors.
-- `test-results/embed-atlas-formula-next-final/report.json`: EN/ZH guide counts,
-  all five snippets and six outputs per locale, theme transitions, exact two-model
-  snapshots and instance ownership pass.
-- `test-results/atlas-formula-export-ui-final/report.json`: eleven-file source
-  parity and live official white SDK UI are checked independently.
-- Showcase TypeScript and selected build pass. The build contains 1847 modules;
-  entry JS is 18138.49 kB (4497.87 kB gzip), CSS 129.64 kB (19.27 kB gzip).
-  This is selected-build evidence, not performance acceptance.
 
 Initial screenshots captured native number-tween intermediate values. The runtime
 test now resets its child-canvas text capture per clearRect and waits for the

@@ -1,7 +1,6 @@
 import type { IDocumentData } from '@univerjs/core'
 import { UniverDocsCorePreset, unmount } from '@univerjs/preset-docs-core'
 import docsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
-import docsCoreZhCN from '@univerjs/preset-docs-core/locales/zh-CN'
 import { createUniver, LocaleType } from '@univerjs/presets'
 
 import { createData } from './data'
@@ -22,9 +21,10 @@ export function validateSnapshot(data: IDocumentData) {
 export function createDemo(
   container: HTMLElement,
   darkMode = false,
-  locale = document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+  _legacyLocale: LocaleType = LocaleType.EN_US,
   saved?: IDocumentData,
 ) {
+  const locale = LocaleType.EN_US
   const data = structuredClone(saved ?? createData())
   validateSnapshot(data)
   const root = document.createElement('div')
@@ -34,7 +34,7 @@ export function createDemo(
   const { univer, univerAPI } = createUniver({
     darkMode,
     locale,
-    locales: { [LocaleType.EN_US]: docsCoreEnUS, [LocaleType.ZH_CN]: docsCoreZhCN },
+    locales: { [LocaleType.EN_US]: docsCoreEnUS },
     presets: [UniverDocsCorePreset({ ribbonType: 'grid', container: root })],
   })
   const owner = window as Window & { univerAPI?: typeof univerAPI }
@@ -50,10 +50,7 @@ export function createDemo(
     root.dataset.error = String(error)
     const alert = document.createElement('p')
     alert.setAttribute('role', 'alert')
-    alert.textContent =
-      locale === LocaleType.ZH_CN
-        ? 'Harbor 文档未能启动。请重新加载；详细错误请查看控制台。'
-        : 'The Harbor document could not start. Reload to retry; details are in the console.'
+    alert.textContent = 'The Harbor document could not start. Reload to retry; details are in the console.'
     root.prepend(alert)
   }
   function waitForCanvas() {

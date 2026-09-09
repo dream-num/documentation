@@ -8,7 +8,10 @@ const metadata: ShowcaseMetadata = {
   category: 'features',
   previewHeight: 1100,
   group: { 'en-US': 'Bases host / Tab', 'zh-CN': 'Bases 宿主 / 标签' },
-  title: { 'en-US': 'Slides in Bases / Campaign Review', 'zh-CN': 'Slides 嵌入 Bases / 活动评审' },
+  title: {
+    'en-US': 'Slides in Bases / Campaign Review',
+    'zh-CN': 'Slides 嵌入 Bases / 活动评审',
+  },
   description: {
     'en-US':
       'Open a four-page campaign review beside eight deliverables and three linked channels in a native Base tab.',

@@ -141,14 +141,8 @@ try {
   await root.locator('[data-u-comp="sidebar"]').getByRole('button', { name: 'Close sidebar', exact: true }).click()
   await root.locator('[data-u-comp="sidebar"][aria-expanded=false]').waitFor({ state: 'attached' })
   report.checks.push('Four background Reset/Undo/Redo operations preserve real snapshot and canvas colors')
-  await native('slides-exchange-client.operation.exchange')
-  assert.equal(await page.getByText('Open(File)', { exact: true }).count(), 1)
-  assert.equal(await page.getByText('Save As', { exact: true }).count(), 1)
-  await page.screenshot({ path: path.join(directory, 'native-file-menu.png') })
-  await root.locator('[data-u-command="slides-exchange-client.operation.exchange"]').press('Escape')
-  report.checks.push(
-    'Native client File menu registered; full conversion round-trip still requires separate acceptance',
-  )
+  assert.equal(await root.locator('[data-u-command="slides-exchange-client.operation.exchange"]').count(), 0)
+  report.checks.push('HTTP-backed PPTX conversion is not registered in this frontend-only gallery')
   await native('slide.operation.print-open')
   await page.getByText('Print range', { exact: true }).waitFor({ timeout: 60000 })
   await settle()

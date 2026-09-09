@@ -16,6 +16,16 @@ assert.equal(scoped.split('\n').length, source.split(/\r?\n/).length, 'Preserve 
 assert.doesNotMatch(scoped, /sheets\/big-data|slides\/|pdfs\//)
 assert.throws(() => scopeLoader.filterRegistry(source, []), /at least one/)
 assert.throws(() => scopeLoader.filterRegistry(source, ['bases/not-a-demo']), /Unknown Showcase/)
+for (const newline of ['\n', '\r\n']) {
+  const wrapped = `'a/one': () =>${newline}  import('./a/one'),${newline}'b/two': () => import('./b/two'),`
+  const result = scopeLoader.filterRegistry(wrapped, ['a/one'])
+  assert.deepEqual(
+    [...result.matchAll(/import\('([^']+)'\)/g)].map((match) => match[1]),
+    ['./a/one'],
+  )
+  assert.equal(result.split('\n').length, wrapped.split(newline).length)
+  assert.doesNotMatch(scopeLoader.filterRegistry(wrapped, ['b/two']), /a\/one/)
+}
 let audit
 scopeLoader.createScopeAudit(selected).apply({
   name: 'test',

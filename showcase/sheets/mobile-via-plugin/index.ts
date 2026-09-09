@@ -51,12 +51,12 @@ const metadata = {
       'en-US': [
         'Use the native bottom toolbar and sheet tabs at a real 390px editor width; the host does not substitute desktop controls.',
         'Edit a cell, select ranges and open supported mobile formatting/data surfaces from the native UI.',
-        'Switch documentation themes and compare the same exported shell. The old owner and device DOM are removed before the replacement becomes active.',
+        'Switch documentation themes. The same SDK owner, device DOM and edited workbook are retained.',
       ],
       'zh-CN': [
         '在真实 390px 编辑器宽度下使用原生底部工具栏和工作表标签；宿主不会替换成桌面控件。',
         '编辑单元格、选择区域，并从原生 UI 打开支持的移动格式与数据面板。',
-        '切换文档站主题并比较同一导出外壳。旧 owner 与设备 DOM 会在替换实例生效前移除。',
+        '切换文档站主题，保留同一 SDK 实例、设备 DOM 与已编辑工作簿。',
       ],
     },
     expected: {

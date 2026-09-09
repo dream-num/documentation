@@ -1,8 +1,10 @@
 # Tide / Callout Blocks
 
+The demo runtime and authored data are English-only, including on a Chinese documentation page. Complete official English locale packs are retained. Any legacy locale argument is accepted but ignored; saved-snapshot argument positions are unchanged. Earlier bilingual test reports below describe the previous revision, not current language acceptance.
+
 An original offline language-kit rollout brief. The original release risk and optional-audio note are joined by an approved-glossary success note and a blocking fallback-label warning. Each is real document content, with a different semantic visual treatment. The original content bullets, acceptance tasks, two-line TypeScript block, editorial quotation, bold emphasis and review-checklist link remain.
 
-Native Grid, document canvas and callout floating menus provide editing. No host property form, fixture picker, edit/history buttons or readback panel is added. Preview and standalone export share the same factory, six official stylesheets and all six EN/ZH locale packs. Initial UI language follows page lang; business prose stays English. Theme changes preserve the same editor and edited document.
+Native Grid, document canvas and callout floating menus provide editing. No host property form, fixture picker, edit/history buttons or readback panel is added. Preview and standalone export share the same factory, six official stylesheets and all six English locale packs. The UI stays English; business prose stays English. Theme changes preserve the same editor and edited document.
 
 ## Runnable Facade variants
 
@@ -299,5 +301,3 @@ if (!window.tideRisk().setTextColor('#14532D')) throw new Error('Text color reje
 The source demonstrates all variants; that does not promise every beta.2 renderer/history path passes. The dedicated strict test compares real callout descriptions, renderer fragments, glyph positions/colors, actual canvas pixels and complete saved models. Text-color Undo and padding layout are explicit regression gates; failed results are not normalized or repaired. Native keyboard/menu history, semantic styles, unwrap/delete, same-ID reconstruction, missing/invalid inputs, full locale packs and same-owner themes are checked separately.
 
 Current selected beta.2 verification retains four failures: compact/roomy padding leaves actual glyph inset and fragment height unchanged; Facade paragraph append Undo splits an otherwise identical text-color run; callout removal Undo restores body ranges but loses the removed callout's resource configuration; isolated text-color Undo returns false. Native background-menu and keyboard Undo/Redo pass full saved-model comparisons. Edited same-ID recreation and exact captured-baseline restoration pass without ID rewriting or snapshot normalization. A successful styling command is not a promise that its history is correct.
-
-The normal selected showcase server uses localhost:3030. Run `node scripts/test-tide-callouts-native.mjs [selected-export-manifest.json]`, with `SHOWCASE_DEMO_URL` or `SHOWCASE_BASE_URL` for a different server and `SHOWCASE_RESULTS_DIR` for independent artifacts. Build only this selected case; it needs no backend.

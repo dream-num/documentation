@@ -1,10 +1,8 @@
 import type { IWorkbookData } from '@univerjs/presets'
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
 import coreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
-import coreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN'
 import { UniverSheetsHyperLinkPreset } from '@univerjs/preset-sheets-hyper-link'
 import linkEnUS from '@univerjs/preset-sheets-hyper-link/locales/en-US'
-import linkZhCN from '@univerjs/preset-sheets-hyper-link/locales/zh-CN'
 import { createUniver, LifecycleStages, LocaleType, mergeLocales } from '@univerjs/presets'
 
 import { WORKBOOK_DATA } from './data'
@@ -55,10 +53,9 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: IWo
   let disposed = false
   const { univer, univerAPI } = createUniver({
     darkMode,
-    locale: document.documentElement.lang === 'zh-CN' ? LocaleType.ZH_CN : LocaleType.EN_US,
+    locale: LocaleType.EN_US,
     locales: {
       [LocaleType.EN_US]: mergeLocales(coreEnUS, linkEnUS),
-      [LocaleType.ZH_CN]: mergeLocales(coreZhCN, linkZhCN),
     },
     presets: [
       UniverSheetsCorePreset({ ribbonType: 'grid', container: editor }),
@@ -71,9 +68,7 @@ export function createDemo(container: HTMLElement, darkMode = false, saved?: IWo
               error.hidden = true
               window.open(url, '_blank', 'noopener,noreferrer')
             } catch (cause) {
-              error.textContent =
-                (document.documentElement.lang === 'zh-CN' ? '导航已阻止：' : 'Navigation blocked: ') +
-                (cause instanceof Error ? cause.message : String(cause))
+              error.textContent = 'Navigation blocked: ' + (cause instanceof Error ? cause.message : String(cause))
               error.hidden = false
             }
           },

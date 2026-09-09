@@ -1,5 +1,7 @@
 # Publishing desk / Native alignment and spacing
 
+Native UI, demo labels and authored data are English-only, including on Chinese documentation pages. Legacy locale arguments are ignored; saved-snapshot argument positions are unchanged.
+
 Five unequal editorial cards, three supporting nodes and twelve connectors make
 edge alignment visibly different from equal-center spacing. Sand, blue-gray,
 sage and lavender distinguish the workflow stages. All content is fictional.
@@ -9,6 +11,8 @@ native Align submenu. Top, middle, bottom, left, center and right alignment need
 at least two shapes; distribution needs at least three. Supporting nodes should
 remain outside the selection. Native keyboard shortcuts and Undo/Redo remain SDK
 operations. There is no fixture selector, host layout toolbar, reset or inspector.
+
+Preview and export include all eight English dependency packs and official Design, UI, Docs UI, Drawing UI, Boards UI, Shape Editor, Ink UI and transitive Embed Unit UI CSS.
 
 ## Equivalent SDK code
 
@@ -48,32 +52,6 @@ obstacle avoidance. For an empty starting point clear `pages.desk.elements` and
 `pages.desk.elementOrder` in the source snapshot before creation.
 
 ## Current acceptance / 2026-09-06
-
-- `test-results/boards-alignment-native-production/report.json`: the independent
-  production build passes six alignments, both literal README examples,
-  horizontal/vertical distribution and gaps 0/40/120, atomic missing-target
-  rejection, native Shift-click/context-menu alignment, native Undo, keyboard
-  movement, theme preservation and owned disposal. No browser errors or warnings
-  were observed. Snap tests use a single selected card at native 100% zoom:
-  soft attraction from requested top 93 reaches 91.2107, hard attraction from
-  91 reaches 90, Ctrl bypass stays at 91, and breakaway reaches 105. Native Undo
-  restores the five card bounds after each drag.
-- `test-results/boards-alignment-native-next/report.json`: EN/ZH guides expose
-  ten variants, four actions and four states. Actual media-theme transitions
-  preserve the same SDK API owner and edited Board snapshot. Boards uses its
-  own native floating tools; there is no empty global ribbon or host toolbar.
-- `test-results/boards-alignment-native-export/report.json`: all eleven exported
-  files match the displayed source, including official CSS and Preview references.
-  Native context-menu icons come from `@univerjs/icons` and are explicitly
-  registered through `IconManager`; no replacement SVG or SDK patch is used.
-- Earlier failed source reports remain: raw optional undefined fields were not
-  a serializable-snapshot comparison; immediate Ctrl+Z after the context menu
-  did not restore; the first drag test retained a multi-selection instead of
-  isolating Draft. Current tests explicitly check native Undo, canvas-focused
-  keyboard Undo and cleared single-card selection rather than hiding failures.
-  The initial incremental export install left a broken peer-dependency junction
-  and failed builds even after forced installation. A fresh eleven-file export
-  installed 169 offline packages and built successfully without hand-edited links.
 
 Remaining: independently compare renderer-object bounds with model bounds; test
 fixed-grid batches, empty/source variants, repeated mounts and React unmount

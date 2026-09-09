@@ -273,10 +273,7 @@ try {
     const factory = await fs.readFile('showcase/pdfs/text-markup/code/create-demo.ts', 'utf8')
     const packs = [...factory.matchAll(/^import \w+EnUS from '([^']+)en-US'/gm)]
     assert.equal(packs.length, 5)
-    for (const [locale, code] of [
-      ['en-US', 'enUS'],
-      ['zh-CN', 'zhCN'],
-    ]) {
+    for (const [locale, code] of [['en-US', 'enUS']]) {
       const before = await snapshot()
       await page.evaluate((v) => window.univerAPI.setLocale(v), code)
       for (const [, prefix] of packs)

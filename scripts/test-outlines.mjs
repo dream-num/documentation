@@ -1,4 +1,5 @@
 /* eslint-disable no-await-in-loop -- Verify one selected native workbook and its history in sequence. */
+// Historical host-panel harness; current gallery acceptance is test-sheet-outline-native-gallery.mjs.
 import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
 import path from 'node:path'

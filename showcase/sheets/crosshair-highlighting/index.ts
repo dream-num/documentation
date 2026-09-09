@@ -46,9 +46,9 @@ const metadata = {
     },
     expected: {
       'en-US':
-        'No fixture, Reset or raw readback panel. Native Grid and both official CSS files are shared with the export; complete EN/ZH packs and same-owner themes retain edits. beta.2 exposes enable/get-state, not color/opacity setters. Palette auto-enable omits EnabledChanged; numeric Undo leaves type/style fields, and new-owner recovery changes an empty defined-name resource. These strict failures remain visible in the README. Crosshair settings are instance state, not workbook snapshot fields.',
+        'No fixture, Reset or raw readback panel. Native Grid and both official CSS files are shared with the export; complete English packs and same-owner themes retain edits. beta.2 exposes enable/get-state, not color/opacity setters. Palette auto-enable omits EnabledChanged; numeric Undo leaves type/style fields, and new-owner recovery changes an empty defined-name resource. These strict failures remain visible in the README. Crosshair settings are instance state, not workbook snapshot fields.',
       'zh-CN':
-        '没有样本、Reset 或原始读回面板。原生 Grid、两份官方 CSS 与导出共享；完整中英文包和同实例主题切换保留编辑。beta.2 提供启停及状态读取，没有颜色/透明度 setter；调色板自动启用缺少 EnabledChanged，数字撤销遗留类型和样式字段，新实例恢复改变空的定义名称资源。这些严格失败保留在 README 中。高亮设置属于实例，不在工作簿快照中。',
+        '没有样本、Reset 或原始读回面板。原生 Grid、两份官方 CSS 与导出共享；完整英文包和同实例主题切换保留编辑。beta.2 提供启停及状态读取，没有颜色/透明度 setter；调色板自动启用缺少 EnabledChanged，数字撤销遗留类型和样式字段，新实例恢复改变空的定义名称资源。这些严格失败保留在 README 中。高亮设置属于实例，不在工作簿快照中。',
     },
   },
   variants: [

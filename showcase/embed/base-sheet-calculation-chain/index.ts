@@ -12,7 +12,7 @@ const metadata: ShowcaseMetadata = {
   description: {
     'en-US':
       'Base quantities feed a visible Sheet model, then drive a brief, three slides, a connected Board and a native chart.',
-    'zh-CN': 'Base 数量进入可见的 Sheet 模型，再驱动简报、三页演示、关联白板和原生图表。',
+    'zh-CN': 'Base 数量进入可见的 Sheet 模型，再驱动简报、三页演示、关联 Boards 和原生图表。',
   },
   tags: {
     'en-US': ['Formula', 'Base', 'Sheets', 'Docs', 'Slides', 'Boards', 'Charts'],

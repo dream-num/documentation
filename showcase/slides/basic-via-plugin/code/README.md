@@ -1,5 +1,9 @@
 # Build / edit / extend a presentation
 
+The runtime is English-only on every host page. Complete official English SDK packs
+and styles are retained. A legacy locale argument, where present, is ignored without
+shifting the saved-snapshot argument.
+
 The original plugin-mode introduction now includes all three authored pages: the SDK cover,
 plugin registration with native ellipse/hexagon geometry, and Q3 product momentum. The independent
 signals remain +31% pipeline growth, 94% customer retention and seven feature launches. They are
@@ -10,8 +14,8 @@ Use the actual Grid ribbon, slide thumbnails, text/shape editor and Speaker note
 host summary button, reset button, activity panel or hidden one-shot summary flag. Legacy Text
 records are expressed as native text-box Shapes while retaining the original text and element IDs.
 
-Preview and export share one factory, all five official CSS files and five complete EN/ZH packs.
-Initial html lang selects English or Chinese. A theme toggle preserves the existing edited owner.
+Preview and export share one factory, all five official CSS files and five complete English packs.
+The editor always uses English. A theme toggle preserves the existing edited owner.
 Run pnpm install / pnpm dev in the independent export, or pnpm build / pnpm preview for production.
 
 ## Literal Facade recipes
@@ -47,7 +51,7 @@ window.univerAPI.getPresentation('slides-pro-demo').getSlideById('feature').getE
 ### 5. Record the integration decision
 
 ```ts
-window.univerAPI.getPresentation('slides-pro-demo').getSlideById('feature').setSpeakerNotes('Register the selected plugins before creating the presentation. Keep theme changes on the same owner. 复查')
+window.univerAPI.getPresentation('slides-pro-demo').getSlideById('feature').setSpeakerNotes('Register the selected plugins before creating the presentation. Keep theme changes on the same owner. Review.')
 ```
 
 ### 6. Read the authored summary as actual page data
@@ -156,21 +160,6 @@ binary Exchange, Formula linkage, native Chart data, mobile or exhaustive keyboa
 
 ## Strict native evidence
 
-`test-results/slides-basic-native-verified/report.json` records 34 of 35 strict gates passing, including all 14 literal
-blocks and the expected duplicate-request rejection. All three authored pages actually paint. Real native ellipse dragging,
-native text entry and their complete raw Undo/Redo snapshots pass, without filtering resources or replacing IDs.
-Same-ID unit reconstruction from these literals, full-owner reconstruction, fresh editing after rebuild and empty/restore
-all preserve complete saved state. Initial EN/ZH, all five dependency packs and CSS imports, same-owner themes and
-idempotent disposal with an active native notes draft pass. No backend requests or browser runtime errors were observed.
-
 One focus boundary remains strict FAIL: Ctrl+Z/Y immediately after saving in the Speaker notes area does not route to
 presentation history. Selecting the real native title shape first passes complete notes Undo/Redo and visible text checks;
 notes history itself exists. No hidden host handler redirects these shortcuts.
-
-`scripts/test-slides-basic-native.mjs` builds only this selected case. The normal production manifest is
-`test-results/slides-basic-native-verified/exports.json`; the controller harness has a separate output and preserves the
-entire normal entry layout. Earlier first/complete/acceptance screenshots remain historical visual iterations, not current covers.
-The final append variant selects the actual blank layout and source page size explicitly, then uses native text alignment;
-its main canvas paints the changed metric without inherited title/subtitle placeholders or untranslated placeholder keys.
-Current screenshots include `page-cover.png`, `page-feature.png`, `page-summary.png`, `native-geometry.png`,
-`literal-summary-copy.png`, `initial-zh-CN.png` and `empty-restored.png` in the verified directory.

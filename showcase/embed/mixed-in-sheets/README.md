@@ -1,5 +1,10 @@
 # Harbor / Operations decision room
 
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but is ignored. Earlier  English-only source/CSS/startup checks do
+not certify every native interaction or resolve the recorded SDK failures.
+
 An original fictional reading-room pilot brings five products into one workspace:
 the budget Sheet, a three-page Slides Float, and separate native Docs, Base and
 Board Tabs. Four weekends, eight sessions and 96 planned places give the
@@ -42,21 +47,6 @@ a subject, not an automatic data synchronization layer.
 
 ## Acceptance and limits
 
-Preview and independent export share the same factory and thirteen official
-host/child/Embed CSS imports. Grid is the host default; no generic fixture panels,
-duplicate native buttons, backend or iframe child substitutes are added.
-Only the owner-specific child roots are released before SDK disposal.
-Selected production checks pass all four literal examples, full five-model
-snapshots through native Undo/Redo, actual Board status typing with stable card
-geometry and full history, budget recalculation, native Slides navigation,
-Tab round trips and active-Board owner disposal without observed errors/backend
-requests. See test-results/embed-mixed-sheets-native-text/report.json.
-EN/ZH guides pass three variants/actions/states, all four examples and preserved
-owner/edited models across themes in test-results/embed-mixed-sheets-next-final.
-Only the native Board theme palette may regenerate; its identity and remaining
-snapshot stay strict. Independent eleven-file source/CSS parity is recorded in
-test-results/embed-mixed-sheets-export-final/report.json.
-
 The initial production run failed with duplicate editor-service registration:
 Slides already starts the root service, while Board startup also installs its
 runtime dependency list. This example adds the public Board child-scope extension
@@ -84,3 +74,7 @@ Passing selected paths is not complete mixed-Embed acceptance.
 All names, dates and estimates are synthetic. No bookings, orders, participant
 data collection, dispatch, notifications, Exchange conversion or Print/PDF output.
 No license watermark removal. Reload restores the authored data and loses edits.
+
+The shared factory explicitly imports the official Ink UI English pack and CSS
+required by the registered Boards UI dependency. Other product locale packs and
+styles remain intact. This is resource coverage, not native pen acceptance.

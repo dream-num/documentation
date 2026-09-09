@@ -30,21 +30,21 @@ const metadata = {
         'Compare native match highlighting with the editing selection. The README uses FRange.activate() explicitly; E2 has two occurrences in one matched cell.',
         'Compare formula text UPPER with the calculated value DRAFT at B9; use the README formula replacement recipe.',
         'Replace a label and inspect the real cell and formula bar. Use native Undo/Redo, not host history buttons.',
-        'Switch seasons through native sheet tabs. Compare 0, 海岸, missing text and empty replacement.',
+        'Switch seasons through native sheet tabs. Compare 0, Café, missing text and empty replacement.',
       ],
       'zh-CN': [
         '聚焦表格后按 Ctrl/Cmd+F 打开原生查找，搜索 draft 并比较大小写和整格选项。',
         '比较原生命中高亮与编辑选区。README 显式使用 FRange.activate()；E2 中两次出现仍是一个命中单元格。',
         '比较 B9 中的公式文本 UPPER 与计算结果 DRAFT，运行 README 公式替换示例。',
         '替换标签后检查真实单元格及公式栏，使用原生撤销重做而非宿主历史按钮。',
-        '通过原生工作表标签切换季节，比较 0、海岸、无匹配和空替换。',
+        '通过原生工作表标签切换季节，比较 0、Café、无匹配和空替换。',
       ],
     },
     expected: {
       'en-US':
-        'Only native Grid, Find and worksheet tabs remain. Both official CSS files and complete EN/ZH packs ship with the shared factory; theme changes preserve the owner and edits. Counts and replacement return values come directly from the SDK. Dispose finders after their asynchronous work; no reset IDs, raw inspector or fixture panel.',
+        'Only native Grid, Find and worksheet tabs remain. Both official CSS files and complete English packs ship with the shared factory; theme changes preserve the owner and edits. Counts and replacement return values come directly from the SDK. Dispose finders after their asynchronous work; no reset IDs, raw inspector or fixture panel.',
       'zh-CN':
-        '仅保留原生 Grid、查找及工作表标签。共享工厂导出两份官方 CSS 和完整中英文包，主题切换保留实例与编辑。计数及替换返回值直接来自 SDK。异步操作结束后释放查找器，不重写 ID，也无原始检查器或样本面板。',
+        '仅保留原生 Grid、查找及工作表标签。共享工厂导出两份官方 CSS 和完整英文包，主题切换保留实例与编辑。计数及替换返回值直接来自 SDK。异步操作结束后释放查找器，不重写 ID，也无原始检查器或样本面板。',
     },
   },
   variants: [

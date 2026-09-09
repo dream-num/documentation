@@ -49,9 +49,9 @@ const metadata = {
     },
     expected: {
       'en-US':
-        'All modes hide native toolbar, formula bar, footer and context menu. Display only disables selection/shortcuts; the other modes enable both using the same shortcut handle. Transitions await SDK permission calls and verify canEdit(); only pending transitions gate native input. BeforeUndo/BeforeRedo guards protect existing history in viewer mode. Complete EN/ZH resources and official CSS are included. Theme updates retain the same owner and edits; saved-data recovery retains the same workbook ID. No host readback or reset panel is used.',
+        'All modes hide native toolbar, formula bar, footer and context menu. Display only disables selection/shortcuts; the other modes enable both using the same shortcut handle. Transitions await SDK permission calls and verify canEdit(); only pending transitions gate native input. BeforeUndo/BeforeRedo guards protect existing history in viewer mode. Complete English resources and official CSS are included. Theme updates retain the same owner and edits; saved-data recovery retains the same workbook ID. No host readback or reset panel is used.',
       'zh-CN':
-        '所有模式隐藏原生工具栏、公式栏、页脚和右键菜单。展示模式禁止选择和快捷键，另外两种模式使用同一个快捷键句柄启用两者。切换等待 SDK 权限并校验 canEdit，仅等待期间拦截原生输入；BeforeUndo/BeforeRedo 守卫保护只读模式的已有历史。完整中英文资源与官方 CSS 齐备。主题保留同一 owner 和编辑；保存数据恢复保留原工作簿 ID。不使用外部读回或重置面板。',
+        '所有模式隐藏原生工具栏、公式栏、页脚和右键菜单。展示模式禁止选择和快捷键，另外两种模式使用同一个快捷键句柄启用两者。切换等待 SDK 权限并校验 canEdit，仅等待期间拦截原生输入；BeforeUndo/BeforeRedo 守卫保护只读模式的已有历史。完整英文资源与官方 CSS 齐备。主题保留同一 owner 和编辑；保存数据恢复保留原工作簿 ID。不使用外部读回或重置面板。',
     },
   },
   variants: [

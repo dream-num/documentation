@@ -1,5 +1,10 @@
 # Kite / A retrospective Board as a native Slides page
 
+The demo runtime, authored data and startup alerts are English-only, including on
+Chinese-language guide pages. The legacy third locale argument remains accepted
+but is ignored. Earlier  English-only source/CSS/startup checks do
+not certify every native interaction or resolve the recorded SDK failures.
+
 A fictional community makerspace runs a 45-minute volunteer retrospective:
 five minutes to frame the question, twenty-five to capture and cluster, and
 fifteen to choose small experiments. Seven contributors share nine authored
@@ -53,7 +58,7 @@ initial data, not persisted changes.
 The self resource provider creates only the requested Board. Native page setup
 follows the SDK local Slides example: prepareCreateEmbed, materializeDescriptor,
 then restoreEmbed. The same factory powers Preview and standalone source, with
-eight official Design, UI, Docs, Drawing, Slides, Shape Editor, Boards and Embed
+official Design, UI, Docs, Drawing, Slides, Shape Editor, Boards and Embed
 styles. Host slides use Grid; the child uses native Board tools.
 
 Selected production verification at 1220px passes native menu Undo/Redo,
@@ -83,3 +88,7 @@ conversion or print output is provided. SDK packages are not patched.
 The saved Gamma team-retrospective reference informs the charcoal/teal editorial
 framing; mint, lilac and warm yellow distinguish the original working material.
 No competitor artwork is exported.
+
+The shared factory explicitly imports the official Ink UI English pack and CSS
+required by the registered Boards UI dependency. Other product locale packs and
+styles remain intact. This is resource coverage, not native pen acceptance.
