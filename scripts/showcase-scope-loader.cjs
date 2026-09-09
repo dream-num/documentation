@@ -1,5 +1,5 @@
-// Development-only: remove unselected imports before webpack builds its module graph.
-// A runtime filter is insufficient because webpack would still compile every import.
+// Development-only: remove unselected imports before Turbopack builds its module graph.
+// A runtime filter is insufficient because Turbopack would still compile every import.
 const entryPattern = /^[\t ]*'([^']+)':\s*\(\)\s*=>\s*import\('([^']+)'\),?[\t ]*$/gm
 
 function filterRegistry(source, slugs) {
@@ -16,26 +16,4 @@ function filterRegistry(source, slugs) {
 function showcaseScopeLoader(source) {
   return filterRegistry(source, this.getOptions().slugs)
 }
-const createScopeAudit = (slugs) => ({
-  apply(compiler) {
-    let previous = ''
-    compiler.hooks.afterCompile.tap('ShowcaseScopeAudit', (compilation) => {
-      const entries = new Set()
-      let documentModules = 0
-      for (const compiledModule of compilation.modules) {
-        const resource = compiledModule.resource?.replaceAll('\\', '/') ?? ''
-        if (/\/content\/.*\.mdx$/.test(resource)) documentModules++
-        const match = resource.match(/\/showcase\/([^/]+\/[^/]+)\/(?:index\.ts|preview\/[^/]+\.[jt]sx?)$/)
-        if (match) entries.add(match[1])
-      }
-      for (const slug of entries) {
-        if (!slugs.includes(slug)) throw new Error(`Unselected demo entered the webpack graph: ${slug}`)
-      }
-      const current = [...entries].toSorted().join(', ') + `; document MDX modules: ${documentModules}`
-      if (current && current !== previous) console.info(`[Showcase scope audit] ${compiler.name}: ${current}`)
-      previous = current
-    })
-  },
-})
-
-module.exports = Object.assign(showcaseScopeLoader, { filterRegistry, createScopeAudit })
+module.exports = Object.assign(showcaseScopeLoader, { filterRegistry })

@@ -1,4 +1,3 @@
-/* eslint-disable no-await-in-loop -- Revisit one selected route while retaining the first page for HMR diagnostics. */
 import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -41,7 +40,7 @@ async function inspect(page) {
   })
 }
 try {
-  for (let visit = 0; visit < visits; visit++) {
+  async function visitPage(visit) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1100 }, colorScheme: 'light' })
     contexts.push(context)
     await context.addInitScript(() => {
@@ -86,18 +85,6 @@ try {
     try {
       const response = await page.goto(`${origin}/en-US/playground/${slug}`, { waitUntil: 'load', timeout: 180000 })
       assert.equal(response.status(), 200)
-      if (process.env.SHOWCASE_REQUIRE_NATIVE_CSS_INSERT === '1') {
-        const runtimeUrl = await page.locator('script[src*="/chunks/webpack.js"]').getAttribute('src')
-        assert.ok(runtimeUrl, 'The selected webpack development runtime must be present')
-        const runtimeResponse = await page.request.get(new URL(runtimeUrl, origin).href)
-        assert.ok(runtimeResponse.ok())
-        const runtime = await runtimeResponse.text()
-        result.runtime = {
-          nativeInsertion: runtime.includes('document.head.appendChild(linkTag)'),
-          reactRegistration: runtime.includes('_N_E_STYLE_LOAD'),
-        }
-        assert.deepEqual(result.runtime, { nativeInsertion: true, reactRegistration: false })
-      }
       await page.waitForFunction(
         () => {
           const node = document.querySelector('[data-u-comp="workbench-layout"], [data-u-comp="app-layout"]')
@@ -145,16 +132,22 @@ try {
         })
     }
   }
+  await Array.from({ length: visits }, (_, visit) => visit).reduce(
+    (previous, visit) => previous.then(() => visitPage(visit)),
+    Promise.resolve(),
+  )
   report.retained = []
-  for (const context of contexts) {
-    const page = context.pages()[0]
-    const styles = await inspect(page)
-    report.retained.push(styles)
-    if (styles.background !== 'rgb(255, 255, 255)' || styles.flexDisplay !== 'flex')
-      report.errors.push('A retained page lost its native SDK styling')
-    if (probe !== undefined && styles.probe !== probe)
-      report.errors.push('A retained page did not apply the changed host CSS probe')
-  }
+  await Promise.all(
+    contexts.map(async (context) => {
+      const page = context.pages()[0]
+      const styles = await inspect(page)
+      report.retained.push(styles)
+      if (styles.background !== 'rgb(255, 255, 255)' || styles.flexDisplay !== 'flex')
+        report.errors.push('A retained page lost its native SDK styling')
+      if (probe !== undefined && styles.probe !== probe)
+        report.errors.push('A retained page did not apply the changed host CSS probe')
+    }),
+  )
   report.passed = report.visits.every((visit) => visit.passed && !visit.errors.length) && !report.errors.length
 } catch (cause) {
   report.failure = cause.stack || String(cause)

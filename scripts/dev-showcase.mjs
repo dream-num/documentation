@@ -15,7 +15,7 @@ console.log(`Developing only: ${slugs.join(', ')}`)
 for (const slug of slugs) console.log(`http://localhost:${port}/en-US/playground/${slug}`)
 const child = spawn(
   process.execPath,
-  [path.resolve('node_modules/next/dist/bin/next'), 'dev', '--webpack', '--port', String(port)],
+  [path.resolve('node_modules/next/dist/bin/next'), 'dev', '--turbopack', '--port', String(port)],
   {
     stdio: 'inherit',
     env: { ...process.env, UNIVER_SHOWCASE_DEMOS: slugs.join(',') },
