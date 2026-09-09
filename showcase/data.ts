@@ -1,6 +1,9 @@
 import type { ShowcaseRegistry } from './types'
 
 export const showcase: ShowcaseRegistry = {
+  'sheets/ranking-and-percentiles': () => import('./sheets/ranking-and-percentiles'),
+  'pdfs/paragraph-layout': () => import('./pdfs/paragraph-layout'),
+  'docs-traditional/anchored-images-and-page-flow': () => import('./docs-traditional/anchored-images-and-page-flow'),
   'sheets/formula-dependency-inspection': () => import('./sheets/formula-dependency-inspection'),
   'bases/conditional-coloring': () => import('./bases/conditional-coloring'),
   'docs-modern/text-search-and-targeted-replacement': () =>
