@@ -83,6 +83,11 @@ export function createDemo(container: HTMLElement, darkMode = false, _legacyLoca
         await permission.protect()
         await permission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.Edit, false)
         if (permission.canEditCell(3, 2)) throw new Error('Worksheet protection was not applied')
+      } else if (id === 'formulas') {
+        const rule = await sheet.getRange('D4:D6').getRangePermission().protect({ name: 'Calculated workshop fees' })
+        await rule.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
+        if (!permission.canEditCell(3, 2) || permission.canEditCell(3, 3))
+          throw new Error('Formula protection was not applied')
       } else if (id !== 'none') {
         for (const [index, address] of (id === 'mixed' ? ['C4:C6', 'C7:C9'] : ['C4:C9']).entries()) {
           const rule = await sheet.getRange(address).getRangePermission().protect({ name: address })

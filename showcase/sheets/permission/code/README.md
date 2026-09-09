@@ -2,11 +2,32 @@
 
 ## Initialization and native input
 
-Do not initialize this SDK editor inside an `inert` container. In Chromium this prevented the hidden text editor from establishing a browser caret: it could receive focus later, but `document.getSelection().rangeCount` remained zero and typing produced no input event. The factory now blocks user edit events until permissions are ready while allowing SDK focus/selection initialization. No SDK patch or replacement input control is used.
-
-The previous bilingual test checked 36 native allowed/denied input attempts across six permission setups, 48 native shadow pixel comparisons and full edited-workbook preservation across theme changes. Earlier failed reports are retained; focusing an element or reading `canEditCell()` alone is not input acceptance.
+Wait for local permission initialization before editing. The factory blocks interaction only while rules are being applied; steady-state protection comes from SDK permissions. Avoid initializing the editor inside an `inert` container, which can prevent its hidden text editor from establishing a native caret.
 
 Native worksheet tabs compare six independent states. C4:C9 contains decimals, zero and a blank; B4 is outside the range. Mixed ranges allow C4:C6 and deny C7:C9. Use the native editor to test input. The only host control is the global shadow strategy, which has no equivalent native menu.
+
+The seventh tab, **Protected formulas**, adds editable quantities in C4:C6 and protected formulas in D4:D6. Initial fees are 210, 112 and 126. Change C4 from 6 to 8: D4 should recalculate to 280 without replacing its formula. Direct edits to D4 are denied by SDK range permissions, not a custom input interceptor. Protection prevents user replacement; it does not freeze calculation.
+
+A two-column paste starting at C4 crosses into protected D4 and is rejected as a whole; a single value pasted into C4 remains editable and recalculates D4. This was checked by delivering demo-owned DataTransfer text to the native paste handler, not an end-to-end system clipboard/Ctrl+V test. The installed SDK reports `have no permission` as an uncaught error for the rejected cross-boundary paste. The demo does not suppress or patch this SDK error.
+
+Inspect the formula profile with public APIs:
+
+```ts
+const sheet = univerAPI.getActiveWorkbook().getSheetBySheetId('formulas')
+console.log(sheet.getWorksheetPermission().canEditCell(3, 2)) // C4: true
+console.log(sheet.getWorksheetPermission().canEditCell(3, 3)) // D4: false
+console.log(sheet.getRange('D4:D6').getFormulas())
+console.log(sheet.getRange('D4:D6').getRawValues())
+```
+
+Its configuration, used during initialization on a fresh worksheet, is:
+
+```ts
+const rule = await sheet.getRange('D4:D6').getRangePermission().protect({ name: 'Calculated workshop fees' })
+await rule.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
+```
+
+Do not create this rule again on the initialized preview; it already protects that range.
 
 These are frontend permissions, not server authorization, encryption or confidential-data removal. View=false does not remove locally loaded values from SDK readback or workbook snapshots. No password, backend collaborator security, permission-history or portable permission-snapshot guarantee is claimed.
 

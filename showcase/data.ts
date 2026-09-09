@@ -1,6 +1,8 @@
 import type { ShowcaseRegistry } from './types'
 
 export const showcase: ShowcaseRegistry = {
+  'sheets/indirect-and-offset-formulas': () => import('./sheets/indirect-and-offset-formulas'),
+  'docs-traditional/multi-column-layout': () => import('./docs-traditional/multi-column-layout'),
   'sheets/aggregate-and-subtotal-formulas': () => import('./sheets/aggregate-and-subtotal-formulas'),
   'sheets/selection-and-used-range': () => import('./sheets/selection-and-used-range'),
   'slides/text-lists-and-bullets': () => import('./slides/text-lists-and-bullets'),

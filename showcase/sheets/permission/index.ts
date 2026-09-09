@@ -8,8 +8,8 @@ const metadata = {
   group: { 'en-US': 'Protection', 'zh-CN': '保护' },
   title: { 'en-US': 'Protection and native shadows', 'zh-CN': '保护与原生阴影' },
   description: {
-    'en-US': 'Compare six local worksheet permission states and native protection shadows.',
-    'zh-CN': '对照六种本地工作表权限状态与原生保护阴影。',
+    'en-US': 'Compare seven local permission states, including protected formulas driven by editable inputs.',
+    'zh-CN': '对照七种本地权限状态，包括可编辑输入驱动的受保护公式。',
   },
   tags: { 'en-US': ['Univer Sheets', 'Preset Mode'], 'zh-CN': ['Univer Sheets', '预设模式'] },
   packages: ['@univerjs/presets', '@univerjs/preset-sheets-core'],
@@ -21,19 +21,21 @@ const metadata = {
   guide: {
     overview: {
       'en-US':
-        'Six independent native worksheets compare whole-sheet, range, view, editable-rule, mixed and unprotected states. The only host control changes the global SDK shadow strategy.',
+        'Seven native worksheets compare whole-sheet, range, view, editable-rule, mixed, unprotected and protected-formula states. The only host control changes the global SDK shadow strategy.',
       'zh-CN':
-        '六张独立原生工作表对照整表、区域、查看、可编辑规则、混合及无保护状态。唯一宿主控件修改全局 SDK 阴影策略。',
+        '七张原生工作表对照整表、区域、查看、可编辑规则、混合、无保护及公式保护状态。唯一宿主控件修改全局 SDK 阴影策略。',
     },
     tryIt: {
       'en-US': [
         'Switch native worksheet tabs and type into C4, C8 and outside-range B4 to compare allowed and denied edits.',
         'Mixed ranges permit C4:C6 but block C7:C9; other worksheets retain their own values.',
+        'In Protected formulas, change C4 from 6 to 8: D4 recalculates from 210 to 280 while direct D4 editing is blocked.',
         'Compare the four shadow strategies. None removes shadows, not permissions. Theme changes preserve the owner and edits.',
       ],
       'zh-CN': [
         '使用原生工作表标签切换，在 C4、C8 和区域外 B4 输入，对比允许与禁止编辑的效果。',
         '混合区域允许 C4:C6 编辑但禁止 C7:C9，其他工作表保留独立数值。',
+        '在公式保护表中将 C4 从 6 改为 8：D4 从 210 重算为 280，但不允许直接编辑 D4。',
         '对照四种阴影策略。无阴影不代表无权限；主题切换保留实例与编辑。',
       ],
     },
@@ -51,6 +53,7 @@ const metadata = {
     ['editable', 'Editable rule', '可编辑规则'],
     ['mixed', 'Mixed ranges', '混合区域'],
     ['none', 'Unprotected', '无保护'],
+    ['formulas', 'Protected formulas with editable inputs', '可编辑输入与受保护公式'],
   ].map(([id, en, zh]) => ({ id, label: { 'en-US': en, 'zh-CN': zh } })),
   actions: [
     ['native-edit', 'Native cell editing', '原生单元格编辑'],
