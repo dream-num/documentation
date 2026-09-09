@@ -1,6 +1,9 @@
 import type { ShowcaseRegistry } from './types'
 
 export const showcase: ShowcaseRegistry = {
+  'sheets/database-formulas': () => import('./sheets/database-formulas'),
+  'pdfs/object-rotation-and-layering': () => import('./pdfs/object-rotation-and-layering'),
+  'bases/large-record-set': () => import('./bases/large-record-set'),
   'docs-traditional/paragraph-borders-and-shading': () => import('./docs-traditional/paragraph-borders-and-shading'),
   'bases/linked-record-calculations': () => import('./bases/linked-record-calculations'),
   'sheets/pivot-table-layouts': () => import('./sheets/pivot-table-layouts'),
