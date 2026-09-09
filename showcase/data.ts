@@ -1,6 +1,9 @@
 import type { ShowcaseRegistry } from './types'
 
 export const showcase: ShowcaseRegistry = {
+  'slides/text-box-insets-and-vertical-alignment': () => import('./slides/text-box-insets-and-vertical-alignment'),
+  'sheets/conditional-format-priority': () => import('./sheets/conditional-format-priority'),
+  'pdfs/semantic-lists-and-numbering': () => import('./pdfs/semantic-lists-and-numbering'),
   'bases/record-hierarchy': () => import('./bases/record-hierarchy'),
   'sheets/matrix-calculation-formulas': () => import('./sheets/matrix-calculation-formulas'),
   'docs-traditional/table-pagination-and-repeated-headers': () =>
