@@ -1,6 +1,8 @@
 import type { ShowcaseRegistry } from './types'
 
 export const showcase: ShowcaseRegistry = {
+  'sheets/viewport-and-zoom': () => import('./sheets/viewport-and-zoom'),
+  'boards/layered-diagram-layout': () => import('./boards/layered-diagram-layout'),
   'sheets/ranking-and-percentiles': () => import('./sheets/ranking-and-percentiles'),
   'pdfs/paragraph-layout': () => import('./pdfs/paragraph-layout'),
   'docs-traditional/anchored-images-and-page-flow': () => import('./docs-traditional/anchored-images-and-page-flow'),
