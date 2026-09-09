@@ -1,6 +1,9 @@
 import type { ShowcaseRegistry } from './types'
 
 export const showcase: ShowcaseRegistry = {
+  'docs-modern/table-merge-and-cell-styles': () => import('./docs-modern/table-merge-and-cell-styles'),
+  'sheets/array-reshaping-formulas': () => import('./sheets/array-reshaping-formulas'),
+  'boards/large-diagram': () => import('./boards/large-diagram'),
   'sheets/indirect-and-offset-formulas': () => import('./sheets/indirect-and-offset-formulas'),
   'docs-traditional/multi-column-layout': () => import('./docs-traditional/multi-column-layout'),
   'sheets/aggregate-and-subtotal-formulas': () => import('./sheets/aggregate-and-subtotal-formulas'),
