@@ -1,6 +1,10 @@
 import type { ShowcaseRegistry } from './types'
 
 export const showcase: ShowcaseRegistry = {
+  'sheets/formula-dependency-inspection': () => import('./sheets/formula-dependency-inspection'),
+  'bases/conditional-coloring': () => import('./bases/conditional-coloring'),
+  'docs-modern/text-search-and-targeted-replacement': () =>
+    import('./docs-modern/text-search-and-targeted-replacement'),
   'slides/text-box-insets-and-vertical-alignment': () => import('./slides/text-box-insets-and-vertical-alignment'),
   'sheets/conditional-format-priority': () => import('./sheets/conditional-format-priority'),
   'pdfs/semantic-lists-and-numbering': () => import('./pdfs/semantic-lists-and-numbering'),
