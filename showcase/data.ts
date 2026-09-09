@@ -1,6 +1,10 @@
 import type { ShowcaseRegistry } from './types'
 
 export const showcase: ShowcaseRegistry = {
+  'bases/record-hierarchy': () => import('./bases/record-hierarchy'),
+  'sheets/matrix-calculation-formulas': () => import('./sheets/matrix-calculation-formulas'),
+  'docs-traditional/table-pagination-and-repeated-headers': () =>
+    import('./docs-traditional/table-pagination-and-repeated-headers'),
   'docs-modern/table-merge-and-cell-styles': () => import('./docs-modern/table-merge-and-cell-styles'),
   'sheets/array-reshaping-formulas': () => import('./sheets/array-reshaping-formulas'),
   'boards/large-diagram': () => import('./boards/large-diagram'),
