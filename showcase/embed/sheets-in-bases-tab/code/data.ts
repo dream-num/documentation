@@ -203,7 +203,7 @@ export function createChildData(): Partial<IWorkbookData> {
   return {
     id: CHILD_ID,
     name: 'Acorn / Weighted forecast',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     sheetOrder: [SHEET_ID, 'assumptions'],
     styles: {

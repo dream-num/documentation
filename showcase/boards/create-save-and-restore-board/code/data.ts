@@ -75,7 +75,7 @@ const page = (id: string, name: string, elements: IBoardPageElement[]) => ({
 const BASE: IBoardData = {
   id: 'tern-station-lifecycle',
   name: 'Tern field station / Opening and handover',
-  appVersion: '1.0.0-beta.2',
+  appVersion: '1.0.0-rc.0',
   defaultPageSize: { width: 1920, height: 1080 },
   activePageId: 'plan',
   pageOrder: ['plan', 'review'],

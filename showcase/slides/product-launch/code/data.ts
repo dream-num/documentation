@@ -27,7 +27,7 @@ export const LAUNCH_METRICS = {
 export const PRODUCT_LAUNCH_DATA: ISlideData = {
   id: 'atlas-product-launch',
   name: 'Atlas Product Launch',
-  appVersion: '1.0.0-beta.2',
+  appVersion: '1.0.0-rc.0',
   rev: 1,
   locale: LocaleType.EN_US,
   defaultPageSize: { width: 1200, height: 675 },

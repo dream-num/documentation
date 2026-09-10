@@ -170,7 +170,7 @@ export function createHostData(): IBoardData {
   return {
     id: HOST_ID,
     name: 'Flint / Delivery control room',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1660, height: 1050 },
     pageOrder: [PAGE_ID],
     activePageId: PAGE_ID,

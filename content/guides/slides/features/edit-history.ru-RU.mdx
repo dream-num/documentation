@@ -3,6 +3,32 @@ title: История изменений
 icon: 'RotateCcwClock'
 ---
 
+<MetaData
+  lang="ru-RU"
+  meta={{
+    preset: [],
+    plugins: [
+      {
+        client: '@univerjs-pro/edit-history',
+        facade: '@univerjs-pro/edit-history/facade',
+      },
+      {
+        client: '@univerjs-pro/edit-history-ui',
+        locale: '@univerjs-pro/edit-history-ui/locale/ru-RU',
+        style: '@univerjs-pro/edit-history-ui/lib/index.css',
+      },
+      {
+        client: '@univerjs-pro/slides-history',
+      },
+      {
+        client: '@univerjs-pro/slides-history-ui',
+        locale: '@univerjs-pro/slides-history-ui/locale/ru-RU',
+      },
+    ],
+    server: 'optional',
+  }}
+/>
+
 Изменив текст слайдов, фигуры или порядок слайдов, откройте историю, чтобы просмотреть предыдущие версии, сравнить изменения и при наличии прав восстановить версию. История читает версии, сохранённые на сервере. Отмена и повтор действуют в текущем сеансе редактирования и не требуют сервиса истории.
 
 ## Подготовка сервисов совместного редактирования и истории
@@ -51,3 +77,29 @@ univer.registerPlugin(UniverSlidesHistoryUIPlugin, {
 Для проверки интеграции измените текст слайдов, фигуры или порядок слайдов, дождитесь подтверждения совместного редактирования и проверьте список версий и их содержимое. Повторно откройте приложение и перезапустите сервис, чтобы проверить сохранность данных. Восстановите предыдущую версию и убедитесь, что другой сеанс браузера получил восстановленное состояние.
 
 Если список пуст, проверьте, записывалась ли история документа, затем проверьте ID документа и URL сервиса. Если просмотр работает, а восстановление нет, проверьте право восстановления и соединение совместного редактирования. Чтение истории тоже требует авторизации: старые версии могут содержать данные, которые позднее были удалены.
+
+## Сравнение снимков [#compare-snapshots]
+
+Для экрана проверки или передачи изменений в AI Agent используйте `compareUnitData()` либо один раз подготовьте результат через `prepareUnitComparison()`. Зарегистрируйте History-плагин продукта и импортируйте точку входа Facade. Передайте два полных снимка одного документа как `beforeSnapshot` и `afterSnapshot`. Сравнение только читает данные: сервис истории не нужен, восстановление и слияние не выполняются.
+
+```ts
+import { UnitComparisonDetailLevel, UnitComparisonFidelity } from '@univerjs-pro/edit-history'
+import { UniverInstanceType } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history/facade'
+
+const comparison = univerAPI.prepareUnitComparison({
+  comparisonId: 'review-1',
+  unitId: beforeSnapshot.id,
+  type: UniverInstanceType.UNIVER_SLIDE,
+  fidelity: UnitComparisonFidelity.SNAPSHOT,
+  leftData: beforeSnapshot,
+  rightData: afterSnapshot,
+})
+const overview = comparison.query({ detail: UnitComparisonDetailLevel.SUMMARY })
+const scope = overview.scopes[0]
+const page = comparison.query({ scope, offset: 0, limit: 100 })
+console.log(page.items, page.page.hasMore, page.diagnostics)
+```
+
+Получите доступные представления из `scopes` и передайте область в `query()`, чтобы отфильтровать результат без повторного вычисления. По умолчанию возвращается 100 элементов, максимум — 1 000 на страницу. Используйте `page.hasMore` и `offset` для следующих страниц. `summary` описывает всё сравнение независимо от фильтра. Проверяйте `diagnostics.readiness` и `diagnostics.codes`, прежде чем считать результат полным. Для Node.js или CLI без редактора см. [API сравнения без интерфейса](/reference/packages/plugins/univerjs-pro/edit-history#headless-comparison).

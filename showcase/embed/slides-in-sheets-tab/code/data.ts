@@ -48,7 +48,7 @@ export function createHostData(): Partial<IWorkbookData> {
     id: HOST_ID,
     name: 'Marigold / October board pack',
     locale: LocaleType.EN_US,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     sheetOrder: [SHEET_ID, 'assumptions'],
     styles: {
       title: { fs: 22, bl: 1, cl: { rgb: '#24352C' } },
@@ -236,7 +236,7 @@ export function createChildData(): ISlideData {
   return {
     id: CHILD_ID,
     name: 'Marigold / October board review',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 960, height: 540 },

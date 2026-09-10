@@ -154,6 +154,3 @@ menu remains direct ribbon items; native ribbon-submenu support stays open.
 The test builds only this case and links individual exact installed packages.
 `SHOWCASE_EXPORT_DIRECTORY` can reuse its selected export. It does not install
 dependencies or require another demo's report. Port 4416 closes when it finishes.
-The old `test-custom-menu.mjs` targets the removed host fixture and permits an
-explicit resource normalization; it is historical evidence, not this native
-acceptance test.

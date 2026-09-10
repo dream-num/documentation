@@ -129,7 +129,7 @@ export function createHostData(): IBoardData {
   return {
     id: HOST_ID,
     name: 'Ripple / The repair workshop',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1500, height: 950 },
     pageOrder: [PAGE_ID],
     activePageId: PAGE_ID,
@@ -189,7 +189,7 @@ export function createChildData(): Partial<IWorkbookData> {
     id: CHILD_ID,
     name: 'Ripple / Workshop budget',
     locale: LocaleType.EN_US,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     sheetOrder: [SHEET_ID, 'sensitivity'],
     styles: {
       title: { fs: 18, bl: 1, cl: { rgb: '#253C32' } },

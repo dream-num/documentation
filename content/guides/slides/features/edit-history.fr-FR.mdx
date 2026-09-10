@@ -3,6 +3,32 @@ title: Historique des modifications
 icon: 'RotateCcwClock'
 ---
 
+<MetaData
+  lang="fr-FR"
+  meta={{
+    preset: [],
+    plugins: [
+      {
+        client: '@univerjs-pro/edit-history',
+        facade: '@univerjs-pro/edit-history/facade',
+      },
+      {
+        client: '@univerjs-pro/edit-history-ui',
+        locale: '@univerjs-pro/edit-history-ui/locale/fr-FR',
+        style: '@univerjs-pro/edit-history-ui/lib/index.css',
+      },
+      {
+        client: '@univerjs-pro/slides-history',
+      },
+      {
+        client: '@univerjs-pro/slides-history-ui',
+        locale: '@univerjs-pro/slides-history-ui/locale/fr-FR',
+      },
+    ],
+    server: 'optional',
+  }}
+/>
+
 Après avoir modifié le texte, les formes ou l’ordre des diapositives, ouvrez l’historique pour consulter les versions précédentes, comparer les changements et restaurer une version si vous en avez le droit. L’historique lit les versions conservées sur le serveur. Annuler et rétablir s’appliquent à la session d’édition en cours et ne nécessitent pas de service d’historique.
 
 ## Préparer les services de collaboration et d’historique
@@ -51,3 +77,29 @@ Ouvrez l’historique depuis le menu de l’éditeur et sélectionnez une versio
 Pour vérifier l’intégration, modifiez le texte, les formes ou l’ordre des diapositives, attendez la confirmation de la collaboration, puis examinez la liste des versions et leur contenu. Rouvrez l’application et redémarrez le service pour vérifier la persistance. Restaurez une ancienne version et vérifiez qu’une autre session de navigateur reçoit l’état restauré.
 
 Si la liste est vide, vérifiez d’abord qu’un historique a été enregistré pour ce document, puis contrôlez son ID et l’URL du service. Si la consultation fonctionne mais pas la restauration, vérifiez les droits de restauration et la connexion collaborative. La lecture de l’historique nécessite aussi une autorisation, car les anciennes versions peuvent contenir des données supprimées depuis.
+
+## Comparer des snapshots [#compare-snapshots]
+
+Pour créer une interface de révision ou transmettre les changements à un AI Agent, utilisez `compareUnitData()`, ou préparez le résultat une seule fois avec `prepareUnitComparison()`. Enregistrez le plugin History du produit et importez son entrée Facade. Fournissez deux snapshots complets du même document dans `beforeSnapshot` et `afterSnapshot`. Cette comparaison en lecture seule ne nécessite aucun service d’historique et ne restaure ni ne fusionne le contenu.
+
+```ts
+import { UnitComparisonDetailLevel, UnitComparisonFidelity } from '@univerjs-pro/edit-history'
+import { UniverInstanceType } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history/facade'
+
+const comparison = univerAPI.prepareUnitComparison({
+  comparisonId: 'review-1',
+  unitId: beforeSnapshot.id,
+  type: UniverInstanceType.UNIVER_SLIDE,
+  fidelity: UnitComparisonFidelity.SNAPSHOT,
+  leftData: beforeSnapshot,
+  rightData: afterSnapshot,
+})
+const overview = comparison.query({ detail: UnitComparisonDetailLevel.SUMMARY })
+const scope = overview.scopes[0]
+const page = comparison.query({ scope, offset: 0, limit: 100 })
+console.log(page.items, page.page.hasMore, page.diagnostics)
+```
+
+Lisez `scopes` pour découvrir les vues, puis transmettez une portée à `query()` pour filtrer sans recalculer les différences. La pagination renvoie 100 éléments par défaut, avec un maximum de 1 000. Utilisez `page.hasMore` et `offset` pour la suite. `summary` décrit toujours la comparaison entière, même après filtrage. Vérifiez `diagnostics.readiness` et `diagnostics.codes` avant de considérer le résultat comme complet. Pour Node.js ou une CLI sans éditeur, consultez l’[API de comparaison sans interface](/reference/packages/plugins/univerjs-pro/edit-history#headless-comparison).

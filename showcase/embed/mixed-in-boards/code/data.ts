@@ -61,7 +61,7 @@ export function createSheetData(): Partial<IWorkbookData> {
     id: SHEET_UNIT_ID,
     name: 'Ripple / Workshop budget',
     locale: LocaleType.EN_US,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     sheetOrder: [SHEET_ID],
     styles: {
       title: { fs: 22, bl: 1, cl: { rgb: '#22365F' } },
@@ -324,7 +324,7 @@ export function createSlidesData(): ISlideData {
   return {
     id: SLIDES_ID,
     name: 'Ripple / Wayfinding review',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 1000, height: 562.5 },
@@ -578,7 +578,7 @@ export function createHostData(): IBoardData {
   return {
     id: HOST_ID,
     name: 'Ripple / Complete planning workshop',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1640, height: 1540 },
     pageOrder: [PAGE_ID],
     activePageId: PAGE_ID,

@@ -85,16 +85,19 @@ import { UniverDocsThreadCommentPlugin } from '@univerjs/docs-thread-comment' //
 import { UniverDocsThreadCommentUIPlugin } from '@univerjs/docs-thread-comment-ui' // [!code ++]
 import { UniverThreadCommentPlugin } from '@univerjs/thread-comment' // [!code ++]
 import { UniverThreadCommentUIPlugin } from '@univerjs/thread-comment-ui' // [!code ++]
+import DocsCommentLocale from '@univerjs/docs-thread-comment-ui/locale/zh-CN'
 import ThreadCommentUIZhCN from '@univerjs/thread-comment-ui/locale/zh-CN' // [!code ++]
 
 import '@univerjs/docs-thread-comment/facade' // [!code ++]
+import '@univerjs/docs-thread-comment-ui/lib/index.css'
 import '@univerjs/thread-comment-ui/lib/index.css' // [!code ++]
 
 const univer = new Univer({
   locale: LocaleType.ZH_CN,
   locales: {
     [LocaleType.ZH_CN]: mergeLocales(
-      ThreadCommentUIZhCN, // [!code ++]
+      ThreadCommentUIZhCN,
+      DocsCommentLocale, // [!code ++]
     ),
   },
 })
@@ -120,3 +123,36 @@ univer.registerPlugin(UniverThreadCommentDataSourcePlugin) // [!code ++]
 ```
 
 {/* ### 插件与配置 */}
+
+## 评论 Facade [#comment-facade]
+
+调用前同时导入通用评论 Facade 和品类 Facade。品类方法负责建立稳定锚点，通用 API 用于回复、修改、解决和删除评论。`getComments()` 读取本地状态；`listCommentsAsync()` 通过已配置的数据源同步已知线程，不会发现服务端的全部线程。
+
+```ts
+import '@univerjs/thread-comment/facade'
+import '@univerjs/docs-thread-comment/facade'
+
+const range = univerAPI.getActiveDocument()?.getTextRange(0, 1)
+if (range) {
+  await range.createCommentAsync('Please review this text.')
+  console.log(await range.listCommentsAsync())
+}
+```
+
+```ts
+import '@univerjs/thread-comment/facade'
+
+const [thread] = univerAPI.getComments({ resolved: false })
+if (thread) {
+  await univerAPI.replyCommentAsync({
+    unitId: thread.unitId,
+    subUnitId: thread.subUnitId,
+    threadId: thread.threadId,
+    content: 'Reviewed.',
+  })
+}
+```
+
+## 共享讨论 [#shared-discussions]
+
+共享讨论需要先通过 [Server SDK](/server/collaboration/extensions) 集成 Comment Service 和 Endpoint，再在协同与许可证配置之后注册 `@univerjs-pro/thread-comment-datasource` 的 `UniverThreadCommentDataSourcePlugin`。内置数据源访问 `/universer-api/comment/unit/{unitId}/...` 和 `/universer-api/user/list`，请通过应用暴露这些路由。服务端需要独立验证评论读写权限，不能仅依赖文档编辑权限。

@@ -109,7 +109,7 @@ export function createChildData(): IBoardData {
   return {
     id: CHILD_ID,
     name: 'Ember / Incident review',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1060, height: 660 },
     pageOrder: ['incident'],
     activePageId: 'incident',
@@ -169,7 +169,7 @@ export function createHostData(): Partial<IWorkbookData> {
     id: HOST_ID,
     name: 'Ember / Incident costs',
     locale: LocaleType.EN_US,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     sheetOrder: [SHEET_ID, 'review-gates'],
     styles: {
       title: { fs: 23, bl: 1, cl: { rgb: '#9C4F37' } },

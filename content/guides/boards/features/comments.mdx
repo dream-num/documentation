@@ -1,0 +1,86 @@
+---
+title: Comments
+icon: 'MessageSquareMore'
+---
+
+<MetaData
+  lang="en-US"
+  meta={{
+    preset: [],
+    plugins: [
+      {
+        client: '@univerjs/thread-comment',
+        facade: '@univerjs/thread-comment/facade',
+      },
+      {
+        client: '@univerjs/thread-comment-ui',
+        locale: '@univerjs/thread-comment-ui/locale/en-US',
+        style: '@univerjs/thread-comment-ui/lib/index.css',
+      },
+      {
+        client: '@univerjs-pro/boards-thread-comment',
+        facade: '@univerjs-pro/boards-thread-comment/facade',
+      },
+      {
+        client: '@univerjs-pro/boards-thread-comment-ui',
+        locale: '@univerjs-pro/boards-thread-comment-ui/locale/en-US',
+        style: '@univerjs-pro/boards-thread-comment-ui/lib/index.css',
+      },
+    ],
+    server: 'optional',
+  }}
+/>
+
+Register the comment plugins after the product editor and license setup. Load the shared and product UI styles and locale resources. The product plugin owns its comment resources; restoring a snapshot requires that plugin to be registered first.
+
+```package-install
+npm install @univerjs/thread-comment @univerjs/thread-comment-ui @univerjs-pro/boards-thread-comment @univerjs-pro/boards-thread-comment-ui
+```
+
+```ts
+import { UniverBoardsThreadCommentPlugin } from '@univerjs-pro/boards-thread-comment'
+import { UniverBoardsThreadCommentUIPlugin } from '@univerjs-pro/boards-thread-comment-ui'
+import ProductLocale from '@univerjs-pro/boards-thread-comment-ui/locale/en-US'
+import { LocaleType, mergeLocales } from '@univerjs/core'
+import SharedLocale from '@univerjs/thread-comment-ui/locale/en-US'
+
+import '@univerjs/thread-comment-ui/lib/index.css'
+import '@univerjs-pro/boards-thread-comment-ui/lib/index.css'
+
+univerAPI.loadLocales(LocaleType.EN_US, mergeLocales(SharedLocale, ProductLocale))
+univer.registerPlugin(UniverBoardsThreadCommentPlugin)
+univer.registerPlugin(UniverBoardsThreadCommentUIPlugin)
+```
+
+## Comment Facade [#comment-facade]
+
+Import both the shared comment Facade and the product Facade before calling these methods. Product helpers create stable anchors; the shared API handles replies, updates, resolution, and deletion. `getComments()` reads local state. `listCommentsAsync()` synchronizes already known threads through the configured data source; it does not discover every thread on the server.
+
+```ts
+import '@univerjs/thread-comment/facade'
+import '@univerjs-pro/boards-thread-comment/facade'
+
+const board = univerAPI.getActiveBoard()
+if (board) {
+  await board.createPositionCommentAsync({ x: 320, y: 180 }, 'Review this area.')
+  console.log(await board.listCommentsAsync())
+}
+```
+
+```ts
+import '@univerjs/thread-comment/facade'
+
+const [thread] = univerAPI.getComments({ resolved: false })
+if (thread) {
+  await univerAPI.replyCommentAsync({
+    unitId: thread.unitId,
+    subUnitId: thread.subUnitId,
+    threadId: thread.threadId,
+    content: 'Reviewed.',
+  })
+}
+```
+
+## Shared discussions [#shared-discussions]
+
+For shared discussions, integrate the Comment Service and Endpoint with [Server SDK](/server/collaboration/extensions), then register `UniverThreadCommentDataSourcePlugin` from `@univerjs-pro/thread-comment-datasource` after collaboration and license setup. The supplied data source uses `/universer-api/comment/unit/{unitId}/...` and `/universer-api/user/list`; expose those routes through your application. Server permissions must cover comment reads and writes independently of document editing.

@@ -198,7 +198,7 @@ export function createData(variant: Variant = 'night-program'): ISlideData {
   return {
     id: 'northlight-deck',
     name: 'Northlight / Museum after hours',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     rev: 1,
     locale: LocaleType.EN_US,
     defaultPageSize: { width: 1024, height: 576 },

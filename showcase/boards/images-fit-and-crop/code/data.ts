@@ -105,7 +105,7 @@ export function createData(): IBoardData {
   return {
     id: 'orchard-image-gallery',
     name: 'Orchard image frames',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1240, height: 650 },
     activePageId: 'gallery',
     pageOrder: ['gallery'],

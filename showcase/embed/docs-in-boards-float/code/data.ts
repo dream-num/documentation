@@ -151,7 +151,7 @@ export function createHostData(): IBoardData {
   return {
     id: HOST_ID,
     name: 'Maple / Library first-visit discovery',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1600, height: 1080 },
     pageOrder: [PAGE_ID],
     activePageId: PAGE_ID,

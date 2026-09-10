@@ -247,7 +247,7 @@ const pages = [
 export const QBR_DATA: ISlideData = {
   id: 'qbr-fy2027-q2',
   name: 'Northstar / FY2027 Q2 Business Review',
-  appVersion: '1.0.0-beta.2',
+  appVersion: '1.0.0-rc.0',
   rev: 1,
   locale: LocaleType.EN_US,
   defaultPageSize: { width: 1200, height: 675 },

@@ -71,15 +71,12 @@ export default async function Page({ params }: IProps) {
         <BlurFade duration={0.2}>
           <header className={`relative px-4 pt-12 pb-24 md:pt-36`}>
             <div className="mb-6 text-center">
-              <Link
-                className={`mx-auto inline-block rounded-full bg-neutral-50 py-1 text-sm font-semibold shadow-sm transition-colors hover:bg-neutral-100 dark:bg-neutral-800 hover:dark:bg-neutral-900`}
-                href={`https://github.com/dream-num/univer/releases/tag/v${pkg.version}`}
-              >
+              <div className="mx-auto inline-block rounded-full bg-neutral-50 py-1 text-sm font-semibold shadow-sm dark:bg-neutral-800">
                 <span className={`border-r border-neutral-300 py-1 pr-1.5 pl-3 dark:border-neutral-700`}>🎉</span>
                 <AnimatedShinyText className="py-1 pr-3 pl-1.5">
-                  Web SDK v{pkg.version} {t('home.banner-release')}
+                  Univer Office SDK v{pkg.version} {t('home.banner-release')}
                 </AnimatedShinyText>
-              </Link>
+              </div>
             </div>
 
             <h1

@@ -200,7 +200,7 @@ export function createData(variant: Variant = 'field-brief'): ISlideData {
   return {
     id: 'tern-deck',
     name: 'Tern / Coastal field briefing',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     rev: 1,
     locale: LocaleType.EN_US,
     defaultPageSize: { width: 1200, height: 675 },

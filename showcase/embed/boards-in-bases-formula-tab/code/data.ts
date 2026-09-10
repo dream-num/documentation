@@ -184,7 +184,7 @@ export function createChildData(): IBoardData {
   return {
     id: CHILD_ID,
     name: 'Reed / Operations map',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1460, height: 940 },
     pageOrder: [PAGE_ID],
     activePageId: PAGE_ID,

@@ -9,5 +9,3 @@ The requested stacks are Arial/sans-serif, Georgia/serif, Courier New/monospace 
 No font files are downloaded or bundled. A requested family does not identify the actual font used per glyph. RTL shaping/selection and glyph coverage need platform-specific visual checks. Private-use characters have no universal expected glyph; nonzero width is not a coverage certificate.
 
 Preview and standalone share createDemo(), FUniver.createDocument(), the complete English Docs Core locale pack and official Docs Core CSS. DevTools can inspect window.univerAPI.getActiveDocument().save(). No unrelated Pro table/drawing plugins are needed.
-
-The former twelve-chapter report, table/figure and host controls were removed to focus this feature. Historical panel-based acceptance reports do not validate this version. The separate test-doc-font-history-sdk.mjs remains an SDK history regression, not a claim about this UI.

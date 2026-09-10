@@ -311,7 +311,7 @@ export function createHostData(): Partial<IWorkbookData> {
     id: HOST_ID,
     name: 'Prism / Plan versus actual',
     locale: LocaleType.EN_US,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     sheetOrder: [SHEET_ID, 'targets'],
     styles,
     sheets: {

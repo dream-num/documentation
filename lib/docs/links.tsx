@@ -3,7 +3,9 @@ import { SiNpm } from '@icons-pack/react-simple-icons'
 import { ExternalLinkIcon } from 'lucide-react'
 
 import { Link } from '@/i18n/navigation'
+import { routing } from '@/i18n/routing'
 import { clsx } from '@/lib/clsx'
+import { stripLocalePrefix } from '@/lib/locale-path'
 
 interface IResolvablePage {
   path: string
@@ -29,9 +31,12 @@ export function createDocsRelativeLink<Page extends IResolvablePage>(source: IRe
 
     const resolvedHref = source.resolveHref(href, page)
     const external = /^(?:https?:)?\/\//.test(resolvedHref)
+    const locale = routing.locales.find(
+      (candidate) => resolvedHref === `/${candidate}` || resolvedHref.startsWith(`/${candidate}/`),
+    )
 
     return (
-      <Link href={resolvedHref} className={linkClassName} {...props}>
+      <Link href={stripLocalePrefix(resolvedHref)} locale={locale} className={linkClassName} {...props}>
         {resolvedHref.startsWith('https://www.npmjs.com/package/') ? (
           <SiNpm aria-hidden="true" color="default" className="mr-1 inline size-3" />
         ) : null}

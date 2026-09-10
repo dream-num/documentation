@@ -3,7 +3,103 @@ title: 編集履歴
 icon: 'RotateCcwClock'
 ---
 
+<MetaData
+  lang="ja-JP"
+  meta={{
+    preset: [
+      {
+        client: '@univerjs/preset-sheets-collaboration',
+        locale: '@univerjs/preset-sheets-collaboration/locales/ja-JP',
+        style: '@univerjs/preset-sheets-collaboration/lib/index.css',
+      },
+    ],
+    plugins: [
+      {
+        client: '@univerjs-pro/edit-history',
+        facade: '@univerjs-pro/edit-history/facade',
+      },
+      {
+        client: '@univerjs-pro/edit-history-ui',
+        locale: '@univerjs-pro/edit-history-ui/locale/ja-JP',
+        style: '@univerjs-pro/edit-history-ui/lib/index.css',
+      },
+      {
+        client: '@univerjs-pro/sheets-history',
+      },
+      {
+        client: '@univerjs-pro/sheets-history-ui',
+        locale: '@univerjs-pro/sheets-history-ui/locale/ja-JP',
+        style: '@univerjs-pro/sheets-history-ui/lib/index.css',
+      },
+    ],
+    server: 'optional',
+  }}
+/>
 
-[サーバー統合](/server)に沿って、サンプルの実行、アプリへの組み込み、永続化と権限の検証を進めてください。実装と Web/Server サンプルは [Univer Office](/server/collaboration/quick-start) を参照してください。
+過去のバージョンを表示し、変更内容を比較して、権限があれば復元できます。履歴の永続化には Server SDK による履歴サービスの統合が必要です。現在の編集セッションでの元に戻す・やり直しには履歴サービスは不要です。
 
-履歴には独立した Service、Endpoint、Database Adapter、権限設定が必要です。[拡張モジュール](/server/collaboration/extensions)と [History サンプル](/server/collaboration/examples#history)を参照し、再起動後の保持と読み取り権限を検証してください。
+## 共同編集と履歴サービスの準備
+
+[共同編集の統合](/server/collaboration/browser-integration)と[ライセンス設定](/server/license)を済ませ、[拡張モジュール](/server/collaboration/extensions)と [History サンプル](/server/collaboration/examples#history)に従って履歴の保存先と権限を設定します。基本の共同編集だけでは履歴は有効になりません。
+
+## 履歴プラグインの登録
+
+既存の Sheets と共同編集の設定に追加します。共同編集 preset が登録済みの場合は、その設定を変更して二重登録を避けてください。Sheets の履歴 UI には `UniverCollaborationClientUIPlugin` も必要です。
+
+```package-install
+npm install @univerjs-pro/edit-history @univerjs-pro/edit-history-ui @univerjs-pro/sheets-history @univerjs-pro/sheets-history-ui
+```
+
+```ts
+import { UniverEditHistoryPlugin } from '@univerjs-pro/edit-history'
+import EditHistoryLocale from '@univerjs-pro/edit-history-ui/locale/en-US'
+import { UniverSheetsHistoryPlugin } from '@univerjs-pro/sheets-history'
+import { UniverSheetsHistoryUIPlugin } from '@univerjs-pro/sheets-history-ui'
+import HistoryLocale from '@univerjs-pro/sheets-history-ui/locale/en-US'
+import { LocaleType, mergeLocales } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history-ui/lib/index.css'
+import '@univerjs-pro/sheets-history-ui/lib/index.css'
+
+const historyServerUrl = '/api/history'
+
+univerAPI.loadLocales(LocaleType.EN_US, mergeLocales(EditHistoryLocale, HistoryLocale))
+univer.registerPlugin(UniverEditHistoryPlugin, { historyServerUrl })
+univer.registerPlugin(UniverSheetsHistoryPlugin)
+univer.registerPlugin(UniverSheetsHistoryUIPlugin, {
+  univerContainerId: 'app',
+  historyServerUrl,
+})
+```
+
+`/api/history` をアプリの履歴サービスのプレフィックスに置き換え、2 か所の `historyServerUrl` を一致させます。`univerContainerId` にはエディターコンテナーの DOM ID を指定します。言語リソースはエディターの言語に合わせてください。
+
+## バージョンの表示と復元
+
+セル、数式、書式を編集し、共同編集の確認後にエディターメニューから履歴を開きます。バージョン一覧と差分を確認し、サービスを再起動しても履歴が残ることを検証します。復元は共有ドキュメントを変更するため、サーバーで復元権限を検証し、別の共同編集セッションにも更新が届くことを確認してください。
+
+## スナップショットの比較 [#compare-snapshots]
+
+レビュー画面や AI Agent に変更情報を渡すには、`compareUnitData()` を使うか、`prepareUnitComparison()` で一度計算した結果を繰り返し検索します。対象製品の History プラグインを登録し、Facade エントリーをインポートしてください。同じドキュメントの完全なスナップショットを `beforeSnapshot` と `afterSnapshot` に渡します。この読み取り専用の比較には履歴サービスは不要で、復元やマージも行いません。
+
+```ts
+import { UnitComparisonDetailLevel, UnitComparisonFidelity } from '@univerjs-pro/edit-history'
+import { UniverInstanceType } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history/facade'
+
+const comparison = univerAPI.prepareUnitComparison({
+  comparisonId: 'review-1',
+  unitId: beforeSnapshot.id,
+  type: UniverInstanceType.UNIVER_SHEET,
+  fidelity: UnitComparisonFidelity.SNAPSHOT,
+  leftData: beforeSnapshot,
+  rightData: afterSnapshot,
+})
+const overview = comparison.query({ detail: UnitComparisonDetailLevel.SUMMARY })
+const scope = overview.scopes[0]
+const page = comparison.query({ scope, offset: 0, limit: 100 })
+console.log(page.items, page.page.hasMore, page.diagnostics)
+```
+
+`scopes` から利用可能なビューを取得し、選んだ範囲を `query()` に渡すと、再計算せずに結果を絞り込めます。既定は 100 件、上限は 1 ページ 1,000 件です。続きは `page.hasMore` と `offset` で取得します。`summary` は絞り込み後も比較全体を表します。`diagnostics.readiness` と `diagnostics.codes` を確認し、精度が低下した結果を完全な比較として扱わないでください。エディターを作成しない Node.js・CLI の使い方は[ヘッドレス比較 API](/reference/packages/plugins/univerjs-pro/edit-history#headless-comparison)を参照してください。

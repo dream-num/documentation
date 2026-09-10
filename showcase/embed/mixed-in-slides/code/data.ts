@@ -60,7 +60,7 @@ export function createSheetData(): Partial<IWorkbookData> {
     id: SHEET_UNIT_ID,
     name: 'Beacon / Pilot costs',
     locale: LocaleType.EN_US,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     sheetOrder: [SHEET_ID],
     styles: {
       title: { fs: 22, bl: 1, cl: { rgb: '#22365F' } },
@@ -407,7 +407,7 @@ export function createHostData(): ISlideData {
   return {
     id: HOST_ID,
     name: 'Beacon / Complete executive review',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 1000, height: 562.5 },
@@ -640,7 +640,7 @@ export function createBoardData(): IBoardData {
   return {
     id: BOARD_ID,
     name: 'Beacon / Delivery map',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1180, height: 590 },
     pageOrder: ['workflow'],
     activePageId: 'workflow',

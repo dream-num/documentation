@@ -174,7 +174,7 @@ export function createHostData(): ISlideData {
   return {
     id: HOST_ID,
     name: 'Aster / Pilot season',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 1000, height: 562.5 },
@@ -228,7 +228,7 @@ export function createChildData(): Partial<IWorkbookData> {
     id: CHILD_ID,
     name: 'Aster / Pilot schedule',
     locale: LocaleType.EN_US,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     sheetOrder: [SHEET_ID, 'resources'],
     styles: {
       title: { fs: 19, bl: 1, cl: { rgb: '#173D43' } },

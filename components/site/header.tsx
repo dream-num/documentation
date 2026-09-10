@@ -55,12 +55,7 @@ export async function SiteHeader({
         <PrimaryNavigation items={guideItems} labels={navigationLabels} />
         <div className="min-w-0 flex-1" />
         <div className="flex items-center gap-1">
-          <div className="md:hidden">
-            <GuidesSearch compact lang={lang} defaultScope="all" />
-          </div>
-          <div className="hidden md:block">
-            <GuidesSearch lang={lang} defaultScope="all" />
-          </div>
+          <GuidesSearch lang={lang} defaultScope="all" />
           <a
             href="https://github.com/dream-num/univer"
             target="_blank"

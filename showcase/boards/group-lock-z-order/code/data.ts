@@ -85,7 +85,7 @@ export function createData(_legacyLocale = false): IBoardData {
   return {
     id: 'groups-locks-layers',
     name: 'Groups, locks and layers',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1000, height: 660 },
     activePageId: 'gallery',
     pageOrder: ['gallery'],

@@ -133,7 +133,7 @@ export function createHostData(): ISlideData {
   return {
     id: HOST_ID,
     name: 'Kite / A better volunteer shift',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 1000, height: 650 },
@@ -215,7 +215,7 @@ export function createChildData(): IBoardData {
   return {
     id: CHILD_ID,
     name: 'Kite / Shift retrospective',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1130, height: 685 },
     pageOrder: ['retro'],
     activePageId: 'retro',

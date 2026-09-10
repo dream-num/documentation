@@ -279,7 +279,7 @@ export function createChildData(): IBoardData {
   return {
     id: CHILD_ID,
     name: 'Cove / Service blueprint',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1170, height: 760 },
     pageOrder: ['blueprint'],
     activePageId: 'blueprint',

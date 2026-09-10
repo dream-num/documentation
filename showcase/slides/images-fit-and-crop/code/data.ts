@@ -113,7 +113,7 @@ export function createData(): ISlideData {
   return {
     id: 'image-gallery',
     name: 'Images / Aspect ratio and crop',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 1024, height: 576 },

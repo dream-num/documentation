@@ -228,7 +228,7 @@ export function createHostData(): Partial<IWorkbookData> {
     id: HOST_ID,
     name: 'Willow / Landed-cost review',
     locale: LocaleType.EN_US,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     sheetOrder: [SHEET_ID, 'release-checks'],
     styles: {
       title: { fs: 22, bl: 1, cl: { rgb: '#793F59' } },

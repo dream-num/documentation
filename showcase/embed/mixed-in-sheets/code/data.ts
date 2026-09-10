@@ -66,7 +66,7 @@ export function createHostData(): Partial<IWorkbookData> {
     id: HOST_ID,
     name: 'Harbor / Operations decision room',
     locale: LocaleType.EN_US,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     sheetOrder: [SHEET_ID],
     styles: {
       title: { fs: 23, bl: 1, cl: { rgb: '#152642' } },
@@ -258,7 +258,7 @@ export function createSlidesData(): ISlideData {
   return {
     id: SLIDES_ID,
     name: 'Harbor / Pilot briefing',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 800, height: 450 },
@@ -487,7 +487,7 @@ export function createBoardData(): IBoardData {
   return {
     id: BOARD_ID,
     name: 'Harbor / Delivery workflow',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 880, height: 550 },
     pageOrder: ['workflow'],
     activePageId: 'workflow',

@@ -3,6 +3,38 @@ title: 編輯歷史
 icon: 'RotateCcwClock'
 ---
 
+<MetaData
+  lang="zh-TW"
+  meta={{
+    preset: [
+      {
+        client: '@univerjs/preset-docs-collaboration',
+        locale: '@univerjs/preset-docs-collaboration/locales/zh-TW',
+        style: '@univerjs/preset-docs-collaboration/lib/index.css',
+      },
+    ],
+    plugins: [
+      {
+        client: '@univerjs-pro/edit-history',
+        facade: '@univerjs-pro/edit-history/facade',
+      },
+      {
+        client: '@univerjs-pro/edit-history-ui',
+        locale: '@univerjs-pro/edit-history-ui/locale/zh-TW',
+        style: '@univerjs-pro/edit-history-ui/lib/index.css',
+      },
+      {
+        client: '@univerjs-pro/docs-history',
+      },
+      {
+        client: '@univerjs-pro/docs-history-ui',
+        locale: '@univerjs-pro/docs-history-ui/locale/zh-TW',
+      },
+    ],
+    server: 'optional',
+  }}
+/>
+
 修改 段落、格式或表格 後，可開啟歷史記錄檢視較早的版本、比較變更，並在權限允許時還原版本。歷史記錄讀取的是伺服器持久化的版本；復原與重做只作用於目前的編輯工作階段，不需要歷史服務。
 
 ## 準備協同與歷史服務
@@ -51,3 +83,29 @@ univer.registerPlugin(UniverDocsHistoryUIPlugin, {
 驗證整合時，修改 段落、格式或表格，等待協同確認後，檢查歷史清單與版本內容。重新開啟應用程式並重啟服務，以確認資料持久化。還原較早的版本，並確認另一個瀏覽器工作階段收到還原後的狀態。
 
 若清單為空，先確認此文件是否已產生歷史記錄，再檢查文件 ID 與服務 URL。若可檢視但無法還原，請檢查還原權限與協同連線。讀取歷史記錄也需要授權，因為舊版本可能包含已刪除的資料。
+
+## 比較快照 [#compare-snapshots]
+
+若要建立審閱介面或向 AI Agent 提供變更資訊，可呼叫 `compareUnitData()`，或用 `prepareUnitComparison()` 計算一次後重複查詢。先註冊此品類的 History 外掛並匯入 Facade 入口，再將同一文件的兩份完整快照作為 `beforeSnapshot` 和 `afterSnapshot` 傳入。唯讀比較不需要歷史服務，也不會還原或合併內容。
+
+```ts
+import { UnitComparisonDetailLevel, UnitComparisonFidelity } from '@univerjs-pro/edit-history'
+import { UniverInstanceType } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history/facade'
+
+const comparison = univerAPI.prepareUnitComparison({
+  comparisonId: 'review-1',
+  unitId: beforeSnapshot.id,
+  type: UniverInstanceType.UNIVER_DOC,
+  fidelity: UnitComparisonFidelity.SNAPSHOT,
+  leftData: beforeSnapshot,
+  rightData: afterSnapshot,
+})
+const overview = comparison.query({ detail: UnitComparisonDetailLevel.SUMMARY })
+const scope = overview.scopes[0]
+const page = comparison.query({ scope, offset: 0, limit: 100 })
+console.log(page.items, page.page.hasMore, page.diagnostics)
+```
+
+透過 `scopes` 取得可用檢視，將選定範圍傳入 `query()` 即可篩選結果，無須重新計算差異。預設每頁 100 項，上限 1,000 項；搭配 `page.hasMore` 與 `offset` 取得後續項目。`summary` 始終描述整體比較，不受項目篩選影響。使用前應檢查 `diagnostics.readiness` 與 `diagnostics.codes`，不要將降級結果視為完整比較。不建立編輯器的 Node.js 或 CLI 用法請見[無介面比較 API](/reference/packages/plugins/univerjs-pro/edit-history#headless-comparison)。

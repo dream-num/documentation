@@ -3,6 +3,33 @@ title: Edit history
 icon: 'RotateCcwClock'
 ---
 
+<MetaData
+  lang="en-US"
+  meta={{
+    preset: [],
+    plugins: [
+      {
+        client: '@univerjs-pro/edit-history',
+        facade: '@univerjs-pro/edit-history/facade',
+      },
+      {
+        client: '@univerjs-pro/edit-history-ui',
+        locale: '@univerjs-pro/edit-history-ui/locale/en-US',
+        style: '@univerjs-pro/edit-history-ui/lib/index.css',
+      },
+      {
+        client: '@univerjs-pro/bases-history',
+      },
+      {
+        client: '@univerjs-pro/bases-history-ui',
+        locale: '@univerjs-pro/bases-history-ui/locale/en-US',
+        style: '@univerjs-pro/bases-history-ui/lib/index.css',
+      },
+    ],
+    server: 'optional',
+  }}
+/>
+
 After you edit fields, records, or views, open history to inspect earlier versions, compare changes, and restore a version when permitted. History reads server-persisted versions. Undo and redo apply to the current editing session and do not require a history service.
 
 
@@ -53,3 +80,29 @@ Open history from the editor menu and select a version to inspect its content an
 To verify the integration, edit fields, records, or views, wait for collaboration confirmation, and inspect the history list and version content. Reopen the application and restart the service to check persistence. Restore an earlier version and verify that another browser session receives the restored state.
 
 If the list is empty, check whether history was recorded for this document, then check the document ID and service URL. If viewing works but restoration fails, check restore permissions and the collaboration connection. Reading history also requires authorization because older versions may contain data that has since been deleted.
+
+## Compare snapshots [#compare-snapshots]
+
+To build a review screen or provide changes to an AI Agent, use `compareUnitData()` or prepare a comparison once with `prepareUnitComparison()`. Register the product History plugin and import the Facade entry. Supply two fully materialized snapshots of the same unit as `beforeSnapshot` and `afterSnapshot`; this read-only comparison does not require a history service and does not restore or merge content.
+
+```ts
+import { UnitComparisonDetailLevel, UnitComparisonFidelity } from '@univerjs-pro/edit-history'
+import { UniverInstanceType } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history/facade'
+
+const comparison = univerAPI.prepareUnitComparison({
+  comparisonId: 'review-1',
+  unitId: beforeSnapshot.id,
+  type: UniverInstanceType.UNIVER_BASE,
+  fidelity: UnitComparisonFidelity.SNAPSHOT,
+  leftData: beforeSnapshot,
+  rightData: afterSnapshot,
+})
+const overview = comparison.query({ detail: UnitComparisonDetailLevel.SUMMARY })
+const scope = overview.scopes[0]
+const page = comparison.query({ scope, offset: 0, limit: 100 })
+console.log(page.items, page.page.hasMore, page.diagnostics)
+```
+
+Read `scopes` to discover available views, then pass a scope to `query()` to filter the result without rerunning the comparison. Results default to 100 items and accept up to 1,000 per page. Use `page.hasMore` with `offset` for additional items. `summary` describes the whole comparison, even when items are filtered. Check `diagnostics.readiness` and `diagnostics.codes` before treating the result as a complete comparison. For Node.js or CLI usage without an editor, see the [headless comparison API](/reference/packages/plugins/univerjs-pro/edit-history#headless-comparison).

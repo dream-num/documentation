@@ -228,7 +228,7 @@ export function createData(variant: Variant = 'roadmap-first'): ISlideData {
   return {
     id: 'cobalt-deck',
     name: 'Cobalt / Street shade pilot',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     rev: 1,
     locale: LocaleType.EN_US,
     defaultPageSize: { width: 1024, height: 576 },

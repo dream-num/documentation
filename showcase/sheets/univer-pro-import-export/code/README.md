@@ -2,7 +2,7 @@
 
 This frontend-only sample preserves the original August regional sales workbook: five accounts across five regions and segments, numeric orders and prices, six revenue formulas, totals and currency styling. Use the native Grid, name box, formula bar, formatting and history. There are no host reset, conversion, audit or readback panels.
 
-**Office conversion is not implemented under the frontend-only constraint.** XLSX/XLS/CSV/TSV import, XLSX workbook export and active-sheet CSV export remain original, open requirements. Registering the installed `@univerjs-pro/exchange-client` and `@univerjs-pro/sheets-exchange-client` **1.0.0-beta.2** supplies an HTTP client, not a browser Office converter. Their HTTP menu entries are hidden through public menu configuration. No conversion API is invoked, no files are uploaded and no development service origin is configured. Do not mistake a native workbook, JSON download or protocol snapshot codec for XLSX support.
+**Office conversion is not implemented under the frontend-only constraint.** XLSX/XLS/CSV/TSV import, XLSX workbook export and active-sheet CSV export remain original, open requirements. Registering the installed `@univerjs-pro/exchange-client` and `@univerjs-pro/sheets-exchange-client` **1.0.0-rc.0** supplies an HTTP client, not a browser Office converter. Their HTTP menu entries are hidden through public menu configuration. No conversion API is invoked, no files are uploaded and no development service origin is configured. Do not mistake a native workbook, JSON download or protocol snapshot codec for XLSX support.
 
 ## Run and native interaction
 

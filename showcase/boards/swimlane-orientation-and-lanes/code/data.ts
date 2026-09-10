@@ -119,7 +119,7 @@ export function createData(): IBoardData {
   return {
     id: 'swimlane-gallery',
     name: 'Swimlane orientation and lanes',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     defaultPageSize: { width: 1100, height: 900 },
     activePageId: 'lanes',

@@ -150,6 +150,6 @@ The factory's `await demo.fit()` helper calls the public `BoardViewportService.f
 
 ## Acceptance boundary
 
-Native text acceptance remains **strict FAIL** on SDK `1.0.0-beta.2`:
+Native text acceptance remains **strict FAIL** on SDK `1.0.0-rc.0`:
 
 The test commits native text by clicking outside the editor; Escape cancels. Success at rendering or a passing reconstruction is not a claim that native text/history is fully accepted. No fixture result, silent snapshot normalization or SDK modification is used. Complete menu coverage, browser/touch/accessibility, pending-operation teardown and performance remain separate acceptance work.

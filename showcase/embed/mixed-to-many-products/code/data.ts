@@ -227,7 +227,7 @@ export function createSheetData(): Partial<IWorkbookData> {
   return {
     id: SHEET_UNIT_ID,
     name: PLAN_NAME,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     sheetOrder: [SHEET_ID],
     styles: {
@@ -511,7 +511,7 @@ export function createSlidesData(): ISlideData {
   return {
     id: SLIDES_ID,
     name: 'Kestrel / Review deck',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 1200, height: 675 },
@@ -602,7 +602,7 @@ export function createBoardData(): IBoardData {
   return {
     id: BOARD_ID,
     name: 'Kestrel / Variance map',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1200, height: 990 },
     pageOrder: ['variance'],
     activePageId: 'variance',

@@ -24,7 +24,7 @@ export function createSheetData(): Partial<IWorkbookData> {
   return {
     id: SHEET_UNIT_ID,
     name: SHEET_NAME,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     sheetOrder: [SHEET_ID],
     styles: {
@@ -231,7 +231,7 @@ export function createHostData(): ISlideData {
   return {
     id: HOST_ID,
     name: 'Lumen / Launch economics',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 1200, height: 675 },

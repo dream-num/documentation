@@ -51,9 +51,7 @@ export async function GuidesHeader({ lang, items }: { lang: string; items: IGuid
         <PrimaryNavigation items={items} labels={navigationLabels} />
         <div className="min-w-0 flex-1" />
         <div className="flex items-center gap-1">
-          <div className="hidden sm:block">
-            <GuidesSearch lang={lang} />
-          </div>
+          <GuidesSearch lang={lang} />
           <a
             href="https://github.com/dream-num/univer"
             target="_blank"
@@ -73,9 +71,6 @@ export async function GuidesHeader({ lang, items }: { lang: string; items: IGuid
         </div>
       </div>
       <PrimaryNavigation items={items} labels={navigationLabels} mobile />
-      <div className="border-t border-(--separator) px-4 py-1.5 sm:hidden">
-        <GuidesSearch lang={lang} />
-      </div>
     </header>
   )
 }

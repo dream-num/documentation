@@ -305,7 +305,7 @@ export function createSheetData(): Partial<IWorkbookData> {
   return {
     id: SHEET_UNIT_ID,
     name: 'Acorn / Weighted forecast',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     sheetOrder: [SHEET_ID, 'assumptions'],
     styles: {
@@ -589,7 +589,7 @@ export function createSlidesData(): ISlideData {
   return {
     id: SLIDES_ID,
     name: 'Acorn / Studio review',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 1000, height: 562.5 },
@@ -669,7 +669,7 @@ export function createBoardData(): IBoardData {
   return {
     id: BOARD_ID,
     name: 'Acorn / Service blueprint',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1180, height: 590 },
     pageOrder: ['workflow'],
     activePageId: 'workflow',

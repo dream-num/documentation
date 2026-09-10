@@ -127,7 +127,7 @@ export function createHostData(): IBoardData {
   return {
     id: HOST_ID,
     name: 'Prism / Night-sky pitch storyboard',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1650, height: 1080 },
     pageOrder: [PAGE_ID],
     activePageId: PAGE_ID,
@@ -312,7 +312,7 @@ export function createChildData(): ISlideData {
   return {
     id: CHILD_ID,
     name: 'Prism / A nearby night sky',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 800, height: 450 },

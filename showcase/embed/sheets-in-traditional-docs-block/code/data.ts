@@ -153,7 +153,7 @@ export function createChildData(): Partial<IWorkbookData> {
     id: CHILD_ID,
     name: 'Estuary / Archive cost schedule',
     locale: LocaleType.EN_US,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     sheetOrder: [SHEET_ID, 'phasing'],
     styles: {
       title: { fs: 20, bl: 1, cl: { rgb: '#245F63' } },

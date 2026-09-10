@@ -168,7 +168,7 @@ export function createHostData(): ISlideData {
   return {
     id: HOST_ID,
     name: 'Beacon / Observatory architecture review',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 1000, height: 650 },
@@ -270,7 +270,7 @@ export function createChildData(): IBoardData {
   return {
     id: CHILD_ID,
     name: 'Beacon / Ingestion boundaries',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 920, height: 545 },
     pageOrder: ['boundaries'],
     activePageId: 'boundaries',

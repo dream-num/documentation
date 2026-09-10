@@ -55,7 +55,7 @@ export function createData(_legacyLocale = false): IBoardData {
   return {
     id: 'native-query-board',
     name: 'Search and element query',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 900, height: 650 },
     activePageId: 'query',
     pageOrder: ['query'],

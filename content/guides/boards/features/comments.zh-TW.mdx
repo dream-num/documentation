@@ -1,0 +1,86 @@
+---
+title: 評論
+icon: 'MessageSquareMore'
+---
+
+<MetaData
+  lang="zh-TW"
+  meta={{
+    preset: [],
+    plugins: [
+      {
+        client: '@univerjs/thread-comment',
+        facade: '@univerjs/thread-comment/facade',
+      },
+      {
+        client: '@univerjs/thread-comment-ui',
+        locale: '@univerjs/thread-comment-ui/locale/zh-TW',
+        style: '@univerjs/thread-comment-ui/lib/index.css',
+      },
+      {
+        client: '@univerjs-pro/boards-thread-comment',
+        facade: '@univerjs-pro/boards-thread-comment/facade',
+      },
+      {
+        client: '@univerjs-pro/boards-thread-comment-ui',
+        locale: '@univerjs-pro/boards-thread-comment-ui/locale/zh-TW',
+        style: '@univerjs-pro/boards-thread-comment-ui/lib/index.css',
+      },
+    ],
+    server: 'optional',
+  }}
+/>
+
+在品類編輯器及授權設定之後註冊評論外掛，並載入通用及品類 UI 的樣式與語言資源。評論資源由品類外掛管理，還原快照前必須先註冊該外掛。
+
+```package-install
+npm install @univerjs/thread-comment @univerjs/thread-comment-ui @univerjs-pro/boards-thread-comment @univerjs-pro/boards-thread-comment-ui
+```
+
+```ts
+import { UniverBoardsThreadCommentPlugin } from '@univerjs-pro/boards-thread-comment'
+import { UniverBoardsThreadCommentUIPlugin } from '@univerjs-pro/boards-thread-comment-ui'
+import ProductLocale from '@univerjs-pro/boards-thread-comment-ui/locale/zh-TW'
+import { LocaleType, mergeLocales } from '@univerjs/core'
+import SharedLocale from '@univerjs/thread-comment-ui/locale/zh-TW'
+
+import '@univerjs/thread-comment-ui/lib/index.css'
+import '@univerjs-pro/boards-thread-comment-ui/lib/index.css'
+
+univerAPI.loadLocales(LocaleType.ZH_TW, mergeLocales(SharedLocale, ProductLocale))
+univer.registerPlugin(UniverBoardsThreadCommentPlugin)
+univer.registerPlugin(UniverBoardsThreadCommentUIPlugin)
+```
+
+## 評論 Facade [#comment-facade]
+
+呼叫前同時匯入通用評論 Facade 與品類 Facade。品類方法建立穩定錨點，通用 API 負責回覆、修改、解決與刪除。`getComments()` 讀取本機狀態；`listCommentsAsync()` 透過已設定的資料來源同步已知討論串，不會探索伺服器上的全部討論串。
+
+```ts
+import '@univerjs/thread-comment/facade'
+import '@univerjs-pro/boards-thread-comment/facade'
+
+const board = univerAPI.getActiveBoard()
+if (board) {
+  await board.createPositionCommentAsync({ x: 320, y: 180 }, 'Review this area.')
+  console.log(await board.listCommentsAsync())
+}
+```
+
+```ts
+import '@univerjs/thread-comment/facade'
+
+const [thread] = univerAPI.getComments({ resolved: false })
+if (thread) {
+  await univerAPI.replyCommentAsync({
+    unitId: thread.unitId,
+    subUnitId: thread.subUnitId,
+    threadId: thread.threadId,
+    content: 'Reviewed.',
+  })
+}
+```
+
+## 共享討論 [#shared-discussions]
+
+先透過 [Server SDK](/server/collaboration/extensions) 整合 Comment Service 與 Endpoint，再於協同及授權設定之後註冊 `@univerjs-pro/thread-comment-datasource` 的 `UniverThreadCommentDataSourcePlugin`。內建資料來源存取 `/universer-api/comment/unit/{unitId}/...` 與 `/universer-api/user/list`，請由應用程式提供這些路由。服務端須獨立驗證評論讀寫權限，不能僅依賴文件編輯權限。

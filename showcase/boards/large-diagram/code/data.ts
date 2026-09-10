@@ -79,7 +79,7 @@ export function createData(): IBoardData {
   return {
     id: 'large-production-network',
     name: 'Production network',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 2780, height: 1900 },
     activePageId: 'network',
     pageOrder: ['network'],

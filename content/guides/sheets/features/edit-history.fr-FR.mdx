@@ -3,7 +3,103 @@ title: Historique des modifications
 icon: 'RotateCcwClock'
 ---
 
+<MetaData
+  lang="fr-FR"
+  meta={{
+    preset: [
+      {
+        client: '@univerjs/preset-sheets-collaboration',
+        locale: '@univerjs/preset-sheets-collaboration/locales/fr-FR',
+        style: '@univerjs/preset-sheets-collaboration/lib/index.css',
+      },
+    ],
+    plugins: [
+      {
+        client: '@univerjs-pro/edit-history',
+        facade: '@univerjs-pro/edit-history/facade',
+      },
+      {
+        client: '@univerjs-pro/edit-history-ui',
+        locale: '@univerjs-pro/edit-history-ui/locale/fr-FR',
+        style: '@univerjs-pro/edit-history-ui/lib/index.css',
+      },
+      {
+        client: '@univerjs-pro/sheets-history',
+      },
+      {
+        client: '@univerjs-pro/sheets-history-ui',
+        locale: '@univerjs-pro/sheets-history-ui/locale/fr-FR',
+        style: '@univerjs-pro/sheets-history-ui/lib/index.css',
+      },
+    ],
+    server: 'optional',
+  }}
+/>
 
-Suivez l’[intégration serveur](/server) pour exécuter l’exemple, connecter votre application et vérifier la persistance et les autorisations. Les détails et exemples Web/Server sont disponibles sur [Univer Office](/server/collaboration/quick-start).
+Consultez les versions précédentes, comparez leur contenu et restaurez une version si vous en avez le droit. La conservation des versions nécessite un service d’historique intégré avec le Server SDK. Annuler et rétablir dans la session courante ne nécessite pas ce service.
 
-L’historique nécessite ses propres Service, Endpoint, Database Adapter et autorisations. Suivez les [modules d’extension](/server/collaboration/extensions) et l’[exemple History](/server/collaboration/examples#history). Vérifiez la conservation après redémarrage et les droits de lecture.
+## Préparer la collaboration et l’historique
+
+Terminez l’[intégration collaborative](/server/collaboration/browser-integration) et la [configuration de la licence](/server/license), puis connectez le stockage et les autorisations avec les [modules d’extension](/server/collaboration/extensions) et l’[exemple History](/server/collaboration/examples#history). La collaboration de base n’active pas automatiquement l’historique.
+
+## Enregistrer les plugins d’historique
+
+Ajoutez ces plugins à votre configuration Sheets et collaborative. Si un preset collaboratif les enregistre déjà, modifiez sa configuration pour éviter les doublons. L’interface d’historique Sheets nécessite aussi `UniverCollaborationClientUIPlugin`.
+
+```package-install
+npm install @univerjs-pro/edit-history @univerjs-pro/edit-history-ui @univerjs-pro/sheets-history @univerjs-pro/sheets-history-ui
+```
+
+```ts
+import { UniverEditHistoryPlugin } from '@univerjs-pro/edit-history'
+import EditHistoryLocale from '@univerjs-pro/edit-history-ui/locale/en-US'
+import { UniverSheetsHistoryPlugin } from '@univerjs-pro/sheets-history'
+import { UniverSheetsHistoryUIPlugin } from '@univerjs-pro/sheets-history-ui'
+import HistoryLocale from '@univerjs-pro/sheets-history-ui/locale/en-US'
+import { LocaleType, mergeLocales } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history-ui/lib/index.css'
+import '@univerjs-pro/sheets-history-ui/lib/index.css'
+
+const historyServerUrl = '/api/history'
+
+univerAPI.loadLocales(LocaleType.EN_US, mergeLocales(EditHistoryLocale, HistoryLocale))
+univer.registerPlugin(UniverEditHistoryPlugin, { historyServerUrl })
+univer.registerPlugin(UniverSheetsHistoryPlugin)
+univer.registerPlugin(UniverSheetsHistoryUIPlugin, {
+  univerContainerId: 'app',
+  historyServerUrl,
+})
+```
+
+Remplacez `/api/history` par le préfixe de votre service d’historique et utilisez la même valeur pour les deux `historyServerUrl`. `univerContainerId` doit correspondre à l’ID DOM du conteneur de l’éditeur. Chargez les ressources de la langue de l’éditeur.
+
+## Consulter et restaurer une version
+
+Modifiez des cellules, des formules ou des formats, attendez la confirmation collaborative, puis ouvrez l’historique depuis le menu de l’éditeur. Vérifiez les versions, les différences et leur conservation après redémarrage du service. La restauration modifie le document partagé : le serveur doit vérifier les droits de restauration, et une autre session collaborative doit recevoir la mise à jour.
+
+## Comparer des snapshots [#compare-snapshots]
+
+Pour créer une interface de révision ou transmettre les changements à un AI Agent, utilisez `compareUnitData()`, ou préparez le résultat une seule fois avec `prepareUnitComparison()`. Enregistrez le plugin History du produit et importez son entrée Facade. Fournissez deux snapshots complets du même document dans `beforeSnapshot` et `afterSnapshot`. Cette comparaison en lecture seule ne nécessite aucun service d’historique et ne restaure ni ne fusionne le contenu.
+
+```ts
+import { UnitComparisonDetailLevel, UnitComparisonFidelity } from '@univerjs-pro/edit-history'
+import { UniverInstanceType } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history/facade'
+
+const comparison = univerAPI.prepareUnitComparison({
+  comparisonId: 'review-1',
+  unitId: beforeSnapshot.id,
+  type: UniverInstanceType.UNIVER_SHEET,
+  fidelity: UnitComparisonFidelity.SNAPSHOT,
+  leftData: beforeSnapshot,
+  rightData: afterSnapshot,
+})
+const overview = comparison.query({ detail: UnitComparisonDetailLevel.SUMMARY })
+const scope = overview.scopes[0]
+const page = comparison.query({ scope, offset: 0, limit: 100 })
+console.log(page.items, page.page.hasMore, page.diagnostics)
+```
+
+Lisez `scopes` pour découvrir les vues, puis transmettez une portée à `query()` pour filtrer sans recalculer les différences. La pagination renvoie 100 éléments par défaut, avec un maximum de 1 000. Utilisez `page.hasMore` et `offset` pour la suite. `summary` décrit toujours la comparaison entière, même après filtrage. Vérifiez `diagnostics.readiness` et `diagnostics.codes` avant de considérer le résultat comme complet. Pour Node.js ou une CLI sans éditeur, consultez l’[API de comparaison sans interface](/reference/packages/plugins/univerjs-pro/edit-history#headless-comparison).

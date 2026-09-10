@@ -106,7 +106,7 @@ const elements = [...connectors, ...shapes]
 export const DATA: IBoardData = {
   id: 'connector-routing-board',
   name: 'Release Pipeline · Connector Routing',
-  appVersion: '1.0.0-beta.2',
+  appVersion: '1.0.0-rc.0',
   defaultPageSize: { width: 1920, height: 1080 },
   pageOrder: ['workflow'],
   activePageId: 'workflow',

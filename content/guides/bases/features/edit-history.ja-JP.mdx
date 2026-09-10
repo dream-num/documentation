@@ -3,6 +3,33 @@ title: 編集履歴
 icon: 'RotateCcwClock'
 ---
 
+<MetaData
+  lang="ja-JP"
+  meta={{
+    preset: [],
+    plugins: [
+      {
+        client: '@univerjs-pro/edit-history',
+        facade: '@univerjs-pro/edit-history/facade',
+      },
+      {
+        client: '@univerjs-pro/edit-history-ui',
+        locale: '@univerjs-pro/edit-history-ui/locale/ja-JP',
+        style: '@univerjs-pro/edit-history-ui/lib/index.css',
+      },
+      {
+        client: '@univerjs-pro/bases-history',
+      },
+      {
+        client: '@univerjs-pro/bases-history-ui',
+        locale: '@univerjs-pro/bases-history-ui/locale/ja-JP',
+        style: '@univerjs-pro/bases-history-ui/lib/index.css',
+      },
+    ],
+    server: 'optional',
+  }}
+/>
+
 フィールド、レコード、ビュー を変更した後、履歴を開いて以前のバージョンを確認し、変更を比較して、権限があればバージョンを復元できます。履歴はサーバーに永続化されたバージョンを読み取ります。元に戻す・やり直す操作は現在の編集セッションに適用され、履歴サービスは不要です。
 
 ## 共同編集と履歴サービスの準備
@@ -52,3 +79,29 @@ univer.registerPlugin(UniverBasesHistoryUIPlugin, {
 統合を検証するには、フィールド、レコード、ビュー を変更し、共同編集の確認応答を待ってから履歴一覧とバージョンの内容を確認します。アプリケーションを開き直し、サービスを再起動して永続化を検証してください。以前のバージョンを復元し、別のブラウザーセッションにも復元後の状態が届くことを確認します。
 
 一覧が空の場合は、ドキュメントの履歴が記録されているかを確認し、次にドキュメント ID とサービス URL を確認します。表示できても復元できない場合は、復元権限と共同編集の接続を確認してください。古いバージョンには削除済みのデータが含まれる可能性があるため、履歴の読み取りにも認可が必要です。
+
+## スナップショットの比較 [#compare-snapshots]
+
+レビュー画面や AI Agent に変更情報を渡すには、`compareUnitData()` を使うか、`prepareUnitComparison()` で一度計算した結果を繰り返し検索します。対象製品の History プラグインを登録し、Facade エントリーをインポートしてください。同じドキュメントの完全なスナップショットを `beforeSnapshot` と `afterSnapshot` に渡します。この読み取り専用の比較には履歴サービスは不要で、復元やマージも行いません。
+
+```ts
+import { UnitComparisonDetailLevel, UnitComparisonFidelity } from '@univerjs-pro/edit-history'
+import { UniverInstanceType } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history/facade'
+
+const comparison = univerAPI.prepareUnitComparison({
+  comparisonId: 'review-1',
+  unitId: beforeSnapshot.id,
+  type: UniverInstanceType.UNIVER_BASE,
+  fidelity: UnitComparisonFidelity.SNAPSHOT,
+  leftData: beforeSnapshot,
+  rightData: afterSnapshot,
+})
+const overview = comparison.query({ detail: UnitComparisonDetailLevel.SUMMARY })
+const scope = overview.scopes[0]
+const page = comparison.query({ scope, offset: 0, limit: 100 })
+console.log(page.items, page.page.hasMore, page.diagnostics)
+```
+
+`scopes` から利用可能なビューを取得し、選んだ範囲を `query()` に渡すと、再計算せずに結果を絞り込めます。既定は 100 件、上限は 1 ページ 1,000 件です。続きは `page.hasMore` と `offset` で取得します。`summary` は絞り込み後も比較全体を表します。`diagnostics.readiness` と `diagnostics.codes` を確認し、精度が低下した結果を完全な比較として扱わないでください。エディターを作成しない Node.js・CLI の使い方は[ヘッドレス比較 API](/reference/packages/plugins/univerjs-pro/edit-history#headless-comparison)を参照してください。

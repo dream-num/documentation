@@ -28,3 +28,41 @@ Import the Facade entry to call `univerAPI.compareUnitData(input)`. Register one
 | --- | --- | --- | --- |
 | `historyServerUrl` | `string` | `/universer-api/history` | Base URL shared by history endpoints |
 | `pageSize` | `number` | `20` | Versions requested per page |
+
+## Prepared comparisons
+
+`univerAPI.prepareUnitComparison(input)` runs the product comparison once. Call `query()` on the returned `FUnitComparison` to change pagination, `scope`, `kinds`, `entityTypes`, `search`, or `detail` without rerunning the adapter. `compareUnitData(input)` remains available for a single query.
+
+Results expose `scopes` for product views, `page.hasMore` for item pagination, and `diagnostics` for incomplete comparison coverage. The default item limit is 100, with a maximum of 1,000. Doc context uses separate `contextOffset` and `contextLimit` pagination. `summary` covers the complete comparison, even when the returned items are filtered.
+
+## Headless comparison [#headless-comparison]
+
+Use `createUnitComparisonEngine()` in Node.js, a CLI, or a Worker without creating a Univer editor or accessing its injector. Register only the product adapters you need. Both inputs must already contain all applied mutations; the engine does not load history, materialize revisions, merge changes, or modify either input.
+
+```ts
+import { DocsUnitComparisonAdapter } from '@univerjs-pro/docs-history'
+import { createUnitComparisonEngine, UnitComparisonFidelity } from '@univerjs-pro/edit-history'
+import { UniverInstanceType } from '@univerjs/core'
+
+const engine = createUnitComparisonEngine([new DocsUnitComparisonAdapter()])
+const prepared = engine.prepare({
+  comparisonId: 'review-42',
+  unitId: 'doc-1',
+  type: UniverInstanceType.UNIVER_DOC,
+  fidelity: UnitComparisonFidelity.SNAPSHOT,
+  leftData: { body: {
+    dataStream: 'Review\r\n',
+    paragraphs: [{ paragraphId: 'p1', startIndex: 6 }],
+  } },
+  rightData: { body: {
+    dataStream: 'Publish\r\n',
+    paragraphs: [{ paragraphId: 'p1', startIndex: 7 }],
+  } },
+})
+const result = engine.query(prepared, { offset: 0, limit: 20 })
+console.log(result.summary, result.items, result.diagnostics)
+```
+
+Other product adapters are `SheetsUnitComparisonAdapter`, `SlidesUnitComparisonAdapter`, `BasesUnitComparisonAdapter`, and `BoardsUnitComparisonAdapter`, exported by the corresponding `@univerjs-pro/*-history` package. PDF comparison is not supplied by these adapters.
+
+Use `UnitComparisonFidelity.SNAPSHOT` for snapshot-only inputs. Providing history fidelity does not reconstruct snapshots: history changesets must be supplied separately, and both states must already be materialized. Consumers should inspect `diagnostics.readiness`, `diagnostics.codes`, and `diagnostics.unsupportedMutationIds` before using a result for automated decisions.

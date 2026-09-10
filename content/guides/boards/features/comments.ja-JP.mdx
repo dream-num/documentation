@@ -1,0 +1,86 @@
+---
+title: コメント
+icon: 'MessageSquareMore'
+---
+
+<MetaData
+  lang="ja-JP"
+  meta={{
+    preset: [],
+    plugins: [
+      {
+        client: '@univerjs/thread-comment',
+        facade: '@univerjs/thread-comment/facade',
+      },
+      {
+        client: '@univerjs/thread-comment-ui',
+        locale: '@univerjs/thread-comment-ui/locale/ja-JP',
+        style: '@univerjs/thread-comment-ui/lib/index.css',
+      },
+      {
+        client: '@univerjs-pro/boards-thread-comment',
+        facade: '@univerjs-pro/boards-thread-comment/facade',
+      },
+      {
+        client: '@univerjs-pro/boards-thread-comment-ui',
+        locale: '@univerjs-pro/boards-thread-comment-ui/locale/ja-JP',
+        style: '@univerjs-pro/boards-thread-comment-ui/lib/index.css',
+      },
+    ],
+    server: 'optional',
+  }}
+/>
+
+製品エディターとライセンスの設定後にコメントプラグインを登録し、共通 UI と製品 UI のスタイル・言語リソースを読み込みます。コメントリソースは製品プラグインが管理するため、スナップショットの復元前に登録してください。
+
+```package-install
+npm install @univerjs/thread-comment @univerjs/thread-comment-ui @univerjs-pro/boards-thread-comment @univerjs-pro/boards-thread-comment-ui
+```
+
+```ts
+import { UniverBoardsThreadCommentPlugin } from '@univerjs-pro/boards-thread-comment'
+import { UniverBoardsThreadCommentUIPlugin } from '@univerjs-pro/boards-thread-comment-ui'
+import ProductLocale from '@univerjs-pro/boards-thread-comment-ui/locale/ja-JP'
+import { LocaleType, mergeLocales } from '@univerjs/core'
+import SharedLocale from '@univerjs/thread-comment-ui/locale/ja-JP'
+
+import '@univerjs/thread-comment-ui/lib/index.css'
+import '@univerjs-pro/boards-thread-comment-ui/lib/index.css'
+
+univerAPI.loadLocales(LocaleType.JA_JP, mergeLocales(SharedLocale, ProductLocale))
+univer.registerPlugin(UniverBoardsThreadCommentPlugin)
+univer.registerPlugin(UniverBoardsThreadCommentUIPlugin)
+```
+
+## コメント Facade [#comment-facade]
+
+共通のコメント Facade と製品 Facade を両方インポートします。製品のメソッドは安定したアンカーを作成し、共通 API は返信・更新・解決・削除を扱います。`getComments()` はローカル状態を読み取ります。`listCommentsAsync()` は設定済みデータソースを通じて既知のスレッドを同期し、サーバー上の全スレッドを検索するものではありません。
+
+```ts
+import '@univerjs/thread-comment/facade'
+import '@univerjs-pro/boards-thread-comment/facade'
+
+const board = univerAPI.getActiveBoard()
+if (board) {
+  await board.createPositionCommentAsync({ x: 320, y: 180 }, 'Review this area.')
+  console.log(await board.listCommentsAsync())
+}
+```
+
+```ts
+import '@univerjs/thread-comment/facade'
+
+const [thread] = univerAPI.getComments({ resolved: false })
+if (thread) {
+  await univerAPI.replyCommentAsync({
+    unitId: thread.unitId,
+    subUnitId: thread.subUnitId,
+    threadId: thread.threadId,
+    content: 'Reviewed.',
+  })
+}
+```
+
+## 共有ディスカッション [#shared-discussions]
+
+[Server SDK](/server/collaboration/extensions) で Comment Service と Endpoint を統合し、共同編集とライセンスの設定後に `@univerjs-pro/thread-comment-datasource` の `UniverThreadCommentDataSourcePlugin` を登録します。付属のデータソースは `/universer-api/comment/unit/{unitId}/...` と `/universer-api/user/list` を使います。アプリからこれらのルートを公開してください。サーバーは文書の編集権限とは別に、コメントの読み書きを認可する必要があります。

@@ -17,4 +17,4 @@ resizing and split panes are separate capabilities, not claimed here.
 
 ## Native menu and scrolling acceptance
 
-In installed `1.0.0-beta.2`, native **Freeze first row/column** targets the first visible row/column after scrolling, not necessarily worksheet row 1/column A. `getFreeze().ySplit/xSplit` gives the frozen count; `getFrozenRows()/getFrozenColumns()` return the ending boundary for offset panes. Return to the top-left before selecting these commands if worksheet row 1/column A is intended. This is the installed SDK behavior, not a demo approximation.
+In installed `1.0.0-rc.0`, native **Freeze first row/column** targets the first visible row/column after scrolling, not necessarily worksheet row 1/column A. `getFreeze().ySplit/xSplit` gives the frozen count; `getFrozenRows()/getFrozenColumns()` return the ending boundary for offset panes. Return to the top-left before selecting these commands if worksheet row 1/column A is intended. This is the installed SDK behavior, not a demo approximation.

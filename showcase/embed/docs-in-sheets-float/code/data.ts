@@ -36,7 +36,7 @@ export function createHostData(): Partial<IWorkbookData> {
     id: HOST_ID,
     name: 'Cedar / Procurement exception',
     locale: LocaleType.EN_US,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     sheetOrder: [SHEET_ID],
     styles: {
       title: { fs: 20, bl: 1, cl: { rgb: '#244A3D' } },

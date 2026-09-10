@@ -217,7 +217,7 @@ export function createHostData(): ISlideData {
   return {
     id: HOST_ID,
     name: 'Violet / Editorial review',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 1200, height: 675 },

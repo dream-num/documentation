@@ -150,7 +150,7 @@ function createDecorativeShape(
 export const homeSlideData: ISlideData = {
   id: 'northstar-launch-story',
   name: 'Northstar Global Launch',
-  appVersion: '1.0.0-beta.2',
+  appVersion: '1.0.0-rc.0',
   rev: 2,
   locale: LocaleType.EN_US,
   defaultPageSize: { width: SLIDE_WIDTH, height: SLIDE_HEIGHT },

@@ -95,11 +95,6 @@ Below 1000px the host stacks two 640px editors. Iframe isolation is not reduced
 payload/memory. Cross-origin messaging, imported data and all mobile native menus
 are not certified.
 
-The earlier `test-isolated-regions.mjs` and ownership reports exercised removed
-fixture/input panels. They are historical, not acceptance of this revised version.
-The intermediate `test-isolated-native-cleanup.mjs` report retains the original
-strict history failure and is superseded for the broader scope below.
-
 The same suite checks full opposite-owner snapshots, both real JSON downloads,
 saved same-ID owner recovery and fresh native edits, invalid-input guards before
 owner mutation, full English packs on both host languages, independent theme changes,

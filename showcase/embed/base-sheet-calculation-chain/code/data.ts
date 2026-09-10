@@ -242,7 +242,7 @@ export function createHostData(): Partial<IWorkbookData> {
   return {
     id: HOST_ID,
     name: SOURCE_NAME,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     sheetOrder: [SHEET_ID],
     styles: {
@@ -520,7 +520,7 @@ export function createSlidesData(): ISlideData {
   return {
     id: SLIDES_ID,
     name: 'Meridian / Studio review',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 1200, height: 675 },
@@ -620,7 +620,7 @@ export function createBoardData(): IBoardData {
   return {
     id: BOARD_ID,
     name: 'Meridian / Production map',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1220, height: 970 },
     pageOrder: ['production'],
     activePageId: 'production',

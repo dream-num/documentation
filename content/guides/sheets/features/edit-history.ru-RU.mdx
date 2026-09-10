@@ -3,7 +3,103 @@ title: История изменений
 icon: 'RotateCcwClock'
 ---
 
+<MetaData
+  lang="ru-RU"
+  meta={{
+    preset: [
+      {
+        client: '@univerjs/preset-sheets-collaboration',
+        locale: '@univerjs/preset-sheets-collaboration/locales/ru-RU',
+        style: '@univerjs/preset-sheets-collaboration/lib/index.css',
+      },
+    ],
+    plugins: [
+      {
+        client: '@univerjs-pro/edit-history',
+        facade: '@univerjs-pro/edit-history/facade',
+      },
+      {
+        client: '@univerjs-pro/edit-history-ui',
+        locale: '@univerjs-pro/edit-history-ui/locale/ru-RU',
+        style: '@univerjs-pro/edit-history-ui/lib/index.css',
+      },
+      {
+        client: '@univerjs-pro/sheets-history',
+      },
+      {
+        client: '@univerjs-pro/sheets-history-ui',
+        locale: '@univerjs-pro/sheets-history-ui/locale/ru-RU',
+        style: '@univerjs-pro/sheets-history-ui/lib/index.css',
+      },
+    ],
+    server: 'optional',
+  }}
+/>
 
-Следуйте руководству по [интеграции сервера](/server): запустите пример, подключите приложение и проверьте хранение данных и права доступа. Реализация и примеры Web/Server находятся в [Univer Office](/server/collaboration/quick-start).
+Просматривайте предыдущие версии, сравнивайте содержимое и восстанавливайте версию при наличии разрешения. Для хранения версий нужен сервис истории, интегрированный через Server SDK. Отмена и повтор действий в текущем сеансе не требуют этого сервиса.
 
-Истории нужны отдельные Service, Endpoint, Database Adapter и правила доступа. Следуйте [руководству по расширениям](/server/collaboration/extensions) и [примеру History](/server/collaboration/examples#history). Проверьте сохранность после перезапуска и права на чтение.
+## Подготовка совместного редактирования и истории
+
+Выполните [интеграцию совместного редактирования](/server/collaboration/browser-integration) и [настройку лицензии](/server/license), затем подключите хранилище и права доступа по [руководству по расширениям](/server/collaboration/extensions) и [примеру History](/server/collaboration/examples#history). Базовое совместное редактирование не включает историю автоматически.
+
+## Регистрация плагинов истории
+
+Добавьте плагины к существующей конфигурации Sheets и совместного редактирования. Если они уже зарегистрированы через preset, измените его настройки, не регистрируя плагины повторно. Для интерфейса истории Sheets также требуется `UniverCollaborationClientUIPlugin`.
+
+```package-install
+npm install @univerjs-pro/edit-history @univerjs-pro/edit-history-ui @univerjs-pro/sheets-history @univerjs-pro/sheets-history-ui
+```
+
+```ts
+import { UniverEditHistoryPlugin } from '@univerjs-pro/edit-history'
+import EditHistoryLocale from '@univerjs-pro/edit-history-ui/locale/en-US'
+import { UniverSheetsHistoryPlugin } from '@univerjs-pro/sheets-history'
+import { UniverSheetsHistoryUIPlugin } from '@univerjs-pro/sheets-history-ui'
+import HistoryLocale from '@univerjs-pro/sheets-history-ui/locale/en-US'
+import { LocaleType, mergeLocales } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history-ui/lib/index.css'
+import '@univerjs-pro/sheets-history-ui/lib/index.css'
+
+const historyServerUrl = '/api/history'
+
+univerAPI.loadLocales(LocaleType.EN_US, mergeLocales(EditHistoryLocale, HistoryLocale))
+univer.registerPlugin(UniverEditHistoryPlugin, { historyServerUrl })
+univer.registerPlugin(UniverSheetsHistoryPlugin)
+univer.registerPlugin(UniverSheetsHistoryUIPlugin, {
+  univerContainerId: 'app',
+  historyServerUrl,
+})
+```
+
+Замените `/api/history` префиксом сервиса истории вашего приложения. Значения `historyServerUrl` в обеих настройках должны совпадать. Укажите DOM ID контейнера редактора в `univerContainerId` и загрузите языковые ресурсы для языка редактора.
+
+## Просмотр и восстановление версий
+
+Измените ячейки, формулы или форматирование, дождитесь подтверждения совместного редактирования и откройте историю в меню редактора. Проверьте список версий, различия и сохранность истории после перезапуска сервиса. Восстановление меняет общий документ: сервер должен проверять права, а другой сеанс совместного редактирования должен получить обновление.
+
+## Сравнение снимков [#compare-snapshots]
+
+Для экрана проверки или передачи изменений в AI Agent используйте `compareUnitData()` либо один раз подготовьте результат через `prepareUnitComparison()`. Зарегистрируйте History-плагин продукта и импортируйте точку входа Facade. Передайте два полных снимка одного документа как `beforeSnapshot` и `afterSnapshot`. Сравнение только читает данные: сервис истории не нужен, восстановление и слияние не выполняются.
+
+```ts
+import { UnitComparisonDetailLevel, UnitComparisonFidelity } from '@univerjs-pro/edit-history'
+import { UniverInstanceType } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history/facade'
+
+const comparison = univerAPI.prepareUnitComparison({
+  comparisonId: 'review-1',
+  unitId: beforeSnapshot.id,
+  type: UniverInstanceType.UNIVER_SHEET,
+  fidelity: UnitComparisonFidelity.SNAPSHOT,
+  leftData: beforeSnapshot,
+  rightData: afterSnapshot,
+})
+const overview = comparison.query({ detail: UnitComparisonDetailLevel.SUMMARY })
+const scope = overview.scopes[0]
+const page = comparison.query({ scope, offset: 0, limit: 100 })
+console.log(page.items, page.page.hasMore, page.diagnostics)
+```
+
+Получите доступные представления из `scopes` и передайте область в `query()`, чтобы отфильтровать результат без повторного вычисления. По умолчанию возвращается 100 элементов, максимум — 1 000 на страницу. Используйте `page.hasMore` и `offset` для следующих страниц. `summary` описывает всё сравнение независимо от фильтра. Проверяйте `diagnostics.readiness` и `diagnostics.codes`, прежде чем считать результат полным. Для Node.js или CLI без редактора см. [API сравнения без интерфейса](/reference/packages/plugins/univerjs-pro/edit-history#headless-comparison).

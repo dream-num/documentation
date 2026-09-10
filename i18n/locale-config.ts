@@ -44,17 +44,6 @@ export function transformLocaleCodeSample(source: string, locale: string) {
   )
 }
 
-export const searchLocaleProfiles = {
-  'en-US': 'english',
-  'es-ES': 'english',
-  'fr-FR': 'english',
-  'ja-JP': 'cjk',
-  'ko-KR': 'cjk',
-  'ru-RU': 'english',
-  'zh-CN': 'cjk',
-  'zh-TW': 'cjk',
-} satisfies Record<Locale, 'cjk' | 'english'>
-
 export const formulaLocaleFallbacks = {
   'en-US': 'en-US',
   'es-ES': 'en-US',

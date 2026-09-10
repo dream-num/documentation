@@ -19,7 +19,7 @@ const elements: ISlidePageElement[] = [
 export const ARCHITECTURE_DATA: ISlideData = {
   id: 'technical-architecture',
   name: 'Technical Architecture Overview',
-  appVersion: '1.0.0-beta.2',
+  appVersion: '1.0.0-rc.0',
   rev: 1,
   locale: LocaleType.EN_US,
   defaultPageSize: { width: 1200, height: 675 },

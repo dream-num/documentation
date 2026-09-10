@@ -194,7 +194,7 @@ export function createChildData(): IBoardData {
   return {
     id: CHILD_ID,
     name: 'Pine / Service boundaries',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 890, height: 470 },
     pageOrder: ['boundaries'],
     activePageId: 'boundaries',

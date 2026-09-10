@@ -190,7 +190,7 @@ export function createHostData(): IBoardData {
   return {
     id: HOST_ID,
     name: 'Willow / Capacity map',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1620, height: 1040 },
     pageOrder: [PAGE_ID],
     activePageId: PAGE_ID,
@@ -241,7 +241,7 @@ export function createChildData(): Partial<IWorkbookData> {
     id: CHILD_ID,
     name: SOURCE_NAME,
     locale: LocaleType.EN_US,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     sheetOrder: [SHEET_ID],
     styles: {
       title: { fs: 22, bl: 1, cl: { rgb: '#234B6A' } },

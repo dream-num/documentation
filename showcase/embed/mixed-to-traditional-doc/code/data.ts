@@ -204,7 +204,7 @@ export function createSheetData(): Partial<IWorkbookData> {
     id: SHEET_UNIT_ID,
     name: SHEET_NAME,
     locale: LocaleType.EN_US,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     sheetOrder: [SHEET_ID],
     styles: {
       title: { fs: 20, bl: 1, cl: { rgb: '#132F59' } },

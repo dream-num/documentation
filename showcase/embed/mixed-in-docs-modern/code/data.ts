@@ -66,7 +66,7 @@ export function createSheetData(): Partial<IWorkbookData> {
     id: SHEET_UNIT_ID,
     name: 'Northstar / Resource plan',
     locale: LocaleType.EN_US,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     sheetOrder: [SHEET_ID],
     styles: {
       title: { fs: 22, bl: 1, cl: { rgb: '#3A5B47' } },
@@ -280,7 +280,7 @@ export function createSlidesData(): ISlideData {
   return {
     id: SLIDES_ID,
     name: 'Northstar / Pilot strategy',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 800, height: 450 },
@@ -511,7 +511,7 @@ export function createBoardData(): IBoardData {
   return {
     id: BOARD_ID,
     name: 'Northstar / Dependency review',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 880, height: 550 },
     pageOrder: ['workflow'],
     activePageId: 'workflow',

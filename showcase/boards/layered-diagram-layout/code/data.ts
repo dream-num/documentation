@@ -122,7 +122,7 @@ export function createData(): IBoardData {
   return {
     id: 'layered-archive-board',
     name: 'Archive intake / layered layouts',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1200, height: 950 },
     activePageId: 'layouts',
     pageOrder: ['layouts'],

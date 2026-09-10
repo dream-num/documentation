@@ -3,6 +3,32 @@ title: Historial de edición
 icon: 'RotateCcwClock'
 ---
 
+<MetaData
+  lang="es-ES"
+  meta={{
+    preset: [],
+    plugins: [
+      {
+        client: '@univerjs-pro/edit-history',
+        facade: '@univerjs-pro/edit-history/facade',
+      },
+      {
+        client: '@univerjs-pro/edit-history-ui',
+        locale: '@univerjs-pro/edit-history-ui/locale/es-ES',
+        style: '@univerjs-pro/edit-history-ui/lib/index.css',
+      },
+      {
+        client: '@univerjs-pro/slides-history',
+      },
+      {
+        client: '@univerjs-pro/slides-history-ui',
+        locale: '@univerjs-pro/slides-history-ui/locale/es-ES',
+      },
+    ],
+    server: 'optional',
+  }}
+/>
+
 Después de modificar texto, formas o el orden de las diapositivas, abre el historial para consultar versiones anteriores, comparar cambios y restaurar una versión si tienes permiso. El historial lee las versiones guardadas de forma persistente en el servidor. Deshacer y rehacer se aplican a la sesión de edición actual y no necesitan un servicio de historial.
 
 ## Preparar los servicios de colaboración e historial
@@ -51,3 +77,29 @@ Abre el historial desde el menú del editor y selecciona una versión para consu
 Para verificar la integración, modifica texto, formas o el orden de las diapositivas, espera la confirmación de la colaboración y consulta la lista de versiones y su contenido. Vuelve a abrir la aplicación y reinicia el servicio para comprobar la persistencia. Restaura una versión anterior y verifica que otra sesión del navegador reciba el estado restaurado.
 
 Si la lista está vacía, comprueba si se ha registrado historial para el documento y revisa su ID y la URL del servicio. Si puedes consultar pero no restaurar, revisa los permisos de restauración y la conexión de colaboración. Leer el historial también requiere autorización, ya que las versiones anteriores pueden contener datos que se hayan eliminado posteriormente.
+
+## Comparar snapshots [#compare-snapshots]
+
+Para crear una pantalla de revisión o proporcionar cambios a un AI Agent, usa `compareUnitData()` o prepara el resultado una sola vez con `prepareUnitComparison()`. Registra el plugin History del producto e importa la entrada Facade. Proporciona dos snapshots completos del mismo documento en `beforeSnapshot` y `afterSnapshot`. Esta comparación de solo lectura no necesita un servicio de historial y no restaura ni combina contenido.
+
+```ts
+import { UnitComparisonDetailLevel, UnitComparisonFidelity } from '@univerjs-pro/edit-history'
+import { UniverInstanceType } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history/facade'
+
+const comparison = univerAPI.prepareUnitComparison({
+  comparisonId: 'review-1',
+  unitId: beforeSnapshot.id,
+  type: UniverInstanceType.UNIVER_SLIDE,
+  fidelity: UnitComparisonFidelity.SNAPSHOT,
+  leftData: beforeSnapshot,
+  rightData: afterSnapshot,
+})
+const overview = comparison.query({ detail: UnitComparisonDetailLevel.SUMMARY })
+const scope = overview.scopes[0]
+const page = comparison.query({ scope, offset: 0, limit: 100 })
+console.log(page.items, page.page.hasMore, page.diagnostics)
+```
+
+Lee `scopes` para obtener las vistas disponibles y pasa un ámbito a `query()` para filtrar sin recalcular las diferencias. Cada página devuelve 100 elementos de forma predeterminada, con un máximo de 1.000. Usa `page.hasMore` y `offset` para continuar. `summary` describe siempre la comparación completa, incluso al filtrar elementos. Comprueba `diagnostics.readiness` y `diagnostics.codes` antes de tratar el resultado como completo. Para Node.js o una CLI sin editor, consulta la [API de comparación sin interfaz](/reference/packages/plugins/univerjs-pro/edit-history#headless-comparison).

@@ -3,6 +3,33 @@ title: 편집 기록
 icon: 'RotateCcwClock'
 ---
 
+<MetaData
+  lang="ko-KR"
+  meta={{
+    preset: [],
+    plugins: [
+      {
+        client: '@univerjs-pro/edit-history',
+        facade: '@univerjs-pro/edit-history/facade',
+      },
+      {
+        client: '@univerjs-pro/edit-history-ui',
+        locale: '@univerjs-pro/edit-history-ui/locale/ko-KR',
+        style: '@univerjs-pro/edit-history-ui/lib/index.css',
+      },
+      {
+        client: '@univerjs-pro/boards-history',
+      },
+      {
+        client: '@univerjs-pro/boards-history-ui',
+        locale: '@univerjs-pro/boards-history-ui/locale/ko-KR',
+        style: '@univerjs-pro/boards-history-ui/lib/index.css',
+      },
+    ],
+    server: 'optional',
+  }}
+/>
+
 요소 위치, 텍스트 또는 연결선을 변경한 뒤 기록을 열면 이전 버전을 살펴보고 변경 사항을 비교하며, 권한이 있는 경우 버전을 복원할 수 있습니다. 기록은 서버에 영구 저장된 버전을 읽습니다. 실행 취소와 다시 실행은 현재 편집 세션에 적용되며 기록 서비스가 필요하지 않습니다.
 
 ## 공동 편집 및 기록 서비스 준비
@@ -52,3 +79,29 @@ univer.registerPlugin(UniverBoardsHistoryUIPlugin, {
 통합을 검증하려면 요소 위치, 텍스트 또는 연결선을 변경하고 공동 편집 확인 응답을 기다린 후 기록 목록과 버전 내용을 확인하세요. 애플리케이션을 다시 열고 서비스를 재시작하여 영구 저장 여부를 확인하세요. 이전 버전을 복원한 뒤 다른 브라우저 세션에도 복원된 상태가 전달되는지 확인하세요.
 
 목록이 비어 있으면 먼저 해당 문서의 기록이 생성되었는지 확인하고 문서 ID와 서비스 URL을 확인하세요. 조회는 되지만 복원에 실패한다면 복원 권한과 공동 편집 연결을 확인하세요. 이전 버전에는 삭제된 데이터가 포함될 수 있으므로 기록 읽기에도 권한 검사가 필요합니다.
+
+## 스냅샷 비교 [#compare-snapshots]
+
+검토 화면을 만들거나 AI Agent에 변경 정보를 제공하려면 `compareUnitData()`를 사용하세요. `prepareUnitComparison()`으로 한 번 계산한 결과를 반복 조회할 수도 있습니다. 제품의 History 플러그인을 등록하고 Facade 진입점을 가져온 뒤, 같은 문서의 완전한 두 스냅샷을 `beforeSnapshot`과 `afterSnapshot`으로 전달합니다. 읽기 전용 비교에는 기록 서비스가 필요하지 않으며 내용을 복원하거나 병합하지 않습니다.
+
+```ts
+import { UnitComparisonDetailLevel, UnitComparisonFidelity } from '@univerjs-pro/edit-history'
+import { UniverInstanceType } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history/facade'
+
+const comparison = univerAPI.prepareUnitComparison({
+  comparisonId: 'review-1',
+  unitId: beforeSnapshot.id,
+  type: UniverInstanceType.UNIVER_BOARD,
+  fidelity: UnitComparisonFidelity.SNAPSHOT,
+  leftData: beforeSnapshot,
+  rightData: afterSnapshot,
+})
+const overview = comparison.query({ detail: UnitComparisonDetailLevel.SUMMARY })
+const scope = overview.scopes[0]
+const page = comparison.query({ scope, offset: 0, limit: 100 })
+console.log(page.items, page.page.hasMore, page.diagnostics)
+```
+
+`scopes`에서 사용 가능한 뷰를 찾고 선택한 범위를 `query()`에 전달하면 다시 계산하지 않고 결과를 필터링할 수 있습니다. 기본값은 100개이며 페이지당 최대 1,000개입니다. `page.hasMore`와 `offset`으로 다음 항목을 가져오세요. `summary`는 필터와 관계없이 전체 비교를 나타냅니다. `diagnostics.readiness`와 `diagnostics.codes`를 확인해 정확도가 저하된 결과를 완전한 비교로 취급하지 마세요. 편집기가 없는 Node.js 또는 CLI에서는 [헤드리스 비교 API](/reference/packages/plugins/univerjs-pro/edit-history#headless-comparison)를 사용하세요.

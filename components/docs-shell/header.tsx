@@ -62,12 +62,7 @@ export async function DocsHeader({
         <PrimaryNavigation items={guideItems} labels={navigationLabels} />
         <div className="min-w-0 flex-1" />
         <div className="flex items-center gap-1">
-          <div className="md:hidden">
-            <GuidesSearch compact lang={lang} defaultScope={searchScope} />
-          </div>
-          <div className="hidden md:block">
-            <GuidesSearch lang={lang} defaultScope={searchScope} />
-          </div>
+          <GuidesSearch lang={lang} defaultScope={searchScope} />
           <a
             href="https://github.com/dream-num/univer"
             target="_blank"

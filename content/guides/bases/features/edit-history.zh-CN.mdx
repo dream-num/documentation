@@ -3,6 +3,33 @@ title: 历史记录
 icon: 'RotateCcwClock'
 ---
 
+<MetaData
+  lang="zh-CN"
+  meta={{
+    preset: [],
+    plugins: [
+      {
+        client: '@univerjs-pro/edit-history',
+        facade: '@univerjs-pro/edit-history/facade',
+      },
+      {
+        client: '@univerjs-pro/edit-history-ui',
+        locale: '@univerjs-pro/edit-history-ui/locale/zh-CN',
+        style: '@univerjs-pro/edit-history-ui/lib/index.css',
+      },
+      {
+        client: '@univerjs-pro/bases-history',
+      },
+      {
+        client: '@univerjs-pro/bases-history-ui',
+        locale: '@univerjs-pro/bases-history-ui/locale/zh-CN',
+        style: '@univerjs-pro/bases-history-ui/lib/index.css',
+      },
+    ],
+    server: 'optional',
+  }}
+/>
+
 例如，修改字段、记录或视图后，可以打开历史记录查看先前版本、比较变化，并在有权限时恢复版本。历史记录读取服务端保存的版本；当前页面的撤销、重做不需要历史服务，两者不能互相替代。
 
 
@@ -10,7 +37,7 @@ icon: 'RotateCcwClock'
 
 先按[协同集成](/server/collaboration/browser-integration)连接编辑器，并完成[许可证配置](/server/license)。确认两端能编辑同一份 Bases 文档，刷新后内容仍然保留。
 
-然后按 [Office 协同扩展模块](/zh-CN/server/collaboration/extensions)和 [History 示例](/zh-CN/server/collaboration/examples#history)接入历史服务、存储和权限。核心协同不会自动启用历史记录；后端还需提供历史列表、版本内容和恢复操作所需的能力。
+然后按 [Office 协同扩展模块](/server/collaboration/extensions)和 [History 示例](/server/collaboration/examples#history)接入历史服务、存储和权限。核心协同不会自动启用历史记录；后端还需提供历史列表、版本内容和恢复操作所需的能力。
 
 ## 添加历史记录插件
 
@@ -53,3 +80,29 @@ univer.registerPlugin(UniverBasesHistoryUIPlugin, {
 接入后，修改字段、记录或视图，等待协同确认，再检查历史列表和版本内容。重新打开应用及重启服务后再次读取；恢复一个旧版本后，确认另一个浏览器会话也收到恢复结果。
 
 如果面板为空，先检查历史服务是否记录了当前文档，以及请求中的文档 ID 和服务地址是否正确。版本能查看但无法恢复时，检查恢复权限和协同连接。历史版本可能包含后来删除的数据，读取历史也必须执行权限检查。
+
+## 比较快照 [#compare-snapshots]
+
+如果需要构建审阅界面，或向 AI Agent 提供变更信息，可以调用 `compareUnitData()`，也可以用 `prepareUnitComparison()` 只计算一次并重复查询。先注册本品类的 History 插件并导入 Facade 入口，再将同一文档的两份完整快照作为 `beforeSnapshot` 和 `afterSnapshot` 传入。只读比较不需要历史服务，也不会恢复或合并内容。
+
+```ts
+import { UnitComparisonDetailLevel, UnitComparisonFidelity } from '@univerjs-pro/edit-history'
+import { UniverInstanceType } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history/facade'
+
+const comparison = univerAPI.prepareUnitComparison({
+  comparisonId: 'review-1',
+  unitId: beforeSnapshot.id,
+  type: UniverInstanceType.UNIVER_BASE,
+  fidelity: UnitComparisonFidelity.SNAPSHOT,
+  leftData: beforeSnapshot,
+  rightData: afterSnapshot,
+})
+const overview = comparison.query({ detail: UnitComparisonDetailLevel.SUMMARY })
+const scope = overview.scopes[0]
+const page = comparison.query({ scope, offset: 0, limit: 100 })
+console.log(page.items, page.page.hasMore, page.diagnostics)
+```
+
+通过 `scopes` 获取可用视图，再将选中的范围传给 `query()`，即可筛选结果而不重新计算差异。默认每页返回 100 项，最多 1,000 项；结合 `page.hasMore` 和 `offset` 获取后续内容。`summary` 始终描述整个比较，不随条目筛选变化。使用结果前检查 `diagnostics.readiness` 和 `diagnostics.codes`，避免将降级结果当作完整比较。无需编辑器的 Node.js 或 CLI 用法见[无界面比较 API](/reference/packages/plugins/univerjs-pro/edit-history#headless-comparison)。

@@ -57,7 +57,7 @@ export function createHostData(): Partial<IWorkbookData> {
     id: HOST_ID,
     name: SOURCE_NAME,
     locale: LocaleType.EN_US,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     sheetOrder: ['model', 'notes'],
     styles: {
       title: { fs: 23, bl: 1, cl: { rgb: '#183C43' } },
@@ -300,7 +300,7 @@ export function createChildData(): ISlideData {
   return {
     id: CHILD_ID,
     name: 'Solstice / Scenario review',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 1200, height: 675 },

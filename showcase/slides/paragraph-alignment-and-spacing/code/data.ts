@@ -144,7 +144,7 @@ export function createData(): ISlideData {
   return {
     id: 'paragraph-layout-deck',
     name: 'Paragraph alignment and spacing',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 920, height: 590 },

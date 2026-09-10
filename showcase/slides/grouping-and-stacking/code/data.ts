@@ -69,7 +69,7 @@ export function createData(): ISlideData {
   return {
     id: 'grouping-gallery',
     name: 'Grouping and stacking',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 1024, height: 576 },

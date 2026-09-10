@@ -3,7 +3,103 @@ title: 歷史記錄
 icon: 'RotateCcwClock'
 ---
 
+<MetaData
+  lang="zh-TW"
+  meta={{
+    preset: [
+      {
+        client: '@univerjs/preset-sheets-collaboration',
+        locale: '@univerjs/preset-sheets-collaboration/locales/zh-TW',
+        style: '@univerjs/preset-sheets-collaboration/lib/index.css',
+      },
+    ],
+    plugins: [
+      {
+        client: '@univerjs-pro/edit-history',
+        facade: '@univerjs-pro/edit-history/facade',
+      },
+      {
+        client: '@univerjs-pro/edit-history-ui',
+        locale: '@univerjs-pro/edit-history-ui/locale/zh-TW',
+        style: '@univerjs-pro/edit-history-ui/lib/index.css',
+      },
+      {
+        client: '@univerjs-pro/sheets-history',
+      },
+      {
+        client: '@univerjs-pro/sheets-history-ui',
+        locale: '@univerjs-pro/sheets-history-ui/locale/zh-TW',
+        style: '@univerjs-pro/sheets-history-ui/lib/index.css',
+      },
+    ],
+    server: 'optional',
+  }}
+/>
 
-請從[伺服器端整合](/server)開始，依序執行範例、接入業務、驗證持久化和權限。實作細節與可執行的 Web/Server 範例請見 [Univer Office 文件](/zh-CN/server/collaboration/quick-start)。
+查看先前版本、比較內容變更，並在取得權限後還原版本。持久化歷史記錄需要使用 Server SDK 整合歷史服務；目前編輯工作階段的復原與重做不需要歷史服務。
 
-歷史記錄需要獨立的 Service、Endpoint、Database Adapter 和權限策略。請依[協同擴充模組](/zh-CN/server/collaboration/extensions)與 [History 範例](/zh-CN/server/collaboration/examples#history)整合，確認歷史記錄在重新啟動後仍保留，且僅授權使用者可讀取。
+## 準備協同與歷史服務
+
+先完成[協同整合](/server/collaboration/browser-integration)與[授權設定](/server/license)，再依[協同擴充模組](/server/collaboration/extensions)及 [History 範例](/server/collaboration/examples#history)接入歷史儲存與權限。核心協同不會自動啟用歷史記錄。
+
+## 註冊歷史記錄外掛
+
+在現有 Sheets 與協同設定中加入以下外掛。若已使用協同 preset，請調整既有設定，避免重複註冊。Sheets 歷史介面也需要 `UniverCollaborationClientUIPlugin`。
+
+```package-install
+npm install @univerjs-pro/edit-history @univerjs-pro/edit-history-ui @univerjs-pro/sheets-history @univerjs-pro/sheets-history-ui
+```
+
+```ts
+import { UniverEditHistoryPlugin } from '@univerjs-pro/edit-history'
+import EditHistoryLocale from '@univerjs-pro/edit-history-ui/locale/en-US'
+import { UniverSheetsHistoryPlugin } from '@univerjs-pro/sheets-history'
+import { UniverSheetsHistoryUIPlugin } from '@univerjs-pro/sheets-history-ui'
+import HistoryLocale from '@univerjs-pro/sheets-history-ui/locale/en-US'
+import { LocaleType, mergeLocales } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history-ui/lib/index.css'
+import '@univerjs-pro/sheets-history-ui/lib/index.css'
+
+const historyServerUrl = '/api/history'
+
+univerAPI.loadLocales(LocaleType.EN_US, mergeLocales(EditHistoryLocale, HistoryLocale))
+univer.registerPlugin(UniverEditHistoryPlugin, { historyServerUrl })
+univer.registerPlugin(UniverSheetsHistoryPlugin)
+univer.registerPlugin(UniverSheetsHistoryUIPlugin, {
+  univerContainerId: 'app',
+  historyServerUrl,
+})
+```
+
+將 `/api/history` 換成應用程式的歷史服務前綴，兩處 `historyServerUrl` 必須一致。`univerContainerId` 應與編輯器容器的 DOM ID 相同。語言資源需與編輯器一致。
+
+## 檢視與還原版本
+
+修改儲存格、公式或格式，等待協同確認後，從編輯器選單開啟歷史記錄。檢查版本清單、差異內容及重新啟動後的持久化結果。還原會改變共用文件，服務端必須驗證還原權限；完成後應確認另一個協同工作階段收到更新。
+
+## 比較快照 [#compare-snapshots]
+
+若要建立審閱介面或向 AI Agent 提供變更資訊，可呼叫 `compareUnitData()`，或用 `prepareUnitComparison()` 計算一次後重複查詢。先註冊此品類的 History 外掛並匯入 Facade 入口，再將同一文件的兩份完整快照作為 `beforeSnapshot` 和 `afterSnapshot` 傳入。唯讀比較不需要歷史服務，也不會還原或合併內容。
+
+```ts
+import { UnitComparisonDetailLevel, UnitComparisonFidelity } from '@univerjs-pro/edit-history'
+import { UniverInstanceType } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history/facade'
+
+const comparison = univerAPI.prepareUnitComparison({
+  comparisonId: 'review-1',
+  unitId: beforeSnapshot.id,
+  type: UniverInstanceType.UNIVER_SHEET,
+  fidelity: UnitComparisonFidelity.SNAPSHOT,
+  leftData: beforeSnapshot,
+  rightData: afterSnapshot,
+})
+const overview = comparison.query({ detail: UnitComparisonDetailLevel.SUMMARY })
+const scope = overview.scopes[0]
+const page = comparison.query({ scope, offset: 0, limit: 100 })
+console.log(page.items, page.page.hasMore, page.diagnostics)
+```
+
+透過 `scopes` 取得可用檢視，將選定範圍傳入 `query()` 即可篩選結果，無須重新計算差異。預設每頁 100 項，上限 1,000 項；搭配 `page.hasMore` 與 `offset` 取得後續項目。`summary` 始終描述整體比較，不受項目篩選影響。使用前應檢查 `diagnostics.readiness` 與 `diagnostics.codes`，不要將降級結果視為完整比較。不建立編輯器的 Node.js 或 CLI 用法請見[無介面比較 API](/reference/packages/plugins/univerjs-pro/edit-history#headless-comparison)。

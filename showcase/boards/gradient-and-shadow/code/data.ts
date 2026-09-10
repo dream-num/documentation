@@ -100,7 +100,7 @@ export function createData(): IBoardData {
   return {
     id: 'board-gradient-shadow-lab',
     name: 'Gradient and shadow',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1100, height: 850 },
     activePageId: 'effects',
     pageOrder: ['effects'],

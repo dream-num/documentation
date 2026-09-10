@@ -3,6 +3,34 @@ title: 评论
 icon: 'MessageSquare'
 ---
 
+<MetaData
+  lang="zh-CN"
+  meta={{
+    preset: [],
+    plugins: [
+      {
+        client: '@univerjs/thread-comment',
+        facade: '@univerjs/thread-comment/facade',
+      },
+      {
+        client: '@univerjs/thread-comment-ui',
+        locale: '@univerjs/thread-comment-ui/locale/zh-CN',
+        style: '@univerjs/thread-comment-ui/lib/index.css',
+      },
+      {
+        client: '@univerjs-pro/bases-thread-comment',
+        facade: '@univerjs-pro/bases-thread-comment/facade',
+      },
+      {
+        client: '@univerjs-pro/bases-thread-comment-ui',
+        locale: '@univerjs-pro/bases-thread-comment-ui/locale/zh-CN',
+        style: '@univerjs-pro/bases-thread-comment-ui/lib/index.css',
+      },
+    ],
+    server: 'optional',
+  }}
+/>
+
 为任务、订单等记录添加讨论。评论跟随记录，在网格、看板、画廊、日历和甘特图中使用同一份评论，不会因为切换视图产生新的讨论。
 
 ## 注册插件
@@ -45,3 +73,25 @@ console.log(comments.map(({ root }) => root.id))
 本地评论可以随 Base 资源保存，使用 `base.save()` 获取完整快照。恢复快照前先注册评论插件。
 
 如果多人需要共享评论，还要接入评论服务、数据源和权限。正文协同不等于评论服务已接通，具体后端实现见 [Office 协同扩展模块](/zh-CN/server/collaboration/extensions)。用两个账号验证评论创建、读取和权限，再检查重新打开后的内容。
+
+## 通用评论操作 [#shared-comment-api]
+
+调用前同时导入通用评论 Facade 和品类 Facade。品类方法负责建立稳定锚点，通用 API 用于回复、修改、解决和删除评论。`getComments()` 读取本地状态；`listCommentsAsync()` 通过已配置的数据源同步已知线程，不会发现服务端的全部线程。
+
+```ts
+import '@univerjs/thread-comment/facade'
+
+const [thread] = univerAPI.getComments({ resolved: false })
+if (thread) {
+  await univerAPI.replyCommentAsync({
+    unitId: thread.unitId,
+    subUnitId: thread.subUnitId,
+    threadId: thread.threadId,
+    content: 'Reviewed.',
+  })
+}
+```
+
+## 共享讨论 [#shared-discussions]
+
+共享讨论需要先通过 [Server SDK](/server/collaboration/extensions) 集成 Comment Service 和 Endpoint，再在协同与许可证配置之后注册 `@univerjs-pro/thread-comment-datasource` 的 `UniverThreadCommentDataSourcePlugin`。内置数据源访问 `/universer-api/comment/unit/{unitId}/...` 和 `/universer-api/user/list`，请通过应用暴露这些路由。服务端需要独立验证评论读写权限，不能仅依赖文档编辑权限。

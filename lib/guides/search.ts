@@ -1,53 +1,68 @@
-export type SearchScope = 'all' | 'guides' | 'reference'
+import type { SortedResult } from 'fumadocs-core/search'
+
+export type SearchScope = 'all' | 'guides' | 'server' | 'ai' | 'reference'
 export type SearchResultSource = Exclude<SearchScope, 'all'>
 
 export interface IScopedSearchResult {
   id: string
   title: string
   url: string
-  content?: string
+  content: string
+  breadcrumbs: string[]
   source: SearchResultSource
-  score?: number
-}
-
-function stripHtml(value: string) {
-  return value.replaceAll(/<[^>]*>/g, '')
 }
 
 export function parseSearchScope(value: string | null): SearchScope {
-  if (value === 'all' || value === 'reference') return value
-  return 'guides'
+  if (value === 'guides' || value === 'server' || value === 'ai' || value === 'reference') return value
+  return 'all'
 }
 
-export function normalizeScopedSearchResults(payload: unknown, source: SearchResultSource): IScopedSearchResult[] {
-  const results = Array.isArray(payload)
-    ? payload
-    : typeof payload === 'object' && payload !== null && 'results' in payload
-      ? (payload as { results?: unknown }).results
-      : []
-
-  if (!Array.isArray(results)) return []
-
-  return results.flatMap((item, index) => {
-    if (typeof item !== 'object' || item === null) return []
-
-    const value = item as Record<string, unknown>
-    const url = value.url
-    const rawTitle = value.title ?? value.content ?? value.id
-
-    if (typeof url !== 'string' || typeof rawTitle !== 'string') return []
-
-    const breadcrumbs = Array.isArray(value.breadcrumbs)
-      ? value.breadcrumbs.filter((part): part is string => typeof part === 'string')
-      : []
-
-    return {
-      id: typeof value.id === 'string' ? value.id : `${source}-${url}-${index}`,
-      title: stripHtml(rawTitle),
-      url,
-      content: breadcrumbs.length > 0 ? breadcrumbs.join(' / ') : undefined,
-      source,
-      score: typeof value.score === 'number' ? value.score : undefined,
+export function normalizeScopedSearchResults(
+  results: SortedResult[],
+  source: SearchResultSource,
+): IScopedSearchResult[] {
+  const pages = new Map<string, IScopedSearchResult>()
+  for (const result of results) {
+    if (!result.url.startsWith('/') || result.url.startsWith('//')) continue
+    const pageUrl = result.url.split('#')[0]
+    const content = result.content.replaceAll(/<[^>]*>/g, '')
+    if (result.type === 'page') {
+      pages.set(pageUrl, {
+        id: `${source}:${pageUrl}`,
+        title: content,
+        url: result.url,
+        content: '',
+        breadcrumbs: (result.breadcrumbs ?? []).map((part) => part.replaceAll(/<[^>]*>/g, '')),
+        source,
+      })
     }
-  })
+  }
+  const snippets = new Set<string>()
+  for (const result of results) {
+    const page = pages.get(result.url.split('#')[0])
+    if (!page || result.type === 'page') continue
+    if (!page.content || (result.type === 'text' && !snippets.has(page.id))) {
+      page.url = result.url
+      page.content = result.content.replaceAll(/<[^>]*>/g, '')
+      if (result.type === 'text') snippets.add(page.id)
+    }
+  }
+  return [...pages.values()]
+}
+
+export function rankSearchResults(groups: IScopedSearchResult[][], query: string): IScopedSearchResult[] {
+  const term = query.toLocaleLowerCase()
+  return groups
+    .flatMap((results) => results.map((result, index) => ({ result, index })))
+    .toSorted((a, b) => {
+      const aTitle = a.result.title.toLocaleLowerCase()
+      const bTitle = b.result.title.toLocaleLowerCase()
+      return (
+        Number(bTitle === term) - Number(aTitle === term) ||
+        Number(bTitle.includes(term)) - Number(aTitle.includes(term)) ||
+        a.index - b.index
+      )
+    })
+    .slice(0, 30)
+    .map(({ result }) => result)
 }

@@ -85,16 +85,19 @@ import { UniverDocsThreadCommentPlugin } from '@univerjs/docs-thread-comment' //
 import { UniverDocsThreadCommentUIPlugin } from '@univerjs/docs-thread-comment-ui' // [!code ++]
 import { UniverThreadCommentPlugin } from '@univerjs/thread-comment' // [!code ++]
 import { UniverThreadCommentUIPlugin } from '@univerjs/thread-comment-ui' // [!code ++]
+import DocsCommentLocale from '@univerjs/docs-thread-comment-ui/locale/zh-TW'
 import ThreadCommentUIZhTW from '@univerjs/thread-comment-ui/locale/zh-TW' // [!code ++]
 
 import '@univerjs/docs-thread-comment/facade' // [!code ++]
+import '@univerjs/docs-thread-comment-ui/lib/index.css'
 import '@univerjs/thread-comment-ui/lib/index.css' // [!code ++]
 
 const univer = new Univer({
   locale: LocaleType.ZH_TW,
   locales: {
     [LocaleType.ZH_TW]: mergeLocales(
-      ThreadCommentUIZhTW, // [!code ++]
+      ThreadCommentUIZhTW,
+      DocsCommentLocale, // [!code ++]
     ),
   },
 })
@@ -120,3 +123,36 @@ univer.registerPlugin(UniverThreadCommentDataSourcePlugin) // [!code ++]
 ```
 
 {/* ### 外掛與配置 */}
+
+## 評論 Facade [#comment-facade]
+
+呼叫前同時匯入通用評論 Facade 與品類 Facade。品類方法建立穩定錨點，通用 API 負責回覆、修改、解決與刪除。`getComments()` 讀取本機狀態；`listCommentsAsync()` 透過已設定的資料來源同步已知討論串，不會探索伺服器上的全部討論串。
+
+```ts
+import '@univerjs/thread-comment/facade'
+import '@univerjs/docs-thread-comment/facade'
+
+const range = univerAPI.getActiveDocument()?.getTextRange(0, 1)
+if (range) {
+  await range.createCommentAsync('Please review this text.')
+  console.log(await range.listCommentsAsync())
+}
+```
+
+```ts
+import '@univerjs/thread-comment/facade'
+
+const [thread] = univerAPI.getComments({ resolved: false })
+if (thread) {
+  await univerAPI.replyCommentAsync({
+    unitId: thread.unitId,
+    subUnitId: thread.subUnitId,
+    threadId: thread.threadId,
+    content: 'Reviewed.',
+  })
+}
+```
+
+## 共享討論 [#shared-discussions]
+
+先透過 [Server SDK](/server/collaboration/extensions) 整合 Comment Service 與 Endpoint，再於協同及授權設定之後註冊 `@univerjs-pro/thread-comment-datasource` 的 `UniverThreadCommentDataSourcePlugin`。內建資料來源存取 `/universer-api/comment/unit/{unitId}/...` 與 `/universer-api/user/list`，請由應用程式提供這些路由。服務端須獨立驗證評論讀寫權限，不能僅依賴文件編輯權限。

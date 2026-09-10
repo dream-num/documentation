@@ -104,7 +104,7 @@ export function createChildData(): IBoardData {
   return {
     id: CHILD_ID,
     name: 'Tidal / Dock handoff',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 850, height: 560 },
     pageOrder: ['handoff'],
     activePageId: 'handoff',
@@ -163,7 +163,7 @@ export function createHostData(): Partial<IWorkbookData> {
     id: HOST_ID,
     name: 'Tidal / Berth costs',
     locale: LocaleType.EN_US,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     sheetOrder: [SHEET_ID],
     styles: {
       title: { fs: 22, bl: 1, cl: { rgb: '#245C70' } },

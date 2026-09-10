@@ -48,7 +48,7 @@ export function createHostData(): Partial<IWorkbookData> {
     id: HOST_ID,
     name: SOURCE_NAME,
     locale: LocaleType.EN_US,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     sheetOrder: [SHEET_ID],
     styles: {
       title: { fs: 21, bl: 1, cl: { rgb: '#101A34' } },
@@ -203,7 +203,7 @@ export function createChildData(): ISlideData {
   return {
     id: CHILD_ID,
     name: 'Atlas / Quote decision',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     locale: LocaleType.EN_US,
     rev: 1,
     defaultPageSize: { width: 800, height: 450 },

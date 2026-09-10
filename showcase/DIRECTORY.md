@@ -38,6 +38,6 @@ Sheets driving embedded Docs, Slides or Boards remain available.
 
 `COMPOSITIONS` contains reviewed display relationships, not runtime state or
 acceptance evidence. Update it when adding a composition case, and run
-`node scripts/test-showcase-directory.mjs`. The homepage filters, sidebar and
+`node showcase/__tests__/catalog.spec.mjs`. The homepage filters, sidebar and
 detail classification share this directory. EN/ZH labels are supplied, with
 English fallback for other locales.

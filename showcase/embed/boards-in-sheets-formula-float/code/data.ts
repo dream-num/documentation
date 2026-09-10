@@ -171,7 +171,7 @@ export function createChildData(): IBoardData {
   return {
     id: CHILD_ID,
     name: 'Delta / Resource allocation map',
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     defaultPageSize: { width: 1200, height: 800 },
     pageOrder: [PAGE_ID],
     activePageId: PAGE_ID,
@@ -209,7 +209,7 @@ export function createHostData(): Partial<IWorkbookData> {
     id: HOST_ID,
     name: SOURCE_NAME,
     locale: LocaleType.EN_US,
-    appVersion: '1.0.0-beta.2',
+    appVersion: '1.0.0-rc.0',
     sheetOrder: [SHEET_ID],
     styles: {
       title: { fs: 20, bl: 1, cl: { rgb: '#173F45' } },

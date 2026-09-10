@@ -5,7 +5,7 @@ import type { Locale } from '@/i18n/routing'
 import { DocsHeader } from '@/components/docs-shell/header'
 import { Footer } from '@/components/footer'
 import { createGuideNavigation } from '@/lib/guides/navigation'
-import { guides } from '@/lib/source'
+import { guideNavigationSource } from '@/lib/guides/navigation-source'
 import { createToolsNavigation } from '@/lib/tools/navigation'
 
 export async function ToolsShell({
@@ -21,7 +21,7 @@ export async function ToolsShell({
   const navigation = createToolsNavigation(pathname, {
     themeCustomizer: t('tools.theme-customizer'),
   })
-  const guideNavigation = createGuideNavigation(guides.pageTree[lang], pathname)
+  const guideNavigation = createGuideNavigation(guideNavigationSource.pageTree[lang], pathname)
 
   return (
     <div className="bg-background text-foreground min-h-dvh">

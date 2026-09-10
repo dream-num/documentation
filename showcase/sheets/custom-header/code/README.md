@@ -73,12 +73,6 @@ native Undo command to reverse the insertion, not a label-rewriting callback.
 univerAPI.getWorkbook('lumen-equipment').getSheetBySheetId('bookings').insertRows(0, 1)
 ```
 
-The old panel-based `test-custom-header.mjs` and intermediate
-`test-header-native-cleanup.mjs` reports are historical. Current complete native
-paint, original header scope, positional labels, full snapshot history and
-recovery, EN/ZH, theme and lifecycle evidence belongs to the dedicated native
-acceptance report. Strict model failures are not replaced by value-only checks.
-
 Two strict SDK differences remain: cell Undo can add `t: 1` and retain an allocated
 style; full owner reconstruction changes the `SHEET_DEFINED_NAME_PLUGIN` resource
 from an empty string to `'{}'`. The test retains the full before/after models and

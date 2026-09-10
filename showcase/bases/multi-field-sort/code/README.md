@@ -151,7 +151,7 @@ await demo.ready
 
 Changing sort criteria, editing a sort key and reconstructing saved content are separate paths. A fresh owner may correctly calculate order even when a live update leaves stale positions; that does not make live re-sorting pass. The earlier beta.2 defect remains a strict regression target. Null model values and their actual native presentation are checked separately. Native UI registration alone is not acceptance.
 
-Selected native verification on SDK `1.0.0-beta.2` confirms two defects without changing the SDK:
+Selected native verification on SDK `1.0.0-rc.0` confirms two defects without changing the SDK:
 
 - **Live sort remains strict FAIL in both native and Facade paths.** Meridian's stored score and actual painted cell become 98, but both projection and canvas keep it fourth, after Atlas/Flux/Indigo at 95. The expected position is first. Full saved models and actual painted row order are retained in the report.
 - **Null presentation remains strict FAIL.** Elm's score remains `null` in the complete model but its native numeric cell paints `0.00`, visually conflating it with Delta's actual zero. Null still participates distinctly in sorting: first ascending and last descending.
