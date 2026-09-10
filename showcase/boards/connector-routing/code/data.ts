@@ -1,4 +1,4 @@
-import type { IBoardData, IBoardConnectorEndpoint } from '@univerjs-pro/boards'
+import type { IBoardConnectorEndpoint, IBoardData } from '@univerjs-pro/boards'
 import { BoardPageType, createBoardConnectorElement, createBoardTextBoxShapeElement } from '@univerjs-pro/boards'
 import { ShapeFillEnum, ShapeLineTypeEnum, ShapeTextWrapType, ShapeTypeEnum } from '@univerjs-pro/engine-shape'
 import { BooleanNumber, HorizontalAlign, VerticalAlign } from '@univerjs/core'
@@ -90,15 +90,18 @@ const connectors = EDGES.map((edge) => {
     },
     label: {
       id: edge.id + '-label',
-      text: edge.label,
-      width: edge.label.length * 9 + 14,
-      height: 24,
-      pathRatio: edge.id === 'staging-tests' ? 0.25 : 0.5,
-      offset: {
-        x: edge.id === 'tests-quarantine' ? 100 : edge.id === 'staging-tests' ? 90 : 0,
-        y: ['source-lint', 'lint-tests'].includes(edge.id) ? -58 : -18,
+      content: edge.label,
+      layout: { mode: 'fixedSize', width: edge.label.length * 9 + 14, height: 24 },
+      placement: {
+        anchor: 'path',
+        pathRatio: edge.id === 'staging-tests' ? 0.25 : 0.5,
+        offset: {
+          space: 'canvas',
+          x: edge.id === 'tests-quarantine' ? 100 : edge.id === 'staging-tests' ? 90 : 0,
+          y: ['source-lint', 'lint-tests'].includes(edge.id) ? -58 : -18,
+        },
       },
-      style: { fill: { color: '#FFFFFF', opacity: 0.96 }, lineBreak: true, lineGap: 3 },
+      style: { fill: { color: '#FFFFFF', opacity: 0.96 }, interruptLine: true, lineGap: 3 },
     },
   })
 })

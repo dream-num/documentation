@@ -1,41 +1,7 @@
 ---
 title: Web Workers
+icon: CircuitBoard
 ---
-
-<MetaData
-  lang="zh-TW"
-  meta={{
-    preset: [
-      {
-        client: '@univerjs/preset-sheets-core',
-        locale: '@univerjs/preset-sheets-core/locales/zh-TW',
-        style: '@univerjs/preset-sheets-core/lib/index.css',
-      },
-      {
-        client: '@univerjs/preset-sheets-filter',
-        locale: '@univerjs/preset-sheets-filter/locales/zh-TW',
-        style: '@univerjs/preset-sheets-filter/lib/index.css',
-      },
-      {
-        client: '@univerjs/preset-sheets-drawing',
-        locale: '@univerjs/preset-sheets-drawing/locales/zh-TW',
-        style: '@univerjs/preset-sheets-drawing/lib/index.css',
-      },
-      {
-        client: '@univerjs/preset-sheets-advanced',
-        locale: '@univerjs/preset-sheets-advanced/locales/zh-TW',
-        style: '@univerjs/preset-sheets-advanced/lib/index.css',
-      },
-      {
-        client: '@univerjs/preset-sheets-collaboration',
-        locale: '@univerjs/preset-sheets-collaboration/locales/zh-TW',
-        style: '@univerjs/preset-sheets-collaboration/lib/index.css',
-      },
-    ],
-    plugins: [],
-    server: 'optional',
-  }}
-/>
 
 以下示例展示了 Univer 中使用 Worker 的基本用法。
 
@@ -69,7 +35,7 @@ const { univerAPI } = createUniver({
   },
   presets: [
     UniverSheetsCorePreset({
-      workerURL: new Worker(new URL('./worker.js', import.meta.url), { type: 'module' }),
+      workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
     }),
     UniverSheetsFilterPreset(),
   ],
@@ -131,7 +97,7 @@ const { univerAPI } = createUniver({
   collaboration: true,
   presets: [
     UniverSheetsCorePreset({
-      workerURL: new Worker(new URL('./worker.js', import.meta.url), { type: 'module' }),
+      workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
     }),
     UniverSheetsDrawingPreset({
       collaboration: true,
@@ -170,8 +136,40 @@ createUniver({
 })
 ```
 
-更多預設模式示例可以參考 [Univer preset examples](https://github.com/dream-num/univer/tree/0d849012594882307186f33734b8b89d80a729e9/examples/src/preset-sheets-core-with-worker)。這些示例展示了不同 preset 組合下的 Worker 配置方式，適合作為基於預設集成 Univer 時的參考。
+## 外掛模式
 
-## Plugin 安裝模式
+以[安裝與基本使用](/guides/sheets/getting-started/installation)中的外掛模式為基礎，保留主執行緒的渲染與 UI 外掛。將既有的三個計算相關外掛改為以下設定，並在建立活頁簿前加入主執行緒 RPC 外掛。
 
-如果你沒有使用 preset，而是按需安裝並手動註冊 `@univerjs/*` 外掛，則需要在主進程和 Worker 進程中分別註冊對應外掛，並確保公式計算相關外掛在 Worker 側完成註冊。Plugin 安裝模式的完整示例可以參考 [dream-num/univer examples](https://github.com/dream-num/univer/tree/dev/examples/src)。
+```typescript title="main.ts"
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import { UniverRPCMainThreadPlugin } from '@univerjs/rpc'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+univer.registerPlugin(UniverRPCMainThreadPlugin, {
+  workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+})
+univer.registerPlugin(UniverFormulaEnginePlugin, { notExecuteFormula: true })
+univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: true })
+univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: true })
+```
+
+Worker 只註冊以下資料與計算外掛，不註冊 UI 或渲染外掛。主執行緒的 `notExecuteFormula: true` 表示將計算交給 Worker。
+
+```typescript title="worker.ts"
+import { LocaleType, Univer } from '@univerjs/core'
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverRemoteSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+const univer = new Univer({ locale: LocaleType.ZH_TW })
+univer.registerPlugin(UniverSheetsPlugin, { onlyRegisterFormulaRelatedMutations: true })
+univer.registerPlugin(UniverFormulaEnginePlugin)
+univer.registerPlugin(UniverRPCWorkerThreadPlugin)
+univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
+```
+
+使用篩選功能時，兩端都須註冊 `@univerjs/sheets-filter` 中的 `UniverSheetsFilterPlugin`，讓 `SUBTOTAL` 等公式感知篩選後的列。`UniverSheetsFilterUIPlugin` 只在主執行緒註冊。
+
+使用樞紐分析表時，兩端還須註冊 `UniverLicensePlugin`、`UniverProFormulaEnginePlugin` 與 `UniverSheetsPivotTablePlugin`。後兩個外掛在主執行緒設定 `notExecuteFormula: true`，在 Worker 中設定 `false`。兩端均傳入授權，樞紐分析表 UI 留在主執行緒；自訂公式的實作也須在兩端的公式引擎中註冊。

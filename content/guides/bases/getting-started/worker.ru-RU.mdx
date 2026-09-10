@@ -1,0 +1,54 @@
+---
+title: Web Workers
+icon: CircuitBoard
+---
+
+Bases может перенести вычисление формул в Worker через RPC. Задайте `notExecuteFormula: true` движку в основном потоке и зарегистрируйте удалённый плагин Bases с вычислительным движком в Worker.
+
+Сначала выполните [установку и базовую настройку](/guides/bases/getting-started/installation). Эти фрагменты дополняют существующую конфигурацию. Регистрируйте плагины до создания или загрузки содержимого; изменяйте уже имеющуюся регистрацию без дублирования.
+
+## Основной поток
+
+```typescript title="main.ts"
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverRPCMainThreadPlugin } from '@univerjs/rpc'
+
+univer.registerPlugin(UniverRPCMainThreadPlugin, {
+  workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+})
+univer.registerPlugin(UniverProFormulaEnginePlugin, { notExecuteFormula: true })
+```
+
+## Точка входа Worker
+
+```typescript title="worker.ts"
+import { UniverRemoteBasesPlugin } from '@univerjs-pro/bases'
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import { LocaleType, Univer } from '@univerjs/core'
+import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
+
+const univer = new Univer({ locale: LocaleType.RU_RU })
+univer.registerPlugin(UniverLicensePlugin, { license: 'your license.txt' })
+univer.registerPlugin(UniverProFormulaEnginePlugin)
+univer.registerPlugin(UniverRemoteBasesPlugin)
+univer.registerPlugin(UniverRPCWorkerThreadPlugin)
+```
+
+Используйте модульный Worker и отдельный файл точки входа. Версии пакетов в обоих потоках должны совпадать. Отрисовка и взаимодействие с пользователем остаются в основном потоке.
+
+## Сводные представления и панели
+
+Для сводных вычислений панели задайте `notExecuteCalculation: true` плагину `UniverBaseDashboardPlugin` в основном потоке и зарегистрируйте `UniverRemoteBaseDashboardPlugin` в том же Worker. Плагины интерфейса остаются в основном потоке.
+
+```typescript title="main.ts"
+import { UniverBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+
+univer.registerPlugin(UniverBaseDashboardPlugin, { notExecuteCalculation: true })
+```
+
+```typescript title="worker.ts"
+import { UniverRemoteBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+
+univer.registerPlugin(UniverRemoteBaseDashboardPlugin)
+```

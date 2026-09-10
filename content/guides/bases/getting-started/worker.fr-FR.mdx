@@ -1,0 +1,54 @@
+---
+title: Web Workers
+icon: CircuitBoard
+---
+
+Bases peut déporter les calculs de formules via RPC. Configurez `notExecuteFormula: true` sur le moteur du thread principal, puis enregistrez le plugin Bases distant et le moteur de calcul dans le Worker.
+
+Commencez par [l’installation et les premiers pas](/guides/bases/getting-started/installation). Ces extraits complètent la configuration existante. Enregistrez les plugins avant de créer ou charger du contenu ; modifiez les enregistrements existants sans les dupliquer.
+
+## Thread principal
+
+```typescript title="main.ts"
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverRPCMainThreadPlugin } from '@univerjs/rpc'
+
+univer.registerPlugin(UniverRPCMainThreadPlugin, {
+  workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+})
+univer.registerPlugin(UniverProFormulaEnginePlugin, { notExecuteFormula: true })
+```
+
+## Point d’entrée du Worker
+
+```typescript title="worker.ts"
+import { UniverRemoteBasesPlugin } from '@univerjs-pro/bases'
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import { LocaleType, Univer } from '@univerjs/core'
+import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
+
+const univer = new Univer({ locale: LocaleType.FR_FR })
+univer.registerPlugin(UniverLicensePlugin, { license: 'your license.txt' })
+univer.registerPlugin(UniverProFormulaEnginePlugin)
+univer.registerPlugin(UniverRemoteBasesPlugin)
+univer.registerPlugin(UniverRPCWorkerThreadPlugin)
+```
+
+Utilisez un Worker de type module et un fichier d’entrée séparé. Alignez les versions des packages des deux côtés. Le rendu et les interactions restent sur le thread principal.
+
+## Vues croisées et tableaux de bord
+
+Pour les calculs croisés du tableau de bord, configurez `notExecuteCalculation: true` sur `UniverBaseDashboardPlugin` dans le thread principal et enregistrez `UniverRemoteBaseDashboardPlugin` dans le même Worker. Gardez les plugins UI sur le thread principal.
+
+```typescript title="main.ts"
+import { UniverBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+
+univer.registerPlugin(UniverBaseDashboardPlugin, { notExecuteCalculation: true })
+```
+
+```typescript title="worker.ts"
+import { UniverRemoteBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+
+univer.registerPlugin(UniverRemoteBaseDashboardPlugin)
+```

@@ -1,0 +1,54 @@
+---
+title: Web Workers
+icon: CircuitBoard
+---
+
+Bases は RPC 経由で数式計算を Worker に移せます。メインスレッドの数式エンジンに `notExecuteFormula: true` を設定し、Worker 側にリモート Bases プラグインと計算用の数式エンジンを登録します。
+
+まず[インストールと基本的な使い方](/guides/bases/getting-started/installation)を完了してください。以下のコードは既存の設定に追加するものです。コンテンツの作成や読み込み前にプラグインを登録し、登録済みのプラグインは重複登録せず設定を変更してください。
+
+## メインスレッド
+
+```typescript title="main.ts"
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverRPCMainThreadPlugin } from '@univerjs/rpc'
+
+univer.registerPlugin(UniverRPCMainThreadPlugin, {
+  workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+})
+univer.registerPlugin(UniverProFormulaEnginePlugin, { notExecuteFormula: true })
+```
+
+## Worker のエントリー
+
+```typescript title="worker.ts"
+import { UniverRemoteBasesPlugin } from '@univerjs-pro/bases'
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import { LocaleType, Univer } from '@univerjs/core'
+import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
+
+const univer = new Univer({ locale: LocaleType.JA_JP })
+univer.registerPlugin(UniverLicensePlugin, { license: 'your license.txt' })
+univer.registerPlugin(UniverProFormulaEnginePlugin)
+univer.registerPlugin(UniverRemoteBasesPlugin)
+univer.registerPlugin(UniverRPCWorkerThreadPlugin)
+```
+
+モジュール Worker と専用のエントリーファイルを使用します。Worker とメインスレッドのパッケージバージョンを揃えてください。描画とユーザー操作はメインスレッドで実行されます。
+
+## ピボットビューとダッシュボード
+
+ダッシュボードのピボット計算には、メインスレッドの `UniverBaseDashboardPlugin` に `notExecuteCalculation: true` を設定し、同じ Worker に `UniverRemoteBaseDashboardPlugin` を登録します。ダッシュボードの UI プラグインはメインスレッドに残します。
+
+```typescript title="main.ts"
+import { UniverBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+
+univer.registerPlugin(UniverBaseDashboardPlugin, { notExecuteCalculation: true })
+```
+
+```typescript title="worker.ts"
+import { UniverRemoteBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+
+univer.registerPlugin(UniverRemoteBaseDashboardPlugin)
+```

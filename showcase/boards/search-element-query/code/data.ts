@@ -3,7 +3,7 @@ import { BoardPageType, createBoardConnectorElement, createBoardTextBoxShapeElem
 import { ShapeFillEnum, ShapeLineTypeEnum, ShapeTypeEnum } from '@univerjs-pro/engine-shape'
 import { HorizontalAlign, VerticalAlign } from '@univerjs/core'
 
-export function createData(_legacyLocale = false): IBoardData {
+export function createData(): IBoardData {
   const cards = [
     { id: 'card-a', en: 'Risk\nFirst note', left: 80, top: 90, fill: '#FEF3C7' },
     { id: 'card-b', en: 'risk\nSecond note', left: 360, top: 90, fill: '#FCE7F3' },
@@ -45,7 +45,11 @@ export function createData(_legacyLocale = false): IBoardData {
       routing: 'orthogonal',
       routingMode: 'auto',
       style: { stroke: '#64748B', strokeWidth: 1.5, endMarker: { type: 'filledArrow' } },
-      label: { id: link.id + '-label', text: link.label, width: 90, height: 24 },
+      label: {
+        id: link.id + '-label',
+        content: link.label,
+        layout: { mode: 'fixedSize', width: 90, height: 24 },
+      },
     })
     // Name and label deliberately produce two hits for one element.
     element.name = link.name

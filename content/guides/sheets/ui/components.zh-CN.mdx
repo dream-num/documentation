@@ -196,6 +196,52 @@ univerAPI.registerComponent('my-web-component', WebComponent, {
 })
 ```
 
+### Angular [#angular]
+
+通过 `@angular/elements` 的 `createCustomElement` 将 Angular 组件转换为自定义元素，再使用 Univer 的 Web Component 适配器注册，即可将 Angular 组件用于 Univer 的侧边栏或对话框。
+
+添加与 `@angular/core` 版本一致的 `@angular/elements`，以及与其他 Univer 包版本一致的 `@univerjs/ui-adapter-web-component`。
+
+在初始化 Univer 后调用以下函数。传入宿主组件的 Angular 注入器：在宿主组件中使用 `private readonly injector = inject(Injector)` 获取注入器，再调用 `registerAngularPanel(univer, univerAPI, this.injector)`。宿主组件中的 `inject` 和 `Injector` 从 `@angular/core` 导入。
+
+```typescript title="angular-panel.ts"
+import type { Injector } from '@angular/core'
+import type { FUniver, Univer } from '@univerjs/presets'
+import { Component } from '@angular/core'
+import { createCustomElement } from '@angular/elements'
+import { UniverWebComponentAdapterPlugin } from '@univerjs/ui-adapter-web-component'
+
+@Component({
+  selector: 'app-angular-panel',
+  standalone: true,
+  template: '<p>Hello from Angular!</p>',
+})
+export class AngularPanelComponent {}
+
+export function registerAngularPanel(univer: Univer, univerAPI: FUniver, injector: Injector) {
+  const element = createCustomElement(AngularPanelComponent, { injector })
+
+  univer.registerPlugin(UniverWebComponentAdapterPlugin)
+  return univerAPI.registerComponent('univer-angular-panel', element, {
+    framework: 'web-component',
+  })
+}
+```
+
+编辑器渲染完成后，使用注册的组件标识作为侧边栏内容：
+
+```typescript
+const sidebar = univerAPI.openSidebar({
+  header: { title: 'Angular' },
+  children: { label: 'univer-angular-panel' },
+  width: 360,
+})
+```
+
+保存返回的注册句柄和侧边栏句柄，不再使用时调用各自的 `dispose()`。自定义元素在应用中注册一次即可：名称必须包含连字符，并与 Angular 组件的 selector 不同。
+
+Angular Elements 将输入映射为元素属性，将输出转换为 DOM `CustomEvent` 事件。Univer 适配器会传递属性，但不会自动订阅 Angular 输出，需要交互时应显式连接这些事件。
+
 ## 使用自定义组件
 
 通过以下方法，你可以灵活地在 Univer 中集成各种自定义组件，从而增强和定制 Univer 的功能。

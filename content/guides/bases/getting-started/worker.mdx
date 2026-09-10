@@ -1,0 +1,54 @@
+---
+title: Web Workers
+icon: CircuitBoard
+---
+
+Bases can move formula calculation to a Worker through RPC. Set `notExecuteFormula: true` on the main-thread formula engine, and register the remote Bases plugin with the calculating engine in the Worker.
+
+Start with [installation and basic usage](/guides/bases/getting-started/installation). The following snippets extend that setup. Register the plugins before creating or loading content; replace existing registrations rather than registering a plugin twice.
+
+## Main thread
+
+```typescript title="main.ts"
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverRPCMainThreadPlugin } from '@univerjs/rpc'
+
+univer.registerPlugin(UniverRPCMainThreadPlugin, {
+  workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+})
+univer.registerPlugin(UniverProFormulaEnginePlugin, { notExecuteFormula: true })
+```
+
+## Worker entry
+
+```typescript title="worker.ts"
+import { UniverRemoteBasesPlugin } from '@univerjs-pro/bases'
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import { LocaleType, Univer } from '@univerjs/core'
+import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
+
+const univer = new Univer({ locale: LocaleType.EN_US })
+univer.registerPlugin(UniverLicensePlugin, { license: 'your license.txt' })
+univer.registerPlugin(UniverProFormulaEnginePlugin)
+univer.registerPlugin(UniverRemoteBasesPlugin)
+univer.registerPlugin(UniverRPCWorkerThreadPlugin)
+```
+
+Use a module Worker and a separate entry file. Keep the Worker and main-thread package versions aligned. Rendering and user interaction stay on the main thread.
+
+## Pivot views and dashboards
+
+For dashboard pivot calculation, set `notExecuteCalculation: true` on the main-thread `UniverBaseDashboardPlugin`, and register `UniverRemoteBaseDashboardPlugin` in the same Worker. Keep the dashboard UI plugins on the main thread.
+
+```typescript title="main.ts"
+import { UniverBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+
+univer.registerPlugin(UniverBaseDashboardPlugin, { notExecuteCalculation: true })
+```
+
+```typescript title="worker.ts"
+import { UniverRemoteBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+
+univer.registerPlugin(UniverRemoteBaseDashboardPlugin)
+```

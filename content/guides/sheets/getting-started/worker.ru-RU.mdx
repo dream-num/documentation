@@ -1,0 +1,175 @@
+---
+title: Веб-воркеры
+icon: CircuitBoard
+---
+
+В следующих примерах показаны основные способы использования Worker в Univer.
+
+В Sheets воркеры обычно применяются для ресурсоёмких вычислений, например расчёта формул. Выполнение расчёта формул в Worker снижает нагрузку на основной поток и сохраняет отзывчивость отрисовки страницы и взаимодействия с ней, когда книга содержит много формул.
+
+## Режим пресетов
+
+Параметр `workerURL` в конфигурации `UniverSheetsCorePreset` позволяет указать URL воркера и включить режим Worker.
+
+### Пример: sheets-core-with-worker
+
+В этом примере импортируется пакет пресета `sheets-filter`, поскольку скрытые строки sheets-filter влияют на вычисление формулы `SUBTOTAL`. Когда формулы вычисляются в Worker, sheets-filter также должен выполняться в Worker.
+
+```typescript title="main.ts"
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+import UniverPresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { UniverSheetsFilterPreset } from '@univerjs/preset-sheets-filter'
+import UniverPresetSheetsFilterEnUS from '@univerjs/preset-sheets-filter/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+import '@univerjs/preset-sheets-core/lib/index.css'
+import '@univerjs/preset-sheets-filter/lib/index.css'
+
+const { univerAPI } = createUniver({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(
+      UniverPresetSheetsCoreEnUS,
+      UniverPresetSheetsFilterEnUS,
+    ),
+  },
+  presets: [
+    UniverSheetsCorePreset({
+      workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+    }),
+    UniverSheetsFilterPreset(),
+  ],
+})
+
+univerAPI.createWorkbook({ name: 'Test Sheet' })
+```
+
+```typescript title="worker.ts"
+import UniverPresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { UniverSheetsCoreWorkerPreset } from '@univerjs/preset-sheets-core/worker'
+import UniverPresetSheetsFilterEnUS from '@univerjs/preset-sheets-filter/locales/en-US'
+import { UniverSheetsFilterWorkerPreset } from '@univerjs/preset-sheets-filter/worker'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+createUniver({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(
+      UniverPresetSheetsCoreEnUS,
+      UniverPresetSheetsFilterEnUS,
+    ),
+  },
+  presets: [
+    UniverSheetsCoreWorkerPreset(),
+    UniverSheetsFilterWorkerPreset(),
+  ],
+})
+```
+
+### Пример: sheets-collaboration-with-worker
+
+```typescript title="main.ts"
+import { UniverSheetsAdvancedPreset } from '@univerjs/preset-sheets-advanced'
+import UniverPresetSheetsAdvancedEnUS from '@univerjs/preset-sheets-advanced/locales/en-US'
+import { UniverSheetsCollaborationPreset } from '@univerjs/preset-sheets-collaboration'
+import UniverPresetSheetsCollaborationEnUS from '@univerjs/preset-sheets-collaboration/locales/en-US'
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+import UniverPresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing'
+import UniverPresetSheetsDrawingEnUS from '@univerjs/preset-sheets-drawing/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+import '@univerjs/preset-sheets-core/lib/index.css'
+import '@univerjs/preset-sheets-drawing/lib/index.css'
+import '@univerjs/preset-sheets-advanced/lib/index.css'
+import '@univerjs/preset-sheets-collaboration/lib/index.css'
+
+const { univerAPI } = createUniver({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(
+      UniverPresetSheetsCoreEnUS,
+      UniverPresetSheetsDrawingEnUS,
+      UniverPresetSheetsAdvancedEnUS,
+      UniverPresetSheetsCollaborationEnUS,
+    ),
+  },
+  collaboration: true,
+  presets: [
+    UniverSheetsCorePreset({
+      workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+    }),
+    UniverSheetsDrawingPreset({
+      collaboration: true,
+    }),
+    UniverSheetsAdvancedPreset({
+      useWorker: true,
+      license: process.env.UNIVER_CLIENT_LICENSE || 'your license.txt',
+    }),
+    UniverSheetsCollaborationPreset({
+    }),
+  ],
+})
+```
+
+```typescript title="worker.ts"
+import UniverPresetSheetsAdvancedEnUS from '@univerjs/preset-sheets-advanced/locales/en-US'
+import { UniverSheetsAdvancedWorkerPreset } from '@univerjs/preset-sheets-advanced/worker'
+import UniverPresetSheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US'
+import { UniverSheetsCoreWorkerPreset } from '@univerjs/preset-sheets-core/worker'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+
+createUniver({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(
+      UniverPresetSheetsCoreEnUS,
+      UniverPresetSheetsAdvancedEnUS,
+    ),
+  },
+  presets: [
+    UniverSheetsCoreWorkerPreset(),
+    UniverSheetsAdvancedWorkerPreset({
+      license: process.env.UNIVER_CLIENT_LICENSE || 'your license.txt',
+    }),
+  ],
+})
+```
+
+## Режим плагинов
+
+Возьмите за основу режим плагинов из [установки](/guides/sheets/getting-started/installation). Оставьте плагины отрисовки и интерфейса в основном потоке. Замените регистрацию трёх вычислительных плагинов следующими настройками и добавьте основной RPC-плагин до создания книги.
+
+```typescript title="main.ts"
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import { UniverRPCMainThreadPlugin } from '@univerjs/rpc'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+univer.registerPlugin(UniverRPCMainThreadPlugin, {
+  workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+})
+univer.registerPlugin(UniverFormulaEnginePlugin, { notExecuteFormula: true })
+univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: true })
+univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: true })
+```
+
+В Worker регистрируются только показанные ниже плагины данных и вычислений, без интерфейса и отрисовки. `notExecuteFormula: true` передаёт вычисления из основного потока в Worker.
+
+```typescript title="worker.ts"
+import { LocaleType, Univer } from '@univerjs/core'
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverRemoteSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+const univer = new Univer({ locale: LocaleType.RU_RU })
+univer.registerPlugin(UniverSheetsPlugin, { onlyRegisterFormulaRelatedMutations: true })
+univer.registerPlugin(UniverFormulaEnginePlugin)
+univer.registerPlugin(UniverRPCWorkerThreadPlugin)
+univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
+```
+
+При использовании фильтров зарегистрируйте `UniverSheetsFilterPlugin` из `@univerjs/sheets-filter` в обоих потоках, чтобы `SUBTOTAL` учитывала отфильтрованные строки. `UniverSheetsFilterUIPlugin` оставьте в основном потоке.
+
+Для сводных таблиц также зарегистрируйте `UniverLicensePlugin`, `UniverProFormulaEnginePlugin` и `UniverSheetsPivotTablePlugin` в обоих потоках. У последних двух задайте `notExecuteFormula: true` в основном потоке и `false` в Worker. Передайте лицензию в оба окружения, оставьте интерфейс в основном потоке и зарегистрируйте пользовательские формулы в обоих движках.

@@ -1,53 +1,19 @@
 ---
 title: Web Workers
+icon: CircuitBoard
 ---
 
-<MetaData
-  lang="ko-KR"
-  meta={{
-    preset: [
-      {
-        client: '@univerjs/preset-sheets-core',
-        locale: '@univerjs/preset-sheets-core/locales/ko-KR',
-        style: '@univerjs/preset-sheets-core/lib/index.css',
-      },
-      {
-        client: '@univerjs/preset-sheets-filter',
-        locale: '@univerjs/preset-sheets-filter/locales/ko-KR',
-        style: '@univerjs/preset-sheets-filter/lib/index.css',
-      },
-      {
-        client: '@univerjs/preset-sheets-drawing',
-        locale: '@univerjs/preset-sheets-drawing/locales/ko-KR',
-        style: '@univerjs/preset-sheets-drawing/lib/index.css',
-      },
-      {
-        client: '@univerjs/preset-sheets-advanced',
-        locale: '@univerjs/preset-sheets-advanced/locales/ko-KR',
-        style: '@univerjs/preset-sheets-advanced/lib/index.css',
-      },
-      {
-        client: '@univerjs/preset-sheets-collaboration',
-        locale: '@univerjs/preset-sheets-collaboration/locales/ko-KR',
-        style: '@univerjs/preset-sheets-collaboration/lib/index.css',
-      },
-    ],
-    plugins: [],
-    server: 'optional',
-  }}
-/>
+The following examples demonstrate the basic usage of Worker in Univer.
 
-다음 예제는 Univer에서 Worker를 사용하는 기본 방법을 보여 줍니다.
+In Sheets, Workers are commonly used for compute-intensive tasks such as formula calculation. Running formula calculation in a Worker process can reduce pressure on the main thread and keep page rendering and interactions responsive when a workbook contains many formulas.
 
-Sheets에서 Worker는 수식 계산과 같이 많은 연산이 필요한 작업에 주로 사용됩니다. Worker 프로세스에서 수식 계산을 실행하면 메인 스레드의 부담을 줄일 수 있으며, 통합 문서에 수식이 많을 때도 페이지 렌더링과 상호작용의 반응성을 유지할 수 있습니다.
+## Preset Mode
 
-## 프리셋 모드
+`workerURL` option in `UniverSheetsCorePreset` configuration allows you to specify the URL of the Worker and enable Worker mode.
 
-`UniverSheetsCorePreset` 구성의 `workerURL` 옵션을 사용하면 Worker의 URL을 지정하고 Worker 모드를 활성화할 수 있습니다.
+### Example: sheets-core-with-worker
 
-### 예제: sheets-core-with-worker
-
-이 예제에서는 `SUBTOTAL` 수식 계산이 sheets-filter에서 숨긴 행의 영향을 받으므로 `sheets-filter` 프리셋 패키지를 가져옵니다. Worker에서 수식 계산을 실행할 때는 sheets-filter도 Worker에서 실행해야 합니다.
+This example imports the `sheets-filter` preset package because the `SUBTOTAL` formula calculation is affected by hidden rows in sheets-filter. When formula calculations are executed in a Worker, sheets-filter also needs to be executed in the Worker.
 
 ```typescript title="main.ts"
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
@@ -69,7 +35,7 @@ const { univerAPI } = createUniver({
   },
   presets: [
     UniverSheetsCorePreset({
-      workerURL: new Worker(new URL('./worker.js', import.meta.url), { type: 'module' }),
+      workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
     }),
     UniverSheetsFilterPreset(),
   ],
@@ -100,7 +66,7 @@ createUniver({
 })
 ```
 
-### 예제: sheets-collaboration-with-worker
+### Example: sheets-collaboration-with-worker
 
 ```typescript title="main.ts"
 import { UniverSheetsAdvancedPreset } from '@univerjs/preset-sheets-advanced'
@@ -131,7 +97,7 @@ const { univerAPI } = createUniver({
   collaboration: true,
   presets: [
     UniverSheetsCorePreset({
-      workerURL: new Worker(new URL('./worker.js', import.meta.url), { type: 'module' }),
+      workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
     }),
     UniverSheetsDrawingPreset({
       collaboration: true,
@@ -170,8 +136,40 @@ createUniver({
 })
 ```
 
-프리셋 모드의 더 많은 예제는 [Univer 프리셋 예제](https://github.com/dream-num/univer/tree/0d849012594882307186f33734b8b89d80a729e9/examples/src/preset-sheets-core-with-worker)를 참고하세요. 이 예제에서는 다양한 프리셋 조합의 Worker 구성을 보여 주며, 프리셋을 통해 Univer를 통합할 때 유용한 참고 자료로 활용할 수 있습니다.
+## Plugin Mode
 
-## 플러그인 모드
+Start from the Plugin Mode setup in [installation](/guides/sheets/getting-started/installation). Keep the rendering and UI plugins on the main thread. Replace the existing registrations of the three calculation plugins below, then add the main-thread RPC plugin before creating the workbook.
 
-프리셋을 사용하지 않고 `@univerjs/*` 플러그인을 직접 설치하고 등록하는 경우, 메인 프로세스와 Worker 프로세스 양쪽에 해당 플러그인을 등록하고 수식 계산 플러그인이 Worker 측에 등록되어 있는지 확인하세요. 전체 플러그인 모드 예제는 [dream-num/univer 예제](https://github.com/dream-num/univer/tree/dev/examples/src)를 참고하세요.
+```typescript title="main.ts"
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import { UniverRPCMainThreadPlugin } from '@univerjs/rpc'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+univer.registerPlugin(UniverRPCMainThreadPlugin, {
+  workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+})
+univer.registerPlugin(UniverFormulaEnginePlugin, { notExecuteFormula: true })
+univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: true })
+univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: true })
+```
+
+The Worker contains only the data and calculation plugins shown below; do not register UI or rendering plugins there. `notExecuteFormula: true` delegates main-thread calculation to the Worker.
+
+```typescript title="worker.ts"
+import { LocaleType, Univer } from '@univerjs/core'
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverRemoteSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+const univer = new Univer({ locale: LocaleType.EN_US })
+univer.registerPlugin(UniverSheetsPlugin, { onlyRegisterFormulaRelatedMutations: true })
+univer.registerPlugin(UniverFormulaEnginePlugin)
+univer.registerPlugin(UniverRPCWorkerThreadPlugin)
+univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
+```
+
+When using filters, register `UniverSheetsFilterPlugin` from `@univerjs/sheets-filter` in both threads so formulas such as `SUBTOTAL` see filtered rows. Keep `UniverSheetsFilterUIPlugin` on the main thread.
+
+For pivot tables, also register `UniverLicensePlugin`, `UniverProFormulaEnginePlugin`, and `UniverSheetsPivotTablePlugin` in both threads. Set `notExecuteFormula: true` on the latter two in the main thread, and `false` in the Worker. Supply the license in both runtimes, keep the pivot UI on the main thread, and register custom formula implementations in both formula engines.

@@ -1,0 +1,54 @@
+---
+title: Web Workers
+icon: CircuitBoard
+---
+
+Bases puede trasladar el cálculo de fórmulas a un Worker mediante RPC. Configura `notExecuteFormula: true` en el motor del hilo principal y registra el plugin remoto de Bases y el motor de cálculo en el Worker.
+
+Completa primero la [instalación y el uso básico](/guides/bases/getting-started/installation). Estos fragmentos amplían la configuración existente. Registra los plugins antes de crear o cargar contenido; modifica los registros existentes sin duplicarlos.
+
+## Hilo principal
+
+```typescript title="main.ts"
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverRPCMainThreadPlugin } from '@univerjs/rpc'
+
+univer.registerPlugin(UniverRPCMainThreadPlugin, {
+  workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+})
+univer.registerPlugin(UniverProFormulaEnginePlugin, { notExecuteFormula: true })
+```
+
+## Entrada del Worker
+
+```typescript title="worker.ts"
+import { UniverRemoteBasesPlugin } from '@univerjs-pro/bases'
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import { LocaleType, Univer } from '@univerjs/core'
+import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
+
+const univer = new Univer({ locale: LocaleType.ES_ES })
+univer.registerPlugin(UniverLicensePlugin, { license: 'your license.txt' })
+univer.registerPlugin(UniverProFormulaEnginePlugin)
+univer.registerPlugin(UniverRemoteBasesPlugin)
+univer.registerPlugin(UniverRPCWorkerThreadPlugin)
+```
+
+Usa un Worker de tipo módulo y un archivo de entrada independiente. Mantén iguales las versiones de los paquetes en ambos lados. El renderizado y la interacción permanecen en el hilo principal.
+
+## Vistas dinámicas y paneles
+
+Para el cálculo de tablas dinámicas del panel, configura `notExecuteCalculation: true` en `UniverBaseDashboardPlugin` del hilo principal y registra `UniverRemoteBaseDashboardPlugin` en el mismo Worker. Los plugins de interfaz permanecen en el hilo principal.
+
+```typescript title="main.ts"
+import { UniverBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+
+univer.registerPlugin(UniverBaseDashboardPlugin, { notExecuteCalculation: true })
+```
+
+```typescript title="worker.ts"
+import { UniverRemoteBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+
+univer.registerPlugin(UniverRemoteBaseDashboardPlugin)
+```

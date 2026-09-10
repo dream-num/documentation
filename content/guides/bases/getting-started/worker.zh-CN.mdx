@@ -1,0 +1,54 @@
+---
+title: Web Workers
+icon: CircuitBoard
+---
+
+Bases 可以通过 RPC 将公式计算放到 Worker 中。主线程的公式引擎配置 `notExecuteFormula: true`，Worker 中注册远程 Bases 插件和负责计算的公式引擎。
+
+先完成[安装和基本使用](/guides/bases/getting-started/installation)。以下代码用于扩展已有配置。请在创建或加载内容之前注册插件；已有的插件注册应直接修改，不要重复注册。
+
+## 主线程
+
+```typescript title="main.ts"
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverRPCMainThreadPlugin } from '@univerjs/rpc'
+
+univer.registerPlugin(UniverRPCMainThreadPlugin, {
+  workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+})
+univer.registerPlugin(UniverProFormulaEnginePlugin, { notExecuteFormula: true })
+```
+
+## Worker 入口
+
+```typescript title="worker.ts"
+import { UniverRemoteBasesPlugin } from '@univerjs-pro/bases'
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import { LocaleType, Univer } from '@univerjs/core'
+import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
+
+const univer = new Univer({ locale: LocaleType.ZH_CN })
+univer.registerPlugin(UniverLicensePlugin, { license: 'your license.txt' })
+univer.registerPlugin(UniverProFormulaEnginePlugin)
+univer.registerPlugin(UniverRemoteBasesPlugin)
+univer.registerPlugin(UniverRPCWorkerThreadPlugin)
+```
+
+使用模块类型的 Worker 和独立入口文件。Worker 与主线程的包版本需要一致，渲染和用户交互仍在主线程执行。
+
+## 透视视图与仪表盘
+
+如需将仪表盘的透视计算放到 Worker 中，主线程的 `UniverBaseDashboardPlugin` 配置 `notExecuteCalculation: true`，同一 Worker 中注册 `UniverRemoteBaseDashboardPlugin`。仪表盘 UI 插件仍在主线程注册。
+
+```typescript title="main.ts"
+import { UniverBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+
+univer.registerPlugin(UniverBaseDashboardPlugin, { notExecuteCalculation: true })
+```
+
+```typescript title="worker.ts"
+import { UniverRemoteBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+
+univer.registerPlugin(UniverRemoteBaseDashboardPlugin)
+```
