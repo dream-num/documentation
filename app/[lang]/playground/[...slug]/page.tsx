@@ -4,7 +4,6 @@ import path from 'node:path'
 import { notFound } from 'next/navigation'
 
 import { Playground } from '@/components/playground/playground'
-import packageJson from '@/package.json'
 import { showcase } from '@/showcase/data'
 import { prepareShowcaseSource } from '@/showcase/source-files'
 
@@ -54,13 +53,7 @@ export default async function Page({ params }: IProps) {
 
   const { files, Preview, metadata } = (await loadShowcase()).default
   const previewSource = fs.readFileSync(path.join(process.cwd(), 'showcase', pathname, 'preview', 'main.tsx'), 'utf8')
-  const packageVersions = Object.fromEntries(
-    Object.keys({ ...packageJson.dependencies, ...packageJson.devDependencies }).map((name) => [
-      name,
-      JSON.parse(fs.readFileSync(path.join(process.cwd(), 'node_modules', name, 'package.json'), 'utf8'))
-        .version as string,
-    ]),
-  )
+  const packageVersions: Record<string, string> = JSON.parse(process.env.SHOWCASE_PACKAGE_VERSIONS!)
   const source = prepareShowcaseSource({ ...files, '/reference/preview.tsx.txt': previewSource }, packageVersions)
 
   return (

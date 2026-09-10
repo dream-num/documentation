@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import process from 'node:process'
 
 import type { NextConfig } from 'next'
@@ -6,6 +7,7 @@ import { withAmamoMdx } from '@amamo/mdx/next'
 import createNextIntlPlugin from 'next-intl/plugin'
 
 import amamo from './amamo.config.mts'
+import packageJson from './package.json' with { type: 'json' }
 
 const withNextIntl = createNextIntlPlugin()
 const DEV_API_ORIGIN = 'https://dev.univer.plus'
@@ -44,6 +46,14 @@ const config: NextConfig = {
 
   env: {
     NEXT_PUBLIC_DOCS_SOURCE_REF: getDocsSourceRef(),
+    SHOWCASE_PACKAGE_VERSIONS: JSON.stringify(
+      Object.fromEntries(
+        Object.keys({ ...packageJson.dependencies, ...packageJson.devDependencies }).map((name) => [
+          name,
+          JSON.parse(readFileSync(`node_modules/${name}/package.json`, 'utf8')).version,
+        ]),
+      ),
+    ),
   },
 
   allowedDevOrigins: ['*'],
@@ -56,9 +66,6 @@ const config: NextConfig = {
       '.amamo-mdx/guides-navigation.json',
       'content/**/*.json',
       'content/**/*.mdx',
-      // Runnable source exports resolve exact installed package versions at runtime.
-      'node_modules/*/package.json',
-      'node_modules/@*/*/package.json',
       'node_modules/.pnpm/@swc+helpers@*/node_modules/@swc/helpers/esm/**/*',
     ],
   },
