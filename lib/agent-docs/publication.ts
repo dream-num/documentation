@@ -67,6 +67,23 @@ const MARKDOWN_IMAGE_DESTINATION = /(!\[[^\]]*\]\()([^\s)]+)([^)]*\))/g
 const MARKDOWN_DELIMITER_ENTITY = /&#x(?:60|2a);/i
 const RAW_MDX_COMMENT = /\{\/\*|\*\/\}/
 const RAW_MDX_ELEMENT = /<\/?[A-Z][A-Za-z0-9.]*(?:\s|\/?>)/
+const REQUIRED_DEVELOPMENT_WORKFLOW = [
+  '## Required workflow before application development',
+  '',
+  'Do not begin development after reading only this index, a single documentation page, or isolated code snippets. Before writing code, complete the following steps:',
+  '',
+  '1. **Read the relevant documentation.** Read the relevant pages in full, including linked prerequisites and architecture guidance. Understand the recommended workflow, module responsibilities, and required packages.',
+  '2. **Read the complete examples implementation.** Clone the relevant examples repository unless an up-to-date local checkout already exists. Choose the closest example and read its README and complete source, not only its entry points or snippets shown in the documentation. Follow the actual execution flow through dependencies, configuration, entry points, module registration, shared code, data flow, and resource disposal. Continue into referenced files as needed until you understand how the complete example works.',
+  "3. **Read the relevant package READMEs.** Identify the SDK packages used by the application, then read the SDK's root README and every relevant package README. Confirm their responsibilities, public APIs, initialization, configuration, resource disposal, and version requirements. If the application uses a version different from the repository's default branch, use the installed package's types or source as the reference.",
+  "4. **Implement only after completing this research.** Use the documentation, the examples' complete assembly, and the package READMEs together. Do not invent APIs.",
+  '',
+  'Relevant repositories:',
+  '',
+  '- Collaboration: [examples repository](https://github.com/dream-num/univer-collaboration-examples) and [SDK repository](https://github.com/dream-num/univer-collaboration-sdk).',
+  '- CLI: [examples repository](https://github.com/dream-num/univer-cli-examples) and [SDK repository](https://github.com/dream-num/univer-cli-sdk).',
+  '',
+].join('\n')
+
 let staticParamsPromise: Promise<IAgentDocsStaticParam[]> | undefined
 
 function isAgentDocsCollection(value: string): value is AgentDocsCollection {
@@ -391,8 +408,9 @@ function renderRootIndex(lang: Locale): IAgentDocsArtifact {
     '',
     `- Language: \`${lang}\``,
     `- Documentation version: \`${packageJson.version}\``,
-    `- [Full documentation bundle](${DOCS_ORIGIN}${getRootFullPath(lang)}): Detailed agent guidance followed by the complete Guides and API reference content.`,
+    `- [Full documentation bundle](${DOCS_ORIGIN}${getRootFullPath(lang)}): Development guidance followed by the complete Web SDK, Server SDK, AI SDK, and API reference content.`,
     '',
+    REQUIRED_DEVELOPMENT_WORKFLOW,
     '## Documentation scope',
     '',
     `- [Web SDK](${DOCS_ORIGIN}${withLocale(lang, '/guides')}): Embedded editors, headless runtimes, presets, plugins, Facade APIs, and frontend features.`,
@@ -440,7 +458,8 @@ async function renderRootFull(lang: Locale): Promise<IAgentDocsArtifact> {
     `- Documents: \`${documents.length}\``,
     `- Concise index: [${DOCS_ORIGIN}${getRootIndexPath(lang)}](${DOCS_ORIGIN}${getRootIndexPath(lang)})`,
     '',
-    '## Recommended agent workflow',
+    REQUIRED_DEVELOPMENT_WORKFLOW,
+    '## Recommended AI Agent workflow',
     '',
     '1. Choose Web SDK for editors, Server SDK for collaboration and file exchange, or AI SDK for agent operations. Then select the relevant product or capability.',
     '2. Begin with that product’s guide and installation page. Treat its package list, preset composition, and registration order as part of the integration contract.',
