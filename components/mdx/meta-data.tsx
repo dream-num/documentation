@@ -1,11 +1,13 @@
 'use client'
 
+import type { LucideIcon } from 'lucide-react'
 import { Box, Check, Languages, Palette, PlugZap, Puzzle, Server, Smartphone } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
 import { Tooltip } from '@/components/tooltip'
+import { Link } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 
 interface IMetaDataLabels {
@@ -23,7 +25,7 @@ function CopyableTag({
 }: {
   text: string
   label: string
-  icon: any
+  icon: LucideIcon
   successText: string
 }) {
   const [copied, setCopied] = useState(false)
@@ -121,7 +123,7 @@ function StatusBadge({
   desc,
   active,
 }: {
-  icon: any
+  icon: LucideIcon
   label: string
   desc: string
   active?: boolean
@@ -262,16 +264,25 @@ export function MetaData(props: {
               label={t('mdx-meta-data.mobile-support')}
               desc={t('mdx-meta-data.mobile-support-desc')}
             />
-            <StatusBadge
-              active={!!server}
-              icon={Server}
-              label={server === 'optional' ? t('mdx-meta-data.server-optional') : t('mdx-meta-data.server-required')}
-              desc={
-                server === 'optional'
-                  ? t('mdx-meta-data.server-optional-desc')
-                  : t('mdx-meta-data.server-required-desc')
-              }
-            />
+            {server && (
+              <Link
+                href="/server"
+                className="focus-visible:ring-primary/50 rounded-md transition-shadow hover:shadow-sm focus-visible:ring-2 focus-visible:outline-none"
+              >
+                <StatusBadge
+                  active
+                  icon={Server}
+                  label={
+                    server === 'optional' ? t('mdx-meta-data.server-optional') : t('mdx-meta-data.server-required')
+                  }
+                  desc={
+                    server === 'optional'
+                      ? t('mdx-meta-data.server-optional-desc')
+                      : t('mdx-meta-data.server-required-desc')
+                  }
+                />
+              </Link>
+            )}
           </div>
         )}
       </div>

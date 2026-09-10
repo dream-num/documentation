@@ -2,6 +2,8 @@ import type { Messages } from './en-US'
 
 const koKRMessages = {
   common: {
+    'expand-code': '코드 펼치기',
+    'collapse-code': '코드 접기',
     'display-name': '한국어',
     search: '검색',
     'search-no-result': '검색 결과가 없습니다',
@@ -412,10 +414,10 @@ const koKRMessages = {
     'plugins-info': 'Plugin 정보',
     'mobile-support': '모바일 지원',
     'mobile-support-desc': '터치 기기에 최적화된 UI',
-    'server-required': '서버 필요',
-    'server-required-desc': '서버 측 기능에 따라 달라집니다',
-    'server-optional': '서버 선택 사항',
-    'server-optional-desc': '향상된 기능을 위한 선택적 서버',
+    'server-required': 'Server SDK 통합 필요',
+    'server-required-desc': '이 기능에는 Server SDK를 통한 서버 기능 통합이 필요합니다',
+    'server-optional': '선택적 Server SDK 통합',
+    'server-optional-desc': 'Server SDK로 기능을 확장할 수 있습니다',
     copied: '복사됨',
     locale: '로케일',
     style: 'CSS',

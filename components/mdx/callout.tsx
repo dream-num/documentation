@@ -6,16 +6,17 @@ import { clsx } from '@/lib/clsx'
 const calloutStyles = {
   info: {
     icon: InfoIcon,
-    className: 'border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100',
+    className: 'border-[var(--separator)] bg-muted/40 [&>svg]:text-muted-foreground',
   },
   warning: {
     icon: TriangleAlertIcon,
     className:
-      'border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100',
+      'border-amber-600/20 bg-amber-500/5 [&>svg]:text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/5 dark:[&>svg]:text-amber-400',
   },
   error: {
     icon: CircleAlertIcon,
-    className: 'border-red-200 bg-red-50 text-red-950 dark:border-red-900 dark:bg-red-950/30 dark:text-red-100',
+    className:
+      'border-red-600/20 bg-red-500/5 [&>svg]:text-red-700 dark:border-red-400/20 dark:bg-red-400/5 dark:[&>svg]:text-red-400',
   },
 } as const
 
@@ -39,10 +40,17 @@ export function Callout({
   const Icon = style.icon
 
   return (
-    <div className={clsx(`my-6 flex gap-3 rounded-md border p-4 text-sm`, style.className, className)} {...props}>
-      <Icon className="mt-0.5 size-4 shrink-0" />
-      <div className="min-w-0 [&_li:first-child]:mt-0 [&_li:last-child]:mb-0 [&>:first-child]:mt-0 [&>:last-child]:mb-0">
-        {title ? <p className="mb-2 font-medium">{title}</p> : null}
+    <div
+      className={clsx(
+        `text-foreground my-4 flex gap-2.5 rounded-md border px-3 py-2.5 text-sm/6`,
+        style.className,
+        className,
+      )}
+      {...props}
+    >
+      <Icon aria-hidden="true" className="mt-[calc(0.5lh-0.5rem)] size-4 shrink-0" />
+      <div className="min-w-0 [&_li]:my-0.5 [&_li:first-child]:mt-0 [&_li:last-child]:mb-0 [&_ol]:my-2 [&_p]:my-2 [&_p]:text-sm/6 [&_ul]:my-2 [&>:first-child]:mt-0 [&>:last-child]:mb-0">
+        {title ? <p className="font-medium">{title}</p> : null}
         {children}
       </div>
     </div>

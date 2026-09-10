@@ -1,5 +1,7 @@
 const enUSMessages = {
   common: {
+    'expand-code': 'Expand code',
+    'collapse-code': 'Collapse code',
     'display-name': 'English',
     search: 'Search',
     'search-no-result': 'No results found',
@@ -410,10 +412,10 @@ const enUSMessages = {
     'plugins-info': 'Plugins Info',
     'mobile-support': 'Mobile Support',
     'mobile-support-desc': 'Optimized UI for touch devices',
-    'server-required': 'Server Required',
-    'server-required-desc': 'Depends on server-side capabilities',
-    'server-optional': 'Server Optional',
-    'server-optional-desc': 'Optional server for enhanced features',
+    'server-required': 'Requires Server SDK integration',
+    'server-required-desc': 'This feature requires server-side integration with Server SDK',
+    'server-optional': 'Optional Server SDK integration',
+    'server-optional-desc': 'Extend features with Server SDK',
     copied: 'Copied',
     locale: 'Locale',
     style: 'CSS',

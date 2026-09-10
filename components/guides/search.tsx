@@ -130,11 +130,14 @@ export function GuidesSearch({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Button
-        className={clsx('text-muted-foreground gap-2', compact ? 'size-8 shrink-0' : `w-44 justify-start md:w-64`)}
+        className={clsx(
+          'bg-muted/70 text-muted-foreground gap-2 shadow-none',
+          compact ? 'size-8 shrink-0' : `w-44 justify-start`,
+        )}
         aria-label={t('search.label')}
         size={compact ? 'icon' : 'sm'}
         type="button"
-        variant="outline"
+        variant="ghost"
         onClick={() => setOpen(true)}
       >
         <SearchIcon className="size-4" />
@@ -142,7 +145,8 @@ export function GuidesSearch({
           <>
             <span className="min-w-0 flex-1 truncate text-left">{t('search.label')}</span>
             <kbd className="bg-muted text-muted-foreground hidden rounded-sm border px-1.5 py-0.5 text-[10px] font-medium sm:block">
-              Ctrl K
+              <span className="[[data-platform=mac]_&]:hidden">Ctrl K</span>
+              <span className="hidden [[data-platform=mac]_&]:inline">⌘ K</span>
             </kbd>
           </>
         )}

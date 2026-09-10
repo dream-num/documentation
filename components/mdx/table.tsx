@@ -4,10 +4,10 @@ import { clsx } from '@/lib/clsx'
 
 export function DocsTable({ className, ...props }: ComponentProps<'table'>) {
   return (
-    <div className="my-6 overflow-x-auto rounded-md border">
+    <div className="my-5 overflow-x-auto rounded-lg border border-(--separator)">
       <table
         className={clsx(
-          `[&_th]:bg-muted w-full border-collapse text-sm [&_td]:border-t [&_td]:px-4 [&_td]:py-3 [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:font-medium [&_tr]:border-b [&_tr:last-child]:border-b-0`,
+          `[&_td]:text-foreground/85 [&_th]:bg-muted/70 [&_th]:text-foreground w-full border-collapse text-left text-sm [&_tbody]:divide-y [&_tbody]:divide-(--separator) [&_td]:px-3 [&_td]:py-2.5 [&_td]:align-top [&_th]:px-3 [&_th]:py-2.5 [&_th]:font-semibold [&_th]:whitespace-nowrap`,
           className,
         )}
         {...props}

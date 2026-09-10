@@ -2,6 +2,8 @@ import type { Messages } from './en-US'
 
 const esESMessages = {
   common: {
+    'expand-code': 'Expandir código',
+    'collapse-code': 'Contraer código',
     'display-name': 'Inglés',
     search: 'Buscar',
     'search-no-result': 'No se encontraron resultados',
@@ -413,10 +415,10 @@ const esESMessages = {
     'plugins-info': 'Información de complementos',
     'mobile-support': 'Soporte móvil',
     'mobile-support-desc': 'IU optimizada para dispositivos táctiles',
-    'server-required': 'Se requiere servidor',
-    'server-required-desc': 'Depende de las capacidades del lado del servidor',
-    'server-optional': 'Servidor Opcional',
-    'server-optional-desc': 'Servidor opcional para funciones mejoradas',
+    'server-required': 'Requiere integración con Server SDK',
+    'server-required-desc': 'Esta función requiere integración del lado del servidor con Server SDK',
+    'server-optional': 'Integración opcional de Server SDK',
+    'server-optional-desc': 'Amplía las funciones con Server SDK',
     copied: 'Copiado',
     locale: 'Configuración regional',
     style: 'CSS',

@@ -32,7 +32,15 @@ export function SiteLanguageSwitcher({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<Button aria-label={label} className="size-8" size="icon" type="button" variant="outline" />}
+        render={
+          <Button
+            aria-label={label}
+            className="text-muted-foreground size-8"
+            size="icon"
+            type="button"
+            variant="ghost"
+          />
+        }
       >
         <LanguagesIcon className="size-4" />
       </DropdownMenuTrigger>

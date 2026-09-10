@@ -2,6 +2,8 @@ import type { Messages } from './en-US'
 
 const zhCNMessages = {
   common: {
+    'expand-code': '展开代码',
+    'collapse-code': '收起代码',
     'display-name': '简体中文',
     search: '搜索',
     'search-no-result': '没有找到相关内容',
@@ -410,10 +412,10 @@ const zhCNMessages = {
     'plugins-info': '插件信息',
     'mobile-support': '移动端支持',
     'mobile-support-desc': '提供针对触摸设备的 UI 适配',
-    'server-required': '需要服务端',
-    'server-required-desc': '部分功能依赖服务端支持',
-    'server-optional': '可选服务端',
-    'server-optional-desc': '可选接入服务端增强功能',
+    'server-required': '需使用 Server SDK 集成',
+    'server-required-desc': '此功能需要通过 Server SDK 集成服务端能力',
+    'server-optional': '可选集成 Server SDK',
+    'server-optional-desc': '可通过 Server SDK 扩展服务端功能',
     copied: '已复制',
     locale: '语言包',
     style: '样式',

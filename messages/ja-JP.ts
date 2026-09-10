@@ -2,6 +2,8 @@ import type { Messages } from './en-US'
 
 const jaJPMessages = {
   common: {
+    'expand-code': 'コードを展開',
+    'collapse-code': 'コードを折りたたむ',
     'display-name': '日本語',
     search: '検索',
     'search-no-result': '関連するコンテンツが見つかりませんでした',
@@ -412,10 +414,10 @@ const jaJPMessages = {
     'plugins-info': 'プラグイン情報',
     'mobile-support': 'モバイルサポート',
     'mobile-support-desc': 'タッチデバイス向けUI最適化',
-    'server-required': 'サーバーが必要',
-    'server-required-desc': 'サーバー側の機能に依存',
-    'server-optional': 'サーバー (任意)',
-    'server-optional-desc': 'サーバー連携で機能拡張が可能',
+    'server-required': 'Server SDK の組み込みが必要',
+    'server-required-desc': 'この機能には Server SDK を使ったサーバー側の実装が必要です',
+    'server-optional': 'Server SDK の組み込みは任意',
+    'server-optional-desc': 'Server SDK で機能を拡張できます',
     copied: 'コピーしました',
     locale: 'ロケール',
     style: 'スタイル',

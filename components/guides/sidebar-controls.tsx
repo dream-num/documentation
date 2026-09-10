@@ -16,7 +16,7 @@ function ControlIcon({ children, className }: { children: ReactNode; className?:
   return (
     <span
       className={clsx(
-        `bg-background text-primary grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border p-2 *:size-5! *:min-w-5! *:border-0! *:bg-transparent! *:p-0! *:shadow-none! [&_svg]:size-4.5!`,
+        `bg-background text-primary grid size-8 shrink-0 place-items-center overflow-hidden rounded-md border *:grid! *:size-4! *:min-w-4! *:place-items-center! *:border-0! *:bg-transparent! *:p-0! *:shadow-none! [&_svg]:size-4!`,
         className,
       )}
     >
@@ -53,7 +53,7 @@ export function GuidesSidebarControls({
   const shouldShowProduct = isPathActive(pathname, '/guides') && productItems.length > 0
 
   return (
-    <div className="flex flex-col gap-3 pb-6">
+    <div className="flex flex-col gap-2 pb-4">
       <SidebarVersionSwitcher />
 
       {shouldShowProduct ? (
@@ -61,7 +61,7 @@ export function GuidesSidebarControls({
           <DropdownMenuTrigger
             render={
               <button
-                className="hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-ring/60 flex w-full items-center gap-3 rounded-md p-1 text-left transition-colors focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset"
+                className="hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-ring/60 flex w-full items-center gap-2 rounded-md p-1 text-left transition-colors focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset"
                 type="button"
               />
             }

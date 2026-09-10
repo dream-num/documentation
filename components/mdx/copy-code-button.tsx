@@ -13,13 +13,18 @@ export function CopyCodeButton({ code }: { code: string }) {
   return (
     <Button
       aria-label={t('common.copy-code')}
-      className="bg-background/80 text-muted-foreground hover:text-foreground focus:text-foreground size-7 border shadow-xs transition-colors"
+      className="text-muted-foreground size-8 transition-colors"
       size="icon"
       type="button"
-      variant="secondary"
+      variant="ghost"
       onClick={async () => {
         if (!code) return
-        await navigator.clipboard.writeText(code)
+        try {
+          await navigator.clipboard.writeText(code)
+        } catch {
+          setCopied(false)
+          return
+        }
         setCopied(true)
         window.setTimeout(setCopied, 1200, false)
       }}

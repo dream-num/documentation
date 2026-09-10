@@ -1,34 +1,46 @@
 ---
 title: 应用架构
-description: 了解 Web SDK 的组成，以及如何用 Runtime、CLI 与 Collaboration SDK 构建应用。
+description: 了解 Web SDK、Server SDK 与 AI SDK 的职责，以及如何组合它们构建应用。
 ---
 
 **Univer** 是一套用于构建人类与 AI Agent 共同操作 Office 内容的开发工具集。一个 Univer
-应用可以同时提供面向人类的 Web、面向 Agent 的 CLI，以及二者共享的 Server，也可以只采用
+应用可以同时提供面向人类的 Web、面向 AI Agent 的 CLI，以及二者共享的 Server，也可以只采用
 其中一部分。
 
 ## SDK 组成
 
-<Mermaid chart={"flowchart LR\n    Human([人类用户]) --> Web[\"Web<br/>Web SDK\"]\n    Agent([Agent]) --> CLI[\"CLI<br/>AI SDK\"]\n    Web --> Server[\"Server<br/>Univer Collaboration SDK<br/>+ 业务代码\"]\n    CLI --> Server"} />
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 32, \"padding\": 16, \"curve\": \"monotoneX\"}}}%%\nflowchart LR\n    Human([\"人类用户\"]) --> Web[\"<b>Web SDK</b><br/>浏览器 · Web\"]\n    Agent([\"AI Agent\"]) --> CLI[\"<b>AI SDK</b><br/>CLI\"]\n    Web --> Server[\"<b>Server SDK</b><br/>协同 · 文件导入导出<br/>+ 业务代码\"]\n    CLI --> Server\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Human,Agent actor"} />
 
 | 组件   | 运行环境 | 主要 SDK                 | SDK 提供                        | 应用负责                           |
 | ------ | -------- | ------------------------ | ------------------------------- | ---------------------------------- |
 | Web    | 浏览器   | Web SDK       | 交互式 Office 内容展示与编辑    | UI、产品交互与浏览器集成           |
-| CLI    | Node.js  | AI SDK           | 面向 Agent 的内容检查与修改入口 | Agent workflow、工具调用与任务边界 |
-| Server | Node.js  | Univer Collaboration SDK | Web 与 CLI 共享的自托管协同能力 | 业务 API、身份、权限、数据与部署   |
+| CLI    | Node.js  | AI SDK           | 面向 AI Agent 的内容检查与修改入口 | AI Agent workflow、工具调用与任务边界 |
+| Server | Node.js | Server SDK（Collaboration、Exchange） | 自托管协同、Office 文件导入导出 | 业务 API、身份、权限、文件存储与部署 |
 
-文档按 [Web SDK](/guides/sheets)、[Server SDK](/server) 和 [AI SDK](/ai) 组织，分别介绍编辑器、协同与导入导出服务、Agent 内容操作。
+文档按 [Web SDK](/guides/sheets)、[Server SDK](/server) 和 [AI SDK](/ai) 组织，分别介绍编辑器、协同与导入导出服务、AI Agent 内容操作。
 
 AI SDK 会复用 Web SDK 的 headless 内容能力。这里的三个组件表示主要开发入口和运行位置，
 并非三套互不依赖的技术栈，也不是开箱即用的完整产品。
+
+## 导入导出如何接入
+
+Office 文件与 Univer 文档数据之间的转换由 Server SDK 中的 `@univerjs-pro/exchange-node` 提供。
+应用自行集成转换模块，并提供上传、转换和下载接口；Web SDK 负责浏览器中的导入导出交互，
+CLI 则可以在 Node.js 中调用转换模块。各产品的浏览器配置仍在对应的 Web SDK 文档中介绍。
+
+- **不使用协同编辑：** 将文件转换为文档快照，在浏览器中打开和编辑；导出时将最新快照交给转换模块生成文件。此流程需要服务端转换能力，但不需要协同服务。
+- **使用协同编辑：** 将导入结果保存为协同文档，Web 与 AI SDK 通过文档 ID 操作同一份内容；导出前先同步当前修改，再读取最新文档数据进行转换。
+
+仅做文件转换时，可以在本地 Node.js 进程或远程服务中使用 Exchange，无需同时接入 AI SDK 或协同编辑。
+具体接入步骤见[导入导出集成](/server/import-export)，转换模块的用法见[Office 文件导入导出](/server/import-export/node)。
 
 ## 部署形态
 
 | 形态         | Web                | CLI                  | Server     | 适用范围                 |
 | ------------ | ------------------ | -------------------- | ---------- | ------------------------ |
-| 本机应用     | 本机浏览器或桌面壳 | 本机进程             | 本机进程   | 单机 Office 与本地 Agent |
-| SaaS 应用    | 浏览器             | 用户机器或云端 Agent | 远程服务   | 多用户与集中运维         |
-| Web + Server | 浏览器             | —                    | 本机或远程 | 暂不提供 Agent 入口      |
+| 本机应用     | 本机浏览器或桌面壳 | 本机进程             | 本机进程   | 单机 Office 与本地 AI Agent |
+| SaaS 应用    | 浏览器             | 用户机器或云端 AI Agent | 远程服务   | 多用户与集中运维         |
+| Web + Server | 浏览器             | —                    | 本机或远程 | 暂不提供 AI Agent 入口      |
 | Web-only     | 浏览器或桌面壳     | —                    | —          | 本地、单用户、非协同编辑 |
 
 组件可以部署在同一台机器，也可以跨客户端与云端部署。部署位置不会改变组件职责；存在 Server 时，
@@ -38,10 +50,12 @@ Web 与 CLI 都通过它访问共享内容和产品能力。
 
 | 目标                            | 从这里开始                                         |
 | ------------------------------- | -------------------------------------------------- |
-| 在 Web 中嵌入 Office 编辑器     | [Univer Runtime 文档](https://docs.univer.ai/)     |
+| 在 Web 中嵌入 Office 编辑器     | [Web SDK 文档](/guides/sheets)     |
+| 为编辑器接入 Office 文件导入导出 | [导入导出集成](/server/import-export) |
+| 在 Node.js 中转换 Office 文件 | [Office 文件导入导出](/server/import-export/node) |
 | 增加自托管多人协同              | [Collaboration SDK 概览](/server/collaboration/overview)  |
-| 让 Agent 读取和修改 Office 内容 | [AI SDK 概览](/ai)                      |
+| 让 AI Agent 读取和修改 Office 内容 | [AI SDK 概览](/ai)                      |
 | 了解 CLI 的 headless Runtime    | [Runtime 复用与 Daemon](/ai/runtime-architecture) |
-| 隔离 Agent 修改并由人类审阅     | [Worktree](/ai/worktree)                          |
+| 隔离 AI Agent 修改并由人类审阅     | [Worktree](/ai/worktree)                          |
 
 如果还不确定选择哪条路径，请先阅读[开始使用](/guides/sheets)。

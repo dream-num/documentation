@@ -19,55 +19,33 @@ export function DocsPagination({
   if (!previous && !next) return null
 
   return (
-    <nav aria-label={labels.pagination} className="mt-12 border-t pt-6">
-      <div className="relative grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(4rem,8rem)_minmax(0,1fr)] md:items-center">
-        {previous?.url ? (
-          <Link
-            className="group text-muted-foreground hover:text-foreground flex min-h-18 items-center gap-3 rounded-lg px-1 py-3 text-sm transition-colors"
-            href={previous.url}
-          >
-            <span
-              className="bg-background group-hover:border-foreground/20 group-hover:bg-muted flex size-9 shrink-0 items-center justify-center rounded-full border shadow-xs transition-all group-hover:-translate-x-0.5"
-              aria-hidden="true"
-            >
-              <ArrowLeftIcon className="size-4" />
-            </span>
-            <span className="min-w-0">
-              <span className="text-muted-foreground block text-xs font-medium tracking-wide uppercase">
-                {labels.previous}
-              </span>
-              <span className="text-foreground mt-1 block truncate text-base font-medium">{previous.name}</span>
-            </span>
-          </Link>
-        ) : (
-          <span />
-        )}
-        <span
-          className="via-border hidden h-px w-full bg-linear-to-r from-transparent to-transparent md:block"
-          aria-hidden="true"
-        />
-        {next?.url ? (
-          <Link
-            className="group text-muted-foreground hover:text-foreground flex min-h-18 items-center justify-end gap-3 rounded-lg px-1 py-3 text-right text-sm transition-colors"
-            href={next.url}
-          >
-            <span className="min-w-0">
-              <span className="text-muted-foreground block text-xs font-medium tracking-wide uppercase">
-                {labels.next}
-              </span>
-              <span className="text-foreground mt-1 block truncate text-base font-semibold">{next.name}</span>
-            </span>
-            <span
-              className="bg-background group-hover:border-foreground/20 group-hover:bg-muted flex size-9 shrink-0 items-center justify-center rounded-full border shadow-xs transition-all group-hover:translate-x-0.5"
-              aria-hidden="true"
-            >
-              <ArrowRightIcon className="size-4" />
-            </span>
-          </Link>
-        ) : (
-          <span />
-        )}
-      </div>
+    <nav aria-label={labels.pagination} className="mt-16 grid gap-3 border-t border-(--separator) pt-8 sm:grid-cols-2">
+      {previous?.url ? (
+        <Link
+          href={previous.url}
+          className="group bg-card hover:border-primary/40 hover:bg-accent focus-visible:outline-ring flex min-h-24 flex-col justify-center rounded-lg border border-(--separator) px-5 py-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+        >
+          <span className="text-muted-foreground mb-2 inline-flex items-center gap-1.5 text-sm">
+            <ArrowLeftIcon aria-hidden="true" className="size-3.5 transition-transform group-hover:-translate-x-0.5" />
+            {labels.previous}
+          </span>
+          <span className="text-foreground font-medium">{previous.name}</span>
+        </Link>
+      ) : (
+        <span />
+      )}
+      {next?.url ? (
+        <Link
+          href={next.url}
+          className="group bg-card hover:border-primary/40 hover:bg-accent focus-visible:outline-ring flex min-h-24 flex-col items-end justify-center rounded-lg border border-(--separator) px-5 py-4 text-right transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+        >
+          <span className="text-muted-foreground mb-2 inline-flex items-center gap-1.5 text-sm">
+            {labels.next}
+            <ArrowRightIcon aria-hidden="true" className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+          </span>
+          <span className="text-foreground font-medium">{next.name}</span>
+        </Link>
+      ) : null}
     </nav>
   )
 }

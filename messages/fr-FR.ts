@@ -1,5 +1,7 @@
 const frFRMessages = {
   common: {
+    'expand-code': 'Développer le code',
+    'collapse-code': 'Réduire le code',
     'display-name': 'Français',
     search: 'Rechercher',
     'search-no-result': 'Aucun résultat trouvé',
@@ -412,10 +414,10 @@ const frFRMessages = {
     'plugins-info': 'Informations sur les plugins',
     'mobile-support': 'Prise en charge mobile',
     'mobile-support-desc': 'Interface optimisée pour les appareils tactiles',
-    'server-required': 'Serveur requis',
-    'server-required-desc': 'Dépend de fonctionnalités côté serveur',
-    'server-optional': 'Serveur facultatif',
-    'server-optional-desc': 'Serveur facultatif pour des fonctionnalités avancées',
+    'server-required': 'Intégration avec Server SDK requise',
+    'server-required-desc': 'Cette fonctionnalité nécessite une intégration côté serveur avec Server SDK',
+    'server-optional': 'Intégration facultative de Server SDK',
+    'server-optional-desc': 'Étendez les fonctionnalités avec Server SDK',
     copied: 'Copié',
     locale: 'Paramètres régionaux',
     style: 'CSS',

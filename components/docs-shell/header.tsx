@@ -1,9 +1,9 @@
+import { SiGithub } from '@icons-pack/react-simple-icons'
 import { getTranslations } from 'next-intl/server'
 
 import type { Locale } from '@/i18n/routing'
 import type { IDocsNavItem } from '@/lib/docs/navigation'
 import type { IGuideNavItem } from '@/lib/guides/navigation'
-import { GithubInfo } from '@/components/github-info/github-info'
 import { Logo } from '@/components/logo'
 import { SiteLanguageSwitcher } from '@/components/site/language-switcher'
 import { ThemeSwitcher } from '@/components/theme-switcher'
@@ -43,7 +43,7 @@ export async function DocsHeader({
   }))
 
   return (
-    <header className="bg-background/95 supports-backdrop-filter:bg-background/80 sticky top-0 z-40 border-b backdrop-blur-sm lg:shrink-0">
+    <header className="bg-background/95 supports-backdrop-filter:bg-background/80 sticky top-0 z-40 border-b border-(--separator) backdrop-blur-sm lg:shrink-0">
       <div className="mx-auto flex h-12 max-w-384 items-center gap-2 px-4 lg:px-6">
         <DocsMobileNav
           navigationLabel={t('docs.sidebar-navigation', { title })}
@@ -52,25 +52,39 @@ export async function DocsHeader({
           items={items}
           title={title}
         />
-        <Link aria-label={t('navigation.univer-home')} className="flex shrink-0 items-center" href="/">
+        <Link
+          aria-label={t('navigation.univer-home')}
+          className="flex shrink-0 items-center border-r border-(--separator) pr-2.5 sm:pr-4"
+          href="/"
+        >
           <Logo className="h-8 w-auto" />
         </Link>
         <PrimaryNavigation items={guideItems} labels={navigationLabels} />
         <div className="min-w-0 flex-1" />
-        <div className="md:hidden">
-          <GuidesSearch compact lang={lang} defaultScope={searchScope} />
+        <div className="flex items-center gap-1">
+          <div className="md:hidden">
+            <GuidesSearch compact lang={lang} defaultScope={searchScope} />
+          </div>
+          <div className="hidden md:block">
+            <GuidesSearch lang={lang} defaultScope={searchScope} />
+          </div>
+          <a
+            href="https://github.com/dream-num/univer"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="GitHub"
+            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-primary hidden size-8 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 sm:inline-flex"
+          >
+            <SiGithub aria-hidden="true" className="size-4" />
+          </a>
+          <SiteLanguageSwitcher
+            currentLabel={t('navigation.current-locale')}
+            label={t('common.choose-language')}
+            lang={lang}
+            locales={locales}
+          />
+          <ThemeSwitcher label={t('common.choose-theme')} />
         </div>
-        <div className="hidden md:block">
-          <GuidesSearch lang={lang} defaultScope={searchScope} />
-        </div>
-        <SiteLanguageSwitcher
-          currentLabel={t('navigation.current-locale')}
-          label={t('common.choose-language')}
-          lang={lang}
-          locales={locales}
-        />
-        <ThemeSwitcher label={t('common.choose-theme')} />
-        <GithubInfo className="hidden xl:flex" owner="dream-num" repo="univer" />
       </div>
       <PrimaryNavigation items={guideItems} labels={navigationLabels} mobile />
     </header>

@@ -2,6 +2,8 @@ import type { Messages } from './en-US'
 
 const ruRUMessages = {
   common: {
+    'expand-code': 'Развернуть код',
+    'collapse-code': 'Свернуть код',
     'display-name': 'Русский',
     search: 'Поиск',
     'search-no-result': 'Ничего не найдено',
@@ -414,10 +416,10 @@ const ruRUMessages = {
     'plugins-info': 'Сведения о плагинах',
     'mobile-support': 'Поддержка мобильных устройств',
     'mobile-support-desc': 'Интерфейс оптимизирован для сенсорных устройств',
-    'server-required': 'Требуется сервер',
-    'server-required-desc': 'Зависит от серверных возможностей',
-    'server-optional': 'Сервер необязателен',
-    'server-optional-desc': 'Дополнительный сервер расширяет возможности',
+    'server-required': 'Требуется интеграция с Server SDK',
+    'server-required-desc': 'Для этой функции требуется серверная интеграция с Server SDK',
+    'server-optional': 'Необязательная интеграция Server SDK',
+    'server-optional-desc': 'Расширьте возможности с Server SDK',
     copied: 'Скопировано',
     locale: 'Локаль',
     style: 'CSS',

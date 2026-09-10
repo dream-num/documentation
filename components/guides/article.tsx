@@ -4,10 +4,9 @@ import { getTranslations } from 'next-intl/server'
 import type { Locale } from '@/i18n/routing'
 import type { IGuideNavigation } from '@/lib/guides/navigation'
 import { DocsPageActions } from '@/components/docs-page-actions'
+import { DocsPagination } from '@/components/docs-shell/pagination'
 import { Rate } from '@/components/rate'
 import { Link } from '@/i18n/navigation'
-
-import { GuidesPagination } from './pagination'
 
 export async function GuidesArticle({
   title,
@@ -31,40 +30,42 @@ export async function GuidesArticle({
   const t = await getTranslations({ locale: lang as Locale })
 
   return (
-    <article className="min-w-0">
-      {navigation.activeTrail.length > 0 ? (
-        <nav
-          aria-label={t('docs.breadcrumb')}
-          className="text-muted-foreground mb-4 flex gap-2 overflow-x-auto text-sm"
-        >
-          {navigation.activeTrail.map((item, index) => (
-            <span className="inline-flex items-center gap-2 whitespace-nowrap" key={item.id}>
-              {index > 0 ? <span aria-hidden="true">/</span> : null}
-              {item.url && index < navigation.activeTrail.length - 1 ? (
-                <Link className="hover:text-foreground" href={item.url}>
-                  {item.name}
-                </Link>
-              ) : (
-                <span>{item.name}</span>
-              )}
-            </span>
-          ))}
-        </nav>
-      ) : null}
-      <header className="border-b pb-6">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
-          <h1 className="text-4xl/tight font-semibold tracking-normal">{title}</h1>
-          <div className="mt-1 shrink-0">
-            <DocsPageActions githubUrl={githubUrl} markdownUrl={markdownUrl} />
-          </div>
+    <article className="mx-auto max-w-[50rem] min-w-0">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        {navigation.activeTrail.length > 0 ? (
+          <nav
+            aria-label={t('docs.breadcrumb')}
+            className="text-muted-foreground flex min-w-0 gap-2 overflow-x-auto text-sm"
+          >
+            {navigation.activeTrail.map((item, index) => (
+              <span className="inline-flex items-center gap-2 whitespace-nowrap" key={item.id}>
+                {index > 0 ? <span aria-hidden="true">/</span> : null}
+                {item.url && index < navigation.activeTrail.length - 1 ? (
+                  <Link className="hover:text-foreground" href={item.url}>
+                    {item.name}
+                  </Link>
+                ) : (
+                  <span>{item.name}</span>
+                )}
+              </span>
+            ))}
+          </nav>
+        ) : (
+          <span />
+        )}
+        <div className="shrink-0">
+          <DocsPageActions githubUrl={githubUrl} markdownUrl={markdownUrl} />
         </div>
-        {description ? <p className="text-muted-foreground mt-4 max-w-3xl text-base">{description}</p> : null}
+      </div>
+      <header className="border-b border-(--separator) pb-6">
+        <h1 className="text-[28px]/9 font-semibold tracking-normal">{title}</h1>
+        {description ? <p className="text-muted-foreground mt-3 max-w-2xl text-base/[26px]">{description}</p> : null}
       </header>
       <div className="mt-8 min-w-0">{children}</div>
       <div className="mt-10">
         <Rate lang={lang} onRateAction={onRateAction} />
       </div>
-      <GuidesPagination
+      <DocsPagination
         previous={navigation.previous}
         next={navigation.next}
         labels={{

@@ -47,8 +47,8 @@ export default defineConfig({
   highlight: {
     provider: 'shiki',
     themes: {
-      light: 'github-light',
-      dark: 'github-dark',
+      light: 'vitesse-light',
+      dark: 'vitesse-dark',
     },
     unknownLanguage: 'plain',
   },

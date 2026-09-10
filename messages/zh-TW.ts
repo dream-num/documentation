@@ -2,6 +2,8 @@ import type { Messages } from './en-US'
 
 const zhTWMessages = {
   common: {
+    'expand-code': '展開程式碼',
+    'collapse-code': '收合程式碼',
     'display-name': '繁體中文',
     search: '搜索',
     'search-no-result': '沒有找到相關內容',
@@ -410,10 +412,10 @@ const zhTWMessages = {
     'plugins-info': '插件信息',
     'mobile-support': '行動端支援',
     'mobile-support-desc': '提供針對觸摸設備的 UI 適配',
-    'server-required': '需要服務端',
-    'server-required-desc': '部分功能依賴服務端支持',
-    'server-optional': '可選服務端',
-    'server-optional-desc': '可選接入服務端增強功能',
+    'server-required': '需使用 Server SDK 整合',
+    'server-required-desc': '此功能需要透過 Server SDK 整合伺服器端能力',
+    'server-optional': '可選整合 Server SDK',
+    'server-optional-desc': '可透過 Server SDK 擴充伺服器端功能',
     copied: '已複製',
     locale: '語系包',
     style: '樣式',

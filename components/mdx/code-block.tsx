@@ -1,16 +1,36 @@
-import type { ComponentProps, CSSProperties, ReactNode } from 'react'
+import type { ComponentProps, ReactNode } from 'react'
+import {
+  SiCss,
+  SiGnubash,
+  SiHtml5,
+  SiJavascript,
+  SiJson,
+  SiLatex,
+  SiMdx,
+  SiReact,
+  SiTypescript,
+  SiVuedotjs,
+} from '@icons-pack/react-simple-icons'
+import { CodeXml } from 'lucide-react'
 import { isValidElement } from 'react'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { clsx } from '@/lib/clsx'
 
+import { CollapsibleCode } from './collapsible-code'
 import { CopyCodeButton } from './copy-code-button'
 
 type CodeBlockProps = ComponentProps<'pre'> & { 'data-language'?: string; 'data-meta'?: string }
 
 export function InlineCode({ className, ...props }: ComponentProps<'code'>) {
   return (
-    <code className={clsx('bg-muted rounded-sm px-1.5 py-0.5 font-mono text-sm wrap-anywhere', className)} {...props} />
+    <code
+      className={clsx(
+        'bg-muted text-foreground rounded px-1.5 py-0.5 font-mono text-sm font-medium wrap-anywhere',
+        className,
+      )}
+      {...props}
+    />
   )
 }
 
@@ -79,7 +99,9 @@ export function CodeBlock({
     if (typeof node === 'string' || typeof node === 'number') return String(node)
     if (Array.isArray(node)) return node.map(extractText).join('')
     if (node && typeof node === 'object' && 'props' in node) {
-      return extractText((node.props as { children?: ReactNode }).children)
+      const props = node.props as { children?: ReactNode; className?: string }
+      const text = extractText(props.children)
+      return props.className?.split(/\s+/).includes('line') ? `${text}\n` : text
     }
     return ''
   }
@@ -100,31 +122,6 @@ export function CodeBlock({
     }
   }
 
-  function countCodeLines(node: ReactNode): number {
-    const nodes = Array.isArray(node) ? node : [node]
-    let count = 0
-
-    for (const child of nodes) {
-      if (typeof child === 'string' || typeof child === 'number' || !child) continue
-
-      if (Array.isArray(child)) {
-        count += countCodeLines(child)
-        continue
-      }
-
-      if (!isValidElement<{ className?: unknown; children?: ReactNode }>(child)) continue
-
-      if (typeof child.props.className === 'string' && child.props.className.split(/\s+/).includes('line')) {
-        count += 1
-        continue
-      }
-
-      count += countCodeLines(child.props.children)
-    }
-
-    return count
-  }
-
   function formatLanguage(language?: string) {
     if (!language) return 'text'
 
@@ -142,6 +139,8 @@ export function CodeBlock({
       ts: 'TypeScript',
       tsx: 'TSX',
       typescript: 'TypeScript',
+      vue: 'Vue',
+      tex: 'LaTeX',
     }
 
     return labels[language] ?? language.toUpperCase()
@@ -150,30 +149,50 @@ export function CodeBlock({
   const code = extractText(children).trim()
   const languageName = dataLanguage ?? className?.match(/(?:^|\s)language-(\S+)/)?.[1] ?? findLanguage(children)
   const language = formatLanguage(languageName)
-  const metadataTitle = metadata?.match(/(?:^|\s)(?:title|filename)=(["'])(.*?)\1/u)?.[2]
-  const lineCount = countCodeLines(children)
-  const lineNumberWidth = `${Math.max(2, String(Math.max(1, lineCount)).length)}ch`
-  const preStyle: CSSProperties & { '--code-line-number-width': string } = {
-    ...style,
-    '--code-line-number-width': lineNumberWidth,
+  const languageIcons: Record<string, typeof SiTypescript> = {
+    Bash: SiGnubash,
+    CSS: SiCss,
+    HTML: SiHtml5,
+    JavaScript: SiJavascript,
+    JSON: SiJson,
+    JSX: SiReact,
+    LaTeX: SiLatex,
+    MDX: SiMdx,
+    Shell: SiGnubash,
+    TSX: SiReact,
+    TypeScript: SiTypescript,
+    Vue: SiVuedotjs,
   }
+  const LanguageIcon = languageIcons[language] ?? CodeXml
+  const metadataTitle = metadata?.match(/(?:^|\s)(?:title|filename)=(["'])(.*?)\1/u)?.[2]
 
   return (
-    <div className="group bg-card relative my-6 overflow-hidden rounded-lg border shadow-sm" data-code-block>
-      <div className="bg-muted/45 flex h-9 items-center justify-between border-b px-4">
-        <span className="text-muted-foreground font-mono text-xs font-medium">{language}</span>
+    <div
+      className="group relative my-6 overflow-hidden rounded-lg border border-(--separator) bg-(--code) shadow-sm"
+      data-code-block
+    >
+      <div className="bg-muted/50 flex h-9 items-center justify-between border-b border-[var(--separator)] px-2">
+        <span className="text-muted-foreground inline-flex items-center gap-2 px-2 text-sm font-medium">
+          <LanguageIcon aria-hidden="true" className="size-3.5 shrink-0" />
+          {language}
+        </span>
         <CopyCodeButton code={code} />
       </div>
-      <pre
-        className={clsx(`overflow-x-auto py-4 text-[13px]/6 [&_code]:bg-transparent [&_code]:p-0`, className)}
-        data-language={dataLanguage}
-        data-meta={metadata}
-        style={preStyle}
-        title={title ?? metadataTitle}
-        {...props}
-      >
-        {children}
-      </pre>
+      <CollapsibleCode collapsible={code.split(/\r?\n/).length > 20}>
+        <pre
+          className={clsx(
+            `min-w-full overflow-x-auto py-4 font-mono text-sm/5 [&_code]:bg-transparent [&_code]:p-0`,
+            className,
+          )}
+          data-language={dataLanguage}
+          data-meta={metadata}
+          style={style}
+          title={title ?? metadataTitle}
+          {...props}
+        >
+          {children}
+        </pre>
+      </CollapsibleCode>
     </div>
   )
 }

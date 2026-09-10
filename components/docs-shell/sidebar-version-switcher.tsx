@@ -16,13 +16,13 @@ export function SidebarVersionSwitcher() {
       <DropdownMenuTrigger
         render={
           <button
-            className="hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-ring/60 flex w-full items-center gap-3 rounded-md p-1 text-left transition-colors focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset"
+            className="hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-ring/60 flex w-full items-center gap-2 rounded-md p-1 text-left transition-colors focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset"
             type="button"
           />
         }
       >
-        <span className="bg-background text-primary grid size-10 shrink-0 place-items-center overflow-hidden rounded-md border p-2 [&_svg]:size-4.5!">
-          <TagIcon className="size-5" />
+        <span className="bg-background text-primary grid size-8 shrink-0 place-items-center overflow-hidden rounded-md border">
+          <TagIcon className="size-4" />
         </span>
         <span className="min-w-0 flex-1">
           <span className="text-foreground block truncate text-sm font-semibold">{t('version')}</span>
