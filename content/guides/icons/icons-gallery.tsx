@@ -5,6 +5,7 @@ import { CheckIcon, CopyIcon, RotateCcwIcon, ScanLineIcon, SearchIcon, XIcon } f
 import { useTheme } from 'next-themes'
 import { useMemo, useState } from 'react'
 
+import type { Locale } from '@/i18n/routing'
 import { ColorPickerPopover } from '@/components/color-picker-popover'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,8 +14,6 @@ import { Slider } from '@/components/ui/slider'
 import { clsx } from '@/lib/clsx'
 import { searchIcons } from '@/lib/icons/catalog'
 import catalog from '@/public/assets/icons/catalog.json'
-
-type GalleryLocale = 'en' | 'zh-CN' | 'zh-TW' | 'ja-JP' | 'ko-KR' | 'fr-FR' | 'ru-RU' | 'es-ES'
 
 const translations = {
   'es-ES': {
@@ -35,7 +34,7 @@ const translations = {
     size: 'Tamaño',
     stroke: 'Principal',
   },
-  en: {
+  'en-US': {
     accent: 'Accent',
     all: 'All',
     channel: 'Channel',
@@ -161,7 +160,7 @@ const translations = {
     size: 'Размер',
     stroke: 'Основной цвет',
   },
-} satisfies Record<GalleryLocale, Record<string, string>>
+} satisfies Record<Locale, Record<string, string>>
 
 const iconComponents = new Map(Object.entries(icons))
 
@@ -192,7 +191,7 @@ const subgroupNamesZh: Record<string, string> = {
   multi: '多色',
 }
 
-export function IconsGallery({ locale = 'en' }: { locale?: GalleryLocale }) {
+export function IconsGallery({ locale = 'en-US' }: { locale?: Locale }) {
   const t = translations[locale]
   const zh = locale === 'zh-CN' || locale === 'zh-TW'
   const { resolvedTheme } = useTheme()

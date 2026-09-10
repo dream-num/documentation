@@ -4,6 +4,34 @@ import { test } from 'node:test'
 
 import { chromium } from 'playwright'
 
+import { routing } from '../../../../i18n/routing.ts'
+
+test('icon preview renders at the default URL and in every supported locale', async () => {
+  const origin = process.env.DOCS_TEST_ORIGIN ?? 'http://localhost:3030'
+  const browser = await chromium.launch()
+  try {
+    await Promise.all(
+      routing.locales.map(async (locale) => {
+        const page = await browser.newPage()
+        const errors = []
+        page.on('pageerror', (error) => errors.push(error.message))
+        const prefix = locale === routing.defaultLocale ? '' : `/${locale}`
+        try {
+          const response = await page.goto(`${origin}${prefix}/guides/icons/all-icons`)
+          assert.equal(response.status(), 200, locale)
+          await page.locator('[data-icon-controls]').getByRole('slider').waitFor()
+          assert((await page.locator('[data-icon-gallery] section button').count()) > 0, locale)
+          assert.deepEqual(errors, [], locale)
+        } finally {
+          await page.close()
+        }
+      }),
+    )
+  } finally {
+    await browser.close()
+  }
+})
+
 test('icon preview supports semantic selection and usable controls while scrolling', async () => {
   const origin = process.env.DOCS_TEST_ORIGIN ?? 'http://localhost:3030'
   const browser = await chromium.launch()
