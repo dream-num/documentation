@@ -1,0 +1,74 @@
+---
+title: 在 Astro 中整合
+---
+
+請先閱讀[安裝與基本使用](/guides/pdfs/getting-started/installation)。以下範例透過 Astro 將 Univer Pdfs 掛載到具有明確高度的容器中。
+
+使用一般的 `<script>`，在瀏覽器中直接初始化編輯器。首次載入時執行初始化，使用 ClientRouter 時透過 `astro:page-load` 重新掛載，在 `astro:before-swap` 銷毀舊執行個體。不要在 Astro frontmatter 匯入編輯器。詳見 [Astro 導航事件](https://docs.astro.build/en/reference/modules/astro-transitions/)。
+
+### 整合步驟
+
+1. 在 `mount()` / `astro:page-load` 中初始化 Univer
+2. 在 `astro:before-swap` 中銷毀 Univer
+
+### 範例程式碼
+
+```astro title="src/pages/index.astro"
+<div id="univer-pdfs" style="height: 600px"></div>
+
+<script>
+  import { UniverLicensePlugin } from '@univerjs-pro/license'
+  import { UniverPdfsPlugin } from '@univerjs-pro/pdfs'
+  import { UniverPdfsUIPlugin } from '@univerjs-pro/pdfs-ui'
+  import PdfsUIzhTW from '@univerjs-pro/pdfs-ui/locale/zh-TW'
+  import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
+  import { FUniver } from '@univerjs/core/facade'
+  import DesignzhTW from '@univerjs/design/locale/zh-TW'
+  import { UniverUIPlugin } from '@univerjs/ui'
+  import UIzhTW from '@univerjs/ui/locale/zh-TW'
+
+  import '@univerjs/design/lib/index.css'
+  import '@univerjs/ui/lib/index.css'
+  import '@univerjs-pro/pdfs-ui/lib/index.css'
+
+  import '@univerjs-pro/pdfs/facade'
+
+  let univerInstance: Univer | undefined
+
+  function mount() {
+    const container = document.getElementById('univer-pdfs')
+    if (!container || univerInstance) return
+
+    const univer = new Univer({
+      locale: LocaleType.ZH_TW,
+      locales: {
+        [LocaleType.ZH_TW]: mergeLocales(
+          DesignzhTW,
+          UIzhTW,
+          PdfsUIzhTW,
+        ),
+      },
+    })
+
+    univer.registerPlugin(UniverLicensePlugin, {
+      license: 'your license.txt',
+    })
+    univer.registerPlugin(UniverUIPlugin, { container })
+    univer.registerPlugin(UniverPdfsPlugin)
+    univer.registerPlugin(UniverPdfsUIPlugin)
+
+    const univerAPI = FUniver.newAPI(univer)
+    univerAPI.createPdf({ name: 'Untitled PDF' })
+    univerInstance = univer
+  }
+
+  function dispose() {
+    univerInstance?.dispose()
+    univerInstance = undefined
+  }
+
+  mount()
+  document.addEventListener('astro:page-load', mount)
+  document.addEventListener('astro:before-swap', dispose)
+</script>
+```

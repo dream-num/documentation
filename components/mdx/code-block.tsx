@@ -1,5 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react'
 import {
+  SiAstro,
   SiCss,
   SiGnubash,
   SiHtml5,
@@ -126,6 +127,7 @@ export function CodeBlock({
     if (!language) return 'text'
 
     const labels: Record<string, string> = {
+      astro: 'Astro',
       bash: 'Bash',
       css: 'CSS',
       html: 'HTML',
@@ -150,6 +152,7 @@ export function CodeBlock({
   const languageName = dataLanguage ?? className?.match(/(?:^|\s)language-(\S+)/)?.[1] ?? findLanguage(children)
   const language = formatLanguage(languageName)
   const languageIcons: Record<string, typeof SiTypescript> = {
+    Astro: SiAstro,
     Bash: SiGnubash,
     CSS: SiCss,
     HTML: SiHtml5,
