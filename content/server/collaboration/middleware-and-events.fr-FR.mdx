@@ -46,28 +46,41 @@ Un Middleware HTTP Transport peut terminer la réponse sans `next()`. Les Middle
 
 ## Middleware Transport
 
-Le Transport sépare les chaînes des requêtes HTTP ordinaires et des mises à niveau WebSocket :
+`transport.use()` enregistre les Middleware HTTP ordinaires, exécutés dans l’ordre d’enregistrement. Appelez `await next()` pour poursuivre le traitement, ou terminez directement la réponse. `transport.useUpgrade()` traite les négociations WebSocket.
+
+Par exemple, mesurez la durée HTTP, authentifiez la requête et définissez un `userID` fiable, puis enregistrez le Collaboration Endpoint :
 
 ```ts
 transport.use(async (context, next) => {
-  context.customData.traceID = readTraceID(context.incomingMessage);
-  requestLogger.info("collaboration request", {
-    method: context.incomingMessage.method,
-    traceID: context.customData.traceID,
+  const start = performance.now();
+  context.response.once("finish", () => {
+    recordHttpDuration({
+      method: context.incomingMessage.method,
+      route: context.route?.path ?? "unmatched",
+      status: context.response.statusCode,
+      durationMs: performance.now() - start,
+    });
   });
   await next();
 });
 
-transport.useUpgrade(async (context, next) => {
-  if (!isAllowedOrigin(context.incomingMessage.headers.origin)) {
-    context.reject(403, "Origin rejected");
+transport.use(async (context, next) => {
+  const user = await authenticate(context.incomingMessage);
+  if (!user) {
+    context.response.statusCode = 401;
+    context.response.end("Authentication required");
     return;
   }
+  context.userID = user.userId;
   await next();
 });
+
+transport.register(collaborationEndpoint);
 ```
 
-`transport.use()` intervient uniquement pour HTTP ordinaire : identité, logs de requête, traçage, CORS et `customData` local à la requête. `transport.useUpgrade()` intervient uniquement dans la négociation WebSocket et peut la refuser avant connexion.
+L’application fournit `recordHttpDuration` et `authenticate`. L’Endpoint utilise le `userID` défini par les Middleware précédents. Le Middleware d’observation précède l’authentification afin d’enregistrer également les refus.
+
+`context.route?.path` est le modèle complet de la route correspondante, disponible lorsque l’exécution atteint l’Endpoint. Utilisez l’événement `finish` de la réponse pour mesurer le temps jusqu’à sa fin ; les refus avant la résolution de la route et les chemins inconnus sont enregistrés comme `unmatched`.
 
 ## Middleware Endpoint
 

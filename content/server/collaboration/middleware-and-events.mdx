@@ -52,30 +52,47 @@ Middleware should reject with an explicit error rather than silently skipping `n
 
 ## Transport Middleware
 
-The Transport has separate Middleware chains for ordinary HTTP requests and WebSocket upgrades:
+`transport.use()` registers ordinary HTTP Middleware, executed in registration order. Call
+`await next()` to continue processing, or end the response directly. `transport.useUpgrade()`
+handles WebSocket handshakes.
+
+For example, record HTTP duration, authenticate and set a trusted `userID`, then register the
+Collaboration Endpoint:
 
 ```ts
 transport.use(async (context, next) => {
-  context.customData.traceID = readTraceID(context.incomingMessage);
-  requestLogger.info("collaboration request", {
-    method: context.incomingMessage.method,
-    traceID: context.customData.traceID,
+  const start = performance.now();
+  context.response.once("finish", () => {
+    recordHttpDuration({
+      method: context.incomingMessage.method,
+      route: context.route?.path ?? "unmatched",
+      status: context.response.statusCode,
+      durationMs: performance.now() - start,
+    });
   });
   await next();
 });
 
-transport.useUpgrade(async (context, next) => {
-  if (!isAllowedOrigin(context.incomingMessage.headers.origin)) {
-    context.reject(403, "Origin rejected");
+transport.use(async (context, next) => {
+  const user = await authenticate(context.incomingMessage);
+  if (!user) {
+    context.response.statusCode = 401;
+    context.response.end("Authentication required");
     return;
   }
+  context.userID = user.userId;
   await next();
 });
+
+transport.register(collaborationEndpoint);
 ```
 
-`transport.use()` participates only in ordinary HTTP requests. It is suitable for identity,
-request logging, tracing, CORS, and request-local `customData`. `transport.useUpgrade()` participates
-only in the WebSocket handshake and can reject it before connection.
+The application supplies `recordHttpDuration` and `authenticate`. Endpoint uses the `userID` set
+by earlier Middleware. Observation comes before authentication, so rejections are also recorded.
+
+`context.route?.path` is the full matched route template, available when execution reaches the
+Endpoint. Use response `finish` to measure response completion; rejections before routing and
+unknown paths are recorded as `unmatched`.
 
 ## Endpoint Middleware
 

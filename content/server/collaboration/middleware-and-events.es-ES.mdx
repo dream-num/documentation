@@ -46,28 +46,41 @@ El Middleware HTTP de Transport puede terminar la respuesta sin llamar a `next()
 
 ## Middleware de Transport
 
-Transport separa las cadenas de solicitudes HTTP ordinarias y actualizaciones WebSocket:
+`transport.use()` registra Middleware HTTP ordinario, que se ejecuta en orden de registro. Llama a `await next()` para continuar el procesamiento o finaliza la respuesta directamente. `transport.useUpgrade()` gestiona los protocolos de enlace WebSocket.
+
+Por ejemplo, registra la duración HTTP, autentica y establece un `userID` de confianza y, después, registra el Collaboration Endpoint:
 
 ```ts
 transport.use(async (context, next) => {
-  context.customData.traceID = readTraceID(context.incomingMessage);
-  requestLogger.info("collaboration request", {
-    method: context.incomingMessage.method,
-    traceID: context.customData.traceID,
+  const start = performance.now();
+  context.response.once("finish", () => {
+    recordHttpDuration({
+      method: context.incomingMessage.method,
+      route: context.route?.path ?? "unmatched",
+      status: context.response.statusCode,
+      durationMs: performance.now() - start,
+    });
   });
   await next();
 });
 
-transport.useUpgrade(async (context, next) => {
-  if (!isAllowedOrigin(context.incomingMessage.headers.origin)) {
-    context.reject(403, "Origin rejected");
+transport.use(async (context, next) => {
+  const user = await authenticate(context.incomingMessage);
+  if (!user) {
+    context.response.statusCode = 401;
+    context.response.end("Authentication required");
     return;
   }
+  context.userID = user.userId;
   await next();
 });
+
+transport.register(collaborationEndpoint);
 ```
 
-`transport.use()` solo participa en HTTP ordinario: identidad, registro de solicitudes, trazas, CORS y `customData` local. `transport.useUpgrade()` solo participa en el protocolo de enlace WebSocket y puede rechazarlo antes de conectar.
+La aplicación proporciona `recordHttpDuration` y `authenticate`. Endpoint utiliza el `userID` establecido por los Middleware anteriores. El Middleware de observación se registra antes de la autenticación, por lo que también se registran los rechazos.
+
+`context.route?.path` es la plantilla completa de la ruta coincidente, disponible cuando la ejecución llega al Endpoint. Usa el evento `finish` de la respuesta para medir el tiempo hasta su finalización; los rechazos anteriores a la resolución de la ruta y las rutas desconocidas se registran como `unmatched`.
 
 ## Middleware de Endpoint
 

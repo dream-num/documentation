@@ -51,29 +51,44 @@ Middleware 若要拒绝操作，应抛出明确错误，而不是静默跳过 `n
 
 ## Transport Middleware
 
-Transport 位于网络入口，提供普通 HTTP 与 WebSocket Upgrade 两条 Middleware 链：
+`transport.use()` 注册普通 HTTP Middleware，按注册顺序执行。调用 `await next()`
+进入后续处理，也可以直接结束响应。`transport.useUpgrade()` 则用于 WebSocket 握手。
+
+例如，先统计 HTTP 耗时，再认证并设置可信 `userID`，最后注册 Collaboration Endpoint：
 
 ```ts
 transport.use(async (context, next) => {
-  context.customData.traceID = readTraceID(context.incomingMessage);
-  requestLogger.info("collaboration request", {
-    method: context.incomingMessage.method,
-    traceID: context.customData.traceID,
+  const start = performance.now();
+  context.response.once("finish", () => {
+    recordHttpDuration({
+      method: context.incomingMessage.method,
+      route: context.route?.path ?? "unmatched",
+      status: context.response.statusCode,
+      durationMs: performance.now() - start,
+    });
   });
   await next();
 });
 
-transport.useUpgrade(async (context, next) => {
-  if (!isAllowedOrigin(context.incomingMessage.headers.origin)) {
-    context.reject(403, "Origin rejected");
+transport.use(async (context, next) => {
+  const user = await authenticate(context.incomingMessage);
+  if (!user) {
+    context.response.statusCode = 401;
+    context.response.end("Authentication required");
     return;
   }
+  context.userID = user.userId;
   await next();
 });
+
+transport.register(collaborationEndpoint);
 ```
 
-`transport.use()` 只参与普通 HTTP request。它适合身份解析、请求日志、trace、CORS 或建立请求级
-`customData`。`transport.useUpgrade()` 只参与 WebSocket handshake，适合握手前检查。
+`recordHttpDuration` 和 `authenticate` 由应用提供。Endpoint 使用前序 Middleware 设置的
+`userID` 处理请求；观测 Middleware 注册在认证之前，因此认证拒绝也会被记录。
+
+`context.route?.path` 是匹配后的完整路由模板，在执行到 Endpoint 时才可用。
+通过 response `finish` 统计响应完成的耗时；路由匹配前的拒绝和未知路径记为 `unmatched`。
 
 ## Endpoint Middleware
 
