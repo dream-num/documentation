@@ -1,0 +1,173 @@
+---
+title: Middleware と Events
+description: 汎用 Middleware と Events で Transport、Endpoint、Service、共同編集の拡張モジュールを拡張します。
+---
+
+Middleware と Events は Collaboration SDK の汎用拡張ポイントです。本人確認と認可は Middleware で接続します。操作前の検証・制限には Middleware、状態確定後の変更記録や後続処理には Events を使います。どちらもログ、リクエスト追跡、メトリクス、派生状態の更新に使えます。
+
+## 2 つの拡張タイミング
+
+| | Middleware | Event |
+| --- | --- | --- |
+| 実行時点 | 操作中 | 状態変更の確定後 |
+| 操作への参加・拒否 | 可能 | 不可 |
+| 呼び出し Context の補完 | 可能 | Event に含まれる Context と結果を読み取る |
+| リスナーの失敗 | 現在の操作が失敗する場合がある | 確定済みのドメイン結果から分離 |
+| 主な用途 | 本人確認、認可、検証、ログ、計時 | 派生インデックス、キャッシュ、メトリクス、プロセス内通知 |
+
+操作を続行できるか判断する場合は Middleware、状態変更が既に起きたことを観察する場合は Event を使います。
+
+## Middleware の実行モデル
+
+同じ Action の Middleware は登録順の非同期チェーンになります。`await next()` が次の Middleware に入り、最内側で SDK の操作が実行されます。
+
+```ts
+service.use("submitChangeset", async (context, next) => {
+  const startedAt = performance.now();
+  context.customData.startedAt = startedAt;
+
+  try {
+    await next();
+  } finally {
+    metrics.observe("collaboration.submit.duration", performance.now() - startedAt);
+  }
+});
+```
+
+Middleware は次の処理を行えます。
+
+- Action 固有のリクエストを読む；
+- `customData` で呼び出し内データを共有する；
+- `next()` 前に入力を検査し、アプリケーションのシステムに問い合わせる；
+- `next()` が戻った後に時間や結果を記録する；
+- `CollabError` を投げ、想定された共同編集操作を拒否する。
+
+Transport HTTP Middleware は `next()` を呼ばずに HTTP レスポンスを終了できます。Service と Endpoint の Middleware は、黙って `next()` を省略せず、明示的なエラーで拒否します。
+
+## Transport Middleware
+
+Transport は通常の HTTP リクエストと WebSocket アップグレードに別々の Middleware チェーンを持ちます。
+
+```ts
+transport.use(async (context, next) => {
+  context.customData.traceID = readTraceID(context.incomingMessage);
+  requestLogger.info("collaboration request", {
+    method: context.incomingMessage.method,
+    traceID: context.customData.traceID,
+  });
+  await next();
+});
+
+transport.useUpgrade(async (context, next) => {
+  if (!isAllowedOrigin(context.incomingMessage.headers.origin)) {
+    context.reject(403, "Origin rejected");
+    return;
+  }
+  await next();
+});
+```
+
+`transport.use()` は通常の HTTP リクエストのみが対象で、本人確認、リクエストログ、追跡、CORS、リクエスト内 `customData` に適しています。`transport.useUpgrade()` は WebSocket ハンドシェイクのみが対象で、接続前に拒否できます。
+
+## Endpoint Middleware
+
+Endpoint Middleware はリアルタイム Session と Presence の操作に参加します。
+
+| Action | 実行時点 | 主な用途 |
+| --- | --- | --- |
+| `connect` | チケット消費と Session 作成後、HELLO 前 | 接続ポリシー、メンバーの表示名とアバター |
+| `joinUnit` | Session が Unit Room に参加する前 | Room への参加許可と Unit の可視性 |
+| `receivePresence` | 参加済み Session からの Presence 受信後、配信前 | 検証と Presence フィルタリング |
+| `sendPresence` | 各 Room メンバーへの Presence 送信前 | 受信者ごとのフィルタリング |
+
+```ts
+endpoint.use("receivePresence", async (context, next) => {
+  if (JSON.stringify(context.payload).length > 8_000) {
+    throw new CollabError("INVALID_REQUEST", "Presence payload is too large");
+  }
+  await next();
+});
+```
+
+Endpoint の `session.userID` と `session.customData` は Session Ticket を発行した HTTP リクエストに由来します。Endpoint が現在の WebSocket Session に作る `memberID` は再接続時に変わります。
+
+## Service Middleware
+
+Service Middleware は正本の共同編集データのライフサイクルに参加します。
+
+| Action | 境界 | 主な用途 |
+| --- | --- | --- |
+| `readUnitData` | スナップショット、ブロック、変更セットの読み取り前 | 閲覧ポリシー、テナント検査、監査 |
+| `createUnit` | Unit のアトミックな作成前 | 型検査、作成ポリシー、業務ルール |
+| `deleteUnits` | 一括削除の書き込み前 | 削除ポリシーと Unit ごとの検査 |
+| `recoverUnits` | 一括復元の書き込み前 | 復元ポリシーと監査 |
+| `submitChangeset` | 論理送信が冪等性処理と OT に入る前 | 編集ポリシー、合計サイズ制限、追跡 |
+| `applyChangeset` | 変換済み変更セットを候補状態に適用する前 | mutation 単位の検証 |
+| `commitChangeset` | Adapter のリビジョン CAS とコミットの前 | 最終リビジョンのルールとメトリクス |
+
+```ts
+service.use("createUnit", async (context, next) => {
+  await creationPolicy.assertAllowed({
+    userID: context.userID,
+    unitID: context.request.snapshot.unitID,
+    type: context.request.snapshot.type,
+  });
+  context.customData.creationPolicyChecked = true;
+  await next();
+});
+```
+
+`submitChangeset` は論理送信ごとに 1 回実行されます。リビジョン競合により `applyChangeset` と `commitChangeset` が新しい `attempt` で再実行される場合があります。この段階の Middleware は再試行に安全である必要があり、取り消せない外部メッセージの送信や一度限りの課金を直接行ってはいけません。
+
+## customData の範囲
+
+`customData` はアプリケーションが書き込める呼び出し内オブジェクトで、次に適しています。
+
+- テナント ID、追跡 ID、リクエストロガー；
+- 現在の呼び出しで再利用する ACL 検索結果；
+- 計時開始点や監査ラベル；
+- 同じ Middleware チェーンで共有する業務オブジェクト。
+
+通常の HTTP リクエスト、Service 呼び出し、WebSocket Session はライフサイクルが異なります。`customData` は自動保存、ブラウザー送信、ログ出力されません。長期データはアプリケーションのストレージに置きます。
+
+## Event の実行モデル
+
+Service は `on()` でプロセス内リスナーを登録し、破棄可能な購読を受け取ります。
+
+```ts
+const subscription = service.on("changesetCommitted", async (event) => {
+  metrics.increment("collaboration.changeset.committed", {
+    unitType: String(event.changeset.type),
+  });
+  localCache.delete(event.changeset.unitID);
+});
+
+subscription.dispose();
+```
+
+同じ Event のリスナーは登録順に逐次実行され、完了が待機されます。エラーはログに記録され、確定済みのドメイン結果から分離されます。たとえば `changesetCommitted` リスナーが失敗しても Adapter が保存した変更セットはロールバックされません。
+
+Events はプロセス内、復旧可能、または非クリティカルな後続処理に適しています。DB コミットと共通のトランザクション境界ではなく、外部システムへの配信を保証しません。
+
+## 基本 Service の Events
+
+| Event | 確定した事実 | 主な用途 |
+| --- | --- | --- |
+| `unitCreated` | Unit と初期データを作成済み | ローカル一覧キャッシュや派生インデックス |
+| `changesetCommitted` | 変更セットを確定しリビジョンを更新済み | 配信、メトリクス、派生インデックス |
+| `unitsDeleted` | Adapter が一括削除を確定済み | プロセス内の関連状態の消去 |
+| `unitsRecovered` | Adapter が一括復元を確定済み | プロセス内派生状態の復元 |
+
+Endpoint は同じ Service の `changesetCommitted` を監視し、現在のプロセスで Unit に参加したクライアントへ確定変更セットを配信します。また、明示的な退出、切断、Endpoint の破棄に対して `memberLeftUnit` を公開します。
+
+## 拡張モジュールは独自の拡張ポイントを持つ
+
+History、Thread Comment、Worktree は基本 Collaboration Service の Middleware や Events を継承しません。
+
+- History は読み取りと索引作成の Middleware を提供します。
+- Comment は追加、返信、編集、削除、解決、一覧の Middleware と `commentCommitted` を提供します。
+- Worktree はライフサイクルと下書き read/submit/commit の Middleware、および作成、状態、マージ、下書きコミットの Events を提供します。
+
+有効にしたモジュールごとにルールを設定してください。基本 Service のログ、テナント、認可 Middleware は自動適用されません。
+
+既存のユーザーや ACL をこれらの境界に対応付ける具体例は[本人確認と認可](/server/collaboration/identity-and-authorization)に進んでください。

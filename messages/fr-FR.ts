@@ -1,5 +1,9 @@
 const frFRMessages = {
   common: {
+    'zoom-in': 'Agrandir',
+    'zoom-out': 'Réduire',
+    'reset-zoom': 'Réinitialiser le zoom',
+    diagram: 'Diagramme',
     'expand-code': 'Développer le code',
     'collapse-code': 'Réduire le code',
     'display-name': 'Français',

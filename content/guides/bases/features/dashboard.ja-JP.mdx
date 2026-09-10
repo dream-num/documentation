@@ -1,0 +1,76 @@
+---
+title: ダッシュボードとピボットビュー
+icon: 'ChartColumn'
+---
+
+ピボットビューは、地域別の売上など、テーブルのデータを集計します。ダッシュボードはグラフ、フィルター、テキスト、画像を 1 ページにまとめます。これらは独立したプラグインが提供し、ローカル表示に共同編集は不要です。
+
+## プラグインの登録
+
+Bases のコアおよび UI プラグインの後に登録します。
+
+```package-install
+npm install @univerjs-pro/bases-dashboard @univerjs-pro/bases-dashboard-ui
+```
+
+```ts
+import { UniverBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+import { UniverBaseDashboardUIPlugin } from '@univerjs-pro/bases-dashboard-ui'
+
+import '@univerjs-pro/bases-dashboard/facade'
+
+univer.registerPlugin(UniverBaseDashboardPlugin)
+univer.registerPlugin(UniverBaseDashboardUIPlugin)
+```
+
+追加したパッケージの言語リソースをアプリケーションにマージします。これらのプラグインはグラフ、ドキュメント、図形への依存関係を宣言しています。依存プラグインを独自に設定したい場合は、先に登録してください。
+
+## 売上のピボットビューを作成する
+
+この例ではテーブルを作り、売上を地域別に集計します。
+
+```ts
+import { PivotTableFiledAreaEnum } from '@univerjs-pro/engine-pivot'
+
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('Open a Base first')
+
+const table = base.insertTable('Orders', { primaryFieldName: 'Region' })
+const revenue = table.addField('Revenue', univerAPI.Enum.BaseFieldType.Number)
+table.addRecords([
+  { values: { [table.getPrimaryFieldId()]: 'East', [revenue.getId()]: 120 } },
+  { values: { [table.getPrimaryFieldId()]: 'West', [revenue.getId()]: 80 } },
+])
+
+const pivot = base.createPivotView('Revenue by region', table.getId())
+const pivotTable = pivot.getPivotTable()
+pivotTable.addFieldWithSourceId(table.getPrimaryFieldId(), PivotTableFiledAreaEnum.Row)
+pivotTable.addFieldWithSourceId(revenue.getId(), PivotTableFiledAreaEnum.Value)
+pivot.updateConfig({ pivot: pivotTable.toJSON(), displayMode: 'chart-and-table' })
+
+const baseUI = univerAPI.getBaseUI()
+await baseUI.activateTable(table.getId())
+await baseUI.activateView(pivot.getId())
+```
+
+`getPivotTable()` は独立した計算モデルを返します。編集後に `updateConfig()` を呼び出して変更を Base に保存してください。`displayMode` は `table`、`chart`、`chart-and-table` を受け付けます。
+
+## グラフをダッシュボードに追加する
+
+```ts
+const dashboard = base.createDashboard('Sales overview')
+dashboard.addPivotChart(table.getId(), pivot.getId(), {
+  title: 'Revenue by region',
+  layout: { column: 0, row: 0, columnSpan: 6, rowSpan: 6 },
+})
+```
+
+グラフは既存のピボットビューを参照します。集計フィールドと計算はビューが管理し、配置と表示はダッシュボードが管理します。新しいダッシュボードは Bases のサイドバーから開けます。
+
+`addTableFilter()`、`addText()`、`addImage()`、`addFormulaShape()` でフィルター、リッチテキスト、画像、数式図形を追加します。ウィジェットは `getWidgets()` で取得し、`removeWidget()` で削除します。
+
+## 保存と権限
+
+`base.save()` で、ダッシュボードのリソースを含む完全なスナップショットを保存します。テーブルのレコードだけを保存すると、この設定は失われます。復元前にダッシュボードプラグインを登録してください。
+
+ダッシュボードとピボットビューは `getPermission()` を公開しており、個別に読み取り専用を設定できます。[権限](/guides/bases/features/core/permissions)を参照してください。API 全体は [Bases Facade](/reference/facade/bases) に記載されています。

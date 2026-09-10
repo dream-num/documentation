@@ -1,0 +1,160 @@
+---
+title: Визуальная проверка
+description: Render Runtime, Screenshot и Layout Lint предоставляют AI Agent визуальную информацию о реальном рендеринге.
+source: https://github.com/dream-num/univer-cli-sdk/blob/main/packages/unit-screenshot/README.md
+---
+
+Inspection проверяет значения, абзацы и структуру, но не полностью описывает выход текста за границы, перекрытия, положение графики и итоговый макет. После структурных операций добавьте браузерный рендеринг для проверки реального результата AI Agent.
+
+```text
+актуальные UnitData
+→ Render Runtime
+├── Screenshot → PNG → визуальная проверка AI Agent
+└── Layout Lint → структурированное замечание → исправление AI Agent
+```
+
+## Шаг 1: явное состояние содержимого
+
+Screenshot и Layout Lint принимают материализованные UnitData, не загружают удалённые цели и не интерпретируют наборы изменений. Сначала синхронизируйте совместную Unit и экспортируйте полное состояние:
+
+```ts
+await runtime.pull();
+const unitData = await runtime.exportUnitData();
+```
+
+Для Worktree экспортируйте данные черновика. Локальное приложение может взять уже загруженные или импортированные данные. Проверка всегда относится к одному конкретному состоянию.
+
+## Шаг 2: сборка Render Page
+
+`@univer-cli/univer-render-page` создаёт браузерную страницу. Приложение выбирает плагины Univer и собирает статическую страницу:
+
+```ts
+import { createPresetRenderUniver, mountUniverRenderPage } from "@univer-cli/univer-render-page";
+
+const container = document.querySelector<HTMLElement>("#app");
+if (container === null) throw new Error("#app is required");
+
+await mountUniverRenderPage({
+  container,
+  createUniver: createPresetRenderUniver,
+});
+```
+
+Render Page — вход браузерного рендеринга, не страница проверки человеком. Она получает UnitData из Node.js и возвращает PNG или факты макета.
+
+## Шаг 3: создание Render Runtime
+
+`@univer-cli/univer-render-runtime` размещает страницу в Node.js, запускает браузер и управляет протоколом:
+
+```ts
+import { createUniverRenderRuntime } from "@univer-cli/univer-render-runtime";
+
+const renderRuntime = await createUniverRenderRuntime({
+  renderPageRoot,
+});
+```
+
+Один Runtime может выполнять несколько операций последовательно. Используйте его повторно во внешнем жизненном цикле вместо запуска браузера на каждую картинку.
+
+## Шаг 4: снимок экрана
+
+`@univer-cli/unit-screenshot` — высокоуровневый вход для Sheet, Doc, Slide, Board и Base. Он управляет выбором цели, страницами, масштабом, именами и лимитами ресурсов:
+
+```ts
+import { createUnitScreenshot } from "@univer-cli/unit-screenshot";
+
+const screenshot = createUnitScreenshot({ runtime: renderRuntime });
+const result = await screenshot.capture({
+  unitType: "sheet",
+  unitData,
+  target: {
+    kind: "sheet-range",
+    sheetName: "Data",
+    range: "B2:H40",
+    scale: 2,
+  },
+});
+```
+
+Результат может содержать несколько изображений. Каждое включает байты PNG, размеры, идентификатор страницы или цели и предлагаемое имя. Пакет не пишет файлы: хранение и передачу AI Agent определяет приложение.
+
+Без цели выбирается стандартное содержимое: используемый диапазон активного листа, все страницы Doc или Slide.
+
+## Шаг 5: диагностика макета Slide
+
+`@univer-cli/unit-layout-lint` использует реальные браузерные данные о макете и возвращает структурированные замечания с доказательствами:
+
+```ts
+import { createUnitLayoutLint } from "@univer-cli/unit-layout-lint";
+
+const lint = createUnitLayoutLint({ runtime: renderRuntime });
+const report = await lint.lint({
+  unitType: "slide",
+  unitData,
+  pages: [1, "closing-slide"],
+});
+```
+
+Текущие правила:
+
+- `text-off-page`: реально нарисованный текст выходит за границы страницы.
+- `text-escapes-container`: текст видимо выходит за меньший непрозрачный контейнер.
+- `text-overlaps-text`: две области реально нарисованного текста существенно перекрываются.
+
+Замечание — обоснованная рекомендация для проверки, не обязательное требование изменить документ. AI Agent может сопоставить её со снимками, изменить через Facade и проверить снова.
+
+## Шаг 6: команды Commander
+
+Обе возможности предоставляют нативные пресеты Commander. Внедрите созданные возможности и бизнес-загрузчики UnitData в тот же `program` из [Загрузки и операций с содержимым](/ai/content-operations):
+
+```ts
+import type { UnitScreenshotCommandDependencies } from "@univer-cli/unit-screenshot-command";
+import { createUnitScreenshotCommand } from "@univer-cli/unit-screenshot-command";
+import type { UnitLayoutLintCommandDependencies } from "@univer-cli/unit-layout-lint-command";
+import { createUnitLayoutLintCommand } from "@univer-cli/unit-layout-lint-command";
+import type { Command } from "commander";
+
+function addVisualCommands(
+  program: Command,
+  dependencies: {
+    loadUnit: UnitScreenshotCommandDependencies["loadUnit"];
+    writeImages: UnitScreenshotCommandDependencies["writeImages"];
+    loadSlide: UnitLayoutLintCommandDependencies["loadUnit"];
+  },
+): void {
+  program.addCommand(
+    createUnitScreenshotCommand({
+      screenshot,
+      loadUnit: dependencies.loadUnit,
+      writeImages: dependencies.writeImages,
+    }),
+  );
+
+  program.addCommand(
+    createUnitLayoutLintCommand({
+      lint,
+      loadUnit: dependencies.loadSlide,
+    }),
+  );
+}
+```
+
+Пресеты отвечают за выбор целей и страниц Slide, `--json`, стандартный текстовый вывод и завершение Commander при ошибке. Параметры явно внедряют сопоставление ID с состоянием и запись PNG. Жизненным циклом Runtime тоже владеет приложение.
+
+Пресет Screenshot может включать подкоманды установки и поиска браузера. При каждом снимке браузер не скачивается неявно.
+
+## Шаг 7: освобождение ресурсов
+
+Создатель закрывает Runtime на внешней границе жизненного цикла Commander:
+
+```ts
+try {
+  await program.parseAsync();
+} finally {
+  await renderRuntime.close();
+}
+```
+
+Для собственного ввода-вывода AI Agent вызывайте базовые пакеты без пресетов. Не рендерьте недоверенные UnitData прямо на общем высокопривилегированном хосте: используйте ограниченного пользователя, контейнер или другую процессную изоляцию.
+
+Затем включите те же возможности в процесс [Worktree: редактирование AI Agent и проверка человеком](/ai/worktree).

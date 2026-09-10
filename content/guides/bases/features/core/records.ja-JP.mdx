@@ -1,0 +1,69 @@
+---
+title: レコード、リンク、階層
+---
+
+レコードはタスク、顧客、注文などの業務オブジェクトを表します。Facade API を使って一括書き込み、ページ単位の読み取り、テーブル間のリンク、親子レコードの構成を行えます。
+
+## レコードの作成と読み取り
+
+```ts
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('Open a Base first')
+
+const table = base.insertTable('Tasks', { primaryFieldName: 'Title' })
+const titleId = table.getPrimaryFieldId()
+const records = table.addRecords([
+  { values: { [titleId]: 'Write documentation' } },
+  { values: { [titleId]: 'Review examples' } },
+])
+records[0].setValue(titleId, 'Publish documentation')
+
+const page = table.queryRecords({ offset: 0, limit: 20 })
+console.log(page.total, page.records)
+```
+
+値のキーはデフォルトでフィールド ID です。フィールド名をキーにする場合は `univerAPI.Enum.BaseFieldKeyEnum.Name` を渡します。`queryRecords()` は読み込み済みのローカルデータを検索し、バックエンドからページを取得しません。`viewId` でビューの範囲を読み取り、`sort` で順序を指定できます。
+
+一括削除には `table.deleteRecords(recordIds)`、複製には `record.duplicate()` を使います。これらはコマンドシステムを通じて実行され、元に戻す・やり直す操作に対応します。
+
+## レコードの検索
+
+指定したフィールド内のテキストを検索します。
+
+```ts
+const matches = table.search({ query: 'documentation', fieldIds: [titleId], limit: 20 })
+console.log(matches)
+```
+
+## 別のテーブルへのリンク
+
+例えば、各タスクをプロジェクトにリンクします。
+
+```ts
+const projects = base.insertTable('Projects', { primaryFieldName: 'Name' })
+const project = projects.addRecord({ [projects.getPrimaryFieldId()]: 'Website' })
+const projectField = table.addField('Project', univerAPI.Enum.BaseFieldType.RecordLink, {
+  field: { config: { targetTableId: projects.getId(), multiple: false } },
+})
+records[0].setLinkedRecordIds(projectField.getId(), [project.getId()])
+console.log(records[0].getLinkedRecordIds(projectField.getId()))
+```
+
+リンク先は同じ Base に属している必要があります。複数のレコードにリンクするには `multiple: true`、表示ラベルには `displayFieldId`、選択画面の補足情報には `pickerFieldIds` を設定します。内部の保存文字列を組み立てるのではなく、リンク API で ID を読み書きしてください。
+
+## 親子レコード
+
+API レビューをドキュメント作成タスクの子レコードにします。
+
+```ts
+const parent = records[0]
+const parentFieldId = table.getHierarchyFieldId()
+const child = parent.addChild(parentFieldId, { [titleId]: 'Check API examples' })
+console.log(child.getParent(parentFieldId)?.getId())
+
+child.setParent(parentFieldId, null)
+```
+
+最初の子レコードを挿入すると、必要な親リンクフィールドが自動作成されます。関係の読み取りには `getChildren()`、`getAncestors()`、`getDescendants()` を使います。階層は最大 5 段で、自分自身を親にすることや循環参照は拒否されます。無効な操作のエラーを UI で処理してください。
+
+階層はテーブルのデータに属し、ビューの切り替えやフィルタリングでは変化しません。その他のメソッドは [Bases Facade](/reference/facade/bases) を参照してください。

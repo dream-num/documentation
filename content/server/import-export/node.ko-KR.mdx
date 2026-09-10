@@ -1,0 +1,100 @@
+---
+title: Office 파일 가져오기 및 내보내기
+description: Exchange로 Office 파일과 공동 편집 Unit 간 콘텐츠를 가져오고 내보냅니다.
+---
+
+Office 파일 변환은 AI SDK가 아니라 `@univerjs-pro/exchange-node`가 제공합니다. CLI 애플리케이션은 파일 경계에서 `importFile()`과 `exportToFile()`을 호출하고 AI SDK와 Collaboration SDK로 Unit을 조작합니다.
+
+## SDK 역할 경계 유지
+
+```ts
+import { exportToFile, importFile } from "@univerjs-pro/exchange-node";
+```
+
+| 기능 | 담당 |
+| --- | --- |
+| Office 파일과 UnitData 간 변환 | Exchange |
+| 헤드리스 런타임, 콘텐츠 검사, Facade 실행 | AI SDK |
+| 스냅샷, 변경 집합, 리비전, 영구 저장 | Collaboration SDK |
+| 경로, 형식 정책, 업무 API, 오류 매핑 | 업무 애플리케이션 |
+
+## 공동 편집 Unit 가져오기
+
+업무 애플리케이션은 Exchange로 Office 파일을 읽고 결과 UnitData를 Collaboration Server로 보내 Unit을 생성합니다.
+
+```text
+Office 파일
+→ importFile()
+→ UnitData
+→ 업무 Server API
+→ 공동 편집 Unit
+```
+
+초기 리비전, 업무 메타데이터, 결과는 애플리케이션이 결정합니다. 생성 후 CLI와 Web은 서버를 통해 Unit을 조작합니다.
+
+## 최신 리비전 내보내기
+
+CLI는 Collaboration Runtime으로 최신 확정 리비전을 로드하고 전체 UnitData를 Exchange에 전달합니다.
+
+```text
+공동 편집 Unit
+→ 최신 UnitData
+→ exportToFile()
+→ Office 파일
+```
+
+출력 확장자가 내보내기 형식을 선택합니다.
+
+## Commander로 파일 작업 노출
+
+AI SDK는 Office 파일 가져오기·내보내기용 명령 프리셋을 제공하지 않습니다. 업무 애플리케이션이 Commander로 Exchange, Collaboration Runtime, 자체 Server API를 구성합니다.
+
+```ts
+import { Command } from "commander";
+
+interface IFileExchangeDependencies {
+  importFile(path: string): Promise<unknown>;
+  createUnit(unitData: unknown): Promise<unknown>;
+  loadLatestUnitData(unitId: string): Promise<unknown>;
+  exportFile(unitData: unknown, path: string): Promise<void>;
+  writeResult(result: unknown): void;
+}
+
+function addFileExchangeCommands(program: Command, dependencies: IFileExchangeDependencies): void {
+  program.addCommand(
+    new Command("import").argument("<office-file>").action(async (sourcePath) => {
+      const unitData = await dependencies.importFile(sourcePath);
+      const created = await dependencies.createUnit(unitData);
+      dependencies.writeResult(created);
+    }),
+  );
+
+  program.addCommand(
+    new Command("export")
+      .argument("<office-file>")
+      .requiredOption("--unit <id>")
+      .action(async (outputPath, { unit }) => {
+        const unitData = await dependencies.loadLatestUnitData(unit);
+        await dependencies.exportFile(unitData, outputPath);
+      }),
+  );
+}
+```
+
+Commander 외의 모든 기능은 `IFileExchangeDependencies`에 명시되어 있으며 숨겨진 도우미는 없습니다. 애플리케이션은 Exchange `importFile()`/`exportToFile()`로 변환을 구현하고 Collaboration Runtime으로 `loadLatestUnitData()`를 구현하며 자체 Server API와 결과 표시를 주입합니다.
+
+## 지원 형식
+
+| Unit | 가져오기 | 내보내기 |
+| --- | --- | --- |
+| Sheet | `.xls`, `.xlsx`, `.xlsm`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` |
+| Doc | `.doc`, `.docx` | `.docx` |
+| Slide | `.ppt`, `.pptx`, `.pptm`, `.ppsx`, `.ppsm`, `.potx` | `.pptx` |
+
+파일을 생성하기 전에 Unit 유형과 맞지 않는 확장자를 애플리케이션에서 거부해야 합니다.
+
+## 로컬 CLI만 사용
+
+Collaboration Server를 거치지 않고 가져온 콘텐츠를 로컬 헤드리스 런타임에 직접 전달해 Office 파일로 내보낼 수도 있습니다. 일회성 처리에 유용하지만 공유 리비전, 실시간 Web 미리 보기, History, Worktree는 제공하지 않습니다.
+
+명령 이름, 경로 인수, 결과 표시는 업무 애플리케이션이 담당합니다. 공동 편집 Unit 경로는 [문서 로드 및 콘텐츠 작업](/ai/content-operations)을 참고하세요. 파일 경계를 추가한 뒤 [시각적 검사](/ai/visual-inspection)를 통해 AI Agent가 렌더링된 UnitData를 검사하도록 하세요.

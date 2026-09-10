@@ -1,0 +1,54 @@
+---
+title: 編輯歷史
+icon: 'RotateCcwClock'
+---
+
+修改 欄位、記錄或檢視 後，可開啟歷史記錄檢視較早的版本、比較變更，並在權限允許時還原版本。歷史記錄讀取的是伺服器持久化的版本；復原與重做只作用於目前的編輯工作階段，不需要歷史服務。
+
+## 準備協同與歷史服務
+
+完成[協同整合](/server/collaboration/browser-integration)與[授權設定](/server/license)。確認兩個工作階段可以共同編輯同一份 Bases 文件，且重新載入後修改仍然保留。
+
+參考 [Office 協同擴充](/server/collaboration/extensions)與[歷史範例](/server/collaboration/examples#history)，接入歷史儲存與權限。核心協同功能不會自動啟用歷史記錄；後端還必須支援歷史清單、版本內容與還原操作。
+
+## 加入歷史外掛
+
+在現有產品、授權與協同設定上加入以下設定。若預設集或現有設定已註冊這些外掛，請修改原有設定，不要重複註冊。
+
+```package-install
+npm install @univerjs-pro/edit-history @univerjs-pro/edit-history-ui @univerjs-pro/bases-history @univerjs-pro/bases-history-ui
+```
+
+```ts
+import { UniverEditHistoryPlugin } from '@univerjs-pro/edit-history'
+import EditHistoryLocale from '@univerjs-pro/edit-history-ui/locale/en-US'
+import { UniverBasesHistoryPlugin } from '@univerjs-pro/bases-history'
+import { UniverBasesHistoryUIPlugin } from '@univerjs-pro/bases-history-ui'
+import HistoryLocale from '@univerjs-pro/bases-history-ui/locale/en-US'
+import { LocaleType, mergeLocales } from '@univerjs/core'
+
+import '@univerjs-pro/edit-history-ui/lib/index.css'
+import '@univerjs-pro/bases-history-ui/lib/index.css'
+
+const historyServerUrl = '/api/history'
+
+univerAPI.loadLocales(LocaleType.EN_US, mergeLocales(EditHistoryLocale, HistoryLocale))
+univer.registerPlugin(UniverEditHistoryPlugin, { historyServerUrl })
+univer.registerPlugin(UniverBasesHistoryPlugin)
+univer.registerPlugin(UniverBasesHistoryUIPlugin, {
+  univerContainerId: 'app',
+  historyServerUrl,
+})
+```
+
+將 `/api/history` 換成應用程式的歷史端點，並確認其 API 符合用戶端請求。兩處 `historyServerUrl` 必須一致。將 `univerContainerId` 設為編輯器容器的 DOM ID，並載入與編輯器一致的語言套件。
+
+歷史檢視器會建立獨立的唯讀編輯器。若有自訂內容，可透過 `viewerPlugins` 加入檢視器尚未包含的外掛，不要再次註冊內建的檢視器外掛。
+
+## 檢視與還原版本
+
+從編輯器選單開啟歷史記錄，選擇版本以檢視內容與差異。還原會修改目前共用的文件；只有具備還原權限的使用者才能操作，且伺服器必須強制檢查此權限。
+
+驗證整合時，修改 欄位、記錄或檢視，等待協同確認後，檢查歷史清單與版本內容。重新開啟應用程式並重啟服務，以確認資料持久化。還原較早的版本，並確認另一個瀏覽器工作階段收到還原後的狀態。
+
+若清單為空，先確認此文件是否已產生歷史記錄，再檢查文件 ID 與服務 URL。若可檢視但無法還原，請檢查還原權限與協同連線。讀取歷史記錄也需要授權，因為舊版本可能包含已刪除的資料。

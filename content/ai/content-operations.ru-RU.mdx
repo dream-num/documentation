@@ -1,0 +1,314 @@
+---
+title: Загрузка документов и операции с содержимым
+description: Изучите минимальный путь работы AI Agent и соберите Collaboration Runtime, Inspection, API Reference и Content Execution.
+source: https://github.com/dream-num/univer-cli-sdk/blob/main/packages/univer-collaboration-runtime/README.md
+---
+
+## Минимальный путь работы AI Agent с содержимым
+
+Для каждой команды бизнес-CLI загружает целевую Unit и синхронизирует актуальное содержимое. С точки зрения AI Agent типичный путь выглядит так:
+
+<Mermaid chart={"flowchart LR\n    Task([Получить задачу]) --> Inspect[\"inspect<br/>Понять структуру и содержимое\"]\n    Inspect --> API[\"api find / api show<br/>По необходимости: API неизвестен\"]\n    API --> Read[\"execute · read<br/>По необходимости: вне Inspection\"]\n    Read --> Write[\"execute · write<br/>Изменить и зафиксировать\"]\n    Write --> Review[\"inspect / execute · read<br/>Проверить по той же границе\"]\n    Review --> Done([Готово])"} />
+
+Шаги `api find` / `api show`, чтение и итоговая проверка условны. AI Agent выбирает возможность по этой границе:
+
+| Цель AI Agent | Предпочтительная возможность |
+| --- | --- |
+| Понять структуру и распределение основного содержимого | Обзор `inspect` |
+| Прочитать стандартные Range, Paragraph или Slide | Селектор `inspect` |
+| Прочитать условное форматирование, конфигурацию Chart и другие пробелы | `execute --mode read` |
+| Найти или подтвердить незнакомый Facade API | `api find` / `api show` |
+| Изменить и зафиксировать документ | `execute --mode write` |
+| Проверить результат | `inspect` / `execute --mode read` |
+
+### Пример: обновление диапазона Sheet
+
+Пусть задача — «обновить `Data!A2:B2` в `book-1` до `[["East", 128000]]`». Если бизнес-CLI собран по описанию ниже, AI Agent может действовать так.
+
+1. Изучить книгу и диапазон через Inspection:
+
+```bash
+UNIT_ID="book-1"
+my-cli inspect workbook --unit "$UNIT_ID" --json
+my-cli inspect range A1:B2 --worksheet name:Data --unit "$UNIT_ID" --json
+```
+
+2. Для демонстрации API Reference предположим, что AI Agent не знает `setValues`: найти и подтвердить сигнатуру:
+
+```bash
+my-cli api find setValues --unit sheet
+my-cli api show FWorkbook.getSheetByName FWorksheet.getRange FRange.setValues
+```
+
+3. Выполнить Facade в режиме записи; коммитом управляет команда приложения `execute`:
+
+```bash
+my-cli execute --unit "$UNIT_ID" --mode write \
+  --code 'const sheet = workbook.getSheetByName("Data");
+if (!sheet) throw new Error("Worksheet Data not found");
+sheet.getRange("A2:B2").setValues([["East", 128000]]);'
+```
+
+4. Решить, нужна ли проверка, исходя из риска. Inspection покрывает значения диапазона, поэтому прочитать его повторно:
+
+```bash
+my-cli inspect range A2:B2 --worksheet name:Data --unit "$UNIT_ID" --json
+```
+
+Режим чтения здесь не нужен: Inspection читает диапазон до и после записи. Используйте чтение только для непокрытого содержимого; примеры условного форматирования и графиков приведены ниже.
+
+## Сборка возможностей в бизнес-CLI
+
+Глава начинается с `@univer-cli/univer-collaboration-runtime`, затем добавляет Inspection, API Reference и Content Execution. Фрагменты показывают основные интерфейсы; приложение добавляет настройки сервера, идентичность, отображение ошибок и аргументы.
+
+Все шаги добавляются в одну корневую программу Commander:
+
+```ts
+import { Command } from "commander";
+
+const program = new Command("my-cli");
+
+// Register the inspect, execute, and api commands introduced below here.
+// Parse CLI arguments only after every command has been registered.
+await program.parseAsync();
+```
+
+### 1. Загрузка совместной Unit
+
+Collaboration Runtime — среда выполнения Unit и клиент совместной работы AI Agent в Node.js. Один Runtime связан с одной Unit на всём протяжении жизни.
+
+```ts
+import {
+  createCollaborationServerAdapter,
+  createUniverCollaborationRuntimeFactory,
+} from "@univer-cli/univer-collaboration-runtime";
+import { UniverInstanceType } from "@univerjs/core";
+
+const factory = createUniverCollaborationRuntimeFactory({
+  backend: createCollaborationServerAdapter({
+    snapshotServerUrl,
+    collabSubmitChangesetUrl,
+    collabWebSocketUrl,
+    wsSessionTicketUrl,
+  }),
+  createUniver: headlessUniverFactory,
+});
+
+const unitId = "book-1";
+const runtime = await factory.load(unitId, UniverInstanceType.UNIVER_SHEET);
+```
+
+Приложение внедряет `headlessUniverFactory`: стандартную реализацию `@univer-cli/headless-univer` или собственную композицию; детали инициализации здесь опущены. Оно также сопоставляет настройки сервера, идентичность и цель Unit с протокольными адресами адаптера. Runtime загружает снимок, поддерживает ревизии и изменения и выполняет Facade.
+
+Основные API Runtime:
+
+| API | Назначение |
+| --- | --- |
+| `pull()` | Получить удалённые изменения, согласовать через OT и обновить Unit |
+| `execute({ mode, code })` | Выполнить Facade: `read` читает, `write` создаёт мутации |
+| `commit()` | Вручную отправить текущие ожидающие мутации |
+| `exportUnitData()` | Выгрузить полный текущий UnitData Runtime |
+| `getState()` | Прочитать ревизию, соединение, ожидание и конфликты |
+| `close()` | Освободить дескриптор backend и Headless Univer |
+
+### 2. Изучение содержимого через Inspection
+
+AI Agent не нужно заново писать Facade для обычного чтения. `@univer-cli/content-inspection` возвращает стабильные структурированные результаты только для чтения:
+
+| Unit | Обзор Inspection | Быстро получаемый общий контекст |
+| --- | --- | --- |
+| Sheet | Книга | Идентификаторы листов, используемые диапазоны, сводки Table, Rule и Drawing |
+| Doc | Документ | Режим, индекс абзацев, текстовые превью и количество возможностей |
+| Slide | Презентация | Индекс слайдов, превью текста, число элементов, размер и число Layouts |
+
+Collaboration Runtime напрямую адаптируется к интерфейсу исполнения только для чтения Inspection:
+
+```ts
+import { inspectContent } from "@univer-cli/content-inspection";
+
+const workbook = await inspectContent(
+  {
+    unitId: runtime.unitId,
+    unitType: "sheet",
+    execute: async (input) => {
+      const result = await runtime.execute(input);
+      return { value: result.value };
+    },
+  },
+  { kind: "workbook" },
+);
+```
+
+`inspectContent()` использует `unitId` для генерации Facade-программы только для чтения и поиска книги через `univerAPI.getWorkbook(unitId)`. `unitType` проверяет соответствие запроса типу Unit.
+
+Начните с обзора структуры и основного содержимого, затем используйте селекторы worksheet, range, paragraph и slide для стандартных данных. Лишь если нужной настройки или детали нет — например полной конфигурации условных правил или Chart — выполните минимальный целевой запрос через `execute({ mode: "read" })`.
+
+Для стандартного взаимодействия Commander добавьте preset `inspect`. Приложение предоставляет только lease Runtime:
+
+```ts
+import type { ContentInspectionLease } from "@univer-cli/content-inspection-command";
+import { createContentInspectionCommand } from "@univer-cli/content-inspection-command";
+
+program.addCommand(
+  createContentInspectionCommand({
+    async acquireRuntime({ unitId }) {
+      const runtime = await factory.load(unitId, UniverInstanceType.UNIVER_SHEET);
+      await runtime.pull();
+
+      const lease: ContentInspectionLease = {
+        unitId,
+        unitType: "sheet",
+        execute: async (input) => {
+          const result = await runtime.execute(input);
+          return { value: result.value };
+        },
+        invalidate: () => runtime.close(),
+        release: () => runtime.close(),
+      };
+
+      return lease;
+    },
+  }),
+);
+```
+
+`acquireRuntime` — публичное поле зависимости preset; результат соответствует `ContentInspectionLease`. В примере нет pool, поэтому `invalidate()` и `release()` напрямую закрывают эксклюзивный Runtime. preset отвечает за разбор селекторов, текст/JSON и освобождение lease. Приложение — за выбор цели, инициализацию Runtime, аутентификацию и удалённую загрузку. Для собственного протокола AI Agent вызывайте `inspectContent()` напрямую.
+
+### 3. Поиск и изучение Facade API
+
+Если AI Agent знает задачу, но не нужный API, используйте `@univer-cli/api-reference`. Он поставляется с текущим SDK, не загружает Unit и не обращается к онлайн-документации.
+
+```ts
+import { createStandardApiReference } from "@univer-cli/api-reference";
+
+const reference = createStandardApiReference();
+
+const matches = reference.find({
+  terms: ["setValues", "conditional formatting"],
+  unit: "sheet",
+  limit: 20,
+});
+
+const details = reference.show(["FRange", "FRange.setValues", "ICellData.v"]);
+```
+
+- `find()` находит символы-кандидаты по терминам задачи.
+- `show()` возвращает точные сведения о классе, члене, типе или enum.
+- `@univer-cli/api-reference-command` предоставляет необязательные presets `api find` и `api show`.
+
+Добавьте ту же reference в Commander:
+
+```ts
+import { createApiCommand } from "@univer-cli/api-reference-command";
+
+program.addCommand(createApiCommand({ reference }));
+```
+
+API Reference поддерживает исполнение: AI Agent изучает текущее содержимое, находит и просматривает API, затем генерирует и выполняет Facade.
+
+### 4. Выполнение чтения и записи Facade
+
+Для гибкого чтения и изменений используйте `execute()` Runtime. `@univer-cli/content-execution` сначала может привязать Facade JavaScript к явной Unit и внедрить стабильные привязки её типа:
+
+```ts
+import { prepareContentExecutionProgram } from "@univer-cli/content-execution";
+
+const executionProgram = prepareContentExecutionProgram({
+  unitId,
+  unitType: "sheet",
+  code: 'workbook.getActiveSheet().getRange("A1").setValue("done");',
+});
+
+const execution = await runtime.execute({
+  mode: "write",
+  code: executionProgram,
+});
+```
+
+- `mode: "read"` — гибкие запросы только для чтения, запрещающие мутации.
+- `mode: "write"` собирает мутации Facade в локальное ожидающее состояние Runtime.
+- Успешное выполнение означает запуск кода, а не отправку изменений серверу.
+
+`content-execution` только создаёт программу. Он не получает Runtime, не отправляет изменения и не предоставляет публичный пакет preset команды `execute`. Поэтому бизнес-CLI оборачивает его в свою команду Commander:
+
+```ts
+const executeCommand = new Command("execute")
+  .requiredOption("--unit <id>")
+  .requiredOption("--code <javascript>")
+  .option("--mode <read|write>", "execute without or with mutations", "write")
+  .action(async ({ unit, code, mode }) => {
+    if (mode !== "read" && mode !== "write") {
+      throw new Error("--mode must be read or write");
+    }
+
+    const runtime = await factory.load(unit, UniverInstanceType.UNIVER_SHEET);
+    try {
+      await runtime.pull();
+      const executionProgram = prepareContentExecutionProgram({
+        unitId: unit,
+        unitType: "sheet",
+        code,
+      });
+      const execution = await runtime.execute({ mode, code: executionProgram });
+
+      if (mode === "read") {
+        process.stdout.write(`${JSON.stringify(execution.value, null, 2)}\n`);
+        return;
+      }
+
+      let committed = await runtime.commit();
+      if (committed.status === "pull-required") {
+        await runtime.pull();
+        committed = await runtime.commit();
+      }
+      if (committed.status !== "confirmed") {
+        throw new Error(`Commit failed: ${committed.status}`);
+      }
+
+      process.stdout.write(
+        `${JSON.stringify(
+          {
+            commit: committed.status,
+            mutations: execution.mutations.length,
+            revision: committed.state.baseRevision,
+            value: execution.value,
+          },
+          null,
+          2,
+        )}\n`,
+      );
+    } finally {
+      await runtime.close();
+    }
+  });
+
+program.addCommand(executeCommand);
+```
+
+По умолчанию команда пишет. Чтение печатает лишь возвращённое Facade значение, без мутаций и `commit()`. Запись печатает число мутаций, ревизию и значение только после подтверждения коммита, чтобы AI Agent однозначно определил исход. Commander управляет аргументами и жизненным циклом команды; приложение — получением Runtime, повторами коммита, ошибками и авторизацией. Минимальный пример фиксирован на Sheet. Для Doc, Slide, Base или Board добавьте явное сопоставление типов Unit CLI с `UniverInstanceType`.
+
+#### Чтение только для содержимого вне Inspection
+
+Inspection сообщает количество правил условного форматирования листа, но не полную настройку каждого. Если AI Agent нужна конфигурация, он подтверждает API и запускает минимальный Facade-код в режиме чтения:
+
+```bash
+my-cli api find getConditionalFormattingRules --unit sheet
+my-cli api show FWorksheet.getConditionalFormattingRules
+
+my-cli execute --unit "$UNIT_ID" --mode read \
+  --code 'const sheet = workbook.getSheetByName("Data");
+if (!sheet) throw new Error("Worksheet Data not found");
+return sheet.getConditionalFormattingRules();'
+```
+
+Inspection также показывает число графиков. Для полной конфигурации верните `sheet.getCharts().map((chart) => chart.getInfo())` целевым запросом. Чтение запрещает мутации и дополняет пробелы Inspection, а не заменяет его по умолчанию.
+
+## Итог
+
+Одна программа Commander теперь объединяет Runtime, Inspection, API Reference и Content Execution. Runtime загружает, синхронизирует, выполняет и вручную коммитит; Inspection даёт структурированное чтение; API Reference помогает AI Agent найти API; Commander объединяет их в единый CLI.
+
+Обычно начинают с `inspect` для структуры, основного содержимого и покрытых деталей. При неясном API используют `api find` / `api show`. Facade-чтение нужно только для деталей вне Inspection; затем запись редактирует и коммитит. При проверке применяется та же граница Inspection.
+
+## Следующий шаг
+
+Добавьте [Импорт и экспорт файлов Office](/server/import-export/node), чтобы превращать файлы в UnitData для этого же процесса или экспортировать актуальный UnitData в файл Office.

@@ -1,0 +1,135 @@
+---
+title: Modules d’extension de collaboration
+description: Découvrez comment History, Thread Comment, Worktree et la conversion Office côté serveur étendent la collaboration de base.
+---
+
+History, Thread Comment et Worktree sont des modules indépendants, activables selon les besoins. Ils peuvent réutiliser le Transport, le système d’identité et la base physique, tout en conservant leurs propres frontières de Service, Middleware, Event, Database Adapter et cycle de vie.
+
+La conversion Office côté serveur est un processus applicatif qui associe conversion de fichiers et API Collaboration Service, pas un interrupteur de fonction sur le Service principal.
+
+## Relations entre modules
+
+<Mermaid chart={"flowchart TB\n    Transport[\"Node Transport\"]\n\n    subgraph Modules[\"Modules de collaboration\"]\n        direction LR\n        Core[\"Collaboration centrale<br/>Endpoint · Service · Adapter\"]\n        History[\"History<br/>Endpoint · Service · Adapter\"]\n        Comment[\"Thread Comment<br/>Endpoint · Service · Adapter\"]\n        Worktree[\"Worktree<br/>Client · Endpoint · Service · Adapter\"]\n    end\n\n    Transport --> Core\n    Transport --> History\n    Transport --> Comment\n    Transport --> Worktree"} />
+
+| Extension | Relation avec la collaboration centrale |
+| --- | --- |
+| History | Observe les Events centraux pour construire un index d’historique dérivé |
+| Thread Comment | Réutilise la Room Unit centrale ; les ancres appartiennent au contenu central |
+| Worktree | Réutilise Unit et OT du cœur et fusionne les brouillons dans le tronc |
+| Office Exchange | Crée ou lit des Units via les API d’instantané du Service central |
+
+History, Thread Comment et Worktree configurent chacun leurs Middleware, Events et Database Adapters.
+
+## Historique des versions
+
+History regroupe la création d’Unit et les modifications confirmées en entrées d’historique visibles par l’utilisateur. C’est un index dérivé : les modifications confirmées dans le Collaboration Service central restent la source faisant autorité pour le contenu Unit.
+
+```ts
+const historyService = new UniverHistoryService({
+  collabService,
+  dbAdapter: historyDatabase,
+  userProvider,
+});
+
+const attachment = historyService.attach(collabService);
+transport.register(new UniverHistoryEndpoint(historyService));
+```
+
+`attach()` observe les Events `unitCreated` et `changesetCommitted` du Service central pour mettre l’index à jour. La politique par défaut regroupe les changements par fenêtre temporelle et mutations particulières, au lieu de créer une entrée pour chaque jeu de modifications.
+
+History possède ses propres Middleware de lecture et d’indexation. `userProvider` enrichit uniquement les données d’affichage, comme les noms et avatars ; il n’authentifie ni n’autorise. L’échec d’un Event Listener n’annule pas une modification centrale déjà confirmée : History doit toujours être considéré comme une donnée dérivée reconstructible.
+
+## Commentaires en fil
+
+Comment Service gère le corps des commentaires, les réponses, modifications, suppressions et états résolus pour Sheets et Docs :
+
+```ts
+const commentService = new UniverCommentService({
+  database: commentDatabase,
+  userProvider,
+});
+
+transport.register(
+  new UniverCommentEndpoint({
+    service: commentService,
+    roomHost: collabEndpoint,
+  }),
+);
+```
+
+Le corps des commentaires appartient au Comment Adapter. Les ancres qui suivent le contenu Sheet ou Doc restent dans les instantanés et modifications centraux. Le Comment Endpoint peut publier `comment_update` via la Room Unit du Collaboration Endpoint principal, mais le message temps réel n’est pas l’état faisant autorité ; le client peut récupérer l’état en relisant la liste des commentaires.
+
+Comment Service fournit des Middleware d’ajout, de liste, de réponse, de résolution/réouverture, de modification et de suppression, ainsi qu’un Event `commentCommitted`. Il n’hérite pas des politiques de lecture ou d’édition du Service central.
+
+## Brouillons Worktree et fusion
+
+Worktree ajoute des brouillons isolés, le gel, l’évaluation de fusion et la fusion par Unit pour une ou plusieurs Units :
+
+```text
+create → draft → ready → merging → merged
+           ↑       │
+           └ reopen┘
+
+draft / ready → discarded
+```
+
+```ts
+const worktreeService = new UniverCollabWorktreeService({
+  trunk: {
+    service: collabService,
+    dbAdapter: coreDatabase,
+  },
+  dbAdapter: worktreeDatabase,
+});
+```
+
+Worktree stocke des modifications de brouillon indépendantes par `(worktreeID, unitID)` tout en réutilisant les moteurs Unit, OT et de soumission du Service central. Seul l’état `draft` accepte de nouvelles éditions. `markReady()` gèle la révision courante du brouillon et `mergeWorktree()` fusionne les Units une par une dans le tronc.
+
+Worktree Service possède des Middleware indépendants de cycle de vie, lecture et soumission/application/commit de brouillon, ainsi que des Events de création, changement d’état, résultat de fusion et commit de modifications de brouillon. L’écriture finale dans le tronc traverse toujours les Middleware du Service central.
+
+Une fusion multi-Unit n’est pas atomique entre Units. L’application doit afficher le résultat de chaque Unit.
+
+## Conversion Office côté serveur
+
+Exchange côté serveur associe `@univerjs-pro/exchange-node` aux API Collaboration Service pour passer entre fichiers et état collaboratif :
+
+```text
+Fichier Office
+  → import exchange-node
+  → Snapshot + Sheet Blocks
+  → createUnitFromSnapshot()
+
+Révision Unit confirmée
+  → getUnitLoadDataWithBlocks()
+  → UnitSnapshotMaterializer
+  → export exchange-node
+  → fichier Office
+```
+
+L’exemple officiel importe XLS, XLSX, CSV ou TSV dans une nouvelle Sheet collaborative et exporte la révision confirmée courante en XLSX, CSV ou TSV.
+
+Stockage des fichiers, état des tâches, contrôle d’accès, limites de taille et API métier appartiennent à l’application. Exchange n’a pas de Database Adapter collaboratif distinct : il lit ou crée l’Unit faisant autorité via le Service central.
+
+## Points d’extension indépendants
+
+À l’activation d’un module, examinez chaque frontière séparément :
+
+| Frontière | Cœur | History | Comment | Worktree |
+| --- | --- | --- | --- | --- |
+| Service | Indépendant | Indépendant | Indépendant | Indépendant |
+| Middleware | Non partagé | N’hérite pas du cœur | N’hérite pas du cœur | N’hérite pas du cœur |
+| Event | Cycle de vie central | Observe les Events centraux | `commentCommitted` | Cycle de vie/commit Worktree |
+| Database Adapter | Adapter central | History Adapter | Comment Adapter | Worktree Adapter |
+
+Ces Adapters peuvent utiliser le même fichier SQLite tout en restant des objets distincts aux contrats distincts. Services et Adapters se libèrent aussi indépendamment.
+
+## Choisir une fonction
+
+| Besoin produit | Module | Premier exemple |
+| --- | --- | --- |
+| Historique visible par l’utilisateur | History Service, Endpoint, Adapter | `pnpm example:history` |
+| Commentaires Sheet ou Doc | Comment Service, Endpoint, Adapter | `pnpm example:comments` |
+| Brouillons isolés, revue et fusion | Worktree Service, Endpoint, Client, Adapter | `pnpm example:worktree` |
+| Import et export Office côté serveur | Exchange Node + Collaboration Service | `pnpm example:exchange` |
+
+Consultez l’[index des exemples](/server/collaboration/examples) pour les commandes complètes et les URL des pages.

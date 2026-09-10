@@ -1,0 +1,173 @@
+---
+title: Middleware 與 Events
+description: 使用通用 Middleware 和 Events 擴充 Transport、Endpoint、Service 與協同擴充模組。
+---
+
+Middleware 和 Events 是 Collaboration SDK 的通用擴充點。身分與授權透過 Middleware 接入。操作執行前使用 Middleware 驗證及限制，狀態確認後使用 Events 記錄變更或觸發後續工作。兩者均可支援日誌、請求追蹤、指標與衍生狀態更新。
+
+## 兩種擴充時機
+
+| | Middleware | Event |
+| --- | --- | --- |
+| 執行時機 | 操作期間 | 狀態變更確認後 |
+| 能否參與或拒絕操作 | 能 | 不能 |
+| 能否補充呼叫 Context | 能 | 讀取 Event 攜帶的 Context 與結果 |
+| 監聽器失敗 | 可能使目前操作失敗 | 與已確定的領域結果隔離 |
+| 典型用途 | 身分、授權、驗證、日誌、計時 | 衍生索引、快取、指標、程序內通知 |
+
+需要決定操作能否繼續時使用 Middleware；需要觀察已發生的狀態變更時使用 Event。
+
+## Middleware 執行模型
+
+相同 Action 的 Middleware 按註冊順序形成非同步鏈。`await next()` 進入下一個 Middleware；SDK 操作在最內層執行：
+
+```ts
+service.use("submitChangeset", async (context, next) => {
+  const startedAt = performance.now();
+  context.customData.startedAt = startedAt;
+
+  try {
+    await next();
+  } finally {
+    metrics.observe("collaboration.submit.duration", performance.now() - startedAt);
+  }
+});
+```
+
+Middleware 可以：
+
+- 讀取特定 Action 的請求；
+- 透過 `customData` 共享本次呼叫資料；
+- 在 `next()` 前檢查輸入或查詢應用系統；
+- 在 `next()` 傳回後記錄耗時或結果；
+- 拋出 `CollabError` 拒絕預期中的協同操作。
+
+Transport HTTP Middleware 可不呼叫 `next()` 而直接結束 HTTP 回應。Service 和 Endpoint Middleware 應以明確錯誤拒絕操作，不應默默略過 `next()`。
+
+## Transport Middleware
+
+Transport 為一般 HTTP 請求和 WebSocket 升級提供獨立的 Middleware 鏈：
+
+```ts
+transport.use(async (context, next) => {
+  context.customData.traceID = readTraceID(context.incomingMessage);
+  requestLogger.info("collaboration request", {
+    method: context.incomingMessage.method,
+    traceID: context.customData.traceID,
+  });
+  await next();
+});
+
+transport.useUpgrade(async (context, next) => {
+  if (!isAllowedOrigin(context.incomingMessage.headers.origin)) {
+    context.reject(403, "Origin rejected");
+    return;
+  }
+  await next();
+});
+```
+
+`transport.use()` 只參與一般 HTTP 請求，適用於身分、請求日誌、追蹤、CORS 及請求內 `customData`。`transport.useUpgrade()` 只參與 WebSocket 握手，可在連線前拒絕。
+
+## Endpoint Middleware
+
+Endpoint Middleware 參與即時 Session 與 Presence 操作：
+
+| Action | 執行時機 | 常見用途 |
+| --- | --- | --- |
+| `connect` | 票證消耗及 Session 建立後、HELLO 前 | 連線策略、成員顯示名稱與頭像 |
+| `joinUnit` | Session 加入 Unit Room 前 | 房間准入與 Unit 可見性 |
+| `receivePresence` | 收到已加入 Session 的 Presence 後、廣播前 | 驗證與 Presence 篩選 |
+| `sendPresence` | 向每個 Room 成員傳送 Presence 前 | 按接收者篩選 Presence |
+
+```ts
+endpoint.use("receivePresence", async (context, next) => {
+  if (JSON.stringify(context.payload).length > 8_000) {
+    throw new CollabError("INVALID_REQUEST", "Presence payload is too large");
+  }
+  await next();
+});
+```
+
+Endpoint 的 `session.userID` 和 `session.customData` 來自簽發 Session Ticket 的 HTTP 請求。Endpoint 為目前 WebSocket Session 建立 `memberID`，重新連線後會改變。
+
+## Service Middleware
+
+Service Middleware 參與權威協同資料的生命週期：
+
+| Action | 邊界 | 常見用途 |
+| --- | --- | --- |
+| `readUnitData` | 讀取快照、區塊或變更集前 | 讀取策略、租戶檢查、稽核 |
+| `createUnit` | 原子建立 Unit 前 | 類型檢查、建立策略、業務規則 |
+| `deleteUnits` | 寫入批次刪除前 | 刪除策略與逐 Unit 檢查 |
+| `recoverUnits` | 寫入批次還原前 | 還原策略與稽核 |
+| `submitChangeset` | 邏輯提交進入冪等與 OT 前 | 編輯策略、總大小限制、追蹤 |
+| `applyChangeset` | 將轉換後變更集套用至候選狀態前 | mutation 層級驗證 |
+| `commitChangeset` | Adapter 修訂版本 CAS 與提交前 | 最終修訂版本規則與指標 |
+
+```ts
+service.use("createUnit", async (context, next) => {
+  await creationPolicy.assertAllowed({
+    userID: context.userID,
+    unitID: context.request.snapshot.unitID,
+    type: context.request.snapshot.type,
+  });
+  context.customData.creationPolicyChecked = true;
+  await next();
+});
+```
+
+每次邏輯提交執行一次 `submitChangeset`。修訂版本競爭可能讓 `applyChangeset` 和 `commitChangeset` 以新的 `attempt` 再次執行。這些階段的 Middleware 必須可安全重試，不能直接傳送不可逆的外部訊息或執行一次性扣款。
+
+## customData 範圍
+
+`customData` 是應用可寫入、僅限本次呼叫的物件，適合儲存：
+
+- 租戶 ID、追蹤 ID 或請求記錄器；
+- 本次呼叫重用的 ACL 查詢結果；
+- 計時起點或稽核標籤；
+- 同一 Middleware 鏈共享的業務物件。
+
+一般 HTTP 請求、Service 呼叫與 WebSocket Session 的生命週期不同。`customData` 不會自動持久化、傳送至瀏覽器或寫入日誌。長期資料仍應存入應用儲存。
+
+## Event 執行模型
+
+Service 以 `on()` 註冊程序內監聽器，並取得可釋放訂閱：
+
+```ts
+const subscription = service.on("changesetCommitted", async (event) => {
+  metrics.increment("collaboration.changeset.committed", {
+    unitType: String(event.changeset.type),
+  });
+  localCache.delete(event.changeset.unitID);
+});
+
+subscription.dispose();
+```
+
+相同 Event 的監聽器按註冊順序依序執行並被等待。監聽器錯誤會記錄並與已確定的領域結果隔離。例如，`changesetCommitted` 監聽器失敗，不會回滾 Adapter 已儲存的變更集。
+
+因此 Events 適合程序內、可還原或非關鍵的後續工作。它們不與資料庫提交共享交易邊界，也不保證送達外部系統。
+
+## 核心 Service Events
+
+| Event | 已確認事實 | 典型用途 |
+| --- | --- | --- |
+| `unitCreated` | Unit 與初始資料已建立 | 本機目錄快取或衍生索引 |
+| `changesetCommitted` | 變更集已確認並推進修訂版本 | 廣播、指標、衍生索引 |
+| `unitsDeleted` | Adapter 已確認批次刪除 | 清除程序內相關狀態 |
+| `unitsRecovered` | Adapter 已確認批次還原 | 還原程序內衍生狀態 |
+
+Endpoint 監聽同一 Service 的 `changesetCommitted`，將已確認變更集廣播給目前程序中已加入 Unit 的用戶端。Endpoint 也對主動離開、斷線與 Endpoint 釋放提供 `memberLeftUnit`。
+
+## 擴充模組具有獨立擴充點
+
+History、Thread Comment 和 Worktree 不繼承核心 Collaboration Service 的 Middleware 或 Events：
+
+- History 提供讀取與索引 Middleware；
+- Comment 提供新增、回覆、編輯、刪除、解決、清單 Middleware 與 `commentCommitted`；
+- Worktree 提供生命週期與草稿 read/submit/commit Middleware，以及建立、狀態、合併與草稿提交 Events。
+
+為每個啟用的模組分別安裝規則。核心 Service 上的日誌、租戶或授權 Middleware 不會自動涵蓋它們。
+
+繼續閱讀[身分與授權](/server/collaboration/identity-and-authorization)，瞭解如何將既有使用者與 ACL 對應到這些通用 Middleware 邊界。

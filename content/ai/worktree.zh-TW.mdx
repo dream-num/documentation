@@ -1,0 +1,154 @@
+---
+title: 'Worktree：AI Agent 編輯與人類審閱'
+description: 讓 AI Agent 在隔離的 Worktree 草稿中編輯與檢查 Unit，再由人類透過 Web 審閱及合併。
+source: https://github.com/dream-num/univer-collaboration-sdk/blob/main/packages/collaboration-worktree-service/README.md
+---
+
+Worktree 為 AI Agent 提供隔離的編輯空間。AI Agent 可在草稿中多輪拉取、檢查、執行與提交，完成結構化及視覺檢查後，將 Worktree 標記為 Ready。人類透過 Web 查看實際渲染頁面，再選擇 Merge 或 Reopen。
+
+```text
+建立 Worktree
+→ AI Agent 編輯草稿
+→ 結構化與視覺檢查
+→ Ready
+→ 人類透過 Web 審閱
+→ Merge／Reopen
+→ 主幹
+```
+
+## 為什麼使用 Worktree
+
+- AI Agent 的中間修改與主幹隔離。
+- 草稿擁有獨立的快照、變更集、修訂版本、Presence 與即時房間。
+- AI Agent 可先多輪同步、編輯與驗證，再交付結果。
+- Ready 凍結目前草稿修訂版本，建立明確的審閱邊界。
+- 人類可在 Web 審閱、繼續編輯、Merge 或 Reopen。
+- Merge 仍須通過主幹 Collaboration Service 的授權與提交邊界。
+
+## 完整流程
+
+```text
+建立／選擇 Worktree
+→ 選擇 Worktree Unit
+→ Collaboration Runtime 載入
+→ pull
+→ inspect
+→ api find / show
+→ execute(write)
+→ runtime.commit()
+→ inspect + screenshot + layout lint
+→ markReady
+→ Web 審閱
+→ merge / reopen
+```
+
+完成[文件載入與內容操作](/ai/content-operations)、[Office 檔案匯入匯出](/server/import-export/node)與[視覺檢查](/ai/visual-inspection)後，將相同能力指向 Worktree 目標，即可形成建議的 AI Agent 編輯流程。
+
+## Worktree 目標
+
+Collaboration Runtime 仍只處理單一 Unit 的快照、變更集與修訂版本，不解讀 Worktree 產品概念。應用程式介接器將 `worktreeID + unitID` 映射為 Worktree Endpoint 的 Snapshot、Submit、WebSocket 與 Session Ticket URL，再傳給 Runtime 後端。
+
+```text
+worktreeID + unitID
+→ 應用程式目標介接器
+→ Worktree 協定 URL
+→ Collaboration Runtime
+```
+
+因此，相同的 Runtime 執行模型既可連接主幹，也可連接隔離的 Worktree 草稿。
+
+## AI Agent 在草稿中的操作
+
+Worktree Unit 與一般 Unit 使用相同的核心迴圈：
+
+```text
+load → pull → inspect → execute(write) → commit
+```
+
+若要使用現成的 Inspection 入口，`@univer-cli/content-inspection-command` 提供兩個獨立工廠：
+
+- `createContentInspectionCommand()` 用於一般 Unit 目標。
+- `createWorktreeContentInspectionCommand()` 要求呼叫者明確選擇 `--trunk` 或 `--worktree <id>`。
+
+應用程式為 execute、screenshot 等命令加入相同的目標選擇，並負責取得與釋放選定的 Runtime。
+
+## 在 Commander 選擇 Worktree
+
+Inspection 預設集有 Worktree 變體，強制呼叫者選擇 `--trunk` 或 `--worktree <id>`：
+
+```ts
+import type { WorktreeContentInspectionCommandDependencies } from "@univer-cli/content-inspection-command";
+import { createWorktreeContentInspectionCommand } from "@univer-cli/content-inspection-command";
+import { Command } from "commander";
+
+function addWorktreeCommands(
+  program: Command,
+  dependencies: {
+    acquireRuntime: WorktreeContentInspectionCommandDependencies["acquireRuntime"];
+    markReady(worktreeID: string): Promise<void>;
+  },
+): void {
+  program.addCommand(
+    createWorktreeContentInspectionCommand({
+      acquireRuntime: dependencies.acquireRuntime,
+    }),
+  );
+
+  const worktreeCommand = new Command("worktree");
+  worktreeCommand
+    .command("ready")
+    .argument("<worktree-id>")
+    .action(async (worktreeID) => {
+      await dependencies.markReady(worktreeID);
+    });
+
+  program.addCommand(worktreeCommand);
+}
+```
+
+`acquireRuntime` 與 `markReady` 是明確宣告的應用程式依賴，不是未展示的 AI SDK 輔助函式。前者實作上一節的目標與 Runtime 映射，後者呼叫 Collaboration SDK Worktree Client。
+
+execute、screenshot 與 layout lint 應共用相同目標模型，避免同一 Unit ID 被解析到不同主幹或草稿。Web 可透過同一 Worktree Client 提供 Reopen、Discard、Merge 與實際頁面審閱。產品可按需將部分操作包成額外的 Commander 子命令。
+
+## AI Agent 檢查
+
+Ready 前可組合兩種檢查：
+
+```text
+結構化檢查：pull → inspect
+視覺檢查：Unit → Render Runtime → screenshot / layout lint
+```
+
+- Inspection 驗證結構化的 Workbook、Worksheet、Range、Document、Paragraph、Presentation 或 Slide 內容。
+- Screenshot 提供實際渲染的視覺資訊。
+- Layout Lint 診斷 Slide 版面問題。
+- 發現問題後，AI Agent 可再次執行、提交與檢查。
+
+## 區分 Commit、Ready 與 Merge
+
+| 操作 | 含義 |
+| --- | --- |
+| `runtime.commit()` | 將目前修改產生的變更集提交到 Worktree 草稿 |
+| `markReady()` | 凍結每個 Unit 目前的草稿修訂版本，進入 `ready` |
+| `reopenWorktree()` | 從 `ready` 回到 `draft` 繼續編輯 |
+| `mergeWorktree()` | 逐一將 Worktree Unit 合併到主幹 |
+
+`runtime.commit()` 只推進草稿，不會合併到主幹。Ready 將 AI Agent 的工作交付審閱；結果要進入主幹仍需 Worktree Merge。
+
+## 透過 Web 進行人類審閱
+
+Web 使用 Worktree Client 與 Worktree 協同設定載入相同草稿。審閱介面可提供：
+
+- 目前 Worktree 狀態。
+- 草稿 Unit 的渲染頁面。
+- 主幹與草稿切換。
+- 各 Unit 的合併預覽。
+- Ready、Reopen、Discard 與 Merge 操作。
+
+人類可在 Web 繼續編輯草稿；需要 AI Agent 繼續時選擇 Reopen，或 Merge 後切回主幹檢視整合結果。
+
+## Collaboration SDK 邊界
+
+Worktree Service、Endpoint、Client 與 Database Adapter 屬於 Collaboration SDK。AI SDK 提供可組合的 Unit Runtime、Inspection、API Reference、Execution 與 Screenshot 能力。應用程式負責 Worktree 生命週期命令、目標映射、身分與授權。
+
+伺服器組合、生命週期與合併限制請參閱[協同擴充](/server/collaboration/extensions)。

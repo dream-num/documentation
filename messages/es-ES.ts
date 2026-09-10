@@ -2,9 +2,13 @@ import type { Messages } from './en-US'
 
 const esESMessages = {
   common: {
+    'zoom-in': 'Ampliar',
+    'zoom-out': 'Reducir',
+    'reset-zoom': 'Restablecer zoom',
+    diagram: 'Diagrama',
     'expand-code': 'Expandir código',
     'collapse-code': 'Contraer código',
-    'display-name': 'Inglés',
+    'display-name': 'Español',
     search: 'Buscar',
     'search-no-result': 'No se encontraron resultados',
     toc: 'Tabla de contenido',
@@ -24,8 +28,8 @@ const esESMessages = {
   },
   navigation: {
     blog: 'Blog',
-    'current-locale': 'Productos',
-    products: 'actuales',
+    'current-locale': 'Actual',
+    products: 'Productos',
     reference: 'Referencia de API',
     showcase: 'Escaparate',
     tools: 'Herramientas',

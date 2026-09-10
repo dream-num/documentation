@@ -1,0 +1,134 @@
+---
+title: Adaptadores de base de datos
+description: Comprende el contrato de persistencia colaborativa y elige entre Memory, SQLite y Database Adapters personalizados.
+---
+
+Un Database Adapter persiste los datos colaborativos principales que utiliza Collaboration Service. Puedes implementar `IDatabaseAdapter` para conectar cualquier base de datos que satisfaga su contrato de comportamiento completo. Service gestiona la semántica de Unit, OT y revisiones; Adapter la convierte en operaciones de persistencia atómicas y seguras ante reintentos.
+
+## Qué almacena un Adapter
+
+El Adapter principal almacena:
+
+- el registro Unit y la revisión actual de cabecera;
+- instantáneas con revisión;
+- conjuntos de cambios confirmados;
+- bloques referenciados por las instantáneas Sheet;
+- registros de idempotencia de envío con clave `(unitID, sid, reqId)`;
+- estado de eliminación lógica, recuperación y eliminación permanente de Units.
+
+No almacena por defecto usuarios, roles, ACL, directorios, archivos ni metadatos del producto. History, Thread Comment y Worktree tienen contratos Adapter independientes.
+
+## Semántica obligatoria
+
+`IDatabaseAdapter` es más que una interfaz CRUD. La implementación debe mantener las garantías de corrección que espera Collaboration Service:
+
+| Contrato | Significado |
+| --- | --- |
+| Creación atómica | La instantánea inicial y los bloques Sheet se hacen visibles juntos o no se hace visible ninguno |
+| CAS de revisión | El siguiente envío solo se confirma cuando la revisión de cabecera coincide con la esperada |
+| Idempotencia de envío | Reintentar el mismo `(unitID, sid, reqId)` devuelve el mismo resultado determinado |
+| Cambios contiguos | Los conjuntos de cambios confirmados y la revisión de la Unit mantienen continuidad |
+| Visibilidad de instantáneas | Una instantánea solo se puede leer tras almacenar todas sus dependencias |
+| Ciclo de vida atómico | Todas las Units del lote de eliminación o recuperación tienen éxito, o ninguna |
+| Marca de eliminación permanente | No se puede volver a crear un ID de Unit eliminado permanentemente |
+
+Convertir cada método en una lectura o escritura normal sin implementar esta concurrencia y atomicidad rompe OT y la recuperación.
+
+## Memory Adapter
+
+`@univerjs-pro/collaboration-database-memory` es una implementación dentro del proceso apropiada para:
+
+- pruebas unitarias y de integración;
+- ejemplos oficiales;
+- entornos temporales de desarrollo;
+- validación rápida de Middleware personalizados o del montaje del cliente.
+
+```ts
+import { MemoryDatabaseAdapter } from "@univerjs-pro/collaboration-database-memory";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+
+const database = new MemoryDatabaseAdapter();
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
+Memory Adapter sigue el mismo contrato de revisión, CAS e idempotencia que las implementaciones persistentes, pero los datos viven en el proceso Node.js actual y se pierden cuando termina.
+
+## SQLite Adapter
+
+`@univerjs-pro/collaboration-database-sqlite` es una implementación persistente SQLite para desarrollo, pruebas, aplicaciones locales y uso a pequeña escala.
+
+```ts
+import { mkdir } from "node:fs/promises";
+
+import { SQLiteDatabaseAdapter } from "@univerjs-pro/collaboration-database-sqlite";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+
+await mkdir("./data", { recursive: true });
+
+const database = new SQLiteDatabaseAdapter({
+  filename: "./data/collaboration.sqlite",
+  busyTimeoutMs: 5_000,
+});
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
+SQLite Adapter usa claves externas y transacciones de escritura `BEGIN IMMEDIATE` para confirmar atómicamente. Crea el esquema actual en una base vacía. Rechaza esquemas incompletos o no compatibles en lugar de aplicar migraciones desconocidas automáticamente.
+
+No cambia `journal_mode` ni decide la ubicación del archivo, la política de copias de seguridad u otros ajustes SQLite. SQLite está orientado a desarrollo, aplicaciones locales y pequeña escala.
+
+## Database Adapters personalizados
+
+Un Adapter personalizado suele ser adecuado cuando:
+
+- la aplicación ya utiliza PostgreSQL, MySQL u otra base de negocio;
+- los envíos colaborativos deben integrarse con mecanismos de base específicos de la aplicación;
+- las necesidades operativas o de cumplimiento exceden el alcance previsto de SQLite.
+
+Implementa `IDatabaseAdapter` e inyéctalo en Service igual que un Adapter integrado:
+
+```ts
+const database = new ApplicationCollaborationDatabase({ pool });
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
+Service no depende de una base concreta, pero tampoco puede añadir transacciones, CAS o deduplicación a una implementación personalizada. Adapter debe implementar el contrato completo con las capacidades de su base de datos.
+
+## Context y límite de la aplicación
+
+Cada llamada a Service pasa su `customData` a Middleware, Database Adapter y Events relacionados, pero el SDK no lo persiste automáticamente. Las decisiones de autorización suelen mantenerse en el Middleware de Service en vez de repetirse en los métodos del Adapter:
+
+```text
+Middleware de Service
+  → permite o rechaza la operación de negocio
+  → Database Adapter
+  → almacena atómicamente el estado colaborativo autoritativo
+```
+
+Así, Memory, SQLite y los Adapters personalizados comparten la misma política de aplicación.
+
+Si los datos de negocio requieren consistencia fuerte con los colaborativos, un Database Adapter personalizado puede leer valores de `customData` y escribir ambos conjuntos dentro de su transacción de base de datos.
+
+Si no necesitan compartir la transacción colaborativa, Middleware o Events pueden escribirlos en otras tablas o sistemas externos. No comparten por defecto la transacción interna del Adapter. Los Events son notificaciones locales al proceso y de mejor esfuerzo emitidas tras un commit colaborativo correcto. La aplicación es responsable de la idempotencia, los reintentos y las compensaciones necesarios.
+
+## Almacenamiento de extensiones
+
+History, Thread Comment y Worktree definen interfaces Database Adapter independientes. Sus Adapters pueden compartir una base o usar almacenamiento separado. Una implementación personalizada también puede proporcionar varias interfaces Adapter e inyectarse en los Services correspondientes.
+
+Como son interfaces independientes, el SDK no proporciona transacciones entre módulos por defecto. Aunque compartan base de datos, la aplicación define la estrategia de consistencia entre módulos.
+
+## Elegir un Adapter
+
+| Adapter | Uso más adecuado | Restricción principal |
+| --- | --- | --- |
+| Memory | Pruebas, ejemplos, desarrollo temporal | Los datos desaparecen al terminar el proceso |
+| SQLite | Desarrollo, pruebas, aplicaciones locales, pequeña escala | Base de un archivo con ajustes a cargo de la aplicación |
+| Personalizado | Bases existentes o integración de datos de negocio | La aplicación debe implementar y verificar el contrato completo |
+
+La aplicación es propietaria de cada Adapter inyectado. Libera Service antes de Adapter:
+
+```ts
+await service.dispose();
+await database.dispose();
+```
+
+Consulta el [ejemplo de Database Adapter](/server/collaboration/examples#database-adapter), ejecutable y con implementaciones para comparar.

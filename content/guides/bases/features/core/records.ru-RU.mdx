@@ -1,0 +1,69 @@
+---
+title: Записи, связи и иерархия
+---
+
+Запись представляет задачу, клиента, заказ или другой бизнес-объект. API Facade позволяет выполнять пакетную запись, постраничное чтение, связывать таблицы и организовывать родительские и дочерние записи.
+
+## Создание и чтение записей
+
+```ts
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('Open a Base first')
+
+const table = base.insertTable('Tasks', { primaryFieldName: 'Title' })
+const titleId = table.getPrimaryFieldId()
+const records = table.addRecords([
+  { values: { [titleId]: 'Write documentation' } },
+  { values: { [titleId]: 'Review examples' } },
+])
+records[0].setValue(titleId, 'Publish documentation')
+
+const page = table.queryRecords({ offset: 0, limit: 20 })
+console.log(page.total, page.records)
+```
+
+По умолчанию ключами значений служат ID полей. Для данных с именами полей в качестве ключей передайте `univerAPI.Enum.BaseFieldKeyEnum.Name`. `queryRecords()` запрашивает загруженные локальные данные, а не получает страницы с сервера. Используйте `viewId` для чтения в пределах представления или `sort` для задания порядка.
+
+Удаляйте записи пакетом через `table.deleteRecords(recordIds)` или дублируйте запись через `record.duplicate()`. Эти операции используют систему команд и поддерживают отмену и повтор.
+
+## Поиск записей
+
+Ищите текст в выбранных полях:
+
+```ts
+const matches = table.search({ query: 'documentation', fieldIds: [titleId], limit: 20 })
+console.log(matches)
+```
+
+## Связь с другой таблицей
+
+Например, свяжите каждую задачу с проектом:
+
+```ts
+const projects = base.insertTable('Projects', { primaryFieldName: 'Name' })
+const project = projects.addRecord({ [projects.getPrimaryFieldId()]: 'Website' })
+const projectField = table.addField('Project', univerAPI.Enum.BaseFieldType.RecordLink, {
+  field: { config: { targetTableId: projects.getId(), multiple: false } },
+})
+records[0].setLinkedRecordIds(projectField.getId(), [project.getId()])
+console.log(records[0].getLinkedRecordIds(projectField.getId()))
+```
+
+Цели должны принадлежать той же Base. Задайте `multiple: true` для связи с несколькими записями, `displayFieldId` для отображаемой подписи и `pickerFieldIds` для дополнительных сведений в окне выбора. Читайте и записывайте ID через API связей, а не формируйте внутренние строки хранения вручную.
+
+## Родительские и дочерние записи
+
+Сделайте проверку API дочерней записью задачи по документации:
+
+```ts
+const parent = records[0]
+const parentFieldId = table.getHierarchyFieldId()
+const child = parent.addChild(parentFieldId, { [titleId]: 'Check API examples' })
+console.log(child.getParent(parentFieldId)?.getId())
+
+child.setParent(parentFieldId, null)
+```
+
+При первом добавлении дочерней записи автоматически создаётся необходимое поле связи с родителем. Для чтения связей используйте `getChildren()`, `getAncestors()` и `getDescendants()`. Поддерживается до пяти уровней иерархии; назначение записи собственным родителем и циклы запрещены. Обрабатывайте ошибки недопустимых операций в интерфейсе.
+
+Иерархия относится к данным таблицы и не меняется при переключении или фильтрации представлений. Другие методы описаны в [Bases Facade](/reference/facade/bases).

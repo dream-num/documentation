@@ -1,0 +1,213 @@
+---
+title: 模組邊界與關係
+description: 瞭解 Collaboration Client、Transport、Endpoint、Service 與 Database Adapter 的職責、資料流程及組裝方式。
+---
+
+Univer 協同由瀏覽器 Client 與一組服務端模組組成，各模組負責一類職責。應用透過公開介面組裝，不必進入 OT、協定或持久化的內部實作。
+
+## 完整模組圖
+
+<Mermaid chart={"flowchart LR\n    Browser[\"瀏覽器<br/>Web SDK + Collaboration Client\"]\n    Transport[\"Node Transport<br/>HTTP · WebSocket\"]\n    Endpoint[\"Collaboration Endpoint<br/>協定 · Session · Room\"]\n    Service[\"Collaboration Service<br/>Unit · OT · 修訂版本\"]\n    Adapter[\"Database Adapter<br/>原子性 · CAS · 冪等性\"]\n    Store[(協同資料)]\n\n    Browser --> Transport --> Endpoint --> Service --> Adapter --> Store"} />
+
+## Collaboration Client
+
+瀏覽器 Collaboration Client 與 Web SDK 一起執行，負責：
+
+- 請求 Unit 快照及缺少的已確認變更集；
+- 取得一次性 Session Ticket 並開啟 WebSocket；
+- 加入 Unit Room 並交換 Presence；
+- 將本機 mutation 作為變更集提交；
+- 接收 ACK 與廣播，重新連線後補齊缺少的變更。
+
+Client 不判斷使用者是否可信，也不是權威資料來源。服務端仍透過對應 Middleware 執行身分驗證與授權。
+
+## Node Transport
+
+`@univerjs-pro/collaboration-transport-node` 是 Node.js HTTP/WebSocket 入口。它接收宿主 HTTP 伺服器的請求與 WebSocket 升級，執行應用入口 Middleware，並將流量分派至 Endpoint。
+
+Transport 不理解 OT、Unit 資料或 ACL 模型。它提供三個主要組裝方法：
+
+```ts
+transport.use(httpMiddleware);
+transport.useUpgrade(upgradeMiddleware);
+transport.register(endpoint);
+```
+
+- `use()` 參與一般 HTTP 請求，可設定 `userID`、`customData`、日誌或追蹤；
+- `useUpgrade()` 參與 WebSocket 握手，可在連線前拒絕；
+- `register()` 註冊協定 Endpoint，將其生命週期交由 Transport 管理。
+
+## Collaboration Endpoint
+
+`@univerjs-pro/collaboration-endpoint` 實作 Univer Collaboration Client 使用的協定，負責：
+
+| 能力 | Endpoint 職責 |
+| --- | --- |
+| 內容載入 | 向 Client 提供 Unit 快照、區塊與缺少的已確認變更集 |
+| 變更提交 | 接收變更集、傳回 ACK，並向 Room 廣播已確認變更集 |
+| Session 連線 | 簽發一次性 Session Ticket，建立並維護 WebSocket Session |
+| Room 協同 | 處理 JOIN、LEAVE、成員狀態與 Presence |
+| Unit 生命週期 | 將刪除及還原請求對應到 Service 呼叫 |
+
+Endpoint 不執行 OT，也不直接儲存協同資料。它呼叫 Service 取得權威結果，再轉成 Client 協定。建立文件等產品操作應由應用 API 呼叫 Service。
+
+## Collaboration Service
+
+`@univerjs-pro/collaboration-service` 是不依賴網路的 Sheet、Doc、Slide、Board、Base 協同核心，負責：
+
+- 讀取 Unit 還原資料與已確認變更集；
+- 從 Unit Data 或快照建立 Unit；
+- 提交變更集、執行 OT、推進連續修訂版本；
+- 透過 `(unitID, sid, reqId)` 識別重複提交；
+- 軟刪除、還原或永久刪除 Unit；
+- 執行 Service Middleware，並在確認後發出 Events。
+
+Service 不提供 HTTP、WebSocket、使用者、角色、ACL、層級或檔案管理。Endpoint 使用它實作瀏覽器協定。應用也可從業務 API 或背景任務直接呼叫其公開 API。
+
+### 核心 API
+
+| 能力 | Service API |
+| --- | --- |
+| 載入 Unit | `getUnitLoadData()`、`getUnitLoadDataWithBlocks()` |
+| 讀取增量資料 | `getChangesets()`、`getSheetBlock()` |
+| 建立 Unit | `createUnitFromData()`、`createUnitFromSnapshot()` |
+| 提交變更 | `submitChangeset()` |
+| 刪除與還原 | `deleteUnits()`、`recoverUnits()` |
+
+## Database Adapter
+
+Database Adapter 是 Service 與儲存之間的契約，必須保證：
+
+- 初始快照及其相依資料原子建立；
+- 修訂版本比較並交換（CAS）；
+- 變更集提交冪等；
+- 所有相依資料存在後快照才可見；
+- Unit 生命週期批次操作全部成功或全部不執行。
+
+SDK 提供 Memory 和 SQLite 實作。需要其他資料庫的應用應實作相同契約，詳見[資料庫配接器](/server/collaboration/database-adapters)。
+
+## 四個核心概念
+
+| 概念 | 意義 |
+| --- | --- |
+| Unit | 以唯一 `unitID` 與類型識別、可獨立載入和協同的 Univer 內容 |
+| Snapshot | 某修訂版本的持久化 Unit 內容，不是可變的即時物件 |
+| Changeset | 帶基礎修訂版本與冪等識別碼的 mutation 提交集合 |
+| Revision | 已確認 Unit 狀態的連續版本號，初始值為 `1` |
+
+執行中的內容必須透過 Facade API 或 Command 修改。修改快照物件不會更新 Client 或 Service 中的即時 Unit。
+
+## 載入 Unit
+
+<Mermaid chart={"sequenceDiagram\n    participant Client\n    participant Transport\n    participant Endpoint\n    participant Service\n    participant Adapter\n\n    Client->>Transport: 透過 HTTP 載入 Unit\n    Transport->>Endpoint: 已驗證的請求 Context\n    Endpoint->>Service: getUnitLoadData()\n    Service->>Adapter: 快照 + 變更集\n    Adapter-->>Service: 權威資料\n    Service-->>Endpoint: Unit 載入資料\n    Endpoint-->>Client: 協定回應"} />
+
+Transport Middleware 建立的 `userID/customData` 隨目前 HTTP 請求進入 Service Middleware。應用策略決定是否允許讀取；直接 HTTP 讀取不以加入 Room 為前提。
+
+## 提交編輯
+
+```text
+Facade / Command
+  → Mutation
+  → Client 變更集
+  → Endpoint 提交
+  → Service Middleware
+  → OT + 修訂版本 CAS
+  → Adapter 原子提交
+  → 已確認變更集
+  → ACK / Room 廣播
+```
+
+Database Adapter 中已確認的修訂版本是權威來源。ACK 和廣播以低延遲同步線上用戶端。漏收訊息的用戶端可利用已知修訂版本取得已確認變更集。
+
+## 最小服務端組裝
+
+```ts
+import { createServer } from "node:http";
+
+import { MemoryDatabaseAdapter } from "@univerjs-pro/collaboration-database-memory";
+import { UniverCollabEndpoint } from "@univerjs-pro/collaboration-endpoint";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { createNodeTransport } from "@univerjs-pro/collaboration-transport-node";
+
+const database = new MemoryDatabaseAdapter();
+const service = new UniverCollabService({ dbAdapter: database });
+const endpoint = new UniverCollabEndpoint(service);
+const transport = createNodeTransport();
+
+transport.use(async (context, next) => {
+  context.userID = "demo-user";
+  await next();
+});
+transport.register(endpoint);
+
+const server = createServer((request, response) => {
+  transport.handleRequest(request, response);
+});
+server.on("upgrade", (request, socket, head) => {
+  transport.handleUpgrade(request, socket, head);
+});
+server.listen(3010);
+```
+
+固定使用者與 Memory Adapter 僅示範模組組裝。應用應透過 Middleware 建立真實 Context，並依資料需求選擇 Adapter。
+
+### 透過應用 API 建立 Unit
+
+應用可定義自己的 HTTP 或 RPC 端點，在驗證身分、輸入及業務規則後呼叫上述 `service`：
+
+```text
+業務用戶端
+  → POST /api/units
+  → 應用驗證身分與輸入
+  → service.createUnitFromData()
+  → Database Adapter
+```
+
+以下 Express 範例假設驗證 Middleware 已設定 `response.locals.user`，且 `request.body.data` 已驗證為 Workbook Data：
+
+```ts
+import { randomUUID } from "node:crypto";
+
+import { json } from "express";
+import { UniverType } from "@univerjs/protocol";
+
+app.post("/api/units", json({ limit: "1mb" }), async (request, response, next) => {
+  try {
+    const user = response.locals.user as { readonly userID: string };
+    const unitID = randomUUID();
+
+    const result = await service.createUnitFromData(
+      {
+        type: UniverType.UNIVER_SHEET,
+        data: {
+          ...request.body.data,
+          id: unitID,
+          rev: 1,
+        },
+      },
+      {
+        userID: user.userID,
+        customData: { traceID: randomUUID() },
+      },
+    );
+
+    response.status(result.status === "created" ? 201 : 200).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+```
+
+`POST /api/units` 屬於應用，不是 Collaboration Client 協定路由。`createUnitFromData()` 仍會執行 Service 的 `createUnit` Middleware。產品記錄、擁有者 ACL、錯誤回應對應與失敗補償仍由應用負責。
+
+## 資源清理
+
+`transport.dispose()` 釋放透過 `register()` 註冊的 Endpoint。應用分別釋放 Service 和注入的 Database Adapter。按組裝的反向順序執行：
+
+```ts
+await transport.dispose();
+await service.dispose();
+await database.dispose();
+```
+
+繼續閱讀 [Middleware 與 Events](/server/collaboration/middleware-and-events)，在這些模組邊界擴充行為。

@@ -1,0 +1,193 @@
+---
+title: 身分與授權
+description: 透過 Transport、Endpoint 和 Service Middleware 接入既有驗證與授權系統。
+---
+
+Univer Collaboration SDK 不定義使用者、角色或 ACL 模型。應用在 Transport Middleware 中建立可信身分，再透過 Endpoint 和 Service Middleware 保護即時 Session 與以服務端為準的協同資料。
+
+本頁是 [Middleware 與 Events](/server/collaboration/middleware-and-events) 的具體應用，著重介紹如何透過 Middleware 接入身分與授權。
+
+## 身分模型
+
+| 識別碼 | 提供方 | 意義與生命週期 |
+| --- | --- | --- |
+| `userID` | 應用 | 穩定的業務身分，也是已確認變更集的作者 |
+| `memberID` | Endpoint | 一個 WebSocket Session 的線上成員 ID；重新連線後會改變 |
+| `sid + reqId` | 用戶端 | 變更集提交識別碼，在重試期間保持不變 |
+
+瀏覽器提交的使用者資料、`memberID` 和修訂版本不能代替應用驗證。請將應用的穩定使用者識別碼對應到 `context.userID`。
+
+## 在 Transport Middleware 中建立身分
+
+Transport 對每個協同 HTTP 請求重新執行 Middleware。應用可讀取 Cookie、Session 或 Bearer token，並將驗證結果加入 Context：
+
+```ts
+transport.use(async (context, next) => {
+  const user = await auth.requireUser(context.incomingMessage);
+
+  context.userID = user.id;
+  context.customData.user = user;
+  context.customData.tenantID = user.tenantID;
+  context.customData.traceID = readTraceID(context.incomingMessage);
+
+  await next();
+});
+```
+
+驗證失敗時，結束 HTTP 回應，不呼叫 `next()`：
+
+```ts
+transport.use(async (context, next) => {
+  const user = await auth.findUser(context.incomingMessage);
+  if (!user) {
+    context.response.statusCode = 401;
+    context.response.end("Authentication required");
+    return;
+  }
+
+  context.userID = user.id;
+  await next();
+});
+```
+
+SDK 不規定 Cookie 名稱、token 格式、使用者資料表或登入流程。
+
+## 身分如何進入 WebSocket Session
+
+WebSocket 流程不信任用戶端資料中的使用者欄位。Endpoint 透過一次性 Session Ticket，將已驗證的 HTTP Context 延伸到即時 Session：
+
+```text
+Session Ticket HTTP 請求
+  → Transport Middleware 驗證身分
+  → Endpoint 儲存 { userID, customData }
+  → 傳回不透明的一次性票證
+  → WebSocket 開啟時消耗票證
+  → 建立 Session { userID, memberID, customData }
+```
+
+票證字串不包含 `userID` 或 `customData`。`memberID` 只識別目前連線，不是獨立的身分憑證。
+
+## 在正確的邊界授權
+
+| 需要保護的行為 | Middleware |
+| --- | --- |
+| 協同 HTTP 入口 | Transport `use()` |
+| WebSocket 連線 | Endpoint `connect` |
+| 加入 Unit Room | Endpoint `joinUnit` |
+| 讀取快照、區塊或變更集 | Service `readUnitData` |
+| 提交內容編輯 | Service `submitChangeset` |
+| 建立 Unit | Service `createUnit` |
+| 刪除 Unit | Service `deleteUnits` |
+| 還原 Unit | Service `recoverUnits` |
+
+Endpoint `joinUnit` 只控制 Session 能否進入即時 Room。快照與缺少的變更集可直接透過 HTTP 讀取，因此 JOIN 檢查不能代替 `readUnitData`。同樣地，用戶端唯讀 UI 只是產品提示，不能代替服務端 `submitChangeset` 策略。
+
+## 保護讀取、JOIN 與編輯
+
+```ts
+import { CollabError } from "@univerjs-pro/collaboration-service";
+
+endpoint.use("joinUnit", async (context, next) => {
+  const allowed = await acl.canRead(context.session.userID, context.unitID);
+  if (!allowed) {
+    throw new CollabError("PERMISSION_DENIED", "Cannot join this Unit");
+  }
+  await next();
+});
+
+service.use("readUnitData", async (context, next) => {
+  const allowed = await acl.canRead(context.userID, context.request.unitID);
+  if (!allowed) {
+    throw new CollabError("PERMISSION_DENIED", "Unit is not accessible");
+  }
+  await next();
+});
+
+service.use("submitChangeset", async (context, next) => {
+  const unitID = context.request.changeset.unitID;
+  const allowed = await acl.canEdit(context.userID, unitID);
+  if (!allowed) {
+    throw new CollabError("PERMISSION_DENIED", "Unit is read-only");
+  }
+  await next();
+});
+```
+
+實際應用通常同時安裝這三項規則：HTTP 和 JOIN 的讀取策略，以及提交的編輯策略。
+
+## 保護 Unit 生命週期
+
+協同協定開啟既有 Unit。「建立文件」通常是應用 API：先建立產品記錄與 ACL，再呼叫 `createUnitFromData()` 或 `createUnitFromSnapshot()`。也應透過 Service Middleware 保護生命週期：
+
+```ts
+service.use("createUnit", async (context, next) => {
+  if (!(await acl.canCreate(context.userID, context.request.snapshot.type))) {
+    throw new CollabError("PERMISSION_DENIED", "Unit creation denied");
+  }
+  await next();
+});
+
+service.use("deleteUnits", async (context, next) => {
+  for (const unitID of context.request.unitIDs) {
+    if (!(await acl.canDelete(context.userID, unitID))) {
+      throw new CollabError("PERMISSION_DENIED", `Cannot delete ${unitID}`);
+    }
+  }
+  await next();
+});
+```
+
+單獨保護 `recoverUnits`。曾有刪除權限的使用者，不一定永遠保有還原權限。
+
+## 透過 customData 重用查詢結果
+
+同一次 Service 呼叫中的 Middleware 可用 `customData` 避免重複查詢：
+
+```ts
+service.use("submitChangeset", async (context, next) => {
+  const unitID = context.request.changeset.unitID;
+  context.customData.role ??= await acl.getRole(context.userID, unitID);
+
+  if (context.customData.role === "viewer") {
+    throw new CollabError("PERMISSION_DENIED", "Unit is read-only");
+  }
+  await next();
+});
+```
+
+`customData` 只屬於目前呼叫或 Session，不會自動持久化。角色、ACL 與租戶關係仍應儲存在應用中。
+
+## 擴充模組需要獨立策略
+
+History、Thread Comment 和 Worktree 有獨立的 Service Middleware：
+
+- History 清單與變更集讀取應檢查 Unit 讀取權限；
+- 留言清單應檢查讀取權限，新增、回覆、編輯與刪除則套用留言策略；
+- Worktree 應分別保護可見性、草稿編輯、狀態變更與合併；
+- Worktree 合併到主幹仍會進入主幹的 Service Middleware。
+
+核心 Collaboration Service 上的規則不會自動保護這些模組。請重用同一個應用策略服務，而非為各擴充建立獨立 ACL 資料模型。
+
+## 在用戶端設定目前使用者
+
+`UserManagerService.setCurrentUser()` 設定目前 Univer 執行個體的使用者 ID、名稱與頭像，供前端元件讀取。例如，留言面板的「與我相關」篩選器使用此 ID 顯示與目前使用者相關的留言。
+
+在建立 Univer 執行個體後、開啟文件前設定：
+
+```ts
+import { UserManagerService } from "@univerjs/core";
+
+// currentUser is your application profile; id/name/avatar are example field names.
+univer
+  .__getInjector()
+  .get(UserManagerService)
+  .setCurrentUser({
+    userID: currentUser.id,
+    name: currentUser.name,
+    avatar: currentUser.avatar ?? "",
+  });
+```
+
+將應用的穩定使用者 ID 對應到 `userID`，與服務端已驗證的 `context.userID` 一致。協同中共享的成員名稱與頭像，應在服務端 `connect` Middleware 中設定，詳見 [Presence](/server/collaboration/presence)。
+
+完整可執行程式請參閱[權限範例](/server/collaboration/examples#permissions)。

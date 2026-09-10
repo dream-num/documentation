@@ -1,0 +1,246 @@
+---
+title: Runtime 재사용과 Daemon
+description: 단일 CLI 명령의 Runtime 수명 주기부터 daemon이 Worker Runtime pool을 소유하고 호출 간 로드된 Unit을 재사용하는 방식까지 알아봅니다.
+source: https://github.com/dream-num/univer-cli-sdk/blob/main/docs/design/runtime-architecture.md
+---
+
+CLI에서 비용이 큰 부분은 보통 인수 파싱이 아니라 Unit을 읽고 쓸 수 있는 실제 Univer로 만드는 과정입니다. Univer 생성, 플러그인 설치, 협업 백엔드 열기, 체크포인트 로드, 변경 집합 적용, 수식 계산 완료 대기가 포함됩니다.
+
+이 장은 두 기능을 다룹니다.
+
+- `@univer-cli/univer-collaboration-runtime`: 현재 프로세스에서 Unit 로드·조작
+- `@univer-cli/univer-collaboration-runtime-pool`: Runtime을 Worker에 두고 Unit 식별자에 따라 임대·재사용·제거
+
+여러 CLI 호출 사이에서 Worker Runtime을 유지하려면 오래 사는 소유자가 필요합니다. 여기서는 로컬 daemon이 담당합니다.
+
+## 세 가지 수명 주기
+
+재사용을 생각하기 전에 객체의 수명을 구분합니다.
+
+| 객체 | 생성 | 종료 | 소유 자원 |
+| --- | --- | --- | --- |
+| CLI 프로세스 | 명령 실행마다 | 결과 출력 후 | 인수, 단일 요청, 출력 형식 |
+| Daemon 프로세스 | 첫 요청 또는 직접 시작 | 중지, 업그레이드 재시작, 충돌 | Runtime pool, 업무 핸들러, 로컬 socket |
+| Worker Runtime | pool이 key를 처음 만날 때 | TTL/LRU 제거, 무효화, daemon 종료, Worker 충돌 | Worker 하나, 백엔드 핸들 하나, 로드된 Unit 하나, 협업 상태 |
+
+**CLI는 한 번 호출하고, daemon은 pool을, pool은 Worker를, 각 Worker는 Runtime을 소유합니다.**
+
+<Mermaid chart={"flowchart LR\n  CLI1[CLI 호출 1<br/>단기] -->|JSON 요청| D[Daemon<br/>장기 소유자]\n  CLI2[CLI 호출 2<br/>단기] -->|JSON 요청| D\n  CLIN[CLI 호출 N<br/>단기] -->|JSON 요청| D\n\n  D --> P[Collaboration Runtime pool]\n  P -->|key: Unit A| WA[Worker A]\n  P -->|key: Unit B| WB[Worker B]\n  WA --> RA[Runtime A<br/>Unit A 로드됨]\n  WB --> RB[Runtime B<br/>Unit B 로드됨]\n  RA --> BA[Backend A]\n  RB --> BB[Backend B]\n  BA --> DS[(협업 서버<br/>또는 다른 데이터 소스)]\n  BB --> DS"} />
+
+daemon은 애플리케이션 정의 JSON 요청만 전달합니다. 스냅샷·변경 집합·블록은 Worker 내부 백엔드가 직접 읽으며 CLI나 daemon을 거치지 않습니다.
+
+## 1단계: CLI 명령마다 Runtime 직접 로드
+
+가장 단순한 구현은 Commander action 안에서 `@univer-cli/univer-collaboration-runtime`을 만들고 작업 후 닫습니다.
+
+```ts
+const runtime = await runtimeFactory.load(unitId, unitType);
+
+try {
+  const pulled = await runtime.pull();
+  if (pulled.status === "conflict") throw new Error(pulled.conflict.message);
+
+  const execution = await runtime.execute({ mode: "write", code });
+  let commit = await runtime.commit();
+  if (commit.status === "pull-required") {
+    const repulled = await runtime.pull();
+    if (repulled.status === "conflict") throw new Error(repulled.conflict.message);
+    commit = await runtime.commit();
+  }
+  return { execution, commit };
+} finally {
+  await runtime.close();
+}
+```
+
+`runtimeFactory`는 `createUniverCollaborationRuntimeFactory()`로 만듭니다. Runtime은 로드부터 종료까지 Unit 하나에 묶여 현재 리비전, 대기 mutation, 대기 변경 집합, 충돌 상태를 유지합니다. 호출자는 최종 커밋 상태도 확인해야 하며 `confirmed`, `nothing-to-commit`만 완료를 뜻합니다.
+
+`load()`는 단순 파일 읽기가 아니라 순서대로 다음을 수행합니다.
+
+1. 애플리케이션이 제공한 협업 백엔드 열기
+2. Headless Univer 생성 및 협업 기능 설치
+3. UnitData 또는 Snapshot 체크포인트 로드
+4. 체크포인트의 변경 집합 재생
+5. 체크포인트부터 최신 원격 리비전까지 차이 조회·재생
+6. 설치된 수식 모듈의 최신 결과 적용 완료 대기
+7. `execute()`, `pull()`, `commit()` 가능한 Runtime 반환
+
+전체 단발 호출은 다음과 같습니다.
+
+<Mermaid chart={"sequenceDiagram\n  autonumber\n  actor User as 사용자\n  participant CLI as CLI 프로세스\n  participant RT as Collaboration Runtime\n  participant U as Headless Univer\n  participant B as Backend\n\n  User->>CLI: 명령 실행\n  CLI->>CLI: Node.js 시작·모듈 로드·인수 파싱\n  CLI->>RT: factory.load(unitId, unitType)\n  RT->>B: 열기·체크포인트/변경 읽기\n  RT->>U: Univer 생성·플러그인 설치·Unit 로드·재생\n  RT->>U: 수식 준비 대기\n  RT-->>CLI: Runtime 준비됨\n  CLI->>RT: pull()\n  CLI->>RT: execute()\n  opt 쓰기 작업\n    CLI->>RT: commit()\n    RT->>B: 변경 집합 제출\n  end\n  CLI->>RT: close()\n  RT->>B: 백엔드 핸들 닫기\n  RT->>U: Univer 해제\n  CLI-->>User: 결과 출력·종료"} />
+
+소유 관계가 명확하고 실패 후 상태를 남기지 않아 저빈도 명령과 일회성 작업에 적합합니다. 대신 다음 CLI가 새 Node.js 프로세스로 전체 로드를 반복하며 앞선 Univer·Unit 상태를 재사용할 수 없습니다.
+
+## 2단계: Worker pool에 Runtime 배치
+
+`@univer-cli/univer-collaboration-runtime-pool`은 상주 key마다 별도 Worker 프로세스와 Runtime을 유지합니다. 애플리케이션이 Worker 진입점을 제공하고 백엔드·자격 증명·Univer는 모두 Worker 안에서 생성합니다.
+
+```ts title="collaboration-worker.ts"
+import { defineUniverCollaborationRuntimeWorker } from "@univer-cli/univer-collaboration-runtime-pool";
+
+export default defineUniverCollaborationRuntimeWorker({
+  async createRuntime(init: { unitId: string; unitType: number }) {
+    return createRuntimeFromApplicationInit(init);
+  },
+});
+```
+
+Worker 진입점은 빌드된 JavaScript ESM 파일이어야 합니다. `init`은 콜드 생성 때만 전달되며 구조화 복제와 호환되어야 합니다.
+
+별도 Runtime RPC 계층을 설계할 필요는 없습니다. lease가 `getState()`, `execute()`, `fetch()`, `pull()`, `commit()`, `exportUnitData()` 등 공개 API를 프록시합니다.
+
+```ts
+import { createUniverCollaborationRuntimePool } from "@univer-cli/univer-collaboration-runtime-pool";
+
+const pool = createUniverCollaborationRuntimePool({
+  entry: new URL("./collaboration-worker.js", import.meta.url),
+});
+
+const lease = await pool.acquire({
+  key: targetKey,
+  init: { unitId, unitType },
+});
+
+try {
+  await lease.pull();
+  const result = await lease.execute({ mode: "read", code });
+  console.log(result.value);
+} catch (error) {
+  await lease.invalidate();
+  throw error;
+} finally {
+  await lease.release();
+}
+```
+
+`key`는 재사용할 Runtime 식별자이며 단순 조회 인수가 아닙니다. 같은 key는 같은 Unit, 협업 상태 체인, 호환되는 초기화 의미를 나타내야 합니다. 일반 Unit과 Worktree 초안은 `unitId`가 같아도 다른 key를 사용합니다.
+
+pool의 주요 동작은 네 가지입니다.
+
+- 같은 key는 한 번에 하나의 lease에만 부여됩니다. 동시 요청은 FIFO로 대기하여 같은 상태의 동시 변경을 방지합니다.
+- `release()`는 신뢰할 수 있는 Runtime을 유휴 캐시에 반환하여 같은 key의 다음 요청에서 재사용합니다.
+- `invalidate()`는 상태를 신뢰할 수 없음을 뜻합니다. Worker와 Runtime을 파괴하고 다음 요청에서 콜드 로드합니다.
+- 유휴 Runtime은 TTL·LRU로 제거할 수 있습니다. 시간 초과, Worker 충돌, 프로토콜 오류도 현재 인스턴스를 무효화합니다.
+
+하지만 pool 자체가 짧게 사는 CLI 안에 있으면 명령 간 재사용은 불가능합니다.
+
+<Mermaid chart={"flowchart LR\n  subgraph C1[CLI 호출 1]\n    P1[Pool 1] --> W1[Worker A] --> R1[Runtime A]\n  end\n\n  X1[CLI 종료] -.->|pool 닫힘·Worker 종료| C1\n\n  subgraph C2[CLI 호출 2]\n    P2[새 Pool 2] --> W2[새 Worker A] --> R2[Runtime A 다시 로드]\n  end\n\n  X1 --> C2"} />
+
+Worker는 프로세스 격리, 독점 임대, 실패 시 종료를 제공합니다. CLI 호출 간 재사용하려면 단일 명령보다 오래 사는 pool 소유자가 필요합니다.
+
+## 3단계: Daemon을 장기 pool 소유자로 사용
+
+daemon은 필요할 때 시작하는 로컬 Node.js 프로세스입니다. CLI는 Unix socket 또는 Windows 명명된 파이프로 호출합니다. CLI 종료는 daemon을 종료하지 않아 pool·Worker·유휴 Runtime이 유지됩니다.
+
+daemon 진입점에서 pool을 한 번 만들고 각 업무 핸들러에서 lease를 획득합니다.
+
+```ts title="daemon-entry.ts"
+import { createDaemonServer, DAEMON_SOCKET_ENV } from "@univer-cli/daemon";
+import { createUniverCollaborationRuntimePool } from "@univer-cli/univer-collaboration-runtime-pool";
+
+const socketPath = process.env[DAEMON_SOCKET_ENV];
+if (!socketPath) throw new Error(`${DAEMON_SOCKET_ENV} is required`);
+
+const pool = createUniverCollaborationRuntimePool({
+  entry: new URL("./collaboration-worker.js", import.meta.url),
+  cache: { idleTtlMs: 5 * 60_000, maxEntries: 20 },
+});
+
+const server = createDaemonServer({
+  identity: { id: "my-cli", version: "1.0.0" },
+  socketPath,
+  onShutdown: () => pool.close(),
+});
+
+server.handle("unit.execute", async (payload) => {
+  const input = parseExecuteRequest(payload);
+  const lease = await pool.acquire({
+    key: input.targetKey,
+    init: { unitId: input.unitId, unitType: input.unitType },
+  });
+
+  try {
+    const pulled = await lease.pull();
+    if (pulled.status === "conflict") throw new Error(pulled.conflict.message);
+
+    const execution =
+      input.mode === "read"
+        ? await lease.execute({ mode: "read", code: input.code })
+        : await lease.execute({ mode: "write", code: input.code });
+    const commit = input.mode === "write" ? await commitWithPull(lease) : null;
+    return { commitStatus: commit?.status ?? null, value: execution.value };
+  } catch (error) {
+    await lease.invalidate();
+    throw error;
+  } finally {
+    await lease.release();
+  }
+});
+
+await server.listen();
+```
+
+`parseExecuteRequest()`와 `targetKey` 규칙은 애플리케이션이 정의합니다. daemon은 로컬 전송·수명 주기만 관리하고 Unit, Runtime, 협업 프로토콜은 이해하지 않습니다. 종료 시 `pool.close()`를 호출하여 유휴·활성 Worker의 최종 소유자를 명확히 해야 합니다. 예제의 `commitWithPull()`은 `pull-required` 후 pull/commit과 최종 상태 확인을 처리합니다. 보수적으로 모든 미처리 오류는 현재 lease를 무효화합니다.
+
+일반 CLI 명령은 이제 업무 요청 하나만 전송합니다.
+
+```ts
+import { createDaemonClient } from "@univer-cli/daemon";
+
+const client = createDaemonClient({
+  entry: new URL("./daemon-entry.js", import.meta.url),
+  identity: { id: "my-cli", version: "1.0.0" },
+  socketPath,
+});
+
+const result = await client.request("unit.execute", {
+  targetKey,
+  unitId,
+  unitType,
+  mode,
+  code,
+});
+```
+
+socket이 없으면 클라이언트가 설정된 daemon을 시작하고 신원·프로토콜 핸드셰이크를 기다린 뒤 요청합니다. 호환 daemon이 이미 실행 중이면 재사용합니다.
+
+## 4단계: 첫 요청과 후속 요청 비교
+
+첫 key 접근은 콜드 경로입니다. daemon 시작이 필요할 수 있고 pool은 Worker와 Runtime을 생성해야 합니다.
+
+<Mermaid chart={"sequenceDiagram\n  autonumber\n  participant CLI as 첫 CLI 호출\n  participant D as Daemon\n  participant P as Runtime pool\n  participant W as Worker A\n  participant R as Runtime A\n  participant B as Backend\n\n  CLI->>D: unit.execute(target A)\n  Note over CLI,D: socket이 없으면 daemon 시작\n  D->>P: acquire(key A, init)\n  P->>W: Worker 생성·진입점 로드\n  W->>R: createRuntime(init)\n  R->>B: 백엔드 열기·체크포인트/변경 읽기\n  R->>R: Univer 생성·Unit 로드·수식 대기\n  R-->>P: Runtime 준비됨\n  P-->>D: Lease A\n  D->>R: pull → execute → commit\n  D->>P: release()\n  Note over P,R: Worker A·Runtime A 유휴 캐시에 유지\n  D-->>CLI: JSON 결과\n  Note over CLI: CLI 종료, daemon/Worker 유지"} />
+
+같은 key의 후속 요청은 핫 경로입니다. CLI 프로세스는 다시 시작하지만 비싼 Runtime 로드는 반복하지 않습니다.
+
+<Mermaid chart={"sequenceDiagram\n  autonumber\n  participant CLI as 후속 CLI 호출\n  participant D as 실행 중 Daemon\n  participant P as Runtime pool\n  participant R as 로드된 Runtime A\n\n  CLI->>D: unit.execute(target A)\n  D->>P: acquire(key A, init)\n  P-->>D: 캐시 적중·Lease A 반환\n  D->>R: pull()\n  Note over R: Runtime 유휴 중 원격 변경 동기화\n  D->>R: execute()\n  opt 쓰기 작업\n    D->>R: commit()\n  end\n  D->>P: release()\n  D-->>CLI: JSON 결과\n  Note over CLI,R: CLI 종료, Runtime A 유지"} />
+
+재사용 대상은 이미 생성·로드된 실제 Runtime입니다. 협업 일관성을 생략하지 않으므로 보통 lease 획득 후 `pull()`, `commit()` 후 최종 상태 확인, `pull-required`, `retry`, `unknown`, `conflict` 처리가 필요합니다.
+
+## 사라지는 비용과 남는 비용
+
+| 비용 | 매번 직접 로드 | Daemon + Worker pool |
+| --- | --- | --- |
+| CLI 시작·인수 파싱·출력 | 매번 | 매번 |
+| 로컬 socket JSON 요청/응답 | 없음 | 매번 |
+| Daemon 시작·모듈 로드 | 없음 | 첫 요청 또는 재시작 후 |
+| Worker 시작·진입점 로드 | Worker 없음 | key별 콜드 생성 |
+| Univer 생성·플러그인 설치 | 매번 | key별 콜드 생성 |
+| 체크포인트·초기 변경 재생·수식 대기 | 매번 | key별 콜드 생성 |
+| 유휴 중 변경 `pull()` | 매번 | 보통 매번 필요 |
+| `execute()`·`commit()` | 매번 | 매번 |
+| 유휴 메모리·백엔드 핸들·Worker | 명령 종료 시 해제 | 제거·무효화·daemon 종료까지 유지 |
+
+재사용은 상주 메모리와 Worker 수를 사용해 후속 시작 지연을 줄입니다. 모든 Unit을 무기한 유지하지 말고 pool 이벤트와 측정 지연을 바탕으로 `idleTtlMs`, `maxEntries`, 열기·작업 시간 제한을 선택하세요.
+
+## 동시성, 실패, 종료
+
+네 가지 규칙으로 정리할 수 있습니다.
+
+1. **같은 key의 동시 요청은 대기합니다.** Runtime은 한 번에 하나의 lease에 속해 호출이 섞여 상태를 바꾸지 않도록 합니다.
+2. **다른 key는 별도 Worker에서 병렬 실행합니다.** 상주 key마다 별도 Worker·Runtime 자원이 듭니다.
+3. **신뢰 가능한 상태만 재사용합니다.** 성공 후 로컬 mutation이 정리되면 `release()`합니다. 시간 초과·충돌·프로토콜 오류 또는 로컬 상태를 확인할 수 없으면 `invalidate()`합니다.
+4. **종료 책임은 아래로 전달됩니다.** CLI가 요청을 완료하고 daemon 종료가 `pool.close()`를 호출하면 pool이 Worker를 종료하고 Runtime·백엔드를 닫습니다.
+
+단발 지연을 허용하는 저빈도 명령에는 `@univer-cli/univer-collaboration-runtime` 직접 사용이 가장 단순합니다. 반복 로드가 주비용으로 측정되고 상주 프로세스·메모리를 허용할 때만 daemon과 `@univer-cli/univer-collaboration-runtime-pool`을 조합하세요.
+
+전체 패키지는 [패키지 목록](/ai/packages)을 참고하세요.

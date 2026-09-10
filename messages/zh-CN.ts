@@ -2,6 +2,10 @@ import type { Messages } from './en-US'
 
 const zhCNMessages = {
   common: {
+    'zoom-in': '放大',
+    'zoom-out': '缩小',
+    'reset-zoom': '重置缩放',
+    diagram: '图表',
     'expand-code': '展开代码',
     'collapse-code': '收起代码',
     'display-name': '简体中文',

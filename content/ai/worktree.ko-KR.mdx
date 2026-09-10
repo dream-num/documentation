@@ -1,0 +1,154 @@
+---
+title: 'Worktree: AI Agent 편집과 사람의 검토'
+description: AI Agent가 격리된 Worktree 초안을 편집·검사하고 사람이 Web에서 검토·병합하도록 합니다.
+source: https://github.com/dream-num/univer-collaboration-sdk/blob/main/packages/collaboration-worktree-service/README.md
+---
+
+Worktree는 AI Agent에 격리된 편집 공간을 제공합니다. 초안에서 가져오기, 검사, 실행, 커밋을 여러 번 수행하고 구조화·시각 검사를 마치면 Ready로 표시합니다. 사람은 Web에서 렌더링된 페이지를 보고 Merge 또는 Reopen을 선택합니다.
+
+```text
+Worktree 생성
+→ AI Agent 초안 편집
+→ 구조화 및 시각 검사
+→ Ready
+→ 사람이 Web에서 검토
+→ Merge / Reopen
+→ trunk
+```
+
+## Worktree를 사용하는 이유
+
+- AI Agent의 중간 편집이 trunk와 격리됩니다.
+- 초안은 독립된 스냅샷, 변경 집합, 리비전, Presence, 실시간 Room을 가집니다.
+- 결과를 제시하기 전에 여러 번 동기화, 편집, 검증할 수 있습니다.
+- Ready는 현재 초안 리비전을 고정하고 명확한 검토 경계를 만듭니다.
+- 사람은 Web에서 검토, 추가 편집, Merge, Reopen을 수행할 수 있습니다.
+- Merge도 trunk Collaboration Service의 권한 및 커밋 경계를 거칩니다.
+
+## 전체 흐름
+
+```text
+Worktree 생성 / 선택
+→ Worktree Unit 선택
+→ Collaboration Runtime 로드
+→ pull
+→ inspect
+→ api find / show
+→ execute(write)
+→ runtime.commit()
+→ inspect + screenshot + layout lint
+→ markReady
+→ Web 검토
+→ merge / reopen
+```
+
+[문서 로드 및 콘텐츠 작업](/ai/content-operations), [Office 파일 교환](/server/import-export/node), [시각적 검사](/ai/visual-inspection) 후 같은 기능을 Worktree 대상으로 연결하면 권장 AI Agent 편집 흐름이 됩니다.
+
+## Worktree 대상
+
+Collaboration Runtime은 여전히 단일 Unit의 스냅샷, 변경 집합, 리비전만 처리하며 Worktree 제품 개념을 해석하지 않습니다. 애플리케이션 어댑터가 `worktreeID + unitID`를 Worktree Endpoint의 Snapshot, Submit, WebSocket, Session Ticket URL로 매핑해 Runtime 백엔드에 전달합니다.
+
+```text
+worktreeID + unitID
+→ 애플리케이션 대상 어댑터
+→ Worktree 프로토콜 URL
+→ Collaboration Runtime
+```
+
+따라서 같은 Runtime 실행 모델로 trunk와 격리된 초안 모두에 연결할 수 있습니다.
+
+## 초안에서 AI Agent 작업
+
+Worktree Unit도 일반 Unit과 같은 핵심 루프를 사용합니다.
+
+```text
+load → pull → inspect → execute(write) → commit
+```
+
+준비된 Inspection 진입점으로 `@univer-cli/content-inspection-command`가 두 팩터리를 제공합니다.
+
+- `createContentInspectionCommand()`: 일반 Unit 대상.
+- `createWorktreeContentInspectionCommand()`: `--trunk` 또는 `--worktree <id>`를 명시적으로 선택해야 하는 경우.
+
+애플리케이션은 execute, screenshot 등에도 같은 대상 선택을 추가하고 선택한 Runtime의 획득과 해제를 관리합니다.
+
+## Commander에서 Worktree 선택
+
+Inspection 프리셋의 Worktree 변형은 `--trunk` 또는 `--worktree <id>` 선택을 강제합니다.
+
+```ts
+import type { WorktreeContentInspectionCommandDependencies } from "@univer-cli/content-inspection-command";
+import { createWorktreeContentInspectionCommand } from "@univer-cli/content-inspection-command";
+import { Command } from "commander";
+
+function addWorktreeCommands(
+  program: Command,
+  dependencies: {
+    acquireRuntime: WorktreeContentInspectionCommandDependencies["acquireRuntime"];
+    markReady(worktreeID: string): Promise<void>;
+  },
+): void {
+  program.addCommand(
+    createWorktreeContentInspectionCommand({
+      acquireRuntime: dependencies.acquireRuntime,
+    }),
+  );
+
+  const worktreeCommand = new Command("worktree");
+  worktreeCommand
+    .command("ready")
+    .argument("<worktree-id>")
+    .action(async (worktreeID) => {
+      await dependencies.markReady(worktreeID);
+    });
+
+  program.addCommand(worktreeCommand);
+}
+```
+
+`acquireRuntime`과 `markReady`는 명시적인 애플리케이션 의존성이며 숨겨진 AI SDK 도우미가 아닙니다. 전자는 앞 절의 대상과 Runtime 매핑을 구현하고 후자는 Collaboration SDK Worktree Client를 호출합니다.
+
+execute, screenshot, layout lint는 같은 대상 모델을 사용하여 한 Unit ID가 서로 다른 trunk나 초안으로 해석되지 않도록 해야 합니다. Web은 같은 Client로 Reopen, Discard, Merge와 실제 페이지 검토를 제공할 수 있습니다. 필요하면 일부 작업을 Commander 하위 명령으로 감쌀 수 있습니다.
+
+## AI Agent 검사
+
+Ready 전에 두 종류의 검사를 조합할 수 있습니다.
+
+```text
+구조화 검사: pull → inspect
+시각 검사: Unit → Render Runtime → screenshot / layout lint
+```
+
+- Inspection은 Workbook, Worksheet, Range, Document, Paragraph, Presentation, Slide의 구조화된 내용을 확인합니다.
+- Screenshot은 렌더링된 시각 정보를 제공합니다.
+- Layout Lint는 Slide 레이아웃 문제를 진단합니다.
+- 문제가 발견되면 AI Agent가 실행, 커밋, 검사를 반복할 수 있습니다.
+
+## Commit, Ready, Merge 구분
+
+| 작업 | 의미 |
+| --- | --- |
+| `runtime.commit()` | 현재 변경으로 만든 변경 집합을 Worktree 초안에 제출 |
+| `markReady()` | 각 Unit의 현재 초안 리비전을 고정하고 `ready` 진입 |
+| `reopenWorktree()` | `ready`에서 `draft`로 돌아가 추가 편집 |
+| `mergeWorktree()` | Worktree Unit을 하나씩 trunk에 병합 |
+
+`runtime.commit()`은 초안만 진행시키며 trunk에 병합하지 않습니다. Ready는 AI Agent 작업을 검토 단계로 넘깁니다. 결과가 trunk에 도달하려면 Worktree Merge가 필요합니다.
+
+## Web에서 사람의 검토
+
+Web은 Worktree Client와 공동 편집 설정으로 같은 초안을 로드합니다. 검토 화면은 다음을 제공할 수 있습니다.
+
+- 현재 Worktree 상태.
+- 초안 Unit의 렌더링 페이지.
+- trunk와 초안 전환.
+- Unit별 병합 미리 보기.
+- Ready, Reopen, Discard, Merge 작업.
+
+사람은 Web에서 초안을 계속 편집하거나 AI Agent가 더 작업하도록 Reopen할 수 있고, Merge 후 trunk로 돌아가 통합 결과를 볼 수 있습니다.
+
+## Collaboration SDK 경계
+
+Worktree Service, Endpoint, Client, Database Adapter는 Collaboration SDK에 속합니다. AI SDK는 조합 가능한 Unit Runtime, Inspection, API Reference, Execution, Screenshot을 제공합니다. 애플리케이션은 수명 주기 명령, 대상 매핑, 신원, 권한 부여를 담당합니다.
+
+서버 구성, 수명 주기, 병합 제약은 [공동 편집 확장](/server/collaboration/extensions)을 참고하세요.

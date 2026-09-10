@@ -1,0 +1,160 @@
+---
+title: 시각적 검사
+description: Render Runtime, Screenshot, Layout Lint로 AI Agent에 렌더링된 시각 정보를 제공합니다.
+source: https://github.com/dream-num/univer-cli-sdk/blob/main/packages/unit-screenshot/README.md
+---
+
+Inspection은 값, 단락, 페이지 구조를 확인하지만 텍스트 넘침, 요소 겹침, 도형 위치, 최종 레이아웃을 완전히 표현하지 못합니다. 구조화된 콘텐츠 작업 후 브라우저 렌더링을 추가해 AI Agent가 실제 결과를 보도록 하세요.
+
+```text
+최신 UnitData
+→ Render Runtime
+├── Screenshot → PNG → AI Agent 시각 검사
+└── Layout Lint → 구조화된 발견 → AI Agent 수정
+```
+
+## 1단계: 명확한 콘텐츠 상태 준비
+
+Screenshot과 Layout Lint는 완전한 UnitData를 받으며 원격 대상을 로드하거나 변경 집합을 해석하지 않습니다. 공동 편집 Unit은 먼저 동기화하고 현재 전체 상태를 내보내세요.
+
+```ts
+await runtime.pull();
+const unitData = await runtime.exportUnitData();
+```
+
+Worktree는 초안 대상에서 UnitData를 내보내세요. 로컬 앱은 이미 로드하거나 가져온 데이터를 사용할 수 있습니다. 모든 시각 검사는 하나의 명확한 콘텐츠 상태를 기준으로 합니다.
+
+## 2단계: Render Page 빌드
+
+`@univer-cli/univer-render-page`는 브라우저 Render Page를 구성합니다. 애플리케이션이 Univer 플러그인을 선택하고 정적 페이지를 빌드합니다.
+
+```ts
+import { createPresetRenderUniver, mountUniverRenderPage } from "@univer-cli/univer-render-page";
+
+const container = document.querySelector<HTMLElement>("#app");
+if (container === null) throw new Error("#app is required");
+
+await mountUniverRenderPage({
+  container,
+  createUniver: createPresetRenderUniver,
+});
+```
+
+Render Page는 브라우저 렌더링 진입점이며 사람의 검토 화면이 아닙니다. Node.js에서 UnitData를 받아 PNG나 레이아웃 정보를 반환합니다.
+
+## 3단계: Render Runtime 생성
+
+`@univer-cli/univer-render-runtime`은 Node.js에서 Render Page를 호스팅하고 브라우저를 시작하며 페이지 프로토콜을 관리합니다.
+
+```ts
+import { createUniverRenderRuntime } from "@univer-cli/univer-render-runtime";
+
+const renderRuntime = await createUniverRenderRuntime({
+  renderPageRoot,
+});
+```
+
+한 Runtime에서 여러 작업을 순차 실행할 수 있습니다. 이미지마다 브라우저를 시작하지 말고 바깥 수명 주기에서 재사용하세요.
+
+## 4단계: 스크린샷 캡처
+
+`@univer-cli/unit-screenshot`은 Sheet, Doc, Slide, Board, Base 스크린샷의 고수준 진입점입니다. 대상 선택, 페이지 구분, 배율, 이름, 리소스 제한을 처리합니다.
+
+```ts
+import { createUnitScreenshot } from "@univer-cli/unit-screenshot";
+
+const screenshot = createUnitScreenshot({ runtime: renderRuntime });
+const result = await screenshot.capture({
+  unitType: "sheet",
+  unitData,
+  target: {
+    kind: "sheet-range",
+    sheetName: "Data",
+    range: "B2:H40",
+    scale: 2,
+  },
+});
+```
+
+결과에는 여러 이미지가 포함될 수 있습니다. 각각 PNG 바이트, 크기, 페이지 또는 대상 식별 정보, 제안 파일 이름을 포함합니다. 패키지가 파일을 쓰지는 않습니다. 저장 위치나 AI Agent에 전달하는 방법은 애플리케이션이 결정합니다.
+
+대상을 생략하면 활성 시트의 사용 범위, Doc 전체 페이지, Slide 전체 페이지 등 Unit 유형별 기본 콘텐츠를 선택합니다.
+
+## 5단계: Slide 레이아웃 진단
+
+`@univer-cli/unit-layout-lint`는 브라우저가 생성한 실제 레이아웃 정보를 사용하여 근거가 있는 구조화된 결과를 반환합니다.
+
+```ts
+import { createUnitLayoutLint } from "@univer-cli/unit-layout-lint";
+
+const lint = createUnitLayoutLint({ runtime: renderRuntime });
+const report = await lint.lint({
+  unitType: "slide",
+  unitData,
+  pages: [1, "closing-slide"],
+});
+```
+
+현재 규칙은 다음과 같습니다.
+
+- `text-off-page`: 실제 텍스트 렌더링 영역이 페이지를 벗어남.
+- `text-escapes-container`: 작은 불투명 컨테이너 밖으로 텍스트가 눈에 띄게 벗어남.
+- `text-overlaps-text`: 두 실제 텍스트 영역이 상당히 겹침.
+
+이 결과는 근거가 있는 검토 제안이며 항상 수정이 필요한 것은 아닙니다. AI Agent는 스크린샷과 함께 판단하고 Facade로 수정한 뒤 다시 검사할 수 있습니다.
+
+## 6단계: Commander 명령 추가
+
+두 기능 모두 네이티브 Commander 프리셋을 제공합니다. 앞에서 만든 기능과 업무 UnitData 로더를 주입하고 [문서 로드 및 콘텐츠 작업](/ai/content-operations)의 같은 `program`에 추가하세요.
+
+```ts
+import type { UnitScreenshotCommandDependencies } from "@univer-cli/unit-screenshot-command";
+import { createUnitScreenshotCommand } from "@univer-cli/unit-screenshot-command";
+import type { UnitLayoutLintCommandDependencies } from "@univer-cli/unit-layout-lint-command";
+import { createUnitLayoutLintCommand } from "@univer-cli/unit-layout-lint-command";
+import type { Command } from "commander";
+
+function addVisualCommands(
+  program: Command,
+  dependencies: {
+    loadUnit: UnitScreenshotCommandDependencies["loadUnit"];
+    writeImages: UnitScreenshotCommandDependencies["writeImages"];
+    loadSlide: UnitLayoutLintCommandDependencies["loadUnit"];
+  },
+): void {
+  program.addCommand(
+    createUnitScreenshotCommand({
+      screenshot,
+      loadUnit: dependencies.loadUnit,
+      writeImages: dependencies.writeImages,
+    }),
+  );
+
+  program.addCommand(
+    createUnitLayoutLintCommand({
+      lint,
+      loadUnit: dependencies.loadSlide,
+    }),
+  );
+}
+```
+
+프리셋은 스크린샷 선택기, Slide 페이지 선택기, `--json`, 기본 텍스트 출력, Commander 오류 종료를 담당합니다. 함수 인수로 Unit ID와 콘텐츠 상태의 매핑 및 PNG 쓰기를 명시적으로 주입합니다. Render Runtime 수명 주기도 애플리케이션이 관리합니다.
+
+Screenshot 프리셋에는 브라우저 설치 및 탐색 하위 명령을 포함할 수 있습니다. 캡처마다 브라우저를 암묵적으로 다운로드하지는 않습니다.
+
+## 7단계: 브라우저 리소스 해제
+
+생성자가 최상위 Commander 수명 주기에서 Runtime을 닫습니다.
+
+```ts
+try {
+  await program.parseAsync();
+} finally {
+  await renderRuntime.close();
+}
+```
+
+사용자 지정 AI Agent 입출력이 필요하면 프리셋 대신 기본 패키지를 직접 호출하세요. 신뢰하지 못하는 UnitData를 공유 고권한 호스트에서 직접 렌더링하지 말고 제한 사용자, 컨테이너 또는 다른 프로세스 격리를 사용하세요.
+
+시각 검사가 준비되면 같은 콘텐츠·검사 기능을 [Worktree: AI Agent 편집과 사람의 검토](/ai/worktree) 흐름에 넣으세요.

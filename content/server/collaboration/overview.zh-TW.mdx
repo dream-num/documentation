@@ -1,0 +1,76 @@
+---
+title: Collaboration SDK 概覽
+description: 瞭解 Univer Collaboration SDK 解決的問題、模組組成、擴充點，以及應用仍需負責的產品能力。
+---
+
+**Univer Collaboration SDK** 是面向 Univer 文件模型的服務端協同 SDK。它提供操作轉換（OT）、修訂版本、快照、即時同步與持久化，讓多個 Univer 用戶端編輯同一份以服務端為準的 Unit。
+
+開發者將它嵌入自己的 Node.js 應用，透過 Middleware 接入身分驗證與授權，並透過 Middleware 或 Events 擴充日誌及其他應用邏輯。Database Adapter 則負責將協同資料連接到應用資料庫。
+
+<Callout title="它不是完整的文件產品">
+Collaboration SDK 提供協同核心，不提供使用者、角色、層級、分享、檔案空間或業務流程。這些產品能力與資料模型仍由應用負責。
+</Callout>
+
+## 解決的問題
+
+Web SDK 在瀏覽器中呈現並編輯 Sheet、Doc、Slide、Board 和 Base 內容。多人編輯還需要由服務端載入內容、確認並行變更、推進修訂版本，並讓斷線用戶端恢復到一致狀態。
+
+它適合以下應用：
+
+- 已使用 Univer 建立編輯器，需要即時多人編輯；
+- 希望自行託管協同資料並選擇資料庫；
+- 需要將既有身分、授權或租戶規則接入協同操作；
+- 需要在核心協同之上增加 History、Thread Comment 或 Worktree 能力。
+
+## 完整的協同服務
+
+<Mermaid chart={"flowchart LR\n    ClientA[\"用戶端 A<br/>Web SDK + Collaboration Client\"]\n    ClientB[\"用戶端 B<br/>Web SDK + Collaboration Client\"]\n\n    subgraph Server[\"協同服務端\"]\n        direction LR\n        Transport[\"Node Transport\"]\n        Endpoint[\"Collaboration Endpoint\"]\n        Service[\"Collaboration Service\"]\n        Adapter[\"Database Adapter\"]\n\n        Transport --> Endpoint --> Service --> Adapter\n    end\n\n    Database[(資料庫)]\n\n    ClientA -->|\"HTTP / WebSocket\"| Transport\n    ClientB -->|\"HTTP / WebSocket\"| Transport\n    Adapter --> Database"} />
+
+| 模組 | 主要職責 |
+| --- | --- |
+| Collaboration Client | 載入 Unit、提交變更集，並維護瀏覽器協同狀態 |
+| Node Transport | 接收 HTTP/WebSocket 流量並執行應用入口中介軟體 |
+| `UniverCollabEndpoint` | 實作用戶端協定、Session、Room、Presence、ACK 與廣播 |
+| `UniverCollabService` | 管理 Unit 生命週期、執行 OT，並確認連續修訂版本 |
+| Database Adapter | 以原子方式儲存快照、變更集、修訂版本及提交冪等狀態 |
+
+## SDK 提供的能力
+
+核心能力包括：
+
+- 建立、載入、刪除及還原 Sheet、Doc、Slide、Board 和 Base Unit；
+- 快照、變更集、修訂版本、OT 與提交冪等性；
+- HTTP 內容載入，以及 WebSocket Session、Room、Presence、ACK 與廣播；
+- Transport、Endpoint 和 Service 邊界上的 Middleware；
+- Unit 建立、變更集提交、刪除及還原的程序內 Events；
+- Memory、SQLite 及自訂 Database Adapter 契約。
+
+核心流程運作後，應用可加入版本歷史、討論串留言、Worktree 草稿及服務端 Office 檔案轉換。這些能力各自具有 Service、Middleware、Events 或 Database Adapter。
+
+## 應用負責的能力
+
+| Collaboration SDK | 應用 |
+| --- | --- |
+| Unit 協同狀態 | 使用者、租戶、層級與分享關係 |
+| OT、修訂版本與快照 | 登入、Session 與身分對應 |
+| 協同 Session、Room 與 Presence | 角色、ACL 與產品策略 |
+| 協同 Database Adapter | 檔案、物件儲存與產品資料庫 |
+| Middleware 與 Event 擴充點 | 日誌、稽核、指標與外部整合 |
+| 用戶端協定 Endpoint | 業務 API 與建立文件等流程 |
+
+## 三種通用擴充點
+
+| 擴充點 | 解決的問題 |
+| --- | --- |
+| Middleware | 在操作期間檢查或補充 Context、拒絕請求或記錄處理過程 |
+| Event | 觀察已確認的狀態變更，用於程序內衍生狀態或非關鍵後續工作 |
+| Database Adapter | 選擇儲存方式，實作原子性、CAS 與冪等性契約 |
+
+身分與授權透過 Middleware 接入。在操作執行前以 Middleware 進行驗證和限制；狀態確認後，以 Events 記錄變更或觸發後續工作。兩者均可支援日誌、請求追蹤、指標與衍生狀態更新。執行邊界請參閱 [Middleware 與 Events](/server/collaboration/middleware-and-events)。
+
+## 從哪裡開始
+
+1. 執行[快速開始](/server/collaboration/quick-start)，在兩個瀏覽器中驗證完整流程。
+2. 閱讀[模組邊界與關係](/server/collaboration/modules)，瞭解各套件的用途。
+3. 根據整合需求，繼續閱讀 [Middleware 與 Events](/server/collaboration/middleware-and-events)、[身分與授權](/server/collaboration/identity-and-authorization)或[資料庫配接器](/server/collaboration/database-adapters)。
+4. History、留言、Worktree 與檔案轉換請參閱[協同擴充模組](/server/collaboration/extensions)。

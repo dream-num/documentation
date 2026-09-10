@@ -2,6 +2,10 @@ import type { Messages } from './en-US'
 
 const jaJPMessages = {
   common: {
+    'zoom-in': '拡大',
+    'zoom-out': '縮小',
+    'reset-zoom': 'ズームをリセット',
+    diagram: '図表',
     'expand-code': 'コードを展開',
     'collapse-code': 'コードを折りたたむ',
     'display-name': '日本語',

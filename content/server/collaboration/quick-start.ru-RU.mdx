@@ -1,0 +1,243 @@
+---
+title: Быстрый старт
+description: Запуск совместного редактирования в двух браузерах и перенос минимальной композиции Client, Transport, Endpoint, Service и Adapter в приложение.
+---
+
+Здесь два пути. Сначала запустите официальный пример и проверьте полный цикл совместного редактирования в двух браузерах. Затем изучите и перенесите минимальную композицию Server и Web в своё приложение Univer.
+
+Перед началом выполните [требования к среде и версиям](/server/requirements). Все пакеты `@univerjs/*` и `@univerjs-pro/*` должны быть закреплены за одним совместимым набором выпусков.
+
+## Первый путь: официальный пример
+
+```bash
+git clone https://github.com/dream-num/univer-collaboration-examples.git
+cd univer-collaboration-examples
+pnpm install
+pnpm example:quick-start
+```
+
+Откройте:
+
+```text
+http://127.0.0.1:3010/?unit=quick-start-sheet&type=2
+```
+
+### Проверка совместного редактирования в реальном времени
+
+1. Откройте полный URL в одном окне браузера.
+2. Откройте его в другом профиле или приватном окне.
+3. Измените ячейку в любой таблице.
+4. Убедитесь, что изменение появилось во втором браузере.
+
+Используйте два независимых контекста, чтобы сервер создал две онлайн-Session. Наблюдение изменения на той же странице не проверяет путь Room, ACK и рассылки.
+
+### Что подтверждает успех
+
+```text
+Univer Collaboration Client
+  → Node Transport
+  → UniverCollabEndpoint
+  → UniverCollabService
+  → MemoryDatabaseAdapter
+```
+
+Синхронизация означает, что браузеры загрузили Unit через HTTP, открыли WebSocket Session с одноразовым Session Ticket и присоединились к одной Room. Service выполнил OT, подтвердил новую ревизию, сохранил её через Adapter, а Endpoint разослал остальным участникам.
+
+## Второй путь: перенос в приложение
+
+Ниже код из двух официальных точек входа без текстов состояния страницы. Полный исполняемый исходный код:
+
+- [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/quick-start/server/main.ts)
+- [web/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/quick-start/web/main.ts)
+- [package.json](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/quick-start/package.json)
+
+Если приложение Univer Web уже есть, сохраните Runtime, пресеты и UI и добавьте только настройки клиента Collaboration и сервер ниже. Для пустого проекта скопируйте `index.html`, `vite.config.ts` и стили примера как основу приложения.
+
+### 1. Установка совместимого набора пакетов
+
+Серверу нужны Transport, Endpoint, Service и один Database Adapter. Браузеру нужен клиент Collaboration. Установите пакеты и закрепите все пакеты Univer на одной точной версии:
+
+```bash
+pnpm add \
+  @univerjs-pro/collaboration \
+  @univerjs-pro/collaboration-client \
+  @univerjs-pro/collaboration-client-ui \
+  @univerjs-pro/collaboration-database-memory \
+  @univerjs-pro/collaboration-endpoint \
+  @univerjs-pro/collaboration-service \
+  @univerjs-pro/collaboration-transport-node \
+  @univerjs-pro/license \
+  @univerjs/core \
+  @univerjs/preset-sheets-core \
+  @univerjs/presets \
+  @univerjs/protocol \
+  express react react-dom rxjs
+```
+
+Манифест запускаемого официального примера служит источником точного состава пакетов и версий.
+
+### 2. Создание Service, Endpoint и начальной Unit
+
+`UniverCollabService` — авторитетное ядро совместного редактирования. Endpoint сопоставляет браузерный протокол с Service, а Memory Adapter временно хранит снимки, наборы изменений и ревизии:
+
+```ts
+import { createServer } from "node:http";
+import express from "express";
+import type { IWorkbookData } from "@univerjs/core";
+import { LocaleType } from "@univerjs/core";
+import { MemoryDatabaseAdapter } from "@univerjs-pro/collaboration-database-memory";
+import { UniverCollabEndpoint } from "@univerjs-pro/collaboration-endpoint";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { createNodeTransport } from "@univerjs-pro/collaboration-transport-node";
+import { ErrorCode, UniverType } from "@univerjs/protocol";
+
+const UNIT_ID = "quick-start-sheet";
+const unitData: IWorkbookData = {
+  id: UNIT_ID,
+  rev: 1,
+  name: "Quick Start Sheet",
+  appVersion: "",
+  locale: LocaleType.EN_US,
+  sheetOrder: ["sheet-1"],
+  sheets: {
+    "sheet-1": {
+      id: "sheet-1",
+      name: "Sheet 1",
+      rowCount: 100,
+      columnCount: 26,
+      cellData: {},
+    },
+  },
+  styles: {},
+  resources: [],
+};
+
+const database = new MemoryDatabaseAdapter();
+const service = new UniverCollabService({ dbAdapter: database });
+const endpoint = new UniverCollabEndpoint(service);
+const transport = createNodeTransport();
+
+transport.use(async (context, next) => {
+  context.userID = "demo-user";
+  await next();
+});
+transport.register(endpoint);
+
+await service.createUnitFromData(
+  { type: UniverType.UNIVER_SHEET, data: unitData },
+  { userID: "demo-user" },
+);
+```
+
+Фиксированный `demo-user` показывает передачу доверенной личности из Transport в Endpoint и Service. В рабочем приложении проверяйте cookie, Bearer-токен или сеанс внутри `transport.use()`, прежде чем задавать стабильный бизнес-`userID`.
+
+### 3. Подключение авторизации, HTTP и WebSocket
+
+Текущий клиент Collaboration запрашивает протокол авторизации. Пример всегда возвращает `allowed: true`, затем передаёт HTTP-запросы `/universer-api` и WebSocket upgrade в Transport:
+
+```ts
+const app = express();
+
+app.post("/universer-api/authz/-/object/-/batch_allowed", express.json(), (request, response) => {
+  const body = request.body as {
+    requests: Array<{ unitID: string; objectID: string; actions: unknown[] }>;
+  };
+  response.json({
+    error: { code: ErrorCode.OK, message: "" },
+    objectActions: body.requests.map((item) => ({
+      unitID: item.unitID,
+      objectID: item.objectID,
+      actions: item.actions.map((action) => ({ action, allowed: true })),
+    })),
+  });
+});
+
+app.use("/universer-api", (request, response) => {
+  request.url = request.originalUrl;
+  transport.handleRequest(request, response);
+});
+app.use(express.static("dist/web"));
+
+const server = createServer(app);
+server.on("upgrade", (request, socket, head) => {
+  transport.handleUpgrade(request, socket, head);
+});
+server.listen(3010, "127.0.0.1");
+```
+
+Разрешение всего — учебное упрощение, не граница безопасности. Реальное приложение должно защищать HTTP-чтение, realtime JOIN, отправку наборов изменений и операции жизненного цикла Unit. Полная модель описана в [Идентификации и авторизации](/server/collaboration/identity-and-authorization).
+
+### 4. Регистрация клиента Collaboration в браузерном Runtime
+
+Сохраните обычные Web SDK и пресеты, затем добавьте плагины совместного редактирования и URL протокола:
+
+```ts
+import { LocaleType, LogLevel } from "@univerjs/core";
+import { UniverCollaborationPlugin } from "@univerjs-pro/collaboration";
+import { UniverCollaborationClientPlugin } from "@univerjs-pro/collaboration-client";
+import CollaborationClientEnUS from "@univerjs-pro/collaboration-client/locale/en-US";
+import {
+  BrowserCollaborationSocketService,
+  UniverCollaborationClientUIPlugin,
+} from "@univerjs-pro/collaboration-client-ui";
+import CollaborationClientUIEnUS from "@univerjs-pro/collaboration-client-ui/locale/en-US";
+import { UniverLicensePlugin } from "@univerjs-pro/license";
+import { UniverSheetsCorePreset } from "@univerjs/preset-sheets-core";
+import UniverPresetSheetsCoreEnUS from "@univerjs/preset-sheets-core/locales/en-US";
+import { createUniver, defaultTheme, mergeLocales } from "@univerjs/presets";
+import "@univerjs/preset-sheets-core/lib/index.css";
+import "@univerjs-pro/collaboration-client-ui/lib/index.css";
+
+const httpProtocol = location.protocol === "https:" ? "https" : "http";
+const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
+const baseURL = `${httpProtocol}://${location.host}/universer-api`;
+
+createUniver({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(
+      UniverPresetSheetsCoreEnUS,
+      CollaborationClientEnUS,
+      CollaborationClientUIEnUS,
+    ),
+  },
+  theme: defaultTheme,
+  logLevel: LogLevel.WARN,
+  collaboration: true,
+  presets: [UniverSheetsCorePreset({ container: "app" })],
+  plugins: [
+    [UniverLicensePlugin, { license: import.meta.env.UNIVER_LICENSE || undefined }],
+    UniverCollaborationPlugin,
+    [
+      UniverCollaborationClientPlugin,
+      {
+        socketService: BrowserCollaborationSocketService,
+        sendChangesetTimeout: 200,
+        authzUrl: `${baseURL}/authz`,
+        snapshotServerUrl: `${baseURL}/snapshot`,
+        collabSubmitChangesetUrl: `${baseURL}/comb`,
+        collabWebSocketUrl: `${wsProtocol}://${location.host}/universer-api/comb/connect`,
+        wsSessionTicketUrl: `${baseURL}/user/session-ticket`,
+      },
+    ],
+    UniverCollaborationClientUIPlugin,
+  ],
+});
+```
+
+Странице нужен элемент с `id="app"`; Unit выбирается параметрами запроса:
+
+```text
+/?unit=quick-start-sheet&type=2
+```
+
+### 5. Замена учебных настроек возможностями приложения
+
+| Учебная настройка | Замена |
+| --- | --- |
+| Фиксированный `demo-user` | Middleware аутентификации и стабильный ID пользователя |
+| Всегда разрешающие проверки | Серверный ACL для чтения, JOIN, отправки и жизненного цикла |
+| Фиксированная Unit | API создания и запись продукта, вызывающие `createUnitFromData()` |
+| Memory Adapter | SQLite или собственный постоянный Adapter с контрактными тестами |
+
+Далее выполните [Адаптеры баз данных](/server/collaboration/database-adapters) и [Идентификацию и авторизацию](/server/collaboration/identity-and-authorization). При необходимости добавьте [History, Thread Comment, Worktree или Exchange](/server/collaboration/extensions). Все запускаемые композиции перечислены в [примерах](/server/collaboration/examples).

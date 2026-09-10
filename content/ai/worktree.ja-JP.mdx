@@ -1,0 +1,154 @@
+---
+title: 'Worktree：AI Agent の編集と人によるレビュー'
+description: AI Agent が隔離された Worktree の下書きを編集・検査し、人が Web からレビューしてマージします。
+source: https://github.com/dream-num/univer-collaboration-sdk/blob/main/packages/collaboration-worktree-service/README.md
+---
+
+Worktree は AI Agent に隔離された編集空間を提供します。下書きで取得、検査、実行、コミットを繰り返し、構造化・視覚的検査が済んだら Ready にします。人は Web で描画結果を確認し、Merge または Reopen を選びます。
+
+```text
+Worktree 作成
+→ AI Agent が下書きを編集
+→ 構造化・視覚的検査
+→ Ready
+→ Web で人がレビュー
+→ Merge / Reopen
+→ trunk
+```
+
+## Worktree を使う理由
+
+- AI Agent の途中の変更を trunk から隔離します。
+- 下書きは独立したスナップショット、変更セット、リビジョン、Presence、リアルタイム Room を持ちます。
+- 結果を提示する前に同期、編集、検証を何度も行えます。
+- Ready は現在の下書きリビジョンを固定し、明確なレビュー境界を作ります。
+- 人は Web から確認、編集継続、Merge、Reopen を行えます。
+- Merge も trunk の Collaboration Service の認可とコミット境界を通ります。
+
+## 全体の流れ
+
+```text
+Worktree を作成／選択
+→ Worktree Unit を選択
+→ Collaboration Runtime で読み込み
+→ pull
+→ inspect
+→ api find / show
+→ execute(write)
+→ runtime.commit()
+→ inspect + screenshot + layout lint
+→ markReady
+→ Web レビュー
+→ merge / reopen
+```
+
+[読み込みとコンテンツ操作](/ai/content-operations)、[Office ファイルの入出力](/server/import-export/node)、[視覚的検査](/ai/visual-inspection)の導入後、同じ機能の対象を Worktree に向けると推奨の AI Agent 編集フローになります。
+
+## Worktree の対象
+
+Collaboration Runtime は単一 Unit のスナップショット、変更セット、リビジョンだけを扱い、Worktree という製品概念を解釈しません。アプリケーションのアダプターが `worktreeID + unitID` を Worktree Endpoint の Snapshot、Submit、WebSocket、Session Ticket URL に対応付け、Runtime バックエンドへ渡します。
+
+```text
+worktreeID + unitID
+→ アプリケーションの対象アダプター
+→ Worktree プロトコル URL
+→ Collaboration Runtime
+```
+
+同じ Runtime 実行モデルを trunk にも隔離下書きにも接続できます。
+
+## 下書きでの AI Agent 操作
+
+Worktree Unit でも通常の Unit と同じ基本ループを使います。
+
+```text
+load → pull → inspect → execute(write) → commit
+```
+
+既成の Inspection 入口には、`@univer-cli/content-inspection-command` の 2 つのファクトリーがあります。
+
+- `createContentInspectionCommand()`：通常の Unit 対象。
+- `createWorktreeContentInspectionCommand()`：`--trunk` または `--worktree <id>` の明示的な選択を要求。
+
+アプリケーションは execute、screenshot などにも同じ対象選択を追加し、選ばれた Runtime の取得と解放を管理します。
+
+## Commander で Worktree を選ぶ
+
+Inspection プリセットの Worktree 版は、`--trunk` または `--worktree <id>` の選択を強制します。
+
+```ts
+import type { WorktreeContentInspectionCommandDependencies } from "@univer-cli/content-inspection-command";
+import { createWorktreeContentInspectionCommand } from "@univer-cli/content-inspection-command";
+import { Command } from "commander";
+
+function addWorktreeCommands(
+  program: Command,
+  dependencies: {
+    acquireRuntime: WorktreeContentInspectionCommandDependencies["acquireRuntime"];
+    markReady(worktreeID: string): Promise<void>;
+  },
+): void {
+  program.addCommand(
+    createWorktreeContentInspectionCommand({
+      acquireRuntime: dependencies.acquireRuntime,
+    }),
+  );
+
+  const worktreeCommand = new Command("worktree");
+  worktreeCommand
+    .command("ready")
+    .argument("<worktree-id>")
+    .action(async (worktreeID) => {
+      await dependencies.markReady(worktreeID);
+    });
+
+  program.addCommand(worktreeCommand);
+}
+```
+
+`acquireRuntime` と `markReady` は明示されたアプリケーション依存関係で、隠れた AI SDK ヘルパーではありません。前者は前節の対象と Runtime の対応付け、後者は Collaboration SDK Worktree Client の呼び出しを実装します。
+
+execute、screenshot、layout lint で同じ対象モデルを使い、同じ Unit ID が異なる trunk や下書きに解決されないようにします。Web は同じ Client で Reopen、Discard、Merge、実ページのレビューを提供できます。必要なら操作を Commander サブコマンドで公開できます。
+
+## AI Agent の検査
+
+Ready 前には 2 種類の検査を組み合わせられます。
+
+```text
+構造化検査：pull → inspect
+視覚的検査：Unit → Render Runtime → screenshot / layout lint
+```
+
+- Inspection は Workbook、Worksheet、Range、Document、Paragraph、Presentation、Slide の構造化内容を検証します。
+- Screenshot は描画された視覚情報を提供します。
+- Layout Lint は Slide のレイアウト問題を診断します。
+- 問題が見つかれば再び実行、コミット、検査できます。
+
+## Commit、Ready、Merge の違い
+
+| 操作 | 意味 |
+| --- | --- |
+| `runtime.commit()` | 現在の変更セットを Worktree 下書きへ送信 |
+| `markReady()` | 各 Unit の現在の下書きリビジョンを固定して `ready` にする |
+| `reopenWorktree()` | `ready` から `draft` に戻して編集を続行 |
+| `mergeWorktree()` | Worktree の Units を順に trunk へマージ |
+
+`runtime.commit()` は下書きだけを進め、trunk へマージしません。Ready は AI Agent の作業をレビューへ移します。trunk に反映するには Worktree Merge が必要です。
+
+## Web での人によるレビュー
+
+Web は Worktree Client と専用の共同編集設定で同じ下書きを読みます。レビュー画面では次を提供できます。
+
+- 現在の Worktree 状態。
+- 下書き Unit の描画ページ。
+- trunk と下書きの切り替え。
+- Unit ごとのマージプレビュー。
+- Ready、Reopen、Discard、Merge 操作。
+
+人は Web で下書きを編集し続けることも、AI Agent に続けさせるため Reopen することも、Merge 後 trunk に戻って統合結果を確認することもできます。
+
+## Collaboration SDK の境界
+
+Worktree Service、Endpoint、Client、Database Adapter は Collaboration SDK に属します。AI SDK は Unit Runtime、Inspection、API Reference、Execution、Screenshot の組み合わせ可能な機能を提供します。ライフサイクルコマンド、対象の対応付け、ID、認可はアプリケーションが担当します。
+
+サーバー構成、ライフサイクル、マージ制約は[共同編集の拡張](/server/collaboration/extensions)を参照してください。

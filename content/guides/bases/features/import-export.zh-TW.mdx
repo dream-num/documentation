@@ -1,0 +1,129 @@
+---
+title: 匯入與匯出
+icon: 'FolderSync'
+---
+
+Bases 可匯入 **XLSX、XLS、CSV 與 TSV**，並匯出 **XLSX、CSV 與 TSV**。例如，先匯入 Excel 客戶清單，新增欄位與檢視，再匯出資料表內容。
+
+這些 API 需要轉換後端。請先參考[檔案交換整合](/server/import-export)，確認後端支援 Bases 文件類型及所需格式。
+
+## 支援格式
+
+下表列出本頁瀏覽器 API 的格式。Office 檔案轉換需要後端支援相同的文件類型與格式。
+
+| 匯入 | 匯出 |
+| --- | --- |
+| `.xls`, `.xlsx`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` |
+
+CSV 與 TSV 只匯出一個資料表，使用 `tableId` 選擇。這些文字格式不保留檢視、權限或其他 Base 資源。完整應用程式備份請使用 Base 快照。
+
+## 安裝與註冊
+
+為[已初始化的 Bases 編輯器](/guides/bases/getting-started/installation)加入以下套件：
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/bases-exchange-client
+```
+
+```ts
+import { UniverBasesExchangeClientPlugin } from '@univerjs-pro/bases-exchange-client'
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
+
+import '@univerjs-pro/bases/facade'
+import '@univerjs-pro/bases-exchange-client/facade'
+import '@univerjs-pro/exchange-client/facade'
+import '@univerjs-pro/exchange-client/lib/index.css'
+import '@univerjs-pro/bases-exchange-client/lib/index.css'
+
+univer.registerPlugin(UniverExchangeClientPlugin, exchangeConfig)
+univer.registerPlugin(UniverBasesExchangeClientPlugin)
+```
+
+`exchangeConfig` 包含應用程式的上傳、轉換、任務查詢與下載設定，請依[整合指南](/server/import-export)準備。參考[國際化](/guides/bases/getting-started/i18n)，將兩個套件的 `locale/en-US` 資源合併到 `locales`。
+
+## 匯入並在頁面編輯
+
+`file` 可以是使用者選取的 `File` 或遠端檔案 URL。回傳的快照是編輯器可載入的 Base 資料：
+
+```ts
+const snapshot = await univerAPI.importBaseToSnapshotAsync(file)
+if (snapshot) {
+  univerAPI.createBase(snapshot)
+}
+```
+
+快照匯入不需要協同編輯，但仍需要伺服器端轉換。若要讓使用者之後繼續工作，請依[儲存與還原快照](/guides/bases/model/base-snapshot)保存 `base.save()`。
+
+## 匯出檔案
+
+將目前 Base 匯出為 Excel：
+
+```ts
+import { ExchangeFormat } from '@univerjs-pro/exchange-client'
+
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('Open a Base first')
+
+const file = await univerAPI.exportBaseBySnapshotAsync(base.save(), ExchangeFormat.XLSX)
+if (file) {
+  univerAPI.downloadFile(file, 'database', ExchangeFormat.XLSX)
+}
+```
+
+CSV 與 TSV 只代表一個資料表。從含多個資料表的 Base 匯出時，請明確傳入 `tableId`：
+
+```ts
+const table = base.getTables()[0]
+if (!table) throw new Error('Create a table first')
+
+const file = await univerAPI.exportBaseBySnapshotAsync(
+  base.save(),
+  ExchangeFormat.CSV,
+  table.getId(),
+)
+if (file) {
+  univerAPI.downloadFile(file, table.getName(), ExchangeFormat.CSV)
+}
+```
+
+匯出 TSV 時，將 `ExchangeFormat.CSV` 換成 `ExchangeFormat.TSV`。檔案匯出用於交換資料表資料。完整備份請儲存 Base 快照；CSV 不保留檢視、權限或其他資源。
+
+## 匯入協同文件
+
+接入 [Bases 協同編輯](/guides/bases/features/collaboration)後，匯入並載入伺服器回傳的文件 ID：
+
+```ts
+import '@univerjs-pro/collaboration-client/facade'
+
+const unitId = await univerAPI.importBaseToUnitIdAsync(file)
+if (unitId) {
+  await univerAPI.getCollaboration().loadBaseAsync(unitId)
+}
+```
+
+使用 `exportBaseByUnitIdAsync(unitId, format, tableId?)` 匯出伺服器文件。匯出前，請等待瀏覽器尚未同步的修改完成同步。
+
+## Excel 結構與公式
+
+可設定 Bases 交換外掛以修改轉換行為。以下為預設值，請用此設定取代前面的註冊：
+
+```ts
+import {
+  ExchangeBaseExportMode,
+  ExchangeBaseFormulaPolicy,
+  ExchangeBaseImportMode,
+} from '@univerjs-pro/exchange-client'
+
+univer.registerPlugin(UniverBasesExchangeClientPlugin, {
+  importSourceMode: ExchangeBaseImportMode.AUTO,
+  importFormulaPolicy: ExchangeBaseFormulaPolicy.CONVERT_THEN_VALUES,
+  exportStructureMode: ExchangeBaseExportMode.TABLES,
+  exportFormulaPolicy: ExchangeBaseFormulaPolicy.FAIL,
+})
+```
+
+- 匯入來源：`AUTO` 自動選擇 Excel 資料表與可見工作表；`TABLES` 只匯入 Excel 資料表；`SHEETS` 匯入可見工作表；`HYBRID` 匯入 Excel 資料表，以及不含 Excel 資料表的可見工作表。
+- 匯出結構：`TABLES` 為非空 Base 資料表建立原生 Excel 資料表，空表則保留為一般範圍。`RANGES` 一律匯出為一般工作表範圍。
+- 公式：匯入時先嘗試轉換，不支援的公式改用快取結果；匯出預設要求轉換成功。`VALUES` 只使用快取結果，`TEXT` 則將原公式保留為文字。匯出時使用 `CONVERT_THEN_VALUES`，若公式無法轉換，仍會失敗。
+
+請使用實際業務檔案驗證欄位與公式轉換。這些方法可能回傳 `undefined`，也可能拋出請求或轉換錯誤，UI 必須處理兩種情況。

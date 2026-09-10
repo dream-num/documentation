@@ -1,0 +1,160 @@
+---
+title: Inspection visuelle
+description: Utiliser Render Runtime, Screenshot et Layout Lint pour fournir aux AI Agents les informations visuelles du rendu.
+source: https://github.com/dream-num/univer-cli-sdk/blob/main/packages/unit-screenshot/README.md
+---
+
+Inspection vérifie valeurs, paragraphes et structure, mais n’exprime pas complètement débordements, chevauchements, positions graphiques et disposition finale. Après les opérations structurées, ajoutez le rendu navigateur pour que l’AI Agent examine le résultat réel.
+
+```text
+dernières UnitData
+→ Render Runtime
+├── Screenshot → PNG → contrôle visuel de l’AI Agent
+└── Layout Lint → constat structuré → correction par l’AI Agent
+```
+
+## Étape 1 : préparer un état explicite
+
+Screenshot et Layout Lint reçoivent des UnitData matérialisées. Ils ne chargent pas de cibles distantes et n’interprètent pas les jeux de modifications. Pour une Unit collaborative, synchronisez et exportez l’état complet courant :
+
+```ts
+await runtime.pull();
+const unitData = await runtime.exportUnitData();
+```
+
+Pour Worktree, exportez depuis la cible brouillon. Une application locale peut utiliser les UnitData déjà chargées ou importées. L’inspection porte toujours sur un état explicite unique.
+
+## Étape 2 : construire la Render Page
+
+`@univer-cli/univer-render-page` compose la page navigateur. L’application choisit les plugins Univer et construit la page statique :
+
+```ts
+import { createPresetRenderUniver, mountUniverRenderPage } from "@univer-cli/univer-render-page";
+
+const container = document.querySelector<HTMLElement>("#app");
+if (container === null) throw new Error("#app is required");
+
+await mountUniverRenderPage({
+  container,
+  createUniver: createPresetRenderUniver,
+});
+```
+
+Render Page est une entrée de rendu navigateur, pas la page de revue humaine. Elle reçoit UnitData depuis Node.js et renvoie PNG ou faits de mise en page.
+
+## Étape 3 : créer le Render Runtime
+
+`@univer-cli/univer-render-runtime` héberge la page dans Node.js, démarre le navigateur et gère le protocole :
+
+```ts
+import { createUniverRenderRuntime } from "@univer-cli/univer-render-runtime";
+
+const renderRuntime = await createUniverRenderRuntime({
+  renderPageRoot,
+});
+```
+
+Un Runtime peut effectuer plusieurs opérations successives. Réutilisez-le dans un cycle de vie englobant au lieu de démarrer un navigateur pour chaque image.
+
+## Étape 4 : capturer une image
+
+`@univer-cli/unit-screenshot` est l’entrée de haut niveau pour Sheet, Doc, Slide, Board et Base. Elle gère sélection, pagination, échelle, nommage et limites de ressources :
+
+```ts
+import { createUnitScreenshot } from "@univer-cli/unit-screenshot";
+
+const screenshot = createUnitScreenshot({ runtime: renderRuntime });
+const result = await screenshot.capture({
+  unitType: "sheet",
+  unitData,
+  target: {
+    kind: "sheet-range",
+    sheetName: "Data",
+    range: "B2:H40",
+    scale: 2,
+  },
+});
+```
+
+Le résultat peut contenir plusieurs images, chacune avec les octets PNG, dimensions, identité de page ou cible et nom suggéré. Le paquet n’écrit pas de fichier ; l’application décide du stockage et de la transmission à l’AI Agent.
+
+Sans cible, Screenshot choisit le contenu par défaut du type : plage utilisée de la feuille active, toutes les pages Doc ou toutes les pages Slide.
+
+## Étape 5 : diagnostiquer la disposition des Slides
+
+`@univer-cli/unit-layout-lint` utilise les faits réels générés par le navigateur et renvoie des constats structurés avec preuves :
+
+```ts
+import { createUnitLayoutLint } from "@univer-cli/unit-layout-lint";
+
+const lint = createUnitLayoutLint({ runtime: renderRuntime });
+const report = await lint.lint({
+  unitType: "slide",
+  unitData,
+  pages: [1, "closing-slide"],
+});
+```
+
+Règles actuelles :
+
+- `text-off-page` : les pixels réels du texte dépassent la page.
+- `text-escapes-container` : le texte sort visiblement d’un conteneur opaque plus petit.
+- `text-overlaps-text` : deux zones réelles de texte se chevauchent nettement.
+
+Un constat est une suggestion de revue étayée, pas forcément une correction obligatoire. L’AI Agent peut le confronter aux captures, modifier via Facade et relancer les contrôles.
+
+## Étape 6 : ajouter les commandes Commander
+
+Les deux capacités offrent des préréglages Commander natifs. Injectez les capacités précédentes et vos chargeurs UnitData, puis ajoutez-les au même `program` que dans [Chargement et opérations de contenu](/ai/content-operations) :
+
+```ts
+import type { UnitScreenshotCommandDependencies } from "@univer-cli/unit-screenshot-command";
+import { createUnitScreenshotCommand } from "@univer-cli/unit-screenshot-command";
+import type { UnitLayoutLintCommandDependencies } from "@univer-cli/unit-layout-lint-command";
+import { createUnitLayoutLintCommand } from "@univer-cli/unit-layout-lint-command";
+import type { Command } from "commander";
+
+function addVisualCommands(
+  program: Command,
+  dependencies: {
+    loadUnit: UnitScreenshotCommandDependencies["loadUnit"];
+    writeImages: UnitScreenshotCommandDependencies["writeImages"];
+    loadSlide: UnitLayoutLintCommandDependencies["loadUnit"];
+  },
+): void {
+  program.addCommand(
+    createUnitScreenshotCommand({
+      screenshot,
+      loadUnit: dependencies.loadUnit,
+      writeImages: dependencies.writeImages,
+    }),
+  );
+
+  program.addCommand(
+    createUnitLayoutLintCommand({
+      lint,
+      loadUnit: dependencies.loadSlide,
+    }),
+  );
+}
+```
+
+Les préréglages gèrent les sélecteurs de capture et de pages Slide, `--json`, la sortie texte et les sorties d’erreur Commander. Les paramètres injectent explicitement le mappage ID-état et l’écriture PNG. L’application possède aussi le cycle de vie du Runtime.
+
+Le préréglage Screenshot peut inclure des sous-commandes d’installation et de détection du navigateur. Il ne télécharge pas implicitement un navigateur à chaque capture.
+
+## Étape 7 : libérer les ressources navigateur
+
+Le créateur ferme le Runtime à la frontière la plus externe du cycle Commander :
+
+```ts
+try {
+  await program.parseAsync();
+} finally {
+  await renderRuntime.close();
+}
+```
+
+Pour des entrées-sorties d’AI Agent personnalisées, appelez directement les paquets de base sans préréglage. Ne rendez pas de UnitData non fiables sur un hôte partagé à privilèges élevés ; utilisez un utilisateur restreint, un conteneur ou une autre isolation de processus.
+
+Intégrez ensuite les mêmes capacités dans le parcours [Worktree : édition par AI Agent et revue humaine](/ai/worktree).

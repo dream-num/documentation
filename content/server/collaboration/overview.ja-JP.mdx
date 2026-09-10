@@ -1,0 +1,76 @@
+---
+title: Collaboration SDK の概要
+description: Univer Collaboration SDK が解決する課題、モジュール構成、拡張ポイント、アプリケーションが担う製品機能を理解します。
+---
+
+**Univer Collaboration SDK** は、Univer のドキュメントモデル向けのサーバーサイド共同編集 SDK です。操作変換（OT）、リビジョン、スナップショット、リアルタイム同期、永続化を提供し、複数の Univer クライアントが同じサーバー管理の Unit を編集できるようにします。
+
+開発者は自身の Node.js アプリケーションに組み込み、Middleware で本人確認と認可を接続し、Middleware や Events でログなどのアプリケーションロジックを拡張します。Database Adapter は共同編集データをアプリケーションのデータベースに接続します。
+
+<Callout title="完成されたドキュメント製品ではありません">
+Collaboration SDK は共同編集の中核を提供します。ユーザー、ロール、階層、共有、ファイルスペース、業務フローは提供しません。これらの製品機能とデータモデルはアプリケーションが管理します。
+</Callout>
+
+## 解決する課題
+
+Web SDK はブラウザーで Sheet、Doc、Slide、Board、Base の内容を表示・編集します。複数人で編集するには、内容の読み込み、並行変更の確定、リビジョンの更新、切断したクライアントの整合した状態への復帰を担うサーバーも必要です。
+
+次のようなアプリケーションに適しています。
+
+- Univer でエディターを構築済みで、リアルタイムの共同編集が必要；
+- 共同編集データを自らホストし、データベースを選びたい；
+- 既存の本人確認、認可、テナントルールを共同編集操作に接続したい；
+- 基本的な共同編集に History、Thread Comment、Worktree を追加したい。
+
+## 共同編集サービスの全体像
+
+<Mermaid chart={"flowchart LR\n    ClientA[\"クライアント A<br/>Web SDK + Collaboration Client\"]\n    ClientB[\"クライアント B<br/>Web SDK + Collaboration Client\"]\n\n    subgraph Server[\"共同編集サーバー\"]\n        direction LR\n        Transport[\"Node Transport\"]\n        Endpoint[\"Collaboration Endpoint\"]\n        Service[\"Collaboration Service\"]\n        Adapter[\"Database Adapter\"]\n\n        Transport --> Endpoint --> Service --> Adapter\n    end\n\n    Database[(データベース)]\n\n    ClientA -->|\"HTTP / WebSocket\"| Transport\n    ClientB -->|\"HTTP / WebSocket\"| Transport\n    Adapter --> Database"} />
+
+| モジュール | 主な役割 |
+| --- | --- |
+| Collaboration Client | Unit を読み込み、変更セットを送信し、ブラウザーの共同編集状態を維持 |
+| Node Transport | HTTP/WebSocket 通信を受け取り、アプリケーション入口のミドルウェアを実行 |
+| `UniverCollabEndpoint` | クライアントプロトコル、Session、Room、Presence、ACK、ブロードキャストを実装 |
+| `UniverCollabService` | Unit のライフサイクルを管理し、OT を実行して連続するリビジョンを確定 |
+| Database Adapter | スナップショット、変更セット、リビジョン、送信の冪等性状態をアトミックに保存 |
+
+## SDK が提供する機能
+
+中核機能は次のとおりです。
+
+- Sheet、Doc、Slide、Board、Base の Unit の作成、読み込み、削除、復元；
+- スナップショット、変更セット、リビジョン、OT、送信の冪等性；
+- HTTP による内容の読み込みと WebSocket の Session、Room、Presence、ACK、ブロードキャスト；
+- Transport、Endpoint、Service 境界の Middleware；
+- Unit 作成、変更セットのコミット、削除、復元に対応するプロセス内 Events；
+- Memory、SQLite、カスタム Database Adapter の契約。
+
+基本経路が動作したら、バージョン履歴、スレッドコメント、Worktree の下書き、サーバーでの Office ファイル変換を追加できます。これらは独自の Service、Middleware、Events、Database Adapter を持ちます。
+
+## アプリケーションが担う機能
+
+| Collaboration SDK | アプリケーション |
+| --- | --- |
+| Unit の共同編集状態 | ユーザー、テナント、階層、共有関係 |
+| OT、リビジョン、スナップショット | ログイン、Session、ID の対応付け |
+| 共同編集の Session、Room、Presence | ロール、ACL、製品ポリシー |
+| 共同編集の Database Adapter | ファイル、オブジェクトストレージ、製品データベース |
+| Middleware と Event の拡張ポイント | ログ、監査、メトリクス、外部連携 |
+| クライアントプロトコルの Endpoint | 業務 API とドキュメント作成などのフロー |
+
+## 3 つの汎用拡張ポイント
+
+| 拡張ポイント | 解決する課題 |
+| --- | --- |
+| Middleware | 操作中に Context を検査・補完し、リクエストを拒否し、処理を記録 |
+| Event | 確定済みの状態変更を監視し、プロセス内の派生状態や非クリティカルな後続処理を実行 |
+| Database Adapter | ストレージを選択し、原子性、CAS、冪等性の契約を実装 |
+
+本人確認と認可は Middleware で接続します。操作前の検証・制限には Middleware、状態確定後の変更記録や後続処理には Events を使います。どちらもログ、リクエスト追跡、メトリクス、派生状態の更新に使えます。実行境界は [Middleware と Events](/server/collaboration/middleware-and-events) を参照してください。
+
+## 次のステップ
+
+1. [クイックスタート](/server/collaboration/quick-start)で、2 つのブラウザーから全体の動作を確認します。
+2. [モジュールの境界と関係](/server/collaboration/modules)で各パッケージの役割を理解します。
+3. 統合する内容に応じて [Middleware と Events](/server/collaboration/middleware-and-events)、[本人確認と認可](/server/collaboration/identity-and-authorization)、[データベースアダプター](/server/collaboration/database-adapters)に進みます。
+4. History、コメント、Worktree、ファイル変換は[共同編集の拡張モジュール](/server/collaboration/extensions)を参照してください。

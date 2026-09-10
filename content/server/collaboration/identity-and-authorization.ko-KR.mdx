@@ -1,0 +1,193 @@
+---
+title: 신원 확인과 권한 부여
+description: Transport, Endpoint, Service Middleware를 통해 기존 인증 및 권한 부여 시스템을 연결합니다.
+---
+
+Univer Collaboration SDK는 사용자, 역할, ACL 모델을 정의하지 않습니다. 애플리케이션은 Transport Middleware에서 신뢰할 수 있는 신원을 확립하고 Endpoint와 Service Middleware로 실시간 Session 및 서버 기준 협업 데이터를 보호합니다.
+
+이 페이지는 [Middleware와 Events](/server/collaboration/middleware-and-events)의 구체적인 적용 사례로, Middleware를 통한 신원 확인과 권한 부여 통합을 설명합니다.
+
+## 신원 모델
+
+| 식별자 | 제공 주체 | 의미와 수명 주기 |
+| --- | --- | --- |
+| `userID` | 애플리케이션 | 안정적인 업무 신원이며 확정된 변경 집합의 작성자 |
+| `memberID` | Endpoint | WebSocket Session 하나의 온라인 멤버 ID. 재연결하면 변경됨 |
+| `sid + reqId` | 클라이언트 | 재시도해도 유지되는 변경 집합 제출 식별자 |
+
+브라우저가 제출한 프로필 필드, `memberID`, 리비전은 애플리케이션 인증을 대체할 수 없습니다. 안정적인 사용자 키를 `context.userID`에 매핑하세요.
+
+## Transport Middleware에서 신원 확립
+
+Transport는 모든 협업 HTTP 요청마다 Middleware를 실행합니다. 애플리케이션은 Cookie, Session, Bearer token을 읽고 인증 결과를 Context에 추가할 수 있습니다.
+
+```ts
+transport.use(async (context, next) => {
+  const user = await auth.requireUser(context.incomingMessage);
+
+  context.userID = user.id;
+  context.customData.user = user;
+  context.customData.tenantID = user.tenantID;
+  context.customData.traceID = readTraceID(context.incomingMessage);
+
+  await next();
+});
+```
+
+인증 실패 시 `next()`를 호출하지 않고 HTTP 응답을 종료합니다.
+
+```ts
+transport.use(async (context, next) => {
+  const user = await auth.findUser(context.incomingMessage);
+  if (!user) {
+    context.response.statusCode = 401;
+    context.response.end("Authentication required");
+    return;
+  }
+
+  context.userID = user.id;
+  await next();
+});
+```
+
+SDK는 Cookie 이름, 토큰 형식, 사용자 테이블, 로그인 흐름을 지정하지 않습니다.
+
+## WebSocket Session에 신원이 전달되는 방식
+
+WebSocket 경로는 클라이언트 페이로드의 사용자 필드를 신뢰하지 않습니다. Endpoint는 일회용 Session Ticket으로 인증된 HTTP Context를 실시간 Session으로 확장합니다.
+
+```text
+Session Ticket HTTP 요청
+  → Transport Middleware에서 인증
+  → Endpoint가 { userID, customData } 저장
+  → 불투명한 일회용 티켓 반환
+  → WebSocket 연결 시 티켓 소비
+  → Session { userID, memberID, customData } 생성
+```
+
+티켓 문자열에는 `userID`나 `customData`가 포함되지 않습니다. `memberID`는 현재 연결만 식별하며 독립적인 신원 자격 증명이 아닙니다.
+
+## 올바른 경계에서 권한 부여
+
+| 보호할 동작 | Middleware |
+| --- | --- |
+| 협업 HTTP 진입 | Transport `use()` |
+| WebSocket 연결 | Endpoint `connect` |
+| Unit Room 참여 | Endpoint `joinUnit` |
+| 스냅샷, 블록, 변경 집합 읽기 | Service `readUnitData` |
+| 콘텐츠 편집 제출 | Service `submitChangeset` |
+| Unit 생성 | Service `createUnit` |
+| Unit 삭제 | Service `deleteUnits` |
+| Unit 복구 | Service `recoverUnits` |
+
+Endpoint의 `joinUnit`은 Session의 실시간 Room 참여만 제어합니다. 스냅샷과 누락된 변경 집합은 HTTP로 직접 읽을 수 있으므로 JOIN 검사는 `readUnitData`를 대체하지 못합니다. 마찬가지로 클라이언트의 읽기 전용 UI는 제품 안내일 뿐 서버의 `submitChangeset` 정책을 대신하지 않습니다.
+
+## 읽기, JOIN, 편집 보호
+
+```ts
+import { CollabError } from "@univerjs-pro/collaboration-service";
+
+endpoint.use("joinUnit", async (context, next) => {
+  const allowed = await acl.canRead(context.session.userID, context.unitID);
+  if (!allowed) {
+    throw new CollabError("PERMISSION_DENIED", "Cannot join this Unit");
+  }
+  await next();
+});
+
+service.use("readUnitData", async (context, next) => {
+  const allowed = await acl.canRead(context.userID, context.request.unitID);
+  if (!allowed) {
+    throw new CollabError("PERMISSION_DENIED", "Unit is not accessible");
+  }
+  await next();
+});
+
+service.use("submitChangeset", async (context, next) => {
+  const unitID = context.request.changeset.unitID;
+  const allowed = await acl.canEdit(context.userID, unitID);
+  if (!allowed) {
+    throw new CollabError("PERMISSION_DENIED", "Unit is read-only");
+  }
+  await next();
+});
+```
+
+실제 애플리케이션은 보통 HTTP 및 JOIN 읽기 정책과 제출 편집 정책, 세 가지를 모두 설치합니다.
+
+## Unit 수명 주기 보호
+
+협업 프로토콜은 기존 Unit을 엽니다. ‘문서 생성’은 보통 제품 레코드와 ACL을 만든 뒤 `createUnitFromData()` 또는 `createUnitFromSnapshot()`을 호출하는 애플리케이션 API입니다. Service Middleware에서도 수명 주기를 보호하세요.
+
+```ts
+service.use("createUnit", async (context, next) => {
+  if (!(await acl.canCreate(context.userID, context.request.snapshot.type))) {
+    throw new CollabError("PERMISSION_DENIED", "Unit creation denied");
+  }
+  await next();
+});
+
+service.use("deleteUnits", async (context, next) => {
+  for (const unitID of context.request.unitIDs) {
+    if (!(await acl.canDelete(context.userID, unitID))) {
+      throw new CollabError("PERMISSION_DENIED", `Cannot delete ${unitID}`);
+    }
+  }
+  await next();
+});
+```
+
+`recoverUnits`는 별도로 보호합니다. 과거에 삭제 권한이 있던 사용자가 언제까지나 복구 권한을 유지하는 것은 아닙니다.
+
+## customData로 조회 결과 재사용
+
+동일한 Service 호출의 Middleware는 `customData`로 중복 조회를 피할 수 있습니다.
+
+```ts
+service.use("submitChangeset", async (context, next) => {
+  const unitID = context.request.changeset.unitID;
+  context.customData.role ??= await acl.getRole(context.userID, unitID);
+
+  if (context.customData.role === "viewer") {
+    throw new CollabError("PERMISSION_DENIED", "Unit is read-only");
+  }
+  await next();
+});
+```
+
+`customData`는 현재 호출 또는 Session에만 속하며 자동으로 영속화되지 않습니다. 역할, ACL, 테넌트 관계는 애플리케이션 스토리지에서 관리합니다.
+
+## 확장 모듈에는 별도 정책이 필요합니다
+
+History, Thread Comment, Worktree는 독립적인 Service Middleware를 갖습니다.
+
+- History 목록과 변경 집합 읽기는 Unit 읽기 권한을 검사해야 합니다.
+- 댓글 목록은 읽기 권한을, 추가·답글·편집·삭제는 댓글 정책을 적용해야 합니다.
+- Worktree는 가시성, 초안 편집, 상태 변경, 병합을 각각 보호해야 합니다.
+- Worktree를 트렁크에 병합하는 작업은 트렁크 Service Middleware를 거칩니다.
+
+핵심 Collaboration Service의 규칙은 이러한 모듈을 자동으로 보호하지 않습니다. 확장마다 별도의 ACL 데이터 모델을 만들지 말고 같은 애플리케이션 정책 서비스를 재사용하세요.
+
+## 클라이언트에서 현재 사용자 설정
+
+`UserManagerService.setCurrentUser()`는 현재 Univer 인스턴스의 사용자 ID, 이름, 아바타를 설정하여 프런트엔드 컴포넌트가 읽도록 합니다. 예를 들어 댓글 패널의 ‘나와 관련’ 필터는 이 ID로 현재 사용자 관련 댓글을 표시합니다.
+
+Univer 인스턴스를 만든 후 문서를 열기 전에 설정하세요.
+
+```ts
+import { UserManagerService } from "@univerjs/core";
+
+// currentUser is your application profile; id/name/avatar are example field names.
+univer
+  .__getInjector()
+  .get(UserManagerService)
+  .setCurrentUser({
+    userID: currentUser.id,
+    name: currentUser.name,
+    avatar: currentUser.avatar ?? "",
+  });
+```
+
+애플리케이션의 안정적인 사용자 ID를 `userID`에 매핑하여 서버에서 인증된 `context.userID`와 일치시킵니다. 협업 중 공유할 멤버 이름과 아바타는 [Presence](/server/collaboration/presence)에 설명된 대로 서버의 `connect` Middleware에서 설정합니다.
+
+실행 가능한 전체 구현은 [권한 예제](/server/collaboration/examples#permissions)를 참고하세요.

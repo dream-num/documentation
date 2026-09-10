@@ -1,0 +1,134 @@
+---
+title: データベースアダプター
+description: 共同編集の永続化契約を理解し、Memory、SQLite、カスタム Database Adapter を選択します。
+---
+
+Database Adapter は Collaboration Service が使う基本的な共同編集データを永続化します。開発者は `IDatabaseAdapter` を実装して、完全な動作契約を満たせるデータベースに接続できます。Service は Unit、OT、リビジョンの意味を管理し、Adapter はそれをアトミックかつ安全に再試行できる永続化操作に変換します。
+
+## Adapter が保存するもの
+
+基本の共同編集 Adapter は次を保存します。
+
+- Unit レコードと現在の最新リビジョン；
+- リビジョン付きスナップショット；
+- 確定済みの変更セット；
+- Sheet のスナップショットが参照するブロック；
+- `(unitID, sid, reqId)` をキーとする送信の冪等性レコード；
+- Unit の論理削除、復元、完全削除の状態。
+
+既定ではユーザー、ロール、ACL、ディレクトリ、ファイル、製品メタデータを保存しません。History、Thread Comment、Worktree は独立した Adapter 契約を使います。
+
+## 必須の意味論
+
+`IDatabaseAdapter` は単なる CRUD インターフェースではありません。Collaboration Service が期待する正確性の契約を守る必要があります。
+
+| 契約 | 意味 |
+| --- | --- |
+| アトミックな作成 | 初期スナップショットと Sheet ブロックが同時に可視化されるか、どちらも可視化されない |
+| リビジョン CAS | 最新リビジョンが期待値と一致する場合のみ次の送信を確定 |
+| 送信の冪等性 | 同じ `(unitID, sid, reqId)` の再試行は同じ確定結果を返す |
+| 連続する変更セット | 確定した変更セットと Unit のリビジョンが連続する |
+| スナップショットの可視性 | 依存データがすべて保存された後でのみ読み取り可能になる |
+| アトミックなライフサイクル操作 | 一括削除・復元のすべての Unit が成功するか、どれも実行されない |
+| 完全削除の墓標 | 完全削除した Unit ID を再作成できない |
+
+この並行性と原子性を実装せずに各メソッドを通常の読み書きに対応付けると、OT と復元の動作を壊します。
+
+## Memory Adapter
+
+`@univerjs-pro/collaboration-database-memory` はプロセス内実装で、次の用途に適しています。
+
+- 単体テストと結合テスト；
+- 公式サンプル；
+- 一時的な開発環境；
+- カスタム Middleware やクライアント構成の簡易検証。
+
+```ts
+import { MemoryDatabaseAdapter } from "@univerjs-pro/collaboration-database-memory";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+
+const database = new MemoryDatabaseAdapter();
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
+Memory Adapter は永続化実装と同じリビジョン、CAS、冪等性の契約に従いますが、データは現在の Node.js プロセス内にあり、終了時に失われます。
+
+## SQLite Adapter
+
+`@univerjs-pro/collaboration-database-sqlite` は開発、テスト、ローカルアプリケーション、小規模利用向けの永続化 SQLite 実装です。
+
+```ts
+import { mkdir } from "node:fs/promises";
+
+import { SQLiteDatabaseAdapter } from "@univerjs-pro/collaboration-database-sqlite";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+
+await mkdir("./data", { recursive: true });
+
+const database = new SQLiteDatabaseAdapter({
+  filename: "./data/collaboration.sqlite",
+  busyTimeoutMs: 5_000,
+});
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
+SQLite Adapter は外部キーと `BEGIN IMMEDIATE` の書き込みトランザクションでアトミックにコミットします。空のデータベースには現行スキーマを作成します。不完全または未対応のスキーマは開くことを拒否し、未知の移行を自動適用しません。
+
+`journal_mode` の変更やファイルの場所、バックアップ方針、その他の SQLite 設定はアプリケーションが決めます。SQLite は開発、ローカルアプリケーション、小規模利用向けです。
+
+## カスタム Database Adapter
+
+通常、次の場合に適しています。
+
+- PostgreSQL、MySQL などの業務データベースを既に使っている；
+- 共同編集の送信をアプリケーション固有の DB 機構と統合したい；
+- 運用やコンプライアンス要件が SQLite の想定範囲を超える。
+
+`IDatabaseAdapter` を実装し、組み込み Adapter と同様に Service に注入します。
+
+```ts
+const database = new ApplicationCollaborationDatabase({ pool });
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
+Service は特定の DB に依存しませんが、カスタム実装にトランザクション、CAS、重複排除を補うこともできません。Adapter 自身が DB の機能で完全な契約を実装する必要があります。
+
+## Context とアプリケーションの境界
+
+Service の各呼び出しは `customData` を Middleware、Database Adapter、関連する Events に渡しますが、SDK は自動保存しません。認可の判断は通常 Service Middleware に置き、Adapter の各メソッドで繰り返さないようにします。
+
+```text
+Service Middleware
+  → 業務操作を許可または拒否
+  → Database Adapter
+  → サーバー管理の共同編集状態をアトミックに保存
+```
+
+これにより Memory、SQLite、カスタム Adapter で同じアプリケーションポリシーを共有できます。
+
+業務データと共同編集データに強い整合性が必要なら、カスタム Database Adapter が `customData` から必要な値を読み、同じ DB トランザクションで両方を書き込めます。
+
+同一トランザクションが不要なら、Middleware や Events から別テーブルや外部システムに書き込めます。これらは既定では Adapter の内部トランザクションを共有しません。Events は共同編集のコミット成功後に発行される、プロセス内のベストエフォート通知です。必要な冪等性、再試行、補償処理はアプリケーションの責任です。
+
+## 拡張モジュールのストレージ
+
+History、Thread Comment、Worktree などは独立した Database Adapter インターフェースを定義します。Adapter は同じ DB を共有しても別ストレージを使っても構いません。1 つのカスタム実装が複数の Adapter インターフェースを提供し、対応する Service に注入することもできます。
+
+インターフェースは独立しているため、SDK は既定ではモジュール間トランザクションを提供しません。同じ DB を共有する場合も、モジュール間の整合性はアプリケーションが設計します。
+
+## Adapter の選択
+
+| Adapter | 適した用途 | 主な制約 |
+| --- | --- | --- |
+| Memory | テスト、サンプル、一時的な開発 | プロセス終了でデータが消える |
+| SQLite | 開発、テスト、ローカルアプリ、小規模利用 | 単一ファイル DB。設定はアプリケーションが管理 |
+| カスタム | 既存 DB や独自の業務データ連携 | 完全な契約の実装と検証が必要 |
+
+注入した Adapter はアプリケーションが所有します。Service を先に破棄し、次に Adapter を破棄します。
+
+```ts
+await service.dispose();
+await database.dispose();
+```
+
+比較できる実行例は[データベースアダプターのサンプル](/server/collaboration/examples#database-adapter)を参照してください。

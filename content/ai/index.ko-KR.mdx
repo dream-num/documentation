@@ -1,0 +1,88 @@
+---
+title: AI SDK
+description: AI SDK로 Univer 애플리케이션에 Node.js CLI와 AI Agent 진입점을 추가하는 방법을 알아봅니다.
+source: https://github.com/dream-num/univer-cli-sdk/blob/main/README.md
+---
+
+**AI SDK**는 Office CLI를 구축하는 TypeScript SDK입니다. AI Agent와 자동화가 Univer Unit을 로드하고 이해하며 변경하고 검사할 수 있는 Node.js 진입점을 제공합니다.
+
+AI SDK는 조합 가능한 기능 집합이며 고정된 제품 CLI가 아닙니다. 명령 이름, 인수, 대상, 신원과 권한 부여, 출력, 배포는 업무 애플리케이션이 결정합니다.
+
+## 권장 애플리케이션 구성
+
+이 가이드는 `CLI + Web + Server` 구성을 따릅니다.
+
+<Mermaid chart={"flowchart LR\n    Agent([\"AI Agent / CLI 사용자\"]) --> CLI[\"<b>AI SDK</b><br/>업무 CLI\"]\n    Human([\"사람 사용자\"]) --> Web[\"<b>Web SDK</b><br/>Web\"]\n    CLI --> Server[\"<b>Server SDK</b><br/>협업 · 파일 변환\"]\n    Web --> Server\n    Server --> Storage[\"스토리지\"]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Agent,Human actor"} />
+
+- CLI는 AI Agent나 사용자가 Unit을 조작하는 진입점입니다.
+- Web은 대화형 편집과 사람의 검토를 위한 실제 페이지를 제공합니다.
+- Server는 CLI와 Web이 공유하는 Unit, 리비전, 공동 편집 상태를 저장합니다.
+
+CLI, Web, Server는 따로 배포하거나 모두 로컬에서 실행할 수 있습니다. Collaboration SDK로 Web + Server를 먼저 만들고 CLI를 추가하는 것은 권장 학습 순서이며 배포 제약이 아닙니다.
+
+<Callout title="CLI 전용 애플리케이션도 지원">
+  AI SDK는 로컬 Unit을 직접 처리할 수 있습니다. 구조화된 출력, AI Agent의 시각적 검사, 내보낸 Office 파일로 결과를 확인할 수 있습니다. 실시간 Web 페이지, 공유 리비전, History, Worktree에는 해당 Web 및 공동 편집 기능이 필요합니다.
+</Callout>
+
+## Commander로 CLI 구성
+
+AI SDK 기본 패키지는 구조화된 TypeScript API를 제공합니다. 명령 프리셋은 공통 기능을 네이티브 Commander `Command` 객체로 만듭니다. 루트 프로그램은 항상 업무 애플리케이션이 소유합니다.
+
+```ts
+import { Command } from "commander";
+
+const program = new Command("my-cli");
+
+program.addCommand(presetCommand);
+program.addCommand(applicationCommand);
+
+await program.parseAsync();
+```
+
+- **명령 프리셋**은 기본 인수, 도움말, 텍스트 또는 JSON 출력을 제공합니다.
+- **애플리케이션 명령**은 Runtime, 업무 대상, 신원, 커밋 정책, 파일 정책을 구성합니다.
+- 둘 다 일반 Commander `Command` 객체이므로 같은 루트 프로그램에서 함께 사용할 수 있습니다.
+
+이후 각 주제는 기본 기능을 먼저 소개한 다음 Commander에 연결하는 방법을 설명합니다.
+
+## 기능을 단계적으로 구축
+
+Unit 핵심 콘텐츠 작업부터 시작하여 파일, 시각, 공동 편집, 프로세스 기능을 추가합니다.
+
+```text
+Unit 로드 및 편집
+→ Office 파일 가져오기 및 내보내기
+→ 시각적 검사
+→ 격리된 Worktree 편집 및 검토
+→ Runtime 재사용 및 Daemon
+```
+
+### 1. Unit 로드 및 편집
+
+먼저 최소 AI Agent 루프를 구성하세요. Collaboration Runtime으로 Unit을 로드하고 Inspection으로 내용을 이해하며 Univer Facade 코드를 실행하고 필요할 때 Facade API를 찾습니다.
+
+### 2. Office 파일 경계 연결
+
+Exchange로 Office 파일과 UnitData를 변환합니다. 가져온 Unit은 Collaboration Server에 유지되며 내보내기 전에는 Collaboration Runtime으로 최신 UnitData를 가져옵니다.
+
+### 3. 시각적 검사 추가
+
+구조화된 출력만으로 페이지 레이아웃을 완전히 설명할 수는 없습니다. Screenshot은 AI Agent에 렌더링 이미지를 제공하고 Layout Lint는 구조화된 레이아웃 진단을 제공합니다.
+
+### 4. Worktree로 변경 격리
+
+AI Agent는 Worktree 초안을 여러 번 편집하고 검사할 수 있습니다. 준비되면 사람이 Web에서 검토하고 Merge 또는 Reopen을 선택합니다.
+
+### 5. 비용이 큰 런타임 재사용
+
+처음에는 짧은 수명의 Runtime을 사용하세요. 시작 비용, 동시성, CLI 프로세스 간 재사용이 중요해질 때만 풀, Worker, Daemon을 추가하세요.
+
+## 권장 읽기 순서
+
+1. [문서 로드 및 콘텐츠 작업](/ai/content-operations)
+2. [Office 파일 가져오기 및 내보내기](/server/import-export/node)
+3. [시각적 검사](/ai/visual-inspection)
+4. [Worktree: AI Agent 편집 및 사람의 검토](/ai/worktree)
+5. [Runtime 재사용 및 Daemon](/ai/runtime-architecture)
+6. [패키지 목록](/ai/packages)
+7. [예제](/ai/examples)

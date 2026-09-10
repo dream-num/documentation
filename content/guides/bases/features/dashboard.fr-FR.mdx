@@ -1,0 +1,76 @@
+---
+title: Tableaux de bord et vues pivot
+icon: 'ChartColumn'
+---
+
+Une vue pivot synthétise une table, par exemple le chiffre d’affaires par région. Un tableau de bord réunit graphiques, filtres, texte et images sur une page. Des plugins distincts fournissent ces fonctions ; l’affichage local ne nécessite pas de collaboration.
+
+## Enregistrer les plugins
+
+Enregistrez-les après les plugins de base et d’interface de Bases :
+
+```package-install
+npm install @univerjs-pro/bases-dashboard @univerjs-pro/bases-dashboard-ui
+```
+
+```ts
+import { UniverBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+import { UniverBaseDashboardUIPlugin } from '@univerjs-pro/bases-dashboard-ui'
+
+import '@univerjs-pro/bases-dashboard/facade'
+
+univer.registerPlugin(UniverBaseDashboardPlugin)
+univer.registerPlugin(UniverBaseDashboardUIPlugin)
+```
+
+Fusionnez les ressources linguistiques des paquets ajoutés dans votre application. Les plugins déclarent des dépendances aux graphiques, documents et formes. Enregistrez ces dépendances en premier si vous souhaitez les configurer vous-même.
+
+## Créer une vue pivot du chiffre d’affaires
+
+Cet exemple crée une table et regroupe le chiffre d’affaires par région :
+
+```ts
+import { PivotTableFiledAreaEnum } from '@univerjs-pro/engine-pivot'
+
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('Open a Base first')
+
+const table = base.insertTable('Orders', { primaryFieldName: 'Region' })
+const revenue = table.addField('Revenue', univerAPI.Enum.BaseFieldType.Number)
+table.addRecords([
+  { values: { [table.getPrimaryFieldId()]: 'East', [revenue.getId()]: 120 } },
+  { values: { [table.getPrimaryFieldId()]: 'West', [revenue.getId()]: 80 } },
+])
+
+const pivot = base.createPivotView('Revenue by region', table.getId())
+const pivotTable = pivot.getPivotTable()
+pivotTable.addFieldWithSourceId(table.getPrimaryFieldId(), PivotTableFiledAreaEnum.Row)
+pivotTable.addFieldWithSourceId(revenue.getId(), PivotTableFiledAreaEnum.Value)
+pivot.updateConfig({ pivot: pivotTable.toJSON(), displayMode: 'chart-and-table' })
+
+const baseUI = univerAPI.getBaseUI()
+await baseUI.activateTable(table.getId())
+await baseUI.activateView(pivot.getId())
+```
+
+`getPivotTable()` renvoie un modèle de calcul détaché. Appelez `updateConfig()` après modification pour conserver les changements dans la Base. `displayMode` accepte `table`, `chart` ou `chart-and-table`.
+
+## Ajouter son graphique à un tableau de bord
+
+```ts
+const dashboard = base.createDashboard('Sales overview')
+dashboard.addPivotChart(table.getId(), pivot.getId(), {
+  title: 'Revenue by region',
+  layout: { column: 0, row: 0, columnSpan: 6, rowSpan: 6 },
+})
+```
+
+Le graphique référence une vue pivot existante. Cette vue gère les champs d’agrégation et les calculs ; le tableau de bord gère la disposition et la présentation. Ouvrez le nouveau tableau de bord depuis la barre latérale de Bases.
+
+Utilisez `addTableFilter()`, `addText()`, `addImage()` et `addFormulaShape()` pour ajouter des filtres, du texte enrichi, des images et des formes de formule. Lisez les widgets avec `getWidgets()` et supprimez-les avec `removeWidget()`.
+
+## Enregistrement et autorisations
+
+Enregistrez l’instantané complet avec `base.save()`, y compris les ressources du tableau de bord. Enregistrer uniquement les lignes de la table fait perdre cette configuration. Enregistrez les plugins de tableau de bord avant de restaurer un instantané.
+
+Les tableaux de bord et les vues pivot exposent `getPermission()` pour régler individuellement la lecture seule ; consultez [Autorisations](/guides/bases/features/core/permissions). L’API complète figure dans [Bases Facade](/reference/facade/bases).

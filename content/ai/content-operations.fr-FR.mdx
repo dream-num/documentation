@@ -1,0 +1,314 @@
+---
+title: Chargement des documents et opérations sur le contenu
+description: Découvrez le parcours minimal d’un AI Agent et assemblez Collaboration Runtime, Inspection, API Reference et Content Execution.
+source: https://github.com/dream-num/univer-cli-sdk/blob/main/packages/univer-collaboration-runtime/README.md
+---
+
+## Parcours minimal de contenu pour un AI Agent
+
+Pour chaque commande de contenu, la CLI métier charge l’Unit cible et synchronise sa version la plus récente. Du point de vue de l’AI Agent, le parcours habituel est :
+
+<Mermaid chart={"flowchart LR\n    Task([Recevoir la tâche]) --> Inspect[\"inspect<br/>Comprendre structure et contenu\"]\n    Inspect --> API[\"api find / api show<br/>Si nécessaire : API inconnue\"]\n    API --> Read[\"execute · read<br/>Si nécessaire : hors Inspection\"]\n    Read --> Write[\"execute · write<br/>Modifier et valider\"]\n    Write --> Review[\"inspect / execute · read<br/>Vérifier avec la même frontière\"]\n    Review --> Done([Terminé])"} />
+
+Les étapes `api find` / `api show`, lecture et vérification finale sont conditionnelles. L’AI Agent choisit selon cette frontière :
+
+| Objectif de l’AI Agent | Fonction à privilégier |
+| --- | --- |
+| Comprendre la structure et la répartition du contenu principal | Vue d’ensemble `inspect` |
+| Lire du contenu standard : Range, Paragraph ou Slide | Sélecteur `inspect` |
+| Lire une mise en forme conditionnelle, une configuration Chart ou un élément non couvert | `execute --mode read` |
+| Trouver ou confirmer une API Facade inconnue | `api find` / `api show` |
+| Modifier et valider le document | `execute --mode write` |
+| Vérifier le résultat | `inspect` / `execute --mode read` |
+
+### Exemple : mettre à jour une plage Sheet
+
+Supposons la tâche « remplacer `Data!A2:B2` de `book-1` par `[["East", 128000]]` ». Avec la CLI métier assemblée comme décrit plus bas, l’AI Agent peut procéder ainsi.
+
+1. Utiliser Inspection pour comprendre le classeur et la plage cible :
+
+```bash
+UNIT_ID="book-1"
+my-cli inspect workbook --unit "$UNIT_ID" --json
+my-cli inspect range A1:B2 --worksheet name:Data --unit "$UNIT_ID" --json
+```
+
+2. Pour illustrer API Reference, supposons que l’AI Agent ignore `setValues` : rechercher et confirmer sa signature :
+
+```bash
+my-cli api find setValues --unit sheet
+my-cli api show FWorkbook.getSheetByName FWorksheet.getRange FRange.setValues
+```
+
+3. Exécuter le code Facade en écriture ; la commande applicative `execute` gère le commit :
+
+```bash
+my-cli execute --unit "$UNIT_ID" --mode write \
+  --code 'const sheet = workbook.getSheetByName("Data");
+if (!sheet) throw new Error("Worksheet Data not found");
+sheet.getRange("A2:B2").setValues([["East", 128000]]);'
+```
+
+4. Décider d’une vérification selon le risque. Inspection couvre les valeurs des plages, donc relire la plage :
+
+```bash
+my-cli inspect range A2:B2 --worksheet name:Data --unit "$UNIT_ID" --json
+```
+
+Cette tâche n’exige pas le mode lecture, car Inspection lit la plage avant et après l’écriture. Réservez ce mode aux contenus non couverts par Inspection ; les exemples de mise en forme conditionnelle et de graphiques figurent plus bas.
+
+## Assembler ces fonctions dans une CLI métier
+
+Ce chapitre part de `@univer-cli/univer-collaboration-runtime`, puis ajoute Inspection, API Reference et Content Execution. Les extraits montrent les interfaces centrales ; l’application ajoute configuration serveur, identité, présentation des erreurs et arguments.
+
+Chaque étape s’ajoute au même programme racine Commander :
+
+```ts
+import { Command } from "commander";
+
+const program = new Command("my-cli");
+
+// Register the inspect, execute, and api commands introduced below here.
+// Parse CLI arguments only after every command has been registered.
+await program.parseAsync();
+```
+
+### 1. Charger une Unit collaborative
+
+Collaboration Runtime est l’environnement d’exécution Unit et le client collaboratif des AI Agents sous Node.js. Un Runtime reste lié à une seule Unit pendant tout son cycle de vie.
+
+```ts
+import {
+  createCollaborationServerAdapter,
+  createUniverCollaborationRuntimeFactory,
+} from "@univer-cli/univer-collaboration-runtime";
+import { UniverInstanceType } from "@univerjs/core";
+
+const factory = createUniverCollaborationRuntimeFactory({
+  backend: createCollaborationServerAdapter({
+    snapshotServerUrl,
+    collabSubmitChangesetUrl,
+    collabWebSocketUrl,
+    wsSessionTicketUrl,
+  }),
+  createUniver: headlessUniverFactory,
+});
+
+const unitId = "book-1";
+const runtime = await factory.load(unitId, UniverInstanceType.UNIVER_SHEET);
+```
+
+L’application injecte `headlessUniverFactory`, avec l’implémentation standard de `@univer-cli/headless-univer` ou une composition personnalisée ; les détails d’initialisation sont omis ici. Elle convertit aussi configuration serveur, identité et cible Unit en adresses de protocole attendues par l’adaptateur. Runtime charge l’instantané, maintient révisions et modifications, et fournit l’exécution Facade.
+
+API principales du Runtime :
+
+| API | Rôle |
+| --- | --- |
+| `pull()` | Récupère les modifications distantes, les réconcilie par OT et met à jour l’Unit |
+| `execute({ mode, code })` | Exécute Facade ; `read` lit, `write` produit des mutations |
+| `commit()` | Soumet manuellement les mutations en attente |
+| `exportUnitData()` | Exporte l’UnitData complet actuellement détenu |
+| `getState()` | Lit révision, connexion, attente et conflits |
+| `close()` | Libère le handle backend et Headless Univer |
+
+### 2. Comprendre le contenu avec Inspection
+
+Un AI Agent n’a pas à réécrire du code Facade pour les lectures courantes. `@univer-cli/content-inspection` renvoie des résultats stables, structurés et en lecture seule :
+
+| Unit | Vue Inspection | Contexte global obtenu rapidement |
+| --- | --- | --- |
+| Sheet | Classeur | Identités des feuilles, plages utilisées, résumés Table, Rule et Drawing |
+| Doc | Document | Mode, index des paragraphes, aperçus de texte et décomptes de fonctions |
+| Slide | Présentation | Index des diapositives, aperçus de texte, nombre d’éléments, taille et nombre de Layouts |
+
+Collaboration Runtime s’adapte directement à l’interface d’exécution en lecture seule d’Inspection :
+
+```ts
+import { inspectContent } from "@univer-cli/content-inspection";
+
+const workbook = await inspectContent(
+  {
+    unitId: runtime.unitId,
+    unitType: "sheet",
+    execute: async (input) => {
+      const result = await runtime.execute(input);
+      return { value: result.value };
+    },
+  },
+  { kind: "workbook" },
+);
+```
+
+`inspectContent()` utilise `unitId` pour générer un programme Facade en lecture seule et trouver le classeur via `univerAPI.getWorkbook(unitId)`. `unitType` vérifie que la requête correspond au type Unit.
+
+Commencez par une vue d’ensemble pour comprendre structure et contenu principal, puis utilisez les sélecteurs worksheet, range, paragraph et slide pour les contenus standard couverts. Si une configuration ou un détail manque — règles conditionnelles complètes ou configuration Chart, par exemple — utilisez seulement alors une requête minimale ciblée avec `execute({ mode: "read" })`.
+
+Pour l’interaction Commander standard, ajoutez le preset `inspect`. L’application fournit uniquement un lease Runtime :
+
+```ts
+import type { ContentInspectionLease } from "@univer-cli/content-inspection-command";
+import { createContentInspectionCommand } from "@univer-cli/content-inspection-command";
+
+program.addCommand(
+  createContentInspectionCommand({
+    async acquireRuntime({ unitId }) {
+      const runtime = await factory.load(unitId, UniverInstanceType.UNIVER_SHEET);
+      await runtime.pull();
+
+      const lease: ContentInspectionLease = {
+        unitId,
+        unitType: "sheet",
+        execute: async (input) => {
+          const result = await runtime.execute(input);
+          return { value: result.value };
+        },
+        invalidate: () => runtime.close(),
+        release: () => runtime.close(),
+      };
+
+      return lease;
+    },
+  }),
+);
+```
+
+`acquireRuntime` est le champ de dépendance public du preset et son résultat respecte `ContentInspectionLease`. Cet exemple n’utilise pas de pool : `invalidate()` et `release()` ferment directement le Runtime exclusif. Le preset gère l’analyse des sélecteurs, la sortie texte ou JSON et la libération du lease. L’application conserve le ciblage, l’initialisation Runtime, l’authentification et le chargement distant. Pour un protocole AI Agent personnalisé, appelez directement `inspectContent()`.
+
+### 3. Trouver et comprendre les API Facade
+
+Si l’AI Agent connaît la tâche mais pas l’API Facade, utilisez `@univer-cli/api-reference`. Livré avec le SDK courant, il ne charge pas d’Unit et ne consulte pas de documentation en ligne.
+
+```ts
+import { createStandardApiReference } from "@univer-cli/api-reference";
+
+const reference = createStandardApiReference();
+
+const matches = reference.find({
+  terms: ["setValues", "conditional formatting"],
+  unit: "sheet",
+  limit: 20,
+});
+
+const details = reference.show(["FRange", "FRange.setValues", "ICellData.v"]);
+```
+
+- `find()` découvre des symboles candidats à partir de termes orientés tâche.
+- `show()` renvoie les détails précis d’une classe, d’un membre, d’un type ou d’une enum.
+- `@univer-cli/api-reference-command` propose les presets facultatifs `api find` et `api show`.
+
+Ajoutez cette même référence à Commander :
+
+```ts
+import { createApiCommand } from "@univer-cli/api-reference-command";
+
+program.addCommand(createApiCommand({ reference }));
+```
+
+API Reference soutient l’exécution : l’AI Agent inspecte le contenu, recherche et affiche l’API pertinente, puis génère et exécute le code Facade.
+
+### 4. Exécuter lectures et écritures Facade
+
+Utilisez `execute()` du Runtime pour les lectures souples et les modifications. `@univer-cli/content-execution` peut d’abord lier le JavaScript Facade à une Unit explicite et injecter les liaisons stables de son type :
+
+```ts
+import { prepareContentExecutionProgram } from "@univer-cli/content-execution";
+
+const executionProgram = prepareContentExecutionProgram({
+  unitId,
+  unitType: "sheet",
+  code: 'workbook.getActiveSheet().getRange("A1").setValue("done");',
+});
+
+const execution = await runtime.execute({
+  mode: "write",
+  code: executionProgram,
+});
+```
+
+- `mode: "read"` permet les requêtes flexibles en lecture seule et interdit les mutations.
+- `mode: "write"` capture les mutations Facade dans l’état local en attente du Runtime.
+- Une exécution réussie signifie que le code a tourné, pas que les changements ont été soumis au serveur.
+
+`content-execution` produit seulement un programme. Il n’acquiert pas de Runtime, ne soumet pas de changements et ne fournit pas de paquet public de preset `execute`. La CLI métier l’enveloppe donc dans sa commande Commander :
+
+```ts
+const executeCommand = new Command("execute")
+  .requiredOption("--unit <id>")
+  .requiredOption("--code <javascript>")
+  .option("--mode <read|write>", "execute without or with mutations", "write")
+  .action(async ({ unit, code, mode }) => {
+    if (mode !== "read" && mode !== "write") {
+      throw new Error("--mode must be read or write");
+    }
+
+    const runtime = await factory.load(unit, UniverInstanceType.UNIVER_SHEET);
+    try {
+      await runtime.pull();
+      const executionProgram = prepareContentExecutionProgram({
+        unitId: unit,
+        unitType: "sheet",
+        code,
+      });
+      const execution = await runtime.execute({ mode, code: executionProgram });
+
+      if (mode === "read") {
+        process.stdout.write(`${JSON.stringify(execution.value, null, 2)}\n`);
+        return;
+      }
+
+      let committed = await runtime.commit();
+      if (committed.status === "pull-required") {
+        await runtime.pull();
+        committed = await runtime.commit();
+      }
+      if (committed.status !== "confirmed") {
+        throw new Error(`Commit failed: ${committed.status}`);
+      }
+
+      process.stdout.write(
+        `${JSON.stringify(
+          {
+            commit: committed.status,
+            mutations: execution.mutations.length,
+            revision: committed.state.baseRevision,
+            value: execution.value,
+          },
+          null,
+          2,
+        )}\n`,
+      );
+    } finally {
+      await runtime.close();
+    }
+  });
+
+program.addCommand(executeCommand);
+```
+
+Cette commande utilise l’écriture par défaut. La lecture n’imprime que le retour du code Facade, sans mutations ni `commit()`. L’écriture n’imprime nombre de mutations, révision et retour qu’après confirmation du commit : l’AI Agent connaît explicitement le résultat. Commander gère arguments et cycle de commande ; l’application gère acquisition Runtime, reprises de commit, erreurs et autorisations. Cet extrait minimal est limité à Sheet. Ajoutez une correspondance explicite entre types Unit CLI et `UniverInstanceType` pour Doc, Slide, Base ou Board.
+
+#### Réserver le mode lecture aux contenus non couverts
+
+Inspection donne le nombre de règles conditionnelles d’une feuille, mais pas leur configuration complète. Lorsque l’AI Agent en a besoin, il confirme l’API puis exécute un minimum de Facade en lecture :
+
+```bash
+my-cli api find getConditionalFormattingRules --unit sheet
+my-cli api show FWorksheet.getConditionalFormattingRules
+
+my-cli execute --unit "$UNIT_ID" --mode read \
+  --code 'const sheet = workbook.getSheetByName("Data");
+if (!sheet) throw new Error("Worksheet Data not found");
+return sheet.getConditionalFormattingRules();'
+```
+
+Inspection indique aussi le nombre de graphiques. Pour leur configuration complète, renvoyez `sheet.getCharts().map((chart) => chart.getInfo())` dans une requête ciblée. Le mode lecture interdit les mutations et complète les manques d’Inspection ; il ne le remplace pas par défaut.
+
+## Bilan
+
+Le même programme Commander combine désormais Runtime, Inspection, API Reference et Content Execution. Runtime charge, synchronise, exécute et valide manuellement ; Inspection fournit des lectures structurées ; API Reference aide l’AI Agent à trouver les API ; Commander les réunit dans une entrée CLI cohérente.
+
+Commencez par `inspect` pour la structure, le contenu principal et les détails standard couverts. Si l’API est incertaine, utilisez `api find` / `api show`. Lisez avec Facade uniquement les détails absents d’Inspection, puis éditez et validez en écriture. La vérification respecte la même frontière Inspection.
+
+## Étape suivante
+
+Ajoutez l’[import et export de fichiers Office](/server/import-export/node) pour convertir des fichiers en UnitData dans ce même parcours, ou exporter l’UnitData le plus récent en fichier Office.

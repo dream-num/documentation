@@ -1,0 +1,134 @@
+---
+title: 資料庫配接器
+description: 瞭解協同持久化契約，選擇 Memory、SQLite 或自訂 Database Adapter。
+---
+
+Database Adapter 持久化 Collaboration Service 使用的核心協同資料。開發者可實作 `IDatabaseAdapter`，連接任何能滿足完整行為契約的資料庫。Service 負責 Unit、OT 和修訂版本語意；Adapter 將其轉為原子且可安全重試的持久化操作。
+
+## Adapter 儲存的資料
+
+核心協同 Adapter 儲存：
+
+- Unit 記錄與目前最新修訂版本；
+- 帶修訂版本的快照；
+- 已確認的變更集；
+- Sheet 快照引用的區塊；
+- 以 `(unitID, sid, reqId)` 為鍵的提交冪等記錄；
+- Unit 軟刪除、還原及永久刪除狀態。
+
+預設不儲存使用者、角色、ACL、目錄、檔案或產品中繼資料。History、Thread Comment 和 Worktree 使用各自獨立的 Adapter 契約。
+
+## 必要語意
+
+`IDatabaseAdapter` 不只是 CRUD 介面。實作必須維持 Collaboration Service 預期的正確性契約：
+
+| 契約 | 意義 |
+| --- | --- |
+| 原子建立 | 初始快照與 Sheet 區塊一起可見，或全部不可見 |
+| 修訂版本 CAS | 最新修訂版本符合預期值時，才確認下一次提交 |
+| 提交冪等性 | 重試相同 `(unitID, sid, reqId)` 時，傳回相同的已確定結果 |
+| 連續變更集 | 已確認變更集與 Unit 修訂版本保持連續 |
+| 快照可見性 | 所有相依資料儲存完成後，快照才能被讀取 |
+| 原子生命週期操作 | 批次刪除或還原中的所有 Unit 全部成功或全部不執行 |
+| 永久刪除標記 | 徹底刪除的 Unit ID 不可再次建立 |
+
+若只將各方法對應到一般資料庫讀寫，而不實作上述並行與原子性語意，會破壞 OT 和還原行為。
+
+## Memory Adapter
+
+`@univerjs-pro/collaboration-database-memory` 是程序內實作，適合：
+
+- 單元與整合測試；
+- 官方範例；
+- 臨時開發環境；
+- 快速驗證自訂 Middleware 或用戶端組裝。
+
+```ts
+import { MemoryDatabaseAdapter } from "@univerjs-pro/collaboration-database-memory";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+
+const database = new MemoryDatabaseAdapter();
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
+Memory Adapter 遵循與持久化實作相同的修訂版本、CAS 和冪等性契約，但所有資料均存於目前 Node.js 程序，程序結束即遺失。
+
+## SQLite Adapter
+
+`@univerjs-pro/collaboration-database-sqlite` 是持久化 SQLite 實作，適用於開發、測試、本機應用及小規模使用。
+
+```ts
+import { mkdir } from "node:fs/promises";
+
+import { SQLiteDatabaseAdapter } from "@univerjs-pro/collaboration-database-sqlite";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+
+await mkdir("./data", { recursive: true });
+
+const database = new SQLiteDatabaseAdapter({
+  filename: "./data/collaboration.sqlite",
+  busyTimeoutMs: 5_000,
+});
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
+SQLite Adapter 使用外鍵與 `BEGIN IMMEDIATE` 寫入交易進行原子提交。空資料庫會建立目前的結構；遇到不完整或不支援的結構會拒絕開啟，不會自動套用未知遷移。
+
+它不會替應用變更 `journal_mode`、決定檔案位置、備份策略或其他 SQLite 設定。SQLite 的定位是開發、本機應用與小規模使用。
+
+## 自訂 Database Adapter
+
+以下情況通常適合自訂 Adapter：
+
+- 應用已使用 PostgreSQL、MySQL 或其他業務資料庫；
+- 協同提交需要整合應用特有的資料庫機制；
+- 維運或合規需求超出 SQLite 的預期範圍。
+
+實作 `IDatabaseAdapter`，並以與內建 Adapter 相同的方式注入 Service：
+
+```ts
+const database = new ApplicationCollaborationDatabase({ pool });
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
+Service 不依賴特定資料庫，但也無法替自訂實作補上交易、CAS 或去重。Adapter 必須利用資料庫能力實作完整契約。
+
+## Context 與應用邊界
+
+每次 Service 呼叫會將 `customData` 傳給 Middleware、Database Adapter 及相關 Events，但 SDK 不會自動持久化它。授權判斷通常應留在 Service Middleware，而非在各 Adapter 方法中重複：
+
+```text
+Service Middleware
+  → 允許或拒絕業務操作
+  → Database Adapter
+  → 原子儲存以服務端為準的協同狀態
+```
+
+這讓 Memory、SQLite 與自訂 Adapter 共享相同的應用策略。
+
+當業務資料必須與協同資料保持強一致時，自訂 Database Adapter 可從 `customData` 讀取所需值，在 Adapter 的資料庫交易中寫入兩組資料。
+
+不需要共享協同交易時，Middleware 或 Events 可將業務資料寫入其他資料表或外部系統。兩者預設不共享 Adapter 內部交易。Events 是協同提交成功後發出的程序內、盡力而為通知。必要的冪等、重試或補償由應用負責。
+
+## 擴充模組的儲存
+
+History、Thread Comment 和 Worktree 等擴充模組定義獨立的 Database Adapter 介面，可共享一個資料庫或使用不同儲存。單一自訂實作也可提供多個 Adapter 介面，注入對應 Service。
+
+由於這些介面獨立，SDK 預設不提供跨模組交易。即使共享資料庫，跨模組一致性策略仍由應用負責。
+
+## 選擇 Adapter
+
+| Adapter | 適用情境 | 主要限制 |
+| --- | --- | --- |
+| Memory | 測試、範例、臨時開發 | 程序結束後資料消失 |
+| SQLite | 開發、測試、本機應用、小規模使用 | 單檔資料庫，設定由應用負責 |
+| 自訂 | 既有資料庫或自訂業務資料整合 | 應用必須實作並驗證完整契約 |
+
+應用擁有所有注入的 Adapter。先釋放 Service，再釋放 Adapter：
+
+```ts
+await service.dispose();
+await database.dispose();
+```
+
+可執行的對照實作請參閱[資料庫配接器範例](/server/collaboration/examples#database-adapter)。

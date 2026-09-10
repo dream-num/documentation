@@ -1,0 +1,154 @@
+---
+title: 'Worktree: редактирование AI Agent и проверка человеком'
+description: AI Agent редактирует и проверяет Unit в изолированном черновике Worktree, после чего человек проверяет и сливает результат в Web.
+source: https://github.com/dream-num/univer-collaboration-sdk/blob/main/packages/collaboration-worktree-service/README.md
+---
+
+Worktree предоставляет AI Agent изолированное пространство. AI Agent может многократно получать данные, проверять, выполнять код и фиксировать изменения в черновике, затем после структурной и визуальной проверки пометить Worktree как Ready. Человек смотрит отрисованную страницу в Web и выбирает Merge или Reopen.
+
+```text
+создать Worktree
+→ AI Agent редактирует черновик
+→ структурная и визуальная проверка
+→ Ready
+→ человек проверяет в Web
+→ Merge / Reopen
+→ trunk
+```
+
+## Зачем Worktree
+
+- Промежуточные изменения AI Agent изолированы от trunk.
+- У черновика отдельные снимки, наборы изменений, ревизии, Presence и комнаты реального времени.
+- До предъявления результата можно многократно синхронизировать, редактировать и проверять.
+- Ready фиксирует текущую ревизию черновика и задаёт явную границу проверки.
+- Человек может проверить, продолжить редактирование, выполнить Merge или Reopen в Web.
+- Merge всё равно проходит границы авторизации и фиксации Collaboration Service основной ветки.
+
+## Полный процесс
+
+```text
+создать / выбрать Worktree
+→ выбрать Unit Worktree
+→ загрузить через Collaboration Runtime
+→ pull
+→ inspect
+→ api find / show
+→ execute(write)
+→ runtime.commit()
+→ inspect + screenshot + layout lint
+→ markReady
+→ проверка в Web
+→ merge / reopen
+```
+
+После [Загрузки и операций с содержимым](/ai/content-operations), [Обмена Office](/server/import-export/node) и [Визуальной проверки](/ai/visual-inspection) направьте те же возможности на Worktree, чтобы получить рекомендуемый цикл AI Agent.
+
+## Цель Worktree
+
+Collaboration Runtime по-прежнему работает со снимком, изменениями и ревизией одной Unit; он не интерпретирует продуктовый Worktree. Адаптер приложения отображает `worktreeID + unitID` на URL Snapshot, Submit, WebSocket и Session Ticket Worktree Endpoint и передаёт их серверному интерфейсу Runtime.
+
+```text
+worktreeID + unitID
+→ адаптер цели приложения
+→ URL протокола Worktree
+→ Collaboration Runtime
+```
+
+Одна модель выполнения подключается и к trunk, и к изолированному черновику.
+
+## Действия AI Agent в черновике
+
+Для Worktree Unit используется тот же цикл, что и для обычной Unit:
+
+```text
+load → pull → inspect → execute(write) → commit
+```
+
+Для готового входа Inspection пакет `@univer-cli/content-inspection-command` предоставляет две фабрики:
+
+- `createContentInspectionCommand()` для обычной Unit.
+- `createWorktreeContentInspectionCommand()`, когда нужен явный выбор `--trunk` или `--worktree <id>`.
+
+Приложение добавляет такой же выбор цели к execute, screenshot и другим командам и управляет получением и освобождением выбранной среды.
+
+## Выбор Worktree в Commander
+
+Вариант Worktree пресета Inspection требует выбора `--trunk` или `--worktree <id>`:
+
+```ts
+import type { WorktreeContentInspectionCommandDependencies } from "@univer-cli/content-inspection-command";
+import { createWorktreeContentInspectionCommand } from "@univer-cli/content-inspection-command";
+import { Command } from "commander";
+
+function addWorktreeCommands(
+  program: Command,
+  dependencies: {
+    acquireRuntime: WorktreeContentInspectionCommandDependencies["acquireRuntime"];
+    markReady(worktreeID: string): Promise<void>;
+  },
+): void {
+  program.addCommand(
+    createWorktreeContentInspectionCommand({
+      acquireRuntime: dependencies.acquireRuntime,
+    }),
+  );
+
+  const worktreeCommand = new Command("worktree");
+  worktreeCommand
+    .command("ready")
+    .argument("<worktree-id>")
+    .action(async (worktreeID) => {
+      await dependencies.markReady(worktreeID);
+    });
+
+  program.addCommand(worktreeCommand);
+}
+```
+
+`acquireRuntime` и `markReady` — явно объявленные зависимости приложения, а не скрытые помощники AI SDK. Первая реализует описанное выше отображение цели на Runtime, вторая вызывает Worktree Client из Collaboration SDK.
+
+Используйте общую модель цели в execute, screenshot и layout lint, чтобы один ID не разрешался в разные trunk или черновики. Web может через тот же Client предоставить Reopen, Discard, Merge и проверку страницы. При необходимости продукт добавляет для операций подкоманды Commander.
+
+## Проверки AI Agent
+
+До Ready можно совместить два типа проверки:
+
+```text
+структурная проверка: pull → inspect
+визуальная проверка: Unit → Render Runtime → screenshot / layout lint
+```
+
+- Inspection проверяет структурированное содержимое Workbook, Worksheet, Range, Document, Paragraph, Presentation или Slide.
+- Screenshot даёт отрисованную визуальную информацию.
+- Layout Lint диагностирует проблемы макета Slide.
+- Обнаружив проблему, AI Agent может повторить выполнение, фиксацию и проверку.
+
+## Различие Commit, Ready и Merge
+
+| Операция | Значение |
+| --- | --- |
+| `runtime.commit()` | Отправить набор текущих изменений в черновик Worktree |
+| `markReady()` | Зафиксировать текущую ревизию черновика каждой Unit и перейти в `ready` |
+| `reopenWorktree()` | Вернуться из `ready` в `draft` для продолжения редактирования |
+| `mergeWorktree()` | Поочерёдно слить Units Worktree в trunk |
+
+`runtime.commit()` продвигает только черновик, не сливая в trunk. Ready передаёт работу AI Agent на проверку, но до попадания в trunk требуется Worktree Merge.
+
+## Проверка человеком в Web
+
+Web загружает тот же черновик через Worktree Client и настройки совместной работы Worktree. Интерфейс может показывать:
+
+- Текущий статус Worktree.
+- Отрисованную страницу Unit черновика.
+- Переключение trunk и черновика.
+- Предпросмотр слияния для каждой Unit.
+- Операции Ready, Reopen, Discard и Merge.
+
+Человек может продолжить правки в Web, выполнить Reopen для продолжения AI Agent либо Merge и вернуться в trunk для проверки общего результата.
+
+## Граница Collaboration SDK
+
+Worktree Service, Endpoint, Client и Database Adapter входят в Collaboration SDK. AI SDK предоставляет сочетаемые Unit Runtime, Inspection, API Reference, Execution и Screenshot. Приложение отвечает за команды жизненного цикла, цели, идентификацию и авторизацию.
+
+Композиция сервера, жизненный цикл и ограничения слияния описаны в [Расширениях совместного редактирования](/server/collaboration/extensions).

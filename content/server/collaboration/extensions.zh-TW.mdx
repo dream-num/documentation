@@ -1,0 +1,135 @@
+---
+title: 協同擴充模組
+description: 瞭解 History、Thread Comment、Worktree 和服務端 Office 檔案轉換如何擴充核心協同。
+---
+
+History、Thread Comment 和 Worktree 是可按需啟用的獨立協同擴充模組。它們可重用 Transport、身分系統及實體資料庫，但各自保有 Service、Middleware、Event、Database Adapter 與生命週期邊界。
+
+服務端 Office 檔案轉換是一項應用流程：將檔案轉換與 Collaboration Service API 組合，而非開啟主 Service 的功能開關。
+
+## 模組關係
+
+<Mermaid chart={"flowchart TB\n    Transport[\"Node Transport\"]\n\n    subgraph Modules[\"協同模組\"]\n        direction LR\n        Core[\"核心協同<br/>Endpoint · Service · Adapter\"]\n        History[\"History<br/>Endpoint · Service · Adapter\"]\n        Comment[\"Thread Comment<br/>Endpoint · Service · Adapter\"]\n        Worktree[\"Worktree<br/>Client · Endpoint · Service · Adapter\"]\n    end\n\n    Transport --> Core\n    Transport --> History\n    Transport --> Comment\n    Transport --> Worktree"} />
+
+| 擴充模組 | 與核心協同的關係 |
+| --- | --- |
+| History | 觀察核心 Events，建立衍生歷史索引 |
+| Thread Comment | 重用核心 Unit Room；留言錨點屬於核心內容 |
+| Worktree | 重用核心 Unit 與 OT 能力，將草稿合併到主幹 |
+| Office Exchange | 透過核心 Service 快照 API 建立或讀取 Unit |
+
+History、Thread Comment 和 Worktree 各自設定 Middleware、Events 與 Database Adapter。
+
+## 版本歷史
+
+History 將 Unit 建立及已確認變更集分組為使用者可見的歷史項目。它是衍生索引：Unit 內容的權威來源仍是核心 Collaboration Service 中已確認的變更集。
+
+```ts
+const historyService = new UniverHistoryService({
+  collabService,
+  dbAdapter: historyDatabase,
+  userProvider,
+});
+
+const attachment = historyService.attach(collabService);
+transport.register(new UniverHistoryEndpoint(historyService));
+```
+
+`attach()` 觀察核心 Service 的 `unitCreated` 和 `changesetCommitted` Events 以更新索引。預設策略按時間視窗與特殊 mutation 分組，而非每個變更集建立一筆歷史。
+
+History 有獨立的讀取與索引 Middleware。`userProvider` 只補充名稱、頭像等顯示資料，不負責驗證或授權。Event Listener 失敗不會回滾已確認的核心變更集，因此應始終將 History 視為可重建的衍生資料。
+
+## 討論串留言
+
+Comment Service 管理 Sheets 和 Docs 的留言本文、回覆、編輯、刪除及已解決狀態：
+
+```ts
+const commentService = new UniverCommentService({
+  database: commentDatabase,
+  userProvider,
+});
+
+transport.register(
+  new UniverCommentEndpoint({
+    service: commentService,
+    roomHost: collabEndpoint,
+  }),
+);
+```
+
+留言本文屬於 Comment Adapter。隨 Sheet 或 Doc 內容移動的錨點仍屬於核心快照與變更集。Comment Endpoint 可透過主 Collaboration Endpoint 的 Unit Room 發布 `comment_update`，但即時訊息不是權威留言狀態；用戶端可重新取得留言清單以還原。
+
+Comment Service 提供新增、清單、回覆、解決／重新開啟、編輯、刪除的 Middleware，以及 `commentCommitted` Event。它不繼承核心 Service 的讀取或編輯策略。
+
+## Worktree 草稿與合併
+
+Worktree 為一個或多個 Unit 增加隔離草稿、凍結、合併評估與逐 Unit 合併：
+
+```text
+create → draft → ready → merging → merged
+           ↑       │
+           └ reopen┘
+
+draft / ready → discarded
+```
+
+```ts
+const worktreeService = new UniverCollabWorktreeService({
+  trunk: {
+    service: collabService,
+    dbAdapter: coreDatabase,
+  },
+  dbAdapter: worktreeDatabase,
+});
+```
+
+Worktree 以 `(worktreeID, unitID)` 儲存獨立草稿變更集，同時重用核心 Service 的 Unit、OT 與提交引擎。只有 `draft` 狀態接受後續編輯。`markReady()` 凍結目前草稿修訂版本，`mergeWorktree()` 將 Unit 逐一合併到主幹。
+
+Worktree Service 有獨立的生命週期、讀取、草稿 submit/apply/commit Middleware，以及建立、狀態變更、合併結果、草稿變更集提交的 Events。最終寫入主幹仍會通過核心 Service 自身的 Middleware。
+
+多 Unit 合併並非跨 Unit 原子操作。應用應顯示每個 Unit 的合併結果。
+
+## 服務端 Office 檔案轉換
+
+服務端 Exchange 結合 `@univerjs-pro/exchange-node` 和 Collaboration Service API，在檔案與協同狀態之間轉換：
+
+```text
+Office 檔案
+  → exchange-node 匯入
+  → Snapshot + Sheet Blocks
+  → createUnitFromSnapshot()
+
+已確認的 Unit 修訂版本
+  → getUnitLoadDataWithBlocks()
+  → UnitSnapshotMaterializer
+  → exchange-node 匯出
+  → Office 檔案
+```
+
+官方範例將 XLS、XLSX、CSV 或 TSV 匯入為新的協同 Sheet，並將目前已確認修訂版本匯出為 XLSX、CSV 或 TSV。
+
+檔案儲存、任務狀態、存取控制、大小限制與業務 API 由應用負責。Exchange 沒有獨立的協同 Database Adapter；它透過核心 Service 讀取或建立權威 Unit。
+
+## 獨立擴充點
+
+啟用擴充模組時，分別評估每個邊界：
+
+| 邊界 | 核心 | History | Comment | Worktree |
+| --- | --- | --- | --- | --- |
+| Service | 獨立 | 獨立 | 獨立 | 獨立 |
+| Middleware | 不共享 | 不繼承核心 | 不繼承核心 | 不繼承核心 |
+| Event | 核心生命週期 | 觀察核心 Events | `commentCommitted` | Worktree 生命週期／提交 |
+| Database Adapter | 核心 Adapter | History Adapter | Comment Adapter | Worktree Adapter |
+
+這些 Adapter 可使用相同 SQLite 檔案，但仍是具有獨立契約的不同物件。Service 和 Adapter 也應分別釋放。
+
+## 選擇能力
+
+| 產品需求 | 模組 | 入門範例 |
+| --- | --- | --- |
+| 使用者可見的版本歷史 | History Service、Endpoint、Adapter | `pnpm example:history` |
+| Sheet 或 Doc 留言 | Comment Service、Endpoint、Adapter | `pnpm example:comments` |
+| 隔離草稿、審閱與合併 | Worktree Service、Endpoint、Client、Adapter | `pnpm example:worktree` |
+| 服務端 Office 匯入與匯出 | Exchange Node + Collaboration Service | `pnpm example:exchange` |
+
+完整執行命令與頁面網址請參閱[範例索引](/server/collaboration/examples)。

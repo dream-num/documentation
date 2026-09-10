@@ -1,0 +1,76 @@
+---
+title: Панели мониторинга и сводные представления
+icon: 'ChartColumn'
+---
+
+Сводное представление обобщает данные таблицы, например выручку по регионам. Панель мониторинга объединяет графики, фильтры, текст и изображения на одной странице. Эти возможности предоставляют отдельные плагины; для локального отображения совместное редактирование не требуется.
+
+## Регистрация плагинов
+
+Зарегистрируйте их после основных плагинов Bases и его интерфейса:
+
+```package-install
+npm install @univerjs-pro/bases-dashboard @univerjs-pro/bases-dashboard-ui
+```
+
+```ts
+import { UniverBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+import { UniverBaseDashboardUIPlugin } from '@univerjs-pro/bases-dashboard-ui'
+
+import '@univerjs-pro/bases-dashboard/facade'
+
+univer.registerPlugin(UniverBaseDashboardPlugin)
+univer.registerPlugin(UniverBaseDashboardUIPlugin)
+```
+
+Объедините языковые ресурсы добавленных пакетов в приложении. Плагины объявляют зависимости для графиков, документов и фигур. Если нужна особая конфигурация этих зависимостей, зарегистрируйте их заранее.
+
+## Создание сводного представления выручки
+
+Этот пример создаёт таблицу и группирует выручку по регионам:
+
+```ts
+import { PivotTableFiledAreaEnum } from '@univerjs-pro/engine-pivot'
+
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('Open a Base first')
+
+const table = base.insertTable('Orders', { primaryFieldName: 'Region' })
+const revenue = table.addField('Revenue', univerAPI.Enum.BaseFieldType.Number)
+table.addRecords([
+  { values: { [table.getPrimaryFieldId()]: 'East', [revenue.getId()]: 120 } },
+  { values: { [table.getPrimaryFieldId()]: 'West', [revenue.getId()]: 80 } },
+])
+
+const pivot = base.createPivotView('Revenue by region', table.getId())
+const pivotTable = pivot.getPivotTable()
+pivotTable.addFieldWithSourceId(table.getPrimaryFieldId(), PivotTableFiledAreaEnum.Row)
+pivotTable.addFieldWithSourceId(revenue.getId(), PivotTableFiledAreaEnum.Value)
+pivot.updateConfig({ pivot: pivotTable.toJSON(), displayMode: 'chart-and-table' })
+
+const baseUI = univerAPI.getBaseUI()
+await baseUI.activateTable(table.getId())
+await baseUI.activateView(pivot.getId())
+```
+
+`getPivotTable()` возвращает независимую расчётную модель. После редактирования вызовите `updateConfig()`, чтобы сохранить изменения в Base. `displayMode` принимает `table`, `chart` или `chart-and-table`.
+
+## Добавление графика на панель мониторинга
+
+```ts
+const dashboard = base.createDashboard('Sales overview')
+dashboard.addPivotChart(table.getId(), pivot.getId(), {
+  title: 'Revenue by region',
+  layout: { column: 0, row: 0, columnSpan: 6, rowSpan: 6 },
+})
+```
+
+График ссылается на существующее сводное представление. Представление управляет полями агрегации и расчётами, а панель — размещением и отображением. Откройте новую панель через боковую панель Bases.
+
+Используйте `addTableFilter()`, `addText()`, `addImage()` и `addFormulaShape()` для добавления фильтров, форматированного текста, изображений и фигур с формулами. Получайте виджеты через `getWidgets()` и удаляйте через `removeWidget()`.
+
+## Сохранение и права доступа
+
+Сохраняйте полный снимок через `base.save()`, включая ресурсы панели. Если сохранить только записи таблицы, эта конфигурация потеряется. Перед восстановлением снимка зарегистрируйте плагины панели.
+
+Панели и сводные представления предоставляют `getPermission()` для индивидуальной настройки режима только для чтения; см. [Права доступа](/guides/bases/features/core/permissions). Полный API описан в [Bases Facade](/reference/facade/bases).

@@ -1,0 +1,129 @@
+---
+title: Импорт и экспорт
+icon: 'FolderSync'
+---
+
+Bases импортирует **XLSX, XLS, CSV и TSV** и экспортирует **XLSX, CSV и TSV**. Например, можно импортировать список клиентов из Excel, добавить поля и представления, затем экспортировать данные таблицы.
+
+Этим API нужен сервер преобразования. Начните с [интеграции обмена файлами](/server/import-export) и убедитесь, что сервер поддерживает документы Bases и нужные форматы.
+
+## Поддерживаемые форматы
+
+Таблица описывает браузерные API этой страницы. Для преобразования файлов Office нужен сервер с поддержкой того же типа документа и формата.
+
+| Импорт | Экспорт |
+| --- | --- |
+| `.xls`, `.xlsx`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` |
+
+CSV и TSV экспортируют одну таблицу, выбранную через `tableId`. Эти текстовые форматы не сохраняют представления, права и другие ресурсы Base. Для полной резервной копии приложения используйте снимок Base.
+
+## Установка и регистрация
+
+Добавьте пакеты в [инициализированный редактор Bases](/guides/bases/getting-started/installation):
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/bases-exchange-client
+```
+
+```ts
+import { UniverBasesExchangeClientPlugin } from '@univerjs-pro/bases-exchange-client'
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
+
+import '@univerjs-pro/bases/facade'
+import '@univerjs-pro/bases-exchange-client/facade'
+import '@univerjs-pro/exchange-client/facade'
+import '@univerjs-pro/exchange-client/lib/index.css'
+import '@univerjs-pro/bases-exchange-client/lib/index.css'
+
+univer.registerPlugin(UniverExchangeClientPlugin, exchangeConfig)
+univer.registerPlugin(UniverBasesExchangeClientPlugin)
+```
+
+`exchangeConfig` содержит настройки загрузки, преобразования, опроса задач и скачивания файлов; подготовьте их по [руководству интеграции](/server/import-export). Объедините ресурсы `locale/en-US` обоих пакетов в `locales`, как описано в разделе [Интернационализация](/guides/bases/getting-started/i18n).
+
+## Импорт для редактирования на странице
+
+`file` может быть выбранным пользователем объектом `File` или URL удалённого файла. Возвращаемый снимок содержит данные Base, которые может загрузить редактор:
+
+```ts
+const snapshot = await univerAPI.importBaseToSnapshotAsync(file)
+if (snapshot) {
+  univerAPI.createBase(snapshot)
+}
+```
+
+Импорт снимка не требует совместного редактирования, но требует серверного преобразования. Чтобы пользователь мог вернуться к работе, сохраняйте `base.save()` согласно разделу [Сохранение и восстановление снимков](/guides/bases/model/base-snapshot).
+
+## Экспорт файла
+
+Экспортируйте текущую Base в Excel:
+
+```ts
+import { ExchangeFormat } from '@univerjs-pro/exchange-client'
+
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('Open a Base first')
+
+const file = await univerAPI.exportBaseBySnapshotAsync(base.save(), ExchangeFormat.XLSX)
+if (file) {
+  univerAPI.downloadFile(file, 'database', ExchangeFormat.XLSX)
+}
+```
+
+CSV и TSV представляют одну таблицу. При экспорте Base с несколькими таблицами явно передайте `tableId`:
+
+```ts
+const table = base.getTables()[0]
+if (!table) throw new Error('Create a table first')
+
+const file = await univerAPI.exportBaseBySnapshotAsync(
+  base.save(),
+  ExchangeFormat.CSV,
+  table.getId(),
+)
+if (file) {
+  univerAPI.downloadFile(file, table.getName(), ExchangeFormat.CSV)
+}
+```
+
+Для TSV замените `ExchangeFormat.CSV` на `ExchangeFormat.TSV`. Экспорт файлов служит для обмена данными таблиц. Для полной резервной копии сохраните снимок Base: CSV не сохраняет представления, права и другие ресурсы.
+
+## Импорт совместного документа
+
+Подключите [совместное редактирование Bases](/guides/bases/features/collaboration), выполните импорт и загрузите документ по ID, возвращённому сервером:
+
+```ts
+import '@univerjs-pro/collaboration-client/facade'
+
+const unitId = await univerAPI.importBaseToUnitIdAsync(file)
+if (unitId) {
+  await univerAPI.getCollaboration().loadBaseAsync(unitId)
+}
+```
+
+Для экспорта серверного документа используйте `exportBaseByUnitIdAsync(unitId, format, tableId?)`. Перед экспортом дождитесь синхронизации ожидающих изменений из браузера.
+
+## Структура и формулы Excel
+
+Настройте плагин обмена Bases для изменения поведения преобразования. Ниже приведены значения по умолчанию; используйте эту регистрацию вместо предыдущей:
+
+```ts
+import {
+  ExchangeBaseExportMode,
+  ExchangeBaseFormulaPolicy,
+  ExchangeBaseImportMode,
+} from '@univerjs-pro/exchange-client'
+
+univer.registerPlugin(UniverBasesExchangeClientPlugin, {
+  importSourceMode: ExchangeBaseImportMode.AUTO,
+  importFormulaPolicy: ExchangeBaseFormulaPolicy.CONVERT_THEN_VALUES,
+  exportStructureMode: ExchangeBaseExportMode.TABLES,
+  exportFormulaPolicy: ExchangeBaseFormulaPolicy.FAIL,
+})
+```
+
+- Источник импорта: `AUTO` автоматически выбирает таблицы Excel и видимые листы; `TABLES` импортирует только таблицы Excel; `SHEETS` — видимые листы; `HYBRID` — таблицы Excel и видимые листы без таблиц Excel.
+- Структура экспорта: `TABLES` создаёт нативные таблицы Excel для непустых таблиц Base, оставляя пустые обычными диапазонами. `RANGES` экспортирует всё в обычные диапазоны листа.
+- Формулы: импорт пытается преобразовать формулу и использует кешированный результат для неподдерживаемых формул. Экспорт по умолчанию требует успешного преобразования. `VALUES` использует только кешированные результаты, а `TEXT` сохраняет исходные формулы как текст. При экспорте `CONVERT_THEN_VALUES` также завершается ошибкой, если формулу нельзя преобразовать.
+
+Проверяйте преобразование полей и формул на реальных файлах приложения. Методы могут вернуть `undefined` или выбросить ошибку запроса либо преобразования; обработайте оба случая в интерфейсе.

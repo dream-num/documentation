@@ -1,0 +1,243 @@
+---
+title: Inicio rápido
+description: Ejecuta colaboración en dos navegadores e integra la composición mínima de Client, Transport, Endpoint, Service y Adapter en tu aplicación.
+---
+
+Esta página propone dos caminos. Primero ejecuta el ejemplo oficial y verifica el recorrido completo en dos navegadores. Después lee y copia la composición mínima de Server y Web en tu propia aplicación Univer.
+
+Antes de empezar, cumple los [requisitos de entorno y versión](/server/requirements). Todos los paquetes `@univerjs/*` y `@univerjs-pro/*` deben fijarse al mismo conjunto de versiones compatibles.
+
+## Camino uno: ejecutar el ejemplo oficial
+
+```bash
+git clone https://github.com/dream-num/univer-collaboration-examples.git
+cd univer-collaboration-examples
+pnpm install
+pnpm example:quick-start
+```
+
+Abre:
+
+```text
+http://127.0.0.1:3010/?unit=quick-start-sheet&type=2
+```
+
+### Verificar la colaboración en tiempo real
+
+1. Abre la URL completa en una ventana del navegador.
+2. Ábrela de nuevo en otro perfil o ventana privada.
+3. Cambia una celda en cualquiera de las hojas.
+4. Confirma que el cambio aparece en el otro navegador.
+
+Usa dos contextos independientes para que el servidor cree dos Sessions en línea. Observar una edición en la misma página no verifica el recorrido de Room, ACK y difusión.
+
+### Qué demuestra el resultado
+
+```text
+Univer Collaboration Client
+  → Node Transport
+  → UniverCollabEndpoint
+  → UniverCollabService
+  → MemoryDatabaseAdapter
+```
+
+La sincronización indica que los navegadores cargaron una Unit por HTTP, abrieron Sessions WebSocket mediante un Session Ticket de un solo uso y se unieron a la misma Room. El Service realizó OT, confirmó una revisión nueva, la guardó mediante el Adapter y el Endpoint la difundió al resto.
+
+## Camino dos: integrarlo en tu aplicación
+
+El código siguiente procede de los dos puntos de entrada oficiales, sin el texto de estado de la página. El código completo ejecutable está aquí:
+
+- [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/quick-start/server/main.ts)
+- [web/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/quick-start/web/main.ts)
+- [package.json](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/quick-start/package.json)
+
+Si ya tienes una aplicación Univer Web, conserva Runtime, presets y UI y añade solo la configuración del cliente Collaboration y el servidor siguientes. En un proyecto vacío, copia `index.html`, `vite.config.ts` y los estilos del ejemplo como estructura de la aplicación.
+
+### 1. Instalar un conjunto de versiones compatibles
+
+El servidor necesita Transport, Endpoint, Service y un Database Adapter. El navegador necesita el cliente Collaboration. Instala los paquetes necesarios y fija todos los paquetes Univer a la misma versión exacta:
+
+```bash
+pnpm add \
+  @univerjs-pro/collaboration \
+  @univerjs-pro/collaboration-client \
+  @univerjs-pro/collaboration-client-ui \
+  @univerjs-pro/collaboration-database-memory \
+  @univerjs-pro/collaboration-endpoint \
+  @univerjs-pro/collaboration-service \
+  @univerjs-pro/collaboration-transport-node \
+  @univerjs-pro/license \
+  @univerjs/core \
+  @univerjs/preset-sheets-core \
+  @univerjs/presets \
+  @univerjs/protocol \
+  express react react-dom rxjs
+```
+
+El manifiesto del ejemplo oficial ejecutable es la referencia para la composición actual y las versiones exactas.
+
+### 2. Crear Service, Endpoint y Unit inicial
+
+`UniverCollabService` es el núcleo autoritativo de colaboración. El Endpoint conecta el protocolo del navegador con el Service, mientras que Memory Adapter guarda temporalmente instantáneas, conjuntos de cambios y revisiones:
+
+```ts
+import { createServer } from "node:http";
+import express from "express";
+import type { IWorkbookData } from "@univerjs/core";
+import { LocaleType } from "@univerjs/core";
+import { MemoryDatabaseAdapter } from "@univerjs-pro/collaboration-database-memory";
+import { UniverCollabEndpoint } from "@univerjs-pro/collaboration-endpoint";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { createNodeTransport } from "@univerjs-pro/collaboration-transport-node";
+import { ErrorCode, UniverType } from "@univerjs/protocol";
+
+const UNIT_ID = "quick-start-sheet";
+const unitData: IWorkbookData = {
+  id: UNIT_ID,
+  rev: 1,
+  name: "Quick Start Sheet",
+  appVersion: "",
+  locale: LocaleType.EN_US,
+  sheetOrder: ["sheet-1"],
+  sheets: {
+    "sheet-1": {
+      id: "sheet-1",
+      name: "Sheet 1",
+      rowCount: 100,
+      columnCount: 26,
+      cellData: {},
+    },
+  },
+  styles: {},
+  resources: [],
+};
+
+const database = new MemoryDatabaseAdapter();
+const service = new UniverCollabService({ dbAdapter: database });
+const endpoint = new UniverCollabEndpoint(service);
+const transport = createNodeTransport();
+
+transport.use(async (context, next) => {
+  context.userID = "demo-user";
+  await next();
+});
+transport.register(endpoint);
+
+await service.createUnitFromData(
+  { type: UniverType.UNIVER_SHEET, data: unitData },
+  { userID: "demo-user" },
+);
+```
+
+El `demo-user` fijo muestra cómo la identidad de confianza pasa de Transport a Endpoint y Service. En producción, valida tu cookie, token Bearer o sesión en `transport.use()` antes de establecer un `userID` de negocio estable.
+
+### 3. Montar autorización y puntos de entrada HTTP y WebSocket
+
+El cliente Collaboration actual consulta un protocolo de autorización. El ejemplo devuelve siempre `allowed: true` y reenvía solicitudes HTTP de `/universer-api` y actualizaciones WebSocket al Transport:
+
+```ts
+const app = express();
+
+app.post("/universer-api/authz/-/object/-/batch_allowed", express.json(), (request, response) => {
+  const body = request.body as {
+    requests: Array<{ unitID: string; objectID: string; actions: unknown[] }>;
+  };
+  response.json({
+    error: { code: ErrorCode.OK, message: "" },
+    objectActions: body.requests.map((item) => ({
+      unitID: item.unitID,
+      objectID: item.objectID,
+      actions: item.actions.map((action) => ({ action, allowed: true })),
+    })),
+  });
+});
+
+app.use("/universer-api", (request, response) => {
+  request.url = request.originalUrl;
+  transport.handleRequest(request, response);
+});
+app.use(express.static("dist/web"));
+
+const server = createServer(app);
+server.on("upgrade", (request, socket, head) => {
+  transport.handleUpgrade(request, socket, head);
+});
+server.listen(3010, "127.0.0.1");
+```
+
+Permitir todo es una simplificación didáctica, no un límite de seguridad. Una aplicación real debe proteger lecturas HTTP, JOIN en tiempo real, envío de cambios y operaciones del ciclo de vida de Unit. Consulta [Identidad y autorización](/server/collaboration/identity-and-authorization) para la cobertura completa.
+
+### 4. Registrar el cliente Collaboration en Runtime del navegador
+
+Conserva Web SDK y los presets habituales y añade los plugins de colaboración y las URL del protocolo:
+
+```ts
+import { LocaleType, LogLevel } from "@univerjs/core";
+import { UniverCollaborationPlugin } from "@univerjs-pro/collaboration";
+import { UniverCollaborationClientPlugin } from "@univerjs-pro/collaboration-client";
+import CollaborationClientEnUS from "@univerjs-pro/collaboration-client/locale/en-US";
+import {
+  BrowserCollaborationSocketService,
+  UniverCollaborationClientUIPlugin,
+} from "@univerjs-pro/collaboration-client-ui";
+import CollaborationClientUIEnUS from "@univerjs-pro/collaboration-client-ui/locale/en-US";
+import { UniverLicensePlugin } from "@univerjs-pro/license";
+import { UniverSheetsCorePreset } from "@univerjs/preset-sheets-core";
+import UniverPresetSheetsCoreEnUS from "@univerjs/preset-sheets-core/locales/en-US";
+import { createUniver, defaultTheme, mergeLocales } from "@univerjs/presets";
+import "@univerjs/preset-sheets-core/lib/index.css";
+import "@univerjs-pro/collaboration-client-ui/lib/index.css";
+
+const httpProtocol = location.protocol === "https:" ? "https" : "http";
+const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
+const baseURL = `${httpProtocol}://${location.host}/universer-api`;
+
+createUniver({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(
+      UniverPresetSheetsCoreEnUS,
+      CollaborationClientEnUS,
+      CollaborationClientUIEnUS,
+    ),
+  },
+  theme: defaultTheme,
+  logLevel: LogLevel.WARN,
+  collaboration: true,
+  presets: [UniverSheetsCorePreset({ container: "app" })],
+  plugins: [
+    [UniverLicensePlugin, { license: import.meta.env.UNIVER_LICENSE || undefined }],
+    UniverCollaborationPlugin,
+    [
+      UniverCollaborationClientPlugin,
+      {
+        socketService: BrowserCollaborationSocketService,
+        sendChangesetTimeout: 200,
+        authzUrl: `${baseURL}/authz`,
+        snapshotServerUrl: `${baseURL}/snapshot`,
+        collabSubmitChangesetUrl: `${baseURL}/comb`,
+        collabWebSocketUrl: `${wsProtocol}://${location.host}/universer-api/comb/connect`,
+        wsSessionTicketUrl: `${baseURL}/user/session-ticket`,
+      },
+    ],
+    UniverCollaborationClientUIPlugin,
+  ],
+});
+```
+
+La página necesita un elemento con `id="app"` y selecciona la Unit mediante parámetros de consulta:
+
+```text
+/?unit=quick-start-sheet&type=2
+```
+
+### 5. Sustituir la configuración didáctica
+
+| Configuración didáctica | Sustitución |
+| --- | --- |
+| `demo-user` fijo | Middleware de autenticación e ID de usuario estable |
+| Permisos siempre permitidos | ACL del servidor para lectura, JOIN, envío y ciclo de vida |
+| Unit fija | API de creación y registro de producto que llamen a `createUnitFromData()` |
+| Memory Adapter | SQLite o Adapter persistente propio con pruebas de contrato |
+
+Completa [Adaptadores de base de datos](/server/collaboration/database-adapters) e [Identidad y autorización](/server/collaboration/identity-and-authorization). Añade [History, Thread Comment, Worktree o Exchange](/server/collaboration/extensions) según sea necesario. Consulta todas las composiciones ejecutables en el [índice de ejemplos](/server/collaboration/examples).

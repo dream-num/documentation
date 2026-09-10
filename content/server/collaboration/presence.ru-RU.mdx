@@ -1,0 +1,160 @@
+---
+title: Присутствие в документе
+description: Показывайте участников документа, имена и аватары соавторов, удалённые курсоры и выделения.
+---
+
+Presence показывает, кто открыл тот же документ и где работают другие. Если Bob выбирает B3, Alice видит его выделение с именем «Bob». Текущих соавторов также можно вывести в панели аватаров или списке.
+
+SDK синхронизирует участников и курсоры и рисует поддерживаемые удалённые курсоры. Приложение предоставляет имена и аватары и использует API подписки для панелей аватаров, списков и счётчиков пользователей в сети.
+
+## Перед началом
+
+Завершите [Быстрый старт](/server/collaboration/quick-start) и [Идентификацию и авторизацию](/server/collaboration/identity-and-authorization). Редактор должен синхронизировать правки, сервер — определять вошедшего пользователя через `context.userID`, а политики чтения, JOIN и редактирования должны быть установлены.
+
+Примеры расширяют существующие `transport`, `endpoint` и `univer`. Сохраните правила аутентификации и авторизации предыдущего руководства.
+
+## Синхронизация участников и курсоров
+
+Alice и Bob открывают одну таблицу. Есть два вида обновлений Presence:
+
+| Действие | Список участников | Что видит Alice в таблице |
+| --- | --- | --- |
+| Alice открывает таблицу | Alice | Своё выделение |
+| Bob открывает ту же таблицу | Alice, Bob | Выделение Bob при выборе ячейки |
+| Bob переходит из B3 в C5 | Alice, Bob | Выделение Bob перемещается в C5 |
+| Bob закрывает таблицу | Alice после получения выхода | Выделение Bob исчезает |
+
+Список меняется при входе или выходе соединений. Движение курсора меняет выделение, но не добавляет и не удаляет участников. Правка значения C5 также синхронизирует содержимое через поток совместного редактирования.
+
+Presence ограничен одним документом (Unit) и описывает текущие подключения. Ранее настроенный список доступа описывает всех, кому разрешено открыть документ. Presence временный: движение курсора не создаёт набор изменений, не продвигает ревизию и не сохраняется в базу.
+
+С плагинами из быстрого старта и UI соответствующего редактора SDK собирает и отправляет локальные курсоры и выделения, затем отображает курсоры, выделения и имена в редакторах других участников.
+
+| Редактор | Подписка на участников | UI удалённых курсоров и выделений |
+| --- | --- | --- |
+| Sheet | Поддерживается | Выделение ячеек и диапазонов |
+| Doc | Поддерживается | Текстовые курсоры и выделения |
+| Slide | Поддерживается | Положение указателя и выбор объектов |
+| Board | Поддерживается | Положение указателя и выбор объектов |
+| Base | Поддерживается | Недоступен |
+
+## 1. Настройка имён и аватаров
+
+Задайте `context.member.name` и `context.member.avatar` в Middleware `connect` Endpoint. Способ получения профиля выбирает приложение: запрос по аутентифицированному `context.session.userID` или повторное использование данных аутентификации через `customData`.
+
+Пример избегает второго запроса с помощью `customData`. Добавьте поля в существующий Middleware Transport и зарегистрируйте `connect` до запуска сервера:
+
+```ts
+type AppUser = {
+  id: string;
+  name: string;
+  avatar?: string;
+};
+
+transport.use(async (context, next) => {
+  // Your authentication function; rejects unauthenticated requests.
+  const user: AppUser = await auth.requireUser(context.incomingMessage);
+  context.userID = user.id;
+  // An application-defined field to reuse the profile in connect.
+  context.customData.user = user;
+  await next();
+});
+
+endpoint.use("connect", async (context, next) => {
+  // Read the profile saved when the session ticket was issued.
+  const user = context.session.customData.user as AppUser;
+  // Without this assignment, the member name defaults to userID.
+  context.member.name = user.name;
+  // Use an empty string when there is no avatar URL.
+  context.member.avatar = user.avatar ?? "";
+  await next();
+});
+```
+
+SDK передаёт `customData` запроса session-ticket в `context.session.customData`. Ключ `user` и тип `AppUser` определяются приложением, SDK их не интерпретирует. Другие соавторы получают профиль из `context.member`.
+
+`connect` выполняется один раз для каждого нового WebSocket-соединения, включая переподключения, до входа в документ. Правка профиля в приложении не обновляет автоматически данные, уже переданные существующим соединениям.
+
+## 2. Список участников (необязательно)
+
+Для панели аватаров или участников подпишитесь на открытый документ через `subscribeCollaborators(unitID, callback)`. Отрисовка курсоров работает независимо от этой подписки.
+
+```ts
+import { FUniver } from "@univerjs/core/facade";
+// Import once in the client entry point to enable collaboration Facade methods.
+import "@univerjs-pro/collaboration-client/facade";
+
+// Reuse an existing univerAPI if your editor setup already provides one.
+const univerAPI = FUniver.newAPI(univer);
+// unitID is the ID of the document open in the editor.
+const subscription = univerAPI.getCollaboration().subscribeCollaborators(unitID, (members) => {
+  // Each callback is a new list snapshot that the application can use to update its UI.
+  console.table(members);
+});
+```
+
+SDK ждёт готовности Room документа. Каждый callback получает снимок `IMember[]` известных клиенту участников, включая себя после входа. При инициализации может прийти пустой список. Callback сообщает об участниках, а не позициях курсоров.
+
+Данные Alice и Bob содержат такие поля (ID приведены для примера):
+
+| `userID` | `memberID`                             | `name`  | `avatar` |
+| -------- | -------------------------------------- | ------- | -------- |
+| `alice`  | `83446a72-a1cc-4ed8-aedc-afd8907bbb18` | `Alice` | `""`     |
+| `bob`    | `7ee5a94e-c784-4e1e-b1a3-b9d34be8ec4e` | `Bob`   | `""`     |
+
+`userID` идентифицирует человека в приложении, а назначаемый SDK `memberID` — одно соединение. Когда Bob открывает вторую вкладку, добавляется запись с тем же `userID: "bob"`, но другим `memberID`: теперь два пользователя и три соединения. Для аватаров и числа людей можно группировать по `userID`, для отображения и подсчёта соединений — использовать `memberID`. Редактор рисует каждый курсор отдельно.
+
+Освободите подписку при удалении использующего её представления:
+
+```ts
+subscription.dispose();
+```
+
+При уничтожении редактора также освободите созданный приложением `univerAPI` и экземпляр Univer. Закрытие только панели участников требует освободить лишь её подписку.
+
+### Пример списка участников на React
+
+Передайте существующий `univerAPI` и ID документа в компонент:
+
+```tsx
+import type { FUniver } from "@univerjs/core/facade";
+import type { IMember } from "@univerjs/protocol";
+import "@univerjs-pro/collaboration-client/facade";
+import { useEffect, useState } from "react";
+
+export function OnlineMembers({ univerAPI, unitID }: { univerAPI: FUniver; unitID: string }) {
+  const [members, setMembers] = useState<IMember[]>([]);
+
+  useEffect(() => {
+    // Clear the previous document list while waiting for the new subscription.
+    setMembers([]);
+    const subscription = univerAPI.getCollaboration().subscribeCollaborators(unitID, setMembers);
+    // Unsubscribe when the document changes or the component unmounts.
+    return () => subscription.dispose();
+  }, [univerAPI, unitID]);
+
+  // Show each user once, even when they have multiple connections.
+  const users = [...new Map(members.map((member) => [member.userID, member])).values()];
+
+  return (
+    <ul>
+      {users.map((user) => (
+        <li key={user.userID}>
+          {user.avatar && <img src={user.avatar} alt="" width={24} height={24} />}
+          <span>{user.name}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+Подписка отражает последний полученный клиентом состав Room. Обнаружение потерянного соединения занимает время, поэтому ушедший участник может ненадолго остаться. Встроенный UI статуса совместной работы показывает синхронизацию текущего клиента, отсутствие сети и действие переподключения.
+
+## Проверка с двумя пользователями
+
+1. Войдите как Alice и Bob в разных профилях браузера и откройте один документ.
+2. Убедитесь, что в списке оба имени.
+3. От Bob выберите B3, затем C5 в Sheet. Alice должна видеть движение выделения с именем Bob, а список участников не меняется.
+4. Откройте ещё вкладку от Bob. В подписке появится другой `memberID`, но список React должен показывать Bob один раз.
+5. Закройте обе вкладки Bob. После обновлений выхода у Alice должна остаться только Alice.

@@ -1,0 +1,160 @@
+---
+title: オンライン状態
+description: ドキュメント内のメンバー、共同編集者の名前とアバター、リモートカーソルと選択範囲を表示します。
+---
+
+Presence は、同じドキュメントを開いている人と作業位置を表示します。たとえば Bob がセル B3 を選ぶと、Alice には「Bob」という名前付きの選択範囲が見えます。現在の共同編集者をアバターバーやメンバー一覧に表示することもできます。
+
+SDK はメンバーとカーソル情報を同期し、対応するリモートカーソルを描画します。アプリケーションは名前やアバターを提供し、メンバー購読 API でアバターバー、メンバーパネル、オンライン人数を実装できます。
+
+## 始める前に
+
+[クイックスタート](/server/collaboration/quick-start)と[本人確認と認可](/server/collaboration/identity-and-authorization)を完了してください。編集が同期され、サーバーが `context.userID` でログインユーザーを識別し、読み取り・JOIN・編集のポリシーが設定されている状態を前提とします。
+
+以下の例は既存の `transport`、`endpoint`、`univer` を拡張します。前のガイドの認証・認可ルールは維持してください。
+
+## メンバーとカーソルの同期
+
+Alice と Bob が同じ表を開きます。Presence の更新には 2 種類あります。
+
+| 操作 | メンバー一覧 | Alice の表に見えるもの |
+| --- | --- | --- |
+| Alice が開く | Alice | 自分の選択範囲 |
+| Bob が同じ表を開く | Alice、Bob | Bob がセルを選ぶとその選択範囲 |
+| Bob が B3 から C5 に移動 | Alice、Bob | Bob の選択範囲が C5 に移動 |
+| Bob が表を閉じる | 退出更新の受信後は Alice のみ | Bob の選択範囲が消える |
+
+メンバー一覧は接続の参加・退出で変わります。カーソル移動は表示する選択範囲を変えますが、メンバーを増減させません。C5 の値を編集すると、共同編集の経路で内容も同期されます。
+
+Presence の範囲は 1 つのドキュメント（Unit）で、現在接続している人を示します。前のガイドのアクセスリストは開く権限がある全員を示します。Presence は一時的で、カーソル移動は変更セットの作成、リビジョン更新、DB 保存を行いません。
+
+クイックスタートの共同編集プラグインと対応エディター UI を有効にすると、SDK はローカルのカーソル・選択更新を取得して送信し、他メンバーのエディターにカーソル、選択範囲、名前を描画します。
+
+| エディター | オンラインメンバー購読 | リモートカーソル・選択 UI |
+| --- | --- | --- |
+| Sheet | 対応 | セルと範囲の選択 |
+| Doc | 対応 | テキストカーソルと選択 |
+| Slide | 対応 | ポインター位置とオブジェクト選択 |
+| Board | 対応 | ポインター位置とオブジェクト選択 |
+| Base | 対応 | 非対応 |
+
+## 1. 共同編集者の名前とアバターを設定
+
+Endpoint の `connect` Middleware で `context.member.name` と `context.member.avatar` を設定します。プロフィール取得方法はアプリケーションが決めます。認証済みの `context.session.userID` で問い合わせるか、認証時に `customData` に保存した情報を再利用します。
+
+この例では二重検索を避けるため `customData` を使います。既存の Transport Middleware にフィールドを追加し、サーバー起動前に `connect` を登録します。
+
+```ts
+type AppUser = {
+  id: string;
+  name: string;
+  avatar?: string;
+};
+
+transport.use(async (context, next) => {
+  // Your authentication function; rejects unauthenticated requests.
+  const user: AppUser = await auth.requireUser(context.incomingMessage);
+  context.userID = user.id;
+  // An application-defined field to reuse the profile in connect.
+  context.customData.user = user;
+  await next();
+});
+
+endpoint.use("connect", async (context, next) => {
+  // Read the profile saved when the session ticket was issued.
+  const user = context.session.customData.user as AppUser;
+  // Without this assignment, the member name defaults to userID.
+  context.member.name = user.name;
+  // Use an empty string when there is no avatar URL.
+  context.member.avatar = user.avatar ?? "";
+  await next();
+});
+```
+
+SDK は session-ticket リクエストの `customData` を `context.session.customData` に渡します。`user` キーと `AppUser` 型はアプリケーション独自の定義で、SDK は解釈しません。他の共同編集者は `context.member` に設定したプロフィールを受け取ります。
+
+`connect` は再接続を含む新しい WebSocket 接続ごとに、ドキュメント参加前に 1 回実行されます。アプリケーションのプロフィールを変更しても、既存接続で共有済みのメンバー情報は自動更新されません。
+
+## 2. メンバー一覧の表示（任意）
+
+アバターバーやメンバーパネルが必要なら、`subscribeCollaborators(unitID, callback)` で開いているドキュメントのメンバーを購読します。カーソル描画はこの購読と独立しています。
+
+```ts
+import { FUniver } from "@univerjs/core/facade";
+// Import once in the client entry point to enable collaboration Facade methods.
+import "@univerjs-pro/collaboration-client/facade";
+
+// Reuse an existing univerAPI if your editor setup already provides one.
+const univerAPI = FUniver.newAPI(univer);
+// unitID is the ID of the document open in the editor.
+const subscription = univerAPI.getCollaboration().subscribeCollaborators(unitID, (members) => {
+  // Each callback is a new list snapshot that the application can use to update its UI.
+  console.table(members);
+});
+```
+
+SDK は共同編集 Room が利用可能になるのを待ちます。各コールバックにはクライアントが現在把握しているメンバーの `IMember[]` スナップショットが渡り、参加後は自分も含みます。初期化時は空の一覧が届く場合があります。通知するのはメンバー情報で、カーソル位置ではありません。
+
+Alice と Bob のメンバーデータは次のようになります（ID は例です）。
+
+| `userID` | `memberID`                             | `name`  | `avatar` |
+| -------- | -------------------------------------- | ------- | -------- |
+| `alice`  | `83446a72-a1cc-4ed8-aedc-afd8907bbb18` | `Alice` | `""`     |
+| `bob`    | `7ee5a94e-c784-4e1e-b1a3-b9d34be8ec4e` | `Bob`   | `""`     |
+
+`userID` はアプリケーションの人物を識別し、SDK が割り当てる `memberID` は 1 つの接続を識別します。Bob が 2 つ目のタブを開くと、`userID: "bob"` が同じで `memberID` が異なる項目が増え、2 人・3 接続になります。アバターや人数は `userID` でまとめ、接続の表示・件数は `memberID` を使えます。エディターは接続ごとにカーソルを描画します。
+
+購読を使うビューを削除したら解放します。
+
+```ts
+subscription.dispose();
+```
+
+エディター破棄時はアプリケーションで作成した `univerAPI` と Univer インスタンスも破棄します。メンバーパネルだけを閉じる場合はその購読だけを破棄します。
+
+### 例：React のメンバー一覧
+
+既存の `univerAPI` とドキュメント ID を渡します。
+
+```tsx
+import type { FUniver } from "@univerjs/core/facade";
+import type { IMember } from "@univerjs/protocol";
+import "@univerjs-pro/collaboration-client/facade";
+import { useEffect, useState } from "react";
+
+export function OnlineMembers({ univerAPI, unitID }: { univerAPI: FUniver; unitID: string }) {
+  const [members, setMembers] = useState<IMember[]>([]);
+
+  useEffect(() => {
+    // Clear the previous document list while waiting for the new subscription.
+    setMembers([]);
+    const subscription = univerAPI.getCollaboration().subscribeCollaborators(unitID, setMembers);
+    // Unsubscribe when the document changes or the component unmounts.
+    return () => subscription.dispose();
+  }, [univerAPI, unitID]);
+
+  // Show each user once, even when they have multiple connections.
+  const users = [...new Map(members.map((member) => [member.userID, member])).values()];
+
+  return (
+    <ul>
+      {users.map((user) => (
+        <li key={user.userID}>
+          {user.avatar && <img src={user.avatar} alt="" width={24} height={24} />}
+          <span>{user.name}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+購読はクライアントが受信した最新の Room メンバー状態を反映します。接続喪失の検出には時間がかかるため、退出メンバーが一時的に残る場合があります。SDK 標準の共同編集状態 UI は現在のクライアントの同期状態、オフライン表示、再接続操作を提供します。
+
+## 2 人で確認する
+
+1. 別々のブラウザープロフィールで Alice と Bob としてログインし、同じドキュメントを開きます。
+2. 一覧に両方の名前が表示されることを確認します。
+3. Bob で Sheet の B3、次に C5 を選択します。Alice には Bob の名前付き選択範囲の移動が見え、メンバー一覧は変わりません。
+4. Bob でもう 1 つタブを開きます。購読には別の `memberID` が増えますが、React 一覧は Bob を 1 回だけ表示します。
+5. Bob の両タブを閉じます。退出更新の受信後、Alice の一覧は Alice のみになります。

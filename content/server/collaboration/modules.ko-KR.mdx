@@ -1,0 +1,213 @@
+---
+title: 모듈 경계와 관계
+description: Collaboration Client, Transport, Endpoint, Service, Database Adapter의 역할, 데이터 흐름, 조립 방식을 이해합니다.
+---
+
+Univer 협업은 브라우저 Client와 서버 모듈을 결합합니다. 각 모듈은 한 종류의 책임을 담당합니다. 애플리케이션은 OT, 프로토콜, 저장소 내부 구현에 들어가지 않고 공개 인터페이스로 조합합니다.
+
+## 전체 모듈 구성
+
+<Mermaid chart={"flowchart LR\n    Browser[\"브라우저<br/>Web SDK + Collaboration Client\"]\n    Transport[\"Node Transport<br/>HTTP · WebSocket\"]\n    Endpoint[\"Collaboration Endpoint<br/>프로토콜 · Session · Room\"]\n    Service[\"Collaboration Service<br/>Unit · OT · 리비전\"]\n    Adapter[\"Database Adapter<br/>원자성 · CAS · 멱등성\"]\n    Store[(협업 데이터)]\n\n    Browser --> Transport --> Endpoint --> Service --> Adapter --> Store"} />
+
+## Collaboration Client
+
+브라우저 Collaboration Client는 Web SDK와 함께 실행되며 다음을 담당합니다.
+
+- Unit 스냅샷과 누락된 확정 변경 집합 요청
+- 일회용 Session Ticket 획득 및 WebSocket 열기
+- Unit Room 참여 및 Presence 교환
+- 로컬 mutation을 변경 집합으로 제출
+- ACK·브로드캐스트 수신 및 재연결 후 누락 변경 보충
+
+Client는 사용자 신뢰 여부를 결정하지 않으며 기준 데이터 저장소도 아닙니다. 서버가 적절한 Middleware로 신원 확인과 권한 부여를 강제합니다.
+
+## Node Transport
+
+`@univerjs-pro/collaboration-transport-node`는 Node.js HTTP/WebSocket 진입점입니다. 호스트 HTTP 서버에서 요청과 WebSocket 업그레이드를 받고 진입 Middleware를 실행한 뒤 Endpoint로 전달합니다.
+
+Transport는 OT, Unit 데이터, ACL 모델을 알지 못합니다. 주요 구성 메서드는 세 가지입니다.
+
+```ts
+transport.use(httpMiddleware);
+transport.useUpgrade(upgradeMiddleware);
+transport.register(endpoint);
+```
+
+- `use()`는 일반 HTTP에 참여하여 `userID`, `customData`, 로그, 추적을 설정합니다.
+- `useUpgrade()`는 WebSocket 핸드셰이크에 참여하고 연결 전에 거부할 수 있습니다.
+- `register()`는 프로토콜 Endpoint를 등록하고 수명 주기 소유권을 Transport에 넘깁니다.
+
+## Collaboration Endpoint
+
+`@univerjs-pro/collaboration-endpoint`는 Univer Collaboration Client 프로토콜을 구현하며 다음 기능을 담당합니다.
+
+| 기능 | Endpoint 역할 |
+| --- | --- |
+| 콘텐츠 로드 | Unit 스냅샷·블록·누락된 확정 변경 집합을 Client에 제공 |
+| 변경 제출 | 변경 집합 수신, ACK 반환, 확정 변경을 Room에 브로드캐스트 |
+| Session 연결 | 일회용 Session Ticket 발급 및 WebSocket Session 생성·유지 |
+| Room 협업 | JOIN, LEAVE, 멤버 상태, Presence 처리 |
+| Unit 수명 주기 | 삭제·복구 요청을 해당 Service 호출에 매핑 |
+
+Endpoint는 OT나 저장을 직접 수행하지 않습니다. Service에서 기준 결과를 받아 Client 프로토콜로 변환합니다. 문서 생성 같은 제품 작업은 애플리케이션 API에서 Service를 호출해야 합니다.
+
+## Collaboration Service
+
+`@univerjs-pro/collaboration-service`는 네트워크에 독립적인 Sheet, Doc, Slide, Board, Base 협업 핵심입니다.
+
+- Unit 복구 데이터와 확정 변경 집합 읽기
+- Unit Data 또는 스냅샷으로 Unit 생성
+- 변경 집합 제출, OT 실행, 연속 리비전 갱신
+- `(unitID, sid, reqId)`로 중복 제출 식별
+- Unit 논리 삭제·복구·영구 삭제
+- Service Middleware 실행 및 확정 후 Events 발행
+
+Service는 HTTP, WebSocket, 사용자, 역할, ACL, 계층, 파일 관리를 제공하지 않습니다. Endpoint는 이를 사용해 브라우저 프로토콜을 구현합니다. 애플리케이션도 업무 API나 백그라운드 작업에서 공개 API를 직접 호출할 수 있습니다.
+
+### 핵심 API
+
+| 기능 | Service API |
+| --- | --- |
+| Unit 로드 | `getUnitLoadData()`, `getUnitLoadDataWithBlocks()` |
+| 증분 데이터 읽기 | `getChangesets()`, `getSheetBlock()` |
+| Unit 생성 | `createUnitFromData()`, `createUnitFromSnapshot()` |
+| 변경 제출 | `submitChangeset()` |
+| 삭제·복구 | `deleteUnits()`, `recoverUnits()` |
+
+## Database Adapter
+
+Database Adapter는 Service와 저장소 사이의 계약이며 다음을 보장해야 합니다.
+
+- 초기 스냅샷과 의존 데이터의 원자적 생성
+- 리비전 비교 후 교환(CAS)
+- 변경 집합 제출 멱등성
+- 모든 의존 데이터 존재 후 스냅샷 공개
+- Unit 수명 주기 배치의 전부 성공 또는 전부 미적용
+
+SDK는 Memory와 SQLite 구현을 제공합니다. 다른 DB가 필요하면 같은 계약을 구현합니다. [데이터베이스 어댑터](/server/collaboration/database-adapters)를 참고하세요.
+
+## 네 가지 핵심 개념
+
+| 개념 | 의미 |
+| --- | --- |
+| Unit | 고유 `unitID`와 유형으로 식별되는 독립 로드·협업 가능한 Univer 콘텐츠 |
+| Snapshot | 특정 리비전의 영속 Unit 콘텐츠. 변경 가능한 실시간 객체가 아님 |
+| Changeset | 기준 리비전과 멱등 식별자를 갖는 제출 mutation 모음 |
+| Revision | 확정 Unit 상태의 연속 버전 번호. 초기값 `1` |
+
+실행 중인 콘텐츠는 Facade API나 Command로 변경해야 합니다. 스냅샷 객체를 수정해도 Client 또는 Service의 실시간 Unit이 갱신되지 않습니다.
+
+## Unit 로드
+
+<Mermaid chart={"sequenceDiagram\n    participant Client\n    participant Transport\n    participant Endpoint\n    participant Service\n    participant Adapter\n\n    Client->>Transport: HTTP로 Unit 로드\n    Transport->>Endpoint: 인증된 요청 Context\n    Endpoint->>Service: getUnitLoadData()\n    Service->>Adapter: 스냅샷 + 변경 집합\n    Adapter-->>Service: 기준 데이터\n    Service-->>Endpoint: Unit 로드 데이터\n    Endpoint-->>Client: 프로토콜 응답"} />
+
+Transport Middleware가 설정한 `userID/customData`는 현재 HTTP 요청과 함께 Service Middleware에 전달됩니다. 읽기 허용 여부는 애플리케이션 정책이 결정하며 직접 HTTP 읽기에 Room 참여가 선행 조건은 아닙니다.
+
+## 편집 제출
+
+```text
+Facade / Command
+  → Mutation
+  → Client 변경 집합
+  → Endpoint 제출
+  → Service Middleware
+  → OT + 리비전 CAS
+  → Adapter 원자적 커밋
+  → 확정 변경 집합
+  → ACK / Room 브로드캐스트
+```
+
+Database Adapter의 확정 리비전이 기준입니다. ACK와 브로드캐스트는 온라인 클라이언트를 낮은 지연으로 동기화합니다. 메시지를 놓친 클라이언트는 알고 있는 리비전으로 확정 변경 집합을 조회할 수 있습니다.
+
+## 최소 서버 구성
+
+```ts
+import { createServer } from "node:http";
+
+import { MemoryDatabaseAdapter } from "@univerjs-pro/collaboration-database-memory";
+import { UniverCollabEndpoint } from "@univerjs-pro/collaboration-endpoint";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { createNodeTransport } from "@univerjs-pro/collaboration-transport-node";
+
+const database = new MemoryDatabaseAdapter();
+const service = new UniverCollabService({ dbAdapter: database });
+const endpoint = new UniverCollabEndpoint(service);
+const transport = createNodeTransport();
+
+transport.use(async (context, next) => {
+  context.userID = "demo-user";
+  await next();
+});
+transport.register(endpoint);
+
+const server = createServer((request, response) => {
+  transport.handleRequest(request, response);
+});
+server.on("upgrade", (request, socket, head) => {
+  transport.handleUpgrade(request, socket, head);
+});
+server.listen(3010);
+```
+
+고정 사용자와 Memory Adapter는 모듈 구성 예시일 뿐입니다. 애플리케이션은 Middleware로 실제 Context를 설정하고 데이터 요구에 맞는 Adapter를 선택합니다.
+
+### 애플리케이션 API로 Unit 생성
+
+자체 HTTP/RPC 엔드포인트를 정의하고 인증, 입력 검증, 업무 검사 후 위의 `service`를 호출할 수 있습니다.
+
+```text
+업무 클라이언트
+  → POST /api/units
+  → 애플리케이션 인증·검증
+  → service.createUnitFromData()
+  → Database Adapter
+```
+
+다음 Express 예제는 인증 Middleware가 `response.locals.user`를 설정했고 `request.body.data`가 Workbook Data로 검증되었다고 가정합니다.
+
+```ts
+import { randomUUID } from "node:crypto";
+
+import { json } from "express";
+import { UniverType } from "@univerjs/protocol";
+
+app.post("/api/units", json({ limit: "1mb" }), async (request, response, next) => {
+  try {
+    const user = response.locals.user as { readonly userID: string };
+    const unitID = randomUUID();
+
+    const result = await service.createUnitFromData(
+      {
+        type: UniverType.UNIVER_SHEET,
+        data: {
+          ...request.body.data,
+          id: unitID,
+          rev: 1,
+        },
+      },
+      {
+        userID: user.userID,
+        customData: { traceID: randomUUID() },
+      },
+    );
+
+    response.status(result.status === "created" ? 201 : 200).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+```
+
+`POST /api/units`는 애플리케이션 경로이며 Collaboration Client 프로토콜 경로가 아닙니다. `createUnitFromData()`는 여전히 Service의 `createUnit` Middleware를 실행합니다. 제품 레코드, 소유자 ACL, 오류 응답 매핑, 실패 보상은 애플리케이션 책임입니다.
+
+## 리소스 정리
+
+`transport.dispose()`는 `register()`로 등록한 Endpoint를 해제합니다. 애플리케이션은 Service와 주입한 Database Adapter를 별도로 해제합니다. 구성의 역순을 사용합니다.
+
+```ts
+await transport.dispose();
+await service.dispose();
+await database.dispose();
+```
+
+이 경계에서 동작을 확장하려면 [Middleware와 Events](/server/collaboration/middleware-and-events)를 읽으세요.

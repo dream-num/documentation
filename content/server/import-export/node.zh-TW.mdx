@@ -1,0 +1,100 @@
+---
+title: Office 檔案匯入匯出
+description: 使用 Exchange 在 Office 檔案與協同 Unit 之間匯入匯出內容。
+---
+
+Office 檔案轉換由 `@univerjs-pro/exchange-node` 提供，不屬於 AI SDK。CLI 應用程式在檔案邊界呼叫 `importFile()` 與 `exportToFile()`，再使用 AI SDK 與 Collaboration SDK 操作 Unit。
+
+## 保持 SDK 職責邊界
+
+```ts
+import { exportToFile, importFile } from "@univerjs-pro/exchange-node";
+```
+
+| 能力 | 負責者 |
+| --- | --- |
+| Office 檔案與 UnitData 互轉 | Exchange |
+| 無介面執行環境、內容檢查與 Facade 執行 | AI SDK |
+| 快照、變更集、修訂版本與持久化 | Collaboration SDK |
+| 路徑、格式策略、業務 API 與錯誤映射 | 業務應用程式 |
+
+## 匯入協同 Unit
+
+業務應用程式透過 Exchange 讀取 Office 檔案，再將產生的 UnitData 傳送到 Collaboration Server 建立 Unit：
+
+```text
+Office 檔案
+→ importFile()
+→ UnitData
+→ 業務 Server API
+→ 協同 Unit
+```
+
+初始修訂版本、業務中繼資料與回傳結果由應用程式決定。建立後，CLI 與 Web 都透過伺服器操作此 Unit。
+
+## 匯出最新修訂版本
+
+匯出時，CLI 先透過 Collaboration Runtime 載入最新已確認修訂版本，再將完整 UnitData 交給 Exchange：
+
+```text
+協同 Unit
+→ 最新 UnitData
+→ exportToFile()
+→ Office 檔案
+```
+
+輸出副檔名決定匯出格式。
+
+## 透過 Commander 提供檔案操作入口
+
+AI SDK 不提供 Office 檔案匯入匯出的命令預設集。業務應用程式使用 Commander 組合 Exchange、Collaboration Runtime 與自己的 Server API：
+
+```ts
+import { Command } from "commander";
+
+interface IFileExchangeDependencies {
+  importFile(path: string): Promise<unknown>;
+  createUnit(unitData: unknown): Promise<unknown>;
+  loadLatestUnitData(unitId: string): Promise<unknown>;
+  exportFile(unitData: unknown, path: string): Promise<void>;
+  writeResult(result: unknown): void;
+}
+
+function addFileExchangeCommands(program: Command, dependencies: IFileExchangeDependencies): void {
+  program.addCommand(
+    new Command("import").argument("<office-file>").action(async (sourcePath) => {
+      const unitData = await dependencies.importFile(sourcePath);
+      const created = await dependencies.createUnit(unitData);
+      dependencies.writeResult(created);
+    }),
+  );
+
+  program.addCommand(
+    new Command("export")
+      .argument("<office-file>")
+      .requiredOption("--unit <id>")
+      .action(async (outputPath, { unit }) => {
+        const unitData = await dependencies.loadLatestUnitData(unit);
+        await dependencies.exportFile(unitData, outputPath);
+      }),
+  );
+}
+```
+
+所有非 Commander 能力都明確宣告於 `IFileExchangeDependencies`，不存在未展示的輔助函式。應用程式以 Exchange 的 `importFile()`／`exportToFile()` 實作檔案轉換，以 Collaboration Runtime 實作 `loadLatestUnitData()`，再注入自己的 Server API 與結果呈現方式。
+
+## 支援格式
+
+| Unit | 匯入 | 匯出 |
+| --- | --- | --- |
+| Sheet | `.xls`, `.xlsx`, `.xlsm`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` |
+| Doc | `.doc`, `.docx` | `.docx` |
+| Slide | `.ppt`, `.pptx`, `.pptm`, `.ppsx`, `.ppsm`, `.potx` | `.pptx` |
+
+產生檔案前，應用程式應拒絕與 Unit 類型不相符的副檔名。
+
+## 只使用本機 CLI
+
+應用程式可略過 Collaboration Server，將匯入內容直接交給本機無介面 Runtime，再匯出 Office 檔案。此方式適合一次性處理，但不提供共用修訂版本、即時 Web 預覽、History 或 Worktree。
+
+命令名稱、路徑參數與結果呈現由業務應用程式決定。協同 Unit 流程請參閱[文件載入與內容操作](/ai/content-operations)。接通檔案邊界後，繼續閱讀[視覺檢查](/ai/visual-inspection)，讓 AI Agent 檢查 UnitData 的實際渲染結果。

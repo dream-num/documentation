@@ -1,0 +1,160 @@
+---
+title: 視覚的検査
+description: Render Runtime、Screenshot、Layout Lint で AI Agent に描画結果の視覚情報を提供します。
+source: https://github.com/dream-num/univer-cli-sdk/blob/main/packages/unit-screenshot/README.md
+---
+
+Inspection は値、段落、ページ構造を検証できますが、文字のはみ出し、重なり、図形の位置、最終レイアウトを完全には表せません。構造化操作の後にブラウザー描画を追加し、AI Agent が実際の見た目を確認できるようにします。
+
+```text
+最新 UnitData
+→ Render Runtime
+├── Screenshot → PNG → AI Agent の視覚的検査
+└── Layout Lint → 構造化された指摘 → AI Agent の修正
+```
+
+## ステップ 1：明確なコンテンツ状態を用意する
+
+Screenshot と Layout Lint は実体化された UnitData を受け取り、リモート対象の読み込みや変更セットの解釈は行いません。共同編集 Unit は先に同期し、完全な現在状態を出力します。
+
+```ts
+await runtime.pull();
+const unitData = await runtime.exportUnitData();
+```
+
+Worktree では下書きから UnitData を取得します。ローカルアプリケーションは読み込み・インポート済みのデータを使えます。いずれも 1 つの明確な状態に対して検査します。
+
+## ステップ 2：Render Page をビルドする
+
+`@univer-cli/univer-render-page` はブラウザーの Render Page を構成します。アプリケーションが Univer プラグインを選び、静的ページをビルドします。
+
+```ts
+import { createPresetRenderUniver, mountUniverRenderPage } from "@univer-cli/univer-render-page";
+
+const container = document.querySelector<HTMLElement>("#app");
+if (container === null) throw new Error("#app is required");
+
+await mountUniverRenderPage({
+  container,
+  createUniver: createPresetRenderUniver,
+});
+```
+
+Render Page はブラウザー描画用の入口で、人のレビュー画面ではありません。Node.js から UnitData を受け取り、PNG またはレイアウト情報を返します。
+
+## ステップ 3：Render Runtime を作成する
+
+`@univer-cli/univer-render-runtime` が Node.js でページを提供し、ブラウザーを起動してページのプロトコルを管理します。
+
+```ts
+import { createUniverRenderRuntime } from "@univer-cli/univer-render-runtime";
+
+const renderRuntime = await createUniverRenderRuntime({
+  renderPageRoot,
+});
+```
+
+1 つの Runtime で複数操作を順次実行できます。画像ごとにブラウザーを起動せず、外側のライフサイクルで再利用してください。
+
+## ステップ 4：スクリーンショットを取得する
+
+`@univer-cli/unit-screenshot` は Sheet、Doc、Slide、Board、Base の高水準スクリーンショット API です。対象、ページ分割、倍率、命名、リソース制限を扱います。
+
+```ts
+import { createUnitScreenshot } from "@univer-cli/unit-screenshot";
+
+const screenshot = createUnitScreenshot({ runtime: renderRuntime });
+const result = await screenshot.capture({
+  unitType: "sheet",
+  unitData,
+  target: {
+    kind: "sheet-range",
+    sheetName: "Data",
+    range: "B2:H40",
+    scale: 2,
+  },
+});
+```
+
+結果には複数画像が含まれる場合があります。各画像は PNG バイト列、寸法、ページまたは対象の識別情報、推奨ファイル名を持ちます。パッケージはファイルを書きません。保存先や AI Agent への渡し方はアプリケーションが決めます。
+
+対象を省略すると、Unit 種別ごとの標準内容を選びます。例えばアクティブなシートの使用範囲、Doc の全ページ、Slide の全ページです。
+
+## ステップ 5：Slide レイアウトの診断
+
+`@univer-cli/unit-layout-lint` はブラウザーの実際のレイアウト情報を使い、根拠付きの構造化指摘を返します。
+
+```ts
+import { createUnitLayoutLint } from "@univer-cli/unit-layout-lint";
+
+const lint = createUnitLayoutLint({ runtime: renderRuntime });
+const report = await lint.lint({
+  unitType: "slide",
+  unitData,
+  pages: [1, "closing-slide"],
+});
+```
+
+現在の規則は次のとおりです。
+
+- `text-off-page`：文字の実描画領域がページ外へ出ている。
+- `text-escapes-container`：文字が小さい不透明コンテナーから見た目にもはみ出している。
+- `text-overlaps-text`：2 つの文字描画領域が大きく重なる。
+
+指摘は根拠のあるレビュー提案で、必ず修正が必要とは限りません。AI Agent は画像と合わせて判断し、Facade で編集して再検査できます。
+
+## ステップ 6：Commander コマンドの追加
+
+両機能にネイティブ Commander プリセットがあります。上で作った機能と業務用 UnitData ローダーを注入し、[読み込みとコンテンツ操作](/ai/content-operations)で作った同じ `program` に追加します。
+
+```ts
+import type { UnitScreenshotCommandDependencies } from "@univer-cli/unit-screenshot-command";
+import { createUnitScreenshotCommand } from "@univer-cli/unit-screenshot-command";
+import type { UnitLayoutLintCommandDependencies } from "@univer-cli/unit-layout-lint-command";
+import { createUnitLayoutLintCommand } from "@univer-cli/unit-layout-lint-command";
+import type { Command } from "commander";
+
+function addVisualCommands(
+  program: Command,
+  dependencies: {
+    loadUnit: UnitScreenshotCommandDependencies["loadUnit"];
+    writeImages: UnitScreenshotCommandDependencies["writeImages"];
+    loadSlide: UnitLayoutLintCommandDependencies["loadUnit"];
+  },
+): void {
+  program.addCommand(
+    createUnitScreenshotCommand({
+      screenshot,
+      loadUnit: dependencies.loadUnit,
+      writeImages: dependencies.writeImages,
+    }),
+  );
+
+  program.addCommand(
+    createUnitLayoutLintCommand({
+      lint,
+      loadUnit: dependencies.loadSlide,
+    }),
+  );
+}
+```
+
+プリセットは対象選択、Slide ページ選択、`--json`、標準テキスト出力、Commander のエラー終了を担当します。引数には Unit ID から状態への変換と PNG 書き込みを明示的に注入します。Runtime のライフサイクルもアプリケーションが管理します。
+
+Screenshot プリセットにはブラウザーのインストールと検出のサブコマンドも追加できます。取得のたびに暗黙のダウンロードは行いません。
+
+## ステップ 7：ブラウザー資源の解放
+
+作成側が Commander の最も外側のライフサイクルで Runtime を閉じます。
+
+```ts
+try {
+  await program.parseAsync();
+} finally {
+  await renderRuntime.close();
+}
+```
+
+独自の AI Agent 入出力にはプリセットを使わず基礎パッケージを直接呼べます。信頼できない UnitData を共有の高権限ホストで直接描画せず、制限ユーザー、コンテナー、別プロセスなどで隔離してください。
+
+視覚的検査の導入後、同じ内容操作と検査を [Worktree：AI Agent の編集と人のレビュー](/ai/worktree)へ組み込みます。

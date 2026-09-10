@@ -1,0 +1,160 @@
+---
+title: 視覺檢查
+description: 使用 Render Runtime、Screenshot 與 Layout Lint，為 AI Agent 提供實際渲染的視覺資訊。
+source: https://github.com/dream-num/univer-cli-sdk/blob/main/packages/unit-screenshot/README.md
+---
+
+Inspection 可驗證值、段落與頁面結構，但無法完整表達文字溢出、元素重疊、圖形位置及最終版面。完成結構化內容操作後，請加入瀏覽器渲染，讓 AI Agent 檢查實際視覺結果。
+
+```text
+最新 UnitData
+→ Render Runtime
+├── Screenshot → PNG → AI Agent 視覺檢查
+└── Layout Lint → 結構化發現 → AI Agent 修正
+```
+
+## 步驟 1：準備明確的內容狀態
+
+Screenshot 與 Layout Lint 接收完整具體的 UnitData，不負責載入遠端目標或解讀變更集。協同 Unit 應先同步並匯出目前完整狀態：
+
+```ts
+await runtime.pull();
+const unitData = await runtime.exportUnitData();
+```
+
+Worktree 應從草稿目標匯出 UnitData。本機應用程式可使用已載入或匯入的 UnitData。所有情況下，視覺檢查都針對一份明確的內容狀態。
+
+## 步驟 2：建置 Render Page
+
+`@univer-cli/univer-render-page` 組合瀏覽器端 Render Page。應用程式選擇 Univer 外掛並建置靜態頁面：
+
+```ts
+import { createPresetRenderUniver, mountUniverRenderPage } from "@univer-cli/univer-render-page";
+
+const container = document.querySelector<HTMLElement>("#app");
+if (container === null) throw new Error("#app is required");
+
+await mountUniverRenderPage({
+  container,
+  createUniver: createPresetRenderUniver,
+});
+```
+
+Render Page 是瀏覽器渲染入口，不是人類審閱頁面。它從 Node.js 接收 UnitData，回傳 PNG 或版面事實資料。
+
+## 步驟 3：建立 Render Runtime
+
+`@univer-cli/univer-render-runtime` 在 Node.js 託管 Render Page、啟動瀏覽器並管理頁面協定：
+
+```ts
+import { createUniverRenderRuntime } from "@univer-cli/univer-render-runtime";
+
+const renderRuntime = await createUniverRenderRuntime({
+  renderPageRoot,
+});
+```
+
+同一 Render Runtime 可依序執行多個操作。應在外層生命週期重用，不要每張圖片都重新啟動瀏覽器。
+
+## 步驟 4：擷取截圖
+
+`@univer-cli/unit-screenshot` 是 Sheet、Doc、Slide、Board 與 Base 截圖的高階入口，負責目標選擇、分頁、縮放、命名與資源限制：
+
+```ts
+import { createUnitScreenshot } from "@univer-cli/unit-screenshot";
+
+const screenshot = createUnitScreenshot({ runtime: renderRuntime });
+const result = await screenshot.capture({
+  unitType: "sheet",
+  unitData,
+  target: {
+    kind: "sheet-range",
+    sheetName: "Data",
+    range: "B2:H40",
+    scale: 2,
+  },
+});
+```
+
+結果可能包含多張圖片，各自帶有 PNG 位元組、尺寸、頁面或目標識別資訊及建議檔名。套件不寫入檔案，圖片儲存位置及交給 AI Agent 的方式由業務應用程式決定。
+
+未指定目標時，Screenshot 依 Unit 類型選擇預設內容，例如目前工作表的已使用範圍、Doc 所有頁面或 Slide 所有頁面。
+
+## 步驟 5：診斷 Slide 版面
+
+`@univer-cli/unit-layout-lint` 使用瀏覽器產生的實際版面資訊，回傳附有證據的結構化發現：
+
+```ts
+import { createUnitLayoutLint } from "@univer-cli/unit-layout-lint";
+
+const lint = createUnitLayoutLint({ runtime: renderRuntime });
+const report = await lint.lint({
+  unitType: "slide",
+  unitData,
+  pages: [1, "closing-slide"],
+});
+```
+
+目前規則包含：
+
+- `text-off-page`：文字實際繪製區域超出頁面。
+- `text-escapes-container`：文字明顯超出較小的不透明容器。
+- `text-overlaps-text`：兩個文字實際繪製區域有明顯重疊。
+
+每項發現都是有證據的審閱建議，不一定必須修改。AI Agent 可結合截圖判斷，再透過 Facade 修改並重新執行視覺檢查。
+
+## 步驟 6：加入 Commander 命令
+
+Screenshot 與 Layout Lint 都提供原生 Commander 預設集。注入上述能力及業務 UnitData 載入器，再加入[文件載入與內容操作](/ai/content-operations)建立的同一個 `program`：
+
+```ts
+import type { UnitScreenshotCommandDependencies } from "@univer-cli/unit-screenshot-command";
+import { createUnitScreenshotCommand } from "@univer-cli/unit-screenshot-command";
+import type { UnitLayoutLintCommandDependencies } from "@univer-cli/unit-layout-lint-command";
+import { createUnitLayoutLintCommand } from "@univer-cli/unit-layout-lint-command";
+import type { Command } from "commander";
+
+function addVisualCommands(
+  program: Command,
+  dependencies: {
+    loadUnit: UnitScreenshotCommandDependencies["loadUnit"];
+    writeImages: UnitScreenshotCommandDependencies["writeImages"];
+    loadSlide: UnitLayoutLintCommandDependencies["loadUnit"];
+  },
+): void {
+  program.addCommand(
+    createUnitScreenshotCommand({
+      screenshot,
+      loadUnit: dependencies.loadUnit,
+      writeImages: dependencies.writeImages,
+    }),
+  );
+
+  program.addCommand(
+    createUnitLayoutLintCommand({
+      lint,
+      loadUnit: dependencies.loadSlide,
+    }),
+  );
+}
+```
+
+預設集負責截圖選擇器、Slide 頁面選擇器、`--json`、預設文字輸出及 Commander 錯誤結束行為。函式參數明確注入 Unit ID 至內容狀態的映射及 PNG 寫入器。Render Runtime 生命週期仍由應用程式負責。
+
+Screenshot 預設集也可包含瀏覽器安裝與探測子命令，不會在每次截圖時暗中下載瀏覽器。
+
+## 步驟 7：釋放瀏覽器資源
+
+建立者在最外層 Commander 生命週期邊界關閉 Render Runtime：
+
+```ts
+try {
+  await program.parseAsync();
+} finally {
+  await renderRuntime.close();
+}
+```
+
+若需要自訂 AI Agent 輸入與輸出，可略過預設集，直接呼叫基礎套件。不要在共用高權限主機直接渲染不可信 UnitData；請使用受限使用者、容器或其他程序隔離邊界。
+
+完成視覺檢查後，將相同的內容與檢查能力接入 [Worktree：AI Agent 編輯與人類審閱](/ai/worktree)流程。

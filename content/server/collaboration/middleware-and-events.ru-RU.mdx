@@ -1,0 +1,173 @@
+---
+title: Middleware и Events
+description: Расширяйте Transport, Endpoint, Service и модули совместной работы универсальными Middleware и Events.
+---
+
+Middleware и Events — общие точки расширения Collaboration SDK. Идентификация и авторизация подключаются через Middleware. Проверки и ограничения до операции выполняйте в Middleware, запись изменений и последующие действия после подтверждения состояния — через Events. Оба механизма поддерживают журналирование, трассировку, метрики и обновление производного состояния.
+
+## Два момента расширения
+
+| | Middleware | Event |
+| --- | --- | --- |
+| Выполнение | Во время операции | После подтверждения изменения состояния |
+| Участие в операции или её отклонение | Да | Нет |
+| Дополнение Context вызова | Да | Читает Context и результат из Event |
+| Ошибка обработчика | Может завершить текущую операцию ошибкой | Изолирована от уже определённого доменного результата |
+| Типичные задачи | Идентификация, авторизация, проверка, логи, замер времени | Производные индексы, кеши, метрики, уведомления внутри процесса |
+
+Используйте Middleware, чтобы решить, можно ли продолжить операцию, и Event, чтобы наблюдать уже произошедшее изменение.
+
+## Модель выполнения Middleware
+
+Middleware одной Action образуют асинхронную цепочку в порядке регистрации. `await next()` входит в следующий Middleware; операция SDK выполняется в самой глубокой точке:
+
+```ts
+service.use("submitChangeset", async (context, next) => {
+  const startedAt = performance.now();
+  context.customData.startedAt = startedAt;
+
+  try {
+    await next();
+  } finally {
+    metrics.observe("collaboration.submit.duration", performance.now() - startedAt);
+  }
+});
+```
+
+Middleware может:
+
+- читать запрос конкретной Action;
+- делиться локальными данными вызова через `customData`;
+- проверять вход или опрашивать системы приложения до `next()`;
+- записывать длительность и результаты после возврата из `next()`;
+- выбрасывать `CollabError` для ожидаемого отказа в совместной операции.
+
+HTTP Middleware Transport может закончить ответ без `next()`. Middleware Service и Endpoint должны отклонять операцию явной ошибкой, а не молча пропускать `next()`.
+
+## Middleware Transport
+
+Transport разделяет цепочки обычных HTTP-запросов и обновлений до WebSocket:
+
+```ts
+transport.use(async (context, next) => {
+  context.customData.traceID = readTraceID(context.incomingMessage);
+  requestLogger.info("collaboration request", {
+    method: context.incomingMessage.method,
+    traceID: context.customData.traceID,
+  });
+  await next();
+});
+
+transport.useUpgrade(async (context, next) => {
+  if (!isAllowedOrigin(context.incomingMessage.headers.origin)) {
+    context.reject(403, "Origin rejected");
+    return;
+  }
+  await next();
+});
+```
+
+`transport.use()` участвует только в обычном HTTP: идентификация, логи запросов, трассировка, CORS и локальный `customData`. `transport.useUpgrade()` участвует только в рукопожатии WebSocket и может отклонить его до подключения.
+
+## Middleware Endpoint
+
+Участвуют в операциях Session реального времени и Presence:
+
+| Action | Момент | Типичные задачи |
+| --- | --- | --- |
+| `connect` | После погашения билета и создания Session, до HELLO | Политика подключения, имя и аватар участника |
+| `joinUnit` | До входа Session в Room Unit | Допуск в Room и видимость Unit |
+| `receivePresence` | После получения Presence от вошедшей Session, до рассылки | Проверка и фильтрация Presence |
+| `sendPresence` | До отправки Presence каждому участнику | Фильтрация по получателю |
+
+```ts
+endpoint.use("receivePresence", async (context, next) => {
+  if (JSON.stringify(context.payload).length > 8_000) {
+    throw new CollabError("INVALID_REQUEST", "Presence payload is too large");
+  }
+  await next();
+});
+```
+
+`session.userID` и `session.customData` Endpoint приходят из HTTP-запроса, выдавшего Session Ticket. Endpoint создаёт `memberID` для текущей Session WebSocket; после переподключения он меняется.
+
+## Middleware Service
+
+Участвуют в жизненном цикле эталонных данных совместной работы:
+
+| Action | Граница | Типичные задачи |
+| --- | --- | --- |
+| `readUnitData` | До чтения снимков, блоков или изменений | Политика чтения, проверки арендатора, аудит |
+| `createUnit` | До атомарного создания Unit | Проверка типов, политика создания, бизнес-правила |
+| `deleteUnits` | До записи пакета удаления | Политика удаления и проверки каждой Unit |
+| `recoverUnits` | До записи пакета восстановления | Политика восстановления и аудит |
+| `submitChangeset` | До идемпотентности и OT логической отправки | Политика редактирования, общий размер, трассировка |
+| `applyChangeset` | До применения преобразованных изменений к состоянию-кандидату | Проверка на уровне мутаций |
+| `commitChangeset` | До CAS ревизии и коммита Adapter | Финальные правила ревизии и метрики |
+
+```ts
+service.use("createUnit", async (context, next) => {
+  await creationPolicy.assertAllowed({
+    userID: context.userID,
+    unitID: context.request.snapshot.unitID,
+    type: context.request.snapshot.type,
+  });
+  context.customData.creationPolicyChecked = true;
+  await next();
+});
+```
+
+`submitChangeset` выполняется один раз для логической отправки. Конкуренция ревизий может повторно запустить `applyChangeset` и `commitChangeset` с новым `attempt`. Эти Middleware должны быть безопасны при повторе и не должны напрямую отправлять необратимые внешние сообщения или выполнять однократные списания средств.
+
+## Область customData
+
+`customData` — доступный приложению для записи объект текущего вызова, подходящий для:
+
+- ID арендатора, трассировки и логгеров запроса;
+- повторно используемых результатов ACL в вызове;
+- начала замера времени и меток аудита;
+- бизнес-объектов одной цепочки Middleware.
+
+Обычные HTTP-запросы, вызовы Service и Sessions WebSocket имеют разные жизненные циклы. `customData` не сохраняется, не отправляется браузеру и не журналируется автоматически. Долговременные данные остаются в хранилище приложения.
+
+## Модель выполнения Events
+
+Services регистрируют локальные для процесса обработчики через `on()`, возвращающий освобождаемую подписку:
+
+```ts
+const subscription = service.on("changesetCommitted", async (event) => {
+  metrics.increment("collaboration.changeset.committed", {
+    unitType: String(event.changeset.type),
+  });
+  localCache.delete(event.changeset.unitID);
+});
+
+subscription.dispose();
+```
+
+Обработчики одного Event выполняются последовательно в порядке регистрации с ожиданием завершения. Ошибки записываются и изолируются от уже определённого доменного результата. Например, сбой обработчика `changesetCommitted` не откатывает изменения, уже сохранённые Adapter.
+
+Events подходят для локальных, восстанавливаемых или некритичных последующих действий. Они не разделяют транзакционную границу коммита базы и не гарантируют доставку внешней системе.
+
+## Events основного Service
+
+| Event | Подтверждённый факт | Типичное применение |
+| --- | --- | --- |
+| `unitCreated` | Unit и начальные данные созданы | Локальный кеш каталога или производный индекс |
+| `changesetCommitted` | Изменения подтверждены, ревизия продвинута | Рассылка, метрики, производные индексы |
+| `unitsDeleted` | Adapter подтвердил пакет удаления | Очистка связанного состояния процесса |
+| `unitsRecovered` | Adapter подтвердил пакет восстановления | Восстановление производного состояния процесса |
+
+Endpoint слушает `changesetCommitted` того же Service и рассылает подтверждённые изменения клиентам, вошедшим в Unit в текущем процессе. Он также предоставляет `memberLeftUnit` для явного выхода, разрыва соединения и освобождения Endpoint.
+
+## Независимые точки расширения модулей
+
+History, Thread Comment и Worktree не наследуют Middleware и Events основного Collaboration Service:
+
+- History предоставляет Middleware чтения и индексации;
+- Comment — добавления, ответа, правки, удаления, решения и списка, а также `commentCommitted`;
+- Worktree — жизненного цикла и read/submit/commit черновиков, а также Events создания, статуса, слияния и коммита черновика.
+
+Устанавливайте правила отдельно для каждого включённого модуля. Логи, проверки арендатора и авторизация Middleware ядра не распространяются на них автоматически.
+
+Продолжите с [Идентификацией и авторизацией](/server/collaboration/identity-and-authorization): там показано сопоставление существующих пользователей и ACL этим общим границам.

@@ -1,0 +1,173 @@
+---
+title: Middleware y Events
+description: Amplía Transport, Endpoint, Service y los módulos colaborativos mediante Middleware y Events de propósito general.
+---
+
+Middleware y Events son puntos de extensión generales de Collaboration SDK. La identidad y la autorización se integran con Middleware. Úsalo para validar y restringir antes de una operación; usa Events para registrar cambios o iniciar tareas tras confirmar el estado. Ambos admiten registros, trazabilidad, métricas y actualizaciones de estado derivado.
+
+## Dos momentos de extensión
+
+| | Middleware | Event |
+| --- | --- | --- |
+| Ejecución | Durante una operación | Tras confirmar un cambio de estado |
+| Participar o rechazar la operación | Sí | No |
+| Ampliar el Context | Sí | Lee el Context y resultado del Event |
+| Fallo del receptor | Puede fallar la operación actual | Aislado del resultado de dominio ya determinado |
+| Usos habituales | Identidad, autorización, validación, registro, medición de tiempo | Índices derivados, cachés, métricas, notificaciones internas |
+
+Usa Middleware para decidir si una operación puede continuar; Event para observar que un cambio ya ocurrió.
+
+## Modelo de ejecución de Middleware
+
+Los Middleware de una Action forman una cadena asíncrona en orden de registro. `await next()` entra en el siguiente Middleware y la operación del SDK se ejecuta en el punto más interno:
+
+```ts
+service.use("submitChangeset", async (context, next) => {
+  const startedAt = performance.now();
+  context.customData.startedAt = startedAt;
+
+  try {
+    await next();
+  } finally {
+    metrics.observe("collaboration.submit.duration", performance.now() - startedAt);
+  }
+});
+```
+
+Middleware puede:
+
+- leer la solicitud específica de la Action;
+- compartir datos locales de la llamada con `customData`;
+- inspeccionar entradas o consultar sistemas antes de `next()`;
+- registrar duración o resultados tras volver de `next()`;
+- lanzar `CollabError` para rechazar una operación colaborativa prevista.
+
+El Middleware HTTP de Transport puede terminar la respuesta sin llamar a `next()`. Los de Service y Endpoint deben rechazar con un error explícito en vez de omitir `next()` silenciosamente.
+
+## Middleware de Transport
+
+Transport separa las cadenas de solicitudes HTTP ordinarias y actualizaciones WebSocket:
+
+```ts
+transport.use(async (context, next) => {
+  context.customData.traceID = readTraceID(context.incomingMessage);
+  requestLogger.info("collaboration request", {
+    method: context.incomingMessage.method,
+    traceID: context.customData.traceID,
+  });
+  await next();
+});
+
+transport.useUpgrade(async (context, next) => {
+  if (!isAllowedOrigin(context.incomingMessage.headers.origin)) {
+    context.reject(403, "Origin rejected");
+    return;
+  }
+  await next();
+});
+```
+
+`transport.use()` solo participa en HTTP ordinario: identidad, registro de solicitudes, trazas, CORS y `customData` local. `transport.useUpgrade()` solo participa en el protocolo de enlace WebSocket y puede rechazarlo antes de conectar.
+
+## Middleware de Endpoint
+
+Participa en operaciones de Session en tiempo real y Presence:
+
+| Action | Momento | Usos habituales |
+| --- | --- | --- |
+| `connect` | Tras consumir el ticket y crear Session, antes de HELLO | Política de conexión, nombre y avatar del miembro |
+| `joinUnit` | Antes de entrar en una Room Unit | Admisión y visibilidad de la Unit |
+| `receivePresence` | Tras recibir Presence de una Session unida, antes de difundir | Validación y filtrado de Presence |
+| `sendPresence` | Antes de enviar Presence a cada miembro | Filtrado por destinatario |
+
+```ts
+endpoint.use("receivePresence", async (context, next) => {
+  if (JSON.stringify(context.payload).length > 8_000) {
+    throw new CollabError("INVALID_REQUEST", "Presence payload is too large");
+  }
+  await next();
+});
+```
+
+`session.userID` y `session.customData` de Endpoint proceden de la solicitud HTTP que emitió el Session Ticket. Endpoint crea `memberID` para la Session WebSocket actual; cambia al reconectar.
+
+## Middleware de Service
+
+Participa en el ciclo de vida de los datos colaborativos autoritativos:
+
+| Action | Límite | Usos habituales |
+| --- | --- | --- |
+| `readUnitData` | Antes de leer instantáneas, bloques o cambios | Lectura, comprobación de inquilino, auditoría |
+| `createUnit` | Antes de crear una Unit atómicamente | Tipos, política de creación, reglas de negocio |
+| `deleteUnits` | Antes de escribir el lote de eliminación | Política de eliminación y comprobaciones por Unit |
+| `recoverUnits` | Antes de escribir el lote de recuperación | Política de recuperación y auditoría |
+| `submitChangeset` | Antes de idempotencia y OT del envío lógico | Edición, límite de tamaño total, trazas |
+| `applyChangeset` | Antes de aplicar los cambios transformados al estado candidato | Validación por mutación |
+| `commitChangeset` | Antes del CAS de revisión y commit del Adapter | Reglas finales de revisión y métricas |
+
+```ts
+service.use("createUnit", async (context, next) => {
+  await creationPolicy.assertAllowed({
+    userID: context.userID,
+    unitID: context.request.snapshot.unitID,
+    type: context.request.snapshot.type,
+  });
+  context.customData.creationPolicyChecked = true;
+  await next();
+});
+```
+
+`submitChangeset` se ejecuta una vez por envío lógico. La contención de revisiones puede repetir `applyChangeset` y `commitChangeset` con otro `attempt`. Esos Middleware deben ser seguros ante reintentos y no enviar directamente mensajes externos irreversibles ni efectuar cobros de una sola vez.
+
+## Alcance de customData
+
+`customData` es un objeto escribible por la aplicación y local a la llamada, apropiado para:
+
+- ID de inquilino, trazas o registradores de solicitudes;
+- consultas ACL reutilizadas en la llamada;
+- puntos de inicio de medición o etiquetas de auditoría;
+- objetos de negocio compartidos por una cadena Middleware.
+
+HTTP ordinario, llamadas Service y Sessions WebSocket tienen ciclos de vida distintos. `customData` no se persiste, envía al navegador ni registra automáticamente. Los datos duraderos siguen en el almacenamiento de la aplicación.
+
+## Modelo de ejecución de Events
+
+Los Services registran receptores locales al proceso con `on()`, que devuelve una suscripción liberable:
+
+```ts
+const subscription = service.on("changesetCommitted", async (event) => {
+  metrics.increment("collaboration.changeset.committed", {
+    unitType: String(event.changeset.type),
+  });
+  localCache.delete(event.changeset.unitID);
+});
+
+subscription.dispose();
+```
+
+Los receptores del mismo Event se ejecutan secuencialmente en orden de registro y se espera su finalización. Sus errores se registran y aíslan del resultado de dominio ya determinado. Por ejemplo, un fallo de `changesetCommitted` no revierte cambios ya guardados por Adapter.
+
+Events es adecuado para tareas internas, recuperables o no críticas. No comparte un límite transaccional con el commit de la base ni garantiza la entrega a sistemas externos.
+
+## Events del Service principal
+
+| Event | Hecho confirmado | Uso habitual |
+| --- | --- | --- |
+| `unitCreated` | Unit y datos iniciales creados | Caché de catálogo local o índice derivado |
+| `changesetCommitted` | Cambios confirmados y revisión avanzada | Difusión, métricas, índices derivados |
+| `unitsDeleted` | Adapter confirmó el lote de eliminación | Limpiar estado relacionado del proceso |
+| `unitsRecovered` | Adapter confirmó el lote de recuperación | Restaurar estado derivado del proceso |
+
+Endpoint escucha `changesetCommitted` en el mismo Service y difunde los cambios confirmados a los clientes unidos a la Unit en el proceso actual. También expone `memberLeftUnit` para salida explícita, desconexión y liberación del Endpoint.
+
+## Las extensiones tienen puntos independientes
+
+History, Thread Comment y Worktree no heredan Middleware ni Events del Collaboration Service principal:
+
+- History proporciona Middleware de lectura e indexación;
+- Comment proporciona añadir, responder, editar, eliminar, resolver y listar, más `commentCommitted`;
+- Worktree proporciona ciclo de vida y lectura/envío/commit de borradores, más Events de creación, estado, fusión y commit de borrador.
+
+Instala las reglas por separado en cada módulo activo. El Middleware de registro, inquilino o autorización del Service principal no los cubre automáticamente.
+
+Continúa con [Identidad y autorización](/server/collaboration/identity-and-authorization) para asociar usuarios y ACL existentes con estos límites generales.

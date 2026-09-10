@@ -1,0 +1,243 @@
+---
+title: クイックスタート
+description: 2 つのブラウザーで共同編集を試し、Client、Transport、Endpoint、Service、Adapter の最小構成をアプリケーションへ組み込みます。
+---
+
+このページには 2 つの進め方があります。まず公式サンプルを動かし、2 つのブラウザーで共同編集の全経路を確認します。その後、最小の Server と Web の構成を読み、自分の Univer アプリケーションに取り込みます。
+
+開始前に[環境とバージョンの要件](/server/requirements)を満たしてください。すべての `@univerjs/*` と `@univerjs-pro/*` を、対応する同一リリース群に固定する必要があります。
+
+## 手順 1：公式サンプルを実行する
+
+```bash
+git clone https://github.com/dream-num/univer-collaboration-examples.git
+cd univer-collaboration-examples
+pnpm install
+pnpm example:quick-start
+```
+
+次を開きます。
+
+```text
+http://127.0.0.1:3010/?unit=quick-start-sheet&type=2
+```
+
+### リアルタイム共同編集の確認
+
+1. 1 つ目のブラウザーウィンドウで URL 全体を開きます。
+2. 別のブラウザープロファイルまたはプライベートウィンドウでも開きます。
+3. どちらかの Sheet でセルを変更します。
+4. 同じ編集がもう一方にも現れることを確認します。
+
+サーバーが 2 つのオンライン Session を作るよう、独立したブラウザーコンテキストを使ってください。同じページ内の編集を見ただけでは Room、ACK、ブロードキャストの経路を検証できません。
+
+### 成功によって確認できること
+
+```text
+Univer Collaboration Client
+  → Node Transport
+  → UniverCollabEndpoint
+  → UniverCollabService
+  → MemoryDatabaseAdapter
+```
+
+2 ブラウザーの同期は、HTTP で Unit を読み込み、使い捨ての Session Ticket で WebSocket Session を開き、同じ Room に参加したことを意味します。Service が OT を実行して新しいリビジョンを確定し、Adapter で保存して、Endpoint が他のメンバーへ配信します。
+
+## 手順 2：アプリケーションに組み込む
+
+以下は公式クイックスタートの 2 つのエントリーポイントから、ページ用の状態表示だけを除いたコードです。実行可能な完全版はこちらです。
+
+- [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/quick-start/server/main.ts)
+- [web/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/quick-start/web/main.ts)
+- [package.json](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/quick-start/package.json)
+
+既存の Univer Web アプリケーションでは Runtime、プリセット、UI を維持し、以下の Collaboration Client 設定と Server だけを追加します。空のプロジェクトでは、サンプルの `index.html`、`vite.config.ts`、スタイルをアプリケーションの枠としてコピーしてください。
+
+### 1. 対応する同一バージョンのパッケージ群をインストールする
+
+サーバーには Transport、Endpoint、Service、Database Adapter が 1 つ必要です。ブラウザーには Collaboration Client が必要です。必要なパッケージを入れ、すべての Univer パッケージを同じ厳密なバージョンに固定します。
+
+```bash
+pnpm add \
+  @univerjs-pro/collaboration \
+  @univerjs-pro/collaboration-client \
+  @univerjs-pro/collaboration-client-ui \
+  @univerjs-pro/collaboration-database-memory \
+  @univerjs-pro/collaboration-endpoint \
+  @univerjs-pro/collaboration-service \
+  @univerjs-pro/collaboration-transport-node \
+  @univerjs-pro/license \
+  @univerjs/core \
+  @univerjs/preset-sheets-core \
+  @univerjs/presets \
+  @univerjs/protocol \
+  express react react-dom rxjs
+```
+
+現在の構成と正確なバージョンは、実行可能な公式サンプルのマニフェストを基準にしてください。
+
+### 2. Service、Endpoint、初期 Unit を作る
+
+`UniverCollabService` は確定状態を管理する共同編集の中核です。Endpoint がブラウザーのプロトコルを Service に対応付け、Memory Adapter はスナップショット、変更セット、リビジョンを一時保存します。
+
+```ts
+import { createServer } from "node:http";
+import express from "express";
+import type { IWorkbookData } from "@univerjs/core";
+import { LocaleType } from "@univerjs/core";
+import { MemoryDatabaseAdapter } from "@univerjs-pro/collaboration-database-memory";
+import { UniverCollabEndpoint } from "@univerjs-pro/collaboration-endpoint";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { createNodeTransport } from "@univerjs-pro/collaboration-transport-node";
+import { ErrorCode, UniverType } from "@univerjs/protocol";
+
+const UNIT_ID = "quick-start-sheet";
+const unitData: IWorkbookData = {
+  id: UNIT_ID,
+  rev: 1,
+  name: "Quick Start Sheet",
+  appVersion: "",
+  locale: LocaleType.EN_US,
+  sheetOrder: ["sheet-1"],
+  sheets: {
+    "sheet-1": {
+      id: "sheet-1",
+      name: "Sheet 1",
+      rowCount: 100,
+      columnCount: 26,
+      cellData: {},
+    },
+  },
+  styles: {},
+  resources: [],
+};
+
+const database = new MemoryDatabaseAdapter();
+const service = new UniverCollabService({ dbAdapter: database });
+const endpoint = new UniverCollabEndpoint(service);
+const transport = createNodeTransport();
+
+transport.use(async (context, next) => {
+  context.userID = "demo-user";
+  await next();
+});
+transport.register(endpoint);
+
+await service.createUnitFromData(
+  { type: UniverType.UNIVER_SHEET, data: unitData },
+  { userID: "demo-user" },
+);
+```
+
+固定の `demo-user` は、信頼できる ID が Transport から Endpoint と Service へ流れる仕組みの例です。本番では `transport.use()` で Cookie、Bearer トークン、セッションを検証してから、安定した業務用 `userID` を設定します。
+
+### 3. 認可、HTTP、WebSocket の入口を配置する
+
+現在の Collaboration Client は認可プロトコルを問い合わせます。サンプルは常に `allowed: true` を返し、`/universer-api` の HTTP リクエストと WebSocket アップグレードを Transport に渡します。
+
+```ts
+const app = express();
+
+app.post("/universer-api/authz/-/object/-/batch_allowed", express.json(), (request, response) => {
+  const body = request.body as {
+    requests: Array<{ unitID: string; objectID: string; actions: unknown[] }>;
+  };
+  response.json({
+    error: { code: ErrorCode.OK, message: "" },
+    objectActions: body.requests.map((item) => ({
+      unitID: item.unitID,
+      objectID: item.objectID,
+      actions: item.actions.map((action) => ({ action, allowed: true })),
+    })),
+  });
+});
+
+app.use("/universer-api", (request, response) => {
+  request.url = request.originalUrl;
+  transport.handleRequest(request, response);
+});
+app.use(express.static("dist/web"));
+
+const server = createServer(app);
+server.on("upgrade", (request, socket, head) => {
+  transport.handleUpgrade(request, socket, head);
+});
+server.listen(3010, "127.0.0.1");
+```
+
+全許可は学習用の簡略化で、セキュリティ境界ではありません。実際のアプリケーションでは HTTP 読み取り、リアルタイム JOIN、変更セット送信、Unit ライフサイクル操作を保護します。必要な範囲は [ID と認可](/server/collaboration/identity-and-authorization)を参照してください。
+
+### 4. ブラウザー Runtime に Collaboration Client を登録する
+
+通常の Web SDK とプリセットを維持し、共同編集プラグインとプロトコル URL を追加します。
+
+```ts
+import { LocaleType, LogLevel } from "@univerjs/core";
+import { UniverCollaborationPlugin } from "@univerjs-pro/collaboration";
+import { UniverCollaborationClientPlugin } from "@univerjs-pro/collaboration-client";
+import CollaborationClientEnUS from "@univerjs-pro/collaboration-client/locale/en-US";
+import {
+  BrowserCollaborationSocketService,
+  UniverCollaborationClientUIPlugin,
+} from "@univerjs-pro/collaboration-client-ui";
+import CollaborationClientUIEnUS from "@univerjs-pro/collaboration-client-ui/locale/en-US";
+import { UniverLicensePlugin } from "@univerjs-pro/license";
+import { UniverSheetsCorePreset } from "@univerjs/preset-sheets-core";
+import UniverPresetSheetsCoreEnUS from "@univerjs/preset-sheets-core/locales/en-US";
+import { createUniver, defaultTheme, mergeLocales } from "@univerjs/presets";
+import "@univerjs/preset-sheets-core/lib/index.css";
+import "@univerjs-pro/collaboration-client-ui/lib/index.css";
+
+const httpProtocol = location.protocol === "https:" ? "https" : "http";
+const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
+const baseURL = `${httpProtocol}://${location.host}/universer-api`;
+
+createUniver({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(
+      UniverPresetSheetsCoreEnUS,
+      CollaborationClientEnUS,
+      CollaborationClientUIEnUS,
+    ),
+  },
+  theme: defaultTheme,
+  logLevel: LogLevel.WARN,
+  collaboration: true,
+  presets: [UniverSheetsCorePreset({ container: "app" })],
+  plugins: [
+    [UniverLicensePlugin, { license: import.meta.env.UNIVER_LICENSE || undefined }],
+    UniverCollaborationPlugin,
+    [
+      UniverCollaborationClientPlugin,
+      {
+        socketService: BrowserCollaborationSocketService,
+        sendChangesetTimeout: 200,
+        authzUrl: `${baseURL}/authz`,
+        snapshotServerUrl: `${baseURL}/snapshot`,
+        collabSubmitChangesetUrl: `${baseURL}/comb`,
+        collabWebSocketUrl: `${wsProtocol}://${location.host}/universer-api/comb/connect`,
+        wsSessionTicketUrl: `${baseURL}/user/session-ticket`,
+      },
+    ],
+    UniverCollaborationClientUIPlugin,
+  ],
+});
+```
+
+ページには `id="app"` の要素が必要で、クエリパラメーターから Unit を選びます。
+
+```text
+/?unit=quick-start-sheet&type=2
+```
+
+### 5. 学習用の設定をアプリケーションの機能に置き換える
+
+| 学習用設定 | 置き換えるもの |
+| --- | --- |
+| 固定の `demo-user` | アプリケーション認証 Middleware と安定したユーザー ID |
+| 常に許可する権限チェック | 読み取り、JOIN、送信、ライフサイクルを覆うサーバー ACL |
+| 固定 Unit | `createUnitFromData()` を呼ぶ作成 API と製品レコード |
+| Memory Adapter | SQLite または契約テスト済みの独自永続化 Adapter |
+
+次に[データベースアダプター](/server/collaboration/database-adapters)と [ID・認可](/server/collaboration/identity-and-authorization)を実装し、必要に応じて [History、Thread Comment、Worktree、Exchange](/server/collaboration/extensions) を追加します。実行できる構成は[サンプル一覧](/server/collaboration/examples)を参照してください。

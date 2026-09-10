@@ -1,0 +1,243 @@
+---
+title: 快速開始
+description: 執行雙瀏覽器協同，再將最小 Client、Transport、Endpoint、Service 與 Adapter 組合整合到應用程式。
+---
+
+本頁分成兩條路徑：先執行官方範例，在兩個瀏覽器驗證完整協同流程；再閱讀並將最小 Server 與 Web 組合加入自己的 Univer 應用程式。
+
+開始前，請先滿足[環境與版本要求](/server/requirements)。所有 `@univerjs/*` 與 `@univerjs-pro/*` 套件都必須鎖定在同一組相符的發行版本。
+
+## 路徑一：執行官方範例
+
+```bash
+git clone https://github.com/dream-num/univer-collaboration-examples.git
+cd univer-collaboration-examples
+pnpm install
+pnpm example:quick-start
+```
+
+開啟：
+
+```text
+http://127.0.0.1:3010/?unit=quick-start-sheet&type=2
+```
+
+### 驗證即時協同
+
+1. 在一個瀏覽器視窗開啟完整 URL。
+2. 在另一個瀏覽器設定檔或無痕視窗再次開啟。
+3. 在任一試算表修改儲存格。
+4. 確認相同修改出現在另一個瀏覽器。
+
+請使用兩個獨立瀏覽器環境，讓伺服器建立兩個線上 Session。只在同一頁觀察修改，無法驗證 Room、ACK 與廣播流程。
+
+### 成功代表什麼
+
+```text
+Univer Collaboration Client
+  → Node Transport
+  → UniverCollabEndpoint
+  → UniverCollabService
+  → MemoryDatabaseAdapter
+```
+
+雙瀏覽器同步代表瀏覽器透過 HTTP 載入 Unit，使用一次性 Session Ticket 開啟 WebSocket Session，並加入相同 Room。Service 執行 OT、確認新修訂版本並透過 Adapter 儲存，Endpoint 再將其廣播給其他成員。
+
+## 路徑二：整合到應用程式
+
+以下程式碼取自官方快速開始的兩個入口，只移除了頁面狀態文字。完整可執行原始碼：
+
+- [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/quick-start/server/main.ts)
+- [web/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/quick-start/web/main.ts)
+- [package.json](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/quick-start/package.json)
+
+若已有 Univer Web 應用程式，請保留其 Runtime、預設集與 UI，只加入以下 Collaboration Client 設定及 Server。空專案可複製快速開始目錄的 `index.html`、`vite.config.ts` 與樣式作為應用程式外殼。
+
+### 1. 安裝同一組相符版本的套件
+
+伺服器需要 Transport、Endpoint、Service 與一個 Database Adapter；瀏覽器需要 Collaboration Client。安裝所需套件後，將所有 Univer 套件鎖定為完全相同的版本：
+
+```bash
+pnpm add \
+  @univerjs-pro/collaboration \
+  @univerjs-pro/collaboration-client \
+  @univerjs-pro/collaboration-client-ui \
+  @univerjs-pro/collaboration-database-memory \
+  @univerjs-pro/collaboration-endpoint \
+  @univerjs-pro/collaboration-service \
+  @univerjs-pro/collaboration-transport-node \
+  @univerjs-pro/license \
+  @univerjs/core \
+  @univerjs/preset-sheets-core \
+  @univerjs/presets \
+  @univerjs/protocol \
+  express react react-dom rxjs
+```
+
+目前套件組合及精確版本以官方可執行範例的套件清單為準。
+
+### 2. 建立 Service、Endpoint 與初始 Unit
+
+`UniverCollabService` 是具權威性的協同核心。Endpoint 將瀏覽器協定映射到 Service，Memory Adapter 暫存快照、變更集與修訂版本：
+
+```ts
+import { createServer } from "node:http";
+import express from "express";
+import type { IWorkbookData } from "@univerjs/core";
+import { LocaleType } from "@univerjs/core";
+import { MemoryDatabaseAdapter } from "@univerjs-pro/collaboration-database-memory";
+import { UniverCollabEndpoint } from "@univerjs-pro/collaboration-endpoint";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { createNodeTransport } from "@univerjs-pro/collaboration-transport-node";
+import { ErrorCode, UniverType } from "@univerjs/protocol";
+
+const UNIT_ID = "quick-start-sheet";
+const unitData: IWorkbookData = {
+  id: UNIT_ID,
+  rev: 1,
+  name: "Quick Start Sheet",
+  appVersion: "",
+  locale: LocaleType.EN_US,
+  sheetOrder: ["sheet-1"],
+  sheets: {
+    "sheet-1": {
+      id: "sheet-1",
+      name: "Sheet 1",
+      rowCount: 100,
+      columnCount: 26,
+      cellData: {},
+    },
+  },
+  styles: {},
+  resources: [],
+};
+
+const database = new MemoryDatabaseAdapter();
+const service = new UniverCollabService({ dbAdapter: database });
+const endpoint = new UniverCollabEndpoint(service);
+const transport = createNodeTransport();
+
+transport.use(async (context, next) => {
+  context.userID = "demo-user";
+  await next();
+});
+transport.register(endpoint);
+
+await service.createUnitFromData(
+  { type: UniverType.UNIVER_SHEET, data: unitData },
+  { userID: "demo-user" },
+);
+```
+
+固定的 `demo-user` 示範可信身分如何從 Transport 傳入 Endpoint 與 Service。正式應用程式應在 `transport.use()` 中驗證自己的 Cookie、Bearer Token 或 Session，再設定穩定的業務 `userID`。
+
+### 3. 掛載授權、HTTP 與 WebSocket 入口
+
+目前 Collaboration Client 會查詢授權協定。快速開始一律回傳 `allowed: true`，再將 `/universer-api` 的 HTTP 請求與 WebSocket 升級轉送給 Transport：
+
+```ts
+const app = express();
+
+app.post("/universer-api/authz/-/object/-/batch_allowed", express.json(), (request, response) => {
+  const body = request.body as {
+    requests: Array<{ unitID: string; objectID: string; actions: unknown[] }>;
+  };
+  response.json({
+    error: { code: ErrorCode.OK, message: "" },
+    objectActions: body.requests.map((item) => ({
+      unitID: item.unitID,
+      objectID: item.objectID,
+      actions: item.actions.map((action) => ({ action, allowed: true })),
+    })),
+  });
+});
+
+app.use("/universer-api", (request, response) => {
+  request.url = request.originalUrl;
+  transport.handleRequest(request, response);
+});
+app.use(express.static("dist/web"));
+
+const server = createServer(app);
+server.on("upgrade", (request, socket, head) => {
+  transport.handleUpgrade(request, socket, head);
+});
+server.listen(3010, "127.0.0.1");
+```
+
+全部允許只是教學簡化，不能作為安全邊界。實際應用程式必須保護 HTTP 讀取、即時 JOIN、變更集提交與 Unit 生命週期操作。完整覆蓋模型請參閱[身分與授權](/server/collaboration/identity-and-authorization)。
+
+### 4. 在瀏覽器 Runtime 註冊 Collaboration Client
+
+保留一般 Web SDK 與預設集，再加入協同外掛及協定 URL：
+
+```ts
+import { LocaleType, LogLevel } from "@univerjs/core";
+import { UniverCollaborationPlugin } from "@univerjs-pro/collaboration";
+import { UniverCollaborationClientPlugin } from "@univerjs-pro/collaboration-client";
+import CollaborationClientEnUS from "@univerjs-pro/collaboration-client/locale/en-US";
+import {
+  BrowserCollaborationSocketService,
+  UniverCollaborationClientUIPlugin,
+} from "@univerjs-pro/collaboration-client-ui";
+import CollaborationClientUIEnUS from "@univerjs-pro/collaboration-client-ui/locale/en-US";
+import { UniverLicensePlugin } from "@univerjs-pro/license";
+import { UniverSheetsCorePreset } from "@univerjs/preset-sheets-core";
+import UniverPresetSheetsCoreEnUS from "@univerjs/preset-sheets-core/locales/en-US";
+import { createUniver, defaultTheme, mergeLocales } from "@univerjs/presets";
+import "@univerjs/preset-sheets-core/lib/index.css";
+import "@univerjs-pro/collaboration-client-ui/lib/index.css";
+
+const httpProtocol = location.protocol === "https:" ? "https" : "http";
+const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
+const baseURL = `${httpProtocol}://${location.host}/universer-api`;
+
+createUniver({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(
+      UniverPresetSheetsCoreEnUS,
+      CollaborationClientEnUS,
+      CollaborationClientUIEnUS,
+    ),
+  },
+  theme: defaultTheme,
+  logLevel: LogLevel.WARN,
+  collaboration: true,
+  presets: [UniverSheetsCorePreset({ container: "app" })],
+  plugins: [
+    [UniverLicensePlugin, { license: import.meta.env.UNIVER_LICENSE || undefined }],
+    UniverCollaborationPlugin,
+    [
+      UniverCollaborationClientPlugin,
+      {
+        socketService: BrowserCollaborationSocketService,
+        sendChangesetTimeout: 200,
+        authzUrl: `${baseURL}/authz`,
+        snapshotServerUrl: `${baseURL}/snapshot`,
+        collabSubmitChangesetUrl: `${baseURL}/comb`,
+        collabWebSocketUrl: `${wsProtocol}://${location.host}/universer-api/comb/connect`,
+        wsSessionTicketUrl: `${baseURL}/user/session-ticket`,
+      },
+    ],
+    UniverCollaborationClientUIPlugin,
+  ],
+});
+```
+
+頁面需要 `id="app"` 的元素，並透過查詢參數選擇 Unit：
+
+```text
+/?unit=quick-start-sheet&type=2
+```
+
+### 5. 將教學設定換成應用程式能力
+
+| 教學設定 | 替換內容 |
+| --- | --- |
+| 固定 `demo-user` | 應用程式驗證 Middleware 與穩定使用者 ID |
+| 權限檢查一律允許 | 涵蓋讀取、JOIN、提交與生命週期的伺服器 ACL |
+| 固定 Unit | 呼叫 `createUnitFromData()` 的應用程式建立 API 與產品記錄 |
+| Memory Adapter | SQLite 或通過契約測試的自訂持久化 Adapter |
+
+接下來完成[資料庫介接器](/server/collaboration/database-adapters)與[身分及授權](/server/collaboration/identity-and-authorization)，再依需要加入 [History、Thread Comment、Worktree 或 Exchange](/server/collaboration/extensions)。所有可執行組合請參閱[範例索引](/server/collaboration/examples)。

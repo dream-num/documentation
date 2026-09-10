@@ -1,0 +1,100 @@
+---
+title: Импорт и экспорт файлов Office
+description: Использование Exchange для обмена содержимым между файлами Office и совместными Units.
+---
+
+Преобразование Office предоставляет `@univerjs-pro/exchange-node`, а не AI SDK. CLI вызывает `importFile()` и `exportToFile()` на файловой границе, затем использует AI SDK и Collaboration SDK для работы с Unit.
+
+## Соблюдение границ SDK
+
+```ts
+import { exportToFile, importFile } from "@univerjs-pro/exchange-node";
+```
+
+| Возможность | Ответственный |
+| --- | --- |
+| Преобразование файлов Office и UnitData | Exchange |
+| Среда без интерфейса, проверка содержимого и выполнение Facade | AI SDK |
+| Снимки, наборы изменений, ревизии и сохранение | Collaboration SDK |
+| Пути, политика форматов, бизнес-API и сопоставление ошибок | Бизнес-приложение |
+
+## Импорт совместной Unit
+
+Приложение читает Office через Exchange и отправляет полученные UnitData в Collaboration Server для создания Unit:
+
+```text
+файл Office
+→ importFile()
+→ UnitData
+→ API бизнес-сервера
+→ совместная Unit
+```
+
+Приложение определяет начальную ревизию, бизнес-метаданные и результат. После создания CLI и Web работают с Unit через сервер.
+
+## Экспорт актуальной ревизии
+
+CLI сначала загружает последнюю подтверждённую ревизию через Collaboration Runtime, затем передаёт полные UnitData в Exchange:
+
+```text
+совместная Unit
+→ актуальные UnitData
+→ exportToFile()
+→ файл Office
+```
+
+Формат экспорта определяется расширением выходного файла.
+
+## Предоставление файловых операций через Commander
+
+AI SDK не предоставляет пресет команд импорта и экспорта Office. Приложение объединяет Exchange, Collaboration Runtime и собственный серверный API через Commander:
+
+```ts
+import { Command } from "commander";
+
+interface IFileExchangeDependencies {
+  importFile(path: string): Promise<unknown>;
+  createUnit(unitData: unknown): Promise<unknown>;
+  loadLatestUnitData(unitId: string): Promise<unknown>;
+  exportFile(unitData: unknown, path: string): Promise<void>;
+  writeResult(result: unknown): void;
+}
+
+function addFileExchangeCommands(program: Command, dependencies: IFileExchangeDependencies): void {
+  program.addCommand(
+    new Command("import").argument("<office-file>").action(async (sourcePath) => {
+      const unitData = await dependencies.importFile(sourcePath);
+      const created = await dependencies.createUnit(unitData);
+      dependencies.writeResult(created);
+    }),
+  );
+
+  program.addCommand(
+    new Command("export")
+      .argument("<office-file>")
+      .requiredOption("--unit <id>")
+      .action(async (outputPath, { unit }) => {
+        const unitData = await dependencies.loadLatestUnitData(unit);
+        await dependencies.exportFile(unitData, outputPath);
+      }),
+  );
+}
+```
+
+Все возможности вне Commander явно объявлены в `IFileExchangeDependencies`; скрытых помощников нет. Приложение реализует преобразование через Exchange `importFile()` / `exportToFile()`, `loadLatestUnitData()` через Collaboration Runtime и внедряет свой серверный API и представление результата.
+
+## Поддерживаемые форматы
+
+| Unit | Импорт | Экспорт |
+| --- | --- | --- |
+| Sheet | `.xls`, `.xlsx`, `.xlsm`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` |
+| Doc | `.doc`, `.docx` | `.docx` |
+| Slide | `.ppt`, `.pptx`, `.pptm`, `.ppsx`, `.ppsm`, `.potx` | `.pptx` |
+
+Приложение должно отклонить расширение, не соответствующее типу Unit, до генерации файла.
+
+## Только локальная CLI
+
+Можно обойти Collaboration Server, передать импортированное содержимое прямо в локальную среду без интерфейса и экспортировать Office. Это удобно для разовой обработки, но не предоставляет общих ревизий, живого Web-просмотра, History или Worktree.
+
+Имена команд, аргументы путей и вывод определяет приложение. Совместный сценарий см. в [Загрузке и операциях с содержимым](/ai/content-operations). После файловой границы добавьте [Визуальную проверку](/ai/visual-inspection), чтобы AI Agent мог проверить отрисованные UnitData.

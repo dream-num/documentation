@@ -1,0 +1,154 @@
+---
+title: 'Worktree : édition par AI Agent et revue humaine'
+description: Faire éditer et inspecter une Unit par un AI Agent dans un brouillon Worktree isolé, puis la faire réviser et fusionner dans Web.
+source: https://github.com/dream-num/univer-collaboration-sdk/blob/main/packages/collaboration-worktree-service/README.md
+---
+
+Worktree offre un espace d’édition isolé aux AI Agents. Un AI Agent peut récupérer, inspecter, exécuter et committer en plusieurs cycles dans un brouillon, puis le marquer Ready après ses contrôles structurés et visuels. Une personne examine le rendu dans Web et choisit Merge ou Reopen.
+
+```text
+créer un Worktree
+→ édition du brouillon par AI Agent
+→ contrôles structurés et visuels
+→ Ready
+→ revue humaine dans Web
+→ Merge / Reopen
+→ trunk
+```
+
+## Pourquoi Worktree
+
+- Les modifications intermédiaires restent isolées du trunk.
+- Le brouillon possède ses propres instantanés, jeux de modifications, révisions, Presence et rooms temps réel.
+- L’AI Agent peut synchroniser, éditer et vérifier plusieurs fois avant de présenter le résultat.
+- Ready fige la révision actuelle du brouillon et définit une frontière de revue explicite.
+- Une personne peut réviser, continuer à éditer, fusionner ou rouvrir dans Web.
+- Merge passe toujours par les frontières d’autorisation et de commit du Collaboration Service du trunk.
+
+## Parcours complet
+
+```text
+créer / sélectionner un Worktree
+→ sélectionner une Unit Worktree
+→ chargement par Collaboration Runtime
+→ pull
+→ inspect
+→ api find / show
+→ execute(write)
+→ runtime.commit()
+→ inspect + screenshot + layout lint
+→ markReady
+→ revue Web
+→ merge / reopen
+```
+
+Après [Chargement et opérations de contenu](/ai/content-operations), [Import-export Office](/server/import-export/node) et [Inspection visuelle](/ai/visual-inspection), pointez les mêmes capacités vers une cible Worktree pour constituer le parcours recommandé d’édition par AI Agent.
+
+## Cible Worktree
+
+Collaboration Runtime manipule toujours l’instantané, les changements et la révision d’une seule Unit ; il n’interprète pas le concept produit Worktree. L’adaptateur applicatif traduit `worktreeID + unitID` en URL Snapshot, Submit, WebSocket et Session Ticket du Worktree Endpoint, puis les transmet au backend du runtime.
+
+```text
+worktreeID + unitID
+→ adaptateur de cible applicatif
+→ URL du protocole Worktree
+→ Collaboration Runtime
+```
+
+Le même modèle d’exécution peut ainsi se connecter au trunk ou à un brouillon isolé.
+
+## Opérations d’un AI Agent dans un brouillon
+
+Le même cycle s’applique aux Units ordinaires et Worktree :
+
+```text
+load → pull → inspect → execute(write) → commit
+```
+
+Pour une entrée Inspection prête à l’emploi, `@univer-cli/content-inspection-command` fournit deux fabriques :
+
+- `createContentInspectionCommand()` pour une cible Unit ordinaire.
+- `createWorktreeContentInspectionCommand()` pour imposer le choix explicite entre `--trunk` et `--worktree <id>`.
+
+L’application ajoute une sélection équivalente à execute, screenshot et aux autres commandes, et gère l’acquisition et la libération du runtime choisi.
+
+## Choisir un Worktree dans Commander
+
+La variante Worktree du préréglage Inspection impose `--trunk` ou `--worktree <id>` :
+
+```ts
+import type { WorktreeContentInspectionCommandDependencies } from "@univer-cli/content-inspection-command";
+import { createWorktreeContentInspectionCommand } from "@univer-cli/content-inspection-command";
+import { Command } from "commander";
+
+function addWorktreeCommands(
+  program: Command,
+  dependencies: {
+    acquireRuntime: WorktreeContentInspectionCommandDependencies["acquireRuntime"];
+    markReady(worktreeID: string): Promise<void>;
+  },
+): void {
+  program.addCommand(
+    createWorktreeContentInspectionCommand({
+      acquireRuntime: dependencies.acquireRuntime,
+    }),
+  );
+
+  const worktreeCommand = new Command("worktree");
+  worktreeCommand
+    .command("ready")
+    .argument("<worktree-id>")
+    .action(async (worktreeID) => {
+      await dependencies.markReady(worktreeID);
+    });
+
+  program.addCommand(worktreeCommand);
+}
+```
+
+`acquireRuntime` et `markReady` sont des dépendances applicatives explicites, pas des utilitaires cachés d’AI SDK. La première implémente la correspondance cible-Runtime décrite plus haut ; la seconde appelle le Worktree Client de Collaboration SDK.
+
+Utilisez le même modèle de cible pour execute, screenshot et layout lint afin qu’un ID d’Unit ne désigne pas différents trunks ou brouillons. Web peut proposer Reopen, Discard, Merge et la revue réelle via le même Client. Des sous-commandes Commander supplémentaires peuvent envelopper certaines opérations au besoin.
+
+## Contrôles de l’AI Agent
+
+Avant Ready, combinez deux types de contrôles :
+
+```text
+contrôle structuré : pull → inspect
+contrôle visuel : Unit → Render Runtime → screenshot / layout lint
+```
+
+- Inspection vérifie le contenu structuré de Workbook, Worksheet, Range, Document, Paragraph, Presentation ou Slide.
+- Screenshot fournit les informations visuelles rendues.
+- Layout Lint diagnostique les problèmes de disposition des Slides.
+- En cas de problème, l’AI Agent peut exécuter, committer et vérifier à nouveau.
+
+## Distinguer Commit, Ready et Merge
+
+| Opération | Signification |
+| --- | --- |
+| `runtime.commit()` | Soumettre au brouillon le jeu de modifications produit par les mutations actuelles |
+| `markReady()` | Figer la révision du brouillon de chaque Unit et passer à `ready` |
+| `reopenWorktree()` | Revenir de `ready` à `draft` pour poursuivre l’édition |
+| `mergeWorktree()` | Fusionner les Units Worktree une par une dans le trunk |
+
+`runtime.commit()` ne fait avancer que le brouillon, sans fusionner dans le trunk. Ready passe le travail de l’AI Agent en revue ; Worktree Merge reste nécessaire pour atteindre le trunk.
+
+## Revue humaine dans Web
+
+Web charge le même brouillon avec Worktree Client et la configuration collaborative Worktree. La revue peut présenter :
+
+- L’état actuel du Worktree.
+- Le rendu de l’Unit du brouillon.
+- Le passage entre trunk et brouillon.
+- L’aperçu de fusion par Unit.
+- Les opérations Ready, Reopen, Discard et Merge.
+
+Une personne peut continuer à éditer dans Web, rouvrir pour laisser l’AI Agent poursuivre, ou fusionner et revenir au trunk pour voir le résultat intégré.
+
+## Frontière avec Collaboration SDK
+
+Worktree Service, Endpoint, Client et Database Adapter appartiennent à Collaboration SDK. AI SDK fournit Unit Runtime, Inspection, API Reference, Execution et Screenshot comme capacités composables. L’application possède les commandes de cycle de vie, le mappage des cibles, l’identité et les autorisations.
+
+Consultez les [extensions collaboratives](/server/collaboration/extensions) pour la composition serveur, le cycle de vie et les contraintes de fusion.

@@ -1,0 +1,193 @@
+---
+title: Identité et autorisations
+description: Raccordez votre système d’authentification et d’autorisation via les Middleware Transport, Endpoint et Service.
+---
+
+Le Univer Collaboration SDK ne définit ni utilisateurs, ni rôles, ni modèle ACL. L’application établit une identité fiable dans les Middleware Transport, puis protège les Sessions temps réel et les données collaboratives faisant autorité avec les Middleware Endpoint et Service.
+
+Cette page applique concrètement [Middleware et Events](/server/collaboration/middleware-and-events) à l’intégration de l’identité et des autorisations.
+
+## Modèle d’identité
+
+| Identifiant | Fournisseur | Signification et cycle de vie |
+| --- | --- | --- |
+| `userID` | Application | Identité métier stable et auteur des jeux de modifications confirmés |
+| `memberID` | Endpoint | ID du membre en ligne pour une Session WebSocket ; change après reconnexion |
+| `sid + reqId` | Client | Identité d’une soumission de modifications, stable lors des nouvelles tentatives |
+
+Les champs de profil envoyés par le navigateur, `memberID` et les révisions ne remplacent pas l’authentification de l’application. Associez la clé utilisateur stable à `context.userID`.
+
+## Établir l’identité dans les Middleware Transport
+
+Le Transport réexécute les Middleware pour chaque requête HTTP de collaboration. L’application peut lire un Cookie, une Session ou un jeton Bearer et ajouter le résultat authentifié au Context :
+
+```ts
+transport.use(async (context, next) => {
+  const user = await auth.requireUser(context.incomingMessage);
+
+  context.userID = user.id;
+  context.customData.user = user;
+  context.customData.tenantID = user.tenantID;
+  context.customData.traceID = readTraceID(context.incomingMessage);
+
+  await next();
+});
+```
+
+Si l’authentification échoue, terminez la réponse HTTP sans appeler `next()` :
+
+```ts
+transport.use(async (context, next) => {
+  const user = await auth.findUser(context.incomingMessage);
+  if (!user) {
+    context.response.statusCode = 401;
+    context.response.end("Authentication required");
+    return;
+  }
+
+  context.userID = user.id;
+  await next();
+});
+```
+
+Le SDK n’impose ni noms de Cookie, ni formats de jeton, ni tables utilisateur, ni parcours de connexion.
+
+## Transmission de l’identité à une Session WebSocket
+
+Le circuit WebSocket ne fait pas confiance aux champs utilisateur du contenu envoyé par le client. L’Endpoint étend un Context HTTP authentifié à une Session temps réel via un Session Ticket à usage unique :
+
+```text
+Requête HTTP de Session Ticket
+  → authentification par les Middleware Transport
+  → l’Endpoint stocke { userID, customData }
+  → renvoie un ticket opaque à usage unique
+  → l’ouverture WebSocket consomme le ticket
+  → crée la Session { userID, memberID, customData }
+```
+
+La chaîne du ticket ne contient ni `userID` ni `customData`. `memberID` identifie seulement la connexion courante et n’est pas une preuve d’identité indépendante.
+
+## Autoriser à la bonne frontière
+
+| Comportement à protéger | Middleware |
+| --- | --- |
+| Entrée HTTP de collaboration | Transport `use()` |
+| Connexion WebSocket | Endpoint `connect` |
+| Entrée dans une Room d’Unit | Endpoint `joinUnit` |
+| Lecture des instantanés, blocs ou jeux de modifications | Service `readUnitData` |
+| Soumission de modifications de contenu | Service `submitChangeset` |
+| Création d’une Unit | Service `createUnit` |
+| Suppression d’Units | Service `deleteUnits` |
+| Restauration d’Units | Service `recoverUnits` |
+
+`joinUnit` sur l’Endpoint contrôle uniquement l’entrée d’une Session dans une Room temps réel. Les instantanés et modifications manquantes peuvent être lus directement par HTTP : le contrôle JOIN ne remplace donc pas `readUnitData`. De même, l’interface client en lecture seule est une indication produit, pas un substitut à la politique serveur `submitChangeset`.
+
+## Protéger la lecture, JOIN et l’édition
+
+```ts
+import { CollabError } from "@univerjs-pro/collaboration-service";
+
+endpoint.use("joinUnit", async (context, next) => {
+  const allowed = await acl.canRead(context.session.userID, context.unitID);
+  if (!allowed) {
+    throw new CollabError("PERMISSION_DENIED", "Cannot join this Unit");
+  }
+  await next();
+});
+
+service.use("readUnitData", async (context, next) => {
+  const allowed = await acl.canRead(context.userID, context.request.unitID);
+  if (!allowed) {
+    throw new CollabError("PERMISSION_DENIED", "Unit is not accessible");
+  }
+  await next();
+});
+
+service.use("submitChangeset", async (context, next) => {
+  const unitID = context.request.changeset.unitID;
+  const allowed = await acl.canEdit(context.userID, unitID);
+  if (!allowed) {
+    throw new CollabError("PERMISSION_DENIED", "Unit is read-only");
+  }
+  await next();
+});
+```
+
+Une application réelle installe généralement les trois règles : lecture pour HTTP et JOIN, édition pour les soumissions.
+
+## Protéger le cycle de vie des Units
+
+Le protocole collaboratif ouvre des Units existantes. « Créer un document » est généralement une API applicative qui crée un enregistrement produit et une ACL avant d’appeler `createUnitFromData()` ou `createUnitFromSnapshot()`. Protégez aussi le cycle de vie via les Middleware Service :
+
+```ts
+service.use("createUnit", async (context, next) => {
+  if (!(await acl.canCreate(context.userID, context.request.snapshot.type))) {
+    throw new CollabError("PERMISSION_DENIED", "Unit creation denied");
+  }
+  await next();
+});
+
+service.use("deleteUnits", async (context, next) => {
+  for (const unitID of context.request.unitIDs) {
+    if (!(await acl.canDelete(context.userID, unitID))) {
+      throw new CollabError("PERMISSION_DENIED", `Cannot delete ${unitID}`);
+    }
+  }
+  await next();
+});
+```
+
+Protégez `recoverUnits` séparément. Un utilisateur qui avait le droit de supprimer ne conserve pas nécessairement indéfiniment le droit de restaurer.
+
+## Réutiliser les recherches via customData
+
+Les Middleware d’un même appel Service peuvent utiliser `customData` pour éviter les requêtes répétées :
+
+```ts
+service.use("submitChangeset", async (context, next) => {
+  const unitID = context.request.changeset.unitID;
+  context.customData.role ??= await acl.getRole(context.userID, unitID);
+
+  if (context.customData.role === "viewer") {
+    throw new CollabError("PERMISSION_DENIED", "Unit is read-only");
+  }
+  await next();
+});
+```
+
+`customData` appartient uniquement à l’appel ou à la Session courante et n’est pas persisté automatiquement. Rôles, ACL et relations entre locataires restent dans le stockage de l’application.
+
+## Des politiques distinctes pour les extensions
+
+History, Thread Comment et Worktree ont leurs propres Middleware Service :
+
+- la liste History et la lecture des modifications doivent vérifier le droit de lecture de l’Unit ;
+- la liste des commentaires doit vérifier la lecture ; ajout, réponse, modification et suppression appliquent la politique de commentaire ;
+- Worktree doit protéger séparément la visibilité, l’édition des brouillons, les changements d’état et la fusion ;
+- une fusion Worktree vers le tronc passe toujours par les Middleware Service du tronc.
+
+Les règles du Collaboration Service central ne protègent pas automatiquement ces modules. Réutilisez le même service de politiques applicatif au lieu de créer un modèle ACL distinct pour chaque extension.
+
+## Définir l’utilisateur courant côté client
+
+`UserManagerService.setCurrentUser()` définit l’ID, le nom et l’avatar de l’utilisateur pour l’instance Univer courante afin que les composants frontend puissent les lire. Par exemple, le filtre « Me concerne » du panneau de commentaires utilise cet ID pour afficher les commentaires liés à l’utilisateur courant.
+
+Configurez-le après la création de l’instance Univer et avant l’ouverture du document :
+
+```ts
+import { UserManagerService } from "@univerjs/core";
+
+// currentUser is your application profile; id/name/avatar are example field names.
+univer
+  .__getInjector()
+  .get(UserManagerService)
+  .setCurrentUser({
+    userID: currentUser.id,
+    name: currentUser.name,
+    avatar: currentUser.avatar ?? "",
+  });
+```
+
+Associez l’ID utilisateur stable de l’application à `userID`, en cohérence avec le `context.userID` authentifié du serveur. Définissez les noms et avatars partagés pendant la collaboration dans les Middleware `connect` du serveur, comme expliqué dans [Presence](/server/collaboration/presence).
+
+Consultez l’[exemple Permissions](/server/collaboration/examples#permissions) complet et exécutable.

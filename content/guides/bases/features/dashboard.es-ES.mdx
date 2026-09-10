@@ -1,0 +1,76 @@
+---
+title: Paneles y vistas dinámicas
+icon: 'ChartColumn'
+---
+
+Una vista dinámica resume una tabla, por ejemplo los ingresos por región. Un panel combina gráficos, filtros, texto e imágenes en una página. Estas funciones se proporcionan mediante plugins independientes; la visualización local no requiere colaboración.
+
+## Registrar los plugins
+
+Regístralos después de los plugins principales y de interfaz de Bases:
+
+```package-install
+npm install @univerjs-pro/bases-dashboard @univerjs-pro/bases-dashboard-ui
+```
+
+```ts
+import { UniverBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+import { UniverBaseDashboardUIPlugin } from '@univerjs-pro/bases-dashboard-ui'
+
+import '@univerjs-pro/bases-dashboard/facade'
+
+univer.registerPlugin(UniverBaseDashboardPlugin)
+univer.registerPlugin(UniverBaseDashboardUIPlugin)
+```
+
+Combina los recursos de idioma de los paquetes añadidos en tu aplicación. Los plugins declaran dependencias de gráficos, documentos y formas. Registra primero esas dependencias si necesitas personalizar su configuración.
+
+## Crear una vista dinámica de ingresos
+
+Este ejemplo crea una tabla y agrupa los ingresos por región:
+
+```ts
+import { PivotTableFiledAreaEnum } from '@univerjs-pro/engine-pivot'
+
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('Open a Base first')
+
+const table = base.insertTable('Orders', { primaryFieldName: 'Region' })
+const revenue = table.addField('Revenue', univerAPI.Enum.BaseFieldType.Number)
+table.addRecords([
+  { values: { [table.getPrimaryFieldId()]: 'East', [revenue.getId()]: 120 } },
+  { values: { [table.getPrimaryFieldId()]: 'West', [revenue.getId()]: 80 } },
+])
+
+const pivot = base.createPivotView('Revenue by region', table.getId())
+const pivotTable = pivot.getPivotTable()
+pivotTable.addFieldWithSourceId(table.getPrimaryFieldId(), PivotTableFiledAreaEnum.Row)
+pivotTable.addFieldWithSourceId(revenue.getId(), PivotTableFiledAreaEnum.Value)
+pivot.updateConfig({ pivot: pivotTable.toJSON(), displayMode: 'chart-and-table' })
+
+const baseUI = univerAPI.getBaseUI()
+await baseUI.activateTable(table.getId())
+await baseUI.activateView(pivot.getId())
+```
+
+`getPivotTable()` devuelve un modelo de cálculo independiente. Llama a `updateConfig()` después de editarlo para guardar los cambios en la Base. `displayMode` admite `table`, `chart` o `chart-and-table`.
+
+## Añadir su gráfico a un panel
+
+```ts
+const dashboard = base.createDashboard('Sales overview')
+dashboard.addPivotChart(table.getId(), pivot.getId(), {
+  title: 'Revenue by region',
+  layout: { column: 0, row: 0, columnSpan: 6, rowSpan: 6 },
+})
+```
+
+El gráfico referencia una vista dinámica existente. Esa vista gestiona los campos de agregación y los cálculos; el panel gestiona la distribución y la presentación. Abre el nuevo panel desde la barra lateral de Bases.
+
+Usa `addTableFilter()`, `addText()`, `addImage()` y `addFormulaShape()` para añadir filtros, texto enriquecido, imágenes y formas con fórmulas. Lee los widgets con `getWidgets()` y elimínalos con `removeWidget()`.
+
+## Guardado y permisos
+
+Guarda la instantánea completa con `base.save()`, incluidos los recursos del panel. Guardar solo los registros de la tabla pierde esta configuración. Registra los plugins del panel antes de restaurar una instantánea.
+
+Los paneles y las vistas dinámicas exponen `getPermission()` para configurar individualmente el modo de solo lectura; consulta [Permisos](/guides/bases/features/core/permissions). La API completa está en [Bases Facade](/reference/facade/bases).

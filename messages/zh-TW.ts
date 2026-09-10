@@ -2,6 +2,10 @@ import type { Messages } from './en-US'
 
 const zhTWMessages = {
   common: {
+    'zoom-in': '放大',
+    'zoom-out': '縮小',
+    'reset-zoom': '重設縮放',
+    diagram: '圖表',
     'expand-code': '展開程式碼',
     'collapse-code': '收合程式碼',
     'display-name': '繁體中文',

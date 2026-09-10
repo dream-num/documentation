@@ -1,0 +1,314 @@
+---
+title: 문서 로드와 콘텐츠 작업
+description: AI Agent의 최소 콘텐츠 작업 흐름을 익히고 Collaboration Runtime, Inspection, API Reference, Content Execution을 구성합니다.
+source: https://github.com/dream-num/univer-cli-sdk/blob/main/packages/univer-collaboration-runtime/README.md
+---
+
+## AI Agent의 최소 콘텐츠 작업 흐름
+
+각 콘텐츠 명령에서 업무 CLI가 대상 Unit을 로드하고 최신 내용을 동기화합니다. AI Agent 관점의 일반적인 흐름은 다음과 같습니다.
+
+<Mermaid chart={"flowchart LR\n    Task([편집 작업 수신]) --> Inspect[\"inspect<br/>구조·주요 내용 이해\"]\n    Inspect --> API[\"api find / api show<br/>필요 시: API 불명확\"]\n    API --> Read[\"execute · read<br/>필요 시: Inspection 미지원\"]\n    Read --> Write[\"execute · write<br/>편집·커밋\"]\n    Write --> Review[\"inspect / execute · read<br/>같은 경계로 검토\"]\n    Review --> Done([완료])"} />
+
+`api find` / `api show`, 읽기 모드, 최종 검토는 모두 조건에 따라 사용합니다. AI Agent는 다음 경계로 기능을 선택합니다.
+
+| AI Agent 목표 | 우선 기능 |
+| --- | --- |
+| 문서 구조와 주요 내용 분포 이해 | `inspect` 개요 |
+| Range, Paragraph, Slide 등 표준 콘텐츠 읽기 | `inspect` 선택자 |
+| 조건부 서식, 차트 설정 등 미지원 부분 읽기 | `execute --mode read` |
+| 익숙하지 않은 Facade API 검색·확인 | `api find` / `api show` |
+| 문서 수정·커밋 | `execute --mode write` |
+| 결과 검토 | `inspect` / `execute --mode read` |
+
+### 예제: Sheet 범위 업데이트
+
+‘`book-1`의 `Data!A2:B2`를 `[["East", 128000]]`로 변경’하는 작업을 가정합니다. 이 장의 뒤에서 설명할 업무 CLI 구성이 끝났다면 AI Agent는 다음 흐름을 사용합니다.
+
+1. Inspection으로 워크북과 대상 범위를 이해합니다.
+
+```bash
+UNIT_ID="book-1"
+my-cli inspect workbook --unit "$UNIT_ID" --json
+my-cli inspect range A1:B2 --worksheet name:Data --unit "$UNIT_ID" --json
+```
+
+2. API Reference를 보여주기 위해 AI Agent가 `setValues`를 모른다고 가정하고 검색·시그니처 확인을 합니다.
+
+```bash
+my-cli api find setValues --unit sheet
+my-cli api show FWorkbook.getSheetByName FWorksheet.getRange FRange.setValues
+```
+
+3. 쓰기 모드로 Facade 코드를 실행합니다. 커밋은 애플리케이션 `execute` 명령이 담당합니다.
+
+```bash
+my-cli execute --unit "$UNIT_ID" --mode write \
+  --code 'const sheet = workbook.getSheetByName("Data");
+if (!sheet) throw new Error("Worksheet Data not found");
+sheet.getRange("A2:B2").setValues([["East", 128000]]);'
+```
+
+4. 작업 위험에 따라 검토 여부를 결정합니다. Inspection이 범위 값을 지원하므로 다시 읽습니다.
+
+```bash
+my-cli inspect range A2:B2 --worksheet name:Data --unit "$UNIT_ID" --json
+```
+
+이 작업은 쓰기 전후 범위를 Inspection으로 읽을 수 있어 읽기 모드가 필요 없습니다. Inspection이 다루지 않는 내용에만 사용하세요. 조건부 서식과 차트 설정 예제는 아래에 있습니다.
+
+## 업무 CLI에 기능 구성
+
+이 장은 `@univer-cli/univer-collaboration-runtime`부터 시작해 Inspection, API Reference, Content Execution을 추가합니다. 코드는 핵심 인터페이스를 보여주며 서버 설정, 신원, 오류 표시, 명령 인수는 업무 애플리케이션이 추가합니다.
+
+모든 단계를 같은 Commander 루트 프로그램에 추가합니다.
+
+```ts
+import { Command } from "commander";
+
+const program = new Command("my-cli");
+
+// Register the inspect, execute, and api commands introduced below here.
+// Parse CLI arguments only after every command has been registered.
+await program.parseAsync();
+```
+
+### 1. 협업 Unit 로드
+
+Collaboration Runtime은 Node.js의 AI Agent용 Unit 실행 환경과 협업 클라이언트입니다. Runtime 하나는 수명 주기 전체에서 Unit 하나에 바인딩됩니다.
+
+```ts
+import {
+  createCollaborationServerAdapter,
+  createUniverCollaborationRuntimeFactory,
+} from "@univer-cli/univer-collaboration-runtime";
+import { UniverInstanceType } from "@univerjs/core";
+
+const factory = createUniverCollaborationRuntimeFactory({
+  backend: createCollaborationServerAdapter({
+    snapshotServerUrl,
+    collabSubmitChangesetUrl,
+    collabWebSocketUrl,
+    wsSessionTicketUrl,
+  }),
+  createUniver: headlessUniverFactory,
+});
+
+const unitId = "book-1";
+const runtime = await factory.load(unitId, UniverInstanceType.UNIVER_SHEET);
+```
+
+애플리케이션은 `headlessUniverFactory`를 주입합니다. `@univer-cli/headless-univer` 표준 구현이나 자체 구성을 사용하며 초기화 세부는 여기서 생략합니다. 서버 설정, 신원, 대상 Unit을 어댑터가 요구하는 프로토콜 주소로 매핑합니다. Runtime은 스냅샷을 로드하고 리비전·변경 집합을 유지하며 Facade 실행을 제공합니다.
+
+Runtime 핵심 API:
+
+| API | 용도 |
+| --- | --- |
+| `pull()` | 원격 변경 집합을 가져와 OT로 조정하고 Unit 갱신 |
+| `execute({ mode, code })` | Facade 실행. `read`는 읽기, `write`는 mutation 생성 |
+| `commit()` | 현재 대기 mutation 수동 제출 |
+| `exportUnitData()` | Runtime이 보유한 전체 UnitData 내보내기 |
+| `getState()` | 리비전·연결·대기·충돌 상태 읽기 |
+| `close()` | 백엔드 핸들과 Headless Univer 해제 |
+
+### 2. Inspection으로 내용 이해
+
+AI Agent는 일반 읽기 작업마다 Facade 코드를 다시 작성할 필요가 없습니다. `@univer-cli/content-inspection`은 안정적이고 구조화된 읽기 전용 결과를 반환합니다.
+
+| Unit | Inspection 개요 | 빠르게 얻는 전체 맥락 |
+| --- | --- | --- |
+| Sheet | 워크북 개요 | 워크시트 식별 정보, 사용 범위, Table·Rule·Drawing 요약 |
+| Doc | 문서 개요 | 문서 모드, 문단 인덱스, 텍스트 미리보기, 기능 개수 |
+| Slide | 프레젠테이션 개요 | 슬라이드 인덱스, 텍스트 미리보기, 요소 개수, 크기, Layout 개수 |
+
+Collaboration Runtime은 Inspection의 읽기 전용 실행 인터페이스에 직접 연결할 수 있습니다.
+
+```ts
+import { inspectContent } from "@univer-cli/content-inspection";
+
+const workbook = await inspectContent(
+  {
+    unitId: runtime.unitId,
+    unitType: "sheet",
+    execute: async (input) => {
+      const result = await runtime.execute(input);
+      return { value: result.value };
+    },
+  },
+  { kind: "workbook" },
+);
+```
+
+`inspectContent()`는 `unitId`로 읽기 전용 Facade 프로그램을 만들고 `univerAPI.getWorkbook(unitId)`로 대상 워크북을 찾습니다. `unitType`으로 쿼리와 Unit 유형 일치를 검증합니다.
+
+개요 쿼리로 구조·주요 내용을 파악한 뒤 worksheet, range, paragraph, slide 선택자로 표준 내용을 읽습니다. 전체 조건부 서식 규칙이나 차트 설정처럼 필요한 세부가 Inspection 결과에 없을 때만 `execute({ mode: "read" })`로 최소한의 집중 쿼리를 실행합니다.
+
+기본 Commander 상호작용에는 `inspect` preset을 추가합니다. 업무 애플리케이션은 Runtime lease만 제공합니다.
+
+```ts
+import type { ContentInspectionLease } from "@univer-cli/content-inspection-command";
+import { createContentInspectionCommand } from "@univer-cli/content-inspection-command";
+
+program.addCommand(
+  createContentInspectionCommand({
+    async acquireRuntime({ unitId }) {
+      const runtime = await factory.load(unitId, UniverInstanceType.UNIVER_SHEET);
+      await runtime.pull();
+
+      const lease: ContentInspectionLease = {
+        unitId,
+        unitType: "sheet",
+        execute: async (input) => {
+          const result = await runtime.execute(input);
+          return { value: result.value };
+        },
+        invalidate: () => runtime.close(),
+        release: () => runtime.close(),
+      };
+
+      return lease;
+    },
+  }),
+);
+```
+
+`acquireRuntime`은 preset의 공개 의존 필드이며 결과는 `ContentInspectionLease`를 따릅니다. 이 예제는 pool 없이 `invalidate()`와 `release()` 모두 전용 Runtime을 직접 닫습니다. preset은 선택자 파싱, 텍스트·JSON 출력, lease 해제를 담당합니다. 대상 매핑, Runtime 초기화, 인증, 원격 로드는 애플리케이션 책임입니다. 자체 AI Agent 프로토콜은 `inspectContent()`를 직접 호출하세요.
+
+### 3. Facade API 검색과 이해
+
+AI Agent가 작업은 알지만 API를 모르면 `@univer-cli/api-reference`를 사용합니다. 현재 SDK와 함께 배포되며 Unit 로드나 온라인 문서 서비스 접근이 필요 없습니다.
+
+```ts
+import { createStandardApiReference } from "@univer-cli/api-reference";
+
+const reference = createStandardApiReference();
+
+const matches = reference.find({
+  terms: ["setValues", "conditional formatting"],
+  unit: "sheet",
+  limit: 20,
+});
+
+const details = reference.show(["FRange", "FRange.setValues", "ICellData.v"]);
+```
+
+- `find()`는 작업 중심 용어로 후보 심벌을 검색합니다.
+- `show()`는 클래스·멤버·타입·열거형의 정확한 정보를 반환합니다.
+- `@univer-cli/api-reference-command`는 선택적인 `api find`, `api show` preset을 제공합니다.
+
+같은 reference를 Commander에 직접 추가합니다.
+
+```ts
+import { createApiCommand } from "@univer-cli/api-reference-command";
+
+program.addCommand(createApiCommand({ reference }));
+```
+
+API Reference는 실행을 돕습니다. AI Agent는 현재 내용을 Inspect하고 관련 API를 Find/Show한 뒤 Facade 코드를 생성·실행할 수 있습니다.
+
+### 4. Facade 읽기·쓰기 실행
+
+유연한 조회와 수정에는 Runtime의 `execute()`를 사용합니다. `@univer-cli/content-execution`은 Facade JavaScript를 명시적 Unit에 바인딩하고 해당 유형의 안정적 바인딩을 주입할 수 있습니다.
+
+```ts
+import { prepareContentExecutionProgram } from "@univer-cli/content-execution";
+
+const executionProgram = prepareContentExecutionProgram({
+  unitId,
+  unitType: "sheet",
+  code: 'workbook.getActiveSheet().getRange("A1").setValue("done");',
+});
+
+const execution = await runtime.execute({
+  mode: "write",
+  code: executionProgram,
+});
+```
+
+- `mode: "read"`는 유연한 읽기 전용 쿼리이며 mutation을 금지합니다.
+- `mode: "write"`는 Facade mutation을 수집하여 Runtime 로컬 대기 상태에 추가합니다.
+- 실행 성공은 코드 실행을 뜻하며 서버에 변경 집합이 제출되었다는 뜻은 아닙니다.
+
+`content-execution`은 실행 프로그램만 만듭니다. Runtime 획득, 변경 집합 제출, 공개 `execute` 명령 preset 패키지는 제공하지 않습니다. 따라서 업무 CLI가 애플리케이션 Commander 명령으로 감쌉니다.
+
+```ts
+const executeCommand = new Command("execute")
+  .requiredOption("--unit <id>")
+  .requiredOption("--code <javascript>")
+  .option("--mode <read|write>", "execute without or with mutations", "write")
+  .action(async ({ unit, code, mode }) => {
+    if (mode !== "read" && mode !== "write") {
+      throw new Error("--mode must be read or write");
+    }
+
+    const runtime = await factory.load(unit, UniverInstanceType.UNIVER_SHEET);
+    try {
+      await runtime.pull();
+      const executionProgram = prepareContentExecutionProgram({
+        unitId: unit,
+        unitType: "sheet",
+        code,
+      });
+      const execution = await runtime.execute({ mode, code: executionProgram });
+
+      if (mode === "read") {
+        process.stdout.write(`${JSON.stringify(execution.value, null, 2)}\n`);
+        return;
+      }
+
+      let committed = await runtime.commit();
+      if (committed.status === "pull-required") {
+        await runtime.pull();
+        committed = await runtime.commit();
+      }
+      if (committed.status !== "confirmed") {
+        throw new Error(`Commit failed: ${committed.status}`);
+      }
+
+      process.stdout.write(
+        `${JSON.stringify(
+          {
+            commit: committed.status,
+            mutations: execution.mutations.length,
+            revision: committed.state.baseRevision,
+            value: execution.value,
+          },
+          null,
+          2,
+        )}\n`,
+      );
+    } finally {
+      await runtime.close();
+    }
+  });
+
+program.addCommand(executeCommand);
+```
+
+이 명령의 기본값은 쓰기 모드입니다. 읽기는 Facade 반환값만 출력하며 mutation 생성이나 `commit()` 호출을 하지 않습니다. 쓰기는 커밋 확정 후 mutation 수, 리비전, 반환값을 출력하여 AI Agent가 제출 결과를 명확히 판단하게 합니다. Commander는 인수·명령 수명 주기를, 애플리케이션은 Runtime 획득, 커밋 재시도, 오류 표시, 권한 정책을 담당합니다. 이 최소 예제는 Sheet 고정입니다. Doc, Slide, Base, Board 지원 시 CLI Unit 유형에서 `UniverInstanceType`으로 명시적으로 매핑하세요.
+
+#### Inspection이 다루지 않는 내용에만 읽기 모드 사용
+
+Inspection은 워크시트의 조건부 서식 규칙 수를 알려주지만 각 규칙의 전체 설정은 포함하지 않습니다. 필요할 때 AI Agent는 API를 확인한 후 최소 Facade 코드를 읽기 모드로 실행합니다.
+
+```bash
+my-cli api find getConditionalFormattingRules --unit sheet
+my-cli api show FWorksheet.getConditionalFormattingRules
+
+my-cli execute --unit "$UNIT_ID" --mode read \
+  --code 'const sheet = workbook.getSheetByName("Data");
+if (!sheet) throw new Error("Worksheet Data not found");
+return sheet.getConditionalFormattingRules();'
+```
+
+Inspection은 차트 개수도 알려줍니다. 전체 차트 설정이 필요하면 집중 쿼리에서 `sheet.getCharts().map((chart) => chart.getInfo())`를 반환합니다. 읽기 모드는 mutation을 금지하며 Inspection 미지원 내용을 보완합니다. 기본적으로 Inspection을 대체하지 않습니다.
+
+## 정리
+
+같은 Commander 프로그램에 Runtime, Inspection, API Reference, Content Execution이 구성되었습니다. Runtime은 로드·동기화·실행·수동 커밋, Inspection은 구조화된 읽기, API Reference는 AI Agent의 API 검색을 담당하며 Commander가 일관된 CLI 진입점으로 묶습니다.
+
+일반 작업은 `inspect`로 구조·주요 내용·지원되는 표준 세부를 이해하며 시작합니다. API가 불명확하면 `api find` / `api show`를 사용합니다. Inspection 미지원 설정만 읽기 모드로 조회하고 쓰기 모드로 편집·커밋합니다. 검토에도 같은 Inspection 경계를 적용합니다.
+
+## 다음 단계
+
+[Office 파일 가져오기·내보내기](/server/import-export/node)를 추가하여 파일을 UnitData로 바꿔 같은 작업 흐름에 사용하거나 최신 UnitData를 Office 파일로 내보냅니다.

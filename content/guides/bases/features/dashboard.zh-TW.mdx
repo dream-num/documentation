@@ -1,0 +1,76 @@
+---
+title: 儀表板與樞紐分析檢視
+icon: 'ChartColumn'
+---
+
+樞紐分析檢視可彙總資料表，例如依地區統計營收。儀表板則在同一頁組合圖表、篩選器、文字與圖片。這些功能由獨立外掛提供，本機顯示不需要協同編輯。
+
+## 註冊外掛
+
+在 Bases 核心與 UI 外掛之後註冊：
+
+```package-install
+npm install @univerjs-pro/bases-dashboard @univerjs-pro/bases-dashboard-ui
+```
+
+```ts
+import { UniverBaseDashboardPlugin } from '@univerjs-pro/bases-dashboard'
+import { UniverBaseDashboardUIPlugin } from '@univerjs-pro/bases-dashboard-ui'
+
+import '@univerjs-pro/bases-dashboard/facade'
+
+univer.registerPlugin(UniverBaseDashboardPlugin)
+univer.registerPlugin(UniverBaseDashboardUIPlugin)
+```
+
+將新增套件的語言資源合併到應用程式。這些外掛宣告了圖表、文件與圖形相依項目；若要自訂這些相依項目的設定，請先註冊它們。
+
+## 建立營收樞紐分析檢視
+
+此範例建立資料表，並依地區分組營收：
+
+```ts
+import { PivotTableFiledAreaEnum } from '@univerjs-pro/engine-pivot'
+
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('Open a Base first')
+
+const table = base.insertTable('Orders', { primaryFieldName: 'Region' })
+const revenue = table.addField('Revenue', univerAPI.Enum.BaseFieldType.Number)
+table.addRecords([
+  { values: { [table.getPrimaryFieldId()]: 'East', [revenue.getId()]: 120 } },
+  { values: { [table.getPrimaryFieldId()]: 'West', [revenue.getId()]: 80 } },
+])
+
+const pivot = base.createPivotView('Revenue by region', table.getId())
+const pivotTable = pivot.getPivotTable()
+pivotTable.addFieldWithSourceId(table.getPrimaryFieldId(), PivotTableFiledAreaEnum.Row)
+pivotTable.addFieldWithSourceId(revenue.getId(), PivotTableFiledAreaEnum.Value)
+pivot.updateConfig({ pivot: pivotTable.toJSON(), displayMode: 'chart-and-table' })
+
+const baseUI = univerAPI.getBaseUI()
+await baseUI.activateTable(table.getId())
+await baseUI.activateView(pivot.getId())
+```
+
+`getPivotTable()` 回傳獨立的計算模型。修改後請呼叫 `updateConfig()`，將變更保存到 Base。`displayMode` 可設為 `table`、`chart` 或 `chart-and-table`。
+
+## 將圖表加入儀表板
+
+```ts
+const dashboard = base.createDashboard('Sales overview')
+dashboard.addPivotChart(table.getId(), pivot.getId(), {
+  title: 'Revenue by region',
+  layout: { column: 0, row: 0, columnSpan: 6, rowSpan: 6 },
+})
+```
+
+圖表參照既有的樞紐分析檢視。彙總欄位與計算由該檢視管理，儀表板則管理版面與呈現方式。可從 Bases 側邊欄開啟新儀表板。
+
+使用 `addTableFilter()`、`addText()`、`addImage()` 與 `addFormulaShape()` 加入篩選器、富文字、圖片與公式圖形。使用 `getWidgets()` 讀取元件，以 `removeWidget()` 移除。
+
+## 儲存與權限
+
+以 `base.save()` 儲存完整快照，包含儀表板資源。只儲存資料表記錄會遺失這些設定。還原快照前，請先註冊儀表板外掛。
+
+儀表板與樞紐分析檢視均提供 `getPermission()`，可個別設定唯讀，請參閱[權限](/guides/bases/features/core/permissions)。完整 API 請參閱 [Bases Facade](/reference/facade/bases)。

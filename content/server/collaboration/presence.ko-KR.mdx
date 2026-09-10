@@ -1,0 +1,160 @@
+---
+title: 온라인 상태
+description: 문서의 온라인 멤버와 협업자 이름·아바타를 표시하고 원격 커서와 선택 영역을 활성화합니다.
+---
+
+Presence는 누가 같은 문서를 열었고 어디서 작업하는지 보여줍니다. Bob이 B3 셀을 선택하면 Alice는 ‘Bob’ 이름이 붙은 선택 영역을 봅니다. 현재 협업자를 아바타 바나 멤버 목록에 표시할 수도 있습니다.
+
+SDK는 멤버와 커서 정보를 동기화하고 지원되는 원격 커서를 렌더링합니다. 애플리케이션은 이름과 아바타를 제공하고 멤버 구독 API로 아바타 바, 멤버 패널, 온라인 사용자 수를 구현할 수 있습니다.
+
+## 시작 전
+
+[빠른 시작](/server/collaboration/quick-start)과 [신원 확인과 권한 부여](/server/collaboration/identity-and-authorization)를 먼저 완료하세요. 편집 동기화가 동작하고, 서버가 `context.userID`로 로그인 사용자를 식별하며, 읽기·JOIN·편집 정책이 설정되어 있어야 합니다.
+
+아래 예제는 기존 `transport`, `endpoint`, `univer` 설정을 확장합니다. 앞선 인증과 권한 규칙은 유지하세요.
+
+## 멤버와 커서 동기화
+
+Alice와 Bob이 같은 스프레드시트를 엽니다. Presence 업데이트는 두 종류입니다.
+
+| 동작 | 멤버 목록 | Alice가 시트에서 보는 내용 |
+| --- | --- | --- |
+| Alice가 시트를 엶 | Alice | 자신의 선택 영역 |
+| Bob이 같은 시트를 엶 | Alice, Bob | Bob이 셀을 선택하면 그의 선택 영역 |
+| Bob이 B3에서 C5로 이동 | Alice, Bob | Bob의 선택 영역이 C5로 이동 |
+| Bob이 시트를 닫음 | 나가기 업데이트 수신 후 Alice만 | Bob의 선택 영역 사라짐 |
+
+멤버 목록은 연결이 참여하거나 나갈 때 변합니다. 커서 이동은 선택 영역만 바꾸며 멤버를 추가·삭제하지 않습니다. C5 값을 편집하면 협업 편집 흐름을 통해 문서 콘텐츠도 동기화됩니다.
+
+Presence 범위는 문서(Unit) 하나이며 현재 그 문서에 연결된 사람을 나타냅니다. 앞서 설정한 접근 목록은 열기 권한이 있는 모든 사람을 나타냅니다. Presence는 임시 정보로, 커서 이동은 변경 집합을 생성하거나 문서 리비전을 올리거나 DB에 저장하지 않습니다.
+
+빠른 시작의 협업 플러그인과 해당 편집기 UI를 활성화하면 SDK가 로컬 커서·선택 업데이트를 수집·전송하고 다른 멤버 편집기에 커서, 선택 영역, 이름을 표시합니다.
+
+| 편집기 | 온라인 멤버 구독 | 원격 커서·선택 UI |
+| --- | --- | --- |
+| Sheet | 지원 | 셀·범위 선택 |
+| Doc | 지원 | 텍스트 커서·선택 |
+| Slide | 지원 | 포인터 위치·객체 선택 |
+| Board | 지원 | 포인터 위치·객체 선택 |
+| Base | 지원 | 제공하지 않음 |
+
+## 1. 협업자 이름과 아바타 설정
+
+Endpoint의 `connect` Middleware에서 `context.member.name`, `context.member.avatar`를 설정합니다. 프로필 조회 방식은 애플리케이션이 결정합니다. 인증된 `context.session.userID`로 조회하거나 인증 때 `customData`에 저장한 정보를 재사용합니다.
+
+이 예제는 중복 조회를 피하려고 `customData`를 사용합니다. 기존 Transport Middleware에 필드를 추가하고 서버 시작 전에 `connect`를 등록하세요.
+
+```ts
+type AppUser = {
+  id: string;
+  name: string;
+  avatar?: string;
+};
+
+transport.use(async (context, next) => {
+  // Your authentication function; rejects unauthenticated requests.
+  const user: AppUser = await auth.requireUser(context.incomingMessage);
+  context.userID = user.id;
+  // An application-defined field to reuse the profile in connect.
+  context.customData.user = user;
+  await next();
+});
+
+endpoint.use("connect", async (context, next) => {
+  // Read the profile saved when the session ticket was issued.
+  const user = context.session.customData.user as AppUser;
+  // Without this assignment, the member name defaults to userID.
+  context.member.name = user.name;
+  // Use an empty string when there is no avatar URL.
+  context.member.avatar = user.avatar ?? "";
+  await next();
+});
+```
+
+SDK는 session-ticket 요청의 `customData`를 `context.session.customData`로 전달합니다. `user` 키와 `AppUser` 타입은 애플리케이션이 정하며 SDK는 해석하지 않습니다. 다른 협업자는 `context.member`에 지정된 프로필을 받습니다.
+
+`connect`는 재연결을 포함한 새 WebSocket 연결마다 문서 참여 전에 한 번 실행됩니다. 애플리케이션에서 프로필을 변경해도 기존 연결에 공유된 멤버 프로필이 자동 갱신되지는 않습니다.
+
+## 2. 멤버 목록 표시(선택)
+
+아바타 바나 멤버 패널이 필요하면 `subscribeCollaborators(unitID, callback)`으로 열린 문서의 멤버를 구독합니다. 커서 렌더링은 이 구독과 독립적입니다.
+
+```ts
+import { FUniver } from "@univerjs/core/facade";
+// Import once in the client entry point to enable collaboration Facade methods.
+import "@univerjs-pro/collaboration-client/facade";
+
+// Reuse an existing univerAPI if your editor setup already provides one.
+const univerAPI = FUniver.newAPI(univer);
+// unitID is the ID of the document open in the editor.
+const subscription = univerAPI.getCollaboration().subscribeCollaborators(unitID, (members) => {
+  // Each callback is a new list snapshot that the application can use to update its UI.
+  console.table(members);
+});
+```
+
+SDK는 문서의 협업 Room이 준비될 때까지 기다립니다. 각 콜백은 클라이언트가 현재 아는 멤버의 `IMember[]` 스냅샷을 받으며 참여 후 자신도 포함됩니다. 초기화 중에는 빈 목록이 올 수 있습니다. 콜백은 멤버 정보를 전달하며 커서 위치는 전달하지 않습니다.
+
+Alice와 Bob의 데이터는 다음과 같습니다(ID는 예시입니다).
+
+| `userID` | `memberID`                             | `name`  | `avatar` |
+| -------- | -------------------------------------- | ------- | -------- |
+| `alice`  | `83446a72-a1cc-4ed8-aedc-afd8907bbb18` | `Alice` | `""`     |
+| `bob`    | `7ee5a94e-c784-4e1e-b1a3-b9d34be8ec4e` | `Bob`   | `""`     |
+
+`userID`는 애플리케이션의 사람을, SDK가 할당하는 `memberID`는 연결 하나를 식별합니다. Bob이 두 번째 탭을 열면 `userID: "bob"`는 같고 `memberID`가 다른 항목이 추가되어 두 사용자·세 연결이 됩니다. 아바타나 사용자 수는 `userID`로 묶고 연결 표시·집계는 `memberID`를 사용할 수 있습니다. 편집기는 각 연결의 커서를 별도로 표시합니다.
+
+구독을 사용하는 뷰가 제거되면 구독을 해제합니다.
+
+```ts
+subscription.dispose();
+```
+
+편집기를 파괴할 때 애플리케이션이 만든 `univerAPI`와 Univer 인스턴스도 해제합니다. 멤버 패널만 닫으면 해당 패널 구독만 해제하면 됩니다.
+
+### 예제: React 멤버 목록
+
+기존 `univerAPI`와 문서 ID를 이 컴포넌트에 전달하세요.
+
+```tsx
+import type { FUniver } from "@univerjs/core/facade";
+import type { IMember } from "@univerjs/protocol";
+import "@univerjs-pro/collaboration-client/facade";
+import { useEffect, useState } from "react";
+
+export function OnlineMembers({ univerAPI, unitID }: { univerAPI: FUniver; unitID: string }) {
+  const [members, setMembers] = useState<IMember[]>([]);
+
+  useEffect(() => {
+    // Clear the previous document list while waiting for the new subscription.
+    setMembers([]);
+    const subscription = univerAPI.getCollaboration().subscribeCollaborators(unitID, setMembers);
+    // Unsubscribe when the document changes or the component unmounts.
+    return () => subscription.dispose();
+  }, [univerAPI, unitID]);
+
+  // Show each user once, even when they have multiple connections.
+  const users = [...new Map(members.map((member) => [member.userID, member])).values()];
+
+  return (
+    <ul>
+      {users.map((user) => (
+        <li key={user.userID}>
+          {user.avatar && <img src={user.avatar} alt="" width={24} height={24} />}
+          <span>{user.name}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+구독은 클라이언트가 받은 최신 Room 멤버 상태를 반영합니다. 연결 손실 감지에는 시간이 걸려 나간 멤버가 잠시 남을 수 있습니다. SDK 기본 협업 상태 UI는 현재 클라이언트의 동기화 상태, 오프라인 표시, 재연결 동작을 제공합니다.
+
+## 두 사용자로 확인
+
+1. 별도 브라우저 프로필에서 Alice와 Bob으로 로그인해 같은 문서를 엽니다.
+2. 목록에 두 이름이 보이는지 확인합니다.
+3. Bob으로 Sheet의 B3, 이어 C5를 선택합니다. Alice는 Bob 이름이 붙은 선택 영역 이동을 보고 목록은 그대로여야 합니다.
+4. Bob으로 다른 탭을 엽니다. 구독에는 다른 `memberID`가 추가되지만 React 목록은 Bob을 한 번만 표시해야 합니다.
+5. Bob의 두 탭을 닫습니다. 나가기 업데이트 수신 후 Alice 목록에는 Alice만 남아야 합니다.

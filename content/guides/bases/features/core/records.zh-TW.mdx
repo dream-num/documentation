@@ -1,0 +1,69 @@
+---
+title: 記錄、關聯與階層
+---
+
+記錄代表任務、客戶、訂單或其他業務物件。使用 Facade API 可批次寫入、分頁讀取、關聯資料表，以及組織父子記錄。
+
+## 建立與讀取記錄
+
+```ts
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('Open a Base first')
+
+const table = base.insertTable('Tasks', { primaryFieldName: 'Title' })
+const titleId = table.getPrimaryFieldId()
+const records = table.addRecords([
+  { values: { [titleId]: 'Write documentation' } },
+  { values: { [titleId]: 'Review examples' } },
+])
+records[0].setValue(titleId, 'Publish documentation')
+
+const page = table.queryRecords({ offset: 0, limit: 20 })
+console.log(page.total, page.records)
+```
+
+值預設以欄位 ID 作為鍵。若資料以欄位名稱為鍵，請傳入 `univerAPI.Enum.BaseFieldKeyEnum.Name`。`queryRecords()` 查詢的是已載入的本機資料，不會向後端取得分頁。使用 `viewId` 讀取特定檢視範圍，或以 `sort` 指定順序。
+
+使用 `table.deleteRecords(recordIds)` 批次刪除，或以 `record.duplicate()` 複製記錄。這些操作透過命令系統執行，支援復原與重做。
+
+## 搜尋記錄
+
+在指定欄位中搜尋文字：
+
+```ts
+const matches = table.search({ query: 'documentation', fieldIds: [titleId], limit: 20 })
+console.log(matches)
+```
+
+## 關聯另一個資料表
+
+例如，將每個任務關聯到專案：
+
+```ts
+const projects = base.insertTable('Projects', { primaryFieldName: 'Name' })
+const project = projects.addRecord({ [projects.getPrimaryFieldId()]: 'Website' })
+const projectField = table.addField('Project', univerAPI.Enum.BaseFieldType.RecordLink, {
+  field: { config: { targetTableId: projects.getId(), multiple: false } },
+})
+records[0].setLinkedRecordIds(projectField.getId(), [project.getId()])
+console.log(records[0].getLinkedRecordIds(projectField.getId()))
+```
+
+目標必須屬於同一個 Base。以 `multiple: true` 允許關聯多筆記錄，以 `displayFieldId` 指定顯示標籤，並透過 `pickerFieldIds` 在選擇器中提供額外資訊。請使用關聯 API 讀寫 ID，不要自行組合內部儲存字串。
+
+## 父子記錄
+
+將 API 審查設為文件任務的子記錄：
+
+```ts
+const parent = records[0]
+const parentFieldId = table.getHierarchyFieldId()
+const child = parent.addChild(parentFieldId, { [titleId]: 'Check API examples' })
+console.log(child.getParent(parentFieldId)?.getId())
+
+child.setParent(parentFieldId, null)
+```
+
+首次插入子記錄時，會自動建立所需的父記錄關聯欄位。使用 `getChildren()`、`getAncestors()` 與 `getDescendants()` 讀取關係。階層最多支援五層，不允許將自己設為父記錄或產生循環。請在 UI 中處理無效操作錯誤。
+
+階層屬於資料表資料，不會因切換或篩選檢視而改變。更多方法請參閱 [Bases Facade](/reference/facade/bases)。

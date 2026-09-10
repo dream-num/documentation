@@ -1,0 +1,213 @@
+---
+title: Frontières et relations des modules
+description: Comprenez les rôles, les flux de données et l’assemblage de Collaboration Client, Transport, Endpoint, Service et Database Adapter.
+---
+
+Univer Collaboration associe un Client navigateur à des modules serveur. Chaque module possède une catégorie de responsabilités. L’application les compose par leurs interfaces publiques sans intervenir dans l’implémentation interne de l’OT, du protocole ou de la persistance.
+
+## Diagramme complet
+
+<Mermaid chart={"flowchart LR\n    Browser[\"Navigateur<br/>Web SDK + Collaboration Client\"]\n    Transport[\"Node Transport<br/>HTTP · WebSocket\"]\n    Endpoint[\"Collaboration Endpoint<br/>Protocole · Session · Room\"]\n    Service[\"Collaboration Service<br/>Unit · OT · Révision\"]\n    Adapter[\"Database Adapter<br/>Atomicité · CAS · Idempotence\"]\n    Store[(Données collaboratives)]\n\n    Browser --> Transport --> Endpoint --> Service --> Adapter --> Store"} />
+
+## Collaboration Client
+
+Le Collaboration Client du navigateur fonctionne avec le Web SDK et :
+
+- demande les instantanés Unit et les modifications confirmées manquantes ;
+- obtient un Session Ticket à usage unique et ouvre un WebSocket ;
+- rejoint les Rooms Unit et échange Presence ;
+- soumet les mutations locales sous forme de jeux de modifications ;
+- reçoit ACK et diffusions, puis récupère les changements manquants après reconnexion.
+
+Le Client ne décide pas si l’utilisateur est fiable et n’est pas la source faisant autorité. Le serveur impose toujours identité et autorisation via les Middleware appropriés.
+
+## Node Transport
+
+`@univerjs-pro/collaboration-transport-node` est l’entrée HTTP/WebSocket Node.js. Il reçoit les requêtes et mises à niveau WebSocket du serveur HTTP hôte, exécute les Middleware d’entrée et distribue le trafic aux Endpoints.
+
+Il ne connaît ni OT, ni données Unit, ni modèles ACL. Trois méthodes principales permettent l’assemblage :
+
+```ts
+transport.use(httpMiddleware);
+transport.useUpgrade(upgradeMiddleware);
+transport.register(endpoint);
+```
+
+- `use()` intervient sur HTTP ordinaire et peut établir `userID`, `customData`, logs et traces ;
+- `useUpgrade()` intervient dans la négociation WebSocket et peut la refuser avant connexion ;
+- `register()` inscrit un Endpoint de protocole et confie son cycle de vie au Transport.
+
+## Collaboration Endpoint
+
+`@univerjs-pro/collaboration-endpoint` implémente le protocole du Univer Collaboration Client et gère :
+
+| Fonction | Responsabilité de l’Endpoint |
+| --- | --- |
+| Chargement | Fournit instantanés Unit, blocs et modifications confirmées manquantes au Client |
+| Soumission | Reçoit les changements, renvoie les ACK et diffuse les changements confirmés à la Room |
+| Connexion Session | Émet les tickets à usage unique, établit et maintient les Sessions WebSocket |
+| Collaboration Room | Traite JOIN, LEAVE, état des membres et Presence |
+| Cycle de vie Unit | Convertit suppressions et restaurations en appels Service |
+
+L’Endpoint ne réalise pas l’OT et ne stocke pas directement les données. Il obtient les résultats faisant autorité du Service et les adapte au protocole Client. Les opérations produit, comme créer un document, appellent le Service depuis une API applicative.
+
+## Collaboration Service
+
+`@univerjs-pro/collaboration-service` est le cœur indépendant du réseau pour Sheet, Doc, Slide, Board et Base. Il :
+
+- lit les données de récupération Unit et changements confirmés ;
+- crée des Units à partir de Unit Data ou d’instantanés ;
+- soumet les changements, exécute l’OT et avance les révisions continues ;
+- détecte les soumissions dupliquées par `(unitID, sid, reqId)` ;
+- supprime logiquement, restaure ou supprime définitivement les Units ;
+- exécute les Middleware Service et émet les Events après confirmation.
+
+Il ne fournit ni HTTP, ni WebSocket, ni utilisateurs, rôles, ACL, hiérarchie ou gestion de fichiers. L’Endpoint s’en sert pour le protocole navigateur. L’application peut aussi appeler son API publique depuis ses API métier ou tâches de fond.
+
+### API principales
+
+| Fonction | API Service |
+| --- | --- |
+| Charger une Unit | `getUnitLoadData()`, `getUnitLoadDataWithBlocks()` |
+| Lire les données incrémentales | `getChangesets()`, `getSheetBlock()` |
+| Créer une Unit | `createUnitFromData()`, `createUnitFromSnapshot()` |
+| Soumettre des changements | `submitChangeset()` |
+| Supprimer et restaurer | `deleteUnits()`, `recoverUnits()` |
+
+## Database Adapter
+
+Le Database Adapter est le contrat entre Service et stockage. Il garantit :
+
+- la création atomique de l’instantané initial et de ses dépendances ;
+- le compare-and-swap de révision ;
+- l’idempotence des soumissions ;
+- la visibilité des instantanés seulement après leurs dépendances ;
+- les lots de cycle de vie Unit en tout ou rien.
+
+Le SDK fournit Memory et SQLite. Les autres bases doivent implémenter le même contrat. Voir [Adaptateurs de base de données](/server/collaboration/database-adapters).
+
+## Quatre concepts centraux
+
+| Concept | Signification |
+| --- | --- |
+| Unit | Contenu Univer chargeable et collaboratif indépendamment, identifié par un `unitID` unique et un type |
+| Snapshot | Contenu Unit persistant à une révision, pas un objet vivant modifiable |
+| Changeset | Ensemble de mutations soumis avec révision de base et identité d’idempotence |
+| Revision | Numéro continu de version de l’état Unit confirmé, initialement `1` |
+
+Le contenu actif se modifie via les API Facade ou Commands. Modifier un objet instantané ne met pas à jour une Unit active du Client ou du Service.
+
+## Charger une Unit
+
+<Mermaid chart={"sequenceDiagram\n    participant Client\n    participant Transport\n    participant Endpoint\n    participant Service\n    participant Adapter\n\n    Client->>Transport: Chargement Unit par HTTP\n    Transport->>Endpoint: Context de requête authentifié\n    Endpoint->>Service: getUnitLoadData()\n    Service->>Adapter: Instantané + modifications\n    Adapter-->>Service: Données faisant autorité\n    Service-->>Endpoint: Données de chargement Unit\n    Endpoint-->>Client: Réponse du protocole"} />
+
+Le `userID/customData` établi par les Middleware Transport accompagne la requête HTTP dans les Middleware Service. La politique applicative autorise ou refuse la lecture ; rejoindre une Room n’est pas requis pour lire directement par HTTP.
+
+## Soumettre une édition
+
+```text
+Facade / Command
+  → Mutation
+  → Changeset du Client
+  → soumission Endpoint
+  → Middleware Service
+  → OT + CAS de révision
+  → commit atomique de l’Adapter
+  → Changeset confirmé
+  → ACK / diffusion à la Room
+```
+
+La révision confirmée dans le Database Adapter fait autorité. ACK et diffusions synchronisent les clients en ligne avec peu de latence. Un client ayant manqué un message peut lire les changements confirmés à partir de sa révision connue.
+
+## Assemblage serveur minimal
+
+```ts
+import { createServer } from "node:http";
+
+import { MemoryDatabaseAdapter } from "@univerjs-pro/collaboration-database-memory";
+import { UniverCollabEndpoint } from "@univerjs-pro/collaboration-endpoint";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { createNodeTransport } from "@univerjs-pro/collaboration-transport-node";
+
+const database = new MemoryDatabaseAdapter();
+const service = new UniverCollabService({ dbAdapter: database });
+const endpoint = new UniverCollabEndpoint(service);
+const transport = createNodeTransport();
+
+transport.use(async (context, next) => {
+  context.userID = "demo-user";
+  await next();
+});
+transport.register(endpoint);
+
+const server = createServer((request, response) => {
+  transport.handleRequest(request, response);
+});
+server.on("upgrade", (request, socket, head) => {
+  transport.handleUpgrade(request, socket, head);
+});
+server.listen(3010);
+```
+
+L’utilisateur fixe et Memory Adapter illustrent seulement l’assemblage. L’application établit un vrai Context via Middleware et choisit un Adapter selon ses besoins.
+
+### Créer une Unit via une API applicative
+
+L’application peut définir son endpoint HTTP ou RPC et appeler le `service` ci-dessus après authentification, validation des entrées et contrôles métier :
+
+```text
+Client métier
+  → POST /api/units
+  → authentification et validation applicatives
+  → service.createUnitFromData()
+  → Database Adapter
+```
+
+L’exemple Express suppose que le Middleware d’authentification a défini `response.locals.user` et que `request.body.data` a déjà été validé comme Workbook Data :
+
+```ts
+import { randomUUID } from "node:crypto";
+
+import { json } from "express";
+import { UniverType } from "@univerjs/protocol";
+
+app.post("/api/units", json({ limit: "1mb" }), async (request, response, next) => {
+  try {
+    const user = response.locals.user as { readonly userID: string };
+    const unitID = randomUUID();
+
+    const result = await service.createUnitFromData(
+      {
+        type: UniverType.UNIVER_SHEET,
+        data: {
+          ...request.body.data,
+          id: unitID,
+          rev: 1,
+        },
+      },
+      {
+        userID: user.userID,
+        customData: { traceID: randomUUID() },
+      },
+    );
+
+    response.status(result.status === "created" ? 201 : 200).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+```
+
+`POST /api/units` appartient à l’application, pas au protocole Collaboration Client. `createUnitFromData()` exécute toujours le Middleware `createUnit` du Service. Enregistrements produit, ACL propriétaire, conversion des erreurs en réponses et compensation restent à la charge de l’application.
+
+## Libération des ressources
+
+`transport.dispose()` libère les Endpoints inscrits avec `register()`. L’application libère séparément le Service et le Database Adapter injecté, dans l’ordre inverse de l’assemblage :
+
+```ts
+await transport.dispose();
+await service.dispose();
+await database.dispose();
+```
+
+Poursuivez avec [Middleware et Events](/server/collaboration/middleware-and-events) pour étendre les comportements à ces frontières.

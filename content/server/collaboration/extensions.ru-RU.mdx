@@ -1,0 +1,135 @@
+---
+title: Модули расширения совместной работы
+description: Узнайте, как History, Thread Comment, Worktree и серверное преобразование Office расширяют базовую совместную работу.
+---
+
+History, Thread Comment и Worktree — независимые расширения, подключаемые по необходимости. Они могут повторно использовать Transport, систему идентификации и физическую базу, но сохраняют собственные границы Service, Middleware, Event, Database Adapter и жизненного цикла.
+
+Серверное преобразование Office — процесс приложения: оно объединяет конвертацию файлов с API Collaboration Service, а не включает переключатель функции в основном Service.
+
+## Связи модулей
+
+<Mermaid chart={"flowchart TB\n    Transport[\"Node Transport\"]\n\n    subgraph Modules[\"Модули совместной работы\"]\n        direction LR\n        Core[\"Ядро совместной работы<br/>Endpoint · Service · Adapter\"]\n        History[\"History<br/>Endpoint · Service · Adapter\"]\n        Comment[\"Thread Comment<br/>Endpoint · Service · Adapter\"]\n        Worktree[\"Worktree<br/>Client · Endpoint · Service · Adapter\"]\n    end\n\n    Transport --> Core\n    Transport --> History\n    Transport --> Comment\n    Transport --> Worktree"} />
+
+| Расширение | Связь с ядром совместной работы |
+| --- | --- |
+| History | Наблюдает Events ядра и строит производный индекс истории |
+| Thread Comment | Использует Room Unit ядра; привязки комментариев относятся к основному содержимому |
+| Worktree | Использует Unit и OT ядра и сливает черновики в основную ветку |
+| Office Exchange | Создаёт или читает Units через API снимков Service ядра |
+
+History, Thread Comment и Worktree настраивают собственные Middleware, Events и Database Adapters.
+
+## История версий
+
+History группирует создание Unit и подтверждённые изменения в записи истории для пользователя. Это производный индекс: источником истины для содержимого Unit остаются подтверждённые изменения основного Collaboration Service.
+
+```ts
+const historyService = new UniverHistoryService({
+  collabService,
+  dbAdapter: historyDatabase,
+  userProvider,
+});
+
+const attachment = historyService.attach(collabService);
+transport.register(new UniverHistoryEndpoint(historyService));
+```
+
+`attach()` наблюдает Events `unitCreated` и `changesetCommitted` основного Service для обновления индекса. Политика по умолчанию группирует изменения по временному окну и особым мутациям, а не создаёт запись на каждый набор изменений.
+
+History имеет независимые Middleware чтения и индексации. `userProvider` только дополняет отображаемые данные, например имена и аватары, но не выполняет аутентификацию или авторизацию. Сбой Event Listener не откатывает уже подтверждённые изменения ядра, поэтому History всегда следует считать восстанавливаемыми производными данными.
+
+## Ветки комментариев
+
+Comment Service управляет текстом комментариев, ответами, правками, удалением и состоянием решения для Sheets и Docs:
+
+```ts
+const commentService = new UniverCommentService({
+  database: commentDatabase,
+  userProvider,
+});
+
+transport.register(
+  new UniverCommentEndpoint({
+    service: commentService,
+    roomHost: collabEndpoint,
+  }),
+);
+```
+
+Текст комментариев принадлежит Comment Adapter. Привязки, перемещающиеся вместе с содержимым Sheet или Doc, остаются частью снимков и изменений ядра. Comment Endpoint может публиковать `comment_update` через Room Unit основного Collaboration Endpoint, но сообщение реального времени не является эталонным состоянием комментариев. Клиент может восстановиться, повторно запросив список.
+
+Comment Service предоставляет Middleware добавления, списка, ответа, решения/повторного открытия, редактирования и удаления, а также Event `commentCommitted`. Политики чтения и редактирования основного Service не наследуются.
+
+## Черновики Worktree и слияние
+
+Worktree добавляет изолированные черновики, заморозку, оценку слияния и слияние по Unit для одной или нескольких Units:
+
+```text
+create → draft → ready → merging → merged
+           ↑       │
+           └ reopen┘
+
+draft / ready → discarded
+```
+
+```ts
+const worktreeService = new UniverCollabWorktreeService({
+  trunk: {
+    service: collabService,
+    dbAdapter: coreDatabase,
+  },
+  dbAdapter: worktreeDatabase,
+});
+```
+
+Worktree хранит независимые изменения черновиков по `(worktreeID, unitID)`, используя движки Unit, OT и отправки основного Service. Дальнейшие правки принимает только состояние `draft`. `markReady()` замораживает текущую ревизию черновика, а `mergeWorktree()` поочерёдно сливает Units в основную ветку.
+
+Worktree Service имеет независимые Middleware жизненного цикла, чтения и submit/apply/commit черновиков, а также Events создания, смены статуса, результатов слияния и фиксации изменений черновиков. Финальная запись в основную ветку по-прежнему проходит через Middleware основного Service.
+
+Слияние нескольких Units не атомарно между Units. Приложение должно показывать результат для каждой Unit.
+
+## Серверное преобразование Office
+
+Серверный Exchange объединяет `@univerjs-pro/exchange-node` с API Collaboration Service для перехода между файлами и совместным состоянием:
+
+```text
+Файл Office
+  → импорт exchange-node
+  → Snapshot + Sheet Blocks
+  → createUnitFromSnapshot()
+
+Подтверждённая ревизия Unit
+  → getUnitLoadDataWithBlocks()
+  → UnitSnapshotMaterializer
+  → экспорт exchange-node
+  → файл Office
+```
+
+Официальный пример импортирует XLS, XLSX, CSV или TSV в новую совместную Sheet и экспортирует текущую подтверждённую ревизию в XLSX, CSV или TSV.
+
+Файловое хранилище, состояние задач, контроль доступа, ограничения размера и бизнес-API принадлежат приложению. У Exchange нет отдельного Database Adapter совместной работы: он читает или создаёт эталонную Unit через основной Service.
+
+## Независимые точки расширения
+
+При подключении расширения оценивайте каждую границу отдельно:
+
+| Граница | Ядро | History | Comment | Worktree |
+| --- | --- | --- | --- | --- |
+| Service | Независим | Независим | Независим | Независим |
+| Middleware | Не общий | Не наследует ядро | Не наследует ядро | Не наследует ядро |
+| Event | Жизненный цикл ядра | Наблюдает Events ядра | `commentCommitted` | Жизненный цикл/коммит Worktree |
+| Database Adapter | Adapter ядра | History Adapter | Comment Adapter | Worktree Adapter |
+
+Adapters могут использовать один файл SQLite, оставаясь разными объектами с отдельными контрактами. Services и Adapters также освобождаются независимо.
+
+## Выбор возможностей
+
+| Требование продукта | Модуль | Первый пример |
+| --- | --- | --- |
+| История версий для пользователя | History Service, Endpoint, Adapter | `pnpm example:history` |
+| Комментарии Sheet или Doc | Comment Service, Endpoint, Adapter | `pnpm example:comments` |
+| Изолированные черновики, проверка и слияние | Worktree Service, Endpoint, Client, Adapter | `pnpm example:worktree` |
+| Серверный импорт и экспорт Office | Exchange Node + Collaboration Service | `pnpm example:exchange` |
+
+Полные команды запуска и URL страниц приведены в [указателе примеров](/server/collaboration/examples).

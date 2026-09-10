@@ -1,0 +1,160 @@
+---
+title: 線上狀態
+description: 顯示文件中的線上成員、協作者名稱與頭像，並啟用遠端游標和選取範圍。
+---
+
+Presence 讓使用者看見誰開啟了相同文件，以及其他人正在操作的位置。例如 Bob 選取 B3 儲存格時，Alice 會看到標有「Bob」的選取範圍。你也可以用頭像列或成員清單顯示目前協作者。
+
+SDK 同步成員與游標資訊，並呈現支援的遠端游標。應用可提供協作者名稱及頭像，使用成員訂閱 API 建立頭像列、成員面板或線上人數。
+
+## 開始之前
+
+先完成[快速開始](/server/collaboration/quick-start)及[身分與授權](/server/collaboration/identity-and-authorization)。此時編輯器應能同步編輯，服務端透過 `context.userID` 識別登入使用者，且已設定讀取、JOIN 與編輯策略。
+
+以下範例擴充既有 `transport`、`endpoint` 和 `univer` 設定。請保留前一篇的驗證與授權規則。
+
+## 成員與游標同步
+
+Alice 和 Bob 開啟相同試算表。Presence 有兩種更新：
+
+| 操作 | 成員清單 | Alice 在表格中看到的內容 |
+| --- | --- | --- |
+| Alice 開啟表格 | Alice | 自己的選取範圍 |
+| Bob 開啟相同表格 | Alice、Bob | Bob 選取儲存格時的選取範圍 |
+| Bob 從 B3 移至 C5 | Alice、Bob | Bob 的選取範圍移至 C5 |
+| Bob 關閉表格 | 收到離開更新後只剩 Alice | Bob 的選取範圍消失 |
+
+連線加入或離開時，成員清單才會改變。移動游標會改變編輯器中的選取範圍，不會新增或移除成員。編輯 C5 的值則另透過協同編輯流程同步文件內容。
+
+Presence 的範圍是一份文件（Unit），描述目前連接至該文件的人；前一篇設定的存取清單描述所有有權開啟文件的人。Presence 是暫時資料：移動游標不建立變更集、不推進文件修訂版本，也不存入資料庫。
+
+啟用快速開始中的協同外掛與對應編輯器 UI 後，SDK 會擷取並傳送本機游標、選取範圍更新，在其他成員的編輯器中呈現對應游標、選取範圍及名稱。
+
+| 編輯器 | 線上成員訂閱 | 遠端游標與選取範圍 UI |
+| --- | --- | --- |
+| Sheet | 支援 | 儲存格與範圍選取 |
+| Doc | 支援 | 文字游標與選取範圍 |
+| Slide | 支援 | 指標位置與物件選取 |
+| Board | 支援 | 指標位置與物件選取 |
+| Base | 支援 | 不提供 |
+
+## 1. 設定協作者名稱與頭像
+
+在 Endpoint 的 `connect` Middleware 設定 `context.member.name` 和 `context.member.avatar`。應用決定如何取得資料：使用已驗證的 `context.session.userID` 查詢，或透過 `customData` 重用驗證時儲存的資料。
+
+本例以 `customData` 避免第二次查詢。將欄位加入既有 Transport Middleware，並在啟動服務端前註冊 `connect`：
+
+```ts
+type AppUser = {
+  id: string;
+  name: string;
+  avatar?: string;
+};
+
+transport.use(async (context, next) => {
+  // Your authentication function; rejects unauthenticated requests.
+  const user: AppUser = await auth.requireUser(context.incomingMessage);
+  context.userID = user.id;
+  // An application-defined field to reuse the profile in connect.
+  context.customData.user = user;
+  await next();
+});
+
+endpoint.use("connect", async (context, next) => {
+  // Read the profile saved when the session ticket was issued.
+  const user = context.session.customData.user as AppUser;
+  // Without this assignment, the member name defaults to userID.
+  context.member.name = user.name;
+  // Use an empty string when there is no avatar URL.
+  context.member.avatar = user.avatar ?? "";
+  await next();
+});
+```
+
+SDK 將 session-ticket 請求的 `customData` 傳至 `context.session.customData`。`user` 鍵與 `AppUser` 類型由應用決定，SDK 不解讀它們。其他協作者收到的是指定給 `context.member` 的資料。
+
+`connect` 在每個新 WebSocket 連線（包括重新連線）加入文件前執行一次。應用中的個人資料變更不會自動更新已與既有連線共享的成員資料。
+
+## 2. 顯示成員清單（選用）
+
+應用需要頭像列或成員面板時，使用 `subscribeCollaborators(unitID, callback)` 訂閱開啟文件的成員。游標呈現不依賴此訂閱。
+
+```ts
+import { FUniver } from "@univerjs/core/facade";
+// Import once in the client entry point to enable collaboration Facade methods.
+import "@univerjs-pro/collaboration-client/facade";
+
+// Reuse an existing univerAPI if your editor setup already provides one.
+const univerAPI = FUniver.newAPI(univer);
+// unitID is the ID of the document open in the editor.
+const subscription = univerAPI.getCollaboration().subscribeCollaborators(unitID, (members) => {
+  // Each callback is a new list snapshot that the application can use to update its UI.
+  console.table(members);
+});
+```
+
+SDK 等待文件協同房間可用。每次回呼收到用戶端目前已知成員的 `IMember[]` 快照，加入後也包括自己。初始化時可能收到空清單。回呼提供成員資訊，不提供游標位置。
+
+Alice 和 Bob 的成員資料欄位如下（ID 僅供示範）：
+
+| `userID` | `memberID`                             | `name`  | `avatar` |
+| -------- | -------------------------------------- | ------- | -------- |
+| `alice`  | `83446a72-a1cc-4ed8-aedc-afd8907bbb18` | `Alice` | `""`     |
+| `bob`    | `7ee5a94e-c784-4e1e-b1a3-b9d34be8ec4e` | `Bob`   | `""`     |
+
+`userID` 識別應用中的使用者，`memberID` 由 SDK 指派，識別一個連線。Bob 開啟第二個分頁時，清單會增加一筆 `userID: "bob"` 相同、`memberID` 不同的記錄，此時是兩位使用者、三個連線。應用可依 `userID` 分組顯示頭像或線上人數，或依 `memberID` 顯示並計算連線。編輯器分別呈現每個連線的游標。
+
+使用訂閱的檢視移除後，釋放訂閱：
+
+```ts
+subscription.dispose();
+```
+
+銷毀編輯器時，釋放應用建立的 `univerAPI` 與 Univer 執行個體。只關閉成員面板時，只需釋放該面板的訂閱。
+
+### 範例：React 成員清單
+
+將既有 `univerAPI` 和文件 ID 傳入此元件：
+
+```tsx
+import type { FUniver } from "@univerjs/core/facade";
+import type { IMember } from "@univerjs/protocol";
+import "@univerjs-pro/collaboration-client/facade";
+import { useEffect, useState } from "react";
+
+export function OnlineMembers({ univerAPI, unitID }: { univerAPI: FUniver; unitID: string }) {
+  const [members, setMembers] = useState<IMember[]>([]);
+
+  useEffect(() => {
+    // Clear the previous document list while waiting for the new subscription.
+    setMembers([]);
+    const subscription = univerAPI.getCollaboration().subscribeCollaborators(unitID, setMembers);
+    // Unsubscribe when the document changes or the component unmounts.
+    return () => subscription.dispose();
+  }, [univerAPI, unitID]);
+
+  // Show each user once, even when they have multiple connections.
+  const users = [...new Map(members.map((member) => [member.userID, member])).values()];
+
+  return (
+    <ul>
+      {users.map((user) => (
+        <li key={user.userID}>
+          {user.avatar && <img src={user.avatar} alt="" width={24} height={24} />}
+          <span>{user.name}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+訂閱反映用戶端收到的最新房間成員狀態。偵測斷線需要時間，因此離開成員可能短暫保留。SDK 內建協同狀態 UI 提供目前用戶端的同步狀態、離線提示與重新連線操作。
+
+## 使用兩位使用者驗證
+
+1. 在不同瀏覽器設定檔中分別以 Alice 和 Bob 登入，開啟同一文件。
+2. 確認成員清單中出現兩個名稱。
+3. 在 Sheet 中以 Bob 選取 B3，再選 C5。Alice 應看到帶 Bob 名稱的選取範圍移動，成員清單保持不變。
+4. 以 Bob 開啟另一個分頁。訂閱應增加另一個 `memberID`，React 清單仍只顯示一次 Bob。
+5. 關閉 Bob 的兩個分頁。收到離開更新後，Alice 的清單應只剩 Alice。

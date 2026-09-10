@@ -1,0 +1,193 @@
+---
+title: Идентификация и авторизация
+description: Подключите существующую систему аутентификации и авторизации через Middleware Transport, Endpoint и Service.
+---
+
+Univer Collaboration SDK не определяет пользователей, роли и модель ACL. Приложение устанавливает доверенную идентичность в Middleware Transport, затем защищает Sessions реального времени и эталонные данные совместной работы через Middleware Endpoint и Service.
+
+Эта страница — практическое применение [Middleware и Events](/server/collaboration/middleware-and-events) для интеграции идентификации и авторизации через Middleware.
+
+## Модель идентификации
+
+| Идентификатор | Источник | Значение и жизненный цикл |
+| --- | --- | --- |
+| `userID` | Приложение | Стабильная бизнес-идентичность и автор подтверждённых наборов изменений |
+| `memberID` | Endpoint | ID участника в сети для одной Session WebSocket; меняется после переподключения |
+| `sid + reqId` | Клиент | Идентификатор отправки набора изменений, сохраняющийся при повторах |
+
+Поля профиля из браузера, `memberID` и ревизии не заменяют аутентификацию приложения. Сопоставьте стабильный ключ пользователя с `context.userID`.
+
+## Установление идентичности в Middleware Transport
+
+Transport заново выполняет Middleware для каждого HTTP-запроса совместной работы. Приложение может прочитать Cookie, Session или Bearer-токен и добавить результат аутентификации в Context:
+
+```ts
+transport.use(async (context, next) => {
+  const user = await auth.requireUser(context.incomingMessage);
+
+  context.userID = user.id;
+  context.customData.user = user;
+  context.customData.tenantID = user.tenantID;
+  context.customData.traceID = readTraceID(context.incomingMessage);
+
+  await next();
+});
+```
+
+При неудачной аутентификации завершите HTTP-ответ, не вызывая `next()`:
+
+```ts
+transport.use(async (context, next) => {
+  const user = await auth.findUser(context.incomingMessage);
+  if (!user) {
+    context.response.statusCode = 401;
+    context.response.end("Authentication required");
+    return;
+  }
+
+  context.userID = user.id;
+  await next();
+});
+```
+
+SDK не предписывает имена Cookie, форматы токенов, таблицы пользователей и процессы входа.
+
+## Передача идентичности в Session WebSocket
+
+Путь WebSocket не доверяет пользовательским полям в данных клиента. Endpoint переносит аутентифицированный HTTP Context в Session реального времени через одноразовый Session Ticket:
+
+```text
+HTTP-запрос Session Ticket
+  → аутентификация в Middleware Transport
+  → Endpoint сохраняет { userID, customData }
+  → возвращает непрозрачный одноразовый билет
+  → открытие WebSocket погашает билет
+  → создаётся Session { userID, memberID, customData }
+```
+
+Строка билета не содержит `userID` или `customData`. `memberID` идентифицирует только текущее соединение и не является самостоятельным удостоверением личности.
+
+## Авторизация на правильной границе
+
+| Защищаемое действие | Middleware |
+| --- | --- |
+| HTTP-вход совместной работы | Transport `use()` |
+| Соединение WebSocket | Endpoint `connect` |
+| Вход в Room Unit | Endpoint `joinUnit` |
+| Чтение снимков, блоков и наборов изменений | Service `readUnitData` |
+| Отправка правок содержимого | Service `submitChangeset` |
+| Создание Unit | Service `createUnit` |
+| Удаление Units | Service `deleteUnits` |
+| Восстановление Units | Service `recoverUnits` |
+
+`joinUnit` в Endpoint управляет только входом Session в Room реального времени. Снимки и недостающие наборы изменений можно читать напрямую по HTTP, поэтому проверка JOIN не заменяет `readUnitData`. Аналогично, интерфейс клиента «только чтение» — подсказка продукта, а не замена серверной политике `submitChangeset`.
+
+## Защита чтения, JOIN и редактирования
+
+```ts
+import { CollabError } from "@univerjs-pro/collaboration-service";
+
+endpoint.use("joinUnit", async (context, next) => {
+  const allowed = await acl.canRead(context.session.userID, context.unitID);
+  if (!allowed) {
+    throw new CollabError("PERMISSION_DENIED", "Cannot join this Unit");
+  }
+  await next();
+});
+
+service.use("readUnitData", async (context, next) => {
+  const allowed = await acl.canRead(context.userID, context.request.unitID);
+  if (!allowed) {
+    throw new CollabError("PERMISSION_DENIED", "Unit is not accessible");
+  }
+  await next();
+});
+
+service.use("submitChangeset", async (context, next) => {
+  const unitID = context.request.changeset.unitID;
+  const allowed = await acl.canEdit(context.userID, unitID);
+  if (!allowed) {
+    throw new CollabError("PERMISSION_DENIED", "Unit is read-only");
+  }
+  await next();
+});
+```
+
+Реальные приложения обычно устанавливают все три правила: чтение для HTTP и JOIN и редактирование для отправки.
+
+## Защита жизненного цикла Unit
+
+Протокол совместной работы открывает существующие Units. «Создать документ» — обычно API приложения, который создаёт запись продукта и ACL до вызова `createUnitFromData()` или `createUnitFromSnapshot()`. Защищайте жизненный цикл также через Middleware Service:
+
+```ts
+service.use("createUnit", async (context, next) => {
+  if (!(await acl.canCreate(context.userID, context.request.snapshot.type))) {
+    throw new CollabError("PERMISSION_DENIED", "Unit creation denied");
+  }
+  await next();
+});
+
+service.use("deleteUnits", async (context, next) => {
+  for (const unitID of context.request.unitIDs) {
+    if (!(await acl.canDelete(context.userID, unitID))) {
+      throw new CollabError("PERMISSION_DENIED", `Cannot delete ${unitID}`);
+    }
+  }
+  await next();
+});
+```
+
+Защитите `recoverUnits` отдельно. Пользователь, ранее имевший право удаления, не обязательно навсегда сохраняет право восстановления.
+
+## Повторное использование результатов через customData
+
+Middleware в одном вызове Service могут использовать `customData`, чтобы не повторять запросы:
+
+```ts
+service.use("submitChangeset", async (context, next) => {
+  const unitID = context.request.changeset.unitID;
+  context.customData.role ??= await acl.getRole(context.userID, unitID);
+
+  if (context.customData.role === "viewer") {
+    throw new CollabError("PERMISSION_DENIED", "Unit is read-only");
+  }
+  await next();
+});
+```
+
+`customData` относится только к текущему вызову или Session и не сохраняется автоматически. Роли, ACL и связи арендаторов остаются в хранилище приложения.
+
+## Отдельные политики для расширений
+
+History, Thread Comment и Worktree имеют независимые Middleware Service:
+
+- список History и чтение изменений должны проверять право чтения Unit;
+- список комментариев должен проверять чтение, а добавление, ответы, редактирование и удаление — политику комментариев;
+- Worktree должен отдельно защищать видимость, правки черновиков, смену статуса и слияние;
+- слияние Worktree в основную ветку по-прежнему проходит через Middleware Service основной ветки.
+
+Правила основного Collaboration Service не защищают эти модули автоматически. Повторно используйте один сервис политик приложения, а не отдельную модель ACL для каждого расширения.
+
+## Настройка текущего пользователя в клиенте
+
+`UserManagerService.setCurrentUser()` задаёт ID, имя и аватар пользователя для текущего экземпляра Univer, чтобы их могли читать компоненты интерфейса. Например, фильтр «Касается меня» панели комментариев использует этот ID для показа комментариев, связанных с текущим пользователем.
+
+Задайте его после создания экземпляра Univer и до открытия документа:
+
+```ts
+import { UserManagerService } from "@univerjs/core";
+
+// currentUser is your application profile; id/name/avatar are example field names.
+univer
+  .__getInjector()
+  .get(UserManagerService)
+  .setCurrentUser({
+    userID: currentUser.id,
+    name: currentUser.name,
+    avatar: currentUser.avatar ?? "",
+  });
+```
+
+Сопоставьте стабильный ID пользователя приложения с `userID`, совпадающим с аутентифицированным `context.userID` сервера. Имена и аватары участников, передаваемые при совместной работе, задаются в серверном Middleware `connect`, как описано в [Presence](/server/collaboration/presence).
+
+Полная запускаемая реализация приведена в [примере прав доступа](/server/collaboration/examples#permissions).

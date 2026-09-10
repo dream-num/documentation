@@ -1,0 +1,129 @@
+---
+title: Importation et exportation
+icon: 'FolderSync'
+---
+
+Bases importe **XLSX, XLS, CSV et TSV**, et exporte **XLSX, CSV et TSV**. Par exemple, importez une liste de clients Excel, ajoutez des champs et des vues, puis exportez les données de la table.
+
+Ces API nécessitent un backend de conversion. Commencez par l’[intégration de l’échange de fichiers](/server/import-export) et vérifiez que votre backend prend en charge les documents Bases et les formats requis.
+
+## Formats pris en charge
+
+Le tableau décrit les API du navigateur présentées ici. La conversion Office nécessite un backend compatible avec le même type de document et le même format.
+
+| Import | Export |
+| --- | --- |
+| `.xls`, `.xlsx`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` |
+
+CSV et TSV exportent une seule table, choisie avec `tableId`. Ces formats texte ne conservent ni vues, ni autorisations, ni autres ressources de Base. Utilisez un instantané de Base pour une sauvegarde complète de l’application.
+
+## Installer et enregistrer
+
+Ajoutez ces paquets à un [éditeur Bases initialisé](/guides/bases/getting-started/installation) :
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/bases-exchange-client
+```
+
+```ts
+import { UniverBasesExchangeClientPlugin } from '@univerjs-pro/bases-exchange-client'
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
+
+import '@univerjs-pro/bases/facade'
+import '@univerjs-pro/bases-exchange-client/facade'
+import '@univerjs-pro/exchange-client/facade'
+import '@univerjs-pro/exchange-client/lib/index.css'
+import '@univerjs-pro/bases-exchange-client/lib/index.css'
+
+univer.registerPlugin(UniverExchangeClientPlugin, exchangeConfig)
+univer.registerPlugin(UniverBasesExchangeClientPlugin)
+```
+
+`exchangeConfig` contient les paramètres de téléversement, conversion, suivi des tâches et téléchargement de votre application ; préparez-le avec le [guide d’intégration](/server/import-export). Fusionnez les ressources `locale/en-US` des deux paquets dans `locales`, comme décrit dans [Internationalisation](/guides/bases/getting-started/i18n).
+
+## Importer pour modifier dans la page
+
+`file` peut être un `File` choisi par l’utilisateur ou l’URL d’un fichier distant. L’instantané renvoyé contient les données Base chargeables par l’éditeur :
+
+```ts
+const snapshot = await univerAPI.importBaseToSnapshotAsync(file)
+if (snapshot) {
+  univerAPI.createBase(snapshot)
+}
+```
+
+L’import d’un instantané ne nécessite pas de collaboration, mais exige toujours la conversion côté serveur. Pour permettre la reprise du travail, stockez `base.save()` comme décrit dans [Enregistrer et restaurer des instantanés](/guides/bases/model/base-snapshot).
+
+## Exporter un fichier
+
+Exportez la Base actuelle au format Excel :
+
+```ts
+import { ExchangeFormat } from '@univerjs-pro/exchange-client'
+
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('Open a Base first')
+
+const file = await univerAPI.exportBaseBySnapshotAsync(base.save(), ExchangeFormat.XLSX)
+if (file) {
+  univerAPI.downloadFile(file, 'database', ExchangeFormat.XLSX)
+}
+```
+
+CSV et TSV représentent une seule table. Passez explicitement `tableId` si la Base en contient plusieurs :
+
+```ts
+const table = base.getTables()[0]
+if (!table) throw new Error('Create a table first')
+
+const file = await univerAPI.exportBaseBySnapshotAsync(
+  base.save(),
+  ExchangeFormat.CSV,
+  table.getId(),
+)
+if (file) {
+  univerAPI.downloadFile(file, table.getName(), ExchangeFormat.CSV)
+}
+```
+
+Pour TSV, remplacez `ExchangeFormat.CSV` par `ExchangeFormat.TSV`. L’export de fichiers sert à échanger les données des tables. Pour une sauvegarde complète, conservez l’instantané de la Base ; CSV ne préserve ni vues, ni autorisations, ni autres ressources.
+
+## Importer un document collaboratif
+
+Connectez la [collaboration Bases](/guides/bases/features/collaboration), puis importez et chargez l’ID du document renvoyé par le serveur :
+
+```ts
+import '@univerjs-pro/collaboration-client/facade'
+
+const unitId = await univerAPI.importBaseToUnitIdAsync(file)
+if (unitId) {
+  await univerAPI.getCollaboration().loadBaseAsync(unitId)
+}
+```
+
+Utilisez `exportBaseByUnitIdAsync(unitId, format, tableId?)` pour exporter un document serveur. Attendez la synchronisation des modifications en attente dans le navigateur avant l’export.
+
+## Structure et formules Excel
+
+Configurez le plugin d’échange Bases pour modifier la conversion. Voici les valeurs par défaut ; utilisez cette configuration à la place de l’enregistrement précédent :
+
+```ts
+import {
+  ExchangeBaseExportMode,
+  ExchangeBaseFormulaPolicy,
+  ExchangeBaseImportMode,
+} from '@univerjs-pro/exchange-client'
+
+univer.registerPlugin(UniverBasesExchangeClientPlugin, {
+  importSourceMode: ExchangeBaseImportMode.AUTO,
+  importFormulaPolicy: ExchangeBaseFormulaPolicy.CONVERT_THEN_VALUES,
+  exportStructureMode: ExchangeBaseExportMode.TABLES,
+  exportFormulaPolicy: ExchangeBaseFormulaPolicy.FAIL,
+})
+```
+
+- Source d’import : `AUTO` sélectionne automatiquement les tables Excel et les feuilles visibles ; `TABLES` importe uniquement les tables Excel ; `SHEETS` importe les feuilles visibles ; `HYBRID` importe les tables Excel et les feuilles visibles sans table Excel.
+- Structure d’export : `TABLES` crée des tables Excel natives pour les tables Base non vides, et laisse les tables vides sous forme de plages ordinaires. `RANGES` exporte partout des plages de feuille ordinaires.
+- Formules : l’import tente la conversion et utilise les résultats en cache pour les formules non prises en charge. L’export exige par défaut la réussite de la conversion. Utilisez `VALUES` pour les seuls résultats en cache ou `TEXT` pour conserver les formules sources comme texte. À l’export, `CONVERT_THEN_VALUES` échoue tout de même si une formule ne peut pas être convertie.
+
+Vérifiez la conversion des champs et formules avec de vrais fichiers métier. Ces méthodes peuvent renvoyer `undefined` ou lever des erreurs de requête ou de conversion ; traitez les deux cas dans votre interface.

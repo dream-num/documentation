@@ -1,5 +1,9 @@
 const enUSMessages = {
   common: {
+    'zoom-in': 'Zoom in',
+    'zoom-out': 'Zoom out',
+    'reset-zoom': 'Reset zoom',
+    diagram: 'Diagram',
     'expand-code': 'Expand code',
     'collapse-code': 'Collapse code',
     'display-name': 'English',

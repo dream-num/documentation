@@ -1,0 +1,100 @@
+---
+title: Importation et exportation de fichiers Office
+description: Utiliser Exchange pour transférer le contenu entre fichiers Office et Units collaboratives.
+---
+
+La conversion Office est fournie par `@univerjs-pro/exchange-node`, pas par AI SDK. Une application CLI appelle `importFile()` et `exportToFile()` à la frontière des fichiers, puis utilise AI SDK et Collaboration SDK pour manipuler l’Unit.
+
+## Respecter les responsabilités des SDK
+
+```ts
+import { exportToFile, importFile } from "@univerjs-pro/exchange-node";
+```
+
+| Capacité | Responsable |
+| --- | --- |
+| Conversion entre fichiers Office et UnitData | Exchange |
+| Runtime sans interface, inspection et exécution Facade | AI SDK |
+| Instantanés, jeux de modifications, révisions et persistance | Collaboration SDK |
+| Chemins, règles de format, API métier et correspondance des erreurs | Application métier |
+
+## Importer une Unit collaborative
+
+L’application lit un fichier Office via Exchange, puis envoie les UnitData obtenues à Collaboration Server pour créer une Unit :
+
+```text
+fichier Office
+→ importFile()
+→ UnitData
+→ API du serveur métier
+→ Unit collaborative
+```
+
+L’application décide de la révision initiale, des métadonnées métier et du résultat. Après création, CLI et Web manipulent l’Unit via le serveur.
+
+## Exporter la dernière révision
+
+La CLI charge d’abord la dernière révision confirmée via Collaboration Runtime, puis transmet les UnitData complètes à Exchange :
+
+```text
+Unit collaborative
+→ dernières UnitData
+→ exportToFile()
+→ fichier Office
+```
+
+L’extension de sortie détermine le format d’export.
+
+## Exposer les opérations de fichier avec Commander
+
+AI SDK n’offre pas de paquet de commandes prédéfinies pour l’import-export Office. L’application compose Exchange, Collaboration Runtime et sa propre API serveur avec Commander :
+
+```ts
+import { Command } from "commander";
+
+interface IFileExchangeDependencies {
+  importFile(path: string): Promise<unknown>;
+  createUnit(unitData: unknown): Promise<unknown>;
+  loadLatestUnitData(unitId: string): Promise<unknown>;
+  exportFile(unitData: unknown, path: string): Promise<void>;
+  writeResult(result: unknown): void;
+}
+
+function addFileExchangeCommands(program: Command, dependencies: IFileExchangeDependencies): void {
+  program.addCommand(
+    new Command("import").argument("<office-file>").action(async (sourcePath) => {
+      const unitData = await dependencies.importFile(sourcePath);
+      const created = await dependencies.createUnit(unitData);
+      dependencies.writeResult(created);
+    }),
+  );
+
+  program.addCommand(
+    new Command("export")
+      .argument("<office-file>")
+      .requiredOption("--unit <id>")
+      .action(async (outputPath, { unit }) => {
+        const unitData = await dependencies.loadLatestUnitData(unit);
+        await dependencies.exportFile(unitData, outputPath);
+      }),
+  );
+}
+```
+
+Toutes les capacités hors Commander sont explicites dans `IFileExchangeDependencies` : aucun utilitaire n’est caché. L’application implémente la conversion avec `importFile()` / `exportToFile()` d’Exchange, `loadLatestUnitData()` avec Collaboration Runtime, et injecte son API serveur ainsi que la présentation des résultats.
+
+## Formats pris en charge
+
+| Unit | Import | Export |
+| --- | --- | --- |
+| Sheet | `.xls`, `.xlsx`, `.xlsm`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` |
+| Doc | `.doc`, `.docx` | `.docx` |
+| Slide | `.ppt`, `.pptx`, `.pptm`, `.ppsx`, `.ppsm`, `.potx` | `.pptx` |
+
+L’application doit refuser une extension incompatible avec le type d’Unit avant de générer le fichier.
+
+## Utiliser uniquement une CLI locale
+
+Une application peut contourner Collaboration Server, transmettre le contenu importé directement à un runtime local sans interface et exporter un fichier Office. Cela convient aux traitements ponctuels, mais ne fournit ni révisions partagées, ni aperçu Web en direct, ni History, ni Worktree.
+
+Noms de commandes, arguments de chemin et présentation des résultats relèvent de l’application. Consultez [Chargement et opérations de contenu](/ai/content-operations) pour le parcours collaboratif. Après avoir ajouté la frontière des fichiers, poursuivez avec [Inspection visuelle](/ai/visual-inspection) pour qu’un AI Agent vérifie les UnitData rendues.

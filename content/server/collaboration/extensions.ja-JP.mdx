@@ -1,0 +1,135 @@
+---
+title: 共同編集の拡張モジュール
+description: History、Thread Comment、Worktree、サーバー側の Office 変換による共同編集の拡張を理解します。
+---
+
+History、Thread Comment、Worktree は必要に応じて有効化できる独立した拡張モジュールです。Transport、ID システム、物理 DB を再利用できますが、Service、Middleware、Event、Database Adapter、ライフサイクルの境界は個別に持ちます。
+
+サーバー側の Office 変換は、ファイル変換と Collaboration Service API を組み合わせるアプリケーションの処理です。主 Service の機能スイッチではありません。
+
+## モジュールの関係
+
+<Mermaid chart={"flowchart TB\n    Transport[\"Node Transport\"]\n\n    subgraph Modules[\"共同編集モジュール\"]\n        direction LR\n        Core[\"基本の共同編集<br/>Endpoint · Service · Adapter\"]\n        History[\"History<br/>Endpoint · Service · Adapter\"]\n        Comment[\"Thread Comment<br/>Endpoint · Service · Adapter\"]\n        Worktree[\"Worktree<br/>Client · Endpoint · Service · Adapter\"]\n    end\n\n    Transport --> Core\n    Transport --> History\n    Transport --> Comment\n    Transport --> Worktree"} />
+
+| 拡張モジュール | 基本の共同編集との関係 |
+| --- | --- |
+| History | 基本 Events を監視して派生履歴インデックスを構築 |
+| Thread Comment | 基本の Unit Room を再利用。コメントのアンカーは基本コンテンツに属する |
+| Worktree | 基本の Unit と OT を再利用し、下書きをトランクにマージ |
+| Office Exchange | 基本 Service のスナップショット API で Unit を作成・読み取り |
+
+History、Thread Comment、Worktree はそれぞれ Middleware、Events、Database Adapter を設定します。
+
+## バージョン履歴
+
+History は Unit 作成と確定した変更セットを、ユーザー向けの履歴項目にまとめます。これは派生インデックスであり、Unit 内容の正本は基本 Collaboration Service の確定済み変更セットです。
+
+```ts
+const historyService = new UniverHistoryService({
+  collabService,
+  dbAdapter: historyDatabase,
+  userProvider,
+});
+
+const attachment = historyService.attach(collabService);
+transport.register(new UniverHistoryEndpoint(historyService));
+```
+
+`attach()` は基本 Service の `unitCreated` と `changesetCommitted` Events を監視してインデックスを更新します。既定のポリシーは変更セットごとに履歴を作らず、時間枠と特別な mutation によってまとめます。
+
+History は独立した読み取り・索引作成 Middleware を持ちます。`userProvider` は名前やアバターなどの表示情報を補完するだけで、認証や認可はしません。Event Listener が失敗しても確定済みの基本変更セットはロールバックされないため、History は常に再構築可能な派生データとして扱います。
+
+## スレッドコメント
+
+Comment Service は Sheets と Docs のコメント本文、返信、編集、削除、解決状態を管理します。
+
+```ts
+const commentService = new UniverCommentService({
+  database: commentDatabase,
+  userProvider,
+});
+
+transport.register(
+  new UniverCommentEndpoint({
+    service: commentService,
+    roomHost: collabEndpoint,
+  }),
+);
+```
+
+コメント本文は Comment Adapter に属します。Sheet や Doc の内容に追従するアンカーは基本のスナップショットと変更セットに残ります。Comment Endpoint は主 Collaboration Endpoint の Unit Room で `comment_update` を配信できますが、リアルタイムメッセージがコメント状態の正本ではありません。クライアントはコメント一覧を再取得して復帰できます。
+
+Comment Service は追加、一覧、返信、解決／再開、編集、削除の Middleware と `commentCommitted` Event を提供します。基本 Service の読み取り・編集ポリシーは継承しません。
+
+## Worktree の下書きとマージ
+
+Worktree は 1 つ以上の Unit に隔離した下書き、凍結、マージ評価、Unit ごとのマージを追加します。
+
+```text
+create → draft → ready → merging → merged
+           ↑       │
+           └ reopen┘
+
+draft / ready → discarded
+```
+
+```ts
+const worktreeService = new UniverCollabWorktreeService({
+  trunk: {
+    service: collabService,
+    dbAdapter: coreDatabase,
+  },
+  dbAdapter: worktreeDatabase,
+});
+```
+
+Worktree は `(worktreeID, unitID)` ごとに独立した下書き変更セットを保存し、基本 Service の Unit、OT、送信エンジンを再利用します。追加編集を受け付けるのは `draft` 状態だけです。`markReady()` が現在の下書きリビジョンを凍結し、`mergeWorktree()` が Unit を 1 つずつトランクにマージします。
+
+Worktree Service は独立したライフサイクル、読み取り、下書きの submit/apply/commit Middleware と、作成、状態変更、マージ結果、下書き変更セットのコミットに対応する Events を持ちます。トランクへの最終書き込みは基本 Service 自身の Middleware を通ります。
+
+複数 Unit のマージは Unit 間でアトミックではありません。アプリケーションは各 Unit のマージ結果を表示してください。
+
+## サーバー側の Office 変換
+
+サーバー側 Exchange は `@univerjs-pro/exchange-node` と Collaboration Service API を組み合わせ、ファイルと共同編集状態を変換します。
+
+```text
+Office ファイル
+  → exchange-node でインポート
+  → Snapshot + Sheet Blocks
+  → createUnitFromSnapshot()
+
+確定した Unit リビジョン
+  → getUnitLoadDataWithBlocks()
+  → UnitSnapshotMaterializer
+  → exchange-node でエクスポート
+  → Office ファイル
+```
+
+公式サンプルは XLS、XLSX、CSV、TSV を新しい共同編集 Sheet として取り込み、現在の確定リビジョンを XLSX、CSV、TSV に出力します。
+
+ファイル保存、タスク状態、アクセス制御、サイズ制限、業務 API はアプリケーションが担当します。Exchange に独立した共同編集 Database Adapter はなく、基本 Service を通じて正本の Unit を読み取り・作成します。
+
+## 独立した拡張ポイント
+
+拡張を有効にするときは各境界を個別に検討します。
+
+| 境界 | 基本 | History | Comment | Worktree |
+| --- | --- | --- | --- | --- |
+| Service | 独立 | 独立 | 独立 | 独立 |
+| Middleware | 共有しない | 基本から継承しない | 基本から継承しない | 基本から継承しない |
+| Event | 基本ライフサイクル | 基本 Events を監視 | `commentCommitted` | Worktree のライフサイクル／コミット |
+| Database Adapter | 基本 Adapter | History Adapter | Comment Adapter | Worktree Adapter |
+
+同じ SQLite ファイルを使っても、これらの Adapter は別の契約を持つ別オブジェクトです。Service と Adapter も個別に破棄します。
+
+## 機能の選択
+
+| 製品要件 | モジュール | 最初のサンプル |
+| --- | --- | --- |
+| ユーザー向けバージョン履歴 | History Service、Endpoint、Adapter | `pnpm example:history` |
+| Sheet・Doc のコメント | Comment Service、Endpoint、Adapter | `pnpm example:comments` |
+| 隔離した下書き、レビュー、マージ | Worktree Service、Endpoint、Client、Adapter | `pnpm example:worktree` |
+| サーバーでの Office 入出力 | Exchange Node + Collaboration Service | `pnpm example:exchange` |
+
+実行コマンドとページ URL は[サンプル一覧](/server/collaboration/examples)を参照してください。

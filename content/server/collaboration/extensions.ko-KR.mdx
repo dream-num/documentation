@@ -1,0 +1,135 @@
+---
+title: 협업 확장 모듈
+description: History, Thread Comment, Worktree, 서버 측 Office 변환이 핵심 협업을 확장하는 방식을 알아봅니다.
+---
+
+History, Thread Comment, Worktree는 필요에 따라 활성화하는 독립적인 협업 확장 모듈입니다. Transport, 신원 시스템, 물리 DB를 재사용할 수 있지만 Service, Middleware, Event, Database Adapter, 수명 주기 경계는 각각 유지합니다.
+
+서버 측 Office 변환은 파일 변환과 Collaboration Service API를 조합하는 애플리케이션 흐름입니다. 주 Service의 기능 스위치를 켜는 방식이 아닙니다.
+
+## 모듈 관계
+
+<Mermaid chart={"flowchart TB\n    Transport[\"Node Transport\"]\n\n    subgraph Modules[\"협업 모듈\"]\n        direction LR\n        Core[\"핵심 협업<br/>Endpoint · Service · Adapter\"]\n        History[\"History<br/>Endpoint · Service · Adapter\"]\n        Comment[\"Thread Comment<br/>Endpoint · Service · Adapter\"]\n        Worktree[\"Worktree<br/>Client · Endpoint · Service · Adapter\"]\n    end\n\n    Transport --> Core\n    Transport --> History\n    Transport --> Comment\n    Transport --> Worktree"} />
+
+| 확장 모듈 | 핵심 협업과의 관계 |
+| --- | --- |
+| History | 핵심 Events를 관찰하여 파생 기록 인덱스 구성 |
+| Thread Comment | 핵심 Unit Room 재사용. 댓글 앵커는 핵심 콘텐츠에 속함 |
+| Worktree | 핵심 Unit과 OT 기능을 재사용하고 초안을 트렁크에 병합 |
+| Office Exchange | 핵심 Service 스냅샷 API로 Unit 생성·읽기 |
+
+History, Thread Comment, Worktree는 각자의 Middleware, Events, Database Adapter를 구성합니다.
+
+## 버전 기록
+
+History는 Unit 생성과 확정된 변경 집합을 사용자에게 표시할 기록 항목으로 묶습니다. 이는 파생 인덱스이며 Unit 콘텐츠의 기준은 핵심 Collaboration Service에 확정된 변경 집합입니다.
+
+```ts
+const historyService = new UniverHistoryService({
+  collabService,
+  dbAdapter: historyDatabase,
+  userProvider,
+});
+
+const attachment = historyService.attach(collabService);
+transport.register(new UniverHistoryEndpoint(historyService));
+```
+
+`attach()`는 핵심 Service의 `unitCreated`, `changesetCommitted` Events를 관찰해 인덱스를 갱신합니다. 기본 정책은 변경 집합마다 기록을 만들지 않고 시간 구간과 특수 mutation에 따라 묶습니다.
+
+History는 독립적인 읽기 및 인덱싱 Middleware를 갖습니다. `userProvider`는 이름·아바타 같은 표시 데이터만 보완하며 인증이나 권한 부여는 하지 않습니다. Event Listener 실패는 이미 확정된 핵심 변경 집합을 롤백하지 않으므로 History는 항상 재구축 가능한 파생 데이터로 취급해야 합니다.
+
+## 스레드 댓글
+
+Comment Service는 Sheets와 Docs의 댓글 본문, 답글, 편집, 삭제, 해결 상태를 관리합니다.
+
+```ts
+const commentService = new UniverCommentService({
+  database: commentDatabase,
+  userProvider,
+});
+
+transport.register(
+  new UniverCommentEndpoint({
+    service: commentService,
+    roomHost: collabEndpoint,
+  }),
+);
+```
+
+댓글 본문은 Comment Adapter에 속합니다. Sheet나 Doc 콘텐츠를 따라 이동하는 앵커는 핵심 스냅샷과 변경 집합에 남습니다. Comment Endpoint는 주 Collaboration Endpoint의 Unit Room을 통해 `comment_update`를 발행할 수 있지만 실시간 메시지가 댓글 상태의 기준은 아닙니다. 클라이언트는 댓글 목록을 다시 읽어 복구할 수 있습니다.
+
+Comment Service는 추가, 목록, 답글, 해결/다시 열기, 편집, 삭제 Middleware와 `commentCommitted` Event를 제공합니다. 핵심 Service의 읽기·편집 정책을 상속하지 않습니다.
+
+## Worktree 초안과 병합
+
+Worktree는 하나 이상의 Unit에 격리된 초안, 동결, 병합 평가, Unit별 병합을 추가합니다.
+
+```text
+create → draft → ready → merging → merged
+           ↑       │
+           └ reopen┘
+
+draft / ready → discarded
+```
+
+```ts
+const worktreeService = new UniverCollabWorktreeService({
+  trunk: {
+    service: collabService,
+    dbAdapter: coreDatabase,
+  },
+  dbAdapter: worktreeDatabase,
+});
+```
+
+Worktree는 `(worktreeID, unitID)`별 독립 초안 변경 집합을 저장하며 핵심 Service의 Unit, OT, 제출 엔진을 재사용합니다. `draft` 상태만 추가 편집을 허용합니다. `markReady()`는 현재 초안 리비전을 동결하고 `mergeWorktree()`는 Unit을 하나씩 트렁크에 병합합니다.
+
+Worktree Service에는 독립적인 수명 주기, 읽기, 초안 submit/apply/commit Middleware와 생성, 상태 변경, 병합 결과, 초안 변경 집합 커밋 Events가 있습니다. 최종 트렁크 쓰기는 여전히 핵심 Service 자체 Middleware를 거칩니다.
+
+여러 Unit의 병합은 Unit 사이에서 원자적이지 않습니다. 애플리케이션은 각 Unit의 병합 결과를 표시해야 합니다.
+
+## 서버 측 Office 변환
+
+서버 측 Exchange는 `@univerjs-pro/exchange-node`와 Collaboration Service API를 조합해 파일과 협업 상태를 연결합니다.
+
+```text
+Office 파일
+  → exchange-node 가져오기
+  → Snapshot + Sheet Blocks
+  → createUnitFromSnapshot()
+
+확정된 Unit 리비전
+  → getUnitLoadDataWithBlocks()
+  → UnitSnapshotMaterializer
+  → exchange-node 내보내기
+  → Office 파일
+```
+
+공식 예제는 XLS, XLSX, CSV, TSV를 새 협업 Sheet로 가져오고 현재 확정 리비전을 XLSX, CSV, TSV로 내보냅니다.
+
+파일 저장, 작업 상태, 접근 제어, 크기 제한, 업무 API는 애플리케이션이 담당합니다. Exchange는 별도 협업 Database Adapter 없이 핵심 Service를 통해 기준 Unit을 읽거나 생성합니다.
+
+## 독립 확장 지점
+
+확장을 활성화할 때 각 경계를 별도로 검토하세요.
+
+| 경계 | 핵심 | History | Comment | Worktree |
+| --- | --- | --- | --- | --- |
+| Service | 독립 | 독립 | 독립 | 독립 |
+| Middleware | 공유 안 함 | 핵심 상속 안 함 | 핵심 상속 안 함 | 핵심 상속 안 함 |
+| Event | 핵심 수명 주기 | 핵심 Events 관찰 | `commentCommitted` | Worktree 수명 주기/커밋 |
+| Database Adapter | 핵심 Adapter | History Adapter | Comment Adapter | Worktree Adapter |
+
+같은 SQLite 파일을 사용해도 Adapter는 독립 계약을 가진 별도 객체입니다. Service와 Adapter도 각각 해제해야 합니다.
+
+## 기능 선택
+
+| 제품 요구 | 모듈 | 시작 예제 |
+| --- | --- | --- |
+| 사용자용 버전 기록 | History Service, Endpoint, Adapter | `pnpm example:history` |
+| Sheet·Doc 댓글 | Comment Service, Endpoint, Adapter | `pnpm example:comments` |
+| 격리 초안, 검토, 병합 | Worktree Service, Endpoint, Client, Adapter | `pnpm example:worktree` |
+| 서버 측 Office 가져오기·내보내기 | Exchange Node + Collaboration Service | `pnpm example:exchange` |
+
+전체 실행 명령과 페이지 URL은 [예제 목록](/server/collaboration/examples)을 참고하세요.

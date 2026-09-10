@@ -1,0 +1,193 @@
+---
+title: 本人確認と認可
+description: Transport、Endpoint、Service の Middleware を通じて既存の認証・認可システムを接続します。
+---
+
+Univer Collaboration SDK はユーザー、ロール、ACL モデルを定義しません。アプリケーションは Transport Middleware で信頼できる本人情報を確立し、Endpoint と Service の Middleware でリアルタイム Session とサーバー管理の共同編集データを保護します。
+
+このページは [Middleware と Events](/server/collaboration/middleware-and-events) の具体例として、Middleware による本人確認と認可の統合を説明します。
+
+## ID モデル
+
+| 識別子 | 提供元 | 意味とライフサイクル |
+| --- | --- | --- |
+| `userID` | アプリケーション | 安定した業務上の ID。確定した変更セットの作成者 |
+| `memberID` | Endpoint | 1 つの WebSocket Session のオンラインメンバー ID。再接続すると変わる |
+| `sid + reqId` | クライアント | 再試行でも変わらない変更セット送信の識別子 |
+
+ブラウザーから送られるプロフィール、`memberID`、リビジョンはアプリケーションの認証を代替できません。安定したユーザーキーを `context.userID` に対応付けます。
+
+## Transport Middleware で本人情報を確立する
+
+Transport は共同編集の HTTP リクエストごとに Middleware を実行します。アプリケーションは Cookie、Session、Bearer token を読み取り、認証結果を Context に追加できます。
+
+```ts
+transport.use(async (context, next) => {
+  const user = await auth.requireUser(context.incomingMessage);
+
+  context.userID = user.id;
+  context.customData.user = user;
+  context.customData.tenantID = user.tenantID;
+  context.customData.traceID = readTraceID(context.incomingMessage);
+
+  await next();
+});
+```
+
+認証に失敗した場合は `next()` を呼ばずに HTTP レスポンスを終了します。
+
+```ts
+transport.use(async (context, next) => {
+  const user = await auth.findUser(context.incomingMessage);
+  if (!user) {
+    context.response.statusCode = 401;
+    context.response.end("Authentication required");
+    return;
+  }
+
+  context.userID = user.id;
+  await next();
+});
+```
+
+SDK は Cookie 名、トークン形式、ユーザーテーブル、ログインフローを指定しません。
+
+## WebSocket Session への本人情報の引き継ぎ
+
+WebSocket の経路はクライアントのペイロード内のユーザーフィールドを信頼しません。Endpoint は使い捨ての Session Ticket により、認証済み HTTP Context をリアルタイム Session に引き継ぎます。
+
+```text
+Session Ticket の HTTP リクエスト
+  → Transport Middleware で認証
+  → Endpoint が { userID, customData } を保存
+  → 不透明な使い捨てチケットを返却
+  → WebSocket 接続時にチケットを消費
+  → Session { userID, memberID, customData } を作成
+```
+
+チケット文字列には `userID` や `customData` は含まれません。`memberID` は現在の接続のみを識別し、独立した認証情報ではありません。
+
+## 適切な境界で認可する
+
+| 保護する操作 | Middleware |
+| --- | --- |
+| 共同編集の HTTP 入口 | Transport `use()` |
+| WebSocket 接続 | Endpoint `connect` |
+| Unit Room への参加 | Endpoint `joinUnit` |
+| スナップショット、ブロック、変更セットの読み取り | Service `readUnitData` |
+| 内容の編集の送信 | Service `submitChangeset` |
+| Unit の作成 | Service `createUnit` |
+| Unit の削除 | Service `deleteUnits` |
+| Unit の復元 | Service `recoverUnits` |
+
+Endpoint の `joinUnit` は Session がリアルタイム Room に参加できるかだけを制御します。スナップショットや不足する変更セットは HTTP で直接読めるため、JOIN の検査は `readUnitData` の代わりにはなりません。同様に、クライアントの読み取り専用 UI は製品上の表示であり、サーバー側の `submitChangeset` ポリシーを代替しません。
+
+## 読み取り、JOIN、編集を保護する
+
+```ts
+import { CollabError } from "@univerjs-pro/collaboration-service";
+
+endpoint.use("joinUnit", async (context, next) => {
+  const allowed = await acl.canRead(context.session.userID, context.unitID);
+  if (!allowed) {
+    throw new CollabError("PERMISSION_DENIED", "Cannot join this Unit");
+  }
+  await next();
+});
+
+service.use("readUnitData", async (context, next) => {
+  const allowed = await acl.canRead(context.userID, context.request.unitID);
+  if (!allowed) {
+    throw new CollabError("PERMISSION_DENIED", "Unit is not accessible");
+  }
+  await next();
+});
+
+service.use("submitChangeset", async (context, next) => {
+  const unitID = context.request.changeset.unitID;
+  const allowed = await acl.canEdit(context.userID, unitID);
+  if (!allowed) {
+    throw new CollabError("PERMISSION_DENIED", "Unit is read-only");
+  }
+  await next();
+});
+```
+
+通常のアプリケーションでは、HTTP と JOIN の読み取りポリシー、および送信の編集ポリシーの 3 つを設定します。
+
+## Unit のライフサイクルを保護する
+
+共同編集プロトコルは既存の Unit を開きます。「ドキュメント作成」は通常、製品レコードと ACL を作成してから `createUnitFromData()` または `createUnitFromSnapshot()` を呼ぶアプリケーション API です。Service Middleware でもライフサイクルを保護します。
+
+```ts
+service.use("createUnit", async (context, next) => {
+  if (!(await acl.canCreate(context.userID, context.request.snapshot.type))) {
+    throw new CollabError("PERMISSION_DENIED", "Unit creation denied");
+  }
+  await next();
+});
+
+service.use("deleteUnits", async (context, next) => {
+  for (const unitID of context.request.unitIDs) {
+    if (!(await acl.canDelete(context.userID, unitID))) {
+      throw new CollabError("PERMISSION_DENIED", `Cannot delete ${unitID}`);
+    }
+  }
+  await next();
+});
+```
+
+`recoverUnits` は個別に保護してください。過去に削除権限があったユーザーが、いつまでも復元権限を持つとは限りません。
+
+## customData で検索結果を再利用する
+
+同じ Service 呼び出し内の Middleware は `customData` で重複クエリを避けられます。
+
+```ts
+service.use("submitChangeset", async (context, next) => {
+  const unitID = context.request.changeset.unitID;
+  context.customData.role ??= await acl.getRole(context.userID, unitID);
+
+  if (context.customData.role === "viewer") {
+    throw new CollabError("PERMISSION_DENIED", "Unit is read-only");
+  }
+  await next();
+});
+```
+
+`customData` は現在の呼び出しまたは Session にのみ属し、自動的には永続化されません。ロール、ACL、テナント関係はアプリケーションのストレージで管理します。
+
+## 拡張モジュールには個別のポリシーが必要
+
+History、Thread Comment、Worktree は独立した Service Middleware を持ちます。
+
+- History の一覧と変更セットの読み取りでは Unit の閲覧権限を確認します。
+- コメント一覧では閲覧権限を、追加・返信・編集・削除ではコメントのポリシーを適用します。
+- Worktree では可視性、下書き編集、状態変更、マージを個別に保護します。
+- Worktree のトランクへのマージはトランクの Service Middleware を通ります。
+
+基本の Collaboration Service のルールはこれらのモジュールを自動的には保護しません。拡張ごとに別の ACL モデルを作らず、同じアプリケーションのポリシーサービスを再利用してください。
+
+## クライアントの現在のユーザーを設定する
+
+`UserManagerService.setCurrentUser()` は現在の Univer インスタンスのユーザー ID、名前、アバターを設定し、フロントエンドコンポーネントが参照できるようにします。たとえばコメントパネルの「自分に関連」フィルターは、この ID で現在のユーザーに関連するコメントを表示します。
+
+Univer インスタンス作成後、ドキュメントを開く前に設定します。
+
+```ts
+import { UserManagerService } from "@univerjs/core";
+
+// currentUser is your application profile; id/name/avatar are example field names.
+univer
+  .__getInjector()
+  .get(UserManagerService)
+  .setCurrentUser({
+    userID: currentUser.id,
+    name: currentUser.name,
+    avatar: currentUser.avatar ?? "",
+  });
+```
+
+アプリケーションの安定したユーザー ID を `userID` に対応付け、サーバーで認証した `context.userID` と一致させます。共同編集中に共有する名前とアバターは、[Presence](/server/collaboration/presence) の説明に従い、サーバーの `connect` Middleware で設定します。
+
+実行可能な全体の実装は[権限のサンプル](/server/collaboration/examples#permissions)を参照してください。

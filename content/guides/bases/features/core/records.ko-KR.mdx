@@ -1,0 +1,69 @@
+---
+title: 레코드, 연결 및 계층
+---
+
+레코드는 작업, 고객, 주문 등의 업무 객체를 나타냅니다. Facade API로 일괄 쓰기, 페이지 단위 읽기, 테이블 연결, 부모·자식 레코드 구성을 수행할 수 있습니다.
+
+## 레코드 생성 및 읽기
+
+```ts
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('Open a Base first')
+
+const table = base.insertTable('Tasks', { primaryFieldName: 'Title' })
+const titleId = table.getPrimaryFieldId()
+const records = table.addRecords([
+  { values: { [titleId]: 'Write documentation' } },
+  { values: { [titleId]: 'Review examples' } },
+])
+records[0].setValue(titleId, 'Publish documentation')
+
+const page = table.queryRecords({ offset: 0, limit: 20 })
+console.log(page.total, page.records)
+```
+
+값은 기본적으로 필드 ID를 키로 사용합니다. 필드 이름을 키로 사용하는 데이터에는 `univerAPI.Enum.BaseFieldKeyEnum.Name`을 전달하세요. `queryRecords()`는 로드된 로컬 데이터를 조회하며 백엔드 페이지를 가져오지 않습니다. `viewId`로 뷰의 범위를 읽거나 `sort`로 정렬 순서를 지정하세요.
+
+`table.deleteRecords(recordIds)`로 일괄 삭제하거나 `record.duplicate()`로 레코드를 복제하세요. 이 작업은 명령 시스템을 사용하며 실행 취소와 다시 실행을 지원합니다.
+
+## 레코드 검색
+
+선택한 필드에서 텍스트를 검색합니다.
+
+```ts
+const matches = table.search({ query: 'documentation', fieldIds: [titleId], limit: 20 })
+console.log(matches)
+```
+
+## 다른 테이블 연결
+
+예를 들어 각 작업을 프로젝트에 연결합니다.
+
+```ts
+const projects = base.insertTable('Projects', { primaryFieldName: 'Name' })
+const project = projects.addRecord({ [projects.getPrimaryFieldId()]: 'Website' })
+const projectField = table.addField('Project', univerAPI.Enum.BaseFieldType.RecordLink, {
+  field: { config: { targetTableId: projects.getId(), multiple: false } },
+})
+records[0].setLinkedRecordIds(projectField.getId(), [project.getId()])
+console.log(records[0].getLinkedRecordIds(projectField.getId()))
+```
+
+대상은 같은 Base에 속해야 합니다. 여러 레코드를 연결하려면 `multiple: true`, 표시 레이블에는 `displayFieldId`, 선택기에 추가 정보를 표시하려면 `pickerFieldIds`를 설정하세요. 내부 저장 문자열을 직접 구성하지 말고 연결 API로 ID를 읽고 쓰세요.
+
+## 부모·자식 레코드
+
+API 검토를 문서 작업의 자식 레코드로 만듭니다.
+
+```ts
+const parent = records[0]
+const parentFieldId = table.getHierarchyFieldId()
+const child = parent.addChild(parentFieldId, { [titleId]: 'Check API examples' })
+console.log(child.getParent(parentFieldId)?.getId())
+
+child.setParent(parentFieldId, null)
+```
+
+첫 자식 레코드를 삽입하면 필요한 부모 연결 필드가 자동으로 생성됩니다. `getChildren()`, `getAncestors()`, `getDescendants()`로 관계를 읽으세요. 계층은 최대 5단계까지 지원하며 자신을 부모로 지정하거나 순환 관계를 만드는 작업은 거부됩니다. UI에서 잘못된 작업 오류를 처리하세요.
+
+계층은 테이블 데이터에 속하며 뷰 전환이나 필터링으로 바뀌지 않습니다. 더 많은 메서드는 [Bases Facade](/reference/facade/bases)를 참고하세요.

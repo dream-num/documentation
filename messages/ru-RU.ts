@@ -2,6 +2,10 @@ import type { Messages } from './en-US'
 
 const ruRUMessages = {
   common: {
+    'zoom-in': 'Увеличить',
+    'zoom-out': 'Уменьшить',
+    'reset-zoom': 'Сбросить масштаб',
+    diagram: 'Диаграмма',
     'expand-code': 'Развернуть код',
     'collapse-code': 'Свернуть код',
     'display-name': 'Русский',

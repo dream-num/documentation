@@ -2,6 +2,10 @@ import type { Messages } from './en-US'
 
 const koKRMessages = {
   common: {
+    'zoom-in': '확대',
+    'zoom-out': '축소',
+    'reset-zoom': '확대/축소 초기화',
+    diagram: '다이어그램',
     'expand-code': '코드 펼치기',
     'collapse-code': '코드 접기',
     'display-name': '한국어',

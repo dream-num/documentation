@@ -1,0 +1,129 @@
+---
+title: 가져오기 및 내보내기
+icon: 'FolderSync'
+---
+
+Bases는 **XLSX, XLS, CSV, TSV** 가져오기와 **XLSX, CSV, TSV** 내보내기를 지원합니다. 예를 들어 Excel 고객 목록을 가져와 필드와 뷰를 추가한 뒤 테이블 데이터를 내보낼 수 있습니다.
+
+이 API에는 변환 백엔드가 필요합니다. [파일 교환 통합](/server/import-export)부터 시작하고 백엔드가 Bases 문서 유형과 필요한 형식을 지원하는지 확인하세요.
+
+## 지원 형식
+
+다음 표는 이 페이지의 브라우저 API를 설명합니다. Office 파일 변환에는 같은 문서 유형과 형식을 지원하는 백엔드가 필요합니다.
+
+| 가져오기 | 내보내기 |
+| --- | --- |
+| `.xls`, `.xlsx`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` |
+
+CSV와 TSV는 한 테이블을 내보내며 `tableId`로 선택합니다. 이 텍스트 형식은 뷰, 권한, 기타 Base 리소스를 유지하지 않습니다. 전체 애플리케이션 백업에는 Base 스냅샷을 사용하세요.
+
+## 설치 및 등록
+
+[초기화된 Bases 편집기](/guides/bases/getting-started/installation)에 다음 패키지를 추가하세요.
+
+```package-install
+npm install @univerjs-pro/exchange-client @univerjs-pro/bases-exchange-client
+```
+
+```ts
+import { UniverBasesExchangeClientPlugin } from '@univerjs-pro/bases-exchange-client'
+import { UniverExchangeClientPlugin } from '@univerjs-pro/exchange-client'
+
+import '@univerjs-pro/bases/facade'
+import '@univerjs-pro/bases-exchange-client/facade'
+import '@univerjs-pro/exchange-client/facade'
+import '@univerjs-pro/exchange-client/lib/index.css'
+import '@univerjs-pro/bases-exchange-client/lib/index.css'
+
+univer.registerPlugin(UniverExchangeClientPlugin, exchangeConfig)
+univer.registerPlugin(UniverBasesExchangeClientPlugin)
+```
+
+`exchangeConfig`는 업로드, 변환, 작업 조회, 다운로드 설정을 포함합니다. [통합 가이드](/server/import-export)에 따라 준비하세요. [국제화](/guides/bases/getting-started/i18n)에 설명된 대로 두 패키지의 `locale/en-US` 리소스를 `locales`에 병합하세요.
+
+## 페이지에서 편집하도록 가져오기
+
+`file`에는 사용자가 선택한 `File`이나 원격 파일 URL을 사용할 수 있습니다. 반환된 스냅샷은 편집기가 로드할 수 있는 Base 데이터입니다.
+
+```ts
+const snapshot = await univerAPI.importBaseToSnapshotAsync(file)
+if (snapshot) {
+  univerAPI.createBase(snapshot)
+}
+```
+
+스냅샷 가져오기는 공동 편집이 필요 없지만 서버 측 변환은 필요합니다. 사용자가 작업을 이어갈 수 있게 하려면 [스냅샷 저장 및 복원](/guides/bases/model/base-snapshot)에 따라 `base.save()` 결과를 저장하세요.
+
+## 파일 내보내기
+
+현재 Base를 Excel로 내보냅니다.
+
+```ts
+import { ExchangeFormat } from '@univerjs-pro/exchange-client'
+
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('Open a Base first')
+
+const file = await univerAPI.exportBaseBySnapshotAsync(base.save(), ExchangeFormat.XLSX)
+if (file) {
+  univerAPI.downloadFile(file, 'database', ExchangeFormat.XLSX)
+}
+```
+
+CSV와 TSV는 한 테이블을 나타냅니다. 여러 테이블을 가진 Base에서 내보낼 때는 `tableId`를 명시적으로 전달하세요.
+
+```ts
+const table = base.getTables()[0]
+if (!table) throw new Error('Create a table first')
+
+const file = await univerAPI.exportBaseBySnapshotAsync(
+  base.save(),
+  ExchangeFormat.CSV,
+  table.getId(),
+)
+if (file) {
+  univerAPI.downloadFile(file, table.getName(), ExchangeFormat.CSV)
+}
+```
+
+TSV는 `ExchangeFormat.CSV` 대신 `ExchangeFormat.TSV`를 사용합니다. 파일 내보내기는 테이블 데이터 교환용입니다. 전체 백업은 Base 스냅샷으로 저장하세요. CSV는 뷰, 권한, 기타 리소스를 유지하지 않습니다.
+
+## 공동 편집 문서 가져오기
+
+[Bases 공동 편집](/guides/bases/features/collaboration)을 연결한 다음 가져오기를 실행하고 서버가 반환한 문서 ID를 로드하세요.
+
+```ts
+import '@univerjs-pro/collaboration-client/facade'
+
+const unitId = await univerAPI.importBaseToUnitIdAsync(file)
+if (unitId) {
+  await univerAPI.getCollaboration().loadBaseAsync(unitId)
+}
+```
+
+서버 문서는 `exportBaseByUnitIdAsync(unitId, format, tableId?)`로 내보내세요. 대기 중인 브라우저 수정 사항이 동기화된 후 내보내야 합니다.
+
+## Excel 구조 및 수식
+
+Bases 교환 플러그인을 설정하여 변환 동작을 변경할 수 있습니다. 다음은 기본값이며 앞의 등록 대신 사용하세요.
+
+```ts
+import {
+  ExchangeBaseExportMode,
+  ExchangeBaseFormulaPolicy,
+  ExchangeBaseImportMode,
+} from '@univerjs-pro/exchange-client'
+
+univer.registerPlugin(UniverBasesExchangeClientPlugin, {
+  importSourceMode: ExchangeBaseImportMode.AUTO,
+  importFormulaPolicy: ExchangeBaseFormulaPolicy.CONVERT_THEN_VALUES,
+  exportStructureMode: ExchangeBaseExportMode.TABLES,
+  exportFormulaPolicy: ExchangeBaseFormulaPolicy.FAIL,
+})
+```
+
+- 가져오기 원본: `AUTO`는 Excel 테이블과 표시된 워크시트를 자동 선택합니다. `TABLES`는 Excel 테이블만, `SHEETS`는 표시된 워크시트를, `HYBRID`는 Excel 테이블과 Excel 테이블이 없는 표시된 워크시트를 가져옵니다.
+- 내보내기 구조: `TABLES`는 비어 있지 않은 Base 테이블을 기본 Excel 테이블로 만들고 빈 테이블은 일반 범위로 둡니다. `RANGES`는 모두 일반 워크시트 범위로 내보냅니다.
+- 수식: 가져오기는 변환을 시도하고 지원하지 않는 수식은 캐시된 결과를 사용합니다. 내보내기는 기본적으로 변환에 성공해야 합니다. `VALUES`는 캐시 결과만 사용하고 `TEXT`는 원본 수식을 텍스트로 유지합니다. 내보내기에서는 `CONVERT_THEN_VALUES`를 사용해도 수식을 변환할 수 없으면 실패합니다.
+
+실제 업무 파일로 필드와 수식 변환을 검증하세요. 이 메서드는 `undefined`를 반환하거나 요청·변환 오류를 던질 수 있으므로 UI에서 두 경우를 모두 처리하세요.

@@ -1,0 +1,160 @@
+---
+title: Presencia en línea
+description: Muestra quién está en un documento, los nombres y avatares de colaboradores y los cursores y selecciones remotos.
+---
+
+Presence permite ver quién tiene abierto el mismo documento y dónde trabaja. Si Bob selecciona B3, Alice ve su selección con el nombre «Bob». También puedes mostrar los colaboradores actuales en una barra de avatares o lista.
+
+El SDK sincroniza miembros y cursores y renderiza los cursores remotos compatibles. La aplicación aporta nombres y avatares y usa la API de suscripción para construir barras, paneles de miembros o recuentos de usuarios conectados.
+
+## Antes de empezar
+
+Completa [Inicio rápido](/server/collaboration/quick-start) e [Identidad y autorización](/server/collaboration/identity-and-authorization). El editor debe sincronizar cambios, el servidor identificar al usuario mediante `context.userID` y las políticas de lectura, JOIN y edición estar configuradas.
+
+Los ejemplos amplían tus `transport`, `endpoint` y `univer` existentes. Mantén las reglas previas de autenticación y autorización.
+
+## Sincronización de miembros y cursores
+
+Alice y Bob abren la misma hoja. Hay dos tipos de actualizaciones Presence:
+
+| Acción | Lista de miembros | Qué ve Alice en la hoja |
+| --- | --- | --- |
+| Alice abre la hoja | Alice | Su propia selección |
+| Bob abre la misma hoja | Alice, Bob | La selección de Bob cuando elige una celda |
+| Bob pasa de B3 a C5 | Alice, Bob | Su selección se mueve a C5 |
+| Bob cierra la hoja | Alice, tras recibir la salida | Desaparece la selección de Bob |
+
+La lista cambia cuando una conexión entra o sale. Mover el cursor cambia la selección mostrada, sin añadir ni quitar miembros. Editar C5 también sincroniza el contenido mediante el flujo de edición colaborativa.
+
+Presence se limita a un documento (Unit) y describe a quienes están conectados ahora. La lista de acceso configurada antes describe a todos los autorizados a abrirlo. Presence es temporal: mover el cursor no crea conjuntos de cambios, no avanza la revisión ni se guarda en la base.
+
+Con los plugins de Inicio rápido y la UI del editor correspondiente activos, el SDK captura y envía cursores y selecciones locales y muestra los cursores, selecciones y nombres en los editores de otros miembros.
+
+| Editor | Suscripción de miembros | UI de cursor y selección remotos |
+| --- | --- | --- |
+| Sheet | Compatible | Selecciones de celdas y rangos |
+| Doc | Compatible | Cursores y selecciones de texto |
+| Slide | Compatible | Posiciones del puntero y selecciones de objetos |
+| Board | Compatible | Posiciones del puntero y selecciones de objetos |
+| Base | Compatible | No disponible |
+
+## 1. Establecer nombres y avatares
+
+Configura `context.member.name` y `context.member.avatar` en el Middleware `connect` de Endpoint. La aplicación decide cómo obtener el perfil: consultar con `context.session.userID` autenticado o reutilizar datos de autenticación en `customData`.
+
+Este ejemplo evita una segunda consulta usando `customData`. Añade los campos al Middleware de Transport existente y registra `connect` antes de iniciar el servidor:
+
+```ts
+type AppUser = {
+  id: string;
+  name: string;
+  avatar?: string;
+};
+
+transport.use(async (context, next) => {
+  // Your authentication function; rejects unauthenticated requests.
+  const user: AppUser = await auth.requireUser(context.incomingMessage);
+  context.userID = user.id;
+  // An application-defined field to reuse the profile in connect.
+  context.customData.user = user;
+  await next();
+});
+
+endpoint.use("connect", async (context, next) => {
+  // Read the profile saved when the session ticket was issued.
+  const user = context.session.customData.user as AppUser;
+  // Without this assignment, the member name defaults to userID.
+  context.member.name = user.name;
+  // Use an empty string when there is no avatar URL.
+  context.member.avatar = user.avatar ?? "";
+  await next();
+});
+```
+
+El SDK pasa `customData` de la solicitud session-ticket a `context.session.customData`. La clave `user` y el tipo `AppUser` son decisiones de la aplicación; el SDK no los interpreta. Los demás colaboradores reciben el perfil asignado a `context.member`.
+
+`connect` se ejecuta una vez por cada conexión WebSocket nueva, incluidas reconexiones, antes de entrar en un documento. Cambiar el perfil en la aplicación no actualiza automáticamente los perfiles ya compartidos con conexiones existentes.
+
+## 2. Mostrar una lista de miembros (opcional)
+
+Si necesitas una barra de avatares o panel, usa `subscribeCollaborators(unitID, callback)` para suscribirte a los miembros del documento abierto. El renderizado de cursores es independiente de esta suscripción.
+
+```ts
+import { FUniver } from "@univerjs/core/facade";
+// Import once in the client entry point to enable collaboration Facade methods.
+import "@univerjs-pro/collaboration-client/facade";
+
+// Reuse an existing univerAPI if your editor setup already provides one.
+const univerAPI = FUniver.newAPI(univer);
+// unitID is the ID of the document open in the editor.
+const subscription = univerAPI.getCollaboration().subscribeCollaborators(unitID, (members) => {
+  // Each callback is a new list snapshot that the application can use to update its UI.
+  console.table(members);
+});
+```
+
+El SDK espera a que esté disponible la Room colaborativa. Cada callback recibe una instantánea `IMember[]` de los miembros conocidos por el cliente, incluido uno mismo tras entrar. Durante la inicialización puede llegar una lista vacía. El callback informa de miembros, no de posiciones del cursor.
+
+Los datos de Alice y Bob incluyen estos campos (los ID son ilustrativos):
+
+| `userID` | `memberID`                             | `name`  | `avatar` |
+| -------- | -------------------------------------- | ------- | -------- |
+| `alice`  | `83446a72-a1cc-4ed8-aedc-afd8907bbb18` | `Alice` | `""`     |
+| `bob`    | `7ee5a94e-c784-4e1e-b1a3-b9d34be8ec4e` | `Bob`   | `""`     |
+
+`userID` identifica una persona en la aplicación; `memberID`, asignado por el SDK, identifica una conexión. Si Bob abre otra pestaña, se añade una entrada con el mismo `userID: "bob"` y otro `memberID`: dos usuarios y tres conexiones. Puedes agrupar por `userID` para avatares o usuarios conectados, o usar `memberID` para mostrar y contar conexiones. El editor renderiza cada cursor por separado.
+
+Libera la suscripción al retirar su vista:
+
+```ts
+subscription.dispose();
+```
+
+Al destruir el editor, libera el `univerAPI` creado por la aplicación y la instancia Univer. Si solo cierras el panel de miembros, basta con liberar su suscripción.
+
+### Ejemplo: lista de miembros React
+
+Pasa tu `univerAPI` existente y el ID de documento al componente:
+
+```tsx
+import type { FUniver } from "@univerjs/core/facade";
+import type { IMember } from "@univerjs/protocol";
+import "@univerjs-pro/collaboration-client/facade";
+import { useEffect, useState } from "react";
+
+export function OnlineMembers({ univerAPI, unitID }: { univerAPI: FUniver; unitID: string }) {
+  const [members, setMembers] = useState<IMember[]>([]);
+
+  useEffect(() => {
+    // Clear the previous document list while waiting for the new subscription.
+    setMembers([]);
+    const subscription = univerAPI.getCollaboration().subscribeCollaborators(unitID, setMembers);
+    // Unsubscribe when the document changes or the component unmounts.
+    return () => subscription.dispose();
+  }, [univerAPI, unitID]);
+
+  // Show each user once, even when they have multiple connections.
+  const users = [...new Map(members.map((member) => [member.userID, member])).values()];
+
+  return (
+    <ul>
+      {users.map((user) => (
+        <li key={user.userID}>
+          {user.avatar && <img src={user.avatar} alt="" width={24} height={24} />}
+          <span>{user.name}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+La suscripción refleja el último estado de miembros recibido por el cliente. Detectar una conexión perdida lleva tiempo, por lo que un miembro puede permanecer brevemente tras salir. La UI integrada de estado colaborativo proporciona el estado de sincronización del cliente actual, la indicación sin conexión y la acción de reconectar.
+
+## Prueba con dos usuarios
+
+1. Inicia sesión como Alice y Bob en perfiles de navegador distintos y abre el mismo documento.
+2. Comprueba que aparecen ambos nombres.
+3. Como Bob, selecciona B3 y luego C5 en una Sheet. Alice debe ver moverse la selección con el nombre de Bob y la lista mantenerse igual.
+4. Abre otra pestaña como Bob. La suscripción debe añadir otro `memberID`, pero la lista React debe mostrar Bob una sola vez.
+5. Cierra ambas pestañas de Bob. Tras recibir las salidas, la lista de Alice solo debe contener Alice.

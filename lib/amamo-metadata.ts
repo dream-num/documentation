@@ -20,7 +20,6 @@ interface IGeneratedIndex {
   documents: Record<string, { collection: string; key: string }>
   version: number
 }
-let generatedIndexPromise: Promise<IGeneratedIndex> | undefined
 
 // Shared by navigation and full article sources: identical paths, metadata and ordering,
 // with no MDX body imports in the navigation dependency graph.
@@ -30,10 +29,7 @@ export async function createAmamoMetadataSource<TFrontmatter extends PageData>(
   documents: readonly IAmamoMetadata<TFrontmatter>[],
 ): Promise<StaticSource<{ metaData: IAmamoMetaData; pageData: TFrontmatter & { info: IFileInfo } }>> {
   const collectionDirectory = path.resolve(directory)
-  generatedIndexPromise ??= readFile(path.join(process.cwd(), '.amamo-mdx/index.json'), 'utf8').then(
-    (value) => JSON.parse(value) as IGeneratedIndex,
-  )
-  const index = await generatedIndexPromise
+  const index = JSON.parse(await readFile(path.join(process.cwd(), '.amamo-mdx/index.json'), 'utf8')) as IGeneratedIndex
   if (index.version !== 2) throw new Error(`Unsupported generated index version: ${index.version}`)
   const indexedCollectionDirectory = index.config.collections[collection]?.directory
   if (!indexedCollectionDirectory) throw new Error(`Missing generated collection: ${collection}`)

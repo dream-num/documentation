@@ -1,0 +1,100 @@
+---
+title: Office ファイルのインポートとエクスポート
+description: Exchange で Office ファイルと共同編集 Unit の間の入出力を行います。
+---
+
+Office ファイル変換は AI SDK ではなく `@univerjs-pro/exchange-node` が提供します。CLI アプリケーションはファイル境界で `importFile()` と `exportToFile()` を呼び、その後 AI SDK と Collaboration SDK で Unit を操作します。
+
+## SDK の責任範囲を保つ
+
+```ts
+import { exportToFile, importFile } from "@univerjs-pro/exchange-node";
+```
+
+| 機能 | 担当 |
+| --- | --- |
+| Office ファイルと UnitData の相互変換 | Exchange |
+| ヘッドレスランタイム、内容検査、Facade 実行 | AI SDK |
+| スナップショット、変更セット、リビジョン、永続化 | Collaboration SDK |
+| パス、形式の方針、業務 API、エラー対応付け | 業務アプリケーション |
+
+## 共同編集 Unit のインポート
+
+業務アプリケーションは Exchange で Office ファイルを読み、得た UnitData を Collaboration Server に送って Unit を作ります。
+
+```text
+Office ファイル
+→ importFile()
+→ UnitData
+→ 業務 Server API
+→ 共同編集 Unit
+```
+
+初期リビジョン、業務メタデータ、結果はアプリケーションが決めます。作成後、CLI と Web はサーバー経由で Unit を操作します。
+
+## 最新リビジョンのエクスポート
+
+CLI はまず Collaboration Runtime で最新の確定リビジョンを読み、完全な UnitData を Exchange に渡します。
+
+```text
+共同編集 Unit
+→ 最新 UnitData
+→ exportToFile()
+→ Office ファイル
+```
+
+出力先の拡張子で出力形式を選びます。
+
+## Commander でファイル操作を公開する
+
+AI SDK は Office 入出力のコマンドプリセットを提供しません。アプリケーションが Commander で Exchange、Collaboration Runtime、自身の Server API を組み合わせます。
+
+```ts
+import { Command } from "commander";
+
+interface IFileExchangeDependencies {
+  importFile(path: string): Promise<unknown>;
+  createUnit(unitData: unknown): Promise<unknown>;
+  loadLatestUnitData(unitId: string): Promise<unknown>;
+  exportFile(unitData: unknown, path: string): Promise<void>;
+  writeResult(result: unknown): void;
+}
+
+function addFileExchangeCommands(program: Command, dependencies: IFileExchangeDependencies): void {
+  program.addCommand(
+    new Command("import").argument("<office-file>").action(async (sourcePath) => {
+      const unitData = await dependencies.importFile(sourcePath);
+      const created = await dependencies.createUnit(unitData);
+      dependencies.writeResult(created);
+    }),
+  );
+
+  program.addCommand(
+    new Command("export")
+      .argument("<office-file>")
+      .requiredOption("--unit <id>")
+      .action(async (outputPath, { unit }) => {
+        const unitData = await dependencies.loadLatestUnitData(unit);
+        await dependencies.exportFile(unitData, outputPath);
+      }),
+  );
+}
+```
+
+Commander 以外の機能はすべて `IFileExchangeDependencies` に明示され、未提示のヘルパーはありません。Exchange の `importFile()`／`exportToFile()` で変換し、Collaboration Runtime で `loadLatestUnitData()` を実装し、独自の Server API と結果表示を注入します。
+
+## 対応形式
+
+| Unit | インポート | エクスポート |
+| --- | --- | --- |
+| Sheet | `.xls`, `.xlsx`, `.xlsm`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` |
+| Doc | `.doc`, `.docx` | `.docx` |
+| Slide | `.ppt`, `.pptx`, `.pptm`, `.ppsx`, `.ppsm`, `.potx` | `.pptx` |
+
+ファイル生成前に、Unit 種別と合わない拡張子をアプリケーションで拒否してください。
+
+## ローカル CLI のみを使う
+
+Collaboration Server を介さず、取り込んだ内容をローカルのヘッドレスランタイムへ渡して Office ファイルを書き出すこともできます。単発処理には便利ですが、共有リビジョン、ライブ Web プレビュー、History、Worktree は提供しません。
+
+コマンド名、パス引数、結果表示はアプリケーションが管理します。共同編集 Unit の流れは[読み込みとコンテンツ操作](/ai/content-operations)を参照してください。ファイル境界の追加後は[視覚的検査](/ai/visual-inspection)に進み、AI Agent が UnitData の描画結果を確認できるようにします。
