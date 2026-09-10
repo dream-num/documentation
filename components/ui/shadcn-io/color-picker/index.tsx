@@ -43,7 +43,7 @@ export type ColorPickerProps = HTMLAttributes<HTMLDivElement> & {
 }
 
 export function ColorPicker({ value, defaultValue = '#000000', onChange, className, ...props }: ColorPickerProps) {
-  const selectedColor = Color(value ?? defaultValue)
+  const selectedColor = new Color(value ?? defaultValue)
 
   const [hue, setHue] = useState(selectedColor.hue())
   const [saturation, setSaturation] = useState(selectedColor.saturationl())
@@ -73,21 +73,24 @@ export function ColorPicker({ value, defaultValue = '#000000', onChange, classNa
     }
   }, [hue, saturation, lightness, alpha, onChange])
 
+  const contextValue = useMemo(
+    () => ({
+      hue,
+      saturation,
+      lightness,
+      alpha,
+      mode,
+      setHue,
+      setSaturation,
+      setLightness,
+      setAlpha,
+      setMode,
+    }),
+    [hue, saturation, lightness, alpha, mode, setHue, setSaturation, setLightness, setAlpha, setMode],
+  )
+
   return (
-    <ColorPickerContext
-      value={{
-        hue,
-        saturation,
-        lightness,
-        alpha,
-        mode,
-        setHue,
-        setSaturation,
-        setLightness,
-        setAlpha,
-        setMode,
-      }}
-    >
+    <ColorPickerContext value={contextValue}>
       <div className={clsx('flex size-full flex-col gap-4', className)} {...props} />
     </ColorPickerContext>
   )
@@ -169,22 +172,18 @@ export const ColorPickerSelection = memo(({ className, ...props }: ColorPickerSe
 
 ColorPickerSelection.displayName = 'ColorPickerSelection'
 
-export type ColorPickerHueProps = BaseSlider.Slider.Root.Props<readonly number[]>
+export type ColorPickerHueProps = BaseSlider.Slider.Root.Props<number>
 
-export function ColorPickerHue({ className, ...props }: ColorPickerHueProps) {
+export function ColorPickerHue({ className, 'aria-label': ariaLabel = 'Hue', ...props }: ColorPickerHueProps) {
   const { hue, setHue } = useColorPicker()
 
   return (
     <BaseSlider.Slider.Root
       className={clsx('relative flex h-4 w-full touch-none', className)}
       max={360}
-      onValueChange={([nextHue]) => {
-        if (nextHue !== undefined) {
-          setHue(nextHue)
-        }
-      }}
+      onValueChange={setHue}
       step={1}
-      value={[hue]}
+      value={hue}
       {...props}
     >
       <BaseSlider.Slider.Control className="relative flex w-full touch-none items-center">
@@ -194,6 +193,7 @@ export function ColorPickerHue({ className, ...props }: ColorPickerHueProps) {
           <BaseSlider.Slider.Indicator className="absolute h-full" />
         </BaseSlider.Slider.Track>
         <BaseSlider.Slider.Thumb
+          aria-label={ariaLabel}
           className={`border-primary/50 bg-background focus-visible:ring-ring block size-4 rounded-full border shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50`}
         />
       </BaseSlider.Slider.Control>
@@ -201,22 +201,18 @@ export function ColorPickerHue({ className, ...props }: ColorPickerHueProps) {
   )
 }
 
-export type ColorPickerAlphaProps = BaseSlider.Slider.Root.Props<readonly number[]>
+export type ColorPickerAlphaProps = BaseSlider.Slider.Root.Props<number>
 
-export function ColorPickerAlpha({ className, ...props }: ColorPickerAlphaProps) {
+export function ColorPickerAlpha({ className, 'aria-label': ariaLabel = 'Opacity', ...props }: ColorPickerAlphaProps) {
   const { alpha, setAlpha } = useColorPicker()
 
   return (
     <BaseSlider.Slider.Root
       className={clsx('relative flex h-4 w-full touch-none', className)}
       max={100}
-      onValueChange={([nextAlpha]) => {
-        if (nextAlpha !== undefined) {
-          setAlpha(nextAlpha)
-        }
-      }}
+      onValueChange={setAlpha}
       step={1}
-      value={[alpha]}
+      value={alpha}
       {...props}
     >
       <BaseSlider.Slider.Control className="relative flex w-full touch-none items-center">
@@ -231,6 +227,7 @@ export function ColorPickerAlpha({ className, ...props }: ColorPickerAlphaProps)
           <BaseSlider.Slider.Indicator className="absolute h-full rounded-full bg-transparent" />
         </BaseSlider.Slider.Track>
         <BaseSlider.Slider.Thumb
+          aria-label={ariaLabel}
           className={`border-primary/50 bg-background focus-visible:ring-ring block size-4 rounded-full border shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50`}
         />
       </BaseSlider.Slider.Control>
@@ -248,7 +245,7 @@ export function ColorPickerEyeDropper({ className, ...props }: ColorPickerEyeDro
       // @ts-expect-error - EyeDropper API is experimental
       const eyeDropper = new EyeDropper()
       const result = await eyeDropper.open()
-      const color = Color(result.sRGBHex)
+      const color = new Color(result.sRGBHex)
       const [h, s, l] = color.hsl().array()
 
       setHue(h)
@@ -345,17 +342,17 @@ export function ColorPickerFormat({ className, ...props }: ColorPickerFormatProp
 
     return (
       <div className={clsx('flex items-center -space-x-px rounded-md shadow-sm', className)} {...props}>
-        {rgb.map((value, index) => (
+        {['red', 'green', 'blue'].map((channel, index) => (
           <Input
             className={clsx(
               'bg-secondary h-8 rounded-r-none px-2 text-xs shadow-none',
               index && 'rounded-l-none',
               className,
             )}
-            key={index}
+            key={channel}
             readOnly
             type="text"
-            value={value}
+            value={rgb[index]}
           />
         ))}
         <PercentageInput value={alpha} />
@@ -364,18 +361,13 @@ export function ColorPickerFormat({ className, ...props }: ColorPickerFormatProp
   }
 
   if (mode === 'css') {
-    const rgb = color
-      .rgb()
-      .array()
-      .map((value) => Math.round(value))
-
     return (
       <div className={clsx('w-full rounded-md shadow-sm', className)} {...props}>
         <Input
           className="bg-secondary h-8 w-full px-2 text-xs shadow-none"
           readOnly
           type="text"
-          value={`rgba(${rgb.join(', ')}, ${alpha}%)`}
+          value={color.rgb().round().string()}
           {...props}
         />
       </div>
@@ -390,17 +382,17 @@ export function ColorPickerFormat({ className, ...props }: ColorPickerFormatProp
 
     return (
       <div className={clsx('flex items-center -space-x-px rounded-md shadow-sm', className)} {...props}>
-        {hsl.map((value, index) => (
+        {['hue', 'saturation', 'lightness'].map((channel, index) => (
           <Input
             className={clsx(
               'bg-secondary h-8 rounded-r-none px-2 text-xs shadow-none',
               index && 'rounded-l-none',
               className,
             )}
-            key={index}
+            key={channel}
             readOnly
             type="text"
-            value={value}
+            value={hsl[index]}
           />
         ))}
         <PercentageInput value={alpha} />

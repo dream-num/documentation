@@ -1,0 +1,149 @@
+---
+title: Database Adapter
+description: 理解协同持久化合同，并在 Memory、SQLite 与自定义 Database Adapter 之间选择。
+---
+
+Database Adapter 负责 Collaboration Service 核心协同数据的持久化。开发者可以实现
+`IDatabaseAdapter`，将任何能够满足其完整行为约束的数据库接入 Collaboration Service。Service 负责
+Unit、OT 和 revision 语义；Adapter 负责把这些语义落实为原子、可重试的持久化操作。
+
+## Adapter 保存什么
+
+Core Collaboration Adapter 保存：
+
+- Unit record 与当前 head revision；
+- revisioned snapshot；
+- confirmed changeset；
+- Sheet snapshot 引用的 block；
+- `(unitID, sid, reqId)` 提交幂等记录；
+- Unit 软删除、恢复与永久删除状态。
+
+它默认不保存用户、角色、ACL、目录、文件或产品 metadata。History、Thread Comment 与 Worktree
+使用各自独立的 Adapter 合同。
+
+## Adapter 必须保证的语义
+
+`IDatabaseAdapter` 不只是 CRUD 接口。实现必须维持 Collaboration Service 依赖的正确性合同：
+
+| 合同            | 含义                                                     |
+| --------------- | -------------------------------------------------------- |
+| 原子创建        | 初始 snapshot 与 Sheet blocks 要么全部可见，要么都不可见 |
+| Revision CAS    | 只有 head revision 等于预期值时才能确认下一次提交        |
+| 提交幂等        | 相同 `(unitID, sid, reqId)` 重试必须返回同一个已确定结果 |
+| 连续 Changeset  | 已确认 changeset 与 Unit revision 保持连续               |
+| Snapshot 可见性 | Snapshot 的依赖完整写入后才能被读取                      |
+| 生命周期原子性  | 同一删除或恢复批次必须全有或全无                         |
+| 永久删除标记    | Hard delete 后相同 Unit ID 不可重新创建                  |
+
+自定义 Adapter 如果只把方法逐个映射成普通读写，而没有实现这些并发与原子语义，会破坏 OT 和恢复链路。
+
+## Memory Adapter
+
+`@univerjs-pro/collaboration-database-memory` 是进程内实现，适合：
+
+- 单元测试和集成测试；
+- 官方示例；
+- 临时开发环境；
+- 快速验证自定义 Middleware 或 Client 组装。
+
+```ts
+import { MemoryDatabaseAdapter } from "@univerjs-pro/collaboration-database-memory";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+
+const database = new MemoryDatabaseAdapter();
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
+Memory Adapter 与持久化实现遵守相同的 revision、CAS 和幂等合同，但全部数据只存在于当前 Node.js
+进程，进程退出后数据丢失。
+
+## SQLite Adapter
+
+`@univerjs-pro/collaboration-database-sqlite` 是持久化 SQLite 实现，适合开发、测试、本地应用和
+小规模场景。
+
+```ts
+import { mkdir } from "node:fs/promises";
+
+import { SQLiteDatabaseAdapter } from "@univerjs-pro/collaboration-database-sqlite";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+
+await mkdir("./data", { recursive: true });
+
+const database = new SQLiteDatabaseAdapter({
+  filename: "./data/collaboration.sqlite",
+  busyTimeoutMs: 5_000,
+});
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
+SQLite Adapter 使用 foreign keys 和 `BEGIN IMMEDIATE` 写事务实现原子提交。空数据库会自动创建当前
+Schema；遇到不完整或不支持的 Schema 时会拒绝打开，不会自动执行未知 Migration。
+
+它不会主动修改 `journal_mode`，也不会替应用决定数据库文件位置、备份或其他 SQLite 运行参数。
+SQLite 的定位是开发、本地应用与小规模场景。
+
+## 自定义 Database Adapter
+
+以下情况通常需要自定义 Adapter：
+
+- 应用已经使用 PostgreSQL、MySQL 或其他业务数据库；
+- 需要把协同提交与应用自有的数据库机制结合；
+- 运维或合规要求超出 SQLite 的定位。
+
+应用实现 `IDatabaseAdapter`，再像内置实现一样注入 Service：
+
+```ts
+const database = new ApplicationCollaborationDatabase({ pool });
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
+Service 不依赖具体数据库，也不会为自定义实现补上 transaction、CAS 或 deduplication。Adapter 必须在
+自身数据库能力之上实现完整合同。
+
+## Context 与业务边界
+
+每次 Service 调用携带的 `customData` 会传递给 Middleware、Database Adapter 和相关 Event，但 SDK
+不会自动持久化这些数据。权限决策通常应放在 Service Middleware，而不是散落在每个 Adapter 方法中：
+
+```text
+Service Middleware
+  → 允许或拒绝业务操作
+  → Database Adapter
+  → 原子保存权威协同状态
+```
+
+这样，Memory、SQLite 和自定义 Adapter 可以共享相同的应用策略。
+
+如果业务数据需要与协同数据保持强一致，可以实现自定义 Database Adapter，从 `customData` 中读取所需
+信息，并在 Adapter 的同一个数据库事务中写入协同数据和业务数据。
+
+如果业务数据不要求与协同提交处于同一事务，也可以通过 Middleware 或 Event 将其写入额外的数据表或
+外部系统。Middleware 和 Event 默认不共享 Adapter 内部事务；Event 是协同提交成功后的进程内
+best-effort 通知。因此，额外写入所需的幂等、重试或补偿策略由应用负责。
+
+## 扩展模块的存储
+
+History、Thread Comment 与 Worktree 等扩展模块都有独立的 Database Adapter 接口。开发者可以让这些
+Adapter 共用同一个数据库，也可以按模块拆分存储；一个自定义实现也可以同时提供多个 Adapter 接口，再
+分别注入对应的 Service。
+
+Adapter 接口相互独立，因此 SDK 不提供默认的跨模块事务。即使多个模块共用一个数据库，跨模块的一致性
+策略也由应用负责。
+
+## 如何选择
+
+| Adapter | 适用范围                         | 主要限制                         |
+| ------- | -------------------------------- | -------------------------------- |
+| Memory  | 测试、示例、临时开发             | 进程退出后数据丢失               |
+| SQLite  | 开发、测试、本地应用与小规模场景 | 单文件数据库，由应用管理运行参数 |
+| Custom  | 既有数据库或自定义业务数据集成   | 应用负责实现和验证完整合同       |
+
+无论选择哪种实现，应用都拥有注入的 Adapter。释放时应先释放 Service，再释放 Adapter：
+
+```ts
+await service.dispose();
+await database.dispose();
+```
+
+可运行对照见 [Database Adapter 示例](/server/collaboration/examples#database-adapter)。

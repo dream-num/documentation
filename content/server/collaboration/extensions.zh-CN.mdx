@@ -1,0 +1,150 @@
+---
+title: 协同扩展模块
+description: 理解 History、Thread Comment、Worktree 与服务端 Office Exchange 如何扩展核心协同服务。
+---
+
+History、Thread Comment 与 Worktree 是独立的协同扩展模块，可按产品需求启用。它们可以复用 Transport、身份系统和
+物理数据库，但各自保留 Service、Middleware、Event、Database Adapter 与生命周期边界。
+
+服务端 Office Exchange 则是一条应用工作流：它组合文件转换和 Collaboration Service API，不是主
+Service 上的 feature switch。
+
+## 模块关系
+
+<Mermaid chart={"flowchart TB\n    Transport[\"Node Transport\"]\n\n    subgraph Modules[\"Collaboration Modules\"]\n        direction LR\n        Core[\"Core Collaboration<br/>Endpoint · Service · Adapter\"]\n        History[\"History<br/>Endpoint · Service · Adapter\"]\n        Comment[\"Thread Comment<br/>Endpoint · Service · Adapter\"]\n        Worktree[\"Worktree<br/>Client · Endpoint · Service · Adapter\"]\n    end\n\n    Transport --> Core\n    Transport --> History\n    Transport --> Comment\n    Transport --> Worktree"} />
+
+| 扩展模块        | 与 Core Collaboration 的关系                     |
+| --------------- | ------------------------------------------------ |
+| History         | 监听 Core Event，建立派生历史索引                |
+| Thread Comment  | 复用 Core Unit Room；评论 anchor 属于 Core 内容  |
+| Worktree        | 复用 Core Unit 与 OT 能力，并将 draft 合入 trunk |
+| Office Exchange | 通过 Core Service Snapshot API 创建或读取 Unit   |
+
+History、Thread Comment 与 Worktree 分别配置自己的 Middleware、Event 与 Database Adapter。
+
+## 版本历史
+
+History 把 Unit 创建和 confirmed changeset 分组为面向用户的历史条目。它是派生索引；Core
+Collaboration Service 保存的 confirmed changeset 才是 Unit 内容的权威来源。
+
+```ts
+const historyService = new UniverHistoryService({
+  collabService,
+  dbAdapter: historyDatabase,
+  userProvider,
+});
+
+const attachment = historyService.attach(collabService);
+transport.register(new UniverHistoryEndpoint(historyService));
+```
+
+`attach()` 通过 Core Service 的 `unitCreated` 和 `changesetCommitted` Event 更新索引。默认策略按时间窗口
+和特殊 mutation 分段，而不是每条 changeset 都创建一个历史项。
+
+History 有独立的读取与索引 Middleware。`userProvider` 只补全姓名、头像等展示信息，不负责认证或
+授权。Event Listener 失败不会回滚已经确认的 Core changeset，因此 History 始终应被理解为可重建的
+派生数据。
+
+## Thread Comment
+
+Comment Service 管理 Sheet/Doc 的评论正文、回复、编辑、删除和 solved 状态：
+
+```ts
+const commentService = new UniverCommentService({
+  database: commentDatabase,
+  userProvider,
+});
+
+transport.register(
+  new UniverCommentEndpoint({
+    service: commentService,
+    roomHost: collabEndpoint,
+  }),
+);
+```
+
+评论正文属于 Comment Adapter。随 Sheet 或 Doc 内容变化的 anchor 仍属于 Core snapshot/changeset。
+Comment Endpoint 可以复用主 Collaboration Endpoint 的 Unit Room 发布 `comment_update`，但实时消息不是
+评论数据的权威来源；Client 可以重新 list 评论恢复状态。
+
+Comment Service 提供 add、list、reply、solve/reopen、edit 与 delete Middleware，以及
+`commentCommitted` Event。它不会继承 Core Service 的读取或编辑策略。
+
+## Worktree 草稿与合并
+
+Worktree 为一个或多个 Unit 提供隔离的 draft、冻结、合入评估和逐 Unit merge：
+
+```text
+create → draft → ready → merging → merged
+           ↑       │
+           └ reopen┘
+
+draft / ready → discarded
+```
+
+```ts
+const worktreeService = new UniverCollabWorktreeService({
+  trunk: {
+    service: collabService,
+    dbAdapter: coreDatabase,
+  },
+  dbAdapter: worktreeDatabase,
+});
+```
+
+Worktree 以 `(worktreeID, unitID)` 保存独立 draft changeset，并复用 Core Service 的 Unit、OT 和提交
+引擎。只有 `draft` 状态允许继续修改；`markReady()` 冻结当前 draft revision；`mergeWorktree()` 把
+Unit 逐个合入 trunk。
+
+Worktree Service 拥有独立的生命周期、读取、draft submit/apply/commit Middleware，以及创建、状态变化、
+合入结果和 draft changeset commit Event。最终写入 trunk 时，仍会进入 Core Service 自己的 Middleware。
+
+多个 Unit 的 merge 不保证跨 Unit 原子性，应用应展示每个 Unit 的合入结果。
+
+## 服务端 Office Exchange
+
+服务端 Exchange 使用 `@univerjs-pro/exchange-node` 与 Collaboration Service API 组合文件和协同状态：
+
+```text
+Office file
+  → exchange-node import
+  → Snapshot + Sheet Blocks
+  → createUnitFromSnapshot()
+
+Confirmed Unit revision
+  → getUnitLoadDataWithBlocks()
+  → UnitSnapshotMaterializer
+  → exchange-node export
+  → Office file
+```
+
+官方示例支持把 XLS、XLSX、CSV 或 TSV 导入为新的协同 Sheet，并把当前 confirmed revision 导出为
+XLSX、CSV 或 TSV。
+
+文件存储、任务状态、访问控制、大小限制和业务 API 都由应用负责。Exchange 没有独立的协同 Database
+Adapter；它通过 Core Service 读取或创建权威 Unit。
+
+## 独立扩展点
+
+启用扩展模块时，应逐项检查：
+
+| 边界             | Core           | History         | Comment            | Worktree                  |
+| ---------------- | -------------- | --------------- | ------------------ | ------------------------- |
+| Service          | 独立           | 独立            | 独立               | 独立                      |
+| Middleware       | 不共享         | 不继承 Core     | 不继承 Core        | 不继承 Core               |
+| Event            | Core lifecycle | 监听 Core Event | `commentCommitted` | Worktree lifecycle/commit |
+| Database Adapter | Core Adapter   | History Adapter | Comment Adapter    | Worktree Adapter          |
+
+这些 Adapter 可以使用同一个 SQLite 文件，但仍是独立对象和合同。应用释放资源时也应分别释放 Service
+与 Adapter。
+
+## 选择能力
+
+| 产品需求               | 模块                                        | 首个示例                |
+| ---------------------- | ------------------------------------------- | ----------------------- |
+| 面向用户的版本历史     | History Service、Endpoint、Adapter          | `pnpm example:history`  |
+| Sheet 或 Doc 批注      | Comment Service、Endpoint、Adapter          | `pnpm example:comments` |
+| 隔离草稿、评审与合并   | Worktree Service、Endpoint、Client、Adapter | `pnpm example:worktree` |
+| 服务端 Office 导入导出 | Exchange Node + Collaboration Service       | `pnpm example:exchange` |
+
+完整运行方法与页面地址见[示例索引](/server/collaboration/examples)。

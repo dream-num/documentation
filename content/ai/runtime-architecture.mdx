@@ -1,0 +1,288 @@
+---
+title: Runtime reuse and Daemon
+description: Start with the Runtime lifecycle of a single CLI command, then learn how a daemon owns a Worker Runtime pool and reuses loaded Units across calls.
+source: https://github.com/dream-num/univer-cli-sdk/blob/main/docs/design/runtime-architecture.md
+---
+
+When a CLI command runs, the expensive part is usually not parsing arguments. It is turning a Unit into a live Univer
+that can be read and written: creating Univer, installing plugins, opening the collaboration backend, loading the
+checkpoint, applying changesets, and waiting for formulas to finish calculating.
+
+This chapter focuses on two Runtime capabilities:
+
+- `@univer-cli/univer-collaboration-runtime`: loads and operates on a Unit in the current process;
+- `@univer-cli/univer-collaboration-runtime-pool`: places Runtimes in Workers and leases, reuses, and retires them by
+  Unit identity.
+
+For a Worker Runtime to survive across multiple CLI invocations, it needs a long-lived owner. A local daemon fills that
+role here.
+
+## Start with three lifecycles
+
+Before thinking about reuse, distinguish the lifetimes of these three objects:
+
+| Object         | Created                                        | Ends                                                                | Owns                                                                     |
+| -------------- | ---------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| CLI process    | Every time the user runs a command             | After the command prints its result                                 | Arguments, one request, and output formatting                            |
+| Daemon process | On the first request, or when started directly | When stopped, restarted for an upgrade, or crashed                  | Runtime pool, business handlers, and local socket                        |
+| Worker Runtime | When the pool first encounters a key           | On TTL/LRU eviction, invalidation, daemon shutdown, or Worker crash | One Worker, one backend handle, one loaded Unit, and collaboration state |
+
+The key mental model is: **the CLI makes one call, the daemon owns the pool, the pool owns Workers, and each Worker owns
+a Runtime.**
+
+<Mermaid chart={"flowchart LR\n  CLI1[CLI invocation 1<br/>short-lived] -->|JSON request| D[Daemon<br/>long-lived owner]\n  CLI2[CLI invocation 2<br/>short-lived] -->|JSON request| D\n  CLIN[CLI invocation N<br/>short-lived] -->|JSON request| D\n\n  D --> P[Collaboration Runtime pool]\n  P -->|key: Unit A| WA[Worker A]\n  P -->|key: Unit B| WB[Worker B]\n  WA --> RA[Runtime A<br/>Unit A loaded]\n  WB --> RB[Runtime B<br/>Unit B loaded]\n  RA --> BA[Backend A]\n  RB --> BB[Backend B]\n  BA --> DS[(Collaboration Server<br/>or another data source)]\n  BB --> DS"} />
+
+The daemon only forwards application-defined JSON requests. Snapshots, changesets, and blocks are read directly by the
+backend inside the Worker; they do not pass through the CLI or daemon.
+
+## Step 1: Load a Runtime directly for every CLI command
+
+The simplest implementation creates `@univer-cli/univer-collaboration-runtime` inside a Commander action and closes it
+after the operation finishes:
+
+```ts
+const runtime = await runtimeFactory.load(unitId, unitType);
+
+try {
+  const pulled = await runtime.pull();
+  if (pulled.status === "conflict") throw new Error(pulled.conflict.message);
+
+  const execution = await runtime.execute({ mode: "write", code });
+  let commit = await runtime.commit();
+  if (commit.status === "pull-required") {
+    const repulled = await runtime.pull();
+    if (repulled.status === "conflict") throw new Error(repulled.conflict.message);
+    commit = await runtime.commit();
+  }
+  return { execution, commit };
+} finally {
+  await runtime.close();
+}
+```
+
+Here, `runtimeFactory` is created by `createUniverCollaborationRuntimeFactory()`. From loading until closing, a Runtime
+is always bound to exactly one Unit and retains that Unit's current revision, pending mutations, awaiting changesets,
+and conflict state. The caller must also inspect the final commit status: only `confirmed` and `nothing-to-commit` mean
+that the operation has finished.
+
+A `load()` call does more than "read a file." It performs these steps in order:
+
+1. Open the collaboration backend supplied by the application;
+2. Create a headless Univer and install the collaboration capabilities;
+3. Load UnitData or a Snapshot checkpoint;
+4. Replay the changesets carried by the checkpoint;
+5. Fetch and replay the gap between the checkpoint and the latest remote revision;
+6. Wait until the latest results from the installed formula modules have been applied;
+7. Return a Runtime that can run `execute()`, `pull()`, and `commit()`.
+
+A complete one-off invocation looks like this:
+
+<Mermaid chart={"sequenceDiagram\n  autonumber\n  actor User\n  participant CLI as CLI process\n  participant RT as Collaboration Runtime\n  participant U as Headless Univer\n  participant B as Backend\n\n  User->>CLI: Run command\n  CLI->>CLI: Start Node.js, load modules, parse arguments\n  CLI->>RT: factory.load(unitId, unitType)\n  RT->>B: Open + read checkpoint / changesets\n  RT->>U: Create Univer, install plugins, load and replay Unit\n  RT->>U: Wait for formulas to become ready\n  RT-->>CLI: Runtime ready\n  CLI->>RT: pull()\n  CLI->>RT: execute()\n  opt Write operation\n    CLI->>RT: commit()\n    RT->>B: Submit changeset\n  end\n  CLI->>RT: close()\n  RT->>B: Close backend handle\n  RT->>U: Dispose Univer\n  CLI-->>User: Print result and exit"} />
+
+This approach has direct ownership and leaves no state behind after a failure, making it suitable for low-frequency
+commands and one-off tasks. The cost is that the next CLI command starts a new Node.js process and repeats the entire
+loading sequence. It cannot reuse the Univer and Unit state built by the previous command.
+
+## Step 2: Host the Runtime in a Worker pool
+
+`@univer-cli/univer-collaboration-runtime-pool` maintains a separate Worker process and Collaboration Runtime for every
+resident key. The application first supplies a Worker entry; the backend, credentials, and Univer are all created
+inside the Worker:
+
+```ts title="collaboration-worker.ts"
+import { defineUniverCollaborationRuntimeWorker } from "@univer-cli/univer-collaboration-runtime-pool";
+
+export default defineUniverCollaborationRuntimeWorker({
+  async createRuntime(init: { unitId: string; unitType: number }) {
+    return createRuntimeFromApplicationInit(init);
+  },
+});
+```
+
+The Worker entry must point to a built JavaScript ESM file. `init` is sent to the Worker only during a cold creation and
+must be compatible with structured clone.
+
+The caller does not need to design a separate Runtime RPC layer. The lease already proxies public APIs including
+`getState()`, `execute()`, `fetch()`, `pull()`, `commit()`, and `exportUnitData()`:
+
+```ts
+import { createUniverCollaborationRuntimePool } from "@univer-cli/univer-collaboration-runtime-pool";
+
+const pool = createUniverCollaborationRuntimePool({
+  entry: new URL("./collaboration-worker.js", import.meta.url),
+});
+
+const lease = await pool.acquire({
+  key: targetKey,
+  init: { unitId, unitType },
+});
+
+try {
+  await lease.pull();
+  const result = await lease.execute({ mode: "read", code });
+  console.log(result.value);
+} catch (error) {
+  await lease.invalidate();
+  throw error;
+} finally {
+  await lease.release();
+}
+```
+
+The `key` identifies the Runtime to reuse; it is not merely a query argument. The same key must always represent the
+same Unit, the same collaboration state chain, and compatible initialization semantics. A plain Unit and a Worktree
+draft should use different keys even if they have the same `unitId`.
+
+The pool has four important behaviors:
+
+- The same key is granted to only one lease at a time. Concurrent requests wait in FIFO order so that two calls cannot
+  modify the same live state simultaneously;
+- `release()` returns a trusted Runtime to the idle cache so the next request for the same key can reuse it;
+- `invalidate()` indicates that the state can no longer be trusted. The Worker and Runtime are destroyed, and the next
+  request performs a cold load;
+- Idle Runtimes can be evicted by TTL and LRU. Timeouts, Worker crashes, and protocol errors also invalidate the current
+  instance.
+
+However, if the pool itself is created inside a short-lived CLI process, reuse still cannot cross command boundaries:
+
+<Mermaid chart={"flowchart LR\n  subgraph C1[CLI invocation 1]\n    P1[Pool 1] --> W1[Worker A] --> R1[Runtime A]\n  end\n\n  X1[CLI exits] -.->|Pool closes, so its Worker also exits| C1\n\n  subgraph C2[CLI invocation 2]\n    P2[New Pool 2] --> W2[New Worker A] --> R2[Runtime A loaded again]\n  end\n\n  X1 --> C2"} />
+
+Workers provide Runtime process isolation, exclusive leasing, and failure termination. To reuse them across CLI
+invocations, the pool still needs an owner that lives longer than any single command.
+
+## Step 3: Make the Daemon the long-lived pool owner
+
+The daemon is an on-demand local Node.js process. The CLI calls it through a Unix socket or Windows named pipe. Exiting
+the CLI does not terminate the daemon, so the daemon's pool, Workers, and idle Runtimes can remain alive.
+
+Create the pool once in the daemon entry, then acquire a lease inside each business handler:
+
+```ts title="daemon-entry.ts"
+import { createDaemonServer, DAEMON_SOCKET_ENV } from "@univer-cli/daemon";
+import { createUniverCollaborationRuntimePool } from "@univer-cli/univer-collaboration-runtime-pool";
+
+const socketPath = process.env[DAEMON_SOCKET_ENV];
+if (!socketPath) throw new Error(`${DAEMON_SOCKET_ENV} is required`);
+
+const pool = createUniverCollaborationRuntimePool({
+  entry: new URL("./collaboration-worker.js", import.meta.url),
+  cache: { idleTtlMs: 5 * 60_000, maxEntries: 20 },
+});
+
+const server = createDaemonServer({
+  identity: { id: "my-cli", version: "1.0.0" },
+  socketPath,
+  onShutdown: () => pool.close(),
+});
+
+server.handle("unit.execute", async (payload) => {
+  const input = parseExecuteRequest(payload);
+  const lease = await pool.acquire({
+    key: input.targetKey,
+    init: { unitId: input.unitId, unitType: input.unitType },
+  });
+
+  try {
+    const pulled = await lease.pull();
+    if (pulled.status === "conflict") throw new Error(pulled.conflict.message);
+
+    const execution =
+      input.mode === "read"
+        ? await lease.execute({ mode: "read", code: input.code })
+        : await lease.execute({ mode: "write", code: input.code });
+    const commit = input.mode === "write" ? await commitWithPull(lease) : null;
+    return { commitStatus: commit?.status ?? null, value: execution.value };
+  } catch (error) {
+    await lease.invalidate();
+    throw error;
+  } finally {
+    await lease.release();
+  }
+});
+
+await server.listen();
+```
+
+The application defines `parseExecuteRequest()` and the `targetKey` rules. The daemon only provides local transport and
+lifecycle management; it does not understand Units, Runtimes, or the collaboration protocol. A daemon shutdown must
+call `pool.close()` so that idle and active Workers have a clear final owner. In this example, `commitWithPull()` handles
+the pull/commit sequence after `pull-required` and checks the final commit status. To keep the example conservative,
+any unhandled error invalidates the current lease.
+
+An ordinary CLI command now only sends one business request to the daemon:
+
+```ts
+import { createDaemonClient } from "@univer-cli/daemon";
+
+const client = createDaemonClient({
+  entry: new URL("./daemon-entry.js", import.meta.url),
+  identity: { id: "my-cli", version: "1.0.0" },
+  socketPath,
+});
+
+const result = await client.request("unit.execute", {
+  targetKey,
+  unitId,
+  unitType,
+  mode,
+  code,
+});
+```
+
+If the socket does not exist, the client starts the configured daemon entry, waits for the identity and protocol
+handshake, and then sends the request. If a compatible daemon is already running, the client reuses it directly.
+
+## Step 4: Compare the first and subsequent requests
+
+The first access to a key follows the cold path: the daemon may need to start, and the pool must create a Worker and
+Runtime.
+
+<Mermaid chart={"sequenceDiagram\n  autonumber\n  participant CLI as First CLI invocation\n  participant D as Daemon\n  participant P as Runtime pool\n  participant W as Worker A\n  participant R as Runtime A\n  participant B as Backend\n\n  CLI->>D: unit.execute(target A)\n  Note over CLI,D: Start daemon on demand when the socket is absent\n  D->>P: acquire(key A, init)\n  P->>W: Fork Worker and load entry\n  W->>R: createRuntime(init)\n  R->>B: Open backend, read checkpoint / changesets\n  R->>R: Create Univer, load Unit, wait for formulas\n  R-->>P: Runtime ready\n  P-->>D: Lease A\n  D->>R: pull → execute → commit\n  D->>P: release()\n  Note over P,R: Worker A and Runtime A remain in the idle cache\n  D-->>CLI: JSON result\n  Note over CLI: CLI exits, daemon / Worker remain alive"} />
+
+Subsequent access to the same key follows the hot path. The CLI process still starts again, but the expensive Runtime
+load is not repeated:
+
+<Mermaid chart={"sequenceDiagram\n  autonumber\n  participant CLI as Subsequent CLI invocation\n  participant D as Running Daemon\n  participant P as Runtime pool\n  participant R as Loaded Runtime A\n\n  CLI->>D: unit.execute(target A)\n  D->>P: acquire(key A, init)\n  P-->>D: Cache hit, return Lease A\n  D->>R: pull()\n  Note over R: Synchronize remote changesets created while the Runtime was idle\n  D->>R: execute()\n  opt Write operation\n    D->>R: commit()\n  end\n  D->>P: release()\n  D-->>CLI: JSON result\n  Note over CLI,R: CLI exits, Runtime A remains alive"} />
+
+The reused object is an already created and loaded live Runtime. Reuse does not bypass collaboration consistency. Code
+should normally still call `pull()` after acquiring a lease, inspect the final status after `commit()`, and handle
+`pull-required`, `retry`, `unknown`, or `conflict`.
+
+## Which costs disappear and which remain
+
+| Cost                                                                   | Load Runtime directly every time | Daemon + Worker pool                                      |
+| ---------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------- |
+| CLI startup, argument parsing, and result output                       | Every time                       | Every time                                                |
+| Local socket JSON request/response                                     | None                             | Every time                                                |
+| Daemon startup and module loading                                      | None                             | First request or after a restart                          |
+| Worker startup and Worker entry loading                                | No Worker                        | On cold creation for each key                             |
+| Creating Univer and installing plugins                                 | Every time                       | On cold creation for each key                             |
+| Loading checkpoint, replaying initial changesets, waiting for formulas | Every time                       | On cold creation for each key                             |
+| `pull()` for changesets created while idle                             | Every time                       | Usually still required every time                         |
+| `execute()` and `commit()`                                             | Every time                       | Every time                                                |
+| Idle memory, backend handle, and Worker process                        | Released when the command exits  | Retained until eviction, invalidation, or daemon shutdown |
+
+Reuse trades resident memory and Worker count for lower startup latency on subsequent calls. Choose `idleTtlMs`,
+`maxEntries`, the open timeout, and operation timeouts based on pool events and measured latency instead of retaining
+every Unit indefinitely.
+
+## Concurrency, failures, and shutdown
+
+Four rules summarize the system's behavior:
+
+1. **Concurrent requests for the same key wait.** A live Runtime belongs to only one lease at a time, preventing
+   collaboration state from being modified by interleaved calls.
+2. **Different keys can run in parallel in different Workers.** The cost is a separate Worker and Runtime allocation for
+   every resident key.
+3. **Only trusted state can be reused.** Call `release()` after an operation succeeds and local mutations have been
+   cleared. Call `invalidate()` after a timeout, crash, protocol error, or whenever the application cannot confirm the
+   local state.
+4. **Shutdown responsibility flows downward.** The CLI completes one request; daemon shutdown calls `pool.close()`; the
+   pool then terminates Workers and closes their Runtimes and backends.
+
+For low-frequency commands where one-off latency is acceptable, using
+`@univer-cli/univer-collaboration-runtime` directly is simplest. Combine the daemon with
+`@univer-cli/univer-collaboration-runtime-pool` only when measurements show that repeated loading is the dominant cost
+and the application can accept a resident process and its memory usage.
+
+See [Package catalog](/ai/packages) for the complete package list.

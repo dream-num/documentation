@@ -12,7 +12,7 @@ import {
 } from '@/lib/agent-docs/links'
 import { resolveGuideContentSlug } from '@/lib/guides/content-placements'
 import { withLocale } from '@/lib/locale-path'
-import { guides, icons, reference } from '@/lib/source'
+import { ai, guides, reference, server } from '@/lib/source'
 
 import guidesMeta from '../../content/guides/meta.json'
 import packageJson from '../../package.json'
@@ -43,9 +43,8 @@ interface IAgentDocsPublication {
 }
 
 type GuidesPage = (typeof guides)['$inferPage']
-type IconsPage = (typeof icons)['$inferPage']
 type ReferencePage = (typeof reference)['$inferPage']
-type AgentDocsPage = GuidesPage | IconsPage | ReferencePage
+type AgentDocsPage = GuidesPage | ReferencePage
 
 type AgentDocsTarget =
   | {
@@ -63,7 +62,6 @@ type AgentDocsTarget =
 
 const AGENT_IMAGE_SOURCE = 'agent-image:'
 const DOCS_ORIGIN = 'https://docs.univer.ai'
-const OFFICE_DOCS_ORIGIN = 'https://office.univer.ai'
 const MARKDOWN_LINK_DESTINATION = /(\]\()([^\s)]+)([^)]*\))/g
 const MARKDOWN_IMAGE_DESTINATION = /(!\[[^\]]*\]\()([^\s)]+)([^)]*\))/g
 const MARKDOWN_DELIMITER_ENTITY = /&#x(?:60|2a);/i
@@ -111,10 +109,12 @@ function parseTarget(asset: string[]): AgentDocsTarget | undefined {
 
 function getPages(collection: AgentDocsCollection, lang: Locale): AgentDocsPage[] {
   switch (collection) {
+    case 'server':
+      return server.getPages(lang)
+    case 'ai':
+      return ai.getPages(lang)
     case 'guides':
       return guides.getPages(lang)
-    case 'icons':
-      return icons.getPages(lang)
     case 'reference':
       return reference.getPages(lang)
   }
@@ -122,10 +122,12 @@ function getPages(collection: AgentDocsCollection, lang: Locale): AgentDocsPage[
 
 function getPage(collection: AgentDocsCollection, slug: string[], lang: Locale): AgentDocsPage | undefined {
   switch (collection) {
+    case 'server':
+      return server.getPage(slug, lang)
+    case 'ai':
+      return ai.getPage(slug, lang)
     case 'guides':
       return guides.getPage(resolveGuideContentSlug(slug), lang)
-    case 'icons':
-      return icons.getPage(slug, lang)
     case 'reference':
       return reference.getPage(slug, lang)
   }
@@ -133,10 +135,12 @@ function getPage(collection: AgentDocsCollection, slug: string[], lang: Locale):
 
 function resolveHref(collection: AgentDocsCollection, href: string, page: AgentDocsPage) {
   switch (collection) {
+    case 'server':
+      return server.resolveHref(href, page as GuidesPage)
+    case 'ai':
+      return ai.resolveHref(href, page as GuidesPage)
     case 'guides':
       return guides.resolveHref(href, page as GuidesPage)
-    case 'icons':
-      return icons.resolveHref(href, page as IconsPage)
     case 'reference':
       return reference.resolveHref(href, page as ReferencePage)
   }
@@ -234,6 +238,9 @@ function rewriteInternalHref(href: string, lang: Locale, collection: AgentDocsCo
   const [, collectionSegment, ...slug] = withoutSourceExtension.split('/')
   const targetCollection = agentDocsCollections.find((name) => name === collectionSegment)
   if (!targetCollection) return href
+  if (slug.length === 1 && slug[0] === 'llms.txt') {
+    return `${DOCS_ORIGIN}${getCollectionIndexPath(lang, targetCollection)}${search}${hash}`
+  }
   const targetPage = getPage(targetCollection, slug, lang)
   if (!targetPage) {
     throw new Error(`Agent Markdown found a broken internal link in ${page.path}: ${href}`)
@@ -374,27 +381,23 @@ async function renderPage(
 
 function renderRootIndex(lang: Locale): IAgentDocsArtifact {
   const canonicalPath = getRootIndexPath(lang)
-  const guidesPath = withLocale(lang, '/guides')
-  const officeGettingStartedPath = lang === 'zh-CN' ? '/zh-CN/getting-started' : '/getting-started'
   const productPages = guidesMeta.pages
-    .map((slug) => getPage('guides', [slug], lang))
+    .map((slug) => getPage('guides', slug === 'index' ? [] : [slug], lang))
     .filter((page): page is AgentDocsPage => page !== undefined)
   const body = [
-    '# Univer SDK Documentation',
+    '# Univer Documentation',
     '',
-    '> Agent-readable documentation for Univer SDK and Univer SDK Pro, the browser and Node.js runtimes for building embedded Office experiences.',
+    '> Agent-readable documentation for Web SDK, Server SDK, and AI SDK.',
     '',
     `- Language: \`${lang}\``,
     `- Documentation version: \`${packageJson.version}\``,
-    `- [Full documentation bundle](${DOCS_ORIGIN}${getRootFullPath(lang)}): Detailed agent guidance followed by the complete Guides, API reference, and Icons content.`,
+    `- [Full documentation bundle](${DOCS_ORIGIN}${getRootFullPath(lang)}): Detailed agent guidance followed by the complete Guides and API reference content.`,
     '',
     '## Documentation scope',
     '',
-    `- [Univer SDK documentation](${DOCS_ORIGIN}${guidesPath}): Runtime SDK setup, frontend editor features, presets, plugins, Facade APIs, packages, and icons.`,
-    `- [Univer Office SDK documentation](${OFFICE_DOCS_ORIGIN}${officeGettingStartedPath}): Application architecture, self-hosted Collaboration SDK, CLI SDK, and Agent Worktree.`,
-    `- [Univer Office SDK agent index](${OFFICE_DOCS_ORIGIN}/llms.txt): Agent-readable integration guidance and canonical examples.`,
-    '- Relationship: Univer Office SDK applications use Univer SDK and Univer SDK Pro for their Web editing surface, then compose the collaboration, CLI, and agent capabilities documented at office.univer.ai.',
-    '- Use this site when embedding or extending the editor. Continue to Univer Office SDK when the application needs self-hosted collaboration, a CLI or Agent entry point, or reviewable Agent changes.',
+    `- [Web SDK](${DOCS_ORIGIN}${withLocale(lang, '/guides')}): Embedded editors, headless runtimes, presets, plugins, Facade APIs, and frontend features.`,
+    `- [Server SDK](${DOCS_ORIGIN}${withLocale(lang, '/server')}): Self-hosted Collaboration SDK, storage, authorization, and Office import/export packages.`,
+    `- [AI SDK](${DOCS_ORIGIN}${withLocale(lang, '/ai')}): Agent content operations, visual inspection, CLI composition, and reviewable Worktrees.`,
     '',
     '## Product guides',
     '',
@@ -402,9 +405,10 @@ function renderRootIndex(lang: Locale): IAgentDocsArtifact {
     '',
     '## Documentation indexes',
     '',
+    `- [Server SDK](${DOCS_ORIGIN}${getCollectionIndexPath(lang, 'server')}): Collaboration and import/export.`,
+    `- [AI SDK](${DOCS_ORIGIN}${getCollectionIndexPath(lang, 'ai')}): Agent operations and Worktree.`,
     `- [Guides](${DOCS_ORIGIN}${getCollectionIndexPath(lang, 'guides')}): Product setup, concepts, features, UI, recipes, and server integration.`,
     `- [API reference](${DOCS_ORIGIN}${getCollectionIndexPath(lang, 'reference')}): Packages, presets, plugins, classes, methods, types, and Facade APIs.`,
-    `- [Icons](${DOCS_ORIGIN}${getCollectionIndexPath(lang, 'icons')}): Icon setup, framework integrations, and the complete component catalog.`,
     '',
   ].join('\n')
 
@@ -420,7 +424,6 @@ function renderRootIndex(lang: Locale): IAgentDocsArtifact {
 
 async function renderRootFull(lang: Locale): Promise<IAgentDocsArtifact> {
   const canonicalPath = getRootFullPath(lang)
-  const officeGettingStartedPath = lang === 'zh-CN' ? '/zh-CN/getting-started' : '/getting-started'
   const pages = agentDocsCollections.flatMap((collection) =>
     getPages(collection, lang)
       .toSorted((a, b) => a.url.localeCompare(b.url))
@@ -428,9 +431,9 @@ async function renderRootFull(lang: Locale): Promise<IAgentDocsArtifact> {
   )
   const documents = await Promise.all(pages.map(({ collection, page }) => renderPage(lang, collection, page)))
   const body = [
-    '# Univer SDK Documentation — Full',
+    '# Univer Documentation — Full',
     '',
-    '> Complete agent-readable guidance and documentation for Univer SDK and Univer SDK Pro.',
+    '> Complete agent-readable guidance and documentation for Web SDK, Server SDK, and AI SDK.',
     '',
     `- Language: \`${lang}\``,
     `- Documentation version: \`${packageJson.version}\``,
@@ -439,24 +442,22 @@ async function renderRootFull(lang: Locale): Promise<IAgentDocsArtifact> {
     '',
     '## Recommended agent workflow',
     '',
-    '1. Identify the target product: Sheets, Docs, Slides, Boards, Bases, PDFs, or Icons.',
+    '1. Choose Web SDK for editors, Server SDK for collaboration and file exchange, or AI SDK for agent operations. Then select the relevant product or capability.',
     '2. Begin with that product’s guide and installation page. Treat its package list, preset composition, and registration order as part of the integration contract.',
     '3. Use feature guides to assemble the required capabilities. Do not infer that a feature is present merely because a related method appears in the API reference.',
     '4. For application-level operations, start with the Facade API. Use lower-level plugin and service interfaces when the guide or required extension calls for them.',
     '5. Consult the API reference for exact package exports, types, methods, parameters, and return values before writing code.',
     '6. Follow the linked source and human documentation when a page is localized through fallback content or when implementation details need verification.',
     '',
-    '## Product and documentation boundaries',
+    '## SDK documentation',
     '',
-    '- This site is canonical for the Univer SDK runtime: browser and Node.js setup, presets, plugins, Facade APIs, frontend features, packages, and icons.',
-    '- Univer SDK Pro is the commercial extension of Univer SDK. Its frontend packages are documented alongside the open-source SDK; server integration starts with the Collaboration SDK guides on office.univer.ai.',
-    `- [Univer Office SDK documentation](${OFFICE_DOCS_ORIGIN}${officeGettingStartedPath}) is canonical for complete application architecture, self-hosted Collaboration SDK, CLI SDK, and Agent Worktree.`,
-    `- [Univer Office SDK agent index](${OFFICE_DOCS_ORIGIN}/llms.txt) provides its agent-readable integration map and canonical examples.`,
-    '- Use this bundle for embedded editor and runtime work. Continue to Univer Office SDK when the application needs self-hosted collaboration, a CLI or Agent entry point, or reviewable Agent changes.',
+    `- [Web SDK](${DOCS_ORIGIN}${withLocale(lang, '/guides')}): Embedded editors, headless runtimes, presets, plugins, Facade APIs, and frontend features.`,
+    `- [Server SDK](${DOCS_ORIGIN}${withLocale(lang, '/server')}): Self-hosted Collaboration SDK, storage, authorization, and Office import/export packages.`,
+    `- [AI SDK](${DOCS_ORIGIN}${withLocale(lang, '/ai')}): Agent content operations, visual inspection, CLI composition, and reviewable Worktrees.`,
     '',
     '## Reading this bundle',
     '',
-    '- Documents are grouped by collection in this order: Guides, API reference, then Icons. Within each collection, documents are sorted by canonical URL.',
+    '- Documents are grouped by collection in this order: Web SDK (including Icons), Server SDK, AI SDK, then API reference. Within each collection, documents are sorted by canonical URL.',
     '- Each document starts with its own H1 and metadata, including human documentation, Agent Markdown, requested language, content language, version, and source links.',
     '- A language fallback notice means the requested locale does not yet have a dedicated source page; rely on the declared content language for interpretation.',
     '- Use the concise index for targeted retrieval. This full bundle is intended for bulk indexing, offline use, or models with sufficiently large context windows.',
@@ -482,7 +483,7 @@ function renderCollectionIndex(lang: Locale, collection: AgentDocsCollection): I
   const canonicalPath = getCollectionIndexPath(lang, collection)
   const pages = getPages(collection, lang).toSorted((a, b) => a.url.localeCompare(b.url))
   const body = [
-    `# Univer SDK ${collection}`,
+    `# Univer ${collection}`,
     '',
     `> Agent-readable index for the ${collection} collection.`,
     '',

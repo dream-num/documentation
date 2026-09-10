@@ -1,0 +1,111 @@
+---
+title: Office file import and export
+description: Use Exchange to import and export content between Office files and collaborative Units.
+---
+
+Office file conversion is provided by `@univerjs-pro/exchange-node`, not AI SDK. A CLI application calls
+`importFile()` and `exportToFile()` at the file boundary, then uses AI SDK and Collaboration SDK to operate the Unit.
+
+## Keep the SDK boundary
+
+```ts
+import { exportToFile, importFile } from "@univerjs-pro/exchange-node";
+```
+
+| Capability                                                 | Owner                |
+| ---------------------------------------------------------- | -------------------- |
+| Office files to and from UnitData                          | Exchange  |
+| Headless runtime, content inspection, and Facade execution | AI SDK       |
+| Snapshots, changesets, revisions, and persistence          | Collaboration SDK    |
+| Paths, format policy, business APIs, and error mapping     | Business application |
+
+## Import a collaborative Unit
+
+The business application reads an Office file through Exchange, then sends the resulting UnitData to Collaboration
+Server to create a Unit:
+
+```text
+Office file
+→ importFile()
+→ UnitData
+→ business Server API
+→ collaborative Unit
+```
+
+The application decides the initial revision, business metadata, and result. After creation, CLI and Web both operate
+the Unit through the Server.
+
+## Export the latest revision
+
+For export, the CLI first loads the latest confirmed revision through Collaboration Runtime, then passes complete
+UnitData to Exchange:
+
+```text
+collaborative Unit
+→ latest UnitData
+→ exportToFile()
+→ Office file
+```
+
+The output extension selects the export format.
+
+## Expose the file boundary through Commander
+
+The AI SDK does not provide a preset command package for Office file import and export. The business application uses
+Commander to compose Exchange, Collaboration Runtime, and its own Server API:
+
+```ts
+import { Command } from "commander";
+
+interface IFileExchangeDependencies {
+  importFile(path: string): Promise<unknown>;
+  createUnit(unitData: unknown): Promise<unknown>;
+  loadLatestUnitData(unitId: string): Promise<unknown>;
+  exportFile(unitData: unknown, path: string): Promise<void>;
+  writeResult(result: unknown): void;
+}
+
+function addFileExchangeCommands(program: Command, dependencies: IFileExchangeDependencies): void {
+  program.addCommand(
+    new Command("import").argument("<office-file>").action(async (sourcePath) => {
+      const unitData = await dependencies.importFile(sourcePath);
+      const created = await dependencies.createUnit(unitData);
+      dependencies.writeResult(created);
+    }),
+  );
+
+  program.addCommand(
+    new Command("export")
+      .argument("<office-file>")
+      .requiredOption("--unit <id>")
+      .action(async (outputPath, { unit }) => {
+        const unitData = await dependencies.loadLatestUnitData(unit);
+        await dependencies.exportFile(unitData, outputPath);
+      }),
+  );
+}
+```
+
+Every non-Commander capability is explicitly declared in `IFileExchangeDependencies`; none is an unseen helper. The
+application implements file conversion with Exchange `importFile()` / `exportToFile()`, implements
+`loadLatestUnitData()` with Collaboration Runtime, and injects its own Server API and result presentation.
+
+## Supported formats
+
+| Unit  | Import                                              | Export                  |
+| ----- | --------------------------------------------------- | ----------------------- |
+| Sheet | `.xls`, `.xlsx`, `.xlsm`, `.csv`, `.tsv`            | `.xlsx`, `.csv`, `.tsv` |
+| Doc   | `.doc`, `.docx`                                     | `.docx`                 |
+| Slide | `.ppt`, `.pptx`, `.pptm`, `.ppsx`, `.ppsm`, `.potx` | `.pptx`                 |
+
+The application should reject an extension that does not match the Unit type before generating a file.
+
+## Use only a local CLI
+
+An application can bypass the Collaboration Server, pass imported content directly to a local headless runtime, and
+export an Office file. This is useful for one-off processing but does not provide shared revisions, live Web preview,
+History, or Worktree.
+
+Command names, path arguments, and result presentation belong to the business application. See
+[Document loading and content operations](/ai/content-operations) for the collaborative Unit path. After adding the
+file boundary, continue with [Visual inspection](/ai/visual-inspection) so an agent can check the rendered UnitData.

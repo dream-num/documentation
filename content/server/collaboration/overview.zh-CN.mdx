@@ -1,0 +1,86 @@
+---
+title: Collaboration SDK 概览
+description: 了解 Univer Collaboration SDK 解决的问题、模块组成、扩展点，以及应用仍然负责的产品边界。
+---
+
+**Univer Collaboration SDK** 是面向 Univer 文档模型的服务端协同 SDK。它提供 OT、revision、
+snapshot、实时同步和持久化等核心能力，让多个 Univer 客户端可以共同编辑同一个权威 Unit。
+
+开发者将它嵌入自己的 Node.js 应用，通过 Middleware 接入身份与权限，并通过 Middleware 或 Event
+扩展日志及其他业务逻辑。协同数据则通过 Database Adapter 接入应用选择的数据库。
+
+<Callout title="它不是完整的文档产品">
+  Collaboration SDK 提供协同核心，但不提供用户、角色、目录、分享、文件空间或业务工作流。
+  这些产品能力及其数据模型仍由应用负责。
+</Callout>
+
+## 它解决什么问题
+
+Web SDK 负责在浏览器中展示和编辑 Sheet、Doc、Slide、Board 与 Base。为编辑器增加
+多人协同时，应用还需要一个服务端权威来加载内容、确认并发修改、推进 revision，并让断线客户端
+恢复到一致状态。
+
+它适合以下应用：
+
+- 已经使用 Univer 构建编辑器，需要多人实时编辑；
+- 希望自行托管协同数据并选择数据库；
+- 需要把现有身份、权限或租户规则接入协同操作；
+- 需要在核心协同之上增加 History、Thread Comment 或 Worktree。
+
+## 一套完整的协同服务
+
+<Mermaid chart={"flowchart LR\n    ClientA[\"客户端 A<br/>Web SDK + Collaboration Client\"]\n    ClientB[\"客户端 B<br/>Web SDK + Collaboration Client\"]\n\n    subgraph Server[\"Collaboration Server\"]\n        direction LR\n        Transport[\"Node Transport\"]\n        Endpoint[\"Collaboration Endpoint\"]\n        Service[\"Collaboration Service\"]\n        Adapter[\"Database Adapter\"]\n\n        Transport --> Endpoint --> Service --> Adapter\n    end\n\n    Database[(Database)]\n\n    ClientA -->|\"HTTP / WebSocket\"| Transport\n    ClientB -->|\"HTTP / WebSocket\"| Transport\n    Adapter --> Database"} />
+
+| 模块                   | 主要职责                                              |
+| ---------------------- | ----------------------------------------------------- |
+| Collaboration Client   | 加载 Unit、提交 changeset，并维护浏览器协同状态       |
+| Node Transport         | 接收 HTTP/WebSocket 流量，并运行应用的入口 middleware |
+| `UniverCollabEndpoint` | 实现客户端协议、Session、Room、Presence、ACK 与广播   |
+| `UniverCollabService`  | 管理 Unit 生命周期，执行 OT，并确认连续 revision      |
+| Database Adapter       | 原子保存 snapshot、changeset、revision 与提交幂等状态 |
+
+## SDK 提供什么
+
+核心能力包括：
+
+- Sheet、Doc、Slide、Board 与 Base 的 Unit 创建、加载、删除和恢复；
+- snapshot、changeset、revision、OT 与提交幂等；
+- HTTP 内容加载与 WebSocket Session、Room、Presence、ACK、广播；
+- Transport、Endpoint 与 Service 三层 middleware；
+- Unit 创建、changeset commit、删除和恢复等进程内 event；
+- Memory、SQLite 与自定义 Database Adapter 合同。
+
+核心链路稳定后，还可以增加版本历史、Thread Comment、Worktree 草稿与服务端 Office 文件交换。
+这些能力拥有各自的 Service、Middleware、Event 或 Database Adapter。
+
+## 应用负责什么
+
+| Collaboration SDK              | 业务应用                    |
+| ------------------------------ | --------------------------- |
+| Unit 协同状态                  | 用户、租户、目录和分享关系  |
+| OT、revision 与 snapshot       | 登录、Session 与身份映射    |
+| 协同 Session、Room 与 Presence | 角色、ACL 与产品策略        |
+| 协同 Database Adapter          | 文件、对象存储与产品数据库  |
+| Middleware 与 Event 扩展点     | 日志、审计、指标和外部集成  |
+| 客户端协议 Endpoint            | 创建文档等业务 API 与工作流 |
+
+## 三类通用扩展点
+
+| 扩展点           | 适合解决的问题                                                 |
+| ---------------- | -------------------------------------------------------------- |
+| Middleware       | 在操作执行期间检查或补充 Context、拒绝请求或记录处理过程       |
+| Event            | 观察已经确认的状态变化，更新进程内派生状态或触发非关键后续处理 |
+| Database Adapter | 决定协同数据保存在哪里，并实现原子性、CAS 和幂等合同           |
+
+身份与权限通过 Middleware 接入。Middleware 适合在操作执行前进行校验和限制；Event 适合在状态确认后
+记录变化或触发后续处理。两者都可用于日志、请求追踪、指标采集和派生数据更新。详细语义见
+[Middleware 与 Event](/server/collaboration/middleware-and-events)。
+
+## 从哪里开始
+
+1. 运行[快速开始](/server/collaboration/quick-start)，用两个浏览器确认完整协同链路。
+2. 阅读[模块边界与协作关系](/server/collaboration/modules)，理解每个 package 为什么存在。
+3. 根据接入任务继续阅读 [Middleware 与 Event](/server/collaboration/middleware-and-events)、
+   [身份与权限](/server/collaboration/identity-and-authorization)或
+   [Database Adapter](/server/collaboration/database-adapters)。
+4. 需要 History、Comment、Worktree 或文件交换时，查看[协同扩展模块](/server/collaboration/extensions)。

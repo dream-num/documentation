@@ -16,7 +16,7 @@ const enUSMessages = {
   tools: {
     section: 'Tools',
     'theme-customizer': 'Theme Customizer',
-    'theme-customizer-description': 'Tune Univer SDK themes, design tokens, and dark-mode previews.',
+    'theme-customizer-description': 'Tune Web SDK themes, design tokens, and dark-mode previews.',
   },
   navigation: {
     blog: 'Blog',
@@ -29,14 +29,7 @@ const enUSMessages = {
     'open-site-navigation': 'Open site navigation',
     'primary-navigation': 'Primary navigation',
     'site-navigation': 'Site navigation',
-    'univer-home': 'Univer SDK home',
-  },
-  'office-sdk-banner': {
-    label: 'Univer Office SDK announcement',
-    message:
-      'Building with Univer SDK or Univer SDK Pro? Add self-hosted collaboration, CLI access, and agent worktrees with Univer Office SDK.',
-    action: 'Explore Univer Office SDK',
-    dismiss: 'Dismiss Univer Office SDK announcement',
+    'univer-home': 'Web SDK home',
   },
   'theme-customizer': {
     apply: 'Apply',
@@ -95,7 +88,7 @@ const enUSMessages = {
   home: {
     slogan: 'Embedding server-driven productivity tools into Your Workflow',
     description:
-      'Univer SDK is a full-stack, isomorphic office suite with high extensibility and performance, designed to help developers build and edit ',
+      'Web SDK is a full-stack, isomorphic office suite with high extensibility and performance, designed to help developers build and edit ',
     'description-split': ', ',
     'description-period': ' freely.',
     'description-and': ' and ',
@@ -107,7 +100,7 @@ const enUSMessages = {
       eyebrow: 'Interactive examples',
       title: 'One launch, every workspace',
       description:
-        'Explore a connected product launch across six fully editable Univer SDK experiences — from planning and storytelling to visual collaboration and PDFs.',
+        'Explore a connected product launch across six fully editable Web SDK experiences — from planning and storytelling to visual collaboration and PDFs.',
     },
     customer: {
       title: 'Trusted by teams and companies across industries',
@@ -160,7 +153,7 @@ const enUSMessages = {
       subtitle: 'A full-stack framework with microkernel + plugin architecture. Get started in minutes.',
       step1: {
         title: 'Install',
-        desc: 'Install the core Univer SDK packages via npm, yarn, or pnpm.',
+        desc: 'Install the core Web SDK packages via npm, yarn, or pnpm.',
       },
       step2: {
         title: 'Choose Mode',
@@ -168,7 +161,7 @@ const enUSMessages = {
       },
       step3: {
         title: 'Configure',
-        desc: 'Initialize the Univer SDK instance and load the required plugins and locale resources.',
+        desc: 'Initialize the Web SDK instance and load the required plugins and locale resources.',
       },
       step4: {
         title: 'Render',
@@ -252,11 +245,11 @@ const enUSMessages = {
       },
     },
     headless: {
-      title: 'Headless Univer SDK',
+      title: 'Headless Web SDK',
       subtitle: 'Process documents on the server with native support for AI and automation',
       feature1: {
         title: 'Node.js Support',
-        desc: 'Run Univer SDK directly in Node.js without a browser.',
+        desc: 'Run Web SDK directly in Node.js without a browser.',
       },
       feature2: {
         title: 'No UI Rendering',
@@ -304,13 +297,10 @@ const enUSMessages = {
         title: 'Customize Everything',
       },
     },
-    pro: {
-      badge: 'Pro',
-    },
   },
   blog: {
     title: 'Blog',
-    slogan: 'Explore the latest news, architecture, and best practices of Univer SDK',
+    slogan: 'Explore the latest news, architecture, and best practices of Web SDK',
     author: 'Author',
     date: 'Published Date',
     back: 'Back',
@@ -320,7 +310,7 @@ const enUSMessages = {
   },
   showcase: {
     title: 'Showcase',
-    slogan: "Explore Univer SDK's powerful features through online examples",
+    slogan: "Explore Web SDK's powerful features through online examples",
     back: 'Back',
     'related-title': 'Related Examples',
     breadcrumb: {

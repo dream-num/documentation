@@ -11,29 +11,23 @@ import { Link } from '@/i18n/navigation'
 import { routing } from '@/i18n/routing'
 import { messagesByLocale } from '@/messages'
 
-import type { ISiteDocumentationLink, ISiteNavLink } from './mobile-menu'
+import type { ISiteNavLink } from './mobile-menu'
 import { SiteLanguageSwitcher } from './language-switcher'
 import { SiteMobileMenu } from './mobile-menu'
-import { OfficeSdkBanner } from './office-sdk-banner'
 
 export async function SiteHeader({
   guideItems,
   lang,
   links,
-  documentationLinks,
-  documentationTitle,
 }: {
   guideItems: IGuideNavItem[]
   lang: string
   links: ISiteNavLink[]
-  documentationLinks: ISiteDocumentationLink[]
-  documentationTitle: string
 }) {
   const t = await getTranslations({ locale: lang as Locale })
   const navigationLabels = {
     blog: t('navigation.blog'),
     primary: t('navigation.primary-navigation'),
-    products: t('navigation.products'),
     reference: t('navigation.reference'),
     showcase: t('navigation.showcase'),
     tools: t('navigation.tools'),
@@ -47,8 +41,6 @@ export async function SiteHeader({
     <header className="bg-background/95 supports-backdrop-filter:bg-background/80 sticky top-0 z-40 border-b backdrop-blur-sm">
       <div className="mx-auto flex h-12 max-w-384 items-center gap-2 px-4 lg:px-6">
         <SiteMobileMenu
-          documentationLinks={documentationLinks}
-          documentationTitle={documentationTitle}
           links={links}
           navigationLabel={t('navigation.site-navigation')}
           openLabel={t('navigation.open-site-navigation')}
@@ -73,7 +65,7 @@ export async function SiteHeader({
         <ThemeSwitcher label={t('common.choose-theme')} />
         <GithubInfo className="hidden xl:flex" owner="dream-num" repo="univer" />
       </div>
-      <OfficeSdkBanner />
+      <PrimaryNavigation items={guideItems} labels={navigationLabels} mobile />
     </header>
   )
 }

@@ -1,6 +1,5 @@
 // See https://fumadocs.vercel.app/docs/headless/source-api for more info
 import { loader } from 'fumadocs-core/source'
-import { icons as lucideIcons } from 'lucide-react'
 import { createElement } from 'react'
 
 import type { IAmamoDocument } from '@/lib/amamo-source'
@@ -24,20 +23,19 @@ interface IBlogFrontmatter extends IDocumentFrontmatter {
 
 const guidesPosts = collections.guides as readonly IAmamoDocument<IDocumentFrontmatter>[]
 const referencePosts = collections.reference as readonly IAmamoDocument<IDocumentFrontmatter>[]
-const iconsPosts = collections.icons as readonly IAmamoDocument<IDocumentFrontmatter>[]
 const blogPosts = collections.blog as readonly IAmamoDocument<IBlogFrontmatter>[]
-const [guidesSource, referenceSource, iconsSource, blogSource] = await Promise.all([
+const [guidesSource, serverSource, aiSource, referenceSource, blogSource] = await Promise.all([
   createAmamoSource('guides', 'content/guides', guidesPosts),
+  createAmamoSource('server', 'content/server', collections.server as readonly IAmamoDocument<IDocumentFrontmatter>[]),
+  createAmamoSource('ai', 'content/ai', collections.ai as readonly IAmamoDocument<IDocumentFrontmatter>[]),
   createAmamoSource('reference', 'content/reference', referencePosts),
-  createAmamoSource('icons', 'content/icons', iconsPosts),
-  createAmamoSource(
-    'blog',
-    'content/blog',
-    blogPosts.filter((document) => !document.key.split(':').at(-1)?.startsWith('weekly-')),
-  ),
+  createAmamoSource('blog', 'content/blog', blogPosts),
 ])
 
 export const guides = createGuidesLoader(guidesSource)
+export const server = createGuidesLoader(serverSource, '/server')
+export const ai = createGuidesLoader(aiSource, '/ai')
+export const sdkSources = { guides, server, ai }
 
 export const reference = loader({
   baseUrl: '/reference',
@@ -53,27 +51,6 @@ export const reference = loader({
         text: iconName,
       })
     }
-  },
-})
-
-export const icons = loader({
-  baseUrl: '/icons',
-  source: iconsSource,
-  i18n: fumadocsI18n,
-  icon(icon) {
-    if (!icon) return
-
-    if (icon in lucideIcons) {
-      return createElement(IconWrapper, {
-        type: 'icon',
-        icon: lucideIcons[icon as keyof typeof lucideIcons],
-      })
-    }
-
-    return createElement(IconWrapper, {
-      type: 'text',
-      text: icon,
-    })
   },
 })
 

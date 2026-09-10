@@ -16,19 +16,19 @@ import {
 } from 'lucide-react'
 import { animate, motion, useInView, useMotionValue, useTransform } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
+
 import { BlurFade } from '@/components/magicui/blur-fade'
 
-interface Metric {
+interface IMetric {
   value: number
   suffix: string
   label: string
 }
 
-interface Feature {
+interface IFeature {
   icon: React.ReactNode
   title: string
   desc: string
-  isPro?: boolean
 }
 
 interface IProps {
@@ -70,10 +70,9 @@ interface IProps {
   feature11Desc: string
   feature12Title: string
   feature12Desc: string
-  proBadge: string
 }
 
-function AnimatedNumber({ value, suffix }: { value: number, suffix: string }) {
+function AnimatedNumber({ value, suffix }: { value: number; suffix: string }) {
   const ref = useRef<HTMLSpanElement>(null)
   const isInView = useInView(ref, { once: true, margin: '-50px' })
   const count = useMotionValue(0)
@@ -90,7 +89,7 @@ function AnimatedNumber({ value, suffix }: { value: number, suffix: string }) {
         duration: 1.5,
         ease: 'easeOut',
       })
-      const unsubscribe = rounded.on('change', v => setDisplay(v))
+      const unsubscribe = rounded.on('change', (v) => setDisplay(v))
       return () => {
         controls.stop()
         unsubscribe()
@@ -146,169 +145,76 @@ export function EnterprisePerformance(props: IProps) {
     feature11Desc,
     feature12Title,
     feature12Desc,
-    proBadge,
   } = props
 
-  const metrics: Metric[] = [
+  const metrics: IMetric[] = [
     { value: metric1Value, suffix: metric1Suffix, label: metric1Label },
     { value: metric2Value, suffix: metric2Suffix, label: metric2Label },
     { value: metric3Value, suffix: metric3Suffix, label: metric3Label },
     { value: metric4Value, suffix: metric4Suffix, label: metric4Label },
   ]
 
-  const openSourceFeatures: Feature[] = [
+  const features: IFeature[] = [
     {
-      icon: (
-        <GaugeIcon
-          className="
-            size-5 text-emerald-600
-            dark:text-emerald-400
-          "
-        />
-      ),
+      icon: <GaugeIcon className="size-5 text-emerald-600 dark:text-emerald-400" />,
       title: feature1Title,
       desc: feature1Desc,
     },
     {
-      icon: (
-        <FunctionSquareIcon
-          className="
-            size-5 text-blue-600
-            dark:text-blue-400
-          "
-        />
-      ),
+      icon: <FunctionSquareIcon className="size-5 text-blue-600 dark:text-blue-400" />,
       title: feature2Title,
       desc: feature2Desc,
     },
     {
-      icon: (
-        <MoonIcon
-          className="
-            size-5 text-violet-600
-            dark:text-violet-400
-          "
-        />
-      ),
+      icon: <MoonIcon className="size-5 text-violet-600 dark:text-violet-400" />,
       title: feature7Title,
       desc: feature7Desc,
     },
     {
-      icon: (
-        <PuzzleIcon
-          className="
-            size-5 text-orange-600
-            dark:text-orange-400
-          "
-        />
-      ),
+      icon: <PuzzleIcon className="size-5 text-orange-600 dark:text-orange-400" />,
       title: feature8Title,
       desc: feature8Desc,
     },
     {
-      icon: (
-        <GlobeIcon
-          className="
-            size-5 text-sky-600
-            dark:text-sky-400
-          "
-        />
-      ),
+      icon: <GlobeIcon className="size-5 text-sky-600 dark:text-sky-400" />,
       title: feature9Title,
       desc: feature9Desc,
     },
     {
-      icon: (
-        <LayersIcon
-          className="
-            size-5 text-teal-600
-            dark:text-teal-400
-          "
-        />
-      ),
+      icon: <LayersIcon className="size-5 text-teal-600 dark:text-teal-400" />,
       title: feature10Title,
       desc: feature10Desc,
     },
-  ]
 
-  const proFeatures: Feature[] = [
     {
-      icon: (
-        <UsersIcon
-          className="
-            size-5 text-amber-600
-            dark:text-amber-400
-          "
-        />
-      ),
+      icon: <UsersIcon className="size-5 text-amber-600 dark:text-amber-400" />,
       title: feature3Title,
       desc: feature3Desc,
-      isPro: true,
     },
     {
-      icon: (
-        <FileInputIcon
-          className="
-            size-5 text-purple-600
-            dark:text-purple-400
-          "
-        />
-      ),
+      icon: <FileInputIcon className="size-5 text-purple-600 dark:text-purple-400" />,
       title: feature4Title,
       desc: feature4Desc,
-      isPro: true,
     },
     {
-      icon: (
-        <PrinterIcon
-          className="
-            size-5 text-red-600
-            dark:text-red-400
-          "
-        />
-      ),
+      icon: <PrinterIcon className="size-5 text-red-600 dark:text-red-400" />,
       title: feature5Title,
       desc: feature5Desc,
-      isPro: true,
     },
     {
-      icon: (
-        <ContainerIcon
-          className="
-            size-5 text-cyan-600
-            dark:text-cyan-400
-          "
-        />
-      ),
+      icon: <ContainerIcon className="size-5 text-cyan-600 dark:text-cyan-400" />,
       title: feature6Title,
       desc: feature6Desc,
-      isPro: true,
     },
     {
-      icon: (
-        <HistoryIcon
-          className="
-            size-5 text-indigo-600
-            dark:text-indigo-400
-          "
-        />
-      ),
+      icon: <HistoryIcon className="size-5 text-indigo-600 dark:text-indigo-400" />,
       title: feature11Title,
       desc: feature11Desc,
-      isPro: true,
     },
     {
-      icon: (
-        <BarChart3Icon
-          className="
-            size-5 text-rose-600
-            dark:text-rose-400
-          "
-        />
-      ),
+      icon: <BarChart3Icon className="size-5 text-rose-600 dark:text-rose-400" />,
       title: feature12Title,
       desc: feature12Desc,
-      isPro: true,
     },
   ]
 
@@ -316,56 +222,21 @@ export function EnterprisePerformance(props: IProps) {
     <BlurFade inView>
       <section className="container px-4">
         <div className="mb-8 text-center">
-          <h2
-            className={`
-              mb-2 text-2xl font-semibold text-neutral-900
-              dark:text-neutral-100
-            `}
-          >
-            {title}
-          </h2>
-          <p
-            className="
-              text-neutral-600
-              dark:text-neutral-400
-            "
-          >
-            {subtitle}
-          </p>
+          <h2 className={`mb-2 text-2xl font-semibold text-neutral-900 dark:text-neutral-100`}>{title}</h2>
+          <p className="text-neutral-600 dark:text-neutral-400">{subtitle}</p>
         </div>
 
         {/* Metrics */}
-        <div
-          className="
-            mb-8 grid grid-cols-2 gap-4
-            md:grid-cols-4
-          "
-        >
+        <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
           {metrics.map((metric, index) => (
             <BlurFade key={metric.label} inView delay={index * 0.05} className="h-full">
               <div
-                className={`
-                  flex h-full flex-col items-center justify-center gap-2 rounded-2xl bg-white/30 p-5 shadow-xs ring-4
-                  ring-neutral-100/20 backdrop-blur-sm transition-colors ring-inset
-                  hover:bg-white/50
-                  dark:bg-neutral-900/50 dark:ring-neutral-600/20
-                  dark:hover:bg-neutral-800/60
-                `}
+                className={`flex h-full flex-col items-center justify-center gap-2 rounded-2xl bg-white/30 p-5 shadow-xs ring-4 ring-neutral-100/20 backdrop-blur-sm transition-colors ring-inset hover:bg-white/50 dark:bg-neutral-900/50 dark:ring-neutral-600/20 hover:dark:bg-neutral-800/60`}
               >
-                <div
-                  className="
-                    text-3xl font-bold text-neutral-900 tabular-nums
-                    dark:text-neutral-100
-                  "
-                >
+                <div className="text-3xl font-bold text-neutral-900 tabular-nums dark:text-neutral-100">
                   <AnimatedNumber value={metric.value} suffix={metric.suffix} />
                 </div>
-                <div
-                  className="
-                    text-center text-xs font-medium text-neutral-600
-                    dark:text-neutral-400
-                  "
-                >
+                <div className="text-center text-xs font-medium text-neutral-600 dark:text-neutral-400">
                   {metric.label}
                 </div>
               </div>
@@ -373,105 +244,18 @@ export function EnterprisePerformance(props: IProps) {
           ))}
         </div>
 
-        {/* Open Source Features */}
-        <div
-          className="
-            grid gap-4
-            md:grid-cols-2
-            lg:grid-cols-3
-          "
-        >
-          {openSourceFeatures.map((feature, index) => (
+        {/* Features */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {features.map((feature, index) => (
             <BlurFade key={feature.title} inView delay={0.1 + index * 0.05} className="h-full">
               <div
-                className={`
-                  flex h-full flex-col gap-3 rounded-2xl bg-white/30 p-5 shadow-xs ring-4 ring-neutral-100/20
-                  backdrop-blur-sm transition-colors ring-inset
-                  hover:bg-white/50
-                  dark:bg-neutral-900/50 dark:ring-neutral-600/20
-                  dark:hover:bg-neutral-800/60
-                `}
+                className={`flex h-full flex-col gap-3 rounded-2xl bg-white/30 p-5 shadow-xs ring-4 ring-neutral-100/20 backdrop-blur-sm transition-colors ring-inset hover:bg-white/50 dark:bg-neutral-900/50 dark:ring-neutral-600/20 hover:dark:bg-neutral-800/60`}
               >
-                <div
-                  className="
-                    inline-flex items-center gap-2 text-sm font-semibold text-neutral-700
-                    dark:text-neutral-300
-                  "
-                >
+                <div className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
                   {feature.icon}
                   {feature.title}
                 </div>
-                <p
-                  className="
-                    text-sm/relaxed text-neutral-600
-                    dark:text-neutral-400
-                  "
-                >
-                  {feature.desc}
-                </p>
-              </div>
-            </BlurFade>
-          ))}
-        </div>
-
-        {/* Pro Divider */}
-        <div className="relative my-8 flex items-center justify-center">
-          <div className="absolute inset-0 flex items-center">
-            <div
-              className="
-                w-full border-t border-neutral-200
-                dark:border-neutral-700
-              "
-            />
-          </div>
-          <div
-            className={`
-              relative inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-4 py-1.5 text-xs font-semibold
-              tracking-wider text-neutral-500 uppercase
-              dark:bg-neutral-800 dark:text-neutral-400
-            `}
-          >
-            <span className="size-1.5 rounded-full bg-amber-500" />
-            {proBadge}
-          </div>
-        </div>
-
-        {/* Pro Features */}
-        <div
-          className="
-            grid gap-4
-            md:grid-cols-2
-            lg:grid-cols-3
-          "
-        >
-          {proFeatures.map((feature, index) => (
-            <BlurFade key={feature.title} inView delay={0.1 + index * 0.05} className="h-full">
-              <div
-                className={`
-                  relative flex h-full flex-col gap-4 rounded-2xl bg-white/40 p-6 shadow-xs ring-4 ring-amber-100/60
-                  backdrop-blur-sm transition-colors ring-inset
-                  hover:bg-white/60
-                  dark:bg-neutral-900/60 dark:ring-amber-900/30
-                  dark:hover:bg-neutral-800/70
-                `}
-              >
-                <div
-                  className="
-                    inline-flex items-center gap-2 text-sm font-semibold text-neutral-700
-                    dark:text-neutral-300
-                  "
-                >
-                  {feature.icon}
-                  {feature.title}
-                </div>
-                <p
-                  className="
-                    text-sm/relaxed text-neutral-600
-                    dark:text-neutral-400
-                  "
-                >
-                  {feature.desc}
-                </p>
+                <p className="text-sm/relaxed text-neutral-600 dark:text-neutral-400">{feature.desc}</p>
               </div>
             </BlurFade>
           ))}

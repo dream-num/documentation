@@ -1,0 +1,134 @@
+---
+title: Database Adapters
+description: Understand the collaboration persistence contract and choose between Memory, SQLite, and custom Database Adapters.
+---
+
+A Database Adapter persists the core collaboration data used by Collaboration Service. Developers can implement `IDatabaseAdapter` to connect any database capable of satisfying its complete behavioral contract. The Service owns Unit, OT, and revision semantics. The Adapter turns those semantics into atomic, retry-safe persistence operations.
+
+## What an Adapter stores
+
+The Core Collaboration Adapter stores:
+
+- the Unit record and current head revision;
+- revisioned snapshots;
+- confirmed changesets;
+- blocks referenced by Sheet snapshots;
+- submission idempotency records keyed by `(unitID, sid, reqId)`;
+- Unit soft-delete, recovery, and permanent-delete state.
+
+By default, it does not store users, roles, ACLs, directories, files, or product metadata. History, Thread Comment, and Worktree use their own independent Adapter contracts.
+
+## Required semantics
+
+`IDatabaseAdapter` is more than a CRUD interface. An implementation must preserve the correctness contract expected by Collaboration Service:
+
+| Contract                    | Meaning                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| Atomic creation             | The initial snapshot and Sheet blocks become visible together, or not at all               |
+| Revision CAS                | The next submission is confirmed only when the head revision matches the expected revision |
+| Submission idempotency      | Retrying the same `(unitID, sid, reqId)` returns the same determined result                |
+| Contiguous changesets       | Confirmed changesets and the Unit revision remain contiguous                               |
+| Snapshot visibility         | A snapshot becomes readable only after all of its dependencies are stored                  |
+| Atomic lifecycle operations | Every Unit in a delete or recovery batch succeeds, or none does                            |
+| Permanent-delete tombstone  | A hard-deleted Unit ID cannot be created again                                             |
+
+Mapping every method to an ordinary database read or write without implementing these concurrency and atomicity semantics will break OT and recovery behavior.
+
+## Memory Adapter
+
+`@univerjs-pro/collaboration-database-memory` is an in-process implementation suited to:
+
+- unit and integration tests;
+- official examples;
+- temporary development environments;
+- quickly validating custom Middleware or Client assembly.
+
+```ts
+import { MemoryDatabaseAdapter } from "@univerjs-pro/collaboration-database-memory";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+
+const database = new MemoryDatabaseAdapter();
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
+The Memory Adapter follows the same revision, CAS, and idempotency contract as persistent implementations, but all data lives in the current Node.js process and is lost when the process exits.
+
+## SQLite Adapter
+
+`@univerjs-pro/collaboration-database-sqlite` is a persistent SQLite implementation for development, testing, local applications, and small-scale use.
+
+```ts
+import { mkdir } from "node:fs/promises";
+
+import { SQLiteDatabaseAdapter } from "@univerjs-pro/collaboration-database-sqlite";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+
+await mkdir("./data", { recursive: true });
+
+const database = new SQLiteDatabaseAdapter({
+  filename: "./data/collaboration.sqlite",
+  busyTimeoutMs: 5_000,
+});
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
+The SQLite Adapter uses foreign keys and `BEGIN IMMEDIATE` write transactions for atomic commits. It creates the current schema for an empty database. It refuses to open incomplete or unsupported schemas instead of applying unknown migrations automatically.
+
+It does not change `journal_mode` or decide the file location, backup policy, or other SQLite settings for the application. SQLite is positioned for development, local applications, and small-scale use.
+
+## Custom Database Adapters
+
+A custom Adapter is usually appropriate when:
+
+- the application already uses PostgreSQL, MySQL, or another business database;
+- collaboration submissions must integrate with application-specific database mechanisms;
+- operational or compliance requirements exceed SQLite's intended scope.
+
+Implement `IDatabaseAdapter` and inject it into the Service in the same way as a built-in Adapter:
+
+```ts
+const database = new ApplicationCollaborationDatabase({ pool });
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
+The Service does not depend on a specific database, but it also cannot add transactions, CAS, or deduplication to a custom implementation. The Adapter must implement the complete contract using the capabilities of its database.
+
+## Context and the application boundary
+
+Each Service call passes its `customData` to Middleware, the Database Adapter, and related Events, but the SDK does not persist this data automatically. Authorization decisions should usually remain in Service Middleware instead of being repeated across Adapter methods:
+
+```text
+Service Middleware
+  → allow or reject the business operation
+  → Database Adapter
+  → atomically store authoritative collaboration state
+```
+
+This lets Memory, SQLite, and custom Adapters share the same application policy.
+
+When business data must remain strongly consistent with collaboration data, a custom Database Adapter can read the required values from `customData` and write both sets of data in the Adapter's database transaction.
+
+When business data does not need to share the collaboration transaction, Middleware or Events can write it to additional tables or external systems. Middleware and Events do not share the Adapter's internal transaction by default. Events are process-local, best-effort notifications emitted after a collaboration commit succeeds. The application is responsible for any required idempotency, retries, or compensation.
+
+## Storage for extension modules
+
+Extension modules such as History, Thread Comment, and Worktree define independent Database Adapter interfaces. Their Adapters can share one database or use separate storage. A single custom implementation can also provide multiple Adapter interfaces and be injected into the corresponding Services.
+
+Because these Adapter interfaces are independent, the SDK does not provide cross-module transactions by default. Even when modules share a database, the application owns the cross-module consistency strategy.
+
+## Choosing an Adapter
+
+| Adapter | Best fit                                                  | Main constraint                                                 |
+| ------- | --------------------------------------------------------- | --------------------------------------------------------------- |
+| Memory  | Tests, examples, temporary development                    | Data disappears when the process exits                          |
+| SQLite  | Development, testing, local applications, small-scale use | Single-file database with application-owned settings            |
+| Custom  | Existing databases or custom business-data integration    | The application must implement and verify the complete contract |
+
+The application owns every injected Adapter. Dispose the Service before disposing the Adapter:
+
+```ts
+await service.dispose();
+await database.dispose();
+```
+
+See the runnable [Database Adapter example](/server/collaboration/examples#database-adapter) for a side-by-side reference.

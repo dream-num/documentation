@@ -27,6 +27,7 @@ function getDocsSourceRef() {
 }
 
 const config: NextConfig = {
+  agentRules: false,
   // MDX modules also need Next's server React and JSX runtime aliases.
   pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'mdx'],
   turbopack: {

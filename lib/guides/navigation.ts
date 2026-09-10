@@ -31,8 +31,7 @@ interface IPageTreeNode {
   $id?: string
 }
 
-const guideProductSegments = ['sheets', 'docs', 'slides', 'boards', 'bases', 'pdfs']
-const guideStandaloneSegments = ['server-integration']
+const guideSdkSegments = ['guides', 'server', 'ai']
 
 function getNodeId(node: IPageTreeNode) {
   const id = node.$id ?? node.url ?? (typeof node.name === 'string' ? node.name : undefined)
@@ -149,45 +148,48 @@ export function getGuideNavItemHref(item: IGuideNavItem): string | undefined {
 
 function getGuideRootSegment(item: IGuideNavItem): string | undefined {
   const href = getGuideNavItemHref(item)
-  return href?.match(/^(?:\/[a-z]{2}(?:-[A-Z]{2})?)?\/guides\/([^/]+)/)?.[1]
+  return href?.match(/^(?:\/[a-z]{2}(?:-[A-Z]{2})?)?\/(guides|server|ai)(?:\/|$)/)?.[1]
+}
+
+export function getGuideSdkItems(items: IGuideNavItem[]): IGuideNavItem[] {
+  const sdkBySegment = new Map<string, IGuideNavItem>()
+
+  for (const item of items) {
+    const segment = getGuideRootSegment(item)
+    if (segment && guideSdkSegments.includes(segment)) {
+      sdkBySegment.set(segment, item)
+    }
+  }
+
+  return guideSdkSegments
+    .map((segment) => sdkBySegment.get(segment))
+    .filter((item): item is IGuideNavItem => Boolean(item))
+}
+
+export function getActiveGuideSdk(items: IGuideNavItem[], pathname: string): IGuideNavItem | undefined {
+  return getGuideSdkItems(items).find((item) => isGuideNavItemActive(item, pathname))
 }
 
 export function getGuideProductItems(items: IGuideNavItem[]): IGuideNavItem[] {
-  const productBySegment = new Map<string, IGuideNavItem>()
-
-  for (const item of items) {
-    const segment = getGuideRootSegment(item)
-    if (segment && guideProductSegments.includes(segment)) {
-      productBySegment.set(segment, item)
-    }
-  }
-
-  return guideProductSegments
-    .map((segment) => productBySegment.get(segment))
-    .filter((item): item is IGuideNavItem => Boolean(item))
+  const web = getGuideSdkItems(items).find((item) => getGuideRootSegment(item) === 'guides')
+  return (
+    web?.children.filter((item) => {
+      const href = getGuideNavItemHref(item)
+      return item.type === 'folder' && /\/guides\/(sheets|docs|slides|boards|bases|pdfs|icons)(?:\/|$)/.test(href ?? '')
+    }) ?? []
+  )
 }
 
-export function getActiveGuideProduct(items: IGuideNavItem[], pathname: string): IGuideNavItem | undefined {
+export function getActiveGuideProduct(items: IGuideNavItem[], pathname: string) {
   return getGuideProductItems(items).find((item) => isGuideNavItemActive(item, pathname))
 }
 
-export function getGuideStandaloneItems(items: IGuideNavItem[]): IGuideNavItem[] {
-  const standaloneBySegment = new Map<string, IGuideNavItem>()
-
-  for (const item of items) {
-    const segment = getGuideRootSegment(item)
-    if (segment && guideStandaloneSegments.includes(segment)) {
-      standaloneBySegment.set(segment, item)
-    }
-  }
-
-  return guideStandaloneSegments
-    .map((segment) => standaloneBySegment.get(segment))
-    .filter((item): item is IGuideNavItem => Boolean(item))
-}
-
-export function getActiveGuideStandaloneItem(items: IGuideNavItem[], pathname: string): IGuideNavItem | undefined {
-  return getGuideStandaloneItems(items).find((item) => isGuideNavItemActive(item, pathname))
+export function getGuideSidebarItems(items: IGuideNavItem[], pathname: string) {
+  const product = getActiveGuideProduct(items, pathname)
+  if (product) return product.children
+  const sdk = getActiveGuideSdk(items, pathname)
+  const products = getGuideProductItems(items)
+  return sdk?.children.filter((item) => !products.includes(item)) ?? []
 }
 
 export function createGuideNavigation(pageTree: IPageTreeNode | IPageTreeNode[], pathname: string): IGuideNavigation {
@@ -203,4 +205,20 @@ export function createGuideNavigation(pageTree: IPageTreeNode | IPageTreeNode[],
     previous: activeIndex > 0 ? flatPages[activeIndex - 1] : undefined,
     next: activeIndex >= 0 && activeIndex < flatPages.length - 1 ? flatPages[activeIndex + 1] : undefined,
   }
+}
+
+export function createSdkPageTree(trees: Record<string, IPageTreeNode>[]) {
+  return Object.fromEntries(
+    Object.keys(trees[0]).map((locale) => [
+      locale,
+      {
+        children: trees.map((tree, index) => ({
+          ...tree[locale],
+          $id: guideSdkSegments[index],
+          type: 'folder',
+          name: ['Web SDK', 'Server SDK', 'AI SDK'][index],
+        })),
+      },
+    ]),
+  )
 }

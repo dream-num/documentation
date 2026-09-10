@@ -5,7 +5,7 @@ import type { SearchResultSource } from '@/lib/guides/search'
 import { searchLocaleProfiles } from '@/i18n/locale-config'
 import { routing } from '@/i18n/routing'
 import { normalizeScopedSearchResults, parseSearchScope } from '@/lib/guides/search'
-import { guides, icons, reference } from '@/lib/source'
+import { ai, guides, reference, server } from '@/lib/source'
 
 const searchOptions = {
   localeMap: Object.fromEntries(
@@ -26,11 +26,17 @@ const searchOptions = {
   ),
 }
 
+const sdkSearchHandlers = [guides, server, ai].map((source) => createFromSource(source, searchOptions))
+
 const sourceHandlers = {
-  guides: createFromSource(guides, searchOptions),
+  guides: {
+    async GET(request: Request) {
+      const responses = await Promise.all(sdkSearchHandlers.map((handler) => handler.GET(request)))
+      return Response.json((await Promise.all(responses.map((response) => response.json()))).flat())
+    },
+  },
   reference: createFromSource(reference, searchOptions),
-  icons: createFromSource(icons, searchOptions),
-} satisfies Record<SearchResultSource, ReturnType<typeof createFromSource>>
+}
 
 async function searchSource(request: Request, source: SearchResultSource) {
   const response = await sourceHandlers[source].GET(request)
@@ -48,11 +54,7 @@ export async function GET(request: Request) {
   }
 
   if (scope === 'all') {
-    const results = await Promise.all([
-      searchSource(request, 'guides'),
-      searchSource(request, 'reference'),
-      searchSource(request, 'icons'),
-    ])
+    const results = await Promise.all([searchSource(request, 'guides'), searchSource(request, 'reference')])
 
     return Response.json(results.flat())
   }

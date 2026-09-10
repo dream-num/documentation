@@ -1,0 +1,48 @@
+---
+title: 导入导出集成
+description: 为 Univer 应用接入文件导入和导出，并按是否需要协同编辑选择接入方式。
+---
+
+要在 Univer 中打开 Excel 文件，需要先把文件转换成编辑器能读取的文档数据；导出时，再把编辑后的数据转换成 Excel 文件。这个转换过程由服务端的 `@univerjs-pro/exchange-node` 模块完成，前端负责上传文件、打开文档和下载结果。
+
+
+<Mermaid chart={'flowchart LR; A["Excel 文件"] -->|服务端导入| B["Univer 文档<br/>在浏览器中编辑"]; B -->|服务端导出| C["Excel 文件"];'} />
+
+## 不需要多人编辑
+
+例如，用户上传一份 Excel，在页面上修改后，再下载为 Excel 文件。
+
+1. 前端上传文件，服务端将它转换成 Univer 文档数据并返回。
+2. 前端用这些数据打开表格，用户在页面中编辑。
+3. 导出时，前端把编辑后的数据交给服务端，服务端生成 Excel 文件供用户下载。
+
+这种方式不需要协同服务。前端 API 中的“快照”就是这里的文档数据；快照导入导出仍需要服务端完成文件转换。如果还要提供“保存后下次继续编辑”，需要由你的应用保存这些数据。
+
+转换模块的安装和用法见 [Office 文件导入导出](/zh-CN/server/import-export/node)。如果只在 Node.js 中批量处理文件，也可以直接从这篇文档开始。
+
+## 需要多人编辑同一份文档
+
+例如，用户导入一份 Excel 后，将文档分享给同事，大家共同编辑，之后随时导出。
+
+1. 服务端转换上传的文件，并将转换结果保存为一份协同文档。
+2. 服务端返回这份文档的 ID。前端根据 ID 打开文档，其他用户也通过同一个 ID 加入编辑。
+3. 导出时，服务端读取这份文档的最新内容，生成 Excel 文件供用户下载。
+
+前端 API 中的 `unitId` 就是这个文档 ID。请先按[协同集成](/server/collaboration/browser-integration)接通协同编辑，再运行 [Exchange 导入导出示例](/zh-CN/server/collaboration/examples#exchange)。示例同时提供前端、服务端和文件转换代码，可以对照它们完成接入。
+
+导出前要等待当前编辑同步到服务端，否则刚刚修改的内容可能不会出现在文件中。读取和转换协同文档的具体做法见[协同扩展模块中的“服务端 Office Exchange”](/zh-CN/server/collaboration/extensions)。
+
+## 接入页面上的导入、导出按钮
+
+服务端转换完成后，还需要让页面上的按钮调用它。
+
+- **使用 Univer 自带菜单或 Facade API：** 按 [Exchange 示例](/zh-CN/server/collaboration/examples#exchange)实现它们需要的上传、转换、任务查询和下载接口，再配置前端插件。接口地址和返回格式都需要匹配。
+- **使用自己的上传、下载按钮：** 调用业务接口，导入完成后打开返回的文档数据或文档 ID，导出完成后下载文件。
+
+各产品的前端配置见 [Sheets](/guides/sheets/features/import-export)、[Docs](/guides/docs/features/import-export)、[Slides](/guides/slides/features/import-export)、[Boards](/guides/boards/features/import-export)、[Bases](/guides/bases/features/import-export) 和 [PDFs](/guides/pdfs/features/import-export)。上述协同示例演示 Sheets；其他产品支持哪些文件格式，请先查看 [Office 文件导入导出](/zh-CN/server/import-export/node)并核对所用版本。
+
+## 接入后检查
+
+用一份实际业务文件走完“导入 → 修改 → 导出”，再用办公软件打开结果，确认修改、公式、图片和布局符合需要。协同场景还要确认其他用户能打开同一份文档，并且服务重启后内容仍然存在。
+
+上线前，将示例中的临时文件和内存任务存储换成业务使用的存储方式，限制上传大小，并处理转换失败和超时。上传、任务查询和下载都需要检查用户权限，权限接入可参考[身份与权限](/zh-CN/server/collaboration/identity-and-authorization)。

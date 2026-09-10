@@ -1,8 +1,4 @@
-import type { ReactNode } from 'react'
 import { MenuIcon } from 'lucide-react'
-
-import { Link } from '@/i18n/navigation'
-import { clsx } from '@/lib/clsx'
 
 import { ActiveNavigationLink } from './active-navigation-link'
 
@@ -11,21 +7,12 @@ export interface ISiteNavLink {
   url: string
 }
 
-export interface ISiteDocumentationLink extends ISiteNavLink {
-  icon?: ReactNode
-  iconClassName?: string
-}
-
 export function SiteMobileMenu({
   links,
-  documentationLinks,
-  documentationTitle,
   openLabel,
   navigationLabel,
 }: {
   links: ISiteNavLink[]
-  documentationLinks: ISiteDocumentationLink[]
-  documentationTitle: string
   openLabel: string
   navigationLabel: string
 }) {
@@ -38,9 +25,9 @@ export function SiteMobileMenu({
       >
         <MenuIcon className="size-4" />
       </summary>
-      <div className="bg-background fixed top-12 left-0 z-50 flex h-[calc(100dvh-3rem)] w-[min(22rem,calc(100vw-2rem))] flex-col border-r shadow-lg">
+      <div className="bg-background fixed top-22 left-0 z-50 flex h-[calc(100dvh-5.5rem)] w-[min(22rem,calc(100vw-2rem))] flex-col border-r shadow-lg">
         <div className="border-b p-4">
-          <p className="text-lg font-semibold tracking-normal">Univer SDK</p>
+          <p className="text-lg font-semibold tracking-normal">Univer</p>
         </div>
         <nav aria-label={navigationLabel} className="min-h-0 flex-1 overflow-y-auto p-4">
           <div className="space-y-1">
@@ -54,30 +41,6 @@ export function SiteMobileMenu({
                 {link.text}
               </ActiveNavigationLink>
             ))}
-          </div>
-          <div className="mt-6 border-t pt-5">
-            <p className="text-muted-foreground mb-3 px-3 text-xs font-medium">{documentationTitle}</p>
-            <div className="space-y-1">
-              {documentationLinks.map((link) => (
-                <Link
-                  className="hover:bg-accent hover:text-accent-foreground flex min-h-11 items-center gap-3 rounded-md px-3 text-sm transition-colors"
-                  href={link.url}
-                  key={link.url}
-                >
-                  {link.icon ? (
-                    <span
-                      className={clsx(
-                        `flex size-7 shrink-0 items-center justify-center rounded-sm text-white [&_svg]:size-4`,
-                        link.iconClassName,
-                      )}
-                    >
-                      {link.icon}
-                    </span>
-                  ) : null}
-                  <span className="font-medium">{link.text}</span>
-                </Link>
-              ))}
-            </div>
           </div>
         </nav>
       </div>

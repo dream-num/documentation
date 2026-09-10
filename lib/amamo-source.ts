@@ -5,8 +5,9 @@ import type { StructuredData } from 'fumadocs-core/mdx-plugins/remark-structure'
 import type { PageData, StaticSource } from 'fumadocs-core/source'
 import type { MDXContent, MDXModule } from 'mdx/types'
 
+import type { IAmamoMetaData, IFileInfo } from './amamo-metadata'
 import { renderAgentMarkdown } from './agent-docs/mdx-projection'
-import { createAmamoMetadataSource, type IAmamoMetaData, type IFileInfo } from './amamo-metadata'
+import { createAmamoMetadataSource } from './amamo-metadata'
 
 interface IAmamoModule<TFrontmatter> extends MDXModule {
   default: MDXContent

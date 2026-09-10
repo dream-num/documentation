@@ -1,0 +1,269 @@
+---
+title: Runtime 复用与 Daemon
+description: 从一次 CLI 命令的 Runtime 生命周期出发，理解 daemon 如何长期持有 Worker Runtime pool，并在多次调用之间复用已加载的 Unit。
+source: https://github.com/dream-num/univer-cli-sdk/blob/main/docs/design/runtime-architecture.md
+---
+
+执行一条 CLI 命令时，真正昂贵的通常不是解析参数，而是把一个 Unit 变成可以读写的 live Univer：创建
+Univer、安装插件、打开协同 backend、加载 checkpoint、补齐 changeset，再等待公式计算就绪。
+
+这一章只讨论两种 Runtime 能力：
+
+- `@univer-cli/univer-collaboration-runtime`：在当前进程中加载并操作一个 Unit；
+- `@univer-cli/univer-collaboration-runtime-pool`：把 Runtime 放入 Worker，按 Unit 身份租用、复用和回收。
+
+要让 Worker Runtime 跨多次 CLI 调用继续存活，还需要一个长期存在的 owner。这里由本地 daemon 承担这个
+角色。
+
+## 先建立三个生命周期
+
+理解复用之前，先分清三个对象的寿命：
+
+| 对象           | 何时创建                       | 何时结束                                      | 持有什么                                                       |
+| -------------- | ------------------------------ | --------------------------------------------- | -------------------------------------------------------------- |
+| CLI 进程       | 用户每执行一次命令             | 命令输出结果后                                | 参数、一次请求和输出格式化逻辑                                 |
+| Daemon 进程    | 第一次请求按需启动，或显式启动 | 用户停止、升级重启或异常退出                  | Runtime pool、业务 handler 和本地 socket                       |
+| Worker Runtime | pool 首次遇到某个 key          | TTL/LRU 回收、失效、daemon 关闭或 Worker 崩溃 | 一个 Worker、一个 backend handle、一个已加载的 Unit 和协同状态 |
+
+关键心智模型是：**CLI 只发起一次调用，daemon 持有 pool，pool 持有 Worker，Worker 持有 Runtime。**
+
+<Mermaid chart={"flowchart LR\n  CLI1[CLI 调用 1<br/>短生命周期] -->|JSON 请求| D[Daemon<br/>长期 owner]\n  CLI2[CLI 调用 2<br/>短生命周期] -->|JSON 请求| D\n  CLIN[CLI 调用 N<br/>短生命周期] -->|JSON 请求| D\n\n  D --> P[Collaboration Runtime pool]\n  P -->|key: Unit A| WA[Worker A]\n  P -->|key: Unit B| WB[Worker B]\n  WA --> RA[Runtime A<br/>已加载 Unit A]\n  WB --> RB[Runtime B<br/>已加载 Unit B]\n  RA --> BA[Backend A]\n  RB --> BB[Backend B]\n  BA --> DS[(Collaboration Server<br/>或其他数据源)]\n  BB --> DS"} />
+
+Daemon 只转发应用定义的 JSON 请求。Snapshot、changeset 和 block 由 Worker 中的 backend 直接读取，不经过
+CLI 或 daemon 中转。
+
+## 第一步：每条 CLI 命令都直接加载 Runtime
+
+最简单的实现是在 Commander action 中创建
+`@univer-cli/univer-collaboration-runtime`，完成操作后关闭它：
+
+```ts
+const runtime = await runtimeFactory.load(unitId, unitType);
+
+try {
+  const pulled = await runtime.pull();
+  if (pulled.status === "conflict") throw new Error(pulled.conflict.message);
+
+  const execution = await runtime.execute({ mode: "write", code });
+  let commit = await runtime.commit();
+  if (commit.status === "pull-required") {
+    const repulled = await runtime.pull();
+    if (repulled.status === "conflict") throw new Error(repulled.conflict.message);
+    commit = await runtime.commit();
+  }
+  return { execution, commit };
+} finally {
+  await runtime.close();
+}
+```
+
+这里的 `runtimeFactory` 由 `createUniverCollaborationRuntimeFactory()` 创建。一个 Runtime 从加载到关闭始终只
+绑定一个 Unit，并保存这个 Unit 当前的 revision、pending mutation、awaiting changeset 和 conflict 状态。
+调用方还必须检查最终 commit status：只有 `confirmed` 和 `nothing-to-commit` 表示本轮已经完成。
+
+一次 `load()` 不只是“读取一个文件”。它会依次完成：
+
+1. 打开 application 提供的 collaboration backend；
+2. 创建 headless Univer 并安装协同相关能力；
+3. 加载 UnitData 或 Snapshot checkpoint；
+4. replay checkpoint 携带的 changeset；
+5. 拉取并 replay checkpoint 到远端最新 revision 之间的缺口；
+6. 等待已安装公式模块的最新计算结果应用完成；
+7. 返回可以执行 `execute()`、`pull()` 和 `commit()` 的 Runtime。
+
+完整的一次性调用如下：
+
+<Mermaid chart={"sequenceDiagram\n  autonumber\n  actor User as 用户\n  participant CLI as CLI 进程\n  participant RT as Collaboration Runtime\n  participant U as Headless Univer\n  participant B as Backend\n\n  User->>CLI: 执行命令\n  CLI->>CLI: 启动 Node.js、加载模块、解析参数\n  CLI->>RT: factory.load(unitId, unitType)\n  RT->>B: open + 读取 checkpoint / changeset\n  RT->>U: 创建 Univer、安装插件、加载并 replay Unit\n  RT->>U: 等待公式计算就绪\n  RT-->>CLI: Runtime ready\n  CLI->>RT: pull()\n  CLI->>RT: execute()\n  opt 写操作\n    CLI->>RT: commit()\n    RT->>B: 提交 changeset\n  end\n  CLI->>RT: close()\n  RT->>B: 关闭 backend handle\n  RT->>U: dispose Univer\n  CLI-->>User: 输出结果并退出"} />
+
+这种方式的优点是所有权直接、失败后没有残留状态，适合低频命令和一次性任务。代价是下一条 CLI 命令会启动
+一个全新的 Node.js 进程，重复上述加载过程；上一条命令已经构建好的 Univer 和 Unit 内存状态无法复用。
+
+## 第二步：用 Worker pool 承载 Runtime
+
+`@univer-cli/univer-collaboration-runtime-pool` 为每个 resident key 维护一个独立 Worker process 和一个
+Collaboration Runtime。应用先提供 Worker entry；backend、凭据和 Univer 都在 Worker 内创建：
+
+```ts title="collaboration-worker.ts"
+import { defineUniverCollaborationRuntimeWorker } from "@univer-cli/univer-collaboration-runtime-pool";
+
+export default defineUniverCollaborationRuntimeWorker({
+  async createRuntime(init: { unitId: string; unitType: number }) {
+    return createRuntimeFromApplicationInit(init);
+  },
+});
+```
+
+Worker entry 必须指向构建后的 JavaScript ESM 文件。`init` 只在冷创建时发送给 Worker，并且必须兼容
+structured clone。
+
+调用方不需要设计一套 Runtime RPC。Lease 已经代理 `getState()`、`execute()`、`fetch()`、`pull()`、
+`commit()` 和 `exportUnitData()` 等公共接口：
+
+```ts
+import { createUniverCollaborationRuntimePool } from "@univer-cli/univer-collaboration-runtime-pool";
+
+const pool = createUniverCollaborationRuntimePool({
+  entry: new URL("./collaboration-worker.js", import.meta.url),
+});
+
+const lease = await pool.acquire({
+  key: targetKey,
+  init: { unitId, unitType },
+});
+
+try {
+  await lease.pull();
+  const result = await lease.execute({ mode: "read", code });
+  console.log(result.value);
+} catch (error) {
+  await lease.invalidate();
+  throw error;
+} finally {
+  await lease.release();
+}
+```
+
+`key` 是 Runtime 的复用身份，不只是查询参数。同一个 key 必须始终表示同一个 Unit、同一条协同状态链和兼容的
+初始化语义。普通 Unit 与 Worktree draft 即使拥有相同 `unitId`，也应使用不同 key。
+
+Pool 带来四个重要行为：
+
+- 同一个 key 同时只会交给一个 lease，并发请求按 FIFO 等待，避免两个调用同时修改同一份 live state；
+- `release()` 把可信的 Runtime 放回 idle cache，下次相同 key 可以继续使用；
+- `invalidate()` 表示状态已经不可信，Worker 和 Runtime 会被销毁，下次重新冷加载；
+- idle Runtime 可以按 TTL 和 LRU 回收；timeout、Worker crash 和协议错误也会使当前实例失效。
+
+但是，如果 pool 本身创建在短生命周期 CLI 进程里，复用仍然无法跨命令发生：
+
+<Mermaid chart={"flowchart LR\n  subgraph C1[CLI 调用 1]\n    P1[Pool 1] --> W1[Worker A] --> R1[Runtime A]\n  end\n\n  X1[CLI 退出] -.->|Pool 关闭，Worker 随之结束| C1\n\n  subgraph C2[CLI 调用 2]\n    P2[全新的 Pool 2] --> W2[全新的 Worker A] --> R2[重新加载 Runtime A]\n  end\n\n  X1 --> C2"} />
+
+Worker 解决了 Runtime 的进程隔离、独占租用和故障终止问题；要跨 CLI 调用复用，还必须让 pool 的 owner 比
+任意一条 CLI 命令活得更久。
+
+## 第三步：让 Daemon 成为 pool 的长期 owner
+
+Daemon 是一个按需启动的本地 Node.js 进程。CLI 通过 Unix socket 或 Windows named pipe 调用它；CLI 退出
+不会带走 daemon，因此 daemon 持有的 pool、Worker 和 idle Runtime 可以继续存活。
+
+在 daemon entry 中创建一次 pool，并在业务 handler 中 acquire lease：
+
+```ts title="daemon-entry.ts"
+import { createDaemonServer, DAEMON_SOCKET_ENV } from "@univer-cli/daemon";
+import { createUniverCollaborationRuntimePool } from "@univer-cli/univer-collaboration-runtime-pool";
+
+const socketPath = process.env[DAEMON_SOCKET_ENV];
+if (!socketPath) throw new Error(`${DAEMON_SOCKET_ENV} is required`);
+
+const pool = createUniverCollaborationRuntimePool({
+  entry: new URL("./collaboration-worker.js", import.meta.url),
+  cache: { idleTtlMs: 5 * 60_000, maxEntries: 20 },
+});
+
+const server = createDaemonServer({
+  identity: { id: "my-cli", version: "1.0.0" },
+  socketPath,
+  onShutdown: () => pool.close(),
+});
+
+server.handle("unit.execute", async (payload) => {
+  const input = parseExecuteRequest(payload);
+  const lease = await pool.acquire({
+    key: input.targetKey,
+    init: { unitId: input.unitId, unitType: input.unitType },
+  });
+
+  try {
+    const pulled = await lease.pull();
+    if (pulled.status === "conflict") throw new Error(pulled.conflict.message);
+
+    const execution =
+      input.mode === "read"
+        ? await lease.execute({ mode: "read", code: input.code })
+        : await lease.execute({ mode: "write", code: input.code });
+    const commit = input.mode === "write" ? await commitWithPull(lease) : null;
+    return { commitStatus: commit?.status ?? null, value: execution.value };
+  } catch (error) {
+    await lease.invalidate();
+    throw error;
+  } finally {
+    await lease.release();
+  }
+});
+
+await server.listen();
+```
+
+`parseExecuteRequest()` 和 `targetKey` 规则由 application 定义。Daemon 只提供本地 transport 和生命周期，
+不理解 Unit、Runtime 或协同协议。关闭 daemon 时必须 `pool.close()`，这样 idle 和 active Worker 都有明确的
+最终 owner。示例中的 `commitWithPull()` 负责处理 `pull-required` 后的 pull/commit，并检查最终提交状态；为保持
+示例保守，任何未处理错误都会 invalidate 当前 lease。
+
+普通 CLI 命令现在只负责把一次业务请求发给 daemon：
+
+```ts
+import { createDaemonClient } from "@univer-cli/daemon";
+
+const client = createDaemonClient({
+  entry: new URL("./daemon-entry.js", import.meta.url),
+  identity: { id: "my-cli", version: "1.0.0" },
+  socketPath,
+});
+
+const result = await client.request("unit.execute", {
+  targetKey,
+  unitId,
+  unitType,
+  mode,
+  code,
+});
+```
+
+Socket 不存在时，client 会启动配置的 daemon entry，等待 identity 与 protocol handshake，再发送请求；已有兼容
+daemon 时则直接复用它。
+
+## 第四步：看清第一次与后续请求
+
+第一次访问某个 key 是冷路径：daemon 可能需要启动，pool 也必须创建 Worker 和 Runtime。
+
+<Mermaid chart={"sequenceDiagram\n  autonumber\n  participant CLI as CLI 第一次调用\n  participant D as Daemon\n  participant P as Runtime pool\n  participant W as Worker A\n  participant R as Runtime A\n  participant B as Backend\n\n  CLI->>D: unit.execute(target A)\n  Note over CLI,D: socket 不存在时先按需启动 daemon\n  D->>P: acquire(key A, init)\n  P->>W: fork Worker，加载 entry\n  W->>R: createRuntime(init)\n  R->>B: 打开 backend，读取 checkpoint / changeset\n  R->>R: 创建 Univer、加载 Unit、等待公式\n  R-->>P: Runtime ready\n  P-->>D: lease A\n  D->>R: pull → execute → commit\n  D->>P: release()\n  Note over P,R: Worker A 与 Runtime A 留在 idle cache\n  D-->>CLI: JSON result\n  Note over CLI: CLI 退出，daemon / Worker 不退出"} />
+
+后续访问相同 key 是热路径。CLI 进程仍会重新启动，但昂贵的 Runtime 加载不再重复：
+
+<Mermaid chart={"sequenceDiagram\n  autonumber\n  participant CLI as CLI 后续调用\n  participant D as 已运行的 Daemon\n  participant P as Runtime pool\n  participant R as 已加载的 Runtime A\n\n  CLI->>D: unit.execute(target A)\n  D->>P: acquire(key A, init)\n  P-->>D: cache hit，返回 lease A\n  D->>R: pull()\n  Note over R: 同步 Runtime 空闲期间出现的远端 changeset\n  D->>R: execute()\n  opt 写操作\n    D->>R: commit()\n  end\n  D->>P: release()\n  D-->>CLI: JSON result\n  Note over CLI,R: CLI 退出；Runtime A 继续存活"} />
+
+这里复用的是“已经创建并加载好的 live Runtime”，不是跳过协同一致性。每次 lease 后通常仍应先 `pull()`；写入
+后仍要检查 `commit()` 的最终状态，并处理 `pull-required`、`retry`、`unknown` 或 `conflict`。
+
+## 哪些消耗被省下，哪些仍然存在
+
+| 成本                                             | 每次直接加载 Runtime | Daemon + Worker pool                |
+| ------------------------------------------------ | -------------------- | ----------------------------------- |
+| CLI 进程启动、参数解析、结果输出                 | 每次都有             | 每次都有                            |
+| 本地 socket JSON request/response                | 无                   | 每次都有                            |
+| Daemon 启动与模块加载                            | 无                   | 第一次或重启后发生                  |
+| Worker 启动与 Worker entry 加载                  | 无 Worker            | 每个 key 冷创建时发生               |
+| 创建 Univer、安装插件                            | 每次都有             | 每个 key 冷创建时发生               |
+| 加载 checkpoint、replay 初始 changeset、等待公式 | 每次都有             | 每个 key 冷创建时发生               |
+| `pull()` 获取空闲期间的新 changeset              | 每次都有             | 每次通常仍需要                      |
+| `execute()` 与 `commit()`                        | 每次都有             | 每次都有                            |
+| idle 内存、backend handle、Worker 进程           | 命令结束即释放       | 保留到 eviction、失效或 daemon 关闭 |
+
+因此，复用是在用常驻内存和 Worker 数量换取后续调用的低启动延迟。应通过 pool 的 event 和实际耗时决定
+`idleTtlMs`、`maxEntries`、open timeout 与 operation timeout，而不是无限保留所有 Unit。
+
+## 并发、失败与关闭
+
+最后用四条规则判断系统行为：
+
+1. **相同 key 的并发请求会排队。** 一个 live Runtime 在任意时刻只属于一个 lease，避免协同状态被交叉修改。
+2. **不同 key 可以由不同 Worker 并行处理。** 代价是每个 resident key 都占用独立 Worker 和 Runtime 内存。
+3. **可信状态才允许复用。** 成功完成并清理本地 mutation 后 `release()`；timeout、crash、协议错误，或应用无法
+   确认本地状态时 `invalidate()`。
+4. **关闭责任逐层向下。** CLI 结束一次 request；daemon shutdown 调用 `pool.close()`；pool 再终止 Worker 并关闭
+   Runtime/backend。
+
+如果命令低频、单次延迟可接受，直接使用 `@univer-cli/univer-collaboration-runtime` 最简单。只有测量表明重复
+加载成为主要成本，并且可以接受常驻进程与内存占用时，才组合 daemon 与
+`@univer-cli/univer-collaboration-runtime-pool`。
+
+完整 package 清单见 [Package 概览](/ai/packages)。

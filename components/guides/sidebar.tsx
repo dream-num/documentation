@@ -5,7 +5,7 @@ import { ActiveNavScroller } from '@/components/docs-shell/active-nav-scroller'
 import { NavTree } from '@/components/docs-shell/nav-tree'
 import { usePathname } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
-import { isGuideNavItemActive } from '@/lib/guides/navigation'
+import { getGuideSidebarItems } from '@/lib/guides/navigation'
 
 import { GuidesSidebarControls } from './sidebar-controls'
 
@@ -24,12 +24,11 @@ export function GuidesSidebar({
   className?: string
 }) {
   const pathname = usePathname()
-  const activeRoot = items.find((item) => item.type !== 'separator' && isGuideNavItemActive(item, pathname))
-  const visibleItems = activeRoot?.children.length ? activeRoot.children : items
+  const visibleItems = getGuideSidebarItems(items, pathname)
 
   return (
     <nav aria-label={label} className={clsx('text-sm', className)}>
-      <GuidesSidebarControls includeIcons items={items} labels={labels} />
+      <GuidesSidebarControls items={items} labels={labels} />
       <NavTree items={visibleItems} pathname={pathname} />
       <ActiveNavScroller />
     </nav>

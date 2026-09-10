@@ -12,7 +12,6 @@ import { routing } from '@/i18n/routing'
 import { messagesByLocale } from '@/messages'
 
 import { GuidesSearch } from '../guides/search'
-import { OfficeSdkBanner } from '../site/office-sdk-banner'
 import { DocsMobileNav } from './mobile-nav'
 import { PrimaryNavigation } from './primary-navigation'
 import { SidebarVersionSwitcher } from './sidebar-version-switcher'
@@ -28,13 +27,12 @@ export async function DocsHeader({
   guideItems: IGuideNavItem[]
   items: IDocsNavItem[]
   title: string
-  searchScope: 'reference' | 'icons' | 'all'
+  searchScope: 'reference' | 'all'
 }) {
   const t = await getTranslations({ locale: lang as Locale })
   const navigationLabels = {
     blog: t('navigation.blog'),
     primary: t('navigation.primary-navigation'),
-    products: t('navigation.products'),
     reference: t('navigation.reference'),
     showcase: t('navigation.showcase'),
     tools: t('navigation.tools'),
@@ -74,7 +72,7 @@ export async function DocsHeader({
         <ThemeSwitcher label={t('common.choose-theme')} />
         <GithubInfo className="hidden xl:flex" owner="dream-num" repo="univer" />
       </div>
-      <OfficeSdkBanner />
+      <PrimaryNavigation items={guideItems} labels={navigationLabels} mobile />
     </header>
   )
 }

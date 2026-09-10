@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: IProps) {
   const t = await getTranslations({ locale: lang as Locale })
 
   return {
-    title: 'Univer SDK',
+    title: 'Web SDK',
     description: t('home.description'),
   }
 }
@@ -77,7 +77,7 @@ export default async function Page({ params }: IProps) {
               >
                 <span className={`border-r border-neutral-300 py-1 pr-1.5 pl-3 dark:border-neutral-700`}>🎉</span>
                 <AnimatedShinyText className="py-1 pr-3 pl-1.5">
-                  Univer SDK v{pkg.version} {t('home.banner-release')}
+                  Web SDK v{pkg.version} {t('home.banner-release')}
                 </AnimatedShinyText>
               </Link>
             </div>
@@ -172,7 +172,6 @@ export default async function Page({ params }: IProps) {
           collabDesc={t('home.scenes.collab.desc')}
           automationTitle={t('home.scenes.automation.title')}
           automationDesc={t('home.scenes.automation.desc')}
-          proBadge={t('home.pro.badge')}
         />
 
         {/* Developer Experience */}
@@ -233,7 +232,6 @@ export default async function Page({ params }: IProps) {
           feature11Desc={t('home.enterprise.feature11.desc')}
           feature12Title={t('home.enterprise.feature12.title')}
           feature12Desc={t('home.enterprise.feature12.desc')}
-          proBadge={t('home.pro.badge')}
         />
 
         {/* Headless */}

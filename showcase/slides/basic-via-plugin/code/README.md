@@ -33,7 +33,7 @@ window.univerAPI.getPresentation('slides-pro-demo').save()
 ### 2. Edit the cover title
 
 ```ts
-window.univerAPI.getPresentation('slides-pro-demo').getSlideById('cover').getElementById('title').getText().setText('Univer SDK / Product studio')
+window.univerAPI.getPresentation('slides-pro-demo').getSlideById('cover').getElementById('title').getText().setText('Web SDK / Product studio')
 ```
 
 ### 3. Navigate to the plugin page

@@ -1,0 +1,350 @@
+---
+title: Document loading and content operations
+description: Learn the minimum agent content-operation flow and assemble Collaboration Runtime, Inspection, API Reference, and Content Execution.
+source: https://github.com/dream-num/univer-cli-sdk/blob/main/packages/univer-collaboration-runtime/README.md
+---
+
+## Minimum content-operation flow for an agent
+
+For each content command, the business CLI loads the target Unit and synchronizes its latest content. From the agent's
+perspective, a typical content-operation flow is:
+
+<Mermaid chart={"flowchart LR\n    Task([Receive editing task]) --> Inspect[\"inspect<br/>Understand structure and main content\"]\n    Inspect --> API[\"api find / api show<br/>As needed: API is unclear\"]\n    API --> Read[\"execute · read<br/>As needed: Inspection does not cover it\"]\n    Read --> Write[\"execute · write<br/>Edit and commit\"]\n    Write --> Review[\"inspect / execute · read<br/>Review along the same boundary\"]\n    Review --> Done([Done])"} />
+
+The `api find` / `api show`, read-mode, and final review nodes are all conditional. The agent chooses a capability using this
+boundary:
+
+| Agent goal                                                      | Preferred capability              |
+| --------------------------------------------------------------- | --------------------------------- |
+| Understand document structure and main-content distribution     | `inspect` overview                |
+| Read standard content such as a Range, Paragraph, or Slide      | `inspect` selector                |
+| Read conditional formatting, Chart configuration, or other gaps | `execute --mode read`             |
+| Find or confirm an unfamiliar Facade API                        | `api find` / `api show`           |
+| Modify and commit the document                                  | `execute --mode write`            |
+| Review the result                                               | `inspect` / `execute --mode read` |
+
+### Example: Update a Sheet Range
+
+For example, suppose the task is “update `Data!A2:B2` in `book-1` to `[["East", 128000]]`.” Assuming the business CLI
+has been assembled as described later in this chapter, an agent can use the following flow.
+
+1. Use Inspection to understand the Workbook and target Range:
+
+```bash
+UNIT_ID="book-1"
+my-cli inspect workbook --unit "$UNIT_ID" --json
+my-cli inspect range A1:B2 --worksheet name:Data --unit "$UNIT_ID" --json
+```
+
+2. To demonstrate API Reference, assume the agent does not know `setValues`; find and confirm its signature:
+
+```bash
+my-cli api find setValues --unit sheet
+my-cli api show FWorkbook.getSheetByName FWorksheet.getRange FRange.setValues
+```
+
+3. Run Facade code in write mode; the application `execute` command owns the commit:
+
+```bash
+my-cli execute --unit "$UNIT_ID" --mode write \
+  --code 'const sheet = workbook.getSheetByName("Data");
+if (!sheet) throw new Error("Worksheet Data not found");
+sheet.getRange("A2:B2").setValues([["East", 128000]]);'
+```
+
+4. Decide whether to review based on task risk. Inspection covers Range values, so read the Range again:
+
+```bash
+my-cli inspect range A2:B2 --worksheet name:Data --unit "$UNIT_ID" --json
+```
+
+This task does not need read mode because Inspection can read the Range before and after the write. Use read mode only
+for content that Inspection does not cover; examples for conditional formatting and Chart configuration appear below.
+
+## Assemble these capabilities in a business CLI
+
+This chapter starts with `@univer-cli/univer-collaboration-runtime`, then adds Inspection, API Reference, and Content
+Execution. The snippets highlight each core interface; the business application adds Server configuration, identity,
+error presentation, and command arguments.
+
+Each step in this chapter is added to the same Commander root program:
+
+```ts
+import { Command } from "commander";
+
+const program = new Command("my-cli");
+
+// Register the inspect, execute, and api commands introduced below here.
+// Parse CLI arguments only after every command has been registered.
+await program.parseAsync();
+```
+
+### 1. Load a collaborative Unit
+
+Collaboration Runtime is the Unit execution environment and collaboration client for agents in Node.js. One Runtime
+stays bound to one Unit for its entire lifecycle.
+
+```ts
+import {
+  createCollaborationServerAdapter,
+  createUniverCollaborationRuntimeFactory,
+} from "@univer-cli/univer-collaboration-runtime";
+import { UniverInstanceType } from "@univerjs/core";
+
+const factory = createUniverCollaborationRuntimeFactory({
+  backend: createCollaborationServerAdapter({
+    snapshotServerUrl,
+    collabSubmitChangesetUrl,
+    collabWebSocketUrl,
+    wsSessionTicketUrl,
+  }),
+  createUniver: headlessUniverFactory,
+});
+
+const unitId = "book-1";
+const runtime = await factory.load(unitId, UniverInstanceType.UNIVER_SHEET);
+```
+
+The application injects `headlessUniverFactory`, using either the standard implementation from
+`@univer-cli/headless-univer` or a custom composition; initialization details are intentionally omitted here. It also
+maps Server configuration, identity, and the Unit target into the protocol addresses required by the adapter. Runtime
+loads the Snapshot, maintains revisions and changesets, and provides Facade execution.
+
+Runtime's core APIs are:
+
+| API                       | Purpose                                                                 |
+| ------------------------- | ----------------------------------------------------------------------- |
+| `pull()`                  | Fetch remote changesets, reconcile them through OT, and update the Unit |
+| `execute({ mode, code })` | Run Facade code; `read` reads content and `write` produces mutations    |
+| `commit()`                | Manually submit the current pending mutations                           |
+| `exportUnitData()`        | Export the complete UnitData currently held by the Runtime              |
+| `getState()`              | Read revision, connection, pending state, and conflict state            |
+| `close()`                 | Release the backend handle and Headless Univer                          |
+
+### 2. Understand content through Inspection
+
+Agents do not need to rewrite Facade code for common read tasks. `@univer-cli/content-inspection` returns stable,
+structured, read-only results:
+
+| Unit  | Inspection overview   | Global context the agent obtains quickly                                  |
+| ----- | --------------------- | ------------------------------------------------------------------------- |
+| Sheet | Workbook overview     | Worksheet identities, used ranges, and Table, Rule, and Drawing summaries |
+| Doc   | Document overview     | Document mode, paragraph index, text previews, and feature counts         |
+| Slide | Presentation overview | Slide index, text previews, element counts, size, and Layout count        |
+
+Collaboration Runtime adapts directly to the read-only execution interface used by Inspection:
+
+```ts
+import { inspectContent } from "@univer-cli/content-inspection";
+
+const workbook = await inspectContent(
+  {
+    unitId: runtime.unitId,
+    unitType: "sheet",
+    execute: async (input) => {
+      const result = await runtime.execute(input);
+      return { value: result.value };
+    },
+  },
+  { kind: "workbook" },
+);
+```
+
+`inspectContent()` uses `unitId` to generate a read-only Facade program and locate the target Workbook through
+`univerAPI.getWorkbook(unitId)`. It uses `unitType` to verify that the query matches the Unit type.
+
+Start with an overview query to understand Unit structure and main content quickly, then use worksheet, range, paragraph,
+and slide selectors for standard content covered by Inspection. Only when the required configuration or details do not
+appear in Inspection results—for example, complete conditional-formatting rules or Chart configuration—use a minimal
+focused query through `execute({ mode: "read" })`.
+
+For default Commander interaction, add the `inspect` preset. The business application only supplies a Runtime lease:
+
+```ts
+import type { ContentInspectionLease } from "@univer-cli/content-inspection-command";
+import { createContentInspectionCommand } from "@univer-cli/content-inspection-command";
+
+program.addCommand(
+  createContentInspectionCommand({
+    async acquireRuntime({ unitId }) {
+      const runtime = await factory.load(unitId, UniverInstanceType.UNIVER_SHEET);
+      await runtime.pull();
+
+      const lease: ContentInspectionLease = {
+        unitId,
+        unitType: "sheet",
+        execute: async (input) => {
+          const result = await runtime.execute(input);
+          return { value: result.value };
+        },
+        invalidate: () => runtime.close(),
+        release: () => runtime.close(),
+      };
+
+      return lease;
+    },
+  }),
+);
+```
+
+`acquireRuntime` is the preset's public dependency field, and its result follows `ContentInspectionLease`. This example
+does not use a pool, so both `invalidate()` and `release()` close the exclusive Runtime directly. The preset owns
+selector parsing, text or JSON output, and lease release. The application still owns target mapping, Runtime
+initialization, authentication, and remote loading. Call `inspectContent()` directly for a custom agent protocol.
+
+### 3. Find and understand Facade APIs
+
+When an agent knows the task but not the correct Facade API, use `@univer-cli/api-reference`. It ships with the current
+SDK and does not load a Unit or access an online documentation service.
+
+```ts
+import { createStandardApiReference } from "@univer-cli/api-reference";
+
+const reference = createStandardApiReference();
+
+const matches = reference.find({
+  terms: ["setValues", "conditional formatting"],
+  unit: "sheet",
+  limit: 20,
+});
+
+const details = reference.show(["FRange", "FRange.setValues", "ICellData.v"]);
+```
+
+- `find()` discovers candidate symbols from task-oriented terms.
+- `show()` returns precise details for a class, member, type, or enum.
+- `@univer-cli/api-reference-command` provides optional `api find` and `api show` presets.
+
+Add the same reference to Commander directly:
+
+```ts
+import { createApiCommand } from "@univer-cli/api-reference-command";
+
+program.addCommand(createApiCommand({ reference }));
+```
+
+API Reference supports the execution step: an agent can Inspect current content, Find/Show the relevant API, then
+generate and execute Facade code.
+
+### 4. Execute Facade reads and writes
+
+Use Collaboration Runtime `execute()` for flexible reads and changes. `@univer-cli/content-execution` can first bind
+Facade JavaScript to an explicit Unit and inject stable bindings for that Unit type:
+
+```ts
+import { prepareContentExecutionProgram } from "@univer-cli/content-execution";
+
+const executionProgram = prepareContentExecutionProgram({
+  unitId,
+  unitType: "sheet",
+  code: 'workbook.getActiveSheet().getRange("A1").setValue("done");',
+});
+
+const execution = await runtime.execute({
+  mode: "write",
+  code: executionProgram,
+});
+```
+
+- `mode: "read"` is for flexible read-only queries and disallows mutations.
+- `mode: "write"` captures Facade mutations and adds them to Runtime local pending state.
+- Successful execution means the code ran, not that a changeset was submitted to Server.
+
+`content-execution` only produces an execution program. It does not acquire a Runtime, submit changesets, or provide a
+public `execute` command preset package. The business CLI therefore wraps it in an application Commander command:
+
+```ts
+const executeCommand = new Command("execute")
+  .requiredOption("--unit <id>")
+  .requiredOption("--code <javascript>")
+  .option("--mode <read|write>", "execute without or with mutations", "write")
+  .action(async ({ unit, code, mode }) => {
+    if (mode !== "read" && mode !== "write") {
+      throw new Error("--mode must be read or write");
+    }
+
+    const runtime = await factory.load(unit, UniverInstanceType.UNIVER_SHEET);
+    try {
+      await runtime.pull();
+      const executionProgram = prepareContentExecutionProgram({
+        unitId: unit,
+        unitType: "sheet",
+        code,
+      });
+      const execution = await runtime.execute({ mode, code: executionProgram });
+
+      if (mode === "read") {
+        process.stdout.write(`${JSON.stringify(execution.value, null, 2)}\n`);
+        return;
+      }
+
+      let committed = await runtime.commit();
+      if (committed.status === "pull-required") {
+        await runtime.pull();
+        committed = await runtime.commit();
+      }
+      if (committed.status !== "confirmed") {
+        throw new Error(`Commit failed: ${committed.status}`);
+      }
+
+      process.stdout.write(
+        `${JSON.stringify(
+          {
+            commit: committed.status,
+            mutations: execution.mutations.length,
+            revision: committed.state.baseRevision,
+            value: execution.value,
+          },
+          null,
+          2,
+        )}\n`,
+      );
+    } finally {
+      await runtime.close();
+    }
+  });
+
+program.addCommand(executeCommand);
+```
+
+This application command defaults to write mode. Read mode only prints the Facade code's return value; it neither
+produces mutations nor calls `commit()`. Write mode prints the mutation count, revision, and return value only after the
+commit is confirmed, so the agent can determine the submission outcome explicitly. Commander owns arguments and command
+lifecycle. The application owns Runtime acquisition, commit retries, error presentation, and authorization policy. This
+minimal fragment is fixed to Sheet. Add an explicit mapping from CLI Unit types to `UniverInstanceType` when the
+application supports Doc, Slide, Base, or Board.
+
+#### Use read mode only for content not covered by Inspection
+
+For example, Inspection reports the number of conditional-formatting rules on a Worksheet but does not include each
+rule's complete configuration. When an agent needs that configuration, it confirms the API and runs minimal Facade code
+in read mode:
+
+```bash
+my-cli api find getConditionalFormattingRules --unit sheet
+my-cli api show FWorksheet.getConditionalFormattingRules
+
+my-cli execute --unit "$UNIT_ID" --mode read \
+  --code 'const sheet = workbook.getSheetByName("Data");
+if (!sheet) throw new Error("Worksheet Data not found");
+return sheet.getConditionalFormattingRules();'
+```
+
+Inspection can also tell the agent how many Charts a Worksheet contains. If the task requires complete Chart
+configuration, return `sheet.getCharts().map((chart) => chart.getInfo())` in a focused query. Read mode disallows
+mutations; it supplements content not covered by Inspection rather than replacing Inspection by default.
+
+## Summary
+
+The same Commander program now combines Collaboration Runtime, Inspection, API Reference, and Content Execution.
+Runtime loads, synchronizes, executes, and commits manually; Inspection provides structured reads; API Reference helps
+the agent find Facade APIs; Commander organizes these capabilities into one consistent CLI entry point.
+
+A typical operation starts with `inspect` to understand structure, main content, and covered standard details. Use
+`api find` / `api show` when an API is unclear. Run Facade code in read mode only for configuration or details not covered by
+Inspection, then edit and commit in write mode. Apply the same Inspection boundary during review.
+
+## Next step
+
+Next, add [Office file import and export](/server/import-export/node) to convert Office files into UnitData for the same
+content-operation flow, or export the latest UnitData as an Office file.

@@ -1,0 +1,196 @@
+---
+title: Presence
+description: Show who is in a document, display collaborator names and avatars, and enable remote cursors and selections.
+---
+
+Presence lets people see who has the same document open and where others are working. For example,
+when Bob selects cell B3, Alice sees his selection with the name “Bob”. You can also display the
+current collaborators in an avatar bar or member list.
+
+The SDK synchronizes membership and cursor information and renders supported remote cursors.
+Applications can supply collaborator names and avatars and use the member subscription API to build
+avatar bars, member panels, or online user counts.
+
+## Before you begin
+
+Complete [Quick start](/server/collaboration/quick-start) and
+[Identity and authorization](/server/collaboration/identity-and-authorization) first. At this point, your
+editor should synchronize edits, the server should identify the signed-in user through
+`context.userID`, and your read, JOIN, and edit policies should be in place.
+
+The examples below extend your existing `transport`, `endpoint`, and `univer` setup. Keep the
+authentication and authorization rules from the previous guide.
+
+## Member and cursor synchronization
+
+Alice and Bob open the same spreadsheet. There are two kinds of Presence updates:
+
+| Action                   | Member list                           | What Alice sees in the sheet           |
+| ------------------------ | ------------------------------------- | -------------------------------------- |
+| Alice opens the sheet    | Alice                                 | Her own selection                      |
+| Bob opens the same sheet | Alice, Bob                            | Bob's selection when he selects a cell |
+| Bob moves from B3 to C5  | Alice, Bob                            | Bob's selection moves to C5            |
+| Bob closes the sheet     | Alice, after the leave update arrives | Bob's selection disappears             |
+
+The member list changes when connections join or leave. Moving a cursor changes the selection
+shown in the editor; it does not add or remove a member. Editing the value in C5 also synchronizes
+document content through the collaboration editing flow.
+
+Presence is scoped to one document (a Unit). It describes the people currently connected to that
+document; the access list you configured in the previous guide describes everyone allowed to open
+it. Presence is temporary: cursor movement does not create a changeset, advance the document
+revision, or get saved to the database.
+
+With the collaboration plugins from Quick start and the corresponding editor UI enabled, the SDK
+captures and sends local cursor and selection updates, then renders the corresponding cursors,
+selections, and names in other members' editors.
+
+| Editor | Online member subscription | Remote cursor and selection UI          |
+| ------ | -------------------------- | --------------------------------------- |
+| Sheet  | Supported                  | Cell and range selections               |
+| Doc    | Supported                  | Text cursors and selections             |
+| Slide  | Supported                  | Pointer positions and object selections |
+| Board  | Supported                  | Pointer positions and object selections |
+| Base   | Supported                  | Not available                           |
+
+## 1. Set collaborator names and avatars
+
+Set `context.member.name` and `context.member.avatar` in the Endpoint's `connect` Middleware.
+Your application decides how to retrieve the profile: query it using the authenticated
+`context.session.userID`, or reuse data saved during authentication through `customData`.
+
+This example uses `customData` to avoid a second lookup. Add these fields to your existing Transport
+Middleware and register `connect` before starting the server:
+
+```ts
+type AppUser = {
+  id: string;
+  name: string;
+  avatar?: string;
+};
+
+transport.use(async (context, next) => {
+  // Your authentication function; rejects unauthenticated requests.
+  const user: AppUser = await auth.requireUser(context.incomingMessage);
+  context.userID = user.id;
+  // An application-defined field to reuse the profile in connect.
+  context.customData.user = user;
+  await next();
+});
+
+endpoint.use("connect", async (context, next) => {
+  // Read the profile saved when the session ticket was issued.
+  const user = context.session.customData.user as AppUser;
+  // Without this assignment, the member name defaults to userID.
+  context.member.name = user.name;
+  // Use an empty string when there is no avatar URL.
+  context.member.avatar = user.avatar ?? "";
+  await next();
+});
+```
+
+The SDK passes the session-ticket request's `customData` to `context.session.customData`.
+The `user` key and `AppUser` type are application choices; the SDK does not interpret them.
+Other collaborators receive the profile assigned to `context.member`.
+
+`connect` runs once for each new WebSocket connection, including reconnections, before the client
+joins a document. Changing a profile in your application does not automatically update the member
+profiles already shared with existing connections.
+
+## 2. Display a member list (optional)
+
+If your application needs an avatar bar or member panel, use
+`subscribeCollaborators(unitID, callback)` to subscribe to the open document's members. Cursor
+rendering works independently of this subscription.
+
+```ts
+import { FUniver } from "@univerjs/core/facade";
+// Import once in the client entry point to enable collaboration Facade methods.
+import "@univerjs-pro/collaboration-client/facade";
+
+// Reuse an existing univerAPI if your editor setup already provides one.
+const univerAPI = FUniver.newAPI(univer);
+// unitID is the ID of the document open in the editor.
+const subscription = univerAPI.getCollaboration().subscribeCollaborators(unitID, (members) => {
+  // Each callback is a new list snapshot that the application can use to update its UI.
+  console.table(members);
+});
+```
+
+The SDK waits for the document's collaboration room to become available. Each callback receives
+an `IMember[]` snapshot of the members currently known to the client, including yourself once joined.
+An empty list can arrive during initialization. The callback reports membership, not cursor positions.
+
+For Alice and Bob, the member data contains fields like these (IDs are illustrative):
+
+| `userID` | `memberID`                             | `name`  | `avatar` |
+| -------- | -------------------------------------- | ------- | -------- |
+| `alice`  | `83446a72-a1cc-4ed8-aedc-afd8907bbb18` | `Alice` | `""`     |
+| `bob`    | `7ee5a94e-c784-4e1e-b1a3-b9d34be8ec4e` | `Bob`   | `""`     |
+
+`userID` identifies a person in your application. `memberID` identifies one connection and is
+assigned by the SDK. If Bob opens a second tab, the list gains another entry with `userID: "bob"`
+and a different `memberID`. There are now two users and three connections. Applications can group
+by `userID` for an avatar bar or online user count, or use `memberID` to display and count connections.
+The editor renders each connection's cursor separately.
+
+When the view using the subscription is removed, release it:
+
+```ts
+subscription.dispose();
+```
+
+Dispose an application-created `univerAPI` and the Univer instance when destroying the editor.
+Closing only a member panel requires disposing only that panel's subscription.
+
+### Example: a React member list
+
+Pass your existing `univerAPI` and document ID into this component:
+
+```tsx
+import type { FUniver } from "@univerjs/core/facade";
+import type { IMember } from "@univerjs/protocol";
+import "@univerjs-pro/collaboration-client/facade";
+import { useEffect, useState } from "react";
+
+export function OnlineMembers({ univerAPI, unitID }: { univerAPI: FUniver; unitID: string }) {
+  const [members, setMembers] = useState<IMember[]>([]);
+
+  useEffect(() => {
+    // Clear the previous document list while waiting for the new subscription.
+    setMembers([]);
+    const subscription = univerAPI.getCollaboration().subscribeCollaborators(unitID, setMembers);
+    // Unsubscribe when the document changes or the component unmounts.
+    return () => subscription.dispose();
+  }, [univerAPI, unitID]);
+
+  // Show each user once, even when they have multiple connections.
+  const users = [...new Map(members.map((member) => [member.userID, member])).values()];
+
+  return (
+    <ul>
+      {users.map((user) => (
+        <li key={user.userID}>
+          {user.avatar && <img src={user.avatar} alt="" width={24} height={24} />}
+          <span>{user.name}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+The subscription reflects the latest room membership received by the client. A lost connection
+takes time to detect, so a departing member may remain briefly. The SDK's built-in collaboration
+status UI provides the current client's synchronization state, offline indication, and reconnect
+action.
+
+## Try it with two users
+
+1. Sign in as Alice and Bob in separate browser profiles and open the same document.
+2. Check that both names appear in the member list.
+3. In a Sheet, select B3 as Bob, then C5. Alice should see Bob's named selection move while the
+   member list stays the same.
+4. Open another tab as Bob. The subscription should include another `memberID`; the React list
+   should still display Bob once.
+5. Close both Bob tabs. After the leave updates arrive, Alice's list should contain only Alice.

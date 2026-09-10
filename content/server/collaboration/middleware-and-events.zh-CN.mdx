@@ -1,0 +1,189 @@
+---
+title: Middleware 与 Event
+description: 使用通用 Middleware 和 Event 扩展 Transport、Endpoint、Service 及协同扩展模块。
+---
+
+Middleware 与 Event 是 Collaboration SDK 的通用业务扩展点。身份与权限通过 Middleware 接入。
+Middleware 适合在操作执行前进行校验和限制；Event 适合在状态确认后记录变化或触发后续处理。两者都可
+用于日志、请求追踪、指标采集和派生数据更新。
+
+## 两种不同的扩展时机
+
+|                      | Middleware                       | Event                            |
+| -------------------- | -------------------------------- | -------------------------------- |
+| 运行时机             | 一次操作执行过程中               | 状态变化已经确认后               |
+| 能否参与或拒绝操作   | 可以                             | 不可以                           |
+| 能否补充调用 Context | 可以                             | 读取 Event 携带的 Context 与结果 |
+| Listener 失败        | 可能使当前操作失败               | 被隔离，不改变已经确定的领域结果 |
+| 典型用途             | 身份、权限、业务校验、日志、计时 | 派生索引、缓存、指标、进程内通知 |
+
+简单判断方式是：需要决定“这次操作能否继续”时使用 Middleware；需要知道“某个状态变化已经发生”
+时使用 Event。
+
+## Middleware 执行模型
+
+同一 Action 的 Middleware 按注册顺序组成异步链。`await next()` 进入下一个 Middleware，最内层才
+执行 SDK 操作：
+
+```ts
+service.use("submitChangeset", async (context, next) => {
+  const startedAt = performance.now();
+  context.customData.startedAt = startedAt;
+
+  try {
+    await next();
+  } finally {
+    metrics.observe("collaboration.submit.duration", performance.now() - startedAt);
+  }
+});
+```
+
+Middleware 可以：
+
+- 读取 action-specific request；
+- 在 `customData` 中共享当前调用所需的数据；
+- 在调用 `next()` 前检查输入或查询业务系统；
+- 在 `next()` 返回后记录耗时或结果；
+- 抛出 `CollabError` 拒绝预期内的协同操作。
+
+Transport HTTP Middleware 也可以直接结束 HTTP response 并不调用 `next()`。Service 和 Endpoint
+Middleware 若要拒绝操作，应抛出明确错误，而不是静默跳过 `next()`。
+
+## Transport Middleware
+
+Transport 位于网络入口，提供普通 HTTP 与 WebSocket Upgrade 两条 Middleware 链：
+
+```ts
+transport.use(async (context, next) => {
+  context.customData.traceID = readTraceID(context.incomingMessage);
+  requestLogger.info("collaboration request", {
+    method: context.incomingMessage.method,
+    traceID: context.customData.traceID,
+  });
+  await next();
+});
+
+transport.useUpgrade(async (context, next) => {
+  if (!isAllowedOrigin(context.incomingMessage.headers.origin)) {
+    context.reject(403, "Origin rejected");
+    return;
+  }
+  await next();
+});
+```
+
+`transport.use()` 只参与普通 HTTP request。它适合身份解析、请求日志、trace、CORS 或建立请求级
+`customData`。`transport.useUpgrade()` 只参与 WebSocket handshake，适合握手前检查。
+
+## Endpoint Middleware
+
+Endpoint Middleware 参与实时 Session 与 Presence 操作：
+
+| Action            | 触发时机                                     | 常见用途                     |
+| ----------------- | -------------------------------------------- | ---------------------------- |
+| `connect`         | Ticket 已消费、Session 已创建，处理 HELLO 前 | 连接策略、补充成员名称与头像 |
+| `joinUnit`        | Session 加入 Unit Room 前                    | Room 准入、Unit 可见性检查   |
+| `receivePresence` | 收到已 JOIN Session 的 Presence 后、广播前   | 校验、过滤 Presence          |
+| `sendPresence`    | Presence 发给某个 Room 成员前                | 按接收者过滤 Presence        |
+
+```ts
+endpoint.use("receivePresence", async (context, next) => {
+  if (JSON.stringify(context.payload).length > 8_000) {
+    throw new CollabError("INVALID_REQUEST", "Presence payload is too large");
+  }
+  await next();
+});
+```
+
+Endpoint 的 `session.userID` 和 `session.customData` 来自签发 Session Ticket 的 HTTP request。`memberID`
+由 Endpoint 为当前 WebSocket Session 创建，重连后会变化。
+
+## Service Middleware
+
+Service Middleware 参与权威协同数据的生命周期：
+
+| Action            | 操作边界                             | 常见用途                     |
+| ----------------- | ------------------------------------ | ---------------------------- |
+| `readUnitData`    | 读取 snapshot、block 或 changeset 前 | 读取规则、tenant、审计       |
+| `createUnit`      | 原子创建 Unit 前                     | 类型检查、创建权限、业务规则 |
+| `deleteUnits`     | 删除批次写入 Adapter 前              | 删除规则、逐 Unit 检查       |
+| `recoverUnits`    | 恢复批次写入 Adapter 前              | 恢复规则、审计               |
+| `submitChangeset` | 逻辑提交进入幂等与 OT 前             | 编辑规则、总大小限制、trace  |
+| `applyChangeset`  | OT 后的 changeset 应用到候选状态前   | mutation 级校验              |
+| `commitChangeset` | Adapter 执行 revision CAS 与写入前   | 最终 revision 规则、指标     |
+
+```ts
+service.use("createUnit", async (context, next) => {
+  await creationPolicy.assertAllowed({
+    userID: context.userID,
+    unitID: context.request.snapshot.unitID,
+    type: context.request.snapshot.type,
+  });
+  context.customData.creationPolicyChecked = true;
+  await next();
+});
+```
+
+`submitChangeset` 每次逻辑提交运行一次。发生 revision 竞争时，`applyChangeset` 和
+`commitChangeset` 可能以新的 `attempt` 重复运行，因此这两个阶段的 Middleware 必须可重试，不能
+直接发送不可撤销的外部消息或执行一次性扣费。
+
+## customData 的作用域
+
+`customData` 是应用可写的请求级对象，适合保存：
+
+- tenant、trace ID 或请求 logger；
+- 本次调用复用的 ACL 查询结果；
+- 计时起点或审计标签；
+- 当前 Middleware 链共享的业务对象。
+
+普通 HTTP request、Service 调用和 WebSocket Session 拥有不同生命周期。`customData` 不会自动写入
+协同数据库、发送到浏览器或记录日志。需要长期保存的数据必须进入应用自己的存储。
+
+## Event 执行模型
+
+Service 使用 `on()` 注册进程内 Listener，并返回可释放的订阅：
+
+```ts
+const subscription = service.on("changesetCommitted", async (event) => {
+  metrics.increment("collaboration.changeset.committed", {
+    unitType: String(event.changeset.type),
+  });
+  localCache.delete(event.changeset.unitID);
+});
+
+subscription.dispose();
+```
+
+同一 Event 的 Listener 按注册顺序依次执行并被等待。Listener 抛出的错误会被记录和隔离，不会改变
+已经确定的领域结果。例如 `changesetCommitted` Listener 失败，不会回滚已经写入 Adapter 的 changeset。
+
+因此 Event 适合进程内、可恢复或非关键的后续处理。它不是与数据库 commit 共享的事务边界，也不保证
+外部系统一定收到通知。
+
+## Core Service Event
+
+| Event                | 已确认的事实                    | 典型用途                       |
+| -------------------- | ------------------------------- | ------------------------------ |
+| `unitCreated`        | Unit 及其初始数据已创建         | 更新本地目录缓存、建立派生索引 |
+| `changesetCommitted` | Changeset 已确认并推进 revision | 广播、指标、派生索引           |
+| `unitsDeleted`       | 删除批次已由 Adapter 确认       | 清理进程内关联状态             |
+| `unitsRecovered`     | 恢复批次已由 Adapter 确认       | 恢复本地派生状态               |
+
+Endpoint 监听同一个 Service 的 `changesetCommitted`，把 confirmed changeset 广播给当前进程中已经
+JOIN 对应 Unit 的 Client。Endpoint 自身还提供 `memberLeftUnit` Event，用于观察成员显式离开、断线或
+Endpoint 释放。
+
+## 扩展模块拥有独立扩展点
+
+History、Thread Comment 与 Worktree 不自动继承主 Collaboration Service 的 Middleware 或 Event：
+
+- History 提供读取和索引 Middleware；
+- Comment 提供 add、reply、edit、delete、solve/list Middleware，以及 `commentCommitted` Event；
+- Worktree 提供生命周期、draft read/submit/commit Middleware，以及创建、状态变化、合入结果等 Event。
+
+应用应分别为实际启用的模块安装规则。主 Service 上的日志、tenant 或权限 Middleware 不会自动覆盖
+它们。
+
+接下来可阅读[身份与权限](/server/collaboration/identity-and-authorization)，查看如何把已有用户与 ACL 系统
+映射到这些通用 Middleware。

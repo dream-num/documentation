@@ -11,7 +11,6 @@ import { Link } from '@/i18n/navigation'
 import { routing } from '@/i18n/routing'
 import { messagesByLocale } from '@/messages'
 
-import { OfficeSdkBanner } from '../site/office-sdk-banner'
 import { GuidesMobileNav } from './mobile-nav'
 import { GuidesSearch } from './search'
 
@@ -20,7 +19,6 @@ export async function GuidesHeader({ lang, items }: { lang: string; items: IGuid
   const navigationLabels = {
     blog: t('navigation.blog'),
     primary: t('navigation.primary-navigation'),
-    products: t('navigation.products'),
     reference: t('navigation.reference'),
     showcase: t('navigation.showcase'),
     tools: t('navigation.tools'),
@@ -64,10 +62,10 @@ export async function GuidesHeader({ lang, items }: { lang: string; items: IGuid
           </div>
         </div>
       </div>
+      <PrimaryNavigation items={items} labels={navigationLabels} mobile />
       <div className="border-t px-4 py-1.5 sm:hidden">
         <GuidesSearch lang={lang} />
       </div>
-      <OfficeSdkBanner />
     </header>
   )
 }

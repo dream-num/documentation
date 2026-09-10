@@ -5,10 +5,9 @@ import { getTranslations } from 'next-intl/server'
 import type { Locale } from '@/i18n/routing'
 import type { IDocsNavigation } from '@/lib/docs/navigation'
 import { Footer } from '@/components/footer'
-import { GuidesSidebarControls } from '@/components/guides/sidebar-controls'
 import { clsx } from '@/lib/clsx'
 import { createGuideNavigation } from '@/lib/guides/navigation'
-import { guides } from '@/lib/source'
+import { guideNavigationSource } from '@/lib/guides/navigation-source'
 
 import { DocsHeader } from './header'
 import { RootScrollLock } from './root-scroll-lock'
@@ -27,10 +26,10 @@ export async function DocsShellLayout({
   navigation: IDocsNavigation
   title: string
   children: ReactNode
-  searchScope: 'reference' | 'icons' | 'all'
+  searchScope: 'reference' | 'all'
 }) {
   const t = await getTranslations({ locale: lang as Locale })
-  const guideNavigation = createGuideNavigation(guides.pageTree[lang], '')
+  const guideNavigation = createGuideNavigation(guideNavigationSource.pageTree[lang], '')
 
   return (
     <div
@@ -58,17 +57,6 @@ export async function DocsShellLayout({
             <div className="mb-4">
               <SidebarVersionSwitcher />
             </div>
-          ) : null}
-          {searchScope === 'icons' ? (
-            <GuidesSidebarControls
-              includeIcons
-              items={guideNavigation.items}
-              labels={{
-                guides: t('search.scope.guides'),
-                products: t('navigation.products'),
-              }}
-              showVersion={false}
-            />
           ) : null}
           <DocsSidebar items={navigation.items} label={t('docs.sidebar-navigation', { title })} />
         </aside>

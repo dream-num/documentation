@@ -129,7 +129,7 @@ export async function createCollaborationSheetUnit() {
     },
     body: JSON.stringify({
       type: UniverInstanceType.UNIVER_SHEET,
-      name: 'Univer SDK Pro Collaboration Showcase',
+      name: 'Web SDK Collaboration Showcase',
       creator: 'documentation-showcase',
     }),
   })

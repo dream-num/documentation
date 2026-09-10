@@ -1,0 +1,165 @@
+---
+title: Worktree：Agent 编辑与人类审阅
+description: 让 Agent 在隔离 Worktree draft 中编辑和检查 Unit，再由人类通过 Web 审阅并合入 trunk。
+source: https://github.com/dream-num/univer-collaboration-sdk/blob/main/packages/collaboration-worktree-service/README.zh-CN.md
+---
+
+Worktree 为 Agent 提供隔离的编辑空间。Agent 可以在 draft 中多轮 pull、inspect、execute 和 commit，
+完成结构化与视觉检查后把 Worktree 标记为 Ready；人类通过 Web 查看实际页面，并选择 Merge 或 Reopen。
+
+```text
+创建 Worktree
+→ Agent 编辑 draft
+→ Agent 结构化与视觉检查
+→ Ready
+→ 人类通过 Web 审阅
+→ Merge / Reopen
+→ Trunk
+```
+
+## 为什么使用 Worktree
+
+- Agent 的中间修改与 trunk 隔离；
+- draft 拥有独立的 Snapshot、changeset、revision、Presence 与实时房间；
+- Agent 可以在提交最终结果前多轮同步、修改和自检；
+- Ready 冻结当前 draft revision，建立明确的审阅边界；
+- 人类可以在 Web 中审阅、继续编辑、Merge 或 Reopen；
+- Merge 仍会进入 trunk Collaboration Service 自己的权限和提交边界。
+
+## 完整工作流
+
+```text
+创建 / 选择 Worktree
+→ 选择 Worktree Unit
+→ Collaboration Runtime load
+→ pull
+→ inspect
+→ api find / show
+→ execute(write)
+→ runtime.commit()
+→ inspect + screenshot + layout lint
+→ markReady
+→ Web 审阅
+→ merge / reopen
+```
+
+完成[文档内容加载与读写](/ai/content-operations)、[Office 文件导入导出](/server/import-export/node)和
+[视觉检查](/ai/visual-inspection)后，将同一组能力切换到 Worktree target，即可形成推荐的 Agent 编辑流程。
+
+## Worktree Target
+
+Collaboration Runtime 仍然只处理一个 Unit 的 Snapshot、changeset 和 revision，不解释 Worktree 产品概念。
+Application adapter 负责把 `worktreeID + unitID` 映射到 Worktree Endpoint 的 Snapshot、Submit、WebSocket
+和 Session Ticket URL，再把这组 URL 交给 Runtime backend。
+
+```text
+worktreeID + unitID
+→ Application target adapter
+→ Worktree protocol URLs
+→ Collaboration Runtime
+```
+
+这样，同一个 Runtime 执行模型既能连接 trunk，也能连接隔离的 Worktree draft。
+
+## Agent 在 Draft 中操作 Unit
+
+Agent 对 Worktree Unit 使用与普通 Unit 相同的核心循环：
+
+```text
+load → pull → inspect → execute(write) → commit
+```
+
+需要现成的 Inspect 终端入口时，`@univer-cli/content-inspection-command` 提供两个独立 factory：
+
+- `createContentInspectionCommand()`：普通 Unit target；
+- `createWorktreeContentInspectionCommand()`：要求调用方显式选择 `--trunk` 或 `--worktree <id>`。
+
+Application 以相同方式为 execute、screenshot 和其他命令增加 target 选择，并负责获取与释放对应 Runtime。
+
+## 在 Commander 中选择 Worktree
+
+Inspection 预设提供 Worktree 版本，强制调用方在 `--trunk` 与 `--worktree <id>` 之间明确选择：
+
+```ts
+import type { WorktreeContentInspectionCommandDependencies } from "@univer-cli/content-inspection-command";
+import { createWorktreeContentInspectionCommand } from "@univer-cli/content-inspection-command";
+import { Command } from "commander";
+
+function addWorktreeCommands(
+  program: Command,
+  dependencies: {
+    acquireRuntime: WorktreeContentInspectionCommandDependencies["acquireRuntime"];
+    markReady(worktreeID: string): Promise<void>;
+  },
+): void {
+  program.addCommand(
+    createWorktreeContentInspectionCommand({
+      acquireRuntime: dependencies.acquireRuntime,
+    }),
+  );
+
+  const worktreeCommand = new Command("worktree");
+  worktreeCommand
+    .command("ready")
+    .argument("<worktree-id>")
+    .action(async (worktreeID) => {
+      await dependencies.markReady(worktreeID);
+    });
+
+  program.addCommand(worktreeCommand);
+}
+```
+
+`acquireRuntime` 和 `markReady` 在这里被明确声明为 Application 必须注入的依赖，不是 AI SDK 中未展示的
+helper。前者实现上一节的 Worktree target 到 Runtime 映射，后者调用 Collaboration SDK Worktree Client。
+
+Application 应使用同一个 target model 组合 execute、screenshot 和 layout lint 命令，避免不同命令把同一个
+Unit ID 解析到不同的 trunk 或 draft。Web 可以在同一 Worktree Client 上提供 Reopen、Discard、Merge 和实际
+页面审阅；如果产品需要，也可以把其中部分操作封装成额外的 Commander 子命令。
+
+## Agent 检查结果
+
+在 Ready 前，Agent 可以组合两类检查：
+
+```text
+结构化检查：pull → inspect
+视觉检查：Unit → Render Runtime → screenshot / layout lint
+```
+
+- Inspect 验证 Workbook、Worksheet、Range、Document、Paragraph、Presentation 或 Slide 的结构化内容；
+- Screenshot 为 Agent 提供渲染后的视觉信息；
+- Layout Lint 诊断 Slide 的布局问题；
+- 检查发现问题时，Agent 可以继续 execute、commit 和重新检查。
+
+## 区分 Commit、Ready 与 Merge
+
+| 操作               | 含义                                                   |
+| ------------------ | ------------------------------------------------------ |
+| `runtime.commit()` | 把当前 mutation 形成的 changeset 提交到 Worktree draft |
+| `markReady()`      | 冻结各 Unit 当前 draft revision，进入 `ready` 状态     |
+| `reopenWorktree()` | 从 `ready` 返回 `draft`，继续修改                      |
+| `mergeWorktree()`  | 把 Worktree 中的 Unit 逐个合入 trunk                   |
+
+`runtime.commit()` 只推进 draft，不会合入 trunk。Ready 表示 Agent 本轮工作已经进入审阅阶段，正式进入
+trunk 仍需要 Worktree Merge。
+
+## 人类通过 Web 审阅
+
+Web 使用 Worktree Client 与 Worktree Collaboration 配置加载同一个 draft。审阅页面可以展示：
+
+- Worktree 当前状态；
+- draft 中 Unit 的实际页面；
+- trunk 与 draft 的切换；
+- 单 Unit merge preview；
+- Ready、Reopen、Discard 与 Merge 操作。
+
+人类可以在 Web 中继续编辑 draft；如果需要 Agent 继续处理，则 Reopen Worktree；确认结果后执行 Merge，
+再切回 trunk 查看合入后的内容。
+
+## Collaboration SDK 边界
+
+Worktree 的 Service、Endpoint、Client 与 Database Adapter 属于 Collaboration SDK。AI SDK 提供 Unit Runtime、
+Inspect、API Reference、Execution、Screenshot 等可组合能力；Application 负责 Worktree 生命周期命令、target
+映射、身份和权限。
+
+服务端组装、状态机和合入限制见[协同扩展模块](/server/collaboration/extensions)。

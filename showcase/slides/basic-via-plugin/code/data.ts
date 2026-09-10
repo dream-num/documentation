@@ -114,7 +114,7 @@ const cover = page(
     shape('hero-bg', 72, 72, 1056, 528, '#101A34'),
     shape('accent', 112, 120, 8, 410, '#50C8B0', ShapeTypeEnum.Rect),
     text('eyebrow', 'BUILD / EDIT / EXTEND', 150, 128, 860, 36, 18, '#58C8FF', true),
-    text('title', 'Univer SDK Pro Slides', 150, 205, 900, 92, 46, '#F5F7FF', true),
+    text('title', 'Web SDK Slides', 150, 205, 900, 92, 46, '#F5F7FF', true),
     text(
       'subtitle',
       'A minimal plugin-mode setup powered by @univerjs-pro/slides and @univerjs-pro/slides-ui.',
@@ -170,7 +170,7 @@ const feature = page(
 
 export const SLIDE_DATA: ISlideData = {
   id: 'slides-pro-demo',
-  name: 'Univer SDK Pro Slides',
+  name: 'Web SDK Slides',
   appVersion: '1.0.0-beta.2',
   rev: 1,
   locale: LocaleType.EN_US,

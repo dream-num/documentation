@@ -1,0 +1,343 @@
+---
+title: 文档内容加载与读写
+description: 了解 Agent 的最小内容操作流程，并装配 Collaboration Runtime、Inspection、API Reference 与 Content Execution。
+source: https://github.com/dream-num/univer-cli-sdk/blob/main/packages/univer-collaboration-runtime/README.zh-CN.md
+---
+
+## Agent 的最小内容操作流程
+
+业务 CLI 会在每次内容命令中加载目标 Unit 并同步最新内容。从 Agent 的视角，一次典型的内容操作流程如下：
+
+<Mermaid chart={"flowchart LR\n    Task([收到编辑任务]) --> Inspect[\"inspect<br/>了解结构和主体内容\"]\n    Inspect --> API[\"api find / api show<br/>按需：API 不明确\"]\n    API --> Read[\"execute · read<br/>按需：Inspection 未覆盖\"]\n    Read --> Write[\"execute · write<br/>编辑并提交\"]\n    Write --> Review[\"inspect / execute · read<br/>按覆盖边界审查\"]\n    Review --> Done([完成])"} />
+
+图中的 `api find` / `api show`、read 模式和最终审查都是按需步骤。Agent 根据下面的边界选择能力：
+
+| Agent 的目标                                     | 优先能力                          |
+| ------------------------------------------------ | --------------------------------- |
+| 了解文档结构和主体内容分布                       | `inspect` overview                |
+| 读取 Range、Paragraph、Slide 等标准内容          | `inspect` selector                |
+| 读取 Inspection 未覆盖的条件格式、图表配置等细节 | `execute --mode read`             |
+| 查找或确认不熟悉的 Facade API                    | `api find` / `api show`           |
+| 修改并提交文档                                   | `execute --mode write`            |
+| 审查结果                                         | `inspect` / `execute --mode read` |
+
+### 示例：更新一个 Sheet Range
+
+例如，任务是“把 `book-1` 的 `Data!A2:B2` 更新为 `[["华东", 128000]]`”。假设业务 CLI 已按本章后续内容
+完成组装，Agent 可以执行以下流程。
+
+1. 先用 Inspection 了解 Workbook 和目标 Range：
+
+```bash
+UNIT_ID="book-1"
+my-cli inspect workbook --unit "$UNIT_ID" --json
+my-cli inspect range A1:B2 --worksheet name:Data --unit "$UNIT_ID" --json
+```
+
+2. 为演示 API Reference，这里假设 Agent 不熟悉 `setValues`，先查找并确认签名：
+
+```bash
+my-cli api find setValues --unit sheet
+my-cli api show FWorkbook.getSheetByName FWorksheet.getRange FRange.setValues
+```
+
+3. 以 write 模式执行 Facade code；业务 `execute` 命令负责 commit：
+
+```bash
+my-cli execute --unit "$UNIT_ID" --mode write \
+  --code 'const sheet = workbook.getSheetByName("Data");
+if (!sheet) throw new Error("Worksheet Data not found");
+sheet.getRange("A2:B2").setValues([["华东", 128000]]);'
+```
+
+4. 按任务风险决定是否审查。Inspection 已覆盖 Range 值，因此直接重新读取：
+
+```bash
+my-cli inspect range A2:B2 --worksheet name:Data --unit "$UNIT_ID" --json
+```
+
+这个任务不需要 read 模式，因为 Inspection 已经可以读取写入前后的 Range。只有当所需内容没有被 Inspection
+覆盖时，才使用 read 模式；后文会给出条件格式和图表配置的例子。
+
+## 在业务 CLI 中装配这些能力
+
+本章从 `@univer-cli/univer-collaboration-runtime` 开始，逐步加入 Inspection、API Reference 和 Content
+Execution。代码片段只突出每一步的核心接口，Server 配置、身份、错误展示和命令参数仍由业务应用补充。
+
+本章把每一步加入同一个 Commander 根程序：
+
+```ts
+import { Command } from "commander";
+
+const program = new Command("my-cli");
+
+// 在这里注册后续章节介绍的 inspect、execute 和 api 命令。
+// 所有命令注册完成后，再解析 CLI 参数。
+await program.parseAsync();
+```
+
+### 1. 加载一个协同 Unit
+
+Collaboration Runtime 是 Node.js 中面向 Agent 的 Unit 执行环境和协同客户端。一个 Runtime 在整个生命周期
+中只绑定一个 Unit。
+
+```ts
+import {
+  createCollaborationServerAdapter,
+  createUniverCollaborationRuntimeFactory,
+} from "@univer-cli/univer-collaboration-runtime";
+import { UniverInstanceType } from "@univerjs/core";
+
+const factory = createUniverCollaborationRuntimeFactory({
+  backend: createCollaborationServerAdapter({
+    snapshotServerUrl,
+    collabSubmitChangesetUrl,
+    collabWebSocketUrl,
+    wsSessionTicketUrl,
+  }),
+  createUniver: headlessUniverFactory,
+});
+
+const unitId = "book-1";
+const runtime = await factory.load(unitId, UniverInstanceType.UNIVER_SHEET);
+```
+
+`headlessUniverFactory` 由应用注入，可以使用 `@univer-cli/headless-univer` 的标准实现，也可以使用自定义
+composition；这里不展开初始化配置。业务应用还负责把 Server 配置、身份和 Unit target 转换成 adapter 所需的
+协议地址。Runtime 负责加载 Snapshot、维护 revision 和 changeset，并提供 Facade 执行环境。
+
+Runtime 的核心 API：
+
+| API                       | 用途                                                         |
+| ------------------------- | ------------------------------------------------------------ |
+| `pull()`                  | 拉取远端 changeset，通过 OT 协调并更新当前 Unit              |
+| `execute({ mode, code })` | 执行 Facade 代码；`read` 用于读取，`write` 用于产生 mutation |
+| `commit()`                | 手动提交当前 pending mutations                               |
+| `exportUnitData()`        | 导出当前 Runtime 中完整的 UnitData                           |
+| `getState()`              | 查看 revision、连接、pending state 与冲突状态                |
+| `close()`                 | 释放 backend handle 和 Headless Univer                       |
+
+### 2. 使用 Inspection 理解内容
+
+Agent 不需要为常见读取任务重复编写 Facade code。`@univer-cli/content-inspection` 提供稳定、结构化、只读的
+查询结果：
+
+| Unit  | Inspection 概览   | Agent 快速获得的全局认知                                       |
+| ----- | ----------------- | -------------------------------------------------------------- |
+| Sheet | Workbook 概览     | Worksheet 身份、有效区域以及 Table、Rule、Drawing 摘要         |
+| Doc   | Document 概览     | 文档模式、段落索引、正文预览和 Feature 数量                    |
+| Slide | Presentation 概览 | 页面索引、文字预览、元素数量以及 Presentation 尺寸和 Layout 数 |
+
+Collaboration Runtime 可以直接适配 Inspection 所需的只读执行接口：
+
+```ts
+import { inspectContent } from "@univer-cli/content-inspection";
+
+const workbook = await inspectContent(
+  {
+    unitId: runtime.unitId,
+    unitType: "sheet",
+    execute: async (input) => {
+      const result = await runtime.execute(input);
+      return { value: result.value };
+    },
+  },
+  { kind: "workbook" },
+);
+```
+
+`inspectContent()` 使用 `unitId` 生成只读 Facade 程序，并通过 `univerAPI.getWorkbook(unitId)` 定位目标
+Workbook；`unitType` 用于检查查询类型与 Unit 类型是否匹配。
+
+先使用 overview 查询快速了解 Unit 结构和主体内容，再使用 worksheet、range、paragraph 和 slide selector
+读取 Inspection 已覆盖的标准化内容。只有当所需配置或细节没有出现在 Inspection 结果中时，例如完整的条件格式
+规则或图表配置，才使用 `execute({ mode: "read" })` 编写最小的定向查询。
+
+需要默认 Commander 交互时，直接添加 `inspect` 预设命令。业务应用只负责提供 Runtime lease：
+
+```ts
+import type { ContentInspectionLease } from "@univer-cli/content-inspection-command";
+import { createContentInspectionCommand } from "@univer-cli/content-inspection-command";
+
+program.addCommand(
+  createContentInspectionCommand({
+    async acquireRuntime({ unitId }) {
+      const runtime = await factory.load(unitId, UniverInstanceType.UNIVER_SHEET);
+      await runtime.pull();
+
+      const lease: ContentInspectionLease = {
+        unitId,
+        unitType: "sheet",
+        execute: async (input) => {
+          const result = await runtime.execute(input);
+          return { value: result.value };
+        },
+        invalidate: () => runtime.close(),
+        release: () => runtime.close(),
+      };
+
+      return lease;
+    },
+  }),
+);
+```
+
+`acquireRuntime` 是预设命令公开的依赖字段，返回值遵循 `ContentInspectionLease`；这里没有 pool，所以
+`invalidate()` 与 `release()` 都直接关闭独占 Runtime。预设命令负责 selector 解析、文本或 JSON 输出以及
+lease 释放。业务应用仍负责 target 映射、Runtime 初始化、认证和远端内容加载。自定义 Agent 协议时，直接调用
+`inspectContent()`。
+
+### 3. 查找和理解 Facade API
+
+当 Agent 知道目标但不确定使用哪个 Facade API 时，使用 `@univer-cli/api-reference`。它随当前 SDK 发布，
+不需要加载 Unit，也不访问在线文档服务。
+
+```ts
+import { createStandardApiReference } from "@univer-cli/api-reference";
+
+const reference = createStandardApiReference();
+
+const matches = reference.find({
+  terms: ["setValues", "conditional formatting"],
+  unit: "sheet",
+  limit: 20,
+});
+
+const details = reference.show(["FRange", "FRange.setValues", "ICellData.v"]);
+```
+
+- `find()` 根据任务关键词寻找候选 symbol；
+- `show()` 返回 class、member、type 或 enum 的精确详情；
+- `@univer-cli/api-reference-command` 提供可选的 `api find` 与 `api show` 预设命令。
+
+把同一个 reference 直接接入 Commander：
+
+```ts
+import { createApiCommand } from "@univer-cli/api-reference-command";
+
+program.addCommand(createApiCommand({ reference }));
+```
+
+API Reference 是执行前的辅助能力：Agent 可以先 Inspect 了解当前内容，再 Find/Show 选择 API，最后生成并
+执行 Facade code。
+
+### 4. 执行 Facade 读写
+
+自由读取和修改使用 Collaboration Runtime 的 `execute()`。`@univer-cli/content-execution` 可以先把 Facade
+JavaScript 绑定到明确的 Unit，并注入对应的稳定 binding：
+
+```ts
+import { prepareContentExecutionProgram } from "@univer-cli/content-execution";
+
+const executionProgram = prepareContentExecutionProgram({
+  unitId,
+  unitType: "sheet",
+  code: 'workbook.getActiveSheet().getRange("A1").setValue("done");',
+});
+
+const execution = await runtime.execute({
+  mode: "write",
+  code: executionProgram,
+});
+```
+
+- `mode: "read"` 用于自由只读查询，不允许产生 mutation；
+- `mode: "write"` 捕获 Facade 产生的 mutation，并加入 Runtime 的本地 pending state；
+- 执行成功只表示代码已经运行，不表示 changeset 已经提交到 Server。
+
+`content-execution` 只生成 execution program，不获取 Runtime、不提交 changeset，也不提供公开的 `execute`
+预设命令包。因此业务 CLI 使用 Commander 封装自己的应用级命令：
+
+```ts
+const executeCommand = new Command("execute")
+  .requiredOption("--unit <id>")
+  .requiredOption("--code <javascript>")
+  .option("--mode <read|write>", "execute without or with mutations", "write")
+  .action(async ({ unit, code, mode }) => {
+    if (mode !== "read" && mode !== "write") {
+      throw new Error("--mode must be read or write");
+    }
+
+    const runtime = await factory.load(unit, UniverInstanceType.UNIVER_SHEET);
+    try {
+      await runtime.pull();
+      const executionProgram = prepareContentExecutionProgram({
+        unitId: unit,
+        unitType: "sheet",
+        code,
+      });
+      const execution = await runtime.execute({ mode, code: executionProgram });
+
+      if (mode === "read") {
+        process.stdout.write(`${JSON.stringify(execution.value, null, 2)}\n`);
+        return;
+      }
+
+      let committed = await runtime.commit();
+      if (committed.status === "pull-required") {
+        await runtime.pull();
+        committed = await runtime.commit();
+      }
+      if (committed.status !== "confirmed") {
+        throw new Error(`Commit failed: ${committed.status}`);
+      }
+
+      process.stdout.write(
+        `${JSON.stringify(
+          {
+            commit: committed.status,
+            mutations: execution.mutations.length,
+            revision: committed.state.baseRevision,
+            value: execution.value,
+          },
+          null,
+          2,
+        )}\n`,
+      );
+    } finally {
+      await runtime.close();
+    }
+  });
+
+program.addCommand(executeCommand);
+```
+
+这个应用级命令默认使用 write 模式；read 模式只输出 Facade code 的返回值，不产生 mutation，也不调用
+`commit()`。write 模式只有在 commit confirmed 后才输出 mutation 数量、revision 和返回值，Agent 因此可以明确
+判断提交结果。Commander 负责参数和命令生命周期；Application 负责 Runtime 获取、提交重试、错误输出和权限
+策略。这里固定使用 Sheet 以保持片段最小；支持 Doc、Slide、Base 或 Board 时，再增加 CLI Unit 类型到
+`UniverInstanceType` 的显式映射。
+
+#### 只用 read 模式补充 Inspection 未覆盖的内容
+
+例如，Inspection 可以返回 Worksheet 的条件格式数量，但不包含每条规则的完整配置。Agent 需要这些配置时，
+先确认 API，再以 read 模式执行最小的 Facade code：
+
+```bash
+my-cli api find getConditionalFormattingRules --unit sheet
+my-cli api show FWorksheet.getConditionalFormattingRules
+
+my-cli execute --unit "$UNIT_ID" --mode read \
+  --code 'const sheet = workbook.getSheetByName("Data");
+if (!sheet) throw new Error("Worksheet Data not found");
+return sheet.getConditionalFormattingRules();'
+```
+
+Inspection 也可以告诉 Agent Worksheet 中有多少个 Chart；如果任务需要完整图表配置，可以定向返回
+`sheet.getCharts().map((chart) => chart.getInfo())`。read 模式不允许产生 mutation，它只补充 Inspection 没有覆盖的
+内容，不是 Inspection 的默认替代品。
+
+## 总结
+
+到这里，同一个 Commander 程序已经组合了 Collaboration Runtime、Inspection、API Reference 和 Content
+Execution。Runtime 负责加载、同步、执行与手动提交；Inspection 负责结构化读取；API Reference 帮助 Agent
+查找 Facade API；Commander 将这些能力组织成一致的 CLI 入口。
+
+一次典型操作先用 `inspect` 了解结构、主体内容和已覆盖的标准化细节；API 不明确时使用 `api find` / `api show`。
+只有 Inspection 没有覆盖所需配置或细节时，才以 read 模式执行 Facade code，然后以 write 模式编辑并提交。
+审查阶段继续遵循同一条 Inspection 覆盖边界。
+
+## 下一步
+
+下一步增加[Office 文件导入导出](/server/import-export/node)，将 Office 文件转换成同一条内容操作链使用的
+UnitData，或把最新 UnitData 导出为 Office 文件。

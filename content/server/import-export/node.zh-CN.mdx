@@ -1,0 +1,106 @@
+---
+title: Office 文件导入导出
+description: 使用 Exchange 在 Office 文件与 Collaboration Unit 之间导入导出内容。
+---
+
+Office 文件转换由 `@univerjs-pro/exchange-node` 提供，不属于 AI SDK。CLI 应用在文件边界调用
+`importFile()` 和 `exportToFile()`，再使用 AI SDK 与 Collaboration SDK 处理 Unit。
+
+## 遵守 SDK 边界
+
+```ts
+import { exportToFile, importFile } from "@univerjs-pro/exchange-node";
+```
+
+| 能力                                     | 所属边界            |
+| ---------------------------------------- | ------------------- |
+| Office 文件与 UnitData 转换              | Exchange |
+| Headless Runtime、内容检查和 Facade 执行 | AI SDK      |
+| Snapshot、changeset、revision 与持久化   | Collaboration SDK   |
+| 路径、格式选项、业务 API 和错误映射      | 业务应用            |
+
+## 导入为协同 Unit
+
+业务应用先通过 Exchange 读取 Office 文件，再把得到的 UnitData 交给 Collaboration Server 创建 Unit：
+
+```text
+Office 文件
+→ importFile()
+→ UnitData
+→ 业务 Server API
+→ Collaboration Unit
+```
+
+应用决定新 Unit 的初始 revision、业务元数据和返回结果。创建完成后，CLI 与 Web 都通过 Server 操作这个 Unit。
+
+## 导出最新 Revision
+
+导出时，CLI 先通过 Collaboration Runtime 加载最新 confirmed revision，再把完整 UnitData 交给 Exchange：
+
+```text
+Collaboration Unit
+→ 最新 UnitData
+→ exportToFile()
+→ Office 文件
+```
+
+输出扩展名决定导出格式。
+
+## 使用 Commander 暴露文件边界
+
+AI SDK 没有为 Office 文件导入导出提供预设命令包。业务应用使用 Commander 组合 Exchange、
+Collaboration Runtime 与自己的 Server API：
+
+```ts
+import { Command } from "commander";
+
+interface IFileExchangeDependencies {
+  importFile(path: string): Promise<unknown>;
+  createUnit(unitData: unknown): Promise<unknown>;
+  loadLatestUnitData(unitId: string): Promise<unknown>;
+  exportFile(unitData: unknown, path: string): Promise<void>;
+  writeResult(result: unknown): void;
+}
+
+function addFileExchangeCommands(program: Command, dependencies: IFileExchangeDependencies): void {
+  program.addCommand(
+    new Command("import").argument("<office-file>").action(async (sourcePath) => {
+      const unitData = await dependencies.importFile(sourcePath);
+      const created = await dependencies.createUnit(unitData);
+      dependencies.writeResult(created);
+    }),
+  );
+
+  program.addCommand(
+    new Command("export")
+      .argument("<office-file>")
+      .requiredOption("--unit <id>")
+      .action(async (outputPath, { unit }) => {
+        const unitData = await dependencies.loadLatestUnitData(unit);
+        await dependencies.exportFile(unitData, outputPath);
+      }),
+  );
+}
+```
+
+所有非 Commander 能力都在 `IFileExchangeDependencies` 中显式声明，不是隐藏 helper。应用使用 Univer Exchange 的 `importFile()` / `exportToFile()` 实现文件转换，使用 Collaboration Runtime 实现
+`loadLatestUnitData()`，并注入自己的 Server API 与结果输出。
+
+## 支持的格式
+
+| Unit  | 可导入                                              | 可导出                  |
+| ----- | --------------------------------------------------- | ----------------------- |
+| Sheet | `.xls`、`.xlsx`、`.xlsm`、`.csv`、`.tsv`            | `.xlsx`、`.csv`、`.tsv` |
+| Doc   | `.doc`、`.docx`                                     | `.docx`                 |
+| Slide | `.ppt`、`.pptx`、`.pptm`、`.ppsx`、`.ppsm`、`.potx` | `.pptx`                 |
+
+扩展名与 Unit 类型不匹配时，应用应在生成文件前拒绝执行。
+
+## 只使用本地 CLI
+
+应用也可以不经过 Collaboration Server，直接把导入结果交给本地 Headless Runtime，再导出 Office 文件。
+这种形态适合一次性批处理，但没有共享 revision、实时 Web 预览、History 或 Worktree。
+
+命令名称、路径参数和结果输出属于业务应用。协同 Unit 的操作路径见
+[文档内容加载与读写](/ai/content-operations)。完成文件边界后，继续增加[视觉检查](/ai/visual-inspection)，
+让 Agent 检查 UnitData 的实际渲染结果。

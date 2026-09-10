@@ -9,7 +9,9 @@ import { CopyCodeButton } from './copy-code-button'
 type CodeBlockProps = ComponentProps<'pre'> & { 'data-language'?: string; 'data-meta'?: string }
 
 export function InlineCode({ className, ...props }: ComponentProps<'code'>) {
-  return <code className={clsx('bg-muted rounded-sm px-1.5 py-0.5 font-mono text-sm', className)} {...props} />
+  return (
+    <code className={clsx('bg-muted rounded-sm px-1.5 py-0.5 font-mono text-sm wrap-anywhere', className)} {...props} />
+  )
 }
 
 export function CodeBlockTabs({ children, className, defaultValue, ...props }: ComponentProps<typeof Tabs>) {

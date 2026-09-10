@@ -3,7 +3,7 @@ import path from 'node:path'
 
 import { notFound } from 'next/navigation'
 
-import { Playground } from '@/components/playground'
+import { Playground } from '@/components/playground/playground'
 import packageJson from '@/package.json'
 import { showcase } from '@/showcase/data'
 import { prepareShowcaseSource } from '@/showcase/source-files'

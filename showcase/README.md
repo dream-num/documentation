@@ -1,4 +1,4 @@
-# Univer SDK Showcase
+# Web SDK Showcase
 
 Runnable frontend SDK examples for Sheets, modern and traditional Docs, Slides,
 Boards, Bases, PDFs, and product composition. Each example's README explains its

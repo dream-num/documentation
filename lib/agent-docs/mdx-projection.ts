@@ -5,13 +5,13 @@ import frFR from '@univerjs/engine-formula/locale/fr-FR'
 import koKR from '@univerjs/engine-formula/locale/ko-KR'
 import ruRU from '@univerjs/engine-formula/locale/ru-RU'
 import zhCN from '@univerjs/engine-formula/locale/zh-CN'
-import * as univerIcons from '@univerjs/icons'
 import { frontmatter } from 'fumadocs-core/content/md/frontmatter'
 import { mdxPreset } from 'fumadocs-core/content/mdx/preset-runtime'
 import { remarkLLMs } from 'fumadocs-core/mdx-plugins/remark-llms'
 
 import { buildInstallCommand, PACKAGE_MANAGERS } from '../../components/mdx/install-command'
 import packageJson from '../../package.json'
+import iconCatalog from '../../public/assets/icons/catalog.json'
 
 type StringifyAgentMdx = NonNullable<LLMsOptions['stringify']>
 type MdxElement = Extract<Parameters<StringifyAgentMdx>[0], { type: 'mdxJsxFlowElement' | 'mdxJsxTextElement' }>
@@ -435,7 +435,6 @@ function renderMetaData(attributes: Record<string, StaticValue>) {
   const meta = getStaticRecord(attributes.meta, 'MetaData.meta')
   return `#### Package metadata\n\n\`\`\`json\n${JSON.stringify(
     {
-      isPro: attributes.isPro === true,
       ...meta,
     },
     null,
@@ -456,13 +455,24 @@ function renderFormulaList(attributes: Record<string, StaticValue>) {
 }
 
 function renderIconsGallery() {
-  const names = Object.keys(univerIcons).toSorted((a, b) => a.localeCompare(b))
+  const groups = [...new Set(iconCatalog.icons.map((icon) => `${icon.group}/${icon.subgroup}`))]
   return [
-    `#### Available icon components (${names.length})`,
+    `#### Available icon components (${iconCatalog.icons.length})`,
     '',
-    'Import these components from `@univerjs/icons`:',
+    'Import named components from `@univerjs/icons` or `@univerjs/icons-vue`.',
     '',
-    ...names.map((name) => `- \`${name}\``),
+    '[Semantic metadata JSON](https://docs.univer.ai/assets/icons/catalog.json) includes aliases, keywords, products, roles, and stroke capabilities.',
+    '',
+    ...groups.flatMap((group) => [
+      `##### ${group}`,
+      '',
+      '| Component | Purpose |',
+      '| --- | --- |',
+      ...iconCatalog.icons
+        .filter((icon) => `${icon.group}/${icon.subgroup}` === group)
+        .map((icon) => `| \`${icon.componentName}\` | ${escapeTableCell(icon.description)} |`),
+      '',
+    ]),
   ].join('\n')
 }
 
@@ -620,7 +630,7 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
     case 'IconsVersion':
       return `\`${packageJson.dependencies['@univerjs/icons']}\``
     case 'IconWrapper':
-      return attributes.type === 'pro' ? '**Univer SDK Pro**' : children
+      return children
     case 'InstallTabs':
       return renderInstallTabs(attributes)
     case 'Mermaid': {

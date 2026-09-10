@@ -7,7 +7,6 @@ import {
   PdfMultiIcon,
   SheetsMultiIcon,
   SlidesMultiIcon,
-  SymbolsIcon,
 } from '@univerjs/icons'
 
 import type { UniverIconName } from '@/lib/univer-icons'
@@ -19,7 +18,6 @@ const icons = {
   PdfMultiIcon,
   SheetsMultiIcon,
   SlidesMultiIcon,
-  SymbolsIcon,
 } satisfies Record<UniverIconName, typeof SheetsMultiIcon>
 
 export function UniverIcon({ className, name }: { className?: string; name: UniverIconName }) {

@@ -18,7 +18,7 @@ const jaJPMessages = {
   tools: {
     section: 'ツール',
     'theme-customizer': 'テーマカスタマイザー',
-    'theme-customizer-description': 'Univer SDK のテーマ、デザイントークン、ダークモードを調整します。',
+    'theme-customizer-description': 'Web SDK のテーマ、デザイントークン、ダークモードを調整します。',
   },
   navigation: {
     blog: 'ブログ',
@@ -31,14 +31,7 @@ const jaJPMessages = {
     'open-site-navigation': 'サイトナビゲーションを開く',
     'primary-navigation': 'メインナビゲーション',
     'site-navigation': 'サイトナビゲーション',
-    'univer-home': 'Univer SDK ホーム',
-  },
-  'office-sdk-banner': {
-    label: 'Univer Office SDK のお知らせ',
-    message:
-      'Univer SDK または Univer SDK Pro を利用中ですか？Univer Office SDK でセルフホスト型コラボレーション、CLI、Agent Worktree を追加できます。',
-    action: 'Univer Office SDK を見る',
-    dismiss: 'Univer Office SDK のお知らせを閉じる',
+    'univer-home': 'Web SDK ホーム',
   },
   'theme-customizer': {
     apply: '適用',
@@ -97,7 +90,7 @@ const jaJPMessages = {
   home: {
     slogan: 'あなたのワークフローに、サーバードリブンの生産性ツールを組み込もう。',
     description:
-      'Univer SDK は高い拡張性とパフォーマンスを備えたフルスタックのオフィススイートで、開発者が自由に構築および編集できるように設計されています。',
+      'Web SDK は高い拡張性とパフォーマンスを備えたフルスタックのオフィススイートで、開発者が自由に構築および編集できるように設計されています。',
     'description-split': '、',
     'description-period': '。',
     'description-and': 'と',
@@ -109,7 +102,7 @@ const jaJPMessages = {
       eyebrow: 'インタラクティブな例',
       title: 'ひとつのローンチを、すべてのワークスペースで',
       description:
-        '計画、ストーリーテリング、ビジュアルコラボレーション、PDF まで、6 つの編集可能な Univer SDK 体験で一連の製品ローンチをお試しください。',
+        '計画、ストーリーテリング、ビジュアルコラボレーション、PDF まで、6 つの編集可能な Web SDK 体験で一連の製品ローンチをお試しください。',
     },
     customer: {
       title: '業界を問わず、チームと企業に信頼されています',
@@ -162,7 +155,7 @@ const jaJPMessages = {
       subtitle: 'マイクロカーネル + プラグインアーキテクチャのフルスタックフレームワーク。数分で開始。',
       step1: {
         title: 'インストール',
-        desc: 'npm、yarn、pnpm で Univer SDK コアパッケージをインストール。',
+        desc: 'npm、yarn、pnpm で Web SDK コアパッケージをインストール。',
       },
       step2: {
         title: 'モード選択',
@@ -170,7 +163,7 @@ const jaJPMessages = {
       },
       step3: {
         title: '設定',
-        desc: 'Univer SDK インスタンスを初期化し、必要なプラグインとロケールリソースを読み込む。',
+        desc: 'Web SDK インスタンスを初期化し、必要なプラグインとロケールリソースを読み込む。',
       },
       step4: {
         title: 'レンダリング',
@@ -254,11 +247,11 @@ const jaJPMessages = {
       },
     },
     headless: {
-      title: 'Headless Univer SDK',
+      title: 'Headless Web SDK',
       subtitle: 'サーバー側でドキュメントを処理し、AI と自動化にネイティブ対応',
       feature1: {
         title: 'Node.js 対応',
-        desc: 'Node.js 環境でブラウザなしに Univer SDK を直接実行。',
+        desc: 'Node.js 環境でブラウザなしに Web SDK を直接実行。',
       },
       feature2: {
         title: 'UI なしレンダリング',
@@ -306,13 +299,10 @@ const jaJPMessages = {
         title: 'すべてをカスタマイズ',
       },
     },
-    pro: {
-      badge: 'Pro',
-    },
   },
   blog: {
     title: 'ブログ',
-    slogan: 'Univer SDK の最新ニュース、アーキテクチャ、ベストプラクティスを探求します',
+    slogan: 'Web SDK の最新ニュース、アーキテクチャ、ベストプラクティスを探求します',
     author: '著者',
     date: '公開日',
     back: '戻る',
@@ -322,7 +312,7 @@ const jaJPMessages = {
   },
   showcase: {
     title: 'ショーケース',
-    slogan: 'オンライン例を通じて Univer SDK の強力な機能を探求します',
+    slogan: 'オンライン例を通じて Web SDK の強力な機能を探求します',
     back: '戻る',
     'related-title': '関連案例',
     breadcrumb: {

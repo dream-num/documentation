@@ -10,23 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Link, usePathname } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 import { getActiveGuideProduct, getGuideNavItemHref, getGuideProductItems } from '@/lib/guides/navigation'
-
-import { UniverIcon } from '../univer-icon'
-
-function getIconsProductItem(): IGuideNavItem {
-  return {
-    id: 'icons',
-    type: 'link',
-    name: 'Univer Icons',
-    url: '/icons',
-    icon: <UniverIcon name="SymbolsIcon" />,
-    children: [],
-  }
-}
-
-function isIconsPath(pathname: string) {
-  return /^(?:\/[a-z]{2}(?:-[A-Z]{2})?)?\/icons(?:\/|$)/.test(pathname)
-}
+import { isPathActive } from '@/lib/locale-path'
 
 function ControlIcon({ children, className }: { children: ReactNode; className?: string }) {
   return (
@@ -54,33 +38,23 @@ function ProductIcon({ item }: { item?: IGuideNavItem }) {
 }
 
 export function GuidesSidebarControls({
-  includeIcons = false,
   items,
   labels,
-  showVersion = true,
 }: {
-  includeIcons?: boolean
   items: IGuideNavItem[]
   labels: {
     guides: string
     products: string
   }
-  showVersion?: boolean
 }) {
   const pathname = usePathname()
-  const iconsProduct = getIconsProductItem()
-  const productItems = includeIcons ? [...getGuideProductItems(items), iconsProduct] : getGuideProductItems(items)
-  const currentProduct = includeIcons && isIconsPath(pathname) ? iconsProduct : getActiveGuideProduct(items, pathname)
-  const shouldShowVersion = showVersion
-  const shouldShowProduct = Boolean(currentProduct && productItems.length > 0)
-
-  if (!shouldShowVersion && !shouldShowProduct) {
-    return null
-  }
+  const productItems = getGuideProductItems(items)
+  const currentProduct = getActiveGuideProduct(items, pathname)
+  const shouldShowProduct = isPathActive(pathname, '/guides') && productItems.length > 0
 
   return (
-    <div className={clsx('flex flex-col gap-3', shouldShowVersion ? 'pb-6' : 'pb-4')}>
-      {shouldShowVersion ? <SidebarVersionSwitcher /> : null}
+    <div className="flex flex-col gap-3 pb-6">
+      <SidebarVersionSwitcher />
 
       {shouldShowProduct ? (
         <DropdownMenu>

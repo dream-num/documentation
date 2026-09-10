@@ -1,0 +1,172 @@
+---
+title: 视觉检查
+description: 使用 Render Runtime、Screenshot 与 Layout Lint 为 Agent 提供渲染后的视觉信息。
+source: https://github.com/dream-num/univer-cli-sdk/blob/main/packages/unit-screenshot/README.zh-CN.md
+---
+
+Inspection 可以验证值、段落和页面结构，但无法完整表达文本溢出、元素重叠、图形位置和最终页面布局。
+完成结构化读写后，可以增加浏览器渲染能力，让 Agent 检查实际视觉结果。
+
+```text
+最新 UnitData
+→ Render Runtime
+├── Screenshot ──> PNG ──> Agent 视觉检查
+└── Layout Lint ─> 结构化 finding ──> Agent 修正
+```
+
+## 第一步：准备明确的内容状态
+
+Screenshot 和 Layout Lint 接收已经 materialize 的 UnitData，不负责加载远程 target 或解释 changeset。
+对于协同 Unit，应用先同步并导出当前完整状态：
+
+```ts
+await runtime.pull();
+const unitData = await runtime.exportUnitData();
+```
+
+对于 Worktree，应导出 draft 对应的 UnitData；对于本地应用，可以直接使用已加载或导入的 UnitData。
+无论来源如何，视觉检查都针对一个明确的内容状态执行。
+
+## 第二步：构建 Render Page
+
+`@univer-cli/univer-render-page` 提供浏览器端 Render Page 的组装能力。应用决定启用哪些 Univer 插件并构建
+静态页面：
+
+```ts
+import { createPresetRenderUniver, mountUniverRenderPage } from "@univer-cli/univer-render-page";
+
+const container = document.querySelector<HTMLElement>("#app");
+if (container === null) throw new Error("#app is required");
+
+await mountUniverRenderPage({
+  container,
+  createUniver: createPresetRenderUniver,
+});
+```
+
+Render Page 是浏览器入口，不是人类审阅页面。它接收 Node.js 端发送的 UnitData，并返回 PNG 或布局事实。
+
+## 第三步：创建 Render Runtime
+
+`@univer-cli/univer-render-runtime` 在 Node.js 中托管 Render Page、启动浏览器并管理页面协议：
+
+```ts
+import { createUniverRenderRuntime } from "@univer-cli/univer-render-runtime";
+
+const renderRuntime = await createUniverRenderRuntime({
+  renderPageRoot,
+});
+```
+
+一个 Render Runtime 可以顺序执行多次渲染。应用应在较外层复用它，而不是为每张图片重新启动浏览器。
+
+## 第四步：生成 Screenshot
+
+`@univer-cli/unit-screenshot` 是 Sheet、Doc、Slide、Board 与 Base 截图的高层入口。它处理 target 选择、
+分页、缩放、命名和资源限制：
+
+```ts
+import { createUnitScreenshot } from "@univer-cli/unit-screenshot";
+
+const screenshot = createUnitScreenshot({ runtime: renderRuntime });
+const result = await screenshot.capture({
+  unitType: "sheet",
+  unitData,
+  target: {
+    kind: "sheet-range",
+    sheetName: "Data",
+    range: "B2:H40",
+    scale: 2,
+  },
+});
+```
+
+结果可能包含多张图片。每张图片包含 PNG bytes、宽高、页面或 target 标识和建议文件名。package 不负责
+写文件，业务应用决定保存位置或如何把图像交给 Agent。
+
+未提供 target 时，Screenshot 会按 Unit 类型选择默认内容，例如 Sheet 的 active worksheet used range、
+Doc 的全部页面或 Slide 的全部页面。
+
+## 第五步：诊断 Slide 布局
+
+`@univer-cli/unit-layout-lint` 使用浏览器生成的真实布局事实，返回带证据的结构化 finding：
+
+```ts
+import { createUnitLayoutLint } from "@univer-cli/unit-layout-lint";
+
+const lint = createUnitLayoutLint({ runtime: renderRuntime });
+const report = await lint.lint({
+  unitType: "slide",
+  unitData,
+  pages: [1, "closing-slide"],
+});
+```
+
+当前规则包括：
+
+- `text-off-page`：文字实际 ink 超出页面；
+- `text-escapes-container`：文字明显溢出较小的不透明容器；
+- `text-overlaps-text`：两个实际文字区域发生明显重叠。
+
+finding 是带证据的审阅建议，不一定都必须修改。Agent 可以结合 Screenshot 判断问题，继续执行 Facade
+修改，再重新运行视觉检查。
+
+## 第六步：接入 Commander
+
+Screenshot 与 Layout Lint 都提供原生 Commander 预设命令。把前面创建的 capability 和业务 UnitData loader
+注入命令，并继续添加到[文档内容加载与读写](/ai/content-operations)中创建的同一个 `program`：
+
+```ts
+import type { UnitScreenshotCommandDependencies } from "@univer-cli/unit-screenshot-command";
+import { createUnitScreenshotCommand } from "@univer-cli/unit-screenshot-command";
+import type { UnitLayoutLintCommandDependencies } from "@univer-cli/unit-layout-lint-command";
+import { createUnitLayoutLintCommand } from "@univer-cli/unit-layout-lint-command";
+import type { Command } from "commander";
+
+function addVisualCommands(
+  program: Command,
+  dependencies: {
+    loadUnit: UnitScreenshotCommandDependencies["loadUnit"];
+    writeImages: UnitScreenshotCommandDependencies["writeImages"];
+    loadSlide: UnitLayoutLintCommandDependencies["loadUnit"];
+  },
+): void {
+  program.addCommand(
+    createUnitScreenshotCommand({
+      screenshot,
+      loadUnit: dependencies.loadUnit,
+      writeImages: dependencies.writeImages,
+    }),
+  );
+
+  program.addCommand(
+    createUnitLayoutLintCommand({
+      lint,
+      loadUnit: dependencies.loadSlide,
+    }),
+  );
+}
+```
+
+预设命令负责截图 selector、Slide page selector、`--json`、默认文本输出和 Commander 错误退出。Application
+通过函数参数明确注入 Unit ID 到内容状态的映射和 PNG writer，并负责 Render Runtime 生命周期。
+
+Screenshot 预设还可以包含浏览器安装和检测子命令；浏览器不会因为每次截图而被隐式下载。
+
+## 第七步：释放浏览器资源
+
+由创建者在最外层 Commander 生命周期关闭 Render Runtime：
+
+```ts
+try {
+  await program.parseAsync();
+} finally {
+  await renderRuntime.close();
+}
+```
+
+需要自定义 Agent 输入输出时，可以绕过预设命令，直接调用基础功能包。浏览器渲染不应直接处理不可信
+UnitData；共享高权限主机应使用受限用户、容器或其他进程隔离。
+
+视觉检查完成后，可以将同一组内容操作和检查能力放入
+[Worktree：Agent 编辑与人类审阅](/ai/worktree)流程。

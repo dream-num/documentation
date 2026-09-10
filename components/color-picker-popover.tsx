@@ -27,8 +27,8 @@ export function ColorPickerPopover({
   const [color, setColor] = useState<ColorLike>(value)
   const [open, setOpen] = useState(false)
 
-  const valueHex = useMemo(() => Color(value).hex(), [value])
-  const draftHex = useMemo(() => Color(color).hex(), [color])
+  const valueHex = useMemo(() => new Color(value).hex(), [value])
+  const draftHex = useMemo(() => new Color(color).hex(), [color])
   const hexValue = open ? draftHex : valueHex
 
   function handleOpenChange(isOpen: boolean) {
@@ -42,7 +42,7 @@ export function ColorPickerPopover({
   }
 
   function handleChange(newColor: ColorLike) {
-    setColor(Color(newColor).hex())
+    setColor(new Color(newColor).hex())
   }
 
   return (
@@ -51,7 +51,7 @@ export function ColorPickerPopover({
         render={
           <button
             aria-label={ariaLabel}
-            className="border-border/80 hover:border-foreground/30 size-5 cursor-pointer rounded-md border-2 shadow-sm transition-all hover:scale-105"
+            className="border-border/80 hover:border-foreground/30 size-7 cursor-pointer rounded-md border-2 shadow-sm transition-all hover:scale-105"
             style={{ backgroundColor: hexValue }}
             type="button"
           />

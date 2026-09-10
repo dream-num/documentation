@@ -1,0 +1,199 @@
+---
+title: Middleware and Events
+description: Extend the Transport, Endpoint, Service, and collaboration extension modules with general-purpose Middleware and Events.
+---
+
+Middleware and Events are general-purpose extension points in the Collaboration SDK. Identity and
+authorization are integrated through Middleware. Use Middleware for validation and restrictions
+before an operation runs, and Events to record changes or trigger follow-up work after state is
+confirmed. Both can support logging, request tracing, metrics, and derived-state updates.
+
+## Two extension moments
+
+|                                            | Middleware                                           | Event                                                      |
+| ------------------------------------------ | ---------------------------------------------------- | ---------------------------------------------------------- |
+| Runs                                       | During an operation                                  | After a state change is confirmed                          |
+| Can participate in or reject the operation | Yes                                                  | No                                                         |
+| Can enrich call Context                    | Yes                                                  | Reads Context and result carried by the Event              |
+| Listener failure                           | May fail the current operation                       | Is isolated from the already-determined domain result      |
+| Typical uses                               | Identity, authorization, validation, logging, timing | Derived indexes, caches, metrics, in-process notifications |
+
+Use Middleware when you must decide whether an operation can continue. Use an Event when you need
+to observe that a state change has already happened.
+
+## Middleware execution model
+
+Middleware for the same Action forms an asynchronous chain in registration order. `await next()`
+enters the next Middleware; the SDK operation runs at the innermost point:
+
+```ts
+service.use("submitChangeset", async (context, next) => {
+  const startedAt = performance.now();
+  context.customData.startedAt = startedAt;
+
+  try {
+    await next();
+  } finally {
+    metrics.observe("collaboration.submit.duration", performance.now() - startedAt);
+  }
+});
+```
+
+Middleware can:
+
+- read the Action-specific request;
+- share call-local data through `customData`;
+- inspect input or query application systems before `next()`;
+- record duration or results after `next()` returns;
+- throw a `CollabError` to reject an expected collaboration operation.
+
+Transport HTTP Middleware may end the HTTP response without calling `next()`. Service and Endpoint
+Middleware should reject with an explicit error rather than silently skipping `next()`.
+
+## Transport Middleware
+
+The Transport has separate Middleware chains for ordinary HTTP requests and WebSocket upgrades:
+
+```ts
+transport.use(async (context, next) => {
+  context.customData.traceID = readTraceID(context.incomingMessage);
+  requestLogger.info("collaboration request", {
+    method: context.incomingMessage.method,
+    traceID: context.customData.traceID,
+  });
+  await next();
+});
+
+transport.useUpgrade(async (context, next) => {
+  if (!isAllowedOrigin(context.incomingMessage.headers.origin)) {
+    context.reject(403, "Origin rejected");
+    return;
+  }
+  await next();
+});
+```
+
+`transport.use()` participates only in ordinary HTTP requests. It is suitable for identity,
+request logging, tracing, CORS, and request-local `customData`. `transport.useUpgrade()` participates
+only in the WebSocket handshake and can reject it before connection.
+
+## Endpoint Middleware
+
+Endpoint Middleware participates in realtime Session and Presence operations:
+
+| Action            | Runs                                                           | Common uses                                       |
+| ----------------- | -------------------------------------------------------------- | ------------------------------------------------- |
+| `connect`         | After ticket consumption and Session creation, before HELLO    | Connection policy, member display name and avatar |
+| `joinUnit`        | Before a Session joins a Unit Room                             | Room admission and Unit visibility                |
+| `receivePresence` | After Presence arrives from a joined Session, before broadcast | Validation and Presence filtering                 |
+| `sendPresence`    | Before Presence is sent to each Room member                    | Per-recipient Presence filtering                  |
+
+```ts
+endpoint.use("receivePresence", async (context, next) => {
+  if (JSON.stringify(context.payload).length > 8_000) {
+    throw new CollabError("INVALID_REQUEST", "Presence payload is too large");
+  }
+  await next();
+});
+```
+
+The Endpoint's `session.userID` and `session.customData` come from the HTTP request that issued the
+Session Ticket. The Endpoint creates `memberID` for the current WebSocket Session, and it changes
+after reconnection.
+
+## Service Middleware
+
+Service Middleware participates in authoritative collaboration data lifecycles:
+
+| Action            | Boundary                                                     | Common uses                                |
+| ----------------- | ------------------------------------------------------------ | ------------------------------------------ |
+| `readUnitData`    | Before reading snapshots, blocks, or changesets              | Read policy, tenant checks, audit          |
+| `createUnit`      | Before atomically creating a Unit                            | Type checks, create policy, business rules |
+| `deleteUnits`     | Before writing a delete batch                                | Delete policy and per-Unit checks          |
+| `recoverUnits`    | Before writing a recovery batch                              | Recovery policy and audit                  |
+| `submitChangeset` | Before logical submission enters idempotency and OT          | Edit policy, total size limits, trace      |
+| `applyChangeset`  | Before applying the transformed changeset to candidate state | Mutation-level validation                  |
+| `commitChangeset` | Before Adapter revision CAS and commit                       | Final revision rules and metrics           |
+
+```ts
+service.use("createUnit", async (context, next) => {
+  await creationPolicy.assertAllowed({
+    userID: context.userID,
+    unitID: context.request.snapshot.unitID,
+    type: context.request.snapshot.type,
+  });
+  context.customData.creationPolicyChecked = true;
+  await next();
+});
+```
+
+`submitChangeset` runs once for each logical submission. Revision contention may cause
+`applyChangeset` and `commitChangeset` to run again with a new `attempt`. Middleware at those stages
+must be retry-safe and must not directly send irreversible external messages or perform one-time
+charges.
+
+## customData scope
+
+`customData` is an application-writable, call-local object suitable for:
+
+- tenant IDs, trace IDs, or request loggers;
+- reused ACL lookups for the current call;
+- timing starts or audit labels;
+- business objects shared by one Middleware chain.
+
+Ordinary HTTP requests, Service calls, and WebSocket Sessions have different lifecycles.
+`customData` is not automatically persisted, sent to the browser, or logged. Long-lived data still
+belongs in application storage.
+
+## Event execution model
+
+Services register process-local listeners with `on()`, which returns a disposable subscription:
+
+```ts
+const subscription = service.on("changesetCommitted", async (event) => {
+  metrics.increment("collaboration.changeset.committed", {
+    unitType: String(event.changeset.type),
+  });
+  localCache.delete(event.changeset.unitID);
+});
+
+subscription.dispose();
+```
+
+Listeners for the same Event run sequentially in registration order and are awaited. Listener
+errors are logged and isolated from the already-determined domain result. A failed
+`changesetCommitted` listener, for example, does not roll back a changeset already stored by the
+Adapter.
+
+Events are therefore appropriate for in-process, recoverable, or non-critical follow-up work. They
+are not a transaction boundary shared with the database commit and do not guarantee delivery to an
+external system.
+
+## Core Service Events
+
+| Event                | Confirmed fact                                      | Typical use                          |
+| -------------------- | --------------------------------------------------- | ------------------------------------ |
+| `unitCreated`        | The Unit and initial data were created              | Local catalog cache or derived index |
+| `changesetCommitted` | A changeset was confirmed and advanced the revision | Broadcasts, metrics, derived indexes |
+| `unitsDeleted`       | The Adapter confirmed the deletion batch            | Clear process-local related state    |
+| `unitsRecovered`     | The Adapter confirmed the recovery batch            | Restore process-local derived state  |
+
+The Endpoint listens to `changesetCommitted` on the same Service and broadcasts the confirmed
+changeset to clients that joined the Unit in the current process. The Endpoint also exposes
+`memberLeftUnit` for explicit leave, disconnect, and Endpoint disposal.
+
+## Extension modules have independent extension points
+
+History, Thread Comment, and Worktree do not inherit Middleware or Events from the core
+Collaboration Service:
+
+- History provides read and indexing Middleware;
+- Comment provides add, reply, edit, delete, solve, and list Middleware plus `commentCommitted`;
+- Worktree provides lifecycle and draft read/submit/commit Middleware plus creation, status, merge,
+  and draft commit Events.
+
+Install rules separately for every enabled module. Logging, tenant, or authorization Middleware on
+the core Service does not automatically cover them.
+
+Continue with [Identity and authorization](/server/collaboration/identity-and-authorization) for a
+concrete mapping from existing users and ACLs to these general Middleware boundaries.

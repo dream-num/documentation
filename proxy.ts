@@ -6,16 +6,25 @@ import { routing } from '@/i18n/routing'
 
 const intlMiddleware = createMiddleware(routing)
 const showcaseMiddleware = createMiddleware({
-  ...routing,
+  defaultLocale: 'en-US',
+  localeCookie: routing.localeCookie,
+  localePrefix: 'as-needed',
   locales: ['en-US', 'zh-CN'],
   localeDetection: false,
 })
+const guidesRootPath = new RegExp(`^/(?:(${routing.locales.join('|')})/)?guides/?$`)
 const showcasePath = new RegExp(`^/(?:(${routing.locales.join('|')})/)?(showcase(?:/.*)?)$`)
 const agentDocsPath = new RegExp(
-  `^/(?:(?:(${routing.locales.join('|')})/))?(llms(?:-full)?\\.txt|(?:guides|reference|icons)(?:\\.md|/llms\\.txt|/.+\\.md))$`,
+  `^/(?:(?:(${routing.locales.join('|')})/))?(llms(?:-full)?\\.txt|(?:guides|server|ai|reference)(?:\\.md|/llms\\.txt|/.+\\.md))$`,
 )
 
 export default function proxy(request: NextRequest) {
+  if (guidesRootPath.test(request.nextUrl.pathname)) {
+    const destination = request.nextUrl.clone()
+    destination.pathname = `${destination.pathname.replace(/\/$/, '')}/sheets`
+    return NextResponse.redirect(destination)
+  }
+
   const showcaseMatch = request.nextUrl.pathname.match(showcasePath)
   if (showcaseMatch) {
     const locale = showcaseMatch[1]
@@ -43,6 +52,6 @@ export default function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Matcher ignoring internal assets and backend proxy prefixes.
-  matcher: ['/((?!api|universer-api|_next/static|_next/image|icon.svg|assets).*)'],
+  // Keep MCP requests outside locale routing, alongside APIs and assets.
+  matcher: ['/((?!mcp(?:/|$)|api|universer-api|_next/static|_next/image|icon.svg|assets).*)'],
 }

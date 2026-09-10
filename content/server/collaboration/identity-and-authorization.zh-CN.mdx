@@ -1,0 +1,205 @@
+---
+title: 身份与权限
+description: 使用 Transport、Endpoint 与 Service Middleware 接入应用已有的认证和授权系统。
+---
+
+Univer Collaboration SDK 不定义用户、角色或 ACL 数据模型。应用在 Transport Middleware 中建立可信
+身份，再使用 Endpoint 与 Service Middleware 保护实时 Session 和权威协同数据。
+
+本页是 [Middleware 与 Event](/server/collaboration/middleware-and-events) 的具体应用指南，重点介绍如何利用
+Middleware 接入身份与权限。
+
+## 身份模型
+
+| 标识          | 由谁提供 | 含义与生命周期                                   |
+| ------------- | -------- | ------------------------------------------------ |
+| `userID`      | 应用     | 稳定的业务身份，也是 confirmed changeset 的作者  |
+| `memberID`    | Endpoint | 当前 WebSocket Session 的在线成员 ID，重连后变化 |
+| `sid + reqId` | Client   | Changeset 的提交幂等身份，重试时保持不变         |
+
+浏览器提交的用户资料、`memberID` 或 revision 都不能代替应用认证。应用应把自己的稳定用户主键映射为
+`context.userID`。
+
+## 在 Transport Middleware 中建立身份
+
+Transport 会为每个 Collaboration HTTP request 重新运行 Middleware。应用可以读取 Cookie、Session
+或 Bearer Token，并把认证结果挂到 Context：
+
+```ts
+transport.use(async (context, next) => {
+  const user = await auth.requireUser(context.incomingMessage);
+
+  context.userID = user.id;
+  context.customData.user = user;
+  context.customData.tenantID = user.tenantID;
+  context.customData.traceID = readTraceID(context.incomingMessage);
+
+  await next();
+});
+```
+
+认证失败时，应直接结束 HTTP response，不再调用 `next()`：
+
+```ts
+transport.use(async (context, next) => {
+  const user = await auth.findUser(context.incomingMessage);
+  if (!user) {
+    context.response.statusCode = 401;
+    context.response.end("Authentication required");
+    return;
+  }
+
+  context.userID = user.id;
+  await next();
+});
+```
+
+SDK 不规定 Cookie 名称、Token 格式、用户表或登录流程；这些都属于应用。
+
+## 身份如何进入 WebSocket Session
+
+WebSocket 不信任客户端 payload 中的用户字段。Endpoint 使用一次性 Session Ticket 把已认证的 HTTP
+Context 延长到实时 Session：
+
+```text
+Session Ticket HTTP request
+  → Transport Middleware 验证身份
+  → Endpoint 保存 { userID, customData }
+  → 返回 opaque one-time ticket
+  → WebSocket open 消费 ticket
+  → 创建 Session { userID, memberID, customData }
+```
+
+Ticket 字符串本身不包含 `userID` 或 `customData`。`memberID` 只标识当前连接，不能单独作为身份凭据。
+
+## 在正确边界执行授权
+
+| 要保护的行为                      | 对应 Middleware           |
+| --------------------------------- | ------------------------- |
+| Collaboration HTTP 入口           | Transport `use()`         |
+| WebSocket 建连                    | Endpoint `connect`        |
+| 加入 Unit Room                    | Endpoint `joinUnit`       |
+| 读取 Snapshot、Block 或 Changeset | Service `readUnitData`    |
+| 提交内容修改                      | Service `submitChangeset` |
+| 创建 Unit                         | Service `createUnit`      |
+| 删除 Unit                         | Service `deleteUnits`     |
+| 恢复 Unit                         | Service `recoverUnits`    |
+
+Endpoint `joinUnit` 只控制 Session 能否进入实时 Room。Snapshot 与 missing changeset 可以通过 HTTP
+读取，因此 JOIN 检查不能替代 Service `readUnitData`。同样，客户端只读 UI 只是产品提示，不能替代
+`submitChangeset` 的服务端规则。
+
+## 保护读取、JOIN 与编辑
+
+```ts
+import { CollabError } from "@univerjs-pro/collaboration-service";
+
+endpoint.use("joinUnit", async (context, next) => {
+  const allowed = await acl.canRead(context.session.userID, context.unitID);
+  if (!allowed) {
+    throw new CollabError("PERMISSION_DENIED", "Cannot join this Unit");
+  }
+  await next();
+});
+
+service.use("readUnitData", async (context, next) => {
+  const allowed = await acl.canRead(context.userID, context.request.unitID);
+  if (!allowed) {
+    throw new CollabError("PERMISSION_DENIED", "Unit is not accessible");
+  }
+  await next();
+});
+
+service.use("submitChangeset", async (context, next) => {
+  const unitID = context.request.changeset.unitID;
+  const allowed = await acl.canEdit(context.userID, unitID);
+  if (!allowed) {
+    throw new CollabError("PERMISSION_DENIED", "Unit is read-only");
+  }
+  await next();
+});
+```
+
+真实应用通常同时安装这三项规则：读取与 JOIN 使用 read policy，提交使用 edit policy。
+
+## 保护 Unit 生命周期
+
+协同协议只打开已有 Unit；“新建文档”通常由应用 API 编排。应用先创建产品记录和 ACL，再调用
+`createUnitFromData()` 或 `createUnitFromSnapshot()`。同时应使用 Service Middleware 保护生命周期：
+
+```ts
+service.use("createUnit", async (context, next) => {
+  if (!(await acl.canCreate(context.userID, context.request.snapshot.type))) {
+    throw new CollabError("PERMISSION_DENIED", "Unit creation denied");
+  }
+  await next();
+});
+
+service.use("deleteUnits", async (context, next) => {
+  for (const unitID of context.request.unitIDs) {
+    if (!(await acl.canDelete(context.userID, unitID))) {
+      throw new CollabError("PERMISSION_DENIED", `Cannot delete ${unitID}`);
+    }
+  }
+  await next();
+});
+```
+
+恢复 Unit 需要单独保护 `recoverUnits`。不要因为用户曾经拥有删除权限，就默认其永久拥有恢复权限。
+
+## 在 customData 中复用查询结果
+
+同一次 Service 调用中的 Middleware 可以用 `customData` 避免重复查询：
+
+```ts
+service.use("submitChangeset", async (context, next) => {
+  const unitID = context.request.changeset.unitID;
+  context.customData.role ??= await acl.getRole(context.userID, unitID);
+
+  if (context.customData.role === "viewer") {
+    throw new CollabError("PERMISSION_DENIED", "Unit is read-only");
+  }
+  await next();
+});
+```
+
+`customData` 只属于当前调用或当前 Session，不会自动持久化。长期角色、ACL 或租户关系仍应保存在应用
+数据库中。
+
+## 扩展模块需要独立策略
+
+History、Thread Comment 与 Worktree 拥有各自的 Service Middleware：
+
+- History list 和 changeset read 应检查 Unit 读取权限；
+- Comment list 应检查读取权限，add/reply/edit/delete 应检查评论策略；
+- Worktree 应分别保护可见性、draft 编辑、状态变化与正式 merge；
+- Worktree 最终写入 trunk 时，还会进入 trunk Service 自己的 Middleware。
+
+主 Collaboration Service 上的规则不会自动保护这些模块。启用扩展模块时，应显式复用应用的同一套
+policy service，而不是复制一份独立 ACL 数据。
+
+## 在客户端设置当前用户
+
+`UserManagerService.setCurrentUser()` 设置当前 Univer 实例中的用户 ID、名称和头像，供前端组件
+读取。例如，评论面板的“与我有关”筛选会使用这里的用户 ID，展示与当前用户相关的评论。
+
+在创建 Univer 实例之后、打开文档之前设置：
+
+```ts
+import { UserManagerService } from "@univerjs/core";
+
+// currentUser 是应用取得的用户资料；id/name/avatar 是本例的字段名。
+univer
+  .__getInjector()
+  .get(UserManagerService)
+  .setCurrentUser({
+    userID: currentUser.id,
+    name: currentUser.name,
+    avatar: currentUser.avatar ?? "",
+  });
+```
+
+将应用的稳定用户 ID 映射到 `userID`，与服务端认证得到的 `context.userID` 一致。
+协作时共享的成员名称与头像通过服务端 `connect` Middleware 设置，详见 [Presence](/server/collaboration/presence)。
+
+完整可运行实现见 [Permissions 示例](/server/collaboration/examples#permissions)。

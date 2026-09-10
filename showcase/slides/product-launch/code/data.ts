@@ -155,7 +155,7 @@ export const PRODUCT_LAUNCH_DATA: ISlideData = {
       ),
       text(
         'note',
-        'This is fictional product positioning; it is not a claim about Univer SDK feature availability.',
+        'This is fictional product positioning; it is not a claim about Web SDK feature availability.',
         100,
         555,
         1000,

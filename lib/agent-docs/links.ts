@@ -1,6 +1,6 @@
 import { withLocale } from '@/lib/locale-path'
 
-export const agentDocsCollections = ['guides', 'reference', 'icons'] as const
+export const agentDocsCollections = ['guides', 'server', 'ai', 'reference'] as const
 
 export type AgentDocsCollection = (typeof agentDocsCollections)[number]
 

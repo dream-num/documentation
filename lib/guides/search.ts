@@ -1,7 +1,7 @@
-export type SearchScope = 'all' | 'guides' | 'reference' | 'icons'
+export type SearchScope = 'all' | 'guides' | 'reference'
 export type SearchResultSource = Exclude<SearchScope, 'all'>
 
-export interface ScopedSearchResult {
+export interface IScopedSearchResult {
   id: string
   title: string
   url: string
@@ -15,14 +15,11 @@ function stripHtml(value: string) {
 }
 
 export function parseSearchScope(value: string | null): SearchScope {
-  if (value === 'all' || value === 'reference' || value === 'icons') return value
+  if (value === 'all' || value === 'reference') return value
   return 'guides'
 }
 
-export function normalizeScopedSearchResults(
-  payload: unknown,
-  source: SearchResultSource,
-): ScopedSearchResult[] {
+export function normalizeScopedSearchResults(payload: unknown, source: SearchResultSource): IScopedSearchResult[] {
   const results = Array.isArray(payload)
     ? payload
     : typeof payload === 'object' && payload !== null && 'results' in payload

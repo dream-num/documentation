@@ -1,0 +1,169 @@
+---
+title: "Worktree: agent editing and human review"
+description: Let an agent edit and inspect a Unit in an isolated Worktree draft, then let a human review and merge it through Web.
+source: https://github.com/dream-num/univer-collaboration-sdk/blob/main/packages/collaboration-worktree-service/README.md
+---
+
+Worktree gives agents an isolated editing space. An agent can pull, inspect, execute, and commit through multiple rounds
+in a draft, then mark the Worktree Ready after structured and visual checks. A human views the rendered page through
+Web and chooses Merge or Reopen.
+
+```text
+create Worktree
+→ agent edits draft
+→ agent structured and visual checks
+→ Ready
+→ human reviews through Web
+→ Merge / Reopen
+→ Trunk
+```
+
+## Why use Worktree
+
+- Intermediate agent edits stay isolated from trunk.
+- A draft has independent Snapshots, changesets, revisions, Presence, and realtime rooms.
+- The agent can synchronize, edit, and verify through multiple rounds before presenting a result.
+- Ready freezes the current draft revision and establishes an explicit review boundary.
+- A human can review, continue editing, Merge, or Reopen through Web.
+- Merge still enters the trunk Collaboration Service's authorization and commit boundaries.
+
+## Complete workflow
+
+```text
+create / select Worktree
+→ select Worktree Unit
+→ Collaboration Runtime load
+→ pull
+→ inspect
+→ api find / show
+→ execute(write)
+→ runtime.commit()
+→ inspect + screenshot + layout lint
+→ markReady
+→ Web review
+→ merge / reopen
+```
+
+After [Document loading and content operations](/ai/content-operations),
+[Office file import and export](/server/import-export/node), and [Visual inspection](/ai/visual-inspection), point the same
+capabilities at a Worktree target to form the recommended agent editing flow.
+
+## Worktree target
+
+Collaboration Runtime still operates the Snapshot, changesets, and revision of one Unit; it does not interpret the
+Worktree product concept. The application adapter maps `worktreeID + unitID` to the Worktree Endpoint's Snapshot,
+Submit, WebSocket, and Session Ticket URLs, then passes those URLs to the runtime backend.
+
+```text
+worktreeID + unitID
+→ application target adapter
+→ Worktree protocol URLs
+→ Collaboration Runtime
+```
+
+The same runtime execution model can therefore connect either to trunk or to an isolated Worktree draft.
+
+## Agent operations in a draft
+
+The agent uses the same core loop for a Worktree Unit as for an ordinary Unit:
+
+```text
+load → pull → inspect → execute(write) → commit
+```
+
+For a ready-made Inspection entry point, `@univer-cli/content-inspection-command` provides two separate factories:
+
+- `createContentInspectionCommand()` for an ordinary Unit target.
+- `createWorktreeContentInspectionCommand()` when the caller must explicitly choose `--trunk` or `--worktree <id>`.
+
+The application adds equivalent target selection to execute, screenshot, and other commands and owns acquisition and
+release of the selected runtime.
+
+## Select a Worktree in Commander
+
+The Inspection preset has a Worktree variant that forces the caller to choose either `--trunk` or `--worktree <id>`:
+
+```ts
+import type { WorktreeContentInspectionCommandDependencies } from "@univer-cli/content-inspection-command";
+import { createWorktreeContentInspectionCommand } from "@univer-cli/content-inspection-command";
+import { Command } from "commander";
+
+function addWorktreeCommands(
+  program: Command,
+  dependencies: {
+    acquireRuntime: WorktreeContentInspectionCommandDependencies["acquireRuntime"];
+    markReady(worktreeID: string): Promise<void>;
+  },
+): void {
+  program.addCommand(
+    createWorktreeContentInspectionCommand({
+      acquireRuntime: dependencies.acquireRuntime,
+    }),
+  );
+
+  const worktreeCommand = new Command("worktree");
+  worktreeCommand
+    .command("ready")
+    .argument("<worktree-id>")
+    .action(async (worktreeID) => {
+      await dependencies.markReady(worktreeID);
+    });
+
+  program.addCommand(worktreeCommand);
+}
+```
+
+`acquireRuntime` and `markReady` are explicitly declared application dependencies here, not unseen AI SDK helpers.
+The former implements the Worktree target-to-Runtime mapping from the previous section; the latter calls Collaboration
+SDK Worktree Client.
+
+The application should use the same target model for execute, screenshot, and layout lint commands so one Unit ID does
+not resolve to different trunk or draft targets. Web can expose Reopen, Discard, Merge, and actual page review on the
+same Worktree Client. A product can wrap some operations in additional Commander subcommands when required.
+
+## Agent checks
+
+Before Ready, the agent can combine two kinds of checks:
+
+```text
+structured check: pull → inspect
+visual check: Unit → Render Runtime → screenshot / layout lint
+```
+
+- Inspection verifies structured Workbook, Worksheet, Range, Document, Paragraph, Presentation, or Slide content.
+- Screenshot gives the agent rendered visual information.
+- Layout Lint diagnoses Slide layout issues.
+- When a check finds a problem, the agent can execute, commit, and check again.
+
+## Distinguish Commit, Ready, and Merge
+
+| Operation          | Meaning                                                                  |
+| ------------------ | ------------------------------------------------------------------------ |
+| `runtime.commit()` | Submit the changeset produced by current mutations to the Worktree draft |
+| `markReady()`      | Freeze each Unit's current draft revision and enter `ready`              |
+| `reopenWorktree()` | Return from `ready` to `draft` for more edits                            |
+| `mergeWorktree()`  | Merge Worktree Units into trunk one by one                               |
+
+`runtime.commit()` advances only the draft; it does not merge into trunk. Ready moves the agent's work into review,
+while Worktree Merge is still required before the result reaches trunk.
+
+## Human review through Web
+
+Web loads the same draft with Worktree Client and Worktree collaboration configuration. A review surface can present:
+
+- Current Worktree status.
+- The rendered page for a draft Unit.
+- Switching between trunk and draft.
+- Per-Unit merge preview.
+- Ready, Reopen, Discard, and Merge operations.
+
+A human can continue editing the draft through Web, Reopen when the agent should continue, or Merge and switch back to
+trunk to view the integrated result.
+
+## Collaboration SDK boundary
+
+Worktree Service, Endpoint, Client, and Database Adapter belong to Collaboration SDK. AI SDK supplies composable Unit
+Runtime, Inspection, API Reference, Execution, and Screenshot capabilities. The application owns Worktree lifecycle
+commands, target mapping, identity, and authorization.
+
+See [Collaboration extensions](/server/collaboration/extensions) for Server composition, lifecycle, and merge constraints.

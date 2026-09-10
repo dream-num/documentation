@@ -1,17 +1,18 @@
 import * as BaseSlider from '@base-ui/react/slider'
-import { useMemo } from 'react'
 
 import { clsx } from '@/lib/clsx'
 
-function Slider({
+function Slider<Value extends number | readonly number[]>({
   className,
+  'aria-label': ariaLabel,
   defaultValue,
   value,
   min = 0,
   max = 100,
   ...props
-}: BaseSlider.Slider.Root.Props<readonly number[]>) {
-  const _values = useMemo(() => value ?? defaultValue ?? [min, max], [value, defaultValue, min, max])
+}: BaseSlider.Slider.Root.Props<Value>) {
+  const values = value ?? defaultValue ?? min
+  const thumbCount = typeof values === 'number' ? 1 : values.length
 
   return (
     <BaseSlider.Slider.Root
@@ -36,8 +37,9 @@ function Slider({
             className={clsx(`bg-primary data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full`)}
           />
         </BaseSlider.Slider.Track>
-        {Array.from({ length: _values.length }, (_, index) => (
+        {Array.from({ length: thumbCount }, (_, index) => (
           <BaseSlider.Slider.Thumb
+            aria-label={ariaLabel}
             data-slot="slider-thumb"
             index={index}
             key={index}

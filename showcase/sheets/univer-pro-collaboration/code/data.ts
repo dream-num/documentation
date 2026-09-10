@@ -3,7 +3,7 @@ import { LocaleType } from '@univerjs/core'
 
 export const WORKBOOK_DATA: Partial<IWorkbookData> = {
   id: 'univer-pro-collaboration-showcase',
-  name: 'Univer SDK Pro Collaboration Showcase',
+  name: 'Web SDK Collaboration Showcase',
   sheetOrder: ['overview', 'endpoint-checklist'],
   sheets: {
     overview: {

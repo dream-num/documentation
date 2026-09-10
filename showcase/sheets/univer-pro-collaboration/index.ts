@@ -88,10 +88,10 @@ const metadata = {
       '実際の Pro コラボレーションクライアントを登録し、既定ではフロントエンドのみ、明示的な unit ではバックエンド接続を使用します。',
   },
   tags: {
-    'en-US': ['Univer Sheets', 'Univer SDK Pro', 'Plugin Mode'],
-    'zh-CN': ['Univer Sheets', 'Univer SDK Pro', '插件模式'],
-    'zh-TW': ['Univer Sheets', 'Univer SDK Pro', '外掛模式'],
-    'ja-JP': ['Univer Sheets', 'Univer SDK Pro', 'プラグインモード'],
+    'en-US': ['Univer Sheets', 'Web SDK', 'Plugin Mode'],
+    'zh-CN': ['Univer Sheets', 'Web SDK', '插件模式'],
+    'zh-TW': ['Univer Sheets', 'Web SDK', '外掛模式'],
+    'ja-JP': ['Univer Sheets', 'Web SDK', 'プラグインモード'],
   },
 }
 

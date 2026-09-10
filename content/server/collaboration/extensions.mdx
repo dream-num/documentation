@@ -1,0 +1,135 @@
+---
+title: Collaboration Extension Modules
+description: Understand how History, Thread Comment, Worktree, and server-side Office Exchange extend core collaboration.
+---
+
+History, Thread Comment, and Worktree are independent collaboration extension modules that can be enabled as needed. They can reuse the Transport, identity system, and physical database, but each keeps its own Service, Middleware, Event, Database Adapter, and lifecycle boundaries.
+
+Server-side Office Exchange is an application workflow: it combines file conversion with Collaboration Service APIs rather than enabling a feature switch on the main Service.
+
+## Module relationships
+
+<Mermaid chart={"flowchart TB\n    Transport[\"Node Transport\"]\n\n    subgraph Modules[\"Collaboration Modules\"]\n        direction LR\n        Core[\"Core Collaboration<br/>Endpoint · Service · Adapter\"]\n        History[\"History<br/>Endpoint · Service · Adapter\"]\n        Comment[\"Thread Comment<br/>Endpoint · Service · Adapter\"]\n        Worktree[\"Worktree<br/>Client · Endpoint · Service · Adapter\"]\n    end\n\n    Transport --> Core\n    Transport --> History\n    Transport --> Comment\n    Transport --> Worktree"} />
+
+| Extension module | Relationship with Core Collaboration                                  |
+| ---------------- | --------------------------------------------------------------------- |
+| History          | Observes Core Events to build a derived history index                 |
+| Thread Comment   | Reuses the Core Unit Room; comment anchors belong to Core content     |
+| Worktree         | Reuses Core Unit and OT capabilities and merges drafts into the trunk |
+| Office Exchange  | Creates or reads Units through Core Service Snapshot APIs             |
+
+History, Thread Comment, and Worktree configure their own Middleware, Events, and Database Adapters.
+
+## Version history
+
+History groups Unit creation and confirmed changesets into user-facing history entries. It is a derived index: confirmed changesets in Core Collaboration Service remain the authoritative source for Unit content.
+
+```ts
+const historyService = new UniverHistoryService({
+  collabService,
+  dbAdapter: historyDatabase,
+  userProvider,
+});
+
+const attachment = historyService.attach(collabService);
+transport.register(new UniverHistoryEndpoint(historyService));
+```
+
+`attach()` observes the Core Service `unitCreated` and `changesetCommitted` Events to update the index. The default policy groups changes by time window and special mutations rather than creating a history entry for every changeset.
+
+History has independent read and indexing Middleware. `userProvider` only enriches display data such as names and avatars; it does not authenticate or authorize users. An Event Listener failure does not roll back an already confirmed Core changeset, so History should always be treated as rebuildable derived data.
+
+## Thread Comment
+
+Comment Service manages comment bodies, replies, edits, deletion, and solved state for Sheets and Docs:
+
+```ts
+const commentService = new UniverCommentService({
+  database: commentDatabase,
+  userProvider,
+});
+
+transport.register(
+  new UniverCommentEndpoint({
+    service: commentService,
+    roomHost: collabEndpoint,
+  }),
+);
+```
+
+Comment bodies belong to the Comment Adapter. Anchors that move with Sheet or Doc content remain part of Core snapshots and changesets. The Comment Endpoint can publish `comment_update` through the main Collaboration Endpoint's Unit Room, but the realtime message is not the authoritative comment state; a Client can recover by listing comments again.
+
+Comment Service provides Middleware for add, list, reply, solve/reopen, edit, and delete operations, plus a `commentCommitted` Event. It does not inherit the Core Service's read or edit policy.
+
+## Worktree drafts and merge
+
+Worktree adds isolated drafts, freezing, merge evaluation, and per-Unit merge for one or more Units:
+
+```text
+create → draft → ready → merging → merged
+           ↑       │
+           └ reopen┘
+
+draft / ready → discarded
+```
+
+```ts
+const worktreeService = new UniverCollabWorktreeService({
+  trunk: {
+    service: collabService,
+    dbAdapter: coreDatabase,
+  },
+  dbAdapter: worktreeDatabase,
+});
+```
+
+Worktree stores independent draft changesets by `(worktreeID, unitID)` while reusing the Core Service's Unit, OT, and submission engines. Only the `draft` state accepts further edits. `markReady()` freezes the current draft revision, and `mergeWorktree()` merges Units into the trunk one at a time.
+
+Worktree Service owns independent lifecycle, read, draft submit/apply/commit Middleware, plus Events for creation, status changes, merge results, and draft changeset commits. A final write to the trunk still passes through the Core Service's own Middleware.
+
+A multi-Unit merge is not atomic across Units. The application should display the merge result for each Unit.
+
+## Server-side Office Exchange
+
+Server-side Exchange combines `@univerjs-pro/exchange-node` with Collaboration Service APIs to bridge files and collaboration state:
+
+```text
+Office file
+  → exchange-node import
+  → Snapshot + Sheet Blocks
+  → createUnitFromSnapshot()
+
+Confirmed Unit revision
+  → getUnitLoadDataWithBlocks()
+  → UnitSnapshotMaterializer
+  → exchange-node export
+  → Office file
+```
+
+The official example imports XLS, XLSX, CSV, or TSV as a new collaborative Sheet and exports the current confirmed revision as XLSX, CSV, or TSV.
+
+File storage, task state, access control, size limits, and business APIs belong to the application. Exchange has no separate collaboration Database Adapter; it reads or creates the authoritative Unit through Core Service.
+
+## Independent extension points
+
+When enabling an extension module, evaluate each boundary separately:
+
+| Boundary         | Core           | History               | Comment               | Worktree                  |
+| ---------------- | -------------- | --------------------- | --------------------- | ------------------------- |
+| Service          | Independent    | Independent           | Independent           | Independent               |
+| Middleware       | Not shared     | Does not inherit Core | Does not inherit Core | Does not inherit Core     |
+| Event            | Core lifecycle | Observes Core Events  | `commentCommitted`    | Worktree lifecycle/commit |
+| Database Adapter | Core Adapter   | History Adapter       | Comment Adapter       | Worktree Adapter          |
+
+These Adapters can use the same SQLite file while remaining separate objects with separate contracts. Services and Adapters should also be disposed independently.
+
+## Choosing a capability
+
+| Product requirement                  | Module                                      | First example           |
+| ------------------------------------ | ------------------------------------------- | ----------------------- |
+| User-facing version history          | History Service, Endpoint, Adapter          | `pnpm example:history`  |
+| Sheet or Doc comments                | Comment Service, Endpoint, Adapter          | `pnpm example:comments` |
+| Isolated drafts, review, and merge   | Worktree Service, Endpoint, Client, Adapter | `pnpm example:worktree` |
+| Server-side Office import and export | Exchange Node + Collaboration Service       | `pnpm example:exchange` |
+
+See the [examples index](/server/collaboration/examples) for complete run commands and page URLs.

@@ -26,7 +26,7 @@ export function DocsMobileNav({
       >
         <MenuIcon className="size-4" />
       </summary>
-      <div className="bg-background fixed top-12 left-0 z-50 flex h-[calc(100dvh-3rem)] w-[min(22rem,calc(100vw-2rem))] flex-col border-r shadow-lg">
+      <div className="bg-background fixed top-22 left-0 z-50 flex h-[calc(100dvh-5.5rem)] w-[min(22rem,calc(100vw-2rem))] flex-col border-r shadow-lg">
         <div className="border-b p-4">
           <p className="text-lg font-semibold tracking-normal">{title}</p>
           {headerExtra ? <div className="mt-3">{headerExtra}</div> : null}

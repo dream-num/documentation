@@ -96,13 +96,13 @@ const metadata = {
   },
   description: {
     'en-US':
-      'Univer SDK supports registering custom events using the `univerAPI.registerEventHandler` and `univerAPI.fireEvent` methods. This example registers a main canvas right-click event, a before-remove-column event, and an after-remove-column event.',
+      'Web SDK supports registering custom events using the `univerAPI.registerEventHandler` and `univerAPI.fireEvent` methods. This example registers a main canvas right-click event, a before-remove-column event, and an after-remove-column event.',
     'zh-CN':
-      'Univer SDK 支持使用 `univerAPI.registerEventHandler` 和 `univerAPI.fireEvent` 方法注册自定义事件，本示例注册了主画布右键事件、删除列前事件和删除列后事件。',
+      'Web SDK 支持使用 `univerAPI.registerEventHandler` 和 `univerAPI.fireEvent` 方法注册自定义事件，本示例注册了主画布右键事件、删除列前事件和删除列后事件。',
     'zh-TW':
-      'Univer SDK 支援使用 `univerAPI.registerEventHandler` 和 `univerAPI.fireEvent` 方法註冊自定義事件，本範例註冊了主畫布右鍵事件、刪除列前事件和刪除列後事件。',
+      'Web SDK 支援使用 `univerAPI.registerEventHandler` 和 `univerAPI.fireEvent` 方法註冊自定義事件，本範例註冊了主畫布右鍵事件、刪除列前事件和刪除列後事件。',
     'ja-JP':
-      'Univer SDK は、`univerAPI.registerEventHandler` および `univerAPI.fireEvent` メソッドを使用してカスタムイベントを登録することをサポートしています。この例では、メインキャンバスの右クリックイベント、列削除前イベント、列削除後イベントを登録します。',
+      'Web SDK は、`univerAPI.registerEventHandler` および `univerAPI.fireEvent` メソッドを使用してカスタムイベントを登録することをサポートしています。この例では、メインキャンバスの右クリックイベント、列削除前イベント、列削除後イベントを登録します。',
   },
   tags: {
     'en-US': ['Univer Sheets', 'Preset Mode'],

@@ -1,12 +1,11 @@
 'use client'
 
-import { Box, Check, Languages, Palette, PlugZap, Puzzle, Server, Smartphone, SparkleIcon } from 'lucide-react'
+import { Box, Check, Languages, Palette, PlugZap, Puzzle, Server, Smartphone } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
 import { Tooltip } from '@/components/tooltip'
-import { Link } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 
 interface IMetaDataLabels {
@@ -143,7 +142,6 @@ function StatusBadge({
 
 export function MetaData(props: {
   lang: string
-  isPro?: boolean
   meta: {
     preset: Array<{
       client?: string
@@ -160,7 +158,7 @@ export function MetaData(props: {
     mobile?: boolean
   }
 }) {
-  const { isPro = false, meta } = props
+  const { meta } = props
   const t = useTranslations()
   const { preset = [], plugins = [], server = false, mobile = false } = meta
 
@@ -225,16 +223,6 @@ export function MetaData(props: {
             </div>
           )}
         </div>
-
-        {isPro && (
-          <Link
-            className={`group inline-flex items-center gap-1 rounded-full bg-linear-[145deg,#18181B_0%,#71717A_48%,#27272A_100%] px-2.5 py-2 text-xs font-semibold text-zinc-50 no-underline shadow-[0_2px_8px_rgba(24,24,27,0.24)] ring-1 ring-black/10 transition-all hover:shadow-[0_4px_12px_rgba(24,24,27,0.3)] dark:bg-linear-[145deg,#FAFAFA_0%,#A1A1AA_48%,#E4E4E7_100%] dark:text-zinc-950 dark:shadow-[0_2px_8px_rgba(0,0,0,0.35)] dark:ring-white/10 hover:dark:shadow-[0_4px_12px_rgba(0,0,0,0.45)]`}
-            href="/guides/server-integration/license"
-          >
-            Univer SDK Pro
-            <SparkleIcon className="size-2.5" />
-          </Link>
-        )}
       </div>
 
       {/* Content */}

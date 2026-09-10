@@ -1,0 +1,180 @@
+---
+title: Visual inspection
+description: Use Render Runtime, Screenshot, and Layout Lint to give agents rendered visual information.
+source: https://github.com/dream-num/univer-cli-sdk/blob/main/packages/unit-screenshot/README.md
+---
+
+Inspection can verify values, paragraphs, and page structure, but it cannot fully express text overflow, element
+overlap, graphic position, and final page layout. After structured content operations, add browser rendering so the
+agent can inspect the actual visual result.
+
+```text
+latest UnitData
+→ Render Runtime
+├── Screenshot ──> PNG ──> agent visual check
+└── Layout Lint ─> structured finding ──> agent correction
+```
+
+## Step 1: Prepare an explicit content state
+
+Screenshot and Layout Lint receive materialized UnitData. They do not load remote targets or interpret changesets.
+For a collaborative Unit, synchronize and export the current complete state first:
+
+```ts
+await runtime.pull();
+const unitData = await runtime.exportUnitData();
+```
+
+For Worktree, export UnitData from the draft target. A local application can use UnitData that it already loaded or
+imported. In every case, visual inspection runs against one explicit content state.
+
+## Step 2: Build the Render Page
+
+`@univer-cli/univer-render-page` composes the browser-side Render Page. The application selects the Univer plugins and
+builds the static page:
+
+```ts
+import { createPresetRenderUniver, mountUniverRenderPage } from "@univer-cli/univer-render-page";
+
+const container = document.querySelector<HTMLElement>("#app");
+if (container === null) throw new Error("#app is required");
+
+await mountUniverRenderPage({
+  container,
+  createUniver: createPresetRenderUniver,
+});
+```
+
+The Render Page is a browser rendering entry, not the human review page. It receives UnitData from Node.js and returns
+PNGs or layout facts.
+
+## Step 3: Create Render Runtime
+
+`@univer-cli/univer-render-runtime` hosts the Render Page in Node.js, starts the browser, and manages the page protocol:
+
+```ts
+import { createUniverRenderRuntime } from "@univer-cli/univer-render-runtime";
+
+const renderRuntime = await createUniverRenderRuntime({
+  renderPageRoot,
+});
+```
+
+One Render Runtime can perform several operations sequentially. Reuse it at an outer lifecycle boundary instead of
+starting a browser for every image.
+
+## Step 4: Capture a Screenshot
+
+`@univer-cli/unit-screenshot` is the high-level entry for Sheet, Doc, Slide, Board, and Base screenshots. It handles
+target selection, pagination, scale, naming, and resource limits:
+
+```ts
+import { createUnitScreenshot } from "@univer-cli/unit-screenshot";
+
+const screenshot = createUnitScreenshot({ runtime: renderRuntime });
+const result = await screenshot.capture({
+  unitType: "sheet",
+  unitData,
+  target: {
+    kind: "sheet-range",
+    sheetName: "Data",
+    range: "B2:H40",
+    scale: 2,
+  },
+});
+```
+
+A result may contain several images. Each includes PNG bytes, dimensions, page or target identity, and a suggested
+filename. The package does not write files; the business application decides where to store images or how to give them
+to the agent.
+
+Without a target, Screenshot selects default content for the Unit type, such as the active worksheet used range, every
+Doc page, or every Slide page.
+
+## Step 5: Diagnose Slide layout
+
+`@univer-cli/unit-layout-lint` uses real browser-generated layout facts and returns structured findings with evidence:
+
+```ts
+import { createUnitLayoutLint } from "@univer-cli/unit-layout-lint";
+
+const lint = createUnitLayoutLint({ runtime: renderRuntime });
+const report = await lint.lint({
+  unitType: "slide",
+  unitData,
+  pages: [1, "closing-slide"],
+});
+```
+
+Current rules include:
+
+- `text-off-page`: actual text ink extends beyond the page.
+- `text-escapes-container`: text visibly escapes a smaller opaque container.
+- `text-overlaps-text`: two regions of actual text ink overlap significantly.
+
+A finding is an evidence-backed review suggestion and does not always require a change. The agent can combine findings
+with Screenshots, make another Facade edit, and run visual inspection again.
+
+## Step 6: Add Commander commands
+
+Screenshot and Layout Lint both provide native Commander presets. Inject the capabilities created above and the
+business UnitData loaders, then add them to the same `program` created in
+[Document loading and content operations](/ai/content-operations):
+
+```ts
+import type { UnitScreenshotCommandDependencies } from "@univer-cli/unit-screenshot-command";
+import { createUnitScreenshotCommand } from "@univer-cli/unit-screenshot-command";
+import type { UnitLayoutLintCommandDependencies } from "@univer-cli/unit-layout-lint-command";
+import { createUnitLayoutLintCommand } from "@univer-cli/unit-layout-lint-command";
+import type { Command } from "commander";
+
+function addVisualCommands(
+  program: Command,
+  dependencies: {
+    loadUnit: UnitScreenshotCommandDependencies["loadUnit"];
+    writeImages: UnitScreenshotCommandDependencies["writeImages"];
+    loadSlide: UnitLayoutLintCommandDependencies["loadUnit"];
+  },
+): void {
+  program.addCommand(
+    createUnitScreenshotCommand({
+      screenshot,
+      loadUnit: dependencies.loadUnit,
+      writeImages: dependencies.writeImages,
+    }),
+  );
+
+  program.addCommand(
+    createUnitLayoutLintCommand({
+      lint,
+      loadUnit: dependencies.loadSlide,
+    }),
+  );
+}
+```
+
+The presets own screenshot selectors, Slide page selectors, `--json`, default text output, and Commander error exits.
+The function parameters explicitly inject Unit ID to content-state mapping and the PNG writer. The application also
+owns Render Runtime lifecycle.
+
+The Screenshot preset can also include a browser installation and probe subcommand. A browser is not implicitly
+downloaded for every capture.
+
+## Step 7: Release browser resources
+
+The creator closes Render Runtime at the outermost Commander lifecycle boundary:
+
+```ts
+try {
+  await program.parseAsync();
+} finally {
+  await renderRuntime.close();
+}
+```
+
+For custom agent input and output, bypass the presets and call the base packages directly. Do not render untrusted
+UnitData directly on a shared high-privilege host; use a restricted user, container, or another process isolation
+boundary.
+
+After visual checks are available, place the same content and inspection capabilities into the
+[Worktree: agent editing and human review](/ai/worktree) flow.

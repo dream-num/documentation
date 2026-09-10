@@ -6,6 +6,7 @@ const locales = {
 }
 const documentSchema = z.object({
   title: z.string(),
+  source: z.string().optional(),
   description: z.string().optional(),
   icon: z.string().optional(),
 })
@@ -14,9 +15,9 @@ export default defineConfig({
   root: import.meta.dirname,
   manifests: {
     guidesNavigation: {
-      collections: ['guides'],
+      collections: ['guides', 'server', 'ai'],
       output: '.amamo-mdx/guides-navigation.json',
-      fields: { key: 'key', frontmatter: 'frontmatter' },
+      fields: { collection: 'collection', key: 'key', frontmatter: 'frontmatter' },
       sort: [{ field: 'key', direction: 'asc' }],
     },
   },
@@ -26,13 +27,10 @@ export default defineConfig({
       locales,
       schema: documentSchema,
     },
+    server: { directory: 'content/server', locales, schema: documentSchema },
+    ai: { directory: 'content/ai', locales, schema: documentSchema },
     reference: {
       directory: 'content/reference',
-      locales,
-      schema: documentSchema,
-    },
-    icons: {
-      directory: 'content/icons',
       locales,
       schema: documentSchema,
     },

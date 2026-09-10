@@ -1,4 +1,5 @@
-import { loader, type MetaData, type PageData, type StaticSource } from 'fumadocs-core/source'
+import type { MetaData, PageData, StaticSource } from 'fumadocs-core/source'
+import { loader } from 'fumadocs-core/source'
 import { icons as lucideIcons } from 'lucide-react'
 import { createElement } from 'react'
 
@@ -12,9 +13,10 @@ import { getGuideContentPlacementTargetFromUrl } from './content-placements'
 // Navigation-only and article loaders share exactly the same tree transformations.
 export function createGuidesLoader<P extends PageData, M extends MetaData>(
   source: StaticSource<{ pageData: P; metaData: M }>,
+  baseUrl = '/guides',
 ) {
   return loader({
-    baseUrl: '/guides',
+    baseUrl,
     source,
     i18n: fumadocsI18n,
     pageTree: {
@@ -37,10 +39,6 @@ export function createGuidesLoader<P extends PageData, M extends MetaData>(
       if (icon in lucideIcons)
         return createElement(IconWrapper, { type: 'icon', icon: lucideIcons[icon as keyof typeof lucideIcons] })
       if (isUniverIconName(icon)) return createElement(UniverIcon, { name: icon })
-      if (icon.startsWith('#pro')) {
-        const [, iconName] = icon.split('/')
-        return createElement(IconWrapper, { type: 'pro', icon: lucideIcons[iconName as keyof typeof lucideIcons] })
-      }
       return createElement(IconWrapper, { type: 'text', text: icon })
     },
   })

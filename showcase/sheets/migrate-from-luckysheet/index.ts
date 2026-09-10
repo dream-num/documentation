@@ -69,20 +69,20 @@ const metadata = {
     { id: 'rendered', label: { 'en-US': 'Native rendered workbook', 'zh-CN': '原生渲染工作簿' } },
   ],
   title: {
-    'en-US': 'Migrate From Luckysheet to Univer SDK',
-    'zh-CN': '从 Luckysheet 迁移到 Univer SDK',
-    'zh-TW': '從 Luckysheet 遷移到 Univer SDK',
-    'ja-JP': 'Luckysheet から Univer SDK への移行',
+    'en-US': 'Migrate From Luckysheet to Web SDK',
+    'zh-CN': '从 Luckysheet 迁移到 Web SDK',
+    'zh-TW': '從 Luckysheet 遷移到 Web SDK',
+    'ja-JP': 'Luckysheet から Web SDK への移行',
   },
   description: {
     'en-US':
-      'Compared with Luckysheet, our newly designed Univer SDK has made great improvements in terms of architecture, data structure and API, so Luckysheet can no longer be migrated 1:1 to Univer SDK. However, we provide a migration example to help you understand how to migrate Luckysheet features to Univer SDK.',
+      'Compared with Luckysheet, our newly designed Web SDK has made great improvements in terms of architecture, data structure and API, so Luckysheet can no longer be migrated 1:1 to Web SDK. However, we provide a migration example to help you understand how to migrate Luckysheet features to Web SDK.',
     'zh-CN':
-      '与 Luckysheet 相比，我们新设计的 Univer SDK 在架构、数据结构和 API 等方面有了很大的改进，因此 Luckysheet 无法再 1:1 迁移到 Univer SDK。但是，我们提供了一个迁移示例，帮助你了解如何将 Luckysheet 的功能迁移到 Univer SDK。',
+      '与 Luckysheet 相比，我们新设计的 Web SDK 在架构、数据结构和 API 等方面有了很大的改进，因此 Luckysheet 无法再 1:1 迁移到 Web SDK。但是，我们提供了一个迁移示例，帮助你了解如何将 Luckysheet 的功能迁移到 Web SDK。',
     'zh-TW':
-      '與 Luckysheet 相比，我們新設計的 Univer SDK 在架構、數據結構和 API 等方面有了很大的改進，因此 Luckysheet 無法再 1:1 遷移到 Univer SDK。但是，我們提供了一個遷移示例，幫助你了解如何將 Luckysheet 的功能遷移到 Univer SDK。',
+      '與 Luckysheet 相比，我們新設計的 Web SDK 在架構、數據結構和 API 等方面有了很大的改進，因此 Luckysheet 無法再 1:1 遷移到 Web SDK。但是，我們提供了一個遷移示例，幫助你了解如何將 Luckysheet 的功能遷移到 Web SDK。',
     'ja-JP':
-      'Luckysheet と比較して、新しく設計された Univer SDK は、アーキテクチャ、データ構造、API の面で大きな改善を遂げているため、Luckysheet を Univer SDK に 1:1 で移行することはできません。ただし、Luckysheet の機能を Univer SDK に移行する方法を理解するのに役立つ移行例を提供します。',
+      'Luckysheet と比較して、新しく設計された Web SDK は、アーキテクチャ、データ構造、API の面で大きな改善を遂げているため、Luckysheet を Web SDK に 1:1 で移行することはできません。ただし、Luckysheet の機能を Web SDK に移行する方法を理解するのに役立つ移行例を提供します。',
   },
   tags: {
     'en-US': ['Univer Sheets', 'Preset Mode'],

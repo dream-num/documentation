@@ -4,13 +4,12 @@ import { SearchIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+import type { SearchScope } from '@/lib/guides/search'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Link, useRouter } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
-
-type SearchScope = 'guides' | 'reference' | 'icons' | 'all'
 
 interface ISearchResult {
   id: string
@@ -20,7 +19,7 @@ interface ISearchResult {
   source?: string
 }
 
-const searchScopes: SearchScope[] = ['guides', 'reference', 'icons', 'all']
+const searchScopes: SearchScope[] = ['guides', 'reference', 'all']
 
 function normalizeResults(payload: unknown): ISearchResult[] {
   const source = Array.isArray(payload)

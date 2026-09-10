@@ -1,0 +1,259 @@
+---
+title: 快速开始
+description: 先运行双浏览器协同示例，再把最小 Client、Transport、Endpoint、Service 与 Adapter 组合迁入自己的应用。
+---
+
+本页分为两条路径：先运行官方示例，在两个浏览器中验证完整协同链路；然后阅读并复制最小的
+Server 与 Web 组装，把 Collaboration SDK 接入自己的 Univer 应用。
+
+开始前，请先完成[环境与版本要求](/server/requirements)。所有 `@univerjs/*` 与
+`@univerjs-pro/*` package 必须固定在同一个匹配的 release cohort，不要混用版本。
+
+## 路径一：运行官方示例
+
+```bash
+git clone https://github.com/dream-num/univer-collaboration-examples.git
+cd univer-collaboration-examples
+pnpm install
+pnpm example:quick-start
+```
+
+打开：
+
+```text
+http://127.0.0.1:3010/?unit=quick-start-sheet&type=2
+```
+
+### 验证实时协同
+
+1. 在一个浏览器窗口中打开完整 URL。
+2. 使用另一个浏览器 profile 或无痕窗口打开同一 URL。
+3. 在任一窗口的 Sheet 中修改单元格。
+4. 确认另一个窗口实时出现相同修改。
+
+必须使用两个独立浏览器 Context，才能建立两个不同的在线 Session。只在同一个页面里观察自身修改，
+不足以验证 Room、ACK 与广播。
+
+### 这次成功证明了什么
+
+```text
+Univer Collaboration Client
+  → Node Transport
+  → UniverCollabEndpoint
+  → UniverCollabService
+  → MemoryDatabaseAdapter
+```
+
+双浏览器同步意味着浏览器已经通过 HTTP 加载 Unit，通过一次性 Session Ticket 建立 WebSocket
+Session 并 JOIN 同一个 Room。修改被 Service 执行 OT、确认新 revision、保存到 Adapter，再由
+Endpoint 广播给其他成员。
+
+## 路径二：迁入自己的应用
+
+下面的代码来自官方 Quick Start 的两个入口文件，并去掉了只用于页面提示的部分。完整可运行版本见：
+
+- [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/quick-start/server/main.ts)
+- [web/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/quick-start/web/main.ts)
+- [package.json](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/quick-start/package.json)
+
+如果已有 Univer Web 应用，可以保留自己的 Runtime、Preset 和 UI，只增加下面的 Collaboration
+Client 配置与 Server。若从空项目开始，直接复制 Quick Start 目录中的 `index.html`、
+`vite.config.ts` 和样式文件作为外壳。
+
+### 1. 安装同一发布批次的 Package
+
+服务端需要 Transport、Endpoint、Service 和一个 Database Adapter；浏览器需要 Collaboration
+Client。下面的命令安装所需 package，应用应再把所有 Univer package 固定为同一个精确版本：
+
+```bash
+pnpm add \
+  @univerjs-pro/collaboration \
+  @univerjs-pro/collaboration-client \
+  @univerjs-pro/collaboration-client-ui \
+  @univerjs-pro/collaboration-database-memory \
+  @univerjs-pro/collaboration-endpoint \
+  @univerjs-pro/collaboration-service \
+  @univerjs-pro/collaboration-transport-node \
+  @univerjs-pro/license \
+  @univerjs/core \
+  @univerjs/preset-sheets-core \
+  @univerjs/presets \
+  @univerjs/protocol \
+  express react react-dom rxjs
+```
+
+官方示例 manifest 是当前 package 组合与精确版本的可运行来源。
+
+### 2. 创建 Service、Endpoint 与初始 Unit
+
+`UniverCollabService` 是权威协同核心。Endpoint 把浏览器协议映射到 Service，Memory Adapter
+暂时保存 snapshot、changeset 与 revision：
+
+```ts
+import { createServer } from "node:http";
+import express from "express";
+import type { IWorkbookData } from "@univerjs/core";
+import { LocaleType } from "@univerjs/core";
+import { MemoryDatabaseAdapter } from "@univerjs-pro/collaboration-database-memory";
+import { UniverCollabEndpoint } from "@univerjs-pro/collaboration-endpoint";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { createNodeTransport } from "@univerjs-pro/collaboration-transport-node";
+import { ErrorCode, UniverType } from "@univerjs/protocol";
+
+const UNIT_ID = "quick-start-sheet";
+const unitData: IWorkbookData = {
+  id: UNIT_ID,
+  rev: 1,
+  name: "Quick Start Sheet",
+  appVersion: "",
+  locale: LocaleType.EN_US,
+  sheetOrder: ["sheet-1"],
+  sheets: {
+    "sheet-1": {
+      id: "sheet-1",
+      name: "Sheet 1",
+      rowCount: 100,
+      columnCount: 26,
+      cellData: {},
+    },
+  },
+  styles: {},
+  resources: [],
+};
+
+const database = new MemoryDatabaseAdapter();
+const service = new UniverCollabService({ dbAdapter: database });
+const endpoint = new UniverCollabEndpoint(service);
+const transport = createNodeTransport();
+
+transport.use(async (context, next) => {
+  context.userID = "demo-user";
+  await next();
+});
+transport.register(endpoint);
+
+await service.createUnitFromData(
+  { type: UniverType.UNIVER_SHEET, data: unitData },
+  { userID: "demo-user" },
+);
+```
+
+这里固定 `demo-user` 是为了展示可信身份从 Transport 进入 Endpoint 和 Service 的路径。生产应用
+必须在 `transport.use()` 中验证自己的 Cookie、Bearer token 或 Session，再设置稳定业务
+`userID`。
+
+### 3. 挂载授权、HTTP 与 WebSocket 入口
+
+当前 Collaboration Client 会查询授权协议。Quick Start 返回固定 `allowed: true`，然后把
+`/universer-api` HTTP 请求与 WebSocket upgrade 交给 Transport：
+
+```ts
+const app = express();
+
+app.post("/universer-api/authz/-/object/-/batch_allowed", express.json(), (request, response) => {
+  const body = request.body as {
+    requests: Array<{ unitID: string; objectID: string; actions: unknown[] }>;
+  };
+  response.json({
+    error: { code: ErrorCode.OK, message: "" },
+    objectActions: body.requests.map((item) => ({
+      unitID: item.unitID,
+      objectID: item.objectID,
+      actions: item.actions.map((action) => ({ action, allowed: true })),
+    })),
+  });
+});
+
+app.use("/universer-api", (request, response) => {
+  request.url = request.originalUrl;
+  transport.handleRequest(request, response);
+});
+app.use(express.static("dist/web"));
+
+const server = createServer(app);
+server.on("upgrade", (request, socket, head) => {
+  transport.handleUpgrade(request, socket, head);
+});
+server.listen(3010, "127.0.0.1");
+```
+
+固定允许只负责让教学示例可运行，不是安全边界。正式应用必须同时保护 HTTP read、实时 JOIN、
+changeset submit 和 Unit 生命周期；完整覆盖见[身份与权限](/server/collaboration/identity-and-authorization)。
+
+### 4. 在浏览器 Runtime 中注册 Collaboration Client
+
+浏览器端继续使用正常的 Univer Runtime 与 Preset，并增加 Collaboration Plugin、Client、UI 和
+协议地址：
+
+```ts
+import { LocaleType, LogLevel } from "@univerjs/core";
+import { UniverCollaborationPlugin } from "@univerjs-pro/collaboration";
+import { UniverCollaborationClientPlugin } from "@univerjs-pro/collaboration-client";
+import CollaborationClientEnUS from "@univerjs-pro/collaboration-client/locale/en-US";
+import {
+  BrowserCollaborationSocketService,
+  UniverCollaborationClientUIPlugin,
+} from "@univerjs-pro/collaboration-client-ui";
+import CollaborationClientUIEnUS from "@univerjs-pro/collaboration-client-ui/locale/en-US";
+import { UniverLicensePlugin } from "@univerjs-pro/license";
+import { UniverSheetsCorePreset } from "@univerjs/preset-sheets-core";
+import UniverPresetSheetsCoreEnUS from "@univerjs/preset-sheets-core/locales/en-US";
+import { createUniver, defaultTheme, mergeLocales } from "@univerjs/presets";
+import "@univerjs/preset-sheets-core/lib/index.css";
+import "@univerjs-pro/collaboration-client-ui/lib/index.css";
+
+const httpProtocol = location.protocol === "https:" ? "https" : "http";
+const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
+const baseURL = `${httpProtocol}://${location.host}/universer-api`;
+
+createUniver({
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(
+      UniverPresetSheetsCoreEnUS,
+      CollaborationClientEnUS,
+      CollaborationClientUIEnUS,
+    ),
+  },
+  theme: defaultTheme,
+  logLevel: LogLevel.WARN,
+  collaboration: true,
+  presets: [UniverSheetsCorePreset({ container: "app" })],
+  plugins: [
+    [UniverLicensePlugin, { license: import.meta.env.UNIVER_LICENSE || undefined }],
+    UniverCollaborationPlugin,
+    [
+      UniverCollaborationClientPlugin,
+      {
+        socketService: BrowserCollaborationSocketService,
+        sendChangesetTimeout: 200,
+        authzUrl: `${baseURL}/authz`,
+        snapshotServerUrl: `${baseURL}/snapshot`,
+        collabSubmitChangesetUrl: `${baseURL}/comb`,
+        collabWebSocketUrl: `${wsProtocol}://${location.host}/universer-api/comb/connect`,
+        wsSessionTicketUrl: `${baseURL}/user/session-ticket`,
+      },
+    ],
+    UniverCollaborationClientUIPlugin,
+  ],
+});
+```
+
+页面需要一个 `id="app"` 的容器，并通过查询参数指定 Unit：
+
+```text
+/?unit=quick-start-sheet&type=2
+```
+
+### 5. 用生产能力替换教学配置
+
+| 教学配置         | 接入应用时替换为                                      |
+| ---------------- | ----------------------------------------------------- |
+| 固定 `demo-user` | 应用自己的认证 Middleware 与稳定用户 ID               |
+| 权限默认允许     | 覆盖 read、JOIN、submit 和生命周期的服务端 ACL        |
+| 固定 Unit        | 调用 `createUnitFromData()` 的应用创建 API 与产品记录 |
+| Memory Adapter   | SQLite 或经过合同测试的自定义持久化 Adapter           |
+
+下一步通常先完成 [Database Adapter](/server/collaboration/database-adapters) 与[身份与权限](/server/collaboration/identity-and-authorization)，
+再按需增加 [History、Thread Comment、Worktree 或 Exchange](/server/collaboration/extensions)。所有可运行组合见
+[示例索引](/server/collaboration/examples)。
