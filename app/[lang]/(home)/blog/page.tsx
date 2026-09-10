@@ -5,6 +5,7 @@ import Link from 'next/link'
 import type { Locale } from '@/i18n/routing'
 import { Footer } from '@/components/footer'
 import { formatLocalDate } from '@/lib/dayjs'
+import { stripLocalePrefix, withLocale } from '@/lib/locale-path'
 import { getActiveBlogPages } from '@/lib/source'
 
 interface IProps {
@@ -60,7 +61,7 @@ export default async function Page({ params }: IProps) {
 
           <Link
             className="group hover:border-foreground hover:text-foreground focus-visible:ring-ring inline-flex min-h-11 items-center gap-2 border-b border-transparent text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
-            href="/blog/rss.xml"
+            href={withLocale(lang, '/blog/rss.xml')}
             target="_blank"
             rel="nofollow noreferrer"
           >
@@ -88,7 +89,7 @@ export default async function Page({ params }: IProps) {
                     <li key={post.url}>
                       <Link
                         className="group focus-visible:ring-ring relative grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-2 py-3 pr-1 pl-3 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset sm:grid-cols-[9rem_minmax(0,1fr)_auto] sm:items-center sm:gap-x-6"
-                        href={post.url}
+                        href={withLocale(lang, stripLocalePrefix(post.url))}
                       >
                         <span
                           aria-hidden

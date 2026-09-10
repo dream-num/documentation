@@ -10,6 +10,7 @@ import { getGuidesMDXComponents } from '@/components/mdx/components'
 import { Button } from '@/components/ui/button'
 import { formatLocalDate } from '@/lib/dayjs'
 import { createDocsRelativeLink } from '@/lib/docs/links'
+import { withLocale } from '@/lib/locale-path'
 import { blog, getActiveBlogPage, getActiveBlogParams } from '@/lib/source'
 
 interface IProps {
@@ -78,7 +79,7 @@ export default async function Page({ params }: IProps) {
               </time>
             </div>
             {toc.length > 0 ? <DocsToc compact items={[...toc]} lang={lang} /> : null}
-            <Button className="w-full" render={<Link href="/blog" />}>
+            <Button className="w-full" render={<Link href={withLocale(lang, '/blog')} />}>
               {t('blog.back')}
             </Button>
           </aside>
