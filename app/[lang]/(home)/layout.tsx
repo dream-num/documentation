@@ -19,7 +19,7 @@ export default async function Layout({ params, children }: IProps) {
   const links = [
     {
       text: t('navigation.reference'),
-      url: '/reference/classes/univer',
+      url: '/reference',
     },
     {
       text: t('navigation.blog'),

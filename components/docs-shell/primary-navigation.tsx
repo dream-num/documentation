@@ -26,7 +26,7 @@ export function PrimaryNavigation({
     : [
         ...sdkLinks,
         { text: labels.tools, url: '/tools/theme-customizer' },
-        { text: labels.reference, url: '/reference/classes/univer' },
+        { text: labels.reference, url: '/reference' },
         { text: labels.blog, url: '/blog' },
         { text: labels.showcase, url: '/showcase' },
       ]
