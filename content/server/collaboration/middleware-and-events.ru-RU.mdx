@@ -46,28 +46,41 @@ HTTP Middleware Transport может закончить ответ без `next(
 
 ## Middleware Transport
 
-Transport разделяет цепочки обычных HTTP-запросов и обновлений до WebSocket:
+`transport.use()` регистрирует Middleware для обычных HTTP-запросов; они выполняются в порядке регистрации. Вызовите `await next()`, чтобы продолжить обработку, или завершите ответ напрямую. `transport.useUpgrade()` обрабатывает рукопожатия WebSocket.
+
+Например, сначала измерьте длительность HTTP-запроса, затем выполните аутентификацию и задайте доверенный `userID`, после чего зарегистрируйте Collaboration Endpoint:
 
 ```ts
 transport.use(async (context, next) => {
-  context.customData.traceID = readTraceID(context.incomingMessage);
-  requestLogger.info("collaboration request", {
-    method: context.incomingMessage.method,
-    traceID: context.customData.traceID,
+  const start = performance.now();
+  context.response.once("finish", () => {
+    recordHttpDuration({
+      method: context.incomingMessage.method,
+      route: context.route?.path ?? "unmatched",
+      status: context.response.statusCode,
+      durationMs: performance.now() - start,
+    });
   });
   await next();
 });
 
-transport.useUpgrade(async (context, next) => {
-  if (!isAllowedOrigin(context.incomingMessage.headers.origin)) {
-    context.reject(403, "Origin rejected");
+transport.use(async (context, next) => {
+  const user = await authenticate(context.incomingMessage);
+  if (!user) {
+    context.response.statusCode = 401;
+    context.response.end("Authentication required");
     return;
   }
+  context.userID = user.userId;
   await next();
 });
+
+transport.register(collaborationEndpoint);
 ```
 
-`transport.use()` участвует только в обычном HTTP: идентификация, логи запросов, трассировка, CORS и локальный `customData`. `transport.useUpgrade()` участвует только в рукопожатии WebSocket и может отклонить его до подключения.
+Приложение предоставляет `recordHttpDuration` и `authenticate`. Endpoint использует `userID`, заданный предыдущими Middleware. Middleware наблюдения регистрируется до аутентификации, поэтому отказы также учитываются.
+
+`context.route?.path` — полный шаблон совпавшего маршрута, доступный, когда выполнение достигает Endpoint. Событие `finish` ответа позволяет измерить время до его завершения; отказы до сопоставления маршрута и неизвестные пути записываются как `unmatched`.
 
 ## Middleware Endpoint
 

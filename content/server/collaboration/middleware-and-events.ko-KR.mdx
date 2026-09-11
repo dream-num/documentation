@@ -46,28 +46,41 @@ Transport HTTP Middleware는 `next()` 호출 없이 HTTP 응답을 종료할 수
 
 ## Transport Middleware
 
-Transport에는 일반 HTTP 요청과 WebSocket 업그레이드용 독립 Middleware 체인이 있습니다.
+`transport.use()`는 일반 HTTP Middleware를 등록하며 등록 순서대로 실행합니다. `await next()`를 호출해 다음 처리를 진행하거나 응답을 직접 종료할 수 있습니다. `transport.useUpgrade()`는 WebSocket 핸드셰이크를 처리합니다.
+
+다음 예제는 HTTP 소요 시간을 기록하고, 인증 후 신뢰할 수 있는 `userID`를 설정한 다음 Collaboration Endpoint를 등록합니다.
 
 ```ts
 transport.use(async (context, next) => {
-  context.customData.traceID = readTraceID(context.incomingMessage);
-  requestLogger.info("collaboration request", {
-    method: context.incomingMessage.method,
-    traceID: context.customData.traceID,
+  const start = performance.now();
+  context.response.once("finish", () => {
+    recordHttpDuration({
+      method: context.incomingMessage.method,
+      route: context.route?.path ?? "unmatched",
+      status: context.response.statusCode,
+      durationMs: performance.now() - start,
+    });
   });
   await next();
 });
 
-transport.useUpgrade(async (context, next) => {
-  if (!isAllowedOrigin(context.incomingMessage.headers.origin)) {
-    context.reject(403, "Origin rejected");
+transport.use(async (context, next) => {
+  const user = await authenticate(context.incomingMessage);
+  if (!user) {
+    context.response.statusCode = 401;
+    context.response.end("Authentication required");
     return;
   }
+  context.userID = user.userId;
   await next();
 });
+
+transport.register(collaborationEndpoint);
 ```
 
-`transport.use()`는 일반 HTTP 요청에만 참여하며 신원 확인, 요청 로깅, 추적, CORS, 요청 내부 `customData`에 적합합니다. `transport.useUpgrade()`는 WebSocket 핸드셰이크에만 참여하며 연결 전에 거부할 수 있습니다.
+`recordHttpDuration`과 `authenticate`는 애플리케이션에서 제공합니다. Endpoint는 앞선 Middleware가 설정한 `userID`를 사용합니다. 관측 Middleware를 인증보다 먼저 등록하므로 인증 거부도 기록됩니다.
+
+`context.route?.path`는 일치한 전체 경로 템플릿이며 처리가 Endpoint에 도달하면 사용할 수 있습니다. response의 `finish` 이벤트로 응답 완료까지의 시간을 측정합니다. 경로 매칭 전의 거부와 알 수 없는 경로는 `unmatched`로 기록됩니다.
 
 ## Endpoint Middleware
 
