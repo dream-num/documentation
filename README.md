@@ -1,6 +1,6 @@
-# Univer Documentation
+# Univer Office SDK Documentation
 
-This is the official documentation site for Web SDK, Server SDK, and AI SDK, built with [Next.js](https://nextjs.org/), Fumadocs headless content tooling, and project-owned UI.
+This is the official documentation site for Univer Office SDK, which includes Web SDK, Server SDK, and AI SDK, built with [Next.js](https://nextjs.org/), Fumadocs headless content tooling, and project-owned UI.
 
 ## Prerequisites
 

@@ -95,7 +95,7 @@ const frFRMessages = {
   home: {
     slogan: 'Intégrez des outils de productivité pilotés par le serveur à votre workflow',
     description:
-      'Univer Office SDK comprend Web SDK, Server SDK et AI SDK. Il est une suite bureautique full-stack isomorphe, hautement extensible et performante, conçue pour aider les développeurs à créer et modifier librement ',
+      'Univer Office SDK comprend Web SDK, Server SDK et AI SDK. Cette suite bureautique full-stack isomorphe, hautement extensible et performante est conçue pour aider les développeurs à créer et modifier librement ',
     'description-split': ', ',
     'description-period': '.',
     'description-and': ' et ',
@@ -107,7 +107,7 @@ const frFRMessages = {
       eyebrow: 'Exemples interactifs',
       title: 'Un lancement, tous les espaces de travail',
       description:
-        'Explorez un lancement produit connecté dans six expériences Web SDK entièrement modifiables, de la planification et du récit à la collaboration visuelle et aux PDF.',
+        'Explorez un lancement produit connecté dans six expériences Univer Office SDK entièrement modifiables, de la planification et du récit à la collaboration visuelle et aux PDF.',
     },
     customer: {
       title: 'Adopté par des équipes et des entreprises de tous secteurs',
@@ -310,7 +310,7 @@ const frFRMessages = {
   },
   blog: {
     title: 'Blog',
-    slogan: 'Découvrez les dernières actualités, l’architecture et les bonnes pratiques d’Web SDK',
+    slogan: 'Découvrez les dernières actualités, l’architecture et les bonnes pratiques d’Univer Office SDK',
     author: 'Auteur',
     date: 'Date de publication',
     back: 'Retour',
@@ -320,7 +320,7 @@ const frFRMessages = {
   },
   showcase: {
     title: 'Démonstrations',
-    slogan: 'Découvrez les puissantes fonctionnalités d’Web SDK à travers des exemples en ligne',
+    slogan: 'Découvrez les puissantes fonctionnalités d’Univer Office SDK à travers des exemples en ligne',
     back: 'Retour',
     'related-title': 'Exemples associés',
     breadcrumb: {

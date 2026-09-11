@@ -109,7 +109,7 @@ const esESMessages = {
       eyebrow: 'Ejemplos interactivos',
       title: 'Un lanzamiento, cada espacio de trabajo',
       description:
-        'Explore un lanzamiento de producto conectado en seis experiencias de Web SDK totalmente editables, desde la planificación y la narrativa hasta la colaboración visual y los PDF.',
+        'Explore un lanzamiento de producto conectado en seis experiencias de Univer Office SDK totalmente editables, desde la planificación y la narrativa hasta la colaboración visual y los PDF.',
     },
     customer: {
       title: 'Con la confianza de equipos y empresas de todos los sectores',
@@ -311,7 +311,7 @@ const esESMessages = {
   },
   blog: {
     title: 'Blog',
-    slogan: 'Explore las últimas noticias, arquitectura y mejores prácticas de Web SDK',
+    slogan: 'Explore las últimas noticias, arquitectura y mejores prácticas de Univer Office SDK',
     author: 'Autor',
     date: 'Publicado Fecha',
     back: 'Volver',
@@ -321,7 +321,7 @@ const esESMessages = {
   },
   showcase: {
     title: 'Showcase',
-    slogan: 'Explore las potentes funciones de Web SDK a través de ejemplos en línea',
+    slogan: 'Explore las potentes funciones de Univer Office SDK a través de ejemplos en línea',
     back: 'Volver',
     'related-title': 'Ejemplos relacionados',
     breadcrumb: {

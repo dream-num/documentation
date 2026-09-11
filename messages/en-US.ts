@@ -106,7 +106,7 @@ const enUSMessages = {
       eyebrow: 'Interactive examples',
       title: 'One launch, every workspace',
       description:
-        'Explore a connected product launch across six fully editable Web SDK experiences — from planning and storytelling to visual collaboration and PDFs.',
+        'Explore a connected product launch across six fully editable Univer Office SDK experiences — from planning and storytelling to visual collaboration and PDFs.',
     },
     customer: {
       title: 'Trusted by teams and companies across industries',
@@ -308,7 +308,7 @@ const enUSMessages = {
   },
   blog: {
     title: 'Blog',
-    slogan: 'Explore the latest news, architecture, and best practices of Web SDK',
+    slogan: 'Explore the latest news, architecture, and best practices of Univer Office SDK',
     author: 'Author',
     date: 'Published Date',
     back: 'Back',
@@ -318,7 +318,7 @@ const enUSMessages = {
   },
   showcase: {
     title: 'Showcase',
-    slogan: "Explore Web SDK's powerful features through online examples",
+    slogan: "Explore Univer Office SDK's powerful features through online examples",
     back: 'Back',
     'related-title': 'Related Examples',
     breadcrumb: {

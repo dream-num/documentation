@@ -108,7 +108,7 @@ const jaJPMessages = {
       eyebrow: 'インタラクティブな例',
       title: 'ひとつのローンチを、すべてのワークスペースで',
       description:
-        '計画、ストーリーテリング、ビジュアルコラボレーション、PDF まで、6 つの編集可能な Web SDK 体験で一連の製品ローンチをお試しください。',
+        '計画、ストーリーテリング、ビジュアルコラボレーション、PDF まで、6 つの編集可能な Univer Office SDK 体験で一連の製品ローンチをお試しください。',
     },
     customer: {
       title: '業界を問わず、チームと企業に信頼されています',
@@ -310,7 +310,7 @@ const jaJPMessages = {
   },
   blog: {
     title: 'ブログ',
-    slogan: 'Web SDK の最新ニュース、アーキテクチャ、ベストプラクティスを探求します',
+    slogan: 'Univer Office SDK の最新ニュース、アーキテクチャ、ベストプラクティスを探求します',
     author: '著者',
     date: '公開日',
     back: '戻る',
@@ -320,7 +320,7 @@ const jaJPMessages = {
   },
   showcase: {
     title: 'ショーケース',
-    slogan: 'オンライン例を通じて Web SDK の強力な機能を探求します',
+    slogan: 'オンライン例を通じて Univer Office SDK の強力な機能を探求します',
     back: '戻る',
     'related-title': '関連案例',
     breadcrumb: {

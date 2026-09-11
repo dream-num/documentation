@@ -402,9 +402,9 @@ function renderRootIndex(lang: Locale): IAgentDocsArtifact {
     .map((slug) => getPage('guides', slug === 'index' ? [] : [slug], lang))
     .filter((page): page is AgentDocsPage => page !== undefined)
   const body = [
-    '# Univer Documentation',
+    '# Univer Office SDK Documentation',
     '',
-    '> Agent-readable documentation for Web SDK, Server SDK, and AI SDK.',
+    '> Agent-readable documentation for Univer Office SDK, which includes Web SDK, Server SDK, and AI SDK.',
     '',
     `- Language: \`${lang}\``,
     `- Documentation version: \`${packageJson.version}\``,
@@ -449,9 +449,9 @@ async function renderRootFull(lang: Locale): Promise<IAgentDocsArtifact> {
   )
   const documents = await Promise.all(pages.map(({ collection, page }) => renderPage(lang, collection, page)))
   const body = [
-    '# Univer Documentation — Full',
+    '# Univer Office SDK Documentation — Full',
     '',
-    '> Complete agent-readable guidance and documentation for Web SDK, Server SDK, and AI SDK.',
+    '> Complete agent-readable guidance and documentation for Univer Office SDK, which includes Web SDK, Server SDK, and AI SDK.',
     '',
     `- Language: \`${lang}\``,
     `- Documentation version: \`${packageJson.version}\``,

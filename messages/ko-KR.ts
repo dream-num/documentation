@@ -108,7 +108,7 @@ const koKRMessages = {
       eyebrow: '인터랙티브 예제',
       title: '하나의 출시, 모든 워크스페이스',
       description:
-        '기획과 스토리텔링부터 시각적 협업과 PDF까지, 편집 가능한 여섯 가지 Web SDK 경험으로 연결된 제품 출시 과정을 살펴보세요.',
+        '기획과 스토리텔링부터 시각적 협업과 PDF까지, 편집 가능한 여섯 가지 Univer Office SDK 경험으로 연결된 제품 출시 과정을 살펴보세요.',
     },
     customer: {
       title: '다양한 업계의 팀과 기업이 신뢰합니다',
@@ -310,7 +310,7 @@ const koKRMessages = {
   },
   blog: {
     title: '블로그',
-    slogan: 'Web SDK의 최신 소식, 아키텍처, 모범 사례를 살펴보세요',
+    slogan: 'Univer Office SDK의 최신 소식, 아키텍처, 모범 사례를 살펴보세요',
     author: '작성자',
     date: '게시일',
     back: '뒤로',
@@ -320,7 +320,7 @@ const koKRMessages = {
   },
   showcase: {
     title: '쇼케이스',
-    slogan: '온라인 예제로 Web SDK의 강력한 기능을 살펴보세요',
+    slogan: '온라인 예제로 Univer Office SDK의 강력한 기능을 살펴보세요',
     back: '뒤로',
     'related-title': '관련 예제',
     breadcrumb: {

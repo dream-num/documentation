@@ -107,7 +107,8 @@ const zhTWMessages = {
     examples: {
       eyebrow: '互動式範例',
       title: '一次發佈，串連每個工作空間',
-      description: '透過六種可編輯的 Web SDK 體驗，探索從規劃、內容表達、視覺協作到 PDF 交付的完整產品發佈流程。',
+      description:
+        '透過六種可編輯的 Univer Office SDK 體驗，探索從規劃、內容表達、視覺協作到 PDF 交付的完整產品發佈流程。',
     },
     customer: {
       title: 'Univer Office SDK 為各行業團隊與公司賦能，提升工作效率',
@@ -308,7 +309,7 @@ const zhTWMessages = {
   },
   blog: {
     title: '博客',
-    slogan: '在此探索 Web SDK 的新聞、架構和最佳實踐',
+    slogan: '在此探索 Univer Office SDK 的新聞、架構和最佳實踐',
     author: '作者',
     date: '發表日期',
     back: '返回',
@@ -318,7 +319,7 @@ const zhTWMessages = {
   },
   showcase: {
     title: '在線演示',
-    slogan: '通過案例，了解 Web SDK 的強大功能',
+    slogan: '通過案例，了解 Univer Office SDK 的強大功能',
     back: '返回',
     'related-title': '相關案例',
     breadcrumb: {

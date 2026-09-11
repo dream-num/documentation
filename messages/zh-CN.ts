@@ -107,7 +107,8 @@ const zhCNMessages = {
     examples: {
       eyebrow: '交互式示例',
       title: '一次发布，贯穿每个工作空间',
-      description: '通过六种可编辑的 Web SDK 体验，探索从规划、内容表达、视觉协作到 PDF 交付的完整产品发布流程。',
+      description:
+        '通过六种可编辑的 Univer Office SDK 体验，探索从规划、内容表达、视觉协作到 PDF 交付的完整产品发布流程。',
     },
     customer: {
       title: 'Univer Office SDK 为各行业团队与公司赋能，提升工作效率',
@@ -308,7 +309,7 @@ const zhCNMessages = {
   },
   blog: {
     title: '博客',
-    slogan: '在此探索 Web SDK 的新闻、架构和最佳实践',
+    slogan: '在此探索 Univer Office SDK 的新闻、架构和最佳实践',
     author: '作者',
     date: '发表日期',
     back: '返回',
@@ -318,7 +319,7 @@ const zhCNMessages = {
   },
   showcase: {
     title: '在线演示',
-    slogan: '通过案例，了解 Web SDK 的强大功能',
+    slogan: '通过案例，了解 Univer Office SDK 的强大功能',
     back: '返回',
     'related-title': '相关案例',
     breadcrumb: {

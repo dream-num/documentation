@@ -17,8 +17,8 @@ interface IProps {
 }
 
 export const metadata = {
-  title: 'Web SDK Showcase',
-  description: 'Explore the Web SDK showcase',
+  title: 'Univer Office SDK Showcase',
+  description: 'Explore the Univer Office SDK showcase',
 }
 
 export default async function Page({ params }: IProps) {

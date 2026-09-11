@@ -15,7 +15,7 @@ export async function GET(request: Request, { params }: IProps) {
   const { lang } = await params
 
   const feed = new Feed({
-    title: 'Web SDK Blog',
+    title: 'Univer Office SDK Blog',
     id: `${baseUrl}/blog`,
     link: `${baseUrl}/blog`,
     language: lang,
