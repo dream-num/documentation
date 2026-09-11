@@ -15,7 +15,7 @@ const metadata: ShowcaseMetadata = {
   },
   tags: {
     'en-US': ['Embed', 'Slides', 'Boards', 'Tab', 'Retrospective'],
-    'zh-CN': ['嵌入', '幻灯片', '白板', '标签', '复盘'],
+    'zh-CN': ['嵌入', '幻灯片', '画板', '标签', '复盘'],
   },
   packages: [
     '@univerjs/core',

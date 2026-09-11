@@ -16,7 +16,7 @@ const metadata: ShowcaseMetadata = {
   },
   tags: {
     'en-US': ['Embed', 'Traditional Docs', 'Boards', 'Methods'],
-    'zh-CN': ['嵌入', '传统文档', '白板', '方法'],
+    'zh-CN': ['嵌入', '传统文档', '画板', '方法'],
   },
   packages: [
     '@univerjs/core',

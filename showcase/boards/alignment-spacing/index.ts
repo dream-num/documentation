@@ -13,7 +13,7 @@ const metadata: ShowcaseMetadata = {
       'Arrange five differently sized editorial cards. Compare edge and center alignment, equal gaps, custom spacing, and native drag guides.',
     'zh-CN': '排列五张不同尺寸的编辑卡片，比较边缘和中心对齐、等距、自定义间距及原生拖拽辅助线。',
   },
-  tags: { 'en-US': ['Boards', 'Single feature', 'Layout'], 'zh-CN': ['白板', '单功能', '布局'] },
+  tags: { 'en-US': ['Boards', 'Single feature', 'Layout'], 'zh-CN': ['画板', '单功能', '布局'] },
   packages: ['@univerjs-pro/boards', '@univerjs-pro/boards-ui', '@univerjs-pro/license'],
   apis: [
     'FBoard.alignElements()',

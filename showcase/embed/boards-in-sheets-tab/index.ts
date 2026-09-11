@@ -15,7 +15,7 @@ const metadata: ShowcaseMetadata = {
       'An incident-cost workbook opens a native Board tab with a recovery timeline, a cause hypothesis and owned follow-ups.',
     'zh-CN': '事故成本工作簿内置原生 Board 标签，展示恢复时间线、待确认原因与有责任人的改进事项。',
   },
-  tags: { 'en-US': ['Embed', 'Sheets', 'Boards', 'Tab'], 'zh-CN': ['嵌入', '表格', '白板', '标签'] },
+  tags: { 'en-US': ['Embed', 'Sheets', 'Boards', 'Tab'], 'zh-CN': ['嵌入', '表格', '画板', '标签'] },
   packages: [
     '@univerjs/core',
     '@univerjs/sheets-ui',

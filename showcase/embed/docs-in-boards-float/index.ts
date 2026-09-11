@@ -16,7 +16,7 @@ const metadata: ShowcaseMetadata = {
   },
   tags: {
     'en-US': ['Embed', 'Boards', 'Modern Docs', 'Float', 'Research'],
-    'zh-CN': ['嵌入', '白板', '现代文档', '浮动', '调研'],
+    'zh-CN': ['嵌入', '画板', '现代文档', '浮动', '调研'],
   },
   packages: [
     '@univerjs-pro/boards',

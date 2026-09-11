@@ -14,7 +14,7 @@ const metadata: ShowcaseMetadata = {
   },
   tags: {
     'en-US': ['Formula', 'Sheets', 'Boards', 'Native float', 'Print'],
-    'zh-CN': ['公式', '表格', '白板', '原生浮动', '打印'],
+    'zh-CN': ['公式', '表格', '画板', '原生浮动', '打印'],
   },
   packages: [
     '@univerjs/sheets',

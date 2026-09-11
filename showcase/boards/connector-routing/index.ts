@@ -13,7 +13,7 @@ const metadata: ShowcaseMetadata = {
       'Compare four real routes, bound/free endpoints and editable business labels in a native release workflow.',
     'zh-CN': '在原生发布流程中比较四种真实路由、绑定与自由端点，以及可编辑的业务标签。',
   },
-  tags: { 'en-US': ['Boards', 'Connectors', 'Native editing'], 'zh-CN': ['白板', '连接线', '原生编辑'] },
+  tags: { 'en-US': ['Boards', 'Connectors', 'Native editing'], 'zh-CN': ['画板', '连接线', '原生编辑'] },
   packages: ['@univerjs-pro/boards', '@univerjs-pro/boards-ui', '@univerjs-pro/license'],
   apis: [
     'FBoard.getConnectorConnection() / setConnectorConnection()',

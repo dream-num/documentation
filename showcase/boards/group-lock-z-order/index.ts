@@ -11,7 +11,7 @@ const metadata: ShowcaseMetadata = {
     'en-US': 'Four native clusters compare overlaps, one-level groups, nested groups and locked versus movable shapes.',
     'zh-CN': '四组原生样张对照重叠层级、单层分组、嵌套分组和锁定／可移动图形。',
   },
-  tags: { 'en-US': ['Boards', 'Groups', 'Layers'], 'zh-CN': ['白板', '分组', '图层'] },
+  tags: { 'en-US': ['Boards', 'Groups', 'Layers'], 'zh-CN': ['画板', '分组', '图层'] },
   packages: ['@univerjs-pro/boards', '@univerjs-pro/boards-ui', '@univerjs-pro/license'],
   apis: [
     'FBoard.wrapElementsInContainer()',

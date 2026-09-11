@@ -7,8 +7,8 @@ export type SectionId = (typeof SECTION_IDS)[number]
 // Navigation aliases only; metadata, documentation and SDK locales retain product names.
 export function treeLabel(value: string) {
   return value
-    .replace(/^(?:Boards|白板)(?=$| as Host| 作为宿主)/, 'Canvases')
-    .replace(/^(?:Bases|多维表格)(?=$| as Host| 作为宿主)/, 'Relational Tables')
+    .replace(/^Boards(?=$| as Host| 作为宿主)/, 'Canvases')
+    .replace(/^Bases(?=$| as Host| 作为宿主)/, 'Relational Tables')
 }
 export const INTEGRATION_PRODUCT_IDS = [
   'sheets',

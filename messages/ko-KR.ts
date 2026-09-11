@@ -94,9 +94,9 @@ const koKRMessages = {
     },
   },
   home: {
-    slogan: '워크플로에 서버 기반 생산성 도구를 더하세요',
+    slogan: '고성능, 자유롭게 맞춤 설정하는 Office SDK',
     description:
-      'Univer Office SDK는 Web SDK, Server SDK, AI SDK를 포함합니다. Univer Office SDK는 높은 확장성과 성능을 갖춘 풀스택 동형 오피스 제품군으로, 개발자가 자유롭게 구축하고 편집할 수 있도록 설계되었습니다. ',
+      'Univer Office SDK는 통합 Office 런타임을 제품에 제공하여 사람과 AI 에이전트의 협업을 지원합니다. 자유롭게 조합하고 임베드할 수 있는 도구: ',
     'description-split': ', ',
     'description-period': '을 자유롭게 다룰 수 있습니다.',
     'description-and': ' 및 ',

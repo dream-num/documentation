@@ -93,9 +93,9 @@ const frFRMessages = {
     },
   },
   home: {
-    slogan: 'Intégrez des outils de productivité pilotés par le serveur à votre workflow',
+    slogan: 'Un SDK Office performant et entièrement personnalisable',
     description:
-      'Univer Office SDK comprend Web SDK, Server SDK et AI SDK. Cette suite bureautique full-stack isomorphe, hautement extensible et performante est conçue pour aider les développeurs à créer et modifier librement ',
+      'Univer Office SDK intègre un runtime Office unifié à votre produit pour permettre aux utilisateurs et aux agents IA de travailler ensemble avec des outils librement composables et intégrables : ',
     'description-split': ', ',
     'description-period': '.',
     'description-and': ' et ',

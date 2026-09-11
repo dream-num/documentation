@@ -19,7 +19,7 @@ const metadata: ShowcaseMetadata = {
   },
   tags: {
     'en-US': ['Embed', 'Bases', 'Boards', 'Tab', 'Service design'],
-    'zh-CN': ['嵌入', '多维表格', '白板', '标签', '服务设计'],
+    'zh-CN': ['嵌入', '多维表格', '画板', '标签', '服务设计'],
   },
   packages: [
     '@univerjs-pro/bases',

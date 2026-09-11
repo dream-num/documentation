@@ -15,7 +15,7 @@ const metadata: ShowcaseMetadata = {
       'An editable dock-handoff diagram floats beside a shift-cost workbook. Bound connectors show the matched and exception paths; estimates do not authorize handoffs.',
     'zh-CN': '可编辑的码头交接流程图浮动在班次成本表旁。绑定连线展示核对一致与差异处理路径；估算不代表交接放行。',
   },
-  tags: { 'en-US': ['Embed', 'Sheets', 'Boards', 'Float'], 'zh-CN': ['嵌入', '表格', '白板', '浮动'] },
+  tags: { 'en-US': ['Embed', 'Sheets', 'Boards', 'Float'], 'zh-CN': ['嵌入', '表格', '画板', '浮动'] },
   packages: [
     '@univerjs/core',
     '@univerjs/sheets-ui',

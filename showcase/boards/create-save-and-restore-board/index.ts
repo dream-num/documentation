@@ -14,7 +14,7 @@ const metadata: ShowcaseMetadata = {
       'Edit a field-station plan, checkpoint the full SDK snapshot, and recreate the canvas. Compare active pages, stacking order, text and transforms.',
     'zh-CN': '编辑野外站计划，保存完整 SDK 快照并重建 Boards，比较活动页、层叠顺序、文本和变换。',
   },
-  tags: { 'en-US': ['Boards', 'Lifecycle', 'Snapshots'], 'zh-CN': ['白板', '生命周期', '快照'] },
+  tags: { 'en-US': ['Boards', 'Lifecycle', 'Snapshots'], 'zh-CN': ['画板', '生命周期', '快照'] },
   packages: ['@univerjs-pro/boards', '@univerjs-pro/boards-ui', '@univerjs-pro/license'],
   apis: [
     ['FUniver.createBoard()', 'Create a real canvas from an in-memory snapshot.', '从内存快照创建真实 Boards。'],

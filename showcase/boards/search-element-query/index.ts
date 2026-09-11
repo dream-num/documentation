@@ -12,7 +12,7 @@ const metadata: ShowcaseMetadata = {
     'en-US': 'Query native canvas text or element types, deduplicate hits, and focus matching elements.',
     'zh-CN': '查询原生 Boards 文字或元素类型，对命中结果去重并聚焦对应元素。',
   },
-  tags: { 'en-US': ['Boards', 'Single feature', 'Search'], 'zh-CN': ['白板', '单功能', '搜索'] },
+  tags: { 'en-US': ['Boards', 'Single feature', 'Search'], 'zh-CN': ['画板', '单功能', '搜索'] },
   packages: ['@univerjs-pro/boards', '@univerjs-pro/boards-ui', '@univerjs-pro/license'],
   apis: [
     'FBoard.findElementsByText()',

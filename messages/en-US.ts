@@ -92,11 +92,11 @@ const enUSMessages = {
     },
   },
   home: {
-    slogan: 'Embedding server-driven productivity tools into Your Workflow',
+    slogan: 'High-performance, fully customizable Office SDK',
     description:
-      'Univer Office SDK includes Web SDK, Server SDK, and AI SDK. It is a full-stack, isomorphic office suite with high extensibility and performance, designed to help developers build and edit ',
+      'Univer Office SDK brings a unified Office runtime into your product, enabling humans and AI agents to work together with freely composable and embeddable ',
     'description-split': ', ',
-    'description-period': ' freely.',
+    'description-period': '.',
     'description-and': ' and ',
     'description-sheets': 'spreadsheets',
     'description-docs': 'documents',

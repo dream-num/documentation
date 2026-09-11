@@ -19,7 +19,7 @@ const metadata: ShowcaseMetadata = {
   },
   tags: {
     'en-US': ['Embed', 'Boards', 'Bases', 'Float', 'Research'],
-    'zh-CN': ['嵌入', '白板', '多维表格', '浮动', '研究'],
+    'zh-CN': ['嵌入', '画板', '多维表格', '浮动', '研究'],
   },
   packages: [
     '@univerjs-pro/boards',

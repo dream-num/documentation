@@ -94,9 +94,9 @@ const jaJPMessages = {
     },
   },
   home: {
-    slogan: 'あなたのワークフローに、サーバードリブンの生産性ツールを組み込もう。',
+    slogan: '高性能で自由にカスタマイズできる Office SDK',
     description:
-      'Univer Office SDK は Web SDK、Server SDK、AI SDK を含みます。Univer Office SDK は高い拡張性とパフォーマンスを備えたフルスタックのオフィススイートで、開発者が自由に構築および編集できるように設計されています。',
+      'Univer Office SDK は統一された Office ランタイムをプロダクトに組み込み、人と AI エージェントの共同作業を支えます。自由に組み合わせて埋め込めるツール：',
     'description-split': '、',
     'description-period': '。',
     'description-and': 'と',

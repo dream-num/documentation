@@ -17,7 +17,7 @@ interface IProps {
 }
 
 export const metadata = {
-  title: 'Univer Office SDK Showcase',
+  title: 'Showcase',
   description: 'Explore the Univer Office SDK showcase',
 }
 
@@ -26,8 +26,8 @@ export default async function Page({ params }: IProps) {
 
   const counts = Object.fromEntries(SECTION_IDS.map((product) => [product, 0])) as Record<SectionId, number>
 
-  const items = showcaseNavigation.map(({ slug, metadata }, index) => {
-    const item = createCatalogItem(slug, metadata, lang, index)
+  const items = showcaseNavigation.map((entry, index) => {
+    const item = createCatalogItem(entry.slug, entry.metadata, lang, index)
     counts[item.section]++
     return item
   })

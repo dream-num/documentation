@@ -13,7 +13,7 @@ const metadata = {
       'Coordinate a SEV-1 payment response with native cards, a frame, free-endpoint connectors and a reconciliation deadline.',
     'zh-CN': '使用原生卡片、容器框、自由端点连接线和对账截止时间协调 SEV-1 支付事故。',
   },
-  tags: { 'en-US': ['Boards', 'Diagram', 'Operations'], 'zh-CN': ['白板', '图示', '运营'] },
+  tags: { 'en-US': ['Boards', 'Diagram', 'Operations'], 'zh-CN': ['画板', '图示', '运营'] },
   packages: ['@univerjs-pro/boards', '@univerjs-pro/boards-ui', '@univerjs-pro/engine-shape'],
   apis: [
     { name: 'FUniver.createBoard()' },

@@ -16,7 +16,7 @@ const metadata: ShowcaseMetadata = {
   },
   tags: {
     'en-US': ['Formula', 'Boards', 'Sheets', 'Float', 'Capacity', 'Embed'],
-    'zh-CN': ['公式', '白板', '表格', '浮动嵌入', '容量规划', '嵌入'],
+    'zh-CN': ['公式', '画板', '表格', '浮动嵌入', '容量规划', '嵌入'],
   },
   packages: [
     '@univerjs/core',

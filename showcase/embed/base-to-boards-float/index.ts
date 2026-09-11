@@ -15,7 +15,7 @@ const metadata: ShowcaseMetadata = {
   },
   tags: {
     'en-US': ['Formula', 'Bases', 'Boards', 'Float', 'Embed'],
-    'zh-CN': ['公式', '多维表格', '白板', '浮动嵌入', '嵌入'],
+    'zh-CN': ['公式', '多维表格', '画板', '浮动嵌入', '嵌入'],
   },
   packages: [
     '@univerjs-pro/bases',

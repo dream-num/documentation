@@ -95,9 +95,9 @@ const esESMessages = {
     },
   },
   home: {
-    slogan: 'Incorporación de herramientas de productividad basadas en servidor en su flujo de trabajo',
+    slogan: 'Un SDK de Office de alto rendimiento y totalmente personalizable',
     description:
-      'Univer Office SDK incluye Web SDK, Server SDK y AI SDK. Esta es una suite ofimática isomórfica de pila completa con alta extensibilidad y rendimiento, diseñada para ayudar a los desarrolladores a crear y editar',
+      'Univer Office SDK integra un entorno de ejecución de Office unificado en su producto para que personas y agentes de IA colaboren con herramientas que se pueden combinar e integrar libremente: ',
     'description-split': ',',
     'description-period': 'libremente.',
     'description-and': 'y',

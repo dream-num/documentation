@@ -94,9 +94,8 @@ const zhCNMessages = {
     },
   },
   home: {
-    slogan: '重塑工作流的全栈嵌入工具',
-    description:
-      'Univer Office SDK 包含 Web SDK、Server SDK 和 AI SDK，是一个前后端同构的全栈办公套件，具有高扩展性和高性能，旨在帮助开发者自由构建和编辑',
+    slogan: '高性能、可自由定制的 Office SDK',
+    description: 'Univer Office SDK 将统一的 Office 运行时嵌入你的产品，支持人类与 AI Agent 协同工作，自由组合和嵌入',
     'description-split': '、',
     'description-period': '。',
     'description-and': '和',
@@ -133,11 +132,11 @@ const zhCNMessages = {
         desc: '类 PowerPoint 的幻灯片编辑器，支持可编辑 SmartArt、图表、表格设计，以及跨平台一致的 Canvas2D 渲染。',
       },
       bases: {
-        title: '数据表',
+        title: '多维表格',
         desc: '面向业务数据的表格化应用。支持字段建模、多视图、记录管理和低代码数据工作流。',
       },
       boards: {
-        title: '白板',
+        title: '画板',
         desc: '面向视觉协作的无限画布，支持图片背景、容器、图形、打印，以及 PNG/JPEG 导出。',
       },
       pdf: {

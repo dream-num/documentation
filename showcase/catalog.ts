@@ -20,7 +20,7 @@ export const PRODUCT_CONFIG: Record<
   'docs-modern': { label: { 'en-US': 'Modern Docs', 'zh-CN': '现代文档' }, color: 'blue' },
   'docs-traditional': { label: { 'en-US': 'Traditional Docs', 'zh-CN': '传统文档' }, color: 'indigo' },
   slides: { label: { 'en-US': 'Slides', 'zh-CN': '演示文稿' }, color: 'rose' },
-  boards: { label: { 'en-US': 'Boards', 'zh-CN': '白板' }, color: 'amber' },
+  boards: { label: { 'en-US': 'Boards', 'zh-CN': '画板' }, color: 'amber' },
   bases: { label: { 'en-US': 'Bases', 'zh-CN': '多维表格' }, color: 'violet' },
   pdfs: { label: { 'en-US': 'PDFs', 'zh-CN': 'PDF' }, color: 'red' },
   embed: { label: { 'en-US': 'Compose & Embed', 'zh-CN': '组合与嵌套' }, color: 'cyan' },

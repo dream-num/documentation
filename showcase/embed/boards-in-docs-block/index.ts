@@ -14,7 +14,7 @@ const metadata: ShowcaseMetadata = {
       'A technical decision record embeds a native service-boundary Board. Edit and move connected shapes without changing the host decision.',
     'zh-CN': '技术决策记录内嵌原生服务边界 Board，编辑文字、拖动连接节点不会改写宿主决策。',
   },
-  tags: { 'en-US': ['Embed', 'Modern Docs', 'Boards', 'Block'], 'zh-CN': ['嵌入', '现代文档', '白板', '块'] },
+  tags: { 'en-US': ['Embed', 'Modern Docs', 'Boards', 'Block'], 'zh-CN': ['嵌入', '现代文档', '画板', '块'] },
   packages: [
     '@univerjs/core',
     '@univerjs/docs-ui',
