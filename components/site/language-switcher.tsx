@@ -24,10 +24,6 @@ export function SiteLanguageSwitcher({
   locales: ILocaleOption[]
 }) {
   const pathname = usePathname()
-  const availableLocales =
-    pathname === '/showcase' || pathname.startsWith('/showcase/')
-      ? locales.filter(({ locale }) => locale === 'en-US' || locale === 'zh-CN')
-      : locales
 
   return (
     <DropdownMenu>
@@ -45,7 +41,7 @@ export function SiteLanguageSwitcher({
         <LanguagesIcon className="size-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {availableLocales.map(({ displayName, locale }) => (
+        {locales.map(({ displayName, locale }) => (
           <DropdownMenuItem key={locale} render={<Link className="justify-between" href={pathname} locale={locale} />}>
             <span>{displayName}</span>
             {locale === lang ? <span className="text-muted-foreground text-xs">{currentLabel}</span> : null}

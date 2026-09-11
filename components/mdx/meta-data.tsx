@@ -181,7 +181,7 @@ export function MetaData(props: {
       icon: KeyRound,
       label: t('mdx-meta-data.license-label'),
       description: t('mdx-meta-data.license-required'),
-      href: '/server/license',
+      href: '/guides/license',
     },
     {
       visible: mobile === true,

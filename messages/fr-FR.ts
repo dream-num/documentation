@@ -318,39 +318,6 @@ const frFRMessages = {
     recent: 'Articles récents',
     rss: 'Flux RSS',
   },
-  showcase: {
-    title: 'Démonstrations',
-    slogan: 'Découvrez les puissantes fonctionnalités d’Univer Office SDK à travers des exemples en ligne',
-    back: 'Retour',
-    'related-title': 'Exemples associés',
-    breadcrumb: {
-      home: 'Accueil',
-      showcase: 'Démonstrations',
-    },
-    filter: {
-      all: 'Tous',
-      sheets: 'Feuilles de calcul',
-      docs: 'Documents',
-      slides: 'Présentations',
-    },
-    stats: {
-      total: 'Nombre total d’exemples',
-      sheets: 'Feuilles de calcul',
-      docs: 'Documents',
-      slides: 'Présentations',
-    },
-    search: {
-      placeholder: 'Rechercher des exemples...',
-      'no-result': 'Aucun exemple correspondant trouvé.',
-      result: 'résultat',
-      results: 'résultats',
-      'result-for': 'pour',
-    },
-    view: {
-      grid: 'Vue en grille',
-      list: 'Vue en liste',
-    },
-  },
   docs: {
     'reference-language-notice':
       'Cette page API est actuellement disponible en anglais. Les signatures et identifiants restent identiques dans toutes les langues.',

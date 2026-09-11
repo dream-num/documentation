@@ -27,7 +27,7 @@ export default async function Layout({ params, children }: IProps) {
     },
     {
       text: t('navigation.showcase'),
-      url: '/showcase',
+      url: 'https://office.univer.ai',
     },
   ]
 

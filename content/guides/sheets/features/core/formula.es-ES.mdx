@@ -74,18 +74,139 @@ enum CalculationMode {
 
 > Si la celda que contiene la fórmula tiene un valor inesperado, puede establezca `initialFormulaComputing` en `CalculationMode.FORCED` para forzar el cálculo de todas las fórmulas. Alternativamente, puede borrar el valor `v` de la celda antes de la inicialización.
 
-## Referencias entre libros y 3D
+## Referencias entre libros
 
-Las fórmulas pueden hacer referencia a un libro cargado por su nombre visible o a un intervalo inclusivo de hojas según el orden del libro:
+Una fórmula puede resumir en `Report` las ventas de `Sales.xlsx`. A diferencia de una referencia a otra hoja del mismo libro, también identifica el libro de origen.
+
+### Sintaxis de referencia
+
+| Caso | Ejemplo | Destino |
+| --- | --- | --- |
+| Otra hoja del mismo libro | `=SUM(Data!A1:A10)` | Hoja Data del libro actual |
+| Rango de otro libro | `=SUM('[Sales.xlsx]Data'!A1:A10)` | Hoja Data de Sales.xlsx |
+| Tabla de otro libro | `=SUM(Sales.xlsx!SalesTable[Amount])` | Columna Amount de la tabla SalesTable existente |
+
+`Sales.xlsx` es un nombre de libro, no una ruta ni una URL. Escribir una fórmula no lee archivos, descarga Excel ni conecta con un editor en otra página. Crea la [tabla](/guides/sheets/features/table) antes de usar una referencia estructurada.
+
+### Referenciar libros cargados en la misma instancia
+
+Con el motor básico, carga ambos libros en la misma instancia de Univer y el mismo entorno de cálculo. Ejecuta el ejemplo después de inicializar Sheets. En modo plugin, importa también las extensiones Facade indicadas en esta página.
+
+```typescript
+const source = univerAPI.createWorkbook({
+  id: 'sales-workbook',
+  name: 'Sales.xlsx',
+  sheetOrder: ['sales-data'],
+  sheets: {
+    'sales-data': {
+      id: 'sales-data',
+      name: 'Data',
+      rowCount: 100,
+      columnCount: 20,
+      cellData: {
+        0: { 0: { v: 100 } },
+        1: { 0: { v: 200 } },
+      },
+    },
+  },
+}, { makeCurrent: false })
+
+const report = univerAPI.createWorkbook({ id: 'report-workbook', name: 'Report' })
+const resultCell = report.getActiveSheet().getRange('A1')
+resultCell.setFormula("=SUM('[Sales.xlsx]Data'!A1:A2)")
+
+const formula = univerAPI.getFormula()
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.log(resultCell.getValue()) // 300
+```
+
+`makeCurrent: false` carga el origen sin cambiar el libro activo. Conserva `source` y `report` para no escribir en el libro equivocado cuando cambie el libro activo.
+
+La comparación ignora mayúsculas y prioriza el nombre completo. Si no coincide, ignora extensiones habituales como `.xlsx` y `.xlsm`. Un nombre inexistente o ambiguo devuelve `#REF!`; utiliza nombres únicos.
+
+### Vincular una referencia a un ID de origen estable
+
+Para asociar un nombre de fórmula a un ID de documento estable, utiliza la extensión Pro `@univerjs-pro/engine-formula`. Configura una [licencia de cliente](/guides/license), sustituye `UniverFormulaEnginePlugin` por `UniverProFormulaEnginePlugin` al inicializar e importa la Facade Pro. No registres ambos motores. Importar solo la Facade no registra el plugin.
+
+Este ejemplo reutiliza los libros anteriores en un entorno configurado con el motor Pro:
+
+```typescript
+import '@univerjs-pro/engine-formula/facade'
+
+const reference = univerAPI.getFormula().buildReference({
+  hostUnitId: report.getId(),
+  unit: {
+    unitId: source.getId(),
+    formulaQualifier: 'Sales Source',
+  },
+  target: {
+    kind: univerAPI.Enum.FormulaReferenceType.SHEET_RANGE,
+    sheetName: 'Data',
+    range: { startRow: 0, endRow: 1, startColumn: 0, endColumn: 0 },
+  },
+})
+
+resultCell.setFormula(`=SUM(${reference})`)
+```
+
+`hostUnitId` identifica el libro que contiene la fórmula, `unit.unitId` es el ID estable del origen y `formulaQualifier` su nombre público en la fórmula. Las coordenadas empiezan en cero e incluyen el extremo final.
+
+`buildReference()` devuelve un fragmento sin `=` y guarda la vinculación. No carga el origen ni inicia el cálculo. Los datos deben estar disponibles en un libro cargado en el entorno de cálculo o mediante un proveedor configurado. Para fórmulas escritas a mano o generadas por la aplicación, vincula primero:
+
+```typescript
+const formula = univerAPI.getFormula()
+const bound = formula.upsertExternalReference({
+  unitId: report.getId(),
+  qualifier: 'Sales Source',
+  sourceUnitId: source.getId(),
+  sourceUnitType: univerAPI.Enum.UniverInstanceType.UNIVER_SHEET,
+})
+if (!bound) throw new Error('Could not bind Sales Source')
+
+resultCell.setFormula("=SUM('[Sales Source]Data'!A1:A2)")
+```
+
+Repetir la misma vinculación es idempotente. `qualifier` no lleva corchetes ni comillas. Los enteros positivos como `1` y `2` están reservados para posiciones de enlaces externos de Excel, no para ID de negocio. Conserva los recursos de enlaces al importar: copiar solo la fórmula no basta.
+
+### Actualizar, guardar y descargar de memoria
+
+Después de modificar el origen mediante Facade, inicia el cálculo y espera a que se apliquen los resultados antes de leer el destino. No supongas que el cálculo asíncrono ha terminado al regresar de `setFormula()` o `setValue()`.
+
+```typescript
+const sourceSheet = source.getSheetBySheetId('sales-data')
+if (!sourceSheet) throw new Error('Source sheet not found')
+sourceSheet.getRange('A1').setValue(150)
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.log(resultCell.getValue()) // 350
+```
+
+Usa `report.save()` para guardar el snapshot completo, incluidos los recursos de vinculación. Guardar solo las fórmulas pierde la relación entre nombres e ID. Guarda y carga los datos de origen por separado.
+
+Al descargar el origen de memoria, las referencias ordinarias a libros cargados ya no pueden leerlo. Las referencias Pro solo pueden seguir calculando si los proveedores o cachés disponibles suministran los datos. Una vinculación no contiene los datos ni garantiza el cálculo sin conexión. Un valor anterior en pantalla no demuestra que el resultado esté actualizado.
+
+Elimina una vinculación Pro cuando deje de ser necesaria:
+
+```typescript
+univerAPI.getFormula().removeExternalReference({
+  unitId: report.getId(),
+  qualifier: 'Sales Source',
+})
+```
+
+Eliminarla no borra ni reescribe las fórmulas. El siguiente cálculo vuelve a resolver el nombre: puede encontrar otro libro cargado con ese nombre o devolver `#REF!`. Modifica o borra también las fórmulas si quieres dejar de referenciar el origen. Consulta las [API de referencia de FFormula](/reference/facade/formula#cross-unit-reference-authoring).
+
+## Referencias 3D
+
+Una referencia 3D abarca hojas consecutivas del mismo libro; es distinta de una referencia entre libros.
 
 ```text
-=SUM('[Sales.xlsx]Data'!A1:A10)
-=SUM(Sales.xlsx!SalesTable[Amount])
 =SUM(Jan:Mar!B2:C3)
 =SUM('Jan':'Mar'!B2)
 ```
 
-Los nombres de libro se comparan sin distinguir mayúsculas y minúsculas; en la coincidencia alternativa se ignoran las extensiones comunes de Excel. Un nombre ausente o ambiguo devuelve `#REF!`.
+El rango incluye Jan, Mar y todas las hojas intermedias según el orden del libro, no alfabéticamente. Comprueba el rango de agregación cuando reordenes las hojas.
 
 ## Funciones de fórmula admitidas
 

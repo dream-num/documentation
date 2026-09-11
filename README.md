@@ -33,6 +33,10 @@ The Icons preview, MCP endpoint, and downloadable metadata use `public/assets/ic
 
 The read-only Icons MCP runs at `/mcp/icons` in the existing Next.js Node server. It exposes `search_icons` and `get_icon` over Streamable HTTP without a model API key or separate process. Its Host/Origin allowlist covers `docs.univer.ai` and loopback hosts; update `app/mcp/icons/route.ts` when deploying under another hostname. With the site running, verify the endpoint using `DOCS_TEST_ORIGIN=http://localhost:3030 node --test app/mcp/icons/__tests__/route.spec.mjs`.
 
+## Showcase
+
+Showcase source, assets, tests and build tooling live in the sibling `../office.univer.ai` Vite project. Run `pnpm dev` there, then set `NEXT_PUBLIC_SHOWCASES_ORIGIN=http://localhost:5180` here. Production example links and embedded previews default to `https://office.univer.ai`. Set `NEXT_PUBLIC_SHOWCASES_ORIGIN` in `.env.local` to override that address for local development.
+
 ## Project Structure
 
 ```

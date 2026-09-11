@@ -74,18 +74,143 @@ enum CalculationMode {
 
 > If the cell containing the formula has an unexpected value, you can set `initialFormulaComputing` to `CalculationMode.FORCED` to force the calculation of all formulas. Alternatively, you can clear the cell's `v` value before initialization.
 
-## Cross-workbook and 3D references
+## Cross-workbook references
 
-Formulas can reference loaded workbooks by display name and span an inclusive range of worksheets in workbook order:
+A cross-workbook formula reads data from another workbook, for example to summarize sales from `Sales.xlsx` in `Report`. Unlike a reference to another worksheet in the same workbook, it also identifies the source workbook.
+
+### Reference syntax
+
+| Scenario | Example | Meaning |
+| --- | --- | --- |
+| Another sheet in the same workbook | `=SUM(Data!A1:A10)` | Cells in the current workbook's `Data` sheet |
+| A range in another workbook | `=SUM('[Sales.xlsx]Data'!A1:A10)` | Cells in the `Data` sheet of `Sales.xlsx` |
+| A table in another workbook | `=SUM(Sales.xlsx!SalesTable[Amount])` | The `Amount` column of an existing `SalesTable` table in the source workbook |
+
+`Sales.xlsx` is a workbook name, not a file path or download URL. Writing a formula does not read a file, download an Excel workbook, or connect to an editor in another browser page. Create the corresponding [table](/guides/sheets/features/table) before using a structured table reference.
+
+### Reference workbooks loaded in the same instance
+
+With the core formula engine, load both workbooks into the same Univer instance and formula calculation environment. Run this example after initializing Sheets. In plugin mode, also import the Facade extensions described on this page.
+
+```typescript
+const source = univerAPI.createWorkbook({
+  id: 'sales-workbook',
+  name: 'Sales.xlsx',
+  sheetOrder: ['sales-data'],
+  sheets: {
+    'sales-data': {
+      id: 'sales-data',
+      name: 'Data',
+      rowCount: 100,
+      columnCount: 20,
+      cellData: {
+        0: { 0: { v: 100 } },
+        1: { 0: { v: 200 } },
+      },
+    },
+  },
+}, { makeCurrent: false })
+
+const report = univerAPI.createWorkbook({ id: 'report-workbook', name: 'Report' })
+const resultCell = report.getActiveSheet().getRange('A1')
+resultCell.setFormula("=SUM('[Sales.xlsx]Data'!A1:A2)")
+
+const formula = univerAPI.getFormula()
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.log(resultCell.getValue()) // 300
+```
+
+`makeCurrent: false` loads the source without making it the current workbook. Keeping explicit `source` and `report` handles avoids writing formulas to the wrong workbook after the active workbook changes.
+
+Names are matched case-insensitively. A full-name match takes precedence; otherwise, matching ignores common Excel extensions such as `.xlsx` and `.xlsm`. Missing or ambiguous names return `#REF!`. Use a unique, explicit source name.
+
+### Bind a reference to a stable source ID
+
+Use the reference-binding APIs from `@univerjs-pro/engine-formula` when your application needs to associate a formula name with a stable document ID. This is a Pro extension: configure a [client license](/guides/license), replace `UniverFormulaEnginePlugin` with `UniverProFormulaEnginePlugin` during initialization, and import the Pro Facade. Do not register both formula engines. Importing the Facade alone does not register the plugin.
+
+The following example reuses the workbooks above in an environment configured with the Pro engine:
+
+```typescript
+import '@univerjs-pro/engine-formula/facade'
+
+const reference = univerAPI.getFormula().buildReference({
+  hostUnitId: report.getId(),
+  unit: {
+    unitId: source.getId(),
+    formulaQualifier: 'Sales Source',
+  },
+  target: {
+    kind: univerAPI.Enum.FormulaReferenceType.SHEET_RANGE,
+    sheetName: 'Data',
+    range: { startRow: 0, endRow: 1, startColumn: 0, endColumn: 0 },
+  },
+})
+
+resultCell.setFormula(`=SUM(${reference})`)
+```
+
+`hostUnitId` identifies the workbook containing the formula. `unit.unitId` is the stable source workbook ID, and `formulaQualifier` is its public name in formula text. Range coordinates are zero-based and inclusive.
+
+`buildReference()` returns a reference fragment without `=` and persists the cross-workbook binding. It neither loads the source nor starts calculation. Source data must still be available from a workbook loaded into the calculation environment or a configured data provider.
+
+For hand-written or application-generated formula text, bind the source before writing the formula:
+
+```typescript
+const formula = univerAPI.getFormula()
+const bound = formula.upsertExternalReference({
+  unitId: report.getId(),
+  qualifier: 'Sales Source',
+  sourceUnitId: source.getId(),
+  sourceUnitType: univerAPI.Enum.UniverInstanceType.UNIVER_SHEET,
+})
+if (!bound) throw new Error('Could not bind Sales Source')
+
+resultCell.setFormula("=SUM('[Sales Source]Data'!A1:A2)")
+```
+
+Repeating an identical binding in the same workbook is an idempotent operation. Pass `qualifier` without brackets or quotes. Do not use positive integers such as `1` or `2`: Excel reserves these for external-link slots, not application document IDs. Imported Excel external links also require their link resources; copying formula text alone is insufficient.
+
+### Update, save, and unload
+
+After changing source data through the Facade, explicitly calculate and wait for results to be applied before reading the target. Do not assume asynchronous calculation has finished immediately after `setFormula()` or `setValue()`.
+
+```typescript
+const sourceSheet = source.getSheetBySheetId('sales-data')
+if (!sourceSheet) throw new Error('Source sheet not found')
+sourceSheet.getRange('A1').setValue(150)
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.log(resultCell.getValue()) // 350
+```
+
+Save the target with `report.save()` to preserve the complete snapshot, including its reference-binding resources. Saving only cell formula text loses the mapping between public names and source IDs. Save and load source workbook data separately.
+
+After a source workbook is unloaded, ordinary loaded-workbook references can no longer read it. Pro external references can continue calculating only when the configured data providers and available caches supply the necessary data. A binding does not contain source data or guarantee offline calculation. A previously displayed result is not proof of current data.
+
+Remove a Pro binding when it is no longer needed:
+
+```typescript
+univerAPI.getFormula().removeExternalReference({
+  unitId: report.getId(),
+  qualifier: 'Sales Source',
+})
+```
+
+Removing a binding does not delete or rewrite existing formulas. The next calculation resolves their names again. A matching loaded workbook may still resolve by name; otherwise, the reference returns `#REF!`. Also change or clear the cell formulas if you intend to stop referencing the source.
+
+See the [FFormula reference-binding APIs](/reference/facade/formula#cross-unit-reference-authoring) for full parameters and return values.
+
+## 3D references
+
+A 3D reference spans consecutive worksheets within a workbook. This is separate from referencing another workbook:
 
 ```text
-=SUM('[Sales.xlsx]Data'!A1:A10)
-=SUM(Sales.xlsx!SalesTable[Amount])
 =SUM(Jan:Mar!B2:C3)
 =SUM('Jan':'Mar'!B2)
 ```
 
-Workbook names are matched case-insensitively, with common Excel extensions ignored as a fallback. A missing or ambiguous workbook name returns `#REF!`.
+The range includes `Jan`, `Mar`, and every sheet between them in workbook order, not alphabetical order. Check the intended aggregation range when reordering sheets.
 
 ## Supported Formula Functions
 

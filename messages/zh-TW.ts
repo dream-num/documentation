@@ -316,39 +316,6 @@ const zhTWMessages = {
     recent: '最新文章',
     rss: 'RSS 訂閱',
   },
-  showcase: {
-    title: '在線演示',
-    slogan: '通過案例，了解 Univer Office SDK 的強大功能',
-    back: '返回',
-    'related-title': '相關案例',
-    breadcrumb: {
-      home: '首頁',
-      showcase: '在線演示',
-    },
-    filter: {
-      all: '全部',
-      sheets: '電子表格',
-      docs: '文檔',
-      slides: '演示文稿',
-    },
-    stats: {
-      total: '案例總數',
-      sheets: '電子表格',
-      docs: '文檔',
-      slides: '演示文稿',
-    },
-    search: {
-      placeholder: '搜尋案例...',
-      'no-result': '沒有找到匹配的案例。',
-      result: '个结果',
-      results: '个结果',
-      'result-for': '关于',
-    },
-    view: {
-      grid: '網格檢視',
-      list: '列表檢視',
-    },
-  },
   docs: {
     'reference-language-notice': '此 API 頁面目前提供英文內容。程式碼簽名與識別符不隨介面語言變更。',
     breadcrumb: '麵包屑',

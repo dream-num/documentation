@@ -320,39 +320,6 @@ const ruRUMessages = {
     recent: 'Недавние публикации',
     rss: 'RSS-лента',
   },
-  showcase: {
-    title: 'Примеры',
-    slogan: 'Познакомьтесь с возможностями Univer Office SDK на интерактивных примерах',
-    back: 'Назад',
-    'related-title': 'Похожие примеры',
-    breadcrumb: {
-      home: 'Главная',
-      showcase: 'Примеры',
-    },
-    filter: {
-      all: 'Все',
-      sheets: 'Таблицы',
-      docs: 'Документы',
-      slides: 'Презентации',
-    },
-    stats: {
-      total: 'Всего примеров',
-      sheets: 'Таблицы',
-      docs: 'Документы',
-      slides: 'Презентации',
-    },
-    search: {
-      placeholder: 'Поиск примеров…',
-      'no-result': 'Подходящих примеров не найдено.',
-      result: 'результат',
-      results: 'результатов',
-      'result-for': 'по запросу',
-    },
-    view: {
-      grid: 'Плитка',
-      list: 'Список',
-    },
-  },
   docs: {
     'reference-language-notice':
       'Текст этой страницы API пока доступен на английском. Сигнатуры и идентификаторы не зависят от языка интерфейса.',

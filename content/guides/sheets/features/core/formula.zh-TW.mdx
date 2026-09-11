@@ -74,18 +74,139 @@ enum CalculationMode {
 
 > 如果公式所在儲存格有非預期值，可以透過 `initialFormulaComputing` 設定為 `CalculationMode.FORCED` 強制計算所有公式。或者初始化之前清空儲存格的 `v` 值。
 
-## 跨活頁簿與三維參照
+## 跨活頁簿引用
 
-公式可以按顯示名稱參照已載入的活頁簿，也可以按工作表順序參照包含首尾工作表在內的連續範圍：
+跨活頁簿公式可在 `Report` 中彙總 `Sales.xlsx` 的資料。與同一活頁簿內的跨工作表引用不同，它還需指定來源活頁簿。
+
+### 引用語法
+
+| 情境 | 範例 | 意義 |
+| --- | --- | --- |
+| 同一活頁簿的其他工作表 | `=SUM(Data!A1:A10)` | 目前活頁簿的 Data 工作表 |
+| 其他活頁簿的儲存格範圍 | `=SUM('[Sales.xlsx]Data'!A1:A10)` | Sales.xlsx 的 Data 工作表 |
+| 其他活頁簿的表格 | `=SUM(Sales.xlsx!SalesTable[Amount])` | 已存在的 SalesTable 表格的 Amount 欄 |
+
+`Sales.xlsx` 是活頁簿名稱，不是檔案路徑或下載網址。寫入公式不會讀取磁碟、下載 Excel 或連接另一個瀏覽器頁面。結構化引用需要先建立對應的[表格](/guides/sheets/features/table)。
+
+### 引用同一實例中已載入的活頁簿
+
+基礎公式引擎要求兩份活頁簿位於同一 Univer 實例與計算環境。以下程式碼在 Sheets 初始化後執行；外掛模式還需匯入本頁列出的 Facade 擴充。
+
+```typescript
+const source = univerAPI.createWorkbook({
+  id: 'sales-workbook',
+  name: 'Sales.xlsx',
+  sheetOrder: ['sales-data'],
+  sheets: {
+    'sales-data': {
+      id: 'sales-data',
+      name: 'Data',
+      rowCount: 100,
+      columnCount: 20,
+      cellData: {
+        0: { 0: { v: 100 } },
+        1: { 0: { v: 200 } },
+      },
+    },
+  },
+}, { makeCurrent: false })
+
+const report = univerAPI.createWorkbook({ id: 'report-workbook', name: 'Report' })
+const resultCell = report.getActiveSheet().getRange('A1')
+resultCell.setFormula("=SUM('[Sales.xlsx]Data'!A1:A2)")
+
+const formula = univerAPI.getFormula()
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.log(resultCell.getValue()) // 300
+```
+
+`makeCurrent: false` 載入來源時不切換目前活頁簿。保留 `source`、`report` 可避免切換目前活頁簿後寫入錯誤位置。
+
+名稱比對不區分大小寫，完整名稱優先；找不到時才忽略 `.xlsx`、`.xlsm` 等 Excel 副檔名。名稱不存在或不唯一時返回 `#REF!`，因此來源名稱應明確且唯一。
+
+### 綁定固定的來源 ID
+
+需要將公式名稱綁定到穩定文件 ID 時，可使用 `@univerjs-pro/engine-formula`。這是 Pro 擴充：先設定[用戶端授權](/guides/license)，初始化時以 `UniverProFormulaEnginePlugin` 取代 `UniverFormulaEnginePlugin`，並匯入 Pro Facade。不要同時註冊兩個引擎；僅匯入 Facade 不會註冊外掛。
+
+以下範例在已設定 Pro 引擎的環境中沿用上述活頁簿：
+
+```typescript
+import '@univerjs-pro/engine-formula/facade'
+
+const reference = univerAPI.getFormula().buildReference({
+  hostUnitId: report.getId(),
+  unit: {
+    unitId: source.getId(),
+    formulaQualifier: 'Sales Source',
+  },
+  target: {
+    kind: univerAPI.Enum.FormulaReferenceType.SHEET_RANGE,
+    sheetName: 'Data',
+    range: { startRow: 0, endRow: 1, startColumn: 0, endColumn: 0 },
+  },
+})
+
+resultCell.setFormula(`=SUM(${reference})`)
+```
+
+`hostUnitId` 是儲存公式的活頁簿 ID，`unit.unitId` 是來源的穩定 ID，`formulaQualifier` 是公式中的公開名稱。座標從 0 開始，包含結束座標。
+
+`buildReference()` 傳回不含 `=` 的引用片段並儲存綁定，不會載入來源或開始計算。資料仍需來自計算環境中已載入的活頁簿或已設定的資料提供者。手寫或由應用程式產生的公式應先綁定：
+
+```typescript
+const formula = univerAPI.getFormula()
+const bound = formula.upsertExternalReference({
+  unitId: report.getId(),
+  qualifier: 'Sales Source',
+  sourceUnitId: source.getId(),
+  sourceUnitType: univerAPI.Enum.UniverInstanceType.UNIVER_SHEET,
+})
+if (!bound) throw new Error('Could not bind Sales Source')
+
+resultCell.setFormula("=SUM('[Sales Source]Data'!A1:A2)")
+```
+
+相同綁定重複寫入是冪等操作。`qualifier` 不含括號或引號，也不可使用 `1`、`2` 等正整數；它們是 Excel 外部連結槽位，並非業務文件 ID。匯入外部連結時需保留連結資源，只複製公式文字並不足夠。
+
+### 更新、儲存與卸載
+
+透過 Facade 更新來源後，明確觸發計算並等待結果寫回，再讀取目標。不要假定 `setFormula()` 或 `setValue()` 返回時非同步計算已完成。
+
+```typescript
+const sourceSheet = source.getSheetBySheetId('sales-data')
+if (!sourceSheet) throw new Error('Source sheet not found')
+sourceSheet.getRange('A1').setValue(150)
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.log(resultCell.getValue()) // 350
+```
+
+使用 `report.save()` 儲存含引用綁定資源的完整快照。只儲存公式文字會遺失名稱與來源 ID 的映射；來源資料需要另外儲存與載入。
+
+來源卸載後，一般的已載入活頁簿引用無法再讀取它。Pro 引用能否繼續計算取決於資料提供者與可用快取；綁定不包含來源資料，也不保證離線計算。先前顯示的值不代表最新結果。
+
+不再需要 Pro 綁定時可移除：
+
+```typescript
+univerAPI.getFormula().removeExternalReference({
+  unitId: report.getId(),
+  qualifier: 'Sales Source',
+})
+```
+
+移除綁定不會刪除或改寫公式。下次計算重新解析名稱：若仍有同名的已載入活頁簿，可能繼續解析，否則返回 `#REF!`。若要停止引用，也應修改或清除公式。完整參數見 [FFormula 引用綁定 API](/reference/facade/formula#cross-unit-reference-authoring)。
+
+## 三維引用
+
+三維引用涵蓋同一活頁簿內連續的工作表，與跨活頁簿引用不同：
 
 ```text
-=SUM('[Sales.xlsx]Data'!A1:A10)
-=SUM(Sales.xlsx!SalesTable[Amount])
 =SUM(Jan:Mar!B2:C3)
 =SUM('Jan':'Mar'!B2)
 ```
 
-活頁簿名稱匹配不區分大小寫，回退匹配時會忽略常見 Excel 副檔名。名稱缺失或存在歧義時會傳回 `#REF!`。
+範圍包含 Jan、Mar 與兩者之間的所有工作表，按活頁簿順序而非名稱排序。調整工作表順序時，應檢查彙總範圍是否仍正確。
 
 ## 已經支援的公式函數
 

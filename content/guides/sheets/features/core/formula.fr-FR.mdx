@@ -74,18 +74,139 @@ enum CalculationMode {
 
 > Si la cellule contenant la formule présente une valeur inattendue, vous pouvez définir `initialFormulaComputing` sur `CalculationMode.FORCED` afin de forcer le calcul de toutes les formules. Vous pouvez également effacer la valeur `v` de la cellule avant l’initialisation.
 
-## Références inter-classeurs et 3D
+## Références entre classeurs
 
-Les formules peuvent référencer un classeur chargé par son nom d'affichage ou une plage inclusive de feuilles selon leur ordre dans le classeur :
+Une formule peut agréger dans `Report` les ventes de `Sales.xlsx`. Contrairement à une référence vers une autre feuille du même classeur, elle identifie aussi le classeur source.
+
+### Syntaxe des références
+
+| Cas | Exemple | Cible |
+| --- | --- | --- |
+| Autre feuille du même classeur | `=SUM(Data!A1:A10)` | Feuille Data du classeur courant |
+| Plage d’un autre classeur | `=SUM('[Sales.xlsx]Data'!A1:A10)` | Feuille Data de Sales.xlsx |
+| Tableau d’un autre classeur | `=SUM(Sales.xlsx!SalesTable[Amount])` | Colonne Amount du tableau SalesTable existant |
+
+`Sales.xlsx` est un nom de classeur, pas un chemin ni une URL. Écrire une formule ne lit aucun fichier, ne télécharge pas Excel et ne connecte pas un éditeur dans une autre page. Créez le [tableau](/guides/sheets/features/table) avant d’utiliser une référence structurée.
+
+### Référencer des classeurs chargés dans la même instance
+
+Avec le moteur de base, chargez les deux classeurs dans la même instance Univer et le même environnement de calcul. Exécutez cet exemple après l’initialisation de Sheets. En mode plugin, importez aussi les extensions Facade indiquées sur cette page.
+
+```typescript
+const source = univerAPI.createWorkbook({
+  id: 'sales-workbook',
+  name: 'Sales.xlsx',
+  sheetOrder: ['sales-data'],
+  sheets: {
+    'sales-data': {
+      id: 'sales-data',
+      name: 'Data',
+      rowCount: 100,
+      columnCount: 20,
+      cellData: {
+        0: { 0: { v: 100 } },
+        1: { 0: { v: 200 } },
+      },
+    },
+  },
+}, { makeCurrent: false })
+
+const report = univerAPI.createWorkbook({ id: 'report-workbook', name: 'Report' })
+const resultCell = report.getActiveSheet().getRange('A1')
+resultCell.setFormula("=SUM('[Sales.xlsx]Data'!A1:A2)")
+
+const formula = univerAPI.getFormula()
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.log(resultCell.getValue()) // 300
+```
+
+`makeCurrent: false` charge la source sans changer le classeur actif. Conservez `source` et `report` pour éviter d’écrire au mauvais endroit après un changement de classeur actif.
+
+La recherche ignore la casse et privilégie le nom complet. À défaut, elle ignore les extensions Excel usuelles telles que `.xlsx` et `.xlsm`. Un nom absent ou ambigu produit `#REF!` : utilisez un nom unique.
+
+### Associer une référence à un ID source stable
+
+Pour associer un nom de formule à un ID de document stable, utilisez l’extension Pro `@univerjs-pro/engine-formula`. Configurez une [licence client](/guides/license), remplacez `UniverFormulaEnginePlugin` par `UniverProFormulaEnginePlugin` à l’initialisation et importez la Facade Pro. N’enregistrez pas les deux moteurs. L’import de la Facade seul n’enregistre pas le plugin.
+
+Cet exemple reprend les classeurs précédents dans un environnement configuré avec le moteur Pro :
+
+```typescript
+import '@univerjs-pro/engine-formula/facade'
+
+const reference = univerAPI.getFormula().buildReference({
+  hostUnitId: report.getId(),
+  unit: {
+    unitId: source.getId(),
+    formulaQualifier: 'Sales Source',
+  },
+  target: {
+    kind: univerAPI.Enum.FormulaReferenceType.SHEET_RANGE,
+    sheetName: 'Data',
+    range: { startRow: 0, endRow: 1, startColumn: 0, endColumn: 0 },
+  },
+})
+
+resultCell.setFormula(`=SUM(${reference})`)
+```
+
+`hostUnitId` désigne le classeur contenant la formule, `unit.unitId` l’ID stable de la source et `formulaQualifier` son nom public dans la formule. Les coordonnées commencent à zéro et incluent la borne finale.
+
+`buildReference()` renvoie un fragment sans `=` et enregistre l’association. Il ne charge pas la source et ne lance pas le calcul. Les données doivent provenir d’un classeur chargé dans l’environnement de calcul ou d’un fournisseur configuré. Pour une formule écrite à la main ou générée par l’application, créez d’abord l’association :
+
+```typescript
+const formula = univerAPI.getFormula()
+const bound = formula.upsertExternalReference({
+  unitId: report.getId(),
+  qualifier: 'Sales Source',
+  sourceUnitId: source.getId(),
+  sourceUnitType: univerAPI.Enum.UniverInstanceType.UNIVER_SHEET,
+})
+if (!bound) throw new Error('Could not bind Sales Source')
+
+resultCell.setFormula("=SUM('[Sales Source]Data'!A1:A2)")
+```
+
+Répéter la même association est idempotent. `qualifier` ne contient ni crochets ni guillemets. Les entiers positifs comme `1` et `2` sont réservés aux emplacements de liens externes Excel, pas aux ID métier. Conservez les ressources de liens lors d’un import : le texte de la formule seul ne suffit pas.
+
+### Mettre à jour, enregistrer et décharger
+
+Après une modification de la source via la Facade, lancez le calcul et attendez l’application des résultats avant de lire la cible. Le calcul asynchrone n’est pas nécessairement terminé au retour de `setFormula()` ou `setValue()`.
+
+```typescript
+const sourceSheet = source.getSheetBySheetId('sales-data')
+if (!sourceSheet) throw new Error('Source sheet not found')
+sourceSheet.getRange('A1').setValue(150)
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.log(resultCell.getValue()) // 350
+```
+
+Utilisez `report.save()` pour enregistrer le snapshot complet avec les ressources d’association. Sauvegarder uniquement les formules perd la correspondance nom/ID. Enregistrez et chargez les données source séparément.
+
+Une fois la source déchargée, une référence ordinaire à un classeur chargé ne peut plus la lire. Les références Pro ne peuvent poursuivre le calcul que si les fournisseurs ou caches disponibles apportent les données. Une association ne contient pas les données et ne garantit pas le calcul hors ligne. Une ancienne valeur affichée ne prouve pas que le résultat est à jour.
+
+Supprimez une association Pro devenue inutile :
+
+```typescript
+univerAPI.getFormula().removeExternalReference({
+  unitId: report.getId(),
+  qualifier: 'Sales Source',
+})
+```
+
+La suppression ne modifie ni n’efface les formules. Le calcul suivant résout à nouveau le nom : un classeur chargé portant ce nom peut encore être trouvé ; sinon, la référence renvoie `#REF!`. Modifiez ou effacez aussi les formules pour arrêter la référence. Voir les [API de référence FFormula](/reference/facade/formula#cross-unit-reference-authoring).
+
+## Références 3D
+
+Une référence 3D couvre des feuilles consécutives du même classeur. Elle est distincte d’une référence entre classeurs.
 
 ```text
-=SUM('[Sales.xlsx]Data'!A1:A10)
-=SUM(Sales.xlsx!SalesTable[Amount])
 =SUM(Jan:Mar!B2:C3)
 =SUM('Jan':'Mar'!B2)
 ```
 
-Les noms de classeurs sont comparés sans tenir compte de la casse ; les extensions Excel courantes sont ignorées lors de la recherche de secours. Un nom absent ou ambigu renvoie `#REF!`.
+La plage comprend Jan, Mar et toutes les feuilles intermédiaires dans l’ordre du classeur, et non par ordre alphabétique. Vérifiez la plage d’agrégation lorsque vous réordonnez les feuilles.
 
 ## Fonctions de formule prises en charge
 

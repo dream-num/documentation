@@ -17,24 +17,22 @@ interface IProps {
 export function PlaygroundFrame({ slug, lang, clickToShow = false }: IProps) {
   const t = useTranslations()
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const [iframeHeight, setIframeHeight] = useState(0)
+  const [iframeHeight, setIframeHeight] = useState(1360)
   const [fullscreenError, setFullscreenError] = useState(false)
-  const src = '/' + lang + '/playground/' + slug
+  const src = `${process.env.NEXT_PUBLIC_SHOWCASES_ORIGIN || 'https://office.univer.ai'}/${lang}/playground/${slug}`
+  const frameOrigin = new URL(src).origin
 
   const measureFrame = useCallback(() => {
     if (document.fullscreenElement === iframeRef.current) return
-    // Recover an initial resize notification sent before parent hydration.
-    const frameDocument = iframeRef.current?.contentDocument
-    const height = frameDocument?.URL !== 'about:blank' ? frameDocument?.documentElement.scrollHeight : 0
-    if (height && Number.isFinite(height)) setIframeHeight(height)
-  }, [])
+    iframeRef.current?.contentWindow?.postMessage({ type: 'measure' }, frameOrigin)
+  }, [frameOrigin])
 
   useEffect(() => {
     const eventHandler = (event: MessageEvent) => {
       if (
         document.fullscreenElement !== iframeRef.current &&
         event.source === iframeRef.current?.contentWindow &&
-        event.origin === window.location.origin &&
+        event.origin === frameOrigin &&
         event.data?.type === 'setHeight' &&
         typeof event.data.height === 'number' &&
         Number.isFinite(event.data.height) &&
@@ -42,20 +40,27 @@ export function PlaygroundFrame({ slug, lang, clickToShow = false }: IProps) {
       )
         setIframeHeight(event.data.height)
     }
+    const onFullscreenChange = () =>
+      iframeRef.current?.contentWindow?.postMessage(
+        { type: 'fullscreen', active: document.fullscreenElement === iframeRef.current },
+        frameOrigin,
+      )
+    document.addEventListener('fullscreenchange', onFullscreenChange)
     window.addEventListener('message', eventHandler)
     measureFrame()
     return () => {
       window.removeEventListener('message', eventHandler)
+      document.removeEventListener('fullscreenchange', onFullscreenChange)
     }
-  }, [measureFrame])
+  }, [measureFrame, frameOrigin])
 
   const toggleFullscreen = async () => {
     setFullscreenError(false)
     try {
-      const preview = iframeRef.current?.contentDocument?.querySelector<HTMLElement>('[data-showcase-preview]')
-      if (!preview) throw new Error('Preview is not ready')
-      // SDK popups are mounted under body, outside the preview element.
-      await preview.ownerDocument.body.requestFullscreen()
+      const frame = iframeRef.current
+      if (!frame) return
+      await frame.requestFullscreen()
+      frame.contentWindow?.postMessage({ type: 'fullscreen', active: true }, frameOrigin)
     } catch {
       setFullscreenError(true)
     }
@@ -93,7 +98,7 @@ export function PlaygroundFrame({ slug, lang, clickToShow = false }: IProps) {
           disabled={!iframeHeight}
           aria-label={buttonLabel}
           title={buttonLabel}
-          className="inline-flex size-7 items-center justify-center rounded-sm text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+          className="inline-flex size-7 items-center justify-center rounded-sm text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800 dark:text-neutral-400 hover:dark:bg-neutral-800 hover:dark:text-neutral-200"
         >
           <ExpandIcon className="size-3.5" />
         </button>

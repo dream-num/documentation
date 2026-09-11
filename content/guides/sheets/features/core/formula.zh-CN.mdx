@@ -74,18 +74,143 @@ enum CalculationMode {
 
 > 如果公式所在单元格有非预期值，可以通过 `initialFormulaComputing` 设置为 `CalculationMode.FORCED` 强制计算所有公式。或者初始化之前清空单元格的 `v` 值。
 
-## 跨工作簿与三维引用
+## 跨工作簿引用
 
-公式可以按显示名称引用已加载的工作簿，也可以按工作表顺序引用包含首尾工作表在内的连续范围：
+跨工作簿公式用于在一个工作簿中汇总另一个工作簿的数据。例如，在 `Report` 中统计 `Sales.xlsx` 的销售额。它与同一工作簿内的跨工作表引用不同：除了工作表名称，还需要标明来源工作簿。
+
+### 引用语法
+
+| 场景 | 示例 | 含义 |
+| --- | --- | --- |
+| 同一工作簿的另一张表 | `=SUM(Data!A1:A10)` | 当前工作簿中 `Data` 表的数据 |
+| 另一工作簿的单元格区域 | `=SUM('[Sales.xlsx]Data'!A1:A10)` | `Sales.xlsx` 中 `Data` 表的数据 |
+| 另一工作簿中的表格 | `=SUM(Sales.xlsx!SalesTable[Amount])` | 来源工作簿内已存在的 `SalesTable` 表格的 `Amount` 列 |
+
+`Sales.xlsx` 是工作簿名称，不是文件路径或下载地址。写入公式不会自动读取磁盘、下载 Excel 文件或连接另一个浏览器页面中的编辑器。使用表格结构化引用前，需要先创建相应的[表格](/guides/sheets/features/table)。
+
+### 引用同一实例中已加载的工作簿
+
+使用基础公式引擎时，来源工作簿与目标工作簿需要加载到同一个 Univer 实例中，并进入同一公式计算环境。下面的代码接在 Sheets 初始化之后执行；插件模式还需按本页的 Facade 引入说明加载对应扩展。
+
+```typescript
+const source = univerAPI.createWorkbook({
+  id: 'sales-workbook',
+  name: 'Sales.xlsx',
+  sheetOrder: ['sales-data'],
+  sheets: {
+    'sales-data': {
+      id: 'sales-data',
+      name: 'Data',
+      rowCount: 100,
+      columnCount: 20,
+      cellData: {
+        0: { 0: { v: 100 } },
+        1: { 0: { v: 200 } },
+      },
+    },
+  },
+}, { makeCurrent: false })
+
+const report = univerAPI.createWorkbook({ id: 'report-workbook', name: 'Report' })
+const resultCell = report.getActiveSheet().getRange('A1')
+resultCell.setFormula("=SUM('[Sales.xlsx]Data'!A1:A2)")
+
+const formula = univerAPI.getFormula()
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.log(resultCell.getValue()) // 300
+```
+
+`makeCurrent: false` 让来源工作簿在加载时不切换为当前工作簿。示例始终保存并使用 `source`、`report` 的引用，避免切换活动工作簿后将公式写入错误位置。
+
+名称匹配先查找不区分大小写的完整名称；没有完整匹配时，再忽略 `.xlsx`、`.xlsm` 等常见 Excel 扩展名进行匹配。名称不存在或匹配到多个工作簿时返回 `#REF!`。请为来源使用明确且唯一的名称。
+
+### 使用固定来源 ID 绑定引用
+
+如果业务需要把公式中的名称固定绑定到某个文档 ID，可使用 `@univerjs-pro/engine-formula` 的引用绑定 API。它属于 Pro 扩展：需配置[客户端许可证](/guides/license)，在初始化时用 `UniverProFormulaEnginePlugin` 替换普通的 `UniverFormulaEnginePlugin`，并引入 Pro Facade。不要同时注册两个公式引擎；仅引入 Facade 不会完成插件注册。
+
+在已经配置 Pro 引擎的环境中，以下代码沿用上例的两个工作簿：
+
+```typescript
+import '@univerjs-pro/engine-formula/facade'
+
+const reference = univerAPI.getFormula().buildReference({
+  hostUnitId: report.getId(),
+  unit: {
+    unitId: source.getId(),
+    formulaQualifier: 'Sales Source',
+  },
+  target: {
+    kind: univerAPI.Enum.FormulaReferenceType.SHEET_RANGE,
+    sheetName: 'Data',
+    range: { startRow: 0, endRow: 1, startColumn: 0, endColumn: 0 },
+  },
+})
+
+resultCell.setFormula(`=SUM(${reference})`)
+```
+
+`hostUnitId` 是保存公式的工作簿 ID，`unit.unitId` 是来源工作簿的稳定 ID，`formulaQualifier` 是公式里展示的名称。区域坐标从 `0` 开始，结束坐标包含在区域内。
+
+`buildReference()` 返回不带 `=` 的引用片段，并为跨工作簿来源保存绑定；它不会加载来源，也不会执行公式计算。来源数据仍需由同一计算环境中已加载的工作簿或已配置的数据提供方提供。
+
+如果公式文本来自手写或业务系统生成，可以先显式绑定，再写入公式：
+
+```typescript
+const formula = univerAPI.getFormula()
+const bound = formula.upsertExternalReference({
+  unitId: report.getId(),
+  qualifier: 'Sales Source',
+  sourceUnitId: source.getId(),
+  sourceUnitType: univerAPI.Enum.UniverInstanceType.UNIVER_SHEET,
+})
+if (!bound) throw new Error('Could not bind Sales Source')
+
+resultCell.setFormula("=SUM('[Sales Source]Data'!A1:A2)")
+```
+
+同一工作簿中重复写入相同绑定是幂等操作。`qualifier` 不包含方括号或引号，也不要使用 `1`、`2` 这样的正整数名称：它们是 Excel 外部链接的槽位编号，不是业务文档 ID。导入 Excel 外部链接时，还需保留对应的链接资源，不能只复制公式字符串。
+
+### 数据更新、保存与卸载
+
+通过 Facade 修改来源数据后，可显式触发计算并等待结果写回，再读取目标值。不要在 `setFormula()` 或 `setValue()` 后立即假定异步计算已经完成。
+
+```typescript
+const sourceSheet = source.getSheetBySheetId('sales-data')
+if (!sourceSheet) throw new Error('Source sheet not found')
+sourceSheet.getRange('A1').setValue(150)
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.log(resultCell.getValue()) // 350
+```
+
+保存目标工作簿时，使用 `report.save()` 保存完整快照，包括引用绑定资源。只保存单元格公式文本，会丢失业务名称与来源 ID 的映射；来源工作簿的数据需要单独保存与加载。
+
+来源工作簿卸载后，普通的已加载工作簿引用无法继续读取该来源。使用 Pro 外部引用时，是否仍能计算取决于已配置的数据提供方和可用缓存；绑定本身并不包含来源数据，也不保证离线可计算。不要把卸载前显示的旧结果当成最新结果。
+
+如果不再需要某个 Pro 绑定，可调用：
+
+```typescript
+univerAPI.getFormula().removeExternalReference({
+  unitId: report.getId(),
+  qualifier: 'Sales Source',
+})
+```
+
+移除绑定不会删除或重写已有公式。下一次计算将重新解析公式中的名称；若已加载工作簿仍可按名称匹配，引用可能继续解析，否则会出现 `#REF!`。如需停止引用，还应修改或清除相关单元格公式。
+
+完整参数与返回值见 [FFormula 引用绑定 API](/reference/facade/formula#cross-unit-reference-authoring)。
+
+## 三维引用
+
+三维引用用于同一工作簿中一组连续工作表，与跨工作簿引用是两个维度。例如：
 
 ```text
-=SUM('[Sales.xlsx]Data'!A1:A10)
-=SUM(Sales.xlsx!SalesTable[Amount])
 =SUM(Jan:Mar!B2:C3)
 =SUM('Jan':'Mar'!B2)
 ```
 
-工作簿名称匹配不区分大小写，并会在回退匹配时忽略常见 Excel 扩展名。名称缺失或存在歧义时返回 `#REF!`。
+范围按工作簿中的工作表顺序确定，包含 `Jan`、`Mar` 以及它们之间的所有工作表，而不是按名称排序。调整工作表顺序时，应检查汇总范围是否仍符合预期。
 
 ## 已经支持的公式函数
 

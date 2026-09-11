@@ -120,7 +120,7 @@ export default async function Page({ params }: IProps) {
                 <BookTextIcon />
                 {t('navigation.documentation')}
               </RainbowButton>
-              <RainbowButton variant="outline" render={<Link href="/showcase" />}>
+              <RainbowButton variant="outline" render={<Link href="https://office.univer.ai" />}>
                 <FerrisWheelIcon />
                 {t('navigation.showcase')}
               </RainbowButton>

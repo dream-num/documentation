@@ -5,15 +5,8 @@ import { NextResponse } from 'next/server'
 import { routing } from '@/i18n/routing'
 
 const intlMiddleware = createMiddleware(routing)
-const showcaseMiddleware = createMiddleware({
-  defaultLocale: 'en-US',
-  localeCookie: routing.localeCookie,
-  localePrefix: 'as-needed',
-  locales: ['en-US', 'zh-CN'],
-  localeDetection: false,
-})
 const guidesRootPath = new RegExp(`^/(?:(${routing.locales.join('|')})/)?guides/?$`)
-const showcasePath = new RegExp(`^/(?:(${routing.locales.join('|')})/)?(showcase(?:/.*)?)$`)
+const showcasePath = new RegExp(`^/(?:(${routing.locales.join('|')})/)?((?:showcase|playground)(?:/.*)?)$`)
 const agentDocsPath = new RegExp(
   `^/(?:(?:(${routing.locales.join('|')})/))?(llms(?:-full)?\\.txt|(?:guides|server|ai|reference)(?:\\.md|/llms\\.txt|/.+\\.md))$`,
 )
@@ -26,14 +19,13 @@ export default function proxy(request: NextRequest) {
   }
 
   const showcaseMatch = request.nextUrl.pathname.match(showcasePath)
-  if (showcaseMatch) {
-    const locale = showcaseMatch[1]
-    if (locale && locale !== 'en-US' && locale !== 'zh-CN') {
-      const destination = request.nextUrl.clone()
-      destination.pathname = `${locale === 'zh-TW' ? '/zh-CN' : ''}/${showcaseMatch[2]}`
-      return NextResponse.redirect(destination, 308)
-    }
-    return showcaseMiddleware(request)
+  if (showcaseMatch && showcaseMatch[2] !== 'playground/theme-customizer') {
+    const locale = showcaseMatch[1] || routing.defaultLocale
+    const origin = process.env.NEXT_PUBLIC_SHOWCASES_ORIGIN || 'https://office.univer.ai'
+    const pathname = /^showcase\/?$/.test(showcaseMatch[2]) ? '/' : `/${locale}/${showcaseMatch[2]}`
+    const destination = new URL(pathname, origin)
+    destination.search = request.nextUrl.search
+    return NextResponse.redirect(destination)
   }
 
   const match = request.nextUrl.pathname.match(agentDocsPath)

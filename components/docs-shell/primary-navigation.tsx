@@ -28,7 +28,7 @@ export function PrimaryNavigation({
         { text: labels.tools, url: '/tools/theme-customizer' },
         { text: labels.reference, url: '/reference' },
         { text: labels.blog, url: '/blog' },
-        { text: labels.showcase, url: '/showcase' },
+        { text: labels.showcase, url: 'https://office.univer.ai' },
       ]
 
   return (

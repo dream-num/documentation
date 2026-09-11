@@ -318,39 +318,6 @@ const koKRMessages = {
     recent: '최근 게시물',
     rss: 'RSS 피드',
   },
-  showcase: {
-    title: '쇼케이스',
-    slogan: '온라인 예제로 Univer Office SDK의 강력한 기능을 살펴보세요',
-    back: '뒤로',
-    'related-title': '관련 예제',
-    breadcrumb: {
-      home: '홈',
-      showcase: '쇼케이스',
-    },
-    filter: {
-      all: '전체',
-      sheets: 'Sheets',
-      docs: 'Docs',
-      slides: 'Slides',
-    },
-    stats: {
-      total: '전체 예제',
-      sheets: 'Sheets',
-      docs: 'Docs',
-      slides: 'Slides',
-    },
-    search: {
-      placeholder: '예제 검색...',
-      'no-result': '일치하는 예제가 없습니다.',
-      result: '개 결과',
-      results: '개 결과',
-      'result-for': '검색어',
-    },
-    view: {
-      grid: '격자 보기',
-      list: '목록 보기',
-    },
-  },
   docs: {
     'reference-language-notice':
       '이 API 페이지의 본문은 현재 영어로 제공됩니다. 코드 시그니처와 식별자는 언어에 따라 바뀌지 않습니다.',

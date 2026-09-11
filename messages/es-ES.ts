@@ -319,39 +319,6 @@ const esESMessages = {
     recent: 'Publicaciones recientes',
     rss: 'Feed RSS',
   },
-  showcase: {
-    title: 'Showcase',
-    slogan: 'Explore las potentes funciones de Univer Office SDK a través de ejemplos en línea',
-    back: 'Volver',
-    'related-title': 'Ejemplos relacionados',
-    breadcrumb: {
-      home: 'Inicio',
-      showcase: 'Showcase',
-    },
-    filter: {
-      all: 'Todos',
-      sheets: 'Hojas',
-      docs: 'Documentos',
-      slides: 'Diapositivas',
-    },
-    stats: {
-      total: 'Ejemplos totales',
-      sheets: 'Hojas',
-      docs: 'Documentos',
-      slides: 'Diapositivas',
-    },
-    search: {
-      placeholder: 'Buscar ejemplos...',
-      'no-result': 'No se encontraron ejemplos coincidentes.',
-      result: 'resultado',
-      results: 'resultados',
-      'result-for': 'para',
-    },
-    view: {
-      grid: 'Vista de cuadrícula',
-      list: 'Lista ver',
-    },
-  },
   docs: {
     'reference-language-notice':
       'Esta página de API está disponible actualmente en inglés. Las firmas y los identificadores no cambian con el idioma.',

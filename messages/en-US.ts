@@ -316,39 +316,6 @@ const enUSMessages = {
     recent: 'Recent posts',
     rss: 'RSS Feed',
   },
-  showcase: {
-    title: 'Showcase',
-    slogan: "Explore Univer Office SDK's powerful features through online examples",
-    back: 'Back',
-    'related-title': 'Related Examples',
-    breadcrumb: {
-      home: 'Home',
-      showcase: 'Showcase',
-    },
-    filter: {
-      all: 'All',
-      sheets: 'Sheets',
-      docs: 'Docs',
-      slides: 'Slides',
-    },
-    stats: {
-      total: 'Total Examples',
-      sheets: 'Sheets',
-      docs: 'Docs',
-      slides: 'Slides',
-    },
-    search: {
-      placeholder: 'Search examples...',
-      'no-result': 'No matching examples found.',
-      result: 'result',
-      results: 'results',
-      'result-for': 'for',
-    },
-    view: {
-      grid: 'Grid view',
-      list: 'List view',
-    },
-  },
   docs: {
     'reference-language-notice':
       'This API page is currently available in English. Code signatures and identifiers are the same across languages.',

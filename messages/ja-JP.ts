@@ -318,39 +318,6 @@ const jaJPMessages = {
     recent: '最新記事',
     rss: 'RSS フィード',
   },
-  showcase: {
-    title: 'ショーケース',
-    slogan: 'オンライン例を通じて Univer Office SDK の強力な機能を探求します',
-    back: '戻る',
-    'related-title': '関連案例',
-    breadcrumb: {
-      home: 'ホーム',
-      showcase: 'ショーケース',
-    },
-    filter: {
-      all: 'すべて',
-      sheets: 'スプレッドシート',
-      docs: 'ドキュメント',
-      slides: 'プレゼンテーション',
-    },
-    stats: {
-      total: '総例数',
-      sheets: 'スプレッドシート',
-      docs: 'ドキュメント',
-      slides: 'プレゼンテーション',
-    },
-    search: {
-      placeholder: '例を検索...',
-      'no-result': '一致する例が見つかりません。',
-      result: '件の結果',
-      results: '件の結果',
-      'result-for': '検索語:',
-    },
-    view: {
-      grid: 'グリッド表示',
-      list: 'リスト表示',
-    },
-  },
   docs: {
     'reference-language-notice':
       'この API ページの本文は現在英語です。コードのシグネチャと識別子は表示言語によって変わりません。',

@@ -11,10 +11,18 @@ Server 与 Web 组装，把 Collaboration SDK 接入自己的 Univer 应用。
 
 ## 路径一：运行官方示例
 
+### 运行前准备
+
+该仓库要求 **Node.js 24+**，并声明使用 **pnpm 10.32.1**。先检查 `node --version` 与 `pnpm --version`，保留仓库锁文件。所有 `pnpm example:*` 命令均从仓库根目录执行：命令会构建前端、服务端并检查类型，然后启动服务，并非热更新开发服务器。修改源码后，需要停止进程并重新运行命令。
+
+如果已有客户端许可证，请在**构建前**通过终端设置 `UNIVER_LICENSE`。示例的 `vite.config.ts` 会把它写入浏览器产物；只在启动已构建的服务时设置变量，不会更新客户端许可证。配置说明见[客户端许可证](/guides/license)。
+
+SQLite 示例会在安装时编译 `better-sqlite3`，需要可用的 `node-gyp`、Python 和 C/C++ 编译工具链。如果出现 `node-gyp: command not found`，先在开发环境中安装 `node-gyp`，再使用与运行示例相同的 Node.js 版本重新安装依赖。
+
 ```bash
 git clone https://github.com/dream-num/univer-collaboration-examples.git
 cd univer-collaboration-examples
-pnpm install
+pnpm install --frozen-lockfile
 pnpm example:quick-start
 ```
 
@@ -60,6 +68,12 @@ Endpoint 广播给其他成员。
 Client 配置与 Server。若从空项目开始，直接复制 Quick Start 目录中的 `index.html`、
 `vite.config.ts` 和样式文件作为外壳。
 
+### 按可运行文件迁入应用
+
+从 `examples/quick-start` 复制应用骨架，保留 `package.json`、`index.html`、`vite.config.ts`、`web/styles.css`、`web/main.ts` 与 `server/main.ts`。在复制后的示例目录内执行 build 和 start：Express 按工作目录读取 `dist/web`。保留 Vite 中的许可证注入，并确保 `#app` 有非零高度。下面的代码用于解释组装关系，完整可运行项目以这些文件为起点。
+
+示例页面和 `/universer-api` 使用同一源。迁到独立前端服务时，需要代理 HTTP 与 WebSocket Upgrade，或一起修改客户端的五个协议地址。URL 中的 `unit` 必须与后端创建的文档 ID 一致，`type=2` 表示 Sheets；仅填写 URL 参数不会创建文档。
+
 ### 1. 安装同一发布批次的 Package
 
 服务端需要 Transport、Endpoint、Service 和一个 Database Adapter；浏览器需要 Collaboration
@@ -67,18 +81,18 @@ Client。下面的命令安装所需 package，应用应再把所有 Univer pack
 
 ```bash
 pnpm add \
-  @univerjs-pro/collaboration \
-  @univerjs-pro/collaboration-client \
-  @univerjs-pro/collaboration-client-ui \
-  @univerjs-pro/collaboration-database-memory \
-  @univerjs-pro/collaboration-endpoint \
-  @univerjs-pro/collaboration-service \
-  @univerjs-pro/collaboration-transport-node \
-  @univerjs-pro/license \
-  @univerjs/core \
-  @univerjs/preset-sheets-core \
-  @univerjs/presets \
-  @univerjs/protocol \
+  @univerjs-pro/collaboration@1.0.0-rc.0 \
+  @univerjs-pro/collaboration-client@1.0.0-rc.0 \
+  @univerjs-pro/collaboration-client-ui@1.0.0-rc.0 \
+  @univerjs-pro/collaboration-database-memory@1.0.0-rc.0 \
+  @univerjs-pro/collaboration-endpoint@1.0.0-rc.0 \
+  @univerjs-pro/collaboration-service@1.0.0-rc.0 \
+  @univerjs-pro/collaboration-transport-node@1.0.0-rc.0 \
+  @univerjs-pro/license@1.0.0-rc.0 \
+  @univerjs/core@1.0.0-rc.0 \
+  @univerjs/preset-sheets-core@1.0.0-rc.0 \
+  @univerjs/presets@1.0.0-rc.0 \
+  @univerjs/protocol@1.0.0-rc.0 \
   express react react-dom rxjs
 ```
 
@@ -251,3 +265,13 @@ createUniver({
 下一步通常先完成 [Database Adapter](/server/collaboration/database-adapters) 与[身份与权限](/server/collaboration/identity-and-authorization)，
 再按需增加 [History、Thread Comment、Worktree 或 Exchange](/server/collaboration/extensions)。所有可运行组合见
 [示例索引](/server/collaboration/examples)。
+
+## 首次运行排查
+
+| 现象 | 检查项 |
+| --- | --- |
+| 安装或构建失败 | Node.js 24+、仓库声明的 pnpm 版本、Univer 包版本一致 |
+| 3010 端口被占用 | 停止前一个示例，或设置 `PORT=3011`，两个浏览器都使用新端口 |
+| 白屏或静态资源缺失 | 构建成功、从示例目录启动、`#app` 有高度 |
+| 页面能打开但修改不同步 | 两个窗口的完整 URL 相同；snapshot 与 session-ticket 请求成功；`/universer-api/comb/connect` 建立 WebSocket |
+| 重启后数据丢失 | Quick Start 使用内存，继续运行 SQLite 示例 |

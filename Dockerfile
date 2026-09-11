@@ -22,6 +22,8 @@ RUN corepack enable pnpm \
 # Environment variables
 ARG NEXT_POSTHOG_APIKEY=""
 ARG NEXT_PUBLIC_DOCS_SOURCE_REF="dev"
+ARG NEXT_PUBLIC_SHOWCASES_ORIGIN="https://office.univer.ai"
+ENV NEXT_PUBLIC_SHOWCASES_ORIGIN=${NEXT_PUBLIC_SHOWCASES_ORIGIN}
 ARG NODE_MAX_OLD_SPACE_SIZE="4096"
 RUN echo "NEXT_POSTHOG_APIKEY=${NEXT_POSTHOG_APIKEY}" >> .env
 ENV NEXT_PUBLIC_DOCS_SOURCE_REF=${NEXT_PUBLIC_DOCS_SOURCE_REF}
@@ -44,7 +46,6 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/showcase ./showcase
 
 # Set the correct permission for prerender cache
 RUN mkdir .next

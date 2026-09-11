@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { ExternalLinkIcon } from 'lucide-react'
 
 import { Link, usePathname } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
@@ -27,6 +28,9 @@ export function ActiveNavigationLink({
   return (
     <Link aria-current={active ? 'page' : undefined} className={clsx(className, active && activeClassName)} href={href}>
       {children}
+      {href.startsWith('https://') && (
+        <ExternalLinkIcon aria-hidden="true" className="ml-1 inline size-3 shrink-0 align-baseline" />
+      )}
     </Link>
   )
 }

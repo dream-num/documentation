@@ -74,18 +74,139 @@ enum CalculationMode {
 
 > Если ячейка с формулой содержит неожиданное значение, задайте для `initialFormulaComputing` значение `CalculationMode.FORCED`, чтобы принудительно вычислить все формулы. Другой вариант — очистить значение `v` этой ячейки перед инициализацией.
 
-## Межкнижные и трёхмерные ссылки
+## Ссылки между книгами
 
-Формулы могут ссылаться на загруженную книгу по отображаемому имени или на включительный диапазон листов в порядке книги:
+Формула может суммировать в `Report` продажи из `Sales.xlsx`. В отличие от ссылки на другой лист той же книги, здесь указывается и книга-источник.
+
+### Синтаксис ссылок
+
+| Сценарий | Пример | Источник |
+| --- | --- | --- |
+| Другой лист той же книги | `=SUM(Data!A1:A10)` | Лист Data текущей книги |
+| Диапазон другой книги | `=SUM('[Sales.xlsx]Data'!A1:A10)` | Лист Data книги Sales.xlsx |
+| Таблица другой книги | `=SUM(Sales.xlsx!SalesTable[Amount])` | Столбец Amount существующей таблицы SalesTable |
+
+`Sales.xlsx` — имя книги, а не путь или URL. Запись формулы не читает файл, не скачивает Excel и не подключается к редактору на другой странице. Для структурированной ссылки сначала создайте соответствующую [таблицу](/guides/sheets/features/table).
+
+### Ссылки на книги в одном экземпляре
+
+При использовании базового движка загрузите обе книги в один экземпляр Univer и одну среду вычислений. Выполните пример после инициализации Sheets. В режиме плагинов также импортируйте расширения Facade, указанные на этой странице.
+
+```typescript
+const source = univerAPI.createWorkbook({
+  id: 'sales-workbook',
+  name: 'Sales.xlsx',
+  sheetOrder: ['sales-data'],
+  sheets: {
+    'sales-data': {
+      id: 'sales-data',
+      name: 'Data',
+      rowCount: 100,
+      columnCount: 20,
+      cellData: {
+        0: { 0: { v: 100 } },
+        1: { 0: { v: 200 } },
+      },
+    },
+  },
+}, { makeCurrent: false })
+
+const report = univerAPI.createWorkbook({ id: 'report-workbook', name: 'Report' })
+const resultCell = report.getActiveSheet().getRange('A1')
+resultCell.setFormula("=SUM('[Sales.xlsx]Data'!A1:A2)")
+
+const formula = univerAPI.getFormula()
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.log(resultCell.getValue()) // 300
+```
+
+`makeCurrent: false` загружает источник, не меняя активную книгу. Сохраняйте `source` и `report`, чтобы не записать формулу в другую книгу после переключения.
+
+Имена сравниваются без учёта регистра. Полное совпадение имеет приоритет; если его нет, игнорируются расширения Excel, например `.xlsx` и `.xlsm`. Отсутствующее или неоднозначное имя даёт `#REF!`. Используйте уникальные имена.
+
+### Привязка к постоянному ID источника
+
+Чтобы связать имя в формуле с постоянным ID документа, используйте Pro-расширение `@univerjs-pro/engine-formula`. Настройте [клиентскую лицензию](/guides/license), замените `UniverFormulaEnginePlugin` на `UniverProFormulaEnginePlugin` при инициализации и импортируйте Pro Facade. Не регистрируйте оба движка. Один импорт Facade не регистрирует плагин.
+
+Пример использует книги выше в среде с настроенным Pro-движком:
+
+```typescript
+import '@univerjs-pro/engine-formula/facade'
+
+const reference = univerAPI.getFormula().buildReference({
+  hostUnitId: report.getId(),
+  unit: {
+    unitId: source.getId(),
+    formulaQualifier: 'Sales Source',
+  },
+  target: {
+    kind: univerAPI.Enum.FormulaReferenceType.SHEET_RANGE,
+    sheetName: 'Data',
+    range: { startRow: 0, endRow: 1, startColumn: 0, endColumn: 0 },
+  },
+})
+
+resultCell.setFormula(`=SUM(${reference})`)
+```
+
+`hostUnitId` — ID книги с формулой, `unit.unitId` — постоянный ID источника, `formulaQualifier` — его публичное имя в формуле. Координаты начинаются с нуля и включают конечную границу.
+
+`buildReference()` возвращает фрагмент без `=` и сохраняет привязку. Он не загружает источник и не запускает вычисления. Данные должны поступать из книги, загруженной в среду вычислений, или настроенного поставщика данных. Для написанной вручную или сгенерированной формулы сначала создайте привязку:
+
+```typescript
+const formula = univerAPI.getFormula()
+const bound = formula.upsertExternalReference({
+  unitId: report.getId(),
+  qualifier: 'Sales Source',
+  sourceUnitId: source.getId(),
+  sourceUnitType: univerAPI.Enum.UniverInstanceType.UNIVER_SHEET,
+})
+if (!bound) throw new Error('Could not bind Sales Source')
+
+resultCell.setFormula("=SUM('[Sales Source]Data'!A1:A2)")
+```
+
+Повторная запись той же привязки идемпотентна. В `qualifier` не нужны скобки или кавычки. Положительные целые числа вроде `1` и `2` зарезервированы для слотов внешних ссылок Excel, а не ID документов. При импорте сохраняйте ресурсы внешних ссылок: одного текста формулы недостаточно.
+
+### Обновление, сохранение и выгрузка
+
+После изменения источника через Facade запустите вычисления и дождитесь применения результатов перед чтением. Возврат из `setFormula()` или `setValue()` не означает завершения асинхронного расчёта.
+
+```typescript
+const sourceSheet = source.getSheetBySheetId('sales-data')
+if (!sourceSheet) throw new Error('Source sheet not found')
+sourceSheet.getRange('A1').setValue(150)
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.log(resultCell.getValue()) // 350
+```
+
+Используйте `report.save()` для сохранения полного снимка с ресурсами привязок. Сохранение только формул теряет соответствие имён и ID. Данные источника сохраняются и загружаются отдельно.
+
+После выгрузки источника обычная ссылка на загруженную книгу больше не может его читать. Продолжение расчётов Pro-ссылок зависит от поставщиков данных и доступного кеша. Привязка не содержит данных и не гарантирует автономный расчёт. Старое значение на экране не доказывает актуальность результата.
+
+Ненужную Pro-привязку можно удалить:
+
+```typescript
+univerAPI.getFormula().removeExternalReference({
+  unitId: report.getId(),
+  qualifier: 'Sales Source',
+})
+```
+
+Удаление не стирает и не переписывает формулы. При следующем расчёте имя разрешается заново: может найтись загруженная книга с таким именем, иначе вернётся `#REF!`. Чтобы прекратить ссылку, измените или очистите и саму формулу. Полные параметры приведены в [API ссылок FFormula](/reference/facade/formula#cross-unit-reference-authoring).
+
+## Трёхмерные ссылки
+
+Трёхмерная ссылка охватывает последовательные листы одной книги и отличается от ссылки между книгами.
 
 ```text
-=SUM('[Sales.xlsx]Data'!A1:A10)
-=SUM(Sales.xlsx!SalesTable[Amount])
 =SUM(Jan:Mar!B2:C3)
 =SUM('Jan':'Mar'!B2)
 ```
 
-Имена книг сопоставляются без учёта регистра; при резервном поиске распространённые расширения Excel игнорируются. Отсутствующее или неоднозначное имя возвращает `#REF!`.
+Диапазон включает Jan, Mar и все листы между ними в порядке книги, а не по алфавиту. После перестановки листов проверьте диапазон суммирования.
 
 ## Поддерживаемые функции
 

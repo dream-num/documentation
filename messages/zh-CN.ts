@@ -316,39 +316,6 @@ const zhCNMessages = {
     recent: '最新文章',
     rss: 'RSS 订阅',
   },
-  showcase: {
-    title: '在线演示',
-    slogan: '通过案例，了解 Univer Office SDK 的强大功能',
-    back: '返回',
-    'related-title': '相关案例',
-    breadcrumb: {
-      home: '首页',
-      showcase: '在线演示',
-    },
-    filter: {
-      all: '全部',
-      sheets: '电子表格',
-      docs: '文档',
-      slides: '演示文稿',
-    },
-    stats: {
-      total: '案例总数',
-      sheets: '电子表格',
-      docs: '文档',
-      slides: '演示文稿',
-    },
-    search: {
-      placeholder: '搜索案例...',
-      'no-result': '没有找到匹配的案例。',
-      result: '个结果',
-      results: '个结果',
-      'result-for': '关于',
-    },
-    view: {
-      grid: '网格视图',
-      list: '列表视图',
-    },
-  },
   docs: {
     'reference-language-notice': '本 API 页面目前提供英文正文。代码签名与标识符不随界面语言变化。',
     breadcrumb: '面包屑',

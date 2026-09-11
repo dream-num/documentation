@@ -74,18 +74,139 @@ enum CalculationMode {
 
 > 수식이 포함된 셀에 예상치 못한 값이 있으면 `initialFormulaComputing`을 `CalculationMode.FORCED`로 설정하여 모든 수식을 강제로 계산할 수 있습니다. 또는 초기화 전에 셀의 `v` 값을 지울 수 있습니다.
 
-## 통합 문서 간 참조와 3차원 참조
+## 통합 문서 간 참조
 
-수식은 로드된 통합 문서를 표시 이름으로 참조하거나 통합 문서의 시트 순서에 따라 양 끝 시트를 포함하는 연속 범위를 참조할 수 있습니다.
+통합 문서 간 수식으로 `Report`에서 `Sales.xlsx`의 매출을 집계할 수 있습니다. 같은 문서의 다른 시트를 참조할 때와 달리 원본 통합 문서도 지정합니다.
+
+### 참조 구문
+
+| 용도 | 예시 | 대상 |
+| --- | --- | --- |
+| 같은 문서의 다른 시트 | `=SUM(Data!A1:A10)` | 현재 문서의 Data 시트 |
+| 다른 문서의 셀 범위 | `=SUM('[Sales.xlsx]Data'!A1:A10)` | Sales.xlsx의 Data 시트 |
+| 다른 문서의 테이블 | `=SUM(Sales.xlsx!SalesTable[Amount])` | 기존 SalesTable의 Amount 열 |
+
+`Sales.xlsx`는 문서 이름이며 파일 경로나 URL이 아닙니다. 수식을 작성해도 파일을 읽거나 Excel을 다운로드하거나 다른 브라우저 페이지에 연결하지 않습니다. 구조화 참조를 사용하려면 해당 [테이블](/guides/sheets/features/table)을 먼저 만드세요.
+
+### 같은 인스턴스에 로드된 통합 문서 참조
+
+기본 수식 엔진에서는 두 문서를 동일한 Univer 인스턴스와 계산 환경에 로드해야 합니다. 다음 코드는 Sheets 초기화 후 실행합니다. 플러그인 모드에서는 이 페이지에 설명된 Facade 확장도 가져오세요.
+
+```typescript
+const source = univerAPI.createWorkbook({
+  id: 'sales-workbook',
+  name: 'Sales.xlsx',
+  sheetOrder: ['sales-data'],
+  sheets: {
+    'sales-data': {
+      id: 'sales-data',
+      name: 'Data',
+      rowCount: 100,
+      columnCount: 20,
+      cellData: {
+        0: { 0: { v: 100 } },
+        1: { 0: { v: 200 } },
+      },
+    },
+  },
+}, { makeCurrent: false })
+
+const report = univerAPI.createWorkbook({ id: 'report-workbook', name: 'Report' })
+const resultCell = report.getActiveSheet().getRange('A1')
+resultCell.setFormula("=SUM('[Sales.xlsx]Data'!A1:A2)")
+
+const formula = univerAPI.getFormula()
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.log(resultCell.getValue()) // 300
+```
+
+`makeCurrent: false`는 현재 문서를 바꾸지 않고 원본을 로드합니다. `source`와 `report`를 보관하면 활성 문서가 바뀌어도 잘못된 문서에 쓰지 않습니다.
+
+이름 비교는 대소문자를 구분하지 않으며 전체 이름 일치를 우선합니다. 없을 때만 `.xlsx`, `.xlsm` 같은 확장자를 무시합니다. 이름이 없거나 여러 문서와 일치하면 `#REF!`가 되므로 고유한 이름을 사용하세요.
+
+### 고정 원본 ID에 참조 바인딩
+
+수식 이름을 안정적인 문서 ID에 연결하려면 Pro 확장인 `@univerjs-pro/engine-formula`를 사용합니다. [클라이언트 라이선스](/guides/license)를 설정하고 초기화 시 `UniverFormulaEnginePlugin`을 `UniverProFormulaEnginePlugin`으로 교체한 뒤 Pro Facade를 가져오세요. 두 엔진을 동시에 등록하지 마세요. Facade import만으로 플러그인이 등록되지는 않습니다.
+
+Pro 엔진이 설정된 환경에서 위 문서를 사용합니다.
+
+```typescript
+import '@univerjs-pro/engine-formula/facade'
+
+const reference = univerAPI.getFormula().buildReference({
+  hostUnitId: report.getId(),
+  unit: {
+    unitId: source.getId(),
+    formulaQualifier: 'Sales Source',
+  },
+  target: {
+    kind: univerAPI.Enum.FormulaReferenceType.SHEET_RANGE,
+    sheetName: 'Data',
+    range: { startRow: 0, endRow: 1, startColumn: 0, endColumn: 0 },
+  },
+})
+
+resultCell.setFormula(`=SUM(${reference})`)
+```
+
+`hostUnitId`는 수식을 저장하는 문서 ID, `unit.unitId`는 원본의 고정 ID, `formulaQualifier`는 수식에 표시되는 이름입니다. 범위 좌표는 0부터 시작하며 끝 좌표를 포함합니다.
+
+`buildReference()`는 `=` 없는 참조 문자열을 반환하고 바인딩을 저장합니다. 원본 로드나 계산은 수행하지 않습니다. 데이터는 계산 환경에 로드된 문서 또는 설정된 데이터 공급자가 제공해야 합니다. 직접 작성하거나 앱에서 생성한 수식은 먼저 바인딩하세요.
+
+```typescript
+const formula = univerAPI.getFormula()
+const bound = formula.upsertExternalReference({
+  unitId: report.getId(),
+  qualifier: 'Sales Source',
+  sourceUnitId: source.getId(),
+  sourceUnitType: univerAPI.Enum.UniverInstanceType.UNIVER_SHEET,
+})
+if (!bound) throw new Error('Could not bind Sales Source')
+
+resultCell.setFormula("=SUM('[Sales Source]Data'!A1:A2)")
+```
+
+동일 바인딩을 반복해도 결과는 같습니다. `qualifier`에는 괄호나 따옴표를 넣지 마세요. `1`, `2` 같은 양의 정수는 Excel 외부 링크 슬롯이므로 문서 ID로 사용하지 않습니다. 외부 링크를 가져올 때는 링크 리소스도 유지해야 하며 수식 문자열만 복사해서는 안 됩니다.
+
+### 업데이트, 저장 및 언로드
+
+Facade로 원본을 변경한 뒤 명시적으로 계산하고 결과 반영을 기다린 후 값을 읽으세요. `setFormula()`나 `setValue()` 직후 비동기 계산이 완료되었다고 가정하지 마세요.
+
+```typescript
+const sourceSheet = source.getSheetBySheetId('sales-data')
+if (!sourceSheet) throw new Error('Source sheet not found')
+sourceSheet.getRange('A1').setValue(150)
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.log(resultCell.getValue()) // 350
+```
+
+`report.save()`로 바인딩 리소스를 포함한 전체 스냅샷을 저장합니다. 수식만 저장하면 이름과 원본 ID의 연결이 사라집니다. 원본 데이터는 별도로 저장하고 로드해야 합니다.
+
+원본을 언로드하면 일반적인 로드된 문서 참조는 데이터를 읽을 수 없습니다. Pro 참조의 계산 지속 여부는 데이터 공급자와 캐시에 달려 있습니다. 바인딩은 데이터를 포함하지 않으며 오프라인 계산을 보장하지 않습니다. 이전 표시 값을 최신 결과로 간주하지 마세요.
+
+더 이상 필요하지 않은 Pro 바인딩은 제거할 수 있습니다.
+
+```typescript
+univerAPI.getFormula().removeExternalReference({
+  unitId: report.getId(),
+  qualifier: 'Sales Source',
+})
+```
+
+바인딩 제거는 수식을 삭제하거나 다시 쓰지 않습니다. 다음 계산에서 이름을 다시 해석하므로 같은 이름의 로드된 문서가 있으면 계속 참조할 수도 있고, 없으면 `#REF!`가 됩니다. 참조를 중단하려면 수식도 수정하거나 지우세요. 전체 매개변수는 [FFormula 참조 API](/reference/facade/formula#cross-unit-reference-authoring)를 참고하세요.
+
+## 3D 참조
+
+3D 참조는 같은 통합 문서 안의 연속된 시트를 대상으로 하며 문서 간 참조와는 다릅니다.
 
 ```text
-=SUM('[Sales.xlsx]Data'!A1:A10)
-=SUM(Sales.xlsx!SalesTable[Amount])
 =SUM(Jan:Mar!B2:C3)
 =SUM('Jan':'Mar'!B2)
 ```
 
-통합 문서 이름은 대/소문자를 구분하지 않으며 대체 일치에서는 일반적인 Excel 확장자를 무시합니다. 이름이 없거나 모호하면 `#REF!`를 반환합니다.
+Jan, Mar 및 그 사이의 모든 시트를 문서 내 순서대로 포함합니다. 이름순이 아닙니다. 시트 순서를 변경할 때 집계 범위도 확인하세요.
 
 ## 지원되는 수식 함수
 

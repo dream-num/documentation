@@ -74,18 +74,139 @@ enum CalculationMode {
 
 > 数式セルが予期しない値を保持している場合、`initialFormulaComputing` を `CalculationMode.FORCED` に設定して全数式を強制再計算するか、初期化前にセルの `v` 値をクリアしてください。
 
-## ブック間参照と 3D 参照
+## ブック間参照
 
-数式では、読み込まれたブックを表示名で参照したり、ブック内のシート順に従って両端を含む連続範囲を参照したりできます。
+ブック間数式は、たとえば `Report` から `Sales.xlsx` の売上を集計します。同じブック内の別シートへの参照に加え、参照元ブックも指定します。
+
+### 参照の構文
+
+| 用途 | 例 | 対象 |
+| --- | --- | --- |
+| 同じブックの別シート | `=SUM(Data!A1:A10)` | 現在のブックの Data シート |
+| 別ブックのセル範囲 | `=SUM('[Sales.xlsx]Data'!A1:A10)` | Sales.xlsx の Data シート |
+| 別ブックのテーブル | `=SUM(Sales.xlsx!SalesTable[Amount])` | 既存の SalesTable の Amount 列 |
+
+`Sales.xlsx` はブック名であり、ファイルパスや URL ではありません。数式を書いてもファイルの読み込み、Excel のダウンロード、別のブラウザーページへの接続は行われません。構造化参照には対応する[テーブル](/guides/sheets/features/table)を先に作成してください。
+
+### 同じインスタンスに読み込んだブックを参照する
+
+基本の数式エンジンでは、両方のブックを同じ Univer インスタンスと計算環境に読み込みます。以下は Sheets 初期化後に実行します。プラグインモードでは本ページの Facade 拡張も読み込んでください。
+
+```typescript
+const source = univerAPI.createWorkbook({
+  id: 'sales-workbook',
+  name: 'Sales.xlsx',
+  sheetOrder: ['sales-data'],
+  sheets: {
+    'sales-data': {
+      id: 'sales-data',
+      name: 'Data',
+      rowCount: 100,
+      columnCount: 20,
+      cellData: {
+        0: { 0: { v: 100 } },
+        1: { 0: { v: 200 } },
+      },
+    },
+  },
+}, { makeCurrent: false })
+
+const report = univerAPI.createWorkbook({ id: 'report-workbook', name: 'Report' })
+const resultCell = report.getActiveSheet().getRange('A1')
+resultCell.setFormula("=SUM('[Sales.xlsx]Data'!A1:A2)")
+
+const formula = univerAPI.getFormula()
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.log(resultCell.getValue()) // 300
+```
+
+`makeCurrent: false` は現在のブックを切り替えずに参照元を読み込みます。`source` と `report` を保持すれば、アクティブなブックが変わっても書き込み先を取り違えません。
+
+名前は大文字・小文字を区別せず、完全一致を優先します。一致しない場合だけ `.xlsx`、`.xlsm` などの拡張子を無視します。候補がない場合や複数ある場合は `#REF!` となるため、一意の名前を使用してください。
+
+### 安定した参照元 ID にバインドする
+
+数式内の名前を固定の文書 ID に関連付けるには、Pro 拡張の `@univerjs-pro/engine-formula` を使用します。[クライアントライセンス](/guides/license)を設定し、初期化時に `UniverFormulaEnginePlugin` を `UniverProFormulaEnginePlugin` に置き換え、Pro Facade を読み込みます。両方のエンジンを登録しないでください。Facade の import だけではプラグインは登録されません。
+
+Pro エンジンを設定済みの環境で、上のブックを使用します。
+
+```typescript
+import '@univerjs-pro/engine-formula/facade'
+
+const reference = univerAPI.getFormula().buildReference({
+  hostUnitId: report.getId(),
+  unit: {
+    unitId: source.getId(),
+    formulaQualifier: 'Sales Source',
+  },
+  target: {
+    kind: univerAPI.Enum.FormulaReferenceType.SHEET_RANGE,
+    sheetName: 'Data',
+    range: { startRow: 0, endRow: 1, startColumn: 0, endColumn: 0 },
+  },
+})
+
+resultCell.setFormula(`=SUM(${reference})`)
+```
+
+`hostUnitId` は数式を保存するブック、`unit.unitId` は参照元の安定した ID、`formulaQualifier` は数式内の公開名です。座標は 0 始まりで終端を含みます。
+
+`buildReference()` は `=` のない参照文字列を返し、バインドを保存します。参照元の読み込みや計算は行いません。データは計算環境に読み込んだブックか、設定済みのデータプロバイダーから提供する必要があります。手書きやアプリ生成の数式は、先にバインドしてください。
+
+```typescript
+const formula = univerAPI.getFormula()
+const bound = formula.upsertExternalReference({
+  unitId: report.getId(),
+  qualifier: 'Sales Source',
+  sourceUnitId: source.getId(),
+  sourceUnitType: univerAPI.Enum.UniverInstanceType.UNIVER_SHEET,
+})
+if (!bound) throw new Error('Could not bind Sales Source')
+
+resultCell.setFormula("=SUM('[Sales Source]Data'!A1:A2)")
+```
+
+同じバインドの繰り返しは冪等です。`qualifier` に括弧や引用符を含めないでください。`1`、`2` などの正整数は Excel 外部リンクのスロット番号であり、文書 ID には使用できません。外部リンクをインポートする場合はリンクリソースも保持し、数式だけをコピーしないでください。
+
+### 更新・保存・アンロード
+
+Facade で参照元を更新した後、明示的に計算し、結果の反映を待って読み取ります。`setFormula()` や `setValue()` の直後に非同期計算が完了したとは限りません。
+
+```typescript
+const sourceSheet = source.getSheetBySheetId('sales-data')
+if (!sourceSheet) throw new Error('Source sheet not found')
+sourceSheet.getRange('A1').setValue(150)
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.log(resultCell.getValue()) // 350
+```
+
+`report.save()` でバインドリソースを含む完全なスナップショットを保存します。数式だけを保存すると名前と ID の対応が失われます。参照元データは別途保存・読み込みが必要です。
+
+参照元をアンロードすると、通常の読み込み済みブック参照はデータを取得できなくなります。Pro 参照で計算を継続できるかはデータプロバイダーとキャッシュ次第です。バインドはデータを含まず、オフライン計算を保証しません。以前の表示値を最新値とみなさないでください。
+
+不要になった Pro バインドは削除できます。
+
+```typescript
+univerAPI.getFormula().removeExternalReference({
+  unitId: report.getId(),
+  qualifier: 'Sales Source',
+})
+```
+
+削除しても数式は削除・書き換えされません。次の計算では名前を再解決し、同名の読み込み済みブックがあれば参照が解決する場合があります。なければ `#REF!` になります。参照を停止するには数式も変更・消去してください。詳細は [FFormula 参照 API](/reference/facade/formula#cross-unit-reference-authoring) を参照してください。
+
+## 3D 参照
+
+3D 参照は同一ブック内の連続したシートを対象にします。ブック間参照とは別の機能です。
 
 ```text
-=SUM('[Sales.xlsx]Data'!A1:A10)
-=SUM(Sales.xlsx!SalesTable[Amount])
 =SUM(Jan:Mar!B2:C3)
 =SUM('Jan':'Mar'!B2)
 ```
 
-ブック名は大文字と小文字を区別せず、フォールバック時は一般的な Excel 拡張子を無視して照合されます。名前が見つからない場合や曖昧な場合は `#REF!` を返します。
+Jan と Mar、およびその間の全シートをブック内の順序で含みます。名前順ではありません。シートを並べ替える場合は集計範囲を確認してください。
 
 ## サポートされる数式関数
 
