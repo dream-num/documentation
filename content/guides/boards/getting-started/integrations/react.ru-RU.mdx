@@ -11,6 +11,8 @@ title: Интеграция в React
 
 ### Пример кода
 
+Каждое монтирование использует отдельный дочерний контейнер. Освобождение выполняется в микрозадаче после очистки внешнего React, чтобы не размонтировать вложенный React root синхронно во время commit.
+
 ```tsx
 import { useEffect, useRef } from 'react'
 import { UniverBoardsPlugin } from '@univerjs-pro/boards'
@@ -42,8 +44,11 @@ export function UniverEditor() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
+    const host = containerRef.current
+    if (!host) return
+    const container = document.createElement('div')
+    container.style.height = '100%'
+    host.append(container)
 
     const univer = new Univer({
       locale: LocaleType.RU_RU,
@@ -74,7 +79,12 @@ export function UniverEditor() {
 
     univer.createUnit(UniverInstanceType.UNIVER_BOARD, {})
 
-    return () => univer.dispose()
+    return () => {
+      queueMicrotask(() => {
+        univer.dispose()
+        container.remove()
+      })
+    }
   }, [])
 
   return <div ref={containerRef} style={{ height: 600 }} />

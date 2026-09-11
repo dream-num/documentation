@@ -37,7 +37,7 @@ const zhCNMessages = {
     'open-site-navigation': '打开站点导航',
     'primary-navigation': '主导航',
     'site-navigation': '站点导航',
-    'univer-home': 'Web SDK 首页',
+    'univer-home': 'Univer Office SDK 首页',
   },
   'theme-customizer': {
     apply: '应用',
@@ -95,7 +95,8 @@ const zhCNMessages = {
   },
   home: {
     slogan: '重塑工作流的全栈嵌入工具',
-    description: 'Web SDK 是一个前后端同构的全栈办公套件，具有高扩展性和高性能，旨在帮助开发者自由构建和编辑',
+    description:
+      'Univer Office SDK 包含 Web SDK、Server SDK 和 AI SDK，是一个前后端同构的全栈办公套件，具有高扩展性和高性能，旨在帮助开发者自由构建和编辑',
     'description-split': '、',
     'description-period': '。',
     'description-and': '和',
@@ -109,10 +110,10 @@ const zhCNMessages = {
       description: '通过六种可编辑的 Web SDK 体验，探索从规划、内容表达、视觉协作到 PDF 交付的完整产品发布流程。',
     },
     customer: {
-      title: 'Web SDK 为各行业团队与公司赋能，提升工作效率',
+      title: 'Univer Office SDK 为各行业团队与公司赋能，提升工作效率',
     },
     logocloud: {
-      title: 'Web SDK 为各行业团队与公司赋能，提升工作效率',
+      title: 'Univer Office SDK 为各行业团队与公司赋能，提升工作效率',
     },
     scenes: {
       title: '驱动每一种工作流',
@@ -122,6 +123,7 @@ const zhCNMessages = {
         desc: '类 Excel 的交互界面。支持 500+ 函数、跨表引用、数据排序筛选、冻结窗格、单元格富文本编辑等核心表格能力。',
       },
       docs: {
+        'reference-language-notice': '本 API 页面目前提供英文正文。代码签名与标识符不随界面语言变化。',
         title: '文档',
         desc: '类 Word 的富文本编辑器，支持文档统计、富文本链接、段落样式、表格、列表、页眉页脚和评论批注。',
       },
@@ -348,6 +350,7 @@ const zhCNMessages = {
     },
   },
   docs: {
+    'reference-language-notice': '本 API 页面目前提供英文正文。代码签名与标识符不随界面语言变化。',
     breadcrumb: '面包屑',
     copied: '已复制',
     'copy-page': '复制页面',
@@ -405,6 +408,7 @@ const zhCNMessages = {
     navigate: '选择',
     open: '打开',
     scope: {
+      blog: '开发教程',
       server: 'Server SDK',
       ai: 'AI SDK',
       guides: 'Web SDK',
@@ -419,6 +423,15 @@ const zhCNMessages = {
     'fullscreen-preview': '全屏预览',
   },
   'mdx-meta-data': {
+    'server-label': '服务端依赖',
+    'server-none': '此功能无需服务端',
+    'license-label': '客户端许可证',
+    'license-required': '需要配置客户端许可证',
+    'license-none': '无需客户端许可证',
+    'not-specified': '本指南未声明支持情况',
+    'headless-supported': '仅核心 API，需移除 UI 插件',
+    'browser-only': '仅浏览器集成',
+    limitations: '使用限制',
     'preset-mode': '预设模式',
     'plugin-mode': '插件模式',
     'preset-info': '预设信息',

@@ -1,7 +1,19 @@
 'use client'
 
 import type { LucideIcon } from 'lucide-react'
-import { Box, Check, Languages, Palette, PlugZap, Puzzle, Server, Smartphone } from 'lucide-react'
+import {
+  Box,
+  Check,
+  CircleAlert,
+  KeyRound,
+  Languages,
+  Palette,
+  PlugZap,
+  Puzzle,
+  Server,
+  Smartphone,
+  Terminal,
+} from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
@@ -117,31 +129,6 @@ function PackageRow({
   )
 }
 
-function StatusBadge({
-  icon: Icon,
-  label,
-  desc,
-  active,
-}: {
-  icon: LucideIcon
-  label: string
-  desc: string
-  active?: boolean
-}) {
-  if (!active) return null
-  return (
-    <div className="inline-flex items-center gap-2 rounded-md border border-neutral-100 bg-neutral-50 px-2.5 py-1.5 dark:border-neutral-800 dark:bg-neutral-900/50">
-      <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-black/5 dark:bg-neutral-800 dark:shadow-none dark:ring-white/10">
-        <Icon className="size-3 text-neutral-500 dark:text-neutral-400" />
-      </div>
-      <div className="flex flex-col">
-        <span className="text-[11px] leading-tight font-semibold text-neutral-700 dark:text-neutral-200">{label}</span>
-        <span className="text-[10px] leading-tight text-neutral-500 dark:text-neutral-400">{desc}</span>
-      </div>
-    </div>
-  )
-}
-
 export function MetaData(props: {
   lang: string
   meta: {
@@ -158,6 +145,9 @@ export function MetaData(props: {
     }>
     server: boolean | 'optional'
     mobile?: boolean
+    license?: boolean
+    headless?: boolean
+    limitations?: string
   }
 }) {
   const { meta } = props
@@ -177,6 +167,41 @@ export function MetaData(props: {
     locale: t('mdx-meta-data.locale'),
     style: t('mdx-meta-data.style'),
   }
+
+  const metadataItems = [
+    {
+      visible: Boolean(server),
+      icon: Server,
+      label: t('mdx-meta-data.server-label'),
+      description: t(server === 'optional' ? 'mdx-meta-data.server-optional' : 'mdx-meta-data.server-required'),
+      href: '/server',
+    },
+    {
+      visible: meta.license === true,
+      icon: KeyRound,
+      label: t('mdx-meta-data.license-label'),
+      description: t('mdx-meta-data.license-required'),
+      href: '/server/license',
+    },
+    {
+      visible: mobile === true,
+      icon: Smartphone,
+      label: t('mdx-meta-data.mobile-support'),
+      description: t('mdx-meta-data.mobile-support-desc'),
+    },
+    {
+      visible: meta.headless === true,
+      icon: Terminal,
+      label: 'Headless',
+      description: t('mdx-meta-data.headless-supported'),
+    },
+    {
+      visible: Boolean(meta.limitations),
+      icon: CircleAlert,
+      label: t('mdx-meta-data.limitations'),
+      description: meta.limitations,
+    },
+  ].filter((item) => item.visible)
 
   return (
     <div className="my-4 overflow-hidden rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
@@ -225,6 +250,33 @@ export function MetaData(props: {
             </div>
           )}
         </div>
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          {metadataItems.map(({ icon: Icon, label, description, ...item }) => {
+            const accessibleLabel = `${label}: ${description}`
+            const className =
+              'inline-flex size-7 items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/50'
+            const content = (
+              <span className="block max-w-64">
+                <strong className="mb-1 block">{label}</strong>
+                {description}
+              </span>
+            )
+
+            return (
+              <Tooltip key={label} content={content}>
+                {'href' in item && item.href ? (
+                  <Link href={item.href} aria-label={accessibleLabel} className={className}>
+                    <Icon aria-hidden="true" className="size-3.5" />
+                  </Link>
+                ) : (
+                  <button type="button" aria-label={accessibleLabel} className={className}>
+                    <Icon aria-hidden="true" className="size-3.5" />
+                  </button>
+                )}
+              </Tooltip>
+            )
+          })}
+        </div>
       </div>
 
       {/* Content */}
@@ -254,37 +306,6 @@ export function MetaData(props: {
             </motion.div>
           </AnimatePresence>
         </div>
-
-        {/* Footer Info (Mobile / Server) */}
-        {(mobile || server) && (
-          <div className="flex flex-wrap gap-2 border-t border-neutral-100 py-3 dark:border-neutral-800">
-            <StatusBadge
-              active={!!mobile}
-              icon={Smartphone}
-              label={t('mdx-meta-data.mobile-support')}
-              desc={t('mdx-meta-data.mobile-support-desc')}
-            />
-            {server && (
-              <Link
-                href="/server"
-                className="focus-visible:ring-primary/50 rounded-md transition-shadow hover:shadow-sm focus-visible:ring-2 focus-visible:outline-none"
-              >
-                <StatusBadge
-                  active
-                  icon={Server}
-                  label={
-                    server === 'optional' ? t('mdx-meta-data.server-optional') : t('mdx-meta-data.server-required')
-                  }
-                  desc={
-                    server === 'optional'
-                      ? t('mdx-meta-data.server-optional-desc')
-                      : t('mdx-meta-data.server-required-desc')
-                  }
-                />
-              </Link>
-            )}
-          </div>
-        )}
       </div>
     </div>
   )

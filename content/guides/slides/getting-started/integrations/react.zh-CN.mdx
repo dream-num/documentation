@@ -11,6 +11,8 @@ title: 在 React 中集成
 
 ### 示例代码
 
+每次挂载使用独立的子容器，并在外层 React 清理完成后的微任务中销毁实例，避免在 React 提交期间同步卸载嵌套的 React root。
+
 ```tsx
 import { useEffect, useRef } from 'react'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
@@ -37,8 +39,11 @@ export function UniverEditor() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
+    const host = containerRef.current
+    if (!host) return
+    const container = document.createElement('div')
+    container.style.height = '100%'
+    host.append(container)
 
     const univer = new Univer({
       locale: LocaleType.ZH_CN,
@@ -71,7 +76,12 @@ export function UniverEditor() {
 
     univer.createUnit(UniverInstanceType.UNIVER_SLIDE, {})
 
-    return () => univer.dispose()
+    return () => {
+      queueMicrotask(() => {
+        univer.dispose()
+        container.remove()
+      })
+    }
   }, [])
 
   return <div ref={containerRef} style={{ height: 600 }} />

@@ -11,6 +11,8 @@ title: 在 React 中整合
 
 ### 範例程式碼
 
+每次掛載使用獨立的子容器，並在外層 React 清理完成後的微任務中銷毀實例，避免在 React 提交期間同步卸載巢狀 React root。
+
 ```tsx
 import { useEffect, useRef } from 'react'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
@@ -33,8 +35,11 @@ export function UniverEditor() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
+    const host = containerRef.current
+    if (!host) return
+    const container = document.createElement('div')
+    container.style.height = '100%'
+    host.append(container)
 
     const univer = new Univer({
       locale: LocaleType.ZH_TW,
@@ -57,7 +62,12 @@ export function UniverEditor() {
     const univerAPI = FUniver.newAPI(univer)
     univerAPI.createPdf({ name: 'Untitled PDF' })
 
-    return () => univer.dispose()
+    return () => {
+      queueMicrotask(() => {
+        univer.dispose()
+        container.remove()
+      })
+    }
   }, [])
 
   return <div ref={containerRef} style={{ height: 600 }} />

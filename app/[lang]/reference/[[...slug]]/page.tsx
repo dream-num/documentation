@@ -1,13 +1,16 @@
 import process from 'node:process'
 
+import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { PostHog } from 'posthog-node'
 
 import { AgentDocsLinks } from '@/components/agent-docs-links'
 import { DocsArticle } from '@/components/docs-shell/article'
 import { DocsShellPageLayout } from '@/components/docs-shell/layout'
+import { Callout } from '@/components/mdx/callout'
 import { getGuidesMDXComponents } from '@/components/mdx/components'
 import { SponsorCard } from '@/components/sponsor-card'
+import { normalizeLocale } from '@/i18n/locale-config'
 import { getAgentDocsSourceUrl, getAgentMarkdownPath } from '@/lib/agent-docs/links'
 import { createDocsRelativeLink } from '@/lib/docs/links'
 import { createDocsNavigation } from '@/lib/docs/navigation'
@@ -44,6 +47,7 @@ export default async function Page({ params }: IProps) {
     notFound()
   }
 
+  const t = await getTranslations({ locale: normalizeLocale(lang), namespace: 'docs' })
   const { default: MDXContent, toc } = await page.data.load()
   const navigation = createDocsNavigation(reference.pageTree[lang], page.url)
   const ReferenceLink = createDocsRelativeLink(reference, page)
@@ -78,6 +82,9 @@ export default async function Page({ params }: IProps) {
         }}
       >
         <div data-docs-body>
+          {lang !== 'en-US' && !page.data.info.path.endsWith(`.${lang}.mdx`) && (
+            <Callout>{t('reference-language-notice')}</Callout>
+          )}
           <MDXContent
             components={getGuidesMDXComponents({
               a: ReferenceLink,

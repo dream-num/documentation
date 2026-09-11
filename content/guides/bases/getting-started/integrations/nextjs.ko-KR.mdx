@@ -1,0 +1,96 @@
+---
+title: Next.js에 통합
+---
+
+먼저 [설치 및 기본 사용법](/guides/bases/getting-started/installation)을 읽으세요. 아래 예제는 Next.js App Router를 사용해 높이가 명시된 컨테이너에 Univer Bases를 마운트합니다.
+
+클라이언트 컴포넌트에서 `ssr: false`로 동적 로딩합니다. `use client`만으로는 사전 렌더링이 비활성화되지 않습니다. [Next.js](https://nextjs.org/docs/app/guides/lazy-loading#skipping-ssr).
+
+`YOUR_CLIENT_LICENSE`를 클라이언트 라이선스 내용으로 바꿉니다. 파일 경로를 사용하지 마세요. [라이선스 설정](/server/license).
+
+### 통합 단계
+
+1. `useEffect`에서 Univer를 초기화합니다.
+2. `useEffect cleanup`에서 Univer를 해제합니다.
+
+### 예제 코드
+
+마운트마다 별도의 자식 컨테이너를 사용합니다. 바깥 React 정리가 끝난 뒤 마이크로태스크에서 인스턴스를 폐기하여 React 커밋 중 중첩 루트의 동기 언마운트를 방지합니다.
+
+```tsx title="app/editor/univer-editor.tsx"
+'use client'
+
+import { useEffect, useRef } from 'react'
+import { UniverBasesPlugin } from '@univerjs-pro/bases'
+import { UniverBasesUIPlugin } from '@univerjs-pro/bases-ui'
+import BasesUIkoKR from '@univerjs-pro/bases-ui/locale/ko-KR'
+import BaseskoKR from '@univerjs-pro/bases/locale/ko-KR'
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import { LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
+import DesignkoKR from '@univerjs/design/locale/ko-KR'
+import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+import { UniverUIPlugin } from '@univerjs/ui'
+import UIkoKR from '@univerjs/ui/locale/ko-KR'
+
+import '@univerjs/design/lib/index.css'
+import '@univerjs/ui/lib/index.css'
+import '@univerjs-pro/bases-ui/lib/index.css'
+
+export default function UniverEditor() {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const host = containerRef.current
+    if (!host) return
+    const container = document.createElement('div')
+    container.style.height = '100%'
+    host.append(container)
+
+    const univer = new Univer({
+      locale: LocaleType.KO_KR,
+      locales: {
+        [LocaleType.KO_KR]: mergeLocales(
+          DesignkoKR,
+          UIkoKR,
+          BaseskoKR,
+          BasesUIkoKR,
+        ),
+      },
+    })
+
+    univer.registerPlugin(UniverLicensePlugin, {
+      license: 'YOUR_CLIENT_LICENSE',
+    })
+    univer.registerPlugin(UniverRenderEnginePlugin)
+    univer.registerPlugin(UniverUIPlugin, { container })
+
+    univer.registerPlugin(UniverProFormulaEnginePlugin)
+    univer.registerPlugin(UniverBasesPlugin)
+    univer.registerPlugin(UniverBasesUIPlugin)
+
+    univer.createUnit(UniverInstanceType.UNIVER_BASE, {})
+
+    return () => {
+      queueMicrotask(() => {
+        univer.dispose()
+        container.remove()
+      })
+    }
+  }, [])
+
+  return <div ref={containerRef} style={{ height: 600 }} />
+}
+```
+
+```tsx title="app/editor/page.tsx"
+'use client'
+
+import dynamic from 'next/dynamic'
+
+const UniverEditor = dynamic(() => import('./univer-editor'), { ssr: false })
+
+export default function Page() {
+  return <UniverEditor />
+}
+```

@@ -1,6 +1,6 @@
 import type { SortedResult } from 'fumadocs-core/search'
 
-export type SearchScope = 'all' | 'guides' | 'server' | 'ai' | 'reference'
+export type SearchScope = 'all' | 'guides' | 'server' | 'ai' | 'reference' | 'blog'
 export type SearchResultSource = Exclude<SearchScope, 'all'>
 
 export interface IScopedSearchResult {
@@ -13,7 +13,8 @@ export interface IScopedSearchResult {
 }
 
 export function parseSearchScope(value: string | null): SearchScope {
-  if (value === 'guides' || value === 'server' || value === 'ai' || value === 'reference') return value
+  if (value === 'guides' || value === 'server' || value === 'ai' || value === 'reference' || value === 'blog')
+    return value
   return 'all'
 }
 

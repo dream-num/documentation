@@ -7,26 +7,34 @@ import '@univerjs/preset-sheets-core/lib/index.css'
 import './index.css'
 
 export function Univer() {
-  const containerRef = useRef<HTMLDivElement>(null!)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const { univerAPI } = createUniver({
+    const host = containerRef.current
+    if (!host) return
+    const container = document.createElement('div')
+    container.style.height = '100%'
+    host.append(container)
+
+    const { univer, univerAPI } = createUniver({
       locale: LocaleType.EN_US,
       locales: {
-        [LocaleType.EN_US]: mergeLocales(
-          sheetsCoreEnUS,
-        ),
+        [LocaleType.EN_US]: mergeLocales(sheetsCoreEnUS),
       },
       presets: [
         UniverSheetsCorePreset({
-          container: containerRef.current,
+          container,
         }),
       ],
     })
     univerAPI.createWorkbook({})
+    return () => {
+      queueMicrotask(() => {
+        univer.dispose()
+        container.remove()
+      })
+    }
   }, [])
 
-  return (
-    <div ref={containerRef} id="univer" />
-  )
+  return <div ref={containerRef} id="univer" />
 }

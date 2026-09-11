@@ -35,7 +35,7 @@ const enUSMessages = {
     'open-site-navigation': 'Open site navigation',
     'primary-navigation': 'Primary navigation',
     'site-navigation': 'Site navigation',
-    'univer-home': 'Web SDK home',
+    'univer-home': 'Univer Office SDK home',
   },
   'theme-customizer': {
     apply: 'Apply',
@@ -94,7 +94,7 @@ const enUSMessages = {
   home: {
     slogan: 'Embedding server-driven productivity tools into Your Workflow',
     description:
-      'Web SDK is a full-stack, isomorphic office suite with high extensibility and performance, designed to help developers build and edit ',
+      'Univer Office SDK includes Web SDK, Server SDK, and AI SDK. It is a full-stack, isomorphic office suite with high extensibility and performance, designed to help developers build and edit ',
     'description-split': ', ',
     'description-period': ' freely.',
     'description-and': ' and ',
@@ -122,6 +122,8 @@ const enUSMessages = {
         desc: 'Familiar Excel-like interface. Supports 500+ functions, cross-sheet references, sorting & filtering, freeze panes, and rich text cell editing.',
       },
       docs: {
+        'reference-language-notice':
+          'This API page is currently available in English. Code signatures and identifiers are the same across languages.',
         title: 'Documents',
         desc: 'Word-like rich text editor with document statistics, rich-text links, paragraph styles, tables, lists, headers, footers, and comments.',
       },
@@ -348,6 +350,8 @@ const enUSMessages = {
     },
   },
   docs: {
+    'reference-language-notice':
+      'This API page is currently available in English. Code signatures and identifiers are the same across languages.',
     breadcrumb: 'Breadcrumb',
     copied: 'Copied',
     'copy-page': 'Copy Page',
@@ -405,6 +409,7 @@ const enUSMessages = {
     navigate: 'Navigate',
     open: 'Open',
     scope: {
+      blog: 'Developer tutorials',
       server: 'Server SDK',
       ai: 'AI SDK',
       guides: 'Web SDK',
@@ -419,6 +424,15 @@ const enUSMessages = {
     'fullscreen-preview': 'Fullscreen preview',
   },
   'mdx-meta-data': {
+    'server-label': 'Server dependency',
+    'server-none': 'No server required for this feature',
+    'license-label': 'Client license',
+    'license-required': 'Configure a client license',
+    'license-none': 'No client license required',
+    'not-specified': 'Not specified in this guide',
+    'headless-supported': 'Core APIs only; omit UI plugins',
+    'browser-only': 'Browser integration only',
+    limitations: 'Limitations',
     'preset-mode': 'Preset Mode',
     'plugin-mode': 'Plugin Mode',
     'preset-info': 'Preset Info',

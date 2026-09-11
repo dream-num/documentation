@@ -1,0 +1,96 @@
+---
+title: 在 Next.js 中整合
+---
+
+請先閱讀[安裝與基本使用](/guides/bases/getting-started/installation)。以下範例透過 Next.js App Router 將 Univer Bases 掛載到具有明確高度的容器中。
+
+在用戶端元件中透過 `ssr: false` 動態載入編輯器。只宣告 `use client` 不會關閉預先渲染。 [Next.js](https://nextjs.org/docs/app/guides/lazy-loading#skipping-ssr).
+
+將 `YOUR_CLIENT_LICENSE` 替換為用戶端授權內容，不要填寫檔案路徑。 [授權設定](/server/license).
+
+### 整合步驟
+
+1. 在 `useEffect` 中初始化 Univer
+2. 在 `useEffect cleanup` 中銷毀 Univer
+
+### 範例程式碼
+
+每次掛載使用獨立的子容器，並在外層 React 清理完成後的微任務中銷毀實例，避免在 React 提交期間同步卸載巢狀 React root。
+
+```tsx title="app/editor/univer-editor.tsx"
+'use client'
+
+import { useEffect, useRef } from 'react'
+import { UniverBasesPlugin } from '@univerjs-pro/bases'
+import { UniverBasesUIPlugin } from '@univerjs-pro/bases-ui'
+import BasesUIzhTW from '@univerjs-pro/bases-ui/locale/zh-TW'
+import BaseszhTW from '@univerjs-pro/bases/locale/zh-TW'
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import { LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
+import DesignzhTW from '@univerjs/design/locale/zh-TW'
+import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+import { UniverUIPlugin } from '@univerjs/ui'
+import UIzhTW from '@univerjs/ui/locale/zh-TW'
+
+import '@univerjs/design/lib/index.css'
+import '@univerjs/ui/lib/index.css'
+import '@univerjs-pro/bases-ui/lib/index.css'
+
+export default function UniverEditor() {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const host = containerRef.current
+    if (!host) return
+    const container = document.createElement('div')
+    container.style.height = '100%'
+    host.append(container)
+
+    const univer = new Univer({
+      locale: LocaleType.ZH_TW,
+      locales: {
+        [LocaleType.ZH_TW]: mergeLocales(
+          DesignzhTW,
+          UIzhTW,
+          BaseszhTW,
+          BasesUIzhTW,
+        ),
+      },
+    })
+
+    univer.registerPlugin(UniverLicensePlugin, {
+      license: 'YOUR_CLIENT_LICENSE',
+    })
+    univer.registerPlugin(UniverRenderEnginePlugin)
+    univer.registerPlugin(UniverUIPlugin, { container })
+
+    univer.registerPlugin(UniverProFormulaEnginePlugin)
+    univer.registerPlugin(UniverBasesPlugin)
+    univer.registerPlugin(UniverBasesUIPlugin)
+
+    univer.createUnit(UniverInstanceType.UNIVER_BASE, {})
+
+    return () => {
+      queueMicrotask(() => {
+        univer.dispose()
+        container.remove()
+      })
+    }
+  }, [])
+
+  return <div ref={containerRef} style={{ height: 600 }} />
+}
+```
+
+```tsx title="app/editor/page.tsx"
+'use client'
+
+import dynamic from 'next/dynamic'
+
+const UniverEditor = dynamic(() => import('./univer-editor'), { ssr: false })
+
+export default function Page() {
+  return <UniverEditor />
+}
+```

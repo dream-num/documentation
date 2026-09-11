@@ -11,6 +11,8 @@ Start with [installation and basic usage](/guides/bases/getting-started/installa
 
 ### Example
 
+Each mount uses its own child container. Disposal runs in a microtask after the surrounding React cleanup, so nested React roots are not unmounted synchronously during a React commit.
+
 ```tsx
 import { useEffect, useRef } from 'react'
 import { UniverBasesPlugin } from '@univerjs-pro/bases'
@@ -21,7 +23,6 @@ import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import { LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
 import DesignenUS from '@univerjs/design/locale/en-US'
-import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIenUS from '@univerjs/ui/locale/en-US'
@@ -34,8 +35,11 @@ export function UniverEditor() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
+    const host = containerRef.current
+    if (!host) return
+    const container = document.createElement('div')
+    container.style.height = '100%'
+    host.append(container)
 
     const univer = new Univer({
       locale: LocaleType.EN_US,
@@ -54,14 +58,19 @@ export function UniverEditor() {
     })
     univer.registerPlugin(UniverRenderEnginePlugin)
     univer.registerPlugin(UniverUIPlugin, { container })
-    univer.registerPlugin(UniverFormulaEnginePlugin)
+
     univer.registerPlugin(UniverProFormulaEnginePlugin)
     univer.registerPlugin(UniverBasesPlugin)
     univer.registerPlugin(UniverBasesUIPlugin)
 
     univer.createUnit(UniverInstanceType.UNIVER_BASE, {})
 
-    return () => univer.dispose()
+    return () => {
+      queueMicrotask(() => {
+        univer.dispose()
+        container.remove()
+      })
+    }
   }, [])
 
   return <div ref={containerRef} style={{ height: 600 }} />

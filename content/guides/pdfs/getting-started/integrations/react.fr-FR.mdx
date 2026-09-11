@@ -11,6 +11,8 @@ Consultez d’abord [l’installation et les premiers pas](/guides/pdfs/getting-
 
 ### Exemple de code
 
+Chaque montage utilise son propre conteneur enfant. La destruction est différée dans une microtâche après le nettoyage React parent, afin de ne pas démonter une racine React imbriquée pendant un commit.
+
 ```tsx
 import { useEffect, useRef } from 'react'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
@@ -33,8 +35,11 @@ export function UniverEditor() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
+    const host = containerRef.current
+    if (!host) return
+    const container = document.createElement('div')
+    container.style.height = '100%'
+    host.append(container)
 
     const univer = new Univer({
       locale: LocaleType.FR_FR,
@@ -57,7 +62,12 @@ export function UniverEditor() {
     const univerAPI = FUniver.newAPI(univer)
     univerAPI.createPdf({ name: 'Untitled PDF' })
 
-    return () => univer.dispose()
+    return () => {
+      queueMicrotask(() => {
+        univer.dispose()
+        container.remove()
+      })
+    }
   }, [])
 
   return <div ref={containerRef} style={{ height: 600 }} />

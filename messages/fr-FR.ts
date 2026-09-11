@@ -35,7 +35,7 @@ const frFRMessages = {
     'open-site-navigation': 'Ouvrir la navigation du site',
     'primary-navigation': 'Navigation principale',
     'site-navigation': 'Navigation du site',
-    'univer-home': 'Accueil d’Web SDK',
+    'univer-home': 'Accueil Univer Office SDK',
   },
   'theme-customizer': {
     apply: 'Appliquer',
@@ -95,7 +95,7 @@ const frFRMessages = {
   home: {
     slogan: 'Intégrez des outils de productivité pilotés par le serveur à votre workflow',
     description:
-      'Web SDK est une suite bureautique full-stack isomorphe, hautement extensible et performante, conçue pour aider les développeurs à créer et modifier librement ',
+      'Univer Office SDK comprend Web SDK, Server SDK et AI SDK. Il est une suite bureautique full-stack isomorphe, hautement extensible et performante, conçue pour aider les développeurs à créer et modifier librement ',
     'description-split': ', ',
     'description-period': '.',
     'description-and': ' et ',
@@ -123,6 +123,8 @@ const frFRMessages = {
         desc: 'Une interface familière inspirée d’Excel. Plus de 500 fonctions, références entre feuilles, tri et filtrage, volets figés et édition de texte enrichi dans les cellules.',
       },
       docs: {
+        'reference-language-notice':
+          'Cette page API est actuellement disponible en anglais. Les signatures et identifiants restent identiques dans toutes les langues.',
         title: 'Documents',
         desc: 'Un éditeur de texte enrichi inspiré de Word avec statistiques du document, liens dans le texte enrichi, styles de paragraphe, tableaux, listes, en-têtes, pieds de page et commentaires.',
       },
@@ -350,6 +352,8 @@ const frFRMessages = {
     },
   },
   docs: {
+    'reference-language-notice':
+      'Cette page API est actuellement disponible en anglais. Les signatures et identifiants restent identiques dans toutes les langues.',
     breadcrumb: 'Fil d’Ariane',
     copied: 'Copié',
     'copy-page': 'Copier la page',
@@ -407,6 +411,7 @@ const frFRMessages = {
     navigate: 'Parcourir',
     open: 'Ouvrir',
     scope: {
+      blog: 'Tutoriels de développement',
       server: 'Server SDK',
       ai: 'AI SDK',
       guides: 'Web SDK',
@@ -421,6 +426,15 @@ const frFRMessages = {
     'fullscreen-preview': 'Aperçu en plein écran',
   },
   'mdx-meta-data': {
+    'server-label': 'Dépendance serveur',
+    'server-none': 'Aucun serveur requis pour cette fonction',
+    'license-label': 'Licence client',
+    'license-required': 'Configurer une licence client',
+    'license-none': 'Aucune licence client requise',
+    'not-specified': 'Non précisé dans ce guide',
+    'headless-supported': 'API principales uniquement, sans plugins UI',
+    'browser-only': 'Intégration navigateur uniquement',
+    limitations: 'Limites',
     'preset-mode': 'Mode Preset',
     'plugin-mode': 'Mode Plugin',
     'preset-info': 'Informations sur le Preset',

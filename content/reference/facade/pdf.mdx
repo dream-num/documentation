@@ -13,6 +13,12 @@ Facade APIs for creating, reading, and editing Univer PDF units.
 
 For setup and task-oriented examples, start with the [Univer PDFs guide](/guides/pdfs).
 
+## Before using the API
+
+Register `UniverPdfsPlugin` and import `@univerjs-pro/pdfs/facade` after `@univerjs/core/facade`. Browser editing also needs `UniverPdfsUIPlugin`, its CSS, and the client license configuration. See [installation](/guides/pdfs/getting-started/installation).
+
+PDF positions and sizes use **PDF points**, not CSS pixels. Page indexes and element indexes are zero-based. Use `save()` to persist accepted edits; `getDocument()` returns the source document and does not replace a complete snapshot. See the [PDF data model](/guides/pdfs/model/pdf-data).
+
 ## Unit access
 
 ```typescript
@@ -21,6 +27,8 @@ getActivePdf(): FPdf | null
 getPdf(id: string): FPdf | null
 getPdfTableThemePresets(): ReadonlyArray<Readonly<IPdfTableThemePreset>>
 ```
+
+`createPdf()` returns a new `FPdf`; omitting `data` creates a blank unit. Supply a complete snapshot to restore saved content. `getActivePdf()` and `getPdf(id)` return `null` if no matching PDF exists, so check the result before editing.
 
 ## FPdf
 
@@ -40,6 +48,16 @@ getPages(): FPdfPage[]
 getPageById(id: string): FPdfPage | null
 getPageByIndex(index: number): FPdfPage | null
 ```
+
+### Page access and persistence
+
+| Method | Parameters | Result and behavior |
+| --- | --- | --- |
+| `insertPage(index?)` | Optional integer from `0` through the current page count | Returns `FPdfPage`; omission appends. Throws `RangeError` for an invalid index. The first page uses A4; later pages inherit adjacent page geometry. |
+| `getPageByIndex(index)` | Zero-based page index | Returns `FPdfPage` or `null` when absent. |
+| `getPageById(id)` | Stable page ID | Returns `FPdfPage` or `null` when absent. |
+| `save()` | None | Returns a detached `IPdfUnitData` snapshot with current edits. |
+| `getDocument()` | None | Returns the source `IPdfDocument` baseline. |
 
 ## FPdfPage
 
@@ -69,6 +87,49 @@ newImage(existing?: FPdfImage | string): FPdfImageBuilder
 insertImage(info: IPdfImageBuilderInfo, index?: number): FPdfImage
 insertImageAsync(source: string | IFBlobSource, options?: IPdfImageInsertOptions): Promise<FPdfImage>
 ```
+
+### Insertion parameters
+
+Text boxes, paragraphs, lists, tables, dividers, annotations, and images share `IPdfElementInsertOptions`:
+
+| Property | Type | Meaning |
+| --- | --- | --- |
+| `id` | `string?` | Stable element ID; generated if omitted. |
+| `left`, `top` | `number?` | Position in PDF points; default `0`. |
+| `width`, `height` | `number?` | Size in PDF points; defaults depend on the element type. |
+| `rotation` | `number?` | Clockwise degrees; default `0`. |
+| `index` | `number?` | Zero-based position in the editable element stack; omission places the element at the front. |
+
+#### Text boxes and paragraphs
+
+`insertTextBox(options)` returns `FPdfTextBox`; `insertParagraph(options)` returns `FPdfParagraph`.
+
+| Property | Type | Meaning |
+| --- | --- | --- |
+| `text` | `string` | Required initial text; an empty string is valid. |
+| `fontFamily` | `string?` | Initial font family; renderer default if omitted. |
+| `fontSize` | `number?` | Initial size in points; default `12`. |
+| `fill` | `PdfColor?` | Initial text color. |
+
+#### Tables
+
+`insertTable(options)` returns `FPdfTable`.
+
+| Property | Type | Meaning |
+| --- | --- | --- |
+| `rowCount`, `columnCount` | `number` | Required positive initial dimensions. |
+| `cellTexts` | `string[]?` | Initial values in row-major order; missing cells contain empty strings. |
+| `defaultCellStyle` | `IPdfTableCellStyle?` | Style copied to each initial cell. |
+| `styleId` | `PdfStyleId?` | Table style ID; use a table theme preset or the default. |
+| `options` | `IPdfTableStyleOptions?` | Conditional table-style regions. |
+
+#### Images
+
+`insertImageAsync(source, options?)` accepts a URL string or `IFBlobSource` and returns `Promise<FPdfImage>`. Await completion before saving the snapshot. Image options add `imageSourceType`, `crop`, and `opacity` (`0` through `1`, default `1`) to the shared placement fields. See [images](/guides/pdfs/features/core/images-and-dividers).
+
+### Errors and lifetime
+
+Mutations throw when the action is rejected. Invalid page insertion indexes throw `RangeError`. Catch errors at the application interaction boundary and present the failed operation to the user. Do not continue using page or element wrappers after their owning unit is disposed. Dispose the owning `univer` instance when unmounting the editor.
 
 ## Page elements
 
@@ -114,12 +175,15 @@ const page = pdf.insertPage()
 page.insertTextBox({ text: 'Hello PDF', left: 36, top: 36 }).setTextStyle({ fontSize: 18, fill: '#274690' })
 
 page.insertTable({
+  left: 36,
+  top: 90,
   rowCount: 2,
   columnCount: 2,
   cellTexts: ['Metric', 'Value', 'Users', '42'],
 })
 
 const snapshot = pdf.save()
+// Store snapshot in your application; pass it to createPdf(snapshot) when restoring.
 ```
 
 PDF facade enums include `PdfAnnotationType`, `PdfListKind`, `PdfListPresetId`, `PdfTextAnchor`, and `PdfTableCellVerticalAlign` through `univerAPI.Enum`.

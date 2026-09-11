@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: IProps) {
   const t = await getTranslations({ locale: lang as Locale })
 
   return {
-    title: 'Web SDK',
+    title: 'Univer Office SDK',
     description: t('home.description'),
   }
 }

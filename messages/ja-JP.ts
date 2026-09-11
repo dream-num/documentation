@@ -37,7 +37,7 @@ const jaJPMessages = {
     'open-site-navigation': 'サイトナビゲーションを開く',
     'primary-navigation': 'メインナビゲーション',
     'site-navigation': 'サイトナビゲーション',
-    'univer-home': 'Web SDK ホーム',
+    'univer-home': 'Univer Office SDK ホーム',
   },
   'theme-customizer': {
     apply: '適用',
@@ -96,7 +96,7 @@ const jaJPMessages = {
   home: {
     slogan: 'あなたのワークフローに、サーバードリブンの生産性ツールを組み込もう。',
     description:
-      'Web SDK は高い拡張性とパフォーマンスを備えたフルスタックのオフィススイートで、開発者が自由に構築および編集できるように設計されています。',
+      'Univer Office SDK は Web SDK、Server SDK、AI SDK を含みます。Univer Office SDK は高い拡張性とパフォーマンスを備えたフルスタックのオフィススイートで、開発者が自由に構築および編集できるように設計されています。',
     'description-split': '、',
     'description-period': '。',
     'description-and': 'と',
@@ -124,6 +124,8 @@ const jaJPMessages = {
         desc: 'Excel 風のインターフェース。500+ の数式、シート間参照、並べ替えとフィルタリング、ウィンドウ枠の固定、リッチテキストセル編集をサポート。',
       },
       docs: {
+        'reference-language-notice':
+          'この API ページの本文は現在英語です。コードのシグネチャと識別子は表示言語によって変わりません。',
         title: 'ドキュメント',
         desc: 'ドキュメント統計、リッチテキスト内のリンク、段落スタイル、表、リスト、ヘッダー、フッター、コメントに対応した Word 風エディタ。',
       },
@@ -350,6 +352,8 @@ const jaJPMessages = {
     },
   },
   docs: {
+    'reference-language-notice':
+      'この API ページの本文は現在英語です。コードのシグネチャと識別子は表示言語によって変わりません。',
     breadcrumb: 'パンくずリスト',
     copied: 'コピーしました',
     'copy-page': 'ページをコピー',
@@ -407,6 +411,7 @@ const jaJPMessages = {
     navigate: '選択',
     open: '開く',
     scope: {
+      blog: '開発チュートリアル',
       server: 'Server SDK',
       ai: 'AI SDK',
       guides: 'Web SDK',
@@ -421,6 +426,15 @@ const jaJPMessages = {
     'fullscreen-preview': '全画面プレビュー',
   },
   'mdx-meta-data': {
+    'server-label': 'サーバー依存',
+    'server-none': 'この機能はサーバー不要',
+    'license-label': 'クライアントライセンス',
+    'license-required': 'クライアントライセンスの設定が必要',
+    'license-none': 'クライアントライセンス不要',
+    'not-specified': 'このガイドでは未記載',
+    'headless-supported': 'コア API のみ。UI プラグインを除外',
+    'browser-only': 'ブラウザー統合のみ',
+    limitations: '制限事項',
     'preset-mode': 'プリセットモード',
     'plugin-mode': 'プラグインモード',
     'preset-info': 'プリセット情報',

@@ -11,6 +11,8 @@ title: Интеграция в React
 
 ### Пример кода
 
+Каждое монтирование использует отдельный дочерний контейнер. Освобождение выполняется в микрозадаче после очистки внешнего React, чтобы не размонтировать вложенный React root синхронно во время commit.
+
 ```tsx
 import { useEffect, useRef } from 'react'
 import { UniverBasesPlugin } from '@univerjs-pro/bases'
@@ -21,7 +23,6 @@ import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import { LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
 import DesignruRU from '@univerjs/design/locale/ru-RU'
-import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIruRU from '@univerjs/ui/locale/ru-RU'
@@ -34,8 +35,11 @@ export function UniverEditor() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
+    const host = containerRef.current
+    if (!host) return
+    const container = document.createElement('div')
+    container.style.height = '100%'
+    host.append(container)
 
     const univer = new Univer({
       locale: LocaleType.RU_RU,
@@ -54,14 +58,19 @@ export function UniverEditor() {
     })
     univer.registerPlugin(UniverRenderEnginePlugin)
     univer.registerPlugin(UniverUIPlugin, { container })
-    univer.registerPlugin(UniverFormulaEnginePlugin)
+
     univer.registerPlugin(UniverProFormulaEnginePlugin)
     univer.registerPlugin(UniverBasesPlugin)
     univer.registerPlugin(UniverBasesUIPlugin)
 
     univer.createUnit(UniverInstanceType.UNIVER_BASE, {})
 
-    return () => univer.dispose()
+    return () => {
+      queueMicrotask(() => {
+        univer.dispose()
+        container.remove()
+      })
+    }
   }, [])
 
   return <div ref={containerRef} style={{ height: 600 }} />

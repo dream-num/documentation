@@ -37,7 +37,7 @@ const esESMessages = {
     'open-site-navigation': 'Navegación abierta del sitio',
     'primary-navigation': 'Navegación principal',
     'site-navigation': 'Navegación del sitio',
-    'univer-home': 'Web SDK inicio',
+    'univer-home': 'Univer Office SDK inicio',
   },
   'theme-customizer': {
     apply: 'Aplicar',
@@ -97,7 +97,7 @@ const esESMessages = {
   home: {
     slogan: 'Incorporación de herramientas de productividad basadas en servidor en su flujo de trabajo',
     description:
-      'Web SDK es una suite ofimática isomórfica de pila completa con alta extensibilidad y rendimiento, diseñada para ayudar a los desarrolladores a crear y editar',
+      'Univer Office SDK incluye Web SDK, Server SDK y AI SDK. Esta es una suite ofimática isomórfica de pila completa con alta extensibilidad y rendimiento, diseñada para ayudar a los desarrolladores a crear y editar',
     'description-split': ',',
     'description-period': 'libremente.',
     'description-and': 'y',
@@ -125,6 +125,8 @@ const esESMessages = {
         desc: 'Interfaz familiar similar a Excel. Admite más de 500 funciones, referencias entre hojas, clasificación y filtrado, paneles congelados y edición de celdas de texto enriquecido.',
       },
       docs: {
+        'reference-language-notice':
+          'Esta página de API está disponible actualmente en inglés. Las firmas y los identificadores no cambian con el idioma.',
         title: 'Documentos',
         desc: 'Editor de texto enriquecido tipo Word con estadísticas de documentos, enlaces en texto enriquecido, estilos de párrafo, tablas, listas, encabezados, pies y comentarios.',
       },
@@ -351,6 +353,8 @@ const esESMessages = {
     },
   },
   docs: {
+    'reference-language-notice':
+      'Esta página de API está disponible actualmente en inglés. Las firmas y los identificadores no cambian con el idioma.',
     breadcrumb: 'Breadcrumb',
     copied: 'Copiado',
     'copy-page': 'Copiar página',
@@ -408,6 +412,7 @@ const esESMessages = {
     navigate: 'Navegar',
     open: 'Abrir',
     scope: {
+      blog: 'Tutoriales de desarrollo',
       server: 'Server SDK',
       ai: 'AI SDK',
       guides: 'Web SDK',
@@ -422,6 +427,15 @@ const esESMessages = {
     'fullscreen-preview': 'Vista previa en pantalla completa',
   },
   'mdx-meta-data': {
+    'server-label': 'Dependencia del servidor',
+    'server-none': 'Esta función no requiere servidor',
+    'license-label': 'Licencia de cliente',
+    'license-required': 'Configura una licencia de cliente',
+    'license-none': 'No requiere licencia de cliente',
+    'not-specified': 'No se especifica en esta guía',
+    'headless-supported': 'Solo API principales, sin plugins UI',
+    'browser-only': 'Solo integración en navegador',
+    limitations: 'Limitaciones',
     'preset-mode': 'Modo preestablecido',
     'plugin-mode': 'Modo complemento',
     'preset-info': 'Información preestablecida',

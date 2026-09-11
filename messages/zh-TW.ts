@@ -37,7 +37,7 @@ const zhTWMessages = {
     'open-site-navigation': '打開站點導航',
     'primary-navigation': '主導航',
     'site-navigation': '站點導航',
-    'univer-home': 'Web SDK 首頁',
+    'univer-home': 'Univer Office SDK 首頁',
   },
   'theme-customizer': {
     apply: '套用',
@@ -95,7 +95,8 @@ const zhTWMessages = {
   },
   home: {
     slogan: '重塑工作流的全棧嵌入工具',
-    description: 'Web SDK 是一個前後端同構的全棧辦公套件，具有高擴展性和高性能，旨在幫助開發者自由構建和編輯',
+    description:
+      'Univer Office SDK 包含 Web SDK、Server SDK 和 AI SDK，是一個前後端同構的全棧辦公套件，具有高擴展性和高性能，旨在幫助開發者自由構建和編輯',
     'description-split': '、',
     'description-period': '。',
     'description-and': '和',
@@ -109,10 +110,10 @@ const zhTWMessages = {
       description: '透過六種可編輯的 Web SDK 體驗，探索從規劃、內容表達、視覺協作到 PDF 交付的完整產品發佈流程。',
     },
     customer: {
-      title: 'Web SDK 為各行業團隊與公司賦能，提升工作效率',
+      title: 'Univer Office SDK 為各行業團隊與公司賦能，提升工作效率',
     },
     logocloud: {
-      title: 'Web SDK 為各行業團隊與公司賦能，提升工作效率',
+      title: 'Univer Office SDK 為各行業團隊與公司賦能，提升工作效率',
     },
     scenes: {
       title: '驅動每一種工作流',
@@ -122,6 +123,7 @@ const zhTWMessages = {
         desc: '類 Excel 的交互界面。支持 500+ 函數、跨表引用、數據排序篩選、凍結窗格、單元格富文本編輯等核心表格能力。',
       },
       docs: {
+        'reference-language-notice': '此 API 頁面目前提供英文內容。程式碼簽名與識別符不隨介面語言變更。',
         title: '文檔',
         desc: '類 Word 的富文字編輯器，支援文件統計、富文字連結、段落樣式、表格、清單、頁首頁尾與評論批註。',
       },
@@ -348,6 +350,7 @@ const zhTWMessages = {
     },
   },
   docs: {
+    'reference-language-notice': '此 API 頁面目前提供英文內容。程式碼簽名與識別符不隨介面語言變更。',
     breadcrumb: '麵包屑',
     copied: '已複製',
     'copy-page': '複製頁面',
@@ -405,6 +408,7 @@ const zhTWMessages = {
     navigate: '選擇',
     open: '開啟',
     scope: {
+      blog: '開發教學',
       server: 'Server SDK',
       ai: 'AI SDK',
       guides: 'Web SDK',
@@ -419,6 +423,15 @@ const zhTWMessages = {
     'fullscreen-preview': '全螢幕預覽',
   },
   'mdx-meta-data': {
+    'server-label': '服務端依賴',
+    'server-none': '此功能不需服務端',
+    'license-label': '用戶端授權',
+    'license-required': '需要設定用戶端授權',
+    'license-none': '不需用戶端授權',
+    'not-specified': '本指南未聲明支援情況',
+    'headless-supported': '僅核心 API，需移除 UI 外掛',
+    'browser-only': '僅瀏覽器整合',
+    limitations: '使用限制',
     'preset-mode': '預設模式',
     'plugin-mode': '插件模式',
     'preset-info': '預設信息',

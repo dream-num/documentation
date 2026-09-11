@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { Link, usePathname, useRouter } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 
-const searchScopes: SearchScope[] = ['all', 'guides', 'server', 'ai', 'reference']
+const searchScopes: SearchScope[] = ['all', 'guides', 'server', 'ai', 'reference', 'blog']
 
 export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; defaultScope?: SearchScope }) {
   const t = useTranslations()

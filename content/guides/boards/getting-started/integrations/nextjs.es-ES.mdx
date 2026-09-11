@@ -1,0 +1,110 @@
+---
+title: Integrar en Next.js
+---
+
+Consulta primero la [instalación y el uso básico](/guides/boards/getting-started/installation). Este ejemplo usa Next.js App Router para montar Univer Boards en un contenedor con una altura explícita.
+
+Carga el editor desde un Client Component con `ssr: false`. La directiva `use client` por sí sola no desactiva el prerenderizado. [Next.js](https://nextjs.org/docs/app/guides/lazy-loading#skipping-ssr).
+
+Sustituye `YOUR_CLIENT_LICENSE` por el contenido de la licencia cliente, no por una ruta de archivo. [Configuración de licencia](/server/license).
+
+### Pasos de integración
+
+1. Inicializa Univer en `useEffect`.
+2. Libera Univer en `useEffect cleanup`.
+
+### Código de ejemplo
+
+Cada montaje usa su propio contenedor hijo. La destrucción se ejecuta en una microtarea tras la limpieza de React para evitar desmontar una raíz React anidada durante un commit.
+
+```tsx title="app/editor/univer-editor.tsx"
+'use client'
+
+import { useEffect, useRef } from 'react'
+import { UniverBoardsPlugin } from '@univerjs-pro/boards'
+import { UniverBoardsUIPlugin } from '@univerjs-pro/boards-ui'
+import BoardsUIesES from '@univerjs-pro/boards-ui/locale/es-ES'
+import { UniverInkUIPlugin } from '@univerjs-pro/ink-ui'
+import InkUIesES from '@univerjs-pro/ink-ui/locale/es-ES'
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import { LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
+import DesignesES from '@univerjs/design/locale/es-ES'
+import { UniverDocsPlugin } from '@univerjs/docs'
+import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+import DocsUIesES from '@univerjs/docs-ui/locale/es-ES'
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
+import DrawingUIesES from '@univerjs/drawing-ui/locale/es-ES'
+import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+import { UniverUIPlugin } from '@univerjs/ui'
+import UIesES from '@univerjs/ui/locale/es-ES'
+
+import '@univerjs/design/lib/index.css'
+import '@univerjs/ui/lib/index.css'
+import '@univerjs/docs-ui/lib/index.css'
+import '@univerjs/drawing-ui/lib/index.css'
+import '@univerjs-pro/ink-ui/lib/index.css'
+import '@univerjs-pro/boards-ui/lib/index.css'
+
+export default function UniverEditor() {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const host = containerRef.current
+    if (!host) return
+    const container = document.createElement('div')
+    container.style.height = '100%'
+    host.append(container)
+
+    const univer = new Univer({
+      locale: LocaleType.ES_ES,
+      locales: {
+        [LocaleType.ES_ES]: mergeLocales(
+          DesignesES,
+          UIesES,
+          DocsUIesES,
+          DrawingUIesES,
+          InkUIesES,
+          BoardsUIesES,
+        ),
+      },
+    })
+
+    univer.registerPlugin(UniverLicensePlugin, {
+      license: 'YOUR_CLIENT_LICENSE',
+    })
+    univer.registerPlugin(UniverRenderEnginePlugin)
+    univer.registerPlugin(UniverUIPlugin, { container })
+    univer.registerPlugin(UniverDocsPlugin)
+    univer.registerPlugin(UniverDocsUIPlugin)
+    univer.registerPlugin(UniverDrawingPlugin)
+    univer.registerPlugin(UniverDrawingUIPlugin)
+    univer.registerPlugin(UniverInkUIPlugin)
+    univer.registerPlugin(UniverBoardsPlugin)
+    univer.registerPlugin(UniverBoardsUIPlugin)
+
+    univer.createUnit(UniverInstanceType.UNIVER_BOARD, {})
+
+    return () => {
+      queueMicrotask(() => {
+        univer.dispose()
+        container.remove()
+      })
+    }
+  }, [])
+
+  return <div ref={containerRef} style={{ height: 600 }} />
+}
+```
+
+```tsx title="app/editor/page.tsx"
+'use client'
+
+import dynamic from 'next/dynamic'
+
+const UniverEditor = dynamic(() => import('./univer-editor'), { ssr: false })
+
+export default function Page() {
+  return <UniverEditor />
+}
+```

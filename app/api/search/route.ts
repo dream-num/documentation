@@ -3,7 +3,7 @@ import { createFromSource } from 'fumadocs-core/search/server'
 import type { SearchResultSource } from '@/lib/guides/search'
 import { normalizeLocale } from '@/i18n/locale-config'
 import { normalizeScopedSearchResults, parseSearchScope, rankSearchResults } from '@/lib/guides/search'
-import { ai, guides, reference, server } from '@/lib/source'
+import { ai, blog, guides, reference, server } from '@/lib/source'
 
 const searchOptions = {
   async buildIndex(page: ReturnType<typeof guides.getPages>[number]) {
@@ -22,6 +22,14 @@ const handlers = {
   server: createFromSource(server, searchOptions),
   ai: createFromSource(ai, searchOptions),
   reference: createFromSource(reference, searchOptions),
+  blog: createFromSource(
+    {
+      ...blog,
+      getPages: (...args: Parameters<typeof blog.getPages>) =>
+        blog.getPages(...args).filter((page) => !page.data.deprecated),
+    },
+    searchOptions,
+  ),
 }
 
 export async function GET(request: Request) {
@@ -32,7 +40,7 @@ export async function GET(request: Request) {
 
   const scope = parseSearchScope(url.searchParams.get('scope'))
   const locale = normalizeLocale(url.searchParams.get('locale') ?? undefined)
-  const sources: SearchResultSource[] = scope === 'all' ? ['guides', 'server', 'ai', 'reference'] : [scope]
+  const sources: SearchResultSource[] = scope === 'all' ? ['guides', 'server', 'ai', 'reference', 'blog'] : [scope]
   try {
     const groups = await Promise.all(
       sources.map(async (source) => {

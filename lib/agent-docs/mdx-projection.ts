@@ -37,6 +37,8 @@ const AGENT_MDX_ELEMENTS = new Set([
   'CodeBlockTabs',
   'CodeBlockTabsList',
   'CodeBlockTabsTrigger',
+  'DefinedNamesDemo',
+  'RangeThemeDemo',
   'FormulaList',
   'IconsGallery',
   'IconsVersion',
@@ -653,6 +655,10 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
       if (!slug) throw new Error('Agent Markdown expected PlaygroundFrame.slug')
       return `> Interactive example: [Open the playground](/playground/${slug})`
     }
+    case 'RangeThemeDemo':
+      return 'Range themes: `default`; `light` uses alternating column fills; `middle` combines edge columns and alternating rows; `dark` uses alternating row fills. Color presets: blue, grey, red, orange, yellow, green, azure, indigo, purple, magenta.'
+    case 'DefinedNamesDemo':
+      return '交互示意：展开工作表左上角的名称框，通过下拉菜单打开名称管理器。'
     case 'RibbonStyle':
       return [
         '#### Ribbon layouts',

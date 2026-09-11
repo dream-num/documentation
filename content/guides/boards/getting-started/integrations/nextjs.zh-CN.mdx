@@ -1,0 +1,110 @@
+---
+title: 在 Next.js 中集成
+---
+
+请先阅读[安装和基本使用](/guides/boards/getting-started/installation)。以下示例通过 Next.js App Router 将 Univer Boards 挂载到具有明确高度的容器中。
+
+在客户端组件中通过 `ssr: false` 动态加载编辑器。仅声明 `use client` 并不会关闭预渲染。 [Next.js](https://nextjs.org/docs/app/guides/lazy-loading#skipping-ssr).
+
+将 `YOUR_CLIENT_LICENSE` 替换为客户端许可证内容，不要填写文件路径。 [许可证配置](/server/license).
+
+### 集成步骤
+
+1. 在 `useEffect` 中初始化 Univer
+2. 在 `useEffect cleanup` 中销毁 Univer
+
+### 示例代码
+
+每次挂载使用独立的子容器，并在外层 React 清理完成后的微任务中销毁实例，避免在 React 提交期间同步卸载嵌套的 React root。
+
+```tsx title="app/editor/univer-editor.tsx"
+'use client'
+
+import { useEffect, useRef } from 'react'
+import { UniverBoardsPlugin } from '@univerjs-pro/boards'
+import { UniverBoardsUIPlugin } from '@univerjs-pro/boards-ui'
+import BoardsUIzhCN from '@univerjs-pro/boards-ui/locale/zh-CN'
+import { UniverInkUIPlugin } from '@univerjs-pro/ink-ui'
+import InkUIzhCN from '@univerjs-pro/ink-ui/locale/zh-CN'
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import { LocaleType, mergeLocales, Univer, UniverInstanceType } from '@univerjs/core'
+import DesignzhCN from '@univerjs/design/locale/zh-CN'
+import { UniverDocsPlugin } from '@univerjs/docs'
+import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+import DocsUIzhCN from '@univerjs/docs-ui/locale/zh-CN'
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+import { UniverDrawingUIPlugin } from '@univerjs/drawing-ui'
+import DrawingUIzhCN from '@univerjs/drawing-ui/locale/zh-CN'
+import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+import { UniverUIPlugin } from '@univerjs/ui'
+import UIzhCN from '@univerjs/ui/locale/zh-CN'
+
+import '@univerjs/design/lib/index.css'
+import '@univerjs/ui/lib/index.css'
+import '@univerjs/docs-ui/lib/index.css'
+import '@univerjs/drawing-ui/lib/index.css'
+import '@univerjs-pro/ink-ui/lib/index.css'
+import '@univerjs-pro/boards-ui/lib/index.css'
+
+export default function UniverEditor() {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const host = containerRef.current
+    if (!host) return
+    const container = document.createElement('div')
+    container.style.height = '100%'
+    host.append(container)
+
+    const univer = new Univer({
+      locale: LocaleType.ZH_CN,
+      locales: {
+        [LocaleType.ZH_CN]: mergeLocales(
+          DesignzhCN,
+          UIzhCN,
+          DocsUIzhCN,
+          DrawingUIzhCN,
+          InkUIzhCN,
+          BoardsUIzhCN,
+        ),
+      },
+    })
+
+    univer.registerPlugin(UniverLicensePlugin, {
+      license: 'YOUR_CLIENT_LICENSE',
+    })
+    univer.registerPlugin(UniverRenderEnginePlugin)
+    univer.registerPlugin(UniverUIPlugin, { container })
+    univer.registerPlugin(UniverDocsPlugin)
+    univer.registerPlugin(UniverDocsUIPlugin)
+    univer.registerPlugin(UniverDrawingPlugin)
+    univer.registerPlugin(UniverDrawingUIPlugin)
+    univer.registerPlugin(UniverInkUIPlugin)
+    univer.registerPlugin(UniverBoardsPlugin)
+    univer.registerPlugin(UniverBoardsUIPlugin)
+
+    univer.createUnit(UniverInstanceType.UNIVER_BOARD, {})
+
+    return () => {
+      queueMicrotask(() => {
+        univer.dispose()
+        container.remove()
+      })
+    }
+  }, [])
+
+  return <div ref={containerRef} style={{ height: 600 }} />
+}
+```
+
+```tsx title="app/editor/page.tsx"
+'use client'
+
+import dynamic from 'next/dynamic'
+
+const UniverEditor = dynamic(() => import('./univer-editor'), { ssr: false })
+
+export default function Page() {
+  return <UniverEditor />
+}
+```

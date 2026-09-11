@@ -1,0 +1,78 @@
+---
+title: Intégrer dans Next.js
+---
+
+Consultez d’abord [l’installation et les premiers pas](/guides/docs/getting-started/installation). Cet exemple utilise Next.js App Router pour monter Univer Docs dans un conteneur avec une hauteur explicite.
+
+Chargez l’éditeur depuis un Client Component avec `ssr: false`. La directive `use client` seule ne désactive pas le prérendu. [Next.js](https://nextjs.org/docs/app/guides/lazy-loading#skipping-ssr).
+
+### Étapes d’intégration
+
+1. Initialisez Univer dans le hook `useEffect`
+2. Détruisez Univer dans la fonction de nettoyage renvoyée par le hook `useEffect`
+
+### Exemple de code
+
+Chaque montage utilise son propre conteneur enfant. La destruction est différée dans une microtâche après le nettoyage React parent, afin de ne pas démonter une racine React imbriquée pendant un commit.
+
+```tsx title="app/editor/univer-editor.tsx"
+'use client'
+
+import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+import UniverPresetDocsCoreEnUS from '@univerjs/preset-docs-core/locales/en-US'
+import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
+import { useEffect, useRef } from 'react'
+
+import '@univerjs/preset-docs-core/lib/index.css'
+
+export default function UniverEditor() {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const host = containerRef.current
+    if (!host) return
+    const container = document.createElement('div')
+    container.style.height = '100%'
+    host.append(container)
+
+    const { univer, univerAPI } = createUniver({
+      locale: LocaleType.EN_US,
+      locales: {
+        [LocaleType.EN_US]: mergeLocales(
+          UniverPresetDocsCoreEnUS,
+        ),
+      },
+      presets: [
+        UniverDocsCorePreset({
+          container,
+        }),
+      ],
+    })
+
+    univerAPI.createDocument({})
+
+    return () => {
+      queueMicrotask(() => {
+        univer.dispose()
+        container.remove()
+      })
+    }
+  }, [])
+
+  return (
+    <div ref={containerRef} style={{ height: 600 }} />
+  )
+}
+```
+
+```tsx title="app/editor/page.tsx"
+'use client'
+
+import dynamic from 'next/dynamic'
+
+const UniverEditor = dynamic(() => import('./univer-editor'), { ssr: false })
+
+export default function Page() {
+  return <UniverEditor />
+}
+```

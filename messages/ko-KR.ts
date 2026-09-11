@@ -37,7 +37,7 @@ const koKRMessages = {
     'open-site-navigation': '사이트 탐색 열기',
     'primary-navigation': '기본 탐색',
     'site-navigation': '사이트 탐색',
-    'univer-home': 'Web SDK 홈',
+    'univer-home': 'Univer Office SDK 홈',
   },
   'theme-customizer': {
     apply: '적용',
@@ -96,7 +96,7 @@ const koKRMessages = {
   home: {
     slogan: '워크플로에 서버 기반 생산성 도구를 더하세요',
     description:
-      'Web SDK는 높은 확장성과 성능을 갖춘 풀스택 동형 오피스 제품군으로, 개발자가 자유롭게 구축하고 편집할 수 있도록 설계되었습니다. ',
+      'Univer Office SDK는 Web SDK, Server SDK, AI SDK를 포함합니다. Univer Office SDK는 높은 확장성과 성능을 갖춘 풀스택 동형 오피스 제품군으로, 개발자가 자유롭게 구축하고 편집할 수 있도록 설계되었습니다. ',
     'description-split': ', ',
     'description-period': '을 자유롭게 다룰 수 있습니다.',
     'description-and': ' 및 ',
@@ -124,6 +124,8 @@ const koKRMessages = {
         desc: '익숙한 Excel 스타일 인터페이스입니다. 500개 이상의 함수, 시트 간 참조, 정렬 및 필터링, 틀 고정, 셀 서식 있는 텍스트 편집을 지원합니다.',
       },
       docs: {
+        'reference-language-notice':
+          '이 API 페이지의 본문은 현재 영어로 제공됩니다. 코드 시그니처와 식별자는 언어에 따라 바뀌지 않습니다.',
         title: '문서',
         desc: '문서 통계, 리치 텍스트 링크, 단락 스타일, 표, 목록, 머리글, 바닥글, 주석을 지원하는 Word 스타일 편집기입니다.',
       },
@@ -350,6 +352,8 @@ const koKRMessages = {
     },
   },
   docs: {
+    'reference-language-notice':
+      '이 API 페이지의 본문은 현재 영어로 제공됩니다. 코드 시그니처와 식별자는 언어에 따라 바뀌지 않습니다.',
     breadcrumb: '이동 경로',
     copied: '복사됨',
     'copy-page': '페이지 복사',
@@ -407,6 +411,7 @@ const koKRMessages = {
     navigate: '선택',
     open: '열기',
     scope: {
+      blog: '개발 튜토리얼',
       server: 'Server SDK',
       ai: 'AI SDK',
       guides: 'Web SDK',
@@ -421,6 +426,15 @@ const koKRMessages = {
     'fullscreen-preview': '전체 화면 미리보기',
   },
   'mdx-meta-data': {
+    'server-label': '서버 의존성',
+    'server-none': '이 기능에는 서버가 필요하지 않음',
+    'license-label': '클라이언트 라이선스',
+    'license-required': '클라이언트 라이선스 설정 필요',
+    'license-none': '클라이언트 라이선스 불필요',
+    'not-specified': '이 가이드에 명시되지 않음',
+    'headless-supported': '핵심 API만 사용, UI 플러그인 제외',
+    'browser-only': '브라우저 통합만 지원',
+    limitations: '제한 사항',
     'preset-mode': 'Preset 모드',
     'plugin-mode': 'Plugin 모드',
     'preset-info': 'Preset 정보',

@@ -11,6 +11,8 @@ title: React에 통합하기
 
 ### 예제 코드
 
+마운트마다 별도의 자식 컨테이너를 사용합니다. 바깥 React 정리가 끝난 뒤 마이크로태스크에서 인스턴스를 폐기하여 React 커밋 중 중첩 루트의 동기 언마운트를 방지합니다.
+
 ```tsx
 import { useEffect, useRef } from 'react'
 import { UniverBoardsPlugin } from '@univerjs-pro/boards'
@@ -42,8 +44,11 @@ export function UniverEditor() {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
+    const host = containerRef.current
+    if (!host) return
+    const container = document.createElement('div')
+    container.style.height = '100%'
+    host.append(container)
 
     const univer = new Univer({
       locale: LocaleType.KO_KR,
@@ -74,7 +79,12 @@ export function UniverEditor() {
 
     univer.createUnit(UniverInstanceType.UNIVER_BOARD, {})
 
-    return () => univer.dispose()
+    return () => {
+      queueMicrotask(() => {
+        univer.dispose()
+        container.remove()
+      })
+    }
   }, [])
 
   return <div ref={containerRef} style={{ height: 600 }} />
