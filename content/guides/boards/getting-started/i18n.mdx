@@ -3,12 +3,29 @@ title: Internationalization
 icon: Earth
 ---
 
+## Interface language
 
-<Callout type="warning" title="Caution">
-  Not all plugins include language packs. We will specify this in the documentation for each feature.
-</Callout>
+`locale` selects the language pack for menus, tooltips, dialogs, and other translated UI. `locales` registers these packs without selecting a language. This setting is shared by the units in the Univer instance. Use `LocaleType` values, such as `LocaleType.EN_US`.
 
-## `mergeLocales` Method [#mergeLocales]
+- **All products: UI**: `locale` changes translated menus, tooltips, dialogs, and plugin labels. It does not translate user content or rename existing units.
+- **Sheets: cell formats and formulas**: Cell number/date rendering uses the number-format locale override, then the workbook snapshot `locale`, then the instance `locale`. `region` does not replace these settings. Formula behavior such as `DOLLAR` and financial-result currency formats still uses `locale`; CJK input normalization also uses `locale`.
+- **Docs: statistics**: `locale` is used for word segmentation/counting.
+
+### Changing language at runtime
+
+Load all language packs for the installed plugins or presets before switching language. `loadLocales()` merges translations without switching; `setLocale()` selects them without downloading anything. Missing translation keys are displayed as keys. This example loads the shared UI pack; merge the target-language packs for your other installed plugins in the same call.
+
+```typescript
+import { LocaleType, mergeLocales } from '@univerjs/core'
+import UIEnUS from '@univerjs/ui/locale/en-US'
+
+univerAPI.loadLocales(LocaleType.EN_US, mergeLocales(UIEnUS))
+univerAPI.setLocale(LocaleType.EN_US)
+
+console.log(univerAPI.getCurrentLocale()) // enUS
+```
+
+### Merging language packs [#mergeLocales]
 
 `mergeLocales` Method is used to merge multiple plugin or preset language packs into a complete language pack object. You can use it as follows:
 
@@ -51,15 +68,17 @@ icon: Earth
   </Tab>
 </Tabs>
 
-## Custom Language Packs
+### Custom Language Packs
 
 Univer also supports custom language packs. You can assemble a language pack object as needed and pass it to the `Univer` instance. The preset language packs are generally stored in the `<rootDir>/packages/<PLUGIN_NAME>/locale` directory.
 
 ```typescript
+import { LocaleType, Univer } from '@univerjs/core'
+
 const univer = new Univer({
-  locale: 'ja-JP',
+  locale: LocaleType.JA_JP,
   locales: {
-    'ja-JP': {
+    [LocaleType.JA_JP]: {
       ui: {
         shortcut: {
           undo: '元に戻す',
@@ -71,7 +90,7 @@ const univer = new Univer({
 })
 ```
 
-## Contributing Translations
+### Contributing Translations
 
 Univer currently provides the following built-in language packs:
 
@@ -96,3 +115,43 @@ Univer currently provides the following built-in language packs:
 - `pt-BR`: Portuguese (Brazilian)
 
 Univer is an open source project full of inclusiveness, and we welcome developers from all over the world to add or improve locales for Univer.
+
+## Regional settings
+
+`region` selects the regional conventions used by regional features. This setting is shared by the units in the Univer instance.
+
+Use `LocaleType` values for both settings: for example, `LocaleType.EN_US` is `enUS`, while `en-US` is the language-pack file name / BCP 47 tag. Do not pass country codes such as `US` or `SG` as `region`. A region does not require its language pack when the UI uses a different locale.
+
+Without an explicit `region`, it follows `locale`, including later `setLocale()` calls. Setting `region` at initialization or calling `setRegion()` stops that automatic following. Subsequent language changes keep the explicitly selected region. There is no public reset-to-follow API; update both values yourself when they should change together.
+
+Add `region: LocaleType.DE_DE` next to `locale` in either `createUniver()` or `new Univer()` to keep your UI language while using German regional conventions.
+
+```typescript
+import { LocaleType } from '@univerjs/core'
+
+univerAPI.setRegion(LocaleType.DE_DE)
+univerAPI.setLocale(LocaleType.EN_US)
+
+console.log(univerAPI.getCurrentRegion()) // deDE
+```
+
+Here the UI switches to English and regional formatting stays German. `getCurrentLocale()` and `getCurrentRegion()` return the effective identifiers. To change both together, call both setters with the same `LocaleType` value.
+
+- **Sheets: currency controls**: `region` controls the currency toolbar icon, currency/accounting choices and previews, and the pattern applied by the currency command. Changing it does not rewrite existing cell formats or convert monetary values.
+- **Docs: statistics**: `region` formats the displayed counts in the statistics dialog and status bar (for example, grouping separators); changing `region` does not change the counting rules.
+- **Thread comments, when enabled**: `region` controls the displayed date/time format, with 24-hour time and Latin digits. `locale` controls comment UI text. Neither changes stored timestamps; `region` is not a timezone setting.
+- **Boards, Slides, Bases, PDFs**: `locale` controls translated UI. `region` is available for shared features that consume it, such as thread comments when integrated; it does not automatically reformat board/slide text, Base fields, or PDF content.
+
+## Right-to-left layout
+
+<Callout type="warning" title="Caution">
+  RTL currently supports only the UI layer. The rendering layer does not support RTL.
+</Callout>
+
+<Callout type="warning" title="Caution">
+  Not all plugins include language packs. We will specify this in the documentation for each feature.
+</Callout>
+
+```typescript
+univerAPI.setDirection('rtl')
+```

@@ -3,7 +3,29 @@ title: 国際化
 icon: Earth
 ---
 
-## プリセットモードでの言語パックの登録
+## インターフェースの言語
+
+`locale` はメニュー、ツールチップ、ダイアログなどの UI の言語パックを選択します。`locales` は言語パックを登録しますが、言語は選択しません。この設定は Univer インスタンス内の各ユニットで共有されます。`LocaleType.EN_US` などの `LocaleType` 値を使ってください。
+
+- **全製品：UI**：`locale` はメニュー、ツールチップ、ダイアログ、プラグインのラベルを翻訳します。ユーザーの内容や既存ユニット名は変更しません。
+- **Sheets：セル書式と数式**：数値/日付の表示は、数値書式の locale 上書き値、ワークブックスナップショットの `locale`、インスタンスの `locale` の順で選択されます。`region` はこれらを置き換えません。`DOLLAR` や財務関数の結果の通貨書式、中日韓入力の正規化は引き続き `locale` を使います。
+- **Docs：統計**：`locale` は単語分割と単語数の計算に使われます。
+
+### 実行時の言語の切り替え
+
+言語を切り替える前に、導入済みのプラグインやプリセットの言語パックをすべて読み込んでください。`loadLocales()` は翻訳をマージしますが言語は切り替えません。`setLocale()` は言語を選択しますがダウンロードは行いません。翻訳がない場合はキーが表示されます。以下は共通 UI パックの例です。他の導入済みプラグインの対象言語パックも同じ呼び出しでマージしてください。
+
+```typescript
+import { LocaleType, mergeLocales } from '@univerjs/core'
+import UIEnUS from '@univerjs/ui/locale/en-US'
+
+univerAPI.loadLocales(LocaleType.EN_US, mergeLocales(UIEnUS))
+univerAPI.setLocale(LocaleType.EN_US)
+
+console.log(univerAPI.getCurrentLocale()) // enUS
+```
+
+### プリセットモードでの言語パックの登録
 
 プリセットには対応するプラグインの言語パックが含まれているため、プリセットからインポートするだけで利用できます。
 
@@ -27,7 +49,7 @@ const { univerAPI } = createUniver({
 })
 ```
 
-## プラグインモードでの言語パックの登録
+### プラグインモードでの言語パックの登録
 
 プラグインの言語パックを使う場合は、言語パックを提供するプラグインから対応ロケールを読み込み、それらを結合して `Univer` インスタンスに渡す必要があります。以下は例です。
 
@@ -54,7 +76,7 @@ const univer = new Univer({
   すべてのプラグインに言語パックが含まれているわけではありません。各機能のドキュメント内で、その有無を明記します。
 </Callout>
 
-## `mergeLocales` メソッド [#mergeLocales]
+### 言語パックのマージ [#mergeLocales]
 
 `mergeLocales` メソッドは、複数のプラグインやプリセットの言語パックを1つの完全な言語パックオブジェクトに統合するために使用します。使い方は以下の通りです。
 
@@ -97,15 +119,17 @@ const univer = new Univer({
   </Tab>
 </Tabs>
 
-## カスタム言語パック
+### カスタム言語パック
 
 Univer はカスタム言語パックにも対応しています。必要に応じて言語パックオブジェクトを組み立て、`Univer` インスタンスに渡すことができます。プリセットの言語パックは通常、`<rootDir>/packages/<PLUGIN_NAME>/locale` ディレクトリに保存されています。
 
 ````typescript
+import { LocaleType, Univer } from '@univerjs/core'
+
 const univer = new Univer({
-  locale: 'ja-JP',
+  locale: LocaleType.JA_JP,
   locales: {
-    'ja-JP': {
+    [LocaleType.JA_JP]: {
       ui: {
         shortcut: {
           undo: '元に戻す',
@@ -117,7 +141,7 @@ const univer = new Univer({
 })
 ````
 
-## 翻訳への貢献
+### 翻訳への貢献
 
 Univer には、現在以下の組み込み言語パックが用意されています：
 
@@ -142,3 +166,41 @@ Univer には、現在以下の組み込み言語パックが用意されてい�
 - `pt-BR`: ポルトガル語（ブラジル）
 
 Univer は多様性にあふれるオープンソースプロジェクトであり、世界中の開発者によるロケール追加や改善を歓迎しています。
+
+## 地域設定
+
+`region` は地域に依存する機能で使う地域の慣習を指定します。この設定は Univer インスタンス内の各ユニットで共有されます。
+
+どちらにも `LocaleType` を使ってください。例えば `LocaleType.EN_US` の値は `enUS` で、`en-US` は言語パックのファイル名 / BCP 47 タグです。`region` に `US` や `SG` などの国コードを渡さないでください。UI が別の言語を使う場合、地域に対応する言語パックの追加読み込みは不要です。
+
+`region` を明示しない場合は `locale` に追従し、後から `setLocale()` を呼んでも更新されます。初期化時に `region` を指定するか `setRegion()` を呼ぶと追従が止まり、その後の言語変更でも地域は維持されます。追従に戻す公開 API はありません。同時に変更したい場合は両方を設定してください。
+
+`createUniver()` または `new Univer()` の `locale` の横に `region: LocaleType.DE_DE` を追加すると、UI 言語を維持したままドイツの地域慣習を使えます。
+
+```typescript
+import { LocaleType } from '@univerjs/core'
+
+univerAPI.setRegion(LocaleType.DE_DE)
+univerAPI.setLocale(LocaleType.EN_US)
+
+console.log(univerAPI.getCurrentRegion()) // deDE
+```
+
+この例では UI が英語になり、地域はドイツのままです。`getCurrentLocale()` と `getCurrentRegion()` は現在の識別子を返します。両方を切り替えるには、同じ `LocaleType` 値で両方の setter を呼びます。
+
+- **Sheets：通貨操作**：`region` は通貨ツールバーアイコン、通貨/会計書式の選択肢とプレビュー、通貨コマンドで適用する書式を決めます。既存セルの書式や金額の換算は行いません。
+- **Docs：統計**：`region` は統計ダイアログとステータスバーの数値表示（桁区切りなど）に使われ、計算規則は変えません。
+- **スレッドコメントを有効にした場合**：`region` は日時の表示形式を決め、24 時間表記とラテン数字を使います。`locale` はコメント UI の翻訳に使われます。保存済みタイムスタンプは変わりません。`region` はタイムゾーン設定ではありません。
+- **Boards、Slides、Bases、PDFs**：`locale` は UI の翻訳を制御します。`region` は統合したスレッドコメントなどの共通機能で使えますが、ボード/スライドのテキスト、Base のフィールド、PDF の内容を自動で再書式設定しません。
+
+## 右から左へのレイアウト
+
+<Callout type="warning" title="注意">
+  現在、RTL は UI レイヤーのみでサポートされています。レンダリングレイヤーでは RTL をサポートしていません。
+</Callout>
+
+レイアウト方向は独立しています。初期化時の `direction` または `univerAPI.setDirection('rtl')` / `setDirection('ltr')` で指定します。`locale` や `region` の変更だけでは方向は切り替わりません。
+
+```typescript
+univerAPI.setDirection('rtl')
+```

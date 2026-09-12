@@ -3,12 +3,29 @@ title: 國際化
 icon: Earth
 ---
 
+## 介面語言
 
-<Callout type="warning" title="注意事項">
-  並非所有外掛都內含語系檔，我們會在各功能文件中加以說明。
-</Callout>
+`locale` 選擇選單、提示、對話方塊等介面文字使用的語言套件；`locales` 用於註冊語言套件，並不負責選擇語言。此設定由 Univer 執行個體中的各個文件單元共用。請使用 `LocaleType` 值，例如 `LocaleType.EN_US`。
 
-## `mergeLocales` 方法 [#mergeLocales]
+- **所有產品：介面**：`locale` 改變選單、提示、對話方塊及外掛標籤的翻譯，不會翻譯使用者內容或重新命名現有文件單元。
+- **Sheets：儲存格格式與公式**：數字/日期顯示依序使用數字格式的 locale 覆寫值、活頁簿快照的 `locale`、執行個體的 `locale`，`region` 不取代這些設定。`DOLLAR`、財務函數結果的貨幣格式等公式行為仍使用 `locale`；中日韓輸入正規化也使用 `locale`。
+- **Docs：文件統計**：`locale` 用於斷詞和字數統計
+
+### 執行時切換語言
+
+切換語言前，先載入已安裝外掛或預設對應的完整語言套件。`loadLocales()` 合併翻譯但不切換語言；`setLocale()` 選擇語言但不會自動下載語言套件。缺少的翻譯會顯示鍵名。以下範例載入共用 UI 語言套件；請在同一次合併中加入其他已安裝外掛的目標語言套件。
+
+```typescript
+import { LocaleType, mergeLocales } from '@univerjs/core'
+import UIEnUS from '@univerjs/ui/locale/en-US'
+
+univerAPI.loadLocales(LocaleType.EN_US, mergeLocales(UIEnUS))
+univerAPI.setLocale(LocaleType.EN_US)
+
+console.log(univerAPI.getCurrentLocale()) // enUS
+```
+
+### 合併語言套件 [#mergeLocales]
 
 `mergeLocales` 用來將多個外掛或預設（preset）的語系物件合併成一個完整的語系物件。使用方式如下：
 
@@ -51,15 +68,17 @@ icon: Earth
   </Tab>
 </Tabs>
 
-## 自訂語系檔
+### 自訂語系檔
 
 Univer 亦支援自行定義語系。你可以依需求組裝語系物件並傳入 `Univer` 實例。可供參考的預設語系檔一般放在 `<rootDir>/packages/<PLUGIN_NAME>/locale` 目錄下。
 
 ```typescript
+import { LocaleType, Univer } from '@univerjs/core'
+
 const univer = new Univer({
-  locale: 'ja-JP',
+  locale: LocaleType.JA_JP,
   locales: {
-    'ja-JP': {
+    [LocaleType.JA_JP]: {
       ui: {
         shortcut: {
           undo: '元に戻す',
@@ -71,7 +90,7 @@ const univer = new Univer({
 })
 ```
 
-## 貢獻語系
+### 貢獻語系
 
 Univer 目前提供以下內建語系：
 
@@ -96,3 +115,43 @@ Univer 目前提供以下內建語系：
 - `pt-BR`：葡萄牙文（巴西）
 
 其他語言尚未支援。歡迎各地開發者協助新增或改進語系。
+
+## 地區設定
+
+`region` 決定相關功能使用的地區慣例，由 Univer 執行個體中的各個文件單元共用。
+
+兩項設定都應使用 `LocaleType`：例如 `LocaleType.EN_US` 的值是 `enUS`，而 `en-US` 是語言套件檔名 / BCP 47 標籤。不要將 `US`、`SG` 等國家代碼傳給 `region`。介面使用另一種語言時，不需要為地區設定額外載入該地區的語言套件。
+
+未明確設定 `region` 時，它會跟隨 `locale`，之後呼叫 `setLocale()` 也會同步更新地區。在初始化時設定 `region` 或呼叫 `setRegion()` 後，自動跟隨就會停止，之後切換語言會保留指定的地區。目前沒有恢復自動跟隨的公開 API；需要同步變更時，請同時設定兩項。
+
+在 `createUniver()` 或 `new Univer()` 的 `locale` 旁加入 `region: LocaleType.DE_DE`，即可保留介面語言，同時使用德國地區慣例。
+
+```typescript
+import { LocaleType } from '@univerjs/core'
+
+univerAPI.setRegion(LocaleType.DE_DE)
+univerAPI.setLocale(LocaleType.EN_US)
+
+console.log(univerAPI.getCurrentRegion()) // deDE
+```
+
+此時介面切換為英文，地區仍為德國。`getCurrentLocale()` 和 `getCurrentRegion()` 回傳目前生效的識別碼。需要一起切換時，以相同的 `LocaleType` 值分別呼叫兩個 setter。
+
+- **Sheets：貨幣操作**：`region` 決定貨幣工具列圖示、貨幣/會計格式選項與預覽，以及貨幣命令套用的格式。切換地區不會重寫現有儲存格格式，也不會換算金額。
+- **Docs：文件統計**：`region` 用於統計對話方塊及狀態列中統計數字的顯示格式（如分組分隔符號）。僅修改 `region` 不會改變統計規則。
+- **啟用評論時**：`region` 決定評論日期/時間的顯示格式，使用 24 小時制和拉丁數字；`locale` 決定評論介面文字。兩者都不會修改已儲存的時間戳記，`region` 也不是時區設定。
+- **Boards、Slides、Bases、PDFs**：`locale` 控制介面翻譯；`region` 可供已整合的共用功能使用，例如評論，但不會自動重新格式化白板/投影片文字、Base 欄位或 PDF 內容。
+
+## 從右到左的版面配置
+
+<Callout type="warning" title="注意">
+  目前 RTL 僅支援 UI 層，尚不支援渲染層。
+</Callout>
+
+<Callout type="warning" title="注意事項">
+  並非所有外掛都內含語系檔，我們會在各功能文件中加以說明。
+</Callout>
+
+```typescript
+univerAPI.setDirection('rtl')
+```
