@@ -823,13 +823,25 @@ export async function syncReference(coreRoot = resolve(root, '../univer'), proRo
       shapes: 'Shapes',
       ui: 'UI',
     }
+    const groupIcons = {
+      core: 'Box',
+      sheets: 'Table2',
+      docs: 'FileText',
+      slides: 'Presentation',
+      boards: 'PencilRuler',
+      bases: 'Database',
+      pdfs: 'FileType',
+      charts: 'ChartNoAxesCombined',
+      shapes: 'Shapes',
+      ui: 'PanelsTopLeft',
+    }
     for (const [name, names] of groups) {
       if (!names.length) continue
       const directory = join(root, 'content/reference/facade', name)
       mkdirSync(directory, { recursive: true })
       writeReference(
         join(directory, 'meta.json'),
-        `${JSON.stringify({ title: groupTitles[name], defaultOpen: false, pages: names.map((className) => `../${classPage(className)}`) }, null, 2)}\n`,
+        `${JSON.stringify({ title: groupTitles[name], icon: groupIcons[name], defaultOpen: false, pages: names.map((className) => `../${classPage(className)}`) }, null, 2)}\n`,
       )
     }
     writeReference(
@@ -838,12 +850,12 @@ export async function syncReference(coreRoot = resolve(root, '../univer'), proRo
     )
     for (const file of globSync('content/reference/meta*.json', { cwd: root })) {
       const meta = JSON.parse(readFileSync(join(root, file), 'utf8'))
-      const start = meta.pages.indexOf('---Facade API---') + 1
+      const start = meta.pages.findIndex((page) => page.endsWith('Facade API---')) + 1
       const end = meta.pages.findIndex((page, index) => index >= start && page.startsWith('---'))
       meta.pages.splice(
         start,
         end - start,
-        'facade/index',
+        meta.pages[start],
         ...[...groups].filter(([, names]) => names.length).map(([name]) => `facade/${name}`),
       )
       writeReference(join(root, file), `${JSON.stringify(meta, null, 2)}\n`)

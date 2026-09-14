@@ -19,13 +19,13 @@ interface ITextProps {
   text: string
 }
 
-const REF_COLORS: Record<string, { border: string; bg: string; text: string }> = {
-  M: { border: 'border-blue-600', bg: 'bg-blue-50', text: 'text-blue-600' },
-  E: { border: 'border-yellow-600', bg: 'bg-yellow-50', text: 'text-yellow-600' },
-  C: { border: 'border-indigo-600', bg: 'bg-indigo-50', text: 'text-indigo-600' },
-  P: { border: 'border-green-600', bg: 'bg-green-50', text: 'text-green-600' },
-  T: { border: 'border-teal-600', bg: 'bg-teal-50', text: 'text-teal-600' },
-  F: { border: 'border-lime-600', bg: 'bg-lime-50', text: 'text-lime-600' },
+const REF_COLORS: Record<string, { border: string; text: string }> = {
+  M: { border: 'border-blue-600', text: 'text-blue-600' },
+  E: { border: 'border-yellow-600', text: 'text-yellow-600' },
+  C: { border: 'border-indigo-600', text: 'text-indigo-600' },
+  P: { border: 'border-green-600', text: 'text-green-600' },
+  T: { border: 'border-teal-600', text: 'text-teal-600' },
+  F: { border: 'border-lime-600', text: 'text-lime-600' },
 }
 
 export function IconWrapper(props: (IIconProps | ITextProps | IRefProps) & { className?: string }) {
@@ -55,10 +55,10 @@ export function IconWrapper(props: (IIconProps | ITextProps | IRefProps) & { cla
 
     return (
       <span
+        data-icon-kind="reference"
         className={clsx(
-          `inline-flex size-6 shrink-0 items-center justify-center rounded-md border bg-linear-to-b font-semibold shadow-sm`,
-          'from-secondary',
-          colors ? ` ${colors.border} ${colors.bg} ${colors.text} ` : '',
+          `inline-flex size-6 shrink-0 items-center justify-center rounded-md border font-semibold shadow-sm`,
+          colors ? `${colors.border} ${colors.text}` : '',
           className,
         )}
       >

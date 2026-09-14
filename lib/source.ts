@@ -1,5 +1,6 @@
 // See https://fumadocs.vercel.app/docs/headless/source-api for more info
 import { loader } from 'fumadocs-core/source'
+import { icons as lucideIcons } from 'lucide-react'
 import { createElement } from 'react'
 
 import type { IAmamoDocument } from '@/lib/amamo-source'
@@ -43,6 +44,10 @@ export const reference = loader({
   i18n: fumadocsI18n,
   icon(icon) {
     if (!icon) return
+
+    if (icon in lucideIcons) {
+      return createElement(lucideIcons[icon as keyof typeof lucideIcons])
+    }
 
     if (icon.startsWith('#ref')) {
       const [, iconName] = icon.split('/')
