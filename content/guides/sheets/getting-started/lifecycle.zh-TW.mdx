@@ -3,40 +3,32 @@ title: 生命週期
 icon: Recycle
 ---
 
+import { LifecycleDemo } from './components/lifecycle-demo'
 
-在 Univer 應用的執行過程中，系統會歷經一系列有序的生命週期階段。理解這些階段對開發者而言相當重要，有助於判斷何時可以安全地存取業務實例、操作 DOM，或執行耗時的非同步任務。不同階段適合進行不同型別的初始化、渲染與效能優化。透過監聽生命週期變化，開發者能在最佳時機回應系統狀態，實現功能擴充、效能提升或使用者體驗優化。
+## 全域生命週期
 
-Univer 的生命週期主要包含以下四個階段：
+- **Starting**: 初始化，尚未建立業務單元。
+- **Ready**: 首個業務單元建立完成；後續單元不會重新觸發。
+- **Rendered**: 標準 UI 完成首次渲染切換，不保證所有非同步內容就緒。
+- **Steady**: 標準 UI 在 Rendered 後延遲進入，不代表全部非同步工作完成。
 
-<Mermaid chart="flowchart LR; A([Starting]) --> B([Ready]) --> C([Rendered]) -->D([Steady])" />
-
-1. **Starting**：系統開始初始化，外掛內部會進行相依注入與基礎配置。
-2. **Ready**：第一個業務實例已建立，外掛進行核心功能初始化。
-3. **Rendered**：介面首次渲染完成，可安全操作 DOM 或執行與視覺相關的初始化。
-4. **Steady**：系統進入穩定狀態，適合執行延遲載入、非關鍵任務等優化操作。
-
-不同型別的外掛或元件，其生命週期啟動時機可能各異，但整體流程遵循上述順序。開發者可藉由生命週期事件精準掌控功能的載入與執行時機。
-
-<Callout>
-  想深入了解 Univer 的生命週期設計與各外掛的實際啟動時機，可參考《Univer
-  架構#外掛生命週期》(/blog/univer#plugin-lifecycle)。
-</Callout>
-
-## Facade API
-
-### 新增監聽器
-
-Univer 提供統一的事件訂閱介面，開發者可透過 Facade API 監聽生命週期變化：
+### Facade API
 
 ```typescript
+const currentStage = univerAPI.getCurrentLifecycleStage()
+
 const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
-  if (stage === univerAPI.Enum.LifecycleStages.Steady) {
-    // 在 Steady 階段執行自訂邏輯
-  }
+  console.log(stage)
 })
 ```
 
-### 移除監聽器
+<Callout type="warning" title="事件監聽的範圍">
+
+`LifeCycleChanged` 監聽的是 Univer 的全域階段。例如，全域已到 `Ready` 時才載入外掛 B，B 會執行 `onReady()`，但不會因此再次觸發全域 `Ready` 事件。
+
+新增監聽器時，回呼可能立即收到目前階段，包含 `Starting`。若只想知道目前到哪個階段，直接呼叫 `univerAPI.getCurrentLifecycleStage()`。
+
+</Callout>
 
 要移除監聽器，可使用回傳的 `disposable` 物件：
 
@@ -44,39 +36,12 @@ const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage
 disposable.dispose()
 ```
 
-### 生命週期事件與列舉
+## 外掛生命週期鉤子
 
-Univer 提供以下生命週期事件與列舉供開發者使用：
+外掛實際載入時執行 `onStarting()`，接著補執行至目前全域階段的鉤子。選擇 B 的載入階段，觀察它與 A 的呼叫順序。
 
-- 事件名稱：`univerAPI.Event.LifeCycleChanged`
+<LifecycleDemo />
 
-- 生命週期階段列舉：
-  - `univerAPI.Enum.LifecycleStages.Starting`
-  - `univerAPI.Enum.LifecycleStages.Ready`
-  - `univerAPI.Enum.LifecycleStages.Rendered`
-  - `univerAPI.Enum.LifecycleStages.Steady`
+通用外掛在註冊時載入；業務類型外掛通常在首次建立對應類型的單元前載入；已啟動類型的新外掛會延遲批次載入。明確的相依關係可能使外掛提前載入。
 
-### 生命週期監聽範例
-
-<Callout type="warning" title="注意事項">
-  `univerAPI.Event.LifeCycleChanged` 只會回報生命週期的「變化」，因此在 `Starting` 階段不會觸發任何事件。
-</Callout>
-
-```typescript
-const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
-  switch (stage) {
-    case univerAPI.Enum.LifecycleStages.Ready:
-      console.log('業務實例已建立，可進行核心初始化')
-      break
-    case univerAPI.Enum.LifecycleStages.Rendered:
-      console.log('介面渲染完成，可安全操作 DOM')
-      break
-    case univerAPI.Enum.LifecycleStages.Steady:
-      console.log('系統已穩定，可進行延遲載入等優化')
-      break
-  }
-})
-
-// 移除監聽器
-disposable.dispose()
-```
+同批外掛依相依順序、逐階段同步呼叫鉤子，不等待鉤子中的非同步工作。存取單元、DOM 或資源前，仍需確認對應物件就緒。
