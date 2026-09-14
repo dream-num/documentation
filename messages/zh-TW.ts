@@ -392,8 +392,9 @@ const zhTWMessages = {
     },
   },
   playground: {
-    'click-to-show': '點擊顯示 demo',
-    'click-to-hide': '點擊隱藏 demo',
+    demo: '示範',
+    'click-to-show': '展開示範',
+    'click-to-hide': '收合示範',
     preview: '預覽',
     'fullscreen-preview': '全螢幕預覽',
   },

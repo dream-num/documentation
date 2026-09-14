@@ -395,8 +395,9 @@ const frFRMessages = {
     },
   },
   playground: {
-    'click-to-show': 'Cliquer pour afficher la démo',
-    'click-to-hide': 'Cliquer pour masquer la démo',
+    demo: 'Démo',
+    'click-to-show': 'Afficher la démo',
+    'click-to-hide': 'Masquer la démo',
     preview: 'Aperçu',
     'fullscreen-preview': 'Aperçu en plein écran',
   },

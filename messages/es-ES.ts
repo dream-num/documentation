@@ -396,8 +396,9 @@ const esESMessages = {
     },
   },
   playground: {
-    'click-to-show': 'Haga clic para mostrar demo',
-    'click-to-hide': 'Haga clic para ocultar la demostración',
+    demo: 'Demo',
+    'click-to-show': 'Mostrar demo',
+    'click-to-hide': 'Ocultar demo',
     preview: 'Vista previa',
     'fullscreen-preview': 'Vista previa en pantalla completa',
   },

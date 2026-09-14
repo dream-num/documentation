@@ -397,8 +397,9 @@ const ruRUMessages = {
     },
   },
   playground: {
-    'click-to-show': 'Нажмите, чтобы показать демоверсию',
-    'click-to-hide': 'Нажмите, чтобы скрыть демоверсию',
+    demo: 'Демо',
+    'click-to-show': 'Показать демо',
+    'click-to-hide': 'Скрыть демо',
     preview: 'Предпросмотр',
     'fullscreen-preview': 'Полноэкранный предпросмотр',
   },

@@ -392,8 +392,9 @@ const zhCNMessages = {
     },
   },
   playground: {
-    'click-to-show': '点击显示 demo',
-    'click-to-hide': '点击隐藏 demo',
+    demo: '演示',
+    'click-to-show': '展开演示',
+    'click-to-hide': '收起演示',
     preview: '预览',
     'fullscreen-preview': '全屏预览',
   },

@@ -393,8 +393,9 @@ const enUSMessages = {
     },
   },
   playground: {
-    'click-to-show': 'Click to show demo',
-    'click-to-hide': 'Click to hide demo',
+    demo: 'Demo',
+    'click-to-show': 'Show demo',
+    'click-to-hide': 'Hide demo',
     preview: 'Preview',
     'fullscreen-preview': 'Fullscreen preview',
   },

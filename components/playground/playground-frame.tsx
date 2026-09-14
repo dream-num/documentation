@@ -1,12 +1,10 @@
 'use client'
 
-import { ExpandIcon } from 'lucide-react'
+import { ChevronDownIcon, ExpandIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 
 import { clsx } from '@/lib/clsx'
-
-import { ClickToShowButton } from './click-to-show-button'
 
 interface IProps {
   slug: string
@@ -16,8 +14,10 @@ interface IProps {
 
 export function PlaygroundFrame({ slug, lang, clickToShow = false }: IProps) {
   const t = useTranslations()
+  const contentId = useId()
+  const [expanded, setExpanded] = useState(!clickToShow)
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const [iframeHeight, setIframeHeight] = useState(1360)
+  const [iframeHeight, setIframeHeight] = useState(600)
   const [fullscreenError, setFullscreenError] = useState(false)
   const src = `${process.env.NEXT_PUBLIC_SHOWCASES_ORIGIN || 'https://office.univer.ai'}/${lang}/playground/${slug}`
   const frameOrigin = new URL(src).origin
@@ -72,11 +72,8 @@ export function PlaygroundFrame({ slug, lang, clickToShow = false }: IProps) {
         ref={iframeRef}
         title={t('playground.preview')}
         onLoad={measureFrame}
-        className={clsx(
-          'block w-full border-0 bg-white transition-opacity dark:bg-neutral-950',
-          iframeHeight > 0 ? 'opacity-100' : 'opacity-0',
-        )}
-        style={{ height: (iframeHeight || 100) + 'px' }}
+        className="block w-full border-0 bg-white dark:bg-neutral-950"
+        style={{ height: iframeHeight }}
         src={src}
         loading="lazy"
         allowFullScreen
@@ -86,21 +83,36 @@ export function PlaygroundFrame({ slug, lang, clickToShow = false }: IProps) {
   const buttonLabel = t('playground.fullscreen-preview')
 
   return (
-    <div
-      data-playground-frame
-      className="rounded-lg border border-neutral-200/80 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
-    >
-      <div className="flex shrink-0 items-center justify-between border-b border-neutral-200/80 px-3 py-2 dark:border-neutral-800">
-        <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">{t('playground.preview')}</span>
+    <div data-playground-frame className="border-border bg-background my-4 overflow-hidden rounded-md border">
+      <div
+        className={clsx('flex min-h-9 items-center justify-between gap-2 px-2', expanded && 'border-border border-b')}
+      >
+        {clickToShow ? (
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls={contentId}
+            onClick={() => setExpanded((value) => !value)}
+            className="text-muted-foreground hover:text-foreground focus-visible:outline-ring inline-flex min-h-9 items-center gap-1.5 rounded px-1 text-xs font-medium focus-visible:outline-2"
+          >
+            <ChevronDownIcon
+              aria-hidden="true"
+              className={clsx('size-3.5 transition-transform', !expanded && '-rotate-90')}
+            />
+            {t(expanded ? 'playground.click-to-hide' : 'playground.click-to-show')}
+          </button>
+        ) : (
+          <span className="text-muted-foreground px-1 text-xs font-medium">{t('playground.demo')}</span>
+        )}
         <button
           type="button"
           onClick={toggleFullscreen}
-          disabled={!iframeHeight}
+          disabled={!expanded}
           aria-label={buttonLabel}
           title={buttonLabel}
-          className="inline-flex size-7 items-center justify-center rounded-sm text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800 dark:text-neutral-400 hover:dark:bg-neutral-800 hover:dark:text-neutral-200"
+          className="text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-ring inline-flex size-7 items-center justify-center rounded transition-colors focus-visible:outline-2 disabled:invisible"
         >
-          <ExpandIcon className="size-3.5" />
+          <ExpandIcon aria-hidden="true" className="size-3.5" />
         </button>
       </div>
       {fullscreenError && (
@@ -110,14 +122,8 @@ export function PlaygroundFrame({ slug, lang, clickToShow = false }: IProps) {
             : 'The browser could not enter fullscreen. Check fullscreen permissions and try again.'}
         </p>
       )}
-      <div className="p-1 md:p-2">
-        {clickToShow ? (
-          <ClickToShowButton showText={t('playground.click-to-show')} hideText={t('playground.click-to-hide')}>
-            {sandbox}
-          </ClickToShowButton>
-        ) : (
-          sandbox
-        )}
+      <div id={contentId} hidden={!expanded}>
+        {sandbox}
       </div>
     </div>
   )

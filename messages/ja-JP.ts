@@ -395,8 +395,9 @@ const jaJPMessages = {
     },
   },
   playground: {
-    'click-to-show': 'デモを表示するにはクリック',
-    'click-to-hide': 'デモを非表示にするにはクリック',
+    demo: 'デモ',
+    'click-to-show': 'デモを表示',
+    'click-to-hide': 'デモを閉じる',
     preview: 'プレビュー',
     'fullscreen-preview': '全画面プレビュー',
   },

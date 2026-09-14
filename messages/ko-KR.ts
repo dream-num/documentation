@@ -395,8 +395,9 @@ const koKRMessages = {
     },
   },
   playground: {
-    'click-to-show': '데모 표시',
-    'click-to-hide': '데모 숨기기',
+    demo: '데모',
+    'click-to-show': '데모 펼치기',
+    'click-to-hide': '데모 접기',
     preview: '미리보기',
     'fullscreen-preview': '전체 화면 미리보기',
   },
