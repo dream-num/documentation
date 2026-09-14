@@ -1,7 +1,7 @@
 import { ArrowRightIcon, HeartIcon, PlugIcon, PuzzleIcon } from 'lucide-react'
-import Link from 'next/link'
 
 import { BlurFade } from '@/components/magicui/blur-fade'
+import { Link } from '@/i18n/navigation'
 
 interface IEcosystemCard {
   icon: React.ReactNode

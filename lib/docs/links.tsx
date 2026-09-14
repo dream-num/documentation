@@ -5,7 +5,7 @@ import { ExternalLinkIcon } from 'lucide-react'
 import { Link } from '@/i18n/navigation'
 import { routing } from '@/i18n/routing'
 import { clsx } from '@/lib/clsx'
-import { stripLocalePrefix } from '@/lib/locale-path'
+import { normalizeDocsHref, stripLocalePrefix } from '@/lib/locale-path'
 
 interface IResolvablePage {
   path: string
@@ -29,7 +29,7 @@ export function createDocsRelativeLink<Page extends IResolvablePage>(source: IRe
       )
     }
 
-    const resolvedHref = source.resolveHref(href, page)
+    const resolvedHref = source.resolveHref(normalizeDocsHref(href), page)
     const external = /^(?:https?:)?\/\//.test(resolvedHref)
     const locale = routing.locales.find(
       (candidate) => resolvedHref === `/${candidate}` || resolvedHref.startsWith(`/${candidate}/`),

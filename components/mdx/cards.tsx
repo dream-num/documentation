@@ -2,7 +2,9 @@ import type { ComponentProps, ReactNode } from 'react'
 import { ArrowRightIcon, ExternalLinkIcon, FileTextIcon } from 'lucide-react'
 
 import { Link } from '@/i18n/navigation'
+import { routing } from '@/i18n/routing'
 import { clsx } from '@/lib/clsx'
+import { normalizeDocsHref, stripLocalePrefix } from '@/lib/locale-path'
 
 function isExternalHref(href?: string) {
   return Boolean(href && /^(?:https?:)?\/\//.test(href))
@@ -26,7 +28,11 @@ export function Card({
   description?: ReactNode
   icon?: ReactNode
 }) {
-  const external = isExternalHref(href)
+  const resolvedHref = normalizeDocsHref(href)
+  const locale = routing.locales.find(
+    (candidate) => resolvedHref === `/${candidate}` || resolvedHref.startsWith(`/${candidate}/`),
+  )
+  const external = isExternalHref(resolvedHref)
   const titleContent = title ?? children
   const descriptionContent = description ?? (title ? children : undefined)
   const Icon = external ? ExternalLinkIcon : ArrowRightIcon
@@ -37,7 +43,8 @@ export function Card({
         `group bg-card hover:border-ring/40 hover:bg-accent/50 hover:text-accent-foreground focus-visible:bg-accent/60 focus-visible:ring-ring/60 flex min-h-18 items-center gap-3 rounded-md border p-3.5 text-sm no-underline shadow-xs transition-[border-color,background-color,box-shadow] hover:shadow-sm focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset`,
         className,
       )}
-      href={href}
+      href={stripLocalePrefix(resolvedHref)}
+      locale={locale}
       rel={external ? 'noreferrer' : props.rel}
       {...props}
     >

@@ -1,6 +1,5 @@
 import { BookTextIcon, FerrisWheelIcon } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
-import Link from 'next/link'
 
 import type { Locale } from '@/i18n/routing'
 import BlurryBlob from '@/components/animata/blurry-blob'
@@ -15,6 +14,7 @@ import { AnimatedShinyText } from '@/components/magicui/animated-shiny-text'
 import { BlurFade } from '@/components/magicui/blur-fade'
 import { RainbowButton } from '@/components/magicui/rainbow-button'
 import Univer from '@/components/univer/client'
+import { Link } from '@/i18n/navigation'
 import pkg from '@/package.json'
 
 interface IProps {
