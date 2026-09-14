@@ -3,40 +3,32 @@ title: Lifecycle
 icon: Recycle
 ---
 
+import { LifecycleDemo } from '../../sheets/getting-started/components/lifecycle-demo'
 
-When a Univer application is running, it goes through a series of ordered lifecycle stages. Understanding these lifecycles is crucial for developers, as it helps determine when it's safe to access business instances, DOM elements, or perform time-consuming asynchronous operations. Different stages are suitable for executing various types of initialization, rendering, and performance optimization tasks. By listening to lifecycle changes, developers can respond at the optimal time to system state changes, achieving functionality expansion, performance enhancement, or user experience optimization.
+## Global lifecycle
 
-The lifecycle of Univer mainly includes the following four stages:
+- **Starting**: Initialization, before any business unit exists.
+- **Ready**: The first business unit has been created; later units do not retrigger it.
+- **Rendered**: The standard UI has performed its first render switch, not necessarily finished all asynchronous content.
+- **Steady**: The standard UI enters this stage after a delay following Rendered, without waiting for all asynchronous tasks.
 
-<Mermaid chart="flowchart LR; A([Starting]) --> B([Ready]) --> C([Rendered]) -->D([Steady])" />
-
-1. **Starting**: The system begins initialization, where plugins perform dependency injection and basic configuration.
-2. **Ready**: The first business instance is created, and plugins perform core functionality initialization.
-3. **Rendered**: The interface is rendered for the first time, allowing safe manipulation of the DOM or interface-related initialization.
-4. **Steady**: The system enters a stable state, suitable for executing delayed loading, non-critical tasks, and other optimization operations.
-
-Different types of plugins or components may have different startup timings in their lifecycle, but the overall process follows the order described above. Developers can use lifecycle events to precisely control the timing of functionality loading and execution.
-
-<Callout>
-  To learn more about the lifecycle design of Univer and the specific startup timing of plugins, you can find relevant
-  information in [《Univer Architecture#Plugin Lifecycle》](/blog/univer#plugin-lifecycle).
-</Callout>
-
-## Facade API
-
-### Add Listeners
-
-Univer provides a unified event subscription interface, allowing developers to listen for lifecycle changes through the Facade API:
+### Facade API
 
 ```typescript
+const currentStage = univerAPI.getCurrentLifecycleStage()
+
 const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
-  if (stage === univerAPI.Enum.LifecycleStages.Steady) {
-    // Execute custom logic in the Steady stage
-  }
+  console.log(stage)
 })
 ```
 
-### Remove Listeners
+<Callout type="warning" title="What the event reports">
+
+`LifeCycleChanged` reports Univer’s global stage. For example, loading plugin B after global `Ready` calls B’s `onReady()`, but does not emit another global `Ready` event.
+
+When you add a listener, its callback may immediately receive the current stage, including `Starting`. To simply check the current stage, call `univerAPI.getCurrentLifecycleStage()` directly.
+
+</Callout>
 
 To remove a listener, you can use the returned `disposable` object:
 
@@ -44,40 +36,12 @@ To remove a listener, you can use the returned `disposable` object:
 disposable.dispose()
 ```
 
-### Lifecycle Events and Enums
+## Plugin lifecycle hooks
 
-Univer provides the following lifecycle events and enums for developers to use:
+A plugin runs `onStarting()` when it loads, then catches up to the current global stage. Choose when B loads to compare its hook calls with A’s.
 
-- Event Name: `univerAPI.Event.LifeCycleChanged`
+<LifecycleDemo />
 
-- Lifecycle Stage Enums:
-  - `univerAPI.Enum.LifecycleStages.Starting`
-  - `univerAPI.Enum.LifecycleStages.Ready`
-  - `univerAPI.Enum.LifecycleStages.Rendered`
-  - `univerAPI.Enum.LifecycleStages.Steady`
+General plugins load on registration; business-type plugins usually load before the first unit of that type is constructed. New plugins for an already started type load in a deferred batch. Explicit dependencies can trigger earlier loading.
 
-### Example
-
-<Callout type="warning" title="Caution">
-  `univerAPI.Event.LifeCycleChanged` only reflects lifecycle changes, so no events will be triggered during the
-  `Starting` stage.
-</Callout>
-
-```typescript
-const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
-  switch (stage) {
-    case univerAPI.Enum.LifecycleStages.Ready:
-      console.log('The business instance has been created, you can perform core initialization')
-      break
-    case univerAPI.Enum.LifecycleStages.Rendered:
-      console.log('The interface has been rendered, you can safely manipulate the DOM')
-      break
-    case univerAPI.Enum.LifecycleStages.Steady:
-      console.log('The system is stable, you can perform delayed loading and other optimization operations')
-      break
-  }
-})
-
-// Remove the listener
-disposable.dispose()
-```
+Each batch invokes hooks synchronously, stage by stage and in dependency order, without awaiting asynchronous work. Check the specific unit, DOM element, or resource before accessing it.

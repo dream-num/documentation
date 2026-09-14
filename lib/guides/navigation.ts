@@ -184,6 +184,20 @@ export function getActiveGuideProduct(items: IGuideNavItem[], pathname: string) 
   return getGuideProductItems(items).find((item) => isGuideNavItemActive(item, pathname))
 }
 
+export function getGuideProductSwitchHref(item: IGuideNavItem, pathname: string): string | undefined {
+  const href = getGuideNavItemHref(item)
+  const productPath = /^(?:\/[a-z]{2}(?:-[A-Z]{2})?)?\/guides\/[^/]+/
+  const targetRoot = href?.match(productPath)?.[0]
+  const currentRoot = pathname.match(productPath)?.[0]
+
+  if (targetRoot && currentRoot) {
+    const candidate = targetRoot + pathname.slice(currentRoot.length)
+    if (isGuideNavItemActive(item, candidate)) return candidate
+  }
+
+  return href
+}
+
 export function getGuideSidebarItems(items: IGuideNavItem[], pathname: string) {
   const product = getActiveGuideProduct(items, pathname)
   if (product) return product.children

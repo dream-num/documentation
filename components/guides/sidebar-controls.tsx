@@ -9,7 +9,7 @@ import { SidebarVersionSwitcher } from '@/components/docs-shell/sidebar-version-
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Link, usePathname } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
-import { getActiveGuideProduct, getGuideNavItemHref, getGuideProductItems } from '@/lib/guides/navigation'
+import { getActiveGuideProduct, getGuideProductItems, getGuideProductSwitchHref } from '@/lib/guides/navigation'
 import { isPathActive } from '@/lib/locale-path'
 
 function ControlIcon({ children, className }: { children: ReactNode; className?: string }) {
@@ -81,7 +81,9 @@ export function GuidesSidebarControls({
             {productItems.map((item) => (
               <DropdownMenuItem
                 key={item.id}
-                render={<Link className="min-h-10 justify-between" href={getGuideNavItemHref(item) ?? '#'} />}
+                render={
+                  <Link className="min-h-10 justify-between" href={getGuideProductSwitchHref(item, pathname) ?? '#'} />
+                }
               >
                 <span className="flex min-w-0 items-center gap-2">
                   {item.icon ? <NavIconFrame icon={item.icon} /> : null}

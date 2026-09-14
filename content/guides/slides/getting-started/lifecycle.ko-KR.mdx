@@ -3,40 +3,32 @@ title: 수명 주기
 icon: Recycle
 ---
 
+import { LifecycleDemo } from '../../sheets/getting-started/components/lifecycle-demo'
 
-Univer 애플리케이션이 실행되면 정해진 순서에 따라 일련의 생명 주기 단계를 거칩니다. 이 생명 주기를 이해하면 비즈니스 인스턴스나 DOM 요소에 안전하게 접근할 수 있는 시점, 또는 시간이 오래 걸리는 비동기 작업을 수행할 수 있는 시점을 판단할 수 있으므로 개발자에게 매우 중요합니다. 초기화, 렌더링, 성능 최적화 작업의 종류에 따라 적합한 단계가 다릅니다. 개발자는 생명 주기 변경을 수신하여 시스템 상태 변화에 가장 적절한 시점에 대응함으로써 기능을 확장하고 성능이나 사용자 경험을 개선할 수 있습니다.
+## 전역 수명 주기
 
-Univer의 생명 주기는 주로 다음 네 단계로 구성됩니다.
+- **Starting**: 초기화 중이며 업무 단위는 아직 없습니다.
+- **Ready**: 첫 업무 단위가 생성되었습니다. 추가 생성은 다시 발생시키지 않습니다.
+- **Rendered**: 표준 UI의 최초 렌더링 전환 완료. 모든 비동기 콘텐츠의 준비를 보장하지 않습니다.
+- **Steady**: 표준 UI가 Rendered 이후 지연 진입합니다. 모든 비동기 작업 완료를 기다리지 않습니다.
 
-<Mermaid chart="flowchart LR; A([Starting]) --> B([Ready]) --> C([Rendered]) -->D([Steady])" />
-
-1. **Starting**: 시스템이 초기화를 시작하며, 플러그인은 의존성 주입과 기본 구성을 수행합니다.
-2. **Ready**: 첫 번째 비즈니스 인스턴스가 생성되고, 플러그인은 핵심 기능을 초기화합니다.
-3. **Rendered**: 인터페이스가 처음으로 렌더링되어 DOM을 안전하게 조작하거나 인터페이스 관련 초기화를 수행할 수 있습니다.
-4. **Steady**: 시스템이 안정 상태에 진입하여 지연 로딩, 중요도가 낮은 작업 및 기타 최적화 작업을 수행하기에 적합합니다.
-
-플러그인이나 컴포넌트의 유형에 따라 생명 주기에서 시작되는 시점은 다를 수 있지만, 전체 과정은 위에 설명한 순서를 따릅니다. 개발자는 생명 주기 이벤트를 사용하여 기능을 로드하고 실행하는 시점을 정밀하게 제어할 수 있습니다.
-
-<Callout>
-  Univer의 생명 주기 설계와 플러그인의 구체적인 시작 시점에 관한 자세한 내용은 [《Univer 아키텍처#플러그인 생명
-  주기》](/blog/univer#plugin-lifecycle)에서 확인할 수 있습니다.
-</Callout>
-
-## Facade API
-
-### 리스너 추가
-
-Univer는 통합 이벤트 구독 인터페이스를 제공하므로 개발자는 Facade API를 통해 생명 주기 변경을 수신할 수 있습니다.
+### Facade API
 
 ```typescript
+const currentStage = univerAPI.getCurrentLifecycleStage()
+
 const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
-  if (stage === univerAPI.Enum.LifecycleStages.Steady) {
-    // Execute custom logic in the Steady stage
-  }
+  console.log(stage)
 })
 ```
 
-### 리스너 제거
+<Callout type="warning" title="이벤트가 알리는 대상">
+
+`LifeCycleChanged`는 Univer의 전역 단계를 알립니다. 예를 들어 전역 `Ready` 이후 B를 로드하면 B의 `onReady()`는 호출되지만 전역 `Ready` 이벤트가 다시 발생하지는 않습니다.
+
+리스너를 추가할 때 콜백이 `Starting`을 포함한 현재 단계를 즉시 받을 수 있습니다. 현재 단계만 확인하려면 `univerAPI.getCurrentLifecycleStage()`를 직접 호출하세요.
+
+</Callout>
 
 리스너를 제거하려면 반환된 `disposable` 객체를 사용합니다.
 
@@ -44,39 +36,12 @@ const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage
 disposable.dispose()
 ```
 
-### 생명 주기 이벤트 및 열거형
+## 플러그인 수명 주기 훅
 
-Univer는 개발자가 사용할 수 있도록 다음과 같은 생명 주기 이벤트와 열거형을 제공합니다.
+플러그인은 로드될 때 `onStarting()`을 실행하고 현재 전역 단계까지 따라잡습니다. B의 로드 단계를 선택하여 A와 호출 순서를 비교하세요.
 
-- 이벤트 이름: `univerAPI.Event.LifeCycleChanged`
+<LifecycleDemo />
 
-- 생명 주기 단계 열거형:
-  - `univerAPI.Enum.LifecycleStages.Starting`
-  - `univerAPI.Enum.LifecycleStages.Ready`
-  - `univerAPI.Enum.LifecycleStages.Rendered`
-  - `univerAPI.Enum.LifecycleStages.Steady`
+범용 플러그인은 등록 시, 업무 유형 플러그인은 보통 해당 유형의 첫 단위 생성 전에 로드됩니다. 이미 시작된 유형에 추가한 플러그인은 지연 후 일괄 로드됩니다. 명시한 의존 관계로 더 일찍 로드될 수도 있습니다.
 
-### 예시
-
-<Callout type="warning" title="주의">
-  `univerAPI.Event.LifeCycleChanged`는 생명 주기 변경만 반영하므로 `Starting` 단계에서는 이벤트가 발생하지 않습니다.
-</Callout>
-
-```typescript
-const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
-  switch (stage) {
-    case univerAPI.Enum.LifecycleStages.Ready:
-      console.log('The business instance has been created, you can perform core initialization')
-      break
-    case univerAPI.Enum.LifecycleStages.Rendered:
-      console.log('The interface has been rendered, you can safely manipulate the DOM')
-      break
-    case univerAPI.Enum.LifecycleStages.Steady:
-      console.log('The system is stable, you can perform delayed loading and other optimization operations')
-      break
-  }
-})
-
-// Remove the listener
-disposable.dispose()
-```
+각 배치는 의존 순서와 단계 순서에 따라 동기적으로 훅을 호출하며 비동기 작업은 기다리지 않습니다. 단위, DOM, 리소스의 준비 상태는 개별적으로 확인하세요.

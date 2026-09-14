@@ -15,10 +15,6 @@ import { Step, Steps } from './steps'
 import { DocsTable } from './table'
 import { Tab, Tabs } from './tabs'
 
-function AutoTypeTableWrapper() {
-  return null
-}
-
 export function getGuidesMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     h2: createHeading('h2'),
@@ -42,7 +38,6 @@ export function getGuidesMDXComponents(components?: MDXComponents): MDXComponent
     Card,
     Mermaid,
     MetaData,
-    AutoTypeTable: AutoTypeTableWrapper,
     APITable,
     PlaygroundFrame,
     ...components,

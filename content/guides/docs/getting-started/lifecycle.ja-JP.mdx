@@ -3,40 +3,32 @@ title: ライフサイクル
 icon: Recycle
 ---
 
+import { LifecycleDemo } from '../../sheets/getting-started/components/lifecycle-demo'
 
-Univer アプリケーションが稼働すると、一連の順序だったライフサイクル段階を経由します。これらのライフサイクルを理解することは、開発者にとって非常に重要です。なぜなら、業務インスタンスや DOM 要素へのアクセス、時間のかかる非同期処理の実行タイミングを判断できるからです。各段階は、初期化・レンダリング・パフォーマンス最適化など、さまざまなタスクの実行に適しています。ライフサイクルの変化を監視することで、開発者はシステム状態の変化に最適なタイミングで対応し、機能拡張・パフォーマンス向上・ユーザー体験の最適化を実現できます。
+## グローバルライフサイクル
 
-Univer のライフサイクルは主に以下の4段階で構成されています：
+- **Starting**: 初期化中。業務ユニットは未作成です。
+- **Ready**: 最初の業務ユニットが作成済み。追加作成では再発火しません。
+- **Rendered**: 標準 UI の初回レンダリング切り替えが完了。全非同期コンテンツの準備は保証しません。
+- **Steady**: 標準 UI が Rendered 後に遅延して移行。全非同期処理の完了は待ちません。
 
-<Mermaid chart="flowchart LR; A([Starting]) --> B([Ready]) --> C([Rendered]) -->D([Steady])" />
-
-1. **Starting（開始）**: システムの初期化が始まり、プラグインが依存性注入や基本設定を行います。
-2. **Ready（準備完了）**: 最初の業務インスタンスが生成され、プラグインがコア機能の初期化を行います。
-3. **Rendered（描画完了）**: 初回インターフェースが描画され、DOM やインターフェース関連の初期化が安全に行えます。
-4. **Steady（安定）**: システムが安定状態に入り、遅延ロードや非クリティカルなタスク、その他の最適化処理を実行するのに適しています。
-
-プラグインやコンポーネントの種類によっては、ライフサイクル内で起動タイミングが異なる場合もありますが、全体の流れは上記の順序に従います。開発者はライフサイクルイベントを利用して、機能のロードや実行タイミングを正確に制御できます。
-
-<Callout>
-  Univer のライフサイクル設計やプラグインの具体的な起動タイミングについて詳しくは、[《Univer
-  アーキテクチャ#プラグインライフサイクル》](/blog/univer#plugin-lifecycle) をご覧ください。
-</Callout>
-
-## Facade API
-
-### リスナーの追加
-
-Univer は統一されたイベント購読インターフェースを提供しており、Facade API を通じてライフサイクルの変化を監視できます。
+### Facade API
 
 ```typescript
+const currentStage = univerAPI.getCurrentLifecycleStage()
+
 const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
-  if (stage === univerAPI.Enum.LifecycleStages.Steady) {
-    // Steady 段階でカスタムロジックを実行
-  }
+  console.log(stage)
 })
 ```
 
-### リスナーの削除
+<Callout type="warning" title="イベントが通知する対象">
+
+`LifeCycleChanged` は Univer のグローバル段階を通知します。例えば、グローバル段階が `Ready` になった後に B を読み込むと、B の `onReady()` は呼ばれますが、グローバルな `Ready` イベントは再発火しません。
+
+リスナーを追加すると、`Starting` を含む現在の段階がコールバックにすぐ届く場合があります。現在の段階を確認するだけなら、`univerAPI.getCurrentLifecycleStage()` を直接呼び出してください。
+
+</Callout>
 
 リスナーを削除するには、返却された `disposable` オブジェクトを利用します。
 
@@ -44,39 +36,12 @@ const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage
 disposable.dispose()
 ```
 
-### ライフサイクルイベントと列挙型
+## プラグインのライフサイクルフック
 
-Univer は以下のライフサイクルイベントおよび列挙型を提供しています：
+プラグインは読み込み時に `onStarting()` を実行し、現在のグローバル段階まで追いつきます。B の読み込み段階を選び、A との呼び出し順序を比較してください。
 
-- イベント名: `univerAPI.Event.LifeCycleChanged`
+<LifecycleDemo />
 
-- ライフサイクル段階の列挙型:
-  - `univerAPI.Enum.LifecycleStages.Starting`
-  - `univerAPI.Enum.LifecycleStages.Ready`
-  - `univerAPI.Enum.LifecycleStages.Rendered`
-  - `univerAPI.Enum.LifecycleStages.Steady`
+汎用プラグインは登録時、業務タイプのプラグインは通常そのタイプの最初のユニット構築前に読み込まれます。起動済みタイプへの追加登録は遅延してまとめて読み込まれます。依存関係により早く読み込まれる場合もあります。
 
-### サンプル
-
-<Callout type="warning" title="注意事項">
-  `univerAPI.Event.LifeCycleChanged` はライフサイクルの変化のみを反映し、`Starting` 段階ではイベントはトリガーしません。
-</Callout>
-
-```typescript
-const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
-  switch (stage) {
-    case univerAPI.Enum.LifecycleStages.Ready:
-      console.log('業務インスタンスが生成され、コア初期化が可能です')
-      break
-    case univerAPI.Enum.LifecycleStages.Rendered:
-      console.log('インターフェースが描画され、DOM 操作が安全に行えます')
-      break
-    case univerAPI.Enum.LifecycleStages.Steady:
-      console.log('システムが安定し、遅延ロードや最適化処理が可能です')
-      break
-  }
-})
-
-// リスナーの削除
-disposable.dispose()
-```
+各バッチは依存順、段階順に同期的にフックを呼び、非同期処理は待ちません。ユニット、DOM、リソースの準備は個別に確認してください。
