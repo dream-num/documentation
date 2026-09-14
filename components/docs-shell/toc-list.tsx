@@ -87,7 +87,7 @@ export function TocList({ items, compact = false }: { items?: TOCItemType[]; lan
       const pathPoints = pathItems.map((item) => {
         const padding = Number.parseFloat(window.getComputedStyle(item.link).paddingInlineStart)
         const x = item.link.offsetLeft + padding - 12
-        const y = item.link.getBoundingClientRect().top - tocList.getBoundingClientRect().top
+        const y = item.link.offsetTop + (item.link.offsetParent as HTMLElement).offsetTop
 
         return { bottom: y + item.link.offsetHeight, item, x, y }
       })
@@ -196,7 +196,6 @@ export function TocList({ items, compact = false }: { items?: TOCItemType[]; lan
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth="2"
-              vectorEffect="non-scaling-stroke"
             />
           </svg>
           <ol ref={listRef} className="relative space-y-0.5">
