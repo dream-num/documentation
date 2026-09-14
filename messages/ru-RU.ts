@@ -321,6 +321,13 @@ const ruRUMessages = {
     rss: 'RSS-лента',
   },
   docs: {
+    reference: {
+      label: 'API на этой странице',
+      filter: 'Найти API на этой странице…',
+      browse: 'Показать все API ({count})',
+      matches: 'Найдено API: {count}',
+      empty: 'API не найден. Попробуйте другое название.',
+    },
     'reference-language-notice':
       'Текст этой страницы API пока доступен на английском. Сигнатуры и идентификаторы не зависят от языка интерфейса.',
     breadcrumb: 'Навигационная цепочка',

@@ -317,6 +317,13 @@ const zhCNMessages = {
     rss: 'RSS 订阅',
   },
   docs: {
+    reference: {
+      label: '本页 API',
+      filter: '筛选本页 API…',
+      browse: '浏览全部 {count} 个 API',
+      matches: '找到 {count} 个 API',
+      empty: '未找到匹配的 API，请尝试其他名称。',
+    },
     'reference-language-notice': '本 API 页面目前提供英文正文。代码签名与标识符不随界面语言变化。',
     breadcrumb: '面包屑',
     copied: '已复制',

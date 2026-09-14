@@ -13,6 +13,7 @@ export interface INavTreeItem {
   url?: string
   icon?: ReactNode
   external?: boolean
+  defaultOpen?: boolean
   children: INavTreeItem[]
 }
 
@@ -38,7 +39,7 @@ function NavContent({ item }: { item: INavTreeItem }) {
 function NavTreeNode({ item, pathname, level }: { item: INavTreeItem; pathname: string; level: number }) {
   if (item.type === 'separator') {
     return (
-      <li className="text-muted-foreground mt-5 px-2 text-xs font-medium tracking-normal first:mt-0">{item.name}</li>
+      <li className="text-muted-foreground mt-6 mb-1 px-2 text-xs font-medium tracking-wide first:mt-0">{item.name}</li>
     )
   }
 
@@ -48,21 +49,25 @@ function NavTreeNode({ item, pathname, level }: { item: INavTreeItem; pathname: 
   const controlsId = hasChildren ? getControlsId(item) : undefined
   const rowClassName = clsx(
     `hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-ring/60 flex min-h-8 w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm leading-5 transition-colors focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset`,
-    current ? 'bg-accent text-accent-foreground' : active ? 'text-foreground' : 'text-muted-foreground',
+    hasChildren
+      ? 'text-foreground font-semibold'
+      : current
+        ? 'bg-accent text-accent-foreground font-medium'
+        : 'text-muted-foreground font-normal',
   )
   const style = { paddingInlineStart: `${0.5 + level * 0.25}rem` }
 
   if (hasChildren) {
     return (
       <li>
-        <details className="group" open={level === 0 || active}>
+        <details className="group" open={active || (item.defaultOpen ?? level === 0)}>
           <summary
             aria-controls={controlsId}
             className={clsx(rowClassName, `cursor-pointer list-none [&::-webkit-details-marker]:hidden`)}
             style={style}
           >
             <NavContent item={item} />
-            <ChevronRightIcon className="size-3.5 shrink-0 transition-transform group-open:rotate-90" />
+            <ChevronRightIcon className="text-muted-foreground size-3.5 shrink-0 transition-transform group-open:rotate-90" />
           </summary>
           <ul
             className="border-border/70 mt-0.5 space-y-0.5 border-l pl-1.5"

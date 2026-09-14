@@ -317,6 +317,13 @@ const zhTWMessages = {
     rss: 'RSS 訂閱',
   },
   docs: {
+    reference: {
+      label: '本頁 API',
+      filter: '篩選本頁 API…',
+      browse: '瀏覽全部 {count} 個 API',
+      matches: '找到 {count} 個 API',
+      empty: '找不到相符的 API，請嘗試其他名稱。',
+    },
     'reference-language-notice': '此 API 頁面目前提供英文內容。程式碼簽名與識別符不隨介面語言變更。',
     breadcrumb: '麵包屑',
     copied: '已複製',

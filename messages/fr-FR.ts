@@ -319,6 +319,13 @@ const frFRMessages = {
     rss: 'Flux RSS',
   },
   docs: {
+    reference: {
+      label: 'API de cette page',
+      filter: 'Filtrer les API de cette page…',
+      browse: 'Afficher les {count} API',
+      matches: '{count} API correspondantes',
+      empty: 'Aucune API correspondante. Essayez un autre nom.',
+    },
     'reference-language-notice':
       'Cette page API est actuellement disponible en anglais. Les signatures et identifiants restent identiques dans toutes les langues.',
     breadcrumb: 'Fil d’Ariane',

@@ -319,6 +319,13 @@ const jaJPMessages = {
     rss: 'RSS フィード',
   },
   docs: {
+    reference: {
+      label: 'このページの API',
+      filter: 'このページの API を絞り込む…',
+      browse: 'すべての API を表示（{count} 件）',
+      matches: '{count} 件の API',
+      empty: '一致する API がありません。別の名前を試してください。',
+    },
     'reference-language-notice':
       'この API ページの本文は現在英語です。コードのシグネチャと識別子は表示言語によって変わりません。',
     breadcrumb: 'パンくずリスト',

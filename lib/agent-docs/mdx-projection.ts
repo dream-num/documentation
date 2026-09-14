@@ -44,6 +44,7 @@ const AGENT_MDX_ELEMENTS = new Set([
   'IconsVersion',
   'IconWrapper',
   'InstallTabs',
+  'LifecycleDemo',
   'Mermaid',
   'MetaData',
   'MigrationCell',
@@ -635,6 +636,8 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
       return children
     case 'InstallTabs':
       return renderInstallTabs(attributes)
+    case 'LifecycleDemo':
+      return 'Plugin hooks run in order: `onStarting()` → `onReady()` → `onRendered()` → `onSteady()`. A late plugin catches up synchronously to the current global stage without changing that stage.'
     case 'Mermaid': {
       const chart = getString(attributes, 'chart')
       if (!chart) throw new Error('Agent Markdown expected Mermaid.chart')

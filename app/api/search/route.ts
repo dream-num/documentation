@@ -1,8 +1,15 @@
+import type { StructuredData } from 'fumadocs-core/mdx-plugins/remark-structure'
+import { structure } from 'fumadocs-core/mdx-plugins/remark-structure'
 import { createFromSource } from 'fumadocs-core/search/server'
 
 import type { SearchResultSource } from '@/lib/guides/search'
 import { normalizeLocale } from '@/i18n/locale-config'
-import { normalizeScopedSearchResults, parseSearchScope, rankSearchResults } from '@/lib/guides/search'
+import {
+  indexReferenceMembers,
+  normalizeScopedSearchResults,
+  parseSearchScope,
+  rankSearchResults,
+} from '@/lib/guides/search'
 import { ai, blog, guides, reference, server } from '@/lib/source'
 
 const searchOptions = {
@@ -17,11 +24,31 @@ const searchOptions = {
   },
 }
 
+const referenceStructures = new Map<string, Promise<StructuredData>>()
+
 const handlers = {
   guides: createFromSource(guides, searchOptions),
   server: createFromSource(server, searchOptions),
   ai: createFromSource(ai, searchOptions),
-  reference: createFromSource(reference, searchOptions),
+  reference: createFromSource(reference, {
+    async buildIndex(page) {
+      const path = page.data.info.fullPath
+      let data = referenceStructures.get(path)
+      if (!data) {
+        data = page.data
+          .getText('raw')
+          .then((markdown) => indexReferenceMembers(structure(markdown.replace(/^---\n[\s\S]*?\n---\n/, ''))))
+        referenceStructures.set(path, data)
+      }
+      return {
+        id: `${page.locale}:${page.url}`,
+        title: page.data.title,
+        description: page.data.description,
+        url: page.url,
+        structuredData: await data,
+      }
+    },
+  }),
   blog: createFromSource(
     {
       ...blog,
@@ -44,8 +71,9 @@ export async function GET(request: Request) {
   try {
     const groups = await Promise.all(
       sources.map(async (source) => {
-        const results = await handlers[source].search(query, { locale, limit: 30 })
-        return normalizeScopedSearchResults(results, source)
+        const term = source === 'reference' ? (query.replace(/\(\)$/, '').split('.').at(-1) ?? query) : query
+        const results = await handlers[source].search(term, { locale, limit: 60 })
+        return normalizeScopedSearchResults(results, source, query)
       }),
     )
     return Response.json(rankSearchResults(groups, query))

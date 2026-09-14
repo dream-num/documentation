@@ -320,6 +320,13 @@ const esESMessages = {
     rss: 'Feed RSS',
   },
   docs: {
+    reference: {
+      label: 'API de esta página',
+      filter: 'Filtrar las API de esta página…',
+      browse: 'Ver las {count} API',
+      matches: '{count} API encontradas',
+      empty: 'No se encontraron API. Prueba con otro nombre.',
+    },
     'reference-language-notice':
       'Esta página de API está disponible actualmente en inglés. Las firmas y los identificadores no cambian con el idioma.',
     breadcrumb: 'Breadcrumb',

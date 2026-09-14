@@ -317,6 +317,13 @@ const enUSMessages = {
     rss: 'RSS Feed',
   },
   docs: {
+    reference: {
+      label: 'On this API page',
+      filter: 'Filter APIs on this page…',
+      browse: 'Browse all {count} APIs',
+      matches: '{count} matching APIs',
+      empty: 'No matching API. Try a different name.',
+    },
     'reference-language-notice':
       'This API page is currently available in English. Code signatures and identifiers are the same across languages.',
     breadcrumb: 'Breadcrumb',

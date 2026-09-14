@@ -7,6 +7,7 @@ export interface IDocsNavItem {
   url?: string
   icon?: ReactNode
   external?: boolean
+  defaultOpen?: boolean
   children: IDocsNavItem[]
 }
 
@@ -24,6 +25,7 @@ interface IPageTreeNode {
   url?: string
   icon?: ReactNode
   external?: boolean
+  defaultOpen?: boolean
   children?: IPageTreeNode[]
   index?: IPageTreeNode
   $id?: string
@@ -61,6 +63,7 @@ function normalizeNode(node: IPageTreeNode): IDocsNavItem {
     return {
       id,
       type: 'folder',
+      defaultOpen: node.defaultOpen,
       name: getNodeName(node),
       url: node.index?.url,
       icon: node.icon,

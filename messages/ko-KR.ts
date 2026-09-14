@@ -319,6 +319,13 @@ const koKRMessages = {
     rss: 'RSS 피드',
   },
   docs: {
+    reference: {
+      label: '이 페이지의 API',
+      filter: '이 페이지의 API 검색…',
+      browse: '전체 API {count}개 보기',
+      matches: 'API {count}개 검색됨',
+      empty: '일치하는 API가 없습니다. 다른 이름을 입력하세요.',
+    },
     'reference-language-notice':
       '이 API 페이지의 본문은 현재 영어로 제공됩니다. 코드 시그니처와 식별자는 언어에 따라 바뀌지 않습니다.',
     breadcrumb: '이동 경로',

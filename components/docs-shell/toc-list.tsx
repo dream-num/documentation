@@ -83,13 +83,17 @@ export function TocList({ items, compact = false }: { items?: TOCItemType[]; lan
     }
 
     function drawPath() {
+      const listBounds = tocList.getBoundingClientRect()
+      if (!listBounds.width || !listBounds.height) return
+
       const commands: string[] = []
       const pathPoints = pathItems.map((item) => {
         const padding = Number.parseFloat(window.getComputedStyle(item.link).paddingInlineStart)
+        const bounds = item.link.getBoundingClientRect()
         const x = item.link.offsetLeft + padding - 12
-        const y = item.link.offsetTop + (item.link.offsetParent as HTMLElement).offsetTop
+        const y = bounds.top - listBounds.top + tocList.scrollTop
 
-        return { bottom: y + item.link.offsetHeight, item, x, y }
+        return { bottom: y + bounds.height, item, x, y }
       })
 
       commands.push('M', `${pathPoints[0].x}`, `${pathPoints[0].y}`)
@@ -179,7 +183,7 @@ export function TocList({ items, compact = false }: { items?: TOCItemType[]; lan
           >
             <path
               ref={trackRef}
-              className="stroke-none"
+              className="stroke-border"
               d=""
               fill="none"
               strokeLinecap="round"
@@ -199,56 +203,12 @@ export function TocList({ items, compact = false }: { items?: TOCItemType[]; lan
             />
           </svg>
           <ol ref={listRef} className="relative space-y-0.5">
-            {headings.map((item, index) => {
+            {headings.map((item) => {
               const depth = Math.max(item.depth - 2, 0)
               const active = activeUrls.has(item.url)
 
-              const previousDepth = Math.max((headings[index - 1]?.depth ?? item.depth) - 2, 0)
-              const nextDepth = Math.max((headings[index + 1]?.depth ?? item.depth) - 2, 0)
-              const step = compact ? 0.75 : 0.85
-              const x = 0.25 + depth * step
-              const nextX = 0.25 + nextDepth * step
-              const bendBefore = previousDepth !== depth
-              const bendAfter = nextDepth !== depth
-
               return (
                 <li key={item.url} className="relative">
-                  <svg
-                    aria-hidden="true"
-                    className="pointer-events-none absolute w-full overflow-visible"
-                    style={{
-                      top: bendBefore ? 5 : 0,
-                      height: `calc(100% - ${(bendBefore ? 5 : 0) + (bendAfter ? 5 : index === headings.length - 1 ? 0 : -2)}px)`,
-                    }}
-                  >
-                    <line
-                      x1={`${x}rem`}
-                      x2={`${x}rem`}
-                      y1="0"
-                      y2="100%"
-                      className="stroke-border"
-                      strokeWidth="1"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  {bendAfter && (
-                    <svg
-                      aria-hidden="true"
-                      className="pointer-events-none absolute -bottom-[7px] h-3 overflow-visible"
-                      style={{ left: `${Math.min(x, nextX)}rem`, width: `${Math.abs(nextX - x)}rem` }}
-                      viewBox="0 0 100 12"
-                      preserveAspectRatio="none"
-                    >
-                      <path
-                        d={nextX > x ? 'M 0 0 C 0 6 100 6 100 12' : 'M 100 0 C 100 6 0 6 0 12'}
-                        className="stroke-border"
-                        fill="none"
-                        strokeWidth="1"
-                        strokeLinecap="round"
-                        vectorEffect="non-scaling-stroke"
-                      />
-                    </svg>
-                  )}
                   <a
                     className={clsx(
                       'mr-1 block rounded-md py-1.5 pr-2 leading-snug transition-[color,transform] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transform-none motion-reduce:transition-none',

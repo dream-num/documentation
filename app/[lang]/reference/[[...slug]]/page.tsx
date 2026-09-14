@@ -9,6 +9,7 @@ import { DocsArticle } from '@/components/docs-shell/article'
 import { DocsShellPageLayout } from '@/components/docs-shell/layout'
 import { Callout } from '@/components/mdx/callout'
 import { getGuidesMDXComponents } from '@/components/mdx/components'
+import { ReferenceMemberIndex } from '@/components/reference/member-index'
 import { SponsorCard } from '@/components/sponsor-card'
 import { normalizeLocale } from '@/i18n/locale-config'
 import { getAgentDocsSourceUrl, getAgentMarkdownPath } from '@/lib/agent-docs/links'
@@ -48,12 +49,17 @@ export default async function Page({ params }: IProps) {
   }
 
   const t = await getTranslations({ locale: normalizeLocale(lang), namespace: 'docs' })
-  const { default: MDXContent, toc } = await page.data.load()
+  const { default: MDXContent, toc, structuredData } = await page.data.load()
   const navigation = createDocsNavigation(reference.pageTree[lang], page.url)
   const ReferenceLink = createDocsRelativeLink(reference, page)
+  const members = structuredData.headings
+    .map((item) => ({ title: item.content.replaceAll('`', ''), url: `#${item.id}` }))
+    .filter((item) => /^(?:F\w+|Event|Enum)\./.test(item.title))
+  const isFacade = slug?.[0] === 'facade'
+  const pageToc = isFacade && toc.length > 25 ? toc.filter((item) => item.depth === 2) : toc
 
   return (
-    <DocsShellPageLayout lang={lang} toc={[...toc]} tocFooter={<SponsorCard />}>
+    <DocsShellPageLayout lang={lang} toc={[...pageToc]} tocFooter={<SponsorCard />}>
       <AgentDocsLinks collection="reference" lang={lang} pageUrl={page.url} />
       <DocsArticle
         description={page.data.description}
@@ -81,10 +87,11 @@ export default async function Page({ params }: IProps) {
           })
         }}
       >
-        <div data-docs-body>
+        <div data-docs-body className="[&_td:first-child_code]:break-normal [&_td:first-child_code]:whitespace-nowrap">
           {lang !== 'en-US' && !page.data.info.path.endsWith(`.${lang}.mdx`) && (
             <Callout>{t('reference-language-notice')}</Callout>
           )}
+          {isFacade && members.length > 0 && <ReferenceMemberIndex key={page.url} items={members} />}
           <MDXContent
             components={getGuidesMDXComponents({
               a: ReferenceLink,
