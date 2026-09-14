@@ -6,7 +6,6 @@ import { getGuideSdkItems } from '@/lib/guides/navigation'
 export interface IPrimaryNavigationLabels {
   blog: string
   primary: string
-  reference: string
   showcase: string
   tools: string
 }
@@ -26,7 +25,6 @@ export function PrimaryNavigation({
     : [
         ...sdkLinks,
         { text: labels.tools, url: '/tools/theme-customizer' },
-        { text: labels.reference, url: '/reference' },
         { text: labels.blog, url: '/blog' },
         { text: labels.showcase, url: 'https://office.univer.ai' },
       ]

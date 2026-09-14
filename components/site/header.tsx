@@ -28,7 +28,6 @@ export async function SiteHeader({
   const navigationLabels = {
     blog: t('navigation.blog'),
     primary: t('navigation.primary-navigation'),
-    reference: t('navigation.reference'),
     showcase: t('navigation.showcase'),
     tools: t('navigation.tools'),
   }

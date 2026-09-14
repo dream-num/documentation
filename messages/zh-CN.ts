@@ -27,6 +27,7 @@ const zhCNMessages = {
     'theme-customizer-description': '编辑 Web SDK 主题、设计 Tokens 和暗黑模式预览。',
   },
   navigation: {
+    overview: '概览',
     blog: '博客',
     'current-locale': '当前',
     products: '产品',

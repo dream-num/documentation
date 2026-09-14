@@ -27,6 +27,7 @@ const ruRUMessages = {
     'theme-customizer-description': 'Настройте темы Web SDK, дизайн-токены и предпросмотр в тёмном режиме.',
   },
   navigation: {
+    overview: 'Обзор',
     blog: 'Блог',
     'current-locale': 'Текущий',
     products: 'Продукты',

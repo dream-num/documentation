@@ -27,6 +27,7 @@ const koKRMessages = {
     'theme-customizer-description': 'Web SDK 테마, 디자인 토큰, 다크 모드 미리보기를 조정합니다.',
   },
   navigation: {
+    overview: '개요',
     blog: '블로그',
     'current-locale': '현재',
     products: '제품',

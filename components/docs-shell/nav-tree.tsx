@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { ChevronRightIcon, ExternalLinkIcon, FolderIcon } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 import { Link } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
@@ -52,6 +53,7 @@ function NavTreeNode({
   level: number
   showIcon?: boolean
 }) {
+  const t = useTranslations('navigation')
   if (item.type === 'separator') {
     return (
       <li className="text-muted-foreground mt-5 mb-1 flex items-center gap-2 px-2 text-xs font-semibold tracking-wide first:mt-0">
@@ -87,8 +89,17 @@ function NavTreeNode({
             <ChevronRightIcon className="text-muted-foreground size-3.5 shrink-0 transition-transform [[open]>summary_&]:rotate-90" />
           </summary>
           <ul className="mt-0.5 space-y-0.5" id={controlsId}>
-            {item.children.map((child) => (
-              <NavTreeNode item={child} key={child.id} level={level + 1} pathname={pathname} />
+            {item.children.map((child, index) => (
+              <NavTreeNode
+                item={
+                  index === 0 && !child.children.length && child.name.trim() === item.name.trim()
+                    ? { ...child, name: t('overview') }
+                    : child
+                }
+                key={child.id}
+                level={level + 1}
+                pathname={pathname}
+              />
             ))}
           </ul>
         </details>

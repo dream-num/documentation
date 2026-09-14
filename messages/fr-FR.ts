@@ -25,6 +25,7 @@ const frFRMessages = {
     'theme-customizer-description': 'Ajustez les thèmes Web SDK, les design tokens et les aperçus en mode sombre.',
   },
   navigation: {
+    overview: 'Vue d’ensemble',
     blog: 'Blog',
     'current-locale': 'Langue actuelle',
     products: 'Produits',

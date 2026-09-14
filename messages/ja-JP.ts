@@ -27,6 +27,7 @@ const jaJPMessages = {
     'theme-customizer-description': 'Web SDK のテーマ、デザイントークン、ダークモードを調整します。',
   },
   navigation: {
+    overview: '概要',
     blog: 'ブログ',
     'current-locale': '現在',
     products: '製品',

@@ -27,6 +27,7 @@ const zhTWMessages = {
     'theme-customizer-description': '編輯 Web SDK 主題、設計 Tokens 和深色模式預覽。',
   },
   navigation: {
+    overview: '概覽',
     blog: '博客',
     'current-locale': '目前',
     products: '產品',

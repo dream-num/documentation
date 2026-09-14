@@ -27,6 +27,7 @@ const esESMessages = {
     'theme-customizer-description': 'Temas de Tune Web SDK, tokens de diseño y vistas previas en modo oscuro.',
   },
   navigation: {
+    overview: 'Descripción general',
     blog: 'Blog',
     'current-locale': 'Actual',
     products: 'Productos',

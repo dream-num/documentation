@@ -25,6 +25,7 @@ const enUSMessages = {
     'theme-customizer-description': 'Tune Web SDK themes, design tokens, and dark-mode previews.',
   },
   navigation: {
+    overview: 'Overview',
     blog: 'Blog',
     'current-locale': 'Current',
     products: 'Products',
