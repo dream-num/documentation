@@ -1,0 +1,139 @@
+---
+title: 跨文件嵌入
+description: 在試算表、文件、簡報、白板與多維表格中嵌入其他類型的 Univer 文件，保留原生編輯能力。
+icon: PanelsTopLeft
+---
+
+Embed 可讓一種 Univer 文件在另一種文件中編輯，例如在文件正文插入試算表、在白板放置簡報，或從活頁簿分頁開啟多維表格。承載內容的是**父文件**，被參照的是**子文件**，兩者保留各自的資料模型。
+
+## 支援的嵌入位置
+
+| 父文件 | 位置 | 支援的子文件 |
+| --- | --- | --- |
+| Sheets | 工作表浮動物件、活頁簿分頁 | Docs、Slides、Boards、Bases |
+| Docs | 正文內容區塊 | Sheets、Slides、Boards、Bases |
+| Slides | 頁面浮動物件、頁面清單 | Sheets、Docs、Boards、Bases |
+| Boards | 畫布浮動物件 | Sheets、Docs、Slides、Bases |
+| Bases | 資料表清單 | Sheets、Docs、Slides、Boards |
+
+浮動物件與正文區塊在父文件內呈現子文件，保留對應產品的編輯能力。分頁與清單入口讓子文件成為可切換的頁面；啟用後，對應的選單區域由子文件接管。
+
+<Callout type="warning">
+  內建能力不支援 PDF、同類產品互嵌，也不支援在已嵌入的子文件中繼續嵌入文件。
+</Callout>
+
+## 接入外掛
+
+先在同一個 `Univer` 實例中接入父、子兩種產品及其 UI。Embed 不取代產品的基礎外掛；Sheets 嵌入 Docs 需要同時接入兩種產品。相依套件版本須一致，並依[授權設定](/server/license)接入 `UniverLicensePlugin`。
+
+```package-install
+npm install @univerjs-pro/embed @univerjs-pro/embed-ui
+```
+
+在現有應用程式加入以下匯入，並在建立文件前註冊外掛。`univer` 是現有的 `Univer` 實例。
+
+```ts
+import { UniverEmbedPlugin } from '@univerjs-pro/embed'
+import { UniverEmbedUIPlugin } from '@univerjs-pro/embed-ui'
+
+import '@univerjs-pro/embed/facade'
+import '@univerjs-pro/embed-ui/lib/index.css'
+
+univer.registerPlugin(UniverEmbedPlugin)
+univer.registerPlugin(UniverEmbedUIPlugin)
+```
+
+將 `@univerjs-pro/embed-ui/locale/zh-TW` 的預設匯出合併至現有的 `locales` 設定。其他語言請使用對應語言包，詳見[國際化](/guides/sheets/getting-started/i18n)。
+
+`@univerjs-pro/embed` 提供嵌入關係、參照解析及 Facade API；`@univerjs-pro/embed-ui` 提供容器、焦點切換與選單。`@univerjs-pro/embed-unit-ui` 提供獨立的參照文件檢視器，基本嵌入不需要註冊它。
+
+## 在試算表中嵌入文件
+
+以下函式接收同一個 `Univer` 實例中已載入的活頁簿與文件，在目前工作表插入浮動文件。`ref` 使用子文件的實際 ID；`type=doc` 必須與 `unitType` 一致。
+
+```ts
+import type { FUniver } from '@univerjs/core/facade'
+import type { FDocument } from '@univerjs/docs/facade'
+import type { FWorkbook } from '@univerjs/sheets/facade'
+
+import '@univerjs-pro/embed/facade'
+import '@univerjs/docs/facade'
+import '@univerjs/sheets/facade'
+
+async function embedDocument(
+  univerAPI: FUniver,
+  workbook: FWorkbook,
+  document: FDocument,
+) {
+  const embed = univerAPI.createEmbed<FDocument>({
+    host: {
+      unitId: workbook.getId(),
+      surface: univerAPI.Enum.FEmbedHostSurface.SheetFloating,
+      context: { subUnitId: workbook.getActiveSheet().getSheetId() },
+    },
+    content: {
+      unitType: univerAPI.Enum.UniverInstanceType.UNIVER_DOC,
+      ref: `#unit=${encodeURIComponent(document.getId())}&type=doc`,
+    },
+  })
+
+  await embed.loadAsync()
+  return embed
+}
+```
+
+`createEmbed()` 建立嵌入關係與父文件中的位置；`loadAsync()` 載入子文件並傳回其 Facade。呼叫端應 `await` 此函式並處理載入失敗。本機參照要求目標文件已存在於目前實例；只填入 ID 不會建立或下載文件。
+
+### 選擇嵌入位置
+
+`host.surface` 從 `univerAPI.Enum.FEmbedHostSurface` 選取；`host.context` 描述父文件中的插入位置。
+
+| 位置 | 列舉成員 | 位置參數 |
+| --- | --- | --- |
+| 工作表浮動物件 | `SheetFloating` | `subUnitId` 指定工作表；`placement` 指定錨定方式，預設為 Position |
+| 活頁簿分頁 | `SheetTab` | `sheetIndex`、`sheetName` |
+| 文件正文區塊 | `DocBlock` | `startIndex` 為正文 `dataStream` 的 UTF-16 偏移量，省略則附加至可編輯正文末尾 |
+| 簡報浮動物件 | `SlideFloating` | `subUnitId` 指定頁面；`left`、`top`、`width`、`height` 指定位置與尺寸 |
+| 簡報頁面清單 | `SlidePage` | `pageIndex`、`pageName` |
+| 白板浮動物件 | `BoardFloating` | `subUnitId` 指定頁面；`left`、`top`、`width`、`height` 指定位置與尺寸 |
+| 多維表格資料表清單 | `BaseTable` | `tableIndex`、`tableName` |
+
+清單索引從 0 開始，省略則附加至末尾。浮動物件使用文件模型座標，不是瀏覽器視窗座標，不應直接寫入捲動或縮放的偏移量。
+
+### 指定子文件的預設檢視
+
+`displayTarget` 指定子文件最初顯示的內容，與父文件插入位置無關。可在建立時設定，或以 `embed.setDisplayTarget()` 更新。
+
+| 子文件 | 預設檢視參數 |
+| --- | --- |
+| Sheets | `{ subUnitId: 'sheet-id' }` |
+| Slides | `{ pageId: 'page-id' }` |
+| Bases | `{ tableId: 'table-id', viewId: 'view-id' }`，也支援 `dashboardId` |
+
+請使用穩定 ID，不使用顯示名稱。目標不存在時回到首個可用檢視。使用者切換子文件頁面不會改寫此預設值；Docs 與 Boards 不接受 `displayTarget`。
+
+## 儲存與移除
+
+儲存父文件快照時，保留 `resources` 中的 Embed 資料與正文、繪圖或清單內的嵌入位置。嵌入關係記錄子文件參照與預設檢視，**不會自動將子文件最新內容合併至父文件快照**。本機應用程式需分別儲存子文件，並確保還原後可解析參照。
+
+`univerAPI.listEmbeds({ hostUnitId })` 列出嵌入，`univerAPI.getEmbed({ hostUnitId, embedId })` 取得指定嵌入。`embed.remove()` 移除父文件中的嵌入，不等於刪除子文件的持久化資料。
+
+## 載入協同文件
+
+參照伺服器文件前，先完成[瀏覽器協同接入](/server/collaboration/browser-integration)，再註冊協同橋接外掛：
+
+```package-install
+npm install @univerjs-pro/collaboration-embed
+```
+
+```ts
+import { UniverCollaborationEmbedPlugin } from '@univerjs-pro/collaboration-embed'
+
+univer.registerPlugin(UniverCollaborationEmbedPlugin)
+```
+
+此外掛依賴 `UniverCollaborationPlugin`、`UniverCollaborationClientPlugin` 與 `UniverEmbedPlugin`，透過協同快照服務載入子文件，再加入其協同工作階段。`#unit=...&type=...` 必須使用伺服器的實際文件 ID，存取仍受[身分與授權](/server/collaboration/identity-and-authorization)控制。
+
+若使用自建儲存而非協同服務，可在 `UniverEmbedPlugin` 的 `resourceRefUnitProviderRegistrations` 設定載入器，將參照解析為文件實例。
+
+完整設定與方法見 [FEmbed API](/reference/facade/embed)、[FUniver API](/reference/facade/univer) 與 [Embed 外掛 API](/reference/packages/plugins/univerjs-pro/embed)。

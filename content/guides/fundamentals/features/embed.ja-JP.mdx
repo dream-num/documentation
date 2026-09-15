@@ -1,0 +1,139 @@
+---
+title: ドキュメント間の埋め込み
+description: スプレッドシート、ドキュメント、スライド、ボード、ベースに別の種類の Univer ドキュメントを埋め込み、編集できます。
+icon: PanelsTopLeft
+---
+
+Embed を使うと、文書内の表、ボード上のスライド、ワークブックのタブ内のベースなど、別の種類の Univer ドキュメントを埋め込んで編集できます。表示先を**親ドキュメント**、参照先を**子ドキュメント**と呼び、それぞれ独立したデータモデルを保持します。
+
+## 対応する埋め込み位置
+
+| 親 | 位置 | 対応する子 |
+| --- | --- | --- |
+| Sheets | ワークシートの浮動オブジェクト、ワークブックのタブ | Docs、Slides、Boards、Bases |
+| Docs | 本文ブロック | Sheets、Slides、Boards、Bases |
+| Slides | ページ上の浮動オブジェクト、ページ一覧 | Sheets、Docs、Boards、Bases |
+| Boards | キャンバス上の浮動オブジェクト | Sheets、Docs、Slides、Bases |
+| Bases | テーブル一覧 | Sheets、Docs、Slides、Boards |
+
+浮動オブジェクトと本文ブロックでは、親の中で子の編集機能を使用できます。タブや一覧では子をページとして切り替え、アクティブにすると対応するメニュー領域も子に切り替わります。
+
+<Callout type="warning">
+  標準機能では PDF、同じ製品同士の埋め込み、埋め込まれた子へのさらなる埋め込みには対応していません。
+</Callout>
+
+## プラグインの登録
+
+同じ `Univer` インスタンスに親と子の製品および UI を導入してください。Embed は製品の基本プラグインを置き換えません。Sheets に Docs を埋め込む場合は両方が必要です。依存パッケージのバージョンを揃え、[ライセンス設定](/server/license)に従って `UniverLicensePlugin` を導入します。
+
+```package-install
+npm install @univerjs-pro/embed @univerjs-pro/embed-ui
+```
+
+既存のアプリに以下を追加し、ドキュメントの作成前に登録します。`univer` は既存の `Univer` インスタンスです。
+
+```ts
+import { UniverEmbedPlugin } from '@univerjs-pro/embed'
+import { UniverEmbedUIPlugin } from '@univerjs-pro/embed-ui'
+
+import '@univerjs-pro/embed/facade'
+import '@univerjs-pro/embed-ui/lib/index.css'
+
+univer.registerPlugin(UniverEmbedPlugin)
+univer.registerPlugin(UniverEmbedUIPlugin)
+```
+
+`@univerjs-pro/embed-ui/locale/ja-JP` のデフォルトエクスポートを既存の `locales` にマージします。他の言語については[国際化](/guides/sheets/getting-started/i18n)を参照してください。
+
+`@univerjs-pro/embed` は埋め込み関係、参照解決、Facade API を提供し、`@univerjs-pro/embed-ui` はコンテナ、フォーカス切り替え、メニューを提供します。独立した参照ドキュメントビューアーを提供する `@univerjs-pro/embed-unit-ui` は、基本的な埋め込みには不要です。
+
+## 表にドキュメントを埋め込む
+
+次の関数は、同じ `Univer` インスタンスに読み込み済みのワークブックとドキュメントを受け取り、現在のワークシートに浮動ドキュメントを挿入します。`ref` には子の実際の ID を指定し、`type=doc` を `unitType` と一致させます。
+
+```ts
+import type { FUniver } from '@univerjs/core/facade'
+import type { FDocument } from '@univerjs/docs/facade'
+import type { FWorkbook } from '@univerjs/sheets/facade'
+
+import '@univerjs-pro/embed/facade'
+import '@univerjs/docs/facade'
+import '@univerjs/sheets/facade'
+
+async function embedDocument(
+  univerAPI: FUniver,
+  workbook: FWorkbook,
+  document: FDocument,
+) {
+  const embed = univerAPI.createEmbed<FDocument>({
+    host: {
+      unitId: workbook.getId(),
+      surface: univerAPI.Enum.FEmbedHostSurface.SheetFloating,
+      context: { subUnitId: workbook.getActiveSheet().getSheetId() },
+    },
+    content: {
+      unitType: univerAPI.Enum.UniverInstanceType.UNIVER_DOC,
+      ref: `#unit=${encodeURIComponent(document.getId())}&type=doc`,
+    },
+  })
+
+  await embed.loadAsync()
+  return embed
+}
+```
+
+`createEmbed()` は埋め込み関係と親の挿入位置を作成します。`loadAsync()` は子を読み込み、その Facade を返します。呼び出し側で関数を `await` し、読み込みエラーを処理してください。ローカル参照は現在のインスタンスに存在するドキュメントを対象とし、ID だけでは作成やダウンロードを行いません。
+
+### 埋め込み位置を選ぶ
+
+`host.surface` は `univerAPI.Enum.FEmbedHostSurface` から選択し、`host.context` で親の挿入位置を指定します。
+
+| 位置 | 列挙値 | 位置のパラメーター |
+| --- | --- | --- |
+| ワークシートの浮動オブジェクト | `SheetFloating` | `subUnitId` はシート、`placement` はアンカー方式。省略時は Position |
+| ワークブックのタブ | `SheetTab` | `sheetIndex`、`sheetName` |
+| 本文ブロック | `DocBlock` | `startIndex` は本文 `dataStream` 内の UTF-16 オフセット。省略時は編集可能な本文末尾に追加 |
+| スライドの浮動オブジェクト | `SlideFloating` | `subUnitId` はページ、`left`、`top`、`width`、`height` は位置とサイズ |
+| スライドのページ一覧 | `SlidePage` | `pageIndex`、`pageName` |
+| ボードの浮動オブジェクト | `BoardFloating` | `subUnitId` はページ、`left`、`top`、`width`、`height` は位置とサイズ |
+| ベースのテーブル一覧 | `BaseTable` | `tableIndex`、`tableName` |
+
+一覧のインデックスは 0 始まりで、省略時は末尾に追加します。浮動オブジェクトの座標はドキュメントモデル基準です。ブラウザーの表示領域やスクロール、ズームの値をそのまま設定しないでください。
+
+### 子の初期ビューを指定する
+
+`displayTarget` は子の最初の表示内容を選び、親の挿入位置とは独立しています。作成時に指定するか、`embed.setDisplayTarget()` で更新します。
+
+| 子 | 初期ビューのパラメーター |
+| --- | --- |
+| Sheets | `{ subUnitId: 'sheet-id' }` |
+| Slides | `{ pageId: 'page-id' }` |
+| Bases | `{ tableId: 'table-id', viewId: 'view-id' }`。`dashboardId` にも対応 |
+
+表示名ではなく安定した ID を使います。対象が存在しない場合は最初の利用可能なビューに戻ります。子の中での通常のページ移動では初期値は変わりません。Docs と Boards は `displayTarget` を受け付けません。
+
+## 保存と削除
+
+親のスナップショットを保存する際は、`resources` 内の Embed データと、本文・描画・一覧内の埋め込み位置を保持します。保存されるのは子への参照と初期ビューであり、**子の最新内容が親のスナップショットに自動で統合されるわけではありません**。ローカルアプリでは子を別途保存し、復元後に参照を解決できるようにしてください。
+
+一覧は `univerAPI.listEmbeds({ hostUnitId })`、個別取得は `univerAPI.getEmbed({ hostUnitId, embedId })` を使います。`embed.remove()` は親から埋め込みを除去しますが、子の永続データは削除しません。
+
+## 共同編集ドキュメントの読み込み
+
+サーバー上のドキュメントには、[ブラウザーでの共同編集の導入](/server/collaboration/browser-integration)を完了してから、ブリッジプラグインを登録します。
+
+```package-install
+npm install @univerjs-pro/collaboration-embed
+```
+
+```ts
+import { UniverCollaborationEmbedPlugin } from '@univerjs-pro/collaboration-embed'
+
+univer.registerPlugin(UniverCollaborationEmbedPlugin)
+```
+
+このプラグインは `UniverCollaborationPlugin`、`UniverCollaborationClientPlugin`、`UniverEmbedPlugin` に依存します。共同編集のスナップショットサービスで子を読み込み、そのセッションに参加します。`#unit=...&type=...` にはサーバー上の実際の ID を指定し、[認証と認可](/server/collaboration/identity-and-authorization)の設定が引き続き適用されます。
+
+独自ストレージを使う場合は、`UniverEmbedPlugin` の `resourceRefUnitProviderRegistrations` に参照からドキュメントインスタンスを取得するローダーを設定します。
+
+詳細は [FEmbed API](/reference/facade/embed)、[FUniver API](/reference/facade/univer)、[Embed プラグイン API](/reference/packages/plugins/univerjs-pro/embed)を参照してください。

@@ -1,0 +1,139 @@
+---
+title: Встраивание документов
+description: Встраивайте документы Univer других типов в таблицы, тексты, презентации, доски и базы, сохраняя возможности редактирования.
+icon: PanelsTopLeft
+---
+
+Embed позволяет редактировать один документ Univer внутри другого: таблицу в тексте, слайды на доске или базу во вкладке книги. **Родительский документ** содержит ссылку на **дочерний документ**. Каждый сохраняет собственную модель данных.
+
+## Поддерживаемые места вставки
+
+| Родитель | Место вставки | Поддерживаемые дочерние документы |
+| --- | --- | --- |
+| Sheets | Плавающий объект на листе, вкладка книги | Docs, Slides, Boards, Bases |
+| Docs | Блок в теле документа | Sheets, Slides, Boards, Bases |
+| Slides | Плавающий объект на странице, список страниц | Sheets, Docs, Boards, Bases |
+| Boards | Плавающий объект на холсте | Sheets, Docs, Slides, Bases |
+| Bases | Список таблиц | Sheets, Docs, Slides, Boards |
+
+Плавающие объекты и блоки отображают дочерний документ внутри родительского с функциями редактирования соответствующего продукта. Вкладки и элементы списка позволяют переключаться на дочерний документ как на страницу; при активации ему передаётся соответствующая область меню.
+
+<Callout type="warning">
+  Встроенные возможности не поддерживают PDF, встраивание документов одного типа друг в друга и дальнейшее встраивание внутри уже встроенного дочернего документа.
+</Callout>
+
+## Регистрация плагинов
+
+Сначала подключите оба продукта и их UI в одном экземпляре `Univer`. Embed не заменяет основные плагины продуктов: для Docs внутри Sheets нужны оба продукта. Используйте одинаковые версии зависимостей и настройте `UniverLicensePlugin` по руководству [Настройка лицензии](/server/license).
+
+```package-install
+npm install @univerjs-pro/embed @univerjs-pro/embed-ui
+```
+
+Добавьте импорты в существующее приложение и зарегистрируйте плагины до создания документов. `univer` — существующий экземпляр `Univer`.
+
+```ts
+import { UniverEmbedPlugin } from '@univerjs-pro/embed'
+import { UniverEmbedUIPlugin } from '@univerjs-pro/embed-ui'
+
+import '@univerjs-pro/embed/facade'
+import '@univerjs-pro/embed-ui/lib/index.css'
+
+univer.registerPlugin(UniverEmbedPlugin)
+univer.registerPlugin(UniverEmbedUIPlugin)
+```
+
+Объедините экспорт по умолчанию из `@univerjs-pro/embed-ui/locale/ru-RU` с конфигурацией `locales`. Для других языков используйте соответствующий пакет; см. [Интернационализация](/guides/sheets/getting-started/i18n).
+
+`@univerjs-pro/embed` предоставляет связи встраивания, разрешение ссылок и Facade API. `@univerjs-pro/embed-ui` предоставляет контейнеры, переключение фокуса и меню. `@univerjs-pro/embed-unit-ui` — отдельный просмотрщик документов по ссылке, он не нужен для базового встраивания.
+
+## Встраивание документа в таблицу
+
+Функция принимает книгу и документ, уже загруженные в тот же экземпляр `Univer`, и вставляет плавающий документ на активный лист. В `ref` укажите реальный ID дочернего документа; `type=doc` должен соответствовать `unitType`.
+
+```ts
+import type { FUniver } from '@univerjs/core/facade'
+import type { FDocument } from '@univerjs/docs/facade'
+import type { FWorkbook } from '@univerjs/sheets/facade'
+
+import '@univerjs-pro/embed/facade'
+import '@univerjs/docs/facade'
+import '@univerjs/sheets/facade'
+
+async function embedDocument(
+  univerAPI: FUniver,
+  workbook: FWorkbook,
+  document: FDocument,
+) {
+  const embed = univerAPI.createEmbed<FDocument>({
+    host: {
+      unitId: workbook.getId(),
+      surface: univerAPI.Enum.FEmbedHostSurface.SheetFloating,
+      context: { subUnitId: workbook.getActiveSheet().getSheetId() },
+    },
+    content: {
+      unitType: univerAPI.Enum.UniverInstanceType.UNIVER_DOC,
+      ref: `#unit=${encodeURIComponent(document.getId())}&type=doc`,
+    },
+  })
+
+  await embed.loadAsync()
+  return embed
+}
+```
+
+`createEmbed()` создаёт связь и место вставки в родительском документе. `loadAsync()` загружает дочерний документ и возвращает его Facade. Вызывайте функцию с `await` и обрабатывайте ошибки загрузки. Локальная ссылка требует наличия документа в текущем экземпляре: один ID не создаёт и не скачивает документ.
+
+### Выбор места вставки
+
+Выберите `host.surface` из `univerAPI.Enum.FEmbedHostSurface`. `host.context` задаёт позицию в родительском документе.
+
+| Место | Элемент перечисления | Параметры |
+| --- | --- | --- |
+| Плавающий объект на листе | `SheetFloating` | `subUnitId` выбирает лист; `placement` задаёт привязку, по умолчанию Position |
+| Вкладка книги | `SheetTab` | `sheetIndex`, `sheetName` |
+| Блок документа | `DocBlock` | `startIndex` — смещение UTF-16 в `dataStream` тела; без него блок добавляется в конец редактируемого тела |
+| Плавающий объект на слайде | `SlideFloating` | `subUnitId` выбирает страницу; `left`, `top`, `width`, `height` задают позицию и размер |
+| Список страниц слайдов | `SlidePage` | `pageIndex`, `pageName` |
+| Плавающий объект на доске | `BoardFloating` | `subUnitId` выбирает страницу; `left`, `top`, `width`, `height` задают позицию и размер |
+| Список таблиц базы | `BaseTable` | `tableIndex`, `tableName` |
+
+Индексы списков начинаются с 0; без индекса элемент добавляется в конец. Координаты плавающих объектов относятся к модели документа, а не к области просмотра браузера. Не записывайте в них напрямую смещения прокрутки или масштабирования.
+
+### Выбор начального представления
+
+`displayTarget` выбирает начальное содержимое дочернего документа независимо от позиции в родительском. Укажите его при создании или измените через `embed.setDisplayTarget()`.
+
+| Дочерний документ | Параметры представления |
+| --- | --- |
+| Sheets | `{ subUnitId: 'sheet-id' }` |
+| Slides | `{ pageId: 'page-id' }` |
+| Bases | `{ tableId: 'table-id', viewId: 'view-id' }`; также поддерживается `dashboardId` |
+
+Используйте стабильные ID, а не отображаемые имена. Если цель исчезла, открывается первое доступное представление. Навигация пользователя внутри дочернего документа не меняет это значение. Docs и Boards не принимают `displayTarget`.
+
+## Сохранение и удаление
+
+При сохранении снимка родительского документа сохраняйте данные Embed в `resources` и позиции в теле, рисунках или списках. Связь хранит ссылку и начальное представление; **текущее содержимое дочернего документа не включается автоматически в снимок родительского**. Локальное приложение должно сохранять дочерние документы отдельно и обеспечивать разрешение ссылок после восстановления.
+
+Список доступен через `univerAPI.listEmbeds({ hostUnitId })`, отдельный объект — через `univerAPI.getEmbed({ hostUnitId, embedId })`. `embed.remove()` удаляет встраивание из родительского документа, но не постоянные данные дочернего.
+
+## Загрузка совместных документов
+
+Для серверных документов завершите [интеграцию совместного редактирования в браузере](/server/collaboration/browser-integration), затем зарегистрируйте связующий плагин:
+
+```package-install
+npm install @univerjs-pro/collaboration-embed
+```
+
+```ts
+import { UniverCollaborationEmbedPlugin } from '@univerjs-pro/collaboration-embed'
+
+univer.registerPlugin(UniverCollaborationEmbedPlugin)
+```
+
+Плагин зависит от `UniverCollaborationPlugin`, `UniverCollaborationClientPlugin` и `UniverEmbedPlugin`. Он загружает дочерний документ через сервис снимков и подключается к его сеансу совместного редактирования. В `#unit=...&type=...` нужен реальный серверный ID; доступ по-прежнему определяется настройками [идентификации и авторизации](/server/collaboration/identity-and-authorization).
+
+Для собственного хранилища настройте `resourceRefUnitProviderRegistrations` в `UniverEmbedPlugin`, чтобы преобразовывать ссылки в экземпляры документов.
+
+Дополнительные параметры и методы описаны в API [FEmbed](/reference/facade/embed), [FUniver](/reference/facade/univer) и [плагина Embed](/reference/packages/plugins/univerjs-pro/embed).

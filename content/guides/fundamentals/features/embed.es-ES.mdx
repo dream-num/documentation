@@ -1,0 +1,139 @@
+---
+title: Documentos incrustados
+description: Incrusta otros tipos de documentos Univer en hojas de cálculo, documentos, presentaciones, pizarras y bases, conservando su edición nativa.
+icon: PanelsTopLeft
+---
+
+Embed permite editar un documento Univer dentro de otro: una hoja de cálculo en un texto, diapositivas en una pizarra o una base en una pestaña del libro. El **documento anfitrión** contiene al **documento hijo** referenciado. Cada uno conserva su propio modelo de datos.
+
+## Ubicaciones compatibles
+
+| Anfitrión | Ubicación | Hijos compatibles |
+| --- | --- | --- |
+| Sheets | Objeto flotante en una hoja, pestaña del libro | Docs, Slides, Boards, Bases |
+| Docs | Bloque en el cuerpo del documento | Sheets, Slides, Boards, Bases |
+| Slides | Objeto flotante en una página, lista de páginas | Sheets, Docs, Boards, Bases |
+| Boards | Objeto flotante en el lienzo | Sheets, Docs, Slides, Bases |
+| Bases | Lista de tablas | Sheets, Docs, Slides, Boards |
+
+Los objetos flotantes y los bloques muestran al hijo dentro del anfitrión con las funciones de edición de su producto. Las pestañas y las entradas de lista lo convierten en una página seleccionable; al activarla, el hijo controla la zona de menús correspondiente.
+
+<Callout type="warning">
+  Las funciones integradas no admiten PDF, incrustaciones entre productos del mismo tipo ni nuevas incrustaciones dentro de un documento hijo incrustado.
+</Callout>
+
+## Registrar los plugins
+
+Configura ambos productos y su UI en la misma instancia `Univer`. Embed no sustituye sus plugins básicos: incrustar Docs en Sheets requiere ambos productos. Mantén las versiones alineadas y configura `UniverLicensePlugin` según la [configuración de licencia](/server/license).
+
+```package-install
+npm install @univerjs-pro/embed @univerjs-pro/embed-ui
+```
+
+Añade estas importaciones a tu aplicación y registra los plugins antes de crear los documentos. `univer` es tu instancia `Univer` existente.
+
+```ts
+import { UniverEmbedPlugin } from '@univerjs-pro/embed'
+import { UniverEmbedUIPlugin } from '@univerjs-pro/embed-ui'
+
+import '@univerjs-pro/embed/facade'
+import '@univerjs-pro/embed-ui/lib/index.css'
+
+univer.registerPlugin(UniverEmbedPlugin)
+univer.registerPlugin(UniverEmbedUIPlugin)
+```
+
+Combina la exportación predeterminada de `@univerjs-pro/embed-ui/locale/es-ES` con tu configuración `locales`. Para otros idiomas, consulta [Internacionalización](/guides/sheets/getting-started/i18n).
+
+`@univerjs-pro/embed` proporciona las relaciones, la resolución de referencias y la API Facade. `@univerjs-pro/embed-ui` proporciona contenedores, cambio de foco y menús. `@univerjs-pro/embed-unit-ui` ofrece un visor independiente de documentos referenciados y no es necesario para la incrustación básica.
+
+## Incrustar un documento en una hoja de cálculo
+
+Esta función recibe un libro y un documento ya cargados en la misma instancia `Univer` e inserta un documento flotante en la hoja activa. Usa el ID real del hijo en `ref`; `type=doc` debe coincidir con `unitType`.
+
+```ts
+import type { FUniver } from '@univerjs/core/facade'
+import type { FDocument } from '@univerjs/docs/facade'
+import type { FWorkbook } from '@univerjs/sheets/facade'
+
+import '@univerjs-pro/embed/facade'
+import '@univerjs/docs/facade'
+import '@univerjs/sheets/facade'
+
+async function embedDocument(
+  univerAPI: FUniver,
+  workbook: FWorkbook,
+  document: FDocument,
+) {
+  const embed = univerAPI.createEmbed<FDocument>({
+    host: {
+      unitId: workbook.getId(),
+      surface: univerAPI.Enum.FEmbedHostSurface.SheetFloating,
+      context: { subUnitId: workbook.getActiveSheet().getSheetId() },
+    },
+    content: {
+      unitType: univerAPI.Enum.UniverInstanceType.UNIVER_DOC,
+      ref: `#unit=${encodeURIComponent(document.getId())}&type=doc`,
+    },
+  })
+
+  await embed.loadAsync()
+  return embed
+}
+```
+
+`createEmbed()` crea la relación y su ubicación en el anfitrión. `loadAsync()` carga al hijo y devuelve su Facade. Usa `await` al llamar a la función y gestiona los errores de carga. Una referencia local exige que el documento exista en la instancia actual; un ID por sí solo no lo crea ni lo descarga.
+
+### Elegir la ubicación
+
+Selecciona `host.surface` en `univerAPI.Enum.FEmbedHostSurface`. `host.context` describe la posición de inserción en el anfitrión.
+
+| Ubicación | Miembro de la enumeración | Parámetros |
+| --- | --- | --- |
+| Objeto flotante en una hoja | `SheetFloating` | `subUnitId` selecciona la hoja; `placement` define el anclaje, Position de forma predeterminada |
+| Pestaña del libro | `SheetTab` | `sheetIndex`, `sheetName` |
+| Bloque del documento | `DocBlock` | `startIndex`: desplazamiento UTF-16 en el `dataStream` del cuerpo; se omite para añadir al final del cuerpo editable |
+| Objeto flotante de diapositiva | `SlideFloating` | `subUnitId` selecciona la página; `left`, `top`, `width`, `height` definen posición y tamaño |
+| Lista de páginas | `SlidePage` | `pageIndex`, `pageName` |
+| Objeto flotante de pizarra | `BoardFloating` | `subUnitId` selecciona la página; `left`, `top`, `width`, `height` definen posición y tamaño |
+| Lista de tablas | `BaseTable` | `tableIndex`, `tableName` |
+
+Los índices de lista empiezan en 0; si se omiten, se añade al final. Las coordenadas flotantes pertenecen al modelo del documento, no al área visible del navegador. No apliques directamente los desplazamientos de scroll o zoom a estos valores.
+
+### Elegir la vista inicial del hijo
+
+`displayTarget` selecciona el contenido inicial del hijo, independientemente de su ubicación en el anfitrión. Puedes indicarlo al crear la incrustación o actualizarlo con `embed.setDisplayTarget()`.
+
+| Hijo | Parámetros de la vista inicial |
+| --- | --- |
+| Sheets | `{ subUnitId: 'sheet-id' }` |
+| Slides | `{ pageId: 'page-id' }` |
+| Bases | `{ tableId: 'table-id', viewId: 'view-id' }`; también admite `dashboardId` |
+
+Usa ID estables, no nombres visibles. Si el destino ya no existe, el hijo vuelve a su primera vista disponible. La navegación del usuario no cambia este valor. Docs y Boards no admiten `displayTarget`.
+
+## Guardar y retirar incrustaciones
+
+Al guardar el snapshot del anfitrión, conserva los datos Embed de `resources` y las ubicaciones en el cuerpo, los dibujos o las listas. La relación guarda la referencia y la vista inicial; **no incorpora automáticamente el contenido actual del hijo al snapshot del anfitrión**. Las aplicaciones locales deben guardar los hijos por separado y permitir resolver sus referencias tras restaurarlos.
+
+Usa `univerAPI.listEmbeds({ hostUnitId })` para obtener la lista y `univerAPI.getEmbed({ hostUnitId, embedId })` para una incrustación concreta. `embed.remove()` retira la incrustación del anfitrión sin eliminar los datos persistentes del hijo.
+
+## Cargar documentos colaborativos
+
+Para documentos del servidor, completa la [integración de colaboración en el navegador](/server/collaboration/browser-integration) y registra el plugin de conexión:
+
+```package-install
+npm install @univerjs-pro/collaboration-embed
+```
+
+```ts
+import { UniverCollaborationEmbedPlugin } from '@univerjs-pro/collaboration-embed'
+
+univer.registerPlugin(UniverCollaborationEmbedPlugin)
+```
+
+Este plugin depende de `UniverCollaborationPlugin`, `UniverCollaborationClientPlugin` y `UniverEmbedPlugin`. Carga al hijo mediante el servicio de snapshots de colaboración y se une a su sesión. Usa el ID real del documento del servidor en `#unit=...&type=...`; el acceso sigue sujeto a la configuración de [identidad y autorización](/server/collaboration/identity-and-authorization).
+
+Para almacenamiento propio, configura `resourceRefUnitProviderRegistrations` en `UniverEmbedPlugin` con un cargador que resuelva las referencias en instancias de documentos.
+
+Consulta las API de [FEmbed](/reference/facade/embed), [FUniver](/reference/facade/univer) y del [plugin Embed](/reference/packages/plugins/univerjs-pro/embed) para conocer las demás opciones y métodos.

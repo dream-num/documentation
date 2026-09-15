@@ -1,0 +1,139 @@
+---
+title: 跨文档嵌入
+description: 在表格、文档、幻灯片、白板和多维表格中嵌入其他类型的 Univer 文档，并保留原生编辑能力。
+icon: PanelsTopLeft
+---
+
+Embed 可以把一种 Univer 文档放进另一种文档中编辑。例如，在文档正文中插入表格，在白板上放置幻灯片，或在工作簿的标签页中打开多维表格。承载内容的是**父文档**，被引用的是**子文档**；两者保留各自的数据模型。
+
+## 支持的嵌入位置
+
+| 父文档 | 嵌入位置 | 可嵌入的子文档 |
+| --- | --- | --- |
+| Sheets | 工作表中的浮动对象、工作簿标签页 | Docs、Slides、Boards、Bases |
+| Docs | 正文内容块 | Sheets、Slides、Boards、Bases |
+| Slides | 页面中的浮动对象、页面列表 | Sheets、Docs、Boards、Bases |
+| Boards | 画布中的浮动对象 | Sheets、Docs、Slides、Bases |
+| Bases | 数据表列表 | Sheets、Docs、Slides、Boards |
+
+浮动对象和正文内容块在父文档内展示子文档，编辑时使用对应产品的编辑能力。标签页和列表入口将子文档作为一个可切换的页面，激活后由子文档接管对应的菜单区域。
+
+<Callout type="warning">
+  内置能力不支持 PDF、同类产品互嵌，也不支持在嵌入的子文档中继续嵌入其他文档。
+</Callout>
+
+## 接入插件
+
+先在同一个 `Univer` 实例中接入父、子两种产品及其 UI。Embed 不替代这些产品的基础插件；例如 Sheets 中嵌入 Docs，需要同时接入 Sheets 和 Docs。所有依赖使用一致的版本，并按[许可证配置](/server/license)接入 `UniverLicensePlugin`。
+
+```package-install
+npm install @univerjs-pro/embed @univerjs-pro/embed-ui
+```
+
+在现有应用中添加以下导入，并在创建文档前注册插件。`univer` 是现有的 `Univer` 实例。
+
+```ts
+import { UniverEmbedPlugin } from '@univerjs-pro/embed'
+import { UniverEmbedUIPlugin } from '@univerjs-pro/embed-ui'
+
+import '@univerjs-pro/embed/facade'
+import '@univerjs-pro/embed-ui/lib/index.css'
+
+univer.registerPlugin(UniverEmbedPlugin)
+univer.registerPlugin(UniverEmbedUIPlugin)
+```
+
+将 `@univerjs-pro/embed-ui/locale/zh-CN` 的默认导出合并到现有的 `locales` 配置中。其他语言使用对应的语言包，见[国际化](/guides/sheets/getting-started/i18n)。
+
+`@univerjs-pro/embed` 提供嵌入关系、引用解析和 Facade API；`@univerjs-pro/embed-ui` 提供嵌入容器、焦点切换和菜单。`@univerjs-pro/embed-unit-ui` 提供独立的引用文档查看器，基础嵌入无需注册它。
+
+## 在表格中嵌入文档
+
+下面的函数接收同一个 `Univer` 实例中已经加载的工作簿和文档，在当前工作表中插入浮动文档。`ref` 使用子文档的真实 ID，`type=doc` 与 `unitType` 必须一致。
+
+```ts
+import type { FUniver } from '@univerjs/core/facade'
+import type { FDocument } from '@univerjs/docs/facade'
+import type { FWorkbook } from '@univerjs/sheets/facade'
+
+import '@univerjs-pro/embed/facade'
+import '@univerjs/docs/facade'
+import '@univerjs/sheets/facade'
+
+async function embedDocument(
+  univerAPI: FUniver,
+  workbook: FWorkbook,
+  document: FDocument,
+) {
+  const embed = univerAPI.createEmbed<FDocument>({
+    host: {
+      unitId: workbook.getId(),
+      surface: univerAPI.Enum.FEmbedHostSurface.SheetFloating,
+      context: { subUnitId: workbook.getActiveSheet().getSheetId() },
+    },
+    content: {
+      unitType: univerAPI.Enum.UniverInstanceType.UNIVER_DOC,
+      ref: `#unit=${encodeURIComponent(document.getId())}&type=doc`,
+    },
+  })
+
+  await embed.loadAsync()
+  return embed
+}
+```
+
+`createEmbed()` 创建嵌入关系和父文档中的位置；`loadAsync()` 加载子文档并返回它的 Facade。调用方应 `await` 此函数并处理加载失败。本地引用要求目标文档已经存在于当前实例中；单独填写一个 ID 不会创建或下载该文档。
+
+### 更换嵌入位置
+
+`host.surface` 从 `univerAPI.Enum.FEmbedHostSurface` 中选择。`host.context` 描述父文档中的插入位置。
+
+| 位置 | 枚举成员 | 位置参数 |
+| --- | --- | --- |
+| 工作表浮动对象 | `SheetFloating` | `subUnitId` 指定工作表；`placement` 指定锚定方式，省略时使用 Position 锚定 |
+| 工作簿标签页 | `SheetTab` | `sheetIndex`、`sheetName` |
+| 文档正文内容块 | `DocBlock` | `startIndex`：正文 `dataStream` 中的 UTF-16 偏移量；省略时追加到可编辑正文末尾 |
+| 幻灯片浮动对象 | `SlideFloating` | `subUnitId` 指定页面；`left`、`top`、`width`、`height` 指定位置和尺寸 |
+| 幻灯片页面列表 | `SlidePage` | `pageIndex`、`pageName` |
+| 白板浮动对象 | `BoardFloating` | `subUnitId` 指定页面；`left`、`top`、`width`、`height` 指定位置和尺寸 |
+| 多维表格数据表列表 | `BaseTable` | `tableIndex`、`tableName` |
+
+列表插入索引从 0 开始，省略时追加到末尾。浮动对象的坐标属于文档模型，不是浏览器视口坐标；页面滚动或缩放不应直接写入这些数值。
+
+### 指定子文档的默认视图
+
+`displayTarget` 选择子文档首次展示的内容，与父文档中的插入位置无关。可以在创建时传入，也可以通过 `embed.setDisplayTarget()` 更新。
+
+| 子文档 | 默认视图参数 |
+| --- | --- |
+| Sheets | `{ subUnitId: 'sheet-id' }` |
+| Slides | `{ pageId: 'page-id' }` |
+| Bases | `{ tableId: 'table-id', viewId: 'view-id' }`，也支持 `dashboardId` |
+
+使用稳定 ID，不使用显示名称。目标不存在时，子文档回到首个可用视图。用户在子文档内切换页面不会改写这个默认值；Docs 和 Boards 不接受 `displayTarget`。
+
+## 保存和移除
+
+保存父文档快照时，保留其 `resources` 中的 Embed 插件数据以及正文、绘图或列表中的嵌入位置。嵌入关系记录子文档引用和默认视图，**不会把子文档的最新内容自动合并进父文档快照**。本地应用需要分别保存子文档，并在恢复后保证引用可以解析。
+
+使用 `univerAPI.listEmbeds({ hostUnitId })` 列出父文档的嵌入，或使用 `univerAPI.getEmbed({ hostUnitId, embedId })` 获取指定嵌入。`embed.remove()` 从父文档移除嵌入，不等于删除子文档的持久化数据。
+
+## 加载协同文档
+
+引用服务端文档时，先完成[协同浏览器接入](/server/collaboration/browser-integration)，再注册协同桥接插件：
+
+```package-install
+npm install @univerjs-pro/collaboration-embed
+```
+
+```ts
+import { UniverCollaborationEmbedPlugin } from '@univerjs-pro/collaboration-embed'
+
+univer.registerPlugin(UniverCollaborationEmbedPlugin)
+```
+
+该插件依赖 `UniverCollaborationPlugin`、`UniverCollaborationClientPlugin` 和 `UniverEmbedPlugin`。它通过协同快照服务加载被引用的子文档，再加入该子文档的协同会话。`#unit=...&type=...` 使用服务端真实文档 ID；访问仍受现有[身份与授权](/server/collaboration/identity-and-authorization)约束。
+
+若数据来自自建存储而非协同服务，可通过 `UniverEmbedPlugin` 的 `resourceRefUnitProviderRegistrations` 配置引用加载器，负责把引用解析成对应的文档实例。
+
+更多配置和方法见 [FEmbed API](/reference/facade/embed)、[FUniver API](/reference/facade/univer) 和 [Embed 插件 API](/reference/packages/plugins/univerjs-pro/embed)。

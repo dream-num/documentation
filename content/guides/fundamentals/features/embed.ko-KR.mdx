@@ -1,0 +1,139 @@
+---
+title: 문서 간 임베딩
+description: 스프레드시트, 문서, 슬라이드, 보드, 베이스에 다른 유형의 Univer 문서를 삽입하고 기본 편집 기능을 유지합니다.
+icon: PanelsTopLeft
+---
+
+Embed를 사용하면 문서 본문에 표를 넣거나, 보드에 슬라이드를 배치하거나, 통합 문서 탭에서 베이스를 편집할 수 있습니다. 내용을 담는 문서는 **부모 문서**, 참조되는 문서는 **자식 문서**이며 각각의 데이터 모델을 유지합니다.
+
+## 지원하는 삽입 위치
+
+| 부모 | 위치 | 지원하는 자식 |
+| --- | --- | --- |
+| Sheets | 워크시트의 부동 개체, 통합 문서 탭 | Docs, Slides, Boards, Bases |
+| Docs | 본문 콘텐츠 블록 | Sheets, Slides, Boards, Bases |
+| Slides | 페이지의 부동 개체, 페이지 목록 | Sheets, Docs, Boards, Bases |
+| Boards | 캔버스의 부동 개체 | Sheets, Docs, Slides, Bases |
+| Bases | 테이블 목록 | Sheets, Docs, Slides, Boards |
+
+부동 개체와 본문 블록은 부모 안에서 자식 제품의 편집 기능을 제공합니다. 탭과 목록 항목은 자식을 전환 가능한 페이지로 표시하며, 활성화하면 해당 메뉴 영역도 자식의 메뉴로 바뀝니다.
+
+<Callout type="warning">
+  기본 기능은 PDF, 같은 제품 유형 간 임베딩, 삽입된 자식 안에 다른 문서를 다시 삽입하는 중첩 임베딩을 지원하지 않습니다.
+</Callout>
+
+## 플러그인 등록
+
+같은 `Univer` 인스턴스에 부모와 자식 제품 및 UI를 먼저 설정합니다. Embed는 제품의 기본 플러그인을 대체하지 않습니다. Sheets에 Docs를 삽입하려면 두 제품이 모두 필요합니다. 의존성 버전을 일치시키고 [라이선스 설정](/server/license)에 따라 `UniverLicensePlugin`을 등록합니다.
+
+```package-install
+npm install @univerjs-pro/embed @univerjs-pro/embed-ui
+```
+
+기존 애플리케이션에 다음 가져오기를 추가하고 문서를 생성하기 전에 플러그인을 등록합니다. `univer`는 기존 `Univer` 인스턴스입니다.
+
+```ts
+import { UniverEmbedPlugin } from '@univerjs-pro/embed'
+import { UniverEmbedUIPlugin } from '@univerjs-pro/embed-ui'
+
+import '@univerjs-pro/embed/facade'
+import '@univerjs-pro/embed-ui/lib/index.css'
+
+univer.registerPlugin(UniverEmbedPlugin)
+univer.registerPlugin(UniverEmbedUIPlugin)
+```
+
+`@univerjs-pro/embed-ui/locale/ko-KR`의 기본 내보내기를 기존 `locales` 설정에 병합합니다. 다른 언어는 해당 언어 팩을 사용합니다. [국제화](/guides/sheets/getting-started/i18n)를 참조하세요.
+
+`@univerjs-pro/embed`는 임베딩 관계, 참조 해석, Facade API를 제공합니다. `@univerjs-pro/embed-ui`는 컨테이너, 포커스 전환, 메뉴를 제공합니다. `@univerjs-pro/embed-unit-ui`는 독립적인 참조 문서 뷰어이며 기본 임베딩에는 필요하지 않습니다.
+
+## 스프레드시트에 문서 삽입
+
+다음 함수는 같은 `Univer` 인스턴스에 이미 로드된 통합 문서와 문서를 받아 현재 워크시트에 부동 문서를 삽입합니다. `ref`에는 자식의 실제 ID를 사용하며 `type=doc`은 `unitType`과 일치해야 합니다.
+
+```ts
+import type { FUniver } from '@univerjs/core/facade'
+import type { FDocument } from '@univerjs/docs/facade'
+import type { FWorkbook } from '@univerjs/sheets/facade'
+
+import '@univerjs-pro/embed/facade'
+import '@univerjs/docs/facade'
+import '@univerjs/sheets/facade'
+
+async function embedDocument(
+  univerAPI: FUniver,
+  workbook: FWorkbook,
+  document: FDocument,
+) {
+  const embed = univerAPI.createEmbed<FDocument>({
+    host: {
+      unitId: workbook.getId(),
+      surface: univerAPI.Enum.FEmbedHostSurface.SheetFloating,
+      context: { subUnitId: workbook.getActiveSheet().getSheetId() },
+    },
+    content: {
+      unitType: univerAPI.Enum.UniverInstanceType.UNIVER_DOC,
+      ref: `#unit=${encodeURIComponent(document.getId())}&type=doc`,
+    },
+  })
+
+  await embed.loadAsync()
+  return embed
+}
+```
+
+`createEmbed()`는 관계와 부모 내 위치를 만들고, `loadAsync()`는 자식을 로드하여 Facade를 반환합니다. 호출자는 함수를 `await`하고 로드 실패를 처리해야 합니다. 로컬 참조는 현재 인스턴스에 존재하는 문서만 가리킵니다. ID만 입력하면 문서가 생성되거나 다운로드되지는 않습니다.
+
+### 삽입 위치 선택
+
+`host.surface`는 `univerAPI.Enum.FEmbedHostSurface`에서 선택하고 `host.context`는 부모의 삽입 위치를 지정합니다.
+
+| 위치 | 열거형 멤버 | 위치 매개변수 |
+| --- | --- | --- |
+| 워크시트 부동 개체 | `SheetFloating` | `subUnitId`는 워크시트, `placement`는 고정 방식이며 기본값은 Position |
+| 통합 문서 탭 | `SheetTab` | `sheetIndex`, `sheetName` |
+| 문서 본문 블록 | `DocBlock` | `startIndex`는 본문 `dataStream`의 UTF-16 오프셋이며 생략하면 편집 가능한 본문 끝에 추가 |
+| 슬라이드 부동 개체 | `SlideFloating` | `subUnitId`는 페이지, `left`, `top`, `width`, `height`는 위치와 크기 |
+| 슬라이드 페이지 목록 | `SlidePage` | `pageIndex`, `pageName` |
+| 보드 부동 개체 | `BoardFloating` | `subUnitId`는 페이지, `left`, `top`, `width`, `height`는 위치와 크기 |
+| 베이스 테이블 목록 | `BaseTable` | `tableIndex`, `tableName` |
+
+목록 인덱스는 0부터 시작하며 생략하면 끝에 추가됩니다. 부동 개체의 좌표는 문서 모델 기준입니다. 브라우저 뷰포트 좌표나 스크롤·확대 오프셋을 그대로 사용하지 마세요.
+
+### 자식의 기본 보기 지정
+
+`displayTarget`은 자식에서 처음 표시할 내용을 선택하며 부모의 삽입 위치와는 별개입니다. 생성 시 전달하거나 `embed.setDisplayTarget()`으로 변경합니다.
+
+| 자식 | 기본 보기 매개변수 |
+| --- | --- |
+| Sheets | `{ subUnitId: 'sheet-id' }` |
+| Slides | `{ pageId: 'page-id' }` |
+| Bases | `{ tableId: 'table-id', viewId: 'view-id' }`; `dashboardId`도 지원 |
+
+표시 이름 대신 안정적인 ID를 사용합니다. 대상이 없으면 첫 번째 사용 가능한 보기로 돌아갑니다. 사용자가 자식에서 페이지를 이동해도 기본값은 바뀌지 않습니다. Docs와 Boards는 `displayTarget`을 받지 않습니다.
+
+## 저장과 제거
+
+부모 스냅샷 저장 시 `resources`의 Embed 데이터와 본문, 그리기 개체 또는 목록의 삽입 위치를 보존합니다. 관계는 자식 참조와 기본 보기를 기록하며 **자식의 최신 내용을 부모 스냅샷에 자동으로 병합하지 않습니다**. 로컬 앱은 자식을 별도로 저장하고 복원 후 참조를 해석할 수 있어야 합니다.
+
+`univerAPI.listEmbeds({ hostUnitId })`로 목록을 얻고 `univerAPI.getEmbed({ hostUnitId, embedId })`로 특정 항목을 가져옵니다. `embed.remove()`는 부모의 임베딩을 제거하며 자식의 영구 데이터를 삭제하지 않습니다.
+
+## 협업 문서 로드
+
+서버 문서는 [브라우저 협업 통합](/server/collaboration/browser-integration)을 완료한 뒤 브리지 플러그인을 등록합니다.
+
+```package-install
+npm install @univerjs-pro/collaboration-embed
+```
+
+```ts
+import { UniverCollaborationEmbedPlugin } from '@univerjs-pro/collaboration-embed'
+
+univer.registerPlugin(UniverCollaborationEmbedPlugin)
+```
+
+이 플러그인은 `UniverCollaborationPlugin`, `UniverCollaborationClientPlugin`, `UniverEmbedPlugin`에 의존합니다. 협업 스냅샷 서비스로 자식을 로드하고 해당 협업 세션에 참여합니다. `#unit=...&type=...`에는 서버의 실제 문서 ID를 사용하며 [인증 및 권한 부여](/server/collaboration/identity-and-authorization) 설정이 적용됩니다.
+
+협업 서비스 대신 자체 저장소를 사용하려면 `UniverEmbedPlugin`의 `resourceRefUnitProviderRegistrations`에 참조를 문서 인스턴스로 해석하는 로더를 설정합니다.
+
+자세한 설정과 메서드는 [FEmbed API](/reference/facade/embed), [FUniver API](/reference/facade/univer), [Embed 플러그인 API](/reference/packages/plugins/univerjs-pro/embed)를 참조하세요.

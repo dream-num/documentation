@@ -1,0 +1,139 @@
+---
+title: Cross-document embedding
+description: Embed other Univer document types in spreadsheets, documents, slides, boards, and bases while keeping native editing capabilities.
+icon: PanelsTopLeft
+---
+
+Embed lets you edit one Univer document inside another: place a spreadsheet in a document, slides on a board, or a base in a workbook tab. The **host document** contains the embed; the **child document** is the referenced content. Each keeps its own data model.
+
+## Supported locations
+
+| Host | Location | Supported children |
+| --- | --- | --- |
+| Sheets | Floating object in a worksheet, workbook tab | Docs, Slides, Boards, Bases |
+| Docs | Body content block | Sheets, Slides, Boards, Bases |
+| Slides | Floating object on a page, page list | Sheets, Docs, Boards, Bases |
+| Boards | Floating object on the canvas | Sheets, Docs, Slides, Bases |
+| Bases | Table list | Sheets, Docs, Slides, Boards |
+
+Floating objects and body blocks display the child inside the host with the corresponding product's editing capabilities. Tabs and list entries make the child a switchable page; activating it hands the relevant menu area to the child.
+
+<Callout type="warning">
+  Built-in capabilities do not support PDF, embedding the same product type, or further embedding inside an embedded child document.
+</Callout>
+
+## Register the plugins
+
+Set up both products and their UI in the same `Univer` instance first. Embed does not replace their core plugins: embedding Docs in Sheets requires both Sheets and Docs. Keep dependency versions aligned and configure `UniverLicensePlugin` as described in [License configuration](/server/license).
+
+```package-install
+npm install @univerjs-pro/embed @univerjs-pro/embed-ui
+```
+
+Add these imports to your existing application and register the plugins before creating documents. `univer` is your existing `Univer` instance.
+
+```ts
+import { UniverEmbedPlugin } from '@univerjs-pro/embed'
+import { UniverEmbedUIPlugin } from '@univerjs-pro/embed-ui'
+
+import '@univerjs-pro/embed/facade'
+import '@univerjs-pro/embed-ui/lib/index.css'
+
+univer.registerPlugin(UniverEmbedPlugin)
+univer.registerPlugin(UniverEmbedUIPlugin)
+```
+
+Merge the default export of `@univerjs-pro/embed-ui/locale/en-US` into your existing `locales` configuration. Use the corresponding language pack for other languages; see [Internationalization](/guides/sheets/getting-started/i18n).
+
+`@univerjs-pro/embed` provides embed relationships, reference resolution, and the Facade API. `@univerjs-pro/embed-ui` provides containers, focus switching, and menus. `@univerjs-pro/embed-unit-ui` provides a standalone referenced-document viewer and is not required for basic embedding.
+
+## Embed a document in a spreadsheet
+
+This function takes a workbook and document already loaded in the same `Univer` instance and inserts a floating document in the active worksheet. Use the child's actual ID in `ref`; `type=doc` must match `unitType`.
+
+```ts
+import type { FUniver } from '@univerjs/core/facade'
+import type { FDocument } from '@univerjs/docs/facade'
+import type { FWorkbook } from '@univerjs/sheets/facade'
+
+import '@univerjs-pro/embed/facade'
+import '@univerjs/docs/facade'
+import '@univerjs/sheets/facade'
+
+async function embedDocument(
+  univerAPI: FUniver,
+  workbook: FWorkbook,
+  document: FDocument,
+) {
+  const embed = univerAPI.createEmbed<FDocument>({
+    host: {
+      unitId: workbook.getId(),
+      surface: univerAPI.Enum.FEmbedHostSurface.SheetFloating,
+      context: { subUnitId: workbook.getActiveSheet().getSheetId() },
+    },
+    content: {
+      unitType: univerAPI.Enum.UniverInstanceType.UNIVER_DOC,
+      ref: `#unit=${encodeURIComponent(document.getId())}&type=doc`,
+    },
+  })
+
+  await embed.loadAsync()
+  return embed
+}
+```
+
+`createEmbed()` creates the relationship and its position in the host. `loadAsync()` loads the child and returns its Facade. Callers should `await` this function and handle loading failures. Local references require the target document to exist in the current instance; an ID alone does not create or download it.
+
+### Choose a location
+
+Select `host.surface` from `univerAPI.Enum.FEmbedHostSurface`. `host.context` describes the insertion position in the host.
+
+| Location | Enum member | Position parameters |
+| --- | --- | --- |
+| Worksheet floating object | `SheetFloating` | `subUnitId` selects the worksheet; `placement` selects the anchor mode, defaulting to Position |
+| Workbook tab | `SheetTab` | `sheetIndex`, `sheetName` |
+| Document body block | `DocBlock` | `startIndex`: UTF-16 offset in the body's `dataStream`; omitted to append to the editable body |
+| Slide floating object | `SlideFloating` | `subUnitId` selects the page; `left`, `top`, `width`, `height` set bounds |
+| Slide page list | `SlidePage` | `pageIndex`, `pageName` |
+| Board floating object | `BoardFloating` | `subUnitId` selects the page; `left`, `top`, `width`, `height` set bounds |
+| Base table list | `BaseTable` | `tableIndex`, `tableName` |
+
+List insertion indices are zero-based; omission appends to the end. Floating bounds use document model coordinates, not browser viewport coordinates. Do not write scroll or zoom offsets directly into these values.
+
+### Choose the child's default view
+
+`displayTarget` selects the initial content inside the child, independently of its position in the host. Supply it when creating the embed or update it with `embed.setDisplayTarget()`.
+
+| Child | Default view parameters |
+| --- | --- |
+| Sheets | `{ subUnitId: 'sheet-id' }` |
+| Slides | `{ pageId: 'page-id' }` |
+| Bases | `{ tableId: 'table-id', viewId: 'view-id' }`; also supports `dashboardId` |
+
+Use stable IDs, not display names. If the target no longer exists, the child falls back to its first available view. User navigation inside the child does not overwrite this default. Docs and Boards do not accept `displayTarget`.
+
+## Save and remove embeds
+
+When saving a host snapshot, preserve the Embed plugin data in `resources` and the embed positions in its body, drawings, or lists. The relationship stores a child reference and default view; **it does not automatically merge the child's current content into the host snapshot**. Local applications must save children separately and ensure their references can be resolved after restoration.
+
+Use `univerAPI.listEmbeds({ hostUnitId })` to list a host's embeds, or `univerAPI.getEmbed({ hostUnitId, embedId })` to retrieve one. `embed.remove()` removes the embed from the host; it does not delete the child's persisted data.
+
+## Load collaborative documents
+
+For server documents, complete [Browser collaboration integration](/server/collaboration/browser-integration), then register the collaboration bridge:
+
+```package-install
+npm install @univerjs-pro/collaboration-embed
+```
+
+```ts
+import { UniverCollaborationEmbedPlugin } from '@univerjs-pro/collaboration-embed'
+
+univer.registerPlugin(UniverCollaborationEmbedPlugin)
+```
+
+This plugin depends on `UniverCollaborationPlugin`, `UniverCollaborationClientPlugin`, and `UniverEmbedPlugin`. It loads the child through the collaboration snapshot service, then joins the child's collaboration session. Use the actual server document ID in `#unit=...&type=...`; access remains subject to your [identity and authorization](/server/collaboration/identity-and-authorization) setup.
+
+For custom storage instead of the collaboration service, configure `resourceRefUnitProviderRegistrations` on `UniverEmbedPlugin` to resolve references into document instances.
+
+See the [FEmbed API](/reference/facade/embed), [FUniver API](/reference/facade/univer), and [Embed plugin API](/reference/packages/plugins/univerjs-pro/embed) for further options and methods.
