@@ -36,6 +36,7 @@ endif
 # Environment variables
 NEXT_POSTHOG_APIKEY =
 NEXT_PUBLIC_DOCS_SOURCE_REF ?= $(shell git branch --show-current)
+export CLIENT_LICENSE_TEXT
 
 OSARCH = linux/amd64
 image_exists=$(shell docker manifest inspect $(CR)/$(NS)/$(REPOSITORY):$(IMAGE_TAG) > /dev/null 2>&1 && echo true || echo false)
@@ -47,9 +48,13 @@ create_builder:
 		$(CTR) buildx create --name $(BUILDER) $(BUILDKIT_IMAGE_OPT) --use; \
 	fi
 
+.PHONY: check_license
+check_license:
+	@test -n "$$CLIENT_LICENSE_TEXT" || { echo "CLIENT_LICENSE_TEXT is required to build the documentation image." >&2; exit 1; }
+
 .PHONY: push_image
 # Build and Push multi-platform Docker images for univer docs
-push_image: create_builder
+push_image: check_license create_builder
 ifeq ($(PUSH_TAG), latest)
 	$(eval image_tag=-t $(CR)/$(NS)/$(REPOSITORY):latest)
 else
@@ -65,6 +70,8 @@ endif
 	--build-arg NEXT_POSTHOG_APIKEY=$(NEXT_POSTHOG_APIKEY) \
 	--build-arg NEXT_PUBLIC_DOCS_SOURCE_REF=$(NEXT_PUBLIC_DOCS_SOURCE_REF) \
 	--build-arg NODE_MAX_OLD_SPACE_SIZE=$(NODE_MAX_OLD_SPACE_SIZE) \
+	--secret id=CLIENT_LICENSE_TEXT,env=CLIENT_LICENSE_TEXT \
+	--no-cache-filter build \
 	--builder $(BUILDER) \
 	--platform $(OSARCH) \
 	--progress=plain \
@@ -78,7 +85,7 @@ check_image:
 	@echo $(image_exists)
 
 .PHONY: build_image
-build_image: create_builder
+build_image: check_license create_builder
 	$(eval image_tag=-t $(REPOSITORY):latest)
 	$(CTR) buildx build \
 	$(BASE_IMAGE_ARG) \
@@ -86,6 +93,8 @@ build_image: create_builder
 	--build-arg PROXY_SSL=$(PROXY_SSL) \
 	--build-arg NEXT_PUBLIC_DOCS_SOURCE_REF=$(NEXT_PUBLIC_DOCS_SOURCE_REF) \
 	--build-arg NODE_MAX_OLD_SPACE_SIZE=$(NODE_MAX_OLD_SPACE_SIZE) \
+	--secret id=CLIENT_LICENSE_TEXT,env=CLIENT_LICENSE_TEXT \
+	--no-cache-filter build \
 	--builder $(BUILDER) \
 	--platform $(OSARCH) \
 	--file Dockerfile \

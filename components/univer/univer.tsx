@@ -1507,7 +1507,9 @@ export default function Univer({ tablistLabel }: IUniverProps) {
     univer.registerPlugin(UniverDocsUIPlugin)
     univer.registerPlugin(UniverDrawingPlugin)
     univer.registerPlugin(UniverDrawingUIPlugin)
-    univer.registerPlugin(UniverLicensePlugin)
+    univer.registerPlugin(UniverLicensePlugin, {
+      license: process.env.NEXT_PUBLIC_CLIENT_LICENSE_TEXT,
+    })
 
     if (type === 'docs') {
       const documentData = documentMode === 'modern' ? modernDocumentData : traditionalDocumentData

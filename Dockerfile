@@ -32,7 +32,13 @@ ENV NEXT_PUBLIC_DOCS_SOURCE_REF=${NEXT_PUBLIC_DOCS_SOURCE_REF}
 # Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line in case you want to disable telemetry during the build.
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN NODE_OPTIONS="--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE}" pnpm build
+
+# Rebuild this stage when the client license changes, retaining the dependency cache.
+FROM builder AS build
+RUN --mount=type=secret,id=CLIENT_LICENSE_TEXT,required=true \
+  test -s /run/secrets/CLIENT_LICENSE_TEXT \
+  && CLIENT_LICENSE_TEXT="$(cat /run/secrets/CLIENT_LICENSE_TEXT)" \
+  NODE_OPTIONS="--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE}" pnpm build
 
 # Production image, copy all the files and run next
 FROM base AS runner
@@ -45,7 +51,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/public ./public
+COPY --from=build /app/public ./public
 
 # Set the correct permission for prerender cache
 RUN mkdir .next
@@ -53,8 +59,8 @@ RUN chown nextjs:nodejs .next
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static .next/static
+COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=build --chown=nextjs:nodejs /app/.next/static .next/static
 
 USER nextjs
 

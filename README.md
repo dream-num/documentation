@@ -64,6 +64,12 @@ For more information about contributing to Web SDK, see the [main repository](ht
 
 ## Deploy Using ECS
 
+The site's built-in editors read the GitHub Actions secret `CLIENT_LICENSE_TEXT` at build time. Configure it in this repository's **Settings → Secrets and variables → Actions**, or in the selected deployment environment. For local development, copy `.env.example` to `.env.local` and set `CLIENT_LICENSE_TEXT` there.
+
+The **⬆️ Deploy** workflow passes the secret through Make and a Docker BuildKit secret mount. Next.js exposes it as `NEXT_PUBLIC_CLIENT_LICENSE_TEXT`, which the editors pass to `UniverLicensePlugin`. This is a client license and is included in browser JavaScript. Updating it requires building and deploying a new image; deploying an existing image does not change its license. Image builds require a non-empty license and rerun the application build to pick up secret changes.
+
+The ECS workflow sends `client_license_text` to `runner-machine`. Its `execute_task_documentation` job must forward that field as `CLIENT_LICENSE_TEXT` in the remote command's environment before calling `make push_image`. The corresponding receiver change must be deployed in `runner-machine` before using this workflow. Embedded Showcase demos run on `office.univer.ai` and use that site's own license configuration.
+
 To deploy the documentation site to ECS through GitHub Actions:
 
 1. Open **Actions** and select **🕶️ Deploy Using ECS**.

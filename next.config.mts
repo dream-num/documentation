@@ -29,6 +29,8 @@ const config: NextConfig = {
   reactStrictMode: true,
 
   env: {
+    // The browser SDK validates this client license, so it is included in the client bundle.
+    NEXT_PUBLIC_CLIENT_LICENSE_TEXT: process.env.CLIENT_LICENSE_TEXT ?? '',
     NEXT_PUBLIC_DOCS_SOURCE_REF: getDocsSourceRef(),
   },
 
