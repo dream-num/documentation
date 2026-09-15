@@ -1,17 +1,18 @@
 ---
+icon: Workflow
 title: Reutilización de Runtime y Daemon
 description: Empieza por el ciclo de una orden CLI y descubre cómo un daemon posee un pool de Worker Runtimes y reutiliza Units cargadas entre llamadas.
 source: https://github.com/dream-num/univer-cli-sdk/blob/main/docs/design/runtime-architecture.md
 ---
 
-Lo costoso de una orden CLI suele ser convertir una Unit en un Univer activo que pueda leerse y escribirse, no analizar argumentos: crear Univer, instalar plugins, abrir el backend colaborativo, cargar el punto de control, aplicar cambios y esperar el cálculo de fórmulas.
+Lo costoso de una orden CLI suele ser convertir una Unit[^document-unit] en un Univer activo que pueda leerse y escribirse, no analizar argumentos: crear Univer, instalar plugins, abrir el backend colaborativo, cargar el punto de control, aplicar cambios y esperar el cálculo de fórmulas.
 
 Este capítulo trata dos funciones:
 
 - `@univer-cli/univer-collaboration-runtime`: carga y opera una Unit en el proceso actual;
 - `@univer-cli/univer-collaboration-runtime-pool`: coloca Runtimes en Workers y los presta, reutiliza y retira según la identidad de Unit.
 
-Para sobrevivir a varias invocaciones CLI, un Worker Runtime necesita un propietario duradero. Aquí lo proporciona un daemon local.
+Para sobrevivir a varias invocaciones CLI, un Worker Runtime[^live-runtime] necesita un propietario duradero. Aquí lo proporciona un daemon local.
 
 ## Tres ciclos de vida
 
@@ -21,7 +22,7 @@ Antes de reutilizar, distingue estos objetos:
 | --- | --- | --- | --- |
 | Proceso CLI | Cada ejecución de una orden | Después de imprimir el resultado | Argumentos, una solicitud y formato de salida |
 | Proceso Daemon | Primera solicitud o inicio directo | Parada, reinicio por actualización o fallo | Pool Runtime, handlers de negocio y socket local |
-| Worker Runtime | Primer encuentro de una clave en el pool | Expulsión TTL/LRU, invalidación, cierre daemon o fallo Worker | Un Worker, un handle backend, una Unit cargada y estado colaborativo |
+| Worker Runtime | Primer encuentro de una clave en el pool | Expulsión TTL/LRU[^runtime-cache], invalidación, cierre daemon o fallo Worker | Un Worker, un handle backend, una Unit cargada y estado colaborativo |
 
 **La CLI hace una llamada; el daemon posee el pool; el pool posee Workers; cada Worker posee un Runtime.**
 
@@ -244,3 +245,9 @@ Cuatro reglas resumen el comportamiento:
 Para órdenes poco frecuentes con latencia puntual aceptable, lo más simple es usar directamente `@univer-cli/univer-collaboration-runtime`. Combina daemon y `@univer-cli/univer-collaboration-runtime-pool` solo cuando las mediciones muestren que recargar domina el coste y se acepte el proceso residente y su memoria.
 
 Consulta el [catálogo de paquetes](/ai/packages) para la lista completa.
+
+[^document-unit]: Una Unit es una instancia de documento, como un libro de cálculo o un documento de texto. Una hoja forma parte de un libro y no es una Unit independiente.
+
+[^live-runtime]: Aquí, Runtime es la instancia activa de Univer y los recursos necesarios para operar sobre una Unit cargada, no el ejecutable de Node.js ni una instantánea guardada.
+
+[^runtime-cache]: TTL retira un Runtime inactivo al vencer su tiempo de vida; LRU retira los menos usados recientemente cuando falta capacidad. Liberan recursos sin eliminar la Unit persistida.

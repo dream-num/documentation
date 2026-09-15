@@ -3,10 +3,47 @@ title: Web Workers
 icon: CircuitBoard
 ---
 
-以下の例では、Univer における Worker（Web Worker）機能の基本的な利用方法を示します。
+以下の例では、Univer における Worker[^web-worker]（Web Worker）機能の基本的な利用方法を示します。
 
 Sheets では、Worker は数式計算などの計算負荷が高い処理を担うためによく使用されます。数式計算を Worker プロセスで実行することで、メインスレッドの負荷を抑え、ブック内の数式が多い場合でもページのレンダリングや操作への影響を軽減できます。
 
+## プラグインモード
+
+[インストール](/guides/sheets/getting-started/installation)のプラグインモード設定を基に、描画と UI のプラグインはメインスレッドに残します。既存の計算関連プラグイン 3 つの登録を次の設定に変更し、ワークブックの作成前にメインスレッド RPC プラグインを追加します。
+
+```typescript title="main.ts"
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import { UniverRPCMainThreadPlugin } from '@univerjs/rpc'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+univer.registerPlugin(UniverRPCMainThreadPlugin, {
+  workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+})
+univer.registerPlugin(UniverFormulaEnginePlugin, { notExecuteFormula: true })
+univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: true })
+univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: true })
+```
+
+Worker には以下のデータと計算用プラグインのみを登録します。UI や描画プラグインは登録しません。メインスレッドの `notExecuteFormula: true` は計算を Worker に委譲します。
+
+```typescript title="worker.ts"
+import { LocaleType, Univer } from '@univerjs/core'
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverRemoteSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+const univer = new Univer({ locale: LocaleType.JA_JP })
+univer.registerPlugin(UniverSheetsPlugin, { onlyRegisterFormulaRelatedMutations: true })
+univer.registerPlugin(UniverFormulaEnginePlugin)
+univer.registerPlugin(UniverRPCWorkerThreadPlugin)
+univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
+```
+
+フィルターを使う場合は、両方のスレッドに `@univerjs/sheets-filter` の `UniverSheetsFilterPlugin` を登録し、`SUBTOTAL` などにフィルター結果を反映します。`UniverSheetsFilterUIPlugin` はメインスレッドのみに登録します。
+
+ピボットテーブルでは両方に `UniverLicensePlugin`、`UniverProFormulaEnginePlugin`、`UniverSheetsPivotTablePlugin` も登録します。後者 2 つの `notExecuteFormula` をメインスレッドで `true`、Worker で `false` にします。両方にライセンスを渡し、ピボット UI はメインスレッドに置きます。カスタム数式の実装も両方の数式エンジンに登録してください。
 ## プリセットモード
 
 `UniverSheetsCorePreset` の設定における `workerURL` オプションを指定することで、Worker の URL を設定し、Worker モードを有効化できます。
@@ -136,40 +173,4 @@ createUniver({
 })
 ```
 
-## プラグインモード
-
-[インストール](/guides/sheets/getting-started/installation)のプラグインモード設定を基に、描画と UI のプラグインはメインスレッドに残します。既存の計算関連プラグイン 3 つの登録を次の設定に変更し、ワークブックの作成前にメインスレッド RPC プラグインを追加します。
-
-```typescript title="main.ts"
-import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
-import { UniverRPCMainThreadPlugin } from '@univerjs/rpc'
-import { UniverSheetsPlugin } from '@univerjs/sheets'
-import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
-
-univer.registerPlugin(UniverRPCMainThreadPlugin, {
-  workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
-})
-univer.registerPlugin(UniverFormulaEnginePlugin, { notExecuteFormula: true })
-univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: true })
-univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: true })
-```
-
-Worker には以下のデータと計算用プラグインのみを登録します。UI や描画プラグインは登録しません。メインスレッドの `notExecuteFormula: true` は計算を Worker に委譲します。
-
-```typescript title="worker.ts"
-import { LocaleType, Univer } from '@univerjs/core'
-import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
-import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
-import { UniverSheetsPlugin } from '@univerjs/sheets'
-import { UniverRemoteSheetsFormulaPlugin } from '@univerjs/sheets-formula'
-
-const univer = new Univer({ locale: LocaleType.JA_JP })
-univer.registerPlugin(UniverSheetsPlugin, { onlyRegisterFormulaRelatedMutations: true })
-univer.registerPlugin(UniverFormulaEnginePlugin)
-univer.registerPlugin(UniverRPCWorkerThreadPlugin)
-univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
-```
-
-フィルターを使う場合は、両方のスレッドに `@univerjs/sheets-filter` の `UniverSheetsFilterPlugin` を登録し、`SUBTOTAL` などにフィルター結果を反映します。`UniverSheetsFilterUIPlugin` はメインスレッドのみに登録します。
-
-ピボットテーブルでは両方に `UniverLicensePlugin`、`UniverProFormulaEnginePlugin`、`UniverSheetsPivotTablePlugin` も登録します。後者 2 つの `notExecuteFormula` をメインスレッドで `true`、Worker で `false` にします。両方にライセンスを渡し、ピボット UI はメインスレッドに置きます。カスタム数式の実装も両方の数式エンジンに登録してください。
+[^web-worker]: Web Worker はブラウザーのメインスレッド外で JavaScript を実行し、メッセージで通信します。ページの DOM には直接アクセスできません。計算を Worker に移しても、エディター UI は移動しません。

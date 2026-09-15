@@ -1,4 +1,5 @@
 ---
+icon: Workflow
 title: Runtime 재사용과 Daemon
 description: 단일 CLI 명령의 Runtime 수명 주기부터 daemon이 Worker Runtime pool을 소유하고 호출 간 로드된 Unit을 재사용하는 방식까지 알아봅니다.
 source: https://github.com/dream-num/univer-cli-sdk/blob/main/docs/design/runtime-architecture.md
@@ -8,7 +9,7 @@ CLI에서 비용이 큰 부분은 보통 인수 파싱이 아니라 Unit을 읽�
 
 이 장은 두 기능을 다룹니다.
 
-- `@univer-cli/univer-collaboration-runtime`: 현재 프로세스에서 Unit 로드·조작
+- `@univer-cli/univer-collaboration-runtime`: 현재 프로세스에서 Unit[^document-unit] 로드·조작
 - `@univer-cli/univer-collaboration-runtime-pool`: Runtime을 Worker에 두고 Unit 식별자에 따라 임대·재사용·제거
 
 여러 CLI 호출 사이에서 Worker Runtime을 유지하려면 오래 사는 소유자가 필요합니다. 여기서는 로컬 daemon이 담당합니다.
@@ -21,7 +22,7 @@ CLI에서 비용이 큰 부분은 보통 인수 파싱이 아니라 Unit을 읽�
 | --- | --- | --- | --- |
 | CLI 프로세스 | 명령 실행마다 | 결과 출력 후 | 인수, 단일 요청, 출력 형식 |
 | Daemon 프로세스 | 첫 요청 또는 직접 시작 | 중지, 업그레이드 재시작, 충돌 | Runtime pool, 업무 핸들러, 로컬 socket |
-| Worker Runtime | pool이 key를 처음 만날 때 | TTL/LRU 제거, 무효화, daemon 종료, Worker 충돌 | Worker 하나, 백엔드 핸들 하나, 로드된 Unit 하나, 협업 상태 |
+| Worker Runtime | pool이 key를 처음 만날 때 | TTL/LRU[^runtime-cache] 제거, 무효화, daemon 종료, Worker 충돌 | Worker 하나, 백엔드 핸들 하나, 로드된 Unit 하나, 협업 상태 |
 
 **CLI는 한 번 호출하고, daemon은 pool을, pool은 Worker를, 각 Worker는 Runtime을 소유합니다.**
 
@@ -63,7 +64,7 @@ try {
 4. 체크포인트의 변경 집합 재생
 5. 체크포인트부터 최신 원격 리비전까지 차이 조회·재생
 6. 설치된 수식 모듈의 최신 결과 적용 완료 대기
-7. `execute()`, `pull()`, `commit()` 가능한 Runtime 반환
+7. `execute()`, `pull()`, `commit()` 가능한 Runtime[^live-runtime] 반환
 
 전체 단발 호출은 다음과 같습니다.
 
@@ -244,3 +245,9 @@ socket이 없으면 클라이언트가 설정된 daemon을 시작하고 신원·
 단발 지연을 허용하는 저빈도 명령에는 `@univer-cli/univer-collaboration-runtime` 직접 사용이 가장 단순합니다. 반복 로드가 주비용으로 측정되고 상주 프로세스·메모리를 허용할 때만 daemon과 `@univer-cli/univer-collaboration-runtime-pool`을 조합하세요.
 
 전체 패키지는 [패키지 목록](/ai/packages)을 참고하세요.
+
+[^document-unit]: Unit은 통합 문서나 텍스트 문서 같은 문서 인스턴스입니다. 워크시트는 통합 문서의 일부이며 별도의 Unit이 아닙니다.
+
+[^live-runtime]: 여기서 Runtime은 문서를 로드한 Univer 인스턴스와 Unit 조작에 필요한 리소스를 뜻합니다. Node.js 실행 파일이나 저장된 문서 스냅샷을 뜻하지 않습니다.
+
+[^runtime-cache]: TTL은 설정된 수명이 지난 유휴 Runtime을 회수하고, LRU는 용량이 부족할 때 가장 오래 사용하지 않은 인스턴스를 회수합니다. 실행 리소스를 해제할 뿐 저장된 Unit을 삭제하지 않습니다.

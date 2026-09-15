@@ -1,12 +1,13 @@
 ---
+icon: Workflow
 title: Runtime 重用與 Daemon
 description: 從單一 CLI 命令的 Runtime 生命週期開始，瞭解 daemon 如何管理 Worker Runtime pool 並跨呼叫重用已載入的 Unit。
 source: https://github.com/dream-num/univer-cli-sdk/blob/main/docs/design/runtime-architecture.md
 ---
 
-CLI 命令執行時，耗時的通常不是引數解析，而是將 Unit 轉為可讀寫的即時 Univer：建立 Univer、安裝外掛、開啟協同後端、載入檢查點、套用變更集，以及等待公式計算完成。
+CLI 命令執行時，耗時的通常不是引數解析，而是將 Unit[^document-unit] 轉為可讀寫的即時 Univer：建立 Univer、安裝外掛、開啟協同後端、載入檢查點、套用變更集，以及等待公式計算完成。
 
-本章介紹兩種 Runtime 能力：
+本章介紹兩種 Runtime[^live-runtime] 能力：
 
 - `@univer-cli/univer-collaboration-runtime`：在目前程序載入並操作 Unit；
 - `@univer-cli/univer-collaboration-runtime-pool`：將 Runtime 放入 Worker，依 Unit 身分租用、重用及淘汰。
@@ -21,7 +22,7 @@ Worker Runtime 要跨多次 CLI 呼叫存活，需要長期存在的管理者。
 | --- | --- | --- | --- |
 | CLI 程序 | 每次執行命令 | 命令輸出結果後 | 引數、單次請求、輸出格式 |
 | Daemon 程序 | 首次請求或直接啟動 | 停止、升級重啟或崩潰 | Runtime pool、業務處理器、本機 socket |
-| Worker Runtime | pool 首次遇到某個 key | TTL/LRU 淘汰、失效、daemon 關閉或 Worker 崩潰 | 一個 Worker、一個後端 handle、一個已載入 Unit 與協同狀態 |
+| Worker Runtime | pool 首次遇到某個 key | TTL/LRU[^runtime-cache] 淘汰、失效、daemon 關閉或 Worker 崩潰 | 一個 Worker、一個後端 handle、一個已載入 Unit 與協同狀態 |
 
 核心關係是：**CLI 發起一次呼叫，daemon 管理 pool，pool 管理 Worker，每個 Worker 管理一個 Runtime。**
 
@@ -244,3 +245,9 @@ socket 不存在時，用戶端啟動設定的 daemon 入口，等待身分與�
 低頻命令且可接受一次性延遲時，直接使用 `@univer-cli/univer-collaboration-runtime` 最簡單。只有實測顯示重複載入是主要成本，且應用可接受常駐程序及記憶體用量時，才組合 daemon 與 `@univer-cli/univer-collaboration-runtime-pool`。
 
 完整套件清單請參閱[套件目錄](/ai/packages)。
+
+[^document-unit]: Unit 指一個文件實例，例如一個活頁簿或一篇文件。工作表是活頁簿的一部分，不是獨立的 Unit。
+
+[^live-runtime]: 此處的 Runtime 指已載入文件的 Univer 實例及其操作 Unit 所需的執行資源，不是 Node.js 執行檔，也不是儲存至磁碟的文件快照。
+
+[^runtime-cache]: TTL 在達到設定的存活時間後回收閒置快取 Runtime；LRU 在容量受限時優先回收最久未使用的實例。這些策略釋放執行資源，不會刪除持久化的 Unit。

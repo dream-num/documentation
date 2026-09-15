@@ -1,17 +1,18 @@
 ---
+icon: Workflow
 title: Réutilisation du Runtime et Daemon
 description: Partez du cycle de vie d’une commande CLI, puis découvrez comment un daemon possède un pool de Worker Runtimes et réutilise les Units chargées entre appels.
 source: https://github.com/dream-num/univer-cli-sdk/blob/main/docs/design/runtime-architecture.md
 ---
 
-Le coût d’une commande CLI vient rarement de l’analyse des arguments. Il vient de la transformation d’une Unit en Univer actif et modifiable : création de Univer, installation des plugins, ouverture du backend collaboratif, chargement du point de contrôle, application des modifications et attente des calculs de formules.
+Le coût d’une commande CLI vient rarement de l’analyse des arguments. Il vient de la transformation d’une Unit[^document-unit] en Univer actif et modifiable : création de Univer, installation des plugins, ouverture du backend collaboratif, chargement du point de contrôle, application des modifications et attente des calculs de formules.
 
 Ce chapitre traite deux fonctions :
 
 - `@univer-cli/univer-collaboration-runtime` charge et manipule une Unit dans le processus courant ;
 - `@univer-cli/univer-collaboration-runtime-pool` place les Runtimes dans des Workers, puis les loue, réutilise et retire selon l’identité de l’Unit.
 
-Pour survivre à plusieurs appels CLI, un Worker Runtime a besoin d’un propriétaire durable. Ici, ce rôle revient à un daemon local.
+Pour survivre à plusieurs appels CLI, un Worker Runtime[^live-runtime] a besoin d’un propriétaire durable. Ici, ce rôle revient à un daemon local.
 
 ## Trois cycles de vie
 
@@ -21,7 +22,7 @@ Avant de réutiliser, distinguez ces objets :
 | --- | --- | --- | --- |
 | Processus CLI | À chaque commande | Après la sortie du résultat | Arguments, une requête, formatage de sortie |
 | Processus Daemon | Première requête ou démarrage direct | Arrêt, redémarrage de mise à niveau ou crash | Pool Runtime, handlers métier, socket local |
-| Worker Runtime | Première rencontre d’une clé par le pool | Éviction TTL/LRU, invalidation, arrêt du daemon ou crash Worker | Un Worker, un handle backend, une Unit chargée et son état collaboratif |
+| Worker Runtime | Première rencontre d’une clé par le pool | Éviction TTL/LRU[^runtime-cache], invalidation, arrêt du daemon ou crash Worker | Un Worker, un handle backend, une Unit chargée et son état collaboratif |
 
 **La CLI fait un appel, le daemon possède le pool, le pool possède les Workers, chaque Worker possède un Runtime.**
 
@@ -244,3 +245,9 @@ Quatre règles résument le comportement :
 Pour des commandes rares acceptant la latence ponctuelle, l’usage direct de `@univer-cli/univer-collaboration-runtime` est le plus simple. Associez daemon et `@univer-cli/univer-collaboration-runtime-pool` seulement si les mesures montrent que le rechargement domine et si l’application accepte processus résident et mémoire associée.
 
 Consultez le [catalogue des paquets](/ai/packages) pour la liste complète.
+
+[^document-unit]: Une Unit est une instance de document, par exemple un classeur ou un document texte. Une feuille appartient à un classeur et ne constitue pas une Unit distincte.
+
+[^live-runtime]: Ici, Runtime désigne l’instance Univer active et les ressources nécessaires pour manipuler une Unit chargée, et non l’exécutable Node.js ou un instantané enregistré.
+
+[^runtime-cache]: Le TTL évince un Runtime inactif à l’expiration de sa durée de vie ; le LRU évince les moins récemment utilisés quand la capacité est limitée. Ces règles libèrent les ressources sans supprimer la Unit persistée.

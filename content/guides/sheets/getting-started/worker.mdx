@@ -3,10 +3,47 @@ title: Web Workers
 icon: CircuitBoard
 ---
 
-The following examples demonstrate the basic usage of Worker in Univer.
+The following examples demonstrate the basic usage of Worker[^web-worker] in Univer.
 
 In Sheets, Workers are commonly used for compute-intensive tasks such as formula calculation. Running formula calculation in a Worker process can reduce pressure on the main thread and keep page rendering and interactions responsive when a workbook contains many formulas.
 
+## Plugin Mode
+
+Start from the Plugin Mode setup in [installation](/guides/sheets/getting-started/installation). Keep the rendering and UI plugins on the main thread. Replace the existing registrations of the three calculation plugins below, then add the main-thread RPC plugin before creating the workbook.
+
+```typescript title="main.ts"
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import { UniverRPCMainThreadPlugin } from '@univerjs/rpc'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+univer.registerPlugin(UniverRPCMainThreadPlugin, {
+  workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+})
+univer.registerPlugin(UniverFormulaEnginePlugin, { notExecuteFormula: true })
+univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: true })
+univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: true })
+```
+
+The Worker contains only the data and calculation plugins shown below; do not register UI or rendering plugins there. `notExecuteFormula: true` delegates main-thread calculation to the Worker.
+
+```typescript title="worker.ts"
+import { LocaleType, Univer } from '@univerjs/core'
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverRemoteSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+const univer = new Univer({ locale: LocaleType.EN_US })
+univer.registerPlugin(UniverSheetsPlugin, { onlyRegisterFormulaRelatedMutations: true })
+univer.registerPlugin(UniverFormulaEnginePlugin)
+univer.registerPlugin(UniverRPCWorkerThreadPlugin)
+univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
+```
+
+When using filters, register `UniverSheetsFilterPlugin` from `@univerjs/sheets-filter` in both threads so formulas such as `SUBTOTAL` see filtered rows. Keep `UniverSheetsFilterUIPlugin` on the main thread.
+
+For pivot tables, also register `UniverLicensePlugin`, `UniverProFormulaEnginePlugin`, and `UniverSheetsPivotTablePlugin` in both threads. Set `notExecuteFormula: true` on the latter two in the main thread, and `false` in the Worker. Supply the license in both runtimes, keep the pivot UI on the main thread, and register custom formula implementations in both formula engines.
 ## Preset Mode
 
 `workerURL` option in `UniverSheetsCorePreset` configuration allows you to specify the URL of the Worker and enable Worker mode.
@@ -136,40 +173,4 @@ createUniver({
 })
 ```
 
-## Plugin Mode
-
-Start from the Plugin Mode setup in [installation](/guides/sheets/getting-started/installation). Keep the rendering and UI plugins on the main thread. Replace the existing registrations of the three calculation plugins below, then add the main-thread RPC plugin before creating the workbook.
-
-```typescript title="main.ts"
-import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
-import { UniverRPCMainThreadPlugin } from '@univerjs/rpc'
-import { UniverSheetsPlugin } from '@univerjs/sheets'
-import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
-
-univer.registerPlugin(UniverRPCMainThreadPlugin, {
-  workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
-})
-univer.registerPlugin(UniverFormulaEnginePlugin, { notExecuteFormula: true })
-univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: true })
-univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: true })
-```
-
-The Worker contains only the data and calculation plugins shown below; do not register UI or rendering plugins there. `notExecuteFormula: true` delegates main-thread calculation to the Worker.
-
-```typescript title="worker.ts"
-import { LocaleType, Univer } from '@univerjs/core'
-import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
-import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
-import { UniverSheetsPlugin } from '@univerjs/sheets'
-import { UniverRemoteSheetsFormulaPlugin } from '@univerjs/sheets-formula'
-
-const univer = new Univer({ locale: LocaleType.EN_US })
-univer.registerPlugin(UniverSheetsPlugin, { onlyRegisterFormulaRelatedMutations: true })
-univer.registerPlugin(UniverFormulaEnginePlugin)
-univer.registerPlugin(UniverRPCWorkerThreadPlugin)
-univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
-```
-
-When using filters, register `UniverSheetsFilterPlugin` from `@univerjs/sheets-filter` in both threads so formulas such as `SUBTOTAL` see filtered rows. Keep `UniverSheetsFilterUIPlugin` on the main thread.
-
-For pivot tables, also register `UniverLicensePlugin`, `UniverProFormulaEnginePlugin`, and `UniverSheetsPivotTablePlugin` in both threads. Set `notExecuteFormula: true` on the latter two in the main thread, and `false` in the Worker. Supply the license in both runtimes, keep the pivot UI on the main thread, and register custom formula implementations in both formula engines.
+[^web-worker]: A Web Worker runs JavaScript outside the browser’s main thread and exchanges messages with it. It cannot access the page DOM directly; moving calculations into a Worker does not move the editor UI there.

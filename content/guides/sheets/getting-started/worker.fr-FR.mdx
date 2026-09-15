@@ -3,10 +3,47 @@ title: Web Workers
 icon: CircuitBoard
 ---
 
-Les exemples suivants illustrent l’utilisation de base des Workers dans Univer.
+Les exemples suivants illustrent l’utilisation de base des Workers[^web-worker] dans Univer.
 
 Dans Sheets, les Workers servent généralement à exécuter des tâches de calcul intensives, comme le calcul des formules. L’exécution de ce calcul dans un processus Worker réduit la charge du thread principal et préserve la fluidité du rendu et des interactions lorsqu’un classeur contient de nombreuses formules.
 
+## Mode Plugin
+
+Partez de la configuration du mode plugin de [l’installation](/guides/sheets/getting-started/installation). Gardez les plugins de rendu et d’interface sur le thread principal. Remplacez les trois enregistrements de calcul ci-dessous et ajoutez le plugin RPC avant de créer le classeur.
+
+```typescript title="main.ts"
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import { UniverRPCMainThreadPlugin } from '@univerjs/rpc'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+univer.registerPlugin(UniverRPCMainThreadPlugin, {
+  workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+})
+univer.registerPlugin(UniverFormulaEnginePlugin, { notExecuteFormula: true })
+univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: true })
+univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: true })
+```
+
+Le Worker ne contient que les plugins de données et de calcul ci-dessous. N’y enregistrez aucun plugin UI ou de rendu. `notExecuteFormula: true` délègue le calcul au Worker.
+
+```typescript title="worker.ts"
+import { LocaleType, Univer } from '@univerjs/core'
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverRemoteSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+const univer = new Univer({ locale: LocaleType.FR_FR })
+univer.registerPlugin(UniverSheetsPlugin, { onlyRegisterFormulaRelatedMutations: true })
+univer.registerPlugin(UniverFormulaEnginePlugin)
+univer.registerPlugin(UniverRPCWorkerThreadPlugin)
+univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
+```
+
+Avec les filtres, enregistrez `UniverSheetsFilterPlugin` de `@univerjs/sheets-filter` des deux côtés pour que `SUBTOTAL` tienne compte des lignes filtrées. Gardez `UniverSheetsFilterUIPlugin` sur le thread principal.
+
+Pour les tableaux croisés, enregistrez aussi `UniverLicensePlugin`, `UniverProFormulaEnginePlugin` et `UniverSheetsPivotTablePlugin` des deux côtés. Pour les deux derniers, utilisez `notExecuteFormula: true` sur le thread principal et `false` dans le Worker. Fournissez la licence aux deux runtimes. Gardez l’UI sur le thread principal et enregistrez les formules personnalisées dans les deux moteurs.
 ## Mode Preset
 
 L’option `workerURL` de la configuration de `UniverSheetsCorePreset` permet de spécifier l’URL du Worker et d’activer le mode Worker.
@@ -136,40 +173,4 @@ createUniver({
 })
 ```
 
-## Mode Plugin
-
-Partez de la configuration du mode plugin de [l’installation](/guides/sheets/getting-started/installation). Gardez les plugins de rendu et d’interface sur le thread principal. Remplacez les trois enregistrements de calcul ci-dessous et ajoutez le plugin RPC avant de créer le classeur.
-
-```typescript title="main.ts"
-import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
-import { UniverRPCMainThreadPlugin } from '@univerjs/rpc'
-import { UniverSheetsPlugin } from '@univerjs/sheets'
-import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
-
-univer.registerPlugin(UniverRPCMainThreadPlugin, {
-  workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
-})
-univer.registerPlugin(UniverFormulaEnginePlugin, { notExecuteFormula: true })
-univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: true })
-univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: true })
-```
-
-Le Worker ne contient que les plugins de données et de calcul ci-dessous. N’y enregistrez aucun plugin UI ou de rendu. `notExecuteFormula: true` délègue le calcul au Worker.
-
-```typescript title="worker.ts"
-import { LocaleType, Univer } from '@univerjs/core'
-import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
-import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
-import { UniverSheetsPlugin } from '@univerjs/sheets'
-import { UniverRemoteSheetsFormulaPlugin } from '@univerjs/sheets-formula'
-
-const univer = new Univer({ locale: LocaleType.FR_FR })
-univer.registerPlugin(UniverSheetsPlugin, { onlyRegisterFormulaRelatedMutations: true })
-univer.registerPlugin(UniverFormulaEnginePlugin)
-univer.registerPlugin(UniverRPCWorkerThreadPlugin)
-univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
-```
-
-Avec les filtres, enregistrez `UniverSheetsFilterPlugin` de `@univerjs/sheets-filter` des deux côtés pour que `SUBTOTAL` tienne compte des lignes filtrées. Gardez `UniverSheetsFilterUIPlugin` sur le thread principal.
-
-Pour les tableaux croisés, enregistrez aussi `UniverLicensePlugin`, `UniverProFormulaEnginePlugin` et `UniverSheetsPivotTablePlugin` des deux côtés. Pour les deux derniers, utilisez `notExecuteFormula: true` sur le thread principal et `false` dans le Worker. Fournissez la licence aux deux runtimes. Gardez l’UI sur le thread principal et enregistrez les formules personnalisées dans les deux moteurs.
+[^web-worker]: Un Web Worker exécute JavaScript hors du thread principal du navigateur et communique par messages. Il ne peut pas accéder directement au DOM : déplacer les calculs ne déplace pas l’interface de l’éditeur.

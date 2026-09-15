@@ -1,22 +1,34 @@
 'use client'
 
 import {
+  BasesAppIcon,
   BasesMultiIcon,
+  BoardsAppIcon,
   BoardsMultiIcon,
+  DocsAppIcon,
   DocsMultiIcon,
+  PdfAppIcon,
   PdfMultiIcon,
+  SheetsAppIcon,
   SheetsMultiIcon,
+  SlidesAppIcon,
   SlidesMultiIcon,
 } from '@univerjs/icons'
 
 import type { UniverIconName } from '@/lib/univer-icons'
 
 const icons = {
+  BasesAppIcon,
   BasesMultiIcon,
+  BoardsAppIcon,
   BoardsMultiIcon,
+  DocsAppIcon,
   DocsMultiIcon,
+  PdfAppIcon,
   PdfMultiIcon,
+  SheetsAppIcon,
   SheetsMultiIcon,
+  SlidesAppIcon,
   SlidesMultiIcon,
 } satisfies Record<UniverIconName, typeof SheetsMultiIcon>
 

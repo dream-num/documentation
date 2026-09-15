@@ -764,7 +764,7 @@ export async function syncReference(coreRoot = resolve(root, '../univer'), proRo
       )
       if (entry.name === 'FUniver')
         sections.push(
-          '## Access\n\nUse the `univerAPI` returned by [`createUniver`](/reference/methods/create-univer). In plugin mode, call `FUniver.newAPI(univer)` after registering your plugins.',
+          '## Access\n\nAfter registering your plugins and importing their Facade entries, call `FUniver.newAPI(univer)` to obtain `univerAPI`. With presets, use the `univerAPI` returned by [`createUniver`](/reference/methods/create-univer).',
         )
       else if (related.length)
         sections.push(

@@ -1,12 +1,13 @@
 ---
+icon: Workflow
 title: Runtime の再利用と Daemon
 description: 単一 CLI コマンドの Runtime ライフサイクルから、daemon が Worker Runtime pool を管理して読み込み済み Unit を呼び出し間で再利用する仕組みを学びます。
 source: https://github.com/dream-num/univer-cli-sdk/blob/main/docs/design/runtime-architecture.md
 ---
 
-CLI で重いのは通常、引数解析ではなく Unit を読み書きできるライブ Univer にする処理です。Univer 作成、プラグイン導入、共同編集バックエンドの開始、チェックポイント読み込み、変更セット適用、数式計算の完了待ちが必要です。
+CLI で重いのは通常、引数解析ではなく Unit[^document-unit] を読み書きできるライブ Univer にする処理です。Univer 作成、プラグイン導入、共同編集バックエンドの開始、チェックポイント読み込み、変更セット適用、数式計算の完了待ちが必要です。
 
-本章は 2 つの Runtime 機能を扱います。
+本章は 2 つの Runtime[^live-runtime] 機能を扱います。
 
 - `@univer-cli/univer-collaboration-runtime`：現在のプロセスで Unit を読み込み操作します。
 - `@univer-cli/univer-collaboration-runtime-pool`：Runtime を Worker に配置し、Unit の識別情報で貸与・再利用・破棄します。
@@ -21,7 +22,7 @@ Worker Runtime を複数の CLI 呼び出し間で維持するには、長寿命
 | --- | --- | --- | --- |
 | CLI プロセス | コマンド実行ごと | 結果出力後 | 引数、1 回のリクエスト、出力形式 |
 | Daemon プロセス | 初回リクエストまたは直接起動 | 停止、更新による再起動、クラッシュ | Runtime pool、業務ハンドラー、ローカル socket |
-| Worker Runtime | pool が初めて key に遭遇 | TTL/LRU 削除、無効化、daemon 終了、Worker クラッシュ | 1 Worker、1 バックエンドハンドル、1 読み込み済み Unit、共同編集状態 |
+| Worker Runtime | pool が初めて key に遭遇 | TTL/LRU[^runtime-cache] 削除、無効化、daemon 終了、Worker クラッシュ | 1 Worker、1 バックエンドハンドル、1 読み込み済み Unit、共同編集状態 |
 
 **CLI は 1 回呼び出し、daemon が pool を所有し、pool が Worker を所有し、各 Worker が Runtime を所有します。**
 
@@ -244,3 +245,9 @@ socket がなければ、クライアントは設定済み daemon 入口を起�
 単発遅延を許容できる低頻度コマンドには `@univer-cli/univer-collaboration-runtime` の直接利用が最も簡単です。反復読み込みが主なコストと実測で分かり、常駐プロセスとメモリを許容できる場合だけ daemon と `@univer-cli/univer-collaboration-runtime-pool` を組み合わせます。
 
 全パッケージは[パッケージ一覧](/ai/packages)を参照してください。
+
+[^document-unit]: Unit は、ワークブックや文書などの文書インスタンスです。ワークシートはワークブックの一部であり、独立した Unit ではありません。
+
+[^live-runtime]: ここでの Runtime は、文書を読み込んだ Univer インスタンスと Unit の操作に必要なリソースです。Node.js の実行ファイルや保存済みのスナップショットではありません。
+
+[^runtime-cache]: TTL は設定した寿命に達したアイドル Runtime を、LRU は容量制限時に最も長く未使用の Runtime を破棄します。解放するのは実行リソースで、永続化された Unit は削除しません。

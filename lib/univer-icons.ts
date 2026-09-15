@@ -1,9 +1,15 @@
 export const univerIconNames = [
+  'BasesAppIcon',
   'BasesMultiIcon',
+  'BoardsAppIcon',
   'BoardsMultiIcon',
+  'DocsAppIcon',
   'DocsMultiIcon',
+  'PdfAppIcon',
   'PdfMultiIcon',
+  'SheetsAppIcon',
   'SheetsMultiIcon',
+  'SlidesAppIcon',
   'SlidesMultiIcon',
 ] as const
 

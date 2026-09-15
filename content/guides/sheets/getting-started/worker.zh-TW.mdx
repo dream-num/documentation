@@ -3,10 +3,47 @@ title: Web Workers
 icon: CircuitBoard
 ---
 
-以下示例展示了 Univer 中使用 Worker 的基本用法。
+以下示例展示了 Univer 中使用 Worker[^web-worker] 的基本用法。
 
 在 Sheets 中，Worker 常用於承載公式計算等計算密集型任務。將公式計算放到 Worker 進程中執行，可以減少主執行緒壓力，避免工作簿公式較多時影響頁面渲染和互動。
 
+## 外掛模式
+
+以[安裝與基本使用](/guides/sheets/getting-started/installation)中的外掛模式為基礎，保留主執行緒的渲染與 UI 外掛。將既有的三個計算相關外掛改為以下設定，並在建立活頁簿前加入主執行緒 RPC 外掛。
+
+```typescript title="main.ts"
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import { UniverRPCMainThreadPlugin } from '@univerjs/rpc'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+univer.registerPlugin(UniverRPCMainThreadPlugin, {
+  workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
+})
+univer.registerPlugin(UniverFormulaEnginePlugin, { notExecuteFormula: true })
+univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: true })
+univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: true })
+```
+
+Worker 只註冊以下資料與計算外掛，不註冊 UI 或渲染外掛。主執行緒的 `notExecuteFormula: true` 表示將計算交給 Worker。
+
+```typescript title="worker.ts"
+import { LocaleType, Univer } from '@univerjs/core'
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverRemoteSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+const univer = new Univer({ locale: LocaleType.ZH_TW })
+univer.registerPlugin(UniverSheetsPlugin, { onlyRegisterFormulaRelatedMutations: true })
+univer.registerPlugin(UniverFormulaEnginePlugin)
+univer.registerPlugin(UniverRPCWorkerThreadPlugin)
+univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
+```
+
+使用篩選功能時，兩端都須註冊 `@univerjs/sheets-filter` 中的 `UniverSheetsFilterPlugin`，讓 `SUBTOTAL` 等公式感知篩選後的列。`UniverSheetsFilterUIPlugin` 只在主執行緒註冊。
+
+使用樞紐分析表時，兩端還須註冊 `UniverLicensePlugin`、`UniverProFormulaEnginePlugin` 與 `UniverSheetsPivotTablePlugin`。後兩個外掛在主執行緒設定 `notExecuteFormula: true`，在 Worker 中設定 `false`。兩端均傳入授權，樞紐分析表 UI 留在主執行緒；自訂公式的實作也須在兩端的公式引擎中註冊。
 ## 預設模式
 
 `UniverSheetsCorePreset` 配置參數中的 `workerURL` 選項可以指定 Worker 的 URL 地址並啟用 Worker 模式。
@@ -136,40 +173,4 @@ createUniver({
 })
 ```
 
-## 外掛模式
-
-以[安裝與基本使用](/guides/sheets/getting-started/installation)中的外掛模式為基礎，保留主執行緒的渲染與 UI 外掛。將既有的三個計算相關外掛改為以下設定，並在建立活頁簿前加入主執行緒 RPC 外掛。
-
-```typescript title="main.ts"
-import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
-import { UniverRPCMainThreadPlugin } from '@univerjs/rpc'
-import { UniverSheetsPlugin } from '@univerjs/sheets'
-import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
-
-univer.registerPlugin(UniverRPCMainThreadPlugin, {
-  workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
-})
-univer.registerPlugin(UniverFormulaEnginePlugin, { notExecuteFormula: true })
-univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: true })
-univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: true })
-```
-
-Worker 只註冊以下資料與計算外掛，不註冊 UI 或渲染外掛。主執行緒的 `notExecuteFormula: true` 表示將計算交給 Worker。
-
-```typescript title="worker.ts"
-import { LocaleType, Univer } from '@univerjs/core'
-import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
-import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
-import { UniverSheetsPlugin } from '@univerjs/sheets'
-import { UniverRemoteSheetsFormulaPlugin } from '@univerjs/sheets-formula'
-
-const univer = new Univer({ locale: LocaleType.ZH_TW })
-univer.registerPlugin(UniverSheetsPlugin, { onlyRegisterFormulaRelatedMutations: true })
-univer.registerPlugin(UniverFormulaEnginePlugin)
-univer.registerPlugin(UniverRPCWorkerThreadPlugin)
-univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
-```
-
-使用篩選功能時，兩端都須註冊 `@univerjs/sheets-filter` 中的 `UniverSheetsFilterPlugin`，讓 `SUBTOTAL` 等公式感知篩選後的列。`UniverSheetsFilterUIPlugin` 只在主執行緒註冊。
-
-使用樞紐分析表時，兩端還須註冊 `UniverLicensePlugin`、`UniverProFormulaEnginePlugin` 與 `UniverSheetsPivotTablePlugin`。後兩個外掛在主執行緒設定 `notExecuteFormula: true`，在 Worker 中設定 `false`。兩端均傳入授權，樞紐分析表 UI 留在主執行緒；自訂公式的實作也須在兩端的公式引擎中註冊。
+[^web-worker]: Web Worker 在瀏覽器主執行緒之外執行 JavaScript，透過訊息與主執行緒通訊，無法直接存取頁面 DOM。將計算移入 Worker 不代表將編輯器介面也移入其中。

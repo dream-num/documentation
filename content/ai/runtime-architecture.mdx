@@ -1,14 +1,15 @@
 ---
+icon: Workflow
 title: Runtime reuse and Daemon
 description: Start with the Runtime lifecycle of a single CLI command, then learn how a daemon owns a Worker Runtime pool and reuses loaded Units across calls.
 source: https://github.com/dream-num/univer-cli-sdk/blob/main/docs/design/runtime-architecture.md
 ---
 
-When a CLI command runs, the expensive part is usually not parsing arguments. It is turning a Unit into a live Univer
+When a CLI command runs, the expensive part is usually not parsing arguments. It is turning a Unit[^document-unit] into a live Univer
 that can be read and written: creating Univer, installing plugins, opening the collaboration backend, loading the
 checkpoint, applying changesets, and waiting for formulas to finish calculating.
 
-This chapter focuses on two Runtime capabilities:
+This chapter focuses on two Runtime[^live-runtime] capabilities:
 
 - `@univer-cli/univer-collaboration-runtime`: loads and operates on a Unit in the current process;
 - `@univer-cli/univer-collaboration-runtime-pool`: places Runtimes in Workers and leases, reuses, and retires them by
@@ -25,7 +26,7 @@ Before thinking about reuse, distinguish the lifetimes of these three objects:
 | -------------- | ---------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | CLI process    | Every time the user runs a command             | After the command prints its result                                 | Arguments, one request, and output formatting                            |
 | Daemon process | On the first request, or when started directly | When stopped, restarted for an upgrade, or crashed                  | Runtime pool, business handlers, and local socket                        |
-| Worker Runtime | When the pool first encounters a key           | On TTL/LRU eviction, invalidation, daemon shutdown, or Worker crash | One Worker, one backend handle, one loaded Unit, and collaboration state |
+| Worker Runtime | When the pool first encounters a key           | On TTL/LRU[^runtime-cache] eviction, invalidation, daemon shutdown, or Worker crash | One Worker, one backend handle, one loaded Unit, and collaboration state |
 
 The key mental model is: **the CLI makes one call, the daemon owns the pool, the pool owns Workers, and each Worker owns
 a Runtime.**
@@ -286,3 +287,9 @@ For low-frequency commands where one-off latency is acceptable, using
 and the application can accept a resident process and its memory usage.
 
 See [Package catalog](/ai/packages) for the complete package list.
+
+[^document-unit]: A Unit is one document instance, such as a workbook or a text document. A worksheet is part of a workbook, not a separate Unit.
+
+[^live-runtime]: Here, Runtime means the live Univer instance and the resources used to operate on a loaded Unit, not the Node.js executable or the saved document snapshot.
+
+[^runtime-cache]: TTL evicts an idle cached Runtime after its configured lifetime; LRU evicts the least recently used entries when capacity is limited. These policies release runtime resources; they do not delete the persisted Unit.
