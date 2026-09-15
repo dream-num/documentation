@@ -95,7 +95,7 @@ const zhCNMessages = {
     },
   },
   home: {
-    slogan: '高性能、可自由定制的 Office SDK',
+    slogan: '高性能、\n可自由定制的\nOffice SDK',
     description: 'Univer Office SDK 将统一的 Office 运行时嵌入你的产品，支持人类与 AI Agent 协同工作，自由组合和嵌入',
     'description-split': '、',
     'description-period': '。',
@@ -143,18 +143,6 @@ const zhCNMessages = {
       pdf: {
         title: 'PDF',
         desc: '创建、编辑、连续浏览和打印包含文字、图片、表格、列表与批注的 PDF 页面。',
-      },
-      data: {
-        title: '数据分析',
-        desc: '透视表、关联 Sheet 实时区域并支持 SVG 导出的图表、迷你图和条件格式。',
-      },
-      collab: {
-        title: '协作',
-        desc: '面向 Sheets、Docs、Bases、Slides、Boards 和 PDF 的实时协作与冲突解决。',
-      },
-      automation: {
-        title: '自动化',
-        desc: '500+ 内置函数、自定义函数和 Facade API，覆盖电子表格任务自动化。',
       },
     },
     devexp: {
@@ -218,11 +206,11 @@ const zhCNMessages = {
       },
       feature4: {
         title: '导入与导出',
-        desc: '支持 xlsx、csv、tsv、docx、pptx、pdf，以及 Bases 和 Boards 的导入导出。',
+        desc: '支持 xlsx、csv、tsv、docx、pptx、pdf 等常用格式的导入与导出。',
       },
       feature5: {
         title: '打印与 PDF',
-        desc: '打印 Sheets、Docs、Slides、Boards 和 PDF，并将 Boards 与图表导出为图片。',
+        desc: '支持打印与 PDF 输出，并可将图表等内容导出为图片。',
       },
       feature6: {
         title: '部署',
@@ -230,7 +218,7 @@ const zhCNMessages = {
       },
       feature7: {
         title: '深色模式',
-        desc: '内置深蓝主题、运行时主题切换，并支持自定义设计令牌。',
+        desc: '内置多种主题，并支持深色模式。',
       },
       feature8: {
         title: '插件扩展',
@@ -273,6 +261,27 @@ const zhCNMessages = {
         desc: 'LLM 与 Agent 可直接调用 Facade API，实现文档的自动化读写与分析。',
       },
     },
+    server: {
+      title: '服务端，也能按需组合',
+      description: 'Server SDK 提供实时协同、文件转换与扩展模块，按需组合并接入你现有的业务系统。',
+      collaboration: {
+        title: '实时协同',
+        description: '为多人编辑接入文档同步与冲突处理，让团队共享同一份内容。',
+      },
+      conversion: {
+        title: '文件转换',
+        description: '在 Office 文件与文档数据之间转换，独立接入或与协同服务组合使用。',
+      },
+      extensions: {
+        title: '协同扩展',
+        description: '按需接入历史记录、评论与 Worktree，扩展协作流程。',
+      },
+      application: {
+        title: '你的业务服务',
+        description: '对接现有身份认证、权限与数据存储，自主部署和管理。',
+      },
+      cta: '阅读 Server SDK 文档',
+    },
     ecosystem: {
       title: '通过插件与集成扩展',
       subtitle: '基于丰富的生态构建',
@@ -288,9 +297,15 @@ const zhCNMessages = {
       },
       community: {
         title: '社区',
-        desc: 'Apache 2.0 许可证。个人和商业使用均免费。',
+        desc: '在 GitHub 交流集成经验、反馈问题与建议，参与社区讨论。',
         cta: '在 GitHub 上加入',
       },
+    },
+    cta: {
+      title: '下一代 Office 体验，\n由你创造。',
+      description:
+        '用 Univer Office SDK 自由组合电子表格、文档与更多 Office 能力，让人类与 AI Agent 在你的产品里共同创造。',
+      start: '开始构建',
     },
     features: {
       conbination: {

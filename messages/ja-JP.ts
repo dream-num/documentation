@@ -146,18 +146,6 @@ const jaJPMessages = {
         title: 'PDF',
         desc: 'テキスト、画像、表、リスト、注釈を含む PDF ページの作成、編集、連続表示、印刷。',
       },
-      data: {
-        title: 'データ分析',
-        desc: 'ピボットテーブル、Sheet 範囲と連動し SVG 書き出しに対応したチャート、スパークライン、条件付き書式。',
-      },
-      collab: {
-        title: '共同編集',
-        desc: 'Sheets、Docs、Bases、Slides、Boards、PDF のリアルタイム共同編集と競合解決。',
-      },
-      automation: {
-        title: '自動化',
-        desc: '500+ の組み込み関数、カスタム関数、Facade API によるスプレッドシートタスクの自動化。',
-      },
     },
     devexp: {
       title: '開発者のために構築',
@@ -220,11 +208,11 @@ const jaJPMessages = {
       },
       feature4: {
         title: 'インポート・エクスポート',
-        desc: 'xlsx、csv、tsv、docx、pptx、pdf、Bases、Boards のインポート・エクスポート。',
+        desc: 'xlsx、csv、tsv、docx、pptx、pdf など、一般的な形式のインポート・エクスポートに対応。',
       },
       feature5: {
         title: '印刷と PDF',
-        desc: 'Sheets、Docs、Slides、Boards、PDF の印刷と、Boards・チャートの画像書き出し。',
+        desc: '印刷と PDF 出力に対応し、チャートなどのコンテンツを画像として書き出せます。',
       },
       feature6: {
         title: 'デプロイ',
@@ -232,7 +220,7 @@ const jaJPMessages = {
       },
       feature7: {
         title: 'ダークモード',
-        desc: '組み込みのダークブルーテーマ、実行時テーマ切替、カスタムデザイントークン。',
+        desc: '複数のテーマを内蔵し、ダークモードにも対応。',
       },
       feature8: {
         title: 'プラグイン拡張',
@@ -275,6 +263,29 @@ const jaJPMessages = {
         desc: 'LLM や Agent が Facade API を直接呼び出し、ドキュメントの自動読み書きと分析を実現。',
       },
     },
+    server: {
+      title: 'サーバー側も、必要に応じて組み合わせる',
+      description:
+        'Server SDK のリアルタイム共同編集、ファイル変換、拡張モジュールを必要に応じて組み合わせ、既存の業務システムに追加できます。',
+      collaboration: {
+        title: 'リアルタイム共同編集',
+        description: 'ドキュメントの同期と競合解決を組み込み、チームで同じコンテンツを編集できます。',
+      },
+      conversion: {
+        title: 'ファイル変換',
+        description:
+          'Office ファイルとドキュメントデータを相互変換。単独でも、共同編集サービスと組み合わせても利用できます。',
+      },
+      extensions: {
+        title: '共同編集の拡張',
+        description: '履歴、コメント、Worktree を必要に応じて追加し、共同作業の流れを拡張できます。',
+      },
+      application: {
+        title: '既存の業務サービス',
+        description: '既存の認証、権限管理、データストレージと連携し、自社環境でデプロイ・管理できます。',
+      },
+      cta: 'Server SDK ドキュメントを読む',
+    },
     ecosystem: {
       title: 'プラグインと統合で拡張',
       subtitle: '豊かなエコシステムの上に構築',
@@ -290,9 +301,15 @@ const jaJPMessages = {
       },
       community: {
         title: 'コミュニティ',
-        desc: 'Apache 2.0 ライセンス。個人および商業利用ともに無料。',
+        desc: 'GitHub で導入の経験を共有し、問題や提案を報告して、コミュニティの議論に参加できます。',
         cta: 'GitHub で参加',
       },
+    },
+    cta: {
+      title: '次の Office 体験を、\nあなたの手で。',
+      description:
+        'Univer Office SDK でスプレッドシート、ドキュメントなどの機能を自由に組み合わせ、人と AI Agent がともに創造する製品をつくりましょう。',
+      start: '開発を始める',
     },
     features: {
       conbination: {

@@ -220,9 +220,9 @@ export function EnterprisePerformance(props: IProps) {
 
   return (
     <BlurFade inView>
-      <section className="container px-4">
+      <section id="performance" className="container scroll-mt-24 px-4">
         <div className="mb-8 text-center">
-          <h2 className={`mb-2 text-2xl font-semibold text-neutral-900 dark:text-neutral-100`}>{title}</h2>
+          <h2 className="mb-2 text-2xl font-semibold text-neutral-900 dark:text-neutral-100">{title}</h2>
           <p className="text-neutral-600 dark:text-neutral-400">{subtitle}</p>
         </div>
 
@@ -230,9 +230,7 @@ export function EnterprisePerformance(props: IProps) {
         <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
           {metrics.map((metric, index) => (
             <BlurFade key={metric.label} inView delay={index * 0.05} className="h-full">
-              <div
-                className={`flex h-full flex-col items-center justify-center gap-2 rounded-2xl bg-white/30 p-5 shadow-xs ring-4 ring-neutral-100/20 backdrop-blur-sm transition-colors ring-inset hover:bg-white/50 dark:bg-neutral-900/50 dark:ring-neutral-600/20 hover:dark:bg-neutral-800/60`}
-              >
+              <div className="flex h-full flex-col items-center justify-center gap-2 rounded-2xl border border-neutral-200/80 bg-white/70 p-5 shadow-xs transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900/70 hover:dark:bg-neutral-800/70">
                 <div className="text-3xl font-bold text-neutral-900 tabular-nums dark:text-neutral-100">
                   <AnimatedNumber value={metric.value} suffix={metric.suffix} />
                 </div>
@@ -248,13 +246,11 @@ export function EnterprisePerformance(props: IProps) {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, index) => (
             <BlurFade key={feature.title} inView delay={0.1 + index * 0.05} className="h-full">
-              <div
-                className={`flex h-full flex-col gap-3 rounded-2xl bg-white/30 p-5 shadow-xs ring-4 ring-neutral-100/20 backdrop-blur-sm transition-colors ring-inset hover:bg-white/50 dark:bg-neutral-900/50 dark:ring-neutral-600/20 hover:dark:bg-neutral-800/60`}
-              >
-                <div className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+              <div className="flex h-full flex-col gap-3 rounded-2xl border border-neutral-200/80 bg-white/70 p-5 shadow-xs dark:border-neutral-800 dark:bg-neutral-900/70">
+                <h3 className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
                   {feature.icon}
                   {feature.title}
-                </div>
+                </h3>
                 <p className="text-sm/relaxed text-neutral-600 dark:text-neutral-400">{feature.desc}</p>
               </div>
             </BlurFade>

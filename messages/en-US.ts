@@ -144,18 +144,6 @@ const enUSMessages = {
         title: 'PDFs',
         desc: 'Create and edit PDFs with continuous page scrolling, printing, text, images, tables, lists, and annotations.',
       },
-      data: {
-        title: 'Data Analysis',
-        desc: 'Pivot tables, charts linked to live Sheet ranges with SVG export, sparklines, and conditional formatting.',
-      },
-      collab: {
-        title: 'Collaboration',
-        desc: 'Real-time collaboration for Sheets, Docs, Bases, Slides, Boards, and PDFs with conflict resolution.',
-      },
-      automation: {
-        title: 'Automation',
-        desc: '500+ built-in functions, custom functions, and Facade APIs for automating spreadsheet tasks.',
-      },
     },
     devexp: {
       title: 'Built for developers',
@@ -218,11 +206,11 @@ const enUSMessages = {
       },
       feature4: {
         title: 'Import & Export',
-        desc: 'Unit-aware import and export for xlsx, csv, tsv, docx, pptx, pdf, Bases, and Boards.',
+        desc: 'Import and export common formats including xlsx, csv, tsv, docx, pptx, and pdf.',
       },
       feature5: {
         title: 'Print & PDF',
-        desc: 'Print Sheets, Docs, Slides, Boards, and PDFs; export Boards and charts as images.',
+        desc: 'Print content, generate PDFs, and export charts and other visual content as images.',
       },
       feature6: {
         title: 'Deployment',
@@ -230,7 +218,7 @@ const enUSMessages = {
       },
       feature7: {
         title: 'Dark Mode',
-        desc: 'Built-in dark-blue theme, runtime theme switching, and customizable design tokens.',
+        desc: 'Multiple built-in themes with dark mode support.',
       },
       feature8: {
         title: 'Plugin Extensibility',
@@ -273,6 +261,30 @@ const enUSMessages = {
         desc: 'LLMs and agents can directly call the Facade API for automated document read/write and analysis.',
       },
     },
+    server: {
+      title: 'Compose your server, your way',
+      description:
+        'Combine real-time collaboration, file conversion, and extensions from Server SDK to add the capabilities your application needs.',
+      collaboration: {
+        title: 'Real-time collaboration',
+        description:
+          'Keep teams on the same page with document synchronization and conflict resolution for multiplayer editing.',
+      },
+      conversion: {
+        title: 'File conversion',
+        description: 'Convert between Office files and document data, on its own or alongside collaboration services.',
+      },
+      extensions: {
+        title: 'Collaboration extensions',
+        description: 'Add history, comments, and Worktree as your collaboration workflow needs them.',
+      },
+      application: {
+        title: 'Your application services',
+        description:
+          'Connect your existing authentication, permissions, and data storage. Deploy and manage on your own terms.',
+      },
+      cta: 'Read the Server SDK docs',
+    },
     ecosystem: {
       title: 'Extend with plugins & integrations',
       subtitle: 'Build on a rich ecosystem',
@@ -288,9 +300,15 @@ const enUSMessages = {
       },
       community: {
         title: 'Community',
-        desc: 'Apache 2.0 licensed. Free for personal and commercial use.',
+        desc: 'Share integration experience, report issues, and join community discussions on GitHub.',
         cta: 'Join on GitHub',
       },
+    },
+    cta: {
+      title: 'The next Office experience.\nYours to create.',
+      description:
+        'Compose spreadsheets, documents, and more with Univer Office SDK. Build a product where people and AI agents create together.',
+      start: 'Start building',
     },
     features: {
       conbination: {

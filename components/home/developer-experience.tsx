@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckIcon, CopyIcon, GitBranchIcon, MonitorIcon, PackageIcon, SettingsIcon } from 'lucide-react'
+import { CheckIcon, CopyIcon } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useState } from 'react'
 
@@ -26,58 +26,22 @@ interface IProps {
 
 /* Simple syntax highlighting tokens */
 function Kw({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      className="text-purple-600 dark:text-purple-400"
-    >
-      {children}
-    </span>
-  )
+  return <span className="text-purple-600 dark:text-purple-400">{children}</span>
 }
 function St({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      className="text-green-600 dark:text-green-400"
-    >
-      {children}
-    </span>
-  )
+  return <span className="text-green-600 dark:text-green-400">{children}</span>
 }
 function Fn({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      className="text-blue-600 dark:text-blue-400"
-    >
-      {children}
-    </span>
-  )
+  return <span className="text-blue-600 dark:text-blue-400">{children}</span>
 }
 function Co({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      className="text-neutral-400 dark:text-neutral-500"
-    >
-      {children}
-    </span>
-  )
+  return <span className="text-neutral-400 dark:text-neutral-500">{children}</span>
 }
 function Pr({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      className="text-cyan-600 dark:text-cyan-400"
-    >
-      {children}
-    </span>
-  )
+  return <span className="text-cyan-600 dark:text-cyan-400">{children}</span>
 }
 function Id({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      className="text-amber-600 dark:text-amber-400"
-    >
-      {children}
-    </span>
-  )
+  return <span className="text-amber-600 dark:text-amber-400">{children}</span>
 }
 
 const lb = '{'
@@ -177,9 +141,7 @@ const univerAPI = FUniver.newAPI(univer)`
 function PresetBlock() {
   return (
     <pre className="overflow-x-auto p-4 text-xs/relaxed">
-      <code
-        className="text-neutral-700 dark:text-neutral-300"
-      >
+      <code className="text-neutral-700 dark:text-neutral-300">
         <Co># npm install @univerjs/presets @univerjs/preset-sheets-core</Co>
         {'\n\n'}
         <Kw>import</Kw> {lb} <Fn>createUniver</Fn>, <Fn>LocaleType</Fn>, <Fn>mergeLocales</Fn> {rb} <Kw>from</Kw>{' '}
@@ -224,9 +186,7 @@ function PresetBlock() {
 function PluginBlock() {
   return (
     <pre className="overflow-x-auto p-4 text-xs/relaxed">
-      <code
-        className="text-neutral-700 dark:text-neutral-300"
-      >
+      <code className="text-neutral-700 dark:text-neutral-300">
         <Co>
           # npm install @univerjs/core @univerjs/design @univerjs/docs @univerjs/docs-ui @univerjs/engine-formula
           @univerjs/engine-render @univerjs/sheets @univerjs/sheets-formula @univerjs/sheets-formula-ui
@@ -381,34 +341,34 @@ export function DeveloperExperience(props: IProps) {
   const [mode, setMode] = useState<'preset' | 'plugin'>('preset')
   const [copied, setCopied] = useState(false)
 
-  function handleCopy() {
-    navigator.clipboard.writeText(mode === 'preset' ? presetCode : pluginCode)
-    setCopied(true)
-    setTimeout(setCopied, 2000, false)
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(mode === 'preset' ? presetCode : pluginCode)
+      setCopied(true)
+      setTimeout(setCopied, 2000, false)
+    } catch (error) {
+      console.error('Failed to copy code', error)
+    }
   }
 
   const steps = [
     {
       num: '01',
-      icon: <PackageIcon className="size-4" />,
       title: step1Title,
       desc: step1Desc,
     },
     {
       num: '02',
-      icon: <GitBranchIcon className="size-4" />,
       title: step2Title,
       desc: step2Desc,
     },
     {
       num: '03',
-      icon: <SettingsIcon className="size-4" />,
       title: step3Title,
       desc: step3Desc,
     },
     {
       num: '04',
-      icon: <MonitorIcon className="size-4" />,
       title: step4Title,
       desc: step4Desc,
     },
@@ -421,120 +381,86 @@ export function DeveloperExperience(props: IProps) {
 
   return (
     <BlurFade inView className="w-full max-w-7xl">
-      <section className="w-full px-4">
-        <div className="mb-8 w-full text-center">
-          <h2 className={`mb-2 text-2xl font-semibold text-neutral-900 dark:text-neutral-100`}>{title}</h2>
-          <p
-            className="text-neutral-600 dark:text-neutral-400"
-          >
-            {subtitle}
-          </p>
-        </div>
-
-        <div
-          className="grid w-full items-start gap-6 lg:grid-cols-2"
-        >
-          {/* Terminal */}
-          <BlurFade
-            inView
-            delay={0.1}
-            className="min-w-0 lg:col-span-1"
-          >
-            <div
-              className={`relative min-w-0 overflow-hidden rounded-2xl bg-white/30 shadow-xs ring-4 ring-neutral-100/20 backdrop-blur-sm ring-inset dark:bg-neutral-900/50 dark:ring-neutral-600/20`}
-            >
-              {/* Header with tabs */}
-              <div
-                className="flex items-center justify-between border-b border-neutral-200/50 px-4 py-3 dark:border-neutral-700/50"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex gap-1.5">
-                    <span className="block size-2.5 rounded-full bg-red-400/80" />
-                    <span className="block size-2.5 rounded-full bg-amber-400/80" />
-                    <span className="block size-2.5 rounded-full bg-green-400/80" />
-                  </div>
-                  {/* Mode switcher — equal width tabs */}
-                  <div
-                    className="relative grid grid-cols-2 rounded-full bg-neutral-100 p-0.5 dark:bg-neutral-800"
-                  >
-                    {tabs.map((tab) => (
-                      <button
-                        key={tab.key}
-                        type="button"
-                        onClick={() => {
-                          setMode(tab.key)
-                          setCopied(false)
-                        }}
-                        className={clsx(
-                          'relative z-10 min-w-18 rounded-full px-3 py-1 text-xs font-medium transition-colors',
-                          mode === tab.key
-                            ? `text-neutral-800 dark:text-neutral-100`
-                            : `text-neutral-500 dark:text-neutral-400`,
-                        )}
-                      >
-                        {mode === tab.key && (
-                          <motion.div
-                            layoutId="dev-active-tab"
-                            className="absolute inset-0 rounded-full bg-white shadow-sm dark:bg-neutral-700"
-                            transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-                          />
-                        )}
-                        <span className="relative z-10">{tab.label}</span>
-                      </button>
-                    ))}
-                  </div>
+      <section
+        id="developer-experience"
+        aria-labelledby="developer-experience-title"
+        className="grid w-full scroll-mt-24 items-center gap-10 px-4 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20"
+      >
+        <div>
+          <h2 id="developer-experience-title" className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
+            {title}
+          </h2>
+          <p className="mt-4 text-sm/relaxed text-neutral-600 dark:text-neutral-400">{subtitle}</p>
+          <ol className="mt-8 space-y-6">
+            {steps.map((step) => (
+              <li key={step.num} className="grid grid-cols-[2rem_1fr] gap-4">
+                <span className="pt-0.5 font-mono text-xs text-neutral-400 dark:text-neutral-500">{step.num}</span>
+                <div>
+                  <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{step.title}</h3>
+                  <p className="mt-1 text-sm/relaxed text-neutral-600 dark:text-neutral-400">{step.desc}</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700 dark:text-neutral-400 hover:dark:bg-neutral-800 hover:dark:text-neutral-200`}
-                  title={copied ? copiedLabel : copyLabel}
-                >
-                  {copied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
-                  {copied ? copiedLabel : copyLabel}
-                </button>
-              </div>
-              <div className="relative h-105 overflow-hidden">
-                {mode === 'preset' ? <PresetBlock /> : <PluginBlock />}
-                <div
-                  className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-white to-transparent dark:from-neutral-950"
-                />
-              </div>
-            </div>
-          </BlurFade>
-
-          {/* Steps + Frameworks */}
+              </li>
+            ))}
+          </ol>
+        </div>
+        {/* Terminal */}
+        <BlurFade inView delay={0.1} className="min-w-0 lg:col-span-1">
           <div
-            className="flex min-w-0 flex-col gap-6 self-center lg:col-span-1"
+            className={`relative min-w-0 overflow-hidden rounded-2xl border border-neutral-200/80 bg-white/70 shadow-xs dark:border-neutral-800 dark:bg-neutral-900/70`}
           >
-            {/* Steps */}
-            <div className="flex flex-col gap-5">
-              {steps.map((step, index) => (
-                <BlurFade key={step.num} inView delay={0.15 + index * 0.06}>
-                  <div className="flex gap-4">
-                    <div
-                      className={`flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400`}
+            {/* Header with tabs */}
+            <div className="flex items-center justify-between border-b border-neutral-200/50 px-4 py-3 dark:border-neutral-700/50">
+              <div className="flex items-center gap-3">
+                <div className="flex gap-1.5">
+                  <span className="block size-2.5 rounded-full bg-red-400/80" />
+                  <span className="block size-2.5 rounded-full bg-amber-400/80" />
+                  <span className="block size-2.5 rounded-full bg-green-400/80" />
+                </div>
+                {/* Mode switcher — equal width tabs */}
+                <div className="relative grid grid-cols-2 rounded-full bg-neutral-100 p-0.5 dark:bg-neutral-800">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => {
+                        setMode(tab.key)
+                        setCopied(false)
+                      }}
+                      className={clsx(
+                        'relative z-10 min-w-18 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                        mode === tab.key
+                          ? `text-neutral-800 dark:text-neutral-100`
+                          : `text-neutral-500 dark:text-neutral-400`,
+                      )}
                     >
-                      {step.icon}
-                    </div>
-                    <div>
-                      <h3
-                        className="text-sm font-semibold text-neutral-800 dark:text-neutral-200"
-                      >
-                        {step.title}
-                      </h3>
-                      <p
-                        className="mt-1 text-sm/relaxed text-neutral-600 dark:text-neutral-400"
-                      >
-                        {step.desc}
-                      </p>
-                    </div>
-                  </div>
-                </BlurFade>
-              ))}
+                      {mode === tab.key && (
+                        <motion.div
+                          layoutId="dev-active-tab"
+                          className="absolute inset-0 rounded-full bg-white shadow-sm dark:bg-neutral-700"
+                          transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                        />
+                      )}
+                      <span className="relative z-10">{tab.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700 dark:text-neutral-400 hover:dark:bg-neutral-800 hover:dark:text-neutral-200`}
+                title={copied ? copiedLabel : copyLabel}
+              >
+                {copied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
+                {copied ? copiedLabel : copyLabel}
+              </button>
+            </div>
+            <div className="relative h-105 overflow-hidden">
+              {mode === 'preset' ? <PresetBlock /> : <PluginBlock />}
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-white to-transparent dark:from-neutral-950" />
             </div>
           </div>
-        </div>
+        </BlurFade>
       </section>
     </BlurFade>
   )

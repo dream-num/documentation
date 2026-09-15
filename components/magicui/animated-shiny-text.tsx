@@ -1,12 +1,12 @@
 import type { ComponentPropsWithoutRef, CSSProperties, FC } from 'react'
+
 import { clsx } from '@/lib/clsx'
 
-export interface AnimatedShinyTextProps
-  extends ComponentPropsWithoutRef<'span'> {
+export interface IAnimatedShinyTextProps extends ComponentPropsWithoutRef<'span'> {
   shimmerWidth?: number
 }
 
-export const AnimatedShinyText: FC<AnimatedShinyTextProps> = ({
+export const AnimatedShinyText: FC<IAnimatedShinyTextProps> = ({
   children,
   className,
   shimmerWidth = 100,
@@ -20,22 +20,13 @@ export const AnimatedShinyText: FC<AnimatedShinyTextProps> = ({
         } as CSSProperties
       }
       className={clsx(
-        `
-          mx-auto max-w-md text-neutral-600/70
-          dark:text-neutral-400/70
-        `,
+        `mx-auto max-w-md text-neutral-600/70 dark:text-neutral-400/70`,
 
         // Shine effect
-        `
-          animate-shiny-text bg-size-[var(--shiny-width)_100%] bg-clip-text bg-position-[0_0] bg-no-repeat
-          [transition:background-position_1s_cubic-bezier(.6,.6,0,1)_infinite]
-        `,
+        `animate-shiny-text bg-size-[var(--shiny-width)_100%] bg-clip-text bg-position-[0_0] bg-no-repeat [transition:background-position_1s_cubic-bezier(.6,.6,0,1)_infinite]`,
 
         // Shine gradient
-        `
-          bg-linear-to-r from-transparent via-black/80 via-50% to-transparent
-          dark:via-white/80
-        `,
+        `bg-linear-to-r from-transparent via-black/80 via-50% to-transparent dark:via-white/80`,
 
         className,
       )}

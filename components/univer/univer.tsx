@@ -69,6 +69,7 @@ import { useTheme } from 'next-themes'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import Spinner from '@/components/animata/spinner'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { clsx } from '@/lib/clsx'
 
 import { modernDocumentData, traditionalDocumentData, workbookData } from './data'
@@ -1617,46 +1618,35 @@ export default function Univer({ tablistLabel }: IUniverProps) {
   ]
 
   return (
-    <div className="w-full">
+    <Tabs
+      value={type}
+      onValueChange={(value) => {
+        const nextTab = tabs.find((tab) => tab.key === value)
+        if (nextTab) handleChangeType(nextTab.key)
+      }}
+      className="w-full gap-0"
+    >
       <div className={clsx('flex justify-center px-4', type === 'docs' ? 'mb-2.5' : 'mb-5')}>
-        <div
-          role="tablist"
+        <TabsList
           aria-label={tablistLabel}
-          className="border-border bg-card relative grid w-full max-w-sm grid-cols-3 gap-0.5 rounded-md border p-1 sm:inline-flex sm:w-auto sm:max-w-none"
+          className="grid h-21 w-full max-w-sm grid-cols-3 gap-0.5 p-1 sm:inline-flex sm:h-11.5 sm:w-auto sm:max-w-none"
         >
           {tabs.map((tab) => {
-            const isActive = type === tab.key
             const Icon = tab.icon
             return (
-              <button
+              <TabsTrigger
                 key={tab.key}
                 id={`univer-tab-${tab.key}`}
-                role="tab"
-                type="button"
+                value={tab.key}
                 aria-label={tab.fullLabel}
-                aria-controls="univer-product-demo"
-                aria-selected={isActive}
-                onClick={() => handleChangeType(tab.key)}
-                className={clsx(
-                  'focus-visible:ring-ring relative flex min-h-9 items-center justify-center gap-1.5 rounded-sm px-2.5 py-1 text-[11px] leading-none transition-colors duration-150 focus-visible:ring-2 focus-visible:outline-none sm:px-3 sm:text-xs',
-                  isActive ? 'text-primary font-semibold' : 'text-muted-foreground hover:text-foreground font-medium',
-                )}
+                className="h-9 px-2.5 text-xs sm:px-4 sm:text-sm"
               >
-                {isActive && (
-                  <motion.div
-                    layoutId="univer-active-tab"
-                    className="border-primary/20 bg-accent absolute inset-0 rounded-sm border"
-                    transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                  />
-                )}
-                <span className="relative z-10 flex items-center gap-1.5">
-                  <Icon aria-hidden className="size-4 shrink-0" />
-                  <span>{tab.label}</span>
-                </span>
-              </button>
+                <Icon aria-hidden className="size-4" />
+                {tab.label}
+              </TabsTrigger>
             )
           })}
-        </div>
+        </TabsList>
       </div>
 
       {type === 'docs' && (
@@ -1666,48 +1656,37 @@ export default function Univer({ tablistLabel }: IUniverProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
         >
-          <div
-            role="tablist"
-            aria-label="Document layout mode"
-            className="border-border bg-card inline-grid grid-cols-2 rounded-md border p-1"
+          <Tabs
+            value={documentMode}
+            onValueChange={(value) => {
+              if (value === 'modern' || value === 'traditional') handleChangeDocumentMode(value)
+            }}
           >
-            {(['modern', 'traditional'] as const).map((mode) => {
-              const isActive = documentMode === mode
-              return (
-                <button
-                  key={mode}
-                  role="tab"
-                  type="button"
-                  aria-controls="univer-product-demo"
-                  aria-selected={isActive}
-                  onClick={() => handleChangeDocumentMode(mode)}
-                  className={clsx(
-                    'rounded-sm px-4 py-1.5 text-xs font-semibold transition-colors',
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                  )}
-                >
+            <TabsList aria-label="Document layout mode">
+              {(['modern', 'traditional'] as const).map((mode) => (
+                <TabsTrigger key={mode} value={mode} aria-controls="univer-product-demo" className="px-4 text-xs">
                   {mode === 'modern' ? 'Modern' : 'Traditional'}
-                </button>
-              )
-            })}
-          </div>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
         </motion.div>
       )}
 
-      <div
+      <TabsContent
         ref={frameRef}
+        value={type}
+        keepMounted
         id="univer-product-demo"
-        role="tabpanel"
         aria-labelledby={`univer-tab-${type}`}
-        className="border-border bg-card relative mx-auto h-[34rem] w-7xl max-w-full overflow-hidden rounded-lg border sm:h-160"
+        aria-busy={!steady}
+        className="border-border bg-card relative mx-auto h-[34rem] w-7xl max-w-full flex-none overflow-hidden rounded-lg border sm:h-160 dark:border-white/10 dark:shadow-[0_12px_36px_#00000026]"
       >
         {/* Mask / Loading */}
         <AnimatePresence>
           {!steady && (
             <motion.div
-              className="bg-background/90 pointer-events-auto absolute inset-0 z-10 flex size-full items-center justify-center"
+              className="pointer-events-auto absolute inset-0 z-10 flex size-full items-center justify-center bg-(--landing-surface)"
               initial={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
@@ -1726,7 +1705,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         >
           <div ref={divRef} className="home-univer-demo h-full" />
         </div>
-      </div>
-    </div>
+      </TabsContent>
+    </Tabs>
   )
 }

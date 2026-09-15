@@ -1,5 +1,6 @@
 'use client'
 
+import type { SVGAttributes } from 'react'
 import {
   BasesAppIcon,
   BasesMultiIcon,
@@ -32,8 +33,12 @@ const icons = {
   SlidesMultiIcon,
 } satisfies Record<UniverIconName, typeof SheetsMultiIcon>
 
-export function UniverIcon({ className, name }: { className?: string; name: UniverIconName }) {
+interface IUniverIconProps extends SVGAttributes<SVGSVGElement> {
+  name: UniverIconName
+}
+
+export function UniverIcon({ name, ...props }: IUniverIconProps) {
   const Icon = icons[name]
 
-  return <Icon className={className} />
+  return <Icon {...props} />
 }

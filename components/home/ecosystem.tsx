@@ -3,7 +3,7 @@ import { ArrowRightIcon, HeartIcon, PlugIcon, PuzzleIcon } from 'lucide-react'
 import { BlurFade } from '@/components/magicui/blur-fade'
 import { Link } from '@/i18n/navigation'
 
-interface IEcosystemCard {
+interface IEcosystemResource {
   icon: React.ReactNode
   title: string
   desc: string
@@ -40,7 +40,7 @@ export function Ecosystem(props: IProps) {
     communityCta,
   } = props
 
-  const cards: IEcosystemCard[] = [
+  const resources: IEcosystemResource[] = [
     {
       icon: <PuzzleIcon className="size-6 text-emerald-600 dark:text-emerald-400" />,
       title: pluginsTitle,
@@ -66,30 +66,33 @@ export function Ecosystem(props: IProps) {
 
   return (
     <BlurFade inView>
-      <section className="container px-4">
-        <div className="mb-8 text-center">
-          <h2 className={`mb-2 text-2xl font-semibold text-neutral-900 dark:text-neutral-100`}>{title}</h2>
-          <p className="text-neutral-600 dark:text-neutral-400">{subtitle}</p>
+      <section id="ecosystem" className="container scroll-mt-24 px-4">
+        <div className="mb-10 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <h2 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100">{title}</h2>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">{subtitle}</p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          {cards.map((card, index) => (
-            <BlurFade key={card.title} inView delay={index * 0.08} className="h-full">
-              <div
-                className={`flex h-full flex-col gap-5 rounded-2xl bg-white/30 p-6 shadow-xs ring-4 ring-neutral-100/20 backdrop-blur-sm transition-colors ring-inset hover:bg-white/50 dark:bg-neutral-900/50 dark:ring-neutral-600/20 hover:dark:bg-neutral-800/60`}
-              >
-                {card.icon}
-                <div>
-                  <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{card.title}</h3>
-                  <p className="mt-2 text-sm/relaxed text-neutral-600 dark:text-neutral-400">{card.desc}</p>
+        <div className="grid gap-8 md:grid-cols-3 md:gap-10">
+          {resources.map((resource, index) => (
+            <BlurFade
+              key={resource.title}
+              inView
+              delay={index * 0.08}
+              className="h-full border-t border-(--landing-line)"
+            >
+              <div className="flex h-full flex-col gap-4 pt-6">
+                <div className="flex items-center gap-3">
+                  {resource.icon}
+                  <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{resource.title}</h3>
                 </div>
+                <p className="text-sm/relaxed text-neutral-600 dark:text-neutral-400">{resource.desc}</p>
                 <Link
-                  href={card.href}
-                  target={card.href.startsWith('http') ? '_blank' : undefined}
-                  className={`mt-auto inline-flex items-center gap-1 text-sm font-medium text-neutral-700 transition-colors hover:text-neutral-900 dark:text-neutral-300 hover:dark:text-neutral-100`}
+                  href={resource.href}
+                  target={resource.href.startsWith('http') ? '_blank' : undefined}
+                  className="mt-auto inline-flex items-center gap-1 self-start rounded-sm pt-2 text-sm font-medium text-neutral-700 transition-colors hover:text-neutral-900 focus-visible:outline-2 focus-visible:outline-offset-4 dark:text-neutral-300 hover:dark:text-neutral-100"
                 >
-                  {card.cta}
-                  <ArrowRightIcon className="size-3.5" />
+                  {resource.cta}
+                  <ArrowRightIcon className="size-3.5" aria-hidden="true" />
                 </Link>
               </div>
             </BlurFade>

@@ -146,18 +146,6 @@ const koKRMessages = {
         title: 'PDF',
         desc: '텍스트, 이미지, 표, 목록, 주석이 있는 PDF 페이지를 만들고 편집하며 연속 탐색하고 인쇄합니다.',
       },
-      data: {
-        title: '데이터 분석',
-        desc: '피벗 테이블, Sheet 범위와 실시간으로 연동하고 SVG로 내보낼 수 있는 차트, 스파크라인, 조건부 서식을 제공합니다.',
-      },
-      collab: {
-        title: '협업',
-        desc: 'Sheets, Docs, Bases, Slides, Boards, PDF의 실시간 협업과 충돌 해결을 지원합니다.',
-      },
-      automation: {
-        title: '자동화',
-        desc: '500개 이상의 기본 제공 함수, 사용자 지정 함수, Facade API로 스프레드시트 작업을 자동화합니다.',
-      },
     },
     devexp: {
       title: '개발자를 위해 설계되었습니다',
@@ -220,11 +208,11 @@ const koKRMessages = {
       },
       feature4: {
         title: '가져오기 및 내보내기',
-        desc: 'xlsx, csv, tsv, docx, pptx, pdf, Bases, Boards 가져오기와 내보내기를 지원합니다.',
+        desc: 'xlsx, csv, tsv, docx, pptx, pdf 등 일반적인 형식의 가져오기와 내보내기를 지원합니다.',
       },
       feature5: {
         title: '인쇄 및 PDF',
-        desc: 'Sheets, Docs, Slides, Boards, PDF를 인쇄하고 Boards와 차트를 이미지로 내보냅니다.',
+        desc: '인쇄와 PDF 출력을 지원하며, 차트 등의 콘텐츠를 이미지로 내보낼 수 있습니다.',
       },
       feature6: {
         title: '배포',
@@ -232,7 +220,7 @@ const koKRMessages = {
       },
       feature7: {
         title: '다크 모드',
-        desc: '기본 제공 다크 블루 테마, 런타임 테마 전환, 사용자 지정 디자인 토큰을 지원합니다.',
+        desc: '다양한 테마를 기본 제공하며 다크 모드를 지원합니다.',
       },
       feature8: {
         title: '플러그인 확장성',
@@ -275,6 +263,28 @@ const koKRMessages = {
         desc: 'LLM과 에이전트가 Facade API를 직접 호출하여 문서를 자동으로 읽고, 쓰고, 분석할 수 있습니다.',
       },
     },
+    server: {
+      title: '서버도 필요한 기능만 조합하세요',
+      description:
+        'Server SDK의 실시간 협업, 파일 변환, 확장 모듈을 필요한 만큼 조합하여 기존 업무 시스템에 추가하세요.',
+      collaboration: {
+        title: '실시간 협업',
+        description: '문서 동기화와 충돌 해결을 통해 팀이 같은 콘텐츠를 함께 편집할 수 있습니다.',
+      },
+      conversion: {
+        title: '파일 변환',
+        description: 'Office 파일과 문서 데이터를 상호 변환하며, 단독으로 또는 협업 서비스와 함께 사용할 수 있습니다.',
+      },
+      extensions: {
+        title: '협업 확장',
+        description: '필요에 따라 기록, 댓글, Worktree를 추가하여 협업 흐름을 확장하세요.',
+      },
+      application: {
+        title: '기존 업무 서비스',
+        description: '기존 인증, 권한, 데이터 저장소를 연결하고 직접 배포 및 관리하세요.',
+      },
+      cta: 'Server SDK 문서 보기',
+    },
     ecosystem: {
       title: '플러그인과 통합으로 확장하세요',
       subtitle: '풍부한 생태계 위에서 구축하세요',
@@ -290,9 +300,15 @@ const koKRMessages = {
       },
       community: {
         title: '커뮤니티',
-        desc: 'Apache 2.0 라이선스이며 개인 및 상업적 용도 모두 무료입니다.',
+        desc: 'GitHub에서 통합 경험을 공유하고, 문제와 제안을 전달하며, 커뮤니티 토론에 참여하세요.',
         cta: 'GitHub 참여하기',
       },
+    },
+    cta: {
+      title: '다음 세대의 Office 경험,\n당신이 만드세요.',
+      description:
+        'Univer Office SDK로 스프레드시트, 문서 등의 기능을 자유롭게 조합하세요. 사람과 AI 에이전트가 함께 창조하는 제품을 만드세요.',
+      start: '만들기 시작',
     },
     features: {
       conbination: {

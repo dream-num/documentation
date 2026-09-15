@@ -147,18 +147,6 @@ const esESMessages = {
         title: 'PDF',
         desc: 'Cree, edite, recorra de forma continua e imprima páginas PDF con texto, imágenes, tablas, listas y anotaciones.',
       },
-      data: {
-        title: 'Análisis de datos',
-        desc: 'Tablas dinámicas, gráficos vinculados a rangos de Sheet en tiempo real con exportación SVG, minigráficos y formato condicional.',
-      },
-      collab: {
-        title: 'Colaboración',
-        desc: 'Colaboración en tiempo real para Sheets, Docs, Bases, Slides, Boards y PDF con resolución de conflictos.',
-      },
-      automation: {
-        title: 'Automatización',
-        desc: 'Más de 500 funciones integradas, funciones personalizadas y API de Facade para automatizar tareas de hojas de cálculo.',
-      },
     },
     devexp: {
       title: 'Creado para desarrolladores',
@@ -221,11 +209,11 @@ const esESMessages = {
       },
       feature4: {
         title: 'Importación y exportación',
-        desc: 'Importación y exportación de xlsx, csv, tsv, docx, pptx, pdf, Bases y Boards.',
+        desc: 'Importe y exporte formatos habituales como xlsx, csv, tsv, docx, pptx y pdf.',
       },
       feature5: {
         title: 'Imprimir y PDF',
-        desc: 'Imprima Sheets, Docs, Slides, Boards y PDF; exporte Boards y gráficos como imágenes.',
+        desc: 'Imprima contenido, genere archivos PDF y exporte gráficos y otros contenidos visuales como imágenes.',
       },
       feature6: {
         title: 'Implementación',
@@ -233,7 +221,7 @@ const esESMessages = {
       },
       feature7: {
         title: 'Modo oscuro',
-        desc: 'Tema azul oscuro integrado, cambio de tema en ejecución y tokens de diseño personalizables.',
+        desc: 'Varios temas integrados con soporte para el modo oscuro.',
       },
       feature8: {
         title: 'Extensibilidad de complementos',
@@ -276,6 +264,31 @@ const esESMessages = {
         desc: 'Los LLM y los agentes pueden llamar directamente a la API de Facade para lectura/escritura y análisis automatizados de documentos.',
       },
     },
+    server: {
+      title: 'Combine las capacidades de su servidor',
+      description:
+        'Combine la colaboración en tiempo real, la conversión de archivos y las extensiones de Server SDK según las necesidades de su aplicación.',
+      collaboration: {
+        title: 'Colaboración en tiempo real',
+        description:
+          'Permita que los equipos editen el mismo contenido con sincronización de documentos y resolución de conflictos.',
+      },
+      conversion: {
+        title: 'Conversión de archivos',
+        description:
+          'Convierta entre archivos de Office y datos de documentos, de forma independiente o junto con los servicios de colaboración.',
+      },
+      extensions: {
+        title: 'Extensiones de colaboración',
+        description: 'Añada historial, comentarios y Worktree según lo necesite su flujo de colaboración.',
+      },
+      application: {
+        title: 'Los servicios de su aplicación',
+        description:
+          'Conecte la autenticación, los permisos y el almacenamiento existentes. Despliegue y gestione en su propio entorno.',
+      },
+      cta: 'Leer la documentación de Server SDK',
+    },
     ecosystem: {
       title: 'Extienda con complementos e integraciones',
       subtitle: 'Construya un ecosistema rico',
@@ -291,9 +304,15 @@ const esESMessages = {
       },
       community: {
         title: 'Comunidad',
-        desc: 'Licencia Apache 2.0. Gratis para uso personal y comercial.',
+        desc: 'Comparta experiencias de integración, comunique problemas y participe en la comunidad en GitHub.',
         cta: 'Únase en GitHub',
       },
+    },
+    cta: {
+      title: 'La próxima experiencia Office.\nCréela usted.',
+      description:
+        'Combine hojas de cálculo, documentos y más con Univer Office SDK. Cree un producto donde las personas y los agentes de IA creen juntos.',
+      start: 'Empezar a crear',
     },
     features: {
       conbination: {

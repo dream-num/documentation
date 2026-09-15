@@ -145,18 +145,6 @@ const frFRMessages = {
         title: 'PDF',
         desc: 'Créez, modifiez, parcourez en continu et imprimez des pages PDF avec texte, images, tableaux, listes et annotations.',
       },
-      data: {
-        title: 'Analyse de données',
-        desc: 'Tableaux croisés, graphiques liés en direct à des plages Sheet avec export SVG, sparklines et mise en forme conditionnelle.',
-      },
-      collab: {
-        title: 'Collaboration',
-        desc: 'Collaboration en temps réel pour Sheets, Docs, Bases, Slides, Boards et PDF avec résolution des conflits.',
-      },
-      automation: {
-        title: 'Automatisation',
-        desc: 'Plus de 500 fonctions intégrées, des fonctions personnalisées et les API Facade pour automatiser les tâches dans les feuilles de calcul.',
-      },
     },
     devexp: {
       title: 'Conçu pour les développeurs',
@@ -220,11 +208,11 @@ const frFRMessages = {
       },
       feature4: {
         title: 'Importation et exportation',
-        desc: 'Importation et exportation de xlsx, csv, tsv, docx, pptx, pdf, Bases et Boards.',
+        desc: 'Importez et exportez les formats courants tels que xlsx, csv, tsv, docx, pptx et pdf.',
       },
       feature5: {
         title: 'Impression et PDF',
-        desc: 'Imprimez Sheets, Docs, Slides, Boards et PDF ; exportez Boards et graphiques sous forme d’images.',
+        desc: 'Imprimez vos contenus, générez des PDF et exportez des graphiques et autres contenus visuels sous forme d’images.',
       },
       feature6: {
         title: 'Déploiement',
@@ -232,7 +220,7 @@ const frFRMessages = {
       },
       feature7: {
         title: 'Mode sombre',
-        desc: 'Thème bleu sombre intégré, changement de thème à chaud et design tokens personnalisables.',
+        desc: 'Plusieurs thèmes intégrés avec prise en charge du mode sombre.',
       },
       feature8: {
         title: 'Extensibilité par plugins',
@@ -275,6 +263,31 @@ const frFRMessages = {
         desc: 'Les LLM et les agents peuvent appeler directement l’API Facade pour automatiser la lecture, l’écriture et l’analyse de documents.',
       },
     },
+    server: {
+      title: 'Composez aussi votre serveur à la carte',
+      description:
+        'Combinez la collaboration en temps réel, la conversion de fichiers et les extensions de Server SDK selon les besoins de votre application.',
+      collaboration: {
+        title: 'Collaboration en temps réel',
+        description:
+          'Permettez aux équipes de modifier le même contenu grâce à la synchronisation des documents et à la résolution des conflits.',
+      },
+      conversion: {
+        title: 'Conversion de fichiers',
+        description:
+          'Convertissez les fichiers Office en données de document et inversement, de façon autonome ou avec les services de collaboration.',
+      },
+      extensions: {
+        title: 'Extensions de collaboration',
+        description: 'Ajoutez l’historique, les commentaires et Worktree selon vos besoins de collaboration.',
+      },
+      application: {
+        title: 'Les services de votre application',
+        description:
+          'Connectez votre authentification, vos permissions et votre stockage existants. Déployez et gérez dans votre propre environnement.',
+      },
+      cta: 'Lire la documentation Server SDK',
+    },
     ecosystem: {
       title: 'Étendez Web SDK avec des plugins et des intégrations',
       subtitle: 'Appuyez-vous sur un écosystème riche',
@@ -290,9 +303,15 @@ const frFRMessages = {
       },
       community: {
         title: 'Communauté',
-        desc: 'Sous licence Apache 2.0. Gratuit pour un usage personnel et commercial.',
+        desc: 'Partagez vos expériences d’intégration, signalez des problèmes et participez aux discussions sur GitHub.',
         cta: 'Rejoindre la communauté sur GitHub',
       },
+    },
+    cta: {
+      title: 'La prochaine expérience Office.\nÀ vous de la créer.',
+      description:
+        'Combinez feuilles de calcul, documents et autres fonctionnalités avec Univer Office SDK. Créez un produit où humains et agents IA créent ensemble.',
+      start: 'Commencer à créer',
     },
     features: {
       conbination: {

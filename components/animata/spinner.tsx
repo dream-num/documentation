@@ -2,32 +2,16 @@ import { clsx } from '@/lib/clsx'
 
 interface ISpinnerProps {
   className?: string
-  outerSize?: string
-  childSize?: string
 }
 
-export default function Spinner({
-  className,
-  outerSize,
-  childSize,
-}: ISpinnerProps) {
+export default function Spinner({ className }: ISpinnerProps) {
   return (
     <div
+      aria-hidden="true"
       className={clsx(
-        `
-          m-2 size-8 animate-spin items-center justify-center rounded-full bg-linear-to-bl from-pink-500 to-blue-600
-          p-0.5
-        `,
+        'border-muted-foreground/15 border-t-muted-foreground/70 size-7 animate-spin rounded-full border-2 motion-reduce:animate-none',
         className,
-        outerSize,
       )}
-    >
-      <div
-        className={clsx(`
-          size-6 rounded-full bg-white
-          dark:bg-neutral-900
-        `, childSize)}
-      />
-    </div>
+    />
   )
 }

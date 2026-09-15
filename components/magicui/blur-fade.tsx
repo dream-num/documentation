@@ -1,20 +1,12 @@
 'use client'
 
-import type {
-  MotionProps,
-  UseInViewOptions,
-  Variants,
-} from 'motion/react'
-import {
-  AnimatePresence,
-  motion,
-  useInView,
-} from 'motion/react'
+import type { MotionProps, UseInViewOptions, Variants } from 'motion/react'
+import { AnimatePresence, motion, useInView } from 'motion/react'
 import { useRef } from 'react'
 
 type MarginType = UseInViewOptions['margin']
 
-interface BlurFadeProps extends MotionProps {
+interface IBlurFadeProps extends MotionProps {
   children: React.ReactNode
   className?: string
   variant?: {
@@ -42,7 +34,7 @@ export function BlurFade({
   inViewMargin = '-50px',
   blur = '6px',
   ...props
-}: BlurFadeProps) {
+}: IBlurFadeProps) {
   const ref = useRef(null)
   const inViewResult = useInView(ref, { once: true, margin: inViewMargin })
   const isInView = !inView || inViewResult

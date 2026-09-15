@@ -95,7 +95,7 @@ const zhTWMessages = {
     },
   },
   home: {
-    slogan: '高效能、可自由客製化的 Office SDK',
+    slogan: '高效能、\n可自由客製化的\nOffice SDK',
     description: 'Univer Office SDK 將統一的 Office 執行環境嵌入你的產品，支援人類與 AI Agent 協同工作，自由組合和嵌入',
     'description-split': '、',
     'description-period': '。',
@@ -143,18 +143,6 @@ const zhTWMessages = {
       pdf: {
         title: 'PDF',
         desc: '建立、編輯、連續瀏覽及列印包含文字、圖片、表格、清單與註解的 PDF 頁面。',
-      },
-      data: {
-        title: '數據分析',
-        desc: '樞紐分析表、連結至即時 Sheet 範圍並支援 SVG 匯出的圖表、迷你圖與條件式格式設定。',
-      },
-      collab: {
-        title: '協作',
-        desc: '面向 Sheets、Docs、Bases、Slides、Boards 與 PDF 的即時協作與衝突解決。',
-      },
-      automation: {
-        title: '自動化',
-        desc: '500+ 內置函數、自定義函數和 Facade API，覆蓋電子表格任務自動化。',
       },
     },
     devexp: {
@@ -218,11 +206,11 @@ const zhTWMessages = {
       },
       feature4: {
         title: '導入與導出',
-        desc: '支援 xlsx、csv、tsv、docx、pptx、pdf，以及 Bases 與 Boards 的匯入匯出。',
+        desc: '支援 xlsx、csv、tsv、docx、pptx、pdf 等常用格式的匯入與匯出。',
       },
       feature5: {
         title: '打印與 PDF',
-        desc: '列印 Sheets、Docs、Slides、Boards 與 PDF，並將 Boards 與圖表匯出為圖片。',
+        desc: '支援列印與 PDF 輸出，並可將圖表等內容匯出為圖片。',
       },
       feature6: {
         title: '部署',
@@ -230,7 +218,7 @@ const zhTWMessages = {
       },
       feature7: {
         title: '深色模式',
-        desc: '內建深藍主題、執行時主題切換，並支援自訂設計令牌。',
+        desc: '內建多種主題，並支援深色模式。',
       },
       feature8: {
         title: '插件擴展',
@@ -273,6 +261,27 @@ const zhTWMessages = {
         desc: 'LLM 與 Agent 可直接呼叫 Facade API，實現文件的自動化讀寫與分析。',
       },
     },
+    server: {
+      title: '服務端，也能按需組合',
+      description: 'Server SDK 提供即時協作、檔案轉換與擴充模組，按需組合並接入你現有的業務系統。',
+      collaboration: {
+        title: '即時協作',
+        description: '為多人編輯接入文件同步與衝突處理，讓團隊共用同一份內容。',
+      },
+      conversion: {
+        title: '檔案轉換',
+        description: '在 Office 檔案與文件資料之間轉換，獨立接入或與協作服務組合使用。',
+      },
+      extensions: {
+        title: '協作擴充',
+        description: '按需接入歷史記錄、留言與 Worktree，擴充協作流程。',
+      },
+      application: {
+        title: '你的業務服務',
+        description: '對接現有身分驗證、權限與資料儲存，自主部署和管理。',
+      },
+      cta: '閱讀 Server SDK 文件',
+    },
     ecosystem: {
       title: '通過插件與集成擴展',
       subtitle: '基於豐富的生態構建',
@@ -288,9 +297,15 @@ const zhTWMessages = {
       },
       community: {
         title: '社區',
-        desc: 'Apache 2.0 許可證。個人和商業使用均免費。',
+        desc: '在 GitHub 交流整合經驗、回報問題與建議，參與社群討論。',
         cta: '在 GitHub 上加入',
       },
+    },
+    cta: {
+      title: '下一代 Office 體驗，\n由你創造。',
+      description:
+        '用 Univer Office SDK 自由組合試算表、文件與更多 Office 能力，讓人類與 AI Agent 在你的產品裡共同創造。',
+      start: '開始打造',
     },
     features: {
       conbination: {

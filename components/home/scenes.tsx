@@ -1,25 +1,25 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import {
-  BarChart3Icon,
   DatabaseIcon,
   FilePenLineIcon,
   FileSpreadsheetIcon,
   FileTextIcon,
   PresentationIcon,
   ShapesIcon,
-  UsersIcon,
-  ZapIcon,
 } from 'lucide-react'
 
 import { BlurFade } from '@/components/magicui/blur-fade'
 
 interface ISceneItem {
-  icon: React.ReactNode
+  icon: ReactNode
   title: string
   desc: string
-  visual: React.ReactNode
+  colorClass: string
+  visual: ReactNode
 }
+
 interface IProps {
   title: string
   subtitle: string
@@ -35,179 +35,6 @@ interface IProps {
   boardsDesc: string
   pdfTitle: string
   pdfDesc: string
-  dataTitle: string
-  dataDesc: string
-  collabTitle: string
-  collabDesc: string
-  automationTitle: string
-  automationDesc: string
-}
-
-const sheetVisualCells = [
-  { id: 'a1', corner: 'rounded-tl-md' },
-  { id: 'b1' },
-  { id: 'c1' },
-  { id: 'd1', corner: 'rounded-tr-md' },
-  { id: 'a2' },
-  { id: 'b2', active: true },
-  { id: 'c2' },
-  { id: 'd2' },
-  { id: 'a3', corner: 'rounded-bl-md' },
-  { id: 'b3' },
-  { id: 'c3' },
-  { id: 'd3', corner: 'rounded-br-md' },
-]
-
-const baseVisualCells = [
-  { id: 'field-a', active: true },
-  { id: 'field-b' },
-  { id: 'field-c' },
-  { id: 'record-a' },
-  { id: 'record-b', active: true },
-  { id: 'record-c' },
-  { id: 'view-a' },
-  { id: 'view-b' },
-  { id: 'view-c', active: true },
-]
-
-/* Pure CSS illustrations */
-
-function SheetsVisual() {
-  return (
-    <div className="flex h-16 items-center justify-center">
-      <div className="grid grid-cols-4 gap-px rounded-md border border-neutral-200/60 bg-neutral-200/60 dark:border-neutral-700/60 dark:bg-neutral-700/60">
-        {sheetVisualCells.map((cell) => (
-          <div
-            key={cell.id}
-            className={`size-5 ${
-              cell.active ? `bg-emerald-400/30 dark:bg-emerald-500/30` : `bg-white/60 dark:bg-neutral-800/60`
-            } ${cell.corner ?? ''} `}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function DocsVisual() {
-  return (
-    <div className="flex h-16 flex-col items-center justify-center gap-1.5">
-      <div className="h-1.5 w-16 rounded-full bg-neutral-200/70 dark:bg-neutral-700/70" />
-      <div className="h-1.5 w-12 rounded-full bg-neutral-200/70 dark:bg-neutral-700/70" />
-      <div className="h-1.5 w-14 rounded-full bg-neutral-200/70 dark:bg-neutral-700/70" />
-      <div className="mt-1 h-1.5 w-8 rounded-full bg-blue-300/60 dark:bg-blue-600/40" />
-    </div>
-  )
-}
-
-function SlidesVisual() {
-  return (
-    <div className="flex h-16 flex-col items-center justify-center gap-2">
-      <div className="relative h-10 w-18 rounded-sm border-2 border-neutral-200/60 bg-white/40 dark:border-neutral-700/60 dark:bg-neutral-800/40">
-        <div className="absolute top-1/2 left-1/2 h-5 w-9 -translate-1/2 rounded-sm bg-red-300/30 dark:bg-red-500/20" />
-      </div>
-      <div className="flex gap-1">
-        <span className="block size-1.5 rounded-full bg-neutral-400/60 dark:bg-neutral-500/60" />
-        <span className="block size-1.5 rounded-full bg-neutral-300/40 dark:bg-neutral-600/40" />
-        <span className="block size-1.5 rounded-full bg-neutral-300/40 dark:bg-neutral-600/40" />
-      </div>
-    </div>
-  )
-}
-
-function DataVisual() {
-  return (
-    <div className="flex h-16 items-end justify-center gap-1">
-      <div className="w-3 rounded-t bg-purple-300/50 dark:bg-purple-500/30" style={{ height: 16 }} />
-      <div className="w-3 rounded-t bg-purple-300/50 dark:bg-purple-500/30" style={{ height: 28 }} />
-      <div className="w-3 rounded-t bg-purple-400/60 dark:bg-purple-400/40" style={{ height: 22 }} />
-      <div className="w-3 rounded-t bg-purple-300/50 dark:bg-purple-500/30" style={{ height: 32 }} />
-      <div className="w-3 rounded-t bg-purple-300/50 dark:bg-purple-500/30" style={{ height: 20 }} />
-    </div>
-  )
-}
-
-function BasesVisual() {
-  return (
-    <div className="flex h-16 items-center justify-center">
-      <div className="grid w-24 grid-cols-[24px_1fr] gap-1 rounded-md border border-teal-200/70 bg-white/50 p-2 dark:border-teal-700/50 dark:bg-neutral-800/40">
-        <div className="space-y-1">
-          <div className="h-2 rounded-sm bg-teal-300/60 dark:bg-teal-500/40" />
-          <div className="h-2 rounded-sm bg-teal-200/60 dark:bg-teal-600/30" />
-          <div className="h-2 rounded-sm bg-teal-200/60 dark:bg-teal-600/30" />
-        </div>
-        <div className="grid grid-cols-3 gap-1">
-          {baseVisualCells.map((cell) => (
-            <span
-              key={cell.id}
-              className={`h-2 rounded-sm ${
-                cell.active ? `bg-teal-400/50 dark:bg-teal-400/40` : `bg-neutral-200/70 dark:bg-neutral-700/70`
-              } `}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function BoardsVisual() {
-  return (
-    <div className="flex h-16 items-center justify-center">
-      <div className="relative h-12 w-28 rounded-md border border-violet-200/70 bg-violet-50/40 dark:border-violet-700/50 dark:bg-violet-950/20">
-        <span className="absolute top-2 left-3 size-6 rounded-sm bg-emerald-200/80 shadow-xs dark:bg-emerald-500/40" />
-        <span className="absolute top-4 left-12 size-6 rounded-sm bg-blue-200/80 shadow-xs dark:bg-blue-500/40" />
-        <span className="absolute right-4 bottom-2 size-6 rounded-sm bg-rose-200/80 shadow-xs dark:bg-rose-500/40" />
-        <span className="absolute top-5 left-9 h-px w-5 bg-violet-300/70 dark:bg-violet-500/50" />
-        <span className="absolute top-7 right-10 h-px w-5 bg-violet-300/70 dark:bg-violet-500/50" />
-      </div>
-    </div>
-  )
-}
-
-function PdfVisual() {
-  return (
-    <div className="flex h-16 items-center justify-center">
-      <div className="relative h-14 w-10 rounded-sm border border-rose-200/70 bg-white/60 p-2 dark:border-rose-700/50 dark:bg-neutral-800/60">
-        <span className="block h-1 w-6 rounded-full bg-neutral-200 dark:bg-neutral-700" />
-        <span className="mt-2 block h-1 w-5 rounded-full bg-neutral-200 dark:bg-neutral-700" />
-        <span className="mt-2 block h-4 rounded-sm bg-rose-200/60 dark:bg-rose-500/30" />
-        <span className="absolute right-1 bottom-1 size-2 rounded-full bg-amber-400/70" />
-      </div>
-    </div>
-  )
-}
-
-function CollabVisual() {
-  return (
-    <div className="flex h-16 items-center justify-center gap-2">
-      <div className="flex -space-x-1.5">
-        <div className="flex size-5 items-center justify-center rounded-full bg-amber-300/50 text-[8px] font-bold text-amber-700 dark:bg-amber-600/30 dark:text-amber-300">
-          A
-        </div>
-        <div className="flex size-5 items-center justify-center rounded-full bg-blue-300/50 text-[8px] font-bold text-blue-700 dark:bg-blue-600/30 dark:text-blue-300">
-          B
-        </div>
-        <div className="flex size-5 items-center justify-center rounded-full bg-green-300/50 text-[8px] font-bold text-green-700 dark:bg-green-600/30 dark:text-green-300">
-          C
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function AutomationVisual() {
-  return (
-    <div className="flex h-16 items-center justify-center">
-      <div className="flex items-center gap-1">
-        <span className="block size-1.5 rounded-full bg-cyan-400/60 dark:bg-cyan-500/40" />
-        <span className="block h-px w-4 bg-cyan-300/40 dark:bg-cyan-600/30" />
-        <span className="block size-1.5 rounded-full bg-cyan-400/60 dark:bg-cyan-500/40" />
-        <span className="block h-px w-4 bg-cyan-300/40 dark:bg-cyan-600/30" />
-        <span className="block size-1.5 rounded-full bg-cyan-400/60 dark:bg-cyan-500/40" />
-      </div>
-    </div>
-  )
 }
 
 export function Scenes(props: IProps) {
@@ -226,12 +53,6 @@ export function Scenes(props: IProps) {
     boardsDesc,
     pdfTitle,
     pdfDesc,
-    dataTitle,
-    dataDesc,
-    collabTitle,
-    collabDesc,
-    automationTitle,
-    automationDesc,
   } = props
 
   const items: ISceneItem[] = [
@@ -239,55 +60,178 @@ export function Scenes(props: IProps) {
       icon: <FileSpreadsheetIcon className="size-5 text-emerald-600 dark:text-emerald-400" />,
       title: sheetsTitle,
       desc: sheetsDesc,
-      visual: <SheetsVisual />,
+      colorClass: 'text-[#428b70]',
+      visual: (
+        <>
+          <rect x="24" y="46" width="232" height="17" rx="3" className="fill-(--scene-wash)" />
+          <rect x="24" y="68" width="18" height="84" className="fill-(--scene-wash)" />
+          <path
+            d="M24 68H256M24 89H256M24 110H256M24 131H256M24 152H256M42 68V152M96 68V152M150 68V152M204 68V152M256 68V152"
+            className="fill-none stroke-(--scene-line) stroke-1"
+          />
+          <rect x="96" y="89" width="108" height="42" className="fill-current/10" />
+          <rect x="96" y="89" width="108" height="42" className="fill-none stroke-current stroke-[1.5]" />
+          <rect x="201" y="128" width="6" height="6" fill="currentColor" />
+          <path
+            d="M52 79H78M106 79H131M161 79H186M52 100H71M52 120H82M52 141H75M161 141H186M214 79H240M214 100H231M214 120H241"
+            className="fill-none stroke-(--scene-muted) stroke-2 [stroke-linecap:round]"
+          />
+          <rect x="35" y="52" width="52" height="4" rx="2" className="fill-(--scene-muted) opacity-60" />
+          <rect x="106" y="98" width="30" height="4" rx="2" className="fill-current/55" />
+          <rect x="160" y="119" width="25" height="4" rx="2" className="fill-current/55" />
+        </>
+      ),
     },
     {
       icon: <FileTextIcon className="size-5 text-blue-600 dark:text-blue-400" />,
       title: docsTitle,
       desc: docsDesc,
-      visual: <DocsVisual />,
+      colorClass: 'text-[#648ec9]',
+      visual: (
+        <>
+          <rect x="24" y="44" width="232" height="112" rx="4" className="fill-(--scene-wash)" />
+          <rect x="77" y="48" width="126" height="111" rx="3" className="fill-(--scene-paper) stroke-(--scene-line)" />
+          <rect x="92" y="62" width="71" height="6" rx="2" className="fill-current/55" />
+          <path
+            d="M92 80H186M92 88H181M92 96H168M92 117H186M92 125H178M92 133H186M92 141H154"
+            className="fill-none stroke-(--scene-muted) stroke-2 [stroke-linecap:round]"
+          />
+          <rect x="90" y="84" width="96" height="9" className="fill-current/10" />
+          <path d="M185 83V95" className="fill-none stroke-current stroke-[1.5]" />
+          <rect x="194" y="88" width="40" height="28" rx="5" className="fill-(--scene-paper) stroke-(--scene-line)" />
+          <path
+            d="M201 97H225M201 104H219"
+            className="fill-none stroke-(--scene-muted) stroke-2 [stroke-linecap:round]"
+          />
+          <circle cx="221" cy="57" r="9" className="fill-current/10" />
+          <path d="M217 57L220 60L225 54" className="fill-none stroke-current stroke-[1.5]" />
+        </>
+      ),
     },
     {
       icon: <PresentationIcon className="size-5 text-red-600 dark:text-red-400" />,
       title: slidesTitle,
       desc: slidesDesc,
-      visual: <SlidesVisual />,
+      colorClass: 'text-[#c97e70]',
+      visual: (
+        <>
+          <rect x="22" y="44" width="45" height="114" rx="3" className="fill-(--scene-wash)" />
+          <rect x="28" y="51" width="33" height="23" rx="2" className="fill-(--scene-paper) stroke-(--scene-line)" />
+          <rect x="28" y="51" width="33" height="23" rx="2" className="fill-none stroke-current stroke-[1.5]" />
+          <rect x="28" y="83" width="33" height="23" rx="2" className="fill-(--scene-paper) stroke-(--scene-line)" />
+          <rect x="28" y="115" width="33" height="23" rx="2" className="fill-(--scene-paper) stroke-(--scene-line)" />
+          <rect x="78" y="50" width="176" height="99" rx="3" className="fill-(--scene-paper) stroke-(--scene-line)" />
+          <rect x="90" y="64" width="70" height="6" rx="2" className="fill-current/55" />
+          <path
+            d="M90 83H152M90 91H141M90 99H146"
+            className="fill-none stroke-(--scene-muted) stroke-2 [stroke-linecap:round]"
+          />
+          <rect x="176" y="103" width="15" height="27" rx="2" className="fill-current/10" />
+          <rect x="197" y="89" width="15" height="41" rx="2" className="fill-current/55" />
+          <rect x="218" y="73" width="15" height="57" rx="2" fill="currentColor" />
+          <path d="M83 157H170" className="fill-none stroke-(--scene-line) stroke-1" />
+          <circle cx="246" cy="157" r="2" className="fill-current/55" />
+        </>
+      ),
     },
     {
       icon: <DatabaseIcon className="size-5 text-teal-600 dark:text-teal-400" />,
       title: basesTitle,
       desc: basesDesc,
-      visual: <BasesVisual />,
+      colorClass: 'text-[#569b96]',
+      visual: (
+        <>
+          <rect x="24" y="47" width="55" height="13" rx="6" className="fill-current/10" />
+          <path
+            d="M35 53H66M91 53H125M143 53H174"
+            className="fill-none stroke-(--scene-muted) stroke-2 [stroke-linecap:round]"
+          />
+          <rect x="24" y="70" width="232" height="18" className="fill-(--scene-wash)" />
+          <path
+            d="M24 70H256M24 88H256M24 112H256M24 136H256M24 158H256M48 70V158M140 70V158M205 70V158"
+            className="fill-none stroke-(--scene-line) stroke-1"
+          />
+          <path
+            d="M58 78H112M151 78H186M217 78H244M58 100H121M58 124H108M58 148H128"
+            className="fill-none stroke-(--scene-muted) stroke-2 [stroke-linecap:round]"
+          />
+          <rect x="151" y="96" width="38" height="10" rx="5" className="fill-current/55" />
+          <rect x="151" y="120" width="29" height="10" rx="5" className="fill-current/10" />
+          <rect x="151" y="144" width="38" height="10" rx="5" className="fill-current/55" />
+          <circle cx="35" cy="101" r="4" className="fill-(--scene-muted) opacity-60" />
+          <circle cx="35" cy="125" r="4" className="fill-(--scene-muted) opacity-60" />
+          <circle cx="35" cy="149" r="4" className="fill-(--scene-muted) opacity-60" />
+          <path
+            d="M216 101H244M216 125H236M216 149H241"
+            className="fill-none stroke-(--scene-muted) stroke-2 [stroke-linecap:round]"
+          />
+        </>
+      ),
     },
     {
       icon: <ShapesIcon className="size-5 text-violet-600 dark:text-violet-400" />,
       title: boardsTitle,
       desc: boardsDesc,
-      visual: <BoardsVisual />,
-    },
-    {
-      icon: <BarChart3Icon className="size-5 text-purple-600 dark:text-purple-400" />,
-      title: dataTitle,
-      desc: dataDesc,
-      visual: <DataVisual />,
+      colorClass: 'text-[#9782bd]',
+      visual: (
+        <>
+          <path
+            d="M38 55H242M38 86H242M38 117H242M38 148H242M57 44V157M98 44V157M139 44V157M180 44V157M221 44V157"
+            className="fill-none stroke-(--scene-line) stroke-1"
+            strokeDasharray="1 7"
+          />
+          <path d="M97 81H126Q136 81 136 91V116H158M197 99V73H224" className="fill-none stroke-current stroke-[1.5]" />
+          <rect x="44" y="58" width="53" height="46" rx="4" className="fill-(--scene-paper) stroke-(--scene-line)" />
+          <rect x="44" y="58" width="53" height="46" rx="4" className="fill-current/10" />
+          <path
+            d="M55 72H83M55 80H75M55 88H79"
+            className="fill-none stroke-(--scene-muted) stroke-2 [stroke-linecap:round]"
+          />
+          <rect x="158" y="95" width="70" height="44" rx="5" className="fill-(--scene-paper) stroke-(--scene-line)" />
+          <path
+            d="M172 111H212M172 121H199"
+            className="fill-none stroke-(--scene-muted) stroke-2 [stroke-linecap:round]"
+          />
+          <rect x="152" y="89" width="82" height="56" rx="1" className="fill-none stroke-current stroke-[1.5]" />
+          <rect x="149" y="86" width="6" height="6" fill="currentColor" />
+          <rect x="231" y="142" width="6" height="6" fill="currentColor" />
+          <circle cx="226" cy="62" r="16" className="fill-current/10" />
+          <rect
+            x="45"
+            y="123"
+            width="24"
+            height="24"
+            rx="3"
+            className="fill-current/55"
+            transform="rotate(-8 57 135)"
+          />
+        </>
+      ),
     },
     {
       icon: <FilePenLineIcon className="size-5 text-rose-600 dark:text-rose-400" />,
       title: pdfTitle,
       desc: pdfDesc,
-      visual: <PdfVisual />,
-    },
-    {
-      icon: <UsersIcon className="size-5 text-amber-600 dark:text-amber-400" />,
-      title: collabTitle,
-      desc: collabDesc,
-      visual: <CollabVisual />,
-    },
-    {
-      icon: <ZapIcon className="size-5 text-cyan-600 dark:text-cyan-400" />,
-      title: automationTitle,
-      desc: automationDesc,
-      visual: <AutomationVisual />,
+      colorClass: 'text-[#c77b89]',
+      visual: (
+        <>
+          <rect x="24" y="44" width="232" height="114" rx="4" className="fill-(--scene-wash)" />
+          <rect x="35" y="53" width="29" height="37" rx="2" className="fill-(--scene-paper) stroke-(--scene-line)" />
+          <rect x="35" y="53" width="29" height="37" rx="2" className="fill-none stroke-current stroke-[1.5]" />
+          <rect x="35" y="101" width="29" height="37" rx="2" className="fill-(--scene-paper) stroke-(--scene-line)" />
+          <rect x="102" y="51" width="105" height="107" rx="3" className="fill-(--scene-paper) stroke-(--scene-line)" />
+          <path
+            d="M117 66H169M117 81H191M117 91H181M117 101H191M117 127H182M117 137H174"
+            className="fill-none stroke-(--scene-muted) stroke-2 [stroke-linecap:round]"
+          />
+          <rect x="114" y="85" width="70" height="10" className="fill-current/10" />
+          <rect x="114" y="119" width="79" height="25" rx="3" className="fill-none stroke-current stroke-[1.5]" />
+          <path d="M180 112L206 86L214 94L188 120L177 123Z" className="fill-(--scene-paper) stroke-(--scene-line)" />
+          <path d="M180 112L188 120M205 87L213 95" className="fill-none stroke-current stroke-[1.5]" />
+          <circle cx="222" cy="69" r="12" className="fill-current/55" />
+          <path d="M218 66H226M218 71H223" stroke="var(--scene-paper)" strokeWidth="1.5" />
+        </>
+      ),
     },
   ]
 
@@ -295,23 +239,40 @@ export function Scenes(props: IProps) {
     <BlurFade inView>
       <section className="container px-4">
         <div className="mb-8 text-center">
-          <h2 className={`mb-2 text-2xl font-semibold text-neutral-900 dark:text-neutral-100`}>{title}</h2>
+          <h2 className="mb-2 text-2xl font-semibold text-neutral-900 dark:text-neutral-100">{title}</h2>
           <p className="text-neutral-600 dark:text-neutral-400">{subtitle}</p>
         </div>
-
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {items.map((item, index) => (
             <BlurFade key={item.title} inView delay={index * 0.05} className="h-full">
-              <div
-                className={`relative flex h-full flex-col gap-3 rounded-2xl bg-white/30 p-6 shadow-xs ring-4 ring-neutral-100/20 backdrop-blur-sm transition-colors ring-inset hover:bg-white/50 dark:bg-neutral-900/50 dark:ring-neutral-600/20 hover:dark:bg-neutral-800/60`}
-              >
-                <div className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+              <article className="flex h-full flex-col rounded-2xl border border-neutral-200/80 bg-white/70 p-6 shadow-xs dark:border-neutral-800 dark:bg-neutral-900/70">
+                <h3 className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
                   {item.icon}
                   {item.title}
-                </div>
-                {item.visual}
+                </h3>
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 280 180"
+                  fill="none"
+                  className={`my-2.5 h-45 w-full [--scene-line:#dfe2e7] [--scene-muted:#b9bec7] [--scene-paper:#fff] [--scene-wash:#f5f6f8] dark:[--scene-line:#3e414c] dark:[--scene-muted:#737987] dark:[--scene-paper:#202127] dark:[--scene-wash:#292b33] ${item.colorClass}`}
+                >
+                  <rect
+                    x="12"
+                    y="12"
+                    width="256"
+                    height="156"
+                    rx="8"
+                    className="fill-(--scene-paper) stroke-(--scene-line)"
+                  />
+                  <path d="M12 35H268" className="fill-none stroke-(--scene-line) stroke-1" />
+                  <circle cx="25" cy="24" r="2" className="fill-(--scene-muted) opacity-60" />
+                  <circle cx="33" cy="24" r="2" className="fill-(--scene-muted) opacity-60" />
+                  <circle cx="41" cy="24" r="2" className="fill-(--scene-muted) opacity-60" />
+                  <rect x="220" y="22" width="33" height="4" rx="2" className="fill-(--scene-muted) opacity-60" />
+                  {item.visual}
+                </svg>
                 <p className="text-sm/relaxed text-neutral-600 dark:text-neutral-400">{item.desc}</p>
-              </div>
+              </article>
             </BlurFade>
           ))}
         </div>
