@@ -15,6 +15,7 @@ import { ClosingCTA } from '@/components/home/closing-cta'
 import { DeveloperExperience } from '@/components/home/developer-experience'
 import { Ecosystem } from '@/components/home/ecosystem'
 import { EnterprisePerformance } from '@/components/home/enterprise-performance'
+import { HeadingGlow } from '@/components/home/heading-glow'
 import { Headless } from '@/components/home/headless'
 import { LogoCloud } from '@/components/home/logo-cloud'
 import { Scenes } from '@/components/home/scenes'
@@ -31,48 +32,48 @@ const circuitProducts = [
     icon: 'SheetsAppIcon',
     laserClass: 'text-[#35BD4B] [--laser-delay:0.0s]',
     trackClass: 'opacity-25',
-    positionClass: 'left-[20%] top-[17.333333%]',
-    path: 'M288 104H216Q208 104 202 110L110 202Q104 208 104 216V320',
+    positionClass: 'left-[17.5%] top-[17.5%]',
+    path: 'M280 112H208Q196 112 188 120L108 200Q96 212 96 224V320',
   },
   {
     id: 'docs',
     icon: 'DocsAppIcon',
     laserClass: 'text-[#4B7DFF] [--laser-delay:-1.3s]',
     trackClass: 'opacity-20',
-    positionClass: 'left-[7.222222%] top-[53.333333%]',
-    path: 'M104 320H160Q168 320 174 326L218 370Q224 376 224 384V480',
+    positionClass: 'left-[6%] top-[50%]',
+    path: 'M96 320H152Q160 320 166 326L234 394Q240 400 240 408V512',
   },
   {
     id: 'slides',
     icon: 'SlidesAppIcon',
     laserClass: 'text-[#FF6B4B] [--laser-delay:-2.6s]',
     trackClass: 'opacity-30',
-    positionClass: 'left-[15.555556%] top-[80%]',
-    path: 'M224 480V528Q224 536 218 542L198 562Q192 568 184 568H0',
+    positionClass: 'left-[15%] top-[80%]',
+    path: 'M240 512V552Q240 560 234 566L208 592Q202 598 194 598H-64',
   },
   {
     id: 'bases',
     icon: 'BasesAppIcon',
     laserClass: 'text-[#14B8A6] [--laser-delay:-3.9s]',
     trackClass: 'opacity-20',
-    positionClass: 'left-[84.444444%] top-[28%]',
-    path: 'M1216 168H1280Q1288 168 1294 174L1322 202Q1328 208 1328 216V336',
+    positionClass: 'left-[86%] top-[25%]',
+    path: 'M1376 160H1440Q1448 160 1454 166L1498 210Q1504 216 1504 224V352',
   },
   {
     id: 'boards',
     icon: 'BoardsAppIcon',
     laserClass: 'text-[#8B5CF6] [--laser-delay:-5.2s]',
     trackClass: 'opacity-30',
-    positionClass: 'left-[92.222222%] top-[56%]',
-    path: 'M1328 336V416Q1328 424 1322 430L1270 482Q1264 488 1256 488H1200',
+    positionClass: 'left-[94%] top-[55%]',
+    path: 'M1504 352V408Q1504 416 1498 422L1406 514Q1400 520 1392 520H1328',
   },
   {
     id: 'pdf',
     icon: 'PdfAppIcon',
     laserClass: 'text-[#E5484D] [--laser-delay:-6.5s]',
     trackClass: 'opacity-25',
-    positionClass: 'left-[83.333333%] top-[81.333333%]',
-    path: 'M1200 488V544Q1200 552 1206 558L1222 574Q1228 580 1236 580H1440',
+    positionClass: 'left-[83%] top-[81.25%]',
+    path: 'M1328 520V568Q1328 576 1334 582L1358 606Q1364 612 1372 612H1664',
   },
 ] as const
 
@@ -120,132 +121,141 @@ export default async function Page({ params }: IProps) {
   ]
 
   return (
-    <div className="bg-[#fafafa] pt-3 text-(--landing-ink) [--landing-card:#fff] [--landing-ink:#303139] [--landing-line:#dfe0e5] [--landing-muted:#6e707b] [--landing-surface:#f4f4f5] md:pt-5 dark:bg-[#101113] dark:[--landing-card:#25272b] dark:[--landing-ink:#eeeef1] dark:[--landing-line:#34363b] dark:[--landing-muted:#a1a1aa] dark:[--landing-surface:#151618]">
+    <div className="relative isolate bg-white text-(--landing-ink) [--landing-card:#fff] [--landing-ink:#303139] [--landing-line:#dfe0e5] [--landing-muted:#6e707b] [--landing-surface:#fff] dark:bg-[#101113] dark:[--landing-card:#25272b] dark:[--landing-ink:#eeeef1] dark:[--landing-line:#34363b] dark:[--landing-muted:#a1a1aa] dark:[--landing-surface:#151618]">
+      <HeadingGlow />
       <main>
-        <div className="relative isolate mx-auto w-[calc(100%-24px)] max-w-384 overflow-hidden rounded-[22px] border border-(--landing-card) bg-(--landing-surface) bg-[linear-gradient(150deg,transparent_24%,color-mix(in_srgb,var(--landing-card)_40%,transparent)_24%,transparent_64%)] shadow-[0_0_0_5px_color-mix(in_srgb,var(--landing-card)_55%,transparent),0_24px_80px_#20212a08] md:w-[calc(100%-40px)] md:rounded-[32px] dark:border-white/6 dark:bg-none dark:shadow-none">
-          <header className="relative px-6 pt-12 pb-6 text-center lg:px-[19%] lg:pt-19 lg:pb-18">
-            <div className="mx-auto inline-block rounded-full bg-neutral-50 py-1 text-sm font-semibold shadow-sm dark:bg-neutral-800">
-              <span className="border-r border-neutral-300 py-1 pr-1.5 pl-3 dark:border-neutral-700">🎉</span>
-              <AnimatedShinyText className="py-1 pr-3 pl-1.5">
-                Univer Office SDK v{pkg.version} {t('home.banner-release')}
-              </AnimatedShinyText>
-            </div>
-            <h1 className="mx-auto my-6 max-w-225 text-[clamp(36px,5vw,70px)] leading-[1.14] font-normal tracking-[-0.045em] text-balance md:tracking-[-0.05em]">
-              {t('home.slogan')
-                .split('\n')
-                .map((phrase) => (
-                  <span key={phrase} className="inline-block">
-                    {phrase}
-                  </span>
-                ))}
-            </h1>
-            <p className="mx-auto max-w-187.5 text-[13px] leading-[1.85] text-pretty text-(--landing-muted) md:text-[15px]">
-              {t('home.description')}
-              <span className="font-medium whitespace-nowrap text-green-600 underline decoration-current decoration-wavy underline-offset-4">
-                {t('home.description-sheets')}
-              </span>
-              {t('home.description-split')}
-              <span className="font-medium whitespace-nowrap text-blue-600 underline decoration-current decoration-wavy underline-offset-4">
-                {t('home.description-docs')}
-              </span>
-              {t('home.description-split')}
-              <span className="font-medium whitespace-nowrap text-orange-600 underline decoration-current decoration-wavy underline-offset-4">
-                {t('home.description-slides')}
-              </span>
-              {t('home.description-split')}
-              <span className="font-medium whitespace-nowrap text-teal-600 underline decoration-current decoration-wavy underline-offset-4">
-                {t('home.scenes.bases.title')}
-              </span>
-              {t('home.description-split')}
-              <span className="font-medium whitespace-nowrap text-violet-600 underline decoration-current decoration-wavy underline-offset-4">
-                {t('home.scenes.boards.title')}
-              </span>
-              {t('home.description-and')}
-              <span className="font-medium whitespace-nowrap text-red-600 underline decoration-current decoration-wavy underline-offset-4">
-                {t('home.scenes.pdf.title')}
-              </span>
-              {t('home.description-period')}
-            </p>
-            <div className="mt-7.5 flex flex-wrap justify-center gap-4">
-              <RainbowButton render={<Link href="/guides/sheets" />}>
-                <BookTextIcon />
-                {t('navigation.documentation')}
-              </RainbowButton>
-              <RainbowButton variant="outline" render={<Link href="https://office.univer.ai" />}>
-                <FerrisWheelIcon />
-                {t('navigation.showcase')}
-              </RainbowButton>
-            </div>
-            <div className="pointer-events-none absolute inset-0 hidden lg:block dark:opacity-70" aria-hidden="true">
-              <svg viewBox="0 0 1440 600" preserveAspectRatio="none" fill="none" className="size-full">
-                <path
-                  d="M416 0V40Q416 48 410 54L366 98Q360 104 352 104H288M1440 32H1296Q1288 32 1282 38L1222 98Q1216 104 1216 112V168"
-                  className="stroke-(--landing-muted) stroke-[1.3] opacity-15 [stroke-linecap:round]"
-                />
-                <path d="M0 320H104M1328 336H1440" className="stroke-(--landing-muted) stroke-[1.3] opacity-10" />
-                {circuitProducts.map((product) => (
-                  <g key={product.id} className={product.laserClass}>
-                    <defs>
-                      <path id={`circuit-${product.id}`} d={product.path} pathLength="1000" />
-                    </defs>
-                    <use
-                      href={`#circuit-${product.id}`}
-                      className={`stroke-(--landing-muted) stroke-[1.3] [stroke-linecap:round] ${product.trackClass}`}
-                    />
-                    <use
-                      href={`#circuit-${product.id}`}
-                      className="animate-circuit-flow stroke-current stroke-[1.8] drop-shadow-[0_0_3px_currentColor] [stroke-dasharray:45_955] [stroke-linecap:round] motion-reduce:animate-none motion-reduce:opacity-25 motion-reduce:[stroke-dasharray:none]"
-                    />
-                  </g>
-                ))}
-              </svg>
-              {circuitProducts.map((product) => (
-                <svg
-                  key={product.id}
-                  data-circuit-product={product.id}
-                  viewBox="-30 -30 60 60"
-                  fill="none"
-                  className={`absolute size-14 -translate-1/2 overflow-visible ${product.positionClass}`}
-                >
-                  <g className="stroke-(--landing-line) stroke-[1.2]">
-                    <path d="M-30-10H-20M-30 0H-20M-30 10H-20M20-10H30M20 0H30M20 10H30M-10-30V-20M0-30V-20M10-30V-20M-10 20V30M0 20V30M10 20V30" />
-                    <rect
-                      x="-23"
-                      y="-23"
-                      width="46"
-                      height="46"
-                      rx="9"
-                      className="fill-(--landing-surface) stroke-(--landing-card) stroke-3 drop-shadow-[0_2px_3px_#30313912]"
-                    />
-                    <rect x="-17" y="-17" width="34" height="34" rx="5" className="fill-(--landing-surface)" />
-                    <UniverIcon
-                      name={product.icon}
-                      x={-11}
-                      y={-11}
-                      width={22}
-                      height={22}
-                      className="stroke-none text-(--landing-muted)"
-                    />
-                  </g>
-                </svg>
+        <header className="relative isolate overflow-hidden px-6 pt-16 pb-10 text-center lg:px-[20%] lg:pt-24 lg:pb-24">
+          <div className="mx-auto inline-block rounded-full bg-neutral-50 py-1 text-sm font-semibold shadow-sm dark:bg-neutral-800">
+            <span className="border-r border-neutral-300 py-1 pr-1.5 pl-3 dark:border-neutral-700">🎉</span>
+            <AnimatedShinyText className="py-1 pr-3 pl-1.5">
+              Univer Office SDK v{pkg.version} {t('home.banner-release')}
+            </AnimatedShinyText>
+          </div>
+          <h1 className="mx-auto my-6 max-w-225 text-[clamp(36px,5vw,70px)] leading-[1.14] font-normal tracking-[-0.045em] text-balance md:tracking-[-0.05em]">
+            {t('home.slogan')
+              .split('\n')
+              .map((phrase) => (
+                <span key={phrase} className="inline-block">
+                  {phrase}
+                </span>
               ))}
-            </div>
-          </header>
-
-          <section
-            id="playground"
-            aria-label={t('home.examples.eyebrow')}
-            className="mx-auto mb-4 w-[calc(100%-24px)] max-w-7xl scroll-mt-25 md:mb-8 md:w-[calc(100%-64px)]"
+          </h1>
+          <p className="mx-auto max-w-187.5 text-[13px] leading-[1.85] text-pretty text-(--landing-muted) md:text-[15px]">
+            {t('home.description')}
+            <span className="font-medium whitespace-nowrap text-green-600 underline decoration-current decoration-wavy underline-offset-4">
+              {t('home.description-sheets')}
+            </span>
+            {t('home.description-split')}
+            <span className="font-medium whitespace-nowrap text-blue-600 underline decoration-current decoration-wavy underline-offset-4">
+              {t('home.description-docs')}
+            </span>
+            {t('home.description-split')}
+            <span className="font-medium whitespace-nowrap text-orange-600 underline decoration-current decoration-wavy underline-offset-4">
+              {t('home.description-slides')}
+            </span>
+            {t('home.description-split')}
+            <span className="font-medium whitespace-nowrap text-teal-600 underline decoration-current decoration-wavy underline-offset-4">
+              {t('home.scenes.bases.title')}
+            </span>
+            {t('home.description-split')}
+            <span className="font-medium whitespace-nowrap text-violet-600 underline decoration-current decoration-wavy underline-offset-4">
+              {t('home.scenes.boards.title')}
+            </span>
+            {t('home.description-and')}
+            <span className="font-medium whitespace-nowrap text-red-600 underline decoration-current decoration-wavy underline-offset-4">
+              {t('home.scenes.pdf.title')}
+            </span>
+            {t('home.description-period')}
+          </p>
+          <div className="mt-7.5 flex flex-wrap justify-center gap-4">
+            <RainbowButton render={<Link href="/guides/sheets" />}>
+              <BookTextIcon />
+              {t('navigation.documentation')}
+            </RainbowButton>
+            <RainbowButton variant="outline" render={<Link href="https://office.univer.ai" />}>
+              <FerrisWheelIcon />
+              {t('navigation.showcase')}
+            </RainbowButton>
+          </div>
+          <div
+            className="pointer-events-none absolute inset-0 -z-10 hidden lg:block dark:opacity-70"
+            aria-hidden="true"
           >
-            <Univer tablistLabel={t('home.examples.eyebrow')} />
-          </section>
-        </div>
+            <svg
+              viewBox="0 0 1600 640"
+              preserveAspectRatio="none"
+              fill="none"
+              className="size-full [&_path]:[vector-effect:non-scaling-stroke] [&_use]:[vector-effect:non-scaling-stroke]"
+            >
+              <path
+                d="M448-48V40Q448 48 442 54L390 106Q384 112 376 112H280M1664 16H1448Q1440 16 1434 22L1382 74Q1376 80 1376 88V160"
+                className="stroke-(--landing-muted) stroke-[1.3] opacity-15 [stroke-linecap:round]"
+              />
+              <path d="M-64 320H96M1504 352H1664" className="stroke-(--landing-muted) stroke-[1.3] opacity-10" />
+              {circuitProducts.map((product) => (
+                <g key={product.id} className={product.laserClass}>
+                  <defs>
+                    <path id={`circuit-${product.id}`} d={product.path} pathLength="1000" />
+                  </defs>
+                  <use
+                    href={`#circuit-${product.id}`}
+                    className={`stroke-(--landing-muted) stroke-[1.3] [stroke-linecap:round] ${product.trackClass}`}
+                  />
+                  <use
+                    href={`#circuit-${product.id}`}
+                    className="animate-circuit-flow stroke-current stroke-[1.8] drop-shadow-[0_0_3px_currentColor] [stroke-dasharray:45_955] [stroke-linecap:round] motion-reduce:animate-none motion-reduce:opacity-25 motion-reduce:[stroke-dasharray:none]"
+                  />
+                </g>
+              ))}
+            </svg>
+            {circuitProducts.map((product) => (
+              <svg
+                key={product.id}
+                data-circuit-product={product.id}
+                viewBox="-30 -30 60 60"
+                fill="none"
+                className={`absolute size-14 -translate-1/2 overflow-visible ${product.positionClass}`}
+              >
+                <g className="stroke-(--landing-line) stroke-[1.2]">
+                  <path d="M-30-10H-20M-30 0H-20M-30 10H-20M20-10H30M20 0H30M20 10H30M-10-30V-20M0-30V-20M10-30V-20M-10 20V30M0 20V30M10 20V30" />
+                  <rect
+                    x="-23"
+                    y="-23"
+                    width="46"
+                    height="46"
+                    rx="9"
+                    className="fill-(--landing-surface) stroke-(--landing-card) stroke-3 drop-shadow-[0_2px_3px_#30313912]"
+                  />
+                  <rect x="-17" y="-17" width="34" height="34" rx="5" className="fill-(--landing-surface)" />
+                  <UniverIcon
+                    name={product.icon}
+                    x={-11}
+                    y={-11}
+                    width={22}
+                    height={22}
+                    className="stroke-none text-(--landing-muted)"
+                  />
+                </g>
+              </svg>
+            ))}
+          </div>
+        </header>
 
+        <section
+          id="playground"
+          aria-label={t('home.examples.eyebrow')}
+          className="mx-auto mb-4 w-[calc(100%-24px)] max-w-7xl scroll-mt-25 md:mb-8 md:w-[calc(100%-64px)]"
+        >
+          <Univer tablistLabel={t('home.examples.eyebrow')} />
+        </section>
         <div className="overflow-hidden px-5 pt-11 pb-3 md:pt-16 [&_section]:mb-0 [&_section>div]:flex-wrap [&_section>div]:gap-y-7 [&>div]:max-w-full">
           <LogoCloud title={t('home.logocloud.title')} />
         </div>
 
-        <div className="mx-auto flex max-w-7xl flex-col items-center gap-20 px-6 pt-14 pb-20 md:gap-32 md:pt-19 md:pb-28 [&_h2]:text-[clamp(28px,3vw,40px)] [&_h2]:font-normal [&_h2]:tracking-[-0.04em] [&_h2]:text-balance [&_section]:w-full [&_section]:max-w-none [&_section]:px-0 [&>div]:w-full">
+        <div
+          data-home-features
+          className="mx-auto flex max-w-7xl flex-col items-center gap-20 px-6 pt-14 pb-20 md:gap-32 md:pt-19 md:pb-28 [&_h2]:text-[clamp(28px,3vw,40px)] [&_h2]:font-normal [&_h2]:tracking-[-0.04em] [&_h2]:text-balance [&_section]:w-full [&_section]:max-w-none [&_section]:px-0 [&>div]:w-full"
+        >
           {/* Scenes */}
           <Scenes
             title={t('home.scenes.title')}
