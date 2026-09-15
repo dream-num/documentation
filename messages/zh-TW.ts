@@ -304,7 +304,7 @@ const zhTWMessages = {
     cta: {
       title: '下一代 Office 體驗，\n由你創造。',
       description:
-        '用 Univer Office SDK 自由組合試算表、文件與更多 Office 能力，讓人類與 AI Agent 在你的產品裡共同創造。',
+        '用 Univer Office SDK 自由組合試算表、文件與更多 Office 能力，\n讓人類與 AI Agent 在你的產品裡共同創造。',
       start: '開始打造',
     },
     features: {

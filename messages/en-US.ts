@@ -307,7 +307,7 @@ const enUSMessages = {
     cta: {
       title: 'The next Office experience.\nYours to create.',
       description:
-        'Compose spreadsheets, documents, and more with Univer Office SDK. Build a product where people and AI agents create together.',
+        'Compose spreadsheets, documents, and more with Univer Office SDK.\nBuild a product where people and AI agents create together.',
       start: 'Start building',
     },
     features: {

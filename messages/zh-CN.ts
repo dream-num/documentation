@@ -304,7 +304,7 @@ const zhCNMessages = {
     cta: {
       title: '下一代 Office 体验，\n由你创造。',
       description:
-        '用 Univer Office SDK 自由组合电子表格、文档与更多 Office 能力，让人类与 AI Agent 在你的产品里共同创造。',
+        '用 Univer Office SDK 自由组合电子表格、文档与更多 Office 能力，\n让人类与 AI Agent 在你的产品里共同创造。',
       start: '开始构建',
     },
     features: {

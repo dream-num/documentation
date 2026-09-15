@@ -311,7 +311,7 @@ const esESMessages = {
     cta: {
       title: 'La próxima experiencia Office.\nCréela usted.',
       description:
-        'Combine hojas de cálculo, documentos y más con Univer Office SDK. Cree un producto donde las personas y los agentes de IA creen juntos.',
+        'Combine hojas de cálculo, documentos y más con Univer Office SDK.\nCree un producto donde las personas y los agentes de IA creen juntos.',
       start: 'Empezar a crear',
     },
     features: {

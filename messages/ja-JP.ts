@@ -308,7 +308,7 @@ const jaJPMessages = {
     cta: {
       title: '次の Office 体験を、\nあなたの手で。',
       description:
-        'Univer Office SDK でスプレッドシート、ドキュメントなどの機能を自由に組み合わせ、人と AI Agent がともに創造する製品をつくりましょう。',
+        'Univer Office SDK でスプレッドシート、ドキュメントなどの機能を自由に組み合わせ、\n人と AI Agent がともに創造する製品をつくりましょう。',
       start: '開発を始める',
     },
     features: {

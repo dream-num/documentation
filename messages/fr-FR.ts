@@ -310,7 +310,7 @@ const frFRMessages = {
     cta: {
       title: 'La prochaine expérience Office.\nÀ vous de la créer.',
       description:
-        'Combinez feuilles de calcul, documents et autres fonctionnalités avec Univer Office SDK. Créez un produit où humains et agents IA créent ensemble.',
+        'Combinez feuilles de calcul, documents et autres fonctionnalités avec Univer Office SDK.\nCréez un produit où humains et agents IA créent ensemble.',
       start: 'Commencer à créer',
     },
     features: {

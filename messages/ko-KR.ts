@@ -307,7 +307,7 @@ const koKRMessages = {
     cta: {
       title: '다음 세대의 Office 경험,\n당신이 만드세요.',
       description:
-        'Univer Office SDK로 스프레드시트, 문서 등의 기능을 자유롭게 조합하세요. 사람과 AI 에이전트가 함께 창조하는 제품을 만드세요.',
+        'Univer Office SDK로 스프레드시트, 문서 등의 기능을 자유롭게 조합하세요.\n사람과 AI 에이전트가 함께 창조하는 제품을 만드세요.',
       start: '만들기 시작',
     },
     features: {
