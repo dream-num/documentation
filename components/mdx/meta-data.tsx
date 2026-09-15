@@ -154,9 +154,7 @@ export function MetaData(props: {
   const t = useTranslations()
   const { preset = [], plugins = [], server = false, mobile = false } = meta
 
-  // If we have presets, default to 'preset', otherwise 'plugin'.
-  // If we have both, user can switch.
-  const [mode, setMode] = useState<'preset' | 'plugin'>(preset.length > 0 ? 'preset' : 'plugin')
+  const [mode, setMode] = useState<'preset' | 'plugin'>(plugins.length > 0 ? 'plugin' : 'preset')
 
   const showTabs = preset.length > 0 && plugins.length > 0
   const currentItems = mode === 'preset' ? preset : plugins
