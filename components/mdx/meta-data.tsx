@@ -212,27 +212,27 @@ export function MetaData(props: {
                 className={clsx(
                   `relative flex cursor-pointer items-center gap-1.5 rounded-sm px-2.5 py-1 text-xs font-medium transition-all outline-none focus-visible:ring-2`,
                   'focus-visible:ring-primary/50',
-                  mode === 'preset'
-                    ? `bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white`
-                    : `text-neutral-500 hover:bg-neutral-200/50 dark:text-neutral-400 hover:dark:bg-neutral-700/50`,
-                )}
-                onClick={() => setMode('preset')}
-              >
-                <Box className="size-3.5" />
-                {t('mdx-meta-data.preset-mode')}
-              </button>
-              <button
-                onClick={() => setMode('plugin')}
-                className={clsx(
-                  `relative flex cursor-pointer items-center gap-1.5 rounded-sm px-2.5 py-1 text-xs font-medium transition-all outline-none focus-visible:ring-2`,
-                  'focus-visible:ring-primary/50',
                   mode === 'plugin'
                     ? `bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white`
                     : `text-neutral-500 hover:bg-neutral-200/50 dark:text-neutral-400 hover:dark:bg-neutral-700/50`,
                 )}
+                onClick={() => setMode('plugin')}
               >
                 <Puzzle className="size-3.5" />
                 {t('mdx-meta-data.plugin-mode')}
+              </button>
+              <button
+                onClick={() => setMode('preset')}
+                className={clsx(
+                  `relative flex cursor-pointer items-center gap-1.5 rounded-sm px-2.5 py-1 text-xs font-medium transition-all outline-none focus-visible:ring-2`,
+                  'focus-visible:ring-primary/50',
+                  mode === 'preset'
+                    ? `bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white`
+                    : `text-neutral-500 hover:bg-neutral-200/50 dark:text-neutral-400 hover:dark:bg-neutral-700/50`,
+                )}
+              >
+                <Box className="size-3.5" />
+                {t('mdx-meta-data.preset-mode')}
               </button>
             </div>
           ) : (

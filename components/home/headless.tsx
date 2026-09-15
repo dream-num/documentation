@@ -225,7 +225,7 @@ export function Headless(props: IProps) {
     presetLabel,
   } = props
 
-  const [mode, setMode] = useState<'preset' | 'plugin'>('preset')
+  const [mode, setMode] = useState<'preset' | 'plugin'>('plugin')
   const [copied, setCopied] = useState(false)
 
   async function handleCopy() {
@@ -262,8 +262,8 @@ export function Headless(props: IProps) {
   ]
 
   const tabs = [
-    { key: 'preset' as const, label: presetLabel },
     { key: 'plugin' as const, label: pluginLabel },
+    { key: 'preset' as const, label: presetLabel },
   ]
 
   return (
