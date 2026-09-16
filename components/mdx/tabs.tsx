@@ -19,17 +19,10 @@ interface ITabsProps {
 
 export function Tabs({ items, children, className, variant = 'default' }: ITabsProps) {
   function getChildLabel(child: ReactNode, fallback: string) {
-    if (!isValidElement<ITabProps>(child)) return fallback
+    if (!isValidElement<ITabProps>(child)) {
+      return fallback
+    }
     return child.props.label ?? fallback
-  }
-
-  function hasCodeBlock(node: ReactNode): boolean {
-    if (!node) return false
-    if (Array.isArray(node)) return node.some(hasCodeBlock)
-    if (!isValidElement<{ children?: ReactNode }>(node)) return false
-    if (node.type === 'pre') return true
-
-    return hasCodeBlock(node.props.children)
   }
 
   const childrenArray = Children.toArray(children)
@@ -66,7 +59,6 @@ export function Tabs({ items, children, className, variant = 'default' }: ITabsP
       </TabsList>
       {childrenArray.map((child, index) => {
         const label = labels[index] ?? `Tab ${index + 1}`
-        const codeOnly = hasCodeBlock(child)
 
         return (
           <TabsContent
@@ -74,9 +66,7 @@ export function Tabs({ items, children, className, variant = 'default' }: ITabsP
               'm-0',
               install
                 ? 'p-0 *:data-code-block:my-0'
-                : codeOnly
-                  ? `p-0 *:data-code-block:my-0 *:data-code-block:rounded-none *:data-code-block:border-0 *:data-code-block:shadow-none`
-                  : 'p-4',
+                : 'p-4 has-[>[data-code-block]:only-child]:p-0 [&>[data-code-block]:only-child]:my-0 [&>[data-code-block]:only-child]:rounded-none [&>[data-code-block]:only-child]:border-0 [&>[data-code-block]:only-child]:shadow-none',
             )}
             key={label}
             keepMounted
