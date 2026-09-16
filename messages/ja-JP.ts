@@ -216,7 +216,7 @@ const jaJPMessages = {
       },
       feature6: {
         title: 'デプロイ',
-        desc: 'Docker Compose と Kubernetes による本番デプロイをサポート。',
+        desc: 'Server SDK の必要なバックエンド機能を組み合わせ、自分のアプリとしてデプロイできます。',
       },
       feature7: {
         title: 'ダークモード',

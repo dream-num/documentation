@@ -139,3 +139,22 @@ Consultez l’[index des exemples](/server/collaboration/examples) pour les comm
 Montez le History Endpoint avec les endpoints collaboratifs. `historyServerUrl` est le préfixe commun de `/{unitId}/list`, `/{unitId}/creators` et `/{unitId}/cs`, avec `/universer-api/history` par défaut. Si vous utilisez un autre chemin, configurez la même URL dans le plugin History de l’hôte et le plugin History UI du produit.
 
 La restauration passe par une mutation collaborative, sans endpoint REST de restauration distinct. Conservez la configuration du chargement, de la soumission et des autorisations collaboratives. La comparaison en lecture seule de snapshots complets avec `createUnitComparisonEngine()` ne nécessite aucun service d’historique et ne conserve ni ne restaure les versions.
+
+## Intégration de Live Share [#live-share]
+
+Live Share synchronise la vue du présentateur avec les participants du même Sheet, en réutilisant la Session et la salle Unit. Il se distingue de Presence, qui affiche les curseurs distants sans déplacer votre vue.
+
+**Limite de version :** `@univerjs-pro/collaboration-endpoint@1.0.0-rc.0` ne traite que la Presence des curseurs pour `INGEST`, pas `liveshare.*`. Aucun service Live Share prêt à enregistrer n’est fourni. Implémentez le protocole ci-dessous dans votre backend ou utilisez une version qui le prend explicitement en charge. Enregistrer `UniverLiveSharePlugin` ne suffit pas.
+
+Terminez l’[intégration navigateur](/server/collaboration/browser-integration) et la configuration de l’[identité et des autorisations](/server/collaboration/identity-and-authorization). Côté navigateur, enregistrez `UniverLiveSharePlugin` après la collaboration et la licence, avant de charger le Sheet partagé. Consultez le [guide Web SDK](/guides/sheets/features/live-share).
+
+| Événement client | Responsabilité du backend |
+| --- | --- |
+| `liveshare.request_host` | Autoriser la présentation avec la Session authentifiée et l’Unit rejoint, choisir le présentateur et diffuser `liveshare.new_host`. |
+| `liveshare.operation` | Accepter uniquement les opérations du présentateur actuel, ajouter son member ID fiable, diffuser dans l’Unit et mettre en cache la dernière valeur de chaque operation ID. |
+| `liveshare.fetch_operations` | Renvoyer le présentateur actuel et les opérations en cache à un membre autorisé qui rejoint la salle ou se reconnecte. |
+| `liveshare.terminate` | Vérifier le droit de terminer la présentation, effacer son état et prévenir les participants. |
+
+Identifiez la connexion avec le `memberID` de la Session, pas un ID utilisateur fourni par le client. Vérifiez les droits d’accès et de présentation, les operation ID et les paramètres avant transmission. Effacez ou transférez l’état au départ du présentateur. L’état de la vue est temporaire et ne doit pas devenir un changeset du document.
+
+Avec deux sessions navigateur indépendantes sur le même Sheet, vérifiez le début de présentation, le changement de feuille, le défilement et le zoom, l’arrêt et la reprise du suivi, la reconnexion d’un participant et le départ du présentateur. Vérifiez aussi qu’un membre non autorisé ne peut ni présenter ni injecter des opérations. **La synchronisation des cellules ne prouve pas que Live Share fonctionne.**

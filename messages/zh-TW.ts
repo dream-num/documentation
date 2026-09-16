@@ -214,7 +214,7 @@ const zhTWMessages = {
       },
       feature6: {
         title: '部署',
-        desc: '支持 Docker Compose 和 Kubernetes 生產部署。',
+        desc: '透過 Server SDK 按需組合後端能力，並在自己的應用程式中部署。',
       },
       feature7: {
         title: '深色模式',

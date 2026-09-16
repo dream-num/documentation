@@ -203,54 +203,81 @@ import('@univerjs/watermark').then(({ UniverWatermarkPlugin }) => {
 
 私たちの[公式デモ](https://github.com/dream-num/univer/blob/0d849012594882307186f33734b8b89d80a729e9/examples/src/sheets/main.ts)でもこの最適化技術を使用しており、参考にしていただけます。
 
-### モバイル対応
+### モバイル対応 [#mobile-support]
 
-Univer は**実験的**なモバイル対応を提供しています。モバイル版はタッチ操作向けに最適化されており、モバイル端末に適した UI コンポーネントと操作体験を提供します。
-
-- **UI プラグイン**：端末ごとの操作方法に対応するため、一部の UI プラグインはデスクトップ版とモバイル版の 2 種類を提供します。これらは同一の npm パッケージ内に含まれており、異なるエクスポートパスで区別されます。
-- **コアロジックプラグイン**：数式エンジン（`UniverFormulaEnginePlugin`）やレンダリングエンジン（`UniverRenderEnginePlugin`）などは、デスクトップとモバイルで共通のため、バージョンを分ける必要はありません。
-
-<Callout type="info">
-  モバイル用とデスクトップ用のプラグインは、完全に別のパッケージではなく、同一パッケージがプラットフォームごとに異なる形で提供されるものです。たとえば
-  `@univerjs/sheets-ui` は、デスクトップ用の `UniverSheetsUIPlugin` とモバイル用の `UniverSheetsMobileUIPlugin`
-  の両方を提供しています。
+<Callout type="warning">
+  以下のモバイルプラグインをエクスポートする SDK パッケージが必要です。すべての `@univerjs/*` と `@univerjs-pro/*` の依存関係を**同じバージョン**に揃えてください。
 </Callout>
 
-<Callout type="warning" title="注意事項">
-  - モバイル対応は現在実験段階であり、一部機能が不完全な場合があります。 - モバイル UI プラグインとデスクトップ UI
-  プラグインは同時に使用できません。端末種別に応じて適切なプラグインを選択してください。 -
-  本番導入前に十分なテストを行うことを推奨します。
-</Callout>
+Univer Sheets のタッチ操作には**モバイル UI プラグイン**を使用します。[^mobile-ui-mode] エディターを作成する前に UI モードを選択してください。
 
-#### モバイル用プラグインへの切り替え
+Sheets のモバイル対応は引き続き**実験段階**です。対象端末でアプリに必要な機能を検証してください。
 
-該当する UI プラグインをモバイル版に置き換えるだけです：
+上のプラグインモードの例で、次の UI のインポートと登録を `createUnit()` の前に**置き換えます**。初期化済みのデスクトップエディターに追加しないでください。モデル、エンジン、言語ファイル、CSS、Facade のインポートは維持します。両クラスは**同じパッケージの入口**からの名前付きエクスポートです。
 
 ```typescript
-import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui' // [!code --]
-import { UniverSheetsMobileUIPlugin } from '@univerjs/sheets-ui' // [!code ++]
+import { UniverSheetsFormulaMobileUIPlugin } from '@univerjs/sheets-formula-ui'
+import { UniverSheetsNumfmtMobileUIPlugin } from '@univerjs/sheets-numfmt-ui'
+import { UniverSheetsMobileUIPlugin } from '@univerjs/sheets-ui'
+import { UniverMobileUIPlugin } from '@univerjs/ui'
 
-univer.registerPlugin(UniverSheetsUIPlugin) // [!code --]
-univer.registerPlugin(UniverSheetsMobileUIPlugin) // [!code ++]
+univer.registerPlugin(UniverMobileUIPlugin, { container: 'app' })
+univer.registerPlugin(UniverSheetsMobileUIPlugin)
+univer.registerPlugin(UniverSheetsFormulaMobileUIPlugin)
+univer.registerPlugin(UniverSheetsNumfmtMobileUIPlugin)
+```
+
+**Sheets では `UniverDocsUIPlugin` を維持してください。** `UniverSheetsMobileUIPlugin` はセル内の文書編集にこのプラグインを使用します。独立した Docs エディターでは `UniverDocsMobileUIPlugin` を使用します。
+
+現在の `UniverSheetsCorePreset` と `UniverDocsCorePreset` はデスクトップ UI を登録し、`mobile: true` オプションを持ちません。モバイルではプラグインを明示的に組み合わせます。デスクトッププリセットの後にモバイルプラグインを追加しても UI は置き換わりません。
+
+#### プラグイン対応表
+
+必要な機能だけを登録し、モデルプラグインと依存関係は維持してください。モバイル UI の提供は、両方の操作画面が同一であることを意味しません。Pro 機能には引き続きライセンスが必要です。バックエンドが必要な機能は、アプリに [Univer Server SDK](/server) で対応する機能を組み込んでください。
+
+| パッケージ | デスクトップの登録 | モバイルの登録 |
+| --- | --- | --- |
+| `@univerjs/ui` | `UniverUIPlugin` | `UniverMobileUIPlugin` |
+| `@univerjs/sheets-ui` | `UniverSheetsUIPlugin` | `UniverSheetsMobileUIPlugin` |
+| `@univerjs/sheets-formula-ui` | `UniverSheetsFormulaUIPlugin` | `UniverSheetsFormulaMobileUIPlugin` |
+| `@univerjs/sheets-numfmt-ui` | `UniverSheetsNumfmtUIPlugin` | `UniverSheetsNumfmtMobileUIPlugin` |
+| `@univerjs/drawing-ui` | `UniverDrawingUIPlugin` | `UniverDrawingMobileUIPlugin` |
+| `@univerjs/thread-comment-ui` | `UniverThreadCommentUIPlugin` | `UniverThreadCommentMobileUIPlugin` |
+| `@univerjs-pro/shape-editor-ui` | `UniverShapeEditorUIPlugin` | `UniverShapeEditorMobileUIPlugin` |
+| `@univerjs-pro/chart-ui` | `UniverChartUIPlugin` | `UniverChartMobileUIPlugin` |
+| `@univerjs-pro/exchange-client` | `UniverExchangeClientPlugin` | `UniverExchangeClientMobileUIPlugin` |
+| `@univerjs/sheets-conditional-formatting-ui` | `UniverSheetsConditionalFormattingUIPlugin` | `UniverSheetsConditionalFormattingMobileUIPlugin` |
+| `@univerjs/sheets-crosshair-highlight` | `UniverSheetsCrosshairHighlightPlugin` | `UniverSheetsCrosshairHighlightMobileUIPlugin` |
+| `@univerjs/sheets-data-validation-ui` | `UniverSheetsDataValidationUIPlugin` | `UniverSheetsDataValidationMobileUIPlugin` |
+| `@univerjs/sheets-drawing-ui` | `UniverSheetsDrawingUIPlugin` | `UniverSheetsDrawingMobileUIPlugin` |
+| `@univerjs/sheets-filter-ui` | `UniverSheetsFilterUIPlugin` | `UniverSheetsFilterMobileUIPlugin` |
+| `@univerjs/sheets-find-replace` | `UniverSheetsFindReplacePlugin` | `UniverSheetsFindReplaceMobileUIPlugin` |
+| `@univerjs/sheets-hyper-link-ui` | `UniverSheetsHyperLinkUIPlugin` | `UniverSheetsHyperLinkMobileUIPlugin` |
+| `@univerjs/sheets-sort-ui` | `UniverSheetsSortUIPlugin` | `UniverSheetsSortMobileUIPlugin` |
+| `@univerjs/sheets-table-ui` | `UniverSheetsTableUIPlugin` | `UniverSheetsTableMobileUIPlugin` |
+| `@univerjs/sheets-thread-comment-ui` | `UniverSheetsThreadCommentUIPlugin` | `UniverSheetsThreadCommentMobileUIPlugin` |
+| `@univerjs-pro/sheets-chart-ui` | `UniverSheetsChartUIPlugin` | `UniverSheetsChartMobileUIPlugin` |
+| `@univerjs-pro/sheets-exchange-client` | `UniverSheetsExchangeClientPlugin` | `UniverSheetsExchangeClientMobileUIPlugin` |
+| `@univerjs-pro/sheets-history-ui` | `UniverSheetsHistoryUIPlugin` | `UniverSheetsHistoryMobileUIPlugin` |
+| `@univerjs-pro/sheets-outline-ui` | `UniverSheetsOutlineUIPlugin` | `UniverSheetsOutlineMobileUIPlugin` |
+| `@univerjs-pro/sheets-pivot-ui` | `UniverSheetsPivotTableUIPlugin` | `UniverSheetsPivotTableMobileUIPlugin` |
+| `@univerjs-pro/sheets-print` | `UniverSheetsPrintPlugin` | `UniverSheetsPrintMobileUIPlugin` |
+| `@univerjs-pro/sheets-shape-ui` | `UniverSheetsShapeUIPlugin` | `UniverSheetsShapeMobileUIPlugin` |
+| `@univerjs-pro/sheets-sparkline-ui` | `UniverSheetSparklineUIPlugin` | `UniverSheetSparklineMobileUIPlugin` |
+| `@univerjs/find-replace` | `UniverFindReplacePlugin` | `UniverFindReplaceMobileUIPlugin` |
+
+#### コンテナーとタッチ操作
+
+コンテナーの高さを明示し、ページの viewport を設定してください。`100dvh` は動的なビューポートの高さに追従します。対象のモバイルブラウザーでスクロール、ピンチ操作、文字選択、クリップボード、ソフトキーボード表示時の配置を確認してください。幅を狭めるだけではモバイルプラグインに切り替わりません。
+
+`UniverMobileUIPlugin` の既定値は `disableAutoFocus: true` で、初期化時にエディターが自動でフォーカスを取得することを防ぎます。
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<div id="app" style="height: 100dvh"></div>
 ```
 
 <PlaygroundFrame lang="ja-JP" slug="sheets/mobile-via-plugin" clickToShow />
-
-#### デスクトップ／モバイル プラグイン対応表
-
-以下の表は、モバイル版を提供している UI プラグインを一覧にしたものです。端末種別に応じて動的にプラグインを選択したい場合は、この対応表を参照してください。
-
-| デスクトップ版プラグイン                    | モバイル版プラグイン                              | パッケージ                                   |
-| ------------------------------------------- | ------------------------------------------------- | -------------------------------------------- |
-| `UniverUIPlugin`                            | `UniverMobileUIPlugin`                            | `@univerjs/ui`                               |
-| `UniverSheetsUIPlugin`                      | `UniverSheetsMobileUIPlugin`                      | `@univerjs/sheets-ui`                        |
-| `UniverSheetsFilterUIPlugin`                | `UniverSheetsFilterMobileUIPlugin`                | `@univerjs/sheets-filter-ui`                 |
-| `UniverSheetsDataValidationUIPlugin`        | `UniverSheetsDataValidationMobileUIPlugin`        | `@univerjs/sheets-data-validation-ui`        |
-| `UniverSheetsConditionalFormattingUIPlugin` | `UniverSheetsConditionalFormattingMobileUIPlugin` | `@univerjs/sheets-conditional-formatting-ui` |
-| `UniverThreadCommentUIPlugin` | `UniverThreadCommentMobileUIPlugin` | `@univerjs/thread-comment-ui` |
-| `UniverSheetsThreadCommentUIPlugin` | `UniverSheetsThreadCommentMobileUIPlugin` | `@univerjs/sheets-thread-comment-ui` |
-
-後続の機能ドキュメントで、特定機能にモバイル対応プラグインが存在する場合は、該当セクションで案内します。
 
 ### CDN からのインポート
 
@@ -372,3 +399,5 @@ alpha/beta バージョンを使用中に問題が発生したり、フィード
 [^facade-entry]: Facade は、登録済みプラグインの機能をアプリケーションから操作する API です。Facade のエントリをインポートすると API メソッドが追加されますが、機能プラグイン自体は登録されません。
 
 [^peer-dependency]: `peerDependencies` は、ホストアプリケーションが互換性のあるバージョンを用意する依存パッケージです。Univer とアプリケーションが React などのライブラリを共有できます。
+
+[^mobile-ui-mode]: モバイル UI プラグインは初期化時にタッチ用の部品とサービスを選択します。端末の自動判定や、ウィンドウサイズ変更による既存インスタンスの切り替えは行いません。モードを変更する場合は文書の状態を保存し、旧インスタンスを破棄してから選択したプラグインで初期化します。

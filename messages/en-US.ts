@@ -214,7 +214,7 @@ const enUSMessages = {
       },
       feature6: {
         title: 'Deployment',
-        desc: 'Docker Compose and Kubernetes support for production.',
+        desc: 'Compose backend capabilities with Server SDK and deploy them in your own application.',
       },
       feature7: {
         title: 'Dark Mode',

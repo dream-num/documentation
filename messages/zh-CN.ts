@@ -214,7 +214,7 @@ const zhCNMessages = {
       },
       feature6: {
         title: '部署',
-        desc: '支持 Docker Compose 和 Kubernetes 生产部署。',
+        desc: '通过 Server SDK 按需组合后端能力，并在自己的应用中部署。',
       },
       feature7: {
         title: '深色模式',

@@ -175,52 +175,81 @@ import('@univerjs/watermark').then(({ UniverWatermarkPlugin }) => {
 
 Univer 的 [官方 demo](https://github.com/dream-num/univer/blob/0d849012594882307186f33734b8b89d80a729e9/examples/src/sheets/main.ts) 就使用了这样的优化技巧，可供参考。
 
-### 移动端适配
+### 移动端适配 [#mobile-support]
 
-Univer 提供了**实验性质**的移动端支持。移动端版本针对触摸交互进行了优化，提供了适配移动设备的 UI 组件和交互体验。
-
-- **UI 插件**：为了适配不同设备的交互方式，部分 UI 插件提供了桌面端和移动端两个版本。这两个版本在同一个 npm 包中，通过不同的导出路径区分。
-- **核心逻辑插件**：如公式引擎（`UniverFormulaEnginePlugin`）、渲染引擎（`UniverRenderEnginePlugin`）等，在桌面端和移动端保持一致，无需区分版本。
-
-<Callout type="info">
-  移动端与桌面端插件并非两个完全独立的包，而是同一个包在不同平台的表现形式。例如 `@univerjs/sheets-ui` 既提供了桌面端的 `UniverSheetsUIPlugin`，也提供了移动端的 `UniverSheetsMobileUIPlugin`。
+<Callout type="warning">
+  这些示例要求所安装的 SDK 包包含下列移动端导出。所有 `@univerjs/*` 和 `@univerjs-pro/*` 依赖应保持**相同版本**。
 </Callout>
 
-<Callout type="warning" title="注意事项">
-  - 移动端支持目前处于实验阶段，部分功能可能不够完善。
-  - 移动端 UI 插件与桌面端 UI 插件不能同时使用，需要根据设备类型选择对应的插件。
-  - 建议在实际部署前进行充分的测试。
-</Callout>
+在 Univer Sheets 中使用**移动端 UI 插件**提供触摸操作界面。[^mobile-ui-mode] 请在创建编辑器前确定 UI 模式。
 
-<PlaygroundFrame lang="zh-CN" slug="sheets/mobile-via-plugin" clickToShow />
+Sheets 移动端支持仍属于**实验性质**，请在目标设备上验证应用实际使用的功能。
 
-#### 切换至移动端插件
-
-只需将相应的 UI 插件替换为移动端版本即可：
+在上方插件模式示例中，**替换**以下 UI 插件的导入和注册，并在 `createUnit()` 前完成；不要追加到已初始化的桌面端编辑器中。保留模型插件、引擎、语言包、CSS 和 Facade 导入。桌面端和移动端类是**同一个包入口**的不同具名导出。
 
 ```typescript
-import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui' // [!code --]
-import { UniverSheetsMobileUIPlugin } from '@univerjs/sheets-ui' // [!code ++]
+import { UniverSheetsFormulaMobileUIPlugin } from '@univerjs/sheets-formula-ui'
+import { UniverSheetsNumfmtMobileUIPlugin } from '@univerjs/sheets-numfmt-ui'
+import { UniverSheetsMobileUIPlugin } from '@univerjs/sheets-ui'
+import { UniverMobileUIPlugin } from '@univerjs/ui'
 
-univer.registerPlugin(UniverSheetsUIPlugin) // [!code --]
-univer.registerPlugin(UniverSheetsMobileUIPlugin) // [!code ++]
+univer.registerPlugin(UniverMobileUIPlugin, { container: 'app' })
+univer.registerPlugin(UniverSheetsMobileUIPlugin)
+univer.registerPlugin(UniverSheetsFormulaMobileUIPlugin)
+univer.registerPlugin(UniverSheetsNumfmtMobileUIPlugin)
 ```
 
-#### 桌面端与移动端插件对照
+**Sheets 中保留 `UniverDocsUIPlugin`。** `UniverSheetsMobileUIPlugin` 依赖它提供单元格内的文档编辑能力。独立的 Docs 编辑器才使用 `UniverDocsMobileUIPlugin`。
 
-下表列出了所有提供移动端版本的 UI 插件。如果你需要根据设备类型动态选择插件，可以参考以下对照表：
+当前 `UniverSheetsCorePreset` 和 `UniverDocsCorePreset` 注册的是桌面端 UI 插件，没有 `mobile: true` 选项。移动端需要显式组合插件；在桌面端预设之后追加移动端插件不会替换原有 UI。
 
-| 桌面端插件 | 移动端插件 | 来源包 |
+#### 插件对照
+
+仅注册需要的功能，并保留其模型插件和必要依赖。存在移动端 UI 导出不代表两端的操作界面完全相同。Pro 功能仍需相应的许可证；需要后端的功能，请在业务应用中通过 [Univer Server SDK](/server) 接入相应能力。
+
+| 来源包 | 桌面端注册 | 移动端注册 |
 | --- | --- | --- |
-| `UniverUIPlugin` | `UniverMobileUIPlugin` | `@univerjs/ui` |
-| `UniverSheetsUIPlugin` | `UniverSheetsMobileUIPlugin` | `@univerjs/sheets-ui` |
-| `UniverSheetsFilterUIPlugin` | `UniverSheetsFilterMobileUIPlugin` | `@univerjs/sheets-filter-ui` |
-| `UniverSheetsDataValidationUIPlugin` | `UniverSheetsDataValidationMobileUIPlugin` | `@univerjs/sheets-data-validation-ui` |
-| `UniverSheetsConditionalFormattingUIPlugin` | `UniverSheetsConditionalFormattingMobileUIPlugin` | `@univerjs/sheets-conditional-formatting-ui` |
-| `UniverThreadCommentUIPlugin` | `UniverThreadCommentMobileUIPlugin` | `@univerjs/thread-comment-ui` |
-| `UniverSheetsThreadCommentUIPlugin` | `UniverSheetsThreadCommentMobileUIPlugin` | `@univerjs/sheets-thread-comment-ui` |
+| `@univerjs/ui` | `UniverUIPlugin` | `UniverMobileUIPlugin` |
+| `@univerjs/sheets-ui` | `UniverSheetsUIPlugin` | `UniverSheetsMobileUIPlugin` |
+| `@univerjs/sheets-formula-ui` | `UniverSheetsFormulaUIPlugin` | `UniverSheetsFormulaMobileUIPlugin` |
+| `@univerjs/sheets-numfmt-ui` | `UniverSheetsNumfmtUIPlugin` | `UniverSheetsNumfmtMobileUIPlugin` |
+| `@univerjs/drawing-ui` | `UniverDrawingUIPlugin` | `UniverDrawingMobileUIPlugin` |
+| `@univerjs/thread-comment-ui` | `UniverThreadCommentUIPlugin` | `UniverThreadCommentMobileUIPlugin` |
+| `@univerjs-pro/shape-editor-ui` | `UniverShapeEditorUIPlugin` | `UniverShapeEditorMobileUIPlugin` |
+| `@univerjs-pro/chart-ui` | `UniverChartUIPlugin` | `UniverChartMobileUIPlugin` |
+| `@univerjs-pro/exchange-client` | `UniverExchangeClientPlugin` | `UniverExchangeClientMobileUIPlugin` |
+| `@univerjs/sheets-conditional-formatting-ui` | `UniverSheetsConditionalFormattingUIPlugin` | `UniverSheetsConditionalFormattingMobileUIPlugin` |
+| `@univerjs/sheets-crosshair-highlight` | `UniverSheetsCrosshairHighlightPlugin` | `UniverSheetsCrosshairHighlightMobileUIPlugin` |
+| `@univerjs/sheets-data-validation-ui` | `UniverSheetsDataValidationUIPlugin` | `UniverSheetsDataValidationMobileUIPlugin` |
+| `@univerjs/sheets-drawing-ui` | `UniverSheetsDrawingUIPlugin` | `UniverSheetsDrawingMobileUIPlugin` |
+| `@univerjs/sheets-filter-ui` | `UniverSheetsFilterUIPlugin` | `UniverSheetsFilterMobileUIPlugin` |
+| `@univerjs/sheets-find-replace` | `UniverSheetsFindReplacePlugin` | `UniverSheetsFindReplaceMobileUIPlugin` |
+| `@univerjs/sheets-hyper-link-ui` | `UniverSheetsHyperLinkUIPlugin` | `UniverSheetsHyperLinkMobileUIPlugin` |
+| `@univerjs/sheets-sort-ui` | `UniverSheetsSortUIPlugin` | `UniverSheetsSortMobileUIPlugin` |
+| `@univerjs/sheets-table-ui` | `UniverSheetsTableUIPlugin` | `UniverSheetsTableMobileUIPlugin` |
+| `@univerjs/sheets-thread-comment-ui` | `UniverSheetsThreadCommentUIPlugin` | `UniverSheetsThreadCommentMobileUIPlugin` |
+| `@univerjs-pro/sheets-chart-ui` | `UniverSheetsChartUIPlugin` | `UniverSheetsChartMobileUIPlugin` |
+| `@univerjs-pro/sheets-exchange-client` | `UniverSheetsExchangeClientPlugin` | `UniverSheetsExchangeClientMobileUIPlugin` |
+| `@univerjs-pro/sheets-history-ui` | `UniverSheetsHistoryUIPlugin` | `UniverSheetsHistoryMobileUIPlugin` |
+| `@univerjs-pro/sheets-outline-ui` | `UniverSheetsOutlineUIPlugin` | `UniverSheetsOutlineMobileUIPlugin` |
+| `@univerjs-pro/sheets-pivot-ui` | `UniverSheetsPivotTableUIPlugin` | `UniverSheetsPivotTableMobileUIPlugin` |
+| `@univerjs-pro/sheets-print` | `UniverSheetsPrintPlugin` | `UniverSheetsPrintMobileUIPlugin` |
+| `@univerjs-pro/sheets-shape-ui` | `UniverSheetsShapeUIPlugin` | `UniverSheetsShapeMobileUIPlugin` |
+| `@univerjs-pro/sheets-sparkline-ui` | `UniverSheetSparklineUIPlugin` | `UniverSheetSparklineMobileUIPlugin` |
+| `@univerjs/find-replace` | `UniverFindReplacePlugin` | `UniverFindReplaceMobileUIPlugin` |
 
-在后续功能文档中，如果某个功能存在移动端的适配插件，我们会在对应的章节中进行说明。
+#### 容器与触摸交互
+
+为容器指定明确高度，并配置页面 viewport。`100dvh` 随动态视口高度变化。请在目标移动浏览器上检查滚动、双指缩放、文字选择、剪贴板访问和软键盘弹出后的布局。仅缩小桌面端编辑器不会切换到移动端插件。
+
+`UniverMobileUIPlugin` 默认使用 `disableAutoFocus: true`，避免编辑器在初始化时自动获取焦点。
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<div id="app" style="height: 100dvh"></div>
+```
+
+<PlaygroundFrame lang="zh-CN" slug="sheets/mobile-via-plugin" clickToShow />
 
 ### 通过 CDN 使用 Univer
 
@@ -339,3 +368,5 @@ npm install @univerjs/<package-name>@beta # Beta 版本
 [^facade-entry]: Facade 是面向应用的 API，封装已注册插件的能力。导入 Facade 入口会扩展 API 方法，但不会代替功能插件的注册。
 
 [^peer-dependency]: `peerDependencies` 表示需要由宿主项目提供兼容版本的依赖。这样 Univer 可以与应用共享 React 等库，而不是各自携带一份。
+
+[^mobile-ui-mode]: 移动端 UI 插件在初始化时选择触摸控件和移动端服务，不会自动判断设备，也不会在窗口尺寸变化时切换已有实例。若要切换模式，应先保留文档状态，销毁旧实例，再使用所选插件组合初始化。

@@ -217,7 +217,7 @@ const esESMessages = {
       },
       feature6: {
         title: 'Implementación',
-        desc: 'Soporte de Docker Compose y Kubernetes para producción.',
+        desc: 'Combina capacidades de backend con Server SDK y despliega tu propia aplicación.',
       },
       feature7: {
         title: 'Modo oscuro',

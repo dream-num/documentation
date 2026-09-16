@@ -218,7 +218,7 @@ const ruRUMessages = {
       },
       feature6: {
         title: 'Развёртывание',
-        desc: 'Поддержка Docker Compose и Kubernetes для промышленной эксплуатации.',
+        desc: 'Комбинируйте backend-модули Server SDK и развёртывайте их в собственном приложении.',
       },
       feature7: {
         title: 'Тёмный режим',

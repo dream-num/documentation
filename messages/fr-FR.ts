@@ -216,7 +216,7 @@ const frFRMessages = {
       },
       feature6: {
         title: 'Déploiement',
-        desc: 'Prise en charge de Docker Compose et Kubernetes pour la production.',
+        desc: 'Composez les fonctionnalités backend avec Server SDK et déployez votre propre application.',
       },
       feature7: {
         title: 'Mode sombre',

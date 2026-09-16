@@ -216,7 +216,7 @@ const koKRMessages = {
       },
       feature6: {
         title: '배포',
-        desc: '프로덕션을 위한 Docker Compose 및 Kubernetes를 지원합니다.',
+        desc: 'Server SDK로 필요한 백엔드 기능을 조합하고 자체 앱에 배포합니다.',
       },
       feature7: {
         title: '다크 모드',
