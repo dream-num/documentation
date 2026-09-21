@@ -106,7 +106,6 @@ export interface IUniverProps {
 
 export default function Univer({ tablistLabel }: IUniverProps) {
   const divRef = useRef<HTMLDivElement>(null!)
-  const frameRef = useRef<HTMLDivElement>(null!)
 
   const [type, setType] = useState<UniverType>('sheets')
   const [documentMode, setDocumentMode] = useState<DocumentMode>('modern')
@@ -1441,38 +1440,6 @@ export default function Univer({ tablistLabel }: IUniverProps) {
   }, [])
 
   useEffect(() => {
-    const frame = frameRef.current
-
-    function containDemoWheel(event: WheelEvent) {
-      let element = event.target instanceof Element ? event.target : null
-
-      while (element && element !== frame) {
-        if (element instanceof HTMLElement) {
-          const style = window.getComputedStyle(element)
-          const canScrollVertically =
-            /auto|scroll|overlay/.test(style.overflowY) &&
-            element.scrollHeight > element.clientHeight &&
-            ((event.deltaY < 0 && element.scrollTop > 0) ||
-              (event.deltaY > 0 && element.scrollTop + element.clientHeight < element.scrollHeight))
-          const canScrollHorizontally =
-            /auto|scroll|overlay/.test(style.overflowX) &&
-            element.scrollWidth > element.clientWidth &&
-            ((event.deltaX < 0 && element.scrollLeft > 0) ||
-              (event.deltaX > 0 && element.scrollLeft + element.clientWidth < element.scrollWidth))
-
-          if (canScrollVertically || canScrollHorizontally) return
-        }
-        element = element.parentElement
-      }
-
-      event.preventDefault()
-    }
-
-    frame.addEventListener('wheel', containDemoWheel, { passive: false })
-    return () => frame.removeEventListener('wheel', containDemoWheel)
-  }, [])
-
-  useEffect(() => {
     const univer = new UniverCore({
       darkMode: theme === 'dark',
       locale: CoreLocaleType.EN_US,
@@ -1676,13 +1643,12 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       )}
 
       <TabsContent
-        ref={frameRef}
         value={type}
         keepMounted
         id="univer-product-demo"
         aria-labelledby={`univer-tab-${type}`}
         aria-busy={!steady}
-        className="border-border bg-card relative mx-auto h-[34rem] w-7xl max-w-full flex-none overflow-hidden rounded-lg border sm:h-160 dark:border-white/10 dark:shadow-[0_12px_36px_#00000026]"
+        className="border-border bg-card relative mx-auto h-[34rem] w-7xl max-w-full flex-none overflow-hidden overscroll-contain rounded-lg border sm:h-160 dark:border-white/10 dark:shadow-[0_12px_36px_#00000026]"
       >
         {/* Mask / Loading */}
         <AnimatePresence>

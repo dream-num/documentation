@@ -64,6 +64,15 @@ const fieldDescriptions = {
   },
 }
 
+const memberDescriptions = {
+  'FRange.setHorizontalAlignment':
+    "Sets the horizontal alignment for the range. Accepts `'left'`, `'center'`, or `'normal'`, following the [Google Apps Script parameter names](https://developers.google.com/apps-script/reference/spreadsheet/range#setHorizontalAlignment(String)). In Univer, `'normal'` means right alignment; `'right'` is not an accepted value.\n\n```ts\nfRange.setHorizontalAlignment('normal') // Align right\n```",
+  'FRange.getHorizontalAlignment':
+    "Returns the horizontal alignment of the top-left cell as `'left'`, `'center'`, or `'normal'` (right alignment). Default and other core alignment values return `'general'`, which is not accepted by `setHorizontalAlignment()`.",
+  'FRange.getHorizontalAlignments':
+    "Returns a two-dimensional array of horizontal alignments: `'left'`, `'center'`, or `'normal'` (right alignment). Default and other core alignment values return `'general'`, which is not accepted by `setHorizontalAlignment()`.",
+}
+
 function writeReference(file, content) {
   if (!existsSync(file) || readFileSync(file, 'utf8') !== content) writeFileSync(file, content)
 }
@@ -343,7 +352,10 @@ export function renderMember(member, anchor, links = new Map()) {
     const staticPrefix = node.modifiers?.some((modifier) => modifier.kind === SyntaxKind.StaticKeyword) ? 'static ' : ''
     return `${staticPrefix}${name}${generics}(${parameters.join(', ')}): ${typeText(node.type) ?? member.returnType ?? 'void'}`
   })
-  const parts = [`### \`${member.owner}.${name}\` [#${anchor}]`, markdown(member.description)]
+  const parts = [
+    `### \`${member.owner}.${name}\` [#${anchor}]`,
+    markdown(memberDescriptions[`${member.owner}.${name}`] ?? member.description),
+  ]
   if (tags(docs, 'deprecated').length) parts.push(`**Deprecated.** ${markdown(commentOf(docs, 'deprecated'))}`)
   parts.push(`\`\`\`typescript\n${[...new Set(signatures)].join('\n')}\n\`\`\``)
   const parameters = new Map()
