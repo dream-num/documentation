@@ -173,6 +173,7 @@ export function readClasses(sourceFile, source, sourceClasses = []) {
       const overloads = implementations.filter((member) => !member.body)
       const signatures = overloads.length ? overloads : implementations
       const contract = contracts.find((member) => member.name?.getText() === name)
+      if (contract && !visible(contract)) continue
       const documented = [contract, ...implementations].filter(Boolean).find((member) => docText(member))
       const docs = documented ?? implementations[0]
       members.push({
@@ -190,15 +191,22 @@ export function readClasses(sourceFile, source, sourceClasses = []) {
     classes.push({ name: className, owner, ownerNode, parent, source, declaration, members })
   }
   for (const implementation of sourceClasses) {
-    if (implementation.owner === implementation.name || classes.some((entry) => entry.name === implementation.name))
+    const published = classes.find((entry) => entry.name === implementation.name)
+    if (published) {
+      published.members.push(
+        ...implementation.members.filter((member) => !published.members.some((entry) => entry.name === member.name)),
+      )
       continue
+    }
+    if (implementation.owner === implementation.name) continue
     const contracts =
       implementation.declaration.heritageClauses
         ?.flatMap((clause) => clause.types)
         .flatMap((type) => interfaces.get(type.expression.getText())?.members ?? []) ?? []
     const members = implementation.members.flatMap((member) => {
       const nodes = contracts.filter((node) => visible(node) && node.name?.getText() === member.name)
-      if (!nodes.length) return []
+      // Keep new public Facade methods from source until the installed declarations include them.
+      if (!nodes.length) return [member]
       return [Object.assign({}, member, { nodes, docs: nodes[0], contract: nodes[0], description: docText(nodes[0]) })]
     })
     if (members.length) classes.push(Object.assign({}, implementation, { source, members }))
@@ -578,6 +586,17 @@ export async function syncReference(coreRoot = resolve(root, '../univer'), proRo
         if (node.type?.kind === SyntaxKind.TypeReference) visit(node.type)
         for (const heritage of node.heritageClauses ?? []) for (const type of heritage.types) visit(type)
         for (const parameter of node.parameters ?? []) if (parameter.type) visit(parameter.type)
+      }
+      if (member.source?.package === '@univerjs/ui') {
+        for (const name of [
+          'MenuConfig',
+          'MenuItemConfig',
+          'IRibbonGridLayout',
+          'IFacadeMenuItem',
+          'IFacadeSubmenuItem',
+        ]) {
+          if (links.has(name)) links.set(name, `/reference/packages/plugins/univerjs/ui#${slug(name)}`)
+        }
       }
       return links
     }

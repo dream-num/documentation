@@ -94,3 +94,49 @@ const presentation = univerAPI.createPresentation({ name: 'Quarterly review' })
 ```
 
 Чтобы отображать презентацию в браузере без элементов редактирования, передайте в `UniverSlidesUIPlugin` параметр `{ editor: { enabled: false } }`. В Node.js регистрируйте только `UniverSlidesPlugin`, без плагина интерфейса.
+
+## Порядок меню и сеточная раскладка [#menu-order-and-grid-layout]
+
+Задайте `menu` и `ribbonType` при существующей регистрации `UniverUIPlugin`. Это параметры общего UI, а не `UniverSlidesUIPlugin`. В примере используются реальные идентификаторы пунктов меню Slides:
+
+### Начальная настройка
+
+```ts
+import type { MenuConfig } from '@univerjs/ui'
+import { UniverUIPlugin } from '@univerjs/ui'
+
+const menu: MenuConfig = {
+  'ribbon.view': { order: -1 },
+  'ribbon.start.layout': { order: -1 },
+  'slide.menu.insert.text': {
+    order: 1,
+    gridLayout: { row: 1, column: 2, rowSpan: 2, showLabel: true, width: 96 },
+  },
+  'slide.menu.insert.shape': {
+    order: 0,
+    gridLayout: { row: 1, column: 1, rowSpan: 2, showLabel: true },
+  },
+}
+
+univer.registerPlugin(UniverUIPlugin, { container: 'app', ribbonType: 'grid', menu })
+```
+
+`order` сортирует вкладки, группы или пункты одного уровня по возрастанию и не переносит пункты в другую группу. Идентификатор пункта можно получить из атрибута `data-u-command`; он не обязательно совпадает с идентификатором команды.
+
+### Обновление во время работы
+
+Импортируйте `@univerjs/ui/facade` перед созданием `univerAPI` через `FUniver.newAPI(univer)`. [`updateMenuConfig()`](/reference/facade/univer#updatemenuconfig) объединяет изменения, сохраняет неуказанные поля и обновляет меню. Настройки также применяются к меню, зарегистрированным позднее.
+
+```ts
+import '@univerjs/ui/facade'
+
+univerAPI.updateMenuConfig({
+  'slide.menu.insert.text': { gridLayout: { row: 1, column: 2, width: 120 } },
+})
+```
+
+`gridLayout` действует только на сеточную ленту Ribbon. В каждой группе две строки; `row` и `column` начинаются с 1. Явные координаты определяют положение, поэтому при обмене занятыми ячейками меняйте оба пункта, а не только `order`. Неуказанные необязательные поля наследуются из текущих настроек или Schema. Размеры областей, подписи, ширина и размер значков описаны в [`IRibbonGridLayout`](/reference/packages/plugins/univerjs/ui#iribbongridlayout).
+
+Оставьте редактирование включённым в `UniverSlidesUIPlugin`: при `editor.enabled: false` лента продукта не регистрируется. Переопределения меню не создают незарегистрированные кнопки.
+
+Для своих кнопок и пунктов, открывающих подменю, [`createMenu()` и `createSubmenu()`](/reference/packages/plugins/univerjs/ui#ifacademenuitem) также принимают `order` и `gridLayout`; вызовите `appendTo()` для регистрации. На содержимое всплывающего меню сетка Ribbon не распространяется.

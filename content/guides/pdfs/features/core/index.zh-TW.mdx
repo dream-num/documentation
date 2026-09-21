@@ -81,3 +81,49 @@ const pdf = univerAPI.createPdf({ name: 'Untitled PDF' })
 ## 預設模式
 
 Univer PDFs 目前沒有提供預設套件。請使用外掛程式模式建立 PDF 應用程式。
+
+## 選單順序與網格佈局 [#menu-order-and-grid-layout]
+
+在既有的 `UniverUIPlugin` 註冊設定中設定 `menu` 和 `ribbonType`。它們屬於共用 UI 設定，不應傳給 `UniverPdfsUIPlugin`。以下使用 PDFs 的實際選單項目 ID：
+
+### 初始化設定
+
+```ts
+import type { MenuConfig } from '@univerjs/ui'
+import { UniverUIPlugin } from '@univerjs/ui'
+
+const menu: MenuConfig = {
+  'ribbon.view': { order: -1 },
+  'ribbon.start.layout': { order: -1 },
+  'pdf.menu.tool.highlight': {
+    order: 1,
+    gridLayout: { row: 2, column: 1 },
+  },
+  'pdf.menu.tool.ink': {
+    order: 0,
+    gridLayout: { row: 1, column: 1 },
+  },
+}
+
+univer.registerPlugin(UniverUIPlugin, { container: 'app', ribbonType: 'grid', menu })
+```
+
+`order` 依數值由小到大排列同層級頁籤、群組或選單項目，不會將項目移到其他群組。選單項目 ID 可從其 `data-u-command` 屬性取得，不應直接假設它與命令 ID 相同。
+
+### 執行階段更新
+
+先匯入 `@univerjs/ui/facade`，再透過 `FUniver.newAPI(univer)` 建立 `univerAPI`。[`updateMenuConfig()`](/reference/facade/univer#updatemenuconfig) 會合併修改、保留未指定的欄位並重新整理選單，設定也會套用到之後註冊的選單。
+
+```ts
+import '@univerjs/ui/facade'
+
+univerAPI.updateMenuConfig({
+  'pdf.menu.tool.highlight': { gridLayout: { row: 2, column: 1, showLabel: true, width: 96 } },
+})
+```
+
+`gridLayout` 僅控制網格 Ribbon。每個群組固定兩列，`row` 和 `column` 從 1 開始。明確座標優先決定位置，因此交換已佔用的儲存格時應同時修改兩個選單項目，不能只調整 `order`。未指定的選用欄位沿用既有設定或 Schema。跨列、跨欄、標籤、寬度和圖示尺寸請見 [`IRibbonGridLayout`](/reference/packages/plugins/univerjs/ui#iribbongridlayout)。
+
+請保持 `UniverPdfsUIPlugin` 的編輯功能開啟：`editor.enabled: false` 會略過該產品 Ribbon 的註冊。選單覆寫設定不會建立尚未註冊的按鈕。
+
+自訂按鈕和子選單入口也能透過 [`createMenu()`、`createSubmenu()`](/reference/packages/plugins/univerjs/ui#ifacademenuitem) 設定 `order` 與 `gridLayout`，再呼叫 `appendTo()` 註冊。彈出選單內部不使用 Ribbon 的網格佈局。

@@ -549,6 +549,70 @@ UniverSheetsCorePreset({
 
 <RibbonStyle />
 
+## 菜单顺序与网格布局 [#menu-order-and-grid-layout]
+
+初始化配置和运行时的 [`univerAPI.updateMenuConfig()`](/reference/facade/univer#updatemenuconfig) 使用同一份 `menu` 结构。键可以是 Ribbon 页签标识（如 `ribbon.insert`）、分组标识（如 `ribbon.start.format`）或菜单项 ID。
+
+`order` 按数值从小到大排列同级节点：Ribbon 中的页签、页签内的分组，以及分组或子菜单内的菜单项。它不会把菜单移到其他分组。页签和分组也可以使用 `@univerjs/ui` 导出的 `RibbonPosition` 及各分组枚举作为键。
+
+### 初始化配置
+
+在 `createUniver()` 的 `presets` 数组中，将配置传给 `UniverSheetsCorePreset`：
+
+```ts
+import type { MenuConfig } from '@univerjs/ui'
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+
+const menu: MenuConfig = {
+  'ribbon.insert': { order: -1 },
+  'ribbon.start.format': { order: -1 },
+  'sheet.command.set-range-font-family': {
+    order: 0,
+    gridLayout: { row: 1, column: 1, width: 160 },
+  },
+}
+
+const preset = UniverSheetsCorePreset({ ribbonType: 'grid', menu })
+```
+
+插件模式下，将同一份 `menu` 和 `ribbonType` 传给已有的 `UniverUIPlugin` 注册配置。
+
+### 运行时更新
+
+公开 Facade 会合并修改并立即刷新 UI。未指定的属性保留已有配置或 Schema 默认值，配置也会应用到后续注册的菜单。插件模式下，需要先导入 `@univerjs/ui/facade`。
+
+```ts
+import '@univerjs/ui/facade'
+
+univerAPI.updateMenuConfig({
+  'sheet.command.set-range-bold': {
+    order: 0,
+    gridLayout: { row: 2, column: 2 },
+  },
+  'sheet.command.set-range-italic': {
+    gridLayout: { row: 2, column: 1 },
+  },
+})
+```
+
+`gridLayout` 仅在 `ribbonType: 'grid'` 时生效。每个分组固定两行，`row` 和 `column` 均从 1 开始。显式坐标决定按钮位置，因此只修改 `order` 不会移动已指定坐标的按钮；交换位置时应同时修改两个按钮，避免重叠。可选字段包括 `rowSpan`、`columnSpan`、`showLabel`、`width` 和 `iconSize`，尺寸单位为像素。约束和默认值见 [`IRibbonGridLayout`](/reference/packages/plugins/univerjs/ui#iribbongridlayout)。
+
+### 自定义菜单的位置
+
+`createMenu()` 和 `createSubmenu()` 也支持 `order` 与 `gridLayout`。对子菜单来说，这两个字段控制 Ribbon 上的触发入口，不改变弹出菜单内部布局。例如，在历史操作分组的第三列添加按钮：
+
+```ts
+univerAPI
+  .createMenu({
+    id: 'custom-action',
+    title: 'Custom action',
+    action: () => console.log('Custom action clicked'),
+    order: 4,
+    gridLayout: { row: 1, column: 3, showLabel: true, width: 96 },
+  })
+  .appendTo('ribbon.start.history')
+```
+
 ## 菜单项 ID 列表 [#menu-item-id-list]
 
 <Callout>你可以通过菜单项 DOM 元素上的 `data-u-command` 属性来获取菜单项的 ID。</Callout>

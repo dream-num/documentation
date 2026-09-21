@@ -93,3 +93,49 @@ const presentation = univerAPI.createPresentation({ name: 'Quarterly review' })
 ## 预设模式
 
 Univer Slides 当前没有提供预设包。无论只使用模型还是构建浏览器编辑器，都请使用插件模式。
+
+## 菜单顺序与网格布局 [#menu-order-and-grid-layout]
+
+在已有的 `UniverUIPlugin` 注册配置中设置 `menu` 和 `ribbonType`。它们属于共享 UI 配置，不应传给 `UniverSlidesUIPlugin`。下面使用 Slides 的实际菜单项 ID：
+
+### 初始化配置
+
+```ts
+import type { MenuConfig } from '@univerjs/ui'
+import { UniverUIPlugin } from '@univerjs/ui'
+
+const menu: MenuConfig = {
+  'ribbon.view': { order: -1 },
+  'ribbon.start.layout': { order: -1 },
+  'slide.menu.insert.text': {
+    order: 1,
+    gridLayout: { row: 1, column: 2, rowSpan: 2, showLabel: true, width: 96 },
+  },
+  'slide.menu.insert.shape': {
+    order: 0,
+    gridLayout: { row: 1, column: 1, rowSpan: 2, showLabel: true },
+  },
+}
+
+univer.registerPlugin(UniverUIPlugin, { container: 'app', ribbonType: 'grid', menu })
+```
+
+`order` 按数值从小到大排列同级页签、分组或菜单项，不会把菜单项移到其他分组。菜单项 ID 可以从其 `data-u-command` 属性获取，不应直接假设它与命令 ID 相同。
+
+### 运行时更新
+
+先导入 `@univerjs/ui/facade`，再通过 `FUniver.newAPI(univer)` 创建 `univerAPI`。[`updateMenuConfig()`](/reference/facade/univer#updatemenuconfig) 会合并修改、保留未指定的字段并刷新菜单，配置也会应用到后续注册的菜单。
+
+```ts
+import '@univerjs/ui/facade'
+
+univerAPI.updateMenuConfig({
+  'slide.menu.insert.text': { gridLayout: { row: 1, column: 2, width: 120 } },
+})
+```
+
+`gridLayout` 仅控制网格 Ribbon。每个分组固定两行，`row` 和 `column` 从 1 开始。显式坐标优先决定位置，因此交换已占用的单元格时应同时修改两个菜单项，不能只调整 `order`。未指定的可选字段沿用已有配置或 Schema。跨行、跨列、标签、宽度和图标尺寸见 [`IRibbonGridLayout`](/reference/packages/plugins/univerjs/ui#iribbongridlayout)。
+
+请保持 `UniverSlidesUIPlugin` 的编辑功能开启：`editor.enabled: false` 会跳过该品类 Ribbon 的注册。菜单覆盖配置不会创建尚未注册的按钮。
+
+自定义按钮和子菜单入口也可以通过 [`createMenu()`、`createSubmenu()`](/reference/packages/plugins/univerjs/ui#ifacademenuitem) 设置 `order` 与 `gridLayout`，然后调用 `appendTo()` 注册。弹出菜单内部不使用 Ribbon 的网格布局。

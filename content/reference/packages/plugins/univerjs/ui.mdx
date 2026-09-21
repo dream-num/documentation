@@ -29,8 +29,7 @@ Mobile hosts can use `MOBILE_UI_MODE`, `MobileDialogService`, `MobileDrawer`, `M
 
 ```ts
 import type { DependencyOverride } from '@univerjs/core'
-import type { IWorkbenchOptions } from '../controllers/ui/ui.controller'
-import type { MenuConfig } from '../services/menu/menu'
+import type { IWorkbenchOptions, MenuConfig } from '@univerjs/ui'
 
 export interface IUniverUIConfig extends IWorkbenchOptions {
   /** Disable auto focus when Univer bootstraps. */
@@ -48,3 +47,116 @@ export interface IUniverUIConfig extends IWorkbenchOptions {
   avatarFallback?: string
 }
 ```
+
+## `MenuConfig` [#menuconfig]
+
+```ts
+import type { MenuConfig, MenuItemConfig } from '@univerjs/ui'
+```
+
+`MenuConfig` is a flat `Record<string, MenuItemConfig>` for the shared menu system used by Sheets, Docs, Slides, Boards, and PDFs. In plugin mode, pass it as `menu` to `UniverUIPlugin`. Sheets and Docs also accept it through `UniverSheetsCorePreset` and `UniverDocsCorePreset`. Use [`FUniver.updateMenuConfig(config)`](/reference/facade/univer#updatemenuconfig) to merge changes at runtime and refresh the UI immediately. Unspecified properties retain their existing overrides or schema defaults; overrides also apply to menus registered later.
+
+| Key | Example | Scope |
+| --- | --- | --- |
+| Ribbon tab key | `ribbon.insert` | `order` among tabs. |
+| Ribbon group key | `ribbon.start.format` | `order` among groups in that tab. |
+| Menu item ID | `sheet.command.set-range-bold` | Item properties, `order` among siblings, and `gridLayout` within its Ribbon group. |
+| Context-menu item ID | `board.menu.duplicate-selection` | Item properties and `order` within its context-menu group; `gridLayout` does not affect popup menus. |
+
+Use `RibbonPosition` and the group enums, such as `RibbonStartGroup`, from `@univerjs/ui` for tab and group keys. Ribbon item IDs are available through the rendered element's `data-u-command` attribute. For context menus, use the item IDs defined by the product menu schema. An item ID can differ from its command ID. An item override applies wherever that item ID is used; `order` does not move an item into another group or tab.
+
+### `MenuItemConfig` [#menuitemconfig]
+
+| Option | Type | Behavior |
+| --- | --- | --- |
+| `order` | `number` | Lower values come first among siblings. Applies to tabs, groups, and menu items. |
+| `gridLayout` | `IRibbonGridLayout` | Overrides the item's placement in the grid Ribbon. Omitted optional fields retain their existing values. |
+| `hidden`, `disabled`, `activated` | `boolean` | Overrides the menu item's display or interaction state. |
+| `title`, `tooltip` | `string` | Overrides the menu item's text or locale key. |
+| `icon` | `IMenuItem['icon']` | Overrides the menu item's icon. |
+| `type` | `MenuItemType` | Overrides the menu item's presentation type. |
+
+```ts
+import type { MenuConfig } from '@univerjs/ui'
+import { UniverUIPlugin } from '@univerjs/ui'
+
+const menu: MenuConfig = {
+  'ribbon.insert': { order: -1 },
+  'ribbon.start.format': { order: -1 },
+  'sheet.command.set-range-font-family': {
+    order: 0,
+    gridLayout: { row: 1, column: 1, width: 160 },
+  },
+}
+
+univer.registerPlugin(UniverUIPlugin, { container: 'app', ribbonType: 'grid', menu })
+```
+
+### Product integration [#menu-products]
+
+Use IDs from the target product. The shared Facade methods require `@univerjs/ui/facade` in plugin mode, in addition to the product's own Facade entry.
+
+| Product guide | Initial configuration | Example menu item ID | Layout scope |
+| --- | --- | --- | --- |
+| [Sheets](/guides/sheets/features/core#menu-order-and-grid-layout) | `UniverUIPlugin` or `UniverSheetsCorePreset` | `sheet.command.set-range-bold` | Shared Ribbon and context menus. |
+| [Docs](/guides/docs/features/core#menu-order-and-grid-layout) | `UniverUIPlugin` or `UniverDocsCorePreset` | `doc.command.set-inline-format-bold` | Shared Ribbon and context menus. |
+| [Slides](/guides/slides/features/core#menu-order-and-grid-layout) | `UniverUIPlugin` | `slide.menu.insert.text` | Shared Ribbon; product Ribbon registration requires editing to be enabled. |
+| [Boards](/guides/boards/features/core#menu-order-and-grid-layout) | `UniverUIPlugin` | `board.menu.duplicate-selection` | Shared context menus. The independent canvas toolbar uses `UniverBoardsUIPlugin.toolbar.tools`, not `gridLayout`. |
+| [PDFs](/guides/pdfs/features/core#menu-order-and-grid-layout) | `UniverUIPlugin` | `pdf.menu.tool.highlight` | Shared Ribbon; product Ribbon registration requires editing to be enabled. |
+
+Slides, Boards, and PDFs use plugin mode and do not provide core presets. Pass `menu` and `ribbonType` to the shared UI plugin, not the product UI plugin. Menu overrides do not create unregistered buttons or enable a product's disabled editor UI.
+
+## `IRibbonGridLayout` [#iribbongridlayout]
+
+```ts
+import type { IRibbonGridLayout } from '@univerjs/ui'
+```
+
+These fields only affect `ribbonType: 'grid'`. Coordinates start at 1 within each group, which has two rows. Explicit grid positions determine visual placement; changing `order` alone does not move a button with an explicit position. Avoid overlapping cells: conflicts and invalid geometry use automatic placement.
+
+| Field | Type | Required | Behavior |
+| --- | --- | --- | --- |
+| `row` | `number` | Yes | Row 1 or 2. |
+| `column` | `number` | Yes | Positive integer column index. |
+| `rowSpan` | `number` | No | Defaults to 1. Use 2 for a large button starting in row 1. |
+| `columnSpan` | `number` | No | Positive integer, defaults to 1. |
+| `showLabel` | `boolean` | No | Show the menu label; defaults to `false`. |
+| `width` | `number` | No | Positive, finite width in pixels. |
+| `iconSize` | `number` | No | Positive, finite icon size in pixels. |
+
+When overriding an existing item, unspecified optional fields are inherited from its schema or earlier configuration. For example, changing the font selector's `width` retains its existing `columnSpan`.
+
+## `IFacadeMenuItem` [#ifacademenuitem]
+
+```ts
+import type { IFacadeMenuItem, IFacadeSubmenuItem } from '@univerjs/ui/facade'
+```
+
+Options for [`FUniver.createMenu()`](/reference/facade/univer#createmenu). Call `appendTo()` on the returned [`FMenu`](/reference/facade/menu) to register it.
+
+| Option | Type | Required | Behavior |
+| --- | --- | --- | --- |
+| `id` | `string` | Yes | Unique menu ID; also the key used by `MenuConfig`. |
+| `title` | `string` | Yes | Menu text or locale key. |
+| `action` | `string or (() => void)` | Yes | Command ID or callback to execute. |
+| `icon`, `tooltip` | `string` | No | Icon name and tooltip text or locale key. |
+| `order` | `number` | No | Display order among siblings. |
+| `gridLayout` | `IRibbonGridLayout` | No | Initial grid placement within the target Ribbon group. |
+
+```ts
+import '@univerjs/ui/facade'
+
+univerAPI
+  .createMenu({
+    id: 'custom-action',
+    title: 'Custom action',
+    action: () => console.log('Custom action clicked'),
+    order: 4,
+    gridLayout: { row: 1, column: 3, showLabel: true, width: 96 },
+  })
+  .appendTo('ribbon.start.history')
+```
+
+## `IFacadeSubmenuItem` [#ifacadesubmenuitem]
+
+Options for [`FUniver.createSubmenu()`](/reference/facade/univer#createsubmenu). It accepts the same `id`, `title`, `icon`, `tooltip`, `order`, and `gridLayout` options as `IFacadeMenuItem`, without `action`. `gridLayout` controls the submenu trigger in the Ribbon, not the popup's children. Use [`FSubmenu.addSubmenu()`](/reference/facade/submenu#addsubmenu) and `addSeparator()` to build its contents.
