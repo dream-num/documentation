@@ -50,6 +50,7 @@ const AGENT_MDX_ELEMENTS = new Set([
   'MigrationCell',
   'MigrationRow',
   'MigrationTable',
+  'PermissionShadowDemo',
   'PlaygroundFrame',
   'RibbonStyle',
   'Step',
@@ -653,6 +654,8 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
       const headers = Array.isArray(attributes.headers) ? attributes.headers.join(' / ') : 'API migration'
       return `### ${headers}\n\n${children}`
     }
+    case 'PermissionShadowDemo':
+      return 'Protection shadow preview: `always` shades all protected areas; `non-editable` shades protected areas the current user cannot edit; `non-viewable` shades protected areas they cannot view; `none` hides protection shadows. Unprotected areas are never shaded. This changes only the visual overlay, not edit/view permissions; non-viewable content remains hidden even with `none`.'
     case 'PlaygroundFrame': {
       const slug = getString(attributes, 'slug')
       if (!slug) throw new Error('Agent Markdown expected PlaygroundFrame.slug')
