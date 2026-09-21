@@ -97,10 +97,11 @@ function packageLink(name) {
 }
 
 function docText(node) {
-  return (node?.jsDoc ?? [])
+  const description = (node?.jsDoc ?? [])
     .map((doc) => getTextOfJSDocComment(doc.comment) ?? '')
     .filter(Boolean)
     .join('\n\n')
+  return description || commentOf(node, 'description')
 }
 
 function tags(node, name) {
@@ -167,18 +168,29 @@ export function readClasses(sourceFile, source, sourceClasses = []) {
     const parent = inherited[0]?.expression.getText().split('.').at(-1)
     const ownerNode = extensions.get(className) ?? (className.endsWith('Mixin') ? inherited[0]?.expression : undefined)
     const owner = ownerNode?.getText().split('.').at(-1) ?? className
-    const contracts = inherited.flatMap((type) => interfaces.get(type.expression.getText())?.members ?? [])
-    const names = new Set(
-      declaration.members
-        .filter((member) => visible(member) && (member.parameters || member.kind === SyntaxKind.PropertyDeclaration))
-        .map((member) => member.name.getText()),
+    const augmented = sourceFile.statements
+      .filter((node) => node.kind === SyntaxKind.ModuleDeclaration)
+      .flatMap((node) => node.body?.statements ?? [])
+      .filter((node) => node.kind === SyntaxKind.InterfaceDeclaration && node.name.getText() === owner)
+      .flatMap((node) => node.heritageClauses?.flatMap((clause) => clause.types) ?? [])
+    const contracts = [...inherited, ...augmented].flatMap(
+      (type) => interfaces.get(type.expression.getText())?.members ?? [],
     )
+    const candidates = declaration.members
+      .flatMap((member) =>
+        member.kind === SyntaxKind.Constructor
+          ? member.parameters.filter((parameter) => parameter.modifiers?.length)
+          : [member],
+      )
+      .filter(
+        (member) =>
+          visible(member) &&
+          (member.parameters || member.kind === SyntaxKind.PropertyDeclaration || member.kind === SyntaxKind.Parameter),
+      )
+    const names = new Set(candidates.map((member) => member.name.getText()))
     const members = []
     for (const name of names) {
-      const implementations = declaration.members.filter(
-        (member) =>
-          member.name?.getText() === name && (member.parameters || member.kind === SyntaxKind.PropertyDeclaration),
-      )
+      const implementations = candidates.filter((member) => member.name.getText() === name)
       const overloads = implementations.filter((member) => !member.body)
       const signatures = overloads.length ? overloads : implementations
       const contract = contracts.find((member) => member.name?.getText() === name)
@@ -193,6 +205,10 @@ export function readClasses(sourceFile, source, sourceClasses = []) {
         declaration,
         nodes: signatures,
         docs,
+        documentationNodes: [
+          ...contracts.filter((member) => member.name?.getText() === name),
+          ...implementations,
+        ].filter((member) => member.jsDoc?.length),
         contract,
         description: docText(docs),
       })
@@ -216,7 +232,15 @@ export function readClasses(sourceFile, source, sourceClasses = []) {
       const nodes = contracts.filter((node) => visible(node) && node.name?.getText() === member.name)
       // Keep new public Facade methods from source until the installed declarations include them.
       if (!nodes.length) return [member]
-      return [Object.assign({}, member, { nodes, docs: nodes[0], contract: nodes[0], description: docText(nodes[0]) })]
+      return [
+        Object.assign({}, member, {
+          nodes,
+          docs: nodes[0],
+          documentationNodes: nodes,
+          contract: nodes[0],
+          description: docText(nodes[0]),
+        }),
+      ]
     })
     if (members.length) classes.push(Object.assign({}, implementation, { source, members }))
   }
@@ -332,9 +356,14 @@ function typeText(node) {
 
 export function renderMember(member, anchor, links = new Map()) {
   const { name, nodes, docs, source } = member
+  const documentationNodes = member.documentationNodes ?? [docs, ...nodes]
   const signatures = nodes.map((node) => {
     if (node.kind === SyntaxKind.GetAccessor) return `readonly ${name}: ${typeText(node.type)}`
-    if (node.kind === SyntaxKind.PropertyDeclaration || node.kind === SyntaxKind.PropertySignature) {
+    if (
+      node.kind === SyntaxKind.PropertyDeclaration ||
+      node.kind === SyntaxKind.PropertySignature ||
+      node.kind === SyntaxKind.Parameter
+    ) {
       const readonly = node.modifiers?.some((modifier) => modifier.kind === SyntaxKind.ReadonlyKeyword)
         ? 'readonly '
         : ''
@@ -363,7 +392,7 @@ export function renderMember(member, anchor, links = new Map()) {
     for (const parameter of node.parameters ?? []) {
       const parameterName = parameter.name.getText()
       if (parameterName === 'this') continue
-      const parameterDoc = [node, member.contract, docs]
+      const parameterDoc = [docs, ...documentationNodes]
         .filter(Boolean)
         .flatMap((entry) => tags(entry, 'param'))
         .find((tag) => tag.name?.getText() === parameterName)
@@ -388,8 +417,9 @@ export function renderMember(member, anchor, links = new Map()) {
     }
   }
   if (parameters.size) parts.push(`**Parameters**\n\n${[...parameters.values()].join('\n')}`)
-  const returns = nodes.map((node) => commentOf(node, 'returns') || commentOf(node, 'return')).filter(Boolean)
-  if (!returns.length) returns.push(commentOf(docs, 'returns') || commentOf(docs, 'return'))
+  const returns = documentationNodes
+    .map((node) => commentOf(node, 'returns') || commentOf(node, 'return'))
+    .filter(Boolean)
   if (returns.some(Boolean))
     parts.push(`**Returns**\n\n${[...new Set(returns)].filter(Boolean).map(markdown).join('\n\n')}`)
   const throws = commentOf(docs, 'throws')
@@ -398,7 +428,7 @@ export function renderMember(member, anchor, links = new Map()) {
   if (remarks) parts.push(markdown(remarks))
   const examples = [
     ...new Set(
-      [docs, ...nodes]
+      documentationNodes
         .flatMap((node) => tags(node, 'example').map((tag) => getTextOfJSDocComment(tag.comment)))
         .filter(Boolean),
     ),
@@ -529,8 +559,9 @@ export async function syncReference(coreRoot = resolve(root, '../univer'), proRo
           member.owner = entry.owner
           const implementationMember = implementation?.members.find((item) => item.name === member.name)
           member.sourceNodes = implementationMember?.nodes
-          if (!member.description && implementationMember?.description) {
+          if (implementationMember?.docs?.jsDoc?.length) {
             member.docs = implementationMember.docs
+            member.documentationNodes = implementationMember.documentationNodes
             member.description = implementationMember.description
           }
         }

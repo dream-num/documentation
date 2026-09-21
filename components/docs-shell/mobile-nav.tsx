@@ -1,7 +1,10 @@
+'use client'
+
 import type { ReactNode } from 'react'
 import { MenuIcon } from 'lucide-react'
 
 import type { IDocsNavItem } from '@/lib/docs/navigation'
+import { usePathname } from '@/i18n/navigation'
 
 import { DocsSidebar } from './sidebar'
 
@@ -18,8 +21,9 @@ export function DocsMobileNav({
   openLabel: string
   title: string
 }) {
+  const pathname = usePathname()
   return (
-    <details className="group lg:hidden">
+    <details key={pathname} className="group lg:hidden">
       <summary
         aria-label={openLabel}
         className="hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex size-8 cursor-pointer list-none items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none [&::-webkit-details-marker]:hidden"

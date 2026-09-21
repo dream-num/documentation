@@ -4,6 +4,7 @@ import type { ColorLike } from 'color'
 import Color from 'color'
 import { useMemo, useState } from 'react'
 
+import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   ColorPicker,
@@ -14,13 +15,16 @@ import {
   ColorPickerOutput,
   ColorPickerSelection,
 } from '@/components/ui/shadcn-io/color-picker'
+import { clsx } from '@/lib/clsx'
 
 export function ColorPickerPopover({
   ariaLabel,
+  className,
   value,
   onValueChange,
 }: {
   ariaLabel: string
+  className?: string
   value: string
   onValueChange: (value: string) => void
 }) {
@@ -49,10 +53,13 @@ export function ColorPickerPopover({
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger
         render={
-          <button
+          <Button
             aria-label={ariaLabel}
-            className="border-border/80 hover:border-foreground/30 size-7 cursor-pointer rounded-md border-2 shadow-sm transition-all hover:scale-105"
+            variant="outline"
+            size="icon"
+            className={clsx('border-border/80 hover:border-foreground/50 size-7', className)}
             style={{ backgroundColor: hexValue }}
+            title={hexValue}
             type="button"
           />
         }

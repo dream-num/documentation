@@ -76,11 +76,13 @@ function createUniver({
   darkMode,
   kind,
   theme,
+  snapshot,
 }: {
   container: HTMLDivElement
   darkMode: boolean
   kind: PreviewKind
   theme: Theme
+  snapshot?: Record<string, unknown>
 }) {
   const univer = new Univer({
     darkMode,
@@ -103,12 +105,15 @@ function createUniver({
   univer.registerPlugins([
     [UniverRenderEnginePlugin],
     [UniverFormulaEnginePlugin],
-    [UniverUIPlugin, {
-      container,
-      footer: kind === 'sheets',
-      header: true,
-      toolbar: true,
-    }],
+    [
+      UniverUIPlugin,
+      {
+        container,
+        footer: kind === 'sheets',
+        header: true,
+        toolbar: true,
+      },
+    ],
     [UniverDocsPlugin],
     [UniverDocsUIPlugin],
   ])
@@ -122,9 +127,19 @@ function createUniver({
       [UniverSheetsFormulaPlugin],
       [UniverSheetsFormulaUIPlugin],
     ])
-    univer.createUnit(UniverInstanceType.UNIVER_SHEET, DEMO_WORKBOOK_DATA)
+    try {
+      univer.createUnit(UniverInstanceType.UNIVER_SHEET, snapshot ?? DEMO_WORKBOOK_DATA)
+    } catch (error) {
+      univer.dispose()
+      throw error
+    }
   } else {
-    univer.createUnit(UniverInstanceType.UNIVER_DOC, DEMO_DOCUMENT_DATA)
+    try {
+      univer.createUnit(UniverInstanceType.UNIVER_DOC, snapshot ?? DEMO_DOCUMENT_DATA)
+    } catch (error) {
+      univer.dispose()
+      throw error
+    }
   }
 
   return univer
@@ -134,10 +149,12 @@ export function RealUniverPreview({
   darkMode,
   kind,
   theme,
+  snapshot,
 }: {
   darkMode: boolean
   kind: PreviewKind
   theme: Theme
+  snapshot?: Record<string, unknown>
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const latestConfigRef = useRef({ darkMode, theme })
@@ -151,20 +168,26 @@ export function RealUniverPreview({
     if (!containerRef.current) return undefined
 
     const latestConfig = latestConfigRef.current
+    const container = document.createElement('div')
+    container.style.height = '100%'
+    containerRef.current.append(container)
     const univer = createUniver({
-      container: containerRef.current,
+      container,
       darkMode: latestConfig.darkMode,
       kind,
       theme: latestConfig.theme,
+      snapshot: snapshot ? structuredClone({ ...snapshot, resources: [] }) : undefined,
     })
 
     univerRef.current = univer
 
     return () => {
-      univer.dispose()
+      container.remove()
+      // Dispose the SDK's React root after the parent React commit completes.
+      queueMicrotask(() => univer.dispose())
       univerRef.current = null
     }
-  }, [kind])
+  }, [kind, snapshot])
 
   useEffect(() => {
     univerRef.current?.__getInjector().get(ThemeService).setTheme(theme)
@@ -176,7 +199,7 @@ export function RealUniverPreview({
 
   return (
     <div
-      className="h-120 overflow-hidden rounded-md border bg-background"
+      className="bg-background h-120 overflow-hidden rounded-md border"
       data-univer-preview-kind={kind}
       ref={containerRef}
     />

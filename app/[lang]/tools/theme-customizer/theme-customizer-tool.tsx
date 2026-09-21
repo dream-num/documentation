@@ -1,7 +1,6 @@
 'use client'
 
 import type { Theme } from '@univerjs/themes'
-import type { ReactNode } from 'react'
 import {
   darkBlueTheme,
   defaultTheme,
@@ -17,7 +16,10 @@ import { useMemo, useState } from 'react'
 
 import { ColorPickerPopover } from '@/components/color-picker-popover'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Slider } from '@/components/ui/slider'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
 
 import { RealUniverPreview } from './real-univer-preview'
 
@@ -305,23 +307,63 @@ function createCssTokens(theme: ThemeWithTokens) {
   return rows
 }
 
-function FieldLabel({ children }: { children: ReactNode }) {
-  return <span className="text-muted-foreground text-xs font-medium">{children}</span>
+function ThemeColorSelect({
+  label,
+  theme,
+  value,
+  onValueChange,
+}: {
+  label: string
+  theme: ThemeWithTokens
+  value: string
+  onValueChange: (value: string) => void
+}) {
+  return (
+    <Select value={value} onValueChange={(color) => color && onValueChange(color)}>
+      <SelectTrigger aria-label={label} size="sm" className="w-full min-w-0 gap-1 px-2 font-mono text-xs shadow-none">
+        <span
+          aria-hidden="true"
+          className="size-3 shrink-0 rounded-sm border"
+          style={{ backgroundColor: resolveColor(theme, value) }}
+        />
+        <SelectValue className="min-w-0 flex-1">{value}</SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {scaleKeys.flatMap((scale) =>
+          (scale === 'gray' ? grayShadeKeys : shadeKeys).map((shade) => {
+            const color = `${scale}.${shade}`
+            return (
+              <SelectItem key={color} value={color} className="font-mono text-xs">
+                <span
+                  aria-hidden="true"
+                  className="size-3 rounded-sm border"
+                  style={{ backgroundColor: resolveColor(theme, color) }}
+                />
+                {color}
+              </SelectItem>
+            )
+          }),
+        )}
+      </SelectContent>
+    </Select>
+  )
 }
 
 function TokenRow({ color, name, value }: { color?: string; name: string; value: string }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_minmax(8rem,0.7fr)] items-center gap-3 border-b py-2 text-sm last:border-b-0">
-      <span className="flex min-w-0 items-center gap-2">
-        {color ? <span className="size-4 shrink-0 rounded-sm border" style={{ backgroundColor: color }} /> : null}
-        <code className="bg-muted truncate rounded-sm px-1.5 py-0.5 font-mono text-xs">{name}</code>
-      </span>
-      <span className="text-muted-foreground truncate font-mono text-xs">{value}</span>
+    <div className="flex min-w-0 items-center justify-between gap-2 border-b py-1.5 font-mono text-xs">
+      <dt className="flex min-w-0 items-center gap-1.5">
+        {color ? <span className="size-3 shrink-0 rounded-sm border" style={{ backgroundColor: color }} /> : null}
+        <span className="truncate" title={name}>
+          {name}
+        </span>
+      </dt>
+      <dd className="text-muted-foreground shrink-0">{value}</dd>
     </div>
   )
 }
 
-export function ThemeCustomizerTool({ description, title }: { description: string; title: string }) {
+export function ThemeCustomizerTool({ title }: { title: string }) {
   const t = useTranslations()
   const [presetKey, setPresetKey] = useState<PresetKey>('default')
   const [theme, setTheme] = useState(() => cloneTheme(presets[0].theme))
@@ -366,16 +408,35 @@ export function ThemeCustomizerTool({ description, title }: { description: strin
 
   return (
     <article className="min-w-0">
-      <header className="border-b pb-4">
-        <p className="text-muted-foreground text-sm font-medium">{t('tools.section')}</p>
-        <h1 className="mt-2 text-3xl/tight font-semibold tracking-normal">{title}</h1>
-        <p className="text-muted-foreground mt-2 max-w-3xl text-base">{description}</p>
-      </header>
+      <h1 className="text-xl font-semibold">{title}</h1>
 
       <div className="mt-4 space-y-4">
+        <section className="bg-card rounded-lg border p-3 shadow-sm">
+          <Tabs defaultValue="sheets">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold">{t('theme-customizer.live-preview')}</h2>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {darkMode ? t('theme-customizer.dark') : t('theme-customizer.light')}
+                </p>
+              </div>
+              <TabsList>
+                <TabsTrigger value="sheets">{t('theme-customizer.sheets')}</TabsTrigger>
+                <TabsTrigger value="docs">{t('theme-customizer.docs')}</TabsTrigger>
+              </TabsList>
+            </div>
+            <TabsContent className="mt-3" value="sheets">
+              <RealUniverPreview darkMode={darkMode} kind="sheets" theme={theme} />
+            </TabsContent>
+            <TabsContent className="mt-3" value="docs">
+              <RealUniverPreview darkMode={darkMode} kind="docs" theme={theme} />
+            </TabsContent>
+          </Tabs>
+        </section>
+
         <section className="bg-card min-w-0 rounded-lg border shadow-sm">
           <Tabs className="gap-0" defaultValue="palette">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b px-3 py-2 lg:flex-nowrap">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b px-3 py-2">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <span className="text-muted-foreground mr-1 text-xs font-medium">{t('theme-customizer.presets')}</span>
                 {presets.map((preset) => (
@@ -416,143 +477,97 @@ export function ThemeCustomizerTool({ description, title }: { description: strin
               </div>
             </div>
 
-            <TabsContent className="m-0 max-h-58 overflow-y-auto p-3" value="palette">
-              <div className="grid gap-4">
-                <section>
-                  <h2 className="text-sm font-semibold">{t('theme-customizer.palette')}</h2>
-                  <div className="mt-3 grid gap-x-4 gap-y-3 xl:grid-cols-2">
-                    {scaleKeys.map((scale) => (
-                      <div key={scale}>
-                        <div className="mb-1.5 flex items-center justify-between">
-                          <p className="text-sm font-medium capitalize">{scale}</p>
-                          <code className="bg-muted text-muted-foreground rounded-sm px-1.5 py-0.5 font-mono text-[10px]">
-                            --univer-
-                            {scale}
-                            -500
-                          </code>
+            <TabsContent className="m-0 p-3" value="palette">
+              <div className="grid gap-x-6 gap-y-3 @min-[48rem]/tools:grid-cols-2">
+                {scaleKeys.map((scale) => (
+                  <div key={scale} className="grid min-w-0 gap-1.5 @min-[56rem]/tools:grid-cols-[4rem_minmax(0,1fr)]">
+                    <p className="text-sm font-medium capitalize @min-[56rem]/tools:pt-1.5">{scale}</p>
+                    <div className="grid grid-cols-12 gap-1">
+                      {(scale === 'gray' ? grayShadeKeys : shadeKeys).map((shade) => (
+                        <div className="grid min-w-0 gap-1" key={shade}>
+                          <ColorPickerPopover
+                            ariaLabel={t('theme-customizer.choose-color', { label: `${scale} ${shade}` })}
+                            className="h-8 w-full rounded-sm shadow-none"
+                            value={(theme[scale] as unknown as Record<GrayShadeKey, string>)[shade]}
+                            onValueChange={(value) => applyTheme(updateScaleColor(theme, scale, shade, value))}
+                          />
+                          <span className="text-muted-foreground text-center font-mono text-[10px] leading-3">
+                            {shade}
+                          </span>
                         </div>
-                        <div
-                          className={
-                            scale === 'gray'
-                              ? 'grid grid-cols-6 gap-1.5 md:grid-cols-12'
-                              : 'grid grid-cols-5 gap-1.5 md:grid-cols-10'
-                          }
-                        >
-                          {(scale === 'gray' ? grayShadeKeys : shadeKeys).map((shade) => (
-                            <div className="group grid gap-1" key={shade}>
-                              <span
-                                className="h-6 rounded-sm border transition-transform group-hover:-translate-y-0.5"
-                                style={{
-                                  backgroundColor: (theme[scale] as unknown as Record<GrayShadeKey, string>)[shade],
-                                }}
-                              />
-                              <span className="flex justify-center">
-                                <ColorPickerPopover
-                                  ariaLabel={t('theme-customizer.choose-color', { label: `${scale} ${shade}` })}
-                                  value={(theme[scale] as unknown as Record<GrayShadeKey, string>)[shade]}
-                                  onValueChange={(value) => applyTheme(updateScaleColor(theme, scale, shade, value))}
-                                />
-                              </span>
-                              <span className="text-muted-foreground text-center font-mono text-[9px]">{shade}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </section>
+                ))}
               </div>
             </TabsContent>
 
-            <TabsContent className="m-0 max-h-58 overflow-y-auto p-3" value="tokens">
-              <div className="grid gap-4">
-                <div>
-                  <h2 className="text-sm font-semibold">{t('theme-customizer.design-tokens')}</h2>
-                  <p className="text-muted-foreground mt-1 text-sm">{t('theme-customizer.token-intro')}</p>
+            <TabsContent className="m-0 p-3" value="tokens">
+              <div className="space-y-4">
+                <div className="grid gap-4 @min-[48rem]/tools:grid-cols-2">
+                  <fieldset className="min-w-0">
+                    <legend className="mb-2 text-sm font-medium">{t('theme-customizer.loop-colors')}</legend>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                      {loopKeys.map((key) => (
+                        <div className="flex min-w-0 items-center gap-2" key={key}>
+                          <span className="text-muted-foreground w-4 shrink-0 text-right font-mono text-xs">{key}</span>
+                          <ThemeColorSelect
+                            label={`${t('theme-customizer.loop-colors')} ${key}`}
+                            theme={theme}
+                            value={theme['loop-color'][key]}
+                            onValueChange={(value) => applyTheme(updateLoopColor(theme, key, value))}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <fieldset className="min-w-0">
+                    <legend className="mb-2 text-sm font-medium">{t('theme-customizer.highlights')}</legend>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                      {highlightKeys.slice(0, 8).map((key) => (
+                        <div className="flex min-w-0 items-start gap-2" key={key}>
+                          <span className="text-muted-foreground w-4 shrink-0 pt-2 text-right font-mono text-xs">
+                            {key}
+                          </span>
+                          <div className="min-w-0 flex-1 space-y-2">
+                            <ThemeColorSelect
+                              label={`${t('theme-customizer.highlights')} ${key}`}
+                              theme={theme}
+                              value={theme.highlight.background[key].color}
+                              onValueChange={(value) => applyTheme(updateHighlight(theme, key, { color: value }))}
+                            />
+                            <div className="flex items-center gap-2">
+                              <Slider
+                                aria-label={`highlight ${key} alpha`}
+                                min={0.05}
+                                max={0.5}
+                                step={0.01}
+                                value={theme.highlight.background[key].alpha}
+                                onValueChange={(value) => applyTheme(updateHighlight(theme, key, { alpha: value }))}
+                              />
+                              <span className="text-muted-foreground text-[10px] leading-3 tabular-nums">
+                                {Math.round(theme.highlight.background[key].alpha * 100)}%
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </fieldset>
                 </div>
-                <div className="max-h-44 overflow-y-auto rounded-md border px-3">
+                <dl className="grid gap-x-6 @min-[40rem]/tools:grid-cols-2 @min-[64rem]/tools:grid-cols-3">
                   {tokenRows.map((row) => (
                     <TokenRow color={row.color} key={row.name} name={row.name} value={row.value} />
                   ))}
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <section>
-                    <h3 className="text-sm font-semibold">{t('theme-customizer.loop-colors')}</h3>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      {loopKeys.map((key) => (
-                        <label className="grid gap-1.5" key={key}>
-                          <FieldLabel>
-                            loop
-                            {key}
-                          </FieldLabel>
-                          <select
-                            className="bg-background h-9 rounded-md border px-2 text-sm shadow-xs"
-                            value={theme['loop-color'][key]}
-                            onChange={(event) => applyTheme(updateLoopColor(theme, key, event.target.value))}
-                          >
-                            {scaleKeys
-                              .flatMap((scale) => shadeKeys.map((shade) => `${scale}.${shade}`))
-                              .map((option) => (
-                                <option key={option} value={option}>
-                                  {option}
-                                </option>
-                              ))}
-                          </select>
-                        </label>
-                      ))}
-                    </div>
-                  </section>
-                  <section>
-                    <h3 className="text-sm font-semibold">{t('theme-customizer.highlights')}</h3>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      {highlightKeys.slice(0, 8).map((key) => (
-                        <label className="grid gap-1.5" key={key}>
-                          <FieldLabel>
-                            highlight
-                            {key}
-                          </FieldLabel>
-                          <span className="flex items-center gap-2">
-                            <select
-                              className="bg-background h-9 min-w-0 flex-1 rounded-md border px-2 text-sm shadow-xs"
-                              value={theme.highlight.background[key].color}
-                              onChange={(event) =>
-                                applyTheme(updateHighlight(theme, key, { color: event.target.value }))
-                              }
-                            >
-                              {scaleKeys
-                                .flatMap((scale) => shadeKeys.map((shade) => `${scale}.${shade}`))
-                                .map((option) => (
-                                  <option key={option} value={option}>
-                                    {option}
-                                  </option>
-                                ))}
-                            </select>
-                            <input
-                              aria-label={`highlight ${key} alpha`}
-                              className="w-16"
-                              max={0.5}
-                              min={0.05}
-                              step={0.01}
-                              type="range"
-                              value={theme.highlight.background[key].alpha}
-                              onChange={(event) =>
-                                applyTheme(updateHighlight(theme, key, { alpha: Number(event.target.value) }))
-                              }
-                            />
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </section>
-                </div>
+                </dl>
               </div>
             </TabsContent>
 
-            <TabsContent className="m-0 max-h-58 overflow-y-auto p-3" value="json">
+            <TabsContent className="m-0 p-3" value="json">
               <div className="grid gap-3">
-                <textarea
-                  className="bg-background focus-visible:ring-ring/50 h-42 resize-none rounded-md border p-3 font-mono text-xs shadow-xs outline-none focus-visible:ring-2"
+                <Textarea
+                  aria-label={t('theme-customizer.json')}
+                  className="field-sizing-fixed h-64 resize-y p-3 font-mono text-xs"
                   spellCheck={false}
                   value={jsonDraft}
                   onChange={(event) => setJsonDraft(event.target.value)}
@@ -576,31 +591,8 @@ export function ThemeCustomizerTool({ description, title }: { description: strin
           </Tabs>
         </section>
 
-        <section className="bg-card rounded-lg border p-3 shadow-sm">
-          <Tabs defaultValue="sheets">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-semibold">{t('theme-customizer.live-preview')}</h2>
-                <p className="text-muted-foreground mt-1 text-xs">
-                  {darkMode ? t('theme-customizer.dark') : t('theme-customizer.light')}
-                </p>
-              </div>
-              <TabsList>
-                <TabsTrigger value="sheets">{t('theme-customizer.sheets')}</TabsTrigger>
-                <TabsTrigger value="docs">{t('theme-customizer.docs')}</TabsTrigger>
-              </TabsList>
-            </div>
-            <TabsContent className="mt-3" value="sheets">
-              <RealUniverPreview darkMode={darkMode} kind="sheets" theme={theme} />
-            </TabsContent>
-            <TabsContent className="mt-3" value="docs">
-              <RealUniverPreview darkMode={darkMode} kind="docs" theme={theme} />
-            </TabsContent>
-          </Tabs>
-        </section>
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          <section className="bg-card rounded-lg border p-4 shadow-sm">
+        <div className="grid grid-cols-1 gap-4 @min-[48rem]/tools:grid-cols-2">
+          <section className="bg-card min-w-0 rounded-lg border p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h2 className="text-sm font-semibold">{t('theme-customizer.export')}</h2>
               <Button
@@ -618,7 +610,7 @@ export function ThemeCustomizerTool({ description, title }: { description: strin
             </pre>
           </section>
 
-          <section className="bg-card rounded-lg border p-4 shadow-sm">
+          <section className="bg-card min-w-0 rounded-lg border p-4 shadow-sm">
             <h2 className="text-sm font-semibold">{t('theme-customizer.design-tokens')}</h2>
             <pre className="bg-muted mt-3 max-h-64 overflow-auto rounded-md p-3 text-xs">
               <code>{`:root {\n${cssText}\n}`}</code>
