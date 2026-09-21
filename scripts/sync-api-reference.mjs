@@ -428,15 +428,17 @@ export function renderMember(member, anchor, links = new Map()) {
   return parts.filter(Boolean).join('\n\n')
 }
 
-async function formatExamples(text) {
-  const matches = [...text.matchAll(/```(?:tsx?|typescript|jsx?|javascript)\n([\s\S]*?)```/g)]
+export async function formatExamples(text) {
+  const matches = [...text.matchAll(/^```([^\n]*)\n([\s\S]*?)^```[ \t]*$/gm)].filter((match) =>
+    /^(?:tsx?|typescript|jsx?|javascript)?$/.test(match[1].trim()),
+  )
   const formatted = await Promise.all(
-    matches.map((match) => format('example.tsx', match[1], { semi: false, singleQuote: true, printWidth: 100 })),
+    matches.map((match) => format('example.tsx', match[2], { semi: false, singleQuote: true, printWidth: 100 })),
   )
   let output = ''
   let position = 0
   for (const [index, match] of matches.entries()) {
-    const language = /<\/[A-Za-z]|<>|<[A-Za-z][^>]*\/>/.test(match[1]) ? 'tsx' : 'ts'
+    const language = /<\/[A-Za-z]|<>|<[A-Za-z][^>]*\/>/.test(match[2]) ? 'tsx' : 'ts'
     output +=
       text.slice(position, match.index) +
       (formatted[index].errors.length ? match[0] : `\`\`\`${language}\n${formatted[index].code}\`\`\``)
