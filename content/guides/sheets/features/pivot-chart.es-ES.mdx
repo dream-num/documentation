@@ -1,0 +1,68 @@
+---
+title: Gráficos dinámicos
+icon: ChartNoAxesCombined
+---
+
+Registra las dependencias de [tablas dinámicas](/guides/sheets/features/pivot-table) y [gráficos](/guides/sheets/features/charts), y después estos dos plugins antes de crear el libro. Combina la traducción UI en `locales` y carga el CSS. Se requiere una licencia Pro.
+
+```package-install
+npm install @univerjs-pro/sheets-pivot-chart @univerjs-pro/sheets-pivot-chart-ui
+```
+
+```ts
+import { UniverSheetsPivotChartPlugin } from '@univerjs-pro/sheets-pivot-chart'
+import { UniverSheetsPivotChartUIPlugin } from '@univerjs-pro/sheets-pivot-chart-ui'
+import SheetsPivotChartLocale from '@univerjs-pro/sheets-pivot-chart-ui/locale/es-ES'
+import { LocaleType } from '@univerjs/core'
+
+import '@univerjs-pro/sheets-pivot-chart/facade'
+import '@univerjs-pro/sheets-pivot-chart-ui/lib/index.css'
+
+univerAPI.loadLocales(LocaleType.ES_ES, SheetsPivotChartLocale)
+
+univer.registerPlugin(UniverSheetsPivotChartPlugin)
+univer.registerPlugin(UniverSheetsPivotChartUIPlugin)
+```
+
+El preset Sheets Advanced ya incluye ambos plugins. Úsalo con Core y Drawing e importa explícitamente `@univerjs-pro/sheets-pivot-chart/facade` para estas API.
+
+## Informe independiente [#owned-report]
+
+El gráfico es propietario del informe. Añade un campo de filas y otro de valores después de insertarlo; el ejemplo usa las dos primeras columnas.
+
+```ts
+const workbook = univerAPI.getActiveWorkbook()
+const sheet = workbook?.getActiveSheet()
+if (!sheet) throw new Error('No active worksheet')
+
+sheet.getRange('A1:B4').setValues([
+  ['Region', 'Sales'], ['East', 100], ['West', 200], ['East', 50],
+])
+const chart = await sheet.insertPivotChart(
+  sheet.newPivotChart(univerAPI.Enum.ChartTypeString.Column)
+    .setSource('A1:B4').setPosition('D2').setSize(640, 360).build(),
+)
+const fields = chart.getSourceFieldsInfo()
+await chart.addField(fields[0].id, univerAPI.Enum.PivotTableFiledAreaEnum.Row, 0)
+await chart.addField(fields[1].id, univerAPI.Enum.PivotTableFiledAreaEnum.Value, 0)
+```
+
+## Vincular una tabla dinámica [#linked-report]
+
+Los campos, filtros, ordenación y contracción se comparten con la tabla referenciada y sus otros gráficos vinculados. La apariencia y posición son independientes. Eliminar el gráfico conserva la tabla. Eliminar la tabla deja el gráfico sin datos disponibles hasta restaurar la misma tabla.
+
+```ts
+const pivotTable = workbook.getPivotTableById('pivot-table-1')
+if (!pivotTable) throw new Error('PivotTable not found')
+
+const linkedChart = await sheet.insertPivotChart(
+  pivotTable.newChart(univerAPI.Enum.ChartTypeString.Line).setPosition('D22').build(),
+)
+linkedChart.setFieldButtonsVisible(true).setExpandCollapseButtonsVisible(true)
+```
+
+## Tipos y Worker [#types-and-worker]
+
+Se admiten líneas, columnas, barras, áreas, sectores, anillos y combinaciones, incluidas las variantes apiladas disponibles. No se admiten dispersión, burbujas, radar ni cascadas. Los sectores usan la primera serie de valores; los anillos conservan varias. Los subtotales y totales no son categorías.
+
+Con un [Worker](/guides/sheets/getting-started/worker), utiliza `UniverSheetsAdvancedPreset({ useWorker: true })` en el hilo principal y `UniverSheetsAdvancedWorkerPreset()` en el Worker. Consulta la [configuración](/reference/packages/plugins/univerjs-pro/sheets-pivot-chart#worker-calculation) y [FSheetPivotChart](/reference/facade/sheet-pivot-chart).

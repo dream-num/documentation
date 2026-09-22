@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { existsSync, globSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, globSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 import process from 'node:process'
@@ -65,6 +65,11 @@ const fieldDescriptions = {
 }
 
 const memberDescriptions = {
+  'FBoard.getInteractionMode': 'Returns the current board interaction mode.',
+  'FBoard.setInteractionMode': 'Sets the board interaction mode for pointer interactions.',
+  'FSheetPivotChart.unitId': 'The workbook identifier that owns this PivotChart.',
+  'FSheetPivotChart.subUnitId': 'The worksheet identifier that hosts this PivotChart.',
+  'FSheetPivotChart.pivotChartId': 'The stable identifier of this PivotChart.',
   'FRange.setHorizontalAlignment':
     "Sets the horizontal alignment for the range. Accepts `'left'`, `'center'`, or `'normal'`, following the [Google Apps Script parameter names](https://developers.google.com/apps-script/reference/spreadsheet/range#setHorizontalAlignment(String)). In Univer, `'normal'` means right alignment; `'right'` is not an accepted value.\n\n```ts\nfRange.setHorizontalAlignment('normal') // Align right\n```",
   'FRange.getHorizontalAlignment':
@@ -179,7 +184,16 @@ export function readClasses(sourceFile, source, sourceClasses = []) {
     const candidates = declaration.members
       .flatMap((member) =>
         member.kind === SyntaxKind.Constructor
-          ? member.parameters.filter((parameter) => parameter.modifiers?.length)
+          ? member.parameters.filter((parameter) =>
+              parameter.modifiers?.some((modifier) =>
+                [
+                  SyntaxKind.PublicKeyword,
+                  SyntaxKind.ProtectedKeyword,
+                  SyntaxKind.PrivateKeyword,
+                  SyntaxKind.ReadonlyKeyword,
+                ].includes(modifier.kind),
+              ),
+            )
           : [member],
       )
       .filter(
@@ -477,54 +491,84 @@ export async function formatExamples(text) {
   return output + text.slice(position)
 }
 
-export async function syncReference(coreRoot = resolve(root, '../univer'), proRoot = resolve(root, '../univer-pro')) {
+export function emitSourceDeclarations(repositories, temporary) {
+  const packages = repositories.flatMap((repo) =>
+    globSync('packages/*/package.json', { cwd: repo }).flatMap((manifest) => {
+      const directory = dirname(join(repo, manifest))
+      const info = JSON.parse(readFileSync(join(repo, manifest), 'utf8'))
+      if (!info.name?.startsWith('@univerjs') || removedPackages.has(info.name)) return []
+      return [{ name: info.name, directory, repo }]
+    }),
+  )
+  const paths = {}
+  const files = []
+  let sourceRoot = dirname(repositories[0])
+  while (repositories.some((repo) => relative(sourceRoot, repo).startsWith('..'))) sourceRoot = dirname(sourceRoot)
+  for (const entry of packages) {
+    for (const suffix of ['', '/facade']) {
+      const file = join(entry.directory, 'src', suffix, 'index.ts')
+      if (!existsSync(file)) continue
+      paths[`${entry.name}${suffix}`] = [file]
+      files.push(file)
+    }
+  }
+  const output = join(temporary, 'declarations')
+  const config = join(temporary, 'source-tsconfig.json')
+  writeFileSync(
+    config,
+    JSON.stringify({
+      compilerOptions: {
+        declaration: true,
+        emitDeclarationOnly: true,
+        noCheck: true,
+        experimentalDecorators: true,
+        jsx: 'react-jsx',
+        module: 'ESNext',
+        moduleResolution: 'bundler',
+        target: 'ESNext',
+        types: [],
+        paths,
+        rootDir: sourceRoot,
+        outDir: output,
+      },
+      files,
+    }),
+  )
+  const compiler = fileURLToPath(new URL('./bin/tsc', import.meta.resolve('typescript/package.json')))
+  execFileSync(process.execPath, [compiler, '-p', config], { stdio: 'pipe' })
+  return packages.map((entry) =>
+    Object.assign(entry, {
+      typesDirectory: join(output, relative(sourceRoot, entry.directory), 'src'),
+    }),
+  )
+}
+
+export async function syncReference(coreRoot = resolve(root, '../univer'), proRoot = resolve(root, '../pro-release')) {
   const sources = []
   const paths = {}
   const version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version
   const temporary = mkdtempSync(join(tmpdir(), 'univer-reference-'))
   const api = new API()
   try {
-    for (const repo of [coreRoot, proRoot]) {
+    for (const repo of [coreRoot, proRoot])
       assert(existsSync(join(repo, 'packages')), `Missing source repository: ${repo}`)
-      for (const manifest of globSync('packages/*/package.json', { cwd: repo })) {
-        const directory = dirname(join(repo, manifest))
-        const packageInfo = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'))
-        if (!packageInfo.name?.startsWith('@univerjs') || removedPackages.has(packageInfo.name)) continue
-        const localFiles = globSync('src/facade/**/*.ts', { cwd: directory }).filter(
-          (file) => !file.includes('/__tests__/') && !file.endsWith('.spec.ts'),
-        )
-        if (!localFiles.length) continue
-        let typesDirectory = globSync(
-          `node_modules/.pnpm/${packageInfo.name.replace('/', '+')}@${version}*/node_modules/${packageInfo.name}/lib/types`,
-          { cwd: root },
-        ).map((path) => join(root, path))[0]
-        if (!typesDirectory) {
-          const packed = JSON.parse(
-            execFileSync(
-              'npm',
-              ['pack', `${packageInfo.name}@${version}`, '--ignore-scripts', '--json', '--pack-destination', temporary],
-              { encoding: 'utf8' },
-            ),
-          )[0]
-          const destination = join(temporary, packageInfo.name.replace('/', '-'))
-          mkdirSync(destination, { recursive: true })
-          execFileSync('tar', ['-xzf', join(temporary, packed.filename), '-C', destination])
-          typesDirectory = join(destination, 'package/lib/types')
-        }
-        paths[packageInfo.name] = [join(typesDirectory, 'index.d.ts')]
-        paths[`${packageInfo.name}/facade`] = [join(typesDirectory, 'facade/index.d.ts')]
-        for (const file of globSync('facade/**/*.d.ts', { cwd: typesDirectory })) {
-          const sourceFile = join(directory, 'src', file.replace(/\.d\.ts$/, '.ts'))
-          sources.push({
-            file: join(typesDirectory, file),
-            sourceFile: existsSync(sourceFile) ? sourceFile : undefined,
-            package: packageInfo.name,
-            directory,
-            typesDirectory,
-            repo,
-            typesUrl: `https://unpkg.com/${packageInfo.name}@${version}/lib/types/${file}`,
-          })
-        }
+    symlinkSync(join(root, 'node_modules'), join(temporary, 'node_modules'), 'dir')
+    const sourcePackages = emitSourceDeclarations([coreRoot, proRoot], temporary)
+    for (const { name, directory, typesDirectory, repo } of sourcePackages) {
+      if (existsSync(join(typesDirectory, 'index.d.ts'))) paths[name] = [join(typesDirectory, 'index.d.ts')]
+      if (!existsSync(join(typesDirectory, 'facade/index.d.ts'))) continue
+      paths[`${name}/facade`] = [join(typesDirectory, 'facade/index.d.ts')]
+      for (const file of globSync('facade/**/*.d.ts', { cwd: typesDirectory })) {
+        const sourceFile = join(directory, 'src', file.replace(/\.d\.ts$/, '.ts'))
+        sources.push({
+          file: join(typesDirectory, file),
+          sourceFile: existsSync(sourceFile) ? sourceFile : undefined,
+          package: name,
+          directory,
+          typesDirectory,
+          repo,
+          typesUrl: `https://unpkg.com/${name}@${version}/lib/types/${file}`,
+        })
       }
     }
     const config = join(temporary, 'tsconfig.json')
@@ -580,9 +624,9 @@ export async function syncReference(coreRoot = resolve(root, '../univer'), proRo
     const sourceMap = new Map(sources.map((source) => [source.file, source]))
     function declarationUrl(declaration) {
       const file = declaration.getSourceFile().fileName
-      const source = sourceMap.get(file) ?? sources.find((entry) => file.startsWith(`${entry.typesDirectory}/`))
+      const source = sourceMap.get(file) ?? sourcePackages.find((entry) => file.startsWith(`${entry.typesDirectory}/`))
       if (source)
-        return `https://unpkg.com/${source.package}@${version}/lib/types/${relative(source.typesDirectory, file)}`
+        return `https://unpkg.com/${source.package ?? source.name}@${version}/lib/types/${relative(source.typesDirectory, file)}`
       // Public exports may be aliases of declarations owned by a dependency, such as @univerjs/protocol.
       for (let directory = dirname(file); directory.includes('/node_modules/'); directory = dirname(directory)) {
         const manifest = join(directory, 'package.json')
@@ -779,8 +823,11 @@ export async function syncReference(coreRoot = resolve(root, '../univer'), proRo
       ]),
     )
     const oldExamples = new Map()
+    const oldDescriptions = new Map()
     for (const text of originals.values()) {
       for (const match of text.matchAll(/^### `([^`]+)`[^\n]*\n([\s\S]*?)(?=^#{1,3} |$(?![\s\S]))/gm)) {
+        const description = match[2].split('```')[0].trim()
+        if (description) oldDescriptions.set(match[1], description)
         const example = match[2].match(/\*\*Examples\*\*[\s\S]*?(```[\s\S]*?```)/)?.[1]
         if (example) oldExamples.set(match[1], example)
       }
@@ -866,6 +913,7 @@ export async function syncReference(coreRoot = resolve(root, '../univer'), proRo
             member.returnType = returnType && project.checker.typeToString(returnType)
           }
           const anchor = slug(member.name)
+          if (!member.description) member.description = oldDescriptions.get(`${entry.name}.${member.name}`) ?? ''
           member.examples = oldExamples.get(`${entry.name}.${member.name}`)
           sections.push(renderMember(member, anchor, getTypeLinks(member)))
           count++

@@ -1,0 +1,68 @@
+---
+title: ピボットグラフ
+icon: ChartNoAxesCombined
+---
+
+[ピボットテーブル](/guides/sheets/features/pivot-table)と[グラフ](/guides/sheets/features/charts)の依存関係を登録した後、ブック作成前に次のプラグインを追加します。UI ロケールを `locales` にマージし、CSS を読み込みます。Pro ライセンスが必要です。
+
+```package-install
+npm install @univerjs-pro/sheets-pivot-chart @univerjs-pro/sheets-pivot-chart-ui
+```
+
+```ts
+import { UniverSheetsPivotChartPlugin } from '@univerjs-pro/sheets-pivot-chart'
+import { UniverSheetsPivotChartUIPlugin } from '@univerjs-pro/sheets-pivot-chart-ui'
+import SheetsPivotChartLocale from '@univerjs-pro/sheets-pivot-chart-ui/locale/ja-JP'
+import { LocaleType } from '@univerjs/core'
+
+import '@univerjs-pro/sheets-pivot-chart/facade'
+import '@univerjs-pro/sheets-pivot-chart-ui/lib/index.css'
+
+univerAPI.loadLocales(LocaleType.JA_JP, SheetsPivotChartLocale)
+
+univer.registerPlugin(UniverSheetsPivotChartPlugin)
+univer.registerPlugin(UniverSheetsPivotChartUIPlugin)
+```
+
+Sheets Advanced プリセットには両プラグインが含まれます。Core と Drawing プリセットを併用し、API 用に `@univerjs-pro/sheets-pivot-chart/facade` を明示的にインポートしてください。
+
+## 独立したレポート [#owned-report]
+
+グラフ自身がレポートを所有します。挿入後に行フィールドと値フィールドを追加します。例ではデータの先頭 2 列を使用します。
+
+```ts
+const workbook = univerAPI.getActiveWorkbook()
+const sheet = workbook?.getActiveSheet()
+if (!sheet) throw new Error('No active worksheet')
+
+sheet.getRange('A1:B4').setValues([
+  ['Region', 'Sales'], ['East', 100], ['West', 200], ['East', 50],
+])
+const chart = await sheet.insertPivotChart(
+  sheet.newPivotChart(univerAPI.Enum.ChartTypeString.Column)
+    .setSource('A1:B4').setPosition('D2').setSize(640, 360).build(),
+)
+const fields = chart.getSourceFieldsInfo()
+await chart.addField(fields[0].id, univerAPI.Enum.PivotTableFiledAreaEnum.Row, 0)
+await chart.addField(fields[1].id, univerAPI.Enum.PivotTableFiledAreaEnum.Value, 0)
+```
+
+## ピボットテーブルとの連携 [#linked-report]
+
+フィールド、フィルター、並べ替え、折りたたみは参照先のテーブルと他の連携グラフで共有されます。外観と位置は独立しています。グラフの削除はテーブルを削除しません。テーブルを削除するとグラフは使用不可になり、同じテーブルを復元すると再接続します。
+
+```ts
+const pivotTable = workbook.getPivotTableById('pivot-table-1')
+if (!pivotTable) throw new Error('PivotTable not found')
+
+const linkedChart = await sheet.insertPivotChart(
+  pivotTable.newChart(univerAPI.Enum.ChartTypeString.Line).setPosition('D22').build(),
+)
+linkedChart.setFieldButtonsVisible(true).setExpandCollapseButtonsVisible(true)
+```
+
+## 対応する種類と Worker [#types-and-worker]
+
+折れ線、縦棒、横棒、面、円、ドーナツ、複合グラフと対応する積み上げ形式を利用できます。散布図、バブル、レーダー、ウォーターフォールには対応しません。円は最初の値系列、ドーナツは複数系列を使用します。小計と総計はカテゴリに含まれません。
+
+[Worker](/guides/sheets/getting-started/worker) 使用時はメイン側で `UniverSheetsAdvancedPreset({ useWorker: true })`、Worker 側で `UniverSheetsAdvancedWorkerPreset()` を使用します。[パッケージ設定](/reference/packages/plugins/univerjs-pro/sheets-pivot-chart#worker-calculation)と [FSheetPivotChart](/reference/facade/sheet-pivot-chart) も参照してください。

@@ -1,0 +1,68 @@
+---
+title: Сводные диаграммы
+icon: ChartNoAxesCombined
+---
+
+Зарегистрируйте зависимости [сводных таблиц](/guides/sheets/features/pivot-table) и [диаграмм](/guides/sheets/features/charts), затем два плагина ниже до создания книги. Добавьте локаль UI в `locales` и подключите CSS. Нужна лицензия Pro.
+
+```package-install
+npm install @univerjs-pro/sheets-pivot-chart @univerjs-pro/sheets-pivot-chart-ui
+```
+
+```ts
+import { UniverSheetsPivotChartPlugin } from '@univerjs-pro/sheets-pivot-chart'
+import { UniverSheetsPivotChartUIPlugin } from '@univerjs-pro/sheets-pivot-chart-ui'
+import SheetsPivotChartLocale from '@univerjs-pro/sheets-pivot-chart-ui/locale/ru-RU'
+import { LocaleType } from '@univerjs/core'
+
+import '@univerjs-pro/sheets-pivot-chart/facade'
+import '@univerjs-pro/sheets-pivot-chart-ui/lib/index.css'
+
+univerAPI.loadLocales(LocaleType.RU_RU, SheetsPivotChartLocale)
+
+univer.registerPlugin(UniverSheetsPivotChartPlugin)
+univer.registerPlugin(UniverSheetsPivotChartUIPlugin)
+```
+
+Пресет Sheets Advanced уже включает оба плагина. Используйте его с Core и Drawing и явно импортируйте `@univerjs-pro/sheets-pivot-chart/facade` для этих API.
+
+## Независимый отчёт [#owned-report]
+
+Диаграмма владеет своим отчётом. После вставки добавьте поле строк и поле значений; пример использует первые два столбца источника.
+
+```ts
+const workbook = univerAPI.getActiveWorkbook()
+const sheet = workbook?.getActiveSheet()
+if (!sheet) throw new Error('No active worksheet')
+
+sheet.getRange('A1:B4').setValues([
+  ['Region', 'Sales'], ['East', 100], ['West', 200], ['East', 50],
+])
+const chart = await sheet.insertPivotChart(
+  sheet.newPivotChart(univerAPI.Enum.ChartTypeString.Column)
+    .setSource('A1:B4').setPosition('D2').setSize(640, 360).build(),
+)
+const fields = chart.getSourceFieldsInfo()
+await chart.addField(fields[0].id, univerAPI.Enum.PivotTableFiledAreaEnum.Row, 0)
+await chart.addField(fields[1].id, univerAPI.Enum.PivotTableFiledAreaEnum.Value, 0)
+```
+
+## Связь со сводной таблицей [#linked-report]
+
+Поля, фильтры, сортировка и сворачивание общие с исходной таблицей и другими связанными диаграммами. Оформление и положение независимы. Удаление диаграммы сохраняет таблицу. После удаления таблицы диаграмма недоступна до восстановления той же таблицы.
+
+```ts
+const pivotTable = workbook.getPivotTableById('pivot-table-1')
+if (!pivotTable) throw new Error('PivotTable not found')
+
+const linkedChart = await sheet.insertPivotChart(
+  pivotTable.newChart(univerAPI.Enum.ChartTypeString.Line).setPosition('D22').build(),
+)
+linkedChart.setFieldButtonsVisible(true).setExpandCollapseButtonsVisible(true)
+```
+
+## Типы и Worker [#types-and-worker]
+
+Поддерживаются линейные, столбчатые, линейчатые, областные, круговые, кольцевые и комбинированные диаграммы, включая доступные варианты с накоплением. Точечные, пузырьковые, лепестковые и каскадные сводные диаграммы не поддерживаются. Круговая использует первый ряд значений, кольцевая — несколько. Промежуточные и общие итоги исключаются из категорий.
+
+При работе с [Worker](/guides/sheets/getting-started/worker) используйте `UniverSheetsAdvancedPreset({ useWorker: true })` в основном потоке и `UniverSheetsAdvancedWorkerPreset()` в Worker. См. [настройки](/reference/packages/plugins/univerjs-pro/sheets-pivot-chart#worker-calculation) и [FSheetPivotChart](/reference/facade/sheet-pivot-chart).

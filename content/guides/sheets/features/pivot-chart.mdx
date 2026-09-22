@@ -1,0 +1,68 @@
+---
+title: Pivot Charts
+icon: ChartNoAxesCombined
+---
+
+Register the [PivotTable](/guides/sheets/features/pivot-table) and [chart](/guides/sheets/features/charts) dependencies, then add the two plugins below before creating the workbook. Merge the UI locale into your `locales` configuration and load its stylesheet. A Pro license is required.
+
+```package-install
+npm install @univerjs-pro/sheets-pivot-chart @univerjs-pro/sheets-pivot-chart-ui
+```
+
+```ts
+import { UniverSheetsPivotChartPlugin } from '@univerjs-pro/sheets-pivot-chart'
+import { UniverSheetsPivotChartUIPlugin } from '@univerjs-pro/sheets-pivot-chart-ui'
+import SheetsPivotChartLocale from '@univerjs-pro/sheets-pivot-chart-ui/locale/en-US'
+import { LocaleType } from '@univerjs/core'
+
+import '@univerjs-pro/sheets-pivot-chart/facade'
+import '@univerjs-pro/sheets-pivot-chart-ui/lib/index.css'
+
+univerAPI.loadLocales(LocaleType.EN_US, SheetsPivotChartLocale)
+
+univer.registerPlugin(UniverSheetsPivotChartPlugin)
+univer.registerPlugin(UniverSheetsPivotChartUIPlugin)
+```
+
+The advanced Sheets preset already includes both plugins. Use it with the core and drawing presets, and import `@univerjs-pro/sheets-pivot-chart/facade` explicitly for these APIs.
+
+## Independent report [#owned-report]
+
+This chart owns its report. Add a row field and a value field after insertion; the example uses the first two source columns.
+
+```ts
+const workbook = univerAPI.getActiveWorkbook()
+const sheet = workbook?.getActiveSheet()
+if (!sheet) throw new Error('No active worksheet')
+
+sheet.getRange('A1:B4').setValues([
+  ['Region', 'Sales'], ['East', 100], ['West', 200], ['East', 50],
+])
+const chart = await sheet.insertPivotChart(
+  sheet.newPivotChart(univerAPI.Enum.ChartTypeString.Column)
+    .setSource('A1:B4').setPosition('D2').setSize(640, 360).build(),
+)
+const fields = chart.getSourceFieldsInfo()
+await chart.addField(fields[0].id, univerAPI.Enum.PivotTableFiledAreaEnum.Row, 0)
+await chart.addField(fields[1].id, univerAPI.Enum.PivotTableFiledAreaEnum.Value, 0)
+```
+
+## Link to a PivotTable [#linked-report]
+
+Field, filter, sort, and collapse edits are shared with the referenced PivotTable and its other linked charts. Appearance and position remain independent. Removing the chart keeps the table; removing the table makes the chart unavailable until the same table is restored.
+
+```ts
+const pivotTable = workbook.getPivotTableById('pivot-table-1')
+if (!pivotTable) throw new Error('PivotTable not found')
+
+const linkedChart = await sheet.insertPivotChart(
+  pivotTable.newChart(univerAPI.Enum.ChartTypeString.Line).setPosition('D22').build(),
+)
+linkedChart.setFieldButtonsVisible(true).setExpandCollapseButtonsVisible(true)
+```
+
+## Supported types and Worker [#types-and-worker]
+
+Line, column, bar, area, pie, doughnut, and combination types are supported, including stacked variants where available. Scatter, bubble, radar, and waterfall types are not supported. Pie uses the first value series; doughnut keeps multiple series. Subtotals and grand totals are excluded from chart categories.
+
+With a [Worker](/guides/sheets/getting-started/worker), use `UniverSheetsAdvancedPreset({ useWorker: true })` on the main thread and `UniverSheetsAdvancedWorkerPreset()` in the Worker. Plugin-mode details are in the [package reference](/reference/packages/plugins/univerjs-pro/sheets-pivot-chart#worker-calculation). See [FSheetPivotChart](/reference/facade/sheet-pivot-chart) for field, filter, style, and lifecycle APIs.

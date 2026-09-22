@@ -1,0 +1,68 @@
+---
+title: 피벗 차트
+icon: ChartNoAxesCombined
+---
+
+[피벗 테이블](/guides/sheets/features/pivot-table)과 [차트](/guides/sheets/features/charts) 의존성을 등록한 뒤 통합 문서를 만들기 전에 아래 플러그인을 추가하세요. UI 언어 팩을 `locales`에 병합하고 스타일을 불러옵니다. Pro 라이선스가 필요합니다.
+
+```package-install
+npm install @univerjs-pro/sheets-pivot-chart @univerjs-pro/sheets-pivot-chart-ui
+```
+
+```ts
+import { UniverSheetsPivotChartPlugin } from '@univerjs-pro/sheets-pivot-chart'
+import { UniverSheetsPivotChartUIPlugin } from '@univerjs-pro/sheets-pivot-chart-ui'
+import SheetsPivotChartLocale from '@univerjs-pro/sheets-pivot-chart-ui/locale/ko-KR'
+import { LocaleType } from '@univerjs/core'
+
+import '@univerjs-pro/sheets-pivot-chart/facade'
+import '@univerjs-pro/sheets-pivot-chart-ui/lib/index.css'
+
+univerAPI.loadLocales(LocaleType.KO_KR, SheetsPivotChartLocale)
+
+univer.registerPlugin(UniverSheetsPivotChartPlugin)
+univer.registerPlugin(UniverSheetsPivotChartUIPlugin)
+```
+
+Sheets Advanced 프리셋에는 두 플러그인이 포함되어 있습니다. Core 및 Drawing 프리셋과 함께 사용하고 API를 위해 `@univerjs-pro/sheets-pivot-chart/facade`를 명시적으로 가져오세요.
+
+## 독립 보고서 [#owned-report]
+
+차트가 보고서를 소유합니다. 삽입 후 행 필드와 값 필드를 추가합니다. 예제는 원본의 첫 두 열을 사용합니다.
+
+```ts
+const workbook = univerAPI.getActiveWorkbook()
+const sheet = workbook?.getActiveSheet()
+if (!sheet) throw new Error('No active worksheet')
+
+sheet.getRange('A1:B4').setValues([
+  ['Region', 'Sales'], ['East', 100], ['West', 200], ['East', 50],
+])
+const chart = await sheet.insertPivotChart(
+  sheet.newPivotChart(univerAPI.Enum.ChartTypeString.Column)
+    .setSource('A1:B4').setPosition('D2').setSize(640, 360).build(),
+)
+const fields = chart.getSourceFieldsInfo()
+await chart.addField(fields[0].id, univerAPI.Enum.PivotTableFiledAreaEnum.Row, 0)
+await chart.addField(fields[1].id, univerAPI.Enum.PivotTableFiledAreaEnum.Value, 0)
+```
+
+## 피벗 테이블 연결 [#linked-report]
+
+필드, 필터, 정렬, 접기 변경은 참조 테이블과 다른 연결 차트에 공유됩니다. 모양과 위치는 독립적입니다. 차트를 삭제해도 테이블은 유지됩니다. 테이블을 삭제하면 차트가 비활성화되고 같은 테이블을 복원하면 다시 연결됩니다.
+
+```ts
+const pivotTable = workbook.getPivotTableById('pivot-table-1')
+if (!pivotTable) throw new Error('PivotTable not found')
+
+const linkedChart = await sheet.insertPivotChart(
+  pivotTable.newChart(univerAPI.Enum.ChartTypeString.Line).setPosition('D22').build(),
+)
+linkedChart.setFieldButtonsVisible(true).setExpandCollapseButtonsVisible(true)
+```
+
+## 지원 유형과 Worker [#types-and-worker]
+
+꺾은선, 세로 막대, 가로 막대, 영역, 원형, 도넛 및 혼합 차트와 지원되는 누적 유형을 사용할 수 있습니다. 분산형, 거품형, 방사형, 폭포형 피벗 차트는 지원하지 않습니다. 원형은 첫 값 계열을, 도넛은 여러 계열을 사용합니다. 소계와 총계는 범주에서 제외됩니다.
+
+[Worker](/guides/sheets/getting-started/worker)를 사용할 때 메인 스레드에는 `UniverSheetsAdvancedPreset({ useWorker: true })`, Worker에는 `UniverSheetsAdvancedWorkerPreset()`를 설정합니다. [패키지 설정](/reference/packages/plugins/univerjs-pro/sheets-pivot-chart#worker-calculation)과 [FSheetPivotChart](/reference/facade/sheet-pivot-chart)를 참고하세요.

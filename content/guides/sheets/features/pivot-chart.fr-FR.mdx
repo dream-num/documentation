@@ -1,0 +1,68 @@
+---
+title: Graphiques croisés dynamiques
+icon: ChartNoAxesCombined
+---
+
+Enregistrez les dépendances du [tableau croisé dynamique](/guides/sheets/features/pivot-table) et des [graphiques](/guides/sheets/features/charts), puis les deux plugins ci-dessous avant de créer le classeur. Fusionnez la locale UI dans `locales` et chargez le CSS. Une licence Pro est nécessaire.
+
+```package-install
+npm install @univerjs-pro/sheets-pivot-chart @univerjs-pro/sheets-pivot-chart-ui
+```
+
+```ts
+import { UniverSheetsPivotChartPlugin } from '@univerjs-pro/sheets-pivot-chart'
+import { UniverSheetsPivotChartUIPlugin } from '@univerjs-pro/sheets-pivot-chart-ui'
+import SheetsPivotChartLocale from '@univerjs-pro/sheets-pivot-chart-ui/locale/fr-FR'
+import { LocaleType } from '@univerjs/core'
+
+import '@univerjs-pro/sheets-pivot-chart/facade'
+import '@univerjs-pro/sheets-pivot-chart-ui/lib/index.css'
+
+univerAPI.loadLocales(LocaleType.FR_FR, SheetsPivotChartLocale)
+
+univer.registerPlugin(UniverSheetsPivotChartPlugin)
+univer.registerPlugin(UniverSheetsPivotChartUIPlugin)
+```
+
+Le preset Sheets Advanced contient déjà ces plugins. Utilisez-le avec les presets Core et Drawing et importez explicitement `@univerjs-pro/sheets-pivot-chart/facade` pour ces API.
+
+## Rapport indépendant [#owned-report]
+
+Le graphique possède son rapport. Ajoutez un champ de lignes et un champ de valeurs après insertion ; cet exemple utilise les deux premières colonnes.
+
+```ts
+const workbook = univerAPI.getActiveWorkbook()
+const sheet = workbook?.getActiveSheet()
+if (!sheet) throw new Error('No active worksheet')
+
+sheet.getRange('A1:B4').setValues([
+  ['Region', 'Sales'], ['East', 100], ['West', 200], ['East', 50],
+])
+const chart = await sheet.insertPivotChart(
+  sheet.newPivotChart(univerAPI.Enum.ChartTypeString.Column)
+    .setSource('A1:B4').setPosition('D2').setSize(640, 360).build(),
+)
+const fields = chart.getSourceFieldsInfo()
+await chart.addField(fields[0].id, univerAPI.Enum.PivotTableFiledAreaEnum.Row, 0)
+await chart.addField(fields[1].id, univerAPI.Enum.PivotTableFiledAreaEnum.Value, 0)
+```
+
+## Lier un tableau croisé dynamique [#linked-report]
+
+Les champs, filtres, tris et replis sont partagés avec le tableau référencé et ses autres graphiques liés. Le style et la position restent indépendants. Supprimer le graphique conserve le tableau. Supprimer le tableau rend le graphique indisponible jusqu’à la restauration du même tableau.
+
+```ts
+const pivotTable = workbook.getPivotTableById('pivot-table-1')
+if (!pivotTable) throw new Error('PivotTable not found')
+
+const linkedChart = await sheet.insertPivotChart(
+  pivotTable.newChart(univerAPI.Enum.ChartTypeString.Line).setPosition('D22').build(),
+)
+linkedChart.setFieldButtonsVisible(true).setExpandCollapseButtonsVisible(true)
+```
+
+## Types et Worker [#types-and-worker]
+
+Courbes, colonnes, barres, aires, secteurs, anneaux et graphiques combinés sont pris en charge, avec leurs variantes empilées disponibles. Nuages de points, bulles, radars et cascades ne le sont pas. Les secteurs utilisent la première série de valeurs, les anneaux plusieurs séries. Les sous-totaux et totaux sont exclus des catégories.
+
+Avec un [Worker](/guides/sheets/getting-started/worker), utilisez `UniverSheetsAdvancedPreset({ useWorker: true })` côté principal et `UniverSheetsAdvancedWorkerPreset()` côté Worker. Voir la [configuration](/reference/packages/plugins/univerjs-pro/sheets-pivot-chart#worker-calculation) et [FSheetPivotChart](/reference/facade/sheet-pivot-chart).

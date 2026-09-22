@@ -1,0 +1,68 @@
+---
+title: 透视图
+icon: ChartNoAxesCombined
+---
+
+先注册[透视表](/guides/sheets/features/pivot-table)和[图表](/guides/sheets/features/charts)依赖，再在创建工作簿前注册以下两个插件。将 UI 语言包合并到 `locales`，并加载样式。此功能需要 Pro 许可证。
+
+```package-install
+npm install @univerjs-pro/sheets-pivot-chart @univerjs-pro/sheets-pivot-chart-ui
+```
+
+```ts
+import { UniverSheetsPivotChartPlugin } from '@univerjs-pro/sheets-pivot-chart'
+import { UniverSheetsPivotChartUIPlugin } from '@univerjs-pro/sheets-pivot-chart-ui'
+import SheetsPivotChartLocale from '@univerjs-pro/sheets-pivot-chart-ui/locale/zh-CN'
+import { LocaleType } from '@univerjs/core'
+
+import '@univerjs-pro/sheets-pivot-chart/facade'
+import '@univerjs-pro/sheets-pivot-chart-ui/lib/index.css'
+
+univerAPI.loadLocales(LocaleType.ZH_CN, SheetsPivotChartLocale)
+
+univer.registerPlugin(UniverSheetsPivotChartPlugin)
+univer.registerPlugin(UniverSheetsPivotChartUIPlugin)
+```
+
+Sheets 高级预设已包含这两个插件。与核心、绘图预设配合使用，并显式导入 `@univerjs-pro/sheets-pivot-chart/facade` 以启用以下 API。
+
+## 独立报表 [#owned-report]
+
+此模式由图表持有报表。插入后添加行字段和值字段；示例使用数据源的前两列。
+
+```ts
+const workbook = univerAPI.getActiveWorkbook()
+const sheet = workbook?.getActiveSheet()
+if (!sheet) throw new Error('No active worksheet')
+
+sheet.getRange('A1:B4').setValues([
+  ['Region', 'Sales'], ['East', 100], ['West', 200], ['East', 50],
+])
+const chart = await sheet.insertPivotChart(
+  sheet.newPivotChart(univerAPI.Enum.ChartTypeString.Column)
+    .setSource('A1:B4').setPosition('D2').setSize(640, 360).build(),
+)
+const fields = chart.getSourceFieldsInfo()
+await chart.addField(fields[0].id, univerAPI.Enum.PivotTableFiledAreaEnum.Row, 0)
+await chart.addField(fields[1].id, univerAPI.Enum.PivotTableFiledAreaEnum.Value, 0)
+```
+
+## 关联透视表 [#linked-report]
+
+字段、筛选、排序和折叠修改会同步到关联透视表及其其他关联图表；图表外观和位置各自独立。删除图表不会删除透视表；删除透视表后图表暂不可用，恢复同一透视表后重新连接。
+
+```ts
+const pivotTable = workbook.getPivotTableById('pivot-table-1')
+if (!pivotTable) throw new Error('PivotTable not found')
+
+const linkedChart = await sheet.insertPivotChart(
+  pivotTable.newChart(univerAPI.Enum.ChartTypeString.Line).setPosition('D22').build(),
+)
+linkedChart.setFieldButtonsVisible(true).setExpandCollapseButtonsVisible(true)
+```
+
+## 支持的类型与 Worker [#types-and-worker]
+
+支持折线、柱形、条形、面积、饼图、圆环和组合图，以及适用的堆积类型。不支持散点、气泡、雷达和瀑布透视图。饼图使用第一个值系列，圆环图保留多个系列。分类数据不包含小计和总计。
+
+使用 [Worker](/guides/sheets/getting-started/worker) 时，主线程配置 `UniverSheetsAdvancedPreset({ useWorker: true })`，Worker 中配置 `UniverSheetsAdvancedWorkerPreset()`。插件模式见[包参考](/reference/packages/plugins/univerjs-pro/sheets-pivot-chart#worker-calculation)；字段、筛选、样式和生命周期 API 见 [FSheetPivotChart](/reference/facade/sheet-pivot-chart)。

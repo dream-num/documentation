@@ -1,0 +1,68 @@
+---
+title: 樞紐分析圖
+icon: ChartNoAxesCombined
+---
+
+先註冊[樞紐分析表](/guides/sheets/features/pivot-table)與[圖表](/guides/sheets/features/charts)依賴，再於建立活頁簿前註冊以下兩個外掛。將 UI 語言包合併至 `locales`，並載入樣式。此功能需要 Pro 授權。
+
+```package-install
+npm install @univerjs-pro/sheets-pivot-chart @univerjs-pro/sheets-pivot-chart-ui
+```
+
+```ts
+import { UniverSheetsPivotChartPlugin } from '@univerjs-pro/sheets-pivot-chart'
+import { UniverSheetsPivotChartUIPlugin } from '@univerjs-pro/sheets-pivot-chart-ui'
+import SheetsPivotChartLocale from '@univerjs-pro/sheets-pivot-chart-ui/locale/zh-TW'
+import { LocaleType } from '@univerjs/core'
+
+import '@univerjs-pro/sheets-pivot-chart/facade'
+import '@univerjs-pro/sheets-pivot-chart-ui/lib/index.css'
+
+univerAPI.loadLocales(LocaleType.ZH_TW, SheetsPivotChartLocale)
+
+univer.registerPlugin(UniverSheetsPivotChartPlugin)
+univer.registerPlugin(UniverSheetsPivotChartUIPlugin)
+```
+
+Sheets 進階預設已包含這兩個外掛。搭配核心及繪圖預設，並明確匯入 `@univerjs-pro/sheets-pivot-chart/facade` 以啟用以下 API。
+
+## 獨立報表 [#owned-report]
+
+此模式由圖表持有報表。插入後加入列欄位和值欄位；範例使用來源的前兩欄。
+
+```ts
+const workbook = univerAPI.getActiveWorkbook()
+const sheet = workbook?.getActiveSheet()
+if (!sheet) throw new Error('No active worksheet')
+
+sheet.getRange('A1:B4').setValues([
+  ['Region', 'Sales'], ['East', 100], ['West', 200], ['East', 50],
+])
+const chart = await sheet.insertPivotChart(
+  sheet.newPivotChart(univerAPI.Enum.ChartTypeString.Column)
+    .setSource('A1:B4').setPosition('D2').setSize(640, 360).build(),
+)
+const fields = chart.getSourceFieldsInfo()
+await chart.addField(fields[0].id, univerAPI.Enum.PivotTableFiledAreaEnum.Row, 0)
+await chart.addField(fields[1].id, univerAPI.Enum.PivotTableFiledAreaEnum.Value, 0)
+```
+
+## 連結樞紐分析表 [#linked-report]
+
+欄位、篩選、排序及摺疊變更會同步至連結的樞紐分析表及其他連結圖表；外觀與位置各自獨立。刪除圖表不會刪除表格；刪除表格後圖表暫不可用，還原同一表格後重新連結。
+
+```ts
+const pivotTable = workbook.getPivotTableById('pivot-table-1')
+if (!pivotTable) throw new Error('PivotTable not found')
+
+const linkedChart = await sheet.insertPivotChart(
+  pivotTable.newChart(univerAPI.Enum.ChartTypeString.Line).setPosition('D22').build(),
+)
+linkedChart.setFieldButtonsVisible(true).setExpandCollapseButtonsVisible(true)
+```
+
+## 支援類型與 Worker [#types-and-worker]
+
+支援折線、直條、橫條、面積、圓餅、環圈及組合圖，以及適用的堆疊類型。不支援散佈、泡泡、雷達及瀑布樞紐分析圖。圓餅圖使用第一個值數列，環圈圖保留多個數列。分類不包含小計與總計。
+
+使用 [Worker](/guides/sheets/getting-started/worker) 時，主執行緒設定 `UniverSheetsAdvancedPreset({ useWorker: true })`，Worker 中設定 `UniverSheetsAdvancedWorkerPreset()`。外掛模式見[套件參考](/reference/packages/plugins/univerjs-pro/sheets-pivot-chart#worker-calculation)；完整 API 見 [FSheetPivotChart](/reference/facade/sheet-pivot-chart)。
