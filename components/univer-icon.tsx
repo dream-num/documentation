@@ -8,12 +8,16 @@ import {
   BoardsMultiIcon,
   DocsAppIcon,
   DocsMultiIcon,
+  GaugeChartIcon,
+  HistogramChartIcon,
   PdfAppIcon,
   PdfMultiIcon,
   SheetsAppIcon,
   SheetsMultiIcon,
   SlidesAppIcon,
   SlidesMultiIcon,
+  SunburstChartIcon,
+  TreemapChartIcon,
 } from '@univerjs/icons'
 
 import type { UniverIconName } from '@/lib/univer-icons'
@@ -25,12 +29,16 @@ const icons = {
   BoardsMultiIcon,
   DocsAppIcon,
   DocsMultiIcon,
+  GaugeChartIcon,
+  HistogramChartIcon,
   PdfAppIcon,
   PdfMultiIcon,
   SheetsAppIcon,
   SheetsMultiIcon,
   SlidesAppIcon,
   SlidesMultiIcon,
+  SunburstChartIcon,
+  TreemapChartIcon,
 } satisfies Record<UniverIconName, typeof SheetsMultiIcon>
 
 interface IUniverIconProps extends SVGAttributes<SVGSVGElement> {

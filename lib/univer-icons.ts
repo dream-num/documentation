@@ -5,12 +5,16 @@ export const univerIconNames = [
   'BoardsMultiIcon',
   'DocsAppIcon',
   'DocsMultiIcon',
+  'GaugeChartIcon',
+  'HistogramChartIcon',
   'PdfAppIcon',
   'PdfMultiIcon',
   'SheetsAppIcon',
   'SheetsMultiIcon',
   'SlidesAppIcon',
   'SlidesMultiIcon',
+  'SunburstChartIcon',
+  'TreemapChartIcon',
 ] as const
 
 export type UniverIconName = (typeof univerIconNames)[number]

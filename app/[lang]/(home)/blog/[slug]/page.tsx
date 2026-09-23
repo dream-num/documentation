@@ -79,7 +79,7 @@ export default async function Page({ params }: IProps) {
               </time>
             </div>
             {toc.length > 0 ? <DocsToc compact items={[...toc]} lang={lang} /> : null}
-            <Button className="w-full" render={<Link href={withLocale(lang, '/blog')} />}>
+            <Button className="w-full" nativeButton={false} render={<Link href={withLocale(lang, '/blog')} />}>
               {t('blog.back')}
             </Button>
           </aside>
