@@ -125,12 +125,15 @@ export default async function Page({ params }: IProps) {
       <HeadingGlow />
       <main>
         <header className="relative isolate overflow-hidden px-6 pt-16 pb-10 text-center lg:px-[20%] lg:pt-24 lg:pb-24">
-          <div className="mx-auto inline-block rounded-full bg-neutral-50 py-1 text-sm font-semibold shadow-sm dark:bg-neutral-800">
+          <Link
+            href="/blog/univer-1-0"
+            className="mx-auto inline-block rounded-full bg-neutral-50 py-1 text-sm font-semibold shadow-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--landing-ink) dark:bg-neutral-800"
+          >
             <span className="border-r border-neutral-300 py-1 pr-1.5 pl-3 dark:border-neutral-700">🎉</span>
             <AnimatedShinyText className="py-1 pr-3 pl-1.5">
               Univer Office SDK v{pkg.version} {t('home.banner-release')}
             </AnimatedShinyText>
-          </div>
+          </Link>
           <h1 className="mx-auto my-6 max-w-225 text-[clamp(36px,5vw,70px)] leading-[1.14] font-normal tracking-[-0.045em] text-balance md:tracking-[-0.05em]">
             {t('home.slogan')
               .split('\n')
