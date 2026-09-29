@@ -15,7 +15,7 @@ test('documents current exports and signatures without installed or stale built 
     const core = join(temporary, 'core')
     const pro = join(temporary, 'pro')
     const files = {
-      'core/packages/sheets/package.json': '{"name":"@univerjs/sheets"}',
+      'core/packages/sheets/package.json': '{"name":"@univerjs/sheets","version":"1.2.3"}',
       'core/packages/sheets/src/index.ts': 'export interface IWorksheetData { backgroundImage?: { source: string } }',
       'core/packages/sheets/src/facade/index.ts': `
         function Inject(): ParameterDecorator { return () => {} }
@@ -26,7 +26,7 @@ test('documents current exports and signatures without installed or stale built 
       `,
       'core/packages/sheets/lib/types/facade/index.d.ts':
         'export declare class FWorksheet { setHyperLink(url: string): boolean }',
-      'pro/packages/pivot-chart/package.json': '{"name":"@univerjs-pro/pivot-chart"}',
+      'pro/packages/pivot-chart/package.json': '{"name":"@univerjs-pro/pivot-chart","version":"2.3.4"}',
       'pro/packages/pivot-chart/src/index.ts': 'export interface IPivotChart { id: string }',
       'pro/packages/pivot-chart/src/facade/index.ts': `
         export class FSheetPivotChart { getId(): string { return 'chart' } }
@@ -40,6 +40,13 @@ test('documents current exports and signatures without installed or stale built 
       writeFileSync(file, content)
     }
     const packages = emitSourceDeclarations([core, pro], temporary)
+    assert.deepEqual(
+      packages.map(({ typesBaseUrl }) => typesBaseUrl),
+      [
+        'https://unpkg.com/@univerjs/sheets@1.2.3/lib/types/',
+        'https://unpkg.com/@univerjs-pro/pivot-chart@2.3.4/lib/types/',
+      ],
+    )
     const entries = packages.map(({ typesDirectory }) => join(typesDirectory, 'facade/index.d.ts'))
     const config = join(temporary, 'reference-tsconfig.json')
     writeFileSync(

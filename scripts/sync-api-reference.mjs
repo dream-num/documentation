@@ -497,7 +497,9 @@ export function emitSourceDeclarations(repositories, temporary) {
       const directory = dirname(join(repo, manifest))
       const info = JSON.parse(readFileSync(join(repo, manifest), 'utf8'))
       if (!info.name?.startsWith('@univerjs') || removedPackages.has(info.name)) return []
-      return [{ name: info.name, directory, repo }]
+      return [
+        { name: info.name, directory, repo, typesBaseUrl: `https://unpkg.com/${info.name}@${info.version}/lib/types/` },
+      ]
     }),
   )
   const paths = {}
@@ -543,10 +545,9 @@ export function emitSourceDeclarations(repositories, temporary) {
   )
 }
 
-export async function syncReference(coreRoot = resolve(root, '../univer'), proRoot = resolve(root, '../pro-release')) {
+export async function syncReference(coreRoot = resolve(root, '../univer'), proRoot = resolve(root, '../univer-pro')) {
   const sources = []
   const paths = {}
-  const version = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version
   const temporary = mkdtempSync(join(tmpdir(), 'univer-reference-'))
   const api = new API()
   try {
@@ -554,7 +555,7 @@ export async function syncReference(coreRoot = resolve(root, '../univer'), proRo
       assert(existsSync(join(repo, 'packages')), `Missing source repository: ${repo}`)
     symlinkSync(join(root, 'node_modules'), join(temporary, 'node_modules'), 'dir')
     const sourcePackages = emitSourceDeclarations([coreRoot, proRoot], temporary)
-    for (const { name, directory, typesDirectory, repo } of sourcePackages) {
+    for (const { name, directory, typesDirectory, repo, typesBaseUrl } of sourcePackages) {
       if (existsSync(join(typesDirectory, 'index.d.ts'))) paths[name] = [join(typesDirectory, 'index.d.ts')]
       if (!existsSync(join(typesDirectory, 'facade/index.d.ts'))) continue
       paths[`${name}/facade`] = [join(typesDirectory, 'facade/index.d.ts')]
@@ -567,7 +568,8 @@ export async function syncReference(coreRoot = resolve(root, '../univer'), proRo
           directory,
           typesDirectory,
           repo,
-          typesUrl: `https://unpkg.com/${name}@${version}/lib/types/${file}`,
+          typesBaseUrl,
+          typesUrl: `${typesBaseUrl}${file}`,
         })
       }
     }
@@ -625,8 +627,7 @@ export async function syncReference(coreRoot = resolve(root, '../univer'), proRo
     function declarationUrl(declaration) {
       const file = declaration.getSourceFile().fileName
       const source = sourceMap.get(file) ?? sourcePackages.find((entry) => file.startsWith(`${entry.typesDirectory}/`))
-      if (source)
-        return `https://unpkg.com/${source.package ?? source.name}@${version}/lib/types/${relative(source.typesDirectory, file)}`
+      if (source) return `${source.typesBaseUrl}${relative(source.typesDirectory, file)}`
       // Public exports may be aliases of declarations owned by a dependency, such as @univerjs/protocol.
       for (let directory = dirname(file); directory.includes('/node_modules/'); directory = dirname(directory)) {
         const manifest = join(directory, 'package.json')
@@ -640,7 +641,7 @@ export async function syncReference(coreRoot = resolve(root, '../univer'), proRo
       const sourceFile = project.program.getSourceFile(paths[entry.packageName][0])
       const moduleSymbol = project.checker.getSymbolAtLocation(sourceFile)
       const exported = project.checker.getExportsOfModule(moduleSymbol).find((symbol) => symbol.name === entry.name)
-      assert(exported, `${entry.packageName}@${version} does not export ${entry.name}`)
+      assert(exported, `${entry.packageName} does not export ${entry.name}`)
       const symbol = exported.flags & SymbolFlags.Alias ? project.checker.getAliasedSymbol(exported) : exported
       const declaration = symbol.declarations[0].resolve()
       assert(declarationUrl(declaration), `Missing published declaration URL for ${entry.name}`)
