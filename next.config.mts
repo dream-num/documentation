@@ -49,6 +49,8 @@ const config: NextConfig = {
   },
 
   experimental: {
+    // Hoisted Pro PDF code loses decoder assignments during minification.
+    turbopackScopeHoisting: false,
     turbopackRemoveUnusedImports: false,
     turbopackRemoveUnusedExports: false,
   },
