@@ -20,7 +20,7 @@ const UniverPlayground = dynamic(() => import('./univer'), {
           ))}
         </div>
       </div>
-      <div className="border-border relative mx-auto flex h-[34rem] w-7xl max-w-full items-center justify-center rounded-lg border sm:h-160 dark:border-white/10">
+      <div className="border-border relative mx-auto flex h-160 w-7xl max-w-full items-center justify-center rounded-lg border sm:h-200 dark:border-white/10">
         <Spinner />
       </div>
     </div>

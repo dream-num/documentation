@@ -1,7 +1,14 @@
 import amamo from '@amamo/oxlint-config'
 
 export default amamo({
-  ignores: ['**/.angular/**', '**/.astro/**', '.amamo-mdx/**', '.next/**', 'out/**'],
+  ignores: [
+    '**/.angular/**',
+    '**/.astro/**',
+    '.amamo-mdx/**',
+    '.next/**',
+    'out/**',
+    'public/assets/illustrations/hairline-kernel.js',
+  ],
   jsxA11y: false,
   nextjs: true,
   node: true,

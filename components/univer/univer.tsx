@@ -5,14 +5,25 @@ import { UniverBasesUIPlugin } from '@univerjs-pro/bases-ui'
 import BasesUIEnUS from '@univerjs-pro/bases-ui/locale/en-US'
 import BasesEnUS from '@univerjs-pro/bases/locale/en-US'
 import {
+  BoardConnectorSite,
   createBoardConnectorElement,
   createBoardContainerElement,
+  createBoardStickyElement,
+  createBoardSwimlaneElement,
   createBoardTextBoxShapeElement,
   UniverBoardsPlugin,
 } from '@univerjs-pro/boards'
 import { UniverBoardsUIPlugin } from '@univerjs-pro/boards-ui'
 import BoardsUIEnUS from '@univerjs-pro/boards-ui/locale/en-US'
-import { ShapeFillEnum, ShapeLineTypeEnum, ShapeTextWrapType, ShapeTypeEnum } from '@univerjs-pro/engine-shape'
+import ChartUIEnUS from '@univerjs-pro/chart-ui/locale/en-US'
+import EmbedUnitUIEnUS from '@univerjs-pro/embed-unit-ui/locale/en-US'
+import {
+  replaceSmartArtTextContent,
+  ShapeFillEnum,
+  ShapeLineTypeEnum,
+  ShapeTextWrapType,
+  ShapeTypeEnum,
+} from '@univerjs-pro/engine-shape'
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 import { UniverPdfsPlugin } from '@univerjs-pro/pdfs'
 import { UniverPdfEditorPlugin } from '@univerjs-pro/pdfs-editor'
@@ -20,14 +31,20 @@ import { UniverPdfsUIPlugin } from '@univerjs-pro/pdfs-ui'
 import PdfsUIEnUS from '@univerjs-pro/pdfs-ui/locale/en-US'
 import ShapeEditorUIEnUS from '@univerjs-pro/shape-editor-ui/locale/en-US'
 import { UniverSlidesPlugin } from '@univerjs-pro/slides'
+import { UniverSlidesChartPlugin } from '@univerjs-pro/slides-chart'
+import { UniverSlidesChartUIPlugin } from '@univerjs-pro/slides-chart-ui'
+import SlidesChartUIEnUS from '@univerjs-pro/slides-chart-ui/locale/en-US'
+import { UniverSlidesTablePlugin } from '@univerjs-pro/slides-table'
+import { UniverSlidesTableUIPlugin } from '@univerjs-pro/slides-table-ui'
+import SlidesTableUIEnUS from '@univerjs-pro/slides-table-ui/locale/en-US'
 import { UniverSlidesUIPlugin } from '@univerjs-pro/slides-ui'
 import SlidesUIEnUS from '@univerjs-pro/slides-ui/locale/en-US'
 import {
   BooleanNumber,
   HorizontalAlign,
-  LocaleType as CoreLocaleType,
-  mergeLocales as mergeCoreLocales,
-  Univer as UniverCore,
+  LocaleType,
+  mergeLocales,
+  Univer,
   UniverInstanceType,
   VerticalAlign,
 } from '@univerjs/core'
@@ -55,10 +72,16 @@ import SheetsConditionalFormattingUIEnUS from '@univerjs/sheets-conditional-form
 import { UniverSheetsDataValidationPlugin } from '@univerjs/sheets-data-validation'
 import { UniverSheetsDataValidationUIPlugin } from '@univerjs/sheets-data-validation-ui'
 import SheetsDataValidationUIEnUS from '@univerjs/sheets-data-validation-ui/locale/en-US'
+import { UniverSheetsFilterUIPlugin } from '@univerjs/sheets-filter-ui'
+import SheetsFilterUIEnUS from '@univerjs/sheets-filter-ui/locale/en-US'
 import { UniverSheetsFormulaUIPlugin } from '@univerjs/sheets-formula-ui'
 import SheetsFormulaUIEnUS from '@univerjs/sheets-formula-ui/locale/en-US'
 import { UniverSheetsNumfmtUIPlugin } from '@univerjs/sheets-numfmt-ui'
 import SheetsNumfmtUIEnUS from '@univerjs/sheets-numfmt-ui/locale/en-US'
+import { UniverSheetsSortUIPlugin } from '@univerjs/sheets-sort-ui'
+import SheetsSortUIEnUS from '@univerjs/sheets-sort-ui/locale/en-US'
+import { UniverSheetsTableUIPlugin } from '@univerjs/sheets-table-ui'
+import SheetsTableUIEnUS from '@univerjs/sheets-table-ui/locale/en-US'
 import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
 import SheetsUIEnUS from '@univerjs/sheets-ui/locale/en-US'
 import SheetsEnUS from '@univerjs/sheets/locale/en-US'
@@ -84,8 +107,15 @@ import '@univerjs/sheets-formula-ui/lib/index.css'
 import '@univerjs/sheets-numfmt-ui/lib/index.css'
 import '@univerjs/sheets-conditional-formatting-ui/lib/index.css'
 import '@univerjs/sheets-data-validation-ui/lib/index.css'
+import '@univerjs/sheets-filter-ui/lib/index.css'
+import '@univerjs/sheets-sort-ui/lib/index.css'
+import '@univerjs/sheets-table-ui/lib/index.css'
 import '@univerjs-pro/shape-editor-ui/lib/index.css'
 import '@univerjs-pro/slides-ui/lib/index.css'
+import '@univerjs-pro/chart-ui/lib/index.css'
+import '@univerjs-pro/embed-unit-ui/lib/index.css'
+import '@univerjs-pro/slides-chart-ui/lib/index.css'
+import '@univerjs-pro/slides-table-ui/lib/index.css'
 import '@univerjs-pro/bases-ui/lib/index.css'
 import '@univerjs-pro/boards-ui/lib/index.css'
 import '@univerjs-pro/pdfs-ui/lib/index.css'
@@ -94,8 +124,15 @@ import '@univerjs-pro/bases/facade'
 import '@univerjs-pro/bases-ui/facade'
 import '@univerjs-pro/boards/facade'
 import '@univerjs-pro/pdfs/facade'
+import '@univerjs-pro/engine-shape/facade'
+import '@univerjs-pro/slides/facade'
+import '@univerjs-pro/slides-chart/facade'
+import '@univerjs-pro/slides-table/facade'
 import '@univerjs/ui/facade'
 import '@univerjs/docs-ui/facade'
+import '@univerjs/sheets/facade'
+import '@univerjs/sheets-filter/facade'
+import '@univerjs/sheets-table/facade'
 
 type UniverType = 'sheets' | 'docs' | 'slides' | 'bases' | 'boards' | 'pdfs'
 type DocumentMode = 'modern' | 'traditional'
@@ -104,7 +141,7 @@ export interface IUniverProps {
   tablistLabel: string
 }
 
-export default function Univer({ tablistLabel }: IUniverProps) {
+export default function UniverDemo({ tablistLabel }: IUniverProps) {
   const divRef = useRef<HTMLDivElement>(null!)
 
   const [type, setType] = useState<UniverType>('sheets')
@@ -113,224 +150,223 @@ export default function Univer({ tablistLabel }: IUniverProps) {
 
   const { theme } = useTheme()
 
+  const seedSlides = useCallback((univerAPI: ReturnType<typeof FUniver.newAPI>) => {
+    const presentation = univerAPI.getActivePresentation()!
+    const chartSlide = presentation.getSlideById('visuals')!
+    chartSlide.setSpeakerNotes(
+      'These are illustrative template counts, not product benchmarks. Select the chart and edit its embedded data to change the visualization.',
+    )
+
+    const tableSlide = presentation.getSlideById('comparison')!
+    const table = tableSlide.insertTable(
+      tableSlide
+        .newTable()
+        .setValues([
+          ['UNIVER SLIDES · A toolkit for your story', '', ''],
+          ['Element', 'Use it for', 'Try it here'],
+          ['Rich text', 'Headlines, labels, speaker notes', 'Change a font or emphasis'],
+          ['Shapes', 'Cards, callouts, visual hierarchy', 'Resize, rotate, recolor'],
+          ['Charts', 'Compare values and show trends', 'Edit the source data'],
+          ['Tables', 'Keep a comparison structured', 'Merge, style, insert rows'],
+          ['SmartArt', 'Explain relationships and steps', 'Edit nodes and layouts'],
+        ])
+        .setAbsolutePosition(54, 146)
+        .setSize(732, 266)
+        .build(),
+    )!
+    table.mergeCells({ startRow: 0, endRow: 0, startColumn: 0, endColumn: 2 })
+    table.setColumnWidth(0, 136)
+    table.setColumnWidth(1, 298)
+    table.setColumnWidth(2, 298)
+    table.setCellTextStyle(table.getTableRange(), { fs: 12, ff: 'Arial' })
+    table.setCellBackground(table.getRowsRange(0, 2), '#102A43')
+    table.setCellTextColor(table.getRowsRange(0, 2), '#FFFFFF')
+    table.setCellTextStyle(table.getRowsRange(0, 2), { bl: BooleanNumber.TRUE })
+    for (const row of [2, 4, 6]) table.setCellBackground(table.getRowsRange(row), '#EAF5F2')
+
+    const diagramSlide = presentation.getSlideById('sequence')!
+    const diagram = diagramSlide.insertSmartArt('urn:microsoft.com/office/officeart/2005/8/layout/process1', {
+      left: 68,
+      top: 178,
+      width: 704,
+      height: 111,
+    })!
+    const data = diagram.getSmartArtData()!
+    const nodeLabels = ['Create', 'Visualize', 'Present']
+    Object.keys(data.nodes).forEach((nodeId, index) => {
+      diagram.updateSmartArtNode(nodeId, {
+        text: replaceSmartArtTextContent(data.nodes[nodeId].text, nodeLabels[index]),
+      })
+    })
+    diagramSlide.setSpeakerNotes(
+      'Use the SmartArt text pane to extend this outline. The layout follows the content tree; each node remains editable.',
+    )
+  }, [])
+
   const seedBase = useCallback((univerAPI: ReturnType<typeof FUniver.newAPI>) => {
     const now = Date.now()
+    const today = new Date(now)
+    const tourDate = (offset: number) =>
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + offset)
     const base = univerAPI.createBase({
       id: 'bases-home-demo',
-      name: 'Northstar Launch Operations',
+      name: 'Univer Bases · Feature explorer',
       schemaVersion: 1,
       createdAt: now,
       updatedAt: now,
       tables: {},
       tableOrder: [],
     })
-    const table = base.insertTable('Launch Portfolio', { primaryFieldName: 'Workstream' })
-    const status = table.addField('Status', univerAPI.Enum.BaseFieldType.SingleSelect, {
+    const table = base.insertTable('Explore Bases', { primaryFieldName: 'Feature' })
+    const status = table.addField('Your tour', univerAPI.Enum.BaseFieldType.SingleSelect, {
       field: {
         config: {
           options: [
-            { id: 'planned', name: 'Planned', color: 'purple' },
-            { id: 'progress', name: 'In progress', color: 'blue' },
-            { id: 'review', name: 'In review', color: 'yellow' },
-            { id: 'blocked', name: 'Blocked', color: 'red' },
+            { id: 'explore', name: 'Explore', color: 'blue' },
+            { id: 'trying', name: 'Trying it', color: 'yellow' },
             { id: 'done', name: 'Done', color: 'green' },
           ],
         },
-        defaultValue: 'planned',
+        defaultValue: 'explore',
       },
     })
-    const owner = table.addField('Owner', univerAPI.Enum.BaseFieldType.Text)
-    const region = table.addField('Geo', univerAPI.Enum.BaseFieldType.SingleSelect, {
+    const instruction = table.addField('Try this', univerAPI.Enum.BaseFieldType.Text)
+    const category = table.addField('Category', univerAPI.Enum.BaseFieldType.SingleSelect, {
       field: {
         config: {
           options: [
-            { id: 'global', name: 'Global', color: 'blue' },
-            { id: 'americas', name: 'Americas', color: 'green' },
-            { id: 'emea', name: 'EMEA', color: 'yellow' },
-            { id: 'apac', name: 'APAC', color: 'purple' },
+            { id: 'fields', name: 'Typed fields', color: 'blue' },
+            { id: 'views', name: 'Multiple views', color: 'purple' },
+            { id: 'workspace', name: 'Your workspace', color: 'green' },
           ],
         },
       },
     })
-    const readiness = table.addField('Readiness', univerAPI.Enum.BaseFieldType.Progress)
+    const progress = table.addField('Progress', univerAPI.Enum.BaseFieldType.Progress)
     const startDate = table.addField('Start', univerAPI.Enum.BaseFieldType.Date)
-    const targetDate = table.addField('Target', univerAPI.Enum.BaseFieldType.Date)
-    const risk = table.addField('Risk', univerAPI.Enum.BaseFieldType.SingleSelect, {
+    const endDate = table.addField('Finish', univerAPI.Enum.BaseFieldType.Date)
+    const tags = table.addField('Try with', univerAPI.Enum.BaseFieldType.MultiSelect, {
       field: {
         config: {
           options: [
-            { id: 'low', name: 'Low', color: 'green' },
-            { id: 'medium', name: 'Medium', color: 'yellow' },
-            { id: 'high', name: 'High', color: 'red' },
+            { id: 'edit', name: 'Edit a value', color: 'blue' },
+            { id: 'drag', name: 'Drag & drop', color: 'orange' },
+            { id: 'view', name: 'Switch views', color: 'purple' },
           ],
         },
       },
     })
-
-    table.addRecords([
-      {
-        values: {
-          [table.getPrimaryFieldId()]: 'Release approval',
-          [status.getId()]: 'done',
-          [owner.getId()]: 'Maya Chen',
-          [region.getId()]: 'global',
-          [readiness.getId()]: 100,
-          [startDate.getId()]: Date.UTC(2026, 7, 11),
-          [targetDate.getId()]: Date.UTC(2026, 8, 5),
-          [risk.getId()]: 'low',
+    const minutes = table.addField('Minutes', univerAPI.Enum.BaseFieldType.Number, {
+      field: { config: { pattern: '0', decimalPlaces: 0 } },
+    })
+    const rating = table.addField('Usefulness', univerAPI.Enum.BaseFieldType.Rating, {
+      field: { config: { min: 1, max: 5 } },
+    })
+    const favorite = table.addField('Favorite', univerAPI.Enum.BaseFieldType.Checkbox)
+    const reference = table.addField('Learn more', univerAPI.Enum.BaseFieldType.Link)
+    const formulaName = table.getFormulaName()
+    const remaining = table.addField('Minutes left', univerAPI.Enum.BaseFieldType.Formula, {
+      field: {
+        config: {
+          formula: `=ROUND(${formulaName}[[#This Row],[Minutes]]*(1-${formulaName}[[#This Row],[Progress]]/100),0)`,
         },
       },
-      {
+      externalReferences: [],
+    })
+    const records = [
+      ['Single select', 'Choose a colored label in Your tour.', 'fields', 25],
+      ['Progress fields', 'Edit this value to fill the progress bar.', 'fields', 65],
+      ['Dates and text', 'Give this record a date and your own description.', 'fields', 40],
+      ['Kanban view', 'Drag a card to another category.', 'views', 80],
+      ['Calendar view', 'Open Tour calendar to see these dates.', 'views', 50],
+      ['Timeline view', 'Open Tour timeline to compare date ranges.', 'views', 30],
+      ['Gallery view', 'Open Feature gallery for a different card layout.', 'views', 70],
+      ['Grid view', 'Open Feature grid and edit a cell.', 'workspace', 100],
+      ['Multiple tables', 'Open Build your own to start another workflow.', 'workspace', 10],
+      ['Multiple labels', 'Add or remove tags in Try with.', 'fields', 45],
+      ['Ratings & checkboxes', 'Choose stars and save a favorite.', 'fields', 60],
+      ['Computed fields', 'Change Minutes or Progress; Minutes left recalculates.', 'fields', 35],
+      ['Saved filters', 'Open Still to explore: unfinished records, sorted by rating.', 'workspace', 20],
+      ['Links', 'Edit the label and URL in Learn more.', 'fields', 90],
+    ] as const
+    table.addRecords(
+      records.map(([feature, description, group, value], index) => ({
         values: {
-          [table.getPrimaryFieldId()]: 'Enterprise onboarding',
-          [status.getId()]: 'review',
-          [owner.getId()]: 'Jon Bell',
-          [region.getId()]: 'americas',
-          [readiness.getId()]: 88,
-          [startDate.getId()]: Date.UTC(2026, 7, 18),
-          [targetDate.getId()]: Date.UTC(2026, 8, 12),
-          [risk.getId()]: 'medium',
+          [table.getPrimaryFieldId()]: feature,
+          [status.getId()]: index === 7 ? 'done' : 'explore',
+          [instruction.getId()]: description,
+          [category.getId()]: group,
+          [progress.getId()]: value,
+          [startDate.getId()]: tourDate(index - 6),
+          [endDate.getId()]: tourDate(index - 2),
+          [tags.getId()]: group === 'views' ? ['view', 'drag'] : ['edit'],
+          [minutes.getId()]: 5 + (index % 4) * 5,
+          [rating.getId()]: 3 + (index % 3),
+          [favorite.getId()]: [0, 3, 11].includes(index),
+          [reference.getId()]: { text: 'Univer documentation', url: 'https://docs.univer.ai' },
         },
-      },
-      {
-        values: {
-          [table.getPrimaryFieldId()]: 'Partner certification',
-          [status.getId()]: 'progress',
-          [owner.getId()]: 'Priya Shah',
-          [region.getId()]: 'emea',
-          [readiness.getId()]: 76,
-          [startDate.getId()]: Date.UTC(2026, 7, 20),
-          [targetDate.getId()]: Date.UTC(2026, 8, 16),
-          [risk.getId()]: 'medium',
-        },
-      },
-      {
-        values: {
-          [table.getPrimaryFieldId()]: 'Localized launch kits',
-          [status.getId()]: 'progress',
-          [owner.getId()]: 'Noah Martin',
-          [region.getId()]: 'apac',
-          [readiness.getId()]: 64,
-          [startDate.getId()]: Date.UTC(2026, 7, 25),
-          [targetDate.getId()]: Date.UTC(2026, 8, 18),
-          [risk.getId()]: 'high',
-        },
-      },
-      {
-        values: {
-          [table.getPrimaryFieldId()]: 'Billing migration',
-          [status.getId()]: 'blocked',
-          [owner.getId()]: 'Elena Rossi',
-          [region.getId()]: 'global',
-          [readiness.getId()]: 52,
-          [startDate.getId()]: Date.UTC(2026, 7, 15),
-          [targetDate.getId()]: Date.UTC(2026, 8, 14),
-          [risk.getId()]: 'high',
-        },
-      },
-      {
-        values: {
-          [table.getPrimaryFieldId()]: 'Support readiness',
-          [status.getId()]: 'review',
-          [owner.getId()]: 'Andre Lewis',
-          [region.getId()]: 'global',
-          [readiness.getId()]: 82,
-          [startDate.getId()]: Date.UTC(2026, 7, 22),
-          [targetDate.getId()]: Date.UTC(2026, 8, 17),
-          [risk.getId()]: 'low',
-        },
-      },
-      {
-        values: {
-          [table.getPrimaryFieldId()]: 'Executive roadshow',
-          [status.getId()]: 'progress',
-          [owner.getId()]: 'Sofia Park',
-          [region.getId()]: 'americas',
-          [readiness.getId()]: 70,
-          [startDate.getId()]: Date.UTC(2026, 7, 26),
-          [targetDate.getId()]: Date.UTC(2026, 8, 19),
-          [risk.getId()]: 'medium',
-        },
-      },
-      {
-        values: {
-          [table.getPrimaryFieldId()]: 'Analytics validation',
-          [status.getId()]: 'done',
-          [owner.getId()]: 'Owen Davis',
-          [region.getId()]: 'global',
-          [readiness.getId()]: 100,
-          [startDate.getId()]: Date.UTC(2026, 7, 12),
-          [targetDate.getId()]: Date.UTC(2026, 8, 9),
-          [risk.getId()]: 'low',
-        },
-      },
-      {
-        values: {
-          [table.getPrimaryFieldId()]: 'Go-live command center',
-          [status.getId()]: 'planned',
-          [owner.getId()]: 'Amara Okafor',
-          [region.getId()]: 'global',
-          [readiness.getId()]: 35,
-          [startDate.getId()]: Date.UTC(2026, 8, 8),
-          [targetDate.getId()]: Date.UTC(2026, 8, 22),
-          [risk.getId()]: 'medium',
-        },
-      },
-    ])
-
+      })),
+    )
     const grid = table.getViewByName('Grid')
-    grid?.setName('Portfolio grid')
-    grid?.setFieldWidth(table.getPrimaryFieldId(), 230)
-    grid?.setFieldWidth(status.getId(), 112)
-    grid?.setFieldWidth(owner.getId(), 124)
-    grid?.setFieldWidth(region.getId(), 98)
-    grid?.setFieldWidth(readiness.getId(), 126)
-    grid?.setFieldWidth(startDate.getId(), 108)
-    grid?.setFieldWidth(targetDate.getId(), 108)
-    grid?.setFieldWidth(risk.getId(), 88)
+    grid?.setName('Feature grid')
+    grid?.setFieldWidth(table.getPrimaryFieldId(), 180)
+    grid?.setFieldWidth(instruction.getId(), 320)
+    grid?.setFieldWidth(status.getId(), 120)
+    grid?.setFieldWidth(category.getId(), 150)
+    grid?.setFieldWidth(progress.getId(), 120)
+    grid?.setFieldWidth(startDate.getId(), 110)
+    grid?.setFieldWidth(endDate.getId(), 110)
+    grid?.setFieldWidth(tags.getId(), 210)
+    grid?.setFieldWidth(reference.getId(), 220)
+    const unfinished = table.createView('Still to explore', univerAPI.Enum.BaseViewType.Grid)
+    unfinished.setFilter({
+      conjunction: univerAPI.Enum.BaseFilterConjunction.AND,
+      conditions: [{ fieldId: status.getId(), operator: univerAPI.Enum.BaseFilterOperator.IS_NOT, operand: 'done' }],
+    })
+    unfinished.setSort([{ fieldId: rating.getId(), direction: univerAPI.Enum.BaseSortDirection.DESC }])
 
-    const launchBoard = table.createView('Launch board', univerAPI.Enum.BaseViewType.Kanban, {
+    const featureBoard = table.createView('Feature board', univerAPI.Enum.BaseViewType.Kanban, {
       view: {
         config: {
-          groupFieldId: status.getId(),
+          groupFieldId: category.getId(),
           cardLayout: 'compose',
           showFieldNames: true,
           card: {
             titleFieldId: table.getPrimaryFieldId(),
             coverFieldId: null,
-            fieldIds: [owner.getId(), region.getId(), readiness.getId(), targetDate.getId(), risk.getId()],
+            fieldIds: [instruction.getId(), status.getId(), progress.getId(), remaining.getId()],
           },
         },
       },
     })
-    table.createView('Milestones', univerAPI.Enum.BaseViewType.Calendar, {
+    table.createView('Tour calendar', univerAPI.Enum.BaseViewType.Calendar, {
       view: {
         config: {
           startDateFieldId: startDate.getId(),
-          endDateFieldId: targetDate.getId(),
+          endDateFieldId: endDate.getId(),
           titleFieldId: table.getPrimaryFieldId(),
-          colorFieldId: status.getId(),
+          colorFieldId: category.getId(),
           mode: 'month',
-          displayColor: { type: 'selectField', fieldId: status.getId() },
+          displayColor: { type: 'selectField', fieldId: category.getId() },
         },
       },
     })
-    table.createView('Delivery timeline', univerAPI.Enum.BaseViewType.Gantt, {
+    table.createView('Tour timeline', univerAPI.Enum.BaseViewType.Gantt, {
       view: {
         config: {
           startDateFieldId: startDate.getId(),
-          endDateFieldId: targetDate.getId(),
+          endDateFieldId: endDate.getId(),
           titleFieldId: table.getPrimaryFieldId(),
-          progressFieldId: readiness.getId(),
+          progressFieldId: progress.getId(),
           scale: 'week',
-          leftPaneWidth: 300,
+          leftPaneWidth: 260,
           showTodayLine: true,
-          showWeekend: false,
-          displayColor: { type: 'selectField', fieldId: status.getId() },
+          showWeekend: true,
+          displayColor: { type: 'selectField', fieldId: category.getId() },
         },
       },
     })
-    table.createView('Workstream gallery', univerAPI.Enum.BaseViewType.Gallery, {
+    table.createView('Feature gallery', univerAPI.Enum.BaseViewType.Gallery, {
       view: {
         config: {
           coverFieldId: null,
@@ -340,322 +376,249 @@ export default function Univer({ tablistLabel }: IUniverProps) {
           card: {
             titleFieldId: table.getPrimaryFieldId(),
             coverFieldId: null,
-            fieldIds: [status.getId(), owner.getId(), region.getId(), readiness.getId(), risk.getId()],
+            fieldIds: [instruction.getId(), tags.getId(), rating.getId(), favorite.getId()],
           },
         },
       },
     })
-
-    const decisionTable = base.insertTable('Decision Register', { primaryFieldName: 'Decision' })
-    const decisionStatus = decisionTable.addField('Gate', univerAPI.Enum.BaseFieldType.SingleSelect, {
-      field: {
-        config: {
-          options: [
-            { id: 'approved', name: 'Approved', color: 'green' },
-            { id: 'pending', name: 'Pending', color: 'yellow' },
-            { id: 'escalated', name: 'Escalated', color: 'red' },
-          ],
-        },
-      },
+    const ideas = base.insertTable('Build your own', { primaryFieldName: 'Workflow' })
+    const use = ideas.addField('Make it yours', univerAPI.Enum.BaseFieldType.Text)
+    const budget = ideas.addField('Sample budget', univerAPI.Enum.BaseFieldType.Currency, {
+      field: { config: { currencySymbol: '$', decimalPlaces: 2 } },
     })
-    const decisionOwner = decisionTable.addField('Decision owner', univerAPI.Enum.BaseFieldType.Text)
-    const decisionDue = decisionTable.addField('Due', univerAPI.Enum.BaseFieldType.Date)
-    decisionTable.addRecords([
+    const ready = ideas.addField('Ready to try', univerAPI.Enum.BaseFieldType.Checkbox)
+    const priority = ideas.addField('Priority', univerAPI.Enum.BaseFieldType.Rating, {
+      field: { config: { min: 1, max: 5 } },
+    })
+    ideas.addRecords([
       {
         values: {
-          [decisionTable.getPrimaryFieldId()]: 'Cap billing contingency at $15K',
-          [decisionStatus.getId()]: 'pending',
-          [decisionOwner.getId()]: 'Finance',
-          [decisionDue.getId()]: Date.UTC(2026, 7, 25),
+          [ideas.getPrimaryFieldId()]: 'Content calendar',
+          [use.getId()]: 'Add a publishing date and switch to Calendar.',
+          [budget.getId()]: 1200,
+          [ready.getId()]: true,
+          [priority.getId()]: 4,
         },
       },
       {
         values: {
-          [decisionTable.getPrimaryFieldId()]: 'Approve September 22 go-live',
-          [decisionStatus.getId()]: 'approved',
-          [decisionOwner.getId()]: 'Executive team',
-          [decisionDue.getId()]: Date.UTC(2026, 7, 22),
+          [ideas.getPrimaryFieldId()]: 'Project tracker',
+          [use.getId()]: 'Add a status field and group cards in Kanban.',
+          [budget.getId()]: 4500,
+          [ready.getId()]: true,
+          [priority.getId()]: 5,
         },
       },
       {
         values: {
-          [decisionTable.getPrimaryFieldId()]: 'Fund APAC localization review',
-          [decisionStatus.getId()]: 'escalated',
-          [decisionOwner.getId()]: 'Regional GM',
-          [decisionDue.getId()]: Date.UTC(2026, 7, 27),
+          [ideas.getPrimaryFieldId()]: 'Resource library',
+          [use.getId()]: 'Add descriptive fields and explore Gallery.',
+          [budget.getId()]: 850,
+          [ready.getId()]: false,
+          [priority.getId()]: 3,
         },
       },
     ])
-
-    return { tableId: table.getId(), viewId: launchBoard.getId() }
+    return { tableId: table.getId(), viewId: featureBoard.getId() }
   }, [])
 
   const seedBoard = useCallback((univerAPI: ReturnType<typeof FUniver.newAPI>) => {
-    const board = univerAPI.createBoard({
-      id: 'boards-home-demo',
-      name: 'Northstar Launch Command Center',
+    const board = univerAPI.createBoard({ id: 'boards-home-demo', name: 'Univer Boards · Ideas become a system' })
+    const frame = createBoardContainerElement({
+      id: 'board-tour',
+      left: 40,
+      top: 40,
+      width: 1112,
+      height: 652,
+      title: 'UNIVER BOARDS  /  IDEAS BECOME A SYSTEM',
+      fillColor: '#F3F6FA',
+      strokeColor: '#94A3B8',
+      strokeWidth: 1,
     })
-
-    function createBoardCard(options: {
-      fillColor: string
-      fontSize?: number
-      height: number
-      id: string
-      left: number
-      strokeColor?: string
-      text: string
-      textColor: string
-      top: number
-      width: number
-    }) {
+    const notes = createBoardContainerElement({
+      id: 'notes',
+      parentId: frame.id,
+      left: 24,
+      top: 56,
+      width: 242,
+      height: 562,
+      title: '01  CAPTURE IDEAS',
+      fillColor: '#FFFFFF',
+      strokeColor: '#CBD5E1',
+      strokeWidth: 1,
+    })
+    const flow = createBoardContainerElement({
+      id: 'flow',
+      parentId: frame.id,
+      left: 286,
+      top: 56,
+      width: 802,
+      height: 324,
+      title: '02  CONNECT THE THINKING  ·  DRAG A NODE',
+      fillColor: '#FFFFFF',
+      strokeColor: '#CBD5E1',
+      strokeWidth: 1,
+    })
+    const pipeline = createBoardSwimlaneElement({
+      id: 'pipeline',
+      parentId: frame.id,
+      left: 286,
+      top: 400,
+      width: 802,
+      height: 218,
+      title: '03  ORGANIZE THE WORK  ·  NATIVE SWIMLANES',
+      fillColor: '#FFFFFF',
+      strokeColor: '#CBD5E1',
+      strokeWidth: 1,
+      orientation: 'vertical',
+      headerSize: 40,
+      lanes: [
+        { id: 'capture', title: 'CAPTURE', size: 267 },
+        { id: 'connect', title: 'CONNECT', size: 267 },
+        { id: 'share', title: 'SHARE', size: 268 },
+      ],
+    })
+    function createCard(
+      id: string,
+      text: string,
+      left: number,
+      top: number,
+      width: number,
+      height: number,
+      fill: string,
+      parentId: string,
+      laneId?: string,
+    ) {
       const card = createBoardTextBoxShapeElement({
-        id: options.id,
-        left: options.left,
-        top: options.top,
-        width: options.width,
-        height: options.height,
+        id,
+        text,
+        left: left - 326,
+        top: top - (parentId === pipeline.id ? 440 : 96),
+        width,
+        height,
+        parentId,
+        laneId,
         horizontalAlign: HorizontalAlign.CENTER,
         verticalAlign: VerticalAlign.MIDDLE,
-        text: options.text,
-        textStyle: {
-          fs: options.fontSize ?? 14,
-          bl: BooleanNumber.TRUE,
-          cl: { rgb: options.textColor },
-        },
+        textStyle: { fs: 14, bl: BooleanNumber.TRUE, cl: { rgb: '#123B50' } },
         textWrap: ShapeTextWrapType.Square,
       })
       card.shapeData.shapeType = ShapeTypeEnum.RoundRect
-      card.shapeData.fill = { fillType: ShapeFillEnum.SolidFill, color: options.fillColor }
-      card.shapeData.stroke = {
-        lineStrokeType: ShapeLineTypeEnum.SolidLine,
-        color: options.strokeColor ?? options.textColor,
-        width: 1,
-      }
-      card.shapeData.textRectPadding = { left: 14, top: 12, right: 14, bottom: 12 }
+      card.shapeData.fill = { fillType: ShapeFillEnum.SolidFill, color: fill }
+      card.shapeData.stroke = { lineStrokeType: ShapeLineTypeEnum.SolidLine, color: '#8FA8B5', width: 1 }
+      card.shapeData.textRectPadding = { left: 10, right: 10, top: 10, bottom: 10 }
       return card
     }
-
+    const stickies = [
+      ['A SPACE TO THINK\n\nPlace ideas anywhere.\nPan and zoom to explore.', '#FEF3C7'],
+      ['CONTEXT STAYS CLOSE\n\nGroup ideas in a frame.\nMove the frame as one.', '#DCFCE7'],
+      ['YOUR NEXT IDEA\n\nDouble-click this note.\nWhat would you build?', '#FCE7F3'],
+    ].map(([text, fillColor], index) => {
+      const sticky = createBoardStickyElement({
+        id: `note-${index}`,
+        parentId: notes.id,
+        left: 20,
+        top: 56 + index * 158,
+        width: 202,
+        height: 138,
+        fillColor,
+      })
+      sticky.shapeData.shapeText = {
+        isRichText: false,
+        isHorizontal: true,
+        text,
+        fontFamily: 'Arial',
+        fontSize: 13,
+        color: '#334155',
+      }
+      sticky.shapeData.textRectPadding = { left: 14, right: 14, top: 16, bottom: 12 }
+      sticky.transform.rotation = index === 1 ? 2 : -2
+      return sticky
+    })
+    const cards = [
+      createCard('idea', 'Start with\nan idea', 352, 155, 142, 70, '#DBEAFE', flow.id),
+      createCard('shape', 'Give it\na shape', 566, 155, 142, 70, '#DDF4EF', flow.id),
+      createCard('decision', 'GO?', 780, 146, 126, 88, '#FEF3C7', flow.id),
+      createCard('story', 'A clear\nvisual story', 972, 155, 132, 70, '#DDF4EF', flow.id),
+      createCard('context', 'Add a note\nKeep the context', 352, 298, 194, 70, '#FCE7F3', flow.id),
+      createCard('refine', 'Refine together\nMove · edit · reconnect', 686, 298, 218, 70, '#EDE9FE', flow.id),
+      createCard(
+        'capture-task',
+        'STICKY NOTES\nCapture the raw idea',
+        352,
+        542,
+        214,
+        86,
+        '#FEF3C7',
+        pipeline.id,
+        'capture',
+      ),
+      createCard(
+        'connect-task',
+        'BOUND CONNECTORS\nRelationships follow nodes',
+        618,
+        542,
+        214,
+        86,
+        '#DBEAFE',
+        pipeline.id,
+        'connect',
+      ),
+      createCard(
+        'share-task',
+        'FRAMES & LANES\nTurn a canvas into a plan',
+        886,
+        542,
+        214,
+        86,
+        '#DDF4EF',
+        pipeline.id,
+        'share',
+      ),
+    ]
+    cards[2].shapeData.shapeType = ShapeTypeEnum.Diamond
+    const connections = [
+      ['idea', 'shape', BoardConnectorSite.Right, BoardConnectorSite.Left, 'shape it'],
+      ['shape', 'decision', BoardConnectorSite.Right, BoardConnectorSite.Left, 'review'],
+      ['decision', 'story', BoardConnectorSite.Right, BoardConnectorSite.Left, 'yes'],
+      ['decision', 'refine', BoardConnectorSite.Bottom, BoardConnectorSite.Top, 'not yet'],
+      ['refine', 'shape', BoardConnectorSite.Top, BoardConnectorSite.Bottom, 'iterate'],
+      ['idea', 'context', BoardConnectorSite.Bottom, BoardConnectorSite.Top, 'explain'],
+      ['context', 'refine', BoardConnectorSite.Right, BoardConnectorSite.Left, 'discuss'],
+    ] as const
     board.addElements([
-      createBoardContainerElement({
-        id: 'container-homepage',
-        left: 56,
-        top: 44,
-        width: 1104,
-        height: 510,
-        title: 'NORTHSTAR GLOBAL LAUNCH  ·  COMMAND CENTER',
-        fillColor: '#F6F8FA',
-        strokeColor: '#94A3B8',
-        strokeWidth: 1,
-      }),
-      createBoardContainerElement({
-        id: 'container-pulse',
-        left: 80,
-        top: 100,
-        width: 240,
-        height: 340,
-        title: 'EXECUTIVE PULSE',
-        fillColor: '#FFFFFF',
-        strokeColor: '#CBD5E1',
-        strokeWidth: 1,
-      }),
-      createBoardContainerElement({
-        id: 'container-decision-path',
-        left: 340,
-        top: 100,
-        width: 510,
-        height: 340,
-        title: 'DECISION PATH  ·  SEP 22',
-        fillColor: '#FFFFFF',
-        strokeColor: '#CBD5E1',
-        strokeWidth: 1,
-      }),
-      createBoardContainerElement({
-        id: 'container-risks',
-        left: 870,
-        top: 100,
-        width: 266,
-        height: 340,
-        title: 'RISKS & OWNERS',
-        fillColor: '#FFFFFF',
-        strokeColor: '#CBD5E1',
-        strokeWidth: 1,
-      }),
-      createBoardConnectorElement({
-        id: 'connector-evidence-control',
-        start: { kind: 'free', x: 554, y: 198 },
-        end: { kind: 'free', x: 608, y: 198 },
-        routing: 'straight',
-        style: { stroke: '#64748B', strokeWidth: 2, endMarker: { type: 'filledArrow' } },
-      }),
-      createBoardConnectorElement({
-        id: 'connector-evidence-signoff',
-        start: { kind: 'free', x: 461, y: 242 },
-        end: { kind: 'free', x: 461, y: 284 },
-        routing: 'straight',
-        style: { stroke: '#64748B', strokeWidth: 2, endMarker: { type: 'filledArrow' } },
-      }),
-      createBoardConnectorElement({
-        id: 'connector-control-launch',
-        start: { kind: 'free', x: 701, y: 242 },
-        end: { kind: 'free', x: 701, y: 274 },
-        routing: 'straight',
-        style: { stroke: '#64748B', strokeWidth: 2, endMarker: { type: 'filledArrow' } },
-      }),
-      createBoardConnectorElement({
-        id: 'connector-signoff-launch',
-        start: { kind: 'free', x: 554, y: 330 },
-        end: { kind: 'free', x: 608, y: 330 },
-        routing: 'straight',
-        style: { stroke: '#64748B', strokeWidth: 2, endMarker: { type: 'filledArrow' } },
-      }),
-      createBoardCard({
-        id: 'card-readiness',
-        left: 102,
-        top: 148,
-        width: 196,
-        height: 94,
-        fillColor: '#DDF4EF',
-        strokeColor: '#5BA69A',
-        textColor: '#0F5B52',
-        fontSize: 22,
-        text: '86%\nVERIFIED READY',
-      }),
-      createBoardCard({
-        id: 'card-workstreams',
-        left: 102,
-        top: 264,
-        width: 92,
-        height: 74,
-        fillColor: '#EEF2F6',
-        strokeColor: '#AAB7C4',
-        textColor: '#334155',
-        fontSize: 12,
-        text: '2 / 9\nCLOSED',
-      }),
-      createBoardCard({
-        id: 'card-contingency',
-        left: 206,
-        top: 264,
-        width: 92,
-        height: 74,
-        fillColor: '#FFF3D6',
-        strokeColor: '#D5A84B',
-        textColor: '#7A4A08',
-        fontSize: 12,
-        text: '$15K\nBUFFER',
-      }),
-      createBoardCard({
-        id: 'card-pulse-note',
-        left: 102,
-        top: 360,
-        width: 196,
-        height: 54,
-        fillColor: '#F8FAFC',
-        strokeColor: '#CBD5E1',
-        textColor: '#475569',
-        fontSize: 11,
-        text: 'TREND  +7 pts / 7 days\nCONFIDENCE  0.82',
-      }),
-      createBoardCard({
-        id: 'card-evidence',
-        left: 368,
-        top: 154,
-        width: 186,
-        height: 88,
-        fillColor: '#E8F1FA',
-        strokeColor: '#7CA5C9',
-        textColor: '#174A7E',
-        text: 'EVIDENCE REVIEW\nT−14 · 42 controls',
-      }),
-      createBoardCard({
-        id: 'card-control',
-        left: 608,
-        top: 154,
-        width: 186,
-        height: 88,
-        fillColor: '#FFF3D6',
-        strokeColor: '#D5A84B',
-        textColor: '#7A4A08',
-        text: 'COMMERCIAL CONTROL\nBilling variance ≤ 2%',
-      }),
-      createBoardCard({
-        id: 'card-signoff',
-        left: 368,
-        top: 284,
-        width: 186,
-        height: 92,
-        fillColor: '#EDF5EF',
-        strokeColor: '#85A98C',
-        textColor: '#2F6338',
-        text: 'REGIONAL SIGN-OFF\nAmericas · EMEA · APAC',
-      }),
-      createBoardCard({
-        id: 'card-launch-decision',
-        left: 608,
-        top: 274,
-        width: 186,
-        height: 112,
-        fillColor: '#17324D',
-        strokeColor: '#17324D',
-        textColor: '#FFFFFF',
-        fontSize: 17,
-        text: 'GO / NO-GO\nSEP 22 · 17:00 UTC',
-      }),
-      createBoardCard({
-        id: 'card-risk-billing',
-        left: 894,
-        top: 150,
-        width: 218,
-        height: 82,
-        fillColor: '#FDE8E7',
-        strokeColor: '#C87069',
-        textColor: '#8A2D27',
-        fontSize: 12,
-        text: 'HIGH  ·  BILLING MIGRATION\nElena Rossi · review Tuesday',
-      }),
-      createBoardCard({
-        id: 'card-risk-localization',
-        left: 894,
-        top: 250,
-        width: 218,
-        height: 82,
-        fillColor: '#FFF3D6',
-        strokeColor: '#D5A84B',
-        textColor: '#7A4A08',
-        fontSize: 12,
-        text: 'HIGH  ·  APAC LAUNCH KITS\nNoah Martin · daily check',
-      }),
-      createBoardCard({
-        id: 'card-next-decision',
-        left: 894,
-        top: 350,
-        width: 218,
-        height: 64,
-        fillColor: '#EEF2F6',
-        strokeColor: '#AAB7C4',
-        textColor: '#334155',
-        fontSize: 11,
-        text: 'NEXT DECISION\nRelease buffer after variance review',
-      }),
-      createBoardTextBoxShapeElement({
-        id: 'launch-timeline',
-        left: 80,
-        top: 470,
-        width: 1056,
-        height: 48,
-        horizontalAlign: HorizontalAlign.CENTER,
-        verticalAlign: VerticalAlign.MIDDLE,
-        text: 'T−14  EVIDENCE REVIEW    →    T−7  REGIONAL SIGN-OFF    →    T−1  COMMAND CENTER    →    DAY 0  LAUNCH',
-        textStyle: { fs: 12, bl: BooleanNumber.TRUE, cl: { rgb: '#334155' } },
-        textWrap: ShapeTextWrapType.Square,
-      }),
+      frame,
+      notes,
+      flow,
+      pipeline,
+      ...stickies,
+      ...cards,
+      ...connections.map(([from, to, startSite, endSite, label], index) =>
+        createBoardConnectorElement({
+          id: `relationship-${index}`,
+          start: { kind: 'shapeSite', shapeId: from, connectionSiteId: startSite },
+          end: { kind: 'shapeSite', shapeId: to, connectionSiteId: endSite },
+          routing: 'orthogonal',
+          routingMode: 'auto',
+          style: {
+            stroke: index === 3 || index === 4 ? '#8B5CF6' : '#64748B',
+            strokeWidth: 1.8,
+            endMarker: { type: 'filledArrow' },
+          },
+          label: {
+            id: `relationship-label-${index}`,
+            content: label,
+            style: { fill: { color: '#FFFFFF', opacity: 1 } },
+          },
+        }),
+      ),
     ])
   }, [])
 
   const seedPdf = useCallback((univerAPI: ReturnType<typeof FUniver.newAPI>) => {
     const pdf = univerAPI.createPdf({
       id: 'pdfs-home-demo',
-      name: 'Operational Readiness Research Paper',
+      name: 'Univer PDFs · An editable field guide',
     })
     const cover = pdf.getPageByIndex(0)
     if (!cover) return
@@ -680,7 +643,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
     const addPageFrame = (page: typeof cover, pageNumber: number, section: string) => {
       page
         .insertTextBox({
-          text: `FIELD NOTES IN PRODUCT SYSTEMS  /  ${section}`,
+          text: `UNIVER PDFs  /  ${section}`,
           left: 42,
           top: 24,
           width: 420,
@@ -717,7 +680,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         strokeWidth: 0.7,
       })
       page.insertTextBox({
-        text: 'doi:10.2481/fnps.2026.018  ·  © 2026 Northstar Research Collective',
+        text: 'UNIVER PDFs  ·  An editable product guide  ·  docs.univer.ai',
         left: 42,
         top: 798,
         width: 390,
@@ -738,10 +701,10 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       })
     }
 
-    addPageFrame(cover, 1, 'RESEARCH ARTICLE')
+    addPageFrame(cover, 1, 'MEET UNIVER PDFs')
     cover
       .insertTextBox({
-        text: 'EMPIRICAL STUDY  ·  RELEASE ENGINEERING',
+        text: 'UNIVER PDFs  ·  CREATE, EDIT & REVIEW',
         left: 42,
         top: 74,
         width: 360,
@@ -753,7 +716,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       .setTextStyle({ bold: true, charSpacing: 1.1 })
     cover
       .insertTextBox({
-        text: 'Operational readiness as a leading indicator',
+        text: 'A PDF can be a workspace.',
         left: 42,
         top: 102,
         width: 511,
@@ -765,7 +728,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       .setTextStyle({ bold: true })
     cover
       .insertTextBox({
-        text: 'of global launch reliability',
+        text: 'Meet Univer PDFs.',
         left: 42,
         top: 140,
         width: 511,
@@ -776,7 +739,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       })
       .setTextStyle({ bold: true })
     cover.insertParagraph({
-      text: 'Evidence from 186 enterprise software releases across fourteen international markets',
+      text: 'Text, tables, lists, and annotations — brought together on editable pages.',
       left: 42,
       top: 198,
       width: 500,
@@ -787,7 +750,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
     })
     cover
       .insertTextBox({
-        text: 'Maya Chen¹  ·  Priya Shah²  ·  Owen Davis¹',
+        text: 'UNIVER PDFs  /  INTERACTIVE FIELD GUIDE',
         left: 42,
         top: 244,
         width: 430,
@@ -798,7 +761,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       })
       .setTextStyle({ bold: true })
     cover.insertParagraph({
-      text: '¹ Northstar Research Collective, Singapore  ·  ² Institute for Product Systems, London\nCorrespondence: research@northstar.example',
+      text: 'This guide introduces the editor using its own page objects.\nSelect an object, edit its content, and explore the toolbar.',
       left: 42,
       top: 270,
       width: 500,
@@ -816,7 +779,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
     })
     cover
       .insertTextBox({
-        text: 'ABSTRACT',
+        text: 'MEET PDFs',
         left: 42,
         top: 342,
         width: 72,
@@ -827,7 +790,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       })
       .setTextStyle({ bold: true, charSpacing: 1.2 })
     cover.insertParagraph({
-      text: 'Global software launches fail less often when teams measure operational readiness early, but evidence on the timing and composition of that signal remains limited. We analyze 186 enterprise releases delivered across fourteen markets between 2022 and 2026. A preregistered readiness index combines release quality, localization, support capacity, rollback design, and commercial controls. Readiness measured fourteen days before launch predicts incident-free delivery after controlling for release size, market count, and organizational maturity. A ten-point increase is associated with an 18.4% reduction in severe launch incidents. Cross-functional verification, rather than self-reported completion, explains most of the effect.',
+      text: 'I’m Univer PDFs, a PDF workspace inside your application. This introduction is built from text boxes, paragraphs, tables, and dividers. Select a title to restyle it, edit a table cell, or add your own annotation. Each page demonstrates a different way to work: compose content, give it structure, review a detail, and organize the result. Scroll through the guide to try it for yourself. The page is the demonstration, and every object is part of the tour.',
       left: 128,
       top: 337,
       width: 425,
@@ -838,7 +801,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
     })
     cover
       .insertTextBox({
-        text: 'KEYWORDS',
+        text: 'EXPLORE',
         left: 42,
         top: 466,
         width: 72,
@@ -849,7 +812,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       })
       .setTextStyle({ bold: true, charSpacing: 1 })
     cover.insertParagraph({
-      text: 'operational readiness  ·  release engineering  ·  launch reliability  ·  cross-functional coordination  ·  enterprise software',
+      text: 'editable text  ·  page layout  ·  tables and lists  ·  annotations  ·  page management',
       left: 128,
       top: 462,
       width: 425,
@@ -858,16 +821,16 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       fontFamily: serif,
       fill: muted,
     })
-    const headlineFindings = cover.insertTable({
+    const featureSummary = cover.insertTable({
       rowCount: 2,
       columnCount: 3,
       cellTexts: [
-        '186 RELEASES',
-        '14 MARKETS',
-        '−18.4% INCIDENT RISK',
-        'Longitudinal sample',
-        'Three operating regions',
-        'Per +10 readiness points',
+        'EDIT TEXT',
+        'STYLE TABLES',
+        'REVIEW A PAGE',
+        'Titles & paragraphs',
+        'Cells & alignment',
+        'Highlights & underlines',
       ],
       left: 42,
       top: 508,
@@ -875,16 +838,16 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       height: 74,
     })
     if (softTablePreset) {
-      headlineFindings.setTheme({ styleId: softTablePreset.id, options: { firstRow: true } })
+      featureSummary.setTheme({ styleId: softTablePreset.id, options: { firstRow: true } })
     }
     for (let column = 0; column < 3; column += 1) {
-      headlineFindings.getCell(0, column).setStyle({
+      featureSummary.getCell(0, column).setStyle({
         fill: { color: blue },
         fontColor: '#FFFFFF',
         horizontalAlignment: univerAPI.Enum.HorizontalAlign.CENTER,
         verticalAlign: univerAPI.Enum.PdfTableCellVerticalAlign.MIDDLE,
       })
-      headlineFindings.getCell(1, column).setStyle({
+      featureSummary.getCell(1, column).setStyle({
         fill: { color: soft },
         fontColor: ink,
         horizontalAlignment: univerAPI.Enum.HorizontalAlign.CENTER,
@@ -893,7 +856,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
     }
     cover
       .insertTextBox({
-        text: '1  INTRODUCTION',
+        text: '1  START WITH CONTENT',
         left: 42,
         top: 610,
         width: 230,
@@ -904,7 +867,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       })
       .setTextStyle({ bold: true, charSpacing: 0.7 })
     cover.insertParagraph({
-      text: 'Launch readiness is often treated as a final checklist. This framing obscures its value as an early operational signal. We test whether a compact, verified index can identify failure exposure while teams still have time to intervene.',
+      text: 'A title sets the reading order. A paragraph carries the detail. This column and the title above it are separate objects: select one and change its text, typography, or placement.',
       left: 42,
       top: 636,
       width: 242,
@@ -915,7 +878,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
     })
     cover
       .insertTextBox({
-        text: 'CONTRIBUTION',
+        text: 'TRY IT YOURSELF',
         left: 311,
         top: 610,
         width: 230,
@@ -926,7 +889,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       })
       .setTextStyle({ bold: true, charSpacing: 0.7 })
     cover.insertParagraph({
-      text: 'The study separates completion from verification, estimates when readiness becomes predictive, and translates the result into an operating threshold that product, engineering, and go-to-market leaders can use.',
+      text: 'Select the title, change its color, then edit a sentence in this paragraph. Use the toolbar to add another object. Scroll down to see tables, styled cells, annotations, and numbered lists.',
       left: 311,
       top: 636,
       width: 242,
@@ -936,11 +899,11 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       fill: ink,
     })
 
-    const methods = pdf.insertPage()
-    addPageFrame(methods, 2, 'METHODS & DATA')
-    methods
+    const structure = pdf.insertPage()
+    addPageFrame(structure, 2, 'COMPOSE & STRUCTURE')
+    structure
       .insertTextBox({
-        text: '2  Study design and evidence base',
+        text: '2  Build a page from useful parts',
         left: 42,
         top: 72,
         width: 511,
@@ -950,8 +913,8 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         fill: ink,
       })
       .setTextStyle({ bold: true })
-    methods.insertParagraph({
-      text: 'A longitudinal design links readiness signals recorded before launch to operating outcomes observed during the first thirty production days.',
+    structure.insertParagraph({
+      text: 'Give content a structure with editable text, tables, rules, and carefully placed page objects.',
       left: 42,
       top: 116,
       width: 500,
@@ -960,9 +923,9 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       fontFamily: serif,
       fill: muted,
     })
-    methods
+    structure
       .insertTextBox({
-        text: '2.1  SAMPLE & PROTOCOL',
+        text: '2.1  TEXT THAT YOU CAN EDIT',
         left: 42,
         top: 174,
         width: 242,
@@ -972,8 +935,8 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         fill: blue,
       })
       .setTextStyle({ bold: true, charSpacing: 0.6 })
-    methods.insertParagraph({
-      text: 'We assembled release records from six product groups in financial services, collaboration software, analytics, and developer infrastructure. Eligible launches introduced a material customer-facing capability in at least one production market. Routine patches and experiments below 5% traffic were excluded.\n\nTwo independent reviewers scored each launch at T−28, T−14, T−7, and T−1 days. Disagreements above five points triggered an evidence review. Outcome assessors were blinded to readiness scores.',
+    structure.insertParagraph({
+      text: 'Use a text box for a title, label, or short callout. Use a paragraph for longer content with its own position and width. Change the font, size, color, emphasis, or spacing to create a clear hierarchy.\n\nThis page combines two columns, a table, and a divider. Each part is an object you can select and move. Try changing the heading while keeping the body text in place.',
       left: 42,
       top: 200,
       width: 242,
@@ -982,9 +945,9 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       fontFamily: serif,
       fill: ink,
     })
-    methods
+    structure
       .insertTextBox({
-        text: 'SAMPLE PROFILE',
+        text: 'OBJECT GUIDE',
         left: 311,
         top: 174,
         width: 242,
@@ -994,22 +957,22 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         fill: blue,
       })
       .setTextStyle({ bold: true, charSpacing: 0.6 })
-    const sampleProfile = methods.insertTable({
+    const objectGuide = structure.insertTable({
       rowCount: 6,
       columnCount: 2,
       cellTexts: [
-        'Characteristic',
-        'Observed',
-        'Releases',
-        '186',
-        'Median launch team',
-        '34 people',
-        'Median markets',
-        '5',
-        'Regulated releases',
-        '41%',
-        'Incident-free at day 30',
-        '78%',
+        'Object',
+        'Use it for',
+        'Text box',
+        'A title or a label',
+        'Paragraph',
+        'Longer content',
+        'Table',
+        'Structured details',
+        'Divider',
+        'Visual separation',
+        'Annotation',
+        'Review & emphasis',
       ],
       left: 311,
       top: 200,
@@ -1017,18 +980,18 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       height: 174,
     })
     if (horizontalTablePreset) {
-      sampleProfile.setTheme({ styleId: horizontalTablePreset.id, options: { firstRow: true } })
+      objectGuide.setTheme({ styleId: horizontalTablePreset.id, options: { firstRow: true } })
     }
-    methods.insertDivider({
+    structure.insertDivider({
       left: 42,
       top: 398,
       width: 511,
       strokeColor: rule,
       strokeWidth: 0.8,
     })
-    methods
+    structure
       .insertTextBox({
-        text: '2.2  MODEL SPECIFICATION',
+        text: '2.2  STYLE A DETAIL',
         left: 42,
         top: 420,
         width: 260,
@@ -1038,9 +1001,9 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         fill: blue,
       })
       .setTextStyle({ bold: true, charSpacing: 0.6 })
-    methods
+    structure
       .insertTextBox({
-        text: 'logit(incident-free) = β₀ + β₁ readinessₜ₋₁₄ + β₂ scope + β₃ market count + uₚ',
+        text: 'Your content + editable objects + a clear layout = a useful PDF workspace',
         left: 66,
         top: 454,
         width: 463,
@@ -1050,7 +1013,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         fill: ink,
       })
       .setTextStyle({ italic: true })
-    methods.insertAnnotation({
+    structure.insertAnnotation({
       annotationType: univerAPI.Enum.PdfAnnotationType.UNDERLINE,
       left: 64,
       top: 473,
@@ -1058,9 +1021,9 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       height: 12,
       markup: { color: cyan, opacity: 0.7 },
     })
-    methods
+    structure
       .insertTextBox({
-        text: 'TABLE 1  ·  CONSTRUCTS AND MEASUREMENT',
+        text: 'TABLE 1  ·  A TABLE THAT INTRODUCES TABLES',
         left: 42,
         top: 510,
         width: 350,
@@ -1070,25 +1033,25 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         fill: muted,
       })
       .setTextStyle({ bold: true, charSpacing: 0.5 })
-    const variableTable = methods.insertTable({
+    const editingGuide = structure.insertTable({
       rowCount: 5,
       columnCount: 3,
       cellTexts: [
-        'Construct',
-        'Operational definition',
-        'Scale',
-        'Readiness',
-        'Verified evidence across five domains',
-        '0–100',
-        'Reliability',
-        'No severity 1–2 launch incident',
-        'Binary',
-        'Scope',
-        'Changed services and customer paths',
-        'Count',
-        'Maturity',
-        'Prior twelve-month release performance',
-        'Index',
+        'Feature',
+        'Try this',
+        'Where',
+        'Cell content',
+        'Edit the words in this cell',
+        'This table',
+        'Alignment',
+        'Align text within a cell',
+        'Cell style',
+        'Colors',
+        'Choose a fill or text color',
+        'Cell style',
+        'Table theme',
+        'Try another table style',
+        'Table tools',
       ],
       left: 42,
       top: 536,
@@ -1096,10 +1059,10 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       height: 174,
     })
     if (horizontalTablePreset) {
-      variableTable.setTheme({ styleId: horizontalTablePreset.id, options: { firstRow: true } })
+      editingGuide.setTheme({ styleId: horizontalTablePreset.id, options: { firstRow: true } })
     }
-    methods.insertParagraph({
-      text: 'Notes. Product-group random intercepts are included in all models. Standard errors are clustered by release train. Missing item-level evidence (2.1%) is multiply imputed.',
+    structure.insertParagraph({
+      text: 'Try it. Select a table cell to edit its content. Explore cell alignment, colors, borders, and the table style controls.',
       left: 42,
       top: 726,
       width: 511,
@@ -1109,11 +1072,11 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       fill: muted,
     })
 
-    const results = pdf.insertPage()
-    addPageFrame(results, 3, 'RESULTS')
-    results
+    const review = pdf.insertPage()
+    addPageFrame(review, 3, 'REVIEW & ANNOTATE')
+    review
       .insertTextBox({
-        text: '3  Readiness predicts reliable delivery',
+        text: '3  Review what matters',
         left: 42,
         top: 72,
         width: 511,
@@ -1123,8 +1086,8 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         fill: ink,
       })
       .setTextStyle({ bold: true })
-    results.insertParagraph({
-      text: 'The signal strengthens sharply between T−28 and T−14 days, then plateaus. Verification produces a materially larger effect than self-reported completion.',
+    review.insertParagraph({
+      text: 'Use a visual hierarchy and markup to guide attention to the right part of a page.',
       left: 42,
       top: 116,
       width: 500,
@@ -1133,9 +1096,9 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       fontFamily: serif,
       fill: muted,
     })
-    results
+    review
       .insertTextBox({
-        text: 'FIGURE 1  ·  INCIDENT-FREE RELEASES BY READINESS STAGE',
+        text: 'FIGURE 1  ·  THREE WAYS TO MARK UP A PAGE',
         left: 42,
         top: 174,
         width: 400,
@@ -1145,64 +1108,75 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         fill: muted,
       })
       .setTextStyle({ bold: true, charSpacing: 0.5 })
-    const chartRows = [
-      { label: 'Baseline planning', value: '58%', width: 180, color: '#93A4B5' },
-      { label: 'Owner-confirmed', value: '76%', width: 236, color: '#4E86A4' },
-      { label: 'Evidence-verified', value: '91%', width: 282, color: cyan },
-      { label: 'Post-launch day 30', value: '96%', width: 298, color: blue },
-    ]
-    chartRows.forEach((row, index) => {
-      const top = 216 + index * 40
-      results.insertTextBox({
-        text: row.label,
-        left: 42,
-        top: top - 7,
-        width: 120,
-        height: 18,
-        fontSize: labelFontSize,
-        fontFamily: sans,
-        fill: ink,
-      })
-      results.insertDivider({
-        left: 170,
-        top,
-        width: 310,
-        strokeColor: soft,
-        strokeWidth: 10,
-      })
-      results.insertDivider({
-        left: 170,
-        top,
-        width: row.width,
-        strokeColor: row.color,
-        strokeWidth: 10,
-      })
-      results
+    const proofLines = [
+      {
+        label: 'REPLACE',
+        text: 'A PDF is only for reading.',
+        type: univerAPI.Enum.PdfAnnotationType.STRIKEOUT,
+        color: '#DC2626',
+        note: 'A PDF can be an editable workspace.',
+      },
+      {
+        label: 'EMPHASIZE',
+        text: 'Keep the important detail visible.',
+        type: univerAPI.Enum.PdfAnnotationType.UNDERLINE,
+        color: blue,
+        note: 'Underline draws attention without hiding the text.',
+      },
+      {
+        label: 'REVISIT',
+        text: 'Review this paragraph with your team.',
+        type: univerAPI.Enum.PdfAnnotationType.HIGHLIGHT,
+        color: '#FBBF24',
+        note: 'Highlights are separate objects you can move or remove.',
+      },
+    ] as const
+    proofLines.forEach((line, index) => {
+      const top = 208 + index * 64
+      review
         .insertTextBox({
-          text: row.value,
-          left: 494,
-          top: top - 8,
-          width: 54,
-          height: 20,
-          fontSize: 10,
+          text: line.label,
+          left: 42,
+          top,
+          width: 108,
+          height: 16,
+          fontSize: 8,
           fontFamily: sans,
-          fill: row.color,
+          fill: line.color,
         })
         .setTextStyle({ bold: true })
+      review.insertTextBox({
+        text: line.text,
+        left: 170,
+        top,
+        width: 376,
+        height: 20,
+        fontSize: 11,
+        fontFamily: serif,
+        fill: ink,
+      })
+      review.insertAnnotation({
+        annotationType: line.type,
+        left: 168,
+        top: top + 2,
+        width: 292,
+        height: 14,
+        markup: { color: line.color, opacity: line.type === univerAPI.Enum.PdfAnnotationType.HIGHLIGHT ? 0.35 : 0.85 },
+      })
+      review.insertTextBox({
+        text: line.note,
+        left: 170,
+        top: top + 25,
+        width: 382,
+        height: 23,
+        fontSize: 8.5,
+        fontFamily: sans,
+        fill: muted,
+      })
     })
-    results.insertParagraph({
-      text: 'Share of releases with no severity 1–2 incident during the first thirty production days. Bars are descriptive; adjusted estimates appear below.',
-      left: 170,
-      top: 374,
-      width: 378,
-      height: 30,
-      fontSize: captionFontSize,
-      fontFamily: serif,
-      fill: muted,
-    })
-    results
+    review
       .insertTextBox({
-        text: 'TABLE 2  ·  ADJUSTED ASSOCIATION WITH INCIDENT-FREE DELIVERY',
+        text: 'TABLE 2  ·  YOUR INTERACTIVE REVIEW CHECKLIST',
         left: 42,
         top: 420,
         width: 430,
@@ -1212,40 +1186,40 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         fill: muted,
       })
       .setTextStyle({ bold: true, charSpacing: 0.5 })
-    const coefficientTable = results.insertTable({
+    const reviewChecklist = review.insertTable({
       rowCount: 6,
       columnCount: 5,
       cellTexts: [
-        'Predictor',
-        'β',
-        'SE',
-        'p',
-        'Risk Δ',
-        'Readiness, +10',
-        '0.42',
-        '0.09',
-        '<.001',
-        '−18.4%',
-        'Verified evidence',
-        '0.31',
-        '0.08',
-        '<.001',
-        '−11.2%',
-        'Market count',
-        '−0.08',
-        '0.03',
-        '.012',
-        '+3.1%',
-        'Changed services',
-        '−0.05',
-        '0.02',
-        '.021',
-        '+2.4%',
-        'Team maturity',
-        '0.19',
-        '0.07',
-        '.006',
-        '−6.8%',
+        'Try this',
+        'Text',
+        'Table',
+        'Page',
+        'Done?',
+        'Edit a title',
+        'Yes',
+        '—',
+        '—',
+        'Try it',
+        'Change a cell',
+        '—',
+        'Yes',
+        '—',
+        'Try it',
+        'Add a highlight',
+        '—',
+        '—',
+        'Yes',
+        'Try it',
+        'Move an object',
+        'Yes',
+        '—',
+        'Yes',
+        'Try it',
+        'Add a page',
+        '—',
+        '—',
+        'Yes',
+        'Try it',
       ],
       left: 42,
       top: 446,
@@ -1253,17 +1227,17 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       height: 202,
     })
     if (horizontalTablePreset) {
-      coefficientTable.setTheme({ styleId: horizontalTablePreset.id, options: { firstRow: true } })
+      reviewChecklist.setTheme({ styleId: horizontalTablePreset.id, options: { firstRow: true } })
     }
     for (let row = 0; row < 6; row += 1) {
       for (let column = 1; column < 5; column += 1) {
-        coefficientTable.getCell(row, column).setStyle({
+        reviewChecklist.getCell(row, column).setStyle({
           horizontalAlignment: univerAPI.Enum.HorizontalAlign.CENTER,
           verticalAlign: univerAPI.Enum.PdfTableCellVerticalAlign.MIDDLE,
         })
       }
     }
-    results.insertAnnotation({
+    review.insertAnnotation({
       annotationType: univerAPI.Enum.PdfAnnotationType.HIGHLIGHT,
       left: 40,
       top: 680,
@@ -1271,9 +1245,9 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       height: 54,
       markup: { color: '#F4D97A', opacity: 0.24 },
     })
-    results
+    review
       .insertTextBox({
-        text: 'KEY RESULT  ·  At T−14, verified readiness is already decision-useful; later scoring adds precision but little additional lead time.',
+        text: 'TRY IT  ·  This callout has a highlight annotation. Select it to explore markup, or add an annotation of your own.',
         left: 54,
         top: 693,
         width: 485,
@@ -1284,11 +1258,11 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       })
       .setTextStyle({ bold: true })
 
-    const discussion = pdf.insertPage()
-    addPageFrame(discussion, 4, 'DISCUSSION')
-    discussion
+    const practice = pdf.insertPage()
+    addPageFrame(practice, 4, 'YOUR TURN')
+    practice
       .insertTextBox({
-        text: '4  From measurement to operating practice',
+        text: '4  Make this guide your own',
         left: 42,
         top: 72,
         width: 511,
@@ -1298,8 +1272,8 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         fill: ink,
       })
       .setTextStyle({ bold: true })
-    discussion.insertParagraph({
-      text: 'Readiness is most valuable when it changes the timing and quality of a decision—not when it merely documents that work occurred.',
+    practice.insertParagraph({
+      text: 'A useful PDF workspace lets you work with the page, from the first paragraph to the final review.',
       left: 42,
       top: 116,
       width: 500,
@@ -1308,9 +1282,9 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       fontFamily: serif,
       fill: muted,
     })
-    discussion
+    practice
       .insertTextBox({
-        text: '4.1  INTERPRETATION',
+        text: '4.1  COMPOSE & REFINE',
         left: 42,
         top: 176,
         width: 242,
@@ -1320,8 +1294,8 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         fill: blue,
       })
       .setTextStyle({ bold: true, charSpacing: 0.6 })
-    discussion.insertParagraph({
-      text: 'The observed effect is not driven by checklist volume. Teams with strong outcomes produced fewer, better-evidenced signals and resolved ownership ambiguity earlier. The T−14 threshold appears to balance information quality with remaining intervention capacity.\n\nVerification also changes the social function of readiness reviews: evidence makes dependencies discussable across product, engineering, commercial, support, and regional teams.',
+    practice.insertParagraph({
+      text: 'Start with a title and a paragraph. Add a table when information needs columns, and a list when it needs a sequence. Use dividers, alignment, and spacing to guide the reader.\n\nEvery example in this guide is made from the same objects available in the editor. Select one, change it, and see the page respond.',
       left: 42,
       top: 202,
       width: 242,
@@ -1330,9 +1304,9 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       fontFamily: serif,
       fill: ink,
     })
-    discussion
+    practice
       .insertTextBox({
-        text: '4.2  LIMITATIONS',
+        text: '4.2  ORGANIZE YOUR PAGES',
         left: 311,
         top: 176,
         width: 242,
@@ -1342,8 +1316,8 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         fill: blue,
       })
       .setTextStyle({ bold: true, charSpacing: 0.6 })
-    discussion.insertParagraph({
-      text: 'The sample overrepresents enterprise software and mature release organizations. Readiness may behave differently in consumer products, continuous deployment settings, or small teams with highly shared context. Residual confounding is possible because disciplined teams may both score higher and respond more effectively.\n\nFuture work should test the index prospectively and estimate category-specific weights.',
+    practice.insertParagraph({
+      text: 'Use the page controls to navigate the guide and explore page management. Add another page for your own content, duplicate a useful layout, or reorder pages to change the reading sequence.\n\nKeep a short introduction, a detailed reference, and a checklist together in one document.',
       left: 311,
       top: 202,
       width: 242,
@@ -1352,16 +1326,16 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       fontFamily: serif,
       fill: ink,
     })
-    discussion.insertDivider({
+    practice.insertDivider({
       left: 42,
       top: 400,
       width: 511,
       strokeColor: rule,
       strokeWidth: 0.8,
     })
-    discussion
+    practice
       .insertTextBox({
-        text: 'PRACTICE IMPLICATIONS',
+        text: 'A FOUR-STEP TOUR',
         left: 42,
         top: 422,
         width: 280,
@@ -1371,14 +1345,14 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         fill: blue,
       })
       .setTextStyle({ bold: true, charSpacing: 0.6 })
-    const practiceImplications = [
-      'Set a formal evidence review fourteen days before launch.',
-      'Separate owner-reported completion from independently verified evidence.',
-      'Escalate missing controls and ambiguous ownership, not low aggregate scores alone.',
-      'Track score movement alongside intervention capacity and residual exposure.',
+    const tourSteps = [
+      'Edit the cover title and write a short introduction.',
+      'Change a table cell and try a different alignment.',
+      'Add an annotation to a detail you want to revisit.',
+      'Add a page and build a layout of your own.',
     ]
-    practiceImplications.forEach((text, index) => {
-      discussion
+    tourSteps.forEach((text, index) => {
+      practice
         .insertList({
           text,
           kind: univerAPI.Enum.PdfListKind.ORDERED,
@@ -1393,9 +1367,9 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         })
         .setStartNumber(index + 1)
     })
-    discussion
+    practice
       .insertTextBox({
-        text: 'CONCLUSION',
+        text: 'YOUR NEXT PAGE',
         left: 42,
         top: 596,
         width: 180,
@@ -1405,8 +1379,8 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         fill: blue,
       })
       .setTextStyle({ bold: true, charSpacing: 0.6 })
-    discussion.insertParagraph({
-      text: 'A concise readiness index can function as an early-warning system for global software launches. Its predictive value comes from verified cross-functional evidence and from measuring soon enough to act. Organizations should treat readiness as a decision instrument rather than a ceremonial gate.',
+    practice.insertParagraph({
+      text: 'Turn this guide into a product sheet, a how-to document, or a review checklist. Keep the structure you like, replace the words, and use the editor to make the result your own.',
       left: 42,
       top: 622,
       width: 511,
@@ -1415,9 +1389,9 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       fontFamily: serif,
       fill: ink,
     })
-    discussion
+    practice
       .insertTextBox({
-        text: 'SELECTED REFERENCES',
+        text: 'KEEP EXPLORING',
         left: 42,
         top: 708,
         width: 220,
@@ -1427,8 +1401,8 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         fill: muted,
       })
       .setTextStyle({ bold: true, charSpacing: 0.5 })
-    discussion.insertParagraph({
-      text: 'Forsgren N, Humble J, Kim G. Accelerate. IT Revolution; 2018.  ·  Edmondson AC. The Fearless Organization. Wiley; 2019.  ·  Kerzner H. Project Management Metrics, KPIs, and Dashboards. Wiley; 2022.  ·  Shah P, Chen M. Evidence quality in distributed release decisions. J Prod Syst. 2025;17(2):44–61.',
+    practice.insertParagraph({
+      text: 'Univer PDFs · Create and edit pages, compose text, style tables, and review with annotations. Explore the other product tabs for spreadsheets, documents, presentations, structured data, and a visual canvas.',
       left: 42,
       top: 732,
       width: 511,
@@ -1440,11 +1414,11 @@ export default function Univer({ tablistLabel }: IUniverProps) {
   }, [])
 
   useEffect(() => {
-    const univer = new UniverCore({
+    const univer = new Univer({
       darkMode: theme === 'dark',
-      locale: CoreLocaleType.EN_US,
+      locale: LocaleType.EN_US,
       locales: {
-        [CoreLocaleType.EN_US]: mergeCoreLocales(
+        [LocaleType.EN_US]: mergeLocales(
           DesignEnUS,
           UIEnUS,
           DocsUIEnUS,
@@ -1455,8 +1429,15 @@ export default function Univer({ tablistLabel }: IUniverProps) {
           SheetsNumfmtUIEnUS,
           SheetsConditionalFormattingUIEnUS,
           SheetsDataValidationUIEnUS,
+          SheetsFilterUIEnUS,
+          SheetsSortUIEnUS,
+          SheetsTableUIEnUS,
           ShapeEditorUIEnUS,
           SlidesUIEnUS,
+          ChartUIEnUS,
+          EmbedUnitUIEnUS,
+          SlidesChartUIEnUS,
+          SlidesTableUIEnUS,
           BasesEnUS,
           BasesUIEnUS,
           BoardsUIEnUS,
@@ -1490,10 +1471,17 @@ export default function Univer({ tablistLabel }: IUniverProps) {
       univer.registerPlugin(UniverSheetsDataValidationPlugin)
       univer.registerPlugin(UniverSheetsDataValidationUIPlugin)
       univer.registerPlugin(UniverSheetsConditionalFormattingUIPlugin)
+      univer.registerPlugin(UniverSheetsFilterUIPlugin)
+      univer.registerPlugin(UniverSheetsSortUIPlugin)
+      univer.registerPlugin(UniverSheetsTableUIPlugin)
       univer.createUnit(UniverInstanceType.UNIVER_SHEET, workbookData)
     } else if (type === 'slides') {
       univer.registerPlugin(UniverSlidesPlugin)
       univer.registerPlugin(UniverSlidesUIPlugin)
+      univer.registerPlugin(UniverSlidesChartPlugin)
+      univer.registerPlugin(UniverSlidesChartUIPlugin)
+      univer.registerPlugin(UniverSlidesTablePlugin)
+      univer.registerPlugin(UniverSlidesTableUIPlugin)
       univer.createUnit(UniverInstanceType.UNIVER_SLIDE, homeSlideData)
     } else if (type === 'bases') {
       univer.registerPlugin(UniverBasesPlugin)
@@ -1520,6 +1508,15 @@ export default function Univer({ tablistLabel }: IUniverProps) {
 
     univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, async (event) => {
       if (event.stage === univerAPI.Enum.LifecycleStages.Rendered) {
+        if (type === 'sheets') {
+          const workbook = univerAPI.getActiveWorkbook()!
+          workbook.getSheetByName('Feature tour')!.getRange('A6:J15').createFilter()
+          const practice = workbook.getSheetByName('Practice data')!
+          await practice.addTable('FeaturePractice', practice.getRange('A4:I31').getRange(), 'feature-practice-table', {
+            tableStyleId: 'table-default-4',
+          })
+        }
+        if (type === 'slides') seedSlides(univerAPI)
         if (baseSeedResult) {
           const baseUI = univerAPI.getBaseUI()
           await baseUI.activateTable(baseSeedResult.tableId)
@@ -1533,7 +1530,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
     return () => {
       univerAPI.dispose()
     }
-  }, [documentMode, seedBase, seedBoard, seedPdf, theme, type])
+  }, [documentMode, seedBase, seedBoard, seedPdf, seedSlides, theme, type])
 
   function handleChangeType(newType: UniverType) {
     if (newType === type) return
@@ -1648,7 +1645,7 @@ export default function Univer({ tablistLabel }: IUniverProps) {
         id="univer-product-demo"
         aria-labelledby={`univer-tab-${type}`}
         aria-busy={!steady}
-        className="border-border bg-card relative mx-auto h-[34rem] w-7xl max-w-full flex-none overflow-hidden overscroll-contain rounded-lg border sm:h-160 dark:border-white/10 dark:shadow-[0_12px_36px_#00000026]"
+        className="border-border bg-card relative mx-auto h-160 w-7xl max-w-full flex-none overflow-hidden overscroll-contain rounded-lg border sm:h-200 dark:border-white/10 dark:shadow-[0_12px_36px_#00000026]"
       >
         {/* Mask / Loading */}
         <AnimatePresence>
