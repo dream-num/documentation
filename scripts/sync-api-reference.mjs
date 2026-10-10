@@ -497,9 +497,7 @@ export function emitSourceDeclarations(repositories, temporary) {
       const directory = dirname(join(repo, manifest))
       const info = JSON.parse(readFileSync(join(repo, manifest), 'utf8'))
       if (!info.name?.startsWith('@univerjs') || removedPackages.has(info.name)) return []
-      return [
-        { name: info.name, directory, repo, typesBaseUrl: `https://unpkg.com/${info.name}@${info.version}/lib/types/` },
-      ]
+      return [{ name: info.name, directory, repo, typesBaseUrl: `https://unpkg.com/${info.name}/lib/types/` }]
     }),
   )
   const paths = {}
@@ -633,8 +631,8 @@ export async function syncReference(coreRoot = resolve(root, '../univer'), proRo
         const manifest = join(directory, 'package.json')
         if (!existsSync(manifest)) continue
         const packageInfo = JSON.parse(readFileSync(manifest, 'utf8'))
-        if (!packageInfo.name || !packageInfo.version) continue
-        return `https://unpkg.com/${packageInfo.name}@${packageInfo.version}/${relative(directory, file)}`
+        if (!packageInfo.name) continue
+        return `https://unpkg.com/${packageInfo.name}/${relative(directory, file)}`
       }
     }
     const sharedDeclarations = [...sharedTypes, ...sharedEnums].map((entry) => {
