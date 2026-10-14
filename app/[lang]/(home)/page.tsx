@@ -8,7 +8,6 @@ import {
   UsersIcon,
 } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
-
 import type { Locale } from '@/i18n/routing'
 import { Footer } from '@/components/footer'
 import { ClosingCTA } from '@/components/home/closing-cta'
@@ -352,7 +351,6 @@ export default async function Page({ params }: IProps) {
             copyLabel={t('home.devexp.copy')}
             copiedLabel={t('home.devexp.copied')}
             pluginLabel={t('home.devexp.plugin.label')}
-            presetLabel={t('home.devexp.preset.label')}
           />
 
           <section
