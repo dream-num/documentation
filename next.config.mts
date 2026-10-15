@@ -1,10 +1,8 @@
 import { execFileSync } from 'node:child_process'
 import process from 'node:process'
-
 import type { NextConfig } from 'next'
 import { withAmamoMdx } from '@amamo/mdx/next'
 import createNextIntlPlugin from 'next-intl/plugin'
-
 import amamo from './amamo.config.mts'
 
 const withNextIntl = createNextIntlPlugin()

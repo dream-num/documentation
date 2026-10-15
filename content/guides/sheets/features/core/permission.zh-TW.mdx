@@ -2,18 +2,24 @@
 title: 權限控制
 ---
 
-import { MigrationCell, MigrationRow, MigrationTable } from './components/migration-table'
 import { PermissionShadowDemo } from './components/permission-shadow-demo'
 
 Univer 提供權限控制能力，用於限制使用者對工作簿、工作表、選區的操作。當使用者執行無權限動作時，Univer 會中止執行並提示缺失權限。常見場景如：對一片選區設定保護，限制協作者的編輯/檢視/複製等能力。
 
-<Callout type="warning" title="使用前須知">
-  Univer 提供的是可擴充的基礎能力，而不是完整的權限系統。
-  如果你需要權限持久化、組織架構、使用者資訊等客製化能力，需要自行實現權限規則儲存與組織架構接入，通常透過自訂外掛來完成。
-  因此出現“權限列表為空”或“使用者資訊為空”的情況是正常的：這些資訊需要由你的介面返回。可參考下方的“第三方權限服務接入”。
+<Callout type="warning">
+服務需要持久化保護規則與協作者變更，傳回目前使用者的權限，並傳遞請求失敗。傳回空清單的 mock 不具備持久化能力。協同情境下，後端仍須分別驗證讀取、JOIN 與修改權限，見[身分與權限](/server/collaboration/identity-and-authorization)。前端保護與隱藏陰影不能取代伺服器授權。
+
+[權限服務整合](#authorization-service)
 </Callout>
 
 <PlaygroundFrame lang="zh-TW" slug="sheets/permission" clickToShow />
+
+依任務跳轉到下方章節。本頁集中介紹基礎操作、進階範例、設定與疑難排解；完整 API 定義統一在 Reference 中維護。
+
+- [常用任務](#permission-tasks)
+- [權限介面設定](#permission-ui)
+- [權限服務整合](#permission-integration)
+- [Reference](#reference)
 
 ## 核心概念
 
@@ -21,14 +27,17 @@ Univer 提供權限控制能力，用於限制使用者對工作簿、工作表�
 - 權限點位：每個功能對應一個權限點位，修改點位即可控制功能是否可用。
 - 保護規則：工作表和選區在設定權限點位前，需要先建立保護規則。
 
-<Callout type="info" title="權限點位說明">
-  本機非持久化（非協同編輯環境）權限控制可直接透過修改權限點位實現，持久化權限請參考下方的“第三方權限服務接入”。
-  協同編輯場景下，更新權限點位會同步更新服務端狀態：
+<Callout type="info">
+本地非持久化權限可直接修改權限點位；持久化整合見 [權限服務整合](#authorization-service)
+
+協同編輯場景下，更新權限點位會同步更新服務端狀態：
   - false：該權限點至少需要 `owner` 角色
   - true：該權限點至少需要 `reader` 角色
 </Callout>
 
 ## 基礎示例
+
+使用 `allowedUsers` 範例前，請將 `user1`、`user2` 替換為權限服務已傳回的真實協作者 ID。
 
 下面按工作簿、工作表、選區三個層級展示最常見的權限設定方式。
 
@@ -40,6 +49,7 @@ Univer 提供權限控制能力，用於限制使用者對工作簿、工作表�
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
 const workbookPermission = fWorkbook.getWorkbookPermission()
 
 // 設定工作簿不可編輯
@@ -55,6 +65,7 @@ await workbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, f
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
 const fWorksheet = fWorkbook.getActiveSheet()
 const worksheetPermission = fWorksheet.getWorksheetPermission()
 
@@ -72,6 +83,7 @@ await worksheetPermission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.Edit,
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
 const fWorksheet = fWorkbook.getActiveSheet()
 const worksheetPermission = fWorksheet.getWorksheetPermission()
 
@@ -85,6 +97,7 @@ await worksheetPermission.unprotect()
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
 const fWorksheet = fWorkbook.getActiveSheet()
 const fRange = fWorksheet.getRange('A1:B2')
 const rangePermission = fRange.getRangePermission()
@@ -106,6 +119,7 @@ await rule.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
 const fWorksheet = fWorkbook.getActiveSheet()
 const fRange = fWorksheet.getRange('A1:B2')
 const rangePermission = fRange.getRangePermission()
@@ -120,282 +134,52 @@ if (rules.length > 0) {
 }
 ```
 
-## 拓展使用
+## 常用任務 [#permission-tasks]
 
-當你需要在自己的外掛中增加權限校驗時，可以直接操作權限點位。
-
-下面以 `WorkbookEditablePermission` 為例，其他點位類似：
+### 將活頁簿設為唯讀
 
 ```typescript
-import { IPermissionService } from '@univerjs/core'
-import { WorkbookEditablePermission } from '@univerjs/sheets'
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const permission = fWorkbook.getWorkbookPermission()
+await permission.setMode('viewer')
+console.log(permission.getSnapshot())
+```
 
-class YourService {
-  constructor(@IPermissionService private _permissionService: IPermissionService) {
-  }
+### 管理保護範圍
 
-  setWorkbookNotEditable() {
-    this._permissionService.updatePermissionPoint(new WorkbookEditablePermission('unitId').id, false)
-  }
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const fWorksheet = fWorkbook.getActiveSheet()
+const permission = fWorksheet.getWorksheetPermission()
 
-  setWorkbookEditable() {
-    this._permissionService.updatePermissionPoint(new WorkbookEditablePermission('unitId').id, true)
-  }
+const createdRules = await permission.protectRanges([
+  {
+    ranges: [fWorksheet.getRange('A1:B2')],
+    options: { name: 'Public area', allowViewByOthers: true },
+  },
+  {
+    ranges: [fWorksheet.getRange('C3:D4')],
+    options: { name: 'Private area', allowViewByOthers: false, allowedUsers: ['user1'] },
+  },
+])
+console.log(createdRules)
+
+const rules = await permission.listRangeProtectionRules()
+const firstRule = rules[0]
+if (firstRule) {
+  await firstRule.updateRanges([fWorksheet.getRange('A1:B3')])
 }
 ```
 
-你也可以擴充修改別的權限點位來實現對不同功能的控制，具體點位列表請參考文章底部。
-
-### 第三方外掛如何擴充權限點位
-
-如果你需要自訂權限點位，可以實現 `IPermissionPoint` 並註冊到權限服務中：
+### 排查儲存格權限
 
 ```typescript
-import type { IPermissionPoint } from '@univerjs/core'
-import { IPermissionService, PermissionStatus } from '@univerjs/core'
-import { UnitAction, UnitObject } from '@univerjs/protocol'
-
-export class CustomPermissionPoint implements IPermissionPoint {
-  type = UnitObject.Unkonwn // your type
-  subType = UnitAction.View // your subType
-  status = PermissionStatus.INIT
-  value = true // 權限的初始值
-  id: string
-  constructor(unitId: string, subUnitId: string, customId: string) {
-    // 這裡自行拼湊一個 id，id 屬性需要保證在整個 IPermissionService 中是唯一的憑證。
-    this.id = `${unitId}.${subUnitId}.${customId}`
-  }
-}
-
-class YourService {
-  constructor(@IPermissionService private _permissionService: IPermissionService) {
-    this._init()
-  }
-
-  _init() {
-    this._permissionService.addPermissionPoint(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id'))
-  }
-}
-
-// 在其他地方如何使用
-class ConsumeService {
-  constructor(@IPermissionService private _permissionService: IPermissionService) {
-  }
-
-  doSomething() {
-    const point = this._permissionService.getPermissionPoint(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id').id)
-    console.log(point.value)
-  }
-
-  bindEvent() {
-    // 這將獲得一個 Rx 物件，使得你能夠監聽當前權限的變化作出一些改變
-    const point$ = this._permissionService.getPermissionPoint$(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id').id)
-    console.log(point$)
-  }
-}
-```
-
-### 第三方權限服務接入(進階用法)
-
-<Callout type="warning" title="注意事項">
-  已經開始接入自訂權限，可以直接操作更細粒度的權限點位，建議不要和 Permission Facade API 混用。
-</Callout>
-
-權限的判斷邏輯通常由外接服務處理，這部分一般會帶有一個通訊流程。在純前端 SDK 實現中，我們使用 [AuthzIoLocalService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/authz-io-local.service.ts) 來承載這部分邏輯。
-
-在生產環境中，我們需要將這部分實現轉由後端實現，前端需要基於 [IAuthzIoService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/type.ts) 型別實現對應的請求函式，以便在執行時替換。
-
-![權限](./permission/permission-cn.png)
-
-下面是一個簡單示例：預設 2 個角色（所有者/閱讀者）情況下區域保護權限點位的增刪。所有者擁有保護區域的編輯/檢視權限，而閱讀者不能編輯也不能檢視保護區域內單元格的內容。
-
-```typescript
-import type { Injector } from '@univerjs/core'
-import type { IActionInfo, IAllowedRequest, IBatchAllowedResponse, ICollaborator, ICreateRequest, ICreateRequestSelectRangeObject, IListPermPointRequest, IPermissionPoint, IPutCollaboratorsRequest, IUnitRoleKV, IUpdatePermPointRequest } from '@univerjs/protocol'
-import { createDefaultUser, generateRandomId, IAuthzIoService, Inject, IResourceManagerService, isDevRole, Univer, UserManagerService } from '@univerjs/core'
-import { ObjectScope, UnitAction, UnitObject, UnitRole, UniverType } from '@univerjs/protocol'
-
-class YourAuthzService implements IAuthzIoService {
-  private _permissionMap: Map<string, ICreateRequestSelectRangeObject & { objectType: UnitObject }> = new Map([])
-
-  constructor(
-    @IResourceManagerService private _resourceManagerService: IResourceManagerService,
-    @Inject(UserManagerService) private _userManagerService: UserManagerService,
-  ) {
-    this._initSnapshot()
-    this._initDefaultUser()
-  }
-
-  private _initDefaultUser() {
-    const currentUser = this._userManagerService.getCurrentUser()
-    const currentUserIsValid = currentUser && currentUser.userID
-    if (!currentUserIsValid) {
-      this._userManagerService.setCurrentUser(createDefaultUser(UnitRole.Owner))
-    }
-  }
-
-  private _getRole(type: UnitRole) {
-    const user = this._userManagerService.getCurrentUser()
-    if (!user) {
-      return false
-    }
-    return isDevRole(user.userID, type)
-  }
-
-  private _initSnapshot() {
-    this._resourceManagerService.registerPluginResource({
-      toJson: (_unitId: string) => {
-        const obj = [...this._permissionMap.keys()].reduce((r, k) => {
-          const v = this._permissionMap.get(k)
-          r[k] = v!
-          return r
-        }, {} as Record<string, ICreateRequestSelectRangeObject & { objectType: UnitObject }>)
-        return JSON.stringify(obj)
-      },
-      parseJson: (json: string) => {
-        return JSON.parse(json)
-      },
-      pluginName: 'SHEET_AuthzIoMockService_PLUGIN',
-      businesses: [UniverType.UNIVER_SHEET, UniverType.UNIVER_DOC, UniverType.UNIVER_SLIDE],
-      onLoad: (_unitId, resource) => {
-        for (const key in resource) {
-          this._permissionMap.set(key, resource[key])
-        }
-      },
-      onUnLoad: () => {
-        this._permissionMap.clear()
-      },
-    })
-  }
-
-  async create(config: ICreateRequest): Promise<string> {
-    const permissionId = generateRandomId(8)
-    if (config.objectType === UnitObject.SelectRange && config.selectRangeObject) {
-      this._permissionMap.set(permissionId, { ...config.selectRangeObject, objectType: config.objectType })
-    }
-    return permissionId
-  }
-
-  async batchAllowed(config: IAllowedRequest[]): Promise<IBatchAllowedResponse['objectActions']> {
-    const selectionRangeConfig = config.filter(c => c.objectType === UnitObject.SelectRange)
-    if (selectionRangeConfig.length) {
-      const currentUser = this._userManagerService.getCurrentUser()
-      const res = [] as IBatchAllowedResponse['objectActions']
-      selectionRangeConfig.forEach((c) => {
-        res.push({
-          unitID: c.unitID,
-          objectID: c.objectID,
-          actions: c.actions.map((action) => {
-            if (isDevRole(currentUser.userID, UnitRole.Owner)) {
-              return { action, allowed: true }
-            }
-            return { action, allowed: false }
-          }),
-        })
-      })
-      return res
-    }
-    return Promise.resolve([])
-  }
-
-  async list(config: IListPermPointRequest): Promise<IPermissionPoint[]> {
-    const result: IPermissionPoint[] = []
-    config.objectIDs.forEach((objectID) => {
-      const rule = this._permissionMap.get(objectID)
-      if (rule) {
-        const item = {
-          objectID,
-          unitID: config.unitID,
-          objectType: rule!.objectType,
-          name: rule!.name,
-          shareOn: false,
-          shareRole: UnitRole.Owner,
-          shareScope: -1,
-          scope: {
-            read: ObjectScope.AllCollaborator,
-            edit: ObjectScope.AllCollaborator,
-          },
-          creator: createDefaultUser(UnitRole.Owner),
-          strategies: [
-            {
-              action: UnitAction.View,
-              role: UnitRole.Owner,
-            },
-            {
-              action: UnitAction.Edit,
-              role: UnitRole.Owner,
-            },
-          ],
-          actions: config.actions.map((a) => {
-            return { action: a, allowed: this._getRole(UnitRole.Owner) }
-          }),
-        }
-        result.push(item)
-      }
-    })
-    return result
-  }
-
-  async listCollaborators(): Promise<ICollaborator[]> {
-    // List the existing collaborators
-    return []
-  }
-
-  async allowed(_config: IAllowedRequest): Promise<IActionInfo[]> {
-    // Because this is a mockService for handling permissions, we will not write real logic in it. We will only return an empty array to ensure that the permissions originally set by the user are not modified.
-    // If you want to achieve persistence of permissions, you can modify the logic here.
-    return Promise.resolve([])
-  }
-
-  async listRoles(): Promise<{ roles: IUnitRoleKV[], actions: UnitAction[] }> {
-    return {
-      roles: [],
-      actions: [],
-    }
-  }
-
-  async update(config: IUpdatePermPointRequest): Promise<void> {
-    // Update bit information
-  }
-
-  async updateCollaborator(): Promise<void> {
-    // Update collaborator information
-    return undefined
-  }
-
-  async createCollaborator(): Promise<void> {
-    // Create new collaborator information
-    return undefined
-  }
-
-  async deleteCollaborator(): Promise<void> {
-    return undefined
-  }
-
-  async putCollaborators(config: IPutCollaboratorsRequest): Promise<void> {
-    return undefined
-  }
-}
-
-export class YourPlugin extends Plugin {
-  constructor(
-    _config: unknown,
-    @Inject(Injector) protected override _injector: Injector,
-  ) {
-  }
-
-  override onStarting(): void {
-    this._injector.add([IAuthzIoService, { useClass: YourAuthzService }])
-  }
-}
-
-// 透過將 override 選項設定為 [[IAuthzIoService, null]]，可以告訴 Univer 不要註冊內建的 IAuthzIoService。
-// 這樣，Univer 將使用你在 YourAuthzService 中提供的服務作為權限服務的實現。
-const univer = new Univer({
-  override: [[IAuthzIoService, null]],
-})
-
-univer.registerPlugin(YourPlugin)
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const permission = fWorkbook.getActiveSheet().getWorksheetPermission()
+console.log(permission.debugCellPermission(0, 0))
 ```
 
 ## 權限點位列表 [#point-list]
@@ -465,7 +249,7 @@ univer.registerPlugin(YourPlugin)
 | univerAPI.Enum.RangePermissionPoint.Delete | RangeProtectionPermissionDeleteProtectionPoint | 能否刪除保護區域 |
 | univerAPI.Enum.RangePermissionPoint.ManageCollaborator | RangeProtectionPermissionManageCollaPoint | 能否管理保護區域的協作者 |
 
-## 配置
+## 權限介面設定 [#permission-ui]
 
 ### 權限保護範圍陰影策略
 
@@ -577,99 +361,141 @@ Univer 內建的自訂使用者元件所適配的場景比較有限，如果需�
   </Tab>
 </Tabs>
 
-完成自訂人員的設定後，請將其同步到 `sheetPermissionUserManagerService` 服務中的 `_selectUserList`，以便後續使用。
+在使用者選擇器的變更回呼中呼叫 `setSelectUserList()`。以下最小 React 範例清空已選使用者：`useDependency` 在元件內呼叫，服務狀態只在點擊後更新。完整選擇器請依 `IPermissionDetailUserPartProps` 實作。
 
 <Tabs items={['外掛模式', '預設模式']}>
   <Tab>
-    ```typescript
+    ```tsx
+    import type { IPermissionDetailUserPartProps } from '@univerjs/sheets-ui'
+    import type { FC } from 'react'
     import { SheetPermissionUserManagerService } from '@univerjs/sheets-ui'
     import { useDependency } from '@univerjs/ui'
 
-    const sheetPermissionUserManagerService = useDependency(SheetPermissionUserManagerService)
-    // 具體的資料結構請參考 https://github.com/dream-num/univer/blob/b4d4cfa063c9e6d5a82d1fc6b05edc206a415252/packages/sheets-ui/src/services/permission/sheet-permission-user-list.service.ts#L57
-    sheetPermissionUserManagerService.setSelectUserList([])
+    export const CustomPermissionDetailUserPart: FC<IPermissionDetailUserPartProps> = () => {
+      const service = useDependency(SheetPermissionUserManagerService)
+      const clearSelection = () => service.setSelectUserList([])
+
+      return <button type="button" onClick={clearSelection}>清空已選使用者</button>
+    }
     ```
   </Tab>
   <Tab>
-    ```typescript
+    ```tsx
+    import type { IPermissionDetailUserPartProps } from '@univerjs/preset-sheets-core'
+    import type { FC } from 'react'
     import { SheetPermissionUserManagerService, useDependency } from '@univerjs/preset-sheets-core'
 
-    const sheetPermissionUserManagerService = useDependency(SheetPermissionUserManagerService)
-    // 具體的資料結構請參考 https://github.com/dream-num/univer/blob/b4d4cfa063c9e6d5a82d1fc6b05edc206a415252/packages/sheets-ui/src/services/permission/sheet-permission-user-list.service.ts#L57
-    sheetPermissionUserManagerService.setSelectUserList([])
+    export const CustomPermissionDetailUserPart: FC<IPermissionDetailUserPartProps> = () => {
+      const service = useDependency(SheetPermissionUserManagerService)
+      const clearSelection = () => service.setSelectUserList([])
+
+      return <button type="button" onClick={clearSelection}>清空已選使用者</button>
+    }
     ```
   </Tab>
 </Tabs>
 
-## Facade API
-
-Facade API 為權限提供了統一入口，下面按工作簿、工作表、選區分組展示常用方法。
-
-### 工作簿級權限
-
-#### 獲取工作簿權限例項
+### 去除權限彈窗
 
 ```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const workbookPermission = fWorkbook.getWorkbookPermission()
+univerAPI.setPermissionDialogVisible(false)
 ```
 
-#### 設定工作簿權限點位
+## 權限服務整合 [#permission-integration]
 
-`WorkbookPermissionPoint` 列舉值列表請參考[權限點位列表-工作簿](#workbook-point)。
+### 拓展使用
+
+當你需要在自己的外掛中增加權限校驗時，可以直接操作權限點位。
+
+下面以 `WorkbookEditablePermission` 為例，其他點位類似：
 
 ```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const workbookPermission = fWorkbook.getWorkbookPermission()
+import { IPermissionService } from '@univerjs/core'
+import { WorkbookEditablePermission } from '@univerjs/sheets'
 
-// 設定工作簿列印權限為不可用
-await workbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Print, false)
+class YourService {
+  constructor(@IPermissionService private _permissionService: IPermissionService) {
+  }
+
+  setWorkbookNotEditable() {
+    this._permissionService.updatePermissionPoint(new WorkbookEditablePermission('unitId').id, false)
+  }
+
+  setWorkbookEditable() {
+    this._permissionService.updatePermissionPoint(new WorkbookEditablePermission('unitId').id, true)
+  }
+}
 ```
 
-使用預定義模式：
+[權限點位列表](#point-list)
+
+### 第三方外掛如何擴充權限點位
+
+如果你需要自訂權限點位，可以實現 `IPermissionPoint` 並註冊到權限服務中：
 
 ```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const workbookPermission = fWorkbook.getWorkbookPermission()
+import type { IPermissionPoint } from '@univerjs/core'
+import { IPermissionService, PermissionStatus } from '@univerjs/core'
+import { UnitAction, UnitObject } from '@univerjs/protocol'
 
-// 設定為所有者模式
-await workbookPermission.setMode('owner')
+export class CustomPermissionPoint implements IPermissionPoint {
+  type = UnitObject.Unkonwn // your type
+  subType = UnitAction.View // your subType
+  status = PermissionStatus.INIT
+  value = true // 權限的初始值
+  id: string
+  constructor(unitId: string, subUnitId: string, customId: string) {
+    // 這裡自行拼湊一個 id，id 屬性需要保證在整個 IPermissionService 中是唯一的憑證。
+    this.id = `${unitId}.${subUnitId}.${customId}`
+  }
+}
 
-// 設定為編輯者模式
-await workbookPermission.setMode('editor')
+class YourService {
+  constructor(@IPermissionService private _permissionService: IPermissionService) {
+    this._init()
+  }
 
-// 設定為只讀模式
-await workbookPermission.setMode('viewer')
+  _init() {
+    this._permissionService.addPermissionPoint(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id'))
+  }
+}
 
-// 設定為評論者模式
-await workbookPermission.setMode('commenter')
+// 在其他地方如何使用
+class ConsumeService {
+  constructor(@IPermissionService private _permissionService: IPermissionService) {
+  }
+
+  doSomething() {
+    const point = this._permissionService.getPermissionPoint(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id').id)
+    console.log(point?.value)
+  }
+
+  bindEvent() {
+    // 這將獲得一個 Rx 物件，使得你能夠監聽當前權限的變化作出一些改變
+    const point$ = this._permissionService.getPermissionPoint$(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id').id)
+    console.log(point$)
+  }
+}
 ```
 
-使用快捷方法：
+### 第三方權限服務接入(進階用法) [#authorization-service]
 
-- `FWorkbookPermission.setReadOnly()`：設定為只讀模式，等同於 `setMode('viewer')`
-- `FWorkbookPermission.setEditable()`：設定為編輯者模式，等同於 `setMode('editor')`
-
-#### 獲取工作簿權限點位狀態
+在業務應用中實作 [IAuthzIoService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/type.ts)，將權限、角色與協作者方法接入後端。以下範例假定 `./authorization-service` 已將該實作匯出為 `YourAuthzService`。請在建立活頁簿前註冊，並保留其他初始化選項與外掛註冊。
 
 ```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const workbookPermission = fWorkbook.getWorkbookPermission()
+import { IAuthzIoService, Univer } from '@univerjs/core'
+import { YourAuthzService } from './authorization-service'
 
-// 獲取工作簿列印權限狀態
-const canPrint = workbookPermission.getPoint(univerAPI.Enum.WorkbookPermissionPoint.Print)
-console.log('Can print:', canPrint)
-
-// 獲取工作簿所有權限點位狀態
-const snapshot = workbookPermission.getSnapshot()
-console.log('Workbook permission snapshot:', snapshot)
+const univer = new Univer({
+  override: [[IAuthzIoService, { useClass: YourAuthzService }]],
+})
 ```
 
-使用快捷方法：
+服務需要持久化保護規則與協作者變更，傳回目前使用者的權限，並傳遞請求失敗。傳回空清單的 mock 不具備持久化能力。協同情境下，後端仍須分別驗證讀取、JOIN 與修改權限，見[身分與權限](/server/collaboration/identity-and-authorization)。前端保護與隱藏陰影不能取代伺服器授權。
 
-- `FWorkbookPermission.canEdit()`：檢查工作簿是否可編輯
+![權限](./permission/permission-cn.png)
 
-#### 協作者管理
+### 協作者管理
 
 <Callout>
   協作者管理由業務應用程式和權限服務負責。請接入自己的使用者與 ACL 模型，在伺服器端分別檢查讀取、JOIN 和修改權限，見[身分與權限](/server/collaboration/identity-and-authorization)。下方前端 API 需要匹配的權限服務實作，不會自動設定伺服器端權限。
@@ -679,6 +505,7 @@ console.log('Workbook permission snapshot:', snapshot)
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
 const workbookPermission = fWorkbook.getWorkbookPermission()
 
 const collaborators = await workbookPermission.listCollaborators()
@@ -689,6 +516,7 @@ console.log(collaborators)
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
 const workbookPermission = fWorkbook.getWorkbookPermission()
 
 // 一次新增多個協作者
@@ -714,6 +542,7 @@ await workbookPermission.addCollaborator(
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
 const workbookPermission = fWorkbook.getWorkbookPermission()
 
 await workbookPermission.updateCollaborator(
@@ -726,6 +555,7 @@ await workbookPermission.updateCollaborator(
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
 const workbookPermission = fWorkbook.getWorkbookPermission()
 
 // 刪除多個協作者
@@ -735,434 +565,9 @@ await workbookPermission.removeCollaborators(['user1', 'user2'])
 await workbookPermission.removeCollaborator('user1')
 ```
 
-### 工作表級權限
+## Reference
 
-#### 獲取工作表權限例項
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-```
-
-#### 工作表保護
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// 設定工作表保護，允許指定使用者編輯
-const permissionId = await worksheetPermission.protect({
-  allowedUsers: ['user1', 'user2'],
-  name: 'My Worksheet Protection',
-})
-
-// 檢查工作表是否受保護
-const isProtected = worksheetPermission.isProtected()
-console.log('Is worksheet protected:', isProtected)
-
-if (isProtected) {
-  // 取消工作表保護
-  await worksheetPermission.unprotect()
-}
-```
-
-#### 設定工作表權限點位
-
-`WorksheetPermissionPoint` 列舉值列表請參考[權限點位列表-工作表](#worksheet-point)。
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// 如果需要設定權限點位，必須先建立工作表保護
-await worksheetPermission.protect()
-
-// 設定工作表插入行權限為不可用
-await worksheetPermission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.InsertRow, false)
-```
-
-使用預定義模式：
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// 如果需要設定權限點位，必須先建立工作表保護
-await worksheetPermission.protect()
-
-// 設定為編輯模式
-await worksheetPermission.setMode('editable')
-
-// 設定為只讀模式
-await worksheetPermission.setMode('readOnly')
-
-// 設定為僅篩選/排序模式
-await worksheetPermission.setMode('filterOnly')
-
-// 設定為自訂模式
-await worksheetPermission.applyConfig({
-  mode: 'readOnly',
-  points: {
-    [univerAPI.Enum.WorksheetPermissionPoint.InsertRow]: true,
-    [univerAPI.Enum.WorksheetPermissionPoint.InsertColumn]: true,
-  },
-})
-```
-
-使用快捷方法：
-
-- `FWorksheetPermission.setReadOnly()`：設定為只讀模式，等同於 `setMode('readOnly')`
-- `FWorksheetPermission.setEditable()`：設定為編輯模式，等同於 `setMode('editable')`
-
-#### 獲取工作表權限點位狀態
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// 獲取工作表插入行權限狀態
-const canInsertRow = worksheetPermission.getPoint(univerAPI.Enum.WorksheetPermissionPoint.InsertRow)
-
-// 獲取工作表所有權限點位狀態
-const snapshot = worksheetPermission.getSnapshot()
-```
-
-使用快捷方法：
-
-- `FWorksheetPermission.canEdit(): boolean`：檢查工作表是否可編輯
-- `FWorksheetPermission.canEditCell(row: number, col: number): boolean`：檢查指定單元格是否可編輯
-- `FWorksheetPermission.canView(): boolean`：檢查工作表是否可檢視
-- `FWorksheetPermission.canViewCell(row: number, col: number): boolean`：檢查指定單元格是否可檢視
-- `FWorksheetPermission.debugCellPermission(row: number, col: number): ICellPermissionDebugInfo`：獲取指定單元格的權限除錯資訊
-
-### 選區級權限
-
-#### 獲取選區權限例項
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const fRange = fWorksheet.getRange('A1:B2')
-const rangePermission = fRange.getRangePermission()
-```
-
-#### 設定範圍保護
-
-- 透過工作表級權限設定範圍保護：
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// 設定多個保護範圍，A1:B2 不允許編輯但允許他人檢視，C3:D4 允許指定使用者編輯但不允許他人檢視
-const rules = await worksheetPermission.protectRanges([
-  {
-    ranges: [fWorksheet.getRange('A1:B2')],
-    options: { name: 'Protected Area 1', allowViewByOthers: true },
-  },
-  {
-    ranges: [fWorksheet.getRange('C3:D4')],
-    options: { name: 'Protected Area 2', allowViewByOthers: false, allowedUsers: ['user1'] },
-  },
-])
-console.log(rules)
-
-// 獲取當前工作表所有保護範圍規則
-const ruleList = await worksheetPermission.listRangeProtectionRules()
-console.log(ruleList)
-
-// 删除第一個保護範圍規則
-await worksheetPermission.unprotectRules([ruleList[0].id])
-
-// 或透過 `FRangePermission.unprotect()` 删除保護規則
-await ruleList[0].remove()
-```
-
-- 透過選區級權限設定範圍保護：
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const fRange = fWorksheet.getRange('A1:B2')
-const rangePermission = fRange.getRangePermission()
-
-// 設定範圍保護，允許指定使用者編輯但不允許他人檢視
-const rule = await rangePermission.protect({
-  name: 'My protected range',
-  allowViewByOthers: false,
-  allowedUsers: ['user1', 'user2'],
-})
-console.log(rule)
-
-// 取得目前範圍內的所有保護規則
-const rules = await rangePermission.listRules()
-console.log(rules)
-
-// 刪除目前範圍內的所有保護規則
-await rangePermission.unprotect()
-
-// 或透過 `FRangePermission.unprotect()` 删除保護規則
-await rules[0].remove()
-```
-
-#### 設定選區權限點位
-
-`RangePermissionPoint` 列舉值列表請參考[權限點位列表-區域保護](#range-point)。
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const fRange = fWorksheet.getRange('A1:B2')
-const rangePermission = fRange.getRangePermission()
-
-// 如果需要設定權限點位，必須先建立區域保護
-if (rangePermission.isProtected()) {
-  const rules = await rangePermission.listRules()
-
-  // 設定第一個保護規則的編輯權限為不可用，檢視權限為可用
-  await rules[0].setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
-  await rules[0].setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
-} else {
-  await rangePermission.protect({
-    name: 'My protected range',
-    allowViewByOthers: false,
-    allowedUsers: ['user1', 'user2'],
-  })
-
-  // 設定 A1:B2 選區的編輯權限為不可用，檢視權限為可用
-  await rangePermission.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
-  await rangePermission.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
-}
-```
-
-### 範圍權限保護規則
-
-以下是 `FRangeProtectionRule` 一些成員方法：
-
-| 方法 | 描述 |
-| --- | --- |
-| `id: string` | 保護規則的唯一標識符 |
-| `permissionId: string` | 保護規則關聯的權限 ID |
-| `ranges: FRange[]` | 保護規則作用的範圍列表 |
-| `options: IRangeProtectionOptions` | 保護規則的選項配置 |
-| `updateRanges(ranges: FRange[]): Promise<boolean>` | 更新保護規則的範圍列表 |
-| `remove(): Promise<boolean>` | 刪除保護規則 |
-| `setPoint(point: RangePermissionPoint, value: boolean): Promise<void>` | 設定保護規則的權限點位值 |
-| `getPoint(point: RangePermissionPoint): boolean` | 獲取保護規則的權限點位值 |
-| `canEdit(): boolean` | 檢查保護規則是否允許編輯 |
-| `canView(): boolean` | 檢查保護規則是否允許檢視 |
-| `canDelete(): boolean` | 檢查保護規則是否允許刪除 |
-| `canManageCollaborator(): boolean` | 檢查保護規則是否允許管理協作者 |
-| `getSnapshot(): RangePermissionSnapshot` | 獲取保護規則的快照資訊 |
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-const rules = await worksheetPermission.listRangeProtectionRules()
-const rule = rules?.[0]
-
-// 獲取第一個保護規則的 ID
-const ruleId = rule?.id
-console.log(ruleId)
-
-// 獲取第一個保護規則的範圍
-const ranges = rule?.ranges
-console.log(ranges)
-
-// 更新第一個保護規則的範圍為 A1:C3
-await rule?.updateRanges([fWorksheet.getRange('A1:C3')])
-
-// 刪除第一個保護規則
-await rule?.remove()
-```
-
-### 去除權限彈窗
-
-```typescript
-univerAPI.setPermissionDialogVisible(false)
-```
-
-### 舊 API 遷移指南
-
-<MigrationTable headers={['API 方法描述', '遷移指南']}>
-  <MigrationRow method="取得權限例項">
-    <MigrationCell className="mb-2.5">
-      <strong>舊 API：</strong>
-      <br />
-      <code>FWorkbook.getPermission()</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>新 API：</strong>
-      <br />
-      <div>工作簿：<code>FWorkbook.getWorkbookPermission()</code></div>
- <div>工作表：<code>FWorksheet.getWorksheetPermission()</code></div>
- <div>選區：<code>FRange.getRangePermission()</code></div>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="設定工作簿權限點位">
-    <MigrationCell className="mb-2.5">
-      <strong>舊 API：</strong>
-      <br />
-      <code>FPermission.setWorkbookPermissionPoint(unitId: string, FPointClass: WorkbookPermissionPointConstructor, value: boolean)</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>新 API：</strong>
-      <br />
-      <code>FWorkbookPermission.setPoint(point: WorkbookPermissionPoint, value: boolean)</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="獲取工作簿權限點位狀態">
-    <MigrationCell className="mb-2.5">
-      <strong>舊 API：</strong>
-      <br />
-      <code>FPermission.checkWorkbookPermissionPoint(unitId: string, FPointClass: WorkbookPermissionPointConstructor): boolean</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>新 API：</strong>
-      <br />
-      <code>FWorkbookPermission.getPoint(point: WorkbookPermissionPoint): boolean</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="設定工作簿編輯權限">
-    <MigrationCell className="mb-2.5">
-      <strong>舊 API：</strong>
-      <br />
-      <code>FPermission.setWorkbookEditPermission(unitId: string, value: boolean)</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>新 API：</strong>
-      <br />
-      <code>FWorkbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, value: boolean)</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="新增工作表保護">
-    <MigrationCell className="mb-2.5">
-      <strong>舊 API：</strong>
-      <br />
-      <code>FPermission.addWorksheetBasePermission(unitId: string, subUnitId: string)</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>新 API：</strong>
-      <br />
-      <code>FWorksheetPermission.protect(options?: IWorksheetProtectionOptions)</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="取消工作表保護">
-    <MigrationCell className="mb-2.5">
-      <strong>舊 API：</strong>
-      <br />
-      <code>FPermission.removeWorksheetPermission(unitId: string, subUnitId: string)</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>新 API：</strong>
-      <br />
-      <code>FWorksheetPermission.unprotect()</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="設定工作表權限點位">
-    <MigrationCell className="mb-2.5">
-      <strong>舊 API：</strong>
-      <br />
-      <code>FPermission.setWorksheetPermissionPoint(unitId: string, subUnitId: string, FPointClass: WorkSheetPermissionPointConstructor, value: boolean)</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>新 API：</strong>
-      <br />
-      <code>FWorksheetPermission.setPoint(point: WorksheetPermissionPoint, value: boolean)</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="獲取工作表權限點位狀態">
-    <MigrationCell className="mb-2.5">
-      <strong>舊 API：</strong>
-      <br />
-      <code>FPermission.checkWorksheetPermissionPoint(unitId: string, subUnitId: string, FPointClass: WorkSheetPermissionPointConstructor): boolean</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>新 API：</strong>
-      <br />
-      <code>FWorksheetPermission.getPoint(point: WorksheetPermissionPoint): boolean</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="獲取指定單元格的權限除錯資訊">
-    <MigrationCell className="mb-2.5">
-      <strong>舊 API：</strong>
-      <br />
-      <code>FPermission.getPermissionInfoWithCell(unitId: string, subUnitId: string, row: number, column: number)</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>新 API：</strong>
-      <br />
-      <code>FWorksheetPermission.debugCellPermission(row: number, col: number): ICellPermissionDebugInfo</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="設定範圍保護">
-    <MigrationCell className="mb-2.5">
-      <strong>舊 API：</strong>
-      <br />
-      <code>FPermission.addRangeBaseProtection(unitId: string, subUnitId: string, ranges: FRange[])</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>新 API：</strong>
-      <br />
-      <div>工作表：<code>FWorksheetPermission.protectRanges(configs)</code></div>
- <div>選區：<code>FRangePermission.protect(options?: IRangeProtectionOptions)</code></div>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="刪除範圍保護">
-    <MigrationCell className="mb-2.5">
-      <strong>舊 API：</strong>
-      <br />
-      <code>FPermission.removeRangeProtection(unitId: string, subUnitId: string, ruleIds: string[])</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>新 API：</strong>
-      <br />
-      <div>工作表：<code>FWorksheetPermission.unprotectRules(ruleIds: string[])</code></div>
- <div>選區：<code>FRangePermission.unprotect()</code></div>
- <div>范围保护规则：<code>FRangeProtectionRule.remove()</code></div>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="設定選區權限點位">
-    <MigrationCell className="mb-2.5">
-      <strong>舊 API：</strong>
-      <br />
-      <code>FPermission.setRangeProtectionPermissionPoint(unitId: string, subUnitId: string, permissionId: string, FPointClass: RangePermissionPointConstructor, value: boolean)</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>新 API：</strong>
-      <br />
-      <code>FRangeProtectionRule.setPoint(point: RangePermissionPoint, value: boolean)</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="更新保護規則的範圍列表">
-    <MigrationCell className="mb-2.5">
-      <strong>舊 API：</strong>
-      <br />
-      <code>FPermission.setRangeProtectionRanges(unitId: string, subUnitId: string, ruleId: string, ranges: FRange[])</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>新 API：</strong>
-      <br />
-      <code>FRangeProtectionRule.updateRanges(ranges: FRange[])</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="去除權限彈窗">
-    <MigrationCell className="mb-2.5">
-      <strong>舊 API：</strong>
-      <br />
-      <code>FPermission.setPermissionDialogVisible(false)</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>新 API：</strong>
-      <br />
-      <code>univerAPI.setPermissionDialogVisible(false)</code>
-    </MigrationCell>
-  </MigrationRow>
-</MigrationTable>
+- [FWorkbookPermission](/reference/facade/workbook-permission)
+- [FWorksheetPermission](/reference/facade/worksheet-permission)
+- [FRangePermission](/reference/facade/range-permission)
+- [FRangeProtectionRule](/reference/facade/range-protection-rule)
