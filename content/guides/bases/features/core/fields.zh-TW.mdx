@@ -4,6 +4,20 @@ title: 欄位
 
 欄位定義 Base 資料表的結構描述。每個欄位都有各自的類型、設定、預設值，以及排序、篩選、分組或顯示於卡片等功能。
 
+
+## 欄位類型
+
+| 用途 | `BaseFieldType` |
+| --- | --- |
+| 文字與聯絡方式 | `Text`, `Link`, `Phone`, `Email` |
+| 數值與進度 | `Number`, `Currency`, `Progress`, `Rating` |
+| 選項與成員 | `Checkbox`, `SingleSelect`, `MultiSelect`, `Person`, `Group` |
+| 日期與附件 | `Date`, `Attachment` |
+| 計算與關聯 | `Formula`, `RecordLink` |
+| 自動產生與稽核 | `Numbering`, `RecordId`, `CreatedBy`, `UpdatedBy`, `CreatedAt`, `UpdatedAt` |
+
+選項值使用選項 ID，成員值使用業務成員 ID；編號與稽核欄位由系統管理。參考[公式](/guides/bases/features/core/formulas)與[記錄及關聯](/guides/bases/features/core/records)。
+
 ## 新增欄位
 
 ```ts
@@ -48,3 +62,38 @@ priority.changeType(univerAPI.Enum.BaseFieldType.Text, {})
 ```
 
 變更欄位類型可能會將現有值正規化。將結構變更套用至正式環境的資料表前，請先在應用程式中驗證資料。
+
+## 附件欄位
+
+附件需要穩定的 ID、名稱與可存取的來源。下例假設業務系統已上傳檔案。
+
+```ts
+const attachments = table.addField('Files', univerAPI.Enum.BaseFieldType.Attachment)
+const record = table.getRecords()[0]
+if (!record) throw new Error('Create a record first')
+
+record.setAttachments(attachments.getId(), [{
+  id: 'brief-1',
+  name: 'brief.pdf',
+  mimeType: 'application/pdf',
+  source: 'https://example.com/files/brief.pdf',
+}])
+```
+
+`setAttachments()` 取代整個附件清單；`getAttachments()` 讀取清單，`deleteAttachments()` 刪除指定項目。請使用實際可存取的 URL，並在既有 Bases UI 註冊處設定上傳：
+
+```ts
+univer.registerPlugin(UniverBasesUIPlugin, {
+  attachment: {
+    accept: ['image/*', '.pdf'],
+    maxSize: 10 * 1024 * 1024,
+    upload: uploadAttachment,
+  },
+})
+```
+
+`uploadAttachment` 的簽名為 `(file: File) => Promise<IBaseAttachment>`，回傳上述附件資料；`maxSize` 以位元組計。未設定上傳器時，外掛先嘗試圖片 IO，再使用會增大快照的 Base64。正式環境應接入檔案儲存，並在後端驗證類型、大小及下載權限。
+
+## 人員與群組
+
+透過 Bases UI 的 `personOptions` 與 `groupOptions` 提供候選項，包含 `id`、`name` 及可選的 `avatar`。這只控制顯示，登入與存取權限仍由業務系統負責。

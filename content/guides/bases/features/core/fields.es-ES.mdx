@@ -4,6 +4,20 @@ title: Campos
 
 Los campos definen el esquema de una tabla base. Cada campo tiene un tipo, configuración, valor predeterminado y capacidades como ordenar, filtrar, agrupar o mostrar tarjetas.
 
+
+## Tipos de campo
+
+| Uso | `BaseFieldType` |
+| --- | --- |
+| Texto y datos de contacto | `Text`, `Link`, `Phone`, `Email` |
+| Números y progreso | `Number`, `Currency`, `Progress`, `Rating` |
+| Opciones y miembros | `Checkbox`, `SingleSelect`, `MultiSelect`, `Person`, `Group` |
+| Fechas y adjuntos | `Date`, `Attachment` |
+| Cálculos y relaciones | `Formula`, `RecordLink` |
+| Valores generados y auditoría | `Numbering`, `RecordId`, `CreatedBy`, `UpdatedBy`, `CreatedAt`, `UpdatedAt` |
+
+Use los ID de opción para las selecciones y los ID de su aplicación para los miembros. El sistema administra la numeración y los campos de auditoría. Consulte las [fórmulas](/guides/bases/features/core/formulas) y las [relaciones](/guides/bases/features/core/records).
+
 ## Agregar campos
 
 ```ts
@@ -48,3 +62,38 @@ priority.changeType(univerAPI.Enum.BaseFieldType.Text, {})
 ```
 
 Cambiar un tipo de campo puede normalizar los valores existentes. Valide los datos en su aplicación antes de aplicar cambios de esquema a las tablas de producción.
+
+## Archivos adjuntos
+
+Los adjuntos necesitan un ID estable, un nombre y una fuente accesible. Este ejemplo supone que la aplicación ya ha subido el archivo.
+
+```ts
+const attachments = table.addField('Files', univerAPI.Enum.BaseFieldType.Attachment)
+const record = table.getRecords()[0]
+if (!record) throw new Error('Create a record first')
+
+record.setAttachments(attachments.getId(), [{
+  id: 'brief-1',
+  name: 'brief.pdf',
+  mimeType: 'application/pdf',
+  source: 'https://example.com/files/brief.pdf',
+}])
+```
+
+`setAttachments()` reemplaza toda la lista. Use `getAttachments()` para leerla y `deleteAttachments()` para eliminar elementos concretos. Sustituya la URL por una dirección accesible y configure la subida en el registro existente de Bases UI:
+
+```ts
+univer.registerPlugin(UniverBasesUIPlugin, {
+  attachment: {
+    accept: ['image/*', '.pdf'],
+    maxSize: 10 * 1024 * 1024,
+    upload: uploadAttachment,
+  },
+})
+```
+
+La firma de `uploadAttachment` es `(file: File) => Promise<IBaseAttachment>` y devuelve los datos mostrados arriba. `maxSize` se expresa en bytes. Sin un gestor propio, el plugin intenta E/S de imágenes y después Base64, lo que aumenta la instantánea. En producción, conecte un almacenamiento y valide tipo, tamaño y permisos de descarga en el servidor.
+
+## Personas y grupos
+
+Proporcione candidatos mediante `personOptions` y `groupOptions` de Bases UI. Cada elemento tiene `id`, `name` y un `avatar` opcional. Son opciones de presentación; la aplicación gestiona la autenticación y los permisos.

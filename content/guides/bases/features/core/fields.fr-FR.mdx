@@ -4,6 +4,20 @@ title: Champs
 
 Les champs définissent le schéma d’une table Base. Chaque champ possède un type, une configuration et une valeur par défaut, ainsi que des fonctionnalités telles que le tri, le filtrage, le regroupement ou l’affichage sous forme de carte.
 
+
+## Types de champs
+
+| Usage | `BaseFieldType` |
+| --- | --- |
+| Texte et coordonnées | `Text`, `Link`, `Phone`, `Email` |
+| Nombres et progression | `Number`, `Currency`, `Progress`, `Rating` |
+| Choix et membres | `Checkbox`, `SingleSelect`, `MultiSelect`, `Person`, `Group` |
+| Dates et pièces jointes | `Date`, `Attachment` |
+| Calculs et relations | `Formula`, `RecordLink` |
+| Valeurs générées et audit | `Numbering`, `RecordId`, `CreatedBy`, `UpdatedBy`, `CreatedAt`, `UpdatedAt` |
+
+Utilisez les ID des options pour les sélections et les ID métier pour les membres. La numérotation et les champs d’audit sont gérés par le système. Consultez les [formules](/guides/bases/features/core/formulas) et les [relations](/guides/bases/features/core/records).
+
 ## Ajouter des champs
 
 ```ts
@@ -48,3 +62,38 @@ priority.changeType(univerAPI.Enum.BaseFieldType.Text, {})
 ```
 
 La modification du type d’un champ peut normaliser les valeurs existantes. Validez les données dans votre application avant d’appliquer des modifications de schéma aux tables de production.
+
+## Pièces jointes
+
+Une pièce jointe exige un ID stable, un nom et une source accessible. Cet exemple suppose que votre application a déjà téléversé le fichier.
+
+```ts
+const attachments = table.addField('Files', univerAPI.Enum.BaseFieldType.Attachment)
+const record = table.getRecords()[0]
+if (!record) throw new Error('Create a record first')
+
+record.setAttachments(attachments.getId(), [{
+  id: 'brief-1',
+  name: 'brief.pdf',
+  mimeType: 'application/pdf',
+  source: 'https://example.com/files/brief.pdf',
+}])
+```
+
+`setAttachments()` remplace toute la liste. Utilisez `getAttachments()` pour la lire et `deleteAttachments()` pour supprimer des éléments précis. Remplacez l’URL par une adresse accessible et configurez le téléversement dans votre enregistrement Bases UI existant :
+
+```ts
+univer.registerPlugin(UniverBasesUIPlugin, {
+  attachment: {
+    accept: ['image/*', '.pdf'],
+    maxSize: 10 * 1024 * 1024,
+    upload: uploadAttachment,
+  },
+})
+```
+
+La signature de `uploadAttachment` est `(file: File) => Promise<IBaseAttachment>` ; elle renvoie les données illustrées ci-dessus. `maxSize` est exprimé en octets. Sans gestionnaire, le plugin essaie les E/S d’images puis Base64, ce qui augmente l’instantané. En production, connectez un stockage et validez le type, la taille et les droits de téléchargement côté serveur.
+
+## Personnes et groupes
+
+Fournissez les candidats via `personOptions` et `groupOptions` de Bases UI. Chaque élément possède `id`, `name` et éventuellement `avatar`. Ces options concernent l’affichage ; l’application gère l’authentification et les autorisations.

@@ -4,6 +4,20 @@ title: 필드
 
 필드는 베이스 테이블의 스키마를 정의합니다. 각 필드에는 유형, 구성, 기본값이 있으며 정렬, 필터링, 그룹화, 카드 표시와 같은 기능을 사용할 수 있습니다.
 
+
+## 필드 유형
+
+| 용도 | `BaseFieldType` |
+| --- | --- |
+| 텍스트 및 연락처 | `Text`, `Link`, `Phone`, `Email` |
+| 숫자 및 진행률 | `Number`, `Currency`, `Progress`, `Rating` |
+| 선택 항목 및 구성원 | `Checkbox`, `SingleSelect`, `MultiSelect`, `Person`, `Group` |
+| 날짜 및 첨부 파일 | `Date`, `Attachment` |
+| 계산 및 관계 | `Formula`, `RecordLink` |
+| 자동 생성 및 감사 | `Numbering`, `RecordId`, `CreatedBy`, `UpdatedBy`, `CreatedAt`, `UpdatedAt` |
+
+선택 값에는 옵션 ID를, 구성원 값에는 애플리케이션의 구성원 ID를 사용합니다. 번호와 감사 필드는 시스템이 관리합니다. [수식](/guides/bases/features/core/formulas)과 [레코드 관계](/guides/bases/features/core/records)를 참고하세요.
+
 ## 필드 추가
 
 ```ts
@@ -48,3 +62,38 @@ priority.changeType(univerAPI.Enum.BaseFieldType.Text, {})
 ```
 
 필드 유형을 변경하면 기존 값이 정규화될 수 있습니다. 프로덕션 테이블의 스키마를 변경하기 전에 애플리케이션에서 데이터를 검증하세요.
+
+## 첨부 파일 필드
+
+첨부 파일에는 안정적인 ID, 이름, 접근 가능한 소스가 필요합니다. 다음 예시는 애플리케이션에서 이미 파일을 업로드했다고 가정합니다.
+
+```ts
+const attachments = table.addField('Files', univerAPI.Enum.BaseFieldType.Attachment)
+const record = table.getRecords()[0]
+if (!record) throw new Error('Create a record first')
+
+record.setAttachments(attachments.getId(), [{
+  id: 'brief-1',
+  name: 'brief.pdf',
+  mimeType: 'application/pdf',
+  source: 'https://example.com/files/brief.pdf',
+}])
+```
+
+`setAttachments()`는 전체 목록을 교체합니다. `getAttachments()`로 읽고 `deleteAttachments()`로 지정한 항목을 삭제합니다. 실제 접근 가능한 URL을 사용하고 기존 Bases UI 등록에서 업로드를 설정하세요.
+
+```ts
+univer.registerPlugin(UniverBasesUIPlugin, {
+  attachment: {
+    accept: ['image/*', '.pdf'],
+    maxSize: 10 * 1024 * 1024,
+    upload: uploadAttachment,
+  },
+})
+```
+
+`uploadAttachment`의 타입은 `(file: File) => Promise<IBaseAttachment>`이며 위와 같은 데이터를 반환합니다. `maxSize`의 단위는 바이트입니다. 업로더가 없으면 이미지 IO 이후 Base64를 시도하여 스냅샷이 커집니다. 운영 환경에서는 저장소를 연결하고 백엔드에서 유형, 크기, 다운로드 권한을 검증하세요.
+
+## 사용자 및 그룹
+
+Bases UI의 `personOptions`와 `groupOptions`로 후보를 제공합니다. 각 항목에는 `id`, `name`, 선택적인 `avatar`가 있습니다. 표시 설정일 뿐이며 로그인과 접근 권한은 애플리케이션에서 관리합니다.
