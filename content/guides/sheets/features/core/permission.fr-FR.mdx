@@ -2,18 +2,24 @@
 title: Contrôle des autorisations
 ---
 
-import { MigrationCell, MigrationRow, MigrationTable } from './components/migration-table'
 import { PermissionShadowDemo } from './components/permission-shadow-demo'
 
 Univer propose un système de contrôle des autorisations qui permet de limiter les opérations des utilisateurs sur les classeurs, les feuilles de calcul et les plages. Lorsqu’un utilisateur tente une opération sans disposer de l’autorisation requise, son exécution est interrompue et l’utilisateur en est informé. Vous pouvez, par exemple, protéger une plage afin de déterminer si les collaborateurs peuvent la modifier, l’afficher, la copier ou la filtrer.
 
-<Callout type="warning" title="Précautions d’utilisation">
-  Univer fournit des fonctionnalités fondamentales extensibles, et non des fonctions personnalisées prêtes à l’emploi.
-  Si vous avez besoin de persistance, de structures organisationnelles ou d’autres adaptations, vous devez implémenter vous-même le stockage des règles d’autorisation et l’intégration des structures organisationnelles, généralement au moyen de plugins personnalisés.
-  Il est donc normal que la liste des autorisations soit vide ou que les informations sur les utilisateurs soient absentes après la configuration des autorisations. Ces données doivent être récupérées par vos propres requêtes d’API, selon une logique personnalisée qu’il vous appartient d’implémenter. Pour en savoir plus, consultez la section ci-dessous consacrée à l’intégration d’un service tiers.
+<Callout type="warning">
+Le service doit persister les règles et les changements de collaborateurs, retourner les droits de l’utilisateur actuel et propager les échecs de requête. Des listes vides simulées ne constituent pas une persistance. En collaboration, le backend doit vérifier séparément les droits de lecture, JOIN et modification ; voir [Identité et autorisation](/server/collaboration/identity-and-authorization). La protection de l’interface et le masquage des ombres ne remplacent pas l’autorisation serveur.
+
+[Intégration du service d’autorisation](#authorization-service)
 </Callout>
 
 <PlaygroundFrame lang="fr-FR" slug="sheets/permission" clickToShow />
+
+Accédez à la section correspondant à votre tâche. Opérations de base, exemples avancés, configuration et dépannage restent sur cette page ; les contrats API complets sont maintenus dans Reference.
+
+- [Tâches courantes](#permission-tasks)
+- [Configuration de l’interface des permissions](#permission-ui)
+- [Intégration du service d’autorisation](#permission-integration)
+- [Reference](#reference)
 
 ## Concepts fondamentaux
 
@@ -21,14 +27,17 @@ Univer propose un système de contrôle des autorisations qui permet de limiter 
 - Points d’autorisation : chaque fonctionnalité correspond à un point d’autorisation. La modification d’un point détermine si la fonctionnalité est disponible.
 - Règles de protection : avant de définir les points d’autorisation d’une feuille de calcul ou d’une plage, vous devez créer une règle de protection.
 
-<Callout type="info" title="Explication des points d’autorisation">
-  Dans un environnement local sans persistance ni édition collaborative, vous pouvez contrôler directement les autorisations en modifiant les points d’autorisation. Pour rendre les autorisations persistantes, consultez la section « Intégrer un service d’autorisation tiers » ci-dessous.
-  Dans un contexte d’édition collaborative, la mise à jour d’un point d’autorisation synchronise l’état du serveur :
+<Callout type="info">
+Les permissions locales non persistantes se modifient via les points de permission. Pour la persistance, consultez [Intégration du service d’autorisation](#authorization-service)
+
+Dans un contexte d’édition collaborative, la mise à jour d’un point d’autorisation synchronise l’état du serveur :
   - `false` : le point d’autorisation exige au minimum le rôle `owner`
   - `true` : le point d’autorisation exige au minimum le rôle `reader`
 </Callout>
 
 ## Exemple de base
+
+Avant d’utiliser les exemples `allowedUsers`, remplacez `user1` et `user2` par les identifiants réels de collaborateurs retournés par votre service d’autorisation.
 
 Les méthodes les plus courantes de configuration des autorisations sont présentées ci-dessous pour les trois niveaux : classeur, feuille de calcul et plage.
 
@@ -40,6 +49,7 @@ L’exemple suivant désactive la modification de l’ensemble du classeur. Pour
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
 const workbookPermission = fWorkbook.getWorkbookPermission()
 
 // Set the workbook to be non-editable
@@ -55,6 +65,7 @@ Les autorisations des feuilles de calcul et des plages peuvent être définies a
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
 const fWorksheet = fWorkbook.getActiveSheet()
 const worksheetPermission = fWorksheet.getWorksheetPermission()
 
@@ -72,6 +83,7 @@ await worksheetPermission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.Edit,
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
 const fWorksheet = fWorkbook.getActiveSheet()
 const worksheetPermission = fWorksheet.getWorksheetPermission()
 
@@ -85,6 +97,7 @@ Les autorisations d’une plage peuvent également être définies par l’API o
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
 const fWorksheet = fWorkbook.getActiveSheet()
 const fRange = fWorksheet.getRange('A1:B2')
 const rangePermission = fRange.getRangePermission()
@@ -106,6 +119,7 @@ await rule.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
 const fWorksheet = fWorkbook.getActiveSheet()
 const fRange = fWorksheet.getRange('A1:B2')
 const rangePermission = fRange.getRangePermission()
@@ -120,282 +134,52 @@ if (rules.length > 0) {
 }
 ```
 
-## Utilisation avancée
+## Tâches courantes [#permission-tasks]
 
-Pour vérifier les autorisations dans votre propre plugin, vous pouvez manipuler directement les points d’autorisation.
-
-L’exemple suivant utilise `WorkbookEditablePermission` pour montrer comment vérifier les autorisations dans votre propre plugin. Les autres points d’autorisation fonctionnent de la même façon.
+### Passer un classeur en lecture seule
 
 ```typescript
-import { IPermissionService } from '@univerjs/core'
-import { WorkbookEditablePermission } from '@univerjs/sheets'
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const permission = fWorkbook.getWorkbookPermission()
+await permission.setMode('viewer')
+console.log(permission.getSnapshot())
+```
 
-class YourService {
-  constructor(@IPermissionService private _permissionService: IPermissionService) {
-  }
+### Gérer les plages protégées
 
-  setWorkbookNotEditable() {
-    this._permissionService.updatePermissionPoint(new WorkbookEditablePermission('unitId').id, false)
-  }
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const fWorksheet = fWorkbook.getActiveSheet()
+const permission = fWorksheet.getWorksheetPermission()
 
-  setWorkbookEditable() {
-    this._permissionService.updatePermissionPoint(new WorkbookEditablePermission('unitId').id, true)
-  }
+const createdRules = await permission.protectRanges([
+  {
+    ranges: [fWorksheet.getRange('A1:B2')],
+    options: { name: 'Public area', allowViewByOthers: true },
+  },
+  {
+    ranges: [fWorksheet.getRange('C3:D4')],
+    options: { name: 'Private area', allowViewByOthers: false, allowedUsers: ['user1'] },
+  },
+])
+console.log(createdRules)
+
+const rules = await permission.listRangeProtectionRules()
+const firstRule = rules[0]
+if (firstRule) {
+  await firstRule.updateRanges([fWorksheet.getRange('A1:B3')])
 }
 ```
 
-Vous pouvez également étendre et modifier d’autres points d’autorisation afin de contrôler différentes fonctionnalités. La liste complète figure au bas de cette page.
-
-### Étendre les points d’autorisation
-
-Pour personnaliser les points d’autorisation, implémentez `IPermissionPoint`, puis enregistrez-le auprès du service d’autorisation :
+### Diagnostiquer les permissions d’une cellule
 
 ```typescript
-import type { IPermissionPoint } from '@univerjs/core'
-import { IPermissionService, PermissionStatus } from '@univerjs/core'
-import { UnitAction, UnitObject } from '@univerjs/protocol'
-
-export class CustomPermissionPoint implements IPermissionPoint {
-  type = UnitObject.Unkonwn // your type
-  subType = UnitAction.View // your subType
-  status = PermissionStatus.INIT
-  value = true // Default value
-  id: string
-  constructor(unitId: string, subUnitId: string, customId: string) {
-    // The id must be unique within `IPermissionService`.
-    this.id = `${unitId}.${subUnitId}.${customId}`
-  }
-}
-
-class YourService {
-  constructor(@IPermissionService private _permissionService: IPermissionService) {
-    this._init()
-  }
-
-  _init() {
-    this._permissionService.addPermissionPoint(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id'))
-  }
-}
-
-// How to use it elsewhere
-class ConsumeService {
-  constructor(@IPermissionService private _permissionService: IPermissionService) {
-  }
-
-  doSomething() {
-    const point = this._permissionService.getPermissionPoint(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id').id)
-    console.log(point.value)
-  }
-
-  bindEvent() {
-    // This returns an RxJS observable that lets you listen for permission changes
-    const point$ = this._permissionService.getPermissionPoint$(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id').id)
-    console.log(point$)
-  }
-}
-```
-
-### Intégrer un service d’autorisation tiers (avancé)
-
-<Callout type="warning" title="Attention">
-  Il est recommandé de ne pas combiner un accès personnalisé aux autorisations avec l’API Facade des autorisations, afin de conserver un contrôle plus précis des points d’autorisation.
-</Callout>
-
-La logique qui détermine les autorisations est généralement prise en charge par un service externe, ce qui implique des échanges avec celui-ci. Dans l’implémentation du SDK frontend, nous utilisons [AuthzIoLocalService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/authz-io-local.service.ts) à cette fin.
-
-Dans un environnement de production, cette implémentation doit être remplacée par un service backend. Le frontend doit implémenter les fonctions de requête correspondantes à partir de l’interface [IAuthzIoService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/type.ts), afin d’effectuer le remplacement à l’exécution.
-
-![Autorisation](./permission/permission-en.png)
-
-Voici un exemple simple qui illustre l’ajout et la suppression d’autorisations sur des plages protégées pour deux rôles prédéfinis (Owner et Reader). Le rôle Owner peut modifier et afficher les plages protégées, tandis que le rôle Reader ne peut ni modifier ni afficher le contenu des cellules de ces plages.
-
-```typescript
-import type { Injector } from '@univerjs/core'
-import type { IActionInfo, IAllowedRequest, IBatchAllowedResponse, ICollaborator, ICreateRequest, ICreateRequestSelectRangeObject, IListPermPointRequest, IPermissionPoint, IPutCollaboratorsRequest, IUnitRoleKV, IUpdatePermPointRequest } from '@univerjs/protocol'
-import { createDefaultUser, generateRandomId, IAuthzIoService, Inject, IResourceManagerService, isDevRole, Univer, UserManagerService } from '@univerjs/core'
-import { ObjectScope, UnitAction, UnitObject, UnitRole, UniverType } from '@univerjs/protocol'
-
-class YourAuthzService implements IAuthzIoService {
-  private _permissionMap: Map<string, ICreateRequestSelectRangeObject & { objectType: UnitObject }> = new Map([])
-
-  constructor(
-    @IResourceManagerService private _resourceManagerService: IResourceManagerService,
-    @Inject(UserManagerService) private _userManagerService: UserManagerService,
-  ) {
-    this._initSnapshot()
-    this._initDefaultUser()
-  }
-
-  private _initDefaultUser() {
-    const currentUser = this._userManagerService.getCurrentUser()
-    const currentUserIsValid = currentUser && currentUser.userID
-    if (!currentUserIsValid) {
-      this._userManagerService.setCurrentUser(createDefaultUser(UnitRole.Owner))
-    }
-  }
-
-  private _getRole(type: UnitRole) {
-    const user = this._userManagerService.getCurrentUser()
-    if (!user) {
-      return false
-    }
-    return isDevRole(user.userID, type)
-  }
-
-  private _initSnapshot() {
-    this._resourceManagerService.registerPluginResource({
-      toJson: (_unitId: string) => {
-        const obj = [...this._permissionMap.keys()].reduce((r, k) => {
-          const v = this._permissionMap.get(k)
-          r[k] = v!
-          return r
-        }, {} as Record<string, ICreateRequestSelectRangeObject & { objectType: UnitObject }>)
-        return JSON.stringify(obj)
-      },
-      parseJson: (json: string) => {
-        return JSON.parse(json)
-      },
-      pluginName: 'SHEET_AuthzIoMockService_PLUGIN',
-      businesses: [UniverType.UNIVER_SHEET, UniverType.UNIVER_DOC, UniverType.UNIVER_SLIDE],
-      onLoad: (_unitId, resource) => {
-        for (const key in resource) {
-          this._permissionMap.set(key, resource[key])
-        }
-      },
-      onUnLoad: () => {
-        this._permissionMap.clear()
-      },
-    })
-  }
-
-  async create(config: ICreateRequest): Promise<string> {
-    const permissionId = generateRandomId(8)
-    if (config.objectType === UnitObject.SelectRange && config.selectRangeObject) {
-      this._permissionMap.set(permissionId, { ...config.selectRangeObject, objectType: config.objectType })
-    }
-    return permissionId
-  }
-
-  async batchAllowed(config: IAllowedRequest[]): Promise<IBatchAllowedResponse['objectActions']> {
-    const selectionRangeConfig = config.filter(c => c.objectType === UnitObject.SelectRange)
-    if (selectionRangeConfig.length) {
-      const currentUser = this._userManagerService.getCurrentUser()
-      const res = [] as IBatchAllowedResponse['objectActions']
-      selectionRangeConfig.forEach((c) => {
-        res.push({
-          unitID: c.unitID,
-          objectID: c.objectID,
-          actions: c.actions.map((action) => {
-            if (isDevRole(currentUser.userID, UnitRole.Owner)) {
-              return { action, allowed: true }
-            }
-            return { action, allowed: false }
-          }),
-        })
-      })
-      return res
-    }
-    return Promise.resolve([])
-  }
-
-  async list(config: IListPermPointRequest): Promise <IPermissionPoint[]> {
-    const result: IPermissionPoint[] = []
-    config.objectIDs.forEach((objectID) => {
-      const rule = this._permissionMap.get(objectID)
-      if (rule) {
-        const item = {
-          objectID,
-          unitID: config.unitID,
-          objectType: rule!.objectType,
-          name: rule!.name,
-          shareOn: false,
-          shareRole: UnitRole.Owner,
-          shareScope: -1,
-          scope: {
-            read: ObjectScope.AllCollaborator,
-            edit: ObjectScope.AllCollaborator,
-          },
-          creator: createDefaultUser(UnitRole.Owner),
-          strategies: [
-            {
-              action: UnitAction.View,
-              role: UnitRole.Owner,
-            },
-            {
-              action: UnitAction.Edit,
-              role: UnitRole.Owner,
-            },
-          ],
-          actions: config.actions.map((a) => {
-            return { action: a, allowed: this._getRole(UnitRole.Owner) }
-          }),
-        }
-        result.push(item)
-      }
-    })
-    return result
-  }
-
-  async listCollaborators(): Promise<ICollaborator[]> {
-    // List the existing collaborators
-    return []
-  }
-
-  async allowed(_config: IAllowedRequest): Promise<IActionInfo[]> {
-    // Because this is a mockService for handling permissions, we will not write real logic in it. We will only return an empty array to ensure that the permissions originally set by the user are not modified.
-    // If you want to achieve persistence of permissions, you can modify the logic here.
-    return Promise.resolve([])
-  }
-
-  async listRoles(): Promise<{ roles: IUnitRoleKV[], actions: UnitAction[] }> {
-    return {
-      roles: [],
-      actions: [],
-    }
-  }
-
-  async update(config: IUpdatePermPointRequest): Promise<void> {
-    // Update bit information
-  }
-
-  async updateCollaborator(): Promise<void> {
-    // Update collaborator information
-    return undefined
-  }
-
-  async createCollaborator(): Promise<void> {
-    // Create new collaborator information
-    return undefined
-  }
-
-  async deleteCollaborator(): Promise<void> {
-    return undefined
-  }
-
-  async putCollaborators(config: IPutCollaboratorsRequest): Promise<void> {
-    return undefined
-  }
-}
-
-export class YourPlugin extends Plugin {
-  constructor(
-    _config: unknown,
-    @Inject(Injector) protected override _injector: Injector,
-  ) {
-  }
-
-  override onStarting(): void {
-    this._injector.add([IAuthzIoService, { useClass: YourAuthzService }])
-  }
-}
-
-// By setting the override option to [[IAuthzIoService, null]], you can instruct Univer not to register the built-in IAuthzIoService.
-// This way, Univer will use the service provided by YourAuthzService as the implementation of the authorization service.
-const univer = new Univer({
-  override: [[IAuthzIoService, null]],
-})
-
-univer.registerPlugin(YourPlugin)
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const permission = fWorkbook.getActiveSheet().getWorksheetPermission()
+console.log(permission.debugCellPermission(0, 0))
 ```
 
 ## Liste des points d’autorisation [#point-list]
@@ -465,7 +249,7 @@ Lorsque les autorisations du classeur se superposent à celles d’une feuille d
 | univerAPI.Enum.RangePermissionPoint.Delete | RangeProtectionPermissionDeleteProtectionPoint | Peut supprimer les plages protégées |
 | univerAPI.Enum.RangePermissionPoint.ManageCollaborator | RangeProtectionPermissionManageCollaPoint | Peut gérer les collaborateurs des plages protégées |
 
-## Configuration
+## Configuration de l’interface des permissions [#permission-ui]
 
 ### Stratégie d’ombrage des plages protégées
 
@@ -577,99 +361,141 @@ Le sélecteur d’utilisateurs intégré à Univer offre une souplesse limitée.
   </Tab>
 </Tabs>
 
-Après avoir configuré votre composant utilisateur personnalisé, synchronisez la liste des utilisateurs sélectionnés avec `SheetPermissionUserManagerService` au moyen de `setSelectUserList()` afin de pouvoir la réutiliser.
+Appelez `setSelectUserList()` dans le gestionnaire de changement du sélecteur. Cet exemple React minimal efface la sélection : `useDependency` s’exécute dans le composant et le service ne change qu’au clic. Complétez le sélecteur selon `IPermissionDetailUserPartProps`.
 
 <Tabs items={['Mode plugin', 'Mode prédéfini']}>
   <Tab>
-    ```typescript
+    ```tsx
+    import type { IPermissionDetailUserPartProps } from '@univerjs/sheets-ui'
+    import type { FC } from 'react'
     import { SheetPermissionUserManagerService } from '@univerjs/sheets-ui'
     import { useDependency } from '@univerjs/ui'
 
-    const sheetPermissionUserManagerService = useDependency(SheetPermissionUserManagerService)
-    // For the specific data structure, refer to: https://github.com/dream-num/univer/blob/b4d4cfa063c9e6d5a82d1fc6b05edc206a415252/packages/sheets-ui/src/services/permission/sheet-permission-user-list.service.ts#L57
-    sheetPermissionUserManagerService.setSelectUserList([])
+    export const CustomPermissionDetailUserPart: FC<IPermissionDetailUserPartProps> = () => {
+      const service = useDependency(SheetPermissionUserManagerService)
+      const clearSelection = () => service.setSelectUserList([])
+
+      return <button type="button" onClick={clearSelection}>Effacer les utilisateurs sélectionnés</button>
+    }
     ```
   </Tab>
   <Tab>
-    ```typescript
+    ```tsx
+    import type { IPermissionDetailUserPartProps } from '@univerjs/preset-sheets-core'
+    import type { FC } from 'react'
     import { SheetPermissionUserManagerService, useDependency } from '@univerjs/preset-sheets-core'
 
-    const sheetPermissionUserManagerService = useDependency(SheetPermissionUserManagerService)
-    // For the specific data structure, refer to: https://github.com/dream-num/univer/blob/b4d4cfa063c9e6d5a82d1fc6b05edc206a415252/packages/sheets-ui/src/services/permission/sheet-permission-user-list.service.ts#L57
-    sheetPermissionUserManagerService.setSelectUserList([])
+    export const CustomPermissionDetailUserPart: FC<IPermissionDetailUserPartProps> = () => {
+      const service = useDependency(SheetPermissionUserManagerService)
+      const clearSelection = () => service.setSelectUserList([])
+
+      return <button type="button" onClick={clearSelection}>Effacer les utilisateurs sélectionnés</button>
+    }
     ```
   </Tab>
 </Tabs>
 
-## API Facade
-
-L’API Facade fournit un point d’entrée unifié pour les autorisations. Les méthodes courantes sont regroupées ci-dessous par classeur, feuille de calcul et plage.
-
-### Autorisations du classeur
-
-#### Obtenir l’instance d’autorisation du classeur
+### Masquer la boîte de dialogue des autorisations
 
 ```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const workbookPermission = fWorkbook.getWorkbookPermission()
+univerAPI.setPermissionDialogVisible(false)
 ```
 
-#### Définir un point d’autorisation du classeur
+## Intégration du service d’autorisation [#permission-integration]
 
-Pour les valeurs de l’énumération `WorkbookPermissionPoint`, consultez la [liste des points d’autorisation du classeur](#workbook-point).
+### Utilisation avancée
+
+Pour vérifier les autorisations dans votre propre plugin, vous pouvez manipuler directement les points d’autorisation.
+
+L’exemple suivant utilise `WorkbookEditablePermission` pour montrer comment vérifier les autorisations dans votre propre plugin. Les autres points d’autorisation fonctionnent de la même façon.
 
 ```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const workbookPermission = fWorkbook.getWorkbookPermission()
+import { IPermissionService } from '@univerjs/core'
+import { WorkbookEditablePermission } from '@univerjs/sheets'
 
-// Disable the workbook print permission
-await workbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Print, false)
+class YourService {
+  constructor(@IPermissionService private _permissionService: IPermissionService) {
+  }
+
+  setWorkbookNotEditable() {
+    this._permissionService.updatePermissionPoint(new WorkbookEditablePermission('unitId').id, false)
+  }
+
+  setWorkbookEditable() {
+    this._permissionService.updatePermissionPoint(new WorkbookEditablePermission('unitId').id, true)
+  }
+}
 ```
 
-Modes prédéfinis :
+[Liste des points d’autorisation](#point-list)
+
+### Étendre les points d’autorisation
+
+Pour personnaliser les points d’autorisation, implémentez `IPermissionPoint`, puis enregistrez-le auprès du service d’autorisation :
 
 ```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const workbookPermission = fWorkbook.getWorkbookPermission()
+import type { IPermissionPoint } from '@univerjs/core'
+import { IPermissionService, PermissionStatus } from '@univerjs/core'
+import { UnitAction, UnitObject } from '@univerjs/protocol'
 
-// Set to owner mode
-await workbookPermission.setMode('owner')
+export class CustomPermissionPoint implements IPermissionPoint {
+  type = UnitObject.Unkonwn // your type
+  subType = UnitAction.View // your subType
+  status = PermissionStatus.INIT
+  value = true // Default value
+  id: string
+  constructor(unitId: string, subUnitId: string, customId: string) {
+    // The id must be unique within `IPermissionService`.
+    this.id = `${unitId}.${subUnitId}.${customId}`
+  }
+}
 
-// Set to editor mode
-await workbookPermission.setMode('editor')
+class YourService {
+  constructor(@IPermissionService private _permissionService: IPermissionService) {
+    this._init()
+  }
 
-// Set to viewer mode
-await workbookPermission.setMode('viewer')
+  _init() {
+    this._permissionService.addPermissionPoint(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id'))
+  }
+}
 
-// Set to commenter mode
-await workbookPermission.setMode('commenter')
+// How to use it elsewhere
+class ConsumeService {
+  constructor(@IPermissionService private _permissionService: IPermissionService) {
+  }
+
+  doSomething() {
+    const point = this._permissionService.getPermissionPoint(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id').id)
+    console.log(point?.value)
+  }
+
+  bindEvent() {
+    // This returns an RxJS observable that lets you listen for permission changes
+    const point$ = this._permissionService.getPermissionPoint$(new CustomPermissionPoint('unitId', 'subUnitId', 'my-id').id)
+    console.log(point$)
+  }
+}
 ```
 
-Méthodes raccourcies :
+### Intégrer un service d’autorisation tiers (avancé) [#authorization-service]
 
-- `FWorkbookPermission.setReadOnly()` : active le mode lecture seule (équivaut à `setMode('viewer')`)
-- `FWorkbookPermission.setEditable()` : active le mode modifiable (équivaut à `setMode('editor')`)
-
-#### Obtenir l’état d’un point d’autorisation du classeur
+Implémentez [IAuthzIoService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/type.ts) dans votre application et reliez ses méthodes de permissions, rôles et collaborateurs au backend. Cet exemple suppose que `./authorization-service` exporte cette implémentation sous le nom `YourAuthzService`. Enregistrez-la avant de créer les classeurs, en conservant les autres options et plugins.
 
 ```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const workbookPermission = fWorkbook.getWorkbookPermission()
+import { IAuthzIoService, Univer } from '@univerjs/core'
+import { YourAuthzService } from './authorization-service'
 
-// Check whether the workbook can be printed
-const canPrint = workbookPermission.getPoint(univerAPI.Enum.WorkbookPermissionPoint.Print)
-console.log('Can print:', canPrint)
-
-// Get the status of all workbook permission points
-const snapshot = workbookPermission.getSnapshot()
-console.log('Workbook permission snapshot:', snapshot)
+const univer = new Univer({
+  override: [[IAuthzIoService, { useClass: YourAuthzService }]],
+})
 ```
 
-Méthodes raccourcies :
+Le service doit persister les règles et les changements de collaborateurs, retourner les droits de l’utilisateur actuel et propager les échecs de requête. Des listes vides simulées ne constituent pas une persistance. En collaboration, le backend doit vérifier séparément les droits de lecture, JOIN et modification ; voir [Identité et autorisation](/server/collaboration/identity-and-authorization). La protection de l’interface et le masquage des ombres ne remplacent pas l’autorisation serveur.
 
-- `FWorkbookPermission.canEdit()` : renvoie `true` si le classeur est modifiable
+![Autorisation](./permission/permission-en.png)
 
-#### Gestion des collaborateurs
+### Gestion des collaborateurs
 
 <Callout>
   La gestion des collaborateurs appartient au modèle utilisateurs/ACL et au service de permissions de votre application. Protégez lecture, JOIN et modification selon [Identity and authorization](/server/collaboration/identity-and-authorization). Les API frontend ci-dessous nécessitent une implémentation correspondante du service de permissions.
@@ -679,6 +505,7 @@ Méthodes raccourcies :
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
 const workbookPermission = fWorkbook.getWorkbookPermission()
 
 const collaborators = await workbookPermission.listCollaborators()
@@ -689,6 +516,7 @@ console.log(collaborators)
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
 const workbookPermission = fWorkbook.getWorkbookPermission()
 
 // Add multiple collaborators at once
@@ -714,6 +542,7 @@ await workbookPermission.addCollaborator(
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
 const workbookPermission = fWorkbook.getWorkbookPermission()
 
 await workbookPermission.updateCollaborator(
@@ -726,6 +555,7 @@ await workbookPermission.updateCollaborator(
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
 const workbookPermission = fWorkbook.getWorkbookPermission()
 
 // Remove multiple collaborators
@@ -735,435 +565,9 @@ await workbookPermission.removeCollaborators(['user1', 'user2'])
 await workbookPermission.removeCollaborator('user1')
 ```
 
-### Autorisations de la feuille de calcul
+## Reference
 
-#### Obtenir l’instance d’autorisation de la feuille de calcul
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-```
-
-#### Protection de la feuille de calcul
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// Protect the worksheet, allowing only specified users to edit
-const permissionId = await worksheetPermission.protect({
-  allowedUsers: ['user1', 'user2'],
-  name: 'My Worksheet Protection',
-})
-
-// Check if the worksheet is protected
-const isProtected = worksheetPermission.isProtected()
-console.log('Is worksheet protected:', isProtected)
-
-if (isProtected) {
-  // Unprotect the worksheet
-  await worksheetPermission.unprotect()
-}
-```
-
-#### Définir un point d’autorisation de la feuille de calcul
-
-Pour les valeurs de l’énumération `WorksheetPermissionPoint`, consultez la [liste des points d’autorisation de la feuille de calcul](#worksheet-point).
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// To set permission points, you must first protect the worksheet
-await worksheetPermission.protect()
-
-// Disable the worksheet insert-row permission
-await worksheetPermission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.InsertRow, false)
-```
-
-Avec les modes prédéfinis :
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// To set permission points, you must first protect the worksheet
-await worksheetPermission.protect()
-
-// Set to editable mode
-await worksheetPermission.setMode('editable')
-
-// Set to read-only mode
-await worksheetPermission.setMode('readOnly')
-
-// Set to filter/sort only mode
-await worksheetPermission.setMode('filterOnly')
-
-// Apply a custom configuration
-await worksheetPermission.applyConfig({
-  mode: 'readOnly',
-  points: {
-    [univerAPI.Enum.WorksheetPermissionPoint.InsertRow]: true,
-    [univerAPI.Enum.WorksheetPermissionPoint.InsertColumn]: true,
-  },
-})
-```
-
-Méthodes raccourcies :
-
-- `FWorksheetPermission.setReadOnly()` : active le mode lecture seule (équivaut à `setMode('readOnly')`)
-- `FWorksheetPermission.setEditable()` : active le mode modifiable (équivaut à `setMode('editable')`)
-
-#### Obtenir l’état d’un point d’autorisation de la feuille de calcul
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// Check whether the worksheet can insert rows
-const canInsertRow = worksheetPermission.getPoint(univerAPI.Enum.WorksheetPermissionPoint.InsertRow)
-
-// Get the status of all worksheet permission points
-const snapshot = worksheetPermission.getSnapshot()
-```
-
-Avec les méthodes raccourcies :
-
-- `FWorksheetPermission.canEdit(): boolean` : vérifie si la feuille de calcul est modifiable
-- `FWorksheetPermission.canEditCell(row: number, col: number): boolean` : vérifie si une cellule donnée est modifiable
-- `FWorksheetPermission.canView(): boolean` : vérifie si la feuille de calcul peut être affichée
-- `FWorksheetPermission.canViewCell(row: number, col: number): boolean` : vérifie si une cellule donnée peut être affichée
-- `FWorksheetPermission.debugCellPermission(row: number, col: number): ICellPermissionDebugInfo` : obtient les informations de débogage des autorisations d’une cellule donnée
-
-### Autorisations des plages
-
-#### Obtenir l’instance d’autorisation d’une plage
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const fRange = fWorksheet.getRange('A1:B2')
-const rangePermission = fRange.getRangePermission()
-```
-
-#### Définir la protection d’une plage
-
-- Protéger des plages avec l’API de la feuille de calcul :
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// Protect two ranges: A1:B2 is viewable by everyone but not editable,
-// while C3:D4 is editable only by specified users and hidden from others
-const rules = await worksheetPermission.protectRanges([
-  {
-    ranges: [fWorksheet.getRange('A1:B2')],
-    options: { name: 'Protected Area 1', allowViewByOthers: true },
-  },
-  {
-    ranges: [fWorksheet.getRange('C3:D4')],
-    options: { name: 'Protected Area 2', allowViewByOthers: false, allowedUsers: ['user1'] },
-  },
-])
-console.log(rules)
-
-// List all protection rules on the worksheet
-const rules = await worksheetPermission.listRangeProtectionRules()
-console.log(rules)
-
-// Delete the first rule
-await worksheetPermission.unprotectRules([rules[0].id])
-
-// Or delete a rule via `FRangeProtectionRule.remove()`
-await ruleList[0].remove()
-```
-
-- Protéger une plage avec l’API de la plage :
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const fRange = fWorksheet.getRange('A1:B2')
-const rangePermission = fRange.getRangePermission()
-
-// Protect the range so only specified users can edit it, while others cannot view it
-const rule = await rangePermission.protect({
-  name: 'My protected range',
-  allowViewByOthers: false,
-  allowedUsers: ['user1', 'user2'],
-})
-console.log(rule)
-
-// List all protection rules covering the range
-const rules = await rangePermission.listRules()
-console.log(rules)
-
-// Delete all protection rules covering the range
-await rangePermission.unprotect()
-
-// Or delete a rule via `FRangeProtectionRule.remove()`
-await rules[0].remove()
-```
-
-#### Définir un point d’autorisation d’une plage
-
-Pour les valeurs de l’énumération `RangePermissionPoint`, consultez la [liste des points de protection des plages](#range-point).
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const fRange = fWorksheet.getRange('A1:B2')
-const rangePermission = fRange.getRangePermission()
-
-// To set permission points, you must first create a range protection rule
-if (rangePermission.isProtected()) {
-  const rules = await rangePermission.listRules()
-
-  // Disable editing but enable viewing for the first protection rule
-  await rules[0].setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
-  await rules[0].setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
-} else {
-  const rule = await rangePermission.protect({
-    name: 'My protected range',
-    allowViewByOthers: false,
-    allowedUsers: ['user1', 'user2'],
-  })
-
-  // Disable editing but enable viewing for the A1:B2 range
-  await rule.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
-  await rule.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
-}
-```
-
-### API des règles d’autorisation des plages
-
-`FRangeProtectionRule` fournit les membres suivants :
-
-| API | Description |
-| --- | --- |
-| `id: string` | Identifiant unique de la règle de protection |
-| `permissionId: string` | ID d’autorisation associé à la règle de protection |
-| `ranges: FRange[]` | Plages couvertes par la règle de protection |
-| `options: IRangeProtectionOptions` | Options de la règle de protection, notamment son nom, l’autorisation d’affichage accordée aux autres utilisateurs et la liste des utilisateurs autorisés à modifier |
-| `updateRanges(ranges: FRange[]): Promise<boolean>` | Met à jour les plages couvertes par la règle de protection |
-| `remove(): Promise<boolean>` | Supprime la règle de protection |
-| `setPoint(point: RangePermissionPoint, value: boolean): Promise<void>` | Définit l’état d’un point d’autorisation précis de la règle de protection (par exemple, modifier, afficher ou supprimer) |
-| `getPoint(point: RangePermissionPoint): boolean` | Obtient l’état d’un point d’autorisation précis de la règle de protection (par exemple, modifier, afficher ou supprimer) |
-| `canEdit(): boolean` | Vérifie si la règle de protection autorise la modification |
-| `canView(): boolean` | Vérifie si la règle de protection autorise l’affichage |
-| `canDelete(): boolean` | Vérifie si la règle de protection autorise la suppression |
-| `canManageCollaborator(): boolean` | Vérifie si la règle de protection autorise la gestion des collaborateurs |
-| `getSnapshot(): RangePermissionSnapshot` | Obtient un instantané de l’état actuel des autorisations de la règle de protection, avec tous les points d’autorisation |
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-const rules = await worksheetPermission.listRangeProtectionRules()
-const rule = rules?.[0]
-
-// Get the ID of the first protection rule
-const ruleId = rule?.id
-console.log(ruleId)
-
-// Get the ranges of the first protection rule
-const ranges = rule?.ranges
-console.log(ranges)
-
-// Update the ranges of the first protection rule to A1:C3
-await rule?.updateRanges([fWorksheet.getRange('A1:C3')])
-
-// Remove the first protection rule
-await rule?.remove()
-```
-
-### Masquer la boîte de dialogue des autorisations
-
-```typescript
-univerAPI.setPermissionDialogVisible(false)
-```
-
-### Migrer depuis l’ancienne API
-
-<MigrationTable headers={['Description de la méthode d’API', 'Guide de migration']}>
-  <MigrationRow method="Obtenir l’instance d’autorisation">
-    <MigrationCell className="mb-2.5">
-      <strong>Ancienne API :</strong>
-      <br />
-      <code>FWorkbook.getPermission()</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>Nouvelle API :</strong>
-      <br />
-      <div>Classeur : <code>FWorkbook.getWorkbookPermission()</code></div>
- <div>Feuille de calcul : <code>FWorksheet.getWorksheetPermission()</code></div>
- <div>Plage : <code>FRange.getRangePermission()</code></div>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="Définir un point d’autorisation du classeur">
-    <MigrationCell className="mb-2.5">
-      <strong>Ancienne API :</strong>
-      <br />
-      <code>FPermission.setWorkbookPermissionPoint(unitId: string, FPointClass: WorkbookPermissionPointConstructor, value: boolean)</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>Nouvelle API :</strong>
-      <br />
-      <code>FWorkbookPermission.setPoint(point: WorkbookPermissionPoint, value: boolean)</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="Obtenir l’état d’un point d’autorisation du classeur">
-    <MigrationCell className="mb-2.5">
-      <strong>Ancienne API :</strong>
-      <br />
-      <code>FPermission.checkWorkbookPermissionPoint(unitId: string, FPointClass: WorkbookPermissionPointConstructor): boolean</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>Nouvelle API :</strong>
-      <br />
-      <code>FWorkbookPermission.getPoint(point: WorkbookPermissionPoint): boolean</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="Définir l’autorisation de modification du classeur">
-    <MigrationCell className="mb-2.5">
-      <strong>Ancienne API :</strong>
-      <br />
-      <code>FPermission.setWorkbookEditPermission(unitId: string, value: boolean)</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>Nouvelle API :</strong>
-      <br />
-      <code>FWorkbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, value: boolean)</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="Ajouter une protection à la feuille de calcul">
-    <MigrationCell className="mb-2.5">
-      <strong>Ancienne API :</strong>
-      <br />
-      <code>FPermission.addWorksheetBasePermission(unitId: string, subUnitId: string)</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>Nouvelle API :</strong>
-      <br />
-      <code>FWorksheetPermission.protect(options?: IWorksheetProtectionOptions)</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="Supprimer la protection de la feuille de calcul">
-    <MigrationCell className="mb-2.5">
-      <strong>Ancienne API :</strong>
-      <br />
-      <code>FPermission.removeWorksheetPermission(unitId: string, subUnitId: string)</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>Nouvelle API :</strong>
-      <br />
-      <code>FWorksheetPermission.unprotect()</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="Définir un point d’autorisation de la feuille de calcul">
-    <MigrationCell className="mb-2.5">
-      <strong>Ancienne API :</strong>
-      <br />
-      <code>FPermission.setWorksheetPermissionPoint(unitId: string, subUnitId: string, FPointClass: WorkSheetPermissionPointConstructor, value: boolean)</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>Nouvelle API :</strong>
-      <br />
-      <code>FWorksheetPermission.setPoint(point: WorksheetPermissionPoint, value: boolean)</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="Obtenir l’état d’un point d’autorisation de la feuille de calcul">
-    <MigrationCell className="mb-2.5">
-      <strong>Ancienne API :</strong>
-      <br />
-      <code>FPermission.checkWorksheetPermissionPoint(unitId: string, subUnitId: string, FPointClass: WorkSheetPermissionPointConstructor): boolean</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>Nouvelle API :</strong>
-      <br />
-      <code>FWorksheetPermission.getPoint(point: WorksheetPermissionPoint): boolean</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="Obtenir les autorisations d’une cellule donnée">
-    <MigrationCell className="mb-2.5">
-      <strong>Ancienne API :</strong>
-      <br />
-      <code>FPermission.getPermissionInfoWithCell(unitId: string, subUnitId: string, row: number, column: number)</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>Nouvelle API :</strong>
-      <br />
-      <code>FWorksheetPermission.debugCellPermission(row: number, col: number): ICellPermissionDebugInfo</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="Définir l’autorisation de protection d’une plage">
-    <MigrationCell className="mb-2.5">
-      <strong>Ancienne API :</strong>
-      <br />
-      <code>FPermission.addRangeBaseProtection(unitId: string, subUnitId: string, ranges: FRange[])</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>Nouvelle API :</strong>
-      <br />
-      <div>Feuille de calcul : <code>FWorksheetPermission.protectRanges(configs)</code></div>
- <div>Plage : <code>FRangePermission.protect(options?: IRangeProtectionOptions)</code></div>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="Supprimer l’autorisation de protection d’une plage">
-    <MigrationCell className="mb-2.5">
-      <strong>Ancienne API :</strong>
-      <br />
-      <code>FPermission.removeRangeProtection(unitId: string, subUnitId: string, ruleIds: string[])</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>Nouvelle API :</strong>
-      <br />
-      <div>Feuille de calcul : <code>FWorksheetPermission.unprotectRules(ruleIds: string[])</code></div>
- <div>Plage : <code>FRangePermission.unprotect()</code></div>
- <div>Règle de protection de plage : <code>FRangeProtectionRule.remove()</code></div>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="Définir un point d’autorisation de protection d’une plage">
-    <MigrationCell className="mb-2.5">
-      <strong>Ancienne API :</strong>
-      <br />
-      <code>FPermission.setRangeProtectionPermissionPoint(unitId: string, subUnitId: string, permissionId: string, FPointClass: RangePermissionPointConstructor, value: boolean)</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>Nouvelle API :</strong>
-      <br />
-      <code>FRangeProtectionRule.setPoint(point: RangePermissionPoint, value: boolean)</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="Mettre à jour les plages de l’autorisation de protection">
-    <MigrationCell className="mb-2.5">
-      <strong>Ancienne API :</strong>
-      <br />
-      <code>FPermission.setRangeProtectionRanges(unitId: string, subUnitId: string, ruleId: string, ranges: FRange[])</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>Nouvelle API :</strong>
-      <br />
-      <code>FRangeProtectionRule.updateRanges(ranges: FRange[])</code>
-    </MigrationCell>
-  </MigrationRow>
-  <MigrationRow method="Masquer la boîte de dialogue des autorisations">
-    <MigrationCell className="mb-2.5">
-      <strong>Ancienne API :</strong>
-      <br />
-      <code>FPermission.setPermissionDialogVisible(false)</code>
-    </MigrationCell>
-    <MigrationCell>
-      <strong>Nouvelle API :</strong>
-      <br />
-      <code>univerAPI.setPermissionDialogVisible(false)</code>
-    </MigrationCell>
-  </MigrationRow>
-</MigrationTable>
+- [FWorkbookPermission](/reference/facade/workbook-permission)
+- [FWorksheetPermission](/reference/facade/worksheet-permission)
+- [FRangePermission](/reference/facade/range-permission)
+- [FRangeProtectionRule](/reference/facade/range-protection-rule)

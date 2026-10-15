@@ -3,7 +3,6 @@
 import { EyeOff } from 'lucide-react'
 import { useLocale } from 'next-intl'
 import { useState } from 'react'
-
 import { Button } from '@/components/ui/button'
 
 interface IShadowDemoLabels {
