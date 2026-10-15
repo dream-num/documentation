@@ -1,16 +1,9 @@
 import type { LLMsOptions } from 'fumadocs-core/mdx-plugins/remark-llms'
 import { createProcessor } from '@mdx-js/mdx'
-import enUS from '@univerjs/engine-formula/locale/en-US'
-import frFR from '@univerjs/engine-formula/locale/fr-FR'
-import koKR from '@univerjs/engine-formula/locale/ko-KR'
-import ruRU from '@univerjs/engine-formula/locale/ru-RU'
-import zhCN from '@univerjs/engine-formula/locale/zh-CN'
 import { frontmatter } from 'fumadocs-core/content/md/frontmatter'
 import { mdxPreset } from 'fumadocs-core/content/mdx/preset-runtime'
 import { remarkLLMs } from 'fumadocs-core/mdx-plugins/remark-llms'
 import { buildInstallCommand, PACKAGE_MANAGERS } from '../../components/mdx/install-command'
-import packageJson from '../../package.json'
-import iconCatalog from '../../public/assets/icons/catalog.json'
 
 type StringifyAgentMdx = NonNullable<LLMsOptions['stringify']>
 type MdxElement = Extract<Parameters<StringifyAgentMdx>[0], { type: 'mdxJsxFlowElement' | 'mdxJsxTextElement' }>
@@ -21,66 +14,32 @@ interface IEstreeNode {
   [key: string]: unknown
 }
 
-interface IFormulaEntry {
-  description: string
-}
-
 const AGENT_MDX_ELEMENTS = new Set([
-  'APITable',
-  'AutoTypeTable',
   'Callout',
-  'CapacityCalculator',
   'Card',
   'Cards',
   'CodeBlockTab',
   'CodeBlockTabs',
   'CodeBlockTabsList',
   'CodeBlockTabsTrigger',
-  'DefinedNamesDemo',
-  'FilterSortDemo',
-  'FreezeDemo',
-  'RangeThemeDemo',
-  'FormulaList',
-  'IconsGallery',
-  'IconsVersion',
-  'IconWrapper',
-  'ImageWrapDemo',
   'InstallTabs',
-  'LifecycleDemo',
   'Mermaid',
   'MetaData',
-  'MigrationCell',
-  'MigrationRow',
-  'MigrationTable',
-  'NumberFormatDemo',
-  'PermissionShadowDemo',
   'PlaygroundFrame',
-  'RibbonStyle',
   'Step',
   'Steps',
-  'StylePriorityDemo',
   'Tab',
   'Tabs',
-  'UIArchitecture',
-  'ViewsDemo',
 ])
 
 const AGENT_HTML_ELEMENTS = new Set(['br', 'code', 'details', 'div', 'iframe', 'img', 'span', 'strong', 'summary'])
 const AGENT_IMAGE_SOURCE = 'agent-image:'
 
-const formulaLists: Record<string, Record<string, IFormulaEntry>> = {
-  'en-US': enUS['engine-formula'].functionList,
-  'fr-FR': frFR['engine-formula'].functionList,
-  'ko-KR': koKR['engine-formula'].functionList,
-  'ru-RU': ruRU['engine-formula'].functionList,
-  'zh-CN': zhCN['engine-formula'].functionList,
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function collectImageImports(tree: unknown) {
+function collectMdxImports(tree: unknown) {
   const imports = new Map<string, string>()
   if (!isRecord(tree) || !Array.isArray(tree.children)) return imports
 
@@ -97,13 +56,7 @@ function collectImageImports(tree: unknown) {
       if (typeof source !== 'string' || !Array.isArray(statement.specifiers)) continue
 
       for (const specifier of statement.specifiers) {
-        if (
-          isRecord(specifier) &&
-          specifier.type === 'ImportDefaultSpecifier' &&
-          isRecord(specifier.local) &&
-          typeof specifier.local.name === 'string' &&
-          /^__img\d+$/.test(specifier.local.name)
-        ) {
+        if (isRecord(specifier) && isRecord(specifier.local) && typeof specifier.local.name === 'string') {
           imports.set(specifier.local.name, source)
         }
       }
@@ -124,8 +77,18 @@ function removeMdxComments(value: unknown) {
   for (const child of children) removeMdxComments(child)
 }
 
-function annotateImageSources(value: unknown, imports: ReadonlyMap<string, string>) {
+function annotateMdxImports(value: unknown, imports: ReadonlyMap<string, string>) {
   if (!isRecord(value)) return
+
+  if (
+    (value.type === 'mdxJsxFlowElement' || value.type === 'mdxJsxTextElement') &&
+    typeof value.name === 'string' &&
+    imports.has(value.name.split('.')[0])
+  ) {
+    const data = isRecord(value.data) ? value.data : {}
+    data.agentImportedComponent = true
+    value.data = data
+  }
 
   if (
     (value.type === 'mdxJsxFlowElement' || value.type === 'mdxJsxTextElement') &&
@@ -150,13 +113,13 @@ function annotateImageSources(value: unknown, imports: ReadonlyMap<string, strin
   }
 
   if (Array.isArray(value.children)) {
-    for (const child of value.children) annotateImageSources(child, imports)
+    for (const child of value.children) annotateMdxImports(child, imports)
   }
 }
 
-function remarkAgentImageSources() {
+function remarkAgentMdxImports() {
   return (tree: unknown) => {
-    annotateImageSources(tree, collectImageImports(tree))
+    annotateMdxImports(tree, collectMdxImports(tree))
   }
 }
 
@@ -362,17 +325,6 @@ function getStaticRecord(value: StaticValue | undefined, context: string): Recor
   return value as Record<string, StaticValue>
 }
 
-function getStaticRecords(value: StaticValue | undefined) {
-  if (!Array.isArray(value)) return []
-  return value.filter(isRecord) as Array<Record<string, StaticValue>>
-}
-
-function escapeTableCell(value: unknown) {
-  return String(value ?? '-')
-    .replaceAll('|', '\\|')
-    .replace(/\s*\n\s*/g, '<br>')
-}
-
 function indent(value: string, prefix: string) {
   return value
     .trim()
@@ -391,55 +343,6 @@ function renderChildren(
   ).trim()
 }
 
-function renderParameterRows(parameters: Array<Record<string, StaticValue>>, parent = ''): string[] {
-  return parameters.flatMap((parameter) => {
-    const name = getString(parameter, 'name') ?? 'unnamed'
-    const path = parent ? `${parent}.${name}` : name
-    const row = `| \`${escapeTableCell(path)}\` | \`${escapeTableCell(parameter.type)}\` | ${parameter.required === true ? 'yes' : 'no'} | ${escapeTableCell(parameter.example)} | ${escapeTableCell(parameter.description)} |`
-    return [row, ...renderParameterRows(getStaticRecords(parameter.properties), path)]
-  })
-}
-
-function renderParameters(title: string, value: StaticValue | undefined) {
-  const parameters = getStaticRecords(value)
-  if (parameters.length === 0) return ''
-
-  return [
-    `##### ${title}`,
-    '',
-    '| Parameter | Type | Required | Example | Description |',
-    '| --- | --- | --- | --- | --- |',
-    ...renderParameterRows(parameters),
-  ].join('\n')
-}
-
-function renderExample(title: string, value: StaticValue | undefined, language: string) {
-  if (typeof value !== 'string' || value.length === 0) return ''
-  return `##### ${title}\n\n\`\`\`${language}\n${value}\n\`\`\``
-}
-
-function renderApiTable(attributes: Record<string, StaticValue>) {
-  const request = getStaticRecord(attributes.request, 'APITable.request')
-  const response = getStaticRecord(attributes.response, 'APITable.response')
-  const requestHeading = [getString(request, 'method'), getString(request, 'url') && `\`${getString(request, 'url')}\``]
-    .filter(Boolean)
-    .join(' ')
-  const requestHeaders = getString(request, 'headers')
-
-  return [
-    `#### Request${requestHeading ? `: ${requestHeading}` : ''}`,
-    requestHeaders ? `\nHeaders: \`${requestHeaders}\`` : '',
-    renderParameters(`${getString(request, 'parametersType') ?? 'Request'} parameters`, request.parameters),
-    renderExample('Request example', request.example, 'http'),
-    '#### Response',
-    getString(response, 'type') ? `\nContent type: \`${getString(response, 'type')}\`` : '',
-    renderParameters('Response parameters', response.parameters),
-    renderExample('Response example', response.example, 'json'),
-  ]
-    .filter(Boolean)
-    .join('\n\n')
-}
-
 function renderMetaData(attributes: Record<string, StaticValue>) {
   const meta = getStaticRecord(attributes.meta, 'MetaData.meta')
   return `#### Package metadata\n\n\`\`\`json\n${JSON.stringify(
@@ -449,40 +352,6 @@ function renderMetaData(attributes: Record<string, StaticValue>) {
     null,
     2,
   )}\n\`\`\``
-}
-
-function renderFormulaList(attributes: Record<string, StaticValue>) {
-  const lang = getString(attributes, 'lang') ?? 'en-US'
-  const list = formulaLists[lang] ?? formulaLists['en-US']
-  const rows = Object.entries(list)
-    .toSorted(([a], [b]) => a.localeCompare(b))
-    .map(([name, item]) => `| \`${escapeTableCell(name)}\` | ${escapeTableCell(item.description)} |`)
-
-  return [`#### Formula functions (${rows.length})`, '', '| Function | Description |', '| --- | --- |', ...rows].join(
-    '\n',
-  )
-}
-
-function renderIconsGallery() {
-  const groups = [...new Set(iconCatalog.icons.map((icon) => `${icon.group}/${icon.subgroup}`))]
-  return [
-    `#### Available icon components (${iconCatalog.icons.length})`,
-    '',
-    'Import named components from `@univerjs/icons` or `@univerjs/icons-vue`.',
-    '',
-    '[Semantic metadata JSON](https://docs.univer.ai/assets/icons/catalog.json) includes aliases, keywords, products, roles, and stroke capabilities.',
-    '',
-    ...groups.flatMap((group) => [
-      `##### ${group}`,
-      '',
-      '| Component | Purpose |',
-      '| --- | --- |',
-      ...iconCatalog.icons
-        .filter((icon) => `${icon.group}/${icon.subgroup}` === group)
-        .map((icon) => `| \`${icon.componentName}\` | ${escapeTableCell(icon.description)} |`),
-      '',
-    ]),
-  ].join('\n')
 }
 
 function renderInstallTabs(attributes: Record<string, StaticValue>) {
@@ -567,7 +436,9 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
   }
 
   const name = node.name
+  const data = isRecord(node.data) ? node.data : undefined
   if (!name) return renderChildren(node, state, info)
+  if (data?.agentImportedComponent) return
   if (name === 'include') {
     throw new Error('Agent Markdown encountered an unexpanded <include> element')
   }
@@ -578,7 +449,6 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
   if (name === 'Tabs') return renderTabs(node, state, info)
   if (name === 'CodeBlockTabs') return renderCodeBlockTabs(node, state, info)
   if (name === 'img') {
-    const data = isRecord(node.data) ? node.data : undefined
     const source = typeof data?.agentImageSource === 'string' ? data.agentImageSource : undefined
     if (!source) throw new Error('Agent Markdown expected the preserved img source')
     const altAttribute = node.attributes.find(
@@ -597,27 +467,12 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
   const children = renderChildren(node, state, info)
 
   switch (name) {
-    case 'APITable':
-      return renderApiTable(attributes)
-    case 'AutoTypeTable': {
-      const type = getString(attributes, 'type')?.trim()
-      if (!type) throw new Error('Agent Markdown expected AutoTypeTable.type')
-      return `#### ${getString(attributes, 'name') ?? 'Type'} source\n\n\`\`\`ts\n${type}\n\`\`\``
-    }
     case 'Callout': {
       const label = [getString(attributes, 'type')?.toUpperCase() ?? 'NOTE', getString(attributes, 'title')]
         .filter(Boolean)
         .join(': ')
       return `> [!${label}]\n${indent(children, '> ')}`
     }
-    case 'CapacityCalculator':
-      return [
-        '#### Capacity calculator model',
-        '',
-        '- Edit/save QPS depends on active documents and save frequency.',
-        '- Collaborative broadcast QPS = edit/save QPS × (active users / active documents − 1).',
-        '- Size node, Universer, and database capacity from the larger edit/save and collaboration workloads.',
-      ].join('\n')
     case 'Card': {
       const title = getString(attributes, 'title') ?? (children || 'Documentation')
       const href = getString(attributes, 'href')
@@ -632,24 +487,8 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
       return `#### ${getString(attributes, 'value') ?? 'Option'}\n\n${children}`
     case 'CodeBlockTabsTrigger':
       return ''
-    case 'FilterSortDemo':
-      return 'Filtering hides records without deleting them; sorting changes row order. Clearing a filter shows all records again while keeping the selected sort order.'
-    case 'FreezeDemo':
-      return 'Frozen panes stay visible while the rest of the sheet scrolls. `xSplit` and `ySplit` are counts; `startColumn` and `startRow` are zero-based indices of the first scrollable column and row. For example, `{ xSplit: 1, ySplit: 1, startColumn: 2, startRow: 2 }` freezes column B and row 2; scrolling begins at C3, with column A and row 1 outside the view.'
-    case 'FormulaList':
-      return renderFormulaList(attributes)
-    case 'IconsGallery':
-      return renderIconsGallery()
-    case 'IconsVersion':
-      return `\`${packageJson.dependencies['@univerjs/icons']}\``
-    case 'IconWrapper':
-      return children
-    case 'ImageWrapDemo':
-      return 'Image wrapping: inline images occupy a position in the text like a large character; square wrapping flows text beside the rectangular image; top-and-bottom wrapping reserves the full line width for the image.'
     case 'InstallTabs':
       return renderInstallTabs(attributes)
-    case 'LifecycleDemo':
-      return 'Plugin hooks run in order: `onStarting()` → `onReady()` → `onRendered()` → `onSteady()`. A late plugin catches up synchronously to the current global stage without changing that stage.'
     case 'Mermaid': {
       const chart = getString(attributes, 'chart')
       if (!chart) throw new Error('Agent Markdown expected Mermaid.chart')
@@ -657,60 +496,15 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
     }
     case 'MetaData':
       return renderMetaData(attributes)
-    case 'MigrationCell':
-      return `- ${children.replaceAll('\n', '\n  ')}`
-    case 'MigrationRow':
-      return `#### ${getString(attributes, 'method') ?? 'Migration'}\n\n${children}`
-    case 'MigrationTable': {
-      const headers = Array.isArray(attributes.headers) ? attributes.headers.join(' / ') : 'API migration'
-      return `### ${headers}\n\n${children}`
-    }
-    case 'NumberFormatDemo':
-      return 'Number formatting changes the display, not the stored number. With the default date system, `45658` formatted as `yyyy-mm-dd` displays `2025-01-01`; `0.25` formatted as `0.00%` displays `25.00%`. Locale `en` displays `1234.567` as `1,234.57` with `#,##0.00`; locale `de` displays `1.234,57`.'
-    case 'PermissionShadowDemo':
-      return 'Protection shadow preview: `always` shades all protected areas; `non-editable` shades protected areas the current user cannot edit; `non-viewable` shades protected areas they cannot view; `none` hides protection shadows. Unprotected areas are never shaded. This changes only the visual overlay, not edit/view permissions; non-viewable content remains hidden even with `none`.'
     case 'PlaygroundFrame': {
       const slug = getString(attributes, 'slug')
       if (!slug) throw new Error('Agent Markdown expected PlaygroundFrame.slug')
       return `> Interactive example: [Open the playground](/playground/${slug})`
     }
-    case 'RangeThemeDemo':
-      return 'Range themes: `default`; `light` uses alternating column fills; `middle` combines edge columns and alternating rows; `dark` uses alternating row fills. Color presets: blue, grey, red, orange, yellow, green, azure, indigo, purple, magenta.'
-    case 'DefinedNamesDemo':
-      return '交互示意：展开工作表左上角的名称框，通过下拉菜单打开名称管理器。'
-    case 'RibbonStyle':
-      return [
-        '#### Ribbon layouts',
-        '',
-        '- `classic`: grouped tabs above the toolbar.',
-        '- `grid`: grouped tabs above a two-row tool grid.',
-        '- `collapsed`: compact tabs and tools on one row.',
-        '- `simple`: an ungrouped, flat tool list.',
-      ].join('\n')
     case 'Step':
       return `1.\n${indent(children, '   ')}`
-    case 'StylePriorityDemo':
-      return 'Cell backgrounds override worksheet, row, and column defaults. Where row and column backgrounds overlap, `isRowStylePrecedeColumnStyle: false` uses the column background and `true` uses the row background. Other style properties are merged independently.'
     case 'Tab':
       return `#### ${getString(attributes, 'label') ?? 'Tab'}\n\n${children}`
-    case 'UIArchitecture':
-      return [
-        '#### UI workbench slot tree',
-        '',
-        '- `CUSTOM_HEADER`',
-        '- `TOOLBAR` and `HEADER_MENU`',
-        '- `LEFT_SIDEBAR`',
-        '- `HEADER`',
-        '- `CONTENT`',
-        '- right sidebar service',
-        '- `FOOTER`',
-        '- `GLOBAL`',
-        '- `FLOATING` portal',
-        '',
-        'Register extensions with `IUIPartsService.registerComponent(part, factory)`.',
-      ].join('\n')
-    case 'ViewsDemo':
-      return 'Grid, kanban, and calendar views share the same table records. Grid displays rows, kanban groups records by a field such as status, and calendar places records by date. Switching views does not copy records; changing a record is reflected in every view.'
     case 'br':
       return '  \n'
     case 'code':
@@ -732,8 +526,9 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
   }
 }
 
-export const agentMarkdownOptions = {
+const agentMarkdownOptions = {
   headingIds: false,
+  filterElement: (node) => (isRecord(node.data) && node.data.agentImportedComponent ? 'children-only' : true),
   stringify: stringifyAgentMdx,
 } satisfies LLMsOptions
 
@@ -741,7 +536,7 @@ const agentMarkdownProcessor = mdxPreset({
   rehypeCodeOptions: false,
   remarkPlugins: [
     remarkStripMdxComments,
-    remarkAgentImageSources,
+    remarkAgentMdxImports,
     [remarkLLMs, { ...agentMarkdownOptions, _data: true }],
   ],
   remarkStructureOptions: false,

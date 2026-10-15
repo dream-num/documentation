@@ -3,7 +3,6 @@ import frFR from '@univerjs/engine-formula/locale/fr-FR'
 import koKR from '@univerjs/engine-formula/locale/ko-KR'
 import ruRU from '@univerjs/engine-formula/locale/ru-RU'
 import zhCN from '@univerjs/engine-formula/locale/zh-CN'
-
 import { getFormulaLocale } from '@/i18n/locale-config'
 
 type FormulaLocale = ReturnType<typeof getFormulaLocale>

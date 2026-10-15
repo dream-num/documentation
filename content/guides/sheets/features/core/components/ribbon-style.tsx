@@ -18,7 +18,6 @@ import {
   UndoIcon,
 } from '@univerjs/icons'
 import { useState } from 'react'
-
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { clsx } from '@/lib/clsx'
 
