@@ -6,7 +6,6 @@ import { XIcon } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useTranslations } from 'next-intl'
 import { useId, useRef, useState } from 'react'
-
 import { clsx } from '@/lib/clsx'
 
 interface IImagePreviewProps {
@@ -23,6 +22,7 @@ export function ImagePreview({ src, alt, className, children }: IImagePreviewPro
   const actionsRef = useRef<Dialog.Root.Actions | null>(null)
   const reduceMotion = useReducedMotion()
   const duration = reduceMotion ? 0 : 0.3
+  const transition = { duration, ease: [0.22, 1, 0.36, 1] as const }
 
   return (
     <Dialog.Root
@@ -34,9 +34,12 @@ export function ImagePreview({ src, alt, className, children }: IImagePreviewPro
       }}
     >
       <Dialog.Trigger
-        aria-label={`${t('zoom-in')}：${alt}`}
-        className={clsx('block w-full cursor-zoom-in', className)}
-        render={<motion.button layoutId={layoutId} transition={{ duration }} />}
+        aria-label={alt ? `${t('zoom-in')}: ${alt}` : t('zoom-in')}
+        className={clsx(
+          'not-prose focus-visible:outline-ring inline-block max-w-full cursor-zoom-in rounded-lg align-middle focus-visible:outline-2 focus-visible:outline-offset-4',
+          className,
+        )}
+        render={<motion.button layoutId={layoutId} transition={transition} />}
       >
         {children}
       </Dialog.Trigger>
@@ -50,7 +53,7 @@ export function ImagePreview({ src, alt, className, children }: IImagePreviewPro
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration }}
+                  transition={transition}
                 />
               }
             />
@@ -60,9 +63,9 @@ export function ImagePreview({ src, alt, className, children }: IImagePreviewPro
             >
               <Dialog.Popup
                 className="pointer-events-auto relative rounded-lg bg-white shadow-2xl outline-none"
-                render={<motion.div layoutId={layoutId} exit={{ opacity: 0 }} transition={{ duration }} />}
+                render={<motion.div layoutId={layoutId} exit={{ opacity: 0 }} transition={transition} />}
               >
-                <Dialog.Title className="sr-only">{alt}</Dialog.Title>
+                <Dialog.Title className="sr-only">{alt || t('zoom-in')}</Dialog.Title>
                 <img
                   src={src}
                   alt={alt}
