@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 // Preset colors from Univer sheets/src/models/range-themes/build-in-theme.factory.ts.

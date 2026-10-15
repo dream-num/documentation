@@ -1,6 +1,5 @@
 import * as BaseSelect from '@base-ui/react/select'
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
-
 import { clsx } from '@/lib/clsx'
 
 const Select = BaseSelect.Select.Root

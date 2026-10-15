@@ -4,7 +4,6 @@ import * as icons from '@univerjs/icons'
 import { CheckIcon, CopyIcon, RotateCcwIcon, ScanLineIcon, SearchIcon, XIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useMemo, useState } from 'react'
-
 import type { Locale } from '@/i18n/routing'
 import { ColorPickerPopover } from '@/components/color-picker-popover'
 import { Button } from '@/components/ui/button'
