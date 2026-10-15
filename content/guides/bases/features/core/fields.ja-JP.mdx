@@ -4,6 +4,20 @@ title: フィールド
 
 フィールドは Base テーブルのスキーマを定義します。各フィールドには、型、設定、デフォルト値のほか、並べ替え、フィルタリング、グループ化、カード表示などの機能があります。
 
+
+## フィールドの種類
+
+| 用途 | `BaseFieldType` |
+| --- | --- |
+| テキストと連絡先 | `Text`, `Link`, `Phone`, `Email` |
+| 数値と進捗 | `Number`, `Currency`, `Progress`, `Rating` |
+| 選択肢とメンバー | `Checkbox`, `SingleSelect`, `MultiSelect`, `Person`, `Group` |
+| 日付と添付ファイル | `Date`, `Attachment` |
+| 計算と関連付け | `Formula`, `RecordLink` |
+| 自動生成と監査 | `Numbering`, `RecordId`, `CreatedBy`, `UpdatedBy`, `CreatedAt`, `UpdatedAt` |
+
+選択値には選択肢 ID、メンバー値には業務側の ID を使います。連番と監査フィールドはシステムが管理します。[数式](/guides/bases/features/core/formulas)と[レコードの関連付け](/guides/bases/features/core/records)も参照してください。
+
 ## フィールドを追加する
 
 ```ts
@@ -48,3 +62,38 @@ priority.changeType(univerAPI.Enum.BaseFieldType.Text, {})
 ```
 
 フィールドの型を変更すると、既存の値が正規化される場合があります。本番環境のテーブルにスキーマの変更を適用する前に、アプリケーションでデータを検証してください。
+
+## 添付ファイル
+
+添付ファイルには安定した ID、名前、アクセス可能な取得元が必要です。次の例ではアプリ側でアップロード済みとします。
+
+```ts
+const attachments = table.addField('Files', univerAPI.Enum.BaseFieldType.Attachment)
+const record = table.getRecords()[0]
+if (!record) throw new Error('Create a record first')
+
+record.setAttachments(attachments.getId(), [{
+  id: 'brief-1',
+  name: 'brief.pdf',
+  mimeType: 'application/pdf',
+  source: 'https://example.com/files/brief.pdf',
+}])
+```
+
+`setAttachments()` はリスト全体を置き換えます。読み取りは `getAttachments()`、指定項目の削除は `deleteAttachments()` を使います。実際にアクセスできる URL に置き換え、既存の Bases UI 登録でアップロードを設定します。
+
+```ts
+univer.registerPlugin(UniverBasesUIPlugin, {
+  attachment: {
+    accept: ['image/*', '.pdf'],
+    maxSize: 10 * 1024 * 1024,
+    upload: uploadAttachment,
+  },
+})
+```
+
+`uploadAttachment` の型は `(file: File) => Promise<IBaseAttachment>` で、上記の添付データを返します。`maxSize` はバイト単位です。独自アップローダーがない場合は画像 IO、次に Base64 を試み、スナップショットが大きくなります。本番ではストレージを接続し、バックエンドで種類、サイズ、ダウンロード権限を検証してください。
+
+## ユーザーとグループ
+
+Bases UI の `personOptions` と `groupOptions` に候補を指定します。各項目は `id`、`name`、任意の `avatar` を持ちます。表示用の設定であり、認証とアクセス権限はアプリ側で管理します。
