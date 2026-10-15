@@ -1,7 +1,6 @@
 import type { ComponentProps } from 'react'
 import { SiNpm } from '@icons-pack/react-simple-icons'
 import { ExternalLinkIcon } from 'lucide-react'
-
 import { Link } from '@/i18n/navigation'
 import { routing } from '@/i18n/routing'
 import { clsx } from '@/lib/clsx'
@@ -21,7 +20,7 @@ export function createDocsRelativeLink<Page extends IResolvablePage>(source: IRe
       'text-primary decoration-primary/30 hover:decoration-primary focus-visible:outline-ring font-medium underline underline-offset-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2',
       className,
     )
-    if (typeof href !== 'string') {
+    if (typeof href !== 'string' || href.startsWith('#')) {
       return (
         <a href={href} className={linkClassName} {...props}>
           {children}

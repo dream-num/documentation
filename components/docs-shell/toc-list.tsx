@@ -3,7 +3,6 @@
 import type { TOCItemType } from 'fumadocs-core/toc'
 import { useTranslations } from 'next-intl'
 import { useEffect, useMemo, useRef, useState } from 'react'
-
 import { clsx } from '@/lib/clsx'
 
 export function TocList({ items, compact = false }: { items?: TOCItemType[]; lang: string; compact?: boolean }) {
@@ -151,6 +150,8 @@ export function TocList({ items, compact = false }: { items?: TOCItemType[]; lan
       scheduleActiveUpdate()
     }
 
+    // Restore fragment navigation after streamed headings have mounted.
+    document.querySelector('[data-doc-scroll-container] :target')?.scrollIntoView()
     drawPath()
     scrollTarget.addEventListener('scroll', scheduleActiveUpdate, { passive: true })
     window.addEventListener('resize', scheduleActiveUpdate)
