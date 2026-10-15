@@ -2,7 +2,6 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { stripTypeScriptTypes } from 'node:module'
 import process from 'node:process'
-
 import { BooleanNumber, HorizontalAlign } from '@univerjs/core'
 import { RangeThemeStyle } from '@univerjs/sheets'
 import { chromium } from 'playwright'

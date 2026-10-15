@@ -8,7 +8,6 @@ import zhCN from '@univerjs/engine-formula/locale/zh-CN'
 import { frontmatter } from 'fumadocs-core/content/md/frontmatter'
 import { mdxPreset } from 'fumadocs-core/content/mdx/preset-runtime'
 import { remarkLLMs } from 'fumadocs-core/mdx-plugins/remark-llms'
-
 import { buildInstallCommand, PACKAGE_MANAGERS } from '../../components/mdx/install-command'
 import packageJson from '../../package.json'
 import iconCatalog from '../../public/assets/icons/catalog.json'
@@ -38,11 +37,14 @@ const AGENT_MDX_ELEMENTS = new Set([
   'CodeBlockTabsList',
   'CodeBlockTabsTrigger',
   'DefinedNamesDemo',
+  'FilterSortDemo',
+  'FreezeDemo',
   'RangeThemeDemo',
   'FormulaList',
   'IconsGallery',
   'IconsVersion',
   'IconWrapper',
+  'ImageWrapDemo',
   'InstallTabs',
   'LifecycleDemo',
   'Mermaid',
@@ -50,14 +52,17 @@ const AGENT_MDX_ELEMENTS = new Set([
   'MigrationCell',
   'MigrationRow',
   'MigrationTable',
+  'NumberFormatDemo',
   'PermissionShadowDemo',
   'PlaygroundFrame',
   'RibbonStyle',
   'Step',
   'Steps',
+  'StylePriorityDemo',
   'Tab',
   'Tabs',
   'UIArchitecture',
+  'ViewsDemo',
 ])
 
 const AGENT_HTML_ELEMENTS = new Set(['br', 'code', 'details', 'div', 'iframe', 'img', 'span', 'strong', 'summary'])
@@ -627,6 +632,10 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
       return `#### ${getString(attributes, 'value') ?? 'Option'}\n\n${children}`
     case 'CodeBlockTabsTrigger':
       return ''
+    case 'FilterSortDemo':
+      return 'Filtering hides records without deleting them; sorting changes row order. Clearing a filter shows all records again while keeping the selected sort order.'
+    case 'FreezeDemo':
+      return 'Frozen panes stay visible while the rest of the sheet scrolls. `xSplit` and `ySplit` are counts; `startColumn` and `startRow` are zero-based indices of the first scrollable column and row. For example, `{ xSplit: 1, ySplit: 1, startColumn: 2, startRow: 2 }` freezes column B and row 2; scrolling begins at C3, with column A and row 1 outside the view.'
     case 'FormulaList':
       return renderFormulaList(attributes)
     case 'IconsGallery':
@@ -635,6 +644,8 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
       return `\`${packageJson.dependencies['@univerjs/icons']}\``
     case 'IconWrapper':
       return children
+    case 'ImageWrapDemo':
+      return 'Image wrapping: inline images occupy a position in the text like a large character; square wrapping flows text beside the rectangular image; top-and-bottom wrapping reserves the full line width for the image.'
     case 'InstallTabs':
       return renderInstallTabs(attributes)
     case 'LifecycleDemo':
@@ -654,6 +665,8 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
       const headers = Array.isArray(attributes.headers) ? attributes.headers.join(' / ') : 'API migration'
       return `### ${headers}\n\n${children}`
     }
+    case 'NumberFormatDemo':
+      return 'Number formatting changes the display, not the stored number. With the default date system, `45658` formatted as `yyyy-mm-dd` displays `2025-01-01`; `0.25` formatted as `0.00%` displays `25.00%`. Locale `en` displays `1234.567` as `1,234.57` with `#,##0.00`; locale `de` displays `1.234,57`.'
     case 'PermissionShadowDemo':
       return 'Protection shadow preview: `always` shades all protected areas; `non-editable` shades protected areas the current user cannot edit; `non-viewable` shades protected areas they cannot view; `none` hides protection shadows. Unprotected areas are never shaded. This changes only the visual overlay, not edit/view permissions; non-viewable content remains hidden even with `none`.'
     case 'PlaygroundFrame': {
@@ -676,6 +689,8 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
       ].join('\n')
     case 'Step':
       return `1.\n${indent(children, '   ')}`
+    case 'StylePriorityDemo':
+      return 'Cell backgrounds override worksheet, row, and column defaults. Where row and column backgrounds overlap, `isRowStylePrecedeColumnStyle: false` uses the column background and `true` uses the row background. Other style properties are merged independently.'
     case 'Tab':
       return `#### ${getString(attributes, 'label') ?? 'Tab'}\n\n${children}`
     case 'UIArchitecture':
@@ -694,6 +709,8 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
         '',
         'Register extensions with `IUIPartsService.registerComponent(part, factory)`.',
       ].join('\n')
+    case 'ViewsDemo':
+      return 'Grid, kanban, and calendar views share the same table records. Grid displays rows, kanban groups records by a field such as status, and calendar places records by date. Switching views does not copy records; changing a record is reflected in every view.'
     case 'br':
       return '  \n'
     case 'code':
