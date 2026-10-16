@@ -2,12 +2,11 @@
 
 import { useShiki } from 'fumadocs-core/highlight/client'
 import { Suspense } from 'react'
-
 import { clsx } from '@/lib/clsx'
 
 interface ICodePreviewProps {
   code: string
-  language: 'javascript' | 'json' | 'html' | 'markdown' | 'bash'
+  language: 'javascript' | 'typescript' | 'json' | 'html' | 'markdown' | 'bash'
   label?: string
   className?: string
 }
