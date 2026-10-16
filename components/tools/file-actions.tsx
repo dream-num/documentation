@@ -3,18 +3,19 @@
 import { CheckIcon, CopyIcon, DownloadIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
-
 import { Button } from '@/components/ui/button'
 
 export function FileActions({
   content,
   name,
   downloadLabel,
+  downloadContent = content,
   showCopy = true,
 }: {
   content: string
   name: string
   downloadLabel?: string
+  downloadContent?: string
   showCopy?: boolean
 }) {
   const t = useTranslations('tools')
@@ -28,7 +29,11 @@ export function FileActions({
     }
   }
   const download = () => {
-    const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }))
+    const url = URL.createObjectURL(
+      new Blob([downloadContent], {
+        type: name.endsWith('.json') ? 'application/json;charset=utf-8' : 'text/plain;charset=utf-8',
+      }),
+    )
     const link = document.createElement('a')
     link.href = url
     link.download = name

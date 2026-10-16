@@ -1,6 +1,5 @@
-import { FileJsonIcon, PaintbrushIcon, Settings2Icon } from 'lucide-react'
+import { FileJsonIcon, PaintbrushIcon, Settings2Icon, StampIcon } from 'lucide-react'
 import { createElement } from 'react'
-
 import type { IDocsNavigation, IDocsNavItem } from '@/lib/docs/navigation'
 import { isPathActive } from '@/lib/locale-path'
 
@@ -8,6 +7,7 @@ export interface IToolsNavigationLabels {
   themeCustomizer: string
   snapshotInspector: string
   initializationGenerator: string
+  watermarkGenerator: string
 }
 
 export function createToolsNavigation(pathname: string, labels: IToolsNavigationLabels): IDocsNavigation {
@@ -15,6 +15,7 @@ export function createToolsNavigation(pathname: string, labels: IToolsNavigation
     { id: 'theme-customizer', name: labels.themeCustomizer, icon: PaintbrushIcon },
     { id: 'snapshot-inspector', name: labels.snapshotInspector, icon: FileJsonIcon },
     { id: 'initialization-generator', name: labels.initializationGenerator, icon: Settings2Icon },
+    { id: 'watermark-generator', name: labels.watermarkGenerator, icon: StampIcon },
   ].map(({ id, name, icon }) => ({
     id,
     type: 'page',

@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 import { getTranslations } from 'next-intl/server'
-
 import type { Locale } from '@/i18n/routing'
 import { DocsHeader } from '@/components/docs-shell/header'
 import { Footer } from '@/components/footer'
@@ -8,7 +7,6 @@ import { createGuideNavigation } from '@/lib/guides/navigation'
 import { guideNavigationSource } from '@/lib/guides/navigation-source'
 import { withLocale } from '@/lib/locale-path'
 import { createToolsNavigation } from '@/lib/tools/navigation'
-
 import { ToolsWorkspace } from './tools-workspace'
 
 export async function ToolsShell({ children, lang }: { children: ReactNode; lang: string }) {
@@ -18,6 +16,7 @@ export async function ToolsShell({ children, lang }: { children: ReactNode; lang
     themeCustomizer: t('tools.theme-customizer'),
     snapshotInspector: t('tools.snapshot-inspector'),
     initializationGenerator: t('tools.initialization-generator'),
+    watermarkGenerator: t('tools.watermark-generator'),
   })
   const guideNavigation = createGuideNavigation(guideNavigationSource.pageTree[lang], pathname)
 
