@@ -312,13 +312,41 @@ univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
 })
 ```
 
-### 設定迭代次數
+### 反覆運算 [#iterative-calculation]
 
-當公式中存在循環引用時，可以透過該 API 設定公式計算時的最大迭代次數。預設值為 1。
+反覆運算依活頁簿設定，並儲存在快照的 `calculationSettings` 欄位中。預設關閉：循環參照公式會保留快取值，沒有快取時使用零。需要計算刻意設計的循環參照模型時，再啟用此功能。
 
-```typescript
-const formulaEngine = univerAPI.getFormula()
-formulaEngine.setMaxIteration(10)
+| 選項 | 預設值 | 行為 |
+| --- | --- | --- |
+| `iterativeCalculation` | `false` | 啟用循環參照的反覆運算。 |
+| `maxIterations` | `100` | 1 到 32767 之間的整數。 |
+| `maxChange` | `0.001` | 有限正數，表示收斂閾值。當循環群組中每個數值結果的變化量皆不超過此值時停止。 |
+
+透過活頁簿 Facade 一次提交三個設定。此命令支援復原、重做與協同同步；活頁簿不存在或無法編輯時傳回 `false`。無效設定會正規化為預設值。
+
+```ts
+const workbook = univerAPI.getActiveWorkbook()
+if (!workbook) throw new Error('No active workbook')
+
+const applied = workbook.setCalculationSettings({
+  iterativeCalculation: true,
+  maxIterations: 100,
+  maxChange: 0.001,
+})
+if (!applied) throw new Error('Could not update calculation settings')
+
+console.log(workbook.getCalculationSettings())
+```
+
+建立活頁簿時，也可以透過 `createWorkbook()` 的 `calculationSettings` 設定。各活頁簿獨立儲存自己的設定。公式工具列中的「計算選項」提供相同設定。
+
+等待計算結果套用後，可讀取循環參照診斷。`getCircularReferences()` 不會觸發計算；結果包含工作表 ID、從零開始的列欄座標、循環群組 ID、反覆運算次數，以及可用的收斂資訊。
+
+```ts
+const formula = univerAPI.getFormula()
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.table(workbook.getCircularReferences())
 ```
 
 ### 取得公式字串的計算結果

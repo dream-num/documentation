@@ -316,13 +316,41 @@ univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
 })
 ```
 
-### 设置迭代次数
+### 迭代计算 [#iterative-calculation]
 
-当公式中存在循环引用时，可以通过该 API 设置公式计算时的最大迭代次数。默认值为 1。
+迭代计算按工作簿配置，并保存在快照的 `calculationSettings` 字段中。默认关闭：循环引用公式保留已缓存的值，没有缓存时使用零。需要计算有意设计的循环引用模型时，再启用此功能。
 
-```typescript
-const formulaEngine = univerAPI.getFormula()
-formulaEngine.setMaxIteration(10)
+| 选项 | 默认值 | 行为 |
+| --- | --- | --- |
+| `iterativeCalculation` | `false` | 启用循环引用的迭代计算。 |
+| `maxIterations` | `100` | 1 到 32767 之间的整数。 |
+| `maxChange` | `0.001` | 有限正数，表示收敛阈值。当循环组中每个数值结果的变化量均不超过该值时停止。 |
+
+通过工作簿 Facade 一次提交三个设置。该命令支持撤销、重做与协同同步；工作簿不存在或不可编辑时返回 `false`。无效设置会归一化为默认值。
+
+```ts
+const workbook = univerAPI.getActiveWorkbook()
+if (!workbook) throw new Error('No active workbook')
+
+const applied = workbook.setCalculationSettings({
+  iterativeCalculation: true,
+  maxIterations: 100,
+  maxChange: 0.001,
+})
+if (!applied) throw new Error('Could not update calculation settings')
+
+console.log(workbook.getCalculationSettings())
+```
+
+创建工作簿时，也可以通过 `createWorkbook()` 的 `calculationSettings` 配置。各工作簿独立保存自己的设置。公式工具栏中的「计算选项」提供相同配置。
+
+等待计算结果应用后，可读取循环引用诊断。`getCircularReferences()` 不会触发计算；结果包含工作表 ID、从零开始的行列坐标、循环组 ID、迭代次数，以及可用的收敛信息。
+
+```ts
+const formula = univerAPI.getFormula()
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.table(workbook.getCircularReferences())
 ```
 
 ### 获取公式字符串的计算结果

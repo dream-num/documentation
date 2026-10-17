@@ -313,13 +313,41 @@ univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
 })
 ```
 
-### Définir le nombre maximal d’itérations
+### Calcul itératif [#iterative-calculation]
 
-Lorsque des formules contiennent des références circulaires, vous pouvez utiliser cette API pour définir le nombre maximal d’itérations du calcul. La valeur par défaut est 1.
+Le calcul itératif est propre au classeur et enregistré dans le champ `calculationSettings` de son instantané. Il est désactivé par défaut : les formules circulaires conservent leur valeur en cache, ou zéro en son absence. Activez-le pour les modèles qui utilisent volontairement des références circulaires.
 
-```typescript
-const formulaEngine = univerAPI.getFormula()
-formulaEngine.setMaxIteration(10)
+| Option | Valeur par défaut | Comportement |
+| --- | --- | --- |
+| `iterativeCalculation` | `false` | Active le calcul itératif des références circulaires. |
+| `maxIterations` | `100` | Entier compris entre 1 et 32767. |
+| `maxChange` | `0.001` | Seuil de convergence fini et positif. Le calcul s’arrête lorsque la variation de chaque résultat numérique du groupe circulaire ne dépasse plus ce seuil. |
+
+Mettez à jour les trois paramètres ensemble via la Facade du classeur. La commande prend en charge l’annulation, le rétablissement et la collaboration ; elle renvoie `false` si le classeur est absent ou non modifiable. Les paramètres invalides sont normalisés aux valeurs par défaut.
+
+```ts
+const workbook = univerAPI.getActiveWorkbook()
+if (!workbook) throw new Error('No active workbook')
+
+const applied = workbook.setCalculationSettings({
+  iterativeCalculation: true,
+  maxIterations: 100,
+  maxChange: 0.001,
+})
+if (!applied) throw new Error('Could not update calculation settings')
+
+console.log(workbook.getCalculationSettings())
+```
+
+Vous pouvez aussi fournir `calculationSettings` à `createWorkbook()`. Chaque classeur conserve ses propres paramètres. Les options de calcul du ruban Formules proposent les mêmes réglages.
+
+`getCircularReferences()` lit les diagnostics après l’application des résultats, sans lancer de calcul. Ils contiennent les identifiants des feuilles, les coordonnées à partir de zéro, les groupes circulaires, le nombre d’itérations et les informations de convergence disponibles.
+
+```ts
+const formula = univerAPI.getFormula()
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.table(workbook.getCircularReferences())
 ```
 
 ### Obtenir le résultat de l’exécution de chaînes de formule

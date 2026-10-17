@@ -313,13 +313,41 @@ univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
 })
 ```
 
-### Установка максимального количества итераций
+### Итерационные вычисления [#iterative-calculation]
 
-Если в формулах есть циклические ссылки, с помощью этого API можно задать максимальное количество итераций вычисления. По умолчанию выполняется одна итерация.
+Итерационные вычисления настраиваются для каждой книги и сохраняются в поле `calculationSettings` снимка. По умолчанию они выключены: циклические формулы сохраняют кэшированное значение или используют ноль, если его нет. Включайте их для моделей с намеренными циклическими ссылками.
 
-```typescript
-const formulaEngine = univerAPI.getFormula()
-formulaEngine.setMaxIteration(10)
+| Параметр | По умолчанию | Поведение |
+| --- | --- | --- |
+| `iterativeCalculation` | `false` | Включает итерационные вычисления циклических ссылок. |
+| `maxIterations` | `100` | Целое число от 1 до 32767. |
+| `maxChange` | `0.001` | Конечный положительный порог сходимости. Вычисления останавливаются, когда изменение каждого числового результата циклической группы не превышает этот порог. |
+
+Обновляйте все три параметра вместе через Facade книги. Команда поддерживает отмену, повтор и совместное редактирование; возвращает `false`, если книга отсутствует или недоступна для редактирования. Некорректные значения заменяются стандартными.
+
+```ts
+const workbook = univerAPI.getActiveWorkbook()
+if (!workbook) throw new Error('No active workbook')
+
+const applied = workbook.setCalculationSettings({
+  iterativeCalculation: true,
+  maxIterations: 100,
+  maxChange: 0.001,
+})
+if (!applied) throw new Error('Could not update calculation settings')
+
+console.log(workbook.getCalculationSettings())
+```
+
+Поле `calculationSettings` также можно передать в `createWorkbook()`. Книги хранят настройки независимо. Те же параметры доступны в настройках вычислений на вкладке формул.
+
+`getCircularReferences()` читает диагностику после применения результатов и не запускает вычисления. Результат содержит ID листов, координаты с нуля, ID циклических групп, число итераций и сведения о сходимости, если они доступны.
+
+```ts
+const formula = univerAPI.getFormula()
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.table(workbook.getCircularReferences())
 ```
 
 ### Получение результатов выполнения строковых формул

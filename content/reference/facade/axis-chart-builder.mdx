@@ -155,7 +155,9 @@ builder.clearXAxisTitle()
 
 ### `FAxisChartBuilder.clearYAxis` [#clearyaxis]
 
-Clears the yaxis configuration and returns this builder for chaining.
+Clears the Y axis configuration and returns this builder for chaining.
+Clearing an entire logarithmic axis writes explicit linear intent so imported raw
+chart data cannot restore the old logarithmic scale. Clearing a field keeps the scale.
 
 This method executes synchronously.
 
@@ -260,7 +262,8 @@ const markLines = builder.build().config.markLines
 
 ### `FAxisChartBuilder.setRightYAxis` [#setrightyaxis]
 
-Sets the right yaxis configuration and returns this builder for chaining.
+Sets the existing secondary Y axis configuration and returns this builder for chaining.
+Logarithmic settings follow `setYAxis`; this does not create a secondary Bar axis.
 
 This method executes synchronously.
 
@@ -279,7 +282,14 @@ This builder for chaining.
 **Examples**
 
 ```ts
-builder.setRightYAxis({ title: 'Margin' })
+// The existing Line chart already has a series assigned to its secondary axis.
+const sheet = univerAPI.getActiveWorkbook().getActiveSheet()
+const chart = sheet.getCharts()[0]
+const builder = chart
+  .toBuilder(univerAPI.Enum.ChartTypeString.Line)
+  .setYAxis({ scaleType: 'linear' })
+  .setRightYAxis({ scaleType: 'log', logBase: 2 })
+await chart.update(builder.build())
 ```
 
 **Types:** [`IChartAxisSpec`](https://unpkg.com/@univerjs-pro/engine-chart/lib/types/chart-builder/chart-types.d.ts)
@@ -340,7 +350,9 @@ builder.setUseDateAxis(true)
 
 ### `FAxisChartBuilder.setXAxis` [#setxaxis]
 
-Sets the xaxis configuration and returns this builder for chaining.
+Sets the X axis configuration and returns this detached builder for chaining.
+On a supported Bar chart, `{ scaleType: 'log', logBase: 2.5 }` selects its numeric scale.
+Unsupported axis configurations are retained and reported by chart diagnostics.
 
 This method executes synchronously.
 
@@ -359,7 +371,14 @@ This builder for chaining.
 **Examples**
 
 ```ts
-builder.setXAxis({ title: 'Month' })
+// Bar charts use the X axis as their numeric axis.
+const sheet = univerAPI.getActiveWorkbook().getActiveSheet()
+const chartInfo = sheet
+  .newChart(univerAPI.Enum.ChartTypeString.Bar)
+  .setSource('A1:B8')
+  .setXAxis({ scaleType: 'log', logBase: 10 })
+  .build()
+await sheet.insertChart(chartInfo)
 ```
 
 **Types:** [`IChartAxisSpec`](https://unpkg.com/@univerjs-pro/engine-chart/lib/types/chart-builder/chart-types.d.ts)
@@ -394,7 +413,12 @@ builder.setXAxisTitle('Month')
 
 ### `FAxisChartBuilder.setYAxis` [#setyaxis]
 
-Sets the yaxis configuration and returns this builder for chaining.
+Sets the Y axis configuration and returns this detached builder for chaining.
+Supported numeric axes accept `{ scaleType: 'log', logBase: 2.5 }`.
+Missing base defaults to 10 when first enabled. Finite out-of-range values are retained
+for compatibility and render with base 10 plus diagnostics. Normal input uses 2–1000.
+Apply an existing-chart draft with `await chart.update(builder.build())`.
+Explicit `scaleType: 'linear'` removes the base; unrelated patches preserve it.
 
 This method executes synchronously.
 
@@ -413,7 +437,23 @@ This builder for chaining.
 **Examples**
 
 ```ts
-builder.setYAxis({ title: 'Revenue' })
+// Update an existing Line chart; Area and Column use the same Y-axis settings.
+const sheet = univerAPI.getActiveWorkbook().getActiveSheet()
+const chart = sheet.getCharts()[0]
+const builder = chart
+  .toBuilder(univerAPI.Enum.ChartTypeString.Line)
+  .setYAxis({ scaleType: 'log', logBase: 2.5 })
+await chart.update(builder.build())
+
+// Change only the base of the logarithmic axis.
+await chart.update(
+  chart.toBuilder(univerAPI.Enum.ChartTypeString.Line).setYAxis({ logBase: 2 }).build(),
+)
+
+// Restore linear scaling and remove the logarithm base.
+await chart.update(
+  chart.toBuilder(univerAPI.Enum.ChartTypeString.Line).setYAxis({ scaleType: 'linear' }).build(),
+)
 ```
 
 **Types:** [`IChartAxisSpec`](https://unpkg.com/@univerjs-pro/engine-chart/lib/types/chart-builder/chart-types.d.ts)

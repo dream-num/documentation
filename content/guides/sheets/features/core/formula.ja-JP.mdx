@@ -313,13 +313,41 @@ univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
 })
 ```
 
-### 反復回数の設定
+### 反復計算 [#iterative-calculation]
 
-数式に循環参照が存在する場合、この API を使用して数式計算時の最大反復回数を設定できます。デフォルト値は 1 です。
+反復計算はブックごとに設定し、スナップショットの `calculationSettings` に保存されます。既定では無効です。循環参照の数式はキャッシュ値を保持し、値がなければゼロを使用します。意図的に循環参照を含むモデルで有効にしてください。
 
-```typescript
-const formulaEngine = univerAPI.getFormula()
-formulaEngine.setMaxIteration(10)
+| オプション | 既定値 | 動作 |
+| --- | --- | --- |
+| `iterativeCalculation` | `false` | 循環参照の反復計算を有効にします。 |
+| `maxIterations` | `100` | 1～32767 の整数。 |
+| `maxChange` | `0.001` | 有限の正数で指定する収束しきい値。循環グループ内のすべての数値結果の変化がこの値以下になると停止します。 |
+
+ブックの Facade から 3 つの設定をまとめて更新します。元に戻す、やり直し、共同編集に対応し、ブックが存在しないか編集できない場合は `false` を返します。無効な設定は既定値に正規化されます。
+
+```ts
+const workbook = univerAPI.getActiveWorkbook()
+if (!workbook) throw new Error('No active workbook')
+
+const applied = workbook.setCalculationSettings({
+  iterativeCalculation: true,
+  maxIterations: 100,
+  maxChange: 0.001,
+})
+if (!applied) throw new Error('Could not update calculation settings')
+
+console.log(workbook.getCalculationSettings())
+```
+
+`createWorkbook()` の `calculationSettings` で初期設定することもできます。設定はブックごとに独立しています。数式リボンの「計算オプション」でも同じ設定を変更できます。
+
+計算結果の適用後に循環参照の診断を取得できます。`getCircularReferences()` は計算を開始しません。結果にはシート ID、0 始まりの行列座標、グループ ID、反復回数、取得可能な場合は収束情報が含まれます。
+
+```ts
+const formula = univerAPI.getFormula()
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.table(workbook.getCircularReferences())
 ```
 
 ### 数式文字列の計算結果の取得

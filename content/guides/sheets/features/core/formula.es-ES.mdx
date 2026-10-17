@@ -313,13 +313,41 @@ univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
 })
 ```
 
-### Establecer iteración máxima
+### Cálculo iterativo [#iterative-calculation]
 
-Cuando hay referencias circulares en las fórmulas, puede usar esta API para establecer el número máximo de iteraciones para cálculos de fórmulas. El valor predeterminado es 1.
+El cálculo iterativo se configura por libro y se guarda en el campo `calculationSettings` de su instantánea. Está desactivado de forma predeterminada: las fórmulas circulares conservan su valor almacenado o usan cero si no existe. Actívelo para modelos que utilicen referencias circulares intencionalmente.
 
-```typescript
-const formulaEngine = univerAPI.getFormula()
-formulaEngine.setMaxIteration(10)
+| Opción | Predeterminado | Comportamiento |
+| --- | --- | --- |
+| `iterativeCalculation` | `false` | Activa el cálculo iterativo de referencias circulares. |
+| `maxIterations` | `100` | Entero entre 1 y 32767. |
+| `maxChange` | `0.001` | Umbral de convergencia finito y positivo. Se detiene cuando el cambio de cada resultado numérico del grupo circular no supera este valor. |
+
+Actualice los tres ajustes juntos mediante la Facade del libro. La operación admite deshacer, rehacer y colaboración; devuelve `false` si el libro no existe o no se puede editar. Los ajustes no válidos se normalizan a sus valores predeterminados.
+
+```ts
+const workbook = univerAPI.getActiveWorkbook()
+if (!workbook) throw new Error('No active workbook')
+
+const applied = workbook.setCalculationSettings({
+  iterativeCalculation: true,
+  maxIterations: 100,
+  maxChange: 0.001,
+})
+if (!applied) throw new Error('Could not update calculation settings')
+
+console.log(workbook.getCalculationSettings())
+```
+
+También puede pasar `calculationSettings` a `createWorkbook()`. Cada libro mantiene sus propios ajustes. Las opciones de cálculo de la cinta Fórmulas ofrecen los mismos controles.
+
+`getCircularReferences()` lee los diagnósticos después de aplicar los resultados, sin iniciar cálculos. Incluyen identificadores de hojas, coordenadas desde cero, grupos circulares, número de iteraciones y la información de convergencia disponible.
+
+```ts
+const formula = univerAPI.getFormula()
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.table(workbook.getCircularReferences())
 ```
 
 ### Obtener resultado de ejecución de cadenas de fórmula

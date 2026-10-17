@@ -317,13 +317,41 @@ univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {
 })
 ```
 
-### Set Max Iteration
+### Iterative calculation [#iterative-calculation]
 
-When there are circular references in formulas, you can use this API to set the maximum number of iterations for formula calculations. The default value is 1.
+Iterative calculation belongs to the workbook and is saved in its `calculationSettings` snapshot field. It is disabled by default: circular formulas keep their cached values, or use zero if no value is cached. Enable it for models that intentionally contain circular references.
 
-```typescript
-const formulaEngine = univerAPI.getFormula()
-formulaEngine.setMaxIteration(10)
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `iterativeCalculation` | `false` | Enable iterative evaluation of circular references. |
+| `maxIterations` | `100` | Integer from 1 to 32767. |
+| `maxChange` | `0.001` | Finite positive convergence threshold. Stop when every numeric result in the circular group changes by at most this amount. |
+
+Update all three settings together through the workbook Facade. The command supports undo/redo and collaboration; it returns `false` if the workbook is unavailable or cannot be edited. Invalid settings normalize to the defaults.
+
+```ts
+const workbook = univerAPI.getActiveWorkbook()
+if (!workbook) throw new Error('No active workbook')
+
+const applied = workbook.setCalculationSettings({
+  iterativeCalculation: true,
+  maxIterations: 100,
+  maxChange: 0.001,
+})
+if (!applied) throw new Error('Could not update calculation settings')
+
+console.log(workbook.getCalculationSettings())
+```
+
+You can also supply `calculationSettings` when calling `createWorkbook()`. Each workbook keeps its own settings. The Formula ribbon exposes the same controls through Calculation Options.
+
+After calculation results have been applied, read circular-reference diagnostics. `getCircularReferences()` does not start calculation; its results include worksheet IDs, zero-based row/column coordinates, group IDs, iteration counts, and convergence information when available.
+
+```ts
+const formula = univerAPI.getFormula()
+formula.executeCalculation()
+await formula.onCalculationResultApplied()
+console.table(workbook.getCircularReferences())
 ```
 
 ### Get Formula Strings Execution Result
