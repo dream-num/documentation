@@ -27,7 +27,7 @@ pnpm example:quick-start
 다음을 여세요.
 
 ```text
-http://127.0.0.1:3010/?unit=quick-start-sheet&type=2
+http://127.0.0.1:3010/?unit=quick-start-sheet
 ```
 
 ### 실시간 공동 편집 확인
@@ -65,7 +65,7 @@ Univer Collaboration Client
 
 `examples/quick-start`를 복사하고 `package.json`, `index.html`, `vite.config.ts`, `web/styles.css`, `web/main.ts`, `server/main.ts`를 유지하세요. Express는 작업 디렉터리 기준으로 `dist/web`을 읽으므로 예제 디렉터리에서 build와 start를 실행합니다. Vite 라이선스 정의와 `#app` 높이도 유지하세요. 아래 코드는 조립 과정을 설명하며 완전한 프로젝트는 이 파일들에서 시작합니다.
 
-예제 페이지와 `/universer-api`는 같은 출처를 사용합니다. 별도 프런트엔드를 사용하면 HTTP와 WebSocket Upgrade를 프록시하거나 클라이언트의 다섯 URL을 함께 변경하세요. `unit`은 백엔드가 만든 ID와 같아야 하고 `type=2`는 Sheets입니다. URL 매개변수만으로 문서를 만들지는 않습니다. 예제는 URL 자동 로드를 사용합니다. 앱에 통합할 때는 [공동 편집 통합](/server/collaboration/browser-integration)에 따라 현재 사용자를 설정한 뒤 명시적으로 로드하세요.
+예제 페이지와 `/universer-api`는 같은 출처를 사용합니다. 별도 프런트엔드를 사용하면 HTTP와 WebSocket Upgrade를 프록시하거나 클라이언트의 다섯 URL을 함께 변경하세요. `unit`은 백엔드가 만든 ID와 같아야 합니다. URL 매개변수만으로 문서를 만들지는 않습니다. 예제는 URL 자동 로드를 끄고 `unit`을 읽어 `loadSheetAsync()`로 명시적으로 로드합니다. 앱에 통합할 때는 [공동 편집 통합](/server/collaboration/browser-integration)에 따라 로드 전에 현재 사용자를 설정하세요.
 
 ### 1. 호환되는 동일 버전 패키지 집합 설치
 
@@ -193,6 +193,7 @@ import { UniverLicensePlugin } from "@univerjs-pro/license";
 import { UniverSheetsCorePreset } from "@univerjs/preset-sheets-core";
 import UniverPresetSheetsCoreEnUS from "@univerjs/preset-sheets-core/locales/en-US";
 import { createUniver, defaultTheme, mergeLocales } from "@univerjs/presets";
+import "@univerjs-pro/collaboration-client/facade";
 import "@univerjs/preset-sheets-core/lib/index.css";
 import "@univerjs-pro/collaboration-client-ui/lib/index.css";
 
@@ -200,7 +201,9 @@ const httpProtocol = location.protocol === "https:" ? "https" : "http";
 const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
 const baseURL = `${httpProtocol}://${location.host}/universer-api`;
 
-createUniver({
+const unitId = new URLSearchParams(location.search).get("unit");
+if (!unitId) throw new Error("Open the URL printed by the server; it names the Sheet with ?unit=.");
+const { univerAPI } = createUniver({
   locale: LocaleType.EN_US,
   locales: {
     [LocaleType.EN_US]: mergeLocales(
@@ -228,15 +231,18 @@ createUniver({
         wsSessionTicketUrl: `${baseURL}/user/session-ticket`,
       },
     ],
-    UniverCollaborationClientUIPlugin,
+    [UniverCollaborationClientUIPlugin, { enableUrlUnitLoader: false }],
   ],
 });
+
+const workbook = await univerAPI.getCollaboration().loadSheetAsync(unitId);
+if (!workbook) throw new Error("Document could not be loaded");
 ```
 
 페이지에는 `id="app"` 요소가 필요하며 쿼리 매개변수로 Unit을 선택합니다.
 
 ```text
-/?unit=quick-start-sheet&type=2
+/?unit=quick-start-sheet
 ```
 
 ### 5. 학습용 설정을 애플리케이션 기능으로 교체

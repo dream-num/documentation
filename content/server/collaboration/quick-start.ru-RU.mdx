@@ -27,7 +27,7 @@ pnpm example:quick-start
 Откройте:
 
 ```text
-http://127.0.0.1:3010/?unit=quick-start-sheet&type=2
+http://127.0.0.1:3010/?unit=quick-start-sheet
 ```
 
 ### Проверка совместного редактирования в реальном времени
@@ -65,7 +65,7 @@ Univer Collaboration Client
 
 Скопируйте `examples/quick-start`, сохранив `package.json`, `index.html`, `vite.config.ts`, `web/styles.css`, `web/main.ts`, `server/main.ts`. Выполняйте build и start из каталога примера: Express читает `dist/web` относительно рабочего каталога. Сохраните настройку лицензии Vite и ненулевую высоту `#app`. Код ниже объясняет сборку компонентов; полный проект следует брать из этих файлов.
 
-Страница и `/universer-api` используют один origin. При отдельном frontend настройте прокси HTTP и WebSocket Upgrade либо измените все пять URL клиента. `unit` должен совпадать с ID, созданным сервером; `type=2` означает Sheets. Параметр URL сам по себе не создаёт документ. В примере используется автоматическая загрузка по URL; в своём приложении задайте текущего пользователя и загружайте документ явно, как описано в разделе [Интеграция совместного редактирования](/server/collaboration/browser-integration).
+Страница и `/universer-api` используют один origin. При отдельном frontend настройте прокси HTTP и WebSocket Upgrade либо измените все пять URL клиента. `unit` должен совпадать с ID, созданным сервером. Параметр URL сам по себе не создаёт документ. В примере автоматическая загрузка по URL отключена: он читает `unit` и загружает документ явно через `loadSheetAsync()`; в своём приложении задайте текущего пользователя до загрузки, как описано в разделе [Интеграция совместного редактирования](/server/collaboration/browser-integration).
 
 ### 1. Установка совместимого набора пакетов
 
@@ -193,6 +193,7 @@ import { UniverLicensePlugin } from "@univerjs-pro/license";
 import { UniverSheetsCorePreset } from "@univerjs/preset-sheets-core";
 import UniverPresetSheetsCoreEnUS from "@univerjs/preset-sheets-core/locales/en-US";
 import { createUniver, defaultTheme, mergeLocales } from "@univerjs/presets";
+import "@univerjs-pro/collaboration-client/facade";
 import "@univerjs/preset-sheets-core/lib/index.css";
 import "@univerjs-pro/collaboration-client-ui/lib/index.css";
 
@@ -200,7 +201,9 @@ const httpProtocol = location.protocol === "https:" ? "https" : "http";
 const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
 const baseURL = `${httpProtocol}://${location.host}/universer-api`;
 
-createUniver({
+const unitId = new URLSearchParams(location.search).get("unit");
+if (!unitId) throw new Error("Open the URL printed by the server; it names the Sheet with ?unit=.");
+const { univerAPI } = createUniver({
   locale: LocaleType.EN_US,
   locales: {
     [LocaleType.EN_US]: mergeLocales(
@@ -228,15 +231,18 @@ createUniver({
         wsSessionTicketUrl: `${baseURL}/user/session-ticket`,
       },
     ],
-    UniverCollaborationClientUIPlugin,
+    [UniverCollaborationClientUIPlugin, { enableUrlUnitLoader: false }],
   ],
 });
+
+const workbook = await univerAPI.getCollaboration().loadSheetAsync(unitId);
+if (!workbook) throw new Error("Document could not be loaded");
 ```
 
 Странице нужен элемент с `id="app"`; Unit выбирается параметрами запроса:
 
 ```text
-/?unit=quick-start-sheet&type=2
+/?unit=quick-start-sheet
 ```
 
 ### 5. Замена учебных настроек возможностями приложения
