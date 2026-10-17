@@ -29,7 +29,7 @@ pnpm example:quick-start
 打开：
 
 ```text
-http://127.0.0.1:3010/?unit=quick-start-sheet&type=2
+http://127.0.0.1:3010/?unit=quick-start-sheet
 ```
 
 ### 验证实时协同
@@ -72,7 +72,7 @@ Client 配置与 Server。若从空项目开始，直接复制 Quick Start 目�
 
 从 `examples/quick-start` 复制应用骨架，保留 `package.json`、`index.html`、`vite.config.ts`、`web/styles.css`、`web/main.ts` 与 `server/main.ts`。在复制后的示例目录内执行 build 和 start：Express 按工作目录读取 `dist/web`。保留 Vite 中的许可证注入，并确保 `#app` 有非零高度。下面的代码用于解释组装关系，完整可运行项目以这些文件为起点。
 
-示例页面和 `/universer-api` 使用同一源。迁到独立前端服务时，需要代理 HTTP 与 WebSocket Upgrade，或一起修改客户端的五个协议地址。URL 中的 `unit` 必须与后端创建的文档 ID 一致，`type=2` 表示 Sheets；仅填写 URL 参数不会创建文档。
+示例页面和 `/universer-api` 使用同一源。迁到独立前端服务时，需要代理 HTTP 与 WebSocket Upgrade，或一起修改客户端的五个协议地址。URL 中的 `unit` 必须与后端创建的文档 ID 一致；仅填写 URL 参数不会创建文档。示例关闭 URL 自动加载，读取 `unit` 后调用 `loadSheetAsync()` 显式加载；接入应用时请按[协同集成](/server/collaboration/browser-integration)先设置当前用户再加载。
 
 ### 1. 安装同一发布批次的 Package
 
@@ -207,6 +207,7 @@ import { UniverLicensePlugin } from "@univerjs-pro/license";
 import { UniverSheetsCorePreset } from "@univerjs/preset-sheets-core";
 import UniverPresetSheetsCoreEnUS from "@univerjs/preset-sheets-core/locales/en-US";
 import { createUniver, defaultTheme, mergeLocales } from "@univerjs/presets";
+import "@univerjs-pro/collaboration-client/facade";
 import "@univerjs/preset-sheets-core/lib/index.css";
 import "@univerjs-pro/collaboration-client-ui/lib/index.css";
 
@@ -214,7 +215,9 @@ const httpProtocol = location.protocol === "https:" ? "https" : "http";
 const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
 const baseURL = `${httpProtocol}://${location.host}/universer-api`;
 
-createUniver({
+const unitId = new URLSearchParams(location.search).get("unit");
+if (!unitId) throw new Error("Open the URL printed by the server; it names the Sheet with ?unit=.");
+const { univerAPI } = createUniver({
   locale: LocaleType.EN_US,
   locales: {
     [LocaleType.EN_US]: mergeLocales(
@@ -242,15 +245,18 @@ createUniver({
         wsSessionTicketUrl: `${baseURL}/user/session-ticket`,
       },
     ],
-    UniverCollaborationClientUIPlugin,
+    [UniverCollaborationClientUIPlugin, { enableUrlUnitLoader: false }],
   ],
 });
+
+const workbook = await univerAPI.getCollaboration().loadSheetAsync(unitId);
+if (!workbook) throw new Error("Document could not be loaded");
 ```
 
 页面需要一个 `id="app"` 的容器，并通过查询参数指定 Unit：
 
 ```text
-/?unit=quick-start-sheet&type=2
+/?unit=quick-start-sheet
 ```
 
 ### 5. 用生产能力替换教学配置

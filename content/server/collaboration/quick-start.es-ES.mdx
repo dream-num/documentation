@@ -27,7 +27,7 @@ pnpm example:quick-start
 Abre:
 
 ```text
-http://127.0.0.1:3010/?unit=quick-start-sheet&type=2
+http://127.0.0.1:3010/?unit=quick-start-sheet
 ```
 
 ### Verificar la colaboración en tiempo real
@@ -65,7 +65,7 @@ Si ya tienes una aplicación Univer Web, conserva Runtime, presets y UI y añade
 
 Copia `examples/quick-start` conservando `package.json`, `index.html`, `vite.config.ts`, `web/styles.css`, `web/main.ts` y `server/main.ts`. Ejecuta build y start desde ese directorio: Express lee `dist/web` respecto al directorio actual. Mantén la definición de licencia de Vite y una altura distinta de cero en `#app`. El código siguiente explica el montaje; estos archivos son el proyecto ejecutable completo.
 
-La página y `/universer-api` comparten origen. Si separas el frontend, configura el proxy para HTTP y WebSocket Upgrade o cambia juntas las cinco URL del cliente. `unit` debe coincidir con el ID creado en el backend; `type=2` indica Sheets. El parámetro URL no crea documentos.
+La página y `/universer-api` comparten origen. Si separas el frontend, configura el proxy para HTTP y WebSocket Upgrade o cambia juntas las cinco URL del cliente. `unit` debe coincidir con el ID creado en el backend. El parámetro URL no crea documentos. El ejemplo desactiva la carga automática por URL, lee `unit` y carga explícitamente con `loadSheetAsync()`; en tu aplicación, establece el usuario actual antes de cargar, como se describe en [Integración de colaboración](/server/collaboration/browser-integration).
 
 ### 1. Instalar un conjunto de versiones compatibles
 
@@ -193,6 +193,7 @@ import { UniverLicensePlugin } from "@univerjs-pro/license";
 import { UniverSheetsCorePreset } from "@univerjs/preset-sheets-core";
 import UniverPresetSheetsCoreEnUS from "@univerjs/preset-sheets-core/locales/en-US";
 import { createUniver, defaultTheme, mergeLocales } from "@univerjs/presets";
+import "@univerjs-pro/collaboration-client/facade";
 import "@univerjs/preset-sheets-core/lib/index.css";
 import "@univerjs-pro/collaboration-client-ui/lib/index.css";
 
@@ -200,7 +201,9 @@ const httpProtocol = location.protocol === "https:" ? "https" : "http";
 const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
 const baseURL = `${httpProtocol}://${location.host}/universer-api`;
 
-createUniver({
+const unitId = new URLSearchParams(location.search).get("unit");
+if (!unitId) throw new Error("Open the URL printed by the server; it names the Sheet with ?unit=.");
+const { univerAPI } = createUniver({
   locale: LocaleType.EN_US,
   locales: {
     [LocaleType.EN_US]: mergeLocales(
@@ -228,15 +231,18 @@ createUniver({
         wsSessionTicketUrl: `${baseURL}/user/session-ticket`,
       },
     ],
-    UniverCollaborationClientUIPlugin,
+    [UniverCollaborationClientUIPlugin, { enableUrlUnitLoader: false }],
   ],
 });
+
+const workbook = await univerAPI.getCollaboration().loadSheetAsync(unitId);
+if (!workbook) throw new Error("Document could not be loaded");
 ```
 
 La página necesita un elemento con `id="app"` y selecciona la Unit mediante parámetros de consulta:
 
 ```text
-/?unit=quick-start-sheet&type=2
+/?unit=quick-start-sheet
 ```
 
 ### 5. Sustituir la configuración didáctica

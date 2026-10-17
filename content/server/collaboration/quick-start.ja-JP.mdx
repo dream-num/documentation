@@ -27,7 +27,7 @@ pnpm example:quick-start
 次を開きます。
 
 ```text
-http://127.0.0.1:3010/?unit=quick-start-sheet&type=2
+http://127.0.0.1:3010/?unit=quick-start-sheet
 ```
 
 ### リアルタイム共同編集の確認
@@ -65,7 +65,7 @@ Univer Collaboration Client
 
 `examples/quick-start` をコピーし、`package.json`、`index.html`、`vite.config.ts`、`web/styles.css`、`web/main.ts`、`server/main.ts` を保持します。Express は作業ディレクトリから `dist/web` を読むため、サンプルディレクトリで build と start を実行します。Vite のライセンス定義と `#app` の高さも保持してください。以下のコードは構成の説明であり、完全なプロジェクトはこれらのファイルを起点にします。
 
-サンプルのページと `/universer-api` は同一オリジンです。別のフロントエンドサーバーを使う場合、HTTP と WebSocket Upgrade をプロキシするか、クライアントの 5 つの URL をまとめて変更します。`unit` はサーバーが作成した ID と一致させます。`type=2` は Sheets を示し、URL パラメーターだけでは文書は作成されません。
+サンプルのページと `/universer-api` は同一オリジンです。別のフロントエンドサーバーを使う場合、HTTP と WebSocket Upgrade をプロキシするか、クライアントの 5 つの URL をまとめて変更します。`unit` はサーバーが作成した ID と一致させます。URL パラメーターだけでは文書は作成されません。サンプルは URL 自動読み込みを無効にし、`unit` を読み取って `loadSheetAsync()` で明示的に読み込みます。アプリに組み込む際は[共同編集の統合](/server/collaboration/browser-integration)に従い、読み込む前に現在のユーザーを設定してください。
 
 ### 1. 対応する同一バージョンのパッケージ群をインストールする
 
@@ -193,6 +193,7 @@ import { UniverLicensePlugin } from "@univerjs-pro/license";
 import { UniverSheetsCorePreset } from "@univerjs/preset-sheets-core";
 import UniverPresetSheetsCoreEnUS from "@univerjs/preset-sheets-core/locales/en-US";
 import { createUniver, defaultTheme, mergeLocales } from "@univerjs/presets";
+import "@univerjs-pro/collaboration-client/facade";
 import "@univerjs/preset-sheets-core/lib/index.css";
 import "@univerjs-pro/collaboration-client-ui/lib/index.css";
 
@@ -200,7 +201,9 @@ const httpProtocol = location.protocol === "https:" ? "https" : "http";
 const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
 const baseURL = `${httpProtocol}://${location.host}/universer-api`;
 
-createUniver({
+const unitId = new URLSearchParams(location.search).get("unit");
+if (!unitId) throw new Error("Open the URL printed by the server; it names the Sheet with ?unit=.");
+const { univerAPI } = createUniver({
   locale: LocaleType.EN_US,
   locales: {
     [LocaleType.EN_US]: mergeLocales(
@@ -228,15 +231,18 @@ createUniver({
         wsSessionTicketUrl: `${baseURL}/user/session-ticket`,
       },
     ],
-    UniverCollaborationClientUIPlugin,
+    [UniverCollaborationClientUIPlugin, { enableUrlUnitLoader: false }],
   ],
 });
+
+const workbook = await univerAPI.getCollaboration().loadSheetAsync(unitId);
+if (!workbook) throw new Error("Document could not be loaded");
 ```
 
 ページには `id="app"` の要素が必要で、クエリパラメーターから Unit を選びます。
 
 ```text
-/?unit=quick-start-sheet&type=2
+/?unit=quick-start-sheet
 ```
 
 ### 5. 学習用の設定をアプリケーションの機能に置き換える

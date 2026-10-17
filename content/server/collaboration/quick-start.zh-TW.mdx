@@ -27,7 +27,7 @@ pnpm example:quick-start
 開啟：
 
 ```text
-http://127.0.0.1:3010/?unit=quick-start-sheet&type=2
+http://127.0.0.1:3010/?unit=quick-start-sheet
 ```
 
 ### 驗證即時協同
@@ -65,7 +65,7 @@ Univer Collaboration Client
 
 複製 `examples/quick-start`，保留 `package.json`、`index.html`、`vite.config.ts`、`web/styles.css`、`web/main.ts`、`server/main.ts`。在範例目錄內執行 build 與 start，因為 Express 依工作目錄讀取 `dist/web`。保留 Vite 授權注入並確保 `#app` 有高度。以下程式碼說明組裝方式；完整應用應從這些檔案開始。
 
-範例頁面與 `/universer-api` 同源。使用獨立前端伺服器時，代理 HTTP 與 WebSocket Upgrade，或一起修改用戶端的五個協定網址。`unit` 必須等於後端建立的文件 ID，`type=2` 表示 Sheets；網址參數不會建立文件。
+範例頁面與 `/universer-api` 同源。使用獨立前端伺服器時，代理 HTTP 與 WebSocket Upgrade，或一起修改用戶端的五個協定網址。`unit` 必須等於後端建立的文件 ID；網址參數不會建立文件。範例關閉 URL 自動載入，讀取 `unit` 後呼叫 `loadSheetAsync()` 明確載入；整合到應用程式時，請依[協同整合](/server/collaboration/browser-integration)先設定目前使用者再載入。
 
 ### 1. 安裝同一組相符版本的套件
 
@@ -193,6 +193,7 @@ import { UniverLicensePlugin } from "@univerjs-pro/license";
 import { UniverSheetsCorePreset } from "@univerjs/preset-sheets-core";
 import UniverPresetSheetsCoreEnUS from "@univerjs/preset-sheets-core/locales/en-US";
 import { createUniver, defaultTheme, mergeLocales } from "@univerjs/presets";
+import "@univerjs-pro/collaboration-client/facade";
 import "@univerjs/preset-sheets-core/lib/index.css";
 import "@univerjs-pro/collaboration-client-ui/lib/index.css";
 
@@ -200,7 +201,9 @@ const httpProtocol = location.protocol === "https:" ? "https" : "http";
 const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
 const baseURL = `${httpProtocol}://${location.host}/universer-api`;
 
-createUniver({
+const unitId = new URLSearchParams(location.search).get("unit");
+if (!unitId) throw new Error("Open the URL printed by the server; it names the Sheet with ?unit=.");
+const { univerAPI } = createUniver({
   locale: LocaleType.EN_US,
   locales: {
     [LocaleType.EN_US]: mergeLocales(
@@ -228,15 +231,18 @@ createUniver({
         wsSessionTicketUrl: `${baseURL}/user/session-ticket`,
       },
     ],
-    UniverCollaborationClientUIPlugin,
+    [UniverCollaborationClientUIPlugin, { enableUrlUnitLoader: false }],
   ],
 });
+
+const workbook = await univerAPI.getCollaboration().loadSheetAsync(unitId);
+if (!workbook) throw new Error("Document could not be loaded");
 ```
 
 頁面需要 `id="app"` 的元素，並透過查詢參數選擇 Unit：
 
 ```text
-/?unit=quick-start-sheet&type=2
+/?unit=quick-start-sheet
 ```
 
 ### 5. 將教學設定換成應用程式能力
