@@ -1,56 +1,53 @@
 ---
 icon: Boxes
 title: 部署指引
-description: 按规模为 Server SDK 应用选择部署形态：单机、服务拆分、多协同节点。
+description: 按规模为 Server SDK 应用选择部署形态：单机、拆分导入导出、多协同节点。
 ---
 
 本页按规模介绍 Server SDK 应用的三种部署形态。先阅读 [Collaboration SDK](/server/collaboration/overview)、
 [导入导出](/server/import-export)和[示例](/server/collaboration/examples)，了解模块如何组装；部署是把同一套
 组装放到一个或多个节点上。
 
-| 形态                  | 协同     | 导入导出 | 推荐规模                         |
-| --------------------- | -------- | -------- | -------------------------------- |
-| [单机](#单机)         | 一个节点 | 同一节点 | 本地应用、开发测试、少量内部用户 |
-| [服务拆分](#服务拆分) | 一个节点 | 独立节点 | 多人线上服务，单节点容量以内     |
-| [多节点](#多协同节点) | 多个节点 | 独立节点 | 超出单节点容量，或需要故障切换   |
+| 形态                          | 协同     | 导入导出 | 推荐规模                         |
+| ----------------------------- | -------- | -------- | -------------------------------- |
+| [单机](#单机)                 | 一个节点 | 同一节点 | 本地应用、开发测试、少量内部用户 |
+| [拆分导入导出](#拆分导入导出) | 一个节点 | 独立节点 | 多人线上服务，单节点容量以内     |
+| [多节点](#多协同节点)         | 多个节点 | 独立节点 | 超出单节点容量，或需要故障切换   |
 
 ## 单机
 
-一个 Node.js 进程承载协同和导入导出，浏览器直接连接。存储用 SQLite，或通过自定义 Database Adapter
-接入你的数据库。参考示例：[Exchange](/server/collaboration/examples#exchange)，协同和导入导出在同一进程。
+所有功能部署在一个 Node.js 进程里，浏览器直接连接。参考示例：[Exchange](/server/collaboration/examples#exchange)。
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) -->|\"HTTP / WebSocket\"| App[\"应用节点<br/>协同 + 导入导出\"]\n    App --> DB[(\"数据库\")]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
-| 组件     | 部署方式            | 共享                       |
-| -------- | ------------------- | -------------------------- |
-| 协同     | 一个节点            | 与导入导出共享 CPU 和内存  |
-| 导入导出 | 同一节点            | 与协同共享 CPU 和内存      |
-| 存储     | SQLite 文件或数据库 | 本节点                     |
+| 组件     | 部署方式 | 共享                      |
+| -------- | -------- | ------------------------- |
+| 协同     | 一个节点 | 与导入导出共享 CPU 和内存 |
+| 导入导出 | 同一节点 | 与协同共享 CPU 和内存     |
+| 存储     | 数据库   | 本节点                    |
 
-- SQLite 持久化并自动建表，写入串行；Memory Adapter 只用于本地验证。
-- 一次转换是 CPU 密集型的，大文件会拖慢协同。
-- 单副本运行，重启会断开所有 Session。
+- Database Adapter 实现 `IDatabaseAdapter` 契约，见 [Database Adapter](/server/collaboration/database-adapters)。
+- 导入导出的任务与文件存储、超时和下载链接见[文件交换集成](/server/import-export)。
+- 一次转换是 CPU 密集型的，大文件会拖慢协同；单副本运行，重启会断开所有 Session。
 
-导入导出影响协同响应、提交排队，或要面向多人持续服务时，进入服务拆分。
+导入导出影响协同响应，或要面向多人持续服务时，拆分导入导出。
 
-## 服务拆分
+## 拆分导入导出
 
-网关转发 HTTP 和 WebSocket；协同一个节点；导入导出独立节点；两者连同一个数据库。两项拆分互相独立。
+导入导出放到独立节点，按 CPU 和内存扩缩容；协同仍是一个节点；网关分别路由两类路径；两者连同一个数据库。
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) -->|\"HTTPS / WSS\"| Gateway[\"网关\"]\n    Gateway -->|\"协同\"| Node[\"协同节点<br/>Transport · Endpoint · Service\"]\n    Gateway -->|\"上传 · 任务 · 下载\"| Exchange[\"导入导出节点<br/>Service + Exchange\"]\n    Node --> DB[(\"数据库\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
-| 组件     | 部署方式                       | 共享                     |
-| -------- | ------------------------------ | ------------------------ |
-| 网关     | 分别路由协同和导入导出路径     | 仅转发                   |
-| 协同     | 一个节点                       | 数据库                   |
-| 导入导出 | 独立节点，按 CPU 和内存扩缩容  | 数据库：Unit、任务、文件 |
-| 存储     | 数据库                         | 所有节点                 |
+| 组件     | 部署方式                      | 共享                     |
+| -------- | ----------------------------- | ------------------------ |
+| 网关     | 分别路由协同和导入导出路径    | 仅转发                   |
+| 协同     | 一个节点                      | 数据库                   |
+| 导入导出 | 独立节点，按 CPU 和内存扩缩容 | 数据库：Unit、任务、文件 |
+| 存储     | 数据库                        | 所有节点                 |
 
-- Database Adapter 实现 `IDatabaseAdapter` 契约，注入点相同，见 [Database Adapter](/server/collaboration/database-adapters)。
-- 导入导出节点组装 Database Adapter、`UniverCollabService` 和转换模块，直接访问数据库。
-- 任务和文件放在所有副本都能访问的存储里；任务设超时，下载链接过期。见[文件交换集成](/server/import-export)。
+导入导出节点组装 Database Adapter、`UniverCollabService` 和转换模块，直接访问数据库，注入点与单机相同。
 
-协同仍是一个节点，能服务的文档数受进程内存限制。超出容量或需要故障切换时进入多节点。
+协同单节点能服务的文档数受进程内存限制。超出容量或需要故障切换时进入多节点。
 
 ## 多协同节点
 
@@ -82,7 +79,7 @@ const ticketStore = new RedisSessionTicketStore({ client });
 const endpoint = new UniverCollabEndpoint(service, { pubSub, ticketStore });
 ```
 
-网关把同一文档的 WebSocket 和提交固定到一个节点，其余请求任意节点，配置见 Multi-node 示例。
+网关把同一文档的 WebSocket 和提交固定到一个节点，其余请求任意节点，配置见 [Multi-node 示例](/server/collaboration/examples#multi-node)。
 
 ## 进一步
 

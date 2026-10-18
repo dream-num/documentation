@@ -1,7 +1,7 @@
 ---
 icon: Boxes
 title: Deployment guide
-description: Choose a deployment shape for a Server SDK application by scale, from one machine to split services and multiple collaboration nodes.
+description: Choose a deployment shape for a Server SDK application by scale, from one machine to a separate import and export node and multiple collaboration nodes.
 ---
 
 This page describes three deployment shapes for a Server SDK application by scale. Read
@@ -9,57 +9,53 @@ This page describes three deployment shapes for a Server SDK application by scal
 [examples](/server/collaboration/examples) first to see how the modules are assembled; deployment places
 the same assembly on one or more nodes.
 
-| Shape                                           | Collaboration | Import and export | Recommended scale                                   |
-| ----------------------------------------------- | ------------- | ----------------- | --------------------------------------------------- |
-| [Single machine](#single-machine)               | One node      | Same node         | Local applications, development, a few internal users |
-| [Split services](#split-services)               | One node      | Separate node     | Multi-user online service within one node's capacity |
-| [Multiple nodes](#multiple-collaboration-nodes) | Several nodes | Separate node     | Beyond one node's capacity, or node failover        |
+| Shape                                                 | Collaboration | Import and export | Recommended scale                                     |
+| ----------------------------------------------------- | ------------- | ----------------- | ----------------------------------------------------- |
+| [Single machine](#single-machine)                     | One node      | Same node         | Local applications, development, a few internal users |
+| [Split import and export](#split-import-and-export)   | One node      | Separate node     | Multi-user online service within one node's capacity  |
+| [Multiple nodes](#multiple-collaboration-nodes)       | Several nodes | Separate node     | Beyond one node's capacity, or node failover          |
 
 ## Single machine
 
-One Node.js process hosts collaboration and import and export, and the browser connects to it
-directly. Storage is SQLite, or your database through a custom Database Adapter. Reference example:
-[Exchange](/server/collaboration/examples#exchange), with collaboration and import and export in one process.
+Everything runs in one Node.js process, and the browser connects to it directly. Reference example:
+[Exchange](/server/collaboration/examples#exchange).
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Browser\"]) -->|\"HTTP / WebSocket\"| App[\"Application node<br/>Collaboration + Exchange\"]\n    App --> DB[(\"Database\")]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
-| Component         | Deployment              | Shares                                   |
-| ----------------- | ----------------------- | ---------------------------------------- |
-| Collaboration     | One node                | CPU and memory with import and export    |
-| Import and export | Same node               | CPU and memory with collaboration        |
-| Storage           | SQLite file or database | This node                                |
+| Component         | Deployment | Shares                                |
+| ----------------- | ---------- | ------------------------------------- |
+| Collaboration     | One node   | CPU and memory with import and export |
+| Import and export | Same node  | CPU and memory with collaboration     |
+| Storage           | Database   | This node                             |
 
-- SQLite persists data, creates its tables, and serializes writes; the Memory Adapter is for local
-  verification only.
-- A conversion is CPU-bound; a large file slows collaboration.
-- Runs as a single replica; a restart disconnects every Session.
+- The Database Adapter implements the `IDatabaseAdapter` contract. See [Database Adapters](/server/collaboration/database-adapters).
+- Task and file storage, timeouts, and download links for import and export are covered in
+  [File exchange integration](/server/import-export).
+- A conversion is CPU-bound and a large file slows collaboration; the process runs as a single replica,
+  and a restart disconnects every Session.
 
-Move to split services when conversions affect collaboration latency, submissions queue, or the
-service must stay available to many users.
+Split import and export when conversions affect collaboration latency or the service must stay
+available to many users.
 
-## Split services
+## Split import and export
 
-A gateway forwards HTTP and WebSocket; collaboration is one node; import and export are a separate
-node; both use the same database. The two splits are independent.
+Import and export move to a separate node scaled on CPU and memory; collaboration stays one node; the
+gateway routes the two kinds of paths separately; both use the same database.
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Browser\"]) -->|\"HTTPS / WSS\"| Gateway[\"Gateway\"]\n    Gateway -->|\"Collaboration\"| Node[\"Collaboration node<br/>Transport · Endpoint · Service\"]\n    Gateway -->|\"Upload · task · download\"| Exchange[\"Import and export node<br/>Service + Exchange\"]\n    Node --> DB[(\"Database\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
-| Component         | Deployment                                         | Shares                              |
-| ----------------- | -------------------------------------------------- | ----------------------------------- |
-| Gateway           | Routes collaboration and exchange paths separately | Forwarding only                     |
-| Collaboration     | One node                                           | Database                            |
-| Import and export | Separate node, scaled on CPU and memory            | Database: Units, tasks, files       |
-| Storage           | Database                                           | Every node                          |
+| Component         | Deployment                                         | Shares                        |
+| ----------------- | -------------------------------------------------- | ----------------------------- |
+| Gateway           | Routes collaboration and exchange paths separately | Forwarding only               |
+| Collaboration     | One node                                           | Database                      |
+| Import and export | Separate node, scaled on CPU and memory            | Database: Units, tasks, files |
+| Storage           | Database                                           | Every node                    |
 
-- The Database Adapter implements the `IDatabaseAdapter` contract; the injection point stays the
-  same. See [Database Adapters](/server/collaboration/database-adapters).
-- The import and export node assembles the Database Adapter, a `UniverCollabService`, and the
-  conversion module, and works straight from the database.
-- Tasks and files live in storage every replica can reach; tasks have timeouts and download links
-  expire. See [File exchange integration](/server/import-export).
+The import and export node assembles the Database Adapter, a `UniverCollabService`, and the conversion
+module, and works straight from the database; the injection points are the same as on a single machine.
 
-Collaboration is still one node, and the documents it serves are bounded by process memory. Move to
-multiple nodes beyond that capacity or for failover.
+The documents a single collaboration node serves are bounded by process memory. Move to multiple nodes
+beyond that capacity or for failover.
 
 ## Multiple collaboration nodes
 
@@ -95,7 +91,7 @@ const endpoint = new UniverCollabEndpoint(service, { pubSub, ticketStore });
 ```
 
 The gateway keeps one document's WebSocket and submissions on one node and sends other requests to any
-node; see the Multi-node example for the configuration.
+node; see the [Multi-node example](/server/collaboration/examples#multi-node) for the configuration.
 
 ## Going further
 
