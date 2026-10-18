@@ -4,7 +4,7 @@ title: 部署指引
 description: 按规模为 Server SDK 应用选择部署形态：单机、服务拆分、多协同节点。
 ---
 
-Server SDK 是库，不是可部署的产品。应用组装 Service、Endpoint 和 Transport，注入 Database Adapter，
+Server SDK 是一组库。应用组装 Service、Endpoint 和 Transport，注入 Database Adapter，
 需要导入导出时加入转换模块，然后按自己的规模部署。本页给出三种形态，每一种都可以作为终点。
 
 | 形态                  | 协同     | 导入导出 | 推荐规模                         |
@@ -27,12 +27,12 @@ Server SDK 是库，不是可部署的产品。应用组装 Service、Endpoint �
 | -------- | ------------------- | -------------------------- |
 | 协同     | 一个进程            | 与导入导出共享 CPU 和内存  |
 | 导入导出 | 同一进程            | 与协同共享 CPU 和内存      |
-| 存储     | SQLite 文件或数据库 | 只有这个进程访问           |
+| 存储     | SQLite 文件或数据库 | 本进程                     |
 
 - SQLite 持久化数据并自动建表，按文件备份。Memory Adapter 只用于本地验证。
 - 一次转换是 CPU 密集型的，整个工作簿在内存里，大文件会拖慢协同。
 - SQLite 写入串行，并发提交排队。
-- 只能一个副本，重启断开所有 Session。
+- 单副本运行，重启会断开所有 Session。
 
 导入导出影响协同响应、提交排队，或要面向多人持续服务时，进入服务拆分。
 参考示例：[Exchange](/server/collaboration/examples#exchange)。
@@ -45,25 +45,25 @@ Server SDK 是库，不是可部署的产品。应用组装 Service、Endpoint �
 
 | 组件     | 部署方式                       | 共享                     |
 | -------- | ------------------------------ | ------------------------ |
-| 网关     | 分别路由协同和导入导出路径     | —                        |
+| 网关     | 分别路由协同和导入导出路径     | 仅转发                   |
 | 协同     | 一个节点                       | 数据库                   |
 | 导入导出 | 独立进程，按 CPU 和内存扩缩容  | 数据库：Unit、任务、文件 |
 | 存储     | 数据库                         | 所有进程                 |
 
-- Database Adapter 实现 `IDatabaseAdapter` 契约，注入点不变，见 [Database Adapter](/server/collaboration/database-adapters)。
-- 导入导出进程只组装 Database Adapter、`UniverCollabService` 和转换模块，没有 Endpoint 和 Transport。
-  导入通过 Service 创建 Unit，导出读取最新已确认的 revision，不经过协同节点。
+- Database Adapter 实现 `IDatabaseAdapter` 契约，注入点相同，见 [Database Adapter](/server/collaboration/database-adapters)。
+- 导入导出进程组装 Database Adapter、`UniverCollabService` 和转换模块。导入通过 Service 创建 Unit，
+  导出通过 Service 读取最新已确认的 revision，直接访问数据库。
 - 任务和文件放在所有副本都能访问的存储里；任务设超时，下载链接过期。见[文件交换集成](/server/import-export)。
 
 ### 上线前
 
 - 网关同时转发 HTTP 和 WebSocket，HTTPS 页面用 WSS。
-- 网关空闲超时低于 Node.js keep-alive（默认 `5` 秒），否则偶发 `502`。
+- 网关空闲超时设为低于 Node.js keep-alive（默认 `5` 秒），避免偶发 `502`。
 - Transport 默认限制请求体和消息 16 MiB；网关上传限制按导入需要设置。
 - 注册健康检查路由。
 - 关停顺序：Transport → Service → Database Adapter，见[资源释放](/server/collaboration/modules#资源释放)。
 - License 在浏览器侧配置，构建时注入，见 [License](/server/license)。
-- 身份与授权由应用实现，示例里的固定用户和放行规则不能上线。
+- 身份与授权由应用实现，上线前替换示例里的固定用户和放行规则。
 
 协同仍是一个节点：能服务的文档数受进程内存限制，重启断开所有 Session。超出容量或需要故障切换时进入多节点。
 参考示例：[独立运行导入导出](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/multi-node/README.zh-CN.md#独立运行导入导出)。
@@ -77,22 +77,22 @@ ticket store 共享 Session Ticket。`@univerjs-pro/collaboration-cluster-redis`
 
 | 组件     | 部署方式                        | 共享                          |
 | -------- | ------------------------------- | ----------------------------- |
-| 网关     | WebSocket 和提交按 unit ID 路由 | —                             |
+| 网关     | WebSocket 和提交按 unit ID 路由 | 仅转发                        |
 | 协同     | N 个相同节点                    | 数据库、pub/sub、ticket store |
 | 导入导出 | 独立副本                        | 数据库                        |
 | 存储     | 数据库                          | 所有节点和副本                |
 
-- 创建 pub/sub adapter 和 ticket store 传给 `UniverCollabEndpoint`，其余不变。
+- 创建 pub/sub adapter 和 ticket store 传给 `UniverCollabEndpoint`，其余组装保持原样。
   关停顺序：Transport → pub/sub adapter 及其连接 → Service → Database Adapter。
-- 节点进程内只有已加载的 Unit、WebSocket Session 和 Room 成员，其余状态在数据库和 Redis。
+- 节点进程内保存已加载的 Unit、WebSocket Session 和 Room 成员，其余状态在数据库和 Redis。
   节点可随意增减，节点停止后客户端经网关重连。
-- Redis 需要高可用：不可用时 ticket 请求失败，WebSocket upgrade 返回可重试的 `503`，新 Session 无法建立。
-- 网关不会把失败的请求重试到其他节点，SDK 不做已加载文档的自动故障切换。
+- Redis 需要高可用：Redis 故障期间 ticket 请求失败，WebSocket upgrade 返回可重试的 `503`，新 Session 在 Redis 恢复后建立。
+- 节点故障时，客户端经网关重连到其他节点，这就是故障切换的路径。
 
 ### 按文档路由
 
 任何节点都能处理任何请求，但建议把同一文档的 WebSocket 和提交固定到一个节点：确认和广播在本地投递，
-只有该节点加载文档。否则多个节点加载同一文档，并发提交触发 CAS 冲突后重载重试。
+文档只在该节点加载。分散到多个节点时，每个节点都加载同一文档，并发提交触发 CAS 冲突后重载重试。
 
 | 请求                                      | 路由                  |
 | ----------------------------------------- | --------------------- |
@@ -101,7 +101,7 @@ ticket store 共享 Session Ticket。`@univerjs-pro/collaboration-cluster-redis`
 | 应用页面与接口                            | 任意节点              |
 | 上传、任务、下载                          | 任意导入导出副本      |
 
-WebSocket 路径不含 unit ID，浏览器给 URL 追加 `unit` 参数，网关按它哈希。
+提交路径自带 unit ID；WebSocket 由浏览器给 URL 追加 `unit` 参数，网关按它哈希。
 参考示例：[多节点示例](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/multi-node/README.zh-CN.md)。
 
 ## 进一步

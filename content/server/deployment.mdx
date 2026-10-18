@@ -4,7 +4,7 @@ title: Deployment guide
 description: Choose a deployment shape for a Server SDK application by scale, from one machine to split services and multiple collaboration nodes.
 ---
 
-Server SDK is a library, not a deployable product. The application assembles Service, Endpoint, and
+Server SDK is a set of libraries. The application assembles Service, Endpoint, and
 Transport, injects a Database Adapter, adds the conversion module when it needs import and export, and
 deploys at its own scale. This page gives three shapes; each one can be the destination.
 
@@ -29,13 +29,13 @@ directly. Storage is SQLite, or your database through a custom Database Adapter.
 | ----------------- | ----------------------- | ---------------------------------------- |
 | Collaboration     | One process             | CPU and memory with import and export    |
 | Import and export | Same process            | CPU and memory with collaboration        |
-| Storage           | SQLite file or database | Only this process                        |
+| Storage           | SQLite file or database | This process                             |
 
 - SQLite persists data, creates its tables, and is backed up as a file. The Memory Adapter is for
   local verification only.
 - A conversion is CPU-bound and holds the whole workbook in memory; a large file slows collaboration.
 - SQLite serializes writes, so concurrent submissions queue.
-- Only one replica; a restart disconnects every Session.
+- Runs as a single replica; a restart disconnects every Session.
 
 Move to split services when conversions affect collaboration latency, submissions queue, or the
 service must stay available to many users.
@@ -50,31 +50,31 @@ process; both use the same database. The two splits are independent.
 
 | Component         | Deployment                                         | Shares                              |
 | ----------------- | -------------------------------------------------- | ----------------------------------- |
-| Gateway           | Routes collaboration and exchange paths separately | —                                   |
+| Gateway           | Routes collaboration and exchange paths separately | Forwarding only                     |
 | Collaboration     | One node                                           | Database                            |
 | Import and export | Separate process, scaled on CPU and memory         | Database: Units, tasks, files       |
 | Storage           | Database                                           | Every process                       |
 
-- The Database Adapter implements the `IDatabaseAdapter` contract; the injection point does not
-  change. See [Database Adapters](/server/collaboration/database-adapters).
-- The import and export process assembles only the Database Adapter, a `UniverCollabService`, and
-  the conversion module, with no Endpoint or Transport. Import creates the Unit through the Service;
-  export reads the latest confirmed revision without going through the collaboration node.
+- The Database Adapter implements the `IDatabaseAdapter` contract; the injection point stays the
+  same. See [Database Adapters](/server/collaboration/database-adapters).
+- The import and export process assembles the Database Adapter, a `UniverCollabService`, and the
+  conversion module. Import creates the Unit through the Service; export reads the latest confirmed
+  revision through the Service, straight from the database.
 - Tasks and files live in storage every replica can reach; tasks have timeouts and download links
   expire. See [File exchange integration](/server/import-export).
 
 ### Before going live
 
 - The gateway forwards both HTTP and WebSocket; HTTPS pages use WSS.
-- The gateway idle timeout is below the Node.js keep-alive timeout (`5` seconds by default), or
-  occasional `502` responses appear.
+- Set the gateway idle timeout below the Node.js keep-alive timeout (`5` seconds by default) to
+  avoid occasional `502` responses.
 - Transport caps bodies and messages at 16 MiB by default; set the gateway upload limit to what
   import needs.
 - Register a health check route.
 - Shutdown order: Transport → Service → Database Adapter. See [Resource cleanup](/server/collaboration/modules#resource-cleanup).
 - The license is browser-side configuration, injected at build time. See [License](/server/license).
-- Identity and authorization are implemented by the application; the examples' fixed users and
-  allow-all rules do not ship.
+- Identity and authorization are implemented by the application; replace the examples' fixed users
+  and allow-all rules before launch.
 
 Collaboration is still one node: the documents it serves are bounded by process memory, and a
 restart disconnects every Session. Move to multiple nodes beyond that capacity or for failover.
@@ -90,27 +90,27 @@ Presence, and broadcasts between nodes; a ticket store shares Session Tickets.
 
 | Component         | Deployment                                  | Shares                          |
 | ----------------- | ------------------------------------------- | ------------------------------- |
-| Gateway           | Routes WebSocket and submissions by unit ID | —                               |
+| Gateway           | Routes WebSocket and submissions by unit ID | Forwarding only                 |
 | Collaboration     | N identical nodes                           | Database, pub/sub, ticket store |
 | Import and export | Separate replicas                           | Database                        |
 | Storage           | Database                                    | Every node and replica          |
 
-- Create the pub/sub adapter and ticket store and pass them to `UniverCollabEndpoint`; nothing else
-  changes. Shutdown order: Transport → pub/sub adapter and its connections → Service → Database Adapter.
-- A node's process holds only its loaded Units, WebSocket Sessions, and Room members; all other state
+- Create the pub/sub adapter and ticket store and pass them to `UniverCollabEndpoint`; the rest of the
+  assembly stays the same. Shutdown order: Transport → pub/sub adapter and its connections → Service → Database Adapter.
+- A node's process holds its loaded Units, WebSocket Sessions, and Room members; all other state
   is in the database and Redis. Add or remove nodes freely; when a node stops, clients reconnect
   through the gateway.
 - Redis must be highly available: while it is down, ticket requests fail, WebSocket upgrades return a
-  retryable `503`, and new Sessions cannot start.
-- The gateway does not retry a failed request on another node, and the SDK does not fail over loaded
-  documents automatically.
+  retryable `503`, and new Sessions start again once Redis is back.
+- When a node fails, clients reconnect through the gateway to another node; that is the failover
+  path.
 
 ### Route by document
 
 Any node can handle any request, but keep one document's WebSocket and submissions on one node:
-acknowledgements and broadcasts are delivered locally and only that node loads the document.
-Otherwise several nodes load the same document and concurrent submissions hit CAS conflicts, then
-reload and retry.
+acknowledgements and broadcasts are delivered locally and the document loads on that node alone.
+Spread across nodes, each node loads the same document and concurrent submissions hit CAS conflicts,
+then reload and retry.
 
 | Request                                           | Routing                       |
 | ------------------------------------------------- | ----------------------------- |
@@ -119,8 +119,8 @@ reload and retry.
 | Application pages and APIs                        | Any node                      |
 | Upload, task, download                            | Any import and export replica |
 
-The WebSocket path has no unit ID, so the browser appends a `unit` query parameter and the gateway
-hashes on it.
+Submission paths carry the unit ID; for WebSocket, the browser appends a `unit` query parameter and
+the gateway hashes on it.
 Reference example: [multi-node example](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/multi-node/README.md).
 
 ## Going further
