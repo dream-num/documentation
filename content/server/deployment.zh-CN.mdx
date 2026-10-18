@@ -4,17 +4,15 @@ title: 部署指引
 description: 按规模为 Server SDK 应用选择部署形态：单机、服务拆分、多协同节点。
 ---
 
-Server SDK 是一组库。应用组装 Service、Endpoint 和 Transport，注入 Database Adapter，
-需要导入导出时加入转换模块，然后按自己的规模部署。本页给出三种形态，每一种都可以作为终点。
+本页按规模介绍 Server SDK 应用的三种部署形态。先阅读 [Collaboration SDK](/server/collaboration/overview)、
+[导入导出](/server/import-export)和[示例](/server/collaboration/examples)，了解模块如何组装；部署是把同一套
+组装放到一个或多个节点上。每种形态都可以作为终点。
 
 | 形态                  | 协同     | 导入导出 | 推荐规模                         |
 | --------------------- | -------- | -------- | -------------------------------- |
 | [单机](#单机)         | 一个节点 | 同一节点 | 本地应用、开发测试、少量内部用户 |
 | [服务拆分](#服务拆分) | 一个节点 | 独立节点 | 多人线上服务，单节点容量以内     |
 | [多节点](#多协同节点) | 多个节点 | 独立节点 | 超出单节点容量，或需要故障切换   |
-
-版本对应 `1.1.0`，见[环境与版本要求](/server/requirements)。用户、认证、授权、文件存储和运维在每种
-形态里都由应用负责，见[身份与授权](/server/collaboration/identity-and-authorization)。
 
 ## 单机
 
@@ -29,9 +27,8 @@ Server SDK 是一组库。应用组装 Service、Endpoint 和 Transport，注入
 | 导入导出 | 同一节点            | 与协同共享 CPU 和内存      |
 | 存储     | SQLite 文件或数据库 | 本节点                     |
 
-- SQLite 持久化数据并自动建表，按文件备份。Memory Adapter 只用于本地验证。
-- 一次转换是 CPU 密集型的，整个工作簿在内存里，大文件会拖慢协同。
-- SQLite 写入串行，并发提交排队。
+- SQLite 持久化并自动建表，写入串行；Memory Adapter 只用于本地验证。
+- 一次转换是 CPU 密集型的，大文件会拖慢协同。
 - 单副本运行，重启会断开所有 Session。
 
 导入导出影响协同响应、提交排队，或要面向多人持续服务时，进入服务拆分。
@@ -51,21 +48,10 @@ Server SDK 是一组库。应用组装 Service、Endpoint 和 Transport，注入
 | 存储     | 数据库                         | 所有节点                 |
 
 - Database Adapter 实现 `IDatabaseAdapter` 契约，注入点相同，见 [Database Adapter](/server/collaboration/database-adapters)。
-- 导入导出节点组装 Database Adapter、`UniverCollabService` 和转换模块。导入通过 Service 创建 Unit，
-  导出通过 Service 读取最新已确认的 revision，直接访问数据库。
+- 导入导出节点组装 Database Adapter、`UniverCollabService` 和转换模块，直接访问数据库。
 - 任务和文件放在所有副本都能访问的存储里；任务设超时，下载链接过期。见[文件交换集成](/server/import-export)。
 
-### 上线前
-
-- 网关同时转发 HTTP 和 WebSocket，HTTPS 页面用 WSS。
-- 网关空闲超时设为低于 Node.js keep-alive（默认 `5` 秒），避免偶发 `502`。
-- Transport 默认限制请求体和消息 16 MiB；网关上传限制按导入需要设置。
-- 注册健康检查路由。
-- 关停顺序：Transport → Service → Database Adapter，见[资源释放](/server/collaboration/modules#资源释放)。
-- License 在浏览器侧配置，构建时注入，见 [License](/server/license)。
-- 身份与授权由应用实现，上线前替换示例里的固定用户和放行规则。
-
-协同仍是一个节点：能服务的文档数受进程内存限制，重启断开所有 Session。超出容量或需要故障切换时进入多节点。
+协同仍是一个节点，能服务的文档数受进程内存限制。超出容量或需要故障切换时进入多节点。
 参考示例：[独立运行导入导出](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/multi-node/README.zh-CN.md#独立运行导入导出)。
 
 ## 多协同节点
@@ -90,8 +76,6 @@ ticket store 共享 Session Ticket，`@univerjs-pro/collaboration-cluster-redis`
 
 ## 进一步
 
-- **转换交给 worker。** API 副本无状态，任务在数据库，文件在对象存储，由队列派发给独立扩缩容的 worker，
-  带租约或超时。
-- **按文档划分节点池。** 路由键是 unit ID，可按租户或大小映射到不同节点池，各池共享数据库和 pub/sub。
-- **扩展模块。** History、Thread Comment 和 Worktree 自带 Service 和 Adapter，遵循同样的形态。
-  见[协同扩展模块](/server/collaboration/extensions)。
+- 转换交给独立扩缩容的 worker：任务在数据库，文件在对象存储，由队列派发。
+- 按租户或文档大小划分节点池，路由键仍是 unit ID，各池共享数据库和 pub/sub。
+- History、Thread Comment 和 Worktree 遵循同样的形态，见[协同扩展模块](/server/collaboration/extensions)。

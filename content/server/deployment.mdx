@@ -4,19 +4,16 @@ title: Deployment guide
 description: Choose a deployment shape for a Server SDK application by scale, from one machine to split services and multiple collaboration nodes.
 ---
 
-Server SDK is a set of libraries. The application assembles Service, Endpoint, and
-Transport, injects a Database Adapter, adds the conversion module when it needs import and export, and
-deploys at its own scale. This page gives three shapes; each one can be the destination.
+This page describes three deployment shapes for a Server SDK application by scale. Read
+[Collaboration SDK](/server/collaboration/overview), [import and export](/server/import-export), and the
+[examples](/server/collaboration/examples) first to see how the modules are assembled; deployment places
+the same assembly on one or more nodes. Each shape can be the destination.
 
 | Shape                                           | Collaboration | Import and export | Recommended scale                                   |
 | ----------------------------------------------- | ------------- | ----------------- | --------------------------------------------------- |
 | [Single machine](#single-machine)               | One node      | Same node         | Local applications, development, a few internal users |
 | [Split services](#split-services)               | One node      | Separate node     | Multi-user online service within one node's capacity |
 | [Multiple nodes](#multiple-collaboration-nodes) | Several nodes | Separate node     | Beyond one node's capacity, or node failover        |
-
-Versions correspond to `1.1.0`; see [Environment and versions](/server/requirements). Users,
-authentication, authorization, file storage, and operations belong to the application in every shape;
-see [Identity and authorization](/server/collaboration/identity-and-authorization).
 
 ## Single machine
 
@@ -31,10 +28,9 @@ directly. Storage is SQLite, or your database through a custom Database Adapter.
 | Import and export | Same node               | CPU and memory with collaboration        |
 | Storage           | SQLite file or database | This node                                |
 
-- SQLite persists data, creates its tables, and is backed up as a file. The Memory Adapter is for
-  local verification only.
-- A conversion is CPU-bound and holds the whole workbook in memory; a large file slows collaboration.
-- SQLite serializes writes, so concurrent submissions queue.
+- SQLite persists data, creates its tables, and serializes writes; the Memory Adapter is for local
+  verification only.
+- A conversion is CPU-bound; a large file slows collaboration.
 - Runs as a single replica; a restart disconnects every Session.
 
 Move to split services when conversions affect collaboration latency, submissions queue, or the
@@ -58,26 +54,12 @@ node; both use the same database. The two splits are independent.
 - The Database Adapter implements the `IDatabaseAdapter` contract; the injection point stays the
   same. See [Database Adapters](/server/collaboration/database-adapters).
 - The import and export node assembles the Database Adapter, a `UniverCollabService`, and the
-  conversion module. Import creates the Unit through the Service; export reads the latest confirmed
-  revision through the Service, straight from the database.
+  conversion module, and works straight from the database.
 - Tasks and files live in storage every replica can reach; tasks have timeouts and download links
   expire. See [File exchange integration](/server/import-export).
 
-### Before going live
-
-- The gateway forwards both HTTP and WebSocket; HTTPS pages use WSS.
-- Set the gateway idle timeout below the Node.js keep-alive timeout (`5` seconds by default) to
-  avoid occasional `502` responses.
-- Transport caps bodies and messages at 16 MiB by default; set the gateway upload limit to what
-  import needs.
-- Register a health check route.
-- Shutdown order: Transport → Service → Database Adapter. See [Resource cleanup](/server/collaboration/modules#resource-cleanup).
-- The license is browser-side configuration, injected at build time. See [License](/server/license).
-- Identity and authorization are implemented by the application; replace the examples' fixed users
-  and allow-all rules before launch.
-
-Collaboration is still one node: the documents it serves are bounded by process memory, and a
-restart disconnects every Session. Move to multiple nodes beyond that capacity or for failover.
+Collaboration is still one node, and the documents it serves are bounded by process memory. Move to
+multiple nodes beyond that capacity or for failover.
 Reference example: [running import and export separately](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/multi-node/README.md#run-import-and-export-separately).
 
 ## Multiple collaboration nodes
@@ -105,9 +87,8 @@ Reference example: [Multi-node](/server/collaboration/examples#multi-node).
 
 ## Going further
 
-- **Hand conversions to workers.** Stateless API replicas, tasks in the database, files in object
-  storage, and a queue dispatching to independently scaled workers with leases or timeouts.
-- **Partition nodes by document.** The routing key is the unit ID, so documents can map to node
-  pools by tenant or size; every pool shares the database and pub/sub.
-- **Extension modules.** History, Thread Comment, and Worktree bring their own Services and Adapters
-  and follow the same shapes. See [Collaboration extension modules](/server/collaboration/extensions).
+- Hand conversions to independently scaled workers: tasks in the database, files in object storage,
+  dispatched through a queue.
+- Partition node pools by tenant or document size; the routing key stays the unit ID and every pool
+  shares the database and pub/sub.
+- History, Thread Comment, and Worktree follow the same shapes. See [Collaboration extension modules](/server/collaboration/extensions).
