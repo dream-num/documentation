@@ -66,9 +66,23 @@ ticket store 共享 Session Ticket，`@univerjs-pro/collaboration-cluster-redis`
 | 导入导出 | 独立节点                        | 数据库                        |
 | 存储     | 数据库                          | 所有节点                      |
 
-- 创建 pub/sub adapter 和 ticket store 传给 `UniverCollabEndpoint`，其余组装保持原样，见[包概览](/server/collaboration/packages)。
-- 网关把同一文档的 WebSocket 和提交固定到一个节点，其余请求任意节点，见[网关配置](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/multi-node/README.zh-CN.md#配置网关)。
-- Redis 以高可用方式运行；节点故障时客户端经网关重连到其他节点。
+每个协同节点把 Redis 的 pub/sub adapter 和 ticket store 传给 Endpoint，其余组装保持原样：
+
+```ts
+import { createClient } from "redis";
+import { RedisPubSubAdapter, RedisSessionTicketStore } from "@univerjs-pro/collaboration-cluster-redis";
+import { UniverCollabEndpoint } from "@univerjs-pro/collaboration-endpoint";
+
+const client = createClient({ url: process.env.REDIS_URL });
+const subClient = client.duplicate();
+await Promise.all([client.connect(), subClient.connect()]);
+
+const pubSub = new RedisPubSubAdapter({ pubClient: client, subClient });
+const ticketStore = new RedisSessionTicketStore({ client });
+const endpoint = new UniverCollabEndpoint(service, { pubSub, ticketStore });
+```
+
+网关把同一文档的 WebSocket 和提交固定到一个节点，其余请求任意节点，配置见 Multi-node 示例。
 
 ## 进一步
 

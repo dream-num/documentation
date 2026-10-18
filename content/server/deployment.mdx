@@ -77,11 +77,25 @@ Rooms, Presence, and broadcasts between nodes, a ticket store shares Session Tic
 | Import and export | Separate nodes                              | Database                        |
 | Storage           | Database                                    | Every node                      |
 
-- Create the pub/sub adapter and ticket store and pass them to `UniverCollabEndpoint`; the rest of the
-  assembly stays the same. See [Packages](/server/collaboration/packages).
-- The gateway keeps one document's WebSocket and submissions on one node and sends other requests to
-  any node. See [gateway configuration](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/multi-node/README.md#configure-the-gateway).
-- Run Redis highly available; when a node fails, clients reconnect through the gateway to another node.
+Every collaboration node passes the Redis pub/sub adapter and ticket store to the Endpoint; the rest of
+the assembly stays the same:
+
+```ts
+import { createClient } from "redis";
+import { RedisPubSubAdapter, RedisSessionTicketStore } from "@univerjs-pro/collaboration-cluster-redis";
+import { UniverCollabEndpoint } from "@univerjs-pro/collaboration-endpoint";
+
+const client = createClient({ url: process.env.REDIS_URL });
+const subClient = client.duplicate();
+await Promise.all([client.connect(), subClient.connect()]);
+
+const pubSub = new RedisPubSubAdapter({ pubClient: client, subClient });
+const ticketStore = new RedisSessionTicketStore({ client });
+const endpoint = new UniverCollabEndpoint(service, { pubSub, ticketStore });
+```
+
+The gateway keeps one document's WebSocket and submissions on one node and sends other requests to any
+node; see the Multi-node example for the configuration.
 
 ## Going further
 
