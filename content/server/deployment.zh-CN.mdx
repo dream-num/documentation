@@ -20,12 +20,6 @@ description: 按规模为 Server SDK 应用选择部署形态：单机、拆分�
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) -->|\"HTTP / WebSocket\"| App[\"应用节点<br/>协同 + 导入导出\"]\n    App --> DB[(\"数据库\")]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
-| 组件     | 部署方式 | 共享                      |
-| -------- | -------- | ------------------------- |
-| 协同     | 一个节点 | 与导入导出共享 CPU 和内存 |
-| 导入导出 | 同一节点 | 与协同共享 CPU 和内存     |
-| 存储     | 数据库   | 本节点                    |
-
 - Database Adapter 实现 `IDatabaseAdapter` 契约，见 [Database Adapter](/server/collaboration/database-adapters)。
 - 导入导出的任务与文件存储、超时和下载链接见[文件交换集成](/server/import-export)。
 - 一次转换是 CPU 密集型的，大文件会拖慢协同。
@@ -38,13 +32,6 @@ description: 按规模为 Server SDK 应用选择部署形态：单机、拆分�
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) -->|\"HTTPS / WSS\"| Gateway[\"网关\"]\n    Gateway -->|\"协同\"| Node[\"协同节点<br/>Transport · Endpoint · Service\"]\n    Gateway -->|\"上传 · 任务 · 下载\"| Exchange[\"导入导出节点<br/>Service + Exchange\"]\n    Node --> DB[(\"数据库\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
-| 组件     | 部署方式                      | 共享                     |
-| -------- | ----------------------------- | ------------------------ |
-| 网关     | 分别路由协同和导入导出路径    | 仅转发                   |
-| 协同     | 一个节点                      | 数据库                   |
-| 导入导出 | 独立节点，按 CPU 和内存扩缩容 | 数据库：Unit、任务、文件 |
-| 存储     | 数据库                        | 所有节点                 |
-
 导入导出节点组装 Database Adapter、`UniverCollabService` 和转换模块，直接访问数据库，注入点与单机相同。
 
 协同单节点能服务的文档数受进程内存限制。超出容量或需要故障切换时进入多节点。
@@ -55,13 +42,6 @@ description: 按规模为 Server SDK 应用选择部署形态：单机、拆分�
 ticket store 共享 Session Ticket，`@univerjs-pro/collaboration-cluster-redis` 提供 Redis 实现。参考示例：[Multi-node](/server/collaboration/examples#multi-node)。
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) -->|\"HTTPS / WSS\"| Gateway[\"网关\"]\n    subgraph Nodes[\"协同节点\"]\n        direction TB\n        A[\"节点 A\"]\n        B[\"节点 B\"]\n    end\n    Gateway -->|\"WebSocket 与提交<br/>按 unit ID\"| A\n    Gateway -->|\"其余请求<br/>任意节点\"| B\n    subgraph Exchange[\"导入导出节点\"]\n        direction TB\n        X1[\"节点 A\"]\n        X2[\"节点 B\"]\n    end\n    Gateway -->|\"上传 · 任务 · 下载\"| X1\n    Gateway --> X2\n    A --- PubSub[(\"pub/sub + ticket store\")]\n    B --- PubSub\n    A --> DB[(\"数据库\")]\n    B --> DB\n    X1 --> DB\n    X2 --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
-
-| 组件     | 部署方式                        | 共享                          |
-| -------- | ------------------------------- | ----------------------------- |
-| 网关     | WebSocket 和提交按 unit ID 路由 | 仅转发                        |
-| 协同     | N 个相同节点                    | 数据库、pub/sub、ticket store |
-| 导入导出 | 独立节点                        | 数据库                        |
-| 存储     | 数据库                          | 所有节点                      |
 
 每个协同节点把 Redis 的 pub/sub adapter 和 ticket store 传给 Endpoint，其余组装保持原样：
 
