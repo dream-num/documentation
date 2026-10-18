@@ -10,9 +10,9 @@ deploys at its own scale. This page gives three shapes; each one can be the dest
 
 | Shape                                           | Collaboration | Import and export | Recommended scale                                   |
 | ----------------------------------------------- | ------------- | ----------------- | --------------------------------------------------- |
-| [Single machine](#single-machine)               | One process   | Same process      | Local applications, development, a few internal users |
-| [Split services](#split-services)               | One node      | Separate process  | Multi-user online service within one node's capacity |
-| [Multiple nodes](#multiple-collaboration-nodes) | Several nodes | Separate process  | Beyond one node's capacity, or node failover        |
+| [Single machine](#single-machine)               | One node      | Same node         | Local applications, development, a few internal users |
+| [Split services](#split-services)               | One node      | Separate node     | Multi-user online service within one node's capacity |
+| [Multiple nodes](#multiple-collaboration-nodes) | Several nodes | Separate node     | Beyond one node's capacity, or node failover        |
 
 Versions correspond to `1.1.0`; see [Environment and versions](/server/requirements). Users,
 authentication, authorization, file storage, and operations belong to the application in every shape;
@@ -23,13 +23,13 @@ see [Identity and authorization](/server/collaboration/identity-and-authorizatio
 One Node.js process hosts collaboration and import and export, and the browser connects to it
 directly. Storage is SQLite, or your database through a custom Database Adapter.
 
-<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Browser\"]) -->|\"HTTP / WebSocket\"| App[\"Application process<br/>Collaboration + Exchange\"]\n    App --> DB[(\"Database\")]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Browser\"]) -->|\"HTTP / WebSocket\"| App[\"Application node<br/>Collaboration + Exchange\"]\n    App --> DB[(\"Database\")]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
 | Component         | Deployment              | Shares                                   |
 | ----------------- | ----------------------- | ---------------------------------------- |
-| Collaboration     | One process             | CPU and memory with import and export    |
-| Import and export | Same process            | CPU and memory with collaboration        |
-| Storage           | SQLite file or database | This process                             |
+| Collaboration     | One node                | CPU and memory with import and export    |
+| Import and export | Same node               | CPU and memory with collaboration        |
+| Storage           | SQLite file or database | This node                                |
 
 - SQLite persists data, creates its tables, and is backed up as a file. The Memory Adapter is for
   local verification only.
@@ -44,20 +44,20 @@ Reference example: [Exchange](/server/collaboration/examples#exchange).
 ## Split services
 
 A gateway forwards HTTP and WebSocket; collaboration is one node; import and export are a separate
-process; both use the same database. The two splits are independent.
+node; both use the same database. The two splits are independent.
 
-<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Browser\"]) -->|\"HTTPS / WSS\"| Gateway[\"Gateway\"]\n    Gateway -->|\"Collaboration\"| Node[\"Collaboration node<br/>Transport · Endpoint · Service\"]\n    Gateway -->|\"Upload · task · download\"| Exchange[\"Import and export<br/>Service + Exchange\"]\n    Node --> DB[(\"Database\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Browser\"]) -->|\"HTTPS / WSS\"| Gateway[\"Gateway\"]\n    Gateway -->|\"Collaboration\"| Node[\"Collaboration node<br/>Transport · Endpoint · Service\"]\n    Gateway -->|\"Upload · task · download\"| Exchange[\"Import and export node<br/>Service + Exchange\"]\n    Node --> DB[(\"Database\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
 | Component         | Deployment                                         | Shares                              |
 | ----------------- | -------------------------------------------------- | ----------------------------------- |
 | Gateway           | Routes collaboration and exchange paths separately | Forwarding only                     |
 | Collaboration     | One node                                           | Database                            |
-| Import and export | Separate process, scaled on CPU and memory         | Database: Units, tasks, files       |
-| Storage           | Database                                           | Every process                       |
+| Import and export | Separate node, scaled on CPU and memory            | Database: Units, tasks, files       |
+| Storage           | Database                                           | Every node                          |
 
 - The Database Adapter implements the `IDatabaseAdapter` contract; the injection point stays the
   same. See [Database Adapters](/server/collaboration/database-adapters).
-- The import and export process assembles the Database Adapter, a `UniverCollabService`, and the
+- The import and export node assembles the Database Adapter, a `UniverCollabService`, and the
   conversion module. Import creates the Unit through the Service; export reads the latest confirmed
   revision through the Service, straight from the database.
 - Tasks and files live in storage every replica can reach; tasks have timeouts and download links
@@ -82,46 +82,26 @@ Reference example: [running import and export separately](https://github.com/dre
 
 ## Multiple collaboration nodes
 
-Several nodes run the same code against the same database. A pub/sub adapter relays Rooms,
-Presence, and broadcasts between nodes; a ticket store shares Session Tickets.
-`@univerjs-pro/collaboration-cluster-redis` provides the Redis implementation and needs Redis 6.2+.
+Several collaboration nodes run the same code against the same database. A pub/sub adapter relays
+Rooms, Presence, and broadcasts between nodes, a ticket store shares Session Tickets, and
+`@univerjs-pro/collaboration-cluster-redis` provides the Redis implementation.
 
-<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Browser\"]) -->|\"HTTPS / WSS\"| Gateway[\"Gateway\"]\n    subgraph Nodes[\"Collaboration nodes\"]\n        direction TB\n        A[\"Node A\"]\n        B[\"Node B\"]\n    end\n    Gateway -->|\"WebSocket and submissions<br/>by unit ID\"| A\n    Gateway -->|\"Other requests<br/>any node\"| B\n    Gateway -->|\"Upload · task · download\"| Exchange[\"Import and export ×N\"]\n    A --- PubSub[(\"Pub/sub + ticket store\")]\n    B --- PubSub\n    A --> DB[(\"Database\")]\n    B --> DB\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Browser\"]) -->|\"HTTPS / WSS\"| Gateway[\"Gateway\"]\n    subgraph Nodes[\"Collaboration nodes\"]\n        direction TB\n        A[\"Node A\"]\n        B[\"Node B\"]\n    end\n    Gateway -->|\"WebSocket and submissions<br/>by unit ID\"| A\n    Gateway -->|\"Other requests<br/>any node\"| B\n    Gateway -->|\"Upload · task · download\"| Exchange[\"Import and export nodes ×N\"]\n    A --- PubSub[(\"Pub/sub + ticket store\")]\n    B --- PubSub\n    A --> DB[(\"Database\")]\n    B --> DB\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
 | Component         | Deployment                                  | Shares                          |
 | ----------------- | ------------------------------------------- | ------------------------------- |
 | Gateway           | Routes WebSocket and submissions by unit ID | Forwarding only                 |
 | Collaboration     | N identical nodes                           | Database, pub/sub, ticket store |
-| Import and export | Separate replicas                           | Database                        |
-| Storage           | Database                                    | Every node and replica          |
+| Import and export | Separate nodes                              | Database                        |
+| Storage           | Database                                    | Every node                      |
 
 - Create the pub/sub adapter and ticket store and pass them to `UniverCollabEndpoint`; the rest of the
-  assembly stays the same. Shutdown order: Transport → pub/sub adapter and its connections → Service → Database Adapter.
-- A node's process holds its loaded Units, WebSocket Sessions, and Room members; all other state
-  is in the database and Redis. Add or remove nodes freely; when a node stops, clients reconnect
-  through the gateway.
-- Redis must be highly available: while it is down, ticket requests fail, WebSocket upgrades return a
-  retryable `503`, and new Sessions start again once Redis is back.
-- When a node fails, clients reconnect through the gateway to another node; that is the failover
-  path.
+  assembly stays the same. See [Packages](/server/collaboration/packages).
+- The gateway keeps one document's WebSocket and submissions on one node and sends other requests to
+  any node. See [gateway configuration](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/multi-node/README.md#configure-the-gateway).
+- Run Redis highly available; when a node fails, clients reconnect through the gateway to another node.
 
-### Route by document
-
-Any node can handle any request, but keep one document's WebSocket and submissions on one node:
-acknowledgements and broadcasts are delivered locally and the document loads on that node alone.
-Spread across nodes, each node loads the same document and concurrent submissions hit CAS conflicts,
-then reload and retry.
-
-| Request                                           | Routing                       |
-| ------------------------------------------------- | ----------------------------- |
-| WebSocket connect, change submission              | Consistent hash by unit ID    |
-| Session Ticket, snapshot, blocks, missing changes | Any node                      |
-| Application pages and APIs                        | Any node                      |
-| Upload, task, download                            | Any import and export replica |
-
-Submission paths carry the unit ID; for WebSocket, the browser appends a `unit` query parameter and
-the gateway hashes on it.
-Reference example: [multi-node example](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/multi-node/README.md).
+Reference example: [Multi-node](/server/collaboration/examples#multi-node).
 
 ## Going further
 

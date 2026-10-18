@@ -9,9 +9,9 @@ Server SDK 是一组库。应用组装 Service、Endpoint 和 Transport，注入
 
 | 形态                  | 协同     | 导入导出 | 推荐规模                         |
 | --------------------- | -------- | -------- | -------------------------------- |
-| [单机](#单机)         | 一个进程 | 同一进程 | 本地应用、开发测试、少量内部用户 |
-| [服务拆分](#服务拆分) | 一个节点 | 独立进程 | 多人线上服务，单节点容量以内     |
-| [多节点](#多协同节点) | 多个节点 | 独立进程 | 超出单节点容量，或需要故障切换   |
+| [单机](#单机)         | 一个节点 | 同一节点 | 本地应用、开发测试、少量内部用户 |
+| [服务拆分](#服务拆分) | 一个节点 | 独立节点 | 多人线上服务，单节点容量以内     |
+| [多节点](#多协同节点) | 多个节点 | 独立节点 | 超出单节点容量，或需要故障切换   |
 
 版本对应 `1.1.0`，见[环境与版本要求](/server/requirements)。用户、认证、授权、文件存储和运维在每种
 形态里都由应用负责，见[身份与授权](/server/collaboration/identity-and-authorization)。
@@ -21,13 +21,13 @@ Server SDK 是一组库。应用组装 Service、Endpoint 和 Transport，注入
 一个 Node.js 进程承载协同和导入导出，浏览器直接连接。存储用 SQLite，或通过自定义 Database Adapter
 接入你的数据库。
 
-<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) -->|\"HTTP / WebSocket\"| App[\"应用进程<br/>协同 + 导入导出\"]\n    App --> DB[(\"数据库\")]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) -->|\"HTTP / WebSocket\"| App[\"应用节点<br/>协同 + 导入导出\"]\n    App --> DB[(\"数据库\")]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
 | 组件     | 部署方式            | 共享                       |
 | -------- | ------------------- | -------------------------- |
-| 协同     | 一个进程            | 与导入导出共享 CPU 和内存  |
-| 导入导出 | 同一进程            | 与协同共享 CPU 和内存      |
-| 存储     | SQLite 文件或数据库 | 本进程                     |
+| 协同     | 一个节点            | 与导入导出共享 CPU 和内存  |
+| 导入导出 | 同一节点            | 与协同共享 CPU 和内存      |
+| 存储     | SQLite 文件或数据库 | 本节点                     |
 
 - SQLite 持久化数据并自动建表，按文件备份。Memory Adapter 只用于本地验证。
 - 一次转换是 CPU 密集型的，整个工作簿在内存里，大文件会拖慢协同。
@@ -39,19 +39,19 @@ Server SDK 是一组库。应用组装 Service、Endpoint 和 Transport，注入
 
 ## 服务拆分
 
-网关转发 HTTP 和 WebSocket；协同一个节点；导入导出独立进程；两者连同一个数据库。两项拆分互相独立。
+网关转发 HTTP 和 WebSocket；协同一个节点；导入导出独立节点；两者连同一个数据库。两项拆分互相独立。
 
-<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) -->|\"HTTPS / WSS\"| Gateway[\"网关\"]\n    Gateway -->|\"协同\"| Node[\"协同节点<br/>Transport · Endpoint · Service\"]\n    Gateway -->|\"上传 · 任务 · 下载\"| Exchange[\"导入导出<br/>Service + Exchange\"]\n    Node --> DB[(\"数据库\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) -->|\"HTTPS / WSS\"| Gateway[\"网关\"]\n    Gateway -->|\"协同\"| Node[\"协同节点<br/>Transport · Endpoint · Service\"]\n    Gateway -->|\"上传 · 任务 · 下载\"| Exchange[\"导入导出节点<br/>Service + Exchange\"]\n    Node --> DB[(\"数据库\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
 | 组件     | 部署方式                       | 共享                     |
 | -------- | ------------------------------ | ------------------------ |
 | 网关     | 分别路由协同和导入导出路径     | 仅转发                   |
 | 协同     | 一个节点                       | 数据库                   |
-| 导入导出 | 独立进程，按 CPU 和内存扩缩容  | 数据库：Unit、任务、文件 |
-| 存储     | 数据库                         | 所有进程                 |
+| 导入导出 | 独立节点，按 CPU 和内存扩缩容  | 数据库：Unit、任务、文件 |
+| 存储     | 数据库                         | 所有节点                 |
 
 - Database Adapter 实现 `IDatabaseAdapter` 契约，注入点相同，见 [Database Adapter](/server/collaboration/database-adapters)。
-- 导入导出进程组装 Database Adapter、`UniverCollabService` 和转换模块。导入通过 Service 创建 Unit，
+- 导入导出节点组装 Database Adapter、`UniverCollabService` 和转换模块。导入通过 Service 创建 Unit，
   导出通过 Service 读取最新已确认的 revision，直接访问数据库。
 - 任务和文件放在所有副本都能访问的存储里；任务设超时，下载链接过期。见[文件交换集成](/server/import-export)。
 
@@ -70,39 +70,23 @@ Server SDK 是一组库。应用组装 Service、Endpoint 和 Transport，注入
 
 ## 多协同节点
 
-多个节点运行同一份代码，连同一个数据库。pub/sub adapter 在节点间中继 Room、Presence 和广播，
-ticket store 共享 Session Ticket。`@univerjs-pro/collaboration-cluster-redis` 提供 Redis 实现，需要 Redis 6.2+。
+多个协同节点运行同一份代码，连同一个数据库。pub/sub adapter 在节点间中继 Room、Presence 和广播，
+ticket store 共享 Session Ticket，`@univerjs-pro/collaboration-cluster-redis` 提供 Redis 实现。
 
-<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) -->|\"HTTPS / WSS\"| Gateway[\"网关\"]\n    subgraph Nodes[\"协同节点\"]\n        direction TB\n        A[\"节点 A\"]\n        B[\"节点 B\"]\n    end\n    Gateway -->|\"WebSocket 与提交<br/>按 unit ID\"| A\n    Gateway -->|\"其余请求<br/>任意节点\"| B\n    Gateway -->|\"上传 · 任务 · 下载\"| Exchange[\"导入导出 ×N\"]\n    A --- PubSub[(\"pub/sub + ticket store\")]\n    B --- PubSub\n    A --> DB[(\"数据库\")]\n    B --> DB\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) -->|\"HTTPS / WSS\"| Gateway[\"网关\"]\n    subgraph Nodes[\"协同节点\"]\n        direction TB\n        A[\"节点 A\"]\n        B[\"节点 B\"]\n    end\n    Gateway -->|\"WebSocket 与提交<br/>按 unit ID\"| A\n    Gateway -->|\"其余请求<br/>任意节点\"| B\n    Gateway -->|\"上传 · 任务 · 下载\"| Exchange[\"导入导出节点 ×N\"]\n    A --- PubSub[(\"pub/sub + ticket store\")]\n    B --- PubSub\n    A --> DB[(\"数据库\")]\n    B --> DB\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
 | 组件     | 部署方式                        | 共享                          |
 | -------- | ------------------------------- | ----------------------------- |
 | 网关     | WebSocket 和提交按 unit ID 路由 | 仅转发                        |
 | 协同     | N 个相同节点                    | 数据库、pub/sub、ticket store |
-| 导入导出 | 独立副本                        | 数据库                        |
-| 存储     | 数据库                          | 所有节点和副本                |
+| 导入导出 | 独立节点                        | 数据库                        |
+| 存储     | 数据库                          | 所有节点                      |
 
-- 创建 pub/sub adapter 和 ticket store 传给 `UniverCollabEndpoint`，其余组装保持原样。
-  关停顺序：Transport → pub/sub adapter 及其连接 → Service → Database Adapter。
-- 节点进程内保存已加载的 Unit、WebSocket Session 和 Room 成员，其余状态在数据库和 Redis。
-  节点可随意增减，节点停止后客户端经网关重连。
-- Redis 需要高可用：Redis 故障期间 ticket 请求失败，WebSocket upgrade 返回可重试的 `503`，新 Session 在 Redis 恢复后建立。
-- 节点故障时，客户端经网关重连到其他节点，这就是故障切换的路径。
+- 创建 pub/sub adapter 和 ticket store 传给 `UniverCollabEndpoint`，其余组装保持原样，见[包概览](/server/collaboration/packages)。
+- 网关把同一文档的 WebSocket 和提交固定到一个节点，其余请求任意节点，见[网关配置](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/multi-node/README.zh-CN.md#配置网关)。
+- Redis 以高可用方式运行；节点故障时客户端经网关重连到其他节点。
 
-### 按文档路由
-
-任何节点都能处理任何请求，但建议把同一文档的 WebSocket 和提交固定到一个节点：确认和广播在本地投递，
-文档只在该节点加载。分散到多个节点时，每个节点都加载同一文档，并发提交触发 CAS 冲突后重载重试。
-
-| 请求                                      | 路由                  |
-| ----------------------------------------- | --------------------- |
-| WebSocket 连接、变更提交                  | 按 unit ID 一致性哈希 |
-| Session Ticket、snapshot、block、缺失变更 | 任意节点              |
-| 应用页面与接口                            | 任意节点              |
-| 上传、任务、下载                          | 任意导入导出副本      |
-
-提交路径自带 unit ID；WebSocket 由浏览器给 URL 追加 `unit` 参数，网关按它哈希。
-参考示例：[多节点示例](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/multi-node/README.zh-CN.md)。
+参考示例：[Multi-node](/server/collaboration/examples#multi-node)。
 
 ## 进一步
 
