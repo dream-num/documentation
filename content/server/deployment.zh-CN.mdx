@@ -13,7 +13,7 @@ Transport，注入 Database Adapter，并在需要导入导出时加入文件转
 
 | 形态                                   | 协同       | 存储                   | 导入导出               | 适用                               |
 | -------------------------------------- | ---------- | ---------------------- | ---------------------- | ---------------------------------- |
-| [单机](#单机)                          | 一个进程   | 同一台机器上的 SQLite 文件 | 同一进程               | 本地应用与小规模使用               |
+| [单机](#单机)                          | 一个进程   | SQLite 文件或网络数据库 | 同一进程               | 本地应用与小规模使用               |
 | [服务拆分](#服务拆分)                  | 一个节点   | 网络数据库             | 独立进程，单独扩缩容   | 单地域部署，按负载独立扩缩容       |
 | [多节点](#多协同节点)                  | 多个节点   | 网络数据库             | 独立进程               | 大量并发文档，节点故障切换         |
 
@@ -26,22 +26,23 @@ Transport，注入 Database Adapter，并在需要导入导出时加入文件转
 
 ## 单机
 
-所有东西都在一台主机上：一个网关，一个同时承载协同和导入导出的 Node.js 进程，以及旁边的
-一个 SQLite 文件。
+协同和导入导出在一台主机的同一个 Node.js 进程里运行，前面是一个网关。存储可以是一个 SQLite
+文件，也可以是一个满足 Database Adapter 契约的网络数据库；数据库可以在同一台机器上，也可以在别处。
 
-<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) -->|\"HTTPS / WSS\"| Gateway[\"网关\"]\n    subgraph Host[\"一台机器\"]\n        Gateway --> App[\"应用进程<br/>协同 + 导入导出\"]\n        App --> SQLite[(\"SQLite 文件\")]\n    end\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) -->|\"HTTPS / WSS\"| Gateway[\"网关\"]\n    subgraph Host[\"一台机器\"]\n        Gateway --> App[\"应用进程<br/>协同 + 导入导出\"]\n        App --> Store[(\"SQLite 文件<br/>或网络数据库\")]\n    end\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
 | 组件                 | 部署方式                                   | 共享内容                     |
 | -------------------- | ------------------------------------------ | ---------------------------- |
 | 网关                 | 同一主机上的反向代理                       | 无                           |
 | 协同                 | 一个进程；Transport、Endpoint、Service     | 与导入导出共享进程内存       |
 | 导入导出             | 同一进程，由应用路由调用                   | 与协同共享 CPU 和内存        |
-| 存储                 | `SQLiteDatabaseAdapter`，一个文件          | 无；只有一个进程打开该文件   |
+| 存储                 | SQLite 文件，或基于网络数据库的 Database Adapter | 无；只有一个进程访问       |
 | Session Ticket 与广播 | 进程内默认实现                            | 无                           |
 
-Memory Adapter 只用于本地验证，进程退出后数据即丢失。SQLite 会持久化数据，并为空数据库创建
-schema。把它的文件放在持久化存储上，并按文件方式备份。Adapter 保存什么、哪些设置留给应用，
-见 [Database Adapter](/server/collaboration/database-adapters)。
+SQLite 是最简单的起点：它会持久化数据，并为空数据库创建 schema。把它的文件放在持久化存储上，
+并按文件方式备份。应用已经在用网络数据库时，可以从一开始就通过自定义 Database Adapter 接入它，
+下一章的"存储离开机器"就已经完成。Memory Adapter 只用于本地验证，进程退出后数据即丢失。
+选型见 [Database Adapter](/server/collaboration/database-adapters)。
 
 ### 这台机器要做到的事
 
@@ -64,10 +65,10 @@ schema。把它的文件放在持久化存储上，并按文件方式备份。Ad
 
 ### 限制
 
-SQLite 用 `BEGIN IMMEDIATE` 事务串行化写入，并发提交在一个写者上排队。导入导出在同一个进程
+使用 SQLite 时，写入由 `BEGIN IMMEDIATE` 事务串行化，并发提交在一个写者上排队。导入导出在同一个进程
 内转换：一次转换是 CPU 密集型的，并把整个工作簿放在内存里，大文件会拖慢 WebSocket 处理。
-SQLite Adapter 面向一台机器上的一个应用进程，所以这种形态不能再起第二个副本，也不能把存储
-挪到别处。这台主机就是单点。
+协同只有一个进程，不能再起第二个副本；使用 SQLite 时，存储也绑定在这台机器上。这台主机就是
+单点。
 
 参考示例：[Exchange](/server/collaboration/examples#exchange) 在一个进程里运行协同和导入导出。
 
@@ -87,7 +88,7 @@ SQLite Adapter 面向一台机器上的一个应用进程，所以这种形态�
 
 ### 存储离开机器
 
-把 SQLite Adapter 换成基于网络数据库、满足 `IDatabaseAdapter` 契约的 Adapter。注入点不变：
+单机阶段已经使用网络数据库的应用可以跳过这一步。否则，把 SQLite Adapter 换成基于网络数据库、满足 `IDatabaseAdapter` 契约的 Adapter。注入点不变：
 构造你的 Adapter 并传给 `UniverCollabService`。[Database Adapter](/server/collaboration/database-adapters)
 列出了 Adapter 必须实现的原子性、CAS 和幂等语义。
 

@@ -13,7 +13,7 @@ a complete destination: stop at the one that fits your scale, and move on only w
 
 | Shape                                      | Collaboration | Storage                               | Import and export                   | Serves                                    |
 | ------------------------------------------ | ------------- | ------------------------------------- | ----------------------------------- | ----------------------------------------- |
-| [Single machine](#single-machine)          | One process   | SQLite file on the same machine       | Same process                        | Local applications and small-scale use    |
+| [Single machine](#single-machine)          | One process   | SQLite file or a network database     | Same process                        | Local applications and small-scale use    |
 | [Split services](#split-services)          | One node      | Network database                      | Separate process, scaled on its own | One region, independent scaling of load   |
 | [Multiple nodes](#multiple-collaboration-nodes) | Several nodes | Network database                      | Separate process                    | Many concurrent documents, node failover  |
 
@@ -27,23 +27,26 @@ Versions follow [Environment and versions](/server/requirements); this page corr
 
 ## Single machine
 
-Everything runs on one host: a gateway, one Node.js process that hosts collaboration and import and
-export, and a SQLite file next to it.
+Collaboration and import and export run in one Node.js process on one host, behind a gateway.
+Storage is a SQLite file or a network database that satisfies the Database Adapter contract; the
+database can live on the same machine or elsewhere.
 
-<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Browser\"]) -->|\"HTTPS / WSS\"| Gateway[\"Gateway\"]\n    subgraph Host[\"One machine\"]\n        Gateway --> App[\"Application process<br/>Collaboration + Exchange\"]\n        App --> SQLite[(\"SQLite file\")]\n    end\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Browser\"]) -->|\"HTTPS / WSS\"| Gateway[\"Gateway\"]\n    subgraph Host[\"One machine\"]\n        Gateway --> App[\"Application process<br/>Collaboration + Exchange\"]\n        App --> Store[(\"SQLite file<br/>or network database\")]\n    end\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
 | Component                  | Deployment                                   | Shares                                   |
 | -------------------------- | -------------------------------------------- | ---------------------------------------- |
 | Gateway                    | Reverse proxy on the same host               | Nothing                                  |
 | Collaboration              | One process; Transport, Endpoint, Service    | Process memory with import and export    |
 | Import and export          | Same process, called from application routes | CPU and memory with collaboration        |
-| Storage                    | `SQLiteDatabaseAdapter`, one file            | Nothing; one process opens the file      |
+| Storage                    | SQLite file, or a Database Adapter over a network database | Nothing; one process uses it |
 | Session tickets, broadcasts | In-process defaults                          | Nothing                                  |
 
-The Memory Adapter is for local verification only; its data disappears when the process exits.
-SQLite persists data and creates its schema for an empty database. Keep its file on durable storage
-and back it up as a file. See [Database Adapters](/server/collaboration/database-adapters) for what
-the Adapter stores and the settings it leaves to you.
+SQLite is the simplest start: it persists data and creates its schema for an empty database. Keep
+its file on durable storage and back it up as a file. An application that already runs a network
+database can use it from the start through a custom Database Adapter; the storage step of the next
+shape is then already done. The Memory Adapter is for local verification only; its data disappears
+when the process exits. See [Database Adapters](/server/collaboration/database-adapters) for choosing
+an Adapter.
 
 ### What this machine must do
 
@@ -69,11 +72,10 @@ These requirements apply from the first production deployment and carry over to 
 
 ### Limits
 
-SQLite serializes writes with `BEGIN IMMEDIATE` transactions, so concurrent submissions queue on one
-writer. Import and export convert inside the same process: a conversion is CPU-bound and holds the
-whole workbook in memory, so a large file slows WebSocket handling. The SQLite Adapter is positioned for
-one application process on one machine, so this shape cannot run a second replica or move storage
-elsewhere. The host
+With SQLite, writes are serialized by `BEGIN IMMEDIATE` transactions, so concurrent submissions
+queue on one writer. Import and export convert inside the same process: a conversion is CPU-bound and holds the
+whole workbook in memory, so a large file slows WebSocket handling. Collaboration is one process, so this
+shape cannot run a second replica; with SQLite, storage is bound to this machine as well. The host
 is the single point of failure.
 
 Reference example: [Exchange](/server/collaboration/examples#exchange) runs collaboration and import
@@ -95,7 +97,8 @@ Two things leave the single machine. They are independent decisions: do either f
 
 ### Storage leaves the machine
 
-Replace the SQLite Adapter with an Adapter over a network database that satisfies the
+An application that already uses a network database in the single-machine shape skips this step.
+Otherwise, replace the SQLite Adapter with an Adapter over a network database that satisfies the
 `IDatabaseAdapter` contract. The injection point does not change: construct your Adapter and pass it
 to `UniverCollabService`. [Database Adapters](/server/collaboration/database-adapters) lists the
 atomicity, CAS, and idempotency semantics the Adapter must implement.
