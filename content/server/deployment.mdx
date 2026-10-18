@@ -1,0 +1,228 @@
+---
+icon: Boxes
+title: Deployment guide
+description: Take a Server SDK application from one machine to split services and multiple collaboration nodes, and know what each shape requires.
+---
+
+Server SDK is a library, not a deployable product. Your application assembles Collaboration Service,
+Endpoint, and Transport, injects a Database Adapter, and adds the file exchange module when it needs
+import and export. The application also decides how that assembly is deployed.
+
+This guide describes three deployment shapes in the order most applications adopt them. Each shape is
+a complete destination: stop at the one that fits your scale, and move on only when its limits bind.
+
+| Shape                                      | Collaboration | Storage                               | Import and export                   | Serves                                    |
+| ------------------------------------------ | ------------- | ------------------------------------- | ----------------------------------- | ----------------------------------------- |
+| [Single machine](#single-machine)          | One process   | SQLite file on the same machine       | Same process                        | Local applications and small-scale use    |
+| [Split services](#split-services)          | One node      | Network database                      | Separate process, scaled on its own | One region, independent scaling of load   |
+| [Multiple nodes](#multiple-collaboration-nodes) | Several nodes | Network database                      | Separate process                    | Many concurrent documents, node failover  |
+
+Versions follow [Environment and versions](/server/requirements); this page corresponds to `1.1.0`.
+
+<Callout title="What the SDK leaves to the application">
+  Users, authentication, authorization, product APIs, file storage, secrets, and operations are
+  application concerns in every shape below. See [Identity and authorization](/server/collaboration/identity-and-authorization)
+  before exposing any shape to real users.
+</Callout>
+
+## Single machine
+
+Everything runs on one host: a gateway, one Node.js process that hosts collaboration and import and
+export, and a SQLite file next to it.
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Browser\"]) -->|\"HTTPS / WSS\"| Gateway[\"Gateway\"]\n    subgraph Host[\"One machine\"]\n        Gateway --> App[\"Application process<br/>Collaboration + Exchange\"]\n        App --> SQLite[(\"SQLite file\")]\n    end\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+| Component                  | Deployment                                   | Shares                                   |
+| -------------------------- | -------------------------------------------- | ---------------------------------------- |
+| Gateway                    | Reverse proxy on the same host               | Nothing                                  |
+| Collaboration              | One process; Transport, Endpoint, Service    | Process memory with import and export    |
+| Import and export          | Same process, called from application routes | CPU and memory with collaboration        |
+| Storage                    | `SQLiteDatabaseAdapter`, one file            | Nothing; one process opens the file      |
+| Session tickets, broadcasts | In-process defaults                          | Nothing                                  |
+
+The Memory Adapter is for local verification only; its data disappears when the process exits.
+SQLite persists data and creates its schema for an empty database. Keep its file on durable storage
+and back it up as a file. See [Database Adapters](/server/collaboration/database-adapters) for what
+the Adapter stores and the settings it leaves to you.
+
+### What this machine must do
+
+These requirements apply from the first production deployment and carry over to every later shape.
+
+- **Forward HTTP and WebSocket.** The gateway proxies both to the application process, and HTTPS pages
+  connect over WSS. Terminate TLS at the gateway.
+- **Keep the gateway idle timeout below the Node.js keep-alive timeout.** Node.js closes idle
+  connections after `5` seconds by default. A gateway that keeps upstream connections open longer
+  returns occasional `502` responses.
+- **Limit request sizes.** Transport caps HTTP bodies and WebSocket messages at 16 MiB by default.
+  Set the gateway's upload limit to what your import flow accepts, and keep application body parsers
+  consistent.
+- **Expose a health check.** Register an application route such as `/health` on the same HTTP server
+  Transport attaches to, and have the gateway or platform probe it.
+- **Shut down in reverse assembly order.** Dispose the Transport, then the Service, then the Database
+  Adapter, as shown in [Resource cleanup](/server/collaboration/modules#resource-cleanup). Stop the
+  gateway from sending new traffic before the process stops.
+- **Configure the license in the browser bundle.** The license is browser-side configuration; inject
+  it at build or configuration time instead of committing it. See [License](/server/license).
+- **Implement identity and authorization.** The examples' fixed users and allow-all rules are not a
+  starting point for production. Follow [Identity and authorization](/server/collaboration/identity-and-authorization).
+
+### Limits
+
+SQLite serializes writes with `BEGIN IMMEDIATE` transactions, so concurrent submissions queue on one
+writer. Import and export convert inside the same process: a conversion is CPU-bound and holds the
+whole workbook in memory, so a large file slows WebSocket handling. The SQLite Adapter is positioned for
+one application process on one machine, so this shape cannot run a second replica or move storage
+elsewhere. The host
+is the single point of failure.
+
+Reference example: [Exchange](/server/collaboration/examples#exchange) runs collaboration and import
+and export in one process.
+
+## Split services
+
+Two things leave the single machine. They are independent decisions: do either first, or only one.
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Browser\"]) -->|\"HTTPS / WSS\"| Gateway[\"Gateway\"]\n    Gateway -->|\"Collaboration\"| Node[\"Collaboration node<br/>Transport · Endpoint · Service\"]\n    Gateway -->|\"Upload · task · download\"| Exchange[\"Import and export<br/>Service + Exchange\"]\n    Node --> DB[(\"Network database\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+| Component                  | Deployment                                         | Shares                                              |
+| -------------------------- | -------------------------------------------------- | --------------------------------------------------- |
+| Gateway                    | Routes collaboration and exchange paths separately | Nothing                                             |
+| Collaboration              | One node; Transport, Endpoint, Service             | The database                                        |
+| Import and export          | Separate process; Service and the exchange module  | The database, for Units, tasks, and files           |
+| Storage                    | Custom Database Adapter over a network database    | Reachable from every process                        |
+| Session tickets, broadcasts | In-process defaults                                | Nothing; still one collaboration node               |
+
+### Storage leaves the machine
+
+Replace the SQLite Adapter with an Adapter over a network database that satisfies the
+`IDatabaseAdapter` contract. The injection point does not change: construct your Adapter and pass it
+to `UniverCollabService`. [Database Adapters](/server/collaboration/database-adapters) lists the
+atomicity, CAS, and idempotency semantics the Adapter must implement.
+
+Own the schema outside the service. Apply migrations with your migration tool as a separate
+deployment step, and run the service with a database role that cannot issue DDL. At startup the
+service should check that the tables it needs exist, not create them.
+
+A network database is the prerequisite for everything that follows: a separate import and export
+process and multiple collaboration nodes both need storage that more than one process can reach.
+
+### Import and export leave the process
+
+Run the exchange routes in their own process. It assembles the Database Adapter, a
+`UniverCollabService`, and the exchange module, with no Endpoint, Transport, or pub/sub. Import
+creates the Unit through the Service, and export reads the latest confirmed revision through the
+Service, so the process never talks to the collaboration node.
+
+Scale this process on its own resource profile: CPU and memory per conversion, not connection count.
+A long or failing conversion no longer slows a node that is serving WebSockets, and the
+collaboration image no longer ships the native conversion binding.
+
+Keep task state and files in storage every replica can reach, so any replica can answer a task
+poll or serve a download. Set a timeout per task, expire download links, and enforce the upload size
+at the gateway and in the upload route. See [File exchange integration](/server/import-export) for
+the application flow.
+
+### Limits
+
+Collaboration is still one node. It can restart quickly because its state is in the database, but
+it cannot serve more documents than one process holds in memory, and a restart disconnects every
+session.
+
+Reference example: [multi-node example, running import and export separately](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/multi-node/README.md#run-import-and-export-separately).
+
+## Multiple collaboration nodes
+
+Several collaboration nodes run the same code against the same database. A pub/sub adapter relays
+Rooms, Presence, and broadcasts between nodes, and a shared session ticket store lets any node accept
+a ticket another node issued. `@univerjs-pro/collaboration-cluster-redis` provides both on Redis 6.2
+or later.
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Browser\"]) -->|\"HTTPS / WSS\"| Gateway[\"Gateway\"]\n    subgraph Nodes[\"Collaboration nodes\"]\n        direction TB\n        A[\"Node A\"]\n        B[\"Node B\"]\n    end\n    Gateway -->|\"WebSocket and submissions<br/>by unit ID\"| A\n    Gateway -->|\"Other requests<br/>any node\"| B\n    Gateway -->|\"Upload · task · download\"| Exchange[\"Import and export ×N\"]\n    A --- PubSub[(\"Pub/sub + ticket store\")]\n    B --- PubSub\n    A --> DB[(\"Network database\")]\n    B --> DB\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+| Component                  | Deployment                                              | Shares                                      |
+| -------------------------- | ------------------------------------------------------- | ------------------------------------------- |
+| Gateway                    | Routes by unit ID for WebSocket and submissions         | Nothing                                     |
+| Collaboration              | N identical nodes                                       | Database, pub/sub, ticket store             |
+| Import and export          | Separate replicas                                       | The database; no pub/sub                    |
+| Storage                    | Network database                                        | Every node and replica                      |
+| Session tickets, broadcasts | Redis pub/sub adapter and ticket store                  | Every collaboration node                    |
+
+### What changes in the application
+
+Create the pub/sub adapter and ticket store and pass them to `UniverCollabEndpoint`. Nothing else
+in the assembly changes. The Endpoint does not dispose the adapters or their connections, so extend
+the shutdown order: dispose the Transport, then the pub/sub adapter and its connections, then the
+Service and Database Adapter.
+
+### Route by document
+
+Any node can serve any request. Keeping one document's WebSocket and change submissions on one node
+is still recommended: acknowledgements and broadcasts are delivered locally, and only that node loads
+the document into memory. Without it, submissions for one document land on several nodes, each node
+loads the document, and concurrent submissions hit revision CAS conflicts that the Service resolves by
+reloading and retrying.
+
+| Request                                       | Routing                                   |
+| --------------------------------------------- | ----------------------------------------- |
+| WebSocket connect, change submission          | Consistent hash by unit ID                |
+| Session ticket, snapshot, blocks, missing changes | Any node                              |
+| Application pages and APIs                    | Any node                                  |
+| Upload, task, download                        | Any import and export replica             |
+
+Submission paths already contain the unit ID. The WebSocket path does not, so the browser adds a
+`unit` query parameter to the WebSocket URL and the gateway hashes on it. The gateway's idle timeout
+and upload limits from the single-machine shape still apply.
+
+### Stateful and stateless
+
+| Holds state in process                                   | Stateless                                  |
+| -------------------------------------------------------- | ------------------------------------------ |
+| Loaded Units and their runtimes on the node that hosts them | Snapshot, block, and ticket requests    |
+| Open WebSocket Sessions and Room membership              | Import and export replicas                 |
+| In-flight conversions in an import and export replica    | Application APIs that only read the database |
+
+Shared state lives in the database and in Redis. Add or remove nodes freely; a node that stops loses
+its Sessions, and clients reconnect through the gateway to another node.
+
+### When pub/sub is unavailable
+
+Run Redis in a highly available configuration. While it is unavailable, session ticket requests fail
+and WebSocket upgrades are rejected with a retryable `503`, so new sessions cannot start. Treat Redis
+as part of the collaboration service's availability, not an optional cache.
+
+### Limits
+
+The gateway does not retry a failed request on another node, and the SDK does not provide automatic
+failover of loaded documents; clients reconnect. Database throughput and the cost of one node's
+resident documents become the next limits.
+
+Reference example: [multi-node example](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/multi-node/README.md).
+
+## Going further
+
+- **Dispatch conversions to workers.** Keep the exchange API replicas stateless, store tasks in the
+  database and files in object storage, and let a queue or workflow engine hand each task to worker
+  processes with their own autoscaler. Workers need leases or timeouts so a task survives a worker
+  that stops mid-conversion. See [File exchange integration](/server/import-export).
+- **Partition nodes by document.** The routing key is the unit ID, so the application can map
+  documents to separate node pools by tenant, size, or tier. The SDK only requires that every pool
+  share the same database and pub/sub.
+- **Extension modules.** History, Thread Comment, and Worktree bring their own Services and Database
+  Adapters and follow the same shapes. See [Collaboration extension modules](/server/collaboration/extensions).
+
+## Production checklist
+
+| Requirement                                              | Introduced in                                   |
+| -------------------------------------------------------- | ----------------------------------------------- |
+| HTTP and WebSocket forwarding, TLS at the gateway        | [Single machine](#what-this-machine-must-do)    |
+| Gateway idle timeout below Node.js keep-alive            | [Single machine](#what-this-machine-must-do)    |
+| Upload size at the gateway and in the application        | [Single machine](#what-this-machine-must-do)    |
+| Health check route                                       | [Single machine](#what-this-machine-must-do)    |
+| Shutdown in reverse assembly order                       | [Single machine](#what-this-machine-must-do), extended in [Multiple nodes](#what-changes-in-the-application) |
+| License injected into the browser bundle                 | [Single machine](#what-this-machine-must-do)    |
+| Identity and authorization implemented                   | [Single machine](#what-this-machine-must-do)    |
+| Schema managed by migrations; service without DDL rights | [Split services](#storage-leaves-the-machine)   |
+| Task timeouts and download link expiry                   | [Split services](#import-and-export-leave-the-process) |
+| Highly available Redis; `503` handling on the client     | [Multiple nodes](#when-pubsub-is-unavailable)   |
+| Document routing at the gateway                          | [Multiple nodes](#route-by-document)            |

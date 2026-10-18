@@ -1,0 +1,206 @@
+---
+icon: Boxes
+title: 部署指引
+description: 把 Server SDK 应用从单机部署到服务拆分和多协同节点，并了解每种形态的要求。
+---
+
+Server SDK 是库，不是可以直接部署的产品。应用自己组装 Collaboration Service、Endpoint 和
+Transport，注入 Database Adapter，并在需要导入导出时加入文件转换模块。这个组装结果如何部署，
+同样由应用决定。
+
+本页按多数应用采用的顺序介绍三种部署形态。每一种都是完整的终点：停在适合你规模的形态，
+只在它的限制成为问题时再往前走。
+
+| 形态                                   | 协同       | 存储                   | 导入导出               | 适用                               |
+| -------------------------------------- | ---------- | ---------------------- | ---------------------- | ---------------------------------- |
+| [单机](#单机)                          | 一个进程   | 同一台机器上的 SQLite 文件 | 同一进程               | 本地应用与小规模使用               |
+| [服务拆分](#服务拆分)                  | 一个节点   | 网络数据库             | 独立进程，单独扩缩容   | 单地域部署，按负载独立扩缩容       |
+| [多节点](#多协同节点)                  | 多个节点   | 网络数据库             | 独立进程               | 大量并发文档，节点故障切换         |
+
+版本以[环境与版本要求](/server/requirements)为准；本页对应 `1.1.0`。
+
+<Callout title="SDK 留给应用的部分">
+  下面每一种形态里，用户、认证、授权、产品接口、文件存储、密钥和运维都是应用的职责。把任何
+  一种形态交给真实用户之前，先阅读[身份与授权](/server/collaboration/identity-and-authorization)。
+</Callout>
+
+## 单机
+
+所有东西都在一台主机上：一个网关，一个同时承载协同和导入导出的 Node.js 进程，以及旁边的
+一个 SQLite 文件。
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) -->|\"HTTPS / WSS\"| Gateway[\"网关\"]\n    subgraph Host[\"一台机器\"]\n        Gateway --> App[\"应用进程<br/>协同 + 导入导出\"]\n        App --> SQLite[(\"SQLite 文件\")]\n    end\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+| 组件                 | 部署方式                                   | 共享内容                     |
+| -------------------- | ------------------------------------------ | ---------------------------- |
+| 网关                 | 同一主机上的反向代理                       | 无                           |
+| 协同                 | 一个进程；Transport、Endpoint、Service     | 与导入导出共享进程内存       |
+| 导入导出             | 同一进程，由应用路由调用                   | 与协同共享 CPU 和内存        |
+| 存储                 | `SQLiteDatabaseAdapter`，一个文件          | 无；只有一个进程打开该文件   |
+| Session Ticket 与广播 | 进程内默认实现                            | 无                           |
+
+Memory Adapter 只用于本地验证，进程退出后数据即丢失。SQLite 会持久化数据，并为空数据库创建
+schema。把它的文件放在持久化存储上，并按文件方式备份。Adapter 保存什么、哪些设置留给应用，
+见 [Database Adapter](/server/collaboration/database-adapters)。
+
+### 这台机器要做到的事
+
+这些要求从第一次生产部署开始就成立，并延续到后面的每一种形态。
+
+- **同时转发 HTTP 和 WebSocket。** 网关把两者都代理到应用进程，HTTPS 页面使用 WSS 连接。
+  在网关终止 TLS。
+- **网关空闲超时低于 Node.js 的 keep-alive 超时。** Node.js 默认在 `5` 秒后关闭空闲连接。
+  网关若把上游连接保持得更久，会偶发 `502`。
+- **限制请求大小。** Transport 默认把 HTTP 请求体和 WebSocket 消息限制在 16 MiB。网关的上传
+  限制按导入流程能接受的大小设置，应用的 body parser 保持一致。
+- **暴露健康检查。** 在 Transport 所挂载的同一个 HTTP server 上注册一个应用路由，例如
+  `/health`，由网关或平台探测。
+- **按组装的相反顺序关停。** 先释放 Transport，再释放 Service，最后释放 Database Adapter，
+  见[资源释放](/server/collaboration/modules#资源释放)。进程停止前先让网关停止发送新流量。
+- **在浏览器包里配置 license。** License 是浏览器侧配置；在构建或配置阶段注入，不要提交到
+  代码库。见 [License](/server/license)。
+- **实现身份与授权。** 示例里的固定用户和全部放行的规则不是生产的起点。按照
+  [身份与授权](/server/collaboration/identity-and-authorization)接入。
+
+### 限制
+
+SQLite 用 `BEGIN IMMEDIATE` 事务串行化写入，并发提交在一个写者上排队。导入导出在同一个进程
+内转换：一次转换是 CPU 密集型的，并把整个工作簿放在内存里，大文件会拖慢 WebSocket 处理。
+SQLite Adapter 面向一台机器上的一个应用进程，所以这种形态不能再起第二个副本，也不能把存储
+挪到别处。这台主机就是单点。
+
+参考示例：[Exchange](/server/collaboration/examples#exchange) 在一个进程里运行协同和导入导出。
+
+## 服务拆分
+
+两样东西离开单机。它们是独立的决定：先做任何一个都可以，也可以只做一个。
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) -->|\"HTTPS / WSS\"| Gateway[\"网关\"]\n    Gateway -->|\"协同\"| Node[\"协同节点<br/>Transport · Endpoint · Service\"]\n    Gateway -->|\"上传 · 任务 · 下载\"| Exchange[\"导入导出<br/>Service + Exchange\"]\n    Node --> DB[(\"网络数据库\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+| 组件                 | 部署方式                                     | 共享内容                               |
+| -------------------- | -------------------------------------------- | -------------------------------------- |
+| 网关                 | 分别路由协同路径和导入导出路径               | 无                                     |
+| 协同                 | 一个节点；Transport、Endpoint、Service       | 数据库                                 |
+| 导入导出             | 独立进程；Service 与转换模块                 | 数据库，用于 Unit、任务和文件          |
+| 存储                 | 基于网络数据库的自定义 Database Adapter      | 每个进程都能访问                       |
+| Session Ticket 与广播 | 进程内默认实现                              | 无；协同仍然只有一个节点               |
+
+### 存储离开机器
+
+把 SQLite Adapter 换成基于网络数据库、满足 `IDatabaseAdapter` 契约的 Adapter。注入点不变：
+构造你的 Adapter 并传给 `UniverCollabService`。[Database Adapter](/server/collaboration/database-adapters)
+列出了 Adapter 必须实现的原子性、CAS 和幂等语义。
+
+在服务之外管理 schema。用迁移工具在独立的部署步骤里执行迁移，并让服务使用一个不能执行 DDL
+的数据库角色。服务启动时只检查需要的表存在，而不是创建它们。
+
+网络数据库是后面所有步骤的前提：独立的导入导出进程和多个协同节点都需要多个进程能同时访问
+的存储。
+
+### 导入导出离开进程
+
+把导入导出路由放到自己的进程里运行。它组装 Database Adapter、一个 `UniverCollabService` 和
+转换模块，没有 Endpoint、Transport 和 pub/sub。导入通过 Service 创建 Unit，导出通过 Service
+读取最新已确认的 revision，所以这个进程从不与协同节点通信。
+
+按它自己的资源画像扩缩容：看每次转换的 CPU 和内存，而不是连接数。一次耗时或失败的转换不再
+拖慢正在服务 WebSocket 的节点，协同镜像也不再包含原生转换绑定。
+
+把任务状态和文件放在每个副本都能访问的存储里，这样任何副本都能回答任务轮询或提供下载。
+为每个任务设置超时，让下载链接过期，并在网关和上传路由两处限制上传大小。应用侧流程见
+[文件交换集成](/server/import-export)。
+
+### 限制
+
+协同仍然是一个节点。它的状态在数据库里，所以可以快速重启，但它能服务的文档数不会超过一个
+进程的内存，并且一次重启会断开所有 Session。
+
+参考示例：[多节点示例中的独立运行导入导出](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/multi-node/README.zh-CN.md#独立运行导入导出)。
+
+## 多协同节点
+
+多个协同节点运行同一份代码，连接同一个数据库。pub/sub adapter 在节点之间中继 Room、Presence
+和广播；共享的 Session Ticket store 让任何节点都能接受其他节点签发的 ticket。
+`@univerjs-pro/collaboration-cluster-redis` 在 Redis 6.2 及以上提供这两者。
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) -->|\"HTTPS / WSS\"| Gateway[\"网关\"]\n    subgraph Nodes[\"协同节点\"]\n        direction TB\n        A[\"节点 A\"]\n        B[\"节点 B\"]\n    end\n    Gateway -->|\"WebSocket 与提交<br/>按 unit ID\"| A\n    Gateway -->|\"其余请求<br/>任意节点\"| B\n    Gateway -->|\"上传 · 任务 · 下载\"| Exchange[\"导入导出 ×N\"]\n    A --- PubSub[(\"pub/sub + ticket store\")]\n    B --- PubSub\n    A --> DB[(\"网络数据库\")]\n    B --> DB\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+| 组件                 | 部署方式                                   | 共享内容                           |
+| -------------------- | ------------------------------------------ | ---------------------------------- |
+| 网关                 | WebSocket 和提交按 unit ID 路由            | 无                                 |
+| 协同                 | N 个相同的节点                             | 数据库、pub/sub、ticket store      |
+| 导入导出             | 独立副本                                   | 数据库；不使用 pub/sub             |
+| 存储                 | 网络数据库                                 | 所有节点和副本                     |
+| Session Ticket 与广播 | Redis pub/sub adapter 与 ticket store     | 所有协同节点                       |
+
+### 应用里改什么
+
+创建 pub/sub adapter 和 ticket store，传给 `UniverCollabEndpoint`。组装的其他部分不变。
+Endpoint 不会释放这两个 adapter 及其连接，所以关停顺序要扩展：先释放 Transport，再释放
+pub/sub adapter 及其连接，最后释放 Service 和 Database Adapter。
+
+### 按文档路由
+
+任何节点都能服务任何请求。仍然建议把同一文档的 WebSocket 和变更提交固定到一个节点：确认
+和广播在本地投递，并且只有这个节点把文档加载进内存。不固定时，同一文档的提交落到多个
+节点，每个节点都加载该文档，并发提交会触发 revision CAS 冲突，由 Service 重新加载并重试。
+
+| 请求                                       | 路由方式                     |
+| ------------------------------------------ | ---------------------------- |
+| WebSocket 连接、变更提交                   | 按 unit ID 一致性哈希        |
+| Session Ticket、snapshot、block、缺失变更  | 任意节点                     |
+| 应用页面与接口                             | 任意节点                     |
+| 上传、任务、下载                           | 任意导入导出副本             |
+
+提交路径本身包含 unit ID。WebSocket 路径不含，所以浏览器给 WebSocket URL 追加 `unit` 查询
+参数，网关按它做哈希。单机形态里的网关空闲超时和上传限制仍然适用。
+
+### 有状态与无状态
+
+| 进程内持有状态                                   | 无状态                           |
+| ------------------------------------------------ | -------------------------------- |
+| 承载节点上已加载的 Unit 及其运行时               | snapshot、block 和 ticket 请求   |
+| 打开的 WebSocket Session 与 Room 成员关系        | 导入导出副本                     |
+| 导入导出副本里进行中的转换                       | 只读数据库的应用接口             |
+
+共享状态在数据库和 Redis 里。节点可以随意增减；一个节点停止时会丢失它的 Session，客户端
+经网关重连到其他节点。
+
+### pub/sub 不可用时
+
+Redis 要以高可用方式运行。它不可用期间，Session Ticket 请求失败，WebSocket upgrade 被拒绝并
+返回可重试的 `503`，新 Session 无法建立。把 Redis 当作协同服务可用性的一部分，而不是可选
+缓存。
+
+### 限制
+
+网关不会把失败的请求重试到另一个节点，SDK 也不提供已加载文档的自动故障切换，由客户端重连。
+数据库吞吐和单个节点常驻文档的开销是下一个限制。
+
+参考示例：[多节点示例](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/multi-node/README.zh-CN.md)。
+
+## 进一步
+
+- **把转换派发给 worker。** 让导入导出的 API 副本保持无状态，任务放数据库，文件放对象存储，
+  由队列或工作流引擎把每个任务交给有独立扩缩容的 worker 进程。worker 需要租约或超时，这样
+  转换中途停止的 worker 不会让任务卡住。见[文件交换集成](/server/import-export)。
+- **按文档划分节点池。** 路由键就是 unit ID，应用可以按租户、大小或等级把文档映射到不同的
+  节点池。SDK 只要求所有节点池共享同一个数据库和 pub/sub。
+- **扩展模块。** History、Thread Comment 和 Worktree 自带 Service 和 Database Adapter，遵循
+  同样的形态。见[协同扩展模块](/server/collaboration/extensions)。
+
+## 生产清单
+
+| 要求                                       | 出处                                                                 |
+| ------------------------------------------ | -------------------------------------------------------------------- |
+| 转发 HTTP 与 WebSocket，在网关终止 TLS     | [单机](#这台机器要做到的事)                                          |
+| 网关空闲超时低于 Node.js keep-alive        | [单机](#这台机器要做到的事)                                          |
+| 网关与应用两处限制上传大小                 | [单机](#这台机器要做到的事)                                          |
+| 健康检查路由                               | [单机](#这台机器要做到的事)                                          |
+| 按组装的相反顺序关停                       | [单机](#这台机器要做到的事)，在[多节点](#应用里改什么)中扩展         |
+| License 注入浏览器包                       | [单机](#这台机器要做到的事)                                          |
+| 已实现身份与授权                           | [单机](#这台机器要做到的事)                                          |
+| schema 由迁移管理，服务无 DDL 权限         | [服务拆分](#存储离开机器)                                            |
+| 任务超时与下载链接过期                     | [服务拆分](#导入导出离开进程)                                        |
+| 高可用 Redis，客户端处理 `503`             | [多节点](#pubsub-不可用时)                                           |
+| 网关按文档路由                             | [多节点](#按文档路由)                                                |
