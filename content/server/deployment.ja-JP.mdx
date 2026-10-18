@@ -1,0 +1,61 @@
+---
+icon: Boxes
+title: デプロイガイド
+description: 規模に応じて Server SDK アプリケーションのデプロイ形態を選びます。単一マシン、インポートとエクスポートの分離、複数の共同編集ノード。
+---
+
+このページでは、Server SDK アプリケーションの 3 つのデプロイ形態を規模順に紹介します。先に [Collaboration SDK](/server/collaboration/overview)、[インポートとエクスポート](/server/import-export)、[サンプル](/server/collaboration/examples)を読み、モジュールの組み立て方を把握してください。デプロイは、同じ組み立てを 1 つまたは複数のノードに配置することです。
+
+| 形態 | 共同編集 | インポートとエクスポート | 推奨規模 |
+| --- | --- | --- | --- |
+| [単一マシン](#単一マシン) | 1 ノード | 同じノード | ローカルアプリケーション、開発とテスト、少数の社内ユーザー |
+| [インポートとエクスポートの分離](#インポートとエクスポートの分離) | 1 ノード | 独立ノード | 複数ユーザー向けのオンラインサービス、1 ノードの容量内 |
+| [複数ノード](#複数の共同編集ノード) | 複数ノード | 独立ノード | 1 ノードの容量を超える場合、またはノードのフェイルオーバーが必要な場合 |
+
+## 単一マシン
+
+すべての機能を 1 つの Node.js プロセスにデプロイし、ブラウザーが直接接続します。
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"ブラウザー\"]) --> App[\"共同編集 + Exchange\"]\n    App --> DB[(\"データベース\")]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+- Database Adapter は `IDatabaseAdapter` の契約を実装します。[データベースアダプター](/server/collaboration/database-adapters)を参照してください。
+- インポートとエクスポートのタスクとファイルの保存、タイムアウト、ダウンロードリンクは[ファイル交換の統合](/server/import-export)を参照してください。
+- 変換は CPU 負荷が高く、大きなファイルは共同編集を遅くします。
+
+変換が共同編集の応答に影響する場合や、多数のユーザーに継続してサービスを提供する場合は、インポートとエクスポートを分離します。
+
+## インポートとエクスポートの分離
+
+インポートとエクスポートを独立ノードに移します。共同編集は 1 ノードのまま、ゲートウェイが 2 種類のパスを分けてルーティングし、両者は同じデータベースに接続します。
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"ブラウザー\"]) --> Gateway[\"ゲートウェイ\"]\n    Gateway -->|\"共同編集リクエスト\"| Node[\"共同編集ノード\"]\n    Gateway -->|\"インポート/エクスポートリクエスト\"| Exchange[\"インポート/エクスポートノード\"]\n    Node --> DB[(\"データベース\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+インポートとエクスポートのノードは Database Adapter、`UniverCollabService`、変換モジュールを組み立て、データベースに直接アクセスします。注入ポイントは単一マシンと同じです。
+
+1 つの共同編集ノードが扱えるドキュメント数はプロセスのメモリで決まります。容量を超える場合やフェイルオーバーが必要な場合は複数ノードに進みます。
+
+## 複数の共同編集ノード
+
+複数の共同編集ノードが同じコードを実行し、同じデータベースに接続します。pub/sub アダプターがノード間で Room、Presence、ブロードキャストを中継し、ticket store が Session Ticket を共有します。`@univerjs-pro/collaboration-cluster-redis` が Redis 実装を提供します。参考サンプル: [Multi-node](/server/collaboration/examples#multi-node)。
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"ブラウザー\"]) --> Gateway[\"ゲートウェイ\"]\n    subgraph Nodes[\"共同編集ノード\"]\n        direction TB\n        A[\"ノード A\"]\n        B[\"ノード B\"]\n    end\n    Gateway -->|\"共同編集リクエスト\"| A\n    Gateway --> B\n    subgraph Exchange[\"インポート/エクスポートノード\"]\n        direction TB\n        X1[\"ノード A\"]\n        X2[\"ノード B\"]\n    end\n    Gateway -->|\"インポート/エクスポートリクエスト\"| X1\n    Gateway --> X2\n    A --- PubSub[(\"pub/sub + ticket store\")]\n    B --- PubSub\n    A --> DB[(\"データベース\")]\n    B --> DB\n    X1 --> DB\n    X2 --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+各共同編集ノードは Redis の pub/sub アダプターと ticket store を Endpoint に渡します。それ以外の組み立てはそのままです。
+
+```ts
+import { createClient } from "redis";
+import { RedisPubSubAdapter, RedisSessionTicketStore } from "@univerjs-pro/collaboration-cluster-redis";
+import { UniverCollabEndpoint } from "@univerjs-pro/collaboration-endpoint";
+
+const client = createClient({ url: process.env.REDIS_URL });
+const subClient = client.duplicate();
+await Promise.all([client.connect(), subClient.connect()]);
+
+const pubSub = new RedisPubSubAdapter({ pubClient: client, subClient });
+const ticketStore = new RedisSessionTicketStore({ client });
+const endpoint = new UniverCollabEndpoint(service, { pubSub, ticketStore });
+```
+
+## さらに先へ
+
+1 つのノードで非常に大きなドキュメントを処理すると、同じノード上の小さなドキュメントのリクエストが遅くなります。ドキュメントの規模でノードプールを分け、ゲートウェイが大きなドキュメントを専用プールにルーティングするようにできます。ルーティングキーは unit ID のままで、すべてのプールがデータベースと pub/sub を共有します。

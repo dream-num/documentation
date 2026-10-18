@@ -1,0 +1,74 @@
+---
+icon: Boxes
+title: Deployment guide
+description: Choose a deployment shape for a Server SDK application by scale, from one machine to a separate import and export node and multiple collaboration nodes.
+---
+
+This page describes three deployment shapes for a Server SDK application by scale. Read
+[Collaboration SDK](/server/collaboration/overview), [import and export](/server/import-export), and the
+[examples](/server/collaboration/examples) first to see how the modules are assembled; deployment places
+the same assembly on one or more nodes.
+
+| Shape                                                 | Collaboration | Import and export | Recommended scale                                     |
+| ----------------------------------------------------- | ------------- | ----------------- | ----------------------------------------------------- |
+| [Single machine](#single-machine)                     | One node      | Same node         | Local applications, development, a few internal users |
+| [Split import and export](#split-import-and-export)   | One node      | Separate node     | Multi-user online service within one node's capacity  |
+| [Multiple nodes](#multiple-collaboration-nodes)       | Several nodes | Separate node     | Beyond one node's capacity, or node failover          |
+
+## Single machine
+
+Everything runs in one Node.js process, and the browser connects to it directly.
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Browser\"]) --> App[\"Collaboration + Exchange\"]\n    App --> DB[(\"Database\")]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+- The Database Adapter implements the `IDatabaseAdapter` contract. See [Database Adapters](/server/collaboration/database-adapters).
+- Task and file storage, timeouts, and download links for import and export are covered in
+  [File exchange integration](/server/import-export).
+- A conversion is CPU-bound, and a large file slows collaboration.
+
+Split import and export when conversions affect collaboration latency or the service must stay
+available to many users.
+
+## Split import and export
+
+Import and export move to a separate node; collaboration stays one node; the gateway routes the two kinds of paths separately; both use the same database.
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Browser\"]) --> Gateway[\"Gateway\"]\n    Gateway -->|\"Collaboration requests\"| Node[\"Collaboration node\"]\n    Gateway -->|\"Import and export requests\"| Exchange[\"Import and export node\"]\n    Node --> DB[(\"Database\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+The import and export node assembles the Database Adapter, a `UniverCollabService`, and the conversion
+module, and works straight from the database; the injection points are the same as on a single machine.
+
+The documents a single collaboration node serves are bounded by process memory. Move to multiple nodes
+beyond that capacity or for failover.
+
+## Multiple collaboration nodes
+
+Several collaboration nodes run the same code against the same database. A pub/sub adapter relays
+Rooms, Presence, and broadcasts between nodes, a ticket store shares Session Tickets, and
+`@univerjs-pro/collaboration-cluster-redis` provides the Redis implementation. Reference example:
+[Multi-node](/server/collaboration/examples#multi-node).
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Browser\"]) --> Gateway[\"Gateway\"]\n    subgraph Nodes[\"Collaboration nodes\"]\n        direction TB\n        A[\"Node A\"]\n        B[\"Node B\"]\n    end\n    Gateway -->|\"Collaboration requests\"| A\n    Gateway --> B\n    subgraph Exchange[\"Import and export nodes\"]\n        direction TB\n        X1[\"Node A\"]\n        X2[\"Node B\"]\n    end\n    Gateway -->|\"Import and export requests\"| X1\n    Gateway --> X2\n    A --- PubSub[(\"Pub/sub + ticket store\")]\n    B --- PubSub\n    A --> DB[(\"Database\")]\n    B --> DB\n    X1 --> DB\n    X2 --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+Every collaboration node passes the Redis pub/sub adapter and ticket store to the Endpoint; the rest of
+the assembly stays the same:
+
+```ts
+import { createClient } from "redis";
+import { RedisPubSubAdapter, RedisSessionTicketStore } from "@univerjs-pro/collaboration-cluster-redis";
+import { UniverCollabEndpoint } from "@univerjs-pro/collaboration-endpoint";
+
+const client = createClient({ url: process.env.REDIS_URL });
+const subClient = client.duplicate();
+await Promise.all([client.connect(), subClient.connect()]);
+
+const pubSub = new RedisPubSubAdapter({ pubClient: client, subClient });
+const ticketStore = new RedisSessionTicketStore({ client });
+const endpoint = new UniverCollabEndpoint(service, { pubSub, ticketStore });
+```
+
+## Going further
+
+A very large document slows the requests of the small documents on the same node. Partition node pools
+by document size and let the gateway route large documents to a dedicated pool; the routing key stays
+the unit ID, and every pool shares the database and pub/sub.

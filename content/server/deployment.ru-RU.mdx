@@ -1,0 +1,61 @@
+---
+icon: Boxes
+title: Руководство по развертыванию
+description: Выберите форму развертывания приложения на Server SDK по масштабу, от одной машины до нескольких узлов совместного редактирования.
+---
+
+На этой странице описаны три формы развертывания приложения на Server SDK в порядке роста масштаба. Сначала прочитайте [Collaboration SDK](/server/collaboration/overview), [импорт и экспорт](/server/import-export) и [примеры](/server/collaboration/examples), чтобы понять, как собираются модули; развертывание размещает ту же сборку на одном или нескольких узлах.
+
+| Форма | Совместное редактирование | Импорт и экспорт | Рекомендуемый масштаб |
+| --- | --- | --- | --- |
+| [Одна машина](#одна-машина) | Один узел | Тот же узел | Локальные приложения, разработка и тестирование, несколько внутренних пользователей |
+| [Отдельный импорт и экспорт](#отдельный-импорт-и-экспорт) | Один узел | Отдельный узел | Многопользовательский онлайн-сервис в пределах емкости одного узла |
+| [Несколько узлов](#несколько-узлов-совместного-редактирования) | Несколько узлов | Отдельный узел | Сверх емкости одного узла или при необходимости переключения между узлами |
+
+## Одна машина
+
+Все функции развернуты в одном процессе Node.js, браузер подключается к нему напрямую.
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Браузер\"]) --> App[\"Совместное редактирование + Exchange\"]\n    App --> DB[(\"База данных\")]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+- Database Adapter реализует контракт `IDatabaseAdapter`; см. [Адаптеры баз данных](/server/collaboration/database-adapters).
+- Хранение задач и файлов, тайм-ауты и ссылки на скачивание для импорта и экспорта описаны в разделе [Интеграция обмена файлами](/server/import-export).
+- Конвертация сильно нагружает процессор, и большой файл замедляет совместное редактирование.
+
+Выделяйте импорт и экспорт, когда конвертации влияют на отклик совместного редактирования или сервис должен постоянно обслуживать много пользователей.
+
+## Отдельный импорт и экспорт
+
+Импорт и экспорт переносятся на отдельный узел; совместное редактирование остается на одном узле; шлюз маршрутизирует два вида путей раздельно; оба используют одну базу данных.
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Браузер\"]) --> Gateway[\"Шлюз\"]\n    Gateway -->|\"Запросы совместного редактирования\"| Node[\"Узел совместного редактирования\"]\n    Gateway -->|\"Запросы импорта и экспорта\"| Exchange[\"Узел импорта и экспорта\"]\n    Node --> DB[(\"База данных\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+Узел импорта и экспорта собирает Database Adapter, `UniverCollabService` и модуль конвертации и работает напрямую с базой данных; точки внедрения те же, что и на одной машине.
+
+Число документов, которые обслуживает один узел совместного редактирования, ограничено памятью процесса. Переходите к нескольким узлам, когда емкости не хватает или нужно переключение при отказе.
+
+## Несколько узлов совместного редактирования
+
+Несколько узлов совместного редактирования выполняют один и тот же код с одной базой данных. pub/sub-адаптер передает Rooms, Presence и рассылки между узлами, ticket store делит Session Tickets, а `@univerjs-pro/collaboration-cluster-redis` предоставляет реализацию на Redis. Пример: [Multi-node](/server/collaboration/examples#multi-node).
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Браузер\"]) --> Gateway[\"Шлюз\"]\n    subgraph Nodes[\"Узлы совместного редактирования\"]\n        direction TB\n        A[\"Узел A\"]\n        B[\"Узел B\"]\n    end\n    Gateway -->|\"Запросы совместного редактирования\"| A\n    Gateway --> B\n    subgraph Exchange[\"Узлы импорта и экспорта\"]\n        direction TB\n        X1[\"Узел A\"]\n        X2[\"Узел B\"]\n    end\n    Gateway -->|\"Запросы импорта и экспорта\"| X1\n    Gateway --> X2\n    A --- PubSub[(\"pub/sub + ticket store\")]\n    B --- PubSub\n    A --> DB[(\"База данных\")]\n    B --> DB\n    X1 --> DB\n    X2 --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+Каждый узел совместного редактирования передает pub/sub-адаптер и ticket store Redis в Endpoint; остальная сборка остается прежней:
+
+```ts
+import { createClient } from "redis";
+import { RedisPubSubAdapter, RedisSessionTicketStore } from "@univerjs-pro/collaboration-cluster-redis";
+import { UniverCollabEndpoint } from "@univerjs-pro/collaboration-endpoint";
+
+const client = createClient({ url: process.env.REDIS_URL });
+const subClient = client.duplicate();
+await Promise.all([client.connect(), subClient.connect()]);
+
+const pubSub = new RedisPubSubAdapter({ pubClient: client, subClient });
+const ticketStore = new RedisSessionTicketStore({ client });
+const endpoint = new UniverCollabEndpoint(service, { pubSub, ticketStore });
+```
+
+## Дальше
+
+Очень большой документ замедляет запросы небольших документов на том же узле. Разделите узлы на пулы по размеру документов и направляйте большие документы через шлюз в отдельный пул; ключом маршрутизации остается unit ID, а все пулы используют общую базу данных и pub/sub.

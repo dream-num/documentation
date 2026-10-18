@@ -1,0 +1,65 @@
+---
+icon: Boxes
+title: 部署指引
+description: 按规模为 Server SDK 应用选择部署形态：单机、拆分导入导出、多协同节点。
+---
+
+本页按规模介绍 Server SDK 应用的三种部署形态。先阅读 [Collaboration SDK](/server/collaboration/overview)、
+[导入导出](/server/import-export)和[示例](/server/collaboration/examples)，了解模块如何组装；部署是把同一套
+组装放到一个或多个节点上。
+
+| 形态                          | 协同     | 导入导出 | 推荐规模                         |
+| ----------------------------- | -------- | -------- | -------------------------------- |
+| [单机](#单机)                 | 一个节点 | 同一节点 | 本地应用、开发测试、少量内部用户 |
+| [拆分导入导出](#拆分导入导出) | 一个节点 | 独立节点 | 多人线上服务，单节点容量以内     |
+| [多节点](#多协同节点)         | 多个节点 | 独立节点 | 超出单节点容量，或需要故障切换   |
+
+## 单机
+
+所有功能部署在一个 Node.js 进程里，浏览器直接连接。
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) --> App[\"协同 + 导入导出\"]\n    App --> DB[(\"数据库\")]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+- Database Adapter 实现 `IDatabaseAdapter` 契约，见 [Database Adapter](/server/collaboration/database-adapters)。
+- 导入导出的任务与文件存储、超时和下载链接见[文件交换集成](/server/import-export)。
+- 一次转换是 CPU 密集型的，大文件会拖慢协同。
+
+导入导出影响协同响应，或要面向多人持续服务时，拆分导入导出。
+
+## 拆分导入导出
+
+导入导出放到独立节点；协同仍是一个节点；网关分别路由两类路径；两者连同一个数据库。
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) --> Gateway[\"网关\"]\n    Gateway -->|\"协同请求\"| Node[\"协同节点\"]\n    Gateway -->|\"导入导出请求\"| Exchange[\"导入导出节点\"]\n    Node --> DB[(\"数据库\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+导入导出节点组装 Database Adapter、`UniverCollabService` 和转换模块，直接访问数据库，注入点与单机相同。
+
+协同单节点能服务的文档数受进程内存限制。超出容量或需要故障切换时进入多节点。
+
+## 多协同节点
+
+多个协同节点运行同一份代码，连同一个数据库。pub/sub adapter 在节点间中继 Room、Presence 和广播，
+ticket store 共享 Session Ticket，`@univerjs-pro/collaboration-cluster-redis` 提供 Redis 实现。参考示例：[Multi-node](/server/collaboration/examples#multi-node)。
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"浏览器\"]) --> Gateway[\"网关\"]\n    subgraph Nodes[\"协同节点\"]\n        direction TB\n        A[\"节点 A\"]\n        B[\"节点 B\"]\n    end\n    Gateway -->|\"协同请求\"| A\n    Gateway --> B\n    subgraph Exchange[\"导入导出节点\"]\n        direction TB\n        X1[\"节点 A\"]\n        X2[\"节点 B\"]\n    end\n    Gateway -->|\"导入导出请求\"| X1\n    Gateway --> X2\n    A --- PubSub[(\"pub/sub + ticket store\")]\n    B --- PubSub\n    A --> DB[(\"数据库\")]\n    B --> DB\n    X1 --> DB\n    X2 --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+每个协同节点把 Redis 的 pub/sub adapter 和 ticket store 传给 Endpoint，其余组装保持原样：
+
+```ts
+import { createClient } from "redis";
+import { RedisPubSubAdapter, RedisSessionTicketStore } from "@univerjs-pro/collaboration-cluster-redis";
+import { UniverCollabEndpoint } from "@univerjs-pro/collaboration-endpoint";
+
+const client = createClient({ url: process.env.REDIS_URL });
+const subClient = client.duplicate();
+await Promise.all([client.connect(), subClient.connect()]);
+
+const pubSub = new RedisPubSubAdapter({ pubClient: client, subClient });
+const ticketStore = new RedisSessionTicketStore({ client });
+const endpoint = new UniverCollabEndpoint(service, { pubSub, ticketStore });
+```
+
+## 进一步
+
+一个节点上同时处理超大文档会拖慢同节点上小文档的请求。可以按文档规模划分节点池，由网关把大文档路由到
+单独的节点池处理；路由键仍是 unit ID，各池共享数据库和 pub/sub。
