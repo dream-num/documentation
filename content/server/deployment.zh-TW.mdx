@@ -1,0 +1,61 @@
+---
+icon: Boxes
+title: 部署指引
+description: 依規模為 Server SDK 應用選擇部署形態：單機、拆分匯入匯出、多協同節點。
+---
+
+本頁依規模介紹 Server SDK 應用的三種部署形態。先閱讀 [Collaboration SDK](/server/collaboration/overview)、[匯入匯出](/server/import-export)和[範例](/server/collaboration/examples)，了解模組如何組裝；部署是把同一套組裝放到一個或多個節點上。
+
+| 形態 | 協同 | 匯入匯出 | 建議規模 |
+| --- | --- | --- | --- |
+| [單機](#單機) | 一個節點 | 同一節點 | 本機應用、開發測試、少量內部使用者 |
+| [拆分匯入匯出](#拆分匯入匯出) | 一個節點 | 獨立節點 | 多人線上服務，單節點容量以內 |
+| [多節點](#多協同節點) | 多個節點 | 獨立節點 | 超出單節點容量，或需要故障轉移 |
+
+## 單機
+
+所有功能部署在一個 Node.js 程序裡，瀏覽器直接連線。
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"瀏覽器\"]) --> App[\"協同 + 匯入匯出\"]\n    App --> DB[(\"資料庫\")]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+- Database Adapter 實作 `IDatabaseAdapter` 契約，見 [資料庫配接器](/server/collaboration/database-adapters)。
+- 匯入匯出的任務與檔案儲存、逾時和下載連結見[檔案交換整合](/server/import-export)。
+- 一次轉換是 CPU 密集型的，大檔案會拖慢協同。
+
+匯入匯出影響協同回應，或要面向多人持續服務時，拆分匯入匯出。
+
+## 拆分匯入匯出
+
+匯入匯出放到獨立節點；協同仍是一個節點；閘道分別路由兩類路徑；兩者連同一個資料庫。
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"瀏覽器\"]) --> Gateway[\"閘道\"]\n    Gateway -->|\"協同請求\"| Node[\"協同節點\"]\n    Gateway -->|\"匯入匯出請求\"| Exchange[\"匯入匯出節點\"]\n    Node --> DB[(\"資料庫\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+匯入匯出節點組裝 Database Adapter、`UniverCollabService` 和轉換模組，直接存取資料庫，注入點與單機相同。
+
+協同單節點能服務的文件數受程序記憶體限制。超出容量或需要故障轉移時進入多節點。
+
+## 多協同節點
+
+多個協同節點執行同一份程式碼，連同一個資料庫。pub/sub adapter 在節點間中繼 Room、Presence 和廣播，ticket store 共用 Session Ticket，`@univerjs-pro/collaboration-cluster-redis` 提供 Redis 實作。參考範例：[Multi-node](/server/collaboration/examples#multi-node)。
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"瀏覽器\"]) --> Gateway[\"閘道\"]\n    subgraph Nodes[\"協同節點\"]\n        direction TB\n        A[\"節點 A\"]\n        B[\"節點 B\"]\n    end\n    Gateway -->|\"協同請求\"| A\n    Gateway --> B\n    subgraph Exchange[\"匯入匯出節點\"]\n        direction TB\n        X1[\"節點 A\"]\n        X2[\"節點 B\"]\n    end\n    Gateway -->|\"匯入匯出請求\"| X1\n    Gateway --> X2\n    A --- PubSub[(\"pub/sub + ticket store\")]\n    B --- PubSub\n    A --> DB[(\"資料庫\")]\n    B --> DB\n    X1 --> DB\n    X2 --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+每個協同節點把 Redis 的 pub/sub adapter 和 ticket store 傳給 Endpoint，其餘組裝保持原樣：
+
+```ts
+import { createClient } from "redis";
+import { RedisPubSubAdapter, RedisSessionTicketStore } from "@univerjs-pro/collaboration-cluster-redis";
+import { UniverCollabEndpoint } from "@univerjs-pro/collaboration-endpoint";
+
+const client = createClient({ url: process.env.REDIS_URL });
+const subClient = client.duplicate();
+await Promise.all([client.connect(), subClient.connect()]);
+
+const pubSub = new RedisPubSubAdapter({ pubClient: client, subClient });
+const ticketStore = new RedisSessionTicketStore({ client });
+const endpoint = new UniverCollabEndpoint(service, { pubSub, ticketStore });
+```
+
+## 進一步
+
+一個節點上同時處理超大文件會拖慢同節點上小文件的請求。可以依文件規模劃分節點池，由閘道把大文件路由到單獨的節點池處理；路由鍵仍是 unit ID，各池共用資料庫和 pub/sub。

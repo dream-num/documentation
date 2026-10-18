@@ -1,0 +1,61 @@
+---
+icon: Boxes
+title: Guide de déploiement
+description: Choisissez la forme de déploiement d’une application Server SDK selon son échelle, de la machine unique aux nœuds de collaboration multiples.
+---
+
+Cette page décrit trois formes de déploiement d’une application Server SDK selon l’échelle. Lisez d’abord [Collaboration SDK](/server/collaboration/overview), [import et export](/server/import-export) et les [exemples](/server/collaboration/examples) pour voir comment les modules s’assemblent ; le déploiement place ce même assemblage sur un ou plusieurs nœuds.
+
+| Forme | Collaboration | Import et export | Échelle recommandée |
+| --- | --- | --- | --- |
+| [Machine unique](#machine-unique) | Un nœud | Même nœud | Applications locales, développement et tests, quelques utilisateurs internes |
+| [Séparer l’import et l’export](#séparer-limport-et-lexport) | Un nœud | Nœud distinct | Service en ligne multi-utilisateurs dans la capacité d’un nœud |
+| [Plusieurs nœuds](#plusieurs-nœuds-de-collaboration) | Plusieurs nœuds | Nœud distinct | Au-delà de la capacité d’un nœud, ou basculement entre nœuds |
+
+## Machine unique
+
+Toutes les fonctions sont déployées dans un seul processus Node.js et le navigateur s’y connecte directement.
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Navigateur\"]) --> App[\"Collaboration + Exchange\"]\n    App --> DB[(\"Base de données\")]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+- Le Database Adapter implémente le contrat `IDatabaseAdapter` ; voir [Adaptateurs de base de données](/server/collaboration/database-adapters).
+- Le stockage des tâches et des fichiers, les délais d’expiration et les liens de téléchargement de l’import et de l’export sont décrits dans [Intégration de l’échange de fichiers](/server/import-export).
+- Une conversion sollicite fortement le processeur et un fichier volumineux ralentit la collaboration.
+
+Séparez l’import et l’export lorsque les conversions pèsent sur la réactivité de la collaboration ou que le service doit servir de nombreux utilisateurs en continu.
+
+## Séparer l’import et l’export
+
+L’import et l’export passent sur un nœud distinct ; la collaboration reste sur un nœud ; la passerelle route séparément les deux types de chemins ; les deux utilisent la même base de données.
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Navigateur\"]) --> Gateway[\"Passerelle\"]\n    Gateway -->|\"Requêtes de collaboration\"| Node[\"Nœud de collaboration\"]\n    Gateway -->|\"Requêtes d’import et d’export\"| Exchange[\"Nœud d’import et d’export\"]\n    Node --> DB[(\"Base de données\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+Le nœud d’import et d’export assemble le Database Adapter, un `UniverCollabService` et le module de conversion, et accède directement à la base de données ; les points d’injection sont les mêmes que sur une machine unique.
+
+Les documents servis par un seul nœud de collaboration sont limités par la mémoire du processus. Passez à plusieurs nœuds au-delà de cette capacité ou pour le basculement.
+
+## Plusieurs nœuds de collaboration
+
+Plusieurs nœuds de collaboration exécutent le même code sur la même base de données. Un adaptateur pub/sub relaie les Rooms, la Presence et les diffusions entre les nœuds, un ticket store partage les Session Tickets et `@univerjs-pro/collaboration-cluster-redis` fournit l’implémentation Redis. Exemple de référence : [Multi-node](/server/collaboration/examples#multi-node).
+
+<Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Navigateur\"]) --> Gateway[\"Passerelle\"]\n    subgraph Nodes[\"Nœuds de collaboration\"]\n        direction TB\n        A[\"Nœud A\"]\n        B[\"Nœud B\"]\n    end\n    Gateway -->|\"Requêtes de collaboration\"| A\n    Gateway --> B\n    subgraph Exchange[\"Nœuds d’import et d’export\"]\n        direction TB\n        X1[\"Nœud A\"]\n        X2[\"Nœud B\"]\n    end\n    Gateway -->|\"Requêtes d’import et d’export\"| X1\n    Gateway --> X2\n    A --- PubSub[(\"pub/sub + ticket store\")]\n    B --- PubSub\n    A --> DB[(\"Base de données\")]\n    B --> DB\n    X1 --> DB\n    X2 --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
+
+Chaque nœud de collaboration transmet l’adaptateur pub/sub et le ticket store Redis à l’Endpoint ; le reste de l’assemblage reste identique :
+
+```ts
+import { createClient } from "redis";
+import { RedisPubSubAdapter, RedisSessionTicketStore } from "@univerjs-pro/collaboration-cluster-redis";
+import { UniverCollabEndpoint } from "@univerjs-pro/collaboration-endpoint";
+
+const client = createClient({ url: process.env.REDIS_URL });
+const subClient = client.duplicate();
+await Promise.all([client.connect(), subClient.connect()]);
+
+const pubSub = new RedisPubSubAdapter({ pubClient: client, subClient });
+const ticketStore = new RedisSessionTicketStore({ client });
+const endpoint = new UniverCollabEndpoint(service, { pubSub, ticketStore });
+```
+
+## Pour aller plus loin
+
+Un très grand document ralentit les requêtes des petits documents du même nœud. Répartissez les nœuds en groupes selon la taille des documents et laissez la passerelle router les grands documents vers un groupe dédié ; la clé de routage reste l’unit ID et tous les groupes partagent la base de données et le pub/sub.
