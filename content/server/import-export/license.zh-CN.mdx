@@ -1,0 +1,125 @@
+---
+title: Office 导出授权与额度
+description: 配置 Node 导出授权、查询剩余额度并处理授权错误。
+---
+
+在运行 `@univerjs-pro/exchange-node` 的服务端进程中配置导出授权。浏览器侧的许可证注册与 Node SDK 分别配置，参见[浏览器许可证注册](/server/license)和 [Office 文件导入导出](/server/import-export/node)。
+
+正式版本尚待发布。本文 API 已通过 `@univerjs-pro/exchange-node@1.1.0-dev.20261021.2` 提供；请使用与当前部署匹配且已验证的 SDK 依赖版本。
+
+## 配置授权 [#configure]
+
+推荐通过环境变量 `UNIVER_LICENSE` 与 `UNIVER_LICENSE_KEY` 成对提供授权。无需调用 `configureExchange`；SDK 在首次导出或额度查询时自动读取一次，后续调用复用该配置。未提供环境凭据时使用 Free。
+
+也可以使用 `configureExchange({ license, licenseKey })` 显式配置，它返回 `Promise<void>`。显式配置完全忽略环境变量；应等待配置完成后再开始使用新授权的导出。
+
+```ts
+import { configureExchange, getExportQuota } from '@univerjs-pro/exchange-node'
+
+await configureExchange({
+  license: '<license content>',
+  licenseKey: '<licenseKey content>',
+})
+
+const quota = await getExportQuota({ unitType: 'sheet' })
+```
+
+`license` 与 `licenseKey` 使用授权提供方交付的完整内容，不是文件路径。两项应成对配置，并通过应用的密钥管理系统提供。
+
+| 输入 | 使用方式 |
+| --- | --- |
+| 不调用 `configureExchange` | 首次使用时成对读取环境变量；均未提供则使用 Free。 |
+| `configureExchange({ license, licenseKey })` | 只使用显式凭据，完全忽略环境变量。 |
+| `configureExchange({})` | 显式选择 Free，忽略环境变量。 |
+| 所选来源只提供一个字段 | 返回 `INVALID_ARGUMENT`，不会从另一来源补齐。 |
+
+环境变量在初始化后不自动重读。运行中换证应显式调用 `configureExchange`；配置失败时应处理返回的错误，再开始新的导出。
+
+## 查询剩余额度 [#quota]
+
+`getExportQuota({ unitType })` 返回 `Promise<ExportQuota>`，用于展示当前授权状态、可用额度及提示。查询本身不扣次，也不会预留一次导出。
+
+余额为零时，查询仍可成功返回。查询是当前快照，其他并发请求可能随后使用额度；请同时处理实际导出 API 返回的错误。
+
+| 字段 | 类型 | 含义 |
+| --- | --- | --- |
+| `unitType` | `'sheet' \| 'doc' \| 'slide' \| 'base' \| 'pdf'` | 查询的导出类型；PDF 额度查询不表示 Node SDK 提供 PDF 转换。 |
+| `quotaChannel` | `'free' \| 'licensed'` | 本次查询适用的免费或商业权益类别。 |
+| `releaseType` | `number \| null` | 授权类型标识；没有可解析的授权时为 `null`。 |
+| `licenseStatus` | `'not_configured' \| 'invalid' \| 'expired' \| 'valid'` | 授权未配置、无效、已到期或有效。 |
+| `observedAt` | `string` | 快照的 UTC ISO 时间。 |
+| `notices` | `QuotaNotice[]` | 提示列表；每项含 `code`、`message`、`details`，由应用决定如何展示。 |
+| `mode` | `'limited' \| 'unlimited'` | 有限额度或不限次数。 |
+| `limit` | `number \| null` | 当前授权周期的导出次数上限；不限次数时为 `null`。 |
+| `used` | `number \| null` | 当前周期内已成功导出的次数；不限次数时为 `null`。 |
+| `reserved` | `number \| null` | 当前正在处理的导出占用次数；不限次数时为 `null`。 |
+| `remaining` | `number \| null` | 当前剩余可用次数，即 `max(0, limit - used - reserved)`；不限次数时为 `null`。 |
+| `periodStart`、`periodEnd` | `string \| null` | 当前授权周期的 UTC 边界，起点包含、终点不包含；不限次数时为 `null`。 |
+
+有限额度快照示例：
+
+```json
+{
+  "unitType": "sheet",
+  "quotaChannel": "licensed",
+  "releaseType": 0,
+  "licenseStatus": "valid",
+  "observedAt": "2026-10-21T09:00:00Z",
+  "notices": [],
+  "mode": "limited",
+  "limit": 500,
+  "used": 20,
+  "reserved": 1,
+  "remaining": 479,
+  "periodStart": "2026-10-19T00:00:00Z",
+  "periodEnd": "2026-11-19T00:00:00Z"
+}
+```
+
+## 使用额度 [#accounting]
+
+Free 每授权月允许 10 次成功导出。商业授权的次数、并发及版本范围以所购授权为准。Free 与商业授权均不设置授权层面的文件大小和单元格数量上限。周期与剩余额度以查询结果为准，未用完的月额度不结转。
+
+导入无需配置导出授权，也不消耗导出次数。同一部署中的 Office 与 Go PDF 导出共享额度；Node SDK 支持的转换格式见 [Office 文件导入导出](/server/import-export/node)。
+
+每次成功转换计 1 次，返回 Buffer 即视为转换成功。转换成功后的文件写入、上传或下载失败不退回次数；再次成功转换会再次计次。额度耗尽后，需等待下一授权周期或更新授权后再使用。
+
+## 处理错误与提示 [#errors]
+
+使用结构化 `code` 判断错误，不要解析 `message` 文本。用户界面可根据错误码提供本地化提示；诊断信息请保留供技术支持使用。
+
+```ts
+import { ExchangeError, getExportQuota } from '@univerjs-pro/exchange-node'
+
+try {
+  const quota = await getExportQuota({ unitType: 'sheet' })
+  for (const notice of quota.notices) {
+    // 交给应用现有的提示与翻译机制。
+    console.info(notice.code)
+  }
+} catch (error) {
+  if (error instanceof ExchangeError) {
+    // 根据 error.code 展示对应提示。
+    console.error(error.code)
+  } else {
+    throw error
+  }
+}
+```
+
+| 错误码 | 含义及处理方式 |
+| --- | --- |
+| `LICENSE_EXPORT_QUOTA_EXCEEDED` | 当前周期的可用导出额度不足；查询额度或联系商务调整授权。 |
+| `LICENSE_POLICY_INVALID` | 授权配置不符合 SDK 要求；联系授权提供方更新授权。 |
+| `LICENSE_NOT_YET_EFFECTIVE` | 授权尚未生效；在生效后使用。 |
+| `LICENSE_VERSION_NOT_ALLOWED` | 当前 SDK 版本不在授权范围内；使用匹配版本或更新授权。 |
+| `LICENSE_CONCURRENCY_TIMEOUT` | 等待可用导出并发名额超时；降低并发后再发起导出。 |
+| `LICENSE_USAGE_STATE_INVALID` | 授权用量状态无法验证；保留错误信息并联系技术支持。 |
+| `LICENSE_USAGE_STORAGE_ERROR` | 授权用量处理失败；保留错误信息并联系技术支持，避免自动重复提交。 |
+| `INVALID_ARGUMENT` | 参数或凭据不完整；检查传入配置。 |
+| `NATIVE_LOAD_FAILED` | SDK 原生组件无法加载；检查已安装包及运行环境是否匹配。 |
+| `IO_ERROR` | 文件读写失败；成功转换后的文件写入失败已经消耗 1 次。 |
+
+`LICENSE_INVALID_USING_FREE`、`LICENSE_EXPIRED_USING_FREE` 提示当前适用 Free 权益；`LICENSE_EXPIRING_SOON` 提示相关授权将在 15 天内到期。提示由应用展示，与抛出的错误分别处理。
+
+遇到授权用量处理异常时，不应仅根据错误推断本次是否已计次，请保留完整错误并联系技术支持。
