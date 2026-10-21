@@ -53,30 +53,155 @@ const collaboration = univerAPI.getCollaboration()
 const unit = await collaboration.loadDocAsync('your-unit-id')
 ```
 
-<Callout type="warning">
-当前版本的 `UniverCollaborationClientUIPlugin` 仍会在启动时读取 URL 的 `unit` 与 `type` 查询参数并自动加载文档。该行为已弃用，将在后续版本移除。请在初始化时设置 `enableUrlUnitLoader: false` 关闭它。
-</Callout>
+## 移除内置 URL 加载协同文档 [#url-unit-loader-migration]
 
-将以下选项合并到已有的插件注册或协同预设调用中。预设模式下，把 `collaborationPreset` 放入已有 `createUniver()` 的预设列表，与编辑器预设一起使用。
+从 **1.2.0** 版本开始，Univer 移除了内置的 URL 协同文档加载逻辑，不再自动读取 URL 中的 `unit` 和 `type` 参数来加载协同文档。
 
-<Tabs items={['插件模式', '预设模式']}>
+如果你的应用依赖这一行为，可以通过自定义插件恢复。
+
+### 接入自定义插件
+
+将下方四个文件按以下目录结构复制到项目中：
+
+```text
+custom-url-load/
+├── plugin.ts
+├── controllers/
+│   └── data-loader.controller.ts
+└── services/
+    ├── url.service.ts
+    └── web-url.service.ts
+```
+
+在完成编辑器和协同插件初始化后，先设置当前用户，再注册 `CustomUrlLoadPlugin`。插件模式和预设模式均可使用这一接入方式：
+
+```ts
+import { UserManagerService } from '@univerjs/core'
+import { CustomUrlLoadPlugin } from './custom-url-load/plugin'
+
+univer.__getInjector().get(UserManagerService).setCurrentUser({ userID, name, avatar })
+
+univer.registerPlugin(CustomUrlLoadPlugin)
+```
+
+注册该插件后，由插件负责加载文档，无需再为同一文档调用 `loadDocAsync()`。如果应用已经通过 Facade 加载文档，可以继续使用上一节的方式，并根据业务需要自行处理 URL。
+
+### 完整插件代码
+
+<Tabs items={['plugin.ts', 'controllers/data-loader.controller.ts', 'services/url.service.ts', 'services/web-url.service.ts']}>
   <Tab>
     ```ts
-    import { UniverCollaborationClientUIPlugin } from '@univerjs-pro/collaboration-client-ui'
+    import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+    import { DependentOn, Inject, Injector, Plugin } from '@univerjs/core'
+    import { CollaborationDataLoaderController } from './controllers/data-loader.controller'
+    import { IURLService } from './services/url.service'
+    import { WebURLService } from './services/web-url.service'
 
-    univer.registerPlugin(UniverCollaborationClientUIPlugin, {
-      enableUrlUnitLoader: false,
-    })
+    @DependentOn(UniverCollaborationClientPlugin)
+    export class CustomUrlLoadPlugin extends Plugin {
+      static override pluginName = 'CUSTOM_URL_LOAD_PLUGIN'
+
+      constructor(
+        _config: undefined,
+        @Inject(Injector) protected override readonly _injector: Injector
+      ) {
+        super()
+      }
+
+      override onStarting(): void {
+        this._injector.add([IURLService, { useClass: WebURLService }])
+        this._injector.add([CollaborationDataLoaderController])
+
+        this.disposeWithMe(this._injector.get(IURLService))
+        this.disposeWithMe(this._injector.get(CollaborationDataLoaderController))
+      }
+    }
     ```
   </Tab>
   <Tab>
     ```ts
-    import { UniverDocsCollaborationPreset } from '@univerjs/preset-docs-collaboration'
+    import { DataLoaderService } from '@univerjs-pro/collaboration-client'
+    import { ILogService, Inject, RxDisposable } from '@univerjs/core'
+    import { IURLService } from '../services/url.service'
 
-    const collaborationPreset = UniverDocsCollaborationPreset({
-      universerEndpoint: 'https://your-backend.example.com',
-      enableUrlUnitLoader: false,
-    })
+    /**
+     * 通过 URL 参数加载协同文档。
+     */
+    export class CollaborationDataLoaderController extends RxDisposable {
+      constructor(
+        @IURLService private readonly _urlService: IURLService,
+        @ILogService private readonly _logService: ILogService,
+        @Inject(DataLoaderService) private readonly _dataLoaderService: DataLoaderService
+      ) {
+        super()
+
+        const unitId = this._urlService.getParam('unit')
+        const type = this._urlService.getParam('type')
+        if (!unitId || !type) {
+          return
+        }
+
+        this._dataLoaderService.loadUnit(unitId, Number(type))
+          .catch((error: unknown) => {
+            this._logService.error('[CollaborationDataLoaderController]', error)
+          })
+      }
+    }
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import type { IDisposable } from '@univerjs/core'
+    import type { Observable } from 'rxjs'
+    import { createIdentifier } from '@univerjs/core'
+
+    export interface IURLService extends IDisposable {
+      getParam: (key: string) => string | undefined
+      setParam: (key: string, value: string, useReplace?: boolean) => void
+      removeParam: (key: string, useReplace?: boolean) => void
+      readonly urlChange$: Observable<void>
+    }
+
+    export const IURLService = createIdentifier<IURLService>('demo.custom-url-load.url-service')
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import type { IURLService } from './url.service'
+    import { RxDisposable } from '@univerjs/core'
+    import { fromEvent, map, shareReplay, takeUntil } from 'rxjs'
+
+    export class WebURLService extends RxDisposable implements IURLService {
+      readonly urlChange$ = fromEvent(window, 'popstate').pipe(
+        map(() => undefined),
+        takeUntil(this.dispose$),
+        shareReplay({ bufferSize: 1, refCount: true })
+      )
+
+      getParam(key: string): string | undefined {
+        return new URL(window.location.href).searchParams.get(key) ?? undefined
+      }
+
+      setParam(key: string, value: string, useReplace = false): void {
+        const url = new URL(window.location.href)
+        url.searchParams.set(key, value)
+        this._updateUrl(url, useReplace)
+      }
+
+      removeParam(key: string, useReplace = false): void {
+        const url = new URL(window.location.href)
+        url.searchParams.delete(key)
+        this._updateUrl(url, useReplace)
+      }
+
+      private _updateUrl(url: URL, useReplace: boolean): void {
+        if (useReplace) {
+          window.history.replaceState(window.history.state, '', url.toString())
+        } else {
+          window.history.pushState(window.history.state, '', url.toString())
+        }
+      }
+    }
     ```
   </Tab>
 </Tabs>
