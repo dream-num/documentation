@@ -470,6 +470,91 @@ const disposable = univerAPI.addEvent(univerAPI.Event.BeforeBaseTableViewCreate,
 
 ## `@univerjs-pro/collaboration-client` [#univerjs-procollaboration-client]
 
+### `Event.CollaborationChangesetResend` [#collaborationchangesetresend]
+
+Event triggered every time a changeset is resent because the server did not acknowledge it
+
+**Callback parameters**
+
+```ts
+type EventParameters = {
+  /** The unit ID whose changeset was resent */
+  unitId: string
+  /** The request ID of the changeset within the current editing session */
+  reqId: number
+  /** Why the changeset was resent: - `ack_timeout`: no acknowledgement arrived in time - `should_retry`: the server asked for the changeset to be resent - `reconnect`: the connection was restored or the changeset was restored from the local cache */
+  reason: ChangesetResendReason
+  /** How many times the changeset has been resent, counting this one */
+  attempt: number
+  /** Milliseconds since the changeset was first sent */
+  elapsedMs: number
+  /** Local mutations the server has not acknowledged yet, including those not sent yet */
+  unsyncedMutationCount: number
+  /** Milliseconds until the next resend if the server stays silent */
+  nextDelayMs: number
+  /** Flag to cancel the event if supported */
+  cancel?: boolean | undefined
+}
+```
+
+**Payload type:** [`ICollaborationChangesetResendEventParams`](https://unpkg.com/@univerjs-pro/collaboration-client/lib/types/facade/f-event.d.ts)
+
+**Example**
+
+```ts
+univerAPI.addEvent(univerAPI.Event.CollaborationChangesetResend, (event) => {
+  const { unitId, reason, attempt, unsyncedMutationCount, elapsedMs } = event
+  if (reason === 'ack_timeout' && attempt >= 2) {
+    console.warn(
+      `${unsyncedMutationCount} unsaved mutations of ${unitId} for ${Math.round(elapsedMs / 1000)}s`,
+    )
+  }
+})
+```
+
+**Package:** [`@univerjs-pro/collaboration-client`](/reference/packages/plugins/univerjs-pro/collaboration-client) · [Type definitions](https://unpkg.com/@univerjs-pro/collaboration-client/lib/types/facade/f-event.d.ts)
+
+### `Event.CollaborationConflict` [#collaborationconflict]
+
+Event triggered once per conflict, after the unit's offline cache was cleared: the reason and the local edits
+the server has not acknowledged
+
+**Callback parameters**
+
+```ts
+type EventParameters = {
+  /** Flag to cancel the event if supported */
+  cancel?: boolean | undefined
+  /** The unit ID that entered the conflict status */
+  unitId: string
+  /** - `transform_failed`: a remote changeset could not be transformed against the local edits - `apply_failed`: a remote changeset was transformed but one of its mutations failed to execute - `changeset_rejected`: the server rejected the local changeset - `permission_rejected`: the server rejected the local changeset for lack of permission - `remote_revert`: another collaborator reverted the unit to a historical revision */
+  reason: ConflictReason
+  /** The error message, when the conflict was caused by an error */
+  message?: string | undefined
+  /** The revert that caused the conflict, when `reason` is `remote_revert` */
+  revert?: IRemoteRevertInfo | undefined
+  /** The local edits the server has not acknowledged, in the format of the offline cache, or `null` when there are none. Not available after this event. `awaitingChangeset` has been sent; whether the server applied it is unknown. */
+  localChanges: IUnitCacheData | null
+  /** Whether the offline cache of the unit was cleared. When `false`, a page reload replays the cached edits. */
+  cacheCleared: boolean
+}
+```
+
+**Payload type:** [`ICollaborationConflictEventParams`](https://unpkg.com/@univerjs-pro/collaboration-client/lib/types/facade/f-event.d.ts)
+
+**Example**
+
+```ts
+univerAPI.addEvent(univerAPI.Event.CollaborationConflict, (event) => {
+  const { unitId, reason, localChanges, cacheCleared } = event
+  if (localChanges) saveSomewhere(unitId, localChanges)
+  if (reason === 'permission_rejected') return showNoPermission(unitId)
+  if (cacheCleared) window.location.reload()
+})
+```
+
+**Package:** [`@univerjs-pro/collaboration-client`](/reference/packages/plugins/univerjs-pro/collaboration-client) · [Type definitions](https://unpkg.com/@univerjs-pro/collaboration-client/lib/types/facade/f-event.d.ts)
+
 ### `Event.CollaborationStatusChanged` [#collaborationstatuschanged]
 
 Event triggered when collaboration status changes
@@ -480,7 +565,7 @@ Event triggered when collaboration status changes
 type EventParameters = {
   /** The unit ID whose collaboration status changed */
   unitId: string
-  /** The new collaboration status */
+  /** The new collaboration status. When it is `CONFLICT`, the `CollaborationConflict` event follows with the reason and the unacknowledged local edits. */
   status: CollaborationStatus
   /** Flag to cancel the event if supported */
   cancel?: boolean | undefined

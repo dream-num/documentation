@@ -2,6 +2,8 @@
 title: 核心功能
 ---
 
+import { HeadingCollapseDemo } from './components/heading-collapse-demo'
+
 <MetaData
   lang="zh-TW"
   meta={{
@@ -380,3 +382,53 @@ Docs 支援保留來源格式、符合目的地格式及僅保留文字。符合
 ## 頁首與頁尾欄位 [#header-footer-fields]
 
 在傳統文件中編輯頁首或頁尾時，會出現用於插入、導覽、首頁／奇偶頁選項及位置設定的情境式 Ribbon。可插入目前頁碼、總頁數及本地化日期與時間。頁碼欄位依各個呈現頁面顯示對應值。插入日期／時間時，勾選自動更新會儲存為欄位，取消勾選則插入固定文字。日期／時間欄位會在開啟文件或執行「更新欄位」時重新整理，不會像時鐘持續更新。現代文件不使用分頁頁首與頁尾。
+
+## 文件大綱 [#document-outline]
+
+左側大綱用於跳轉至標題，不會在內文中插入目錄。省略 `toc` 時，現代文件預設開啟，傳統文件預設關閉；明確設定 `true` 或 `false` 可覆寫預設值。空間不足或表格與大綱重疊時，面板會收起，空間恢復後重新展開。
+
+將此選項合併到現有初始化設定中，請勿重複註冊同一外掛。
+
+<Tabs items={['外掛模式', '預設模式']}>
+  <Tab>
+    ```ts
+    import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+
+    univer.registerPlugin(UniverDocsUIPlugin, { toc: true })
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+    import { createUniver } from '@univerjs/presets'
+
+    const { univerAPI } = createUniver({
+      presets: [UniverDocsCorePreset({ container: 'app', toc: true })],
+    })
+    ```
+  </Tab>
+</Tabs>
+
+## 標題摺疊 [#heading-collapse]
+
+現代文件（`documentStyle.documentFlavor: DocumentFlavor.MODERN`）會在具有章節內容的一級至五級標題旁顯示三角按鈕。摺疊後保留標題，隱藏其後直到下一個同層級或更高層級標題之前的內容，包括子標題、表格和圖片。每個表格儲存格和現代文件分欄都有獨立的標題階層。
+
+標題摺疊不受 `toc` 控制。傳統文件和嵌入式文字編輯器不顯示摺疊控制項。展開父標題時，子標題會保留各自的摺疊狀態。
+
+<HeadingCollapseDemo />
+
+`IParagraph.headingCollapsed` 隨 Univer 快照儲存，僅 `true` 表示摺疊。內文仍在快照中，摺疊支援復原、重做及協同，並與其他編輯者共用。隱藏內容中的選取範圍會移到可見標題。此約定不保證 Office 匯入匯出保留摺疊狀態。
+
+以程式碼修改時，使用文件 ID 和快照中穩定的 `paragraphId` 執行已註冊的命令。設定 `collapsed: false` 可展開。
+
+```ts
+import { SetHeadingCollapsedCommand } from '@univerjs/docs'
+
+const changed = await univerAPI.executeCommand(SetHeadingCollapsedCommand.id, {
+  unitId: documentId,
+  paragraphId: headingParagraphId,
+  collapsed: true,
+})
+```
+
+狀態未變或目標無效時，命令傳回 `false`，例如傳統文件、被祖先標題隱藏的標題、摺疊空章節或無編輯權限。詳見[命令契約](/reference/packages/plugins/univerjs/docs#heading-collapse)。

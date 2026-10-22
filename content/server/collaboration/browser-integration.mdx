@@ -54,3 +54,83 @@ If documents load but edits do not synchronize, check the WebSocket connection. 
 To edit an imported file together, create a collaborative document from its converted data; see [file exchange integration](/server/import-export). Comments and history need their own plugins, services, and permissions. Follow [Office extension modules](/server/collaboration/extensions).
 
 For history panel configuration, see [Sheets](/guides/sheets/features/edit-history), [Docs](/guides/docs/features/edit-history), [Slides](/guides/slides/features/edit-history), [Boards](/guides/boards/features/edit-history), [Bases](/guides/bases/features/edit-history). See [PDFs history](/guides/pdfs/features/edit-history) for its current scope.
+
+## Synchronization status and retries [#sync-status]
+
+Listen after importing the collaboration Facade. `CollaborationStatusChanged` reports the current status of units already collaborating when the listener is registered, then reports changes without consecutive duplicate statuses. `hasWritePending(unitId)` includes queued, awaiting-acknowledgement, and offline edits. Without an ID it checks the focused unit. A connected socket alone does not mean edits are saved.
+
+```ts
+import '@univerjs-pro/collaboration-client/facade'
+
+const collaboration = univerAPI.getCollaboration()
+const statusSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationStatusChanged, (event) => {
+  console.info(event.unitId, event.status, collaboration.hasWritePending(event.unitId))
+})
+const resendSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationChangesetResend, (event) => {
+  console.info(event.unitId, event.reason, event.attempt, event.unsyncedMutationCount, event.nextDelayMs)
+})
+```
+
+`CollaborationChangesetResend` fires on resends, not the first submission. Reasons are `ack_timeout`, `should_retry`, and `reconnect`; `attempt`, `elapsedMs`, `unsyncedMutationCount`, and `nextDelayMs` support a saving/retrying indicator. Dispose event subscriptions when removing the editor.
+
+Batching delay and acknowledgement timeout are different. The client plugin defaults to `sendChangesetTimeout: 2000`, `changesetAckTimeout: 20000`, and `maxChangesetAckTimeout: 120000` (milliseconds). The submission request uses the acknowledgement timeout too; unacknowledged changesets are resent with exponential backoff up to the maximum. Equal acknowledgement and maximum timeouts give a constant interval.
+
+```ts
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import { BrowserCollaborationSocketService } from '@univerjs-pro/collaboration-client-ui'
+
+univer.registerPlugin(UniverCollaborationClientPlugin, {
+  socketService: BrowserCollaborationSocketService,
+  sendChangesetTimeout: 200,
+  changesetAckTimeout: 20_000,
+  maxChangesetAckTimeout: 120_000,
+})
+```
+
+Merge these options into your existing client registration, keeping its socket and endpoint configuration. The Sheets and Docs collaboration presets use a 200 ms batching delay and do not expose the acknowledgement timeout options; use plugin mode when customizing these timeouts.
+
+## Handle conflicts in the host [#conflict-recovery]
+
+`CollaborationConflict` fires once when a unit enters conflict, after the offline-cache cleanup attempt. Register the listener before loading documents. Its `reason` is `transform_failed`, `apply_failed`, `changeset_rejected`, `permission_rejected`, or `remote_revert`; `message` and `revert` provide additional details when available.
+
+```ts
+import type { IEventParamConfig } from '@univerjs/core/facade'
+import '@univerjs-pro/collaboration-client/facade'
+
+const conflicts = new Map<string, IEventParamConfig['CollaborationConflict']>()
+const conflictSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationConflict, (event) => {
+  conflicts.set(event.unitId, event)
+})
+```
+
+The example retains the event for a host recovery screen. This Map is only in memory: before refreshing, save or export any `localChanges` through your application. The event is the opportunity to retain them; later reads cannot recover cleared cache data. `awaitingChangeset` may already have been applied on the server, so do not blindly replay it.
+
+`cacheCleared: false` means refreshing would replay the old cached edits. Resolve cache cleanup before refreshing. Clearing the cache does not mean unsynchronized edits were saved. A `permission_rejected` conflict also requires resolving access; reloading does not grant permission.
+
+By default the UI shows a reason-specific conflict notice and offers reload after successful cache cleanup, or retry if cleanup failed. To own the recovery flow, set `enableDefaultConflictUI: false` in the existing initialization and handle the event yourself:
+
+<Tabs items={['Plugin Mode', 'Sheets Preset', 'Docs Preset']}>
+  <Tab>
+    ```ts
+    import { UniverCollaborationClientUIPlugin } from '@univerjs-pro/collaboration-client-ui'
+
+    univer.registerPlugin(UniverCollaborationClientUIPlugin, { enableDefaultConflictUI: false })
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import { UniverSheetsCollaborationPreset } from '@univerjs/preset-sheets-collaboration'
+
+    const collaborationPreset = UniverSheetsCollaborationPreset({ enableDefaultConflictUI: false })
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import { UniverDocsCollaborationPreset } from '@univerjs/preset-docs-collaboration'
+
+    const collaborationPreset = UniverDocsCollaborationPreset({ enableDefaultConflictUI: false })
+    ```
+  </Tab>
+</Tabs>
+
+The collaboration presets belong in the existing `createUniver({ presets: [...] })` configuration alongside the editor preset. Keep your endpoint and history settings. See [event payloads](/reference/facade/events#collaborationconflict) and [client configuration](/reference/packages/plugins/univerjs-pro/collaboration-client).

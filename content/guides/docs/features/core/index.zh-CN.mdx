@@ -2,6 +2,8 @@
 title: 核心功能
 ---
 
+import { HeadingCollapseDemo } from './components/heading-collapse-demo'
+
 <MetaData
   lang="zh-CN"
   meta={{
@@ -380,3 +382,53 @@ Docs 支持保留源格式、匹配目标格式和仅保留文本三种粘贴方
 ## 页眉页脚字段 [#header-footer-fields]
 
 在传统文档中编辑页眉或页脚时，会出现用于插入、导航、首页/奇偶页选项和位置设置的上下文 Ribbon。可插入当前页码、总页数以及本地化日期和时间。页码字段按各个渲染页面显示对应值。插入日期/时间时，勾选自动更新会保存为字段，取消勾选则插入固定文本。日期/时间字段在打开文档或执行“更新字段”时刷新，不会作为时钟持续走动。现代文档不使用分页页眉页脚。
+
+## 文档大纲 [#document-outline]
+
+左侧大纲用于跳转到标题，不会在正文中插入目录。省略 `toc` 时，现代文档默认开启，传统文档默认关闭；显式设置 `true` 或 `false` 可覆盖默认值。空间不足或表格与大纲重叠时，面板会收起，空间恢复后重新展开。
+
+将该选项合并到现有初始化配置中，不要重复注册同一插件。
+
+<Tabs items={['插件模式', '预设模式']}>
+  <Tab>
+    ```ts
+    import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+
+    univer.registerPlugin(UniverDocsUIPlugin, { toc: true })
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+    import { createUniver } from '@univerjs/presets'
+
+    const { univerAPI } = createUniver({
+      presets: [UniverDocsCorePreset({ container: 'app', toc: true })],
+    })
+    ```
+  </Tab>
+</Tabs>
+
+## 标题折叠 [#heading-collapse]
+
+现代文档（`documentStyle.documentFlavor: DocumentFlavor.MODERN`）会在具有章节内容的一级至五级标题旁显示三角按钮。折叠后保留标题，隐藏其后直到下一个同级或更高级标题之前的内容，包括子标题、表格和图片。每个表格单元格和现代文档分栏都有独立的标题层级。
+
+标题折叠不受 `toc` 控制。传统文档和嵌入式文本编辑器不显示折叠控件。展开父标题时，子标题会保留各自的折叠状态。
+
+<HeadingCollapseDemo />
+
+`IParagraph.headingCollapsed` 随 Univer 快照保存，仅 `true` 表示折叠。正文内容仍在快照中，折叠支持撤销、重做和协同，并与其他编辑者共享。隐藏内容中的选区会移到可见标题。该约定不保证 Office 导入导出保留折叠状态。
+
+通过代码修改时，使用文档 ID 和快照中稳定的 `paragraphId` 执行已注册的命令。设为 `collapsed: false` 可展开。
+
+```ts
+import { SetHeadingCollapsedCommand } from '@univerjs/docs'
+
+const changed = await univerAPI.executeCommand(SetHeadingCollapsedCommand.id, {
+  unitId: documentId,
+  paragraphId: headingParagraphId,
+  collapsed: true,
+})
+```
+
+状态未变或目标无效时，命令返回 `false`，例如传统文档、被祖先标题隐藏的标题、折叠空章节或无编辑权限。详见[命令契约](/reference/packages/plugins/univerjs/docs#heading-collapse)。

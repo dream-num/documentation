@@ -2,6 +2,8 @@
 title: コア機能
 ---
 
+import { HeadingCollapseDemo } from './components/heading-collapse-demo'
+
 <MetaData
   lang="ja-JP"
   meta={{
@@ -351,3 +353,53 @@ Docs は元の書式を保持、貼り付け先の書式に合わせる、テキ
 ## ヘッダーとフッターのフィールド [#header-footer-fields]
 
 従来型文書のヘッダーやフッターを編集すると、挿入、移動、先頭ページ・奇数偶数ページ、位置を設定するコンテキスト Ribbon が表示されます。現在のページ番号、総ページ数、ローカライズされた日時を挿入できます。ページフィールドは各ページに応じた値を表示します。日時の自動更新を有効にするとフィールド、無効にすると固定テキストを挿入します。日時フィールドは文書を開くときや「フィールドの更新」で更新され、時計のように常時更新はされません。モダン文書ではページのヘッダーとフッターを使用しません。
+
+## 文書のアウトライン [#document-outline]
+
+左側のアウトラインは見出しへの移動に使い、本文に目次を挿入しません。`toc` を省略すると Modern 文書では有効、Traditional 文書では無効です。`true` または `false` で既定値を変更できます。領域が不足するか表と重なるとパネルは閉じ、空き領域が戻ると再び開きます。
+
+既存の初期化設定に追加し、同じプラグインを重複登録しないでください。
+
+<Tabs items={['プラグインモード', 'プリセットモード']}>
+  <Tab>
+    ```ts
+    import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+
+    univer.registerPlugin(UniverDocsUIPlugin, { toc: true })
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+    import { createUniver } from '@univerjs/presets'
+
+    const { univerAPI } = createUniver({
+      presets: [UniverDocsCorePreset({ container: 'app', toc: true })],
+    })
+    ```
+  </Tab>
+</Tabs>
+
+## 見出しの折りたたみ [#heading-collapse]
+
+Modern 文書（`documentStyle.documentFlavor: DocumentFlavor.MODERN`）では、節の内容がある見出し 1〜5 の横に三角形が表示されます。折りたたむと見出しを残し、次の同じレベル以上の見出しまでの内容（子見出し、表、画像を含む）を隠します。各表セルと Modern の段組みは独自の見出し階層を持ちます。
+
+この機能は `toc` とは独立しています。Traditional 文書と埋め込みテキストエディターでは表示されません。親を開き直しても子見出しの折りたたみ状態は維持されます。
+
+<HeadingCollapseDemo />
+
+`IParagraph.headingCollapsed` は Univer スナップショットに保存され、`true` の場合だけ折りたたみます。内容は削除されず、元に戻す・やり直しと共同編集に対応します。状態は他の編集者と共有されます。隠れた内容内の選択は表示中の見出しへ移動します。Office の入出力での保持は保証されません。
+
+コードから変更する場合は、文書 ID とスナップショット内の安定した `paragraphId` を指定して登録済みコマンドを実行します。`collapsed: false` で展開します。
+
+```ts
+import { SetHeadingCollapsedCommand } from '@univerjs/docs'
+
+const changed = await univerAPI.executeCommand(SetHeadingCollapsedCommand.id, {
+  unitId: documentId,
+  paragraphId: headingParagraphId,
+  collapsed: true,
+})
+```
+
+変更がない場合や無効な対象（Traditional 文書、親に隠された見出し、折りたたむ内容のない節、編集権限なし）では `false` を返します。[コマンド仕様](/reference/packages/plugins/univerjs/docs#heading-collapse)を参照してください。

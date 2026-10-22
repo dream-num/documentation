@@ -2,6 +2,8 @@
 title: Fonctionnalités principales
 ---
 
+import { HeadingCollapseDemo } from './components/heading-collapse-demo'
+
 <MetaData
   lang="fr-FR"
   meta={{
@@ -380,3 +382,53 @@ Sur ordinateur, le menu **Coller** du Ribbon se trouve à côté d’annuler et 
 ## Champs des en-têtes et pieds de page [#header-footer-fields]
 
 Dans les documents traditionnels, leur édition ouvre un Ribbon contextuel pour l’insertion, la navigation, les options de première page et de pages paires/impaires, et la position. Vous pouvez insérer la page courante, le nombre total de pages ou une date et heure localisées. Les champs de page affichent la valeur propre à chaque page. Pour la date/heure, activez la mise à jour automatique pour créer un champ, ou désactivez-la pour insérer du texte fixe. Les champs date/heure sont actualisés à l’ouverture ou avec **Mettre à jour les champs**, pas en continu. Les documents modernes n’utilisent pas d’en-têtes ni de pieds de page paginés.
+
+## Plan du document [#document-outline]
+
+Le plan à gauche sert à naviguer entre les titres, sans insérer de sommaire dans le contenu. Sans `toc`, il est activé pour les documents Modern et désactivé pour les documents Traditional. `true` ou `false` remplace ce choix. Le panneau se replie si l’espace manque ou si un tableau le recouvre, puis se rouvre quand la place est disponible.
+
+Ajoutez cette option à votre initialisation existante sans enregistrer deux fois le même plugin.
+
+<Tabs items={['Mode plugin', 'Mode preset']}>
+  <Tab>
+    ```ts
+    import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+
+    univer.registerPlugin(UniverDocsUIPlugin, { toc: true })
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+    import { createUniver } from '@univerjs/presets'
+
+    const { univerAPI } = createUniver({
+      presets: [UniverDocsCorePreset({ container: 'app', toc: true })],
+    })
+    ```
+  </Tab>
+</Tabs>
+
+## Replier les sections [#heading-collapse]
+
+Les documents Modern (`documentStyle.documentFlavor: DocumentFlavor.MODERN`) affichent un triangle à côté des titres de niveau 1 à 5 dont la section contient du contenu. Le repli conserve le titre et masque le contenu jusqu’au prochain titre de niveau égal ou supérieur, y compris les sous-titres, tableaux et images. Chaque cellule de tableau et chaque colonne Modern possède sa propre hiérarchie.
+
+Cette fonction est indépendante de `toc`. Les documents Traditional et les éditeurs de texte intégrés n’affichent pas ces commandes. Rouvrir un parent conserve l’état des sous-titres.
+
+<HeadingCollapseDemo />
+
+`IParagraph.headingCollapsed` est enregistré dans le snapshot Univer. Seul `true` replie la section. Le contenu reste présent, et l’état prend en charge annuler/rétablir et la collaboration : il est partagé entre éditeurs. Une sélection masquée rejoint le titre visible. La conservation lors des échanges Office n’est pas garantie.
+
+Pour modifier cet état par code, exécutez la commande enregistrée avec l’ID du document et le `paragraphId` stable du snapshot. Utilisez `collapsed: false` pour déplier.
+
+```ts
+import { SetHeadingCollapsedCommand } from '@univerjs/docs'
+
+const changed = await univerAPI.executeCommand(SetHeadingCollapsedCommand.id, {
+  unitId: documentId,
+  paragraphId: headingParagraphId,
+  collapsed: true,
+})
+```
+
+La commande renvoie `false` sans changement ou si la cible est invalide : document Traditional, titre masqué par un ancêtre, section vide à replier ou permission manquante. Voir le [contrat de la commande](/reference/packages/plugins/univerjs/docs#heading-collapse).

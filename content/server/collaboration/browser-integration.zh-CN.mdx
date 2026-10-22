@@ -54,3 +54,83 @@ if (!workbook) throw new Error('Document could not be loaded')
 导入文件后多人编辑，需要将转换结果创建为协同文档，见[导入导出集成](/server/import-export)。评论和历史记录需要各自的插件、后端服务及权限，按 [Office 协同扩展模块](/server/collaboration/extensions)接入。
 
 历史面板的前端配置见 [Sheets](/guides/sheets/features/edit-history), [Docs](/guides/docs/features/edit-history), [Slides](/guides/slides/features/edit-history), [Boards](/guides/boards/features/edit-history), [Bases](/guides/bases/features/edit-history)。PDFs 的支持范围见[历史记录说明](/guides/pdfs/features/edit-history)。
+
+## 同步状态与重发 [#sync-status]
+
+导入协同 Facade 后注册监听。`CollaborationStatusChanged` 会报告注册监听时已在协同的文档的当前状态，此后只报告变化，不连续重复相同状态。`hasWritePending(unitId)` 包含等待发送、等待确认和离线缓存的修改；省略 ID 时检查当前聚焦文档。WebSocket 已连接并不代表修改已经保存。
+
+```ts
+import '@univerjs-pro/collaboration-client/facade'
+
+const collaboration = univerAPI.getCollaboration()
+const statusSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationStatusChanged, (event) => {
+  console.info(event.unitId, event.status, collaboration.hasWritePending(event.unitId))
+})
+const resendSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationChangesetResend, (event) => {
+  console.info(event.unitId, event.reason, event.attempt, event.unsyncedMutationCount, event.nextDelayMs)
+})
+```
+
+`CollaborationChangesetResend` 只在重发时触发，首次提交不触发。原因包括 `ack_timeout`、`should_retry` 和 `reconnect`；`attempt`、`elapsedMs`、`unsyncedMutationCount`、`nextDelayMs` 可用于展示保存与重试状态。移除编辑器时释放事件订阅。
+
+合并发送延迟与确认超时是两个配置。客户端插件默认使用 `sendChangesetTimeout: 2000`、`changesetAckTimeout: 20000`、`maxChangesetAckTimeout: 120000`，单位均为毫秒。提交请求也使用确认超时；未收到确认时按指数退避重发，间隔不超过最大值。将后两项设为相同值可使用固定间隔。
+
+```ts
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import { BrowserCollaborationSocketService } from '@univerjs-pro/collaboration-client-ui'
+
+univer.registerPlugin(UniverCollaborationClientPlugin, {
+  socketService: BrowserCollaborationSocketService,
+  sendChangesetTimeout: 200,
+  changesetAckTimeout: 20_000,
+  maxChangesetAckTimeout: 120_000,
+})
+```
+
+将这些选项合并到现有客户端注册中，保留 socket 与接口地址配置。Sheets 和 Docs 协同预设使用 200 ms 的合并发送延迟，未暴露确认超时选项；需要自定义超时时使用插件模式。
+
+## 由应用处理冲突 [#conflict-recovery]
+
+文档进入冲突后，`CollaborationConflict` 在尝试清理离线缓存后触发一次，请在加载文档前监听。`reason` 为 `transform_failed`、`apply_failed`、`changeset_rejected`、`permission_rejected` 或 `remote_revert`；可用时由 `message` 和 `revert` 提供更多信息。
+
+```ts
+import type { IEventParamConfig } from '@univerjs/core/facade'
+import '@univerjs-pro/collaboration-client/facade'
+
+const conflicts = new Map<string, IEventParamConfig['CollaborationConflict']>()
+const conflictSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationConflict, (event) => {
+  conflicts.set(event.unitId, event)
+})
+```
+
+上述示例保留事件，供应用恢复界面使用。Map 仅存在于内存：刷新前应由应用保存或导出 `localChanges`。需在事件中留存这些数据，后续读取无法恢复已经清理的缓存。`awaitingChangeset` 可能已被服务端应用，不应直接重新提交。
+
+`cacheCleared: false` 表示刷新会重放旧缓存，应先解决缓存清理问题。清理缓存不代表未同步修改已保存；`permission_rejected` 还需要解决权限问题，刷新不会授予权限。
+
+默认 UI 按冲突原因显示通知，缓存清理成功后提供刷新操作，清理失败时提供重试。若由应用接管恢复流程，在现有初始化中设置 `enableDefaultConflictUI: false`，并自行处理事件：
+
+<Tabs items={['插件模式', 'Sheets 预设', 'Docs 预设']}>
+  <Tab>
+    ```ts
+    import { UniverCollaborationClientUIPlugin } from '@univerjs-pro/collaboration-client-ui'
+
+    univer.registerPlugin(UniverCollaborationClientUIPlugin, { enableDefaultConflictUI: false })
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import { UniverSheetsCollaborationPreset } from '@univerjs/preset-sheets-collaboration'
+
+    const collaborationPreset = UniverSheetsCollaborationPreset({ enableDefaultConflictUI: false })
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import { UniverDocsCollaborationPreset } from '@univerjs/preset-docs-collaboration'
+
+    const collaborationPreset = UniverDocsCollaborationPreset({ enableDefaultConflictUI: false })
+    ```
+  </Tab>
+</Tabs>
+
+将协同预设放入现有 `createUniver({ presets: [...] })`，与编辑器预设组合，保留接口地址及历史记录配置。详见[事件参数](/reference/facade/events#collaborationconflict)和[客户端配置](/reference/packages/plugins/univerjs-pro/collaboration-client)。
