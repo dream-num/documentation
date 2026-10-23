@@ -49,3 +49,1308 @@ univer.registerPlugin(UniverSheetsNumfmtPlugin)
 const univerAPI = FUniver.newAPI(univer)
 univerAPI.createWorkbook({})
 ```
+
+## 協同在 Node.js 環境下的使用範例 [#node-collaboration-example]
+
+Node.js 作為協同用戶端載入伺服器上既有的活頁簿，透過 Facade API 修改內容，並將修改同步至開啟同一份文件的其他用戶端。執行前，請準備好[協同服務](/server/collaboration/quick-start)、[用戶端授權](/server/license)及可存取的文件 ID。
+
+### 範例檔案
+
+依下列結構組織檔案：
+
+```text
+src/sheets/node/
+├── main.ts
+├── univer.ts
+└── worker.ts
+```
+
+- `univer.ts`：建立 Univer，註冊完整功能外掛程式、協同用戶端及選用的 RPC 主程序外掛程式。
+- `worker.ts`：註冊計算端的公式引擎、遠端公式、篩選與樞紐分析表外掛程式，透過 RPC 與主程序通訊。
+- `main.ts`：載入協同文件，依序示範權限、基本表格、條件式格式、資料驗證、表格、樞紐分析表、迷你圖、圖片、圖表、圖形、分組和超連結 API。
+
+將兩個檔案中的 `your-license` 替換為同一份授權，並替換伺服器位址、Cookie、文件 ID 和使用者 ID。`main.ts` 中的權限範例也包含協作者與保護範圍設定，需要使用實際業務使用者及具備相應管理權限的身分。
+
+<Tabs items={['univer.ts', 'worker.ts', 'main.ts']}>
+  <Tab>
+
+```typescript title="univer.ts"
+import { UniverCollaborationPlugin } from '@univerjs-pro/collaboration'
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import {
+  NodeCollaborationSocketService,
+  UniverCollaborationClientNodePlugin,
+} from '@univerjs-pro/collaboration-client-node'
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import { UniverSheetsChartPlugin } from '@univerjs-pro/sheets-chart'
+import { UniverSheetsOutlinePlugin } from '@univerjs-pro/sheets-outline'
+import { UniverSheetsPivotTablePlugin } from '@univerjs-pro/sheets-pivot'
+import { UniverSheetsShapePlugin } from '@univerjs-pro/sheets-shape'
+import { UniverSheetSparklinePlugin } from '@univerjs-pro/sheets-sparkline'
+import { IAuthzIoService, IImageIoService, IUndoRedoService, LocaleType, Univer } from '@univerjs/core'
+import { UniverDataValidationPlugin } from '@univerjs/data-validation'
+import { UniverDocsPlugin } from '@univerjs/docs'
+import { UniverDocsDrawingPlugin } from '@univerjs/docs-drawing'
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+import { UniverNetworkPlugin } from '@univerjs/network'
+import { UniverRPCNodeMainPlugin } from '@univerjs/rpc-node'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverSheetsConditionalFormattingPlugin } from '@univerjs/sheets-conditional-formatting'
+import { UniverSheetsDataValidationPlugin } from '@univerjs/sheets-data-validation'
+import { UniverSheetsDrawingPlugin } from '@univerjs/sheets-drawing'
+import { UniverSheetsFilterPlugin } from '@univerjs/sheets-filter'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+import { UniverSheetsHyperLinkPlugin } from '@univerjs/sheets-hyper-link'
+import { UniverSheetsNotePlugin } from '@univerjs/sheets-note'
+import { UniverSheetsNumfmtPlugin } from '@univerjs/sheets-numfmt'
+import { UniverSheetsSortPlugin } from '@univerjs/sheets-sort'
+import { UniverSheetsTablePlugin } from '@univerjs/sheets-table'
+import { UniverThreadCommentPlugin } from '@univerjs/thread-comment'
+import path from 'node:path'
+// 此處的 Facade API 是 packages/facade/src/apis/everything.ts 的一部分
+// 部分外掛程式的實作尚不完整，因此此處未包含其 API。
+import '@univerjs/engine-formula/facade'
+import '@univerjs/sheets/facade'
+import '@univerjs/sheets-formula/facade'
+import '@univerjs/sheets-numfmt/facade'
+import '@univerjs/sheets-conditional-formatting/facade'
+import '@univerjs/sheets-data-validation/facade'
+import '@univerjs/sheets-filter/facade'
+import '@univerjs/sheets-hyper-link/facade'
+import '@univerjs/sheets-note/facade'
+import '@univerjs/sheets-table/facade'
+import '@univerjs/sheets-drawing/facade'
+import '@univerjs/sheets-thread-comment/facade'
+import '@univerjs-pro/engine-shape/facade'
+import '@univerjs-pro/sheets-pivot/facade'
+import '@univerjs-pro/sheets-sparkline/facade'
+import '@univerjs-pro/sheets-chart/facade'
+import '@univerjs-pro/sheets-shape/facade'
+import '@univerjs-pro/sheets-outline/facade'
+import '@univerjs-pro/collaboration-client/facade'
+
+export interface ICreateUniverOnNodeOptions {
+  useComputingWorker?: boolean
+}
+
+export function createUniverOnNode(options: ICreateUniverOnNodeOptions = {}): Univer {
+  const { useComputingWorker = false } = options
+
+  const univer = new Univer({
+    locale: LocaleType.ZH_TW,
+    locales: {},
+    override: [
+      [IAuthzIoService, null],
+      [IUndoRedoService, null],
+    ],
+  })
+
+  univer.registerPlugin(UniverLicensePlugin, {
+    license: 'your-license',
+  })
+
+  registerBasicPlugins(univer, useComputingWorker)
+  registerSharedPlugins(univer)
+
+  if (useComputingWorker) {
+    registerRPCPlugin(univer)
+  }
+
+  registerDocPlugins(univer)
+  registerSheetPlugins(univer, useComputingWorker)
+  registerCollaborationPlugins(univer)
+
+  return univer
+}
+
+function registerBasicPlugins(univer: Univer, useComputingWorker: boolean): void {
+  univer.registerPlugin(UniverProFormulaEnginePlugin, { notExecuteFormula: useComputingWorker })
+}
+
+function registerSharedPlugins(univer: Univer): void {
+  univer.registerPlugin(UniverRenderEnginePlugin)
+  univer.registerPlugin(UniverThreadCommentPlugin)
+  univer.registerPlugin(UniverDrawingPlugin, {
+    override: [[IImageIoService, null]],
+  })
+}
+
+function registerDocPlugins(univer: Univer): void {
+  univer.registerPlugin(UniverDocsPlugin)
+  univer.registerPlugin(UniverDocsDrawingPlugin)
+}
+
+function registerSheetPlugins(univer: Univer, useComputingWorker: boolean): void {
+  univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: useComputingWorker })
+  univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: useComputingWorker })
+  univer.registerPlugin(UniverSheetsNumfmtPlugin)
+  univer.registerPlugin(UniverSheetsConditionalFormattingPlugin)
+  univer.registerPlugin(UniverDataValidationPlugin)
+  univer.registerPlugin(UniverSheetsDataValidationPlugin)
+  univer.registerPlugin(UniverSheetsFilterPlugin)
+  univer.registerPlugin(UniverSheetsHyperLinkPlugin)
+  univer.registerPlugin(UniverSheetsNotePlugin)
+  univer.registerPlugin(UniverSheetsDrawingPlugin)
+  univer.registerPlugin(UniverSheetsSortPlugin)
+  univer.registerPlugin(UniverSheetsTablePlugin)
+  univer.registerPlugin(UniverSheetsChartPlugin)
+  univer.registerPlugin(UniverSheetsShapePlugin)
+  univer.registerPlugin(UniverSheetsPivotTablePlugin, {
+    notExecuteFormula: useComputingWorker ? true : undefined,
+  })
+  univer.registerPlugin(UniverSheetSparklinePlugin)
+  univer.registerPlugin(UniverSheetsOutlinePlugin)
+}
+
+function registerRPCPlugin(univer: Univer): void {
+  // 依建置產物的實際位置設定 worker 路徑。
+  const childPath = path.join(__dirname, 'worker.js')
+  univer.registerPlugin(UniverRPCNodeMainPlugin, { workerSrc: childPath })
+}
+
+function registerCollaborationPlugins(univer: Univer): void {
+  const serverUrl = 'https://your-univer-server.example.com'
+  univer.registerPlugin(UniverNetworkPlugin)
+  univer.registerPlugin(UniverCollaborationPlugin)
+  univer.registerPlugin(UniverCollaborationClientPlugin, {
+    socketService: NodeCollaborationSocketService,
+    enableOfflineEditing: false,
+    enableSingleActiveInstanceLock: false,
+    snapshotServerUrl: `${serverUrl}/universer-api/snapshot`,
+    collabSubmitChangesetUrl: `${serverUrl}/universer-api/comb`,
+    collabWebSocketUrl: `${serverUrl}/universer-api/comb/connect`,
+    wsSessionTicketUrl: `${serverUrl}/universer-api/user/session-ticket`,
+    uploadFileServerUrl: `${serverUrl}/universer-api/stream/file/upload`,
+    signUrlServerUrl: `${serverUrl}/universer-api/file/{fileID}/sign-url`,
+    downloadEndpointUrl: `${serverUrl}`,
+    authzUrl: `${serverUrl}/universer-api/authz`,
+    sendChangesetTimeout: 200,
+    retryConnectingInterval: 1000,
+    customHeaders: {
+      // 範例：若 Univer 伺服器需要透過 Cookie 驗證身分，可在此設定 'cookie' 標頭。
+      cookie: 'your-cookie',
+      // ……其他標頭
+    },
+  })
+  univer.registerPlugin(UniverCollaborationClientNodePlugin)
+}
+```
+
+  </Tab>
+  <Tab>
+
+```typescript title="worker.ts"
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import { UniverSheetsPivotTablePlugin } from '@univerjs-pro/sheets-pivot'
+import { LocaleType, Univer } from '@univerjs/core'
+import { UniverRPCNodeWorkerPlugin } from '@univerjs/rpc-node'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverSheetsFilterPlugin } from '@univerjs/sheets-filter'
+import { UniverRemoteSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+const univer = new Univer({
+  locale: LocaleType.ZH_TW,
+})
+
+univer.registerPlugin(UniverLicensePlugin, {
+  license: 'your-license',
+})
+
+univer.registerPlugin(UniverSheetsPlugin, { onlyRegisterFormulaRelatedMutations: true })
+univer.registerPlugin(UniverProFormulaEnginePlugin)
+univer.registerPlugin(UniverRPCNodeWorkerPlugin)
+univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
+univer.registerPlugin(UniverSheetsFilterPlugin)
+univer.registerPlugin(UniverSheetsPivotTablePlugin, {
+  notExecuteFormula: false,
+})
+```
+
+  </Tab>
+  <Tab>
+
+```typescript title="main.ts"
+import type { FConnectorShape } from '@univerjs-pro/engine-shape/facade'
+import type { FSheetShape } from '@univerjs-pro/sheets-shape/facade'
+import { ChartBorderDashType } from '@univerjs-pro/engine-chart'
+import { CellValueType } from '@univerjs/core'
+import { FUniver } from '@univerjs/core/facade'
+import { createUniverOnNode } from './univer'
+
+async function run(): Promise<void> {
+  const univer = createUniverOnNode({ useComputingWorker: true })
+  const univerAPI = FUniver.newAPI(univer)
+
+  const workbook = await univerAPI.getCollaboration().loadSheetAsync('your-unit-id')
+  if (!workbook) throw new Error('無法載入協同活頁簿')
+
+  await TestSheetsPermissionAPI(univerAPI)
+  TestSheetsFacadeAPI(univerAPI)
+  TestSheetsConditionalFormattingAPI(univerAPI)
+  await TestSheetsDataValidationFacadeAPI(univerAPI)
+  await TestSheetsTableFacadeAPI(univerAPI)
+  await TestSheetsPivotFacadeAPI(univerAPI)
+  TestSheetsSparklineFacadeAPI(univerAPI)
+  await TestSheetsDrawingAPI(univerAPI)
+  await TestSheetsChartFacadeAPI(univerAPI)
+  await TestSheetsShapeFacadeAPI(univerAPI)
+  await TestSheetsOutlineAPI(univerAPI)
+  await TestSheetsHyperlinkAPI(univerAPI)
+
+  await univerAPI.getCollaboration().flush(workbook.getId())
+  console.log('範例修改已同步，用戶端繼續保持協同連線')
+}
+
+async function TestSheetsPermissionAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.getActiveSheet()
+
+  // 新增活頁簿的協作者
+  const workbookPermission = fWorkbook.getWorkbookPermission()
+  await workbookPermission.setCollaborators([
+    {
+      user: { userID: 'systemUser1', name: '系統使用者 1', avatar: '' },
+      role: univerAPI.Enum.UnitRole.Owner,
+    },
+    {
+      user: { userID: 'your-user-id', name: 'Node.js 用戶端', avatar: '' },
+      role: univerAPI.Enum.UnitRole.Editor,
+    },
+    {
+      user: { userID: 'editorUser1', name: '編輯者 1', avatar: '' },
+      role: univerAPI.Enum.UnitRole.Editor,
+    },
+    {
+      user: { userID: 'readerUser1', name: '檢視者 1', avatar: '' },
+      role: univerAPI.Enum.UnitRole.Reader,
+    },
+  ])
+
+  const fRange = fWorksheet.getRange('A1:B2')
+  const rangePermission = fRange.getRangePermission()
+  const rule = await rangePermission.protect({
+    name: '測試保護規則',
+    allowedUsers: ['editorUser1'],
+    allowViewByOthers: true,
+  })
+}
+
+function TestSheetsFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  // 設定活頁簿名稱
+  fWorkbook.setName('測試活頁簿 - Node 協同用戶端')
+
+  const fWorksheet = fWorkbook.getActiveSheet()
+
+  // 設定儲存格 A1 的值
+  fWorksheet
+    .getRange('A1')
+    .setValue(`你好！這是 Node 協同用戶端傳來的訊息！目前時間：${new Date().toString()}。`)
+
+  // 合併 C2:E4 範圍內的儲存格
+  const fRange2 = fWorksheet.getRange('C2:E4')
+  if (fRange2.isPartOfMerge() || fRange2.isMerged()) {
+    fRange2.breakApart()
+  }
+  fRange2.merge().setValue(1234).setNumberFormat('#,##0.00')
+
+  // 為儲存格 A1 建立定義名稱，並在 A6 使用
+  const definedNameBuilder = fWorkbook
+    .newDefinedNameBuilder()
+    .setRef(`${fWorksheet.getSheetName()}!$A$1`)
+    .setName('MyDefinedName')
+    .build()
+  fWorkbook.insertDefinedNameBuilder(definedNameBuilder)
+  fWorksheet.getRange('A6').setValue('=MyDefinedName')
+
+  // 插入新工作表
+  const newSheet = fWorkbook.insertSheet('Node 用戶端新增工作表', {
+    index: 1,
+    sheet: {
+      rowCount: 100,
+      columnCount: 20,
+      cellData: {
+        0: {
+          0: {
+            v: 1,
+          },
+        },
+        1: {
+          1: {
+            v: 2,
+          },
+        },
+        2: {
+          2: {
+            v: 3,
+          },
+        },
+        3: {
+          3: {
+            v: 4,
+          },
+        },
+      },
+    },
+  })
+
+  // 在第 3 列之後插入 3 列（索引從 0 開始）。
+  newSheet.insertRowsAfter(2, 3)
+
+  const sheets = fWorkbook.getSheets()
+  if (sheets.length) {
+    // 重新命名第一張工作表，並設定列數與欄數
+    sheets[0].setName('已重新命名的工作表 1').setRowCount(100).setColumnCount(10)
+    // 凍結第一張工作表的第一列與第一欄
+    sheets[0].setFrozenRows(1).setFrozenColumns(1)
+    // 將第一張工作表的格線設為紅色
+    sheets[0].setGridLinesColor('#FF0000')
+    // 取得第一張工作表的資料範圍，並輸出其 A1 表示法
+    const dataRange = sheets[0].getDataRange()
+    console.warn(`已重新命名的工作表 1 資料範圍 A1 表示法：${dataRange.getA1Notation()}`)
+    // 5 秒後清除資料範圍的內容
+    setTimeout(() => {
+      dataRange.clearContent()
+    }, 5000)
+  }
+}
+
+function TestSheetsConditionalFormattingAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const newSheet = fWorkbook.insertSheet('條件式格式工作表', {
+    sheet: {
+      cellData: {
+        0: {
+          0: { v: 1, t: CellValueType.NUMBER },
+          1: { v: 2, t: CellValueType.NUMBER },
+          2: { v: 3, t: CellValueType.NUMBER },
+          3: { v: 4, t: CellValueType.NUMBER },
+        },
+        1: {
+          0: { v: 2, t: CellValueType.NUMBER },
+          1: { v: 3, t: CellValueType.NUMBER },
+          2: { v: 4, t: CellValueType.NUMBER },
+          3: { v: 5, t: CellValueType.NUMBER },
+        },
+        2: {
+          0: { v: 3, t: CellValueType.NUMBER },
+          1: { v: 4, t: CellValueType.NUMBER },
+          2: { v: 5, t: CellValueType.NUMBER },
+          3: { v: 6, t: CellValueType.NUMBER },
+        },
+        3: {
+          0: { v: 4, t: CellValueType.NUMBER },
+          1: { v: 5, t: CellValueType.NUMBER },
+          2: { v: 6, t: CellValueType.NUMBER },
+          3: { v: 7, t: CellValueType.NUMBER },
+        },
+      },
+    },
+  })
+
+  const fRange = newSheet.getRange('A1:D4')
+  const rule = newSheet
+    .newConditionalFormattingRule()
+    .whenNumberGreaterThan(3)
+    .setRanges([fRange.getRange()])
+    .setItalic(true)
+    .setBackground('red')
+    .setFontColor('green')
+    .build()
+  newSheet.addConditionalFormattingRule(rule)
+}
+
+async function TestSheetsDataValidationFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('資料驗證工作表', {
+    sheet: {
+      rowCount: 30,
+      columnCount: 10,
+      cellData: {
+        0: {
+          0: { v: '分數' },
+          1: { v: '狀態' },
+          2: { v: '區域' },
+          3: { v: '已核准' },
+          4: { v: '公式條件' },
+          5: { v: '開始日期' },
+          6: { v: '複製的分數' },
+          7: { v: '區域來源' },
+        },
+        1: {
+          0: { v: 95, t: CellValueType.NUMBER },
+          1: { v: '待處理' },
+          2: { v: '東部' },
+          3: { v: '是' },
+          4: { v: '通過' },
+          5: { v: '2026-01-02' },
+          6: { v: 60, t: CellValueType.NUMBER },
+          7: { v: '東部' },
+        },
+        2: {
+          0: { v: 42, t: CellValueType.NUMBER },
+          1: { v: '已完成' },
+          2: { v: '西部' },
+          3: { v: '否' },
+          4: { v: '通過' },
+          5: { v: '2025-12-31' },
+          6: { v: 55, t: CellValueType.NUMBER },
+          7: { v: '北部' },
+        },
+        3: {
+          0: { v: 101, t: CellValueType.NUMBER },
+          1: { v: '未知' },
+          2: { v: '中部' },
+          3: { v: '可能' },
+          4: { v: '通過' },
+          5: { v: '2026-06-01' },
+          6: { v: 75, t: CellValueType.NUMBER },
+          7: { v: '南部' },
+        },
+        4: {
+          0: { v: 60, t: CellValueType.NUMBER },
+          1: { v: '已封鎖' },
+          2: { v: '北部' },
+          3: { v: '是' },
+          4: { v: '通過' },
+          5: { v: '2024-01-01' },
+          6: { v: 90, t: CellValueType.NUMBER },
+        },
+        5: {
+          0: { v: 70, t: CellValueType.NUMBER },
+          1: { v: '待處理' },
+          2: { v: '南部' },
+          3: { v: '否' },
+          4: { v: '通過' },
+          5: { v: '2026-03-01' },
+          6: { v: 45, t: CellValueType.NUMBER },
+        },
+      },
+    },
+  })
+
+  const scoreRange = fWorksheet.getRange('A2:A6')
+  scoreRange.setDataValidation(
+    univerAPI
+      .newDataValidation()
+      .requireNumberBetween(1, 100, true)
+      .setAllowInvalid(false)
+      .setAllowBlank(false)
+      .setOptions({
+        showErrorMessage: true,
+        errorTitle: '分數無效',
+        error: '請輸入 1 到 100 的整數分數。',
+        showInputMessage: true,
+        promptTitle: '分數',
+        prompt: '請使用 1 到 100 的整數。',
+      })
+      .build(),
+  )
+
+  fWorksheet.getRange('B2:B6').setDataValidation(
+    univerAPI
+      .newDataValidation()
+      .requireValueInList(['待處理', '已封鎖', '已完成'], false, true)
+      .setAllowBlank(false)
+      .setOptions({
+        showErrorMessage: true,
+        error: '請選擇待處理、已封鎖或已完成。',
+      })
+      .build(),
+  )
+
+  fWorksheet.getRange('C2:C6').setDataValidation(
+    univerAPI
+      .newDataValidation()
+      .requireValueInRange(fWorksheet.getRange('H2:H4'), false, true)
+      .setAllowBlank(true)
+      .setOptions({
+        showErrorMessage: true,
+        error: '請從 H2:H4 選擇區域。',
+      })
+      .build(),
+  )
+
+  fWorksheet.getRange('D2:D6').setDataValidation(univerAPI.newDataValidation().requireCheckbox('是', '否').build())
+
+  fWorksheet.getRange('E2:E6').setDataValidation(
+    univerAPI
+      .newDataValidation()
+      .requireFormulaSatisfied('=A2>=50')
+      .setOptions({
+        showErrorMessage: true,
+        error: 'A 欄的分數必須至少為 50。',
+      })
+      .build(),
+  )
+
+  fWorksheet.getRange('F2:F6').setDataValidation(
+    univerAPI
+      .newDataValidation()
+      .requireDateOnOrAfter(new Date('2026-01-01'))
+      .setOptions({
+        showErrorMessage: true,
+        error: '日期必須為 2026-01-01 或之後。',
+      })
+      .build(),
+  )
+
+  const scoreRule = scoreRange.getDataValidation()
+
+  scoreRule?.setCriteria(
+    univerAPI.Enum.DataValidationType.DECIMAL,
+    [univerAPI.Enum.DataValidationOperator.BETWEEN, '50', '100'],
+    false,
+  )
+  scoreRule?.setOptions({ error: '請輸入 50 到 100 的分數。' })
+  scoreRule?.setRanges([fWorksheet.getRange('A2:A5')])
+
+  const copiedRule = scoreRule
+    ?.copy()
+    .requireNumberGreaterThanOrEqualTo(60, true)
+    .setOptions({ error: '請輸入 60 或以上。' })
+    .build()
+  if (copiedRule) {
+    fWorksheet.getRange('G2:G6').setDataValidation(copiedRule)
+  }
+
+  // console.warn('A2:F6 資料驗證規則：', fWorksheet.getRange('A2:F6').getDataValidations());
+  // console.warn('A2:A6 資料驗證狀態：', await fWorksheet.getRange('A2:A6').getValidatorStatus());
+  // console.warn('工作表資料驗證狀態：', await fWorksheet.getValidatorStatusAsync());
+  // console.warn('活頁簿資料驗證狀態：', await fWorkbook.getValidatorStatus());
+  // console.warn('範圍資料驗證錯誤：', await fWorksheet.getRange('A2:F6').getDataValidationErrorAsync());
+  // console.warn('工作表資料驗證錯誤：', await fWorksheet.getAllDataValidationErrorAsync());
+  // console.warn('活頁簿資料驗證錯誤：', await fWorkbook.getAllDataValidationErrorAsync());
+
+  fWorksheet.getRange('D2:D6').setDataValidation(null)
+  fWorksheet.getRange('G2:G6').getDataValidation()?.delete()
+}
+
+async function TestSheetsTableFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('表格工作表', {
+    sheet: {
+      rowCount: 30,
+      columnCount: 8,
+      cellData: {
+        0: {
+          0: { v: '區域' },
+          1: { v: '產品' },
+          2: { v: '營收' },
+          3: { v: '負責人' },
+        },
+        1: {
+          0: { v: '東部' },
+          1: { v: '筆記型電腦' },
+          2: { v: 1200, t: CellValueType.NUMBER },
+          3: { v: 'Alice' },
+        },
+        2: {
+          0: { v: '西部' },
+          1: { v: '鍵盤' },
+          2: { v: 850, t: CellValueType.NUMBER },
+          3: { v: 'Bob' },
+        },
+        3: {
+          0: { v: '東部' },
+          1: { v: '滑鼠' },
+          2: { v: 420, t: CellValueType.NUMBER },
+          3: { v: 'Alice' },
+        },
+        4: {
+          0: { v: '北部' },
+          1: { v: '螢幕' },
+          2: { v: 1600, t: CellValueType.NUMBER },
+          3: { v: 'Carol' },
+        },
+        5: {
+          0: { v: '南部' },
+          1: { v: '擴充底座' },
+          2: { v: 720, t: CellValueType.NUMBER },
+          3: { v: 'David' },
+        },
+        8: {
+          0: { v: '姓名' },
+          1: { v: '分數' },
+          2: { v: '團隊' },
+        },
+        9: {
+          0: { v: 'Ada' },
+          1: { v: 92, t: CellValueType.NUMBER },
+          2: { v: 'A' },
+        },
+        10: {
+          0: { v: 'Grace' },
+          1: { v: 88, t: CellValueType.NUMBER },
+          2: { v: 'B' },
+        },
+        11: {
+          0: { v: 'Linus' },
+          1: { v: 95, t: CellValueType.NUMBER },
+          2: { v: 'A' },
+        },
+      },
+    },
+  })
+
+  const salesTableId = 'node-sales-table'
+  const salesTableAdded = await fWorksheet.addTable(
+    'NodeSalesTable',
+    fWorksheet.getRange('A1:D6').getRange(),
+    salesTableId,
+    {
+      tableStyleId: 'table-default-4',
+      filters: [
+        {
+          filterType: univerAPI.Enum.TableColumnFilterTypeEnum.manual,
+          values: ['東部', '北部'],
+        },
+      ],
+    },
+  )
+
+  if (salesTableAdded) {
+    await fWorksheet.setTableFilter(salesTableId, 2, {
+      filterType: univerAPI.Enum.TableColumnFilterTypeEnum.condition,
+      filterInfo: {
+        conditionType: univerAPI.Enum.TableConditionTypeEnum.Number,
+        compareType: univerAPI.Enum.TableNumberCompareTypeEnum.GreaterThan,
+        expectedValue: 800,
+      },
+    })
+
+    await fWorksheet.resetFilter(salesTableId, 2)
+    await fWorksheet.setTableRange(salesTableId, fWorksheet.getRange('A1:D7').getRange())
+    await fWorksheet.setTableName(salesTableId, 'NodeSalesTableRenamed')
+
+    await fWorksheet.addTableTheme(salesTableId, {
+      name: 'node-table-style',
+      headerRowStyle: {
+        bg: {
+          rgb: '#145F82',
+        },
+        cl: {
+          rgb: '#FFFFFF',
+        },
+      },
+      firstRowStyle: {
+        bg: {
+          rgb: '#E0F2FE',
+        },
+      },
+      secondRowStyle: {
+        bg: {
+          rgb: '#FFFFFF',
+        },
+      },
+    })
+  }
+
+  const scoreTableId = await fWorkbook.addTable(
+    fWorksheet.getSheetId(),
+    'NodeScoreTable',
+    fWorksheet.getRange('A9:C12').getRange(),
+    'node-score-table',
+    {
+      tableStyleId: 'table-default-2',
+    },
+  )
+
+  if (scoreTableId) {
+    await fWorkbook.setTableFilter(scoreTableId, 1, {
+      filterType: univerAPI.Enum.TableColumnFilterTypeEnum.condition,
+      filterInfo: {
+        conditionType: univerAPI.Enum.TableConditionTypeEnum.Number,
+        compareType: univerAPI.Enum.TableNumberCompareTypeEnum.GreaterThanOrEqual,
+        expectedValue: 90,
+      },
+    })
+
+    await fWorkbook.removeTable(scoreTableId)
+  }
+}
+
+async function TestSheetsPivotFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('樞紐分析工作表', {
+    sheet: {
+      rowCount: 40,
+      columnCount: 12,
+      cellData: {
+        0: {
+          0: { v: '區域' },
+          1: { v: '類別' },
+          2: { v: '產品' },
+          3: { v: '季度' },
+          4: { v: '銷售額' },
+          5: { v: '數量' },
+        },
+        1: {
+          0: { v: '東部' },
+          1: { v: '硬體' },
+          2: { v: '鍵盤' },
+          3: { v: '第 1 季' },
+          4: { v: 1200, t: CellValueType.NUMBER },
+          5: { v: 12, t: CellValueType.NUMBER },
+        },
+        2: {
+          0: { v: '東部' },
+          1: { v: '硬體' },
+          2: { v: '螢幕' },
+          3: { v: '第 2 季' },
+          4: { v: 1800, t: CellValueType.NUMBER },
+          5: { v: 9, t: CellValueType.NUMBER },
+        },
+        3: {
+          0: { v: '西部' },
+          1: { v: '軟體' },
+          2: { v: '編輯器' },
+          3: { v: '第 1 季' },
+          4: { v: 950, t: CellValueType.NUMBER },
+          5: { v: 19, t: CellValueType.NUMBER },
+        },
+        4: {
+          0: { v: '西部' },
+          1: { v: '硬體' },
+          2: { v: '擴充底座' },
+          3: { v: '第 2 季' },
+          4: { v: 720, t: CellValueType.NUMBER },
+          5: { v: 8, t: CellValueType.NUMBER },
+        },
+        5: {
+          0: { v: '北部' },
+          1: { v: '軟體' },
+          2: { v: '分析工具' },
+          3: { v: '第 1 季' },
+          4: { v: 1600, t: CellValueType.NUMBER },
+          5: { v: 16, t: CellValueType.NUMBER },
+        },
+        6: {
+          0: { v: '南部' },
+          1: { v: '硬體' },
+          2: { v: '滑鼠' },
+          3: { v: '第 2 季' },
+          4: { v: 480, t: CellValueType.NUMBER },
+          5: { v: 24, t: CellValueType.NUMBER },
+        },
+      },
+    },
+  })
+
+  const unitId = fWorkbook.getId()
+  const subUnitId = fWorksheet.getSheetId()
+  const sourceInfo = {
+    unitId,
+    subUnitId,
+    sheetName: fWorksheet.getSheetName(),
+    range: fWorksheet.getRange('A1:F7').getRange(),
+  }
+  const anchorCellInfo = {
+    unitId,
+    subUnitId,
+    row: 0,
+    col: 7,
+  }
+
+  const fPivotTable = await fWorkbook.addPivotTable(
+    sourceInfo,
+    univerAPI.Enum.PositionTypeEnum.Existing,
+    anchorCellInfo,
+  )
+  if (!fPivotTable) return
+
+  await fPivotTable.addField(0, univerAPI.Enum.PivotTableFiledAreaEnum.Row, 0)
+  await fPivotTable.addField(3, univerAPI.Enum.PivotTableFiledAreaEnum.Column, 0)
+  await fPivotTable.addField(4, univerAPI.Enum.PivotTableFiledAreaEnum.Value, 0)
+  await fPivotTable.addField(5, univerAPI.Enum.PivotTableFiledAreaEnum.Value, 1)
+  await fPivotTable.setOptions({
+    repeatRowLabels: true,
+    showRowGrandTotal: true,
+    showColGrandTotal: true,
+  })
+
+  const rowFieldIds = fPivotTable.getFieldIdsByArea(univerAPI.Enum.PivotTableFiledAreaEnum.Row)
+  if (rowFieldIds[0]) {
+    await fPivotTable.setLabelSort(rowFieldIds[0], {
+      type: univerAPI.Enum.PivotDataFieldSortOperatorEnum.ascending,
+    })
+    await fPivotTable.setLabelManualFilter(rowFieldIds[0], ['東部', '北部', '西部'])
+  }
+
+  const valueFieldIds = fPivotTable.getFieldIdsByArea(univerAPI.Enum.PivotTableFiledAreaEnum.Value)
+  if (valueFieldIds[0]) {
+    await fPivotTable.setFieldSetting(valueFieldIds[0], {
+      displayName: '銷售總額',
+      format: '$#,##0',
+      subtotalType: univerAPI.Enum.PivotSubtotalTypeEnum.sum,
+    })
+  }
+
+  if (valueFieldIds[1]) {
+    await fPivotTable.setSubtotalType(valueFieldIds[1], univerAPI.Enum.PivotSubtotalTypeEnum.average)
+  }
+
+  if (rowFieldIds[0] && valueFieldIds[0]) {
+    await fPivotTable.setValueFilter(rowFieldIds[0], {
+      operator: univerAPI.Enum.PivotFilterOperatorEnum.valueGreaterThan,
+      expected: 700,
+      valueFieldId: valueFieldIds[0],
+    })
+  }
+
+  if (valueFieldIds.length > 1) {
+    await fPivotTable.updateValuePosition(univerAPI.Enum.PivotTableValuePositionEnum.Column, 0)
+  }
+
+  const pivotTableId = fPivotTable.getId()
+  const pivotTableById = fWorkbook.getPivotTableById(pivotTableId)
+  const pivotTableByCell = fWorksheet.getPivotTableByCell(anchorCellInfo.row, anchorCellInfo.col)
+  const sourceFieldsInfo = fPivotTable.getSourceFieldsInfo()
+  const pivotTableRangeInfo = fPivotTable.getPivotTableRangeInfo()
+  console.warn(
+    `已建立樞紐分析表：${pivotTableId}，依 ID 查詢：${Boolean(pivotTableById)}，依儲存格查詢：${Boolean(pivotTableByCell)}，來源欄位：${sourceFieldsInfo.length}，範圍：${pivotTableRangeInfo?.length ?? 0}`,
+  )
+}
+
+function TestSheetsSparklineFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('迷你圖工作表', {
+    sheet: {
+      rowCount: 20,
+      columnCount: 8,
+      cellData: {
+        0: {
+          0: { v: 12, t: CellValueType.NUMBER },
+          1: { v: 18, t: CellValueType.NUMBER },
+          2: { v: 9, t: CellValueType.NUMBER },
+          3: { v: 24, t: CellValueType.NUMBER },
+          4: { v: 16, t: CellValueType.NUMBER },
+        },
+        1: {
+          0: { v: 8, t: CellValueType.NUMBER },
+          1: { v: 13, t: CellValueType.NUMBER },
+          2: { v: 21, t: CellValueType.NUMBER },
+          3: { v: 14, t: CellValueType.NUMBER },
+          4: { v: 28, t: CellValueType.NUMBER },
+        },
+        2: {
+          0: { v: 5, t: CellValueType.NUMBER },
+          1: { v: 9, t: CellValueType.NUMBER },
+          2: { v: 7, t: CellValueType.NUMBER },
+          3: { v: 15, t: CellValueType.NUMBER },
+          4: { v: 11, t: CellValueType.NUMBER },
+        },
+        3: {
+          0: { v: 20, t: CellValueType.NUMBER },
+          1: { v: 12, t: CellValueType.NUMBER },
+          2: { v: 30, t: CellValueType.NUMBER },
+          3: { v: 18, t: CellValueType.NUMBER },
+          4: { v: 25, t: CellValueType.NUMBER },
+        },
+      },
+    },
+  })
+
+  const firstSparkline = fWorksheet.addSparkline(
+    [fWorksheet.getRange('A1:E1').getRange()],
+    [fWorksheet.getRange('F1').getRange()],
+    univerAPI.Enum.SparklineTypeEnum.LINE_CHART,
+  )
+  const secondSparkline = fWorksheet.addSparkline(
+    [fWorksheet.getRange('A2:E2').getRange()],
+    [fWorksheet.getRange('F2').getRange()],
+    univerAPI.Enum.SparklineTypeEnum.LINE_CHART,
+  )
+
+  fWorksheet.composeSparkline([fWorksheet.getRange('F1:F2').getRange()])
+
+  const sparklineGroup = fWorksheet.getSparklineGroupByCell(0, 5)
+  sparklineGroup?.setConfig({
+    type: univerAPI.Enum.SparklineTypeEnum.BAR_CHART,
+  })
+  sparklineGroup?.changeDataSource(
+    [fWorksheet.getRange('A3:E3').getRange(), fWorksheet.getRange('A4:E4').getRange()],
+    [fWorksheet.getRange('G1').getRange(), fWorksheet.getRange('G2').getRange()],
+  )
+
+  fWorksheet.unComposeSparkline([fWorksheet.getRange('G1:G2').getRange()])
+
+  fWorksheet.getSparklineByCell(0, 6)?.removeSparkline()
+}
+
+async function TestSheetsOutlineAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('分組工作表', {
+    sheet: {
+      rowCount: 20,
+      columnCount: 8,
+    },
+  })
+
+  // 為第 2–6 列與第 3–4 列新增分組（索引從 0 開始）。
+  fWorksheet.addRowOutline(1, 5).addRowOutline(2, 2)
+  // 為 B–E 欄與 C–D 欄新增分組（索引從 0 開始）。
+  fWorksheet.addColumnOutline(1, 2)
+
+  const rowOutlines = fWorksheet.getDimensionOutlines(univerAPI.Enum.DimensionOutlineAxis.ROW)
+  fWorksheet.setDimensionOutlineCollapsed(rowOutlines[0].id, true)
+
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+
+  fWorksheet.removeDimensionOutline(rowOutlines[1].id)
+  fWorksheet.clearDimensionOutlines(univerAPI.Enum.DimensionOutlineAxis.COLUMN, 1, 3)
+}
+
+async function TestSheetsDrawingAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('繪圖工作表', {
+    sheet: {
+      rowCount: 20,
+      columnCount: 8,
+    },
+  })
+
+  const images = fWorksheet.getImages()
+  console.warn(`目前工作表有 ${images.length} 張圖片。`)
+
+  const activeImages = fWorksheet.getActiveImages()
+  console.warn(`目前工作表有 ${activeImages.length} 張作用中的圖片。`)
+
+  const image = await fWorksheet
+    .newOverGridImage()
+    .setSource('https://avatars.githubusercontent.com/u/61444807?s=48&v=4', univerAPI.Enum.ImageSourceType.URL)
+    .setColumn(5)
+    .setRow(5)
+    .setWidth(500)
+    .setHeight(300)
+    .buildAsync()
+  fWorksheet.insertImages([image])
+
+  // 將圖片寬度更新為 100px、高度更新為 50px
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+
+  const insertedImage = fWorksheet.getImageById(image.drawingId)!
+  const newImage = await insertedImage.toBuilder().setWidth(100).setHeight(50).buildAsync()
+  fWorksheet.updateImages([newImage])
+
+  // 2 秒後刪除圖片
+  // await new Promise((resolve) => setTimeout(resolve, 2000));
+  // fWorksheet.deleteImages([insertedImage]);
+}
+
+async function TestSheetsChartFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('圖表工作表', {
+    sheet: {
+      rowCount: 20,
+      columnCount: 8,
+      cellData: {
+        0: {
+          0: { v: 10, t: CellValueType.NUMBER },
+          1: { v: 20, t: CellValueType.NUMBER },
+          2: { v: 30, t: CellValueType.NUMBER },
+          3: { v: 40, t: CellValueType.NUMBER },
+        },
+        1: {
+          0: { v: 15, t: CellValueType.NUMBER },
+          1: { v: 25, t: CellValueType.NUMBER },
+          2: { v: 35, t: CellValueType.NUMBER },
+          3: { v: 45, t: CellValueType.NUMBER },
+        },
+        2: {
+          0: { v: 12, t: CellValueType.NUMBER },
+          1: { v: 22, t: CellValueType.NUMBER },
+          2: { v: 32, t: CellValueType.NUMBER },
+          3: { v: 42, t: CellValueType.NUMBER },
+        },
+        3: {
+          0: { v: 18, t: CellValueType.NUMBER },
+          1: { v: 28, t: CellValueType.NUMBER },
+          2: { v: 38, t: CellValueType.NUMBER },
+          3: { v: 48, t: CellValueType.NUMBER },
+        },
+      },
+    },
+  })
+
+  // 以 A1:D4 為資料來源建立直條圖。
+  const chartInfo = fWorksheet
+    .newChart(univerAPI.Enum.ChartTypeString.Column)
+    .setSource({ range: 'A1:D4', orientation: univerAPI.Enum.ChartSourceOrientation.Columns })
+    .setPosition('B2')
+    .setSize(500, 320)
+    .setTitle({
+      text: 'Node 圖表 Facade 直條圖',
+      position: univerAPI.Enum.ChartTitlePositionEnum.Top,
+    })
+    .setLegend({
+      position: univerAPI.Enum.ChartLegendPositionEnum.Bottom,
+      selectMode: univerAPI.Enum.ChartSelectModeEnum.Multiple,
+    })
+    .setAppearance({
+      background: { color: '#FFFFFF' },
+      border: { color: '#D1D5DB' },
+    })
+    .setXAxisTitle('季度')
+    .setYAxisTitle('值')
+    .setAxisPointer({
+      indicatorLineType: ChartBorderDashType.Dashed,
+      indicatorLineColor: '#1D4ED8',
+      indicatorLabelColor: '#DBEAFE',
+      indicatorLabelTextColor: '#1E3A8A',
+    })
+    .setAllSeriesStyle({
+      border: {
+        color: '#1D4ED8',
+        opacity: 0.7,
+        width: 1,
+        dashType: ChartBorderDashType.Solid,
+      },
+    })
+    .build()
+  const columnChart = await fWorksheet.insertChart(chartInfo)
+
+  const updatedColumnConfig = columnChart
+    .toBuilder(univerAPI.Enum.ChartTypeString.Column)
+    .setTitle('Node 圖表 Facade 更新後的直條圖')
+    .setLegend({ position: univerAPI.Enum.ChartLegendPositionEnum.Right })
+    .setSeries(0, { color: '#DC2626' })
+    .build()
+  await columnChart.update(updatedColumnConfig)
+  await columnChart.setDataSource({ range: 'A2:D4', orientation: univerAPI.Enum.ChartSourceOrientation.Rows })
+
+  const lineChartInfo = fWorksheet
+    .newChart(univerAPI.Enum.ChartTypeString.Line)
+    .setSource('A1:D4')
+    .setAbsolutePosition(560, 120)
+    .setSize(520, 320)
+    .setTitle('Node 圖表 Facade 折線圖')
+    .setLegend({ position: univerAPI.Enum.ChartLegendPositionEnum.Top })
+    .setAllSeriesStyle({
+      point: {
+        shape: univerAPI.Enum.ChartLinePointShape.Circle,
+        color: '#16A34A',
+        size: 8,
+      },
+    })
+    .setXAxis({
+      title: '期間',
+      titleStyle: { color: '#374151', fontSize: 12 },
+    })
+    .setYAxis({
+      title: '金額',
+      titleStyle: { color: '#374151', fontSize: 12 },
+    })
+    .build()
+  await fWorksheet.insertChart(lineChartInfo)
+
+  const pieChartInfo = fWorksheet
+    .newChart(univerAPI.Enum.ChartTypeString.Pie)
+    .setSource('A1:D2')
+    .setAbsolutePosition(560, 480)
+    .setSize(420, 300)
+    .setTitle('Node 圖表 Facade 圓餅圖')
+    .setLegend({ position: univerAPI.Enum.ChartLegendPositionEnum.Left })
+    .setDoughnutHole(0.45)
+    .setSliceBorderColor('#111827')
+    .setPaddingAngleEnabled(true)
+    .setRosePie(true)
+    .setLabelLineVisible(true)
+    .build()
+  const pieChart = await fWorksheet.insertChart(pieChartInfo)
+
+  await pieChart.remove()
+}
+
+async function TestSheetsShapeFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('圖形工作表', {
+    sheet: {
+      rowCount: 20,
+      columnCount: 8,
+    },
+  })
+
+  // 建立矩形並錨定至儲存格 B2。
+  const rectShape = fWorksheet.insertShape({
+    shapeType: univerAPI.Enum.ShapeTypeEnum.Rect,
+  }) as FSheetShape | null
+  if (!rectShape) throw new Error('無法插入矩形。')
+  rectShape
+    .setPosition(1, 1, 0, 0)
+    .setSize(220, 120)
+    .setSolidFill('#DBEAFE', 0.9)
+    .setStrokeLineType(univerAPI.Enum.ShapeLineTypeEnum.SolidLine)
+    .setStrokeColor('#1D4ED8')
+    .setStrokeWidth(2)
+    .setStrokeLineDashType(univerAPI.Enum.ShapeLineDashEnum.Solid)
+    .setStrokeLineJoinType(univerAPI.Enum.ShapeLineJoinEnum.Round)
+    .setStrokeLineCapType(univerAPI.Enum.ShapeLineCapEnum.Round)
+    .setStrokeOpacity(0.9)
+  rectShape
+    .getText()
+    .setText('工作表圖形 Facade 範例')
+    .setHorizontalAlign(univerAPI.Enum.HorizontalAlign.CENTER)
+    .setVerticalAlign(univerAPI.Enum.VerticalAlign.MIDDLE)
+
+  // 依絕對像素位置建立漸層填滿的橢圓。
+  const ellipseShape = fWorksheet.insertShape({
+    shapeType: univerAPI.Enum.ShapeTypeEnum.Ellipse,
+  }) as FSheetShape | null
+  if (!ellipseShape) throw new Error('無法插入橢圓。')
+  ellipseShape
+    .setAbsolutePosition(420, 120)
+    .setSize(180, 120)
+    .setGradientFill(
+      univerAPI.Enum.ShapeGradientTypeEnum.Linear,
+      [
+        { position: 0, color: '#DCFCE7' },
+        { position: 1, color: '#22C55E' },
+      ],
+      0,
+    )
+    .setStrokeColor('#15803D')
+    .setStrokeWidth(2)
+
+  // 在矩形與橢圓之間建立連接線。
+  const connectorShape = fWorksheet.insertShape({
+    shapeType: univerAPI.Enum.ShapeTypeEnum.BentConnector3,
+  })
+  if (!connectorShape || !connectorShape.isConnectorShape()) throw new Error('無法插入連接線。')
+  ;(connectorShape as FConnectorShape)
+    .setAbsolutePosition(250, 155)
+    .setSize(220, 80)
+    .setStrokeColor('#374151')
+    .setStrokeWidth(3)
+    .setStrokeLineDashType(univerAPI.Enum.ShapeLineDashEnum.Dash)
+    .setStartArrow(univerAPI.Enum.ShapeArrowTypeEnum.OvalArrow, univerAPI.Enum.ShapeArrowSizeEnum.Small)
+    .setEndArrow(univerAPI.Enum.ShapeArrowTypeEnum.Arrow, univerAPI.Enum.ShapeArrowSizeEnum.Large)
+
+  // 建立暫存圖形，示範 Facade 移除 API。
+  const tempShape = fWorksheet.insertShape({
+    shapeType: univerAPI.Enum.ShapeTypeEnum.Diamond,
+  })
+  if (!tempShape) throw new Error('無法插入暫存圖形。')
+  tempShape.setAbsolutePosition(120, 320).setSize(120, 120).setNoneFill().setStrokeColor('#DC2626').setStrokeWidth(2)
+
+  const shapes = fWorksheet.getShapes()
+  console.warn('工作表圖形數量：', shapes.length)
+  console.warn('矩形查詢結果：', fWorksheet.getShape(rectShape.getId())?.getId())
+
+  rectShape
+    .setAbsolutePosition(120, 140)
+    .setSize(260, 140)
+    .setSolidFill('#FEE2E2', 0.85)
+    .setStrokeColor('#B91C1C')
+    .setStrokeWidth(4)
+
+  const rectSites = rectShape.getConnectionSites()
+  const ellipseSites = ellipseShape.getConnectionSites()
+  ;(connectorShape as FConnectorShape)
+    .bindStart(rectShape.getId(), rectSites[0]?.index ?? 0)
+    .bindEnd(ellipseShape.getId(), ellipseSites[2]?.index ?? ellipseSites[0]?.index ?? 0)
+
+  tempShape.remove()
+}
+
+async function TestSheetsHyperlinkAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('超連結工作表', {
+    sheet: {
+      rowCount: 20,
+      columnCount: 8,
+    },
+  })
+
+  // 在儲存格 A1 建立指向 Univer 的超連結
+  const fRange = fWorksheet.getRange('A1')
+  await fRange.setHyperLink('https://univer.ai/', 'Univer')
+
+  // 在 A2 建立指向目前工作表 B2:D4 範圍的超連結
+  const fRange2 = fWorksheet.getRange('A2')
+  const rangeUrl = fWorksheet.getRange('B2:D4').getUrl()
+  await fRange2.setHyperLink(rangeUrl, '連結至 B2:D4')
+
+  // 在 A3 建立指向另一張工作表的超連結
+  const sheets = fWorkbook.getSheets()
+  if (sheets.length > 2) {
+    const anotherSheetUrl = sheets[1].getUrl()
+    const fRange3 = fWorksheet.getRange('A3')
+    await fRange3.setHyperLink(anotherSheetUrl, `連結至 ${sheets[1].getSheetName()}`)
+  }
+
+  // 在 A4 建立指向定義名稱的超連結
+  const fRange4 = fWorksheet.getRange('A4')
+  const definedNameHyperlinkUrl = fWorkbook.getUrlOfDefineName('MyDefinedName')
+  await fRange4.setHyperLink(definedNameHyperlinkUrl, '連結至 MyDefinedName')
+
+  // 將 A1 的超連結更新為指向 Google
+  await fRange.updateHyperLink('https://www.google.com/', 'Google')
+
+  // 移除 A2 的超連結
+  const hyperlinks = fRange2.getHyperLinks()
+  if (hyperlinks.length > 0) {
+    await fRange2.cancelHyperLink(hyperlinks[0])
+  }
+
+  // 2 秒後移除 A1 的所有超連結
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+
+  fRange.cancelHyperLink()
+}
+
+run().catch((error: unknown) => {
+  console.error(error)
+  process.exitCode = 1
+})
+```
+
+  </Tab>
+</Tabs>
+
+### 啟用計算 worker
+
+`createUniverOnNode()` 預設使用 `useComputingWorker: false`，在目前程序執行公式計算。上方的 `main.ts` 明確傳入 `useComputingWorker: true`，啟用計算 worker：
+
+1. 主程序中的 `UniverProFormulaEnginePlugin`、`UniverSheetsPlugin`、`UniverSheetsFormulaPlugin` 和 `UniverSheetsPivotTablePlugin` 均設定 `notExecuteFormula: true`，搭配 RPC 將計算交給子程序。
+2. `UniverRPCNodeMainPlugin` 依 `workerSrc` 啟動已建置的 `worker.js`。
+3. 子程序透過 `UniverRPCNodeWorkerPlugin` 和 `UniverRemoteSheetsFormulaPlugin` 接收資料並計算。
+
+`UniverSheetsPivotTablePlugin` 的設定區分三種模式：主程序啟用 worker 時設定 `true`，worker 中設定 `false`，不啟用 worker 時省略或設定為 `undefined`，在目前程序同時註冊樞紐分析表服務和計算邏輯。因此主程序使用 `useComputingWorker ? true : undefined`，不能直接傳入 `useComputingWorker`。
+
+此處的 worker 由 Node.js `child_process.fork()` 啟動。請使用專案現有的建置工具，將 `main.ts` 和 `worker.ts` 分別作為入口建置，並讓 `workerSrc` 指向建置後的 worker 檔案。範例假設 `worker.js` 與主入口產物位於同一目錄；路徑、副檔名及模組格式應與實際建置結果一致。範例使用 CommonJS 的 `__dirname` 定位檔案，ESM 專案需改用對應的路徑解析方式。
+
+### 執行說明
+
+`loadSheetAsync()` 載入伺服器上既有的文件，無需再呼叫 `createWorkbook()`。協同服務透過 `customHeaders` 攜帶的 Cookie 等驗證資訊識別使用者並檢查權限，連線的 `memberID` 由伺服器回傳。
+
+本例未啟用瀏覽器離線快取和多分頁執行個體鎖，無需為了快取帳號隔離呼叫 `setCurrentUser()`。若後續使用評論等依賴本機目前使用者的功能，可以再透過 `UserManagerService` 設定業務使用者；這不會取代伺服器端驗證。
+
+範例執行後保持協同連線，可在瀏覽器開啟同一份文件查看修改。`flush()` 等待已排入佇列的協同修改獲得伺服器確認；若改為一次性指令碼，應在所有非同步操作和同步完成後呼叫 `univer.dispose()` 釋放執行個體。

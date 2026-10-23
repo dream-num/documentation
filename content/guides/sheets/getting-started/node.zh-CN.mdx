@@ -49,3 +49,1308 @@ univer.registerPlugin(UniverSheetsNumfmtPlugin)
 const univerAPI = FUniver.newAPI(univer)
 univerAPI.createWorkbook({})
 ```
+
+## 协同在 Node.js 环境下的使用示例 [#node-collaboration-example]
+
+Node.js 作为协同客户端加载服务端已有的工作簿，通过 Facade API 修改内容，并将修改同步到打开同一文档的其他客户端。运行前，请准备好[协同服务](/server/collaboration/quick-start)、[客户端许可证](/server/license)和可访问的文档 ID。
+
+### 示例文件
+
+按以下结构组织文件：
+
+```text
+src/sheets/node/
+├── main.ts
+├── univer.ts
+└── worker.ts
+```
+
+- `univer.ts`：创建 Univer，注册完整功能插件、协同客户端和可选的 RPC 主进程插件。
+- `worker.ts`：注册计算侧的公式引擎、远程公式、筛选与透视表插件，通过 RPC 与主进程通信。
+- `main.ts`：加载协同文档，依次演示权限、基础表格、条件格式、数据验证、表格、透视表、迷你图、图片、图表、形状、分组和超链接 API。
+
+将两个文件中的 `your-license` 替换为同一份许可证，并替换服务地址、Cookie、文档 ID 和用户 ID。`main.ts` 中的权限示例还包含协作者与保护范围设置，需要使用实际业务用户及具备相应管理权限的身份。
+
+<Tabs items={['univer.ts', 'worker.ts', 'main.ts']}>
+  <Tab>
+
+```typescript title="univer.ts"
+import { UniverCollaborationPlugin } from '@univerjs-pro/collaboration'
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import {
+  NodeCollaborationSocketService,
+  UniverCollaborationClientNodePlugin,
+} from '@univerjs-pro/collaboration-client-node'
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import { UniverSheetsChartPlugin } from '@univerjs-pro/sheets-chart'
+import { UniverSheetsOutlinePlugin } from '@univerjs-pro/sheets-outline'
+import { UniverSheetsPivotTablePlugin } from '@univerjs-pro/sheets-pivot'
+import { UniverSheetsShapePlugin } from '@univerjs-pro/sheets-shape'
+import { UniverSheetSparklinePlugin } from '@univerjs-pro/sheets-sparkline'
+import { IAuthzIoService, IImageIoService, IUndoRedoService, LocaleType, Univer } from '@univerjs/core'
+import { UniverDataValidationPlugin } from '@univerjs/data-validation'
+import { UniverDocsPlugin } from '@univerjs/docs'
+import { UniverDocsDrawingPlugin } from '@univerjs/docs-drawing'
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+import { UniverNetworkPlugin } from '@univerjs/network'
+import { UniverRPCNodeMainPlugin } from '@univerjs/rpc-node'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverSheetsConditionalFormattingPlugin } from '@univerjs/sheets-conditional-formatting'
+import { UniverSheetsDataValidationPlugin } from '@univerjs/sheets-data-validation'
+import { UniverSheetsDrawingPlugin } from '@univerjs/sheets-drawing'
+import { UniverSheetsFilterPlugin } from '@univerjs/sheets-filter'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+import { UniverSheetsHyperLinkPlugin } from '@univerjs/sheets-hyper-link'
+import { UniverSheetsNotePlugin } from '@univerjs/sheets-note'
+import { UniverSheetsNumfmtPlugin } from '@univerjs/sheets-numfmt'
+import { UniverSheetsSortPlugin } from '@univerjs/sheets-sort'
+import { UniverSheetsTablePlugin } from '@univerjs/sheets-table'
+import { UniverThreadCommentPlugin } from '@univerjs/thread-comment'
+import path from 'node:path'
+// Facade API here are part of packages/facade/src/apis/everything.ts
+// However some plugins are implemented incorrectly, so they are not included here.
+import '@univerjs/engine-formula/facade'
+import '@univerjs/sheets/facade'
+import '@univerjs/sheets-formula/facade'
+import '@univerjs/sheets-numfmt/facade'
+import '@univerjs/sheets-conditional-formatting/facade'
+import '@univerjs/sheets-data-validation/facade'
+import '@univerjs/sheets-filter/facade'
+import '@univerjs/sheets-hyper-link/facade'
+import '@univerjs/sheets-note/facade'
+import '@univerjs/sheets-table/facade'
+import '@univerjs/sheets-drawing/facade'
+import '@univerjs/sheets-thread-comment/facade'
+import '@univerjs-pro/engine-shape/facade'
+import '@univerjs-pro/sheets-pivot/facade'
+import '@univerjs-pro/sheets-sparkline/facade'
+import '@univerjs-pro/sheets-chart/facade'
+import '@univerjs-pro/sheets-shape/facade'
+import '@univerjs-pro/sheets-outline/facade'
+import '@univerjs-pro/collaboration-client/facade'
+
+export interface ICreateUniverOnNodeOptions {
+  useComputingWorker?: boolean
+}
+
+export function createUniverOnNode(options: ICreateUniverOnNodeOptions = {}): Univer {
+  const { useComputingWorker = false } = options
+
+  const univer = new Univer({
+    locale: LocaleType.ZH_CN,
+    locales: {},
+    override: [
+      [IAuthzIoService, null],
+      [IUndoRedoService, null],
+    ],
+  })
+
+  univer.registerPlugin(UniverLicensePlugin, {
+    license: 'your-license',
+  })
+
+  registerBasicPlugins(univer, useComputingWorker)
+  registerSharedPlugins(univer)
+
+  if (useComputingWorker) {
+    registerRPCPlugin(univer)
+  }
+
+  registerDocPlugins(univer)
+  registerSheetPlugins(univer, useComputingWorker)
+  registerCollaborationPlugins(univer)
+
+  return univer
+}
+
+function registerBasicPlugins(univer: Univer, useComputingWorker: boolean): void {
+  univer.registerPlugin(UniverProFormulaEnginePlugin, { notExecuteFormula: useComputingWorker })
+}
+
+function registerSharedPlugins(univer: Univer): void {
+  univer.registerPlugin(UniverRenderEnginePlugin)
+  univer.registerPlugin(UniverThreadCommentPlugin)
+  univer.registerPlugin(UniverDrawingPlugin, {
+    override: [[IImageIoService, null]],
+  })
+}
+
+function registerDocPlugins(univer: Univer): void {
+  univer.registerPlugin(UniverDocsPlugin)
+  univer.registerPlugin(UniverDocsDrawingPlugin)
+}
+
+function registerSheetPlugins(univer: Univer, useComputingWorker: boolean): void {
+  univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: useComputingWorker })
+  univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: useComputingWorker })
+  univer.registerPlugin(UniverSheetsNumfmtPlugin)
+  univer.registerPlugin(UniverSheetsConditionalFormattingPlugin)
+  univer.registerPlugin(UniverDataValidationPlugin)
+  univer.registerPlugin(UniverSheetsDataValidationPlugin)
+  univer.registerPlugin(UniverSheetsFilterPlugin)
+  univer.registerPlugin(UniverSheetsHyperLinkPlugin)
+  univer.registerPlugin(UniverSheetsNotePlugin)
+  univer.registerPlugin(UniverSheetsDrawingPlugin)
+  univer.registerPlugin(UniverSheetsSortPlugin)
+  univer.registerPlugin(UniverSheetsTablePlugin)
+  univer.registerPlugin(UniverSheetsChartPlugin)
+  univer.registerPlugin(UniverSheetsShapePlugin)
+  univer.registerPlugin(UniverSheetsPivotTablePlugin, {
+    notExecuteFormula: useComputingWorker ? true : undefined,
+  })
+  univer.registerPlugin(UniverSheetSparklinePlugin)
+  univer.registerPlugin(UniverSheetsOutlinePlugin)
+}
+
+function registerRPCPlugin(univer: Univer): void {
+  // 根据构建产物的实际位置设置 worker 路径。
+  const childPath = path.join(__dirname, 'worker.js')
+  univer.registerPlugin(UniverRPCNodeMainPlugin, { workerSrc: childPath })
+}
+
+function registerCollaborationPlugins(univer: Univer): void {
+  const serverUrl = 'https://your-univer-server.example.com'
+  univer.registerPlugin(UniverNetworkPlugin)
+  univer.registerPlugin(UniverCollaborationPlugin)
+  univer.registerPlugin(UniverCollaborationClientPlugin, {
+    socketService: NodeCollaborationSocketService,
+    enableOfflineEditing: false,
+    enableSingleActiveInstanceLock: false,
+    snapshotServerUrl: `${serverUrl}/universer-api/snapshot`,
+    collabSubmitChangesetUrl: `${serverUrl}/universer-api/comb`,
+    collabWebSocketUrl: `${serverUrl}/universer-api/comb/connect`,
+    wsSessionTicketUrl: `${serverUrl}/universer-api/user/session-ticket`,
+    uploadFileServerUrl: `${serverUrl}/universer-api/stream/file/upload`,
+    signUrlServerUrl: `${serverUrl}/universer-api/file/{fileID}/sign-url`,
+    downloadEndpointUrl: `${serverUrl}`,
+    authzUrl: `${serverUrl}/universer-api/authz`,
+    sendChangesetTimeout: 200,
+    retryConnectingInterval: 1000,
+    customHeaders: {
+      // Example: If your Univer server requires authentication via cookies, you can set the 'cookie' header here.
+      cookie: 'your-cookie',
+      // ... more headers
+    },
+  })
+  univer.registerPlugin(UniverCollaborationClientNodePlugin)
+}
+```
+
+  </Tab>
+  <Tab>
+
+```typescript title="worker.ts"
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import { UniverSheetsPivotTablePlugin } from '@univerjs-pro/sheets-pivot'
+import { LocaleType, Univer } from '@univerjs/core'
+import { UniverRPCNodeWorkerPlugin } from '@univerjs/rpc-node'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverSheetsFilterPlugin } from '@univerjs/sheets-filter'
+import { UniverRemoteSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+const univer = new Univer({
+  locale: LocaleType.ZH_CN,
+})
+
+univer.registerPlugin(UniverLicensePlugin, {
+  license: 'your-license',
+})
+
+univer.registerPlugin(UniverSheetsPlugin, { onlyRegisterFormulaRelatedMutations: true })
+univer.registerPlugin(UniverProFormulaEnginePlugin)
+univer.registerPlugin(UniverRPCNodeWorkerPlugin)
+univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
+univer.registerPlugin(UniverSheetsFilterPlugin)
+univer.registerPlugin(UniverSheetsPivotTablePlugin, {
+  notExecuteFormula: false,
+})
+```
+
+  </Tab>
+  <Tab>
+
+```typescript title="main.ts"
+import type { FConnectorShape } from '@univerjs-pro/engine-shape/facade'
+import type { FSheetShape } from '@univerjs-pro/sheets-shape/facade'
+import { ChartBorderDashType } from '@univerjs-pro/engine-chart'
+import { CellValueType } from '@univerjs/core'
+import { FUniver } from '@univerjs/core/facade'
+import { createUniverOnNode } from './univer'
+
+async function run(): Promise<void> {
+  const univer = createUniverOnNode({ useComputingWorker: true })
+  const univerAPI = FUniver.newAPI(univer)
+
+  const workbook = await univerAPI.getCollaboration().loadSheetAsync('your-unit-id')
+  if (!workbook) throw new Error('未能加载协同工作簿')
+
+  await TestSheetsPermissionAPI(univerAPI)
+  TestSheetsFacadeAPI(univerAPI)
+  TestSheetsConditionalFormattingAPI(univerAPI)
+  await TestSheetsDataValidationFacadeAPI(univerAPI)
+  await TestSheetsTableFacadeAPI(univerAPI)
+  await TestSheetsPivotFacadeAPI(univerAPI)
+  TestSheetsSparklineFacadeAPI(univerAPI)
+  await TestSheetsDrawingAPI(univerAPI)
+  await TestSheetsChartFacadeAPI(univerAPI)
+  await TestSheetsShapeFacadeAPI(univerAPI)
+  await TestSheetsOutlineAPI(univerAPI)
+  await TestSheetsHyperlinkAPI(univerAPI)
+
+  await univerAPI.getCollaboration().flush(workbook.getId())
+  console.log('示例修改已同步，客户端继续保持协同连接')
+}
+
+async function TestSheetsPermissionAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.getActiveSheet()
+
+  // Add some collaborators to the workbook
+  const workbookPermission = fWorkbook.getWorkbookPermission()
+  await workbookPermission.setCollaborators([
+    {
+      user: { userID: 'systemUser1', name: 'System User 1', avatar: '' },
+      role: univerAPI.Enum.UnitRole.Owner,
+    },
+    {
+      user: { userID: 'your-user-id', name: 'Node.js Client', avatar: '' },
+      role: univerAPI.Enum.UnitRole.Editor,
+    },
+    {
+      user: { userID: 'editorUser1', name: 'Editor User 1', avatar: '' },
+      role: univerAPI.Enum.UnitRole.Editor,
+    },
+    {
+      user: { userID: 'readerUser1', name: 'Reader User 1', avatar: '' },
+      role: univerAPI.Enum.UnitRole.Reader,
+    },
+  ])
+
+  const fRange = fWorksheet.getRange('A1:B2')
+  const rangePermission = fRange.getRangePermission()
+  const rule = await rangePermission.protect({
+    name: 'Test Protection Rule',
+    allowedUsers: ['editorUser1'],
+    allowViewByOthers: true,
+  })
+}
+
+function TestSheetsFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  // Set workbook name
+  fWorkbook.setName('Test Workbook - Node Collaboration Client')
+
+  const fWorksheet = fWorkbook.getActiveSheet()
+
+  // Set a value in a cell A1
+  fWorksheet
+    .getRange('A1')
+    .setValue(`Hello! message from the Node Collaboration Client! The current time is: ${new Date().toString()}.`)
+
+  // Merge C2:E4 range cells
+  const fRange2 = fWorksheet.getRange('C2:E4')
+  if (fRange2.isPartOfMerge() || fRange2.isMerged()) {
+    fRange2.breakApart()
+  }
+  fRange2.merge().setValue(1234).setNumberFormat('#,##0.00')
+
+  // Create a defined name for cell A1 and use it in cell A6
+  const definedNameBuilder = fWorkbook
+    .newDefinedNameBuilder()
+    .setRef(`${fWorksheet.getSheetName()}!$A$1`)
+    .setName('MyDefinedName')
+    .build()
+  fWorkbook.insertDefinedNameBuilder(definedNameBuilder)
+  fWorksheet.getRange('A6').setValue('=MyDefinedName')
+
+  // Insert a new sheet
+  const newSheet = fWorkbook.insertSheet('New Sheet from Node Client', {
+    index: 1,
+    sheet: {
+      rowCount: 100,
+      columnCount: 20,
+      cellData: {
+        0: {
+          0: {
+            v: 1,
+          },
+        },
+        1: {
+          1: {
+            v: 2,
+          },
+        },
+        2: {
+          2: {
+            v: 3,
+          },
+        },
+        3: {
+          3: {
+            v: 4,
+          },
+        },
+      },
+    },
+  })
+
+  // Insert 3 rows after row 3 (0-based index).
+  newSheet.insertRowsAfter(2, 3)
+
+  const sheets = fWorkbook.getSheets()
+  if (sheets.length) {
+    // Rename the first sheet and set its row and column count
+    sheets[0].setName('Renamed Sheet 1').setRowCount(100).setColumnCount(10)
+    // Freeze first row and first column in the first sheet
+    sheets[0].setFrozenRows(1).setFrozenColumns(1)
+    // Set grid lines color to red in the first sheet
+    sheets[0].setGridLinesColor('#FF0000')
+    // Get data range of the first sheet and log its A1 notation
+    const dataRange = sheets[0].getDataRange()
+    console.warn(`Renamed Sheet 1 Data Range A1 Notation: ${dataRange.getA1Notation()}`)
+    // Clear content of the data range after 5 seconds
+    setTimeout(() => {
+      dataRange.clearContent()
+    }, 5000)
+  }
+}
+
+function TestSheetsConditionalFormattingAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const newSheet = fWorkbook.insertSheet('Conditional Formatting Sheet', {
+    sheet: {
+      cellData: {
+        0: {
+          0: { v: 1, t: CellValueType.NUMBER },
+          1: { v: 2, t: CellValueType.NUMBER },
+          2: { v: 3, t: CellValueType.NUMBER },
+          3: { v: 4, t: CellValueType.NUMBER },
+        },
+        1: {
+          0: { v: 2, t: CellValueType.NUMBER },
+          1: { v: 3, t: CellValueType.NUMBER },
+          2: { v: 4, t: CellValueType.NUMBER },
+          3: { v: 5, t: CellValueType.NUMBER },
+        },
+        2: {
+          0: { v: 3, t: CellValueType.NUMBER },
+          1: { v: 4, t: CellValueType.NUMBER },
+          2: { v: 5, t: CellValueType.NUMBER },
+          3: { v: 6, t: CellValueType.NUMBER },
+        },
+        3: {
+          0: { v: 4, t: CellValueType.NUMBER },
+          1: { v: 5, t: CellValueType.NUMBER },
+          2: { v: 6, t: CellValueType.NUMBER },
+          3: { v: 7, t: CellValueType.NUMBER },
+        },
+      },
+    },
+  })
+
+  const fRange = newSheet.getRange('A1:D4')
+  const rule = newSheet
+    .newConditionalFormattingRule()
+    .whenNumberGreaterThan(3)
+    .setRanges([fRange.getRange()])
+    .setItalic(true)
+    .setBackground('red')
+    .setFontColor('green')
+    .build()
+  newSheet.addConditionalFormattingRule(rule)
+}
+
+async function TestSheetsDataValidationFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('Data Validation Sheet', {
+    sheet: {
+      rowCount: 30,
+      columnCount: 10,
+      cellData: {
+        0: {
+          0: { v: 'Score' },
+          1: { v: 'Status' },
+          2: { v: 'Region' },
+          3: { v: 'Approved' },
+          4: { v: 'Formula Gate' },
+          5: { v: 'Start Date' },
+          6: { v: 'Copied Score' },
+          7: { v: 'Region Source' },
+        },
+        1: {
+          0: { v: 95, t: CellValueType.NUMBER },
+          1: { v: 'Open' },
+          2: { v: 'East' },
+          3: { v: 'Yes' },
+          4: { v: 'Pass' },
+          5: { v: '2026-01-02' },
+          6: { v: 60, t: CellValueType.NUMBER },
+          7: { v: 'East' },
+        },
+        2: {
+          0: { v: 42, t: CellValueType.NUMBER },
+          1: { v: 'Done' },
+          2: { v: 'West' },
+          3: { v: 'No' },
+          4: { v: 'Pass' },
+          5: { v: '2025-12-31' },
+          6: { v: 55, t: CellValueType.NUMBER },
+          7: { v: 'North' },
+        },
+        3: {
+          0: { v: 101, t: CellValueType.NUMBER },
+          1: { v: 'Unknown' },
+          2: { v: 'Central' },
+          3: { v: 'Maybe' },
+          4: { v: 'Pass' },
+          5: { v: '2026-06-01' },
+          6: { v: 75, t: CellValueType.NUMBER },
+          7: { v: 'South' },
+        },
+        4: {
+          0: { v: 60, t: CellValueType.NUMBER },
+          1: { v: 'Blocked' },
+          2: { v: 'North' },
+          3: { v: 'Yes' },
+          4: { v: 'Pass' },
+          5: { v: '2024-01-01' },
+          6: { v: 90, t: CellValueType.NUMBER },
+        },
+        5: {
+          0: { v: 70, t: CellValueType.NUMBER },
+          1: { v: 'Open' },
+          2: { v: 'South' },
+          3: { v: 'No' },
+          4: { v: 'Pass' },
+          5: { v: '2026-03-01' },
+          6: { v: 45, t: CellValueType.NUMBER },
+        },
+      },
+    },
+  })
+
+  const scoreRange = fWorksheet.getRange('A2:A6')
+  scoreRange.setDataValidation(
+    univerAPI
+      .newDataValidation()
+      .requireNumberBetween(1, 100, true)
+      .setAllowInvalid(false)
+      .setAllowBlank(false)
+      .setOptions({
+        showErrorMessage: true,
+        errorTitle: 'Invalid score',
+        error: 'Please enter an integer score from 1 to 100.',
+        showInputMessage: true,
+        promptTitle: 'Score',
+        prompt: 'Use an integer from 1 to 100.',
+      })
+      .build(),
+  )
+
+  fWorksheet.getRange('B2:B6').setDataValidation(
+    univerAPI
+      .newDataValidation()
+      .requireValueInList(['Open', 'Blocked', 'Done'], false, true)
+      .setAllowBlank(false)
+      .setOptions({
+        showErrorMessage: true,
+        error: 'Choose Open, Blocked, or Done.',
+      })
+      .build(),
+  )
+
+  fWorksheet.getRange('C2:C6').setDataValidation(
+    univerAPI
+      .newDataValidation()
+      .requireValueInRange(fWorksheet.getRange('H2:H4'), false, true)
+      .setAllowBlank(true)
+      .setOptions({
+        showErrorMessage: true,
+        error: 'Choose a region from H2:H4.',
+      })
+      .build(),
+  )
+
+  fWorksheet.getRange('D2:D6').setDataValidation(univerAPI.newDataValidation().requireCheckbox('Yes', 'No').build())
+
+  fWorksheet.getRange('E2:E6').setDataValidation(
+    univerAPI
+      .newDataValidation()
+      .requireFormulaSatisfied('=A2>=50')
+      .setOptions({
+        showErrorMessage: true,
+        error: 'Column A score must be at least 50.',
+      })
+      .build(),
+  )
+
+  fWorksheet.getRange('F2:F6').setDataValidation(
+    univerAPI
+      .newDataValidation()
+      .requireDateOnOrAfter(new Date('2026-01-01'))
+      .setOptions({
+        showErrorMessage: true,
+        error: 'Date must be on or after 2026-01-01.',
+      })
+      .build(),
+  )
+
+  const scoreRule = scoreRange.getDataValidation()
+
+  scoreRule?.setCriteria(
+    univerAPI.Enum.DataValidationType.DECIMAL,
+    [univerAPI.Enum.DataValidationOperator.BETWEEN, '50', '100'],
+    false,
+  )
+  scoreRule?.setOptions({ error: 'Please enter a score from 50 to 100.' })
+  scoreRule?.setRanges([fWorksheet.getRange('A2:A5')])
+
+  const copiedRule = scoreRule
+    ?.copy()
+    .requireNumberGreaterThanOrEqualTo(60, true)
+    .setOptions({ error: 'Please enter 60 or above.' })
+    .build()
+  if (copiedRule) {
+    fWorksheet.getRange('G2:G6').setDataValidation(copiedRule)
+  }
+
+  // console.warn('Data validation A2:F6 rules:', fWorksheet.getRange('A2:F6').getDataValidations());
+  // console.warn('Data validation A2:A6 status:', await fWorksheet.getRange('A2:A6').getValidatorStatus());
+  // console.warn('Data validation worksheet status:', await fWorksheet.getValidatorStatusAsync());
+  // console.warn('Data validation workbook status:', await fWorkbook.getValidatorStatus());
+  // console.warn('Data validation range errors:', await fWorksheet.getRange('A2:F6').getDataValidationErrorAsync());
+  // console.warn('Data validation worksheet errors:', await fWorksheet.getAllDataValidationErrorAsync());
+  // console.warn('Data validation workbook errors:', await fWorkbook.getAllDataValidationErrorAsync());
+
+  fWorksheet.getRange('D2:D6').setDataValidation(null)
+  fWorksheet.getRange('G2:G6').getDataValidation()?.delete()
+}
+
+async function TestSheetsTableFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('Table Sheet', {
+    sheet: {
+      rowCount: 30,
+      columnCount: 8,
+      cellData: {
+        0: {
+          0: { v: 'Region' },
+          1: { v: 'Product' },
+          2: { v: 'Revenue' },
+          3: { v: 'Owner' },
+        },
+        1: {
+          0: { v: 'East' },
+          1: { v: 'Notebook' },
+          2: { v: 1200, t: CellValueType.NUMBER },
+          3: { v: 'Alice' },
+        },
+        2: {
+          0: { v: 'West' },
+          1: { v: 'Keyboard' },
+          2: { v: 850, t: CellValueType.NUMBER },
+          3: { v: 'Bob' },
+        },
+        3: {
+          0: { v: 'East' },
+          1: { v: 'Mouse' },
+          2: { v: 420, t: CellValueType.NUMBER },
+          3: { v: 'Alice' },
+        },
+        4: {
+          0: { v: 'North' },
+          1: { v: 'Monitor' },
+          2: { v: 1600, t: CellValueType.NUMBER },
+          3: { v: 'Carol' },
+        },
+        5: {
+          0: { v: 'South' },
+          1: { v: 'Dock' },
+          2: { v: 720, t: CellValueType.NUMBER },
+          3: { v: 'David' },
+        },
+        8: {
+          0: { v: 'Name' },
+          1: { v: 'Score' },
+          2: { v: 'Team' },
+        },
+        9: {
+          0: { v: 'Ada' },
+          1: { v: 92, t: CellValueType.NUMBER },
+          2: { v: 'A' },
+        },
+        10: {
+          0: { v: 'Grace' },
+          1: { v: 88, t: CellValueType.NUMBER },
+          2: { v: 'B' },
+        },
+        11: {
+          0: { v: 'Linus' },
+          1: { v: 95, t: CellValueType.NUMBER },
+          2: { v: 'A' },
+        },
+      },
+    },
+  })
+
+  const salesTableId = 'node-sales-table'
+  const salesTableAdded = await fWorksheet.addTable(
+    'NodeSalesTable',
+    fWorksheet.getRange('A1:D6').getRange(),
+    salesTableId,
+    {
+      tableStyleId: 'table-default-4',
+      filters: [
+        {
+          filterType: univerAPI.Enum.TableColumnFilterTypeEnum.manual,
+          values: ['East', 'North'],
+        },
+      ],
+    },
+  )
+
+  if (salesTableAdded) {
+    await fWorksheet.setTableFilter(salesTableId, 2, {
+      filterType: univerAPI.Enum.TableColumnFilterTypeEnum.condition,
+      filterInfo: {
+        conditionType: univerAPI.Enum.TableConditionTypeEnum.Number,
+        compareType: univerAPI.Enum.TableNumberCompareTypeEnum.GreaterThan,
+        expectedValue: 800,
+      },
+    })
+
+    await fWorksheet.resetFilter(salesTableId, 2)
+    await fWorksheet.setTableRange(salesTableId, fWorksheet.getRange('A1:D7').getRange())
+    await fWorksheet.setTableName(salesTableId, 'NodeSalesTableRenamed')
+
+    await fWorksheet.addTableTheme(salesTableId, {
+      name: 'node-table-style',
+      headerRowStyle: {
+        bg: {
+          rgb: '#145F82',
+        },
+        cl: {
+          rgb: '#FFFFFF',
+        },
+      },
+      firstRowStyle: {
+        bg: {
+          rgb: '#E0F2FE',
+        },
+      },
+      secondRowStyle: {
+        bg: {
+          rgb: '#FFFFFF',
+        },
+      },
+    })
+  }
+
+  const scoreTableId = await fWorkbook.addTable(
+    fWorksheet.getSheetId(),
+    'NodeScoreTable',
+    fWorksheet.getRange('A9:C12').getRange(),
+    'node-score-table',
+    {
+      tableStyleId: 'table-default-2',
+    },
+  )
+
+  if (scoreTableId) {
+    await fWorkbook.setTableFilter(scoreTableId, 1, {
+      filterType: univerAPI.Enum.TableColumnFilterTypeEnum.condition,
+      filterInfo: {
+        conditionType: univerAPI.Enum.TableConditionTypeEnum.Number,
+        compareType: univerAPI.Enum.TableNumberCompareTypeEnum.GreaterThanOrEqual,
+        expectedValue: 90,
+      },
+    })
+
+    await fWorkbook.removeTable(scoreTableId)
+  }
+}
+
+async function TestSheetsPivotFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('Pivot Sheet', {
+    sheet: {
+      rowCount: 40,
+      columnCount: 12,
+      cellData: {
+        0: {
+          0: { v: 'Region' },
+          1: { v: 'Category' },
+          2: { v: 'Product' },
+          3: { v: 'Quarter' },
+          4: { v: 'Sales' },
+          5: { v: 'Units' },
+        },
+        1: {
+          0: { v: 'East' },
+          1: { v: 'Hardware' },
+          2: { v: 'Keyboard' },
+          3: { v: 'Q1' },
+          4: { v: 1200, t: CellValueType.NUMBER },
+          5: { v: 12, t: CellValueType.NUMBER },
+        },
+        2: {
+          0: { v: 'East' },
+          1: { v: 'Hardware' },
+          2: { v: 'Monitor' },
+          3: { v: 'Q2' },
+          4: { v: 1800, t: CellValueType.NUMBER },
+          5: { v: 9, t: CellValueType.NUMBER },
+        },
+        3: {
+          0: { v: 'West' },
+          1: { v: 'Software' },
+          2: { v: 'Editor' },
+          3: { v: 'Q1' },
+          4: { v: 950, t: CellValueType.NUMBER },
+          5: { v: 19, t: CellValueType.NUMBER },
+        },
+        4: {
+          0: { v: 'West' },
+          1: { v: 'Hardware' },
+          2: { v: 'Dock' },
+          3: { v: 'Q2' },
+          4: { v: 720, t: CellValueType.NUMBER },
+          5: { v: 8, t: CellValueType.NUMBER },
+        },
+        5: {
+          0: { v: 'North' },
+          1: { v: 'Software' },
+          2: { v: 'Analytics' },
+          3: { v: 'Q1' },
+          4: { v: 1600, t: CellValueType.NUMBER },
+          5: { v: 16, t: CellValueType.NUMBER },
+        },
+        6: {
+          0: { v: 'South' },
+          1: { v: 'Hardware' },
+          2: { v: 'Mouse' },
+          3: { v: 'Q2' },
+          4: { v: 480, t: CellValueType.NUMBER },
+          5: { v: 24, t: CellValueType.NUMBER },
+        },
+      },
+    },
+  })
+
+  const unitId = fWorkbook.getId()
+  const subUnitId = fWorksheet.getSheetId()
+  const sourceInfo = {
+    unitId,
+    subUnitId,
+    sheetName: fWorksheet.getSheetName(),
+    range: fWorksheet.getRange('A1:F7').getRange(),
+  }
+  const anchorCellInfo = {
+    unitId,
+    subUnitId,
+    row: 0,
+    col: 7,
+  }
+
+  const fPivotTable = await fWorkbook.addPivotTable(
+    sourceInfo,
+    univerAPI.Enum.PositionTypeEnum.Existing,
+    anchorCellInfo,
+  )
+  if (!fPivotTable) return
+
+  await fPivotTable.addField(0, univerAPI.Enum.PivotTableFiledAreaEnum.Row, 0)
+  await fPivotTable.addField(3, univerAPI.Enum.PivotTableFiledAreaEnum.Column, 0)
+  await fPivotTable.addField(4, univerAPI.Enum.PivotTableFiledAreaEnum.Value, 0)
+  await fPivotTable.addField(5, univerAPI.Enum.PivotTableFiledAreaEnum.Value, 1)
+  await fPivotTable.setOptions({
+    repeatRowLabels: true,
+    showRowGrandTotal: true,
+    showColGrandTotal: true,
+  })
+
+  const rowFieldIds = fPivotTable.getFieldIdsByArea(univerAPI.Enum.PivotTableFiledAreaEnum.Row)
+  if (rowFieldIds[0]) {
+    await fPivotTable.setLabelSort(rowFieldIds[0], {
+      type: univerAPI.Enum.PivotDataFieldSortOperatorEnum.ascending,
+    })
+    await fPivotTable.setLabelManualFilter(rowFieldIds[0], ['East', 'North', 'West'])
+  }
+
+  const valueFieldIds = fPivotTable.getFieldIdsByArea(univerAPI.Enum.PivotTableFiledAreaEnum.Value)
+  if (valueFieldIds[0]) {
+    await fPivotTable.setFieldSetting(valueFieldIds[0], {
+      displayName: 'Total Sales',
+      format: '$#,##0',
+      subtotalType: univerAPI.Enum.PivotSubtotalTypeEnum.sum,
+    })
+  }
+
+  if (valueFieldIds[1]) {
+    await fPivotTable.setSubtotalType(valueFieldIds[1], univerAPI.Enum.PivotSubtotalTypeEnum.average)
+  }
+
+  if (rowFieldIds[0] && valueFieldIds[0]) {
+    await fPivotTable.setValueFilter(rowFieldIds[0], {
+      operator: univerAPI.Enum.PivotFilterOperatorEnum.valueGreaterThan,
+      expected: 700,
+      valueFieldId: valueFieldIds[0],
+    })
+  }
+
+  if (valueFieldIds.length > 1) {
+    await fPivotTable.updateValuePosition(univerAPI.Enum.PivotTableValuePositionEnum.Column, 0)
+  }
+
+  const pivotTableId = fPivotTable.getId()
+  const pivotTableById = fWorkbook.getPivotTableById(pivotTableId)
+  const pivotTableByCell = fWorksheet.getPivotTableByCell(anchorCellInfo.row, anchorCellInfo.col)
+  const sourceFieldsInfo = fPivotTable.getSourceFieldsInfo()
+  const pivotTableRangeInfo = fPivotTable.getPivotTableRangeInfo()
+  console.warn(
+    `Pivot table created: ${pivotTableId}, by id: ${Boolean(pivotTableById)}, by cell: ${Boolean(pivotTableByCell)}, source fields: ${sourceFieldsInfo.length}, ranges: ${pivotTableRangeInfo?.length ?? 0}`,
+  )
+}
+
+function TestSheetsSparklineFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('Sparkline Sheet', {
+    sheet: {
+      rowCount: 20,
+      columnCount: 8,
+      cellData: {
+        0: {
+          0: { v: 12, t: CellValueType.NUMBER },
+          1: { v: 18, t: CellValueType.NUMBER },
+          2: { v: 9, t: CellValueType.NUMBER },
+          3: { v: 24, t: CellValueType.NUMBER },
+          4: { v: 16, t: CellValueType.NUMBER },
+        },
+        1: {
+          0: { v: 8, t: CellValueType.NUMBER },
+          1: { v: 13, t: CellValueType.NUMBER },
+          2: { v: 21, t: CellValueType.NUMBER },
+          3: { v: 14, t: CellValueType.NUMBER },
+          4: { v: 28, t: CellValueType.NUMBER },
+        },
+        2: {
+          0: { v: 5, t: CellValueType.NUMBER },
+          1: { v: 9, t: CellValueType.NUMBER },
+          2: { v: 7, t: CellValueType.NUMBER },
+          3: { v: 15, t: CellValueType.NUMBER },
+          4: { v: 11, t: CellValueType.NUMBER },
+        },
+        3: {
+          0: { v: 20, t: CellValueType.NUMBER },
+          1: { v: 12, t: CellValueType.NUMBER },
+          2: { v: 30, t: CellValueType.NUMBER },
+          3: { v: 18, t: CellValueType.NUMBER },
+          4: { v: 25, t: CellValueType.NUMBER },
+        },
+      },
+    },
+  })
+
+  const firstSparkline = fWorksheet.addSparkline(
+    [fWorksheet.getRange('A1:E1').getRange()],
+    [fWorksheet.getRange('F1').getRange()],
+    univerAPI.Enum.SparklineTypeEnum.LINE_CHART,
+  )
+  const secondSparkline = fWorksheet.addSparkline(
+    [fWorksheet.getRange('A2:E2').getRange()],
+    [fWorksheet.getRange('F2').getRange()],
+    univerAPI.Enum.SparklineTypeEnum.LINE_CHART,
+  )
+
+  fWorksheet.composeSparkline([fWorksheet.getRange('F1:F2').getRange()])
+
+  const sparklineGroup = fWorksheet.getSparklineGroupByCell(0, 5)
+  sparklineGroup?.setConfig({
+    type: univerAPI.Enum.SparklineTypeEnum.BAR_CHART,
+  })
+  sparklineGroup?.changeDataSource(
+    [fWorksheet.getRange('A3:E3').getRange(), fWorksheet.getRange('A4:E4').getRange()],
+    [fWorksheet.getRange('G1').getRange(), fWorksheet.getRange('G2').getRange()],
+  )
+
+  fWorksheet.unComposeSparkline([fWorksheet.getRange('G1:G2').getRange()])
+
+  fWorksheet.getSparklineByCell(0, 6)?.removeSparkline()
+}
+
+async function TestSheetsOutlineAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('Outline Sheet', {
+    sheet: {
+      rowCount: 20,
+      columnCount: 8,
+    },
+  })
+
+  // Add an outline for rows 2-6 and rows 3-4 (0-based index).
+  fWorksheet.addRowOutline(1, 5).addRowOutline(2, 2)
+  // Add an outline for columns B-E and columns C-D (0-based index).
+  fWorksheet.addColumnOutline(1, 2)
+
+  const rowOutlines = fWorksheet.getDimensionOutlines(univerAPI.Enum.DimensionOutlineAxis.ROW)
+  fWorksheet.setDimensionOutlineCollapsed(rowOutlines[0].id, true)
+
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+
+  fWorksheet.removeDimensionOutline(rowOutlines[1].id)
+  fWorksheet.clearDimensionOutlines(univerAPI.Enum.DimensionOutlineAxis.COLUMN, 1, 3)
+}
+
+async function TestSheetsDrawingAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('Drawing Sheet', {
+    sheet: {
+      rowCount: 20,
+      columnCount: 8,
+    },
+  })
+
+  const images = fWorksheet.getImages()
+  console.warn(`Current sheet has ${images.length} images.`)
+
+  const activeImages = fWorksheet.getActiveImages()
+  console.warn(`Current sheet has ${activeImages.length} active images.`)
+
+  const image = await fWorksheet
+    .newOverGridImage()
+    .setSource('https://avatars.githubusercontent.com/u/61444807?s=48&v=4', univerAPI.Enum.ImageSourceType.URL)
+    .setColumn(5)
+    .setRow(5)
+    .setWidth(500)
+    .setHeight(300)
+    .buildAsync()
+  fWorksheet.insertImages([image])
+
+  // update the image width to 100px and height to 50px
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+
+  const insertedImage = fWorksheet.getImageById(image.drawingId)!
+  const newImage = await insertedImage.toBuilder().setWidth(100).setHeight(50).buildAsync()
+  fWorksheet.updateImages([newImage])
+
+  // delete the image after 2 seconds
+  // await new Promise((resolve) => setTimeout(resolve, 2000));
+  // fWorksheet.deleteImages([insertedImage]);
+}
+
+async function TestSheetsChartFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('Chart Sheet', {
+    sheet: {
+      rowCount: 20,
+      columnCount: 8,
+      cellData: {
+        0: {
+          0: { v: 10, t: CellValueType.NUMBER },
+          1: { v: 20, t: CellValueType.NUMBER },
+          2: { v: 30, t: CellValueType.NUMBER },
+          3: { v: 40, t: CellValueType.NUMBER },
+        },
+        1: {
+          0: { v: 15, t: CellValueType.NUMBER },
+          1: { v: 25, t: CellValueType.NUMBER },
+          2: { v: 35, t: CellValueType.NUMBER },
+          3: { v: 45, t: CellValueType.NUMBER },
+        },
+        2: {
+          0: { v: 12, t: CellValueType.NUMBER },
+          1: { v: 22, t: CellValueType.NUMBER },
+          2: { v: 32, t: CellValueType.NUMBER },
+          3: { v: 42, t: CellValueType.NUMBER },
+        },
+        3: {
+          0: { v: 18, t: CellValueType.NUMBER },
+          1: { v: 28, t: CellValueType.NUMBER },
+          2: { v: 38, t: CellValueType.NUMBER },
+          3: { v: 48, t: CellValueType.NUMBER },
+        },
+      },
+    },
+  })
+
+  // Create a column chart with data source A1:D4.
+  const chartInfo = fWorksheet
+    .newChart(univerAPI.Enum.ChartTypeString.Column)
+    .setSource({ range: 'A1:D4', orientation: univerAPI.Enum.ChartSourceOrientation.Columns })
+    .setPosition('B2')
+    .setSize(500, 320)
+    .setTitle({
+      text: 'Node Chart Facade Column',
+      position: univerAPI.Enum.ChartTitlePositionEnum.Top,
+    })
+    .setLegend({
+      position: univerAPI.Enum.ChartLegendPositionEnum.Bottom,
+      selectMode: univerAPI.Enum.ChartSelectModeEnum.Multiple,
+    })
+    .setAppearance({
+      background: { color: '#FFFFFF' },
+      border: { color: '#D1D5DB' },
+    })
+    .setXAxisTitle('Quarter')
+    .setYAxisTitle('Value')
+    .setAxisPointer({
+      indicatorLineType: ChartBorderDashType.Dashed,
+      indicatorLineColor: '#1D4ED8',
+      indicatorLabelColor: '#DBEAFE',
+      indicatorLabelTextColor: '#1E3A8A',
+    })
+    .setAllSeriesStyle({
+      border: {
+        color: '#1D4ED8',
+        opacity: 0.7,
+        width: 1,
+        dashType: ChartBorderDashType.Solid,
+      },
+    })
+    .build()
+  const columnChart = await fWorksheet.insertChart(chartInfo)
+
+  const updatedColumnConfig = columnChart
+    .toBuilder(univerAPI.Enum.ChartTypeString.Column)
+    .setTitle('Node Chart Facade Updated Column')
+    .setLegend({ position: univerAPI.Enum.ChartLegendPositionEnum.Right })
+    .setSeries(0, { color: '#DC2626' })
+    .build()
+  await columnChart.update(updatedColumnConfig)
+  await columnChart.setDataSource({ range: 'A2:D4', orientation: univerAPI.Enum.ChartSourceOrientation.Rows })
+
+  const lineChartInfo = fWorksheet
+    .newChart(univerAPI.Enum.ChartTypeString.Line)
+    .setSource('A1:D4')
+    .setAbsolutePosition(560, 120)
+    .setSize(520, 320)
+    .setTitle('Node Chart Facade Line')
+    .setLegend({ position: univerAPI.Enum.ChartLegendPositionEnum.Top })
+    .setAllSeriesStyle({
+      point: {
+        shape: univerAPI.Enum.ChartLinePointShape.Circle,
+        color: '#16A34A',
+        size: 8,
+      },
+    })
+    .setXAxis({
+      title: 'Period',
+      titleStyle: { color: '#374151', fontSize: 12 },
+    })
+    .setYAxis({
+      title: 'Amount',
+      titleStyle: { color: '#374151', fontSize: 12 },
+    })
+    .build()
+  await fWorksheet.insertChart(lineChartInfo)
+
+  const pieChartInfo = fWorksheet
+    .newChart(univerAPI.Enum.ChartTypeString.Pie)
+    .setSource('A1:D2')
+    .setAbsolutePosition(560, 480)
+    .setSize(420, 300)
+    .setTitle('Node Chart Facade Pie')
+    .setLegend({ position: univerAPI.Enum.ChartLegendPositionEnum.Left })
+    .setDoughnutHole(0.45)
+    .setSliceBorderColor('#111827')
+    .setPaddingAngleEnabled(true)
+    .setRosePie(true)
+    .setLabelLineVisible(true)
+    .build()
+  const pieChart = await fWorksheet.insertChart(pieChartInfo)
+
+  await pieChart.remove()
+}
+
+async function TestSheetsShapeFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('Shape Sheet', {
+    sheet: {
+      rowCount: 20,
+      columnCount: 8,
+    },
+  })
+
+  // Create a rectangle and anchor it at cell B2.
+  const rectShape = fWorksheet.insertShape({
+    shapeType: univerAPI.Enum.ShapeTypeEnum.Rect,
+  }) as FSheetShape | null
+  if (!rectShape) throw new Error('Failed to insert rectangle Shape.')
+  rectShape
+    .setPosition(1, 1, 0, 0)
+    .setSize(220, 120)
+    .setSolidFill('#DBEAFE', 0.9)
+    .setStrokeLineType(univerAPI.Enum.ShapeLineTypeEnum.SolidLine)
+    .setStrokeColor('#1D4ED8')
+    .setStrokeWidth(2)
+    .setStrokeLineDashType(univerAPI.Enum.ShapeLineDashEnum.Solid)
+    .setStrokeLineJoinType(univerAPI.Enum.ShapeLineJoinEnum.Round)
+    .setStrokeLineCapType(univerAPI.Enum.ShapeLineCapEnum.Round)
+    .setStrokeOpacity(0.9)
+  rectShape
+    .getText()
+    .setText('Sheet Shape facade sample')
+    .setHorizontalAlign(univerAPI.Enum.HorizontalAlign.CENTER)
+    .setVerticalAlign(univerAPI.Enum.VerticalAlign.MIDDLE)
+
+  // Create an ellipse with gradient fill by absolute pixel position.
+  const ellipseShape = fWorksheet.insertShape({
+    shapeType: univerAPI.Enum.ShapeTypeEnum.Ellipse,
+  }) as FSheetShape | null
+  if (!ellipseShape) throw new Error('Failed to insert ellipse Shape.')
+  ellipseShape
+    .setAbsolutePosition(420, 120)
+    .setSize(180, 120)
+    .setGradientFill(
+      univerAPI.Enum.ShapeGradientTypeEnum.Linear,
+      [
+        { position: 0, color: '#DCFCE7' },
+        { position: 1, color: '#22C55E' },
+      ],
+      0,
+    )
+    .setStrokeColor('#15803D')
+    .setStrokeWidth(2)
+
+  // Create a connector shape between the rectangle and ellipse.
+  const connectorShape = fWorksheet.insertShape({
+    shapeType: univerAPI.Enum.ShapeTypeEnum.BentConnector3,
+  })
+  if (!connectorShape || !connectorShape.isConnectorShape()) throw new Error('Failed to insert Connector Shape.')
+  ;(connectorShape as FConnectorShape)
+    .setAbsolutePosition(250, 155)
+    .setSize(220, 80)
+    .setStrokeColor('#374151')
+    .setStrokeWidth(3)
+    .setStrokeLineDashType(univerAPI.Enum.ShapeLineDashEnum.Dash)
+    .setStartArrow(univerAPI.Enum.ShapeArrowTypeEnum.OvalArrow, univerAPI.Enum.ShapeArrowSizeEnum.Small)
+    .setEndArrow(univerAPI.Enum.ShapeArrowTypeEnum.Arrow, univerAPI.Enum.ShapeArrowSizeEnum.Large)
+
+  // Create a temporary shape to demonstrate the live facade remove API.
+  const tempShape = fWorksheet.insertShape({
+    shapeType: univerAPI.Enum.ShapeTypeEnum.Diamond,
+  })
+  if (!tempShape) throw new Error('Failed to insert temporary Shape.')
+  tempShape.setAbsolutePosition(120, 320).setSize(120, 120).setNoneFill().setStrokeColor('#DC2626').setStrokeWidth(2)
+
+  const shapes = fWorksheet.getShapes()
+  console.warn('Sheet Shape count:', shapes.length)
+  console.warn('Rectangle lookup:', fWorksheet.getShape(rectShape.getId())?.getId())
+
+  rectShape
+    .setAbsolutePosition(120, 140)
+    .setSize(260, 140)
+    .setSolidFill('#FEE2E2', 0.85)
+    .setStrokeColor('#B91C1C')
+    .setStrokeWidth(4)
+
+  const rectSites = rectShape.getConnectionSites()
+  const ellipseSites = ellipseShape.getConnectionSites()
+  ;(connectorShape as FConnectorShape)
+    .bindStart(rectShape.getId(), rectSites[0]?.index ?? 0)
+    .bindEnd(ellipseShape.getId(), ellipseSites[2]?.index ?? ellipseSites[0]?.index ?? 0)
+
+  tempShape.remove()
+}
+
+async function TestSheetsHyperlinkAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('Hyperlink Sheet', {
+    sheet: {
+      rowCount: 20,
+      columnCount: 8,
+    },
+  })
+
+  // Create a hyperlink to Univer on cell A1
+  const fRange = fWorksheet.getRange('A1')
+  await fRange.setHyperLink('https://univer.ai/', 'Univer')
+
+  // Create a hyperlink to active sheet range B2:D4 on cell A2
+  const fRange2 = fWorksheet.getRange('A2')
+  const rangeUrl = fWorksheet.getRange('B2:D4').getUrl()
+  await fRange2.setHyperLink(rangeUrl, 'Link to B2:D4')
+
+  // Create a hyperlink to another sheet range on cell A3
+  const sheets = fWorkbook.getSheets()
+  if (sheets.length > 2) {
+    const anotherSheetUrl = sheets[1].getUrl()
+    const fRange3 = fWorksheet.getRange('A3')
+    await fRange3.setHyperLink(anotherSheetUrl, `Link to ${sheets[1].getSheetName()}`)
+  }
+
+  // Create a hyperlink with defined name on cell A4
+  const fRange4 = fWorksheet.getRange('A4')
+  const definedNameHyperlinkUrl = fWorkbook.getUrlOfDefineName('MyDefinedName')
+  await fRange4.setHyperLink(definedNameHyperlinkUrl, 'Link to MyDefinedName')
+
+  // Update hyperlink in cell A1 to point to Google
+  await fRange.updateHyperLink('https://www.google.com/', 'Google')
+
+  // Cancel the hyperlink in cell A2
+  const hyperlinks = fRange2.getHyperLinks()
+  if (hyperlinks.length > 0) {
+    await fRange2.cancelHyperLink(hyperlinks[0])
+  }
+
+  // Cancel all hyperlinks in cell A1 after 2 seconds
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+
+  fRange.cancelHyperLink()
+}
+
+run().catch((error: unknown) => {
+  console.error(error)
+  process.exitCode = 1
+})
+```
+
+  </Tab>
+</Tabs>
+
+### 开启计算 worker
+
+`createUniverOnNode()` 默认使用 `useComputingWorker: false`，在当前进程执行公式计算。上面的 `main.ts` 显式传入 `useComputingWorker: true`，启用计算 worker：
+
+1. 主进程中的 `UniverProFormulaEnginePlugin`、`UniverSheetsPlugin`、`UniverSheetsFormulaPlugin` 和 `UniverSheetsPivotTablePlugin` 均设置 `notExecuteFormula: true`，配合 RPC 将计算交给子进程。
+2. `UniverRPCNodeMainPlugin` 根据 `workerSrc` 启动已构建的 `worker.js`。
+3. 子进程通过 `UniverRPCNodeWorkerPlugin` 和 `UniverRemoteSheetsFormulaPlugin` 接收数据并计算。
+
+`UniverSheetsPivotTablePlugin` 的配置区分三种模式：主进程启用 worker 时设置 `true`，worker 中设置 `false`，不启用 worker 时省略或设置为 `undefined`，在当前进程中同时注册透视表服务和计算逻辑。因此主进程使用 `useComputingWorker ? true : undefined`，不能直接传入 `useComputingWorker`。
+
+这里的 worker 由 Node.js `child_process.fork()` 启动。请使用项目现有的构建工具，将 `main.ts` 和 `worker.ts` 分别作为入口构建，并让 `workerSrc` 指向构建后的 worker 文件。示例假设 `worker.js` 与主入口产物位于同一目录；路径、扩展名及模块格式应与实际构建结果一致。示例使用 CommonJS 的 `__dirname` 定位文件，ESM 项目需改用相应的路径解析方式。
+
+### 运行说明
+
+`loadSheetAsync()` 加载服务端已有文档，无需再调用 `createWorkbook()`。协同服务通过 `customHeaders` 携带的 Cookie 等认证信息识别用户并检查权限，连接的 `memberID` 由服务端返回。
+
+本例未启用浏览器离线缓存和多标签页实例锁，无需为了缓存账号隔离调用 `setCurrentUser()`。如果后续使用评论等依赖本地当前用户的功能，可以再通过 `UserManagerService` 设置业务用户；这不会替代服务端认证。
+
+示例运行后保持协同连接，可在浏览器打开同一文档查看修改。`flush()` 等待已排队的协同修改得到服务端确认；如果改成一次性脚本，应在所有异步操作和同步完成后调用 `univer.dispose()` 释放实例。
