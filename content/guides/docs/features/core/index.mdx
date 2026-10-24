@@ -2,6 +2,8 @@
 title: Core Features
 ---
 
+import { HeadingCollapseDemo } from './components/heading-collapse-demo'
+
 <MetaData
   lang="en-US"
   meta={{
@@ -380,3 +382,53 @@ On desktop, the Ribbon **Paste** dropdown appears beside undo and redo and is hi
 ## Header and footer fields [#header-footer-fields]
 
 In traditional documents, editing a header or footer opens a contextual Ribbon for insertion, navigation, first-page and odd/even-page options, and positioning. It can insert current-page and total-page fields, or a localized date and time. Page fields display values for each rendered page. For date/time, enable automatic updating to store a field, or disable it to insert fixed text. Date/time fields refresh when the document opens or when you choose **Update fields**; they are not a continuously ticking clock. Modern documents do not use page headers or footers.
+
+## Document outline [#document-outline]
+
+The left outline navigates between headings; it does not insert a table of contents into the document. With `toc` omitted, it is enabled for Modern documents and disabled for Traditional documents. Explicit `true` or `false` overrides either default. The panel collapses when space is insufficient or a table overlaps it, then reopens when space is available.
+
+Merge this option into your existing initialization; do not register the same plugin twice.
+
+<Tabs items={['Plugin Mode', 'Preset Mode']}>
+  <Tab>
+    ```ts
+    import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+
+    univer.registerPlugin(UniverDocsUIPlugin, { toc: true })
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import { UniverDocsCorePreset } from '@univerjs/preset-docs-core'
+    import { createUniver } from '@univerjs/presets'
+
+    const { univerAPI } = createUniver({
+      presets: [UniverDocsCorePreset({ container: 'app', toc: true })],
+    })
+    ```
+  </Tab>
+</Tabs>
+
+## Collapse heading sections [#heading-collapse]
+
+Modern documents (`documentStyle.documentFlavor: DocumentFlavor.MODERN`) show a triangle beside Heading 1–5 when the heading has section content. Collapsing keeps the heading visible and hides everything up to the next heading of the same or higher level, including nested headings, tables, and images. Each table cell and Modern column has its own heading hierarchy.
+
+This works independently of `toc`. Traditional documents and embedded text editors do not show collapse controls. Expanding a parent retains its nested headings’ collapse states.
+
+<HeadingCollapseDemo />
+
+`IParagraph.headingCollapsed` is saved in the Univer snapshot. Only `true` collapses a section. Content remains in the snapshot, and the state participates in undo/redo and collaboration; it is shared with other editors. A selection in hidden content moves to the visible heading. Office import/export preservation is not guaranteed.
+
+For programmatic changes, use the document ID and a stable `paragraphId` from its snapshot with the registered command. Set `collapsed: false` to expand.
+
+```ts
+import { SetHeadingCollapsedCommand } from '@univerjs/docs'
+
+const changed = await univerAPI.executeCommand(SetHeadingCollapsedCommand.id, {
+  unitId: documentId,
+  paragraphId: headingParagraphId,
+  collapsed: true,
+})
+```
+
+The command returns `false` for an unchanged state or invalid target, including a Traditional document, a heading hidden by an ancestor, an empty section when collapsing, or missing edit permission. See [the command contract](/reference/packages/plugins/univerjs/docs#heading-collapse).

@@ -38,10 +38,6 @@ const workbook = await univerAPI.getCollaboration().loadSheetAsync('your-documen
 if (!workbook) throw new Error('Document could not be loaded')
 ```
 
-<Callout type="warning">
-Текущая версия `UniverCollaborationClientUIPlugin` по-прежнему читает параметры `unit` и `type` при запуске и загружает этот документ. Это поведение устарело и будет удалено в одной из следующих версий. Отключите его, задав `enableUrlUnitLoader: false`, и загружайте документ явно, как показано выше; примеры настройки плагина и пресета см. в разделе [Загрузка документа](/guides/sheets/features/collaboration#document-loading).
-</Callout>
-
 Способы загрузки для продуктов описаны в [Sheets](/guides/sheets/features/collaboration), [Docs](/guides/docs/features/collaboration), [Slides](/guides/slides/features/collaboration), [Boards](/guides/boards/features/collaboration), [Bases](/guides/bases/features/collaboration) и [PDFs](/guides/pdfs/features/collaboration). Проверьте поддержку в продукте и целевом серверном выпуске.
 
 ## Проверка синхронизации, сохранения и прав
@@ -57,3 +53,83 @@ if (!workbook) throw new Error('Document could not be loaded')
 Для совместного редактирования импортированного файла создайте документ из преобразованных данных; см. [Интеграция обмена файлами](/server/import-export). Комментарии и история требуют собственных плагинов, сервисов и прав. Следуйте разделу [Модули расширений Office](/server/collaboration/extensions).
 
 Настройка панелей истории описана в [Sheets](/guides/sheets/features/edit-history), [Docs](/guides/docs/features/edit-history), [Slides](/guides/slides/features/edit-history), [Boards](/guides/boards/features/edit-history) и [Bases](/guides/bases/features/edit-history). Текущие возможности PDFs см. в [Истории PDFs](/guides/pdfs/features/edit-history).
+
+## Состояние синхронизации и повторные отправки [#sync-status]
+
+После импорта Facade событие `CollaborationStatusChanged` сообщает текущее состояние уже совместно редактируемых документов при регистрации, затем изменения без последовательных повторов состояния. `hasWritePending(unitId)` учитывает ожидающие отправки, подтверждения и офлайн-изменения. Без ID проверяется документ в фокусе. Наличие соединения не означает сохранение изменений.
+
+```ts
+import '@univerjs-pro/collaboration-client/facade'
+
+const collaboration = univerAPI.getCollaboration()
+const statusSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationStatusChanged, (event) => {
+  console.info(event.unitId, event.status, collaboration.hasWritePending(event.unitId))
+})
+const resendSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationChangesetResend, (event) => {
+  console.info(event.unitId, event.reason, event.attempt, event.unsyncedMutationCount, event.nextDelayMs)
+})
+```
+
+`CollaborationChangesetResend` вызывается при повторной отправке, не первой. Причины: `ack_timeout`, `should_retry`, `reconnect`. Поля `attempt`, `elapsedMs`, `unsyncedMutationCount`, `nextDelayMs` подходят для индикатора сохранения и повторов. При удалении редактора освобождайте подписки.
+
+Задержка объединения и тайм-аут подтверждения различаются. По умолчанию в миллисекундах: `sendChangesetTimeout: 2000`, `changesetAckTimeout: 20000`, `maxChangesetAckTimeout: 120000`. Запрос отправки использует тот же тайм-аут подтверждения. Неподтверждённые изменения отправляются повторно с экспоненциальным увеличением интервала до максимума. Равные два тайм-аута дают постоянный интервал.
+
+```ts
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import { BrowserCollaborationSocketService } from '@univerjs-pro/collaboration-client-ui'
+
+univer.registerPlugin(UniverCollaborationClientPlugin, {
+  socketService: BrowserCollaborationSocketService,
+  sendChangesetTimeout: 200,
+  changesetAckTimeout: 20_000,
+  maxChangesetAckTimeout: 120_000,
+})
+```
+
+Добавьте параметры в существующую регистрацию клиента, сохранив socket и endpoints. Пресеты совместной работы Sheets и Docs используют задержку объединения 200 мс и не предоставляют настройки тайм-аута подтверждения; для них используйте режим плагинов.
+
+## Обработка конфликтов приложением [#conflict-recovery]
+
+`CollaborationConflict` вызывается один раз при входе в конфликт после попытки очистить офлайн-кеш. Подпишитесь до загрузки документов. `reason`: `transform_failed`, `apply_failed`, `changeset_rejected`, `permission_rejected` или `remote_revert`; при наличии `message` и `revert` дают подробности.
+
+```ts
+import type { IEventParamConfig } from '@univerjs/core/facade'
+import '@univerjs-pro/collaboration-client/facade'
+
+const conflicts = new Map<string, IEventParamConfig['CollaborationConflict']>()
+const conflictSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationConflict, (event) => {
+  conflicts.set(event.unitId, event)
+})
+```
+
+Пример сохраняет событие для экрана восстановления. Map существует только в памяти: до перезагрузки сохраните или экспортируйте `localChanges`. Удержать данные нужно в этом событии: очищенный кеш затем не восстановить. `awaitingChangeset` мог уже примениться на сервере, поэтому не воспроизводите его без проверки.
+
+При `cacheCleared: false` перезагрузка повторно применит старый кеш. Сначала решите проблему очистки. Очистка не означает сохранение несинхронизированных изменений. При `permission_rejected` также нужно восстановить доступ: перезагрузка не выдаёт права.
+
+По умолчанию UI показывает уведомление с причиной и предлагает перезагрузку после успешной очистки либо повтор при ошибке очистки. Чтобы управлять восстановлением самостоятельно, задайте `enableDefaultConflictUI: false` в существующей инициализации и обработайте событие:
+
+<Tabs items={['Режим плагинов', 'Пресет Sheets', 'Пресет Docs']}>
+  <Tab>
+    ```ts
+    import { UniverCollaborationClientUIPlugin } from '@univerjs-pro/collaboration-client-ui'
+
+    univer.registerPlugin(UniverCollaborationClientUIPlugin, { enableDefaultConflictUI: false })
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import { UniverSheetsCollaborationPreset } from '@univerjs/preset-sheets-collaboration'
+
+    const collaborationPreset = UniverSheetsCollaborationPreset({ enableDefaultConflictUI: false })
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import { UniverDocsCollaborationPreset } from '@univerjs/preset-docs-collaboration'
+
+    const collaborationPreset = UniverDocsCollaborationPreset({ enableDefaultConflictUI: false })
+    ```
+  </Tab>
+</Tabs>
+
+Добавьте пресет совместной работы к пресету редактора в существующем `createUniver({ presets: [...] })`, сохранив endpoints и историю. См. [параметры событий](/reference/facade/events#collaborationconflict) и [конфигурацию клиента](/reference/packages/plugins/univerjs-pro/collaboration-client).

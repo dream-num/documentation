@@ -38,10 +38,6 @@ const workbook = await univerAPI.getCollaboration().loadSheetAsync('your-documen
 if (!workbook) throw new Error('Document could not be loaded')
 ```
 
-<Callout type="warning">
-현재 버전의 `UniverCollaborationClientUIPlugin`은 시작 시 URL의 `unit`과 `type` 쿼리를 읽어 문서를 자동으로 로드합니다. 이 동작은 더 이상 사용되지 않으며 이후 버전에서 제거됩니다. 초기화 시 `enableUrlUnitLoader: false`를 설정해 끄고 위 방식으로 명시적으로 로드하세요. 플러그인과 프리셋 설정 예제는 [문서 로드](/guides/sheets/features/collaboration#document-loading)를 참고하세요.
-</Callout>
-
 제품별 로드는 [Sheets](/guides/sheets/features/collaboration), [Docs](/guides/docs/features/collaboration), [Slides](/guides/slides/features/collaboration), [Boards](/guides/boards/features/collaboration), [Bases](/guides/bases/features/collaboration), [PDFs](/guides/pdfs/features/collaboration) 가이드를 참고하세요. 제품과 대상 백엔드 릴리스의 지원 여부를 확인하세요.
 
 ## 동기화, 저장 및 권한 확인
@@ -57,3 +53,83 @@ if (!workbook) throw new Error('Document could not be loaded')
 가져온 파일을 공동 편집하려면 변환된 데이터로 공동 편집 문서를 생성하세요. [파일 교환 통합](/server/import-export)을 참고하세요. 댓글과 기록에는 각각 플러그인, 서비스, 권한이 필요합니다. [Office 확장 모듈](/server/collaboration/extensions)을 따르세요.
 
 기록 패널 설정은 [Sheets](/guides/sheets/features/edit-history), [Docs](/guides/docs/features/edit-history), [Slides](/guides/slides/features/edit-history), [Boards](/guides/boards/features/edit-history), [Bases](/guides/bases/features/edit-history)를 참고하세요. PDFs의 현재 범위는 [PDFs 기록](/guides/pdfs/features/edit-history)에서 확인하세요.
+
+## 동기화 상태와 재전송 [#sync-status]
+
+공동 편집 Facade를 가져온 뒤 구독하세요. `CollaborationStatusChanged`는 구독 시 이미 공동 편집 중인 문서의 현재 상태를 알리고 이후 동일 상태를 연속으로 중복 알리지 않습니다. `hasWritePending(unitId)`는 전송 대기, 확인 대기, 오프라인 변경을 포함합니다. ID를 생략하면 포커스된 문서를 확인합니다. 연결되었다고 저장이 완료된 것은 아닙니다.
+
+```ts
+import '@univerjs-pro/collaboration-client/facade'
+
+const collaboration = univerAPI.getCollaboration()
+const statusSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationStatusChanged, (event) => {
+  console.info(event.unitId, event.status, collaboration.hasWritePending(event.unitId))
+})
+const resendSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationChangesetResend, (event) => {
+  console.info(event.unitId, event.reason, event.attempt, event.unsyncedMutationCount, event.nextDelayMs)
+})
+```
+
+`CollaborationChangesetResend`는 첫 제출이 아닌 재전송 시 발생합니다. 이유는 `ack_timeout`, `should_retry`, `reconnect`입니다. `attempt`, `elapsedMs`, `unsyncedMutationCount`, `nextDelayMs`로 저장/재시도 상태를 표시할 수 있습니다. 편집기를 제거할 때 구독을 해제하세요.
+
+일괄 전송 지연과 확인 제한 시간은 다릅니다. 플러그인 기본값은 `sendChangesetTimeout: 2000`, `changesetAckTimeout: 20000`, `maxChangesetAckTimeout: 120000`(밀리초)입니다. 제출 요청에도 확인 제한 시간이 적용되며 미확인 변경은 최대값까지 지수 백오프로 재전송됩니다. 뒤의 두 값을 같게 하면 간격이 일정합니다.
+
+```ts
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import { BrowserCollaborationSocketService } from '@univerjs-pro/collaboration-client-ui'
+
+univer.registerPlugin(UniverCollaborationClientPlugin, {
+  socketService: BrowserCollaborationSocketService,
+  sendChangesetTimeout: 200,
+  changesetAckTimeout: 20_000,
+  maxChangesetAckTimeout: 120_000,
+})
+```
+
+기존 클라이언트 등록에 옵션을 추가하고 socket 및 엔드포인트를 유지하세요. Sheets와 Docs 공동 편집 프리셋은 일괄 전송 지연 200 ms를 사용하고 확인 제한 시간 옵션을 노출하지 않습니다. 시간을 변경하려면 플러그인 모드를 사용하세요.
+
+## 애플리케이션에서 충돌 처리 [#conflict-recovery]
+
+`CollaborationConflict`는 문서가 충돌 상태가 된 후 오프라인 캐시 정리를 시도한 다음 한 번 발생합니다. 문서 로드 전에 구독하세요. `reason`은 `transform_failed`, `apply_failed`, `changeset_rejected`, `permission_rejected`, `remote_revert`이며 가능한 경우 `message`와 `revert`가 세부 정보를 제공합니다.
+
+```ts
+import type { IEventParamConfig } from '@univerjs/core/facade'
+import '@univerjs-pro/collaboration-client/facade'
+
+const conflicts = new Map<string, IEventParamConfig['CollaborationConflict']>()
+const conflictSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationConflict, (event) => {
+  conflicts.set(event.unitId, event)
+})
+```
+
+예제는 복구 화면을 위해 이벤트를 보관합니다. Map은 메모리에만 존재합니다. 새로고침 전에 앱에서 `localChanges`를 저장하거나 내보내세요. 정리된 캐시는 나중에 복구할 수 없으므로 이벤트에서 보관해야 합니다. `awaitingChangeset`은 이미 서버에 적용되었을 수 있으므로 그대로 재실행하지 마세요.
+
+`cacheCleared: false`이면 새로고침 시 이전 캐시가 재실행되므로 먼저 정리 문제를 해결하세요. 캐시 정리는 미동기화 변경이 저장되었다는 뜻이 아닙니다. `permission_rejected`는 권한도 해결해야 하며 새로고침이 권한을 부여하지 않습니다.
+
+기본 UI는 이유별 알림을 표시하고 캐시 정리 성공 후 새로고침, 실패 시 재시도를 제공합니다. 앱이 복구 흐름을 관리하려면 기존 초기화에 `enableDefaultConflictUI: false`를 설정하고 이벤트를 처리하세요.
+
+<Tabs items={['플러그인 모드', 'Sheets 프리셋', 'Docs 프리셋']}>
+  <Tab>
+    ```ts
+    import { UniverCollaborationClientUIPlugin } from '@univerjs-pro/collaboration-client-ui'
+
+    univer.registerPlugin(UniverCollaborationClientUIPlugin, { enableDefaultConflictUI: false })
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import { UniverSheetsCollaborationPreset } from '@univerjs/preset-sheets-collaboration'
+
+    const collaborationPreset = UniverSheetsCollaborationPreset({ enableDefaultConflictUI: false })
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import { UniverDocsCollaborationPreset } from '@univerjs/preset-docs-collaboration'
+
+    const collaborationPreset = UniverDocsCollaborationPreset({ enableDefaultConflictUI: false })
+    ```
+  </Tab>
+</Tabs>
+
+공동 편집 프리셋을 기존 `createUniver({ presets: [...] })`에서 편집기 프리셋과 조합하고 엔드포인트 및 기록 설정을 유지하세요. [이벤트 매개변수](/reference/facade/events#collaborationconflict)와 [클라이언트 설정](/reference/packages/plugins/univerjs-pro/collaboration-client)을 참고하세요.

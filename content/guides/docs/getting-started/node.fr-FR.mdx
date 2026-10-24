@@ -24,9 +24,9 @@ import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import '@univerjs/docs/facade'
 
 const univer = new Univer({
-  locale: LocaleType.EN_US,
+  locale: LocaleType.FR_FR,
   locales: {
-    [LocaleType.EN_US]: {},
+    [LocaleType.FR_FR]: {},
   },
 })
 
@@ -37,3 +37,550 @@ univer.registerPlugin(UniverDocsPlugin)
 const univerAPI = FUniver.newAPI(univer)
 univerAPI.createDocument({})
 ```
+
+## Exemple de collaboration dans Node.js [#node-collaboration-example]
+
+Node.js peut servir de client de collaboration : charger un document existant depuis le serveur, modifier son contenu avec l’API Facade et synchroniser les changements avec les autres clients ayant ouvert le même document. Avant l’exécution, préparez un [service de collaboration](/server/collaboration/quick-start), une [licence client](/server/license) et un ID de document accessible.
+
+### Fichiers de l’exemple
+
+Organisez les fichiers comme suit :
+
+```text
+src/docs/node/
+├── main.ts
+└── univer.ts
+```
+
+- `univer.ts` : crée Univer et enregistre les plugins de fonctions documentaires, les extensions Facade et le client de collaboration Node.js.
+- `main.ts` : charge un document collaboratif et présente les API de paragraphes, de texte, d’en-têtes et pieds de page, d’encadrés, de blocs de code, de citations, de listes, de formes, de tableaux et de colonnes.
+
+Remplacez `your-license`, l’URL du serveur et le Cookie dans `univer.ts`, ainsi que l’ID du document dans `main.ts`.
+
+<Tabs items={['univer.ts', 'main.ts']}>
+  <Tab>
+
+```typescript title="univer.ts"
+import { UniverCollaborationPlugin } from '@univerjs-pro/collaboration'
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import {
+  NodeCollaborationSocketService,
+  UniverCollaborationClientNodePlugin,
+} from '@univerjs-pro/collaboration-client-node'
+import { UniverDocsCalloutPlugin } from '@univerjs-pro/docs-callout'
+import { UniverDocsCodePlugin } from '@univerjs-pro/docs-code'
+import { UniverDocsColumnPlugin } from '@univerjs-pro/docs-column'
+import { UniverDocsLatexPlugin } from '@univerjs-pro/docs-latex'
+import { UniverDocsListPlugin } from '@univerjs-pro/docs-list'
+import { UniverDocsQuotePlugin } from '@univerjs-pro/docs-quote'
+import { UniverDocsReferencePlugin } from '@univerjs-pro/docs-reference'
+import { UniverDocsShapePlugin } from '@univerjs-pro/docs-shape'
+import { UniverDocsTablePlugin } from '@univerjs-pro/docs-table'
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import {
+  IAuthzIoService,
+  IImageIoService,
+  IMentionIOService,
+  IUndoRedoService,
+  LocaleType,
+  Univer,
+} from '@univerjs/core'
+import { UniverDocsPlugin } from '@univerjs/docs'
+import { UniverDocsDrawingPlugin } from '@univerjs/docs-drawing'
+import { UniverDocsHyperLinkPlugin } from '@univerjs/docs-hyper-link'
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+import { UniverNetworkPlugin } from '@univerjs/network'
+import { UniverThreadCommentPlugin } from '@univerjs/thread-comment'
+import '@univerjs/docs/facade'
+import '@univerjs/docs-drawing/facade'
+import '@univerjs-pro/docs-shape/facade'
+import '@univerjs-pro/docs-callout/facade'
+import '@univerjs-pro/docs-reference/facade'
+import '@univerjs-pro/docs-code/facade'
+import '@univerjs-pro/docs-list/facade'
+import '@univerjs-pro/docs-quote/facade'
+import '@univerjs-pro/docs-table/facade'
+import '@univerjs-pro/docs-column/facade'
+import '@univerjs-pro/docs-latex/facade'
+import '@univerjs-pro/collaboration-client/facade'
+
+export function createUniverOnNode(): Univer {
+  const univer = new Univer({
+    locale: LocaleType.FR_FR,
+    locales: {},
+    override: [
+      [IAuthzIoService, null],
+      [IUndoRedoService, null],
+      [IMentionIOService, null],
+    ],
+  })
+
+  univer.registerPlugin(UniverLicensePlugin, {
+    license: 'your-license',
+  })
+
+  univer.registerPlugin(UniverRenderEnginePlugin)
+  univer.registerPlugin(UniverThreadCommentPlugin)
+  univer.registerPlugin(UniverDrawingPlugin, {
+    override: [[IImageIoService, null]],
+  })
+
+  univer.registerPlugin(UniverDocsPlugin)
+  univer.registerPlugin(UniverDocsDrawingPlugin)
+  univer.registerPlugin(UniverDocsHyperLinkPlugin)
+  univer.registerPlugin(UniverDocsReferencePlugin)
+  univer.registerPlugin(UniverDocsCalloutPlugin)
+  univer.registerPlugin(UniverDocsCodePlugin)
+  univer.registerPlugin(UniverDocsListPlugin)
+  univer.registerPlugin(UniverDocsQuotePlugin)
+  univer.registerPlugin(UniverDocsShapePlugin)
+  univer.registerPlugin(UniverDocsTablePlugin)
+  univer.registerPlugin(UniverDocsColumnPlugin)
+  univer.registerPlugin(UniverDocsLatexPlugin)
+
+  registerCollaborationPlugins(univer)
+
+  return univer
+}
+
+function registerCollaborationPlugins(univer: Univer): void {
+  const serverUrl = 'https://your-univer-server.example.com'
+
+  univer.registerPlugin(UniverNetworkPlugin)
+  univer.registerPlugin(UniverCollaborationPlugin)
+  univer.registerPlugin(UniverCollaborationClientPlugin, {
+    socketService: NodeCollaborationSocketService,
+    enableOfflineEditing: false,
+    enableSingleActiveInstanceLock: false,
+    snapshotServerUrl: `${serverUrl}/universer-api/snapshot`,
+    collabSubmitChangesetUrl: `${serverUrl}/universer-api/comb`,
+    collabWebSocketUrl: `${serverUrl}/universer-api/comb/connect`,
+    wsSessionTicketUrl: `${serverUrl}/universer-api/user/session-ticket`,
+    uploadFileServerUrl: `${serverUrl}/universer-api/stream/file/upload`,
+    signUrlServerUrl: `${serverUrl}/universer-api/file/{fileID}/sign-url`,
+    downloadEndpointUrl: serverUrl,
+    authzUrl: `${serverUrl}/universer-api/authz`,
+    sendChangesetTimeout: 200,
+    retryConnectingInterval: 1000,
+    customHeaders: {
+      // Exemple : si votre serveur Univer exige une authentification par Cookie, définissez l’en-tête 'cookie' ici.
+      cookie: 'your-cookie',
+      // ... autres en-têtes
+    },
+  })
+  univer.registerPlugin(UniverCollaborationClientNodePlugin)
+}
+```
+
+  </Tab>
+  <Tab>
+
+```typescript title="main.ts"
+import type { FConnectorShape } from '@univerjs-pro/engine-shape/facade'
+import { FUniver } from '@univerjs/core/facade'
+import process from 'node:process'
+import { createUniverOnNode } from './univer'
+
+async function run(): Promise<void> {
+  const univer = createUniverOnNode()
+  const univerAPI = FUniver.newAPI(univer)
+
+  const document = await univerAPI.getCollaboration().loadDocAsync('your-unit-id')
+  if (!document) {
+    throw new Error('Impossible de charger le document collaboratif. Vérifiez l’ID du document et les droits d’accès.')
+  }
+
+  testDocsFacadeAPI(univerAPI)
+  testDocsHeaderFooterFacadeAPI(univerAPI)
+  testDocsCalloutFacadeAPI(univerAPI)
+  testDocsCodeFacadeAPI(univerAPI)
+  testDocsQuoteFacadeAPI(univerAPI)
+  testDocsListFacadeAPI(univerAPI)
+  testDocsShapeFacadeAPI(univerAPI)
+  testDocsTableFacadeAPI(univerAPI)
+  testDocsColumnFacadeAPI(univerAPI)
+
+  await univerAPI.getCollaboration().flush(document.getId())
+  console.warn('Les modifications du document ont été synchronisées avec le serveur.')
+}
+
+function testDocsShapeFacadeAPI(univerAPI: FUniver) {
+  const fDocument = univerAPI.getActiveDocument()
+  if (!fDocument) return
+  const paragraph = fDocument.getParagraphs()[0]
+  if (!paragraph) return
+  const anchor = {
+    paragraphId: paragraph.getId(),
+    segmentId: paragraph.getSegmentId(),
+  }
+
+  const shape = fDocument.insertShape({
+    shapeType: univerAPI.Enum.ShapeTypeEnum.RoundRect,
+    placement: {
+      wrappingStyle: univerAPI.Enum.TextWrappingStyle.WRAP_SQUARE,
+      anchor,
+      position: { horizontalOffset: 80, verticalOffset: 80 },
+    },
+    transform: { width: 320, height: 160 },
+    shapeData: {
+      fill: {
+        fillType: univerAPI.Enum.ShapeFillEnum.SolidFill,
+        color: '#DBEAFE',
+      },
+      stroke: {
+        lineStrokeType: univerAPI.Enum.ShapeLineTypeEnum.SolidLine,
+        color: '#2563EB',
+        width: 2,
+      },
+    },
+  })
+  if (!shape) return
+
+  shape
+    .setRotation(4)
+    .setStrokeOpacity(0.9)
+    .getText()
+    .setText('Exemple de forme de document avec l’API Facade')
+    .setHorizontalAlign(univerAPI.Enum.HorizontalAlign.CENTER)
+    .setVerticalAlign(univerAPI.Enum.VerticalAlign.MIDDLE)
+
+  const target = fDocument.insertShape({
+    shapeType: univerAPI.Enum.ShapeTypeEnum.Ellipse,
+    placement: {
+      wrappingStyle: univerAPI.Enum.TextWrappingStyle.WRAP_SQUARE,
+      anchor,
+      position: { horizontalOffset: 500, verticalOffset: 100 },
+    },
+    transform: { width: 160, height: 120 },
+    shapeData: {
+      fill: { fillType: univerAPI.Enum.ShapeFillEnum.SolidFill, color: '#DCFCE7' },
+      stroke: { lineStrokeType: univerAPI.Enum.ShapeLineTypeEnum.SolidLine, color: '#16A34A', width: 2 },
+    },
+  })
+  if (!target) return
+
+  const connector = fDocument.insertShape({
+    shapeType: univerAPI.Enum.ShapeTypeEnum.BentConnector3,
+    placement: {
+      wrappingStyle: univerAPI.Enum.TextWrappingStyle.WRAP_SQUARE,
+      anchor,
+      position: { horizontalOffset: 360, verticalOffset: 130 },
+    },
+    transform: { width: 180, height: 80 },
+  })
+  if (!connector || !connector.isConnectorShape()) return
+
+  const sourceSites = shape.getConnectionSites()
+  const targetSites = target.getConnectionSites()
+  ;(connector as FConnectorShape)
+    .setStrokeColor('#475569')
+    .setStrokeWidth(2)
+    .setEndArrow(univerAPI.Enum.ShapeArrowTypeEnum.Arrow, univerAPI.Enum.ShapeArrowSizeEnum.Medium)
+    .bindStart(shape.getId(), sourceSites[0]?.index ?? 0)
+    .bindEnd(target.getId(), targetSites[2]?.index ?? targetSites[0]?.index ?? 0)
+
+  console.warn('ID de la forme du document :', shape.getId())
+  console.warn('Nombre de formes du document :', fDocument.getShapes().length)
+}
+
+function testDocsFacadeAPI(univerAPI: FUniver): void {
+  const fDocument = univerAPI.getActiveDocument()
+  if (!fDocument) return
+
+  const intro = fDocument.appendParagraph(
+    `Bonjour depuis le client de collaboration Node.js. Heure actuelle : ${new Date().toString()}.`,
+  )
+  intro.appendText(' [insertion en ligne]')
+
+  const beforeIntro = fDocument.insertParagraph(
+    intro.getInfo().paragraphIndex,
+    'Texte inséré avant l’introduction à l’aide d’un objet paragraphe.',
+  )
+  const foundIntro = fDocument.findParagraphByText('client de collaboration Node.js')
+  const introMatches = fDocument.findParagraphs({ text: 'client de collaboration Node.js' })
+  const introRange = intro.getRange()
+  const bodyBeforeDelete = fDocument.getBody()
+  const deleteStartOffset = bodyBeforeDelete.dataStream.indexOf(' [insertion en ligne]')
+  if (deleteStartOffset >= 0) {
+    fDocument.deleteRange({
+      startOffset: deleteStartOffset,
+      endOffset: deleteStartOffset + ' [insertion en ligne]'.length,
+    })
+  }
+
+  intro.setStyle({
+    textStyle: {
+      fs: 12,
+    },
+  })
+
+  console.warn(`ID du document courant : ${fDocument.getId()}`)
+  console.warn(`Nom du document courant : ${fDocument.getName()}`)
+  console.warn(`Le document courant est-il moderne : ${fDocument.isModern()}`)
+  console.warn(`ID du paragraphe d’introduction : ${intro.getId()}`)
+  console.warn(`Indice enfant du paragraphe d’introduction après déplacement : ${intro.getInfo().paragraphIndex}`)
+  console.warn('Plage du paragraphe d’introduction :', introRange)
+  console.warn('ID du paragraphe d’introduction trouvé :', foundIntro?.getId())
+  console.warn('Nombre de paragraphes d’introduction correspondants :', introMatches.length)
+  console.warn('Nombre de paragraphes du corps :', fDocument.getParagraphs().length)
+  console.warn(`ID du paragraphe inséré : ${beforeIntro.getId()}`)
+  console.warn(`Longueur du corps de l’instantané du document : ${fDocument.save().body?.dataStream.length ?? 0}`)
+}
+
+function testDocsHeaderFooterFacadeAPI(univerAPI: FUniver): void {
+  const fDocument = univerAPI.getActiveDocument()
+  if (!fDocument) return
+
+  if (fDocument.isModern()) {
+    console.warn(
+      'Exemple d’en-tête et de pied de page ignoré : les documents modernes ne prennent pas en charge les en-têtes et pieds de page.',
+    )
+    return
+  }
+
+  const headerSegmentId = fDocument.ensurePageHeader()
+  const footerSegmentId = fDocument.ensurePageFooter()
+
+  const headerParagraph = fDocument.appendParagraph(
+    'Exemple d’en-tête Docs Node.js avec l’API Facade.',
+    headerSegmentId,
+  )
+  headerParagraph.appendText(` Document : ${fDocument.getName() || fDocument.getId()}`)
+  const footerParagraph = fDocument.appendParagraph(
+    'Exemple de pied de page Docs Node.js avec l’API Facade.',
+    footerSegmentId,
+  )
+
+  fDocument.insertText(0, 'En-tête de page :', headerSegmentId)
+  footerParagraph.setStyle({
+    textStyle: {
+      fs: 10,
+    },
+  })
+
+  console.warn('ID du segment d’en-tête du document :', headerSegmentId)
+  console.warn(
+    'Paragraphes de l’en-tête du document :',
+    fDocument.getParagraphs(headerSegmentId).map((paragraph) => paragraph.getText()),
+  )
+  console.warn('Longueur du corps de l’en-tête du document :', fDocument.getBody(headerSegmentId).dataStream.length)
+  console.warn('ID du segment de pied de page du document :', footerSegmentId)
+  console.warn(
+    'ID du paragraphe de pied de page du document :',
+    fDocument.findParagraphByText('pied de page Docs Node.js avec l’API Facade', footerSegmentId)?.getId(),
+  )
+}
+
+function testDocsCalloutFacadeAPI(univerAPI: FUniver): void {
+  const fDocument = univerAPI.getActiveDocument()
+  if (!fDocument) return
+
+  const paragraph = fDocument.appendParagraph('Exemple d’encadré Docs Node.js avec l’API Facade.')
+  const callout = fDocument.insertCallout(paragraph, {
+    blockId: createSampleId('callout'),
+    config: {
+      borderRadius: 8,
+      icon: '!',
+    },
+  })
+
+  if (!callout) return
+
+  callout.updateConfig({ borderRadius: 8 })
+
+  console.warn('ID de l’encadré inséré :', callout.getId())
+  console.warn('Informations sur l’encadré du document :', callout.describe())
+}
+
+function testDocsCodeFacadeAPI(univerAPI: FUniver): void {
+  const fDocument = univerAPI.getActiveDocument()
+  if (!fDocument) return
+
+  const paragraph = fDocument.appendParagraph(
+    'const message = "Bonjour depuis l’API Facade des blocs de code Docs Node.js";',
+  )
+  const code = fDocument.insertCode(paragraph, {
+    blockId: createSampleId('code'),
+    config: {
+      language: 'typescript',
+      showLineNumbers: true,
+      tabSize: 4,
+      wrap: true,
+    },
+  })
+
+  if (!code) return
+
+  code.updateConfig({
+    config: {
+      language: 'typescript',
+      showLineNumbers: true,
+    },
+  })
+
+  console.warn('ID du bloc de code inséré :', code.getId())
+  console.warn('Informations sur le bloc de code du document :', code.describe())
+}
+
+function testDocsQuoteFacadeAPI(univerAPI: FUniver): void {
+  const fDocument = univerAPI.getActiveDocument()
+  if (!fDocument) return
+
+  const paragraph = fDocument.appendParagraph('Exemple de bloc de citation Docs Node.js avec l’API Facade.')
+  const quote = fDocument.insertQuote(paragraph, {
+    blockId: createSampleId('quote'),
+  })
+
+  if (!quote) return
+
+  console.warn('ID du bloc de citation inséré :', quote.getId())
+  console.warn('Informations sur le bloc de citation du document :', quote.describe())
+}
+
+function testDocsListFacadeAPI(univerAPI: FUniver): void {
+  const fDocument = univerAPI.getActiveDocument()
+  if (!fDocument) return
+
+  const paragraph = fDocument.appendParagraph('Exemple de liste Docs Node.js avec l’API Facade.')
+  const success = fDocument.insertList(paragraph, {
+    listType: univerAPI.Enum.PresetListType.BULLET_LIST,
+  })
+
+  if (!success) return
+
+  const item = fDocument.findListItemByText('liste Docs Node.js avec l’API Facade')
+  if (!item) return
+
+  item.setGlyphSymbol('-', { mode: univerAPI.Enum.DocsListSelectionMode.Item })
+  item.setGlyphType(univerAPI.Enum.ListGlyphType.BULLET, { mode: univerAPI.Enum.DocsListSelectionMode.Item })
+
+  console.warn('Élément de liste du document :', item.describe())
+  console.warn('Éléments de liste du document :', fDocument.describeListItems())
+}
+
+function testDocsTableFacadeAPI(univerAPI: FUniver): void {
+  const fDocument = univerAPI.getActiveDocument()
+  if (!fDocument) return
+
+  const table = fDocument.insertTableFromData(
+    [
+      ['Fonctionnalité', 'État', 'Responsable'],
+      ['Facade API', 'Prêt', 'Client Docs Node.js'],
+      ['Collaboration', 'Chargé', 'Client Node.js'],
+    ],
+    {
+      headerRowCount: 1,
+      tableId: createSampleId('table'),
+    },
+  )
+
+  if (!table) return
+
+  table.setCellText(1, 1, 'Mis à jour')
+  table.getCell(1, 2)?.setBackgroundColor('#E8F1FF')
+  table.setColumnType(1, { type: univerAPI.Enum.DocsTableColumnType.Text })
+  table.setTableBorder({
+    color: '#3367D6',
+    preset: univerAPI.Enum.DocsTableBorderPreset.All,
+    width: 1,
+  })
+
+  console.warn('Informations sur le tableau du document :', table.describe())
+  console.warn('ID du tableau trouvé par texte :', fDocument.findTableByText('Facade API')?.getId())
+}
+
+function testDocsColumnFacadeAPI(univerAPI: FUniver): void {
+  const fDocument = univerAPI.getActiveDocument()
+  if (!fDocument) return
+
+  if (!fDocument.isModern()) {
+    console.warn('Exemple de colonnes ignoré : les groupes de colonnes nécessitent un document moderne.')
+    return
+  }
+
+  const groupId = createSampleId('column-group')
+  const group = fDocument.insertColumnGroup(3, {
+    columnGroupId: groupId,
+    columnIds: [createSampleId('column-left'), createSampleId('column-middle'), createSampleId('column-right')],
+    gap: 18,
+    widthRatios: [1.1, 1, 0.9],
+  })
+
+  if (!group) return
+
+  const [leftColumn, middleColumn, rightColumn] = group.getColumns()
+  const leftOffset = leftColumn?.getInsertOffset()
+  if (leftOffset != null) {
+    fDocument.insertText(leftOffset, 'Colonne de gauche de l’exemple Facade.')
+  }
+
+  const middleOffset = middleColumn?.getInsertOffset()
+  if (middleOffset != null) {
+    fDocument.insertText(middleOffset, 'Colonne centrale de l’exemple Facade.')
+  }
+
+  const rightOffset = rightColumn?.getInsertOffset()
+  if (rightOffset != null) {
+    fDocument.insertTableFromData(
+      [
+        ['Indicateur', 'Actuel', 'Étape suivante'],
+        ['Fonctionnalités couvertes', 'Colonnes', 'En-tête/Pied de page'],
+      ],
+      {
+        headerRowCount: 1,
+        offset: rightOffset,
+        tableId: createSampleId('column-table'),
+      },
+    )
+  }
+
+  group.setWidthRatios([1.2, 1, 0.8])
+
+  const insertedColumn = middleColumn
+    ? group.addColumn(
+        middleColumn.getId(),
+        univerAPI.Enum.DocsColumnPositionEnum.RIGHT,
+        createSampleId('column-inserted'),
+      )
+    : null
+  const insertedOffset = insertedColumn?.getInsertOffset()
+  if (insertedOffset != null) {
+    fDocument.insertText(insertedOffset, 'Colonne insérée via l’API Facade.')
+  }
+
+  const foundByText = fDocument.findColumnGroupByText('Colonne centrale')
+  const foundById = fDocument.findColumnGroups({ columnGroupId: group.getId() })
+  const firstColumn = group.getColumn(0)
+  const groupRange = group.getRange()
+  const rangeLookup = groupRange ? fDocument.getColumnGroupAt(groupRange.startOffset) : null
+
+  console.warn('Informations sur le groupe de colonnes du document :', group.describe())
+  console.warn('Nombre de groupes de colonnes trouvés par ID :', foundById.length)
+  console.warn('ID du groupe de colonnes trouvé par texte :', foundByText?.getId())
+  console.warn('ID du groupe de colonnes trouvé par plage :', rangeLookup?.getId())
+  console.warn('Texte de la première colonne du document :', firstColumn?.getText())
+}
+
+function createSampleId(name: string): string {
+  return `docs-node-${name}-${Date.now()}`
+}
+
+run().catch((error: unknown) => {
+  console.error(error)
+  process.exitCode = 1
+})
+```
+
+  </Tab>
+</Tabs>
+
+### Notes d’exécution
+
+`loadDocAsync()` charge un document existant sur le serveur ; il est inutile d’appeler `createDocument()`. Le service de collaboration identifie l’utilisateur et vérifie les permissions à partir des informations d’authentification, telles que le Cookie dans `customHeaders`. Le serveur renvoie le `memberID` de la connexion.
+
+Cet exemple désactive le cache hors ligne du navigateur et le verrou d’instance entre onglets. Il est donc inutile d’appeler `setCurrentUser()` pour isoler le cache entre comptes. Si vous utilisez ensuite des fonctions comme les commentaires, qui dépendent de l’utilisateur courant local, vous pouvez définir l’utilisateur de l’application avec `UserManagerService` ; cela ne remplace pas l’authentification du serveur.
+
+L’exemple d’en-tête et de pied de page s’applique uniquement aux documents paginés ; celui des colonnes s’applique uniquement aux documents modernes. L’exemple vérifie le mode du document avec `isModern()` et ignore les opérations non prises en charge.
+
+L’exemple insère du contenu dans un document existant ; utilisez de préférence un document de test. L’exemple maintient la connexion collaborative après son exécution. Ouvrez le même document dans un navigateur pour voir les modifications. `flush()` attend l’accusé de réception du serveur pour les modifications en attente. Pour un script exécuté une seule fois, appelez `univer.dispose()` une fois toutes les opérations asynchrones et la synchronisation terminées.

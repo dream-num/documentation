@@ -10,9 +10,7 @@ import {
 } from 'lucide-react'
 import Script from 'next/script'
 import { useState } from 'react'
-
 import { BlurFade } from '@/components/magicui/blur-fade'
-
 import type { Scene } from './hairline'
 import { SceneIllustration } from './scene-illustration'
 
@@ -36,13 +34,49 @@ interface IProps {
 export function Scenes(props: IProps) {
   const [ready, setReady] = useState(false)
   const items = [
-    { scene: 'sheets', icon: FileSpreadsheetIcon, title: props.sheetsTitle, desc: props.sheetsDesc },
-    { scene: 'docs', icon: FileTextIcon, title: props.docsTitle, desc: props.docsDesc },
-    { scene: 'slides', icon: PresentationIcon, title: props.slidesTitle, desc: props.slidesDesc },
-    { scene: 'bases', icon: DatabaseIcon, title: props.basesTitle, desc: props.basesDesc },
-    { scene: 'boards', icon: ShapesIcon, title: props.boardsTitle, desc: props.boardsDesc },
-    { scene: 'pdf', icon: FilePenLineIcon, title: props.pdfTitle, desc: props.pdfDesc },
-  ] satisfies { scene: Scene; icon: typeof FileTextIcon; title: string; desc: string }[]
+    {
+      scene: 'sheets',
+      icon: FileSpreadsheetIcon,
+      title: props.sheetsTitle,
+      desc: props.sheetsDesc,
+      color: '[--hairline-hi:#35BD4B]',
+    },
+    {
+      scene: 'docs',
+      icon: FileTextIcon,
+      title: props.docsTitle,
+      desc: props.docsDesc,
+      color: '[--hairline-hi:#4B7DFF]',
+    },
+    {
+      scene: 'slides',
+      icon: PresentationIcon,
+      title: props.slidesTitle,
+      desc: props.slidesDesc,
+      color: '[--hairline-hi:#FF6B4B]',
+    },
+    {
+      scene: 'bases',
+      icon: DatabaseIcon,
+      title: props.basesTitle,
+      desc: props.basesDesc,
+      color: '[--hairline-hi:#14B8A6]',
+    },
+    {
+      scene: 'boards',
+      icon: ShapesIcon,
+      title: props.boardsTitle,
+      desc: props.boardsDesc,
+      color: '[--hairline-hi:#8B5CF6]',
+    },
+    {
+      scene: 'pdf',
+      icon: FilePenLineIcon,
+      title: props.pdfTitle,
+      desc: props.pdfDesc,
+      color: '[--hairline-hi:#E5484D]',
+    },
+  ] satisfies { scene: Scene; icon: typeof FileTextIcon; title: string; desc: string; color: string }[]
 
   return (
     <BlurFade inView>
@@ -55,9 +89,11 @@ export function Scenes(props: IProps) {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {items.map((item, index) => (
             <BlurFade key={item.scene} inView delay={index * 0.05} className="h-full">
-              <article className="flex h-full flex-col rounded-2xl border border-neutral-200/80 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
+              <article
+                className={`flex h-full flex-col rounded-2xl border border-neutral-200/80 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900 ${item.color}`}
+              >
                 <h3 className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                  <item.icon className="size-4 text-neutral-500 dark:text-neutral-400" aria-hidden="true" />
+                  <item.icon className="size-4 text-(--hairline-hi)" aria-hidden="true" />
                   {item.title}
                 </h3>
                 <SceneIllustration scene={item.scene} label={item.title} ready={ready} />

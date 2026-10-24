@@ -29,74 +29,46 @@ The Facade entry exposes host-specific loaders for Sheets, Docs, Bases, Slides, 
 ## IUniverCollaborationClientConfig
 
 ```ts
+import type { IAttachmentUploadOptions, ICollaborationSocketService } from '@univerjs-pro/collaboration-client'
 import type { Ctor, DependencyOverride } from '@univerjs/core'
-import type { ICollaborationSocketService } from '../services/socket/collaboration-socket.service'
+import type { UnitObject } from '@univerjs/protocol'
 
 export interface IUniverCollaborationClientConfig {
-  /**
-   * Which socket should the plugin use to build connections to the collaborative engine.
-   * For normal cases, you should use `BrowserCollaborationSocketService` from the `collaboration-client-ui` plugin.
-   */
   socketService: Ctor<ICollaborationSocketService>
-
-  /**
-   * If the plugin should enable collaborative editing. Which means the client will exchange edits with
-   * the collaboration server. It this is set to false, the client will simply load data from the server.
-   *
-   * @default true
-   */
   enableCollaboration?: boolean
-
-  /**
-   * If offline editing is enabled.
-   * @default false
-   */
   enableOfflineEditing?: boolean
   enableSingleActiveInstanceLock?: boolean
   enableAuthServer?: boolean
-  /**
-   * Override internal modules with custom implementations.
-   */
   override?: DependencyOverride
-
   sendChangesetTimeout?: number
+  changesetAckTimeout?: number
+  maxChangesetAckTimeout?: number
   snapshotServerUrl?: string
   collabSubmitChangesetUrl?: string
   collabWebSocketUrl?: string
-  /**
-   * The URL of the endpoint for getting the websocket session ticket.
-   */
   wsSessionTicketUrl?: string
   loginUrlKey?: string
   retryConnectingInterval?: number
   authzUrl?: string
-
-  /**
-   * The URL of the endpoint for downloading files.
-   * @default 'location.origin'
-   */
+  objectPermissionTypes?: UnitObject[]
   downloadEndpointUrl?: string
   uploadFileServerUrl?: string
   signUrlServerUrl?: string
-
-  /**
-   * The URL of the endpoint for starting formula limit.
-   */
-  startFormulaLimitUrl?: string
-
-  /**
-   * The URL of the endpoint for getting formula limit status.
-   */
-  getFormulaLimitStatusUrl?: string
-
-  /**
-   * The URL of the endpoint for releasing formula limit.
-   */
-  releaseFormulaLimitUrl?: string
-
-  /**
-   * The socket connection custom headers.
-   */
+  attachment?: IAttachmentUploadOptions
   customHeaders?: Record<string, string>
 }
 ```
+
+`enableCollaboration` defaults to `true`; `enableOfflineEditing` defaults to `false`. `objectPermissionTypes` opts into stable-ID object permissions supported by your Authz server; the backend must authorize every binding change. `attachment` controls shared upload restrictions and an optional custom uploader.
+
+## Batching and acknowledgement timeouts
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `sendChangesetTimeout` | `2000` ms | Batch local edits before the first send; not a network timeout. |
+| `changesetAckTimeout` | `20000` ms | Wait for acknowledgement before resending; also bounds the submission request. |
+| `maxChangesetAckTimeout` | `120000` ms | Cap exponential backoff between resends. Set equal to `changesetAckTimeout` for a constant interval. |
+
+The Sheets and Docs collaboration presets use a 200 ms batching delay and do not expose acknowledgement timeout options. Configure the client plugin directly when you need to change those options.
+
+`FCollaboration.hasWritePending(unitId?)` includes queued, awaiting-acknowledgement, and offline edits. `CollaborationStatusChanged` reports existing units' current status when the listener is registered and suppresses consecutive identical statuses. `CollaborationChangesetResend` reports retries; `CollaborationConflict` carries the conflict reason and unacknowledged edits after the cache-cleanup attempt. See [synchronization and recovery](/server/collaboration/browser-integration#sync-status).

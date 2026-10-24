@@ -53,30 +53,263 @@ const collaboration = univerAPI.getCollaboration()
 const unit = await collaboration.loadSheetAsync('your-unit-id')
 ```
 
-<Callout type="warning">
-La versión actual de `UniverCollaborationClientUIPlugin` todavía lee los parámetros `unit` y `type` al iniciar y carga ese documento. Este comportamiento está obsoleto y se eliminará en una versión posterior. Configura `enableUrlUnitLoader: false` al inicializar para desactivarlo.
+Usa [estado, reenvíos y recuperación de conflictos](/server/collaboration/browser-integration#sync-status) para indicar el guardado y proteger cambios sin confirmar antes de recargar.
+
+## Eliminación de la carga integrada por URL de documentos colaborativos [#url-unit-loader-migration]
+
+<Callout type="warning" title="Nota">
+  A partir de la versión **1.2.0**, Univer ha eliminado la carga integrada por URL de documentos colaborativos. Ya no lee automáticamente los parámetros `unit`, `type` y `subunit` de la URL para cargar un documento colaborativo y activar una hoja.
 </Callout>
 
-Combine estas opciones con el registro de plugins o la llamada al preset de colaboración existente. En modo preestablecido, añada `collaborationPreset` a la lista de presets de su `createUniver()`, junto con los del editor.
+Si tu aplicación depende de este comportamiento, puedes recuperarlo mediante un plugin personalizado.
 
-<Tabs items={['Modo de complemento', 'Modo preestablecido']}>
+### Integrar el plugin personalizado
+
+Copia los cuatro archivos siguientes en tu proyecto con esta estructura de directorios:
+
+```text
+custom-url-load/
+├── plugin.ts
+├── controllers/
+│   └── data-loader.controller.ts
+└── services/
+    ├── url.service.ts
+    └── web-url.service.ts
+```
+
+Después de inicializar el editor y los plugins de colaboración, establece el usuario actual antes de registrar `CustomUrlLoadPlugin`. Esta integración funciona tanto en modo plugin como en modo preset:
+
+```ts
+import { UserManagerService } from '@univerjs/core'
+import { CustomUrlLoadPlugin } from './custom-url-load/plugin'
+
+univer.__getInjector().get(UserManagerService).setCurrentUser({ userID, name, avatar })
+
+univer.registerPlugin(CustomUrlLoadPlugin)
+```
+
+Una vez registrado, el plugin carga el documento, por lo que no necesitas llamar a `loadSheetAsync()` para el mismo documento. Si tu aplicación ya carga documentos mediante la Facade, puedes mantener el enfoque de la sección anterior y gestionar las URL según las necesidades de tu aplicación.
+
+### Código completo del plugin
+
+<Tabs items={['plugin.ts', 'controllers/data-loader.controller.ts', 'services/url.service.ts', 'services/web-url.service.ts']}>
   <Tab>
     ```ts
-    import { UniverCollaborationClientUIPlugin } from '@univerjs-pro/collaboration-client-ui'
+    import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+    import { DependentOn, Inject, Injector, Plugin } from '@univerjs/core'
+    import { CollaborationDataLoaderController } from './controllers/data-loader.controller'
+    import { IURLService } from './services/url.service'
+    import { WebURLService } from './services/web-url.service'
 
-    univer.registerPlugin(UniverCollaborationClientUIPlugin, {
-      enableUrlUnitLoader: false,
-    })
+    @DependentOn(UniverCollaborationClientPlugin)
+    export class CustomUrlLoadPlugin extends Plugin {
+      static override pluginName = 'CUSTOM_URL_LOAD_PLUGIN'
+
+      constructor(
+        _config: undefined,
+        @Inject(Injector) protected override readonly _injector: Injector
+      ) {
+        super()
+      }
+
+      override onStarting(): void {
+        this._injector.add([IURLService, { useClass: WebURLService }])
+        this._injector.add([CollaborationDataLoaderController])
+
+        this.disposeWithMe(this._injector.get(IURLService))
+        this.disposeWithMe(this._injector.get(CollaborationDataLoaderController))
+      }
+    }
     ```
   </Tab>
   <Tab>
     ```ts
-    import { UniverSheetsCollaborationPreset } from '@univerjs/preset-sheets-collaboration'
+    import type { ISetWorksheetActivateCommandParams } from '@univerjs/sheets'
+    import type { Subscription } from 'rxjs'
+    import { DataLoaderService } from '@univerjs-pro/collaboration-client'
+    import {
+      ICommandService,
+      ILogService,
+      Inject,
+      IUniverInstanceService,
+      RxDisposable,
+      toDisposable,
+      UniverInstanceType,
+      Workbook,
+    } from '@univerjs/core'
+    import { SetWorksheetActivateCommand } from '@univerjs/sheets'
+    import { takeUntil } from 'rxjs'
+    import { IURLService } from '../services/url.service'
 
-    const collaborationPreset = UniverSheetsCollaborationPreset({
-      universerEndpoint: 'https://your-backend.example.com',
-      enableUrlUnitLoader: false,
-    })
+    /**
+     * Carga un documento colaborativo desde los parámetros de la URL y sincroniza la navegación entre sus hojas.
+     */
+    export class CollaborationDataLoaderController extends RxDisposable {
+      private _unitId: string | undefined
+      private _unitType = UniverInstanceType.UNIVER_SHEET
+      private _workbook: Workbook | null = null
+      private _activeSheetSubscription: Subscription | null = null
+
+      constructor(
+        @IURLService private readonly _urlService: IURLService,
+        @ILogService private readonly _logService: ILogService,
+        @ICommandService private readonly _commandService: ICommandService,
+        @Inject(DataLoaderService) private readonly _dataLoaderService: DataLoaderService,
+        @IUniverInstanceService private readonly _instanceService: IUniverInstanceService
+      ) {
+        super()
+        this._init()
+      }
+
+      private _init(): void {
+        this._unitId = this._urlService.getParam('unit')
+        const type = this._urlService.getParam('type')
+        if (!this._unitId || !type) {
+          return
+        }
+
+        this._unitType = Number(type)
+        this.disposeWithMe(toDisposable(() => this._unbindWorkbook()))
+
+        // Restaurar una versión puede sustituir el Workbook conservando el ID del documento, por lo que hay que enlazarlo de nuevo.
+        this._dataLoaderService.unitLoaded$.pipe(takeUntil(this.dispose$)).subscribe((unit) => {
+          if (unit instanceof Workbook && unit.getUnitId() === this._unitId) {
+            this._bindWorkbook(unit).catch((error: unknown) => this._reportError(error))
+          }
+        })
+        this._instanceService.unitDisposed$.pipe(takeUntil(this.dispose$)).subscribe((unit) => {
+          if (unit === this._workbook) {
+            this._unbindWorkbook()
+          }
+        })
+        this._urlService.urlChange$.pipe(takeUntil(this.dispose$)).subscribe(() => {
+          if (this._workbook) {
+            this._activateWorksheetFromUrl(this._workbook).catch((error: unknown) => this._reportError(error))
+          }
+        })
+
+        this._dataLoaderService.loadUnit(this._unitId, this._unitType, this._urlService.getParam('subunit'))
+          .catch((error: unknown) => this._reportError(error))
+      }
+
+      private async _bindWorkbook(workbook: Workbook): Promise<void> {
+        this._unbindWorkbook()
+        this._workbook = workbook
+        // La reproducción de la instantánea actualiza el modelo directamente; activa la hoja una vez para notificar al renderizador.
+        await this._activateWorksheetFromUrl(workbook, true)
+        if (this._workbook !== workbook || this._disposed) {
+          return
+        }
+
+        this._activeSheetSubscription = workbook.activeSheet$.subscribe((worksheet) => {
+          if (worksheet) {
+            this._updateUrl(worksheet.getSheetId())
+          }
+        })
+      }
+
+      private _unbindWorkbook(): void {
+        this._activeSheetSubscription?.unsubscribe()
+        this._activeSheetSubscription = null
+        this._workbook = null
+      }
+
+      private _matchesDocument(): boolean {
+        return this._urlService.getParam('unit') === this._unitId
+          && Number(this._urlService.getParam('type')) === this._unitType
+      }
+
+      private async _activateWorksheetFromUrl(workbook: Workbook, forceActivate = false): Promise<void> {
+        if (this._disposed || this._workbook !== workbook || !this._matchesDocument()) {
+          return
+        }
+
+        const requestedSheetId = this._urlService.getParam('subunit')
+        const worksheet = (requestedSheetId ? workbook.getSheetBySheetId(requestedSheetId) : null)
+          ?? workbook.getSheetBySheetId(workbook.getUnhiddenWorksheets()[0])
+        if (!worksheet) {
+          return
+        }
+
+        const subUnitId = worksheet.getSheetId()
+        if (subUnitId !== requestedSheetId) {
+          this._updateUrl(subUnitId, true)
+        }
+        if (!forceActivate && workbook.getActiveSheet()?.getSheetId() === subUnitId) {
+          return
+        }
+
+        await this._commandService.executeCommand<ISetWorksheetActivateCommandParams>(SetWorksheetActivateCommand.id, {
+          unitId: workbook.getUnitId(),
+          subUnitId,
+        })
+      }
+
+      private _updateUrl(subUnitId: string, replace = false): void {
+        if (this._matchesDocument() && this._urlService.getParam('subunit') !== subUnitId) {
+          this._urlService.setParam('subunit', subUnitId, replace)
+        }
+      }
+
+      private _reportError(error: unknown): void {
+        this._logService.error('[CollaborationDataLoaderController]', error)
+      }
+    }
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import type { IDisposable } from '@univerjs/core'
+    import type { Observable } from 'rxjs'
+    import { createIdentifier } from '@univerjs/core'
+
+    export interface IURLService extends IDisposable {
+      getParam: (key: string) => string | undefined
+      setParam: (key: string, value: string, useReplace?: boolean) => void
+      removeParam: (key: string, useReplace?: boolean) => void
+      readonly urlChange$: Observable<void>
+    }
+
+    export const IURLService = createIdentifier<IURLService>('demo.custom-url-load.url-service')
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import type { IURLService } from './url.service'
+    import { RxDisposable } from '@univerjs/core'
+    import { fromEvent, map, shareReplay, takeUntil } from 'rxjs'
+
+    export class WebURLService extends RxDisposable implements IURLService {
+      readonly urlChange$ = fromEvent(window, 'popstate').pipe(
+        map(() => undefined),
+        takeUntil(this.dispose$),
+        shareReplay({ bufferSize: 1, refCount: true })
+      )
+
+      getParam(key: string): string | undefined {
+        return new URL(window.location.href).searchParams.get(key) ?? undefined
+      }
+
+      setParam(key: string, value: string, useReplace = false): void {
+        const url = new URL(window.location.href)
+        url.searchParams.set(key, value)
+        this._updateUrl(url, useReplace)
+      }
+
+      removeParam(key: string, useReplace = false): void {
+        const url = new URL(window.location.href)
+        url.searchParams.delete(key)
+        this._updateUrl(url, useReplace)
+      }
+
+      private _updateUrl(url: URL, useReplace: boolean): void {
+        if (useReplace) {
+          window.history.replaceState(window.history.state, '', url.toString())
+        } else {
+          window.history.pushState(window.history.state, '', url.toString())
+        }
+      }
+    }
     ```
   </Tab>
 </Tabs>

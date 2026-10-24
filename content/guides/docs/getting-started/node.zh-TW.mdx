@@ -37,3 +37,532 @@ univer.registerPlugin(UniverDocsPlugin)
 const univerAPI = FUniver.newAPI(univer)
 univerAPI.createDocument({})
 ```
+
+## 協同在 Node.js 環境下的使用範例 [#node-collaboration-example]
+
+Node.js 作為協同用戶端載入伺服器上既有的文件，透過 Facade API 修改內容，並將修改同步至開啟同一份文件的其他用戶端。執行前，請準備好[協同服務](/server/collaboration/quick-start)、[用戶端授權](/server/license)及可存取的文件 ID。
+
+### 範例檔案
+
+依下列結構組織檔案：
+
+```text
+src/docs/node/
+├── main.ts
+└── univer.ts
+```
+
+- `univer.ts`：建立 Univer，註冊文件功能外掛程式、Facade 擴充和 Node.js 協同用戶端。
+- `main.ts`：載入協同文件，依序示範段落、文字、頁首頁尾、提示區塊、程式碼區塊、引用區塊、清單、圖形、表格和分欄 API。
+
+替換 `univer.ts` 中的 `your-license`、服務位址和 Cookie，以及 `main.ts` 中的文件 ID。
+
+<Tabs items={['univer.ts', 'main.ts']}>
+  <Tab>
+
+```typescript title="univer.ts"
+import { UniverCollaborationPlugin } from '@univerjs-pro/collaboration'
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import {
+  NodeCollaborationSocketService,
+  UniverCollaborationClientNodePlugin,
+} from '@univerjs-pro/collaboration-client-node'
+import { UniverDocsCalloutPlugin } from '@univerjs-pro/docs-callout'
+import { UniverDocsCodePlugin } from '@univerjs-pro/docs-code'
+import { UniverDocsColumnPlugin } from '@univerjs-pro/docs-column'
+import { UniverDocsLatexPlugin } from '@univerjs-pro/docs-latex'
+import { UniverDocsListPlugin } from '@univerjs-pro/docs-list'
+import { UniverDocsQuotePlugin } from '@univerjs-pro/docs-quote'
+import { UniverDocsReferencePlugin } from '@univerjs-pro/docs-reference'
+import { UniverDocsShapePlugin } from '@univerjs-pro/docs-shape'
+import { UniverDocsTablePlugin } from '@univerjs-pro/docs-table'
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import {
+  IAuthzIoService,
+  IImageIoService,
+  IMentionIOService,
+  IUndoRedoService,
+  LocaleType,
+  Univer,
+} from '@univerjs/core'
+import { UniverDocsPlugin } from '@univerjs/docs'
+import { UniverDocsDrawingPlugin } from '@univerjs/docs-drawing'
+import { UniverDocsHyperLinkPlugin } from '@univerjs/docs-hyper-link'
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+import { UniverNetworkPlugin } from '@univerjs/network'
+import { UniverThreadCommentPlugin } from '@univerjs/thread-comment'
+import '@univerjs/docs/facade'
+import '@univerjs/docs-drawing/facade'
+import '@univerjs-pro/docs-shape/facade'
+import '@univerjs-pro/docs-callout/facade'
+import '@univerjs-pro/docs-reference/facade'
+import '@univerjs-pro/docs-code/facade'
+import '@univerjs-pro/docs-list/facade'
+import '@univerjs-pro/docs-quote/facade'
+import '@univerjs-pro/docs-table/facade'
+import '@univerjs-pro/docs-column/facade'
+import '@univerjs-pro/docs-latex/facade'
+import '@univerjs-pro/collaboration-client/facade'
+
+export function createUniverOnNode(): Univer {
+  const univer = new Univer({
+    locale: LocaleType.ZH_TW,
+    locales: {},
+    override: [
+      [IAuthzIoService, null],
+      [IUndoRedoService, null],
+      [IMentionIOService, null],
+    ],
+  })
+
+  univer.registerPlugin(UniverLicensePlugin, {
+    license: 'your-license',
+  })
+
+  univer.registerPlugin(UniverRenderEnginePlugin)
+  univer.registerPlugin(UniverThreadCommentPlugin)
+  univer.registerPlugin(UniverDrawingPlugin, {
+    override: [[IImageIoService, null]],
+  })
+
+  univer.registerPlugin(UniverDocsPlugin)
+  univer.registerPlugin(UniverDocsDrawingPlugin)
+  univer.registerPlugin(UniverDocsHyperLinkPlugin)
+  univer.registerPlugin(UniverDocsReferencePlugin)
+  univer.registerPlugin(UniverDocsCalloutPlugin)
+  univer.registerPlugin(UniverDocsCodePlugin)
+  univer.registerPlugin(UniverDocsListPlugin)
+  univer.registerPlugin(UniverDocsQuotePlugin)
+  univer.registerPlugin(UniverDocsShapePlugin)
+  univer.registerPlugin(UniverDocsTablePlugin)
+  univer.registerPlugin(UniverDocsColumnPlugin)
+  univer.registerPlugin(UniverDocsLatexPlugin)
+
+  registerCollaborationPlugins(univer)
+
+  return univer
+}
+
+function registerCollaborationPlugins(univer: Univer): void {
+  const serverUrl = 'https://your-univer-server.example.com'
+
+  univer.registerPlugin(UniverNetworkPlugin)
+  univer.registerPlugin(UniverCollaborationPlugin)
+  univer.registerPlugin(UniverCollaborationClientPlugin, {
+    socketService: NodeCollaborationSocketService,
+    enableOfflineEditing: false,
+    enableSingleActiveInstanceLock: false,
+    snapshotServerUrl: `${serverUrl}/universer-api/snapshot`,
+    collabSubmitChangesetUrl: `${serverUrl}/universer-api/comb`,
+    collabWebSocketUrl: `${serverUrl}/universer-api/comb/connect`,
+    wsSessionTicketUrl: `${serverUrl}/universer-api/user/session-ticket`,
+    uploadFileServerUrl: `${serverUrl}/universer-api/stream/file/upload`,
+    signUrlServerUrl: `${serverUrl}/universer-api/file/{fileID}/sign-url`,
+    downloadEndpointUrl: serverUrl,
+    authzUrl: `${serverUrl}/universer-api/authz`,
+    sendChangesetTimeout: 200,
+    retryConnectingInterval: 1000,
+    customHeaders: {
+      // 範例：若 Univer 伺服器需要透過 Cookie 驗證身分，可在此設定 'cookie' 標頭。
+      cookie: 'your-cookie',
+      // ……其他標頭
+    },
+  })
+  univer.registerPlugin(UniverCollaborationClientNodePlugin)
+}
+```
+
+  </Tab>
+  <Tab>
+
+```typescript title="main.ts"
+import type { FConnectorShape } from '@univerjs-pro/engine-shape/facade'
+import { FUniver } from '@univerjs/core/facade'
+import process from 'node:process'
+import { createUniverOnNode } from './univer'
+
+async function run(): Promise<void> {
+  const univer = createUniverOnNode()
+  const univerAPI = FUniver.newAPI(univer)
+
+  const document = await univerAPI.getCollaboration().loadDocAsync('your-unit-id')
+  if (!document) {
+    throw new Error('載入協同文件失敗，請檢查文件 ID 和存取權限。')
+  }
+
+  testDocsFacadeAPI(univerAPI)
+  testDocsHeaderFooterFacadeAPI(univerAPI)
+  testDocsCalloutFacadeAPI(univerAPI)
+  testDocsCodeFacadeAPI(univerAPI)
+  testDocsQuoteFacadeAPI(univerAPI)
+  testDocsListFacadeAPI(univerAPI)
+  testDocsShapeFacadeAPI(univerAPI)
+  testDocsTableFacadeAPI(univerAPI)
+  testDocsColumnFacadeAPI(univerAPI)
+
+  await univerAPI.getCollaboration().flush(document.getId())
+  console.warn('文件修改已同步至伺服器。')
+}
+
+function testDocsShapeFacadeAPI(univerAPI: FUniver) {
+  const fDocument = univerAPI.getActiveDocument()
+  if (!fDocument) return
+  const paragraph = fDocument.getParagraphs()[0]
+  if (!paragraph) return
+  const anchor = {
+    paragraphId: paragraph.getId(),
+    segmentId: paragraph.getSegmentId(),
+  }
+
+  const shape = fDocument.insertShape({
+    shapeType: univerAPI.Enum.ShapeTypeEnum.RoundRect,
+    placement: {
+      wrappingStyle: univerAPI.Enum.TextWrappingStyle.WRAP_SQUARE,
+      anchor,
+      position: { horizontalOffset: 80, verticalOffset: 80 },
+    },
+    transform: { width: 320, height: 160 },
+    shapeData: {
+      fill: {
+        fillType: univerAPI.Enum.ShapeFillEnum.SolidFill,
+        color: '#DBEAFE',
+      },
+      stroke: {
+        lineStrokeType: univerAPI.Enum.ShapeLineTypeEnum.SolidLine,
+        color: '#2563EB',
+        width: 2,
+      },
+    },
+  })
+  if (!shape) return
+
+  shape
+    .setRotation(4)
+    .setStrokeOpacity(0.9)
+    .getText()
+    .setText('文件圖形 Facade 範例')
+    .setHorizontalAlign(univerAPI.Enum.HorizontalAlign.CENTER)
+    .setVerticalAlign(univerAPI.Enum.VerticalAlign.MIDDLE)
+
+  const target = fDocument.insertShape({
+    shapeType: univerAPI.Enum.ShapeTypeEnum.Ellipse,
+    placement: {
+      wrappingStyle: univerAPI.Enum.TextWrappingStyle.WRAP_SQUARE,
+      anchor,
+      position: { horizontalOffset: 500, verticalOffset: 100 },
+    },
+    transform: { width: 160, height: 120 },
+    shapeData: {
+      fill: { fillType: univerAPI.Enum.ShapeFillEnum.SolidFill, color: '#DCFCE7' },
+      stroke: { lineStrokeType: univerAPI.Enum.ShapeLineTypeEnum.SolidLine, color: '#16A34A', width: 2 },
+    },
+  })
+  if (!target) return
+
+  const connector = fDocument.insertShape({
+    shapeType: univerAPI.Enum.ShapeTypeEnum.BentConnector3,
+    placement: {
+      wrappingStyle: univerAPI.Enum.TextWrappingStyle.WRAP_SQUARE,
+      anchor,
+      position: { horizontalOffset: 360, verticalOffset: 130 },
+    },
+    transform: { width: 180, height: 80 },
+  })
+  if (!connector || !connector.isConnectorShape()) return
+
+  const sourceSites = shape.getConnectionSites()
+  const targetSites = target.getConnectionSites()
+  ;(connector as FConnectorShape)
+    .setStrokeColor('#475569')
+    .setStrokeWidth(2)
+    .setEndArrow(univerAPI.Enum.ShapeArrowTypeEnum.Arrow, univerAPI.Enum.ShapeArrowSizeEnum.Medium)
+    .bindStart(shape.getId(), sourceSites[0]?.index ?? 0)
+    .bindEnd(target.getId(), targetSites[2]?.index ?? targetSites[0]?.index ?? 0)
+
+  console.warn('文件圖形 ID：', shape.getId())
+  console.warn('文件圖形數量：', fDocument.getShapes().length)
+}
+
+function testDocsFacadeAPI(univerAPI: FUniver): void {
+  const fDocument = univerAPI.getActiveDocument()
+  if (!fDocument) return
+
+  const intro = fDocument.appendParagraph(`來自 Node.js 協同用戶端的問候。目前時間：${new Date().toString()}。`)
+  intro.appendText(' [行內插入]')
+
+  const beforeIntro = fDocument.insertParagraph(intro.getInfo().paragraphIndex, '透過段落物件在介紹段落前插入內容。')
+  const foundIntro = fDocument.findParagraphByText('Node.js 協同用戶端')
+  const introMatches = fDocument.findParagraphs({ text: 'Node.js 協同用戶端' })
+  const introRange = intro.getRange()
+  const bodyBeforeDelete = fDocument.getBody()
+  const deleteStartOffset = bodyBeforeDelete.dataStream.indexOf(' [行內插入]')
+  if (deleteStartOffset >= 0) {
+    fDocument.deleteRange({
+      startOffset: deleteStartOffset,
+      endOffset: deleteStartOffset + ' [行內插入]'.length,
+    })
+  }
+
+  intro.setStyle({
+    textStyle: {
+      fs: 12,
+    },
+  })
+
+  console.warn(`目前文件 ID：${fDocument.getId()}`)
+  console.warn(`目前文件名稱：${fDocument.getName()}`)
+  console.warn(`目前文件是否為現代文件：${fDocument.isModern()}`)
+  console.warn(`介紹段落 ID：${intro.getId()}`)
+  console.warn(`介紹段落移動後的子節點索引：${intro.getInfo().paragraphIndex}`)
+  console.warn('介紹段落範圍：', introRange)
+  console.warn('找到的介紹段落 ID：', foundIntro?.getId())
+  console.warn('符合的介紹段落數量：', introMatches.length)
+  console.warn('本文段落數量：', fDocument.getParagraphs().length)
+  console.warn(`插入的段落 ID：${beforeIntro.getId()}`)
+  console.warn(`文件快照本文長度：${fDocument.save().body?.dataStream.length ?? 0}`)
+}
+
+function testDocsHeaderFooterFacadeAPI(univerAPI: FUniver): void {
+  const fDocument = univerAPI.getActiveDocument()
+  if (!fDocument) return
+
+  if (fDocument.isModern()) {
+    console.warn('略過頁首頁尾範例：現代文件不支援頁首頁尾。')
+    return
+  }
+
+  const headerSegmentId = fDocument.ensurePageHeader()
+  const footerSegmentId = fDocument.ensurePageFooter()
+
+  const headerParagraph = fDocument.appendParagraph('文件 Node.js 頁首 Facade 範例。', headerSegmentId)
+  headerParagraph.appendText(` 文件：${fDocument.getName() || fDocument.getId()}`)
+  const footerParagraph = fDocument.appendParagraph('文件 Node.js 頁尾 Facade 範例。', footerSegmentId)
+
+  fDocument.insertText(0, '頁首：', headerSegmentId)
+  footerParagraph.setStyle({
+    textStyle: {
+      fs: 10,
+    },
+  })
+
+  console.warn('文件頁首區段 ID：', headerSegmentId)
+  console.warn(
+    '文件頁首段落：',
+    fDocument.getParagraphs(headerSegmentId).map((paragraph) => paragraph.getText()),
+  )
+  console.warn('文件頁首本文長度：', fDocument.getBody(headerSegmentId).dataStream.length)
+  console.warn('文件頁尾區段 ID：', footerSegmentId)
+  console.warn('文件頁尾段落 ID：', fDocument.findParagraphByText('頁尾 Facade 範例', footerSegmentId)?.getId())
+}
+
+function testDocsCalloutFacadeAPI(univerAPI: FUniver): void {
+  const fDocument = univerAPI.getActiveDocument()
+  if (!fDocument) return
+
+  const paragraph = fDocument.appendParagraph('文件 Node.js 提示區塊 Facade 範例。')
+  const callout = fDocument.insertCallout(paragraph, {
+    blockId: createSampleId('callout'),
+    config: {
+      borderRadius: 8,
+      icon: '!',
+    },
+  })
+
+  if (!callout) return
+
+  callout.updateConfig({ borderRadius: 8 })
+
+  console.warn('插入的提示區塊 ID：', callout.getId())
+  console.warn('文件提示區塊資訊：', callout.describe())
+}
+
+function testDocsCodeFacadeAPI(univerAPI: FUniver): void {
+  const fDocument = univerAPI.getActiveDocument()
+  if (!fDocument) return
+
+  const paragraph = fDocument.appendParagraph('const message = "來自文件 Node.js 程式碼區塊 Facade 的問候";')
+  const code = fDocument.insertCode(paragraph, {
+    blockId: createSampleId('code'),
+    config: {
+      language: 'typescript',
+      showLineNumbers: true,
+      tabSize: 4,
+      wrap: true,
+    },
+  })
+
+  if (!code) return
+
+  code.updateConfig({
+    config: {
+      language: 'typescript',
+      showLineNumbers: true,
+    },
+  })
+
+  console.warn('插入的程式碼區塊 ID：', code.getId())
+  console.warn('文件程式碼區塊資訊：', code.describe())
+}
+
+function testDocsQuoteFacadeAPI(univerAPI: FUniver): void {
+  const fDocument = univerAPI.getActiveDocument()
+  if (!fDocument) return
+
+  const paragraph = fDocument.appendParagraph('文件 Node.js 引用區塊 Facade 範例。')
+  const quote = fDocument.insertQuote(paragraph, {
+    blockId: createSampleId('quote'),
+  })
+
+  if (!quote) return
+
+  console.warn('插入的引用區塊 ID：', quote.getId())
+  console.warn('文件引用區塊資訊：', quote.describe())
+}
+
+function testDocsListFacadeAPI(univerAPI: FUniver): void {
+  const fDocument = univerAPI.getActiveDocument()
+  if (!fDocument) return
+
+  const paragraph = fDocument.appendParagraph('文件 Node.js 清單 Facade 範例。')
+  const success = fDocument.insertList(paragraph, {
+    listType: univerAPI.Enum.PresetListType.BULLET_LIST,
+  })
+
+  if (!success) return
+
+  const item = fDocument.findListItemByText('清單 Facade 範例')
+  if (!item) return
+
+  item.setGlyphSymbol('-', { mode: univerAPI.Enum.DocsListSelectionMode.Item })
+  item.setGlyphType(univerAPI.Enum.ListGlyphType.BULLET, { mode: univerAPI.Enum.DocsListSelectionMode.Item })
+
+  console.warn('文件清單項目：', item.describe())
+  console.warn('文件清單項目集合：', fDocument.describeListItems())
+}
+
+function testDocsTableFacadeAPI(univerAPI: FUniver): void {
+  const fDocument = univerAPI.getActiveDocument()
+  if (!fDocument) return
+
+  const table = fDocument.insertTableFromData(
+    [
+      ['功能', '狀態', '負責人'],
+      ['Facade API', '就緒', '文件 Node.js 用戶端'],
+      ['協同', '已載入', 'Node.js 用戶端'],
+    ],
+    {
+      headerRowCount: 1,
+      tableId: createSampleId('table'),
+    },
+  )
+
+  if (!table) return
+
+  table.setCellText(1, 1, '已更新')
+  table.getCell(1, 2)?.setBackgroundColor('#E8F1FF')
+  table.setColumnType(1, { type: univerAPI.Enum.DocsTableColumnType.Text })
+  table.setTableBorder({
+    color: '#3367D6',
+    preset: univerAPI.Enum.DocsTableBorderPreset.All,
+    width: 1,
+  })
+
+  console.warn('文件表格資訊：', table.describe())
+  console.warn('透過文字找到的表格 ID：', fDocument.findTableByText('Facade API')?.getId())
+}
+
+function testDocsColumnFacadeAPI(univerAPI: FUniver): void {
+  const fDocument = univerAPI.getActiveDocument()
+  if (!fDocument) return
+
+  if (!fDocument.isModern()) {
+    console.warn('略過分欄範例：分欄群組需要使用現代文件。')
+    return
+  }
+
+  const groupId = createSampleId('column-group')
+  const group = fDocument.insertColumnGroup(3, {
+    columnGroupId: groupId,
+    columnIds: [createSampleId('column-left'), createSampleId('column-middle'), createSampleId('column-right')],
+    gap: 18,
+    widthRatios: [1.1, 1, 0.9],
+  })
+
+  if (!group) return
+
+  const [leftColumn, middleColumn, rightColumn] = group.getColumns()
+  const leftOffset = leftColumn?.getInsertOffset()
+  if (leftOffset != null) {
+    fDocument.insertText(leftOffset, '分欄 Facade 左側欄。')
+  }
+
+  const middleOffset = middleColumn?.getInsertOffset()
+  if (middleOffset != null) {
+    fDocument.insertText(middleOffset, '分欄 Facade 中間欄。')
+  }
+
+  const rightOffset = rightColumn?.getInsertOffset()
+  if (rightOffset != null) {
+    fDocument.insertTableFromData(
+      [
+        ['指標', '目前', '下一步'],
+        ['涵蓋功能', '分欄', '頁首/頁尾'],
+      ],
+      {
+        headerRowCount: 1,
+        offset: rightOffset,
+        tableId: createSampleId('column-table'),
+      },
+    )
+  }
+
+  group.setWidthRatios([1.2, 1, 0.8])
+
+  const insertedColumn = middleColumn
+    ? group.addColumn(
+        middleColumn.getId(),
+        univerAPI.Enum.DocsColumnPositionEnum.RIGHT,
+        createSampleId('column-inserted'),
+      )
+    : null
+  const insertedOffset = insertedColumn?.getInsertOffset()
+  if (insertedOffset != null) {
+    fDocument.insertText(insertedOffset, '透過 Facade API 插入的欄。')
+  }
+
+  const foundByText = fDocument.findColumnGroupByText('中間欄')
+  const foundById = fDocument.findColumnGroups({ columnGroupId: group.getId() })
+  const firstColumn = group.getColumn(0)
+  const groupRange = group.getRange()
+  const rangeLookup = groupRange ? fDocument.getColumnGroupAt(groupRange.startOffset) : null
+
+  console.warn('文件分欄群組資訊：', group.describe())
+  console.warn('依 ID 找到的文件分欄群組數量：', foundById.length)
+  console.warn('依文字找到的文件分欄群組 ID：', foundByText?.getId())
+  console.warn('依範圍找到的文件分欄群組 ID：', rangeLookup?.getId())
+  console.warn('文件第一欄文字：', firstColumn?.getText())
+}
+
+function createSampleId(name: string): string {
+  return `docs-node-${name}-${Date.now()}`
+}
+
+run().catch((error: unknown) => {
+  console.error(error)
+  process.exitCode = 1
+})
+```
+
+  </Tab>
+</Tabs>
+
+### 執行說明
+
+`loadDocAsync()` 載入伺服器上既有的文件，無需再呼叫 `createDocument()`。協同服務透過 `customHeaders` 攜帶的 Cookie 等驗證資訊識別使用者並檢查權限，連線的 `memberID` 由伺服器回傳。
+
+本例未啟用瀏覽器離線快取和多分頁執行個體鎖，無需為了快取帳號隔離呼叫 `setCurrentUser()`。若後續使用評論等依賴本機目前使用者的功能，可以再透過 `UserManagerService` 設定業務使用者；這不會取代伺服器端驗證。
+
+頁首頁尾範例僅適用於分頁文件，分欄範例僅適用於現代文件。範例透過 `isModern()` 判斷文件模式，並略過不適用的操作。
+
+範例會向既有文件插入內容，建議使用測試文件執行。 範例執行後保持協同連線，可在瀏覽器開啟同一份文件查看修改。`flush()` 等待已排入佇列的協同修改獲得伺服器確認；若改為一次性指令碼，應在所有非同步操作和同步完成後呼叫 `univer.dispose()` 釋放執行個體。

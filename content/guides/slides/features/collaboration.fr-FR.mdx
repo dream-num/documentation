@@ -49,6 +49,163 @@ if (!document) throw new Error('Document could not be loaded')
 
 Réutilisez le même ID pour rouvrir ou partager le document. Ne créez pas un document local vierge à la place du chargement du document serveur.
 
+Utilisez [états, renvois et récupération des conflits](/server/collaboration/browser-integration#sync-status) pour afficher l’enregistrement et préserver les modifications non confirmées avant rechargement.
+
+## Suppression du chargement intégré par URL des documents collaboratifs [#url-unit-loader-migration]
+
+<Callout type="warning" title="À noter">
+  À partir de la version **1.2.0**, Univer a supprimé le chargement intégré par URL des documents collaboratifs. Les paramètres `unit` et `type` de l’URL ne sont plus lus automatiquement pour charger un document collaboratif.
+</Callout>
+
+Si votre application dépend de ce comportement, vous pouvez le rétablir avec un plugin personnalisé.
+
+### Intégrer le plugin personnalisé
+
+Copiez les quatre fichiers ci-dessous dans votre projet en respectant cette arborescence :
+
+```text
+custom-url-load/
+├── plugin.ts
+├── controllers/
+│   └── data-loader.controller.ts
+└── services/
+    ├── url.service.ts
+    └── web-url.service.ts
+```
+
+Après avoir initialisé l’éditeur et les plugins de collaboration, définissez l’utilisateur courant avant d’enregistrer `CustomUrlLoadPlugin`.
+
+```ts
+import { UserManagerService } from '@univerjs/core'
+import { CustomUrlLoadPlugin } from './custom-url-load/plugin'
+
+univer.__getInjector().get(UserManagerService).setCurrentUser({ userID, name, avatar })
+
+univer.registerPlugin(CustomUrlLoadPlugin)
+```
+
+Une fois enregistré, le plugin charge le document ; il n’est donc pas nécessaire d’appeler `loadSlideAsync()` pour le même document. Si votre application charge déjà les documents via la Facade, vous pouvez conserver l’approche de la section précédente et gérer les URL selon les besoins de votre application.
+
+### Code complet du plugin
+
+<Tabs items={['plugin.ts', 'controllers/data-loader.controller.ts', 'services/url.service.ts', 'services/web-url.service.ts']}>
+  <Tab>
+    ```ts
+    import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+    import { DependentOn, Inject, Injector, Plugin } from '@univerjs/core'
+    import { CollaborationDataLoaderController } from './controllers/data-loader.controller'
+    import { IURLService } from './services/url.service'
+    import { WebURLService } from './services/web-url.service'
+
+    @DependentOn(UniverCollaborationClientPlugin)
+    export class CustomUrlLoadPlugin extends Plugin {
+      static override pluginName = 'CUSTOM_URL_LOAD_PLUGIN'
+
+      constructor(
+        _config: undefined,
+        @Inject(Injector) protected override readonly _injector: Injector
+      ) {
+        super()
+      }
+
+      override onStarting(): void {
+        this._injector.add([IURLService, { useClass: WebURLService }])
+        this._injector.add([CollaborationDataLoaderController])
+
+        this.disposeWithMe(this._injector.get(IURLService))
+        this.disposeWithMe(this._injector.get(CollaborationDataLoaderController))
+      }
+    }
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import { DataLoaderService } from '@univerjs-pro/collaboration-client'
+    import { ILogService, Inject, RxDisposable } from '@univerjs/core'
+    import { IURLService } from '../services/url.service'
+
+    /**
+     * Charge un document collaboratif à partir des paramètres de l’URL.
+     */
+    export class CollaborationDataLoaderController extends RxDisposable {
+      constructor(
+        @IURLService private readonly _urlService: IURLService,
+        @ILogService private readonly _logService: ILogService,
+        @Inject(DataLoaderService) private readonly _dataLoaderService: DataLoaderService
+      ) {
+        super()
+
+        const unitId = this._urlService.getParam('unit')
+        const type = this._urlService.getParam('type')
+        if (!unitId || !type) {
+          return
+        }
+
+        this._dataLoaderService.loadUnit(unitId, Number(type))
+          .catch((error: unknown) => {
+            this._logService.error('[CollaborationDataLoaderController]', error)
+          })
+      }
+    }
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import type { IDisposable } from '@univerjs/core'
+    import type { Observable } from 'rxjs'
+    import { createIdentifier } from '@univerjs/core'
+
+    export interface IURLService extends IDisposable {
+      getParam: (key: string) => string | undefined
+      setParam: (key: string, value: string, useReplace?: boolean) => void
+      removeParam: (key: string, useReplace?: boolean) => void
+      readonly urlChange$: Observable<void>
+    }
+
+    export const IURLService = createIdentifier<IURLService>('demo.custom-url-load.url-service')
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import type { IURLService } from './url.service'
+    import { RxDisposable } from '@univerjs/core'
+    import { fromEvent, map, shareReplay, takeUntil } from 'rxjs'
+
+    export class WebURLService extends RxDisposable implements IURLService {
+      readonly urlChange$ = fromEvent(window, 'popstate').pipe(
+        map(() => undefined),
+        takeUntil(this.dispose$),
+        shareReplay({ bufferSize: 1, refCount: true })
+      )
+
+      getParam(key: string): string | undefined {
+        return new URL(window.location.href).searchParams.get(key) ?? undefined
+      }
+
+      setParam(key: string, value: string, useReplace = false): void {
+        const url = new URL(window.location.href)
+        url.searchParams.set(key, value)
+        this._updateUrl(url, useReplace)
+      }
+
+      removeParam(key: string, useReplace = false): void {
+        const url = new URL(window.location.href)
+        url.searchParams.delete(key)
+        this._updateUrl(url, useReplace)
+      }
+
+      private _updateUrl(url: URL, useReplace: boolean): void {
+        if (useReplace) {
+          window.history.replaceState(window.history.state, '', url.toString())
+        } else {
+          window.history.pushState(window.history.state, '', url.toString())
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
 ## Vérifier la synchronisation et les autorisations
 
 Ouvrez le même ID dans deux sessions de navigateur indépendantes. Modifiez du texte ou déplacez un élément dans une session et vérifiez l’autre. Assurez-vous que le contenu persiste après rechargement de la page, reconnexion et redémarrage du service. Utilisez un compte lecteur et un compte non autorisé pour vérifier que le serveur refuse les écritures et lectures interdites.

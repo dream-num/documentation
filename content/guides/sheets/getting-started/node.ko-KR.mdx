@@ -24,17 +24,17 @@ import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
 import { UniverSheetsPlugin } from '@univerjs/sheets'
 import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
 import { UniverSheetsNumfmtPlugin } from '@univerjs/sheets-numfmt'
-import SheetsEnUS from '@univerjs/sheets/locale/en-US'
+import SheetsKoKR from '@univerjs/sheets/locale/ko-KR'
 import '@univerjs/engine-formula/facade'
 import '@univerjs/sheets/facade'
 import '@univerjs/sheets-formula/facade'
 import '@univerjs/sheets-numfmt/facade'
 
 const univer = new Univer({
-  locale: LocaleType.EN_US,
+  locale: LocaleType.KO_KR,
   locales: {
-    [LocaleType.EN_US]: mergeLocales(
-      SheetsEnUS,
+    [LocaleType.KO_KR]: mergeLocales(
+      SheetsKoKR,
     ),
   },
 })
@@ -49,3 +49,1308 @@ univer.registerPlugin(UniverSheetsNumfmtPlugin)
 const univerAPI = FUniver.newAPI(univer)
 univerAPI.createWorkbook({})
 ```
+
+## Node.js 환경의 공동 편집 예제 [#node-collaboration-example]
+
+Node.js를 공동 편집 클라이언트로 사용하여 서버에 있는 기존 통합 문서를 불러오고 Facade API로 내용을 수정한 뒤, 같은 문서를 연 다른 클라이언트에 변경 사항을 동기화할 수 있습니다. 실행 전에 [공동 편집 서비스](/server/collaboration/quick-start), [클라이언트 라이선스](/server/license), 접근 가능한 문서 ID를 준비하세요.
+
+### 예제 파일
+
+파일을 다음 구조로 배치합니다.
+
+```text
+src/sheets/node/
+├── main.ts
+├── univer.ts
+└── worker.ts
+```
+
+- `univer.ts`: Univer를 만들고 전체 기능 플러그인, 공동 편집 클라이언트, 선택적인 RPC 메인 프로세스 플러그인을 등록합니다.
+- `worker.ts`: 계산 측 수식 엔진, 원격 수식, 필터, 피벗 테이블 플러그인을 등록하고 RPC로 메인 프로세스와 통신합니다.
+- `main.ts`: 공동 편집 문서를 불러오고 권한, 기본 시트 작업, 조건부 서식, 데이터 유효성 검사, 테이블, 피벗 테이블, 스파크라인, 이미지, 차트, 도형, 그룹화, 하이퍼링크 API를 차례로 보여 줍니다.
+
+두 파일의 `your-license`를 동일한 라이선스로 바꾸고 서버 주소, Cookie, 문서 ID와 사용자 ID도 실제 값으로 변경하세요. `main.ts`의 권한 예제에는 공동 작업자 및 보호 범위 설정도 포함되어 있으므로 실제 업무 사용자와 필요한 관리 권한을 가진 인증 정보를 사용해야 합니다.
+
+<Tabs items={['univer.ts', 'worker.ts', 'main.ts']}>
+  <Tab>
+
+```typescript title="univer.ts"
+import { UniverCollaborationPlugin } from '@univerjs-pro/collaboration'
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import {
+  NodeCollaborationSocketService,
+  UniverCollaborationClientNodePlugin,
+} from '@univerjs-pro/collaboration-client-node'
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import { UniverSheetsChartPlugin } from '@univerjs-pro/sheets-chart'
+import { UniverSheetsOutlinePlugin } from '@univerjs-pro/sheets-outline'
+import { UniverSheetsPivotTablePlugin } from '@univerjs-pro/sheets-pivot'
+import { UniverSheetsShapePlugin } from '@univerjs-pro/sheets-shape'
+import { UniverSheetSparklinePlugin } from '@univerjs-pro/sheets-sparkline'
+import { IAuthzIoService, IImageIoService, IUndoRedoService, LocaleType, Univer } from '@univerjs/core'
+import { UniverDataValidationPlugin } from '@univerjs/data-validation'
+import { UniverDocsPlugin } from '@univerjs/docs'
+import { UniverDocsDrawingPlugin } from '@univerjs/docs-drawing'
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+import { UniverRenderEnginePlugin } from '@univerjs/engine-render'
+import { UniverNetworkPlugin } from '@univerjs/network'
+import { UniverRPCNodeMainPlugin } from '@univerjs/rpc-node'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverSheetsConditionalFormattingPlugin } from '@univerjs/sheets-conditional-formatting'
+import { UniverSheetsDataValidationPlugin } from '@univerjs/sheets-data-validation'
+import { UniverSheetsDrawingPlugin } from '@univerjs/sheets-drawing'
+import { UniverSheetsFilterPlugin } from '@univerjs/sheets-filter'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+import { UniverSheetsHyperLinkPlugin } from '@univerjs/sheets-hyper-link'
+import { UniverSheetsNotePlugin } from '@univerjs/sheets-note'
+import { UniverSheetsNumfmtPlugin } from '@univerjs/sheets-numfmt'
+import { UniverSheetsSortPlugin } from '@univerjs/sheets-sort'
+import { UniverSheetsTablePlugin } from '@univerjs/sheets-table'
+import { UniverThreadCommentPlugin } from '@univerjs/thread-comment'
+import path from 'node:path'
+// 여기서 사용하는 Facade API는 packages/facade/src/apis/everything.ts에 포함됩니다
+// 일부 플러그인은 구현이 불완전하여 해당 API를 여기에 포함하지 않았습니다.
+import '@univerjs/engine-formula/facade'
+import '@univerjs/sheets/facade'
+import '@univerjs/sheets-formula/facade'
+import '@univerjs/sheets-numfmt/facade'
+import '@univerjs/sheets-conditional-formatting/facade'
+import '@univerjs/sheets-data-validation/facade'
+import '@univerjs/sheets-filter/facade'
+import '@univerjs/sheets-hyper-link/facade'
+import '@univerjs/sheets-note/facade'
+import '@univerjs/sheets-table/facade'
+import '@univerjs/sheets-drawing/facade'
+import '@univerjs/sheets-thread-comment/facade'
+import '@univerjs-pro/engine-shape/facade'
+import '@univerjs-pro/sheets-pivot/facade'
+import '@univerjs-pro/sheets-sparkline/facade'
+import '@univerjs-pro/sheets-chart/facade'
+import '@univerjs-pro/sheets-shape/facade'
+import '@univerjs-pro/sheets-outline/facade'
+import '@univerjs-pro/collaboration-client/facade'
+
+export interface ICreateUniverOnNodeOptions {
+  useComputingWorker?: boolean
+}
+
+export function createUniverOnNode(options: ICreateUniverOnNodeOptions = {}): Univer {
+  const { useComputingWorker = false } = options
+
+  const univer = new Univer({
+    locale: LocaleType.KO_KR,
+    locales: {},
+    override: [
+      [IAuthzIoService, null],
+      [IUndoRedoService, null],
+    ],
+  })
+
+  univer.registerPlugin(UniverLicensePlugin, {
+    license: 'your-license',
+  })
+
+  registerBasicPlugins(univer, useComputingWorker)
+  registerSharedPlugins(univer)
+
+  if (useComputingWorker) {
+    registerRPCPlugin(univer)
+  }
+
+  registerDocPlugins(univer)
+  registerSheetPlugins(univer, useComputingWorker)
+  registerCollaborationPlugins(univer)
+
+  return univer
+}
+
+function registerBasicPlugins(univer: Univer, useComputingWorker: boolean): void {
+  univer.registerPlugin(UniverProFormulaEnginePlugin, { notExecuteFormula: useComputingWorker })
+}
+
+function registerSharedPlugins(univer: Univer): void {
+  univer.registerPlugin(UniverRenderEnginePlugin)
+  univer.registerPlugin(UniverThreadCommentPlugin)
+  univer.registerPlugin(UniverDrawingPlugin, {
+    override: [[IImageIoService, null]],
+  })
+}
+
+function registerDocPlugins(univer: Univer): void {
+  univer.registerPlugin(UniverDocsPlugin)
+  univer.registerPlugin(UniverDocsDrawingPlugin)
+}
+
+function registerSheetPlugins(univer: Univer, useComputingWorker: boolean): void {
+  univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: useComputingWorker })
+  univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: useComputingWorker })
+  univer.registerPlugin(UniverSheetsNumfmtPlugin)
+  univer.registerPlugin(UniverSheetsConditionalFormattingPlugin)
+  univer.registerPlugin(UniverDataValidationPlugin)
+  univer.registerPlugin(UniverSheetsDataValidationPlugin)
+  univer.registerPlugin(UniverSheetsFilterPlugin)
+  univer.registerPlugin(UniverSheetsHyperLinkPlugin)
+  univer.registerPlugin(UniverSheetsNotePlugin)
+  univer.registerPlugin(UniverSheetsDrawingPlugin)
+  univer.registerPlugin(UniverSheetsSortPlugin)
+  univer.registerPlugin(UniverSheetsTablePlugin)
+  univer.registerPlugin(UniverSheetsChartPlugin)
+  univer.registerPlugin(UniverSheetsShapePlugin)
+  univer.registerPlugin(UniverSheetsPivotTablePlugin, {
+    notExecuteFormula: useComputingWorker ? true : undefined,
+  })
+  univer.registerPlugin(UniverSheetSparklinePlugin)
+  univer.registerPlugin(UniverSheetsOutlinePlugin)
+}
+
+function registerRPCPlugin(univer: Univer): void {
+  // 빌드 결과물의 실제 위치에 맞게 worker 경로를 설정합니다.
+  const childPath = path.join(__dirname, 'worker.js')
+  univer.registerPlugin(UniverRPCNodeMainPlugin, { workerSrc: childPath })
+}
+
+function registerCollaborationPlugins(univer: Univer): void {
+  const serverUrl = 'https://your-univer-server.example.com'
+  univer.registerPlugin(UniverNetworkPlugin)
+  univer.registerPlugin(UniverCollaborationPlugin)
+  univer.registerPlugin(UniverCollaborationClientPlugin, {
+    socketService: NodeCollaborationSocketService,
+    enableOfflineEditing: false,
+    enableSingleActiveInstanceLock: false,
+    snapshotServerUrl: `${serverUrl}/universer-api/snapshot`,
+    collabSubmitChangesetUrl: `${serverUrl}/universer-api/comb`,
+    collabWebSocketUrl: `${serverUrl}/universer-api/comb/connect`,
+    wsSessionTicketUrl: `${serverUrl}/universer-api/user/session-ticket`,
+    uploadFileServerUrl: `${serverUrl}/universer-api/stream/file/upload`,
+    signUrlServerUrl: `${serverUrl}/universer-api/file/{fileID}/sign-url`,
+    downloadEndpointUrl: `${serverUrl}`,
+    authzUrl: `${serverUrl}/universer-api/authz`,
+    sendChangesetTimeout: 200,
+    retryConnectingInterval: 1000,
+    customHeaders: {
+      // 예: Univer 서버에서 Cookie 인증이 필요한 경우 여기에 'cookie' 헤더를 설정할 수 있습니다.
+      cookie: 'your-cookie',
+      // ... 추가 헤더
+    },
+  })
+  univer.registerPlugin(UniverCollaborationClientNodePlugin)
+}
+```
+
+  </Tab>
+  <Tab>
+
+```typescript title="worker.ts"
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula'
+import { UniverLicensePlugin } from '@univerjs-pro/license'
+import { UniverSheetsPivotTablePlugin } from '@univerjs-pro/sheets-pivot'
+import { LocaleType, Univer } from '@univerjs/core'
+import { UniverRPCNodeWorkerPlugin } from '@univerjs/rpc-node'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverSheetsFilterPlugin } from '@univerjs/sheets-filter'
+import { UniverRemoteSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+
+const univer = new Univer({
+  locale: LocaleType.KO_KR,
+})
+
+univer.registerPlugin(UniverLicensePlugin, {
+  license: 'your-license',
+})
+
+univer.registerPlugin(UniverSheetsPlugin, { onlyRegisterFormulaRelatedMutations: true })
+univer.registerPlugin(UniverProFormulaEnginePlugin)
+univer.registerPlugin(UniverRPCNodeWorkerPlugin)
+univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
+univer.registerPlugin(UniverSheetsFilterPlugin)
+univer.registerPlugin(UniverSheetsPivotTablePlugin, {
+  notExecuteFormula: false,
+})
+```
+
+  </Tab>
+  <Tab>
+
+```typescript title="main.ts"
+import type { FConnectorShape } from '@univerjs-pro/engine-shape/facade'
+import type { FSheetShape } from '@univerjs-pro/sheets-shape/facade'
+import { ChartBorderDashType } from '@univerjs-pro/engine-chart'
+import { CellValueType } from '@univerjs/core'
+import { FUniver } from '@univerjs/core/facade'
+import { createUniverOnNode } from './univer'
+
+async function run(): Promise<void> {
+  const univer = createUniverOnNode({ useComputingWorker: true })
+  const univerAPI = FUniver.newAPI(univer)
+
+  const workbook = await univerAPI.getCollaboration().loadSheetAsync('your-unit-id')
+  if (!workbook) throw new Error('공동 편집 통합 문서를 불러오지 못했습니다')
+
+  await TestSheetsPermissionAPI(univerAPI)
+  TestSheetsFacadeAPI(univerAPI)
+  TestSheetsConditionalFormattingAPI(univerAPI)
+  await TestSheetsDataValidationFacadeAPI(univerAPI)
+  await TestSheetsTableFacadeAPI(univerAPI)
+  await TestSheetsPivotFacadeAPI(univerAPI)
+  TestSheetsSparklineFacadeAPI(univerAPI)
+  await TestSheetsDrawingAPI(univerAPI)
+  await TestSheetsChartFacadeAPI(univerAPI)
+  await TestSheetsShapeFacadeAPI(univerAPI)
+  await TestSheetsOutlineAPI(univerAPI)
+  await TestSheetsHyperlinkAPI(univerAPI)
+
+  await univerAPI.getCollaboration().flush(workbook.getId())
+  console.log('예제 변경 사항이 동기화되었습니다. 클라이언트는 연결을 유지합니다')
+}
+
+async function TestSheetsPermissionAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.getActiveSheet()
+
+  // 통합 문서에 공동 작업자를 추가합니다
+  const workbookPermission = fWorkbook.getWorkbookPermission()
+  await workbookPermission.setCollaborators([
+    {
+      user: { userID: 'systemUser1', name: '시스템 사용자 1', avatar: '' },
+      role: univerAPI.Enum.UnitRole.Owner,
+    },
+    {
+      user: { userID: 'your-user-id', name: 'Node.js 클라이언트', avatar: '' },
+      role: univerAPI.Enum.UnitRole.Editor,
+    },
+    {
+      user: { userID: 'editorUser1', name: '편집 사용자 1', avatar: '' },
+      role: univerAPI.Enum.UnitRole.Editor,
+    },
+    {
+      user: { userID: 'readerUser1', name: '읽기 사용자 1', avatar: '' },
+      role: univerAPI.Enum.UnitRole.Reader,
+    },
+  ])
+
+  const fRange = fWorksheet.getRange('A1:B2')
+  const rangePermission = fRange.getRangePermission()
+  const rule = await rangePermission.protect({
+    name: '테스트 보호 규칙',
+    allowedUsers: ['editorUser1'],
+    allowViewByOthers: true,
+  })
+}
+
+function TestSheetsFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  // 통합 문서 이름을 설정합니다
+  fWorkbook.setName('테스트 통합 문서 - Node 공동 편집 클라이언트')
+
+  const fWorksheet = fWorkbook.getActiveSheet()
+
+  // A1 셀의 값을 설정합니다
+  fWorksheet
+    .getRange('A1')
+    .setValue(`안녕하세요! Node 공동 편집 클라이언트의 메시지입니다. 현재 시각: ${new Date().toString()}.`)
+
+  // C2:E4 범위의 셀을 병합합니다
+  const fRange2 = fWorksheet.getRange('C2:E4')
+  if (fRange2.isPartOfMerge() || fRange2.isMerged()) {
+    fRange2.breakApart()
+  }
+  fRange2.merge().setValue(1234).setNumberFormat('#,##0.00')
+
+  // A1 셀의 정의된 이름을 만들고 A6에서 사용합니다
+  const definedNameBuilder = fWorkbook
+    .newDefinedNameBuilder()
+    .setRef(`${fWorksheet.getSheetName()}!$A$1`)
+    .setName('MyDefinedName')
+    .build()
+  fWorkbook.insertDefinedNameBuilder(definedNameBuilder)
+  fWorksheet.getRange('A6').setValue('=MyDefinedName')
+
+  // 새 시트를 삽입합니다
+  const newSheet = fWorkbook.insertSheet('Node 클라이언트의 새 시트', {
+    index: 1,
+    sheet: {
+      rowCount: 100,
+      columnCount: 20,
+      cellData: {
+        0: {
+          0: {
+            v: 1,
+          },
+        },
+        1: {
+          1: {
+            v: 2,
+          },
+        },
+        2: {
+          2: {
+            v: 3,
+          },
+        },
+        3: {
+          3: {
+            v: 4,
+          },
+        },
+      },
+    },
+  })
+
+  // 3행 뒤에 3개 행을 삽입합니다(인덱스는 0부터 시작).
+  newSheet.insertRowsAfter(2, 3)
+
+  const sheets = fWorkbook.getSheets()
+  if (sheets.length) {
+    // 첫 번째 시트의 이름을 바꾸고 행 수와 열 수를 설정합니다
+    sheets[0].setName('이름을 바꾼 시트 1').setRowCount(100).setColumnCount(10)
+    // 첫 번째 시트의 첫 행과 첫 열을 고정합니다
+    sheets[0].setFrozenRows(1).setFrozenColumns(1)
+    // 첫 번째 시트의 눈금선 색상을 빨간색으로 설정합니다
+    sheets[0].setGridLinesColor('#FF0000')
+    // 첫 번째 시트의 데이터 범위를 가져와 A1 표기를 출력합니다
+    const dataRange = sheets[0].getDataRange()
+    console.warn(`이름을 바꾼 시트 1의 데이터 범위 A1 표기: ${dataRange.getA1Notation()}`)
+    // 5초 후 데이터 범위의 내용을 지웁니다
+    setTimeout(() => {
+      dataRange.clearContent()
+    }, 5000)
+  }
+}
+
+function TestSheetsConditionalFormattingAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const newSheet = fWorkbook.insertSheet('조건부 서식 시트', {
+    sheet: {
+      cellData: {
+        0: {
+          0: { v: 1, t: CellValueType.NUMBER },
+          1: { v: 2, t: CellValueType.NUMBER },
+          2: { v: 3, t: CellValueType.NUMBER },
+          3: { v: 4, t: CellValueType.NUMBER },
+        },
+        1: {
+          0: { v: 2, t: CellValueType.NUMBER },
+          1: { v: 3, t: CellValueType.NUMBER },
+          2: { v: 4, t: CellValueType.NUMBER },
+          3: { v: 5, t: CellValueType.NUMBER },
+        },
+        2: {
+          0: { v: 3, t: CellValueType.NUMBER },
+          1: { v: 4, t: CellValueType.NUMBER },
+          2: { v: 5, t: CellValueType.NUMBER },
+          3: { v: 6, t: CellValueType.NUMBER },
+        },
+        3: {
+          0: { v: 4, t: CellValueType.NUMBER },
+          1: { v: 5, t: CellValueType.NUMBER },
+          2: { v: 6, t: CellValueType.NUMBER },
+          3: { v: 7, t: CellValueType.NUMBER },
+        },
+      },
+    },
+  })
+
+  const fRange = newSheet.getRange('A1:D4')
+  const rule = newSheet
+    .newConditionalFormattingRule()
+    .whenNumberGreaterThan(3)
+    .setRanges([fRange.getRange()])
+    .setItalic(true)
+    .setBackground('red')
+    .setFontColor('green')
+    .build()
+  newSheet.addConditionalFormattingRule(rule)
+}
+
+async function TestSheetsDataValidationFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('데이터 유효성 검사 시트', {
+    sheet: {
+      rowCount: 30,
+      columnCount: 10,
+      cellData: {
+        0: {
+          0: { v: '점수' },
+          1: { v: '상태' },
+          2: { v: '지역' },
+          3: { v: '승인됨' },
+          4: { v: '수식 조건' },
+          5: { v: '시작 날짜' },
+          6: { v: '복사한 점수' },
+          7: { v: '지역 원본' },
+        },
+        1: {
+          0: { v: 95, t: CellValueType.NUMBER },
+          1: { v: '대기' },
+          2: { v: '동부' },
+          3: { v: '예' },
+          4: { v: '통과' },
+          5: { v: '2026-01-02' },
+          6: { v: 60, t: CellValueType.NUMBER },
+          7: { v: '동부' },
+        },
+        2: {
+          0: { v: 42, t: CellValueType.NUMBER },
+          1: { v: '완료' },
+          2: { v: '서부' },
+          3: { v: '아니요' },
+          4: { v: '통과' },
+          5: { v: '2025-12-31' },
+          6: { v: 55, t: CellValueType.NUMBER },
+          7: { v: '북부' },
+        },
+        3: {
+          0: { v: 101, t: CellValueType.NUMBER },
+          1: { v: '알 수 없음' },
+          2: { v: '중부' },
+          3: { v: '미정' },
+          4: { v: '통과' },
+          5: { v: '2026-06-01' },
+          6: { v: 75, t: CellValueType.NUMBER },
+          7: { v: '남부' },
+        },
+        4: {
+          0: { v: 60, t: CellValueType.NUMBER },
+          1: { v: '차단됨' },
+          2: { v: '북부' },
+          3: { v: '예' },
+          4: { v: '통과' },
+          5: { v: '2024-01-01' },
+          6: { v: 90, t: CellValueType.NUMBER },
+        },
+        5: {
+          0: { v: 70, t: CellValueType.NUMBER },
+          1: { v: '대기' },
+          2: { v: '남부' },
+          3: { v: '아니요' },
+          4: { v: '통과' },
+          5: { v: '2026-03-01' },
+          6: { v: 45, t: CellValueType.NUMBER },
+        },
+      },
+    },
+  })
+
+  const scoreRange = fWorksheet.getRange('A2:A6')
+  scoreRange.setDataValidation(
+    univerAPI
+      .newDataValidation()
+      .requireNumberBetween(1, 100, true)
+      .setAllowInvalid(false)
+      .setAllowBlank(false)
+      .setOptions({
+        showErrorMessage: true,
+        errorTitle: '잘못된 점수',
+        error: '1부터 100까지의 정수 점수를 입력하세요.',
+        showInputMessage: true,
+        promptTitle: '점수',
+        prompt: '1부터 100까지의 정수를 사용하세요.',
+      })
+      .build(),
+  )
+
+  fWorksheet.getRange('B2:B6').setDataValidation(
+    univerAPI
+      .newDataValidation()
+      .requireValueInList(['대기', '차단됨', '완료'], false, true)
+      .setAllowBlank(false)
+      .setOptions({
+        showErrorMessage: true,
+        error: '대기, 차단됨 또는 완료를 선택하세요.',
+      })
+      .build(),
+  )
+
+  fWorksheet.getRange('C2:C6').setDataValidation(
+    univerAPI
+      .newDataValidation()
+      .requireValueInRange(fWorksheet.getRange('H2:H4'), false, true)
+      .setAllowBlank(true)
+      .setOptions({
+        showErrorMessage: true,
+        error: 'H2:H4에서 지역을 선택하세요.',
+      })
+      .build(),
+  )
+
+  fWorksheet.getRange('D2:D6').setDataValidation(univerAPI.newDataValidation().requireCheckbox('예', '아니요').build())
+
+  fWorksheet.getRange('E2:E6').setDataValidation(
+    univerAPI
+      .newDataValidation()
+      .requireFormulaSatisfied('=A2>=50')
+      .setOptions({
+        showErrorMessage: true,
+        error: 'A열의 점수는 50 이상이어야 합니다.',
+      })
+      .build(),
+  )
+
+  fWorksheet.getRange('F2:F6').setDataValidation(
+    univerAPI
+      .newDataValidation()
+      .requireDateOnOrAfter(new Date('2026-01-01'))
+      .setOptions({
+        showErrorMessage: true,
+        error: '날짜는 2026-01-01 이후여야 합니다.',
+      })
+      .build(),
+  )
+
+  const scoreRule = scoreRange.getDataValidation()
+
+  scoreRule?.setCriteria(
+    univerAPI.Enum.DataValidationType.DECIMAL,
+    [univerAPI.Enum.DataValidationOperator.BETWEEN, '50', '100'],
+    false,
+  )
+  scoreRule?.setOptions({ error: '50부터 100까지의 점수를 입력하세요.' })
+  scoreRule?.setRanges([fWorksheet.getRange('A2:A5')])
+
+  const copiedRule = scoreRule
+    ?.copy()
+    .requireNumberGreaterThanOrEqualTo(60, true)
+    .setOptions({ error: '60 이상을 입력하세요.' })
+    .build()
+  if (copiedRule) {
+    fWorksheet.getRange('G2:G6').setDataValidation(copiedRule)
+  }
+
+  // console.warn('A2:F6 데이터 유효성 검사 규칙:', fWorksheet.getRange('A2:F6').getDataValidations());
+  // console.warn('A2:A6 데이터 유효성 검사 상태:', await fWorksheet.getRange('A2:A6').getValidatorStatus());
+  // console.warn('시트 데이터 유효성 검사 상태:', await fWorksheet.getValidatorStatusAsync());
+  // console.warn('통합 문서 데이터 유효성 검사 상태:', await fWorkbook.getValidatorStatus());
+  // console.warn('범위 데이터 유효성 검사 오류:', await fWorksheet.getRange('A2:F6').getDataValidationErrorAsync());
+  // console.warn('시트 데이터 유효성 검사 오류:', await fWorksheet.getAllDataValidationErrorAsync());
+  // console.warn('통합 문서 데이터 유효성 검사 오류:', await fWorkbook.getAllDataValidationErrorAsync());
+
+  fWorksheet.getRange('D2:D6').setDataValidation(null)
+  fWorksheet.getRange('G2:G6').getDataValidation()?.delete()
+}
+
+async function TestSheetsTableFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('테이블 시트', {
+    sheet: {
+      rowCount: 30,
+      columnCount: 8,
+      cellData: {
+        0: {
+          0: { v: '지역' },
+          1: { v: '제품' },
+          2: { v: '매출' },
+          3: { v: '담당자' },
+        },
+        1: {
+          0: { v: '동부' },
+          1: { v: '노트북' },
+          2: { v: 1200, t: CellValueType.NUMBER },
+          3: { v: 'Alice' },
+        },
+        2: {
+          0: { v: '서부' },
+          1: { v: '키보드' },
+          2: { v: 850, t: CellValueType.NUMBER },
+          3: { v: 'Bob' },
+        },
+        3: {
+          0: { v: '동부' },
+          1: { v: '마우스' },
+          2: { v: 420, t: CellValueType.NUMBER },
+          3: { v: 'Alice' },
+        },
+        4: {
+          0: { v: '북부' },
+          1: { v: '모니터' },
+          2: { v: 1600, t: CellValueType.NUMBER },
+          3: { v: 'Carol' },
+        },
+        5: {
+          0: { v: '남부' },
+          1: { v: '도킹 스테이션' },
+          2: { v: 720, t: CellValueType.NUMBER },
+          3: { v: 'David' },
+        },
+        8: {
+          0: { v: '이름' },
+          1: { v: '점수' },
+          2: { v: '팀' },
+        },
+        9: {
+          0: { v: 'Ada' },
+          1: { v: 92, t: CellValueType.NUMBER },
+          2: { v: 'A' },
+        },
+        10: {
+          0: { v: 'Grace' },
+          1: { v: 88, t: CellValueType.NUMBER },
+          2: { v: 'B' },
+        },
+        11: {
+          0: { v: 'Linus' },
+          1: { v: 95, t: CellValueType.NUMBER },
+          2: { v: 'A' },
+        },
+      },
+    },
+  })
+
+  const salesTableId = 'node-sales-table'
+  const salesTableAdded = await fWorksheet.addTable(
+    'NodeSalesTable',
+    fWorksheet.getRange('A1:D6').getRange(),
+    salesTableId,
+    {
+      tableStyleId: 'table-default-4',
+      filters: [
+        {
+          filterType: univerAPI.Enum.TableColumnFilterTypeEnum.manual,
+          values: ['동부', '북부'],
+        },
+      ],
+    },
+  )
+
+  if (salesTableAdded) {
+    await fWorksheet.setTableFilter(salesTableId, 2, {
+      filterType: univerAPI.Enum.TableColumnFilterTypeEnum.condition,
+      filterInfo: {
+        conditionType: univerAPI.Enum.TableConditionTypeEnum.Number,
+        compareType: univerAPI.Enum.TableNumberCompareTypeEnum.GreaterThan,
+        expectedValue: 800,
+      },
+    })
+
+    await fWorksheet.resetFilter(salesTableId, 2)
+    await fWorksheet.setTableRange(salesTableId, fWorksheet.getRange('A1:D7').getRange())
+    await fWorksheet.setTableName(salesTableId, 'NodeSalesTableRenamed')
+
+    await fWorksheet.addTableTheme(salesTableId, {
+      name: 'node-table-style',
+      headerRowStyle: {
+        bg: {
+          rgb: '#145F82',
+        },
+        cl: {
+          rgb: '#FFFFFF',
+        },
+      },
+      firstRowStyle: {
+        bg: {
+          rgb: '#E0F2FE',
+        },
+      },
+      secondRowStyle: {
+        bg: {
+          rgb: '#FFFFFF',
+        },
+      },
+    })
+  }
+
+  const scoreTableId = await fWorkbook.addTable(
+    fWorksheet.getSheetId(),
+    'NodeScoreTable',
+    fWorksheet.getRange('A9:C12').getRange(),
+    'node-score-table',
+    {
+      tableStyleId: 'table-default-2',
+    },
+  )
+
+  if (scoreTableId) {
+    await fWorkbook.setTableFilter(scoreTableId, 1, {
+      filterType: univerAPI.Enum.TableColumnFilterTypeEnum.condition,
+      filterInfo: {
+        conditionType: univerAPI.Enum.TableConditionTypeEnum.Number,
+        compareType: univerAPI.Enum.TableNumberCompareTypeEnum.GreaterThanOrEqual,
+        expectedValue: 90,
+      },
+    })
+
+    await fWorkbook.removeTable(scoreTableId)
+  }
+}
+
+async function TestSheetsPivotFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('피벗 테이블 시트', {
+    sheet: {
+      rowCount: 40,
+      columnCount: 12,
+      cellData: {
+        0: {
+          0: { v: '지역' },
+          1: { v: '범주' },
+          2: { v: '제품' },
+          3: { v: '분기' },
+          4: { v: '판매액' },
+          5: { v: '수량' },
+        },
+        1: {
+          0: { v: '동부' },
+          1: { v: '하드웨어' },
+          2: { v: '키보드' },
+          3: { v: '1분기' },
+          4: { v: 1200, t: CellValueType.NUMBER },
+          5: { v: 12, t: CellValueType.NUMBER },
+        },
+        2: {
+          0: { v: '동부' },
+          1: { v: '하드웨어' },
+          2: { v: '모니터' },
+          3: { v: '2분기' },
+          4: { v: 1800, t: CellValueType.NUMBER },
+          5: { v: 9, t: CellValueType.NUMBER },
+        },
+        3: {
+          0: { v: '서부' },
+          1: { v: '소프트웨어' },
+          2: { v: '편집기' },
+          3: { v: '1분기' },
+          4: { v: 950, t: CellValueType.NUMBER },
+          5: { v: 19, t: CellValueType.NUMBER },
+        },
+        4: {
+          0: { v: '서부' },
+          1: { v: '하드웨어' },
+          2: { v: '도킹 스테이션' },
+          3: { v: '2분기' },
+          4: { v: 720, t: CellValueType.NUMBER },
+          5: { v: 8, t: CellValueType.NUMBER },
+        },
+        5: {
+          0: { v: '북부' },
+          1: { v: '소프트웨어' },
+          2: { v: '분석 도구' },
+          3: { v: '1분기' },
+          4: { v: 1600, t: CellValueType.NUMBER },
+          5: { v: 16, t: CellValueType.NUMBER },
+        },
+        6: {
+          0: { v: '남부' },
+          1: { v: '하드웨어' },
+          2: { v: '마우스' },
+          3: { v: '2분기' },
+          4: { v: 480, t: CellValueType.NUMBER },
+          5: { v: 24, t: CellValueType.NUMBER },
+        },
+      },
+    },
+  })
+
+  const unitId = fWorkbook.getId()
+  const subUnitId = fWorksheet.getSheetId()
+  const sourceInfo = {
+    unitId,
+    subUnitId,
+    sheetName: fWorksheet.getSheetName(),
+    range: fWorksheet.getRange('A1:F7').getRange(),
+  }
+  const anchorCellInfo = {
+    unitId,
+    subUnitId,
+    row: 0,
+    col: 7,
+  }
+
+  const fPivotTable = await fWorkbook.addPivotTable(
+    sourceInfo,
+    univerAPI.Enum.PositionTypeEnum.Existing,
+    anchorCellInfo,
+  )
+  if (!fPivotTable) return
+
+  await fPivotTable.addField(0, univerAPI.Enum.PivotTableFiledAreaEnum.Row, 0)
+  await fPivotTable.addField(3, univerAPI.Enum.PivotTableFiledAreaEnum.Column, 0)
+  await fPivotTable.addField(4, univerAPI.Enum.PivotTableFiledAreaEnum.Value, 0)
+  await fPivotTable.addField(5, univerAPI.Enum.PivotTableFiledAreaEnum.Value, 1)
+  await fPivotTable.setOptions({
+    repeatRowLabels: true,
+    showRowGrandTotal: true,
+    showColGrandTotal: true,
+  })
+
+  const rowFieldIds = fPivotTable.getFieldIdsByArea(univerAPI.Enum.PivotTableFiledAreaEnum.Row)
+  if (rowFieldIds[0]) {
+    await fPivotTable.setLabelSort(rowFieldIds[0], {
+      type: univerAPI.Enum.PivotDataFieldSortOperatorEnum.ascending,
+    })
+    await fPivotTable.setLabelManualFilter(rowFieldIds[0], ['동부', '북부', '서부'])
+  }
+
+  const valueFieldIds = fPivotTable.getFieldIdsByArea(univerAPI.Enum.PivotTableFiledAreaEnum.Value)
+  if (valueFieldIds[0]) {
+    await fPivotTable.setFieldSetting(valueFieldIds[0], {
+      displayName: '총 판매액',
+      format: '$#,##0',
+      subtotalType: univerAPI.Enum.PivotSubtotalTypeEnum.sum,
+    })
+  }
+
+  if (valueFieldIds[1]) {
+    await fPivotTable.setSubtotalType(valueFieldIds[1], univerAPI.Enum.PivotSubtotalTypeEnum.average)
+  }
+
+  if (rowFieldIds[0] && valueFieldIds[0]) {
+    await fPivotTable.setValueFilter(rowFieldIds[0], {
+      operator: univerAPI.Enum.PivotFilterOperatorEnum.valueGreaterThan,
+      expected: 700,
+      valueFieldId: valueFieldIds[0],
+    })
+  }
+
+  if (valueFieldIds.length > 1) {
+    await fPivotTable.updateValuePosition(univerAPI.Enum.PivotTableValuePositionEnum.Column, 0)
+  }
+
+  const pivotTableId = fPivotTable.getId()
+  const pivotTableById = fWorkbook.getPivotTableById(pivotTableId)
+  const pivotTableByCell = fWorksheet.getPivotTableByCell(anchorCellInfo.row, anchorCellInfo.col)
+  const sourceFieldsInfo = fPivotTable.getSourceFieldsInfo()
+  const pivotTableRangeInfo = fPivotTable.getPivotTableRangeInfo()
+  console.warn(
+    `피벗 테이블 생성: ${pivotTableId}, ID로 조회: ${Boolean(pivotTableById)}, 셀로 조회: ${Boolean(pivotTableByCell)}, 원본 필드 수: ${sourceFieldsInfo.length}, 범위 수: ${pivotTableRangeInfo?.length ?? 0}`,
+  )
+}
+
+function TestSheetsSparklineFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('스파크라인 시트', {
+    sheet: {
+      rowCount: 20,
+      columnCount: 8,
+      cellData: {
+        0: {
+          0: { v: 12, t: CellValueType.NUMBER },
+          1: { v: 18, t: CellValueType.NUMBER },
+          2: { v: 9, t: CellValueType.NUMBER },
+          3: { v: 24, t: CellValueType.NUMBER },
+          4: { v: 16, t: CellValueType.NUMBER },
+        },
+        1: {
+          0: { v: 8, t: CellValueType.NUMBER },
+          1: { v: 13, t: CellValueType.NUMBER },
+          2: { v: 21, t: CellValueType.NUMBER },
+          3: { v: 14, t: CellValueType.NUMBER },
+          4: { v: 28, t: CellValueType.NUMBER },
+        },
+        2: {
+          0: { v: 5, t: CellValueType.NUMBER },
+          1: { v: 9, t: CellValueType.NUMBER },
+          2: { v: 7, t: CellValueType.NUMBER },
+          3: { v: 15, t: CellValueType.NUMBER },
+          4: { v: 11, t: CellValueType.NUMBER },
+        },
+        3: {
+          0: { v: 20, t: CellValueType.NUMBER },
+          1: { v: 12, t: CellValueType.NUMBER },
+          2: { v: 30, t: CellValueType.NUMBER },
+          3: { v: 18, t: CellValueType.NUMBER },
+          4: { v: 25, t: CellValueType.NUMBER },
+        },
+      },
+    },
+  })
+
+  const firstSparkline = fWorksheet.addSparkline(
+    [fWorksheet.getRange('A1:E1').getRange()],
+    [fWorksheet.getRange('F1').getRange()],
+    univerAPI.Enum.SparklineTypeEnum.LINE_CHART,
+  )
+  const secondSparkline = fWorksheet.addSparkline(
+    [fWorksheet.getRange('A2:E2').getRange()],
+    [fWorksheet.getRange('F2').getRange()],
+    univerAPI.Enum.SparklineTypeEnum.LINE_CHART,
+  )
+
+  fWorksheet.composeSparkline([fWorksheet.getRange('F1:F2').getRange()])
+
+  const sparklineGroup = fWorksheet.getSparklineGroupByCell(0, 5)
+  sparklineGroup?.setConfig({
+    type: univerAPI.Enum.SparklineTypeEnum.BAR_CHART,
+  })
+  sparklineGroup?.changeDataSource(
+    [fWorksheet.getRange('A3:E3').getRange(), fWorksheet.getRange('A4:E4').getRange()],
+    [fWorksheet.getRange('G1').getRange(), fWorksheet.getRange('G2').getRange()],
+  )
+
+  fWorksheet.unComposeSparkline([fWorksheet.getRange('G1:G2').getRange()])
+
+  fWorksheet.getSparklineByCell(0, 6)?.removeSparkline()
+}
+
+async function TestSheetsOutlineAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('그룹화 시트', {
+    sheet: {
+      rowCount: 20,
+      columnCount: 8,
+    },
+  })
+
+  // 2~6행과 3~4행에 그룹을 추가합니다(인덱스는 0부터 시작).
+  fWorksheet.addRowOutline(1, 5).addRowOutline(2, 2)
+  // B~E열과 C~D열에 그룹을 추가합니다(인덱스는 0부터 시작).
+  fWorksheet.addColumnOutline(1, 2)
+
+  const rowOutlines = fWorksheet.getDimensionOutlines(univerAPI.Enum.DimensionOutlineAxis.ROW)
+  fWorksheet.setDimensionOutlineCollapsed(rowOutlines[0].id, true)
+
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+
+  fWorksheet.removeDimensionOutline(rowOutlines[1].id)
+  fWorksheet.clearDimensionOutlines(univerAPI.Enum.DimensionOutlineAxis.COLUMN, 1, 3)
+}
+
+async function TestSheetsDrawingAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('그리기 시트', {
+    sheet: {
+      rowCount: 20,
+      columnCount: 8,
+    },
+  })
+
+  const images = fWorksheet.getImages()
+  console.warn(`현재 시트의 이미지 수: ${images.length}.`)
+
+  const activeImages = fWorksheet.getActiveImages()
+  console.warn(`현재 시트에서 선택된 이미지 수: ${activeImages.length}.`)
+
+  const image = await fWorksheet
+    .newOverGridImage()
+    .setSource('https://avatars.githubusercontent.com/u/61444807?s=48&v=4', univerAPI.Enum.ImageSourceType.URL)
+    .setColumn(5)
+    .setRow(5)
+    .setWidth(500)
+    .setHeight(300)
+    .buildAsync()
+  fWorksheet.insertImages([image])
+
+  // 이미지 너비를 100px, 높이를 50px로 변경합니다
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+
+  const insertedImage = fWorksheet.getImageById(image.drawingId)!
+  const newImage = await insertedImage.toBuilder().setWidth(100).setHeight(50).buildAsync()
+  fWorksheet.updateImages([newImage])
+
+  // 2초 후 이미지를 삭제합니다
+  // await new Promise((resolve) => setTimeout(resolve, 2000));
+  // fWorksheet.deleteImages([insertedImage]);
+}
+
+async function TestSheetsChartFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('차트 시트', {
+    sheet: {
+      rowCount: 20,
+      columnCount: 8,
+      cellData: {
+        0: {
+          0: { v: 10, t: CellValueType.NUMBER },
+          1: { v: 20, t: CellValueType.NUMBER },
+          2: { v: 30, t: CellValueType.NUMBER },
+          3: { v: 40, t: CellValueType.NUMBER },
+        },
+        1: {
+          0: { v: 15, t: CellValueType.NUMBER },
+          1: { v: 25, t: CellValueType.NUMBER },
+          2: { v: 35, t: CellValueType.NUMBER },
+          3: { v: 45, t: CellValueType.NUMBER },
+        },
+        2: {
+          0: { v: 12, t: CellValueType.NUMBER },
+          1: { v: 22, t: CellValueType.NUMBER },
+          2: { v: 32, t: CellValueType.NUMBER },
+          3: { v: 42, t: CellValueType.NUMBER },
+        },
+        3: {
+          0: { v: 18, t: CellValueType.NUMBER },
+          1: { v: 28, t: CellValueType.NUMBER },
+          2: { v: 38, t: CellValueType.NUMBER },
+          3: { v: 48, t: CellValueType.NUMBER },
+        },
+      },
+    },
+  })
+
+  // A1:D4를 데이터 원본으로 세로 막대형 차트를 만듭니다.
+  const chartInfo = fWorksheet
+    .newChart(univerAPI.Enum.ChartTypeString.Column)
+    .setSource({ range: 'A1:D4', orientation: univerAPI.Enum.ChartSourceOrientation.Columns })
+    .setPosition('B2')
+    .setSize(500, 320)
+    .setTitle({
+      text: 'Node 차트 Facade 세로 막대형',
+      position: univerAPI.Enum.ChartTitlePositionEnum.Top,
+    })
+    .setLegend({
+      position: univerAPI.Enum.ChartLegendPositionEnum.Bottom,
+      selectMode: univerAPI.Enum.ChartSelectModeEnum.Multiple,
+    })
+    .setAppearance({
+      background: { color: '#FFFFFF' },
+      border: { color: '#D1D5DB' },
+    })
+    .setXAxisTitle('분기')
+    .setYAxisTitle('값')
+    .setAxisPointer({
+      indicatorLineType: ChartBorderDashType.Dashed,
+      indicatorLineColor: '#1D4ED8',
+      indicatorLabelColor: '#DBEAFE',
+      indicatorLabelTextColor: '#1E3A8A',
+    })
+    .setAllSeriesStyle({
+      border: {
+        color: '#1D4ED8',
+        opacity: 0.7,
+        width: 1,
+        dashType: ChartBorderDashType.Solid,
+      },
+    })
+    .build()
+  const columnChart = await fWorksheet.insertChart(chartInfo)
+
+  const updatedColumnConfig = columnChart
+    .toBuilder(univerAPI.Enum.ChartTypeString.Column)
+    .setTitle('Node 차트 Facade 업데이트된 세로 막대형')
+    .setLegend({ position: univerAPI.Enum.ChartLegendPositionEnum.Right })
+    .setSeries(0, { color: '#DC2626' })
+    .build()
+  await columnChart.update(updatedColumnConfig)
+  await columnChart.setDataSource({ range: 'A2:D4', orientation: univerAPI.Enum.ChartSourceOrientation.Rows })
+
+  const lineChartInfo = fWorksheet
+    .newChart(univerAPI.Enum.ChartTypeString.Line)
+    .setSource('A1:D4')
+    .setAbsolutePosition(560, 120)
+    .setSize(520, 320)
+    .setTitle('Node 차트 Facade 꺾은선형')
+    .setLegend({ position: univerAPI.Enum.ChartLegendPositionEnum.Top })
+    .setAllSeriesStyle({
+      point: {
+        shape: univerAPI.Enum.ChartLinePointShape.Circle,
+        color: '#16A34A',
+        size: 8,
+      },
+    })
+    .setXAxis({
+      title: '기간',
+      titleStyle: { color: '#374151', fontSize: 12 },
+    })
+    .setYAxis({
+      title: '금액',
+      titleStyle: { color: '#374151', fontSize: 12 },
+    })
+    .build()
+  await fWorksheet.insertChart(lineChartInfo)
+
+  const pieChartInfo = fWorksheet
+    .newChart(univerAPI.Enum.ChartTypeString.Pie)
+    .setSource('A1:D2')
+    .setAbsolutePosition(560, 480)
+    .setSize(420, 300)
+    .setTitle('Node 차트 Facade 원형')
+    .setLegend({ position: univerAPI.Enum.ChartLegendPositionEnum.Left })
+    .setDoughnutHole(0.45)
+    .setSliceBorderColor('#111827')
+    .setPaddingAngleEnabled(true)
+    .setRosePie(true)
+    .setLabelLineVisible(true)
+    .build()
+  const pieChart = await fWorksheet.insertChart(pieChartInfo)
+
+  await pieChart.remove()
+}
+
+async function TestSheetsShapeFacadeAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('도형 시트', {
+    sheet: {
+      rowCount: 20,
+      columnCount: 8,
+    },
+  })
+
+  // 사각형을 만들고 B2 셀에 고정합니다.
+  const rectShape = fWorksheet.insertShape({
+    shapeType: univerAPI.Enum.ShapeTypeEnum.Rect,
+  }) as FSheetShape | null
+  if (!rectShape) throw new Error('사각형을 삽입하지 못했습니다.')
+  rectShape
+    .setPosition(1, 1, 0, 0)
+    .setSize(220, 120)
+    .setSolidFill('#DBEAFE', 0.9)
+    .setStrokeLineType(univerAPI.Enum.ShapeLineTypeEnum.SolidLine)
+    .setStrokeColor('#1D4ED8')
+    .setStrokeWidth(2)
+    .setStrokeLineDashType(univerAPI.Enum.ShapeLineDashEnum.Solid)
+    .setStrokeLineJoinType(univerAPI.Enum.ShapeLineJoinEnum.Round)
+    .setStrokeLineCapType(univerAPI.Enum.ShapeLineCapEnum.Round)
+    .setStrokeOpacity(0.9)
+  rectShape
+    .getText()
+    .setText('시트 도형 Facade 예제')
+    .setHorizontalAlign(univerAPI.Enum.HorizontalAlign.CENTER)
+    .setVerticalAlign(univerAPI.Enum.VerticalAlign.MIDDLE)
+
+  // 절대 픽셀 위치에 그라데이션 채우기가 적용된 타원을 만듭니다.
+  const ellipseShape = fWorksheet.insertShape({
+    shapeType: univerAPI.Enum.ShapeTypeEnum.Ellipse,
+  }) as FSheetShape | null
+  if (!ellipseShape) throw new Error('타원을 삽입하지 못했습니다.')
+  ellipseShape
+    .setAbsolutePosition(420, 120)
+    .setSize(180, 120)
+    .setGradientFill(
+      univerAPI.Enum.ShapeGradientTypeEnum.Linear,
+      [
+        { position: 0, color: '#DCFCE7' },
+        { position: 1, color: '#22C55E' },
+      ],
+      0,
+    )
+    .setStrokeColor('#15803D')
+    .setStrokeWidth(2)
+
+  // 사각형과 타원 사이에 연결선을 만듭니다.
+  const connectorShape = fWorksheet.insertShape({
+    shapeType: univerAPI.Enum.ShapeTypeEnum.BentConnector3,
+  })
+  if (!connectorShape || !connectorShape.isConnectorShape()) throw new Error('연결선을 삽입하지 못했습니다.')
+  ;(connectorShape as FConnectorShape)
+    .setAbsolutePosition(250, 155)
+    .setSize(220, 80)
+    .setStrokeColor('#374151')
+    .setStrokeWidth(3)
+    .setStrokeLineDashType(univerAPI.Enum.ShapeLineDashEnum.Dash)
+    .setStartArrow(univerAPI.Enum.ShapeArrowTypeEnum.OvalArrow, univerAPI.Enum.ShapeArrowSizeEnum.Small)
+    .setEndArrow(univerAPI.Enum.ShapeArrowTypeEnum.Arrow, univerAPI.Enum.ShapeArrowSizeEnum.Large)
+
+  // 임시 도형을 만들어 Facade 삭제 API를 보여 줍니다.
+  const tempShape = fWorksheet.insertShape({
+    shapeType: univerAPI.Enum.ShapeTypeEnum.Diamond,
+  })
+  if (!tempShape) throw new Error('임시 도형을 삽입하지 못했습니다.')
+  tempShape.setAbsolutePosition(120, 320).setSize(120, 120).setNoneFill().setStrokeColor('#DC2626').setStrokeWidth(2)
+
+  const shapes = fWorksheet.getShapes()
+  console.warn('시트 도형 수:', shapes.length)
+  console.warn('사각형 조회 결과:', fWorksheet.getShape(rectShape.getId())?.getId())
+
+  rectShape
+    .setAbsolutePosition(120, 140)
+    .setSize(260, 140)
+    .setSolidFill('#FEE2E2', 0.85)
+    .setStrokeColor('#B91C1C')
+    .setStrokeWidth(4)
+
+  const rectSites = rectShape.getConnectionSites()
+  const ellipseSites = ellipseShape.getConnectionSites()
+  ;(connectorShape as FConnectorShape)
+    .bindStart(rectShape.getId(), rectSites[0]?.index ?? 0)
+    .bindEnd(ellipseShape.getId(), ellipseSites[2]?.index ?? ellipseSites[0]?.index ?? 0)
+
+  tempShape.remove()
+}
+
+async function TestSheetsHyperlinkAPI(univerAPI: FUniver) {
+  const fWorkbook = univerAPI.getActiveWorkbook()
+  if (!fWorkbook) return
+
+  const fWorksheet = fWorkbook.insertSheet('하이퍼링크 시트', {
+    sheet: {
+      rowCount: 20,
+      columnCount: 8,
+    },
+  })
+
+  // A1 셀에 Univer 하이퍼링크를 만듭니다
+  const fRange = fWorksheet.getRange('A1')
+  await fRange.setHyperLink('https://univer.ai/', 'Univer')
+
+  // A2 셀에 활성 시트의 B2:D4 범위로 연결되는 하이퍼링크를 만듭니다
+  const fRange2 = fWorksheet.getRange('A2')
+  const rangeUrl = fWorksheet.getRange('B2:D4').getUrl()
+  await fRange2.setHyperLink(rangeUrl, 'B2:D4 링크')
+
+  // A3 셀에 다른 시트로 연결되는 하이퍼링크를 만듭니다
+  const sheets = fWorkbook.getSheets()
+  if (sheets.length > 2) {
+    const anotherSheetUrl = sheets[1].getUrl()
+    const fRange3 = fWorksheet.getRange('A3')
+    await fRange3.setHyperLink(anotherSheetUrl, `${sheets[1].getSheetName()} 링크`)
+  }
+
+  // A4 셀에 정의된 이름으로 연결되는 하이퍼링크를 만듭니다
+  const fRange4 = fWorksheet.getRange('A4')
+  const definedNameHyperlinkUrl = fWorkbook.getUrlOfDefineName('MyDefinedName')
+  await fRange4.setHyperLink(definedNameHyperlinkUrl, 'MyDefinedName 링크')
+
+  // A1 셀의 하이퍼링크가 Google을 가리키도록 변경합니다
+  await fRange.updateHyperLink('https://www.google.com/', 'Google')
+
+  // A2 셀의 하이퍼링크를 제거합니다
+  const hyperlinks = fRange2.getHyperLinks()
+  if (hyperlinks.length > 0) {
+    await fRange2.cancelHyperLink(hyperlinks[0])
+  }
+
+  // 2초 후 A1 셀의 모든 하이퍼링크를 제거합니다
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+
+  fRange.cancelHyperLink()
+}
+
+run().catch((error: unknown) => {
+  console.error(error)
+  process.exitCode = 1
+})
+```
+
+  </Tab>
+</Tabs>
+
+### 계산 worker 활성화
+
+`createUniverOnNode()`의 기본값은 `useComputingWorker: false`이며 현재 프로세스에서 수식을 계산합니다. 위의 `main.ts`는 `useComputingWorker: true`를 명시적으로 전달하여 계산 worker를 활성화합니다.
+
+1. 메인 프로세스의 `UniverProFormulaEnginePlugin`, `UniverSheetsPlugin`, `UniverSheetsFormulaPlugin`, `UniverSheetsPivotTablePlugin`에 모두 `notExecuteFormula: true`를 설정하여 RPC를 통해 자식 프로세스에 계산을 맡깁니다.
+2. `UniverRPCNodeMainPlugin`이 `workerSrc`에 지정된 빌드된 `worker.js`를 실행합니다.
+3. 자식 프로세스는 `UniverRPCNodeWorkerPlugin`과 `UniverRemoteSheetsFormulaPlugin`을 통해 데이터를 수신하고 계산합니다.
+
+`UniverSheetsPivotTablePlugin` 설정은 세 가지 모드를 구분합니다. worker를 사용하는 메인 프로세스에서는 `true`, worker에서는 `false`를 설정합니다. worker를 사용하지 않을 때는 생략하거나 `undefined`를 지정하여 현재 프로세스에 피벗 테이블 서비스와 계산 로직을 함께 등록합니다. 따라서 메인 프로세스에서는 `useComputingWorker`를 직접 전달하지 않고 `useComputingWorker ? true : undefined`를 사용합니다.
+
+이 worker는 Node.js의 `child_process.fork()`로 실행됩니다. 프로젝트에서 사용하는 빌드 도구로 `main.ts`와 `worker.ts`를 각각 독립적인 진입점으로 빌드하고 `workerSrc`가 빌드된 worker 파일을 가리키도록 설정하세요. 예제는 `worker.js`가 메인 진입점 결과물과 같은 디렉터리에 있다고 가정합니다. 경로, 확장자, 모듈 형식은 실제 빌드 결과에 맞춰야 합니다. 예제는 CommonJS의 `__dirname`으로 파일을 찾으므로 ESM 프로젝트에서는 해당 모듈 방식에 맞는 경로 해석을 사용하세요.
+
+### 실행 안내
+
+`loadSheetAsync()`는 서버의 기존 문서를 불러오므로 `createWorkbook()`을 호출할 필요가 없습니다. 공동 편집 서비스는 `customHeaders`에 포함된 Cookie 등의 인증 정보로 사용자를 식별하고 권한을 확인하며, 연결의 `memberID`는 서버가 반환합니다.
+
+이 예제는 브라우저 오프라인 캐시와 여러 탭 간 인스턴스 잠금을 비활성화하므로 계정별 캐시 격리를 위해 `setCurrentUser()`를 호출할 필요가 없습니다. 나중에 댓글처럼 로컬 현재 사용자에 의존하는 기능을 사용할 경우 `UserManagerService`로 업무 사용자를 설정할 수 있습니다. 이 설정은 서버 인증을 대체하지 않습니다.
+
+예제는 실행 후에도 공동 편집 연결을 유지합니다. 브라우저에서 같은 문서를 열면 변경 사항을 확인할 수 있습니다. `flush()`는 대기 중인 공동 편집 변경 사항에 대한 서버 확인을 기다립니다. 일회성 스크립트로 변경한다면 모든 비동기 작업과 동기화가 완료된 뒤 `univer.dispose()`를 호출하여 인스턴스를 해제하세요.

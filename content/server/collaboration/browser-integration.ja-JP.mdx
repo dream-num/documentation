@@ -38,10 +38,6 @@ const workbook = await univerAPI.getCollaboration().loadSheetAsync('your-documen
 if (!workbook) throw new Error('Document could not be loaded')
 ```
 
-<Callout type="warning">
-現在のバージョンの `UniverCollaborationClientUIPlugin` は、起動時に URL の `unit` と `type` クエリを読んで文書を自動的に読み込みます。この動作は非推奨で、今後のバージョンで削除されます。初期化時に `enableUrlUnitLoader: false` を設定して無効にし、上記の方法で明示的に読み込んでください。プラグインとプリセットの設定例は[文書を読み込む](/guides/sheets/features/collaboration#document-loading)を参照してください。
-</Callout>
-
 製品別の読み込みは [Sheets](/guides/sheets/features/collaboration)、[Docs](/guides/docs/features/collaboration)、[Slides](/guides/slides/features/collaboration)、[Boards](/guides/boards/features/collaboration)、[Bases](/guides/bases/features/collaboration)、[PDFs](/guides/pdfs/features/collaboration) を参照してください。対象製品とバックエンドのリリースでの対応を確認します。
 
 ## 同期、保存、権限の検証
@@ -57,3 +53,83 @@ if (!workbook) throw new Error('Document could not be loaded')
 取り込んだファイルを共同編集するには、変換後のデータから共同編集ドキュメントを作成します。[ファイル交換の統合](/server/import-export)を参照してください。コメントと履歴には専用のプラグイン、サービス、権限が必要です。[Office 拡張モジュール](/server/collaboration/extensions)に従ってください。
 
 履歴パネルの設定は [Sheets](/guides/sheets/features/edit-history)、[Docs](/guides/docs/features/edit-history)、[Slides](/guides/slides/features/edit-history)、[Boards](/guides/boards/features/edit-history)、[Bases](/guides/bases/features/edit-history) を参照してください。PDFs の現在の対応範囲は [PDFs の履歴](/guides/pdfs/features/edit-history)に記載されています。
+
+## 同期状態と再送 [#sync-status]
+
+共同編集 Facade をインポートして監視します。`CollaborationStatusChanged` は登録時に共同編集中の文書の現在の状態を通知し、その後は連続する同一状態を重複通知しません。`hasWritePending(unitId)` は送信待ち、確認待ち、オフラインの編集を含みます。ID を省略するとフォーカス中の文書を確認します。接続済みであることは保存完了を意味しません。
+
+```ts
+import '@univerjs-pro/collaboration-client/facade'
+
+const collaboration = univerAPI.getCollaboration()
+const statusSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationStatusChanged, (event) => {
+  console.info(event.unitId, event.status, collaboration.hasWritePending(event.unitId))
+})
+const resendSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationChangesetResend, (event) => {
+  console.info(event.unitId, event.reason, event.attempt, event.unsyncedMutationCount, event.nextDelayMs)
+})
+```
+
+`CollaborationChangesetResend` は初回送信ではなく再送時に発生します。理由は `ack_timeout`、`should_retry`、`reconnect` です。`attempt`、`elapsedMs`、`unsyncedMutationCount`、`nextDelayMs` を保存・再試行の表示に利用できます。エディターを破棄する際は購読を解除してください。
+
+まとめて送信する遅延と確認タイムアウトは別です。プラグインの既定値は `sendChangesetTimeout: 2000`、`changesetAckTimeout: 20000`、`maxChangesetAckTimeout: 120000`（ミリ秒）です。送信リクエストにも確認タイムアウトが適用され、未確認の変更は上限まで指数バックオフで再送します。後ろの 2 項目を同じ値にすると固定間隔になります。
+
+```ts
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import { BrowserCollaborationSocketService } from '@univerjs-pro/collaboration-client-ui'
+
+univer.registerPlugin(UniverCollaborationClientPlugin, {
+  socketService: BrowserCollaborationSocketService,
+  sendChangesetTimeout: 200,
+  changesetAckTimeout: 20_000,
+  maxChangesetAckTimeout: 120_000,
+})
+```
+
+既存のクライアント登録に追加し、socket とエンドポイント設定は維持します。Sheets と Docs の共同編集プリセットは送信遅延 200 ms を使い、確認タイムアウトの設定は公開していません。変更する場合はプラグインモードを使います。
+
+## アプリケーションで競合を処理 [#conflict-recovery]
+
+`CollaborationConflict` は競合に入ったとき、オフラインキャッシュの削除を試みた後に一度発生します。文書を読み込む前に登録してください。`reason` は `transform_failed`、`apply_failed`、`changeset_rejected`、`permission_rejected`、`remote_revert` のいずれかで、必要に応じて `message` と `revert` が詳細を示します。
+
+```ts
+import type { IEventParamConfig } from '@univerjs/core/facade'
+import '@univerjs-pro/collaboration-client/facade'
+
+const conflicts = new Map<string, IEventParamConfig['CollaborationConflict']>()
+const conflictSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationConflict, (event) => {
+  conflicts.set(event.unitId, event)
+})
+```
+
+例では復旧画面向けにイベントを保持します。Map はメモリ内のみです。再読み込み前にアプリケーションで `localChanges` を保存またはエクスポートしてください。削除済みのキャッシュは後から読めないため、このイベント内で保持します。`awaitingChangeset` はサーバーで適用済みの可能性があり、そのまま再送してはいけません。
+
+`cacheCleared: false` の場合、再読み込みで古いキャッシュが再適用されるため、先に削除の問題を解決します。キャッシュ削除は未同期編集の保存完了を意味しません。`permission_rejected` は権限の解決も必要で、再読み込みは権限を付与しません。
+
+既定 UI は理由に応じた通知を表示し、キャッシュ削除成功後に再読み込み、失敗時に再試行を提供します。アプリケーションで処理するには既存の初期化で `enableDefaultConflictUI: false` を指定し、イベントを処理します。
+
+<Tabs items={['プラグインモード', 'Sheets プリセット', 'Docs プリセット']}>
+  <Tab>
+    ```ts
+    import { UniverCollaborationClientUIPlugin } from '@univerjs-pro/collaboration-client-ui'
+
+    univer.registerPlugin(UniverCollaborationClientUIPlugin, { enableDefaultConflictUI: false })
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import { UniverSheetsCollaborationPreset } from '@univerjs/preset-sheets-collaboration'
+
+    const collaborationPreset = UniverSheetsCollaborationPreset({ enableDefaultConflictUI: false })
+    ```
+  </Tab>
+  <Tab>
+    ```ts
+    import { UniverDocsCollaborationPreset } from '@univerjs/preset-docs-collaboration'
+
+    const collaborationPreset = UniverDocsCollaborationPreset({ enableDefaultConflictUI: false })
+    ```
+  </Tab>
+</Tabs>
+
+共同編集プリセットは既存の `createUniver({ presets: [...] })` にエディタープリセットと組み合わせ、エンドポイントと履歴設定を維持してください。[イベント引数](/reference/facade/events#collaborationconflict)と[クライアント設定](/reference/packages/plugins/univerjs-pro/collaboration-client)も参照してください。

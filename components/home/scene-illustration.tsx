@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-
 import type { Scene } from './hairline'
 import { mountScene } from './scene-illustration-renderer'
 
@@ -30,7 +29,7 @@ export function SceneIllustration({ scene, label, ready }: ISceneIllustrationPro
       data-hairline={scene}
       role="img"
       aria-label={label}
-      className="mx-auto my-1 aspect-5/4 w-[88%] max-w-72 [--hairline-plate:var(--color-white)] dark:[--hairline-plate:var(--color-neutral-900)]"
+      className="mx-auto my-1 aspect-5/4 w-[88%] max-w-72 [--hairline-plate:var(--color-white)] dark:[--hairline-plate:var(--color-neutral-900)] [&_.hi]:fill-[color-mix(in_oklab,var(--hairline-hi)_8%,var(--hairline-plate))]!"
     />
   )
 }
