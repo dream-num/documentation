@@ -1,0 +1,170 @@
+---
+title: Node export license and quota
+description: Configure Node export authorization, query remaining quota, and handle license errors.
+---
+
+Configure export authorization in the server process running `@univerjs-pro/exchange-node`. Browser license registration and Node SDK configuration are separate. See [browser license registration](/server/license) and [Office file import and export](/server/import-export/node).
+
+The updated export authorization behavior is awaiting release. Use the SDK and native component versions specified in the release notes.
+
+## Configure authorization [#configure]
+
+Set both `UNIVER_LICENSE` and `UNIVER_LICENSE_KEY` in the environment for automatic configuration. Calling `configureExchange` is optional: the SDK reads the environment once on the first export or quota query and reuses that configuration. Without environment credentials, Free applies. Supplied but invalid credentials return an error and cannot be used for export.
+
+For explicit configuration, `configureExchange({ license, licenseKey })` returns `Promise<void>` and completely ignores the environment. Await it before starting exports that should use the new credentials.
+
+```ts
+import { configureExchange, getExportQuota } from '@univerjs-pro/exchange-node'
+
+await configureExchange({
+  license: '<license content>',
+  licenseKey: '<licenseKey content>',
+})
+
+const quota = await getExportQuota({ unitType: 'sheet' })
+```
+
+Use the complete `license` and `licenseKey` contents supplied by your license provider, not file paths. Configure both together through your application's secret management system.
+
+| Input | Behavior |
+| --- | --- |
+| Do not call `configureExchange` | Read both environment variables on first use; use Free when neither is set. |
+| `configureExchange({ license, licenseKey })` | Use only the explicit credentials; ignore the environment. |
+| `configureExchange({})` | Explicitly select Free; ignore the environment. |
+| Only one credential is supplied in the selected source | Return `INVALID_ARGUMENT`; never fill the other field from a different source. |
+
+Once a complete environment configuration is read, it remains fixed even if a later operation fails. To replace the default credentials at runtime, explicitly call and await `configureExchange`. Failed configuration leaves the previous configuration in effect; handle the error before starting new exports.
+
+ESM and CommonJS share configuration within the same JavaScript context. Each `worker_threads` Worker must configure itself or initialize from its environment. Exports use the configuration captured when the public export method is called; later credential changes do not affect exports already started.
+
+### Provide authorization for one operation
+
+Pass a complete `license` and `licenseKey` pair in the options for an export API or `getExportQuota` to authorize only that operation without changing the default configuration. For example, query quota and export with the same credentials:
+
+```ts
+import { UniverInstanceType } from '@univerjs/core'
+import { ExchangeFormat, exportToBuffer, getExportQuota } from '@univerjs-pro/exchange-node'
+
+const credentials = { license: '<license content>', licenseKey: '<licenseKey content>' }
+const quota = await getExportQuota({ unitType: 'sheet', ...credentials })
+const output = await exportToBuffer(workbook, {
+  type: UniverInstanceType.UNIVER_SHEET,
+  format: ExchangeFormat.XLSX,
+  ...credentials,
+})
+```
+
+This also applies to file exports, Snapshot exports, and optional PDF exports. Omitting both fields uses the default configuration; supplying only one returns `INVALID_ARGUMENT`. An explicit pair is never completed from the default configuration or environment, and empty strings are not treated as omitted. Invalid credentials return `LICENSE_INVALID` without falling back to the default commercial license.
+
+### Optional PDF support
+
+Install the PDF extension package and import its entry before configuring authorization:
+
+```sh
+pnpm add @univerjs-pro/exchange-node @univerjs-pro/exchange-pdf-node-binding
+```
+
+```ts
+import '@univerjs-pro/exchange-node/pdf'
+import { configureExchange, getExportQuota } from '@univerjs-pro/exchange-node'
+
+await configureExchange({
+  license: '<license content>',
+  licenseKey: '<licenseKey content>',
+})
+
+const quota = await getExportQuota({ unitType: 'pdf' })
+```
+
+This entry registers PDF support; native components load when used. PDF uses the same `importBuffer`, `importFile`, `exportToBuffer`, `exportToFile`, and corresponding Snapshot APIs with `UniverInstanceType.UNIVER_PDF` and `ExchangeFormat.PDF`. A PDF-only application does not need to load the Office native component. Environment-based configuration also applies to PDF.
+
+## Query remaining quota [#quota]
+
+`getExportQuota({ unitType })` returns `Promise<ExportQuota>` for displaying license status, available quota, and notices. Querying does not deduct or reserve an export.
+
+A zero balance can still be a successful query. The response is a snapshot, and concurrent requests may consume quota afterward. Always handle errors from the actual export API as well.
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `unitType` | `'sheet' \| 'doc' \| 'slide' \| 'base' \| 'pdf'` | Export type being queried. Import the `/pdf` entry before querying PDF. |
+| `quotaChannel` | `'free' \| 'licensed'` | Free or commercial entitlement selected for this query. |
+| `releaseType` | `number \| null` | License type identifier; `null` when no license can be decoded. |
+| `licenseStatus` | `'not_configured' \| 'expired' \| 'valid'` | Whether authorization is unconfigured, expired, or valid; invalid credentials return an error. |
+| `observedAt` | `string` | UTC ISO timestamp of the snapshot. |
+| `notices` | `QuotaNotice[]` | Notices containing `code`, `message`, and `details`; the application decides how to display them. |
+| `mode` | `'limited' \| 'unlimited'` | Limited quota or unlimited exports. |
+| `limit` | `number \| null` | Export limit for the current authorization period; `null` when unlimited. |
+| `used` | `number \| null` | Successful exports in the current period; `null` when unlimited. |
+| `reserved` | `number \| null` | Capacity occupied by exports currently being processed; `null` when unlimited. |
+| `remaining` | `number \| null` | Available exports: `max(0, limit - used - reserved)`; `null` when unlimited. |
+| `periodStart`, `periodEnd` | `string \| null` | UTC boundaries of the current authorization period, including the start and excluding the end; `null` when unlimited. |
+
+Example of a limited-quota snapshot:
+
+```json
+{
+  "unitType": "sheet",
+  "quotaChannel": "licensed",
+  "releaseType": 0,
+  "licenseStatus": "valid",
+  "observedAt": "2026-10-21T09:00:00Z",
+  "notices": [],
+  "mode": "limited",
+  "limit": 500,
+  "used": 20,
+  "reserved": 1,
+  "remaining": 479,
+  "periodStart": "2026-10-19T00:00:00Z",
+  "periodEnd": "2026-11-19T00:00:00Z"
+}
+```
+
+## Use export quota [#accounting]
+
+Free allows 10 successful exports per authorization month. Commercial export quota, concurrency, and version entitlements depend on the purchased license. Neither Free nor commercial licenses impose file-size or cell-count limits. Use the query response for the current period and remaining quota. Unused monthly quota does not roll over.
+
+Imports do not require export authorization and do not consume export quota. Office and PDF exports using the same commercial license within a deployment share quota. See [Office file import and export](/server/import-export/node) for Node SDK conversion formats.
+
+Each successful conversion consumes one export. Returning a Buffer counts as success. A later file-write, upload, or download failure does not refund that export; another successful conversion consumes another export. When the current period has no remaining quota, new exports are rejected. Wait for the next authorization period or provide a valid license with a higher quota; an exhausted valid commercial license does not use Free quota.
+
+## Handle errors and notices [#errors]
+
+Use the structured `code` to identify errors instead of parsing `message` text. Your UI can map error codes to localized messages. Retain diagnostic information for technical support.
+
+```ts
+import { ExchangeError, getExportQuota } from '@univerjs-pro/exchange-node'
+
+try {
+  const quota = await getExportQuota({ unitType: 'sheet' })
+  for (const notice of quota.notices) {
+    // Use the application's existing notice and translation mechanism.
+    console.info(notice.code)
+  }
+} catch (error) {
+  if (error instanceof ExchangeError) {
+    // Display the appropriate message for error.code.
+    console.error(error.code)
+  } else {
+    throw error
+  }
+}
+```
+
+| Code | Meaning and response |
+| --- | --- |
+| `LICENSE_EXPORT_QUOTA_EXCEEDED` | Insufficient export quota for the current period. Query quota or contact sales to adjust the license. |
+| `LICENSE_INVALID` | The license is invalid. Check the complete credentials or contact the license provider for an update. |
+| `LICENSE_POLICY_INVALID` | The authorization configuration does not meet SDK requirements. Contact the license provider for an update. |
+| `LICENSE_NOT_YET_EFFECTIVE` | Authorization has not started yet. Use it after its effective date. |
+| `LICENSE_EXPORT_EXPIRED` | Export authorization has expired. Contact the licensing provider to renew it before exporting again. |
+| `LICENSE_VERSION_NOT_ALLOWED` | The current SDK version is outside the licensed range. Use a matching version or update the license. |
+| `LICENSE_CONCURRENCY_TIMEOUT` | Waiting for available export concurrency timed out. Reduce concurrent exports before submitting again. |
+| `LICENSE_USAGE_STATE_INVALID` | License usage status cannot be verified. Preserve the error and contact technical support. |
+| `LICENSE_USAGE_STORAGE_ERROR` | License usage processing failed. Preserve the error, contact technical support, and avoid automatic resubmission. |
+| `INVALID_ARGUMENT` | Incomplete arguments or credentials. Check the configuration. |
+| `NATIVE_LOAD_FAILED` | A native SDK component could not load. Check package and runtime compatibility. |
+| `IO_ERROR` | File input/output failed. An output-write failure after successful conversion has already consumed an export. |
+
+`LICENSE_EXPIRED_USING_FREE` indicates that Free entitlements currently apply after the license expires. `LICENSE_EXPIRING_SOON` indicates that relevant authorization expires within 15 days. The application displays notices separately from thrown errors.
+
+After a license usage processing error, do not infer accounting solely from the error. Preserve the complete error and contact technical support.
