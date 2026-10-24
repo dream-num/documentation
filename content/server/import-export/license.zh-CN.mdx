@@ -9,7 +9,7 @@ description: 配置 Node 导出授权、查询剩余额度并处理授权错误�
 
 ## 配置授权 [#configure]
 
-推荐通过环境变量 `UNIVER_LICENSE` 与 `UNIVER_LICENSE_KEY` 成对提供授权。无需调用 `configureExchange`；SDK 在首次导出或额度查询时自动读取一次，后续调用复用该配置。未提供环境凭据时使用 Free。
+推荐通过环境变量 `UNIVER_LICENSE` 与 `UNIVER_LICENSE_KEY` 成对提供授权。无需调用 `configureExchange`；SDK 在首次导出或额度查询时自动读取一次，后续调用复用该配置。未提供环境凭据时使用 Free；已提供但无效的授权会报错，不能用于导出。
 
 也可以使用 `configureExchange({ license, licenseKey })` 显式配置，它返回 `Promise<void>`。显式配置完全忽略环境变量；应等待配置完成后再开始使用新授权的导出。
 
@@ -33,9 +33,28 @@ const quota = await getExportQuota({ unitType: 'sheet' })
 | `configureExchange({})` | 显式选择 Free，忽略环境变量。 |
 | 所选来源只提供一个字段 | 返回 `INVALID_ARGUMENT`，不会从另一来源补齐。 |
 
-完整的环境配置读取后即固定，即使后续操作失败也不会自动重读。运行中换证应显式调用并等待 `configureExchange`；配置失败时保留此前配置，应处理错误后再开始新的导出。
+完整的环境配置读取后即固定，即使后续操作失败也不会自动重读。更换默认授权应显式调用并等待 `configureExchange`；配置失败时保留此前配置，应处理错误后再开始新的导出。
 
 同一 JavaScript 上下文中的 ESM 与 CommonJS 共用配置。每个 `worker_threads` Worker 都需独立配置或从环境变量初始化。导出使用调用公开导出方法时的配置，后续换证不会改变已发起的导出。
+
+### 为单次操作指定授权
+
+导出 API 和 `getExportQuota` 的选项可传入完整的 `license`、`licenseKey`，仅作用于本次操作，不修改默认配置。例如，使用同一授权查询额度并导出：
+
+```ts
+import { UniverInstanceType } from '@univerjs/core'
+import { ExchangeFormat, exportToBuffer, getExportQuota } from '@univerjs-pro/exchange-node'
+
+const credentials = { license: '<license content>', licenseKey: '<licenseKey content>' }
+const quota = await getExportQuota({ unitType: 'sheet', ...credentials })
+const output = await exportToBuffer(workbook, {
+  type: UniverInstanceType.UNIVER_SHEET,
+  format: ExchangeFormat.XLSX,
+  ...credentials,
+})
+```
+
+此方式同样适用于文件导出、Snapshot 导出和可选 PDF 导出。不传这两个字段时使用默认配置；只传一个字段返回 `INVALID_ARGUMENT`。显式传入的完整凭据不会从默认配置或环境变量补齐，空字符串也不会被视为省略；授权无效时返回 `LICENSE_INVALID`，不会重新使用默认商业授权。
 
 ### 可选 PDF 支持
 
@@ -70,7 +89,7 @@ const quota = await getExportQuota({ unitType: 'pdf' })
 | `unitType` | `'sheet' \| 'doc' \| 'slide' \| 'base' \| 'pdf'` | 查询的导出类型；PDF 需先导入 `/pdf` 入口。 |
 | `quotaChannel` | `'free' \| 'licensed'` | 本次查询适用的免费或商业权益类别。 |
 | `releaseType` | `number \| null` | 授权类型标识；没有可解析的授权时为 `null`。 |
-| `licenseStatus` | `'not_configured' \| 'invalid' \| 'expired' \| 'valid'` | 授权未配置、无效、已到期或有效。 |
+| `licenseStatus` | `'not_configured' \| 'expired' \| 'valid'` | 授权未配置、已到期或有效；无效授权直接返回错误。 |
 | `observedAt` | `string` | 快照的 UTC ISO 时间。 |
 | `notices` | `QuotaNotice[]` | 提示列表；每项含 `code`、`message`、`details`，由应用决定如何展示。 |
 | `mode` | `'limited' \| 'unlimited'` | 有限额度或不限次数。 |
@@ -104,7 +123,7 @@ const quota = await getExportQuota({ unitType: 'pdf' })
 
 Free 每授权月允许 10 次成功导出。商业授权的次数、并发及版本范围以所购授权为准。Free 与商业授权均不设置授权层面的文件大小和单元格数量上限。周期与剩余额度以查询结果为准，未用完的月额度不结转。
 
-导入无需配置导出授权，也不消耗导出次数。同一部署中的 Office 与 PDF 导出共享额度。Office 转换格式见 [Office 文件导入导出](/server/import-export/node)。
+导入无需配置导出授权，也不消耗导出次数。同一部署中，Office 与 PDF 使用同一商业授权时共享额度。Office 转换格式见 [Office 文件导入导出](/server/import-export/node)。
 
 每次成功转换计 1 次，返回 Buffer 即视为转换成功。转换成功后的文件写入、上传或下载失败不退回次数；再次成功转换会再次计次。本周期额度耗尽后拒绝新的导出，需等待下一授权周期或换用额度更高的有效授权；有效商业授权不会借用 Free 额度。
 
@@ -134,6 +153,7 @@ try {
 | 错误码 | 含义及处理方式 |
 | --- | --- |
 | `LICENSE_EXPORT_QUOTA_EXCEEDED` | 当前周期的可用导出额度不足；查询额度或联系商务调整授权。 |
+| `LICENSE_INVALID` | 授权无效；检查完整凭据或联系授权提供方更新授权。 |
 | `LICENSE_POLICY_INVALID` | 授权配置不符合 SDK 要求；联系授权提供方更新授权。 |
 | `LICENSE_NOT_YET_EFFECTIVE` | 授权尚未生效；在生效后使用。 |
 | `LICENSE_EXPORT_EXPIRED` | 导出授权已到期；联系授权提供方更新授权后再导出。 |
@@ -145,6 +165,6 @@ try {
 | `NATIVE_LOAD_FAILED` | SDK 原生组件无法加载；检查已安装包及运行环境是否匹配。 |
 | `IO_ERROR` | 文件读写失败；成功转换后的文件写入失败已经消耗 1 次。 |
 
-`LICENSE_INVALID_USING_FREE`、`LICENSE_EXPIRED_USING_FREE` 提示当前适用 Free 权益；`LICENSE_EXPIRING_SOON` 提示相关授权将在 15 天内到期。提示由应用展示，与抛出的错误分别处理。
+`LICENSE_EXPIRED_USING_FREE` 提示授权到期后当前适用 Free 权益；`LICENSE_EXPIRING_SOON` 提示相关授权将在 15 天内到期。提示由应用展示，与抛出的错误分别处理。
 
 遇到授权用量处理异常时，不应仅根据错误推断本次是否已计次，请保留完整错误并联系技术支持。
