@@ -1,5 +1,5 @@
 ---
-title: Office 导出授权与额度
+title: Node 导出授权与额度
 description: 配置 Node 导出授权、查询剩余额度并处理授权错误。
 ---
 
@@ -33,7 +33,31 @@ const quota = await getExportQuota({ unitType: 'sheet' })
 | `configureExchange({})` | 显式选择 Free，忽略环境变量。 |
 | 所选来源只提供一个字段 | 返回 `INVALID_ARGUMENT`，不会从另一来源补齐。 |
 
-环境变量在初始化后不自动重读。运行中换证应显式调用 `configureExchange`；配置失败时应处理返回的错误，再开始新的导出。
+完整的环境配置读取后即固定，即使后续操作失败也不会自动重读。运行中换证应显式调用并等待 `configureExchange`；配置失败时保留此前配置，应处理错误后再开始新的导出。
+
+同一 JavaScript 上下文中的 ESM 与 CommonJS 共用配置。每个 `worker_threads` Worker 都需独立配置或从环境变量初始化。导出使用调用公开导出方法时的配置，后续换证不会改变已发起的导出。
+
+### 可选 PDF 支持
+
+安装 PDF 扩展包，并在配置授权前导入 PDF 入口：
+
+```sh
+pnpm add @univerjs-pro/exchange-node @univerjs-pro/exchange-pdf-node-binding
+```
+
+```ts
+import '@univerjs-pro/exchange-node/pdf'
+import { configureExchange, getExportQuota } from '@univerjs-pro/exchange-node'
+
+await configureExchange({
+  license: '<license content>',
+  licenseKey: '<licenseKey content>',
+})
+
+const quota = await getExportQuota({ unitType: 'pdf' })
+```
+
+该入口注册 PDF 支持，原生组件在实际使用时加载。PDF 仍使用 `importBuffer`、`importFile`、`exportToBuffer`、`exportToFile` 及对应 Snapshot API，指定 `UniverInstanceType.UNIVER_PDF` 和 `ExchangeFormat.PDF`；无需改用另一套转换 API。仅处理 PDF 的应用不需要加载 Office 原生组件。环境变量配置同样适用于 PDF。
 
 ## 查询剩余额度 [#quota]
 
@@ -43,7 +67,7 @@ const quota = await getExportQuota({ unitType: 'sheet' })
 
 | 字段 | 类型 | 含义 |
 | --- | --- | --- |
-| `unitType` | `'sheet' \| 'doc' \| 'slide' \| 'base' \| 'pdf'` | 查询的导出类型；PDF 额度查询不表示 Node SDK 提供 PDF 转换。 |
+| `unitType` | `'sheet' \| 'doc' \| 'slide' \| 'base' \| 'pdf'` | 查询的导出类型；PDF 需先导入 `/pdf` 入口。 |
 | `quotaChannel` | `'free' \| 'licensed'` | 本次查询适用的免费或商业权益类别。 |
 | `releaseType` | `number \| null` | 授权类型标识；没有可解析的授权时为 `null`。 |
 | `licenseStatus` | `'not_configured' \| 'invalid' \| 'expired' \| 'valid'` | 授权未配置、无效、已到期或有效。 |
@@ -80,7 +104,7 @@ const quota = await getExportQuota({ unitType: 'sheet' })
 
 Free 每授权月允许 10 次成功导出。商业授权的次数、并发及版本范围以所购授权为准。Free 与商业授权均不设置授权层面的文件大小和单元格数量上限。周期与剩余额度以查询结果为准，未用完的月额度不结转。
 
-导入无需配置导出授权，也不消耗导出次数。同一部署中的 Office 与 Go PDF 导出共享额度；Node SDK 支持的转换格式见 [Office 文件导入导出](/server/import-export/node)。
+导入无需配置导出授权，也不消耗导出次数。同一部署中的 Office 与 PDF 导出共享额度。Office 转换格式见 [Office 文件导入导出](/server/import-export/node)。
 
 每次成功转换计 1 次，返回 Buffer 即视为转换成功。转换成功后的文件写入、上传或下载失败不退回次数；再次成功转换会再次计次。本周期额度耗尽后拒绝新的导出，需等待下一授权周期或换用额度更高的有效授权；有效商业授权不会借用 Free 额度。
 
