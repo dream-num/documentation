@@ -82,19 +82,21 @@ This entry registers PDF support; native components load when used. PDF uses the
 
 `getExportQuota({ license, licenseKey })` returns `Promise<ExportQuota>` for the authorization's shared Office and PDF quota. Omitting credentials queries the default configuration. It accepts no Unit type and does not check permission to export a particular type; that check occurs during export.
 
-Queries neither consume nor reserve quota. A zero balance still returns a successful snapshot. Other requests may consume quota afterward, so handle actual export errors as well.
+Queries neither consume nor reserve quota, and do not check the SDK version, activation time, or export type entitlement. A zero balance still returns a successful snapshot. Other requests may consume quota afterward, so handle actual export errors as well.
+
+Before authorization starts, a limited-quota query returns the first authorization month with a future `periodStart`. A successful query or a `valid` status does not grant permission to export. Version, activation, type entitlement, available quota, and concurrency checks occur during export.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `licenseStatus` | `'not_configured' \| 'expired' \| 'valid'` | Export subscription is unconfigured, expired, or valid. Invalid credentials return an error. |
+| `licenseStatus` | `'not_configured' \| 'expired' \| 'valid'` | Export subscription is unconfigured, expired, or not expired. `valid` does not mean export admission checks have passed. Invalid credentials return an error. |
 | `expiresAt` | `string \| null` | Export subscription expiry as a UTC ISO timestamp; `null` when unconfigured or no expiry applies. |
 | `observedAt` | `string` | UTC ISO timestamp of this snapshot. |
 | `limit` | `number \| null` | Current monthly export limit; `null` when unlimited. |
 | `used` | `number \| null` | Successful exports in the current month; `null` when unlimited. |
 | `reserved` | `number \| null` | In-flight exports occupying the current month's quota; `null` when unlimited. |
 | `remaining` | `number \| null` | Available exports: `max(0, limit - used - reserved)`; `null` when unlimited. |
-| `periodStart` | `string \| null` | Inclusive UTC ISO start of the current monthly quota window; `null` when unlimited. |
-| `periodEnd` | `string \| null` | Exclusive UTC ISO end of the current monthly quota window; `null` when unlimited. |
+| `periodStart` | `string \| null` | Inclusive UTC ISO start of the queried monthly quota window; the first period starts in the future before activation. `null` when unlimited. |
+| `periodEnd` | `string \| null` | Exclusive UTC ISO end of the queried monthly quota window; `null` when unlimited. |
 
 `periodEnd` marks the start of the next monthly quota window; `expiresAt` marks the end of the export subscription. A valid subscription always uses commercial quota. Exhaustion never selects Free, and a new commercial quota window begins the following month. Only subscription expiry selects the existing remaining Free quota, without resetting or granting it again.
 
@@ -142,20 +144,26 @@ try {
 }
 ```
 
-| Code | Meaning and response |
-| --- | --- |
-| `LICENSE_EXPORT_QUOTA_EXCEEDED` | Insufficient export quota for the current period. Query quota or contact sales to adjust the license. |
-| `LICENSE_INVALID` | The license is invalid. Check the complete credentials or contact the license provider for an update. |
-| `LICENSE_POLICY_INVALID` | The authorization configuration does not meet SDK requirements. Contact the license provider for an update. |
-| `LICENSE_UNIT_TYPE_REJECTED` | This export type is not licensed or its type entitlement has expired. Provide a valid license covering the type. |
-| `LICENSE_NOT_YET_EFFECTIVE` | Authorization has not started yet. Use it after its effective date. |
-| `LICENSE_VERSION_NOT_ALLOWED` | The current SDK version is outside the licensed range. Use a matching version or update the license. |
-| `LICENSE_CONCURRENCY_TIMEOUT` | Waiting for available export concurrency timed out. Reduce concurrent exports before submitting again. |
-| `LICENSE_USAGE_STATE_INVALID` | License usage status cannot be verified. Preserve the error and contact technical support. |
-| `LICENSE_USAGE_STORAGE_ERROR` | License usage processing failed. Preserve the error, contact technical support, and avoid automatic resubmission. |
-| `INVALID_ARGUMENT` | Incomplete arguments or credentials. Check the configuration. |
-| `NATIVE_LOAD_FAILED` | A native SDK component could not load. Check package and runtime compatibility. |
-| `IO_ERROR` | File input/output failed. An output-write failure after successful conversion has already consumed an export. |
+The table distinguishes quota queries (`getExportQuota`) from actual exports. Both APIs return Promises; handle failures with `await` and `try/catch`.
+
+| Code | Operation | Meaning and response |
+| --- | --- | --- |
+| `LICENSE_EXPORT_QUOTA_EXCEEDED` | Export only | Insufficient export quota for the current period. Query quota or contact sales to adjust the license. |
+| `LICENSE_INVALID` | Query, export | The license is invalid. Check the complete credentials or contact the license provider for an update. |
+| `LICENSE_POLICY_INVALID` | Query, export | The authorization configuration does not meet SDK requirements. Contact the license provider for an update. |
+| `LICENSE_UNIT_TYPE_REJECTED` | Export only | This export type is not licensed or its type entitlement has expired. Provide a valid license covering the type. |
+| `LICENSE_NOT_YET_EFFECTIVE` | Export only | Authorization has not started yet. Use it after its effective date. |
+| `LICENSE_VERSION_NOT_ALLOWED` | Export only | The current SDK version is outside the licensed range. Use a matching version or update the license. |
+| `LICENSE_CONCURRENCY_TIMEOUT` | Export only | Waiting for available export concurrency timed out. Reduce concurrent exports before submitting again. |
+| `LICENSE_USAGE_STATE_INVALID` | Query, export | License usage status cannot be verified. Preserve the error and contact technical support. |
+| `LICENSE_USAGE_STORAGE_ERROR` | Query, export | License usage processing failed. Preserve the error, contact technical support, and avoid automatic resubmission. |
+| `INVALID_ARGUMENT` | Query, export | Incomplete arguments or credentials. Check the configuration. |
+| `NATIVE_LOAD_FAILED` | Query, export | A native SDK component could not load. Check package and runtime compatibility. |
+| `IO_ERROR` | Export only | File input/output failed. An output-write failure after successful conversion has already consumed an export. |
+| `UNSUPPORTED_FORMAT` | Export only | The format is unsupported or incompatible with the Unit type. Check export options. |
+| `INVALID_FILE` | Export only | The conversion input is invalid. Check its contents. |
+| `INCOMPLETE_SNAPSHOT` | Export only | Export data is incomplete. Provide complete data or a complete Snapshot. |
+| `CONVERSION_FAILED` | Export only | Conversion failed. Retain the error and check the input contents. |
 
 Applications can derive expiry reminders from `licenseStatus` and `expiresAt`; the SDK does not return a separate notice list.
 

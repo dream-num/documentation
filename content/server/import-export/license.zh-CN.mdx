@@ -82,19 +82,21 @@ const quota = await getExportQuota()
 
 `getExportQuota({ license, licenseKey })` 返回 `Promise<ExportQuota>`，查询该授权在 Office 与 PDF 间共享的额度。不传凭据时查询默认配置。查询不接收类型参数，也不判断授权是否允许导出某个类型；类型授权在实际导出时检查。
 
-查询不扣次、不预留额度。余额为零时仍成功返回当前快照；其他并发请求可能随后使用额度，请同时处理实际导出的错误。
+查询不扣次、不预留额度，也不检查 SDK 版本、授权是否已生效或导出类型权限。余额为零时仍成功返回当前快照；其他并发请求可能随后使用额度，请同时处理实际导出的错误。
+
+授权尚未生效时，有限额度返回首个授权月的快照，`periodStart` 为未来日期。查询成功或 `licenseStatus` 为 `valid` 均不代表当前允许导出；版本、生效时间、类型权限、可用额度和并发名额在实际导出时检查。
 
 | 字段 | 类型 | 含义 |
 | --- | --- | --- |
-| `licenseStatus` | `'not_configured' \| 'expired' \| 'valid'` | 导出订阅未配置、已到期或有效；无效授权直接报错。 |
+| `licenseStatus` | `'not_configured' \| 'expired' \| 'valid'` | 导出订阅未配置、已到期或未到期；`valid` 不表示已通过导出准入检查。无效授权直接报错。 |
 | `expiresAt` | `string \| null` | 导出订阅到期的 UTC ISO 时间；未配置或无到期时间时为 `null`。 |
 | `observedAt` | `string` | 本次快照的 UTC ISO 时间。 |
 | `limit` | `number \| null` | 当前月额度上限；不限次数时为 `null`。 |
 | `used` | `number \| null` | 当前月已成功导出的次数；不限次数时为 `null`。 |
 | `reserved` | `number \| null` | 当前月正在处理的导出占用次数；不限次数时为 `null`。 |
 | `remaining` | `number \| null` | 当前可用次数，即 `max(0, limit - used - reserved)`；不限次数时为 `null`。 |
-| `periodStart` | `string \| null` | 当前月额度窗口的 UTC ISO 起点，包含该时刻；不限次数时为 `null`。 |
-| `periodEnd` | `string \| null` | 当前月额度窗口的 UTC ISO 终点，不包含该时刻；不限次数时为 `null`。 |
+| `periodStart` | `string \| null` | 所查询月额度窗口的 UTC ISO 起点，包含该时刻；尚未生效时为首期起点，不限次数时为 `null`。 |
+| `periodEnd` | `string \| null` | 所查询月额度窗口的 UTC ISO 终点，不包含该时刻；不限次数时为 `null`。 |
 
 `periodEnd` 表示下一月额度开始的时间，`expiresAt` 表示整个导出订阅到期的时间。订阅有效时始终使用商业额度；本月耗尽不会使用 Free，下个月开始使用新的商业月额度。订阅到期后使用原有 Free 剩余额度，不重新发放或清零。
 
@@ -142,20 +144,26 @@ try {
 }
 ```
 
-| 错误码 | 含义及处理方式 |
-| --- | --- |
-| `LICENSE_EXPORT_QUOTA_EXCEEDED` | 当前周期的可用导出额度不足；查询额度或联系商务调整授权。 |
-| `LICENSE_INVALID` | 授权无效；检查完整凭据或联系授权提供方更新授权。 |
-| `LICENSE_POLICY_INVALID` | 授权配置不符合 SDK 要求；联系授权提供方更新授权。 |
-| `LICENSE_UNIT_TYPE_REJECTED` | 当前授权未包含此导出类型或该类型授权已到期；使用包含该类型的有效授权。 |
-| `LICENSE_NOT_YET_EFFECTIVE` | 授权尚未生效；在生效后使用。 |
-| `LICENSE_VERSION_NOT_ALLOWED` | 当前 SDK 版本不在授权范围内；使用匹配版本或更新授权。 |
-| `LICENSE_CONCURRENCY_TIMEOUT` | 等待可用导出并发名额超时；降低并发后再发起导出。 |
-| `LICENSE_USAGE_STATE_INVALID` | 授权用量状态无法验证；保留错误信息并联系技术支持。 |
-| `LICENSE_USAGE_STORAGE_ERROR` | 授权用量处理失败；保留错误信息并联系技术支持，避免自动重复提交。 |
-| `INVALID_ARGUMENT` | 参数或凭据不完整；检查传入配置。 |
-| `NATIVE_LOAD_FAILED` | SDK 原生组件无法加载；检查已安装包及运行环境是否匹配。 |
-| `IO_ERROR` | 文件读写失败；成功转换后的文件写入失败已经消耗 1 次。 |
+下表区分额度查询（`getExportQuota`）与实际导出的报错时机。两类 API 均返回 Promise，使用 `await` 配合 `try/catch` 处理错误。
+
+| 错误码 | 报错时机 | 含义及处理方式 |
+| --- | --- | --- |
+| `LICENSE_EXPORT_QUOTA_EXCEEDED` | 仅导出 | 当前周期的可用导出额度不足；查询额度或联系商务调整授权。 |
+| `LICENSE_INVALID` | 查询、导出 | 授权无效；检查完整凭据或联系授权提供方更新授权。 |
+| `LICENSE_POLICY_INVALID` | 查询、导出 | 授权配置不符合 SDK 要求；联系授权提供方更新授权。 |
+| `LICENSE_UNIT_TYPE_REJECTED` | 仅导出 | 当前授权未包含此导出类型或该类型授权已到期；使用包含该类型的有效授权。 |
+| `LICENSE_NOT_YET_EFFECTIVE` | 仅导出 | 授权尚未生效；在生效后使用。 |
+| `LICENSE_VERSION_NOT_ALLOWED` | 仅导出 | 当前 SDK 版本不在授权范围内；使用匹配版本或更新授权。 |
+| `LICENSE_CONCURRENCY_TIMEOUT` | 仅导出 | 等待可用导出并发名额超时；降低并发后再发起导出。 |
+| `LICENSE_USAGE_STATE_INVALID` | 查询、导出 | 授权用量状态无法验证；保留错误信息并联系技术支持。 |
+| `LICENSE_USAGE_STORAGE_ERROR` | 查询、导出 | 授权用量处理失败；保留错误信息并联系技术支持，避免自动重复提交。 |
+| `INVALID_ARGUMENT` | 查询、导出 | 参数或凭据不完整；检查传入配置。 |
+| `NATIVE_LOAD_FAILED` | 查询、导出 | SDK 原生组件无法加载；检查已安装包及运行环境是否匹配。 |
+| `IO_ERROR` | 仅导出 | 文件读写失败；成功转换后的文件写入失败已经消耗 1 次。 |
+| `UNSUPPORTED_FORMAT` | 仅导出 | 不支持指定的格式或格式与类型不匹配；检查导出选项。 |
+| `INVALID_FILE` | 仅导出 | 转换输入无效；检查输入内容。 |
+| `INCOMPLETE_SNAPSHOT` | 仅导出 | 导出数据不完整；提供完整数据或 Snapshot。 |
+| `CONVERSION_FAILED` | 仅导出 | 文件转换失败；保留错误信息并检查输入内容。 |
 
 应用可根据 `licenseStatus` 与 `expiresAt` 自行展示到期提醒；SDK 不额外返回提示列表。
 
