@@ -44,6 +44,7 @@ Showcase source, assets, tests and build tooling live in the sibling `../office.
 ├── components/       # React components for the documentation site
 ├── content/          # Documentation content (MDX)
 │   ├── blog/         # Blog posts
+│   ├── docs/         # Office SDK overview, getting started, features, and examples (/docs)
 │   ├── guides/       # Web SDK: editors, product features, and Icons (/guides)
 │   ├── server/       # Server SDK: collaboration and server-side file exchange (/server)
 │   ├── ai/           # AI SDK: agent operations, CLI, and Worktree (/ai)
