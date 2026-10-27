@@ -170,9 +170,9 @@ export default async function Page({ params }: IProps) {
             {t('home.description-period')}
           </p>
           <div className="mt-7.5 flex flex-wrap justify-center gap-4">
-            <RainbowButton render={<Link href="/guides/sheets" />}>
+            <RainbowButton render={<Link href="/docs/overview" />}>
               <BookTextIcon />
-              {t('navigation.documentation')}
+              {t('office.start')}
             </RainbowButton>
             <RainbowButton variant="outline" render={<Link href="https://office.univer.ai" />}>
               <FerrisWheelIcon />

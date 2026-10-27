@@ -1,0 +1,60 @@
+---
+title: "实时协同"
+description: "通过 OT 协调并发编辑，结合 HTTP、WebSocket、持久化与应用部署，让用户和 Agent 共同操作同一份内容。"
+icon: Users
+---
+
+实时协同让多个用户和接入协同的 Agent 操作同一份文档。编辑先在本地生效，服务端确认修改顺序并同步给其他参与者，兼顾即时响应与内容的最终一致。
+
+**产品名称：** [Relational Table（关系型表格）](/docs/features/relational-table) 对应 SDK/API 中的 `Base`；[Canvases（画布）](/docs/features/canvas) 对应 `Board`。
+
+## 并发编辑与冲突处理
+
+Univer 使用 OT（操作转换）协调并发修改。客户端将编辑操作组织成 changeset，服务端按已确认的 revision 转换并提交，让各端在收到其他人的修改后仍能保持一致。
+
+例如，Alice 正在编辑 `C2`，Bob 同时在 B 列前插入一列，转换后的编辑位置会跟随单元格移动到 `D2`。撤销、重做也会结合远端操作调整。算法尽可能保留用户意图，但不能自动解决所有业务冲突。
+
+无法转换或执行的操作会使客户端进入冲突状态，暂停该文档的编辑，并通过 `CollaborationConflict` 提供原因与尚未确认的本地修改。应用可据此提示用户保存修改或恢复文档；刷新前需先保留这些本地数据。详见[冲突恢复](/server/collaboration/browser-integration#conflict-recovery)，原理见 [OT 算法与协同编辑设计](/blog/ot)。
+
+## HTTP、WebSocket 与断线恢复
+
+| 通道 | 负责什么 |
+| --- | --- |
+| HTTP | 加载快照与增量修改、获取 Session Ticket、提交 changeset。 |
+| WebSocket | 维持协同 Session 与文档 Room，接收 ACK、远端修改及在线状态通知。 |
+
+客户端通过一次性 Session Ticket 建立 WebSocket，再加入对应文档的 Room。Presence 在这条实时链路中同步在线成员、光标与选区。修改提交后，以服务端确认的 revision 推进状态。**连接正常或 HTTP 请求成功，不等于修改已经确认保存。** 应用可结合 ACK、协同状态与待确认修改展示保存状态。
+
+连接中断时，客户端可缓存未确认的修改；重连后根据 revision 补齐缺失操作并重发待确认提交。服务端通过提交身份去重，避免重试被重复执行。见[同步状态与重发](/server/collaboration/browser-integration#sync-status)和 [Presence](/server/collaboration/presence)。
+
+## 内容持久化与版本快照
+
+协同服务保存已确认的 changeset 与 revision，并按策略生成版本快照。加载文档时，从快照恢复内容，再应用之后的修改；快照无需在每次编辑后重新生成。
+
+快照与公式计算的配合见[无头与服务端计算](/docs/features/shared/server-calculation)。历史面板、评论和 Agent 草稿审阅分别由[协同扩展模块](/server/collaboration/extensions)提供，可按需组合。
+
+## 部署架构
+
+<Mermaid chart={"flowchart LR\n    A[\"客户端 A\"]\n    B[\"客户端 B / Agent\"]\n    S[\"应用协同服务<br/>OT · 确认与广播\"]\n    D[(\"应用数据库\")]\n    A <-->|\"HTTP / WebSocket\"| S\n    B <-->|\"HTTP / WebSocket\"| S\n    S --> D"} />
+
+- **单节点**：将 Transport、Endpoint、Service 与 Database Adapter 组装进自己的 Node.js 应用。Memory 用于临时验证，SQLite 适合本地和小规模场景；其他数据库通过应用自己的 Adapter 接入。
+- **扩容设计**：除了共享持久化，还需处理跨节点的文档广播、Presence、Session Ticket 验证与存储一致性，不能仅增加服务进程。具体组件与接入方式以所用版本的部署方案为准。
+- **拆分重任务**：文件转换等 CPU 密集任务可独立部署，减少它们对协同响应的影响。
+
+完整组装见[模块分工](/server/collaboration/modules)，扩展路径见[部署指引](/server/deployment)与[多节点示例](/server/collaboration/examples#multi-node)。
+
+## 性能与容量
+
+**当前版本的性能基准测试与容量数据待补充。** 实际容量与协同延迟取决于文档规模、编辑频率、协作者数量及部署环境。
+
+评估时可关注提交确认耗时、远端显示耗时、每秒 changeset 数、广播量与活跃文档的内存占用。
+
+## 接入方式
+
+从[协同总览](/server/collaboration/overview)了解模块关系，再按[快速开始](/server/collaboration/quick-start)运行双浏览器示例，验证编辑、确认和广播。身份与授权通过应用的 Middleware 接入；需要持久化时，选择持久化的 [Database Adapter](/server/collaboration/database-adapters)，再验证服务重启后内容保留。
+
+## 适用边界
+
+核心服务支持 Sheet、Doc、Slide、Board 和 Base，此处的五产品核心协同范围不包含 PDF。身份、授权、文件管理与存储策略由应用提供；历史记录、评论和 Worktree 是独立扩展。
+
+[返回功能总览](/docs/features)

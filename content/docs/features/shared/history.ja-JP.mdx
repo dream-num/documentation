@@ -1,0 +1,125 @@
+---
+title: "バージョン履歴"
+description: "過去のバージョンを確認し、変更箇所を調べ、共有ドキュメントを復元します。"
+icon: Clock
+---
+
+バージョン履歴は、共同編集で確定した変更を閲覧可能なバージョンにまとめます。作成者、時刻、操作と過去の内容を確認し、権限があれば復元できます。ページを再読み込みしても履歴を参照できます。
+
+**製品名：** [Relational Table（リレーショナルテーブル）](/docs/features/relational-table) は SDK と API では `Base`、[Canvases（キャンバス）](/docs/features/canvas) は `Board` という名前を使用します。
+
+## バージョン履歴の仕組み
+
+- **Mutation**: セルの設定や段落の挿入など、再生可能な内容変更です。
+- **Changeset**: 順序付きの Mutation をまとめた共同編集の送信単位です。
+
+### 1. 変更を記録する
+
+**編集内容を送信したときに実行されます。** ユーザーや Agent の変更は Mutation として Changeset にまとめられ、共同編集サービスへ送信されて確定・保存されます。
+
+<Mermaid chart={"flowchart LR\n    A[\"内容を編集\"]\n    B[\"Mutation\"]\n    C[\"Changeset\"]\n    D[\"確定して保存<br/>revision を記録\"]\n    A --> B\n    B --> C\n    C --> D\n"} />
+
+**Revision** は、確定済み送信のドキュメント履歴上の位置を表します。History は確定した Changeset のインデックスを作成し、時間と操作でグループ化してタイムラインに表示します。
+
+### 2. 過去の内容を再構築する
+
+**過去のバージョンを選択したときに実行されます。** Snapshot は特定の revision の完全な内容状態です。基準の Snapshot と目標 revision までの後続 Changeset を読み込み、Mutation を順番に再生して読み取り専用の履歴ビューを作成します。
+
+<Mermaid chart={"flowchart LR\n    A[\"バージョンを選択<br/>revision N\"]\n    B[\"Snapshot と<br/>後続 Changeset を取得\"]\n    C[\"Mutation を<br/>順番に再生\"]\n    D[\"過去の内容を表示<br/>読み取り専用\"]\n    A --> B\n    B --> C\n    C --> D\n"} />
+
+例：**revision 10 の Snapshot + revision 11〜15 の Changeset = revision 15 の内容。**
+
+### 3. 現在のドキュメントを復元する
+
+**「このバージョンを復元」を選択したときに実行されます。**
+
+> 対象バージョンを選択 → 復元 Mutation を送信 → 共同編集で確定 → 現在の内容を更新し、新しい revision を作成
+
+復元操作も新しい履歴として記録され、以前のバージョンは引き続き保持されます。
+
+## バージョンと変更を確認する
+
+1. エディターからバージョン履歴を開き、バージョンを選択します。
+2. グループを展開して個々の revision を表示し、読み取り専用ビューアーで内容と差分を確認します。
+3. 「このバージョンを復元」を選ぶと、共同編集を通じて現在の共有内容が更新され、他の参加者にも反映されます。
+
+一定時間内の編集はグループ化されることがあります。履歴項目は、必ずしも一回のキー入力や Snapshot の生成に対応しません。
+
+### 変更の色
+
+| 表示 | 意味 |
+| --- | --- |
+| 🟦 **青：更新** | 既存の内容、書式、オブジェクト属性の変更。 |
+| 🟩 **緑：追加** | 新しい行、段落、レコード、ボードのオブジェクト。 |
+| 🟥 **赤：削除** | 削除された内容を履歴ビューにマークして表示。 |
+
+色は変更の種類を示します。テキストの置換では追加と削除が同時に表示される場合があります。強調表示の範囲は製品ごとに異なります。
+
+## 5 製品の履歴ビュー
+
+以下は英語の Northstar プロジェクトの例です。展開したタイムラインと内容を並べて確認できます。
+
+### Sheets
+
+Launch Budget で予算、予測値、行の追加と削除を確認します。
+
+![Sheets: バージョン履歴](/assets/features/history/sheets.png)
+
+[Sheets — 導入ガイド](/guides/sheets/features/edit-history)
+
+### Docs
+
+Product Launch Brief で公開日、段落書式、顧客向け準備事項を確認します。削除されたテキストには赤い取り消し線が付きます。
+
+![Docs: バージョン履歴](/assets/features/history/docs.png)
+
+[Docs — 導入ガイド](/guides/docs/features/edit-history)
+
+### Slides
+
+Launch Review で目標値とスライド上のオブジェクトの変化を追跡します。
+
+![Slides: バージョン履歴](/assets/features/history/slides.png)
+
+[Slides — 導入ガイド](/guides/slides/features/edit-history)
+
+### Base
+
+Launch Tracker でタスク、担当者、ステータス、レコードとフィールドの変更を確認します。
+
+![Base: バージョン履歴](/assets/features/history/bases.png)
+
+[Base — 導入ガイド](/guides/bases/features/edit-history)
+
+### Board
+
+Release Workspace で計画カードとオブジェクト属性の変更を、ボード上の位置関係とともに確認します。
+
+![Board: バージョン履歴](/assets/features/history/boards.png)
+
+[Board — 導入ガイド](/guides/boards/features/edit-history)
+
+### PDF
+
+**Coming soon**: PDF のバージョン履歴はまだ提供されていません。
+
+## アプリケーションへの導入
+
+- **サーバー**：Core Collaboration に History Service、Endpoint、永続化用 Database Adapter を追加します。Unit 作成と changeset 確定イベントから履歴インデックスを構築し、バージョンと変更を照会します。
+- **ブラウザー**：共通の履歴機能と製品の History / History UI プラグインを登録し、履歴 API に接続します。ビューアーは選択した revision と差分を読み込みます。独自コンテンツには対応するビューアープラグインが必要です。
+- **権限**：アプリケーションが認証と認可を提供し、サーバーが履歴の読み取りと復元の権限を確認します。履歴には現在削除済みのデータも含まれます。
+
+[共同編集の拡張](/server/collaboration/extensions)と [History の例](/server/collaboration/examples#history)を参照し、製品ガイドに従って UI を接続してください。
+
+履歴インデックスは再構築可能な派生データです。確定した changeset が正本です。永続化と保持方針はアプリケーションが管理し、履歴パネルはバックアップの代わりにはなりません。
+
+## 関連機能との違い
+
+- **元に戻す / やり直す**：編集操作を取り消し、再適用します。履歴サービスは不要です。
+- **バージョン履歴**：セッションをまたいで確定済みバージョンを追跡し、共有内容を復元します。
+- [内容の比較](/docs/features/shared/compare)：2 つの状態を読み取り専用で比較します。復元は行いません。
+- [Worktree](/docs/features/shared/worktree)：下書きの変更を分離し、レビュー後にマージを判断します。
+
+Facade API による Agent の変更も、共同編集で確定すると同じ履歴に記録できます。内容比較と組み合わせて自動レビューを構築できます。
+
+[機能一覧に戻る](/docs/features)

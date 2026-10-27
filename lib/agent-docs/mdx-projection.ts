@@ -18,6 +18,8 @@ const AGENT_MDX_ELEMENTS = new Set([
   'Callout',
   'Card',
   'Cards',
+  'FeatureComparison',
+  'SdkPrompt',
   'CodeBlockTab',
   'CodeBlockTabs',
   'CodeBlockTabsList',
@@ -32,7 +34,18 @@ const AGENT_MDX_ELEMENTS = new Set([
   'Tabs',
 ])
 
-const AGENT_HTML_ELEMENTS = new Set(['br', 'code', 'details', 'div', 'iframe', 'img', 'span', 'strong', 'summary'])
+const AGENT_HTML_ELEMENTS = new Set([
+  'br',
+  'code',
+  'details',
+  'div',
+  'iframe',
+  'img',
+  'small',
+  'span',
+  'strong',
+  'summary',
+])
 const AGENT_IMAGE_SOURCE = 'agent-image:'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -449,7 +462,12 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
   if (name === 'Tabs') return renderTabs(node, state, info)
   if (name === 'CodeBlockTabs') return renderCodeBlockTabs(node, state, info)
   if (name === 'img') {
-    const source = typeof data?.agentImageSource === 'string' ? data.agentImageSource : undefined
+    const preservedSource = typeof data?.agentImageSource === 'string' ? data.agentImageSource : undefined
+    const srcAttribute = node.attributes.find(
+      (attribute) => attribute.type === 'mdxJsxAttribute' && attribute.name === 'src',
+    )
+    const literalSource = typeof srcAttribute?.value === 'string' ? srcAttribute.value : undefined
+    const source = preservedSource ?? (literalSource?.startsWith('/assets/') ? literalSource : undefined)
     if (!source) throw new Error('Agent Markdown expected the preserved img source')
     const altAttribute = node.attributes.find(
       (attribute) => attribute.type === 'mdxJsxAttribute' && attribute.name === 'alt',
@@ -459,7 +477,7 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
     )
     const alt = (typeof altAttribute?.value === 'string' ? altAttribute.value : '').replaceAll(']', '\\]')
     const title = typeof titleAttribute?.value === 'string' ? titleAttribute.value.replaceAll('"', '\\"') : undefined
-    const href = `${AGENT_IMAGE_SOURCE}${encodeURIComponent(source)}`
+    const href = preservedSource ? `${AGENT_IMAGE_SOURCE}${encodeURIComponent(source)}` : source
     return `![${alt}](${href}${title ? ` "${title}"` : ''})`
   }
 
@@ -480,6 +498,7 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
       return children && children !== title ? `- ${link}\n${indent(children, '  ')}` : `- ${link}`
     }
     case 'Cards':
+    case 'FeatureComparison':
     case 'CodeBlockTabsList':
     case 'Steps':
       return children
@@ -501,6 +520,8 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
       if (!slug) throw new Error('Agent Markdown expected PlaygroundFrame.slug')
       return `> Interactive example: [Open the playground](/playground/${slug})`
     }
+    case 'SdkPrompt':
+      return '[View SDK prompt](https://docs.univer.ai/api/sdk-prompt)'
     case 'Step':
       return `1.\n${indent(children, '   ')}`
     case 'Tab':
@@ -513,6 +534,8 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
     case 'div':
     case 'span':
       return children
+    case 'small':
+      return ` ${children}`
     case 'iframe': {
       const src = getString(attributes, 'src')
       return src ? `[Embedded media](${src})` : children

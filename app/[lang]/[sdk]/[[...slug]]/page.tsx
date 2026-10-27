@@ -1,8 +1,6 @@
 import process from 'node:process'
-
 import { notFound } from 'next/navigation'
 import { PostHog } from 'posthog-node'
-
 import { AgentDocsLinks } from '@/components/agent-docs-links'
 import { GuidesArticle } from '@/components/guides/article'
 import { GuidesPageLayout } from '@/components/guides/layout'
@@ -42,7 +40,7 @@ export async function generateStaticParams() {
 }
 
 function getSdkSource(sdk: string) {
-  if (sdk !== 'guides' && sdk !== 'server' && sdk !== 'ai') notFound()
+  if (sdk !== 'docs' && sdk !== 'guides' && sdk !== 'server' && sdk !== 'ai') notFound()
   return { source: sdkSources[sdk], collection: sdk } as const
 }
 

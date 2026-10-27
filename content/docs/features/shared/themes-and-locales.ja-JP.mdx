@@ -1,0 +1,326 @@
+---
+title: "テーマと多言語対応"
+description: "エディターの外観、ダークモード、言語リソースをアプリケーションに合わせます。"
+icon: Languages
+---
+
+テーマと国際化は共有ランタイムの機能です。6 製品は共通のテーマサービス、言語リソース、地域設定を使い、独自プラグインも同じ状態を購読できます。ブランドやユーザーの表示設定を実行時に変更しても、コンテンツは固有のデータとスタイルを保持します。
+
+SDK は **[19 の UI 言語・地域オプション](#supported-locales)** と **7 種類のテーマパレット**を提供します。6 製品は外観・言語・地域設定を共有し、独自テーマやアプリの翻訳も同じサービスを使います。
+
+**製品名：** [Relational Table](/docs/features/relational-table) は SDK/API の `Base`、[Canvases](/docs/features/canvas) は `Board` に対応します。
+
+## 同じ状態から UI と描画を更新する [#architecture]
+
+`ThemeService` は完全なパレットとダーク状態を別々に保持し、`currentTheme$` と `darkMode$` で変更を通知します。UI はパレットを `--univer-*` CSS 変数に展開し、`univer-dark` クラスに反応します。レンダラーも同じサービスを監視して再描画を要求します。Canvas 色サービスはトークンを解決し、ダーク表示用の色を変換・キャッシュします。
+
+本章の設定とサンプルは `@univerjs/*`、`@univerjs-pro/*` **1.2.0** を対象とします。アプリ内の SDK 依存関係のバージョンを揃えてください。
+
+| 設定 | 選択肢と範囲 | 実行時 API |
+| --- | --- | --- |
+| `theme` | 7 種類の組み込みパレット、または完全な独自 `Theme`。 | `setTheme()` |
+| `darkMode` | `true` / `false`。既定値は `false`。パレットとは独立。 | `toggleDarkMode()` |
+| `locale` | 19 の組み込み `LocaleType`。対応リソースを先に読み込みます。 | `setLocale()` |
+| `locales` | 製品・機能・アプリの翻訳を言語識別子ごとに組み合わせます。 | `loadLocales()` |
+| `region` | 同じ `LocaleType` を使用。明示設定までは UI 言語に追従。 | `setRegion()` |
+| `direction` | `ltr` / `rtl`。既定値は `ltr`。メニューなどの UI のみ。Canvas コンテンツは RTL 未対応。 | `setDirection()` |
+
+<Mermaid chart={"flowchart LR\nA[\"アプリ / Facade\"] --> B[\"ThemeService<br/>パレット + ダーク状態\"]\nB --> C[\"UI<br/>CSS 変数とダーククラス\"]\nB --> D[\"レンダラー<br/>再描画と色変換\"]\nC --> E[\"6 製品と独自拡張\"]\nD --> E"} />
+
+## 完全なパレットからブランドテーマを作る [#brand]
+
+`@univerjs/themes` は `primary`、`gray`、機能色の階調、`loop-color`、`highlight.background` を提供します。組み込みテーマをコピーし、全体構造を維持したまま必要な分岐を上書きします。`setTheme()` はテーマ全体の置換であり、部分オブジェクトを自動補完しません。例では連続した紫の階調を定義します。
+
+組み込みの 7 パレット： `blueTheme`, `darkBlueTheme`, `greenTheme`, `orangeTheme`, `purpleTheme`, `redTheme`, `yellowTheme`.
+
+`defaultTheme` は `blueTheme` の別名です。パレットとダークモードは別々に設定します。設定可能な項目は次のとおりです。
+
+| テーマの項目 | 設定可能な選択肢 |
+| --- | --- |
+| `primary` | ブランド色 **10 段階**：`50`、`100` ～ `900`。 |
+| `gray` | 無彩色 **12 段階**：`0`、`50`、`100` ～ `900`、`1000`。 |
+| `blue` · `red` · `orange` · `yellow` · `green` · `jiqing` · `indigo` · `purple` · `pink` | **9 種類の機能色**。各 10 段階。 |
+| `loop-color` | パレットのトークンを参照する **12** 個の循環色。 |
+| `highlight.background` | **16** 個の背景ハイライト。それぞれ `color` と `alpha` を指定。 |
+
+```typescript title="brand-theme.ts"
+import type { Theme } from '@univerjs/themes';
+import { defaultTheme } from '@univerjs/themes';
+
+export const brandTheme: Theme = {
+  ...defaultTheme,
+  primary: {
+    ...defaultTheme.primary,
+    50: '#F5F3FF', 100: '#EDE9FE', 200: '#DDD6FE', 300: '#C4B5FD',
+    400: '#A78BFA', 500: '#8B5CF6', 600: '#7C3AED', 700: '#6D28D9',
+    800: '#5B21B6', 900: '#4C1D95',
+  },
+};
+```
+
+テーマを選択済みの製品構成に渡します。以下は Sheet コアプリセットとアプリ固有の翻訳キーの例です。他製品は対応するプラグイン構成を使います。
+
+```typescript title="setup.ts"
+import { LocaleType, mergeLocales } from '@univerjs/core';
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core';
+import SheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US';
+import { createUniver } from '@univerjs/presets';
+import { brandTheme } from './brand-theme';
+import '@univerjs/preset-sheets-core/lib/index.css';
+
+export const { univer, univerAPI } = createUniver({
+  theme: brandTheme,
+  darkMode: false,
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(SheetsCoreEnUS, {
+      'sales-report': { generate: 'Generate report', ready: 'Ready for {0}' },
+    }),
+  },
+  presets: [UniverSheetsCorePreset({ container: 'app' })],
+});
+```
+
+<Cards>
+<Card title="テーマビルダーを開く" href="/tools/theme-customizer">
+テーマビルダーでパレット、循環色、ハイライトを編集し、ライト／ダークを切り替えて実際の Sheet と Doc で確認できます。Theme JSON や統合コードもコピーできます。現在のプレビュー対象はこの 2 製品ですが、生成した完全なアプリテーマは他製品でも使用できます。
+</Card>
+</Cards>
+
+## 実行時に切り替え、表示設定へ追従する [#appearance]
+
+`setTheme()` はパレット、`toggleDarkMode()` はダーク状態を変更し、`getCurrentTheme()` と `isDarkMode()` で取得します。`darkBlueTheme` の選択だけではダークフラグは有効になりません。外観変更にエディターの再作成は不要です。
+
+次の関数はシステム設定に追従し、解除関数を返します。手動設定を提供する場合は、そのハンドラーから `toggleDarkMode()` を呼び出せます。
+
+```typescript title="appearance.ts"
+import type { FUniver } from '@univerjs/core/facade';
+import { brandTheme } from './brand-theme';
+
+export function followSystemAppearance(univerAPI: FUniver): () => void {
+  univerAPI.setTheme(brandTheme);
+  const preference = window.matchMedia('(prefers-color-scheme: dark)');
+  const update = () => univerAPI.toggleDarkMode(preference.matches);
+  update();
+  preference.addEventListener('change', update);
+  return () => preference.removeEventListener('change', update);
+}
+```
+
+エディターの設定後に呼び出し、アンマウントやシステム追従終了時に解除関数を実行します。React などでは既存インスタンスを保持し、Facade で外観を更新します。
+
+## 独自プラグインもテーマと言語へ追従させる [#extensions]
+
+DOM 拡張は注入された CSS 変数を使い、ダーククラスに対応するスタイルを用意します。変数はパレット値を保持するため、ダーク状態はコンポーネントのスタイル側でも反映します。
+
+```css title="report-panel.css"
+.report-panel {
+  color: var(--univer-gray-900);
+  background: var(--univer-gray-0);
+  border: 1px solid var(--univer-gray-200);
+}
+
+.univer-dark .report-panel {
+  color: var(--univer-gray-100);
+  background: var(--univer-gray-800);
+  border-color: var(--univer-gray-700);
+}
+```
+
+Canvas 拡張は `ThemeService` から現在のトークンを読み、`ICanvasColorService` から実際の描画色を取得します。以下はテーマ、ダーク、言語変更を購読可能な状態にまとめます。変更時に翻訳と色解決を行い、描画フレームごとの検索や割り当てを避けます。
+
+```typescript title="report-appearance.ts"
+import { Disposable, Inject, LocaleService, ThemeService, toDisposable } from '@univerjs/core';
+import { ICanvasColorService } from '@univerjs/engine-render';
+import { combineLatest, ReplaySubject } from 'rxjs';
+
+export interface IReportAppearance {
+  label: string;
+  accent: string;
+}
+
+export class ReportAppearance extends Disposable {
+  readonly state$ = new ReplaySubject<IReportAppearance>(1);
+
+  constructor(
+    @Inject(ThemeService) theme: ThemeService,
+    @Inject(LocaleService) locale: LocaleService,
+    @ICanvasColorService colors: ICanvasColorService,
+  ) {
+    super();
+    this.disposeWithMe(toDisposable(() => this.state$.complete()));
+    this.disposeWithMe(combineLatest([
+      theme.currentTheme$, theme.darkMode$, locale.currentLocale$,
+    ]).subscribe(() => {
+      this.state$.next({
+        label: locale.t('sales-report.generate'),
+        accent: colors.getRenderColor(theme.getColorFromTheme('primary.600')),
+      });
+    }));
+  }
+}
+```
+
+プラグインの DI に `ReportAppearance` を登録して取得し、ビューや描画コントローラーで `state$` を購読して更新します。利用側が購読を管理し、サービスの所有者が破棄時に `dispose()` を呼びます。Node.js にもテーマと言語のサービスはありますが、ブラウザー CSS は注入しません。
+
+## ダークモード [#dark-mode]
+
+Sheet、Doc、Slide、Relational Table、Canvases、PDF は共通のテーマとダークモードに対応します。以下はローカル標準デモの実際のスクリーンショットで、UI と内容は英語です。変換した表示色は Snapshot に書き戻されず、アプリ外観と PDF ページ処理は別設定です。PDF のローカル検証結果は下記を参照してください。
+
+| 製品 | 共有テーマ | ダークモード | UI 国際化 |
+| --- | --- | --- | --- |
+| Sheet | ✓ | ✓ | ✓ |
+| Doc | ✓ | ✓ | ✓ |
+| Slide | ✓ | ✓ | ✓ |
+| Relational Table (Base) | ✓ | ✓ | ✓ |
+| Canvases (Board) | ✓ | ✓ | ✓ |
+| PDF | ✓ | UI 対応・本文に表示問題あり | ✓ |
+
+<Tabs items={["Sheet", "Doc", "Slide", "Relational Table", "Canvases", "PDF"]}>
+
+<Tab>
+
+![ダーク表示の Sheet 注文表とツールバー](/assets/features/themes/sheet-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![英語コンテンツを含むダーク Doc エディター](/assets/features/themes/doc-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![英語タイトルを含むダーク Slide](/assets/features/themes/slide-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![ダーク Relational Table のレコード](/assets/features/themes/base-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![Canvases のダークモード](/assets/features/themes/board-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![PDF のダークモードとページ](/assets/features/themes/pdf-dark.jpg)
+
+<Callout type="warning">
+現在のローカル標準デモでは、PDF 本文がダークモードで見えにくくなる問題があり、ライトモードでは正常に表示されます。この画像はダークモードを示します。PDF 本文のダーク対応には修正と検証が必要です。
+</Callout>
+
+</Tab>
+
+</Tabs>
+
+言語の対応範囲は選択した製品と導入済み機能のリソースに依存します。パレット設定は製品登録、言語読み込み、スタイルシートの import を代替しません。
+
+## 19 の組み込み言語・地域オプション [#supported-locales]
+
+`LocaleType` は、中国語の簡体字・繁体字・香港繁体字を含む次の 19 オプションを提供します。6 製品の主要 UI パッケージに対応リソースがあり、拡張機能の対応範囲は選択したパッケージによって異なります。インポートには言語パックのタグ、初期化や Facade の設定には対応する列挙値を使います。
+
+<Callout type="warning">
+**RTL の対応範囲：** アラビア語（`ar-SA`）などの言語パックは、メニューやメッセージなどの UI 文字列を翻訳します。`direction: 'rtl'` は現在、メニューなどの UI の方向調整にのみ対応します。**Canvas コンテンツ領域の RTL レイアウトと編集は未実装です。**
+</Callout>
+
+| 言語（現地名） | 言語パックのタグ | 設定値 |
+| --- | --- | --- |
+| English | `en-US` | `LocaleType.EN_US` |
+| 简体中文 | `zh-CN` | `LocaleType.ZH_CN` |
+| 繁體中文 | `zh-TW` | `LocaleType.ZH_TW` |
+| 繁體中文（香港） | `zh-HK` | `LocaleType.ZH_HK` |
+| 日本語 | `ja-JP` | `LocaleType.JA_JP` |
+| 한국어 | `ko-KR` | `LocaleType.KO_KR` |
+| Tiếng Việt | `vi-VN` | `LocaleType.VI_VN` |
+| Bahasa Indonesia | `id-ID` | `LocaleType.ID_ID` |
+| Français | `fr-FR` | `LocaleType.FR_FR` |
+| Deutsch | `de-DE` | `LocaleType.DE_DE` |
+| Español | `es-ES` | `LocaleType.ES_ES` |
+| Català | `ca-ES` | `LocaleType.CA_ES` |
+| Italiano | `it-IT` | `LocaleType.IT_IT` |
+| Português (Brasil) | `pt-BR` | `LocaleType.PT_BR` |
+| Polski | `pl-PL` | `LocaleType.PL_PL` |
+| Slovenčina | `sk-SK` | `LocaleType.SK_SK` |
+| Русский | `ru-RU` | `LocaleType.RU_RU` |
+| فارسی | `fa-IR` | `LocaleType.FA_IR` |
+| العربية | `ar-SA` | `LocaleType.AR_SA` |
+
+**製品を横断する国際化リソース：** 現在の 1.2.0 ソースでは、Web SDK と Pro エディターの **92 モジュール**に **1,751 個の言語リソースエントリーファイル**があり、共通 UI、製品エディター、数式・数値書式・コメントなどをカバーします。モジュール単位で保守・公開され、アプリは使う機能と対象言語を組み合わせて読み込みます。
+
+集計対象は両ソースツリーの `packages/*/src/locale` 直下にある言語エントリー `.ts` ファイルです。テストと生成サブディレクトリは含みません。すべてのモジュールが 19 オプションを完全にカバーするという意味ではありません。一部モジュールには追加言語もあります。共通の組み込みオプションは [`LocaleType`](/reference/enums/locale-type) を参照してください。
+
+## プラグインごとに言語リソースを組み合わせる [#locales]
+
+`LocaleService` は言語識別子ごとにリソースを管理し、名前空間とキーパスで文字列を解決します。`mergeLocales()` はプリセット、機能、業務翻訳を組み合わせます。`loadLocales()` は動的にマージし、`setLocale()` が言語を選択します。切り替えだけで言語パックがダウンロードされることはありません。
+
+<Mermaid chart={"flowchart LR\nA[\"製品 / 機能 / アプリの言語パック\"] --> B[\"mergeLocales / loadLocales\"] --> C[\"LocaleService<br/>名前空間で検索\"] --> D[\"メニュー、メッセージ、プラグイン表示\"]"} />
+
+先ほどの Sheet に中国語リソースを追加し、UI を中国語、地域慣習をドイツに明示設定します。`LocaleType.ZH_CN` の値は `zhCN` です。`zh-CN` は言語パックのファイル名やドキュメント URL の形式です。
+
+```typescript title="locales.ts"
+import type { FUniver } from '@univerjs/core/facade';
+import { LocaleType, mergeLocales } from '@univerjs/core';
+import SheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN';
+
+export function switchInterface(univerAPI: FUniver): void {
+  univerAPI.loadLocales(LocaleType.ZH_CN, mergeLocales(SheetsCoreZhCN, {
+    'sales-report': { generate: '生成报告', ready: '已为 {0} 就绪' },
+  }));
+  univerAPI.setLocale(LocaleType.ZH_CN);
+  univerAPI.setRegion(LocaleType.DE_DE);
+  univerAPI.setDirection('ltr');
+}
+```
+
+`sales-report.generate` のようなキーは所有するプラグインで管理します。動的引数には文全体の翻訳と `{0}`、`{1}` を使います。例は `LocaleService.t('sales-report.ready', 'Alex')` です。モジュール初期化時に翻訳をキャッシュしないでください。リソース初期化後にキーがない場合、現在の実装はキー名を返します。UI 言語の切り替えは本文の翻訳や Unit の名前変更を行いません。
+
+## 言語、地域、コンテンツの書式を分ける [#region]
+
+| 層 | 影響 |
+| --- | --- |
+| UI `locale` | メニュー、メッセージ、プラグイン表示と、文書分かち書きなど一部の言語処理。 |
+| `region` | 対応する通貨操作、コメント日時や統計数値の表示。金額換算やタイムスタンプ変更は行いません。 |
+| 内容の数値書式 | 保存済みの Sheet 数値／日付書式はセル設定と該当する内容 locale に従い、地域変更で一括上書きされません。 |
+| `direction` | UI 方向を独立管理し、言語や地域を変えても自動変更されません。 |
+
+地域未指定時は対応する既定値を使います。`region` を明示指定すれば UI 言語とは独立して選べます。タイムゾーン設定ではありません。現在の RTL 対応はメニューなどの UI の方向調整に限られます。Canvas コンテンツ領域の右から左へのレイアウトと編集は未実装です。
+
+## コンテンツテーマとアプリテーマの境界 [#content-themes]
+
+アプリテーマはワークベンチと描画の既定値を制御し、保存済みのセル背景、文字、図形、PDF 注釈、明示指定したチャート色を書き換えません。範囲／表テーマ、Slide 配色、Board 内容テーマは製品ごとの公開 API で管理します。
+
+Pro チャートは独立した `IEchartTheme` レジストリを持ち、Sheet、Doc、Slide、Board のチャートで共有します。アプリの `Theme` は直接渡せません。対応するチャートプラグインを導入したホストで Facade を import して完全な定義を登録します：
+
+```typescript title="chart-theme.ts"
+import type { IEchartTheme } from '@univerjs-pro/engine-chart';
+import type { FUniver } from '@univerjs/core/facade';
+import { UniverTheme1 } from '@univerjs-pro/engine-chart';
+import '@univerjs-pro/engine-chart/facade';
+
+export function registerBrandChartTheme(univerAPI: FUniver): void {
+  const chartTheme: IEchartTheme = {
+    ...UniverTheme1,
+    themeName: 'sales-brand',
+    theme: {
+      ...UniverTheme1.theme,
+      color: ['#7C3AED', '#0EA5E9', '#10B981', '#F59E0B'],
+    },
+  };
+  univerAPI.registerTheme('sales-brand', chartTheme);
+}
+```
+
+作成時にチャート builder の `setTheme('sales-brand')` で選択します。明示的なチャートパレットが系列色を上書きする場合があります。
+
+同じブラウザー文書内では外観を統一してください。現在の UI 変数と `univer-dark` は文書ルートに書き込まれます。複数エディターは外観を共有するか、iframe など別文書で分離します。コンテナーを分けるだけでは CSS テーマは分離されません。
+
+関連資料：[テーマとダークモード](/guides/fundamentals/ui/themes) · [国際化の詳細](/guides/sheets/getting-started/i18n) · [プラグインと Facade](/docs/features/shared/customization) · [チャート](/docs/features/charts)
+
+[機能一覧へ戻る](/docs/features)

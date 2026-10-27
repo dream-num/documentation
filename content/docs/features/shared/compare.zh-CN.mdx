@@ -1,0 +1,85 @@
+---
+title: "内容比较"
+description: "比较两个内容版本，按产品模型查看新增、删除和修改。"
+icon: GitCompareArrows
+---
+
+内容比较（Compare）回答“两个版本具体改了什么”。它对已经还原好的两份 Unit 快照进行语义比较，按单元格、段落、页面或记录等内容对象输出差异，适合历史版本、Agent 结果和 Worktree 审阅。
+
+## 按产品理解差异
+
+| 产品 | 可比较的内容示例 |
+| --- | --- |
+| Sheet | 工作表、单元格值与公式、行列、样式及已接入的图表等资源。 |
+| Doc | 段落与文字、文本样式、表格、内容块和绘图资源。 |
+| Slide | 页面、元素、位置与样式、布局和主题。 |
+| Base | 数据表、字段、记录和视图。 |
+| Board | 页面、元素及相关资源。 |
+
+差异分为新增、删除和修改；视口缩放、选区等临时界面状态不作为内容修改。具体覆盖范围由产品比较适配器决定，当前不包含 PDF。
+
+## Snapshot 与 changeset 如何共同参与比较
+
+Snapshot 保存某一修订号的完整内容状态；mutation 描述一次具体的内容变更，changeset 将这些 mutation 组织为有序提交。历史记录负责保存和还原版本，Compare 负责回答还原后的两个版本之间有什么差异。
+
+<Mermaid chart={"flowchart LR\n    S[\"基础 Snapshot\"]\n    CA[\"应用 changeset A\"]\n    CB[\"应用 changeset B\"]\n    A[\"版本 A\"]\n    B[\"版本 B\"]\n    C[\"按产品比较\"]\n    D[\"新增 · 删除 · 修改\"]\n    S --> CA --> A\n    S --> CB --> B\n    A --> C\n    B --> C\n    C --> D"} />
+
+比较历史版本或 Worktree 时，先读取基础 Snapshot，按顺序应用后续 changeset，得到目标修订号的完整内容，再交给产品比较适配器。可用的 changeset 还可以帮助识别行列插入、删除等结构变化，改善前后内容的对齐；只有两份快照时，也可以进行快照比较。
+
+比较结果遵循产品的内容模型，例如 Sheet 的单元格和行列、Doc 的段落、Slide 与 Board 的元素、Base 的字段和记录。临时选区、缩放等界面状态不作为内容修改。Compare 本身只读，恢复版本与合入 Worktree 是独立操作。
+
+## 连接 Server SDK 与 AI SDK
+
+**Server SDK** 提供版本所需的 Snapshot、changeset 和修订号，并还原待比较的内容。应用将两侧内容和可用历史交给 Compare，得到结构化差异，再在 Web 端展示审阅界面。版本管理见[历史记录](/docs/features/shared/history)，服务扩展见[协同服务扩展](/server/collaboration/extensions)。
+
+**AI SDK** 在 Worktree 中加载和修改内容、提交 Agent 的结果。应用可以把结构化差异用于 Agent 检查与后续处理，也可以让人类在同一份可视化比较结果中审阅，再决定是否合入。参见 [Agent 的 Worktree 流程](/ai/worktree)与[内容操作](/ai/content-operations)。
+
+## 五个产品的比较示例
+
+以下示例使用同一套 Northstar 发布计划：先创建并提交完整的基准版，再在 Worktree 中进行一轮编辑，最后打开 Compare 查看前后差异。
+
+差异列表以**蓝色**标识修改、**绿色**标识新增、**红色**标识删除。左右只读面板展示前后内容；点击图片可放大查看。
+
+### Sheet：预算与行结构
+
+更新研究与编辑器的预测预算，删除 Legacy tooling，新增 Accessibility QA，并重新计算合计。既能查看数值与公式结果的变化，也能结合行结构定位对应内容。
+
+![Sheet：预算与行结构](/assets/features/compare/sheets.jpg)
+
+### Doc：发布计划与段落
+
+更新发布日期、试点团队数和目标完成率；删除旧审批说明，加入新的质量检查要求。上下文保留，便于逐段审阅修改。
+
+![Doc：发布计划与段落](/assets/features/compare/docs.jpg)
+
+### Slide：指标与页面元素
+
+更新三个指标卡片，移除旧审批区块并加入质量检查区块。比较同一页中的文字与元素变化，而不是将整页作为一张新图片。
+
+![Slide：指标与页面元素](/assets/features/compare/slides.jpg)
+
+### Base：字段与任务记录
+
+**对应产品：** [Relational Table（关系型表格）](/docs/features/relational-table)，在 SDK 与 API 中使用 Base 命名。
+
+更新任务进度、状态和日期，重命名日期字段，删除旧审批记录并新增无障碍检查任务。按数据表、字段和记录查看差异。
+
+![Base：字段与任务记录](/assets/features/compare/bases.jpg)
+
+### Board：流程与画板元素
+
+**对应产品：** [Canvases（画布）](/docs/features/canvas)，在 SDK 与 API 中使用 Board 命名。
+
+更新试点规模与发布日期，调整评审节点位置，用质量检查卡替换旧审批卡。结合画布上下文查看内容和布局变化。
+
+![Board：流程与画板元素](/assets/features/compare/boards.jpg)
+
+## 获取与展示结果
+
+注册对应产品的历史比较插件及 Facade 扩展后，使用 `compareUnitData()` 获取结果；需要反复筛选和分页时，用 `prepareUnitComparison()` 创建比较会话，再调用 `query()`。
+
+先展示摘要，再按工作表、页面或数据表定位明细；根据需要请求变更列表或完整前后值。默认明细有数量限制，不能把第一页结果当作全部差异。检查返回的诊断信息和覆盖状态，再决定如何展示。
+
+完整接口见 [Unit Comparison API](/reference/facade/unit-comparison)。关联流程见[历史记录](/docs/features/shared/history)和 [Worktree](/docs/features/shared/worktree)。
+
+[返回功能总览](/docs/features)

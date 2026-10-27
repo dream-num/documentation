@@ -1,0 +1,188 @@
+---
+title: "プラグインと Facade 拡張"
+description: "必要な機能を組み合わせ、公開 API でコンテンツと業務 UI を拡張します。"
+icon: Puzzle
+---
+
+Univer はプラグインで製品と機能を構成し、Facade API でコンテンツ操作をアプリケーションに公開します。必要なエンジン、機能、UI を選ぶほか、業務ロジックをプラグインにまとめ、型付きのメソッドとしてアプリや Agent ツールから呼び出せます。
+
+## 必要なコンテンツ機能を組み合わせる [#composition]
+
+Preset は導入を簡単にするプラグインの組み合わせです。Plugin モードでは製品、機能、設定をホストが明示的に選択します。どちらも同じプラグイン機構を使用します。
+
+| 層 | 役割 | 主な構成要素 |
+| --- | --- | --- |
+| 製品とコンテンツモデル | Unit、コンテンツ構造、基本操作を管理する。 | Sheet、Doc、Slide、Base、Board、PDF の製品プラグイン。 |
+| 機能プラグイン | 特定分野の機能を追加する。 | 数式、フィルター、チャート、コメントなど。 |
+| UI と描画プラグイン | 表示と操作の入口を提供する。 | Canvas 描画、メニュー、ツールバー、ショートカット、コンポーネント。 |
+| Facade 拡張 | 導入済みの機能を公開 API として提供する。 | ワークブック、範囲、文書、オブジェクトの操作と意味のあるイベント。 |
+
+製品ロジックと UI を分離することで、対応するコンテンツ機能を Node.js、Worker、ブラウザーで再利用できます。Headless ホストは必要なコンテンツプラグインを登録します。メニュー、DOM、対話操作の API には対応する UI 環境が必要です。
+
+## 依存関係、ライフサイクル、リソースの所有者 [#coordination]
+
+プラグインは `@DependentOn(...)` で直接の依存関係を宣言し、ランタイムが依存関係と生成順序を調整します。未登録の依存プラグインは既定の設定で登録されます。独自の設定が必要な場合は、依存先を先に設定して登録してください。パッケージのインストールや、スタイル、ロケール、Facade エントリー、Worker の読み込みは別途必要です。
+
+プラグイン内部では依存性注入（DI）により Service、Controller、モデルを公開サービス識別子で接続します。対応する設定や注入境界でプラットフォーム実装を置き換えられるため、業務ロジックがすべての依存先を生成・管理する必要はありません。
+
+| フック | 適した処理 |
+| --- | --- |
+| `onStarting()` | 依存関係、コマンド、コントローラーを登録する。未作成の Unit や DOM を参照しない。 |
+| `onReady()` | 対応するコンテンツの準備後、モデルに依存する処理を初期化する。 |
+| `onRendered()` | レンダラー、Canvas、DOM が必要な拡張を初期化する。 |
+| `onSteady()` | 初期表示に必須ではない処理を後回しにする。 |
+
+コマンド登録、イベント購読、ショートカット、描画モジュールは所有者が管理します。disposable を返す登録には `disposeWithMe()` を使い、プラグインやコントローラーとともに解放します。`mergeMenu()` の戻り値は現在 `void` であり、disposable ではありません。
+
+## 異なる入口でコンテンツ変更の仕組みを共有する [#commands]
+
+ツールバー、ショートカット、業務 API は同じ業務コマンドを呼び出せます。Agent ホストも必要な機能を導入したうえで同じ入口を再利用できます。コマンドシステムは業務上の意図、永続化する変更、一時的な操作を分離します。
+
+| 種類 | 役割 | 例 |
+| --- | --- | --- |
+| `COMMAND` | 対象を検証し、業務手順、Mutation、Operation を組み立てる。 | 売上レポートの書き込み、行の削除。 |
+| `MUTATION` | 明示的でシリアライズ可能な引数でモデルを変更し、再生や対応する共同編集処理に利用する。 | セル内容の更新、行の挿入。 |
+| `OPERATION` | 一時的な操作状態を変更する。 | 選択範囲、スクロール位置、パネルの変更。 |
+
+<Mermaid chart={"flowchart TD\n    U[\"ツールバー / ショートカット\"] --> C[\"Command<br/>検証と処理の構成\"]\n    A[\"アプリ / Agent ツール\"] --> F[\"Facade API\"]\n    F --> C\n    C --> M[\"Mutation<br/>コンテンツ変更\"]\n    M --> D[\"コンテンツモデル\"]\n    D --> R[\"描画 / 計算\"]\n    M -. \"対応する連携機構\" .-> H[\"元に戻す・やり直す / 共同編集 / 履歴\"]"} />
+
+たとえば `FRange.setValues()` は `SetRangeValuesCommand` を呼び出し、そのコマンドが `SetRangeValuesMutation` と取り消し用データを準備します。異なる入口でも同じ実行経路を通るため、既存の検証、インターセプター、変更処理を再利用できます。図の取り消し、共同編集、履歴にはそれぞれの仕組みが必要です。Mutation を登録するだけで自動的に利用できるわけではありません。
+
+## プラグインの機能を Facade API として公開する [#facade]
+
+Facade はコンテンツのオブジェクトを扱う公開インターフェースを提供し、内部サービスの検索やコマンド引数の組み立てを隠します。既存の Facade メソッドを組み合わせることも、独自の業務コマンドを呼び出すこともできます。
+
+次の例では `FUniver` に `generateSalesReport()` を追加します。コマンドは次節で実装します。各部分が実行時メソッド、実行時登録、TypeScript の型を担当します。
+
+### sales-report.facade.ts
+
+```typescript
+import { FUniver } from '@univerjs/core/facade';
+import type { ISalesReportParams } from './sales-report.plugin';
+import { GenerateSalesReportCommand } from './sales-report.plugin';
+
+export interface IFUniverSalesReport {
+  generateSalesReport(params: ISalesReportParams): Promise<boolean>;
+}
+
+export class FUniverSalesReport extends FUniver implements IFUniverSalesReport {
+  override generateSalesReport(params: ISalesReportParams): Promise<boolean> {
+    return this._commandService.executeCommand(GenerateSalesReportCommand.id, params);
+  }
+}
+
+FUniver.extend(FUniverSalesReport);
+
+declare module '@univerjs/core/facade' {
+  interface FUniver extends IFUniverSalesReport {}
+}
+```
+
+`FUniver.extend()` が実行時にメソッドを追加し、モジュール拡張は型だけを追加します。利用側は side-effect import で拡張ファイルを実行する必要があります。クラスの export やプラグイン登録だけでは、別の Facade エントリーは実行されません。パッケージでは専用の `/facade` サブパスを公開し、`package.json#sideEffects` で登録処理を保持できます。
+
+この方式は `extend()` を明示的に備える Facade クラスに限定してください。公開されているクラスがすべて mixin に対応するわけではありません。メソッドには明確な業務名を使い、既存 API や別の拡張との重複を避けます。
+
+## 例：アプリと Agent で同じ売上レポートを作る [#example]
+
+この最小プラグインは、指定した Sheet の `A1:D5` を英語の売上データ、集計式、ヘッダースタイルで上書きします。ワークブックとワークシートの ID を明示的に受け取り、選択範囲やフォーカスに依存しません。
+
+対象とサイズを確認してから既存の `SetRangeValuesCommand` を呼び出し、コンテンツ変更と取り消し／やり直しの処理を再利用します。プラグインは `onStarting()` でコマンドを登録し、disposable を管理します。固定データはデモ用です。実際のアプリでは検証済みの業務入力に置き換えられます。
+
+![売上レポートプラグインの出力：地域別データと計算済みの合計](/assets/features/customization/sales-report.png)
+
+出力例。読みやすいように背景色、数値の表示形式、行の高さ、列幅を調整しています。
+
+### sales-report.plugin.ts
+
+```typescript
+import type { ICellData, ICommand, Workbook } from '@univerjs/core';
+import {
+  CommandType, DependentOn, ICommandService, Inject, Injector,
+  IUniverInstanceService, Plugin, UniverInstanceType,
+} from '@univerjs/core';
+import { SetRangeValuesCommand, UniverSheetsPlugin } from '@univerjs/sheets';
+
+export interface ISalesReportParams {
+  unitId: string;
+  subUnitId: string;
+}
+
+export const GenerateSalesReportCommand: ICommand<ISalesReportParams> = {
+  id: 'sales-report.command.generate',
+  type: CommandType.COMMAND,
+  handler: (accessor, params) => {
+    if (!params) return false;
+    const sheet = accessor.get(IUniverInstanceService)
+      .getUnit<Workbook>(params.unitId, UniverInstanceType.UNIVER_SHEET)
+      ?.getSheetBySheetId(params.subUnitId);
+    if (!sheet || sheet.getRowCount() < 5 || sheet.getColumnCount() < 4) return false;
+
+    const value: ICellData[][] = [
+      ['Region', 'Q1', 'Q2', 'H1 Total'].map((v) => ({
+        v, t: 1, s: { bg: { rgb: '#17324D' }, cl: { rgb: '#FFFFFF' }, bl: 1 },
+      })),
+      [{ v: 'East', t: 1 }, { v: 128000, t: 2 }, { v: 142000, t: 2 }, { f: '=SUM(B2:C2)' }],
+      [{ v: 'West', t: 1 }, { v: 96000, t: 2 }, { v: 118000, t: 2 }, { f: '=SUM(B3:C3)' }],
+      [{ v: 'North', t: 1 }, { v: 110000, t: 2 }, { v: 125000, t: 2 }, { f: '=SUM(B4:C4)' }],
+      [{ v: 'Total', t: 1 }, { f: '=SUM(B2:B4)' }, { f: '=SUM(C2:C4)' }, { f: '=SUM(D2:D4)' }],
+    ];
+
+    return accessor.get(ICommandService).executeCommand(SetRangeValuesCommand.id, {
+      ...params,
+      range: { startRow: 0, endRow: 4, startColumn: 0, endColumn: 3 },
+      value,
+    });
+  },
+};
+
+@DependentOn(UniverSheetsPlugin)
+export class SalesReportPlugin extends Plugin {
+  static override pluginName = 'SALES_REPORT_PLUGIN';
+  static override type = UniverInstanceType.UNIVER_SHEET;
+
+  constructor(
+    _config: undefined,
+    @Inject(Injector) protected override readonly _injector: Injector,
+    @ICommandService private readonly _commands: ICommandService,
+  ) { super(); }
+
+  override onStarting(): void {
+    this.disposeWithMe(this._commands.registerCommand(GenerateSalesReportCommand));
+  }
+}
+```
+
+[Sheet 導入ガイド](/guides/sheets/getting-started/installation)に従って製品と数式機能を設定してから、業務プラグインと Facade 拡張を読み込みます。ここでの `univer` は設定済みのインスタンスです。Node.js の設定は [Headless Web SDK](/guides/sheets/getting-started/node) を参照してください。
+
+```typescript
+import { FUniver } from '@univerjs/core/facade';
+import '@univerjs/sheets/facade';
+import '@univerjs/engine-formula/facade';
+import { SalesReportPlugin } from './sales-report.plugin';
+import './sales-report.facade';
+
+univer.registerPlugin(SalesReportPlugin);
+const univerAPI = FUniver.newAPI(univer);
+const workbook = univerAPI.createWorkbook({ name: 'Quarterly Sales' });
+const worksheet = workbook.getActiveSheet();
+const target = { unitId: workbook.getId(), subUnitId: worksheet.getSheetId() };
+
+const generated = await univerAPI.generateSalesReport(target);
+if (!generated) throw new Error('Sales report could not be generated');
+await univerAPI.getFormula().onCalculationResultApplied();
+console.log(worksheet.getRange('D5').getValue()); // 719000
+```
+
+コマンドの成功は書き込み完了を意味します。数式の値を読む前に計算結果の適用を待ちます。この例の `D5` は **719000** です。
+
+アプリのボタンはクリックハンドラーから `generateSalesReport(target)` を呼べます。Agent のツールハンドラーも、Headless ホストに同じプラグインと Facade 拡張を導入すれば同じメソッドを使えます。業務動作と対象は共通で、UI は入口とフィードバックを担当します。独自プラグインの導入だけでは Agent ツールには公開されません。ツールの登録と Unit の認可はアプリが担当します。
+
+## 実装上の境界と関連資料 [#boundaries]
+
+- **既存のコンテンツコマンドを再利用する**：本例は `SetRangeValuesCommand` を使います。新しい Mutation には逆操作や対応する共同編集連携が必要です。新しい永続リソースを追加する場合はシリアライズも実装し、モデルを直接変更しないでください。
+- **実行・計算・送信を区別する**：複数の Facade 呼び出しは自動的な原子トランザクションではありません。本例は一度の範囲書き込みです。共同編集ホストは Runtime の契約に従って変更を送信し、確認する必要があります。
+- **環境に合わせて構成する**：コンテンツと UI のプラグインを分けて導入し、Univer の同一リリース系列のパッケージは同じバージョンに揃えます。UI 文言はロケールリソースで管理し、Agent の入口ではアプリ側で認可と引数検証を行います。
+
+関連資料：[Univer アーキテクチャ](/blog/univer) · [Facade の導入](/guides/sheets/getting-started/facade) · [Facade API リファレンス](/reference/facade) · [UI カスタマイズ](/guides/sheets/ui/overview) · [Agent と自動化](/docs/features/shared/agents)
+
+[機能一覧へ戻る](/docs/features)

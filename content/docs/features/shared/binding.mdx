@@ -1,0 +1,110 @@
+---
+title: "Two-way binding"
+description: "Use Server SDK to connect HTML applications to spreadsheet data, formula results, and collaborative updates."
+icon: ArrowLeftRight
+---
+
+<Callout type="warning" title="Experimental feature">
+  Two-way binding is experimental. Future releases will include breaking changes; APIs and integration patterns may change.
+</Callout>
+
+Univer Server SDK connects ordinary HTML, CSS, and JavaScript pages to Sheet. The spreadsheet holds data and formulas; the page provides forms, metrics, charts, and business interactions. Users can change inputs from either side and receive updates on the other. Use it to turn spreadsheet models into quote calculators, dashboards, or interactive business applications.
+
+## Example: an application beside its spreadsheet
+
+The Project Summit example exposes growth, offer price, and cash-payment mix as controls on the left, with the full financial workbook on the right. Changing assumptions updates related formulas, metric cards, and charts. Users can open the spreadsheet to inspect inputs and calculations.
+
+![Project Summit: business controls, metrics, and charts beside a linked Univer Sheets financial model](/assets/features/binding/project-summit-app-sheets.png)
+
+The screenshot illustrates a local browser model. Shared editing and persistence use the collaboration integration below. Click the image to enlarge it.
+
+## One Sheet, multiple interfaces
+
+The HTML view communicates with its host through the page runtime. Binding Engine reads and writes real Sheet content using its own Headless Univer instance. Univer SDK handles formulas and collaboration, while the binding layer delivers changed values to the page.
+
+<Mermaid chart={"flowchart LR\n    P[\"HTML application<br/>Controls · metrics · charts\"]\n    E[\"Host + Binding Engine<br/>Headless Sheet\"]\n    S[\"Collaboration service<br/>Same Sheet Unit\"]\n    T[\"Sheet editor\"]\n    P <-->|\"Read · write · subscribe\"| E\n    E <-->|\"SDK collaboration\"| S\n    T <-->|\"Edit · synchronize\"| S"} />
+
+Direct spreadsheet edits and collaborative changes from other users also refresh bound pages. One HTML view can access multiple authorized Units. The host loads one Engine per Unit, and each Engine owns an independent Headless Univer instance.
+
+## Declare bindings in HTML
+
+Declare data references on elements to synchronize text and controls automatically. Cell references use `unitId:sheetId:A1`. Encode each ID separately with `encodeURIComponent` and use a stable worksheet ID.
+
+| Attribute | Purpose |
+| --- | --- |
+| `data-univer-cell-text` | Display a cell value as element text. |
+| `data-univer-cell-model` | Synchronize a cell and a form control in both directions. |
+| `data-univer-cell-subscribe` | Declare a cell subscription for custom JavaScript rendering. |
+| `data-univer-range-subscribe` | Declare a rectangular-range subscription for charts, lists, and other matrix consumers. |
+
+For example, put unit price in `B2`, quantity in `B3`, and the formula `=B2*B3` in `B4`. This template fragment connects inputs and the total to those cells:
+
+```html
+<label>
+  Unit price
+  <input type="number" min="0" step="0.01"
+    data-univer-cell-model="book:sheet:B2" />
+</label>
+<label>
+  Quantity
+  <input type="number" min="0" step="1"
+    data-univer-cell-model="book:sheet:B3" />
+</label>
+<p>Total: <span data-univer-cell-text="book:sheet:B4"></span></p>
+```
+
+Replace `book` and `sheet` with real, authorized IDs and load the template through Renderer. Formulas are defined in Sheet; the page reads calculated results. Text, number and range inputs, checkboxes, textareas, and single-select controls bind according to their value types.
+
+## Extend charts and interactions with JavaScript
+
+The page runtime provides `window.univerBinding` before template scripts execute. Declare a chart's range with `data-univer-range-subscribe`, then use `subscribeRangeById(elementId, callback)` to receive a matrix and update the chart. Single-value components use `subscribeCellById()`.
+
+Use `getCellState()` / `getRangeState()` for one-shot reads, `setCellValue()` for scalar writes, and `insertRowsWithValues()` to insert and fill rows. Subscriptions deliver current state first, then actual value changes. Local edits, collaborative changes, and applied formula results can refresh them.
+
+References read fixed coordinates and do not follow an original record when rows or columns are inserted or deleted. Scalar writes replace existing formulas or rich text, so bind business-input cells.
+
+## Connect the host and Agent
+
+The application supplies a container, an HTML template, and `loadEngine`. The loader authorizes Unit access, configures collaboration, and returns a loaded Engine. Renderer owns the isolated page, messaging, and the lifecycle of delivered Engines. This entry point accepts those three inputs:
+
+```ts
+import {
+  renderHtmlView,
+  type RenderHtmlViewOptions,
+} from '@univerjs-labs/html-view-renderer/render';
+
+export function createPreview(
+  container: HTMLElement,
+  html: string,
+  loadEngine: RenderHtmlViewOptions['loadEngine'],
+) {
+  return renderHtmlView({ container, html, loadEngine });
+}
+```
+
+Template generation, source editing, file storage, and business navigation belong to the application. An Agent can generate HTML with binding declarations that reuse Sheet data and calculation rules. Open `view.inspect.open()` to inspect Unit → Sheet → reference → page-element relationships.
+
+The host retains collaboration credentials, and the server enforces access. Keep Sheet UI and Headless Engine in separate JavaScript environments, such as separate pages or iframes. The current binding packages focus on Sheet.
+
+## Separate local updates from save acknowledgement
+
+| Operation | Meaning |
+| --- | --- |
+| Page write completes | The local operation has executed; server acknowledgement may still be pending. |
+| `await view.flush()` | Submit control drafts and wait for earlier writes and collaboration acknowledgement, then continue editing. |
+| `await view.prepareToLeave()` | Pause editing and save. Leave after success, or call `view.resume()` if navigation is canceled. |
+| `view.dispose()` | Release connections, Engines, and subscriptions; this does not save automatically. |
+
+Subscriptions refresh displayed values after formula results are applied. Keep the page alive after a save failure and retry saving. A completed page write alone does not mean the data is saved.
+
+## Continue integrating
+
+- [SDK repository and overview](https://github.com/dream-num/univer-data-binding-sdk)
+- [Binding Engine API](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/binding-engine/README.md)
+- [HTML binding attributes](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/html-view/README.md)
+- [Renderer integration](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/html-view-renderer/README.md)
+- [Page JavaScript API](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/html-view-renderer/docs/javascript-api.md)
+
+Related capabilities: [headless and server calculation](/docs/features/shared/server-calculation) · [realtime collaboration](/docs/features/shared/collaboration) · [Agents and automation](/docs/features/shared/agents).
+
+[Back to all features](/docs/features)

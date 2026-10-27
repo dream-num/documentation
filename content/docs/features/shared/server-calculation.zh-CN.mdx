@@ -1,0 +1,80 @@
+---
+title: "无头与服务端计算"
+description: "在 Node.js 中读写内容，结合 Rust 预计算与数组展开，为应用和 Agent 提供结构化与视觉结果。"
+icon: Calculator
+---
+
+Univer 将内容模型、计算与界面解耦。无头运行是在 Node.js 中执行内容运行时；服务端计算则通过 `univer-rs` 承担密集计算与文件转换。应用与 Agent 可以围绕同一份 Snapshot 组合使用这些能力。
+
+**产品名称：** [Relational Table（关系型表格）](/docs/features/relational-table) 对应 SDK/API 中的 `Base`；[Canvases（画布）](/docs/features/canvas) 对应 `Board`。
+
+## 不注册 UI 的 Node.js 运行时
+
+按需注册核心、产品模型、计算与 Facade 插件，不注册菜单、工具栏等依赖 DOM 的 UI 插件，即可在 Node.js 中加载和处理 Sheet、Doc、Slide、Base、Board、PDF 内容。Sheets、Docs 可从 Node 预设开始，其他产品按对应的插件组合接入。
+
+| 能力 | 可以完成什么 |
+| --- | --- |
+| 加载与解析 | 加载快照，读取和检查单元格、段落、页面、对象、记录等内容与结构。 |
+| 计算 | 执行公式和数组计算、刷新透视表、生成数字格式的显示结果。 |
+| 变更 | 通过 Facade API 编辑内容、调整结构，保存快照或提交修改。 |
+| 文件处理 | 组合 Server SDK 转换模块，完成批量导入、处理与导出。 |
+| 视觉验证 | 接入 Render Runtime，生成截图并检查布局，为 Agent 提供视觉结果。 |
+
+内容读写可以直接在 Node.js 中完成。截图与布局检查由单独配置的渲染运行时提供；CLI 的 Render Runtime 可调度无界面浏览器，输出 PNG 和布局检查结果。
+
+## 前端即时计算，服务端按版本计算 [#服务端预计算前端快速展示]
+
+前端与服务端都具备公式引擎。前端响应用户编辑，服务端在生成快照或处理文件时，针对确定的内容版本计算。
+
+- **编辑时**：前端在本地增量计算并即时展示结果，也可通过 Worker 执行；协同服务记录并同步内容修改。
+- **生成快照时**：按服务端快照策略触发保存流程，取得本次内容版本，由 `univer-rs` 计算，再将该版本的内容与计算结果一起保存。
+- **再次打开时**：前端复用快照中有效的计算结果，补齐之后的修改并继续计算，减少重复的全量计算。
+
+<Mermaid chart={"flowchart LR\n    F[\"前端编辑<br/>即时计算\"]\n    C[\"内容同步<br/>已确认修改\"]\n    R[\"Rust 计算<br/>内容版本 N\"]\n    S[\"保存快照<br/>saveSnapshot\"]\n    F <--> C\n    C -->|\"生成快照时\"| R\n    R --> S"} />
+
+**修改持续同步；服务端计算在生成快照时触发，结果与对应的内容版本一起保存。**
+
+首次加载可根据已保存的结果选择计算策略：
+
+- `WHEN_EMPTY`：复用已保存的公式值，只计算缺失结果。
+- `NO_CALCULATION`：初始化时不计算，由应用提供计算结果。
+- `FORCED`：当已有结果需要刷新时，重新计算全部公式。
+
+这些选项控制首次加载。后续编辑由前端继续计算；服务端在生成相应版本快照或处理文件时按需计算。配置见[公式文档](/guides/sheets/features/core/formula)，同步机制见[协同总览](/server/collaboration/overview)，文件处理见[导入与导出](/docs/features/shared/file-conversion)。
+
+## 数组公式的计算与展开
+
+在已支持的函数与格式范围内，Rust 按 Excel 的数组公式与溢出规则完成计算和展开。返回数据包含锚点、展开范围及每个单元格的结果，支持动态数组，也支持旧式数组公式声明区域的计算。
+
+例如，在空白的 `A1` 中写入 `=SEQUENCE(3,2)`，计算结果为：
+
+| A | B |
+| --- | --- |
+| 1 | 2 |
+| 3 | 4 |
+| 5 | 6 |
+
+公式保留在 `A1`，结果展开到 `A1:B3`。数组范围缩小时会清理旧的展开值；展开区域被占用时返回 `#SPILL!`。前端展示、Agent 读取和文件导出可以复用这份已计算的快照。
+
+具体函数和范围规则见[公式支持](/guides/sheets/features/core/formula)与 [Excel 数组展开行为](https://support.microsoft.com/en-us/excel/dynamic-array-formulas-and-spilled-array-behavior)。
+
+## 接入 Agent 的执行与验证流程
+
+模型、对话与工具调度继续使用已有 Agent，AI SDK 为其提供 Office 内容操作入口：
+
+1. 检查结构，读取任务涉及的内容。
+2. 通过无头运行时执行 Facade 修改及所需计算。
+3. 等待计算和提交确认，读回更新后的状态。
+4. 验证值与结构；需要视觉验证时，再生成截图或检查布局。
+
+[内容操作](/ai/content-operations)与[视觉检查](/ai/visual-inspection)可以组合使用。需要人类审阅时，可先在 [Worktree](/ai/worktree) 中修改，再比较和合并。[Univer CLI](/docs/examples/cli) 展示了如何将这些能力装配为 Agent 可用的应用。
+
+## 如何接入
+
+| 能力 | 可以完成什么 |
+| --- | --- |
+| Node.js 内容运行时 | 从[无头 Web SDK](/guides/sheets/getting-started/node)开始，按产品启用所需的模型与计算插件。 |
+| 后台文件处理 | 组合 Rust 计算与 [Node.js 文件转换](/server/import-export/node)，保存或返回更新后的快照。 |
+| 共享编辑与 Agent | 接入[协同服务](/server/collaboration/quick-start)与 [AI SDK](/ai/content-operations)，让用户和 Agent 操作已确认的内容。 |
+
+[返回功能总览](/docs/features)

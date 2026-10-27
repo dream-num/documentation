@@ -1,0 +1,101 @@
+---
+title: "WorkBuddy"
+description: "在 WorkBuddy 中建立本機 Office 內容，透過實時預覽和版本比較完成審閱與交付。"
+---
+
+**Univer Office for WorkBuddy**（`workbuddy-univer-office`）是基於 **[Univer Office SDK](/docs/overview)** 公開 API 建置的本機 Office 集成。它透過 MCP 服務和 Skill，把內容建立、檢查、預覽和草稿審閱接入 WorkBuddy，檔案保存在本機工作區。
+
+<Callout type="info">
+目前為開發預覽。公開 npm 執行套件可用於本機接入；正式市集安裝與完整宿主內審閱仍待驗收。
+</Callout>
+
+[安裝與接入](#quick-start) · [直接體驗](#first-task) · [Skills 與工具](#skills)
+
+## 安裝與接入 [#quick-start]
+
+準備 WorkBuddy 5.8.3 或更新版本，以及 Node.js 22（22.12 或更新版本）。以下使用公開套件 0.1.6，Office 內容預設儲存在本機 `~/.univer-office/workspace`。
+
+### 1. 安裝本機執行套件
+
+```bash
+npm install --global --ignore-scripts workbuddy-univer-office@0.1.6 --registry=https://registry.npmjs.org/
+univer-office --version
+```
+
+先完成安裝再連接 MCP，避免首次相依套件下載佔用宿主交握等待時間。本機連線不需要雲端帳號或 Office API Key。
+
+### 2. 接入本機 MCP
+
+在 WorkBuddy 開啟允許使用的工作目錄，新增自訂 stdio MCP 服務，設定如下：
+
+```json
+{
+  "mcpServers": {
+    "univer-office": {
+      "type": "stdio",
+      "command": "univer-office",
+      "args": []
+    }
+  }
+}
+```
+
+若 WorkBuddy 找不到 `univer-office`，將 `command` 換成安裝後的絕對路徑；macOS/Linux 可用 `command -v univer-office` 查詢，Windows 可用 `Get-Command univer-office`。由 WorkBuddy 啟動 stdio 服務，同一儲存目錄不要再啟動獨立 HTTP 服務。如需其他儲存目錄，設定絕對路徑環境變數 `WORKBUDDY_OFFICE_WORKSPACE`。
+
+### 3. 匯入操作 Skill
+
+準備 Git 與 Python 3，從公開倉庫產生僅含操作說明的 Skill ZIP，不必編譯應用：
+
+```bash
+git clone https://github.com/dream-num/workbuddy-univer-office.git
+cd workbuddy-univer-office
+python3 scripts/package-workbuddy-skills.py
+```
+
+在 WorkBuddy 的 Skills 管理中匯入 `.data/packages/univer-office-workbuddy-skill.zip`。連接 MCP 後，先讓助手檢查 Office 服務狀態，再傳送下方任務。Skill 提供指引，MCP 服務提供執行能力，兩者需一起使用。
+
+## 直接體驗一個任務 [#first-task]
+
+<div className="[&_pre]:whitespace-pre-wrap [&_code]:whitespace-pre-wrap [&_code]:w-full! [&_pre]:wrap-anywhere">
+
+```text
+使用 Univer Office，新建本機檔案 sales-review.univer，製作一張英文銷售試算表：5 筆示例記錄，包含 Product、Quantity、Unit Price、Revenue，以公式計算收入，並加入總收入與各產品收入圖表。
+先檢查寫入與公式結果，再只顯示這張 Sheet 的右側預覽，並給我瀏覽器審閱連結。所有變更放在獨立草稿中，等我確認後再合入。
+```
+
+</div>
+
+### 你會看到什麼
+
+WorkBuddy 右側顯示一張唯讀試算表預覽；完整查看、Compare 與確認合入在瀏覽器中完成，Office 檔案留在本機。首個任務只建立一張 Sheet，可立即看到公式與圖表，也避開同一回覆多張預覽卡片的宿主路由限制。
+
+### 繼續體驗
+
+確認首份成果合入後，再傳送：「在同一份銷售試算表的新草稿中，將第一筆記錄的單價提高 10%，更新總收入，開啟 Compare 顯示與已確認版本的差異，等我審閱。」這樣便能看到真實修改前後的比較。
+
+## Skills 與工具如何協作 [#skills]
+
+一個 [`univer-office` Skill](https://github.com/dream-num/workbuddy-univer-office/tree/main/skills/univer-office) 統籌流程，七份產品與跨內容參考依需求載入。Agent 使用 `univer_api` 查詢公開 Facade，透過 MCP 編輯、確認寫入、讀回與預覽。Office SDK 的同一內容模型同時用於 Headless 處理與瀏覽器繪製，版本和 Worktree 讓變更可定位、比較與審閱。
+
+## 你可以用它做什麼
+
+- **在熟悉的助手裡製作內容：** 讓 WorkBuddy 建立或修改試算表、文件、簡報、關聯式表格和畫布。
+- **用實時預覽跟進任務：** 在宿主中查看唯讀預覽，也可以打開外部瀏覽器，使用完整的查看與版本比較介面。
+- **看清修改再決定：** View 和 Compare 對草稿保持唯讀，按固定版本比較語義差異，並定位到相應內容。
+- **從草稿走到交付：** Agent 先在 Worktree 中修改；人審閱後選擇合併、繼續修改或捨棄，支援從選定的已確認版本匯出對應檔案格式。
+
+## Office SDK 如何支撐 [#sdk-integration]
+
+WorkBuddy 負責對話與 MCP 工具調用；本機服務復用 Office SDK 的 Headless 執行、Facade 內容操作、協同版本和 Worktree 能力，瀏覽器介面使用同一套內容模型渲染預覽。可以參考它如何將 SDK 組合成適配 Agent 宿主的本機工具與審閱介面。
+
+## 體驗與原始碼
+
+[本機執行說明](https://github.com/dream-num/workbuddy-univer-office#local-development) · [查看工作流程程](https://github.com/dream-num/workbuddy-univer-office#workflow) · [原始碼儲存庫](https://github.com/dream-num/workbuddy-univer-office)
+
+## 繼續瞭解
+
+- [文件載入與內容操作](/ai/content-operations)
+- [內容比較](/docs/features/shared/compare)
+- [Worktree](/docs/features/shared/worktree)
+
+[全部示例](/docs/examples)

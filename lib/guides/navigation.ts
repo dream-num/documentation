@@ -8,6 +8,8 @@ export interface IGuideNavItem {
   url?: string
   icon?: ReactNode
   external?: boolean
+  count?: number
+  defaultOpen?: boolean
   children: IGuideNavItem[]
 }
 
@@ -61,6 +63,7 @@ function normalizeNode(node: IPageTreeNode): IGuideNavItem {
 
   if (node.type === 'folder') {
     const children = [...(node.index ? [normalizeNode(node.index)] : []), ...(node.children ?? []).map(normalizeNode)]
+    const featureGroup = /features\/(products|shared)$/.test(id)
 
     return {
       id,
@@ -70,6 +73,7 @@ function normalizeNode(node: IPageTreeNode): IGuideNavItem {
       url: node.index?.url,
       icon: node.icon,
       children,
+      ...(featureGroup ? { count: children.length, defaultOpen: false } : {}),
     }
   }
 
@@ -180,11 +184,14 @@ export function getGuideProductItems(items: IGuideNavItem[]): IGuideNavItem[] {
   )
 }
 
-export function getActiveGuideProduct(items: IGuideNavItem[], pathname: string) {
-  return getGuideProductItems(items).find((item) => isGuideNavItemActive(item, pathname))
+export function getGuideSectionItems(items: IGuideNavItem[], pathname: string): IGuideNavItem[] {
+  const sdk = getActiveGuideSdk(items, pathname)
+  return sdk?.id === 'guides'
+    ? getGuideProductItems(items)
+    : (sdk?.children.filter((item) => item.type === 'folder') ?? [])
 }
 
-export function getGuideProductSwitchHref(item: IGuideNavItem, pathname: string): string | undefined {
+export function getGuideSectionSwitchHref(item: IGuideNavItem, pathname: string): string | undefined {
   const href = getGuideNavItemHref(item)
   const productPath = /^(?:\/[a-z]{2}(?:-[A-Z]{2})?)?\/guides\/[^/]+/
   const targetRoot = href?.match(productPath)?.[0]
@@ -199,11 +206,13 @@ export function getGuideProductSwitchHref(item: IGuideNavItem, pathname: string)
 }
 
 export function getGuideSidebarItems(items: IGuideNavItem[], pathname: string) {
-  const product = getActiveGuideProduct(items, pathname)
-  if (product) return product.children
+  const sections = getGuideSectionItems(items, pathname)
+  const section = sections.find((item) => isGuideNavItemActive(item, pathname))
+  if (section) return section.children
   const sdk = getActiveGuideSdk(items, pathname)
-  const products = getGuideProductItems(items)
-  return sdk?.children.filter((item) => !products.includes(item)) ?? []
+  if (sdk) return sdk.children.filter((item) => !sections.includes(item))
+
+  return items.filter((item) => /^\/docs(?:\/|$)/.test(getGuideNavItemHref(item) ?? ''))
 }
 
 export function createGuideNavigation(pageTree: IPageTreeNode | IPageTreeNode[], pathname: string): IGuideNavigation {

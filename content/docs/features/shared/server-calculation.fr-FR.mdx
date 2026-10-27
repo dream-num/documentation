@@ -1,0 +1,80 @@
+---
+title: "Headless et calcul serveur"
+description: "Exécutez les opérations de contenu dans Node.js et les précalculs dans Rust pour les applications et agents."
+icon: Calculator
+---
+
+Univer sépare les modèles de contenu, le calcul et l’interface. Le mode headless exécute le runtime dans Node.js ; `univer-rs` prend en charge les calculs lourds et la conversion de fichiers sur le serveur. Applications et agents combinent ces capacités autour des mêmes snapshots.
+
+**Noms des produits :** [Relational Table (table relationnelle)](/docs/features/relational-table) est nommé `Base` dans le SDK et les API ; [Canvases (canevas)](/docs/features/canvas) est nommé `Board`.
+
+## Un runtime Node.js sans plugins UI
+
+Enregistrez les plugins nécessaires au cœur, aux modèles, au calcul et à la Facade, sans menus, barres d’outils ni plugins UI dépendant du DOM. Traitez Sheet, Doc, Slide, Base, Board ou PDF selon la configuration choisie. Sheets et Docs disposent de préréglages Node ; les autres produits utilisent leurs propres assemblages.
+
+| Capacité | Utilisation |
+| --- | --- |
+| Charger et inspecter | Charger les snapshots et examiner cellules, paragraphes, pages, objets, enregistrements et structures. |
+| Calculer | Évaluer formules et matrices, actualiser les tableaux croisés et les valeurs numériques affichées. |
+| Modifier | Éditer le contenu avec les API Facade, changer la structure et enregistrer ou soumettre les modifications. |
+| Convertir | Assembler les modules Server SDK pour importer, traiter et exporter par lots. |
+| Vérifier visuellement | Ajouter un Render Runtime pour les captures et le contrôle de mise en page. |
+
+Les opérations de contenu s’exécutent directement dans Node.js. Les captures et contrôles visuels utilisent un runtime de rendu distinct ; celui du CLI peut piloter un navigateur headless pour produire des PNG et des constats de mise en page.
+
+## Calcul immédiat dans le navigateur, calcul serveur par révision [#précalculer-sur-le-serveur-afficher-rapidement]
+
+Le navigateur et le serveur disposent chacun d’un moteur de formules. Le navigateur répond aux modifications ; le serveur calcule une révision déterminée du contenu lors de la génération d’un snapshot ou du traitement d’un fichier.
+
+- **Pendant l’édition** : le navigateur recalcule localement les formules concernées et affiche les résultats immédiatement, éventuellement via un Worker. La collaboration enregistre et synchronise les changements de contenu.
+- **Lors de la génération du snapshot** : la politique serveur déclenche le processus de sauvegarde, qui capture sa révision du contenu. `univer-rs` effectue les calculs, puis le contenu et les résultats de cette révision sont enregistrés ensemble.
+- **À la réouverture** : le navigateur réutilise les résultats valides du snapshot, applique les changements ultérieurs et poursuit les calculs, réduisant les recalculs complets répétés.
+
+<Mermaid chart={"flowchart LR\n    F[\"Édition dans le navigateur<br/>Calcul immédiat\"]\n    C[\"Synchronisation<br/>Changements confirmés\"]\n    R[\"Calcul Rust<br/>Révision N\"]\n    S[\"Enregistrer le snapshot<br/>saveSnapshot\"]\n    F <--> C\n    C -->|\"Génération du snapshot\"| R\n    R --> S"} />
+
+**Les changements se synchronisent en continu. Le calcul serveur accompagne la génération du snapshot et ses résultats sont enregistrés pour cette révision du contenu.**
+
+Adaptez le calcul initial aux résultats enregistrés :
+
+- `WHEN_EMPTY` : réutiliser les valeurs enregistrées et calculer uniquement les résultats manquants.
+- `NO_CALCULATION` : ignorer le calcul initial ; l’application fournit les résultats.
+- `FORCED` : recalculer toutes les formules pour actualiser les résultats.
+
+Ces options concernent le chargement initial. L’édition suivante continue à être calculée dans le navigateur ; le serveur calcule à la demande lors de la génération d’un snapshot par révision ou du traitement de fichiers. Voir la [configuration des formules](/guides/sheets/features/core/formula), la [collaboration](/server/collaboration/overview) et la [conversion de fichiers](/docs/features/shared/file-conversion).
+
+## Formules matricielles et plages déversées
+
+Dans le périmètre des fonctions et formats pris en charge, Rust suit les règles Excel des formules matricielles et du déversement. Il retourne l’ancre, la plage et les valeurs, pour les matrices dynamiques comme pour les plages déclarées des anciennes formules matricielles.
+
+Par exemple, `=SEQUENCE(3,2)` dans une cellule `A1` vide produit :
+
+| A | B |
+| --- | --- |
+| 1 | 2 |
+| 3 | 4 |
+| 5 | 6 |
+
+La formule reste en `A1` ; les résultats occupent `A1:B3`. Une réduction de la matrice efface les anciennes valeurs déversées ; une plage bloquée renvoie `#SPILL!`. Le navigateur, l’agent et l’export peuvent réutiliser le snapshot calculé.
+
+Consultez les [fonctions prises en charge](/guides/sheets/features/core/formula) et le [comportement matriciel Excel](https://support.microsoft.com/en-us/excel/dynamic-array-formulas-and-spilled-array-behavior).
+
+## Relier exécution et vérification à un agent
+
+Gardez le modèle, la conversation et l’orchestration de votre agent. AI SDK lui fournit les opérations Office :
+
+1. Inspecter la structure et lire le contenu cible.
+2. Appliquer les changements Facade et les calculs dans le runtime headless.
+3. Attendre le calcul et la confirmation de soumission, puis relire l’état actualisé.
+4. Vérifier les valeurs et la structure, puis les images ou la mise en page si nécessaire.
+
+Combinez [opérations de contenu](/ai/content-operations) et [inspection visuelle](/ai/visual-inspection). Utilisez un [Worktree](/ai/worktree) pour la revue humaine avant comparaison et fusion. [Univer CLI](/docs/examples/cli) montre cet assemblage dans une application pour agents.
+
+## Parcours d’intégration
+
+| Capacité | Utilisation |
+| --- | --- |
+| Runtime de contenu Node.js | Commencer avec [Web SDK headless](/guides/sheets/getting-started/node) et les plugins produit/calcul requis. |
+| Traitement de fichiers | Combiner Rust et la [conversion Node.js](/server/import-export/node), puis enregistrer ou retourner le snapshot. |
+| Édition partagée et agents | Relier la [collaboration](/server/collaboration/quick-start) et [AI SDK](/ai/content-operations) pour travailler sur le contenu confirmé. |
+
+[Toutes les fonctionnalités](/docs/features)

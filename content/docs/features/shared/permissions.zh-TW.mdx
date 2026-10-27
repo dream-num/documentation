@@ -1,0 +1,148 @@
+---
+title: "權限與授權"
+description: "了解 Unit 級操作權限、各產品的物件權限，以及前後端共同授權。"
+icon: ShieldCheck
+---
+
+Univer 將權限分為**整份內容的操作權限**與**內容內部的物件權限**。Web SDK 依權限控制互動和命令執行；Server SDK 在讀取、協同提交和擴充服務邊界執行應用的授權策略。
+
+**產品名稱：** [Relational Table（關聯式表格）](/docs/features/relational-table) 對應 SDK/API 中的 `Base`；[Canvases（畫布）](/docs/features/canvas) 對應 `Board`。
+
+## Unit 級權限 [#unit-permissions]
+
+一個 [Unit（內容單元）](/guides/sheets/getting-started/quickstart#unit) 是一份完整的內容實例，例如一份活頁簿、文件、簡報、Base、畫板或 PDF。以下 Unit 權限適用於 Sheet、Doc、Slide、Base 和 Board；PDF 的目前範圍見下文。
+
+| 權限 | 控制什麼 | 典型用法 |
+| --- | --- | --- |
+| 編輯（Edit） | 修改內容和結構。 | 檢視者唯讀，編輯者可以填寫和調整內容。 |
+| 複製（Copy） | 在編輯器中複製內容。 | 允許閱讀和留言，同時限制內容複製。 |
+| 留言（Comment） | 啟用留言功能後建立留言或回覆。 | 允許審閱者提出意見，同時保持正文唯讀。 |
+| 列印（Print） | 使用產品的列印功能。 | 允許線上閱讀，同時限制列印。 |
+| 匯出（Export） | 將內容匯出為支援的檔案格式。 | 為交付或封存開放檔案匯出。 |
+
+編輯與留言相互獨立。留言的編輯、刪除和管理還應遵守應用對作者、擁有者等身分的策略。
+
+列印和匯出同樣屬於 Unit 級權限。Sheet、Doc、Slide 和 Board 提供 Print 與 Export；Base 目前提供 Export。各權限點需要搭配對應的功能外掛。
+
+複製內容、複製整份檔案、匯出和下載屬於不同操作，需要分別設定。是否允許開啟檔案，由應用的讀取授權決定。
+
+例如，Docs 可獨立控制整份文件的 Unit 級權限：
+
+```ts
+import { UnitAction } from '@univerjs/protocol'
+
+const document = univerAPI.getActiveDocument()
+if (!document) throw new Error('Open a document first')
+
+const permission = document.getPermission()
+await permission.setReadOnly()
+await permission.setPoint(UnitAction.Copy, false)
+await permission.setPoint(UnitAction.Comment, true)
+await permission.setPoint(UnitAction.Print, false)
+await permission.setPoint(UnitAction.Export, false)
+```
+
+範例需要已註冊相應產品與留言外掛；外掛模式還需匯入 `@univerjs/docs/facade`。各產品的權限入口見下文，Sheets 使用自己的權限點列舉。
+
+## 各產品的細部權限
+
+### 試算表（Sheet）
+
+權限分為**活頁簿 → 工作表 → 儲存格範圍**。活頁簿決定整份內容的編輯、複製、留言等能力；工作表可進一步限制儲存格值、樣式、列欄增刪、排序、篩選、樞紐分析表與附加物件操作。範圍保護可控制指定範圍的編輯和檢視，並指定允許編輯的協作者。
+
+例如，鎖定預算公式欄，只開放費用填寫區。入口分別為 `getWorkbookPermission()`、`getWorksheetPermission()` 和 `getRangePermission()`；設定工作表和範圍的保護權限前，先建立相應保護規則。涉及不可讀取的資料時，應用讀取介面也需依業務策略控制回傳範圍。
+
+[Sheets 權限與保護規則](/guides/sheets/features/core/permission)
+
+### 文件（Doc）
+
+在整份文件之下，可以控制**節（Section）、段落和內容實體**的編輯權限。實體包括表格、繪圖、自訂區塊或範圍等具有穩定識別碼的內容；頁首、頁尾中的段落也透過所屬 segment 定位。
+
+例如，保護合約固定條款，只開放待填寫段落。段落和節使用 `getPermission()`，內容實體使用 `document.getEntityPermission()`；物件權限由文件、適用父層與自身規則共同決定。
+
+[文件級權限](/reference/facade/document-permission) · [節、段落與實體權限](/reference/facade/document-object-permission)
+
+### 簡報（Slide）
+
+權限可作用於**簡報、單張投影片、頁面元素以及母片編輯入口與元素**。可以保護品牌範本和固定圖形，同時開放業務頁面中的文字方塊、圖片或圖表物件。
+
+整份簡報使用 `presentation.getPermission()`，單頁使用 `slide.getPermission()`，單一元素使用 `slide.getElementPermission()`。母片相關入口見 Presentation Facade。
+
+[Slides 權限](/guides/slides/features/core/permissions) · [Presentation Facade](/reference/facade/presentation)
+
+### 多維表格（Base）
+
+Base 可以控制**資料表、欄位、記錄、檢視與儀表板**。編輯一個儲存格時，會同時考慮 Base、資料表、欄位和記錄的編輯限制；檢視設定與儀表板也可分別保護。
+
+例如，保護欄位結構與財務記錄，允許業務人員維護日常任務。資料表、欄位、記錄和檢視透過各自的 `getPermission()` 設定；儀表板需要相應外掛。依使用者篩選可讀取的欄位或記錄，應由應用的資料讀取策略實作。
+
+[Base 權限](/guides/bases/features/core/permissions) · [物件權限 API](/reference/facade/base-object-permission)
+
+### 畫板（Board）
+
+在整個 Board 的權限之下，可以控制**單一元素**的編輯，例如圖形、文字、圖片或連接線。適合保護架構底圖、流程框架，同時允許協作者維護指定節點。
+
+整份畫板使用 `board.getPermission()`，元素使用 `board.getElementPermission(elementId)`。元素的有效編輯權限同時受 Board 級和元素級規則約束。
+
+[Board 權限](/reference/facade/board-permission) · [元素權限](/reference/facade/board-element-permission)
+
+### PDF
+
+PDF 目前主要透過**檢視 / 編輯模式**控制本機互動，與上述五類產品的 Unit / Object 權限 API 範圍不同。檔案讀取、下載和匯出策略由應用後端接入；PDF 目前也不屬於核心協同服務支援的五類 Unit。
+
+[PDF 接入與內容操作](/guides/pdfs/getting-started/facade)
+
+## 權限繼承與協作者策略
+
+**物件級許可不能突破產品級和適用父層的限制。** 例如，整份文件唯讀時，單獨將某段落設為可編輯，最終仍不可編輯。透過 `canEdit()` 查詢相應物件的有效結果。
+
+Doc、Slide、Base 和 Board 的子物件權限主要控制 Edit；複製和留言在產品級設定。Sheets 另外提供工作表和選取範圍的專用權限，各產品的權限粒度不同。
+
+對 Doc、Slide、Base 和 Board，可透過 `setObjectPermissions()` 批次管理物件的協作者策略：
+
+| 策略 | 允許誰編輯物件 |
+| --- | --- |
+| `all` | 已具有該 Unit 編輯權限的協作者。 |
+| `owner` | 物件擁有者，同時保留產品與父層權限約束。 |
+| `members` | 指定的現有 Unit 協作者。 |
+
+這類策略需要接入 Authz 服務、為目標類型設定 `objectPermissionTypes`，並持久化物件綁定、規則和成員關係。請使用 SDK 匯出的物件 ID helper，保持內容物件 ID 穩定；`policy: null` 用於移除保護並恢復繼承。批次設定可能部分失敗，應檢查 `failed` 與 `refreshError`。Sheets 透過工作表 / 範圍保護介面接入相應策略。
+
+## 前後端如何共同授權
+
+應用維護一套可信的使用者身分、角色與文件 / 物件策略，分別驅動前端權限表現和伺服器端檢查。
+
+<Mermaid chart={"flowchart LR\n    P[\"應用身分<br/>權限策略\"]\n    W[\"Web SDK<br/>互動與命令檢查\"]\n    S[\"Server SDK<br/>請求與變更授權\"]\n    D[\"持久化並廣播\"]\n    P --> W\n    P --> S\n    W -->|\"提交修改\"| S\n    S -->|\"允許後\"| D"} />
+
+| 層級 | 負責什麼 |
+| --- | --- |
+| Web SDK | 取得目前使用者的授權結果，更新權限點、編輯入口與命令檢查，回饋受限制的操作。 |
+| 應用 Authz 介面 | 根據可信登入身分查詢或修改規則，回傳 Unit / 物件的實際權限，並驗證規則管理資格。 |
+| Transport | 驗證 Cookie、Session 或 Token，建立可信身分；瀏覽器提交的使用者欄位不能作為授權依據。 |
+| Endpoint | 校驗 WebSocket 連線與 `joinUnit`，控制是否可以加入文件的即時房間。 |
+| Service | 在 `readUnitData` 校驗讀取，在 `submitChangeset` 校驗提交；涉及物件級策略時，在套用階段結合目前內容模型校驗受影響物件。 |
+
+Server SDK 提供 Middleware 授權入口，具體 ACL 和物件策略由應用提供。**前端設定唯讀或物件保護，不會自動取代伺服器端校驗。** 只有 Unit 級編輯檢查的應用，還需補充細部物件檢查，才能落實段落、元素、欄位或記錄的業務限制。
+
+例如，已建立的 `collabService` 可接入應用自己的 `acl`：
+
+```ts
+import { CollabError } from '@univerjs-pro/collaboration-service'
+
+collabService.use('submitChangeset', async (context, next) => {
+  const allowed = await acl.canEdit(
+    context.session.userId,
+    context.request.changeset.unitID,
+  )
+  if (!allowed) {
+    throw new CollabError('PERMISSION_DENIED', 'Editing is not allowed')
+  }
+  await next()
+})
+```
+
+本例只示範 Unit 級編輯授權。完整接入還需保護讀取、JOIN、權限規則修改以及擴充模組介面。對細部修改，可在 `applyChangeset` 等套用階段校驗實際受影響的物件，並保持策略可重試。
+
+從[身分與權限](/server/collaboration/identity-and-authorization)了解接入方式，生命週期入口見 [Middleware 與 Event](/server/collaboration/middleware-and-events)。
+
+[返回功能總覽](/docs/features)

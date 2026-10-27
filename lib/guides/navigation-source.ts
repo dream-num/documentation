@@ -1,12 +1,11 @@
 import documents from '@/.amamo-mdx/guides-navigation.json'
-
 import type { IAmamoMetadata } from '../amamo-metadata'
 import { createAmamoMetadataSource } from '../amamo-metadata'
 import { createGuidesLoader } from './loader'
 import { createSdkPageTree } from './navigation'
 
-const sources = await Promise.all(
-  ['guides', 'server', 'ai'].map(async (collection) =>
+const [overview, ...sources] = await Promise.all(
+  ['docs', 'guides', 'server', 'ai'].map(async (collection) =>
     createGuidesLoader(
       await createAmamoMetadataSource(
         collection,
@@ -22,4 +21,12 @@ const sources = await Promise.all(
   ),
 )
 
-export const guideNavigationSource = { pageTree: createSdkPageTree(sources.map((source) => source.pageTree)) }
+const sdkPageTree = createSdkPageTree(sources.map((source) => source.pageTree))
+export const guideNavigationSource = {
+  pageTree: Object.fromEntries(
+    Object.entries(sdkPageTree).map(([locale, tree]) => [
+      locale,
+      { children: [...overview.pageTree[locale].children, ...tree.children] },
+    ]),
+  ),
+}

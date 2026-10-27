@@ -11,14 +11,13 @@ import {
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useEffect, useId, useRef, useState } from 'react'
-
 import type { IScopedSearchResult, SearchScope } from '@/lib/guides/search'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Link, usePathname, useRouter } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 
-const searchScopes: SearchScope[] = ['all', 'guides', 'server', 'ai', 'reference', 'blog']
+const searchScopes: SearchScope[] = ['all', 'docs', 'guides', 'server', 'ai', 'reference', 'blog']
 
 export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; defaultScope?: SearchScope }) {
   const t = useTranslations()
@@ -47,7 +46,15 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
   function changeOpen(value: boolean) {
     setOpen(value)
     if (value && !trimmedQuery) {
-      setScope(pathname.startsWith('/server') ? 'server' : pathname.startsWith('/ai') ? 'ai' : defaultScope)
+      setScope(
+        pathname.startsWith('/docs')
+          ? 'docs'
+          : pathname.startsWith('/server')
+            ? 'server'
+            : pathname.startsWith('/ai')
+              ? 'ai'
+              : defaultScope,
+      )
     }
   }
 
@@ -109,7 +116,7 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
     <Dialog open={open} onOpenChange={changeOpen}>
       <Button
         ref={triggerRef}
-        className="text-muted-foreground hover:text-foreground md:bg-muted/40 size-8 shrink-0 gap-2 shadow-none md:w-52 md:justify-start md:border md:px-3"
+        className="text-muted-foreground hover:text-foreground xl:bg-muted/40 size-8 shrink-0 gap-2 shadow-none xl:w-52 xl:justify-start xl:border xl:px-3"
         aria-label={t('search.label')}
         aria-keyshortcuts="Meta+K Control+K"
         size="sm"
@@ -118,8 +125,8 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
         onClick={() => changeOpen(!open)}
       >
         <SearchIcon aria-hidden="true" className="size-4" />
-        <span className="hidden min-w-0 flex-1 truncate text-left md:block">{t('search.label')}</span>
-        <kbd className="text-muted-foreground hidden rounded border px-1 text-[10px] md:block">
+        <span className="hidden min-w-0 flex-1 truncate text-left xl:block">{t('search.label')}</span>
+        <kbd className="text-muted-foreground hidden rounded border px-1 text-[10px] xl:block">
           <span className="[[data-platform=mac]_&]:hidden">Ctrl K</span>
           <span className="hidden [[data-platform=mac]_&]:inline">⌘ K</span>
         </kbd>

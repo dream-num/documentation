@@ -1,0 +1,93 @@
+---
+title: "Agent 与自动化"
+description: "把内容检查、编辑和验证组合为工具，让已有 Agent 操作 Office 内容。"
+icon: Bot
+---
+
+AI SDK 将 Univer 的内容模型、Facade 和协同能力组织为 Agent 可调用的 TypeScript 接口。已有 Agent 可以先理解文档，再执行修改、检查结果并交付审阅；模型、工具协议与任务编排由你的应用选择。
+
+**产品名称：** [Relational Table（关系型表格）](/docs/features/relational-table) 对应 SDK/API 中的 `Base`；[Canvases（画布）](/docs/features/canvas) 对应 `Board`。
+
+## 把内容能力接到现有 Agent [#capabilities]
+
+基础能力包返回结构化结果，可接入自己的工具调用、服务接口或 CLI；可选的 `-command` 包把这些能力封装成原生 Commander 命令。Agent 操作的是与 Web 编辑器共用的内容模型与命令系统。
+
+| 能力 | 实际职责 |
+| --- | --- |
+| Inspection | 读取结构、区域、段落或对象细节，帮助 Agent 缩小操作范围。 |
+| API Reference | 离线查询当前随包提供的 Facade 声明、重载、类型和示例。 |
+| Content Execution | 为明确的 Unit 绑定 `workbook`、`doc`、`presentation`、`base` 或 `board`，准备执行代码。 |
+| Collaboration Runtime | 加载内容、捕获 mutation、协调远端变更，并显式提交 changeset。 |
+
+## Runtime 如何还原可编辑状态 [#runtime]
+
+一个 Collaboration Runtime 在其生命周期内绑定一个 Unit。加载时先打开应用提供的 backend，读取 UnitData 或 Snapshot checkpoint，重放其 changeset，再补齐到远端最新 revision 的连续变更；已安装公式模块时，还会等待最新计算结果应用完成。
+
+<Mermaid chart={"sequenceDiagram\nparticipant A as 应用工具\nparticipant R as Runtime\nparticipant U as 内容引擎\nparticipant B as 协同 Backend\nA->>R: load\nR->>B: 加载 checkpoint 与变更\nR->>U: 还原 Unit · 补齐 revision\nA->>R: pull：获取远端变更\nR->>B: fetchChangesets\nB-->>R: changesets\nR->>U: OT 协调并应用\nA->>R: execute：Facade 修改\nR->>U: Facade\nU-->>R: 生成 mutation\nNote over R: 保留 pending\nA->>R: commit：提交 changeset\nR->>B: changeset\nB-->>R: ACK：确认 identity 与 revision"} />
+
+`fetch()` 只获取并校验变更；`pull()` 通过 OT 协调远端变更与本地 pending/awaiting，再应用到内容模型。Runtime 同时维护 `baseRevision`、`knownHeadRevision`、`pendingMutationCount` 与 `awaitingChangeset`，供应用判断当前状态。
+
+## 先定位内容，再执行 Facade [#inspection]
+
+先用 overview 发现结构，再按稳定 ID 或明确选择器读取目标，避免把整份 Snapshot 交给模型。当前 Inspection 覆盖 Sheet 区域、Doc 段落、Slide 页面、Base 结构概览及 Board 对象；Base 概览包含字段配置，不包含记录值和 View projection，需要时通过 Facade 补读。
+
+`prepareContentExecutionProgram()` 按 Unit ID 获取根 Facade，避免依赖浏览器当前选中的文档，并拒绝重复声明注入变量。Runtime 的 read 模式会在命令执行前阻止持久化业务操作；write 模式捕获当前 Unit 的 mutation。创建、销毁 Unit 属于独立生命周期操作，不在这个单 Unit 执行入口中完成。
+
+不熟悉 API 时，先 `find()` 查候选，再 `show()` 看准确声明与相关类型。该索引随 SDK 分发，不需要启动内容引擎，也不依赖在线文档。接入细节见[内容操作](/ai/content-operations)与 [Package 概览](/ai/packages)。
+
+## 执行成功与提交确认是两件事 [#commit]
+
+`execute({ mode: 'write' })` 修改 live Unit 并形成 pending，**不会自动表示服务端已保存**。`commit()` 将 mutation 组成带提交身份的 changeset；收到 ACK 后核对身份、内容与 revision，再确认提交。
+
+| 提交状态 | 应用应如何处理 |
+| --- | --- |
+| `confirmed` / `nothing-to-commit` | 本轮已确认提交，或没有需要提交的修改。 |
+| `pull-required` | 远端版本已推进，继续 `pull()` 协调，再尝试 `commit()`。 |
+| `retry` / `unknown` | 保留同一 Runtime 的 awaiting 状态并重试 `commit()`；不要重新执行整段编辑代码。 |
+| `conflict` | 停止后续写入，由应用决定提示、恢复或重新加载。 |
+
+提交结果未知时，Runtime 保留 `sid + reqId` 标识，同一 changeset 可以由 backend 幂等确认，避免因重跑编辑而重复插入记录。Backend 需要满足幂等提交合同。执行代码中途抛错时，之前已发生的 mutation 仍可能保留；应用应检查 pending 并决定恢复，不能把一次 `execute()` 当作自动回滚事务。
+
+下面以已加载的 Sheet Runtime 为例，明确返回执行结果和提交状态；调用方按上表处理后续动作，并在拥有者生命周期结束时关闭 Runtime。
+
+```ts
+import { prepareContentExecutionProgram } from '@univer-cli/content-execution'
+import type { UniverCollaborationRuntime } from '@univer-cli/univer-collaboration-runtime'
+
+async function updateSales(runtime: UniverCollaborationRuntime) {
+  const pulled = await runtime.pull()
+  if (pulled.status === 'conflict') return pulled
+
+  const code = prepareContentExecutionProgram({
+    unitId: runtime.unitId,
+    unitType: 'sheet',
+    code: `
+      const sheet = workbook.getSheetByName('Data');
+      if (!sheet) throw new Error('Worksheet Data not found');
+      sheet.getRange('A2:B2').setValues([
+        [{ v: 'East', t: 1 }, { v: 128000, t: 2 }]
+      ]);
+      return sheet.getRange('A2:B2').getRawValues();
+    `,
+  })
+  const execution = await runtime.execute({ mode: 'write', code })
+  const commit = await runtime.commit()
+  return { execution, commit }
+}
+```
+
+## 高频任务如何复用 Runtime [#reuse]
+
+高频任务可以用 Worker Runtime pool 按应用定义的 key 独占租用：同 key 冷加载采用 single-flight，lease 按 FIFO 排队；不同 key 可由不同 Worker 处理。`release()` 归还实例，TTL/LRU 回收空闲资源；`invalidate()` 用于不能继续信任的实例。
+
+缓存 key 应区分 backend、Unit 和所在的 Worktree。Pool 不会替应用验证两次 init 是否兼容。Daemon 可以长期持有 pool，让短命令复用已加载的 Runtime；复用后仍要同步与确认提交。运行时复用需要权衡启动成本、常驻内存和 Worker 数量，见[Runtime 复用与 Daemon](/ai/runtime-architecture)。
+
+## 从自动化任务到人类审阅 [#handoff]
+
+可以把这些能力组合为批量报表、业务数据整理、模板填充或内容生成流水线：先定位目标，调用 Facade 写入，等待需要的计算，再回读数值、文本与对象属性，并按需进行[截图与视觉检查](/docs/features/shared/visual-inspection)。
+
+需要人类确认时，把目标指向 [Worktree](/docs/features/shared/worktree)：Agent 多轮编辑与自检，Ready 后由人类审阅并决定 Merge。跨 Unit 的任务应逐 Unit 追踪执行和提交结果，不能把多个 Runtime 当作一个跨文档原子事务。
+
+应用仍负责身份、授权、模型连接和任务生命周期。内容执行的 read/write 限制保护业务操作边界；不可信 JavaScript 的进程隔离、文件与网络权限也由应用配置。可从[快速开始](/docs/get-started)及 [Univer CLI 示例](/docs/examples/cli)体验完整流程。
+
+[返回功能总览](/docs/features)

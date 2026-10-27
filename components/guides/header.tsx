@@ -1,6 +1,5 @@
 import { SiGithub } from '@icons-pack/react-simple-icons'
 import { getTranslations } from 'next-intl/server'
-
 import type { Locale } from '@/i18n/routing'
 import type { IGuideNavItem } from '@/lib/guides/navigation'
 import { PrimaryNavigation } from '@/components/docs-shell/primary-navigation'
@@ -10,7 +9,6 @@ import { ThemeSwitcher } from '@/components/theme-switcher'
 import { Link } from '@/i18n/navigation'
 import { routing } from '@/i18n/routing'
 import { messagesByLocale } from '@/messages'
-
 import { GuidesMobileNav } from './mobile-nav'
 import { GuidesSearch } from './search'
 
@@ -37,7 +35,6 @@ export async function GuidesHeader({ lang, items }: { lang: string; items: IGuid
           }}
           navigationLabel={t('docs.guides-navigation')}
           openLabel={t('docs.open-guides-navigation')}
-          title={t('search.scope.guides')}
           items={items}
         />
         <Link

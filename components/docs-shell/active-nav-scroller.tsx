@@ -1,6 +1,7 @@
 'use client'
 
 import { useLayoutEffect, useRef } from 'react'
+import { usePathname } from '@/i18n/navigation'
 
 function getScrollParent(element: HTMLElement) {
   let parent = element.parentElement
@@ -34,26 +35,32 @@ function scrollIntoContainerView(container: HTMLElement, item: HTMLElement) {
 
 export function ActiveNavScroller() {
   const markerRef = useRef<HTMLSpanElement>(null)
+  const pathname = usePathname()
 
   useLayoutEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      const nav = markerRef.current?.closest('nav')
-      const activeItem = nav?.querySelector<HTMLElement>('[aria-current="page"]')
-      if (!activeItem) return
+    const nav = markerRef.current?.closest('nav')
+    const mobileMenu = nav?.closest('details')
+    let frame = 0
+    function revealCurrentItem() {
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => {
+        const activeItem = nav?.querySelector<HTMLElement>('[aria-current="page"]')
+        if (!activeItem?.getClientRects().length) return
 
-      const scrollParent = getScrollParent(activeItem)
-      if (scrollParent) {
-        scrollIntoContainerView(scrollParent, activeItem)
-        return
-      }
-
-      activeItem.scrollIntoView({ block: 'nearest' })
-    })
+        const scrollParent = getScrollParent(activeItem)
+        if (scrollParent) {
+          scrollIntoContainerView(scrollParent, activeItem)
+        }
+      })
+    }
+    revealCurrentItem()
+    mobileMenu?.addEventListener('toggle', revealCurrentItem)
 
     return () => {
       window.cancelAnimationFrame(frame)
+      mobileMenu?.removeEventListener('toggle', revealCurrentItem)
     }
-  }, [])
+  }, [pathname])
 
   return <span ref={markerRef} aria-hidden="true" hidden />
 }

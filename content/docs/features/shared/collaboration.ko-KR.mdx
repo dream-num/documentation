@@ -1,0 +1,52 @@
+---
+title: "실시간 협업"
+description: "OT, HTTP, WebSocket, 영속성으로 같은 콘텐츠를 함께 편집합니다."
+icon: Users
+---
+
+사용자와 연결된 Agent가 같은 문서를 조작합니다. 편집은 로컬에 즉시 반영되고 서버가 순서를 확정해 배포하여 빠른 응답과 최종 일관성을 함께 제공합니다.
+
+**제품 이름:** SDK와 API에서 [Relational Table(관계형 테이블)](/docs/features/relational-table)은 `Base`, [Canvases(캔버스)](/docs/features/canvas)는 `Board`라는 이름을 사용합니다.
+
+## 동시 편집과 충돌
+
+Univer는 OT(연산 변환)를 사용합니다. 클라이언트는 편집을 changeset으로 묶고 서버는 확정된 revision에 따라 변환·제출합니다. Alice가 `C2`를 편집할 때 Bob이 B열 앞에 열을 추가하면 대상은 `D2`로 이동합니다. 실행 취소·재실행도 원격 변경에 맞추지만 모든 업무 충돌을 해결하지는 않습니다.
+
+변환·적용이 불가능하면 해당 문서의 편집을 중지하고 충돌 상태로 전환합니다. `CollaborationConflict`는 이유와 미확인 로컬 변경을 제공합니다. 새로고침 전 이 데이터를 보존하세요. [충돌 복구](/server/collaboration/browser-integration#conflict-recovery)와 [OT 설계](/blog/ot)를 참고하세요.
+
+## 통신과 재연결
+
+| 경로 | 역할 |
+| --- | --- |
+| HTTP | 스냅샷·증분 로드, Session Ticket 발급, changeset 제출. |
+| WebSocket | Session·Room 유지, ACK·원격 변경·Presence 수신. |
+
+일회용 Ticket으로 연결하고 문서 Room에 참가합니다. Presence는 구성원·커서·선택 영역을 공유합니다. **연결 상태나 HTTP 성공만으로 저장을 확정할 수 없습니다.** ACK, 협업 상태, 미확인 변경을 함께 사용합니다.
+
+단절 시 미확인 변경을 보관하고 재연결 후 누락 revision을 가져와 재전송합니다. 서버는 제출 ID로 중복을 제거합니다. [동기화 상태](/server/collaboration/browser-integration#sync-status)와 [Presence](/server/collaboration/presence)를 참고하세요.
+
+## 영속성과 스냅샷
+
+확정 changeset과 revision을 저장하고 정책에 따라 스냅샷을 생성합니다. 로드 시 스냅샷 이후 변경을 적용하므로 매 편집마다 스냅샷이 필요하지 않습니다. 계산은 [Headless·서버 계산](/docs/features/shared/server-calculation), 이력·댓글·Worktree는 [확장](/server/collaboration/extensions)을 참고하세요.
+
+## 배포 구성
+
+<Mermaid chart={"flowchart LR\n    A[\"클라이언트 A\"]\n    B[\"클라이언트 B / Agent\"]\n    S[\"앱 협업 서비스<br/>OT · 확정·브로드캐스트\"]\n    D[\"앱 데이터베이스\"]\n    A <-->|\"HTTP / WebSocket\"| S\n    B <-->|\"HTTP / WebSocket\"| S\n    S --> D"} />
+
+- **단일 노드**: Node.js에서 Transport, Endpoint, Service, DB Adapter를 조합합니다. Memory는 임시 검증, SQLite는 로컬·소규모 용도이며 다른 DB는 앱 어댑터를 제공합니다.
+- **확장**: 공유 저장소 외에도 노드 간 전파, Presence, Ticket 검증, 저장 일관성이 필요합니다. 프로세스만 늘려서는 안 되며 사용 버전의 배포 설계를 따라야 합니다.
+- **무거운 작업 분리**: 파일 변환 등 CPU 집약 작업을 별도로 배포합니다.
+
+[모듈](/server/collaboration/modules), [배포](/server/deployment), [다중 노드 예제](/server/collaboration/examples#multi-node)를 참고하세요.
+
+## 성능과 용량
+
+**현재 버전의 벤치마크와 용량 데이터는 추가 예정입니다.** 문서 크기·편집 빈도·인원·환경에 따라 다릅니다. 제출 확인 시간, 원격 표시 지연, 초당 changeset, 전파량, 메모리를 측정합니다.
+
+## 통합과 범위
+
+[개요](/server/collaboration/overview)와 [두 브라우저 예제](/server/collaboration/quick-start)에서 시작합니다. Middleware로 신원·권한을 연결하고 영속 [DB Adapter](/server/collaboration/database-adapters)를 선택한 뒤 재시작 후 데이터 보존을 확인합니다.
+
+코어는 Sheet, Doc, Slide, Board, Base를 지원하며 PDF는 제외합니다. 신원·권한·파일 관리·저장 정책은 앱이 제공합니다.
+
+[전체 기능으로 돌아가기](/docs/features)

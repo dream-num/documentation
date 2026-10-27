@@ -1,0 +1,52 @@
+---
+title: "Colaboración en tiempo real"
+description: "Coordina edición concurrente con OT, HTTP, WebSocket y persistencia."
+icon: Users
+---
+
+Personas y agentes conectados trabajan sobre el mismo documento. La edición se aplica primero localmente; el servidor confirma el orden y distribuye los cambios para combinar respuesta inmediata y consistencia eventual.
+
+**Nombres de producto:** [Relational Table (tabla relacional)](/docs/features/relational-table) se denomina `Base` en el SDK y las API; [Canvases (lienzos)](/docs/features/canvas) se denomina `Board`.
+
+## Concurrencia y conflictos
+
+Univer usa OT (Transformación Operacional). El cliente agrupa operaciones en changesets y el servidor las transforma sobre revisiones confirmadas. Si Alice edita `C2` y Bob inserta una columna antes de B, la edición sigue a la celda hasta `D2`. Deshacer y rehacer también se ajustan, sin resolver automáticamente todos los conflictos de negocio.
+
+Si una operación no puede transformarse o aplicarse, se detiene la edición del documento. `CollaborationConflict` expone causa y cambios locales sin confirmar. Conserva esos datos antes de recargar. Consulta [recuperación](/server/collaboration/browser-integration#conflict-recovery) y [diseño OT](/blog/ot).
+
+## Canales y reconexión
+
+| Canal | Responsabilidad |
+| --- | --- |
+| HTTP | Cargar snapshots y cambios, obtener Session Ticket y enviar changesets. |
+| WebSocket | Mantener Session y Room; recibir ACK, cambios remotos y Presence. |
+
+Un Ticket de un solo uso permite conectar y entrar en la Room. Presence comparte miembros, cursores y selecciones. **Una conexión activa o HTTP correcto no confirma que el cambio esté guardado.** Combina ACK, estado colaborativo y cambios pendientes.
+
+Tras una desconexión, conserva cambios pendientes, recupera revisiones ausentes y reenvía. El servidor deduplica por identidad de envío. Consulta [estado de sincronización](/server/collaboration/browser-integration#sync-status) y [Presence](/server/collaboration/presence).
+
+## Persistencia y snapshots
+
+Guarda changesets y revisiones confirmadas y genera snapshots según una política. Al cargar, aplica los cambios posteriores al snapshot; no hace falta uno por edición. Véase [cálculo Headless y servidor](/docs/features/shared/server-calculation). Historial, comentarios y Worktree son [extensiones](/server/collaboration/extensions).
+
+## Arquitectura de despliegue
+
+<Mermaid chart={"flowchart LR\n    A[\"Cliente A\"]\n    B[\"Cliente B / Agente\"]\n    S[\"Servicio colaborativo propio<br/>OT · Confirmar y distribuir\"]\n    D[\"Base de datos propia\"]\n    A <-->|\"HTTP / WebSocket\"| S\n    B <-->|\"HTTP / WebSocket\"| S\n    S --> D"} />
+
+- **Un nodo:** combina Transport, Endpoint, Service y Database Adapter en Node.js. Memory sirve para pruebas temporales; SQLite, para uso local o pequeño. Otras bases requieren adaptadores de la aplicación.
+- **Escalado:** además de persistencia compartida, coordina difusión entre nodos, Presence, validación de Tickets y consistencia. Añadir procesos no basta; sigue el diseño de tu versión.
+- **Tareas pesadas:** separa conversiones intensivas en CPU para reducir interferencias.
+
+Consulta [módulos](/server/collaboration/modules), [despliegue](/server/deployment) y [ejemplo multinodo](/server/collaboration/examples#multi-node).
+
+## Rendimiento y capacidad
+
+**Los benchmarks y cifras de capacidad de la versión actual están pendientes.** Dependen de tamaño documental, frecuencia, participantes y entorno. Mide confirmación, visualización remota, changesets por segundo, difusión y memoria.
+
+## Integración y alcance
+
+Empieza por la [descripción general](/server/collaboration/overview) y el [ejemplo con dos navegadores](/server/collaboration/quick-start). Integra identidad y autorización mediante Middleware, selecciona un [Database Adapter](/server/collaboration/database-adapters) persistente y comprueba la conservación tras reiniciar.
+
+El núcleo admite Sheet, Doc, Slide, Board y Base, no PDF. La aplicación aporta identidad, autorización, gestión de archivos y políticas de almacenamiento.
+
+[Volver a todas las funciones](/docs/features)

@@ -1,0 +1,188 @@
+---
+title: "插件與 Facade 擴充"
+description: "按需組合功能，以公開 API 擴充內容操作與業務介面。"
+icon: Puzzle
+---
+
+Univer 透過插件組合產品與功能，透過 Facade 向應用開放內容操作。你可以選擇所需的內容引擎、功能與介面，也可以將業務邏輯封裝為插件，再提供具型別提示的 API，供自己的介面或 Agent 工具呼叫。
+
+## 按需組合內容能力 [#composition]
+
+Preset 是已組合好的插件集合，適合快速接入；Plugin 模式讓應用明確選擇產品、功能及設定。兩者使用相同的插件機制。
+
+| 層次 | 職責 | 典型組成 |
+| --- | --- | --- |
+| 產品與內容模型 | 管理 Unit、內容結構與基本操作。 | Sheet、Doc、Slide、Base、Board、PDF 的產品插件。 |
+| 功能插件 | 增加特定領域能力。 | 公式、篩選、圖表、評論等。 |
+| UI 與渲染插件 | 提供視覺呈現與互動入口。 | Canvas 渲染、選單、工具列、快捷鍵與元件。 |
+| Facade 擴充 | 為已安裝能力提供公開呼叫介面。 | 活頁簿、範圍、文件和物件操作，以及語意事件。 |
+
+產品邏輯與 UI 分離，使適合無頭執行的內容能力能在 Node.js、Worker 或瀏覽器中重用。Headless 宿主按需註冊內容插件；選單、DOM 和互動相關 API 仍需要對應的 UI 環境。
+
+## 依賴、生命週期與資源歸屬 [#coordination]
+
+插件透過 `@DependentOn(...)` 宣告直接依賴，由執行環境解析依賴並協調建構順序。缺少的依賴插件會以預設設定註冊；需要自訂設定時，宿主應先註冊並設定依賴。它不會代替套件安裝，也不會自動載入樣式、語言資源、Facade 入口或 Worker。
+
+插件內部以依賴注入（DI）連接 Service、Controller 和模型。模組依賴公開的服務識別符，平台實作可在支援的設定或注入邊界替換；業務邏輯無須自行建立及管理所有依賴。
+
+| 生命週期 | 適合執行的工作 |
+| --- | --- |
+| `onStarting()` | 註冊依賴、命令與控制器；不要讀取尚未建立的 Unit 或 DOM。 |
+| `onReady()` | 對應內容就緒後，初始化依賴模型的邏輯。 |
+| `onRendered()` | 初始化需要渲染器、Canvas 或 DOM 的擴充。 |
+| `onSteady()` | 延後非首屏必要的工作。 |
+
+命令註冊、事件訂閱、快捷鍵與渲染模組等資源應由擁有者管理。對回傳 disposable 的註冊使用 `disposeWithMe()`，讓資源隨插件或控制器釋放。`mergeMenu()` 目前回傳 `void`，不能視為 disposable。
+
+## 不同入口，共用內容變更機制 [#commands]
+
+工具列、快捷鍵與業務 API 可以呼叫同一業務命令；Agent 宿主安裝對應能力後，也能重用這個入口。命令系統將業務意圖、持久化變更與暫時互動分開。
+
+| 類型 | 職責 | 範例 |
+| --- | --- | --- |
+| `COMMAND` | 檢查目標、組織業務步驟，編排 Mutation 或 Operation。 | 寫入銷售報告、刪除資料列。 |
+| `MUTATION` | 以明確、可序列化的參數修改內容模型，供重播及對應的協同處理使用。 | 修改儲存格內容、插入資料列。 |
+| `OPERATION` | 修改暫時互動狀態。 | 調整選取範圍、捲動位置或面板。 |
+
+<Mermaid chart={"flowchart TD\n    U[\"工具列 / 快捷鍵\"] --> C[\"Command<br/>檢查與業務編排\"]\n    A[\"業務應用 / Agent 工具\"] --> F[\"Facade API\"]\n    F --> C\n    C --> M[\"Mutation<br/>內容變更\"]\n    M --> D[\"內容模型\"]\n    D --> R[\"渲染 / 計算\"]\n    M -. \"對應適配機制\" .-> H[\"復原重做 / 協同 / 歷史記錄\"]"} />
+
+例如，`FRange.setValues()` 會呼叫 `SetRangeValuesCommand`，由命令產生 `SetRangeValuesMutation` 並準備復原資料。內容變更進入同一執行鏈，不同入口能重用既有的檢查、攔截與變更處理。圖中的復原、協同及歷史記錄仍需對應機制；註冊 Mutation 本身不會自動提供這些能力。
+
+## 將插件能力擴充為 Facade API [#facade]
+
+Facade 提供面向內容物件的公開介面，隱藏內部服務查找與命令參數編排。擴充可以組合既有 Facade 方法，也可以呼叫插件自己的業務命令。
+
+以下為 `FUniver` 增加 `generateSalesReport()`；業務命令將於下一節實作。三個部分分別提供執行時方法、執行時掛載與 TypeScript 型別提示。
+
+### sales-report.facade.ts
+
+```typescript
+import { FUniver } from '@univerjs/core/facade';
+import type { ISalesReportParams } from './sales-report.plugin';
+import { GenerateSalesReportCommand } from './sales-report.plugin';
+
+export interface IFUniverSalesReport {
+  generateSalesReport(params: ISalesReportParams): Promise<boolean>;
+}
+
+export class FUniverSalesReport extends FUniver implements IFUniverSalesReport {
+  override generateSalesReport(params: ISalesReportParams): Promise<boolean> {
+    return this._commandService.executeCommand(GenerateSalesReportCommand.id, params);
+  }
+}
+
+FUniver.extend(FUniverSalesReport);
+
+declare module '@univerjs/core/facade' {
+  interface FUniver extends IFUniverSalesReport {}
+}
+```
+
+`FUniver.extend()` 在執行時安裝方法；模組擴充只補充型別。使用方必須透過 side-effect import 執行擴充檔案，僅匯出類別或註冊插件，不會執行另一個 Facade 入口。發布為套件時可提供獨立的 `/facade` 子路徑，並以 `package.json` 的 `sideEffects` 保留註冊副作用。
+
+僅對明確支援 `extend()` 的 Facade 類別使用此方式；已匯出的 Facade 類別不一定支援 mixin。擴充方法應使用明確的業務命名，避免與既有方法或其他擴充重名。
+
+## 案例：讓應用與 Agent 產生同一份銷售報告 [#example]
+
+這個最小業務插件將英文銷售資料、彙總公式與表頭樣式寫入指定 Sheet 的 `A1:D5`，會覆蓋該範圍。它明確接收活頁簿與工作表 ID，不依賴目前選取範圍或焦點。
+
+命令先檢查目標及範圍大小，再呼叫既有的 `SetRangeValuesCommand`，重用其內容變更及復原／重做邏輯。插件在 `onStarting()` 註冊命令並保管釋放句柄。固定資料用於示範，實際應用可改為經過驗證的業務輸入。
+
+![銷售報告插件輸出：各區域銷售資料與彙總公式結果](/assets/features/customization/sales-report.png)
+
+範例輸出。為便於閱讀，截圖補充了底色、數字顯示格式與列高欄寬。
+
+### sales-report.plugin.ts
+
+```typescript
+import type { ICellData, ICommand, Workbook } from '@univerjs/core';
+import {
+  CommandType, DependentOn, ICommandService, Inject, Injector,
+  IUniverInstanceService, Plugin, UniverInstanceType,
+} from '@univerjs/core';
+import { SetRangeValuesCommand, UniverSheetsPlugin } from '@univerjs/sheets';
+
+export interface ISalesReportParams {
+  unitId: string;
+  subUnitId: string;
+}
+
+export const GenerateSalesReportCommand: ICommand<ISalesReportParams> = {
+  id: 'sales-report.command.generate',
+  type: CommandType.COMMAND,
+  handler: (accessor, params) => {
+    if (!params) return false;
+    const sheet = accessor.get(IUniverInstanceService)
+      .getUnit<Workbook>(params.unitId, UniverInstanceType.UNIVER_SHEET)
+      ?.getSheetBySheetId(params.subUnitId);
+    if (!sheet || sheet.getRowCount() < 5 || sheet.getColumnCount() < 4) return false;
+
+    const value: ICellData[][] = [
+      ['Region', 'Q1', 'Q2', 'H1 Total'].map((v) => ({
+        v, t: 1, s: { bg: { rgb: '#17324D' }, cl: { rgb: '#FFFFFF' }, bl: 1 },
+      })),
+      [{ v: 'East', t: 1 }, { v: 128000, t: 2 }, { v: 142000, t: 2 }, { f: '=SUM(B2:C2)' }],
+      [{ v: 'West', t: 1 }, { v: 96000, t: 2 }, { v: 118000, t: 2 }, { f: '=SUM(B3:C3)' }],
+      [{ v: 'North', t: 1 }, { v: 110000, t: 2 }, { v: 125000, t: 2 }, { f: '=SUM(B4:C4)' }],
+      [{ v: 'Total', t: 1 }, { f: '=SUM(B2:B4)' }, { f: '=SUM(C2:C4)' }, { f: '=SUM(D2:D4)' }],
+    ];
+
+    return accessor.get(ICommandService).executeCommand(SetRangeValuesCommand.id, {
+      ...params,
+      range: { startRow: 0, endRow: 4, startColumn: 0, endColumn: 3 },
+      value,
+    });
+  },
+};
+
+@DependentOn(UniverSheetsPlugin)
+export class SalesReportPlugin extends Plugin {
+  static override pluginName = 'SALES_REPORT_PLUGIN';
+  static override type = UniverInstanceType.UNIVER_SHEET;
+
+  constructor(
+    _config: undefined,
+    @Inject(Injector) protected override readonly _injector: Injector,
+    @ICommandService private readonly _commands: ICommandService,
+  ) { super(); }
+
+  override onStarting(): void {
+    this.disposeWithMe(this._commands.registerCommand(GenerateSalesReportCommand));
+  }
+}
+```
+
+宿主先按照 [Sheet 接入指南](/guides/sheets/getting-started/installation)設定產品與公式能力，再註冊業務插件、匯入 Facade 擴充並呼叫。此處的 `univer` 是已完成該設定的實例；Node.js 的對應設定見 [Headless Web SDK](/guides/sheets/getting-started/node)。
+
+```typescript
+import { FUniver } from '@univerjs/core/facade';
+import '@univerjs/sheets/facade';
+import '@univerjs/engine-formula/facade';
+import { SalesReportPlugin } from './sales-report.plugin';
+import './sales-report.facade';
+
+univer.registerPlugin(SalesReportPlugin);
+const univerAPI = FUniver.newAPI(univer);
+const workbook = univerAPI.createWorkbook({ name: 'Quarterly Sales' });
+const worksheet = workbook.getActiveSheet();
+const target = { unitId: workbook.getId(), subUnitId: worksheet.getSheetId() };
+
+const generated = await univerAPI.generateSalesReport(target);
+if (!generated) throw new Error('Sales report could not be generated');
+await univerAPI.getFormula().onCalculationResultApplied();
+console.log(worksheet.getRange('D5').getValue()); // 719000
+```
+
+命令成功代表內容寫入完成；讀取公式值前仍需等待計算結果套用。本例的 `D5` 為 **719000**。
+
+應用按鈕可在點擊處理器呼叫 `generateSalesReport(target)`；Agent 工具處理器在 Headless 宿主安裝相同插件與 Facade 擴充後，也能呼叫此方法。業務動作和目標保持一致，UI 負責入口與回饋。安裝自訂插件不會自動將它註冊為 Agent 工具；工具開放與 Unit 授權仍由應用安排。
+
+## 實作邊界與延伸閱讀 [#boundaries]
+
+- **重用既有內容命令**：本例使用 `SetRangeValuesCommand`。新增 Mutation 時需設計反向操作與對應的協同適配；引入新的持久化資源時也需處理序列化，不要直接修改底層模型。
+- **區分執行、計算與提交**：多個 Facade 呼叫不是自動的原子交易。本例使用一次範圍寫入；協同宿主仍須依 Runtime 規則提交並確認。
+- **依環境組合**：分別接入內容與 UI 插件，相關 Univer 套件維持相同發布版本，介面文案使用語言資源。Agent 入口仍需應用自己的授權與參數驗證。
+
+延伸閱讀：[Univer 架構](/blog/univer) · [Facade 接入](/guides/sheets/getting-started/facade) · [Facade API 參考](/reference/facade) · [UI 自訂](/guides/sheets/ui/overview) · [Agent 與自動化](/docs/features/shared/agents)
+
+[返回功能總覽](/docs/features)

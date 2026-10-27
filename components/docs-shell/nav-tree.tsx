@@ -1,9 +1,7 @@
 import type { ReactNode } from 'react'
 import { ChevronRightIcon, ExternalLinkIcon } from 'lucide-react'
-
 import { Link } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
-
 import { NavIconFrame } from './nav-icon-frame'
 
 export interface INavTreeItem {
@@ -14,6 +12,7 @@ export interface INavTreeItem {
   icon?: ReactNode
   external?: boolean
   defaultOpen?: boolean
+  count?: number
   children: INavTreeItem[]
 }
 
@@ -31,6 +30,9 @@ function NavContent({ item }: { item: INavTreeItem }) {
     <>
       {item.icon ? <NavIconFrame icon={item.icon} /> : null}
       <span className="min-w-0 flex-1 wrap-break-word whitespace-normal">{item.name}</span>
+      {item.count !== undefined ? (
+        <span className="bg-muted text-muted-foreground rounded px-1.5 text-xs tabular-nums">{item.count}</span>
+      ) : null}
       {item.external ? <ExternalLinkIcon className="size-3.5 shrink-0" /> : null}
     </>
   )
@@ -56,14 +58,24 @@ function NavTreeNode({ item, pathname, level }: { item: INavTreeItem; pathname: 
   if (hasChildren) {
     return (
       <li>
-        <details className="group" open={level === 0 || active}>
+        <details key={pathname} className="group" open={active || (item.defaultOpen ?? level === 0)}>
           <summary
             aria-controls={controlsId}
             className={clsx(rowClassName, `cursor-pointer list-none [&::-webkit-details-marker]:hidden`)}
             style={style}
           >
-            <NavContent item={item} />
-            <ChevronRightIcon className="size-3.5 shrink-0 transition-transform group-open:rotate-90" />
+            {item.url ? (
+              <Link
+                aria-current={current ? 'page' : undefined}
+                className="focus-visible:ring-ring flex min-w-0 flex-1 items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:outline-none"
+                href={item.url}
+              >
+                <NavContent item={item} />
+              </Link>
+            ) : (
+              <NavContent item={item} />
+            )}
+            <ChevronRightIcon className="size-3.5 shrink-0 transition-transform [details[open]>summary>&]:rotate-90" />
           </summary>
           <ul
             className="border-border/70 mt-0.5 space-y-0.5 border-l pl-1.5"

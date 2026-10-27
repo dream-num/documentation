@@ -1,7 +1,6 @@
 import type { StructuredData } from 'fumadocs-core/mdx-plugins/remark-structure'
 import { structure } from 'fumadocs-core/mdx-plugins/remark-structure'
 import { createFromSource } from 'fumadocs-core/search/server'
-
 import type { SearchResultSource } from '@/lib/guides/search'
 import { normalizeLocale } from '@/i18n/locale-config'
 import {
@@ -10,7 +9,7 @@ import {
   parseSearchScope,
   rankSearchResults,
 } from '@/lib/guides/search'
-import { ai, blog, guides, reference, server } from '@/lib/source'
+import { ai, blog, docs, guides, reference, server } from '@/lib/source'
 
 const searchOptions = {
   async buildIndex(page: ReturnType<typeof guides.getPages>[number]) {
@@ -27,6 +26,7 @@ const searchOptions = {
 const referenceStructures = new Map<string, Promise<StructuredData>>()
 
 const handlers = {
+  docs: createFromSource(docs, searchOptions),
   guides: createFromSource(guides, searchOptions),
   server: createFromSource(server, searchOptions),
   ai: createFromSource(ai, searchOptions),
@@ -67,7 +67,8 @@ export async function GET(request: Request) {
 
   const scope = parseSearchScope(url.searchParams.get('scope'))
   const locale = normalizeLocale(url.searchParams.get('locale') ?? undefined)
-  const sources: SearchResultSource[] = scope === 'all' ? ['guides', 'server', 'ai', 'reference', 'blog'] : [scope]
+  const sources: SearchResultSource[] =
+    scope === 'all' ? ['docs', 'guides', 'server', 'ai', 'reference', 'blog'] : [scope]
   try {
     const groups = await Promise.all(
       sources.map(async (source) => {

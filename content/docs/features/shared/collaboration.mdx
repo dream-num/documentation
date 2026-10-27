@@ -1,0 +1,60 @@
+---
+title: "Real-time collaboration"
+description: "Coordinate concurrent edits with OT, HTTP, WebSocket, persistence, and application deployment so people and agents can share content."
+icon: Users
+---
+
+Real-time collaboration lets people and connected agents work on the same document. Edits take effect locally first; the server confirms their order and distributes them to other participants, combining immediate feedback with eventual consistency.
+
+**Product names:** [Relational Table](/docs/features/relational-table) is named `Base` in the SDK and APIs; [Canvases](/docs/features/canvas) is named `Board`.
+
+## Concurrent editing and conflict handling
+
+Univer uses OT (Operational Transformation) to coordinate concurrent edits. Clients group editing operations into changesets; the server transforms and commits them against confirmed revisions so clients converge after receiving each other’s changes.
+
+For example, Alice edits `C2` while Bob inserts a column before B. The transformed edit follows the cell to `D2`. Undo and redo also adjust to remote operations. OT aims to preserve intent, but cannot automatically resolve every business conflict.
+
+An operation that cannot be transformed or applied puts the client into a conflict state and disables editing for that document. `CollaborationConflict` exposes the reason and unacknowledged local edits. Applications can use this information for recovery or saving the user’s work; retain the local data before reloading. See [conflict recovery](/server/collaboration/browser-integration#conflict-recovery) and [OT and collaboration design](/blog/ot).
+
+## HTTP, WebSocket, and reconnection
+
+| Channel | Responsibility |
+| --- | --- |
+| HTTP | Load snapshots and changesets, obtain a Session Ticket, and submit changesets. |
+| WebSocket | Maintain the collaboration Session and document Room; receive ACKs, remote changes, and presence notifications. |
+
+The client exchanges a one-time Session Ticket for a WebSocket connection and joins the document’s Room. Presence shares online membership, cursors, and selections over this connection. Confirmed server revisions advance its state. **A connected socket or successful HTTP request does not mean the edit has been confirmed as saved.** Use ACKs, collaboration status, and pending edits to present save status.
+
+During disconnection, the client can cache unacknowledged edits. On reconnection it fetches missing revisions and resends pending submissions. The server deduplicates submissions so retries do not apply twice. See [sync status and retries](/server/collaboration/browser-integration#sync-status) and [Presence](/server/collaboration/presence).
+
+## Persistence and versioned snapshots
+
+The service persists confirmed changesets and revisions, generating snapshots according to its policy. Loading restores a snapshot and applies subsequent changes; a new snapshot is not required for every edit.
+
+See [Headless and server-side calculation](/docs/features/shared/server-calculation) for calculation during snapshot generation. History panels, comments, and agent draft review are separate [collaboration extensions](/server/collaboration/extensions) that can be added as needed.
+
+## Deployment architecture
+
+<Mermaid chart={"flowchart LR\n    A[\"Client A\"]\n    B[\"Client B / Agent\"]\n    S[\"Application collaboration service<br/>OT · Confirm and broadcast\"]\n    D[(\"Application database\")]\n    A <-->|\"HTTP / WebSocket\"| S\n    B <-->|\"HTTP / WebSocket\"| S\n    S --> D"} />
+
+- **Single node:** assemble Transport, Endpoint, Service, and a Database Adapter in your Node.js application. Memory supports temporary testing, SQLite fits local and small deployments, and other databases use an application-provided Adapter.
+- **Scaling design:** shared persistence alone is insufficient. Cross-node document broadcasts, Presence, Session Ticket validation, and storage consistency must also be coordinated. Adding processes alone does not provide this; follow the deployment design for the version you integrate.
+- **Separate heavy tasks:** deploy CPU-intensive file conversion separately to reduce interference with collaboration responsiveness.
+
+See [module responsibilities](/server/collaboration/modules), the [deployment guide](/server/deployment), and the [multi-node example](/server/collaboration/examples#multi-node).
+
+## Performance and capacity
+
+**Performance benchmarks and capacity figures for the current version are pending.** Capacity and collaboration latency depend on document size, editing frequency, collaborators per document, and deployment environment.
+
+Assess submission acknowledgement time, remote display time, changesets per second, broadcast volume, and memory used by active documents.
+
+## Integration
+
+Start with the [collaboration overview](/server/collaboration/overview), then run the two-browser [quick start](/server/collaboration/quick-start) to verify editing, acknowledgement, and broadcasting. Connect identity and authorization through application Middleware. For durable data, choose a persistent [Database Adapter](/server/collaboration/database-adapters) and verify that content survives a service restart.
+
+## Scope
+
+The core service supports Sheet, Doc, Slide, Board, and Base; PDF is not included in this five-product core coverage. Applications supply identity, authorization, file management, and storage policies. History, comments, and Worktree are separate extensions.
+
+[Back to all features](/docs/features)

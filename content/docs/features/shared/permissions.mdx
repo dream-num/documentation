@@ -1,0 +1,148 @@
+---
+title: "Permissions and authorization"
+description: "Unit-level actions, product-specific object permissions, and authorization across frontend and backend."
+icon: ShieldCheck
+---
+
+Univer separates **actions on a whole content Unit** from **permissions on objects inside it**. The Web SDK controls interactions and command execution; the Server SDK provides authorization boundaries for reads, collaborative submissions, and extension services.
+
+**Product names:** [Relational Table](/docs/features/relational-table) is named `Base` in the SDK and APIs; [Canvases](/docs/features/canvas) is named `Board`.
+
+## Unit-level permissions [#unit-permissions]
+
+A [Unit](/guides/sheets/getting-started/quickstart#unit) is one complete content instance, such as a workbook, document, presentation, Base, board, or PDF. The Unit permissions below apply to Sheets, Docs, Slides, Base, and Board; PDF is described separately below.
+
+| Permission | Controls | Example |
+| --- | --- | --- |
+| Edit | Changes to content and structure. | Viewers read; editors fill in and reorganize content. |
+| Copy | Copying content within the editor. | Allow reading and comments while restricting copying. |
+| Comment | Starting comments or replies when comment features are installed. | Reviewers comment while document content remains read-only. |
+| Print | Using the product’s printing capability. | Allow online reading while restricting printing. |
+| Export | Exporting content to a supported file format. | Enable file delivery or archiving. |
+
+Editing and commenting are independent. Editing, deleting, and managing comments also follow your application's author and owner policies.
+
+Print and Export are also Unit-level permissions. Sheets, Docs, Slides, and Board expose both; Base currently exposes Export. Each permission works with its corresponding feature plugins.
+
+Copying content, duplicating a file, exporting, and downloading are separate operations. Your application’s read authorization determines whether a file can be opened.
+
+For example, configure a Doc’s Unit-level permissions independently:
+
+```ts
+import { UnitAction } from '@univerjs/protocol'
+
+const document = univerAPI.getActiveDocument()
+if (!document) throw new Error('Open a document first')
+
+const permission = document.getPermission()
+await permission.setReadOnly()
+await permission.setPoint(UnitAction.Copy, false)
+await permission.setPoint(UnitAction.Comment, true)
+await permission.setPoint(UnitAction.Print, false)
+await permission.setPoint(UnitAction.Export, false)
+```
+
+Register the product and comment plugins first; plugin mode also requires `@univerjs/docs/facade`. Product accessors are listed below. Sheets uses its own permission-point enums.
+
+## Product-specific content permissions
+
+### Sheets
+
+Permissions cover **workbook → worksheet → cell range**. Workbook permissions control whole-file editing, copying, and commenting. Worksheet points further restrict values, styles, row/column changes, sorting, filtering, pivot tables, and extra objects. Range protection controls editing and viewing in selected areas and can name permitted collaborators.
+
+For example, protect budget formulas while leaving expense inputs editable. Use `getWorkbookPermission()`, `getWorksheetPermission()`, and `getRangePermission()`. Create the worksheet or range protection rule before setting its protection points. Applications must also control returned data when read access is restricted.
+
+[Sheets permissions and protection](/guides/sheets/features/core/permission)
+
+### Docs
+
+Below a whole document, protect **sections, paragraphs, and content entities**. Entities include tables, drawings, custom blocks, and ranges with stable identifiers. Header and footer paragraphs are addressed through their segment.
+
+For example, protect contract clauses and leave input paragraphs editable. Sections and paragraphs expose `getPermission()`; use `document.getEntityPermission()` for entities. Document, applicable parent, and object rules combine into the effective result.
+
+[Document permissions](/reference/facade/document-permission) · [Section, paragraph, and entity permissions](/reference/facade/document-object-permission)
+
+### Slides
+
+Protect **a presentation, individual slides, page elements, and the master-editing entry and elements**. Keep branded templates and fixed graphics protected while opening selected text boxes, images, or chart objects for editing.
+
+Use `presentation.getPermission()`, `slide.getPermission()`, and `slide.getElementPermission()`. See the Presentation Facade for master-related accessors.
+
+[Slides permissions](/guides/slides/features/core/permissions) · [Presentation Facade](/reference/facade/presentation)
+
+### Base
+
+Control **tables, fields, records, views, and dashboards**. Editing a cell considers the Base, table, field, and record restrictions together. View configuration and dashboards can be protected separately.
+
+For example, protect the schema and financial records while allowing everyday task maintenance. Tables, fields, records, and views expose `getPermission()`; dashboards require their plugin. Applications implement user-specific filtering of readable fields and records through their data-read policy.
+
+[Base permissions](/guides/bases/features/core/permissions) · [Object permission API](/reference/facade/base-object-permission)
+
+### Board
+
+Below the whole Board, protect **individual elements**, including shapes, text, images, and connectors. Keep an architecture background or workflow framework protected while collaborators maintain selected nodes.
+
+Use `board.getPermission()` for the Unit and `board.getElementPermission(elementId)` for elements. Effective element editing requires both Board-level and element-level permission.
+
+[Board permissions](/reference/facade/board-permission) · [Element permissions](/reference/facade/board-element-permission)
+
+### PDF
+
+PDF currently uses **view/edit modes** for local interaction, with a different scope from the five products' Unit/Object permission APIs. Your backend authorizes file reads, downloads, and exports. PDF is also outside the five Unit types supported by Core Collaboration.
+
+[PDF integration and content operations](/guides/pdfs/getting-started/facade)
+
+## Inheritance and collaborator policies
+
+**Object grants remain subject to Unit and applicable parent restrictions.** Making a paragraph editable cannot override a read-only document. Query `canEdit()` for the effective result on supported objects.
+
+Child-object permissions in Docs, Slides, Base, and Board mainly control Edit; Copy and Comment are configured at Unit level. Sheets has additional worksheet and range points, so permission granularity varies by product.
+
+Docs, Slides, Base, and Board provide `setObjectPermissions()` to manage collaborator policies in batches:
+
+| Policy | Who may edit the object |
+| --- | --- |
+| `all` | Collaborators who already have Edit permission on the Unit. |
+| `owner` | The object owner, subject to Unit and parent restrictions. |
+| `members` | Selected existing Unit collaborators. |
+
+These policies require Authz integration, `objectPermissionTypes` configured for target types, and persistent object bindings, rules, and memberships. Use exported object-ID helpers and keep content IDs stable. `policy: null` removes protection and restores inheritance. Batch writes can partially fail; inspect `failed` and `refreshError`. Sheets uses worksheet/range protection APIs for its policies.
+
+## Authorization across frontend and backend
+
+Maintain one trusted identity and Unit/object policy system to drive both frontend behavior and backend authorization.
+
+<Mermaid chart={"flowchart LR\n    P[\"Application identity<br/>and permission policies\"]\n    W[\"Web SDK<br/>Interaction and command checks\"]\n    S[\"Server SDK<br/>Request and change authorization\"]\n    D[\"Persist and broadcast\"]\n    P --> W\n    P --> S\n    W -->|\"Submit edits\"| S\n    S -->|\"Allowed\"| D"} />
+
+| Layer | Responsibility |
+| --- | --- |
+| Web SDK | Read the current user's allowed actions, update permission points and editing controls, and check commands. |
+| Application Authz API | Query or change policies using trusted identity, return effective Unit/object permissions, and authorize policy management. |
+| Transport | Authenticate Cookie, Session, or Token credentials and establish trusted identity. Client-supplied user fields are not authorization evidence. |
+| Endpoint | Authorize WebSocket connections and `joinUnit` room membership. |
+| Service | Check reads at `readUnitData` and submissions at `submitChangeset`; evaluate object policies against affected content during application. |
+
+The Server SDK supplies Middleware hooks; your application supplies ACL and object policies. **Frontend read-only settings and object protection do not automatically enforce backend authorization.** Applications checking only Unit-level Edit must add object checks to enforce paragraph, element, field, or record restrictions.
+
+For example, connect an existing `collabService` to your own `acl`:
+
+```ts
+import { CollabError } from '@univerjs-pro/collaboration-service'
+
+collabService.use('submitChangeset', async (context, next) => {
+  const allowed = await acl.canEdit(
+    context.session.userId,
+    context.request.changeset.unitID,
+  )
+  if (!allowed) {
+    throw new CollabError('PERMISSION_DENIED', 'Editing is not allowed')
+  }
+  await next()
+})
+```
+
+This demonstrates Unit-level editing only. Also protect reads, JOIN, policy changes, and extension endpoints. Use application stages such as `applyChangeset` to validate affected objects for fine-grained writes, with retry-safe policies.
+
+See [identity and authorization](/server/collaboration/identity-and-authorization) for integration and [Middleware and Events](/server/collaboration/middleware-and-events) for lifecycle hooks.
+
+[Back to all features](/docs/features)

@@ -1,0 +1,96 @@
+---
+title: "截图与视觉检查"
+description: "结合结构化回读、真实渲染截图和幻灯片布局检查，验证内容结果。"
+icon: ScanEye
+---
+
+视觉检查把内容模型转换成可核验的图像与布局证据。Agent 可以先检查数据和公式，再检查真正渲染出的文字、图形与页面；发现问题后回到 Facade 修正，并对同一内容状态重新验证。
+
+**产品名称：** [Relational Table（关系型表格）](/docs/features/relational-table) 对应 SDK/API 中的 `Base`；[Canvases（画布）](/docs/features/canvas) 对应 `Board`。
+
+## 三类证据，回答不同问题 [#evidence]
+
+| 证据 | 能够确认什么 |
+| --- | --- |
+| 结构化回读 | 原始值、公式及其计算结果、段落和对象属性。 |
+| PNG 截图 | 最终可见内容、裁切、图表、颜色与整体排版。 |
+| 布局诊断 | 基于渲染几何返回规则、对象 ID、边界与问题位置，方便定向修复。 |
+
+## 先准备内容状态与依赖 [#state]
+
+截图与 Layout Lint 接收已物化的 UnitData，不负责连接远端 target 或解释 changeset。协同内容先 `pull()`，公式编辑后等待计算结果应用，再 `exportUnitData()`。Worktree 场景必须读取对应草稿；应用可随报告保存目标、revision 和范围，确保审阅的是同一份状态。
+
+主 Unit 的 Snapshot 不包含所有依赖内容：跨 Unit 公式使用 `formulaReferenceUnits` 提供 Sheet/Base 源数据；嵌入内容使用 `embeddedUnits` 提供子 Unit。Render Page 先物化依赖，再创建宿主，避免公式或嵌入块在来源缺失时未就绪。UUID 图片可用 `resolveUnitScreenshotImageAssets()` 配合应用 resolver 补齐；解析是 best-effort，仍需核查缺失资源。
+
+## 从内容到稳定画面 [#rendering]
+
+<Mermaid chart={"flowchart LR\nA[\"明确内容状态<br/>UnitData + 依赖\"]\nB[\"Render Runtime<br/>浏览器与页面协议\"]\nC[\"Render Page<br/>Univer 原生布局\"]\nD[\"等待就绪<br/>计算与画面稳定\"]\nE[\"PNG / 布局事实<br/>交给 Agent 与审阅者\"]\nA --> B --> C --> D --> E"} />
+
+`univer-render-runtime` 在 Node.js 中托管应用构建的 Render Page 并启动浏览器；页面通过 Univer 产品插件还原内容。双方检查页面协议版本。一个 Runtime 的渲染操作进入串行队列，适合在多轮检查中复用，最终由拥有者 `close()`。
+
+就绪检查随产品而定。公式形状会等待结果离开 pending，并在有需要时等待连续多帧像素稳定，避免截到中间动画；Base 等待字体、计算、活动 table/view 与 DOM/Canvas 布局稳定。公式离开 pending 也可能是错误结果，仍需检查数值与状态。
+
+当前实现使用主 UnitData、公式来源与嵌入子内容的序列化结果生成内容哈希，作为渲染会话 key。同一 Unit ID 的数据变化也会得到不同 key；这既支持复用，又避免仅按 ID 复用旧画面。
+
+## 按产品选择检查范围 [#scope]
+
+| 产品 | 可选范围与输出 |
+| --- | --- |
+| Sheet | 指定工作表与 A1 区域；输出区域 PNG。重要结果优先显式指定范围。 |
+| Doc | 按页面选择或遍历页面；输出逐页 PNG。 |
+| Slide | 按 1 起始页码或 page ID 选择，可额外生成 contact sheet 总览。 |
+| Relational Table（Base） | 截取打开后的活动表格/视图工作台，使用浏览器 DOM + Canvas 画面。 |
+| Canvases（Board） | 整页内容边界，或互斥的 region / elementIds；可加 padding，并返回布局证据。 |
+
+`unit-screenshot` 返回图片 bytes、尺寸、页面或区域标识和建议文件名，由应用保存。Scale 范围为 0.1–4；可配置 `maxPages` 与单图 `maxPixels`。放大两倍会产生约四倍像素，大片内容宜分区域检查。PDF 不属于这套五产品截图入口。
+
+## 截图与布局检查共用内容状态 [#example]
+
+下面对同一 Slide 数据与公式来源执行截图和 Layout Lint。`renderRuntime` 是已创建的渲染 Runtime，`slideData` 是准备好的快照；这些能力本身不写文件。完整页面构建与关闭方式见 [AI SDK 视觉检查](/ai/visual-inspection)。
+
+```ts
+import { createUnitScreenshot } from '@univer-cli/unit-screenshot'
+import { createUnitLayoutLint } from '@univer-cli/unit-layout-lint'
+
+const source = {
+  unitType: 'slide' as const,
+  unitData: slideData,
+  formulaReferenceUnits,
+}
+const screenshot = createUnitScreenshot({ runtime: renderRuntime })
+const lint = createUnitLayoutLint({ runtime: renderRuntime })
+
+const capture = await screenshot.capture({
+  ...source,
+  target: { kind: 'slide-pages', pages: [1], scale: 2 },
+})
+const report = await lint.lint({ ...source, pages: [1] })
+```
+
+## Slide：从字形墨迹定位问题 [#slide-lint]
+
+Layout Lint 使用浏览器提供的布局事实：模型的 `declared` 是元素声明框，文本的 `ink` 是字形实际落墨范围，并结合排版、对齐和旋转映射到页面坐标。一个文本框没有越界，不代表其中的字形没有越界。
+
+| 当前规则 | 检查依据 |
+| --- | --- |
+| `text-off-page` | 实际文字 ink 超出页面边界。 |
+| `text-escapes-container` | 文字明显溢出匹配到的较小、不透明容器。 |
+| `text-overlaps-text` | 两段实际文字 ink 出现显著重叠。 |
+
+报告包含 `coverage.pages` 与 `coverage.rules`，说明本次检查的页和规则。Finding 带有 `pageId`、元素 `id`、`text.ink`，以及相应的 `overflow`、`container` 或 `other`；稳定 `fingerprint` 方便对比多轮修复结果。所有 finding 当前均为 warning，供结合截图复查；空列表仅表示所选范围未触发这些规则。
+
+## Board：验证浏览器实际连线路径 [#board-analysis]
+
+Board 截图额外返回 `layoutAnalysis`，包括浏览器解析后的 routes、issues 与 summary。它与只支持 Slide 的 `unit-layout-lint` 是不同入口。模型中的自动连线路径可能尚未解析，应以 `source: 'rendered'` 的结果检查最终路线。
+
+诊断可以指出连线穿过元素、交叉、箭头碰撞或标签冲突，并给出 `connectorIds`、`elementIds` 与 `focusBounds`。Agent 可先修正对应对象，再用 region 或 elementIds 做局部截图，最后回到全图确认。这比只有“看起来拥挤”的反馈更容易落实到一次 Facade 修改。
+
+## 把检查结果带入交付 [#handoff]
+
+<Mermaid chart={"flowchart LR\nA[\"Facade 修改\"]\nB[\"数据与公式回读\"]\nC[\"截图 + 布局诊断\"]\nD[\"按对象 ID 修正\"]\nE[\"新状态重新检查\"]\nF[\"人类审阅 / 交付\"]\nA --> B --> C --> D --> E --> F\nD --> B"} />
+
+建议同时保留结构化结果、范围与页面信息、图片和诊断。截图不能证明公式正确，Lint 也不能替代视觉判断；包含工具栏、焦点与弹出菜单的完整交互仍应在 Web 编辑器中验收。跨 Unit 内容还要确认依赖已加载。
+
+在 [Worktree](/docs/features/shared/worktree) 标记 Ready 前完成这轮检查，审阅者就能把内容变化与视觉证据对应起来。运行机制见[无头与服务端计算](/docs/features/shared/server-calculation)，Agent 编排见 [Agent 与自动化](/docs/features/shared/agents)。
+
+[返回功能总览](/docs/features)

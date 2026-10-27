@@ -1,0 +1,125 @@
+---
+title: "歷史記錄"
+description: "回看歷史版本、定位內容變更，並將選定版本還原至目前的共用文件。"
+icon: Clock
+---
+
+歷史記錄將已經協同確認的修改組織成可瀏覽的版本。開發者與使用者可以查看修改者、時間與操作，開啟歷史內容、檢查差異，並在有權限時還原版本；重新整理頁面後仍可追溯。
+
+**產品名稱：** [Relational Table（關聯式表格）](/docs/features/relational-table) 對應 SDK/API 中的 `Base`；[Canvases（畫布）](/docs/features/canvas) 對應 `Board`。
+
+## 歷史記錄的原理
+
+- **Mutation**：一條可重播的內容變更，例如修改儲存格或插入段落。
+- **Changeset**：依序封裝一組 Mutation 的一次協同提交。
+
+### 1. 記錄變更
+
+**編輯提交時發生。** 使用者或 Agent 產生的內容變更，以 Mutation 形式封裝進 Changeset，提交給協同服務確認並儲存。
+
+<Mermaid chart={"flowchart LR\n    A[\"編輯內容\"]\n    B[\"Mutation\"]\n    C[\"Changeset\"]\n    D[\"協同確認並儲存<br/>記錄 revision\"]\n    A --> B\n    B --> C\n    C --> D\n"} />
+
+**Revision（修訂號）** 標示已確認提交在文件歷史中的位置。History 以已確認的 Changeset 建立索引，依時間與操作分組，組織成版本時間軸。
+
+### 2. 重建歷史內容
+
+**選擇歷史版本時發生。** Snapshot（快照）是某個 revision 的完整內容狀態。系統讀取基準 Snapshot，以及之後直到目標 revision 的 Changeset，依序重播其中的 Mutation，產生唯讀歷史視圖。
+
+<Mermaid chart={"flowchart LR\n    A[\"選擇版本<br/>revision N\"]\n    B[\"讀取 Snapshot<br/>及後續 Changeset\"]\n    C[\"依序重播<br/>Mutation\"]\n    D[\"顯示歷史內容<br/>唯讀視圖\"]\n    A --> B\n    B --> C\n    C --> D\n"} />
+
+例如：**revision 10 的 Snapshot + revision 11～15 的 Changeset = revision 15 的內容。**
+
+### 3. 還原為目前版本
+
+**點選「還原此版本」時發生。**
+
+> 選定目標版本 → 提交還原 Mutation → 協同確認 → 更新目前文件，產生新 revision
+
+還原操作本身也會產生新的歷史記錄，原有版本繼續保留。
+
+## 查看版本與變更
+
+1. 從編輯器的歷史記錄入口開啟時間軸，選擇版本。
+2. 展開版本群組，查看具體 revision，並在唯讀檢視器中檢查內容與差異。
+3. 選擇「還原此版本」，透過協同更新目前的共用文件，其他參與者也會收到更新。
+
+一個群組可合併一段時間內的修改。歷史項目不等於每次按鍵，也不等於每次產生 Snapshot。
+
+### 變更顏色
+
+| 標記 | 含義 |
+| --- | --- |
+| 🟦 **藍色：修改** | 已有內容、格式或物件屬性發生變更。 |
+| 🟩 **綠色：新增** | 新增列、段落、記錄或畫板物件。 |
+| 🟥 **紅色：刪除** | 移除的內容在歷史視圖中保留標記，方便追溯。 |
+
+顏色代表變更類型。文字替換可能同時顯示新增與刪除；具體範圍由各產品檢視器決定。
+
+## 五個產品的歷史視圖
+
+以下 Northstar 英文專案範例展開了時間軸，讓內容與操作記錄並列顯示。
+
+### Sheets
+
+在 Launch Budget 中回看預算、預測值及列的新增與刪除。
+
+![Sheets: 歷史記錄](/assets/features/history/sheets.png)
+
+[Sheets — 接入指南](/guides/sheets/features/edit-history)
+
+### Docs
+
+在 Product Launch Brief 中檢查發布日期、段落格式與客戶準備事項。紅色刪除線保留移除的文字。
+
+![Docs: 歷史記錄](/assets/features/history/docs.png)
+
+[Docs — 接入指南](/guides/docs/features/edit-history)
+
+### Slides
+
+在 Launch Review 中追溯目標數值與頁面物件的變更。
+
+![Slides: 歷史記錄](/assets/features/history/slides.png)
+
+[Slides — 接入指南](/guides/slides/features/edit-history)
+
+### Base
+
+在 Launch Tracker 中查看任務、負責人、狀態、記錄與欄位的調整。
+
+![Base: 歷史記錄](/assets/features/history/bases.png)
+
+[Base — 接入指南](/guides/bases/features/edit-history)
+
+### Board
+
+在 Release Workspace 中回看規劃卡片與物件屬性的變更，並保留空間脈絡。
+
+![Board: 歷史記錄](/assets/features/history/boards.png)
+
+[Board — 接入指南](/guides/boards/features/edit-history)
+
+### PDF
+
+**Coming soon**: PDF 歷史記錄尚未提供。
+
+## 在應用程式中接入
+
+- **服務端**：在核心協同之上接入 History Service、Endpoint 與持久化 Database Adapter。服務訂閱 Unit 建立與 changeset 提交事件，建立歷史索引，提供版本與修改查詢。
+- **瀏覽器**：註冊通用歷史能力與產品的 History / History UI 外掛，連接歷史介面。檢視器載入選定 revision 並呈現差異；自訂內容需接入相應檢視器外掛。
+- **權限**：應用程式提供身分與授權，服務端檢查歷史讀取與還原權限。歷史可能含有目前文件已刪除的資料。
+
+參閱[協同擴充模組](/server/collaboration/extensions)與 [History 範例](/server/collaboration/examples#history)，再依產品指南接入介面。
+
+歷史索引是可重建的衍生資料，已確認的 changeset 仍是權威來源。持久化與保留策略由應用程式配置；歷史面板不能取代備份。
+
+## 與其他能力的關係
+
+- **復原 / 重做**：在編輯過程中撤回或重做操作，不需要歷史服務。
+- **歷史記錄**：跨工作階段追溯已確認的版本，並還原共用內容。
+- [內容比較](/docs/features/shared/compare)：唯讀比較兩份內容，本身不還原內容。
+- [Worktree](/docs/features/shared/worktree)：隔離草稿修改，審閱後再決定是否合入。
+
+Agent 透過 Facade API 產生的修改，在協同確認後也可進入同一歷史流程，並配合內容比較進行自動審閱。
+
+[返回功能總覽](/docs/features)

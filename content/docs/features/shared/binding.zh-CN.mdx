@@ -1,0 +1,110 @@
+---
+title: "双向绑定"
+description: "通过 Server SDK，让 HTML 应用与电子表格共享数据、公式结果和协同更新。"
+icon: ArrowLeftRight
+---
+
+<Callout type="warning" title="实验性功能">
+  双向绑定目前仍处于实验阶段，后续版本会有破坏性更新，API 和接入方式可能调整。
+</Callout>
+
+双向绑定（Binding）通过 Univer Server SDK，将普通 HTML、CSS、JavaScript 页面连接到 Sheet。表格承载数据与公式，网页负责表单、指标、图表和业务交互；用户可以从任一侧修改输入，另一侧接收更新。适合把已有表格模型变成报价工具、经营看板或可交互的业务应用。
+
+## 示例：应用与表格联动
+
+Project Summit 示例将增长率、报价与现金支付比例做成左侧控件，右侧保留完整的财务表格。调整假设后，相关公式、指标卡片与图表随模型更新；用户也可以进入表格检查输入和计算过程。
+
+![Project Summit：左侧业务控件、指标和图表与右侧 Univer Sheets 财务模型联动](/assets/features/binding/project-summit-app-sheets.png)
+
+图中展示浏览器本地模型的交互效果；多人共享与持久化通过下文的协同服务接入。点击图片可放大查看。
+
+## 同一份 Sheet，多个交互界面
+
+HTML 视图通过页面运行时与宿主通信，由 Binding Engine 读写真实的 Sheet 内容。Engine 内部使用独立的 Headless Univer 实例，Univer SDK 负责公式计算与协同，绑定层将值的变化送回页面。
+
+<Mermaid chart={"flowchart LR\n    P[\"HTML 应用<br/>控件 · 指标 · 图表\"]\n    E[\"宿主 + Binding Engine<br/>Headless Sheet\"]\n    S[\"协同服务<br/>同一 Sheet Unit\"]\n    T[\"Sheet 编辑器\"]\n    P <-->|\"读写 · 订阅更新\"| E\n    E <-->|\"SDK 协同\"| S\n    T <-->|\"编辑 · 同步\"| S"} />
+
+直接编辑表格或接收其他用户的协同修改，也会刷新绑定的页面。一个 HTML 视图可以访问多个已授权 Unit；宿主为每个 Unit 加载一个 Engine，每个 Engine 拥有自己的 Headless Univer 实例。
+
+## 用 HTML 声明绑定
+
+在元素上声明数据来源，文本和表单控件即可自动同步。引用格式为 `unitId:sheetId:A1`；两个 ID 分别使用 `encodeURIComponent` 编码，工作表使用稳定 ID。
+
+| 属性 | 用途 |
+| --- | --- |
+| `data-univer-cell-text` | 将单元格的值显示为元素文本。 |
+| `data-univer-cell-model` | 让单元格与输入控件双向同步。 |
+| `data-univer-cell-subscribe` | 声明单元格订阅，供自定义 JavaScript 渲染使用。 |
+| `data-univer-range-subscribe` | 声明矩形区域订阅，供图表、列表等读取二维数据。 |
+
+例如，Sheet 中 `B2` 为单价、`B3` 为数量，`B4` 已配置公式 `=B2*B3`。下面的模板片段把输入与总价连接到这些单元格：
+
+```html
+<label>
+  单价
+  <input type="number" min="0" step="0.01"
+    data-univer-cell-model="book:sheet:B2" />
+</label>
+<label>
+  数量
+  <input type="number" min="0" step="1"
+    data-univer-cell-model="book:sheet:B3" />
+</label>
+<p>总价: <span data-univer-cell-text="book:sheet:B4"></span></p>
+```
+
+将 `book`、`sheet` 替换为真实且已授权的 ID，并通过 Renderer 加载模板。公式定义在 Sheet 中，页面读取计算结果。文本、数字、滑块、复选框、文本域和单选下拉框可按相应值类型绑定。
+
+## 用 JavaScript 扩展图表与交互
+
+页面运行时在模板脚本执行前提供 `window.univerBinding`。自定义图表可用 `data-univer-range-subscribe` 声明数据区域，再通过 `subscribeRangeById(elementId, callback)` 接收二维矩阵并更新图表；单值组件使用 `subscribeCellById()`。
+
+`getCellState()` / `getRangeState()` 用于一次性读取；`setCellValue()` 写入标量，`insertRowsWithValues()` 插行并填值。订阅先提供当前状态，再通知实际的值变化；本地编辑、协同修改和公式结果应用都能触发刷新。
+
+引用按固定坐标读取，插入或删除行列后不会自动跟随原记录。标量写入会替换原单元格中的公式或富文本，因此应绑定业务输入单元格。
+
+## 接入宿主与 Agent
+
+应用提供容器、HTML 模板和 `loadEngine`。加载器检查 Unit 访问权限、配置协同连接并返回已加载的 Engine；Renderer 管理隔离页面、消息通信与已交付 Engine 的生命周期。下面是接收这三个参数的装配入口：
+
+```ts
+import {
+  renderHtmlView,
+  type RenderHtmlViewOptions,
+} from '@univerjs-labs/html-view-renderer/render';
+
+export function createPreview(
+  container: HTMLElement,
+  html: string,
+  loadEngine: RenderHtmlViewOptions['loadEngine'],
+) {
+  return renderHtmlView({ container, html, loadEngine });
+}
+```
+
+模板生成、源码编辑、文件保存和业务导航属于应用。Agent 可以生成带绑定声明的 HTML 页面，复用 Sheet 中的数据与计算规则；通过 `view.inspect.open()` 可检查 Unit → Sheet → 引用与页面元素的对应关系。
+
+协同凭据由宿主管理，服务端执行实际访问校验。Sheet UI 与 Headless Engine 应放在不同的 JavaScript 环境中，例如通过不同页面或 iframe 承载。当前绑定包围绕 Sheet 提供能力。
+
+## 区分本地更新与保存确认
+
+| 操作 | 含义 |
+| --- | --- |
+| 页面写入完成 | 本地操作已执行，服务端确认仍可能在进行。 |
+| `await view.flush()` | 提交控件草稿、等待此前写入和协同确认，成功后继续编辑。 |
+| `await view.prepareToLeave()` | 暂停编辑并保存；成功后可离开，取消离开时调用 `view.resume()`。 |
+| `view.dispose()` | 释放连接、Engine 与订阅，不自动保存。 |
+
+公式结果应用后，订阅会刷新显示值。保存失败时保留当前页面并重试保存；普通页面写入完成不能直接标记为“已保存”。
+
+## 继续接入
+
+- [SDK 仓库与整体介绍](https://github.com/dream-num/univer-data-binding-sdk)
+- [Binding Engine 接口](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/binding-engine/README.md)
+- [HTML 绑定属性](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/html-view/README.md)
+- [Renderer 集成](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/html-view-renderer/README.md)
+- [页面 JavaScript API](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/html-view-renderer/docs/javascript-api.md)
+
+相关能力：[无头与服务端计算](/docs/features/shared/server-calculation) · [实时协同](/docs/features/shared/collaboration) · [Agent 与自动化](/docs/features/shared/agents)。
+
+[返回功能总览](/docs/features)

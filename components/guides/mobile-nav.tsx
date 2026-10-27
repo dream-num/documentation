@@ -1,7 +1,8 @@
+'use client'
+
 import { MenuIcon } from 'lucide-react'
-
 import type { IGuideNavItem } from '@/lib/guides/navigation'
-
+import { usePathname } from '@/i18n/navigation'
 import { GuidesSidebar } from './sidebar'
 
 export function GuidesMobileNav({
@@ -9,7 +10,6 @@ export function GuidesMobileNav({
   labels,
   navigationLabel,
   openLabel,
-  title,
 }: {
   items: IGuideNavItem[]
   labels: {
@@ -18,10 +18,10 @@ export function GuidesMobileNav({
   }
   navigationLabel: string
   openLabel: string
-  title: string
 }) {
+  const pathname = usePathname()
   return (
-    <details className="group lg:hidden">
+    <details key={pathname} className="group lg:hidden">
       <summary
         aria-label={openLabel}
         className="hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex size-8 cursor-pointer list-none items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none [&::-webkit-details-marker]:hidden"
@@ -29,9 +29,6 @@ export function GuidesMobileNav({
         <MenuIcon className="size-4" />
       </summary>
       <div className="bg-background fixed top-22 left-0 z-50 flex h-[calc(100dvh-5.5rem)] w-[min(22rem,calc(100vw-2rem))] flex-col border-r shadow-lg">
-        <div className="border-b p-4">
-          <p className="text-lg font-semibold tracking-normal">{title}</p>
-        </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
           <GuidesSidebar items={items} label={navigationLabel} labels={labels} />
         </div>

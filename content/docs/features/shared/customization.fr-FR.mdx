@@ -1,0 +1,188 @@
+---
+title: "Plugins et extensions Facade"
+description: "Composez les fonctionnalités et étendez contenu et interfaces avec les API publiques."
+icon: Puzzle
+---
+
+Univer compose ses produits et fonctionnalités avec des plugins et expose les opérations de contenu par les API Facade. Choisissez moteur, fonctions et interface, ou encapsulez une logique métier dans un plugin avec des méthodes typées accessibles à votre application et aux outils d’un Agent.
+
+## Composer les capacités de contenu nécessaires [#composition]
+
+Un Preset est un ensemble de plugins déjà assemblé pour démarrer rapidement. Le mode Plugin permet à l’application de choisir explicitement produits, fonctions et configuration. Les deux utilisent le même mécanisme.
+
+| Couche | Responsabilité | Éléments habituels |
+| --- | --- | --- |
+| Produits et modèles de contenu | Gérer les Units, structures et opérations fondamentales. | Plugins produit de Sheet, Doc, Slide, Base, Board et PDF. |
+| Plugins fonctionnels | Ajouter des capacités propres à un domaine. | Formules, filtres, graphiques, commentaires, etc. |
+| Plugins d’interface et de rendu | Fournir l’affichage et les points d’interaction. | Canvas, menus, barres d’outils, raccourcis et composants. |
+| Extensions Facade | Exposer des API publiques pour les capacités installées. | Opérations sur classeurs, plages, documents et objets, ainsi que des événements sémantiques. |
+
+Séparer logique produit et UI permet de réutiliser les capacités compatibles dans Node.js, un Worker ou le navigateur. Un hôte Headless enregistre les plugins de contenu nécessaires ; les API de menus, DOM et interaction nécessitent toujours leur environnement UI.
+
+## Dépendances, cycle de vie et propriété des ressources [#coordination]
+
+Les plugins déclarent leurs dépendances directes avec `@DependentOn(...)` ; le runtime les résout et coordonne leur construction. Une dépendance absente est enregistrée avec sa configuration par défaut. Si elle nécessite une configuration spécifique, configurez-la et enregistrez-la d’abord. Ce mécanisme n’installe pas les paquets et n’importe ni styles, ni langues, ni entrées Facade, ni Workers.
+
+Dans un plugin, l’injection de dépendances (DI) relie services, contrôleurs et modèles par des identifiants publics. Les implémentations de plateforme peuvent être remplacées aux points de configuration ou d’injection prévus, sans obliger la logique métier à construire et gérer toutes ses dépendances.
+
+| Cycle de vie | Travail approprié |
+| --- | --- |
+| `onStarting()` | Enregistrer dépendances, commandes et contrôleurs ; ne pas lire des Units ou du DOM encore inexistants. |
+| `onReady()` | Initialiser la logique dépendant du modèle quand le contenu correspondant est prêt. |
+| `onRendered()` | Initialiser les extensions ayant besoin du moteur de rendu, de Canvas ou du DOM. |
+| `onSteady()` | Différer le travail non indispensable au premier affichage. |
+
+Le propriétaire gère enregistrements de commandes, abonnements, raccourcis et modules de rendu. Utilisez `disposeWithMe()` lorsqu’un enregistrement retourne un disposable pour le libérer avec le plugin ou contrôleur. Actuellement, `mergeMenu()` retourne `void`, pas un disposable.
+
+## Des entrées différentes, un même mécanisme de modification [#commands]
+
+Barres d’outils, raccourcis et API métier peuvent appeler la même commande. Un hôte Agent réutilise cette entrée après installation des capacités requises. Le système sépare intention métier, modifications persistantes et interaction temporaire.
+
+| Type | Responsabilité | Exemple |
+| --- | --- | --- |
+| `COMMAND` | Valider les cibles et orchestrer étapes métier, Mutations ou Operations. | Écrire un rapport de ventes ou supprimer une ligne. |
+| `MUTATION` | Modifier le modèle avec des paramètres explicites et sérialisables, pour la relecture et le traitement collaboratif correspondant. | Modifier des cellules ou insérer une ligne. |
+| `OPERATION` | Modifier l’état d’interaction temporaire. | Changer sélection, défilement ou panneau. |
+
+<Mermaid chart={"flowchart TD\n    U[\"Barre d’outils / raccourci\"] --> C[\"Command<br/>Validation et orchestration\"]\n    A[\"Application / outil Agent\"] --> F[\"Facade API\"]\n    F --> C\n    C --> M[\"Mutation<br/>Modification du contenu\"]\n    M --> D[\"Modèle de contenu\"]\n    D --> R[\"Rendu / calcul\"]\n    M -. \"Adaptateurs correspondants\" .-> H[\"Annuler-rétablir / collaboration / historique\"]"} />
+
+Par exemple, `FRange.setValues()` appelle `SetRangeValuesCommand`, qui produit une `SetRangeValuesMutation` et prépare les données d’annulation. Les différentes entrées suivent le même chemin et réutilisent validation, intercepteurs et traitement des modifications. L’annulation, la collaboration et l’historique nécessitent leurs mécanismes respectifs : enregistrer une Mutation ne les fournit pas automatiquement.
+
+## Exposer les capacités d’un plugin par Facade [#facade]
+
+Facade propose des objets publics orientés contenu tout en masquant la recherche des services internes et la préparation des paramètres de commande. Une extension peut composer des méthodes existantes ou appeler sa propre commande métier.
+
+Cette extension ajoute `generateSalesReport()` à `FUniver`. La commande est implémentée dans la section suivante. Les trois parties apportent la méthode d’exécution, son enregistrement et les types TypeScript.
+
+### sales-report.facade.ts
+
+```typescript
+import { FUniver } from '@univerjs/core/facade';
+import type { ISalesReportParams } from './sales-report.plugin';
+import { GenerateSalesReportCommand } from './sales-report.plugin';
+
+export interface IFUniverSalesReport {
+  generateSalesReport(params: ISalesReportParams): Promise<boolean>;
+}
+
+export class FUniverSalesReport extends FUniver implements IFUniverSalesReport {
+  override generateSalesReport(params: ISalesReportParams): Promise<boolean> {
+    return this._commandService.executeCommand(GenerateSalesReportCommand.id, params);
+  }
+}
+
+FUniver.extend(FUniverSalesReport);
+
+declare module '@univerjs/core/facade' {
+  interface FUniver extends IFUniverSalesReport {}
+}
+```
+
+`FUniver.extend()` installe la méthode à l’exécution ; l’augmentation de module ajoute uniquement les types. Le consommateur doit exécuter le fichier avec un import à effet de bord. Exporter la classe ou enregistrer le plugin n’exécute pas une autre entrée Facade. Un paquet publié peut exposer un sous-chemin `/facade` et préserver cet enregistrement avec `package.json#sideEffects`.
+
+Ce mécanisme concerne uniquement les classes Facade prenant explicitement en charge `extend()`. Une classe exportée n’est pas nécessairement une cible mixin. Choisissez des noms métier clairs et évitez les collisions avec des méthodes ou extensions existantes.
+
+## Exemple : un même rapport de ventes pour l’application et les Agents [#example]
+
+Ce plugin minimal écrit des données de ventes en anglais, des formules de synthèse et un style d’en-tête dans `A1:D5` du Sheet indiqué, en remplaçant cette plage. Il reçoit les ID explicites du classeur et de la feuille, sans dépendre de la sélection ou du focus.
+
+La commande vérifie cible et dimensions puis appelle `SetRangeValuesCommand` pour réutiliser ses modifications de contenu et son annulation/rétablissement. Le plugin enregistre la commande dans `onStarting()` et conserve son disposable. Les données fixes servent à la démonstration ; une application peut utiliser des entrées métier validées.
+
+![Rapport du plugin avec ventes par région et totaux calculés](/assets/features/customization/sales-report.png)
+
+Exemple de résultat avec couleurs, format numérique et dimensions des lignes et colonnes ajustés pour la lisibilité.
+
+### sales-report.plugin.ts
+
+```typescript
+import type { ICellData, ICommand, Workbook } from '@univerjs/core';
+import {
+  CommandType, DependentOn, ICommandService, Inject, Injector,
+  IUniverInstanceService, Plugin, UniverInstanceType,
+} from '@univerjs/core';
+import { SetRangeValuesCommand, UniverSheetsPlugin } from '@univerjs/sheets';
+
+export interface ISalesReportParams {
+  unitId: string;
+  subUnitId: string;
+}
+
+export const GenerateSalesReportCommand: ICommand<ISalesReportParams> = {
+  id: 'sales-report.command.generate',
+  type: CommandType.COMMAND,
+  handler: (accessor, params) => {
+    if (!params) return false;
+    const sheet = accessor.get(IUniverInstanceService)
+      .getUnit<Workbook>(params.unitId, UniverInstanceType.UNIVER_SHEET)
+      ?.getSheetBySheetId(params.subUnitId);
+    if (!sheet || sheet.getRowCount() < 5 || sheet.getColumnCount() < 4) return false;
+
+    const value: ICellData[][] = [
+      ['Region', 'Q1', 'Q2', 'H1 Total'].map((v) => ({
+        v, t: 1, s: { bg: { rgb: '#17324D' }, cl: { rgb: '#FFFFFF' }, bl: 1 },
+      })),
+      [{ v: 'East', t: 1 }, { v: 128000, t: 2 }, { v: 142000, t: 2 }, { f: '=SUM(B2:C2)' }],
+      [{ v: 'West', t: 1 }, { v: 96000, t: 2 }, { v: 118000, t: 2 }, { f: '=SUM(B3:C3)' }],
+      [{ v: 'North', t: 1 }, { v: 110000, t: 2 }, { v: 125000, t: 2 }, { f: '=SUM(B4:C4)' }],
+      [{ v: 'Total', t: 1 }, { f: '=SUM(B2:B4)' }, { f: '=SUM(C2:C4)' }, { f: '=SUM(D2:D4)' }],
+    ];
+
+    return accessor.get(ICommandService).executeCommand(SetRangeValuesCommand.id, {
+      ...params,
+      range: { startRow: 0, endRow: 4, startColumn: 0, endColumn: 3 },
+      value,
+    });
+  },
+};
+
+@DependentOn(UniverSheetsPlugin)
+export class SalesReportPlugin extends Plugin {
+  static override pluginName = 'SALES_REPORT_PLUGIN';
+  static override type = UniverInstanceType.UNIVER_SHEET;
+
+  constructor(
+    _config: undefined,
+    @Inject(Injector) protected override readonly _injector: Injector,
+    @ICommandService private readonly _commands: ICommandService,
+  ) { super(); }
+
+  override onStarting(): void {
+    this.disposeWithMe(this._commands.registerCommand(GenerateSalesReportCommand));
+  }
+}
+```
+
+Configurez les produits et les formules selon le [guide d’installation Sheet](/guides/sheets/getting-started/installation), puis enregistrez le plugin, importez son extension Facade et appelez-la. Ici, `univer` est une instance déjà configurée. Pour Node.js, consultez [Headless Web SDK](/guides/sheets/getting-started/node).
+
+```typescript
+import { FUniver } from '@univerjs/core/facade';
+import '@univerjs/sheets/facade';
+import '@univerjs/engine-formula/facade';
+import { SalesReportPlugin } from './sales-report.plugin';
+import './sales-report.facade';
+
+univer.registerPlugin(SalesReportPlugin);
+const univerAPI = FUniver.newAPI(univer);
+const workbook = univerAPI.createWorkbook({ name: 'Quarterly Sales' });
+const worksheet = workbook.getActiveSheet();
+const target = { unitId: workbook.getId(), subUnitId: worksheet.getSheetId() };
+
+const generated = await univerAPI.generateSalesReport(target);
+if (!generated) throw new Error('Sales report could not be generated');
+await univerAPI.getFormula().onCalculationResultApplied();
+console.log(worksheet.getRange('D5').getValue()); // 719000
+```
+
+Le succès de la commande indique que l’écriture est terminée ; attendez l’application des résultats du calcul avant de lire les valeurs des formules. Dans cet exemple, `D5` vaut **719000**.
+
+Un bouton d’application peut appeler `generateSalesReport(target)` depuis son gestionnaire de clic. Un outil Agent peut appeler la même méthode après installation du plugin et de l’extension Facade dans son hôte Headless. L’action métier et la cible sont identiques ; l’UI fournit l’entrée et le retour utilisateur. L’installation du plugin ne publie pas automatiquement un outil Agent : l’application gère l’enregistrement de l’outil et l’autorisation du Unit.
+
+## Limites d’implémentation et ressources complémentaires [#boundaries]
+
+- **Réutiliser les commandes de contenu existantes** : cet exemple utilise `SetRangeValuesCommand`. Une nouvelle Mutation nécessite des opérations inverses et l’intégration collaborative appropriée. De nouvelles ressources persistantes nécessitent aussi une sérialisation ; ne modifiez pas directement le modèle.
+- **Séparer exécution, calcul et soumission** : plusieurs appels Facade ne forment pas automatiquement une transaction atomique. L’exemple écrit une plage en une seule fois ; un hôte collaboratif soumet et confirme les changements selon le contrat du Runtime.
+- **Composer selon l’environnement** : intégrez séparément contenu et UI, gardez les paquets du même train de publication Univer à la même version et utilisez les ressources linguistiques pour l’interface. L’application conserve l’autorisation et la validation des paramètres des entrées Agent.
+
+En savoir plus : [Architecture Univer](/blog/univer) · [Configuration Facade](/guides/sheets/getting-started/facade) · [Référence Facade](/reference/facade) · [Personnalisation UI](/guides/sheets/ui/overview) · [Agents et automatisation](/docs/features/shared/agents)
+
+[Retour aux fonctionnalités](/docs/features)

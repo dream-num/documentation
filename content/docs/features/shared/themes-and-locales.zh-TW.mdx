@@ -1,0 +1,326 @@
+---
+title: "主題與國際化"
+description: "統一編輯器外觀、深色模式與語言資源。"
+icon: Languages
+---
+
+主題與國際化是共用的執行環境能力：六個產品使用相同的主題服務、語言資源與地區設定，自訂插件也能訂閱同一套狀態。品牌外觀與使用者偏好可在執行時更新，內容模型保留自己的資料與樣式。
+
+目前 SDK 內建 **[19 個介面語言／地區選項](#supported-locales)**、**7 套主題色板**，六個產品共用外觀、語言與地區設定。自訂主題及業務翻譯也接入相同服務。
+
+**產品名稱：** [Relational Table（關聯式表格）](/docs/features/relational-table) 對應 SDK/API 的 `Base`；[Canvases（畫布）](/docs/features/canvas) 對應 `Board`。
+
+## 同一套狀態驅動介面與渲染 [#architecture]
+
+`ThemeService` 分別保存完整主題與深色模式狀態，以 `currentTheme$`、`darkMode$` 發布變化。UI 將主題展開為 `--univer-*` CSS 變數並回應 `univer-dark` 類別；渲染器監聽相同服務，將受影響元件標記為需要重繪。Canvas 色彩服務解析 Token，並為深色模式顯示映射及快取顏色。
+
+本章設定與範例以 `@univerjs/*`、`@univerjs-pro/*` **1.2.0** 為基準；應用中應保持 SDK 依賴版本一致。
+
+| 設定 | 可選值與範圍 | 執行時入口 |
+| --- | --- | --- |
+| `theme` | 7 套內建色板，或完整自訂 `Theme`。 | `setTheme()` |
+| `darkMode` | `true` / `false`，預設 `false`；與色板獨立。 | `toggleDarkMode()` |
+| `locale` | 19 個內建 `LocaleType`；先載入對應資源。 | `setLocale()` |
+| `locales` | 依語言識別碼組合產品、功能插件與業務翻譯。 | `loadLocales()` |
+| `region` | 使用同一組 `LocaleType`；明確設定前跟隨介面語言。 | `setRegion()` |
+| `direction` | `ltr` / `rtl`，預設 `ltr`；僅選單等介面 UI，Canvas 內容區尚不支援 RTL。 | `setDirection()` |
+
+<Mermaid chart={"flowchart LR\nA[\"應用 / Facade\"] --> B[\"ThemeService<br/>主題 + 深色模式狀態\"]\nB --> C[\"UI<br/>CSS 變數與深色模式類別\"]\nB --> D[\"渲染器<br/>重繪與色彩映射\"]\nC --> E[\"六個產品與自訂擴充\"]\nD --> E"} />
+
+## 從完整色板建立品牌主題 [#brand]
+
+`@univerjs/themes` 提供 `primary`、`gray`、各功能色階、`loop-color` 與 `highlight.background`。複製內建主題並覆寫需要的分支，保留完整結構；`setTheme()` 替換完整主題，不會自動深度補齊局部物件。以下使用連續的紫色色階作為品牌色。
+
+內建 7 套色板： `blueTheme`, `darkBlueTheme`, `greenTheme`, `orangeTheme`, `purpleTheme`, `redTheme`, `yellowTheme`.
+
+`defaultTheme` 是 `blueTheme` 的別名。色板與深色模式開關分別設定。可設定範圍包括：
+
+| 主題分支 | 可設定選項 |
+| --- | --- |
+| `primary` | 品牌色 **10 級**：`50`、`100` 至 `900`。 |
+| `gray` | 中性色 **12 級**：`0`、`50`、`100` 至 `900`、`1000`。 |
+| `blue` · `red` · `orange` · `yellow` · `green` · `jiqing` · `indigo` · `purple` · `pink` | **9 組功能色**，每組 10 級。 |
+| `loop-color` | **12 個**循環配色位置，參照色階 Token。 |
+| `highlight.background` | **16 個**背景醒目提示位置，分別設定 `color` 與 `alpha`。 |
+
+```typescript title="brand-theme.ts"
+import type { Theme } from '@univerjs/themes';
+import { defaultTheme } from '@univerjs/themes';
+
+export const brandTheme: Theme = {
+  ...defaultTheme,
+  primary: {
+    ...defaultTheme.primary,
+    50: '#F5F3FF', 100: '#EDE9FE', 200: '#DDD6FE', 300: '#C4B5FD',
+    400: '#A78BFA', 500: '#8B5CF6', 600: '#7C3AED', 700: '#6D28D9',
+    800: '#5B21B6', 900: '#4C1D95',
+  },
+};
+```
+
+將主題傳入已選定的產品整合。以下以 Sheet 核心預設為例，同時註冊應用自己的語言鍵；其他產品使用各自的插件組合。
+
+```typescript title="setup.ts"
+import { LocaleType, mergeLocales } from '@univerjs/core';
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core';
+import SheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US';
+import { createUniver } from '@univerjs/presets';
+import { brandTheme } from './brand-theme';
+import '@univerjs/preset-sheets-core/lib/index.css';
+
+export const { univer, univerAPI } = createUniver({
+  theme: brandTheme,
+  darkMode: false,
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(SheetsCoreEnUS, {
+      'sales-report': { generate: 'Generate report', ready: 'Ready for {0}' },
+    }),
+  },
+  presets: [UniverSheetsCorePreset({ container: 'app' })],
+});
+```
+
+<Cards>
+<Card title="開啟主題建構器" href="/tools/theme-customizer">
+使用主題建構器編輯色板、循環色與高亮色，切換淺色／深色，以 Sheet 和 Doc 即時預覽，並複製 Theme JSON 或整合程式碼。目前提供這兩個預覽宿主，產生的完整應用主題也能用於其他產品。
+</Card>
+</Cards>
+
+## 執行時切換並跟隨應用偏好 [#appearance]
+
+`setTheme()` 更換色板，`toggleDarkMode()` 改變深色模式狀態；可用 `getCurrentTheme()`、`isDarkMode()` 讀回。僅選擇 `darkBlueTheme` 不會自動啟用深色模式旗標。更新外觀無須銷毀並重建編輯器。
+
+以下函式跟隨系統偏好並回傳清理函式。若應用提供手動外觀選項，可在其處理器直接呼叫 `toggleDarkMode()`。
+
+```typescript title="appearance.ts"
+import type { FUniver } from '@univerjs/core/facade';
+import { brandTheme } from './brand-theme';
+
+export function followSystemAppearance(univerAPI: FUniver): () => void {
+  univerAPI.setTheme(brandTheme);
+  const preference = window.matchMedia('(prefers-color-scheme: dark)');
+  const update = () => univerAPI.toggleDarkMode(preference.matches);
+  update();
+  preference.addEventListener('change', update);
+  return () => preference.removeEventListener('change', update);
+}
+```
+
+宿主在編輯器設定完成後呼叫此函式，並在元件卸載或停止跟隨系統時執行回傳的清理函式。React 等整合應保留既有實例，透過 Facade 更新外觀。
+
+## 讓自訂插件跟隨主題與語言 [#extensions]
+
+DOM 擴充使用注入的 CSS 變數，並為深色模式類別提供相應樣式。變數保存色板值，元件樣式仍需消費深色模式狀態。
+
+```css title="report-panel.css"
+.report-panel {
+  color: var(--univer-gray-900);
+  background: var(--univer-gray-0);
+  border: 1px solid var(--univer-gray-200);
+}
+
+.univer-dark .report-panel {
+  color: var(--univer-gray-100);
+  background: var(--univer-gray-800);
+  border-color: var(--univer-gray-700);
+}
+```
+
+Canvas 擴充透過 `ThemeService` 讀取目前 Token，再由 `ICanvasColorService` 取得實際繪製顏色。以下將主題、深色模式與語言變化合併為可訂閱狀態，在更新時翻譯文字與解析顏色，避免每幀重複查找及配置。
+
+```typescript title="report-appearance.ts"
+import { Disposable, Inject, LocaleService, ThemeService, toDisposable } from '@univerjs/core';
+import { ICanvasColorService } from '@univerjs/engine-render';
+import { combineLatest, ReplaySubject } from 'rxjs';
+
+export interface IReportAppearance {
+  label: string;
+  accent: string;
+}
+
+export class ReportAppearance extends Disposable {
+  readonly state$ = new ReplaySubject<IReportAppearance>(1);
+
+  constructor(
+    @Inject(ThemeService) theme: ThemeService,
+    @Inject(LocaleService) locale: LocaleService,
+    @ICanvasColorService colors: ICanvasColorService,
+  ) {
+    super();
+    this.disposeWithMe(toDisposable(() => this.state$.complete()));
+    this.disposeWithMe(combineLatest([
+      theme.currentTheme$, theme.darkMode$, locale.currentLocale$,
+    ]).subscribe(() => {
+      this.state$.next({
+        label: locale.t('sales-report.generate'),
+        accent: colors.getRenderColor(theme.getColorFromTheme('primary.600')),
+      });
+    }));
+  }
+}
+```
+
+在業務插件中透過 DI 註冊並取得 `ReportAppearance`，由視圖或繪製控制器訂閱 `state$` 後刷新。使用方管理訂閱，服務擁有者銷毀時呼叫 `dispose()`。Node.js 也有主題與語言服務，但不會注入瀏覽器 CSS。
+
+## 深色模式（Dark Mode） [#dark-mode]
+
+Sheet、Doc、Slide、Relational Table、Canvases 與 PDF 共用應用主題，並支援深色模式。以下為本機標準示範的實際截圖，介面及內容使用英文。深色模式顯示不會將映射後的顏色寫回 Snapshot；應用外觀與 PDF 頁面處理分開設定，PDF 本機驗證結果見下方說明。
+
+| 產品 | 共用主題 | 深色模式 | 介面國際化 |
+| --- | --- | --- | --- |
+| Sheet | ✓ | ✓ | ✓ |
+| Doc | ✓ | ✓ | ✓ |
+| Slide | ✓ | ✓ | ✓ |
+| Relational Table (Base) | ✓ | ✓ | ✓ |
+| Canvases (Board) | ✓ | ✓ | ✓ |
+| PDF | ✓ | 介面支援；正文有顯示問題 | ✓ |
+
+<Tabs items={["Sheet", "Doc", "Slide", "Relational Table", "Canvases", "PDF"]}>
+
+<Tab>
+
+![Sheet 深色模式](/assets/features/themes/sheet-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![Doc 深色模式](/assets/features/themes/doc-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![Slide 深色模式](/assets/features/themes/slide-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![Relational Table 深色模式](/assets/features/themes/base-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![Canvases 深色模式](/assets/features/themes/board-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![PDF 編輯器介面的深色模式](/assets/features/themes/pdf-dark.jpg)
+
+<Callout type="warning">
+目前本機標準示範的 PDF 正文在深色模式下有文字可見性問題，淺色顯示正常。本圖展示編輯器介面的深色模式；PDF 正文的深色適配仍需修復與驗證。
+</Callout>
+
+</Tab>
+
+</Tabs>
+
+語言涵蓋範圍依所選產品及已安裝功能提供的資源而定。應用色板不會代替產品插件註冊、語言資源載入或樣式表匯入。
+
+## 19 個內建語言／地區選項 [#supported-locales]
+
+以下為 `LocaleType` 的 19 個內建選項，包含中文的簡體、繁體及香港繁體變體。六個產品的主要 UI 套件均提供這些語言資源；擴充插件的涵蓋範圍以所用套件為準。語言包標籤用於匯入路徑，初始化與 Facade 設定使用對應列舉值。
+
+<Callout type="warning">
+**RTL 支援範圍：** 阿拉伯文（`ar-SA`）等語言包提供選單、提示等介面翻譯；`direction: 'rtl'` 目前僅用於選單等介面 UI 的方向調整。**Canvas 內容區尚未實作 RTL 排版與編輯。**
+</Callout>
+
+| 語言（原文名稱） | 語言包標籤 | 設定值 |
+| --- | --- | --- |
+| English | `en-US` | `LocaleType.EN_US` |
+| 简体中文 | `zh-CN` | `LocaleType.ZH_CN` |
+| 繁體中文 | `zh-TW` | `LocaleType.ZH_TW` |
+| 繁體中文（香港） | `zh-HK` | `LocaleType.ZH_HK` |
+| 日本語 | `ja-JP` | `LocaleType.JA_JP` |
+| 한국어 | `ko-KR` | `LocaleType.KO_KR` |
+| Tiếng Việt | `vi-VN` | `LocaleType.VI_VN` |
+| Bahasa Indonesia | `id-ID` | `LocaleType.ID_ID` |
+| Français | `fr-FR` | `LocaleType.FR_FR` |
+| Deutsch | `de-DE` | `LocaleType.DE_DE` |
+| Español | `es-ES` | `LocaleType.ES_ES` |
+| Català | `ca-ES` | `LocaleType.CA_ES` |
+| Italiano | `it-IT` | `LocaleType.IT_IT` |
+| Português (Brasil) | `pt-BR` | `LocaleType.PT_BR` |
+| Polski | `pl-PL` | `LocaleType.PL_PL` |
+| Slovenčina | `sk-SK` | `LocaleType.SK_SK` |
+| Русский | `ru-RU` | `LocaleType.RU_RU` |
+| فارسی | `fa-IR` | `LocaleType.FA_IR` |
+| العربية | `ar-SA` | `LocaleType.AR_SA` |
+
+**跨產品的國際化資源：** 以目前 1.2.0 原始碼為例，Web SDK 與 Pro 編輯器的 **92 個模組**提供 **1,751 個語言資源入口檔案**，涵蓋共用 UI、產品編輯器及公式、數字格式、留言等功能。資源依模組維護與發布，應用依啟用功能及目標語言組合載入。
+
+統計範圍為兩套原始碼 `packages/*/src/locale` 下的語言入口 `.ts` 檔案，不含測試與產生的子目錄；檔案數不代表每個模組都完整涵蓋 19 個選項。部分模組提供額外語言資源，共通內建選項以 [`LocaleType`](/reference/enums/locale-type) 為準。
+
+## 按插件組合語言資源，再載入與切換 [#locales]
+
+`LocaleService` 以語言識別符組織資源，按命名空間與鍵路徑查找文字。`mergeLocales()` 組合產品預設、功能插件及業務翻譯；`loadLocales()` 動態合併資源，`setLocale()` 才選擇語言。切換本身不會自動下載語言包。
+
+<Mermaid chart={"flowchart LR\nA[\"產品 / 功能 / 業務語言包\"] --> B[\"mergeLocales / loadLocales\"] --> C[\"LocaleService<br/>命名空間查找\"] --> D[\"選單、提示與插件文字\"]"} />
+
+以下為前面的 Sheet 實例補上中文資源，選擇中文介面並明確保留德國地區慣例。`LocaleType.ZH_CN` 的值為 `zhCN`；`zh-CN` 是語言包檔名或文件路由形式。
+
+```typescript title="locales.ts"
+import type { FUniver } from '@univerjs/core/facade';
+import { LocaleType, mergeLocales } from '@univerjs/core';
+import SheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN';
+
+export function switchInterface(univerAPI: FUniver): void {
+  univerAPI.loadLocales(LocaleType.ZH_CN, mergeLocales(SheetsCoreZhCN, {
+    'sales-report': { generate: '生成报告', ready: '已为 {0} 就绪' },
+  }));
+  univerAPI.setLocale(LocaleType.ZH_CN);
+  univerAPI.setRegion(LocaleType.DE_DE);
+  univerAPI.setDirection('ltr');
+}
+```
+
+`sales-report.generate` 等業務鍵由所屬插件管理。動態參數使用完整譯句與 `{0}`、`{1}` 佔位符，例如 `LocaleService.t('sales-report.ready', 'Alex')`，不要在模組載入時快取翻譯。資源初始化後，缺少的鍵目前會回傳鍵名。切換介面語言不會翻譯正文或重新命名既有 Unit。
+
+## 區分語言、地區與內容格式 [#region]
+
+| 層次 | 實際影響 |
+| --- | --- |
+| 介面 `locale` | 選單、提示、插件文字及部分語言行為，例如文件斷詞。 |
+| `region` | 支援的貨幣操作、評論日期時間顯示與統計數字格式；不換算金額或修改時間戳記。 |
+| 內容數字格式 | Sheet 已儲存的數字／日期格式由儲存格格式及對應內容 locale 決定，不會因地區切換而全部重寫。 |
+| `direction` | 獨立控制 UI 方向，切換語言或地區不會自動修改。 |
+
+未明確指定地區時使用對應預設值；明確設定 `region` 後可與介面語言獨立選擇。`region` 不是時區設定。目前 RTL 僅用於選單等介面 UI 的方向調整；Canvas 內容區尚未實作由右至左的排版與編輯。
+
+## 內容主題與應用主題各有邊界 [#content-themes]
+
+應用主題控制工作台與渲染預設值，不會重寫持久化的儲存格填色、文字、圖形、PDF 註解或明確圖表顏色。範圍／表格主題、Slide 色彩方案與 Board 內容主題透過各產品的公開能力管理。
+
+Pro 圖表有獨立的 `IEchartTheme` 登錄表，可由 Sheet、Doc、Slide 和 Board 圖表共用。應用 `Theme` 不能直接當成圖表主題。宿主安裝對應圖表插件後，匯入圖表 Facade 再註冊完整定義：
+
+```typescript title="chart-theme.ts"
+import type { IEchartTheme } from '@univerjs-pro/engine-chart';
+import type { FUniver } from '@univerjs/core/facade';
+import { UniverTheme1 } from '@univerjs-pro/engine-chart';
+import '@univerjs-pro/engine-chart/facade';
+
+export function registerBrandChartTheme(univerAPI: FUniver): void {
+  const chartTheme: IEchartTheme = {
+    ...UniverTheme1,
+    themeName: 'sales-brand',
+    theme: {
+      ...UniverTheme1.theme,
+      color: ['#7C3AED', '#0EA5E9', '#10B981', '#F59E0B'],
+    },
+  };
+  univerAPI.registerTheme('sales-brand', chartTheme);
+}
+```
+
+建立圖表時以 builder 的 `setTheme('sales-brand')` 選擇此名稱；明確設定的圖表色板可能覆寫系列色。
+
+同一瀏覽器文件內也要統一外觀：目前 UI 的 CSS 變數與 `univer-dark` 類別會寫入文件根節點。多個編輯器應共用外觀，或透過 iframe 等獨立文件隔離；不同容器本身不代表 CSS 主題已隔離。
+
+延伸閱讀：[主題與深色模式](/guides/fundamentals/ui/themes) · [國際化詳細設定](/guides/sheets/getting-started/i18n) · [插件與 Facade 擴充](/docs/features/shared/customization) · [圖表能力](/docs/features/charts)
+
+[返回功能總覽](/docs/features)

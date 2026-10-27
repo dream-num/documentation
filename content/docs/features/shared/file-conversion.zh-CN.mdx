@@ -1,0 +1,89 @@
+---
+title: "文件导入与导出"
+description: "将 Office 文件转换为对应产品的 Snapshot，并将编辑后的快照导出为文件。"
+icon: FileInput
+---
+
+文件导入导出连接外部文件格式与 Univer 的内容模型：导入时，将文件解析为对应产品的 Snapshot（快照）；导出时，将产品快照序列化为选定格式的文件。
+
+**产品名称：** [Relational Table（关系型表格）](/docs/features/relational-table) 对应 SDK/API 中的 `Base`；[Canvases（画布）](/docs/features/canvas) 对应 `Board`。
+
+## 从文件到快照
+
+以 Office 文件为例，`.xlsx`、`.docx`、`.pptx` 是由 XML、图片等资源组成的 OOXML 文件包；`.xls`、`.doc`、`.ppt` 使用旧版二进制结构。CSV、TSV 则是文本格式。应用直接提交支持格式的原文件，解码、文件包解析与资源映射由转换模块完成。
+
+Snapshot 是产品可保存、恢复的内容状态。 [查看六个产品的数据结构](#snapshot-数据结构)
+
+### 导入：文件 → Snapshot
+
+解析文件中的内容、样式和资源，映射到 Sheet、Doc、Slide、Base 等对应产品的内容模型。
+
+<Mermaid chart={"flowchart LR\n    A[\"1. 原始文件<br/>XLSX / DOCX / PPTX 等\"]\n    B[\"2. 解析为 Snapshot<br/>Server SDK\"]\n    C[\"3. 按需计算<br/>更新 Snapshot\"]\n    D[\"4. Web SDK<br/>编辑或处理内容\"]\n    A --> B --> C --> D\n    classDef calculation stroke-dasharray:5 4\n    class C calculation"} />
+
+### 导出：Snapshot → 文件
+
+读取当前产品快照，生成目标格式的文件结构与资源。快照是运行时读写的内容模型，通常以 JSON 传递或保存。
+
+<Mermaid chart={"flowchart LR\n    A[\"1. 当前 Snapshot<br/>编辑后的内容\"]\n    B[\"2. 按需计算<br/>更新 Snapshot\"]\n    C[\"3. Server SDK<br/>转换为目标格式\"]\n    D[\"4. 目标文件<br/>XLSX / DOCX / PPTX 等\"]\n    A --> B --> C --> D\n    classDef calculation stroke-dasharray:5 4\n    class B calculation"} />
+
+以 Sheet 为例，按策略计算公式、透视表和数字格式，结果写回 Snapshot。详见[服务端计算](/docs/features/shared/server-calculation)。
+
+### Snapshot 数据结构
+
+各产品都有对应的 Snapshot 接口，用于持久化内容及资源引用，通常以 JSON 保存。点击接口名可查看字段定义、类型和示例。
+
+<div className="[&_table]:min-w-180 [&_code]:whitespace-nowrap">
+
+| 产品 | Snapshot 接口 | 主要内容 |
+| --- | --- | --- |
+| 电子表格（Sheet） | [`IWorkbookData`](/guides/sheets/model/workbook-data#iworkbookdata) | 工作表、单元格、共享样式与插件资源。 |
+| 文档（Doc） | [`IDocumentData`](/guides/docs/model/document-data#idocumentdata) | 正文、段落、样式、页眉页脚与资源。 |
+| 演示文稿（Slide） | [`ISlideData`](/guides/slides/model/slide-data#islidedata) | 幻灯片、元素、母版、主题与资源。 |
+| 多维表格（Base） | [`IBaseSnapshot`](/guides/bases/model/base-snapshot#ibasesnapshot) | 表、字段、记录、视图及各自顺序。 |
+| 画板（Board） | [`IBoardData`](/guides/boards/model/board-data#iboarddata) | 页面、元素、主题与资源。 |
+| PDF | [`IPdfUnitData`](/guides/pdfs/model/pdf-data#ipdfunitdata) | 源文档、持久化编辑状态与资源绑定。 |
+
+</div>
+
+通过各产品 Facade 的 `save()` 获取当前快照，再由对应的创建接口恢复；运行中的内容通过 Facade API 修改。PDF 使用 `pdf.save()`，可同时保留源基线与 `editState`。
+
+## 各产品支持的格式
+
+下表的 Office 与表数据格式按当前 Rust Exchange 直接转换入口整理；PDF 使用独立的转换模块，在表中单独注明。
+
+<div className="[&_table]:min-w-180 [&_code]:whitespace-nowrap">
+
+| 产品 | 导入 / 编译 | 导出 | 说明 |
+| --- | --- | --- | --- |
+| [电子表格（Sheet）](/guides/sheets/features/import-export) | `.xls`, `.xlsx`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` | CSV/TSV 对应一个工作表。 |
+| [文档（Doc）](/guides/docs/features/import-export) | `.doc`, `.docx` | `.docx` | 旧版 DOC 导入为文档模型，导出使用 DOCX。 |
+| [演示文稿（Slide）](/guides/slides/features/import-export) | `.ppt`, `.pptx` | `.pptx` | 旧版 PPT 导入为演示文稿模型，导出使用 PPTX。 |
+| [多维表格（Base）](/guides/bases/features/import-export) | `.xls`, `.xlsx`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` | CSV/TSV 对应一个数据表；XLSX 支持表与字段映射。 |
+| [画板（Board）](/guides/boards/features/import-export) | Mermaid（`.mmd` / 源码文本） | `.pptx` | Mermaid 先生成导入草稿，经 Board Facade 应用后保存快照；PPTX 导出当前页面。 |
+| [PDF](/guides/pdfs/features/import-export) | `.pdf` | `.pdf` | 需要 PDF 转换服务，与 Rust Exchange CLI 的转换入口分开。 |
+
+</div>
+
+- 旧版 `.xls`、`.doc`、`.ppt` 支持导入，导出分别生成 `.xlsx`、`.docx`、`.pptx`。
+- CSV/TSV 每次选择一个工作表或 Base 数据表导出；需要保留完整内容模型和资源时，应保存对应产品的快照。
+- 不同 SDK 入口可接受的扩展名有所不同。`.xlsm`、`.pptm`、`.ppsx`、`.ppsm`、`.potx` 等扩展名需核对所部署的后端和浏览器 API，不作为额外的 Rust CLI 直接格式名。
+
+## 转换过程中的计算
+
+在支持的电子表格转换链路中，可以组合服务端计算能力：
+
+- **公式计算：** 导入时补齐缺失的公式缓存结果，或在导出前按策略重新计算。
+- **透视表计算：** 根据源数据与透视配置计算分组、聚合结果，再写入快照或导出的工作簿。
+- **数字格式计算：** 根据数值和格式码生成日期、百分比、货币等显示文本；CSV/TSV 导出可选择显示值或原始值。
+
+相关内容处理流程见[无头与服务端计算](/docs/features/shared/server-calculation)。
+
+## 接入方式
+
+文件转换属于 Server SDK，上传、任务处理、存储和下载接口由你的应用提供。快照转换可以独立运行；共享文档导出时，需先等待修改同步，再读取已确认版本。
+
+从[导入导出集成](/server/import-export)和 [Node.js 文件转换](/server/import-export/node)开始。
+
+格式支持与单项功能能否完整往返分别说明。请结合各产品功能清单，用真实业务文件检查公式、图片、样式与布局在“导入 → 编辑 → 导出”后的结果。
+
+[返回功能总览](/docs/features)

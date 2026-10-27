@@ -3,7 +3,6 @@
 import { BookTextIcon, FerrisWheelIcon } from 'lucide-react'
 import { useInView } from 'motion/react'
 import { useRef } from 'react'
-
 import { RainbowButton } from '@/components/magicui/rainbow-button'
 import { Link } from '@/i18n/navigation'
 
@@ -93,7 +92,7 @@ export function ClosingCTA({ title, description, startLabel, demoLabel }: IClosi
             )}
           </svg>
         </div>
-        <RainbowButton render={<Link href="/guides/sheets/getting-started/quickstart" />}>
+        <RainbowButton render={<Link href="/docs/overview" />}>
           <BookTextIcon aria-hidden="true" />
           {startLabel}
         </RainbowButton>

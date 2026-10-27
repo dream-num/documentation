@@ -1,0 +1,326 @@
+---
+title: "테마와 다국어"
+description: "편집기 외관, 다크 모드, 언어 리소스를 앱에 맞춥니다."
+icon: Languages
+---
+
+테마와 국제화는 공유 런타임 기능입니다. 여섯 제품이 공통 테마 서비스, 언어 리소스, 지역 설정을 사용하며 사용자 플러그인도 같은 상태를 구독할 수 있습니다. 브랜드와 사용자 표시 설정은 실행 중 바꿀 수 있고 콘텐츠는 고유한 데이터와 스타일을 유지합니다.
+
+SDK는 **[19개 UI 언어·지역 옵션](#supported-locales)**과 **7개 테마 팔레트**를 제공합니다. 6개 제품이 모양, 언어, 지역 설정을 공유하며 사용자 정의 테마와 앱 번역도 같은 서비스를 사용합니다.
+
+**제품 이름:** [Relational Table](/docs/features/relational-table)은 SDK/API의 `Base`, [Canvases](/docs/features/canvas)는 `Board`에 해당합니다.
+
+## 같은 상태로 UI와 렌더링 구동하기 [#architecture]
+
+`ThemeService`는 전체 팔레트와 다크 모드 상태를 따로 보관하고 `currentTheme$`, `darkMode$`로 변경을 알립니다. UI는 팔레트를 `--univer-*` CSS 변수로 펼치고 `univer-dark` 클래스에 반응합니다. 렌더러도 같은 서비스를 관찰해 다시 그릴 컴포넌트를 표시합니다. Canvas 색상 서비스는 토큰을 해석하고 다크 표시용 색상을 변환하고 캐시합니다.
+
+이 장의 설정과 예제는 `@univerjs/*`, `@univerjs-pro/*` **1.2.0**을 기준으로 합니다. 앱의 SDK 의존성 버전을 동일하게 유지하세요.
+
+| 설정 | 선택 항목과 범위 | 런타임 API |
+| --- | --- | --- |
+| `theme` | 7개 기본 팔레트 또는 완전한 사용자 정의 `Theme`. | `setTheme()` |
+| `darkMode` | `true` / `false`, 기본값 `false`. 팔레트와 별개입니다. | `toggleDarkMode()` |
+| `locale` | 19개 기본 `LocaleType`. 해당 리소스를 먼저 로드합니다. | `setLocale()` |
+| `locales` | 제품, 기능, 앱 번역을 언어 식별자별로 조합합니다. | `loadLocales()` |
+| `region` | 같은 `LocaleType`을 사용하며 명시적으로 설정하기 전에는 UI 언어를 따릅니다. | `setRegion()` |
+| `direction` | `ltr` / `rtl`, 기본값 `ltr`. 메뉴 등 UI에만 적용되며 Canvas 콘텐츠는 아직 RTL을 지원하지 않습니다. | `setDirection()` |
+
+<Mermaid chart={"flowchart LR\nA[\"앱 / Facade\"] --> B[\"ThemeService<br/>팔레트 + 다크 모드\"]\nB --> C[\"UI<br/>CSS 변수와 다크 클래스\"]\nB --> D[\"렌더러<br/>다시 그리기와 색상 변환\"]\nC --> E[\"여섯 제품과 사용자 확장\"]\nD --> E"} />
+
+## 완전한 팔레트에서 브랜드 테마 만들기 [#brand]
+
+`@univerjs/themes`는 `primary`, `gray`, 기능색 단계, `loop-color`, `highlight.background`를 제공합니다. 기본 테마를 복사하고 필요한 분기를 덮어쓰되 전체 구조는 유지합니다. `setTheme()`는 전체 테마를 교체하며 부분 객체를 자동으로 깊게 보완하지 않습니다. 예제는 연속된 보라색 단계를 사용합니다.
+
+기본 제공 팔레트 7개: `blueTheme`, `darkBlueTheme`, `greenTheme`, `orangeTheme`, `purpleTheme`, `redTheme`, `yellowTheme`.
+
+`defaultTheme`은 `blueTheme`의 별칭입니다. 팔레트와 다크 모드는 각각 설정합니다. 구성할 수 있는 항목은 다음과 같습니다.
+
+| 테마 항목 | 구성 옵션 |
+| --- | --- |
+| `primary` | 브랜드 색상 **10단계**: `50`, `100`~`900`. |
+| `gray` | 중립색 **12단계**: `0`, `50`, `100`~`900`, `1000`. |
+| `blue` · `red` · `orange` · `yellow` · `green` · `jiqing` · `indigo` · `purple` · `pink` | **9개 기능색 계열**, 각 10단계. |
+| `loop-color` | 팔레트 토큰을 참조하는 **12개** 순환 색상 위치. |
+| `highlight.background` | `color`와 `alpha`를 각각 설정하는 **16개** 배경 강조 위치. |
+
+```typescript title="brand-theme.ts"
+import type { Theme } from '@univerjs/themes';
+import { defaultTheme } from '@univerjs/themes';
+
+export const brandTheme: Theme = {
+  ...defaultTheme,
+  primary: {
+    ...defaultTheme.primary,
+    50: '#F5F3FF', 100: '#EDE9FE', 200: '#DDD6FE', 300: '#C4B5FD',
+    400: '#A78BFA', 500: '#8B5CF6', 600: '#7C3AED', 700: '#6D28D9',
+    800: '#5B21B6', 900: '#4C1D95',
+  },
+};
+```
+
+선택한 제품 구성에 테마를 전달합니다. 다음은 Sheet 핵심 프리셋과 앱 소유 번역 키를 등록하는 예제입니다. 다른 제품은 해당 플러그인 구성을 사용합니다.
+
+```typescript title="setup.ts"
+import { LocaleType, mergeLocales } from '@univerjs/core';
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core';
+import SheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US';
+import { createUniver } from '@univerjs/presets';
+import { brandTheme } from './brand-theme';
+import '@univerjs/preset-sheets-core/lib/index.css';
+
+export const { univer, univerAPI } = createUniver({
+  theme: brandTheme,
+  darkMode: false,
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(SheetsCoreEnUS, {
+      'sales-report': { generate: 'Generate report', ready: 'Ready for {0}' },
+    }),
+  },
+  presets: [UniverSheetsCorePreset({ container: 'app' })],
+});
+```
+
+<Cards>
+<Card title="테마 빌더 열기" href="/tools/theme-customizer">
+테마 빌더에서 팔레트, 순환색, 강조색을 편집하고 라이트/다크를 바꾸며 실제 Sheet와 Doc으로 확인할 수 있습니다. Theme JSON이나 통합 코드도 복사할 수 있습니다. 현재 미리보기 대상은 두 제품이며 완전한 앱 테마는 다른 제품에도 적용할 수 있습니다.
+</Card>
+</Cards>
+
+## 실행 중 변경하고 표시 설정 따르기 [#appearance]
+
+`setTheme()`는 팔레트, `toggleDarkMode()`는 다크 상태를 변경합니다. `getCurrentTheme()`, `isDarkMode()`로 읽습니다. `darkBlueTheme`를 선택하는 것만으로 다크 플래그가 켜지지는 않습니다. 외관 변경 때문에 에디터를 다시 만들 필요는 없습니다.
+
+다음 함수는 시스템 설정을 따르고 정리 함수를 반환합니다. 앱의 수동 표시 옵션에서는 해당 처리기에서 `toggleDarkMode()`를 직접 호출할 수 있습니다.
+
+```typescript title="appearance.ts"
+import type { FUniver } from '@univerjs/core/facade';
+import { brandTheme } from './brand-theme';
+
+export function followSystemAppearance(univerAPI: FUniver): () => void {
+  univerAPI.setTheme(brandTheme);
+  const preference = window.matchMedia('(prefers-color-scheme: dark)');
+  const update = () => univerAPI.toggleDarkMode(preference.matches);
+  update();
+  preference.addEventListener('change', update);
+  return () => preference.removeEventListener('change', update);
+}
+```
+
+에디터 설정을 마친 후 호출하고 컴포넌트 해제 또는 시스템 추적 종료 시 정리 함수를 실행합니다. React 등에서는 기존 인스턴스를 유지하고 Facade로 갱신합니다.
+
+## 사용자 플러그인도 테마와 언어 따르기 [#extensions]
+
+DOM 확장은 주입된 CSS 변수를 사용하고 다크 클래스에 맞는 스타일을 제공합니다. 변수는 팔레트 값이므로 컴포넌트 스타일에서도 다크 상태를 반영해야 합니다.
+
+```css title="report-panel.css"
+.report-panel {
+  color: var(--univer-gray-900);
+  background: var(--univer-gray-0);
+  border: 1px solid var(--univer-gray-200);
+}
+
+.univer-dark .report-panel {
+  color: var(--univer-gray-100);
+  background: var(--univer-gray-800);
+  border-color: var(--univer-gray-700);
+}
+```
+
+Canvas 확장은 `ThemeService`로 현재 토큰을 읽고 `ICanvasColorService`로 실제 그리기 색상을 얻습니다. 다음 예제는 테마, 다크, 언어 변경을 구독 가능한 상태로 합칩니다. 상태가 바뀔 때 번역과 색상 해석을 수행해 매 프레임 조회와 할당을 피합니다.
+
+```typescript title="report-appearance.ts"
+import { Disposable, Inject, LocaleService, ThemeService, toDisposable } from '@univerjs/core';
+import { ICanvasColorService } from '@univerjs/engine-render';
+import { combineLatest, ReplaySubject } from 'rxjs';
+
+export interface IReportAppearance {
+  label: string;
+  accent: string;
+}
+
+export class ReportAppearance extends Disposable {
+  readonly state$ = new ReplaySubject<IReportAppearance>(1);
+
+  constructor(
+    @Inject(ThemeService) theme: ThemeService,
+    @Inject(LocaleService) locale: LocaleService,
+    @ICanvasColorService colors: ICanvasColorService,
+  ) {
+    super();
+    this.disposeWithMe(toDisposable(() => this.state$.complete()));
+    this.disposeWithMe(combineLatest([
+      theme.currentTheme$, theme.darkMode$, locale.currentLocale$,
+    ]).subscribe(() => {
+      this.state$.next({
+        label: locale.t('sales-report.generate'),
+        accent: colors.getRenderColor(theme.getColorFromTheme('primary.600')),
+      });
+    }));
+  }
+}
+```
+
+플러그인의 DI에 `ReportAppearance`를 등록하고 가져옵니다. 뷰나 그리기 컨트롤러가 `state$`를 구독해 갱신하며 구독은 사용자가 관리합니다. 서비스 소유자는 종료 시 `dispose()`를 호출합니다. Node.js에도 테마와 언어 서비스가 있지만 브라우저 CSS를 주입하지 않습니다.
+
+## 다크 모드 [#dark-mode]
+
+Sheet, Doc, Slide, Relational Table, Canvases, PDF는 공유 테마와 다크 모드을 사용합니다. 다음은 로컬 표준 데모의 실제 스크린샷이며 UI와 내용은 영어입니다. 변환된 표시 색상은 Snapshot에 기록되지 않으며 앱 외관과 PDF 페이지 처리는 별도 설정입니다. PDF 로컬 검증 결과는 아래에 설명합니다.
+
+| 제품 | 공유 테마 | 다크 모드 | UI 국제화 |
+| --- | --- | --- | --- |
+| Sheet | ✓ | ✓ | ✓ |
+| Doc | ✓ | ✓ | ✓ |
+| Slide | ✓ | ✓ | ✓ |
+| Relational Table (Base) | ✓ | ✓ | ✓ |
+| Canvases (Board) | ✓ | ✓ | ✓ |
+| PDF | ✓ | UI 지원; 본문 표시 문제 있음 | ✓ |
+
+<Tabs items={["Sheet", "Doc", "Slide", "Relational Table", "Canvases", "PDF"]}>
+
+<Tab>
+
+![다크 모드의 Sheet 주문표와 도구 모음](/assets/features/themes/sheet-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![영어 콘텐츠가 있는 다크 Doc 에디터](/assets/features/themes/doc-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![영어 제목이 있는 다크 Slide](/assets/features/themes/slide-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![다크 Relational Table 레코드](/assets/features/themes/base-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![Canvases 다크 모드](/assets/features/themes/board-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![PDF 다크 에디터와 페이지](/assets/features/themes/pdf-dark.jpg)
+
+<Callout type="warning">
+현재 로컬 표준 데모는 다크 모드에서 PDF 본문 글자가 보이지 않는 문제가 있으며 라이트 모드에서는 정상입니다. 이미지는 다크 모드을 보여 줍니다. PDF 본문의 다크 표시에는 수정과 검증이 필요합니다.
+</Callout>
+
+</Tab>
+
+</Tabs>
+
+언어 지원 범위는 선택한 제품과 설치된 기능이 제공하는 리소스에 따라 다릅니다. 팔레트 설정이 제품 등록, 언어 로드, 스타일시트 import를 대체하지는 않습니다.
+
+## 19개 기본 언어·지역 옵션 [#supported-locales]
+
+`LocaleType`은 중국어 간체, 번체, 홍콩 번체를 포함한 다음 19개 옵션을 제공합니다. 6개 제품의 주요 UI 패키지에 해당 리소스가 있으며 확장 기능의 범위는 선택한 패키지에 따라 다릅니다. 가져오기 경로에는 언어 팩 태그를, 초기화와 Facade 설정에는 해당 열거형 값을 사용합니다.
+
+<Callout type="warning">
+**RTL 지원 범위:** 아랍어(`ar-SA`) 등의 언어 팩은 메뉴, 메시지 등 UI 문구를 번역합니다. `direction: 'rtl'`은 현재 메뉴 등 UI의 방향 조정에만 적용됩니다. **Canvas 콘텐츠 영역의 RTL 레이아웃과 편집은 아직 구현되지 않았습니다.**
+</Callout>
+
+| 언어(현지 이름) | 언어 팩 태그 | 설정값 |
+| --- | --- | --- |
+| English | `en-US` | `LocaleType.EN_US` |
+| 简体中文 | `zh-CN` | `LocaleType.ZH_CN` |
+| 繁體中文 | `zh-TW` | `LocaleType.ZH_TW` |
+| 繁體中文（香港） | `zh-HK` | `LocaleType.ZH_HK` |
+| 日本語 | `ja-JP` | `LocaleType.JA_JP` |
+| 한국어 | `ko-KR` | `LocaleType.KO_KR` |
+| Tiếng Việt | `vi-VN` | `LocaleType.VI_VN` |
+| Bahasa Indonesia | `id-ID` | `LocaleType.ID_ID` |
+| Français | `fr-FR` | `LocaleType.FR_FR` |
+| Deutsch | `de-DE` | `LocaleType.DE_DE` |
+| Español | `es-ES` | `LocaleType.ES_ES` |
+| Català | `ca-ES` | `LocaleType.CA_ES` |
+| Italiano | `it-IT` | `LocaleType.IT_IT` |
+| Português (Brasil) | `pt-BR` | `LocaleType.PT_BR` |
+| Polski | `pl-PL` | `LocaleType.PL_PL` |
+| Slovenčina | `sk-SK` | `LocaleType.SK_SK` |
+| Русский | `ru-RU` | `LocaleType.RU_RU` |
+| فارسی | `fa-IR` | `LocaleType.FA_IR` |
+| العربية | `ar-SA` | `LocaleType.AR_SA` |
+
+**제품 전반의 국제화 리소스:** 현재 1.2.0 소스에서 Web SDK와 Pro 편집기의 **92개 모듈**이 **1,751개 언어 리소스 진입 파일**을 제공하며 공통 UI, 제품 편집기, 수식, 숫자 서식, 댓글 등의 기능을 다룹니다. 모듈별로 유지·배포되며 앱은 사용하는 기능과 대상 언어를 조합해 로드합니다.
+
+두 소스 트리의 `packages/*/src/locale` 바로 아래에 있는 언어 진입 `.ts` 파일을 집계했으며 테스트 및 생성 하위 디렉터리는 제외했습니다. 모든 모듈이 19개 옵션을 완전히 지원한다는 뜻은 아닙니다. 일부 모듈은 추가 언어를 제공합니다. 공통 기본 옵션은 [`LocaleType`](/reference/enums/locale-type)을 참고하세요.
+
+## 플러그인별 언어 리소스를 조합하고 로드하기 [#locales]
+
+`LocaleService`는 언어 식별자별 리소스를 관리하고 네임스페이스와 키 경로로 문자열을 찾습니다. `mergeLocales()`는 제품 프리셋, 기능, 업무 번역을 합칩니다. `loadLocales()`는 실행 중 리소스를 병합하고 `setLocale()`는 언어를 선택합니다. 전환만으로 언어 패키지를 다운로드하지 않습니다.
+
+<Mermaid chart={"flowchart LR\nA[\"제품 / 기능 / 앱 언어 패키지\"] --> B[\"mergeLocales / loadLocales\"] --> C[\"LocaleService<br/>네임스페이스 조회\"] --> D[\"메뉴, 메시지, 플러그인 문구\"]"} />
+
+앞의 Sheet에 중국어 리소스를 추가하고 UI를 중국어로 바꾸면서 독일 지역 관례를 명시적으로 지정합니다. `LocaleType.ZH_CN` 값은 `zhCN`이며 `zh-CN`은 언어 파일이나 문서 경로 형식입니다.
+
+```typescript title="locales.ts"
+import type { FUniver } from '@univerjs/core/facade';
+import { LocaleType, mergeLocales } from '@univerjs/core';
+import SheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN';
+
+export function switchInterface(univerAPI: FUniver): void {
+  univerAPI.loadLocales(LocaleType.ZH_CN, mergeLocales(SheetsCoreZhCN, {
+    'sales-report': { generate: '生成报告', ready: '已为 {0} 就绪' },
+  }));
+  univerAPI.setLocale(LocaleType.ZH_CN);
+  univerAPI.setRegion(LocaleType.DE_DE);
+  univerAPI.setDirection('ltr');
+}
+```
+
+`sales-report.generate` 같은 키는 소유 플러그인에서 관리합니다. 동적 값은 전체 번역 문장과 `{0}`, `{1}` 자리표시자를 사용합니다. 예: `LocaleService.t('sales-report.ready', 'Alex')`. 모듈 초기화 때 번역을 캐시하지 마세요. 리소스 초기화 후 키가 없으면 현재 구현은 키 자체를 반환합니다. UI 언어 변경은 본문 번역이나 기존 Unit 이름 변경을 수행하지 않습니다.
+
+## 언어, 지역, 콘텐츠 표시 형식 구분하기 [#region]
+
+| 계층 | 실제 영향 |
+| --- | --- |
+| UI `locale` | 메뉴, 메시지, 플러그인 문구와 문서 단어 분리 같은 일부 언어 처리. |
+| `region` | 지원되는 통화 작업, 댓글 날짜/시간, 통계 숫자 표시. 금액 환산이나 타임스탬프 변경은 하지 않습니다. |
+| 콘텐츠 숫자 형식 | 저장된 Sheet 숫자/날짜 형식은 셀 설정과 해당 콘텐츠 locale에 따르며 지역 전환으로 모두 재작성하지 않습니다. |
+| `direction` | UI 방향을 독립 관리하며 언어나 지역 변경이 자동으로 방향을 바꾸지 않습니다. |
+
+지역을 명시하지 않으면 해당 기본값을 사용합니다. `region`을 명시하면 UI 언어와 독립적으로 선택할 수 있습니다. 시간대 설정은 아닙니다. 현재 RTL은 메뉴 등 UI의 방향 조정에만 적용됩니다. Canvas 콘텐츠 영역의 오른쪽에서 왼쪽 레이아웃과 편집은 아직 구현되지 않았습니다.
+
+## 콘텐츠 테마와 앱 테마의 경계 [#content-themes]
+
+앱 테마는 작업 환경과 렌더링 기본값을 제어하며 저장된 셀 채우기, 텍스트, 도형, PDF 주석, 명시적인 차트 색상을 다시 쓰지 않습니다. 범위/표 테마, Slide 색상 구성, Board 콘텐츠 테마는 각 제품의 공개 기능으로 관리합니다.
+
+Pro 차트는 Sheet, Doc, Slide, Board 차트가 공유하는 독립 `IEchartTheme` 레지스트리를 사용합니다. 앱 `Theme`를 직접 전달할 수 없습니다. 해당 차트 플러그인을 설치한 호스트에서 Facade를 가져오고 전체 정의를 등록합니다:
+
+```typescript title="chart-theme.ts"
+import type { IEchartTheme } from '@univerjs-pro/engine-chart';
+import type { FUniver } from '@univerjs/core/facade';
+import { UniverTheme1 } from '@univerjs-pro/engine-chart';
+import '@univerjs-pro/engine-chart/facade';
+
+export function registerBrandChartTheme(univerAPI: FUniver): void {
+  const chartTheme: IEchartTheme = {
+    ...UniverTheme1,
+    themeName: 'sales-brand',
+    theme: {
+      ...UniverTheme1.theme,
+      color: ['#7C3AED', '#0EA5E9', '#10B981', '#F59E0B'],
+    },
+  };
+  univerAPI.registerTheme('sales-brand', chartTheme);
+}
+```
+
+차트 생성 시 builder의 `setTheme('sales-brand')`로 이름을 선택합니다. 명시적인 차트 팔레트는 계열 색상을 덮어쓸 수 있습니다.
+
+하나의 브라우저 문서에서는 외관을 통일해야 합니다. 현재 UI 변수와 `univer-dark`는 문서 루트에 기록됩니다. 여러 에디터는 같은 외관을 사용하거나 iframe 같은 별도 문서로 격리합니다. 컨테이너를 나누는 것만으로 CSS 테마가 격리되지는 않습니다.
+
+관련 문서: [테마와 다크 모드](/guides/fundamentals/ui/themes) · [국제화 상세 설정](/guides/sheets/getting-started/i18n) · [플러그인과 Facade](/docs/features/shared/customization) · [차트](/docs/features/charts)
+
+[기능 개요로 돌아가기](/docs/features)

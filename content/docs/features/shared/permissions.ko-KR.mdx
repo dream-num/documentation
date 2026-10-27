@@ -1,0 +1,148 @@
+---
+title: "권한과 인가"
+description: "Unit 수준 작업 권한, 제품별 객체 권한, 프런트엔드와 백엔드 인가를 설명합니다."
+icon: ShieldCheck
+---
+
+Univer는 **전체 콘텐츠의 작업 권한**과 **내부 객체의 권한**을 구분합니다. Web SDK는 상호작용과 명령 실행을 제어하고, Server SDK는 읽기, 협업 변경 제출, 확장 서비스 경계에서 애플리케이션의 인가 정책을 적용합니다.
+
+**제품 이름:** SDK와 API에서 [Relational Table(관계형 테이블)](/docs/features/relational-table)은 `Base`, [Canvases(캔버스)](/docs/features/canvas)는 `Board`라는 이름을 사용합니다.
+
+## Unit 수준 권한 [#unit-permissions]
+
+[Unit(콘텐츠 단위)](/guides/sheets/getting-started/quickstart#unit)은 통합 문서, 문서, 프레젠테이션, Base, 보드 또는 PDF와 같은 완전한 콘텐츠 인스턴스 하나입니다. 아래 Unit 권한은 Sheets, Docs, Slides, Base, Board에 적용되며 PDF의 현재 범위는 아래에서 설명합니다.
+
+| 권한 | 제어 대상 | 사용 예 |
+| --- | --- | --- |
+| 편집(Edit) | 콘텐츠와 구조 변경. | 뷰어는 읽기 전용, 편집자는 입력과 구조 변경 가능. |
+| 복사(Copy) | 편집기 안에서 콘텐츠 복사. | 읽기와 댓글을 허용하면서 복사 제한. |
+| 댓글(Comment) | 댓글 기능 설치 시 댓글과 답글 작성. | 본문은 읽기 전용으로 유지하면서 검토 허용. |
+| 인쇄(Print) | 제품의 인쇄 기능 사용. | 온라인 읽기는 허용하면서 인쇄 제한. |
+| 내보내기(Export) | 지원되는 파일 형식으로 콘텐츠 내보내기. | 결과물 전달이나 보관 허용. |
+
+편집과 댓글은 독립적입니다. 댓글 수정, 삭제, 관리는 작성자와 소유자에 관한 애플리케이션 정책도 따라야 합니다.
+
+Print와 Export도 Unit 수준 권한입니다. Sheets, Docs, Slides, Board는 둘 다 제공하며 Base는 현재 Export를 제공합니다. 각 권한은 해당 기능 플러그인과 함께 사용합니다.
+
+콘텐츠 복사, 파일 복제, 내보내기, 다운로드는 서로 다른 작업입니다. 파일을 열 수 있는지는 애플리케이션의 읽기 인가가 결정합니다.
+
+예를 들어 Doc의 Unit 수준 권한을 각각 설정할 수 있습니다.
+
+```ts
+import { UnitAction } from '@univerjs/protocol'
+
+const document = univerAPI.getActiveDocument()
+if (!document) throw new Error('Open a document first')
+
+const permission = document.getPermission()
+await permission.setReadOnly()
+await permission.setPoint(UnitAction.Copy, false)
+await permission.setPoint(UnitAction.Comment, true)
+await permission.setPoint(UnitAction.Print, false)
+await permission.setPoint(UnitAction.Export, false)
+```
+
+제품 및 댓글 플러그인을 먼저 등록하세요. 플러그인 모드는 `@univerjs/docs/facade` 가져오기도 필요합니다. 제품별 권한 접근 방법은 아래에 설명합니다. Sheets는 자체 권한 포인트 열거형을 사용합니다.
+
+## 제품별 세부 권한
+
+### Sheets
+
+**통합 문서 → 워크시트 → 셀 범위** 계층으로 제어합니다. 통합 문서는 전체 편집·복사·댓글을 제어합니다. 워크시트에서는 값, 스타일, 행·열 추가와 삭제, 정렬, 필터, 피벗 테이블, 추가 객체 작업을 제한할 수 있습니다. 범위 보호는 편집·보기와 편집 가능한 공동 작업자를 지정합니다.
+
+예를 들어 예산 수식 열을 보호하고 비용 입력 영역만 열어 둘 수 있습니다. `getWorkbookPermission()`, `getWorksheetPermission()`, `getRangePermission()`을 사용합니다. 워크시트나 범위의 보호 포인트를 설정하기 전에 보호 규칙을 만드세요. 읽기를 제한하는 데이터는 애플리케이션 읽기 API에서도 반환 범위를 제어해야 합니다.
+
+[Sheets 권한과 보호](/guides/sheets/features/core/permission)
+
+### Docs
+
+문서 전체 아래에서 **구역, 단락, 콘텐츠 엔터티**의 편집 권한을 제어합니다. 엔터티에는 안정적인 ID가 있는 표, 그리기, 사용자 정의 블록과 범위가 포함됩니다. 머리글·바닥글 단락은 소속 segment로 지정합니다.
+
+예를 들어 계약서 고정 조항을 보호하고 입력용 단락만 편집할 수 있게 합니다. 구역과 단락에는 `getPermission()`, 엔터티에는 `document.getEntityPermission()`을 사용합니다. 문서, 해당 상위 객체, 객체 자체의 규칙을 결합해 유효 권한을 판단합니다.
+
+[문서 권한](/reference/facade/document-permission) · [구역·단락·엔터티 권한](/reference/facade/document-object-permission)
+
+### Slides
+
+**프레젠테이션, 개별 슬라이드, 페이지 요소, 마스터 편집 진입점과 요소**를 보호합니다. 브랜드 템플릿과 고정 도형을 보호하면서 지정된 텍스트 상자, 이미지, 차트의 편집을 허용할 수 있습니다.
+
+`presentation.getPermission()`, `slide.getPermission()`, `slide.getElementPermission()`을 사용합니다. 마스터 관련 접근 방법은 Presentation Facade를 참고하세요.
+
+[Slides 권한](/guides/slides/features/core/permissions) · [Presentation Facade](/reference/facade/presentation)
+
+### Base
+
+**테이블, 필드, 레코드, 뷰, 대시보드**를 제어합니다. 셀 편집 시 Base, 테이블, 필드, 레코드의 제한을 함께 확인합니다. 뷰 설정과 대시보드는 별도로 보호할 수 있습니다.
+
+예를 들어 스키마와 재무 레코드를 보호하면서 일상 업무 갱신을 허용합니다. 테이블, 필드, 레코드, 뷰는 각각 `getPermission()`을 제공합니다. 대시보드는 해당 플러그인이 필요합니다. 사용자별로 읽을 수 있는 필드와 레코드를 필터링하는 작업은 애플리케이션의 데이터 읽기 정책에서 구현합니다.
+
+[Base 권한](/guides/bases/features/core/permissions) · [객체 권한 API](/reference/facade/base-object-permission)
+
+### Board
+
+전체 Board 권한 아래에서 도형, 텍스트, 이미지, 연결선 등 **개별 요소**의 편집을 제어합니다. 아키텍처 배경이나 흐름의 틀을 보호하고 지정된 노드만 갱신하도록 할 수 있습니다.
+
+Unit에는 `board.getPermission()`, 요소에는 `board.getElementPermission(elementId)`를 사용합니다. 요소를 편집하려면 Board와 요소 양쪽의 권한이 모두 필요합니다.
+
+[Board 권한](/reference/facade/board-permission) · [요소 권한](/reference/facade/board-element-permission)
+
+### PDF
+
+PDF는 현재 **보기·편집 모드**로 로컬 상호작용을 제어하며, 위 다섯 제품의 Unit/Object 권한 API와 범위가 다릅니다. 파일 읽기, 다운로드, 내보내기는 애플리케이션 백엔드에서 인가합니다. PDF는 Core Collaboration이 지원하는 다섯 Unit 유형에도 포함되지 않습니다.
+
+[PDF 통합과 콘텐츠 작업](/guides/pdfs/getting-started/facade)
+
+## 권한 상속과 공동 작업자 정책
+
+**객체에 부여한 권한은 Unit과 해당 상위 객체의 제한을 넘을 수 없습니다.** 문서 전체가 읽기 전용이면 단락만 편집 가능으로 설정해도 편집할 수 없습니다. 지원되는 객체의 `canEdit()`로 유효 결과를 확인합니다.
+
+Docs, Slides, Base, Board의 하위 객체 권한은 주로 Edit를 제어하며 Copy와 Comment는 Unit 수준에서 설정합니다. Sheets는 워크시트·범위 전용 포인트가 있어 제품마다 권한 세분화 범위가 다릅니다.
+
+Docs, Slides, Base, Board는 `setObjectPermissions()`로 공동 작업자 정책을 일괄 설정할 수 있습니다.
+
+| 정책 | 객체를 편집할 수 있는 사용자 |
+| --- | --- |
+| `all` | 이미 Unit의 Edit 권한이 있는 공동 작업자. |
+| `owner` | Unit과 상위 객체 제한을 따르는 객체 소유자. |
+| `members` | 지정한 기존 Unit 공동 작업자. |
+
+Authz 연동, 대상 유형의 `objectPermissionTypes` 설정, 객체 연결·규칙·멤버 관계의 영구 저장이 필요합니다. SDK가 내보내는 객체 ID 헬퍼를 사용하고 콘텐츠 ID를 안정적으로 유지하세요. `policy: null`은 보호를 제거하고 상속을 복원합니다. 일괄 쓰기는 일부 실패할 수 있으므로 `failed`와 `refreshError`를 확인합니다. Sheets는 워크시트·범위 보호 API를 사용합니다.
+
+## 프런트엔드와 백엔드의 인가
+
+신뢰할 수 있는 사용자 신원과 Unit·객체 정책을 하나로 관리해 프런트엔드 동작과 백엔드 인가에 적용합니다.
+
+<Mermaid chart={"flowchart LR\n    P[\"애플리케이션 신원과 권한 정책\"]\n    W[\"Web SDK<br/>상호작용과 명령 검사\"]\n    S[\"Server SDK<br/>요청과 변경 인가\"]\n    D[\"저장 및 브로드캐스트\"]\n    P --> W\n    P --> S\n    W -->|\"변경 제출\"| S\n    S -->|\"허용 시\"| D"} />
+
+| 계층 | 책임 |
+| --- | --- |
+| Web SDK | 현재 사용자에게 허용된 작업을 읽고 권한 포인트, 편집 UI, 명령 검사를 갱신. |
+| 애플리케이션 Authz API | 신뢰할 수 있는 로그인 신원으로 정책을 조회·변경하고 Unit/객체의 유효 권한을 반환하며 정책 관리 권한을 검증. |
+| Transport | Cookie, Session, Token을 인증해 신뢰할 수 있는 신원을 설정. 클라이언트 사용자 필드는 인가 근거가 아님. |
+| Endpoint | WebSocket 연결과 `joinUnit`의 방 참가를 인가. |
+| Service | `readUnitData`에서 읽기, `submitChangeset`에서 제출을 검사하고 적용 단계에서 변경 대상 객체를 검증. |
+
+Server SDK는 Middleware 훅을 제공하며, 애플리케이션이 ACL과 객체 정책을 제공합니다. **프런트엔드의 읽기 전용 설정과 객체 보호가 백엔드 인가를 자동으로 적용하지는 않습니다.** Unit의 Edit만 검사하는 애플리케이션은 단락, 요소, 필드, 레코드 제한을 위한 검사를 추가해야 합니다.
+
+기존 `collabService`에 애플리케이션의 `acl`을 연결하는 예입니다.
+
+```ts
+import { CollabError } from '@univerjs-pro/collaboration-service'
+
+collabService.use('submitChangeset', async (context, next) => {
+  const allowed = await acl.canEdit(
+    context.session.userId,
+    context.request.changeset.unitID,
+  )
+  if (!allowed) {
+    throw new CollabError('PERMISSION_DENIED', 'Editing is not allowed')
+  }
+  await next()
+})
+```
+
+이 예는 Unit 편집 인가만 보여 줍니다. 읽기, JOIN, 정책 변경, 확장 엔드포인트도 보호하세요. 세부 쓰기 권한은 `applyChangeset` 등 적용 단계에서 실제 변경 객체를 검증하고 재시도 가능한 정책으로 유지합니다.
+
+통합 방법은 [신원과 인가](/server/collaboration/identity-and-authorization), 수명 주기 훅은 [Middleware와 Events](/server/collaboration/middleware-and-events)를 참고하세요.
+
+[모든 기능으로 돌아가기](/docs/features)

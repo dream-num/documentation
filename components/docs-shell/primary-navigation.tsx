@@ -19,15 +19,21 @@ export function PrimaryNavigation({
   labels: IPrimaryNavigationLabels
   mobile?: boolean
 }) {
-  const sdkLinks = getGuideSdkItems(items).map((item) => ({ text: item.name, url: `/${item.id}` }))
-  const links = mobile
-    ? sdkLinks
-    : [
-        ...sdkLinks,
-        { text: labels.tools, url: '/tools/theme-customizer' },
-        { text: labels.blog, url: '/blog' },
-        { text: labels.showcase, url: 'https://office.univer.ai' },
-      ]
+  const links = [
+    { text: 'Office SDK', url: '/docs/overview', activeHref: '/docs' },
+    ...getGuideSdkItems(items).map((item) => ({
+      text: item.name,
+      url: item.id === 'guides' ? '/guides/sheets' : `/${item.id}`,
+      activeHref: `/${item.id}`,
+    })),
+    ...(mobile
+      ? []
+      : [
+          { text: labels.tools, url: '/tools/theme-customizer' },
+          { text: labels.blog, url: '/blog' },
+          { text: labels.showcase, url: 'https://office.univer.ai' },
+        ]),
+  ]
 
   return (
     <nav
@@ -39,10 +45,10 @@ export function PrimaryNavigation({
     >
       {links.map((link) => (
         <ActiveNavigationLink
-          activeClassName="bg-accent text-accent-foreground"
-          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-md px-2.5 py-1.5 text-sm whitespace-nowrap transition-colors"
-          href={link.url === '/guides' ? '/guides/sheets' : link.url}
-          activeHref={link.url}
+          activeClassName="bg-accent text-accent-foreground font-medium"
+          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground shrink-0 rounded-md px-2 py-1.5 text-sm whitespace-nowrap transition-colors lg:px-2.5"
+          href={link.url}
+          activeHref={'activeHref' in link ? link.activeHref : link.url}
           key={link.url}
         >
           {link.text}

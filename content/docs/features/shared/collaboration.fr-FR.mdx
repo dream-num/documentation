@@ -1,0 +1,52 @@
+---
+title: "Collaboration en temps réel"
+description: "Coordonnez les modifications simultanées avec OT, HTTP, WebSocket et persistance."
+icon: Users
+---
+
+Utilisateurs et agents connectés modifient le même document. Les changements sont locaux d’abord ; le serveur confirme leur ordre et les distribue, conciliant réponse immédiate et cohérence éventuelle.
+
+**Noms des produits :** [Relational Table (table relationnelle)](/docs/features/relational-table) est nommé `Base` dans le SDK et les API ; [Canvases (canevas)](/docs/features/canvas) est nommé `Board`.
+
+## Concurrence et conflits
+
+Univer utilise OT (transformation opérationnelle). Le client regroupe les opérations en changesets ; le serveur les transforme selon les révisions confirmées. Si Alice modifie `C2` pendant que Bob insère une colonne avant B, la modification suit la cellule vers `D2`. Annuler et rétablir s’ajustent aussi, sans résoudre tous les conflits métier.
+
+Une opération impossible à transformer ou appliquer bloque l’édition du document. `CollaborationConflict` fournit la cause et les changements locaux non confirmés. Conservez-les avant de recharger. Consultez la [récupération](/server/collaboration/browser-integration#conflict-recovery) et la [conception OT](/blog/ot).
+
+## Canaux et reconnexion
+
+| Canal | Rôle |
+| --- | --- |
+| HTTP | Charger snapshots et changements, obtenir un Session Ticket, soumettre les changesets. |
+| WebSocket | Maintenir Session et Room ; recevoir ACK, changements distants et Presence. |
+
+Un Ticket à usage unique permet de se connecter puis de rejoindre la Room. Presence partage membres, curseurs et sélections. **Une connexion active ou une requête HTTP réussie ne confirme pas l’enregistrement.** Combinez ACK, état collaboratif et modifications en attente.
+
+Après une coupure, conservez les changements non confirmés, récupérez les révisions manquantes et renvoyez-les. Le serveur déduplique les envois. Consultez l’[état de synchronisation](/server/collaboration/browser-integration#sync-status) et [Presence](/server/collaboration/presence).
+
+## Persistance et snapshots
+
+Enregistrez changesets et révisions confirmés, puis générez les snapshots selon une politique. Le chargement applique les modifications postérieures au snapshot ; une image par édition n’est pas nécessaire. Voir [Headless et calcul serveur](/docs/features/shared/server-calculation). Historique, commentaires et Worktree sont des [extensions](/server/collaboration/extensions).
+
+## Architecture de déploiement
+
+<Mermaid chart={"flowchart LR\n    A[\"Client A\"]\n    B[\"Client B / Agent\"]\n    S[\"Service collaboratif applicatif<br/>OT · Confirmer et diffuser\"]\n    D[\"Base de données applicative\"]\n    A <-->|\"HTTP / WebSocket\"| S\n    B <-->|\"HTTP / WebSocket\"| S\n    S --> D"} />
+
+- **Un nœud :** assemblez Transport, Endpoint, Service et Database Adapter dans Node.js. Memory sert aux tests temporaires, SQLite au local ou aux petits déploiements. Les autres bases nécessitent un adaptateur applicatif.
+- **Extension :** en plus de la persistance partagée, coordonnez diffusion inter-nœuds, Presence, validation des Tickets et cohérence. Ajouter des processus ne suffit pas ; suivez la conception de votre version.
+- **Tâches lourdes :** isolez les conversions intensives en CPU.
+
+Consultez les [modules](/server/collaboration/modules), le [déploiement](/server/deployment) et l’[exemple multinœud](/server/collaboration/examples#multi-node).
+
+## Performances et capacité
+
+**Les benchmarks et chiffres de capacité de la version actuelle restent à fournir.** Ils dépendent des documents, de la fréquence, des participants et de l’environnement. Mesurez confirmation, affichage distant, changesets par seconde, diffusion et mémoire.
+
+## Intégration et périmètre
+
+Commencez par la [vue générale](/server/collaboration/overview) et l’[exemple à deux navigateurs](/server/collaboration/quick-start). Branchez identité et autorisation via Middleware, choisissez un [Database Adapter](/server/collaboration/database-adapters) persistant et vérifiez la conservation après redémarrage.
+
+Le noyau couvre Sheet, Doc, Slide, Board et Base, pas PDF. L’application fournit identité, autorisation, gestion des fichiers et politiques de stockage.
+
+[Retour à toutes les fonctionnalités](/docs/features)

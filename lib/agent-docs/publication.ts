@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto'
-
 import type { Locale } from '@/i18n/routing'
 import type { AgentDocsCollection } from '@/lib/agent-docs/links'
 import { isAppLocale } from '@/i18n/locale-config'
@@ -12,8 +11,7 @@ import {
 } from '@/lib/agent-docs/links'
 import { resolveGuideContentSlug } from '@/lib/guides/content-placements'
 import { withLocale } from '@/lib/locale-path'
-import { ai, guides, reference, server } from '@/lib/source'
-
+import { ai, docs, guides, reference, server } from '@/lib/source'
 import guidesMeta from '../../content/guides/meta.json'
 import packageJson from '../../package.json'
 
@@ -126,6 +124,8 @@ function parseTarget(asset: string[]): AgentDocsTarget | undefined {
 
 function getPages(collection: AgentDocsCollection, lang: Locale): AgentDocsPage[] {
   switch (collection) {
+    case 'docs':
+      return docs.getPages(lang)
     case 'server':
       return server.getPages(lang)
     case 'ai':
@@ -139,6 +139,8 @@ function getPages(collection: AgentDocsCollection, lang: Locale): AgentDocsPage[
 
 function getPage(collection: AgentDocsCollection, slug: string[], lang: Locale): AgentDocsPage | undefined {
   switch (collection) {
+    case 'docs':
+      return docs.getPage(slug, lang)
     case 'server':
       return server.getPage(slug, lang)
     case 'ai':
@@ -152,6 +154,8 @@ function getPage(collection: AgentDocsCollection, slug: string[], lang: Locale):
 
 function resolveHref(collection: AgentDocsCollection, href: string, page: AgentDocsPage) {
   switch (collection) {
+    case 'docs':
+      return docs.resolveHref(href, page as GuidesPage)
     case 'server':
       return server.resolveHref(href, page as GuidesPage)
     case 'ai':
@@ -282,7 +286,7 @@ function rewriteImageSources(markdown: string, collection: AgentDocsCollection, 
   return markdown.replace(MARKDOWN_IMAGE_DESTINATION, (_match, prefix: string, href: string, suffix: string) => {
     if (!href.startsWith(AGENT_IMAGE_SOURCE)) return `${prefix}${href}${suffix}`
     const source = decodeURIComponent(href.slice(AGENT_IMAGE_SOURCE.length))
-    return `${prefix}${new URL(source, baseUrl).href}${suffix}`
+    return `${prefix}${new URL(source, source.startsWith('/assets/') ? DOCS_ORIGIN : baseUrl).href}${suffix}`
   })
 }
 
@@ -413,6 +417,7 @@ function renderRootIndex(lang: Locale): IAgentDocsArtifact {
     REQUIRED_DEVELOPMENT_WORKFLOW,
     '## Documentation scope',
     '',
+    `- [Office SDK overview](${DOCS_ORIGIN}${withLocale(lang, '/docs')}): SDK responsibilities, composition, and getting started.`,
     `- [Web SDK](${DOCS_ORIGIN}${withLocale(lang, '/guides')}): Embedded editors, headless runtimes, presets, plugins, Facade APIs, and frontend features.`,
     `- [Server SDK](${DOCS_ORIGIN}${withLocale(lang, '/server')}): Self-hosted Collaboration SDK, storage, authorization, and Office import/export packages.`,
     `- [AI SDK](${DOCS_ORIGIN}${withLocale(lang, '/ai')}): Agent content operations, visual inspection, CLI composition, and reviewable Worktrees.`,
