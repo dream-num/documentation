@@ -1,11 +1,9 @@
 ---
-title: Node 导出授权与额度
-description: 配置 Node 导出授权、查询剩余额度并处理授权错误。
+title: 许可证
+description: 配置 Exchange 导出授权、查询剩余额度并处理授权错误。
 ---
 
-在运行 `@univerjs-pro/exchange-node` 的服务端进程中配置导出授权。浏览器侧的许可证注册与 Node SDK 分别配置，参见[浏览器许可证注册](/server/license)和 [Office 文件导入导出](/server/import-export/node)。
-
-新版导出授权功能尚待发布。本文描述新版 API 与行为，配套 SDK 和原生组件版本以发布说明为准。
+Exchange 在运行 `@univerjs-pro/exchange-node` 的服务端进程中读取许可证。转换用法见 [Office 文件导入导出](/server/import-export/node)。
 
 ## 配置授权 [#configure]
 
@@ -129,14 +127,17 @@ Free 每授权月允许 10 次成功导出。商业授权的次数、并发及�
 使用结构化 `code` 判断错误，不要解析 `message` 文本。用户界面可根据错误码提供本地化提示；诊断信息请保留供技术支持使用。
 
 ```ts
-import { ExchangeError, getExportQuota } from '@univerjs-pro/exchange-node'
+import { UniverInstanceType } from '@univerjs/core'
+import { ExchangeError, ExchangeFormat, exportToBuffer } from '@univerjs-pro/exchange-node'
 
 try {
-  const quota = await getExportQuota()
-  console.info(quota.licenseStatus, quota.remaining)
+  const output = await exportToBuffer(workbook, {
+    type: UniverInstanceType.UNIVER_SHEET,
+    format: ExchangeFormat.XLSX,
+  })
 } catch (error) {
   if (error instanceof ExchangeError) {
-    // 根据 error.code 展示对应提示。
+    // 根据 error.code 展示对应提示，例如额度不足时为 LICENSE_EXPORT_QUOTA_EXCEEDED
     console.error(error.code)
   } else {
     throw error
@@ -149,21 +150,21 @@ try {
 | 错误码 | 报错时机 | 含义及处理方式 |
 | --- | --- | --- |
 | `LICENSE_EXPORT_QUOTA_EXCEEDED` | 仅导出 | 当前周期的可用导出额度不足；查询额度或联系商务调整授权。 |
+| `LICENSE_CONCURRENCY_TIMEOUT` | 仅导出 | 等待可用导出并发名额超时；降低并发后再发起导出。 |
+| `LICENSE_UNIT_TYPE_REJECTED` | 仅导出 | 当前授权未包含此导出类型或该类型授权已到期；使用包含该类型的有效授权。 |
 | `LICENSE_INVALID` | 查询、导出 | 授权无效；检查完整凭据或联系授权提供方更新授权。 |
 | `LICENSE_POLICY_INVALID` | 查询、导出 | 授权配置不符合 SDK 要求；联系授权提供方更新授权。 |
-| `LICENSE_UNIT_TYPE_REJECTED` | 仅导出 | 当前授权未包含此导出类型或该类型授权已到期；使用包含该类型的有效授权。 |
 | `LICENSE_NOT_YET_EFFECTIVE` | 仅导出 | 授权尚未生效；在生效后使用。 |
 | `LICENSE_VERSION_NOT_ALLOWED` | 仅导出 | 当前 SDK 版本不在授权范围内；使用匹配版本或更新授权。 |
-| `LICENSE_CONCURRENCY_TIMEOUT` | 仅导出 | 等待可用导出并发名额超时；降低并发后再发起导出。 |
-| `LICENSE_USAGE_STATE_INVALID` | 查询、导出 | 授权用量状态无法验证；保留错误信息并联系技术支持。 |
-| `LICENSE_USAGE_STORAGE_ERROR` | 查询、导出 | 授权用量处理失败；保留错误信息并联系技术支持，避免自动重复提交。 |
-| `INVALID_ARGUMENT` | 查询、导出 | 参数或凭据不完整；检查传入配置。 |
-| `NATIVE_LOAD_FAILED` | 查询、导出 | SDK 原生组件无法加载；检查已安装包及运行环境是否匹配。 |
-| `IO_ERROR` | 仅导出 | 文件读写失败；成功转换后的文件写入失败已经消耗 1 次。 |
 | `UNSUPPORTED_FORMAT` | 仅导出 | 不支持指定的格式或格式与类型不匹配；检查导出选项。 |
 | `INVALID_FILE` | 仅导出 | 转换输入无效；检查输入内容。 |
 | `INCOMPLETE_SNAPSHOT` | 仅导出 | 导出数据不完整；提供完整数据或 Snapshot。 |
 | `CONVERSION_FAILED` | 仅导出 | 文件转换失败；保留错误信息并检查输入内容。 |
+| `IO_ERROR` | 仅导出 | 文件读写失败；成功转换后的文件写入失败已经消耗 1 次。 |
+| `INVALID_ARGUMENT` | 查询、导出 | 参数或凭据不完整；检查传入配置。 |
+| `NATIVE_LOAD_FAILED` | 查询、导出 | SDK 原生组件无法加载；检查已安装包及运行环境是否匹配。 |
+| `LICENSE_USAGE_STATE_INVALID` | 查询、导出 | 授权用量状态无法验证；保留错误信息并联系技术支持。 |
+| `LICENSE_USAGE_STORAGE_ERROR` | 查询、导出 | 授权用量处理失败；保留错误信息并联系技术支持，避免自动重复提交。 |
 
 应用可根据 `licenseStatus` 与 `expiresAt` 自行展示到期提醒；SDK 不额外返回提示列表。
 

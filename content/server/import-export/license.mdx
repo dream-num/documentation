@@ -1,15 +1,13 @@
 ---
-title: Node export license and quota
-description: Configure Node export authorization, query remaining quota, and handle license errors.
+title: License
+description: Configure Exchange export authorization, query remaining quota, and handle license errors.
 ---
 
-Configure export authorization in the server process running `@univerjs-pro/exchange-node`. Browser license registration and Node SDK configuration are separate. See [browser license registration](/server/license) and [Office file import and export](/server/import-export/node).
-
-The updated export authorization behavior is awaiting release. Use the SDK and native component versions specified in the release notes.
+Exchange reads the License in the server process running `@univerjs-pro/exchange-node`. See [Office file import and export](/server/import-export/node) for conversion.
 
 ## Configure authorization [#configure]
 
-Set both `UNIVER_LICENSE` and `UNIVER_LICENSE_KEY` in the environment for automatic configuration. Calling `configureExchange` is optional: the SDK reads the environment once on the first export or quota query and reuses that configuration. Without environment credentials, Free applies. Supplied but invalid credentials return an error and cannot be used for export.
+Provide the License through the `UNIVER_LICENSE` and `UNIVER_LICENSE_KEY` environment variables. Calling `configureExchange` is optional: the SDK reads the environment once on the first export or quota query and reuses that configuration. Without environment credentials, Free applies. Supplied but invalid credentials return an error and cannot be used for export.
 
 For explicit configuration, `configureExchange({ license, licenseKey })` returns `Promise<void>` and completely ignores the environment. Await it before starting exports that should use the new credentials.
 
@@ -120,7 +118,7 @@ Example of a limited-quota snapshot:
 
 Free allows 10 successful exports per authorization month. Commercial export quota, concurrency, and version entitlements depend on the purchased license. Neither Free nor commercial licenses impose file-size or cell-count limits. Use the query response for the current period and remaining quota. Unused monthly quota does not roll over.
 
-Imports do not require export authorization and do not consume export quota. Office and PDF exports using the same commercial license within a deployment share quota. See [Office file import and export](/server/import-export/node) for Node SDK conversion formats.
+Imports do not require export authorization and do not consume export quota. Office and PDF exports using the same commercial license within a deployment share quota. See [Office file import and export](/server/import-export/node) for Exchange conversion formats.
 
 Each successful conversion consumes one export. Returning a Buffer counts as success. A later file-write, upload, or download failure does not refund that export; another successful conversion consumes another export. When the current period has no remaining quota, new exports are rejected. Wait for the next authorization period or provide a valid license with a higher quota; an exhausted valid commercial license does not use Free quota.
 
@@ -129,14 +127,17 @@ Each successful conversion consumes one export. Returning a Buffer counts as suc
 Use the structured `code` to identify errors instead of parsing `message` text. Your UI can map error codes to localized messages. Retain diagnostic information for technical support.
 
 ```ts
-import { ExchangeError, getExportQuota } from '@univerjs-pro/exchange-node'
+import { UniverInstanceType } from '@univerjs/core'
+import { ExchangeError, ExchangeFormat, exportToBuffer } from '@univerjs-pro/exchange-node'
 
 try {
-  const quota = await getExportQuota()
-  console.info(quota.licenseStatus, quota.remaining)
+  const output = await exportToBuffer(workbook, {
+    type: UniverInstanceType.UNIVER_SHEET,
+    format: ExchangeFormat.XLSX,
+  })
 } catch (error) {
   if (error instanceof ExchangeError) {
-    // Display the appropriate message for error.code.
+    // Display the message for error.code, e.g. LICENSE_EXPORT_QUOTA_EXCEEDED when the quota runs out
     console.error(error.code)
   } else {
     throw error
@@ -149,21 +150,21 @@ The table distinguishes quota queries (`getExportQuota`) from actual exports. Bo
 | Code | Operation | Meaning and response |
 | --- | --- | --- |
 | `LICENSE_EXPORT_QUOTA_EXCEEDED` | Export only | Insufficient export quota for the current period. Query quota or contact sales to adjust the license. |
+| `LICENSE_CONCURRENCY_TIMEOUT` | Export only | Waiting for available export concurrency timed out. Reduce concurrent exports before submitting again. |
+| `LICENSE_UNIT_TYPE_REJECTED` | Export only | This export type is not licensed or its type entitlement has expired. Provide a valid license covering the type. |
 | `LICENSE_INVALID` | Query, export | The license is invalid. Check the complete credentials or contact the license provider for an update. |
 | `LICENSE_POLICY_INVALID` | Query, export | The authorization configuration does not meet SDK requirements. Contact the license provider for an update. |
-| `LICENSE_UNIT_TYPE_REJECTED` | Export only | This export type is not licensed or its type entitlement has expired. Provide a valid license covering the type. |
 | `LICENSE_NOT_YET_EFFECTIVE` | Export only | Authorization has not started yet. Use it after its effective date. |
 | `LICENSE_VERSION_NOT_ALLOWED` | Export only | The current SDK version is outside the licensed range. Use a matching version or update the license. |
-| `LICENSE_CONCURRENCY_TIMEOUT` | Export only | Waiting for available export concurrency timed out. Reduce concurrent exports before submitting again. |
-| `LICENSE_USAGE_STATE_INVALID` | Query, export | License usage status cannot be verified. Preserve the error and contact technical support. |
-| `LICENSE_USAGE_STORAGE_ERROR` | Query, export | License usage processing failed. Preserve the error, contact technical support, and avoid automatic resubmission. |
-| `INVALID_ARGUMENT` | Query, export | Incomplete arguments or credentials. Check the configuration. |
-| `NATIVE_LOAD_FAILED` | Query, export | A native SDK component could not load. Check package and runtime compatibility. |
-| `IO_ERROR` | Export only | File input/output failed. An output-write failure after successful conversion has already consumed an export. |
 | `UNSUPPORTED_FORMAT` | Export only | The format is unsupported or incompatible with the Unit type. Check export options. |
 | `INVALID_FILE` | Export only | The conversion input is invalid. Check its contents. |
 | `INCOMPLETE_SNAPSHOT` | Export only | Export data is incomplete. Provide complete data or a complete Snapshot. |
 | `CONVERSION_FAILED` | Export only | Conversion failed. Retain the error and check the input contents. |
+| `IO_ERROR` | Export only | File input/output failed. An output-write failure after successful conversion has already consumed an export. |
+| `INVALID_ARGUMENT` | Query, export | Incomplete arguments or credentials. Check the configuration. |
+| `NATIVE_LOAD_FAILED` | Query, export | A native SDK component could not load. Check package and runtime compatibility. |
+| `LICENSE_USAGE_STATE_INVALID` | Query, export | License usage status cannot be verified. Preserve the error and contact technical support. |
+| `LICENSE_USAGE_STORAGE_ERROR` | Query, export | License usage processing failed. Preserve the error, contact technical support, and avoid automatic resubmission. |
 
 Applications can derive expiry reminders from `licenseStatus` and `expiresAt`; the SDK does not return a separate notice list.
 

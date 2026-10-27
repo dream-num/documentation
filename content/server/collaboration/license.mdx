@@ -1,0 +1,61 @@
+---
+title: License
+description: Collaboration SDK uses the License to decide collaborative editing connections, authorized domains, collaboration nodes and document types.
+---
+
+`UniverCollabService` loads the License at construction, and Endpoints and Worktrees share it. See [License](/server/license#collaboration-sdk) for configuration; without a License it runs on the free tier. A License that fails verification makes the constructor throw a `CollabError` (`LICENSE_INVALID` or `LICENSE_POLICY_INVALID`), so the service stops at startup.
+
+## What the License decides [#limits]
+
+| Item                             | Checked at                                         | Beyond the limit                                       |
+| -------------------------------- | -------------------------------------------------- | ------------------------------------------------------ |
+| Collaborative editing connections | Endpoint, when receiving submissions              | Edits from new connections stay in the browser and retry |
+| Authorized domains               | Endpoint, when connecting and receiving submissions | The browser's collaboration session goes offline      |
+| Collaboration nodes              | Endpoint                                           | Nodes beyond the limit go offline after a grace period |
+| Document types                   | Service, when creating Units and submitting edits  | Creation and submissions are rejected; existing documents stay viewable |
+
+### Collaborative editing connections [#editing-connections]
+
+The allowance counts connections that are editing: a collaboration connection takes a slot on its first successful submission and releases it when the connection closes or 120 seconds after its last successful submission. Connections that open a document to view it can join at any time. Edits inside a Worktree share the same pool as the trunk.
+
+When every slot is in use, edits from a new connection stay in the browser and Web SDK resends them with backoff until a slot frees up; connections that already hold a slot keep editing. `CollaborationChangesetResend` in the browser reports these resends with `reason: 'license_editing_connections_exceeded'`.
+
+### Authorized domains [#domains]
+
+When Web SDK opens a collaboration connection or submits edits, the Endpoint checks the page's domain against the License's authorized domains. A domain outside them receives `403`; the browser's collaboration session goes offline and shows the reason, and tries again when the user reconnects or opens another document.
+
+### Collaboration nodes [#nodes]
+
+**Single-node License** (including the free tier): runs one collaboration node. Passing `pubSub` to the Endpoint makes the constructor throw `LICENSE_POLICY_INVALID`.
+
+**Multi-node License**: sets a node limit. When more nodes run than the limit, the newest ones enter a grace period with escalating warnings and then go offline: new connections receive `503` and existing connections close. Nodes within the limit keep serving. If the count drops back within the limit during the grace period, the extra nodes return to normal; a node that has gone offline is counted again as a new node after its process restarts. See [Deployment](/server/deployment#multiple-collaboration-nodes) for multi-node setups.
+
+### Document types [#unit-types]
+
+The License lists the document types available for collaboration. Creating a Unit of another type throws `LICENSE_UNIT_TYPE_REJECTED`, and submitted edits are rejected, with `CollaborationConflict` in the browser reporting `reason` `license_unit_type_rejected`; existing documents stay viewable.
+
+## Observe the state [#observe]
+
+```ts
+// Service
+collabService.license.status // License status: 'not_configured' | 'expired' | 'valid'
+collabService.license.editingConnectionsLimit // editing connection limit: number | null; null means unlimited
+collabService.license.nodesLimit // node limit: number | null; null means unlimited
+collabService.license.domains // authorized domains: string[]
+collabService.license.expiresAt // expiry time: ISO string | null; null when not configured
+collabService.license.update({ license, licenseKey }) // replace the License; throws and keeps the current one if verification fails
+
+// Endpoint
+endpoint.license.editingConnections.limit // slot limit: number | null; null means unlimited
+endpoint.license.editingConnections.used // slots in use: number
+endpoint.license.editingConnections.remaining // slots left: number | null; null means unlimited
+endpoint.license.editingConnections.has(memberID) // whether this member holds a slot: boolean
+endpoint.license.nodes.limit // node limit: number | null; null means unlimited
+endpoint.license.nodes.status // this node's status: 'normal' | 'exceeded' | 'exceeded-warning' | 'exceeded-offlineSoon' | 'exceeded-offline'
+
+// Events
+endpoint.license.on('editingConnectionsExceeded', ({ memberID, userID, unitID, used, limit }) => {}) // slots are full and a new connection's submission was held back
+endpoint.license.on('nodesStatusChanged', ({ status, previousStatus, limit, reason }) => {}) // this node's status changed; reason is set only when it goes offline
+```
+
+`nodesStatusChanged` fires once each time this node's status changes. When `status` is `exceeded-offline`, the node has stopped accepting connections; take it out of the load balancer or raise an alert.
