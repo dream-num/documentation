@@ -1,0 +1,103 @@
+---
+title: 슬라이서와 타임라인
+icon: ListFilter
+---
+
+<MetaData
+  lang="ko-KR"
+  meta={{
+    preset: [],
+    plugins: [{
+      client: '@univerjs-pro/sheets-slicer',
+      facade: '@univerjs-pro/sheets-slicer/facade',
+    }, {
+      client: '@univerjs-pro/sheets-slicer-ui',
+      locale: '@univerjs-pro/sheets-slicer-ui/locale/ko-KR',
+      style: '@univerjs-pro/sheets-slicer-ui/lib/index.css',
+    }],
+    license: true,
+    server: false,
+  }}
+/>
+
+슬라이서는 소스 멤버를 기준으로 테이블, 피벗 테이블 및 피벗 차트를 필터링합니다. 타임라인은 지원되는 피벗 원본 날짜 필드를 필터링하며, 테이블 열, 텍스트 필드, 계산 필드 및 파생 그룹 필드는 소스로 사용할 수 없습니다.
+
+## 플러그인 설정 [#plugin-mode]
+
+기존 [Sheets 설정](/guides/sheets/getting-started/installation)에 다음 내용을 추가하고 [그리기 지원](/guides/sheets/features/images)과 소스로 사용할 [테이블](/guides/sheets/features/table) 또는 [피벗 테이블](/guides/sheets/features/pivot-table)을 설정하세요. 워크북을 만들기 전에 언어 팩을 로드하고 플러그인을 등록합니다.
+
+```package-install
+npm install @univerjs-pro/sheets-slicer @univerjs-pro/sheets-slicer-ui
+```
+
+```ts
+import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer'
+import { UniverSheetsSlicerUIPlugin } from '@univerjs-pro/sheets-slicer-ui'
+import SheetsSlicerUILocale from '@univerjs-pro/sheets-slicer-ui/locale/ko-KR'
+import { LocaleType } from '@univerjs/core'
+import '@univerjs-pro/sheets-slicer/facade'
+import '@univerjs-pro/sheets-slicer-ui/lib/index.css'
+
+univerAPI.loadLocales(LocaleType.KO_KR, SheetsSlicerUILocale)
+univer.registerPlugin(UniverSheetsSlicerPlugin)
+univer.registerPlugin(UniverSheetsSlicerUIPlugin)
+```
+
+## 슬라이서 만들기 [#create-slicer]
+
+이 예제는 활성 시트의 I1에 있는 피벗 테이블과 `Region`이라는 소스 필드를 사용합니다. `getSourceFieldsInfo()`로 원본 필드의 안정적인 ID를 가져오세요. 표시 이름이나 보고서 필드 ID는 `newSlicer()`에 전달할 수 없습니다.
+
+```ts
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook?.getActiveSheet()
+if (!fWorkbook || !fWorksheet) throw new Error('No active worksheet')
+
+const pivotTable = fWorkbook.getPivotTableByCell(
+  fWorkbook.getId(),
+  fWorksheet.getSheetId(),
+  0,
+  8,
+)
+const regionField = pivotTable?.getSourceFieldsInfo().find((field) => field.name === 'Region')
+if (!pivotTable || !regionField) throw new Error('Region source field not found')
+
+const slicer = await fWorksheet.insertSlicer(
+  pivotTable.newSlicer(regionField.id)
+    .setCaption(regionField.name)
+    .setPosition('N2')
+    .build(),
+)
+```
+
+`pivotTable.newSlicer()`는 빌더를 소스에 연결합니다. `build()`는 설정만 생성하고 `insertSlicer()`가 컨트롤을 삽입합니다. 컨트롤이 위치한 시트와 소스 시트는 서로 달라도 되지만 같은 워크북에 있어야 합니다. 테이블 소스에는 `fWorksheet.newSlicer(columnId).setTableReference({ subUnitId, tableId })`를 사용합니다. `columnId`는 테이블 열의 안정적인 ID입니다.
+
+## 타임라인 만들기 [#create-timeline]
+
+같은 피벗 테이블을 사용하는 다음 예제에는 `Date`라는 원본 날짜 필드가 필요합니다. `newTimeline()`은 소스를 검증하고 지원하지 않는 필드를 거부합니다. 타임라인 범위 API는 JavaScript `Date` 객체가 아닌 워크북 날짜 시스템의 Excel 일련번호 값을 사용합니다.
+
+```ts
+const dateField = pivotTable.getSourceFieldsInfo().find((field) => field.name === 'Date')
+if (!dateField) throw new Error('Date source field not found')
+
+const timeline = await fWorksheet.insertTimeline(
+  pivotTable.newTimeline(dateField.id)
+    .setCaption(dateField.name)
+    .setLevel(univerAPI.Enum.TimelineLevel.Month)
+    .setPosition('N18')
+    .build(),
+)
+```
+
+## 컨트롤 조회 및 변경 감지 [#controls-and-events]
+
+컨트롤이 위치한 워크시트에서 `getSlicer(viewId)` / `getSlicers()` 및 `getTimeline(viewId)` / `getTimelines()`을 호출합니다. `viewId`는 컨트롤의 `getId()`가 반환하는 ID이며, 그리기 ID가 아닙니다.
+
+`univerAPI.addEvent()`로 `SlicerAdded`, `SlicerChanged`, `SlicerRemoved`, `TimelineAdded`, `TimelineChanged`, `TimelineRemoved`를 구독할 수 있습니다. 이 이벤트는 확정된 로컬 변경을 알리며 원격 저장이나 렌더링 완료를 의미하지 않습니다. 더 이상 필요하지 않으면 반환된 구독의 `dispose()`를 호출하세요.
+
+API 참조:
+
+- [FSheetSlicer](/reference/facade/sheet-slicer)
+- [FSheetSlicerBuilder](/reference/facade/sheet-slicer-builder)
+- [FSheetTimeline](/reference/facade/sheet-timeline)
+- [FSheetTimelineBuilder](/reference/facade/sheet-timeline-builder)
+- [FEventName](/reference/facade/events#univerjs-prosheets-slicer)

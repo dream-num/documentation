@@ -1,0 +1,103 @@
+---
+title: Segments et chronologies
+icon: ListFilter
+---
+
+<MetaData
+  lang="fr-FR"
+  meta={{
+    preset: [],
+    plugins: [{
+      client: '@univerjs-pro/sheets-slicer',
+      facade: '@univerjs-pro/sheets-slicer/facade',
+    }, {
+      client: '@univerjs-pro/sheets-slicer-ui',
+      locale: '@univerjs-pro/sheets-slicer-ui/locale/fr-FR',
+      style: '@univerjs-pro/sheets-slicer-ui/lib/index.css',
+    }],
+    license: true,
+    server: false,
+  }}
+/>
+
+Les segments filtrent les tableaux, tableaux croisés dynamiques et graphiques croisés dynamiques selon les membres de la source. Les chronologies filtrent les champs de date d’origine compatibles des rapports croisés ; elles ne prennent pas en charge les colonnes de tableaux, les champs texte, les champs calculés ni les champs de regroupement dérivés.
+
+## Configurer les plugins [#plugin-mode]
+
+Ajoutez les éléments suivants à votre [configuration Sheets](/guides/sheets/getting-started/installation), avec le [dessin](/guides/sheets/features/images) et la source de [tableau](/guides/sheets/features/table) ou de [tableau croisé dynamique](/guides/sheets/features/pivot-table) configurés. Chargez la langue et enregistrez les plugins avant de créer le classeur.
+
+```package-install
+npm install @univerjs-pro/sheets-slicer @univerjs-pro/sheets-slicer-ui
+```
+
+```ts
+import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer'
+import { UniverSheetsSlicerUIPlugin } from '@univerjs-pro/sheets-slicer-ui'
+import SheetsSlicerUILocale from '@univerjs-pro/sheets-slicer-ui/locale/fr-FR'
+import { LocaleType } from '@univerjs/core'
+import '@univerjs-pro/sheets-slicer/facade'
+import '@univerjs-pro/sheets-slicer-ui/lib/index.css'
+
+univerAPI.loadLocales(LocaleType.FR_FR, SheetsSlicerUILocale)
+univer.registerPlugin(UniverSheetsSlicerPlugin)
+univer.registerPlugin(UniverSheetsSlicerUIPlugin)
+```
+
+## Créer un segment [#create-slicer]
+
+Cet exemple utilise un tableau croisé dynamique en I1 de la feuille active, avec un champ source nommé `Region`. Obtenez son ID d’origine stable avec `getSourceFieldsInfo()` ; les noms affichés et les ID de champs du rapport ne conviennent pas à `newSlicer()`.
+
+```ts
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook?.getActiveSheet()
+if (!fWorkbook || !fWorksheet) throw new Error('No active worksheet')
+
+const pivotTable = fWorkbook.getPivotTableByCell(
+  fWorkbook.getId(),
+  fWorksheet.getSheetId(),
+  0,
+  8,
+)
+const regionField = pivotTable?.getSourceFieldsInfo().find((field) => field.name === 'Region')
+if (!pivotTable || !regionField) throw new Error('Region source field not found')
+
+const slicer = await fWorksheet.insertSlicer(
+  pivotTable.newSlicer(regionField.id)
+    .setCaption(regionField.name)
+    .setPosition('N2')
+    .build(),
+)
+```
+
+`pivotTable.newSlicer()` lie le constructeur à sa source. `build()` prépare uniquement la configuration ; `insertSlicer()` crée le contrôle. La feuille hôte peut différer de la feuille source, mais elles doivent appartenir au même classeur. Pour une source de tableau, utilisez `fWorksheet.newSlicer(columnId).setTableReference({ subUnitId, tableId })`, où `columnId` est l’ID stable de la colonne du tableau.
+
+## Créer une chronologie [#create-timeline]
+
+L’exemple suivant utilise le même tableau croisé dynamique et nécessite un champ de date d’origine nommé `Date`. `newTimeline()` valide la source et refuse les champs non pris en charge. Les API de plages de chronologie utilisent les numéros de série Excel du système de dates du classeur, pas des objets JavaScript `Date`.
+
+```ts
+const dateField = pivotTable.getSourceFieldsInfo().find((field) => field.name === 'Date')
+if (!dateField) throw new Error('Date source field not found')
+
+const timeline = await fWorksheet.insertTimeline(
+  pivotTable.newTimeline(dateField.id)
+    .setCaption(dateField.name)
+    .setLevel(univerAPI.Enum.TimelineLevel.Month)
+    .setPosition('N18')
+    .build(),
+)
+```
+
+## Retrouver les contrôles et observer les changements [#controls-and-events]
+
+Appelez `getSlicer(viewId)` / `getSlicers()` et `getTimeline(viewId)` / `getTimelines()` sur la feuille hôte. `viewId` est l’ID métier renvoyé par `getId()` du contrôle, pas son ID de dessin.
+
+Abonnez-vous à `SlicerAdded`, `SlicerChanged`, `SlicerRemoved`, `TimelineAdded`, `TimelineChanged` et `TimelineRemoved` via `univerAPI.addEvent()`. Ces événements décrivent des changements locaux validés, pas une sauvegarde distante ni la fin du rendu. Appelez `dispose()` sur l’abonnement lorsqu’il n’est plus nécessaire.
+
+Référence API :
+
+- [FSheetSlicer](/reference/facade/sheet-slicer)
+- [FSheetSlicerBuilder](/reference/facade/sheet-slicer-builder)
+- [FSheetTimeline](/reference/facade/sheet-timeline)
+- [FSheetTimelineBuilder](/reference/facade/sheet-timeline-builder)
+- [FEventName](/reference/facade/events#univerjs-prosheets-slicer)

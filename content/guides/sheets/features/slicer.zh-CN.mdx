@@ -1,0 +1,103 @@
+---
+title: 切片器与时间线
+icon: ListFilter
+---
+
+<MetaData
+  lang="zh-CN"
+  meta={{
+    preset: [],
+    plugins: [{
+      client: '@univerjs-pro/sheets-slicer',
+      facade: '@univerjs-pro/sheets-slicer/facade',
+    }, {
+      client: '@univerjs-pro/sheets-slicer-ui',
+      locale: '@univerjs-pro/sheets-slicer-ui/locale/zh-CN',
+      style: '@univerjs-pro/sheets-slicer-ui/lib/index.css',
+    }],
+    license: true,
+    server: false,
+  }}
+/>
+
+切片器可按源数据成员筛选表格、数据透视表和透视图。时间线用于筛选受支持的透视表原始日期字段，不支持表格列、文本字段、计算字段和派生分组字段。
+
+## 插件配置 [#plugin-mode]
+
+在现有的 [Sheets 配置](/guides/sheets/getting-started/installation)中加入以下内容，并配置[绘图支持](/guides/sheets/features/images)以及[表格](/guides/sheets/features/table)或[数据透视表](/guides/sheets/features/pivot-table)数据源。在创建工作簿前加载语言包并注册这些插件。
+
+```package-install
+npm install @univerjs-pro/sheets-slicer @univerjs-pro/sheets-slicer-ui
+```
+
+```ts
+import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer'
+import { UniverSheetsSlicerUIPlugin } from '@univerjs-pro/sheets-slicer-ui'
+import SheetsSlicerUILocale from '@univerjs-pro/sheets-slicer-ui/locale/zh-CN'
+import { LocaleType } from '@univerjs/core'
+import '@univerjs-pro/sheets-slicer/facade'
+import '@univerjs-pro/sheets-slicer-ui/lib/index.css'
+
+univerAPI.loadLocales(LocaleType.ZH_CN, SheetsSlicerUILocale)
+univer.registerPlugin(UniverSheetsSlicerPlugin)
+univer.registerPlugin(UniverSheetsSlicerUIPlugin)
+```
+
+## 创建切片器 [#create-slicer]
+
+下面的示例使用活动工作表 I1 处的数据透视表，其源数据中包含名为 `Region` 的字段。通过 `getSourceFieldsInfo()` 获取原始字段的稳定 ID；不能将显示名称或报表字段 ID 传给 `newSlicer()`。
+
+```ts
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook?.getActiveSheet()
+if (!fWorkbook || !fWorksheet) throw new Error('No active worksheet')
+
+const pivotTable = fWorkbook.getPivotTableByCell(
+  fWorkbook.getId(),
+  fWorksheet.getSheetId(),
+  0,
+  8,
+)
+const regionField = pivotTable?.getSourceFieldsInfo().find((field) => field.name === 'Region')
+if (!pivotTable || !regionField) throw new Error('Region source field not found')
+
+const slicer = await fWorksheet.insertSlicer(
+  pivotTable.newSlicer(regionField.id)
+    .setCaption(regionField.name)
+    .setPosition('N2')
+    .build(),
+)
+```
+
+`pivotTable.newSlicer()` 会将构建器绑定到数据源。`build()` 只生成配置，`insertSlicer()` 才会创建控件。控件所在工作表可以与数据源工作表不同，但二者必须属于同一工作簿。若使用表格数据源，调用 `fWorksheet.newSlicer(columnId).setTableReference({ subUnitId, tableId })`，其中 `columnId` 为表格列的稳定 ID。
+
+## 创建时间线 [#create-timeline]
+
+继续使用同一数据透视表，下面的示例要求存在名为 `Date` 的原始日期字段。`newTimeline()` 会验证数据源并拒绝不支持的字段。时间线范围 API 使用工作簿日期系统中的 Excel 序列值，不接受 JavaScript `Date` 对象。
+
+```ts
+const dateField = pivotTable.getSourceFieldsInfo().find((field) => field.name === 'Date')
+if (!dateField) throw new Error('Date source field not found')
+
+const timeline = await fWorksheet.insertTimeline(
+  pivotTable.newTimeline(dateField.id)
+    .setCaption(dateField.name)
+    .setLevel(univerAPI.Enum.TimelineLevel.Month)
+    .setPosition('N18')
+    .build(),
+)
+```
+
+## 查找控件与监听变化 [#controls-and-events]
+
+在控件所在工作表上调用 `getSlicer(viewId)` / `getSlicers()` 和 `getTimeline(viewId)` / `getTimelines()`。`viewId` 是控件 `getId()` 返回的业务 ID，不是绘图 ID。
+
+通过 `univerAPI.addEvent()` 监听 `SlicerAdded`、`SlicerChanged`、`SlicerRemoved`、`TimelineAdded`、`TimelineChanged` 和 `TimelineRemoved`。事件表示已提交的本地变化，不表示远程保存或渲染已完成。不再需要监听时，调用返回订阅的 `dispose()`。
+
+API 参考：
+
+- [FSheetSlicer](/reference/facade/sheet-slicer)
+- [FSheetSlicerBuilder](/reference/facade/sheet-slicer-builder)
+- [FSheetTimeline](/reference/facade/sheet-timeline)
+- [FSheetTimelineBuilder](/reference/facade/sheet-timeline-builder)
+- [FEventName](/reference/facade/events#univerjs-prosheets-slicer)

@@ -1,0 +1,103 @@
+---
+title: Срезы и временные шкалы
+icon: ListFilter
+---
+
+<MetaData
+  lang="ru-RU"
+  meta={{
+    preset: [],
+    plugins: [{
+      client: '@univerjs-pro/sheets-slicer',
+      facade: '@univerjs-pro/sheets-slicer/facade',
+    }, {
+      client: '@univerjs-pro/sheets-slicer-ui',
+      locale: '@univerjs-pro/sheets-slicer-ui/locale/ru-RU',
+      style: '@univerjs-pro/sheets-slicer-ui/lib/index.css',
+    }],
+    license: true,
+    server: false,
+  }}
+/>
+
+Срезы фильтруют таблицы, сводные таблицы и сводные диаграммы по элементам источника. Временные шкалы фильтруют поддерживаемые исходные поля дат сводного отчёта; столбцы таблиц, текстовые, вычисляемые и производные поля группировки не поддерживаются.
+
+## Настройка плагинов [#plugin-mode]
+
+Добавьте следующий код в существующую [настройку Sheets](/guides/sheets/getting-started/installation), настроив [рисование](/guides/sheets/features/images) и источник в виде [таблицы](/guides/sheets/features/table) или [сводной таблицы](/guides/sheets/features/pivot-table). Загрузите локализацию и зарегистрируйте плагины до создания книги.
+
+```package-install
+npm install @univerjs-pro/sheets-slicer @univerjs-pro/sheets-slicer-ui
+```
+
+```ts
+import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer'
+import { UniverSheetsSlicerUIPlugin } from '@univerjs-pro/sheets-slicer-ui'
+import SheetsSlicerUILocale from '@univerjs-pro/sheets-slicer-ui/locale/ru-RU'
+import { LocaleType } from '@univerjs/core'
+import '@univerjs-pro/sheets-slicer/facade'
+import '@univerjs-pro/sheets-slicer-ui/lib/index.css'
+
+univerAPI.loadLocales(LocaleType.RU_RU, SheetsSlicerUILocale)
+univer.registerPlugin(UniverSheetsSlicerPlugin)
+univer.registerPlugin(UniverSheetsSlicerUIPlugin)
+```
+
+## Создание среза [#create-slicer]
+
+Пример использует сводную таблицу в I1 активного листа с исходным полем `Region`. Получите стабильный ID исходного поля через `getSourceFieldsInfo()`; отображаемое имя и ID поля отчёта нельзя передавать в `newSlicer()`.
+
+```ts
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook?.getActiveSheet()
+if (!fWorkbook || !fWorksheet) throw new Error('No active worksheet')
+
+const pivotTable = fWorkbook.getPivotTableByCell(
+  fWorkbook.getId(),
+  fWorksheet.getSheetId(),
+  0,
+  8,
+)
+const regionField = pivotTable?.getSourceFieldsInfo().find((field) => field.name === 'Region')
+if (!pivotTable || !regionField) throw new Error('Region source field not found')
+
+const slicer = await fWorksheet.insertSlicer(
+  pivotTable.newSlicer(regionField.id)
+    .setCaption(regionField.name)
+    .setPosition('N2')
+    .build(),
+)
+```
+
+`pivotTable.newSlicer()` привязывает построитель к источнику. `build()` только готовит конфигурацию, а `insertSlicer()` создаёт элемент управления. Лист размещения может отличаться от листа источника, но они должны находиться в одной книге. Для обычной таблицы используйте `fWorksheet.newSlicer(columnId).setTableReference({ subUnitId, tableId })`, где `columnId` — стабильный ID столбца таблицы.
+
+## Создание временной шкалы [#create-timeline]
+
+Следующий пример использует ту же сводную таблицу и требует исходное поле дат с именем `Date`. `newTimeline()` проверяет источник и отклоняет неподдерживаемые поля. API диапазонов временной шкалы принимают серийные значения Excel в системе дат книги, а не объекты JavaScript `Date`.
+
+```ts
+const dateField = pivotTable.getSourceFieldsInfo().find((field) => field.name === 'Date')
+if (!dateField) throw new Error('Date source field not found')
+
+const timeline = await fWorksheet.insertTimeline(
+  pivotTable.newTimeline(dateField.id)
+    .setCaption(dateField.name)
+    .setLevel(univerAPI.Enum.TimelineLevel.Month)
+    .setPosition('N18')
+    .build(),
+)
+```
+
+## Поиск элементов и отслеживание изменений [#controls-and-events]
+
+Вызывайте `getSlicer(viewId)` / `getSlicers()` и `getTimeline(viewId)` / `getTimelines()` на листе размещения. `viewId` — ID, возвращаемый методом `getId()` элемента управления, а не ID рисунка.
+
+Подписывайтесь на `SlicerAdded`, `SlicerChanged`, `SlicerRemoved`, `TimelineAdded`, `TimelineChanged` и `TimelineRemoved` через `univerAPI.addEvent()`. Эти события описывают зафиксированные локальные изменения, а не удалённое сохранение или завершение отрисовки. Когда подписка больше не нужна, вызовите её метод `dispose()`.
+
+Справочник API:
+
+- [FSheetSlicer](/reference/facade/sheet-slicer)
+- [FSheetSlicerBuilder](/reference/facade/sheet-slicer-builder)
+- [FSheetTimeline](/reference/facade/sheet-timeline)
+- [FSheetTimelineBuilder](/reference/facade/sheet-timeline-builder)
+- [FEventName](/reference/facade/events#univerjs-prosheets-slicer)

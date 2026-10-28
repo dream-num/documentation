@@ -1,0 +1,103 @@
+---
+title: Segmentaciones y líneas de tiempo
+icon: ListFilter
+---
+
+<MetaData
+  lang="es-ES"
+  meta={{
+    preset: [],
+    plugins: [{
+      client: '@univerjs-pro/sheets-slicer',
+      facade: '@univerjs-pro/sheets-slicer/facade',
+    }, {
+      client: '@univerjs-pro/sheets-slicer-ui',
+      locale: '@univerjs-pro/sheets-slicer-ui/locale/es-ES',
+      style: '@univerjs-pro/sheets-slicer-ui/lib/index.css',
+    }],
+    license: true,
+    server: false,
+  }}
+/>
+
+Las segmentaciones filtran tablas, tablas dinámicas y gráficos dinámicos por miembros del origen. Las líneas de tiempo filtran campos de fecha originales compatibles de un informe dinámico; no admiten columnas de tablas, campos de texto, campos calculados ni campos de agrupación derivados.
+
+## Configurar los complementos [#plugin-mode]
+
+Añada lo siguiente a la [configuración de Sheets](/guides/sheets/getting-started/installation), con el [soporte de dibujo](/guides/sheets/features/images) y el origen de [tabla](/guides/sheets/features/table) o [tabla dinámica](/guides/sheets/features/pivot-table) configurados. Cargue el idioma y registre los complementos antes de crear el libro.
+
+```package-install
+npm install @univerjs-pro/sheets-slicer @univerjs-pro/sheets-slicer-ui
+```
+
+```ts
+import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer'
+import { UniverSheetsSlicerUIPlugin } from '@univerjs-pro/sheets-slicer-ui'
+import SheetsSlicerUILocale from '@univerjs-pro/sheets-slicer-ui/locale/es-ES'
+import { LocaleType } from '@univerjs/core'
+import '@univerjs-pro/sheets-slicer/facade'
+import '@univerjs-pro/sheets-slicer-ui/lib/index.css'
+
+univerAPI.loadLocales(LocaleType.ES_ES, SheetsSlicerUILocale)
+univer.registerPlugin(UniverSheetsSlicerPlugin)
+univer.registerPlugin(UniverSheetsSlicerUIPlugin)
+```
+
+## Crear una segmentación [#create-slicer]
+
+Este ejemplo utiliza una tabla dinámica en I1 de la hoja activa con un campo de origen llamado `Region`. Obtenga su ID original estable con `getSourceFieldsInfo()`; no pase nombres visibles ni ID de campos del informe a `newSlicer()`.
+
+```ts
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook?.getActiveSheet()
+if (!fWorkbook || !fWorksheet) throw new Error('No active worksheet')
+
+const pivotTable = fWorkbook.getPivotTableByCell(
+  fWorkbook.getId(),
+  fWorksheet.getSheetId(),
+  0,
+  8,
+)
+const regionField = pivotTable?.getSourceFieldsInfo().find((field) => field.name === 'Region')
+if (!pivotTable || !regionField) throw new Error('Region source field not found')
+
+const slicer = await fWorksheet.insertSlicer(
+  pivotTable.newSlicer(regionField.id)
+    .setCaption(regionField.name)
+    .setPosition('N2')
+    .build(),
+)
+```
+
+`pivotTable.newSlicer()` vincula el constructor a su origen. `build()` solo prepara la configuración; `insertSlicer()` crea el control. La hoja de destino puede ser distinta de la de origen, pero ambas deben pertenecer al mismo libro. Para un origen de tabla, use `fWorksheet.newSlicer(columnId).setTableReference({ subUnitId, tableId })`, donde `columnId` es el ID estable de la columna de la tabla.
+
+## Crear una línea de tiempo [#create-timeline]
+
+El siguiente ejemplo continúa con la misma tabla dinámica y requiere un campo de fecha original llamado `Date`. `newTimeline()` valida el origen y rechaza los campos no compatibles. Las API de rangos de la línea de tiempo utilizan valores de serie de Excel según el sistema de fechas del libro, no objetos JavaScript `Date`.
+
+```ts
+const dateField = pivotTable.getSourceFieldsInfo().find((field) => field.name === 'Date')
+if (!dateField) throw new Error('Date source field not found')
+
+const timeline = await fWorksheet.insertTimeline(
+  pivotTable.newTimeline(dateField.id)
+    .setCaption(dateField.name)
+    .setLevel(univerAPI.Enum.TimelineLevel.Month)
+    .setPosition('N18')
+    .build(),
+)
+```
+
+## Buscar controles y observar cambios [#controls-and-events]
+
+Use `getSlicer(viewId)` / `getSlicers()` y `getTimeline(viewId)` / `getTimelines()` en la hoja que contiene el control. `viewId` es el ID devuelto por `getId()` del control, no su ID de dibujo.
+
+Suscríbase a `SlicerAdded`, `SlicerChanged`, `SlicerRemoved`, `TimelineAdded`, `TimelineChanged` y `TimelineRemoved` mediante `univerAPI.addEvent()`. Los eventos describen cambios locales confirmados, no el guardado remoto ni la finalización del renderizado. Llame a `dispose()` en la suscripción cuando ya no sea necesaria.
+
+Referencia de API:
+
+- [FSheetSlicer](/reference/facade/sheet-slicer)
+- [FSheetSlicerBuilder](/reference/facade/sheet-slicer-builder)
+- [FSheetTimeline](/reference/facade/sheet-timeline)
+- [FSheetTimelineBuilder](/reference/facade/sheet-timeline-builder)
+- [FEventName](/reference/facade/events#univerjs-prosheets-slicer)

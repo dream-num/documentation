@@ -1,0 +1,103 @@
+---
+title: 交叉分析篩選器與時間軸
+icon: ListFilter
+---
+
+<MetaData
+  lang="zh-TW"
+  meta={{
+    preset: [],
+    plugins: [{
+      client: '@univerjs-pro/sheets-slicer',
+      facade: '@univerjs-pro/sheets-slicer/facade',
+    }, {
+      client: '@univerjs-pro/sheets-slicer-ui',
+      locale: '@univerjs-pro/sheets-slicer-ui/locale/zh-TW',
+      style: '@univerjs-pro/sheets-slicer-ui/lib/index.css',
+    }],
+    license: true,
+    server: false,
+  }}
+/>
+
+交叉分析篩選器可依來源資料成員篩選表格、樞紐分析表和樞紐分析圖。時間軸用於篩選受支援的樞紐分析表原始日期欄位，不支援表格欄、文字欄位、計算欄位和衍生分組欄位。
+
+## 外掛設定 [#plugin-mode]
+
+在現有的 [Sheets 設定](/guides/sheets/getting-started/installation)中加入以下內容，並設定[繪圖支援](/guides/sheets/features/images)以及[表格](/guides/sheets/features/table)或[樞紐分析表](/guides/sheets/features/pivot-table)資料來源。在建立活頁簿前載入語言套件並註冊這些外掛。
+
+```package-install
+npm install @univerjs-pro/sheets-slicer @univerjs-pro/sheets-slicer-ui
+```
+
+```ts
+import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer'
+import { UniverSheetsSlicerUIPlugin } from '@univerjs-pro/sheets-slicer-ui'
+import SheetsSlicerUILocale from '@univerjs-pro/sheets-slicer-ui/locale/zh-TW'
+import { LocaleType } from '@univerjs/core'
+import '@univerjs-pro/sheets-slicer/facade'
+import '@univerjs-pro/sheets-slicer-ui/lib/index.css'
+
+univerAPI.loadLocales(LocaleType.ZH_TW, SheetsSlicerUILocale)
+univer.registerPlugin(UniverSheetsSlicerPlugin)
+univer.registerPlugin(UniverSheetsSlicerUIPlugin)
+```
+
+## 建立交叉分析篩選器 [#create-slicer]
+
+以下範例使用作用中工作表 I1 處的樞紐分析表，其來源資料包含名為 `Region` 的欄位。透過 `getSourceFieldsInfo()` 取得原始欄位的穩定 ID；不能將顯示名稱或報表欄位 ID 傳給 `newSlicer()`。
+
+```ts
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook?.getActiveSheet()
+if (!fWorkbook || !fWorksheet) throw new Error('No active worksheet')
+
+const pivotTable = fWorkbook.getPivotTableByCell(
+  fWorkbook.getId(),
+  fWorksheet.getSheetId(),
+  0,
+  8,
+)
+const regionField = pivotTable?.getSourceFieldsInfo().find((field) => field.name === 'Region')
+if (!pivotTable || !regionField) throw new Error('Region source field not found')
+
+const slicer = await fWorksheet.insertSlicer(
+  pivotTable.newSlicer(regionField.id)
+    .setCaption(regionField.name)
+    .setPosition('N2')
+    .build(),
+)
+```
+
+`pivotTable.newSlicer()` 會將建構器綁定至資料來源。`build()` 只產生設定，`insertSlicer()` 才會建立控制項。控制項所在工作表可以與資料來源工作表不同，但兩者必須屬於同一活頁簿。若使用表格資料來源，呼叫 `fWorksheet.newSlicer(columnId).setTableReference({ subUnitId, tableId })`，其中 `columnId` 為表格欄的穩定 ID。
+
+## 建立時間軸 [#create-timeline]
+
+繼續使用同一樞紐分析表，以下範例要求存在名為 `Date` 的原始日期欄位。`newTimeline()` 會驗證資料來源並拒絕不支援的欄位。時間軸範圍 API 使用活頁簿日期系統中的 Excel 序列值，不接受 JavaScript `Date` 物件。
+
+```ts
+const dateField = pivotTable.getSourceFieldsInfo().find((field) => field.name === 'Date')
+if (!dateField) throw new Error('Date source field not found')
+
+const timeline = await fWorksheet.insertTimeline(
+  pivotTable.newTimeline(dateField.id)
+    .setCaption(dateField.name)
+    .setLevel(univerAPI.Enum.TimelineLevel.Month)
+    .setPosition('N18')
+    .build(),
+)
+```
+
+## 尋找控制項與監聽變更 [#controls-and-events]
+
+在控制項所在工作表上呼叫 `getSlicer(viewId)` / `getSlicers()` 和 `getTimeline(viewId)` / `getTimelines()`。`viewId` 是控制項 `getId()` 傳回的業務 ID，不是繪圖 ID。
+
+透過 `univerAPI.addEvent()` 監聽 `SlicerAdded`、`SlicerChanged`、`SlicerRemoved`、`TimelineAdded`、`TimelineChanged` 和 `TimelineRemoved`。事件表示已提交的本機變更，不表示遠端儲存或繪製已完成。不再需要監聽時，呼叫傳回訂閱的 `dispose()`。
+
+API 參考：
+
+- [FSheetSlicer](/reference/facade/sheet-slicer)
+- [FSheetSlicerBuilder](/reference/facade/sheet-slicer-builder)
+- [FSheetTimeline](/reference/facade/sheet-timeline)
+- [FSheetTimelineBuilder](/reference/facade/sheet-timeline-builder)
+- [FEventName](/reference/facade/events#univerjs-prosheets-slicer)
