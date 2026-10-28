@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { ChevronRightIcon, ExternalLinkIcon } from 'lucide-react'
 import { Link } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
@@ -16,15 +16,6 @@ export interface INavTreeItem {
   children: INavTreeItem[]
 }
 
-function isActive(item: INavTreeItem, pathname: string): boolean {
-  if (item.url === pathname) return true
-  return item.children.some((child) => isActive(child, pathname))
-}
-
-function getControlsId(item: INavTreeItem) {
-  return `nav-tree-${item.id.replace(/[^\w-]/g, '-')}`
-}
-
 function NavContent({ item }: { item: INavTreeItem }) {
   return (
     <>
@@ -38,17 +29,31 @@ function NavContent({ item }: { item: INavTreeItem }) {
   )
 }
 
-function NavTreeNode({ item, pathname, level }: { item: INavTreeItem; pathname: string; level: number }) {
+function NavTreeNode({
+  item,
+  pathname,
+  level,
+  activeItemRef,
+}: {
+  item: INavTreeItem
+  pathname: string
+  level: number
+  activeItemRef: Ref<HTMLAnchorElement>
+}) {
+  function isActive(candidate: INavTreeItem): boolean {
+    return candidate.url === pathname || candidate.children.some(isActive)
+  }
+
   if (item.type === 'separator') {
     return (
       <li className="mt-5 px-2 text-xs font-medium tracking-normal text-muted-foreground first:mt-0">{item.name}</li>
     )
   }
 
-  const active = isActive(item, pathname)
+  const active = isActive(item)
   const current = item.url === pathname
   const hasChildren = item.children.length > 0
-  const controlsId = hasChildren ? getControlsId(item) : undefined
+  const controlsId = hasChildren ? `nav-tree-${item.id.replace(/[^\w-]/g, '-')}` : undefined
   const rowClassName = clsx(
     `flex min-h-8 w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm leading-5 transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-1 focus-visible:ring-ring/60 focus-visible:outline-none focus-visible:ring-inset`,
     current ? 'bg-accent text-accent-foreground' : active ? 'text-foreground' : 'text-muted-foreground',
@@ -66,6 +71,7 @@ function NavTreeNode({ item, pathname, level }: { item: INavTreeItem; pathname: 
           >
             {item.url ? (
               <Link
+                ref={current ? activeItemRef : undefined}
                 aria-current={current ? 'page' : undefined}
                 className="flex min-w-0 flex-1 items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 href={item.url}
@@ -83,7 +89,13 @@ function NavTreeNode({ item, pathname, level }: { item: INavTreeItem; pathname: 
             id={controlsId}
           >
             {item.children.map((child) => (
-              <NavTreeNode item={child} key={child.id} level={level + 1} pathname={pathname} />
+              <NavTreeNode
+                item={child}
+                key={child.id}
+                level={level + 1}
+                pathname={pathname}
+                activeItemRef={activeItemRef}
+              />
             ))}
           </ul>
         </details>
@@ -95,6 +107,7 @@ function NavTreeNode({ item, pathname, level }: { item: INavTreeItem; pathname: 
     return (
       <li>
         <Link
+          ref={current ? activeItemRef : undefined}
           aria-current={current ? 'page' : undefined}
           className={rowClassName}
           href={item.url}
@@ -117,11 +130,19 @@ function NavTreeNode({ item, pathname, level }: { item: INavTreeItem; pathname: 
   )
 }
 
-export function NavTree({ items, pathname }: { items: INavTreeItem[]; pathname: string }) {
+export function NavTree({
+  items,
+  pathname,
+  activeItemRef,
+}: {
+  items: INavTreeItem[]
+  pathname: string
+  activeItemRef: Ref<HTMLAnchorElement>
+}) {
   return (
     <ul className="space-y-0.5">
       {items.map((item) => (
-        <NavTreeNode item={item} key={item.id} level={0} pathname={pathname} />
+        <NavTreeNode item={item} key={item.id} level={0} pathname={pathname} activeItemRef={activeItemRef} />
       ))}
     </ul>
   )

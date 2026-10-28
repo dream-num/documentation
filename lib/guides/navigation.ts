@@ -212,7 +212,7 @@ export function getGuideSidebarItems(items: IGuideNavItem[], pathname: string) {
   const sdk = getActiveGuideSdk(items, pathname)
   if (sdk) return sdk.children.filter((item) => !sections.includes(item))
 
-  return items.filter((item) => /^\/docs(?:\/|$)/.test(getGuideNavItemHref(item) ?? ''))
+  return items.filter((item) => /^\/overview(?:\/|$)/.test(getGuideNavItemHref(item) ?? ''))
 }
 
 export function createGuideNavigation(pageTree: IPageTreeNode | IPageTreeNode[], pathname: string): IGuideNavigation {

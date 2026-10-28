@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { Link, usePathname, useRouter } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 
-const searchScopes: SearchScope[] = ['all', 'docs', 'guides', 'server', 'ai', 'reference', 'blog']
+const searchScopes: SearchScope[] = ['all', 'overview', 'guides', 'server', 'ai', 'reference', 'blog']
 
 export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; defaultScope?: SearchScope }) {
   const t = useTranslations()
@@ -35,6 +35,7 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
   }>({ key: '', status: 'success', results: [] })
   const inputRef = useRef<HTMLInputElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const activeResultRef = useRef<HTMLAnchorElement>(null)
   const listId = useId()
   const trimmedQuery = query.trim()
   const requestKey = `${lang}:${scope}:${trimmedQuery}:${retry}`
@@ -47,8 +48,8 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
     setOpen(value)
     if (value && !trimmedQuery) {
       setScope(
-        pathname.startsWith('/docs')
-          ? 'docs'
+        pathname.startsWith('/overview')
+          ? 'overview'
           : pathname.startsWith('/server')
             ? 'server'
             : pathname.startsWith('/ai')
@@ -109,8 +110,8 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
   }, [lang, open, requestKey, scope, trimmedQuery])
 
   useEffect(() => {
-    if (open && activeResult) document.getElementById(`${listId}-${activeIndex}`)?.scrollIntoView({ block: 'nearest' })
-  }, [activeIndex, activeResult, listId, open])
+    if (open) activeResultRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [activeIndex, activeResult, open])
 
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
@@ -255,6 +256,7 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
             {results.map((result, index) => (
               <li key={result.id} role="presentation">
                 <Link
+                  ref={activeIndex === index ? activeResultRef : undefined}
                   id={`${listId}-${index}`}
                   role="option"
                   aria-selected={activeIndex === index}

@@ -196,12 +196,6 @@ const jaJPMessages = {
   },
   office: {
     'start-description': 'テンプレートと3つの例で、最初の Office アプリを作ります。',
-    'copy-sdk-prompt': 'SDK プロンプトをコピー',
-    'prompt-loading': '読み込み中…',
-    'prompt-copied': 'コピーしました',
-    'prompt-source': 'SDK プロンプトを見る',
-    'prompt-next': 'コーディング Agent に貼り付け、アプリの要件を追加してください。',
-    'prompt-error': 'コピーできませんでした。再試行するか、SDK プロンプトを開いて手動でコピーしてください。',
     modules: 'モジュール',
     overview: 'Office SDK の概要',
     'overview-description': '共通ランタイムと SDK の連携を理解する。',
@@ -598,7 +592,7 @@ const jaJPMessages = {
     navigate: '選択',
     open: '開く',
     scope: {
-      docs: 'Office SDK',
+      overview: '概要',
       blog: '開発チュートリアル',
       server: 'Server SDK',
       ai: 'AI SDK',

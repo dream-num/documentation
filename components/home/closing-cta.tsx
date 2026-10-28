@@ -92,7 +92,7 @@ export function ClosingCTA({ title, description, startLabel, demoLabel }: IClosi
             )}
           </svg>
         </div>
-        <RainbowButton render={<Link href="/docs/overview" />}>
+        <RainbowButton render={<Link href="/overview" />}>
           <BookTextIcon aria-hidden="true" />
           {startLabel}
         </RainbowButton>

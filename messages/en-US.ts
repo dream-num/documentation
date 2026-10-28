@@ -193,12 +193,6 @@ const enUSMessages = {
   },
   office: {
     'start-description': 'Build your first Office app with a template and three examples.',
-    'copy-sdk-prompt': 'Copy SDK prompt',
-    'prompt-loading': 'Loading prompt…',
-    'prompt-copied': 'Copied',
-    'prompt-source': 'View SDK prompt',
-    'prompt-next': 'Paste it into your coding agent, then add your application requirements.',
-    'prompt-error': 'Could not copy. Retry or open the SDK prompt and copy it manually.',
     modules: 'Modules',
     overview: 'Office SDK overview',
     'overview-description': 'Understand the shared runtime and how the SDKs work together.',
@@ -596,7 +590,7 @@ const enUSMessages = {
     navigate: 'Navigate',
     open: 'Open',
     scope: {
-      docs: 'Office SDK',
+      overview: 'Overview',
       blog: 'Developer tutorials',
       server: 'Server SDK',
       ai: 'AI SDK',

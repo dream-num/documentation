@@ -16,6 +16,7 @@ export async function GuidesHeader({ lang, items }: { lang: string; items: IGuid
   const t = await getTranslations({ locale: lang as Locale })
   const navigationLabels = {
     blog: t('navigation.blog'),
+    overview: t('navigation.overview'),
     primary: t('navigation.primary-navigation'),
     showcase: t('navigation.showcase'),
     tools: t('navigation.tools'),

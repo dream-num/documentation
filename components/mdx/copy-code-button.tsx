@@ -3,7 +3,6 @@
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
-
 import { Button } from '@/components/ui/button'
 
 export function CopyCodeButton({ code }: { code: string }) {
@@ -13,12 +12,11 @@ export function CopyCodeButton({ code }: { code: string }) {
   return (
     <Button
       aria-label={t('common.copy-code')}
-      className="text-muted-foreground size-8 transition-colors"
+      className="size-8 text-muted-foreground transition-colors"
       size="icon"
       type="button"
       variant="ghost"
       onClick={async () => {
-        if (!code) return
         try {
           await navigator.clipboard.writeText(code)
         } catch {

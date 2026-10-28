@@ -196,12 +196,6 @@ const frFRMessages = {
   },
   office: {
     'start-description': 'Créez votre première application Office avec un modèle et trois exemples.',
-    'copy-sdk-prompt': 'Copier le prompt SDK',
-    'prompt-loading': 'Chargement…',
-    'prompt-copied': 'Copié',
-    'prompt-source': 'Voir le prompt SDK',
-    'prompt-next': 'Collez-le dans votre agent de développement et ajoutez vos besoins.',
-    'prompt-error': 'Copie impossible. Réessayez ou ouvrez le prompt SDK pour le copier manuellement.',
     modules: 'Modules',
     overview: 'Présentation d’Office SDK',
     'overview-description': 'Comprendre le runtime partagé et la coopération des SDK.',
@@ -602,7 +596,7 @@ const frFRMessages = {
     navigate: 'Parcourir',
     open: 'Ouvrir',
     scope: {
-      docs: 'Office SDK',
+      overview: 'Vue d’ensemble',
       blog: 'Tutoriels de développement',
       server: 'Server SDK',
       ai: 'AI SDK',

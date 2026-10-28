@@ -65,7 +65,7 @@ export function GuidesSidebarControls({
       <div className="space-y-3 px-1 pb-2">
         {currentSdk ? (
           <Link
-            href="/docs/overview"
+            href="/overview"
             className="flex min-h-8 items-center gap-1.5 rounded-sm text-xs text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           >
             <ArrowLeftIcon aria-hidden="true" className="size-3.5" />

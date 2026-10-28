@@ -42,7 +42,7 @@ export async function generateStaticParams() {
 }
 
 function getSdkSource(sdk: string) {
-  if (sdk !== 'docs' && sdk !== 'guides' && sdk !== 'server' && sdk !== 'ai') notFound()
+  if (sdk !== 'overview' && sdk !== 'guides' && sdk !== 'server' && sdk !== 'ai') notFound()
   return { source: sdkSources[sdk], collection: sdk } as const
 }
 

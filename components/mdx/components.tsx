@@ -3,13 +3,11 @@ import { PlaygroundFrame } from '@/components/playground/playground-frame'
 import { Callout } from './callout'
 import { Card, Cards } from './cards'
 import { CodeBlockTab, CodeBlockTabs, CodeBlockTabsList, CodeBlockTabsTrigger, InlineCode } from './code-block'
-import { FeatureComparison } from './feature-comparison'
 import { createHeading } from './heading'
 import { DocsImage } from './image'
 import { InstallTabs, PackageInstallPre } from './install-tabs'
 import { Mermaid } from './mermaid'
 import { MetaData } from './meta-data'
-import { SdkPrompt } from './sdk-prompt'
 import { Step, Steps } from './steps'
 import { DocsTable } from './table'
 import { Tab, Tabs } from './tabs'
@@ -35,8 +33,6 @@ export function getGuidesMDXComponents(components?: MDXComponents): MDXComponent
     Callout,
     Cards,
     Card,
-    FeatureComparison,
-    SdkPrompt,
     Mermaid,
     MetaData,
     PlaygroundFrame,

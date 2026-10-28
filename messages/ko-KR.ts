@@ -195,12 +195,6 @@ const koKRMessages = {
   },
   office: {
     'start-description': '템플릿 하나와 예시 세 개로 첫 Office 앱을 만드세요.',
-    'copy-sdk-prompt': 'SDK 프롬프트 복사',
-    'prompt-loading': '불러오는 중…',
-    'prompt-copied': '복사됨',
-    'prompt-source': 'SDK 프롬프트 보기',
-    'prompt-next': '코딩 Agent에 붙여넣고 애플리케이션 요구 사항을 추가하세요.',
-    'prompt-error': '복사하지 못했습니다. 다시 시도하거나 SDK 프롬프트를 열어 직접 복사하세요.',
     modules: '모듈',
     overview: 'Office SDK 개요',
     'overview-description': '공유 런타임과 SDK의 협력 관계를 알아보세요.',
@@ -596,7 +590,7 @@ const koKRMessages = {
     navigate: '선택',
     open: '열기',
     scope: {
-      docs: 'Office SDK',
+      overview: '개요',
       blog: '개발 튜토리얼',
       server: 'Server SDK',
       ai: 'AI SDK',

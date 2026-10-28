@@ -195,12 +195,6 @@ const ruRUMessages = {
   },
   office: {
     'start-description': 'Создайте первое Office-приложение по шаблону и трём примерам.',
-    'copy-sdk-prompt': 'Копировать SDK-промпт',
-    'prompt-loading': 'Загрузка…',
-    'prompt-copied': 'Скопировано',
-    'prompt-source': 'Открыть SDK-промпт',
-    'prompt-next': 'Вставьте текст в своего агента и добавьте требования к приложению.',
-    'prompt-error': 'Не удалось скопировать. Повторите попытку или откройте SDK-промпт и скопируйте его вручную.',
     modules: 'Модули',
     overview: 'Обзор Office SDK',
     'overview-description': 'Общий runtime и совместная работа SDK.',
@@ -601,7 +595,7 @@ const ruRUMessages = {
     navigate: 'Выбрать',
     open: 'Открыть',
     scope: {
-      docs: 'Office SDK',
+      overview: 'Обзор',
       blog: 'Руководства для разработчиков',
       server: 'Server SDK',
       ai: 'AI SDK',

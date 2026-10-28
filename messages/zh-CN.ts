@@ -191,12 +191,6 @@ const zhCNMessages = {
   },
   office: {
     'start-description': '从一个需求模板和三个实例开始，构建首个 Office 应用。',
-    'copy-sdk-prompt': '复制 SDK Prompt',
-    'prompt-loading': '正在加载…',
-    'prompt-copied': '已复制',
-    'prompt-source': '查看 SDK Prompt',
-    'prompt-next': '粘贴给编程 Agent，再补充你的应用需求。',
-    'prompt-error': '复制失败，请重试，或打开 SDK Prompt 手动复制。',
     modules: '模块',
     overview: 'Office SDK 总览',
     'overview-description': '了解统一运行时与三个 SDK 的协作关系。',
@@ -588,7 +582,7 @@ const zhCNMessages = {
     navigate: '选择',
     open: '打开',
     scope: {
-      docs: 'Office SDK',
+      overview: '概览',
       blog: '开发教程',
       server: 'Server SDK',
       ai: 'AI SDK',

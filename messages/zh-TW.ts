@@ -191,12 +191,6 @@ const zhTWMessages = {
   },
   office: {
     'start-description': '從一個需求範本與三個實例開始，建立第一個 Office 應用。',
-    'copy-sdk-prompt': '複製 SDK Prompt',
-    'prompt-loading': '正在載入…',
-    'prompt-copied': '已複製',
-    'prompt-source': '查看 SDK Prompt',
-    'prompt-next': '貼上至程式開發 Agent，再補充應用需求。',
-    'prompt-error': '複製失敗，請重試，或開啟 SDK Prompt 手動複製。',
     modules: '模組',
     overview: 'Office SDK 總覽',
     'overview-description': '了解統一執行環境與三個 SDK 的協作關係。',
@@ -588,7 +582,7 @@ const zhTWMessages = {
     navigate: '選擇',
     open: '開啟',
     scope: {
-      docs: 'Office SDK',
+      overview: '概覽',
       blog: '開發教學',
       server: 'Server SDK',
       ai: 'AI SDK',

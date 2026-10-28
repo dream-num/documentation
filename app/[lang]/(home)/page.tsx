@@ -170,7 +170,7 @@ export default async function Page({ params }: IProps) {
             {t('home.description-period')}
           </p>
           <div className="mt-7.5 flex flex-wrap justify-center gap-4">
-            <RainbowButton render={<Link href="/docs/overview" />}>
+            <RainbowButton render={<Link href="/overview" />}>
               <BookTextIcon />
               {t('office.start')}
             </RainbowButton>

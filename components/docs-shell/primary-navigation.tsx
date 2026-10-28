@@ -5,6 +5,7 @@ import { getGuideSdkItems } from '@/lib/guides/navigation'
 
 export interface IPrimaryNavigationLabels {
   blog: string
+  overview: string
   primary: string
   showcase: string
   tools: string
@@ -20,7 +21,7 @@ export function PrimaryNavigation({
   mobile?: boolean
 }) {
   const links = [
-    { text: 'Office SDK', url: '/docs/overview', activeHref: '/docs' },
+    { text: labels.overview, url: '/overview', activeHref: '/overview' },
     ...getGuideSdkItems(items).map((item) => ({
       text: item.name,
       url: item.id === 'guides' ? '/guides/sheets' : `/${item.id}`,

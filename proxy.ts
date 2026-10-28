@@ -5,19 +5,12 @@ import { routing } from '@/i18n/routing'
 
 const intlMiddleware = createMiddleware(routing)
 const guidesRootPath = new RegExp(`^/(?:(${routing.locales.join('|')})/)?guides/?$`)
-const docsRootPath = new RegExp(`^/(?:(${routing.locales.join('|')})/)?docs(\\.md)?/?$`)
 const showcasePath = new RegExp(`^/(?:(${routing.locales.join('|')})/)?((?:showcase|playground)(?:/.*)?)$`)
 const agentDocsPath = new RegExp(
-  `^/(?:(?:(${routing.locales.join('|')})/))?(llms(?:-full)?\\.txt|(?:docs|guides|server|ai|reference)(?:\\.md|/llms\\.txt|/.+\\.md))$`,
+  `^/(?:(?:(${routing.locales.join('|')})/))?(llms(?:-full)?\\.txt|(?:overview|guides|server|ai|reference)(?:\\.md|/llms\\.txt|/.+\\.md))$`,
 )
 
 export default function proxy(request: NextRequest) {
-  const docsRoot = request.nextUrl.pathname.match(docsRootPath)
-  if (docsRoot) {
-    const destination = request.nextUrl.clone()
-    destination.pathname = `${docsRoot[1] ? `/${docsRoot[1]}` : ''}/docs/overview${docsRoot[2] ?? ''}`
-    return NextResponse.redirect(destination)
-  }
   if (guidesRootPath.test(request.nextUrl.pathname)) {
     const destination = request.nextUrl.clone()
     destination.pathname = `${destination.pathname.replace(/\/$/, '')}/sheets`

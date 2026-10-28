@@ -197,12 +197,6 @@ const esESMessages = {
   },
   office: {
     'start-description': 'Crea tu primera aplicación Office con una plantilla y tres ejemplos.',
-    'copy-sdk-prompt': 'Copiar prompt SDK',
-    'prompt-loading': 'Cargando…',
-    'prompt-copied': 'Copiado',
-    'prompt-source': 'Ver prompt SDK',
-    'prompt-next': 'Pégalo en tu agente de programación y añade los requisitos de tu aplicación.',
-    'prompt-error': 'No se pudo copiar. Reintenta o abre el prompt SDK y cópialo manualmente.',
     modules: 'Módulos',
     overview: 'Descripción de Office SDK',
     'overview-description': 'Conoce el runtime compartido y cómo cooperan los SDK.',
@@ -602,7 +596,7 @@ const esESMessages = {
     navigate: 'Navegar',
     open: 'Abrir',
     scope: {
-      docs: 'Office SDK',
+      overview: 'Descripción general',
       blog: 'Tutoriales de desarrollo',
       server: 'Server SDK',
       ai: 'AI SDK',

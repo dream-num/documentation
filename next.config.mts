@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { networkInterfaces } from 'node:os'
 import process from 'node:process'
 import type { NextConfig } from 'next'
 import { withAmamoMdx } from '@amamo/mdx/next'
@@ -32,7 +33,10 @@ const config: NextConfig = {
     NEXT_PUBLIC_DOCS_SOURCE_REF: getDocsSourceRef(),
   },
 
-  allowedDevOrigins: ['*'],
+  allowedDevOrigins: Object.values(networkInterfaces())
+    .flatMap((addresses) => addresses ?? [])
+    .filter(({ family, internal }) => family === 'IPv4' && !internal)
+    .map(({ address }) => address),
 
   output: 'standalone',
 
@@ -55,36 +59,6 @@ const config: NextConfig = {
 
   typescript: {
     ignoreBuildErrors: true,
-  },
-
-  async redirects() {
-    return [
-      {
-        source: '/docs/examples/workspace-desktop',
-        destination: '/docs/examples/workspace',
-        permanent: true,
-      },
-      {
-        source: '/:locale/docs/examples/workspace-desktop',
-        destination: '/:locale/docs/examples/workspace',
-        permanent: true,
-      },
-      {
-        source: '/docs/examples/workspace-desktop.md',
-        destination: '/docs/examples/workspace.md',
-        permanent: true,
-      },
-      {
-        source: '/:locale/docs/examples/workspace-desktop.md',
-        destination: '/:locale/docs/examples/workspace.md',
-        permanent: true,
-      },
-      {
-        source: '/api/agent-docs/:locale/docs/examples/workspace-desktop.md',
-        destination: '/api/agent-docs/:locale/docs/examples/workspace.md',
-        permanent: true,
-      },
-    ]
   },
 
   async rewrites() {

@@ -5,11 +5,11 @@ import { createGuidesLoader } from './loader'
 import { createSdkPageTree } from './navigation'
 
 const [overview, ...sources] = await Promise.all(
-  ['docs', 'guides', 'server', 'ai'].map(async (collection) =>
+  ['overview', 'guides', 'server', 'ai'].map(async (collection) =>
     createGuidesLoader(
       await createAmamoMetadataSource(
         collection,
-        `content/${collection}`,
+        `content/${collection === 'overview' ? 'docs' : collection}`,
         (
           documents as (IAmamoMetadata<{ title: string; description?: string; icon?: string }> & {
             collection: string

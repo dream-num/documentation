@@ -9,7 +9,7 @@ import {
   parseSearchScope,
   rankSearchResults,
 } from '@/lib/guides/search'
-import { ai, blog, docs, guides, reference, server } from '@/lib/source'
+import { ai, blog, guides, overview, reference, server } from '@/lib/source'
 
 const searchOptions = {
   async buildIndex(page: ReturnType<typeof guides.getPages>[number]) {
@@ -26,7 +26,7 @@ const searchOptions = {
 const referenceStructures = new Map<string, Promise<StructuredData>>()
 
 const handlers = {
-  docs: createFromSource(docs, searchOptions),
+  overview: createFromSource(overview, searchOptions),
   guides: createFromSource(guides, searchOptions),
   server: createFromSource(server, searchOptions),
   ai: createFromSource(ai, searchOptions),
@@ -68,7 +68,7 @@ export async function GET(request: Request) {
   const scope = parseSearchScope(url.searchParams.get('scope'))
   const locale = normalizeLocale(url.searchParams.get('locale') ?? undefined)
   const sources: SearchResultSource[] =
-    scope === 'all' ? ['docs', 'guides', 'server', 'ai', 'reference', 'blog'] : [scope]
+    scope === 'all' ? ['overview', 'guides', 'server', 'ai', 'reference', 'blog'] : [scope]
   try {
     const groups = await Promise.all(
       sources.map(async (source) => {

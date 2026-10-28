@@ -1,6 +1,5 @@
 import { SiGithub } from '@icons-pack/react-simple-icons'
 import { getTranslations } from 'next-intl/server'
-
 import type { Locale } from '@/i18n/routing'
 import type { IGuideNavItem } from '@/lib/guides/navigation'
 import { PrimaryNavigation } from '@/components/docs-shell/primary-navigation'
@@ -10,7 +9,6 @@ import { ThemeSwitcher } from '@/components/theme-switcher'
 import { Link } from '@/i18n/navigation'
 import { routing } from '@/i18n/routing'
 import { messagesByLocale } from '@/messages'
-
 import type { ISiteNavLink } from './mobile-menu'
 import { SiteLanguageSwitcher } from './language-switcher'
 import { SiteMobileMenu } from './mobile-menu'
@@ -27,6 +25,7 @@ export async function SiteHeader({
   const t = await getTranslations({ locale: lang as Locale })
   const navigationLabels = {
     blog: t('navigation.blog'),
+    overview: t('navigation.overview'),
     primary: t('navigation.primary-navigation'),
     showcase: t('navigation.showcase'),
     tools: t('navigation.tools'),
@@ -37,7 +36,7 @@ export async function SiteHeader({
   }))
 
   return (
-    <header className="bg-background/95 supports-backdrop-filter:bg-background/80 sticky top-0 z-40 border-b backdrop-blur-sm">
+    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/80">
       <div className="mx-auto flex h-12 max-w-384 items-center gap-2 px-4 lg:px-6">
         <SiteMobileMenu
           links={links}
@@ -60,7 +59,7 @@ export async function SiteHeader({
             target="_blank"
             rel="noreferrer"
             aria-label="GitHub"
-            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-primary hidden size-8 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 sm:inline-flex"
+            className="hidden size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:inline-flex"
           >
             <SiGithub aria-hidden="true" className="size-4" />
           </a>
