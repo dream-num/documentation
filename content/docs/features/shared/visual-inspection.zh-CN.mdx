@@ -6,8 +6,6 @@ icon: ScanEye
 
 视觉检查把内容模型转换成可核验的图像与布局证据。Agent 可以先检查数据和公式，再检查真正渲染出的文字、图形与页面；发现问题后回到 Facade 修正，并对同一内容状态重新验证。
 
-**产品名称：** [Relational Table（关系型表格）](/overview/features/relational-table) 对应 SDK/API 中的 `Base`；[Canvases（画布）](/overview/features/canvas) 对应 `Board`。
-
 ## 三类证据，回答不同问题 [#evidence]
 
 | 证据 | 能够确认什么 |
@@ -20,7 +18,7 @@ icon: ScanEye
 
 截图与 Layout Lint 接收已物化的 UnitData，不负责连接远端 target 或解释 changeset。协同内容先 `pull()`，公式编辑后等待计算结果应用，再 `exportUnitData()`。Worktree 场景必须读取对应草稿；应用可随报告保存目标、revision 和范围，确保审阅的是同一份状态。
 
-主 Unit 的 Snapshot 不包含所有依赖内容：跨 Unit 公式使用 `formulaReferenceUnits` 提供 Sheet/Base 源数据；嵌入内容使用 `embeddedUnits` 提供子 Unit。Render Page 先物化依赖，再创建宿主，避免公式或嵌入块在来源缺失时未就绪。UUID 图片可用 `resolveUnitScreenshotImageAssets()` 配合应用 resolver 补齐；解析是 best-effort，仍需核查缺失资源。
+主 Unit 的 Snapshot 不包含所有依赖内容：跨 Unit 公式使用 `formulaReferenceUnits` 提供 Sheet/Relational Table 源数据；嵌入内容使用 `embeddedUnits` 提供子 Unit。Render Page 先物化依赖，再创建宿主，避免公式或嵌入块在来源缺失时未就绪。UUID 图片可用 `resolveUnitScreenshotImageAssets()` 配合应用 resolver 补齐；解析是 best-effort，仍需核查缺失资源。
 
 ## 从内容到稳定画面 [#rendering]
 
@@ -28,7 +26,7 @@ icon: ScanEye
 
 `univer-render-runtime` 在 Node.js 中托管应用构建的 Render Page 并启动浏览器；页面通过 Univer 产品插件还原内容。双方检查页面协议版本。一个 Runtime 的渲染操作进入串行队列，适合在多轮检查中复用，最终由拥有者 `close()`。
 
-就绪检查随产品而定。公式形状会等待结果离开 pending，并在有需要时等待连续多帧像素稳定，避免截到中间动画；Base 等待字体、计算、活动 table/view 与 DOM/Canvas 布局稳定。公式离开 pending 也可能是错误结果，仍需检查数值与状态。
+就绪检查随产品而定。公式形状会等待结果离开 pending，并在有需要时等待连续多帧像素稳定，避免截到中间动画；Relational Table 等待字体、计算、活动 table/view 与 DOM/Canvas 布局稳定。公式离开 pending 也可能是错误结果，仍需检查数值与状态。
 
 当前实现使用主 UnitData、公式来源与嵌入子内容的序列化结果生成内容哈希，作为渲染会话 key。同一 Unit ID 的数据变化也会得到不同 key；这既支持复用，又避免仅按 ID 复用旧画面。
 
@@ -39,8 +37,8 @@ icon: ScanEye
 | Sheet | 指定工作表与 A1 区域；输出区域 PNG。重要结果优先显式指定范围。 |
 | Doc | 按页面选择或遍历页面；输出逐页 PNG。 |
 | Slide | 按 1 起始页码或 page ID 选择，可额外生成 contact sheet 总览。 |
-| Relational Table（Base） | 截取打开后的活动表格/视图工作台，使用浏览器 DOM + Canvas 画面。 |
-| Canvases（Board） | 整页内容边界，或互斥的 region / elementIds；可加 padding，并返回布局证据。 |
+| Relational Table | 截取打开后的活动表格/视图工作台，使用浏览器 DOM + Canvas 画面。 |
+| Canvases | 整页内容边界，或互斥的 region / elementIds；可加 padding，并返回布局证据。 |
 
 `unit-screenshot` 返回图片 bytes、尺寸、页面或区域标识和建议文件名，由应用保存。Scale 范围为 0.1–4；可配置 `maxPages` 与单图 `maxPixels`。放大两倍会产生约四倍像素，大片内容宜分区域检查。PDF 不属于这套五产品截图入口。
 
@@ -79,9 +77,9 @@ Layout Lint 使用浏览器提供的布局事实：模型的 `declared` 是元�
 
 报告包含 `coverage.pages` 与 `coverage.rules`，说明本次检查的页和规则。Finding 带有 `pageId`、元素 `id`、`text.ink`，以及相应的 `overflow`、`container` 或 `other`；稳定 `fingerprint` 方便对比多轮修复结果。所有 finding 当前均为 warning，供结合截图复查；空列表仅表示所选范围未触发这些规则。
 
-## Board：验证浏览器实际连线路径 [#board-analysis]
+## Canvases：验证浏览器实际连线路径 [#board-analysis]
 
-Board 截图额外返回 `layoutAnalysis`，包括浏览器解析后的 routes、issues 与 summary。它与只支持 Slide 的 `unit-layout-lint` 是不同入口。模型中的自动连线路径可能尚未解析，应以 `source: 'rendered'` 的结果检查最终路线。
+Canvases 截图额外返回 `layoutAnalysis`，包括浏览器解析后的 routes、issues 与 summary。它与只支持 Slide 的 `unit-layout-lint` 是不同入口。模型中的自动连线路径可能尚未解析，应以 `source: 'rendered'` 的结果检查最终路线。
 
 诊断可以指出连线穿过元素、交叉、箭头碰撞或标签冲突，并给出 `connectorIds`、`elementIds` 与 `focusBounds`。Agent 可先修正对应对象，再用 region 或 elementIds 做局部截图，最后回到全图确认。这比只有“看起来拥挤”的反馈更容易落实到一次 Facade 修改。
 
