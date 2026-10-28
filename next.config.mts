@@ -57,6 +57,36 @@ const config: NextConfig = {
     ignoreBuildErrors: true,
   },
 
+  async redirects() {
+    return [
+      {
+        source: '/docs/examples/workspace-desktop',
+        destination: '/docs/examples/workspace',
+        permanent: true,
+      },
+      {
+        source: '/:locale/docs/examples/workspace-desktop',
+        destination: '/:locale/docs/examples/workspace',
+        permanent: true,
+      },
+      {
+        source: '/docs/examples/workspace-desktop.md',
+        destination: '/docs/examples/workspace.md',
+        permanent: true,
+      },
+      {
+        source: '/:locale/docs/examples/workspace-desktop.md',
+        destination: '/:locale/docs/examples/workspace.md',
+        permanent: true,
+      },
+      {
+        source: '/api/agent-docs/:locale/docs/examples/workspace-desktop.md',
+        destination: '/api/agent-docs/:locale/docs/examples/workspace.md',
+        permanent: true,
+      },
+    ]
+  },
+
   async rewrites() {
     if (process.env.NODE_ENV !== 'development') return []
 
