@@ -61,6 +61,8 @@ Product import/export feature guides stay in `content/guides/<product>/features`
 
 We welcome contributions to the documentation. Please ensure your changes follow the existing style and conventions. Run `pnpm lint` and `pnpm typecheck` before submitting.
 
+Office SDK pages in `content/docs` are maintained in all eight site languages. Keep translated feature catalogs aligned with the English source, including category order, support states, open-source flags, links, and chart previews. Preserve SDK/API identifiers and existing fragment links when translating.
+
 For more information about contributing to Web SDK, see the [main repository](https://github.com/dream-num/univer).
 
 ## Deploy Using ECS
