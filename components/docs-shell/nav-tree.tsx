@@ -31,7 +31,7 @@ function NavContent({ item }: { item: INavTreeItem }) {
       {item.icon ? <NavIconFrame icon={item.icon} /> : null}
       <span className="min-w-0 flex-1 wrap-break-word whitespace-normal">{item.name}</span>
       {item.count !== undefined ? (
-        <span className="bg-muted text-muted-foreground rounded px-1.5 text-xs tabular-nums">{item.count}</span>
+        <span className="rounded bg-muted px-1.5 text-xs text-muted-foreground tabular-nums">{item.count}</span>
       ) : null}
       {item.external ? <ExternalLinkIcon className="size-3.5 shrink-0" /> : null}
     </>
@@ -41,7 +41,7 @@ function NavContent({ item }: { item: INavTreeItem }) {
 function NavTreeNode({ item, pathname, level }: { item: INavTreeItem; pathname: string; level: number }) {
   if (item.type === 'separator') {
     return (
-      <li className="text-muted-foreground mt-5 px-2 text-xs font-medium tracking-normal first:mt-0">{item.name}</li>
+      <li className="mt-5 px-2 text-xs font-medium tracking-normal text-muted-foreground first:mt-0">{item.name}</li>
     )
   }
 
@@ -50,7 +50,7 @@ function NavTreeNode({ item, pathname, level }: { item: INavTreeItem; pathname: 
   const hasChildren = item.children.length > 0
   const controlsId = hasChildren ? getControlsId(item) : undefined
   const rowClassName = clsx(
-    `hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-ring/60 flex min-h-8 w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm leading-5 transition-colors focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset`,
+    `flex min-h-8 w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm leading-5 transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-1 focus-visible:ring-ring/60 focus-visible:outline-none focus-visible:ring-inset`,
     current ? 'bg-accent text-accent-foreground' : active ? 'text-foreground' : 'text-muted-foreground',
   )
   const style = { paddingInlineStart: `${0.5 + level * 0.25}rem` }
@@ -67,7 +67,7 @@ function NavTreeNode({ item, pathname, level }: { item: INavTreeItem; pathname: 
             {item.url ? (
               <Link
                 aria-current={current ? 'page' : undefined}
-                className="focus-visible:ring-ring flex min-w-0 flex-1 items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:outline-none"
+                className="flex min-w-0 flex-1 items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 href={item.url}
               >
                 <NavContent item={item} />
@@ -78,7 +78,7 @@ function NavTreeNode({ item, pathname, level }: { item: INavTreeItem; pathname: 
             <ChevronRightIcon className="size-3.5 shrink-0 transition-transform [details[open]>summary>&]:rotate-90" />
           </summary>
           <ul
-            className="border-border/70 mt-0.5 space-y-0.5 border-l pl-1.5"
+            className="mt-0.5 space-y-0.5 border-l border-border/70 pl-1.5"
             style={{ marginInlineStart: `${0.5 + level * 0.25 + (item.icon ? 0.75 : 0)}rem` }}
             id={controlsId}
           >

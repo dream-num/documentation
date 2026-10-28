@@ -46,7 +46,7 @@ export function PrimaryNavigation({
       {links.map((link) => (
         <ActiveNavigationLink
           activeClassName="bg-accent text-accent-foreground font-medium"
-          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground shrink-0 rounded-md px-2 py-1.5 text-sm whitespace-nowrap transition-colors lg:px-2.5"
+          className="shrink-0 rounded-md px-2 py-1.5 text-sm whitespace-nowrap text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground lg:px-2.5"
           href={link.url}
           activeHref={'activeHref' in link ? link.activeHref : link.url}
           key={link.url}

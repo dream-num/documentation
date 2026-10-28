@@ -21,7 +21,7 @@ function ControlIcon({ children, className }: { children: ReactNode; className?:
   return (
     <span
       className={clsx(
-        `bg-background text-primary grid size-8 shrink-0 place-items-center overflow-hidden rounded-md border *:grid! *:size-4! *:min-w-4! *:place-items-center! *:border-0! *:bg-transparent! *:p-0! *:shadow-none! [&_svg]:size-4!`,
+        `grid size-8 shrink-0 place-items-center overflow-hidden rounded-md border bg-background text-primary *:grid! *:size-4! *:min-w-4! *:place-items-center! *:border-0! *:bg-transparent! *:p-0! *:shadow-none! [&_svg]:size-4!`,
         className,
       )}
     >
@@ -66,13 +66,13 @@ export function GuidesSidebarControls({
         {currentSdk ? (
           <Link
             href="/docs/overview"
-            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring flex min-h-8 items-center gap-1.5 rounded-sm text-xs focus-visible:ring-2 focus-visible:outline-none"
+            className="flex min-h-8 items-center gap-1.5 rounded-sm text-xs text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
           >
             <ArrowLeftIcon aria-hidden="true" className="size-3.5" />
             {t('office.overview')}
           </Link>
         ) : null}
-        <h2 className="text-foreground text-base font-semibold">{currentSdk?.name ?? 'Office SDK'}</h2>
+        <h2 className="text-base font-semibold text-foreground">{currentSdk?.name ?? 'Office SDK'}</h2>
       </div>
       <SidebarVersionSwitcher />
 
@@ -81,21 +81,21 @@ export function GuidesSidebarControls({
           <DropdownMenuTrigger
             render={
               <button
-                className="hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-ring/60 flex w-full items-center gap-2 rounded-md p-1 text-left transition-colors focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset"
+                className="flex w-full items-center gap-2 rounded-md p-1 text-left transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-1 focus-visible:ring-ring/60 focus-visible:outline-none focus-visible:ring-inset"
                 type="button"
               />
             }
           >
             <SectionIcon item={currentSection ?? currentSdk} />
             <span className="min-w-0 flex-1">
-              <span className="text-foreground block truncate text-sm font-semibold">
+              <span className="block truncate text-sm font-semibold text-foreground">
                 {currentSection?.name ?? (isWebSdk ? labels.products : t('office.modules'))}
               </span>
-              <span className="text-muted-foreground block truncate text-sm">
+              <span className="block truncate text-sm text-muted-foreground">
                 {currentSection?.description ?? currentSdk?.name}
               </span>
             </span>
-            <ChevronsUpDownIcon className="text-muted-foreground size-4 shrink-0" />
+            <ChevronsUpDownIcon className="size-4 shrink-0 text-muted-foreground" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-64">
             {!isWebSdk && sdkHref ? (

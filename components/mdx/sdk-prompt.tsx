@@ -5,15 +5,15 @@ import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 
+async function loadPrompt() {
+  const response = await fetch('/api/sdk-prompt')
+  if (!response.ok) throw new Error('SDK prompt unavailable')
+  return response.text()
+}
+
 export function SdkPrompt() {
   const t = useTranslations('office')
   const [status, setStatus] = useState<'idle' | 'loading' | 'copied' | 'error'>('idle')
-
-  async function loadPrompt() {
-    const response = await fetch('/api/sdk-prompt')
-    if (!response.ok) throw new Error('SDK prompt unavailable')
-    return response.text()
-  }
 
   async function copy() {
     setStatus('loading')
@@ -33,7 +33,7 @@ export function SdkPrompt() {
   }
 
   return (
-    <div className="not-prose bg-muted/20 my-5 space-y-3 rounded-lg border p-4">
+    <div className="not-prose my-5 space-y-3 rounded-lg border bg-muted/20 p-4">
       <div className="flex flex-wrap items-center gap-3">
         <Button type="button" disabled={status === 'loading'} onClick={copy}>
           {status === 'loading' ? (
@@ -50,12 +50,12 @@ export function SdkPrompt() {
         </a>
       </div>
       {status === 'copied' ? (
-        <p role="status" className="text-muted-foreground text-sm">
+        <p role="status" className="text-sm text-muted-foreground">
           {t('prompt-next')}
         </p>
       ) : null}
       {status === 'error' ? (
-        <p role="alert" className="text-destructive text-sm">
+        <p role="alert" className="text-sm text-destructive">
           {t('prompt-error')}
         </p>
       ) : null}

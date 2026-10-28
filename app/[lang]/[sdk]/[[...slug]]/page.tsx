@@ -29,14 +29,16 @@ interface IProps {
 const DOCS_ORIGIN = 'https://docs.univer.ai'
 
 export async function generateStaticParams() {
-  return Object.entries(sdkSources).flatMap(([sdk, source]) => [
-    ...source.generateParams().map((params) => ({ ...params, sdk })),
-    ...(sdk === 'guides'
-      ? source
-          .getLanguages()
-          .flatMap(({ language }) => getGuideContentPlacementSlugs().map((slug) => ({ sdk, lang: language, slug })))
-      : []),
-  ])
+  return Object.entries(sdkSources).flatMap(([sdk, source]) => {
+    const pages = source.generateParams().map((params) => Object.assign({}, params, { sdk }))
+    if (sdk !== 'guides') return pages
+
+    return pages.concat(
+      source
+        .getLanguages()
+        .flatMap(({ language }) => getGuideContentPlacementSlugs().map((slug) => ({ sdk, lang: language, slug }))),
+    )
+  })
 }
 
 function getSdkSource(sdk: string) {

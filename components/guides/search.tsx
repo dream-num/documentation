@@ -65,7 +65,7 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
     return (
       <>
         {text.slice(0, index)}
-        <mark className="text-foreground decoration-primary/50 bg-transparent font-semibold underline underline-offset-2">
+        <mark className="bg-transparent font-semibold text-foreground underline decoration-primary/50 underline-offset-2">
           {text.slice(index, index + trimmedQuery.length)}
         </mark>
         {text.slice(index + trimmedQuery.length)}
@@ -116,7 +116,7 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
     <Dialog open={open} onOpenChange={changeOpen}>
       <Button
         ref={triggerRef}
-        className="text-muted-foreground hover:text-foreground xl:bg-muted/40 size-8 shrink-0 gap-2 shadow-none xl:w-52 xl:justify-start xl:border xl:px-3"
+        className="size-8 shrink-0 gap-2 text-muted-foreground shadow-none hover:text-foreground xl:w-52 xl:justify-start xl:border xl:bg-muted/40 xl:px-3"
         aria-label={t('search.label')}
         aria-keyshortcuts="Meta+K Control+K"
         size="sm"
@@ -126,7 +126,7 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
       >
         <SearchIcon aria-hidden="true" className="size-4" />
         <span className="hidden min-w-0 flex-1 truncate text-left xl:block">{t('search.label')}</span>
-        <kbd className="text-muted-foreground hidden rounded border px-1 text-[10px] xl:block">
+        <kbd className="hidden rounded border px-1 text-[10px] text-muted-foreground xl:block">
           <span className="[[data-platform=mac]_&]:hidden">Ctrl K</span>
           <span className="hidden [[data-platform=mac]_&]:inline">⌘ K</span>
         </kbd>
@@ -143,10 +143,10 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
           {isLoading ? (
             <LoaderCircleIcon
               aria-hidden="true"
-              className="text-muted-foreground size-5 animate-spin motion-reduce:animate-none"
+              className="size-5 animate-spin text-muted-foreground motion-reduce:animate-none"
             />
           ) : (
-            <SearchIcon aria-hidden="true" className="text-muted-foreground size-5" />
+            <SearchIcon aria-hidden="true" className="size-5 text-muted-foreground" />
           )}
           <input
             ref={inputRef}
@@ -156,7 +156,7 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
             aria-expanded={true}
             aria-controls={listId}
             aria-activedescendant={activeResult ? `${listId}-${activeIndex}` : undefined}
-            className="placeholder:text-muted-foreground min-w-0 flex-1 bg-transparent text-base outline-none"
+            className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
             value={query}
             maxLength={200}
             placeholder={t('search.description')}
@@ -182,7 +182,7 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
             <button
               type="button"
               aria-label={t('search.clear')}
-              className="text-muted-foreground hover:text-foreground rounded p-1 focus-visible:outline-2"
+              className="rounded p-1 text-muted-foreground hover:text-foreground focus-visible:outline-2"
               onClick={() => {
                 setQuery('')
                 inputRef.current?.focus()
@@ -194,7 +194,7 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
           <button
             type="button"
             aria-label={t('search.close')}
-            className="text-muted-foreground hover:text-foreground rounded border px-1.5 py-1 text-xs focus-visible:outline-2"
+            className="rounded border px-1.5 py-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2"
             onClick={() => setOpen(false)}
           >
             Esc
@@ -229,7 +229,7 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
         <div className="min-h-52 min-w-0 overflow-y-auto overscroll-contain p-2 sm:min-h-64">
           <div
             role="status"
-            className={results.length ? 'sr-only' : 'text-muted-foreground px-5 py-12 text-center text-sm'}
+            className={results.length ? 'sr-only' : 'px-5 py-12 text-center text-sm text-muted-foreground'}
           >
             {isLoading
               ? t('search.loading')
@@ -249,7 +249,7 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
             </div>
           )}
           {!isLoading && !hasError && trimmedQuery && !results.length && (
-            <div className="text-muted-foreground -mt-8 mb-6 text-center text-xs">{t('search.no-result-hint')}</div>
+            <div className="-mt-8 mb-6 text-center text-xs text-muted-foreground">{t('search.no-result-hint')}</div>
           )}
           <ul id={listId} role="listbox" aria-label={t('search.label')}>
             {results.map((result, index) => (
@@ -267,9 +267,9 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
                   onClick={() => setOpen(false)}
                   onMouseEnter={() => setActiveIndex(index)}
                 >
-                  <FileTextIcon aria-hidden="true" className="text-muted-foreground mt-1 size-4 shrink-0" />
+                  <FileTextIcon aria-hidden="true" className="mt-1 size-4 shrink-0 text-muted-foreground" />
                   <span className="min-w-0 flex-1">
-                    <span className="text-muted-foreground mb-1 flex gap-2 text-[11px]">
+                    <span className="mb-1 flex gap-2 text-[11px] text-muted-foreground">
                       <span className="shrink-0 font-medium">{t(`search.scope.${result.source}`)}</span>
                       <span className="truncate">
                         {result.breadcrumbs
@@ -280,21 +280,21 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
                     </span>
                     <span className="block text-sm font-medium">{highlight(result.title)}</span>
                     {result.content && (
-                      <span className="text-muted-foreground mt-1 line-clamp-2 text-xs leading-relaxed">
+                      <span className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                         {highlight(result.content)}
                       </span>
                     )}
                   </span>
                   <ArrowRightIcon
                     aria-hidden="true"
-                    className={clsx('text-muted-foreground mt-2 size-4 shrink-0', activeIndex !== index && 'invisible')}
+                    className={clsx('mt-2 size-4 shrink-0 text-muted-foreground', activeIndex !== index && 'invisible')}
                   />
                 </Link>
               </li>
             ))}
           </ul>
         </div>
-        <div className="text-muted-foreground flex shrink-0 items-center justify-between gap-3 border-t px-4 py-2.5 text-[11px]">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t px-4 py-2.5 text-[11px] text-muted-foreground">
           <span>
             {results.length > 0 ? t('search.result-count', { count: results.length }) : t('search.description')}
           </span>

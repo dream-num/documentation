@@ -110,12 +110,12 @@ export function FeatureComparison({
 
   return (
     <div>
-      <div className="not-prose bg-muted/20 my-6 space-y-3 rounded-lg border p-4">
+      <div className="not-prose my-6 space-y-3 rounded-lg border bg-muted/20 p-4">
         <div className="flex flex-wrap gap-3">
           <label className="min-w-48 flex-1 text-sm">
             <span className="mb-1.5 block font-medium">{t('search')}</span>
             <input
-              className="bg-background h-9 w-full rounded-md border px-3"
+              className="h-9 w-full rounded-md border bg-background px-3"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t('placeholder')}
@@ -125,7 +125,7 @@ export function FeatureComparison({
           <label className="min-w-48 flex-1 text-sm">
             <span className="mb-1.5 block font-medium">{t('group')}</span>
             <select
-              className="bg-background h-9 w-full rounded-md border px-2"
+              className="h-9 w-full rounded-md border bg-background px-2"
               value={group}
               onChange={(event) => setGroup(event.target.value)}
             >
@@ -158,7 +158,7 @@ export function FeatureComparison({
       {counts?.visible === 0 ? <p role="status">{t('empty')}</p> : null}
       <div
         ref={content}
-        className="feature-comparison [&_[data-support=no]]:text-muted-foreground [&_small]:text-muted-foreground [&_[data-support=partial]]:text-amber-700 dark:[&_[data-support=partial]]:text-amber-400 [&_[data-support=yes]]:text-emerald-700 dark:[&_[data-support=yes]]:text-emerald-400 [&_small]:mt-2 [&_small]:block [&_small]:text-xs [&_small]:leading-relaxed [&_table]:min-w-180 [&_table]:table-fixed [&_td]:wrap-break-word [&_td_img]:h-auto [&_td_img]:w-40 [&_td:first-child]:font-medium [&_th]:whitespace-normal!"
+        className="feature-comparison [&_[data-support=no]]:text-muted-foreground [&_[data-support=partial]]:text-amber-700 dark:[&_[data-support=partial]]:text-amber-400 [&_[data-support=yes]]:text-emerald-700 dark:[&_[data-support=yes]]:text-emerald-400 [&_small]:mt-2 [&_small]:block [&_small]:text-xs [&_small]:leading-relaxed [&_small]:text-muted-foreground [&_table]:min-w-180 [&_table]:table-fixed [&_td]:wrap-break-word [&_td_img]:h-auto [&_td_img]:w-40 [&_td:first-child]:font-medium [&_th]:whitespace-normal!"
       >
         {children}
       </div>

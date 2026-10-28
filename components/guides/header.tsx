@@ -26,7 +26,7 @@ export async function GuidesHeader({ lang, items }: { lang: string; items: IGuid
   }))
 
   return (
-    <header className="bg-background/95 supports-backdrop-filter:bg-background/80 sticky top-0 z-40 border-b border-(--separator) backdrop-blur-sm lg:shrink-0">
+    <header className="sticky top-0 z-40 border-b border-(--separator) bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/80 lg:shrink-0">
       <div className="mx-auto flex h-12 max-w-384 items-center gap-2 px-4 lg:px-6">
         <GuidesMobileNav
           labels={{
@@ -53,7 +53,7 @@ export async function GuidesHeader({ lang, items }: { lang: string; items: IGuid
             target="_blank"
             rel="noreferrer"
             aria-label="GitHub"
-            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-primary hidden size-8 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 sm:inline-flex"
+            className="hidden size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:inline-flex"
           >
             <SiGithub aria-hidden="true" className="size-4" />
           </a>

@@ -24,11 +24,11 @@ export function GuidesMobileNav({
     <details key={pathname} className="group lg:hidden">
       <summary
         aria-label={openLabel}
-        className="hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex size-8 cursor-pointer list-none items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none [&::-webkit-details-marker]:hidden"
+        className="inline-flex size-8 cursor-pointer list-none items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
       >
         <MenuIcon className="size-4" />
       </summary>
-      <div className="bg-background fixed top-22 left-0 z-50 flex h-[calc(100dvh-5.5rem)] w-[min(22rem,calc(100vw-2rem))] flex-col border-r shadow-lg">
+      <div className="fixed top-22 left-0 z-50 flex h-[calc(100dvh-5.5rem)] w-[min(22rem,calc(100vw-2rem))] flex-col border-r bg-background shadow-lg">
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
           <GuidesSidebar items={items} label={navigationLabel} labels={labels} />
         </div>
