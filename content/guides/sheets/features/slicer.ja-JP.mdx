@@ -1,0 +1,103 @@
+---
+title: スライサーとタイムライン
+icon: ListFilter
+---
+
+<MetaData
+  lang="ja-JP"
+  meta={{
+    preset: [],
+    plugins: [{
+      client: '@univerjs-pro/sheets-slicer',
+      facade: '@univerjs-pro/sheets-slicer/facade',
+    }, {
+      client: '@univerjs-pro/sheets-slicer-ui',
+      locale: '@univerjs-pro/sheets-slicer-ui/locale/ja-JP',
+      style: '@univerjs-pro/sheets-slicer-ui/lib/index.css',
+    }],
+    license: true,
+    server: false,
+  }}
+/>
+
+スライサーはソースのメンバーでテーブル、ピボットテーブル、ピボットグラフを絞り込みます。タイムラインは対応するピボットの元の日付フィールドを絞り込みます。テーブル列、テキスト、計算フィールド、派生グループフィールドはタイムラインのソースにできません。
+
+## プラグインの設定 [#plugin-mode]
+
+既存の [Sheets 設定](/guides/sheets/getting-started/installation)に以下を追加し、[描画機能](/guides/sheets/features/images)と、ソースとなる[テーブル](/guides/sheets/features/table)または[ピボットテーブル](/guides/sheets/features/pivot-table)を設定します。ワークブックを作成する前に言語パックを読み込み、プラグインを登録してください。
+
+```package-install
+npm install @univerjs-pro/sheets-slicer @univerjs-pro/sheets-slicer-ui
+```
+
+```ts
+import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer'
+import { UniverSheetsSlicerUIPlugin } from '@univerjs-pro/sheets-slicer-ui'
+import SheetsSlicerUILocale from '@univerjs-pro/sheets-slicer-ui/locale/ja-JP'
+import { LocaleType } from '@univerjs/core'
+import '@univerjs-pro/sheets-slicer/facade'
+import '@univerjs-pro/sheets-slicer-ui/lib/index.css'
+
+univerAPI.loadLocales(LocaleType.JA_JP, SheetsSlicerUILocale)
+univer.registerPlugin(UniverSheetsSlicerPlugin)
+univer.registerPlugin(UniverSheetsSlicerUIPlugin)
+```
+
+## スライサーを作成する [#create-slicer]
+
+以下の例では、アクティブなシートの I1 にあるピボットテーブルと、`Region` というソースフィールドを使用します。`getSourceFieldsInfo()` で元のフィールドの安定した ID を取得してください。表示名やレポートのフィールド ID は `newSlicer()` に渡せません。
+
+```ts
+const fWorkbook = univerAPI.getActiveWorkbook()
+const fWorksheet = fWorkbook?.getActiveSheet()
+if (!fWorkbook || !fWorksheet) throw new Error('No active worksheet')
+
+const pivotTable = fWorkbook.getPivotTableByCell(
+  fWorkbook.getId(),
+  fWorksheet.getSheetId(),
+  0,
+  8,
+)
+const regionField = pivotTable?.getSourceFieldsInfo().find((field) => field.name === 'Region')
+if (!pivotTable || !regionField) throw new Error('Region source field not found')
+
+const slicer = await fWorksheet.insertSlicer(
+  pivotTable.newSlicer(regionField.id)
+    .setCaption(regionField.name)
+    .setPosition('N2')
+    .build(),
+)
+```
+
+`pivotTable.newSlicer()` はビルダーをソースに結び付けます。`build()` は設定を作成するだけで、`insertSlicer()` がコントロールを挿入します。配置先とソースのシートは異なっていても構いませんが、同じワークブック内である必要があります。テーブルをソースにする場合は `fWorksheet.newSlicer(columnId).setTableReference({ subUnitId, tableId })` を使用します。`columnId` はテーブル列の安定した ID です。
+
+## タイムラインを作成する [#create-timeline]
+
+同じピボットテーブルを使用する次の例には、`Date` という元の日付フィールドが必要です。`newTimeline()` はソースを検証し、未対応のフィールドを拒否します。タイムラインの範囲 API は、JavaScript の `Date` オブジェクトではなく、ワークブックの日付システムに従う Excel シリアル値を使用します。
+
+```ts
+const dateField = pivotTable.getSourceFieldsInfo().find((field) => field.name === 'Date')
+if (!dateField) throw new Error('Date source field not found')
+
+const timeline = await fWorksheet.insertTimeline(
+  pivotTable.newTimeline(dateField.id)
+    .setCaption(dateField.name)
+    .setLevel(univerAPI.Enum.TimelineLevel.Month)
+    .setPosition('N18')
+    .build(),
+)
+```
+
+## コントロールの検索と変更の監視 [#controls-and-events]
+
+配置先のワークシートで `getSlicer(viewId)` / `getSlicers()` と `getTimeline(viewId)` / `getTimelines()` を呼び出します。`viewId` はコントロールの `getId()` が返す ID であり、描画 ID ではありません。
+
+`univerAPI.addEvent()` で `SlicerAdded`、`SlicerChanged`、`SlicerRemoved`、`TimelineAdded`、`TimelineChanged`、`TimelineRemoved` を購読できます。これらは確定したローカルの変更を通知し、リモート保存や描画完了を示すものではありません。不要になった購読は `dispose()` で解除してください。
+
+API リファレンス：
+
+- [FSheetSlicer](/reference/facade/sheet-slicer)
+- [FSheetSlicerBuilder](/reference/facade/sheet-slicer-builder)
+- [FSheetTimeline](/reference/facade/sheet-timeline)
+- [FSheetTimelineBuilder](/reference/facade/sheet-timeline-builder)
+- [FEventName](/reference/facade/events#univerjs-prosheets-slicer)
