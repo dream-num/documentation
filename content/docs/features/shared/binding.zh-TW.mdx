@@ -1,0 +1,110 @@
+---
+title: "雙向綁定"
+description: "透過 Server SDK，讓 HTML 應用程式與試算表共用資料、公式結果及協作更新。"
+icon: ArrowLeftRight
+---
+
+<Callout type="warning" title="實驗性功能">
+  雙向綁定目前仍處於實驗階段，後續版本將有破壞性更新，API 與整合方式可能調整。
+</Callout>
+
+雙向綁定（Binding）透過 Univer Server SDK，將一般 HTML、CSS、JavaScript 頁面連接到 Sheet。試算表承載資料與公式，網頁提供表單、指標、圖表與業務互動；使用者可從任一側修改輸入，另一側接收更新。適合將既有試算表模型轉為報價工具、營運儀表板或互動式業務應用。
+
+## 範例：應用程式與試算表連動
+
+Project Summit 範例將成長率、報價與現金支付比例設為左側控制項，右側保留完整財務試算表。調整假設後，相關公式、指標卡與圖表隨模型更新；使用者也能進入試算表檢查輸入與計算過程。
+
+![Project Summit：左側業務控制項、指標與圖表連動右側 Univer Sheets 財務模型](/assets/features/binding/project-summit-app-sheets.png)
+
+圖中呈現瀏覽器本機模型的互動效果；多人共用與持久化透過下文的協作服務接入。點擊圖片可放大。
+
+## 同一份 Sheet，多種互動介面
+
+HTML 檢視透過頁面執行階段與宿主通訊，由 Binding Engine 讀寫真正的 Sheet 內容。Engine 使用獨立的 Headless Univer 執行個體，Univer SDK 負責公式與協作，綁定層將數值變化傳回頁面。
+
+<Mermaid chart={"flowchart LR\n    P[\"HTML 應用程式<br/>控制項 · 指標 · 圖表\"]\n    E[\"宿主 + Binding Engine<br/>Headless Sheet\"]\n    S[\"協作服務<br/>同一 Sheet Unit\"]\n    T[\"Sheet 編輯器\"]\n    P <-->|\"讀寫 · 訂閱更新\"| E\n    E <-->|\"SDK 協作\"| S\n    T <-->|\"編輯 · 同步\"| S"} />
+
+直接編輯試算表或接收其他使用者的協作修改，也會更新綁定頁面。一個 HTML 檢視可存取多個已授權 Unit；宿主為每個 Unit 載入一個 Engine，各自擁有獨立的 Headless Univer 執行個體。
+
+## 以 HTML 宣告綁定
+
+在元素上宣告資料來源，即可自動同步文字與表單控制項。參照格式為 `unitId:sheetId:A1`；兩個 ID 分別使用 `encodeURIComponent` 編碼，工作表使用穩定 ID。
+
+| 屬性 | 用途 |
+| --- | --- |
+| `data-univer-cell-text` | 將儲存格值呈現為元素文字。 |
+| `data-univer-cell-model` | 讓儲存格與輸入控制項雙向同步。 |
+| `data-univer-cell-subscribe` | 宣告儲存格訂閱，供自訂 JavaScript 呈現。 |
+| `data-univer-range-subscribe` | 宣告矩形範圍訂閱，供圖表、清單等讀取二維資料。 |
+
+例如，Sheet 的 `B2` 為單價、`B3` 為數量，`B4` 已設定公式 `=B2*B3`。以下範本片段將輸入與總價連到這些儲存格：
+
+```html
+<label>
+  單價
+  <input type="number" min="0" step="0.01"
+    data-univer-cell-model="book:sheet:B2" />
+</label>
+<label>
+  數量
+  <input type="number" min="0" step="1"
+    data-univer-cell-model="book:sheet:B3" />
+</label>
+<p>總價: <span data-univer-cell-text="book:sheet:B4"></span></p>
+```
+
+將 `book`、`sheet` 換成實際且已授權的 ID，並透過 Renderer 載入範本。公式定義於 Sheet，頁面讀取計算結果。文字、數字、滑桿、核取方塊、文字區域及單選下拉選單可依值類型綁定。
+
+## 以 JavaScript 擴充圖表與互動
+
+頁面執行階段會在範本腳本執行前提供 `window.univerBinding`。自訂圖表以 `data-univer-range-subscribe` 宣告資料範圍，再透過 `subscribeRangeById(elementId, callback)` 接收矩陣並更新圖表；單值元件使用 `subscribeCellById()`。
+
+`getCellState()` / `getRangeState()` 用於單次讀取；`setCellValue()` 寫入純量，`insertRowsWithValues()` 插列並填值。訂閱先提供目前狀態，再通知實際數值變更；本機編輯、協作修改及公式結果套用都能觸發更新。
+
+參照依固定座標讀取，插入或刪除列欄後不會自動跟隨原記錄。純量寫入會取代既有公式或豐富文字，因此應綁定業務輸入儲存格。
+
+## 接入宿主與 Agent
+
+應用程式提供容器、HTML 範本及 `loadEngine`。載入器檢查 Unit 權限、設定協作連線並傳回已載入的 Engine；Renderer 管理隔離頁面、訊息與已交付 Engine 的生命週期。以下入口接收這三個參數：
+
+```ts
+import {
+  renderHtmlView,
+  type RenderHtmlViewOptions,
+} from '@univerjs-labs/html-view-renderer/render';
+
+export function createPreview(
+  container: HTMLElement,
+  html: string,
+  loadEngine: RenderHtmlViewOptions['loadEngine'],
+) {
+  return renderHtmlView({ container, html, loadEngine });
+}
+```
+
+範本產生、原始碼編輯、檔案儲存與業務導覽由應用程式負責。Agent 可產生帶有綁定宣告的 HTML，重用 Sheet 的資料及計算規則；透過 `view.inspect.open()` 檢查 Unit → Sheet → 參照與頁面元素的對應。
+
+協作憑證由宿主管理，伺服器執行實際存取檢查。Sheet UI 與 Headless Engine 應位於不同 JavaScript 環境，例如不同頁面或 iframe。目前綁定套件以 Sheet 為範圍。
+
+## 區分本機更新與儲存確認
+
+| 操作 | 含義 |
+| --- | --- |
+| 頁面寫入完成 | 本機操作已執行，伺服器確認可能仍在進行。 |
+| `await view.flush()` | 提交控制項草稿，等待先前寫入及協作確認，成功後繼續編輯。 |
+| `await view.prepareToLeave()` | 暫停編輯並儲存；成功後離開，取消離開時呼叫 `view.resume()`。 |
+| `view.dispose()` | 釋放連線、Engine 與訂閱，不自動儲存。 |
+
+公式結果套用後，訂閱會更新顯示值。儲存失敗時保留目前頁面並重試；頁面寫入完成不代表已儲存。
+
+## 繼續接入
+
+- [SDK 儲存庫與總覽](https://github.com/dream-num/univer-data-binding-sdk)
+- [Binding Engine 介面](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/binding-engine/README.md)
+- [HTML 綁定屬性](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/html-view/README.md)
+- [Renderer 整合](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/html-view-renderer/README.md)
+- [頁面 JavaScript API](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/html-view-renderer/docs/javascript-api.md)
+
+相關能力：[無頭與伺服器計算](/overview/features/shared/server-calculation) · [即時協作](/overview/features/shared/collaboration) · [Agent 與自動化](/overview/features/shared/agents)。
+
+[返回功能總覽](/overview/features)

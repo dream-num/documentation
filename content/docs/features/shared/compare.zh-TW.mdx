@@ -1,0 +1,81 @@
+---
+title: "內容比較"
+description: "比較兩個內容版本，依產品模型查看新增、刪除與修改。"
+icon: GitCompareArrows
+---
+
+內容比較（Compare）比較兩份已完整還原的 Unit 快照，以儲存格、段落、頁面或記錄等內容物件表達差異，適合歷史版本、Agent 結果及 Worktree 審閱。
+
+## 各產品的差異
+
+| 產品 | 比較物件範例 |
+| --- | --- |
+| Sheet | 工作表、儲存格值與公式、行列、樣式及已註冊的圖表等資源。 |
+| Doc | 段落、文字與樣式、表格、內容區塊及繪圖。 |
+| Slide | 頁面、元素、位置與樣式、版面配置及主題。 |
+| Relational Table | 資料表、欄位、記錄及檢視。 |
+| Canvases | 頁面、元素及相關資源。 |
+
+差異分為新增、刪除與修改；縮放、選取範圍等暫時 UI 狀態不算內容變更。實際範圍由產品適配器決定，目前不含 PDF。
+
+## Snapshot 與 changeset 如何共同參與比較
+
+Snapshot 儲存某個修訂號的完整內容狀態；mutation 描述一次具體的內容變更，changeset 將這些 mutation 組織為有序提交。歷史記錄負責儲存與還原版本，Compare 負責說明還原後的兩個版本有何差異。
+
+<Mermaid chart={"flowchart LR\n    S[\"基礎 Snapshot\"]\n    CA[\"套用 changeset A\"]\n    CB[\"套用 changeset B\"]\n    A[\"版本 A\"]\n    B[\"版本 B\"]\n    C[\"依產品比較\"]\n    D[\"新增 · 刪除 · 修改\"]\n    S --> CA --> A\n    S --> CB --> B\n    A --> C\n    B --> C\n    C --> D"} />
+
+比較歷史版本或 Worktree 時，先讀取基礎 Snapshot，依序套用後續 changeset，還原目標修訂號的完整內容，再交給產品比較配接器。可用的 changeset 也能協助識別列欄插入、刪除等結構變化，改善前後內容的對齊；只有兩份快照時，也可以進行快照比較。
+
+比較結果遵循產品的內容模型，例如 Sheet 的儲存格與列欄、Doc 的段落、Slide 與 Canvases 的元素、Relational Table 的欄位與記錄。暫時選取範圍、縮放等介面狀態不視為內容修改。Compare 本身唯讀，還原版本與合入 Worktree 是獨立操作。
+
+## 串接 Server SDK 與 AI SDK
+
+**Server SDK** 提供版本所需的 Snapshot、changeset 與修訂號，並還原待比較的內容。應用程式將兩側內容與可用歷史交給 Compare，取得結構化差異，再於 Web 端顯示審閱介面。版本管理見[歷史記錄](/overview/features/shared/history)，服務擴充見[協作服務擴充](/server/collaboration/extensions)。
+
+**AI SDK** 在 Worktree 中載入及修改內容、提交 Agent 的結果。應用程式可將結構化差異用於 Agent 檢查與後續處理，也能讓人類透過同一份視覺化比較結果審閱，再決定是否合入。參閱 [Agent 的 Worktree 流程](/ai/worktree)與[內容操作](/ai/content-operations)。
+
+## 五個產品的比較範例
+
+以下範例採用同一套 Northstar 發布計畫：先建立並提交完整基準版，再於 Worktree 中編輯，最後開啟 Compare 查看前後差異。
+
+差異清單以**藍色**標示修改、**綠色**標示新增、**紅色**標示刪除。左右唯讀面板顯示前後內容；點選圖片可放大查看。
+
+### Sheet：預算與列結構
+
+更新研究與編輯器的預測預算，刪除 Legacy tooling，新增 Accessibility QA，並重新計算合計。結合列結構查看數值與公式結果的變化。
+
+![Sheet：預算與列結構](/assets/features/compare/sheets.jpg)
+
+### Doc：發布計畫與段落
+
+更新發布日期、試點團隊數與目標完成率；刪除舊審批說明，加入新的品質檢查要求。保留上下文，便於逐段審閱。
+
+![Doc：發布計畫與段落](/assets/features/compare/docs.jpg)
+
+### Slide：指標與頁面元素
+
+更新三張指標卡，移除舊審批區塊並加入品質檢查區塊。比較同一頁中的文字與元素變化。
+
+![Slide：指標與頁面元素](/assets/features/compare/slides.jpg)
+
+### Relational Table：欄位與任務記錄 [#base欄位與任務記錄]
+
+更新任務進度、狀態與日期，重新命名日期欄位，刪除舊審批記錄並新增無障礙檢查任務。依資料表、欄位與記錄查看差異。
+
+![Relational Table：欄位與任務記錄](/assets/features/compare/bases.jpg)
+
+### Canvases：流程與畫布元素 [#board流程與畫板元素]
+
+更新試點規模與發布日期，調整審閱節點位置，以品質檢查卡取代舊審批卡。結合畫布上下文查看內容與版面變化。
+
+![Canvases：流程與畫布元素](/assets/features/compare/boards.jpg)
+
+## 查詢與展示
+
+註冊對應產品的歷史比較插件及 Facade 擴充後，呼叫 `compareUnitData()`。反覆篩選和分頁時，先用 `prepareUnitComparison()` 建立工作階段，再呼叫 `query()`。
+
+先顯示摘要，再按工作表、頁面或資料表查看明細；可要求變更清單或完整前後值。預設明細有數量限制，第一頁不一定是全部差異。展示前檢查診斷資訊與涵蓋狀態。
+
+參閱 [Unit Comparison API](/reference/facade/unit-comparison)、[歷史記錄](/overview/features/shared/history)及 [Worktree](/overview/features/shared/worktree)。
+
+[返回功能總覽](/overview/features)

@@ -1,0 +1,91 @@
+---
+title: "Agentes y automatización"
+description: "Compón herramientas de inspección, edición y validación para tus agentes existentes."
+icon: Bot
+---
+
+AI SDK expone los modelos, Facades y colaboración de Univer como capacidades TypeScript para un Agent existente. Permite comprender, editar, verificar y entregar contenido para revisión. Su aplicación elige el modelo, protocolo de herramientas y orquestación.
+
+## Conectar capacidades al Agent [#capabilities]
+
+Los paquetes de capacidades devuelven resultados estructurados para herramientas, servicios o CLI. Los paquetes opcionales `-command` ofrecen comandos Commander. El Agent utiliza el modelo de contenido y sistema de comandos compartidos con el editor Web.
+
+| Capacidad | Responsabilidad |
+| --- | --- |
+| Inspection | Leer estructura, rangos, párrafos y objetos para delimitar la tarea. |
+| API Reference | Consultar sin conexión las declaraciones Facade, sobrecargas, tipos y ejemplos incluidos. |
+| Content Execution | Vincular `workbook`, `doc`, `presentation`, `base` o `board` a una Unit explícita. |
+| Collaboration Runtime | Cargar contenido, capturar mutations, conciliar cambios remotos y enviar changesets. |
+
+## Cómo restaura el Runtime el estado editable [#runtime]
+
+Un Collaboration Runtime permanece ligado a una Unit. Abre el backend de la aplicación, lee un checkpoint UnitData o Snapshot, reproduce sus changesets y completa las revisiones continuas hasta la cabecera remota. Si está instalado el módulo de fórmulas, espera la aplicación del último cálculo.
+
+<Mermaid chart={"sequenceDiagram\nparticipant A as Herramienta de aplicación\nparticipant R as Runtime\nparticipant U as Motor de contenido\nparticipant B as Backend colaborativo\nA->>R: load\nR->>B: Cargar checkpoint y cambios\nR->>U: Restaurar Unit y revision\nA->>R: pull: obtener cambios remotos\nR->>B: fetchChangesets\nB-->>R: changesets\nR->>U: Conciliar con OT y aplicar\nA->>R: execute: editar con Facade\nR->>U: Facade\nU-->>R: Generar mutations\nNote over R: Conservar pending\nA->>R: commit: enviar changeset\nR->>B: changeset\nB-->>R: ACK: confirmar identidad y revision"} />
+
+`fetch()` obtiene y valida cambios. `pull()` usa OT para conciliarlos con pending/awaiting locales y aplicarlos. `baseRevision`, `knownHeadRevision`, `pendingMutationCount` y `awaitingChangeset` permiten seguir el estado.
+
+## Localizar contenido antes de ejecutar [#inspection]
+
+Empiece por overview y seleccione después IDs estables o selectores precisos, sin enviar todo el Snapshot al modelo. Inspection cubre rangos Sheet, párrafos Doc, páginas Slide, estructura Relational Table y objetos Canvases. La vista general Relational Table incluye configuración de campos, pero no valores de registros ni View projection; léalos con Facades cuando hagan falta.
+
+`prepareContentExecutionProgram()` resuelve la Facade raíz por Unit ID sin depender de la selección del navegador y rechaza redeclarar variables inyectadas. El modo read bloquea acciones de negocio persistentes antes de ejecutarlas; write captura las mutations de la Unit. Crear o destruir Units pertenece a operaciones de ciclo de vida separadas.
+
+Use `find()` para descubrir candidatos y `show()` para consultar declaraciones y tipos exactos. El índice incluido no necesita motor ni documentación en línea. Consulte [operaciones de contenido](/ai/content-operations) y [paquetes](/ai/packages).
+
+## Ejecución y persistencia confirmada [#commit]
+
+`execute({ mode: 'write' })` modifica la Unit activa y acumula pending. **No confirma que el servidor haya guardado los cambios.** `commit()` envía un changeset identificado y verifica identidad, contenido y revision del ACK antes de confirmarlo.
+
+| Estado | Acción de la aplicación |
+| --- | --- |
+| `confirmed` / `nothing-to-commit` | Envío confirmado o ausencia de cambios pendientes. |
+| `pull-required` | La versión remota avanzó: ejecute `pull()` y después `commit()`. |
+| `retry` / `unknown` | Conserve awaiting en el mismo Runtime y reintente `commit()`, sin repetir la edición. |
+| `conflict` | Detenga escrituras y decida recuperación o recarga. |
+
+Ante un resultado incierto se mantiene `sid + reqId` para confirmar el mismo changeset de forma idempotente. El backend debe implementar ese contrato. Si el programa falla, pueden conservarse mutations ya ejecutadas: inspeccione pending y decida la recuperación. `execute()` no es una transacción con reversión automática.
+
+El ejemplo recibe un Runtime Sheet cargado y devuelve ejecución y estado de envío. El llamador gestiona los estados y cierra el Runtime al terminar su ciclo de propiedad.
+
+```ts
+import { prepareContentExecutionProgram } from '@univer-cli/content-execution'
+import type { UniverCollaborationRuntime } from '@univer-cli/univer-collaboration-runtime'
+
+async function updateSales(runtime: UniverCollaborationRuntime) {
+  const pulled = await runtime.pull()
+  if (pulled.status === 'conflict') return pulled
+
+  const code = prepareContentExecutionProgram({
+    unitId: runtime.unitId,
+    unitType: 'sheet',
+    code: `
+      const sheet = workbook.getSheetByName('Data');
+      if (!sheet) throw new Error('Worksheet Data not found');
+      sheet.getRange('A2:B2').setValues([
+        [{ v: 'East', t: 1 }, { v: 128000, t: 2 }]
+      ]);
+      return sheet.getRange('A2:B2').getRawValues();
+    `,
+  })
+  const execution = await runtime.execute({ mode: 'write', code })
+  const commit = await runtime.commit()
+  return { execution, commit }
+}
+```
+
+## Reutilizar Runtimes en tareas frecuentes [#reuse]
+
+El pool presta exclusivamente un Worker Runtime por key de aplicación. La creación en frío usa single-flight por key y las leases esperan en FIFO; keys diferentes pueden usar Workers diferentes. `release()` devuelve la instancia, TTL/LRU libera recursos inactivos e `invalidate()` retira instancias no fiables.
+
+Distinga backend, Unit y Worktree en la key. El pool no valida la compatibilidad semántica de init. Un daemon puede conservar el pool entre llamadas CLI breves, pero siguen siendo necesarias sincronización y confirmación. Equilibre arranque, memoria residente y Workers; vea [reutilización y daemon](/ai/runtime-architecture).
+
+## De la automatización a la revisión humana [#handoff]
+
+Combine informes, limpieza de datos, plantillas o generación: localice el destino, escriba con Facades, espere el cálculo necesario y relea valores, texto y propiedades. Añada [inspección visual](/overview/features/shared/visual-inspection) cuando corresponda.
+
+Para aprobación utilice un [Worktree](/overview/features/shared/worktree): el Agent edita y verifica, marca Ready y una persona decide Merge. Siga los resultados por Unit; varios Runtimes no constituyen una transacción atómica entre documentos.
+
+La aplicación gestiona identidad, permisos, modelo y tareas. Las restricciones read/write protegen operaciones de negocio; el aislamiento de procesos y permisos de archivos y red para JavaScript no fiable también corresponden a la aplicación. Pruebe [inicio rápido](/overview/get-started) y el [ejemplo CLI](/overview/examples/cli).
+
+[Volver a funciones](/overview/features)

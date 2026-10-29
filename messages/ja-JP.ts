@@ -194,6 +194,16 @@ const jaJPMessages = {
     'theme-customizer': 'テーマカスタマイザー',
     'theme-customizer-description': 'Web SDK のテーマ、デザイントークン、ダークモードを調整します。',
   },
+  office: {
+    'start-description': 'テンプレートと3つの例で、最初の Office アプリを作ります。',
+    modules: 'モジュール',
+    overview: 'Office SDK の概要',
+    'overview-description': '共通ランタイムと SDK の連携を理解する。',
+    'web-description': '共通コンテンツエンジン、ブラウザーエディター、Headless ランタイム。',
+    'server-description': '共同編集、ファイル変換、履歴、Worktree のサービス。',
+    'ai-description': 'Agent 向けのコンテンツ操作、検査、検証。',
+    start: '使い始める',
+  },
   navigation: {
     overview: '概要',
     blog: 'ブログ',
@@ -555,6 +565,17 @@ const jaJPMessages = {
     response: 'レスポンス',
     type: '型',
   },
+  featureComparison: {
+    search: '機能を検索',
+    placeholder: '機能や説明を検索',
+    group: '分類',
+    allGroups: 'すべての分類',
+    openSource: 'オープンソースのみ',
+    differences: '相違点のみ',
+    reset: 'リセット',
+    count: '{total} 件中 {visible} 件',
+    empty: '該当する機能はありません。',
+  },
   search: {
     label: '検索',
     'no-result': '関連するコンテンツが見つかりませんでした',
@@ -571,6 +592,7 @@ const jaJPMessages = {
     navigate: '選択',
     open: '開く',
     scope: {
+      overview: '概要',
       blog: '開発チュートリアル',
       server: 'Server SDK',
       ai: 'AI SDK',

@@ -1,0 +1,101 @@
+---
+title: "WorkBuddy 插件"
+description: "在 WorkBuddy 中创建本地 Office 内容，通过实时预览和版本比较完成审阅与交付。"
+---
+
+**Univer Office for WorkBuddy**（`workbuddy-univer-office`）是基于 **[Univer Office SDK](/overview)** 公开 API 构建的本地 Office 集成。它通过 MCP 服务和 Skill，把内容创建、检查、预览和草稿审阅接入 WorkBuddy，文件保存在本地工作区。
+
+<Callout type="info">
+当前为开发预览。公开 npm 运行包可用于本地接入；正式市场安装与完整宿主内审阅仍待验收。
+</Callout>
+
+[安装与接入](#quick-start) · [直接体验](#first-task) · [Skills 与工具](#skills)
+
+## 安装与接入 [#quick-start]
+
+准备 WorkBuddy 5.8.3 或更新版本，以及 Node.js 22（22.12 或更新版本）。以下使用公开运行包 0.1.6，Office 内容默认保存在本机 `~/.univer-office/workspace`。
+
+### 1. 安装本地运行包
+
+```bash
+npm install --global --ignore-scripts workbuddy-univer-office@0.1.6 --registry=https://registry.npmjs.org/
+univer-office --version
+```
+
+先完成安装再连接 MCP，避免把首次依赖下载放进宿主的握手等待中。无需为本地连接创建云账号或填写 Office API Key。
+
+### 2. 接入本地 MCP
+
+在 WorkBuddy 中打开允许使用的工作目录，添加一个自定义 stdio MCP 服务。配置示例如下：
+
+```json
+{
+  "mcpServers": {
+    "univer-office": {
+      "type": "stdio",
+      "command": "univer-office",
+      "args": []
+    }
+  }
+}
+```
+
+若 WorkBuddy 找不到 `univer-office`，将 `command` 换成安装后的绝对路径；macOS/Linux 可用 `command -v univer-office` 查询，Windows 可用 `Get-Command univer-office`。由 WorkBuddy 启动该 stdio 服务，同一文件目录不要再启动独立的 HTTP 服务。需要指定其他存储目录时，配置绝对路径环境变量 `WORKBUDDY_OFFICE_WORKSPACE`。
+
+### 3. 导入操作 Skill
+
+准备 Git 与 Python 3，从公开仓库生成只包含操作说明的 Skill ZIP，无需编译应用：
+
+```bash
+git clone https://github.com/dream-num/workbuddy-univer-office.git
+cd workbuddy-univer-office
+python3 scripts/package-workbuddy-skills.py
+```
+
+在 WorkBuddy 的 Skills 管理中导入 `.data/packages/univer-office-workbuddy-skill.zip`。连接 MCP 后，先让助手检查 Office 服务状态，再发送下面的任务。Skill 提供操作指引，MCP 服务提供实际运行能力，两者需要一起使用。
+
+## 直接体验一个任务 [#first-task]
+
+<div className="[&_pre]:whitespace-pre-wrap [&_code]:whitespace-pre-wrap [&_code]:w-full! [&_pre]:wrap-anywhere">
+
+```text
+使用 Univer Office，新建本地文件 sales-review.univer，制作一张英文销售表：5 条示例记录，包含 Product、Quantity、Unit Price、Revenue，收入用公式计算，并添加总收入和产品收入图表。
+先检查写入和公式结果，再只展示这一张 Sheet 的右侧预览，并给我浏览器审阅链接。所有修改放在独立草稿中，等我确认后再合入。
+```
+
+</div>
+
+### 你会看到什么
+
+WorkBuddy 右侧显示一张只读表格预览；完整查看、Compare 和确认合入在浏览器中完成。Office 文件保留在本机。首个任务只创建一张 Sheet，便于立即看到公式和图表，也避免同一回复多张预览卡片的宿主路由限制。
+
+### 继续体验
+
+确认首份结果合入后，再发送：“在同一份销售表的新草稿中，把第一条记录的单价提高 10%，更新总收入，打开 Compare 展示与已确认版本的差异，等我审阅。”这样可以看到真实修改前后的比较。
+
+## Skills 与工具如何协作 [#skills]
+
+一个 [`univer-office` Skill](https://github.com/dream-num/workbuddy-univer-office/tree/main/skills/univer-office) 统筹工作流程，七份产品与跨内容参考按需加载。Agent 用 `univer_api` 查询公开 Facade，再通过 MCP 完成编辑、确认提交、读回和预览。Office SDK 的同一内容模型同时用于 Headless 处理与浏览器渲染，版本与 Worktree 让修改可定位、可比较、可审阅。
+
+## 你可以用它做什么
+
+- **在熟悉的助手里制作内容：** 让 WorkBuddy 创建或修改电子表格、文档、演示文稿、关系型表格和画布。
+- **用实时预览跟进任务：** 在宿主中查看只读预览，也可以打开外部浏览器，使用完整的查看与版本比较界面。
+- **看清修改再决定：** View 和 Compare 对草稿保持只读，按固定版本比较语义差异，并定位到相应内容。
+- **从草稿走到交付：** Agent 先在 Worktree 中修改；人审阅后选择合并、继续修改或丢弃，支持从选定的已确认版本导出对应文件格式。
+
+## Office SDK 如何支撑 [#sdk-integration]
+
+WorkBuddy 负责对话与 MCP 工具调用；本地服务复用 Office SDK 的 Headless 运行、Facade 内容操作、协同版本和 Worktree 能力，浏览器界面使用同一套内容模型渲染预览。可以参考它如何将 SDK 组合成适配 Agent 宿主的本地工具与审阅界面。
+
+## 体验与源码
+
+[本地运行说明](https://github.com/dream-num/workbuddy-univer-office#local-development) · [查看工作流程](https://github.com/dream-num/workbuddy-univer-office#workflow) · [源码仓库](https://github.com/dream-num/workbuddy-univer-office)
+
+## 继续了解
+
+- [文档内容加载与读写](/ai/content-operations)
+- [内容比较](/overview/features/shared/compare)
+- [Worktree](/overview/features/shared/worktree)
+
+[全部示例](/overview/examples)

@@ -1,0 +1,91 @@
+---
+title: "Agent 與自動化"
+description: "組合內容檢查、編輯與驗證，讓既有 Agent 操作 Office 內容。"
+icon: Bot
+---
+
+AI SDK 將 Univer 的內容模型、Facade 與協作能力組成 Agent 可呼叫的 TypeScript 介面。既有 Agent 可以先理解文件，再修改、驗證並交付審閱；模型、工具協定與任務編排由你的應用程式選擇。
+
+## 將內容能力接到既有 Agent [#capabilities]
+
+基礎能力套件回傳結構化結果，可接到自訂工具、服務或 CLI；選用的 `-command` 套件將能力封裝為原生 Commander 命令。Agent 使用與 Web 編輯器共用的內容模型和命令系統。
+
+| 能力 | 實際職責 |
+| --- | --- |
+| Inspection | 讀取結構、範圍、段落或物件細節，縮小任務範圍。 |
+| API Reference | 離線查詢隨套件提供的 Facade 宣告、多載、型別與範例。 |
+| Content Execution | 將 `workbook`、`doc`、`presentation`、`base` 或 `board` 綁定到明確 Unit，準備程式碼。 |
+| Collaboration Runtime | 載入內容、擷取 mutation、協調遠端變更並明確提交 changeset。 |
+
+## Runtime 如何還原可編輯狀態 [#runtime]
+
+一個 Collaboration Runtime 在生命週期內綁定一個 Unit。載入時先開啟應用程式提供的 backend，讀取 UnitData 或 Snapshot checkpoint，重播其 changeset，再補齊至遠端最新 revision 的連續變更；有安裝公式模組時，還會等待最新計算結果套用完成。
+
+<Mermaid chart={"sequenceDiagram\nparticipant A as 應用程式工具\nparticipant R as Runtime\nparticipant U as 內容引擎\nparticipant B as 協作 Backend\nA->>R: load\nR->>B: 載入 checkpoint 與變更\nR->>U: 還原 Unit 與 revision\nA->>R: pull：取得遠端變更\nR->>B: fetchChangesets\nB-->>R: changesets\nR->>U: OT 協調並套用\nA->>R: execute：Facade 修改\nR->>U: Facade\nU-->>R: 產生 mutation\nNote over R: 保留 pending\nA->>R: commit：提交 changeset\nR->>B: changeset\nB-->>R: ACK：確認身分與 revision"} />
+
+`fetch()` 僅取得並驗證變更；`pull()` 透過 OT 協調遠端變更與本地 pending/awaiting，再套用至模型。應用程式可透過 `baseRevision`、`knownHeadRevision`、`pendingMutationCount` 與 `awaitingChangeset` 判斷狀態。
+
+## 先定位內容，再執行 Facade [#inspection]
+
+先以 overview 發現結構，再依穩定 ID 或明確選擇器讀取目標，避免將整份 Snapshot 交給模型。Inspection 涵蓋 Sheet 範圍、Doc 段落、Slide 頁面、Relational Table 結構概覽與 Canvases 物件。Relational Table 概覽含欄位設定，不含記錄值與 View projection，可按需透過 Facade 補讀。
+
+`prepareContentExecutionProgram()` 以 Unit ID 取得根 Facade，不依賴瀏覽器選取狀態，並拒絕重新宣告注入變數。read 模式在命令執行前阻止持久化業務操作；write 模式擷取目標 Unit 的 mutation。建立、銷毀 Unit 由獨立生命週期入口處理。
+
+不熟悉 API 時，先 `find()` 找候選，再 `show()` 查看精確宣告與相關型別。索引隨 SDK 發布，不需要啟動內容引擎或存取線上文件。詳見[內容操作](/ai/content-operations)與[套件概覽](/ai/packages)。
+
+## 執行成功與提交確認是兩件事 [#commit]
+
+`execute({ mode: 'write' })` 修改 live Unit 並累積 pending，**不代表伺服器已儲存**。`commit()` 將 mutation 組成有提交身分的 changeset；收到 ACK 後驗證身分、內容與 revision，再確認提交。
+
+| 提交狀態 | 應用程式的處理 |
+| --- | --- |
+| `confirmed` / `nothing-to-commit` | 本輪已確認，或沒有待提交修改。 |
+| `pull-required` | 遠端版本已前進，先 `pull()` 協調，再嘗試 `commit()`。 |
+| `retry` / `unknown` | 保留同一 Runtime 的 awaiting，重試 `commit()`，不要重跑編輯程式。 |
+| `conflict` | 停止後續寫入，由應用程式決定恢復或重新載入。 |
+
+結果未知時保留 `sid + reqId`，讓 backend 依冪等合同確認同一 changeset，避免重跑編輯而重複插入。程式中途拋錯時，已發生的 mutation 仍可能保留；應檢查 pending 並決定恢復，不能將 `execute()` 視為自動回復交易。
+
+以下接收已載入的 Sheet Runtime，回傳執行與提交結果；呼叫端依上表處理狀態，並在擁有者生命週期結束時關閉 Runtime。
+
+```ts
+import { prepareContentExecutionProgram } from '@univer-cli/content-execution'
+import type { UniverCollaborationRuntime } from '@univer-cli/univer-collaboration-runtime'
+
+async function updateSales(runtime: UniverCollaborationRuntime) {
+  const pulled = await runtime.pull()
+  if (pulled.status === 'conflict') return pulled
+
+  const code = prepareContentExecutionProgram({
+    unitId: runtime.unitId,
+    unitType: 'sheet',
+    code: `
+      const sheet = workbook.getSheetByName('Data');
+      if (!sheet) throw new Error('Worksheet Data not found');
+      sheet.getRange('A2:B2').setValues([
+        [{ v: 'East', t: 1 }, { v: 128000, t: 2 }]
+      ]);
+      return sheet.getRange('A2:B2').getRawValues();
+    `,
+  })
+  const execution = await runtime.execute({ mode: 'write', code })
+  const commit = await runtime.commit()
+  return { execution, commit }
+}
+```
+
+## 高頻任務如何重用 Runtime [#reuse]
+
+高頻任務可按應用程式定義的 key 獨占租用 Worker Runtime。相同 key 採 single-flight 建立、FIFO 租用佇列；不同 key 可由不同 Worker 處理。`release()` 歸還實例，TTL/LRU 回收閒置資源，`invalidate()` 淘汰不再可信的實例。
+
+Key 應區分 backend、Unit 與 Worktree；Pool 不驗證兩次 init 的語意是否相容。Daemon 可長期持有 pool，跨短命令重用已載入的 Runtime，但仍需同步並確認提交。應衡量啟動成本、常駐記憶體與 Worker 數量，見 [Runtime 重用與 Daemon](/ai/runtime-architecture)。
+
+## 從自動化任務到人類審閱 [#handoff]
+
+可組合批次報表、資料整理、範本填寫或內容產生流程：定位目標、用 Facade 寫入、等待必要計算，再讀回數值、文字與物件屬性，按需加入[截圖與視覺檢查](/overview/features/shared/visual-inspection)。
+
+需人類確認時，將目標指向 [Worktree](/overview/features/shared/worktree)：Agent 多輪編輯與自檢，Ready 後由人類審閱並決定 Merge。跨 Unit 任務應分別追蹤執行與提交，多個 Runtime 不構成跨文件原子交易。
+
+應用程式仍負責身分、授權、模型連線與任務生命週期。read/write 限制保護業務操作邊界，不可信 JavaScript 的行程隔離與檔案、網路權限也由應用程式設定。可從[快速開始](/overview/get-started)與 [Univer CLI 範例](/overview/examples/cli)體驗完整流程。
+
+[返回功能總覽](/overview/features)

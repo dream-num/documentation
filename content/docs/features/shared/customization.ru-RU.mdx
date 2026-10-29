@@ -1,0 +1,188 @@
+---
+title: "Плагины и расширения Facade"
+description: "Собирайте функции и расширяйте контент и интерфейс через публичные API."
+icon: Puzzle
+---
+
+Univer собирает продукты и функции из плагинов и предоставляет операции с контентом через Facade API. Можно выбрать нужные движок, функции и интерфейс либо оформить бизнес-логику в плагин с типизированными методами для приложения и инструментов Agent.
+
+## Сборка необходимых возможностей работы с контентом [#composition]
+
+Preset — заранее собранный набор плагинов для быстрого старта. В режиме Plugin приложение явно выбирает продукты, функции и настройки. Оба подхода используют один механизм плагинов.
+
+| Уровень | Ответственность | Типичные компоненты |
+| --- | --- | --- |
+| Продукты и модели контента | Управление Unit, структурами и базовыми операциями. | Плагины Sheet, Doc, Slide, Relational Table, Canvases и PDF. |
+| Функциональные плагины | Возможности определённой предметной области. | Формулы, фильтры, диаграммы, комментарии и другое. |
+| Плагины UI и рендеринга | Отображение и точки взаимодействия. | Canvas, меню, панели инструментов, сочетания клавиш и компоненты. |
+| Расширения Facade | Публичные API установленных возможностей. | Операции с книгами, диапазонами, документами и объектами, семантические события. |
+
+Разделение логики продукта и UI позволяет повторно использовать совместимые возможности в Node.js, Worker и браузере. Headless-хост регистрирует нужные плагины контента; API меню, DOM и взаимодействия по-прежнему требуют соответствующей UI-среды.
+
+## Зависимости, жизненный цикл и владение ресурсами [#coordination]
+
+Плагины объявляют прямые зависимости через `@DependentOn(...)`, а runtime разрешает их и определяет порядок создания. Отсутствующие плагины зависимостей регистрируются с настройками по умолчанию. Если нужны свои настройки, сначала настройте и зарегистрируйте зависимость. Этот механизм не устанавливает пакеты и не импортирует стили, локализации, точки входа Facade или Worker.
+
+Внутри плагина внедрение зависимостей (DI) связывает сервисы, контроллеры и модели через публичные идентификаторы сервисов. Реализации для конкретной платформы можно заменить в предусмотренных точках настройки или внедрения, не заставляя бизнес-логику создавать и обслуживать все зависимости.
+
+| Этап | Подходящая работа |
+| --- | --- |
+| `onStarting()` | Регистрация зависимостей, команд и контроллеров; нельзя обращаться к ещё не созданным Unit или DOM. |
+| `onReady()` | Инициализация логики модели после готовности соответствующего контента. |
+| `onRendered()` | Инициализация расширений, которым нужны рендерер, Canvas или DOM. |
+| `onSteady()` | Отложенная работа, не обязательная для первого отображения. |
+
+Регистрациями команд, подписками, сочетаниями клавиш и модулями рендеринга управляет их владелец. Используйте `disposeWithMe()` для регистраций, возвращающих disposable, чтобы освобождать ресурсы вместе с плагином или контроллером. Сейчас `mergeMenu()` возвращает `void`, а не disposable.
+
+## Разные точки входа, единый механизм изменения контента [#commands]
+
+Панель инструментов, сочетания клавиш и бизнес-API могут вызывать одну команду. Хост Agent также может использовать её после установки необходимых возможностей. Система разделяет бизнес-намерение, сохраняемые изменения и временное состояние интерфейса.
+
+| Тип | Ответственность | Пример |
+| --- | --- | --- |
+| `COMMAND` | Проверка цели и организация бизнес-шагов, Mutation или Operation. | Создание отчёта о продажах, удаление строки. |
+| `MUTATION` | Изменение модели по явным сериализуемым параметрам для воспроизведения и соответствующей совместной обработки. | Изменение ячеек, вставка строки. |
+| `OPERATION` | Изменение временного состояния взаимодействия. | Выделение, прокрутка, состояние панели. |
+
+<Mermaid chart={"flowchart TD\n    U[\"Панель / сочетание клавиш\"] --> C[\"Command<br/>Проверка и организация\"]\n    A[\"Приложение / инструмент Agent\"] --> F[\"Facade API\"]\n    F --> C\n    C --> M[\"Mutation<br/>Изменение контента\"]\n    M --> D[\"Модель контента\"]\n    D --> R[\"Рендеринг / вычисления\"]\n    M -. \"Соответствующие адаптеры\" .-> H[\"Отмена и повтор / совместная работа / история\"]"} />
+
+Например, `FRange.setValues()` вызывает `SetRangeValuesCommand`, которая формирует `SetRangeValuesMutation` и данные отмены. Разные точки входа используют один путь выполнения и повторно применяют проверки, перехватчики и обработку изменений. Отмена, совместная работа и история требуют своих механизмов; одной регистрации Mutation для этого недостаточно.
+
+## Публикация возможностей плагина через Facade API [#facade]
+
+Facade предоставляет публичные объекты для работы с контентом, скрывая поиск внутренних сервисов и подготовку параметров команд. Расширение может объединять существующие методы Facade или вызывать собственную бизнес-команду.
+
+Пример добавляет `generateSalesReport()` в `FUniver`; команда реализована в следующем разделе. Три части отвечают за метод во время выполнения, его регистрацию и типы TypeScript.
+
+### sales-report.facade.ts
+
+```typescript
+import { FUniver } from '@univerjs/core/facade';
+import type { ISalesReportParams } from './sales-report.plugin';
+import { GenerateSalesReportCommand } from './sales-report.plugin';
+
+export interface IFUniverSalesReport {
+  generateSalesReport(params: ISalesReportParams): Promise<boolean>;
+}
+
+export class FUniverSalesReport extends FUniver implements IFUniverSalesReport {
+  override generateSalesReport(params: ISalesReportParams): Promise<boolean> {
+    return this._commandService.executeCommand(GenerateSalesReportCommand.id, params);
+  }
+}
+
+FUniver.extend(FUniverSalesReport);
+
+declare module '@univerjs/core/facade' {
+  interface FUniver extends IFUniverSalesReport {}
+}
+```
+
+`FUniver.extend()` устанавливает метод во время выполнения; расширение модуля добавляет только типы. Пользователь должен выполнить файл расширения через импорт с побочным эффектом. Экспорт класса или регистрация плагина не выполняют отдельную точку входа Facade. Публикуемый пакет может предоставить путь `/facade` и сохранить регистрацию через `package.json#sideEffects`.
+
+Такой подход применим только к классам Facade, явно поддерживающим `extend()`. Экспортированный класс не обязательно поддерживает mixin. Используйте понятные бизнес-имена методов и избегайте конфликтов с существующими API и расширениями.
+
+## Пример: один отчёт о продажах для приложения и Agent [#example]
+
+Минимальный плагин записывает английские данные о продажах, итоговые формулы и стиль заголовка в `A1:D5` указанного Sheet, заменяя этот диапазон. Он принимает явные ID книги и листа, не полагаясь на выделение или фокус.
+
+Команда проверяет цель и размеры, затем вызывает `SetRangeValuesCommand`, повторно используя изменение контента и отмену/повтор. Плагин регистрирует команду в `onStarting()` и управляет её disposable. Фиксированные данные служат примером; приложение может заменить их проверенными бизнес-данными.
+
+![Результат плагина: продажи по регионам и вычисленные итоги](/assets/features/customization/sales-report.png)
+
+Пример результата. Для удобства чтения настроены цвета, числовой формат, высота строк и ширина столбцов.
+
+### sales-report.plugin.ts
+
+```typescript
+import type { ICellData, ICommand, Workbook } from '@univerjs/core';
+import {
+  CommandType, DependentOn, ICommandService, Inject, Injector,
+  IUniverInstanceService, Plugin, UniverInstanceType,
+} from '@univerjs/core';
+import { SetRangeValuesCommand, UniverSheetsPlugin } from '@univerjs/sheets';
+
+export interface ISalesReportParams {
+  unitId: string;
+  subUnitId: string;
+}
+
+export const GenerateSalesReportCommand: ICommand<ISalesReportParams> = {
+  id: 'sales-report.command.generate',
+  type: CommandType.COMMAND,
+  handler: (accessor, params) => {
+    if (!params) return false;
+    const sheet = accessor.get(IUniverInstanceService)
+      .getUnit<Workbook>(params.unitId, UniverInstanceType.UNIVER_SHEET)
+      ?.getSheetBySheetId(params.subUnitId);
+    if (!sheet || sheet.getRowCount() < 5 || sheet.getColumnCount() < 4) return false;
+
+    const value: ICellData[][] = [
+      ['Region', 'Q1', 'Q2', 'H1 Total'].map((v) => ({
+        v, t: 1, s: { bg: { rgb: '#17324D' }, cl: { rgb: '#FFFFFF' }, bl: 1 },
+      })),
+      [{ v: 'East', t: 1 }, { v: 128000, t: 2 }, { v: 142000, t: 2 }, { f: '=SUM(B2:C2)' }],
+      [{ v: 'West', t: 1 }, { v: 96000, t: 2 }, { v: 118000, t: 2 }, { f: '=SUM(B3:C3)' }],
+      [{ v: 'North', t: 1 }, { v: 110000, t: 2 }, { v: 125000, t: 2 }, { f: '=SUM(B4:C4)' }],
+      [{ v: 'Total', t: 1 }, { f: '=SUM(B2:B4)' }, { f: '=SUM(C2:C4)' }, { f: '=SUM(D2:D4)' }],
+    ];
+
+    return accessor.get(ICommandService).executeCommand(SetRangeValuesCommand.id, {
+      ...params,
+      range: { startRow: 0, endRow: 4, startColumn: 0, endColumn: 3 },
+      value,
+    });
+  },
+};
+
+@DependentOn(UniverSheetsPlugin)
+export class SalesReportPlugin extends Plugin {
+  static override pluginName = 'SALES_REPORT_PLUGIN';
+  static override type = UniverInstanceType.UNIVER_SHEET;
+
+  constructor(
+    _config: undefined,
+    @Inject(Injector) protected override readonly _injector: Injector,
+    @ICommandService private readonly _commands: ICommandService,
+  ) { super(); }
+
+  override onStarting(): void {
+    this.disposeWithMe(this._commands.registerCommand(GenerateSalesReportCommand));
+  }
+}
+```
+
+Сначала настройте продукты и формулы по [руководству установки Sheet](/guides/sheets/getting-started/installation), затем зарегистрируйте плагин, импортируйте расширение Facade и вызовите его. Здесь `univer` — уже настроенный экземпляр. Настройка Node.js описана в [Headless Web SDK](/guides/sheets/getting-started/node).
+
+```typescript
+import { FUniver } from '@univerjs/core/facade';
+import '@univerjs/sheets/facade';
+import '@univerjs/engine-formula/facade';
+import { SalesReportPlugin } from './sales-report.plugin';
+import './sales-report.facade';
+
+univer.registerPlugin(SalesReportPlugin);
+const univerAPI = FUniver.newAPI(univer);
+const workbook = univerAPI.createWorkbook({ name: 'Quarterly Sales' });
+const worksheet = workbook.getActiveSheet();
+const target = { unitId: workbook.getId(), subUnitId: worksheet.getSheetId() };
+
+const generated = await univerAPI.generateSalesReport(target);
+if (!generated) throw new Error('Sales report could not be generated');
+await univerAPI.getFormula().onCalculationResultApplied();
+console.log(worksheet.getRange('D5').getValue()); // 719000
+```
+
+Успех команды означает завершение записи. Прежде чем читать значения формул, дождитесь применения результатов вычислений. В примере `D5` равно **719000**.
+
+Кнопка приложения может вызывать `generateSalesReport(target)` из обработчика нажатия. Обработчик инструмента Agent может вызвать тот же метод после установки плагина и расширения Facade в Headless-хост. Бизнес-действие и цель общие; UI обеспечивает вход и обратную связь. Установка плагина не публикует инструмент Agent автоматически: приложение регистрирует инструмент и проверяет доступ к Unit.
+
+## Границы реализации и дополнительные материалы [#boundaries]
+
+- **Повторно используйте существующие команды**: пример использует `SetRangeValuesCommand`. Новая Mutation требует обратных операций и соответствующей интеграции совместной работы. Для новых сохраняемых ресурсов нужна также сериализация; не изменяйте модель напрямую.
+- **Различайте выполнение, вычисление и отправку**: несколько вызовов Facade не образуют автоматическую атомарную транзакцию. Здесь используется одна запись диапазона; совместный хост отправляет и подтверждает изменения по контракту Runtime.
+- **Собирайте под нужную среду**: отдельно подключайте контент и UI, используйте одинаковую версию пакетов одной релизной линейки Univer и языковые ресурсы для UI. Для входов Agent приложение отвечает за авторизацию и проверку параметров.
+
+Подробнее: [Архитектура Univer](/blog/univer) · [Подключение Facade](/guides/sheets/getting-started/facade) · [Справочник Facade](/reference/facade) · [Настройка UI](/guides/sheets/ui/overview) · [Agent и автоматизация](/overview/features/shared/agents)
+
+[Вернуться к обзору функций](/overview/features)

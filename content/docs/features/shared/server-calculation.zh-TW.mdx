@@ -1,0 +1,82 @@
+---
+title: "無頭與伺服器端計算"
+description: "在 Node.js 中讀寫內容，結合 Rust 預先計算與陣列展開，為應用程式和 Agent 提供結構化與視覺結果。"
+icon: Calculator
+---
+
+Univer 將內容模型、計算與介面解耦。無頭執行是在 Node.js 中運行內容執行環境；伺服器端計算則透過 `univer-rs` 處理密集計算與檔案轉換。應用程式與 Agent 可圍繞同一份 Snapshot 組合這些能力。
+
+## 不註冊 UI 的 Node.js 執行環境
+
+按需註冊核心、產品模型、計算與 Facade 外掛，不註冊選單、工具列等依賴 DOM 的 UI 外掛，即可在 Node.js 載入與處理 Sheet、Doc、Slide、Relational Table、Canvases、PDF。Sheets、Docs 可從 Node 預設開始，其他產品使用各自的外掛組合。
+
+| 能力 | 可以完成什麼 |
+| --- | --- |
+| 載入與解析 | 載入快照，讀取並檢查儲存格、段落、頁面、物件、記錄及結構。 |
+| 計算 | 執行公式與陣列計算、更新樞紐分析、產生數字格式顯示結果。 |
+| 變更 | 透過 Facade API 編輯內容、調整結構，儲存快照或提交修改。 |
+| 檔案處理 | 結合 Server SDK 轉換模組，完成批次匯入、處理與匯出。 |
+| 視覺驗證 | 接入 Render Runtime，產生截圖並檢查版面，為 Agent 提供視覺結果。 |
+
+內容讀寫可直接在 Node.js 完成。截圖與版面檢查由另外配置的渲染執行環境提供；CLI 的 Render Runtime 可調度無介面瀏覽器，輸出 PNG 與版面檢查結果。
+
+## 前端即時計算，伺服器依版本計算 [#伺服器預先計算前端快速顯示]
+
+前端與伺服器都具備公式引擎。前端回應使用者編輯，伺服器在產生快照或處理檔案時，針對確定的內容版本計算。
+
+- **編輯時**：前端在本機增量計算並即時顯示結果，也可透過 Worker 執行；協作服務記錄並同步內容修改。
+- **產生快照時**：依伺服器快照策略觸發儲存流程，取得本次內容版本，由 `univer-rs` 計算，再將該版本的內容與計算結果一起儲存。
+- **再次開啟時**：前端重用快照中有效的計算結果，補齊之後的修改並持續計算，減少重複的完整計算。
+
+<Mermaid chart={"flowchart LR\n    F[\"前端編輯<br/>即時計算\"]\n    C[\"內容同步<br/>已確認修改\"]\n    R[\"Rust 計算<br/>內容版本 N\"]\n    S[\"儲存快照<br/>saveSnapshot\"]\n    F <--> C\n    C -->|\"產生快照時\"| R\n    R --> S"} />
+
+**修改持續同步；伺服器計算在產生快照時觸發，結果與對應的內容版本一起儲存。**
+
+首次載入可依已儲存的結果選擇計算策略：
+
+- `WHEN_EMPTY`：重用已儲存的公式值，只計算缺少的結果。
+- `NO_CALCULATION`：初始化時不計算，由應用程式提供結果。
+- `FORCED`：既有結果需要更新時，重新計算全部公式。
+
+這些選項控制首次載入。後續編輯由前端持續計算；伺服器在產生對應版本快照或處理檔案時按需計算。請參閱[公式文件](/guides/sheets/features/core/formula)、[協作總覽](/server/collaboration/overview)與[檔案匯入匯出](/overview/features/shared/file-conversion)。
+
+### 公式引擎效能
+
+10 份活頁簿的[Univer Rust 公式引擎效能實測](/blog/rust-formula-performance)已計入 Rust 原生輸入載入，並列出分段耗時、輸入格式範圍與範例下載。
+
+## 陣列公式的計算與展開
+
+在已支援的函數與格式範圍內，Rust 依 Excel 的陣列公式與溢出規則計算及展開。結果包含錨點、展開範圍與各儲存格數值，支援動態陣列與舊式陣列公式的宣告區域。
+
+例如，在空白 `A1` 輸入 `=SEQUENCE(3,2)`，結果為：
+
+| A | B |
+| --- | --- |
+| 1 | 2 |
+| 3 | 4 |
+| 5 | 6 |
+
+公式保留於 `A1`，結果展開至 `A1:B3`。陣列縮小時清除舊展開值；展開區域被占用時回傳 `#SPILL!`。前端顯示、Agent 讀取與檔案匯出可重用已計算的快照。
+
+函數與範圍規則見[公式支援](/guides/sheets/features/core/formula)及 [Excel 陣列展開行為](https://support.microsoft.com/en-us/excel/dynamic-array-formulas-and-spilled-array-behavior)。
+
+## 接入 Agent 的執行與驗證流程
+
+模型、對話與工具調度沿用現有 Agent，AI SDK 提供 Office 內容操作入口：
+
+1. 檢查結構，讀取任務涉及的內容。
+2. 透過無頭執行環境進行 Facade 修改與計算。
+3. 等待計算與提交確認，讀回更新後的狀態。
+4. 驗證數值與結構；需要視覺驗證時產生截圖或檢查版面。
+
+可結合[內容操作](/ai/content-operations)與[視覺檢查](/ai/visual-inspection)。需要人工審閱時，先在 [Worktree](/ai/worktree) 修改，再比較與合併。[Univer CLI](/overview/examples/cli) 展示如何組成 Agent 可用的應用程式。
+
+## 如何接入
+
+| 能力 | 可以完成什麼 |
+| --- | --- |
+| Node.js 內容執行環境 | 從[無頭 Web SDK](/guides/sheets/getting-started/node)開始，啟用所需的產品模型與計算外掛。 |
+| 背景檔案處理 | 結合 Rust 計算與 [Node.js 檔案轉換](/server/import-export/node)，儲存或回傳更新後的快照。 |
+| 共用編輯與 Agent | 接入[協作服務](/server/collaboration/quick-start)與 [AI SDK](/ai/content-operations)，讓使用者與 Agent 操作已確認的內容。 |
+
+[返回功能總覽](/overview/features)

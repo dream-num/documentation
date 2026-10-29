@@ -3,7 +3,6 @@
 import { BookTextIcon, FerrisWheelIcon } from 'lucide-react'
 import { useInView } from 'motion/react'
 import { useRef } from 'react'
-
 import { RainbowButton } from '@/components/magicui/rainbow-button'
 import { Link } from '@/i18n/navigation'
 
@@ -50,11 +49,11 @@ export function ClosingCTA({ title, description, startLabel, demoLabel }: IClosi
       id="get-started"
       aria-labelledby="get-started-title"
       data-active={isInView}
-      className="group/cta data-[active=false]:**:paused data-[active=false]:[&_a]:before:paused relative isolate w-full pt-16 pb-36 text-center md:pt-24 md:pb-48 motion-reduce:[&_*]:animate-none motion-reduce:[&_a]:before:animate-none"
+      className="group/cta relative isolate w-full pt-16 pb-36 text-center data-[active=false]:**:paused md:pt-24 md:pb-48 motion-reduce:[&_*]:animate-none data-[active=false]:[&_a]:before:paused motion-reduce:[&_a]:before:animate-none"
     >
       <h2
         id="get-started-title"
-        className="group-data-[active=true]/cta:animate-cta-enter mx-auto max-w-5xl px-6 text-[clamp(30px,4.2vw,54px)] leading-[1.2] font-medium tracking-[-0.045em] text-balance"
+        className="mx-auto max-w-5xl px-6 text-[clamp(30px,4.2vw,54px)] leading-[1.2] font-medium tracking-[-0.045em] text-balance group-data-[active=true]/cta:animate-cta-enter"
       >
         {title.split('\n').map((line) => (
           <span
@@ -65,10 +64,10 @@ export function ClosingCTA({ title, description, startLabel, demoLabel }: IClosi
           </span>
         ))}
       </h2>
-      <p className="group-data-[active=true]/cta:animate-cta-enter mx-auto mt-6 max-w-4xl px-6 text-sm/relaxed text-pretty whitespace-pre-line text-(--landing-muted) [animation-delay:100ms] md:px-12 md:text-base/relaxed">
+      <p className="mx-auto mt-6 max-w-4xl px-6 text-sm/relaxed text-pretty whitespace-pre-line text-(--landing-muted) [animation-delay:100ms] group-data-[active=true]/cta:animate-cta-enter md:px-12 md:text-base/relaxed">
         {description}
       </p>
-      <div className="group-data-[active=true]/cta:animate-cta-enter relative isolate mt-8 flex flex-wrap justify-center gap-4 px-6 [animation-delay:200ms] md:mt-10">
+      <div className="relative isolate mt-8 flex flex-wrap justify-center gap-4 px-6 [animation-delay:200ms] group-data-[active=true]/cta:animate-cta-enter md:mt-10">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 top-1/2 -z-10 h-40 -translate-y-1/2 overflow-hidden sm:h-48 lg:h-80"
@@ -93,7 +92,7 @@ export function ClosingCTA({ title, description, startLabel, demoLabel }: IClosi
             )}
           </svg>
         </div>
-        <RainbowButton render={<Link href="/guides/sheets/getting-started/quickstart" />}>
+        <RainbowButton render={<Link href="/overview" />}>
           <BookTextIcon aria-hidden="true" />
           {startLabel}
         </RainbowButton>

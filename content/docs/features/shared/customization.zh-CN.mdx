@@ -1,0 +1,188 @@
+---
+title: "插件与 Facade 扩展"
+description: "按需组装功能，通过公开 API 扩展内容操作与业务界面。"
+icon: Puzzle
+---
+
+Univer 通过插件组合产品与功能，通过 Facade 向应用开放内容操作。你可以选择需要的内容引擎、功能和界面，也可以把业务逻辑封装成插件，再提供带类型提示的 API，供自己的界面或 Agent 工具调用。
+
+## 按需组装内容能力 [#composition]
+
+Preset 是已经组合好的插件集合，适合快速接入；Plugin 模式让应用显式选择产品、功能及配置。两者使用同一套插件机制。
+
+| 层次 | 职责 | 典型组成 |
+| --- | --- | --- |
+| 产品与内容模型 | 管理 Unit、内容结构与基础操作 | Sheet、Doc、Slide、Relational Table、Canvases、PDF 的产品插件。 |
+| 功能插件 | 增加特定领域能力 | 公式、筛选、图表、评论等。 |
+| UI 与渲染插件 | 提供可视化呈现和交互入口 | Canvas 渲染、菜单、工具栏、快捷键与组件。 |
+| Facade 扩展 | 为已安装能力提供公开调用接口 | 工作簿、范围、文档和对象操作，以及语义事件。 |
+
+产品逻辑与 UI 分离，使适合无头运行的内容能力能够在 Node.js、Worker 或浏览器中复用。Headless 宿主按需注册内容插件；菜单、DOM 和交互相关 API 仍需要对应的 UI 环境。
+
+## 依赖、生命周期与资源归属 [#coordination]
+
+插件通过 `@DependentOn(...)` 声明直接依赖，运行时解析依赖并协调构造顺序。缺失的依赖插件会以默认配置注册；需要自定义配置时，宿主应先注册并配置依赖。它不会代替包安装，也不会自动引入样式、语言资源、Facade 入口或 Worker。
+
+插件内部使用依赖注入（DI）连接 Service、Controller 和模型。模块依赖公开的服务标识符，平台相关实现可在支持的配置或注入边界替换；业务逻辑不必自行创建并维护所有依赖。
+
+| 生命周期 | 适合执行的工作 |
+| --- | --- |
+| `onStarting()` | 注册依赖、命令和控制器；此时不要读取尚未创建的 Unit 或 DOM。 |
+| `onReady()` | 在对应内容就绪后初始化依赖模型的逻辑。 |
+| `onRendered()` | 初始化需要渲染器、Canvas 或 DOM 的扩展。 |
+| `onSteady()` | 延后非首屏必需的工作。 |
+
+命令注册、事件订阅、快捷键和渲染模块等资源应交给拥有者管理。对返回 disposable 的注册调用使用 `disposeWithMe()`，让资源随插件或控制器一起释放。`mergeMenu()` 当前返回 `void`，不能当作 disposable 使用。
+
+## 不同入口，共用内容变更机制 [#commands]
+
+工具栏、快捷键和业务 API 可以调用同一业务命令；Agent 宿主也能在安装对应能力后复用该入口。命令系统把业务意图、持久化变更和临时交互分开。
+
+| 类型 | 职责 | 示例 |
+| --- | --- | --- |
+| `COMMAND` | 校验目标、组织业务步骤，编排 Mutation 或 Operation。 | 写入销售报告、删除一行。 |
+| `MUTATION` | 使用明确、可序列化的参数修改内容模型，供重放及对应的协同处理使用。 | 修改单元格内容、插入行。 |
+| `OPERATION` | 修改临时交互状态。 | 调整选区、滚动位置、面板状态。 |
+
+<Mermaid chart={"flowchart TD\n    U[\"工具栏 / 快捷键\"] --> C[\"Command<br/>校验与业务编排\"]\n    A[\"业务应用 / Agent 工具\"] --> F[\"Facade API\"]\n    F --> C\n    C --> M[\"Mutation<br/>内容变更\"]\n    M --> D[\"内容模型\"]\n    D --> R[\"渲染 / 计算\"]\n    M -. \"对应适配机制\" .-> H[\"撤销重做 / 协同 / 历史记录\"]"} />
+
+例如，`FRange.setValues()` 会调用 `SetRangeValuesCommand`，由命令生成 `SetRangeValuesMutation` 并安排相应的撤销数据。内容变更进入同一条执行链，不同入口可以复用已有的校验、拦截及变更处理。图中的撤销、协同和历史记录仍需对应机制；注册一个 Mutation 本身不会自动获得这些能力。
+
+## 把插件能力扩展为 Facade API [#facade]
+
+Facade 提供面向内容对象的公开接口，隐藏内部服务查找和命令参数编排。扩展可以组合现有 Facade 方法，也可以调用插件自己的业务命令。
+
+下面为 `FUniver` 增加 `generateSalesReport()`；业务命令将在下一节实现。三部分分别负责运行时方法、运行时挂载和 TypeScript 类型提示。
+
+### sales-report.facade.ts
+
+```typescript
+import { FUniver } from '@univerjs/core/facade';
+import type { ISalesReportParams } from './sales-report.plugin';
+import { GenerateSalesReportCommand } from './sales-report.plugin';
+
+export interface IFUniverSalesReport {
+  generateSalesReport(params: ISalesReportParams): Promise<boolean>;
+}
+
+export class FUniverSalesReport extends FUniver implements IFUniverSalesReport {
+  override generateSalesReport(params: ISalesReportParams): Promise<boolean> {
+    return this._commandService.executeCommand(GenerateSalesReportCommand.id, params);
+  }
+}
+
+FUniver.extend(FUniverSalesReport);
+
+declare module '@univerjs/core/facade' {
+  interface FUniver extends IFUniverSalesReport {}
+}
+```
+
+`FUniver.extend()` 在运行时安装方法；模块增强只补充类型。接入方必须执行扩展文件的 side-effect import，仅导出类或注册插件不会执行另一个 Facade 入口。发布为包时可暴露独立的 `/facade` 子路径，并通过 `package.json` 的 `sideEffects` 保留这一注册副作用。
+
+只对明确支持 `extend()` 的 Facade 类使用这种方式；导出了某个 Facade 类，不代表它一定支持 mixin。扩展方法应使用明确的业务命名，避免与已有方法或其他扩展重名。
+
+## 案例：让应用与 Agent 生成同一份销售报告 [#example]
+
+这个最小业务插件把英文销售数据、汇总公式和表头样式写入指定 Sheet 的 `A1:D5`，会覆盖该区域。它显式接收工作簿和工作表 ID，不依赖当前选区或焦点。
+
+命令先检查目标及区域大小，再调用已有的 `SetRangeValuesCommand`，复用它的内容变更和撤销／重做逻辑；插件在 `onStarting()` 注册命令，并保存释放句柄。固定数据用于演示，实际应用可改为经过校验的业务输入。
+
+![销售报告插件输出：各区域销售数据与汇总公式结果](/assets/features/customization/sales-report.png)
+
+示例输出。为便于阅读，截图补充了底色、数字显示格式与行列尺寸。
+
+### sales-report.plugin.ts
+
+```typescript
+import type { ICellData, ICommand, Workbook } from '@univerjs/core';
+import {
+  CommandType, DependentOn, ICommandService, Inject, Injector,
+  IUniverInstanceService, Plugin, UniverInstanceType,
+} from '@univerjs/core';
+import { SetRangeValuesCommand, UniverSheetsPlugin } from '@univerjs/sheets';
+
+export interface ISalesReportParams {
+  unitId: string;
+  subUnitId: string;
+}
+
+export const GenerateSalesReportCommand: ICommand<ISalesReportParams> = {
+  id: 'sales-report.command.generate',
+  type: CommandType.COMMAND,
+  handler: (accessor, params) => {
+    if (!params) return false;
+    const sheet = accessor.get(IUniverInstanceService)
+      .getUnit<Workbook>(params.unitId, UniverInstanceType.UNIVER_SHEET)
+      ?.getSheetBySheetId(params.subUnitId);
+    if (!sheet || sheet.getRowCount() < 5 || sheet.getColumnCount() < 4) return false;
+
+    const value: ICellData[][] = [
+      ['Region', 'Q1', 'Q2', 'H1 Total'].map((v) => ({
+        v, t: 1, s: { bg: { rgb: '#17324D' }, cl: { rgb: '#FFFFFF' }, bl: 1 },
+      })),
+      [{ v: 'East', t: 1 }, { v: 128000, t: 2 }, { v: 142000, t: 2 }, { f: '=SUM(B2:C2)' }],
+      [{ v: 'West', t: 1 }, { v: 96000, t: 2 }, { v: 118000, t: 2 }, { f: '=SUM(B3:C3)' }],
+      [{ v: 'North', t: 1 }, { v: 110000, t: 2 }, { v: 125000, t: 2 }, { f: '=SUM(B4:C4)' }],
+      [{ v: 'Total', t: 1 }, { f: '=SUM(B2:B4)' }, { f: '=SUM(C2:C4)' }, { f: '=SUM(D2:D4)' }],
+    ];
+
+    return accessor.get(ICommandService).executeCommand(SetRangeValuesCommand.id, {
+      ...params,
+      range: { startRow: 0, endRow: 4, startColumn: 0, endColumn: 3 },
+      value,
+    });
+  },
+};
+
+@DependentOn(UniverSheetsPlugin)
+export class SalesReportPlugin extends Plugin {
+  static override pluginName = 'SALES_REPORT_PLUGIN';
+  static override type = UniverInstanceType.UNIVER_SHEET;
+
+  constructor(
+    _config: undefined,
+    @Inject(Injector) protected override readonly _injector: Injector,
+    @ICommandService private readonly _commands: ICommandService,
+  ) { super(); }
+
+  override onStarting(): void {
+    this.disposeWithMe(this._commands.registerCommand(GenerateSalesReportCommand));
+  }
+}
+```
+
+宿主先按照 [Sheet 接入指南](/guides/sheets/getting-started/installation)配置好产品与公式能力，再注册业务插件、导入 Facade 扩展并调用。这里的 `univer` 是已经完成该配置的实例；Node.js 的对应配置见 [Headless Web SDK](/guides/sheets/getting-started/node)。
+
+```typescript
+import { FUniver } from '@univerjs/core/facade';
+import '@univerjs/sheets/facade';
+import '@univerjs/engine-formula/facade';
+import { SalesReportPlugin } from './sales-report.plugin';
+import './sales-report.facade';
+
+univer.registerPlugin(SalesReportPlugin);
+const univerAPI = FUniver.newAPI(univer);
+const workbook = univerAPI.createWorkbook({ name: 'Quarterly Sales' });
+const worksheet = workbook.getActiveSheet();
+const target = { unitId: workbook.getId(), subUnitId: worksheet.getSheetId() };
+
+const generated = await univerAPI.generateSalesReport(target);
+if (!generated) throw new Error('Sales report could not be generated');
+await univerAPI.getFormula().onCalculationResultApplied();
+console.log(worksheet.getRange('D5').getValue()); // 719000
+```
+
+命令返回成功表示内容写入已完成；读取公式值前还需等待计算结果应用。这个示例的 `D5` 为 **719000**。
+
+应用按钮可在自己的点击处理器中调用 `generateSalesReport(target)`；Agent 的工具处理器在 Headless 宿主中安装同一插件和 Facade 扩展后，也可调用该方法。业务动作及其目标保持一致，UI 只负责入口和反馈。安装自定义插件不会自动把它注册为 Agent 工具，工具暴露和 Unit 授权仍由应用安排。
+
+## 实现边界与继续阅读 [#boundaries]
+
+- **复用已有内容命令**：本例复用 `SetRangeValuesCommand`。新增 Mutation 时还需设计反向操作与相应的协同适配；引入新的持久化资源时也需处理序列化，不要直接修改底层模型。
+- **区分执行、计算与提交**：多个 Facade 调用不是自动原子事务。本例使用一次范围写入；协同宿主还需按 Runtime 的规则提交并确认。
+- **按环境组合**：内容插件与 UI 插件分别接入，相关 Univer 包保持同一发布版本，界面文案使用语言资源。Agent 入口仍需应用自己的授权与参数检查。
+
+了解更多：[Univer 架构](/blog/univer) · [Facade 接入](/guides/sheets/getting-started/facade) · [Facade API 参考](/reference/facade) · [UI 定制](/guides/sheets/ui/overview) · [Agent 与自动化](/overview/features/shared/agents)
+
+[返回功能总览](/overview/features)

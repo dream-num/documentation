@@ -1,0 +1,94 @@
+---
+title: "Captures et inspection visuelle"
+description: "Combinez relecture structurée, captures rendues et contrôles de diapositives."
+icon: ScanEye
+---
+
+L’inspection visuelle transforme les modèles en images et preuves de mise en page. L’Agent vérifie données et formules avant d’examiner textes, formes et pages rendus, puis les corrige via Facade et vérifie le nouvel état.
+
+## Trois sortes de preuves [#evidence]
+
+| Preuve | Ce qu’elle vérifie |
+| --- | --- |
+| Relecture structurée | Valeurs brutes, formules et résultats, paragraphes et propriétés. |
+| PNG | Contenu visible, découpe, graphiques, couleurs et composition. |
+| Diagnostic de mise en page | Règles, ID, limites et positions issus du rendu pour des corrections ciblées. |
+
+## Préparer état et dépendances [#state]
+
+Screenshot et Layout Lint reçoivent des UnitData matérialisées, sans connecter de cible distante ni interpréter les changesets. Pour la collaboration, faites `pull()`, attendez le calcul des formules modifiées puis `exportUnitData()`. Dans un Worktree, exportez le bon brouillon. L’application peut consigner cible, revision et périmètre avec le rapport.
+
+Le Snapshot hôte ne contient pas toutes les dépendances. Fournissez les sources Sheet/Relational Table avec `formulaReferenceUnits` et les enfants avec `embeddedUnits` ; Render Page les matérialise avant l’hôte. Préparez les images UUID avec `resolveUnitScreenshotImageAssets()` et un resolver applicatif. La résolution est best-effort : vérifiez les ressources manquantes.
+
+## Produire une image stable [#rendering]
+
+<Mermaid chart={"flowchart LR\nA[\"État explicite<br/>UnitData + dépendances\"]\nB[\"Render Runtime<br/>Navigateur et protocole\"]\nC[\"Render Page<br/>Rendu natif Univer\"]\nD[\"Vérifier la disponibilité<br/>Calcul et image stable\"]\nE[\"PNG / faits de mise en page<br/>Agent et revue humaine\"]\nA --> B --> C --> D --> E"} />
+
+`univer-render-runtime` héberge la Render Page construite par l’application et démarre le navigateur depuis Node.js. Les plugins restaurent le contenu et les deux côtés vérifient le protocole. Les opérations suivent une file série par Runtime, réutilisable ; son propriétaire appelle finalement `close()`.
+
+Les conditions dépendent du produit. Les Shapes calculées attendent la sortie de pending et, au besoin, des pixels stables sur plusieurs images. Relational Table attend polices, calcul, table/view active et stabilité DOM/Canvas. Sortir de pending peut aussi signaler une erreur : vérifiez valeur et état.
+
+L’implémentation actuelle hache les UnitData hôtes, sources de formules et enfants sérialisés. Des données modifiées créent une autre key même si l’Unit ID reste identique, évitant de réutiliser une ancienne image sur la seule identité.
+
+## Choisir le périmètre par produit [#scope]
+
+| Produit | Périmètre et sortie |
+| --- | --- |
+| Sheet | Feuille et plage A1 explicites pour un PNG régional ; ciblez les résultats importants. |
+| Doc | Pages sélectionnées ou énumérées, avec un PNG par page. |
+| Slide | Numéros dès 1 ou page ID, avec contact sheet facultative. |
+| Relational Table | Espace de travail de la table/vue active à l’ouverture, en DOM + Canvas. |
+| Canvases | Limites complètes ou region / elementIds exclusifs, padding et preuves géométriques. |
+
+`unit-screenshot` renvoie bytes, dimensions, identité de page/plage et noms suggérés ; l’application enregistre. Scale accepte 0.1–4 ; configurez `maxPages` et `maxPixels` par image. Doubler l’échelle quadruple approximativement les pixels : découpez les grands contenus. PDF est hors de cette entrée à cinq produits.
+
+## Partager les données entre capture et lint [#example]
+
+L’exemple capture et analyse les mêmes données Slide et sources de formules. `renderRuntime` existe déjà et `slideData` est le snapshot préparé. Les capacités n’écrivent pas de fichiers. Voir [inspection visuelle AI SDK](/ai/visual-inspection) pour la page et la fermeture des ressources.
+
+```ts
+import { createUnitScreenshot } from '@univer-cli/unit-screenshot'
+import { createUnitLayoutLint } from '@univer-cli/unit-layout-lint'
+
+const source = {
+  unitType: 'slide' as const,
+  unitData: slideData,
+  formulaReferenceUnits,
+}
+const screenshot = createUnitScreenshot({ runtime: renderRuntime })
+const lint = createUnitLayoutLint({ runtime: renderRuntime })
+
+const capture = await screenshot.capture({
+  ...source,
+  target: { kind: 'slide-pages', pages: [1], scale: 2 },
+})
+const report = await lint.lint({ ...source, pages: [1] })
+```
+
+## Slide : localiser grâce à l’encre des glyphes [#slide-lint]
+
+Layout Lint utilise les faits du navigateur. `declared` est le cadre déclaré ; `ink` correspond aux glyphes réellement dessinés, transformés en coordonnées de page avec composition, alignement et rotation. Un cadre dans la page ne garantit pas que son texte y reste.
+
+| Règle actuelle | Preuve examinée |
+| --- | --- |
+| `text-off-page` | L’encre réelle du texte dépasse la page. |
+| `text-escapes-container` | Le texte sort nettement d’un petit conteneur opaque identifié. |
+| `text-overlaps-text` | Deux zones d’encre textuelle se chevauchent significativement. |
+
+`coverage.pages` et `coverage.rules` décrivent la couverture. Un finding contient `pageId`, `id`, `text.ink` et les preuves `overflow`, `container` ou `other` ; un `fingerprint` stable facilite les comparaisons. Ce sont actuellement des warnings à revoir avec les images. Une liste vide signifie seulement qu’aucune règle n’a été déclenchée dans le périmètre choisi.
+
+## Canvases : examiner les tracés rendus [#board-analysis]
+
+Les captures Canvases ajoutent `layoutAnalysis` : routes, issues et summary résolus par le navigateur. Cette entrée est distincte de `unit-layout-lint`, limité à Slide. Les routes automatiques peuvent être non résolues dans le modèle ; utilisez `source: 'rendered'` pour le tracé final.
+
+Les diagnostics repèrent traversées d’éléments, croisements et collisions de flèches ou d’étiquettes avec `connectorIds`, `elementIds` et `focusBounds`. Corrigez les objets, capturez une region ou des elementIds, puis revoyez l’ensemble. La preuve visuelle conduit ainsi à une modification Facade précise.
+
+## Joindre les preuves à la livraison [#handoff]
+
+<Mermaid chart={"flowchart LR\nA[\"Modifier via Facade\"]\nB[\"Relire données et formules\"]\nC[\"Capture + diagnostic\"]\nD[\"Corriger par ID\"]\nE[\"Vérifier le nouvel état\"]\nF[\"Revue / livraison\"]\nA --> B --> C --> D --> E --> F\nD --> B"} />
+
+Conservez résultats, périmètre, pages, images et diagnostics ensemble. Une capture ne prouve pas la justesse des formules et lint ne remplace pas le jugement visuel. Vérifiez barres, focus et menus dans Web, ainsi que le chargement des dépendances entre Units.
+
+Terminez les contrôles avant Ready dans un [Worktree](/overview/features/shared/worktree). Voir [exécution sans interface et calcul serveur](/overview/features/shared/server-calculation) et [Agents et automatisation](/overview/features/shared/agents).
+
+[Retour aux fonctionnalités](/overview/features)

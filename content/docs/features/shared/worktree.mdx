@@ -1,0 +1,84 @@
+---
+title: "Worktree"
+description: "Understand draft isolation, revision baselines, OT merging, and how AI SDK connects agent editing with human review."
+icon: GitBranch
+---
+
+Worktree provides isolated, collaboratively editable drafts of Office content. An agent can revise a budget, organize data, or improve a brief while people continue editing the main document (trunk). Validate and review the draft before merging its changes.
+
+It isolates document content and changes, rather than a Git working directory. One task can contain multiple [Units](/guides/sheets/getting-started/quickstart#unit), such as a workbook, document, and presentation.
+
+## Isolation: evolve from a shared baseline [#isolation]
+
+For an existing Unit, creation records its current trunk revision as the **baseline**. The draft starts there, with separate snapshots, changesets, revisions, Presence, and collaboration Rooms. Intermediate agent edits stay out of trunk.
+
+<Mermaid chart={"flowchart LR\n    A[\"Trunk at creation<br/>Baseline\"]\n    B[\"Trunk keeps evolving\"]\n    C[\"Worktree draft\"]\n    D[\"Ready · Review\"]\n    E[\"OT merge\"]\n    F[\"New trunk revision\"]\n    A --> B\n    A --> C --> D\n    B --> E\n    D --> E --> F"} />
+
+| Concept | Role |
+| --- | --- |
+| Baseline | Identifies the trunk version the draft started from, for comparison and merging. |
+| Draft head | Latest confirmed draft revision, advanced by draft submissions. |
+| Ready head | Frozen draft revision that defines the reviewed and merged scope. |
+
+Trunk and draft can advance independently. Their revisions describe separate submission sequences; comparing numbers alone does not tell you which content is newer. Pulling a draft synchronizes draft changes. New trunk edits do not automatically enter the review version; merge preview and merging reconcile them.
+
+## How AI SDK targets the same draft [#ai-sdk]
+
+AI SDK’s Collaboration Runtime handles one Unit’s snapshots, changesets, and revisions. Server SDK’s Worktree service owns creation, lifecycle, and merging. The Runtime does not need another editing engine for Worktrees.
+
+The application resolves `worktreeID + unitID` into draft snapshot, submit, WebSocket, and Session Ticket URLs, then supplies them to the Runtime. The same inspection and editing tools can target trunk or a draft.
+
+<Mermaid chart={"flowchart LR\n    A[\"Agent / business CLI\"]\n    B[\"Human Web review\"]\n    C[\"Application target adapter\"]\n    D[\"Worktree Endpoint\"]\n    E[\"Same draft Unit\"]\n    A --> C\n    B --> C\n    C --> D --> E"} />
+
+A Unit ID can exist in trunk and several Worktrees. Include its Worktree in the target, and use the same target for inspection, execution, screenshots, and Web preview. Otherwise, a tool might read a draft but write to trunk. Web loads the same draft with its matching collaboration configuration.
+
+| Component | Responsibility |
+| --- | --- |
+| Web SDK | Shared content engine for Headless agent operations and browser editing. |
+| Server SDK | Draft isolation, changeset and revision persistence, lifecycle, and OT merging. |
+| AI SDK | Composable Runtime, Inspection, API lookup, Facade execution, and visual checks. |
+| Your application | Model selection, target mapping, identity, authorization, tasks, and review UI. |
+
+## From agent editing to handoff [#agent-workflow]
+
+The application can organize parallel tasks with a separate Worktree for each agent. Each agent edits, checks, and marks its draft Ready. A person reviews drafts individually, Reopens the corresponding draft for changes, and merges accepted work into current trunk.
+
+<Mermaid chart={"flowchart TB\n    TRUNK[\"Main document · Trunk\"]\n    subgraph PARALLEL[\"Agents work in parallel\"]\n        direction LR\n        AGENT_A[\"Agent A<br/>Worktree A<br/>Edit and validate\"]\n        AGENT_B[\"Agent B<br/>Worktree B<br/>Edit and validate\"]\n        AGENT_C[\"Agent C<br/>Worktree C<br/>Edit and validate\"]\n    end\n    REVIEW[\"Human review<br/>Drafts and previews\"]\n    MERGE[\"Merge individually<br/>Into current trunk\"]\n    RESULT[\"New trunk revision\"]\n    TRUNK --> AGENT_A\n    AGENT_A -->|\"Ready\"| REVIEW\n    TRUNK --> AGENT_B\n    AGENT_B -->|\"Ready\"| REVIEW\n    TRUNK --> AGENT_C\n    AGENT_C -->|\"Ready\"| REVIEW\n    REVIEW -->|\"Approve\"| MERGE\n    REVIEW -.->|\"Reopen the relevant draft\"| PARALLEL\n    MERGE --> RESULT"} />
+
+1. **Create and load:** choose task Units, connect the Worktree target, and pull its latest content.
+2. **Inspect and edit:** understand structure with Inspection, look up APIs as needed, and edit through Facades.
+3. **Commit and verify:** submit to the draft, read back data and calculation results, and capture screenshots when needed. Slides can also use Layout Lint. Repeat when checks find issues.
+4. **Mark Ready:** freeze each Unit’s draft revision and stop editing for review.
+5. **Review:** Merge accepted work; Reopen to Draft before either a person or agent edits again; Discard unwanted drafts.
+
+| Operation | Effect |
+| --- | --- |
+| `runtime.commit()` | Submit only to the draft and advance its revision. |
+| `markReady()` | Freeze the review version without merging into trunk. |
+| `reopenWorktree()` | Return Ready to Draft and allow editing again. |
+| `mergeWorktree()` | Merge frozen draft changes into trunk per Unit. |
+
+Commit, Ready, and Merge are separate operations. Both people and agents must Reopen a Ready draft before editing. See the [AI SDK workflow](/ai/worktree) for Runtime and CLI composition.
+
+## Merging changes into current trunk [#merge]
+
+For a trunk-sourced Unit, the service reads draft changesets from the **baseline to Ready head**, collects their mutations, and submits them through trunk Collaboration Service. If trunk has advanced, [OT](/overview/features/shared/collaboration) transforms these against subsequent trunk edits before confirming a new revision.
+
+Merging therefore applies edits rather than replacing the latest document with an old snapshot. Transformable concurrent changes are reconciled. Untransformable or inapplicable changes return conflicts for the application to handle; OT cannot settle every business disagreement.
+
+A Unit created inside a Worktree has no trunk baseline. Merge creates it in trunk without copying the entire draft changeset history.
+
+## Review the edits and the merge result [#review]
+
+- **What changed?** Compare the complete baseline and Ready draft states with [Compare](/overview/features/shared/compare).
+- **What would merging do now?** Call `evaluateUnitMerge()` after Ready. When trunk has advanced, an isolated Runtime applies an OT-transformed candidate to current trunk and produces a read-only preview. It submits no changeset and modifies neither trunk nor draft.
+
+Preview describes the state at request time. Trunk can change later, and actual Merge uses its execution-time state. Multi-Unit merging is not one atomic transaction: successful Units remain merged if another fails. Show per-Unit outcomes and handle failures individually.
+
+## Integration and coverage [#integration]
+
+Combine Worktree Client, Service, Endpoint, and database adapters with collaboration core. Keep draft storage separate and share a Session Ticket Store with trunk. Applications authorize draft access and trunk writes separately; isolation does not grant access automatically.
+
+Sheet, Doc, Slide, Canvases, and Relational Table are supported; PDF is not included. Start with the [example](/server/collaboration/examples#worktree), [extension modules](/server/collaboration/packages#worktree), and [agent integration guide](/ai/worktree).
+
+[Back to all features](/overview/features)

@@ -1,0 +1,91 @@
+---
+title: "Agent と自動化"
+description: "検査・編集・検証をツールにまとめ、既存 Agent から Office を操作します。"
+icon: Bot
+---
+
+AI SDK は Univer のモデル、Facade、共同編集を、Agent が呼び出せる TypeScript 機能として提供します。既存の Agent から内容の理解、編集、検証、レビューへの引き渡しを行えます。モデルとツールのプロトコル、タスク制御はアプリケーションが選びます。
+
+## 既存の Agent に接続する [#capabilities]
+
+機能パッケージは構造化された結果を返し、ツール、サービス、CLI に組み込めます。任意の `-command` パッケージは Commander コマンドを提供します。Agent は Web エディターと同じ内容モデルとコマンド系を操作します。
+
+| 機能 | 役割 |
+| --- | --- |
+| Inspection | 構造、範囲、段落、オブジェクト詳細を読み、対象を絞る。 |
+| API Reference | 同梱された Facade 宣言、オーバーロード、型、例をオフライン検索する。 |
+| Content Execution | 明示した Unit に `workbook`、`doc`、`presentation`、`base`、`board` を結び付ける。 |
+| Collaboration Runtime | 内容を読み込み、mutation を取得し、リモート変更を調整して changeset を送信する。 |
+
+## Runtime が編集可能な状態を復元する仕組み [#runtime]
+
+Collaboration Runtime は生存期間を通して一つの Unit に結び付きます。アプリケーションの backend を開き、UnitData または Snapshot checkpoint と changeset を読み、リモート先端まで連続した revision を再生します。数式モジュールがあれば最新計算結果の適用も待ちます。
+
+<Mermaid chart={"sequenceDiagram\nparticipant A as アプリのツール\nparticipant R as Runtime\nparticipant U as 内容エンジン\nparticipant B as 共同編集 backend\nA->>R: load\nR->>B: checkpoint と変更を取得\nR->>U: Unit と revision を復元\nA->>R: pull：リモート変更を取得\nR->>B: fetchChangesets\nB-->>R: changesets\nR->>U: OT で調整して適用\nA->>R: execute：Facade で編集\nR->>U: Facade\nU-->>R: mutation を生成\nNote over R: pending を保持\nA->>R: commit：changeset を送信\nR->>B: changeset\nB-->>R: ACK：識別子と revision を確認"} />
+
+`fetch()` は変更を取得・検証するだけです。`pull()` は OT でリモート変更と pending/awaiting を調整し、モデルへ適用します。`baseRevision`、`knownHeadRevision`、`pendingMutationCount`、`awaitingChangeset` で状態を追跡できます。
+
+## 対象を特定して Facade を実行する [#inspection]
+
+overview で構造を把握し、安定した ID や明確なセレクターで対象を読みます。Snapshot 全体をモデルへ送る必要はありません。Sheet 範囲、Doc 段落、Slide ページ、Relational Table 構造概要、Canvases オブジェクトに対応します。Relational Table 概要はフィールド設定を含みますが、レコード値や View projection は必要に応じ Facade で読みます。
+
+`prepareContentExecutionProgram()` は Unit ID でルート Facade を取得し、画面上の選択に依存しません。注入変数の再宣言は拒否されます。read モードは永続化する業務操作を実行前に阻止し、write は対象 Unit の mutation を取得します。Unit の作成・破棄は別のライフサイクル操作です。
+
+不明な API は `find()` で候補を探し、`show()` で正確な宣言と関連型を確認します。同梱索引はエンジン起動やオンライン文書を必要としません。[内容操作](/ai/content-operations)と[パッケージ概要](/ai/packages)を参照してください。
+
+## 実行と送信確認を区別する [#commit]
+
+`execute({ mode: 'write' })` は live Unit を変更して pending を蓄積します。**サーバーへの保存完了ではありません。** `commit()` は識別可能な changeset を送り、ACK の識別子、内容、revision を検証して確定します。
+
+| 送信状態 | アプリケーションの対応 |
+| --- | --- |
+| `confirmed` / `nothing-to-commit` | 確定済み、または送信対象なし。 |
+| `pull-required` | リモートが進んだため `pull()` で調整して再送信する。 |
+| `retry` / `unknown` | 同じ Runtime の awaiting を保ち `commit()` を再試行する。編集コードは再実行しない。 |
+| `conflict` | 書き込みを止め、復旧や再読み込みを判断する。 |
+
+結果不明でも `sid + reqId` を保持し、backend の冪等な確認により重複編集を防ぎます。backend はこの契約を満たす必要があります。コード途中の例外でも実行済み mutation が残る場合があるため、pending を確認して復旧します。`execute()` は自動ロールバックするトランザクションではありません。
+
+例は読み込み済み Sheet Runtime を受け取り、実行結果と送信状態を返します。呼び出し側は上表に従って対応し、所有者の終了時に Runtime を閉じます。
+
+```ts
+import { prepareContentExecutionProgram } from '@univer-cli/content-execution'
+import type { UniverCollaborationRuntime } from '@univer-cli/univer-collaboration-runtime'
+
+async function updateSales(runtime: UniverCollaborationRuntime) {
+  const pulled = await runtime.pull()
+  if (pulled.status === 'conflict') return pulled
+
+  const code = prepareContentExecutionProgram({
+    unitId: runtime.unitId,
+    unitType: 'sheet',
+    code: `
+      const sheet = workbook.getSheetByName('Data');
+      if (!sheet) throw new Error('Worksheet Data not found');
+      sheet.getRange('A2:B2').setValues([
+        [{ v: 'East', t: 1 }, { v: 128000, t: 2 }]
+      ]);
+      return sheet.getRange('A2:B2').getRawValues();
+    `,
+  })
+  const execution = await runtime.execute({ mode: 'write', code })
+  const commit = await runtime.commit()
+  return { execution, commit }
+}
+```
+
+## 頻繁なタスクで Runtime を再利用する [#reuse]
+
+Worker pool はアプリケーションの key ごとに Runtime を排他的に貸し出します。同じ key の生成は single-flight、lease は FIFO 待ち行列となり、異なる key は別 Worker で処理できます。`release()` は返却、TTL/LRU は未使用資源の回収、`invalidate()` は信頼できないインスタンスの破棄を表します。
+
+Key は backend、Unit、Worktree を区別します。Pool は init の意味的な互換性を検証しません。Daemon で pool を保持すれば短い CLI 呼び出しをまたいで再利用できますが、同期と送信確認は必要です。起動時間、常駐メモリー、Worker 数の判断は [Runtime 再利用と Daemon](/ai/runtime-architecture)を参照してください。
+
+## 自動化から人によるレビューへ [#handoff]
+
+レポート作成、データ整理、テンプレート入力、コンテンツ生成を構成できます。対象を特定して Facade で書き込み、必要な計算を待ち、値・文字・属性を読み戻して、必要なら[視覚検証](/overview/features/shared/visual-inspection)を追加します。
+
+承認が必要なら [Worktree](/overview/features/shared/worktree) を対象にし、Agent が反復編集・検証して Ready にし、人がレビューして Merge を判断します。複数 Unit の結果は個別に追跡します。複数 Runtime は文書横断の原子的トランザクションになりません。
+
+認証、認可、モデル接続、タスク管理はアプリケーションが担当します。read/write 制限は業務操作の境界であり、信頼できない JavaScript のプロセス分離とファイル・ネットワーク権限もアプリ側で設定します。[クイックスタート](/overview/get-started)と [Univer CLI の例](/overview/examples/cli)で体験できます。
+
+[機能一覧に戻る](/overview/features)

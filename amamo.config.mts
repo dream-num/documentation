@@ -15,13 +15,14 @@ export default defineConfig({
   root: import.meta.dirname,
   manifests: {
     guidesNavigation: {
-      collections: ['guides', 'server', 'ai'],
+      collections: ['overview', 'guides', 'server', 'ai'],
       output: '.amamo-mdx/guides-navigation.json',
       fields: { collection: 'collection', key: 'key', frontmatter: 'frontmatter' },
       sort: [{ field: 'key', direction: 'asc' }],
     },
   },
   collections: {
+    overview: { directory: 'content/docs', locales, schema: documentSchema },
     guides: {
       directory: 'content/guides',
       locales,

@@ -1,0 +1,81 @@
+---
+title: "コンテンツ比較"
+description: "二つの版を比較し、製品のデータモデルに沿って追加・削除・更新を確認します。"
+icon: GitCompareArrows
+---
+
+Compare は完全に復元された二つの Unit スナップショットを比較します。セル、段落、ページ、レコードなどの単位で差分を返し、履歴、Agent の成果物、Worktree のレビューに使えます。
+
+## 製品別の比較対象
+
+| 製品 | 対象例 |
+| --- | --- |
+| Sheet | ワークシート、セル値と数式、行列、スタイル、登録済みグラフなど。 |
+| Doc | 段落、文字、スタイル、表、ブロック、描画。 |
+| Slide | ページ、要素、位置、スタイル、レイアウト、テーマ。 |
+| Relational Table | テーブル、フィールド、レコード、ビュー。 |
+| Canvases | ページ、要素、関連リソース。 |
+
+差分は追加・削除・更新に分類します。ズームや選択など一時的な UI 状態は除外されます。範囲は製品アダプターに依存し、PDF は対象外です。
+
+## Snapshot と changeset による比較の仕組み
+
+Snapshot は特定のリビジョンにおける完全なコンテンツ状態を保存します。mutation は個別の変更を表し、changeset は mutation を順序付きのコミットにまとめます。履歴はバージョンを保存・復元し、Compare は復元された二つのバージョンの差分を示します。
+
+<Mermaid chart={"flowchart LR\n    S[\"基準 Snapshot\"]\n    CA[\"changeset A を適用\"]\n    CB[\"changeset B を適用\"]\n    A[\"バージョン A\"]\n    B[\"バージョン B\"]\n    C[\"製品モデルで比較\"]\n    D[\"追加 · 削除 · 変更\"]\n    S --> CA --> A\n    S --> CB --> B\n    A --> C\n    B --> C\n    C --> D"} />
+
+履歴や Worktree を比較する場合、基準 Snapshot に後続の changeset を順番に適用し、対象リビジョンの完全な状態を復元して製品アダプターに渡します。利用可能な changeset は、行や列の挿入・削除などの構造変更の対応付けにも役立ちます。完全な状態が二つだけある場合は、スナップショット比較も可能です。
+
+差分は各製品のコンテンツモデルに従います。Sheet のセルや行列、Doc の段落、Slide と Canvases の要素、Relational Table のフィールドやレコードが対象です。一時的な選択やズームは内容の変更として扱いません。Compare は読み取り専用で、バージョンの復元や Worktree のマージは別の操作です。
+
+## Server SDK・AI SDK との連携
+
+**Server SDK** は Snapshot、changeset、リビジョン番号を提供し、比較対象のコンテンツを復元します。アプリケーションは両側の状態と利用可能な履歴を Compare に渡し、構造化差分を取得して Web のレビュー画面に表示します。[履歴](/overview/features/shared/history)と[コラボレーションサービスの拡張](/server/collaboration/extensions)を参照してください。
+
+**AI SDK** は Worktree 内でコンテンツを読み込み、編集して Agent の結果をコミットします。アプリケーションは構造化差分を Agent の検証や後続処理に利用でき、人間は同じ変更を視覚的に確認してマージを判断できます。[Agent の Worktree フロー](/ai/worktree)と[コンテンツ操作](/ai/content-operations)を参照してください。
+
+## 五つの製品の比較例
+
+共通の Northstar ローンチ計画を使い、完全な基準版を作成して提出した後、Worktree で編集し、Compare で変更を確認しました。
+
+差分一覧では、**青**が変更、**緑**が追加、**赤**が削除を示します。左右の読み取り専用パネルで変更前後を確認できます。画像をクリックすると拡大します。
+
+### Sheet：予算と行構造
+
+調査とエディターの予測額を更新し、Legacy tooling を削除して Accessibility QA を追加し、合計を再計算します。行構造と対応させて値や数式結果の変化を確認できます。
+
+![Sheet：予算と行構造](/assets/features/compare/sheets.jpg)
+
+### Doc：公開計画と段落
+
+公開日、試験導入チーム数、完了率の目標を更新します。従来の承認説明を削除して品質確認を追加し、文脈を保って段落をレビューします。
+
+![Doc：公開計画と段落](/assets/features/compare/docs.jpg)
+
+### Slide：指標とページ要素
+
+三つの指標カードを更新し、従来の承認ブロックを品質確認ブロックに置き換えます。同一ページ内のテキストと要素を比較します。
+
+![Slide：指標とページ要素](/assets/features/compare/slides.jpg)
+
+### Relational Table：フィールドとタスク [#baseフィールドとタスク]
+
+進捗・ステータス・日付を更新し、日付フィールドの名前を変更します。従来の承認レコードを削除し、アクセシビリティ確認タスクを追加します。
+
+![Relational Table：フィールドとタスク](/assets/features/compare/bases.jpg)
+
+### Canvases：フローとキャンバス要素 [#boardフローとキャンバス要素]
+
+試験導入の規模と公開日を更新し、レビュー要素を移動します。承認カードを品質確認カードに置き換え、文脈の中で内容と配置の変更を確認します。
+
+![Canvases：フローとキャンバス要素](/assets/features/compare/boards.jpg)
+
+## 結果を取得する
+
+製品の履歴比較プラグインと Facade 拡張を登録し、`compareUnitData()` を呼びます。繰り返し絞り込み・ページングする場合は `prepareUnitComparison()` と `query()` を使います。
+
+まず概要を示し、ワークシートやページ、テーブルごとに掘り下げます。変更一覧や変更前後の値を必要に応じて取得してください。既定の明細件数には上限があります。最初のページを全差分と見なさず、診断と対応状況を確認します。
+
+[API](/reference/facade/unit-comparison)、[履歴](/overview/features/shared/history)、[Worktree](/overview/features/shared/worktree)を参照してください。
+
+[機能一覧に戻る](/overview/features)

@@ -1,0 +1,110 @@
+---
+title: "双方向バインディング"
+description: "Server SDK で HTML アプリをスプレッドシートのデータ、数式結果、共同編集の更新に接続します。"
+icon: ArrowLeftRight
+---
+
+<Callout type="warning" title="実験的な機能">
+  双方向バインディングは現在、実験段階です。今後のバージョンには破壊的変更が含まれ、API や導入方法が変更される場合があります。
+</Callout>
+
+Univer Server SDK は通常の HTML・CSS・JavaScript ページを Sheet に接続します。表はデータと数式を保持し、ページはフォーム、指標、グラフ、業務操作を提供します。どちらから入力を変更しても、もう一方に更新が届きます。既存の表モデルを見積計算、ダッシュボード、対話型業務アプリに活用できます。
+
+## 例：アプリとスプレッドシートの連動
+
+Project Summit では、左側のコントロールで成長率、提示価格、現金支払比率を変更し、右側で財務ワークブックを確認できます。前提の変更に応じて関連数式、指標カード、グラフが更新されます。入力や計算過程は表で確認できます。
+
+![Project Summit：業務コントロール、指標、グラフと Univer Sheets の財務モデル](/assets/features/binding/project-summit-app-sheets.png)
+
+画像はブラウザー内のローカルモデルの例です。共同編集と永続化は下記の協同編集サービスで接続します。画像をクリックすると拡大できます。
+
+## 一つの Sheet、複数のインターフェース
+
+HTML ビューはページランタイムを通じてホストと通信し、Binding Engine が実際の Sheet を読み書きします。Engine は独立した Headless Univer インスタンスを持ち、Univer SDK が数式と共同編集を処理します。バインディング層は値の変更をページに通知します。
+
+<Mermaid chart={"flowchart LR\n    P[\"HTML アプリ<br/>入力 · 指標 · グラフ\"]\n    E[\"ホスト + Binding Engine<br/>Headless Sheet\"]\n    S[\"協同編集サービス<br/>同じ Sheet Unit\"]\n    T[\"Sheet エディター\"]\n    P <-->|\"読み書き · 購読\"| E\n    E <-->|\"SDK 共同編集\"| S\n    T <-->|\"編集 · 同期\"| S"} />
+
+表の直接編集や他のユーザーの変更も、連携したページを更新します。一つの HTML ビューは複数の認可済み Unit にアクセスできます。ホストは Unit ごとに Engine を読み込み、各 Engine が独立した Headless Univer を所有します。
+
+## HTML でバインディングを宣言する
+
+要素にデータ参照を宣言すると、テキストやフォームが自動同期します。セル参照は `unitId:sheetId:A1` 形式で、各 ID を個別に `encodeURIComponent` で符号化し、シートには固定 ID を使用します。
+
+| 属性 | 用途 |
+| --- | --- |
+| `data-univer-cell-text` | セル値を要素のテキストとして表示。 |
+| `data-univer-cell-model` | セルとフォーム入力を双方向に同期。 |
+| `data-univer-cell-subscribe` | 独自 JavaScript 描画向けにセル購読を宣言。 |
+| `data-univer-range-subscribe` | グラフや一覧向けに矩形範囲の二次元データ購読を宣言。 |
+
+たとえば `B2` を単価、`B3` を数量とし、`B4` に `=B2*B3` を設定します。次のテンプレート断片で入力と合計を接続できます。
+
+```html
+<label>
+  単価
+  <input type="number" min="0" step="0.01"
+    data-univer-cell-model="book:sheet:B2" />
+</label>
+<label>
+  数量
+  <input type="number" min="0" step="1"
+    data-univer-cell-model="book:sheet:B3" />
+</label>
+<p>合計: <span data-univer-cell-text="book:sheet:B4"></span></p>
+```
+
+`book` と `sheet` を実際の認可済み ID に置き換え、Renderer で読み込みます。数式は Sheet に定義し、ページは計算結果を読みます。テキスト、数値、スライダー、チェックボックス、textarea、単一選択リストを値の型に合わせて連携できます。
+
+## JavaScript でグラフと操作を拡張する
+
+テンプレートのスクリプト実行前に、ページランタイムが `window.univerBinding` を提供します。グラフの範囲を `data-univer-range-subscribe` で宣言し、`subscribeRangeById(elementId, callback)` で行列を受け取って更新します。単一値の要素には `subscribeCellById()` を使います。
+
+`getCellState()` / `getRangeState()` は単発読み取り、`setCellValue()` はスカラー書き込み、`insertRowsWithValues()` は行の挿入と値設定です。購読は現在値を最初に通知し、その後は値の変化を通知します。ローカル編集、共同編集、数式結果の反映が更新の契機です。
+
+参照は固定座標で、行列の挿入・削除後に元のレコードを追跡しません。スカラー書き込みは既存の数式やリッチテキストを置き換えるため、業務入力セルを接続してください。
+
+## ホストと Agent を接続する
+
+アプリがコンテナー、HTML、`loadEngine` を提供します。ローダーは Unit の認可と接続設定を行い、読み込み済み Engine を返します。Renderer は分離ページ、通信、引き渡された Engine のライフサイクルを管理します。次の関数はこの三つを受け取ります。
+
+```ts
+import {
+  renderHtmlView,
+  type RenderHtmlViewOptions,
+} from '@univerjs-labs/html-view-renderer/render';
+
+export function createPreview(
+  container: HTMLElement,
+  html: string,
+  loadEngine: RenderHtmlViewOptions['loadEngine'],
+) {
+  return renderHtmlView({ container, html, loadEngine });
+}
+```
+
+テンプレート生成、ソース編集、ファイル保存、画面遷移はアプリの責任です。Agent はバインディング付き HTML を生成し、Sheet のデータと計算規則を再利用できます。`view.inspect.open()` で Unit → Sheet → 参照 → ページ要素の対応を確認できます。
+
+共同編集の認証情報はホストで保持し、サーバーでアクセスを検証します。Sheet UI と Headless Engine は別のページや iframe など、異なる JavaScript 環境に配置します。現在のパッケージは Sheet を対象とします。
+
+## ローカル更新と保存確認を分ける
+
+| 操作 | 意味 |
+| --- | --- |
+| ページの書き込み完了 | ローカル操作は実行済みですが、サーバー確認は未完了の場合があります。 |
+| `await view.flush()` | 入力の下書きと先行書き込みを送信し、共同編集の確認後も編集を継続。 |
+| `await view.prepareToLeave()` | 編集を停止して保存。成功後に離れ、遷移を取り消す場合は `view.resume()`。 |
+| `view.dispose()` | 接続、Engine、購読を解放。自動保存は行いません。 |
+
+数式結果が反映されると購読が表示値を更新します。保存に失敗したらページを保持して保存を再試行します。ローカル書き込み完了だけで保存済みとは扱えません。
+
+## 次の接続手順
+
+- [SDK リポジトリーと概要](https://github.com/dream-num/univer-data-binding-sdk)
+- [Binding Engine API](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/binding-engine/README.md)
+- [HTML バインディング属性](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/html-view/README.md)
+- [Renderer の統合](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/html-view-renderer/README.md)
+- [ページ JavaScript API](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/html-view-renderer/docs/javascript-api.md)
+
+関連機能：[ヘッドレスとサーバー計算](/overview/features/shared/server-calculation) · [リアルタイム共同編集](/overview/features/shared/collaboration) · [Agent と自動化](/overview/features/shared/agents)。
+
+[機能一覧に戻る](/overview/features)

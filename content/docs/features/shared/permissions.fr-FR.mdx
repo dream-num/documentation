@@ -1,0 +1,146 @@
+---
+title: "Permissions et autorisation"
+description: "Permissions des actions de Unit, permissions des objets par produit et autorisation côté client et serveur."
+icon: ShieldCheck
+---
+
+Univer distingue les **actions sur une unité de contenu entière** des **permissions sur ses objets internes**. Web SDK contrôle les interactions et l’exécution des commandes ; Server SDK fournit les points d’autorisation pour les lectures, les soumissions collaboratives et les services d’extension.
+
+## Permissions de la Unit [#unit-permissions]
+
+Une [Unit (unité de contenu)](/guides/sheets/getting-started/quickstart#unit) est une instance de contenu complète : classeur, document, présentation, Relational Table, tableau Canvases ou PDF. Les permissions ci-dessous concernent Sheets, Docs, Slides, Relational Table et Canvases ; la portée actuelle de PDF est décrite plus loin.
+
+| Permission | Opérations contrôlées | Exemple |
+| --- | --- | --- |
+| Éditer (Edit) | Modification du contenu et de la structure. | Les lecteurs consultent ; les éditeurs remplissent et réorganisent. |
+| Copier (Copy) | Copie du contenu dans l’éditeur. | Autoriser lecture et commentaires en limitant la copie. |
+| Commenter (Comment) | Création de commentaires et réponses avec la fonctionnalité installée. | Autoriser la révision en conservant le contenu en lecture seule. |
+| Imprimer (Print) | Utiliser la fonction d’impression du produit. | Autoriser la lecture en ligne et limiter l’impression. |
+| Exporter (Export) | Exporter le contenu dans un format de fichier compatible. | Permettre la livraison ou l’archivage des résultats. |
+
+Édition et commentaires sont indépendants. La modification, la suppression et la gestion des commentaires suivent aussi les politiques de l’application pour les auteurs et propriétaires.
+
+Print et Export sont aussi des permissions de la Unit. Sheets, Docs, Slides et Canvases proposent les deux ; Relational Table propose actuellement Export. Chaque permission s’utilise avec les plugins de la fonctionnalité correspondante.
+
+Copier du contenu, dupliquer un fichier, exporter et télécharger sont des opérations distinctes. L’autorisation de lecture de l’application détermine si un fichier peut être ouvert.
+
+Par exemple, configurez séparément les permissions de la Unit d’un Doc :
+
+```ts
+import { UnitAction } from '@univerjs/protocol'
+
+const document = univerAPI.getActiveDocument()
+if (!document) throw new Error('Open a document first')
+
+const permission = document.getPermission()
+await permission.setReadOnly()
+await permission.setPoint(UnitAction.Copy, false)
+await permission.setPoint(UnitAction.Comment, true)
+await permission.setPoint(UnitAction.Print, false)
+await permission.setPoint(UnitAction.Export, false)
+```
+
+Enregistrez d’abord les plugins du produit et des commentaires. Le mode plugin nécessite aussi l’import de `@univerjs/docs/facade`. Les accès par produit sont indiqués ci-dessous. Sheets utilise ses propres énumérations de points de permission.
+
+## Permissions détaillées par produit
+
+### Sheets
+
+La hiérarchie est **classeur → feuille → plage de cellules**. Le classeur contrôle édition, copie et commentaires globaux. La feuille peut limiter les valeurs, styles, insertions et suppressions de lignes et colonnes, tris, filtres, tableaux croisés dynamiques et objets supplémentaires. La protection de plage contrôle édition et affichage, avec sélection des collaborateurs autorisés.
+
+Par exemple, protégez les formules du budget et laissez accessibles les cellules de dépenses. Utilisez `getWorkbookPermission()`, `getWorksheetPermission()` et `getRangePermission()`. Créez la règle de protection avant de définir ses points de permission. Pour les données dont la lecture est restreinte, l’API de lecture de l’application doit aussi limiter les données retournées.
+
+[Permissions et protection de Sheets](/guides/sheets/features/core/permission)
+
+### Docs
+
+Sous le document entier, protégez les **sections, paragraphes et entités de contenu**. Les entités comprennent les tableaux, dessins, blocs personnalisés et plages avec identifiants stables. Les paragraphes d’en-tête et de pied de page sont repérés par leur segment.
+
+Par exemple, protégez les clauses fixes d’un contrat et ouvrez les paragraphes à remplir. Sections et paragraphes exposent `getPermission()` ; les entités utilisent `document.getEntityPermission()`. Le résultat combine les règles du document, des parents applicables et de l’objet.
+
+[Permissions du document](/reference/facade/document-permission) · [Permissions des sections, paragraphes et entités](/reference/facade/document-object-permission)
+
+### Slides
+
+Protégez **présentations, diapositives, éléments de page, accès à l’édition du masque et éléments du masque**. Préservez les modèles de marque et les graphismes fixes tout en autorisant certains blocs de texte, images et graphiques.
+
+Utilisez `presentation.getPermission()`, `slide.getPermission()` et `slide.getElementPermission()`. Consultez Presentation Facade pour les accès liés aux masques.
+
+[Permissions de Slides](/guides/slides/features/core/permissions) · [Presentation Facade](/reference/facade/presentation)
+
+### Relational Table [#base]
+
+Contrôlez **tables, champs, enregistrements, vues et tableaux de bord**. L’édition d’une cellule combine les restrictions de Relational Table, de la table, du champ et de l’enregistrement. La configuration des vues et les tableaux de bord peuvent être protégés séparément.
+
+Par exemple, protégez le schéma et les enregistrements financiers tout en autorisant le suivi des tâches quotidiennes. Tables, champs, enregistrements et vues exposent `getPermission()` ; les tableaux de bord nécessitent leur plugin. Le filtrage des champs et enregistrements lisibles par utilisateur relève de la politique de lecture de l’application.
+
+[Permissions de Relational Table](/guides/bases/features/core/permissions) · [API des permissions d’objets](/reference/facade/base-object-permission)
+
+### Canvases [#board]
+
+Sous les permissions du Canvases entier, protégez des **éléments individuels** : formes, texte, images et connecteurs. Vous pouvez préserver un fond d’architecture ou la structure d’un processus en autorisant la mise à jour de certains nœuds.
+
+Utilisez `board.getPermission()` pour la Unit et `board.getElementPermission(elementId)` pour les éléments. L’édition effective nécessite l’autorisation du Canvases et celle de l’élément.
+
+[Permissions de Canvases](/reference/facade/board-permission) · [Permissions des éléments](/reference/facade/board-element-permission)
+
+### PDF
+
+PDF utilise actuellement des **modes affichage et édition** pour les interactions locales, avec une portée différente des API Unit/Object des cinq produits. Le backend de l’application autorise lectures, téléchargements et exports. PDF ne fait pas non plus partie des cinq types de Unit pris en charge par Core Collaboration.
+
+[Intégration et opérations PDF](/guides/pdfs/getting-started/facade)
+
+## Héritage et politiques des collaborateurs
+
+**Une permission d’objet reste soumise aux restrictions de la Unit et des parents applicables.** Rendre un paragraphe modifiable ne permet pas d’éditer un document en lecture seule. Interrogez `canEdit()` sur les objets compatibles pour connaître le résultat effectif.
+
+Les permissions des objets enfants de Docs, Slides, Relational Table et Canvases contrôlent surtout Edit ; Copy et Comment se configurent au niveau Unit. Sheets ajoute des points propres aux feuilles et plages : la granularité varie selon le produit.
+
+Docs, Slides, Relational Table et Canvases proposent `setObjectPermissions()` pour gérer les politiques des collaborateurs par lots :
+
+| Politique | Qui peut éditer l’objet |
+| --- | --- |
+| `all` | Les collaborateurs possédant déjà Edit sur la Unit. |
+| `owner` | Le propriétaire de l’objet, sous réserve des restrictions de Unit et de parents. |
+| `members` | Les collaborateurs existants de la Unit sélectionnés. |
+
+Ces politiques nécessitent l’intégration Authz, la configuration de `objectPermissionTypes` pour les types ciblés et la persistance des liaisons d’objets, règles et membres. Utilisez les helpers d’ID exportés et conservez des ID de contenu stables. `policy: null` retire la protection et rétablit l’héritage. Les écritures par lots peuvent échouer partiellement : vérifiez `failed` et `refreshError`. Sheets utilise les API de protection des feuilles et plages.
+
+## Autorisation côté client et serveur
+
+Maintenez un système commun d’identité fiable et de politiques de Unit et d’objets pour piloter le comportement du client et l’autorisation du serveur.
+
+<Mermaid chart={"flowchart LR\n    P[\"Identité et politiques<br/>de l’application\"]\n    W[\"Web SDK<br/>Contrôle des interactions<br/>et des commandes\"]\n    S[\"Server SDK<br/>Autorisation des requêtes<br/>et des modifications\"]\n    D[\"Persister et diffuser\"]\n    P --> W\n    P --> S\n    W -->|\"Soumettre\"| S\n    S -->|\"Autorisé\"| D"} />
+
+| Couche | Responsabilité |
+| --- | --- |
+| Web SDK | Lire les actions autorisées et mettre à jour points de permission, contrôles d’édition et vérifications des commandes. |
+| API Authz de l’application | Consulter ou modifier les politiques avec une identité fiable, renvoyer les permissions effectives et autoriser leur gestion. |
+| Transport | Authentifier Cookie, Session ou Token et établir une identité fiable. Les champs utilisateur du client ne prouvent pas l’autorisation. |
+| Endpoint | Autoriser les connexions WebSocket et l’accès aux salons via `joinUnit`. |
+| Service | Vérifier les lectures dans `readUnitData` et les soumissions dans `submitChangeset` ; contrôler les objets affectés lors de l’application. |
+
+Server SDK fournit les hooks Middleware ; l’application fournit ACL et politiques d’objets. **La lecture seule et la protection des objets côté client n’appliquent pas automatiquement l’autorisation côté serveur.** Si seul Edit de la Unit est vérifié, ajoutez des contrôles pour les paragraphes, éléments, champs et enregistrements.
+
+Par exemple, reliez un `collabService` existant à votre propre `acl` :
+
+```ts
+import { CollabError } from '@univerjs-pro/collaboration-service'
+
+collabService.use('submitChangeset', async (context, next) => {
+  const allowed = await acl.canEdit(
+    context.session.userId,
+    context.request.changeset.unitID,
+  )
+  if (!allowed) {
+    throw new CollabError('PERMISSION_DENIED', 'Editing is not allowed')
+  }
+  await next()
+})
+```
+
+Cet exemple ne couvre que l’édition de la Unit. Protégez aussi lectures, JOIN, changements de politiques et points d’entrée d’extension. Pour les écritures fines, vérifiez les objets affectés dans des étapes comme `applyChangeset`, avec des politiques compatibles avec les tentatives répétées.
+
+Consultez [identité et autorisation](/server/collaboration/identity-and-authorization) pour l’intégration et [Middleware et Events](/server/collaboration/middleware-and-events) pour les hooks du cycle de vie.
+
+[Retour à toutes les fonctionnalités](/overview/features)

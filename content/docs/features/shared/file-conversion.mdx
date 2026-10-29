@@ -1,0 +1,87 @@
+---
+title: "File import and export"
+description: "Convert Office files into product snapshots, and serialize edited snapshots back to files."
+icon: FileInput
+---
+
+File import and export connects external file formats with the content models used by Univer. Import parses a file into the corresponding product snapshot; export serializes that product’s snapshot into the chosen output format.
+
+## From files to snapshots
+
+For Office files, `.xlsx`, `.docx`, and `.pptx` are OOXML packages containing XML and resources such as images; `.xls`, `.doc`, and `.ppt` use legacy binary structures. CSV and TSV are text formats. Submit the original supported file: the conversion module handles decoding, package parsing, and resource mapping.
+
+A snapshot is a product’s content state that can be saved and restored. [View the six product snapshot schemas](#snapshot-data-structures)
+
+### Import: file → snapshot
+
+Parse content, styles, and resources into the corresponding Sheet, Doc, Slide, Relational Table, or other product model.
+
+<Mermaid chart={"flowchart LR\n    A[\"1. Source file<br/>XLSX / DOCX / PPTX, etc.\"]\n    B[\"2. Parse to snapshot<br/>Server SDK\"]\n    C[\"3. Calculate as needed<br/>Update Snapshot\"]\n    D[\"4. Web SDK<br/>Edit or process content\"]\n    A --> B --> C --> D\n    classDef calculation stroke-dasharray:5 4\n    class C calculation"} />
+
+### Export: snapshot → file
+
+Read the current product snapshot and write the target format’s structure and resources. A snapshot is the runtime content model, commonly transferred or stored as JSON.
+
+<Mermaid chart={"flowchart LR\n    A[\"1. Current snapshot<br/>Edited content\"]\n    B[\"2. Calculate as needed<br/>Update Snapshot\"]\n    C[\"3. Server SDK<br/>Convert to target format\"]\n    D[\"4. Output file<br/>XLSX / DOCX / PPTX, etc.\"]\n    A --> B --> C --> D\n    classDef calculation stroke-dasharray:5 4\n    class B calculation"} />
+
+Sheet example: calculate formulas, pivots, and number formats according to the selected policy, then update the snapshot. See [server-side calculation](/overview/features/shared/server-calculation).
+
+### Snapshot data structures
+
+Each product has its own snapshot contract for persisting content and resource references, usually as JSON. Follow the interface links for field definitions, types, and examples.
+
+<div className="[&_table]:min-w-180 [&_code]:whitespace-nowrap">
+
+| Product | Snapshot interface | Main contents |
+| --- | --- | --- |
+| Sheets | [`IWorkbookData`](/guides/sheets/model/workbook-data#iworkbookdata) | Worksheets, cells, shared styles, and plugin resources. |
+| Docs | [`IDocumentData`](/guides/docs/model/document-data#idocumentdata) | Body, paragraphs, styles, headers, footers, and resources. |
+| Slides | [`ISlideData`](/guides/slides/model/slide-data#islidedata) | Slides, elements, masters, themes, and resources. |
+| Relational Table | [`IBaseSnapshot`](/guides/bases/model/base-snapshot#ibasesnapshot) | Tables, fields, records, views, and their order. |
+| Canvas (Canvases) | [`IBoardData`](/guides/boards/model/board-data#iboarddata) | Pages, elements, themes, and resources. |
+| PDF | [`IPdfUnitData`](/guides/pdfs/model/pdf-data#ipdfunitdata) | Source document, durable edit state, and resource bindings. |
+
+</div>
+
+Use the product Facade’s `save()` to obtain the current snapshot and its creation API to restore it. Use Facade APIs to edit running content. For PDF, `pdf.save()` preserves both the source baseline and `editState`.
+
+## Formats by product
+
+The Office and table formats below follow the direct Rust Exchange routes. PDF uses its own conversion module and is listed separately in the same table.
+
+<div className="[&_table]:min-w-180 [&_code]:whitespace-nowrap">
+
+| Product | Import / compile | Export | Scope |
+| --- | --- | --- | --- |
+| [Sheets](/guides/sheets/features/import-export) | `.xls`, `.xlsx`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` | CSV/TSV represents one worksheet. |
+| [Docs](/guides/docs/features/import-export) | `.doc`, `.docx` | `.docx` | Legacy DOC imports into the Docs model; output uses DOCX. |
+| [Slides](/guides/slides/features/import-export) | `.ppt`, `.pptx` | `.pptx` | Legacy PPT imports into the Slides model; output uses PPTX. |
+| [Relational Table](/guides/bases/features/import-export) | `.xls`, `.xlsx`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` | CSV/TSV represents one table; XLSX supports table and field mapping. |
+| [Canvas (Canvases)](/guides/boards/features/import-export) | Mermaid (`.mmd` / source text) | `.pptx` | Mermaid produces an import draft, applied through the Canvases Facade before saving a snapshot; PPTX exports the active page. |
+| [PDF](/guides/pdfs/features/import-export) | `.pdf` | `.pdf` | Requires the PDF conversion service; this is separate from the Rust Exchange CLI. |
+
+</div>
+
+- Legacy `.xls`, `.doc`, and `.ppt` are import formats; their output formats are `.xlsx`, `.docx`, and `.pptx` respectively.
+- CSV/TSV exports select one worksheet or Relational Table table. Keep the product snapshot when retaining the complete content model and its resources.
+- SDK entry points can accept different extensions. Formats such as `.xlsm`, `.pptm`, `.ppsx`, `.ppsm`, and `.potx` require checking the deployed backend and browser API; they are not additional direct Rust CLI format names.
+
+## Calculation during conversion
+
+Supported spreadsheet conversion workflows can combine file conversion with server-side calculation:
+
+- **Formula calculation:** fill missing cached results on import, or recalculate before export according to the selected policy.
+- **Pivot calculation:** calculate grouping and aggregation from source data and pivot configuration, then materialize the results for the snapshot or exported workbook.
+- **Number-format calculation:** turn values into date, percentage, currency, and other formatted display text. CSV/TSV exports can choose display values or raw values.
+
+Continue with [Headless and server-side calculation](/overview/features/shared/server-calculation) for the related content-processing workflow.
+
+## Integration
+
+File conversion belongs to the Server SDK. Your application provides upload, task handling, storage, and download endpoints. Snapshot conversion can run without collaboration; shared-document export reads a confirmed revision after pending edits have synchronized.
+
+Start with [File conversion integration](/server/import-export) and [Node.js file conversion](/server/import-export/node).
+
+Format support and preservation of individual features are separate. Use each product’s feature list and real business files to verify formulas, images, styles, and layout through import, editing, and export.
+
+[Back to all features](/overview/features)

@@ -1,0 +1,50 @@
+---
+title: "即時協同"
+description: "以 OT 協調並行編輯，結合 HTTP、WebSocket、持久化與應用部署。"
+icon: Users
+---
+
+使用者與接入協同的 Agent 可操作同一份內容。編輯先在本機生效，服務端確認順序並同步給其他參與者，兼顧即時回應與最終一致。
+
+## 並行編輯與衝突
+
+Univer 使用 OT（操作轉換）。客戶端把編輯組成 changeset，服務端依已確認的 revision 轉換並提交，使各端接收遠端修改後保持一致。例如 Alice 編輯 `C2`，Bob 同時在 B 欄前插入一欄，轉換後位置會跟隨到 `D2`。復原與重做也會調整，但不能自動解決所有業務衝突。
+
+無法轉換或執行時，客戶端進入衝突狀態並暫停該文件編輯。`CollaborationConflict` 提供原因與未確認的本機修改。重新整理前應保留這些資料。參閱[衝突復原](/server/collaboration/browser-integration#conflict-recovery)與 [OT 設計](/blog/ot)。
+
+## 通道與斷線復原
+
+| 通道 | 職責 |
+| --- | --- |
+| HTTP | 載入快照與增量、取得 Session Ticket、提交 changeset。 |
+| WebSocket | 維持 Session 與文件 Room，接收 ACK、遠端修改與 Presence。 |
+
+一次性 Ticket 用於建立連線，再加入文件 Room。Presence 同步成員、游標與選取範圍。**連線正常或 HTTP 成功不等於修改已確認儲存。** 應結合 ACK、協同狀態與待確認修改呈現儲存狀態。
+
+斷線時可快取未確認修改，重連後補齊 revision 並重送；服務端依提交身分去重。參閱[同步狀態](/server/collaboration/browser-integration#sync-status)及 [Presence](/server/collaboration/presence)。
+
+## 持久化與版本快照
+
+服務保存已確認的 changeset、revision，按策略產生快照。載入時由快照加上後續修改還原，不必每次編輯都重新產生快照。計算配合見[無頭與服務端計算](/overview/features/shared/server-calculation)。歷史、評論和 Worktree 為獨立[擴充模組](/server/collaboration/extensions)。
+
+## 部署架構
+
+<Mermaid chart={"flowchart LR\n    A[\"客戶端 A\"]\n    B[\"客戶端 B / Agent\"]\n    S[\"應用協同服務<br/>OT · 確認與廣播\"]\n    D[\"應用資料庫\"]\n    A <-->|\"HTTP / WebSocket\"| S\n    B <-->|\"HTTP / WebSocket\"| S\n    S --> D"} />
+
+- **單節點**：在 Node.js 應用組合 Transport、Endpoint、Service 與 Database Adapter。Memory 用於臨時驗證；SQLite 適合本機及小規模部署，其他資料庫由應用提供適配器。
+- **擴容設計**：除共用儲存，還需協調跨節點廣播、Presence、Ticket 驗證及儲存一致性，不能只增加進程。依所用版本部署方案接入。
+- **重任務分離**：檔案轉換等 CPU 密集任務可獨立部署，減少對協同回應的影響。
+
+參閱[模組分工](/server/collaboration/modules)、[部署](/server/deployment)和[多節點範例](/server/collaboration/examples#multi-node)。
+
+## 效能與容量
+
+**目前版本的效能基準與容量資料待補充。** 容量取決於文件規模、編輯頻率、協作者及環境。可量測提交確認、遠端顯示延遲、每秒 changeset、廣播量與活躍文件記憶體。
+
+## 接入與範圍
+
+從[協同總覽](/server/collaboration/overview)與[雙瀏覽器快速開始](/server/collaboration/quick-start)驗證編輯、確認和廣播。以 Middleware 接入身分及授權，選擇持久化 [Database Adapter](/server/collaboration/database-adapters)，並驗證重啟後內容保留。
+
+核心支援 Sheet、Doc、Slide、Canvases、Relational Table，不含 PDF。身分、授權、檔案管理及儲存策略由應用提供。
+
+[返回功能總覽](/overview/features)

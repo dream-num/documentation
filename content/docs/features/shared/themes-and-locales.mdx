@@ -1,0 +1,324 @@
+---
+title: "Themes and localization"
+description: "Align editor appearance, dark mode, and language resources with your application."
+icon: Languages
+---
+
+Themes and internationalization are shared runtime capabilities. All six products use the same theme service, locale resources, and regional configuration, and custom plugins can observe the same state. Brand appearance and user preferences can change at runtime while content keeps its own data and styles.
+
+The SDK provides **[19 built-in interface language/region options](#supported-locales)** and **7 theme palettes**. All six products share appearance, locale, and region configuration; custom themes and application translations use the same services.
+
+## One state model for UI and rendering [#architecture]
+
+`ThemeService` holds the complete palette and dark-mode state separately, publishing changes through `currentTheme$` and `darkMode$`. UI expands the palette into `--univer-*` CSS variables and responds to the `univer-dark` class. Renderers observe the same service and mark affected components for repaint. The Canvas color service resolves tokens, maps colors for dark display, and caches those results.
+
+The configuration and examples in this chapter target `@univerjs/*` and `@univerjs-pro/*` **1.2.0**. Keep SDK dependency versions aligned in your application.
+
+| Setting | Options and scope | Runtime API |
+| --- | --- | --- |
+| `theme` | 7 built-in palettes or a complete custom `Theme`. | `setTheme()` |
+| `darkMode` | `true` / `false`, default `false`; independent of the palette. | `toggleDarkMode()` |
+| `locale` | 19 built-in `LocaleType` values; load matching resources first. | `setLocale()` |
+| `locales` | Combine product, feature, and application resources by locale identifier. | `loadLocales()` |
+| `region` | The same `LocaleType` values; follows UI locale until explicitly set. | `setRegion()` |
+| `direction` | `ltr` / `rtl`, default `ltr`; menus and similar UI only. Canvas content does not yet support RTL. | `setDirection()` |
+
+<Mermaid chart={"flowchart LR\nA[\"Application / Facade\"] --> B[\"ThemeService<br/>Palette + dark mode\"]\nB --> C[\"UI<br/>CSS variables and dark class\"]\nB --> D[\"Renderer<br/>Repaint and color mapping\"]\nC --> E[\"Six products and custom extensions\"]\nD --> E"} />
+
+## Build a brand theme from a complete palette [#brand]
+
+`@univerjs/themes` provides `primary`, `gray`, functional color scales, `loop-color`, and `highlight.background`. Copy a built-in theme and replace the required branches while preserving the complete structure. `setTheme()` replaces a complete theme; it does not deep-fill a partial object. This example supplies a coherent violet brand scale.
+
+The 7 built-in palettes are: `blueTheme`, `darkBlueTheme`, `greenTheme`, `orangeTheme`, `purpleTheme`, `redTheme`, `yellowTheme`.
+
+`defaultTheme` is an alias of `blueTheme`. Select the palette and dark-mode state separately. The configurable branches include:
+
+| Theme branch | Configurable options |
+| --- | --- |
+| `primary` | **10 brand steps**: `50`, then `100` through `900`. |
+| `gray` | **12 neutral steps**: `0`, `50`, `100` through `900`, and `1000`. |
+| `blue` · `red` · `orange` · `yellow` · `green` · `jiqing` · `indigo` · `purple` · `pink` | **9 functional scales**, with 10 steps each. |
+| `loop-color` | **12** rotating color positions referencing palette tokens. |
+| `highlight.background` | **16** background highlight positions, each with `color` and `alpha`. |
+
+```typescript title="brand-theme.ts"
+import type { Theme } from '@univerjs/themes';
+import { defaultTheme } from '@univerjs/themes';
+
+export const brandTheme: Theme = {
+  ...defaultTheme,
+  primary: {
+    ...defaultTheme.primary,
+    50: '#F5F3FF', 100: '#EDE9FE', 200: '#DDD6FE', 300: '#C4B5FD',
+    400: '#A78BFA', 500: '#8B5CF6', 600: '#7C3AED', 700: '#6D28D9',
+    800: '#5B21B6', 900: '#4C1D95',
+  },
+};
+```
+
+Pass the theme into your selected product integration. This example uses the Sheet core preset and registers application-owned translation keys; other products use their own plugin composition.
+
+```typescript title="setup.ts"
+import { LocaleType, mergeLocales } from '@univerjs/core';
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core';
+import SheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US';
+import { createUniver } from '@univerjs/presets';
+import { brandTheme } from './brand-theme';
+import '@univerjs/preset-sheets-core/lib/index.css';
+
+export const { univer, univerAPI } = createUniver({
+  theme: brandTheme,
+  darkMode: false,
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(SheetsCoreEnUS, {
+      'sales-report': { generate: 'Generate report', ready: 'Ready for {0}' },
+    }),
+  },
+  presets: [UniverSheetsCorePreset({ container: 'app' })],
+});
+```
+
+<Cards>
+<Card title="Open the theme builder" href="/tools/theme-customizer">
+Use the theme builder to edit palettes, loop colors, and highlights; switch light/dark mode; preview real Sheet and Doc hosts; and copy Theme JSON or integration code. These are its current preview hosts; the complete application theme can be used with the other products too.
+</Card>
+</Cards>
+
+## Change appearance at runtime and follow preferences [#appearance]
+
+`setTheme()` changes the palette; `toggleDarkMode()` changes dark mode. Read them with `getCurrentTheme()` and `isDarkMode()`. Selecting `darkBlueTheme` alone does not enable the dark-mode flag. Appearance updates do not require destroying and recreating the editor.
+
+This function follows the system preference and returns a cleanup function. If your application offers a manual appearance setting, call `toggleDarkMode()` from that setting’s handler instead.
+
+```typescript title="appearance.ts"
+import type { FUniver } from '@univerjs/core/facade';
+import { brandTheme } from './brand-theme';
+
+export function followSystemAppearance(univerAPI: FUniver): () => void {
+  univerAPI.setTheme(brandTheme);
+  const preference = window.matchMedia('(prefers-color-scheme: dark)');
+  const update = () => univerAPI.toggleDarkMode(preference.matches);
+  update();
+  preference.addEventListener('change', update);
+  return () => preference.removeEventListener('change', update);
+}
+```
+
+Call the function after editor setup and run its cleanup when the component unmounts or stops following the system. Retain the existing instance in React and similar integrations and update it through Facade.
+
+## Make custom plugins follow theme and language [#extensions]
+
+Custom DOM uses the injected CSS variables and supplies styles for the dark class. Variables hold palette values; component styles still need to consume the dark-mode state.
+
+```css title="report-panel.css"
+.report-panel {
+  color: var(--univer-gray-900);
+  background: var(--univer-gray-0);
+  border: 1px solid var(--univer-gray-200);
+}
+
+.univer-dark .report-panel {
+  color: var(--univer-gray-100);
+  background: var(--univer-gray-800);
+  border-color: var(--univer-gray-700);
+}
+```
+
+Canvas extensions read live tokens through `ThemeService`, then obtain actual drawing colors through `ICanvasColorService`. This example combines theme, dark-mode, and locale changes into observable state. It translates labels and resolves colors when state changes, avoiding repeated lookup and allocation on every drawing frame.
+
+```typescript title="report-appearance.ts"
+import { Disposable, Inject, LocaleService, ThemeService, toDisposable } from '@univerjs/core';
+import { ICanvasColorService } from '@univerjs/engine-render';
+import { combineLatest, ReplaySubject } from 'rxjs';
+
+export interface IReportAppearance {
+  label: string;
+  accent: string;
+}
+
+export class ReportAppearance extends Disposable {
+  readonly state$ = new ReplaySubject<IReportAppearance>(1);
+
+  constructor(
+    @Inject(ThemeService) theme: ThemeService,
+    @Inject(LocaleService) locale: LocaleService,
+    @ICanvasColorService colors: ICanvasColorService,
+  ) {
+    super();
+    this.disposeWithMe(toDisposable(() => this.state$.complete()));
+    this.disposeWithMe(combineLatest([
+      theme.currentTheme$, theme.darkMode$, locale.currentLocale$,
+    ]).subscribe(() => {
+      this.state$.next({
+        label: locale.t('sales-report.generate'),
+        accent: colors.getRenderColor(theme.getColorFromTheme('primary.600')),
+      });
+    }));
+  }
+}
+```
+
+Register and resolve `ReportAppearance` through DI in your plugin. The view or drawing controller subscribes to `state$` and refreshes; the consumer owns its subscription, and the service owner calls `dispose()`. Node.js also has theme and locale services but does not inject browser CSS.
+
+## Dark mode [#dark-mode]
+
+Sheet, Doc, Slide, Relational Table, Canvases, and PDF all use the shared theme and dark mode. These are real screenshots from the local standard demos, with English UI and content. Dark display does not write mapped display colors back into the Snapshot; application appearance and PDF page processing are separate; the local PDF verification result is noted below.
+
+| Product | Shared theme | Dark mode | Interface i18n |
+| --- | --- | --- | --- |
+| Sheet | ✓ | ✓ | ✓ |
+| Doc | ✓ | ✓ | ✓ |
+| Slide | ✓ | ✓ | ✓ |
+| Relational Table | ✓ | ✓ | ✓ |
+| Canvases | ✓ | ✓ | ✓ |
+| PDF | ✓ | UI supported; content display issue | ✓ |
+
+<Tabs items={["Sheet", "Doc", "Slide", "Relational Table", "Canvases", "PDF"]}>
+
+<Tab>
+
+![Sheet order table and toolbar in dark mode](/assets/features/themes/sheet-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![Doc editor with English content in dark mode](/assets/features/themes/doc-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![Slide presentation with an English title in dark mode](/assets/features/themes/slide-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![Relational Table records in dark mode](/assets/features/themes/base-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![Canvases in dark mode](/assets/features/themes/board-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![PDF editor UI in dark mode](/assets/features/themes/pdf-dark.jpg)
+
+<Callout type="warning">
+The current local standard demo has a PDF text-visibility issue in dark mode; light mode displays correctly. This screenshot shows the editor UI in dark mode. Dark PDF content still needs correction and verification.
+</Callout>
+
+</Tab>
+
+</Tabs>
+
+Language coverage depends on the resource bundles supplied by the selected products and installed features. An application palette does not register products, load locales, or import stylesheets.
+
+## 19 built-in language and region options [#supported-locales]
+
+`LocaleType` provides the following 19 options, including Simplified, Traditional, and Hong Kong Traditional Chinese variants. The main UI packages for all six products provide these resources; coverage of extensions depends on the selected package. Use bundle tags in import paths and the corresponding enum values for initialization and Facade configuration.
+
+<Callout type="warning">
+**RTL scope:** Arabic (`ar-SA`) and other locale bundles translate interface text such as menus and messages. `direction: 'rtl'` currently adapts menus and similar UI only. **RTL layout and editing in the Canvas content area are not implemented yet.**
+</Callout>
+
+| Language (native name) | Bundle tag | Configuration value |
+| --- | --- | --- |
+| English | `en-US` | `LocaleType.EN_US` |
+| 简体中文 | `zh-CN` | `LocaleType.ZH_CN` |
+| 繁體中文 | `zh-TW` | `LocaleType.ZH_TW` |
+| 繁體中文（香港） | `zh-HK` | `LocaleType.ZH_HK` |
+| 日本語 | `ja-JP` | `LocaleType.JA_JP` |
+| 한국어 | `ko-KR` | `LocaleType.KO_KR` |
+| Tiếng Việt | `vi-VN` | `LocaleType.VI_VN` |
+| Bahasa Indonesia | `id-ID` | `LocaleType.ID_ID` |
+| Français | `fr-FR` | `LocaleType.FR_FR` |
+| Deutsch | `de-DE` | `LocaleType.DE_DE` |
+| Español | `es-ES` | `LocaleType.ES_ES` |
+| Català | `ca-ES` | `LocaleType.CA_ES` |
+| Italiano | `it-IT` | `LocaleType.IT_IT` |
+| Português (Brasil) | `pt-BR` | `LocaleType.PT_BR` |
+| Polski | `pl-PL` | `LocaleType.PL_PL` |
+| Slovenčina | `sk-SK` | `LocaleType.SK_SK` |
+| Русский | `ru-RU` | `LocaleType.RU_RU` |
+| فارسی | `fa-IR` | `LocaleType.FA_IR` |
+| العربية | `ar-SA` | `LocaleType.AR_SA` |
+
+**Internationalization across products:** In the current 1.2.0 source, **92 modules** in the Web SDK and Pro editors provide **1,751 locale entry files**, covering shared UI, product editors, and features such as formulas, number formats, and comments. Resources are maintained and published by module; applications compose the enabled features and target locales.
+
+This count covers locale entry `.ts` files under `packages/*/src/locale` in both source trees, excluding tests and generated subdirectories. It does not imply complete coverage of all 19 options in every module. Some modules include additional languages; [`LocaleType`](/reference/enums/locale-type) defines the common built-in options.
+
+## Compose locale resources by plugin, then load and select [#locales]
+
+`LocaleService` organizes resources by locale and resolves labels through namespaces and key paths. `mergeLocales()` combines product presets, feature plugins, and application translations. `loadLocales()` merges resources at runtime; `setLocale()` selects the language. Selecting a locale does not automatically download its bundle.
+
+<Mermaid chart={"flowchart LR\nA[\"Product / feature / application bundles\"] --> B[\"mergeLocales / loadLocales\"] --> C[\"LocaleService<br/>Namespace lookup\"] --> D[\"Menus, messages, and plugin labels\"]"} />
+
+This adds Chinese resources to the earlier Sheet instance, selects Chinese UI, and explicitly retains German regional conventions. `LocaleType.ZH_CN` has the value `zhCN`; `zh-CN` is the bundle filename or documentation-route form.
+
+```typescript title="locales.ts"
+import type { FUniver } from '@univerjs/core/facade';
+import { LocaleType, mergeLocales } from '@univerjs/core';
+import SheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN';
+
+export function switchInterface(univerAPI: FUniver): void {
+  univerAPI.loadLocales(LocaleType.ZH_CN, mergeLocales(SheetsCoreZhCN, {
+    'sales-report': { generate: '生成报告', ready: '已为 {0} 就绪' },
+  }));
+  univerAPI.setLocale(LocaleType.ZH_CN);
+  univerAPI.setRegion(LocaleType.DE_DE);
+  univerAPI.setDirection('ltr');
+}
+```
+
+Keep keys such as `sales-report.generate` with their owning plugin. Use complete translated sentences and `{0}`, `{1}` placeholders for dynamic values, for example `LocaleService.t('sales-report.ready', 'Alex')`. Do not cache translations at module initialization. Once resources are initialized, a missing key currently falls back to the key itself. Interface switching does not translate content or rename existing Units.
+
+## Distinguish language, region, and content formatting [#region]
+
+| Layer | Actual effect |
+| --- | --- |
+| Interface `locale` | Menus, messages, plugin labels, and some language-dependent behavior such as document segmentation. |
+| `region` | Participating currency actions, comment date/time display, and statistics formatting; no currency conversion or timestamp changes. |
+| Content number formats | Saved Sheet number/date formats follow cell formats and their applicable content locale; changing region does not rewrite them all. |
+| `direction` | Independent UI direction; changing language or region does not automatically switch it. |
+
+When no region is specified, the corresponding default applies. Once set explicitly, region can be selected independently of interface language. `region` is not a timezone setting. RTL currently adapts menus and similar UI only. Right-to-left layout and editing in the Canvas content area are not implemented yet.
+
+## Content themes and application themes have separate boundaries [#content-themes]
+
+The application theme controls the workbench and rendering defaults. It does not rewrite persisted cell fills, text, shapes, PDF annotations, or explicit Chart colors. Range/table themes, Slide color schemes, and Canvases content themes are managed through the corresponding public product capabilities.
+
+Pro Charts have a separate `IEchartTheme` registry shared by Sheet, Doc, Slide, and Canvases Charts. An application `Theme` is not a Chart theme. In a host with the appropriate Chart plugins installed, import the Chart Facade and register a complete definition:
+
+```typescript title="chart-theme.ts"
+import type { IEchartTheme } from '@univerjs-pro/engine-chart';
+import type { FUniver } from '@univerjs/core/facade';
+import { UniverTheme1 } from '@univerjs-pro/engine-chart';
+import '@univerjs-pro/engine-chart/facade';
+
+export function registerBrandChartTheme(univerAPI: FUniver): void {
+  const chartTheme: IEchartTheme = {
+    ...UniverTheme1,
+    themeName: 'sales-brand',
+    theme: {
+      ...UniverTheme1.theme,
+      color: ['#7C3AED', '#0EA5E9', '#10B981', '#F59E0B'],
+    },
+  };
+  univerAPI.registerTheme('sales-brand', chartTheme);
+}
+```
+
+Select the registered name with the Chart builder’s `setTheme('sales-brand')`. An explicit Chart palette may override its series colors.
+
+Keep appearance consistent within a browser document: current UI variables and the `univer-dark` class are written to the document root. Multiple editors should share one appearance or use separate documents such as iframes; separate containers alone do not isolate CSS themes.
+
+Further reading: [Themes and dark mode](/guides/fundamentals/ui/themes) · [Detailed i18n configuration](/guides/sheets/getting-started/i18n) · [Plugins and Facade](/overview/features/shared/customization) · [Charts](/overview/features/charts)
+
+[Back to feature overview](/overview/features)

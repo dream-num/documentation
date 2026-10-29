@@ -1,0 +1,82 @@
+---
+title: "헤드리스 및 서버 계산"
+description: "Node.js 콘텐츠 작업과 Rust 사전 계산을 결합하여 Agent에 구조화 결과와 시각 정보를 제공합니다."
+icon: Calculator
+---
+
+Univer는 콘텐츠 모델, 계산, UI를 분리합니다. 헤드리스 실행은 Node.js에서 콘텐츠 런타임을 사용하고, 서버 계산은 `univer-rs`로 집중적인 계산과 파일 변환을 처리합니다. 앱과 Agent는 같은 Snapshot을 중심으로 두 기능을 결합할 수 있습니다.
+
+## UI 플러그인 없는 Node.js 런타임
+
+필요한 코어, 제품 모델, 계산, Facade 플러그인을 등록하고 메뉴와 도구 모음 등 DOM 의존 UI 플러그인은 등록하지 않습니다. 제품 구성에 따라 Sheet, Doc, Slide, Relational Table, Canvases, PDF를 처리합니다. Sheets와 Docs는 Node 프리셋, 다른 제품은 해당 플러그인 구성으로 시작합니다.
+
+| 기능 | 가능한 작업 |
+| --- | --- |
+| 로드 및 분석 | Snapshot을 로드하고 셀, 문단, 페이지, 객체, 레코드와 구조를 읽고 검사합니다. |
+| 계산 | 수식과 배열 계산, 피벗 갱신, 숫자 서식 표시값 생성. |
+| 변경 | Facade API로 콘텐츠와 구조를 수정하고 Snapshot 저장 또는 변경 제출. |
+| 파일 처리 | Server SDK 변환 모듈과 결합하여 일괄 가져오기, 처리, 내보내기. |
+| 시각 검증 | Render Runtime으로 스크린샷과 레이아웃 검사 결과를 생성합니다. |
+
+콘텐츠 작업은 Node.js에서 직접 실행합니다. 스크린샷과 레이아웃 검사는 별도 렌더링 런타임을 구성합니다. CLI Render Runtime은 헤드리스 브라우저를 구동하여 PNG와 검사 결과를 반환합니다.
+
+## 프런트엔드의 즉시 계산과 서버의 버전별 계산 [#서버에서-미리-계산하고-브라우저에서-빠르게-표시]
+
+프런트엔드와 서버 모두 수식 엔진을 갖추고 있습니다. 프런트엔드는 편집에 즉시 응답하고 서버는 Snapshot 생성이나 파일 처리 시 확정된 콘텐츠 리비전을 계산합니다.
+
+- **편집 시**: 브라우저가 영향을 받는 수식을 로컬에서 증분 계산하고 결과를 즉시 표시합니다. Worker에서 실행할 수도 있습니다. 협업 서비스는 콘텐츠 변경 사항을 기록하고 동기화합니다.
+- **Snapshot 생성 시**: 서버의 스냅샷 정책에 따라 저장 과정을 시작하고 이번 작업의 콘텐츠 리비전을 확보합니다. `univer-rs`로 계산한 뒤 해당 리비전의 콘텐츠와 결과를 함께 저장합니다.
+- **다시 열 때**: Snapshot에 있는 유효한 결과를 재사용하고 이후 변경 사항을 적용해 계산을 계속하므로 전체 계산의 반복을 줄입니다.
+
+<Mermaid chart={"flowchart LR\n    F[\"프런트엔드 편집<br/>즉시 계산\"]\n    C[\"콘텐츠 동기화<br/>확인된 변경 사항\"]\n    R[\"Rust 계산<br/>콘텐츠 리비전 N\"]\n    S[\"Snapshot 저장<br/>saveSnapshot\"]\n    F <--> C\n    C -->|\"Snapshot 생성 시\"| R\n    R --> S"} />
+
+**변경 사항은 계속 동기화합니다. 서버 계산은 Snapshot 생성 시 실행되며 결과는 해당 콘텐츠 리비전과 함께 저장됩니다.**
+
+저장된 결과에 맞게 초기 계산 정책을 선택합니다.
+
+- `WHEN_EMPTY`: 저장된 수식 값을 재사용하고 누락된 결과만 계산합니다.
+- `NO_CALCULATION`: 초기 수식 계산을 건너뛰고 애플리케이션이 결과를 제공합니다.
+- `FORCED`: 저장된 결과를 갱신해야 할 때 모든 수식을 다시 계산합니다.
+
+이 옵션은 최초 로딩을 제어합니다. 이후 편집은 프런트엔드에서 계속 계산하고 서버는 버전별 Snapshot 생성이나 파일 처리 시 필요에 따라 계산합니다. [수식 설정](/guides/sheets/features/core/formula), [협업 개요](/server/collaboration/overview), [파일 변환](/overview/features/shared/file-conversion)을 참고하세요.
+
+### 수식 엔진 성능
+
+통합 문서 10개의 [Univer Rust 수식 엔진 성능 실측](/blog/rust-formula-performance)은 Rust 입력 로드, 구간별 시간, 입력 형식 범위와 샘플 다운로드를 포함합니다.
+
+## 배열 수식 계산과 확장
+
+지원되는 함수와 형식 범위에서 Rust는 Excel의 배열 수식 및 스필 규칙을 따릅니다. 기준 셀, 확장 범위, 각 셀 결과를 반환하며 동적 배열과 기존 배열 수식의 지정 영역을 처리합니다.
+
+예를 들어 빈 `A1`에 `=SEQUENCE(3,2)`를 입력하면 다음 결과가 나옵니다.
+
+| A | B |
+| --- | --- |
+| 1 | 2 |
+| 3 | 4 |
+| 5 | 6 |
+
+수식은 `A1`에 남고 결과는 `A1:B3`에 확장됩니다. 배열이 줄면 이전 확장값을 지우고, 확장 영역이 막히면 `#SPILL!`을 반환합니다. 브라우저, Agent, 파일 내보내기가 계산된 Snapshot을 재사용할 수 있습니다.
+
+[수식 지원](/guides/sheets/features/core/formula)과 [Excel 배열 동작](https://support.microsoft.com/en-us/excel/dynamic-array-formulas-and-spilled-array-behavior)을 참고하세요.
+
+## Agent 실행 및 검증 연결
+
+기존 Agent의 모델, 대화, 도구 조정을 유지하고 AI SDK로 Office 작업을 제공합니다.
+
+1. 구조와 작업 대상 콘텐츠를 읽습니다.
+2. 헤드리스 런타임에서 Facade 변경과 계산을 실행합니다.
+3. 계산 및 커밋 확인을 기다린 후 갱신된 상태를 읽습니다.
+4. 값과 구조를 검증하고 필요하면 스크린샷과 레이아웃을 검사합니다.
+
+[콘텐츠 작업](/ai/content-operations)과 [시각 검사](/ai/visual-inspection)를 결합할 수 있습니다. 사람의 검토가 필요하면 [Worktree](/ai/worktree)에 변경을 격리하고 비교 후 병합합니다. [Univer CLI](/overview/examples/cli)는 Agent용 앱으로 구성하는 예시입니다.
+
+## 연동 방법
+
+| 기능 | 가능한 작업 |
+| --- | --- |
+| Node.js 콘텐츠 런타임 | [헤드리스 Web SDK](/guides/sheets/getting-started/node)에서 제품 모델과 계산 플러그인을 구성합니다. |
+| 백그라운드 파일 처리 | Rust 계산과 [Node.js 파일 변환](/server/import-export/node)을 결합하고 Snapshot을 저장하거나 반환합니다. |
+| 공유 편집과 Agent | [협업](/server/collaboration/quick-start)과 [AI SDK](/ai/content-operations)를 연결하여 확정된 콘텐츠를 처리합니다. |
+
+[전체 기능으로 돌아가기](/overview/features)

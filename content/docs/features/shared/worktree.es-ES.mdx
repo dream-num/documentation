@@ -1,0 +1,84 @@
+---
+title: "Worktree"
+description: "Entiende el aislamiento, las revisiones base, la fusión OT y la conexión de AI SDK con agentes y revisión humana."
+icon: GitBranch
+---
+
+Worktree ofrece borradores aislados y colaborativos del contenido Office. Un agente puede revisar presupuestos, datos o documentos mientras otras personas editan el documento principal (trunk). Los cambios se fusionan tras validación y revisión.
+
+Aísla contenido y cambios, no directorios Git. Una tarea puede incluir varias [Units](/guides/sheets/getting-started/quickstart#unit), por ejemplo un libro, un documento y una presentación.
+
+## Aislamiento: evolucionar desde una base común [#isolation]
+
+Al crear un Worktree para una Unit existente, el servidor registra su revisión actual de trunk como **baseline**. El borrador usa snapshots, changesets, revisiones, Presence y Rooms independientes. Las ediciones intermedias no llegan a trunk.
+
+<Mermaid chart={"flowchart LR\n    A[\"Trunk al crear<br/>Baseline\"]\n    B[\"Trunk sigue editándose\"]\n    C[\"Borrador Worktree\"]\n    D[\"Ready · Revisión\"]\n    E[\"Fusión OT\"]\n    F[\"Nueva revisión trunk\"]\n    A --> B\n    A --> C --> D\n    B --> E\n    D --> E --> F"} />
+
+| Concepto | Función |
+| --- | --- |
+| Baseline | Revisión de origen en trunk, referencia para comparar y fusionar. |
+| Draft head | Última revisión confirmada del borrador. |
+| Ready head | Revisión fijada que delimita revisión y fusión. |
+
+Trunk y borrador avanzan por separado. Sus números representan secuencias distintas, no una comparación directa de actualidad. Sincronizar el borrador no incorpora automáticamente cambios nuevos de trunk; se reconcilian en la vista previa o la fusión.
+
+## Cómo AI SDK conecta el mismo borrador [#ai-sdk]
+
+Collaboration Runtime de AI SDK gestiona snapshots, cambios y revisiones de una Unit. El servicio Worktree de Server SDK controla creación, estado y fusión; no se necesita otro motor de edición.
+
+La aplicación convierte `worktreeID + unitID` en URLs de snapshot, envío, WebSocket y Session Ticket del borrador y las entrega al Runtime. Así reutiliza herramientas entre trunk y borradores.
+
+<Mermaid chart={"flowchart LR\n    A[\"Agente / CLI propia\"]\n    B[\"Revisión humana Web\"]\n    C[\"Adaptador de destino\"]\n    D[\"Worktree Endpoint\"]\n    E[\"Misma Unit borrador\"]\n    A --> C\n    B --> C\n    C --> D --> E"} />
+
+Una Unit ID puede existir en trunk y varios Worktrees. Inspección, ejecución, capturas y vista Web deben usar el mismo destino para evitar leer el borrador y escribir en trunk. Web utiliza la configuración colaborativa correspondiente.
+
+| Componente | Responsabilidad |
+| --- | --- |
+| Web SDK | Motor común para operaciones Headless y edición en navegador. |
+| Server SDK | Aislamiento, persistencia de cambios y revisiones, estado y OT. |
+| AI SDK | Runtime, Inspection, consulta API, ejecución Facade y validación visual. |
+| Tu aplicación | Modelo, destinos, identidad, autorización, tareas e interfaz de revisión. |
+
+## De la edición del agente a la entrega [#agent-workflow]
+
+La aplicación puede organizar tareas paralelas con un Worktree independiente por agente. Cada agente edita, valida y marca su borrador Ready. Una persona revisa cada uno, usa Reopen si necesita cambios y fusiona lo aprobado con el trunk actual.
+
+<Mermaid chart={"flowchart TB\n    TRUNK[\"Documento principal · Trunk\"]\n    subgraph PARALLEL[\"Agentes en paralelo\"]\n        direction LR\n        AGENT_A[\"Agent A<br/>Worktree A<br/>Editar y validar\"]\n        AGENT_B[\"Agent B<br/>Worktree B<br/>Editar y validar\"]\n        AGENT_C[\"Agent C<br/>Worktree C<br/>Editar y validar\"]\n    end\n    REVIEW[\"Revisión humana<br/>Borrador y vista previa\"]\n    MERGE[\"Merge individual<br/>Con el trunk actual\"]\n    RESULT[\"Nueva revisión trunk\"]\n    TRUNK --> AGENT_A\n    AGENT_A -->|\"Ready\"| REVIEW\n    TRUNK --> AGENT_B\n    AGENT_B -->|\"Ready\"| REVIEW\n    TRUNK --> AGENT_C\n    AGENT_C -->|\"Ready\"| REVIEW\n    REVIEW -->|\"Aprobar\"| MERGE\n    REVIEW -.->|\"Reopen del borrador correspondiente\"| PARALLEL\n    MERGE --> RESULT"} />
+
+1. Crea el borrador, elige Units, conecta el destino Worktree y ejecuta `pull`.
+2. Inspecciona estructura y datos, consulta APIs si hace falta y edita con Facade.
+3. Envía al borrador y relee datos y cálculos. Añade capturas cuando proceda y Layout Lint para Slides. Repite si aparecen problemas.
+4. Marca Ready: fija las revisiones y detiene la edición para revisión humana.
+5. Fusiona lo aprobado; usa Reopen antes de nuevas ediciones humanas o del agente, o Discard para abandonar.
+
+| Operación | Efecto |
+| --- | --- |
+| `runtime.commit()` | Envía solo al borrador y avanza su revisión. |
+| `markReady()` | Fija la versión revisable sin fusionar. |
+| `reopenWorktree()` | Vuelve de Ready a Draft y permite editar. |
+| `mergeWorktree()` | Fusiona cambios fijados por Unit. |
+
+Commit, Ready y Merge son distintos. Tanto personas como agentes deben reabrir un borrador Ready antes de editar. Véase la [guía AI SDK](/ai/worktree).
+
+## Fusionar cambios con el trunk actual [#merge]
+
+Para una Unit procedente de trunk, el servidor lee changesets entre **baseline y Ready head**, reúne sus mutations y los envía al Collaboration Service principal. Si trunk avanzó, [OT](/overview/features/shared/collaboration) transforma los cambios frente a las ediciones posteriores y confirma una revisión nueva.
+
+Se aplican cambios, no se reemplaza el documento actual con un snapshot antiguo. Si no pueden transformarse o aplicarse, se devuelve un conflicto. La aplicación lo gestiona: OT no resuelve todos los desacuerdos de negocio.
+
+Una Unit nueva del borrador no tiene baseline en trunk. La fusión la crea allí sin copiar todo el historial de changesets del borrador.
+
+## Revisar cambios y resultado de fusión [#review]
+
+- **¿Qué cambió?** Compara los estados completos baseline y Ready con [Compare](/overview/features/shared/compare).
+- **¿Qué pasaría al fusionar ahora?** Tras Ready, llama a `evaluateUnitMerge()`. Si trunk avanzó, un Runtime aislado aplica el candidato transformado por OT al trunk actual y genera una vista de solo lectura. No envía changesets ni modifica ninguno de los lados.
+
+La vista previa refleja el instante de la petición; Merge usa el estado al ejecutarse. Una fusión multi-Unit no es atómica: las Units correctas permanecen fusionadas si otra falla. Presenta resultados individuales y gestiona los errores.
+
+## Integración y alcance [#integration]
+
+Combina Worktree Client, Service, Endpoint y adaptadores con el núcleo colaborativo. Separa el almacenamiento y comparte Session Ticket Store con trunk. Autoriza por separado acceso al borrador y escritura en trunk; el aislamiento no concede permisos.
+
+Admite Sheet, Doc, Slide, Canvases y Relational Table, no PDF. Consulta el [ejemplo](/server/collaboration/examples#worktree), los [módulos](/server/collaboration/packages#worktree) y la [integración del agente](/ai/worktree).
+
+[Volver a todas las funciones](/overview/features)

@@ -1,14 +1,13 @@
 import type { NextRequest } from 'next/server'
 import createMiddleware from 'next-intl/middleware'
 import { NextResponse } from 'next/server'
-
 import { routing } from '@/i18n/routing'
 
 const intlMiddleware = createMiddleware(routing)
 const guidesRootPath = new RegExp(`^/(?:(${routing.locales.join('|')})/)?guides/?$`)
 const showcasePath = new RegExp(`^/(?:(${routing.locales.join('|')})/)?((?:showcase|playground)(?:/.*)?)$`)
 const agentDocsPath = new RegExp(
-  `^/(?:(?:(${routing.locales.join('|')})/))?(llms(?:-full)?\\.txt|(?:guides|server|ai|reference)(?:\\.md|/llms\\.txt|/.+\\.md))$`,
+  `^/(?:(?:(${routing.locales.join('|')})/))?(llms(?:-full)?\\.txt|(?:overview|guides|server|ai|reference)(?:\\.md|/llms\\.txt|/.+\\.md))$`,
 )
 
 export default function proxy(request: NextRequest) {
@@ -45,5 +44,5 @@ export default function proxy(request: NextRequest) {
 
 export const config = {
   // Keep MCP requests outside locale routing, alongside APIs and assets.
-  matcher: ['/((?!mcp(?:/|$)|api|universer-api|_next/static|_next/image|icon.svg|assets).*)'],
+  matcher: ['/((?!mcp(?:/|$)|api|universer-api|_next/static|_next/image|icon.svg|assets|sitemap.xml$|robots.txt$).*)'],
 }

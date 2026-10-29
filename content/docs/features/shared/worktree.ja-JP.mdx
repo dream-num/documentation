@@ -1,0 +1,84 @@
+---
+title: "Worktree"
+description: "下書きの分離、基準リビジョン、OT マージと、AI SDK による編集・レビューの連携を説明します。"
+icon: GitBranch
+---
+
+Worktree は Office 内容を共同編集できる下書きとして分離します。Agent が予算や企画書を修正する間も、人はメイン文書（trunk）を編集できます。検証・レビュー後に変更をマージします。
+
+分離対象は文書と変更であり、Git の作業ディレクトリとは別です。一つのタスクにワークブック、文書、プレゼンテーションなど複数の [Unit](/guides/sheets/getting-started/quickstart#unit) を含められます。
+
+## 分離の仕組み：共通の基準から進む [#isolation]
+
+既存 Unit の Worktree 作成時に trunk の revision を **Baseline（基準）** として記録します。下書きは独立した Snapshot、changeset、revision、Presence、Room を使い、途中の編集を trunk に送りません。
+
+<Mermaid chart={"flowchart LR\n    A[\"作成時の trunk<br/>Baseline\"]\n    B[\"trunk の編集継続\"]\n    C[\"Worktree 下書き\"]\n    D[\"Ready · レビュー\"]\n    E[\"OT マージ\"]\n    F[\"trunk の新しい版\"]\n    A --> B\n    A --> C --> D\n    B --> E\n    D --> E --> F"} />
+
+| 概念 | 役割 |
+| --- | --- |
+| Baseline | 下書きの起点となる trunk の版。比較とマージの参照。 |
+| Draft head | 送信により進む下書きの最新確定版。 |
+| Ready head | レビューとマージの範囲を固定する下書き版。 |
+
+trunk と下書きは別々に進みます。revision は各送信系列を表すため、数値だけで新旧は判断できません。下書きの同期に trunk の更新は自動混入せず、マージやプレビュー時に調整します。
+
+## AI SDK が同じ下書きに接続する仕組み [#ai-sdk]
+
+AI SDK の Collaboration Runtime は一つの Unit のスナップショット・変更・版を扱います。作成、状態、マージは Server SDK の Worktree サービスが担うため、別の編集エンジンは不要です。
+
+アプリケーションは `worktreeID + unitID` を下書き用 Snapshot、Submit、WebSocket、Session Ticket の URL に変換し、Runtime に渡します。同じツールを trunk と下書きで使えます。
+
+<Mermaid chart={"flowchart LR\n    A[\"Agent / 業務 CLI\"]\n    B[\"人による Web レビュー\"]\n    C[\"アプリの対象アダプター\"]\n    D[\"Worktree Endpoint\"]\n    E[\"同じ下書き Unit\"]\n    A --> C\n    B --> C\n    C --> D --> E"} />
+
+Unit ID は trunk と複数 Worktree に存在できます。検査、実行、画像、Web プレビューの対象を揃え、下書きを読んで trunk に書く取り違えを防ぎます。Web も対応する共同編集設定で接続します。
+
+| 担当 | 責務 |
+| --- | --- |
+| Web SDK | Headless 操作とブラウザー編集の共通エンジン。 |
+| Server SDK | 下書き分離、変更・版の保存、状態、OT マージ。 |
+| AI SDK | Runtime、Inspection、API 検索、Facade 実行、視覚検証。 |
+| アプリケーション | モデル、対象指定、認証認可、タスク、レビュー UI。 |
+
+## Agent の編集から引き渡しまで [#agent-workflow]
+
+アプリケーションは Agent ごとに独立した Worktree を割り当て、並行タスクを構成できます。各 Agent が編集・検証して Ready にし、人が個別にレビューします。修正時は対象の下書きを Reopen し、承認した変更を最新 trunk へマージします。
+
+<Mermaid chart={"flowchart TB\n    TRUNK[\"メイン文書 · Trunk\"]\n    subgraph PARALLEL[\"複数 Agent が並行作業\"]\n        direction LR\n        AGENT_A[\"Agent A<br/>Worktree A<br/>編集と検証\"]\n        AGENT_B[\"Agent B<br/>Worktree B<br/>編集と検証\"]\n        AGENT_C[\"Agent C<br/>Worktree C<br/>編集と検証\"]\n    end\n    REVIEW[\"人によるレビュー<br/>下書きとマージ案\"]\n    MERGE[\"個別に Merge<br/>最新 trunk へ\"]\n    RESULT[\"trunk の新しい版\"]\n    TRUNK --> AGENT_A\n    AGENT_A -->|\"Ready\"| REVIEW\n    TRUNK --> AGENT_B\n    AGENT_B -->|\"Ready\"| REVIEW\n    TRUNK --> AGENT_C\n    AGENT_C -->|\"Ready\"| REVIEW\n    REVIEW -->|\"承認\"| MERGE\n    REVIEW -.->|\"対象の下書きを Reopen\"| PARALLEL\n    MERGE --> RESULT"} />
+
+1. 下書きを作成しタスクの Unit を選び、Worktree target に接続して `pull` します。
+2. Inspection で構造とデータを理解し、API を必要に応じて調べ、Facade で編集します。
+3. 下書きへ送信し、データと計算結果を再取得します。必要なら画像、Slides なら Layout Lint も利用し、問題があれば繰り返します。
+4. Ready にして各 Unit の版を固定し、編集を停止してレビューへ渡します。
+5. 承認後 Merge。人でも Agent でも再編集前に Reopen します。不要な下書きは Discard できます。
+
+| 操作 | 結果 |
+| --- | --- |
+| `runtime.commit()` | 下書きへだけ送信して版を進める。 |
+| `markReady()` | レビュー版を固定。trunk へは送らない。 |
+| `reopenWorktree()` | Ready から Draft に戻し編集を許可。 |
+| `mergeWorktree()` | 固定した変更を Unit ごとにマージ。 |
+
+Commit、Ready、Merge は別です。Ready の再編集には必ず Reopen が必要です。実装は [AI SDK ガイド](/ai/worktree)を参照してください。
+
+## マージ：最新 trunk に変更を適用する [#merge]
+
+既存 Unit では **Baseline から Ready head** までの changeset を読み、mutation をまとめて trunk Collaboration Service に渡します。trunk が進んでいれば [OT](/overview/features/shared/collaboration) が以降の並行変更に合わせて変換し、新しい版を確定します。
+
+古いスナップショットで全置換するのではなく、変更を適用します。変換・実行できなければ競合を返し、アプリケーションが処理します。OT は業務上のすべての意見差を解決しません。
+
+下書き内で新規作成した Unit には trunk の基準がなく、マージ時に trunk へ作成します。全下書き履歴は複製されません。
+
+## 変更内容とマージ結果を確認する [#review]
+
+- **何を変えたか**：基準と Ready の完全な内容を[比較](/overview/features/shared/compare)します。
+- **今マージするとどうなるか**：Ready 後に `evaluateUnitMerge()` を呼びます。trunk が進んだ場合、分離 Runtime で OT 変換後の候補を適用し、読み取り専用のプレビューを作ります。changeset を送らず、両側とも変更しません。
+
+プレビューは要求時点の状態です。正式マージは実行時の trunk を使います。複数 Unit は一つの原子処理ではなく、一部失敗しても成功済み結果は残ります。個別結果を表示し対処してください。
+
+## 導入と対象 [#integration]
+
+Worktree Client、Service、Endpoint、DB アダプターを協同編集コアと組み合わせます。下書きの保存は分離し、Session Ticket Store は trunk と共有します。アクセスと trunk 書き込みはそれぞれ認可が必要です。
+
+Sheet、Doc、Slide、Canvases、Relational Table が対象で PDF は含みません。[例](/server/collaboration/examples#worktree)、[モジュール](/server/collaboration/packages#worktree)、[Agent ガイド](/ai/worktree)を参照してください。
+
+[機能一覧に戻る](/overview/features)

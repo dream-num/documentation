@@ -1,7 +1,7 @@
 import type { StructuredData } from 'fumadocs-core/mdx-plugins/remark-structure'
 import type { SortedResult } from 'fumadocs-core/search'
 
-export type SearchScope = 'all' | 'guides' | 'server' | 'ai' | 'reference' | 'blog'
+export type SearchScope = 'all' | 'overview' | 'guides' | 'server' | 'ai' | 'reference' | 'blog'
 export type SearchResultSource = Exclude<SearchScope, 'all'>
 
 export interface IScopedSearchResult {
@@ -14,7 +14,14 @@ export interface IScopedSearchResult {
 }
 
 export function parseSearchScope(value: string | null): SearchScope {
-  if (value === 'guides' || value === 'server' || value === 'ai' || value === 'reference' || value === 'blog')
+  if (
+    value === 'overview' ||
+    value === 'guides' ||
+    value === 'server' ||
+    value === 'ai' ||
+    value === 'reference' ||
+    value === 'blog'
+  )
     return value
   return 'all'
 }

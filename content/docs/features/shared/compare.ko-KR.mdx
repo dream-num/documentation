@@ -1,0 +1,81 @@
+---
+title: "콘텐츠 비교"
+description: "두 버전을 제품 데이터 모델에 따라 비교하고 추가·삭제·수정을 확인합니다."
+icon: GitCompareArrows
+---
+
+Compare는 완전히 복원된 두 Unit 스냅샷을 비교합니다. 셀, 문단, 페이지, 레코드 단위의 차이를 반환하므로 이력, Agent 결과물, Worktree 검토에 활용할 수 있습니다.
+
+## 제품별 비교 대상
+
+| 제품 | 예시 |
+| --- | --- |
+| Sheet | 워크시트, 셀 값과 수식, 행·열, 스타일, 등록된 차트 등 리소스. |
+| Doc | 문단, 텍스트와 스타일, 표, 블록, 그리기 객체. |
+| Slide | 페이지, 요소, 위치와 스타일, 레이아웃, 테마. |
+| Relational Table | 테이블, 필드, 레코드, 뷰. |
+| Canvases | 페이지, 요소, 관련 리소스. |
+
+차이는 추가·삭제·수정으로 구분합니다. 확대 배율이나 선택 영역 같은 임시 UI 상태는 제외합니다. 범위는 제품 어댑터에 따라 달라지며 PDF는 포함하지 않습니다.
+
+## Snapshot과 changeset을 이용한 비교 원리
+
+Snapshot은 특정 리비전의 전체 콘텐츠 상태를 저장합니다. mutation은 개별 콘텐츠 변경을 나타내며, changeset은 mutation을 순서가 있는 커밋으로 묶습니다. 기록은 버전을 저장하고 복원하며, Compare는 복원된 두 버전의 차이를 보여 줍니다.
+
+<Mermaid chart={"flowchart LR\n    S[\"기준 Snapshot\"]\n    CA[\"changeset A 적용\"]\n    CB[\"changeset B 적용\"]\n    A[\"버전 A\"]\n    B[\"버전 B\"]\n    C[\"제품 모델 비교\"]\n    D[\"추가 · 삭제 · 수정\"]\n    S --> CA --> A\n    S --> CB --> B\n    A --> C\n    B --> C\n    C --> D"} />
+
+기록이나 Worktree를 비교할 때 기준 Snapshot에 후속 changeset을 순서대로 적용해 대상 리비전의 전체 상태를 복원한 뒤 제품 어댑터에 전달합니다. 이용 가능한 changeset은 행·열 삽입과 삭제 같은 구조 변경의 대응 관계를 개선하는 데도 사용됩니다. 전체 상태 두 개만 있어도 스냅샷 비교를 할 수 있습니다.
+
+비교 결과는 각 제품의 콘텐츠 모델을 따릅니다. Sheet의 셀과 행·열, Doc의 문단, Slide와 Canvases의 요소, Relational Table의 필드와 레코드를 비교합니다. 임시 선택과 확대·축소는 콘텐츠 변경으로 처리하지 않습니다. Compare는 읽기 전용이며 버전 복원과 Worktree 병합은 별도 작업입니다.
+
+## Server SDK 및 AI SDK와 연결
+
+**Server SDK**는 Snapshot, changeset, 리비전 번호를 제공하고 비교할 콘텐츠를 복원합니다. 애플리케이션은 두 상태와 사용 가능한 기록을 Compare에 전달하여 구조화된 차이를 얻고 웹 검토 화면에 표시합니다. [기록](/overview/features/shared/history)과 [협업 서비스 확장](/server/collaboration/extensions)을 참고하세요.
+
+**AI SDK**는 Worktree에서 콘텐츠를 불러오고 수정하며 Agent의 결과를 커밋합니다. 애플리케이션은 구조화된 차이를 Agent 검증과 후속 처리에 사용하고, 사람은 같은 변경을 시각적으로 검토한 후 병합을 결정할 수 있습니다. [Agent Worktree 흐름](/ai/worktree)과 [콘텐츠 작업](/ai/content-operations)을 참고하세요.
+
+## 다섯 제품의 비교 예제
+
+공통 Northstar 출시 계획으로 전체 기준 버전을 만들고 제출한 다음, Worktree에서 수정하고 Compare로 전후 차이를 확인했습니다.
+
+변경 목록에서 **파란색**은 수정, **초록색**은 추가, **빨간색**은 삭제를 나타냅니다. 읽기 전용 패널에서 변경 전후를 비교할 수 있습니다. 이미지를 클릭하면 확대됩니다.
+
+### Sheet: 예산과 행 구조
+
+연구·에디터 예상 비용을 수정하고 Legacy tooling을 삭제하며 Accessibility QA를 추가한 후 합계를 다시 계산합니다. 행 구조와 함께 값과 수식 결과의 변화를 확인합니다.
+
+![Sheet: 예산과 행 구조](/assets/features/compare/sheets.jpg)
+
+### Doc: 출시 계획과 문단
+
+출시일, 파일럿 팀 수, 완료율 목표를 수정합니다. 기존 승인 설명을 삭제하고 품질 확인 요구를 추가하여 문맥 속에서 문단을 검토합니다.
+
+![Doc: 출시 계획과 문단](/assets/features/compare/docs.jpg)
+
+### Slide: 지표와 페이지 요소
+
+지표 카드 세 개를 수정하고 기존 승인 블록을 품질 확인 블록으로 교체합니다. 같은 페이지의 텍스트와 요소 변경을 비교합니다.
+
+![Slide: 지표와 페이지 요소](/assets/features/compare/slides.jpg)
+
+### Relational Table: 필드와 작업 레코드 [#base-필드와-작업-레코드]
+
+진행률·상태·날짜를 수정하고 날짜 필드 이름을 변경합니다. 기존 승인 레코드를 삭제하고 접근성 검사 작업을 추가합니다.
+
+![Relational Table: 필드와 작업 레코드](/assets/features/compare/bases.jpg)
+
+### Canvases: 흐름과 캔버스 요소 [#board-흐름과-캔버스-요소]
+
+파일럿 규모와 출시일을 수정하고 검토 노드 위치를 옮깁니다. 기존 승인 카드를 품질 확인 카드로 교체하여 콘텐츠와 배치 변경을 확인합니다.
+
+![Canvases: 흐름과 캔버스 요소](/assets/features/compare/boards.jpg)
+
+## 결과 조회
+
+해당 제품의 이력 비교 플러그인과 Facade 확장을 등록한 후 `compareUnitData()`를 호출합니다. 반복 필터링과 페이지 처리는 `prepareUnitComparison()`과 `query()`를 사용합니다.
+
+요약부터 보여주고 워크시트, 페이지, 테이블별 상세로 이동합니다. 필요에 따라 변경 목록이나 전체 이전·이후 값을 요청합니다. 기본 상세 결과에는 개수 제한이 있으므로 첫 페이지를 전체 차이로 간주하지 마세요. 진단과 지원 범위를 확인한 뒤 표시합니다.
+
+[API](/reference/facade/unit-comparison), [이력](/overview/features/shared/history), [Worktree](/overview/features/shared/worktree)를 참고하세요.
+
+[전체 기능으로 돌아가기](/overview/features)

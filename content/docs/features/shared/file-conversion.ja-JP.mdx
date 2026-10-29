@@ -1,0 +1,87 @@
+---
+title: "ファイルのインポートとエクスポート"
+description: "Office ファイルを製品のスナップショットに変換し、編集結果をファイルに書き出します。"
+icon: FileInput
+---
+
+ファイル変換は外部形式と Univer のコンテンツモデルをつなぎます。インポートではファイルを製品の Snapshot に解析し、エクスポートではそのスナップショットを選択した形式にシリアライズします。
+
+## ファイルからスナップショットへ
+
+`.xlsx`、`.docx`、`.pptx` は XML や画像などを含む OOXML パッケージです。`.xls`、`.doc`、`.ppt` は従来のバイナリ構造、CSV と TSV はテキスト形式です。対応する元ファイルを渡すと、変換モジュールがデコード、パッケージ解析、リソースの対応付けを行います。
+
+Snapshot は保存・復元できる製品のコンテンツ状態です。 [6 製品のデータ構造を見る](#snapshot-のデータ構造)
+
+### インポート：ファイル → Snapshot
+
+内容、スタイル、リソースを解析し、Sheet、Doc、Slide、Relational Table などの製品モデルに変換します。
+
+<Mermaid chart={"flowchart LR\n    A[\"1. 元ファイル<br/>XLSX / DOCX / PPTX など\"]\n    B[\"2. Snapshot に解析<br/>Server SDK\"]\n    C[\"3. 必要時に計算<br/>Snapshot を更新\"]\n    D[\"4. Web SDK<br/>内容を編集・処理\"]\n    A --> B --> C --> D\n    classDef calculation stroke-dasharray:5 4\n    class C calculation"} />
+
+### エクスポート：Snapshot → ファイル
+
+現在の製品スナップショットから出力形式の構造とリソースを生成します。スナップショットはランタイムのコンテンツモデルで、通常は JSON として転送・保存します。
+
+<Mermaid chart={"flowchart LR\n    A[\"1. 現在の Snapshot<br/>編集後の内容\"]\n    B[\"2. 必要時に計算<br/>Snapshot を更新\"]\n    C[\"3. Server SDK<br/>出力形式に変換\"]\n    D[\"4. 出力ファイル<br/>XLSX / DOCX / PPTX など\"]\n    A --> B --> C --> D\n    classDef calculation stroke-dasharray:5 4\n    class B calculation"} />
+
+Sheet の例：ポリシーに従って数式、ピボット、数値書式を計算し、Snapshot に反映します。[サーバー側計算](/overview/features/shared/server-calculation)を参照してください。
+
+### Snapshot のデータ構造
+
+各製品には、内容とリソース参照を永続化する Snapshot インターフェースがあり、通常は JSON で保存します。インターフェース名からフィールド定義、型、例を確認できます。
+
+<div className="[&_table]:min-w-180 [&_code]:whitespace-nowrap">
+
+| 製品 | Snapshot インターフェース | 主な内容 |
+| --- | --- | --- |
+| スプレッドシート (Sheet) | [`IWorkbookData`](/guides/sheets/model/workbook-data#iworkbookdata) | ワークシート、セル、共有スタイル、プラグインリソース。 |
+| ドキュメント (Doc) | [`IDocumentData`](/guides/docs/model/document-data#idocumentdata) | 本文、段落、スタイル、ヘッダー、フッター、リソース。 |
+| スライド (Slide) | [`ISlideData`](/guides/slides/model/slide-data#islidedata) | スライド、要素、マスター、テーマ、リソース。 |
+| リレーショナルテーブル (Relational Table) | [`IBaseSnapshot`](/guides/bases/model/base-snapshot#ibasesnapshot) | テーブル、フィールド、レコード、ビューとそれぞれの順序。 |
+| キャンバス (Canvases) | [`IBoardData`](/guides/boards/model/board-data#iboarddata) | ページ、要素、テーマ、リソース。 |
+| PDF | [`IPdfUnitData`](/guides/pdfs/model/pdf-data#ipdfunitdata) | 元文書、永続編集状態、リソースのバインディング。 |
+
+</div>
+
+各製品の Facade の `save()` で現在のスナップショットを取得し、対応する作成 API で復元します。実行中の内容は Facade API で編集します。PDF では `pdf.save()` が元のベースラインと `editState` の両方を保持します。
+
+## 製品別の対応形式
+
+Office と表データの形式は現在の Rust Exchange の直接変換経路に基づきます。PDF は独立した変換モジュールを使用します。
+
+<div className="[&_table]:min-w-180 [&_code]:whitespace-nowrap">
+
+| 製品 | インポート / コンパイル | エクスポート | 範囲 |
+| --- | --- | --- | --- |
+| [スプレッドシート (Sheet)](/guides/sheets/features/import-export) | `.xls`, `.xlsx`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` | CSV/TSV は単一ワークシートを扱います。 |
+| [ドキュメント (Doc)](/guides/docs/features/import-export) | `.doc`, `.docx` | `.docx` | 従来の DOC を Docs モデルに取り込み、DOCX に出力します。 |
+| [スライド (Slide)](/guides/slides/features/import-export) | `.ppt`, `.pptx` | `.pptx` | 従来の PPT を Slides モデルに取り込み、PPTX に出力します。 |
+| [リレーショナルテーブル (Relational Table)](/guides/bases/features/import-export) | `.xls`, `.xlsx`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` | CSV/TSV は単一テーブル、XLSX はテーブルとフィールドのマッピングに対応します。 |
+| [キャンバス (Canvases)](/guides/boards/features/import-export) | Mermaid (`.mmd` / ソーステキスト) | `.pptx` | Mermaid はインポート用ドラフトを生成し、Canvases Facade で適用して保存します。PPTX は現在のページを出力します。 |
+| [PDF](/guides/pdfs/features/import-export) | `.pdf` | `.pdf` | PDF 変換サービスが必要です。Rust Exchange CLI とは別経路です。 |
+
+</div>
+
+- 従来形式の `.xls`、`.doc`、`.ppt` はインポートに対応し、出力にはそれぞれ `.xlsx`、`.docx`、`.pptx` を使用します。
+- CSV/TSV の出力ではワークシートまたは Relational Table テーブルを1つ選択します。モデルとリソース全体の保存には製品スナップショットを使用します。
+- SDK の入口ごとに受け付ける拡張子は異なります。`.xlsm`、`.pptm`、`.ppsx`、`.ppsm`、`.potx` はバックエンドとブラウザー API を確認してください。Rust CLI の追加形式名ではありません。
+
+## 変換時の計算
+
+対応するスプレッドシート変換では、サーバー側の計算を組み合わせられます。
+
+- **数式計算:** インポート時に不足するキャッシュ結果を補い、エクスポート前には選択した方針で再計算します。
+- **ピボット計算:** 元データと設定からグループ化・集計結果を計算し、スナップショットや出力ブックに反映します。
+- **数値書式計算:** 値と書式コードから日付、パーセント、通貨などの表示文字列を生成します。CSV/TSV では表示値と生の値を選択できます。
+
+関連する処理は[ヘッドレス実行とサーバー側計算](/overview/features/shared/server-calculation)を参照してください。
+
+## 導入方法
+
+ファイル変換は Server SDK の機能です。アップロード、タスク管理、ストレージ、ダウンロードはアプリが提供します。スナップショット変換は共同編集なしで実行でき、共有文書の出力では変更の同期後に確定済みリビジョンを読み取ります。
+
+[ファイル変換の統合](/server/import-export)と [Node.js ファイル変換](/server/import-export/node)から始めてください。
+
+形式の対応と個々の機能の往復保持は別に確認します。製品の機能一覧と実際のファイルで、数式、画像、スタイル、レイアウトを検証してください。
+
+[機能一覧に戻る](/overview/features)

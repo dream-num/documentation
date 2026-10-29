@@ -191,6 +191,16 @@ const enUSMessages = {
     'theme-customizer': 'Theme Customizer',
     'theme-customizer-description': 'Tune Web SDK themes, design tokens, and dark-mode previews.',
   },
+  office: {
+    'start-description': 'Build your first Office app with a template and three examples.',
+    modules: 'Modules',
+    overview: 'Office SDK overview',
+    'overview-description': 'Understand the shared runtime and how the SDKs work together.',
+    'web-description': 'Shared content engine, browser editors, and headless runtime.',
+    'server-description': 'Collaboration, file conversion, history, and Worktree services.',
+    'ai-description': 'Content operations, inspection, and verification for agents.',
+    start: 'Get started',
+  },
   navigation: {
     overview: 'Overview',
     blog: 'Blog',
@@ -553,6 +563,17 @@ const enUSMessages = {
     response: 'Response',
     type: 'Type',
   },
+  featureComparison: {
+    search: 'Search features',
+    placeholder: 'Search features or scope notes',
+    group: 'Category',
+    allGroups: 'All categories',
+    openSource: 'Open source only',
+    differences: 'Differences only',
+    reset: 'Reset',
+    count: '{visible} of {total} items',
+    empty: 'No matching features.',
+  },
   search: {
     label: 'Search',
     'no-result': 'No results found',
@@ -569,6 +590,7 @@ const enUSMessages = {
     navigate: 'Navigate',
     open: 'Open',
     scope: {
+      overview: 'Overview',
       blog: 'Developer tutorials',
       server: 'Server SDK',
       ai: 'AI SDK',

@@ -1,0 +1,110 @@
+---
+title: "양방향 바인딩"
+description: "Server SDK로 HTML 애플리케이션을 스프레드시트 데이터, 수식 결과 및 협업 업데이트에 연결합니다."
+icon: ArrowLeftRight
+---
+
+<Callout type="warning" title="실험적 기능">
+  양방향 바인딩은 현재 실험 단계입니다. 향후 버전에는 호환성을 깨는 변경이 포함되며 API와 통합 방식이 달라질 수 있습니다.
+</Callout>
+
+Univer Server SDK는 일반 HTML, CSS, JavaScript 페이지를 Sheet에 연결합니다. 표는 데이터와 수식을 보관하고, 페이지는 폼·지표·차트·업무 인터랙션을 제공합니다. 어느 쪽에서 입력을 바꾸더라도 다른 쪽에서 업데이트를 받습니다. 기존 표 모델로 견적 계산기, 대시보드, 인터랙티브 업무 앱을 만들 수 있습니다.
+
+## 예제: 앱과 스프레드시트 연결
+
+Project Summit 예제는 왼쪽에 성장률, 제안 가격, 현금 지급 비율 컨트롤을 두고 오른쪽에는 전체 재무 통합 문서를 표시합니다. 가정을 수정하면 관련 수식, 지표 카드, 차트가 갱신됩니다. 표에서 입력과 계산 과정을 확인할 수도 있습니다.
+
+![Project Summit: 업무 컨트롤·지표·차트와 연결된 Univer Sheets 재무 모델](/assets/features/binding/project-summit-app-sheets.png)
+
+이미지는 브라우저 로컬 모델의 예시입니다. 공동 편집과 영구 저장은 아래 협업 서비스로 연결합니다. 이미지를 클릭하면 확대됩니다.
+
+## 하나의 Sheet, 여러 인터페이스
+
+HTML 뷰는 페이지 런타임으로 호스트와 통신하고, Binding Engine이 실제 Sheet 콘텐츠를 읽고 씁니다. Engine은 독립적인 Headless Univer 인스턴스를 사용합니다. Univer SDK가 수식과 협업을 처리하고 바인딩 계층이 바뀐 값을 페이지에 전달합니다.
+
+<Mermaid chart={"flowchart LR\n    P[\"HTML 앱<br/>컨트롤 · 지표 · 차트\"]\n    E[\"호스트 + Binding Engine<br/>Headless Sheet\"]\n    S[\"협업 서비스<br/>동일한 Sheet Unit\"]\n    T[\"Sheet 편집기\"]\n    P <-->|\"읽기 · 쓰기 · 구독\"| E\n    E <-->|\"SDK 협업\"| S\n    T <-->|\"편집 · 동기화\"| S"} />
+
+표를 직접 편집하거나 다른 사용자의 협업 변경을 받아도 바인딩된 페이지가 갱신됩니다. HTML 뷰 하나는 여러 승인된 Unit에 접근할 수 있습니다. 호스트가 Unit마다 Engine을 불러오며 각 Engine은 독립적인 Headless Univer 인스턴스를 소유합니다.
+
+## HTML로 바인딩 선언
+
+요소에 데이터 참조를 선언하면 텍스트와 폼이 자동 동기화됩니다. 셀 참조 형식은 `unitId:sheetId:A1`입니다. 각 ID를 `encodeURIComponent`로 따로 인코딩하고 워크시트의 안정적인 ID를 사용합니다.
+
+| 속성 | 용도 |
+| --- | --- |
+| `data-univer-cell-text` | 셀 값을 요소의 텍스트로 표시. |
+| `data-univer-cell-model` | 셀과 입력 컨트롤을 양방향 동기화. |
+| `data-univer-cell-subscribe` | 사용자 정의 JavaScript 렌더링용 셀 구독 선언. |
+| `data-univer-range-subscribe` | 차트·목록에서 사용할 이차원 범위 구독 선언. |
+
+예를 들어 `B2`는 단가, `B3`는 수량이고 `B4`에는 `=B2*B3` 수식이 설정되어 있습니다. 다음 템플릿 조각으로 입력과 합계를 연결합니다.
+
+```html
+<label>
+  단가
+  <input type="number" min="0" step="0.01"
+    data-univer-cell-model="book:sheet:B2" />
+</label>
+<label>
+  수량
+  <input type="number" min="0" step="1"
+    data-univer-cell-model="book:sheet:B3" />
+</label>
+<p>합계: <span data-univer-cell-text="book:sheet:B4"></span></p>
+```
+
+`book`과 `sheet`를 실제 승인된 ID로 바꾸고 Renderer로 템플릿을 불러옵니다. 수식은 Sheet에 정의하고 페이지는 계산 결과를 읽습니다. 텍스트·숫자·슬라이더·체크박스·텍스트 영역·단일 선택 목록을 값 형식에 맞게 연결할 수 있습니다.
+
+## JavaScript로 차트와 인터랙션 확장
+
+페이지 런타임은 템플릿 스크립트 실행 전에 `window.univerBinding`을 제공합니다. 차트 범위를 `data-univer-range-subscribe`로 선언하고 `subscribeRangeById(elementId, callback)`에서 행렬을 받아 차트를 갱신합니다. 단일 값 컴포넌트는 `subscribeCellById()`를 사용합니다.
+
+`getCellState()` / `getRangeState()`는 일회성 읽기, `setCellValue()`는 스칼라 쓰기, `insertRowsWithValues()`는 행 삽입과 값 채우기를 수행합니다. 구독은 현재 상태를 먼저 알리고 실제 값 변경을 전달합니다. 로컬 편집, 협업 변경, 수식 결과 적용이 갱신을 유발합니다.
+
+참조는 고정 좌표를 읽으므로 행·열 삽입이나 삭제 후 원래 레코드를 따라가지 않습니다. 스칼라 쓰기는 기존 수식이나 서식 있는 텍스트를 대체하므로 업무 입력 셀을 바인딩하세요.
+
+## 호스트와 Agent 연결
+
+앱은 컨테이너, HTML 템플릿, `loadEngine`을 제공합니다. 로더는 Unit 접근 권한을 확인하고 협업 연결을 구성하여 로드된 Engine을 반환합니다. Renderer는 분리 페이지, 메시징, 전달받은 Engine의 생명주기를 관리합니다. 다음 진입점은 이 세 입력을 받습니다.
+
+```ts
+import {
+  renderHtmlView,
+  type RenderHtmlViewOptions,
+} from '@univerjs-labs/html-view-renderer/render';
+
+export function createPreview(
+  container: HTMLElement,
+  html: string,
+  loadEngine: RenderHtmlViewOptions['loadEngine'],
+) {
+  return renderHtmlView({ container, html, loadEngine });
+}
+```
+
+템플릿 생성, 소스 편집, 파일 저장, 업무 탐색은 앱이 담당합니다. Agent는 바인딩 선언이 있는 HTML을 생성해 Sheet 데이터와 계산 규칙을 재사용할 수 있습니다. `view.inspect.open()`으로 Unit → Sheet → 참조 → 페이지 요소의 관계를 검사합니다.
+
+협업 자격 증명은 호스트가 관리하고 서버가 실제 접근을 검증합니다. Sheet UI와 Headless Engine은 다른 페이지나 iframe 등 별도의 JavaScript 환경에 배치합니다. 현재 바인딩 패키지는 Sheet를 대상으로 합니다.
+
+## 로컬 갱신과 저장 확인 구분
+
+| 작업 | 의미 |
+| --- | --- |
+| 페이지 쓰기 완료 | 로컬 작업은 실행되었지만 서버 확인은 아직 진행 중일 수 있습니다. |
+| `await view.flush()` | 컨트롤 초안·이전 쓰기를 제출하고 협업 확인을 기다린 뒤 편집을 계속합니다. |
+| `await view.prepareToLeave()` | 편집을 일시 정지하고 저장합니다. 성공 후 이동하며 취소 시 `view.resume()`을 호출합니다. |
+| `view.dispose()` | 연결·Engine·구독을 해제하며 자동 저장하지 않습니다. |
+
+수식 결과가 적용되면 구독이 표시 값을 갱신합니다. 저장 실패 시 현재 페이지를 유지하고 저장을 다시 시도합니다. 페이지 쓰기 완료만으로 저장되었다고 표시하면 안 됩니다.
+
+## 다음 연결 단계
+
+- [SDK 저장소와 개요](https://github.com/dream-num/univer-data-binding-sdk)
+- [Binding Engine API](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/binding-engine/README.md)
+- [HTML 바인딩 속성](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/html-view/README.md)
+- [Renderer 통합](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/html-view-renderer/README.md)
+- [페이지 JavaScript API](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/html-view-renderer/docs/javascript-api.md)
+
+관련 기능: [헤드리스와 서버 계산](/overview/features/shared/server-calculation) · [실시간 협업](/overview/features/shared/collaboration) · [Agent와 자동화](/overview/features/shared/agents).
+
+[전체 기능으로 돌아가기](/overview/features)

@@ -194,6 +194,16 @@ const frFRMessages = {
     'theme-customizer': 'Personnalisation du thème',
     'theme-customizer-description': 'Ajustez les thèmes Web SDK, les design tokens et les aperçus en mode sombre.',
   },
+  office: {
+    'start-description': 'Créez votre première application Office avec un modèle et trois exemples.',
+    modules: 'Modules',
+    overview: 'Présentation d’Office SDK',
+    'overview-description': 'Comprendre le runtime partagé et la coopération des SDK.',
+    'web-description': 'Moteur de contenu partagé, éditeurs web et runtime Headless.',
+    'server-description': 'Services de collaboration, conversion, historique et Worktree.',
+    'ai-description': 'Opérations de contenu, inspection et vérification pour les agents.',
+    start: 'Commencer',
+  },
   navigation: {
     overview: 'Vue d’ensemble',
     blog: 'Blog',
@@ -559,6 +569,17 @@ const frFRMessages = {
     response: 'Réponse',
     type: 'Type',
   },
+  featureComparison: {
+    search: 'Rechercher',
+    placeholder: 'Rechercher des fonctions ou des limites',
+    group: 'Catégorie',
+    allGroups: 'Toutes les catégories',
+    openSource: 'Open source uniquement',
+    differences: 'Différences uniquement',
+    reset: 'Réinitialiser',
+    count: '{visible} sur {total} éléments',
+    empty: 'Aucune fonctionnalité correspondante.',
+  },
   search: {
     label: 'Rechercher',
     'no-result': 'Aucun résultat trouvé',
@@ -575,6 +596,7 @@ const frFRMessages = {
     navigate: 'Parcourir',
     open: 'Ouvrir',
     scope: {
+      overview: 'Vue d’ensemble',
       blog: 'Tutoriels de développement',
       server: 'Server SDK',
       ai: 'AI SDK',

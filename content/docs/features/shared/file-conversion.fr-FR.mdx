@@ -1,0 +1,87 @@
+---
+title: "Import et export de fichiers"
+description: "Convertissez les fichiers Office en snapshots produit, puis les snapshots modifiés en fichiers."
+icon: FileInput
+---
+
+La conversion relie les formats externes aux modèles de contenu Univer. L’import analyse un fichier pour produire le snapshot du produit correspondant ; l’export sérialise ce snapshot dans le format de sortie choisi.
+
+## Du fichier au snapshot
+
+Les fichiers `.xlsx`, `.docx` et `.pptx` sont des paquets OOXML contenant du XML et des ressources comme les images. Les formats `.xls`, `.doc` et `.ppt` utilisent des structures binaires historiques ; CSV et TSV sont des formats texte. Fournissez le fichier original pris en charge : le module assure le décodage, l’analyse du paquet et la correspondance des ressources.
+
+Un snapshot représente l’état du contenu d’un produit que l’on peut enregistrer et restaurer. [Voir les structures des six produits](#structures-de-données-snapshot)
+
+### Import : fichier → snapshot
+
+Analyse le contenu, les styles et les ressources pour les mapper au modèle Sheet, Doc, Slide, Relational Table ou à un autre produit.
+
+<Mermaid chart={"flowchart LR\n    A[\"1. Fichier source<br/>XLSX / DOCX / PPTX, etc.\"]\n    B[\"2. Analyser en snapshot<br/>Server SDK\"]\n    C[\"3. Calcul optionnel<br/>Actualiser Snapshot\"]\n    D[\"4. Web SDK<br/>Éditer ou traiter le contenu\"]\n    A --> B --> C --> D\n    classDef calculation stroke-dasharray:5 4\n    class C calculation"} />
+
+### Export : snapshot → fichier
+
+Lit le snapshot courant et génère la structure et les ressources du format cible. Le snapshot est le modèle de contenu du runtime, généralement transmis ou enregistré en JSON.
+
+<Mermaid chart={"flowchart LR\n    A[\"1. Snapshot courant<br/>Contenu modifié\"]\n    B[\"2. Calcul optionnel<br/>Actualiser Snapshot\"]\n    C[\"3. Server SDK<br/>Convertir au format cible\"]\n    D[\"4. Fichier de sortie<br/>XLSX / DOCX / PPTX, etc.\"]\n    A --> B --> C --> D\n    classDef calculation stroke-dasharray:5 4\n    class B calculation"} />
+
+Exemple Sheet : calculer les formules, tableaux croisés et formats numériques selon la politique choisie, puis mettre à jour le snapshot. Voir le [calcul côté serveur](/overview/features/shared/server-calculation).
+
+### Structures de données Snapshot
+
+Chaque produit définit une interface Snapshot pour conserver son contenu et ses références de ressources, généralement en JSON. Les liens présentent les champs, les types et les exemples.
+
+<div className="[&_table]:min-w-180 [&_code]:whitespace-nowrap">
+
+| Produit | Interface Snapshot | Contenu principal |
+| --- | --- | --- |
+| Feuilles de calcul (Sheet) | [`IWorkbookData`](/guides/sheets/model/workbook-data#iworkbookdata) | Feuilles, cellules, styles partagés et ressources de plugins. |
+| Documents (Doc) | [`IDocumentData`](/guides/docs/model/document-data#idocumentdata) | Corps, paragraphes, styles, en-têtes, pieds de page et ressources. |
+| Présentations (Slide) | [`ISlideData`](/guides/slides/model/slide-data#islidedata) | Diapositives, éléments, masques, thèmes et ressources. |
+| Table relationnelle (Relational Table) | [`IBaseSnapshot`](/guides/bases/model/base-snapshot#ibasesnapshot) | Tables, champs, enregistrements, vues et leur ordre. |
+| Canevas (Canvases) | [`IBoardData`](/guides/boards/model/board-data#iboarddata) | Pages, éléments, thèmes et ressources. |
+| PDF | [`IPdfUnitData`](/guides/pdfs/model/pdf-data#ipdfunitdata) | Document source, état des modifications persistantes et liaisons de ressources. |
+
+</div>
+
+Utilisez `save()` sur la Facade du produit pour obtenir le snapshot actuel, puis son API de création pour le restaurer. Modifiez le contenu actif via les API Facade. Pour PDF, `pdf.save()` conserve la référence source et `editState`.
+
+## Formats par produit
+
+Les formats Office et tabulaires ci-dessous correspondent aux chemins directs de Rust Exchange. Le PDF utilise un module de conversion distinct.
+
+<div className="[&_table]:min-w-180 [&_code]:whitespace-nowrap">
+
+| Produit | Import / compilation | Export | Portée |
+| --- | --- | --- | --- |
+| [Feuilles de calcul (Sheet)](/guides/sheets/features/import-export) | `.xls`, `.xlsx`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` | CSV/TSV représente une seule feuille. |
+| [Documents (Doc)](/guides/docs/features/import-export) | `.doc`, `.docx` | `.docx` | Le DOC historique est importé dans Docs ; la sortie utilise DOCX. |
+| [Présentations (Slide)](/guides/slides/features/import-export) | `.ppt`, `.pptx` | `.pptx` | Le PPT historique est importé dans Slides ; la sortie utilise PPTX. |
+| [Table relationnelle (Relational Table)](/guides/bases/features/import-export) | `.xls`, `.xlsx`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` | CSV/TSV représente une table ; XLSX gère le mappage des tables et des champs. |
+| [Canevas (Canvases)](/guides/boards/features/import-export) | Mermaid (`.mmd` / texte source) | `.pptx` | Mermaid produit un brouillon à appliquer via la Facade Canvases avant d’enregistrer le snapshot ; PPTX exporte la page active. |
+| [PDF](/guides/pdfs/features/import-export) | `.pdf` | `.pdf` | Nécessite le service de conversion PDF, distinct du CLI Rust Exchange. |
+
+</div>
+
+- Les formats historiques `.xls`, `.doc` et `.ppt` sont importables ; les sorties sont respectivement `.xlsx`, `.docx` et `.pptx`.
+- L’export CSV/TSV sélectionne une feuille ou une table Relational Table. Conservez le snapshot pour préserver le modèle complet et ses ressources.
+- Les extensions acceptées dépendent du point d’entrée SDK. Vérifiez le backend et l’API navigateur pour `.xlsm`, `.pptm`, `.ppsx`, `.ppsm` et `.potx` ; ce ne sont pas des noms de formats directs supplémentaires du CLI Rust.
+
+## Calcul pendant la conversion
+
+Les parcours de conversion de feuilles compatibles peuvent intégrer des calculs côté serveur :
+
+- **Formules :** compléter les résultats en cache manquants à l’import ou recalculer avant l’export selon la politique choisie.
+- **Tableaux croisés :** calculer les regroupements et agrégations à partir des données et de la configuration, puis matérialiser les résultats dans le snapshot ou le classeur exporté.
+- **Formats numériques :** générer le texte affiché pour les dates, pourcentages, devises et autres valeurs. L’export CSV/TSV permet de choisir les valeurs affichées ou brutes.
+
+Consultez [Headless et calcul serveur](/overview/features/shared/server-calculation) pour le traitement de contenu associé.
+
+## Intégration
+
+La conversion relève du Server SDK. L’application fournit l’envoi, les tâches, le stockage et le téléchargement. La conversion de snapshots peut fonctionner sans collaboration ; l’export partagé lit une révision confirmée après synchronisation des modifications.
+
+Commencez par [Intégration de la conversion](/server/import-export) et [Conversion Node.js](/server/import-export/node).
+
+La prise en charge d’un format et la préservation de chaque fonction sont distinctes. Vérifiez les formules, images, styles et mises en page avec les listes de fonctions et vos fichiers réels.
+
+[Toutes les fonctionnalités](/overview/features)

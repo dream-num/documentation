@@ -1,0 +1,84 @@
+---
+title: "Worktree"
+description: "了解隔离草稿、版本基线和 OT 合入，以及 AI SDK 如何连接 Agent 编辑与人类审阅。"
+icon: GitBranch
+---
+
+Worktree 为 Office 内容提供可协同编辑的隔离草稿。Agent 可以修改预算、整理数据或完善方案，人类同时继续编辑主文档（trunk）；草稿经过验证与审阅后，再将修改合入主线。
+
+它隔离的是文档内容及其变更，不是 Git 代码目录。一项任务可以包含多个 [Unit（内容单元）](/guides/sheets/getting-started/quickstart#unit)，例如同一项目的工作簿、说明文档和演示文稿。
+
+## 隔离原理：从同一基线分别演进 [#isolation]
+
+创建已有 Unit 的 Worktree 时，服务端记录当时的主线 revision，作为 **Baseline（基线）**。草稿从这个版本开始，使用独立的 Snapshot、changeset、revision、Presence 和协同 Room；Agent 的中间修改不会写入主线。
+
+<Mermaid chart={"flowchart LR\n    A[\"创建时主线<br/>Baseline\"]\n    B[\"主线继续编辑\"]\n    C[\"Worktree 草稿\"]\n    D[\"Ready · 审阅\"]\n    E[\"OT 合入\"]\n    F[\"主线新版本\"]\n    A --> B\n    A --> C --> D\n    B --> E\n    D --> E --> F"} />
+
+| 概念 | 作用 |
+| --- | --- |
+| Baseline | 说明“草稿从主线的哪个版本开始”，为比较与合入提供参照。 |
+| Draft head | 草稿已确认的最新版本，随着草稿提交推进。 |
+| Ready head | 提交审阅时固定的草稿版本，明确本轮审阅和合入的范围。 |
+
+主线与草稿可以分别前进，但 revision 只描述各自的提交序列，不能只按数字大小判断谁更新。草稿同步读取的是草稿的修改；主线的新修改不会自动混进正在审阅的版本，需要在合入预览或正式合入时协调。
+
+## AI SDK 如何连接同一份草稿 [#ai-sdk]
+
+AI SDK 的 Collaboration Runtime 处理一个 Unit 的快照、变更和版本。Worktree 的创建、状态与合入由 Server SDK 的 Worktree 服务管理，Runtime 不需要内置另一套文档编辑逻辑。
+
+应用将 `worktreeID + unitID` 解析成草稿的快照、提交、WebSocket 与 Session Ticket 地址，再交给 Runtime。这样，检查和编辑工具可以切换操作主线或草稿。
+
+<Mermaid chart={"flowchart LR\n    A[\"Agent / 业务 CLI\"]\n    B[\"人类 Web 审阅\"]\n    C[\"应用目标适配\"]\n    D[\"Worktree Endpoint\"]\n    E[\"同一草稿 Unit\"]\n    A --> C\n    B --> C\n    C --> D --> E"} />
+
+同一个 Unit ID 可以出现在主线与多个 Worktree 中，因此目标必须包含所在的 Worktree。`inspect`、`execute`、截图及 Web 预览应使用同一目标，避免读到草稿、却把修改写到主线。人类 Web 端使用对应的协同配置加载同一草稿。
+
+| 分工 | 负责什么 |
+| --- | --- |
+| Web SDK | 共同内容引擎：Agent 在 Headless 中操作，用户在浏览器中查看和编辑。 |
+| Server SDK | 隔离草稿、保存 changeset 与版本、管理状态，以及 OT 合入。 |
+| AI SDK | 可组合的 Runtime、Inspection、API 查询、Facade 执行与视觉检查。 |
+| 你的应用 | 选择模型、映射目标、提供身份与授权，组织任务及审阅入口。 |
+
+## Agent 从编辑到交付 [#agent-workflow]
+
+以下展示由应用组织的并行任务：每个 Agent 使用独立 Worktree，分别编辑、自检并标记 Ready。人类逐个审阅；需要修改时 Reopen 对应草稿，确认后再合入最新主线。
+
+<Mermaid chart={"flowchart TB\n    TRUNK[\"主线 Trunk\"]\n    subgraph PARALLEL[\"多个 Agent 并行工作\"]\n        direction LR\n        AGENT_A[\"Agent A<br/>Worktree A<br/>编辑与自检\"]\n        AGENT_B[\"Agent B<br/>Worktree B<br/>编辑与自检\"]\n        AGENT_C[\"Agent C<br/>Worktree C<br/>编辑与自检\"]\n    end\n    REVIEW[\"人类 Review<br/>草稿与合入预览\"]\n    MERGE[\"逐个 Merge<br/>合入最新主线\"]\n    RESULT[\"主线新版本\"]\n    TRUNK --> AGENT_A\n    AGENT_A -->|\"Ready\"| REVIEW\n    TRUNK --> AGENT_B\n    AGENT_B -->|\"Ready\"| REVIEW\n    TRUNK --> AGENT_C\n    AGENT_C -->|\"Ready\"| REVIEW\n    REVIEW -->|\"确认\"| MERGE\n    REVIEW -.->|\"Reopen 对应草稿\"| PARALLEL\n    MERGE --> RESULT"} />
+
+1. **创建并加载草稿**：选择本次任务涉及的 Unit，连接对应 Worktree target，`pull` 最新草稿内容。
+2. **检查并修改**：用 Inspection 理解结构与数据，按需查询 API，再通过 Facade 执行修改。
+3. **提交并验证**：将修改提交到草稿；回读内容与计算结果，需要时生成截图。Slides 还可运行 Layout Lint。发现问题就继续修改、提交与检查。
+4. **标记 Ready**：冻结各 Unit 的当前草稿版本，停止编辑，交给人类审阅。
+5. **审阅后处理**：确认后 Merge；需要人类或 Agent 继续修改时，先 Reopen 回到 Draft；不再需要的草稿可 Discard。
+
+| 操作 | 修改到了哪里 |
+| --- | --- |
+| `runtime.commit()` | 只提交到草稿，推进草稿 revision。 |
+| `markReady()` | 固定待审阅版本，不将内容合入主线。 |
+| `reopenWorktree()` | 从 Ready 返回 Draft，重新允许编辑。 |
+| `mergeWorktree()` | 将已冻结的草稿修改逐 Unit 合入主线。 |
+
+Commit、Ready 和 Merge 是不同操作。Ready 后，无论人类还是 Agent，要继续编辑都必须先 Reopen。具体 Runtime 与 CLI 组装见 [AI SDK Worktree 工作流](/ai/worktree)。
+
+## 合入原理：把修改应用到最新主线 [#merge]
+
+对于来自主线的 Unit，服务端读取 **Baseline 到 Ready head** 之间的草稿 changeset，汇集其中的 mutation，再交给主线 Collaboration Service。主线若已前进，协同引擎通过 [OT（操作转换）](/overview/features/shared/collaboration)协调这批修改与基线之后的主线修改，然后确认新的主线版本。
+
+因此，合入的不是一份旧快照对最新文档的整份覆盖。能够转换的并发修改会被协调；无法转换或执行时返回冲突，由应用提示处理，不能把 OT 理解为自动解决所有业务分歧。
+
+如果 Unit 在 Worktree 内新建，它没有主线基线：合入时在主线创建新 Unit，不复制整段草稿 changeset 历史。
+
+## 审阅两件事：改了什么，合入会怎样 [#review]
+
+- **草稿改了什么**：比较基线与 Ready 草稿的完整内容，通过[内容比较](/overview/features/shared/compare)展示新增、删除与修改。
+- **现在合入会怎样**：Ready 后调用 `evaluateUnitMerge()`。主线前进时，在隔离 Runtime 中把经 OT 转换的候选修改应用到当前主线，生成只读预览；不提交 changeset，也不修改主线或草稿。
+
+预览只代表请求时的状态。主线随后仍可变化，正式 Merge 会按执行时的主线重新处理。多 Unit 合入也不是整个 Worktree 的原子事务：某个 Unit 失败时，已成功的结果会保留，应用应逐项展示结果并处理失败项。
+
+## 接入与范围 [#integration]
+
+在协同核心上组合 Worktree Client、Service、Endpoint 与数据库适配器，为草稿配置独立存储，并与主线共享 Session Ticket Store。应用分别授权草稿访问与主线写入；隔离草稿不等于自动获得访问权限。
+
+当前支持 Sheet、Doc、Slide、Canvases 和 Relational Table，不包含 PDF。可先运行 [Worktree 示例](/server/collaboration/examples#worktree)，再查看[扩展模块](/server/collaboration/packages#worktree)与 [Agent 接入指南](/ai/worktree)。
+
+[返回功能总览](/overview/features)

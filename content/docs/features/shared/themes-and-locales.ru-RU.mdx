@@ -1,0 +1,324 @@
+---
+title: "Темы и локализация"
+description: "Настройте внешний вид, тёмный режим и языковые ресурсы под приложение."
+icon: Languages
+---
+
+Темы и интернационализация — общие возможности runtime. Шесть продуктов и пользовательские плагины используют одинаковые сервисы темы, языковые ресурсы и региональные настройки. Внешний вид можно менять во время работы, сохраняя собственные данные и стили контента.
+
+SDK предлагает **[19 встроенных языковых и региональных вариантов интерфейса](#supported-locales)** и **7 палитр темы**. Все шесть продуктов используют общие настройки оформления, языка и региона; пользовательские темы и переводы приложения подключаются к тем же сервисам.
+
+## Общее состояние для интерфейса и рендеринга [#architecture]
+
+`ThemeService` отдельно хранит полную палитру и тёмный режим, публикуя изменения через `currentTheme$` и `darkMode$`. UI создаёт CSS-переменные `--univer-*` и реагирует на класс `univer-dark`. Рендереры наблюдают тот же сервис и помечают компоненты для перерисовки. Сервис цветов Canvas разрешает токены, преобразует цвета для тёмного отображения и кеширует результат.
+
+Настройки и примеры этой главы рассчитаны на `@univerjs/*` и `@univerjs-pro/*` **1.2.0**. Используйте согласованные версии зависимостей SDK в приложении.
+
+| Настройка | Варианты и область действия | API во время работы |
+| --- | --- | --- |
+| `theme` | 7 встроенных палитр или полная пользовательская `Theme`. | `setTheme()` |
+| `darkMode` | `true` / `false`, по умолчанию `false`; независимо от палитры. | `toggleDarkMode()` |
+| `locale` | 19 встроенных значений `LocaleType`; сначала загрузите ресурсы. | `setLocale()` |
+| `locales` | Объединение ресурсов продуктов, функций и приложения по идентификатору локали. | `loadLocales()` |
+| `region` | Те же значения `LocaleType`; следует языку UI до явной настройки. | `setRegion()` |
+| `direction` | `ltr` / `rtl`, по умолчанию `ltr`; только меню и подобный UI. Контент Canvas пока не поддерживает RTL. | `setDirection()` |
+
+<Mermaid chart={"flowchart LR\nA[\"Приложение / Facade\"] --> B[\"ThemeService<br/>Палитра + тёмный режим\"]\nB --> C[\"UI<br/>CSS-переменные и класс\"]\nB --> D[\"Рендерер<br/>Перерисовка и цвета\"]\nC --> E[\"Шесть продуктов и расширения\"]\nD --> E"} />
+
+## Фирменная тема на основе полной палитры [#brand]
+
+`@univerjs/themes` предоставляет `primary`, `gray`, функциональные шкалы, `loop-color` и `highlight.background`. Копируйте встроенную тему и заменяйте нужные ветви, сохраняя полную структуру. `setTheme()` заменяет тему целиком и не дополняет частичный объект автоматически. Пример задаёт согласованную фиолетовую шкалу.
+
+7 встроенных палитр: `blueTheme`, `darkBlueTheme`, `greenTheme`, `orangeTheme`, `purpleTheme`, `redTheme`, `yellowTheme`.
+
+`defaultTheme` — псевдоним `blueTheme`. Палитра и тёмный режим задаются отдельно. Настраиваемые разделы:
+
+| Раздел темы | Настраиваемые варианты |
+| --- | --- |
+| `primary` | **10 фирменных оттенков**: `50`, затем от `100` до `900`. |
+| `gray` | **12 нейтральных оттенков**: `0`, `50`, от `100` до `900` и `1000`. |
+| `blue` · `red` · `orange` · `yellow` · `green` · `jiqing` · `indigo` · `purple` · `pink` | **9 функциональных шкал**, по 10 оттенков в каждой. |
+| `loop-color` | **12** позиций циклических цветов со ссылками на токены палитры. |
+| `highlight.background` | **16** позиций фоновой подсветки, каждая с `color` и `alpha`. |
+
+```typescript title="brand-theme.ts"
+import type { Theme } from '@univerjs/themes';
+import { defaultTheme } from '@univerjs/themes';
+
+export const brandTheme: Theme = {
+  ...defaultTheme,
+  primary: {
+    ...defaultTheme.primary,
+    50: '#F5F3FF', 100: '#EDE9FE', 200: '#DDD6FE', 300: '#C4B5FD',
+    400: '#A78BFA', 500: '#8B5CF6', 600: '#7C3AED', 700: '#6D28D9',
+    800: '#5B21B6', 900: '#4C1D95',
+  },
+};
+```
+
+Передайте тему выбранной интеграции. Здесь используются основной пресет Sheet и собственные ключи приложения; другие продукты сохраняют свою композицию плагинов.
+
+```typescript title="setup.ts"
+import { LocaleType, mergeLocales } from '@univerjs/core';
+import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core';
+import SheetsCoreEnUS from '@univerjs/preset-sheets-core/locales/en-US';
+import { createUniver } from '@univerjs/presets';
+import { brandTheme } from './brand-theme';
+import '@univerjs/preset-sheets-core/lib/index.css';
+
+export const { univer, univerAPI } = createUniver({
+  theme: brandTheme,
+  darkMode: false,
+  locale: LocaleType.EN_US,
+  locales: {
+    [LocaleType.EN_US]: mergeLocales(SheetsCoreEnUS, {
+      'sales-report': { generate: 'Generate report', ready: 'Ready for {0}' },
+    }),
+  },
+  presets: [UniverSheetsCorePreset({ container: 'app' })],
+});
+```
+
+<Cards>
+<Card title="Открыть конструктор тем" href="/tools/theme-customizer">
+Конструктор тем позволяет менять палитры, циклические цвета и выделения, переключать светлый/тёмный режим, смотреть настоящие Sheet и Doc и копировать Theme JSON или код. Сейчас доступны эти два хоста предпросмотра; полная тема подходит и остальным продуктам.
+</Card>
+</Cards>
+
+## Изменение внешнего вида и системные предпочтения [#appearance]
+
+`setTheme()` меняет палитру, `toggleDarkMode()` — тёмное состояние. Прочитать их можно через `getCurrentTheme()` и `isDarkMode()`. Выбор `darkBlueTheme` сам по себе не включает флаг. Пересоздавать редактор не требуется.
+
+Функция следует системным предпочтениям и возвращает очистку. При ручной настройке приложения вызывайте `toggleDarkMode()` из её обработчика.
+
+```typescript title="appearance.ts"
+import type { FUniver } from '@univerjs/core/facade';
+import { brandTheme } from './brand-theme';
+
+export function followSystemAppearance(univerAPI: FUniver): () => void {
+  univerAPI.setTheme(brandTheme);
+  const preference = window.matchMedia('(prefers-color-scheme: dark)');
+  const update = () => univerAPI.toggleDarkMode(preference.matches);
+  update();
+  preference.addEventListener('change', update);
+  return () => preference.removeEventListener('change', update);
+}
+```
+
+Вызовите функцию после настройки редактора, а очистку — при размонтировании или отключении системного режима. В React сохраняйте существующий экземпляр и обновляйте его через Facade.
+
+## Поддержка темы и языка в своих плагинах [#extensions]
+
+Собственный DOM использует внедрённые CSS-переменные и правила для тёмного класса. Переменные хранят палитру, поэтому стили компонента также должны учитывать тёмное состояние.
+
+```css title="report-panel.css"
+.report-panel {
+  color: var(--univer-gray-900);
+  background: var(--univer-gray-0);
+  border: 1px solid var(--univer-gray-200);
+}
+
+.univer-dark .report-panel {
+  color: var(--univer-gray-100);
+  background: var(--univer-gray-800);
+  border-color: var(--univer-gray-700);
+}
+```
+
+Расширения Canvas читают токены через `ThemeService`, затем получают цвет рисования через `ICanvasColorService`. Пример объединяет изменения темы, режима и языка в наблюдаемое состояние. Перевод и разрешение цветов выполняются при изменении состояния, без повторного поиска и выделений памяти в каждом кадре.
+
+```typescript title="report-appearance.ts"
+import { Disposable, Inject, LocaleService, ThemeService, toDisposable } from '@univerjs/core';
+import { ICanvasColorService } from '@univerjs/engine-render';
+import { combineLatest, ReplaySubject } from 'rxjs';
+
+export interface IReportAppearance {
+  label: string;
+  accent: string;
+}
+
+export class ReportAppearance extends Disposable {
+  readonly state$ = new ReplaySubject<IReportAppearance>(1);
+
+  constructor(
+    @Inject(ThemeService) theme: ThemeService,
+    @Inject(LocaleService) locale: LocaleService,
+    @ICanvasColorService colors: ICanvasColorService,
+  ) {
+    super();
+    this.disposeWithMe(toDisposable(() => this.state$.complete()));
+    this.disposeWithMe(combineLatest([
+      theme.currentTheme$, theme.darkMode$, locale.currentLocale$,
+    ]).subscribe(() => {
+      this.state$.next({
+        label: locale.t('sales-report.generate'),
+        accent: colors.getRenderColor(theme.getColorFromTheme('primary.600')),
+      });
+    }));
+  }
+}
+```
+
+Зарегистрируйте и получите `ReportAppearance` через DI. Представление или контроллер рисования подписывается на `state$` и обновляется. Подпиской управляет потребитель, а владелец сервиса вызывает `dispose()`. В Node.js эти сервисы тоже есть, но CSS браузера не внедряется.
+
+## Тёмный режим [#dark-mode]
+
+Sheet, Doc, Slide, Relational Table, Canvases и PDF используют общую тему и поддерживают тёмный режим. Ниже реальные снимки локальных стандартных демо с английскими интерфейсом и контентом. Преобразованные экранные цвета не записываются обратно в Snapshot; внешний вид и обработка PDF-страниц разделены; результат локальной проверки приведён ниже.
+
+| Продукт | Общая тема | Тёмный режим | Локализация UI |
+| --- | --- | --- | --- |
+| Sheet | ✓ | ✓ | ✓ |
+| Doc | ✓ | ✓ | ✓ |
+| Slide | ✓ | ✓ | ✓ |
+| Relational Table | ✓ | ✓ | ✓ |
+| Canvases | ✓ | ✓ | ✓ |
+| PDF | ✓ | UI поддержан; проблема отображения текста | ✓ |
+
+<Tabs items={["Sheet", "Doc", "Slide", "Relational Table", "Canvases", "PDF"]}>
+
+<Tab>
+
+![Таблица заказов и инструменты Sheet в тёмном режиме](/assets/features/themes/sheet-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![Тёмный Doc с английским текстом](/assets/features/themes/doc-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![Тёмный Slide с английским заголовком](/assets/features/themes/slide-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![Записи Relational Table в тёмном режиме](/assets/features/themes/base-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![Canvases в тёмном режиме](/assets/features/themes/board-dark.jpg)
+
+</Tab>
+
+<Tab>
+
+![Тёмный редактор PDF и страница](/assets/features/themes/pdf-dark.jpg)
+
+<Callout type="warning">
+В текущем локальном стандартном демо текст PDF не виден в тёмном режиме, а в светлом отображается нормально. Снимок показывает интерфейс редактора в тёмном режиме. Тёмное отображение содержимого PDF требует исправления и проверки.
+</Callout>
+
+</Tab>
+
+</Tabs>
+
+Доступные языки зависят от ресурсов установленных продуктов и функций. Палитра не заменяет регистрацию продуктов, загрузку языков и импорт стилей.
+
+## 19 встроенных языковых и региональных вариантов [#supported-locales]
+
+`LocaleType` предоставляет следующие 19 вариантов, включая упрощённый, традиционный и гонконгский традиционный китайский. Основные UI-пакеты всех шести продуктов содержат эти ресурсы; покрытие расширений зависит от выбранного пакета. В путях импорта используйте теги языковых пакетов, а при инициализации и настройке Facade — соответствующие значения перечисления.
+
+<Callout type="warning">
+**Область поддержки RTL:** Арабский (`ar-SA`) и другие языковые пакеты переводят тексты интерфейса, включая меню и сообщения. `direction: 'rtl'` пока адаптирует только меню и подобные элементы UI. **Размещение и редактирование RTL в области содержимого Canvas ещё не реализованы.**
+</Callout>
+
+| Язык (родное название) | Тег пакета | Значение настройки |
+| --- | --- | --- |
+| English | `en-US` | `LocaleType.EN_US` |
+| 简体中文 | `zh-CN` | `LocaleType.ZH_CN` |
+| 繁體中文 | `zh-TW` | `LocaleType.ZH_TW` |
+| 繁體中文（香港） | `zh-HK` | `LocaleType.ZH_HK` |
+| 日本語 | `ja-JP` | `LocaleType.JA_JP` |
+| 한국어 | `ko-KR` | `LocaleType.KO_KR` |
+| Tiếng Việt | `vi-VN` | `LocaleType.VI_VN` |
+| Bahasa Indonesia | `id-ID` | `LocaleType.ID_ID` |
+| Français | `fr-FR` | `LocaleType.FR_FR` |
+| Deutsch | `de-DE` | `LocaleType.DE_DE` |
+| Español | `es-ES` | `LocaleType.ES_ES` |
+| Català | `ca-ES` | `LocaleType.CA_ES` |
+| Italiano | `it-IT` | `LocaleType.IT_IT` |
+| Português (Brasil) | `pt-BR` | `LocaleType.PT_BR` |
+| Polski | `pl-PL` | `LocaleType.PL_PL` |
+| Slovenčina | `sk-SK` | `LocaleType.SK_SK` |
+| Русский | `ru-RU` | `LocaleType.RU_RU` |
+| فارسی | `fa-IR` | `LocaleType.FA_IR` |
+| العربية | `ar-SA` | `LocaleType.AR_SA` |
+
+**Интернационализация продуктов:** В текущем исходном коде 1.2.0 **92 модуля** Web SDK и редакторов Pro содержат **1 751 файл входа языковых ресурсов** для общего UI, редакторов, формул, числовых форматов и комментариев. Ресурсы поддерживаются и публикуются по модулям; приложение объединяет включённые функции и нужные языки.
+
+Подсчитаны языковые входные `.ts`-файлы непосредственно в `packages/*/src/locale` обоих деревьев исходного кода, без тестов и генерируемых подкаталогов. Число файлов не означает полное покрытие всех 19 вариантов в каждом модуле. Некоторые модули содержат дополнительные языки; общие встроенные варианты определяет [`LocaleType`](/reference/enums/locale-type).
+
+## Сборка ресурсов плагинов, загрузка и выбор языка [#locales]
+
+`LocaleService` группирует ресурсы по языку и ищет строки по пространствам имён и путям ключей. `mergeLocales()` объединяет пресеты, функции и бизнес-переводы. `loadLocales()` добавляет ресурсы во время работы, а `setLocale()` выбирает язык. Выбор не загружает пакет автоматически.
+
+<Mermaid chart={"flowchart LR\nA[\"Пакеты продукта / функции / приложения\"] --> B[\"mergeLocales / loadLocales\"] --> C[\"LocaleService<br/>Поиск по пространству имён\"] --> D[\"Меню, сообщения и подписи плагинов\"]"} />
+
+Пример добавляет китайский язык к предыдущему Sheet, выбирает китайский UI и явно задаёт немецкие региональные правила. Значение `LocaleType.ZH_CN` — `zhCN`, а `zh-CN` используется в имени языкового файла и URL документации.
+
+```typescript title="locales.ts"
+import type { FUniver } from '@univerjs/core/facade';
+import { LocaleType, mergeLocales } from '@univerjs/core';
+import SheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-CN';
+
+export function switchInterface(univerAPI: FUniver): void {
+  univerAPI.loadLocales(LocaleType.ZH_CN, mergeLocales(SheetsCoreZhCN, {
+    'sales-report': { generate: '生成报告', ready: '已为 {0} 就绪' },
+  }));
+  univerAPI.setLocale(LocaleType.ZH_CN);
+  univerAPI.setRegion(LocaleType.DE_DE);
+  univerAPI.setDirection('ltr');
+}
+```
+
+Ключи вроде `sales-report.generate` принадлежат соответствующему плагину. Используйте полные предложения и параметры `{0}`, `{1}`, например `LocaleService.t('sales-report.ready', 'Alex')`, не кешируя перевод при инициализации модуля. После инициализации ресурсов отсутствующий ключ сейчас возвращается как имя ключа. Смена языка UI не переводит контент и не переименовывает Unit.
+
+## Разделяйте язык, регион и форматы контента [#region]
+
+| Уровень | Реальное влияние |
+| --- | --- |
+| `locale` интерфейса | Меню, сообщения, подписи и часть языковых функций, например сегментация документа. |
+| `region` | Поддерживаемые денежные операции, даты комментариев и формат статистики; без конвертации сумм или изменения временных меток. |
+| Числовые форматы контента | Сохранённые форматы Sheet следуют настройкам ячеек и соответствующей locale контента; регион не переписывает их все. |
+| `direction` | Независимое направление UI, без автоматической смены при выборе языка или региона. |
+
+Без явного региона действует соответствующее значение по умолчанию. После явного выбора `region` можно задать независимо от языка. Это не часовой пояс. RTL пока адаптирует только меню и подобные элементы UI. Размещение и редактирование справа налево в области содержимого Canvas ещё не реализованы.
+
+## Границы тем контента и приложения [#content-themes]
+
+Тема приложения управляет рабочей средой и стандартными цветами рендеринга, не переписывая сохранённые заливки, текст, фигуры, PDF-аннотации и явные цвета диаграмм. Темы диапазонов/таблиц, схемы Slide и темы Canvases управляются публичными возможностями соответствующего продукта.
+
+Pro Charts использует отдельный реестр `IEchartTheme` для диаграмм Sheet, Doc, Slide и Canvases. Тему приложения `Theme` нельзя передать напрямую. Установите нужные плагины диаграмм, импортируйте Facade и зарегистрируйте полное определение:
+
+```typescript title="chart-theme.ts"
+import type { IEchartTheme } from '@univerjs-pro/engine-chart';
+import type { FUniver } from '@univerjs/core/facade';
+import { UniverTheme1 } from '@univerjs-pro/engine-chart';
+import '@univerjs-pro/engine-chart/facade';
+
+export function registerBrandChartTheme(univerAPI: FUniver): void {
+  const chartTheme: IEchartTheme = {
+    ...UniverTheme1,
+    themeName: 'sales-brand',
+    theme: {
+      ...UniverTheme1.theme,
+      color: ['#7C3AED', '#0EA5E9', '#10B981', '#F59E0B'],
+    },
+  };
+  univerAPI.registerTheme('sales-brand', chartTheme);
+}
+```
+
+При создании диаграммы выберите имя через builder `setTheme('sales-brand')`. Явная палитра диаграммы может переопределить цвета рядов.
+
+В одном браузерном документе согласуйте внешний вид: UI-переменные и `univer-dark` сейчас записываются в корень документа. Несколько редакторов должны использовать общую тему либо изолироваться в отдельных документах, например iframe. Разные контейнеры сами по себе не изолируют CSS-темы.
+
+Подробнее: [Темы и тёмный режим](/guides/fundamentals/ui/themes) · [Настройка i18n](/guides/sheets/getting-started/i18n) · [Плагины и Facade](/overview/features/shared/customization) · [Диаграммы](/overview/features/charts)
+
+[Вернуться к обзору функций](/overview/features)

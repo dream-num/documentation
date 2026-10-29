@@ -1,0 +1,82 @@
+---
+title: "Headless y cálculo en el servidor"
+description: "Ejecuta contenido en Node.js y precálculos en Rust para ofrecer resultados estructurados y visuales a los agentes."
+icon: Calculator
+---
+
+Univer separa los modelos de contenido, el cálculo y la interfaz. La ejecución headless usa el entorno de contenido en Node.js; `univer-rs` realiza cálculo intensivo y conversión de archivos en el servidor. Aplicaciones y agentes combinan ambas capacidades sobre los mismos snapshots.
+
+## Un entorno Node.js sin plugins de interfaz
+
+Registra los plugins necesarios de núcleo, modelo, cálculo y Facade sin menús, barras ni plugins de interfaz dependientes del DOM. Procesa Sheet, Doc, Slide, Relational Table, Canvases o PDF según la configuración elegida. Sheets y Docs tienen presets Node; los demás productos usan sus propias combinaciones.
+
+| Capacidad | Qué permite |
+| --- | --- |
+| Cargar y analizar | Cargar snapshots e inspeccionar celdas, párrafos, páginas, objetos, registros y estructura. |
+| Calcular | Evaluar fórmulas y matrices, actualizar tablas dinámicas y generar valores numéricos mostrados. |
+| Modificar | Editar contenido y estructura con Facade API y guardar snapshots o enviar cambios. |
+| Archivos | Combinar módulos Server SDK para importar, procesar y exportar por lotes. |
+| Verificar visualmente | Añadir Render Runtime para capturas y comprobaciones de diseño. |
+
+Las operaciones de contenido se ejecutan directamente en Node.js. Las capturas y comprobaciones visuales usan un entorno de renderizado aparte; el CLI puede controlar un navegador headless y devolver PNG e incidencias de diseño.
+
+## Cálculo inmediato en el navegador y por revisión en el servidor [#precalcular-en-el-servidor-y-mostrar-rápidamente]
+
+El navegador y el servidor tienen motores de fórmulas. El navegador responde a la edición y el servidor calcula una revisión determinada del contenido al generar un snapshot o procesar un archivo.
+
+- **Durante la edición**: el navegador calcula de forma incremental las fórmulas afectadas y muestra los resultados de inmediato, opcionalmente en un Worker. La colaboración registra y sincroniza los cambios de contenido.
+- **Al generar el snapshot**: la política del servidor inicia el proceso de guardado y captura la revisión del contenido para esa operación. `univer-rs` calcula los resultados y después guarda juntos el contenido y los resultados de esa revisión.
+- **Al volver a abrir**: el navegador reutiliza resultados válidos del snapshot, aplica los cambios posteriores y sigue calculando, reduciendo los cálculos completos repetidos.
+
+<Mermaid chart={"flowchart LR\n    F[\"Edición en el navegador<br/>Cálculo inmediato\"]\n    C[\"Sincronización<br/>Cambios confirmados\"]\n    R[\"Cálculo Rust<br/>Revisión N\"]\n    S[\"Guardar snapshot<br/>saveSnapshot\"]\n    F <--> C\n    C -->|\"Al generar el snapshot\"| R\n    R --> S"} />
+
+**Los cambios se sincronizan continuamente. El cálculo del servidor se ejecuta al generar un snapshot y los resultados se guardan para esa revisión del contenido.**
+
+Ajusta el cálculo inicial a los resultados guardados:
+
+- `WHEN_EMPTY`: reutilizar los valores guardados y calcular solo los resultados que faltan.
+- `NO_CALCULATION`: omitir el cálculo inicial; la aplicación proporciona los resultados.
+- `FORCED`: recalcular todas las fórmulas para actualizar los resultados.
+
+Estas opciones controlan la carga inicial. La edición posterior sigue calculándose en el navegador; el servidor calcula bajo demanda al generar un snapshot por revisión o procesar archivos. Consulta la [configuración de fórmulas](/guides/sheets/features/core/formula), la [colaboración](/server/collaboration/overview) y la [conversión de archivos](/overview/features/shared/file-conversion).
+
+### Rendimiento del motor de fórmulas
+
+Las [mediciones del motor de fórmulas Rust de Univer](/blog/rust-formula-performance) incluyen 10 libros, la carga de Rust, los tiempos por etapa, los formatos de entrada y las descargas.
+
+## Fórmulas matriciales y resultados desbordados
+
+Dentro de las funciones y formatos admitidos, Rust sigue las reglas de Excel para fórmulas matriciales y desbordamiento. Devuelve el ancla, el rango y los valores, con matrices dinámicas y rangos declarados de fórmulas matriciales heredadas.
+
+Por ejemplo, `=SEQUENCE(3,2)` en una celda `A1` vacía produce:
+
+| A | B |
+| --- | --- |
+| 1 | 2 |
+| 3 | 4 |
+| 5 | 6 |
+
+La fórmula permanece en `A1` y los resultados ocupan `A1:B3`. Si la matriz se reduce, se borran los valores anteriores; si el rango está bloqueado, devuelve `#SPILL!`. El navegador, el agente y la exportación pueden reutilizar el snapshot calculado.
+
+Consulta las [funciones admitidas](/guides/sheets/features/core/formula) y el [comportamiento matricial de Excel](https://support.microsoft.com/en-us/excel/dynamic-array-formulas-and-spilled-array-behavior).
+
+## Conectar ejecución y verificación con un agente
+
+Conserva el modelo, la conversación y la orquestación de tu agente. AI SDK le ofrece operaciones Office:
+
+1. Inspeccionar la estructura y leer el contenido objetivo.
+2. Aplicar cambios Facade y ejecutar los cálculos necesarios en el entorno headless.
+3. Esperar el cálculo y la confirmación del envío y volver a leer el estado actualizado.
+4. Verificar valores y estructura; añadir capturas o comprobaciones de diseño cuando haga falta.
+
+Combina [operaciones de contenido](/ai/content-operations) e [inspección visual](/ai/visual-inspection). Para revisión humana, usa un [Worktree](/ai/worktree) antes de comparar y fusionar. [Univer CLI](/overview/examples/cli) muestra cómo ensamblar una aplicación para agentes.
+
+## Rutas de integración
+
+| Capacidad | Qué permite |
+| --- | --- |
+| Entorno de contenido Node.js | Comienza con [Web SDK headless](/guides/sheets/getting-started/node) y los plugins de producto y cálculo necesarios. |
+| Procesamiento de archivos | Combina Rust y la [conversión Node.js](/server/import-export/node) y guarda o devuelve el snapshot. |
+| Edición compartida y agentes | Conecta [colaboración](/server/collaboration/quick-start) y [AI SDK](/ai/content-operations) para trabajar con contenido confirmado. |
+
+[Todas las funciones](/overview/features)

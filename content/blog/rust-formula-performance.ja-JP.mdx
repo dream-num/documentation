@@ -1,0 +1,110 @@
+---
+title: "Univer Rust 数式エンジンの性能実測：百万規模の数式をサーバーで計算"
+description: "Univer Rust 数式エンジンを 10 冊で実測。約 200 万の数式ノードを含む条件付き集計、シート間予算、予測モデルを対象に、Excel・LibreOffice との比較、グラフ、XLSX サンプルを公開します。"
+author: Univer Engineering Team
+date: 2026-10-29
+---
+
+Univer Rust 数式エンジンは Univer Office SDK にサーバー側のスプレッドシート計算機能を提供し、バッチ処理、レポート生成、Agent の自動化を支えます。予算、予測、業務ルールを扱う数式が数十万、数百万規模になると、計算能力もアプリの重要な基盤です。
+
+反復数式、条件付き集計、シート間予算、予測モデルを含む 10 冊で測定しました。次の 3 つの結果が、扱える業務規模を示しています。
+
+- **約 200 万の数式ノード：12.29 秒**でネイティブ読み込みと全計算。
+- **54 シートのプロジェクト予算：1.27 秒。**
+- **売上 COUNTIFS の条件付き集計：3.54 秒。**
+
+## 10 冊での実測結果 [#結果の概要]
+
+Rust はネイティブスナップショットの読み込みと全計算を計測し、XLSX 変換は除外します。Excel・LibreOffice は元の XLSX のオープンと全再計算を計測します。
+
+![Univer Rust 数式エンジン、Excel、LibreOffice：10 冊の読み込みと計算時間の比較](/assets/blog/rust-formula-performance/calculation-times.svg)
+
+単位は秒で、小さいほど高速。横軸は対数目盛です。
+
+## 全結果とサンプルのダウンロード [#全測定結果とサンプルのダウンロード]
+
+サンプル名をクリックすると元の XLSX をダウンロードし、業務モデルを確認できます。
+
+| サンプル | Univer Rust 数式エンジン<br />ネイティブ読み込み＋計算（秒） | Excel<br />オープン＋全再計算（秒） | LibreOffice<br />オープン＋全再計算（秒） |
+| --- | --- | --- | --- |
+| [50 万数式](/assets/blog/rust-formula-performance/samples/Half_Million_Formulas.xlsx) | 3.54 | 2.39 | 18.74 |
+| [混合数式負荷](/assets/blog/rust-formula-performance/samples/Mixed_Formula_Workload.xlsx) | 5.08 | 3.11 | 9.72 |
+| [予測モデル・大](/assets/blog/rust-formula-performance/samples/Forecast_Model_Large.xlsx) | 17.67 | 8.55 | 12.86 |
+| [大規模業務分析](/assets/blog/rust-formula-performance/samples/Large_Business_Analysis.xlsx) | 12.29 | 10.80 | 8.99 |
+| [売上 COUNTIFS](/assets/blog/rust-formula-performance/samples/Sales_COUNTIFS.xlsx) | 3.54 | 19.47 | 320.01 |
+| [複数シートのプロジェクト予算](/assets/blog/rust-formula-performance/samples/Multi_Sheet_Project_Budget.xlsx) | 1.27 | 0.73 | 2.96 |
+| [集計数式](/assets/blog/rust-formula-performance/samples/Aggregation_Formula_Control.xlsx) | 0.27 | 1.03 | 3.10 |
+| [入れ子の IF と稼働日](/assets/blog/rust-formula-performance/samples/Nested_IF_Workdays.xlsx) | 1.65 | 3.48 | 2.21 |
+| [CBAM 計算モデル](/assets/blog/rust-formula-performance/samples/CBAM_Calculation_Model.xlsx) | 1.19 | 0.74 | 1.83 |
+| [予測モデル・小](/assets/blog/rust-formula-performance/samples/Forecast_Model_Small.xlsx) | 13.02 | 5.79 | 7.61 |
+
+## 業務モデルごとに異なる計算の特徴 [#結果の読み方]
+
+今回の負荷では、Univer Rust 数式エンジンは条件付きカウント、集計、稼働日計算で良好な結果を示しました。数式数だけで時間は決まらず、参照範囲、関数の組み合わせ、依存関係も影響します。
+
+予測モデルでは Excel と LibreOffice が早く完了しており、今後の最適化の方向も明確です。全結果を掲載することで、開発者が自身の業務負荷に照らして判断できます。
+
+## Office アプリに計算能力を組み込む [#計算結果からアプリの応答性へ]
+
+Univer Rust 数式エンジンは Office SDK のサーバー側計算を担います。特定の内容リビジョンを計算し、結果を Snapshot と保存できます。フロントエンドは有効な結果を再利用しながら、自身の数式エンジンでユーザーの編集に応答します。
+
+同じコンテンツランタイムを基盤に、バックグラウンドのレポート、バッチ処理、Agent のタスクを構築し、計算結果を次の業務工程につなげられます。
+
+[ヘッドレスとサーバー側計算](/overview/features/shared/server-calculation)を確認するか、[Office SDK のクイックスタート](/overview/get-started)からアプリを構築してください。
+
+<details id="測定した処理" className="my-8 rounded-lg border border-(--separator) p-4">
+<summary className="cursor-pointer font-medium">測定方法とサンプルの詳細</summary>
+
+Rust は事前変換したネイティブエンジン JSON を読み込み、Excel・LibreOffice はスタイルなどの文書処理を含む XLSX を開きます。各入力形式での処理時間を測定しています。アプリ起動、オフライン変換、計測後の検証は除外し、オープン時間の基準値は差し引いていません。
+
+Rust は各サンプルでウォームアップ 1 回、本測定 5 回を実施し、毎回独立したプロセスと新規文書を使います。Rust の値は中央値です。
+
+**Excel・LibreOffice の対照記録の環境：** Windows 11、Intel Core i7-13700H、メモリ約 32 GB。Excel は 16.0 build 20527.0、計算スレッド 20。LibreOffice は 26.8.1.1、CPU のマルチスレッド計算を有効にし、OpenCL アクセラレーションは未使用。今回の Rust 測定は 20 スレッドです。
+
+| エンジン | 計測範囲 | 統計方法 |
+| --- | --- | --- |
+| Univer Rust 数式エンジン | 連続タイマー：ネイティブファイル読み取り → JSON デシリアライズ → `load_snapshot` → 初回依存関係構築 → 全数式の強制計算 → 結果適用。オフライン XLSX 変換を除外。 | 各サンプルでウォームアップ 1 回、本測定 5 回の中央値。毎回独立したプロセスと新規文書、20 スレッド。 |
+| Excel COM | 新規の `Workbooks.Open` から `CalculateFullRebuild()` の復帰まで。依存関係の明示的な再構築と全再計算を含む。 | 各サンプルでウォームアップ 1 回、本測定 5 回の中央値。 |
+| ヘッドレス LibreOffice / UNO | 元の XLSX を新規に開いてから `calculateAll()` の復帰まで。オープン中の処理を含む。 | 5 回の中央値。ただし売上 COUNTIFS は成功した診断測定 1 回。 |
+
+<p id="rust-の読み込み計算の区間別実測"><strong>Rust の読み込み・計算の区間別実測</strong></p>
+
+各列の中央値は独立に求めるため、区間の中央値の合計が連続計測の中央値と一致するとは限りません。
+
+| サンプル | ファイル読み取り・デシリアライズ<br />・読み込み（秒） | 依存関係構築・全計算<br />・結果適用（秒） | 連続計測の合計（秒） |
+| --- | --- | --- | --- |
+| 50 万数式 | 1.27 | 2.25 | 3.54 |
+| 混合数式負荷 | 0.60 | 4.50 | 5.08 |
+| 予測モデル・大 | 3.65 | 13.94 | 17.67 |
+| 大規模業務分析 | 2.65 | 9.46 | 12.29 |
+| 売上 COUNTIFS | 0.61 | 2.97 | 3.54 |
+| 複数シートのプロジェクト予算 | 0.39 | 0.88 | 1.27 |
+| 集計数式 | 0.09 | 0.18 | 0.27 |
+| 入れ子の IF と稼働日 | 0.27 | 1.40 | 1.65 |
+| CBAM 計算モデル | 0.09 | 1.08 | 1.19 |
+| 予測モデル・小 | 2.40 | 10.20 | 13.02 |
+
+<p id="各ワークブックの内容"><strong>各ワークブックの内容</strong></p>
+
+数式数は**実行可能な数式ノード**であり、物理的な数式セル数とは限りません。データセルは見出しを含む、数式ではない値入りセルです。主要サンプル 9 冊と規模比較用 1 冊で構成され、完全に独立した 10 種の数式ファミリーではありません。
+
+| サンプル | 数式ノード | データセル / シート | 数式の特徴 |
+| --- | --- | --- | --- |
+| 50 万数式 | 500,001 | 1,000,047 / 2 | `SUM`、`AVERAGE`、`IF`、`XLOOKUP`。大量の反復数式。 |
+| 混合数式負荷 | 367,954 | 432,055 / 7 | `SUMIF`、`AVERAGEIFS`。条件付き集計と日付・テキストの混合。 |
+| 予測モデル・大 | 1,463,721 | 1,549,982 / 4 | 入れ子 6 段。`INDEX`、`LARGE`、`OFFSET`、`MATCH` と配列。 |
+| 大規模業務分析 | 1,992,537 | 113,084 / 31 | 入れ子 7 段。シート間参照、テキスト処理、互換性数式。 |
+| 売上 COUNTIFS | 349,630 | 299,573 / 2 | `IF`、`AND`、`COUNTIFS`。行ごとに拡大する条件付きカウント範囲。 |
+| 複数シートのプロジェクト予算 | 68,576 | 101,378 / 54 | 54 シート。`VLOOKUP`、`INDIRECT` によるシート間予算。 |
+| 集計数式 | 26,951 | 6,841 / 2 | `IFERROR`、`AVERAGE`、`SUM`。引数リストの長い集計。 |
+| 入れ子の IF と稼働日 | 118,821 | 338 / 1 | `IF` の入れ子 10 段。`NETWORKDAYS` による稼働日計算。 |
+| CBAM 計算モデル | 52,739 | 13,738 / 19 | 入れ子 6 段。検索、条件付き集計、動的参照、行列。 |
+| 予測モデル・小 | 974,625 | 1,040,507 / 4 | 大規模予測モデルと同じ数式ファミリーの小規模版。 |
+
+<p id="データ検証再測定"><strong>データ、検証、再測定</strong></p>
+
+レポートでは数式数とサンプル値を検証し、テスト経路の計算の完全性を確認しています。製品間の全数式結果の一致を示すものではありません。
+
+再計算 API：[Excel CalculateFullRebuild](https://learn.microsoft.com/en-us/office/vba/api/excel.application.calculatefullrebuild)・[LibreOffice calculateAll](https://api.libreoffice.org/docs/idl/ref/interfacecom_1_1sun_1_1star_1_1sheet_1_1XCalculatable.html)。
+
+</details>

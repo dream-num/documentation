@@ -1,20 +1,9 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { ChevronRightIcon, ExternalLinkIcon, FolderIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-
 import { Link } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
-
 import type { INavTreeItem } from './nav-tree'
-
-function isActive(item: INavTreeItem, pathname: string): boolean {
-  if (item.url === pathname) return true
-  return item.children.some((child) => isActive(child, pathname))
-}
-
-function getControlsId(item: INavTreeItem) {
-  return `nav-tree-${item.id.replace(/[^\w-]/g, '-')}`
-}
 
 function NavContent({ item, showIcon = false }: { item: INavTreeItem; showIcon?: boolean }) {
   return (
@@ -22,7 +11,7 @@ function NavContent({ item, showIcon = false }: { item: INavTreeItem; showIcon?:
       {showIcon ? (
         <span
           aria-hidden="true"
-          className="text-muted-foreground inline-flex size-4 shrink-0 items-center justify-center *:size-4! *:min-w-4! *:rounded-none! *:border-0! *:bg-transparent! *:bg-none! *:p-0! *:shadow-none! [&_svg]:size-4!"
+          className="inline-flex size-4 shrink-0 items-center justify-center text-muted-foreground *:size-4! *:min-w-4! *:rounded-none! *:border-0! *:bg-transparent! *:bg-none! *:p-0! *:shadow-none! [&_svg]:size-4!"
         >
           {item.icon ?? <FolderIcon className="size-4" />}
         </span>
@@ -38,33 +27,39 @@ function NavTreeNode({
   pathname,
   level,
   showIcon = false,
+  activeItemRef,
 }: {
   item: INavTreeItem
   pathname: string
   level: number
   showIcon?: boolean
+  activeItemRef: Ref<HTMLAnchorElement>
 }) {
+  function isActive(candidate: INavTreeItem): boolean {
+    return candidate.url === pathname || candidate.children.some(isActive)
+  }
+
   const t = useTranslations('navigation')
 
   if (item.type === 'separator') {
     return (
-      <li className="text-muted-foreground mt-5 mb-1 flex items-center gap-2 px-2 text-xs font-semibold tracking-wide first:mt-0">
+      <li className="mt-5 mb-1 flex items-center gap-2 px-2 text-xs font-semibold tracking-wide text-muted-foreground first:mt-0">
         <NavContent item={item} showIcon={Boolean(item.icon)} />
       </li>
     )
   }
 
-  const active = isActive(item, pathname)
+  const active = isActive(item)
   const current = item.url === pathname
   const hasChildren = item.children.length > 0
-  const controlsId = hasChildren ? getControlsId(item) : undefined
+  const controlsId = hasChildren ? `nav-tree-${item.id.replace(/[^\w-]/g, '-')}` : undefined
   const rowClassName = clsx(
-    `hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-ring/60 flex min-h-11 w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm leading-5 transition-colors focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset md:min-h-8`,
+    `flex min-h-11 w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm leading-5 transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-1 focus-visible:ring-ring/60 focus-visible:outline-none focus-visible:ring-inset md:min-h-8`,
     hasChildren
-      ? 'text-foreground text-[13px] font-semibold'
+      ? 'text-[13px] font-semibold text-foreground'
       : current
-        ? 'bg-accent text-accent-foreground font-medium'
-        : 'text-muted-foreground font-normal',
+        ? 'bg-accent font-medium text-accent-foreground'
+        : 'font-normal text-muted-foreground',
   )
   const style = { paddingInlineStart: `${0.5 + level * 1.5}rem` }
 
@@ -78,7 +73,7 @@ function NavTreeNode({
             style={style}
           >
             <NavContent item={item} showIcon={level === 0} />
-            <ChevronRightIcon className="text-muted-foreground size-3.5 shrink-0 transition-transform [[open]>summary_&]:rotate-90" />
+            <ChevronRightIcon className="size-3.5 shrink-0 text-muted-foreground transition-transform [[open]>summary_&]:rotate-90" />
           </summary>
           <ul className="mt-0.5 space-y-0.5" id={controlsId}>
             {item.children.map((child, index) => (
@@ -91,6 +86,7 @@ function NavTreeNode({
                 key={child.id}
                 level={level + 1}
                 pathname={pathname}
+                activeItemRef={activeItemRef}
               />
             ))}
           </ul>
@@ -103,6 +99,7 @@ function NavTreeNode({
     return (
       <li>
         <Link
+          ref={current ? activeItemRef : undefined}
           aria-current={current ? 'page' : undefined}
           className={rowClassName}
           href={item.url}
@@ -125,7 +122,15 @@ function NavTreeNode({
   )
 }
 
-export function ReferenceNavTree({ items, pathname }: { items: INavTreeItem[]; pathname: string }) {
+export function ReferenceNavTree({
+  items,
+  pathname,
+  activeItemRef,
+}: {
+  items: INavTreeItem[]
+  pathname: string
+  activeItemRef: Ref<HTMLAnchorElement>
+}) {
   let sectionHasIcon = false
   let inSection = false
   const nodes: ReactNode[] = []
@@ -140,6 +145,7 @@ export function ReferenceNavTree({ items, pathname }: { items: INavTreeItem[]; p
         key={item.id}
         level={sectionHasIcon && item.type !== 'separator' && !item.children.length ? 1 : 0}
         pathname={pathname}
+        activeItemRef={activeItemRef}
         showIcon={!inSection && Boolean(item.icon)}
       />,
     )

@@ -193,6 +193,16 @@ const ruRUMessages = {
     'theme-customizer': 'Настройка темы',
     'theme-customizer-description': 'Настройте темы Web SDK, дизайн-токены и предпросмотр в тёмном режиме.',
   },
+  office: {
+    'start-description': 'Создайте первое Office-приложение по шаблону и трём примерам.',
+    modules: 'Модули',
+    overview: 'Обзор Office SDK',
+    'overview-description': 'Общий runtime и совместная работа SDK.',
+    'web-description': 'Общий движок содержимого, браузерные редакторы и Headless runtime.',
+    'server-description': 'Сервисы совместной работы, конвертации, истории и Worktree.',
+    'ai-description': 'Операции с содержимым, проверка и верификация для агентов.',
+    start: 'Начать',
+  },
   navigation: {
     overview: 'Обзор',
     blog: 'Блог',
@@ -558,6 +568,17 @@ const ruRUMessages = {
     response: 'Ответ',
     type: 'Тип',
   },
+  featureComparison: {
+    search: 'Поиск возможностей',
+    placeholder: 'Поиск функций и ограничений',
+    group: 'Категория',
+    allGroups: 'Все категории',
+    openSource: 'Только открытый код',
+    differences: 'Только различия',
+    reset: 'Сбросить',
+    count: '{visible} из {total}',
+    empty: 'Подходящих функций нет.',
+  },
   search: {
     label: 'Поиск',
     'no-result': 'Ничего не найдено',
@@ -574,6 +595,7 @@ const ruRUMessages = {
     navigate: 'Выбрать',
     open: 'Открыть',
     scope: {
+      overview: 'Обзор',
       blog: 'Руководства для разработчиков',
       server: 'Server SDK',
       ai: 'AI SDK',

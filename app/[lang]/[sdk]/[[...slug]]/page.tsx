@@ -1,8 +1,6 @@
 import process from 'node:process'
-
 import { notFound } from 'next/navigation'
 import { PostHog } from 'posthog-node'
-
 import { AgentDocsLinks } from '@/components/agent-docs-links'
 import { GuidesArticle } from '@/components/guides/article'
 import { GuidesPageLayout } from '@/components/guides/layout'
@@ -31,18 +29,20 @@ interface IProps {
 const DOCS_ORIGIN = 'https://docs.univer.ai'
 
 export async function generateStaticParams() {
-  return Object.entries(sdkSources).flatMap(([sdk, source]) => [
-    ...source.generateParams().map((params) => ({ ...params, sdk })),
-    ...(sdk === 'guides'
-      ? source
-          .getLanguages()
-          .flatMap(({ language }) => getGuideContentPlacementSlugs().map((slug) => ({ sdk, lang: language, slug })))
-      : []),
-  ])
+  return Object.entries(sdkSources).flatMap(([sdk, source]) => {
+    const pages = source.generateParams().map((params) => Object.assign({}, params, { sdk }))
+    if (sdk !== 'guides') return pages
+
+    return pages.concat(
+      source
+        .getLanguages()
+        .flatMap(({ language }) => getGuideContentPlacementSlugs().map((slug) => ({ sdk, lang: language, slug }))),
+    )
+  })
 }
 
 function getSdkSource(sdk: string) {
-  if (sdk !== 'guides' && sdk !== 'server' && sdk !== 'ai') notFound()
+  if (sdk !== 'overview' && sdk !== 'guides' && sdk !== 'server' && sdk !== 'ai') notFound()
   return { source: sdkSources[sdk], collection: sdk } as const
 }
 

@@ -1,6 +1,6 @@
 import { withLocale } from '@/lib/locale-path'
 
-export const agentDocsCollections = ['guides', 'server', 'ai', 'reference'] as const
+export const agentDocsCollections = ['overview', 'guides', 'server', 'ai', 'reference'] as const
 
 export type AgentDocsCollection = (typeof agentDocsCollections)[number]
 
@@ -15,9 +15,9 @@ export function getAgentMarkdownPath(lang: string, pageUrl: string) {
 }
 
 export function getAgentDocsSourceUrl(collection: AgentDocsCollection, pagePath: string) {
-  return `https://github.com/${SOURCE_REPOSITORY}/blob/${SOURCE_REF}/content/${collection}/${pagePath}`
+  return `https://github.com/${SOURCE_REPOSITORY}/blob/${SOURCE_REF}/content/${collection === 'overview' ? 'docs' : collection}/${pagePath}`
 }
 
 export function getAgentDocsRawSourceUrl(collection: AgentDocsCollection, pagePath: string) {
-  return `https://raw.githubusercontent.com/${SOURCE_REPOSITORY}/${SOURCE_REF}/content/${collection}/${pagePath}`
+  return `https://raw.githubusercontent.com/${SOURCE_REPOSITORY}/${SOURCE_REF}/content/${collection === 'overview' ? 'docs' : collection}/${pagePath}`
 }

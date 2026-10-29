@@ -1,0 +1,82 @@
+---
+title: "Headless and server-side calculation"
+description: "Run content operations in Node.js, use Rust for precomputation, and give agents structured and visual results."
+icon: Calculator
+---
+
+Univer separates its content models, calculation, and UI. Headless execution runs the content runtime in Node.js; server-side calculation uses `univer-rs` for compute-intensive work and file conversion. Applications and agents can combine both around the same snapshots.
+
+## A Node.js runtime without UI plugins
+
+Register the required core, product-model, calculation, and Facade plugins without menus, toolbars, or DOM UI plugins. Load Sheets, Docs, Slides, Relational Tables, Canvases, or PDFs according to the selected product stack. Sheets and Docs have Node presets; other products use their own plugin combinations.
+
+| Capability | What it enables |
+| --- | --- |
+| Load and inspect | Load snapshots; parse and inspect cells, paragraphs, pages, objects, and records. |
+| Calculate | Evaluate formulas and arrays, refresh pivots, and generate number-format display values. |
+| Modify | Use Facade APIs to edit content, change structure, and save snapshots or submit changes. |
+| Convert files | Combine Server SDK exchange modules with the runtime for batch import, processing, and export. |
+| Verify visually | Add a Render Runtime to capture screenshots and check layout for the agent. |
+
+Content operations run directly in Node.js. Screenshots and layout checks use a separately configured rendering runtime; the CLI’s Render Runtime can drive a headless browser to produce PNGs and layout findings.
+
+## Immediate frontend calculation, versioned server calculation [#calculate-on-the-server-display-quickly-in-the-browser]
+
+Both the frontend and server have formula engines. The frontend responds to editing; the server calculates a captured content revision when generating a snapshot or processing a file.
+
+- **While editing:** the browser calculates affected formulas locally, optionally in a Worker, and displays results immediately. Collaboration records and synchronizes content changes.
+- **When generating a snapshot:** the server’s snapshot policy triggers the save workflow. The server captures the content revision for this operation, calculates with `univer-rs`, then saves that revision’s content and results together.
+- **When reopening:** the frontend reuses valid results in the snapshot, applies later changes, and continues calculating, reducing repeated full calculation.
+
+<Mermaid chart={"flowchart LR\n    F[\"Frontend editing<br/>Immediate calculation\"]\n    C[\"Content synchronization<br/>Confirmed changes\"]\n    R[\"Rust calculation<br/>Content revision N\"]\n    S[\"Save snapshot<br/>saveSnapshot\"]\n    F <--> C\n    C -->|\"When generating a snapshot\"| R\n    R --> S"} />
+
+**Content changes synchronize continuously. Server calculation runs as part of snapshot generation, with results saved for that content revision.**
+
+Configure initial calculation to match the saved results:
+
+- `WHEN_EMPTY`: reuse stored formula values and calculate only missing results.
+- `NO_CALCULATION`: skip initial formula calculation when the application supplies the results.
+- `FORCED`: recalculate all formulas when stored results need refreshing.
+
+These options control initial loading. Subsequent editing continues to calculate in the frontend; the server calculates on demand when generating a versioned snapshot or processing files. See [formula configuration](/guides/sheets/features/core/formula), [collaboration](/server/collaboration/overview), and [file conversion](/overview/features/shared/file-conversion).
+
+### Formula engine performance
+
+See the [Univer Rust formula engine benchmarks](/blog/rust-formula-performance) for 10 workbooks, including Rust input loading, stage timings, input-format boundaries and workbook downloads.
+
+## Array formulas and spill results
+
+Within the supported functions and formats, Rust follows Excel’s array-formula and spill semantics. It returns calculated values together with the anchor and spill range, including dynamic arrays and declared ranges for legacy array formulas.
+
+For example, `=SEQUENCE(3,2)` in an empty `A1` produces:
+
+| A | B |
+| --- | --- |
+| 1 | 2 |
+| 3 | 4 |
+| 5 | 6 |
+
+The formula remains in `A1`; results occupy `A1:B3`. When an array shrinks, old spill values are cleared. A blocked spill reports `#SPILL!`. The browser, agent, and export pipeline can reuse the calculated snapshot.
+
+See [formula support](/guides/sheets/features/core/formula) and [Excel array behavior](https://support.microsoft.com/en-us/excel/dynamic-array-formulas-and-spilled-array-behavior) for the corresponding function and range rules.
+
+## Connect the runtime to an agent
+
+Keep your existing model, conversation, and tool orchestration. AI SDK tools expose Office content operations to that agent:
+
+1. Inspect structure and read the target content.
+2. Apply Facade changes and run the required calculations in the headless runtime.
+3. Wait for calculation and commit confirmation, then read back the updated state.
+4. Check values and structure; add screenshots or layout checks when visual verification is needed.
+
+Use [content operations](/ai/content-operations) and [visual inspection](/ai/visual-inspection) together. For human review, place edits in a [Worktree](/ai/worktree) before comparison and merge. [Univer CLI](/overview/examples/cli) demonstrates how to assemble these capabilities into an agent-facing application.
+
+## Integration paths
+
+| Capability | What it enables |
+| --- | --- |
+| Node.js content runtime | Start with [headless Web SDK](/guides/sheets/getting-started/node) and enable the product and calculation plugins you need. |
+| Background file processing | Combine Rust calculation with [Node.js file conversion](/server/import-export/node), then save or return the updated snapshot. |
+| Shared editing and agents | Connect [collaboration](/server/collaboration/quick-start) and [AI SDK](/ai/content-operations) so people and agents operate on confirmed content. |
+
+[Back to all features](/overview/features)

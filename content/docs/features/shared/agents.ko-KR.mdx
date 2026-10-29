@@ -1,0 +1,91 @@
+---
+title: "Agent와 자동화"
+description: "검사·편집·검증을 도구로 조합하여 기존 Agent에서 Office 콘텐츠를 조작합니다."
+icon: Bot
+---
+
+AI SDK는 Univer의 콘텐츠 모델, Facade 및 공동 작업을 Agent가 호출할 수 있는 TypeScript 기능으로 제공합니다. 기존 Agent에서 내용을 파악하고 수정·검증한 뒤 검토를 요청할 수 있습니다. 모델, 도구 프로토콜과 작업 흐름은 앱이 선택합니다.
+
+## 기존 Agent에 기능 연결 [#capabilities]
+
+기능 패키지는 도구, 서비스, CLI에서 사용할 구조화된 결과를 반환합니다. 선택적인 `-command` 패키지는 Commander 명령을 제공합니다. Agent는 Web 편집기와 같은 콘텐츠 모델과 명령 시스템을 사용합니다.
+
+| 기능 | 역할 |
+| --- | --- |
+| Inspection | 구조, 범위, 문단 및 객체 정보를 읽어 대상을 좁힙니다. |
+| API Reference | 동봉된 Facade 선언, 오버로드, 타입과 예제를 오프라인 조회합니다. |
+| Content Execution | 명시한 Unit에 `workbook`, `doc`, `presentation`, `base`, `board`를 바인딩합니다. |
+| Collaboration Runtime | 콘텐츠 로드, mutation 캡처, 원격 변경 조정 및 changeset 제출을 담당합니다. |
+
+## Runtime의 편집 상태 복원 [#runtime]
+
+Collaboration Runtime은 수명 동안 하나의 Unit에 연결됩니다. 앱의 backend를 열고 UnitData 또는 Snapshot checkpoint와 changeset을 읽어 원격 최신 revision까지 연속 변경을 재생합니다. 수식 모듈이 설치되어 있으면 최신 계산 적용도 기다립니다.
+
+<Mermaid chart={"sequenceDiagram\nparticipant A as 앱 도구\nparticipant R as Runtime\nparticipant U as 콘텐츠 엔진\nparticipant B as 공동 작업 backend\nA->>R: load\nR->>B: checkpoint 및 변경 로드\nR->>U: Unit과 revision 복원\nA->>R: pull: 원격 변경 가져오기\nR->>B: fetchChangesets\nB-->>R: changesets\nR->>U: OT 조정 및 적용\nA->>R: execute: Facade 수정\nR->>U: Facade\nU-->>R: mutation 생성\nNote over R: pending 보관\nA->>R: commit: changeset 제출\nR->>B: changeset\nB-->>R: ACK: 식별자와 revision 확인"} />
+
+`fetch()`는 변경을 가져와 검증합니다. `pull()`은 OT로 원격 변경과 로컬 pending/awaiting을 조정해 적용합니다. `baseRevision`, `knownHeadRevision`, `pendingMutationCount`, `awaitingChangeset`으로 진행 상태를 파악합니다.
+
+## 대상 확인 후 Facade 실행 [#inspection]
+
+overview로 구조를 확인한 뒤 안정적인 ID나 명확한 선택자로 읽습니다. 전체 Snapshot을 모델에 보낼 필요는 없습니다. Sheet 범위, Doc 문단, Slide 페이지, Relational Table 구조 개요 및 Canvases 객체를 지원합니다. Relational Table 개요에는 필드 설정이 있지만 레코드 값과 View projection은 없어 필요하면 Facade로 읽습니다.
+
+`prepareContentExecutionProgram()`은 브라우저 선택에 의존하지 않고 Unit ID로 루트 Facade를 얻으며 주입 변수 재선언을 거부합니다. read 모드는 영구 변경 업무 동작을 실행 전에 막고, write 모드는 대상 Unit의 mutation을 캡처합니다. Unit 생성과 해제는 별도 수명 주기 작업입니다.
+
+익숙하지 않은 API는 `find()`로 찾고 `show()`로 정확한 선언과 관련 타입을 확인합니다. SDK에 포함된 인덱스는 엔진 실행이나 온라인 문서 없이 작동합니다. [콘텐츠 작업](/ai/content-operations)과 [패키지 개요](/ai/packages)를 참고하세요.
+
+## 실행과 제출 확인 구분 [#commit]
+
+`execute({ mode: 'write' })`는 live Unit을 수정하고 pending을 쌓습니다. **서버 저장 완료를 의미하지 않습니다.** `commit()`은 식별자가 있는 changeset을 보내며 ACK의 식별자, 내용과 revision을 확인한 뒤 확정합니다.
+
+| 제출 상태 | 앱의 처리 |
+| --- | --- |
+| `confirmed` / `nothing-to-commit` | 확인되었거나 제출할 변경이 없습니다. |
+| `pull-required` | 원격 버전이 진행되어 `pull()` 후 `commit()`을 다시 시도합니다. |
+| `retry` / `unknown` | 같은 Runtime의 awaiting을 유지하고 `commit()`을 재시도합니다. 편집 코드는 다시 실행하지 않습니다. |
+| `conflict` | 쓰기를 중단하고 복구 또는 재로드를 결정합니다. |
+
+결과가 불명확해도 `sid + reqId`를 유지해 backend가 동일 changeset을 멱등 확인하도록 합니다. backend가 이 계약을 구현해야 합니다. 코드 중간에 예외가 발생해도 이미 실행된 mutation이 남을 수 있으므로 pending을 확인해 복구합니다. `execute()`는 자동 롤백 트랜잭션이 아닙니다.
+
+다음은 로드된 Sheet Runtime에서 실행 및 제출 결과를 반환합니다. 호출자가 위 상태를 처리하며 소유자의 수명이 끝날 때 Runtime을 닫습니다.
+
+```ts
+import { prepareContentExecutionProgram } from '@univer-cli/content-execution'
+import type { UniverCollaborationRuntime } from '@univer-cli/univer-collaboration-runtime'
+
+async function updateSales(runtime: UniverCollaborationRuntime) {
+  const pulled = await runtime.pull()
+  if (pulled.status === 'conflict') return pulled
+
+  const code = prepareContentExecutionProgram({
+    unitId: runtime.unitId,
+    unitType: 'sheet',
+    code: `
+      const sheet = workbook.getSheetByName('Data');
+      if (!sheet) throw new Error('Worksheet Data not found');
+      sheet.getRange('A2:B2').setValues([
+        [{ v: 'East', t: 1 }, { v: 128000, t: 2 }]
+      ]);
+      return sheet.getRange('A2:B2').getRawValues();
+    `,
+  })
+  const execution = await runtime.execute({ mode: 'write', code })
+  const commit = await runtime.commit()
+  return { execution, commit }
+}
+```
+
+## 빈번한 작업의 Runtime 재사용 [#reuse]
+
+Worker pool은 앱의 key별로 Runtime을 독점 대여합니다. 같은 key의 생성은 single-flight이고 lease는 FIFO로 대기합니다. 다른 key는 별도 Worker에서 처리할 수 있습니다. `release()`는 반환, TTL/LRU는 유휴 회수, `invalidate()`는 신뢰할 수 없는 인스턴스 폐기입니다.
+
+Key는 backend, Unit, Worktree를 구분해야 합니다. Pool은 init의 의미적 호환성을 검사하지 않습니다. Daemon으로 pool을 유지하면 짧은 CLI 호출 간 재사용할 수 있지만 동기화와 제출 확인은 필요합니다. 시작 비용, 상주 메모리와 Worker 수의 절충은 [Runtime 재사용과 Daemon](/ai/runtime-architecture)을 참고하세요.
+
+## 자동화에서 사람의 검토로 [#handoff]
+
+보고서 생성, 데이터 정리, 템플릿 작성 및 콘텐츠 생성 흐름으로 조합할 수 있습니다. 대상을 찾고 Facade로 쓰고 필요한 계산을 기다린 뒤 값·텍스트·속성을 다시 읽고 필요하면 [시각 검사](/overview/features/shared/visual-inspection)를 추가합니다.
+
+승인이 필요하면 [Worktree](/overview/features/shared/worktree)를 사용합니다. Agent가 반복 편집·검증하여 Ready로 만들고 사람이 검토해 Merge를 결정합니다. 여러 Unit의 실행·제출은 각각 추적합니다. 여러 Runtime이 문서 간 원자적 트랜잭션을 만들지는 않습니다.
+
+앱은 신원, 권한, 모델 연결과 작업 수명을 담당합니다. read/write 제한은 업무 동작의 경계이며 신뢰할 수 없는 JavaScript의 프로세스 격리와 파일·네트워크 권한도 앱이 구성합니다. [빠른 시작](/overview/get-started)과 [Univer CLI 예제](/overview/examples/cli)에서 체험할 수 있습니다.
+
+[기능 목록으로 돌아가기](/overview/features)

@@ -1,0 +1,101 @@
+---
+title: "WorkBuddy プラグイン"
+description: "WorkBuddy でローカル Office 内容を作り、ライブプレビューとバージョン比較でレビューします。"
+---
+
+**Univer Office for WorkBuddy**（`workbuddy-univer-office`）は **[Univer Office SDK](/overview)** の公開 API を利用したローカル Office 連携です。ローカル MCP サービスと Skill により、作成、検査、プレビュー、ドラフトレビューを WorkBuddy に接続し、ファイルはローカルワークスペースに保存します。
+
+<Callout type="info">
+開発プレビューです。公開 npm 実行パッケージでローカル接続できますが、公式マーケットからのインストールとホスト内での完全なレビューは受け入れ検証が必要です。
+</Callout>
+
+[インストールと接続](#quick-start) · [タスクを試す](#first-task) · [Skills とツール](#skills)
+
+## インストールと接続 [#quick-start]
+
+WorkBuddy 5.8.3 以降と Node.js 22（22.12 以降）を用意します。この例は公開パッケージ 0.1.6 を使用し、Office コンテンツは既定でローカルの `~/.univer-office/workspace` に保存されます。
+
+### 1. ローカル実行パッケージをインストール
+
+```bash
+npm install --global --ignore-scripts workbuddy-univer-office@0.1.6 --registry=https://registry.npmjs.org/
+univer-office --version
+```
+
+初回ダウンロードがホストの接続待機時間を消費しないよう、インストール完了後に MCP を接続してください。ローカル接続にクラウドアカウントや Office API キーは不要です。
+
+### 2. ローカル MCP を接続
+
+WorkBuddy で利用を許可した作業フォルダーを開き、次の設定でカスタム stdio MCP サーバーを追加します。
+
+```json
+{
+  "mcpServers": {
+    "univer-office": {
+      "type": "stdio",
+      "command": "univer-office",
+      "args": []
+    }
+  }
+}
+```
+
+WorkBuddy が `univer-office` を見つけられない場合は `command` をインストール先の絶対パスに置き換えます。macOS/Linux は `command -v univer-office`、Windows は `Get-Command univer-office` で確認できます。stdio は WorkBuddy に起動させ、同じ保存先に独立した HTTP サービスを重ねて起動しないでください。保存先を変える場合は環境変数 `WORKBUDDY_OFFICE_WORKSPACE` に絶対パスを設定します。
+
+### 3. 操作 Skill をインポート
+
+Git と Python 3 を用意し、公開リポジトリから操作ガイドのみの Skill ZIP を生成します。アプリのビルドは不要です。
+
+```bash
+git clone https://github.com/dream-num/workbuddy-univer-office.git
+cd workbuddy-univer-office
+python3 scripts/package-workbuddy-skills.py
+```
+
+WorkBuddy の Skills 管理で `.data/packages/univer-office-workbuddy-skill.zip` をインポートします。MCP 接続後、Office サービスの状態確認を頼んでから、下のタスクを送ります。Skill は操作ガイド、MCP は実行機能を提供するため、両方を使います。
+
+## すぐに試せるタスク [#first-task]
+
+<div className="[&_pre]:whitespace-pre-wrap [&_code]:whitespace-pre-wrap [&_code]:w-full! [&_pre]:wrap-anywhere">
+
+```text
+Univer Office でローカルファイル sales-review.univer を作成し、5件のサンプルを持つ英語の売上表を作ってください。列は Product、Quantity、Unit Price、Revenue です。Revenue は数式で計算し、売上合計と製品別売上グラフを追加してください。
+確定した書き込みと計算結果を検証し、この Sheet だけを右側にプレビュー表示して、ブラウザのレビューリンクを渡してください。独立した下書きで作業し、私が承認するまでマージしないでください。
+```
+
+</div>
+
+### 確認できる結果
+
+WorkBuddy の右側に読み取り専用の表が表示されます。全体表示、Compare、マージ確認はブラウザで行い、ファイルはローカルに残ります。最初は1つの Sheet に絞ることで数式とグラフをすぐ確認でき、同じ応答内の複数カードに関するホストのルーティング制限も避けられます。
+
+### 続けて試す
+
+最初の成果を承認・マージした後、「同じ売上表の新しい下書きで、最初のレコードの単価を10%上げ、合計を更新し、確定版との Compare を開いてレビューを待ってください」と依頼します。実際の変更前後を比較できます。
+
+## Skills とツールの連携 [#skills]
+
+1つの [`univer-office` Skill](https://github.com/dream-num/workbuddy-univer-office/tree/main/skills/univer-office) が全体を案内し、製品別・コンテンツ間の7つの参考資料を必要に応じて読み込みます。エージェントは `univer_api` で公開 Facade を調べ、MCP で編集、書き込み確認、読み戻し、プレビューを行います。同じ Office SDK モデルをヘッドレス処理とブラウザ描画に使い、バージョンと Worktree で変更の特定、比較、レビューができます。
+
+## できること
+
+- **使い慣れたアシスタントで作成：** WorkBuddy から表、文書、プレゼンテーション、リレーショナルテーブル、キャンバスを作成・更新できます。
+- **ライブプレビューで確認：** ホスト内の読み取り専用プレビューを使い、詳しい View・Compare は外部ブラウザーで開けます。
+- **変更を理解して判断：** ドラフトの View と Compare は読み取り専用です。固定したバージョンの意味的な差分を比較し、対象の内容へ移動できます。
+- **ドラフトから受け渡しへ：** エージェントが Worktree で編集し、人がマージ、修正、破棄を選択します。選んだ確定バージョンから対応形式を出力できます。
+
+## Office SDK が担う部分 [#sdk-integration]
+
+WorkBuddy が対話と MCP 呼び出しを担当します。ローカルサービスは Office SDK の Headless 実行、Facade 操作、共同編集のバージョン、Worktree を組み合わせ、ブラウザーでは同じモデルを描画します。SDK をエージェントホスト向けのローカルツールとレビュー画面にまとめる例です。
+
+## 体験とソースコード
+
+[ローカルで実行](https://github.com/dream-num/workbuddy-univer-office#local-development) · [ワークフローを見る](https://github.com/dream-num/workbuddy-univer-office#workflow) · [ソースリポジトリ](https://github.com/dream-num/workbuddy-univer-office)
+
+## 関連する機能
+
+- [ドキュメントの読み込みと内容操作](/ai/content-operations)
+- [コンテンツ比較](/overview/features/shared/compare)
+- [Worktree](/overview/features/shared/worktree)
+
+[すべてのサンプル](/overview/examples)

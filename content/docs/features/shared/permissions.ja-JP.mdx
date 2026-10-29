@@ -1,0 +1,146 @@
+---
+title: "権限と認可"
+description: "Unit レベルの操作権限、製品ごとのオブジェクト権限、フロントエンドとバックエンドの認可を説明します。"
+icon: ShieldCheck
+---
+
+Univer は、**コンテンツ全体の操作権限**と**内部オブジェクトの権限**を区別します。Web SDK は操作とコマンドの実行を制御し、Server SDK は読み取り、共同編集の送信、拡張サービスの境界でアプリケーションの認可を実行します。
+
+## Unit レベルの権限 [#unit-permissions]
+
+[Unit（コンテンツ単位）](/guides/sheets/getting-started/quickstart#unit) は、ワークブック、ドキュメント、プレゼンテーション、Relational Table、ボード、PDF など、一つの完全なコンテンツインスタンスです。以下の Unit 権限は Sheets、Docs、Slides、Relational Table、Canvases が対象です。PDF の現在の範囲は後述します。
+
+| 権限 | 制御する操作 | 使用例 |
+| --- | --- | --- |
+| 編集（Edit） | 内容と構造の変更。 | 閲覧者は読み取り専用、編集者は入力や構成変更が可能。 |
+| コピー（Copy） | エディター内での内容のコピー。 | 閲覧とコメントを許可し、コピーを制限。 |
+| コメント（Comment） | コメント機能導入時のコメント作成と返信。 | 本文を読み取り専用にしたままレビューを許可。 |
+| 印刷（Print） | 製品の印刷機能の利用。 | オンライン閲覧を許可し、印刷を制限。 |
+| エクスポート（Export） | 対応するファイル形式への書き出し。 | 成果物の受け渡しや保存を許可。 |
+
+編集とコメントは独立しています。コメントの編集、削除、管理には、作成者や所有者に関するアプリケーションのポリシーも適用します。
+
+Print と Export も Unit レベルの権限です。Sheets、Docs、Slides、Canvases は両方、Relational Table は現在 Export を提供します。各権限は対応する機能プラグインと組み合わせて使います。
+
+内容のコピー、ファイルの複製、エクスポート、ダウンロードは別々の操作です。ファイルを開けるかどうかは、アプリケーションの読み取り認可で決まります。
+
+たとえば、Doc の Unit レベルの権限を個別に設定できます。
+
+```ts
+import { UnitAction } from '@univerjs/protocol'
+
+const document = univerAPI.getActiveDocument()
+if (!document) throw new Error('Open a document first')
+
+const permission = document.getPermission()
+await permission.setReadOnly()
+await permission.setPoint(UnitAction.Copy, false)
+await permission.setPoint(UnitAction.Comment, true)
+await permission.setPoint(UnitAction.Print, false)
+await permission.setPoint(UnitAction.Export, false)
+```
+
+製品とコメントのプラグインを登録してください。プラグインモードでは `@univerjs/docs/facade` のインポートも必要です。製品別の権限へのアクセス方法は以下を参照してください。Sheets は専用の権限ポイント列挙型を使います。
+
+## 製品ごとの詳細な権限
+
+### Sheets
+
+**ワークブック → ワークシート → セル範囲**の階層で制御します。ワークブックは全体の編集・コピー・コメント、ワークシートは値、スタイル、行列の追加・削除、並べ替え、フィルター、ピボットテーブル、追加オブジェクトの操作を制限できます。範囲保護では、編集・閲覧と編集可能な共同編集者を指定できます。
+
+たとえば、予算の数式列を保護し、経費入力欄だけを開放します。`getWorkbookPermission()`、`getWorksheetPermission()`、`getRangePermission()` を使います。ワークシートや範囲の保護ポイントを設定する前に保護ルールを作成してください。読み取りを制限するデータについては、アプリケーションの読み取り API でも返却範囲を制御します。
+
+[Sheets の権限と保護](/guides/sheets/features/core/permission)
+
+### Docs
+
+ドキュメント全体の下に、**セクション、段落、コンテンツエンティティ**の編集権限があります。エンティティには、安定した ID を持つ表、描画、カスタムブロック、範囲などが含まれます。ヘッダーとフッターの段落は所属する segment で指定します。
+
+たとえば、契約書の固定条項を保護し、記入用の段落を編集可能にします。セクションと段落には `getPermission()`、エンティティには `document.getEntityPermission()` を使います。ドキュメント、該当する親、オブジェクト自身のルールから有効な権限を判定します。
+
+[ドキュメント権限](/reference/facade/document-permission) · [セクション・段落・エンティティの権限](/reference/facade/document-object-permission)
+
+### Slides
+
+**プレゼンテーション、各スライド、ページ要素、マスター編集へのアクセスと要素**を保護できます。ブランドテンプレートや固定図形を保護しながら、指定したテキストボックス、画像、グラフを編集可能にできます。
+
+`presentation.getPermission()`、`slide.getPermission()`、`slide.getElementPermission()` を使います。マスター関連のアクセス方法は Presentation Facade を参照してください。
+
+[Slides の権限](/guides/slides/features/core/permissions) · [Presentation Facade](/reference/facade/presentation)
+
+### Relational Table [#base]
+
+**テーブル、フィールド、レコード、ビュー、ダッシュボード**を制御できます。セルの編集では、Relational Table、テーブル、フィールド、レコードの制限を合わせて判定します。ビュー設定とダッシュボードは個別に保護できます。
+
+たとえば、スキーマと財務レコードを保護し、日常業務のタスク更新を許可します。テーブル、フィールド、レコード、ビューには `getPermission()` があります。ダッシュボードには対応プラグインが必要です。ユーザー別の読み取り可能なフィールド・レコードの絞り込みは、アプリケーションのデータ読み取りポリシーで実装します。
+
+[Relational Table の権限](/guides/bases/features/core/permissions) · [オブジェクト権限 API](/reference/facade/base-object-permission)
+
+### Canvases [#board]
+
+ボード全体の権限の下で、図形、テキスト、画像、コネクターなどの**各要素**を保護できます。アーキテクチャの背景やフローの枠組みを固定し、指定したノードの更新を許可できます。
+
+Unit には `board.getPermission()`、要素には `board.getElementPermission(elementId)` を使います。要素を編集するには、Canvases 全体と要素の両方の権限が必要です。
+
+[Canvases の権限](/reference/facade/board-permission) · [要素の権限](/reference/facade/board-element-permission)
+
+### PDF
+
+PDF は現在、ローカル操作に**閲覧・編集モード**を使用し、上記5製品の Unit/Object 権限 API とは範囲が異なります。ファイルの読み取り、ダウンロード、エクスポートはアプリケーションのバックエンドで認可します。PDF は Core Collaboration が対応する5種類の Unit にも含まれません。
+
+[PDF の導入とコンテンツ操作](/guides/pdfs/getting-started/facade)
+
+## 権限の継承と共同編集者のポリシー
+
+**オブジェクトへの許可は、Unit と該当する親の制限を超えることはできません。** ドキュメント全体が読み取り専用なら、特定の段落だけを編集可能にしても編集できません。対応オブジェクトの `canEdit()` で有効な権限を確認します。
+
+Docs、Slides、Relational Table、Canvases の子オブジェクト権限は主に Edit を制御し、Copy と Comment は Unit レベルで設定します。Sheets にはワークシート・範囲専用のポイントがあり、製品ごとに粒度が異なります。
+
+Docs、Slides、Relational Table、Canvases の `setObjectPermissions()` では、共同編集者のポリシーをまとめて設定できます。
+
+| ポリシー | 編集可能なユーザー |
+| --- | --- |
+| `all` | すでに Unit の Edit 権限を持つ共同編集者。 |
+| `owner` | Unit と親の制限に従う、オブジェクト所有者。 |
+| `members` | 指定した既存の Unit 共同編集者。 |
+
+Authz との連携、対象タイプの `objectPermissionTypes` 設定、オブジェクトの紐付け・ルール・メンバー関係の永続化が必要です。公開されているオブジェクト ID ヘルパーを使い、コンテンツ ID を安定させてください。`policy: null` は保護を削除し継承に戻します。一括書き込みでは部分的な失敗があり得るため、`failed` と `refreshError` を確認します。Sheets はワークシート・範囲の保護 API を使います。
+
+## フロントエンドとバックエンドの認可
+
+信頼できるユーザー ID と Unit・オブジェクトのポリシーを一元管理し、フロントエンドの動作とバックエンドの認可に適用します。
+
+<Mermaid chart={"flowchart LR\n    P[\"アプリケーションの ID と権限ポリシー\"]\n    W[\"Web SDK<br/>操作とコマンドの検証\"]\n    S[\"Server SDK<br/>リクエストと変更の認可\"]\n    D[\"永続化と配信\"]\n    P --> W\n    P --> S\n    W -->|\"変更を送信\"| S\n    S -->|\"許可された場合\"| D"} />
+
+| 層 | 役割 |
+| --- | --- |
+| Web SDK | ユーザーに許可された操作を取得し、権限ポイント、編集 UI、コマンドチェックを更新。 |
+| アプリケーションの Authz API | 信頼できるログイン情報でルールを照会・変更し、Unit/オブジェクトの権限を返し、ルール管理の資格を確認。 |
+| Transport | Cookie、Session、Token を認証して信頼できる ID を確立。クライアントのユーザーフィールドは認可の根拠にしない。 |
+| Endpoint | WebSocket 接続と `joinUnit` によるルーム参加を認可。 |
+| Service | `readUnitData` で読み取り、`submitChangeset` で送信を検証し、適用時に変更対象のオブジェクトを確認。 |
+
+Server SDK は Middleware の接続点を提供し、アプリケーションが ACL とオブジェクトポリシーを提供します。**フロントエンドの読み取り専用設定やオブジェクト保護だけでは、バックエンドの認可は自動適用されません。** Unit の Edit だけを検証する場合、段落、要素、フィールド、レコードの制限には追加の検証が必要です。
+
+既存の `collabService` に、アプリケーションの `acl` を接続する例です。
+
+```ts
+import { CollabError } from '@univerjs-pro/collaboration-service'
+
+collabService.use('submitChangeset', async (context, next) => {
+  const allowed = await acl.canEdit(
+    context.session.userId,
+    context.request.changeset.unitID,
+  )
+  if (!allowed) {
+    throw new CollabError('PERMISSION_DENIED', 'Editing is not allowed')
+  }
+  await next()
+})
+```
+
+この例は Unit の編集認可のみです。読み取り、JOIN、ルール変更、拡張エンドポイントも保護してください。詳細な書き込み権限は `applyChangeset` などの適用段階で変更対象を検証し、再試行可能なポリシーにします。
+
+導入は[ID と認可](/server/collaboration/identity-and-authorization)、ライフサイクルの接続点は [Middleware と Events](/server/collaboration/middleware-and-events) を参照してください。
+
+[すべての機能に戻る](/overview/features)

@@ -1,0 +1,84 @@
+---
+title: "Worktree"
+description: "了解草稿隔離、版本基線、OT 合入，以及 AI SDK 如何串接 Agent 與人類審閱。"
+icon: GitBranch
+---
+
+Worktree 為 Office 內容提供可協同編輯的隔離草稿。Agent 修改預算、整理資料或完善方案時，人類仍可編輯主文件（trunk）；草稿驗證、審閱後，再將修改合入。
+
+隔離的是文件內容與變更，與 Git 工作目錄不同。一項任務可包含多個 [Unit（內容單元）](/guides/sheets/getting-started/quickstart#unit)，例如活頁簿、說明文件與簡報。
+
+## 隔離原理：從共同基線演進 [#isolation]
+
+對已有 Unit 建立 Worktree 時，服務端記錄當時的主線 revision 作為 **Baseline（基線）**。草稿使用獨立 Snapshot、changeset、revision、Presence 與 Room，Agent 的中間修改不進入主線。
+
+<Mermaid chart={"flowchart LR\n    A[\"建立時主線<br/>Baseline\"]\n    B[\"主線繼續編輯\"]\n    C[\"Worktree 草稿\"]\n    D[\"Ready · 審閱\"]\n    E[\"OT 合入\"]\n    F[\"主線新版本\"]\n    A --> B\n    A --> C --> D\n    B --> E\n    D --> E --> F"} />
+
+| 概念 | 作用 |
+| --- | --- |
+| Baseline | 草稿從主線哪個版本開始，供比較與合入參照。 |
+| Draft head | 草稿已確認的最新版本，隨提交推進。 |
+| Ready head | 固定待審閱版本，確定本輪審閱和合入範圍。 |
+
+主線與草稿分別前進，revision 描述各自的提交序列，不能只比較數字判斷哪份內容較新。同步草稿不會自動混入主線新修改，而是在合入預覽或合入時協調。
+
+## AI SDK 如何連接草稿 [#ai-sdk]
+
+AI SDK 的 Collaboration Runtime 處理單一 Unit 的快照、變更和版本。建立草稿、狀態和合入由 Server SDK Worktree 服務管理，不必為 Runtime 另做編輯引擎。
+
+應用將 `worktreeID + unitID` 映射到草稿快照、提交、WebSocket 和 Session Ticket URL，交給 Runtime，讓同一組工具可操作主線或草稿。
+
+<Mermaid chart={"flowchart LR\n    A[\"Agent / 業務 CLI\"]\n    B[\"人類 Web 審閱\"]\n    C[\"應用目標適配\"]\n    D[\"Worktree Endpoint\"]\n    E[\"同一草稿 Unit\"]\n    A --> C\n    B --> C\n    C --> D --> E"} />
+
+同一 Unit ID 可存在於主線及多個 Worktree。檢查、執行、截圖與 Web 預覽必須選擇同一目標，避免讀草稿卻寫入主線。Web 以對應協同設定載入同一草稿。
+
+| 分工 | 職責 |
+| --- | --- |
+| Web SDK | 共同內容引擎，支援 Agent Headless 操作與瀏覽器編輯。 |
+| Server SDK | 隔離草稿、儲存變更與版本、狀態和 OT 合入。 |
+| AI SDK | Runtime、Inspection、API 查詢、Facade 執行和視覺檢查。 |
+| 你的應用 | 模型、目標映射、身分授權、任務及審閱介面。 |
+
+## Agent 從編輯到交付 [#agent-workflow]
+
+應用可將任務交給多個 Agent 並行執行，每個 Agent 使用獨立 Worktree，編輯、自檢並標記 Ready。人類逐一審閱；需要修改時 Reopen 對應草稿，確認後合入最新主線。
+
+<Mermaid chart={"flowchart TB\n    TRUNK[\"主線 Trunk\"]\n    subgraph PARALLEL[\"多個 Agent 並行工作\"]\n        direction LR\n        AGENT_A[\"Agent A<br/>Worktree A<br/>編輯與自檢\"]\n        AGENT_B[\"Agent B<br/>Worktree B<br/>編輯與自檢\"]\n        AGENT_C[\"Agent C<br/>Worktree C<br/>編輯與自檢\"]\n    end\n    REVIEW[\"人類 Review<br/>草稿與合入預覽\"]\n    MERGE[\"逐一 Merge<br/>合入最新主線\"]\n    RESULT[\"主線新版本\"]\n    TRUNK --> AGENT_A\n    AGENT_A -->|\"Ready\"| REVIEW\n    TRUNK --> AGENT_B\n    AGENT_B -->|\"Ready\"| REVIEW\n    TRUNK --> AGENT_C\n    AGENT_C -->|\"Ready\"| REVIEW\n    REVIEW -->|\"確認\"| MERGE\n    REVIEW -.->|\"Reopen 對應草稿\"| PARALLEL\n    MERGE --> RESULT"} />
+
+1. 建立草稿並選擇任務 Unit，連接 Worktree target，`pull` 最新草稿。
+2. 用 Inspection 檢查結構與資料，按需查詢 API，以 Facade 修改。
+3. 提交至草稿，再回讀資料與計算結果，必要時截圖；Slides 可另用 Layout Lint。發現問題則繼續修改與驗證。
+4. 標記 Ready，固定各 Unit 草稿版本並停止編輯，交付審閱。
+5. 接受後 Merge；人類或 Agent 要再修改，先 Reopen；不需要的草稿可 Discard。
+
+| 操作 | 效果 |
+| --- | --- |
+| `runtime.commit()` | 只提交至草稿並推進版本。 |
+| `markReady()` | 固定審閱版本，不進入主線。 |
+| `reopenWorktree()` | Ready 回到 Draft，重新允許編輯。 |
+| `mergeWorktree()` | 按 Unit 合入已固定的草稿修改。 |
+
+Commit、Ready、Merge 是三個操作。Ready 後，任何人或 Agent 都要先 Reopen 才可編輯。Runtime 與 CLI 組裝見 [AI SDK 指南](/ai/worktree)。
+
+## 合入原理：修改套用到最新主線 [#merge]
+
+來自主線的 Unit，服務端讀取 **Baseline 到 Ready head** 的草稿 changeset，彙集 mutation，交由主線 Collaboration Service。若主線已前進，[OT](/overview/features/shared/collaboration) 會協調基線之後的並行修改，確認新的主線版本。
+
+這是套用變更，不是以舊快照覆蓋最新文件。能轉換的修改會協調；無法轉換或執行時回傳衝突，由應用處理，不能自動解決所有業務分歧。
+
+草稿內新建 Unit 沒有主線基線，合入時建立主線 Unit，不複製完整草稿歷史。
+
+## 審閱：改了什麼，合入會怎樣 [#review]
+
+- **草稿差異**：比較基線與 Ready 草稿的完整內容，使用[內容比較](/overview/features/shared/compare)。
+- **合入結果**：Ready 後呼叫 `evaluateUnitMerge()`。主線前進時，隔離 Runtime 將經 OT 的候選變更套用到目前主線並產生唯讀預覽，不提交 changeset、不修改任何一側。
+
+預覽只代表請求當時狀態；正式合入以執行時主線為準。多 Unit 合入不是整體原子交易，部分失敗不撤回成功項，應逐 Unit 呈現和處理結果。
+
+## 接入與範圍 [#integration]
+
+組合 Worktree Client、Service、Endpoint 和資料庫適配器。草稿獨立儲存，與主線共用 Session Ticket Store。應用分別授權草稿存取與主線寫入，隔離不等於自動授權。
+
+支援 Sheet、Doc、Slide、Canvases、Relational Table，不含 PDF。參閱[範例](/server/collaboration/examples#worktree)、[模組](/server/collaboration/packages#worktree)及 [Agent 指南](/ai/worktree)。
+
+[返回功能總覽](/overview/features)

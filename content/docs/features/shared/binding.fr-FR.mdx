@@ -1,0 +1,110 @@
+---
+title: "Liaison bidirectionnelle"
+description: "Reliez les applications HTML aux données, résultats de formules et mises à jour collaboratives avec Server SDK."
+icon: ArrowLeftRight
+---
+
+<Callout type="warning" title="Fonctionnalité expérimentale">
+  La liaison bidirectionnelle est encore expérimentale. Les prochaines versions incluront des changements incompatibles ; les API et les modalités d’intégration pourront évoluer.
+</Callout>
+
+Univer Server SDK relie des pages HTML, CSS et JavaScript à Sheet. Le tableur conserve les données et les formules ; la page fournit formulaires, indicateurs, graphiques et interactions métier. Les utilisateurs peuvent modifier les entrées de chaque côté et recevoir les mises à jour de l’autre. Un modèle de tableur devient ainsi un calculateur de devis, un tableau de bord ou une application interactive.
+
+## Exemple : une application liée à son tableur
+
+Project Summit présente à gauche des contrôles de croissance, de prix proposé et de part du paiement en espèces, avec le modèle financier complet à droite. Modifier les hypothèses actualise les formules, indicateurs et graphiques. Le tableur permet d’examiner les entrées et les calculs.
+
+![Project Summit : contrôles métier, indicateurs et graphiques liés au modèle financier Univer Sheets](/assets/features/binding/project-summit-app-sheets.png)
+
+La capture illustre un modèle local dans le navigateur. Le partage et la persistance utilisent l’intégration collaborative ci-dessous. Cliquez pour agrandir.
+
+## Une Sheet, plusieurs interfaces
+
+La vue HTML communique avec l’hôte par le runtime de page. Binding Engine lit et écrit le contenu réel avec sa propre instance Headless Univer. Univer SDK gère formules et collaboration ; la couche de liaison transmet les changements de valeurs à la page.
+
+<Mermaid chart={"flowchart LR\n    P[\"Application HTML<br/>Contrôles · indicateurs · graphiques\"]\n    E[\"Hôte + Binding Engine<br/>Headless Sheet\"]\n    S[\"Service de collaboration<br/>Même Sheet Unit\"]\n    T[\"Éditeur Sheet\"]\n    P <-->|\"Lecture · écriture · abonnement\"| E\n    E <-->|\"Collaboration SDK\"| S\n    T <-->|\"Édition · synchronisation\"| S"} />
+
+Les modifications directes du tableur et celles des autres utilisateurs actualisent aussi les pages liées. Une vue HTML peut accéder à plusieurs Units autorisées. L’hôte charge un Engine par Unit, chacun possédant une instance Headless Univer indépendante.
+
+## Déclarer les liaisons en HTML
+
+Déclarez les références sur les éléments pour synchroniser texte et formulaires. Une cellule utilise `unitId:sheetId:A1`. Encodez chaque ID séparément avec `encodeURIComponent` et utilisez l’ID stable de la feuille.
+
+| Attribut | Usage |
+| --- | --- |
+| `data-univer-cell-text` | Afficher la valeur d’une cellule comme texte. |
+| `data-univer-cell-model` | Synchroniser une cellule et un contrôle dans les deux sens. |
+| `data-univer-cell-subscribe` | Déclarer un abonnement de cellule pour un rendu JavaScript personnalisé. |
+| `data-univer-range-subscribe` | Déclarer un abonnement à une plage rectangulaire pour graphiques, listes et matrices. |
+
+Par exemple, `B2` contient le prix unitaire, `B3` la quantité et `B4` la formule `=B2*B3`. Ce fragment relie les entrées et le total :
+
+```html
+<label>
+  Prix unitaire
+  <input type="number" min="0" step="0.01"
+    data-univer-cell-model="book:sheet:B2" />
+</label>
+<label>
+  Quantité
+  <input type="number" min="0" step="1"
+    data-univer-cell-model="book:sheet:B3" />
+</label>
+<p>Total: <span data-univer-cell-text="book:sheet:B4"></span></p>
+```
+
+Remplacez `book` et `sheet` par des IDs réels autorisés, puis chargez le modèle via Renderer. Les formules restent définies dans Sheet ; la page lit les résultats calculés. Texte, nombres, curseurs, cases à cocher, textarea et listes à sélection unique se lient selon leurs types.
+
+## Étendre graphiques et interactions avec JavaScript
+
+Le runtime fournit `window.univerBinding` avant les scripts du modèle. Déclarez la plage du graphique avec `data-univer-range-subscribe`, puis utilisez `subscribeRangeById(elementId, callback)` pour recevoir la matrice et l’actualiser. Les composants à valeur unique utilisent `subscribeCellById()`.
+
+`getCellState()` / `getRangeState()` lisent ponctuellement ; `setCellValue()` écrit un scalaire et `insertRowsWithValues()` insère et remplit des lignes. Les abonnements livrent d’abord l’état courant, puis les valeurs modifiées. Les éditions locales, la collaboration et l’application des résultats de formules peuvent les actualiser.
+
+Les références suivent des coordonnées fixes, pas l’enregistrement d’origine après insertion ou suppression de lignes ou colonnes. Une écriture scalaire remplace formules ou texte enrichi : liez les cellules d’entrée métier.
+
+## Connecter l’hôte et l’Agent
+
+L’application fournit un conteneur, le HTML et `loadEngine`. Le chargeur autorise la Unit, configure la collaboration et retourne un Engine chargé. Renderer gère page isolée, messages et cycle de vie des Engines reçus. Cette fonction accepte les trois entrées :
+
+```ts
+import {
+  renderHtmlView,
+  type RenderHtmlViewOptions,
+} from '@univerjs-labs/html-view-renderer/render';
+
+export function createPreview(
+  container: HTMLElement,
+  html: string,
+  loadEngine: RenderHtmlViewOptions['loadEngine'],
+) {
+  return renderHtmlView({ container, html, loadEngine });
+}
+```
+
+La génération de modèles, l’édition du code, le stockage et la navigation relèvent de l’application. Un Agent peut générer du HTML avec des déclarations réutilisant données et règles de Sheet. `view.inspect.open()` permet d’inspecter les correspondances Unit → Sheet → référence → élément.
+
+Les identifiants collaboratifs restent chez l’hôte et le serveur contrôle l’accès. Placez l’UI Sheet et Headless Engine dans des environnements JavaScript distincts, par exemple des pages ou iframes séparés. Les packages actuels ciblent Sheet.
+
+## Distinguer mise à jour locale et confirmation de sauvegarde
+
+| Opération | Signification |
+| --- | --- |
+| Écriture de page terminée | L’opération locale est exécutée ; la confirmation du serveur peut être en attente. |
+| `await view.flush()` | Envoyer les brouillons, attendre les écritures précédentes et la confirmation collaborative, puis continuer à éditer. |
+| `await view.prepareToLeave()` | Suspendre l’édition et sauvegarder. Quitter après succès ou appeler `view.resume()` si la navigation est annulée. |
+| `view.dispose()` | Libérer connexions, Engines et abonnements ; ne sauvegarde pas automatiquement. |
+
+Les abonnements actualisent les valeurs après application des résultats de formules. En cas d’échec, conservez la page et réessayez la sauvegarde. Une écriture locale terminée ne signifie pas que les données sont sauvegardées.
+
+## Poursuivre l’intégration
+
+- [Dépôt et présentation du SDK](https://github.com/dream-num/univer-data-binding-sdk)
+- [API Binding Engine](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/binding-engine/README.md)
+- [Attributs de liaison HTML](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/html-view/README.md)
+- [Intégration de Renderer](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/html-view-renderer/README.md)
+- [API JavaScript de page](https://github.com/dream-num/univer-data-binding-sdk/blob/main/packages/html-view-renderer/docs/javascript-api.md)
+
+Fonctions associées : [exécution sans interface et calcul serveur](/overview/features/shared/server-calculation) · [collaboration en temps réel](/overview/features/shared/collaboration) · [Agents et automatisation](/overview/features/shared/agents).
+
+[Retour aux fonctionnalités](/overview/features)

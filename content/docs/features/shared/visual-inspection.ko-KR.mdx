@@ -1,0 +1,94 @@
+---
+title: "스크린샷과 시각 검증"
+description: "구조화된 재조회, 실제 렌더링 이미지, 슬라이드 레이아웃 검사를 결합합니다."
+icon: ScanEye
+---
+
+시각 검사는 콘텐츠 모델을 확인 가능한 이미지와 레이아웃 증거로 바꿉니다. Agent는 데이터와 수식을 검증한 뒤 실제 텍스트, 도형 및 페이지를 확인하고 Facade로 수정해 새 상태를 다시 검사합니다.
+
+## 세 종류의 증거 [#evidence]
+
+| 증거 | 확인할 수 있는 내용 |
+| --- | --- |
+| 구조화된 재조회 | 원시 값, 수식과 결과, 문단 및 객체 속성. |
+| PNG | 표시 콘텐츠, 잘림, 차트, 색상 및 구성. |
+| 레이아웃 진단 | 렌더링 기하에서 규칙, ID, 경계와 위치를 반환해 수정 대상을 특정합니다. |
+
+## 콘텐츠 상태와 종속성 준비 [#state]
+
+Screenshot과 Layout Lint는 물화된 UnitData를 받으며 원격 target 연결이나 changeset 해석은 하지 않습니다. 공동 작업에서는 `pull()`, 수식 계산 적용 대기, `exportUnitData()` 순서로 준비합니다. Worktree는 해당 초안을 사용하고 앱은 target, revision, 범위를 보고서에 기록할 수 있습니다.
+
+주 Snapshot에 모든 종속성이 들어 있지는 않습니다. `formulaReferenceUnits`로 Sheet/Relational Table 수식 원본을, `embeddedUnits`로 하위 Unit을 전달합니다. Render Page는 종속성을 먼저 물화합니다. UUID 이미지는 `resolveUnitScreenshotImageAssets()`와 앱 resolver로 해결하지만 best-effort이므로 누락 자원도 검사해야 합니다.
+
+## 안정된 화면 생성 [#rendering]
+
+<Mermaid chart={"flowchart LR\nA[\"명확한 콘텐츠 상태<br/>UnitData + 종속성\"]\nB[\"Render Runtime<br/>브라우저·페이지 프로토콜\"]\nC[\"Render Page<br/>Univer 기본 레이아웃\"]\nD[\"준비 완료 확인<br/>계산·화면 안정\"]\nE[\"PNG / 레이아웃 사실<br/>Agent와 사람 검토\"]\nA --> B --> C --> D --> E"} />
+
+`univer-render-runtime`은 Node.js에서 앱의 Render Page를 제공하고 브라우저를 시작합니다. 제품 플러그인이 콘텐츠를 복원하며 양쪽에서 프로토콜 버전을 검사합니다. 작업은 Runtime별 직렬 큐로 실행되고 재사용 후 소유자가 `close()` 합니다.
+
+제품마다 준비 조건이 다릅니다. 수식 Shape는 pending 종료와 필요한 경우 연속 프레임의 픽셀 안정을 기다립니다. Relational Table은 폰트, 계산, 활성 table/view 및 DOM/Canvas 안정을 확인합니다. pending이 아니어도 오류 결과일 수 있으므로 값과 상태를 검증합니다.
+
+현재 구현은 주 UnitData, 수식 원본, 하위 콘텐츠를 직렬화해 해시 key를 만듭니다. 같은 Unit ID라도 데이터가 바뀌면 새 세션 key가 되어 ID만으로 이전 화면을 재사용하는 문제를 피합니다.
+
+## 제품별 범위 선택 [#scope]
+
+| 제품 | 범위 및 출력 |
+| --- | --- |
+| Sheet | 워크시트와 A1 범위를 선택한 PNG. 중요한 결과는 범위를 명시합니다. |
+| Doc | 페이지 선택 또는 열거로 개별 PNG를 만듭니다. |
+| Slide | 1부터 시작하는 페이지 번호 또는 page ID, 선택적 contact sheet. |
+| Relational Table | 브라우저 DOM + Canvas로 열린 활성 테이블/보기 작업대를 캡처합니다. |
+| Canvases | 전체 경계 또는 상호 배타적인 region / elementIds, padding 및 레이아웃 증거. |
+
+`unit-screenshot`은 bytes, 크기, 페이지/범위 식별자와 제안 이름을 반환하고 앱이 저장합니다. Scale은 0.1–4이며 `maxPages`와 이미지별 `maxPixels`를 설정할 수 있습니다. 배율 두 배는 약 네 배 픽셀이므로 큰 콘텐츠는 나누어 검사합니다. PDF는 이 다섯 제품 진입점에 포함되지 않습니다.
+
+## 스크린샷과 Lint의 공통 입력 [#example]
+
+동일한 Slide 데이터와 수식 원본에 스크린샷과 Layout Lint를 수행합니다. `renderRuntime`은 기존 Runtime, `slideData`는 준비된 스냅샷입니다. 기능 자체는 파일을 저장하지 않습니다. 페이지 구성과 해제는 [AI SDK 시각 검사](/ai/visual-inspection)를 참고하세요.
+
+```ts
+import { createUnitScreenshot } from '@univer-cli/unit-screenshot'
+import { createUnitLayoutLint } from '@univer-cli/unit-layout-lint'
+
+const source = {
+  unitType: 'slide' as const,
+  unitData: slideData,
+  formulaReferenceUnits,
+}
+const screenshot = createUnitScreenshot({ runtime: renderRuntime })
+const lint = createUnitLayoutLint({ runtime: renderRuntime })
+
+const capture = await screenshot.capture({
+  ...source,
+  target: { kind: 'slide-pages', pages: [1], scale: 2 },
+})
+const report = await lint.lint({ ...source, pages: [1] })
+```
+
+## Slide: 글리프 잉크로 문제 찾기 [#slide-lint]
+
+Layout Lint는 브라우저의 레이아웃 사실을 사용합니다. `declared`는 모델 선언 상자이고 `ink`는 배치, 정렬 및 회전을 반영해 페이지 좌표로 변환한 실제 글리프 경계입니다. 텍스트 상자가 페이지 안에 있어도 글자가 넘칠 수 있습니다.
+
+| 현재 규칙 | 검사 근거 |
+| --- | --- |
+| `text-off-page` | 실제 텍스트 ink가 페이지를 벗어납니다. |
+| `text-escapes-container` | 텍스트가 대응하는 작은 불투명 컨테이너를 벗어납니다. |
+| `text-overlaps-text` | 두 텍스트 ink 영역이 크게 겹칩니다. |
+
+`coverage.pages`, `coverage.rules`가 검사 범위를 나타냅니다. Finding은 `pageId`, 요소 `id`, `text.ink`와 관련 `overflow`, `container`, `other`를 포함하고 안정적인 `fingerprint`로 수정 전후를 비교합니다. 현재 모두 warning이며 이미지와 함께 검토합니다. 빈 목록은 선택 범위에서 해당 규칙이 발생하지 않았다는 의미입니다.
+
+## Canvases: 렌더링된 연결선 확인 [#board-analysis]
+
+Canvases 스크린샷은 브라우저가 해결한 routes, issues, summary를 `layoutAnalysis`로 반환합니다. Slide 전용 `unit-layout-lint`와는 별도입니다. 모델에서 자동 경로가 미해결이면 `source: 'rendered'`로 최종 경로를 검사합니다.
+
+요소 관통, 교차, 화살표 및 라벨 충돌에 `connectorIds`, `elementIds`, `focusBounds`가 제공됩니다. Agent는 대상 객체를 수정해 region 또는 elementIds로 국소 캡처한 뒤 전체를 재확인할 수 있습니다. 시각 문제를 구체적인 Facade 수정과 연결합니다.
+
+## 검사 증거 전달 [#handoff]
+
+<Mermaid chart={"flowchart LR\nA[\"Facade 수정\"]\nB[\"값·수식 재조회\"]\nC[\"스크린샷 + 진단\"]\nD[\"ID로 대상 수정\"]\nE[\"새 상태 재검사\"]\nF[\"사람 검토 / 전달\"]\nA --> B --> C --> D --> E --> F\nD --> B"} />
+
+구조화된 결과, 범위/페이지 정보, 이미지와 진단을 함께 보관합니다. 이미지는 수식 정확성을 증명하지 않고 Lint도 시각 판단을 대신하지 않습니다. 도구 모음, 포커스, 팝업은 Web 편집기에서 검증하고 Unit 간 종속성 로드도 확인합니다.
+
+[Worktree](/overview/features/shared/worktree)를 Ready로 만들기 전에 검사해 변경과 증거를 대응시킵니다. 실행 원리는 [헤드리스와 서버 계산](/overview/features/shared/server-calculation), 흐름 구성은 [Agent 및 자동화](/overview/features/shared/agents)를 참고하세요.
+
+[기능 목록으로 돌아가기](/overview/features)

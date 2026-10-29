@@ -5,6 +5,7 @@ import { getGuideSdkItems } from '@/lib/guides/navigation'
 
 export interface IPrimaryNavigationLabels {
   blog: string
+  overview: string
   primary: string
   showcase: string
   tools: string
@@ -19,15 +20,21 @@ export function PrimaryNavigation({
   labels: IPrimaryNavigationLabels
   mobile?: boolean
 }) {
-  const sdkLinks = getGuideSdkItems(items).map((item) => ({ text: item.name, url: `/${item.id}` }))
-  const links = mobile
-    ? sdkLinks
-    : [
-        ...sdkLinks,
-        { text: labels.tools, url: '/tools/theme-customizer' },
-        { text: labels.blog, url: '/blog' },
-        { text: labels.showcase, url: 'https://office.univer.ai' },
-      ]
+  const links = [
+    { text: labels.overview, url: '/overview', activeHref: '/overview' },
+    ...getGuideSdkItems(items).map((item) => ({
+      text: item.name,
+      url: item.id === 'guides' ? '/guides/sheets' : `/${item.id}`,
+      activeHref: `/${item.id}`,
+    })),
+    ...(mobile
+      ? []
+      : [
+          { text: labels.tools, url: '/tools/theme-customizer' },
+          { text: labels.blog, url: '/blog' },
+          { text: labels.showcase, url: 'https://office.univer.ai' },
+        ]),
+  ]
 
   return (
     <nav
@@ -39,10 +46,10 @@ export function PrimaryNavigation({
     >
       {links.map((link) => (
         <ActiveNavigationLink
-          activeClassName="bg-accent text-accent-foreground"
-          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-md px-2.5 py-1.5 text-sm whitespace-nowrap transition-colors"
-          href={link.url === '/guides' ? '/guides/sheets' : link.url}
-          activeHref={link.url}
+          activeClassName="bg-accent text-accent-foreground font-medium"
+          className="shrink-0 rounded-md px-2 py-1.5 text-sm whitespace-nowrap text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground lg:px-2.5"
+          href={link.url}
+          activeHref={'activeHref' in link ? link.activeHref : link.url}
           key={link.url}
         >
           {link.text}

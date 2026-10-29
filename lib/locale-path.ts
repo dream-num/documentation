@@ -1,6 +1,15 @@
+import type { Locale } from '@/i18n/routing'
 import { routing } from '@/i18n/routing'
 
 const localePattern = new RegExp(`^/(?:${routing.locales.join('|')})(?=/|$)`)
+
+export function getContentLocale(path: string): Locale {
+  const withoutExtension = path.replace(/\.mdx?$/, '')
+  for (const locale of routing.locales) {
+    if (withoutExtension.endsWith(`.${locale}`)) return locale
+  }
+  return routing.defaultLocale
+}
 
 export function stripLocalePrefix(pathname: string) {
   return pathname.replace(localePattern, '') || '/'
@@ -30,6 +39,7 @@ export function normalizeDocsHref(href: string) {
   if (!/^(?:https?:)?\/\/docs\.univer\.ai(?:[/?#]|$)/i.test(href)) return href
   const url = new URL(href.startsWith('//') ? `https:${href}` : href)
   const path = stripLocalePrefix(url.pathname)
-  if (path !== '/' && !/^\/(?:guides|reference|server|ai|blog|tools|showcase|icons)(?:\/|$)/.test(path)) return href
+  if (path !== '/' && !/^\/(?:overview|guides|reference|server|ai|blog|tools|showcase|icons)(?:\/|$)/.test(path))
+    return href
   return `${url.pathname}${url.search}${url.hash}`
 }

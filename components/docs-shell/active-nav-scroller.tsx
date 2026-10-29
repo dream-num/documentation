@@ -1,59 +1,53 @@
 'use client'
 
-import { useLayoutEffect, useRef } from 'react'
+import type { RefObject } from 'react'
+import { useLayoutEffect } from 'react'
+import { usePathname } from '@/i18n/navigation'
 
-function getScrollParent(element: HTMLElement) {
-  let parent = element.parentElement
-
-  while (parent) {
-    const { overflowY } = window.getComputedStyle(parent)
-    if ((overflowY === 'auto' || overflowY === 'scroll') && parent.scrollHeight > parent.clientHeight) {
-      return parent
-    }
-
-    parent = parent.parentElement
-  }
-
-  return undefined
-}
-
-function scrollIntoContainerView(container: HTMLElement, item: HTMLElement) {
-  const containerRect = container.getBoundingClientRect()
-  const itemRect = item.getBoundingClientRect()
-  const padding = 12
-
-  if (itemRect.top < containerRect.top + padding) {
-    container.scrollTop -= containerRect.top + padding - itemRect.top
-    return
-  }
-
-  if (itemRect.bottom > containerRect.bottom - padding) {
-    container.scrollTop += itemRect.bottom - (containerRect.bottom - padding)
-  }
-}
-
-export function ActiveNavScroller() {
-  const markerRef = useRef<HTMLSpanElement>(null)
+export function ActiveNavScroller({
+  activeItemRef,
+  navRef,
+}: {
+  activeItemRef: RefObject<HTMLAnchorElement | null>
+  navRef: RefObject<HTMLElement | null>
+}) {
+  const pathname = usePathname()
 
   useLayoutEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      const nav = markerRef.current?.closest('nav')
-      const activeItem = nav?.querySelector<HTMLElement>('[aria-current="page"]')
-      if (!activeItem) return
+    const mobileMenu = navRef.current?.closest('details')
+    let frame = 0
+    function revealCurrentItem() {
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => {
+        const activeItem = activeItemRef.current
+        if (!activeItem?.getClientRects().length) return
 
-      const scrollParent = getScrollParent(activeItem)
-      if (scrollParent) {
-        scrollIntoContainerView(scrollParent, activeItem)
-        return
-      }
-
-      activeItem.scrollIntoView({ block: 'nearest' })
-    })
+        let parent = activeItem.parentElement
+        while (parent) {
+          const { overflowY } = window.getComputedStyle(parent)
+          if ((overflowY === 'auto' || overflowY === 'scroll') && parent.scrollHeight > parent.clientHeight) {
+            const containerRect = parent.getBoundingClientRect()
+            const itemRect = activeItem.getBoundingClientRect()
+            const padding = 12
+            if (itemRect.top < containerRect.top + padding) {
+              parent.scrollTop -= containerRect.top + padding - itemRect.top
+            } else if (itemRect.bottom > containerRect.bottom - padding) {
+              parent.scrollTop += itemRect.bottom - (containerRect.bottom - padding)
+            }
+            break
+          }
+          parent = parent.parentElement
+        }
+      })
+    }
+    revealCurrentItem()
+    mobileMenu?.addEventListener('toggle', revealCurrentItem)
 
     return () => {
       window.cancelAnimationFrame(frame)
+      mobileMenu?.removeEventListener('toggle', revealCurrentItem)
     }
-  }, [])
+  }, [pathname, activeItemRef, navRef])
 
-  return <span ref={markerRef} aria-hidden="true" hidden />
+  return null
 }

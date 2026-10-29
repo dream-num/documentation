@@ -44,6 +44,7 @@ Showcase source, assets, tests and build tooling live in the sibling `../office.
 ├── components/       # React components for the documentation site
 ├── content/          # Documentation content (MDX)
 │   ├── blog/         # Blog posts
+│   ├── docs/         # Office SDK overview, getting started, features, and examples (/docs)
 │   ├── guides/       # Web SDK: editors, product features, and Icons (/guides)
 │   ├── server/       # Server SDK: collaboration and server-side file exchange (/server)
 │   ├── ai/           # AI SDK: agent operations, CLI, and Worktree (/ai)
@@ -59,6 +60,8 @@ Product import/export feature guides stay in `content/guides/<product>/features`
 ## Contributing
 
 We welcome contributions to the documentation. Please ensure your changes follow the existing style and conventions. Run `pnpm lint` and `pnpm typecheck` before submitting.
+
+Office SDK pages in `content/docs` are maintained in all eight site languages. Keep translated feature catalogs aligned with the English source, including category order, support states, open-source flags, links, and chart previews. Preserve SDK/API identifiers and existing fragment links when translating.
 
 For more information about contributing to Web SDK, see the [main repository](https://github.com/dream-num/univer).
 

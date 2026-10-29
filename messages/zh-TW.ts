@@ -189,6 +189,16 @@ const zhTWMessages = {
     'theme-customizer': '主題定制器',
     'theme-customizer-description': '編輯 Web SDK 主題、設計 Tokens 和深色模式預覽。',
   },
+  office: {
+    'start-description': '從一個需求範本與三個實例開始，建立第一個 Office 應用。',
+    modules: '模組',
+    overview: 'Office SDK 總覽',
+    'overview-description': '了解統一執行環境與三個 SDK 的協作關係。',
+    'web-description': '共用內容引擎、瀏覽器編輯器與 Headless 執行環境。',
+    'server-description': '協作、檔案轉換、歷史記錄與 Worktree 服務。',
+    'ai-description': '面向 Agent 的內容操作、檢查與驗證。',
+    start: '開始使用',
+  },
   navigation: {
     overview: '概覽',
     blog: '博客',
@@ -545,6 +555,17 @@ const zhTWMessages = {
     response: '回應',
     type: '類型',
   },
+  featureComparison: {
+    search: '搜尋功能',
+    placeholder: '搜尋功能或範圍說明',
+    group: '功能分類',
+    allGroups: '全部分類',
+    openSource: '只看開源',
+    differences: '只看差異',
+    reset: '重設',
+    count: '顯示 {visible} / {total} 項',
+    empty: '沒有符合條件的功能。',
+  },
   search: {
     label: '搜索',
     'no-result': '沒有找到相關內容',
@@ -561,6 +582,7 @@ const zhTWMessages = {
     navigate: '選擇',
     open: '開啟',
     scope: {
+      overview: '概覽',
       blog: '開發教學',
       server: 'Server SDK',
       ai: 'AI SDK',

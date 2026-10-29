@@ -195,6 +195,16 @@ const esESMessages = {
     'theme-customizer': 'Tema Personalizador',
     'theme-customizer-description': 'Temas de Tune Web SDK, tokens de diseño y vistas previas en modo oscuro.',
   },
+  office: {
+    'start-description': 'Crea tu primera aplicación Office con una plantilla y tres ejemplos.',
+    modules: 'Módulos',
+    overview: 'Descripción de Office SDK',
+    'overview-description': 'Conoce el runtime compartido y cómo cooperan los SDK.',
+    'web-description': 'Motor de contenido compartido, editores web y runtime Headless.',
+    'server-description': 'Servicios de colaboración, conversión, historial y Worktree.',
+    'ai-description': 'Operaciones de contenido, inspección y verificación para agentes.',
+    start: 'Comenzar',
+  },
   navigation: {
     overview: 'Descripción general',
     blog: 'Blog',
@@ -559,6 +569,17 @@ const esESMessages = {
     response: 'Respuesta',
     type: 'Tipo',
   },
+  featureComparison: {
+    search: 'Buscar funciones',
+    placeholder: 'Buscar funciones o limitaciones',
+    group: 'Categoría',
+    allGroups: 'Todas las categorías',
+    openSource: 'Solo código abierto',
+    differences: 'Solo diferencias',
+    reset: 'Restablecer',
+    count: '{visible} de {total} elementos',
+    empty: 'No hay funciones coincidentes.',
+  },
   search: {
     label: 'Búsqueda',
     'no-result': 'No se encontraron resultados',
@@ -575,6 +596,7 @@ const esESMessages = {
     navigate: 'Navegar',
     open: 'Abrir',
     scope: {
+      overview: 'Descripción general',
       blog: 'Tutoriales de desarrollo',
       server: 'Server SDK',
       ai: 'AI SDK',

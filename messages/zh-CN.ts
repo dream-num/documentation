@@ -189,6 +189,16 @@ const zhCNMessages = {
     'theme-customizer': '主题定制器',
     'theme-customizer-description': '编辑 Web SDK 主题、设计 Tokens 和暗黑模式预览。',
   },
+  office: {
+    'start-description': '从一个需求模板和三个实例开始，构建首个 Office 应用。',
+    modules: '模块',
+    overview: 'Office SDK 总览',
+    'overview-description': '了解统一运行时与三个 SDK 的协作关系。',
+    'web-description': '共同的内容引擎、浏览器编辑器与 Headless 运行时。',
+    'server-description': '协同、文件转换、历史记录与 Worktree 服务。',
+    'ai-description': '面向 Agent 的内容操作、检查与验证。',
+    start: '开始使用',
+  },
   navigation: {
     overview: '概览',
     blog: '博客',
@@ -545,6 +555,17 @@ const zhCNMessages = {
     response: '响应',
     type: '类型',
   },
+  featureComparison: {
+    search: '搜索功能',
+    placeholder: '搜索功能或范围说明',
+    group: '功能分类',
+    allGroups: '全部分类',
+    openSource: '只看开源',
+    differences: '只看差异',
+    reset: '重置',
+    count: '显示 {visible} / {total} 项',
+    empty: '没有符合条件的功能。',
+  },
   search: {
     label: '搜索',
     'no-result': '没有找到相关内容',
@@ -561,6 +582,7 @@ const zhCNMessages = {
     navigate: '选择',
     open: '打开',
     scope: {
+      overview: '概览',
       blog: '开发教程',
       server: 'Server SDK',
       ai: 'AI SDK',

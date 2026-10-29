@@ -1,12 +1,14 @@
 import type { LLMsOptions } from 'fumadocs-core/mdx-plugins/remark-llms'
+import type { Stringifier } from 'fumadocs-core/mdx-plugins/stringifier'
 import { createProcessor } from '@mdx-js/mdx'
 import { frontmatter } from 'fumadocs-core/content/md/frontmatter'
 import { mdxPreset } from 'fumadocs-core/content/mdx/preset-runtime'
 import { remarkLLMs } from 'fumadocs-core/mdx-plugins/remark-llms'
+import { replaceSource } from 'fumadocs-core/mdx-plugins/stringifier'
 import { buildInstallCommand, PACKAGE_MANAGERS } from '../../components/mdx/install-command'
 
-type StringifyAgentMdx = NonNullable<LLMsOptions['stringify']>
-type MdxElement = Extract<Parameters<StringifyAgentMdx>[0], { type: 'mdxJsxFlowElement' | 'mdxJsxTextElement' }>
+type MarkdownNode = Parameters<NonNullable<LLMsOptions['filterElement']>>[0]
+type MdxElement = Extract<MarkdownNode, { type: 'mdxJsxFlowElement' | 'mdxJsxTextElement' }>
 type StaticValue = boolean | null | number | string | StaticValue[] | { [key: string]: StaticValue }
 
 interface IEstreeNode {
@@ -32,7 +34,18 @@ const AGENT_MDX_ELEMENTS = new Set([
   'Tabs',
 ])
 
-const AGENT_HTML_ELEMENTS = new Set(['br', 'code', 'details', 'div', 'iframe', 'img', 'span', 'strong', 'summary'])
+const AGENT_HTML_ELEMENTS = new Set([
+  'br',
+  'code',
+  'details',
+  'div',
+  'iframe',
+  'img',
+  'small',
+  'span',
+  'strong',
+  'summary',
+])
 const AGENT_IMAGE_SOURCE = 'agent-image:'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -64,17 +77,6 @@ function collectMdxImports(tree: unknown) {
   }
 
   return imports
-}
-
-function removeMdxComments(value: unknown) {
-  if (!isRecord(value) || !Array.isArray(value.children)) return
-
-  const children = value.children.filter((child) => {
-    if (!isRecord(child) || (child.type !== 'mdxFlowExpression' && child.type !== 'mdxTextExpression')) return true
-    return typeof child.value !== 'string' || !/^\/\*[\s\S]*\*\/$/.test(child.value.trim())
-  })
-  value.children = children
-  for (const child of children) removeMdxComments(child)
 }
 
 function annotateMdxImports(value: unknown, imports: ReadonlyMap<string, string>) {
@@ -123,9 +125,23 @@ function remarkAgentMdxImports() {
   }
 }
 
-function remarkStripMdxComments() {
-  return (tree: unknown) => {
-    removeMdxComments(tree)
+function remarkAgentMdx() {
+  return (tree: Extract<MarkdownNode, { type: 'root' }>, file: Parameters<typeof replaceSource>[0]) => {
+    function visit(node: MarkdownNode) {
+      if ('children' in node) node.children.forEach(visit)
+      if (
+        (node.type === 'mdxFlowExpression' || node.type === 'mdxTextExpression') &&
+        /^\/\*[\s\S]*\*\/$/.test(node.value.trim())
+      ) {
+        replaceSource(file, node, '')
+      } else if (
+        (node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement') &&
+        !(isRecord(node.data) && node.data.agentImportedComponent)
+      ) {
+        replaceSource(file, node, (stringifier) => stringifyAgentMdx(node, stringifier))
+      }
+    }
+    visit(tree)
   }
 }
 
@@ -333,16 +349,6 @@ function indent(value: string, prefix: string) {
     .join('\n')
 }
 
-function renderChildren(
-  node: MdxElement,
-  state: Parameters<StringifyAgentMdx>[2],
-  info: Parameters<StringifyAgentMdx>[3],
-) {
-  return (
-    node.type === 'mdxJsxFlowElement' ? state.containerFlow(node, info) : state.containerPhrasing(node, info)
-  ).trim()
-}
-
 function renderMetaData(attributes: Record<string, StaticValue>) {
   const meta = getStaticRecord(attributes.meta, 'MetaData.meta')
   return `#### Package metadata\n\n\`\`\`json\n${JSON.stringify(
@@ -388,7 +394,7 @@ function renderInstallTabs(attributes: Record<string, StaticValue>) {
   }).join('\n\n')
 }
 
-function renderTabs(node: MdxElement, state: Parameters<StringifyAgentMdx>[2], info: Parameters<StringifyAgentMdx>[3]) {
+function renderTabs(node: MdxElement, stringifier: Stringifier) {
   const attributes = readAttributes(node)
   const labels = Array.isArray(attributes.items) ? attributes.items.filter((item) => typeof item === 'string') : []
   const tabs = node.children.filter(
@@ -407,16 +413,12 @@ function renderTabs(node: MdxElement, state: Parameters<StringifyAgentMdx>[2], i
       if (!label) {
         throw new Error(`Agent Markdown could not determine the label for Tab ${index + 1}`)
       }
-      return `#### ${label}\n\n${renderChildren(tab, state, info)}`
+      return `#### ${label}\n\n${stringifier.inner(tab).trim()}`
     })
     .join('\n\n')
 }
 
-function renderCodeBlockTabs(
-  node: MdxElement,
-  state: Parameters<StringifyAgentMdx>[2],
-  info: Parameters<StringifyAgentMdx>[3],
-) {
+function renderCodeBlockTabs(node: MdxElement, stringifier: Stringifier) {
   const tabs = node.children.filter(
     (child): child is MdxElement =>
       (child.type === 'mdxJsxFlowElement' || child.type === 'mdxJsxTextElement') && child.name === 'CodeBlockTab',
@@ -425,20 +427,15 @@ function renderCodeBlockTabs(
   return tabs
     .map((tab, index) => {
       const label = getString(readAttributes(tab), 'value') ?? `Option ${index + 1}`
-      return `#### ${label}\n\n${renderChildren(tab, state, info)}`
+      return `#### ${label}\n\n${stringifier.inner(tab).trim()}`
     })
     .join('\n\n')
 }
 
-const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
-  if (node.type !== 'mdxJsxFlowElement' && node.type !== 'mdxJsxTextElement') {
-    return
-  }
-
+function stringifyAgentMdx(node: MdxElement, stringifier: Stringifier): string {
   const name = node.name
   const data = isRecord(node.data) ? node.data : undefined
-  if (!name) return renderChildren(node, state, info)
-  if (data?.agentImportedComponent) return
+  if (!name) return stringifier.inner(node).trim()
   if (name === 'include') {
     throw new Error('Agent Markdown encountered an unexpanded <include> element')
   }
@@ -446,10 +443,15 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
     throw new Error(`Agent Markdown does not support the <${name}> element`)
   }
 
-  if (name === 'Tabs') return renderTabs(node, state, info)
-  if (name === 'CodeBlockTabs') return renderCodeBlockTabs(node, state, info)
+  if (name === 'Tabs') return renderTabs(node, stringifier)
+  if (name === 'CodeBlockTabs') return renderCodeBlockTabs(node, stringifier)
   if (name === 'img') {
-    const source = typeof data?.agentImageSource === 'string' ? data.agentImageSource : undefined
+    const preservedSource = typeof data?.agentImageSource === 'string' ? data.agentImageSource : undefined
+    const srcAttribute = node.attributes.find(
+      (attribute) => attribute.type === 'mdxJsxAttribute' && attribute.name === 'src',
+    )
+    const literalSource = typeof srcAttribute?.value === 'string' ? srcAttribute.value : undefined
+    const source = preservedSource ?? (literalSource?.startsWith('/assets/') ? literalSource : undefined)
     if (!source) throw new Error('Agent Markdown expected the preserved img source')
     const altAttribute = node.attributes.find(
       (attribute) => attribute.type === 'mdxJsxAttribute' && attribute.name === 'alt',
@@ -459,12 +461,12 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
     )
     const alt = (typeof altAttribute?.value === 'string' ? altAttribute.value : '').replaceAll(']', '\\]')
     const title = typeof titleAttribute?.value === 'string' ? titleAttribute.value.replaceAll('"', '\\"') : undefined
-    const href = `${AGENT_IMAGE_SOURCE}${encodeURIComponent(source)}`
+    const href = preservedSource ? `${AGENT_IMAGE_SOURCE}${encodeURIComponent(source)}` : source
     return `![${alt}](${href}${title ? ` "${title}"` : ''})`
   }
 
   const attributes = readAttributes(node)
-  const children = renderChildren(node, state, info)
+  const children = stringifier.inner(node).trim()
 
   switch (name) {
     case 'Callout': {
@@ -513,6 +515,8 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
     case 'div':
     case 'span':
       return children
+    case 'small':
+      return ` ${children}`
     case 'iframe': {
       const src = getString(attributes, 'src')
       return src ? `[Embedded media](${src})` : children
@@ -529,16 +533,11 @@ const stringifyAgentMdx: StringifyAgentMdx = (node, _parent, state, info) => {
 const agentMarkdownOptions = {
   headingIds: false,
   filterElement: (node) => (isRecord(node.data) && node.data.agentImportedComponent ? 'children-only' : true),
-  stringify: stringifyAgentMdx,
 } satisfies LLMsOptions
 
 const agentMarkdownProcessor = mdxPreset({
   rehypeCodeOptions: false,
-  remarkPlugins: [
-    remarkStripMdxComments,
-    remarkAgentMdxImports,
-    [remarkLLMs, { ...agentMarkdownOptions, _data: true }],
-  ],
+  remarkPlugins: [remarkAgentMdxImports, remarkAgentMdx, [remarkLLMs, { ...agentMarkdownOptions, _data: true }]],
   remarkStructureOptions: false,
 }).then((options) => createProcessor(options))
 

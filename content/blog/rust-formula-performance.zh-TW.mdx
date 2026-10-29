@@ -1,0 +1,110 @@
+---
+title: "Univer Rust 公式引擎效能實測：百萬級公式，在伺服器執行"
+description: "Univer Rust 公式引擎效能實測：10 份活頁簿涵蓋條件統計、跨表預算與預測模型，展示近 200 萬公式節點的伺服器運算表現，並提供 Excel、LibreOffice 對照結果與範例下載。"
+author: Univer Engineering Team
+date: 2026-10-29
+---
+
+Univer Rust 公式引擎為 Univer Office SDK 提供伺服器端試算表運算能力，支援批次處理、報表產生與 Agent 自動化。試算表承載著預算、預測和業務規則；當公式規模增長到幾十萬、上百萬，運算能力也成為應用程式的重要基礎。
+
+我們選取 10 份工作簿，覆蓋重複公式、條件統計、跨表預算和預測模型。其中三個結果，展示了這套引擎可以處理的業務規模：
+
+- **近 200 萬公式節點：12.29 秒**完成原生載入與全量計算。
+- **54 張工作表的專案預算：1.27 秒。**
+- **銷售 COUNTIFS 條件統計：3.54 秒。**
+
+## 10 份工作簿的實測表現 [#結果速覽]
+
+Rust 計入原生快照載入與全量計算，不含 XLSX 轉換；Excel、LibreOffice 計入原 XLSX 開啟與全量重算。
+
+![Univer Rust 公式引擎、Excel 與 LibreOffice：10 份活頁簿的載入與運算耗時比較](/assets/blog/rust-formula-performance/calculation-times.svg)
+
+單位秒，越低越快；橫軸為對數刻度。
+
+## 完整結果與樣張下載 [#完整耗時與樣張下載]
+
+點選樣張名稱，可下載原始 XLSX，檢視對應的業務模型。
+
+| 範例 | Univer Rust 公式引擎<br />原生載入＋計算（秒） | Excel<br />開啟＋全量重算（秒） | LibreOffice<br />開啟＋全量重算（秒） |
+| --- | --- | --- | --- |
+| [五十萬公式](/assets/blog/rust-formula-performance/samples/Half_Million_Formulas.xlsx) | 3.54 | 2.39 | 18.74 |
+| [混合公式負載](/assets/blog/rust-formula-performance/samples/Mixed_Formula_Workload.xlsx) | 5.08 | 3.11 | 9.72 |
+| [大型預測模型](/assets/blog/rust-formula-performance/samples/Forecast_Model_Large.xlsx) | 17.67 | 8.55 | 12.86 |
+| [大型業務分析](/assets/blog/rust-formula-performance/samples/Large_Business_Analysis.xlsx) | 12.29 | 10.80 | 8.99 |
+| [銷售條件計數（COUNTIFS）](/assets/blog/rust-formula-performance/samples/Sales_COUNTIFS.xlsx) | 3.54 | 19.47 | 320.01 |
+| [多工作表專案預算](/assets/blog/rust-formula-performance/samples/Multi_Sheet_Project_Budget.xlsx) | 1.27 | 0.73 | 2.96 |
+| [彙總公式](/assets/blog/rust-formula-performance/samples/Aggregation_Formula_Control.xlsx) | 0.27 | 1.03 | 3.10 |
+| [巢狀 IF 與工作日計算](/assets/blog/rust-formula-performance/samples/Nested_IF_Workdays.xlsx) | 1.65 | 3.48 | 2.21 |
+| [CBAM 計算模型](/assets/blog/rust-formula-performance/samples/CBAM_Calculation_Model.xlsx) | 1.19 | 0.74 | 1.83 |
+| [小型預測模型](/assets/blog/rust-formula-performance/samples/Forecast_Model_Small.xlsx) | 13.02 | 5.79 | 7.61 |
+
+## 不同業務模型，不同計算特點 [#如何理解這些差異]
+
+在這組負載中，Univer Rust 公式引擎在條件計數、彙總和工作日計算上表現突出。結果也說明，公式數量並非決定耗時的唯一因素，引用範圍、函式組合和依賴結構同樣重要。
+
+在預測模型中，Excel 和 LibreOffice 完成得更快，這也是後續最佳化的方向。完整呈現這些結果，方便開發者根據自己的業務負載作出判斷。
+
+## 把計算能力帶進你的 Office 應用 [#從計算結果到應用體驗]
+
+Univer Rust 公式引擎是 Office SDK 服務端計算流程的一部分。應用可以針對確定的內容版本計算，將結果隨 Snapshot 儲存；前端開啟時複用有效結果，並由前端公式引擎繼續響應使用者編輯。
+
+基於同一內容執行時，開發者可以構建後臺報表、批次處理和 Agent 任務，讓計算結果自然進入後續業務流程。
+
+瞭解[無頭與服務端計算](/overview/features/shared/server-calculation)，或從 [Office SDK 快速開始](/overview/get-started)構建你的應用。
+
+<details id="我們測了什麼" className="my-8 rounded-lg border border-(--separator) p-4">
+<summary className="cursor-pointer font-medium">測試方法與樣張詳情</summary>
+
+本次按各自輸入格式測量處理耗時：Rust 載入預轉換的原生引擎 JSON，Excel、LibreOffice 開啟 XLSX，包含樣式等文件處理。應用啟動、離線轉換和計時後的校驗不計入，不扣減開啟時間基線。
+
+Rust 每份樣張預熱 1 次、正式測量 5 次，每輪使用獨立程序和新文件。Rust 結果取中位數。
+
+**Excel、LibreOffice 對照記錄的環境：** Windows 11、Intel Core i7-13700H、約 32 GB 記憶體。Excel 為 16.0 build 20527.0，20 個計算執行緒；LibreOffice 為 26.8.1.1，啟用 CPU 多執行緒計算，未啟用 OpenCL 加速。本輪 Rust 使用 20 執行緒。
+
+| 引擎 | 計時範圍 | 統計方式 |
+| --- | --- | --- |
+| Univer Rust 公式引擎 | 同一連續秒錶：讀取原生快照檔案 → JSON 反序列化 → `load_snapshot` 載入 → 首次建依賴 → 強制全量公式計算 → 應用結果；不計離線 XLSX 轉換。 | 每份預熱 1 次、正式測量 5 次，取中位數；每輪使用獨立程序和新文件，20 執行緒。 |
+| Excel COM | 從新開啟原檔案 `Workbooks.Open` 到 `CalculateFullRebuild()` 返回，包含顯式重建依賴與全量重算。 | 每份預熱 1 次、正式測量 5 次，取中位數。 |
+| LibreOffice 無頭模式 / UNO | 從新開啟原 XLSX 到 `calculateAll()` 返回，包含開啟階段執行的工作。 | 5 次測量的中位數；銷售條件計數為單次成功的診斷記錄。 |
+
+<p id="rust-載入與計算分段實測"><strong>Rust 載入與計算分段實測</strong></p>
+
+各列獨立取中位數，分段中位數之和不一定等於連續總耗時的中位數。
+
+| 樣張 | 原生檔案讀取、反序列化<br />與載入（秒） | 首次建依賴＋全量執行及應用（秒） | 連續總耗時（秒） |
+| --- | --- | --- | --- |
+| 五十萬公式 | 1.27 | 2.25 | 3.54 |
+| 混合公式負載 | 0.60 | 4.50 | 5.08 |
+| 大型預測模型 | 3.65 | 13.94 | 17.67 |
+| 大型業務分析 | 2.65 | 9.46 | 12.29 |
+| 銷售條件計數（COUNTIFS） | 0.61 | 2.97 | 3.54 |
+| 多工作表專案預算 | 0.39 | 0.88 | 1.27 |
+| 彙總公式 | 0.09 | 0.18 | 0.27 |
+| 巢狀 IF 與工作日計算 | 0.27 | 1.40 | 1.65 |
+| CBAM 計算模型 | 0.09 | 1.08 | 1.19 |
+| 小型預測模型 | 2.40 | 10.20 | 13.02 |
+
+<p id="這些工作簿包含什麼"><strong>這些工作簿包含什麼</strong></p>
+
+公式數量按**可執行公式節點**統計，不一定等於物理公式單元格數。資料格指非公式的有值單元格，包含表頭。樣本集由 9 份主要樣張和 1 份規模補充樣張組成，並非 10 個完全獨立的公式家族。
+
+| 樣張 | 公式節點 | 資料格 / 工作表 | 公式特徵 |
+| --- | --- | --- | --- |
+| 五十萬公式 | 500,001 | 1,000,047 / 2 | `SUM`、`AVERAGE`、`IF`、`XLOOKUP`；大規模重複公式。 |
+| 混合公式負載 | 367,954 | 432,055 / 7 | `SUMIF`、`AVERAGEIFS`；條件統計與日期、文字混合。 |
+| 大型預測模型 | 1,463,721 | 1,549,982 / 4 | 6 層巢狀；`INDEX`、`LARGE`、`OFFSET`、`MATCH` 與陣列。 |
+| 大型業務分析 | 1,992,537 | 113,084 / 31 | 7 層巢狀；跨表引用、文字處理與相容性公式。 |
+| 銷售條件計數（COUNTIFS） | 349,630 | 299,573 / 2 | `IF`、`AND`、`COUNTIFS`；逐行擴大的條件計數範圍。 |
+| 多工作表專案預算 | 68,576 | 101,378 / 54 | 54 張工作表；使用 `VLOOKUP`、`INDIRECT` 的跨表預算。 |
+| 彙總公式 | 26,951 | 6,841 / 2 | `IFERROR`、`AVERAGE`、`SUM`；長引數彙總。 |
+| 巢狀 IF 與工作日計算 | 118,821 | 338 / 1 | 10 層 `IF` 巢狀；`NETWORKDAYS` 工作日計算。 |
+| CBAM 計算模型 | 52,739 | 13,738 / 19 | 6 層巢狀；查詢、條件統計、動態引用與矩陣。 |
+| 小型預測模型 | 974,625 | 1,040,507 / 4 | 與大型預測模型屬於同一公式家族，規模更小。 |
+
+<p id="資料校驗與複核"><strong>資料、校驗與複核</strong></p>
+
+報告對公式數量與抽樣結果進行了校驗，以確認測試路徑中的計算完整性；這不代表跨產品所有公式結果完全一致。
+
+重算介面說明：[Excel CalculateFullRebuild](https://learn.microsoft.com/en-us/office/vba/api/excel.application.calculatefullrebuild) · [LibreOffice calculateAll](https://api.libreoffice.org/docs/idl/ref/interfacecom_1_1sun_1_1star_1_1sheet_1_1XCalculatable.html)。
+
+</details>

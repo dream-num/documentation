@@ -1,0 +1,50 @@
+---
+title: "リアルタイム共同編集"
+description: "OT、HTTP、WebSocket、永続化を組み合わせて同じ内容を共同編集します。"
+icon: Users
+---
+
+ユーザーと接続済み Agent が同じ文書を操作します。編集はローカルへ即時反映され、サーバーが順序を確定して配信し、応答性と最終的な一貫性を両立します。
+
+## 同時編集と競合
+
+Univer は OT（操作変換）を使います。クライアントは変更を changeset にまとめ、サーバーは確定 revision に基づき変換・送信します。Alice が `C2` を編集中に Bob が B 列前へ列を追加すると、対象セルは `D2` へ移ります。元に戻す・やり直しも遠隔操作に合わせますが、業務上の競合をすべて解消するわけではありません。
+
+変換・適用できない場合は競合状態になり、対象文書の編集を停止します。`CollaborationConflict` は原因と未確認のローカル変更を渡します。再読み込み前にデータを保存してください。[競合復旧](/server/collaboration/browser-integration#conflict-recovery)と [OT 設計](/blog/ot)を参照してください。
+
+## 通信と再接続
+
+| 経路 | 役割 |
+| --- | --- |
+| HTTP | スナップショット・差分取得、Session Ticket 取得、changeset 送信。 |
+| WebSocket | Session・Room 維持、ACK、遠隔変更、Presence 受信。 |
+
+一度限りの Ticket で接続し、文書 Room に参加します。Presence はメンバー、カーソル、選択を共有します。**接続中や HTTP 成功だけでは保存確認になりません。** ACK、共同編集状態、未確認変更から保存状態を示します。
+
+切断時は未確認変更を保持し、再接続後に不足 revision を取得して再送します。サーバーは送信 ID で重複を除きます。[同期状態](/server/collaboration/browser-integration#sync-status)と [Presence](/server/collaboration/presence)を参照してください。
+
+## 永続化とスナップショット
+
+確定 changeset と revision を保存し、方針に従ってスナップショットを生成します。読み込みはスナップショットと以降の変更から復元し、毎回の編集で生成する必要はありません。計算は [Headless とサーバー計算](/overview/features/shared/server-calculation)、履歴・コメント・Worktree は[拡張](/server/collaboration/extensions)を参照してください。
+
+## 配置構成
+
+<Mermaid chart={"flowchart LR\n    A[\"クライアント A\"]\n    B[\"クライアント B / Agent\"]\n    S[\"アプリ共同編集サービス<br/>OT · 確定・配信\"]\n    D[\"アプリ DB\"]\n    A <-->|\"HTTP / WebSocket\"| S\n    B <-->|\"HTTP / WebSocket\"| S\n    S --> D"} />
+
+- **単一ノード**：Node.js に Transport、Endpoint、Service、DB Adapter を組み込みます。Memory は一時検証、SQLite はローカルや小規模向けです。他 DB は独自アダプターを用意します。
+- **拡張**：共有永続化だけでなく、ノード間配信、Presence、Ticket 検証、保存の一貫性も必要です。プロセス追加だけでは実現しません。使用版の配置設計に従います。
+- **重い処理の分離**：変換など CPU 負荷の高い処理を別配置します。
+
+[モジュール](/server/collaboration/modules)、[配置](/server/deployment)、[複数ノード例](/server/collaboration/examples#multi-node)を参照してください。
+
+## 性能と容量
+
+**現行版のベンチマークと容量データは未掲載です。** 文書サイズ、編集頻度、人数、環境に依存します。ACK 時間、遠隔表示遅延、毎秒 changeset、配信量、使用メモリーを測定してください。
+
+## 導入と対象
+
+[概要](/server/collaboration/overview)と[二つのブラウザーの例](/server/collaboration/quick-start)から開始します。Middleware で認証・認可し、永続 [DB Adapter](/server/collaboration/database-adapters) を選んで再起動後も内容が残ることを確認します。
+
+コアは Sheet、Doc、Slide、Canvases、Relational Table を対象とし、PDF は含みません。認証、認可、ファイル管理、保存方針はアプリケーションが提供します。
+
+[機能一覧に戻る](/overview/features)

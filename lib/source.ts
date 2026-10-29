@@ -2,7 +2,6 @@
 import { loader } from 'fumadocs-core/source'
 import { icons as lucideIcons } from 'lucide-react'
 import { createElement } from 'react'
-
 import type { IAmamoDocument } from '@/lib/amamo-source'
 import { collections } from '@/.amamo-mdx/collections.mjs'
 import { IconWrapper } from '@/components/icon-wrapper'
@@ -25,18 +24,24 @@ interface IBlogFrontmatter extends IDocumentFrontmatter {
 const guidesPosts = collections.guides as readonly IAmamoDocument<IDocumentFrontmatter>[]
 const referencePosts = collections.reference as readonly IAmamoDocument<IDocumentFrontmatter>[]
 const blogPosts = collections.blog as readonly IAmamoDocument<IBlogFrontmatter>[]
-const [guidesSource, serverSource, aiSource, referenceSource, blogSource] = await Promise.all([
+const [guidesSource, serverSource, aiSource, referenceSource, blogSource, overviewSource] = await Promise.all([
   createAmamoSource('guides', 'content/guides', guidesPosts),
   createAmamoSource('server', 'content/server', collections.server as readonly IAmamoDocument<IDocumentFrontmatter>[]),
   createAmamoSource('ai', 'content/ai', collections.ai as readonly IAmamoDocument<IDocumentFrontmatter>[]),
   createAmamoSource('reference', 'content/reference', referencePosts),
   createAmamoSource('blog', 'content/blog', blogPosts),
+  createAmamoSource(
+    'overview',
+    'content/docs',
+    collections.overview as readonly IAmamoDocument<IDocumentFrontmatter>[],
+  ),
 ])
 
 export const guides = createGuidesLoader(guidesSource)
 export const server = createGuidesLoader(serverSource, '/server')
 export const ai = createGuidesLoader(aiSource, '/ai')
-export const sdkSources = { guides, server, ai }
+export const overview = createGuidesLoader(overviewSource, '/overview')
+export const sdkSources = { overview, guides, server, ai }
 
 export const reference = loader({
   baseUrl: '/reference',

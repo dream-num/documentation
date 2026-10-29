@@ -1,0 +1,108 @@
+---
+title: "Embed blocks"
+description: "Embed editable content in another Office product while retaining its native capabilities."
+icon: PanelsTopLeft
+---
+
+Embed blocks place one Univer product inside another: maintain budgets and tasks in a project document, review a working spreadsheet on a slide, or bring plans and notes together on a canvas. Child content retains its data model and native editor; activation switches focus and menus to that content.
+
+## How it works: host and child Units [#principle]
+
+The **host Unit** stores placement, size, the child Unit reference and the default view. The **child Unit** stores the actual cells, paragraphs or records. Embed resolves the reference, loads the child Unit and mounts its editor in the host. A [Unit](/guides/sheets/getting-started/quickstart#unit) can be a workbook, document, presentation, relational table or canvas.
+
+<Mermaid chart={"flowchart LR\n    A[\"Host Unit<br/>Document, page or canvas\"]\n    B[\"Embed descriptor<br/>Placement + child reference\"]\n    C[\"Resolve reference<br/>Load child Unit\"]\n    D[\"Native child editor<br/>Display and interaction\"]\n    E[\"Edit / save<br/>Update child Unit\"]\n    A --> B --> C --> D --> E"} />
+
+The relationship and the content are persisted separately. Editing a cell in an embedded spreadsheet updates the child Sheet. Moving or resizing the block updates its host anchor.
+
+## Supported locations [#locations]
+
+| Host product | Embed locations | Typical use |
+| --- | --- | --- |
+| Sheet | Floating object or workbook tab | Keep a brief beside a calculation model, or switch to a task database. |
+| Doc | Body content block | Combine narrative, budgets and tasks in a project page. |
+| Slide | Floating object or presentation page | Review editable source data alongside the conclusion. |
+| Relational Table | Table-list entry | Keep project documentation within a business database. |
+| Canvases | Floating canvas object | Bring data, proposals and discussion onto one canvas. |
+
+## Five host examples [#examples]
+
+These English examples were authored through the Facade API and captured in a browser. Each case uses independent child Units. All content and figures are sample data.
+
+### Sheet: calculations and a decision brief [#sheet-host]
+
+The control center summarizes spend on the left and embeds a complete Doc on the right. Its Launch tracker tab opens a Relational Table. Use this for pricing, operations or financial workbooks that need assumptions, calculations and a written decision together. A familiar interaction is [inserting a document object in Excel](https://support.microsoft.com/en-au/excel/insert-an-object-in-your-excel-spreadsheet).
+
+![A Sheet host with an embedded Doc and linked totals](/assets/features/embed/sheet.png)
+
+### Doc: a project page with budgets and tasks [#doc-host]
+
+The body contains a budget Sheet followed by a Relational Table, so readers can inspect the model and maintain tasks in context. This resembles [Notion's inline databases](https://www.notion.com/help/guides/full-page-vs-inline-databases); the budget here retains the Sheet formula engine, while tasks retain Relational Table fields and views.
+
+![A budget Sheet embedded in a Doc](/assets/features/embed/doc-sheet.png)
+
+![A task Relational Table embedded in the same Doc](/assets/features/embed/doc-base.png)
+
+### Slide: source data in a review [#slide-host]
+
+A budget Sheet and task Relational Table share a slide with a formula-driven budget metric. The interaction is comparable to [embedding Excel in PowerPoint](https://support.microsoft.com/en-gb/powerpoint/insert-and-update-excel-data-in-powerpoint): reviewers can return from the conclusion to an editable data model. The pictured budget has been updated to $62,100.
+
+![A Slide host with a budget, tasks and formula metric](/assets/features/embed/slide.png)
+
+### Relational Table: a brief within the database [#base-host]
+
+A Launch brief Doc appears beside the task table in the table list. Switch between structured work and its written context in a CRM, project tracker or operations database. This is a table-list entry; it does not automatically create a document for each record.
+
+![An embedded Doc opened from the table list in Relational Table](/assets/features/embed/base.png)
+
+### Canvases: a shared planning surface [#board-host]
+
+The canvas combines a budget Sheet, a proposal Doc and a formula-driven spend summary. Use it for project rooms, reviews and research canvases that need source data and context available during discussion.
+
+![A Canvases host with a Sheet, Doc and formula summary](/assets/features/embed/board.png)
+
+## How formulas stay connected [#formulas]
+
+**Embedding provides display and editing; references provide calculation.** Inserting a block does not create a summary formula. With cross-Unit references configured, Sheet cells and formula-driven Shapes in Doc, Slide and Canvases can read Sheet ranges or Relational Table fields. Relational Table formula fields can also reference a Sheet. When source data and change notifications are available, relevant edits trigger recalculation.
+
+<Mermaid chart={"flowchart LR\n    A[\"Edit embedded Sheet / Relational Table\"]\n    B[\"Child Unit data changes\"]\n    C[\"Update references and dependencies\"]\n    D[\"Recalculate formula\"]\n    E[\"Update cell / formula Shape\"]\n    A --> B --> C --> D --> E"} />
+
+| Scenario and formula | Verified result |
+| --- | --- |
+| Slide budget total: `=SUM('[Leadership Budget]Budget'!C5:C8)` | Changing `C7` from 17,100 to 18,000 updates the total from **61,200 → 62,100**. |
+| Sheet total from Relational Table: `=SUM([Control Tasks]!Launch_tasks[Cost])` | Changing one Cost from 4,000 to 4,500 updates the total from **18,000 → 18,500**. |
+
+Formula names are readable qualifiers; integrations must also persist their stable Unit IDs. Use `getFormula().buildReference()` to generate a reference and its host-owned external mapping. For a table in Relational Table, use `table.getFormulaName()` rather than concatenating a display name or ID. Formula-driven Shapes use `shape.setFormula({ formula, externalReferences })`; read results after calculation completes. See [Formula Facade](/reference/facade/formula#buildreference), [Shape Facade](/reference/facade/shape#setformula) and [Relational Table formulas](/guides/bases/features/core/formulas).
+
+## Create and integrate [#integration]
+
+Register the host and child products and their UI in the same Univer instance, then add Embed and Embed UI. This example inserts an existing Sheet into a Doc body; `hostDocument` and `budgetWorkbook` are the corresponding Facades.
+
+```ts
+import '@univerjs-pro/embed/facade'
+
+const block = univerAPI.createEmbed({
+  host: {
+    unitId: hostDocument.getId(),
+    surface: univerAPI.Enum.FEmbedHostSurface.DocBlock,
+  },
+  content: {
+    unitType: univerAPI.Enum.UniverInstanceType.UNIVER_SHEET,
+    ref: `#unit=${encodeURIComponent(budgetWorkbook.getId())}&type=sheet`,
+  },
+})
+
+const embeddedWorkbook = await block.loadAsync()
+```
+
+`createEmbed()` creates the relationship and host anchor. `loadAsync()` loads the child Unit and returns its Facade. Use `displayTarget` to choose the initial worksheet, Slide page or Relational Table view. For plugins, styles, locales and loaders, see the [embedding guide](/guides/fundamentals/features/embed); for other surfaces and methods, see [Embed Facade](/reference/facade/embed).
+
+## Persistence, collaboration and scope [#scope]
+
+- **Save separately:** the host Snapshot retains references, placement and display settings; it does not automatically package the latest child content. Removing a block does not delete its child document.
+- **Collaborative loading:** Server SDK provides child snapshots and collaboration services. With `@univerjs-pro/collaboration-embed`, the browser loads and joins the child's collaboration session. Parent and child retain their own changes and versions.
+- **Access and permissions:** the application resolves references, loads data and authorizes access. Access to the host does not automatically grant editing rights to the child.
+- **Current scope:** different Sheet, Doc, Slide, Relational Table and Canvases types can be embedded. PDF, same-type embedding and further nesting are excluded. Within one Univer runtime, a child Unit can belong to only one active embed.
+
+Use [two-way binding](/overview/features/shared/binding) to drive your application's own inputs, metrics and charts from a spreadsheet. Use Embed Block when you need the child product's editor.
+
+[Back to features](/overview/features)
