@@ -1,0 +1,110 @@
+---
+title: "Le moteur de formules Rust d’Univer : des millions de formules côté serveur"
+description: "Dix classeurs évaluent le moteur de formules Rust d’Univer : près de 2 millions de nœuds, comparaisons Excel et LibreOffice, graphiques et fichiers XLSX."
+author: Univer Engineering Team
+date: 2026-10-29
+---
+
+Le moteur de formules Rust d’Univer apporte le calcul de feuilles de calcul côté serveur à Univer Office SDK, pour les traitements par lots, les rapports et l’automatisation par agents. Lorsque budgets, prévisions et règles métier représentent des centaines de milliers ou des millions de formules, la capacité de calcul devient une fondation de l’application.
+
+Nous avons mesuré dix classeurs mêlant formules répétées, statistiques conditionnelles, budgets entre feuilles et prévisions. Trois résultats illustrent l’échelle des tâches traitées :
+
+- **Près de 2 millions de nœuds de formule : 12.29 secondes**, chargement natif et calcul complet inclus.
+- **Un budget de projet sur 54 feuilles : 1.27 seconde.**
+- **Des ventes avec COUNTIFS : 3.54 secondes.**
+
+## Dix classeurs à l’épreuve [#vue-densemble-des-résultats]
+
+Rust inclut le chargement du snapshot natif et le calcul complet, hors conversion XLSX. Excel et LibreOffice incluent l’ouverture du XLSX source et le recalcul complet.
+
+![Moteur de formules Rust d’Univer, Excel et LibreOffice : temps de chargement et de calcul de dix classeurs](/assets/blog/rust-formula-performance/calculation-times.svg)
+
+Secondes ; moins est préférable. Échelle horizontale logarithmique.
+
+## Résultats complets et classeurs téléchargeables [#mesures-complètes-et-téléchargement-des-classeurs]
+
+Cliquez sur un nom pour télécharger le XLSX source et explorer son modèle métier.
+
+| Classeur | Moteur de formules Rust d’Univer<br />Chargement natif + calcul (s) | Excel<br />Ouverture + recalcul complet (s) | LibreOffice<br />Ouverture + recalcul complet (s) |
+| --- | --- | --- | --- |
+| [Un demi-million de formules](/assets/blog/rust-formula-performance/samples/Half_Million_Formulas.xlsx) | 3.54 | 2.39 | 18.74 |
+| [Charge de formules mixtes](/assets/blog/rust-formula-performance/samples/Mixed_Formula_Workload.xlsx) | 5.08 | 3.11 | 9.72 |
+| [Prévisions · grand modèle](/assets/blog/rust-formula-performance/samples/Forecast_Model_Large.xlsx) | 17.67 | 8.55 | 12.86 |
+| [Grande analyse métier](/assets/blog/rust-formula-performance/samples/Large_Business_Analysis.xlsx) | 12.29 | 10.80 | 8.99 |
+| [Ventes COUNTIFS](/assets/blog/rust-formula-performance/samples/Sales_COUNTIFS.xlsx) | 3.54 | 19.47 | 320.01 |
+| [Budget de projet multifeuilles](/assets/blog/rust-formula-performance/samples/Multi_Sheet_Project_Budget.xlsx) | 1.27 | 0.73 | 2.96 |
+| [Formules d’agrégation](/assets/blog/rust-formula-performance/samples/Aggregation_Formula_Control.xlsx) | 0.27 | 1.03 | 3.10 |
+| [IF imbriqués et jours ouvrés](/assets/blog/rust-formula-performance/samples/Nested_IF_Workdays.xlsx) | 1.65 | 3.48 | 2.21 |
+| [Modèle de calcul CBAM](/assets/blog/rust-formula-performance/samples/CBAM_Calculation_Model.xlsx) | 1.19 | 0.74 | 1.83 |
+| [Prévisions · petit modèle](/assets/blog/rust-formula-performance/samples/Forecast_Model_Small.xlsx) | 13.02 | 5.79 | 7.61 |
+
+## À chaque modèle ses caractéristiques [#interpréter-les-différences]
+
+Sur ces charges, le moteur de formules Rust d’Univer donne de bons résultats pour les comptages conditionnels, les agrégations et les jours ouvrés. Le nombre de formules ne suffit pas à prédire le temps : plages, fonctions et dépendances comptent aussi.
+
+Excel et LibreOffice terminent les modèles prévisionnels plus tôt, ce qui indique une piste claire d’optimisation. Tous les résultats restent visibles pour aider les développeurs à juger leurs propres charges.
+
+## Intégrer le calcul à votre application Office [#des-résultats-calculés-à-la-réactivité-de-lapplication]
+
+Le moteur de formules Rust d’Univer participe au calcul serveur d’Office SDK. Une application peut calculer une révision précise et enregistrer les résultats dans son Snapshot. Le navigateur réutilise les valeurs valides et continue à répondre aux modifications avec son moteur de formules.
+
+Ce runtime de contenu commun permet de construire rapports en arrière-plan, traitements par lots et tâches d’agents, puis d’utiliser les résultats dans la suite du workflow métier.
+
+Découvrez [l’exécution sans interface et le calcul serveur](/overview/features/shared/server-calculation), ou créez votre application avec le [guide de démarrage Office SDK](/overview/get-started).
+
+<details id="ce-que-nous-avons-mesuré" className="my-8 rounded-lg border border-(--separator) p-4">
+<summary className="cursor-pointer font-medium">Méthodes et détails des classeurs</summary>
+
+Rust charge du JSON natif préconverti ; Excel et LibreOffice ouvrent du XLSX avec les traitements de document, dont les styles. Les durées correspondent à ces formats d’entrée. Démarrage, conversion hors ligne et validation après mesure sont exclus ; aucun temps d’ouverture de référence n’est soustrait.
+
+Rust utilise un échauffement et cinq mesures par classeur, chaque fois dans un processus indépendant et un nouveau document. Les valeurs Rust sont des médianes.
+
+**Environnement des références Excel et LibreOffice :** Windows 11, Intel Core i7-13700H, environ 32 Go de RAM. Excel 16.0 build 20527.0, 20 threads de calcul ; LibreOffice 26.8.1.1, calcul multithread sur CPU activé, sans accélération OpenCL. La nouvelle mesure Rust utilise 20 threads.
+
+| Moteur | Opération chronométrée | Statistique publiée |
+| --- | --- | --- |
+| Moteur de formules Rust d’Univer | Chronomètre continu : lecture du fichier natif → désérialisation JSON → `load_snapshot` → dépendances initiales → calcul complet forcé → application. Conversion XLSX hors ligne exclue. | 1 échauffement et 5 mesures par classeur ; médiane. Processus indépendant et nouveau document à chaque passage ; 20 threads. |
+| Excel COM | Du nouveau `Workbooks.Open` au retour de `CalculateFullRebuild()`, avec reconstruction explicite des dépendances et recalcul complet. | 1 échauffement et 5 mesures par classeur ; médiane. |
+| LibreOffice sans interface / UNO | De l’ouverture du XLSX original au retour de `calculateAll()`, travail effectué pendant l’ouverture inclus. | médiane de 5 mesures ; ventes COUNTIFS est un seul diagnostic réussi. |
+
+<p id="étapes-de-chargement-et-de-calcul-rust"><strong>Étapes de chargement et de calcul Rust</strong></p>
+
+Chaque colonne a une médiane indépendante : leur somme peut différer de la médiane du total continu.
+
+| Classeur | Lecture native, désérialisation<br />et chargement (s) | Dépendances, calcul complet<br />et application (s) | Total continu (s) |
+| --- | --- | --- | --- |
+| Un demi-million de formules | 1.27 | 2.25 | 3.54 |
+| Charge de formules mixtes | 0.60 | 4.50 | 5.08 |
+| Prévisions · grand modèle | 3.65 | 13.94 | 17.67 |
+| Grande analyse métier | 2.65 | 9.46 | 12.29 |
+| Ventes COUNTIFS | 0.61 | 2.97 | 3.54 |
+| Budget de projet multifeuilles | 0.39 | 0.88 | 1.27 |
+| Formules d’agrégation | 0.09 | 0.18 | 0.27 |
+| IF imbriqués et jours ouvrés | 0.27 | 1.40 | 1.65 |
+| Modèle de calcul CBAM | 0.09 | 1.08 | 1.19 |
+| Prévisions · petit modèle | 2.40 | 10.20 | 13.02 |
+
+<p id="que-contiennent-les-classeurs-"><strong>Que contiennent les classeurs ?</strong></p>
+
+Le nombre de formules désigne des **nœuds exécutables**, pas nécessairement des cellules physiques. Les cellules de données contiennent une valeur sans formule, en-têtes inclus. La suite comprend neuf classeurs principaux et une variante de taille, et non dix familles de formules indépendantes.
+
+| Classeur | Nœuds de formule | Cellules de données / feuilles | Caractéristiques des formules |
+| --- | --- | --- | --- |
+| Un demi-million de formules | 500,001 | 1,000,047 / 2 | `SUM`, `AVERAGE`, `IF`, `XLOOKUP` ; nombreuses formules répétées. |
+| Charge de formules mixtes | 367,954 | 432,055 / 7 | `SUMIF`, `AVERAGEIFS` ; statistiques conditionnelles, dates et texte. |
+| Prévisions · grand modèle | 1,463,721 | 1,549,982 / 4 | 6 niveaux d’imbrication ; `INDEX`, `LARGE`, `OFFSET`, `MATCH` et tableaux. |
+| Grande analyse métier | 1,992,537 | 113,084 / 31 | 7 niveaux ; références entre feuilles, texte et formules de compatibilité. |
+| Ventes COUNTIFS | 349,630 | 299,573 / 2 | `IF`, `AND`, `COUNTIFS` ; plages de comptage croissantes à chaque ligne. |
+| Budget de projet multifeuilles | 68,576 | 101,378 / 54 | 54 feuilles ; budgets entre feuilles avec `VLOOKUP` et `INDIRECT`. |
+| Formules d’agrégation | 26,951 | 6,841 / 2 | `IFERROR`, `AVERAGE`, `SUM` ; agrégations à longues listes d’arguments. |
+| IF imbriqués et jours ouvrés | 118,821 | 338 / 1 | 10 niveaux de `IF` ; calcul de jours ouvrés avec `NETWORKDAYS`. |
+| Modèle de calcul CBAM | 52,739 | 13,738 / 19 | 6 niveaux ; recherches, statistiques conditionnelles, références dynamiques et matrices. |
+| Prévisions · petit modèle | 974,625 | 1,040,507 / 4 | Même famille de formules que le grand modèle prévisionnel, à plus petite échelle. |
+
+<p id="données-validation-et-reproduction"><strong>Données, validation et reproduction</strong></p>
+
+Le rapport vérifie le nombre de formules et un échantillon des résultats afin de contrôler la complétude du calcul testé. Cela n’établit pas l’égalité de tous les résultats entre produits.
+
+API de recalcul : [Excel CalculateFullRebuild](https://learn.microsoft.com/en-us/office/vba/api/excel.application.calculatefullrebuild) et [LibreOffice calculateAll](https://api.libreoffice.org/docs/idl/ref/interfacecom_1_1sun_1_1star_1_1sheet_1_1XCalculatable.html).
+
+</details>

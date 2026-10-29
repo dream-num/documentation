@@ -17,7 +17,7 @@ interface IResolvableSource<Page extends IResolvablePage> {
 export function createDocsRelativeLink<Page extends IResolvablePage>(source: IResolvableSource<Page>, page: Page) {
   function DocsLink({ href, children, className, ...props }: ComponentProps<'a'>) {
     const linkClassName = clsx(
-      'text-primary decoration-primary/30 hover:decoration-primary focus-visible:outline-ring font-medium underline underline-offset-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2',
+      'font-medium text-primary underline decoration-primary/30 underline-offset-4 transition-colors hover:decoration-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
       className,
     )
     if (typeof href !== 'string' || href.startsWith('#')) {
@@ -29,6 +29,14 @@ export function createDocsRelativeLink<Page extends IResolvablePage>(source: IRe
     }
 
     const resolvedHref = source.resolveHref(normalizeDocsHref(href), page)
+    if (resolvedHref.startsWith('/assets/')) {
+      return (
+        <a href={resolvedHref} className={linkClassName} {...props}>
+          {children}
+        </a>
+      )
+    }
+
     const external = /^(?:https?:)?\/\//.test(resolvedHref)
     const locale = routing.locales.find(
       (candidate) => resolvedHref === `/${candidate}` || resolvedHref.startsWith(`/${candidate}/`),

@@ -10,7 +10,7 @@ import {
   getAgentMarkdownPath,
 } from '@/lib/agent-docs/links'
 import { resolveGuideContentSlug } from '@/lib/guides/content-placements'
-import { withLocale } from '@/lib/locale-path'
+import { getContentLocale, withLocale } from '@/lib/locale-path'
 import { ai, guides, overview, reference, server } from '@/lib/source'
 import guidesMeta from '../../content/guides/meta.json'
 import packageJson from '../../package.json'
@@ -165,14 +165,6 @@ function resolveHref(collection: AgentDocsCollection, href: string, page: AgentD
     case 'reference':
       return reference.resolveHref(href, page as ReferencePage)
   }
-}
-
-function getContentLocale(path: string): Locale {
-  const withoutExtension = path.replace(/\.mdx?$/, '')
-  for (const locale of routing.locales) {
-    if (withoutExtension.endsWith(`.${locale}`)) return locale
-  }
-  return routing.defaultLocale
 }
 
 function getCollectionIndexPath(lang: Locale, collection: AgentDocsCollection) {

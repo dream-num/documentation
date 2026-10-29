@@ -2,7 +2,6 @@ import dayjs from 'dayjs'
 import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-
 import type { Locale } from '@/i18n/routing'
 import { DocsToc } from '@/components/docs-shell/toc'
 import { Footer } from '@/components/footer'
@@ -10,7 +9,7 @@ import { getGuidesMDXComponents } from '@/components/mdx/components'
 import { Button } from '@/components/ui/button'
 import { formatLocalDate } from '@/lib/dayjs'
 import { createDocsRelativeLink } from '@/lib/docs/links'
-import { withLocale } from '@/lib/locale-path'
+import { getContentLocale, stripLocalePrefix, withLocale } from '@/lib/locale-path'
 import { blog, getActiveBlogPage, getActiveBlogParams } from '@/lib/source'
 
 interface IProps {
@@ -19,6 +18,8 @@ interface IProps {
     lang: string
   }>
 }
+
+const BLOG_ORIGIN = 'https://docs.univer.ai'
 
 export function generateStaticParams(): { slug: string }[] {
   return getActiveBlogParams().map((page) => ({
@@ -33,9 +34,31 @@ export async function generateMetadata({ params }: IProps) {
     notFound()
   }
 
+  const contentLocale = getContentLocale(page.path)
+  const pageUrl = `${BLOG_ORIGIN}${withLocale(contentLocale, stripLocalePrefix(page.url))}`
+
   return {
     title: page.data.title,
     description: page.data.description,
+    alternates: {
+      canonical: pageUrl,
+      languages: Object.fromEntries(
+        blog.getLanguages().flatMap(({ language }) => {
+          const translation = getActiveBlogPage([slug], language)
+          return translation && getContentLocale(translation.path) === language
+            ? [[language, `${BLOG_ORIGIN}${withLocale(language, stripLocalePrefix(translation.url))}`]]
+            : []
+        }),
+      ),
+    },
+    openGraph: {
+      type: 'article',
+      title: page.data.title,
+      description: page.data.description,
+      url: pageUrl,
+      publishedTime: page.data.date,
+      authors: [page.data.author],
+    },
   }
 }
 
@@ -49,13 +72,34 @@ export default async function Page({ params }: IProps) {
 
   const { default: MDXContent, toc } = await page.data.load()
   const BlogLink = createDocsRelativeLink(blog, page)
+  const contentLocale = getContentLocale(page.path)
+  const pageUrl = `${BLOG_ORIGIN}${withLocale(contentLocale, stripLocalePrefix(page.url))}`
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: page.data.title,
+    description: page.data.description,
+    datePublished: page.data.date,
+    inLanguage: contentLocale,
+    url: pageUrl,
+    mainEntityOfPage: pageUrl,
+    author: {
+      '@type': page.data.author === 'Univer Engineering Team' ? 'Organization' : 'Person',
+      name: page.data.author,
+    },
+    publisher: { '@type': 'Organization', name: 'Univer', url: 'https://univer.ai' },
+  }
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, '\\u003c') }}
+      />
       <div className="container mx-auto px-4 py-12">
         <header>
           <h1 className="mb-2 text-3xl font-semibold text-neutral-800 dark:text-neutral-50">{page.data.title}</h1>
-          <p className="text-muted-foreground mb-4">{page.data.description}</p>
+          <p className="mb-4 text-muted-foreground">{page.data.description}</p>
         </header>
 
         <div className="grid gap-8 md:grid-cols-[1fr_auto]">

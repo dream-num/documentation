@@ -1,0 +1,110 @@
+---
+title: "Univer Rust formula engine: millions of formulas on the server"
+description: "Univer Rust formula engine benchmark: 10 workbooks, nearly 2 million formula nodes, Excel and LibreOffice comparisons, charts and XLSX downloads."
+author: Univer Engineering Team
+date: 2026-10-29
+---
+
+The Univer Rust formula engine provides server-side spreadsheet calculation for Univer Office SDK, powering batch processing, report generation and agent automation. As budgets, forecasts and business rules grow to hundreds of thousands or millions of formulas, calculation becomes an essential part of the application.
+
+We tested 10 workbooks covering repeated formulas, conditional statistics, cross-sheet budgets and forecast models. Three results illustrate the scale of work the engine can handle:
+
+- **Nearly 2 million formula nodes: 12.29 seconds** for native loading and full calculation.
+- **A project budget across 54 sheets: 1.27 seconds.**
+- **A sales COUNTIFS workload: 3.54 seconds.**
+
+## Performance across 10 workbooks [#results-at-a-glance]
+
+Rust timings include native snapshot loading and full calculation, excluding XLSX-to-snapshot conversion. Excel and LibreOffice timings include opening the source XLSX and full recalculation.
+
+![Univer Rust formula engine, Excel and LibreOffice: loading and calculation times across 10 workbooks](/assets/blog/rust-formula-performance/calculation-times.svg)
+
+Seconds; lower is faster. The chart uses a logarithmic scale.
+
+## Complete results and workbook downloads [#complete-timings-and-workbook-downloads]
+
+Click a workbook name to download its source XLSX and explore the workload.
+
+| Workbook | Univer Rust formula engine<br />Native load + calculation (s) | Excel<br />Open + full recalculation (s) | LibreOffice<br />Open + full recalculation (s) |
+| --- | --- | --- | --- |
+| [Half-million formulas](/assets/blog/rust-formula-performance/samples/Half_Million_Formulas.xlsx) | 3.54 | 2.39 | 18.74 |
+| [Mixed formula workload](/assets/blog/rust-formula-performance/samples/Mixed_Formula_Workload.xlsx) | 5.08 | 3.11 | 9.72 |
+| [Forecast model · large](/assets/blog/rust-formula-performance/samples/Forecast_Model_Large.xlsx) | 17.67 | 8.55 | 12.86 |
+| [Large business analysis](/assets/blog/rust-formula-performance/samples/Large_Business_Analysis.xlsx) | 12.29 | 10.80 | 8.99 |
+| [Sales COUNTIFS](/assets/blog/rust-formula-performance/samples/Sales_COUNTIFS.xlsx) | 3.54 | 19.47 | 320.01 |
+| [Multi-sheet project budget](/assets/blog/rust-formula-performance/samples/Multi_Sheet_Project_Budget.xlsx) | 1.27 | 0.73 | 2.96 |
+| [Aggregation formulas](/assets/blog/rust-formula-performance/samples/Aggregation_Formula_Control.xlsx) | 0.27 | 1.03 | 3.10 |
+| [Nested IF and workdays](/assets/blog/rust-formula-performance/samples/Nested_IF_Workdays.xlsx) | 1.65 | 3.48 | 2.21 |
+| [CBAM calculation model](/assets/blog/rust-formula-performance/samples/CBAM_Calculation_Model.xlsx) | 1.19 | 0.74 | 1.83 |
+| [Forecast model · small](/assets/blog/rust-formula-performance/samples/Forecast_Model_Small.xlsx) | 13.02 | 5.79 | 7.61 |
+
+## Different models, different strengths [#how-to-read-the-differences]
+
+In this set of workloads, the Univer Rust formula engine performs well on conditional counts, aggregation and workday calculations. The results also show that formula count alone does not determine processing time: range sizes, function combinations and dependencies matter.
+
+Excel and LibreOffice finish the forecast models sooner, leaving a clear direction for further optimization. Keeping every result visible helps developers judge the workloads that matter to their applications.
+
+## Bring calculation into your Office application [#from-calculated-results-to-application-responsiveness]
+
+The Univer Rust formula engine is part of the server-side calculation path in Office SDK. Applications can calculate a captured content revision, save the results in its snapshot, and let the frontend reuse valid values when opening the content. The frontend formula engine continues to respond to user edits.
+
+This gives developers a way to build background reports, batch processing and agent tasks around the same content runtime, with calculated results available for the next step of the workflow.
+
+Explore [Headless and server-side calculation](/overview/features/shared/server-calculation), or build your first application with the [Office SDK getting started guide](/overview/get-started).
+
+<details id="what-we-measured" className="my-8 rounded-lg border border-(--separator) p-4">
+<summary className="cursor-pointer font-medium">Test methods and workbook details</summary>
+
+The timed paths use different input formats: Rust loads preconverted native engine JSON; Excel and LibreOffice open XLSX, including document processing such as styles. The figures compare those specified processing paths. Application startup, offline conversion and validation after timing are excluded. No opening-time baseline is subtracted.
+
+Rust uses one warmup and five measured runs per workbook, each in a separate process with a new document. Rust results are medians.
+
+**Reference environment for Excel and LibreOffice:** Windows 11, Intel Core i7-13700H, about 32 GB RAM. Excel: 16.0 build 20527.0, 20 calculation threads; LibreOffice: 26.8.1.1, CPU multi-threaded calculation enabled, without OpenCL acceleration. The Rust rerun uses 20 threads.
+
+| Engine | Timed operation | Reported statistic |
+| --- | --- | --- |
+| Univer Rust formula engine | One continuous timer: read native snapshot file → deserialize JSON → `load_snapshot` → build dependencies → force all formulas → apply results. Offline XLSX conversion excluded. | 1 warmup + 5 measured runs per sample; median. Each run uses an independent process and a new document; 20 threads. |
+| Excel COM | Fresh `Workbooks.Open` through `CalculateFullRebuild()` return, including explicit dependency rebuilding and full recalculation. | 1 warmup + 5 measured runs per workbook; median. |
+| LibreOffice headless / UNO | Fresh XLSX open through `calculateAll()` return, including work performed during document opening. | 5-run median, except sales COUNTIFS, which is one successful diagnostic run. |
+
+<p id="rust-loading-and-calculation-stages"><strong>Rust loading and calculation stages</strong></p>
+
+Each stage has an independently calculated median, so the stage medians need not add up to the median continuous total.
+
+| Workbook | Native file read,<br />deserialization + load (s) | Dependencies, full calculation<br />+ result application (s) | Continuous<br />total (s) |
+| --- | --- | --- | --- |
+| Half-million formulas | 1.27 | 2.25 | 3.54 |
+| Mixed formula workload | 0.60 | 4.50 | 5.08 |
+| Forecast model · large | 3.65 | 13.94 | 17.67 |
+| Large business analysis | 2.65 | 9.46 | 12.29 |
+| Sales COUNTIFS | 0.61 | 2.97 | 3.54 |
+| Multi-sheet project budget | 0.39 | 0.88 | 1.27 |
+| Aggregation formulas | 0.09 | 0.18 | 0.27 |
+| Nested IF and workdays | 0.27 | 1.40 | 1.65 |
+| CBAM calculation model | 0.09 | 1.08 | 1.19 |
+| Forecast model · small | 2.40 | 10.20 | 13.02 |
+
+<p id="what-is-inside-each-workbook"><strong>What is inside each workbook?</strong></p>
+
+Formula counts are **executable formula nodes**, not necessarily physical formula cells. Data cells are non-formula cells containing values, including headers. The suite contains nine primary workbooks and one supplementary scale variant, rather than ten independent formula families.
+
+| Workbook | Formula nodes | Data cells / sheets | Formula characteristics |
+| --- | --- | --- | --- |
+| Half-million formulas | 500,001 | 1,000,047 / 2 | `SUM`, `AVERAGE`, `IF`, `XLOOKUP`; large numbers of repeated formulas. |
+| Mixed formula workload | 367,954 | 432,055 / 7 | `SUMIF`, `AVERAGEIFS`; conditional statistics mixed with dates and text. |
+| Forecast model · large | 1,463,721 | 1,549,982 / 4 | 6 nesting levels; `INDEX`, `LARGE`, `OFFSET`, `MATCH` and arrays. |
+| Large business analysis | 1,992,537 | 113,084 / 31 | 7 nesting levels; cross-sheet references, text processing and compatibility formulas. |
+| Sales COUNTIFS | 349,630 | 299,573 / 2 | `IF`, `AND`, `COUNTIFS`; conditional-count ranges that grow with each row. |
+| Multi-sheet project budget | 68,576 | 101,378 / 54 | 54 sheets; cross-sheet budgets using `VLOOKUP` and `INDIRECT`. |
+| Aggregation formulas | 26,951 | 6,841 / 2 | `IFERROR`, `AVERAGE`, `SUM`; aggregations with long argument lists. |
+| Nested IF and workdays | 118,821 | 338 / 1 | 10 nested `IF` levels; workday calculations using `NETWORKDAYS`. |
+| CBAM calculation model | 52,739 | 13,738 / 19 | 6 nesting levels; lookups, conditional statistics, dynamic references and matrices. |
+| Forecast model · small | 974,625 | 1,040,507 / 4 | The same formula family as the large forecast model, at a smaller scale. |
+
+<p id="data-validation-and-reproduction"><strong>Data, validation and reproduction</strong></p>
+
+The report checks formula counts and sampled values against reference results. This supports calculation completeness for the tested path, without establishing that every formula result is identical across products.
+
+Recalculation APIs: [Excel CalculateFullRebuild](https://learn.microsoft.com/en-us/office/vba/api/excel.application.calculatefullrebuild) and [LibreOffice calculateAll](https://api.libreoffice.org/docs/idl/ref/interfacecom_1_1sun_1_1star_1_1sheet_1_1XCalculatable.html).
+
+</details>

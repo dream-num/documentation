@@ -44,5 +44,5 @@ export default function proxy(request: NextRequest) {
 
 export const config = {
   // Keep MCP requests outside locale routing, alongside APIs and assets.
-  matcher: ['/((?!mcp(?:/|$)|api|universer-api|_next/static|_next/image|icon.svg|assets).*)'],
+  matcher: ['/((?!mcp(?:/|$)|api|universer-api|_next/static|_next/image|icon.svg|assets|sitemap.xml$|robots.txt$).*)'],
 }
