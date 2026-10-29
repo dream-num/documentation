@@ -1,0 +1,62 @@
+---
+title: Licence
+description: Collaboration SDK s’appuie sur la licence pour décider des connexions d’édition collaborative, des domaines autorisés, des nœuds de collaboration et des types de documents.
+---
+
+`UniverCollabService` charge la licence à sa construction, et les Endpoints et Worktrees la partagent. Voir [Licence](/server/license#collaboration-sdk) pour la configuration ; sans licence, il fonctionne en version gratuite. Si la licence échoue à la vérification, le constructeur lève une `CollabError` (`LICENSE_INVALID` ou `LICENSE_POLICY_INVALID`) et le service s’arrête au démarrage.
+
+## Ce que décide la licence [#limits]
+
+| Élément | Vérifié par | Au-delà de la limite |
+| --- | --- | --- |
+| Connexions d’édition collaborative | Endpoint, à la réception des soumissions | Les modifications des nouvelles connexions restent dans le navigateur et sont renvoyées |
+| Domaines autorisés | Endpoint, à la connexion et à la réception des soumissions | La session de collaboration du navigateur passe hors ligne |
+| Nœuds de collaboration | Endpoint | Les nœuds au-delà de la limite passent hors ligne après un délai de grâce |
+| Types de documents | Service, à la création des Units et à la réception des modifications | La création et les soumissions sont refusées ; les documents existants restent consultables |
+
+### Connexions d’édition collaborative [#editing-connections]
+
+Le quota compte les connexions qui modifient : une connexion de collaboration prend une place à sa première soumission réussie et la libère à sa fermeture ou 120 secondes après sa dernière soumission réussie. Les connexions qui ouvrent un document pour le consulter peuvent rejoindre à tout moment. Les modifications dans un Worktree partagent les mêmes places que le tronc.
+
+Quand toutes les places sont prises, les modifications d’une nouvelle connexion restent dans le navigateur et Web SDK les renvoie avec un délai croissant jusqu’à ce qu’une place se libère ; les connexions qui ont déjà une place continuent de modifier. Dans le navigateur, `CollaborationChangesetResend` signale ces renvois avec `reason: 'license_editing_connections_exceeded'`.
+
+### Domaines autorisés [#domains]
+
+Quand Web SDK ouvre une connexion de collaboration ou soumet des modifications, l’Endpoint compare le domaine de la page aux domaines autorisés de la licence. Un domaine hors de cette liste reçoit `403` ; la session de collaboration du navigateur passe hors ligne et affiche la raison, puis réessaie quand l’utilisateur se reconnecte ou ouvre un autre document.
+
+### Nœuds de collaboration [#nodes]
+
+**Licence mono-nœud** (y compris la version gratuite) : exécute un seul nœud de collaboration. Passer `pubSub` à l’Endpoint fait lever `LICENSE_POLICY_INVALID` par le constructeur.
+
+**Licence multi-nœuds** : fixe une limite de nœuds. Quand plus de nœuds s’exécutent que la limite, les plus récents entrent dans un délai de grâce avec des avertissements progressifs, puis passent hors ligne : les nouvelles connexions reçoivent `503` et les connexions existantes sont fermées. Les nœuds dans la limite continuent de servir. Si le nombre revient dans la limite pendant le délai de grâce, les nœuds en trop reviennent à la normale ; un nœud déjà hors ligne est recompté comme nouveau nœud après le redémarrage de son processus. Voir [Déploiement](/server/deployment#plusieurs-nœuds-de-collaboration) pour les configurations multi-nœuds.
+
+### Types de documents [#unit-types]
+
+La licence liste les types de documents ouverts à la collaboration. Créer une Unit d’un autre type lève `LICENSE_UNIT_TYPE_REJECTED` et les modifications soumises sont refusées ; dans le navigateur, `CollaborationConflict` indique `reason` `license_unit_type_rejected`. Les documents existants restent consultables.
+
+## Observer l’état [#observe]
+
+```ts
+// Service
+collabService.license.status // état de la licence : 'not_configured' | 'expired' | 'valid'
+collabService.license.editingConnectionsLimit // limite de connexions d’édition : number | null ; null signifie illimité
+collabService.license.nodesLimit // limite de nœuds : number | null ; null signifie illimité
+collabService.license.domains // domaines autorisés : string[]
+collabService.license.expiresAt // date d’expiration : chaîne ISO | null ; null sans licence configurée
+collabService.license.update({ license, licenseKey }) // remplace la licence ; lève une erreur et conserve l’actuelle si la vérification échoue
+
+// Endpoint
+endpoint.license.editingConnections.limit // limite de places : number | null ; null signifie illimité
+endpoint.license.editingConnections.used // places occupées : number | null ; null quand limit est illimité
+endpoint.license.editingConnections.remaining // places restantes : number | null ; null signifie illimité
+endpoint.license.editingConnections.has(memberID) // ce membre occupe-t-il une place : boolean ; false quand limit est illimité
+endpoint.license.nodes.limit // limite de nœuds : number | null ; null signifie illimité
+endpoint.license.nodes.status // état de ce nœud : 'normal' | 'exceeded' | 'exceeded-warning' | 'exceeded-offlineSoon' | 'exceeded-offline'
+
+// Événements
+endpoint.license.on('editingConnectionsChanged', ({ change, memberIDs, used, limit }) => {}) // des places ont été prises ou rendues : change vaut 'acquired' | 'released', used est la valeur après le changement ; non émis quand limit est illimité
+endpoint.license.on('editingConnectionsExceeded', ({ memberID, userID, unitID, used, limit }) => {}) // toutes les places sont prises et la soumission d’une nouvelle connexion n’a pas été enregistrée
+endpoint.license.on('nodesStatusChanged', ({ status, previousStatus, limit, reason }) => {}) // l’état de ce nœud a changé ; reason n’a de valeur qu’au passage hors ligne
+```
+
+`nodesStatusChanged` est émis une fois à chaque changement d’état de ce nœud. Quand `status` vaut `exceeded-offline`, le nœud n’accepte plus de connexions ; retirez-le du répartiteur de charge ou déclenchez une alerte.

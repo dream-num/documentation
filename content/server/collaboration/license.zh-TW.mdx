@@ -1,0 +1,62 @@
+---
+title: 授權
+description: Collaboration SDK 依授權決定協同編輯連線、授權網域、協同節點與可協同的文件類型。
+---
+
+`UniverCollabService` 在建構時載入授權，Endpoint 與 Worktree 共用這份授權。設定方式見[授權](/server/license#collaboration-sdk)，未設定時以免費版執行。授權驗證失敗時建構拋出 `CollabError`（`LICENSE_INVALID` 或 `LICENSE_POLICY_INVALID`），服務停在啟動階段。
+
+## 授權決定的四項 [#limits]
+
+| 項目 | 檢查位置 | 超出時 |
+| --- | --- | --- |
+| 協同編輯連線 | Endpoint 接收提交 | 新連線的修改留在瀏覽器並自動重試 |
+| 授權網域 | Endpoint 建立協同連線、接收提交 | 瀏覽器中的協同工作階段轉為離線 |
+| 協同節點 | Endpoint | 超出的節點經過寬限期後下線 |
+| 文件類型 | Service 建立 Unit、提交修改 | 建立與提交被拒絕，既有文件可繼續檢視 |
+
+### 協同編輯連線 [#editing-connections]
+
+名額依正在編輯的連線計算：一條協同連線成功提交後佔一個名額，連線關閉或最近一次成功提交滿 120 秒後釋放。開啟文件檢視的連線隨時可以加入。Worktree 內的編輯與主線共用同一個名額池。
+
+名額已滿時，新連線的修改暫存在瀏覽器，Web SDK 依退避間隔重試，有名額空出後儲存；已佔名額的連線照常編輯。瀏覽器端的 `CollaborationChangesetResend` 以 `reason: 'license_editing_connections_exceeded'` 回報這類重試。
+
+### 授權網域 [#domains]
+
+Web SDK 建立協同連線和提交修改時，Endpoint 依頁面網域核對授權的授權網域。頁面網域在授權範圍外時請求傳回 `403`，瀏覽器中的協同工作階段轉為離線並顯示原因；使用者手動重新連線或開啟其他文件時再次嘗試。
+
+### 協同節點 [#nodes]
+
+**單節點授權**（含免費版）：執行一個協同節點。為 Endpoint 傳入 `pubSub` 時建構拋出 `LICENSE_POLICY_INVALID`。
+
+**多節點授權**：授權規定節點數上限。執行的節點數超出上限時，最新加入的節點進入寬限期並逐級提醒，寬限期結束後下線：新連線傳回 `503`，既有連線中斷。上限以內的節點照常服務。寬限期內節點數回到上限以內時，超出的節點恢復正常；已下線的節點在程序重新啟動後作為新節點重新計數。多節點部署見[部署](/server/deployment#多協同節點)。
+
+### 文件類型 [#unit-types]
+
+授權列明可協同的文件類型。建立其他類型的 Unit 時拋出 `LICENSE_UNIT_TYPE_REJECTED`，提交的修改被拒絕，瀏覽器端 `CollaborationConflict` 的 `reason` 為 `license_unit_type_rejected`；既有文件可以繼續開啟檢視。
+
+## 觀察狀態 [#observe]
+
+```ts
+// Service
+collabService.license.status // 授權狀態：'not_configured' | 'expired' | 'valid'
+collabService.license.editingConnectionsLimit // 協同編輯連線上限：number | null，null 表示不限
+collabService.license.nodesLimit // 協同節點上限：number | null，null 表示不限
+collabService.license.domains // 授權網域：string[]
+collabService.license.expiresAt // 到期時間：ISO 字串 | null，未設定時為 null
+collabService.license.update({ license, licenseKey }) // 替換授權：驗證失敗時拋錯並保留目前授權
+
+// Endpoint
+endpoint.license.editingConnections.limit // 名額上限：number | null，null 表示不限
+endpoint.license.editingConnections.used // 已佔名額：number | null，limit 不限時為 null
+endpoint.license.editingConnections.remaining // 剩餘名額：number | null，null 表示不限
+endpoint.license.editingConnections.has(memberID) // 該成員是否佔有名額：boolean，limit 不限時為 false
+endpoint.license.nodes.limit // 節點上限：number | null，null 表示不限
+endpoint.license.nodes.status // 本節點狀態：'normal' | 'exceeded' | 'exceeded-warning' | 'exceeded-offlineSoon' | 'exceeded-offline'
+
+// 事件
+endpoint.license.on('editingConnectionsChanged', ({ change, memberIDs, used, limit }) => {}) // 名額被佔用或釋放時觸發：change 為 'acquired' | 'released'，used 為變化後的值，limit 不限時不觸發
+endpoint.license.on('editingConnectionsExceeded', ({ memberID, userID, unitID, used, limit }) => {}) // 名額已滿，新連線的提交未能儲存時觸發
+endpoint.license.on('nodesStatusChanged', ({ status, previousStatus, limit, reason }) => {}) // 本節點狀態變化時觸發，reason 僅在下線時有值
+```
+
+`nodesStatusChanged` 在本節點狀態每次變化時觸發一次；`status` 為 `exceeded-offline` 時本節點已停止接受連線，可據此從負載平衡中移除節點或發出警示。

@@ -1,42 +1,78 @@
 ---
 icon: KeyRound
 title: ライセンス
-description: Univer Office SDK のライセンスを取得し、ブラウザーアプリケーションに設定します。
+description: 1 つのライセンスを Web SDK、Collaboration SDK、Exchange で共用し、それぞれの実行場所で設定します。
 ---
 
-ライセンスが必要な機能については、[Univer のサイト](https://univer.ai)で利用できるプランを確認し、ライセンスを取得してください。プロジェクトで使用しているプリセットモードまたはプラグインモードで、**クライアントライセンスの内容**を設定します。
+[Univer のサイト](https://univer.ai)でライセンスの範囲を確認し、ライセンスを取得してください。ライセンスは 2 つのファイルで構成されます。`license.txt` はライセンスの内容、`licenseKey.txt` はサーバーが検証に使うキーです。
 
-## プラグインモード [#in-plugin-mode]
+| 実行場所 | 必要なファイル | 未設定の場合 |
+| --- | --- | --- |
+| [Web SDK](#web-sdk) | `license.txt` | 無料機能を利用 |
+| [Collaboration SDK](#collaboration-sdk) | `license.txt`、`licenseKey.txt` | 無料版：共同編集ノード 1 つ、共同編集接続 3 つ |
+| [Exchange](#exchange) | `license.txt`、`licenseKey.txt` | 無料版：毎月 10 回のエクスポート |
 
-既存の Univer インスタンスに、他のプラグインより先に `UniverLicensePlugin` を登録します。
+設定にはファイルの内容を指定します。ライセンスは利用できる機能を決めます。誰がドキュメントを閲覧・編集できるかは、アプリケーションの[認証と権限](/server/collaboration/identity-and-authorization)が決めます。
+
+## Web SDK [#web-sdk]
+
+### プラグインモード [#in-plugin-mode]
 
 ```ts
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 
 univer.registerPlugin(UniverLicensePlugin, {
-  license: 'YOUR_CLIENT_LICENSE',
+  license: 'YOUR_LICENSE', // license.txt の内容
 })
 ```
 
-## プリセットモード [#in-preset-mode]
+既存の Univer インスタンスに、他のプラグインより先に `UniverLicensePlugin` を登録します。
 
-既存のプリセット設定に `license` を追加します。`UniverSheetsAdvancedPreset` の例です。
+### プリセットモード [#in-preset-mode]
 
 ```ts
 UniverSheetsAdvancedPreset({
-  // Keep your other options and replace this placeholder with the client license content.
-  license: 'YOUR_CLIENT_LICENSE',
+  // 他の既存設定はそのまま残す
+  license: 'YOUR_LICENSE', // license.txt の内容
 })
 ```
 
-ライセンスファイルのパスではなく、ライセンスの内容を渡してください。
+既存のプリセット設定に `license` を追加します。上の例は `UniverSheetsAdvancedPreset` です。共同編集アプリケーションでもライセンスはブラウザー側で設定します。[共同編集クイックスタート](/server/collaboration/quick-start)のブラウザー例で、ライセンスプラグインと共同編集プラグインの登録位置を確認できます。
 
-## 共同編集アプリケーション
+## Collaboration SDK [#collaboration-sdk]
 
-共同編集アプリケーションでもライセンスはブラウザー側で設定します。[共同編集クイックスタート](/server/collaboration/quick-start)のブラウザー例では、共同編集プラグインとともにライセンスプラグインを登録する位置を示しています。ブラウザーとサーバーのパッケージを [SDK の動作環境とバージョン要件](/server/requirements)に従って統一してください。
+```ts
+import { UniverCollabService } from '@univerjs-pro/collaboration-service'
 
-ライセンスは利用可能な機能を決めます。誰がドキュメントを閲覧・編集できるかはアプリケーションの権限が決めます。ライセンス設定後、[サーバー統合](/server)に従ってログインとドキュメント権限を接続してください。
+const collabService = new UniverCollabService({
+  dbAdapter,
+  license: 'YOUR_LICENSE', // license.txt の内容
+  licenseKey: 'YOUR_LICENSE_KEY', // licenseKey.txt の内容
+})
+```
 
-## 設定の確認
+`license` と `licenseKey` を省略すると、`UniverCollabService` は環境変数 `UNIVER_LICENSE` と `UNIVER_LICENSE_KEY` を読み取ります。どちらにもない場合は無料版で動作します。ライセンスは共同編集接続数、承認済みドメイン、共同編集ノード数、共同編集できるドキュメントの種類を決めます。詳しくは [Collaboration SDK のライセンス](/server/collaboration/license)を参照してください。
 
-アプリケーションを開き直し、必要な機能を試します。透かしや制限が残る場合は、ライセンスの内容が完全で、有効期限内であり、対象の機能とリリースを含むことを確認してください。プラグインモードでは登録順序も確認します。解決しない場合はライセンス提供元にお問い合わせください。
+## Exchange [#exchange]
+
+```ts
+import { configureExchange } from '@univerjs-pro/exchange-node'
+
+await configureExchange({
+  license: 'YOUR_LICENSE', // license.txt の内容
+  licenseKey: 'YOUR_LICENSE_KEY', // licenseKey.txt の内容
+})
+```
+
+この手順は省略できます。Exchange は最初のエクスポートまたは割り当て照会の時点で環境変数 `UNIVER_LICENSE` と `UNIVER_LICENSE_KEY` を読み取り、環境変数も未設定なら無料版で動作します。Exchange はライセンスに基づいてエクスポート回数を数え、インポートは割り当てを消費しません。割り当ての照会とエラー処理は [Exchange のライセンス](/server/import-export/license)を参照してください。
+
+Collaboration SDK と Exchange が同じプロセスで動作する場合、環境変数は一度設定するだけで済みます。
+
+```bash
+export UNIVER_LICENSE="$(cat license.txt)"
+export UNIVER_LICENSE_KEY="$(cat licenseKey.txt)"
+```
+
+## 設定の確認 [#check]
+
+アプリケーションを開き直し、必要な機能を試します。透かしやライセンスの制限が残る場合は、ライセンスの内容が完全で、有効期限内であり、対象の機能とリリースを含むことを確認してください。プラグインモードでは、`UniverLicensePlugin` が他のプラグインより先に登録されていることも確認します。解決しない場合はライセンス提供元にお問い合わせください。

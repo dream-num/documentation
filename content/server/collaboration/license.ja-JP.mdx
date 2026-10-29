@@ -1,0 +1,62 @@
+---
+title: ライセンス
+description: Collaboration SDK はライセンスに基づいて、共同編集接続、承認済みドメイン、共同編集ノード、共同編集できるドキュメントの種類を決めます。
+---
+
+`UniverCollabService` は構築時にライセンスを読み込み、Endpoint と Worktree はこのライセンスを共用します。設定方法は[ライセンス](/server/license#collaboration-sdk)を参照してください。未設定の場合は無料版で動作します。ライセンスの検証に失敗すると、コンストラクターが `CollabError`（`LICENSE_INVALID` または `LICENSE_POLICY_INVALID`）をスローし、サービスは起動段階で停止します。
+
+## ライセンスが決める 4 項目 [#limits]
+
+| 項目 | 確認する場所 | 上限を超えた場合 |
+| --- | --- | --- |
+| 共同編集接続 | Endpoint が送信を受け取るとき | 新しい接続の変更はブラウザーに残り、自動で再試行される |
+| 承認済みドメイン | Endpoint が共同編集接続を確立するとき、送信を受け取るとき | ブラウザーの共同編集セッションがオフラインになる |
+| 共同編集ノード | Endpoint | 上限を超えたノードは猶予期間の後にオフラインになる |
+| ドキュメントの種類 | Service が Unit を作成するとき、変更を受け取るとき | 作成と送信が拒否され、既存のドキュメントは引き続き閲覧できる |
+
+### 共同編集接続 [#editing-connections]
+
+枠は編集中の接続に対して数えます。共同編集接続は最初の送信に成功した時点で枠を 1 つ使い、接続が閉じたとき、または最後の送信成功から 120 秒経過したときに解放します。ドキュメントを閲覧するための接続はいつでも参加できます。Worktree 内の編集もトランクと同じ枠を共用します。
+
+すべての枠が使用中の場合、新しい接続の変更はブラウザーに保持され、Web SDK がバックオフ間隔で再送し、枠が空いた時点で保存されます。すでに枠を持つ接続はそのまま編集を続けられます。ブラウザー側の `CollaborationChangesetResend` は、この再送を `reason: 'license_editing_connections_exceeded'` として通知します。
+
+### 承認済みドメイン [#domains]
+
+Web SDK が共同編集接続を確立するとき、および変更を送信するとき、Endpoint はページのドメインをライセンスの承認済みドメインと照合します。範囲外のドメインからのリクエストには `403` が返り、ブラウザーの共同編集セッションはオフラインになって理由を表示します。ユーザーが再接続するか、別のドキュメントを開くと再度試行します。
+
+### 共同編集ノード [#nodes]
+
+**シングルノードライセンス**（無料版を含む）：共同編集ノードを 1 つ実行します。Endpoint に `pubSub` を渡すと、コンストラクターが `LICENSE_POLICY_INVALID` をスローします。
+
+**マルチノードライセンス**：ノード数の上限を定めます。実行中のノード数が上限を超えると、最後に加わったノードから猶予期間に入り、段階的に警告が出たのちオフラインになります。オフラインになると新しい接続には `503` が返り、既存の接続は切断されます。上限内のノードは通常どおり動作します。猶予期間中にノード数が上限内に戻れば、超過していたノードは通常状態に戻ります。オフラインになったノードは、プロセスを再起動すると新しいノードとして数え直されます。マルチノード構成は[デプロイ](/server/deployment#複数の共同編集ノード)を参照してください。
+
+### ドキュメントの種類 [#unit-types]
+
+ライセンスには共同編集できるドキュメントの種類が記載されています。それ以外の種類の Unit を作成すると `LICENSE_UNIT_TYPE_REJECTED` がスローされ、送信された変更は拒否されます。ブラウザー側では `CollaborationConflict` の `reason` が `license_unit_type_rejected` になります。既存のドキュメントは引き続き開いて閲覧できます。
+
+## 状態の確認 [#observe]
+
+```ts
+// Service
+collabService.license.status // ライセンスの状態：'not_configured' | 'expired' | 'valid'
+collabService.license.editingConnectionsLimit // 共同編集接続の上限：number | null、null は無制限
+collabService.license.nodesLimit // 共同編集ノードの上限：number | null、null は無制限
+collabService.license.domains // 承認済みドメイン：string[]
+collabService.license.expiresAt // 有効期限：ISO 文字列 | null、未設定のときは null
+collabService.license.update({ license, licenseKey }) // ライセンスを置き換える：検証に失敗するとスローし、現在のライセンスを維持
+
+// Endpoint
+endpoint.license.editingConnections.limit // 枠の上限：number | null、null は無制限
+endpoint.license.editingConnections.used // 使用中の枠：number | null、limit が無制限のときは null
+endpoint.license.editingConnections.remaining // 残りの枠：number | null、null は無制限
+endpoint.license.editingConnections.has(memberID) // このメンバーが枠を持っているか：boolean、limit が無制限のときは false
+endpoint.license.nodes.limit // ノードの上限：number | null、null は無制限
+endpoint.license.nodes.status // このノードの状態：'normal' | 'exceeded' | 'exceeded-warning' | 'exceeded-offlineSoon' | 'exceeded-offline'
+
+// イベント
+endpoint.license.on('editingConnectionsChanged', ({ change, memberIDs, used, limit }) => {}) // 枠が使用または解放されたときに発生：change は 'acquired' | 'released'、used は変化後の値、limit が無制限のときは発生しない
+endpoint.license.on('editingConnectionsExceeded', ({ memberID, userID, unitID, used, limit }) => {}) // 枠が埋まっていて、新しい接続の送信が保存されなかったときに発生
+endpoint.license.on('nodesStatusChanged', ({ status, previousStatus, limit, reason }) => {}) // このノードの状態が変わったときに発生、reason はオフライン時のみ値を持つ
+```
+
+`nodesStatusChanged` はこのノードの状態が変わるたびに 1 回発生します。`status` が `exceeded-offline` のとき、このノードは接続の受け付けを停止しています。これを契機にロードバランサーからノードを外すか、アラートを出してください。
