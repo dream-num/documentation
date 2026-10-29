@@ -6,7 +6,11 @@ icon: ListFilter
 <MetaData
   lang="zh-TW"
   meta={{
-    preset: [],
+    preset: [{
+      client: '@univerjs/preset-sheets-advanced',
+      locale: '@univerjs/preset-sheets-advanced/locales/zh-TW',
+      style: '@univerjs/preset-sheets-advanced/lib/index.css',
+    }],
     plugins: [{
       client: '@univerjs-pro/sheets-slicer',
       facade: '@univerjs-pro/sheets-slicer/facade',
@@ -22,26 +26,65 @@ icon: ListFilter
 
 交叉分析篩選器可依來源資料成員篩選表格、樞紐分析表和樞紐分析圖。時間軸用於篩選受支援的樞紐分析表原始日期欄位，不支援表格欄、文字欄位、計算欄位和衍生分組欄位。
 
-## 外掛設定 [#plugin-mode]
+## 整合設定 [#plugin-mode]
 
-在現有的 [Sheets 設定](/guides/sheets/getting-started/installation)中加入以下內容，並設定[繪圖支援](/guides/sheets/features/images)以及[表格](/guides/sheets/features/table)或[樞紐分析表](/guides/sheets/features/pivot-table)資料來源。在建立活頁簿前載入語言套件並註冊這些外掛。
+<Tabs items={['外掛模式', '預設模式']}>
+  <Tab>
+    在現有的 [Sheets 設定](/guides/sheets/getting-started/installation)中加入以下內容，並設定[繪圖支援](/guides/sheets/features/images)以及[表格](/guides/sheets/features/table)或[樞紐分析表](/guides/sheets/features/pivot-table)資料來源。在建立活頁簿前載入語言套件並註冊這些外掛。
 
-```package-install
-npm install @univerjs-pro/sheets-slicer @univerjs-pro/sheets-slicer-ui
-```
+    ```package-install
+    npm install @univerjs-pro/sheets-slicer @univerjs-pro/sheets-slicer-ui
+    ```
 
-```ts
-import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer'
-import { UniverSheetsSlicerUIPlugin } from '@univerjs-pro/sheets-slicer-ui'
-import SheetsSlicerUILocale from '@univerjs-pro/sheets-slicer-ui/locale/zh-TW'
-import { LocaleType } from '@univerjs/core'
-import '@univerjs-pro/sheets-slicer/facade'
-import '@univerjs-pro/sheets-slicer-ui/lib/index.css'
+    ```ts
+    import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer'
+    import { UniverSheetsSlicerUIPlugin } from '@univerjs-pro/sheets-slicer-ui'
+    import SheetsSlicerUILocale from '@univerjs-pro/sheets-slicer-ui/locale/zh-TW'
+    import { LocaleType } from '@univerjs/core'
+    import '@univerjs-pro/sheets-slicer/facade'
+    import '@univerjs-pro/sheets-slicer-ui/lib/index.css'
 
-univerAPI.loadLocales(LocaleType.ZH_TW, SheetsSlicerUILocale)
-univer.registerPlugin(UniverSheetsSlicerPlugin)
-univer.registerPlugin(UniverSheetsSlicerUIPlugin)
-```
+    univerAPI.loadLocales(LocaleType.ZH_TW, SheetsSlicerUILocale)
+    univer.registerPlugin(UniverSheetsSlicerPlugin)
+    univer.registerPlugin(UniverSheetsSlicerUIPlugin)
+    ```
+  </Tab>
+  <Tab>
+    進階預設已包含交叉分析篩選器與時間軸的模型、UI 和 Facade API。請搭配核心與繪圖預設，並合併語言套件。若已使用進階預設，將 `slicer` 合併到原有設定，不要重複註冊。用戶端授權設定請見[使用授權](/server/license)。
+
+    ```package-install
+    npm install @univerjs/preset-sheets-core @univerjs/preset-sheets-drawing @univerjs/preset-sheets-advanced
+    ```
+
+    ```ts
+    import { LocaleType, mergeLocales } from '@univerjs/core'
+    import { UniverSheetsAdvancedPreset } from '@univerjs/preset-sheets-advanced'
+    import AdvancedLocale from '@univerjs/preset-sheets-advanced/locales/zh-TW'
+    import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+    import CoreLocale from '@univerjs/preset-sheets-core/locales/zh-TW'
+    import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing'
+    import DrawingLocale from '@univerjs/preset-sheets-drawing/locales/zh-TW'
+    import { createUniver } from '@univerjs/presets'
+    import '@univerjs/preset-sheets-core/lib/index.css'
+    import '@univerjs/preset-sheets-drawing/lib/index.css'
+    import '@univerjs/preset-sheets-advanced/lib/index.css'
+
+    const { univerAPI } = createUniver({
+      locale: LocaleType.ZH_TW,
+      locales: {
+        [LocaleType.ZH_TW]: mergeLocales(CoreLocale, DrawingLocale, AdvancedLocale),
+      },
+      presets: [
+        UniverSheetsCorePreset({ container: 'app' }),
+        UniverSheetsDrawingPreset(),
+        UniverSheetsAdvancedPreset({ slicer: { maxMemberWindowSize: 200 } }),
+      ],
+    })
+    ```
+  </Tab>
+</Tabs>
+
+使用 [Worker](/guides/sheets/getting-started/worker) 時，在進階預設設定 `useWorker: true`，並在 Worker 註冊 `UniverSheetsAdvancedWorkerPreset()`，其中也包含篩選器計算外掛。
 
 ## 建立交叉分析篩選器 [#create-slicer]
 
@@ -101,3 +144,18 @@ API 參考：
 - [FSheetTimeline](/reference/facade/sheet-timeline)
 - [FSheetTimelineBuilder](/reference/facade/sheet-timeline-builder)
 - [FEventName](/reference/facade/events#univerjs-prosheets-slicer)
+
+## 成員查詢與共用篩選 [#shared-filters]
+
+`setSelection()` 使用具型別的來源值：數字 `1`、字串 `'1'` 與空白是不同成員，不可傳入顯示標籤或清單索引。篩選會套用至相同快取的所有檢視與連接報表。表格來源會取代該欄的篩選並保留其他欄。呼叫 `clearFilter()` 可清除篩選。
+
+```ts
+import { FilterSelectionMode, RecordValueType } from '@univerjs/core'
+
+const accepted = await slicer.setSelection({
+  mode: FilterSelectionMode.Include,
+  values: [{ type: RecordValueType.String, value: 'EMEA' }],
+})
+```
+
+`getItems({ start, count })` 僅查詢一個視窗，不會讀取全部來源或改變選取狀態。預設查詢 100 項，上限由 `maxMemberWindowSize` 控制，預設為正整數 200。分頁時請保留視窗外的選取值。`setConnections()` 取代樞紐報表連接，可用 `getConnectionCandidates()` 查詢相容報表。編輯需要相應工作表權限，詳見 [FSheetSlicer](/reference/facade/sheet-slicer)。

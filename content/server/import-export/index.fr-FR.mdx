@@ -45,3 +45,31 @@ La configuration navigateur figure dans [Sheets](/guides/sheets/features/import-
 Importez un vrai fichier métier, modifiez-le, puis exportez-le. Ouvrez le résultat dans une application Office et vérifiez changements, formules, images et disposition. En collaboration, vérifiez aussi l’ouverture par d’autres utilisateurs et la conservation après redémarrage serveur.
 
 Avant déploiement, remplacez les fichiers temporaires et tâches en mémoire par du stockage applicatif, limitez les tailles et gérez échecs et délais de conversion. Téléversements, suivi des tâches et téléchargements nécessitent des contrôles d’accès ; consultez [Identité et autorisation](/server/collaboration/identity-and-authorization).
+
+## Échecs d’export et limites de licence [#export-errors]
+
+Un export peut échouer à l’envoi ou pendant le suivi de sa tâche. Une réponse HTTP réussie ne garantit pas le fichier : vérifiez `error.code` et l’état de la tâche. Le client Exchange transmet les erreurs serveur d’export via `IExchangeService.requestState$` ; une UI personnalisée peut s’y abonner avant l’opération.
+
+```ts
+import { IExchangeService } from '@univerjs-pro/exchange-client'
+import { ErrorCode } from '@univerjs/protocol'
+
+const exchange = univer.__getInjector().get(IExchangeService)
+const subscription = exchange.requestState$.subscribe(({ error }) => {
+  if (!error || error.code === ErrorCode.OK) return
+  console.error(error.code, error.message)
+})
+```
+
+| ErrorCode | Action |
+| --- | --- |
+| `LICENSE_EXPORT_SIZE_EXCEEDED` | Réduire le document ou utiliser une licence avec une limite d’export supérieure. |
+| `LICENSE_EXPORT_QUOTA_EXCEEDED` | Vérifier le quota restant et sa politique de réinitialisation. |
+| `LICENSE_CONCURRENCY_TIMEOUT` | Réessayer lorsque la capacité de conversion est disponible. |
+| `LICENSE_VERSION_NOT_ALLOWED` | Utiliser une version couverte par la licence serveur. |
+| `LICENSE_UNIT_TYPE_REJECTED` | Vérifier que la licence serveur couvre le type de document. |
+| `LICENSE_POLICY_INVALID`, `LICENSE_USAGE_STATE_INVALID`, `LICENSE_USAGE_STORAGE_ERROR` | Vérifier la configuration de licence, l’état d’utilisation et le stockage serveur. |
+
+Comparez les valeurs nommées `ErrorCode` de `@univerjs/protocol`, pas le texte traduit. Conservez le message serveur pour le diagnostic. Une panne réseau, une réponse de tâche invalide ou un délai dépassé peut produire une erreur générique ; cela ne prouve pas un rejet de licence. Appelez `subscription.unsubscribe()` lors du retrait de l’éditeur.
+
+Un backend ou proxy personnalisé doit conserver la réponse structurée et signaler les tâches échouées au lieu de les laisser en attente. Augmenter `maxTimeoutTime` prolonge uniquement le suivi, sans modifier quota ou couverture de licence.

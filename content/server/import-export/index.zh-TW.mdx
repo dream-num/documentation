@@ -45,3 +45,31 @@ description: 為 Univer 應用程式加入檔案匯入匯出，可搭配或不�
 匯入實際業務檔案，編輯後匯出，再以 Office 應用程式開啟，檢查修改、公式、圖片與版面。使用協同時，還要確認其他使用者能開啟相同文件，且伺服器重啟後內容仍保留。
 
 部署前，將範例的暫存檔與記憶體任務換成應用程式儲存，限制上傳大小，處理轉換失敗與逾時。上傳、任務查詢與下載皆須檢查存取權，請參閱[身分與授權](/server/collaboration/identity-and-authorization)。
+
+## 匯出失敗與授權限制 [#export-errors]
+
+匯出可能在提交請求或輪詢任務時失敗。HTTP 成功不代表檔案已產生，仍須檢查協定的 `error.code` 與任務狀態。Exchange 用戶端會透過 `IExchangeService.requestState$` 保留伺服器匯出錯誤；自訂介面可在操作前訂閱。
+
+```ts
+import { IExchangeService } from '@univerjs-pro/exchange-client'
+import { ErrorCode } from '@univerjs/protocol'
+
+const exchange = univer.__getInjector().get(IExchangeService)
+const subscription = exchange.requestState$.subscribe(({ error }) => {
+  if (!error || error.code === ErrorCode.OK) return
+  console.error(error.code, error.message)
+})
+```
+
+| ErrorCode | 處理方式 |
+| --- | --- |
+| `LICENSE_EXPORT_SIZE_EXCEEDED` | 縮小文件，或使用允許更大匯出尺寸的授權。 |
+| `LICENSE_EXPORT_QUOTA_EXCEEDED` | 檢查剩餘匯出額度與重設規則。 |
+| `LICENSE_CONCURRENCY_TIMEOUT` | 等待轉換容量恢復後重試。 |
+| `LICENSE_VERSION_NOT_ALLOWED` | 使用伺服器授權涵蓋的版本。 |
+| `LICENSE_UNIT_TYPE_REJECTED` | 確認伺服器授權涵蓋此文件類型。 |
+| `LICENSE_POLICY_INVALID`, `LICENSE_USAGE_STATE_INVALID`, `LICENSE_USAGE_STORAGE_ERROR` | 檢查伺服器授權設定、用量狀態與儲存。 |
+
+使用 `@univerjs/protocol` 的具名 `ErrorCode` 判斷，不要解析翻譯訊息。請保留伺服器訊息以供診斷。網路失敗、無效任務回應或輪詢逾時可能只回報一般錯誤，不代表授權遭拒。移除編輯器時呼叫 `subscription.unsubscribe()`。
+
+自訂後端或代理應保留結構化錯誤回應，並將失敗任務標為失敗，不要持續回傳 pending。增大 `maxTimeoutTime` 只延長輪詢時間，不會增加匯出額度或變更授權範圍。

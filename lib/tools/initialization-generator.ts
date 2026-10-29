@@ -147,7 +147,7 @@ export function resolvePlugins(options: IGeneratorOptions): string[] {
     roots.push('UniverCollaborationEmbedPlugin')
   const all = new Set<string>()
   const visit = (name: string) => {
-    if (options.mobile && name !== 'UniverDocsUIPlugin') name = plugins[name]?.mobile ?? name
+    if (options.mobile) name = plugins[name]?.mobile ?? name
     if (all.has(name)) return
     const item = plugins[name]
     if (!item) throw new Error(`Unknown plugin dependency: ${name}`)
@@ -165,7 +165,7 @@ export function resolvePlugins(options: IGeneratorOptions): string[] {
   const canonical = (name: string) => {
     if (name === 'UniverFormulaEnginePlugin' && all.has('UniverProFormulaEnginePlugin'))
       return 'UniverProFormulaEnginePlugin'
-    return options.mobile && name !== 'UniverDocsUIPlugin' ? (plugins[name]?.mobile ?? name) : name
+    return options.mobile ? (plugins[name]?.mobile ?? name) : name
   }
   const ordered: string[] = []
   const visited = new Set<string>()

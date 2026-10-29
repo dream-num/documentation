@@ -35,7 +35,6 @@ import {
   WrapStrategy,
 } from '@univerjs/core'
 
-const WORKBOOK_ID = 'univer-sheets-feature-lab'
 const FEATURE_SHEET_ID = 'feature-tour'
 const FORMULA_SHEET_ID = 'formula-lab'
 const PRACTICE_SHEET_ID = 'practice-data'
@@ -491,8 +490,6 @@ const workbookResources = [
               endRow: 14,
               endColumn: 2,
               rangeType: 0,
-              unitId: WORKBOOK_ID,
-              sheetId: FEATURE_SHEET_ID,
             },
           ],
         },
@@ -508,8 +505,6 @@ const workbookResources = [
               endRow: 14,
               endColumn: 9,
               rangeType: 0,
-              unitId: WORKBOOK_ID,
-              sheetId: FEATURE_SHEET_ID,
             },
           ],
         },
@@ -527,8 +522,6 @@ const workbookResources = [
               endRow: 10,
               endColumn: 6,
               rangeType: 0,
-              unitId: WORKBOOK_ID,
-              sheetId: FORMULA_SHEET_ID,
             },
           ],
         },
@@ -538,7 +531,7 @@ const workbookResources = [
 ]
 
 export const workbookData = {
-  id: WORKBOOK_ID,
+  // Each demo mount needs a new workbook ID to keep formula caches isolated.
   name: 'Univer Sheets · Feature lab',
   locale: LocaleType.EN_US,
   sheetOrder: [FEATURE_SHEET_ID, FORMULA_SHEET_ID, PRACTICE_SHEET_ID],

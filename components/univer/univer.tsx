@@ -90,14 +90,11 @@ import UIEnUS from '@univerjs/ui/locale/en-US'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTheme } from 'next-themes'
 import { useCallback, useEffect, useRef, useState } from 'react'
-
 import Spinner from '@/components/animata/spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { clsx } from '@/lib/clsx'
-
 import { modernDocumentData, traditionalDocumentData, workbookData } from './data'
 import { homeSlideData } from './slides-data'
-
 import '@univerjs/design/lib/index.css'
 import '@univerjs/ui/lib/index.css'
 import '@univerjs/docs-ui/lib/index.css'
@@ -119,7 +116,6 @@ import '@univerjs-pro/slides-table-ui/lib/index.css'
 import '@univerjs-pro/bases-ui/lib/index.css'
 import '@univerjs-pro/boards-ui/lib/index.css'
 import '@univerjs-pro/pdfs-ui/lib/index.css'
-
 import '@univerjs-pro/bases/facade'
 import '@univerjs-pro/bases-ui/facade'
 import '@univerjs-pro/boards/facade'
@@ -1474,7 +1470,7 @@ export default function UniverDemo({ tablistLabel }: IUniverProps) {
       univer.registerPlugin(UniverSheetsFilterUIPlugin)
       univer.registerPlugin(UniverSheetsSortUIPlugin)
       univer.registerPlugin(UniverSheetsTableUIPlugin)
-      univer.createUnit(UniverInstanceType.UNIVER_SHEET, workbookData)
+      univer.createUnit(UniverInstanceType.UNIVER_SHEET, structuredClone(workbookData))
     } else if (type === 'slides') {
       univer.registerPlugin(UniverSlidesPlugin)
       univer.registerPlugin(UniverSlidesUIPlugin)
@@ -1645,7 +1641,7 @@ export default function UniverDemo({ tablistLabel }: IUniverProps) {
         id="univer-product-demo"
         aria-labelledby={`univer-tab-${type}`}
         aria-busy={!steady}
-        className="border-border bg-card relative mx-auto h-160 w-7xl max-w-full flex-none overflow-hidden overscroll-contain rounded-lg border sm:h-200 dark:border-white/10 dark:shadow-[0_12px_36px_#00000026]"
+        className="relative mx-auto h-160 w-7xl max-w-full flex-none overflow-hidden overscroll-contain rounded-lg border border-border bg-card sm:h-200 dark:border-white/10 dark:shadow-[0_12px_36px_#00000026]"
       >
         {/* Mask / Loading */}
         <AnimatePresence>

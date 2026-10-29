@@ -45,3 +45,31 @@ Univer에서 Excel을 열려면 먼저 편집기가 읽을 수 있는 데이터�
 실제 업무 파일을 가져와 편집하고 내보내세요. Office 애플리케이션에서 결과를 열어 변경 사항, 수식, 이미지, 레이아웃을 확인하세요. 공동 편집에서는 다른 사용자도 같은 문서를 열 수 있고 서버 재시작 후 내용이 유지되는지 확인하세요.
 
 배포 전에 예제의 임시 파일과 메모리 작업을 애플리케이션 저장소로 교체하고 업로드 크기를 제한하며 변환 실패와 시간 초과를 처리하세요. 업로드, 작업 조회, 다운로드에는 접근 검사가 필요합니다. [신원 및 권한 부여](/server/collaboration/identity-and-authorization)를 참고하세요.
+
+## 내보내기 실패와 라이선스 제한 [#export-errors]
+
+내보내기는 요청 제출이나 작업 폴링 중 실패할 수 있습니다. HTTP 성공만으로 파일 생성 완료를 판단하지 말고 프로토콜 `error.code`와 작업 상태를 확인하세요. Exchange 클라이언트는 `IExchangeService.requestState$`로 서버의 내보내기 오류를 전달하므로 사용자 UI에서 작업 전에 구독할 수 있습니다.
+
+```ts
+import { IExchangeService } from '@univerjs-pro/exchange-client'
+import { ErrorCode } from '@univerjs/protocol'
+
+const exchange = univer.__getInjector().get(IExchangeService)
+const subscription = exchange.requestState$.subscribe(({ error }) => {
+  if (!error || error.code === ErrorCode.OK) return
+  console.error(error.code, error.message)
+})
+```
+
+| ErrorCode | 처리 방법 |
+| --- | --- |
+| `LICENSE_EXPORT_SIZE_EXCEEDED` | 문서를 줄이거나 더 큰 내보내기 제한을 허용하는 라이선스를 사용하세요. |
+| `LICENSE_EXPORT_QUOTA_EXCEEDED` | 남은 내보내기 할당량과 초기화 규칙을 확인하세요. |
+| `LICENSE_CONCURRENCY_TIMEOUT` | 변환 용량이 확보된 뒤 다시 시도하세요. |
+| `LICENSE_VERSION_NOT_ALLOWED` | 서버 라이선스가 지원하는 버전을 사용하세요. |
+| `LICENSE_UNIT_TYPE_REJECTED` | 서버 라이선스가 문서 유형을 지원하는지 확인하세요. |
+| `LICENSE_POLICY_INVALID`, `LICENSE_USAGE_STATE_INVALID`, `LICENSE_USAGE_STORAGE_ERROR` | 서버 라이선스 설정, 사용량 상태, 저장소를 점검하세요. |
+
+번역된 메시지를 파싱하지 말고 `@univerjs/protocol`의 명명된 `ErrorCode`를 비교하세요. 서버 메시지는 진단용으로 보관하세요. 네트워크 오류, 잘못된 응답, 폴링 시간 초과는 일반 오류일 수 있으므로 라이선스 거부로 단정하지 마세요. 편집기를 제거할 때 `subscription.unsubscribe()`로 구독을 해제하세요.
+
+사용자 정의 백엔드나 프록시는 구조화된 오류 응답을 보존하고 실패 작업을 계속 pending으로 두지 않아야 합니다. `maxTimeoutTime`을 늘려도 폴링 시간만 늘어날 뿐 할당량이나 라이선스 범위는 바뀌지 않습니다.

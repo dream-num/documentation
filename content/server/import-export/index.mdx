@@ -46,3 +46,31 @@ See [Sheets](/guides/sheets/features/import-export), [Docs](/guides/docs/feature
 Import a real application file, edit it, and export it. Open the result in an Office application and check the edits, formulas, images, and layout. With collaboration, also check that other users can open the same document and that its content survives a server restart.
 
 Before deployment, replace the example's temporary files and in-memory tasks with application storage, limit upload sizes, and handle conversion failures and timeouts. Uploads, task queries, and downloads need access checks; see [identity and authorization](/server/collaboration/identity-and-authorization).
+
+## Export failures and license limits [#export-errors]
+
+An export can fail when submitted or while polling its task. An HTTP success alone does not mean the file is ready: inspect the protocol `error.code` and the task state. The exchange client preserves server export errors in `IExchangeService.requestState$`; a custom export UI can subscribe before starting the operation.
+
+```ts
+import { IExchangeService } from '@univerjs-pro/exchange-client'
+import { ErrorCode } from '@univerjs/protocol'
+
+const exchange = univer.__getInjector().get(IExchangeService)
+const subscription = exchange.requestState$.subscribe(({ error }) => {
+  if (!error || error.code === ErrorCode.OK) return
+  console.error(error.code, error.message)
+})
+```
+
+| ErrorCode | Action |
+| --- | --- |
+| `LICENSE_EXPORT_SIZE_EXCEEDED` | Reduce the document or obtain a license with a larger export limit. |
+| `LICENSE_EXPORT_QUOTA_EXCEEDED` | Check the remaining export quota and its reset policy. |
+| `LICENSE_CONCURRENCY_TIMEOUT` | Retry later when conversion capacity is available. |
+| `LICENSE_VERSION_NOT_ALLOWED` | Use a version covered by the server license. |
+| `LICENSE_UNIT_TYPE_REJECTED` | Check whether the server license covers the document type. |
+| `LICENSE_POLICY_INVALID`, `LICENSE_USAGE_STATE_INVALID`, `LICENSE_USAGE_STORAGE_ERROR` | Inspect server license configuration, usage state, and storage. |
+
+Compare named `ErrorCode` values from `@univerjs/protocol`, not translated message text. Retain the server’s message for diagnostics. Network failures, malformed task responses, and polling timeouts may instead report a generic failure; they do not prove a license rejection. Dispose the subscription with `subscription.unsubscribe()` when removing the editor.
+
+For a custom backend or proxy, preserve the structured error response and report a failed task instead of leaving it pending. Increasing `maxTimeoutTime` only extends task polling; it does not increase export quota or change license coverage.

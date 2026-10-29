@@ -6,7 +6,11 @@ icon: ListFilter
 <MetaData
   lang="ru-RU"
   meta={{
-    preset: [],
+    preset: [{
+      client: '@univerjs/preset-sheets-advanced',
+      locale: '@univerjs/preset-sheets-advanced/locales/ru-RU',
+      style: '@univerjs/preset-sheets-advanced/lib/index.css',
+    }],
     plugins: [{
       client: '@univerjs-pro/sheets-slicer',
       facade: '@univerjs-pro/sheets-slicer/facade',
@@ -22,26 +26,65 @@ icon: ListFilter
 
 Срезы фильтруют таблицы, сводные таблицы и сводные диаграммы по элементам источника. Временные шкалы фильтруют поддерживаемые исходные поля дат сводного отчёта; столбцы таблиц, текстовые, вычисляемые и производные поля группировки не поддерживаются.
 
-## Настройка плагинов [#plugin-mode]
+## Подключение [#plugin-mode]
 
-Добавьте следующий код в существующую [настройку Sheets](/guides/sheets/getting-started/installation), настроив [рисование](/guides/sheets/features/images) и источник в виде [таблицы](/guides/sheets/features/table) или [сводной таблицы](/guides/sheets/features/pivot-table). Загрузите локализацию и зарегистрируйте плагины до создания книги.
+<Tabs items={['Плагины', 'Пресеты']}>
+  <Tab>
+    Добавьте следующий код в существующую [настройку Sheets](/guides/sheets/getting-started/installation), настроив [рисование](/guides/sheets/features/images) и источник в виде [таблицы](/guides/sheets/features/table) или [сводной таблицы](/guides/sheets/features/pivot-table). Загрузите локализацию и зарегистрируйте плагины до создания книги.
 
-```package-install
-npm install @univerjs-pro/sheets-slicer @univerjs-pro/sheets-slicer-ui
-```
+    ```package-install
+    npm install @univerjs-pro/sheets-slicer @univerjs-pro/sheets-slicer-ui
+    ```
 
-```ts
-import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer'
-import { UniverSheetsSlicerUIPlugin } from '@univerjs-pro/sheets-slicer-ui'
-import SheetsSlicerUILocale from '@univerjs-pro/sheets-slicer-ui/locale/ru-RU'
-import { LocaleType } from '@univerjs/core'
-import '@univerjs-pro/sheets-slicer/facade'
-import '@univerjs-pro/sheets-slicer-ui/lib/index.css'
+    ```ts
+    import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer'
+    import { UniverSheetsSlicerUIPlugin } from '@univerjs-pro/sheets-slicer-ui'
+    import SheetsSlicerUILocale from '@univerjs-pro/sheets-slicer-ui/locale/ru-RU'
+    import { LocaleType } from '@univerjs/core'
+    import '@univerjs-pro/sheets-slicer/facade'
+    import '@univerjs-pro/sheets-slicer-ui/lib/index.css'
 
-univerAPI.loadLocales(LocaleType.RU_RU, SheetsSlicerUILocale)
-univer.registerPlugin(UniverSheetsSlicerPlugin)
-univer.registerPlugin(UniverSheetsSlicerUIPlugin)
-```
+    univerAPI.loadLocales(LocaleType.RU_RU, SheetsSlicerUILocale)
+    univer.registerPlugin(UniverSheetsSlicerPlugin)
+    univer.registerPlugin(UniverSheetsSlicerUIPlugin)
+    ```
+  </Tab>
+  <Tab>
+    Пресет Advanced включает модели, UI и Facade API срезов и временных шкал. Используйте его вместе с Core и Drawing и объедините переводы. Если Advanced уже подключён, добавьте `slicer` в его конфигурацию без повторной регистрации. Лицензия настраивается по [руководству](/server/license).
+
+    ```package-install
+    npm install @univerjs/preset-sheets-core @univerjs/preset-sheets-drawing @univerjs/preset-sheets-advanced
+    ```
+
+    ```ts
+    import { LocaleType, mergeLocales } from '@univerjs/core'
+    import { UniverSheetsAdvancedPreset } from '@univerjs/preset-sheets-advanced'
+    import AdvancedLocale from '@univerjs/preset-sheets-advanced/locales/ru-RU'
+    import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+    import CoreLocale from '@univerjs/preset-sheets-core/locales/ru-RU'
+    import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing'
+    import DrawingLocale from '@univerjs/preset-sheets-drawing/locales/ru-RU'
+    import { createUniver } from '@univerjs/presets'
+    import '@univerjs/preset-sheets-core/lib/index.css'
+    import '@univerjs/preset-sheets-drawing/lib/index.css'
+    import '@univerjs/preset-sheets-advanced/lib/index.css'
+
+    const { univerAPI } = createUniver({
+      locale: LocaleType.RU_RU,
+      locales: {
+        [LocaleType.RU_RU]: mergeLocales(CoreLocale, DrawingLocale, AdvancedLocale),
+      },
+      presets: [
+        UniverSheetsCorePreset({ container: 'app' }),
+        UniverSheetsDrawingPreset(),
+        UniverSheetsAdvancedPreset({ slicer: { maxMemberWindowSize: 200 } }),
+      ],
+    })
+    ```
+  </Tab>
+</Tabs>
+
+При использовании [Worker](/guides/sheets/getting-started/worker) задайте `useWorker: true` у Advanced и зарегистрируйте `UniverSheetsAdvancedWorkerPreset()` в Worker. Он включает и расчёт срезов.
 
 ## Создание среза [#create-slicer]
 
@@ -101,3 +144,18 @@ const timeline = await fWorksheet.insertTimeline(
 - [FSheetTimeline](/reference/facade/sheet-timeline)
 - [FSheetTimelineBuilder](/reference/facade/sheet-timeline-builder)
 - [FEventName](/reference/facade/events#univerjs-prosheets-slicer)
+
+## Запрос элементов и общие фильтры [#shared-filters]
+
+`setSelection()` принимает типизированные значения источника: число `1`, строка `'1'` и пустое значение различаются. Не передавайте подписи или индексы списка. Фильтр общий для всех представлений одного кэша и связанных отчётов. Для Table он заменяет фильтр данного столбца, сохраняя остальные. `clearFilter()` снимает фильтр.
+
+```ts
+import { FilterSelectionMode, RecordValueType } from '@univerjs/core'
+
+const accepted = await slicer.setSelection({
+  mode: FilterSelectionMode.Include,
+  values: [{ type: RecordValueType.String, value: 'EMEA' }],
+})
+```
+
+`getItems({ start, count })` запрашивает окно данных, не меняя выбор. По умолчанию запрашивается 100 элементов, предел задаёт положительное целое `maxMemberWindowSize` (по умолчанию 200). Сохраняйте выбор за пределами окна. `setConnections()` заменяет связи со сводными отчётами; `getConnectionCandidates()` возвращает совместимые отчёты. Изменения требуют прав на соответствующие листы. См. [FSheetSlicer](/reference/facade/sheet-slicer).

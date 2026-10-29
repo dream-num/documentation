@@ -45,3 +45,31 @@ Excel を Univer で開くには、エディターが読めるデータへ変換
 実際の業務ファイルを取り込み、編集して出力します。Office アプリケーションで開き、変更、数式、画像、レイアウトを確認してください。共同編集では他のユーザーも同じドキュメントを開けることと、サーバー再起動後の保持も検証します。
 
 配置前にサンプルの一時ファイルとメモリ上のタスクをアプリケーションのストレージに置き換え、容量制限、変換失敗、タイムアウトを処理してください。アップロード、タスク照会、ダウンロードにはアクセス検証が必要です。[ID と認可](/server/collaboration/identity-and-authorization)を参照してください。
+
+## エクスポート失敗とライセンス制限 [#export-errors]
+
+エクスポートは要求送信時にもタスクのポーリング中にも失敗します。HTTP 成功だけでは完了を判断できません。プロトコルの `error.code` とタスク状態を確認してください。Exchange クライアントは `IExchangeService.requestState$` でサーバーのエクスポートエラーを伝えるため、独自 UI は操作前に購読できます。
+
+```ts
+import { IExchangeService } from '@univerjs-pro/exchange-client'
+import { ErrorCode } from '@univerjs/protocol'
+
+const exchange = univer.__getInjector().get(IExchangeService)
+const subscription = exchange.requestState$.subscribe(({ error }) => {
+  if (!error || error.code === ErrorCode.OK) return
+  console.error(error.code, error.message)
+})
+```
+
+| ErrorCode | 対処 |
+| --- | --- |
+| `LICENSE_EXPORT_SIZE_EXCEEDED` | 文書を小さくするか、エクスポート上限の大きいライセンスを使います。 |
+| `LICENSE_EXPORT_QUOTA_EXCEEDED` | 残りのエクスポート枠とリセット規則を確認します。 |
+| `LICENSE_CONCURRENCY_TIMEOUT` | 変換処理に空きができてから再試行します。 |
+| `LICENSE_VERSION_NOT_ALLOWED` | サーバーライセンスが対象とするバージョンを使います。 |
+| `LICENSE_UNIT_TYPE_REJECTED` | サーバーライセンスが文書形式を許可しているか確認します。 |
+| `LICENSE_POLICY_INVALID`, `LICENSE_USAGE_STATE_INVALID`, `LICENSE_USAGE_STORAGE_ERROR` | サーバーのライセンス設定、使用量情報、ストレージを確認します。 |
+
+翻訳済みメッセージを解析せず、`@univerjs/protocol` の `ErrorCode` 名で判定し、診断用にサーバーメッセージを保持してください。通信失敗、不正なタスク応答、ポーリングのタイムアウトは汎用エラーになる場合があり、ライセンス拒否とは限りません。エディターを削除するときは `subscription.unsubscribe()` で購読を解除します。
+
+独自のバックエンドやプロキシでは構造化エラーを保持し、失敗したタスクを pending のままにしないでください。`maxTimeoutTime` を増やしてもポーリング時間が延びるだけで、エクスポート枠や許可範囲は変わりません。

@@ -6,7 +6,11 @@ icon: ListFilter
 <MetaData
   lang="fr-FR"
   meta={{
-    preset: [],
+    preset: [{
+      client: '@univerjs/preset-sheets-advanced',
+      locale: '@univerjs/preset-sheets-advanced/locales/fr-FR',
+      style: '@univerjs/preset-sheets-advanced/lib/index.css',
+    }],
     plugins: [{
       client: '@univerjs-pro/sheets-slicer',
       facade: '@univerjs-pro/sheets-slicer/facade',
@@ -22,26 +26,65 @@ icon: ListFilter
 
 Les segments filtrent les tableaux, tableaux croisés dynamiques et graphiques croisés dynamiques selon les membres de la source. Les chronologies filtrent les champs de date d’origine compatibles des rapports croisés ; elles ne prennent pas en charge les colonnes de tableaux, les champs texte, les champs calculés ni les champs de regroupement dérivés.
 
-## Configurer les plugins [#plugin-mode]
+## Intégration [#plugin-mode]
 
-Ajoutez les éléments suivants à votre [configuration Sheets](/guides/sheets/getting-started/installation), avec le [dessin](/guides/sheets/features/images) et la source de [tableau](/guides/sheets/features/table) ou de [tableau croisé dynamique](/guides/sheets/features/pivot-table) configurés. Chargez la langue et enregistrez les plugins avant de créer le classeur.
+<Tabs items={['Plugins', 'Presets']}>
+  <Tab>
+    Ajoutez les éléments suivants à votre [configuration Sheets](/guides/sheets/getting-started/installation), avec le [dessin](/guides/sheets/features/images) et la source de [tableau](/guides/sheets/features/table) ou de [tableau croisé dynamique](/guides/sheets/features/pivot-table) configurés. Chargez la langue et enregistrez les plugins avant de créer le classeur.
 
-```package-install
-npm install @univerjs-pro/sheets-slicer @univerjs-pro/sheets-slicer-ui
-```
+    ```package-install
+    npm install @univerjs-pro/sheets-slicer @univerjs-pro/sheets-slicer-ui
+    ```
 
-```ts
-import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer'
-import { UniverSheetsSlicerUIPlugin } from '@univerjs-pro/sheets-slicer-ui'
-import SheetsSlicerUILocale from '@univerjs-pro/sheets-slicer-ui/locale/fr-FR'
-import { LocaleType } from '@univerjs/core'
-import '@univerjs-pro/sheets-slicer/facade'
-import '@univerjs-pro/sheets-slicer-ui/lib/index.css'
+    ```ts
+    import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer'
+    import { UniverSheetsSlicerUIPlugin } from '@univerjs-pro/sheets-slicer-ui'
+    import SheetsSlicerUILocale from '@univerjs-pro/sheets-slicer-ui/locale/fr-FR'
+    import { LocaleType } from '@univerjs/core'
+    import '@univerjs-pro/sheets-slicer/facade'
+    import '@univerjs-pro/sheets-slicer-ui/lib/index.css'
 
-univerAPI.loadLocales(LocaleType.FR_FR, SheetsSlicerUILocale)
-univer.registerPlugin(UniverSheetsSlicerPlugin)
-univer.registerPlugin(UniverSheetsSlicerUIPlugin)
-```
+    univerAPI.loadLocales(LocaleType.FR_FR, SheetsSlicerUILocale)
+    univer.registerPlugin(UniverSheetsSlicerPlugin)
+    univer.registerPlugin(UniverSheetsSlicerUIPlugin)
+    ```
+  </Tab>
+  <Tab>
+    Le preset avancé inclut les modèles, l’UI et les API Facade des segments et chronologies. Associez-le aux presets Core et Drawing, avec leurs traductions. S’il est déjà enregistré, ajoutez `slicer` à sa configuration sans le dupliquer. Configurez la licence selon [utiliser une licence](/server/license).
+
+    ```package-install
+    npm install @univerjs/preset-sheets-core @univerjs/preset-sheets-drawing @univerjs/preset-sheets-advanced
+    ```
+
+    ```ts
+    import { LocaleType, mergeLocales } from '@univerjs/core'
+    import { UniverSheetsAdvancedPreset } from '@univerjs/preset-sheets-advanced'
+    import AdvancedLocale from '@univerjs/preset-sheets-advanced/locales/fr-FR'
+    import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+    import CoreLocale from '@univerjs/preset-sheets-core/locales/fr-FR'
+    import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing'
+    import DrawingLocale from '@univerjs/preset-sheets-drawing/locales/fr-FR'
+    import { createUniver } from '@univerjs/presets'
+    import '@univerjs/preset-sheets-core/lib/index.css'
+    import '@univerjs/preset-sheets-drawing/lib/index.css'
+    import '@univerjs/preset-sheets-advanced/lib/index.css'
+
+    const { univerAPI } = createUniver({
+      locale: LocaleType.FR_FR,
+      locales: {
+        [LocaleType.FR_FR]: mergeLocales(CoreLocale, DrawingLocale, AdvancedLocale),
+      },
+      presets: [
+        UniverSheetsCorePreset({ container: 'app' }),
+        UniverSheetsDrawingPreset(),
+        UniverSheetsAdvancedPreset({ slicer: { maxMemberWindowSize: 200 } }),
+      ],
+    })
+    ```
+  </Tab>
+</Tabs>
+
+Avec un [Worker](/guides/sheets/getting-started/worker), définissez `useWorker: true` sur le preset avancé et enregistrez `UniverSheetsAdvancedWorkerPreset()` dans le Worker ; il inclut aussi le calcul des segments.
 
 ## Créer un segment [#create-slicer]
 
@@ -101,3 +144,18 @@ Référence API :
 - [FSheetTimeline](/reference/facade/sheet-timeline)
 - [FSheetTimelineBuilder](/reference/facade/sheet-timeline-builder)
 - [FEventName](/reference/facade/events#univerjs-prosheets-slicer)
+
+## Requêtes de membres et filtres partagés [#shared-filters]
+
+Passez des valeurs sources typées à `setSelection()` : le nombre `1`, la chaîne `'1'` et une cellule vide sont distincts. N’utilisez ni libellés ni indices visibles. Le filtre est partagé par toutes les vues du même cache et les rapports connectés. Pour une Table, il remplace le filtre de cette colonne et conserve les autres. `clearFilter()` le supprime.
+
+```ts
+import { FilterSelectionMode, RecordValueType } from '@univerjs/core'
+
+const accepted = await slicer.setSelection({
+  mode: FilterSelectionMode.Include,
+  values: [{ type: RecordValueType.String, value: 'EMEA' }],
+})
+```
+
+`getItems({ start, count })` lit une fenêtre, sans modifier la sélection. La requête porte sur 100 membres par défaut, plafonnés par `maxMemberWindowSize` (entier positif, 200 par défaut). Conservez les sélections hors fenêtre. `setConnections()` remplace les connexions aux rapports croisés ; `getConnectionCandidates()` fournit les candidats compatibles. Les modifications nécessitent les permissions des feuilles concernées. Voir [FSheetSlicer](/reference/facade/sheet-slicer).

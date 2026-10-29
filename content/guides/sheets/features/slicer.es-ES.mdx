@@ -6,7 +6,11 @@ icon: ListFilter
 <MetaData
   lang="es-ES"
   meta={{
-    preset: [],
+    preset: [{
+      client: '@univerjs/preset-sheets-advanced',
+      locale: '@univerjs/preset-sheets-advanced/locales/es-ES',
+      style: '@univerjs/preset-sheets-advanced/lib/index.css',
+    }],
     plugins: [{
       client: '@univerjs-pro/sheets-slicer',
       facade: '@univerjs-pro/sheets-slicer/facade',
@@ -22,26 +26,65 @@ icon: ListFilter
 
 Las segmentaciones filtran tablas, tablas dinámicas y gráficos dinámicos por miembros del origen. Las líneas de tiempo filtran campos de fecha originales compatibles de un informe dinámico; no admiten columnas de tablas, campos de texto, campos calculados ni campos de agrupación derivados.
 
-## Configurar los complementos [#plugin-mode]
+## Integración [#plugin-mode]
 
-Añada lo siguiente a la [configuración de Sheets](/guides/sheets/getting-started/installation), con el [soporte de dibujo](/guides/sheets/features/images) y el origen de [tabla](/guides/sheets/features/table) o [tabla dinámica](/guides/sheets/features/pivot-table) configurados. Cargue el idioma y registre los complementos antes de crear el libro.
+<Tabs items={['Plugins', 'Presets']}>
+  <Tab>
+    Añada lo siguiente a la [configuración de Sheets](/guides/sheets/getting-started/installation), con el [soporte de dibujo](/guides/sheets/features/images) y el origen de [tabla](/guides/sheets/features/table) o [tabla dinámica](/guides/sheets/features/pivot-table) configurados. Cargue el idioma y registre los complementos antes de crear el libro.
 
-```package-install
-npm install @univerjs-pro/sheets-slicer @univerjs-pro/sheets-slicer-ui
-```
+    ```package-install
+    npm install @univerjs-pro/sheets-slicer @univerjs-pro/sheets-slicer-ui
+    ```
 
-```ts
-import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer'
-import { UniverSheetsSlicerUIPlugin } from '@univerjs-pro/sheets-slicer-ui'
-import SheetsSlicerUILocale from '@univerjs-pro/sheets-slicer-ui/locale/es-ES'
-import { LocaleType } from '@univerjs/core'
-import '@univerjs-pro/sheets-slicer/facade'
-import '@univerjs-pro/sheets-slicer-ui/lib/index.css'
+    ```ts
+    import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer'
+    import { UniverSheetsSlicerUIPlugin } from '@univerjs-pro/sheets-slicer-ui'
+    import SheetsSlicerUILocale from '@univerjs-pro/sheets-slicer-ui/locale/es-ES'
+    import { LocaleType } from '@univerjs/core'
+    import '@univerjs-pro/sheets-slicer/facade'
+    import '@univerjs-pro/sheets-slicer-ui/lib/index.css'
 
-univerAPI.loadLocales(LocaleType.ES_ES, SheetsSlicerUILocale)
-univer.registerPlugin(UniverSheetsSlicerPlugin)
-univer.registerPlugin(UniverSheetsSlicerUIPlugin)
-```
+    univerAPI.loadLocales(LocaleType.ES_ES, SheetsSlicerUILocale)
+    univer.registerPlugin(UniverSheetsSlicerPlugin)
+    univer.registerPlugin(UniverSheetsSlicerUIPlugin)
+    ```
+  </Tab>
+  <Tab>
+    El preset avanzado incluye modelos, UI y API Facade de segmentadores y líneas de tiempo. Combínelo con los presets Core y Drawing y sus traducciones. Si ya lo usa, añada `slicer` a esa configuración sin registrarlo de nuevo. Configure la licencia según [usar una licencia](/server/license).
+
+    ```package-install
+    npm install @univerjs/preset-sheets-core @univerjs/preset-sheets-drawing @univerjs/preset-sheets-advanced
+    ```
+
+    ```ts
+    import { LocaleType, mergeLocales } from '@univerjs/core'
+    import { UniverSheetsAdvancedPreset } from '@univerjs/preset-sheets-advanced'
+    import AdvancedLocale from '@univerjs/preset-sheets-advanced/locales/es-ES'
+    import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+    import CoreLocale from '@univerjs/preset-sheets-core/locales/es-ES'
+    import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing'
+    import DrawingLocale from '@univerjs/preset-sheets-drawing/locales/es-ES'
+    import { createUniver } from '@univerjs/presets'
+    import '@univerjs/preset-sheets-core/lib/index.css'
+    import '@univerjs/preset-sheets-drawing/lib/index.css'
+    import '@univerjs/preset-sheets-advanced/lib/index.css'
+
+    const { univerAPI } = createUniver({
+      locale: LocaleType.ES_ES,
+      locales: {
+        [LocaleType.ES_ES]: mergeLocales(CoreLocale, DrawingLocale, AdvancedLocale),
+      },
+      presets: [
+        UniverSheetsCorePreset({ container: 'app' }),
+        UniverSheetsDrawingPreset(),
+        UniverSheetsAdvancedPreset({ slicer: { maxMemberWindowSize: 200 } }),
+      ],
+    })
+    ```
+  </Tab>
+</Tabs>
+
+Con un [Worker](/guides/sheets/getting-started/worker), configure `useWorker: true` en el preset avanzado y registre `UniverSheetsAdvancedWorkerPreset()` en el Worker; también incluye el cálculo de segmentadores.
 
 ## Crear una segmentación [#create-slicer]
 
@@ -101,3 +144,18 @@ Referencia de API:
 - [FSheetTimeline](/reference/facade/sheet-timeline)
 - [FSheetTimelineBuilder](/reference/facade/sheet-timeline-builder)
 - [FEventName](/reference/facade/events#univerjs-prosheets-slicer)
+
+## Consultar miembros y compartir filtros [#shared-filters]
+
+Pase valores de origen tipados a `setSelection()`: el número `1`, la cadena `'1'` y un valor en blanco son distintos. No pase etiquetas ni índices visibles. El filtro se comparte entre todas las vistas de la misma caché y los informes conectados. En una Table sustituye el filtro de esa columna y conserva los demás. Use `clearFilter()` para quitarlo.
+
+```ts
+import { FilterSelectionMode, RecordValueType } from '@univerjs/core'
+
+const accepted = await slicer.setSelection({
+  mode: FilterSelectionMode.Include,
+  values: [{ type: RecordValueType.String, value: 'EMEA' }],
+})
+```
+
+`getItems({ start, count })` consulta una ventana sin cambiar la selección. Solicita 100 miembros de forma predeterminada, limitados por `maxMemberWindowSize` (entero positivo, 200 por defecto). Conserve las selecciones fuera de la ventana. `setConnections()` sustituye las conexiones de informes dinámicos; `getConnectionCandidates()` obtiene candidatos compatibles. La edición necesita permisos en las hojas correspondientes. Véase [FSheetSlicer](/reference/facade/sheet-slicer).

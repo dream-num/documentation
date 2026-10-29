@@ -46,3 +46,31 @@ description: 为 Univer 应用接入文件导入和导出，并按是否需要�
 用一份实际业务文件走完“导入 → 修改 → 导出”，再用办公软件打开结果，确认修改、公式、图片和布局符合需要。协同场景还要确认其他用户能打开同一份文档，并且服务重启后内容仍然存在。
 
 上线前，将示例中的临时文件和内存任务存储换成业务使用的存储方式，限制上传大小，并处理转换失败和超时。上传、任务查询和下载都需要检查用户权限，权限接入可参考[身份与权限](/server/collaboration/identity-and-authorization)。
+
+## 导出失败与许可证限制 [#export-errors]
+
+导出可能在提交请求时失败，也可能在任务轮询时失败。HTTP 请求成功不代表文件已生成，还需检查协议中的 `error.code` 和任务状态。Exchange 客户端会通过 `IExchangeService.requestState$` 保留服务端导出错误；自定义导出界面可在发起操作前订阅。
+
+```ts
+import { IExchangeService } from '@univerjs-pro/exchange-client'
+import { ErrorCode } from '@univerjs/protocol'
+
+const exchange = univer.__getInjector().get(IExchangeService)
+const subscription = exchange.requestState$.subscribe(({ error }) => {
+  if (!error || error.code === ErrorCode.OK) return
+  console.error(error.code, error.message)
+})
+```
+
+| ErrorCode | 处理方式 |
+| --- | --- |
+| `LICENSE_EXPORT_SIZE_EXCEEDED` | 减小文档，或使用允许更大导出尺寸的许可证。 |
+| `LICENSE_EXPORT_QUOTA_EXCEEDED` | 检查剩余导出额度及其重置规则。 |
+| `LICENSE_CONCURRENCY_TIMEOUT` | 等待转换容量恢复后重试。 |
+| `LICENSE_VERSION_NOT_ALLOWED` | 使用服务端许可证覆盖的版本。 |
+| `LICENSE_UNIT_TYPE_REJECTED` | 检查服务端许可证是否覆盖该文档类型。 |
+| `LICENSE_POLICY_INVALID`, `LICENSE_USAGE_STATE_INVALID`, `LICENSE_USAGE_STORAGE_ERROR` | 检查服务端许可证配置、用量状态及存储。 |
+
+通过 `@univerjs/protocol` 中具名的 `ErrorCode` 判断错误，不要解析翻译后的提示文字。保留服务端消息用于诊断。网络失败、无效任务响应和轮询超时可能只报告通用错误，不能据此认定许可证被拒绝。移除编辑器时调用 `subscription.unsubscribe()` 释放订阅。
+
+自定义后端或代理应保留结构化错误响应，并将失败任务标为失败，而不是一直返回 pending。增大 `maxTimeoutTime` 只延长任务轮询时间，不会增加导出额度或改变授权范围。

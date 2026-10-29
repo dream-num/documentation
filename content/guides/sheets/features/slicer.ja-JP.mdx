@@ -6,7 +6,11 @@ icon: ListFilter
 <MetaData
   lang="ja-JP"
   meta={{
-    preset: [],
+    preset: [{
+      client: '@univerjs/preset-sheets-advanced',
+      locale: '@univerjs/preset-sheets-advanced/locales/ja-JP',
+      style: '@univerjs/preset-sheets-advanced/lib/index.css',
+    }],
     plugins: [{
       client: '@univerjs-pro/sheets-slicer',
       facade: '@univerjs-pro/sheets-slicer/facade',
@@ -22,26 +26,65 @@ icon: ListFilter
 
 スライサーはソースのメンバーでテーブル、ピボットテーブル、ピボットグラフを絞り込みます。タイムラインは対応するピボットの元の日付フィールドを絞り込みます。テーブル列、テキスト、計算フィールド、派生グループフィールドはタイムラインのソースにできません。
 
-## プラグインの設定 [#plugin-mode]
+## 導入設定 [#plugin-mode]
 
-既存の [Sheets 設定](/guides/sheets/getting-started/installation)に以下を追加し、[描画機能](/guides/sheets/features/images)と、ソースとなる[テーブル](/guides/sheets/features/table)または[ピボットテーブル](/guides/sheets/features/pivot-table)を設定します。ワークブックを作成する前に言語パックを読み込み、プラグインを登録してください。
+<Tabs items={['プラグイン', 'プリセット']}>
+  <Tab>
+    既存の [Sheets 設定](/guides/sheets/getting-started/installation)に以下を追加し、[描画機能](/guides/sheets/features/images)と、ソースとなる[テーブル](/guides/sheets/features/table)または[ピボットテーブル](/guides/sheets/features/pivot-table)を設定します。ワークブックを作成する前に言語パックを読み込み、プラグインを登録してください。
 
-```package-install
-npm install @univerjs-pro/sheets-slicer @univerjs-pro/sheets-slicer-ui
-```
+    ```package-install
+    npm install @univerjs-pro/sheets-slicer @univerjs-pro/sheets-slicer-ui
+    ```
 
-```ts
-import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer'
-import { UniverSheetsSlicerUIPlugin } from '@univerjs-pro/sheets-slicer-ui'
-import SheetsSlicerUILocale from '@univerjs-pro/sheets-slicer-ui/locale/ja-JP'
-import { LocaleType } from '@univerjs/core'
-import '@univerjs-pro/sheets-slicer/facade'
-import '@univerjs-pro/sheets-slicer-ui/lib/index.css'
+    ```ts
+    import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer'
+    import { UniverSheetsSlicerUIPlugin } from '@univerjs-pro/sheets-slicer-ui'
+    import SheetsSlicerUILocale from '@univerjs-pro/sheets-slicer-ui/locale/ja-JP'
+    import { LocaleType } from '@univerjs/core'
+    import '@univerjs-pro/sheets-slicer/facade'
+    import '@univerjs-pro/sheets-slicer-ui/lib/index.css'
 
-univerAPI.loadLocales(LocaleType.JA_JP, SheetsSlicerUILocale)
-univer.registerPlugin(UniverSheetsSlicerPlugin)
-univer.registerPlugin(UniverSheetsSlicerUIPlugin)
-```
+    univerAPI.loadLocales(LocaleType.JA_JP, SheetsSlicerUILocale)
+    univer.registerPlugin(UniverSheetsSlicerPlugin)
+    univer.registerPlugin(UniverSheetsSlicerUIPlugin)
+    ```
+  </Tab>
+  <Tab>
+    Advanced プリセットにはスライサーとタイムラインのモデル、UI、Facade API が含まれます。Core と Drawing プリセットを組み合わせ、ロケールも統合してください。既に Advanced を使用している場合は再登録せず、既存設定に `slicer` を追加します。ライセンスは[ライセンス設定](/server/license)を参照してください。
+
+    ```package-install
+    npm install @univerjs/preset-sheets-core @univerjs/preset-sheets-drawing @univerjs/preset-sheets-advanced
+    ```
+
+    ```ts
+    import { LocaleType, mergeLocales } from '@univerjs/core'
+    import { UniverSheetsAdvancedPreset } from '@univerjs/preset-sheets-advanced'
+    import AdvancedLocale from '@univerjs/preset-sheets-advanced/locales/ja-JP'
+    import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'
+    import CoreLocale from '@univerjs/preset-sheets-core/locales/ja-JP'
+    import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing'
+    import DrawingLocale from '@univerjs/preset-sheets-drawing/locales/ja-JP'
+    import { createUniver } from '@univerjs/presets'
+    import '@univerjs/preset-sheets-core/lib/index.css'
+    import '@univerjs/preset-sheets-drawing/lib/index.css'
+    import '@univerjs/preset-sheets-advanced/lib/index.css'
+
+    const { univerAPI } = createUniver({
+      locale: LocaleType.JA_JP,
+      locales: {
+        [LocaleType.JA_JP]: mergeLocales(CoreLocale, DrawingLocale, AdvancedLocale),
+      },
+      presets: [
+        UniverSheetsCorePreset({ container: 'app' }),
+        UniverSheetsDrawingPreset(),
+        UniverSheetsAdvancedPreset({ slicer: { maxMemberWindowSize: 200 } }),
+      ],
+    })
+    ```
+  </Tab>
+</Tabs>
+
+[Worker](/guides/sheets/getting-started/worker) 使用時は Advanced に `useWorker: true` を設定し、Worker 内で `UniverSheetsAdvancedWorkerPreset()` を登録します。スライサーの計算プラグインも含まれます。
 
 ## スライサーを作成する [#create-slicer]
 
@@ -101,3 +144,18 @@ API リファレンス：
 - [FSheetTimeline](/reference/facade/sheet-timeline)
 - [FSheetTimelineBuilder](/reference/facade/sheet-timeline-builder)
 - [FEventName](/reference/facade/events#univerjs-prosheets-slicer)
+
+## メンバーの取得と共有フィルター [#shared-filters]
+
+`setSelection()` には型付きの元データを渡します。数値 `1`、文字列 `'1'`、空白は別のメンバーです。表示ラベルや一覧のインデックスは渡せません。フィルターは同じキャッシュの全ビューと接続先レポートで共有されます。Table ソースでは対象列のフィルターを置き換え、他の列は維持します。解除には `clearFilter()` を使います。
+
+```ts
+import { FilterSelectionMode, RecordValueType } from '@univerjs/core'
+
+const accepted = await slicer.setSelection({
+  mode: FilterSelectionMode.Include,
+  values: [{ type: RecordValueType.String, value: 'EMEA' }],
+})
+```
+
+`getItems({ start, count })` は一部分だけを取得し、選択を変更しません。既定で 100 件、上限は正の整数の `maxMemberWindowSize`（既定値 200）です。ページ外の選択も保持してください。`setConnections()` はピボットレポートの接続を置き換えます。`getConnectionCandidates()` で互換性のある候補を取得できます。編集には対象シートの権限が必要です。[FSheetSlicer](/reference/facade/sheet-slicer)を参照してください。
