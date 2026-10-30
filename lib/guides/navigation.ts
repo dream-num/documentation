@@ -179,7 +179,10 @@ export function getGuideProductItems(items: IGuideNavItem[]): IGuideNavItem[] {
   return (
     web?.children.filter((item) => {
       const href = getGuideNavItemHref(item)
-      return item.type === 'folder' && /\/guides\/(sheets|docs|slides|boards|bases|pdfs|icons)(?:\/|$)/.test(href ?? '')
+      return (
+        item.type === 'folder' &&
+        /\/guides\/(sheets|docs|slides|boards|bases|pdfs|icons|skills)(?:\/|$)/.test(href ?? '')
+      )
     }) ?? []
   )
 }
