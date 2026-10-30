@@ -66,74 +66,21 @@ onBeforeUnmount(() => {
 </template>
 ```
 
-## Vue 2.x
+## Vue 2.x [#vue-2x]
 
-### 整合前須知
+現有 Vue 2 應用可使用本節。範例驗證環境為 Vue **2.7.16**、Vite **6.3.6**、`@vitejs/plugin-vue2` **2.3.3** 與 Univer **1.3.0**。新專案建議使用 Vue 3。
 
-- 使用 pnpm 安裝 `@univerjs/presets` 時，可能會出現需要手動安裝 react 與 react-dom 的情況。
-- 如果在開發環境遇到 ResizeObserver loop limit exceeded 警告，可忽略，或參考下面的程式碼片段解決：
+從空專案體驗時，解壓縮[最小專案](/assets/examples/vue2/univer-vue2-starter.zip)，執行 `npm install` 與 `npm run dev`，開啟終端顯示的網址。範例介面為英文。現有專案依下列步驟整合。
 
-```typescript
-if (process.env.NODE_ENV === 'development') {
-  const _ResizeObserver = window.ResizeObserver
-  function debounce(fn, delay) {
-    let timer = null
-    return function () {
-      if (timer) {
-        clearTimeout(timer)
-      }
-      timer = setTimeout(() => {
-        fn.apply(this, arguments)
-      }, delay)
-    }
-  }
-  window.ResizeObserver = class ResizeObserver extends _ResizeObserver {
-    constructor(callback) {
-      callback = debounce(callback, 50)
-      super(callback)
-    }
-  }
-}
+### 安裝一致的相依套件
+
+```bash
+npm install @univerjs/presets@1.3.0 @univerjs/preset-sheets-core@1.3.0 react@18.3.1 react-dom@18.3.1 rxjs@7.8.2
 ```
 
-- 如果使用 Vue CLI 3.x/4.x (基於 Webpack 4.x) 作為構建工具，你需要手動將映射的路徑修改為實際的路徑：
+### 將元件加入頁面
 
-```javascript
-// vue.config.js
-const path = require('node:path')
-
-module.exports = {
-  transpileDependencies: ['@wendellhu/redi'],
-  configureWebpack: {
-    resolve: {
-      alias: {
-        '@univerjs/core/facade': path.resolve(__dirname, 'node_modules/@univerjs/core/lib/facade.js'),
-        '@univerjs/engine-formula/facade': path.resolve(__dirname, 'node_modules/@univerjs/engine-formula/lib/facade.js'),
-        '@univerjs/preset-sheets-core/lib/index.css': path.resolve(__dirname, 'node_modules/@univerjs/preset-sheets-core/lib/index.css'),
-        '@univerjs/preset-sheets-core/locales/zh-TW': path.resolve(__dirname, 'node_modules/@univerjs/preset-sheets-core/lib/es/locales/zh-TW.js'),
-        '@univerjs/design/locale/zh-TW': path.resolve(__dirname, 'node_modules/@univerjs/design/lib/es/locale/zh-TW.js'),
-        '@univerjs/docs-ui/locale/zh-TW': path.resolve(__dirname, 'node_modules/@univerjs/docs-ui/lib/es/locale/zh-TW.js'),
-        '@univerjs/sheets-formula-ui/locale/zh-TW': path.resolve(__dirname, 'node_modules/@univerjs/sheets-formula-ui/lib/es/locale/zh-TW.js'),
-        '@univerjs/sheets-formula/locale/zh-TW': path.resolve(__dirname, 'node_modules/@univerjs/sheets-formula/lib/es/locale/zh-TW.js'),
-        '@univerjs/sheets-numfmt-ui/locale/zh-TW': path.resolve(__dirname, 'node_modules/@univerjs/sheets-numfmt-ui/lib/es/locale/zh-TW.js'),
-        '@univerjs/sheets-ui/locale/zh-TW': path.resolve(__dirname, 'node_modules/@univerjs/sheets-ui/lib/es/locale/zh-TW.js'),
-        '@univerjs/sheets/facade': path.resolve(__dirname, 'node_modules/@univerjs/sheets/lib/facade.js'),
-        '@univerjs/sheets/locale/zh-TW': path.resolve(__dirname, 'node_modules/@univerjs/sheets/lib/es/locale/zh-TW.js'),
-        '@univerjs/ui/locale/zh-TW': path.resolve(__dirname, 'node_modules/@univerjs/ui/lib/es/locale/zh-TW.js'),
-        '@wendellhu/redi/react-bindings': path.resolve(__dirname, 'node_modules/@wendellhu/redi/dist/esm/react-bindings/index.js'),
-        // ...
-      },
-    },
-  },
-}
-```
-
-### 整合步驟
-
-1. 在 `mounted` 鉤子中初始化 Univer
-2. 在 `beforeDestroy` 鉤子中銷毀 Univer
-
-### 範例程式碼
+不要將 Univer 實例與 Facade 物件放入響應式 `data`。在容器存在後的 `mounted` 建立，在 `beforeDestroy` 呼叫 `univer.dispose()`；不要再透過 Facade 重複銷毀相同實例。
 
 ```vue
 <script>
@@ -159,13 +106,20 @@ export default {
       ],
     })
 
-    univerAPI.createWorkbook({})
-
     this.univerInstance = univer
+    this.univerAPI = univerAPI
+
+    const workbook = univerAPI.createWorkbook({})
+    workbook.getActiveSheet().getRange('A1:D3').setValues([
+      ['Item', 'Quantity', 'Unit price', 'Total'],
+      ['Notebook', 3, 12, '=B2*C2'],
+      ['Pen', 5, 2, '=B3*C3'],
+    ])
   },
   beforeDestroy() {
     this.univerInstance?.dispose()
     this.univerInstance = null
+    this.univerAPI = null
   },
 }
 </script>
@@ -174,3 +128,21 @@ export default {
   <div ref="container" style="height: 600px" />
 </template>
 ```
+
+### 驗證執行結果
+
+第一列金額應為 **36**。將數量從 **3** 改為 **4**，確認更新為 **48**；再移除並重新掛載元件，檢查編輯器能正常銷毀與重建。
+
+### 初始化失敗時
+
+遇到 `setConfig` 錯誤時，先對照最小專案並以下列命令檢查相依樹。保持一套相同版本的 Univer 套件，以及相容的 React / ReactDOM。不能僅憑堆疊判斷 Vue 2 不受支援。
+
+```bash
+npm ls @univerjs/core @univerjs/ui @univerjs/presets @univerjs/preset-sheets-core react react-dom
+```
+
+若只有編輯區空白，請檢查容器高度與預設 CSS。儲存實例時不要使其成為響應式物件。
+
+### Webpack 4 / Vue CLI 3–4
+
+最小專案使用 Vite 與套件匯出機制，建置成功不代表已驗證 Webpack 4。舊工具無法解析 Facade 或語言包匯出時，建議先升級；不完整的 alias 清單可能掩蓋缺失或重複模組。
