@@ -9,8 +9,8 @@ const legacyGuidePaths = new Map([
   ['guides/pro', '/server/license'],
   ['guides/sheets/getting-started/pro', '/server/license'],
   ['guides/pro/server', '/server/deployment'],
-  ['guides/skills', '/overview/get-started#agent-skills'],
-  ['guides/skills/installation', '/overview/get-started#agent-skills'],
+  ['guides/skills', '/guides/sheets/getting-started/installation#agent-skills'],
+  ['guides/skills/installation', '/guides/sheets/getting-started/installation#agent-skills'],
   ['guides/recipes/tutorials/custom-plugin', '/blog/custom-plugin'],
 ])
 const legacyGuidePath = new RegExp(`^/(?:(${routing.locales.join('|')})/)?(guides/.+?)/?$`)
