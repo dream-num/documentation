@@ -15,7 +15,7 @@ import {
 } from '@/lib/guides/content-placements'
 import { createGuideNavigation } from '@/lib/guides/navigation'
 import { guideNavigationSource } from '@/lib/guides/navigation-source'
-import { withLocale } from '@/lib/locale-path'
+import { getContentLocale, stripLocalePrefix, withLocale } from '@/lib/locale-path'
 import { sdkSources } from '@/lib/source'
 
 interface IProps {
@@ -49,8 +49,8 @@ function getSdkSource(sdk: string) {
 export async function generateMetadata({ params }: IProps) {
   const { sdk, slug, lang } = await params
   const { source } = getSdkSource(sdk)
-  const placementTarget = sdk === 'guides' ? getGuideContentPlacementTarget(slug) : undefined
-  const page = source.getPage(sdk === 'guides' ? resolveGuideContentSlug(slug) : slug, lang)
+  const contentSlug = sdk === 'guides' ? resolveGuideContentSlug(slug) : slug
+  const page = source.getPage(contentSlug, lang)
   if (!page) {
     notFound()
   }
@@ -58,7 +58,17 @@ export async function generateMetadata({ params }: IProps) {
   return {
     title: page.data.title,
     description: page.data.description,
-    alternates: placementTarget ? { canonical: `${DOCS_ORIGIN}${withLocale(lang, page.url)}` } : undefined,
+    alternates: {
+      canonical: `${DOCS_ORIGIN}${withLocale(getContentLocale(page.path), stripLocalePrefix(page.url))}`,
+      languages: Object.fromEntries(
+        source.getLanguages().flatMap(({ language }) => {
+          const translation = source.getPage(contentSlug, language)
+          return translation && getContentLocale(translation.path) === language
+            ? [[language, `${DOCS_ORIGIN}${withLocale(language, stripLocalePrefix(translation.url))}`]]
+            : []
+        }),
+      ),
+    },
   }
 }
 
