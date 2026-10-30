@@ -438,7 +438,19 @@ const disposable = fWorksheet.addFloatDomToPosition({
 disposable.dispose()
 ```
 
-## Vue 選單與業務操作 [#nested-toolbar-menu]
+## 選單擴充：應用整合與外掛開發 [#menu-extension-paths]
+
+依任務選擇擴充方式。兩條路徑共用同一套選單系統，Facade 封裝應用層常用操作。
+
+| 任務 | 接入方式 | 範例 |
+| --- | --- | --- |
+| 新增業務按鈕和子選單 | `createMenu()` / `createSubmenu()` / `appendTo()` | [應用整合範例](#nested-toolbar-menu) |
+| 顯示、隱藏或停用選單項目 | 初始化 `menu` 設定 / `updateMenuConfig()` | [執行階段設定](#menu-runtime-configuration) |
+| 開發具有自身選單、命令和圖示的 SDK 外掛 | `Plugin` 生命週期 / 選單 Schema / 依賴注入的擴充服務 | [外掛開發範例](#plugin-menu-example) |
+
+應用採用**外掛模式安裝**時，同樣可使用 Facade API。開發自訂 SDK 外掛時，透過依賴注入與生命週期註冊擴充：`IMenuManagerService` 管理選單 Schema，`ICommandService` 註冊命令，`IconManager` 註冊圖示。
+
+## 應用整合：Vue 選單與業務操作 [#nested-toolbar-menu]
 
 透過 Facade API 新增工具列快捷按鈕與多層右鍵選單。兩個入口執行相同的業務動作：將 `Approved` 寫入 A1。
 
@@ -488,6 +500,8 @@ export function registerReviewMenus(univerAPI: FUniver) {
 ```
 
 ```typescript
+import { registerReviewMenus } from './review-menu'
+
 registerReviewMenus(univerAPI)
 ```
 
@@ -504,4 +518,97 @@ npm install
 npm run dev
 ```
 
-開啟 Vite 輸出的網址，分別體驗兩個入口，A1 都會變為 `Approved`。窄視窗下快捷按鈕可能位於工具列的更多選單中。每個編輯器只註冊一次，Vue 宿主卸載時呼叫 `univer.dispose()`。
+在下載專案中選擇 **Application Facade**。A1 初始為 `Draft`，兩個選單入口都會將其改為 `Approved`，復原可還原先前的值。每個編輯器只註冊一次，Vue 宿主卸載時呼叫 `univer.dispose()`。
+
+## 外掛開發：註冊命令、圖示和選單 [#plugin-menu-example]
+
+[執行完整範例](#vue-menu-example)
+
+需要將能力封裝為具有自身註冊與生命週期的 SDK 外掛時，使用外掛擴充機制。本例參考 [Sheets UI 控制器的命令與選單註冊方式](https://github.com/dream-num/univer/blob/dev/packages/sheets-ui/src/controllers/ui.controller.ts)，並使用 `IconManager` 完成[圖示註冊](https://github.com/dream-num/univer/blob/dev/packages/ui/src/controllers/components.controller.ts)。將程式碼放在 `review-plugin.ts`。
+
+```typescript
+import { CommandType, DependentOn, ICommandService, Inject, Injector, Plugin, UniverInstanceType } from '@univerjs/core'
+import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
+import { IconManager, IMenuManagerService, MenuItemType, RibbonStartGroup } from '@univerjs/ui'
+import { createElement } from 'react'
+
+const APPROVE_COMMAND_ID = 'review-plugin.command.approve'
+const APPROVE_MENU_ID = 'review-plugin.menu.approve'
+const APPROVE_ICON_ID = 'review-plugin.icon.approve'
+
+function ReviewIcon() {
+  return createElement('svg', {
+    viewBox: '0 0 24 24', width: 16, height: 16,
+    fill: 'none', stroke: 'currentColor', strokeWidth: 2,
+    'aria-hidden': true, 'data-review-plugin-icon': true,
+  }, createElement('path', { d: 'M5 12l4 4L19 6' }))
+}
+
+@DependentOn(UniverSheetsUIPlugin)
+export class ReviewPlugin extends Plugin {
+  static override pluginName = 'REVIEW_PLUGIN'
+  static override type = UniverInstanceType.UNIVER_SHEET
+
+  constructor(
+    private readonly _config: { approve: () => boolean },
+    @Inject(Injector) protected override _injector: Injector,
+    @ICommandService private readonly _commands: ICommandService,
+    @IMenuManagerService private readonly _menus: IMenuManagerService,
+    @Inject(IconManager) private readonly _icons: IconManager,
+  ) { super() }
+
+  override onStarting() {
+    this.disposeWithMe(this._commands.registerCommand({
+      id: APPROVE_COMMAND_ID,
+      type: CommandType.COMMAND,
+      handler: () => this._config.approve(),
+    }))
+    this.disposeWithMe(this._icons.register(APPROVE_ICON_ID, ReviewIcon))
+    this._menus.mergeMenu({
+      [RibbonStartGroup.OTHERS]: {
+        [APPROVE_MENU_ID]: {
+          order: 0,
+          menuItemFactory: () => ({
+            id: APPROVE_MENU_ID,
+            commandId: APPROVE_COMMAND_ID,
+            type: MenuItemType.BUTTON,
+            title: 'Plugin approve',
+            icon: APPROVE_ICON_ID,
+          }),
+        },
+      },
+    })
+  }
+}
+```
+
+預設初始化後、建立活頁簿前註冊 `ReviewPlugin`。它依賴 `UniverSheetsUIPlugin`，完整專案已包含同版 `@univerjs/sheets-ui`。選單執行外掛自己註冊的命令，資料修改仍透過 Facade 完成。
+
+```typescript
+import { ReviewPlugin } from './review-plugin'
+
+univer.registerPlugin(ReviewPlugin, {
+  approve: () => {
+    const sheet = univerAPI.getActiveWorkbook()?.getActiveSheet()
+    if (!sheet) return false
+    sheet.getRange('A1').setValue('Approved by plugin')
+    return true
+  },
+})
+```
+
+在同一下載專案選擇 **SDK Plugin**，或開啟 `/?example=plugin`。點擊 **Plugin approve**：自訂勾選圖示可見，A1 從 `Draft` 變為 `Approved by plugin`，復原後回到 `Draft`。命令和圖示的註冊句柄由 `disposeWithMe()` 管理，選單 Schema 與編輯器共用生命週期。
+
+## 執行階段設定：選單項目 ID 與命令 ID [#menu-runtime-configuration]
+
+本例的選單項目 ID 為 `review-plugin.menu.approve`，命令 ID 為 `review-plugin.command.approve`。修改顯示或停用狀態時設定**選單項目 ID**，兩種 ID 用途不同。
+
+在範例頂部勾選 **Disable toolbar button** 後再取消，按鈕應依次停用、恢復；勾選 **Hide toolbar button** 後再取消，按鈕應消失、重新出現。這些宿主控制項呼叫 `updateMenuConfig()`，停用操作對應：
+
+```typescript
+univerAPI.updateMenuConfig({
+  'review-plugin.menu.approve': { disabled: true },
+})
+```
+
+設定 `disabled: false` 可恢復可用狀態；`hidden: true` / `false` 用於隱藏或恢復。在應用整合範例中，控制項只影響工具列快捷按鈕，不影響獨立的右鍵選單入口。
