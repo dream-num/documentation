@@ -439,3 +439,89 @@ const disposable = fWorksheet.addFloatDomToPosition({
 // Remove the floating DOM
 disposable.dispose()
 ```
+
+## A nested toolbar menu in a Vue application [#nested-toolbar-menu]
+
+Add your business actions to the editor so users can run them while working on a spreadsheet. This example adds **Review → Actions → Approve** to Start; choosing Approve writes `Approved` to A1.
+
+Try the [complete Vue 3 example](#vue-menu-example), then use the plugin code below to adapt the action to your own application.
+
+Start with the [Sheets Vue integration](/guides/sheets/getting-started/integrations/vue). This complete project uses **Univer 1.3.0**. Keep `@univerjs/core`, `@univerjs/ui`, `@univerjs/design`, and the Sheets preset at the same version. The editor UI uses React internally, so a Vue host can register a React icon and dropdown panel without a Vue UI adapter.
+
+Register `ReviewMenuPlugin` once after the Sheets preset initializes and before creating the workbook. `IconManager` owns icons; `ComponentManager` owns the dropdown panel. The plugin releases both registrations when disposed. The following code belongs in `review-menu.ts`.
+
+```typescript
+import { Inject, Injector, Plugin } from '@univerjs/core'
+import { DropdownMenu } from '@univerjs/design'
+import { ComponentManager, IconManager, IMenuManagerService, MenuItemType, RibbonStartGroup } from '@univerjs/ui'
+import { createElement } from 'react'
+
+function ReviewIcon() {
+  return createElement('svg', {
+    viewBox: '0 0 24 24', width: 16, height: 16,
+    fill: 'none', stroke: 'currentColor', strokeWidth: 2,
+    'aria-hidden': true, 'data-review-icon': true,
+  }, createElement('path', { d: 'M5 12l4 4L19 6' }))
+}
+
+export class ReviewMenuPlugin extends Plugin {
+  static override pluginName = 'REVIEW_MENU_PLUGIN'
+
+  constructor(
+    private readonly _config: { approve: () => void },
+    @Inject(Injector) protected override _injector: Injector,
+  ) { super() }
+
+  override onStarting() {
+    const components = this._injector.get(ComponentManager)
+    const icons = this._injector.get(IconManager)
+    const ReviewMenu = () => createElement('span', {
+      onClick: event => event.stopPropagation(),
+    }, createElement(DropdownMenu, {
+      items: [{ type: 'subItem', children: 'Actions', options: [
+        { type: 'item', children: 'Approve', onSelect: this._config.approve },
+      ] }],
+      children: createElement('button', {
+        type: 'button', 'data-review-trigger': true,
+        style: { display: 'flex', alignItems: 'center', gap: 6, border: 0, background: 'transparent', color: 'inherit', cursor: 'pointer' },
+      }, createElement(icons.get('review-icon')), 'Review'),
+    }))
+    this.disposeWithMe(components.register('review-menu', ReviewMenu))
+    this.disposeWithMe(icons.register('review-icon', ReviewIcon))
+    this._injector.get(IMenuManagerService).mergeMenu({
+      [RibbonStartGroup.OTHERS]: {
+        'review.root': {
+          order: 0,
+          menuItemFactory: () => ({
+            id: 'review.root', type: MenuItemType.BUTTON,
+            title: 'Review', label: 'review-menu',
+          }),
+        },
+      },
+    })
+  }
+}
+```
+
+```typescript
+univer.registerPlugin(ReviewMenuPlugin, {
+  approve: () => {
+    univerAPI.getActiveWorkbook()?.getActiveSheet()?.getRange('A1').setValue('Approved')
+  },
+})
+```
+
+The example registers a custom menu label that renders the existing `DropdownMenu` with an Actions submenu. Use `IconManager` for the icon and `ComponentManager` for the label component. In 1.3.0, the grouped `FSubmenu` examples for context menus do not directly render nested Ribbon dropdowns; use this custom component extension for the toolbar. See [FSubmenu](/reference/facade/submenu) and [menu placement](/guides/sheets/features/core#menu-order-and-grid-layout).
+
+<span id="vue-menu-example" className="block scroll-m-24" />
+
+Download the complete project, unzip it, and run:
+
+[Download the Vue 3 menu example](/assets/examples/vue3/univer-vue3-menu-starter.zip)
+
+```bash
+npm install
+npm run dev
+```
+
+Open the address printed by Vite. Choose **Start → Review → Actions → Approve**, then check A1. At narrow widths Review can move into the toolbar overflow menu. The complete Vue host calls `univer.dispose()` on unmount. Menu schemas have no individual removal handle: register the plugin once per instance.

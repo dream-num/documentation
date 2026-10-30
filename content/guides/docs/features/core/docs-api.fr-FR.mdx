@@ -2,126 +2,160 @@
 title: API Univer Docs
 ---
 
-Univer Docs offre des fonctionnalités professionnelles de mise en page de documents, fondées sur des concepts proches de ceux de Microsoft Word.
+Les API Univer Docs permettent de créer, modifier et sauvegarder des documents dans votre application. Retrouvez un paragraphe pour mettre à jour un rapport, modifier son style ou montrer à l’utilisateur la cible d’une modification automatisée. Les exemples suivent un plan de lancement, de sa création à sa sauvegarde.
 
-## Importation
+[Créer un document](#create-document) · [Modifier un paragraphe](#edit-paragraph) · [Mettre le texte en forme](#text-style) · [Sauvegarder le résultat](#get-document-data)
+
+Les exemples utilisent **Univer 1.3.0**. Terminez l’[installation de Docs](/guides/docs/getting-started/installation) et alignez les versions des paquets Univer.
+
+<span id="obtenir-le-unitid-dun-document" className="block scroll-m-24" />
+
+## ID, segments et positions du texte [#document-identifiers]
+
+Les ID persistants identifient le contenu ; les positions désignent des caractères. Une insertion préalable change les indices, pas l’identité des paragraphes ou sections existants.
+
+| Identifiant | Signification | Accès |
+| --- | --- | --- |
+| `unitId` | Document entier ; Docs n’a pas de `subUnitId`. | `doc.getId()` |
+| `paragraphId` | Identité persistante du paragraphe. | `paragraph.getId()` ; `doc.getParagraph(id, segmentId?)` |
+| `sectionId` | Identité persistante d’une section traditionnelle. | `section.getId()` ; `doc.getSection(index)` reçoit un indice à partir de **0**, pas un ID. |
+| `segmentId` | Flux du corps (`''`), d’en-tête ou de pied de page. | `paragraph.getSegmentId()` |
+| `startOffset`, `endOffset` | Positions UTF-16 dans le segment, début inclus et fin exclue. | `paragraph.getRange()` ou `range.getRange()` |
+
+Les objets paragraphe et section retrouvent leur ID persistant à chaque appel. `FDocumentTextRange` conserve des **positions fixes** : récupérez une nouvelle plage après insertion ou suppression avant celle-ci. Un objet supprimé invalide sa poignée. Voir [paragraphes](/reference/facade/document-paragraph), [sections](/reference/facade/document-section) et [plages de texte](/reference/facade/document-text-range).
+
+<span id="importation" className="block scroll-m-24" />
+
+## Importer les Facade
+
+En mode plugin, importez la Facade Docs pour le contenu et celle de Docs UI pour les sélections visibles. Les presets incluent leurs entrées Facade.
 
 ```typescript
 import '@univerjs/docs/facade'
 import '@univerjs/docs-ui/facade'
 ```
 
-## Manipuler des documents
+<span id="manipuler-des-documents" className="block scroll-m-24" />
 
-Pour les unités de document, `unitId` correspond à l’identifiant unique du document. Les documents ne possèdent pas de `subUnitId`.
+## Créer un document [#create-document]
 
-Le contenu textuel du document est stocké dans la chaîne `body.dataStream`, qui ne contient aucune information de style.
-
-Les informations de style sont stockées séparément dans une autre structure de données et associées au contenu textuel au moyen de références d’index.
-
-Les éléments tels que les sauts de ligne, les sauts de page, les sections, les paragraphes et les tableaux sont représentés dans le contenu textuel par différents caractères spéciaux. Lors du rendu, ces caractères spéciaux sont convertis dans les éléments correspondants.
-
-<Callout>
-  Vous souhaitez en savoir plus sur la conception des structures de données des documents ? Nous vous recommandons de
-  lire [Univer Document Architecture and Module Design](/blog/univer-doc-architecture) et [An Initial Exploration of
-  Univer Document Typesetting Design](/blog/doc-typesetting-design).
-</Callout>
-
-### Créer un document [#create-document]
-
-Utilisez `univerAPI.createDocument(data)` pour créer un document et obtenir son objet wrapper de façade `FDocument`.
-
-Le paramètre est un objet de données de document facultatif qui contient les données initiales du document. Si vous transmettez `{}`, un document vide est créé.
-
-Si vous utilisez directement l’instance `univer` sous-jacente plutôt que l’API Facade, utilisez `univer.createUnit(UniverInstanceType.UNIVER_DOC, data)`.
+Cet exemple crée deux paragraphes et une section traditionnelle. Les extraits suivants utilisent le `doc` renvoyé. Des ID explicites permettent de retrouver les mêmes paragraphes.
 
 ```typescript
-// [!code word:data]
-const doc = univerAPI.createDocument(data)
-```
-
-### Obtenir le unitId d’un document
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-const unitId = doc?.getId()
-```
-
-### Obtenir les données d’un document [#get-document-data]
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-const saveData = doc.save()
-```
-
-### Supprimer un document
-
-Lorsque le document n’est plus nécessaire, vous pouvez appeler la méthode `dispose` de l’instance Univer pour détruire celle-ci.
-
-```typescript
-univer.dispose()
-```
-
-## Manipuler du texte
-
-Modifiez les éléments textuels dans la zone de texte enrichi.
-
-### Insérer du texte
-
-Ajoutez le texte indiqué à la fin de cette zone de texte.
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-doc?.insertText(0, 'Univer')
-```
-
-### Supprimer du texte
-
-Supprimez du texte à partir des décalages dans le document.
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-doc?.deleteRange({ startOffset: 0, endOffset: 1 })
-```
-
-## Modifier le style
-
-Définissez le style du texte dans un paragraphe.
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-const paragraph = doc?.getParagraphs()[0]
-
-paragraph?.setStyle({
-  textStyle: {
-    cl: {
-      rgb: '#FF0000',
-    },
+const doc = univerAPI.createDocument({
+  id: 'launch-plan',
+  title: 'Launch plan',
+  body: {
+    dataStream: 'Launch plan\rStatus: Draft\r\n',
+    paragraphs: [
+      { startIndex: 11, paragraphId: 'p-title' },
+      { startIndex: 25, paragraphId: 'p-status' },
+    ],
+    sectionBreaks: [{ startIndex: 26, sectionId: 's-main' }],
+  },
+  documentStyle: {
+    documentFlavor: univerAPI.Enum.DocumentFlavor.TRADITIONAL,
+    pageSize: { width: 595, height: 842 },
+    marginTop: 40,
+    marginBottom: 40,
+    marginLeft: 40,
+    marginRight: 40,
   },
 })
 ```
 
-## Insérer un saut de page
+L’éditeur affiche deux paragraphes : « Launch plan » et « Status: Draft ». Leurs ID `p-title` et `p-status` permettent de les retrouver ensuite.
 
-Le caractère `\f` représente un saut de page et permet d’en insérer un dans le document.
+`\r` termine un paragraphe, `\n` une section ; `startIndex` désigne ce caractère. Voir la [structure du corps](/guides/docs/model/document-body). Les API maintiennent les indices : ne modifiez pas directement le snapshot actif.
 
-```typescript
-const doc = univerAPI.getActiveDocument()
-doc?.insertText(0, '\f')
-```
+## Localiser et modifier un paragraphe [#edit-paragraph]
 
-## Statistiques du document
-
-Utilisez le `DocumentDataModel` sous-jacent pour calculer les statistiques du document entier ou de plages sélectionnées.
+Utilisez son ID réel. `setText()` remplace son texte et `appendText()` ajoute avant sa marque de fin. L’exemple cible toujours le paragraphe de statut après une insertion en amont.
 
 ```typescript
-const doc = univerAPI.getActiveDocument()
-if (!doc) throw new Error('No active document')
+const paragraph = doc.getParagraph('p-status')
+if (!paragraph) throw new Error('Status paragraph not found')
 
-const statistics = await doc.getDocumentDataModel().getStatistics({
-  locale: univerAPI.Enum.LocaleType.FR_FR,
-})
-console.log(statistics.words, statistics.charactersWithSpaces, statistics.paragraphs)
+const paragraphId = paragraph.getId()
+doc.insertText(0, '[Review] ')
+paragraph.setText('Status: Ready')
+paragraph.appendText(' for review')
+
+console.log(doc.getParagraph(paragraphId)?.getText())
+// Status: Ready for review
 ```
 
-`getStatistics()` renvoie le nombre de mots, de caractères et de paragraphes. Utilisez `ranges` pour limiter le comptage au texte sélectionné et `signal` pour annuler un calcul devenu inutile.
+Le premier paragraphe devient « [Review] Launch plan » et le second « Status: Ready for review ». L’ID du paragraphe de statut reste le même malgré son déplacement.
+
+<span id="modifier-le-style" className="block scroll-m-24" />
+
+## Mettre en forme sans modifier la sélection [#text-style]
+
+Recherchez le texte et appliquez son style directement, sans sélection visible. Cela convient aussi aux Agents et aux traitements sans interface.
+
+```typescript
+const status = doc.getParagraph('p-status')
+const ready = status?.findText('Ready')
+if (!ready) throw new Error('Target text not found')
+
+ready.setTextStyle({ cl: { rgb: '#2563eb' }, bl: 1 })
+console.log(ready.getText())
+```
+
+Le mot « Ready » devient bleu et gras ; le reste du paragraphe est inchangé.
+
+`setTextStyle()` modifie les caractères existants, sans définir de couleur globale pour la saisie future. Pour la disposition et le style par défaut du paragraphe, utilisez [paragraph.setStyle()](/reference/facade/document-paragraph#setstyle).
+
+## Afficher une sélection dans l’éditeur [#text-selection]
+
+Pour cet exemple du corps principal, commencez par éditer le corps, puis passez les positions actuelles à `setSelection()`. Docs UI est requis ; la méthode renvoie `void` sans modifier le contenu. Elle utilise le **segment actuellement édité**, sans argument `segmentId`, et ne revient pas automatiquement d’un en-tête ou pied de page au corps.
+
+```typescript
+const target = doc.getParagraph('p-status')?.findText('Ready')
+if (!target) throw new Error('Target text not found')
+
+const { startOffset, endOffset } = target.getRange()
+doc.setSelection(startOffset, endOffset)
+```
+
+## Localiser une section traditionnelle [#document-sections]
+
+Les API Section concernent les documents **Traditional**. Les documents Modern utilisent ColumnGroup. `getSection(0)` donne la première section ; recherchez un ID connu dans la liste actuelle. Ne passez pas de chaîne ID à `getSection()`.
+
+```typescript
+if (doc.isTraditional()) {
+  const firstSection = doc.getSection(0)
+  console.log(firstSection?.getId())
+
+  const section = doc.getSections().find(item => item.getId() === 's-main')
+  console.log(section?.getRange())
+}
+```
+
+<span id="supprimer-un-document" className="block scroll-m-24" />
+
+## Sauvegarder et libérer [#get-document-data]
+
+`save()` renvoie le snapshot courant, avec les ID de paragraphes et de sections. L’application le persiste. `disposeUnit()` libère un document ; `univer.dispose()` libère l’éditeur au démontage de l’hôte.
+
+```typescript
+const snapshot = doc.save()
+console.log(snapshot.body?.paragraphs, snapshot.body?.sectionBreaks)
+
+// When this document is no longer needed:
+// univerAPI.disposeUnit(doc.getId())
+```
+
+<span id="manipuler-du-texte" className="block scroll-m-24" />
+
+<span id="insérer-du-texte" className="block scroll-m-24" />
+
+<span id="supprimer-du-texte" className="block scroll-m-24" />
+
+<span id="insérer-un-saut-de-page" className="block scroll-m-24" />
+
+<span id="statistiques-du-document" className="block scroll-m-24" />
+
+## Autres opérations textuelles
+
+À une position connue, utilisez `doc.insertText(offset, text, segmentId?)` ou `doc.deleteRange({ startOffset, endOffset, segmentId })`. `insertText(0, text)` insère au **début**. Insérez un saut de page avec `doc.insertText(offset, '\f')`. Les [statistiques](/reference/facade/document#getdocumentdatamodel) utilisent `doc.getDocumentDataModel().getStatistics()`.

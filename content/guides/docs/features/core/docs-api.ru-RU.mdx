@@ -2,126 +2,160 @@
 title: API Univer Docs
 ---
 
-Univer Docs предоставляет профессиональные средства вёрстки документов, концептуально близкие к Microsoft Word.
+С помощью Univer Docs API можно создавать, изменять и сохранять документы в приложении. Найдите нужный абзац, чтобы обновить отчёт, изменить оформление или показать пользователю место автоматического изменения. Примеры проводят план запуска от создания до сохранения.
 
-## Импорт
+[Создать документ](#create-document) · [Изменить абзац](#edit-paragraph) · [Оформить текст](#text-style) · [Сохранить результат](#get-document-data)
+
+Примеры используют **Univer 1.3.0**. Завершите [установку Docs](/guides/docs/getting-started/installation) и согласуйте версии всех пакетов Univer.
+
+<span id="получение-unitid-документа" className="block scroll-m-24" />
+
+## ID, сегменты и смещения текста [#document-identifiers]
+
+Постоянные ID определяют содержимое, смещения — позицию символов. Вставка перед абзацем меняет индексы, но не идентичность существующего абзаца или раздела.
+
+| Идентификатор | Значение | Доступ |
+| --- | --- | --- |
+| `unitId` | Документ целиком; у Docs нет `subUnitId`. | `doc.getId()` |
+| `paragraphId` | Постоянный ID абзаца. | `paragraph.getId()`; `doc.getParagraph(id, segmentId?)` |
+| `sectionId` | Постоянный ID традиционного раздела. | `section.getId()`; `doc.getSection(index)` принимает индекс с **0**, а не ID. |
+| `segmentId` | Поток основного текста (`''`), верхнего или нижнего колонтитула. | `paragraph.getSegmentId()` |
+| `startOffset`, `endOffset` | Позиции UTF-16 в сегменте: начало включено, конец исключён. | `paragraph.getRange()` или `range.getRange()` |
+
+Объекты абзацев и разделов повторно находят постоянный ID при вызове. `FDocumentTextRange` хранит **фиксированные смещения**: после вставки или удаления перед ним получите диапазон заново. Удаление элемента делает его дескриптор недействительным. См. [абзацы](/reference/facade/document-paragraph), [разделы](/reference/facade/document-section), [диапазоны](/reference/facade/document-text-range).
+
+<span id="импорт" className="block scroll-m-24" />
+
+## Импорты Facade
+
+В режиме плагинов импортируйте Docs Facade для содержимого и Docs UI Facade для видимого выделения. Пресеты включают соответствующие импорты.
 
 ```typescript
 import '@univerjs/docs/facade'
 import '@univerjs/docs-ui/facade'
 ```
 
-## Работа с документами
+<span id="работа-с-документами" className="block scroll-m-24" />
 
-В документах `unitId` служит уникальным идентификатором. Идентификатора `subUnitId` у документов нет.
+## Создать документ [#create-document]
 
-Текст документа хранится в строке `body.dataStream`, которая не содержит сведений о стилях.
-
-Сведения о стилях хранятся отдельно, в другой структуре данных, и связываются с текстом с помощью индексов.
-
-Для обозначения переносов строк, разрывов страниц, разделов, абзацев и таблиц в тексте используются специальные символы. При отрисовке они преобразуются в соответствующие элементы.
-
-<Callout>
-  Подробнее об устройстве структур данных документа читайте в статьях [Univer Document Architecture and Module
-  Design](/blog/univer-doc-architecture) и [An Initial Exploration of Univer Document Typesetting
-  Design](/blog/doc-typesetting-design).
-</Callout>
-
-### Создание документа [#create-document]
-
-Вызовите `univerAPI.createDocument(data)`, чтобы создать документ и получить его фасадную обёртку `FDocument`.
-
-Необязательный параметр — объект с исходными данными документа. Если передать `{}`, будет создан пустой документ.
-
-Если вместо Facade API вы работаете напрямую с базовым экземпляром `univer`, используйте `univer.createUnit(UniverInstanceType.UNIVER_DOC, data)`.
+Пример создаёт два абзаца и один традиционный раздел. Далее используется возвращённый `doc`. Явные ID позволяют позже найти те же абзацы.
 
 ```typescript
-// [!code word:data]
-const doc = univerAPI.createDocument(data)
-```
-
-### Получение unitId документа
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-const unitId = doc?.getId()
-```
-
-### Получение данных документа [#get-document-data]
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-const saveData = doc.save()
-```
-
-### Удаление документа
-
-Когда документ больше не нужен, вызовите метод `dispose` экземпляра Univer, чтобы уничтожить этот экземпляр.
-
-```typescript
-univer.dispose()
-```
-
-## Работа с текстом
-
-Изменяйте текстовые элементы в области форматированного текста.
-
-### Вставка текста
-
-Добавьте указанный текст в конец этой области.
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-doc?.insertText(0, 'Univer')
-```
-
-### Удаление текста
-
-Удалите текст по смещениям в документе.
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-doc?.deleteRange({ startOffset: 0, endOffset: 1 })
-```
-
-## Изменение стиля
-
-Задайте стиль текста в абзаце.
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-const paragraph = doc?.getParagraphs()[0]
-
-paragraph?.setStyle({
-  textStyle: {
-    cl: {
-      rgb: '#FF0000',
-    },
+const doc = univerAPI.createDocument({
+  id: 'launch-plan',
+  title: 'Launch plan',
+  body: {
+    dataStream: 'Launch plan\rStatus: Draft\r\n',
+    paragraphs: [
+      { startIndex: 11, paragraphId: 'p-title' },
+      { startIndex: 25, paragraphId: 'p-status' },
+    ],
+    sectionBreaks: [{ startIndex: 26, sectionId: 's-main' }],
+  },
+  documentStyle: {
+    documentFlavor: univerAPI.Enum.DocumentFlavor.TRADITIONAL,
+    pageSize: { width: 595, height: 842 },
+    marginTop: 40,
+    marginBottom: 40,
+    marginLeft: 40,
+    marginRight: 40,
   },
 })
 ```
 
-## Вставка разрыва страницы
+Редактор показывает два абзаца: «Launch plan» и «Status: Draft». ID `p-title` и `p-status` позволяют найти те же абзацы позже.
 
-Символ `\f` обозначает разрыв страницы и позволяет вставить его в документ.
+`\r` завершает абзац, `\n` — раздел; `startIndex` указывает на этот символ. См. [структуру текста](/guides/docs/model/document-body). API обновляют индексы: не редактируйте активный snapshot напрямую.
 
-```typescript
-const doc = univerAPI.getActiveDocument()
-doc?.insertText(0, '\f')
-```
+## Найти и изменить абзац [#edit-paragraph]
 
-## Статистика документа
-
-Используйте базовую модель `DocumentDataModel`, чтобы подсчитать статистику всего документа или выбранных диапазонов.
+Используйте реальный ID. `setText()` заменяет текст абзаца, `appendText()` добавляет перед его концом. Пример продолжает изменять абзац статуса после вставки текста в начале документа.
 
 ```typescript
-const doc = univerAPI.getActiveDocument()
-if (!doc) throw new Error('No active document')
+const paragraph = doc.getParagraph('p-status')
+if (!paragraph) throw new Error('Status paragraph not found')
 
-const statistics = await doc.getDocumentDataModel().getStatistics({
-  locale: univerAPI.Enum.LocaleType.RU_RU,
-})
-console.log(statistics.words, statistics.charactersWithSpaces, statistics.paragraphs)
+const paragraphId = paragraph.getId()
+doc.insertText(0, '[Review] ')
+paragraph.setText('Status: Ready')
+paragraph.appendText(' for review')
+
+console.log(doc.getParagraph(paragraphId)?.getText())
+// Status: Ready for review
 ```
 
-`getStatistics()` возвращает количество слов, символов и абзацев. Передайте `ranges`, чтобы считать только выделенный текст, и `signal`, чтобы отменить ставший ненужным расчёт.
+Первый абзац станет «[Review] Launch plan», второй — «Status: Ready for review». Позиция абзаца статуса изменилась, но его ID сохранился.
+
+<span id="изменение-стиля" className="block scroll-m-24" />
+
+## Изменить стиль без смены выделения [#text-style]
+
+Найдите текст и задайте стиль напрямую. Видимое выделение не требуется, что удобно для Agent и работы без интерфейса.
+
+```typescript
+const status = doc.getParagraph('p-status')
+const ready = status?.findText('Ready')
+if (!ready) throw new Error('Target text not found')
+
+ready.setTextStyle({ cl: { rgb: '#2563eb' }, bl: 1 })
+console.log(ready.getText())
+```
+
+Слово «Ready» станет синим и полужирным; остальной текст абзаца не изменится.
+
+`setTextStyle()` изменяет существующие символы, а не глобальный цвет будущего ввода. Для расположения и стиля абзаца по умолчанию используйте [paragraph.setStyle()](/reference/facade/document-paragraph#setstyle).
+
+## Показать выделение в редакторе [#text-selection]
+
+В этом примере сначала перейдите к редактированию основного текста, затем передайте текущие смещения в `setSelection()`. Нужен Docs UI; метод возвращает `void` и не меняет содержимое. Он использует **текущий редактируемый сегмент**, не принимает `segmentId` и не переключается автоматически из колонтитулов в основной текст.
+
+```typescript
+const target = doc.getParagraph('p-status')?.findText('Ready')
+if (!target) throw new Error('Target text not found')
+
+const { startOffset, endOffset } = target.getRange()
+doc.setSelection(startOffset, endOffset)
+```
+
+## Найти традиционный раздел [#document-sections]
+
+Section API предназначен для **Traditional**. Документы Modern используют ColumnGroup. `getSection(0)` возвращает первый раздел; известный ID ищите в текущем списке. Не передавайте строковый ID в `getSection()`.
+
+```typescript
+if (doc.isTraditional()) {
+  const firstSection = doc.getSection(0)
+  console.log(firstSection?.getId())
+
+  const section = doc.getSections().find(item => item.getId() === 's-main')
+  console.log(section?.getRange())
+}
+```
+
+<span id="удаление-документа" className="block scroll-m-24" />
+
+## Сохранить и освободить [#get-document-data]
+
+`save()` возвращает snapshot с ID абзацев и разделов; сохранение обеспечивает приложение. `disposeUnit()` освобождает документ, а `univer.dispose()` — редактор при размонтировании хоста.
+
+```typescript
+const snapshot = doc.save()
+console.log(snapshot.body?.paragraphs, snapshot.body?.sectionBreaks)
+
+// When this document is no longer needed:
+// univerAPI.disposeUnit(doc.getId())
+```
+
+<span id="работа-с-текстом" className="block scroll-m-24" />
+
+<span id="вставка-текста" className="block scroll-m-24" />
+
+<span id="удаление-текста" className="block scroll-m-24" />
+
+<span id="вставка-разрыва-страницы" className="block scroll-m-24" />
+
+<span id="статистика-документа" className="block scroll-m-24" />
+
+## Другие текстовые операции
+
+Для известной позиции используйте `doc.insertText(offset, text, segmentId?)` или `doc.deleteRange({ startOffset, endOffset, segmentId })`. `insertText(0, text)` вставляет в **начало**. Разрыв страницы: `doc.insertText(offset, '\f')`; [статистика](/reference/facade/document#getdocumentdatamodel): `doc.getDocumentDataModel().getStatistics()`.

@@ -433,3 +433,89 @@ const disposable = fWorksheet.addFloatDomToPosition({
 // Remove the floating DOM
 disposable.dispose()
 ```
+
+## Menu imbriqué dans la barre d’une application Vue [#nested-toolbar-menu]
+
+Ajoutez vos opérations métier à la barre de l’éditeur pour les exécuter pendant le travail sur une feuille. Cet exemple ajoute **Review → Actions → Approve** ; Approve écrit `Approved` dans A1.
+
+Commencez par [exécuter le projet Vue 3 complet](#vue-menu-example), puis adaptez l’action à votre application à partir du plugin ci-dessous.
+
+Préparez l’[intégration Vue](/guides/sheets/getting-started/integrations/vue). Le projet utilise **Univer 1.3.0** : alignez `@univerjs/core`, `@univerjs/ui`, `@univerjs/design` et le preset Sheets. L’interface interne utilise React : un hôte Vue peut enregistrer une icône et un panneau React sans adaptateur Vue UI.
+
+Après le preset et avant la création du classeur, enregistrez une fois `ReviewMenuPlugin`. `IconManager` gère les icônes, `ComponentManager` les panneaux ; le plugin libère les deux. Placez ce code dans `review-menu.ts`.
+
+```typescript
+import { Inject, Injector, Plugin } from '@univerjs/core'
+import { DropdownMenu } from '@univerjs/design'
+import { ComponentManager, IconManager, IMenuManagerService, MenuItemType, RibbonStartGroup } from '@univerjs/ui'
+import { createElement } from 'react'
+
+function ReviewIcon() {
+  return createElement('svg', {
+    viewBox: '0 0 24 24', width: 16, height: 16,
+    fill: 'none', stroke: 'currentColor', strokeWidth: 2,
+    'aria-hidden': true, 'data-review-icon': true,
+  }, createElement('path', { d: 'M5 12l4 4L19 6' }))
+}
+
+export class ReviewMenuPlugin extends Plugin {
+  static override pluginName = 'REVIEW_MENU_PLUGIN'
+
+  constructor(
+    private readonly _config: { approve: () => void },
+    @Inject(Injector) protected override _injector: Injector,
+  ) { super() }
+
+  override onStarting() {
+    const components = this._injector.get(ComponentManager)
+    const icons = this._injector.get(IconManager)
+    const ReviewMenu = () => createElement('span', {
+      onClick: event => event.stopPropagation(),
+    }, createElement(DropdownMenu, {
+      items: [{ type: 'subItem', children: 'Actions', options: [
+        { type: 'item', children: 'Approve', onSelect: this._config.approve },
+      ] }],
+      children: createElement('button', {
+        type: 'button', 'data-review-trigger': true,
+        style: { display: 'flex', alignItems: 'center', gap: 6, border: 0, background: 'transparent', color: 'inherit', cursor: 'pointer' },
+      }, createElement(icons.get('review-icon')), 'Review'),
+    }))
+    this.disposeWithMe(components.register('review-menu', ReviewMenu))
+    this.disposeWithMe(icons.register('review-icon', ReviewIcon))
+    this._injector.get(IMenuManagerService).mergeMenu({
+      [RibbonStartGroup.OTHERS]: {
+        'review.root': {
+          order: 0,
+          menuItemFactory: () => ({
+            id: 'review.root', type: MenuItemType.BUTTON,
+            title: 'Review', label: 'review-menu',
+          }),
+        },
+      },
+    })
+  }
+}
+```
+
+```typescript
+univer.registerPlugin(ReviewMenuPlugin, {
+  approve: () => {
+    univerAPI.getActiveWorkbook()?.getActiveSheet()?.getRange('A1').setValue('Approved')
+  },
+})
+```
+
+L’exemple enregistre un libellé de menu personnalisé utilisant le composant existant `DropdownMenu` avec le sous-menu Actions. Utilisez `IconManager` pour l’icône et `ComponentManager` pour le libellé. En 1.3.0, les exemples groupés `FSubmenu` contextuels ne produisent pas directement un menu Ribbon imbriqué ; utilisez cette extension. Voir [FSubmenu](/reference/facade/submenu) et le [placement](/guides/sheets/features/core#menu-order-and-grid-layout).
+
+<span id="vue-menu-example" className="block scroll-m-24" />
+
+Téléchargez le projet, décompressez-le puis exécutez :
+
+[Télécharger l’exemple de menu Vue 3](/assets/examples/vue3/univer-vue3-menu-starter.zip)
+
+```bash
+npm install
+npm run dev
+```
+
+À l’adresse Vite, choisissez **Start → Review → Actions → Approve** et vérifiez A1. Une fenêtre étroite déplace Review dans le débordement. L’hôte Vue appelle `univer.dispose()` au démontage. Les schémas n’ont pas de poignée de suppression individuelle : enregistrez le plugin une seule fois.

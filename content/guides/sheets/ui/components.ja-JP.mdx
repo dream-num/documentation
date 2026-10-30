@@ -438,3 +438,89 @@ const disposable = fWorksheet.addFloatDomToPosition({
 // フローティング DOM を削除
 disposable.dispose()
 ```
+
+## Vue アプリの階層ツールバーメニュー [#nested-toolbar-menu]
+
+エディターのツールバーに業務操作を追加し、表計算の作業中に実行できるようにします。本例は **Review → Actions → Approve** を追加し、Approve を選ぶと A1 に `Approved` を書き込みます。
+
+まず[完全な Vue 3 サンプルを実行](#vue-menu-example)し、次のプラグインを参考にアクションを業務処理に接続してください。
+
+[Sheets の Vue 統合](/guides/sheets/getting-started/integrations/vue)を準備してください。配布プロジェクトは **Univer 1.3.0** です。`@univerjs/core`、`@univerjs/ui`、`@univerjs/design` と Sheets プリセットの版を揃えます。内部 UI は React のため、Vue ホストでも React のアイコンとパネルを登録でき、Vue UI アダプターは不要です。
+
+プリセット初期化後、ブック作成前に `ReviewMenuPlugin` を一度登録します。アイコンは `IconManager`、パネルは `ComponentManager` が管理し、プラグイン破棄時に解放します。コードは `review-menu.ts` に置きます。
+
+```typescript
+import { Inject, Injector, Plugin } from '@univerjs/core'
+import { DropdownMenu } from '@univerjs/design'
+import { ComponentManager, IconManager, IMenuManagerService, MenuItemType, RibbonStartGroup } from '@univerjs/ui'
+import { createElement } from 'react'
+
+function ReviewIcon() {
+  return createElement('svg', {
+    viewBox: '0 0 24 24', width: 16, height: 16,
+    fill: 'none', stroke: 'currentColor', strokeWidth: 2,
+    'aria-hidden': true, 'data-review-icon': true,
+  }, createElement('path', { d: 'M5 12l4 4L19 6' }))
+}
+
+export class ReviewMenuPlugin extends Plugin {
+  static override pluginName = 'REVIEW_MENU_PLUGIN'
+
+  constructor(
+    private readonly _config: { approve: () => void },
+    @Inject(Injector) protected override _injector: Injector,
+  ) { super() }
+
+  override onStarting() {
+    const components = this._injector.get(ComponentManager)
+    const icons = this._injector.get(IconManager)
+    const ReviewMenu = () => createElement('span', {
+      onClick: event => event.stopPropagation(),
+    }, createElement(DropdownMenu, {
+      items: [{ type: 'subItem', children: 'Actions', options: [
+        { type: 'item', children: 'Approve', onSelect: this._config.approve },
+      ] }],
+      children: createElement('button', {
+        type: 'button', 'data-review-trigger': true,
+        style: { display: 'flex', alignItems: 'center', gap: 6, border: 0, background: 'transparent', color: 'inherit', cursor: 'pointer' },
+      }, createElement(icons.get('review-icon')), 'Review'),
+    }))
+    this.disposeWithMe(components.register('review-menu', ReviewMenu))
+    this.disposeWithMe(icons.register('review-icon', ReviewIcon))
+    this._injector.get(IMenuManagerService).mergeMenu({
+      [RibbonStartGroup.OTHERS]: {
+        'review.root': {
+          order: 0,
+          menuItemFactory: () => ({
+            id: 'review.root', type: MenuItemType.BUTTON,
+            title: 'Review', label: 'review-menu',
+          }),
+        },
+      },
+    })
+  }
+}
+```
+
+```typescript
+univer.registerPlugin(ReviewMenuPlugin, {
+  approve: () => {
+    univerAPI.getActiveWorkbook()?.getActiveSheet()?.getRange('A1').setValue('Approved')
+  },
+})
+```
+
+カスタムメニューラベルを登録し、既存の `DropdownMenu` で Actions サブメニューを表示します。アイコンは `IconManager`、ラベルは `ComponentManager` を使います。1.3.0 の右クリック用グループ化 `FSubmenu` 例は階層 Ribbon に直接適用できないため、このカスタムコンポーネント拡張を使います。[FSubmenu](/reference/facade/submenu)と[配置](/guides/sheets/features/core#menu-order-and-grid-layout)も参照してください。
+
+<span id="vue-menu-example" className="block scroll-m-24" />
+
+プロジェクトをダウンロードして展開し、実行します：
+
+[Vue 3 メニュー例をダウンロード](/assets/examples/vue3/univer-vue3-menu-starter.zip)
+
+```bash
+npm install
+npm run dev
+```
+
+Vite の URL で **Start → Review → Actions → Approve** を選び A1 を確認します。狭い画面ではその他メニューに移動します。Vue ホストのアンマウント時に `univer.dispose()` を呼びます。個別のメニュー削除ハンドルはないため、登録は一度だけ行います。
