@@ -433,82 +433,64 @@ const disposable = fWorksheet.addFloatDomToPosition({
 disposable.dispose()
 ```
 
-## Menú anidado de la barra en una aplicación Vue [#nested-toolbar-menu]
+## Menús Vue y acciones de negocio [#nested-toolbar-menu]
 
-Añade operaciones de negocio a la barra del editor para ejecutarlas mientras trabajas con una hoja. El ejemplo añade **Review → Actions → Approve**; Approve escribe `Approved` en A1.
+Añade un acceso en la barra de herramientas y un menú contextual anidado con Facade API. Ambos ejecutan la misma acción: escribir `Approved` en A1.
 
-Primero [ejecuta el proyecto Vue 3 completo](#vue-menu-example) y adapta la acción a tu aplicación con el plugin de abajo.
+[Ejecutar el ejemplo completo](#vue-menu-example)
 
-Prepara la [integración Vue](/guides/sheets/getting-started/integrations/vue). El proyecto usa **Univer 1.3.0**: alinea `@univerjs/core`, `@univerjs/ui`, `@univerjs/design` y el preset Sheets. La UI interna usa React; el contenedor Vue puede registrar un icono y un panel React sin adaptador Vue UI.
+Completa primero la [integración Vue](/guides/sheets/getting-started/integrations/vue). El proyecto usa **Univer 1.3.0**; alinea las versiones de los paquetes Univer. El icono `ProtectIcon` está integrado.
 
-Registra una vez `ReviewMenuPlugin` después del preset y antes de crear el libro. `IconManager` gestiona iconos y `ComponentManager` paneles; el plugin libera ambos. Coloca el código en `review-menu.ts`.
+Guarda este código en `review-menu.ts` y llámalo una vez después de inicializar, antes de crear el libro.
 
 ```typescript
-import { Inject, Injector, Plugin } from '@univerjs/core'
-import { DropdownMenu } from '@univerjs/design'
-import { ComponentManager, IconManager, IMenuManagerService, MenuItemType, RibbonStartGroup } from '@univerjs/ui'
-import { createElement } from 'react'
+import type { FUniver } from '@univerjs/core/facade'
+import '@univerjs/sheets/facade'
+import '@univerjs/ui/facade'
 
-function ReviewIcon() {
-  return createElement('svg', {
-    viewBox: '0 0 24 24', width: 16, height: 16,
-    fill: 'none', stroke: 'currentColor', strokeWidth: 2,
-    'aria-hidden': true, 'data-review-icon': true,
-  }, createElement('path', { d: 'M5 12l4 4L19 6' }))
-}
-
-export class ReviewMenuPlugin extends Plugin {
-  static override pluginName = 'REVIEW_MENU_PLUGIN'
-
-  constructor(
-    private readonly _config: { approve: () => void },
-    @Inject(Injector) protected override _injector: Injector,
-  ) { super() }
-
-  override onStarting() {
-    const components = this._injector.get(ComponentManager)
-    const icons = this._injector.get(IconManager)
-    const ReviewMenu = () => createElement('span', {
-      onClick: event => event.stopPropagation(),
-    }, createElement(DropdownMenu, {
-      items: [{ type: 'subItem', children: 'Actions', options: [
-        { type: 'item', children: 'Approve', onSelect: this._config.approve },
-      ] }],
-      children: createElement('button', {
-        type: 'button', 'data-review-trigger': true,
-        style: { display: 'flex', alignItems: 'center', gap: 6, border: 0, background: 'transparent', color: 'inherit', cursor: 'pointer' },
-      }, createElement(icons.get('review-icon')), 'Review'),
-    }))
-    this.disposeWithMe(components.register('review-menu', ReviewMenu))
-    this.disposeWithMe(icons.register('review-icon', ReviewIcon))
-    this._injector.get(IMenuManagerService).mergeMenu({
-      [RibbonStartGroup.OTHERS]: {
-        'review.root': {
-          order: 0,
-          menuItemFactory: () => ({
-            id: 'review.root', type: MenuItemType.BUTTON,
-            title: 'Review', label: 'review-menu',
-          }),
-        },
-      },
-    })
+export function registerReviewMenus(univerAPI: FUniver) {
+  const approve = () => {
+    const sheet = univerAPI.getActiveWorkbook()?.getActiveSheet()
+    if (!sheet) return
+    sheet.getRange('A1').setValue('Approved')
   }
+
+  univerAPI.createMenu({
+    id: 'review.quick-approve',
+    title: 'Quick approve',
+    icon: 'ProtectIcon',
+    action: approve,
+  }).appendTo('ribbon.start.others')
+
+  const approveItem = univerAPI.createMenu({
+    id: 'review.approve',
+    title: 'Approve',
+    icon: 'ProtectIcon',
+    action: approve,
+  })
+
+  const actions = univerAPI.createSubmenu({
+    id: 'review.actions',
+    title: 'Actions',
+  }).addSubmenu(approveItem)
+
+  univerAPI.createSubmenu({
+    id: 'review.root',
+    title: 'Review',
+  }).addSubmenu(actions)
+    .appendTo(['contextMenu.mainArea', 'contextMenu.others'])
 }
 ```
 
 ```typescript
-univer.registerPlugin(ReviewMenuPlugin, {
-  approve: () => {
-    univerAPI.getActiveWorkbook()?.getActiveSheet()?.getRange('A1').setValue('Approved')
-  },
-})
+registerReviewMenus(univerAPI)
 ```
 
-El ejemplo registra una etiqueta de menú personalizada que usa el componente existente `DropdownMenu` con el submenú Actions. Usa `IconManager` para el icono y `ComponentManager` para la etiqueta. En 1.3.0, los ejemplos contextuales agrupados de `FSubmenu` no generan directamente menús Ribbon anidados; usa esta extensión. Consulta [FSubmenu](/reference/facade/submenu) y [ubicación](/guides/sheets/features/core#menu-order-and-grid-layout).
+El acceso superior es **Start → Quick approve**. Haz clic derecho en una celda para **Review → Actions → Approve**. El menú anidado de este ejemplo es contextual. Consulta [FMenu](/reference/facade/menu) y [FSubmenu](/reference/facade/submenu).
 
 <span id="vue-menu-example" className="block scroll-m-24" />
 
-Descarga el proyecto, descomprímelo y ejecuta:
+Descarga y descomprime el proyecto Vue completo:
 
 [Descargar el ejemplo de menú Vue 3](/assets/examples/vue3/univer-vue3-menu-starter.zip)
 
@@ -517,4 +499,4 @@ npm install
 npm run dev
 ```
 
-En la dirección de Vite selecciona **Start → Review → Actions → Approve** y comprueba A1. En ventanas estrechas Review pasa al menú de desbordamiento. Vue llama a `univer.dispose()` al desmontar. No hay identificador de eliminación individual del esquema: registra el plugin solo una vez.
+Abre la URL de Vite y prueba ambos accesos: A1 cambia a `Approved`. En ventanas estrechas el botón puede estar en el menú de desbordamiento. Registra una vez por editor; el host Vue llama a `univer.dispose()` al desmontarse.

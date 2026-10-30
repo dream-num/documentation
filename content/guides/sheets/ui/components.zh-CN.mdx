@@ -438,82 +438,64 @@ const disposable = fWorksheet.addFloatDomToPosition({
 disposable.dispose()
 ```
 
-## Vue 应用中的顶部多级菜单 [#nested-toolbar-menu]
+## Vue 菜单与业务操作 [#nested-toolbar-menu]
 
-把业务操作放到编辑器工具栏中，让用户在处理表格时直接使用。本例添加 **Review → Actions → Approve**，选择 Approve 后向 A1 写入 `Approved`。
+通过 Facade API 添加工具栏快捷按钮和多级右键菜单。两个入口执行同一个业务动作：向 A1 写入 `Approved`。
 
-先[运行完整 Vue 3 示例](#vue-menu-example)，再参考下方插件代码，将点击动作接入自己的业务。
+[运行完整示例](#vue-menu-example)
 
-先完成 [Sheets 的 Vue 集成](/guides/sheets/getting-started/integrations/vue)。完整项目使用 **Univer 1.3.0**，`@univerjs/core`、`@univerjs/ui`、`@univerjs/design` 和 Sheets 预设应保持同版。编辑器内部使用 React，因此 Vue 宿主可直接注册 React 图标和下拉面板，无需为此安装 Vue UI 适配器。
+先完成 [Vue 集成](/guides/sheets/getting-started/integrations/vue)。完整项目使用 **Univer 1.3.0**，各 Univer 包保持同版。本例使用内置的 `ProtectIcon`。
 
-Sheets 预设初始化后、创建工作簿前，注册一次 `ReviewMenuPlugin`。图标由 `IconManager` 管理，下拉面板由 `ComponentManager` 管理；插件销毁时释放两者。下面的代码放在 `review-menu.ts` 中。
+将以下代码放在 `review-menu.ts` 中，初始化后、创建工作簿前调用一次。
 
 ```typescript
-import { Inject, Injector, Plugin } from '@univerjs/core'
-import { DropdownMenu } from '@univerjs/design'
-import { ComponentManager, IconManager, IMenuManagerService, MenuItemType, RibbonStartGroup } from '@univerjs/ui'
-import { createElement } from 'react'
+import type { FUniver } from '@univerjs/core/facade'
+import '@univerjs/sheets/facade'
+import '@univerjs/ui/facade'
 
-function ReviewIcon() {
-  return createElement('svg', {
-    viewBox: '0 0 24 24', width: 16, height: 16,
-    fill: 'none', stroke: 'currentColor', strokeWidth: 2,
-    'aria-hidden': true, 'data-review-icon': true,
-  }, createElement('path', { d: 'M5 12l4 4L19 6' }))
-}
-
-export class ReviewMenuPlugin extends Plugin {
-  static override pluginName = 'REVIEW_MENU_PLUGIN'
-
-  constructor(
-    private readonly _config: { approve: () => void },
-    @Inject(Injector) protected override _injector: Injector,
-  ) { super() }
-
-  override onStarting() {
-    const components = this._injector.get(ComponentManager)
-    const icons = this._injector.get(IconManager)
-    const ReviewMenu = () => createElement('span', {
-      onClick: event => event.stopPropagation(),
-    }, createElement(DropdownMenu, {
-      items: [{ type: 'subItem', children: 'Actions', options: [
-        { type: 'item', children: 'Approve', onSelect: this._config.approve },
-      ] }],
-      children: createElement('button', {
-        type: 'button', 'data-review-trigger': true,
-        style: { display: 'flex', alignItems: 'center', gap: 6, border: 0, background: 'transparent', color: 'inherit', cursor: 'pointer' },
-      }, createElement(icons.get('review-icon')), 'Review'),
-    }))
-    this.disposeWithMe(components.register('review-menu', ReviewMenu))
-    this.disposeWithMe(icons.register('review-icon', ReviewIcon))
-    this._injector.get(IMenuManagerService).mergeMenu({
-      [RibbonStartGroup.OTHERS]: {
-        'review.root': {
-          order: 0,
-          menuItemFactory: () => ({
-            id: 'review.root', type: MenuItemType.BUTTON,
-            title: 'Review', label: 'review-menu',
-          }),
-        },
-      },
-    })
+export function registerReviewMenus(univerAPI: FUniver) {
+  const approve = () => {
+    const sheet = univerAPI.getActiveWorkbook()?.getActiveSheet()
+    if (!sheet) return
+    sheet.getRange('A1').setValue('Approved')
   }
+
+  univerAPI.createMenu({
+    id: 'review.quick-approve',
+    title: 'Quick approve',
+    icon: 'ProtectIcon',
+    action: approve,
+  }).appendTo('ribbon.start.others')
+
+  const approveItem = univerAPI.createMenu({
+    id: 'review.approve',
+    title: 'Approve',
+    icon: 'ProtectIcon',
+    action: approve,
+  })
+
+  const actions = univerAPI.createSubmenu({
+    id: 'review.actions',
+    title: 'Actions',
+  }).addSubmenu(approveItem)
+
+  univerAPI.createSubmenu({
+    id: 'review.root',
+    title: 'Review',
+  }).addSubmenu(actions)
+    .appendTo(['contextMenu.mainArea', 'contextMenu.others'])
 }
 ```
 
 ```typescript
-univer.registerPlugin(ReviewMenuPlugin, {
-  approve: () => {
-    univerAPI.getActiveWorkbook()?.getActiveSheet()?.getRange('A1').setValue('Approved')
-  },
-})
+registerReviewMenus(univerAPI)
 ```
 
-本例注册自定义菜单标签组件，用现有 `DropdownMenu` 展示 Actions 子菜单。图标使用 `IconManager`，标签组件使用 `ComponentManager`。1.3.0 中，右键菜单的分组 `FSubmenu` 示例不能直接渲染顶部多级下拉菜单；顶部使用这里的自定义组件扩展。参见 [FSubmenu](/reference/facade/submenu)和[菜单位置](/guides/sheets/features/core#menu-order-and-grid-layout)。
+顶部入口为 **Start → Quick approve**；在单元格上点击右键，选择 **Review → Actions → Approve**。本例的多级菜单位于右键菜单中。参见 [FMenu](/reference/facade/menu) 和 [FSubmenu](/reference/facade/submenu)。
 
 <span id="vue-menu-example" className="block scroll-m-24" />
 
-下载完整项目，解压后运行：
+下载并解压完整 Vue 项目：
 
 [下载 Vue 3 菜单示例](/assets/examples/vue3/univer-vue3-menu-starter.zip)
 
@@ -522,4 +504,4 @@ npm install
 npm run dev
 ```
 
-打开 Vite 输出的地址，点击 **Start → Review → Actions → Approve** 并检查 A1。窗口较窄时 Review 会进入工具栏的更多菜单。完整 Vue 宿主在卸载时调用 `univer.dispose()`。菜单结构没有单独移除的句柄，每个实例只注册一次插件。
+打开 Vite 输出的地址，分别体验两个入口，A1 都会变为 `Approved`。窄窗口下快捷按钮可能位于工具栏的更多菜单中。每个编辑器只注册一次，Vue 宿主卸载时调用 `univer.dispose()`。
