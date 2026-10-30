@@ -9,7 +9,8 @@ const legacyGuidePaths = new Map([
   ['guides/pro', '/server/license'],
   ['guides/sheets/getting-started/pro', '/server/license'],
   ['guides/pro/server', '/server/deployment'],
-  ['guides/skills', '/guides/skills/installation'],
+  ['guides/skills', '/overview/get-started#agent-skills'],
+  ['guides/skills/installation', '/overview/get-started#agent-skills'],
   ['guides/recipes/tutorials/custom-plugin', '/blog/custom-plugin'],
 ])
 const legacyGuidePath = new RegExp(`^/(?:(${routing.locales.join('|')})/)?(guides/.+?)/?$`)
@@ -23,8 +24,8 @@ export default function proxy(request: NextRequest) {
   const legacyMatch = request.nextUrl.pathname.match(legacyGuidePath)
   const legacyTarget = legacyMatch && legacyGuidePaths.get(legacyMatch[2])
   if (legacyMatch && legacyTarget) {
-    const destination = request.nextUrl.clone()
-    destination.pathname = withLocale(legacyMatch[1] || routing.defaultLocale, legacyTarget)
+    const destination = new URL(withLocale(legacyMatch[1] || routing.defaultLocale, legacyTarget), request.url)
+    destination.search = request.nextUrl.search
     return NextResponse.redirect(destination, 308)
   }
 
