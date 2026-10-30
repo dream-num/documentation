@@ -437,3 +437,178 @@ const disposable = fWorksheet.addFloatDomToPosition({
 // 移除浮动 DOM
 disposable.dispose()
 ```
+
+## 菜单扩展：应用接入与插件开发 [#menu-extension-paths]
+
+根据任务选择扩展方式。两条路径共用同一套菜单系统，Facade 封装了应用层常用操作。
+
+| 任务 | 接入方式 | 用例 |
+| --- | --- | --- |
+| 添加业务按钮和子菜单 | `createMenu()` / `createSubmenu()` / `appendTo()` | [应用接入示例](#nested-toolbar-menu) |
+| 显示、隐藏或禁用菜单项 | 初始化 `menu` 配置 / `updateMenuConfig()` | [运行时配置](#menu-runtime-configuration) |
+| 开发带有自身菜单、命令和图标的 SDK 插件 | `Plugin` 生命周期 / 菜单 Schema / 依赖注入的扩展服务 | [插件开发示例](#plugin-menu-example) |
+
+应用采用**插件模式安装**时，同样可使用 Facade API。开发自定义 SDK 插件时，则通过依赖注入和生命周期注册扩展：`IMenuManagerService` 管理菜单 Schema，`ICommandService` 注册命令，`IconManager` 注册图标。
+
+## 应用接入：Vue 菜单与业务操作 [#nested-toolbar-menu]
+
+通过 Facade API 添加工具栏快捷按钮和多级右键菜单。两个入口执行同一个业务动作：向 A1 写入 `Approved`。
+
+[运行完整示例](#vue-menu-example)
+
+先完成 [Vue 集成](/guides/sheets/getting-started/integrations/vue)。完整项目使用 **Univer 1.3.0**，各 Univer 包保持同版。本例使用内置的 `ProtectIcon`。
+
+将以下代码放在 `review-menu.ts` 中，初始化后、创建工作簿前调用一次。
+
+```typescript
+import type { FUniver } from '@univerjs/core/facade'
+import '@univerjs/sheets/facade'
+import '@univerjs/ui/facade'
+
+export function registerReviewMenus(univerAPI: FUniver) {
+  const approve = () => {
+    const sheet = univerAPI.getActiveWorkbook()?.getActiveSheet()
+    if (!sheet) return
+    sheet.getRange('A1').setValue('Approved')
+  }
+
+  univerAPI.createMenu({
+    id: 'review.quick-approve',
+    title: 'Quick approve',
+    icon: 'ProtectIcon',
+    action: approve,
+  }).appendTo('ribbon.start.others')
+
+  const approveItem = univerAPI.createMenu({
+    id: 'review.approve',
+    title: 'Approve',
+    icon: 'ProtectIcon',
+    action: approve,
+  })
+
+  const actions = univerAPI.createSubmenu({
+    id: 'review.actions',
+    title: 'Actions',
+  }).addSubmenu(approveItem)
+
+  univerAPI.createSubmenu({
+    id: 'review.root',
+    title: 'Review',
+  }).addSubmenu(actions)
+    .appendTo(['contextMenu.mainArea', 'contextMenu.others'])
+}
+```
+
+```typescript
+import { registerReviewMenus } from './review-menu'
+
+registerReviewMenus(univerAPI)
+```
+
+顶部入口为 **Start → Quick approve**；在单元格上点击右键，选择 **Review → Actions → Approve**。本例的多级菜单位于右键菜单中。参见 [FMenu](/reference/facade/menu) 和 [FSubmenu](/reference/facade/submenu)。
+
+<span id="vue-menu-example" className="block scroll-m-24" />
+
+下载并解压完整 Vue 项目：
+
+[下载 Vue 3 菜单示例](/assets/examples/vue3/univer-vue3-menu-starter.zip)
+
+```bash
+npm install
+npm run dev
+```
+
+在下载项目中选择 **Application Facade**。A1 初始为 `Draft`，两个菜单入口都会将其改为 `Approved`，撤销可恢复修改前的值。每个编辑器只注册一次，Vue 宿主卸载时调用 `univer.dispose()`。
+
+## 插件开发：注册命令、图标和菜单 [#plugin-menu-example]
+
+[运行完整示例](#vue-menu-example)
+
+需要把能力封装为拥有自身注册与生命周期的 SDK 插件时，使用插件扩展机制。本例参考 [Sheets UI 控制器的命令及菜单注册方式](https://github.com/dream-num/univer/blob/dev/packages/sheets-ui/src/controllers/ui.controller.ts)，并使用 `IconManager` 完成[图标注册](https://github.com/dream-num/univer/blob/dev/packages/ui/src/controllers/components.controller.ts)。将代码放在 `review-plugin.ts` 中。
+
+```typescript
+import { CommandType, DependentOn, ICommandService, Inject, Injector, Plugin, UniverInstanceType } from '@univerjs/core'
+import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
+import { IconManager, IMenuManagerService, MenuItemType, RibbonStartGroup } from '@univerjs/ui'
+import { createElement } from 'react'
+
+const APPROVE_COMMAND_ID = 'review-plugin.command.approve'
+const APPROVE_MENU_ID = 'review-plugin.menu.approve'
+const APPROVE_ICON_ID = 'review-plugin.icon.approve'
+
+function ReviewIcon() {
+  return createElement('svg', {
+    viewBox: '0 0 24 24', width: 16, height: 16,
+    fill: 'none', stroke: 'currentColor', strokeWidth: 2,
+    'aria-hidden': true, 'data-review-plugin-icon': true,
+  }, createElement('path', { d: 'M5 12l4 4L19 6' }))
+}
+
+@DependentOn(UniverSheetsUIPlugin)
+export class ReviewPlugin extends Plugin {
+  static override pluginName = 'REVIEW_PLUGIN'
+  static override type = UniverInstanceType.UNIVER_SHEET
+
+  constructor(
+    private readonly _config: { approve: () => boolean },
+    @Inject(Injector) protected override _injector: Injector,
+    @ICommandService private readonly _commands: ICommandService,
+    @IMenuManagerService private readonly _menus: IMenuManagerService,
+    @Inject(IconManager) private readonly _icons: IconManager,
+  ) { super() }
+
+  override onStarting() {
+    this.disposeWithMe(this._commands.registerCommand({
+      id: APPROVE_COMMAND_ID,
+      type: CommandType.COMMAND,
+      handler: () => this._config.approve(),
+    }))
+    this.disposeWithMe(this._icons.register(APPROVE_ICON_ID, ReviewIcon))
+    this._menus.mergeMenu({
+      [RibbonStartGroup.OTHERS]: {
+        [APPROVE_MENU_ID]: {
+          order: 0,
+          menuItemFactory: () => ({
+            id: APPROVE_MENU_ID,
+            commandId: APPROVE_COMMAND_ID,
+            type: MenuItemType.BUTTON,
+            title: 'Plugin approve',
+            icon: APPROVE_ICON_ID,
+          }),
+        },
+      },
+    })
+  }
+}
+```
+
+预设初始化后、创建工作簿前注册 `ReviewPlugin`。它依赖 `UniverSheetsUIPlugin`，完整项目已包含同版 `@univerjs/sheets-ui`。菜单执行插件自己注册的命令，数据修改仍通过 Facade 完成。
+
+```typescript
+import { ReviewPlugin } from './review-plugin'
+
+univer.registerPlugin(ReviewPlugin, {
+  approve: () => {
+    const sheet = univerAPI.getActiveWorkbook()?.getActiveSheet()
+    if (!sheet) return false
+    sheet.getRange('A1').setValue('Approved by plugin')
+    return true
+  },
+})
+```
+
+在同一个下载项目中选择 **SDK Plugin**，或打开 `/?example=plugin`。点击 **Plugin approve**：自定义对勾图标可见，A1 从 `Draft` 变为 `Approved by plugin`，撤销后恢复 `Draft`。命令和图标的注册句柄交由 `disposeWithMe()` 管理，菜单 Schema 与编辑器共用生命周期。
+
+## 运行时配置：菜单项 ID 与命令 ID [#menu-runtime-configuration]
+
+本例的菜单项 ID 是 `review-plugin.menu.approve`，命令 ID 是 `review-plugin.command.approve`。修改显示或禁用状态时配置**菜单项 ID**，两种 ID 的用途不同。
+
+在示例顶部勾选 **Disable toolbar button** 后再取消，按钮应依次禁用、恢复；勾选 **Hide toolbar button** 后再取消，按钮应消失、重新出现。这些宿主控件调用 `updateMenuConfig()`，禁用操作对应：
+
+```typescript
+univerAPI.updateMenuConfig({
+  'review-plugin.menu.approve': { disabled: true },
+})
+```
+
+设置 `disabled: false` 可恢复可用状态；`hidden: true` / `false` 用于隐藏或恢复。在应用接入示例中，控件只影响工具栏快捷按钮，不影响独立的右键菜单入口。

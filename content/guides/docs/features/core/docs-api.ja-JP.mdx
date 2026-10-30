@@ -2,126 +2,187 @@
 title: Univer Docs API
 ---
 
-Univer Docs は Microsoft Word に近い概念で、プロフェッショナルな文書組版機能を提供します。
+Univer Docs API を使い、アプリケーションで文書を作成・編集・保存できます。特定の段落を更新したり、文字スタイルを変更したり、自動編集の対象をユーザーに示したりできます。以下では公開計画の作成から保存までを説明します。
 
-## インポート
+[文書を作成](#create-document) · [段落を編集](#edit-paragraph) · [文字スタイルを変更](#text-style) · [結果を保存](#get-document-data)
+
+例は **Univer 1.3.0** を使用します。[Docs のインストール](/guides/docs/getting-started/installation)を完了し、各 Univer パッケージの版を揃えてください。
+
+<span id="ドキュメントの-unitid-を取得" className="block scroll-m-24" />
+
+## ID、セグメント、テキストオフセット [#document-identifiers]
+
+永続 ID は内容の識別、オフセットは文字位置に使います。前方への挿入で位置が変わっても、既存の段落・セクションの ID は変わりません。
+
+| 識別子 | 意味 | アクセス方法 |
+| --- | --- | --- |
+| `unitId` | 文書全体。Docs に `subUnitId` はありません。 | `doc.getId()` |
+| `paragraphId` | 永続化された段落 ID。 | `paragraph.getId()`、`doc.getParagraph(id, segmentId?)` |
+| `sectionId` | 従来型文書のセクション ID。 | `section.getId()`。`doc.getSection(index)` は ID ではなく **0** 始まりの位置を受け取ります。 |
+| `segmentId` | 本文（`''`）、ヘッダー、フッターの文字列。 | `paragraph.getSegmentId()` |
+| `startOffset`、`endOffset` | セグメント内の UTF-16 位置。開始を含み終了を含みません。 | `paragraph.getRange()`、`range.getRange()` |
+
+段落・セクションのハンドルは使用時に永続 ID を再解決します。`FDocumentTextRange` は**固定オフセット**なので、前方で挿入・削除した後は取得し直します。削除された要素のハンドルは無効です。[段落](/reference/facade/document-paragraph)、[セクション](/reference/facade/document-section)、[範囲](/reference/facade/document-text-range)を参照してください。
+
+<span id="インポート" className="block scroll-m-24" />
+
+## Facade のインポート
+
+プラグインモードでは内容操作に Docs Facade、表示上の選択には Docs UI Facade も必要です。プリセットには対応する Facade が含まれます。
 
 ```typescript
 import '@univerjs/docs/facade'
 import '@univerjs/docs-ui/facade'
 ```
 
-## ドキュメント操作
+<span id="ドキュメント操作" className="block scroll-m-24" />
 
-ドキュメントユニットでは、`unitId` はドキュメントの一意識別子に対応し、ドキュメントには `subUnitId` はありません。
+## 文書を作成する [#create-document]
 
-ドキュメントの本文は `body.dataStream` 文字列に保存され、ここにはスタイル情報は含まれません。
-
-スタイル情報は別のデータ構造に保持され、インデックス参照で本文と関連付けられます。
-
-改行、改ページ、セクション、段落、表などの要素は、本文内の特殊文字で表現され、レンダリング時に対応する要素へ変換されます。
-
-<Callout>
-  ドキュメントデータ構造の設計について詳しく知りたい場合は、[Univer Document Architecture and Module
-  Design](/blog/univer-doc-architecture) と [An Initial Exploration of Univer Document Typesetting
-  Design](/blog/doc-typesetting-design) を参照してください。
-</Callout>
-
-### ドキュメントの作成 [#create-document]
-
-`univerAPI.createDocument(data)` で新しいドキュメントを作成し、対応する `FDocument` facade ラッパーを取得します。
-
-引数は初期データを含む任意のドキュメントデータオブジェクトで、`{}` を渡すと空のドキュメントを作成します。
-
-Facade API ではなく低レベルの `univer` インスタンスを直接使う場合は、`univer.createUnit(UniverInstanceType.UNIVER_DOC, data)` を使用します。
+2段落と1つの従来型セクションを作成します。以降の例では返された `doc` を使います。後から同じ段落を探せるよう、ID を明示しています。
 
 ```typescript
-// [!code word:data]
-const doc = univerAPI.createDocument(data)
-```
-
-### ドキュメントの unitId を取得
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-const unitId = doc?.getId()
-```
-
-### ドキュメントデータを取得 [#get-document-data]
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-const saveData = doc.save()
-```
-
-### ドキュメントを破棄
-
-不要になったら Univer インスタンスの `dispose` を呼び出して破棄します。
-
-```typescript
-univer.dispose()
-```
-
-## テキスト操作
-
-リッチテキスト領域のテキスト要素を編集します。
-
-### テキストを挿入
-
-末尾に指定したテキストを追加します。
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-doc?.insertText(0, 'Univer')
-```
-
-### テキストを削除
-
-ドキュメントのオフセット範囲でテキストを削除します。
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-doc?.deleteRange({ startOffset: 0, endOffset: 1 })
-```
-
-## スタイルの変更
-
-段落内のテキストスタイルを設定します。
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-const paragraph = doc?.getParagraphs()[0]
-
-paragraph?.setStyle({
-  textStyle: {
-    cl: {
-      rgb: '#FF0000',
-    },
+const doc = univerAPI.createDocument({
+  id: 'launch-plan',
+  title: 'Launch plan',
+  body: {
+    dataStream: 'Launch plan\rStatus: Draft\r\n',
+    paragraphs: [
+      { startIndex: 11, paragraphId: 'p-title' },
+      { startIndex: 25, paragraphId: 'p-status' },
+    ],
+    sectionBreaks: [{ startIndex: 26, sectionId: 's-main' }],
+  },
+  documentStyle: {
+    documentFlavor: univerAPI.Enum.DocumentFlavor.TRADITIONAL,
+    pageSize: { width: 595, height: 842 },
+    marginTop: 40,
+    marginBottom: 40,
+    marginLeft: 40,
+    marginRight: 40,
   },
 })
 ```
 
-## 改ページの挿入
+エディターに「Launch plan」と「Status: Draft」の2段落が表示されます。`p-title` と `p-status` で後から同じ段落を参照できます。
 
-`\f` 文字は改ページで、ドキュメントに改ページを挿入できます。
+`\r` は段落末、`\n` はセクション末です。`startIndex` は対応する制御文字を指します。[本文構造](/guides/docs/model/document-body)を参照してください。実行時は API が位置を管理するため、ライブのスナップショットを直接書き換えないでください。
+
+## 段落を特定して編集する [#edit-paragraph]
+
+実際の段落 ID を使用します。`setText()` は段落の文字を置換し、`appendText()` は段落末の直前に追加します。前方に文字を挿入した後も、同じ状態段落を操作できます。
 
 ```typescript
-const doc = univerAPI.getActiveDocument()
-doc?.insertText(0, '\f')
+const paragraph = doc.getParagraph('p-status')
+if (!paragraph) throw new Error('Status paragraph not found')
+
+const paragraphId = paragraph.getId()
+doc.insertText(0, '[Review] ')
+paragraph.setText('Status: Ready')
+paragraph.appendText(' for review')
+
+console.log(doc.getParagraph(paragraphId)?.getText())
+// Status: Ready for review
 ```
 
-## ドキュメント統計
+最初の段落は「[Review] Launch plan」、次は「Status: Ready for review」になります。状態段落の位置が変わっても ID は維持されます。
 
-基盤の `DocumentDataModel` を使って、ドキュメント全体または選択範囲の統計を計算できます。
+<span id="スタイルの変更" className="block scroll-m-24" />
+
+## 選択範囲を変えずに文字を装飾する [#text-style]
+
+対象文字を検索して直接スタイルを設定します。可視の選択範囲は不要なので Agent やヘッドレス処理にも適しています。
+
+```typescript
+const status = doc.getParagraph('p-status')
+const ready = status?.findText('Ready')
+if (!ready) throw new Error('Target text not found')
+
+ready.setTextStyle({ cl: { rgb: '#2563eb' }, bl: 1 })
+console.log(ready.getText())
+```
+
+「Ready」が青色の太字になり、同じ段落の他の文字は変わりません。
+
+`setTextStyle()` は既存文字を変更し、その後の入力全体の色を設定するものではありません。段落の配置・既定の文字スタイルは [paragraph.setStyle()](/reference/facade/document-paragraph#setstyle)を使用します。
+
+## エディターに選択範囲を表示する [#text-selection]
+
+この本文の例では、まず本文の編集状態にしてから現在の位置を `setSelection()` に渡してください。Docs UI が必要で、戻り値は `void`、内容は変更しません。**現在編集中のセグメント**を使用し、`segmentId` 引数はありません。ヘッダーやフッターから本文へ自動では切り替わりません。
+
+```typescript
+const target = doc.getParagraph('p-status')?.findText('Ready')
+if (!target) throw new Error('Target text not found')
+
+const { startOffset, endOffset } = target.getRange()
+doc.setSelection(startOffset, endOffset)
+```
+
+## 従来型文書のセクションを探す [#document-sections]
+
+Section API は **Traditional** 文書用です。Modern 文書では ColumnGroup API を使います。`getSection(0)` は最初のセクションです。ID がある場合は現在の一覧から検索し、文字列 ID を `getSection()` に渡さないでください。
+
+```typescript
+if (doc.isTraditional()) {
+  const firstSection = doc.getSection(0)
+  console.log(firstSection?.getId())
+
+  const section = doc.getSections().find(item => item.getId() === 's-main')
+  console.log(section?.getRange())
+}
+```
+
+<span id="ドキュメントを破棄" className="block scroll-m-24" />
+
+## 保存と破棄 [#get-document-data]
+
+`save()` は段落・セクション ID を含むスナップショットを返し、アプリが永続化します。単一文書は `disposeUnit()`、ホストのアンマウント時は `univer.dispose()` で破棄します。
+
+```typescript
+const snapshot = doc.save()
+console.log(snapshot.body?.paragraphs, snapshot.body?.sectionBreaks)
+
+// When this document is no longer needed:
+// univerAPI.disposeUnit(doc.getId())
+```
+
+## テキスト操作 [#テキスト操作]
+
+### テキストを挿入 [#テキストを挿入]
+
+指定したオフセットにテキストを挿入します。0 は本文の先頭を示します。
 
 ```typescript
 const doc = univerAPI.getActiveDocument()
 if (!doc) throw new Error('No active document')
 
-const statistics = await doc.getDocumentDataModel().getStatistics({
-  locale: univerAPI.Enum.LocaleType.JA_JP,
-})
-console.log(statistics.words, statistics.charactersWithSpaces, statistics.paragraphs)
+doc.insertText(0, 'Review: ')
 ```
 
-`getStatistics()` は単語数、文字数、段落数を返します。`ranges` で選択範囲だけを集計し、`signal` で不要になった計算を中止できます。
+### テキストを削除 [#テキストを削除]
+
+startOffset を含み、endOffset を含まない範囲の文字を削除します。
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+if (!doc) throw new Error('No active document')
+
+doc.deleteRange({ startOffset: 0, endOffset: 8 })
+```
+
+## 改ページの挿入 [#改ページの挿入]
+
+Traditional 文書で、指定位置に改ページ文字を挿入します。
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+if (!doc) throw new Error('No active document')
+
+if (doc.isTraditional()) {
+  doc.insertText(0, '\f')
+}
+```
+
+## ドキュメント統計 [#ドキュメント統計]
+
+現在の FDocument Facade には文書統計メソッドがありません。利用可能なメソッドは [FDocument リファレンス](/reference/facade/document)を参照してください。

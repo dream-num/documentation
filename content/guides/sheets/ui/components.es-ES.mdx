@@ -432,3 +432,178 @@ const disposable = fWorksheet.addFloatDomToPosition({
 // Remove the floating DOM
 disposable.dispose()
 ```
+
+## Extensión de menús: integración de aplicaciones y desarrollo de plugins [#menu-extension-paths]
+
+Elige según la tarea. Ambas rutas usan el mismo sistema de menús; Facade encapsula las operaciones de la aplicación.
+
+| Tarea | Punto de entrada | Ejemplo |
+| --- | --- | --- |
+| Añadir botones de negocio y submenús | `createMenu()` / `createSubmenu()` / `appendTo()` | [Ejemplo de aplicación](#nested-toolbar-menu) |
+| Mostrar, ocultar o desactivar elementos | Configuración inicial `menu` / `updateMenuConfig()` | [Configuración en ejecución](#menu-runtime-configuration) |
+| Desarrollar un plugin SDK con menús, comandos e iconos propios | Ciclo de vida `Plugin` / Schema de menú / servicios de extensión inyectados | [Ejemplo de plugin](#plugin-menu-example) |
+
+La instalación de la aplicación en **modo plugin** también permite usar Facade API. Un plugin SDK propio registra extensiones mediante inyección de dependencias y ciclo de vida: `IMenuManagerService` gestiona el Schema de menús, `ICommandService` los comandos e `IconManager` los iconos.
+
+## Integración de aplicaciones: menús Vue y acciones de negocio [#nested-toolbar-menu]
+
+Añade un acceso en la barra de herramientas y un menú contextual anidado con Facade API. Ambos ejecutan la misma acción: escribir `Approved` en A1.
+
+[Ejecutar el ejemplo completo](#vue-menu-example)
+
+Completa primero la [integración Vue](/guides/sheets/getting-started/integrations/vue). El proyecto usa **Univer 1.3.0**; alinea las versiones de los paquetes Univer. El icono `ProtectIcon` está integrado.
+
+Guarda este código en `review-menu.ts` y llámalo una vez después de inicializar, antes de crear el libro.
+
+```typescript
+import type { FUniver } from '@univerjs/core/facade'
+import '@univerjs/sheets/facade'
+import '@univerjs/ui/facade'
+
+export function registerReviewMenus(univerAPI: FUniver) {
+  const approve = () => {
+    const sheet = univerAPI.getActiveWorkbook()?.getActiveSheet()
+    if (!sheet) return
+    sheet.getRange('A1').setValue('Approved')
+  }
+
+  univerAPI.createMenu({
+    id: 'review.quick-approve',
+    title: 'Quick approve',
+    icon: 'ProtectIcon',
+    action: approve,
+  }).appendTo('ribbon.start.others')
+
+  const approveItem = univerAPI.createMenu({
+    id: 'review.approve',
+    title: 'Approve',
+    icon: 'ProtectIcon',
+    action: approve,
+  })
+
+  const actions = univerAPI.createSubmenu({
+    id: 'review.actions',
+    title: 'Actions',
+  }).addSubmenu(approveItem)
+
+  univerAPI.createSubmenu({
+    id: 'review.root',
+    title: 'Review',
+  }).addSubmenu(actions)
+    .appendTo(['contextMenu.mainArea', 'contextMenu.others'])
+}
+```
+
+```typescript
+import { registerReviewMenus } from './review-menu'
+
+registerReviewMenus(univerAPI)
+```
+
+El acceso superior es **Start → Quick approve**. Haz clic derecho en una celda para **Review → Actions → Approve**. El menú anidado de este ejemplo es contextual. Consulta [FMenu](/reference/facade/menu) y [FSubmenu](/reference/facade/submenu).
+
+<span id="vue-menu-example" className="block scroll-m-24" />
+
+Descarga y descomprime el proyecto Vue completo:
+
+[Descargar el ejemplo de menú Vue 3](/assets/examples/vue3/univer-vue3-menu-starter.zip)
+
+```bash
+npm install
+npm run dev
+```
+
+En el proyecto descargado, selecciona **Application Facade**. A1 empieza en `Draft`; ambos accesos la cambian a `Approved`. Deshacer restaura el valor anterior. Registra una vez por editor; el host Vue llama a `univer.dispose()` al desmontarse.
+
+## Desarrollo de plugins: registrar comando, icono y menú [#plugin-menu-example]
+
+[Ejecutar el ejemplo completo](#vue-menu-example)
+
+Usa el mecanismo de plugins para una extensión con registro y ciclo de vida propios. Este ejemplo sigue el [controlador Sheets UI](https://github.com/dream-num/univer/blob/dev/packages/sheets-ui/src/controllers/ui.controller.ts) y el [registro de iconos](https://github.com/dream-num/univer/blob/dev/packages/ui/src/controllers/components.controller.ts) con `IconManager`. Guarda el código en `review-plugin.ts`.
+
+```typescript
+import { CommandType, DependentOn, ICommandService, Inject, Injector, Plugin, UniverInstanceType } from '@univerjs/core'
+import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui'
+import { IconManager, IMenuManagerService, MenuItemType, RibbonStartGroup } from '@univerjs/ui'
+import { createElement } from 'react'
+
+const APPROVE_COMMAND_ID = 'review-plugin.command.approve'
+const APPROVE_MENU_ID = 'review-plugin.menu.approve'
+const APPROVE_ICON_ID = 'review-plugin.icon.approve'
+
+function ReviewIcon() {
+  return createElement('svg', {
+    viewBox: '0 0 24 24', width: 16, height: 16,
+    fill: 'none', stroke: 'currentColor', strokeWidth: 2,
+    'aria-hidden': true, 'data-review-plugin-icon': true,
+  }, createElement('path', { d: 'M5 12l4 4L19 6' }))
+}
+
+@DependentOn(UniverSheetsUIPlugin)
+export class ReviewPlugin extends Plugin {
+  static override pluginName = 'REVIEW_PLUGIN'
+  static override type = UniverInstanceType.UNIVER_SHEET
+
+  constructor(
+    private readonly _config: { approve: () => boolean },
+    @Inject(Injector) protected override _injector: Injector,
+    @ICommandService private readonly _commands: ICommandService,
+    @IMenuManagerService private readonly _menus: IMenuManagerService,
+    @Inject(IconManager) private readonly _icons: IconManager,
+  ) { super() }
+
+  override onStarting() {
+    this.disposeWithMe(this._commands.registerCommand({
+      id: APPROVE_COMMAND_ID,
+      type: CommandType.COMMAND,
+      handler: () => this._config.approve(),
+    }))
+    this.disposeWithMe(this._icons.register(APPROVE_ICON_ID, ReviewIcon))
+    this._menus.mergeMenu({
+      [RibbonStartGroup.OTHERS]: {
+        [APPROVE_MENU_ID]: {
+          order: 0,
+          menuItemFactory: () => ({
+            id: APPROVE_MENU_ID,
+            commandId: APPROVE_COMMAND_ID,
+            type: MenuItemType.BUTTON,
+            title: 'Plugin approve',
+            icon: APPROVE_ICON_ID,
+          }),
+        },
+      },
+    })
+  }
+}
+```
+
+Registra `ReviewPlugin` después de inicializar el preset, antes de crear el libro. Depende de `UniverSheetsUIPlugin`; el proyecto completo incluye la misma versión de `@univerjs/sheets-ui`. El menú ejecuta su propio comando y modifica los datos mediante Facade.
+
+```typescript
+import { ReviewPlugin } from './review-plugin'
+
+univer.registerPlugin(ReviewPlugin, {
+  approve: () => {
+    const sheet = univerAPI.getActiveWorkbook()?.getActiveSheet()
+    if (!sheet) return false
+    sheet.getRange('A1').setValue('Approved by plugin')
+    return true
+  },
+})
+```
+
+En el mismo proyecto, selecciona **SDK Plugin** o abre `/?example=plugin`. Aparece la marca personalizada de **Plugin approve**; al pulsar, A1 pasa de `Draft` a `Approved by plugin`. Deshacer restaura `Draft`. `disposeWithMe()` gestiona los registros de comandos e iconos; el Schema del menú comparte la vida del editor.
+
+## Configuración en ejecución: ID de elemento e ID de comando [#menu-runtime-configuration]
+
+El ID del elemento es `review-plugin.menu.approve` y el de su comando `review-plugin.command.approve`. Configura el **ID del elemento de menú** para modificar su estado de interfaz.
+
+Marca y desmarca **Disable toolbar button** para desactivar y activar el botón. Haz lo mismo con **Hide toolbar button** para ocultarlo y restaurarlo. Estos controles del host llaman a `updateMenuConfig()`; la desactivación corresponde a:
+
+```typescript
+univerAPI.updateMenuConfig({
+  'review-plugin.menu.approve': { disabled: true },
+})
+```
+
+Usa `disabled: false` para activar y `hidden: true` / `false` para ocultar o restaurar. En el ejemplo de aplicación, los controles solo afectan al botón de la barra, no a la acción contextual independiente.

@@ -2,125 +2,187 @@
 title: Univer Docs API
 ---
 
-Univer Docs 提供專業級文件排版能力，相關概念會儘可能與 Microsoft Word 保持一致。
+透過 Univer Docs API，在應用程式中建立、編輯和儲存文件。你可以定位指定段落更新報告、修改文字樣式，也能向使用者顯示自動化操作修改的位置。以下以一份發布計畫串起從建立到儲存的完整流程。
 
-## 引入
+[建立文件](#create-document) · [編輯指定段落](#edit-paragraph) · [修改文字樣式](#text-style) · [儲存結果](#get-document-data)
+
+範例使用 **Univer 1.3.0**。請先完成 [Docs 安裝](/guides/docs/getting-started/installation)，並保持各 Univer 套件版本一致。
+
+<span id="獲取文件-unitid" className="block scroll-m-24" />
+
+## ID、文字片段與偏移量 [#document-identifiers]
+
+使用持久化 ID 識別內容，用偏移量表示文字位置。在前面插入文字會改變索引，但不會改變既有段落或節的識別。
+
+| 識別 | 意義 | 取得與定位 |
+| --- | --- | --- |
+| `unitId` | 整篇文件；Docs 沒有 `subUnitId`。 | `doc.getId()` |
+| `paragraphId` | 持久化段落識別。 | `paragraph.getId()`；`doc.getParagraph(id, segmentId?)` |
+| `sectionId` | 傳統文件的持久化節識別。 | `section.getId()`；`doc.getSection(index)` 使用從 **0** 開始的索引，不是 ID。 |
+| `segmentId` | 正文（`''`）、頁首或頁尾文字流。 | `paragraph.getSegmentId()` |
+| `startOffset`、`endOffset` | 片段內的 UTF-16 位置，包含起點、不包含終點。 | `paragraph.getRange()` 或 `range.getRange()` |
+
+段落和節的控制代碼會在呼叫時重新依持久化 ID 定位；`FDocumentTextRange` 保留**固定偏移量**，在前方插入或刪除文字後需重新取得。內容刪除後舊控制代碼失效。見[段落](/reference/facade/document-paragraph)、[節](/reference/facade/document-section)與[文字範圍](/reference/facade/document-text-range)。
+
+<span id="引入" className="block scroll-m-24" />
+
+## 匯入 Facade
+
+外掛模式下，內容操作匯入 Docs Facade，顯示選取範圍另需 Docs UI Facade。預設模式已包含對應入口。
 
 ```typescript
 import '@univerjs/docs/facade'
 import '@univerjs/docs-ui/facade'
 ```
 
-## 操作文件
+<span id="操作文件" className="block scroll-m-24" />
 
-文件單元中 `unitId` 對應的是文件的唯一標識，文件不存在 `subUnitId`。
+## 建立文件 [#create-document]
 
-文件的文字內容儲存在 `body.dataStream` 字串中，此字串不包含樣式資訊。
-
-樣式資訊單獨儲存在另外的資料結構中，並透過下標索引與文字內容關聯。
-
-對於換行、分頁、章節、段落、表格等元素， 在文字內容中使用不同的特殊字元來標記，這些特殊字元在渲染時被轉換為對應的元素。
-
-<Callout>
-  想要進一步瞭解文件的資料結構設計嗎？推薦閱讀[《Univer 文件架構及模組設計》](/blog/univer-doc-architecture) 和[《Univer
-  文件排版設計初探》](/blog/doc-typesetting-design)。
-</Callout>
-
-### 建立文件 [#create-document]
-
-使用 `univerAPI.createDocument(data)` 建立新的文件，並取得對應的 `FDocument` facade 包裝物件。
-
-參數是一個可選的文件資料物件，包含了文件的初始資料。如果傳入 `{}`，則建立一個空文件。
-
-如果直接使用底層 `univer` 實例而不是 Facade API，則使用 `univer.createUnit(UniverInstanceType.UNIVER_DOC, data)`。
+本例建立兩個段落與一個傳統文件節。後續程式操作傳回的 `doc`。快照明確提供 ID，方便之後尋找相同段落。
 
 ```typescript
-// [!code word:data]
-const doc = univerAPI.createDocument(data)
-```
-
-### 獲取文件 unitId
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-const unitId = doc?.getId()
-```
-
-### 獲取文件資料 [#get-document-data]
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-const saveData = doc.save()
-```
-
-### 銷燬文件
-
-當我們不再需要文件時，可以呼叫 Univer 例項的 `dispose` 方法來銷燬例項。
-
-```typescript
-univer.dispose()
-```
-
-## 操作文字
-
-對富文字區域的文字元素進行操作
-
-### 插入文字
-
-將指定的文字新增到此文字區域的末尾。
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-doc?.insertText(0, 'Univer')
-```
-
-### 刪除文字
-
-按文件偏移刪除文字。
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-doc?.deleteRange({ startOffset: 0, endOffset: 1 })
-```
-
-## 修改樣式
-
-設定段落中的文字樣式。
-
-```typescript
-const doc = univerAPI.getActiveDocument()
-const paragraph = doc?.getParagraphs()[0]
-
-paragraph?.setStyle({
-  textStyle: {
-    cl: {
-      rgb: '#FF0000',
-    },
+const doc = univerAPI.createDocument({
+  id: 'launch-plan',
+  title: 'Launch plan',
+  body: {
+    dataStream: 'Launch plan\rStatus: Draft\r\n',
+    paragraphs: [
+      { startIndex: 11, paragraphId: 'p-title' },
+      { startIndex: 25, paragraphId: 'p-status' },
+    ],
+    sectionBreaks: [{ startIndex: 26, sectionId: 's-main' }],
+  },
+  documentStyle: {
+    documentFlavor: univerAPI.Enum.DocumentFlavor.TRADITIONAL,
+    pageSize: { width: 595, height: 842 },
+    marginTop: 40,
+    marginBottom: 40,
+    marginLeft: 40,
+    marginRight: 40,
   },
 })
 ```
 
-## 插入分頁符
+編輯器會顯示「Launch plan」和「Status: Draft」兩個段落。應用程式可透過 `p-title`、`p-status` 在後續操作中繼續找到它們。
 
-`\f` 為分頁符，用於在文件中插入分頁符。
+`\r` 結束段落，`\n` 結束節，`startIndex` 指向對應控制字元。見[正文資料結構](/guides/docs/model/document-body)。執行時 API 維護索引，請勿改寫即時快照來編輯。
+
+## 定位並編輯段落 [#edit-paragraph]
+
+使用實際段落 ID。`setText()` 取代段落文字，`appendText()` 在段落結束符前附加文字。本例即使先在文件前方插入內容，仍修改原本的狀態段落。
 
 ```typescript
-const doc = univerAPI.getActiveDocument()
-doc?.insertText(0, '\f')
+const paragraph = doc.getParagraph('p-status')
+if (!paragraph) throw new Error('Status paragraph not found')
+
+const paragraphId = paragraph.getId()
+doc.insertText(0, '[Review] ')
+paragraph.setText('Status: Ready')
+paragraph.appendText(' for review')
+
+console.log(doc.getParagraph(paragraphId)?.getText())
+// Status: Ready for review
 ```
 
-## 文件統計
+第一段變成「[Review] Launch plan」，第二段變成「Status: Ready for review」。狀態段落的位置改變，但 ID 保持不變。
 
-透過底層 `DocumentDataModel` 統計整份文件或指定文字範圍。
+<span id="修改樣式" className="block scroll-m-24" />
+
+## 不切換選取範圍即可設定文字樣式 [#text-style]
+
+找到目標文字後直接設定樣式，不需要可見選取範圍，也適用於 Agent 與無頭處理。
+
+```typescript
+const status = doc.getParagraph('p-status')
+const ready = status?.findText('Ready')
+if (!ready) throw new Error('Target text not found')
+
+ready.setTextStyle({ cl: { rgb: '#2563eb' }, bl: 1 })
+console.log(ready.getText())
+```
+
+「Ready」會顯示為藍色粗體，段落中的其他文字維持原樣。
+
+`setTextStyle()` 修改既有字元，不會設定後續輸入的全域顏色。段落版面與預設文字樣式使用 `paragraph.setStyle()`，見 [FDocumentParagraph.setStyle()](/reference/facade/document-paragraph#setstyle)。
+
+## 在編輯器顯示選取範圍 [#text-selection]
+
+本例定位正文文字，請先進入正文編輯狀態，再把目前偏移量傳給 `setSelection()`。此方法依賴 Docs UI，傳回 `void`，不修改內容。它使用**目前編輯的文字片段**，沒有 `segmentId` 參數，不會自動從頁首或頁尾切回正文。
+
+```typescript
+const target = doc.getParagraph('p-status')?.findText('Ready')
+if (!target) throw new Error('Target text not found')
+
+const { startOffset, endOffset } = target.getRange()
+doc.setSelection(startOffset, endOffset)
+```
+
+## 定位傳統文件的節 [#document-sections]
+
+Section API 適用於 **Traditional（傳統分頁）** 文件；Modern 文件使用 ColumnGroup API。`getSection(0)` 取得第一節，已知 ID 可在目前節清單中尋找；請勿將字串 ID 傳給 `getSection()`。
+
+```typescript
+if (doc.isTraditional()) {
+  const firstSection = doc.getSection(0)
+  console.log(firstSection?.getId())
+
+  const section = doc.getSections().find(item => item.getId() === 's-main')
+  console.log(section?.getRange())
+}
+```
+
+<span id="銷燬文件" className="block scroll-m-24" />
+
+## 儲存與銷毀 [#get-document-data]
+
+`save()` 傳回包含段落和節 ID 的目前快照，由應用程式持久化。`disposeUnit()` 銷毀單篇文件；宿主卸載時以 `univer.dispose()` 銷毀編輯器。
+
+```typescript
+const snapshot = doc.save()
+console.log(snapshot.body?.paragraphs, snapshot.body?.sectionBreaks)
+
+// When this document is no longer needed:
+// univerAPI.disposeUnit(doc.getId())
+```
+
+## 操作文字 [#操作文字]
+
+### 插入文字 [#插入文字]
+
+在指定偏移量插入文字。偏移量 0 表示正文開頭。
 
 ```typescript
 const doc = univerAPI.getActiveDocument()
 if (!doc) throw new Error('No active document')
 
-const statistics = await doc.getDocumentDataModel().getStatistics({
-  locale: univerAPI.Enum.LocaleType.ZH_TW,
-})
-console.log(statistics.words, statistics.charactersWithSpaces, statistics.paragraphs)
+doc.insertText(0, 'Review: ')
 ```
 
-`getStatistics()` 會傳回單字、字元與段落數量。透過 `ranges` 可只統計選取的文字，透過 `signal` 可取消已不再需要的計算。
+### 刪除文字 [#刪除文字]
+
+刪除 startOffset（包含）到 endOffset（不包含）之間的文字。
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+if (!doc) throw new Error('No active document')
+
+doc.deleteRange({ startOffset: 0, endOffset: 8 })
+```
+
+## 插入分頁符 [#插入分頁符]
+
+在傳統分頁文件中，將分頁符插入指定位置。
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+if (!doc) throw new Error('No active document')
+
+if (doc.isTraditional()) {
+  doc.insertText(0, '\f')
+}
+```
+
+## 文件統計 [#文件統計]
+
+目前版本的 FDocument Facade 尚未提供文件統計方法，可用方法見 [FDocument 參考](/reference/facade/document)。
