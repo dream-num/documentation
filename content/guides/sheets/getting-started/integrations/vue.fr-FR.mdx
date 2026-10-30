@@ -66,74 +66,21 @@ onBeforeUnmount(() => {
 </template>
 ```
 
-## Vue 2.x
+## Vue 2.x [#vue-2x]
 
-### Remarques avant l’intégration
+Cette section concerne les applications Vue 2 existantes. Exemple vérifié avec Vue **2.7.16**, Vite **6.3.6**, `@vitejs/plugin-vue2` **2.3.3** et Univer **1.3.0**. Préférez Vue 3 pour un nouveau projet.
 
-- Lorsque vous installez `@univerjs/presets` avec pnpm, vous devrez peut-être installer manuellement `react` et `react-dom`.
-- Si l’avertissement « ResizeObserver loop limit exceeded » s’affiche dans l’environnement de développement, vous pouvez l’ignorer ou consulter l’extrait de code ci-dessous pour le résoudre :
+Pour partir de zéro, extrayez le [starter](/assets/examples/vue2/univer-vue2-starter.zip), lancez `npm install` puis `npm run dev` et ouvrez l’URL affichée. Son interface est en anglais. Pour un projet existant, suivez les étapes ci-dessous.
 
-```typescript
-if (process.env.NODE_ENV === 'development') {
-  const _ResizeObserver = window.ResizeObserver
-  function debounce(fn, delay) {
-    let timer = null
-    return function () {
-      if (timer) {
-        clearTimeout(timer)
-      }
-      timer = setTimeout(() => {
-        fn.apply(this, arguments)
-      }, delay)
-    }
-  }
-  window.ResizeObserver = class ResizeObserver extends _ResizeObserver {
-    constructor(callback) {
-      callback = debounce(callback, 50)
-      super(callback)
-    }
-  }
-}
+### Installer des dépendances cohérentes
+
+```bash
+npm install @univerjs/presets@1.3.0 @univerjs/preset-sheets-core@1.3.0 react@18.3.1 react-dom@18.3.1 rxjs@7.8.2
 ```
 
-- Si vous utilisez Vue CLI 3.x/4.x (basé sur Webpack 4.x) comme outil de build, vous devez remplacer manuellement les chemins mappés par les chemins réels :
+### Ajouter le composant à votre page
 
-```javascript
-// vue.config.js
-const path = require('node:path')
-
-module.exports = {
-  transpileDependencies: ['@wendellhu/redi'],
-  configureWebpack: {
-    resolve: {
-      alias: {
-        '@univerjs/core/facade': path.resolve(__dirname, 'node_modules/@univerjs/core/lib/facade.js'),
-        '@univerjs/engine-formula/facade': path.resolve(__dirname, 'node_modules/@univerjs/engine-formula/lib/facade.js'),
-        '@univerjs/preset-sheets-core/lib/index.css': path.resolve(__dirname, 'node_modules/@univerjs/preset-sheets-core/lib/index.css'),
-        '@univerjs/preset-sheets-core/locales/en-US': path.resolve(__dirname, 'node_modules/@univerjs/preset-sheets-core/lib/es/locales/en-US.js'),
-        '@univerjs/design/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/design/lib/es/locale/en-US.js'),
-        '@univerjs/docs-ui/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/docs-ui/lib/es/locale/en-US.js'),
-        '@univerjs/sheets-formula-ui/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/sheets-formula-ui/lib/es/locale/en-US.js'),
-        '@univerjs/sheets-formula/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/sheets-formula/lib/es/locale/en-US.js'),
-        '@univerjs/sheets-numfmt-ui/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/sheets-numfmt-ui/lib/es/locale/en-US.js'),
-        '@univerjs/sheets-ui/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/sheets-ui/lib/es/locale/en-US.js'),
-        '@univerjs/sheets/facade': path.resolve(__dirname, 'node_modules/@univerjs/sheets/lib/facade.js'),
-        '@univerjs/sheets/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/sheets/lib/es/locale/en-US.js'),
-        '@univerjs/ui/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/ui/lib/es/locale/en-US.js'),
-        '@wendellhu/redi/react-bindings': path.resolve(__dirname, 'node_modules/@wendellhu/redi/dist/esm/react-bindings/index.js'),
-        // ...
-      },
-    },
-  },
-}
-```
-
-### Étapes d’intégration
-
-1. Initialisez Univer dans le hook `mounted`
-2. Détruisez Univer dans le hook `beforeDestroy`
-
-### Exemple
+Ne placez pas Univer ni Facade dans les `data` réactives. Initialisez dans `mounted`, une fois le conteneur présent, et appelez `univer.dispose()` dans `beforeDestroy`. Ne détruisez pas une seconde fois la même instance via Facade.
 
 ```vue
 <script>
@@ -159,13 +106,20 @@ export default {
       ],
     })
 
-    univerAPI.createWorkbook({})
-
     this.univerInstance = univer
+    this.univerAPI = univerAPI
+
+    const workbook = univerAPI.createWorkbook({})
+    workbook.getActiveSheet().getRange('A1:D3').setValues([
+      ['Item', 'Quantity', 'Unit price', 'Total'],
+      ['Notebook', 3, 12, '=B2*C2'],
+      ['Pen', 5, 2, '=B3*C3'],
+    ])
   },
   beforeDestroy() {
     this.univerInstance?.dispose()
     this.univerInstance = null
+    this.univerAPI = null
   },
 }
 </script>
@@ -174,3 +128,21 @@ export default {
   <div ref="container" style="height: 600px" />
 </template>
 ```
+
+### Vérifier le résultat
+
+Le premier montant doit être **36**. Passez la quantité de **3** à **4** et vérifiez **48**. Retirez puis remontez le composant pour vérifier sa destruction et sa recréation.
+
+### En cas d’échec d’initialisation
+
+Pour une erreur `setConfig`, comparez au starter et inspectez les dépendances avec la commande suivante. Gardez une seule version cohérente des paquets Univer et un couple React / ReactDOM compatible. Une trace seule ne prouve pas une incompatibilité avec Vue 2.
+
+```bash
+npm ls @univerjs/core @univerjs/ui @univerjs/presets @univerjs/preset-sheets-core react react-dom
+```
+
+Si seule la zone d’édition est vide, vérifiez sa hauteur et l’import du CSS du preset. Ne rendez pas l’instance Univer réactive pour la conserver dans le composant.
+
+### Webpack 4 / Vue CLI 3–4
+
+Le starter utilise Vite et les exports de paquets ; sa compilation ne valide pas Webpack 4. Si votre ancien outil ne résout pas les exports Facade ou des langues, privilégiez sa mise à niveau. Une liste d’alias incomplète peut masquer des modules absents ou dupliqués.

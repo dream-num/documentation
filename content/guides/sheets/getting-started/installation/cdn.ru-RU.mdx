@@ -2,244 +2,250 @@
 title: Подключение Web SDK через CDN
 ---
 
-Если вы не используете менеджер пакетов, Univer также можно подключить с помощью тегов `<script>`.
+Сначала запустите полный пример, затем скопируйте его на свою страницу. Он содержит зависимости, стили, языковые пакеты и регистрацию Facade для редактируемой таблицы с вычислением формул.
 
-#### Соглашение об именовании пространств имён
+## Попробуйте редактируемую таблицу
 
-Глобальная сборка Univer (UMD) предоставляет пространство имён в глобальном объекте согласно следующему соглашению:
+1. [Откройте пример](/assets/examples/cdn/sheets.ru-RU.html) или сохраните HTML ниже как `index.html`.
+2. Откройте его в современном браузере с доступом в Интернет. Сборщик и сервер не нужны. Интерфейс и данные примера — на русском языке.
+3. Сумма в строке «Блокнот» равна **36**. Измените количество с **3** на **4** — сумма станет **48**. Также можно редактировать ячейки и отменять изменения.
 
-```plain
-@univerjs/core -> UniverCore
-@univerjs/docs-ui -> UniverDocsUi
-@univerjs-pro/docs-print -> UniverProDocsPrint
-@univerjs/docs-ui/locale/en-US -> UniverDocsUiEnUS
-@univerjs/core/facade -> UniverCoreFacade
-```
+<a href="/assets/examples/cdn/sheets.ru-RU.html" download="univer-sheets.ru-RU.html">Скачать HTML</a>
 
-## Режим плагинов [#plugin-mode]
+## Полный пример HTML [#plugin-mode]
 
-### Использование глобальной сборки
+Пример использует **React 18.3.1 UMD**. Глобальный объект `React` не предоставляет `jsx` и `jsxs`, ожидаемые UMD-сборками Univer. Две строки ниже добавляют эти точки входа через публичный API `React.createElement`. При установке через менеджер пакетов сборщик разрешает `react/jsx-runtime`; этот UMD-мост в такой конфигурации не нужен.
 
-Univer предоставляет UMD-сборки плагинов. При использовании тегов сценариев CDN необходимо вручную подключить UMD-сборки каждого плагина и его зависимостей. Это довольно трудоёмкий процесс, поэтому рекомендуем прибегать к нему только после того, как вы полностью разберётесь в механизме плагинов, включая зависимости между ними и порядок подключения файлов стилей.
-
-#### Пример
+Ресурсы загружаются из jsDelivr в порядке зависимостей. При сбое пример повторяет запрос той же версии через unpkg и только затем продолжает загрузку. Если оба источника недоступны, запуск останавливается, а на странице отображается незагруженный ресурс.
 
 ```html
-<head>
-  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
-  <script>
-    /**
-     * Starting from Univer 0.6.0, with the support for React 19[^1], UMD users may need additional adaptation.
-     * It is recommended to migrate to module script[^2] and a more modern build system.
-     *
-     * [^1]: [support for React 19] https://github.com/dream-num/univer/pull/4247
-     * [^2]: [Module Script] https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules#applying_the_module_to_your_html
-     */
-
-    /**
-     * Fix `Uncaught TypeError: client.createRoot is not a function`
-     * If using UMD React < 18, you might need the following code.
-     */
-    ;(function (global) {
-      'use strict'
-      if (!global.ReactDOM) {
-        throw new Error('ReactDOM must be loaded before ReactCreateRoot.')
+<!doctype html>
+<html lang="ru-RU">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Пример Univer Sheets через CDN</title>
+    <style>
+      html,
+      body,
+      #root,
+      #app {
+        padding: 0;
+        margin: 0;
+        height: 100%;
       }
-      const ReactDOM = global.ReactDOM
-      if (!ReactDOM.createRoot) {
-        ReactDOM.createRoot = function (container) {
-          return {
-            render: (element) => {
-              ReactDOM.render(element, container)
-            },
+    </style>
+  </head>
+  <body>
+    <div id="app"><p role="status" style="padding: 24px; font-family: system-ui">Загрузка Univer…</p></div>
+    <script>
+      const cdnBases = ['https://cdn.jsdelivr.net/npm/', 'https://unpkg.com/']
+      const app = document.getElementById('app')
+
+      async function loadResource(path, tag = 'script') {
+        for (const base of cdnBases) {
+          const element = document.createElement(tag)
+          const url = base + path
+          element.crossOrigin = 'anonymous'
+          if (tag === 'link') {
+            element.rel = 'stylesheet'
+            element.href = url
+          } else {
+            element.src = url
+          }
+          try {
+            await new Promise((resolve, reject) => {
+              element.onload = () => resolve()
+              element.onerror = () => reject(new Error(url))
+              document.head.appendChild(element)
+            })
+            return
+          } catch {
+            element.remove()
           }
         }
+        throw new Error(`Could not load ${path} from ${cdnBases.join(' or ')}`)
       }
-    })(this)
 
-    /**
-     * Fix `Uncaught TypeError: jsxRuntime.jsx is not a function`
-     * If using UMD React, you might need the following code.
-     * Reference: https://unpkg.com/react@18.3.1/cjs/react-jsx-runtime.production.min.js
-     */
-    ;(function (global) {
-      'use strict'
-      if (!global.React) {
-        throw new Error('React must be loaded before ReactJSXRuntime.')
-      }
-      const React = global.React
-      if (!React.jsx || !React.jsxs) {
-        const REACT_ELEMENT_TYPE = Symbol.for('react.element')
-        const hasOwnProperty = Object.prototype.hasOwnProperty
-        const RESERVED_PROPS = {
-          key: true,
-          ref: true,
-          __self: true,
-          __source: true,
+      const styles = [
+        '@univerjs/design@1.3.0/lib/index.css',
+        '@univerjs/ui@1.3.0/lib/index.css',
+        '@univerjs/docs-ui@1.3.0/lib/index.css',
+        '@univerjs/sheets-ui@1.3.0/lib/index.css',
+        '@univerjs/sheets-formula-ui@1.3.0/lib/index.css',
+        '@univerjs/sheets-numfmt-ui@1.3.0/lib/index.css',
+      ]
+
+      const reactScripts = [
+        'react@18.3.1/umd/react.production.min.js',
+        'react-dom@18.3.1/umd/react-dom.production.min.js',
+      ]
+
+      const sdkScripts = [
+        'rxjs@7.8.2/dist/bundles/rxjs.umd.min.js',
+        '@wendellhu/redi@1.1.3/dist/umd/index.js',
+        '@wendellhu/redi@1.1.3/dist/umd/react-bindings/index.js',
+        '@univerjs/themes@1.3.0/lib/umd/index.js',
+        '@univerjs/protocol@1.3.0/lib/umd/index.js',
+        '@univerjs/core@1.3.0/lib/umd/index.js',
+        '@univerjs/network@1.3.0/lib/umd/index.js',
+        '@univerjs/rpc@1.3.0/lib/umd/index.js',
+        '@univerjs/design@1.3.0/lib/umd/index.js',
+        '@univerjs/engine-render@1.3.0/lib/umd/index.js',
+        '@univerjs/engine-formula@1.3.0/lib/umd/index.js',
+        '@univerjs/drawing@1.3.0/lib/umd/index.js',
+        '@univerjs/telemetry@1.3.0/lib/umd/index.js',
+        '@univerjs/ui@1.3.0/lib/umd/index.js',
+        '@univerjs/docs@1.3.0/lib/umd/index.js',
+        '@univerjs/docs-ui@1.3.0/lib/umd/index.js',
+        '@univerjs/sheets@1.3.0/lib/umd/index.js',
+        '@univerjs/sheets-ui@1.3.0/lib/umd/index.js',
+        '@univerjs/sheets-formula@1.3.0/lib/umd/index.js',
+        '@univerjs/sheets-formula-ui@1.3.0/lib/umd/index.js',
+        '@univerjs/sheets-numfmt@1.3.0/lib/umd/index.js',
+        '@univerjs/sheets-numfmt-ui@1.3.0/lib/umd/index.js',
+        '@univerjs/core@1.3.0/lib/umd/facade.js',
+        '@univerjs/engine-formula@1.3.0/lib/umd/facade.js',
+        '@univerjs/ui@1.3.0/lib/umd/facade.js',
+        '@univerjs/docs@1.3.0/lib/umd/facade.js',
+        '@univerjs/docs-ui@1.3.0/lib/umd/facade.js',
+        '@univerjs/sheets@1.3.0/lib/umd/facade.js',
+        '@univerjs/sheets-ui@1.3.0/lib/umd/facade.js',
+        '@univerjs/sheets-formula@1.3.0/lib/umd/facade.js',
+        '@univerjs/sheets-numfmt@1.3.0/lib/umd/facade.js',
+        '@univerjs/design@1.3.0/lib/umd/locale/ru-RU.js',
+        '@univerjs/ui@1.3.0/lib/umd/locale/ru-RU.js',
+        '@univerjs/sheets@1.3.0/lib/umd/locale/ru-RU.js',
+        '@univerjs/sheets-ui@1.3.0/lib/umd/locale/ru-RU.js',
+        '@univerjs/docs-ui@1.3.0/lib/umd/locale/ru-RU.js',
+        '@univerjs/sheets-formula-ui@1.3.0/lib/umd/locale/ru-RU.js',
+        '@univerjs/sheets-numfmt-ui@1.3.0/lib/umd/locale/ru-RU.js',
+      ]
+
+      // Fetch ahead in parallel; main() still executes scripts in dependency order.
+      for (const [as, paths] of [
+        ['style', styles],
+        ['script', [...reactScripts, ...sdkScripts]],
+      ]) {
+        for (const path of paths) {
+          const preload = document.createElement('link')
+          preload.rel = 'preload'
+          preload.as = as
+          preload.crossOrigin = 'anonymous'
+          preload.href = cdnBases[0] + path
+          preload.onerror = () => {
+            preload.onerror = null
+            preload.href = cdnBases[1] + path
+          }
+          document.head.appendChild(preload)
         }
-        const ReactCurrentOwner = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner
-        function createReactElement(type, config, maybeKey) {
-          const props = {}
-          let key = null
-          let ref = null
-          if (maybeKey !== undefined) {
-            key = `${maybeKey}`
-          }
-          if (config.key !== undefined) {
-            key = `${config.key}`
-          }
-          if (config.ref !== undefined) {
-            ref = config.ref
-          }
-          for (var propName in config) {
-            if (hasOwnProperty.call(config, propName) && !RESERVED_PROPS.hasOwnProperty(propName)) {
-              props[propName] = config[propName]
-            }
-          }
-          if (type && type.defaultProps) {
-            const defaultProps = type.defaultProps
-            for (var propName in defaultProps) {
-              if (props[propName] === undefined) {
-                props[propName] = defaultProps[propName]
-              }
-            }
-          }
-          return {
-            $$typeof: REACT_ELEMENT_TYPE,
-            type,
-            key,
-            ref,
-            props,
-            _owner: ReactCurrentOwner.current,
-          }
-        }
-        React.jsx = createReactElement
-        React.jsxs = createReactElement
       }
-    })(this)
-  </script>
-  <script src="https://unpkg.com/rxjs@7.8.1/dist/bundles/rxjs.umd.min.js"></script>
-  <script src="https://unpkg.com/echarts@5.6.0/dist/echarts.min.js"></script>
-  <script src="https://unpkg.com/@wendellhu/redi@1.1.2/dist/umd/index.js"></script>
-  <script src="https://unpkg.com/@wendellhu/redi@1.1.2/dist/umd/react-bindings/index.js"></script>
 
-  <script src="https://unpkg.com/@univerjs/themes/lib/umd/index.js"></script>
-  <script src="https://unpkg.com/@univerjs/protocol/lib/umd/index.js"></script>
-  <script src="https://unpkg.com/@univerjs/core/lib/umd/index.js"></script>
-  <script src="https://unpkg.com/@univerjs/network/lib/umd/index.js"></script>
-  <script src="https://unpkg.com/@univerjs/rpc/lib/umd/index.js"></script>
-  <script src="https://unpkg.com/@univerjs/design/lib/umd/index.js"></script>
-  <script src="https://unpkg.com/@univerjs/engine-render/lib/umd/index.js"></script>
-  <script src="https://unpkg.com/@univerjs/engine-formula/lib/umd/index.js"></script>
-  <script src="https://unpkg.com/@univerjs/drawing/lib/umd/index.js"></script>
-  <script src="https://unpkg.com/@univerjs/ui/lib/umd/index.js"></script>
-  <script src="https://unpkg.com/@univerjs/docs/lib/umd/index.js"></script>
-  <script src="https://unpkg.com/@univerjs/docs-ui/lib/umd/index.js"></script>
-  <script src="https://unpkg.com/@univerjs/sheets/lib/umd/index.js"></script>
-  <script src="https://unpkg.com/@univerjs/sheets-ui/lib/umd/index.js"></script>
-  <script src="https://unpkg.com/@univerjs/sheets-formula/lib/umd/index.js"></script>
-  <script src="https://unpkg.com/@univerjs/sheets-formula-ui/lib/umd/index.js"></script>
-  <script src="https://unpkg.com/@univerjs/sheets-numfmt/lib/umd/index.js"></script>
-  <script src="https://unpkg.com/@univerjs/sheets-numfmt-ui/lib/umd/index.js"></script>
+      async function main() {
+        for (const path of styles) await loadResource(path, 'link')
+        for (const path of reactScripts) await loadResource(path)
+        // Bridge the React 18 UMD global to the JSX runtime expected by Univer UMD bundles.
+        React.jsx = (type, props, key) => React.createElement(type, key === undefined ? props : { ...props, key })
+        React.jsxs = React.jsx
+        for (const path of sdkScripts) await loadResource(path)
+        app.textContent = ''
 
-  <script src="https://unpkg.com/@univerjs/core/lib/umd/facade.js"></script>
-  <script src="https://unpkg.com/@univerjs/engine-formula/lib/umd/facade.js"></script>
-  <script src="https://unpkg.com/@univerjs/ui/lib/umd/facade.js"></script>
-  <script src="https://unpkg.com/@univerjs/docs-ui/lib/umd/facade.js"></script>
-  <script src="https://unpkg.com/@univerjs/sheets/lib/umd/facade.js"></script>
-  <script src="https://unpkg.com/@univerjs/sheets-ui/lib/umd/facade.js"></script>
-  <script src="https://unpkg.com/@univerjs/sheets-formula/lib/umd/facade.js"></script>
-  <script src="https://unpkg.com/@univerjs/sheets-numfmt/lib/umd/facade.js"></script>
+        const { Univer, LocaleType, mergeLocales, UniverInstanceType } = UniverCore
+        const { FUniver } = UniverCoreFacade
+        const { UniverRenderEnginePlugin } = UniverEngineRender
+        const { UniverFormulaEnginePlugin } = UniverEngineFormula
+        const { UniverUIPlugin } = UniverUi
+        const { UniverSheetsPlugin } = UniverSheets
+        const { UniverSheetsUIPlugin } = UniverSheetsUi
+        const { UniverDocsPlugin } = UniverDocs
+        const { UniverDocsUIPlugin } = UniverDocsUi
+        const { UniverSheetsFormulaPlugin } = UniverSheetsFormula
+        const { UniverSheetsFormulaUIPlugin } = UniverSheetsFormulaUi
+        const { UniverSheetsNumfmtPlugin } = UniverSheetsNumfmt
+        const { UniverSheetsNumfmtUIPlugin } = UniverSheetsNumfmtUi
 
-  <script src="https://unpkg.com/@univerjs/design/lib/umd/locale/en-US.js"></script>
-  <script src="https://unpkg.com/@univerjs/ui/lib/umd/locale/en-US.js"></script>
-  <script src="https://unpkg.com/@univerjs/sheets/lib/umd/locale/en-US.js"></script>
-  <script src="https://unpkg.com/@univerjs/sheets-ui/lib/umd/locale/en-US.js"></script>
-  <script src="https://unpkg.com/@univerjs/docs-ui/lib/umd/locale/en-US.js"></script>
-  <script src="https://unpkg.com/@univerjs/sheets-formula-ui/lib/umd/locale/en-US.js"></script>
-  <script src="https://unpkg.com/@univerjs/sheets-numfmt-ui/lib/umd/locale/en-US.js"></script>
+        const univer = new Univer({
+          locale: LocaleType.RU_RU,
+          locales: {
+            [LocaleType.RU_RU]: mergeLocales(
+              UniverDesignRuRU,
+              UniverUiRuRU,
+              UniverSheetsRuRU,
+              UniverSheetsUiRuRU,
+              UniverDocsUiRuRU,
+              UniverSheetsFormulaUiRuRU,
+              UniverSheetsNumfmtUiRuRU,
+            ),
+          },
+        })
 
-  <link rel="stylesheet" href="https://unpkg.com/@univerjs/design/lib/index.css" />
-  <link rel="stylesheet" href="https://unpkg.com/@univerjs/ui/lib/index.css" />
-  <link rel="stylesheet" href="https://unpkg.com/@univerjs/docs-ui/lib/index.css" />
-  <link rel="stylesheet" href="https://unpkg.com/@univerjs/sheets-ui/lib/index.css" />
-  <link rel="stylesheet" href="https://unpkg.com/@univerjs/sheets-formula-ui/lib/index.css" />
-  <link rel="stylesheet" href="https://unpkg.com/@univerjs/sheets-numfmt-ui/lib/index.css" />
+        univer.registerPlugin(UniverRenderEnginePlugin)
+        univer.registerPlugin(UniverFormulaEnginePlugin)
 
-  <style>
-    html,
-    body,
-    #root,
-    #app {
-      padding: 0;
-      margin: 0;
-      height: 100%;
-    }
-  </style>
-</head>
-<body>
-  <div id="app"></div>
+        univer.registerPlugin(UniverUIPlugin, {
+          container: 'app',
+        })
 
-  <script>
-    const { Univer, LocaleType, mergeLocales, UniverInstanceType } = UniverCore
-    const { FUniver } = UniverCoreFacade
-    const { UniverRenderEnginePlugin } = UniverEngineRender
-    const { UniverFormulaEnginePlugin } = UniverEngineFormula
-    const { UniverUIPlugin } = UniverUi
-    const { UniverSheetsPlugin } = UniverSheets
-    const { UniverSheetsUIPlugin } = UniverSheetsUi
-    const { UniverDocsPlugin } = UniverDocs
-    const { UniverDocsUIPlugin } = UniverDocsUi
-    const { UniverSheetsFormulaPlugin } = UniverSheetsFormula
-    const { UniverSheetsFormulaUIPlugin } = UniverSheetsFormulaUi
-    const { UniverSheetsNumfmtPlugin } = UniverSheetsNumfmt
-    const { UniverSheetsNumfmtUIPlugin } = UniverSheetsNumfmtUi
+        univer.registerPlugin(UniverDocsPlugin)
+        univer.registerPlugin(UniverDocsUIPlugin)
 
-    const univer = new Univer({
-      locale: LocaleType.EN_US,
-      locales: {
-        [LocaleType.EN_US]: mergeLocales(
-          UniverDesignEnUS,
-          UniverUiEnUS,
-          UniverSheetsEnUS,
-          UniverSheetsUiEnUS,
-          UniverDocsUiEnUS,
-          UniverSheetsFormulaUiEnUS,
-          UniverSheetsNumfmtUiEnUS,
-        ),
-      },
-    })
+        univer.registerPlugin(UniverSheetsPlugin)
+        univer.registerPlugin(UniverSheetsUIPlugin)
+        univer.registerPlugin(UniverSheetsFormulaPlugin)
+        univer.registerPlugin(UniverSheetsFormulaUIPlugin)
+        univer.registerPlugin(UniverSheetsNumfmtPlugin)
+        univer.registerPlugin(UniverSheetsNumfmtUIPlugin)
 
-    univer.registerPlugin(UniverRenderEnginePlugin)
-    univer.registerPlugin(UniverFormulaEnginePlugin)
+        univer.createUnit(UniverInstanceType.UNIVER_SHEET, {})
 
-    univer.registerPlugin(UniverUIPlugin, {
-      container: 'app',
-    })
+        const univerAPI = FUniver.newAPI(univer)
+        window.univerAPI = univerAPI
+        univerAPI
+          .getActiveWorkbook()
+          .getActiveSheet()
+          .getRange('A1:D3')
+          .setValues([
+            ['Товар', 'Кол-во', 'Цена', 'Итого'],
+            ['Блокнот', 3, 12, '=B2*C2'],
+            ['Ручка', 5, 2, '=B3*C3'],
+          ])
+      }
 
-    univer.registerPlugin(UniverDocsPlugin)
-    univer.registerPlugin(UniverDocsUIPlugin)
-
-    univer.registerPlugin(UniverSheetsPlugin)
-    univer.registerPlugin(UniverSheetsUIPlugin)
-    univer.registerPlugin(UniverSheetsFormulaPlugin)
-    univer.registerPlugin(UniverSheetsFormulaUIPlugin)
-    univer.registerPlugin(UniverSheetsNumfmtPlugin)
-    univer.registerPlugin(UniverSheetsNumfmtUIPlugin)
-
-    univer.createUnit(UniverInstanceType.UNIVER_SHEET, {})
-
-    const univerAPI = FUniver.newAPI(univer)
-  </script>
-</body>
+      main().catch((error) => {
+        console.error(error)
+        app.setAttribute('role', 'alert')
+        app.style.cssText =
+          'padding: 24px; box-sizing: border-box; white-space: pre-wrap; overflow-wrap: anywhere; font: 14px/1.5 system-ui'
+        app.textContent =
+          'Не удалось загрузить пример. Проверьте подключение и обновите страницу.' + '\n' + error.message
+      })
+    </script>
+  </body>
+</html>
 ```
 
-## Указание версий
+## Правила именования
 
-И unpkg, и jsDeliver позволяют указать конкретную версию ресурса. Например, чтобы использовать Univer версии `x.y.z`, просто добавьте `@<version>` в URL:
+UMD-скрипты предоставляют экспорты модулей через глобальные объекты. Используйте эти имена для доступа к плагинам и Facade API в коде инициализации:
 
-```diff
-- https://unpkg.com/@univerjs/core/lib/umd/index.js
-+ https://unpkg.com/@univerjs/core@x.y.z/lib/umd/index.js
-```
+| Пакет или точка входа | Глобальное имя |
+| --- | --- |
+| `@univerjs/core` | `UniverCore` |
+| `@univerjs/docs-ui` | `UniverDocsUi` |
+| `@univerjs/core/facade` | `UniverCoreFacade` |
+| `@univerjs/docs-ui/locale/ru-RU` | `UniverDocsUiRuRU` |
+
+## Согласованные версии [#specifying-versions]
+
+В примере зафиксированы Univer **1.3.0**, React и ReactDOM **18.3.1**, RxJS **7.8.2**. При обновлении меняйте все URL Univer одновременно, включая Facade, CSS и языки. Не загружайте вторую копию библиотек, уже включённых в сборку приложения.
+
+## Устранение неполадок
+
+| Симптом | Что проверить |
+| --- | --- |
+| `ITelemetryService` | Загрузите `@univerjs/telemetry` до зависящего от него `@univerjs/sheets-ui`. Сохраните полный список зависимостей. |
+| `FDocument` | Загрузите `@univerjs/docs/facade` перед `@univerjs/docs-ui/facade`: Sheets также использует текстовый движок Docs. |
+| `[redi]`, `t is not a function` | Начните с полного примера: одна копия каждой зависимости и согласованные версии. Проверьте неудачные запросы во вкладке Network. |
+| Пустой редактор | Задайте высоту контейнера. Если сеть или CSP блокирует CDN, разместите зависимости у себя или используйте менеджер пакетов. |
+
+Для существующего приложения React или Vue рекомендуем [установку через менеджер пакетов](/guides/sheets/getting-started/installation): он управляет зависимостями и избавляет от длинного списка скриптов.

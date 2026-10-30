@@ -66,74 +66,21 @@ onBeforeUnmount(() => {
 </template>
 ```
 
-## Vue 2.x
+## Vue 2.x [#vue-2x]
 
-### 統合前の注意事項
+既存の Vue 2 アプリ向けの手順です。Vue **2.7.16**、Vite **6.3.6**、`@vitejs/plugin-vue2` **2.3.3**、Univer **1.3.0** で検証しています。新規プロジェクトには Vue 3 を推奨します。
 
-- `@univerjs/presets` を pnpm でインストールする際は、手動で `react` と `react-dom` をインストールする必要がある場合があります。
-- 開発環境で "ResizeObserver loop limit exceeded" 警告が表示された場合は、無視するか、以下のコードスニペットを参照して解決できます。
+空のプロジェクトで試すには[スターター](/assets/examples/vue2/univer-vue2-starter.zip)を展開し、`npm install` と `npm run dev` を実行して表示された URL を開きます。UI は英語です。既存アプリには以下の手順を使います。
 
-```typescript
-if (process.env.NODE_ENV === 'development') {
-  const _ResizeObserver = window.ResizeObserver
-  function debounce(fn, delay) {
-    let timer = null
-    return function () {
-      if (timer) {
-        clearTimeout(timer)
-      }
-      timer = setTimeout(() => {
-        fn.apply(this, arguments)
-      }, delay)
-    }
-  }
-  window.ResizeObserver = class ResizeObserver extends _ResizeObserver {
-    constructor(callback) {
-      callback = debounce(callback, 50)
-      super(callback)
-    }
-  }
-}
+### 依存関係のバージョンをそろえる
+
+```bash
+npm install @univerjs/presets@1.3.0 @univerjs/preset-sheets-core@1.3.0 react@18.3.1 react-dom@18.3.1 rxjs@7.8.2
 ```
 
-- Vue CLI 3.x/4.x (Webpack 4.x ベース) をビルドツールとして使用している場合、マッピングされたパスを実際のパスに手動で変更する必要があります。
+### ページにコンポーネントを追加
 
-```javascript
-// vue.config.js
-const path = require('node:path')
-
-module.exports = {
-  transpileDependencies: ['@wendellhu/redi'],
-  configureWebpack: {
-    resolve: {
-      alias: {
-        '@univerjs/core/facade': path.resolve(__dirname, 'node_modules/@univerjs/core/lib/facade.js'),
-        '@univerjs/engine-formula/facade': path.resolve(__dirname, 'node_modules/@univerjs/engine-formula/lib/facade.js'),
-        '@univerjs/preset-sheets-core/lib/index.css': path.resolve(__dirname, 'node_modules/@univerjs/preset-sheets-core/lib/index.css'),
-        '@univerjs/preset-sheets-core/locales/ja-JP': path.resolve(__dirname, 'node_modules/@univerjs/preset-sheets-core/lib/es/locales/ja-JP.js'),
-        '@univerjs/design/locale/ja-JP': path.resolve(__dirname, 'node_modules/@univerjs/design/lib/es/locale/ja-JP.js'),
-        '@univerjs/docs-ui/locale/ja-JP': path.resolve(__dirname, 'node_modules/@univerjs/docs-ui/lib/es/locale/ja-JP.js'),
-        '@univerjs/sheets-formula-ui/locale/ja-JP': path.resolve(__dirname, 'node_modules/@univerjs/sheets-formula-ui/lib/es/locale/ja-JP.js'),
-        '@univerjs/sheets-formula/locale/ja-JP': path.resolve(__dirname, 'node_modules/@univerjs/sheets-formula/lib/es/locale/ja-JP.js'),
-        '@univerjs/sheets-numfmt-ui/locale/ja-JP': path.resolve(__dirname, 'node_modules/@univerjs/sheets-numfmt-ui/lib/es/locale/ja-JP.js'),
-        '@univerjs/sheets-ui/locale/ja-JP': path.resolve(__dirname, 'node_modules/@univerjs/sheets-ui/lib/es/locale/ja-JP.js'),
-        '@univerjs/sheets/facade': path.resolve(__dirname, 'node_modules/@univerjs/sheets/lib/facade.js'),
-        '@univerjs/sheets/locale/ja-JP': path.resolve(__dirname, 'node_modules/@univerjs/sheets/lib/es/locale/ja-JP.js'),
-        '@univerjs/ui/locale/ja-JP': path.resolve(__dirname, 'node_modules/@univerjs/ui/lib/es/locale/ja-JP.js'),
-        '@wendellhu/redi/react-bindings': path.resolve(__dirname, 'node_modules/@wendellhu/redi/dist/esm/react-bindings/index.js'),
-        // ...
-      },
-    },
-  },
-}
-```
-
-### 統合手順
-
-1. `mounted` フックで Univer を初期化する
-2. `beforeDestroy` フックで Univer を破棄する
-
-### 例
+Univer と Facade をリアクティブな `data` に入れないでください。コンテナー作成後の `mounted` で初期化し、`beforeDestroy` で `univer.dispose()` を呼びます。同じインスタンスを Facade 経由でも破棄しないでください。
 
 ```vue
 <script>
@@ -159,13 +106,20 @@ export default {
       ],
     })
 
-    univerAPI.createWorkbook({})
-
     this.univerInstance = univer
+    this.univerAPI = univerAPI
+
+    const workbook = univerAPI.createWorkbook({})
+    workbook.getActiveSheet().getRange('A1:D3').setValues([
+      ['Item', 'Quantity', 'Unit price', 'Total'],
+      ['Notebook', 3, 12, '=B2*C2'],
+      ['Pen', 5, 2, '=B3*C3'],
+    ])
   },
   beforeDestroy() {
     this.univerInstance?.dispose()
     this.univerInstance = null
+    this.univerAPI = null
   },
 }
 </script>
@@ -174,3 +128,21 @@ export default {
   <div ref="container" style="height: 600px" />
 </template>
 ```
+
+### 動作を確認する
+
+最初の行の金額が **36** になり、数量を **3** から **4** にすると **48** になることを確認します。コンポーネントを削除して再マウントし、破棄と再作成も確認してください。
+
+### 初期化に失敗する場合
+
+`setConfig` エラーでは、まずスターターと比較し、下のコマンドで依存ツリーを確認します。Univer のバージョンと React / ReactDOM の組み合わせをそろえてください。スタックトレースだけでは Vue 2 非対応とは判断できません。
+
+```bash
+npm ls @univerjs/core @univerjs/ui @univerjs/presets @univerjs/preset-sheets-core react react-dom
+```
+
+編集領域だけが空白の場合はコンテナーの高さとプリセット CSS を確認してください。保存するインスタンスをリアクティブにしないでください。
+
+### Webpack 4 / Vue CLI 3–4
+
+スターターは Vite と package exports を使用します。ビルド成功は Webpack 4 の検証を意味しません。古いツールが Facade や言語の exports を解決できない場合は更新を推奨します。不完全な alias は欠落や重複を隠すことがあります。

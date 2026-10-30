@@ -66,74 +66,21 @@ onBeforeUnmount(() => {
 </template>
 ```
 
-## Vue 2.x
+## Vue 2.x [#vue-2x]
 
-### 통합 전 참고 사항
+기존 Vue 2 앱을 위한 절차입니다. Vue **2.7.16**, Vite **6.3.6**, `@vitejs/plugin-vue2` **2.3.3**, Univer **1.3.0**에서 검증했습니다. 새 프로젝트에는 Vue 3를 권장합니다.
 
-- pnpm으로 `@univerjs/presets`를 설치할 때 `react`와 `react-dom`을 직접 설치해야 할 수 있습니다.
-- 개발 환경에서 "ResizeObserver loop limit exceeded" 경고가 표시되면 무시하거나 아래 코드 조각을 참고하여 해결할 수 있습니다.
+빈 프로젝트에서 체험하려면 [스타터](/assets/examples/vue2/univer-vue2-starter.zip)를 풀고 `npm install`, `npm run dev`를 실행한 뒤 표시된 URL을 여세요. UI는 영어입니다. 기존 Vue 2 앱은 아래 절차를 따르세요.
 
-```typescript
-if (process.env.NODE_ENV === 'development') {
-  const _ResizeObserver = window.ResizeObserver
-  function debounce(fn, delay) {
-    let timer = null
-    return function () {
-      if (timer) {
-        clearTimeout(timer)
-      }
-      timer = setTimeout(() => {
-        fn.apply(this, arguments)
-      }, delay)
-    }
-  }
-  window.ResizeObserver = class ResizeObserver extends _ResizeObserver {
-    constructor(callback) {
-      callback = debounce(callback, 50)
-      super(callback)
-    }
-  }
-}
+### 의존성 버전 맞추기
+
+```bash
+npm install @univerjs/presets@1.3.0 @univerjs/preset-sheets-core@1.3.0 react@18.3.1 react-dom@18.3.1 rxjs@7.8.2
 ```
 
-- Vue CLI 3.x/4.x(Webpack 4.x 기반)를 빌드 도구로 사용하는 경우 매핑된 경로를 실제 경로로 직접 변경해야 합니다.
+### 페이지에 컴포넌트 추가
 
-```javascript
-// vue.config.js
-const path = require('node:path')
-
-module.exports = {
-  transpileDependencies: ['@wendellhu/redi'],
-  configureWebpack: {
-    resolve: {
-      alias: {
-        '@univerjs/core/facade': path.resolve(__dirname, 'node_modules/@univerjs/core/lib/facade.js'),
-        '@univerjs/engine-formula/facade': path.resolve(__dirname, 'node_modules/@univerjs/engine-formula/lib/facade.js'),
-        '@univerjs/preset-sheets-core/lib/index.css': path.resolve(__dirname, 'node_modules/@univerjs/preset-sheets-core/lib/index.css'),
-        '@univerjs/preset-sheets-core/locales/en-US': path.resolve(__dirname, 'node_modules/@univerjs/preset-sheets-core/lib/es/locales/en-US.js'),
-        '@univerjs/design/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/design/lib/es/locale/en-US.js'),
-        '@univerjs/docs-ui/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/docs-ui/lib/es/locale/en-US.js'),
-        '@univerjs/sheets-formula-ui/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/sheets-formula-ui/lib/es/locale/en-US.js'),
-        '@univerjs/sheets-formula/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/sheets-formula/lib/es/locale/en-US.js'),
-        '@univerjs/sheets-numfmt-ui/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/sheets-numfmt-ui/lib/es/locale/en-US.js'),
-        '@univerjs/sheets-ui/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/sheets-ui/lib/es/locale/en-US.js'),
-        '@univerjs/sheets/facade': path.resolve(__dirname, 'node_modules/@univerjs/sheets/lib/facade.js'),
-        '@univerjs/sheets/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/sheets/lib/es/locale/en-US.js'),
-        '@univerjs/ui/locale/en-US': path.resolve(__dirname, 'node_modules/@univerjs/ui/lib/es/locale/en-US.js'),
-        '@wendellhu/redi/react-bindings': path.resolve(__dirname, 'node_modules/@wendellhu/redi/dist/esm/react-bindings/index.js'),
-        // ...
-      },
-    },
-  },
-}
-```
-
-### 통합 단계
-
-1. `mounted` 훅에서 Univer 초기화
-2. `beforeDestroy` 훅에서 Univer 제거
-
-### 예제
+Univer 인스턴스와 Facade를 반응형 `data`에 넣지 마세요. 컨테이너가 생성된 `mounted`에서 초기화하고 `beforeDestroy`에서 `univer.dispose()`를 호출하세요. Facade로 같은 인스턴스를 중복 해제하지 마세요.
 
 ```vue
 <script>
@@ -159,13 +106,20 @@ export default {
       ],
     })
 
-    univerAPI.createWorkbook({})
-
     this.univerInstance = univer
+    this.univerAPI = univerAPI
+
+    const workbook = univerAPI.createWorkbook({})
+    workbook.getActiveSheet().getRange('A1:D3').setValues([
+      ['Item', 'Quantity', 'Unit price', 'Total'],
+      ['Notebook', 3, 12, '=B2*C2'],
+      ['Pen', 5, 2, '=B3*C3'],
+    ])
   },
   beforeDestroy() {
     this.univerInstance?.dispose()
     this.univerInstance = null
+    this.univerAPI = null
   },
 }
 </script>
@@ -174,3 +128,21 @@ export default {
   <div ref="container" style="height: 600px" />
 </template>
 ```
+
+### 실행 결과 확인
+
+첫 행 금액이 **36**인지 확인하세요. 수량을 **3**에서 **4**로 바꾸면 **48**이 되어야 합니다. 컴포넌트를 제거하고 다시 마운트해 정리와 재생성도 확인하세요.
+
+### 초기화에 실패하는 경우
+
+`setConfig` 오류가 나면 스타터와 비교하고 아래 명령으로 의존성 트리를 확인하세요. Univer 버전과 React / ReactDOM 조합을 일치시키세요. 스택만으로 Vue 2 미지원이라고 판단할 수는 없습니다.
+
+```bash
+npm ls @univerjs/core @univerjs/ui @univerjs/presets @univerjs/preset-sheets-core react react-dom
+```
+
+편집 영역만 비어 있으면 컨테이너 높이와 프리셋 CSS를 확인하세요. 인스턴스를 보관하려고 반응형 객체로 만들지 마세요.
+
+### Webpack 4 / Vue CLI 3–4
+
+스타터는 Vite와 package exports를 사용합니다. 빌드 성공이 Webpack 4 검증을 의미하지는 않습니다. 구형 도구가 Facade나 언어 exports를 해석하지 못하면 도구 업그레이드를 권장합니다. 불완전한 alias는 누락이나 중복 모듈을 숨길 수 있습니다.
