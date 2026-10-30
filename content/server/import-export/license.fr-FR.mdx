@@ -1,0 +1,171 @@
+---
+title: Licence
+description: Configurez l’autorisation d’export d’Exchange, consultez le quota restant et gérez les erreurs de licence.
+---
+
+Exchange lit la licence dans le processus serveur qui exécute `@univerjs-pro/exchange-node`. Voir [Import et export de fichiers Office](/server/import-export/node) pour la conversion.
+
+## Configurer l’autorisation [#configure]
+
+Fournissez la licence via les variables d’environnement `UNIVER_LICENSE` et `UNIVER_LICENSE_KEY`. L’appel à `configureExchange` est facultatif : le SDK lit l’environnement une fois lors du premier export ou de la première consultation de quota, puis réutilise cette configuration. Sans identifiants dans l’environnement, Free s’applique. Des identifiants fournis mais invalides renvoient une erreur et ne peuvent pas servir à l’export.
+
+Pour une configuration explicite, `configureExchange({ license, licenseKey })` renvoie `Promise<void>` et ignore complètement l’environnement. Attendez-le avant de lancer les exports qui doivent utiliser les nouveaux identifiants.
+
+```ts
+import { configureExchange, getExportQuota } from '@univerjs-pro/exchange-node'
+
+await configureExchange({
+  license: '<license content>',
+  licenseKey: '<licenseKey content>',
+})
+
+const quota = await getExportQuota()
+```
+
+Utilisez le contenu complet de `license` et `licenseKey` fourni par votre fournisseur de licence, pas des chemins de fichiers. Configurez les deux ensemble via le système de gestion des secrets de votre application.
+
+| Entrée | Comportement |
+| --- | --- |
+| Ne pas appeler `configureExchange` | Lit les deux variables d’environnement à la première utilisation ; utilise Free si aucune n’est définie. |
+| `configureExchange({ license, licenseKey })` | Utilise uniquement les identifiants explicites ; ignore l’environnement. |
+| `configureExchange({})` | Sélectionne explicitement Free ; ignore l’environnement. |
+| La source choisie ne fournit qu’un seul identifiant | Renvoie `INVALID_ARGUMENT` ; ne complète jamais l’autre depuis une autre source. |
+
+Une fois lue, une configuration d’environnement complète reste figée même si une opération ultérieure échoue. Pour remplacer les identifiants par défaut en cours d’exécution, appelez explicitement `configureExchange` et attendez-le. En cas d’échec, la configuration précédente reste en vigueur ; traitez l’erreur avant de lancer de nouveaux exports.
+
+ESM et CommonJS partagent la configuration au sein d’un même contexte JavaScript. Chaque Worker `worker_threads` doit se configurer lui-même ou s’initialiser depuis son environnement. Les exports utilisent la configuration en vigueur au moment de l’appel de la méthode publique d’export ; un changement ultérieur d’identifiants n’affecte pas les exports déjà lancés.
+
+### Autoriser une seule opération
+
+Passez une paire complète `license` et `licenseKey` dans les options d’une API d’export ou de `getExportQuota` pour autoriser uniquement cette opération sans modifier la configuration par défaut. Par exemple, consultez le quota et exportez avec les mêmes identifiants :
+
+```ts
+import { UniverInstanceType } from '@univerjs/core'
+import { ExchangeFormat, exportToBuffer, getExportQuota } from '@univerjs-pro/exchange-node'
+
+const credentials = { license: '<license content>', licenseKey: '<licenseKey content>' }
+const quota = await getExportQuota(credentials)
+const output = await exportToBuffer(workbook, {
+  type: UniverInstanceType.UNIVER_SHEET,
+  format: ExchangeFormat.XLSX,
+  ...credentials,
+})
+```
+
+Cela s’applique aussi aux exports vers fichier, aux exports de Snapshot et aux exports PDF facultatifs. Omettre les deux champs utilise la configuration par défaut ; n’en fournir qu’un renvoie `INVALID_ARGUMENT`. Une paire explicite n’est jamais complétée par la configuration par défaut ni par l’environnement, et les chaînes vides ne valent pas omission. Des identifiants invalides renvoient `LICENSE_INVALID` sans repli sur la licence commerciale par défaut.
+
+### Prise en charge facultative du PDF
+
+Installez le paquet d’extension PDF et importez son point d’entrée avant de configurer l’autorisation :
+
+```sh
+pnpm add @univerjs-pro/exchange-node @univerjs-pro/exchange-pdf-node-binding
+```
+
+```ts
+import '@univerjs-pro/exchange-node/pdf'
+import { configureExchange, getExportQuota } from '@univerjs-pro/exchange-node'
+
+await configureExchange({
+  license: '<license content>',
+  licenseKey: '<licenseKey content>',
+})
+
+const quota = await getExportQuota()
+```
+
+Ce point d’entrée enregistre la prise en charge du PDF ; les composants natifs se chargent à l’utilisation. Le PDF utilise les mêmes API `importBuffer`, `importFile`, `exportToBuffer`, `exportToFile` et leurs équivalents Snapshot, avec `UniverInstanceType.UNIVER_PDF` et `ExchangeFormat.PDF`. Une application limitée au PDF n’a pas besoin de charger le composant natif Office. La configuration par environnement s’applique aussi au PDF.
+
+## Consulter le quota restant [#quota]
+
+`getExportQuota({ license, licenseKey })` renvoie `Promise<ExportQuota>` pour le quota que l’autorisation partage entre Office et PDF. Sans identifiants, il consulte la configuration par défaut. Il n’accepte pas de type d’Unit et ne vérifie pas le droit d’exporter un type donné ; cette vérification a lieu pendant l’export.
+
+Les consultations ne consomment ni ne réservent de quota, et ne vérifient ni la version du SDK, ni la date d’activation, ni le droit par type d’export. Un solde nul renvoie tout de même un instantané valide. D’autres requêtes peuvent consommer du quota ensuite ; gérez donc aussi les erreurs de l’export réel.
+
+Avant le début de l’autorisation, une consultation à quota limité renvoie le premier mois d’autorisation avec un `periodStart` futur. Une consultation réussie ou un état `valid` n’accorde pas le droit d’exporter. La version, l’activation, le droit par type, le quota disponible et la concurrence sont vérifiés pendant l’export.
+
+| Champ | Type | Signification |
+| --- | --- | --- |
+| `licenseStatus` | `'not_configured' \| 'expired' \| 'valid'` | L’abonnement d’export n’est pas configuré, a expiré ou n’a pas expiré. `valid` ne signifie pas que les contrôles d’admission de l’export sont passés. Des identifiants invalides renvoient une erreur. |
+| `expiresAt` | `string \| null` | Expiration de l’abonnement d’export, horodatage ISO UTC ; `null` s’il n’est pas configuré ou sans expiration. |
+| `observedAt` | `string` | Horodatage ISO UTC de cet instantané. |
+| `limit` | `number \| null` | Limite mensuelle d’exports actuelle ; `null` si illimité. |
+| `used` | `number \| null` | Exports réussis du mois en cours ; `null` si illimité. |
+| `reserved` | `number \| null` | Exports en cours occupant le quota du mois ; `null` si illimité. |
+| `remaining` | `number \| null` | Exports disponibles : `max(0, limit - used - reserved)` ; `null` si illimité. |
+| `periodStart` | `string \| null` | Début ISO UTC, inclus, de la période mensuelle de quota consultée ; avant l’activation, la première période commence dans le futur. `null` si illimité. |
+| `periodEnd` | `string \| null` | Fin ISO UTC, exclue, de la période mensuelle de quota consultée ; `null` si illimité. |
+
+`periodEnd` marque le début de la période mensuelle suivante ; `expiresAt` marque la fin de l’abonnement d’export. Un abonnement valide utilise toujours le quota commercial. L’épuiser ne bascule jamais sur Free, et une nouvelle période de quota commercial commence le mois suivant. Seule l’expiration de l’abonnement fait utiliser le quota Free restant, sans le réinitialiser ni le réattribuer.
+
+Exemple d’instantané à quota limité :
+
+```json
+{
+  "licenseStatus": "valid",
+  "expiresAt": "2027-10-19T23:59:59Z",
+  "observedAt": "2026-10-21T09:00:00Z",
+  "limit": 500,
+  "used": 20,
+  "reserved": 1,
+  "remaining": 479,
+  "periodStart": "2026-10-19T00:00:00Z",
+  "periodEnd": "2026-11-19T00:00:00Z"
+}
+```
+
+## Utiliser le quota d’export [#accounting]
+
+Free autorise 10 exports réussis par mois d’autorisation. Le quota d’export, la concurrence et les versions d’une licence commerciale dépendent de la licence achetée. Ni Free ni les licences commerciales n’imposent de limite de taille de fichier ou de nombre de cellules. Utilisez la réponse de la consultation pour connaître la période en cours et le quota restant. Le quota mensuel non utilisé n’est pas reporté.
+
+Les imports ne nécessitent pas d’autorisation d’export et ne consomment pas de quota d’export. Les exports Office et PDF qui utilisent la même licence commerciale au sein d’un déploiement partagent le quota. Voir [Import et export de fichiers Office](/server/import-export/node) pour les formats de conversion d’Exchange.
+
+Chaque conversion réussie consomme un export. Le renvoi d’un Buffer compte comme un succès. Un échec ultérieur d’écriture, d’envoi ou de téléchargement du fichier ne rembourse pas cet export ; une nouvelle conversion réussie en consomme un autre. Quand la période en cours n’a plus de quota, les nouveaux exports sont refusés. Attendez la période d’autorisation suivante ou utilisez une licence valide avec un quota plus élevé ; une licence commerciale valide épuisée n’utilise pas le quota Free.
+
+## Gérer les erreurs [#errors]
+
+Identifiez les erreurs par le `code` structuré plutôt qu’en analysant le texte de `message`. Votre interface peut associer les codes à des messages localisés. Conservez les informations de diagnostic pour le support technique.
+
+```ts
+import { UniverInstanceType } from '@univerjs/core'
+import { ExchangeError, ExchangeFormat, exportToBuffer } from '@univerjs-pro/exchange-node'
+
+try {
+  const output = await exportToBuffer(workbook, {
+    type: UniverInstanceType.UNIVER_SHEET,
+    format: ExchangeFormat.XLSX,
+  })
+} catch (error) {
+  if (error instanceof ExchangeError) {
+    // Affichez le message correspondant à error.code, par ex. LICENSE_EXPORT_QUOTA_EXCEEDED quand le quota est épuisé
+    console.error(error.code)
+  } else {
+    throw error
+  }
+}
+```
+
+Le tableau distingue les consultations de quota (`getExportQuota`) des exports réels. Les deux API renvoient des Promises ; gérez les échecs avec `await` et `try/catch`.
+
+| Code | Opération | Signification et réponse |
+| --- | --- | --- |
+| `LICENSE_EXPORT_QUOTA_EXCEEDED` | Export uniquement | Quota d’export insuffisant pour la période en cours. Consultez le quota ou contactez le service commercial pour ajuster la licence. |
+| `LICENSE_CONCURRENCY_TIMEOUT` | Export uniquement | L’attente d’une place de concurrence d’export a expiré. Réduisez les exports simultanés avant de soumettre à nouveau. |
+| `LICENSE_UNIT_TYPE_REJECTED` | Export uniquement | Ce type d’export n’est pas couvert par la licence ou son droit a expiré. Utilisez une licence valide couvrant ce type. |
+| `LICENSE_INVALID` | Consultation, export | La licence est invalide. Vérifiez que les identifiants sont complets ou demandez une mise à jour au fournisseur de licence. |
+| `LICENSE_POLICY_INVALID` | Consultation, export | La configuration de l’autorisation ne répond pas aux exigences du SDK. Demandez une mise à jour au fournisseur de licence. |
+| `LICENSE_NOT_YET_EFFECTIVE` | Export uniquement | L’autorisation n’a pas encore commencé. Utilisez-la à partir de sa date d’effet. |
+| `LICENSE_VERSION_NOT_ALLOWED` | Export uniquement | La version actuelle du SDK est hors de la plage couverte. Utilisez une version correspondante ou mettez à jour la licence. |
+| `UNSUPPORTED_FORMAT` | Export uniquement | Le format n’est pas pris en charge ou ne correspond pas au type d’Unit. Vérifiez les options d’export. |
+| `INVALID_FILE` | Export uniquement | L’entrée de la conversion est invalide. Vérifiez son contenu. |
+| `INCOMPLETE_SNAPSHOT` | Export uniquement | Les données d’export sont incomplètes. Fournissez des données ou un Snapshot complets. |
+| `CONVERSION_FAILED` | Export uniquement | La conversion a échoué. Conservez l’erreur et vérifiez le contenu d’entrée. |
+| `IO_ERROR` | Export uniquement | Les entrées/sorties de fichier ont échoué. Un échec d’écriture après une conversion réussie a déjà consommé un export. |
+| `INVALID_ARGUMENT` | Consultation, export | Arguments ou identifiants incomplets. Vérifiez la configuration. |
+| `NATIVE_LOAD_FAILED` | Consultation, export | Un composant natif du SDK n’a pas pu se charger. Vérifiez la compatibilité du paquet et de l’environnement d’exécution. |
+| `LICENSE_USAGE_STATE_INVALID` | Consultation, export | L’état d’utilisation de la licence ne peut pas être vérifié. Conservez l’erreur et contactez le support technique. |
+| `LICENSE_USAGE_STORAGE_ERROR` | Consultation, export | Le traitement de l’utilisation de la licence a échoué. Conservez l’erreur, contactez le support technique et évitez les nouvelles soumissions automatiques. |
+
+Les applications peuvent produire des rappels d’expiration à partir de `licenseStatus` et `expiresAt` ; le SDK ne renvoie pas de liste de notifications distincte.
+
+Après une erreur de traitement de l’utilisation de la licence, ne déduisez pas le décompte de la seule erreur. Conservez l’erreur complète et contactez le support technique.

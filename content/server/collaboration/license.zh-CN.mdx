@@ -1,0 +1,62 @@
+---
+title: 许可证
+description: Collaboration SDK 按许可证决定协同编辑连接、授权域名、协同节点与可协同的文档类型。
+---
+
+`UniverCollabService` 在构造时加载许可证，Endpoint 与 Worktree 共用这份许可证。配置方式见[许可证](/server/license#collaboration-sdk)，未配置时按免费版运行。许可证校验失败时构造抛出 `CollabError`（`LICENSE_INVALID` 或 `LICENSE_POLICY_INVALID`），服务停在启动阶段。
+
+## 许可证决定的四项 [#limits]
+
+| 项目         | 校验位置                         | 超出时                                     |
+| ------------ | -------------------------------- | ------------------------------------------ |
+| 协同编辑连接 | Endpoint 接收提交                | 新连接的修改留在浏览器并自动重试           |
+| 授权域名     | Endpoint 建立协同连接、接收提交  | 浏览器中的协同会话转为离线                 |
+| 协同节点     | Endpoint                         | 超出的节点经过宽限期后下线                 |
+| 文档类型     | Service 创建 Unit、提交修改      | 创建与提交被拒绝，已有文档可继续查看       |
+
+### 协同编辑连接 [#editing-connections]
+
+名额按正在编辑的连接计算：一条协同连接成功提交后占一个名额，连接关闭或最近一次成功提交满 120 秒后释放。打开文档查看的连接随时可以加入。Worktree 内的编辑与主线共用同一个名额池。
+
+名额已满时，新连接的修改暂存在浏览器，Web SDK 按退避间隔重试，有名额空出后保存；已占名额的连接照常编辑。浏览器端的 `CollaborationChangesetResend` 以 `reason: 'license_editing_connections_exceeded'` 报告这类重试。
+
+### 授权域名 [#domains]
+
+Web SDK 建立协同连接和提交修改时，Endpoint 按页面域名核对许可证的授权域名。页面域名在授权范围外时请求返回 `403`，浏览器中的协同会话转为离线并显示原因；用户手动重连或打开其他文档时再次尝试。
+
+### 协同节点 [#nodes]
+
+**单节点许可证**（含免费版）：运行一个协同节点。给 Endpoint 传入 `pubSub` 时构造抛出 `LICENSE_POLICY_INVALID`。
+
+**多节点许可证**：许可证规定节点数上限。运行的节点数超出上限时，最新加入的节点进入宽限期并逐级提醒，宽限期结束后下线：新连接返回 `503`，已有连接断开。上限以内的节点照常服务。宽限期内节点数回到上限以内时，超出的节点恢复正常；已下线的节点在进程重启后作为新节点重新计数。多节点部署见[部署](/server/deployment#多协同节点)。
+
+### 文档类型 [#unit-types]
+
+许可证列明可协同的文档类型。创建其他类型的 Unit 时抛出 `LICENSE_UNIT_TYPE_REJECTED`，提交的修改被拒绝，浏览器端 `CollaborationConflict` 的 `reason` 为 `license_unit_type_rejected`；已有文档可以继续打开查看。
+
+## 观察状态 [#observe]
+
+```ts
+// Service
+collabService.license.status // 许可证状态：'not_configured' | 'expired' | 'valid'
+collabService.license.editingConnectionsLimit // 协同编辑连接上限：number | null，null 表示不限
+collabService.license.nodesLimit // 协同节点上限：number | null，null 表示不限
+collabService.license.domains // 授权域名：string[]
+collabService.license.expiresAt // 到期时间：ISO 字符串 | null，未配置时为 null
+collabService.license.update({ license, licenseKey }) // 替换许可证：校验失败时抛错并保留当前许可证
+
+// Endpoint
+endpoint.license.editingConnections.limit // 名额上限：number | null，null 表示不限
+endpoint.license.editingConnections.used // 已占名额：number | null，limit 不限时为 null
+endpoint.license.editingConnections.remaining // 剩余名额：number | null，null 表示不限
+endpoint.license.editingConnections.has(memberID) // 该成员是否占有名额：boolean，limit 不限时为 false
+endpoint.license.nodes.limit // 节点上限：number | null，null 表示不限
+endpoint.license.nodes.status // 本节点状态：'normal' | 'exceeded' | 'exceeded-warning' | 'exceeded-offlineSoon' | 'exceeded-offline'
+
+// 事件
+endpoint.license.on('editingConnectionsChanged', ({ change, memberIDs, used, limit }) => {}) // 名额被占用或释放时触发：change 为 'acquired' | 'released'，used 为变化后的值，limit 不限时不触发
+endpoint.license.on('editingConnectionsExceeded', ({ memberID, userID, unitID, used, limit }) => {}) // 名额已满，新连接的提交未能保存时触发
+endpoint.license.on('nodesStatusChanged', ({ status, previousStatus, limit, reason }) => {}) // 本节点状态变化时触发，reason 仅在下线时有值
+```
+
+`nodesStatusChanged` 在本节点状态每次变化时触发一次；`status` 为 `exceeded-offline` 时本节点已停止接受连接，可据此从负载均衡中摘除节点或发出告警。

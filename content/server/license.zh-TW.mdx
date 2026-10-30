@@ -1,42 +1,78 @@
 ---
 icon: KeyRound
 title: 授權
-description: 取得 Univer Office SDK 授權並在瀏覽器應用程式中設定。
+description: 一份授權同時用於 Web SDK、Collaboration SDK 和 Exchange，依使用位置分別設定。
 ---
 
-若功能需要授權，請前往 [Univer 網站](https://univer.ai)了解授權方案並取得授權。依專案使用的預設集模式或外掛模式，設定**用戶端授權內容**。
+前往 [Univer 網站](https://univer.ai)了解授權範圍並取得授權。一份授權包含兩個檔案：`license.txt` 是授權內容，`licenseKey.txt` 是伺服器端驗證用的金鑰。
 
-## 外掛模式 [#in-plugin-mode]
+| 使用位置 | 所需檔案 | 未設定時 |
+| --- | --- | --- |
+| [Web SDK](#web-sdk) | `license.txt` | 使用免費功能 |
+| [Collaboration SDK](#collaboration-sdk) | `license.txt`、`licenseKey.txt` | 免費版：1 個協同節點、3 個協同編輯連線 |
+| [Exchange](#exchange) | `license.txt`、`licenseKey.txt` | 免費版：每月 10 次匯出 |
 
-在既有 Univer 執行個體上，先於其他外掛註冊 `UniverLicensePlugin`：
+設定時填寫檔案內容。授權決定可以使用哪些功能；使用者能否檢視或編輯某份文件，由應用程式的[身分與權限](/server/collaboration/identity-and-authorization)決定。
+
+## Web SDK [#web-sdk]
+
+### 外掛模式 [#in-plugin-mode]
 
 ```ts
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 
 univer.registerPlugin(UniverLicensePlugin, {
-  license: 'YOUR_CLIENT_LICENSE',
+  license: 'YOUR_LICENSE', // license.txt 的內容
 })
 ```
 
-## 預設集模式 [#in-preset-mode]
+在既有的 Univer 執行個體上註冊 `UniverLicensePlugin`，並放在其他外掛之前。
 
-在現有預設集設定中加入 `license`。例如使用 `UniverSheetsAdvancedPreset`：
+### 預設集模式 [#in-preset-mode]
 
 ```ts
 UniverSheetsAdvancedPreset({
-  // Keep your other options and replace this placeholder with the client license content.
-  license: 'YOUR_CLIENT_LICENSE',
+  // 保留其他既有設定
+  license: 'YOUR_LICENSE', // license.txt 的內容
 })
 ```
 
-請提供授權內容，不是授權檔案路徑。
+在既有的預設集設定中加入 `license`，以上以 `UniverSheetsAdvancedPreset` 為例。協同應用程式同樣在瀏覽器中設定授權，[協同快速開始](/server/collaboration/quick-start)的前端範例展示了授權外掛與協同外掛的註冊位置。
 
-## 協同應用程式
+## Collaboration SDK [#collaboration-sdk]
 
-協同應用程式同樣在瀏覽器中設定授權。[協同快速開始](/server/collaboration/quick-start)的瀏覽器範例展示如何與協同外掛一起註冊授權外掛。瀏覽器與伺服器套件版本應符合 [SDK 環境與版本要求](/server/requirements)。
+```ts
+import { UniverCollabService } from '@univerjs-pro/collaboration-service'
 
-授權決定可用的功能，應用程式權限則決定誰可檢視或編輯文件。完成授權設定後，請依[伺服器整合](/server)接入登入與文件權限。
+const collabService = new UniverCollabService({
+  dbAdapter,
+  license: 'YOUR_LICENSE', // license.txt 的內容
+  licenseKey: 'YOUR_LICENSE_KEY', // licenseKey.txt 的內容
+})
+```
 
-## 檢查設定
+省略 `license` 與 `licenseKey` 時，`UniverCollabService` 讀取環境變數 `UNIVER_LICENSE` 與 `UNIVER_LICENSE_KEY`；兩處都沒有時以免費版執行。授權決定協同編輯連線數、授權網域、協同節點數和可協同的文件類型，見 [Collaboration SDK 授權](/server/collaboration/license)。
 
-重新開啟應用程式並測試所需功能。若浮水印或授權限制仍然存在，請檢查授權內容是否完整、有效，且涵蓋所需功能與版本。外掛模式還需檢查註冊順序。若問題持續，請聯絡授權提供者。
+## Exchange [#exchange]
+
+```ts
+import { configureExchange } from '@univerjs-pro/exchange-node'
+
+await configureExchange({
+  license: 'YOUR_LICENSE', // license.txt 的內容
+  licenseKey: 'YOUR_LICENSE_KEY', // licenseKey.txt 的內容
+})
+```
+
+這一步可以省略：Exchange 會在首次匯出或額度查詢時讀取環境變數 `UNIVER_LICENSE` 與 `UNIVER_LICENSE_KEY`，環境變數也未設定時以免費版執行。Exchange 依授權為匯出計次，匯入不消耗額度，額度查詢與錯誤處理見 [Exchange 授權](/server/import-export/license)。
+
+Collaboration SDK 與 Exchange 執行在同一程序時，設定一次環境變數即可：
+
+```bash
+export UNIVER_LICENSE="$(cat license.txt)"
+export UNIVER_LICENSE_KEY="$(cat licenseKey.txt)"
+```
+
+## 設定後檢查 [#check]
+
+重新開啟應用程式，驗證需要的功能。仍有浮水印或授權限制時，確認授權內容完整、在有效期內，並涵蓋目前功能和版本；外掛模式還需確認 `UniverLicensePlugin` 註冊在其他外掛之前。仍無法解決時，聯絡授權提供者。

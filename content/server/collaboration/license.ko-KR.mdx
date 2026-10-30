@@ -1,0 +1,62 @@
+---
+title: 라이선스
+description: Collaboration SDK는 라이선스에 따라 협업 편집 연결, 승인된 도메인, 협업 노드, 협업할 수 있는 문서 유형을 결정합니다.
+---
+
+`UniverCollabService`는 생성 시 라이선스를 불러오고, Endpoint와 Worktree는 이 라이선스를 함께 사용합니다. 설정 방법은 [라이선스](/server/license#collaboration-sdk)를 참고하세요. 설정하지 않으면 무료 버전으로 실행됩니다. 라이선스 검증에 실패하면 생성자가 `CollabError`(`LICENSE_INVALID` 또는 `LICENSE_POLICY_INVALID`)를 던지며 서비스는 시작 단계에서 멈춥니다.
+
+## 라이선스가 결정하는 네 가지 [#limits]
+
+| 항목 | 확인 위치 | 한도를 넘으면 |
+| --- | --- | --- |
+| 협업 편집 연결 | Endpoint가 제출을 받을 때 | 새 연결의 변경 사항이 브라우저에 남아 자동으로 재시도됨 |
+| 승인된 도메인 | Endpoint가 협업 연결을 맺을 때와 제출을 받을 때 | 브라우저의 협업 세션이 오프라인으로 전환됨 |
+| 협업 노드 | Endpoint | 한도를 넘은 노드는 유예 기간 후 오프라인됨 |
+| 문서 유형 | Service가 Unit을 만들 때와 변경을 받을 때 | 생성과 제출이 거부되며, 기존 문서는 계속 볼 수 있음 |
+
+### 협업 편집 연결 [#editing-connections]
+
+자리는 편집 중인 연결 기준으로 셉니다. 협업 연결은 처음 제출에 성공하면 자리 하나를 차지하고, 연결이 닫히거나 마지막 제출 성공 후 120초가 지나면 반환합니다. 문서를 보기 위한 연결은 언제든 참여할 수 있습니다. Worktree 안의 편집도 트렁크와 같은 자리를 함께 사용합니다.
+
+모든 자리가 사용 중이면 새 연결의 변경 사항은 브라우저에 보관되고, Web SDK가 백오프 간격으로 다시 보내다가 자리가 나면 저장합니다. 이미 자리를 가진 연결은 계속 편집할 수 있습니다. 브라우저의 `CollaborationChangesetResend`는 이 재전송을 `reason: 'license_editing_connections_exceeded'`로 알립니다.
+
+### 승인된 도메인 [#domains]
+
+Web SDK가 협업 연결을 맺거나 변경 사항을 제출할 때 Endpoint는 페이지의 도메인을 라이선스의 승인된 도메인과 대조합니다. 범위 밖의 도메인은 `403`을 받고, 브라우저의 협업 세션은 오프라인으로 전환되어 이유를 표시합니다. 사용자가 다시 연결하거나 다른 문서를 열면 다시 시도합니다.
+
+### 협업 노드 [#nodes]
+
+**단일 노드 라이선스**(무료 버전 포함): 협업 노드 하나를 실행합니다. Endpoint에 `pubSub`를 전달하면 생성자가 `LICENSE_POLICY_INVALID`를 던집니다.
+
+**다중 노드 라이선스**: 노드 수 한도를 정합니다. 실행 중인 노드가 한도를 넘으면 가장 나중에 합류한 노드부터 유예 기간에 들어가 단계적으로 경고를 받은 뒤 오프라인됩니다. 오프라인된 노드는 새 연결에 `503`을 반환하고 기존 연결을 끊습니다. 한도 안의 노드는 계속 정상적으로 서비스합니다. 유예 기간 중 노드 수가 한도 안으로 돌아오면 초과했던 노드는 정상 상태로 돌아갑니다. 오프라인된 노드는 프로세스를 다시 시작하면 새 노드로 다시 셉니다. 다중 노드 구성은 [배포](/server/deployment#여러-협업-노드)를 참고하세요.
+
+### 문서 유형 [#unit-types]
+
+라이선스에는 협업할 수 있는 문서 유형이 명시되어 있습니다. 다른 유형의 Unit을 만들면 `LICENSE_UNIT_TYPE_REJECTED`가 발생하고, 제출된 변경 사항은 거부되며 브라우저의 `CollaborationConflict`는 `reason`을 `license_unit_type_rejected`로 알립니다. 기존 문서는 계속 열어 볼 수 있습니다.
+
+## 상태 확인 [#observe]
+
+```ts
+// Service
+collabService.license.status // 라이선스 상태: 'not_configured' | 'expired' | 'valid'
+collabService.license.editingConnectionsLimit // 협업 편집 연결 한도: number | null, null은 무제한
+collabService.license.nodesLimit // 협업 노드 한도: number | null, null은 무제한
+collabService.license.domains // 승인된 도메인: string[]
+collabService.license.expiresAt // 만료 시각: ISO 문자열 | null, 설정하지 않으면 null
+collabService.license.update({ license, licenseKey }) // 라이선스 교체: 검증에 실패하면 예외를 던지고 현재 라이선스를 유지
+
+// Endpoint
+endpoint.license.editingConnections.limit // 자리 한도: number | null, null은 무제한
+endpoint.license.editingConnections.used // 사용 중인 자리: number | null, limit이 무제한이면 null
+endpoint.license.editingConnections.remaining // 남은 자리: number | null, null은 무제한
+endpoint.license.editingConnections.has(memberID) // 이 멤버가 자리를 가졌는지: boolean, limit이 무제한이면 false
+endpoint.license.nodes.limit // 노드 한도: number | null, null은 무제한
+endpoint.license.nodes.status // 이 노드의 상태: 'normal' | 'exceeded' | 'exceeded-warning' | 'exceeded-offlineSoon' | 'exceeded-offline'
+
+// 이벤트
+endpoint.license.on('editingConnectionsChanged', ({ change, memberIDs, used, limit }) => {}) // 자리를 차지하거나 반환할 때 발생: change는 'acquired' | 'released', used는 변화 후의 값, limit이 무제한이면 발생하지 않음
+endpoint.license.on('editingConnectionsExceeded', ({ memberID, userID, unitID, used, limit }) => {}) // 자리가 가득 차서 새 연결의 제출이 저장되지 않았을 때 발생
+endpoint.license.on('nodesStatusChanged', ({ status, previousStatus, limit, reason }) => {}) // 이 노드의 상태가 바뀔 때 발생, reason은 오프라인될 때만 값이 있음
+```
+
+`nodesStatusChanged`는 이 노드의 상태가 바뀔 때마다 한 번 발생합니다. `status`가 `exceeded-offline`이면 이 노드는 연결 수락을 멈춘 상태이므로, 이를 기준으로 로드 밸런서에서 노드를 빼거나 알림을 보내세요.

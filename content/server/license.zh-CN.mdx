@@ -1,43 +1,78 @@
 ---
 icon: KeyRound
 title: 许可证
-description: 获取 Univer Office SDK 许可证，并在前端应用中完成配置。
+description: 一份许可证同时用于 Web SDK、Collaboration SDK 和 Exchange，按使用位置分别配置。
 ---
 
-使用需要授权的 功能时，请通过 [Univer 官方网站](https://univer.ai)了解授权范围并获取许可证。拿到**客户端许可证内容**后，按项目使用的预设模式或插件模式配置即可，两种方式选择一种。
+通过 [Univer 官方网站](https://univer.ai)了解授权范围并获取许可证。一份许可证包含两个文件：`license.txt` 是许可证内容，`licenseKey.txt` 是服务端校验用的密钥。
 
+| 使用位置                                | 所需文件                          | 未配置时                               |
+| --------------------------------------- | --------------------------------- | -------------------------------------- |
+| [Web SDK](#web-sdk)                     | `license.txt`                     | 使用免费功能                           |
+| [Collaboration SDK](#collaboration-sdk) | `license.txt`、`licenseKey.txt`   | 免费版：1 个协同节点、3 个协同编辑连接 |
+| [Exchange](#exchange)                   | `license.txt`、`licenseKey.txt`   | 免费版：每月 10 次导出                 |
 
-## 插件模式 [#in-plugin-mode]
+配置时填写文件内容。许可证决定可以使用哪些功能；用户能否查看或编辑某份文档，由应用的[身份与权限](/server/collaboration/identity-and-authorization)决定。
 
-在已有的 Univer 实例上注册 `UniverLicensePlugin`，并放在其他 插件之前：
+## Web SDK [#web-sdk]
+
+### 插件模式 [#in-plugin-mode]
 
 ```ts
 import { UniverLicensePlugin } from '@univerjs-pro/license'
 
 univer.registerPlugin(UniverLicensePlugin, {
-  license: 'YOUR_CLIENT_LICENSE',
+  license: 'YOUR_LICENSE', // license.txt 的内容
 })
 ```
 
-## 预设模式 [#in-preset-mode]
+在已有的 Univer 实例上注册 `UniverLicensePlugin`，并放在其他插件之前。
 
-在已有的 预设配置中添加 `license`。例如，使用 `UniverSheetsAdvancedPreset` 时：
+### 预设模式 [#in-preset-mode]
 
 ```ts
 UniverSheetsAdvancedPreset({
-  // 保留其他已有配置，将占位符替换为客户端许可证内容
-  license: 'YOUR_CLIENT_LICENSE',
+  // 保留其他已有配置
+  license: 'YOUR_LICENSE', // license.txt 的内容
 })
 ```
 
-这里填写的是许可证内容，不是许可证文件的路径。
+在已有的预设配置中添加 `license`，以上以 `UniverSheetsAdvancedPreset` 为例。协同应用同样在浏览器中配置许可证，[协同快速开始](/server/collaboration/quick-start)的前端示例展示了许可证插件与协同插件的注册位置。
 
-## 协同应用中的配置
+## Collaboration SDK [#collaboration-sdk]
 
-协同应用同样需要在浏览器端配置许可证。可以对照 [协同快速开始](/server/collaboration/quick-start)中的前端示例，查看许可证插件与协同插件的注册位置。前后端包版本需要符合 [SDK 环境与版本要求](/server/requirements)。
+```ts
+import { UniverCollabService } from '@univerjs-pro/collaboration-service'
 
-许可证决定可以使用哪些 功能；用户能否查看或编辑某份文档，由业务权限决定。配置许可证后，仍需按[服务端集成](/server)接入登录和文档权限。
+const collabService = new UniverCollabService({
+  dbAdapter,
+  license: 'YOUR_LICENSE', // license.txt 的内容
+  licenseKey: 'YOUR_LICENSE_KEY', // licenseKey.txt 的内容
+})
+```
 
-## 配置后检查
+省略 `license` 与 `licenseKey` 时，`UniverCollabService` 读取环境变量 `UNIVER_LICENSE` 与 `UNIVER_LICENSE_KEY`；两处都没有时按免费版运行。许可证决定协同编辑连接数、授权域名、协同节点数和可协同的文档类型，见 [Collaboration SDK 许可证](/server/collaboration/license)。
 
-重新打开应用，验证需要的 功能。如果仍有水印或授权限制，先检查许可证是否完整、是否在有效期内、是否覆盖当前功能和版本；插件模式还需检查注册顺序。仍无法解决时，联系许可证提供方。
+## Exchange [#exchange]
+
+```ts
+import { configureExchange } from '@univerjs-pro/exchange-node'
+
+await configureExchange({
+  license: 'YOUR_LICENSE', // license.txt 的内容
+  licenseKey: 'YOUR_LICENSE_KEY', // licenseKey.txt 的内容
+})
+```
+
+这一步可以省略：Exchange 会在首次导出或额度查询时读取环境变量 `UNIVER_LICENSE` 与 `UNIVER_LICENSE_KEY`，环境变量也未设置时按免费版运行。Exchange 按许可证为导出计次，导入不消耗额度，额度查询与错误处理见 [Exchange 许可证](/server/import-export/license)。
+
+Collaboration SDK 与 Exchange 运行在同一进程时，设置一次环境变量即可：
+
+```bash
+export UNIVER_LICENSE="$(cat license.txt)"
+export UNIVER_LICENSE_KEY="$(cat licenseKey.txt)"
+```
+
+## 配置后检查 [#check]
+
+重新打开应用，验证需要的功能。仍有水印或授权限制时，确认许可证内容完整、在有效期内，并覆盖当前功能和版本；插件模式还需确认 `UniverLicensePlugin` 注册在其他插件之前。仍无法解决时，联系许可证提供方。

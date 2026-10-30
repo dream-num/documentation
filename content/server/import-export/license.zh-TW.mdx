@@ -1,0 +1,171 @@
+---
+title: 授權
+description: 設定 Exchange 匯出授權、查詢剩餘額度並處理授權錯誤。
+---
+
+Exchange 在執行 `@univerjs-pro/exchange-node` 的伺服器端程序中讀取授權。轉換用法見 [Office 檔案匯入匯出](/server/import-export/node)。
+
+## 設定授權 [#configure]
+
+建議透過環境變數 `UNIVER_LICENSE` 與 `UNIVER_LICENSE_KEY` 成對提供授權。無需呼叫 `configureExchange`；SDK 在首次匯出或額度查詢時自動讀取一次，後續呼叫沿用該設定。未提供環境憑證時使用 Free；已提供但無效的授權會報錯，不能用於匯出。
+
+也可以使用 `configureExchange({ license, licenseKey })` 明確設定，它傳回 `Promise<void>`。明確設定完全忽略環境變數；應等待設定完成後再開始使用新授權的匯出。
+
+```ts
+import { configureExchange, getExportQuota } from '@univerjs-pro/exchange-node'
+
+await configureExchange({
+  license: '<license content>',
+  licenseKey: '<licenseKey content>',
+})
+
+const quota = await getExportQuota()
+```
+
+`license` 與 `licenseKey` 使用授權提供者交付的完整內容，不是檔案路徑。兩項應成對設定，並透過應用程式的密鑰管理系統提供。
+
+| 輸入 | 使用方式 |
+| --- | --- |
+| 不呼叫 `configureExchange` | 首次使用時成對讀取環境變數；均未提供則使用 Free。 |
+| `configureExchange({ license, licenseKey })` | 只使用明確憑證，完全忽略環境變數。 |
+| `configureExchange({})` | 明確選擇 Free，忽略環境變數。 |
+| 所選來源只提供一個欄位 | 傳回 `INVALID_ARGUMENT`，不會從另一來源補齊。 |
+
+完整的環境設定讀取後即固定，即使後續操作失敗也不會自動重讀。更換預設授權應明確呼叫並等待 `configureExchange`；設定失敗時保留先前設定，應處理錯誤後再開始新的匯出。
+
+同一 JavaScript 環境中的 ESM 與 CommonJS 共用設定。每個 `worker_threads` Worker 都需獨立設定或從環境變數初始化。匯出使用呼叫公開匯出方法時的設定，後續更換憑證不會改變已發起的匯出。
+
+### 為單次操作指定授權
+
+匯出 API 和 `getExportQuota` 的選項可傳入完整的 `license`、`licenseKey`，僅作用於本次操作，不修改預設設定。例如，使用同一授權查詢額度並匯出：
+
+```ts
+import { UniverInstanceType } from '@univerjs/core'
+import { ExchangeFormat, exportToBuffer, getExportQuota } from '@univerjs-pro/exchange-node'
+
+const credentials = { license: '<license content>', licenseKey: '<licenseKey content>' }
+const quota = await getExportQuota(credentials)
+const output = await exportToBuffer(workbook, {
+  type: UniverInstanceType.UNIVER_SHEET,
+  format: ExchangeFormat.XLSX,
+  ...credentials,
+})
+```
+
+此方式同樣適用於檔案匯出、Snapshot 匯出和選用的 PDF 匯出。不傳這兩個欄位時使用預設設定；只傳一個欄位傳回 `INVALID_ARGUMENT`。明確傳入的完整憑證不會從預設設定或環境變數補齊，空字串也不會被視為省略；授權無效時傳回 `LICENSE_INVALID`，不會改用預設商業授權。
+
+### 選用 PDF 支援
+
+安裝 PDF 擴充套件，並在設定授權前匯入 PDF 進入點：
+
+```sh
+pnpm add @univerjs-pro/exchange-node @univerjs-pro/exchange-pdf-node-binding
+```
+
+```ts
+import '@univerjs-pro/exchange-node/pdf'
+import { configureExchange, getExportQuota } from '@univerjs-pro/exchange-node'
+
+await configureExchange({
+  license: '<license content>',
+  licenseKey: '<licenseKey content>',
+})
+
+const quota = await getExportQuota()
+```
+
+該進入點註冊 PDF 支援，原生元件在實際使用時載入。PDF 仍使用 `importBuffer`、`importFile`、`exportToBuffer`、`exportToFile` 及對應 Snapshot API，指定 `UniverInstanceType.UNIVER_PDF` 和 `ExchangeFormat.PDF`；無需改用另一套轉換 API。僅處理 PDF 的應用程式不需要載入 Office 原生元件。環境變數設定同樣適用於 PDF。
+
+## 查詢剩餘額度 [#quota]
+
+`getExportQuota({ license, licenseKey })` 傳回 `Promise<ExportQuota>`，查詢該授權在 Office 與 PDF 間共用的額度。不傳憑證時查詢預設設定。查詢不接收類型參數，也不判斷授權是否允許匯出某個類型；類型授權在實際匯出時檢查。
+
+查詢不扣次、不預留額度，也不檢查 SDK 版本、授權是否已生效或匯出類型權限。餘額為零時仍成功傳回目前快照；其他並行請求可能隨後使用額度，請同時處理實際匯出的錯誤。
+
+授權尚未生效時，有限額度傳回首個授權月的快照，`periodStart` 為未來日期。查詢成功或 `licenseStatus` 為 `valid` 均不代表目前允許匯出；版本、生效時間、類型權限、可用額度和並行名額在實際匯出時檢查。
+
+| 欄位 | 類型 | 含義 |
+| --- | --- | --- |
+| `licenseStatus` | `'not_configured' \| 'expired' \| 'valid'` | 匯出訂閱未設定、已到期或未到期；`valid` 不表示已通過匯出准入檢查。無效授權直接報錯。 |
+| `expiresAt` | `string \| null` | 匯出訂閱到期的 UTC ISO 時間；未設定或無到期時間時為 `null`。 |
+| `observedAt` | `string` | 本次快照的 UTC ISO 時間。 |
+| `limit` | `number \| null` | 目前月額度上限；不限次數時為 `null`。 |
+| `used` | `number \| null` | 目前月已成功匯出的次數；不限次數時為 `null`。 |
+| `reserved` | `number \| null` | 目前月正在處理的匯出佔用次數；不限次數時為 `null`。 |
+| `remaining` | `number \| null` | 目前可用次數，即 `max(0, limit - used - reserved)`；不限次數時為 `null`。 |
+| `periodStart` | `string \| null` | 所查詢月額度區間的 UTC ISO 起點，包含該時刻；尚未生效時為首期起點，不限次數時為 `null`。 |
+| `periodEnd` | `string \| null` | 所查詢月額度區間的 UTC ISO 終點，不包含該時刻；不限次數時為 `null`。 |
+
+`periodEnd` 表示下一個月額度開始的時間，`expiresAt` 表示整個匯出訂閱到期的時間。訂閱有效時始終使用商業額度；本月用盡不會使用 Free，下個月開始使用新的商業月額度。訂閱到期後使用原有 Free 剩餘額度，不重新發放或歸零。
+
+有限額度快照範例：
+
+```json
+{
+  "licenseStatus": "valid",
+  "expiresAt": "2027-10-19T23:59:59Z",
+  "observedAt": "2026-10-21T09:00:00Z",
+  "limit": 500,
+  "used": 20,
+  "reserved": 1,
+  "remaining": 479,
+  "periodStart": "2026-10-19T00:00:00Z",
+  "periodEnd": "2026-11-19T00:00:00Z"
+}
+```
+
+## 使用額度 [#accounting]
+
+Free 每授權月允許 10 次成功匯出。商業授權的次數、並行及版本範圍以所購授權為準。Free 與商業授權均不設定授權層面的檔案大小和儲存格數量上限。週期與剩餘額度以查詢結果為準，未用完的月額度不結轉。
+
+匯入無需設定匯出授權，也不消耗匯出次數。同一部署中，Office 與 PDF 使用同一商業授權時共用額度。Office 轉換格式見 [Office 檔案匯入匯出](/server/import-export/node)。
+
+每次成功轉換計 1 次，傳回 Buffer 即視為轉換成功。轉換成功後的檔案寫入、上傳或下載失敗不退回次數；再次成功轉換會再次計次。本週期額度用盡後拒絕新的匯出，需等待下一授權週期或改用額度更高的有效授權；有效商業授權不會借用 Free 額度。
+
+## 處理錯誤 [#errors]
+
+使用結構化 `code` 判斷錯誤，不要解析 `message` 文字。使用者介面可依錯誤碼提供在地化提示；診斷資訊請保留供技術支援使用。
+
+```ts
+import { UniverInstanceType } from '@univerjs/core'
+import { ExchangeError, ExchangeFormat, exportToBuffer } from '@univerjs-pro/exchange-node'
+
+try {
+  const output = await exportToBuffer(workbook, {
+    type: UniverInstanceType.UNIVER_SHEET,
+    format: ExchangeFormat.XLSX,
+  })
+} catch (error) {
+  if (error instanceof ExchangeError) {
+    // 依 error.code 顯示對應提示，例如額度不足時為 LICENSE_EXPORT_QUOTA_EXCEEDED
+    console.error(error.code)
+  } else {
+    throw error
+  }
+}
+```
+
+下表區分額度查詢（`getExportQuota`）與實際匯出的報錯時機。兩類 API 均傳回 Promise，使用 `await` 搭配 `try/catch` 處理錯誤。
+
+| 錯誤碼 | 報錯時機 | 含義及處理方式 |
+| --- | --- | --- |
+| `LICENSE_EXPORT_QUOTA_EXCEEDED` | 僅匯出 | 目前週期的可用匯出額度不足；查詢額度或聯絡業務調整授權。 |
+| `LICENSE_CONCURRENCY_TIMEOUT` | 僅匯出 | 等待可用匯出並行名額逾時；降低並行數後再發起匯出。 |
+| `LICENSE_UNIT_TYPE_REJECTED` | 僅匯出 | 目前授權未包含此匯出類型或該類型授權已到期；使用包含該類型的有效授權。 |
+| `LICENSE_INVALID` | 查詢、匯出 | 授權無效；檢查完整憑證或聯絡授權提供者更新授權。 |
+| `LICENSE_POLICY_INVALID` | 查詢、匯出 | 授權設定不符合 SDK 要求；聯絡授權提供者更新授權。 |
+| `LICENSE_NOT_YET_EFFECTIVE` | 僅匯出 | 授權尚未生效；在生效後使用。 |
+| `LICENSE_VERSION_NOT_ALLOWED` | 僅匯出 | 目前 SDK 版本不在授權範圍內；使用相符版本或更新授權。 |
+| `UNSUPPORTED_FORMAT` | 僅匯出 | 不支援指定的格式或格式與類型不相符；檢查匯出選項。 |
+| `INVALID_FILE` | 僅匯出 | 轉換輸入無效；檢查輸入內容。 |
+| `INCOMPLETE_SNAPSHOT` | 僅匯出 | 匯出資料不完整；提供完整資料或 Snapshot。 |
+| `CONVERSION_FAILED` | 僅匯出 | 檔案轉換失敗；保留錯誤資訊並檢查輸入內容。 |
+| `IO_ERROR` | 僅匯出 | 檔案讀寫失敗；成功轉換後的檔案寫入失敗已經消耗 1 次。 |
+| `INVALID_ARGUMENT` | 查詢、匯出 | 參數或憑證不完整；檢查傳入設定。 |
+| `NATIVE_LOAD_FAILED` | 查詢、匯出 | SDK 原生元件無法載入；檢查已安裝套件及執行環境是否相符。 |
+| `LICENSE_USAGE_STATE_INVALID` | 查詢、匯出 | 授權用量狀態無法驗證；保留錯誤資訊並聯絡技術支援。 |
+| `LICENSE_USAGE_STORAGE_ERROR` | 查詢、匯出 | 授權用量處理失敗；保留錯誤資訊並聯絡技術支援，避免自動重複提交。 |
+
+應用程式可依 `licenseStatus` 與 `expiresAt` 自行顯示到期提醒；SDK 不額外傳回提示清單。
+
+遇到授權用量處理異常時，不應僅依錯誤推斷本次是否已計次，請保留完整錯誤並聯絡技術支援。

@@ -1,0 +1,171 @@
+---
+title: ライセンス
+description: Exchange のエクスポート認可を設定し、残りの割り当てを照会し、ライセンスエラーを処理します。
+---
+
+Exchange は `@univerjs-pro/exchange-node` を実行するサーバープロセスでライセンスを読み取ります。変換の使い方は [Office ファイルのインポートとエクスポート](/server/import-export/node)を参照してください。
+
+## 認可の設定 [#configure]
+
+ライセンスは環境変数 `UNIVER_LICENSE` と `UNIVER_LICENSE_KEY` で一対として提供することを推奨します。`configureExchange` の呼び出しは不要です。SDK は最初のエクスポートまたは割り当て照会の時点で環境変数を一度だけ読み取り、以降はその設定を再利用します。環境に資格情報がない場合は Free が適用されます。指定されていても無効な資格情報はエラーとなり、エクスポートには使用できません。
+
+明示的に設定する場合、`configureExchange({ license, licenseKey })` は `Promise<void>` を返し、環境変数を完全に無視します。新しい資格情報で行うエクスポートは、設定の完了を待ってから開始してください。
+
+```ts
+import { configureExchange, getExportQuota } from '@univerjs-pro/exchange-node'
+
+await configureExchange({
+  license: '<license content>',
+  licenseKey: '<licenseKey content>',
+})
+
+const quota = await getExportQuota()
+```
+
+`license` と `licenseKey` には、ライセンス提供元から受け取った完全な内容を指定します。ファイルパスではありません。両方を一対として、アプリケーションのシークレット管理の仕組みで提供してください。
+
+| 入力 | 動作 |
+| --- | --- |
+| `configureExchange` を呼び出さない | 初回使用時に両方の環境変数を読み取る。どちらも未設定なら Free を使用する。 |
+| `configureExchange({ license, licenseKey })` | 明示した資格情報のみを使用し、環境変数を無視する。 |
+| `configureExchange({})` | 明示的に Free を選択し、環境変数を無視する。 |
+| 選択したソースで資格情報が 1 つだけ指定されている | `INVALID_ARGUMENT` を返す。もう一方を別のソースから補完することはない。 |
+
+完全な環境設定を一度読み取ると、後続の操作が失敗しても固定されたままです。実行中に既定の資格情報を置き換えるには、`configureExchange` を明示的に呼び出して完了を待ちます。設定に失敗した場合は以前の設定が有効なままなので、エラーを処理してから新しいエクスポートを開始してください。
+
+同じ JavaScript コンテキスト内の ESM と CommonJS は設定を共有します。各 `worker_threads` Worker は個別に設定するか、環境変数から初期化する必要があります。エクスポートは公開エクスポートメソッドを呼び出した時点の設定を使い、その後に資格情報を変更しても開始済みのエクスポートには影響しません。
+
+### 1 回の操作に認可を指定する
+
+エクスポート API または `getExportQuota` のオプションに完全な `license` と `licenseKey` の組を渡すと、既定の設定を変えずにその操作だけを認可できます。たとえば、同じ資格情報で割り当てを照会してエクスポートします。
+
+```ts
+import { UniverInstanceType } from '@univerjs/core'
+import { ExchangeFormat, exportToBuffer, getExportQuota } from '@univerjs-pro/exchange-node'
+
+const credentials = { license: '<license content>', licenseKey: '<licenseKey content>' }
+const quota = await getExportQuota(credentials)
+const output = await exportToBuffer(workbook, {
+  type: UniverInstanceType.UNIVER_SHEET,
+  format: ExchangeFormat.XLSX,
+  ...credentials,
+})
+```
+
+ファイルのエクスポート、Snapshot のエクスポート、オプションの PDF エクスポートにも同様に適用されます。両方のフィールドを省略すると既定の設定を使い、片方だけを指定すると `INVALID_ARGUMENT` を返します。明示した組が既定の設定や環境変数で補完されることはなく、空文字列も省略とは見なされません。無効な資格情報は `LICENSE_INVALID` を返し、既定の商用ライセンスにフォールバックすることはありません。
+
+### オプションの PDF サポート
+
+PDF 拡張パッケージをインストールし、認可を設定する前にそのエントリーをインポートします。
+
+```sh
+pnpm add @univerjs-pro/exchange-node @univerjs-pro/exchange-pdf-node-binding
+```
+
+```ts
+import '@univerjs-pro/exchange-node/pdf'
+import { configureExchange, getExportQuota } from '@univerjs-pro/exchange-node'
+
+await configureExchange({
+  license: '<license content>',
+  licenseKey: '<licenseKey content>',
+})
+
+const quota = await getExportQuota()
+```
+
+このエントリーは PDF サポートを登録し、ネイティブコンポーネントは使用時に読み込まれます。PDF でも同じ `importBuffer`、`importFile`、`exportToBuffer`、`exportToFile` と対応する Snapshot API を使い、`UniverInstanceType.UNIVER_PDF` と `ExchangeFormat.PDF` を指定します。PDF のみを扱うアプリケーションでは Office のネイティブコンポーネントを読み込む必要はありません。環境変数による設定は PDF にも適用されます。
+
+## 残りの割り当ての照会 [#quota]
+
+`getExportQuota({ license, licenseKey })` は `Promise<ExportQuota>` を返し、その認可で Office と PDF が共有する割り当てを照会します。資格情報を省略すると既定の設定を照会します。Unit の種類は受け取らず、特定の種類をエクスポートする権限も確認しません。その確認はエクスポート時に行われます。
+
+照会は割り当てを消費も予約もせず、SDK のバージョン、有効化日時、エクスポート種類の権限も確認しません。残高が 0 でも照会は成功してスナップショットを返します。その後に他のリクエストが割り当てを消費する可能性があるため、実際のエクスポートのエラーも処理してください。
+
+認可の開始前は、割り当てに上限がある場合、最初の認可月のスナップショットが未来の `periodStart` とともに返ります。照会の成功や `valid` の状態は、エクスポートを許可するものではありません。バージョン、有効化日時、種類の権限、利用可能な割り当て、同時実行の確認はエクスポート時に行われます。
+
+| フィールド | 型 | 意味 |
+| --- | --- | --- |
+| `licenseStatus` | `'not_configured' \| 'expired' \| 'valid'` | エクスポートのサブスクリプションが未設定、期限切れ、または期限内であること。`valid` はエクスポートの受け入れ確認を通過したことを意味しない。無効な資格情報はエラーを返す。 |
+| `expiresAt` | `string \| null` | エクスポートのサブスクリプションの有効期限（UTC ISO タイムスタンプ）。未設定または期限がない場合は `null`。 |
+| `observedAt` | `string` | このスナップショットの UTC ISO タイムスタンプ。 |
+| `limit` | `number \| null` | 当月のエクスポート上限。無制限の場合は `null`。 |
+| `used` | `number \| null` | 当月に成功したエクスポート数。無制限の場合は `null`。 |
+| `reserved` | `number \| null` | 当月の割り当てを占有している処理中のエクスポート数。無制限の場合は `null`。 |
+| `remaining` | `number \| null` | 利用可能なエクスポート数：`max(0, limit - used - reserved)`。無制限の場合は `null`。 |
+| `periodStart` | `string \| null` | 照会した月次割り当て期間の UTC ISO 開始時刻（その時刻を含む）。有効化前は最初の期間が未来から始まる。無制限の場合は `null`。 |
+| `periodEnd` | `string \| null` | 照会した月次割り当て期間の UTC ISO 終了時刻（その時刻を含まない）。無制限の場合は `null`。 |
+
+`periodEnd` は次の月次割り当て期間の開始時刻、`expiresAt` はエクスポートのサブスクリプション全体の終了時刻を示します。有効なサブスクリプションでは常に商用の割り当てを使います。使い切っても Free は使われず、翌月から新しい商用の割り当て期間が始まります。サブスクリプションの期限が切れた場合にのみ、既存の Free の残りが使われます。Free の割り当てがリセットされたり再付与されたりすることはありません。
+
+上限のある割り当てのスナップショットの例：
+
+```json
+{
+  "licenseStatus": "valid",
+  "expiresAt": "2027-10-19T23:59:59Z",
+  "observedAt": "2026-10-21T09:00:00Z",
+  "limit": 500,
+  "used": 20,
+  "reserved": 1,
+  "remaining": 479,
+  "periodStart": "2026-10-19T00:00:00Z",
+  "periodEnd": "2026-11-19T00:00:00Z"
+}
+```
+
+## 割り当ての消費 [#accounting]
+
+Free では認可月ごとに 10 回のエクスポート成功が認められます。商用ライセンスのエクスポート割り当て、同時実行数、バージョンの範囲は購入したライセンスによります。Free と商用ライセンスのどちらにも、ファイルサイズやセル数の上限はありません。現在の期間と残りの割り当ては照会結果で確認してください。未使用の月次割り当ては繰り越されません。
+
+インポートにはエクスポート認可は不要で、エクスポートの割り当ても消費しません。同じデプロイ内で同じ商用ライセンスを使う Office と PDF のエクスポートは割り当てを共有します。Exchange の変換形式は [Office ファイルのインポートとエクスポート](/server/import-export/node)を参照してください。
+
+変換が 1 回成功するごとにエクスポートを 1 回消費します。Buffer が返った時点で成功と見なします。その後のファイル書き込み、アップロード、ダウンロードが失敗しても返却されず、再度変換に成功すればもう 1 回消費します。現在の期間に残りがない場合、新しいエクスポートは拒否されます。次の認可期間を待つか、より多い割り当ての有効なライセンスを使用してください。使い切った有効な商用ライセンスが Free の割り当てを使うことはありません。
+
+## エラー処理 [#errors]
+
+`message` のテキストを解析せず、構造化された `code` でエラーを識別してください。UI ではエラーコードをローカライズされたメッセージに対応付けられます。診断情報はテクニカルサポート用に保持してください。
+
+```ts
+import { UniverInstanceType } from '@univerjs/core'
+import { ExchangeError, ExchangeFormat, exportToBuffer } from '@univerjs-pro/exchange-node'
+
+try {
+  const output = await exportToBuffer(workbook, {
+    type: UniverInstanceType.UNIVER_SHEET,
+    format: ExchangeFormat.XLSX,
+  })
+} catch (error) {
+  if (error instanceof ExchangeError) {
+    // error.code に応じたメッセージを表示する。割り当て不足のときは LICENSE_EXPORT_QUOTA_EXCEEDED
+    console.error(error.code)
+  } else {
+    throw error
+  }
+}
+```
+
+次の表では、割り当て照会（`getExportQuota`）と実際のエクスポートでエラーが発生するタイミングを区別しています。どちらの API も Promise を返すため、`await` と `try/catch` で失敗を処理してください。
+
+| コード | 発生する操作 | 意味と対処 |
+| --- | --- | --- |
+| `LICENSE_EXPORT_QUOTA_EXCEEDED` | エクスポートのみ | 現在の期間のエクスポート割り当てが不足している。割り当てを照会するか、営業に連絡してライセンスを調整する。 |
+| `LICENSE_CONCURRENCY_TIMEOUT` | エクスポートのみ | エクスポートの同時実行枠の待機がタイムアウトした。同時実行数を減らしてから再送する。 |
+| `LICENSE_UNIT_TYPE_REJECTED` | エクスポートのみ | このエクスポート種類がライセンスに含まれていない、または種類の権限が期限切れ。その種類を含む有効なライセンスを使用する。 |
+| `LICENSE_INVALID` | 照会、エクスポート | ライセンスが無効。資格情報が完全か確認するか、ライセンス提供元に更新を依頼する。 |
+| `LICENSE_POLICY_INVALID` | 照会、エクスポート | 認可の構成が SDK の要件を満たしていない。ライセンス提供元に更新を依頼する。 |
+| `LICENSE_NOT_YET_EFFECTIVE` | エクスポートのみ | 認可がまだ開始していない。有効日以降に使用する。 |
+| `LICENSE_VERSION_NOT_ALLOWED` | エクスポートのみ | 現在の SDK バージョンがライセンスの範囲外。対応するバージョンを使うか、ライセンスを更新する。 |
+| `UNSUPPORTED_FORMAT` | エクスポートのみ | 形式がサポートされていない、または Unit の種類と合わない。エクスポートのオプションを確認する。 |
+| `INVALID_FILE` | エクスポートのみ | 変換の入力が無効。内容を確認する。 |
+| `INCOMPLETE_SNAPSHOT` | エクスポートのみ | エクスポートデータが不完全。完全なデータまたは Snapshot を指定する。 |
+| `CONVERSION_FAILED` | エクスポートのみ | 変換に失敗した。エラーを保持し、入力内容を確認する。 |
+| `IO_ERROR` | エクスポートのみ | ファイルの入出力に失敗した。変換成功後の書き込み失敗では、すでにエクスポートを 1 回消費している。 |
+| `INVALID_ARGUMENT` | 照会、エクスポート | 引数または資格情報が不完全。設定を確認する。 |
+| `NATIVE_LOAD_FAILED` | 照会、エクスポート | SDK のネイティブコンポーネントを読み込めない。パッケージと実行環境の互換性を確認する。 |
+| `LICENSE_USAGE_STATE_INVALID` | 照会、エクスポート | ライセンスの使用状況を検証できない。エラーを保持し、テクニカルサポートに連絡する。 |
+| `LICENSE_USAGE_STORAGE_ERROR` | 照会、エクスポート | ライセンスの使用状況の処理に失敗した。エラーを保持してテクニカルサポートに連絡し、自動での再送は避ける。 |
+
+有効期限の通知は、アプリケーションが `licenseStatus` と `expiresAt` から作成できます。SDK は別途通知の一覧を返しません。
+
+ライセンスの使用状況の処理エラーが発生した場合、エラーだけから計上の有無を推測しないでください。完全なエラーを保持し、テクニカルサポートに連絡してください。
