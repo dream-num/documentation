@@ -69,6 +69,14 @@ SDK guide canonical URLs use the actual content language; hreflang links list on
 node --test lib/docs/__tests__/api-recipes.spec.mjs lib/docs/__tests__/guide-metadata.spec.mjs lib/docs/__tests__/guide-seo.spec.mjs
 ```
 
+For the menu browser smoke tests, extract `public/assets/examples/vue3/univer-vue3-menu-starter.zip` into a separate directory. In that directory, run `npm install` and `npm run dev -- --host 127.0.0.1 --port 3033`. Keep the example running, then run this command from the documentation repository:
+
+```bash
+PLAYWRIGHT_CHANNEL=chrome node --test lib/docs/__tests__/menu-customization.spec.mjs
+```
+
+Set `MENU_EXAMPLE_ORIGIN` to override `http://127.0.0.1:3033`. Omit `PLAYWRIGHT_CHANNEL` when using Playwright's installed bundled Chromium.
+
 For more information about contributing to Web SDK, see the [main repository](https://github.com/dream-num/univer).
 
 ## Deploy Using ECS
