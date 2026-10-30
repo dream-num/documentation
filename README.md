@@ -63,6 +63,12 @@ We welcome contributions to the documentation. Please ensure your changes follow
 
 Office SDK pages in `content/docs` are maintained in all eight site languages. Keep translated feature catalogs aligned with the English source, including category order, support states, open-source flags, links, and chart previews. Preserve SDK/API identifiers and existing fragment links when translating.
 
+SDK guide canonical URLs use the actual content language; hreflang links list only existing translations. Shared guide placements point to their original content page. With `pnpm dev` running, verify metadata, localized recipes, and legacy section links using:
+
+```bash
+node --test lib/docs/__tests__/api-recipes.spec.mjs lib/docs/__tests__/guide-metadata.spec.mjs lib/docs/__tests__/guide-seo.spec.mjs
+```
+
 For more information about contributing to Web SDK, see the [main repository](https://github.com/dream-num/univer).
 
 ## Deploy Using ECS
