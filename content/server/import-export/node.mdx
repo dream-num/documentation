@@ -1,10 +1,9 @@
 ---
-title: Office file import and export
-description: Use Exchange to import and export content between Office files and collaborative Units.
+title: Office and PDF file import and export
+description: Use the Node SDK to convert between Office or PDF files and Univer document data.
 ---
 
-Office file conversion is provided by `@univerjs-pro/exchange-node`, not AI SDK. A CLI application calls
-`importFile()` and `exportToFile()` at the file boundary, then uses AI SDK and Collaboration SDK to operate the Unit.
+`@univerjs-pro/exchange-node` imports and exports Office and PDF files as Univer document data. In Node.js, use Buffers or file paths, or convert complete snapshots directly. PDF requires installing and registering the [optional PDF backend](#pdf) below.
 
 ## Keep the SDK boundary
 
@@ -14,7 +13,7 @@ import { exportToFile, importFile } from "@univerjs-pro/exchange-node";
 
 | Capability                                                 | Owner                |
 | ---------------------------------------------------------- | -------------------- |
-| Office files to and from UnitData                          | Exchange  |
+| Office and PDF files to and from UnitData                  | Exchange  |
 | Headless runtime, content inspection, and Facade execution | AI SDK       |
 | Snapshots, changesets, revisions, and persistence          | Collaboration SDK    |
 | Paths, format policy, business APIs, and error mapping     | Business application |
@@ -35,9 +34,15 @@ Office file
 The application decides the initial revision, business metadata, and result. After creation, CLI and Web both operate
 the Unit through the Server.
 
+## File name and format [#file-name-and-format]
+
+- `importBuffer` and `importBufferToSnapshot` require a non-empty `fileName`, even when `format` is specified.
+- `importFile` and `importFileToSnapshot` use the input path's basename by default; `fileName` can override it.
+- When `format` is omitted, the SDK infers it from the file name's extension. For a missing or unsupported extension, specify `format` explicitly. An explicit `format` takes precedence over the extension.
+
 ## Specify a document ID [#document-id]
 
-When importing XLSX, the SDK generates a random document ID by default. If your system has already assigned an ID to the document, pass `unitId` to use that ID for the imported document.
+When importing a file, the SDK generates a document ID by default. If your system has already assigned an ID to the document, pass `unitId` to use that ID for the imported document. The following example imports XLSX:
 
 ```ts
 import { UniverInstanceType } from '@univerjs/core';
@@ -64,7 +69,7 @@ collaborative Unit
 → Office file
 ```
 
-The output extension selects the export format.
+Specify the target export format through `format` and use a matching output file extension.
 
 ## Expose the file boundary through Commander
 
@@ -112,10 +117,46 @@ application implements file conversion with Exchange `importFile()` / `exportToF
 | Unit  | Import                                              | Export                  |
 | ----- | --------------------------------------------------- | ----------------------- |
 | Sheet | `.xls`, `.xlsx`, `.xlsm`, `.csv`, `.tsv`            | `.xlsx`, `.csv`, `.tsv` |
+| Base  | `.xls`, `.xlsx`, `.csv`, `.tsv`                     | `.xlsx`, `.csv`, `.tsv` |
 | Doc   | `.doc`, `.docx`                                     | `.docx`                 |
 | Slide | `.ppt`, `.pptx`, `.pptm`, `.ppsx`, `.ppsm`, `.potx` | `.pptx`                 |
+| PDF   | `.pdf`                                              | `.pdf`                  |
 
 The application should reject an extension that does not match the Unit type before generating a file.
+
+## PDF import and export [#pdf]
+
+Install the Node SDK and optional PDF conversion backend:
+
+```sh
+pnpm add @univerjs-pro/exchange-node @univerjs-pro/exchange-pdf-node-binding
+```
+
+Execute the `@univerjs-pro/exchange-node/pdf` side-effect import before converting to register PDF support. If you configure authorization through `configureExchange()`, register PDF support first as well. This example converts between a file and a complete snapshot:
+
+```ts
+import '@univerjs-pro/exchange-node/pdf';
+import { UniverInstanceType } from '@univerjs/core';
+import {
+    ExchangeFormat,
+    importFileToSnapshot,
+    exportSnapshotToFile,
+} from '@univerjs-pro/exchange-node';
+
+const snapshot = await importFileToSnapshot('input.pdf', {
+    type: UniverInstanceType.UNIVER_PDF,
+    format: ExchangeFormat.PDF,
+});
+
+await exportSnapshotToFile(snapshot, 'output.pdf', {
+    type: UniverInstanceType.UNIVER_PDF,
+    format: ExchangeFormat.PDF,
+});
+```
+
+PDF also supports `importFile`, `importBuffer`, `exportToFile`, `exportToBuffer`, and their snapshot APIs, using `UniverInstanceType.UNIVER_PDF` and `ExchangeFormat.PDF`. Buffer imports still require `fileName`. Converting PDF files in Node.js does not require an editor or collaboration service.
+
+These APIs convert between PDF files and PDF document data; they do not export Office documents as PDF. See [Import/export licensing](/server/import-export/license) for PDF export authorization and quota, and [PDF import and export](/guides/pdfs/features/import-export) for browser integration.
 
 ## Use only a local CLI
 
