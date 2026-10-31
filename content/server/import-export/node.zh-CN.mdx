@@ -1,10 +1,9 @@
 ---
-title: Office 文件导入导出
-description: 使用 Exchange 在 Office 文件与 Collaboration Unit 之间导入导出内容。
+title: Office 与 PDF 文件导入导出
+description: 使用 Node SDK 在 Office、PDF 文件与 Univer 文档数据之间转换。
 ---
 
-Office 文件转换由 `@univerjs-pro/exchange-node` 提供，不属于 AI SDK。CLI 应用在文件边界调用
-`importFile()` 和 `exportToFile()`，再使用 AI SDK 与 Collaboration SDK 处理 Unit。
+`@univerjs-pro/exchange-node` 提供 Office 和 PDF 文件与 Univer 文档数据之间的导入导出。可以在 Node.js 中使用 Buffer 或文件路径，也可以直接转换完整 Snapshot；PDF 需要安装并注册下文的[可选 PDF 支持](#pdf)。
 
 ## 遵守 SDK 边界
 
@@ -14,7 +13,7 @@ import { exportToFile, importFile } from "@univerjs-pro/exchange-node";
 
 | 能力                                     | 所属边界            |
 | ---------------------------------------- | ------------------- |
-| Office 文件与 UnitData 转换              | Exchange |
+| Office、PDF 文件与 UnitData 转换          | Exchange |
 | Headless Runtime、内容检查和 Facade 执行 | AI SDK      |
 | Snapshot、changeset、revision 与持久化   | Collaboration SDK   |
 | 路径、格式选项、业务 API 和错误映射      | 业务应用            |
@@ -33,6 +32,31 @@ Office 文件
 
 应用决定新 Unit 的初始 revision、业务元数据和返回结果。创建完成后，CLI 与 Web 都通过 Server 操作这个 Unit。
 
+## 文件名与格式 [#file-name-and-format]
+
+`fileName` 表示源文件名，例如 `销售报表.xlsx`。省略 `format` 时，SDK 根据扩展名推断格式。导入器也会用它生成文档名称；例如，这份 XLSX 导入后的工作簿名称为 `销售报表`。Buffer 只有文件内容，不带原文件名，因此需要单独传入；即使已经指定 `format`，仍需提供这个名称。
+
+- `importBuffer` 和 `importBufferToSnapshot` 必须传入非空的 `fileName`，即使已经指定 `format`。
+- `importFile` 和 `importFileToSnapshot` 默认使用输入路径中的文件名，也可以通过 `fileName` 覆盖。
+- 省略 `format` 时，SDK 根据文件名的扩展名判断格式。文件名没有扩展名或扩展名不受支持时，需要显式指定 `format`；显式指定的格式优先于扩展名。
+
+## 指定文档 ID [#document-id]
+
+导入文件时，SDK 默认自动生成文档 ID。如果你的系统已经为文档分配了 ID，可以通过 `unitId` 指定，让导入结果使用你提供的 ID。下面以导入 XLSX 为例：
+
+```ts
+import { UniverInstanceType } from '@univerjs/core';
+import { importBufferToSnapshot } from '@univerjs-pro/exchange-node';
+
+const imported = await importBufferToSnapshot(xlsxBuffer, {
+    type: UniverInstanceType.UNIVER_SHEET,
+    fileName: 'example.xlsx',
+    unitId: 'your-document-id', // 可选，省略时自动生成
+});
+```
+
+协同场景下，这就是[创建和打开同一份文档](/server/collaboration/browser-integration#创建和打开同一份文档)时使用的文档 ID。
+
 ## 导出最新 Revision
 
 导出时，CLI 先通过 Collaboration Runtime 加载最新 confirmed revision，再把完整 UnitData 交给 Exchange：
@@ -44,7 +68,7 @@ Collaboration Unit
 → Office 文件
 ```
 
-输出扩展名决定导出格式。
+导出时必须通过 `format` 指定目标格式，并让输出文件的扩展名与之匹配。
 
 ## 使用 Commander 暴露文件边界
 
@@ -91,10 +115,48 @@ function addFileExchangeCommands(program: Command, dependencies: IFileExchangeDe
 | Unit  | 可导入                                              | 可导出                  |
 | ----- | --------------------------------------------------- | ----------------------- |
 | Sheet | `.xls`、`.xlsx`、`.xlsm`、`.csv`、`.tsv`            | `.xlsx`、`.csv`、`.tsv` |
+| Base  | `.xls`、`.xlsx`、`.csv`、`.tsv`                     | `.xlsx`、`.csv`、`.tsv` |
 | Doc   | `.doc`、`.docx`                                     | `.docx`                 |
 | Slide | `.ppt`、`.pptx`、`.pptm`、`.ppsx`、`.ppsm`、`.potx` | `.pptx`                 |
+| PDF   | `.pdf`                                             | `.pdf`                  |
 
 扩展名与 Unit 类型不匹配时，应用应在生成文件前拒绝执行。
+
+## PDF 导入导出 [#pdf]
+
+安装 Node SDK 和可选的 PDF 转换后端：
+
+```sh
+pnpm add @univerjs-pro/exchange-node @univerjs-pro/exchange-pdf-node-binding
+```
+
+在转换前执行 `@univerjs-pro/exchange-node/pdf` 的副作用导入来注册 PDF 支持；如果使用 `configureExchange()` 配置授权，也应先注册 PDF 支持。下面以文件与完整 Snapshot 之间的转换为例：
+
+```ts
+import { UniverInstanceType } from '@univerjs/core';
+import {
+    ExchangeFormat,
+    importFileToSnapshot,
+    exportSnapshotToFile,
+} from '@univerjs-pro/exchange-node';
+
+// 启用 PDF 支持，在配置授权或转换文件前完成注册。
+import '@univerjs-pro/exchange-node/pdf';
+
+const snapshot = await importFileToSnapshot('input.pdf', {
+    type: UniverInstanceType.UNIVER_PDF,
+    format: ExchangeFormat.PDF,
+});
+
+await exportSnapshotToFile(snapshot, 'output.pdf', {
+    type: UniverInstanceType.UNIVER_PDF,
+    format: ExchangeFormat.PDF,
+});
+```
+
+PDF 同样支持 `importFile`、`importBuffer`、`exportToFile`、`exportToBuffer` 及其 Snapshot API，使用 `UniverInstanceType.UNIVER_PDF` 和 `ExchangeFormat.PDF`。Buffer 导入仍需传入 `fileName`。只在 Node.js 中转换 PDF 时，不需要启动编辑器或协同服务。
+
+这里的转换范围是 PDF 文件与 PDF 文档数据之间的转换，不包含将 Office 文档导出为 PDF。PDF 导出授权与额度见[导入导出许可证](/server/import-export/license)，浏览器端的接入见[PDF 导入导出](/guides/pdfs/features/import-export)。
 
 ## 只使用本地 CLI
 
