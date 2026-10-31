@@ -1,6 +1,6 @@
 import { Feed } from 'feed'
 import { NextResponse } from 'next/server'
-import { withLocale } from '@/lib/locale-path'
+import { getContentLocale, stripLocalePrefix, withLocale } from '@/lib/locale-path'
 import { getActiveBlogPages } from '@/lib/source'
 
 export const revalidate = false
@@ -29,7 +29,7 @@ export async function GET(request: Request, { params }: IProps) {
       id: page.url,
       title: page.data.title,
       description: page.data.description,
-      link: `${baseUrl}${page.url}`,
+      link: `${baseUrl}${withLocale(getContentLocale(page.path), stripLocalePrefix(page.url))}`,
       date: new Date(page.data.date),
 
       author: [
