@@ -46,7 +46,13 @@ export default function proxy(request: NextRequest) {
   }
 
   const match = request.nextUrl.pathname.match(agentDocsPath)
-  if (!match) return intlMiddleware(request)
+  if (!match) {
+    const response = intlMiddleware(request)
+    // Blog metadata lists actual translations; automatic links also advertise fallback locales.
+    if (new RegExp(`^/(?:(${routing.locales.join('|')})/)?blog(?:/|$)`).test(request.nextUrl.pathname))
+      response.headers.delete('link')
+    return response
+  }
 
   const locale = match[1] ?? routing.defaultLocale
   if (match[1] === routing.defaultLocale) {

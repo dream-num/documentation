@@ -18,6 +18,7 @@ interface IDocumentFrontmatter {
 interface IBlogFrontmatter extends IDocumentFrontmatter {
   author: string
   date: string
+  updated?: string
   deprecated?: boolean
 }
 

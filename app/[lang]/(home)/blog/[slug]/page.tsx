@@ -57,6 +57,7 @@ export async function generateMetadata({ params }: IProps) {
       description: page.data.description,
       url: pageUrl,
       publishedTime: page.data.date,
+      modifiedTime: page.data.updated,
       authors: [page.data.author],
     },
   }
@@ -80,11 +81,12 @@ export default async function Page({ params }: IProps) {
     headline: page.data.title,
     description: page.data.description,
     datePublished: page.data.date,
+    dateModified: page.data.updated ?? page.data.date,
     inLanguage: contentLocale,
     url: pageUrl,
     mainEntityOfPage: pageUrl,
     author: {
-      '@type': page.data.author === 'Univer Engineering Team' ? 'Organization' : 'Person',
+      '@type': ['Univer Engineering Team', 'univer'].includes(page.data.author) ? 'Organization' : 'Person',
       name: page.data.author,
     },
     publisher: { '@type': 'Organization', name: 'Univer', url: 'https://univer.ai' },

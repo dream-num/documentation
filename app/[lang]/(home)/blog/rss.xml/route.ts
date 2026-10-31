@@ -1,6 +1,6 @@
 import { Feed } from 'feed'
 import { NextResponse } from 'next/server'
-
+import { withLocale } from '@/lib/locale-path'
 import { getActiveBlogPages } from '@/lib/source'
 
 export const revalidate = false
@@ -16,8 +16,8 @@ export async function GET(request: Request, { params }: IProps) {
 
   const feed = new Feed({
     title: 'Univer Office SDK Blog',
-    id: `${baseUrl}/blog`,
-    link: `${baseUrl}/blog`,
+    id: `${baseUrl}${withLocale(lang, '/blog')}`,
+    link: `${baseUrl}${withLocale(lang, '/blog')}`,
     language: lang,
     copyright: 'All rights reserved 2025, ',
   })

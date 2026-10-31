@@ -41,6 +41,7 @@ export default defineConfig({
       schema: documentSchema.extend({
         author: z.string(),
         date: z.iso.date(),
+        updated: z.iso.date().optional(),
         deprecated: z.boolean().optional(),
       }),
     },
