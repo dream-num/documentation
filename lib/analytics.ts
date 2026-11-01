@@ -66,7 +66,8 @@ export function captureDocumentationLink(event: MouseEvent) {
   }
   if (target.protocol !== 'https:' && target.protocol !== 'http:') return
   const current = new URL(window.location.href)
-  if (target.origin === current.origin) return
+  const internal = target.origin === current.origin
+  if (internal && target.pathname === current.pathname) return
   const destination = getAnalyticsPage(target.pathname)
   const location =
     [
@@ -83,10 +84,11 @@ export function captureDocumentationLink(event: MouseEvent) {
     from_path: current.pathname,
     to_path: target.pathname,
     to_content_path: destination.content_path,
-    to_content_type: 'external',
+    to_content_type: internal ? destination.content_type : 'external',
+    to_locale: internal ? destination.locale : undefined,
     to_host: target.host,
     to_anchor: target.hash.slice(1) || undefined,
-    link_kind: 'outbound',
+    link_kind: internal ? 'internal' : 'outbound',
     link_location: location,
     opens_new_context:
       link.target === '_blank' || event.button === 1 || event.metaKey || event.ctrlKey || event.shiftKey,
