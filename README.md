@@ -37,6 +37,39 @@ The read-only Icons MCP runs at `/mcp/icons` in the existing Next.js Node server
 
 Showcase source, assets, tests and build tooling live in the sibling `../office.univer.ai` Vite project. Run `pnpm dev` there, then set `NEXT_PUBLIC_SHOWCASES_ORIGIN=http://localhost:5180` here. Production example links and embedded previews default to `https://office.univer.ai`. Set `NEXT_PUBLIC_SHOWCASES_ORIGIN` in `.env.local` to override that address for local development.
 
+## Documentation Analytics
+
+PostHog is initialized once in `instrumentation-client.ts`, following the `univer.ai` site's browser SDK setup. It captures initial page loads and pathname changes, including browser back/forward navigation. Changing only a query string or article anchor does not add a pageview.
+
+Set `NEXT_POSTHOG_APIKEY` and `NEXT_PUBLIC_POSTHOG_HOST` in `.env.local` from the documentation project's PostHog settings. The existing deployment secret `NEXT_POSTHOG_APIKEY` is reused for browser analytics through `next.config.mts`; it is a public ingestion key, not a personal API key. Docker builds default the ingestion host to US Cloud and accept a `NEXT_PUBLIC_POSTHOG_HOST` build argument to override it. Configuration changes require rebuilding the browser bundle. Capture is opted out by default outside production, and session recording and general autocapture are disabled.
+
+The documentation project is **Univer SDK (133116)**. It is separate from the main website's **Univer (75032)** project. Referrers identify arrivals from the website, but a cross-project user funnel cannot be inferred from these events alone.
+
+| Event | Use |
+| --- | --- |
+| `$pageview` | Rank documentation and blog visits and unique visitors; inspect session paths. |
+| `$pageleave` / next `$pageview` | Inspect the previous page's duration and scroll depth. The SDK reads the documentation scroll container, with the document root as a fallback for blogs and mobile layouts. |
+| `docs_link_click` | Inspect `from_path`, `to_path`, `to_host`, `to_anchor`, link location, and internal, anchor, or outbound intent. |
+| `docs_search_open` | Count openings of the shared site search. |
+| `docs_search` | Inspect `search_query`, result count, success/error status, and request duration. Aborted requests are excluded. |
+| `docs_search_result_click` | Join to a request by `search_id`; inspect `search_query`, result position, destination, pointer/keyboard selection, and time from request start to selection. |
+| `on_rate_docs` | Capture a helpful/unhelpful vote immediately from the shared article footer, even when no optional details are supplied. |
+| `docs_feedback_detail` | Record an optional problem category and comment, linked to the vote by `feedback_id` and `feedback_revision`. |
+
+Browser events include `site=documentation`, `schema_version=1`, `reporting_side=frontend`, `locale`, `page_path`, `content_path`, `content_section`, and `content_type` (`documentation`, `blog`, or `other`). `content_path` removes the locale prefix so translated pages can be grouped together. Native session and pageview IDs remain available. Pageviews also retain `from_path` and `from_content_path` when the SDK has a previous page in the current document.
+
+For content rankings, filter `$pageview` to `$host=docs.univer.ai` and the desired `content_type`, then break down by `content_path` and optionally `locale`. For navigation, use native Paths or compare the source and destination of link clicks with subsequent pageviews. A click records intent, not a completed navigation. Search requests and selections share a random `search_id` and include the trimmed `search_query`, up to the existing 200-character input limit. Article text and URL query strings are not collected.
+
+To identify popular questions, break down successful `docs_search` events by `search_query`; add `result_count=0` to find topics without results. Use `docs_search_result_click` to see which content people choose for each query. Live search can complete several requests as a visitor edits their question, so request counts are not counts of unique questions or visitors; result selections provide a more explicit interest signal.
+
+The compact feedback footer appears below documentation, API reference, and blog articles in all eight languages. Helpful/unhelpful votes complete in one click without opening a form. A suggestion action is always available, including before voting; only an explicit request opens the optional comment form. Negative voters can also select `missing`, `unclear`, `example_error`, or `version_mismatch`. Comments allow up to 2,000 characters and can accompany either rating. The server action validates input, waits for ingestion, and reports failures so the reader can retry. Browser storage remembers each page's feedback when available; blocked or malformed storage does not prevent submission.
+
+Feedback uses the same ingestion project and page metadata as visits, with `reporting_side=server`. The server reads the PostHog visitor cookie and falls back to the supplied browser distinct ID, then to the unique feedback ID if analytics is unavailable. Browser `$session_id` and `$pageview_id` link feedback to the visit when present. Development feedback is not ingested. Changing a vote reuses `feedback_id` with a higher `feedback_revision`: compute helpfulness from the latest vote per feedback ID, and match details to that revision. Supplemental comments are separate events and must not be counted as votes. Suggestions submitted without a rating use only `docs_feedback_detail` with `opinion=unrated`, so they do not enter the helpfulness ratio. For repeated detail edits, use the latest event timestamp. Legacy feedback with `opinion=normal` and the shared `anonymous` identity remains historical comment data; exclude it from the helpfulness ratio.
+
+Duration is elapsed time, not active reading time; scroll depth, search-result selection, and a helpful vote do not prove that the reader solved their problem. Historical visits before deployment cannot be reconstructed.
+
+Run `pnpm test:analytics` to verify URL normalization, locale grouping, previous-page attribution, delegated link tracking, feedback validation, identity correlation, delivery failures, and development opt-out.
+
 ## Project Structure
 
 ```
