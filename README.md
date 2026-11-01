@@ -51,12 +51,14 @@ The documentation project is **Univer SDK (133116)**. It is separate from the ma
 | `$pageleave` / next `$pageview` | Inspect the previous page's duration and scroll depth. The SDK reads the documentation scroll container, with the document root as a fallback for blogs and mobile layouts. |
 | `docs_link_click` | Inspect `from_path`, `to_path`, `to_host`, `to_anchor`, link location, and internal, anchor, or outbound intent. |
 | `docs_search_open` | Count openings of the shared site search. |
-| `docs_search` | Inspect completed search requests, result count, success/error status, and request duration. Aborted requests are excluded. |
-| `docs_search_result_click` | Join to a request by `search_id`; inspect result position, destination, pointer/keyboard selection, and time from request start to selection. |
+| `docs_search` | Inspect `search_query`, result count, success/error status, and request duration. Aborted requests are excluded. |
+| `docs_search_result_click` | Join to a request by `search_id`; inspect `search_query`, result position, destination, pointer/keyboard selection, and time from request start to selection. |
 
 Browser events include `site=documentation`, `schema_version=1`, `reporting_side=frontend`, `locale`, `page_path`, `content_path`, `content_section`, and `content_type` (`documentation`, `blog`, or `other`). `content_path` removes the locale prefix so translated pages can be grouped together. Native session and pageview IDs remain available. Pageviews also retain `from_path` and `from_content_path` when the SDK has a previous page in the current document.
 
-For content rankings, filter `$pageview` to `$host=docs.univer.ai` and the desired `content_type`, then break down by `content_path` and optionally `locale`. For navigation, use native Paths or compare the source and destination of link clicks with subsequent pageviews. A click records intent, not a completed navigation. Search text, article text, and URL query strings are not added by the custom events. Search requests and selections share a random ID rather than the query text.
+For content rankings, filter `$pageview` to `$host=docs.univer.ai` and the desired `content_type`, then break down by `content_path` and optionally `locale`. For navigation, use native Paths or compare the source and destination of link clicks with subsequent pageviews. A click records intent, not a completed navigation. Search requests and selections share a random `search_id` and include the trimmed `search_query`, up to the existing 200-character input limit. Article text and URL query strings are not collected.
+
+To identify popular questions, break down successful `docs_search` events by `search_query`; add `result_count=0` to find topics without results. Use `docs_search_result_click` to see which content people choose for each query. Live search can complete several requests as a visitor edits their question, so request counts are not counts of unique questions or visitors; result selections provide a more explicit interest signal.
 
 Duration is elapsed time, not active reading time; scroll depth and search-result selection are behavior signals, not proof that a question was answered. Existing `on_rate_docs` feedback remains separate and retains its existing identity. New visit events use the browser SDK's anonymous visitor/session identity, not the shared `anonymous` feedback identifier. Historical visits before deployment cannot be reconstructed.
 

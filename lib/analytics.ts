@@ -48,7 +48,7 @@ export function enrichAnalyticsEvent(event: CaptureResult | null) {
     properties.from_content_path = getAnalyticsPage(properties.$prev_pageview_pathname).content_path
   }
 
-  // Keep page rankings stable and avoid collecting search text or tokens in URLs.
+  // Keep page rankings stable and strip query strings and fragments from URLs.
   for (const values of [properties, properties.$set, properties.$set_once, event.$set, event.$set_once]) {
     if (!values || typeof values !== 'object') continue
     for (const key of [

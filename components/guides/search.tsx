@@ -71,6 +71,7 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
     captureDocsEvent('docs_search_result_click', {
       search_id: response.searchId,
       search_scope: scope,
+      search_query: trimmedQuery,
       query_length: trimmedQuery.length,
       result_count: results.length,
       result_position: index + 1,
@@ -125,6 +126,7 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
           captureDocsEvent('docs_search', {
             search_id: searchId,
             search_scope: scope,
+            search_query: trimmedQuery,
             query_length: trimmedQuery.length,
             result_count: data.length,
             request_duration_ms: Math.round(performance.now() - startedAt),
@@ -137,6 +139,7 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
           captureDocsEvent('docs_search', {
             search_id: searchId,
             search_scope: scope,
+            search_query: trimmedQuery,
             query_length: trimmedQuery.length,
             request_duration_ms: Math.round(performance.now() - startedAt),
             search_status: 'error',
