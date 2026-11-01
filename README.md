@@ -99,8 +99,10 @@ Office SDK pages in `content/docs` are maintained in all eight site languages. K
 SDK guide canonical URLs use the actual content language; hreflang links list only existing translations. Shared guide placements point to their original content page. With `pnpm dev` running, verify metadata, localized recipes, and legacy section links using:
 
 ```bash
-node --test lib/docs/__tests__/api-recipes.spec.mjs lib/docs/__tests__/guide-metadata.spec.mjs lib/docs/__tests__/guide-seo.spec.mjs
+node --test lib/docs/__tests__/api-recipes.spec.mjs lib/docs/__tests__/document-types.spec.mjs lib/docs/__tests__/guide-metadata.spec.mjs lib/docs/__tests__/guide-seo.spec.mjs
 ```
+
+Docs guides start with [document types](content/guides/docs/getting-started/document-types.mdx), followed by shared content operations and dedicated [Traditional](content/guides/docs/features/traditional.mdx) and [Modern](content/guides/docs/features/modern.mdx) layout guides. Keep all eight sidebar variants aligned, preserve existing page URLs and fragment links, and explicitly choose `documentStyle.documentFlavor` in creation examples. Validate shared recipes in both layouts; Section and ColumnGroup recipes belong to their respective document types.
 
 For the menu browser smoke tests, extract `public/assets/examples/vue3/univer-vue3-menu-starter.zip` into a separate directory. In that directory, run `npm install` and `npm run dev -- --host 127.0.0.1 --port 3033`. Keep the example running, then run this command from the documentation repository:
 

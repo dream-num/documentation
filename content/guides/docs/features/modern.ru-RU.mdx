@@ -1,0 +1,77 @@
+---
+title: Современные документы
+description: "Создавайте страницы знаний и совместные заметки в непрерывном потоке. Абзацы, стили, таблицы, изображения и блоки общие с традиционными документами. Особенности современного макета — сворачивание заголовков и группы колонок."
+icon: PanelsTopLeft
+---
+
+import { HeadingCollapseDemo } from './core/components/heading-collapse-demo'
+
+Применимо к современным документам.
+
+Создавайте страницы знаний и совместные заметки в непрерывном потоке. Абзацы, стили, таблицы, изображения и блоки общие с традиционными документами. Особенности современного макета — сворачивание заголовков и группы колонок.
+
+Выполните [установку](/guides/docs/getting-started/installation) и [создайте документ нужного типа](/guides/docs/getting-started/document-types#create-document). Следующие примеры выполняются последовательно над этим документом.
+
+Проверяйте тип перед вызовом API макета.
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+if (!doc?.isModern()) throw new Error('Create a Modern document first')
+```
+
+## Группы колонок [#column-groups]
+
+Зарегистрируйте плагины и Facade из [настройки групп колонок](/guides/docs/features/columns), включая лицензию Pro. Пример создаёт две редактируемые колонки и заполняет их публичными API. Получайте смещение правой колонки после изменения левой: редактирование меняет позиции.
+
+```typescript
+const group = doc.insertColumnGroup(2, { gap: 18, widthRatios: [1, 1] })
+if (!group) throw new Error('Column group could not be inserted')
+
+const [left, right] = group.getColumns()
+const leftOffset = left.getInsertOffset()
+if (leftOffset == null) throw new Error('Left column not found')
+doc.insertText(leftOffset, 'Goals\rShip a focused pilot.')
+
+const rightOffset = right.getInsertOffset()
+if (rightOffset == null) throw new Error('Right column not found')
+doc.insertText(rightOffset, 'Next steps\rReview the launch checklist.')
+
+console.log(left.getText(), right.getText())
+```
+
+## Сворачивание разделов [#heading-collapse]
+
+В документах Modern (`documentStyle.documentFlavor: DocumentFlavor.MODERN`) рядом с заголовками уровней 1–5, имеющими содержимое раздела, показан треугольник. При сворачивании заголовок остаётся, а содержимое до следующего заголовка того же или более высокого уровня скрывается, включая вложенные заголовки, таблицы и изображения. У каждой ячейки таблицы и колонки Modern своя иерархия.
+
+Эта функция не зависит от `toc`. В документах Traditional и встроенных текстовых редакторах таких элементов нет. При раскрытии родителя вложенные заголовки сохраняют своё состояние.
+
+<HeadingCollapseDemo />
+
+`IParagraph.headingCollapsed` сохраняется в снимке Univer. Только `true` сворачивает раздел. Содержимое остаётся в снимке; состояние поддерживает отмену, повтор и совместное редактирование и общее для всех редакторов. Выделение в скрытом тексте переходит к видимому заголовку. Сохранение при импорте и экспорте Office не гарантируется.
+
+Для изменения из кода выполните зарегистрированную команду с ID документа и стабильным `paragraphId` из снимка. Для раскрытия задайте `collapsed: false`.
+
+```ts
+import { SetHeadingCollapsedCommand } from '@univerjs/docs'
+
+const heading = doc.findParagraphByText('Launch plan')
+if (!heading) throw new Error('Heading not found')
+
+const changed = await univerAPI.executeCommand(SetHeadingCollapsedCommand.id, {
+  unitId: doc.getId(),
+  paragraphId: heading.getId(),
+  collapsed: true,
+})
+```
+
+Команда возвращает `false`, если состояние не изменилось или цель недопустима: документ Traditional, заголовок скрыт предком, раздел пуст при сворачивании или нет права редактирования. См. [контракт команды](/reference/packages/plugins/univerjs/docs#heading-collapse).
+
+## Общие блоки [#shared-blocks]
+
+Таблицы, списки, код, цитаты, выноски и [междокументные вставки](/guides/docs/features/embed) являются общими возможностями со своими плагинами. Пагинация и некоторые настройки макета зависят от типа.
+
+## Печать и экспорт [#output]
+
+Современный редактор не показывает физические разрывы страниц. [Модуль печати](/guides/docs/features/print) разбивает непрерывное содержимое для вывода. [Импорт/экспорт](/guides/docs/features/import-export) использует сервер преобразования; параметры импорта позволяют выбрать целевой тип. Макет редактора и выходная пагинация не идентичны.
+
+[FDocumentColumnGroup](/reference/facade/document-column-group) · [FDocument](/reference/facade/document)

@@ -1,0 +1,93 @@
+---
+title: 傳統文件
+description: "使用實體分頁建立報告、合約等正式文件。傳統文件透過節管理頁面尺寸、邊界、頁面分欄與頁首頁尾；文字與內容區塊仍使用共用的 Docs API。"
+icon: FileText
+---
+
+適用：傳統文件。
+
+使用實體分頁建立報告、合約等正式文件。傳統文件透過節管理頁面尺寸、邊界、頁面分欄與頁首頁尾；文字與內容區塊仍使用共用的 Docs API。
+
+先完成[安裝](/guides/docs/getting-started/installation)，並[建立對應型態的文件](/guides/docs/getting-started/document-types#create-document)。下方程式碼依序操作該文件。
+
+呼叫版面 API 前先確認文件型態。
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+if (!doc?.isTraditional()) throw new Error('Create a Traditional document first')
+```
+
+## 頁面設定 [#page-setup]
+
+設定第一個節。下列尺寸使用 96 DPI 版面像素。節設定覆寫文件預設值；`getEffectivePageSetup()` 回傳實際生效的設定。
+
+```typescript
+const section = doc.getSection(0)
+if (!section) throw new Error('Section not found')
+
+const updated = section.setPageSetup({
+  pageSize: { width: 794, height: 1123 },
+  marginTop: 72,
+  marginBottom: 72,
+  marginLeft: 72,
+  marginRight: 72,
+})
+if (!updated) throw new Error('Page setup failed')
+console.log(section.getEffectivePageSetup())
+```
+
+## 頁面分欄 [#page-columns]
+
+這是傳統文件節內的頁面分欄，文字在分頁排版時流經各欄。以 `setColumns(1)` 恢復單欄。它與現代文件的[分欄群組](/guides/docs/features/columns)不同。
+
+```typescript
+if (!section.setColumns(2, { gap: 18, separator: true })) {
+  throw new Error('Page columns could not be updated')
+}
+console.log(section.describe().columnCount) // 2
+```
+
+## 頁首頁尾與欄位 [#header-footer-fields]
+
+建立屬於該節的頁首、頁尾文字片段，再以共用段落 API 編輯。回傳的 segment ID 識別其文字流。頁首頁尾 Ribbon 提供頁碼欄位、首頁／奇偶頁選項及日期時間欄位。
+
+```typescript
+const headerId = section.ensureHeader()
+const footerId = section.ensureFooter()
+doc.appendParagraph('Launch plan | Internal', headerId)
+doc.appendParagraph('Product Operations', footerId)
+```
+
+在傳統文件中編輯頁首或頁尾時，會出現用於插入、導覽、首頁／奇偶頁選項及位置設定的情境式 Ribbon。可插入目前頁碼、總頁數及本地化日期與時間。頁碼欄位依各個呈現頁面顯示對應值。插入日期／時間時，勾選自動更新會儲存為欄位，取消勾選則插入固定文字。日期／時間欄位會在開啟文件或執行「更新欄位」時重新整理，不會像時鐘持續更新。現代文件不使用分頁頁首與頁尾。
+
+## 分頁規則 [#pagination]
+
+段落分頁規則作用於實體頁面：`keepNext` 盡量讓標題與下一段同頁，`keepLines` 盡量不拆開段內行，`pageBreakBefore` 讓段落從新頁開始。超過一頁的內容仍可能分割。現代文件不將這些規則用於實體分頁。
+
+```typescript
+const title = doc.findParagraphByText('Launch plan')
+if (!title) throw new Error('Title not found')
+title.setStyle({ keepNext: univerAPI.Enum.BooleanNumber.TRUE, keepLines: univerAPI.Enum.BooleanNumber.TRUE })
+
+const checklist = doc.appendParagraph('Delivery checklist')
+checklist.setStyle({ pageBreakBefore: univerAPI.Enum.BooleanNumber.TRUE })
+```
+
+## 節與分節 [#sections]
+
+在頂層段落邊界插入分節符。`nextSectionType` 決定後一節的開始方式。節 ID 不隨前方文字編輯改變；`getSection(index)` 接受從 0 開始的索引，不是 ID。
+
+```typescript
+const chapter = doc.findParagraphByText('Delivery checklist')
+if (!chapter) throw new Error('Chapter not found')
+
+const previousSection = doc.insertSectionBreak(chapter.getInfo().startOffset, {
+  nextSectionType: univerAPI.Enum.SectionType.NEXT_PAGE,
+})
+if (!previousSection) throw new Error('Section break could not be inserted')
+console.log(doc.getSections().map(item => item.getId()))
+```
+
+頁面註解見[註腳與章節附註](/guides/docs/features/footnotes)。[列印](/guides/docs/features/print)與[匯入匯出](/guides/docs/features/import-export)各自說明所需外掛與授權；檔案轉換另需配套後端。
+
+[FDocumentSection](/reference/facade/document-section) · [FDocument](/reference/facade/document)

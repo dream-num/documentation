@@ -1,0 +1,77 @@
+---
+title: Documents modernes
+description: "Créez des pages de connaissances et des notes collaboratives dans un flux continu. Paragraphes, styles, tableaux, images et blocs sont communs aux documents traditionnels. Le repli des titres et les groupes de colonnes sont des fonctions propres à cette mise en page."
+icon: PanelsTopLeft
+---
+
+import { HeadingCollapseDemo } from './core/components/heading-collapse-demo'
+
+Applicable aux documents modernes.
+
+Créez des pages de connaissances et des notes collaboratives dans un flux continu. Paragraphes, styles, tableaux, images et blocs sont communs aux documents traditionnels. Le repli des titres et les groupes de colonnes sont des fonctions propres à cette mise en page.
+
+Terminez l’[installation](/guides/docs/getting-started/installation) et [créez le type de document correspondant](/guides/docs/getting-started/document-types#create-document). Exécutez ensuite les extraits dans l’ordre sur ce document.
+
+Vérifiez le type avant d’appeler les API de mise en page.
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+if (!doc?.isModern()) throw new Error('Create a Modern document first')
+```
+
+## Groupes de colonnes [#column-groups]
+
+Enregistrez les plugins et l’entrée Facade décrits dans la [configuration des groupes de colonnes](/guides/docs/features/columns), avec la licence Pro. L’exemple crée deux colonnes éditables et les remplit par les API publiques. Calculez la position de droite après la modification de gauche, car les positions changent avec le texte.
+
+```typescript
+const group = doc.insertColumnGroup(2, { gap: 18, widthRatios: [1, 1] })
+if (!group) throw new Error('Column group could not be inserted')
+
+const [left, right] = group.getColumns()
+const leftOffset = left.getInsertOffset()
+if (leftOffset == null) throw new Error('Left column not found')
+doc.insertText(leftOffset, 'Goals\rShip a focused pilot.')
+
+const rightOffset = right.getInsertOffset()
+if (rightOffset == null) throw new Error('Right column not found')
+doc.insertText(rightOffset, 'Next steps\rReview the launch checklist.')
+
+console.log(left.getText(), right.getText())
+```
+
+## Replier les sections [#heading-collapse]
+
+Les documents Modern (`documentStyle.documentFlavor: DocumentFlavor.MODERN`) affichent un triangle à côté des titres de niveau 1 à 5 dont la section contient du contenu. Le repli conserve le titre et masque le contenu jusqu’au prochain titre de niveau égal ou supérieur, y compris les sous-titres, tableaux et images. Chaque cellule de tableau et chaque colonne Modern possède sa propre hiérarchie.
+
+Cette fonction est indépendante de `toc`. Les documents Traditional et les éditeurs de texte intégrés n’affichent pas ces commandes. Rouvrir un parent conserve l’état des sous-titres.
+
+<HeadingCollapseDemo />
+
+`IParagraph.headingCollapsed` est enregistré dans le snapshot Univer. Seul `true` replie la section. Le contenu reste présent, et l’état prend en charge annuler/rétablir et la collaboration : il est partagé entre éditeurs. Une sélection masquée rejoint le titre visible. La conservation lors des échanges Office n’est pas garantie.
+
+Pour modifier cet état par code, exécutez la commande enregistrée avec l’ID du document et le `paragraphId` stable du snapshot. Utilisez `collapsed: false` pour déplier.
+
+```ts
+import { SetHeadingCollapsedCommand } from '@univerjs/docs'
+
+const heading = doc.findParagraphByText('Launch plan')
+if (!heading) throw new Error('Heading not found')
+
+const changed = await univerAPI.executeCommand(SetHeadingCollapsedCommand.id, {
+  unitId: doc.getId(),
+  paragraphId: heading.getId(),
+  collapsed: true,
+})
+```
+
+La commande renvoie `false` sans changement ou si la cible est invalide : document Traditional, titre masqué par un ancêtre, section vide à replier ou permission manquante. Voir le [contrat de la commande](/reference/packages/plugins/univerjs/docs#heading-collapse).
+
+## Blocs communs [#shared-blocks]
+
+Tableaux, listes, code, citations, encadrés et [contenus interdocuments intégrés](/guides/docs/features/embed) sont des fonctions communes fournies par leurs plugins. La pagination et certains réglages varient selon le type.
+
+## Impression et export [#output]
+
+L’éditeur moderne n’affiche pas de sauts de page physiques. Le [module d’impression](/guides/docs/features/print) pagine le flux continu pour la sortie. L’[import/export](/guides/docs/features/import-export) utilise le service de conversion ; les options d’import permettent de choisir le type cible. La mise en page de l’éditeur et la pagination de sortie ne sont pas identiques.
+
+[FDocumentColumnGroup](/reference/facade/document-column-group) · [FDocument](/reference/facade/document)

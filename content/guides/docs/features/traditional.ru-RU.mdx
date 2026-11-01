@@ -1,0 +1,93 @@
+---
+title: Традиционные документы
+description: "Создавайте отчёты и официальные документы с физическими страницами. Разделы управляют размерами, полями, колонками и колонтитулами. Для текста и блоков используются общие Docs API."
+icon: FileText
+---
+
+Применимо к традиционным документам.
+
+Создавайте отчёты и официальные документы с физическими страницами. Разделы управляют размерами, полями, колонками и колонтитулами. Для текста и блоков используются общие Docs API.
+
+Выполните [установку](/guides/docs/getting-started/installation) и [создайте документ нужного типа](/guides/docs/getting-started/document-types#create-document). Следующие примеры выполняются последовательно над этим документом.
+
+Проверяйте тип перед вызовом API макета.
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+if (!doc?.isTraditional()) throw new Error('Create a Traditional document first')
+```
+
+## Параметры страницы [#page-setup]
+
+Настройте первый раздел. Размеры задаются в пикселях макета при 96 DPI. Параметры раздела перекрывают значения документа; `getEffectivePageSetup()` возвращает действующие значения.
+
+```typescript
+const section = doc.getSection(0)
+if (!section) throw new Error('Section not found')
+
+const updated = section.setPageSetup({
+  pageSize: { width: 794, height: 1123 },
+  marginTop: 72,
+  marginBottom: 72,
+  marginLeft: 72,
+  marginRight: 72,
+})
+if (!updated) throw new Error('Page setup failed')
+console.log(section.getEffectivePageSetup())
+```
+
+## Колонки страницы [#page-columns]
+
+Это колонки страницы традиционного раздела. При пагинации текст перетекает между колонками. `setColumns(1)` возвращает одну колонку. Они отличаются от современных [групп колонок](/guides/docs/features/columns).
+
+```typescript
+if (!section.setColumns(2, { gap: 18, separator: true })) {
+  throw new Error('Page columns could not be updated')
+}
+console.log(section.describe().columnCount) // 2
+```
+
+## Колонтитулы и поля [#header-footer-fields]
+
+Создайте сегменты колонтитулов раздела и редактируйте их общими API абзацев. Возвращённый segment ID определяет поток текста. Ribbon колонтитулов предоставляет номера страниц, варианты первой/чётной/нечётной страницы, поля даты и времени.
+
+```typescript
+const headerId = section.ensureHeader()
+const footerId = section.ensureFooter()
+doc.appendParagraph('Launch plan | Internal', headerId)
+doc.appendParagraph('Product Operations', footerId)
+```
+
+В традиционных документах редактирование колонтитула открывает контекстный Ribbon для вставки, навигации, настройки первой, чётных и нечётных страниц и положения. Можно вставить текущий номер страницы, число страниц или локализованные дату и время. Поля страниц отображают значение для каждой страницы. Автоматическое обновление даты/времени создаёт поле; без него вставляется фиксированный текст. Поля даты/времени обновляются при открытии документа или командой **Обновить поля**, а не непрерывно как часы. Современные документы не используют страничные колонтитулы.
+
+## Разбиение на страницы [#pagination]
+
+`keepNext` по возможности сохраняет заголовок со следующим абзацем, `keepLines` — строки абзаца вместе, `pageBreakBefore` начинает абзац с новой страницы. Содержимое выше страницы может разделяться. В современных документах эти правила не управляют физическими страницами.
+
+```typescript
+const title = doc.findParagraphByText('Launch plan')
+if (!title) throw new Error('Title not found')
+title.setStyle({ keepNext: univerAPI.Enum.BooleanNumber.TRUE, keepLines: univerAPI.Enum.BooleanNumber.TRUE })
+
+const checklist = doc.appendParagraph('Delivery checklist')
+checklist.setStyle({ pageBreakBefore: univerAPI.Enum.BooleanNumber.TRUE })
+```
+
+## Разделы [#sections]
+
+Вставляйте разрыв раздела на границе абзаца верхнего уровня. `nextSectionType` определяет начало следующего раздела. ID разделов сохраняются при правках выше по тексту; `getSection(index)` принимает индекс от нуля, а не ID.
+
+```typescript
+const chapter = doc.findParagraphByText('Delivery checklist')
+if (!chapter) throw new Error('Chapter not found')
+
+const previousSection = doc.insertSectionBreak(chapter.getInfo().startOffset, {
+  nextSectionType: univerAPI.Enum.SectionType.NEXT_PAGE,
+})
+if (!previousSection) throw new Error('Section break could not be inserted')
+console.log(doc.getSections().map(item => item.getId()))
+```
+
+См. [сноски](/guides/docs/features/footnotes), [печать](/guides/docs/features/print) и [импорт/экспорт](/guides/docs/features/import-export). В каждом руководстве указаны плагины и лицензии. Для преобразования файлов дополнительно нужен сервер.
+
+[FDocumentSection](/reference/facade/document-section) · [FDocument](/reference/facade/document)

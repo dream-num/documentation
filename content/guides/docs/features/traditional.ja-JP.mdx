@@ -1,0 +1,93 @@
+---
+title: 従来型ドキュメント
+description: "物理的なページを持つレポートや契約書を作成します。従来型ではセクションがページサイズ、余白、段組み、ヘッダーとフッターを管理します。テキストやブロックには共通の Docs API を使います。"
+icon: FileText
+---
+
+対象：従来型ドキュメント。
+
+物理的なページを持つレポートや契約書を作成します。従来型ではセクションがページサイズ、余白、段組み、ヘッダーとフッターを管理します。テキストやブロックには共通の Docs API を使います。
+
+先に[インストール](/guides/docs/getting-started/installation)を完了し、[対応する種類の文書を作成](/guides/docs/getting-started/document-types#create-document)します。以下のコードはその文書に順番に適用します。
+
+レイアウト API を呼ぶ前にドキュメントの種類を確認します。
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+if (!doc?.isTraditional()) throw new Error('Create a Traditional document first')
+```
+
+## ページ設定 [#page-setup]
+
+最初のセクションを設定します。寸法は 96 DPI のレイアウトピクセルです。セクション設定が文書の既定値より優先され、`getEffectivePageSetup()` で有効な値を取得できます。
+
+```typescript
+const section = doc.getSection(0)
+if (!section) throw new Error('Section not found')
+
+const updated = section.setPageSetup({
+  pageSize: { width: 794, height: 1123 },
+  marginTop: 72,
+  marginBottom: 72,
+  marginLeft: 72,
+  marginRight: 72,
+})
+if (!updated) throw new Error('Page setup failed')
+console.log(section.getEffectivePageSetup())
+```
+
+## ページの段組み [#page-columns]
+
+従来型のセクション内でページを段組みします。ページレイアウト時にテキストが各段に流れます。`setColumns(1)` で 1 段に戻せます。モダンの[段組みグループ](/guides/docs/features/columns)とは異なります。
+
+```typescript
+if (!section.setColumns(2, { gap: 18, separator: true })) {
+  throw new Error('Page columns could not be updated')
+}
+console.log(section.describe().columnCount) // 2
+```
+
+## ヘッダー、フッターとフィールド [#header-footer-fields]
+
+セクション用のヘッダーとフッターを作成し、共通の段落 API で編集します。返された segment ID が各テキストストリームを識別します。専用 Ribbon ではページ番号、先頭／奇数／偶数ページ、日付と時刻を設定できます。
+
+```typescript
+const headerId = section.ensureHeader()
+const footerId = section.ensureFooter()
+doc.appendParagraph('Launch plan | Internal', headerId)
+doc.appendParagraph('Product Operations', footerId)
+```
+
+従来型文書のヘッダーやフッターを編集すると、挿入、移動、先頭ページ・奇数偶数ページ、位置を設定するコンテキスト Ribbon が表示されます。現在のページ番号、総ページ数、ローカライズされた日時を挿入できます。ページフィールドは各ページに応じた値を表示します。日時の自動更新を有効にするとフィールド、無効にすると固定テキストを挿入します。日時フィールドは文書を開くときや「フィールドの更新」で更新され、時計のように常時更新はされません。モダン文書ではページのヘッダーとフッターを使用しません。
+
+## 改ページ規則 [#pagination]
+
+`keepNext` は見出しと次の段落を、`keepLines` は段落内の行を可能な限り同じページに保ちます。`pageBreakBefore` は新しいページから段落を開始します。1 ページを超える内容は分割される場合があります。モダンでは物理ページの分割にこれらを適用しません。
+
+```typescript
+const title = doc.findParagraphByText('Launch plan')
+if (!title) throw new Error('Title not found')
+title.setStyle({ keepNext: univerAPI.Enum.BooleanNumber.TRUE, keepLines: univerAPI.Enum.BooleanNumber.TRUE })
+
+const checklist = doc.appendParagraph('Delivery checklist')
+checklist.setStyle({ pageBreakBefore: univerAPI.Enum.BooleanNumber.TRUE })
+```
+
+## セクション [#sections]
+
+最上位の段落境界にセクション区切りを挿入します。`nextSectionType` が後続セクションの開始方法を指定します。セクション ID は前方の編集でも維持されます。`getSection(index)` は ID ではなく 0 始まりの位置を受け取ります。
+
+```typescript
+const chapter = doc.findParagraphByText('Delivery checklist')
+if (!chapter) throw new Error('Chapter not found')
+
+const previousSection = doc.insertSectionBreak(chapter.getInfo().startOffset, {
+  nextSectionType: univerAPI.Enum.SectionType.NEXT_PAGE,
+})
+if (!previousSection) throw new Error('Section break could not be inserted')
+console.log(doc.getSections().map(item => item.getId()))
+```
+
+[脚注と文末脚注](/guides/docs/features/footnotes)、[印刷](/guides/docs/features/print)、[インポート／エクスポート](/guides/docs/features/import-export)を参照してください。各ガイドに必要なプラグインとライセンスを記載しています。ファイル変換には別途バックエンドが必要です。
+
+[FDocumentSection](/reference/facade/document-section) · [FDocument](/reference/facade/document)

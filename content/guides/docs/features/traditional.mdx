@@ -1,0 +1,93 @@
+---
+title: Traditional documents
+description: "Build reports and formal documents with physical pages. Traditional Docs use sections to organize page size, margins, page columns, and headers and footers. Text and content blocks still use the shared Docs APIs."
+icon: FileText
+---
+
+Applies to Traditional documents.
+
+Build reports and formal documents with physical pages. Traditional Docs use sections to organize page size, margins, page columns, and headers and footers. Text and content blocks still use the shared Docs APIs.
+
+First complete [installation](/guides/docs/getting-started/installation) and [create the matching document type](/guides/docs/getting-started/document-types#create-document). The following snippets operate on that document in order.
+
+Check the document type before calling its layout APIs.
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+if (!doc?.isTraditional()) throw new Error('Create a Traditional document first')
+```
+
+## Page setup [#page-setup]
+
+Configure the first section. Layout dimensions below use 96-DPI layout pixels. Section overrides take precedence over document defaults; `getEffectivePageSetup()` reads the resolved values.
+
+```typescript
+const section = doc.getSection(0)
+if (!section) throw new Error('Section not found')
+
+const updated = section.setPageSetup({
+  pageSize: { width: 794, height: 1123 },
+  marginTop: 72,
+  marginBottom: 72,
+  marginLeft: 72,
+  marginRight: 72,
+})
+if (!updated) throw new Error('Page setup failed')
+console.log(section.getEffectivePageSetup())
+```
+
+## Page columns [#page-columns]
+
+These are page columns within a Traditional section. Text flows through the columns during pagination. Use `setColumns(1)` to return to a single column. They are different from Modern [column groups](/guides/docs/features/columns).
+
+```typescript
+if (!section.setColumns(2, { gap: 18, separator: true })) {
+  throw new Error('Page columns could not be updated')
+}
+console.log(section.describe().columnCount) // 2
+```
+
+## Headers, footers, and fields [#header-footer-fields]
+
+Create section-owned header and footer segments, then edit them through the shared paragraph APIs. The returned segment ID identifies the header/footer text stream. The header/footer Ribbon provides page number fields, first-page and odd/even options, and date/time fields.
+
+```typescript
+const headerId = section.ensureHeader()
+const footerId = section.ensureFooter()
+doc.appendParagraph('Launch plan | Internal', headerId)
+doc.appendParagraph('Product Operations', footerId)
+```
+
+In traditional documents, editing a header or footer opens a contextual Ribbon for insertion, navigation, first-page and odd/even-page options, and positioning. It can insert current-page and total-page fields, or a localized date and time. Page fields display values for each rendered page. For date/time, enable automatic updating to store a field, or disable it to insert fixed text. Date/time fields refresh when the document opens or when you choose **Update fields**; they are not a continuously ticking clock. Modern documents do not use page headers or footers.
+
+## Pagination [#pagination]
+
+Paragraph pagination rules control physical pages: `keepNext` keeps a heading with the next paragraph, `keepLines` keeps its lines together when possible, and `pageBreakBefore` starts a paragraph on a new page. Content taller than a page may still split. Modern Docs do not apply these rules to physical pages.
+
+```typescript
+const title = doc.findParagraphByText('Launch plan')
+if (!title) throw new Error('Title not found')
+title.setStyle({ keepNext: univerAPI.Enum.BooleanNumber.TRUE, keepLines: univerAPI.Enum.BooleanNumber.TRUE })
+
+const checklist = doc.appendParagraph('Delivery checklist')
+checklist.setStyle({ pageBreakBefore: univerAPI.Enum.BooleanNumber.TRUE })
+```
+
+## Sections [#sections]
+
+Insert a section break at a top-level paragraph boundary. `nextSectionType` controls how the following section starts. Section IDs persist across earlier text edits; `getSection(index)` takes a zero-based index, not an ID.
+
+```typescript
+const chapter = doc.findParagraphByText('Delivery checklist')
+if (!chapter) throw new Error('Chapter not found')
+
+const previousSection = doc.insertSectionBreak(chapter.getInfo().startOffset, {
+  nextSectionType: univerAPI.Enum.SectionType.NEXT_PAGE,
+})
+if (!previousSection) throw new Error('Section break could not be inserted')
+console.log(doc.getSections().map(item => item.getId()))
+```
+
+See [footnotes and endnotes](/guides/docs/features/footnotes), [printing](/guides/docs/features/print), and [import/export](/guides/docs/features/import-export). Each guide lists its plugins and licensing requirements. File conversion additionally needs a backend.
+
+[FDocumentSection](/reference/facade/document-section) · [FDocument](/reference/facade/document)

@@ -1,0 +1,77 @@
+---
+title: 현대 문서
+description: "연속적인 콘텐츠로 지식 페이지와 협업 개요를 만듭니다. 문단, 문자 스타일, 표, 이미지와 콘텐츠 블록은 전통 문서와 공통이며, 전용 레이아웃 기능에는 제목 접기와 단 그룹이 있습니다."
+icon: PanelsTopLeft
+---
+
+import { HeadingCollapseDemo } from './core/components/heading-collapse-demo'
+
+적용 대상: 현대 문서.
+
+연속적인 콘텐츠로 지식 페이지와 협업 개요를 만듭니다. 문단, 문자 스타일, 표, 이미지와 콘텐츠 블록은 전통 문서와 공통이며, 전용 레이아웃 기능에는 제목 접기와 단 그룹이 있습니다.
+
+먼저 [설치](/guides/docs/getting-started/installation)를 완료하고 [해당 유형의 문서를 생성](/guides/docs/getting-started/document-types#create-document)하세요. 아래 코드는 해당 문서에 순서대로 적용합니다.
+
+레이아웃 API를 호출하기 전에 문서 유형을 확인하세요.
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+if (!doc?.isModern()) throw new Error('Create a Modern document first')
+```
+
+## 단 그룹 [#column-groups]
+
+[단 그룹 설정](/guides/docs/features/columns)에 따라 플러그인과 Facade를 등록하고 Pro 라이선스를 설정하세요. 예제는 편집 가능한 두 단을 만든 뒤 공개 API로 채웁니다. 편집 시 위치가 바뀌므로 오른쪽 단의 오프셋은 왼쪽 단 편집 후 구합니다.
+
+```typescript
+const group = doc.insertColumnGroup(2, { gap: 18, widthRatios: [1, 1] })
+if (!group) throw new Error('Column group could not be inserted')
+
+const [left, right] = group.getColumns()
+const leftOffset = left.getInsertOffset()
+if (leftOffset == null) throw new Error('Left column not found')
+doc.insertText(leftOffset, 'Goals\rShip a focused pilot.')
+
+const rightOffset = right.getInsertOffset()
+if (rightOffset == null) throw new Error('Right column not found')
+doc.insertText(rightOffset, 'Next steps\rReview the launch checklist.')
+
+console.log(left.getText(), right.getText())
+```
+
+## 제목 섹션 접기 [#heading-collapse]
+
+Modern 문서(`documentStyle.documentFlavor: DocumentFlavor.MODERN`)에서는 섹션 내용이 있는 제목 1~5 옆에 삼각형이 표시됩니다. 접으면 제목은 남고 다음 같은 수준 또는 상위 제목까지의 내용이 숨겨집니다. 하위 제목, 표, 이미지도 포함됩니다. 각 표 셀과 Modern 문서의 단은 별도의 제목 계층을 갖습니다.
+
+이 기능은 `toc`과 독립적입니다. Traditional 문서와 내장 텍스트 편집기에는 접기 컨트롤이 표시되지 않습니다. 상위 제목을 펼쳐도 하위 제목의 접기 상태는 유지됩니다.
+
+<HeadingCollapseDemo />
+
+`IParagraph.headingCollapsed`는 Univer 스냅샷에 저장되며 `true`일 때만 접힙니다. 내용은 스냅샷에 남고 실행 취소/다시 실행 및 공동 편집을 지원하며 다른 편집자와 상태를 공유합니다. 숨겨진 내용의 선택 영역은 표시되는 제목으로 이동합니다. Office 가져오기/내보내기에서의 보존은 보장하지 않습니다.
+
+코드로 변경하려면 문서 ID와 스냅샷의 안정적인 `paragraphId`를 사용해 등록된 명령을 실행하세요. `collapsed: false`로 펼칩니다.
+
+```ts
+import { SetHeadingCollapsedCommand } from '@univerjs/docs'
+
+const heading = doc.findParagraphByText('Launch plan')
+if (!heading) throw new Error('Heading not found')
+
+const changed = await univerAPI.executeCommand(SetHeadingCollapsedCommand.id, {
+  unitId: doc.getId(),
+  paragraphId: heading.getId(),
+  collapsed: true,
+})
+```
+
+상태가 같거나 대상이 유효하지 않으면 `false`를 반환합니다. Traditional 문서, 상위 제목에 숨겨진 제목, 내용이 없는 섹션 접기, 편집 권한 부재가 해당합니다. [명령 계약](/reference/packages/plugins/univerjs/docs#heading-collapse)을 참고하세요.
+
+## 공통 블록 [#shared-blocks]
+
+표, 목록, 코드, 인용, 콜아웃과 [문서 간 임베딩](/guides/docs/features/embed)은 해당 플러그인이 제공하는 공통 콘텐츠 기능입니다. 페이지 나누기와 일부 레이아웃 제어는 유형에 따라 다릅니다.
+
+## 인쇄와 내보내기 [#output]
+
+현대 문서 편집 화면에는 실제 페이지 나누기가 표시되지 않습니다. [인쇄 모듈](/guides/docs/features/print)이 연속 콘텐츠를 출력용 페이지로 나눕니다. [가져오기/내보내기](/guides/docs/features/import-export)에는 변환 서비스가 필요하며 가져오기 옵션으로 대상 유형을 선택할 수 있습니다. 편집 레이아웃과 출력 페이지 구성은 같지 않습니다.
+
+[FDocumentColumnGroup](/reference/facade/document-column-group) · [FDocument](/reference/facade/document)
