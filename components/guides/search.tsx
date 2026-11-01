@@ -49,7 +49,6 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
   const activeResult = results[activeIndex]
 
   function changeOpen(value: boolean) {
-    if (value && !open) captureDocsEvent('docs_search_open')
     setOpen(value)
     if (value && !trimmedQuery) {
       setScope(
