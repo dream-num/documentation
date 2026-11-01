@@ -6,6 +6,7 @@ import type { Locale } from '@/i18n/routing'
 import { DocsToc } from '@/components/docs-shell/toc'
 import { Footer } from '@/components/footer'
 import { getGuidesMDXComponents } from '@/components/mdx/components'
+import { Rate } from '@/components/rate'
 import { Button } from '@/components/ui/button'
 import { formatLocalDate } from '@/lib/dayjs'
 import { createDocsRelativeLink } from '@/lib/docs/links'
@@ -109,6 +110,9 @@ export default async function Page({ params }: IProps) {
                 a: BlogLink,
               })}
             />
+            <div className="mt-10">
+              <Rate />
+            </div>
           </article>
 
           <aside className="flex flex-col gap-4 md:sticky md:top-16 md:max-h-[calc(100dvh-5rem)] md:w-2xs md:self-start md:overflow-y-auto md:overscroll-contain md:pr-2">

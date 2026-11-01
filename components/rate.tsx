@@ -1,191 +1,212 @@
 'use client'
 
 import type { SyntheticEvent } from 'react'
-import { cva } from 'class-variance-authority'
-import { MessageCircleMoreIcon } from 'lucide-react'
+import { ThumbsDownIcon, ThumbsUpIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState, useTransition } from 'react'
+import { posthog } from 'posthog-js'
+import { useEffect, useId, useRef, useState, useTransition } from 'react'
+import type { FeedbackReason, IFeedback } from '@/lib/feedback'
 import { Button } from '@/components/ui/button'
-import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
-import { clsx } from '@/lib/clsx'
+import { feedbackReasons, storedFeedbackSchema } from '@/lib/feedback'
+import { submitFeedback } from '@/lib/feedback-action'
 
-const rateButtonVariants = cva(
-  `
-    inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-sm font-medium
-    disabled:cursor-not-allowed
-    [&_svg]:size-3
-  `,
-  {
-    variants: {
-      active: {
-        true: `
-          bg-accent text-accent-foreground
-          [&_svg]:fill-current
-        `,
-        false: 'text-muted-foreground',
-      },
-    },
-  },
-)
-
-export interface IFeedback {
-  opinion: 'normal'
-  url?: string
-  message: string
-}
-
-export interface IActionResponse {
-  githubUrl: string
-}
-
-interface Result extends IFeedback {
-  response?: IActionResponse
-}
-
-export function Rate({
-  onRateAction,
-}: {
-  lang: string
-  onRateAction: (url: string, feedback: IFeedback) => void
-}) {
-  const t = useTranslations()
-  const url = usePathname()
-  const [previous, setPrevious] = useState<Result | null>(null)
-  const [opinion, setOpinion] = useState<'normal' | null>(null)
+function PageFeedback({ url }: { url: string }) {
+  const t = useTranslations('docs.feedback')
+  const [feedback, setFeedback] = useState<IFeedback | null>()
+  const [reason, setReason] = useState<FeedbackReason | ''>('')
   const [message, setMessage] = useState('')
+  const [showDetails, setShowDetails] = useState(false)
+  const [failed, setFailed] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const feedbackId = useRef<string>(undefined)
+  const messageId = useId()
 
   useEffect(() => {
-    const item = localStorage.getItem(`docs-feedback-${url}`)
-
-    if (item === null) return
-
+    let previous: IFeedback | null = null
+    try {
+      const parsed = storedFeedbackSchema.safeParse(JSON.parse(localStorage.getItem(`docs-feedback-${url}`) ?? 'null'))
+      if (parsed.success) previous = parsed.data
+    } catch {
+      // Feedback remains usable when browser storage is unavailable.
+    }
     let cancelled = false
     queueMicrotask(() => {
-      if (!cancelled) {
-        setPrevious(JSON.parse(item) as Result)
-      }
+      if (cancelled) return
+      setFeedback(previous)
+      setReason(previous?.reason ?? '')
+      setMessage(previous?.message ?? '')
+      setShowDetails(previous?.opinion === 'unhelpful' && !previous.details_submitted)
     })
-
     return () => {
       cancelled = true
     }
   }, [url])
 
-  useEffect(() => {
-    const key = `docs-feedback-${url}`
-
-    if (previous) localStorage.setItem(key, JSON.stringify(previous))
-    else localStorage.removeItem(key)
-  }, [previous, url])
-
-  function submit(e?: SyntheticEvent) {
-    if (opinion == null) return
-
-    startTransition(async () => {
-      const feedback: IFeedback = {
-        opinion,
-        message,
-      }
-
-      onRateAction(url, feedback)
-
-      setPrevious({
-        ...feedback,
-      })
-      setMessage('')
-      setOpinion(null)
-    })
-
-    e?.preventDefault()
+  function save(value: IFeedback) {
+    setFeedback(value)
+    try {
+      localStorage.setItem(`docs-feedback-${url}`, JSON.stringify(value))
+    } catch {
+      // A storage failure must not discard a successful submission.
+    }
   }
 
-  const activeOpinion = previous?.opinion ?? opinion
+  async function send(kind: 'vote' | 'details', value: IFeedback) {
+    setFailed(false)
+    try {
+      const result = await submitFeedback({
+        ...value,
+        kind,
+        url,
+        distinct_id: posthog.get_distinct_id() || undefined,
+        session_id: posthog.get_session_id() || undefined,
+        pageview_id: posthog.getPageViewId(),
+      })
+      if (result.ok) return true
+    } catch {
+      // Retain the draft so a failed request can be retried.
+    }
+    setFailed(true)
+    return false
+  }
+
+  function vote(opinion: IFeedback['opinion']) {
+    if (feedback === undefined || isPending || feedback?.opinion === opinion) return
+    feedbackId.current ??= feedback?.feedback_id ?? crypto.randomUUID()
+    const value: IFeedback = {
+      feedback_id: feedbackId.current,
+      feedback_revision: (feedback?.feedback_revision ?? 0) + 1,
+      opinion,
+      message: '',
+      details_submitted: opinion === 'helpful',
+    }
+    startTransition(async () => {
+      if (!(await send('vote', value))) return
+      save(value)
+      setReason('')
+      setMessage('')
+      setShowDetails(opinion === 'unhelpful')
+    })
+  }
+
+  function submit(event: SyntheticEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!feedback || isPending || (!reason && !message.trim())) return
+    const value = { ...feedback, reason: reason || undefined, message: message.trim(), details_submitted: true }
+    startTransition(async () => {
+      if (!(await send('details', value))) return
+      save(value)
+      setShowDetails(false)
+    })
+  }
 
   return (
-    <Collapsible
-      className="border-y py-3"
-      open={opinion !== null || previous !== null}
-      onOpenChange={(v) => {
-        if (!v) setOpinion(null)
-      }}
-    >
-      <div className="flex flex-row items-center gap-2">
-        <p className="pe-2 text-sm font-medium">
-          {t('docs.feedback.question')}
-        </p>
-        <button
-          className={clsx(
-            rateButtonVariants({
-              active: activeOpinion === 'normal',
-            }),
-          )}
+    <section aria-label={t('question')} className="border-y py-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="pe-2 text-sm font-medium">{t('question')}</p>
+        <Button
           type="button"
-          disabled={previous !== null}
-          onClick={() => {
-            setOpinion('normal')
-          }}
+          size="sm"
+          variant={feedback?.opinion === 'helpful' ? 'secondary' : 'outline'}
+          aria-pressed={feedback?.opinion === 'helpful'}
+          disabled={feedback === undefined || isPending}
+          onClick={() => vote('helpful')}
         >
-          <MessageCircleMoreIcon />
-          {t('docs.feedback.button')}
-        </button>
+          <ThumbsUpIcon aria-hidden="true" />
+          {t('helpful')}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={feedback?.opinion === 'unhelpful' ? 'secondary' : 'outline'}
+          aria-pressed={feedback?.opinion === 'unhelpful'}
+          disabled={feedback === undefined || isPending}
+          onClick={() => vote('unhelpful')}
+        >
+          <ThumbsDownIcon aria-hidden="true" />
+          {t('unhelpful')}
+        </Button>
       </div>
-
-      <CollapsibleContent className="mt-3">
-        {previous
-          ? (
-              <div
-                className={`
-                  flex flex-col items-center gap-3 rounded-xl bg-card px-3 py-6 text-center text-sm
-                  text-muted-foreground
-                `}
-              >
-                <p className="m-0">{t('docs.feedback.thanks')}</p>
-                <div className="flex flex-row items-center gap-2">
+      {feedback && (
+        <p role="status" className="mt-3 text-sm text-muted-foreground">
+          {t('thanks')}
+        </p>
+      )}
+      {failed && (
+        <p role="alert" className="mt-3 text-sm text-destructive">
+          {t('error')}
+        </p>
+      )}
+      {feedback && showDetails ? (
+        <form className="mt-3 flex flex-col gap-3" onSubmit={submit}>
+          {feedback.opinion === 'unhelpful' && (
+            <fieldset disabled={isPending}>
+              <legend className="mb-2 text-sm font-medium">{t('reason')}</legend>
+              <div className="flex flex-wrap gap-2">
+                {feedbackReasons.map((value) => (
                   <Button
-                    className="text-xs"
+                    key={value}
                     type="button"
-                    variant="secondary"
-                    onClick={() => {
-                      setOpinion(previous.opinion)
-                      setPrevious(null)
-                    }}
+                    size="sm"
+                    variant={reason === value ? 'secondary' : 'outline'}
+                    aria-pressed={reason === value}
+                    onClick={() => setReason(reason === value ? '' : value)}
                   >
-                    {t('docs.feedback.retry')}
+                    {t(`reasons.${value}`)}
                   </Button>
-                </div>
+                ))}
               </div>
-            )
-          : (
-              <form className="flex flex-col gap-3" onSubmit={submit}>
-                <textarea
-                  className={`
-                    resize-none rounded-lg border bg-secondary p-3 text-secondary-foreground
-                    placeholder:text-muted-foreground
-                    focus-visible:outline-none
-                  `}
-                  value={message}
-                  placeholder={t('docs.feedback.message')}
-                  autoFocus
-                  required
-                  onChange={e => setMessage(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (!e.shiftKey && e.key === 'Enter') {
-                      submit(e)
-                    }
-                  }}
-                />
-                <Button
-                  className="w-fit self-end"
-                  type="submit"
-                  disabled={isPending}
-                >
-                  {t('docs.feedback.submit')}
-                </Button>
-              </form>
-            )}
-      </CollapsibleContent>
-    </Collapsible>
+            </fieldset>
+          )}
+          <label htmlFor={messageId} className="text-sm font-medium">
+            {t('message')}
+          </label>
+          <textarea
+            id={messageId}
+            className="resize-y rounded-lg border bg-secondary p-3 text-sm text-secondary-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring"
+            rows={3}
+            maxLength={2000}
+            disabled={isPending}
+            value={message}
+            placeholder={t('placeholder')}
+            onChange={(event) => setMessage(event.target.value)}
+          />
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={isPending}
+              onClick={() => {
+                save({ ...feedback, details_submitted: true })
+                setFailed(false)
+                setShowDetails(false)
+              }}
+            >
+              {t('skip')}
+            </Button>
+            <Button type="submit" disabled={isPending || (!reason && !message.trim())}>
+              {t('submit')}
+            </Button>
+          </div>
+        </form>
+      ) : feedback ? (
+        <Button
+          className="mt-2"
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={isPending}
+          onClick={() => setShowDetails(true)}
+        >
+          {t(feedback.reason || feedback.message ? 'retry' : 'button')}
+        </Button>
+      ) : null}
+    </section>
   )
+}
+
+export function Rate() {
+  const url = usePathname()
+  return <PageFeedback key={url} url={url} />
 }

@@ -1,9 +1,5 @@
-import process from 'node:process'
-
 import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
-import { PostHog } from 'posthog-node'
-
 import { AgentDocsLinks } from '@/components/agent-docs-links'
 import { DocsArticle } from '@/components/docs-shell/article'
 import { DocsShellPageLayout } from '@/components/docs-shell/layout'
@@ -68,24 +64,6 @@ export default async function Page({ params }: IProps) {
         markdownUrl={getAgentMarkdownPath(lang, page.url)}
         navigation={navigation}
         title={page.data.title}
-        onRateAction={async (url, feedback) => {
-          'use server'
-
-          if (!process.env.NEXT_POSTHOG_APIKEY) return
-
-          const posthog = new PostHog(process.env.NEXT_POSTHOG_APIKEY, { host: 'https://us.i.posthog.com' })
-
-          posthog.capture({
-            event: 'on_rate_docs',
-            timestamp: new Date(),
-            distinctId: 'anonymous',
-            properties: {
-              ...feedback,
-              url,
-              lang,
-            },
-          })
-        }}
       >
         <div data-docs-body className="[&_td:first-child_code]:break-normal [&_td:first-child_code]:whitespace-nowrap">
           {lang !== 'en-US' && !page.data.info.path.endsWith(`.${lang}.mdx`) && (

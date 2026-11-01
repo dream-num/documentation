@@ -53,6 +53,8 @@ The documentation project is **Univer SDK (133116)**. It is separate from the ma
 | `docs_search_open` | Count openings of the shared site search. |
 | `docs_search` | Inspect `search_query`, result count, success/error status, and request duration. Aborted requests are excluded. |
 | `docs_search_result_click` | Join to a request by `search_id`; inspect `search_query`, result position, destination, pointer/keyboard selection, and time from request start to selection. |
+| `on_rate_docs` | Capture a helpful/unhelpful vote immediately from the shared article footer, even when no optional details are supplied. |
+| `docs_feedback_detail` | Record an optional problem category and comment, linked to the vote by `feedback_id` and `feedback_revision`. |
 
 Browser events include `site=documentation`, `schema_version=1`, `reporting_side=frontend`, `locale`, `page_path`, `content_path`, `content_section`, and `content_type` (`documentation`, `blog`, or `other`). `content_path` removes the locale prefix so translated pages can be grouped together. Native session and pageview IDs remain available. Pageviews also retain `from_path` and `from_content_path` when the SDK has a previous page in the current document.
 
@@ -60,9 +62,13 @@ For content rankings, filter `$pageview` to `$host=docs.univer.ai` and the desir
 
 To identify popular questions, break down successful `docs_search` events by `search_query`; add `result_count=0` to find topics without results. Use `docs_search_result_click` to see which content people choose for each query. Live search can complete several requests as a visitor edits their question, so request counts are not counts of unique questions or visitors; result selections provide a more explicit interest signal.
 
-Duration is elapsed time, not active reading time; scroll depth and search-result selection are behavior signals, not proof that a question was answered. Existing `on_rate_docs` feedback remains separate and retains its existing identity. New visit events use the browser SDK's anonymous visitor/session identity, not the shared `anonymous` feedback identifier. Historical visits before deployment cannot be reconstructed.
+The shared feedback component appears below documentation, API reference, and blog articles in all eight languages. Readers can vote helpful/unhelpful, optionally select `missing`, `unclear`, `example_error`, or `version_mismatch` for a negative vote, and leave up to 2,000 characters of explanation. Votes are sent before requesting details. The server action validates input, waits for ingestion, and reports failures so the reader can retry. Browser storage remembers each page's feedback when available; blocked or malformed storage does not prevent submission.
 
-Run `pnpm test:analytics` to verify URL normalization, locale grouping, previous-page attribution, and delegated link tracking.
+Feedback uses the same ingestion project and page metadata as visits, with `reporting_side=server`. The server reads the PostHog visitor cookie and falls back to the supplied browser distinct ID, then to the unique feedback ID if analytics is unavailable. Browser `$session_id` and `$pageview_id` link feedback to the visit when present. Development feedback is not ingested. Changing a vote reuses `feedback_id` with a higher `feedback_revision`: compute helpfulness from the latest vote per feedback ID, and match details to that revision. Supplemental comments are separate events and must not be counted as votes. For repeated detail edits, use the latest event timestamp. Legacy feedback with `opinion=normal` and the shared `anonymous` identity remains historical comment data; exclude it from the helpfulness ratio.
+
+Duration is elapsed time, not active reading time; scroll depth, search-result selection, and a helpful vote do not prove that the reader solved their problem. Historical visits before deployment cannot be reconstructed.
+
+Run `pnpm test:analytics` to verify URL normalization, locale grouping, previous-page attribution, delegated link tracking, feedback validation, identity correlation, delivery failures, and development opt-out.
 
 ## Project Structure
 
