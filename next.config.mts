@@ -31,6 +31,8 @@ const config: NextConfig = {
     // The browser SDK validates this client license, so it is included in the client bundle.
     NEXT_PUBLIC_CLIENT_LICENSE_TEXT: process.env.CLIENT_LICENSE_TEXT ?? '',
     NEXT_PUBLIC_DOCS_SOURCE_REF: getDocsSourceRef(),
+    // This is the public ingestion key already used by documentation feedback.
+    NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_POSTHOG_APIKEY ?? '',
   },
 
   allowedDevOrigins: Object.values(networkInterfaces())

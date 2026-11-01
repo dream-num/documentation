@@ -37,6 +37,31 @@ The read-only Icons MCP runs at `/mcp/icons` in the existing Next.js Node server
 
 Showcase source, assets, tests and build tooling live in the sibling `../office.univer.ai` Vite project. Run `pnpm dev` there, then set `NEXT_PUBLIC_SHOWCASES_ORIGIN=http://localhost:5180` here. Production example links and embedded previews default to `https://office.univer.ai`. Set `NEXT_PUBLIC_SHOWCASES_ORIGIN` in `.env.local` to override that address for local development.
 
+## Documentation Analytics
+
+PostHog is initialized once in `instrumentation-client.ts`, following the `univer.ai` site's browser SDK setup. It captures initial page loads and pathname changes, including browser back/forward navigation. Changing only a query string or article anchor does not add a pageview.
+
+Set `NEXT_POSTHOG_APIKEY` and `NEXT_PUBLIC_POSTHOG_HOST` in `.env.local` from the documentation project's PostHog settings. The existing deployment secret `NEXT_POSTHOG_APIKEY` is reused for browser analytics through `next.config.mts`; it is a public ingestion key, not a personal API key. Docker builds default the ingestion host to US Cloud and accept a `NEXT_PUBLIC_POSTHOG_HOST` build argument to override it. Configuration changes require rebuilding the browser bundle. Capture is opted out by default outside production, and session recording and general autocapture are disabled.
+
+The documentation project is **Univer SDK (133116)**. It is separate from the main website's **Univer (75032)** project. Referrers identify arrivals from the website, but a cross-project user funnel cannot be inferred from these events alone.
+
+| Event | Use |
+| --- | --- |
+| `$pageview` | Rank documentation and blog visits and unique visitors; inspect session paths. |
+| `$pageleave` / next `$pageview` | Inspect the previous page's duration and scroll depth. The SDK reads the documentation scroll container, with the document root as a fallback for blogs and mobile layouts. |
+| `docs_link_click` | Inspect `from_path`, `to_path`, `to_host`, `to_anchor`, link location, and internal, anchor, or outbound intent. |
+| `docs_search_open` | Count openings of the shared site search. |
+| `docs_search` | Inspect completed search requests, result count, success/error status, and request duration. Aborted requests are excluded. |
+| `docs_search_result_click` | Join to a request by `search_id`; inspect result position, destination, pointer/keyboard selection, and time from request start to selection. |
+
+Browser events include `site=documentation`, `schema_version=1`, `reporting_side=frontend`, `locale`, `page_path`, `content_path`, `content_section`, and `content_type` (`documentation`, `blog`, or `other`). `content_path` removes the locale prefix so translated pages can be grouped together. Native session and pageview IDs remain available. Pageviews also retain `from_path` and `from_content_path` when the SDK has a previous page in the current document.
+
+For content rankings, filter `$pageview` to `$host=docs.univer.ai` and the desired `content_type`, then break down by `content_path` and optionally `locale`. For navigation, use native Paths or compare the source and destination of link clicks with subsequent pageviews. A click records intent, not a completed navigation. Search text, article text, and URL query strings are not added by the custom events. Search requests and selections share a random ID rather than the query text.
+
+Duration is elapsed time, not active reading time; scroll depth and search-result selection are behavior signals, not proof that a question was answered. Existing `on_rate_docs` feedback remains separate and retains its existing identity. New visit events use the browser SDK's anonymous visitor/session identity, not the shared `anonymous` feedback identifier. Historical visits before deployment cannot be reconstructed.
+
+Run `pnpm test:analytics` to verify URL normalization, locale grouping, previous-page attribution, and delegated link tracking.
+
 ## Project Structure
 
 ```

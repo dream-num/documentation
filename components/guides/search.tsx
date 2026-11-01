@@ -15,7 +15,9 @@ import type { IScopedSearchResult, SearchScope } from '@/lib/guides/search'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Link, usePathname, useRouter } from '@/i18n/navigation'
+import { captureDocsEvent } from '@/lib/analytics'
 import { clsx } from '@/lib/clsx'
+import { stripLocalePrefix, withLocale } from '@/lib/locale-path'
 
 const searchScopes: SearchScope[] = ['all', 'overview', 'guides', 'server', 'ai', 'reference', 'blog']
 
@@ -32,6 +34,8 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
     key: string
     status: 'loading' | 'success' | 'error'
     results: IScopedSearchResult[]
+    searchId?: string
+    startedAt?: number
   }>({ key: '', status: 'success', results: [] })
   const inputRef = useRef<HTMLInputElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -45,6 +49,7 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
   const activeResult = results[activeIndex]
 
   function changeOpen(value: boolean) {
+    if (value && !open) captureDocsEvent('docs_search_open')
     setOpen(value)
     if (value && !trimmedQuery) {
       setScope(
@@ -57,6 +62,23 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
               : defaultScope,
       )
     }
+  }
+
+  function handleResultClick(index: number, selectionMethod: 'keyboard' | 'pointer', selectedAt: number) {
+    const result = results[index]
+    if (!result || !response.searchId || response.startedAt === undefined) return
+    const destination = new URL(result.url, window.location.href)
+    captureDocsEvent('docs_search_result_click', {
+      search_id: response.searchId,
+      search_scope: scope,
+      query_length: trimmedQuery.length,
+      result_count: results.length,
+      result_position: index + 1,
+      time_to_result_ms: Math.max(0, Math.round(selectedAt - response.startedAt)),
+      to_path: withLocale(lang, stripLocalePrefix(destination.pathname)),
+      to_anchor: destination.hash.slice(1) || undefined,
+      selection_method: selectionMethod,
+    })
   }
 
   function highlight(text: string) {
@@ -89,18 +111,37 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
     if (!open || !trimmedQuery) return
     const controller = new AbortController()
     const timeout = window.setTimeout(async () => {
-      setResponse({ key: requestKey, status: 'loading', results: [] })
+      const searchId = crypto.randomUUID()
+      const startedAt = performance.now()
+      setResponse({ key: requestKey, status: 'loading', results: [], searchId, startedAt })
       try {
         const params = new URLSearchParams({ query: trimmedQuery, scope, locale: lang })
         const result = await fetch(`/api/search?${params}`, { signal: controller.signal })
         if (!result.ok) throw new Error(`Search returned ${result.status}`)
         const data: IScopedSearchResult[] = await result.json()
         if (!controller.signal.aborted) {
-          setResponse({ key: requestKey, status: 'success', results: data })
+          setResponse({ key: requestKey, status: 'success', results: data, searchId, startedAt })
           setActiveIndex(0)
+          captureDocsEvent('docs_search', {
+            search_id: searchId,
+            search_scope: scope,
+            query_length: trimmedQuery.length,
+            result_count: data.length,
+            request_duration_ms: Math.round(performance.now() - startedAt),
+            search_status: 'success',
+          })
         }
       } catch {
-        if (!controller.signal.aborted) setResponse({ key: requestKey, status: 'error', results: [] })
+        if (!controller.signal.aborted) {
+          setResponse({ key: requestKey, status: 'error', results: [], searchId, startedAt })
+          captureDocsEvent('docs_search', {
+            search_id: searchId,
+            search_scope: scope,
+            query_length: trimmedQuery.length,
+            request_duration_ms: Math.round(performance.now() - startedAt),
+            search_status: 'error',
+          })
+        }
       }
     }, 180)
     return () => {
@@ -174,6 +215,7 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
               }
               if (event.key === 'Enter' && activeResult) {
                 event.preventDefault()
+                handleResultClick(activeIndex, 'keyboard', event.timeStamp)
                 setOpen(false)
                 router.push(activeResult.url)
               }
@@ -266,7 +308,10 @@ export function GuidesSearch({ lang, defaultScope = 'all' }: { lang: string; def
                     activeIndex === index ? 'bg-muted' : 'hover:bg-muted/60',
                   )}
                   href={result.url}
-                  onClick={() => setOpen(false)}
+                  onClick={(event) => {
+                    handleResultClick(index, 'pointer', event.timeStamp)
+                    setOpen(false)
+                  }}
                   onMouseEnter={() => setActiveIndex(index)}
                 >
                   <FileTextIcon aria-hidden="true" className="mt-1 size-4 shrink-0 text-muted-foreground" />
