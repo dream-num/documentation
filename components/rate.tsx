@@ -36,7 +36,6 @@ function PageFeedback({ url }: { url: string }) {
       setFeedback(previous)
       setReason(previous?.reason ?? '')
       setMessage(previous?.message ?? '')
-      setShowDetails(previous?.opinion === 'unhelpful' && !previous.details_submitted)
     })
     return () => {
       cancelled = true
@@ -71,7 +70,7 @@ function PageFeedback({ url }: { url: string }) {
     return false
   }
 
-  function vote(opinion: IFeedback['opinion']) {
+  function vote(opinion: 'helpful' | 'unhelpful') {
     if (feedback === undefined || isPending || feedback?.opinion === opinion) return
     feedbackId.current ??= feedback?.feedback_id ?? crypto.randomUUID()
     const value: IFeedback = {
@@ -79,21 +78,25 @@ function PageFeedback({ url }: { url: string }) {
       feedback_revision: (feedback?.feedback_revision ?? 0) + 1,
       opinion,
       message: '',
-      details_submitted: opinion === 'helpful',
     }
     startTransition(async () => {
       if (!(await send('vote', value))) return
       save(value)
       setReason('')
-      setMessage('')
-      setShowDetails(opinion === 'unhelpful')
     })
   }
 
   function submit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!feedback || isPending || (!reason && !message.trim())) return
-    const value = { ...feedback, reason: reason || undefined, message: message.trim(), details_submitted: true }
+    if (feedback === undefined || isPending || (!reason && !message.trim())) return
+    feedbackId.current ??= feedback?.feedback_id ?? crypto.randomUUID()
+    const value: IFeedback = {
+      feedback_id: feedbackId.current,
+      feedback_revision: feedback?.feedback_revision ?? 1,
+      opinion: feedback?.opinion ?? 'unrated',
+      reason: feedback?.opinion === 'unhelpful' && reason ? reason : undefined,
+      message: message.trim(),
+    }
     startTransition(async () => {
       if (!(await send('details', value))) return
       save(value)
@@ -102,45 +105,61 @@ function PageFeedback({ url }: { url: string }) {
   }
 
   return (
-    <section aria-label={t('question')} className="border-y py-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="pe-2 text-sm font-medium">{t('question')}</p>
-        <Button
-          type="button"
-          size="sm"
-          variant={feedback?.opinion === 'helpful' ? 'secondary' : 'outline'}
-          aria-pressed={feedback?.opinion === 'helpful'}
-          disabled={feedback === undefined || isPending}
-          onClick={() => vote('helpful')}
-        >
-          <ThumbsUpIcon aria-hidden="true" />
-          {t('helpful')}
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={feedback?.opinion === 'unhelpful' ? 'secondary' : 'outline'}
-          aria-pressed={feedback?.opinion === 'unhelpful'}
-          disabled={feedback === undefined || isPending}
-          onClick={() => vote('unhelpful')}
-        >
-          <ThumbsDownIcon aria-hidden="true" />
-          {t('unhelpful')}
-        </Button>
+    <section aria-label={t('question')} aria-busy={isPending} className="border-y py-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <p className="w-full text-sm text-muted-foreground sm:w-auto">{t('question')}</p>
+        <div className="flex flex-wrap items-center gap-1">
+          <Button
+            type="button"
+            size="sm"
+            variant={feedback?.opinion === 'helpful' ? 'secondary' : 'ghost'}
+            aria-pressed={feedback?.opinion === 'helpful'}
+            disabled={feedback === undefined || isPending}
+            onClick={() => vote('helpful')}
+          >
+            <ThumbsUpIcon aria-hidden="true" />
+            {t('helpful')}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={feedback?.opinion === 'unhelpful' ? 'secondary' : 'ghost'}
+            aria-pressed={feedback?.opinion === 'unhelpful'}
+            disabled={feedback === undefined || isPending}
+            onClick={() => vote('unhelpful')}
+          >
+            <ThumbsDownIcon aria-hidden="true" />
+            {t('unhelpful')}
+          </Button>
+          <Button
+            className="text-muted-foreground"
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={feedback === undefined || isPending}
+            aria-expanded={showDetails}
+            onClick={() => {
+              setFailed(false)
+              setShowDetails(!showDetails)
+            }}
+          >
+            {t(feedback?.opinion === 'unhelpful' ? 'explain' : 'button')}
+          </Button>
+        </div>
+        {feedback && !showDetails && (
+          <p role="status" className="text-xs text-muted-foreground">
+            {t('thanks')}
+          </p>
+        )}
       </div>
-      {feedback && (
-        <p role="status" className="mt-3 text-sm text-muted-foreground">
-          {t('thanks')}
-        </p>
-      )}
       {failed && (
         <p role="alert" className="mt-3 text-sm text-destructive">
           {t('error')}
         </p>
       )}
-      {feedback && showDetails ? (
+      {showDetails && (
         <form className="mt-3 flex flex-col gap-3" onSubmit={submit}>
-          {feedback.opinion === 'unhelpful' && (
+          {feedback?.opinion === 'unhelpful' && (
             <fieldset disabled={isPending}>
               <legend className="mb-2 text-sm font-medium">{t('reason')}</legend>
               <div className="flex flex-wrap gap-2">
@@ -159,13 +178,13 @@ function PageFeedback({ url }: { url: string }) {
               </div>
             </fieldset>
           )}
-          <label htmlFor={messageId} className="text-sm font-medium">
+          <label htmlFor={messageId} className="sr-only">
             {t('message')}
           </label>
           <textarea
             id={messageId}
-            className="resize-y rounded-lg border bg-secondary p-3 text-sm text-secondary-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring"
-            rows={3}
+            className="resize-y rounded-lg border bg-background p-3 text-sm placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring"
+            rows={2}
             maxLength={2000}
             disabled={isPending}
             value={message}
@@ -178,30 +197,18 @@ function PageFeedback({ url }: { url: string }) {
               variant="ghost"
               disabled={isPending}
               onClick={() => {
-                save({ ...feedback, details_submitted: true })
                 setFailed(false)
                 setShowDetails(false)
               }}
             >
-              {t('skip')}
+              {t('close')}
             </Button>
             <Button type="submit" disabled={isPending || (!reason && !message.trim())}>
               {t('submit')}
             </Button>
           </div>
         </form>
-      ) : feedback ? (
-        <Button
-          className="mt-2"
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={isPending}
-          onClick={() => setShowDetails(true)}
-        >
-          {t(feedback.reason || feedback.message ? 'retry' : 'button')}
-        </Button>
-      ) : null}
+      )}
     </section>
   )
 }

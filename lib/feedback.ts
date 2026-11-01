@@ -5,14 +5,12 @@ export const feedbackReasons = ['missing', 'unclear', 'example_error', 'version_
 export const storedFeedbackSchema = z.object({
   feedback_id: z.uuid(),
   feedback_revision: z.number().int().positive(),
-  opinion: z.enum(['helpful', 'unhelpful']),
+  opinion: z.enum(['helpful', 'unhelpful', 'unrated']),
   reason: z.enum(feedbackReasons).optional(),
   message: z.string().trim().max(2000).default(''),
-  details_submitted: z.boolean(),
 })
 
 export const feedbackSchema = storedFeedbackSchema
-  .omit({ details_submitted: true })
   .extend({
     kind: z.enum(['vote', 'details']),
     url: z
@@ -24,6 +22,7 @@ export const feedbackSchema = storedFeedbackSchema
     session_id: z.uuid().optional(),
     pageview_id: z.uuid().optional(),
   })
+  .refine((value) => value.kind !== 'vote' || value.opinion !== 'unrated')
   .refine((value) => value.opinion === 'unhelpful' || value.reason === undefined)
   .refine((value) => value.kind === 'vote' || value.reason !== undefined || value.message.length > 0)
 
