@@ -1,0 +1,93 @@
+---
+title: 传统文档
+description: "用物理分页构建报告、合同等正式文档。传统文档通过节管理页面尺寸、页边距、页面分栏及页眉页脚；文本与内容块继续使用共用的 Docs API。"
+icon: FileText
+---
+
+适用：传统文档。
+
+用物理分页构建报告、合同等正式文档。传统文档通过节管理页面尺寸、页边距、页面分栏及页眉页脚；文本与内容块继续使用共用的 Docs API。
+
+先完成[安装](/guides/docs/getting-started/installation)，并[创建对应形态的文档](/guides/docs/getting-started/document-types#create-document)。下方代码依次操作该文档。
+
+调用布局 API 前，先确认文档形态。
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+if (!doc?.isTraditional()) throw new Error('Create a Traditional document first')
+```
+
+## 页面设置 [#page-setup]
+
+配置第一个节。下面的布局尺寸使用 96 DPI 布局像素。节级设置覆盖文档默认值；`getEffectivePageSetup()` 返回实际生效的配置。
+
+```typescript
+const section = doc.getSection(0)
+if (!section) throw new Error('Section not found')
+
+const updated = section.setPageSetup({
+  pageSize: { width: 794, height: 1123 },
+  marginTop: 72,
+  marginBottom: 72,
+  marginLeft: 72,
+  marginRight: 72,
+})
+if (!updated) throw new Error('Page setup failed')
+console.log(section.getEffectivePageSetup())
+```
+
+## 页面分栏 [#page-columns]
+
+这里是传统文档节内的页面分栏，文字在分页排版时流经各栏。使用 `setColumns(1)` 恢复单栏。它与现代文档的[分栏组](/guides/docs/features/columns)是不同能力。
+
+```typescript
+if (!section.setColumns(2, { gap: 18, separator: true })) {
+  throw new Error('Page columns could not be updated')
+}
+console.log(section.describe().columnCount) // 2
+```
+
+## 页眉页脚与字段 [#header-footer-fields]
+
+创建属于该节的页眉、页脚文本片段，再通过共用段落 API 编辑。返回的 segment ID 标识页眉或页脚文本流。页眉页脚 Ribbon 提供页码字段、首页／奇偶页选项及日期时间字段。
+
+```typescript
+const headerId = section.ensureHeader()
+const footerId = section.ensureFooter()
+doc.appendParagraph('Launch plan | Internal', headerId)
+doc.appendParagraph('Product Operations', footerId)
+```
+
+在传统文档中编辑页眉或页脚时，会出现用于插入、导航、首页/奇偶页选项和位置设置的上下文 Ribbon。可插入当前页码、总页数以及本地化日期和时间。页码字段按各个渲染页面显示对应值。插入日期/时间时，勾选自动更新会保存为字段，取消勾选则插入固定文本。日期/时间字段在打开文档或执行“更新字段”时刷新，不会作为时钟持续走动。现代文档不使用分页页眉页脚。
+
+## 分页规则 [#pagination]
+
+段落分页规则作用于物理页面：`keepNext` 让标题尽量与后续段落同页，`keepLines` 尽量保持段内行不拆开，`pageBreakBefore` 让段落从新页面开始。超过一页的内容仍可能拆分。现代文档不会将这些规则用于物理分页。
+
+```typescript
+const title = doc.findParagraphByText('Launch plan')
+if (!title) throw new Error('Title not found')
+title.setStyle({ keepNext: univerAPI.Enum.BooleanNumber.TRUE, keepLines: univerAPI.Enum.BooleanNumber.TRUE })
+
+const checklist = doc.appendParagraph('Delivery checklist')
+checklist.setStyle({ pageBreakBefore: univerAPI.Enum.BooleanNumber.TRUE })
+```
+
+## 节与分节 [#sections]
+
+在顶层段落边界插入分节符。`nextSectionType` 决定后一个节如何开始。节 ID 不随前方文字编辑而变化；`getSection(index)` 接收从 0 开始的索引，不是 ID。
+
+```typescript
+const chapter = doc.findParagraphByText('Delivery checklist')
+if (!chapter) throw new Error('Chapter not found')
+
+const previousSection = doc.insertSectionBreak(chapter.getInfo().startOffset, {
+  nextSectionType: univerAPI.Enum.SectionType.NEXT_PAGE,
+})
+if (!previousSection) throw new Error('Section break could not be inserted')
+console.log(doc.getSections().map(item => item.getId()))
+```
+
+页面注释见[脚注与尾注](/guides/docs/features/footnotes)。[打印](/guides/docs/features/print)与[导入导出](/guides/docs/features/import-export)各自说明所需插件和许可证；文件转换还需要配套后端。
+
+[FDocumentSection](/reference/facade/document-section) · [FDocument](/reference/facade/document)

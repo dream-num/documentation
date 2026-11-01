@@ -1,0 +1,77 @@
+---
+title: モダンドキュメント
+description: "連続するコンテンツでナレッジページや共同編集用の概要を作成します。段落、文字スタイル、表、画像、ブロックは従来型と共通です。種類固有の機能には見出しの折りたたみと段組みグループがあります。"
+icon: PanelsTopLeft
+---
+
+import { HeadingCollapseDemo } from './core/components/heading-collapse-demo'
+
+対象：モダンドキュメント。
+
+連続するコンテンツでナレッジページや共同編集用の概要を作成します。段落、文字スタイル、表、画像、ブロックは従来型と共通です。種類固有の機能には見出しの折りたたみと段組みグループがあります。
+
+先に[インストール](/guides/docs/getting-started/installation)を完了し、[対応する種類の文書を作成](/guides/docs/getting-started/document-types#create-document)します。以下のコードはその文書に順番に適用します。
+
+レイアウト API を呼ぶ前にドキュメントの種類を確認します。
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+if (!doc?.isModern()) throw new Error('Create a Modern document first')
+```
+
+## 段組みグループ [#column-groups]
+
+[段組みグループの設定](/guides/docs/features/columns)に従ってプラグインと Facade を登録し、Pro ライセンスを設定します。例では編集可能な 2 段を作成して公開 API で入力します。編集で位置が変わるため、右段の位置は左段の編集後に取得します。
+
+```typescript
+const group = doc.insertColumnGroup(2, { gap: 18, widthRatios: [1, 1] })
+if (!group) throw new Error('Column group could not be inserted')
+
+const [left, right] = group.getColumns()
+const leftOffset = left.getInsertOffset()
+if (leftOffset == null) throw new Error('Left column not found')
+doc.insertText(leftOffset, 'Goals\rShip a focused pilot.')
+
+const rightOffset = right.getInsertOffset()
+if (rightOffset == null) throw new Error('Right column not found')
+doc.insertText(rightOffset, 'Next steps\rReview the launch checklist.')
+
+console.log(left.getText(), right.getText())
+```
+
+## 見出しの折りたたみ [#heading-collapse]
+
+Modern 文書（`documentStyle.documentFlavor: DocumentFlavor.MODERN`）では、節の内容がある見出し 1〜5 の横に三角形が表示されます。折りたたむと見出しを残し、次の同じレベル以上の見出しまでの内容（子見出し、表、画像を含む）を隠します。各表セルと Modern の段組みは独自の見出し階層を持ちます。
+
+この機能は `toc` とは独立しています。Traditional 文書と埋め込みテキストエディターでは表示されません。親を開き直しても子見出しの折りたたみ状態は維持されます。
+
+<HeadingCollapseDemo />
+
+`IParagraph.headingCollapsed` は Univer スナップショットに保存され、`true` の場合だけ折りたたみます。内容は削除されず、元に戻す・やり直しと共同編集に対応します。状態は他の編集者と共有されます。隠れた内容内の選択は表示中の見出しへ移動します。Office の入出力での保持は保証されません。
+
+コードから変更する場合は、文書 ID とスナップショット内の安定した `paragraphId` を指定して登録済みコマンドを実行します。`collapsed: false` で展開します。
+
+```ts
+import { SetHeadingCollapsedCommand } from '@univerjs/docs'
+
+const heading = doc.findParagraphByText('Launch plan')
+if (!heading) throw new Error('Heading not found')
+
+const changed = await univerAPI.executeCommand(SetHeadingCollapsedCommand.id, {
+  unitId: doc.getId(),
+  paragraphId: heading.getId(),
+  collapsed: true,
+})
+```
+
+変更がない場合や無効な対象（Traditional 文書、親に隠された見出し、折りたたむ内容のない節、編集権限なし）では `false` を返します。[コマンド仕様](/reference/packages/plugins/univerjs/docs#heading-collapse)を参照してください。
+
+## 共通のブロック [#shared-blocks]
+
+表、リスト、コード、引用、コールアウト、[文書間埋め込み](/guides/docs/features/embed)は対応プラグインによる共通機能です。改ページや一部の配置操作は種類により異なります。
+
+## 印刷とエクスポート [#output]
+
+モダンの編集画面は物理的なページ区切りを表示しません。[印刷モジュール](/guides/docs/features/print)が出力用に連続コンテンツを分割します。[インポート／エクスポート](/guides/docs/features/import-export)には変換サービスが必要で、読み込み先の種類を指定できます。編集時と出力時のページ分割は同一ではありません。
+
+[FDocumentColumnGroup](/reference/facade/document-column-group) · [FDocument](/reference/facade/document)

@@ -1,0 +1,77 @@
+---
+title: Modern documents
+description: "Build knowledge pages and collaborative briefs in a continuous content flow. Modern Docs share paragraphs, text styles, tables, images, and content blocks with Traditional Docs; their layout-specific features include heading collapse and column groups."
+icon: PanelsTopLeft
+---
+
+import { HeadingCollapseDemo } from './core/components/heading-collapse-demo'
+
+Applies to Modern documents.
+
+Build knowledge pages and collaborative briefs in a continuous content flow. Modern Docs share paragraphs, text styles, tables, images, and content blocks with Traditional Docs; their layout-specific features include heading collapse and column groups.
+
+First complete [installation](/guides/docs/getting-started/installation) and [create the matching document type](/guides/docs/getting-started/document-types#create-document). The following snippets operate on that document in order.
+
+Check the document type before calling its layout APIs.
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+if (!doc?.isModern()) throw new Error('Create a Modern document first')
+```
+
+## Column groups [#column-groups]
+
+First register the plugins and Facade entry from [column group setup](/guides/docs/features/columns). This feature requires its Pro license. The example creates two editable columns, then fills each through public APIs. Resolve the right column offset after editing the left one because text edits change offsets.
+
+```typescript
+const group = doc.insertColumnGroup(2, { gap: 18, widthRatios: [1, 1] })
+if (!group) throw new Error('Column group could not be inserted')
+
+const [left, right] = group.getColumns()
+const leftOffset = left.getInsertOffset()
+if (leftOffset == null) throw new Error('Left column not found')
+doc.insertText(leftOffset, 'Goals\rShip a focused pilot.')
+
+const rightOffset = right.getInsertOffset()
+if (rightOffset == null) throw new Error('Right column not found')
+doc.insertText(rightOffset, 'Next steps\rReview the launch checklist.')
+
+console.log(left.getText(), right.getText())
+```
+
+## Collapse heading sections [#heading-collapse]
+
+Modern documents (`documentStyle.documentFlavor: DocumentFlavor.MODERN`) show a triangle beside Heading 1–5 when the heading has section content. Collapsing keeps the heading visible and hides everything up to the next heading of the same or higher level, including nested headings, tables, and images. Each table cell and Modern column has its own heading hierarchy.
+
+This works independently of `toc`. Traditional documents and embedded text editors do not show collapse controls. Expanding a parent retains its nested headings’ collapse states.
+
+<HeadingCollapseDemo />
+
+`IParagraph.headingCollapsed` is saved in the Univer snapshot. Only `true` collapses a section. Content remains in the snapshot, and the state participates in undo/redo and collaboration; it is shared with other editors. A selection in hidden content moves to the visible heading. Office import/export preservation is not guaranteed.
+
+For programmatic changes, use the document ID and a stable `paragraphId` from its snapshot with the registered command. Set `collapsed: false` to expand.
+
+```ts
+import { SetHeadingCollapsedCommand } from '@univerjs/docs'
+
+const heading = doc.findParagraphByText('Launch plan')
+if (!heading) throw new Error('Heading not found')
+
+const changed = await univerAPI.executeCommand(SetHeadingCollapsedCommand.id, {
+  unitId: doc.getId(),
+  paragraphId: heading.getId(),
+  collapsed: true,
+})
+```
+
+The command returns `false` for an unchanged state or invalid target, including a Traditional document, a heading hidden by an ancestor, an empty section when collapsing, or missing edit permission. See [the command contract](/reference/packages/plugins/univerjs/docs#heading-collapse).
+
+## Shared blocks [#shared-blocks]
+
+Tables, lists, code blocks, quotes, callouts, and [cross-document embeds](/guides/docs/features/embed) belong to shared content capabilities, with their feature plugins. Their pagination behavior and some layout controls differ by document type.
+
+## Printing and export [#output]
+
+Modern editing does not display physical page breaks. The [print module](/guides/docs/features/print) paginates the continuous content for output. [Import/export](/guides/docs/features/import-export) still uses the conversion service; the import options can select a target document type. Do not assume editing layout and output pagination are identical.
+
+[FDocumentColumnGroup](/reference/facade/document-column-group) · [FDocument](/reference/facade/document)

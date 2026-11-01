@@ -1,0 +1,77 @@
+---
+title: Documentos modernos
+description: "Crea páginas de conocimiento y resúmenes colaborativos con un flujo continuo. Párrafos, estilos, tablas, imágenes y bloques se comparten con los documentos tradicionales. El plegado de títulos y los grupos de columnas son funciones propias de este diseño."
+icon: PanelsTopLeft
+---
+
+import { HeadingCollapseDemo } from './core/components/heading-collapse-demo'
+
+Se aplica a documentos modernos.
+
+Crea páginas de conocimiento y resúmenes colaborativos con un flujo continuo. Párrafos, estilos, tablas, imágenes y bloques se comparten con los documentos tradicionales. El plegado de títulos y los grupos de columnas son funciones propias de este diseño.
+
+Completa la [instalación](/guides/docs/getting-started/installation) y [crea el tipo correspondiente](/guides/docs/getting-started/document-types#create-document). Ejecuta los fragmentos siguientes en orden sobre ese documento.
+
+Comprueba el tipo antes de llamar a las API de diseño.
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+if (!doc?.isModern()) throw new Error('Create a Modern document first')
+```
+
+## Grupos de columnas [#column-groups]
+
+Registra los plugins y la entrada Facade de la [configuración de grupos de columnas](/guides/docs/features/columns), con la licencia Pro. El ejemplo crea dos columnas editables y las rellena mediante API públicas. Obtén el desplazamiento derecho después de editar la izquierda, porque las posiciones cambian con el texto.
+
+```typescript
+const group = doc.insertColumnGroup(2, { gap: 18, widthRatios: [1, 1] })
+if (!group) throw new Error('Column group could not be inserted')
+
+const [left, right] = group.getColumns()
+const leftOffset = left.getInsertOffset()
+if (leftOffset == null) throw new Error('Left column not found')
+doc.insertText(leftOffset, 'Goals\rShip a focused pilot.')
+
+const rightOffset = right.getInsertOffset()
+if (rightOffset == null) throw new Error('Right column not found')
+doc.insertText(rightOffset, 'Next steps\rReview the launch checklist.')
+
+console.log(left.getText(), right.getText())
+```
+
+## Plegar secciones [#heading-collapse]
+
+Los documentos Modern (`documentStyle.documentFlavor: DocumentFlavor.MODERN`) muestran un triángulo junto a los títulos 1–5 que tienen contenido en su sección. Al plegar, el título permanece y se oculta el contenido hasta el siguiente título de nivel igual o superior, incluidos subtítulos, tablas e imágenes. Cada celda y columna Modern tiene su propia jerarquía.
+
+Esta función es independiente de `toc`. Los documentos Traditional y los editores de texto integrados no muestran estos controles. Al abrir el título principal se conserva el estado de sus subtítulos.
+
+<HeadingCollapseDemo />
+
+`IParagraph.headingCollapsed` se guarda en el snapshot de Univer. Solo `true` pliega una sección. El contenido permanece y el estado admite deshacer/rehacer y colaboración: se comparte con otros editores. Una selección oculta se mueve al título visible. No se garantiza su conservación al importar o exportar Office.
+
+Para cambiar el estado mediante código, ejecuta el comando registrado con el ID del documento y el `paragraphId` estable del snapshot. Usa `collapsed: false` para desplegar.
+
+```ts
+import { SetHeadingCollapsedCommand } from '@univerjs/docs'
+
+const heading = doc.findParagraphByText('Launch plan')
+if (!heading) throw new Error('Heading not found')
+
+const changed = await univerAPI.executeCommand(SetHeadingCollapsedCommand.id, {
+  unitId: doc.getId(),
+  paragraphId: heading.getId(),
+  collapsed: true,
+})
+```
+
+El comando devuelve `false` si no hay cambios o el destino no es válido: documento Traditional, título oculto por un antecesor, sección vacía al plegar o falta de permiso de edición. Consulta el [contrato del comando](/reference/packages/plugins/univerjs/docs#heading-collapse).
+
+## Bloques compartidos [#shared-blocks]
+
+Tablas, listas, código, citas, avisos e [incrustaciones entre documentos](/guides/docs/features/embed) son funciones compartidas con sus plugins. La paginación y algunos controles varían según el tipo.
+
+## Impresión y exportación [#output]
+
+El editor moderno no muestra saltos de página físicos. El [módulo de impresión](/guides/docs/features/print) pagina el contenido continuo para la salida. La [importación/exportación](/guides/docs/features/import-export) requiere el servicio de conversión; las opciones de importación permiten elegir el tipo destino. El diseño de edición y la paginación de salida no son idénticos.
+
+[FDocumentColumnGroup](/reference/facade/document-column-group) · [FDocument](/reference/facade/document)

@@ -1,0 +1,93 @@
+---
+title: Documentos tradicionales
+description: "Crea informes y documentos formales con páginas físicas. Las secciones gestionan tamaño, márgenes, columnas y encabezados y pies. Texto y bloques usan las API Docs compartidas."
+icon: FileText
+---
+
+Se aplica a documentos tradicionales.
+
+Crea informes y documentos formales con páginas físicas. Las secciones gestionan tamaño, márgenes, columnas y encabezados y pies. Texto y bloques usan las API Docs compartidas.
+
+Completa la [instalación](/guides/docs/getting-started/installation) y [crea el tipo correspondiente](/guides/docs/getting-started/document-types#create-document). Ejecuta los fragmentos siguientes en orden sobre ese documento.
+
+Comprueba el tipo antes de llamar a las API de diseño.
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+if (!doc?.isTraditional()) throw new Error('Create a Traditional document first')
+```
+
+## Configuración de página [#page-setup]
+
+Configura la primera sección. Las dimensiones son píxeles de diseño a 96 DPI. La configuración de sección prevalece sobre los valores del documento; `getEffectivePageSetup()` devuelve los valores efectivos.
+
+```typescript
+const section = doc.getSection(0)
+if (!section) throw new Error('Section not found')
+
+const updated = section.setPageSetup({
+  pageSize: { width: 794, height: 1123 },
+  marginTop: 72,
+  marginBottom: 72,
+  marginLeft: 72,
+  marginRight: 72,
+})
+if (!updated) throw new Error('Page setup failed')
+console.log(section.getEffectivePageSetup())
+```
+
+## Columnas de página [#page-columns]
+
+Estas columnas pertenecen a una sección tradicional; el texto fluye por ellas durante la paginación. `setColumns(1)` restaura una sola columna. Son distintas de los [grupos de columnas](/guides/docs/features/columns) modernos.
+
+```typescript
+if (!section.setColumns(2, { gap: 18, separator: true })) {
+  throw new Error('Page columns could not be updated')
+}
+console.log(section.describe().columnCount) // 2
+```
+
+## Encabezados, pies y campos [#header-footer-fields]
+
+Crea segmentos de encabezado y pie propios de la sección y edítalos con las API de párrafos compartidas. El segment ID identifica su flujo de texto. El Ribbon ofrece números de página, variantes de primera página/par/impar y campos de fecha y hora.
+
+```typescript
+const headerId = section.ensureHeader()
+const footerId = section.ensureFooter()
+doc.appendParagraph('Launch plan | Internal', headerId)
+doc.appendParagraph('Product Operations', footerId)
+```
+
+En documentos tradicionales, al editar un encabezado o pie aparece un Ribbon contextual con inserción, navegación, opciones de primera página y páginas pares/impares, y posición. Permite insertar la página actual, el total de páginas o fecha y hora localizadas. Los campos de página muestran el valor de cada página. Para fecha/hora, active la actualización automática para guardar un campo, o desactívela para insertar texto fijo. Estos campos se actualizan al abrir el documento o mediante **Actualizar campos**, no continuamente como un reloj. Los documentos modernos no usan encabezados ni pies paginados.
+
+## Paginación [#pagination]
+
+`keepNext` mantiene un título junto al párrafo siguiente; `keepLines` mantiene juntas las líneas cuando es posible; `pageBreakBefore` inicia el párrafo en una nueva página. Un contenido mayor que una página puede dividirse. Los documentos modernos no aplican estas reglas a páginas físicas.
+
+```typescript
+const title = doc.findParagraphByText('Launch plan')
+if (!title) throw new Error('Title not found')
+title.setStyle({ keepNext: univerAPI.Enum.BooleanNumber.TRUE, keepLines: univerAPI.Enum.BooleanNumber.TRUE })
+
+const checklist = doc.appendParagraph('Delivery checklist')
+checklist.setStyle({ pageBreakBefore: univerAPI.Enum.BooleanNumber.TRUE })
+```
+
+## Secciones [#sections]
+
+Inserta un salto de sección en un límite de párrafo de nivel superior. `nextSectionType` controla el comienzo de la sección siguiente. Los ID se conservan tras editar texto anterior; `getSection(index)` recibe un índice desde cero, no un ID.
+
+```typescript
+const chapter = doc.findParagraphByText('Delivery checklist')
+if (!chapter) throw new Error('Chapter not found')
+
+const previousSection = doc.insertSectionBreak(chapter.getInfo().startOffset, {
+  nextSectionType: univerAPI.Enum.SectionType.NEXT_PAGE,
+})
+if (!previousSection) throw new Error('Section break could not be inserted')
+console.log(doc.getSections().map(item => item.getId()))
+```
+
+Consulta las [notas](/guides/docs/features/footnotes), la [impresión](/guides/docs/features/print) y la [importación/exportación](/guides/docs/features/import-export). Cada guía indica sus plugins y licencias. La conversión de archivos también requiere un backend.
+
+[FDocumentSection](/reference/facade/document-section) · [FDocument](/reference/facade/document)

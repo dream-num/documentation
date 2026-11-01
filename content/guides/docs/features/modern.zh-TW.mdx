@@ -1,0 +1,77 @@
+---
+title: 現代文件
+description: "以連續內容流建立知識頁面與協作簡報。現代文件與傳統文件共用段落、文字樣式、表格、圖片與內容區塊；專屬版面能力包括標題摺疊與分欄群組。"
+icon: PanelsTopLeft
+---
+
+import { HeadingCollapseDemo } from './core/components/heading-collapse-demo'
+
+適用：現代文件。
+
+以連續內容流建立知識頁面與協作簡報。現代文件與傳統文件共用段落、文字樣式、表格、圖片與內容區塊；專屬版面能力包括標題摺疊與分欄群組。
+
+先完成[安裝](/guides/docs/getting-started/installation)，並[建立對應型態的文件](/guides/docs/getting-started/document-types#create-document)。下方程式碼依序操作該文件。
+
+呼叫版面 API 前先確認文件型態。
+
+```typescript
+const doc = univerAPI.getActiveDocument()
+if (!doc?.isModern()) throw new Error('Create a Modern document first')
+```
+
+## 分欄群組 [#column-groups]
+
+先依[分欄群組設定](/guides/docs/features/columns)註冊外掛與 Facade 入口，並設定此 Pro 功能的授權。範例建立兩個可編輯欄，再以公開 API 填入內容。編輯左欄後再取得右欄偏移量，因為文字編輯會改變位置。
+
+```typescript
+const group = doc.insertColumnGroup(2, { gap: 18, widthRatios: [1, 1] })
+if (!group) throw new Error('Column group could not be inserted')
+
+const [left, right] = group.getColumns()
+const leftOffset = left.getInsertOffset()
+if (leftOffset == null) throw new Error('Left column not found')
+doc.insertText(leftOffset, 'Goals\rShip a focused pilot.')
+
+const rightOffset = right.getInsertOffset()
+if (rightOffset == null) throw new Error('Right column not found')
+doc.insertText(rightOffset, 'Next steps\rReview the launch checklist.')
+
+console.log(left.getText(), right.getText())
+```
+
+## 標題摺疊 [#heading-collapse]
+
+現代文件（`documentStyle.documentFlavor: DocumentFlavor.MODERN`）會在具有章節內容的一級至五級標題旁顯示三角按鈕。摺疊後保留標題，隱藏其後直到下一個同層級或更高層級標題之前的內容，包括子標題、表格和圖片。每個表格儲存格和現代文件分欄都有獨立的標題階層。
+
+標題摺疊不受 `toc` 控制。傳統文件和嵌入式文字編輯器不顯示摺疊控制項。展開父標題時，子標題會保留各自的摺疊狀態。
+
+<HeadingCollapseDemo />
+
+`IParagraph.headingCollapsed` 隨 Univer 快照儲存，僅 `true` 表示摺疊。內文仍在快照中，摺疊支援復原、重做及協同，並與其他編輯者共用。隱藏內容中的選取範圍會移到可見標題。此約定不保證 Office 匯入匯出保留摺疊狀態。
+
+以程式碼修改時，使用文件 ID 和快照中穩定的 `paragraphId` 執行已註冊的命令。設定 `collapsed: false` 可展開。
+
+```ts
+import { SetHeadingCollapsedCommand } from '@univerjs/docs'
+
+const heading = doc.findParagraphByText('Launch plan')
+if (!heading) throw new Error('Heading not found')
+
+const changed = await univerAPI.executeCommand(SetHeadingCollapsedCommand.id, {
+  unitId: doc.getId(),
+  paragraphId: heading.getId(),
+  collapsed: true,
+})
+```
+
+狀態未變或目標無效時，命令傳回 `false`，例如傳統文件、被祖先標題隱藏的標題、摺疊空章節或無編輯權限。詳見[命令契約](/reference/packages/plugins/univerjs/docs#heading-collapse)。
+
+## 共用內容區塊 [#shared-blocks]
+
+表格、清單、程式碼區塊、引用區塊、標註區塊與[跨文件嵌入](/guides/docs/features/embed)屬於共用內容能力，需要各自的功能外掛。
+
+## 列印與匯出 [#output]
+
+現代文件編輯時不顯示實體分頁；[列印模組](/guides/docs/features/print)會為連續內容產生輸出分頁。[匯入匯出](/guides/docs/features/import-export)仍需轉換服務，匯入選項可指定目標文件型態。編輯版面與輸出分頁並不完全相同。
+
+[FDocumentColumnGroup](/reference/facade/document-column-group) · [FDocument](/reference/facade/document)
