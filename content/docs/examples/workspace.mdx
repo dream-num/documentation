@@ -300,27 +300,26 @@ The preview plugin includes nine Skills. The common Skill explains discovery, id
 
 ### How Office SDK powers Workspace [#desktop-architecture]
 
-Workspace connects three Office SDK layers to an application: Web SDK supplies the shared content engine, Server SDK handles collaboration and versions, and AI SDK lets agents read, edit, and verify content from Node.js. The agent host owns conversations, model calls, and tool orchestration; Workspace owns Spaces, file access, and delivery.
+Workspace connects native editors, agent content operations, and team collaboration to the same documents and permissions. You can build on this open-source application and Office SDK, focusing development on your business workflows, interface, and integrations.
 
-<Mermaid chart={"flowchart LR\nA[\"Agent<br/>CLI / Desktop\"]\nS[\"Workspace Server<br/>Identity · collaboration · versions\"] --> D[(\"Persistent storage<br/>Product · collaboration · files\")]\nA <-->|Read content / submit changes| S\nV[\"Web / Desktop<br/>Native editing · review\"] <--> S"} />
+<Mermaid chart={"flowchart LR\nA[\"Agent\"] <--> S[\"Workspace Server\"] <--> E[\"Editors\"]"} />
 
-CLI and Desktop run content operations in Node.js; Workspace Server stores shared files and collaboration state. The service can run locally, on your own servers, or in the cloud.
+Agents operate on content in Node.js through CLI or Desktop; people view, edit, and review it in Web or Desktop editors. Workspace Server stores shared documents, drafts, and collaboration state. It can run locally, on your servers, or in the cloud.
 
-| Layer | What you can reuse |
+| Layer | Responsibility |
 | --- | --- |
-| [Web SDK](/guides/sheets) | Content models, formulas, public Facade APIs, and the native editors used for preview and manual editing. |
-| [AI SDK](/ai/content-operations) | API discovery, structured inspection, and Facade execution bound to an explicit document ID. Agents can locate the intended document without relying on the editor’s current selection. |
-| [Visual inspection](/ai/visual-inspection) | Render a specific content state into screenshots; Slide layout lint also reports text overflow and overlap. These checks require a Render Page and a compatible browser. |
-| [Server SDK](/server) | Collaboration, revisions, and Worktree drafts integrated with the application’s backend. |
-| Workspace application | Identity and permissions, Space and file organization, Web App hosting, and the review and sharing interfaces. |
+| [Web SDK](/guides/sheets) | Content models, formulas, public Facade APIs, and native editors. |
+| [AI SDK](/ai/content-operations) | API discovery, structured content inspection, and Facade execution on a specified document. |
+| [Server SDK](/server) | Collaboration, revisions, Worktree drafts, and file conversion. |
+| Application | Workspace handles Spaces, files, permissions, sharing, and review. The agent host handles conversations, model calls, and tool orchestration. |
 
-Workspace’s [shared Node.js client layer](https://github.com/dream-num/univer-workspace/tree/main/packages/client-core) uses the AI SDK’s worker runtime pool. It reuses loaded content during the runtime owner’s lifetime, separates targets by service, document, and trunk or Worktree, and synchronizes before executing. The application owns the target and credentials; the SDK manages runtime leases and lifecycle. See [runtime reuse](/ai/runtime-architecture) when adapting this architecture.
+CLI and Desktop share a [content operations layer](https://github.com/dream-num/univer-workspace/tree/main/packages/client-core). Its runtime pool reuses loaded documents during the host’s lifetime and synchronizes versions before execution. This lets different clients reuse the same editing and submission logic. See [runtime reuse](/ai/runtime-architecture).
+
+[Visual inspection](/ai/visual-inspection) complements structured checks: screenshots use browser rendering, and automatic layout diagnostics currently detect text overflow and overlap in Slides.
 
 #### From an agent edit to a reviewed change [#agent-editing-flow]
 
 For the budget-review example, the agent edits an actual spreadsheet with formulas and styles. The native Office editing path is:
-
-<Mermaid chart={"flowchart LR\nA[\"Select document<br/>and Worktree\"] --> B[\"Facade edits<br/>Save draft changes\"] --> C[\"Check data<br/>and rendered output\"] --> D[\"Human review<br/>Confirm merge\"]\nC -->|Refine| B"} />
 
 1. **Locate and load.** Select the document and Worktree, load its snapshot and changesets, and synchronize to the selected revision. A Unit is one document instance, such as a workbook.
 2. **Edit through Facade.** The Node.js runtime applies public Facade calls to that Unit. Content changes produce mutations, which are collected into a changeset and submitted to the draft.

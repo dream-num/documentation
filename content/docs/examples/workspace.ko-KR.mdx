@@ -300,27 +300,26 @@ uvw skills get html-view
 
 ### Office SDK가 Workspace를 구성하는 방식 [#desktop-architecture]
 
-Workspace는 세 SDK를 하나의 애플리케이션으로 구성합니다. Web SDK는 공통 콘텐츠 엔진, Server SDK는 협업과 버전 관리, AI SDK는 Node.js에서 콘텐츠를 읽고 편집하고 검증하는 기능을 제공합니다. Agent 호스트는 대화, 모델 호출, 도구 실행을 담당하고 Workspace는 Space, 파일 접근, 결과 공유를 담당합니다.
+Workspace는 네이티브 편집기, Agent 콘텐츠 작업, 팀 협업을 동일한 문서와 권한에 연결합니다. 이 오픈 소스 애플리케이션과 Office SDK를 활용해 자체 업무 흐름, 화면, 시스템 연동에 개발을 집중할 수 있습니다.
 
-<Mermaid chart={"flowchart LR\nA[\"Agent<br/>CLI / Desktop\"]\nS[\"Workspace Server<br/>인증 · 협업 · 버전\"] --> D[(\"영구 저장소<br/>제품 · 협업 · 파일\")]\nA <-->|콘텐츠 읽기 / 변경 제출| S\nV[\"Web / Desktop<br/>네이티브 편집 · 검토\"] <--> S"} />
+<Mermaid chart={"flowchart LR\nA[\"Agent\"] <--> S[\"Workspace Server\"] <--> E[\"편집기\"]"} />
 
-CLI와 Desktop은 Node.js에서 콘텐츠를 처리하고, Workspace Server는 공유 파일과 협업 상태를 저장합니다. 서비스는 로컬, 사설 서버 또는 클라우드에 배포할 수 있습니다.
+Agent는 CLI 또는 Desktop을 통해 Node.js에서 콘텐츠를 처리하고, 사용자는 Web 또는 Desktop 편집기에서 보고 편집하고 검토합니다. Workspace Server는 공유 문서, 초안, 협업 상태를 저장합니다. 서비스는 로컬, 사설 서버 또는 클라우드에 배포할 수 있습니다.
 
-| 계층 | 재사용할 수 있는 기능 |
+| 계층 | 역할 |
 | --- | --- |
-| [Web SDK](/guides/sheets) | 콘텐츠 모델, 수식, 공개 Facade API, 미리보기와 직접 편집에 사용하는 네이티브 편집기. |
-| [AI SDK](/ai/content-operations) | API 검색, 구조화된 콘텐츠 검사, 명시적인 문서 ID에 연결된 Facade 실행. 편집기의 현재 선택에 의존하지 않고 대상 문서를 찾을 수 있습니다. |
-| [시각적 검사](/ai/visual-inspection) | 특정 콘텐츠 상태를 스크린샷으로 렌더링합니다. 슬라이드 레이아웃 진단은 텍스트 넘침과 겹침도 보고합니다. Render Page와 호환 브라우저가 필요합니다. |
-| [Server SDK](/server) | 애플리케이션 백엔드와 통합되는 협업, 리비전, Worktree 초안. |
-| Workspace 애플리케이션 | 인증과 권한, Space와 파일 구성, Web App 호스팅, 검토와 공유 화면. |
+| [Web SDK](/guides/sheets) | 콘텐츠 모델, 수식, 공개 Facade API, 네이티브 편집기. |
+| [AI SDK](/ai/content-operations) | API 검색, 구조화된 콘텐츠 검사, 지정 문서에 대한 Facade 실행. |
+| [Server SDK](/server) | 협업, 리비전, Worktree 초안, 파일 변환. |
+| 애플리케이션 계층 | Workspace는 Space, 파일, 권한, 공유, 검토를 담당합니다. Agent 호스트는 대화, 모델 호출, 도구 실행을 담당합니다. |
 
-Workspace의 [공통 Node.js 클라이언트 계층](https://github.com/dream-num/univer-workspace/tree/main/packages/client-core)은 AI SDK의 Worker 런타임 풀을 사용합니다. 호스트 수명 동안 로드한 콘텐츠를 재사용하고, 서비스·문서·기본 버전 또는 Worktree별로 대상을 구분하며 실행 전에 동기화합니다. 애플리케이션은 대상과 자격 증명을, SDK는 런타임 대여와 회수를 담당합니다. 적용 시 [런타임 재사용](/ai/runtime-architecture)을 참고하세요.
+CLI와 Desktop은 [콘텐츠 작업 계층](https://github.com/dream-num/univer-workspace/tree/main/packages/client-core)을 공유합니다. 런타임 풀은 호스트 수명 동안 로드한 문서를 재사용하고 실행 전에 버전을 동기화합니다. 여러 클라이언트에서 같은 편집·제출 로직을 재사용할 수 있습니다. [런타임 재사용](/ai/runtime-architecture)을 참고하세요.
+
+[시각적 검사](/ai/visual-inspection)는 구조화된 검사를 보완합니다. 스크린샷은 브라우저로 렌더링하며, 현재 자동 레이아웃 진단은 슬라이드의 텍스트 넘침과 겹침을 감지합니다.
 
 #### Agent의 편집이 검토 가능한 변경이 되는 과정 [#agent-editing-flow]
 
 예산 검토에서 Agent는 수식과 서식이 있는 실제 스프레드시트를 편집합니다. 네이티브 Office 콘텐츠의 편집 흐름은 다음과 같습니다.
-
-<Mermaid chart={"flowchart LR\nA[\"문서와<br/>Worktree 선택\"] --> B[\"Facade 편집<br/>초안 변경 저장\"] --> C[\"데이터와<br/>렌더링 결과 검사\"] --> D[\"사람이 검토<br/>승인 후 병합\"]\nC -->|추가 수정| B"} />
 
 1. **대상을 찾아 로드합니다.** 문서와 Worktree를 선택하고 스냅샷과 changeset을 로드해 선택한 리비전에 동기화합니다. Unit은 통합 문서와 같은 문서 인스턴스입니다.
 2. **Facade로 편집합니다.** Node.js 런타임이 해당 Unit에 공개 Facade API를 실행합니다. 콘텐츠 변경은 mutation을 만들고, 이를 changeset으로 묶어 초안에 제출합니다.

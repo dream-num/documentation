@@ -300,27 +300,26 @@ Desktop 能力外掛內建 **univer** Skill 與參考資料，指引 Agent 定�
 
 ### Office SDK 如何支撐 Workspace [#desktop-architecture]
 
-Workspace 將三個 SDK 組合成應用程式：Web SDK 提供共用內容引擎，Server SDK 提供協同與版本，AI SDK 讓 Agent 在 Node.js 中讀取、編輯和驗證內容。Agent 宿主負責會話、模型呼叫和工具編排；Workspace 負責空間、檔案存取與交付。
+Workspace 將原生編輯器、Agent 內容操作和團隊協同接入同一套文件與權限。基於這套開源應用程式，你可以複用 Office SDK，專注開發自己的業務流程、介面和系統整合。
 
-<Mermaid chart={"flowchart LR\nA[\"Agent<br/>CLI / Desktop\"]\nS[\"Workspace Server<br/>身分 · 協同 · 版本\"] --> D[(\"持久化儲存<br/>產品 · 協同 · 檔案\")]\nA <-->|讀取內容／提交變更| S\nV[\"Web / Desktop<br/>原生編輯 · 審閱\"] <--> S"} />
+<Mermaid chart={"flowchart LR\nA[\"Agent\"] <--> S[\"Workspace Server\"] <--> E[\"編輯器\"]"} />
 
-CLI 和 Desktop 透過 Node.js 執行內容操作，Workspace 服務保存共用檔案與協同狀態。服務可部署在本機、私有伺服器或雲端。
+Agent 透過 CLI 或 Desktop 在 Node.js 中操作內容；使用者透過 Web 或 Desktop 編輯器查看、編輯和審閱。Workspace 服務保存共用文件、草稿及協同狀態，可部署在本機、私有伺服器或雲端。
 
-| 層次 | 可以複用的能力 |
+| 層次 | 負責什麼 |
 | --- | --- |
-| [Web SDK](/guides/sheets) | 內容模型、公式、公開 Facade API，以及用於預覽和人工編輯的原生編輯器。 |
-| [AI SDK](/ai/content-operations) | API 查詢、結構化內容檢查，以及綁定明確文件 ID 的 Facade 執行；Agent 可定位目標文件，不必依賴編輯器目前選取的項目。 |
-| [視覺檢查](/ai/visual-inspection) | 將明確的內容狀態渲染為截圖；簡報亦可透過版面診斷找出文字溢位與重疊。需要 Render Page 與相容的瀏覽器。 |
-| [Server SDK](/server) | 與應用程式後端整合的協同、修訂版本和 Worktree 草稿。 |
-| Workspace 應用程式 | 身分權限、空間與檔案組織、Web App 承載，以及審閱和分享介面。 |
+| [Web SDK](/guides/sheets) | 內容模型、公式、公開 Facade API 和原生編輯器。 |
+| [AI SDK](/ai/content-operations) | API 查詢、結構化內容檢查，以及針對指定文件的 Facade 執行。 |
+| [Server SDK](/server) | 協同、修訂版本、Worktree 草稿和檔案轉換。 |
+| 應用層 | Workspace 負責空間、檔案、權限、分享和審閱；Agent 宿主負責會話、模型呼叫與工具編排。 |
 
-Workspace 的[共用 Node.js 用戶端層](https://github.com/dream-num/univer-workspace/tree/main/packages/client-core)使用 AI SDK 的 Worker 執行環境池，在宿主生命週期內複用已載入的內容，依服務、文件、主線或 Worktree 區分目標，並在執行前同步。應用程式負責目標與憑證，SDK 負責執行環境的租用和回收。客製時可進一步閱讀[執行環境複用](/ai/runtime-architecture)。
+CLI 和 Desktop 共用[內容操作層](https://github.com/dream-num/univer-workspace/tree/main/packages/client-core)，透過執行環境池在宿主執行期間複用已載入文件，並在執行前同步版本。不同用戶端可複用相同的編輯與提交邏輯，詳見[執行環境複用](/ai/runtime-architecture)。
+
+[視覺檢查](/ai/visual-inspection)補充結構化檢查：截圖使用瀏覽器渲染，目前自動版面診斷支援檢查簡報的文字溢位與重疊。
 
 #### Agent 的修改如何成為可審閱的變更 [#agent-editing-flow]
 
 以預算審閱為例，Agent 操作的是包含公式與樣式的真實試算表。原生 Office 內容的編輯流程如下：
-
-<Mermaid chart={"flowchart LR\nA[\"選擇文件<br/>與 Worktree\"] --> B[\"Facade 編輯<br/>儲存草稿變更\"] --> C[\"檢查資料<br/>與渲染結果\"] --> D[\"人員審閱<br/>確認後合入\"]\nC -->|繼續修改| B"} />
 
 1. **定位並載入。** 選擇文件與 Worktree，載入快照和 changeset，同步到選定的修訂版本。Unit 指一個文件實例，例如一個活頁簿。
 2. **透過 Facade 編輯。** Node.js 執行環境對該 Unit 執行公開 Facade 呼叫；內容變更產生 mutation，再組成 changeset 提交至草稿。

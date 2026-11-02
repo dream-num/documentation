@@ -300,27 +300,26 @@ Le plugin d’aperçu comprend neuf Skills. Le guide commun couvre découverte, 
 
 ### Comment Office SDK fait fonctionner Workspace [#desktop-architecture]
 
-Workspace assemble trois couches SDK : Web SDK fournit le moteur de contenu commun, Server SDK la collaboration et les versions, et AI SDK la lecture, la modification et la vérification depuis Node.js. L’hôte de l’agent gère les conversations, les appels au modèle et les outils ; Workspace gère les Spaces, l’accès aux fichiers et la livraison.
+Workspace relie les éditeurs natifs, les opérations des agents et la collaboration aux mêmes documents et permissions. Cette application open source et Office SDK permettent de concentrer le développement sur vos processus métier, votre interface et vos intégrations.
 
-<Mermaid chart={"flowchart LR\nA[\"Agent<br/>CLI / Desktop\"]\nS[\"Workspace Server<br/>Identité · collaboration · versions\"] --> D[(\"Stockage persistant<br/>Produit · collaboration · fichiers\")]\nA <-->|Lire / soumettre les modifications| S\nV[\"Web / Desktop<br/>Édition native · revue\"] <--> S"} />
+<Mermaid chart={"flowchart LR\nA[\"Agent\"] <--> S[\"Workspace Server\"] <--> E[\"Éditeurs\"]"} />
 
-La CLI et Desktop traitent le contenu dans Node.js ; Workspace Server conserve les fichiers partagés et l’état collaboratif. Le service peut être local, hébergé sur vos serveurs ou dans le cloud.
+Les agents manipulent le contenu dans Node.js via la CLI ou Desktop ; les utilisateurs le consultent, le modifient et le relisent dans les éditeurs Web ou Desktop. Workspace Server conserve les documents partagés, les brouillons et l’état collaboratif. Le service peut être local, hébergé sur vos serveurs ou dans le cloud.
 
-| Couche | Capacités réutilisables |
+| Couche | Responsabilité |
 | --- | --- |
-| [Web SDK](/guides/sheets) | Modèles de contenu, formules, API Facade publiques et éditeurs natifs pour l’aperçu et la modification manuelle. |
-| [AI SDK](/ai/content-operations) | Recherche d’API, inspection structurée et exécution Facade liée à un identifiant de document explicite, sans dépendre de la sélection actuelle de l’éditeur. |
-| [Inspection visuelle](/ai/visual-inspection) | Captures d’un état précis du contenu ; le diagnostic des présentations signale aussi les débordements et chevauchements de texte. Une Render Page et un navigateur compatible sont nécessaires. |
-| [Server SDK](/server) | Collaboration, révisions et brouillons Worktree intégrés au backend de l’application. |
-| Application Workspace | Identité, permissions, organisation des Spaces et fichiers, hébergement des Web Apps, interfaces de revue et de partage. |
+| [Web SDK](/guides/sheets) | Modèles de contenu, formules, API Facade publiques et éditeurs natifs. |
+| [AI SDK](/ai/content-operations) | Recherche d’API, inspection structurée et exécution Facade sur un document précis. |
+| [Server SDK](/server) | Collaboration, révisions, brouillons Worktree et conversion de fichiers. |
+| Application | Workspace gère Spaces, fichiers, permissions, partage et revue. L’hôte de l’agent gère conversations, appels au modèle et orchestration des outils. |
 
-La [couche cliente Node.js commune](https://github.com/dream-num/univer-workspace/tree/main/packages/client-core) utilise le pool de runtimes Worker d’AI SDK. Elle réutilise le contenu chargé pendant la durée de vie de l’hôte, distingue les cibles par service, document et version principale ou Worktree, puis synchronise avant exécution. L’application définit les cibles et identifiants ; le SDK gère l’acquisition et la libération des runtimes. Voir la [réutilisation des runtimes](/ai/runtime-architecture).
+La CLI et Desktop partagent une [couche d’opérations de contenu](https://github.com/dream-num/univer-workspace/tree/main/packages/client-core). Son pool de runtimes réutilise les documents chargés pendant la durée de vie de l’hôte et synchronise les versions avant exécution. Différents clients réutilisent ainsi la même logique de modification et de soumission. Voir la [réutilisation des runtimes](/ai/runtime-architecture).
+
+L’[inspection visuelle](/ai/visual-inspection) complète les vérifications structurées : les captures utilisent le rendu du navigateur, et le diagnostic automatique détecte actuellement les débordements et chevauchements de texte dans les présentations.
 
 #### D’une modification de l’agent à une revue [#agent-editing-flow]
 
 Dans l’exemple budgétaire, l’agent modifie une véritable feuille de calcul avec formules et styles. Le parcours des contenus Office natifs est le suivant :
-
-<Mermaid chart={"flowchart LR\nA[\"Choisir le document<br/>et le Worktree\"] --> B[\"Modifier avec Facade<br/>Enregistrer le brouillon\"] --> C[\"Vérifier les données<br/>et le rendu\"] --> D[\"Revue humaine<br/>Confirmer la fusion\"]\nC -->|Corriger| B"} />
 
 1. **Localiser et charger.** Sélectionner le document et le Worktree, charger le snapshot et les changesets, puis synchroniser la révision choisie. Un Unit désigne une instance de document, par exemple un classeur.
 2. **Modifier avec Facade.** Le runtime Node.js exécute les appels Facade publics sur cet Unit. Les modifications produisent des mutations, regroupées dans un changeset soumis au brouillon.
