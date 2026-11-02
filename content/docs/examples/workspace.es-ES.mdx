@@ -71,6 +71,17 @@ Envía la tarea a un agente conectado o úsala en Desktop. El agente crea y veri
 
 El [repositorio](https://github.com/dream-num/univer-workspace) incluye Server y Web. Sigue la [guía de despliegue](https://github.com/dream-num/univer-workspace/blob/main/apps/workspace/README.md#docker) y configura dominio, acceso, almacenamiento persistente y entorno. El desarrollo utiliza Node.js 24 y pnpm 11.
 
+Prepara estos cuatro elementos antes del despliegue:
+
+| Elemento | Configuración |
+| --- | --- |
+| Servicio | Una URL de Workspace accesible y la aplicación Server + Web. Desktop y la CLI se conectan a este despliegue. |
+| Datos persistentes | Conserva juntas las bases de datos de producto y colaboración y los archivos subidos. El despliegue predeterminado usa `.data`; monta un volumen persistente en Docker. |
+| Identidad | Configura el inicio de sesión y, para Desktop, registra el cliente OAuth de Agent con su URL de retorno exacta. |
+| Licencia del SDK | Proporciona `VITE_UNIVER_LICENSE` al compilar Web para tu dominio y configura por separado la licencia del runtime de contenido Node.js. |
+
+El host del agente gestiona las credenciales del modelo por separado del inicio de sesión en Workspace. Consulta la [guía de despliegue](https://github.com/dream-num/univer-workspace/blob/main/apps/workspace/README.md#docker) y la [configuración de Agent](https://github.com/dream-num/univer-workspace/blob/main/apps/agent/README.md).
+
 Apunta la misma CLI a tu servicio y autoriza una cuenta allí. Sustituye esta dirección de ejemplo por la dirección real:
 
 ```bash
@@ -287,21 +298,42 @@ El complemento de prueba incluye nueve Skills. La guía común explica descubrim
 
 <span id="sdk-integration" />
 
-### Separar el bucle del agente de las capacidades Office [#desktop-architecture]
+### Cómo Office SDK hace funcionar Workspace [#desktop-architecture]
 
-Las Skills orientan al agente, las herramientas operan contenido estructurado mediante Headless y los editores nativos lo muestran a las personas. Workspace aporta archivos y contexto colaborativo. Puedes cambiar el modelo, añadir herramientas de negocio o sustituir la marca sin reconstruir el motor Office.
+Workspace combina tres capas del SDK: Web SDK aporta el motor de contenido común, Server SDK la colaboración y las versiones, y AI SDK permite leer, editar y verificar desde Node.js. El host del agente gestiona conversaciones, llamadas al modelo y herramientas; Workspace gestiona los Spaces, el acceso a archivos y la entrega.
 
-<Mermaid chart={"flowchart LR\nA[\"Agente y modelo\"]\nB[\"Skills y herramientas\"]\nC[\"Office SDK<br/>Operaciones Headless y verificación\"]\nD[\"Servicio Workspace<br/>Archivos, colaboración y versiones\"]\nE[\"Vista de escritorio<br/>Editores nativos y Web Apps\"]\nF[\"Worktree y Compare<br/>Revisión humana\"]\nA --> B --> C --> D\nD <--> E\nD --> F\nF --> E"} />
+<Mermaid chart={"flowchart LR\nA[\"CLI / Desktop Agent<br/>AI SDK + Web SDK<br/>Node.js\"]\nS[\"Workspace Server<br/>Identidad · colaboración · versiones\"] --> D[(\"Almacenamiento<br/>Producto · colaboración · archivos\")]\nA <-->|Leer / enviar cambios| S\nV[\"Web / Desktop<br/>Edición nativa · revisión\"] <--> S"} />
 
-| Componente | Responsabilidad |
+El runtime de contenido Node.js se ejecuta donde corre la CLI o el agente de Desktop. Los archivos compartidos y el estado colaborativo pertenecen al despliegue de Workspace conectado, ya sea local, privado o alojado. Desktop guarda las conversaciones localmente; las solicitudes al modelo van al proveedor configurado. Conectar un servicio remoto no copia sus bases de datos al dispositivo.
+
+| Capa | Capacidades reutilizables |
 | --- | --- |
-| [Web SDK](/guides/sheets) | Modelos compartidos, editores Office, renderizado, fórmulas y operaciones Facade headless. |
-| [Server SDK](/server) | Colaboración, versiones y Worktrees integrados con el backend de la aplicación. |
-| [AI SDK](/ai) | Operaciones de contenido, inspección y verificación para agentes. |
-| Runtime y Skills | DSH aporta sesiones, modelos, orquestación y aprobación; el plugin conecta Office. |
-| Workspace y Desktop | La aplicación aporta Spaces, archivos, identidad y revisión; Electron lo distribuye como escritorio. |
+| [Web SDK](/guides/sheets) | Modelos de contenido, fórmulas, API Facade públicas y editores nativos para previsualizar y editar manualmente. |
+| [AI SDK](/ai/content-operations) | Búsqueda de API, inspección estructurada y ejecución Facade vinculada a un ID de documento explícito, sin depender de la selección actual del editor. |
+| [Inspección visual](/ai/visual-inspection) | Capturas de un estado concreto del contenido; el diagnóstico de presentaciones también detecta desbordamientos y solapamientos de texto. Requiere una Render Page y un navegador compatible. |
+| [Server SDK](/server) | Colaboración, revisiones y borradores Worktree integrados en el backend de la aplicación. |
+| Aplicación Workspace | Identidad y permisos, organización de Spaces y archivos, alojamiento de Web Apps e interfaces de revisión y uso compartido. |
 
-Reutiliza petición → herramientas → contenido editable → vista previa → revisión → entrega compartida. Office SDK aporta la capa Office; el anfitrión, conversación y ejecución. Amplía [la aplicación y sus plugins](https://github.com/dream-num/univer-workspace/tree/main/apps/agent) o conecta tu propio anfitrión.
+La [capa cliente Node.js común](https://github.com/dream-num/univer-workspace/tree/main/packages/client-core) usa el pool de runtimes Worker de AI SDK. Reutiliza el contenido cargado durante la vida del host, separa los destinos por servicio, documento y versión principal o Worktree, y sincroniza antes de ejecutar. La aplicación define el destino y las credenciales; el SDK gestiona la adquisición y liberación de runtimes. Consulta la [reutilización de runtimes](/ai/runtime-architecture).
+
+#### De una edición del agente a un cambio revisable [#agent-editing-flow]
+
+En la revisión presupuestaria, el agente edita una hoja de cálculo real con fórmulas y estilos. La edición de contenido Office nativo sigue este proceso:
+
+<Mermaid chart={"flowchart LR\nA[\"Seleccionar documento<br/>y Worktree\"] --> B[\"Editar con Facade<br/>Guardar el borrador\"] --> C[\"Verificar datos<br/>y resultado visual\"] --> D[\"Revisión humana<br/>Confirmar fusión\"]\nC -->|Refinar| B"} />
+
+1. **Localizar y cargar.** Seleccionar documento y Worktree, cargar el snapshot y los changesets y sincronizar con la revisión elegida. Un Unit es una instancia de documento, como un libro de cálculo.
+2. **Editar mediante Facade.** El runtime Node.js ejecuta llamadas Facade públicas sobre ese Unit. Los cambios producen mutaciones, agrupadas en un changeset que se envía al borrador.
+3. **Verificar.** Volver a leer valores y fórmulas y comprobar el resultado visual cuando sea necesario. Refinar el mismo borrador hasta que esté listo para revisión.
+4. **Revisar y fusionar.** Una persona comprueba las diferencias con [Compare](/overview/features/shared/compare) y decide si fusiona el [Worktree](/ai/worktree) con la versión compartida.
+
+**Guardar en un borrador no equivale a fusionarlo.** Workspace comunica una escritura correcta tras confirmar el envío; los conflictos o envíos sin confirmar devuelven un error. El plugin de Desktop también solicita aprobación para sus herramientas de fusión y descarte. La aprobación se controla en el flujo de ejecución de herramientas de la aplicación.
+
+#### Conectar las Web Apps a los mismos datos Office [#web-app-data-flow]
+
+El panel de lanzamiento y el editor de presupuesto usan la misma hoja de cálculo. HTML View representa la página en un iframe aislado; el host de Workspace resuelve los documentos de origen accesibles y proporciona sus motores de contenido autorizados. Los indicadores y gráficos pueden suscribirse a los datos originales sin mantener otra copia del presupuesto.
+
+Escribir mediante vínculos editables requiere una identidad autenticada y permiso de edición sobre el documento de origen. Al abandonar la página, el host espera las escrituras pendientes y la confirmación colaborativa, y muestra los fallos de guardado. La publicación HTML y la escritura de datos vinculados tienen sus propios procesos de guardado; no pasan automáticamente por la fusión Worktree de Office nativo. Consulta el [enlace bidireccional experimental](/overview/features/shared/binding) y la [implementación del host HTML View](https://github.com/dream-num/univer-workspace/tree/main/packages/workspace-html-viewer).
 
 ### Adapta el flujo a tu negocio
 
@@ -310,6 +342,16 @@ Reutiliza petición → herramientas → contenido editable → vista previa →
 | Documentos y tareas de tu sector | Añade Skills, plantillas y guías de herramientas; conserva la verificación de contenido y visual. |
 | Identidad, almacenamiento y uso compartido propios | Extiende la aplicación Workspace y sus políticas de servidor. |
 | Tu cliente Office con agente | Combina host, plugin de capacidades y marca; conecta modelos y herramientas de negocio. |
+
+#### Ejemplo: añadir un Skill de revisión presupuestaria [#domain-skill]
+
+Un Skill de negocio puede definir las reglas de revisión del equipo reutilizando las herramientas Office existentes:
+
+- Identificar el libro, el período y las columnas de presupuesto y gasto real; preguntar por las definiciones de negocio que falten antes de editar.
+- Cargar la guía de hojas de cálculo, crear un Worktree, actualizar las fórmulas con Facade y preparar el documento de revisión.
+- Verificar totales, resultados de fórmulas y presentación; indicar los archivos modificados y las comprobaciones y entregar el borrador para revisión humana.
+
+Mantén las reglas y plantillas en el Skill. La aplicación conserva los controles de acceso, la persistencia del borrador y la aprobación de fusión. Para conectar un ERP o CRM, añade una herramienta de negocio que devuelva los datos necesarios y reutiliza el mismo proceso Office. Un Skill guía las operaciones; no concede acceso a los archivos.
 
 <span id="pruébalo-y-explora-el-código" />
 

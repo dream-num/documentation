@@ -71,6 +71,17 @@ uvw auth login --complete
 
 [开源仓库](https://github.com/dream-num/univer-workspace)包含 Server 和 Web。按照[部署指南](https://github.com/dream-num/univer-workspace/blob/main/apps/workspace/README.md#docker)构建应用，配置自己的域名、登录方式、持久化存储和运行环境。源码开发使用 Node.js 24 与 pnpm 11，生产部署细节以该指南为准。
 
+部署前需要准备四部分：
+
+| 部分 | 需要配置什么 |
+| --- | --- |
+| 服务 | 可访问的 Workspace 地址，以及 Server + Web 应用；Desktop 和 CLI 都连接这套部署。 |
+| 持久化数据 | 一起保留产品数据库、协同数据库和上传文件。默认部署存放在 `.data` 下，Docker 需要挂载持久化卷。 |
+| 身份 | 配置登录方式；接入 Desktop 时，注册 Agent OAuth 客户端及准确匹配的回调地址。 |
+| SDK 许可证 | 为部署域名构建 Web 时提供 `VITE_UNIVER_LICENSE`，并单独配置 Node.js 内容运行时所需的许可证。 |
+
+模型凭据由 Agent 宿主管理，与 Workspace 登录分别配置。具体选项见[部署指南](https://github.com/dream-num/univer-workspace/blob/main/apps/workspace/README.md#docker)和 [Agent 接入说明](https://github.com/dream-num/univer-workspace/blob/main/apps/agent/README.md)。
+
 继续使用同一个 CLI，把服务地址切换为自己的部署，再授权该服务中的账号。下面的示例地址需要替换成你的实际服务地址：
 
 ```bash
@@ -287,21 +298,42 @@ Desktop 的能力插件内置 **univer** Skill 及参考资料，告诉 Agent �
 
 <span id="sdk-integration" />
 
-### 将 Agent 执行循环与 Office 能力分开组装 [#desktop-architecture]
+### Office SDK 如何支撑 Workspace [#desktop-architecture]
 
-Skills 提供任务指引，工具通过 Headless 运行时操作结构化内容，原生编辑器负责给人类展示和编辑。Workspace 提供文件与协同上下文。因此可以更换模型、增加业务工具或替换品牌界面，而不必重新实现 Office 引擎。
+Workspace 将三个 SDK 组合成应用：Web SDK 提供共同的内容引擎，Server SDK 提供协同与版本，AI SDK 让 Agent 在 Node.js 中读取、编辑和验证内容。Agent 宿主负责会话、模型调用和工具编排；Workspace 负责空间、文件访问与交付。
 
-<Mermaid chart={"flowchart LR\nA[\"Agent 与模型\"]\nB[\"Skills 与工具\"]\nC[\"Office SDK<br/>Headless 操作与验证\"]\nD[\"Workspace 服务<br/>文件、协同与版本\"]\nE[\"桌面预览<br/>原生编辑器与 Web App\"]\nF[\"Worktree 与内容比较<br/>人类审阅\"]\nA --> B --> C --> D\nD <--> E\nD --> F\nF --> E"} />
+<Mermaid chart={"flowchart LR\nA[\"CLI / Desktop Agent<br/>AI SDK + Web SDK<br/>Node.js\"]\nS[\"Workspace Server<br/>身份 · 协同 · 版本\"] --> D[(\"持久化存储<br/>产品 · 协同 · 文件\")]\nA <-->|读取内容／提交变更| S\nV[\"Web / Desktop<br/>原生编辑 · 审阅\"] <--> S"} />
 
-| 组成部分 | 承担的职责 |
+Node.js 内容运行时位于 CLI 或 Desktop Agent 所在环境；共享文件与协同状态保存在所连接的 Workspace 部署中，这个部署可以在本机、私有服务器或云端。Desktop 的会话状态保存在本地，模型请求发往配置的服务商。连接远程服务不意味着把该服务的数据库复制到桌面端。
+
+| 层次 | 可以复用的能力 |
 | --- | --- |
-| [Web SDK](/guides/sheets) | 统一内容模型、可编辑的 Office 界面、渲染、公式，以及 Headless Facade 内容操作。 |
-| [Server SDK](/server) | 协同、版本与 Worktree 等能力，与应用后端集成。 |
-| [AI SDK](/ai) | 面向 Agent 的内容操作、检查与验证能力。 |
-| Agent 运行时与 Skills | DSH 提供会话、模型调用、工具编排与审批；Workspace 能力插件接入 Office 工具和任务指引。 |
-| Workspace 与 Desktop | 应用提供空间、文件、身份接入和审阅界面；Electron 桌面交付将这些能力带到一个桌面应用中。 |
+| [Web SDK](/guides/sheets) | 内容模型、公式、公开 Facade API，以及用于预览和人工编辑的原生编辑器。 |
+| [AI SDK](/ai/content-operations) | API 查询、结构化内容检查，以及绑定明确文档 ID 的 Facade 执行；Agent 可以定位目标文档，不必依赖编辑器当前选中项。 |
+| [视觉检查](/ai/visual-inspection) | 将确定的内容状态渲染成截图；演示文稿还可通过布局诊断发现文字溢出与重叠。需要 Render Page 与兼容的浏览器。 |
+| [Server SDK](/server) | 与应用后端集成的协同、修订版本和 Worktree 草稿。 |
+| Workspace 应用 | 身份权限、空间与文件组织、Web App 承载，以及审阅和分享界面。 |
 
-值得复用的是这条完整链路：需求 → 工具 → 可编辑内容 → 预览 → 审阅 → 共享交付。Office SDK 提供办公能力层，Agent 宿主提供对话与执行循环。可以直接扩展现有的[应用与插件](https://github.com/dream-num/univer-workspace/tree/main/apps/agent)，也可以把 SDK 接入自己的宿主与业务服务。
+Workspace 的[共用 Node.js 客户端层](https://github.com/dream-num/univer-workspace/tree/main/packages/client-core)使用 AI SDK 的 Worker 运行时池，在宿主生命周期内复用已加载的内容，按服务、文档、主线或 Worktree 区分目标，并在执行前同步。应用负责目标与凭据，SDK 负责运行时的租用和回收。改造时可进一步阅读[运行时复用](/ai/runtime-architecture)。
+
+#### Agent 的修改如何成为可审阅的变更 [#agent-editing-flow]
+
+以预算审阅为例，Agent 操作的是包含公式与样式的真实电子表格。原生 Office 内容的编辑流程如下：
+
+<Mermaid chart={"flowchart LR\nA[\"选择文档<br/>与 Worktree\"] --> B[\"Facade 编辑<br/>保存草稿变更\"] --> C[\"检查数据<br/>与渲染结果\"] --> D[\"人类审阅<br/>确认后合入\"]\nC -->|继续修改| B"} />
+
+1. **定位并加载。** 选择文档和 Worktree，加载快照与 changeset，同步到选定的修订版本。Unit 指一个文档实例，例如一个工作簿。
+2. **通过 Facade 编辑。** Node.js 运行时对这个 Unit 执行公开 Facade 调用；内容变更产生 mutation，再组织为 changeset 提交到草稿。
+3. **检查结果。** 读回数值和公式，按需检查渲染后的画面；在同一草稿中继续修改，直到可以交付审阅。
+4. **审阅并合入。** 人在[内容比较](/overview/features/shared/compare)中检查变更，再决定是否将 [Worktree](/ai/worktree) 合入共享版本。
+
+**变更已保存到草稿，不代表已经合入。** Workspace 在提交得到确认后才返回写入成功；冲突或无法确认的提交会返回错误。Desktop 插件的合入、放弃工具也会要求用户批准，批准检查由应用的工具流程执行。
+
+#### Web App 如何连接同一份办公数据 [#web-app-data-flow]
+
+发布仪表盘与预算编辑器使用同一份表格。HTML View 在沙箱 iframe 中渲染页面；Workspace 宿主解析有权限访问的源文档，提供已授权的内容引擎。指标卡和图表可以订阅源数据，无需另行维护一份预算副本。
+
+对于可编辑绑定，写入需要已登录身份以及源文档的编辑权限。离开页面时，宿主等待待处理写入与协同确认，并呈现保存失败。HTML 页面发布和绑定写回有各自的保存流程，不会自动进入原生 Office 的 Worktree 合入流程。详见[实验性双向绑定](/overview/features/shared/binding)和 [HTML View 宿主实现](https://github.com/dream-num/univer-workspace/tree/main/packages/workspace-html-viewer)。
 
 ### 沿着自己的业务流程继续扩展
 
@@ -310,6 +342,16 @@ Skills 提供任务指引，工具通过 Headless 运行时操作结构化内容
 | 行业文档与专属任务 | 增加行业 Skills、模板和工具指引，保留内容与视觉检查。 |
 | 自己的身份、存储与分享方式 | 扩展 Workspace 应用及服务端的产品策略。 |
 | 自己的 Agent 办公客户端 | 组合 Agent 宿主、能力插件和品牌皮肤，接入选定的模型与业务工具。 |
+
+#### 例如：增加预算审阅 Skill [#domain-skill]
+
+行业 Skill 可以定义团队的审阅规则，继续复用已有的 Office 工具：
+
+- 确认源工作簿、账期及预算／实际支出列；业务口径缺失时先向用户确认。
+- 加载表格操作指引，建立 Worktree，通过 Facade 更新公式并准备审阅文档。
+- 检查合计、公式结果和展示效果，列出变更文件与检查结果，再交给人审阅草稿。
+
+把业务规则和模板放进 Skill，把访问检查、草稿保存和合入批准留在应用层。接入 ERP 或 CRM 时，可增加返回所需数据的业务工具，再复用同一套 Office 编辑与审阅流程。Skill 负责指导操作，本身不会授予文件访问权限。
 
 <span id="体验与源码" />
 

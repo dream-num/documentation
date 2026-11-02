@@ -71,6 +71,17 @@ Send this to a connected agent or use it in Desktop. The agent creates and verif
 
 The [open-source repository](https://github.com/dream-num/univer-workspace) includes Server and Web. Follow the [deployment guide](https://github.com/dream-num/univer-workspace/blob/main/apps/workspace/README.md#docker) to build the application and configure your domain, sign-in, persistent storage, and runtime settings. Source development uses Node.js 24 and pnpm 11; production deployment details are maintained in the guide.
 
+Before deployment, prepare these four parts:
+
+| Part | What to configure |
+| --- | --- |
+| Service | A reachable Workspace URL and the Server + Web application. Desktop and CLI connect to this deployment. |
+| Persistent data | Preserve the product database, collaboration database, and uploaded files together. The default deployment stores them under `.data`; mount a persistent volume for Docker. |
+| Identity | Configure sign-in and register the Agent OAuth client with its exact callback URL when connecting Desktop. |
+| SDK license | Supply `VITE_UNIVER_LICENSE` when building Web for your deployment domain; configure the license required by the Node.js content runtime separately. |
+
+Model credentials belong to the Agent host and are configured separately from Workspace sign-in. See the [deployment guide](https://github.com/dream-num/univer-workspace/blob/main/apps/workspace/README.md#docker) and [Agent setup](https://github.com/dream-num/univer-workspace/blob/main/apps/agent/README.md) for the current settings.
+
 Point the same CLI at your deployment and authorize an account there. Replace the example address below with your actual service origin:
 
 ```bash
@@ -287,21 +298,42 @@ The preview plugin includes nine Skills. The common Skill explains discovery, id
 
 <span id="sdk-integration" />
 
-### Separate the agent loop from the Office capabilities [#desktop-architecture]
+### How Office SDK powers Workspace [#desktop-architecture]
 
-Skills guide the agent, tools operate structured content through the Headless runtime, and native editors render it for people. Workspace supplies the file and collaboration context. This separation lets you change the model, add business tools, or replace the brand without rebuilding an Office engine.
+Workspace connects three Office SDK layers to an application: Web SDK supplies the shared content engine, Server SDK handles collaboration and versions, and AI SDK lets agents read, edit, and verify content from Node.js. The agent host owns conversations, model calls, and tool orchestration; Workspace owns Spaces, file access, and delivery.
 
-<Mermaid chart={"flowchart LR\nA[\"Agent + model\"]\nB[\"Skills + tools\"]\nC[\"Office SDK<br/>Headless operations + verification\"]\nD[\"Workspace service<br/>Files + collaboration + versions\"]\nE[\"Desktop preview<br/>Native editors + Web Apps\"]\nF[\"Worktree + Compare<br/>Human review\"]\nA --> B --> C --> D\nD <--> E\nD --> F\nF --> E"} />
+<Mermaid chart={"flowchart LR\nA[\"CLI / Desktop Agent<br/>AI SDK + Web SDK<br/>Node.js\"]\nS[\"Workspace Server<br/>Identity · collaboration · versions\"] --> D[(\"Persistent storage<br/>Product · collaboration · files\")]\nA <-->|Read content / submit changes| S\nV[\"Web / Desktop<br/>Native editing · review\"] <--> S"} />
 
-| Part | Responsibility |
+The Node.js content runtime runs where CLI or the Desktop agent runs. Shared files and collaboration state belong to the connected Workspace deployment, which may be local, private, or hosted. Desktop stores its conversation state locally; model requests go to the configured provider. Connecting Desktop to a remote service does not move that service’s databases onto the device.
+
+| Layer | What you can reuse |
 | --- | --- |
-| [Web SDK](/guides/sheets) | Shared content models, editable Office views, rendering, formulas, and headless Facade operations. |
-| [Server SDK](/server) | Collaboration, versions, and Worktree capabilities connected to the application’s backend. |
-| [AI SDK](/ai) | Agent-oriented content operations and inspection/verification primitives. |
-| Agent runtime and Skills | DSH provides sessions, model access, tool orchestration, and approval; the Workspace capability plugin connects Office tools and task guidance. |
-| Workspace and Desktop | The application supplies Spaces, files, identity integration, and review UI; the Electron delivery makes that agent workspace available as a desktop app. |
+| [Web SDK](/guides/sheets) | Content models, formulas, public Facade APIs, and the native editors used for preview and manual editing. |
+| [AI SDK](/ai/content-operations) | API discovery, structured inspection, and Facade execution bound to an explicit document ID. Agents can locate the intended document without relying on the editor’s current selection. |
+| [Visual inspection](/ai/visual-inspection) | Render a specific content state into screenshots; Slide layout lint also reports text overflow and overlap. These checks require a Render Page and a compatible browser. |
+| [Server SDK](/server) | Collaboration, revisions, and Worktree drafts integrated with the application’s backend. |
+| Workspace application | Identity and permissions, Space and file organization, Web App hosting, and the review and sharing interfaces. |
 
-This composition is the reusable pattern: request → tools → editable content → preview → review → shared delivery. The Office SDK supplies the Office layer; an agent host supplies the conversation and execution loop. You can extend the existing [application and plugins](https://github.com/dream-num/univer-workspace/tree/main/apps/agent), or connect the SDKs to your own host and business services.
+Workspace’s [shared Node.js client layer](https://github.com/dream-num/univer-workspace/tree/main/packages/client-core) uses the AI SDK’s worker runtime pool. It reuses loaded content during the runtime owner’s lifetime, separates targets by service, document, and trunk or Worktree, and synchronizes before executing. The application owns the target and credentials; the SDK manages runtime leases and lifecycle. See [runtime reuse](/ai/runtime-architecture) when adapting this architecture.
+
+#### From an agent edit to a reviewed change [#agent-editing-flow]
+
+For the budget-review example, the agent edits an actual spreadsheet with formulas and styles. The native Office editing path is:
+
+<Mermaid chart={"flowchart LR\nA[\"Select document<br/>and Worktree\"] --> B[\"Facade edits<br/>Save draft changes\"] --> C[\"Check data<br/>and rendered output\"] --> D[\"Human review<br/>Confirm merge\"]\nC -->|Refine| B"} />
+
+1. **Locate and load.** Select the document and Worktree, load its snapshot and changesets, and synchronize to the selected revision. A Unit is one document instance, such as a workbook.
+2. **Edit through Facade.** The Node.js runtime applies public Facade calls to that Unit. Content changes produce mutations, which are collected into a changeset and submitted to the draft.
+3. **Check the result.** Read back values and formulas, then inspect rendered output when needed. Continue editing the same draft until the result is ready for review.
+4. **Review and merge.** A person checks the changes in [Compare](/overview/features/shared/compare) and decides whether to merge the [Worktree](/ai/worktree) into the shared version.
+
+**Saving a changeset to a draft is not merging it.** Workspace reports a successful write only after submission is confirmed; conflicts or unconfirmed submissions return an error. The Desktop plugin also requires user approval for its merge and discard tool actions. Approval is enforced by the application’s tool workflow.
+
+#### Connect Web Apps to the same Office data [#web-app-data-flow]
+
+The launch dashboard uses the same spreadsheet as the budget editor. HTML View renders the page in a sandboxed iframe; the Workspace host resolves accessible source documents and supplies their authorized content engines. Metric cards and charts can subscribe to source data without maintaining another copy of the budget.
+
+For editable bindings, writes require a signed-in identity and edit permission on the source document. The host waits for pending writes and collaboration confirmation when leaving the page, and surfaces save failures. HTML page publishing and binding writes have their own save paths; they do not automatically follow the native Office Worktree merge flow. See [experimental data binding](/overview/features/shared/binding) and the [HTML View host implementation](https://github.com/dream-num/univer-workspace/tree/main/packages/workspace-html-viewer).
 
 ### Adapt the workflow to your own business
 
@@ -310,6 +342,16 @@ This composition is the reusable pattern: request → tools → editable content
 | Industry-specific documents and tasks | Add domain Skills, templates, and tool guidance; retain content and visual verification. |
 | Your own identity, storage, and sharing | Extend the Workspace application and its server-side product policies. |
 | Your own agent Office client | Compose the agent host, capability plugin, and brand skin; connect your chosen models and business tools. |
+
+#### Example: add a budget-review Skill [#domain-skill]
+
+A domain Skill can define your team’s review rules while reusing the existing Office tools:
+
+- Identify the source workbook, period, and Budget/Actual columns; ask for missing business definitions before editing.
+- Load the spreadsheet guidance, create a Worktree, and use Facade to update formulas and prepare the review document.
+- Verify totals, formula results, and presentation; report the changed files and checks, then hand the draft to a person for review.
+
+Keep business rules and templates in the Skill. Keep access checks, draft persistence, and merge approval in the application. To connect an ERP or CRM, add an application tool that returns the required data, then reuse the same Office editing and review flow. A Skill guides execution; it does not grant access to a file.
 
 <span id="try-it-and-explore-the-source" />
 

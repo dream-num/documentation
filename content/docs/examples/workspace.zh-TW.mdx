@@ -71,6 +71,17 @@ uvw auth login --complete
 
 [開源儲存庫](https://github.com/dream-num/univer-workspace)包含 Server 與 Web。依[部署指南](https://github.com/dream-num/univer-workspace/blob/main/apps/workspace/README.md#docker)建構應用，設定網域、登入方式、持久化儲存與執行環境。原始碼開發使用 Node.js 24 與 pnpm 11，正式部署細節請依該指南。
 
+部署前需要準備四個部分：
+
+| 部分 | 需要設定什麼 |
+| --- | --- |
+| 服務 | 可存取的 Workspace 位址，以及 Server + Web 應用程式；Desktop 和 CLI 都連接這套部署。 |
+| 持久化資料 | 一起保留產品資料庫、協同資料庫和上傳檔案。預設部署存放在 `.data` 下，Docker 需要掛載持久化磁碟區。 |
+| 身分 | 設定登入方式；接入 Desktop 時，註冊 Agent OAuth 用戶端及精確匹配的回呼位址。 |
+| SDK 授權 | 為部署網域建置 Web 時提供 `VITE_UNIVER_LICENSE`，並另外設定 Node.js 內容執行環境所需的授權。 |
+
+模型憑證由 Agent 宿主管理，與 Workspace 登入分別設定。具體選項見[部署指南](https://github.com/dream-num/univer-workspace/blob/main/apps/workspace/README.md#docker)和 [Agent 接入說明](https://github.com/dream-num/univer-workspace/blob/main/apps/agent/README.md)。
+
 繼續使用同一個 CLI，改為自己的服務地址，再授權該服務中的帳號。下方範例地址須替換成實際地址：
 
 ```bash
@@ -287,21 +298,42 @@ Desktop 能力外掛內建 **univer** Skill 與參考資料，指引 Agent 定�
 
 <span id="sdk-integration" />
 
-### 將 Agent 執行循環與 Office 能力分開組裝 [#desktop-architecture]
+### Office SDK 如何支撐 Workspace [#desktop-architecture]
 
-Skills 提供任務指引，工具透過 Headless 執行環境操作結構化內容，原生編輯器負責供人類展示和編輯。Workspace 提供檔案與協同脈絡，因此可以更換模型、加入業務工具或替換品牌介面，而不必重新實作 Office 引擎。
+Workspace 將三個 SDK 組合成應用程式：Web SDK 提供共用內容引擎，Server SDK 提供協同與版本，AI SDK 讓 Agent 在 Node.js 中讀取、編輯和驗證內容。Agent 宿主負責會話、模型呼叫和工具編排；Workspace 負責空間、檔案存取與交付。
 
-<Mermaid chart={"flowchart LR\nA[\"Agent 與模型\"]\nB[\"Skills 與工具\"]\nC[\"Office SDK<br/>Headless 操作與驗證\"]\nD[\"Workspace 服務<br/>檔案、協同與版本\"]\nE[\"桌面預覽<br/>原生編輯器與 Web App\"]\nF[\"Worktree 與內容比較<br/>人類審閱\"]\nA --> B --> C --> D\nD <--> E\nD --> F\nF --> E"} />
+<Mermaid chart={"flowchart LR\nA[\"CLI / Desktop Agent<br/>AI SDK + Web SDK<br/>Node.js\"]\nS[\"Workspace Server<br/>身分 · 協同 · 版本\"] --> D[(\"持久化儲存<br/>產品 · 協同 · 檔案\")]\nA <-->|讀取內容／提交變更| S\nV[\"Web / Desktop<br/>原生編輯 · 審閱\"] <--> S"} />
 
-| 組成部分 | 職責 |
+Node.js 內容執行環境位於 CLI 或 Desktop Agent 所在環境；共用檔案與協同狀態保存在所連接的 Workspace 部署中，可位於本機、私有伺服器或雲端。Desktop 的會話狀態保存在本機，模型請求傳送到設定的服務商。連接遠端服務不代表將該服務的資料庫複製到桌面端。
+
+| 層次 | 可以複用的能力 |
 | --- | --- |
-| [Web SDK](/guides/sheets) | 統一內容模型、Office 編輯介面、渲染、公式與 Headless Facade 操作。 |
-| [Server SDK](/server) | 協同、版本與 Worktree 等能力，整合應用後端。 |
-| [AI SDK](/ai) | 面向 Agent 的內容操作、檢查與驗證。 |
-| Agent 執行環境與 Skills | DSH 提供對話、模型呼叫、工具編排與審批；Workspace 外掛接入 Office 工具與指引。 |
-| Workspace 與 Desktop | 應用提供空間、檔案、身分整合及審閱介面；Electron 將這些能力交付為桌面應用。 |
+| [Web SDK](/guides/sheets) | 內容模型、公式、公開 Facade API，以及用於預覽和人工編輯的原生編輯器。 |
+| [AI SDK](/ai/content-operations) | API 查詢、結構化內容檢查，以及綁定明確文件 ID 的 Facade 執行；Agent 可定位目標文件，不必依賴編輯器目前選取的項目。 |
+| [視覺檢查](/ai/visual-inspection) | 將明確的內容狀態渲染為截圖；簡報亦可透過版面診斷找出文字溢位與重疊。需要 Render Page 與相容的瀏覽器。 |
+| [Server SDK](/server) | 與應用程式後端整合的協同、修訂版本和 Worktree 草稿。 |
+| Workspace 應用程式 | 身分權限、空間與檔案組織、Web App 承載，以及審閱和分享介面。 |
 
-可復用的是完整鏈路：需求 → 工具 → 可編輯內容 → 預覽 → 審閱 → 共享交付。Office SDK 提供辦公能力層，Agent 宿主提供對話與執行循環。可擴充現有[應用與外掛](https://github.com/dream-num/univer-workspace/tree/main/apps/agent)，或接入自有宿主與服務。
+Workspace 的[共用 Node.js 用戶端層](https://github.com/dream-num/univer-workspace/tree/main/packages/client-core)使用 AI SDK 的 Worker 執行環境池，在宿主生命週期內複用已載入的內容，依服務、文件、主線或 Worktree 區分目標，並在執行前同步。應用程式負責目標與憑證，SDK 負責執行環境的租用和回收。客製時可進一步閱讀[執行環境複用](/ai/runtime-architecture)。
+
+#### Agent 的修改如何成為可審閱的變更 [#agent-editing-flow]
+
+以預算審閱為例，Agent 操作的是包含公式與樣式的真實試算表。原生 Office 內容的編輯流程如下：
+
+<Mermaid chart={"flowchart LR\nA[\"選擇文件<br/>與 Worktree\"] --> B[\"Facade 編輯<br/>儲存草稿變更\"] --> C[\"檢查資料<br/>與渲染結果\"] --> D[\"人員審閱<br/>確認後合入\"]\nC -->|繼續修改| B"} />
+
+1. **定位並載入。** 選擇文件與 Worktree，載入快照和 changeset，同步到選定的修訂版本。Unit 指一個文件實例，例如一個活頁簿。
+2. **透過 Facade 編輯。** Node.js 執行環境對該 Unit 執行公開 Facade 呼叫；內容變更產生 mutation，再組成 changeset 提交至草稿。
+3. **檢查結果。** 讀回數值與公式，依需求檢查渲染結果；在同一份草稿中持續修改，直到可以交付審閱。
+4. **審閱並合入。** 人員在[內容比較](/overview/features/shared/compare)中檢查變更，再決定是否將 [Worktree](/ai/worktree) 合入共用版本。
+
+**變更已儲存至草稿，不代表已經合入。** Workspace 在提交獲得確認後才回報寫入成功；衝突或無法確認的提交會回傳錯誤。Desktop 外掛的合入、捨棄工具亦要求使用者批准，批准檢查由應用程式的工具流程執行。
+
+#### Web App 如何連接同一份辦公資料 [#web-app-data-flow]
+
+發布儀表板與預算編輯器使用同一份試算表。HTML View 在沙箱 iframe 中渲染頁面；Workspace 宿主解析有權限存取的來源文件，提供已授權的內容引擎。指標卡與圖表可訂閱來源資料，無須另行維護預算副本。
+
+可編輯綁定的寫入需要已登入身分及來源文件的編輯權限。離開頁面時，宿主等待待處理寫入與協同確認，並呈現儲存失敗。HTML 頁面發布和綁定回寫各有自己的儲存流程，不會自動進入原生 Office 的 Worktree 合入流程。詳見[實驗性雙向綁定](/overview/features/shared/binding)及 [HTML View 宿主實作](https://github.com/dream-num/univer-workspace/tree/main/packages/workspace-html-viewer)。
 
 ### 依自己的業務流程繼續擴充
 
@@ -310,6 +342,16 @@ Skills 提供任務指引，工具透過 Headless 執行環境操作結構化內
 | 產業文件與專屬任務 | 增加產業 Skills、範本與工具指引，保留內容和視覺檢查。 |
 | 自己的身分、儲存與分享方式 | 擴充 Workspace 應用與伺服器端產品策略。 |
 | 自己的 Agent 辦公客戶端 | 組合 Agent 宿主、能力外掛與品牌外觀，接入模型和業務工具。 |
+
+#### 例如：增加預算審閱 Skill [#domain-skill]
+
+產業 Skill 可定義團隊的審閱規則，持續複用既有 Office 工具：
+
+- 確認來源活頁簿、期間及預算／實際支出欄；業務定義缺失時先向使用者確認。
+- 載入試算表操作指引，建立 Worktree，透過 Facade 更新公式並準備審閱文件。
+- 檢查合計、公式結果與呈現效果，列出變更檔案及檢查結果，再交給人員審閱草稿。
+
+將業務規則與範本放進 Skill，把存取檢查、草稿儲存及合入批准留在應用層。接入 ERP 或 CRM 時，可增加回傳所需資料的業務工具，再複用相同的 Office 編輯與審閱流程。Skill 負責指導操作，本身不會授予檔案存取權限。
 
 <span id="體驗與原始碼" />
 

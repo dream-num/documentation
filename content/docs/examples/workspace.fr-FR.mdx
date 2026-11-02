@@ -71,6 +71,17 @@ Envoyez cette tâche à un agent connecté ou utilisez Desktop. L’agent crée 
 
 Le [dépôt open source](https://github.com/dream-num/univer-workspace) inclut Server et Web. Suivez le [guide de déploiement](https://github.com/dream-num/univer-workspace/blob/main/apps/workspace/README.md#docker) pour configurer domaine, connexion, stockage persistant et environnement. Le développement utilise Node.js 24 et pnpm 11.
 
+Préparez ces quatre éléments avant le déploiement :
+
+| Élément | Configuration |
+| --- | --- |
+| Service | Une URL Workspace accessible et l’application Server + Web. Desktop et la CLI se connectent à ce déploiement. |
+| Données persistantes | Conservez ensemble les bases de données produit et de collaboration ainsi que les fichiers importés. Le déploiement par défaut utilise `.data` ; montez un volume persistant avec Docker. |
+| Identité | Configurez la connexion et, pour Desktop, enregistrez le client OAuth Agent avec son URL de rappel exacte. |
+| Licence SDK | Fournissez `VITE_UNIVER_LICENSE` lors de la compilation Web pour votre domaine et configurez séparément la licence du runtime de contenu Node.js. |
+
+Les identifiants du modèle sont gérés par l’hôte de l’agent, séparément de la connexion Workspace. Consultez le [guide de déploiement](https://github.com/dream-num/univer-workspace/blob/main/apps/workspace/README.md#docker) et la [configuration Agent](https://github.com/dream-num/univer-workspace/blob/main/apps/agent/README.md).
+
 Pointez la même CLI vers votre service et autorisez un compte de ce service. Remplacez cette adresse d’exemple par votre adresse réelle :
 
 ```bash
@@ -287,21 +298,42 @@ Le plugin d’aperçu comprend neuf Skills. Le guide commun couvre découverte, 
 
 <span id="sdk-integration" />
 
-### Séparer la boucle de l’agent des capacités Office [#desktop-architecture]
+### Comment Office SDK fait fonctionner Workspace [#desktop-architecture]
 
-Les Skills guident l’agent, les outils manipulent le contenu structuré via Headless et les éditeurs natifs le rendent accessible aux personnes. Workspace fournit fichiers et contexte collaboratif. Vous pouvez changer de modèle, ajouter des outils métier ou remplacer l’identité visuelle sans reconstruire un moteur Office.
+Workspace assemble trois couches SDK : Web SDK fournit le moteur de contenu commun, Server SDK la collaboration et les versions, et AI SDK la lecture, la modification et la vérification depuis Node.js. L’hôte de l’agent gère les conversations, les appels au modèle et les outils ; Workspace gère les Spaces, l’accès aux fichiers et la livraison.
 
-<Mermaid chart={"flowchart LR\nA[\"Agent et modèle\"]\nB[\"Skills et outils\"]\nC[\"Office SDK<br/>Opérations Headless et vérification\"]\nD[\"Service Workspace<br/>Fichiers, collaboration et versions\"]\nE[\"Aperçu de bureau<br/>Éditeurs natifs et Web Apps\"]\nF[\"Worktree et Compare<br/>Revue humaine\"]\nA --> B --> C --> D\nD <--> E\nD --> F\nF --> E"} />
+<Mermaid chart={"flowchart LR\nA[\"CLI / Desktop Agent<br/>AI SDK + Web SDK<br/>Node.js\"]\nS[\"Workspace Server<br/>Identité · collaboration · versions\"] --> D[(\"Stockage persistant<br/>Produit · collaboration · fichiers\")]\nA <-->|Lire / soumettre les modifications| S\nV[\"Web / Desktop<br/>Édition native · revue\"] <--> S"} />
 
-| Élément | Responsabilité |
+Le runtime de contenu Node.js s’exécute dans l’environnement de la CLI ou de l’agent Desktop. Les fichiers partagés et l’état collaboratif restent dans le déploiement Workspace connecté, local, privé ou hébergé. Desktop conserve ses conversations localement ; les requêtes au modèle sont envoyées au fournisseur configuré. Une connexion distante ne copie pas les bases du serveur sur l’appareil.
+
+| Couche | Capacités réutilisables |
 | --- | --- |
-| [Web SDK](/guides/sheets) | Modèles communs, éditeurs Office, rendu, formules et opérations Facade headless. |
-| [Server SDK](/server) | Collaboration, versions et Worktrees reliés au backend de l’application. |
-| [AI SDK](/ai) | Opérations de contenu, inspection et vérification pour agents. |
-| Runtime et Skills | DSH fournit sessions, modèles, orchestration et approbation ; le plugin relie les outils Office. |
-| Workspace et Desktop | L’application gère espaces, fichiers, identité et revue ; Electron fournit la distribution desktop. |
+| [Web SDK](/guides/sheets) | Modèles de contenu, formules, API Facade publiques et éditeurs natifs pour l’aperçu et la modification manuelle. |
+| [AI SDK](/ai/content-operations) | Recherche d’API, inspection structurée et exécution Facade liée à un identifiant de document explicite, sans dépendre de la sélection actuelle de l’éditeur. |
+| [Inspection visuelle](/ai/visual-inspection) | Captures d’un état précis du contenu ; le diagnostic des présentations signale aussi les débordements et chevauchements de texte. Une Render Page et un navigateur compatible sont nécessaires. |
+| [Server SDK](/server) | Collaboration, révisions et brouillons Worktree intégrés au backend de l’application. |
+| Application Workspace | Identité, permissions, organisation des Spaces et fichiers, hébergement des Web Apps, interfaces de revue et de partage. |
 
-Le schéma réutilisable est demande → outils → contenu modifiable → aperçu → revue → livraison partagée. Office SDK fournit la couche Office, l’hôte la conversation et la boucle d’exécution. Étendre [l’application et les plugins](https://github.com/dream-num/univer-workspace/tree/main/apps/agent) ou les connecter à son propre hôte.
+La [couche cliente Node.js commune](https://github.com/dream-num/univer-workspace/tree/main/packages/client-core) utilise le pool de runtimes Worker d’AI SDK. Elle réutilise le contenu chargé pendant la durée de vie de l’hôte, distingue les cibles par service, document et version principale ou Worktree, puis synchronise avant exécution. L’application définit les cibles et identifiants ; le SDK gère l’acquisition et la libération des runtimes. Voir la [réutilisation des runtimes](/ai/runtime-architecture).
+
+#### D’une modification de l’agent à une revue [#agent-editing-flow]
+
+Dans l’exemple budgétaire, l’agent modifie une véritable feuille de calcul avec formules et styles. Le parcours des contenus Office natifs est le suivant :
+
+<Mermaid chart={"flowchart LR\nA[\"Choisir le document<br/>et le Worktree\"] --> B[\"Modifier avec Facade<br/>Enregistrer le brouillon\"] --> C[\"Vérifier les données<br/>et le rendu\"] --> D[\"Revue humaine<br/>Confirmer la fusion\"]\nC -->|Corriger| B"} />
+
+1. **Localiser et charger.** Sélectionner le document et le Worktree, charger le snapshot et les changesets, puis synchroniser la révision choisie. Un Unit désigne une instance de document, par exemple un classeur.
+2. **Modifier avec Facade.** Le runtime Node.js exécute les appels Facade publics sur cet Unit. Les modifications produisent des mutations, regroupées dans un changeset soumis au brouillon.
+3. **Vérifier.** Relire valeurs et formules, puis examiner le rendu si nécessaire. Corriger le même brouillon jusqu’à ce qu’il soit prêt pour la revue.
+4. **Relire et fusionner.** Une personne examine les différences avec [Compare](/overview/features/shared/compare) et décide de fusionner le [Worktree](/ai/worktree) dans la version partagée.
+
+**Enregistrer dans un brouillon ne signifie pas fusionner.** Workspace annonce une écriture réussie après confirmation de la soumission ; un conflit ou une soumission non confirmée renvoie une erreur. Le plugin Desktop demande aussi l’approbation de l’utilisateur pour ses outils de fusion et d’abandon. L’approbation est contrôlée par le parcours d’exécution des outils de l’application.
+
+#### Relier les Web Apps aux mêmes données Office [#web-app-data-flow]
+
+Le tableau de bord de lancement et l’éditeur budgétaire utilisent la même feuille de calcul. HTML View affiche la page dans une iframe isolée ; l’hôte Workspace résout les documents sources accessibles et fournit leurs moteurs de contenu autorisés. Indicateurs et graphiques peuvent s’abonner aux données sources, sans maintenir une autre copie du budget.
+
+Les écritures des liaisons modifiables exigent une identité connectée et le droit de modifier le document source. Lors du départ de la page, l’hôte attend les écritures et leur confirmation collaborative, et affiche les échecs d’enregistrement. La publication HTML et les écritures des liaisons ont leurs propres parcours de sauvegarde ; elles ne suivent pas automatiquement la fusion Worktree des contenus Office natifs. Voir la [liaison bidirectionnelle expérimentale](/overview/features/shared/binding) et l’[implémentation de l’hôte HTML View](https://github.com/dream-num/univer-workspace/tree/main/packages/workspace-html-viewer).
 
 ### Adapter le parcours à votre activité
 
@@ -310,6 +342,16 @@ Le schéma réutilisable est demande → outils → contenu modifiable → aper�
 | Documents et tâches métier | Ajoutez Skills métier, modèles et guides d’outils, en conservant vérifications du contenu et du rendu. |
 | Identité, stockage et partage spécifiques | Étendez l’application Workspace et ses politiques serveur. |
 | Votre client Office avec agent | Assemblez hôte, plugin de capacités et identité visuelle ; connectez modèles et outils métier. |
+
+#### Exemple : ajouter un Skill de revue budgétaire [#domain-skill]
+
+Un Skill métier peut définir les règles de revue de votre équipe en réutilisant les outils Office existants :
+
+- Identifier le classeur, la période et les colonnes budget/réalisé ; demander les définitions métier manquantes avant toute modification.
+- Charger le guide des feuilles de calcul, créer un Worktree, mettre à jour les formules avec Facade et préparer le document de revue.
+- Vérifier totaux, résultats des formules et présentation ; indiquer les fichiers modifiés et contrôles effectués, puis transmettre le brouillon pour une revue humaine.
+
+Placez les règles métier et modèles dans le Skill. L’application conserve les contrôles d’accès, l’enregistrement des brouillons et l’approbation de fusion. Pour un ERP ou CRM, ajoutez un outil métier qui fournit les données utiles et réutilisez le même parcours Office. Un Skill guide les opérations ; il n’accorde pas de droits sur les fichiers.
 
 <span id="essayer-et-explorer-le-code" />
 

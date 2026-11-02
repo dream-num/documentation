@@ -71,6 +71,17 @@ uvw auth login --complete
 
 [リポジトリ](https://github.com/dream-num/univer-workspace)には Server と Web が含まれます。[デプロイガイド](https://github.com/dream-num/univer-workspace/blob/main/apps/workspace/README.md#docker)に従って、ドメイン、ログイン、永続ストレージ、実行設定を構成してください。ソース開発は Node.js 24 と pnpm 11 を使用します。
 
+デプロイ前に、次の4点を準備します。
+
+| 項目 | 設定内容 |
+| --- | --- |
+| サービス | 接続可能な Workspace URL と Server + Web アプリケーション。Desktop と CLI はこの環境に接続します。 |
+| 永続データ | 製品データベース、共同編集データベース、アップロードファイルをまとめて保持します。標準では `.data` に保存されるため、Docker では永続ボリュームをマウントします。 |
+| 認証 | ログイン方法を設定します。Desktop 接続時は Agent OAuth クライアントと完全一致するコールバック URL を登録します。 |
+| SDK ライセンス | デプロイ先ドメイン向けの Web ビルドに `VITE_UNIVER_LICENSE` を指定し、Node.js コンテンツランタイム用のライセンスも別途設定します。 |
+
+モデルの認証情報は Agent ホストが管理し、Workspace のログインとは別に設定します。最新の設定は[デプロイガイド](https://github.com/dream-num/univer-workspace/blob/main/apps/workspace/README.md#docker)と [Agent セットアップ](https://github.com/dream-num/univer-workspace/blob/main/apps/agent/README.md)を参照してください。
+
 同じ CLI の接続先を変更し、そのサービスのアカウントを承認します。以下の例を実際のサービス URL に置き換えてください：
 
 ```bash
@@ -287,21 +298,42 @@ uvw skills get html-view
 
 <span id="sdk-integration" />
 
-### Agent の実行ループと Office 機能を分けて組み立てる [#desktop-architecture]
+### Office SDK が Workspace を支える仕組み [#desktop-architecture]
 
-Skills が作業を案内し、ツールが Headless ランタイムで構造化コンテンツを操作し、ネイティブエディターが人向けの表示と編集を担います。Workspace はファイルと共同作業の文脈を提供します。モデル、業務ツール、ブランド外観を変更しても、Office エンジンを作り直す必要はありません。
+Workspace は3つの SDK を組み合わせたアプリケーションです。Web SDK は共通のコンテンツエンジン、Server SDK は共同編集とバージョン管理、AI SDK は Node.js での読み取り・編集・検証を提供します。Agent ホストは会話、モデル呼び出し、ツール実行を管理し、Workspace は Space、ファイルアクセス、成果の共有を管理します。
 
-<Mermaid chart={"flowchart LR\nA[\"Agent とモデル\"]\nB[\"Skills とツール\"]\nC[\"Office SDK<br/>Headless 操作と検証\"]\nD[\"Workspace サービス<br/>ファイル・共同作業・バージョン\"]\nE[\"デスクトッププレビュー<br/>ネイティブエディターと Web App\"]\nF[\"Worktree と Compare<br/>人によるレビュー\"]\nA --> B --> C --> D\nD <--> E\nD --> F\nF --> E"} />
+<Mermaid chart={"flowchart LR\nA[\"CLI / Desktop Agent<br/>AI SDK + Web SDK<br/>Node.js\"]\nS[\"Workspace Server<br/>認証 · 共同編集 · バージョン\"] --> D[(\"永続ストレージ<br/>製品 · 共同編集 · ファイル\")]\nA <-->|内容の取得／変更の送信| S\nV[\"Web / Desktop<br/>ネイティブ編集 · レビュー\"] <--> S"} />
 
-| 構成要素 | 役割 |
+Node.js コンテンツランタイムは CLI または Desktop Agent の実行環境で動作します。共有ファイルと共同編集の状態は、接続先の Workspace に保存されます。接続先はローカル、自社サーバー、クラウドのいずれでも構いません。Desktop の会話状態はローカルに保存され、モデルへのリクエストは設定したプロバイダーに送られます。リモート接続によってサーバーのデータベースが端末にコピーされるわけではありません。
+
+| 層 | 再利用できる機能 |
 | --- | --- |
-| [Web SDK](/guides/sheets) | 共通モデル、Office 編集、描画、数式、Headless Facade 操作。 |
-| [Server SDK](/server) | アプリのバックエンドにつながる共同編集、バージョン、Worktree。 |
-| [AI SDK](/ai) | エージェント向けの内容操作、検査、検証。 |
-| 実行環境と Skills | DSH が会話、モデル、ツール実行、承認を提供し、Workspace プラグインが Office に接続。 |
-| Workspace と Desktop | Space、ファイル、ID 連携、レビュー画面をアプリが提供し、Electron がデスクトップとして配布。 |
+| [Web SDK](/guides/sheets) | コンテンツモデル、数式、公開 Facade API、プレビューと手動編集に使うネイティブエディター。 |
+| [AI SDK](/ai/content-operations) | API 検索、構造化された内容検査、明示的な文書 ID に結び付けた Facade 実行。エディターの現在の選択に依存せず対象文書を特定できます。 |
+| [視覚的検査](/ai/visual-inspection) | 特定の内容状態をスクリーンショットに変換。スライドのレイアウト診断では文字のはみ出しや重なりも検出します。Render Page と対応ブラウザーが必要です。 |
+| [Server SDK](/server) | アプリケーションのバックエンドと連携する共同編集、リビジョン、Worktree の下書き。 |
+| Workspace アプリケーション | 認証と権限、Space とファイルの整理、Web App のホスト、レビューと共有の画面。 |
 
-依頼 → ツール → 編集可能な内容 → プレビュー → レビュー → 共有、という流れを再利用できます。Office SDK が Office 層、ホストが会話と実行ループを担います。[既存アプリとプラグイン](https://github.com/dream-num/univer-workspace/tree/main/apps/agent)を拡張することも独自ホストに接続することもできます。
+Workspace の[共通 Node.js クライアント層](https://github.com/dream-num/univer-workspace/tree/main/packages/client-core)は AI SDK の Worker ランタイムプールを利用します。ホストの生存期間中に読み込んだ内容を再利用し、サービス、文書、メイン版または Worktree ごとに対象を区別して、実行前に同期します。アプリケーションが対象と認証情報を管理し、SDK がランタイムの貸し出しと回収を管理します。詳しくは[ランタイムの再利用](/ai/runtime-architecture)を参照してください。
+
+#### Agent の編集からレビュー可能な変更へ [#agent-editing-flow]
+
+予算レビューでは、Agent は数式や書式を持つ実際のスプレッドシートを編集します。ネイティブ Office 内容の編集は次のように進みます。
+
+<Mermaid chart={"flowchart LR\nA[\"文書と<br/>Worktree を選択\"] --> B[\"Facade で編集<br/>下書きを保存\"] --> C[\"データと<br/>描画結果を検証\"] --> D[\"人がレビュー<br/>承認後にマージ\"]\nC -->|再編集| B"} />
+
+1. **特定して読み込む。** 文書と Worktree を選び、スナップショットと changeset を読み込み、選択したリビジョンに同期します。Unit はブックなどの文書インスタンスです。
+2. **Facade で編集する。** Node.js ランタイムが対象 Unit に公開 Facade API を実行します。変更は mutation となり、changeset にまとめて下書きに送信されます。
+3. **結果を検証する。** 値と数式を読み返し、必要に応じて描画結果を確認します。レビューできる状態になるまで同じ下書きを修正します。
+4. **レビューしてマージする。** 人が[内容比較](/overview/features/shared/compare)で変更を確認し、[Worktree](/ai/worktree) を共有版へマージするか決めます。
+
+**下書きへの保存とマージは別の操作です。** Workspace は送信の確認後に書き込み成功を返し、競合や未確認の送信はエラーとして返します。Desktop プラグインのマージ・破棄ツールもユーザーの承認を要求します。承認はアプリケーションのツール実行フローで確認されます。
+
+#### Web App を同じ Office データにつなぐ [#web-app-data-flow]
+
+公開ダッシュボードと予算エディターは同じスプレッドシートを使います。HTML View がサンドボックス化された iframe 内でページを描画し、Workspace ホストがアクセス可能な参照元文書と認可済みコンテンツエンジンを提供します。指標カードやグラフは元データの更新を購読でき、予算の複製を別途管理する必要がありません。
+
+編集可能なバインディングの書き込みには、ログイン済みのユーザーと参照元文書の編集権限が必要です。ページを離れる際、ホストは保留中の書き込みと共同編集の確認を待ち、保存失敗を表示します。HTML ページの公開とバインディングの書き戻しには独自の保存経路があり、ネイティブ Office の Worktree マージ処理には自動的に入りません。[実験的な双方向バインディング](/overview/features/shared/binding)と [HTML View ホストの実装](https://github.com/dream-num/univer-workspace/tree/main/packages/workspace-html-viewer)を参照してください。
 
 ### 自社の業務フローへ拡張する
 
@@ -310,6 +342,16 @@ Skills が作業を案内し、ツールが Headless ランタイムで構造化
 | 業界固有の文書やタスク | 業務 Skills、テンプレート、ツールガイドを追加し、内容と表示の検証を維持します。 |
 | 独自の ID、ストレージ、共有 | Workspace アプリとサーバー側の業務ポリシーを拡張します。 |
 | 独自の Agent Office クライアント | Agent ホスト、機能プラグイン、ブランドを組み合わせ、モデルや業務ツールを接続します。 |
+
+#### 例：予算レビュー用 Skill を追加する [#domain-skill]
+
+業務用 Skill にチームのレビュー規則を定義し、既存の Office ツールを再利用できます。
+
+- 元のブック、対象期間、予算・実績列を特定し、不足する業務定義は編集前にユーザーへ確認します。
+- スプレッドシートのガイドを読み、Worktree を作成し、Facade で数式を更新してレビュー文書を用意します。
+- 合計、数式結果、表示を検証し、変更したファイルと検証結果を報告して、人に下書きのレビューを依頼します。
+
+業務規則とテンプレートは Skill に置き、アクセス検査、下書き保存、マージ承認はアプリケーションで管理します。ERP や CRM と連携する場合は、必要なデータを返す業務ツールを追加し、同じ Office 編集・レビューフローを再利用できます。Skill は操作を案内するものであり、ファイルへのアクセス権を付与するものではありません。
 
 <span id="体験とソースコード" />
 
