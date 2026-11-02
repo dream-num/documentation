@@ -250,7 +250,7 @@ export default async function Page({ params }: IProps) {
         >
           <Univer tablistLabel={t('home.examples.eyebrow')} />
         </section>
-        <div className="overflow-hidden px-5 pt-11 pb-3 md:pt-16 [&_section]:mb-0 [&_section>div]:flex-wrap [&_section>div]:gap-y-7 [&>div]:max-w-full">
+        <div className="overflow-hidden px-5 pt-11 pb-3 md:pt-16 [&_section]:mb-0 [&>div]:max-w-full">
           <LogoCloud title={t('home.logocloud.title')} />
         </div>
 
