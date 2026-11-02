@@ -35,6 +35,7 @@ const AGENT_MDX_ELEMENTS = new Set([
 ])
 
 const AGENT_HTML_ELEMENTS = new Set([
+  'a',
   'br',
   'code',
   'details',
@@ -507,6 +508,10 @@ function stringifyAgentMdx(node: MdxElement, stringifier: Stringifier): string {
       return `1.\n${indent(children, '   ')}`
     case 'Tab':
       return `#### ${getString(attributes, 'label') ?? 'Tab'}\n\n${children}`
+    case 'a': {
+      const href = getString(attributes, 'href')
+      return href ? `[${children || href}](${href})` : children
+    }
     case 'br':
       return '  \n'
     case 'code':
