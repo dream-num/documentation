@@ -1,13 +1,11 @@
 import type { TOCItemType } from 'fumadocs-core/toc'
 import type { ReactNode } from 'react'
 import { getTranslations } from 'next-intl/server'
-
 import type { Locale } from '@/i18n/routing'
 import type { IGuideNavItem } from '@/lib/guides/navigation'
 import { RootScrollLock } from '@/components/docs-shell/root-scroll-lock'
 import { Footer } from '@/components/footer'
 import { clsx } from '@/lib/clsx'
-
 import { GuidesHeader } from './header'
 import { GuidesSidebar } from './sidebar'
 import { GuidesToc } from './toc'
@@ -37,7 +35,7 @@ export async function GuidesLayout({
       <div className="mx-auto grid w-full max-w-384 grid-cols-1 gap-8 px-4 py-8 lg:min-h-0 lg:flex-1 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-4 lg:overflow-hidden lg:px-6 lg:pt-0 lg:pb-0 xl:grid-cols-[16rem_minmax(0,1fr)_17rem]">
         <aside
           aria-label={t('docs.guides-sidebar')}
-          className="bg-sidebar hidden border-r border-(--separator) lg:-ml-6 lg:block lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pt-5 lg:pr-3 lg:pb-5 lg:pl-2"
+          className="hidden border-r border-(--separator) bg-sidebar lg:-ml-6 lg:block lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pt-5 lg:pr-3 lg:pb-5 lg:pl-2"
         >
           <GuidesSidebar
             items={items}

@@ -36,7 +36,7 @@ export function ImagePreview({ src, alt, className, children }: IImagePreviewPro
       <Dialog.Trigger
         aria-label={alt ? `${t('zoom-in')}: ${alt}` : t('zoom-in')}
         className={clsx(
-          'not-prose focus-visible:outline-ring inline-block max-w-full cursor-zoom-in rounded-lg align-middle focus-visible:outline-2 focus-visible:outline-offset-4',
+          'not-prose inline-block max-w-full cursor-zoom-in rounded-lg align-middle focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring',
           className,
         )}
         render={<motion.button layoutId={layoutId} transition={transition} />}

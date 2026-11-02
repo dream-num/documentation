@@ -1,5 +1,4 @@
 import { ArrowRightIcon, HeartIcon, PlugIcon, PuzzleIcon } from 'lucide-react'
-
 import { BlurFade } from '@/components/magicui/blur-fade'
 import { Link } from '@/i18n/navigation'
 
@@ -89,7 +88,7 @@ export function Ecosystem(props: IProps) {
                 <Link
                   href={resource.href}
                   target={resource.href.startsWith('http') ? '_blank' : undefined}
-                  className="mt-auto inline-flex items-center gap-1 self-start rounded-sm pt-2 text-sm font-medium text-neutral-700 transition-colors hover:text-neutral-900 focus-visible:outline-2 focus-visible:outline-offset-4 dark:text-neutral-300 hover:dark:text-neutral-100"
+                  className="mt-auto inline-flex items-center gap-1 self-start rounded-sm pt-2 text-sm font-medium text-neutral-700 transition-colors hover:text-neutral-900 focus-visible:outline-2 focus-visible:outline-offset-4 dark:text-neutral-300 dark:hover:text-neutral-100"
                 >
                   {resource.cta}
                   <ArrowRightIcon className="size-3.5" aria-hidden="true" />

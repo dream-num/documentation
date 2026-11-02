@@ -4,7 +4,6 @@ import { Minus, Plus, RotateCcw } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useTheme } from 'next-themes'
 import { useEffect, useId, useRef, useState } from 'react'
-
 import { Button } from '@/components/ui/button'
 
 interface IMermaidProps {
@@ -91,8 +90,8 @@ export function Mermaid({ chart }: IMermaidProps) {
   }, [svg])
 
   return (
-    <div className="not-prose border-border/60 my-5 overflow-hidden rounded-lg border" data-mermaid>
-      <div className="border-border/60 text-muted-foreground flex h-9 items-center justify-end gap-0.5 border-b px-2">
+    <div className="not-prose my-5 overflow-hidden rounded-lg border border-border/60" data-mermaid>
+      <div className="flex h-9 items-center justify-end gap-0.5 border-b border-border/60 px-2 text-muted-foreground">
         <Button
           variant="ghost"
           size="icon"
@@ -131,7 +130,7 @@ export function Mermaid({ chart }: IMermaidProps) {
         </Button>
       </div>
       <div
-        className="focus-visible:ring-ring max-h-[70vh] overflow-auto p-4 outline-none focus-visible:ring-2"
+        className="max-h-[70vh] overflow-auto p-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
         tabIndex={0}
         role="region"
         aria-label={t('diagram')}

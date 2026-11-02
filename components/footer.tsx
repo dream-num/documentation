@@ -8,8 +8,8 @@ export function Footer({ className, variant = 'site' }: { className?: string; va
   return (
     <footer
       className={clsx(
-        'text-muted-foreground w-full text-sm',
-        isContent ? 'mt-14 border-t pt-6 pb-1' : 'bg-background border-t px-4 py-3',
+        'w-full text-sm text-muted-foreground',
+        isContent ? 'mt-14 border-t pt-6 pb-1' : 'border-t bg-background px-4 py-3',
         className,
       )}
       data-site-footer

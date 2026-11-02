@@ -16,7 +16,6 @@ import {
 } from 'lucide-react'
 import { animate, motion, useInView, useMotionValue, useTransform } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
-
 import { BlurFade } from '@/components/magicui/blur-fade'
 
 interface IMetric {
@@ -230,7 +229,7 @@ export function EnterprisePerformance(props: IProps) {
         <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
           {metrics.map((metric, index) => (
             <BlurFade key={metric.label} inView delay={index * 0.05} className="h-full">
-              <div className="flex h-full flex-col items-center justify-center gap-2 rounded-2xl border border-neutral-200/80 bg-white/70 p-5 shadow-xs transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900/70 hover:dark:bg-neutral-800/70">
+              <div className="flex h-full flex-col items-center justify-center gap-2 rounded-2xl border border-neutral-200/80 bg-white/70 p-5 shadow-xs transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900/70 dark:hover:bg-neutral-800/70">
                 <div className="text-3xl font-bold text-neutral-900 tabular-nums dark:text-neutral-100">
                   <AnimatedNumber value={metric.value} suffix={metric.suffix} />
                 </div>

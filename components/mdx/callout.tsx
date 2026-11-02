@@ -1,6 +1,5 @@
 import type { ComponentProps, ReactNode } from 'react'
 import { CircleAlertIcon, InfoIcon, TriangleAlertIcon } from 'lucide-react'
-
 import { clsx } from '@/lib/clsx'
 
 const calloutStyles = {
@@ -42,7 +41,7 @@ export function Callout({
   return (
     <div
       className={clsx(
-        `text-foreground my-4 flex gap-2.5 rounded-md border px-3 py-2.5 text-sm/6`,
+        `my-4 flex gap-2.5 rounded-md border px-3 py-2.5 text-sm/6 text-foreground`,
         style.className,
         className,
       )}

@@ -2,7 +2,6 @@
 
 import type { ComponentProps, ReactElement, ReactNode } from 'react'
 import { Children, isValidElement } from 'react'
-
 import { TabsContent, TabsList, Tabs as TabsRoot, TabsTrigger } from '@/components/ui/tabs'
 import { clsx } from '@/lib/clsx'
 
@@ -32,22 +31,22 @@ export function Tabs({ items, children, className, variant = 'default' }: ITabsP
 
   return (
     <TabsRoot
-      className={clsx(install ? 'my-6' : 'bg-card my-6 gap-0 overflow-hidden rounded-lg border shadow-sm', className)}
+      className={clsx(install ? 'my-6' : 'my-6 gap-0 overflow-hidden rounded-lg border bg-card shadow-sm', className)}
       data-mdx-tabs
       defaultValue={defaultValue}
     >
       <TabsList
         className={clsx(
           install
-            ? 'bg-muted inline-flex h-8 w-fit max-w-full self-start overflow-x-auto rounded-lg p-[3px]'
-            : 'bg-muted/45 flex h-auto w-full max-w-full justify-start overflow-x-auto rounded-none border-b p-1',
+            ? 'inline-flex h-8 w-fit max-w-full self-start overflow-x-auto rounded-lg bg-muted p-[3px]'
+            : 'flex h-auto w-full max-w-full justify-start overflow-x-auto rounded-none border-b bg-muted/45 p-1',
         )}
       >
         {labels.map((label) => (
           <TabsTrigger
             className={clsx(
               install
-                ? 'text-foreground/60 hover:text-foreground hover:dark:text-foreground h-[calc(100%-1px)] flex-1 rounded-[calc(var(--radius)-0.125rem)] px-1.5 py-0.5 transition-all'
+                ? 'h-[calc(100%-1px)] flex-1 rounded-[calc(var(--radius)-0.125rem)] px-1.5 py-0.5 text-foreground/60 transition-all hover:text-foreground dark:hover:text-foreground'
                 : 'flex-none px-3 py-1.5',
             )}
             key={label}

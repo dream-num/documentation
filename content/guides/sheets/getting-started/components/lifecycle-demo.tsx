@@ -2,7 +2,6 @@
 
 import { useLocale } from 'next-intl'
 import { useEffect, useId, useState } from 'react'
-
 import { Button } from '@/components/ui/button'
 
 const labels: Record<string, string[]> = {
@@ -174,7 +173,7 @@ export function LifecycleDemo() {
   }, [playback, last])
 
   return (
-    <section aria-label={title} className="not-prose bg-background my-6 overflow-hidden rounded-lg border text-sm">
+    <section aria-label={title} className="not-prose my-6 overflow-hidden rounded-lg border bg-background text-sm">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
         <span className="text-muted-foreground">
           {loadAt} · {stages[arrival]}
@@ -356,15 +355,15 @@ export function LifecycleDemo() {
           />
         </svg>
       </div>
-      <div className="bg-muted/30 border-t px-4 py-3">
+      <div className="border-t bg-muted/30 px-4 py-3">
         <div role="status" aria-live="polite" className="flex min-h-12 flex-wrap items-center justify-between gap-2">
           <span className="font-mono text-sm">{frame.action}</span>
-          <span className="text-muted-foreground text-xs">
+          <span className="text-xs text-muted-foreground">
             {global}: {stages[frame.global]} ·{' '}
             {frame.catchingUp ? catchUp : `${playback.cursor + 1} / ${frames.length}`}
           </span>
         </div>
-        <p className="text-muted-foreground m-0 text-xs">{note}</p>
+        <p className="m-0 text-xs text-muted-foreground">{note}</p>
       </div>
     </section>
   )

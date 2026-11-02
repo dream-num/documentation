@@ -3,7 +3,6 @@
 import { ChevronDownIcon, ExpandIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
-
 import { clsx } from '@/lib/clsx'
 
 interface IProps {
@@ -83,9 +82,9 @@ export function PlaygroundFrame({ slug, lang, clickToShow = false }: IProps) {
   const buttonLabel = t('playground.fullscreen-preview')
 
   return (
-    <div data-playground-frame className="border-border bg-background my-4 overflow-hidden rounded-md border">
+    <div data-playground-frame className="my-4 overflow-hidden rounded-md border border-border bg-background">
       <div
-        className={clsx('flex min-h-9 items-center justify-between gap-2 px-2', expanded && 'border-border border-b')}
+        className={clsx('flex min-h-9 items-center justify-between gap-2 px-2', expanded && 'border-b border-border')}
       >
         {clickToShow ? (
           <button
@@ -93,7 +92,7 @@ export function PlaygroundFrame({ slug, lang, clickToShow = false }: IProps) {
             aria-expanded={expanded}
             aria-controls={contentId}
             onClick={() => setExpanded((value) => !value)}
-            className="text-muted-foreground hover:text-foreground focus-visible:outline-ring inline-flex min-h-9 items-center gap-1.5 rounded px-1 text-xs font-medium focus-visible:outline-2"
+            className="inline-flex min-h-9 items-center gap-1.5 rounded px-1 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
           >
             <ChevronDownIcon
               aria-hidden="true"
@@ -102,7 +101,7 @@ export function PlaygroundFrame({ slug, lang, clickToShow = false }: IProps) {
             {t(expanded ? 'playground.click-to-hide' : 'playground.click-to-show')}
           </button>
         ) : (
-          <span className="text-muted-foreground px-1 text-xs font-medium">{t('playground.demo')}</span>
+          <span className="px-1 text-xs font-medium text-muted-foreground">{t('playground.demo')}</span>
         )}
         <button
           type="button"
@@ -110,7 +109,7 @@ export function PlaygroundFrame({ slug, lang, clickToShow = false }: IProps) {
           disabled={!expanded}
           aria-label={buttonLabel}
           title={buttonLabel}
-          className="text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-ring inline-flex size-7 items-center justify-center rounded transition-colors focus-visible:outline-2 disabled:invisible"
+          className="inline-flex size-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:invisible"
         >
           <ExpandIcon aria-hidden="true" className="size-3.5" />
         </button>

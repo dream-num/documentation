@@ -100,8 +100,3 @@ build_image: check_license create_builder
 	--file Dockerfile \
 	$(image_tag) \
 	--load .
-
-.PHONY: test_image_run
-test_image_run: create_builder 
-	$(eval image_tag=-t $(REPOSITORY):latest)
-	$(CTR) run --rm -it -p 3000:3000 $(image_tag)

@@ -13,14 +13,12 @@ import {
 import { CheckIcon, ClipboardIcon, MoonIcon, SunIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
-
 import { ColorPickerPopover } from '@/components/color-picker-popover'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-
 import { RealUniverPreview } from './real-univer-preview'
 
 type ShadeKey = '50' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900'
@@ -358,7 +356,7 @@ function TokenRow({ color, name, value }: { color?: string; name: string; value:
           {name}
         </span>
       </dt>
-      <dd className="text-muted-foreground shrink-0">{value}</dd>
+      <dd className="shrink-0 text-muted-foreground">{value}</dd>
     </div>
   )
 }
@@ -411,12 +409,12 @@ export function ThemeCustomizerTool({ title }: { title: string }) {
       <h1 className="text-xl font-semibold">{title}</h1>
 
       <div className="mt-4 space-y-4">
-        <section className="bg-card rounded-lg border p-3 shadow-sm">
+        <section className="rounded-lg border bg-card p-3 shadow-sm">
           <Tabs defaultValue="sheets">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-semibold">{t('theme-customizer.live-preview')}</h2>
-                <p className="text-muted-foreground mt-1 text-xs">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {darkMode ? t('theme-customizer.dark') : t('theme-customizer.light')}
                 </p>
               </div>
@@ -434,11 +432,11 @@ export function ThemeCustomizerTool({ title }: { title: string }) {
           </Tabs>
         </section>
 
-        <section className="bg-card min-w-0 rounded-lg border shadow-sm">
+        <section className="min-w-0 rounded-lg border bg-card shadow-sm">
           <Tabs className="gap-0" defaultValue="palette">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b px-3 py-2">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <span className="text-muted-foreground mr-1 text-xs font-medium">{t('theme-customizer.presets')}</span>
+                <span className="mr-1 text-xs font-medium text-muted-foreground">{t('theme-customizer.presets')}</span>
                 {presets.map((preset) => (
                   <Button
                     aria-pressed={preset.key === presetKey}
@@ -491,7 +489,7 @@ export function ThemeCustomizerTool({ title }: { title: string }) {
                             value={(theme[scale] as unknown as Record<GrayShadeKey, string>)[shade]}
                             onValueChange={(value) => applyTheme(updateScaleColor(theme, scale, shade, value))}
                           />
-                          <span className="text-muted-foreground text-center font-mono text-[10px] leading-3">
+                          <span className="text-center font-mono text-[10px] leading-3 text-muted-foreground">
                             {shade}
                           </span>
                         </div>
@@ -510,7 +508,7 @@ export function ThemeCustomizerTool({ title }: { title: string }) {
                     <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
                       {loopKeys.map((key) => (
                         <div className="flex min-w-0 items-center gap-2" key={key}>
-                          <span className="text-muted-foreground w-4 shrink-0 text-right font-mono text-xs">{key}</span>
+                          <span className="w-4 shrink-0 text-right font-mono text-xs text-muted-foreground">{key}</span>
                           <ThemeColorSelect
                             label={`${t('theme-customizer.loop-colors')} ${key}`}
                             theme={theme}
@@ -526,7 +524,7 @@ export function ThemeCustomizerTool({ title }: { title: string }) {
                     <div className="grid grid-cols-2 gap-x-3 gap-y-2">
                       {highlightKeys.slice(0, 8).map((key) => (
                         <div className="flex min-w-0 items-start gap-2" key={key}>
-                          <span className="text-muted-foreground w-4 shrink-0 pt-2 text-right font-mono text-xs">
+                          <span className="w-4 shrink-0 pt-2 text-right font-mono text-xs text-muted-foreground">
                             {key}
                           </span>
                           <div className="min-w-0 flex-1 space-y-2">
@@ -545,7 +543,7 @@ export function ThemeCustomizerTool({ title }: { title: string }) {
                                 value={theme.highlight.background[key].alpha}
                                 onValueChange={(value) => applyTheme(updateHighlight(theme, key, { alpha: value }))}
                               />
-                              <span className="text-muted-foreground text-[10px] leading-3 tabular-nums">
+                              <span className="text-[10px] leading-3 text-muted-foreground tabular-nums">
                                 {Math.round(theme.highlight.background[key].alpha * 100)}%
                               </span>
                             </div>
@@ -572,7 +570,7 @@ export function ThemeCustomizerTool({ title }: { title: string }) {
                   value={jsonDraft}
                   onChange={(event) => setJsonDraft(event.target.value)}
                 />
-                {jsonError ? <p className="text-destructive text-sm">{jsonError}</p> : null}
+                {jsonError ? <p className="text-sm text-destructive">{jsonError}</p> : null}
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" onClick={applyJson}>
                     {t('theme-customizer.apply')}
@@ -592,7 +590,7 @@ export function ThemeCustomizerTool({ title }: { title: string }) {
         </section>
 
         <div className="grid grid-cols-1 gap-4 @min-[48rem]/tools:grid-cols-2">
-          <section className="bg-card min-w-0 rounded-lg border p-4 shadow-sm">
+          <section className="min-w-0 rounded-lg border bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h2 className="text-sm font-semibold">{t('theme-customizer.export')}</h2>
               <Button
@@ -605,14 +603,14 @@ export function ThemeCustomizerTool({ title }: { title: string }) {
                 {copied === 'patch' ? t('theme-customizer.copied') : t('theme-customizer.copy-patch')}
               </Button>
             </div>
-            <pre className="bg-muted max-h-64 overflow-auto rounded-md p-3 text-xs">
+            <pre className="max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs">
               <code>{`const customTheme = ${JSON.stringify(theme, null, 2)}`}</code>
             </pre>
           </section>
 
-          <section className="bg-card min-w-0 rounded-lg border p-4 shadow-sm">
+          <section className="min-w-0 rounded-lg border bg-card p-4 shadow-sm">
             <h2 className="text-sm font-semibold">{t('theme-customizer.design-tokens')}</h2>
-            <pre className="bg-muted mt-3 max-h-64 overflow-auto rounded-md p-3 text-xs">
+            <pre className="mt-3 max-h-64 overflow-auto rounded-md bg-muted p-3 text-xs">
               <code>{`:root {\n${cssText}\n}`}</code>
             </pre>
           </section>

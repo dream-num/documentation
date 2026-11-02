@@ -31,7 +31,7 @@ pnpm build
 
 The Icons preview, MCP endpoint, and downloadable metadata use `public/assets/icons/catalog.json`. To refresh it from a matching `univer-icons` checkout, run `node scripts/sync-icons-catalog.mjs ../univer-icons`. The sync checks that the source and installed package versions match and that every exported icon is covered. Production builds use the committed catalog.
 
-The read-only Icons MCP runs at `/mcp/icons` in the existing Next.js Node server. It exposes `search_icons` and `get_icon` over Streamable HTTP without a model API key or separate process. Its Host/Origin allowlist covers `docs.univer.ai` and loopback hosts; update `app/mcp/icons/route.ts` when deploying under another hostname. With the site running, verify the endpoint using `DOCS_TEST_ORIGIN=http://localhost:3030 node --test app/mcp/icons/__tests__/route.spec.mjs`.
+The read-only Icons MCP runs at `/mcp/icons` in the existing Next.js Node server. It exposes `search_icons` and `get_icon` over Streamable HTTP without a model API key or separate process. Its Host/Origin allowlist covers `docs.univer.ai` and loopback hosts; update `app/mcp/icons/route.ts` when deploying under another hostname.
 
 ## Showcase
 

@@ -100,7 +100,7 @@ export function HeadingCollapseDemo() {
         <p className="font-medium">{text[0]}</p>
         <p className="text-muted-foreground">{text[1]}</p>
       </figcaption>
-      <div className="bg-background space-y-3 rounded-md border p-3 sm:p-5">
+      <div className="space-y-3 rounded-md border bg-background p-3 sm:p-5">
         <Button
           variant="ghost"
           className="h-auto w-full justify-start text-start whitespace-normal"
@@ -123,7 +123,7 @@ export function HeadingCollapseDemo() {
             {childCollapsed ? <ChevronRight aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
             {text[4]}
           </Button>
-          <p id={`${id}-child`} hidden={childCollapsed} className="text-muted-foreground ms-6">
+          <p id={`${id}-child`} hidden={childCollapsed} className="ms-6 text-muted-foreground">
             {text[5]}
           </p>
         </div>

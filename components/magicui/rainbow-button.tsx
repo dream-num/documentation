@@ -2,14 +2,13 @@ import type { VariantProps } from 'class-variance-authority'
 import { mergeProps } from '@base-ui/react/merge-props'
 import { useRender } from '@base-ui/react/use-render'
 import { cva } from 'class-variance-authority'
-
 import { clsx } from '@/lib/clsx'
 
 const rainbowButtonVariants = cva(
   clsx(
-    'group animate-rainbow relative cursor-pointer transition-all',
+    'group relative animate-rainbow cursor-pointer transition-all',
     'inline-flex shrink-0 items-center justify-center gap-2',
-    `aria-invalid:border-destructive rounded-sm outline-none focus-visible:ring-[3px]`,
+    `rounded-sm outline-none focus-visible:ring-[3px] aria-invalid:border-destructive`,
     'text-sm font-medium whitespace-nowrap',
     'disabled:pointer-events-none disabled:opacity-50',
     `[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4`,

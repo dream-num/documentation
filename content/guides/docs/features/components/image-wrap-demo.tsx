@@ -109,7 +109,7 @@ export function ImageWrapDemo() {
   const [mode, setMode] = useState(1)
 
   return (
-    <section aria-label={text[0]} className="not-prose bg-card my-6 space-y-4 rounded-xl border p-4 text-sm sm:p-5">
+    <section aria-label={text[0]} className="not-prose my-6 space-y-4 rounded-xl border bg-card p-4 text-sm sm:p-5">
       <div className="space-y-1">
         <p className="font-medium">{text[0]}</p>
         <p className="text-muted-foreground">{text[1]}</p>
@@ -127,14 +127,14 @@ export function ImageWrapDemo() {
           </Button>
         ))}
       </div>
-      <div className="bg-background mx-auto max-w-xl rounded-md border p-4 sm:p-6">
+      <div className="mx-auto max-w-xl rounded-md border bg-background p-4 sm:p-6">
         <p className="mb-4 font-semibold">Univer Docs</p>
-        <p className="text-muted-foreground flow-root text-sm leading-7">
+        <p className="flow-root text-sm leading-7 text-muted-foreground">
           <span
             role="img"
             aria-label={text[5]}
             className={clsx(
-              'border-primary/30 bg-primary/10 text-primary h-24 w-28 overflow-hidden rounded-md border p-3',
+              'h-24 w-28 overflow-hidden rounded-md border border-primary/30 bg-primary/10 p-3 text-primary',
               mode === 0 ? 'mr-2 inline-block align-baseline' : mode === 1 ? 'float-left mr-4 mb-2' : 'mb-4 block',
             )}
           >
@@ -148,7 +148,7 @@ export function ImageWrapDemo() {
           <span>{text[9]}</span>
         </p>
       </div>
-      <p role="status" className="text-muted-foreground text-xs leading-5">
+      <p role="status" className="text-xs leading-5 text-muted-foreground">
         {text[mode + 6]}
       </p>
     </section>

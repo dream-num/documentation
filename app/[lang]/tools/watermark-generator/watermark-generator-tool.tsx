@@ -124,7 +124,7 @@ export function WatermarkGeneratorTool() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <h1 className="text-xl font-semibold">{tools('watermark-generator')}</h1>
-          <p className="text-muted-foreground text-sm">{tools('watermark-generator-description')}</p>
+          <p className="text-sm text-muted-foreground">{tools('watermark-generator-description')}</p>
         </div>
         <Button variant="outline" size="sm" onClick={reset}>
           <RotateCcwIcon />
@@ -165,7 +165,7 @@ export function WatermarkGeneratorTool() {
 
           {kind === 'userInfo' && (
             <div className="space-y-3">
-              <p className="text-muted-foreground text-xs leading-5">{t('user-note')}</p>
+              <p className="text-xs leading-5 text-muted-foreground">{t('user-note')}</p>
               <div className="flex items-center gap-2 text-xs">
                 <Checkbox
                   id="watermark-name"
@@ -220,19 +220,19 @@ export function WatermarkGeneratorTool() {
                     event.target.value = ''
                   }}
                 />
-                <p className="text-muted-foreground text-xs leading-5">{t('upload-note')}</p>
+                <p className="text-xs leading-5 text-muted-foreground">{t('upload-note')}</p>
                 {uploadError && (
-                  <p role="alert" className="text-destructive text-xs">
+                  <p role="alert" className="text-xs text-destructive">
                     {t('upload-error')}
                   </p>
                 )}
                 {imageFailed && (
-                  <p role="alert" className="text-destructive text-xs">
+                  <p role="alert" className="text-xs text-destructive">
                     {t('image-error')}
                   </p>
                 )}
                 {imagePending && (
-                  <p role="status" className="text-muted-foreground text-xs">
+                  <p role="status" className="text-xs text-muted-foreground">
                     {t('loading')}
                   </p>
                 )}
@@ -268,7 +268,7 @@ export function WatermarkGeneratorTool() {
                 <label htmlFor="watermark-ratio">{t('keep-ratio')}</label>
               </div>
               {image && (
-                <p className="text-muted-foreground text-xs">
+                <p className="text-xs text-muted-foreground">
                   {t('ratio')}: {settings.image.originRatio.toFixed(3)}
                 </p>
               )}
@@ -405,10 +405,10 @@ export function WatermarkGeneratorTool() {
           <section className="overflow-hidden rounded-md border" aria-label={t('preview')}>
             <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
               <h2 className="text-sm font-medium">{t('preview')}</h2>
-              <span className="text-muted-foreground text-xs">{t('preview-note')}</span>
+              <span className="text-xs text-muted-foreground">{t('preview-note')}</span>
             </div>
             {kind === 'image' && !image && (
-              <p className="text-muted-foreground border-b p-3 text-xs">{t('image-empty')}</p>
+              <p className="border-b p-3 text-xs text-muted-foreground">{t('image-empty')}</p>
             )}
             <WatermarkPreview kind={kind} settings={settings} image={image} userName={userName} />
           </section>
@@ -437,7 +437,7 @@ export function WatermarkGeneratorTool() {
                 <FileActions key={`${output}-${code}`} content={code} downloadContent={json} name="watermark.json" />
               )}
             </div>
-            <p className="text-muted-foreground border-b px-3 py-2 text-xs leading-5">
+            <p className="border-b px-3 py-2 text-xs leading-5 text-muted-foreground">
               {t(output === 'preset' ? 'preset-note' : output === 'facade' ? 'facade-note' : 'plugin-note')}
             </p>
             {canExport ? (
@@ -448,12 +448,12 @@ export function WatermarkGeneratorTool() {
                 className="max-h-100"
               />
             ) : (
-              <p className="text-muted-foreground p-4 text-sm">{t('image-empty')}</p>
+              <p className="p-4 text-sm text-muted-foreground">{t('image-empty')}</p>
             )}
           </section>
           <Link
             href="/guides/sheets/features/watermark"
-            className="text-muted-foreground inline-block text-xs underline underline-offset-4"
+            className="inline-block text-xs text-muted-foreground underline underline-offset-4"
           >
             {t('documentation')}
           </Link>

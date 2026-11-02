@@ -21,7 +21,7 @@ export async function ToolsShell({ children, lang }: { children: ReactNode; lang
   const guideNavigation = createGuideNavigation(guideNavigationSource.pageTree[lang], pathname)
 
   return (
-    <div className="bg-background text-foreground min-h-dvh">
+    <div className="min-h-dvh bg-background text-foreground">
       <DocsHeader
         guideItems={guideNavigation.items}
         items={navigation.items}

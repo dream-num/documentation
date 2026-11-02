@@ -22,7 +22,6 @@ import SheetsEnUS from '@univerjs/sheets/locale/en-US'
 import { UniverUIPlugin } from '@univerjs/ui'
 import UIEnUS from '@univerjs/ui/locale/en-US'
 import { useEffect, useRef } from 'react'
-
 import '@univerjs/design/lib/index.css'
 import '@univerjs/docs-ui/lib/index.css'
 import '@univerjs/sheets-formula-ui/lib/index.css'
@@ -199,7 +198,7 @@ export function RealUniverPreview({
 
   return (
     <div
-      className="bg-background h-120 overflow-hidden rounded-md border"
+      className="h-120 overflow-hidden rounded-md border bg-background"
       data-univer-preview-kind={kind}
       ref={containerRef}
     />

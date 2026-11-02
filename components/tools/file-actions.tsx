@@ -52,7 +52,7 @@ export function FileActions({
         <DownloadIcon />
         {downloadLabel ?? name}
       </Button>
-      <span role="status" className="text-muted-foreground text-xs">
+      <span role="status" className="text-xs text-muted-foreground">
         {status}
       </span>
     </div>

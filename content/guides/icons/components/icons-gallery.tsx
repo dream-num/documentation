@@ -236,16 +236,16 @@ export function IconsGallery({ locale = 'en-US' }: { locale?: Locale }) {
   return (
     <div className="not-prose text-sm leading-normal [overflow-anchor:none]" data-icon-gallery>
       <div
-        className="border-border bg-background relative z-20 mb-7 border-b py-4 lg:sticky lg:-top-8 lg:-mx-6 lg:px-6"
+        className="relative z-20 mb-7 border-b border-border bg-background py-4 lg:sticky lg:-top-8 lg:-mx-6 lg:px-6"
         aria-label={zh ? '图标预览设置' : 'Icon preview controls'}
         data-icon-controls
       >
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1fr)_8rem_10rem]">
           <div className="relative col-span-2 sm:col-span-1">
-            <SearchIcon className="text-muted-foreground pointer-events-none absolute top-2.5 left-3 size-4" />
+            <SearchIcon className="pointer-events-none absolute top-2.5 left-3 size-4 text-muted-foreground" />
             <Input
               aria-label={zh ? '搜索图标名称或用途' : 'Search icons by name or purpose'}
-              className="bg-muted/35 h-9 pr-9 pl-9 shadow-none"
+              className="h-9 bg-muted/35 pr-9 pl-9 shadow-none"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={zh ? '搜索名称或用途…' : 'Search name or purpose…'}
@@ -304,7 +304,7 @@ export function IconsGallery({ locale = 'en-US' }: { locale?: Locale }) {
           </Select>
         </div>
         <div
-          className="bg-muted/35 mt-3 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-lg px-3 py-2.5 text-xs"
+          className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-lg bg-muted/35 px-3 py-2.5 text-xs"
           data-icon-preview-tools
         >
           <div className="flex items-center gap-2">
@@ -351,12 +351,12 @@ export function IconsGallery({ locale = 'en-US' }: { locale?: Locale }) {
           </div>
         </div>
       </div>
-      <div className="text-muted-foreground mb-7 flex flex-wrap items-center justify-between gap-2 text-xs">
+      <div className="mb-7 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         <span role="status">
-          {t.showing} <span className="text-foreground font-medium tabular-nums">{results.length}</span> /{' '}
+          {t.showing} <span className="font-medium text-foreground tabular-nums">{results.length}</span> /{' '}
           {catalog.icons.length}
         </span>
-        <a download href="/assets/icons/catalog.json" className="hover:text-foreground transition-colors">
+        <a download href="/assets/icons/catalog.json" className="transition-colors hover:text-foreground">
           {zh ? '下载元数据 JSON ↗' : 'Download metadata JSON ↗'}
         </a>
       </div>
@@ -378,12 +378,12 @@ export function IconsGallery({ locale = 'en-US' }: { locale?: Locale }) {
           >
             <div className="mb-4 flex items-center gap-3">
               <h2 className="flex items-baseline gap-2 text-sm font-semibold">
-                <span className="text-muted-foreground font-normal">{t[style as 'single' | 'double' | 'multi']}</span>
+                <span className="font-normal text-muted-foreground">{t[style as 'single' | 'double' | 'multi']}</span>
                 <span className="text-border">/</span>
                 {categoryLabel(category)}
               </h2>
-              <span className="text-muted-foreground text-xs tabular-nums">{items.length}</span>
-              <div className="bg-border/60 h-px flex-1" />
+              <span className="text-xs text-muted-foreground tabular-nums">{items.length}</span>
+              <div className="h-px flex-1 bg-border/60" />
             </div>
             <ul className="grid list-none grid-cols-[repeat(auto-fill,minmax(128px,1fr))] gap-3 p-0">
               {items.map((item) => {
@@ -395,21 +395,21 @@ export function IconsGallery({ locale = 'en-US' }: { locale?: Locale }) {
                       onClick={() => copyIcon(item.componentName)}
                       aria-label={`${t.copyImport}: ${item.componentName}`}
                       title={item.description}
-                      className="group border-border/70 bg-background hover:border-foreground/25 hover:bg-muted/30 focus-visible:ring-ring relative flex h-full min-h-36 w-full flex-col overflow-hidden rounded-lg border p-2 text-center transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                      className="group relative flex h-full min-h-36 w-full flex-col overflow-hidden rounded-lg border border-border/70 bg-background p-2 text-center transition-colors hover:border-foreground/25 hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     >
-                      <span className="bg-muted/30 mb-2 grid h-20 w-full place-items-center rounded-md">
+                      <span className="mb-2 grid h-20 w-full place-items-center rounded-md bg-muted/30">
                         <Icon
                           style={{ color, fontSize: size }}
                           extend={{ colorChannel1: channel }}
                           preserveStrokeWidth={preserveStrokeWidth}
                         />
                       </span>
-                      <span className="text-foreground px-1 pb-1 font-mono text-[11px] leading-4 break-all">
+                      <span className="px-1 pb-1 font-mono text-[11px] leading-4 break-all text-foreground">
                         {item.componentName}
                       </span>
                       <span
                         className={clsx(
-                          'bg-background/90 absolute top-3 right-3 grid size-5 place-items-center rounded',
+                          'absolute top-3 right-3 grid size-5 place-items-center rounded bg-background/90',
                           copied === item.componentName
                             ? 'text-foreground'
                             : 'text-muted-foreground opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100',
@@ -424,7 +424,7 @@ export function IconsGallery({ locale = 'en-US' }: { locale?: Locale }) {
                       {item.preserveStrokeWidthSupport === 'full' ? (
                         <span
                           title={zh ? '支持保持描边宽度' : 'Supports fixed stroke width'}
-                          className="text-muted-foreground/60 absolute top-3 left-3"
+                          className="absolute top-3 left-3 text-muted-foreground/60"
                         >
                           <ScanLineIcon className="size-3" />
                         </span>
@@ -445,7 +445,7 @@ export function IconsGallery({ locale = 'en-US' }: { locale?: Locale }) {
       {results.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center">
           <p>{t.emptyTitle}</p>
-          <p className="text-muted-foreground mt-2 text-sm">{t.emptyHint}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t.emptyHint}</p>
           <Button
             variant="outline"
             className="mt-4"

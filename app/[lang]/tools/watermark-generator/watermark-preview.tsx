@@ -71,7 +71,7 @@ export function WatermarkPreview({ kind, settings, image, userName }: IWatermark
         <canvas ref={canvasRef} className="absolute inset-0 size-full" role="img" aria-label={t('preview')} />
       </div>
       {dense && (
-        <p role="alert" className="text-destructive border-t p-3 text-xs">
+        <p role="alert" className="border-t p-3 text-xs text-destructive">
           {t('dense')}
         </p>
       )}

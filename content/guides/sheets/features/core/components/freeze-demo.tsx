@@ -105,7 +105,7 @@ export function FreezeDemo() {
   const columns = Array.from({ length: 8 - firstColumn }, (_, i) => firstColumn + i)
 
   return (
-    <section aria-label={title} className="not-prose bg-card my-6 space-y-4 rounded-xl border p-4 text-sm sm:p-5">
+    <section aria-label={title} className="not-prose my-6 space-y-4 rounded-xl border bg-card p-4 text-sm sm:p-5">
       <div className="space-y-1">
         <p className="font-medium">{title}</p>
         <p className="text-muted-foreground">{description}</p>
@@ -131,17 +131,17 @@ export function FreezeDemo() {
         role="region"
         aria-label={text[4]}
         tabIndex={0}
-        className="focus-visible:outline-ring h-64 overflow-auto rounded-md border focus-visible:outline-2"
+        className="h-64 overflow-auto rounded-md border focus-visible:outline-2 focus-visible:outline-ring"
       >
         <table className="w-max table-fixed border-separate border-spacing-0 text-center text-xs">
           <thead>
             <tr>
-              <th className="bg-muted sticky top-0 left-0 z-30 h-8 min-w-10 border-r border-b" aria-label="#" />
+              <th className="sticky top-0 left-0 z-30 h-8 min-w-10 border-r border-b bg-muted" aria-label="#" />
               {columns.map((column) => (
                 <th
                   key={column}
                   scope="col"
-                  className="bg-muted sticky top-0 z-20 h-8 min-w-28 border-r border-b font-medium"
+                  className="sticky top-0 z-20 h-8 min-w-28 border-r border-b bg-muted font-medium"
                   style={{
                     left: column < freeze.startColumn ? 40 + (column - firstColumn) * 112 : undefined,
                     zIndex: column < freeze.startColumn ? 25 : 20,
@@ -157,7 +157,7 @@ export function FreezeDemo() {
               <tr key={row}>
                 <th
                   scope="row"
-                  className="bg-muted sticky left-0 z-20 h-9 min-w-10 border-r border-b font-medium"
+                  className="sticky left-0 z-20 h-9 min-w-10 border-r border-b bg-muted font-medium"
                   style={{
                     top: row < freeze.startRow ? 32 + (row - firstRow) * 36 : undefined,
                     zIndex: row < freeze.startRow ? 25 : 20,
@@ -174,7 +174,7 @@ export function FreezeDemo() {
                       className={clsx(
                         'h-9 min-w-28 border-r border-b',
                         frozenRow || frozenColumn
-                          ? 'bg-accent text-accent-foreground sticky'
+                          ? 'sticky bg-accent text-accent-foreground'
                           : 'bg-background text-muted-foreground',
                       )}
                       style={{
@@ -193,8 +193,8 @@ export function FreezeDemo() {
           </tbody>
         </table>
       </div>
-      <pre className="bg-muted overflow-x-auto rounded-md p-3 text-xs">{JSON.stringify(freeze, null, 2)}</pre>
-      <p className="text-muted-foreground text-xs leading-5">{text[5]}</p>
+      <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">{JSON.stringify(freeze, null, 2)}</pre>
+      <p className="text-xs leading-5 text-muted-foreground">{text[5]}</p>
     </section>
   )
 }

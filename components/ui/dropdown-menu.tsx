@@ -1,7 +1,6 @@
 'use client'
 
 import * as BaseMenu from '@base-ui/react/menu'
-
 import { clsx } from '@/lib/clsx'
 
 function DropdownMenu({ ...props }: BaseMenu.Menu.Root.Props) {
@@ -32,7 +31,7 @@ function DropdownMenuContent({
         <BaseMenu.Menu.Popup
           data-slot="dropdown-menu-content"
           className={clsx(
-            `bg-popover text-popover-foreground data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 min-w-40 origin-(--transform-origin) overflow-hidden rounded-md border p-1 shadow-md outline-none`,
+            `min-w-40 origin-(--transform-origin) overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md outline-none data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2`,
             className,
           )}
           {...props}
@@ -47,7 +46,7 @@ function DropdownMenuItem({ className, ...props }: BaseMenu.Menu.Item.Props) {
     <BaseMenu.Menu.Item
       data-slot="dropdown-menu-item"
       className={clsx(
-        `data-highlighted:bg-accent data-highlighted:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0`,
+        `relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-disabled:pointer-events-none data-disabled:opacity-50 data-highlighted:bg-accent data-highlighted:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0`,
         className,
       )}
       {...props}

@@ -1,7 +1,6 @@
 'use client'
 
 import { LanguagesIcon } from 'lucide-react'
-
 import type { Locale } from '@/i18n/routing'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -31,7 +30,7 @@ export function SiteLanguageSwitcher({
         render={
           <Button
             aria-label={label}
-            className="text-muted-foreground size-8"
+            className="size-8 text-muted-foreground"
             size="icon"
             type="button"
             variant="ghost"
@@ -44,7 +43,7 @@ export function SiteLanguageSwitcher({
         {locales.map(({ displayName, locale }) => (
           <DropdownMenuItem key={locale} render={<Link className="justify-between" href={pathname} locale={locale} />}>
             <span>{displayName}</span>
-            {locale === lang ? <span className="text-muted-foreground text-xs">{currentLabel}</span> : null}
+            {locale === lang ? <span className="text-xs text-muted-foreground">{currentLabel}</span> : null}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

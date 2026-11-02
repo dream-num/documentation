@@ -116,7 +116,7 @@ export function StylePriorityDemo() {
   const winner = cellStyle ? 3 : rowPriority ? 1 : 2
 
   return (
-    <section aria-label={text[0]} className="not-prose bg-card my-6 space-y-4 rounded-xl border p-4 text-sm sm:p-5">
+    <section aria-label={text[0]} className="not-prose my-6 space-y-4 rounded-xl border bg-card p-4 text-sm sm:p-5">
       <div className="space-y-1">
         <p className="font-medium">{text[0]}</p>
         <p className="text-muted-foreground">{text[1]}</p>
@@ -131,7 +131,7 @@ export function StylePriorityDemo() {
           {text[3]}
         </label>
       </div>
-      <div className="bg-border grid grid-cols-3 gap-px overflow-hidden rounded-md border">
+      <div className="grid grid-cols-3 gap-px overflow-hidden rounded-md border bg-border">
         {[0, 1, 2].flatMap((row) =>
           [0, 1, 2].map((column) => {
             const source = row === 1 && column === 1 ? winner : row === 1 ? 1 : column === 1 ? 2 : 0
@@ -148,8 +148,8 @@ export function StylePriorityDemo() {
       <p role="status" className="font-medium">
         {text[8]}: {text[winner + 4]}
       </p>
-      <pre className="bg-muted overflow-x-auto rounded-md p-3 text-xs">{`isRowStylePrecedeColumnStyle: ${rowPriority}`}</pre>
-      <p className="text-muted-foreground text-xs leading-5">{text[9]}</p>
+      <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">{`isRowStylePrecedeColumnStyle: ${rowPriority}`}</pre>
+      <p className="text-xs leading-5 text-muted-foreground">{text[9]}</p>
     </section>
   )
 }

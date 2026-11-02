@@ -129,7 +129,7 @@ export function FilterSortDemo() {
     .toSorted((a, b) => (sort === 0 ? a.id - b.id : sort === 1 ? a.progress - b.progress : b.progress - a.progress))
 
   return (
-    <section aria-label={text[0]} className="not-prose bg-card my-6 space-y-4 rounded-xl border p-4 text-sm sm:p-5">
+    <section aria-label={text[0]} className="not-prose my-6 space-y-4 rounded-xl border bg-card p-4 text-sm sm:p-5">
       <div className="space-y-1">
         <p className="font-medium">{text[0]}</p>
         <p className="text-muted-foreground">{text[1]}</p>
@@ -169,8 +169,8 @@ export function FilterSortDemo() {
                 <td className="px-3 py-2">{record.course}</td>
                 <td className="min-w-28 px-3 py-2">
                   <div className="flex items-center gap-2">
-                    <div aria-hidden="true" className="bg-muted h-1.5 flex-1 overflow-hidden rounded-full">
-                      <div className="bg-primary h-full" style={{ width: `${record.progress}%` }} />
+                    <div aria-hidden="true" className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full bg-primary" style={{ width: `${record.progress}%` }} />
                     </div>
                     <span className="w-9 text-right tabular-nums">{record.progress}%</span>
                   </div>
@@ -183,7 +183,7 @@ export function FilterSortDemo() {
       <p role="status" className="font-medium">
         {text[9]}: {visible.length} / {records.length}
       </p>
-      <p className="text-muted-foreground text-xs leading-5">{text[10]}</p>
+      <p className="text-xs leading-5 text-muted-foreground">{text[10]}</p>
     </section>
   )
 }

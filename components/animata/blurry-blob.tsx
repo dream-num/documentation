@@ -1,5 +1,4 @@
 import type { HTMLAttributes } from 'react'
-
 import { clsx } from '@/lib/clsx'
 
 interface BlobProps extends HTMLAttributes<HTMLDivElement> {
@@ -13,14 +12,14 @@ export default function BlurryBlob({ className, firstBlobColor, secondBlobColor 
       <div className="relative w-full max-w-lg">
         <div
           className={clsx(
-            `animate-blurry-blob absolute -top-28 -right-24 size-72 rounded-sm bg-blue-400 p-8 opacity-45 mix-blend-multiply blur-3xl`,
+            `absolute -top-28 -right-24 size-72 animate-blurry-blob rounded-sm bg-blue-400 p-8 opacity-45 mix-blend-multiply blur-3xl`,
             className,
             firstBlobColor,
           )}
         />
         <div
           className={clsx(
-            `animate-blurry-blob absolute -top-64 -left-40 size-72 rounded-sm bg-purple-400 p-8 opacity-45 mix-blend-multiply blur-3xl`,
+            `absolute -top-64 -left-40 size-72 animate-blurry-blob rounded-sm bg-purple-400 p-8 opacity-45 mix-blend-multiply blur-3xl`,
             className,
             secondBlobColor,
           )}

@@ -4,7 +4,6 @@ import { Moon, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { flushSync } from 'react-dom'
-
 import { Button } from '@/components/ui/button'
 
 const THEME_TRANSITION_DURATION = 400
@@ -107,7 +106,7 @@ export function ThemeSwitcher({ label }: { label: string }) {
     <Button
       ref={buttonRef}
       aria-label={label}
-      className="text-muted-foreground size-8"
+      className="size-8 text-muted-foreground"
       variant="ghost"
       size="icon"
       disabled={!mounted}

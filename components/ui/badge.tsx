@@ -2,7 +2,6 @@ import type { VariantProps } from 'class-variance-authority'
 import { mergeProps } from '@base-ui/react/merge-props'
 import { useRender } from '@base-ui/react/use-render'
 import { cva } from 'class-variance-authority'
-
 import { clsx } from '@/lib/clsx'
 
 const badgeVariants = cva(
@@ -29,7 +28,7 @@ const badgeVariants = cva(
             border-transparent bg-destructive text-white
             focus-visible:ring-destructive/20
             dark:bg-destructive/60
-            focus-visible:dark:ring-destructive/40
+            dark:focus-visible:ring-destructive/40
             [a&]:hover:bg-destructive/90
           `,
         outline: `
