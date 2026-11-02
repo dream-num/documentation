@@ -2,7 +2,6 @@
 
 import { useLocale, useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
-
 import type { IGeneratorOptions, Product } from '@/lib/tools/initialization-generator'
 import type messages from '@/messages/en-US'
 import { CodePreview } from '@/components/tools/code-preview'
@@ -194,7 +193,7 @@ export function InitializationGeneratorTool() {
                       {featureLabel(feature.label)}
                     </label>
                     {getFeatureAvailability(feature, options) && (
-                      <span className="text-muted-foreground text-[10px]">
+                      <span className="text-[10px] text-muted-foreground">
                         {t(`unavailable-${getFeatureAvailability(feature, options) as 'version' | 'mobile'}`)}
                       </span>
                     )}
@@ -215,7 +214,7 @@ export function InitializationGeneratorTool() {
             />
             <label htmlFor="generator-umd">{t('umd')}</label>
           </div>
-          {requirements.license && <p className="text-muted-foreground text-xs leading-5">{t('license-note')}</p>}
+          {requirements.license && <p className="text-xs leading-5 text-muted-foreground">{t('license-note')}</p>}
         </section>
         <section className="min-w-0 space-y-3">
           <div className="overflow-hidden rounded-md border">
@@ -260,7 +259,7 @@ export function InitializationGeneratorTool() {
           <CodePreview
             code={`node create-univer-project.mjs\ncd univer-starter\nnpm install\nnpm run ${options.umd ? 'build\nnpm run dev' : 'dev'}`}
             language="bash"
-            className="bg-muted/40 rounded-md"
+            className="rounded-md bg-muted/40"
           />
         </section>
       </div>

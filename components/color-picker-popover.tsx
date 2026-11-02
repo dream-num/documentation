@@ -3,7 +3,6 @@
 import type { ColorLike } from 'color'
 import Color from 'color'
 import { useMemo, useState } from 'react'
-
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
@@ -57,7 +56,7 @@ export function ColorPickerPopover({
             aria-label={ariaLabel}
             variant="outline"
             size="icon"
-            className={clsx('border-border/80 hover:border-foreground/50 size-7', className)}
+            className={clsx('size-7 border-border/80 hover:border-foreground/50', className)}
             style={{ backgroundColor: hexValue }}
             title={hexValue}
             type="button"

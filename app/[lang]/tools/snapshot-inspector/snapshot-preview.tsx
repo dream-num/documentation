@@ -4,7 +4,6 @@ import type { ReactNode } from 'react'
 import { defaultTheme } from '@univerjs/themes'
 import { useTranslations } from 'next-intl'
 import { Component } from 'react'
-
 import { RealUniverPreview } from '../theme-customizer/real-univer-preview'
 
 class PreviewBoundary extends Component<{ children: ReactNode; message: string }, { failed: boolean }> {
@@ -14,7 +13,7 @@ class PreviewBoundary extends Component<{ children: ReactNode; message: string }
   }
   render() {
     return this.state.failed ? (
-      <p role="alert" className="text-destructive rounded-lg border p-4 text-sm">
+      <p role="alert" className="rounded-lg border p-4 text-sm text-destructive">
         {this.props.message}
       </p>
     ) : (

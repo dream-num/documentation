@@ -4,7 +4,6 @@ import { ChevronDownIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useRef, useState } from 'react'
-
 import type { ISnapshotReport } from '@/lib/tools/snapshot-inspector'
 import { FileActions } from '@/components/tools/file-actions'
 import { Badge } from '@/components/ui/badge'
@@ -138,7 +137,7 @@ export function SnapshotInspectorTool() {
             <Button size="sm" variant="ghost" onClick={() => update('')}>
               {t('clear')}
             </Button>
-            <span className="text-muted-foreground ml-auto text-xs">{t('local-only')}</span>
+            <span className="ml-auto text-xs text-muted-foreground">{t('local-only')}</span>
           </div>
         </section>
         <section className="min-w-0 space-y-3 rounded-md border p-3" aria-live="polite">
@@ -150,9 +149,9 @@ export function SnapshotInspectorTool() {
               </Badge>
             )}
           </div>
-          <p className="text-muted-foreground text-xs leading-5">{t('checks-note')}</p>
+          <p className="text-xs leading-5 text-muted-foreground">{t('checks-note')}</p>
           {error && (
-            <p role="alert" className="text-destructive text-sm">
+            <p role="alert" className="text-sm text-destructive">
               {error}
             </p>
           )}
@@ -161,7 +160,7 @@ export function SnapshotInspectorTool() {
               <dl className="flex flex-wrap gap-x-5 gap-y-2 border-y py-3">
                 {Object.entries(result.report.counts).map(([key, count]) => (
                   <div key={key}>
-                    <dt className="text-muted-foreground text-xs">
+                    <dt className="text-xs text-muted-foreground">
                       {t(key === 'resources' ? 'resource-count' : (key as keyof ISnapshotReport['counts']))}
                     </dt>
                     <dd className="text-sm font-semibold tabular-nums">{count.toLocaleString()}</dd>
@@ -181,7 +180,7 @@ export function SnapshotInspectorTool() {
                       }}
                     >
                       <span>{t(`diagnostics.${issue.code}`)}</span>
-                      <code className="text-muted-foreground mt-0.5 block break-all">{issue.path}</code>
+                      <code className="mt-0.5 block break-all text-muted-foreground">{issue.path}</code>
                     </li>
                   ))}
                 </ul>
@@ -198,7 +197,7 @@ export function SnapshotInspectorTool() {
                     {result.report.sections.map((section) => (
                       <div key={section.name} className="flex justify-between gap-3 text-xs">
                         <dt className="truncate font-mono">{section.name}</dt>
-                        <dd className="text-muted-foreground shrink-0 tabular-nums">
+                        <dd className="shrink-0 text-muted-foreground tabular-nums">
                           {section.bytes.toLocaleString()} B
                         </dd>
                       </div>
@@ -223,7 +222,7 @@ export function SnapshotInspectorTool() {
                   downloadLabel={t('download')}
                 />
               </div>
-              <p className="text-muted-foreground text-xs leading-5">{t('preview-note')}</p>
+              <p className="text-xs leading-5 text-muted-foreground">{t('preview-note')}</p>
             </>
           )}
         </section>

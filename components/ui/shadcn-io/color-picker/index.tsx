@@ -5,7 +5,6 @@ import * as BaseSlider from '@base-ui/react/slider'
 import Color from 'color'
 import { PipetteIcon } from 'lucide-react'
 import { createContext, memo, use, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -194,7 +193,7 @@ export function ColorPickerHue({ className, 'aria-label': ariaLabel = 'Hue', ...
         </BaseSlider.Slider.Track>
         <BaseSlider.Slider.Thumb
           aria-label={ariaLabel}
-          className={`border-primary/50 bg-background focus-visible:ring-ring block size-4 rounded-full border shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50`}
+          className={`block size-4 rounded-full border border-primary/50 bg-background shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50`}
         />
       </BaseSlider.Slider.Control>
     </BaseSlider.Slider.Root>
@@ -228,7 +227,7 @@ export function ColorPickerAlpha({ className, 'aria-label': ariaLabel = 'Opacity
         </BaseSlider.Slider.Track>
         <BaseSlider.Slider.Thumb
           aria-label={ariaLabel}
-          className={`border-primary/50 bg-background focus-visible:ring-ring block size-4 rounded-full border shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50`}
+          className={`block size-4 rounded-full border border-primary/50 bg-background shadow-sm transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50`}
         />
       </BaseSlider.Slider.Control>
     </BaseSlider.Slider.Root>
@@ -259,7 +258,7 @@ export function ColorPickerEyeDropper({ className, ...props }: ColorPickerEyeDro
 
   return (
     <Button
-      className={clsx('text-muted-foreground shrink-0', className)}
+      className={clsx('shrink-0 text-muted-foreground', className)}
       onClick={handleEyeDropper}
       size="icon"
       variant="outline"
@@ -310,9 +309,9 @@ function PercentageInput({ className, ...props }: PercentageInputProps) {
         readOnly
         type="text"
         {...props}
-        className={clsx('bg-secondary h-8 w-13 rounded-l-none px-2 text-xs shadow-none', className)}
+        className={clsx('h-8 w-13 rounded-l-none bg-secondary px-2 text-xs shadow-none', className)}
       />
-      <span className="text-muted-foreground absolute top-1/2 right-2 -translate-y-1/2 text-xs">%</span>
+      <span className="absolute top-1/2 right-2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
     </div>
   )
 }
@@ -328,7 +327,7 @@ export function ColorPickerFormat({ className, ...props }: ColorPickerFormatProp
 
     return (
       <div className={clsx('relative flex w-full items-center -space-x-px rounded-md shadow-sm', className)} {...props}>
-        <Input className="bg-secondary h-8 rounded-r-none px-2 text-xs shadow-none" readOnly type="text" value={hex} />
+        <Input className="h-8 rounded-r-none bg-secondary px-2 text-xs shadow-none" readOnly type="text" value={hex} />
         <PercentageInput value={alpha} />
       </div>
     )
@@ -345,7 +344,7 @@ export function ColorPickerFormat({ className, ...props }: ColorPickerFormatProp
         {['red', 'green', 'blue'].map((channel, index) => (
           <Input
             className={clsx(
-              'bg-secondary h-8 rounded-r-none px-2 text-xs shadow-none',
+              'h-8 rounded-r-none bg-secondary px-2 text-xs shadow-none',
               index && 'rounded-l-none',
               className,
             )}
@@ -364,7 +363,7 @@ export function ColorPickerFormat({ className, ...props }: ColorPickerFormatProp
     return (
       <div className={clsx('w-full rounded-md shadow-sm', className)} {...props}>
         <Input
-          className="bg-secondary h-8 w-full px-2 text-xs shadow-none"
+          className="h-8 w-full bg-secondary px-2 text-xs shadow-none"
           readOnly
           type="text"
           value={color.rgb().round().string()}
@@ -385,7 +384,7 @@ export function ColorPickerFormat({ className, ...props }: ColorPickerFormatProp
         {['hue', 'saturation', 'lightness'].map((channel, index) => (
           <Input
             className={clsx(
-              'bg-secondary h-8 rounded-r-none px-2 text-xs shadow-none',
+              'h-8 rounded-r-none bg-secondary px-2 text-xs shadow-none',
               index && 'rounded-l-none',
               className,
             )}

@@ -20,7 +20,7 @@ export function DocsImage({
 
   return (
     <ImagePreview src={resolvedSrc} alt={alt} className="my-6">
-      <img className={clsx('bg-card rounded-lg border', className)} src={resolvedSrc} alt={alt} {...props} />
+      <img className={clsx('rounded-lg border bg-card', className)} src={resolvedSrc} alt={alt} {...props} />
     </ImagePreview>
   )
 }

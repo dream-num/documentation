@@ -1,7 +1,6 @@
 import { ArrowUpRightIcon, RssIcon } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
-
 import type { Locale } from '@/i18n/routing'
 import { Footer } from '@/components/footer'
 import { formatLocalDate } from '@/lib/dayjs'
@@ -56,11 +55,11 @@ export default async function Page({ params }: IProps) {
   return (
     <>
       <main className="mx-auto w-full max-w-6xl px-4 pt-8 pb-16 md:pt-10 md:pb-20">
-        <header className="border-foreground flex items-end justify-between gap-6 border-b-2 pb-4">
+        <header className="flex items-end justify-between gap-6 border-b-2 border-foreground pb-4">
           <h1 className="text-2xl leading-none font-semibold tracking-tight md:text-3xl">{t('blog.title')}</h1>
 
           <Link
-            className="group hover:border-foreground hover:text-foreground focus-visible:ring-ring inline-flex min-h-11 items-center gap-2 border-b border-transparent text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            className="group inline-flex min-h-11 items-center gap-2 border-b border-transparent text-sm font-medium transition-colors hover:border-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             href={withLocale(lang, '/blog/rss.xml')}
             target="_blank"
             rel="nofollow noreferrer"
@@ -88,16 +87,16 @@ export default async function Page({ params }: IProps) {
                   {postsInYear.map((post) => (
                     <li key={post.url}>
                       <Link
-                        className="group focus-visible:ring-ring relative grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-2 py-3 pr-1 pl-3 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset sm:grid-cols-[9rem_minmax(0,1fr)_auto] sm:items-center sm:gap-x-6"
+                        className="group relative grid min-h-12 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-2 py-3 pr-1 pl-3 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset sm:grid-cols-[9rem_minmax(0,1fr)_auto] sm:items-center sm:gap-x-6"
                         href={withLocale(lang, stripLocalePrefix(post.url))}
                       >
                         <span
                           aria-hidden
-                          className="bg-foreground absolute inset-y-3 left-0 w-0.5 origin-center scale-y-0 transition-transform group-hover:scale-y-100 motion-reduce:transition-none"
+                          className="absolute inset-y-3 left-0 w-0.5 origin-center scale-y-0 bg-foreground transition-transform group-hover:scale-y-100 motion-reduce:transition-none"
                         />
 
                         <time
-                          className="text-muted-foreground text-sm tabular-nums"
+                          className="text-sm text-muted-foreground tabular-nums"
                           dateTime={formatDateTime(post.data.date)}
                         >
                           <bdo dir="ltr">{formatLocalDate(post.data.date, lang)}</bdo>
@@ -107,7 +106,7 @@ export default async function Page({ params }: IProps) {
                           {post.data.title}
                         </h3>
 
-                        <span className="text-muted-foreground col-start-2 row-start-1 inline-flex max-w-60 items-center justify-end gap-2 text-right text-sm sm:col-start-3">
+                        <span className="col-start-2 row-start-1 inline-flex max-w-60 items-center justify-end gap-2 text-right text-sm text-muted-foreground sm:col-start-3">
                           <span className="wrap-break-word">{post.data.author}</span>
                           <ArrowUpRightIcon
                             aria-hidden

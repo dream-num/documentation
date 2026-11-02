@@ -105,11 +105,11 @@ export function PermissionShadowDemo() {
   return (
     <section
       aria-label={text.title}
-      className="not-prose border-border bg-card text-card-foreground my-6 space-y-4 rounded-xl border p-4 sm:p-5"
+      className="not-prose my-6 space-y-4 rounded-xl border border-border bg-card p-4 text-card-foreground sm:p-5"
     >
       <div className="space-y-1">
         <p className="text-sm font-medium">{text.title}</p>
-        <p className="text-muted-foreground text-sm">{text.description}</p>
+        <p className="text-sm text-muted-foreground">{text.description}</p>
       </div>
       <div role="group" aria-label={text.strategy} className="flex flex-wrap gap-2">
         {strategies.map((value) => (
@@ -137,22 +137,22 @@ export function PermissionShadowDemo() {
           return (
             <div key={area.range} className="min-w-0 space-y-2">
               <p className="flex min-h-10 items-end text-xs leading-5 font-medium">{text.areas[index]}</p>
-              <div className="border-border bg-background overflow-hidden rounded-md border">
-                <div className="border-border bg-muted text-muted-foreground border-b px-2 py-1 text-center font-mono text-xs">
+              <div className="overflow-hidden rounded-md border border-border bg-background">
+                <div className="border-b border-border bg-muted px-2 py-1 text-center font-mono text-xs text-muted-foreground">
                   {area.range}
                 </div>
                 <div aria-hidden="true" className="relative grid grid-cols-2">
                   {Array.from({ length: 6 }, (_, cell) => (
                     <div
                       key={cell}
-                      className="border-border text-muted-foreground flex h-9 items-center justify-center text-xs [&:nth-child(-n+4)]:border-b [&:nth-child(odd)]:border-r"
+                      className="flex h-9 items-center justify-center border-border text-xs text-muted-foreground odd:border-r nth-[-n+4]:border-b"
                     >
                       {area.canView ? (cell + 1) * 120 : <EyeOff className="size-3.5" />}
                     </div>
                   ))}
                   {shadow && (
                     <div
-                      className="text-muted-foreground pointer-events-none absolute inset-0 opacity-30"
+                      className="pointer-events-none absolute inset-0 text-muted-foreground opacity-30"
                       style={{
                         backgroundImage: 'repeating-linear-gradient(135deg, transparent 0 5px, currentColor 5px 7px)',
                       }}
@@ -160,15 +160,15 @@ export function PermissionShadowDemo() {
                   )}
                 </div>
               </div>
-              <p className="text-muted-foreground text-xs">{shadow ? text.shadow : text.clear}</p>
+              <p className="text-xs text-muted-foreground">{shadow ? text.shadow : text.clear}</p>
             </div>
           )
         })}
       </div>
-      <div className="bg-muted overflow-x-auto rounded-md px-3 py-2 font-mono text-xs">
+      <div className="overflow-x-auto rounded-md bg-muted px-3 py-2 font-mono text-xs">
         protectedRangeShadow: '{strategy}'
       </div>
-      <p className="text-muted-foreground text-xs leading-5">{text.note}</p>
+      <p className="text-xs leading-5 text-muted-foreground">{text.note}</p>
     </section>
   )
 }

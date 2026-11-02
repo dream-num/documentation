@@ -14,10 +14,8 @@ import {
 } from '@icons-pack/react-simple-icons'
 import { CodeXml } from 'lucide-react'
 import { isValidElement } from 'react'
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { clsx } from '@/lib/clsx'
-
 import { CollapsibleCode } from './collapsible-code'
 import { CopyCodeButton } from './copy-code-button'
 
@@ -27,7 +25,7 @@ export function InlineCode({ className, ...props }: ComponentProps<'code'>) {
   return (
     <code
       className={clsx(
-        'bg-muted text-foreground rounded px-1.5 py-0.5 font-mono text-sm font-medium wrap-anywhere',
+        'rounded bg-muted px-1.5 py-0.5 font-mono text-sm font-medium wrap-anywhere text-foreground',
         className,
       )}
       {...props}
@@ -51,7 +49,7 @@ export function CodeBlockTabs({ children, className, defaultValue, ...props }: C
 
   return (
     <Tabs
-      className={clsx('bg-card my-6 gap-0 overflow-hidden rounded-md border', className)}
+      className={clsx('my-6 gap-0 overflow-hidden rounded-md border bg-card', className)}
       defaultValue={defaultValue ?? findFirstTabValue(children)}
       {...props}
     >
@@ -63,7 +61,7 @@ export function CodeBlockTabs({ children, className, defaultValue, ...props }: C
 export function CodeBlockTabsList({ className, ...props }: ComponentProps<typeof TabsList>) {
   return (
     <TabsList
-      className={clsx('bg-muted/60 h-auto w-full justify-start overflow-x-auto rounded-none border-b p-1', className)}
+      className={clsx('h-auto w-full justify-start overflow-x-auto rounded-none border-b bg-muted/60 p-1', className)}
       {...props}
     />
   )
@@ -174,8 +172,8 @@ export function CodeBlock({
       className="group relative my-6 overflow-hidden rounded-lg border border-(--separator) bg-(--code) shadow-sm"
       data-code-block
     >
-      <div className="bg-muted/50 flex h-9 items-center justify-between border-b border-[var(--separator)] px-2">
-        <span className="text-muted-foreground inline-flex items-center gap-2 px-2 text-sm font-medium">
+      <div className="flex h-9 items-center justify-between border-b border-[var(--separator)] bg-muted/50 px-2">
+        <span className="inline-flex items-center gap-2 px-2 text-sm font-medium text-muted-foreground">
           <LanguageIcon aria-hidden="true" className="size-3.5 shrink-0" />
           {language}
         </span>

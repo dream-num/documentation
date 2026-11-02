@@ -3,7 +3,6 @@
 import { SiGithub } from '@icons-pack/react-simple-icons'
 import { ChevronDown, FileText } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 interface IDocsPageActionsProps {
@@ -18,7 +17,7 @@ export function DocsPageActions({ markdownUrl, githubUrl }: IDocsPageActionsProp
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={t('page-actions')}
-        className="bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-primary ml-auto inline-flex h-8 items-center gap-2 rounded-md border px-2.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+        className="ml-auto inline-flex h-8 items-center gap-2 rounded-md border bg-card px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <FileText aria-hidden="true" className="size-3.5" />
         {t('page-actions')}

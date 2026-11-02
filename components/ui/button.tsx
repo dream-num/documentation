@@ -1,7 +1,6 @@
 import type { VariantProps } from 'class-variance-authority'
 import * as BaseButton from '@base-ui/react/button'
 import { cva } from 'class-variance-authority'
-
 import { clsx } from '@/lib/clsx'
 
 const buttonVariants = cva(
@@ -27,13 +26,13 @@ const buttonVariants = cva(
             hover:bg-destructive/90
             focus-visible:ring-destructive/20
             dark:bg-destructive/60
-            focus-visible:dark:ring-destructive/40
+            dark:focus-visible:ring-destructive/40
           `,
         outline: `
             border bg-background shadow-xs
             hover:bg-accent hover:text-accent-foreground
             dark:border-input dark:bg-input/30
-            hover:dark:bg-input/50
+            dark:hover:bg-input/50
           `,
         secondary: `
             bg-secondary text-secondary-foreground shadow-xs
@@ -41,7 +40,7 @@ const buttonVariants = cva(
           `,
         ghost: `
             hover:bg-accent hover:text-accent-foreground
-            hover:dark:bg-accent/50
+            dark:hover:bg-accent/50
           `,
         link: `
           text-primary underline-offset-4

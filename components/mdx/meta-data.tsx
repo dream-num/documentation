@@ -17,7 +17,6 @@ import {
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
-
 import { Tooltip } from '@/components/tooltip'
 import { Link } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
@@ -63,7 +62,7 @@ function CopyableTag({
           'focus-visible:ring-primary/50',
           copied
             ? `border-green-200 bg-green-50 text-green-600 dark:border-green-900/50 dark:bg-green-900/20 dark:text-green-400`
-            : `border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-700 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400 hover:dark:border-neutral-600 hover:dark:bg-neutral-800 hover:dark:text-neutral-200`,
+            : `border-neutral-200 bg-white text-neutral-500 hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-700 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:border-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-200`,
         )}
       >
         {copied ? <Check className="size-3" /> : <Icon className="size-3" />}
@@ -109,7 +108,7 @@ function PackageRow({
         <div className="flex min-w-0 items-center">
           <Tooltip content={copied ? labels.copied : client}>
             <button
-              className="group relative flex max-w-full cursor-pointer items-center gap-1 rounded-sm bg-neutral-100 px-1.5 py-0.5 font-mono text-xs text-neutral-700 transition-colors hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-300 hover:dark:bg-neutral-800"
+              className="group relative flex max-w-full cursor-pointer items-center gap-1 rounded-sm bg-neutral-100 px-1.5 py-0.5 font-mono text-xs text-neutral-700 transition-colors hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800"
               type="button"
               onClick={handleCopyClient}
             >
@@ -214,7 +213,7 @@ export function MetaData(props: {
                   'focus-visible:ring-primary/50',
                   mode === 'plugin'
                     ? `bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white`
-                    : `text-neutral-500 hover:bg-neutral-200/50 dark:text-neutral-400 hover:dark:bg-neutral-700/50`,
+                    : `text-neutral-500 hover:bg-neutral-200/50 dark:text-neutral-400 dark:hover:bg-neutral-700/50`,
                 )}
                 onClick={() => setMode('plugin')}
               >
@@ -228,7 +227,7 @@ export function MetaData(props: {
                   'focus-visible:ring-primary/50',
                   mode === 'preset'
                     ? `bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white`
-                    : `text-neutral-500 hover:bg-neutral-200/50 dark:text-neutral-400 hover:dark:bg-neutral-700/50`,
+                    : `text-neutral-500 hover:bg-neutral-200/50 dark:text-neutral-400 dark:hover:bg-neutral-700/50`,
                 )}
               >
                 <Box className="size-3.5" />

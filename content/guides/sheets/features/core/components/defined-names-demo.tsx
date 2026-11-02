@@ -50,7 +50,7 @@ export function DefinedNamesDemo() {
             </div>
             <button
               type="button"
-              className="mt-1 w-full rounded px-2 py-1.5 text-left text-blue-600 hover:bg-blue-50 focus-visible:outline-2 dark:text-blue-400 hover:dark:bg-blue-950"
+              className="mt-1 w-full rounded px-2 py-1.5 text-left text-blue-600 hover:bg-blue-50 focus-visible:outline-2 dark:text-blue-400 dark:hover:bg-blue-950"
               onClick={(event) => {
                 setManagerOpen(true)
                 event.currentTarget.closest('details')?.removeAttribute('open')
@@ -81,7 +81,7 @@ export function DefinedNamesDemo() {
                 type="button"
                 aria-label={closeManager}
                 autoFocus
-                className="flex size-7 items-center justify-center rounded text-neutral-400 hover:bg-neutral-100 focus-visible:outline-2 hover:dark:bg-neutral-800"
+                className="flex size-7 items-center justify-center rounded text-neutral-400 hover:bg-neutral-100 focus-visible:outline-2 dark:hover:bg-neutral-800"
                 onClick={(event) => {
                   event.currentTarget.closest('section')?.querySelector('summary')?.focus()
                   setManagerOpen(false)

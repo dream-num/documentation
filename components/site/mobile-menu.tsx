@@ -1,5 +1,4 @@
 import { MenuIcon } from 'lucide-react'
-
 import { ActiveNavigationLink } from './active-navigation-link'
 
 export interface ISiteNavLink {
@@ -20,12 +19,12 @@ export function SiteMobileMenu({
     <details className="group lg:hidden">
       <summary
         aria-label={openLabel}
-        className="hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex size-8 cursor-pointer list-none items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none [&::-webkit-details-marker]:hidden"
+        className="inline-flex size-8 cursor-pointer list-none items-center justify-center rounded-md transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
         role="button"
       >
         <MenuIcon className="size-4" />
       </summary>
-      <div className="bg-background fixed top-22 left-0 z-50 flex h-[calc(100dvh-5.5rem)] w-[min(22rem,calc(100vw-2rem))] flex-col border-r shadow-lg">
+      <div className="fixed top-22 left-0 z-50 flex h-[calc(100dvh-5.5rem)] w-[min(22rem,calc(100vw-2rem))] flex-col border-r bg-background shadow-lg">
         <div className="border-b p-4">
           <p className="text-lg font-semibold tracking-normal">Univer</p>
         </div>
@@ -34,7 +33,7 @@ export function SiteMobileMenu({
             {links.map((link) => (
               <ActiveNavigationLink
                 activeClassName="bg-accent text-accent-foreground"
-                className="hover:bg-accent hover:text-accent-foreground flex min-h-10 items-center rounded-md px-3 text-sm font-medium transition-colors"
+                className="flex min-h-10 items-center rounded-md px-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
                 href={link.url}
                 key={link.url}
               >

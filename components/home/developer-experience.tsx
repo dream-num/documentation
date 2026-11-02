@@ -3,7 +3,6 @@
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useState } from 'react'
-
 import { BlurFade } from '@/components/magicui/blur-fade'
 import { clsx } from '@/lib/clsx'
 
@@ -448,7 +447,7 @@ export function DeveloperExperience(props: IProps) {
               <button
                 type="button"
                 onClick={handleCopy}
-                className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700 dark:text-neutral-400 hover:dark:bg-neutral-800 hover:dark:text-neutral-200`}
+                className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-200`}
                 title={copied ? copiedLabel : copyLabel}
               >
                 {copied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}

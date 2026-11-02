@@ -99,7 +99,7 @@ export function NumberFormatDemo() {
   const preview = valid ? getPatternPreview(pattern, Number(value), locale).result : '—'
 
   return (
-    <section aria-label={text[0]} className="not-prose bg-card my-6 space-y-4 rounded-xl border p-4 text-sm sm:p-5">
+    <section aria-label={text[0]} className="not-prose my-6 space-y-4 rounded-xl border bg-card p-4 text-sm sm:p-5">
       <div className="space-y-1">
         <p className="font-medium">{text[0]}</p>
         <p className="text-muted-foreground">{text[1]}</p>
@@ -159,12 +159,12 @@ export function NumberFormatDemo() {
           </Select>
         </label>
       </div>
-      <div role="status" className="bg-background space-y-2 rounded-md border p-4">
-        <p className="text-muted-foreground text-xs">{text[5]}</p>
+      <div role="status" className="space-y-2 rounded-md border bg-background p-4">
+        <p className="text-xs text-muted-foreground">{text[5]}</p>
         <p className="overflow-x-auto font-mono text-2xl tabular-nums">{preview}</p>
-        <p className="text-muted-foreground text-xs">{valid ? `${text[2]}: ${value}` : text[6]}</p>
+        <p className="text-xs text-muted-foreground">{valid ? `${text[2]}: ${value}` : text[6]}</p>
       </div>
-      <p className="text-muted-foreground text-xs leading-5">{text[7]}</p>
+      <p className="text-xs leading-5 text-muted-foreground">{text[7]}</p>
     </section>
   )
 }

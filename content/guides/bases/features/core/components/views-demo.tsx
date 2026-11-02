@@ -148,7 +148,7 @@ export function ViewsDemo() {
   const statuses = text.slice(6, 9)
 
   return (
-    <section aria-label={text[0]} className="not-prose bg-card my-6 space-y-4 rounded-xl border p-4 text-sm sm:p-5">
+    <section aria-label={text[0]} className="not-prose my-6 space-y-4 rounded-xl border bg-card p-4 text-sm sm:p-5">
       <div className="space-y-1">
         <p className="font-medium">{text[0]}</p>
         <p className="text-muted-foreground">{text[1]}</p>
@@ -188,8 +188,8 @@ export function ViewsDemo() {
           </SelectContent>
         </Select>
       </label>
-      <p className="text-muted-foreground text-xs">{text[12]}</p>
-      <div role="region" aria-label={text[view + 2]} className="bg-background overflow-x-auto rounded-md border">
+      <p className="text-xs text-muted-foreground">{text[12]}</p>
+      <div role="region" aria-label={text[view + 2]} className="overflow-x-auto rounded-md border bg-background">
         {view === 0 ? (
           <table className="w-full text-left text-xs">
             <thead className="bg-muted">
@@ -216,7 +216,7 @@ export function ViewsDemo() {
         ) : view === 1 ? (
           <div className="grid min-w-[480px] grid-cols-3 gap-3 p-3">
             {statuses.map((status, index) => (
-              <section key={status} aria-label={status} className="bg-muted min-h-44 space-y-2 rounded-md p-2">
+              <section key={status} aria-label={status} className="min-h-44 space-y-2 rounded-md bg-muted p-2">
                 <p className="text-xs font-medium">{status}</p>
                 {records
                   .filter((record) => record.status === index)
@@ -224,10 +224,10 @@ export function ViewsDemo() {
                     <article
                       key={record.title}
                       aria-label={record.title}
-                      className="bg-card space-y-2 rounded border p-3"
+                      className="space-y-2 rounded border bg-card p-3"
                     >
                       <p className="font-medium">{record.title}</p>
-                      <p className="text-muted-foreground text-xs">09 / 0{record.day}</p>
+                      <p className="text-xs text-muted-foreground">09 / 0{record.day}</p>
                     </article>
                   ))}
               </section>
@@ -237,17 +237,17 @@ export function ViewsDemo() {
           <div className="grid min-w-[560px] grid-cols-7 divide-x">
             {[1, 2, 3, 4, 5, 6, 7].map((day) => (
               <section key={day} aria-label={`09 / 0${day}`} className="min-h-44 space-y-3 p-2">
-                <p className="text-muted-foreground text-xs">{day}</p>
+                <p className="text-xs text-muted-foreground">{day}</p>
                 {records
                   .filter((record) => record.day === day)
                   .map((record) => (
                     <article
                       key={record.title}
                       aria-label={record.title}
-                      className="border-primary/20 bg-primary/10 space-y-1 rounded border p-1.5"
+                      className="space-y-1 rounded border border-primary/20 bg-primary/10 p-1.5"
                     >
                       <p className="text-xs font-medium">{record.title}</p>
-                      <p className="text-muted-foreground text-xs wrap-break-word">{statuses[record.status]}</p>
+                      <p className="text-xs wrap-break-word text-muted-foreground">{statuses[record.status]}</p>
                     </article>
                   ))}
               </section>
@@ -255,7 +255,7 @@ export function ViewsDemo() {
           </div>
         )}
       </div>
-      <p role="status" className="text-muted-foreground text-xs">
+      <p role="status" className="text-xs text-muted-foreground">
         {text[13]}: {records.length} · Sheets: {statuses[records[0].status]}
       </p>
     </section>

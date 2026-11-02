@@ -94,9 +94,9 @@ export function TextLineGapDemo() {
       <div className="grid items-start gap-4 sm:grid-cols-2">
         {[false, true].map((autoHeight) => (
           <div key={String(autoHeight)} className="min-w-0 space-y-2">
-            <p className="text-muted-foreground text-xs">{text[autoHeight ? 2 : 1]}</p>
+            <p className="text-xs text-muted-foreground">{text[autoHeight ? 2 : 1]}</p>
             <div
-              className="bg-muted/30 overflow-hidden rounded border px-3"
+              className="overflow-hidden rounded border bg-muted/30 px-3"
               style={{ height: autoHeight ? undefined : 76 }}
             >
               <div className="text-sm" style={{ lineHeight: `${24 + gap}px` }}>
@@ -108,7 +108,7 @@ export function TextLineGapDemo() {
           </div>
         ))}
       </div>
-      <figcaption className="text-muted-foreground text-xs">{text[6]}</figcaption>
+      <figcaption className="text-xs text-muted-foreground">{text[6]}</figcaption>
     </figure>
   )
 }

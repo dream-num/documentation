@@ -4,7 +4,6 @@ import type { ReactNode } from 'react'
 import { PanelLeftCloseIcon, PanelLeftOpenIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
-
 import type { IDocsNavItem } from '@/lib/docs/navigation'
 import { Button } from '@/components/ui/button'
 import { TooltipContent, TooltipRoot, TooltipTrigger } from '@/components/ui/tooltip'
@@ -25,7 +24,7 @@ export function ToolsWorkspace({ children, items }: { children: ReactNode; items
       >
         <div className="sticky top-12 max-h-[calc(100dvh-3rem)] overflow-y-auto py-5">
           <div className="mb-2 hidden h-8 items-center justify-between xl:flex">
-            <span className={clsx('text-muted-foreground px-2 text-xs font-medium', collapsed && 'hidden')}>
+            <span className={clsx('px-2 text-xs font-medium text-muted-foreground', collapsed && 'hidden')}>
               {t('tools.section')}
             </span>
             <TooltipRoot>
@@ -34,7 +33,7 @@ export function ToolsWorkspace({ children, items }: { children: ReactNode; items
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-muted-foreground size-8"
+                    className="size-8 text-muted-foreground"
                     aria-label={t(collapsed ? 'tools.expand-navigation' : 'tools.collapse-navigation')}
                     aria-expanded={!collapsed}
                     aria-controls="tools-navigation"
@@ -60,7 +59,7 @@ export function ToolsWorkspace({ children, items }: { children: ReactNode; items
                           href={item.url}
                           aria-label={item.name}
                           aria-current={isPathActive(pathname, item.url) ? 'page' : undefined}
-                          className="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-ring aria-[current=page]:bg-muted aria-[current=page]:text-foreground flex min-h-9 items-center gap-2 rounded-md px-2 py-2 text-sm leading-5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 aria-[current=page]:font-medium"
+                          className="flex min-h-9 items-center gap-2 rounded-md px-2 py-2 text-sm leading-5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-[current=page]:bg-muted aria-[current=page]:font-medium aria-[current=page]:text-foreground"
                         />
                       }
                     >

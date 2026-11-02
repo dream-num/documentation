@@ -2,7 +2,6 @@
 
 import * as BaseDialog from '@base-ui/react/dialog'
 import { XIcon } from 'lucide-react'
-
 import { clsx } from '@/lib/clsx'
 
 function Dialog({ ...props }: BaseDialog.Dialog.Root.Props) {
@@ -22,7 +21,7 @@ function DialogOverlay({ className, ...props }: BaseDialog.Dialog.Backdrop.Props
     <BaseDialog.Dialog.Backdrop
       data-slot="dialog-overlay"
       className={clsx(
-        `bg-background/80 data-closed:animate-out data-closed:fade-out-0 data-open:animate-in data-open:fade-in-0 fixed inset-0 z-50 backdrop-blur-sm`,
+        `fixed inset-0 z-50 bg-background/80 backdrop-blur-sm data-closed:animate-out data-closed:fade-out-0 data-open:animate-in data-open:fade-in-0`,
         className,
       )}
       {...props}
@@ -44,14 +43,14 @@ function DialogContent({
       <BaseDialog.Dialog.Popup
         data-slot="dialog-content"
         className={clsx(
-          `bg-background data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-1/2 gap-4 rounded-lg border p-6 shadow-lg duration-200`,
+          `fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-1/2 gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95`,
           className,
         )}
         {...props}
       >
         {children}
         {showCloseButton ? (
-          <BaseDialog.Dialog.Close className="focus:ring-ring absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none">
+          <BaseDialog.Dialog.Close className="absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none disabled:pointer-events-none">
             <XIcon className="size-4" />
             <span className="sr-only">Close</span>
           </BaseDialog.Dialog.Close>
@@ -75,7 +74,7 @@ function DialogDescription({ className, ...props }: BaseDialog.Dialog.Descriptio
   return (
     <BaseDialog.Dialog.Description
       data-slot="dialog-description"
-      className={clsx('text-muted-foreground text-sm', className)}
+      className={clsx('text-sm text-muted-foreground', className)}
       {...props}
     />
   )

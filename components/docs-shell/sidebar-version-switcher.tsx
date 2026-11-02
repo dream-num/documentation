@@ -2,7 +2,6 @@
 
 import { CheckIcon, ChevronsUpDownIcon, TagIcon } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
-
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { getGuideVersionHref, guideVersions } from '@/lib/guides/versions'
 
@@ -16,19 +15,19 @@ export function SidebarVersionSwitcher() {
       <DropdownMenuTrigger
         render={
           <button
-            className="hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-ring/60 flex w-full items-center gap-2 rounded-md p-1 text-left transition-colors focus-visible:ring-1 focus-visible:outline-none focus-visible:ring-inset"
+            className="flex w-full items-center gap-2 rounded-md p-1 text-left transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-1 focus-visible:ring-ring/60 focus-visible:outline-none focus-visible:ring-inset"
             type="button"
           />
         }
       >
-        <span className="bg-background text-primary grid size-8 shrink-0 place-items-center overflow-hidden rounded-md border">
+        <span className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-md border bg-background text-primary">
           <TagIcon className="size-4" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="text-foreground block truncate text-sm font-semibold">{t('version')}</span>
-          <span className="text-muted-foreground block truncate text-sm">{currentVersion?.label}</span>
+          <span className="block truncate text-sm font-semibold text-foreground">{t('version')}</span>
+          <span className="block truncate text-sm text-muted-foreground">{currentVersion?.label}</span>
         </span>
-        <ChevronsUpDownIcon className="text-muted-foreground size-4 shrink-0" />
+        <ChevronsUpDownIcon className="size-4 shrink-0 text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-64">
         {guideVersions.map((version) => {

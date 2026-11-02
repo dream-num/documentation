@@ -5,7 +5,7 @@ export function IconsVersion({ label }: { label: string }) {
 
   return (
     <p>
-      {label} <code className="bg-muted rounded-sm px-1.5 py-0.5 text-xs font-semibold">{version}</code>
+      {label} <code className="rounded-sm bg-muted px-1.5 py-0.5 text-xs font-semibold">{version}</code>
     </p>
   )
 }
