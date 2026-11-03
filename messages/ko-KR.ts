@@ -613,7 +613,19 @@ const koKRMessages = {
     'license-required': '클라이언트 라이선스 설정 필요',
     'license-none': '클라이언트 라이선스 불필요',
     'not-specified': '이 가이드에 명시되지 않음',
-    'headless-supported': '핵심 API만 사용, UI 플러그인 제외',
+    'headless-supported': 'Headless 지원',
+    'headless-conditional': 'Headless 조건부 지원',
+    'headless-unknown': 'Headless 지원 미확인',
+    'headless-supported-desc':
+      '필요한 의존성과 Facade 확장을 등록하면 headless Univer 콘텐츠 작업에 사용할 수 있습니다.',
+    'headless-render-desc':
+      '공유 의존성으로 등록할 수 있지만 그리기와 글꼴 측정 API에는 해당 렌더링 환경이 필요합니다.',
+    'headless-node-adapter-desc':
+      'Node.js에서는 @univerjs-pro/collaboration-client-node를 추가하고 협업 서비스와 인증을 설정해야 합니다.',
+    'headless-io-desc':
+      '데이터와 네트워크 API만 UI 없이 사용할 수 있습니다. 변환 서비스와 호환되는 파일 I/O가 필요하며 브라우저 다운로드 API는 사용할 수 없습니다. Node.js 파일 변환은 Server SDK를 참고하세요.',
+    'headless-unknown-desc':
+      '이 패키지의 실행 환경 요구 사항은 아직 확인되지 않았습니다. 먼저 플러그인 의존성을 확인하세요.',
     'browser-only': '브라우저 통합만 지원',
     limitations: '제한 사항',
     'preset-mode': 'Preset 모드',

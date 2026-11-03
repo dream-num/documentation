@@ -615,7 +615,17 @@ const jaJPMessages = {
     'license-required': 'クライアントライセンスの設定が必要',
     'license-none': 'クライアントライセンス不要',
     'not-specified': 'このガイドでは未記載',
-    'headless-supported': 'コア API のみ。UI プラグインを除外',
+    'headless-supported': 'Headless 対応',
+    'headless-conditional': 'Headless 条件付き対応',
+    'headless-unknown': 'Headless 対応未確認',
+    'headless-supported-desc': '必要な依存関係と Facade 拡張を登録すると、headless Univer の内容操作に利用できます。',
+    'headless-render-desc': '共有依存として登録できますが、描画やフォント計測 API には対応する描画環境が必要です。',
+    'headless-node-adapter-desc':
+      'Node.js では @univerjs-pro/collaboration-client-node を追加し、共同編集サービスと認証を設定します。',
+    'headless-io-desc':
+      'UI なしで使えるのはデータ・通信 API です。変換サービスと対応するファイル I/O が必要で、ブラウザーのダウンロード API は使えません。Node.js のファイル変換は Server SDK を参照してください。',
+    'headless-unknown-desc':
+      'このパッケージの実行環境要件は未確認です。利用前にプラグインの依存関係を確認してください。',
     'browser-only': 'ブラウザー統合のみ',
     limitations: '制限事項',
     'preset-mode': 'プリセットモード',

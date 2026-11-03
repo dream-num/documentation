@@ -605,7 +605,16 @@ const zhTWMessages = {
     'license-required': '需要設定用戶端授權',
     'license-none': '不需用戶端授權',
     'not-specified': '本指南未聲明支援情況',
-    'headless-supported': '僅核心 API，需移除 UI 外掛',
+    'headless-supported': '支援 Headless',
+    'headless-conditional': 'Headless 有條件支援',
+    'headless-unknown': 'Headless 支援未註明',
+    'headless-supported-desc': '可用於 headless Univer 的內容處理；須註冊所需相依項目與對應的 Facade 擴充。',
+    'headless-render-desc': '可作為共用相依項目註冊；實際繪製、字型測量等 API 仍需相應渲染環境。',
+    'headless-node-adapter-desc':
+      'Node.js 中須搭配 @univerjs-pro/collaboration-client-node，並設定協同服務與身分驗證。',
+    'headless-io-desc':
+      '僅資料與網路介面可用於無介面流程；須串接轉換服務並滿足檔案 I/O 要求，瀏覽器下載介面無法使用。Node.js 檔案轉換請見 Server SDK。',
+    'headless-unknown-desc': '尚未核對此套件的執行環境要求，請先檢查外掛相依項目。',
     'browser-only': '僅瀏覽器整合',
     limitations: '使用限制',
     'preset-mode': '預設模式',

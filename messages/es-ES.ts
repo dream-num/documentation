@@ -619,7 +619,19 @@ const esESMessages = {
     'license-required': 'Configura una licencia de cliente',
     'license-none': 'No requiere licencia de cliente',
     'not-specified': 'No se especifica en esta guía',
-    'headless-supported': 'Solo API principales, sin plugins UI',
+    'headless-supported': 'Headless compatible',
+    'headless-conditional': 'Headless con condiciones',
+    'headless-unknown': 'Headless sin verificar',
+    'headless-supported-desc':
+      'Permite operaciones de contenido de headless Univer con las dependencias y extensiones Facade necesarias.',
+    'headless-render-desc':
+      'Puede registrarse como dependencia compartida; las API de dibujo y medición de fuentes requieren un entorno de renderizado apropiado.',
+    'headless-node-adapter-desc':
+      'En Node.js, añada @univerjs-pro/collaboration-client-node y configure el servicio de colaboración y la autenticación.',
+    'headless-io-desc':
+      'Solo las API de datos y red pueden usarse sin UI; requieren un servicio de conversión y E/S de archivos compatible. Las API de descarga del navegador no están disponibles. Consulte Server SDK para la conversión en Node.js.',
+    'headless-unknown-desc':
+      'No se han verificado los requisitos de ejecución de este paquete. Compruebe sus dependencias antes de usarlo.',
     'browser-only': 'Solo integración en navegador',
     limitations: 'Limitaciones',
     'preset-mode': 'Modo preestablecido',

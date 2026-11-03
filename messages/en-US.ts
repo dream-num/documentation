@@ -613,7 +613,19 @@ const enUSMessages = {
     'license-required': 'Configure a client license',
     'license-none': 'No client license required',
     'not-specified': 'Not specified in this guide',
-    'headless-supported': 'Core APIs only; omit UI plugins',
+    'headless-supported': 'Headless supported',
+    'headless-conditional': 'Headless conditional',
+    'headless-unknown': 'Headless unspecified',
+    'headless-supported-desc':
+      'Supports headless Univer content operations with the required dependencies and Facade extensions registered.',
+    'headless-render-desc':
+      'Can be registered as a shared dependency; drawing and font measurement APIs still require a suitable rendering environment.',
+    'headless-node-adapter-desc':
+      'In Node.js, add @univerjs-pro/collaboration-client-node and configure the collaboration service and authentication.',
+    'headless-io-desc':
+      'Only data and network APIs can be used without UI; a conversion service and compatible file I/O are required. Browser download APIs are unavailable. See Server SDK for Node.js file conversion.',
+    'headless-unknown-desc':
+      'Runtime requirements for this package have not been reviewed. Check its plugin dependencies before use.',
     'browser-only': 'Browser integration only',
     limitations: 'Limitations',
     'preset-mode': 'Preset Mode',

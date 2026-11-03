@@ -618,7 +618,19 @@ const ruRUMessages = {
     'license-required': 'Настройте клиентскую лицензию',
     'license-none': 'Клиентская лицензия не нужна',
     'not-specified': 'Не указано в этом руководстве',
-    'headless-supported': 'Только основные API, без UI-плагинов',
+    'headless-supported': 'Headless поддерживается',
+    'headless-conditional': 'Headless с условиями',
+    'headless-unknown': 'Headless не проверен',
+    'headless-supported-desc':
+      'Поддерживает операции с содержимым headless Univer при регистрации необходимых зависимостей и расширений Facade.',
+    'headless-render-desc':
+      'Можно зарегистрировать как общую зависимость; рисование и измерение шрифтов требуют подходящей среды рендеринга.',
+    'headless-node-adapter-desc':
+      'В Node.js добавьте @univerjs-pro/collaboration-client-node и настройте сервис совместной работы и аутентификацию.',
+    'headless-io-desc':
+      'Без UI доступны только API данных и сети. Нужны сервис конвертации и совместимый файловый ввод-вывод; браузерное скачивание недоступно. Для конвертации в Node.js см. Server SDK.',
+    'headless-unknown-desc':
+      'Требования этого пакета к среде выполнения ещё не проверены. Перед использованием проверьте зависимости плагина.',
     'browser-only': 'Только интеграция в браузере',
     limitations: 'Ограничения',
     'preset-mode': 'Режим предустановок',

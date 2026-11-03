@@ -6,6 +6,7 @@ import { mdxPreset } from 'fumadocs-core/content/mdx/preset-runtime'
 import { remarkLLMs } from 'fumadocs-core/mdx-plugins/remark-llms'
 import { replaceSource } from 'fumadocs-core/mdx-plugins/stringifier'
 import { buildInstallCommand, PACKAGE_MANAGERS } from '../../components/mdx/install-command'
+import { PACKAGE_HEADLESS_SUPPORT } from '../docs/package-headless-support'
 
 type MarkdownNode = Parameters<NonNullable<LLMsOptions['filterElement']>>[0]
 type MdxElement = Extract<MarkdownNode, { type: 'mdxJsxFlowElement' | 'mdxJsxTextElement' }>
@@ -352,9 +353,27 @@ function indent(value: string, prefix: string) {
 
 function renderMetaData(attributes: Record<string, StaticValue>) {
   const meta = getStaticRecord(attributes.meta, 'MetaData.meta')
+  const packages = Object.fromEntries(
+    ['preset', 'plugins'].flatMap((mode) => {
+      const entries = meta[mode]
+      if (!Array.isArray(entries)) return []
+
+      return [
+        [
+          mode,
+          entries.map((entry) => {
+            const item = getStaticRecord(entry, `MetaData.meta.${mode}`)
+            const client = getString(item, 'client')
+            return client ? Object.assign({}, item, { headless: PACKAGE_HEADLESS_SUPPORT[client] ?? 'unknown' }) : item
+          }),
+        ],
+      ]
+    }),
+  )
   return `#### Package metadata\n\n\`\`\`json\n${JSON.stringify(
     {
       ...meta,
+      ...packages,
     },
     null,
     2,

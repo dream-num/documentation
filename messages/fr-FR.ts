@@ -619,7 +619,19 @@ const frFRMessages = {
     'license-required': 'Configurer une licence client',
     'license-none': 'Aucune licence client requise',
     'not-specified': 'Non précisé dans ce guide',
-    'headless-supported': 'API principales uniquement, sans plugins UI',
+    'headless-supported': 'Headless pris en charge',
+    'headless-conditional': 'Headless sous conditions',
+    'headless-unknown': 'Headless non renseigné',
+    'headless-supported-desc':
+      'Permet les opérations de contenu headless Univer avec les dépendances et extensions Facade nécessaires.',
+    'headless-render-desc':
+      'Peut être enregistré comme dépendance partagée ; le dessin et la mesure des polices nécessitent un environnement de rendu adapté.',
+    'headless-node-adapter-desc':
+      'Dans Node.js, ajoutez @univerjs-pro/collaboration-client-node et configurez le service de collaboration et l’authentification.',
+    'headless-io-desc':
+      'Seules les API de données et de réseau sont utilisables sans UI ; un service de conversion et des entrées/sorties de fichiers compatibles sont requis. Le téléchargement via le navigateur reste indisponible. Consultez Server SDK pour la conversion Node.js.',
+    'headless-unknown-desc':
+      'Les exigences d’exécution de ce package n’ont pas encore été vérifiées. Contrôlez ses dépendances avant utilisation.',
     'browser-only': 'Intégration navigateur uniquement',
     limitations: 'Limites',
     'preset-mode': 'Mode Preset',

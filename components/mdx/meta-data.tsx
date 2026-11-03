@@ -20,6 +20,7 @@ import { useState } from 'react'
 import { Tooltip } from '@/components/tooltip'
 import { Link } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
+import { PACKAGE_HEADLESS_SUPPORT } from '@/lib/docs/package-headless-support'
 
 interface IMetaDataLabels {
   copied: string
@@ -85,7 +86,14 @@ function PackageRow({
   facade?: string
   labels: IMetaDataLabels
 }) {
+  const t = useTranslations('mdx-meta-data')
   const [copied, setCopied] = useState(false)
+  const headless = (client && PACKAGE_HEADLESS_SUPPORT[client]) || 'unknown'
+  const headlessLabel =
+    headless === 'unsupported'
+      ? null
+      : t(headless === 'supported' || headless === 'unknown' ? `headless-${headless}` : 'headless-conditional')
+  const headlessDescription = headless === 'unsupported' ? null : t(`headless-${headless}-desc`)
 
   async function handleCopyClient() {
     if (!client) return
@@ -120,6 +128,23 @@ function PackageRow({
       )}
 
       <div className="flex flex-wrap gap-1">
+        {client && headlessLabel && (
+          <Tooltip content={<span className="block max-w-72">{headlessDescription}</span>}>
+            <Link
+              href="/overview/features/shared/server-calculation#headless-packages"
+              aria-label={`${client}: ${headlessLabel}. ${headlessDescription}`}
+              className={clsx(
+                'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium outline-none hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-primary/50 dark:hover:bg-neutral-800',
+                headless === 'supported'
+                  ? 'border-green-200 text-green-700 dark:border-green-900/50 dark:text-green-400'
+                  : 'border-neutral-200 text-neutral-500 dark:border-neutral-700 dark:text-neutral-400',
+              )}
+            >
+              <Terminal aria-hidden="true" className="size-3" />
+              <span>{headlessLabel}</span>
+            </Link>
+          </Tooltip>
+        )}
         {locale && <CopyableTag text={locale} label={labels.locale} icon={Languages} successText={labels.copied} />}
         {style && <CopyableTag text={style} label={labels.style} icon={Palette} successText={labels.copied} />}
         {facade && <CopyableTag text={facade} label={labels.facade} icon={PlugZap} successText={labels.copied} />}
@@ -145,7 +170,6 @@ export function MetaData(props: {
     server: boolean | 'optional'
     mobile?: boolean
     license?: boolean
-    headless?: boolean
     limitations?: string
   }
 }) {
@@ -185,12 +209,6 @@ export function MetaData(props: {
       icon: Smartphone,
       label: t('mdx-meta-data.mobile-support'),
       description: t('mdx-meta-data.mobile-support-desc'),
-    },
-    {
-      visible: meta.headless === true,
-      icon: Terminal,
-      label: 'Headless',
-      description: t('mdx-meta-data.headless-supported'),
     },
     {
       visible: Boolean(meta.limitations),
