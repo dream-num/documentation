@@ -2,9 +2,8 @@
 
 import { useInView } from 'motion/react'
 import { useLocale } from 'next-intl'
-import Image from 'next/image'
 import { useRef } from 'react'
-import { customerList } from '@/components/customer/data'
+import { customerList, customerLogoBaseUrl } from '@/components/customer/data'
 import { BlurFade } from '@/components/magicui/blur-fade'
 import styles from './logo-cloud.module.css'
 
@@ -27,15 +26,18 @@ export function LogoCloud({ title }: IProps) {
               <ul key={copy} className={styles.group} aria-hidden={copy === 1 || undefined}>
                 {customerList.map((customer) => {
                   const name = locale === 'zh-CN' && customer.zh ? customer.zh : customer.en
-                  const ratio = customer.img.width / customer.img.height
+                  const ratio = customer.width / customer.height
                   const height = Math.min(1.75, Math.max(0.875, Math.sqrt((8 * (customer.s ?? 1)) / ratio)))
                   const logo = (
-                    <Image
+                    <img
                       className={styles.logo}
-                      src={customer.img}
+                      src={`${customerLogoBaseUrl}${customer.file}`}
+                      width={customer.width}
+                      height={customer.height}
                       alt={copy === 1 || customer.lockup ? '' : name}
                       style={customer.lockup ? undefined : { height: `${height}rem`, width: `${height * ratio}rem` }}
-                      sizes={customer.lockup ? '20px' : `${Math.ceil(height * ratio * 16)}px`}
+                      loading="lazy"
+                      decoding="async"
                       draggable={false}
                     />
                   )
