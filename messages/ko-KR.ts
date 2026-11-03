@@ -421,11 +421,11 @@ const koKRMessages = {
       },
     },
     headless: {
-      title: 'Headless Web SDK',
+      title: 'Headless Univer',
       subtitle: 'AI와 자동화를 기본 지원하는 서버 측 문서 처리',
       feature1: {
         title: 'Node.js 지원',
-        desc: '브라우저 없이 Node.js에서 Web SDK를 직접 실행합니다.',
+        desc: '브라우저 없이 Node.js에서 headless Univer를 직접 실행합니다.',
       },
       feature2: {
         title: 'UI 렌더링 없음',

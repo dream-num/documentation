@@ -424,11 +424,11 @@ const esESMessages = {
       },
     },
     headless: {
-      title: 'Headless Web SDK',
+      title: 'Headless Univer',
       subtitle: 'Procese documentos en el servidor con soporte nativo para IA y automatización',
       feature1: {
         title: 'Node.js Soporte',
-        desc: 'Ejecute Web SDK directamente en Node.js sin un navegador.',
+        desc: 'Ejecute headless Univer directamente en Node.js sin un navegador.',
       },
       feature2: {
         title: 'Sin representación de interfaz de usuario',

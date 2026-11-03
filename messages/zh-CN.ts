@@ -415,11 +415,11 @@ const zhCNMessages = {
       },
     },
     headless: {
-      title: 'Headless 运行',
+      title: 'Headless Univer',
       subtitle: '在服务端处理文档，为 AI 与自动化提供原生支持',
       feature1: {
         title: 'Node.js 支持',
-        desc: '在 Node.js 环境中直接运行 Web SDK，无需浏览器。',
+        desc: '在 Node.js 环境中直接运行 headless Univer，无需浏览器。',
       },
       feature2: {
         title: '无 UI 渲染',

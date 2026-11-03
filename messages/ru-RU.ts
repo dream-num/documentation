@@ -423,11 +423,11 @@ const ruRUMessages = {
       },
     },
     headless: {
-      title: 'Headless Web SDK',
+      title: 'Headless Univer',
       subtitle: 'Обрабатывайте документы на сервере со встроенной поддержкой ИИ и автоматизации',
       feature1: {
         title: 'Поддержка Node.js',
-        desc: 'Запускайте Web SDK непосредственно в Node.js без браузера.',
+        desc: 'Запускайте headless Univer непосредственно в Node.js без браузера.',
       },
       feature2: {
         title: 'Без отрисовки интерфейса',

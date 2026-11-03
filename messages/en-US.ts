@@ -419,11 +419,11 @@ const enUSMessages = {
       },
     },
     headless: {
-      title: 'Headless Web SDK',
+      title: 'Headless Univer',
       subtitle: 'Process documents on the server with native support for AI and automation',
       feature1: {
         title: 'Node.js Support',
-        desc: 'Run Web SDK directly in Node.js without a browser.',
+        desc: 'Run headless Univer directly in Node.js without a browser.',
       },
       feature2: {
         title: 'No UI Rendering',

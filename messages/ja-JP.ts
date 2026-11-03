@@ -422,11 +422,11 @@ const jaJPMessages = {
       },
     },
     headless: {
-      title: 'Headless Web SDK',
+      title: 'Headless Univer',
       subtitle: 'サーバー側でドキュメントを処理し、AI と自動化にネイティブ対応',
       feature1: {
         title: 'Node.js 対応',
-        desc: 'Node.js 環境でブラウザなしに Web SDK を直接実行。',
+        desc: 'Node.js 環境でブラウザなしに headless Univer を直接実行。',
       },
       feature2: {
         title: 'UI なしレンダリング',

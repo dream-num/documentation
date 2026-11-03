@@ -4,21 +4,45 @@ description: "Run content operations in Node.js, use Rust for precomputation, an
 icon: Calculator
 ---
 
-Univer separates its content models, calculation, and UI. Headless execution runs the content runtime in Node.js; server-side calculation uses `univer-rs` for compute-intensive work and file conversion. Applications and agents can combine both around the same snapshots.
+headless Univer is Univer’s content runtime without an interactive editor UI. It shares content models, commands, calculation, and Facade APIs with the browser editor. It can process content in Node.js or run UI-free tasks in a browser. Available capabilities depend on the registered product and feature plugins.
 
-## A Node.js runtime without UI plugins
+The JavaScript/TypeScript content runtime described here and `univer-rs` are separate execution implementations. The latter supports server-side calculation and file conversion and can be combined with Headless workflows around the same snapshots.
 
-Register the required core, product-model, calculation, and Facade plugins without menus, toolbars, or DOM UI plugins. Load Sheets, Docs, Slides, Relational Tables, Canvases, or PDFs according to the selected product stack. Sheets and Docs have Node presets; other products use their own plugin combinations.
+## What Headless can do [#headless-capabilities]
 
-| Capability | What it enables |
+- **Read and change content and structure:** create or load Univer snapshots, use Facade APIs to read and edit cells, paragraphs, pages, graphical objects, or records, then save updated snapshots. This supports batch processing, data generation, content inspection, and agent automation.
+- **Run registered business logic:** use formula calculation, sorting, filtering, validation, and pivot plugins; modify resources such as images, charts, shapes, and comments. Available operations depend on the product and feature plugins and their dependencies.
+- **Connect to other services:** add the Node.js collaboration client to load collaborative Units, submit changes, and wait for synchronization; combine Server SDK conversion modules with the runtime to import and export Office files.
+
+Headless itself does not provide menus, toolbars, dialogs, mouse or keyboard interaction, screenshots, or printing. It does not automatically provide persistence, authentication, a collaboration server, or file conversion. `save()` returns a Univer snapshot; it does not write to a database or export XLSX, DOCX, or PDF. Screenshots and visual layout checks require a separate [rendering runtime](/ai/visual-inspection); a headless browser still runs the rendering layer.
+
+## Which packages belong to Headless [#headless-packages]
+
+The following common content-layer packages can form a Headless runtime. This is not a list of standalone installations: register the corresponding product plugins, satisfy their dependencies, and configure the required licenses for Pro features.
+
+| Common packages | Role in Headless |
 | --- | --- |
-| Load and inspect | Load snapshots; parse and inspect cells, paragraphs, pages, objects, and records. |
-| Calculate | Evaluate formulas and arrays, refresh pivots, and generate number-format display values. |
-| Modify | Use Facade APIs to edit content, change structure, and save snapshots or submit changes. |
-| Convert files | Combine Server SDK exchange modules with the runtime for batch import, processing, and export. |
-| Verify visually | Add a Render Runtime to capture screenshots and check layout for the agent. |
+| `@univerjs/core`, `@univerjs/sheets`, `@univerjs/docs` | Instances, content models, commands, and basic content operations. |
+| `@univerjs/engine-formula`, `@univerjs/sheets-formula`, `@univerjs/sheets-numfmt`, `@univerjs-pro/engine-formula` | Formula execution, Sheet formula integration, and number formatting; choose the open-source or Pro engine for the required features. |
+| `@univerjs/sheets-filter`, `@univerjs/sheets-sort`, `@univerjs/sheets-conditional-formatting`, `@univerjs/sheets-data-validation`, `@univerjs/sheets-table`, `@univerjs/sheets-hyper-link`, `@univerjs/sheets-note` | Sheet data and rule operations, without the corresponding panels or visual interaction. Data validation also requires `@univerjs/data-validation`. |
+| `@univerjs/drawing`, `@univerjs/sheets-drawing`, `@univerjs/docs-drawing`, `@univerjs/docs-hyper-link`, `@univerjs/thread-comment`, `@univerjs/sheets-thread-comment`, `@univerjs/docs-thread-comment` | Models, resources, and commands for images, links, and comments; connect display, uploads, and external data sources separately as needed. |
+| `@univerjs-pro/sheets-pivot`, `@univerjs-pro/sheets-chart`, `@univerjs-pro/sheets-shape`, `@univerjs-pro/sheets-sparkline`, `@univerjs-pro/sheets-outline`, `@univerjs-pro/sheets-slicer` | Content and calculation logic for pivots, charts, shapes, sparklines, outlines, and slicers; graphical dependencies can include `@univerjs-pro/engine-chart` and `@univerjs-pro/engine-shape`. |
+| `@univerjs-pro/docs-callout`, `@univerjs-pro/docs-code`, `@univerjs-pro/docs-list`, `@univerjs-pro/docs-quote`, `@univerjs-pro/docs-table`, `@univerjs-pro/docs-column`, `@univerjs-pro/docs-latex`, `@univerjs-pro/docs-formula`, `@univerjs-pro/docs-shape` | Content operations for document blocks, tables, columns, formulas, and shapes, without editor controls. |
+| `@univerjs-pro/slides`, `@univerjs-pro/bases`, `@univerjs-pro/boards`, `@univerjs-pro/pdfs`, `@univerjs-pro/pdfs-editor` | Models and commands for other products. `pdfs-editor` configures PDF editor lifecycle and collaboration integration: editor in a package name does not imply UI. Available APIs vary by product. |
 
-Content operations run directly in Node.js. Screenshots and layout checks use a separately configured rendering runtime; the CLI’s Render Runtime can drive a headless browser to produce PNGs and layout findings.
+Add infrastructure as needed: `@univerjs/network` and `@univerjs/rpc-node` provide networking and Node.js computation processes; `@univerjs-pro/license` handles license integration. `@univerjs-pro/collaboration`, `@univerjs-pro/collaboration-client`, and `@univerjs-pro/collaboration-client-node` can form a Headless collaboration client, not a collaboration server. Processing local snapshots independently does not require a collaboration service.
+
+### Packages outside a content-only runtime
+
+- `@univerjs/ui`, `@univerjs/design`, and product or feature `*-ui` packages, such as `@univerjs/sheets-ui`, `@univerjs/docs-ui`, and `@univerjs-pro/slides-ui`, provide UI, rendering integration, or interaction. Do not add them to a pure Node.js content-processing configuration.
+- `@univerjs/sheets-find-replace` and `@univerjs/sheets-crosshair-highlight` depend on `@univerjs/sheets-ui` despite lacking a `-ui` suffix. Their names do not make them Headless plugins.
+- The default `@univerjs/preset-sheets-core` and `@univerjs/preset-docs-core` presets register UI plugins. They are not Node.js Headless presets; use plugin mode to select content-layer dependencies explicitly.
+
+**Treat `@univerjs/engine-render` separately.** Current Node.js examples register it to supply shared dependencies such as render management. Registering the plugin does not create a Canvas or mount an editor. It can appear in a Headless composition, but drawing, font measurement, and screenshot APIs still need a suitable rendering environment. This does not make every API in the package usable in pure Node.js.
+
+**Facade is an operation API, not an environment adapter.** Import the required content plugins’ `/facade` extensions and register the plugins that implement those capabilities. UI extensions such as `@univerjs/ui/facade` and `@univerjs/sheets-ui/facade`, including menus, scrolling, and visual selection interactions, still require UI. Check plugin dependencies and the actual call path rather than relying on a package name or the presence of Facade APIs.
+
+See the [Sheets Headless guide](/guides/sheets/getting-started/node) and [Docs Headless guide](/guides/docs/getting-started/node) for runnable plugin compositions.
 
 ## Immediate frontend calculation, versioned server calculation [#calculate-on-the-server-display-quickly-in-the-browser]
 
@@ -75,7 +99,7 @@ Use [content operations](/ai/content-operations) and [visual inspection](/ai/vis
 
 | Capability | What it enables |
 | --- | --- |
-| Node.js content runtime | Start with [headless Web SDK](/guides/sheets/getting-started/node) and enable the product and calculation plugins you need. |
+| Node.js content runtime | Start with [headless Univer](/guides/sheets/getting-started/node) and enable the product and calculation plugins you need. |
 | Background file processing | Combine Rust calculation with [Node.js file conversion](/server/import-export/node), then save or return the updated snapshot. |
 | Shared editing and agents | Connect [collaboration](/server/collaboration/quick-start) and [AI SDK](/ai/content-operations) so people and agents operate on confirmed content. |
 

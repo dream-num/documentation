@@ -4,21 +4,45 @@ description: "Node.js の内容操作と Rust の事前計算を組み合わせ�
 icon: Calculator
 ---
 
-Univer は内容モデル、計算、UI を分離しています。ヘッドレス実行は Node.js で内容ランタイムを動かし、サーバー側計算は `univer-rs` で重い計算とファイル変換を処理します。アプリと Agent は同じ Snapshot を中心に両者を組み合わせられます。
+headless Univer は、対話型エディター UI を持たない Univer の内容ランタイムです。ブラウザー版と内容モデル、コマンド、計算、Facade API を共有します。Node.js での内容処理やブラウザー内の UI を使わない処理に利用でき、登録する製品・機能プラグインによって利用可能な機能が決まります。
 
-## UI プラグインなしの Node.js 実行
+ここで扱う JavaScript/TypeScript の内容ランタイムと `univer-rs` は別の実装です。後者はサーバー側計算とファイル変換を担い、同じスナップショットを使う Headless ワークフローと組み合わせられます。
 
-コア、製品モデル、計算、Facade の必要なプラグインを登録し、メニューやツールバーなど DOM 依存の UI プラグインは登録しません。製品構成に応じて Sheet、Doc、Slide、Relational Table、Canvases、PDF を処理できます。Sheets と Docs は Node プリセット、他の製品は対応するプラグイン構成から始めます。
+## Headless でできること [#headless-capabilities]
 
-| 機能 | できること |
+- **内容と構造の読み書き**：Univer スナップショットを作成・読み込みし、Facade API でセル、段落、ページ、図形、レコードを操作して更新後のスナップショットを保存します。バッチ処理、データ生成、内容検査、Agent 自動化に利用できます。
+- **登録したロジックの実行**：数式、並べ替え、フィルター、入力規則、ピボットを処理し、画像、グラフ、図形、コメントのリソースを変更します。利用範囲は製品・機能プラグインと依存関係で決まります。
+- **サービス連携**：Node.js 共同編集クライアントを追加すると、共同編集 Unit の読み込み、変更送信、同期確認ができます。Office ファイルの入出力には Server SDK の変換モジュールを組み合わせます。
+
+Headless 自体にメニュー、ツールバー、ダイアログ、マウス・キーボード操作、スクリーンショット、印刷は含まれません。永続化、認証、共同編集サーバー、ファイル変換も別途必要です。`save()` は Univer スナップショットを返す処理であり、DB 保存や XLSX・DOCX・PDF 出力ではありません。画像と視覚的なレイアウト検査には[レンダリングランタイム](/ai/visual-inspection)を接続します。ヘッドレスブラウザーもレンダリング層を実行します。
+
+## Headless に含まれるパッケージ [#headless-packages]
+
+代表的な内容層パッケージを役割別に示します。各パッケージが単独で動くという意味ではありません。製品プラグインと依存関係を登録し、Pro 機能には必要なライセンスを設定します。
+
+| 主なパッケージ | Headless での役割 |
 | --- | --- |
-| 読み込みと解析 | Snapshot を読み込み、セル、段落、ページ、オブジェクト、レコードと構造を調べます。 |
-| 計算 | 数式と配列の計算、ピボット更新、数値書式の表示値生成。 |
-| 変更 | Facade API で内容と構造を編集し、Snapshot を保存または変更を送信します。 |
-| ファイル処理 | Server SDK の変換機能と組み合わせて一括インポート・処理・エクスポート。 |
-| 視覚的検証 | Render Runtime でスクリーンショットとレイアウト検査を生成します。 |
+| `@univerjs/core`, `@univerjs/sheets`, `@univerjs/docs` | インスタンス、内容モデル、コマンド、基本操作。 |
+| `@univerjs/engine-formula`, `@univerjs/sheets-formula`, `@univerjs/sheets-numfmt`, `@univerjs-pro/engine-formula` | 数式実行、Sheet への数式統合、数値書式。必要な機能に応じて OSS または Pro エンジンを選択。 |
+| `@univerjs/sheets-filter`, `@univerjs/sheets-sort`, `@univerjs/sheets-conditional-formatting`, `@univerjs/sheets-data-validation`, `@univerjs/sheets-table`, `@univerjs/sheets-hyper-link`, `@univerjs/sheets-note` | 表データとルールの操作。パネルや視覚的操作は含みません。入力規則には `@univerjs/data-validation` も必要です。 |
+| `@univerjs/drawing`, `@univerjs/sheets-drawing`, `@univerjs/docs-drawing`, `@univerjs/docs-hyper-link`, `@univerjs/thread-comment`, `@univerjs/sheets-thread-comment`, `@univerjs/docs-thread-comment` | 画像、リンク、コメントのモデル・リソース・コマンド。表示、アップロード、外部データソースは別途接続。 |
+| `@univerjs-pro/sheets-pivot`, `@univerjs-pro/sheets-chart`, `@univerjs-pro/sheets-shape`, `@univerjs-pro/sheets-sparkline`, `@univerjs-pro/sheets-outline`, `@univerjs-pro/sheets-slicer` | ピボット、グラフ、図形、スパークライン、アウトライン、スライサーの内容と計算。図形関連では `@univerjs-pro/engine-chart`、`@univerjs-pro/engine-shape` などにも依存します。 |
+| `@univerjs-pro/docs-callout`, `@univerjs-pro/docs-code`, `@univerjs-pro/docs-list`, `@univerjs-pro/docs-quote`, `@univerjs-pro/docs-table`, `@univerjs-pro/docs-column`, `@univerjs-pro/docs-latex`, `@univerjs-pro/docs-formula`, `@univerjs-pro/docs-shape` | 文書ブロック、表、段組み、数式、図形の操作。エディターの UI は含みません。 |
+| `@univerjs-pro/slides`, `@univerjs-pro/bases`, `@univerjs-pro/boards`, `@univerjs-pro/pdfs`, `@univerjs-pro/pdfs-editor` | その他の製品モデルとコマンド。`pdfs-editor` は PDF エディターのライフサイクルと共同編集連携を設定するため、editor という名前だけで UI と判断できません。API は製品ごとに異なります。 |
 
-内容操作は Node.js で直接実行します。スクリーンショットとレイアウト検査には別途レンダリング環境を設定します。CLI の Render Runtime はヘッドレスブラウザーを使い PNG と検査結果を返します。
+必要に応じて `@univerjs/network`、`@univerjs/rpc-node` で通信と Node.js 計算プロセスを、`@univerjs-pro/license` でライセンスを接続します。`@univerjs-pro/collaboration`、`@univerjs-pro/collaboration-client`、`@univerjs-pro/collaboration-client-node` は Headless 共同編集クライアントを構成し、サーバーそのものではありません。ローカルスナップショットの処理には共同編集サービスは不要です。
+
+### 内容処理のみのランタイムに含めないパッケージ
+
+- `@univerjs/ui`、`@univerjs/design`、製品・機能の `*-ui` パッケージ（`@univerjs/sheets-ui`、`@univerjs/docs-ui`、`@univerjs-pro/slides-ui` など）は UI、描画連携、操作を提供するため、純粋な Node.js 内容処理には登録しません。
+- `@univerjs/sheets-find-replace`、`@univerjs/sheets-crosshair-highlight` は名前に `-ui` がなくても `@univerjs/sheets-ui` に依存します。
+- `@univerjs/preset-sheets-core`、`@univerjs/preset-docs-core` の標準プリセットは UI を登録します。Node.js Headless 用プリセットではないため、プラグインモードで内容層を選択します。
+
+**`@univerjs/engine-render` は個別に判断します。** 現行の Node.js サンプルでも共有の描画管理などを提供するために登録しますが、登録だけでは Canvas の作成やエディターのマウントは行いません。Headless 構成に含められても、描画、フォント計測、画像出力には対応する描画環境が必要です。全 API が純粋な Node.js で動くわけではありません。
+
+**Facade は操作 API であり、環境の適配機能ではありません。** 内容プラグインの `/facade` 拡張を読み込み、実装元のプラグインも登録します。`@univerjs/ui/facade`、`@univerjs/sheets-ui/facade` のメニュー、スクロール、選択範囲の視覚操作には UI が必要です。名前や Facade の有無だけでなく、依存関係と実際の呼び出し経路で判断してください。
+
+実行可能な構成は [Sheets Headless 入門](/guides/sheets/getting-started/node)と [Docs Headless 入門](/guides/docs/getting-started/node)を参照してください。
 
 ## 編集時の即時計算と、サーバーのバージョン別計算 [#サーバーで事前計算しブラウザーに素早く表示]
 
@@ -75,7 +99,7 @@ Univer は内容モデル、計算、UI を分離しています。ヘッドレ�
 
 | 機能 | できること |
 | --- | --- |
-| Node.js の内容ランタイム | [ヘッドレス Web SDK](/guides/sheets/getting-started/node)から必要な製品モデルと計算プラグインを構成します。 |
+| Node.js の内容ランタイム | [headless Univer](/guides/sheets/getting-started/node)から必要な製品モデルと計算プラグインを構成します。 |
 | バックグラウンドのファイル処理 | Rust 計算と [Node.js ファイル変換](/server/import-export/node)を組み合わせ、更新した Snapshot を保存・返却します。 |
 | 共同編集と Agent | [共同編集](/server/collaboration/quick-start)と [AI SDK](/ai/content-operations)を接続し、確定済みの内容を操作します。 |
 

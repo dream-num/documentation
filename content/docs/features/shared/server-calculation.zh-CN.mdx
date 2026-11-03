@@ -4,21 +4,45 @@ description: "在 Node.js 中读写内容，结合 Rust 预计算与数组展开
 icon: Calculator
 ---
 
-Univer 将内容模型、计算与界面解耦。无头运行是在 Node.js 中执行内容运行时；服务端计算则通过 `univer-rs` 承担密集计算与文件转换。应用与 Agent 可以围绕同一份 Snapshot 组合使用这些能力。
+headless Univer 是 Univer 的无界面内容运行时，与浏览器编辑器共享内容模型、命令、计算和 Facade API。它按需组合插件，不挂载交互式编辑器 UI，可以在 Node.js 中处理内容，也可以用于浏览器中的无界面任务。可用能力由所注册的产品与功能插件决定。
 
-## 不注册 UI 的 Node.js 运行时
+本页的 JavaScript/TypeScript 内容运行时与 `univer-rs` 是不同的执行实现。后者用于服务端计算和文件转换，可围绕同一份快照与 Headless 工作流组合使用。
 
-按需注册核心、产品模型、计算与 Facade 插件，不注册菜单、工具栏等依赖 DOM 的 UI 插件，即可在 Node.js 中加载和处理 Sheet、Doc、Slide、Relational Table、Canvases、PDF 内容。Sheets、Docs 可从 Node 预设开始，其他产品按对应的插件组合接入。
+## Headless 能做什么 [#headless-capabilities]
 
-| 能力 | 可以完成什么 |
+- **读写内容与结构**：创建或加载 Univer 快照，通过 Facade API 读写单元格、段落、页面、图形对象或记录，执行命令后保存更新的快照。适合批量处理、数据生成、内容检查和 Agent 自动化。
+- **运行已注册的业务逻辑**：执行公式计算、排序、筛选、数据验证、透视表等插件能力；修改图片、图表、形状、评论等内容资源。能操作哪些内容，取决于产品与功能插件及其依赖。
+- **接入其他服务**：注册 Node.js 协同客户端后，可加载协同 Unit、提交修改并等待同步确认；结合 Server SDK 的转换模块，可处理 Office 文件的导入与导出。
+
+Headless 本身不提供菜单、工具栏、弹窗、鼠标键盘交互、截图或打印，也不会自动提供持久化、用户认证、协同服务器或文件转换服务。`save()` 得到的是 Univer 快照，并不等于写入数据库或导出 XLSX、DOCX、PDF。截图和视觉布局检查需要另行接入[渲染运行时](/ai/visual-inspection)；无界面浏览器仍然在运行渲染层。
+
+## 哪些包属于 Headless 范畴 [#headless-packages]
+
+下面按职责列出常用的内容层包。它们可以组成 Headless 运行时，但不是“安装任意一个包即可运行”的清单：仍需注册对应产品插件、满足依赖，并为 Pro 功能配置所需许可证。
+
+| 常用包 | Headless 中的职责 |
 | --- | --- |
-| 加载与解析 | 加载快照，读取和检查单元格、段落、页面、对象、记录等内容与结构。 |
-| 计算 | 执行公式和数组计算、刷新透视表、生成数字格式的显示结果。 |
-| 变更 | 通过 Facade API 编辑内容、调整结构，保存快照或提交修改。 |
-| 文件处理 | 组合 Server SDK 转换模块，完成批量导入、处理与导出。 |
-| 视觉验证 | 接入 Render Runtime，生成截图并检查布局，为 Agent 提供视觉结果。 |
+| `@univerjs/core`, `@univerjs/sheets`, `@univerjs/docs` | 实例、内容模型、命令与基础内容操作。 |
+| `@univerjs/engine-formula`, `@univerjs/sheets-formula`, `@univerjs/sheets-numfmt`, `@univerjs-pro/engine-formula` | 公式执行、表格公式接入与数字格式；按功能选择开源或 Pro 引擎。 |
+| `@univerjs/sheets-filter`, `@univerjs/sheets-sort`, `@univerjs/sheets-conditional-formatting`, `@univerjs/sheets-data-validation`, `@univerjs/sheets-table`, `@univerjs/sheets-hyper-link`, `@univerjs/sheets-note` | 表格数据与规则操作，不包含对应面板或可视交互。数据验证还需要 `@univerjs/data-validation`。 |
+| `@univerjs/drawing`, `@univerjs/sheets-drawing`, `@univerjs/docs-drawing`, `@univerjs/docs-hyper-link`, `@univerjs/thread-comment`, `@univerjs/sheets-thread-comment`, `@univerjs/docs-thread-comment` | 图片、链接和评论等模型、资源与命令；显示、上传及外部数据源按业务另行接入。 |
+| `@univerjs-pro/sheets-pivot`, `@univerjs-pro/sheets-chart`, `@univerjs-pro/sheets-shape`, `@univerjs-pro/sheets-sparkline`, `@univerjs-pro/sheets-outline`, `@univerjs-pro/sheets-slicer` | 透视表、图表、形状、迷你图、分组与切片器的内容和计算逻辑；图形依赖按需包含 `@univerjs-pro/engine-chart`、`@univerjs-pro/engine-shape`。 |
+| `@univerjs-pro/docs-callout`, `@univerjs-pro/docs-code`, `@univerjs-pro/docs-list`, `@univerjs-pro/docs-quote`, `@univerjs-pro/docs-table`, `@univerjs-pro/docs-column`, `@univerjs-pro/docs-latex`, `@univerjs-pro/docs-formula`, `@univerjs-pro/docs-shape` | 文档块、表格、分栏、公式和形状等内容操作，不包含编辑器控件。 |
+| `@univerjs-pro/slides`, `@univerjs-pro/bases`, `@univerjs-pro/boards`, `@univerjs-pro/pdfs`, `@univerjs-pro/pdfs-editor` | 其他产品的模型与命令；`pdfs-editor` 提供 PDF 编辑器的生命周期与协同接入配置，不能仅凭名称中的 editor 判断为 UI 包。具体可用 API 以各产品为准。 |
 
-内容读写可以直接在 Node.js 中完成。截图与布局检查由单独配置的渲染运行时提供；CLI 的 Render Runtime 可调度无界面浏览器，输出 PNG 和布局检查结果。
+按需增加基础设施：`@univerjs/network`、`@univerjs/rpc-node` 用于网络和 Node.js 计算进程；`@univerjs-pro/license` 用于许可证接入。`@univerjs-pro/collaboration`、`@univerjs-pro/collaboration-client` 与 `@univerjs-pro/collaboration-client-node` 可组成 Headless 协同客户端，它们不等于协同服务器。独立处理本地快照不需要接入协同服务。
+
+### 哪些包不属于纯内容运行时
+
+- `@univerjs/ui`、`@univerjs/design` 和产品或功能的 `*-ui` 包（如 `@univerjs/sheets-ui`、`@univerjs/docs-ui`、`@univerjs-pro/slides-ui`）提供界面、渲染接入或交互，不应加入纯 Node.js 内容处理配置。
+- `@univerjs/sheets-find-replace`、`@univerjs/sheets-crosshair-highlight` 虽然没有 `-ui` 后缀，也依赖 `@univerjs/sheets-ui`，不能据包名把它们视作 Headless 插件。
+- `@univerjs/preset-sheets-core`、`@univerjs/preset-docs-core` 的默认预设会注册 UI 插件，不是 Node.js Headless 预设。此场景使用插件模式明确选择内容层依赖。
+
+**`@univerjs/engine-render` 需要单独看待。** 当前 Node.js 示例会注册它，以提供共享的渲染管理等依赖；注册插件并不等于创建 Canvas 或挂载编辑器。它可以出现在 Headless 插件组合中，但实际绘制、字体测量、截图等 API 仍需要相应的渲染环境，不能据此认为整个包的 API 都能在纯 Node.js 中使用。
+
+**Facade 是操作入口，不是运行环境适配器。** 按需导入内容插件的 `/facade` 扩展，并注册实现该能力的插件。`@univerjs/ui/facade`、`@univerjs/sheets-ui/facade` 等 UI 扩展及其菜单、滚动、选择区可视交互 API 仍需要 UI。判断边界时要检查插件依赖和实际调用路径，而不只看包名或是否提供 Facade。
+
+可运行的插件组合见 [Sheets Headless 入门](/guides/sheets/getting-started/node)和 [Docs Headless 入门](/guides/docs/getting-started/node)。
 
 ## 前端即时计算，服务端按版本计算 [#服务端预计算前端快速展示]
 
@@ -75,7 +99,7 @@ Univer 将内容模型、计算与界面解耦。无头运行是在 Node.js 中�
 
 | 能力 | 可以完成什么 |
 | --- | --- |
-| Node.js 内容运行时 | 从[无头 Web SDK](/guides/sheets/getting-started/node)开始，按产品启用所需的模型与计算插件。 |
+| Node.js 内容运行时 | 从[headless Univer](/guides/sheets/getting-started/node)开始，按产品启用所需的模型与计算插件。 |
 | 后台文件处理 | 组合 Rust 计算与 [Node.js 文件转换](/server/import-export/node)，保存或返回更新后的快照。 |
 | 共享编辑与 Agent | 接入[协同服务](/server/collaboration/quick-start)与 [AI SDK](/ai/content-operations)，让用户和 Agent 操作已确认的内容。 |
 

@@ -424,11 +424,11 @@ const frFRMessages = {
       },
     },
     headless: {
-      title: 'Web SDK headless',
+      title: 'Headless Univer',
       subtitle: 'Traitez les documents sur le serveur avec une prise en charge native de l’IA et de l’automatisation',
       feature1: {
         title: 'Prise en charge de Node.js',
-        desc: 'Exécutez Web SDK directement dans Node.js, sans navigateur.',
+        desc: 'Exécutez headless Univer directement dans Node.js, sans navigateur.',
       },
       feature2: {
         title: 'Aucun rendu d’interface',
