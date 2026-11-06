@@ -73,3 +73,23 @@ const subscription = exchange.requestState$.subscribe(({ error }) => {
 Compare valores `ErrorCode` de `@univerjs/protocol`, no mensajes traducidos. Conserve el mensaje del servidor para diagnóstico. Los fallos de red, respuestas no válidas y tiempos de espera pueden producir errores genéricos y no prueban un rechazo de licencia. Llame a `subscription.unsubscribe()` al retirar el editor.
 
 Un backend o proxy propio debe conservar la respuesta estructurada y marcar las tareas fallidas en lugar de dejarlas pendientes. Aumentar `maxTimeoutTime` solo prolonga el seguimiento; no aumenta la cuota ni cambia la cobertura de la licencia.
+
+## Adjuntos OLE [#ole-attachments]
+
+Sheets, Docs y Slides conservan los archivos OLE importados separados de sus vistas previas. Se pueden descargar los originales disponibles y, con permisos, renombrar una instancia o eliminar el adjunto. Las imágenes y PDF admiten vista previa. La de Office usa conversión JSON de Exchange y un editor temporal de solo lectura, sin crear un documento hijo persistente. No ejecuta aplicaciones nativas de Office ni macros.
+
+Añada `ole` al registro existente de `UniverDrawingPlugin` antes de registrar Exchange. La ruta del ejemplo debe abrir la interfaz de documentos de su aplicación; puede usar el segundo argumento de `getLink` (tipo de documento). Exchange proporciona conversión de Office y detección de colaboración. Los adjuntos referenciados por UUID también requieren `ole.attachmentIo` con callbacks autorizados `upload(file, targetUnitId)` y `read(attachment, signal)`. La vista previa de Office necesita el renderizador correspondiente o `previewOffice` / `createOfficePreview` personalizados.
+
+```ts
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+
+univer.registerPlugin(UniverDrawingPlugin, {
+  ole: {
+    getLink: (unitId) => `/documents/${encodeURIComponent(unitId)}`,
+  },
+})
+```
+
+Convertir un adjunto Office en documento en línea requiere un anfitrión colaborativo, permiso de edición, conversión y `getLink`. Crea un documento independiente y guarda su identidad en el adjunto para reutilizarlo. Editar ese documento no sobrescribe los bytes originales. Los adjuntos ausentes, externos o no compatibles mantienen su estado.
+
+La exportación usa `oleAttachmentSource: 'original'` por defecto. `'online'` incorpora las versiones actuales confirmadas de los documentos convertidos solo en esa exportación, sin modificar los originales almacenados. Espere la sincronización y autorice en el backend el acceso a los documentos referenciados. Pase la opción como segundo argumento de las API de Docs/Slides o cuarto de Sheets; las variantes snapshot usan la misma posición. Consulte la [API de exportación](/reference/facade/univer#exportsheetbyunitidasync).

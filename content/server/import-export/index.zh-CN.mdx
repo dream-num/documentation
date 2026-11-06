@@ -74,3 +74,23 @@ const subscription = exchange.requestState$.subscribe(({ error }) => {
 通过 `@univerjs/protocol` 中具名的 `ErrorCode` 判断错误，不要解析翻译后的提示文字。保留服务端消息用于诊断。网络失败、无效任务响应和轮询超时可能只报告通用错误，不能据此认定许可证被拒绝。移除编辑器时调用 `subscription.unsubscribe()` 释放订阅。
 
 自定义后端或代理应保留结构化错误响应，并将失败任务标为失败，而不是一直返回 pending。增大 `maxTimeoutTime` 只延长任务轮询时间，不会增加导出额度或改变授权范围。
+
+## OLE 附件 [#ole-attachments]
+
+Sheets、Docs 和 Slides 将导入的 OLE 原文件与预览图分别保留。用户可以下载可用的原文件，并在权限允许时重命名某个附件实例或删除附件。图片和 PDF 可预览；Office 预览通过 Exchange 转换为 JSON，并在临时只读编辑器中打开，不创建持久化子文档。不会运行原生 Office 应用或宏。
+
+在注册 Exchange 之前，将 `ole` 加入已有的 `UniverDrawingPlugin` 配置。以下路由由应用实现，应指向文档界面；可根据 `getLink` 的第二个参数（文档类型）选择路由。Exchange 提供 Office 转换和协同状态检测。使用 UUID 引用的附件还需配置 `ole.attachmentIo`，提供带鉴权的 `upload(file, targetUnitId)` 和 `read(attachment, signal)` 回调。Office 预览需要对应渲染器，或自定义 `previewOffice` / `createOfficePreview` 回调。
+
+```ts
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+
+univer.registerPlugin(UniverDrawingPlugin, {
+  ole: {
+    getLink: (unitId) => `/documents/${encodeURIComponent(unitId)}`,
+  },
+})
+```
+
+将 Office 附件转换为在线文档，需要宿主已启用协同、具有编辑权限，并配置转换能力和 `getLink`。转换创建独立文档，将其标识保存到附件上，后续打开时复用该文档。编辑在线文档不会覆盖附件原始字节。缺失、外部引用或不支持的附件保留相应状态，不会变成可编辑的 Office 对象。
+
+导出默认使用 `oleAttachmentSource: 'original'`。设为 `'online'` 时，仅在本次导出中嵌入已转换在线文档当前已确认的版本，不改写保存的原附件。导出前应等待同步完成，后端需校验被引用文档的访问权限。Docs/Slides 导出 API 将该选项作为第二个参数，Sheets 作为第四个参数；snapshot 版本使用相同参数位置。参见[导出 API](/reference/facade/univer#exportsheetbyunitidasync)。

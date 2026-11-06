@@ -74,3 +74,23 @@ const subscription = exchange.requestState$.subscribe(({ error }) => {
 Compare named `ErrorCode` values from `@univerjs/protocol`, not translated message text. Retain the server’s message for diagnostics. Network failures, malformed task responses, and polling timeouts may instead report a generic failure; they do not prove a license rejection. Dispose the subscription with `subscription.unsubscribe()` when removing the editor.
 
 For a custom backend or proxy, preserve the structured error response and report a failed task instead of leaving it pending. Increasing `maxTimeoutTime` only extends task polling; it does not increase export quota or change license coverage.
+
+## OLE attachments [#ole-attachments]
+
+Sheets, Docs, and Slides preserve imported OLE files separately from their preview images. Users can download available original files, rename an occurrence, and remove an attachment when permitted. Image and PDF attachments can be previewed. Office previews use Exchange JSON conversion and a temporary read-only editor; opening a preview does not create a persisted child document. Native Office applications and macros are not executed.
+
+Add `ole` to the existing `UniverDrawingPlugin` registration before registering Exchange. The route below is an application route: resolve it to your document UI, using the optional second `getLink` argument (document type) if needed. Exchange supplies Office conversion and collaboration detection. UUID-backed attachments additionally require `ole.attachmentIo` with authorized `upload(file, targetUnitId)` and `read(attachment, signal)` callbacks. Office previews require the corresponding renderer or a custom `previewOffice` / `createOfficePreview` callback.
+
+```ts
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+
+univer.registerPlugin(UniverDrawingPlugin, {
+  ole: {
+    getLink: (unitId) => `/documents/${encodeURIComponent(unitId)}`,
+  },
+})
+```
+
+Converting an Office attachment to an online document requires a collaborative host, edit permission, conversion support, and `getLink`. It creates an independent document and saves its identity on the attachment; later opens reuse it. Editing that document does not overwrite the original attachment bytes. Missing, external, or unsupported attachments retain their status rather than becoming editable Office objects.
+
+Exports default to `oleAttachmentSource: 'original'`. Set `'online'` to embed the current confirmed versions of converted online documents in that export only; it does not rewrite the stored originals. Wait for synchronization before exporting and authorize access to referenced documents on the backend. Pass the option as the second argument to Docs/Slides export APIs, or the fourth argument to Sheets export APIs; snapshot variants accept it in the same position. See the [export API](/reference/facade/univer#exportsheetbyunitidasync).

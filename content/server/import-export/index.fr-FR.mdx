@@ -73,3 +73,23 @@ const subscription = exchange.requestState$.subscribe(({ error }) => {
 Comparez les valeurs nommées `ErrorCode` de `@univerjs/protocol`, pas le texte traduit. Conservez le message serveur pour le diagnostic. Une panne réseau, une réponse de tâche invalide ou un délai dépassé peut produire une erreur générique ; cela ne prouve pas un rejet de licence. Appelez `subscription.unsubscribe()` lors du retrait de l’éditeur.
 
 Un backend ou proxy personnalisé doit conserver la réponse structurée et signaler les tâches échouées au lieu de les laisser en attente. Augmenter `maxTimeoutTime` prolonge uniquement le suivi, sans modifier quota ou couverture de licence.
+
+## Pièces jointes OLE [#ole-attachments]
+
+Sheets, Docs et Slides conservent les fichiers OLE importés séparément de leurs aperçus. Les utilisateurs peuvent télécharger les originaux disponibles et, avec les droits nécessaires, renommer une occurrence ou supprimer une pièce jointe. Les images et PDF sont prévisualisables. L’aperçu Office utilise la conversion JSON d’Exchange et un éditeur temporaire en lecture seule, sans créer de document enfant persistant. Il n’exécute ni application Office native ni macro.
+
+Ajoutez `ole` à l’enregistrement existant de `UniverDrawingPlugin` avant Exchange. La route ci-dessous doit ouvrir l’interface documentaire de votre application ; utilisez si nécessaire le deuxième argument de `getLink` (type de document). Exchange fournit la conversion Office et la détection de collaboration. Les pièces jointes référencées par UUID nécessitent aussi `ole.attachmentIo` avec les callbacks autorisés `upload(file, targetUnitId)` et `read(attachment, signal)`. L’aperçu Office exige le moteur de rendu correspondant ou des callbacks `previewOffice` / `createOfficePreview` personnalisés.
+
+```ts
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+
+univer.registerPlugin(UniverDrawingPlugin, {
+  ole: {
+    getLink: (unitId) => `/documents/${encodeURIComponent(unitId)}`,
+  },
+})
+```
+
+La conversion d’une pièce jointe Office en document en ligne nécessite un hôte collaboratif, le droit de modification, la conversion et `getLink`. Elle crée un document indépendant et enregistre son identité sur la pièce jointe pour les prochaines ouvertures. Modifier ce document ne remplace pas les octets originaux. Les pièces jointes manquantes, externes ou non prises en charge conservent leur état.
+
+L’export utilise par défaut `oleAttachmentSource: 'original'`. Avec `'online'`, il incorpore les versions actuellement confirmées des documents convertis uniquement dans cet export, sans modifier les originaux stockés. Attendez la synchronisation et vérifiez côté serveur les droits sur les documents référencés. Passez l’option en deuxième argument des API Docs/Slides ou en quatrième pour Sheets ; les variantes snapshot gardent la même position. Voir l’[API d’export](/reference/facade/univer#exportsheetbyunitidasync).

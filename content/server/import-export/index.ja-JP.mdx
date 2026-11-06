@@ -73,3 +73,23 @@ const subscription = exchange.requestState$.subscribe(({ error }) => {
 翻訳済みメッセージを解析せず、`@univerjs/protocol` の `ErrorCode` 名で判定し、診断用にサーバーメッセージを保持してください。通信失敗、不正なタスク応答、ポーリングのタイムアウトは汎用エラーになる場合があり、ライセンス拒否とは限りません。エディターを削除するときは `subscription.unsubscribe()` で購読を解除します。
 
 独自のバックエンドやプロキシでは構造化エラーを保持し、失敗したタスクを pending のままにしないでください。`maxTimeoutTime` を増やしてもポーリング時間が延びるだけで、エクスポート枠や許可範囲は変わりません。
+
+## OLE 添付ファイル [#ole-attachments]
+
+Sheets、Docs、Slides はインポートした OLE の元ファイルとプレビュー画像を別々に保持します。利用可能な元ファイルをダウンロードし、権限があれば添付の表示名変更や削除ができます。画像と PDF はプレビューできます。Office プレビューは Exchange で JSON に変換し、一時的な読み取り専用エディターで開きます。永続的な子ドキュメントは作成せず、ネイティブ Office アプリやマクロも実行しません。
+
+Exchange より前に、既存の `UniverDrawingPlugin` 設定へ `ole` を追加してください。以下のルートはアプリ側のドキュメント画面を指します。必要なら `getLink` の第 2 引数（ドキュメント種別）で切り替えます。Exchange は Office 変換と共同編集状態の判定を提供します。UUID 参照の添付には、認可付きの `upload(file, targetUnitId)` と `read(attachment, signal)` を持つ `ole.attachmentIo` も必要です。Office プレビューには対応レンダラー、または独自の `previewOffice` / `createOfficePreview` が必要です。
+
+```ts
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+
+univer.registerPlugin(UniverDrawingPlugin, {
+  ole: {
+    getLink: (unitId) => `/documents/${encodeURIComponent(unitId)}`,
+  },
+})
+```
+
+Office 添付をオンラインドキュメントへ変換するには、共同編集中のホスト、編集権限、変換機能、`getLink` が必要です。独立したドキュメントを作成してその識別情報を添付に保存し、以後は再利用します。オンライン側を編集しても元の添付バイト列は上書きしません。欠落、外部参照、未対応の添付はその状態を保持します。
+
+エクスポートの既定値は `oleAttachmentSource: 'original'` です。`'online'` は、変換済みオンラインドキュメントの現在の確定済みバージョンを今回の出力にだけ埋め込み、保存済みの原本は変更しません。同期完了を待ち、バックエンドで参照先へのアクセスを認可してください。Docs/Slides のエクスポート API は第 2 引数、Sheets は第 4 引数に渡します。snapshot 版も同じ位置です。[エクスポート API](/reference/facade/univer#exportsheetbyunitidasync)を参照してください。
