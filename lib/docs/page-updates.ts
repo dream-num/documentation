@@ -60,5 +60,13 @@ export const UPDATED_DOC_PAGES: ReadonlySet<string> = new Set([
   '/reference/packages/plugins/univerjs/rpc',
   '/reference/packages/plugins/univerjs/rpc-node',
   '/reference/packages/plugins/univerjs/ui',
+  '/server/collaboration/database-adapters',
+  '/server/collaboration/extensions',
+  '/server/collaboration/identity-and-authorization',
+  '/server/collaboration/modules',
+  '/server/collaboration/overview',
+  '/server/collaboration/packages',
+  '/server/deployment',
   '/server/import-export',
+  '/server/requirements',
 ])
