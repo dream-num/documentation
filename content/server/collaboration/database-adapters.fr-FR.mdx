@@ -1,9 +1,11 @@
 ---
 title: Adaptateurs de base de données
-description: Comprenez le contrat de persistance collaborative et choisissez entre Memory, SQLite et un Database Adapter personnalisé.
+description: Comprenez le contrat de persistance collaborative et choisissez entre Memory, SQLite, PostgreSQL et un Database Adapter personnalisé.
 ---
 
 Un Database Adapter persiste les données collaboratives centrales utilisées par Collaboration Service. Les développeurs peuvent implémenter `IDatabaseAdapter` pour connecter toute base capable de satisfaire son contrat comportemental complet. Le Service gère la sémantique des Units, de l’OT et des révisions ; l’Adapter la traduit en opérations de persistance atomiques et sûres à réessayer.
+
+Les Database Adapters sont open source sous Apache-2.0 ; le code se trouve dans [univer-collaboration-sdk-community](https://github.com/dream-num/univer-collaboration-sdk-community), avec les mêmes noms de paquet et versions que les autres paquets.
 
 ## Vérifier la persistance [#verify-persistence]
 
@@ -20,7 +22,7 @@ L’Adapter central stocke :
 - les enregistrements d’idempotence[^submission-idempotency] indexés par `(unitID, sid, reqId)` ;
 - l’état de suppression logique, de restauration et de suppression définitive des Units.
 
-Par défaut, il ne stocke ni utilisateurs, ni rôles, ni ACL, ni répertoires, ni fichiers, ni métadonnées produit. History, Thread Comment et Worktree possèdent des contrats Adapter indépendants.
+Par défaut, il ne stocke ni utilisateurs, ni rôles, ni ACL, ni métadonnées produit. History, Thread Comment et Worktree possèdent des contrats Adapter indépendants.
 
 ## Sémantique requise
 
@@ -40,10 +42,9 @@ Traduire chaque méthode en simple lecture ou écriture sans ces garanties de co
 
 ## Memory Adapter
 
-`@univerjs-pro/collaboration-database-memory` est une implémentation en mémoire du processus adaptée :
+[`@univerjs-pro/collaboration-database-memory`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-memory) est une implémentation en mémoire du processus adaptée :
 
 - aux tests unitaires et d’intégration ;
-- aux exemples officiels ;
 - aux environnements de développement temporaires ;
 - à la validation rapide de Middleware personnalisés ou de l’assemblage client.
 
@@ -59,7 +60,7 @@ Memory Adapter respecte les mêmes contrats de révision, de CAS et d’idempote
 
 ## SQLite Adapter
 
-`@univerjs-pro/collaboration-database-sqlite` est une implémentation SQLite persistante pour le développement, les tests, les applications locales et les usages à petite échelle.
+[`@univerjs-pro/collaboration-database-sqlite`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-sqlite) est une implémentation SQLite persistante pour le développement, les tests, les applications locales et les usages à petite échelle.
 
 ```ts
 import { mkdir } from "node:fs/promises";
@@ -76,17 +77,31 @@ const database = new SQLiteDatabaseAdapter({
 const service = new UniverCollabService({ dbAdapter: database });
 ```
 
-SQLite Adapter utilise des clés étrangères et des transactions d’écriture `BEGIN IMMEDIATE` pour les commits atomiques. Il crée le schéma courant dans une base vide. Il refuse les schémas incomplets ou non pris en charge au lieu d’appliquer automatiquement des migrations inconnues.
+Il initialise le schéma dans une base vide et ne fait que vérifier une base existante. L’emplacement du fichier, les sauvegardes et les autres réglages SQLite relèvent de l’application.
 
-Il ne modifie pas `journal_mode` et ne décide ni de l’emplacement du fichier, ni de la politique de sauvegarde, ni des autres réglages SQLite. SQLite vise le développement, les applications locales et la petite échelle.
+## PostgreSQL Adapter
+
+[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) est une implémentation persistante basée sur node-postgres que plusieurs nœuds de collaboration peuvent partager.
+
+```ts
+import { PostgresDatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { Pool } from "pg";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const database = await PostgresDatabaseAdapter.create({ pool });
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
+L’application possède le pool et le ferme après avoir libéré le Service. `create()` initialise le schéma `collaboration` dans une base vide et ne fait que vérifier un schéma existant.
 
 ## Database Adapters personnalisés
 
 Un Adapter personnalisé convient généralement si :
 
-- l’application utilise déjà PostgreSQL, MySQL ou une autre base métier ;
+- l’application utilise déjà MySQL ou une autre base métier ;
 - les soumissions collaboratives doivent s’intégrer à des mécanismes de base propres à l’application ;
-- les exigences d’exploitation ou de conformité dépassent le périmètre prévu de SQLite.
+- les exigences d’exploitation ou de conformité dépassent le périmètre des Adapters intégrés.
 
 Implémentez `IDatabaseAdapter` et injectez-le dans le Service comme un Adapter intégré :
 
@@ -95,7 +110,7 @@ const database = new ApplicationCollaborationDatabase({ pool });
 const service = new UniverCollabService({ dbAdapter: database });
 ```
 
-Le Service ne dépend pas d’une base particulière, mais ne peut pas ajouter transactions, CAS ou déduplication à votre implémentation. L’Adapter doit réaliser le contrat complet avec les capacités de sa base.
+Le Service ne dépend pas d’une base particulière, mais ne peut pas ajouter transactions, CAS ou déduplication à votre implémentation. L’Adapter doit réaliser le contrat complet avec les capacités de sa base. Les implémentations intégrées du [dépôt communautaire](https://github.com/dream-num/univer-collaboration-sdk-community) montrent le même contrat sur différentes bases et servent de référence.
 
 ## Context et frontière applicative
 
@@ -108,7 +123,7 @@ Middleware Service
   → stocke atomiquement l’état collaboratif faisant autorité
 ```
 
-Memory, SQLite et les Adapters personnalisés peuvent ainsi partager les mêmes politiques applicatives.
+Memory, SQLite, PostgreSQL et les Adapters personnalisés peuvent ainsi partager les mêmes politiques applicatives.
 
 Si les données métier doivent rester fortement cohérentes avec les données collaboratives, un Database Adapter personnalisé peut lire les valeurs nécessaires dans `customData` et écrire les deux ensembles dans sa transaction de base de données.
 
@@ -116,7 +131,7 @@ Si elles n’ont pas besoin de partager cette transaction, les Middleware ou Eve
 
 ## Stockage des modules d’extension
 
-History, Thread Comment et Worktree définissent des interfaces Database Adapter indépendantes. Leurs Adapters peuvent partager une base ou utiliser des stockages distincts. Une seule implémentation personnalisée peut aussi fournir plusieurs interfaces Adapter et être injectée dans les Services correspondants.
+History, Thread Comment, Worktree et File définissent des interfaces Database Adapter indépendantes. Leurs Adapters peuvent partager une base ou utiliser des stockages distincts. Une seule implémentation personnalisée peut aussi fournir plusieurs interfaces Adapter et être injectée dans les Services correspondants.
 
 Ces interfaces étant indépendantes, le SDK ne fournit pas par défaut de transactions intermodules. Même avec une base partagée, la stratégie de cohérence intermodules appartient à l’application.
 
@@ -126,6 +141,7 @@ Ces interfaces étant indépendantes, le SDK ne fournit pas par défaut de trans
 | --- | --- | --- |
 | Memory | Tests, exemples, développement temporaire | Données perdues à l’arrêt du processus |
 | SQLite | Développement, tests, applications locales, petite échelle | Base monofichier dont l’application gère les réglages |
+| PostgreSQL | Déploiements multi-nœuds et bases PostgreSQL existantes | L’application gère le pool et l’exploitation de la base |
 | Personnalisé | Bases existantes ou intégration métier spécifique | L’application doit implémenter et vérifier le contrat complet |
 
 L’application possède chaque Adapter injecté. Libérez le Service avant l’Adapter :

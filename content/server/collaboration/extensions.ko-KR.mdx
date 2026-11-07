@@ -1,24 +1,25 @@
 ---
 title: 협업 확장 모듈
-description: History, Thread Comment, Worktree, 서버 측 Office 변환이 핵심 협업을 확장하는 방식을 알아봅니다.
+description: History, Thread Comment, Worktree, File, 서버 측 Office 변환이 핵심 협업을 확장하는 방식을 알아봅니다.
 ---
 
-History, Thread Comment, Worktree는 필요에 따라 활성화하는 독립적인 협업 확장 모듈입니다. Transport, 신원 시스템, 물리 DB를 재사용할 수 있지만 Service, Middleware, Event, Database Adapter, 수명 주기 경계는 각각 유지합니다.
+History, Thread Comment, File, Worktree는 필요에 따라 활성화하는 독립적인 협업 확장 모듈입니다. Transport, 신원 시스템, 물리 DB를 재사용할 수 있지만 Service, Middleware, Event, Database Adapter, 수명 주기 경계는 각각 유지합니다.
 
-서버 측 Office 변환은 파일 변환과 Collaboration Service API를 조합하는 애플리케이션 흐름입니다. 주 Service의 기능 스위치를 켜는 방식이 아닙니다.
+서버 측 Office 변환은 File과 Collaboration Service를 조합합니다. Office 파일과 협업 Unit 사이를 변환하며 자체 Service, Endpoint, Middleware를 갖습니다.
 
 ## 모듈 관계
 
-<Mermaid chart={"flowchart TB\n    Transport[\"Node Transport\"]\n\n    subgraph Modules[\"협업 모듈\"]\n        direction LR\n        Core[\"핵심 협업<br/>Endpoint · Service · Adapter\"]\n        History[\"History<br/>Endpoint · Service · Adapter\"]\n        Comment[\"Thread Comment<br/>Endpoint · Service · Adapter\"]\n        Worktree[\"Worktree<br/>Client · Endpoint · Service · Adapter\"]\n    end\n\n    Transport --> Core\n    Transport --> History\n    Transport --> Comment\n    Transport --> Worktree"} />
+<Mermaid chart={"flowchart TB\n    Transport[\"Node Transport\"]\n\n    subgraph Modules[\"협업 모듈\"]\n        direction LR\n        Core[\"핵심 협업<br/>Endpoint · Service · Adapter\"]\n        History[\"History<br/>Endpoint · Service · Adapter\"]\n        Comment[\"Thread Comment<br/>Endpoint · Service · Adapter\"]\n        File[\"File<br/>Endpoint · Service · Adapter · Blob Store\"]\n        Exchange[\"Office Exchange<br/>Endpoint · Service\"]\n        Worktree[\"Worktree<br/>Client · Endpoint · Service · Adapter\"]\n    end\n\n    Transport --> Core\n    Transport --> History\n    Transport --> Comment\n    Transport --> File\n    Transport --> Exchange\n    Transport --> Worktree\n    Exchange --> Core\n    Exchange --> File"} />
 
 | 확장 모듈 | 핵심 협업과의 관계 |
 | --- | --- |
 | History | 핵심 Events를 관찰하여 파생 기록 인덱스 구성 |
 | Thread Comment | 핵심 Unit Room 재사용. 댓글 앵커는 핵심 콘텐츠에 속함 |
+| File | Unit이 참조하는 이미지, 첨부 파일, 교환 파일을 저장. Unit 데이터에는 파일 ID만 기록 |
+| Office Exchange | 핵심 Service로 Unit을 생성·읽고 File로 파일을 읽고 씀 |
 | Worktree | 핵심 Unit과 OT 기능을 재사용하고 초안을 트렁크에 병합 |
-| Office Exchange | 핵심 Service 스냅샷 API로 Unit 생성·읽기 |
 
-History, Thread Comment, Worktree는 각자의 Middleware, Events, Database Adapter를 구성합니다.
+History, Thread Comment, File, Worktree는 각자의 Middleware, Events, Database Adapter를 구성합니다.
 
 ## 버전 기록
 
@@ -60,6 +61,43 @@ transport.register(
 
 Comment Service는 추가, 목록, 답글, 해결/다시 열기, 편집, 삭제 Middleware와 `commentCommitted` Event를 제공합니다. 핵심 Service의 읽기·편집 정책을 상속하지 않습니다.
 
+## 파일 스토리지
+
+File은 Univer 클라이언트가 업로드하는 바이너리 파일을 저장합니다. Unit에 삽입한 이미지와 첨부 파일, 그리고 가져오기와 내보내기의 원본 파일과 결과 파일입니다. Unit 데이터에는 파일 ID만 기록하고 클라이언트가 로드 시 ID를 다운로드 URL로 변환하므로 snapshot과 changeset이 가볍게 유지됩니다.
+
+```ts
+const fileService = new UniverFileService({
+  database: fileDatabase,
+  blobStore,
+});
+
+transport.register(new UniverFileEndpoint(fileService));
+```
+
+메타데이터와 콘텐츠는 독립적인 두 계약입니다. `IFileDatabaseAdapter`가 파일 레코드를, `IFileBlobStore`가 콘텐츠를 저장합니다. 교환용 임시 파일은 업로드한 사용자만 접근할 수 있고 Service가 주기적으로 정리합니다. Unit의 이미지와 첨부 파일은 `upload`, `signUrl`, `download` Middleware에서 Unit 권한으로 제어합니다.
+
+## 서버 측 Office 변환
+
+Exchange Service는 Office 파일을 협업 Unit으로 가져오고 Unit을 파일로 내보냅니다. 변환은 `@univerjs-pro/exchange-node`에 의존하고, Unit 생성과 읽기는 Collaboration Service를, 원본 파일과 결과 파일 저장은 File Service를 통해 처리합니다.
+
+```ts
+const exchangeService = new UniverExchangeService({ collabService, fileService });
+
+transport.register(new UniverExchangeEndpoint(exchangeService));
+```
+
+가져오기와 내보내기는 task입니다. 클라이언트가 task를 만들고 결과를 폴링합니다. 가져오기는 Core Service의 `createUnit` Middleware를, 내보내기는 `readUnitData` Middleware를 거칩니다. Exchange 자체의 `import`, `export` Middleware는 속도 제한, 할당량, 감사에 사용합니다.
+
+| Unit | 가져오기 | 내보내기 |
+| --- | --- | --- |
+| Sheet | xls, xlsx, csv, tsv | xlsx, csv, tsv |
+| Doc | doc, docx | docx |
+| Slide | ppt, pptx | pptx |
+| Base | xls, xlsx, csv, tsv | xlsx, csv |
+| PDF | pdf | pdf |
+
+task는 Service 인스턴스 안에 보관되므로 가져오기와 내보내기 노드는 하나만 배포하고 Exchange의 세 라우트를 모두 그 노드로 보냅니다.
+
 ## Worktree 초안과 병합
 
 Worktree는 하나 이상의 Unit에 격리된 초안, 동결, 병합 평가, Unit별 병합을 추가합니다.
@@ -88,39 +126,20 @@ Worktree Service에는 독립적인 수명 주기, 읽기, 초안 submit/apply/c
 
 여러 Unit의 병합은 Unit 사이에서 원자적이지 않습니다. 애플리케이션은 각 Unit의 병합 결과를 표시해야 합니다.
 
-## 서버 측 Office 변환
-
-서버 측 Exchange는 `@univerjs-pro/exchange-node`와 Collaboration Service API를 조합해 파일과 협업 상태를 연결합니다.
-
-```text
-Office 파일
-  → exchange-node 가져오기
-  → Snapshot + Sheet Blocks
-  → createUnitFromSnapshot()
-
-확정된 Unit 리비전
-  → getUnitLoadDataWithBlocks()
-  → UnitSnapshotMaterializer
-  → exchange-node 내보내기
-  → Office 파일
-```
-
-공식 예제는 XLS, XLSX, CSV, TSV를 새 협업 Sheet로 가져오고 현재 확정 리비전을 XLSX, CSV, TSV로 내보냅니다.
-
-파일 저장, 작업 상태, 접근 제어, 크기 제한, 업무 API는 애플리케이션이 담당합니다. Exchange는 별도 협업 Database Adapter 없이 핵심 Service를 통해 기준 Unit을 읽거나 생성합니다.
-
 ## 독립 확장 지점
 
 확장을 활성화할 때 각 경계를 별도로 검토하세요.
 
-| 경계 | 핵심 | History | Comment | Worktree |
-| --- | --- | --- | --- | --- |
-| Service | 독립 | 독립 | 독립 | 독립 |
-| Middleware | 공유 안 함 | 핵심 상속 안 함 | 핵심 상속 안 함 | 핵심 상속 안 함 |
-| Event | 핵심 수명 주기 | 핵심 Events 관찰 | `commentCommitted` | Worktree 수명 주기/커밋 |
-| Database Adapter | 핵심 Adapter | History Adapter | Comment Adapter | Worktree Adapter |
+| 경계 | 핵심 | History | Comment | File | Worktree |
+| --- | --- | --- | --- | --- | --- |
+| Service | 독립 | 독립 | 독립 | 독립 | 독립 |
+| Middleware | 공유 안 함 | 핵심 상속 안 함 | 핵심 상속 안 함 | 핵심 상속 안 함 | 핵심 상속 안 함 |
+| Event | 핵심 수명 주기 | 핵심 Events 관찰 | `commentCommitted` | — | Worktree 수명 주기/커밋 |
+| Database Adapter | 핵심 Adapter | History Adapter | Comment Adapter | File Adapter와 Blob Store | Worktree Adapter |
 
-같은 SQLite 파일을 사용해도 Adapter는 독립 계약을 가진 별도 객체입니다. Service와 Adapter도 각각 해제해야 합니다.
+같은 데이터베이스를 사용해도 Adapter는 독립 계약을 가진 별도 객체입니다. Service와 Adapter도 각각 해제해야 합니다.
+
+Office Exchange는 Core와 File의 저장소를 재사용합니다. 자체 `import`, `export` Middleware를 실행한 뒤에도 가져오기와 내보내기는 Core와 File의 Middleware를 거칩니다.
 
 ## 기능 선택
 
@@ -128,8 +147,9 @@ Office 파일
 | --- | --- | --- |
 | 사용자용 버전 기록 | History Service, Endpoint, Adapter | `pnpm example:history` |
 | Sheet·Doc 댓글 | Comment Service, Endpoint, Adapter | `pnpm example:comments` |
+| 이미지, 첨부 파일, 파일 스토리지 | File Service, Endpoint, Adapter, Blob Store | `pnpm example:file-service` |
+| 서버 측 Office 가져오기·내보내기 | Exchange Service, Endpoint + File | `pnpm example:exchange` |
 | 격리 초안, 검토, 병합 | Worktree Service, Endpoint, Client, Adapter | `pnpm example:worktree` |
-| 서버 측 Office 가져오기·내보내기 | Exchange Node + Collaboration Service | `pnpm example:exchange` |
 
 전체 실행 명령과 페이지 URL은 [예제 목록](/server/collaboration/examples)을 참고하세요.
 

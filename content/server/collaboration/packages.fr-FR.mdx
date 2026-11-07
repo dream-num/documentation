@@ -1,9 +1,11 @@
 ---
 title: Vue d’ensemble des paquets
-description: Comprendre les paquets publics de Core, History, Thread Comment, Worktree et Office Exchange.
+description: Comprendre les paquets publics de Core, History, Thread Comment, Worktree, File et Office Exchange.
 ---
 
 Cette page guide le choix des paquets. Composez d’abord Core Collaboration, puis ajoutez les extensions nécessaires. Il n’est pas nécessaire de tout installer.
+
+Les paquets serveur des Database Adapters, de File et d’Office Exchange sont open source sous Apache-2.0 ; le code se trouve dans [univer-collaboration-sdk-community](https://github.com/dream-num/univer-collaboration-sdk-community). Ils partagent le préfixe et la version des autres paquets et s’installent de la même façon.
 
 ## Core Collaboration
 
@@ -19,9 +21,10 @@ Core Collaboration fournit le circuit principal : collaboration navigateur, prot
 | Server   | [**@univerjs-pro/collaboration-service**](https://www.npmjs.com/package/@univerjs-pro/collaboration-service)                 | Gère Units, OT, révisions et API du Service central                     |
 | Base de données | [**@univerjs-pro/collaboration-database-memory**](https://www.npmjs.com/package/@univerjs-pro/collaboration-database-memory) | Stockage en processus pour tests, exemples et développement temporaire       |
 | Base de données | [**@univerjs-pro/collaboration-database-sqlite**](https://www.npmjs.com/package/@univerjs-pro/collaboration-database-sqlite) | Persistance SQLite pour développement, tests, usage local et petite échelle |
+| Base de données | [**@univerjs-pro/collaboration-database-postgres**](https://www.npmjs.com/package/@univerjs-pro/collaboration-database-postgres) | Persistance PostgreSQL partagée entre plusieurs nœuds |
 | Multi-node | [**@univerjs-pro/collaboration-cluster-redis**](https://www.npmjs.com/package/@univerjs-pro/collaboration-cluster-redis) | Adaptateur pub/sub et stockage des session tickets sur Redis pour le déploiement sur plusieurs nœuds |
 
-Un Core Server nécessite Transport, Endpoint, Service et un Database Adapter. Memory et SQLite implémentent le même contrat ; choisissez normalement l’un des deux. Un déploiement sur plusieurs nœuds nécessite aussi un adaptateur pub/sub et un stockage de session tickets partagé. L’Endpoint définit les deux contrats (`IPubSubAdapter`, `ISessionTicketStore`) ; le SDK fournit une implémentation sur Redis.
+Un Core Server nécessite Transport, Endpoint, Service et un Database Adapter. Memory, SQLite et PostgreSQL implémentent le même contrat ; choisissez normalement l’un des trois. Un déploiement sur plusieurs nœuds nécessite aussi un adaptateur pub/sub et un stockage de session tickets partagé. L’Endpoint définit les deux contrats (`IPubSubAdapter`, `ISessionTicketStore`) ; le SDK fournit une implémentation sur Redis.
 
 ## History
 
@@ -32,6 +35,7 @@ History construit un index de versions depuis les événements de création d’
 | Navigateur  | Réutilise Core Client/UI                                                                                                                        | Affiche et lit les entrées d’historique                   |
 | Server   | [**@univerjs-pro/collaboration-history-service**](https://www.npmjs.com/package/@univerjs-pro/collaboration-history-service)                 | Construit et interroge l’index d’historique                 |
 | Server   | [**@univerjs-pro/collaboration-history-endpoint**](https://www.npmjs.com/package/@univerjs-pro/collaboration-history-endpoint)               | Expose le protocole History au Client |
+| Base de données | [**@univerjs-pro/collaboration-history-database-memory**](https://www.npmjs.com/package/@univerjs-pro/collaboration-history-database-memory) | Stockage en mémoire de l’index History |
 | Base de données | [**@univerjs-pro/collaboration-history-database-sqlite**](https://www.npmjs.com/package/@univerjs-pro/collaboration-history-database-sqlite) | Stocke l’index History dérivé                     |
 
 L’historique est un index dérivé reconstructible. Les changements Core restent la référence du contenu.
@@ -64,24 +68,44 @@ Worktree fournit brouillons isolés, transitions d’état et fusion par Unit.
 
 Worktree Service fusionne via Core Service dans le trunk ; configurez donc les Middleware aux deux frontières.
 
+## File
+
+File stocke les fichiers binaires envoyés par les clients Univer : images et pièces jointes insérées dans une Unit, ainsi que les fichiers source et résultat de l’import et de l’export. Les données de l’Unit n’enregistrent que l’ID du fichier.
+
+| Environnement | Paquet | Responsabilité principale |
+| --- | --- | --- |
+| Navigateur | Réutilise le Core Collaboration Client | Envoie images et pièces jointes et résout les ID de fichier en URL |
+| Server | [**@univerjs-pro/collaboration-file-service**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-service) | Applique les règles de propriété, les Middleware et le nettoyage des fichiers temporaires |
+| Server | [**@univerjs-pro/collaboration-file-endpoint**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-endpoint) | Fournit les routes d’envoi, de sign-url et de téléchargement |
+| Base de données | [**@univerjs-pro/collaboration-file-memory**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-memory) | Stockage en mémoire des métadonnées et du contenu |
+| Base de données | [**@univerjs-pro/collaboration-file-database-sqlite**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-database-sqlite) | Persistance SQLite des métadonnées de fichier |
+| Base de données | [**@univerjs-pro/collaboration-file-database-postgres**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-database-postgres) | Persistance PostgreSQL des métadonnées de fichier |
+| Stockage | [**@univerjs-pro/collaboration-file-blob-local**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-blob-local) | Stocke le contenu dans un répertoire local |
+| Stockage | [**@univerjs-pro/collaboration-file-blob-s3**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-blob-s3) | Stocke le contenu dans un stockage objet compatible S3, avec liens directs signés |
+
+Métadonnées et contenu sont deux contrats indépendants ; chacun peut suivre le stockage existant de l’application, par exemple métadonnées en base et contenu en stockage objet.
+
 ## Office Exchange
 
-Office Exchange combine conversion de fichiers et Collaboration Service dans un parcours applicatif, sans Database Adapter collaboratif indépendant.
+Office Exchange importe des fichiers Office en Units collaboratives et exporte des Units en fichiers. File stocke les fichiers source et résultat.
 
-| Environnement | Paquet                                                                                                        | Responsabilité principale                                   |
-| ------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| Navigateur | [**@univerjs-pro/exchange-client**](https://www.npmjs.com/package/@univerjs-pro/exchange-client)               | Fournit l’échange de fichiers de base du navigateur |
-| Navigateur | [**@univerjs-pro/sheets-exchange-client**](https://www.npmjs.com/package/@univerjs-pro/sheets-exchange-client) | Fournit l’import-export Sheet                    |
-| Server  | [**@univerjs-pro/exchange-node**](https://www.npmjs.com/package/@univerjs-pro/exchange-node)                   | Convertit Office et données Univer dans Node.js         |
+| Environnement | Paquet | Responsabilité principale |
+| --- | --- | --- |
+| Navigateur | [**@univerjs-pro/exchange-client**](https://www.npmjs.com/package/@univerjs-pro/exchange-client) | Fournit l’échange de fichiers de base du navigateur |
+| Navigateur | [**@univerjs-pro/sheets-exchange-client**](https://www.npmjs.com/package/@univerjs-pro/sheets-exchange-client) | Fournit l’import-export Sheet |
+| Server | [**@univerjs-pro/collaboration-exchange-service**](https://www.npmjs.com/package/@univerjs-pro/collaboration-exchange-service) | Gère les task d’import et d’export, les Middleware et la création et lecture des Units |
+| Server | [**@univerjs-pro/collaboration-exchange-endpoint**](https://www.npmjs.com/package/@univerjs-pro/collaboration-exchange-endpoint) | Fournit les routes d’import, d’export et de task |
+| Server | [**@univerjs-pro/exchange-node**](https://www.npmjs.com/package/@univerjs-pro/exchange-node) | Convertit Office et données Univer dans Node.js |
 
-À l’import, les données converties vont à `createUnitFromSnapshot()`. À l’export, une révision confirmée est lue via Core Service. Fichiers, tâches et API métier restent applicatifs.
+Exchange Service crée et lit les Units via Core Service et lit et écrit les fichiers via File Service ; il s’assemble donc avec Core et File.
 
 ## Règles de sélection
 
 1. Commencez par les paquets Core du [démarrage rapide](/server/collaboration/quick-start).
-2. Choisissez un Core Database Adapter : Memory, SQLite ou personnalisé.
+2. Choisissez un Core Database Adapter : Memory, SQLite, PostgreSQL ou personnalisé.
 3. Pour un déploiement sur plusieurs nœuds, ajoutez l’adaptateur pub/sub et le stockage de session tickets sur Redis.
 4. Installez seulement les extensions utilisées.
-5. Créez un Adapter distinct par module, même avec un fichier SQLite partagé.
+5. Pour les images, pièces jointes ou l’import et export, assemblez d’abord File, puis ajoutez Office Exchange si besoin.
+6. Créez un Adapter distinct par module, même avec une base de données partagée.
 
 Consultez les [extensions collaboratives](/server/collaboration/extensions) pour les relations et les [exemples](/server/collaboration/examples) pour les assemblages exécutables.
