@@ -205,6 +205,8 @@ const frFRMessages = {
     start: 'Commencer',
   },
   navigation: {
+    updated: 'Mis à jour',
+    'updated-in-version': 'Mis à jour dans {version}',
     overview: 'Vue d’ensemble',
     blog: 'Blog',
     'current-locale': 'Langue actuelle',

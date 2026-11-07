@@ -73,3 +73,25 @@ const subscription = exchange.requestState$.subscribe(({ error }) => {
 번역된 메시지를 파싱하지 말고 `@univerjs/protocol`의 명명된 `ErrorCode`를 비교하세요. 서버 메시지는 진단용으로 보관하세요. 네트워크 오류, 잘못된 응답, 폴링 시간 초과는 일반 오류일 수 있으므로 라이선스 거부로 단정하지 마세요. 편집기를 제거할 때 `subscription.unsubscribe()`로 구독을 해제하세요.
 
 사용자 정의 백엔드나 프록시는 구조화된 오류 응답을 보존하고 실패 작업을 계속 pending으로 두지 않아야 합니다. `maxTimeoutTime`을 늘려도 폴링 시간만 늘어날 뿐 할당량이나 라이선스 범위는 바뀌지 않습니다.
+
+## OLE 첨부 파일 [#ole-attachments]
+
+Sheets, Docs, Slides는 가져온 OLE 원본과 미리보기 이미지를 별도로 보존합니다. 사용자는 사용 가능한 원본을 다운로드하고 권한에 따라 첨부 인스턴스 이름을 바꾸거나 삭제할 수 있습니다. 이미지와 PDF는 미리보기를 지원합니다. Office 미리보기는 Exchange의 JSON 변환과 임시 읽기 전용 편집기를 사용하며 영구 하위 문서를 만들지 않습니다. 네이티브 Office 앱이나 매크로는 실행하지 않습니다.
+
+Exchange를 등록하기 전에 기존 `UniverDrawingPlugin` 설정에 `ole`를 추가하세요. 아래 경로는 앱의 문서 화면으로 연결해야 하며 필요하면 `getLink`의 두 번째 인수인 문서 유형을 사용하세요. Exchange는 Office 변환과 공동 편집 상태 감지를 제공합니다. UUID 참조 첨부에는 권한 검사를 수행하는 `upload(file, targetUnitId)`와 `read(attachment, signal)` 콜백을 포함한 `ole.attachmentIo`도 필요합니다. Office 미리보기에는 해당 렌더러 또는 사용자 정의 `previewOffice` / `createOfficePreview`가 필요합니다.
+
+```ts
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+
+univer.registerPlugin(UniverDrawingPlugin, {
+  ole: {
+    getLink: (unitId) => `/documents/${encodeURIComponent(unitId)}`,
+  },
+})
+```
+
+Office 첨부를 온라인 문서로 변환하려면 공동 편집 호스트, 편집 권한, 변환 지원 및 `getLink`가 필요합니다. 독립 문서를 만들고 식별자를 첨부에 저장해 다음에 다시 사용합니다. 온라인 문서를 편집해도 원본 첨부 바이트는 덮어쓰지 않습니다. 누락, 외부 참조, 미지원 첨부는 해당 상태를 유지합니다.
+
+내보내기 기본값은 `oleAttachmentSource: 'original'`입니다. `'online'`은 변환된 온라인 문서의 현재 확정 버전을 이번 내보내기에만 포함하며 저장된 원본을 바꾸지 않습니다. 동기화가 끝난 뒤 내보내고 백엔드에서 참조 문서 접근 권한을 검사하세요. Docs/Slides 내보내기 API의 두 번째 인수 또는 Sheets의 네 번째 인수로 전달합니다. snapshot 버전도 위치가 같습니다. [내보내기 API](/reference/facade/univer#exportsheetbyunitidasync)를 참고하세요.
+
+저장된 첨부 파일에 대해 Exchange는 `fileID`와 소유 문서의 `sourceUnitID`를 전송합니다. 백엔드는 참조로 변환하기 전에 이 관계와 호출자의 접근 권한을 확인해야 합니다. 폴링은 `progress.stage`(`reading`, `converting`, `creating`, `done`)를 반환할 수 있습니다. 사용자 정의 UI는 [가져오기 및 진행 상태 API](/reference/packages/plugins/univerjs-pro/exchange-client#attachment-imports-and-task-progress)를 참고하세요.

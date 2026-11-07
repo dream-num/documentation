@@ -29,10 +29,10 @@ Worker 只注册下面的数据与计算插件，不注册 UI 或渲染插件。
 
 ```typescript title="worker.ts"
 import { LocaleType, Univer } from '@univerjs/core'
-import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
-import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
-import { UniverSheetsPlugin } from '@univerjs/sheets'
-import { UniverRemoteSheetsFormulaPlugin } from '@univerjs/sheets-formula'
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula/worker'
+import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc/worker'
+import { UniverSheetsPlugin } from '@univerjs/sheets/worker'
+import { UniverRemoteSheetsFormulaPlugin } from '@univerjs/sheets-formula/worker'
 
 const univer = new Univer({ locale: LocaleType.ZH_CN })
 univer.registerPlugin(UniverSheetsPlugin, { onlyRegisterFormulaRelatedMutations: true })
@@ -41,9 +41,20 @@ univer.registerPlugin(UniverRPCWorkerThreadPlugin)
 univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
 ```
 
-使用筛选功能时，两端都需要注册 `@univerjs/sheets-filter` 中的 `UniverSheetsFilterPlugin`，让 `SUBTOTAL` 等公式感知筛选后的行。`UniverSheetsFilterUIPlugin` 只在主线程注册。
+使用筛选功能时，两端都需要注册 `UniverSheetsFilterPlugin`，让 `SUBTOTAL` 等公式感知筛选后的行：主线程从 `@univerjs/sheets-filter` 导入，Worker 从 `@univerjs/sheets-filter/worker` 导入。`UniverSheetsFilterUIPlugin` 只在主线程注册。
 
-使用透视表时，两端还需注册 `UniverLicensePlugin`、`UniverProFormulaEnginePlugin` 和 `UniverSheetsPivotTablePlugin`。后两个插件在主线程配置 `notExecuteFormula: true`，在 Worker 中配置 `false`。两端都传入许可证，透视表 UI 留在主线程；自定义公式的实现也需在两端的公式引擎中注册。
+在 Worker 中添加其他计算插件时使用以下入口；主线程使用对应包的根入口。所有 SDK 包须保持版本一致。
+
+```typescript title="worker.ts"
+import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula/worker'
+import { UniverSheetsPivotChartWorkerPlugin } from '@univerjs-pro/sheets-pivot-chart/worker'
+import { UniverSheetsPivotTablePlugin } from '@univerjs-pro/sheets-pivot/worker'
+import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer/worker'
+import { UniverSheetsTablePlugin } from '@univerjs/sheets-table/worker'
+```
+
+使用透视表时，两端都将 `UniverFormulaEnginePlugin` 替换为 `UniverProFormulaEnginePlugin`，并注册 `UniverLicensePlugin` 和 `UniverSheetsPivotTablePlugin`。Pro 公式引擎与透视表插件在主线程配置 `notExecuteFormula: true`，在 Worker 中配置 `false`。两端都传入许可证，透视表 UI 留在主线程；自定义公式的实现也需在两端的公式引擎中注册。
+
 ## 预设模式
 
 `UniverSheetsCorePreset` 配置参数中的 `workerURL` 选项可以指定 Worker 的 URL 地址并启用 Worker 模式。
@@ -58,7 +69,6 @@ import UniverPresetSheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-
 import { UniverSheetsFilterPreset } from '@univerjs/preset-sheets-filter'
 import UniverPresetSheetsFilterZhCN from '@univerjs/preset-sheets-filter/locales/zh-CN'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
-
 import '@univerjs/preset-sheets-core/lib/index.css'
 import '@univerjs/preset-sheets-filter/lib/index.css'
 
@@ -115,7 +125,6 @@ import UniverPresetSheetsCoreZhCN from '@univerjs/preset-sheets-core/locales/zh-
 import { UniverSheetsDrawingPreset } from '@univerjs/preset-sheets-drawing'
 import UniverPresetSheetsDrawingZhCN from '@univerjs/preset-sheets-drawing/locales/zh-CN'
 import { createUniver, LocaleType, mergeLocales } from '@univerjs/presets'
-
 import '@univerjs/preset-sheets-core/lib/index.css'
 import '@univerjs/preset-sheets-drawing/lib/index.css'
 import '@univerjs/preset-sheets-advanced/lib/index.css'

@@ -33,8 +33,11 @@ export function DocsMobileNav({
           <p className="text-lg font-semibold tracking-normal">{title}</p>
           {headerExtra ? <div className="mt-3">{headerExtra}</div> : null}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-          <DocsSidebar items={items} label={navigationLabel} />
+        <div
+          data-doc-sidebar-scroll
+          className="min-h-0 flex-1 scroll-pt-11 scroll-pb-4 overflow-y-auto px-3 pb-4 [--nav-section-background:var(--background)]"
+        >
+          <DocsSidebar items={items} label={navigationLabel} className="pt-4" />
         </div>
       </div>
     </details>

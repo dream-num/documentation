@@ -3,6 +3,8 @@ import { ChevronRightIcon, ExternalLinkIcon } from 'lucide-react'
 import { Link } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 import { NavIconFrame } from './nav-icon-frame'
+import { NavTreeSections } from './nav-tree-sections'
+import { NavUpdateBadge } from './nav-update-badge'
 
 export interface INavTreeItem {
   id: string
@@ -19,10 +21,21 @@ export interface INavTreeItem {
 function NavContent({ item }: { item: INavTreeItem }) {
   return (
     <>
-      {item.icon ? <NavIconFrame icon={item.icon} /> : null}
-      <span className="min-w-0 flex-1 wrap-break-word whitespace-normal">{item.name}</span>
+      {item.icon ? (
+        <span className="relative inline-flex shrink-0">
+          <NavIconFrame icon={item.icon} />
+          <NavUpdateBadge item={item} dot className="absolute -top-0.5 -left-0.5" />
+        </span>
+      ) : (
+        <NavUpdateBadge item={item} dot />
+      )}
+      <span className="min-w-0 flex-1 truncate" title={item.name}>
+        {item.name}
+      </span>
       {item.count !== undefined ? (
-        <span className="rounded bg-muted px-1.5 text-xs text-muted-foreground tabular-nums">{item.count}</span>
+        <span className="shrink-0 rounded bg-muted px-1.5 text-xs text-muted-foreground tabular-nums">
+          {item.count}
+        </span>
       ) : null}
       {item.external ? <ExternalLinkIcon className="size-3.5 shrink-0" /> : null}
     </>
@@ -46,7 +59,13 @@ function NavTreeNode({
 
   if (item.type === 'separator') {
     return (
-      <li className="mt-5 px-2 text-xs font-medium tracking-normal text-muted-foreground first:mt-0">{item.name}</li>
+      <li
+        data-nav-section-heading
+        className="sticky top-(--nav-section-top,0rem) z-10 bg-(--nav-section-background,var(--sidebar)) px-2 py-2 text-xs font-medium tracking-normal text-muted-foreground after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-2 after:bg-linear-to-b after:from-(--nav-section-background,var(--sidebar)) after:to-transparent"
+        title={item.name}
+      >
+        <span className="block truncate">{item.name}</span>
+      </li>
     )
   }
 
@@ -140,10 +159,8 @@ export function NavTree({
   activeItemRef: Ref<HTMLAnchorElement>
 }) {
   return (
-    <ul className="space-y-0.5">
-      {items.map((item) => (
-        <NavTreeNode item={item} key={item.id} level={0} pathname={pathname} activeItemRef={activeItemRef} />
-      ))}
-    </ul>
+    <NavTreeSections items={items}>
+      {(item) => <NavTreeNode item={item} key={item.id} level={0} pathname={pathname} activeItemRef={activeItemRef} />}
+    </NavTreeSections>
   )
 }

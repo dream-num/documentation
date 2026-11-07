@@ -1,5 +1,4 @@
 import type { ReactElement, ReactNode } from 'react'
-
 import { TooltipContent, TooltipRoot, TooltipTrigger } from './ui/tooltip'
 
 interface IProps {

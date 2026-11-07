@@ -48,15 +48,18 @@ export async function DocsShellLayout({
       />
       <div className="mx-auto grid w-full max-w-384 grid-cols-1 gap-8 px-4 py-8 lg:min-h-0 lg:flex-1 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-4 lg:overflow-hidden lg:px-6 lg:pt-0 lg:pb-0 xl:grid-cols-[16rem_minmax(0,1fr)_17rem]">
         <aside
+          data-doc-sidebar-scroll
           aria-label={t('docs.sidebar', { title })}
-          className="hidden border-r border-(--separator) bg-sidebar lg:-ml-6 lg:block lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pt-5 lg:pr-3 lg:pb-5 lg:pl-2"
+          className="hidden scroll-pt-11 scroll-pb-4 border-r border-(--separator) bg-sidebar lg:-ml-6 lg:block lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pr-3 lg:pb-5 lg:pl-2"
         >
-          {searchScope === 'reference' ? (
-            <div className="mb-4">
-              <SidebarVersionSwitcher />
-            </div>
-          ) : null}
-          <DocsSidebar items={navigation.items} label={t('docs.sidebar-navigation', { title })} />
+          <div className="pt-5">
+            {searchScope === 'reference' ? (
+              <div className="mb-4">
+                <SidebarVersionSwitcher />
+              </div>
+            ) : null}
+            <DocsSidebar items={navigation.items} label={t('docs.sidebar-navigation', { title })} />
+          </div>
         </aside>
         {children}
       </div>

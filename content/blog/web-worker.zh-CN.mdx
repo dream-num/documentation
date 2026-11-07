@@ -14,38 +14,34 @@ date: 2025-06-30
 
 在主线程的 Univer 实例中引入 `@univerjs/rpc` 插件，指定要加载的 Web Worker 入口文件的路径，并将主线程中的公式插件配置为无需计算公式：
 
-```typescript
-import type { IUniverRPCMainThreadConfig } from '@univerjs/rpc'
-import { UniverRPCMainThread } from '@univerjs/rpc'
-import { UniverSheetsFormula } from '@univerjs/sheets-formula'
+```typescript title="main.ts"
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula'
+import { UniverRPCMainThreadPlugin } from '@univerjs/rpc'
+import { UniverSheetsPlugin } from '@univerjs/sheets'
+import { UniverSheetsFormulaPlugin } from '@univerjs/sheets-formula'
 
-// ...
-
-univer.registerPlugin(UniverSheetsFormula, {
-  notExecuteFormula: true,
+univer.registerPlugin(UniverRPCMainThreadPlugin, {
+  workerURL: new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }),
 })
-
-univer.registerPlugin(UniverRPCMainThread, {
-  workerURL: './worker.js',
-  unsyncMutations: new Set([RichTextEditingMutation.id]),
-})
+univer.registerPlugin(UniverFormulaEnginePlugin, { notExecuteFormula: true })
+univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: true })
+univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: true })
 ```
 
 在 Web Worker 的入口文件中实例化另一个 Univer 实例，并注册需要的插件：
 
-```typescript
+```typescript title="worker.ts"
 import { LocaleType, Univer } from '@univerjs/core'
-import { UniverFormulaEngine } from '@univerjs/engine-formula'
-import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc'
-import { UniverSheets } from '@univerjs/sheets'
-import { UniverSheetsFormula } from '@univerjs/sheets-formula'
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula/worker'
+import { UniverRPCWorkerThreadPlugin } from '@univerjs/rpc/worker'
+import { UniverSheetsPlugin } from '@univerjs/sheets/worker'
+import { UniverRemoteSheetsFormulaPlugin } from '@univerjs/sheets-formula/worker'
 
-const univer = new Univer()
-
+const univer = new Univer({ locale: LocaleType.ZH_CN })
+univer.registerPlugin(UniverSheetsPlugin, { onlyRegisterFormulaRelatedMutations: true })
+univer.registerPlugin(UniverFormulaEnginePlugin)
 univer.registerPlugin(UniverRPCWorkerThreadPlugin)
-univer.registerPlugin(UniverSheets)
-univer.registerPlugin(UniverFormulaEngine)
-univer.registerPlugin(UniverSheetsFormula)
+univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
 ```
 
 运行之后，就会看到 Web Worker 线程，并且公式计算会在其中进行。
