@@ -20,11 +20,21 @@ export interface INavTreeItem {
 function NavContent({ item }: { item: INavTreeItem }) {
   return (
     <>
-      {item.icon ? <NavIconFrame icon={item.icon} /> : null}
-      <span className="min-w-0 flex-1 wrap-break-word whitespace-normal">{item.name}</span>
-      <NavUpdateBadge item={item} />
+      {item.icon ? (
+        <span className="relative inline-flex shrink-0">
+          <NavIconFrame icon={item.icon} />
+          <NavUpdateBadge item={item} dot className="absolute -top-0.5 -left-0.5" />
+        </span>
+      ) : (
+        <NavUpdateBadge item={item} dot />
+      )}
+      <span className="min-w-0 flex-1 truncate" title={item.name}>
+        {item.name}
+      </span>
       {item.count !== undefined ? (
-        <span className="rounded bg-muted px-1.5 text-xs text-muted-foreground tabular-nums">{item.count}</span>
+        <span className="shrink-0 rounded bg-muted px-1.5 text-xs text-muted-foreground tabular-nums">
+          {item.count}
+        </span>
       ) : null}
       {item.external ? <ExternalLinkIcon className="size-3.5 shrink-0" /> : null}
     </>
@@ -48,7 +58,12 @@ function NavTreeNode({
 
   if (item.type === 'separator') {
     return (
-      <li className="mt-5 px-2 text-xs font-medium tracking-normal text-muted-foreground first:mt-0">{item.name}</li>
+      <li
+        className="mt-5 truncate px-2 text-xs font-medium tracking-normal text-muted-foreground first:mt-0"
+        title={item.name}
+      >
+        {item.name}
+      </li>
     )
   }
 
