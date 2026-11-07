@@ -76,32 +76,31 @@ export function GuidesSidebarControls({
     let transition: ViewTransition | undefined
     let disposed = false
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.rootBounds || !scrollContainer.getClientRects().length) return
-        const nextCompact = entry.boundingClientRect.top < entry.rootBounds.top
-        if (nextCompact === currentCompact) return
-        currentCompact = nextCompact
-        transition?.skipTransition()
+    const syncCompact = () => {
+      if (disposed || !scrollContainer.getClientRects().length) return
+      const nextCompact = sentinel.getBoundingClientRect().top <= scrollContainer.getBoundingClientRect().top
+      if (nextCompact === currentCompact) return
+      currentCompact = nextCompact
+      transition?.skipTransition()
 
-        if (
-          !document.startViewTransition ||
-          window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
-          document.documentElement.dataset.themeTransition === 'active'
-        ) {
-          setCompact(nextCompact)
-          return
+      const applyCompact = () => {
+        if (!disposed && currentCompact === nextCompact) {
+          flushSync(() => setCompact(nextCompact))
         }
+      }
 
-        button.style.viewTransitionName = 'guide-section-switcher'
-        const nextTransition = document.startViewTransition({
-          types: ['guide-sidebar'],
-          update: () => {
-            if (!disposed && currentCompact === nextCompact) {
-              flushSync(() => setCompact(nextCompact))
-            }
-          },
-        })
+      if (
+        !document.startViewTransition ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+        document.documentElement.dataset.themeTransition === 'active'
+      ) {
+        setCompact(nextCompact)
+        return
+      }
+
+      button.style.viewTransitionName = 'guide-section-switcher'
+      try {
+        const nextTransition = document.startViewTransition({ types: ['guide-sidebar'], update: applyCompact })
         transition = nextTransition
 
         const cleanUp = () => {
@@ -110,15 +109,26 @@ export function GuidesSidebarControls({
             transition = undefined
           }
         }
-        nextTransition.finished.then(cleanUp, cleanUp)
-      },
-      { root: scrollContainer, rootMargin: '-8px 0px 0px', threshold: 1 },
-    )
-    observer.observe(sentinel)
+        nextTransition.finished.then(cleanUp, () => {
+          applyCompact()
+          cleanUp()
+        })
+      } catch {
+        button.style.removeProperty('view-transition-name')
+        setCompact(nextCompact)
+      }
+    }
+
+    const observer = new ResizeObserver(syncCompact)
+    observer.observe(scrollContainer)
+    if (sentinel.parentElement) observer.observe(sentinel.parentElement)
+    scrollContainer.addEventListener('scroll', syncCompact, { passive: true })
+    syncCompact()
 
     return () => {
       disposed = true
       observer.disconnect()
+      scrollContainer.removeEventListener('scroll', syncCompact)
       transition?.skipTransition()
       button.style.removeProperty('view-transition-name')
     }
@@ -126,7 +136,7 @@ export function GuidesSidebarControls({
 
   return (
     <>
-      <div className="flex flex-col gap-2 pb-2">
+      <div className="flex flex-col gap-2">
         <div className="space-y-3 px-1 pb-2">
           {currentSdk ? (
             <Link
@@ -148,7 +158,7 @@ export function GuidesSidebarControls({
           {/* Keep the scroll range stable while the button compacts. */}
           <div
             data-compact={compact}
-            className="sticky top-2 z-20 h-14 bg-linear-to-b from-sidebar from-80% to-transparent"
+            className="sticky top-0 z-20 h-16 bg-linear-to-b from-sidebar from-80% to-transparent pt-2"
           >
             <DropdownMenu>
               <DropdownMenuTrigger
@@ -168,9 +178,11 @@ export function GuidesSidebarControls({
                   <span className="block truncate text-sm font-semibold text-foreground">
                     {currentSection?.name ?? (isWebSdk ? labels.products : t('office.modules'))}
                   </span>
-                  <span className={compact ? 'sr-only' : 'block truncate text-sm text-muted-foreground'}>
-                    {currentSection?.description ?? currentSdk?.name}
-                  </span>
+                  {!compact ? (
+                    <span className="block truncate text-sm text-muted-foreground">
+                      {currentSection?.description ?? currentSdk?.name}
+                    </span>
+                  ) : null}
                 </span>
                 <ChevronsUpDownIcon className="size-4 shrink-0 text-muted-foreground" />
               </DropdownMenuTrigger>
