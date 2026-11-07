@@ -21,10 +21,6 @@ export function getGuideContentPlacementTargetFromUrl(url: string) {
   return match ? guideContentPlacements.get(match[1]) : undefined
 }
 
-export function getGuideContentPlacementSlugs() {
-  return [...guideContentPlacements.keys()].map((path) => path.split('/'))
-}
-
 export function resolveGuideContentSlug(slug: string[] | undefined) {
   const target = getGuideContentPlacementTarget(slug)
   return target ? target.split('/') : slug

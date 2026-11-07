@@ -1,12 +1,13 @@
 'use client'
 
+import { useInView } from 'motion/react'
 import dynamic from 'next/dynamic'
+import { useRef } from 'react'
 import Spinner from '@/components/animata/spinner'
 import type { IUniverProps } from './univer'
 
-const UniverPlayground = dynamic(() => import('./univer'), {
-  ssr: false,
-  loading: () => (
+function UniverLoading() {
+  return (
     <div className="w-full" aria-busy="true">
       <div className="mb-5 flex justify-center px-4" aria-hidden="true">
         <div className="grid h-21 w-full max-w-sm grid-cols-3 gap-0.5 rounded-lg bg-muted p-1 sm:h-11.5 sm:w-128 sm:max-w-none sm:grid-cols-6">
@@ -22,9 +23,17 @@ const UniverPlayground = dynamic(() => import('./univer'), {
         <Spinner />
       </div>
     </div>
-  ),
+  )
+}
+
+const UniverPlayground = dynamic(() => import('./univer'), {
+  ssr: false,
+  loading: UniverLoading,
 })
 
 export default function UniverClient(props: IUniverProps) {
-  return <UniverPlayground {...props} />
+  const containerRef = useRef<HTMLDivElement>(null)
+  const visible = useInView(containerRef, { once: true, margin: '200px' })
+
+  return <div ref={containerRef}>{visible ? <UniverPlayground {...props} /> : <UniverLoading />}</div>
 }

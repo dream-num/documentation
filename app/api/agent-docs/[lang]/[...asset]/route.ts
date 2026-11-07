@@ -1,3 +1,4 @@
+import { routing } from '@/i18n/routing'
 import { agentDocsPublication } from '@/lib/agent-docs/publication'
 
 interface IRouteContext {
@@ -14,7 +15,8 @@ export const dynamicParams = true
 export const revalidate = false
 
 export function generateStaticParams() {
-  return agentDocsPublication.enumerate()
+  // Full bundles validate every document at build time without prerendering thousands of individual responses.
+  return routing.locales.map((lang) => ({ lang, asset: ['llms-full.txt'] }))
 }
 
 export async function GET(_request: Request, { params }: IRouteContext) {

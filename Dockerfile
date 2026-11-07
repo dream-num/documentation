@@ -14,10 +14,12 @@ ARG PROXY_SSL=""
 ARG NPM_REGISTRY=""
 RUN [[ "${NPM_REGISTRY}" != "" ]] && npm config set registry ${NPM_REGISTRY} || echo "Skip setting NPM_REGISTRY"
 
-COPY . .
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 ENV NODE_EXTRA_CA_CERTS=${PROXY_SSL}
 RUN corepack enable pnpm \
-  && HTTP_PROXY="${HTTP_PROXY}" HTTPS_PROXY="${HTTP_PROXY}" pnpm i
+  && HTTP_PROXY="${HTTP_PROXY}" HTTPS_PROXY="${HTTP_PROXY}" HUSKY=0 pnpm install --frozen-lockfile
+
+COPY . .
 
 # Environment variables
 ARG NEXT_POSTHOG_APIKEY=""
@@ -36,6 +38,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Rebuild this stage when the client license changes, retaining the dependency cache.
 FROM builder AS build
 RUN --mount=type=secret,id=CLIENT_LICENSE_TEXT,required=true \
+  --mount=type=cache,id=univer-docs-next,target=/app/.next/cache,sharing=locked \
+  --mount=type=cache,id=univer-docs-mdx,target=/app/.amamo-mdx/cache,sharing=locked \
   test -s /run/secrets/CLIENT_LICENSE_TEXT \
   && CLIENT_LICENSE_TEXT="$(cat /run/secrets/CLIENT_LICENSE_TEXT)" \
   NODE_OPTIONS="--max-old-space-size=${NODE_MAX_OLD_SPACE_SIZE}" pnpm build

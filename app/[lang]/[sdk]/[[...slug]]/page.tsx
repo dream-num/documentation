@@ -8,11 +8,7 @@ import { getGuidesMDXComponents } from '@/components/mdx/components'
 import { SponsorCard } from '@/components/sponsor-card'
 import { getAgentDocsSourceUrl, getAgentMarkdownPath } from '@/lib/agent-docs/links'
 import { createDocsRelativeLink } from '@/lib/docs/links'
-import {
-  getGuideContentPlacementSlugs,
-  getGuideContentPlacementTarget,
-  resolveGuideContentSlug,
-} from '@/lib/guides/content-placements'
+import { getGuideContentPlacementTarget, resolveGuideContentSlug } from '@/lib/guides/content-placements'
 import { createGuideNavigation } from '@/lib/guides/navigation'
 import { guideNavigationSource } from '@/lib/guides/navigation-source'
 import { withLocale } from '@/lib/locale-path'
@@ -28,17 +24,9 @@ interface IProps {
 
 const DOCS_ORIGIN = 'https://docs.univer.ai'
 
-export async function generateStaticParams() {
-  return Object.entries(sdkSources).flatMap(([sdk, source]) => {
-    const pages = source.generateParams().map((params) => Object.assign({}, params, { sdk }))
-    if (sdk !== 'guides') return pages
-
-    return pages.concat(
-      source
-        .getLanguages()
-        .flatMap(({ language }) => getGuideContentPlacementSlugs().map((slug) => ({ sdk, lang: language, slug }))),
-    )
-  })
+export function generateStaticParams() {
+  // Cache each document on first visit instead of rendering every locale during builds.
+  return []
 }
 
 function getSdkSource(sdk: string) {
