@@ -2,15 +2,15 @@ import { existsSync, globSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
 // Keep browser initialization choices aligned with the two SDK source repositories.
-const installedRoot = process.argv[2]
-if (!installedRoot)
+const [installedRoot, coreRoot, proRoot] = process.argv.slice(2)
+if (!installedRoot || !coreRoot || !proRoot)
   throw new Error(
-    'Pass a node_modules directory containing the pinned SDK browser packages to verify published entry points.',
+    'Pass a node_modules directory containing the pinned SDK browser packages, then the Core and Pro source directories.',
   )
 const plugins = {}
 const packages = []
 const version = JSON.parse(readFileSync('package.json', 'utf8')).dependencies['@univerjs/core']
-for (const repo of ['../univer', '../univer-pro']) {
+for (const repo of [coreRoot, proRoot]) {
   for (const manifest of globSync(`${repo}/packages/*/package.json`).toSorted()) {
     const directory = dirname(manifest)
     const pkg = JSON.parse(readFileSync(manifest, 'utf8'))

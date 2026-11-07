@@ -19,6 +19,8 @@ export const UPDATED_DOC_PAGES: ReadonlySet<string> = new Set([
   '/guides/sheets/features/pivot-chart',
   '/guides/sheets/features/pivot-table',
   '/guides/sheets/features/slicer',
+  '/guides/sheets/getting-started/installation/cdn',
+  '/guides/sheets/getting-started/integrations/vue',
   '/guides/sheets/getting-started/node',
   '/guides/sheets/getting-started/worker',
   '/guides/slides/features/core/shapes-and-text',
