@@ -23,7 +23,7 @@ export function NavUpdateBadge({ item }: { item: INavTreeItem }) {
     <span
       title={description}
       className={clsx(
-        'shrink-0 text-[11px] leading-4 font-medium whitespace-nowrap text-sky-700 dark:text-sky-400',
+        'shrink-0 text-[11px] leading-4 font-medium whitespace-nowrap text-muted-foreground',
         item.children.length > 0 && '[details[open]>summary_&]:hidden',
       )}
     >

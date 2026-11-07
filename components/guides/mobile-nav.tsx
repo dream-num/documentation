@@ -28,9 +28,9 @@ export function GuidesMobileNav({
       >
         <MenuIcon className="size-4" />
       </summary>
-      <div className="fixed top-22 left-0 z-50 flex h-[calc(100dvh-5.5rem)] w-[min(22rem,calc(100vw-2rem))] flex-col border-r bg-background shadow-lg">
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-          <GuidesSidebar items={items} label={navigationLabel} labels={labels} />
+      <div className="fixed top-22 left-0 z-50 flex h-[calc(100dvh-5.5rem)] w-[min(22rem,calc(100vw-2rem))] flex-col border-r bg-sidebar shadow-lg">
+        <div data-guide-sidebar-scroll className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
+          <GuidesSidebar className="pt-4" items={items} label={navigationLabel} labels={labels} />
         </div>
       </div>
     </details>

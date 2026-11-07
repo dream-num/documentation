@@ -24,13 +24,14 @@ export function ActiveNavScroller({
 
         let parent = activeItem.parentElement
         while (parent) {
-          const { overflowY } = window.getComputedStyle(parent)
+          const { overflowY, scrollPaddingTop } = window.getComputedStyle(parent)
           if ((overflowY === 'auto' || overflowY === 'scroll') && parent.scrollHeight > parent.clientHeight) {
             const containerRect = parent.getBoundingClientRect()
             const itemRect = activeItem.getBoundingClientRect()
             const padding = 12
-            if (itemRect.top < containerRect.top + padding) {
-              parent.scrollTop -= containerRect.top + padding - itemRect.top
+            const topPadding = Math.max(padding, Number.parseFloat(scrollPaddingTop) || 0)
+            if (itemRect.top < containerRect.top + topPadding) {
+              parent.scrollTop -= containerRect.top + topPadding - itemRect.top
             } else if (itemRect.bottom > containerRect.bottom - padding) {
               parent.scrollTop += itemRect.bottom - (containerRect.bottom - padding)
             }

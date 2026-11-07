@@ -34,10 +34,12 @@ export async function GuidesLayout({
       <GuidesHeader items={items} lang={lang} />
       <div className="mx-auto grid w-full max-w-384 grid-cols-1 gap-8 px-4 py-8 lg:min-h-0 lg:flex-1 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-4 lg:overflow-hidden lg:px-6 lg:pt-0 lg:pb-0 xl:grid-cols-[16rem_minmax(0,1fr)_17rem]">
         <aside
+          data-guide-sidebar-scroll
           aria-label={t('docs.guides-sidebar')}
-          className="hidden border-r border-(--separator) bg-sidebar lg:-ml-6 lg:block lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pt-5 lg:pr-3 lg:pb-5 lg:pl-2"
+          className="hidden border-r border-(--separator) bg-sidebar lg:-ml-6 lg:block lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pr-3 lg:pb-5 lg:pl-2"
         >
           <GuidesSidebar
+            className="pt-5"
             items={items}
             label={t('docs.guides-navigation')}
             labels={{
