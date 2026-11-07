@@ -204,6 +204,8 @@ const ruRUMessages = {
     start: 'Начать',
   },
   navigation: {
+    updated: 'Обновлено',
+    'updated-in-version': 'Обновлено в {version}',
     overview: 'Обзор',
     blog: 'Блог',
     'current-locale': 'Текущий',

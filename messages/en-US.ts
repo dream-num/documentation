@@ -202,6 +202,8 @@ const enUSMessages = {
     start: 'Get started',
   },
   navigation: {
+    updated: 'Updated',
+    'updated-in-version': 'Updated in {version}',
     overview: 'Overview',
     blog: 'Blog',
     'current-locale': 'Current',

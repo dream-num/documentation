@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 import type { INavTreeItem } from './nav-tree'
+import { NavUpdateBadge } from './nav-update-badge'
 
 function NavContent({ item, showIcon = false }: { item: INavTreeItem; showIcon?: boolean }) {
   return (
@@ -17,6 +18,7 @@ function NavContent({ item, showIcon = false }: { item: INavTreeItem; showIcon?:
         </span>
       ) : null}
       <span className="min-w-0 flex-1 wrap-break-word whitespace-normal">{item.name}</span>
+      <NavUpdateBadge item={item} />
       {item.external ? <ExternalLinkIcon className="size-3.5 shrink-0" /> : null}
     </>
   )

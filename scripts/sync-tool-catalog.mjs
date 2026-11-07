@@ -9,7 +9,7 @@ if (!installedRoot)
   )
 const plugins = {}
 const packages = []
-const version = JSON.parse(readFileSync('package.json', 'utf8')).version
+const version = JSON.parse(readFileSync('package.json', 'utf8')).dependencies['@univerjs/core']
 for (const repo of ['../univer', '../univer-pro']) {
   for (const manifest of globSync(`${repo}/packages/*/package.json`).toSorted()) {
     const directory = dirname(manifest)

@@ -3,6 +3,7 @@ import { ChevronRightIcon, ExternalLinkIcon } from 'lucide-react'
 import { Link } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 import { NavIconFrame } from './nav-icon-frame'
+import { NavUpdateBadge } from './nav-update-badge'
 
 export interface INavTreeItem {
   id: string
@@ -21,6 +22,7 @@ function NavContent({ item }: { item: INavTreeItem }) {
     <>
       {item.icon ? <NavIconFrame icon={item.icon} /> : null}
       <span className="min-w-0 flex-1 wrap-break-word whitespace-normal">{item.name}</span>
+      <NavUpdateBadge item={item} />
       {item.count !== undefined ? (
         <span className="rounded bg-muted px-1.5 text-xs text-muted-foreground tabular-nums">{item.count}</span>
       ) : null}

@@ -200,6 +200,8 @@ const zhCNMessages = {
     start: '开始使用',
   },
   navigation: {
+    updated: '更新',
+    'updated-in-version': '在 {version} 中更新',
     overview: '概览',
     blog: '博客',
     'current-locale': '当前',
