@@ -1,6 +1,6 @@
 ---
 title: Database Adapters
-description: Understand the collaboration persistence contract and choose between Memory, SQLite, and custom Database Adapters.
+description: Understand the collaboration persistence contract and choose between Memory, SQLite, PostgreSQL, and custom Database Adapters.
 ---
 
 A Database Adapter persists the core collaboration data used by Collaboration Service. Developers can implement `IDatabaseAdapter` to connect any database capable of satisfying its complete behavioral contract. The Service owns Unit, OT, and revision semantics. The Adapter turns those semantics into atomic, retry-safe persistence operations.
@@ -80,13 +80,29 @@ The SQLite Adapter uses foreign keys and `BEGIN IMMEDIATE` write transactions fo
 
 It does not change `journal_mode` or decide the file location, backup policy, or other SQLite settings for the application. SQLite is positioned for development, local applications, and small-scale use.
 
+## PostgreSQL Adapter
+
+`@univerjs-pro/collaboration-database-postgres` is a persistent implementation built on node-postgres that several collaboration nodes can share.
+
+```ts
+import { PostgresDatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { Pool } from "pg";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const database = await PostgresDatabaseAdapter.create({ pool });
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
+The application owns the pool and closes it after disposing the Service. `create()` initializes the `collaboration` schema in an empty database and only verifies an existing one. See the [package README](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) for the tables and migrations.
+
 ## Custom Database Adapters
 
 A custom Adapter is usually appropriate when:
 
-- the application already uses PostgreSQL, MySQL, or another business database;
+- the application already uses MySQL or another business database;
 - collaboration submissions must integrate with application-specific database mechanisms;
-- operational or compliance requirements exceed SQLite's intended scope.
+- operational or compliance requirements exceed the scope of the built-in Adapters.
 
 Implement `IDatabaseAdapter` and inject it into the Service in the same way as a built-in Adapter:
 
@@ -95,7 +111,7 @@ const database = new ApplicationCollaborationDatabase({ pool });
 const service = new UniverCollabService({ dbAdapter: database });
 ```
 
-The Service does not depend on a specific database, but it also cannot add transactions, CAS, or deduplication to a custom implementation. The Adapter must implement the complete contract using the capabilities of its database.
+The Service does not depend on a specific database, but it also cannot add transactions, CAS, or deduplication to a custom implementation. The Adapter must implement the complete contract using the capabilities of its database. The open-source [Memory](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-memory), [SQLite](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-sqlite), and [PostgreSQL](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) implementations show the same contract on three databases and serve as references for a custom implementation.
 
 ## Context and the application boundary
 
@@ -108,7 +124,7 @@ Service Middleware
   → atomically store authoritative collaboration state
 ```
 
-This lets Memory, SQLite, and custom Adapters share the same application policy.
+This lets Memory, SQLite, PostgreSQL, and custom Adapters share the same application policy.
 
 When business data must remain strongly consistent with collaboration data, a custom Database Adapter can read the required values from `customData` and write both sets of data in the Adapter's database transaction.
 
@@ -116,17 +132,18 @@ When business data does not need to share the collaboration transaction, Middlew
 
 ## Storage for extension modules
 
-Extension modules such as History, Thread Comment, and Worktree define independent Database Adapter interfaces. Their Adapters can share one database or use separate storage. A single custom implementation can also provide multiple Adapter interfaces and be injected into the corresponding Services.
+Extension modules such as History, Thread Comment, Worktree, and File define independent Database Adapter interfaces. Their Adapters can share one database or use separate storage. A single custom implementation can also provide multiple Adapter interfaces and be injected into the corresponding Services.
 
 Because these Adapter interfaces are independent, the SDK does not provide cross-module transactions by default. Even when modules share a database, the application owns the cross-module consistency strategy.
 
 ## Choosing an Adapter
 
-| Adapter | Best fit                                                  | Main constraint                                                 |
-| ------- | --------------------------------------------------------- | --------------------------------------------------------------- |
-| Memory  | Tests, examples, temporary development                    | Data disappears when the process exits                          |
-| SQLite  | Development, testing, local applications, small-scale use | Single-file database with application-owned settings            |
-| Custom  | Existing databases or custom business-data integration    | The application must implement and verify the complete contract |
+| Adapter    | Best fit                                                  | Main constraint                                                 |
+| ---------- | --------------------------------------------------------- | --------------------------------------------------------------- |
+| Memory     | Tests, examples, temporary development                    | Data disappears when the process exits                          |
+| SQLite     | Development, testing, local applications, small-scale use | Single-file database with application-owned settings            |
+| PostgreSQL | Multi-node deployments and existing PostgreSQL databases  | The application owns the pool and database operations           |
+| Custom     | Existing databases or custom business-data integration    | The application must implement and verify the complete contract |
 
 The application owns every injected Adapter. Dispose the Service before disposing the Adapter:
 

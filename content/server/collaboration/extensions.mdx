@@ -1,24 +1,25 @@
 ---
 title: Collaboration Extension Modules
-description: Understand how History, Thread Comment, Worktree, and server-side Office Exchange extend core collaboration.
+description: Understand how History, Thread Comment, Worktree, File, and server-side Office Exchange extend core collaboration.
 ---
 
-History, Thread Comment, and Worktree are independent collaboration extension modules that can be enabled as needed. They can reuse the Transport, identity system, and physical database, but each keeps its own Service, Middleware, Event, Database Adapter, and lifecycle boundaries.
+History, Thread Comment, File, and Worktree are independent collaboration extension modules that can be enabled as needed. They can reuse the Transport, identity system, and physical database, but each keeps its own Service, Middleware, Event, Database Adapter, and lifecycle boundaries.
 
-Server-side Office Exchange is an application workflow: it combines file conversion with Collaboration Service APIs rather than enabling a feature switch on the main Service.
+Server-side Office Exchange combines File with Collaboration Service: it converts between Office files and collaborative Units, with its own Service, Endpoint, and Middleware.
 
 ## Module relationships
 
-<Mermaid chart={"flowchart TB\n    Transport[\"Node Transport\"]\n\n    subgraph Modules[\"Collaboration Modules\"]\n        direction LR\n        Core[\"Core Collaboration<br/>Endpoint · Service · Adapter\"]\n        History[\"History<br/>Endpoint · Service · Adapter\"]\n        Comment[\"Thread Comment<br/>Endpoint · Service · Adapter\"]\n        Worktree[\"Worktree<br/>Client · Endpoint · Service · Adapter\"]\n    end\n\n    Transport --> Core\n    Transport --> History\n    Transport --> Comment\n    Transport --> Worktree"} />
+<Mermaid chart={"flowchart TB\n    Transport[\"Node Transport\"]\n\n    subgraph Modules[\"Collaboration Modules\"]\n        direction LR\n        Core[\"Core Collaboration<br/>Endpoint · Service · Adapter\"]\n        History[\"History<br/>Endpoint · Service · Adapter\"]\n        Comment[\"Thread Comment<br/>Endpoint · Service · Adapter\"]\n        File[\"File<br/>Endpoint · Service · Adapter · Blob Store\"]\n        Exchange[\"Office Exchange<br/>Endpoint · Service\"]\n        Worktree[\"Worktree<br/>Client · Endpoint · Service · Adapter\"]\n    end\n\n    Transport --> Core\n    Transport --> History\n    Transport --> Comment\n    Transport --> File\n    Transport --> Exchange\n    Transport --> Worktree\n    Exchange --> Core\n    Exchange --> File"} />
 
-| Extension module | Relationship with Core Collaboration                                  |
-| ---------------- | --------------------------------------------------------------------- |
-| History          | Observes Core Events to build a derived history index                 |
-| Thread Comment   | Reuses the Core Unit Room; comment anchors belong to Core content     |
-| Worktree         | Reuses Core Unit and OT capabilities and merges drafts into the trunk |
-| Office Exchange  | Creates or reads Units through Core Service Snapshot APIs             |
+| Extension module | Relationship with Core Collaboration                                                                  |
+| ---------------- | ----------------------------------------------------------------------------------------------------- |
+| History          | Observes Core Events to build a derived history index                                                 |
+| Thread Comment   | Reuses the Core Unit Room; comment anchors belong to Core content                                     |
+| File             | Stores the images, attachments, and exchange files a Unit references; Unit data records only file IDs |
+| Office Exchange  | Creates or reads Units through Core Service and reads and writes files through File                   |
+| Worktree         | Reuses Core Unit and OT capabilities and merges drafts into the trunk                                 |
 
-History, Thread Comment, and Worktree configure their own Middleware, Events, and Database Adapters.
+History, Thread Comment, File, and Worktree configure their own Middleware, Events, and Database Adapters.
 
 ## Version history
 
@@ -60,6 +61,43 @@ Comment bodies belong to the Comment Adapter. Anchors that move with Sheet or Do
 
 Comment Service provides Middleware for add, list, reply, solve/reopen, edit, and delete operations, plus a `commentCommitted` Event. It does not inherit the Core Service's read or edit policy.
 
+## File storage
+
+File stores the binary files that Univer clients upload: images and attachments inserted into a Unit, plus the source and result files of import and export. Unit data records only the file ID; the client resolves the ID to a download URL when loading, so snapshots and changesets stay small.
+
+```ts
+const fileService = new UniverFileService({
+  database: fileDatabase,
+  blobStore,
+});
+
+transport.register(new UniverFileEndpoint(fileService));
+```
+
+Metadata and content are two independent contracts: `IFileDatabaseAdapter` stores file records and `IFileBlobStore` stores content. Temporary exchange files are accessible only to their uploader and are cleaned up by the Service on a schedule; Unit images and attachments are controlled by Unit permissions through the `upload`, `signUrl`, and `download` Middleware.
+
+## Server-side Office Exchange
+
+Exchange Service imports Office files as collaborative Units and exports Units as files. It relies on `@univerjs-pro/exchange-node` for conversion, creates and reads Units through Collaboration Service, and stores source and result files through File Service:
+
+```ts
+const exchangeService = new UniverExchangeService({ collabService, fileService });
+
+transport.register(new UniverExchangeEndpoint(exchangeService));
+```
+
+Import and export are tasks: the client creates a task and polls for the result. Import passes through the Core Service `createUnit` Middleware and export through `readUnitData`; Exchange's own `import` and `export` Middleware cover rate limits, quotas, and audit.
+
+| Unit  | Import              | Export         |
+| ----- | ------------------- | -------------- |
+| Sheet | xls, xlsx, csv, tsv | xlsx, csv, tsv |
+| Doc   | doc, docx           | docx           |
+| Slide | ppt, pptx           | pptx           |
+| Base  | xls, xlsx, csv, tsv | xlsx, csv      |
+| PDF   | pdf                 | pdf            |
+
+Tasks live in the Service instance, so deploy one import and export node and route all three Exchange routes to it.
+
 ## Worktree drafts and merge
 
 Worktree adds isolated drafts, freezing, merge evaluation, and per-Unit merge for one or more Units:
@@ -88,48 +126,28 @@ Worktree Service owns independent lifecycle, read, draft submit/apply/commit Mid
 
 A multi-Unit merge is not atomic across Units. The application should display the merge result for each Unit.
 
-## Server-side Office Exchange
-
-Server-side Exchange combines `@univerjs-pro/exchange-node` with Collaboration Service APIs to bridge files and collaboration state:
-
-```text
-Office file
-  → exchange-node import
-  → Snapshot + Sheet Blocks
-  → createUnitFromSnapshot()
-
-Confirmed Unit revision
-  → getUnitLoadDataWithBlocks()
-  → UnitSnapshotMaterializer
-  → exchange-node export
-  → Office file
-```
-
-The official example imports XLS, XLSX, CSV, or TSV as a new collaborative Sheet and exports the current confirmed revision as XLSX, CSV, or TSV.
-
-File storage, task state, access control, size limits, and business APIs belong to the application. Exchange has no separate collaboration Database Adapter; it reads or creates the authoritative Unit through Core Service.
-
 ## Independent extension points
 
 When enabling an extension module, evaluate each boundary separately:
 
-| Boundary         | Core           | History               | Comment               | Worktree                  |
-| ---------------- | -------------- | --------------------- | --------------------- | ------------------------- |
-| Service          | Independent    | Independent           | Independent           | Independent               |
-| Middleware       | Not shared     | Does not inherit Core | Does not inherit Core | Does not inherit Core     |
-| Event            | Core lifecycle | Observes Core Events  | `commentCommitted`    | Worktree lifecycle/commit |
-| Database Adapter | Core Adapter   | History Adapter       | Comment Adapter       | Worktree Adapter          |
+| Boundary         | Core           | History               | Comment               | File                        | Office Exchange                      | Worktree                  |
+| ---------------- | -------------- | --------------------- | --------------------- | --------------------------- | ------------------------------------ | ------------------------- |
+| Service          | Independent    | Independent           | Independent           | Independent                 | Independent                          | Independent               |
+| Middleware       | Not shared     | Does not inherit Core | Does not inherit Core | Does not inherit Core       | Own `import` and `export`, then Core | Does not inherit Core     |
+| Event            | Core lifecycle | Observes Core Events  | `commentCommitted`    | —                           | —                                    | Worktree lifecycle/commit |
+| Database Adapter | Core Adapter   | History Adapter       | Comment Adapter       | File Adapter and Blob Store | Reuses Core and File                 | Worktree Adapter          |
 
-These Adapters can use the same SQLite file while remaining separate objects with separate contracts. Services and Adapters should also be disposed independently.
+These Adapters can use the same database while remaining separate objects with separate contracts. Services and Adapters should also be disposed independently.
 
 ## Choosing a capability
 
-| Product requirement                  | Module                                      | First example           |
-| ------------------------------------ | ------------------------------------------- | ----------------------- |
-| User-facing version history          | History Service, Endpoint, Adapter          | `pnpm example:history`  |
-| Sheet or Doc comments                | Comment Service, Endpoint, Adapter          | `pnpm example:comments` |
-| Isolated drafts, review, and merge   | Worktree Service, Endpoint, Client, Adapter | `pnpm example:worktree` |
-| Server-side Office import and export | Exchange Node + Collaboration Service       | `pnpm example:exchange` |
+| Product requirement                   | Module                                      | First example               |
+| ------------------------------------- | ------------------------------------------- | --------------------------- |
+| User-facing version history           | History Service, Endpoint, Adapter          | `pnpm example:history`      |
+| Sheet or Doc comments                 | Comment Service, Endpoint, Adapter          | `pnpm example:comments`     |
+| Images, attachments, and file storage | File Service, Endpoint, Adapter, Blob Store | `pnpm example:file-service` |
+| Server-side Office import and export  | Exchange Service, Endpoint + File           | `pnpm example:exchange`     |
+| Isolated drafts, review, and merge    | Worktree Service, Endpoint, Client, Adapter | `pnpm example:worktree`     |
 
 See the [examples index](/server/collaboration/examples) for complete run commands and page URLs.
 

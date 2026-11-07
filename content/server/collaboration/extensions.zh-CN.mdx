@@ -1,26 +1,27 @@
 ---
 title: 协同扩展模块
-description: 理解 History、Thread Comment、Worktree 与服务端 Office Exchange 如何扩展核心协同服务。
+description: 理解 History、Thread Comment、Worktree、File 与服务端 Office Exchange 如何扩展核心协同服务。
 ---
 
-History、Thread Comment 与 Worktree 是独立的协同扩展模块，可按产品需求启用。它们可以复用 Transport、身份系统和
+History、Thread Comment、File 与 Worktree 是独立的协同扩展模块，可按产品需求启用。它们可以复用 Transport、身份系统和
 物理数据库，但各自保留 Service、Middleware、Event、Database Adapter 与生命周期边界。
 
-服务端 Office Exchange 则是一条应用工作流：它组合文件转换和 Collaboration Service API，不是主
-Service 上的 feature switch。
+服务端 Office Exchange 组合 File 与 Collaboration Service：它在 Office 文件与协同 Unit 之间转换，拥有自己的 Service、
+Endpoint 与 Middleware。
 
 ## 模块关系
 
-<Mermaid chart={"flowchart TB\n    Transport[\"Node Transport\"]\n\n    subgraph Modules[\"Collaboration Modules\"]\n        direction LR\n        Core[\"Core Collaboration<br/>Endpoint · Service · Adapter\"]\n        History[\"History<br/>Endpoint · Service · Adapter\"]\n        Comment[\"Thread Comment<br/>Endpoint · Service · Adapter\"]\n        Worktree[\"Worktree<br/>Client · Endpoint · Service · Adapter\"]\n    end\n\n    Transport --> Core\n    Transport --> History\n    Transport --> Comment\n    Transport --> Worktree"} />
+<Mermaid chart={"flowchart TB\n    Transport[\"Node Transport\"]\n\n    subgraph Modules[\"Collaboration Modules\"]\n        direction LR\n        Core[\"Core Collaboration<br/>Endpoint · Service · Adapter\"]\n        History[\"History<br/>Endpoint · Service · Adapter\"]\n        Comment[\"Thread Comment<br/>Endpoint · Service · Adapter\"]\n        File[\"File<br/>Endpoint · Service · Adapter · Blob Store\"]\n        Exchange[\"Office Exchange<br/>Endpoint · Service\"]\n        Worktree[\"Worktree<br/>Client · Endpoint · Service · Adapter\"]\n    end\n\n    Transport --> Core\n    Transport --> History\n    Transport --> Comment\n    Transport --> File\n    Transport --> Exchange\n    Transport --> Worktree\n    Exchange --> Core\n    Exchange --> File"} />
 
-| 扩展模块        | 与 Core Collaboration 的关系                     |
-| --------------- | ------------------------------------------------ |
-| History         | 监听 Core Event，建立派生历史索引                |
-| Thread Comment  | 复用 Core Unit Room；评论 anchor 属于 Core 内容  |
-| Worktree        | 复用 Core Unit 与 OT 能力，并将 draft 合入 trunk |
-| Office Exchange | 通过 Core Service Snapshot API 创建或读取 Unit   |
+| 扩展模块        | 与 Core Collaboration 的关系                                     |
+| --------------- | ---------------------------------------------------------------- |
+| History         | 监听 Core Event，建立派生历史索引                                |
+| Thread Comment  | 复用 Core Unit Room；评论 anchor 属于 Core 内容                  |
+| File            | 保存 Unit 引用的图片、附件与导入导出文件，Unit 数据只记录文件 ID |
+| Office Exchange | 通过 Core Service 创建或读取 Unit，通过 File 读写文件            |
+| Worktree        | 复用 Core Unit 与 OT 能力，并将 draft 合入 trunk                 |
 
-History、Thread Comment 与 Worktree 分别配置自己的 Middleware、Event 与 Database Adapter。
+History、Thread Comment、File 与 Worktree 分别配置自己的 Middleware、Event 与 Database Adapter。
 
 ## 版本历史
 
@@ -69,6 +70,47 @@ Comment Endpoint 可以复用主 Collaboration Endpoint 的 Unit Room 发布 `co
 Comment Service 提供 add、list、reply、solve/reopen、edit 与 delete Middleware，以及
 `commentCommitted` Event。它不会继承 Core Service 的读取或编辑策略。
 
+## 文件存储
+
+File 保存 Univer 客户端上传的二进制文件：插入 Unit 的图片和附件，以及导入导出的源文件与结果文件。Unit 数据只记录
+文件 ID，加载时客户端用 ID 换取下载地址，snapshot 与 changeset 保持精简。
+
+```ts
+const fileService = new UniverFileService({
+  database: fileDatabase,
+  blobStore,
+});
+
+transport.register(new UniverFileEndpoint(fileService));
+```
+
+元数据与内容是两个独立合同：`IFileDatabaseAdapter` 保存文件记录，`IFileBlobStore` 保存内容。导入导出的临时文件只有
+上传者可以访问，并由 Service 定期清理；Unit 的图片与附件通过 `upload`、`signUrl`、`download` Middleware 按 Unit 权限控制。
+
+## 服务端 Office Exchange
+
+Exchange Service 把 Office 文件导入为协同 Unit，并把 Unit 导出为文件。它依赖 `@univerjs-pro/exchange-node` 转换，
+通过 Collaboration Service 创建和读取 Unit，通过 File Service 保存源文件与结果文件：
+
+```ts
+const exchangeService = new UniverExchangeService({ collabService, fileService });
+
+transport.register(new UniverExchangeEndpoint(exchangeService));
+```
+
+导入与导出都是 task：客户端创建 task 后轮询结果。导入经过 Core Service 的 `createUnit` Middleware，导出经过
+`readUnitData` Middleware；Exchange 自己的 `import` 与 `export` Middleware 用于限流、配额与审计。
+
+| Unit  | 导入                | 导出           |
+| ----- | ------------------- | -------------- |
+| Sheet | xls、xlsx、csv、tsv | xlsx、csv、tsv |
+| Doc   | doc、docx           | docx           |
+| Slide | ppt、pptx           | pptx           |
+| Base  | xls、xlsx、csv、tsv | xlsx、csv      |
+| PDF   | pdf                 | pdf            |
+
+task 保存在 Service 实例内，导入导出节点部署一个即可，并把 Exchange 的三条路由都发到这个节点。
+
 ## Worktree 草稿与合并
 
 Worktree 为一个或多个 Unit 提供隔离的 draft、冻结、合入评估和逐 Unit merge：
@@ -100,51 +142,29 @@ Worktree Service 拥有独立的生命周期、读取、draft submit/apply/commi
 
 多个 Unit 的 merge 不保证跨 Unit 原子性，应用应展示每个 Unit 的合入结果。
 
-## 服务端 Office Exchange
-
-服务端 Exchange 使用 `@univerjs-pro/exchange-node` 与 Collaboration Service API 组合文件和协同状态：
-
-```text
-Office file
-  → exchange-node import
-  → Snapshot + Sheet Blocks
-  → createUnitFromSnapshot()
-
-Confirmed Unit revision
-  → getUnitLoadDataWithBlocks()
-  → UnitSnapshotMaterializer
-  → exchange-node export
-  → Office file
-```
-
-官方示例支持把 XLS、XLSX、CSV 或 TSV 导入为新的协同 Sheet，并把当前 confirmed revision 导出为
-XLSX、CSV 或 TSV。
-
-文件存储、任务状态、访问控制、大小限制和业务 API 都由应用负责。Exchange 没有独立的协同 Database
-Adapter；它通过 Core Service 读取或创建权威 Unit。
-
 ## 独立扩展点
 
 启用扩展模块时，应逐项检查：
 
-| 边界             | Core           | History         | Comment            | Worktree                  |
-| ---------------- | -------------- | --------------- | ------------------ | ------------------------- |
-| Service          | 独立           | 独立            | 独立               | 独立                      |
-| Middleware       | 不共享         | 不继承 Core     | 不继承 Core        | 不继承 Core               |
-| Event            | Core lifecycle | 监听 Core Event | `commentCommitted` | Worktree lifecycle/commit |
-| Database Adapter | Core Adapter   | History Adapter | Comment Adapter    | Worktree Adapter          |
+| 边界             | Core           | History         | Comment            | File                       | Office Exchange                      | Worktree                  |
+| ---------------- | -------------- | --------------- | ------------------ | -------------------------- | ------------------------------------ | ------------------------- |
+| Service          | 独立           | 独立            | 独立               | 独立                       | 独立                                 | 独立                      |
+| Middleware       | 不共享         | 不继承 Core     | 不继承 Core        | 不继承 Core                | 自有 `import`、`export`，再进入 Core | 不继承 Core               |
+| Event            | Core lifecycle | 监听 Core Event | `commentCommitted` | —                          | —                                    | Worktree lifecycle/commit |
+| Database Adapter | Core Adapter   | History Adapter | Comment Adapter    | File Adapter 与 Blob Store | 复用 Core 与 File                    | Worktree Adapter          |
 
-这些 Adapter 可以使用同一个 SQLite 文件，但仍是独立对象和合同。应用释放资源时也应分别释放 Service
+这些 Adapter 可以使用同一个数据库，但仍是独立对象和合同。应用释放资源时也应分别释放 Service
 与 Adapter。
 
 ## 选择能力
 
-| 产品需求               | 模块                                        | 首个示例                |
-| ---------------------- | ------------------------------------------- | ----------------------- |
-| 面向用户的版本历史     | History Service、Endpoint、Adapter          | `pnpm example:history`  |
-| Sheet 或 Doc 批注      | Comment Service、Endpoint、Adapter          | `pnpm example:comments` |
-| 隔离草稿、评审与合并   | Worktree Service、Endpoint、Client、Adapter | `pnpm example:worktree` |
-| 服务端 Office 导入导出 | Exchange Node + Collaboration Service       | `pnpm example:exchange` |
+| 产品需求               | 模块                                        | 首个示例                    |
+| ---------------------- | ------------------------------------------- | --------------------------- |
+| 面向用户的版本历史     | History Service、Endpoint、Adapter          | `pnpm example:history`      |
+| Sheet 或 Doc 批注      | Comment Service、Endpoint、Adapter          | `pnpm example:comments`     |
+| 图片、附件与文件存储   | File Service、Endpoint、Adapter、Blob Store | `pnpm example:file-service` |
+| 服务端 Office 导入导出 | Exchange Service、Endpoint + File           | `pnpm example:exchange`     |
+| 隔离草稿、评审与合并   | Worktree Service、Endpoint、Client、Adapter | `pnpm example:worktree`     |
 
 完整运行方法与页面地址见[示例索引](/server/collaboration/examples)。
 
