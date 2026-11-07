@@ -1,8 +1,11 @@
 export const DOC_UPDATE_VERSION = '1.4.0'
 
 export const UPDATED_DOC_PAGES: ReadonlySet<string> = new Set([
+  '/guides/bases/features/thread-comment',
   '/guides/bases/getting-started/worker',
   '/guides/docs/features/comments',
+  '/guides/docs/features/edit-history',
+  '/guides/docs/features/footnotes',
   '/guides/docs/features/import-export',
   '/guides/docs/getting-started/worker',
   '/guides/docs/model/text-runs-and-paragraphs',
@@ -11,6 +14,7 @@ export const UPDATED_DOC_PAGES: ReadonlySet<string> = new Set([
   '/guides/pdfs/ui/overview',
   '/guides/sheets/features/comments',
   '/guides/sheets/features/core/range-selection',
+  '/guides/sheets/features/edit-history',
   '/guides/sheets/features/import-export',
   '/guides/sheets/features/pivot-chart',
   '/guides/sheets/features/pivot-table',
