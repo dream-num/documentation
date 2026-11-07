@@ -1,9 +1,10 @@
-import type { ReactNode, Ref } from 'react'
+import type { Ref } from 'react'
 import { ChevronRightIcon, ExternalLinkIcon, FolderIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 import type { INavTreeItem } from './nav-tree'
+import { NavTreeSections } from './nav-tree-sections'
 import { NavUpdateBadge } from './nav-update-badge'
 
 function NavContent({ item, showIcon = false }: { item: INavTreeItem; showIcon?: boolean }) {
@@ -45,7 +46,10 @@ function NavTreeNode({
 
   if (item.type === 'separator') {
     return (
-      <li className="mt-5 mb-1 flex items-center gap-2 px-2 text-xs font-semibold tracking-wide text-muted-foreground first:mt-0">
+      <li
+        data-nav-section-heading
+        className="flex items-center gap-2 px-2 py-2 text-xs font-semibold tracking-wide text-muted-foreground"
+      >
         <NavContent item={item} showIcon={Boolean(item.icon)} />
       </li>
     )
@@ -133,24 +137,18 @@ export function ReferenceNavTree({
   pathname: string
   activeItemRef: Ref<HTMLAnchorElement>
 }) {
-  let sectionHasIcon = false
-  let inSection = false
-  const nodes: ReactNode[] = []
-  for (const item of items) {
-    if (item.type === 'separator') {
-      inSection = true
-      sectionHasIcon = Boolean(item.icon)
-    }
-    nodes.push(
-      <NavTreeNode
-        item={item}
-        key={item.id}
-        level={sectionHasIcon && item.type !== 'separator' && !item.children.length ? 1 : 0}
-        pathname={pathname}
-        activeItemRef={activeItemRef}
-        showIcon={!inSection && Boolean(item.icon)}
-      />,
-    )
-  }
-  return <ul className="space-y-0.5">{nodes}</ul>
+  return (
+    <NavTreeSections items={items}>
+      {(item, heading) => (
+        <NavTreeNode
+          item={item}
+          key={item.id}
+          level={heading?.icon && item.type !== 'separator' && !item.children.length ? 1 : 0}
+          pathname={pathname}
+          activeItemRef={activeItemRef}
+          showIcon={!heading && Boolean(item.icon)}
+        />
+      )}
+    </NavTreeSections>
+  )
 }

@@ -99,10 +99,7 @@ export function GuidesSidebarControls({
         <>
           <div ref={sentinelRef} aria-hidden="true" className="-mb-px h-px" />
           {/* Keep the scroll range stable while the button compacts. */}
-          <div
-            data-compact={compact}
-            className="sticky top-0 z-20 h-16 bg-linear-to-b from-sidebar from-80% to-transparent pt-2"
-          >
+          <div data-compact={compact} data-guide-sidebar-switcher className="sticky top-0 z-20 h-16 bg-sidebar pt-2">
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={

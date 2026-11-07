@@ -3,6 +3,7 @@ import { ChevronRightIcon, ExternalLinkIcon } from 'lucide-react'
 import { Link } from '@/i18n/navigation'
 import { clsx } from '@/lib/clsx'
 import { NavIconFrame } from './nav-icon-frame'
+import { NavTreeSections } from './nav-tree-sections'
 import { NavUpdateBadge } from './nav-update-badge'
 
 export interface INavTreeItem {
@@ -59,10 +60,11 @@ function NavTreeNode({
   if (item.type === 'separator') {
     return (
       <li
-        className="mt-5 truncate px-2 text-xs font-medium tracking-normal text-muted-foreground first:mt-0"
+        data-nav-section-heading
+        className="px-2 py-2 text-xs font-medium tracking-normal text-muted-foreground"
         title={item.name}
       >
-        {item.name}
+        <span className="block truncate">{item.name}</span>
       </li>
     )
   }
@@ -157,10 +159,8 @@ export function NavTree({
   activeItemRef: Ref<HTMLAnchorElement>
 }) {
   return (
-    <ul className="space-y-0.5">
-      {items.map((item) => (
-        <NavTreeNode item={item} key={item.id} level={0} pathname={pathname} activeItemRef={activeItemRef} />
-      ))}
-    </ul>
+    <NavTreeSections items={items}>
+      {(item) => <NavTreeNode item={item} key={item.id} level={0} pathname={pathname} activeItemRef={activeItemRef} />}
+    </NavTreeSections>
   )
 }
