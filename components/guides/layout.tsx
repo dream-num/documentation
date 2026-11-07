@@ -36,7 +36,7 @@ export async function GuidesLayout({
         <aside
           data-guide-sidebar-scroll
           aria-label={t('docs.guides-sidebar')}
-          className="hidden border-r border-(--separator) bg-sidebar lg:-ml-6 lg:block lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pr-3 lg:pb-5 lg:pl-2"
+          className="hidden scroll-pt-[calc(var(--nav-section-top,0rem)+2.75rem)] scroll-pb-4 border-r border-(--separator) bg-sidebar mask-b-from-[calc(100%-1rem)] has-[[data-guide-sidebar-switcher]]:[--nav-section-top:4rem] lg:-ml-6 lg:block lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pr-3 lg:pb-5 lg:pl-2"
         >
           <GuidesSidebar
             className="pt-5"

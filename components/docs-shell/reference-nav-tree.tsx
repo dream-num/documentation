@@ -48,7 +48,7 @@ function NavTreeNode({
     return (
       <li
         data-nav-section-heading
-        className="flex items-center gap-2 px-2 py-2 text-xs font-semibold tracking-wide text-muted-foreground"
+        className="sticky top-(--nav-section-top,0rem) z-10 flex items-center gap-2 bg-(--nav-section-background,var(--sidebar)) px-2 py-2 text-xs font-semibold tracking-wide text-muted-foreground after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-2 after:bg-linear-to-b after:from-(--nav-section-background,var(--sidebar)) after:to-transparent"
       >
         <NavContent item={item} showIcon={Boolean(item.icon)} />
       </li>

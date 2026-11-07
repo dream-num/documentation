@@ -50,7 +50,7 @@ export async function DocsShellLayout({
         <aside
           data-doc-sidebar-scroll
           aria-label={t('docs.sidebar', { title })}
-          className="hidden border-r border-(--separator) bg-sidebar lg:-ml-6 lg:block lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pr-3 lg:pb-5 lg:pl-2"
+          className="hidden scroll-pt-11 scroll-pb-4 border-r border-(--separator) bg-sidebar lg:-ml-6 lg:block lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pr-3 lg:pb-5 lg:pl-2"
         >
           <div className="pt-5">
             {searchScope === 'reference' ? (

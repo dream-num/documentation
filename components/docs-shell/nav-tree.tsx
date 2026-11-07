@@ -61,7 +61,7 @@ function NavTreeNode({
     return (
       <li
         data-nav-section-heading
-        className="px-2 py-2 text-xs font-medium tracking-normal text-muted-foreground"
+        className="sticky top-(--nav-section-top,0rem) z-10 bg-(--nav-section-background,var(--sidebar)) px-2 py-2 text-xs font-medium tracking-normal text-muted-foreground after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-2 after:bg-linear-to-b after:from-(--nav-section-background,var(--sidebar)) after:to-transparent"
         title={item.name}
       >
         <span className="block truncate">{item.name}</span>
