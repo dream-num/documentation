@@ -23,11 +23,11 @@ export function NavUpdateBadge({ item }: { item: INavTreeItem }) {
     <span
       title={description}
       className={clsx(
-        'inline-flex size-4 shrink-0 items-center justify-center',
+        'shrink-0 text-[11px] leading-4 font-medium whitespace-nowrap text-sky-700 dark:text-sky-400',
         item.children.length > 0 && '[details[open]>summary_&]:hidden',
       )}
     >
-      <span aria-hidden="true" className="size-1.5 rounded-full bg-sky-600 dark:bg-sky-400" />
+      <span aria-hidden="true">{t('updated')}</span>
       <span className="sr-only">{description}</span>
     </span>
   )

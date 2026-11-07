@@ -200,6 +200,7 @@ const zhTWMessages = {
     start: '開始使用',
   },
   navigation: {
+    updated: '更新',
     'updated-in-version': '於 {version} 更新',
     overview: '概覽',
     blog: '博客',

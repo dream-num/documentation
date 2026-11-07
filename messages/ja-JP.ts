@@ -205,6 +205,7 @@ const jaJPMessages = {
     start: '使い始める',
   },
   navigation: {
+    updated: '更新',
     'updated-in-version': '{version} で更新',
     overview: '概要',
     blog: 'ブログ',
