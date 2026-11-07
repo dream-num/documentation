@@ -1,9 +1,7 @@
 import process from 'node:process'
-
 import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { PostHog } from 'posthog-node'
-
 import { AgentDocsLinks } from '@/components/agent-docs-links'
 import { DocsArticle } from '@/components/docs-shell/article'
 import { DocsShellPageLayout } from '@/components/docs-shell/layout'
@@ -24,8 +22,9 @@ interface IProps {
   }>
 }
 
-export async function generateStaticParams() {
-  return reference.generateParams()
+export function generateStaticParams() {
+  // Cache each reference page on first visit; the corpus is too large to prerender per locale.
+  return []
 }
 
 export async function generateMetadata({ params }: IProps) {

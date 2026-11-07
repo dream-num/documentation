@@ -12,6 +12,8 @@ export function TocList({ items, compact = false }: { items?: TOCItemType[]; lan
   const trackRef = useRef<SVGPathElement>(null)
   const markerRef = useRef<SVGPathElement>(null)
   const markerSvgRef = useRef<SVGSVGElement>(null)
+  const frameRef = useRef(0)
+  const pathLengthRef = useRef(0)
   const [activeUrls, setActiveUrls] = useState<ReadonlySet<string>>(() => new Set(headings[0] ? [headings[0].url] : []))
   const currentUrl = activeUrls.values().next().value
 
@@ -39,11 +41,10 @@ export function TocList({ items, compact = false }: { items?: TOCItemType[]; lan
 
     const scrollContainer = pathItems[0].element.closest<HTMLElement>('[data-doc-scroll-container]')
     const scrollTarget: HTMLElement | Window = scrollContainer ?? window
-    let frame = 0
-    let pathLength = 0
+    pathLengthRef.current = 0
 
     function updateActiveHeading() {
-      frame = 0
+      frameRef.current = 0
 
       const scrollBounds = scrollContainer?.getBoundingClientRect()
       const viewportTop = scrollBounds?.top ?? 0
@@ -72,13 +73,13 @@ export function TocList({ items, compact = false }: { items?: TOCItemType[]; lan
 
       const pathStart = activeItems[0].pathStart
       const pathEnd = activeItems.at(-1)?.pathEnd ?? pathStart
-      tocMarker.setAttribute('stroke-dasharray', `1 ${pathStart} ${pathEnd - pathStart} ${pathLength}`)
+      tocMarker.setAttribute('stroke-dasharray', `1 ${pathStart} ${pathEnd - pathStart} ${pathLengthRef.current}`)
       tocMarker.setAttribute('stroke-dashoffset', '1')
     }
 
     function scheduleActiveUpdate() {
-      if (frame) return
-      frame = window.requestAnimationFrame(updateActiveHeading)
+      if (frameRef.current) return
+      frameRef.current = window.requestAnimationFrame(updateActiveHeading)
     }
 
     function drawPath() {
@@ -124,11 +125,11 @@ export function TocList({ items, compact = false }: { items?: TOCItemType[]; lan
       tocMarkerSvg.setAttribute('viewBox', `0 0 ${tocList.clientWidth} ${tocList.scrollHeight}`)
       tocTrack.setAttribute('d', commands.join(' '))
       tocMarker.setAttribute('d', commands.join(' '))
-      pathLength = tocMarker.getTotalLength()
+      pathLengthRef.current = tocMarker.getTotalLength()
 
       function getPathLengthAtY(targetY: number) {
         let start = 0
-        let end = pathLength
+        let end = pathLengthRef.current
 
         for (let index = 0; index < 12; index++) {
           const middle = (start + end) / 2
@@ -159,8 +160,9 @@ export function TocList({ items, compact = false }: { items?: TOCItemType[]; lan
     resizeObserver.observe(tocList)
 
     return () => {
-      if (frame) {
-        window.cancelAnimationFrame(frame)
+      if (frameRef.current) {
+        window.cancelAnimationFrame(frameRef.current)
+        frameRef.current = 0
       }
 
       resizeObserver.disconnect()

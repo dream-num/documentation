@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
+import { hasLocale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
-
-import type { Locale } from '@/i18n/routing'
+import { notFound } from 'next/navigation'
 import { SiteHeader } from '@/components/site/header'
+import { routing } from '@/i18n/routing'
 import { clsx } from '@/lib/clsx'
 import { createGuideNavigation } from '@/lib/guides/navigation'
 import { guideNavigationSource } from '@/lib/guides/navigation-source'
@@ -14,7 +15,8 @@ interface IProps {
 
 export default async function Layout({ params, children }: IProps) {
   const { lang } = await params
-  const t = await getTranslations({ locale: lang as Locale })
+  if (!hasLocale(routing.locales, lang)) notFound()
+  const t = await getTranslations({ locale: lang })
   const guideNavigation = createGuideNavigation(guideNavigationSource.pageTree[lang], '')
   const links = [
     {

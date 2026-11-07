@@ -23,13 +23,13 @@ export function Mermaid({ chart }: IMermaidProps) {
   useEffect(() => {
     if (!resolvedTheme || !containerRef.current) return
     const container = containerRef.current
-    let cancelled = false
+    const controller = new AbortController()
 
     async function renderChart() {
       const { default: mermaid } = await import('mermaid')
 
       try {
-        if (cancelled) return
+        if (controller.signal.aborted) return
         const dark = resolvedTheme === 'dark'
         const foreground = dark ? '#dedede' : '#292929'
         const muted = dark ? '#9e9e9e' : '#666666'
@@ -67,7 +67,7 @@ export function Mermaid({ chart }: IMermaidProps) {
 
         const result = await mermaid.render(id, chart.replaceAll('\\n', '\n'))
 
-        if (cancelled) return
+        if (controller.signal.aborted) return
         const document = new DOMParser().parseFromString(result.svg, 'image/svg+xml')
         const width = Number(document.documentElement.getAttribute('viewBox')?.split(/\s+/)[2])
         setNaturalWidth(Number.isFinite(width) && width > 0 ? width : undefined)
@@ -81,7 +81,7 @@ export function Mermaid({ chart }: IMermaidProps) {
 
     renderChart().catch(console.error)
     return () => {
-      cancelled = true
+      controller.abort()
     }
   }, [chart, id, resolvedTheme])
 

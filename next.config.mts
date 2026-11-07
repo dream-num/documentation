@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { networkInterfaces } from 'node:os'
+import { availableParallelism, networkInterfaces } from 'node:os'
 import process from 'node:process'
 import type { NextConfig } from 'next'
 import { withAmamoMdx } from '@amamo/mdx/next'
@@ -51,6 +51,9 @@ const config: NextConfig = {
   },
 
   experimental: {
+    globalNotFound: true,
+    // Reuse parsed fallback content across full-document bundles instead of spawning a worker per locale.
+    cpus: Math.min(4, availableParallelism()),
     // Hoisted Pro PDF code loses decoder assignments during minification.
     turbopackScopeHoisting: false,
     turbopackRemoveUnusedImports: false,

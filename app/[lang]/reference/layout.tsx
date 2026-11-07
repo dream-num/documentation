@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
+import { hasLocale } from 'next-intl'
 import { getTranslations } from 'next-intl/server'
-
-import type { Locale } from '@/i18n/routing'
+import { notFound } from 'next/navigation'
 import { DocsShellLayout } from '@/components/docs-shell/layout'
+import { routing } from '@/i18n/routing'
 import { createDocsNavigation } from '@/lib/docs/navigation'
 import { reference } from '@/lib/source'
 
@@ -13,7 +14,8 @@ interface IProps {
 
 export default async function Layout({ params, children }: IProps) {
   const { lang } = await params
-  const t = await getTranslations({ locale: lang as Locale })
+  if (!hasLocale(routing.locales, lang)) notFound()
+  const t = await getTranslations({ locale: lang })
   const navigation = createDocsNavigation(reference.pageTree[lang], '')
 
   return (

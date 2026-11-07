@@ -94,6 +94,7 @@ function NavTreeNode({
                 aria-current={current ? 'page' : undefined}
                 className="flex min-w-0 flex-1 items-center gap-2 rounded-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 href={item.url}
+                prefetch={false}
               >
                 <NavContent item={item} />
               </Link>
@@ -130,6 +131,7 @@ function NavTreeNode({
           aria-current={current ? 'page' : undefined}
           className={rowClassName}
           href={item.url}
+          prefetch={false}
           rel={item.external ? 'noreferrer' : undefined}
           style={style}
           target={item.external ? '_blank' : undefined}

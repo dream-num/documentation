@@ -30,13 +30,7 @@ interface IAgentDocsArtifact {
   humanPath?: string
 }
 
-interface IAgentDocsStaticParam {
-  asset: string[]
-  lang: Locale
-}
-
 interface IAgentDocsPublication {
-  enumerate: () => Promise<IAgentDocsStaticParam[]>
   publish: (request: IAgentDocsRequest) => Promise<IAgentDocsArtifact | undefined>
 }
 
@@ -81,8 +75,6 @@ const REQUIRED_DEVELOPMENT_WORKFLOW = [
   '- CLI: [examples repository](https://github.com/dream-num/univer-cli-examples) and [SDK repository](https://github.com/dream-num/univer-cli-sdk).',
   '',
 ].join('\n')
-
-let staticParamsPromise: Promise<IAgentDocsStaticParam[]> | undefined
 
 function isAgentDocsCollection(value: string): value is AgentDocsCollection {
   return agentDocsCollections.includes(value as AgentDocsCollection)
@@ -177,13 +169,6 @@ function getRootIndexPath(lang: Locale) {
 
 function getRootFullPath(lang: Locale) {
   return withLocale(lang, '/llms-full.txt')
-}
-
-function getPageAsset(collection: AgentDocsCollection, page: AgentDocsPage) {
-  if (page.slugs.length === 0) return [`${collection}.md`]
-  const slug = [...page.slugs]
-  slug[slug.length - 1] = `${slug.at(-1)}.md`
-  return [collection, ...slug]
 }
 
 function getDigest(body: string) {
@@ -540,39 +525,6 @@ async function publish({ asset, lang: langInput }: IAgentDocsRequest) {
   return renderPage(lang, target.collection, page)
 }
 
-async function enumerate() {
-  if (staticParamsPromise) return staticParamsPromise
-
-  staticParamsPromise = (async () => {
-    const params: IAgentDocsStaticParam[] = []
-    const keys = new Set<string>()
-
-    for (const lang of routing.locales) {
-      const indexAssets = [
-        ['llms.txt'],
-        ['llms-full.txt'],
-        ...agentDocsCollections.map((collection) => [collection, 'llms.txt']),
-      ]
-      for (const asset of indexAssets) params.push({ asset, lang })
-
-      for (const collection of agentDocsCollections) {
-        for (const page of getPages(collection, lang)) {
-          const asset = getPageAsset(collection, page)
-          const key = `${lang}/${asset.join('/')}`
-          if (keys.has(key)) throw new Error(`Agent Markdown found a duplicate artifact: ${key}`)
-          keys.add(key)
-          params.push({ asset, lang })
-        }
-      }
-    }
-
-    return params
-  })()
-
-  return staticParamsPromise
-}
-
 export const agentDocsPublication: IAgentDocsPublication = {
-  enumerate,
   publish,
 }

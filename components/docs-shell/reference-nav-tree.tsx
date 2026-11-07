@@ -109,6 +109,7 @@ function NavTreeNode({
           aria-current={current ? 'page' : undefined}
           className={rowClassName}
           href={item.url}
+          prefetch={false}
           rel={item.external ? 'noreferrer' : undefined}
           style={style}
           target={item.external ? '_blank' : undefined}
