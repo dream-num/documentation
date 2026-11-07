@@ -1,7 +1,7 @@
 'use client'
 
 import type { RefObject } from 'react'
-import { useLayoutEffect } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import { usePathname } from '@/i18n/navigation'
 
 export function ActiveNavScroller({
@@ -12,13 +12,13 @@ export function ActiveNavScroller({
   navRef: RefObject<HTMLElement | null>
 }) {
   const pathname = usePathname()
+  const frameRef = useRef(0)
 
   useLayoutEffect(() => {
     const mobileMenu = navRef.current?.closest('details')
-    let frame = 0
     function revealCurrentItem() {
-      window.cancelAnimationFrame(frame)
-      frame = window.requestAnimationFrame(() => {
+      window.cancelAnimationFrame(frameRef.current)
+      frameRef.current = window.requestAnimationFrame(() => {
         const activeItem = activeItemRef.current
         if (!activeItem?.getClientRects().length) return
 
@@ -45,7 +45,8 @@ export function ActiveNavScroller({
     mobileMenu?.addEventListener('toggle', revealCurrentItem)
 
     return () => {
-      window.cancelAnimationFrame(frame)
+      window.cancelAnimationFrame(frameRef.current)
+      frameRef.current = 0
       mobileMenu?.removeEventListener('toggle', revealCurrentItem)
     }
   }, [pathname, activeItemRef, navRef])

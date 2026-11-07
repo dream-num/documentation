@@ -7,6 +7,7 @@ const colors = ['#35bd4b', '#4b7dff', '#ff6b4b', '#14b8a6', '#8b5cf6', '#e5484d'
 
 export function HeadingGlow() {
   const ref = useRef<HTMLDivElement>(null)
+  const headingsRef = useRef<{ element: HTMLElement; y: number; color: string }[]>([])
   const reducedMotion = useReducedMotion()
   const { scrollY } = useScroll()
   const [glow, setGlow] = useState<{ x: number; y: number; color: string } | null>(null)
@@ -16,9 +17,10 @@ export function HeadingGlow() {
     const page = container?.parentElement
     if (!container || !page || reducedMotion) return
 
-    let headings: { element: HTMLElement; y: number; color: string }[] = []
+    headingsRef.current = []
 
     function update() {
+      const headings = headingsRef.current
       const center = scrollY.get() + window.innerHeight / 2
       if (!headings.length || center < headings[0].y - window.innerHeight / 4) {
         setGlow(null)
@@ -43,13 +45,13 @@ export function HeadingGlow() {
 
     function measure() {
       if (!page) return
-      headings = Array.from(page.querySelectorAll<HTMLElement>('[data-home-features] h2, #get-started-title')).map(
-        (element, index) => ({
-          element,
-          y: element.getBoundingClientRect().top + window.scrollY,
-          color: colors[index % colors.length],
-        }),
-      )
+      headingsRef.current = Array.from(
+        page.querySelectorAll<HTMLElement>('[data-home-features] h2, #get-started-title'),
+      ).map((element, index) => ({
+        element,
+        y: element.getBoundingClientRect().top + window.scrollY,
+        color: colors[index % colors.length],
+      }))
       update()
     }
 

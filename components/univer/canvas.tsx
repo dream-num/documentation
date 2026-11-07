@@ -39,7 +39,7 @@ export function UniverCanvas({ initialize, locales }: IUniverCanvasProps) {
 
   useEffect(() => {
     if (!resolvedTheme || !containerRef.current) return
-    let disposed = false
+    const controller = new AbortController()
     setSteady(false)
     const univer = new Univer({
       darkMode: resolvedTheme === 'dark',
@@ -50,7 +50,7 @@ export function UniverCanvas({ initialize, locales }: IUniverCanvasProps) {
     })
 
     function reportError(cause: unknown) {
-      if (!disposed) setError(cause instanceof Error ? cause : new Error(String(cause)))
+      if (!controller.signal.aborted) setError(cause instanceof Error ? cause : new Error(String(cause)))
     }
 
     try {
@@ -66,7 +66,7 @@ export function UniverCanvas({ initialize, locales }: IUniverCanvasProps) {
         if (event.stage !== api.Enum.LifecycleStages.Rendered) return
         try {
           await onRendered?.()
-          if (!disposed) setSteady(true)
+          if (!controller.signal.aborted) setSteady(true)
         } catch (cause) {
           reportError(cause)
         }
@@ -76,7 +76,7 @@ export function UniverCanvas({ initialize, locales }: IUniverCanvasProps) {
     }
 
     return () => {
-      disposed = true
+      controller.abort()
       univer.dispose()
     }
   }, [initialize, locales, resolvedTheme])

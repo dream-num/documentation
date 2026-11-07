@@ -39,6 +39,7 @@ export function GuidesSidebarControls({
   const t = useTranslations()
   const sentinelRef = useRef<HTMLDivElement>(null)
   const sectionButtonRef = useRef<HTMLButtonElement>(null)
+  const compactRef = useRef(false)
   const [compact, setCompact] = useState(false)
   const currentSdk = getActiveGuideSdk(items, pathname)
   const sectionItems = getGuideSectionItems(items, pathname)
@@ -53,14 +54,14 @@ export function GuidesSidebarControls({
     const scrollContainer = sentinel?.closest('[data-guide-sidebar-scroll]')
     if (!sentinel || !button || !scrollContainer) return
 
-    let currentCompact = button.parentElement?.dataset.compact === 'true'
-    let disposed = false
+    compactRef.current = button.parentElement?.dataset.compact === 'true'
+    const controller = new AbortController()
 
     const syncCompact = () => {
-      if (disposed || !scrollContainer.getClientRects().length) return
+      if (controller.signal.aborted || !scrollContainer.getClientRects().length) return
       const nextCompact = sentinel.getBoundingClientRect().top <= scrollContainer.getBoundingClientRect().top
-      if (nextCompact === currentCompact) return
-      currentCompact = nextCompact
+      if (nextCompact === compactRef.current) return
+      compactRef.current = nextCompact
       setCompact(nextCompact)
     }
 
@@ -71,7 +72,7 @@ export function GuidesSidebarControls({
     syncCompact()
 
     return () => {
-      disposed = true
+      controller.abort()
       observer.disconnect()
       scrollContainer.removeEventListener('scroll', syncCompact)
     }
