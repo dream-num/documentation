@@ -206,7 +206,6 @@ const esESMessages = {
     start: 'Comenzar',
   },
   navigation: {
-    updated: 'Actualizado',
     'updated-in-version': 'Actualizado en {version}',
     overview: 'Descripción general',
     blog: 'Blog',

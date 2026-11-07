@@ -204,7 +204,6 @@ const koKRMessages = {
     start: '시작하기',
   },
   navigation: {
-    updated: '업데이트',
     'updated-in-version': '{version}에서 업데이트됨',
     overview: '개요',
     blog: '블로그',

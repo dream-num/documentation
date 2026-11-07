@@ -21,14 +21,14 @@ export function NavUpdateBadge({ item }: { item: INavTreeItem }) {
 
   return (
     <span
-      aria-label={description}
       title={description}
       className={clsx(
-        'shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] leading-none font-medium whitespace-nowrap text-primary',
+        'inline-flex size-4 shrink-0 items-center justify-center',
         item.children.length > 0 && '[details[open]>summary_&]:hidden',
       )}
     >
-      {t('updated')}
+      <span aria-hidden="true" className="size-1.5 rounded-full bg-sky-600 dark:bg-sky-400" />
+      <span className="sr-only">{description}</span>
     </span>
   )
 }
