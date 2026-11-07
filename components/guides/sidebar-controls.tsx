@@ -1,10 +1,8 @@
 'use client'
 
-import type { ReactNode } from 'react'
 import { ArrowLeftIcon, CheckIcon, ChevronsUpDownIcon, LayersIcon } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
 import type { IGuideNavItem } from '@/lib/guides/navigation'
 import { NavIconFrame } from '@/components/docs-shell/nav-icon-frame'
 import { SidebarVersionSwitcher } from '@/components/docs-shell/sidebar-version-switcher'
@@ -19,28 +17,11 @@ import {
   isGuideNavItemActive,
 } from '@/lib/guides/navigation'
 
-function ControlIcon({ children, className }: { children: ReactNode; className?: string }) {
+function SectionIcon({ item }: { item?: IGuideNavItem }) {
   return (
-    <span
-      className={clsx(
-        `grid size-8 shrink-0 place-items-center overflow-hidden rounded-md border bg-background text-primary *:grid! *:size-4! *:min-w-4! *:place-items-center! *:border-0! *:bg-transparent! *:p-0! *:shadow-none! [&_svg]:size-4!`,
-        className,
-      )}
-    >
-      {children}
+    <span className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-md border bg-background text-primary *:grid! *:size-4! *:min-w-4! *:place-items-center! *:border-0! *:bg-transparent! *:p-0! *:shadow-none! [&_svg]:size-4!">
+      {item?.icon ? item.icon : <LayersIcon aria-hidden="true" />}
     </span>
-  )
-}
-
-function SectionIcon({ item, compact }: { item?: IGuideNavItem; compact: boolean }) {
-  if (item?.icon) {
-    return <ControlIcon className={compact ? 'size-6!' : undefined}>{item.icon}</ControlIcon>
-  }
-
-  return (
-    <ControlIcon className={compact ? 'size-6!' : undefined}>
-      <LayersIcon aria-hidden="true" />
-    </ControlIcon>
   )
 }
 
@@ -73,7 +54,6 @@ export function GuidesSidebarControls({
     if (!sentinel || !button || !scrollContainer) return
 
     let currentCompact = button.parentElement?.dataset.compact === 'true'
-    let transition: ViewTransition | undefined
     let disposed = false
 
     const syncCompact = () => {
@@ -81,42 +61,7 @@ export function GuidesSidebarControls({
       const nextCompact = sentinel.getBoundingClientRect().top <= scrollContainer.getBoundingClientRect().top
       if (nextCompact === currentCompact) return
       currentCompact = nextCompact
-      transition?.skipTransition()
-
-      const applyCompact = () => {
-        if (!disposed && currentCompact === nextCompact) {
-          flushSync(() => setCompact(nextCompact))
-        }
-      }
-
-      if (
-        !document.startViewTransition ||
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
-        document.documentElement.dataset.themeTransition === 'active'
-      ) {
-        setCompact(nextCompact)
-        return
-      }
-
-      button.style.viewTransitionName = 'guide-section-switcher'
-      try {
-        const nextTransition = document.startViewTransition({ types: ['guide-sidebar'], update: applyCompact })
-        transition = nextTransition
-
-        const cleanUp = () => {
-          if (transition === nextTransition) {
-            button.style.removeProperty('view-transition-name')
-            transition = undefined
-          }
-        }
-        nextTransition.finished.then(cleanUp, () => {
-          applyCompact()
-          cleanUp()
-        })
-      } catch {
-        button.style.removeProperty('view-transition-name')
-        setCompact(nextCompact)
-      }
+      setCompact(nextCompact)
     }
 
     const observer = new ResizeObserver(syncCompact)
@@ -129,8 +74,6 @@ export function GuidesSidebarControls({
       disposed = true
       observer.disconnect()
       scrollContainer.removeEventListener('scroll', syncCompact)
-      transition?.skipTransition()
-      button.style.removeProperty('view-transition-name')
     }
   }, [hasSections])
 
@@ -166,23 +109,27 @@ export function GuidesSidebarControls({
                   <button
                     ref={sectionButtonRef}
                     className={clsx(
-                      'flex w-full items-center gap-2 rounded-md bg-sidebar p-1 text-left transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-1 focus-visible:ring-ring/60 focus-visible:outline-none focus-visible:ring-inset',
-                      compact ? 'h-9' : 'h-12',
+                      'flex w-full items-center gap-2 rounded-md bg-sidebar p-1 text-left transition-[height,background-color,color] duration-150 ease-out hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent/70 focus-visible:ring-1 focus-visible:ring-ring/60 focus-visible:outline-none focus-visible:ring-inset motion-reduce:transition-none',
+                      compact ? 'h-10' : 'h-12',
                     )}
                     type="button"
                   />
                 }
               >
-                <SectionIcon item={currentSection ?? currentSdk} compact={compact} />
+                <SectionIcon item={currentSection ?? currentSdk} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-foreground">
                     {currentSection?.name ?? (isWebSdk ? labels.products : t('office.modules'))}
                   </span>
-                  {!compact ? (
-                    <span className="block truncate text-sm text-muted-foreground">
-                      {currentSection?.description ?? currentSdk?.name}
-                    </span>
-                  ) : null}
+                  <span
+                    aria-hidden={compact}
+                    className={clsx(
+                      'block truncate text-sm text-muted-foreground transition-[height,opacity,visibility] duration-150 ease-out motion-reduce:transition-none',
+                      compact ? 'invisible h-0 opacity-0' : 'visible h-5 opacity-100',
+                    )}
+                  >
+                    {currentSection?.description ?? currentSdk?.name}
+                  </span>
                 </span>
                 <ChevronsUpDownIcon className="size-4 shrink-0 text-muted-foreground" />
               </DropdownMenuTrigger>
