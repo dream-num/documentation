@@ -1,9 +1,11 @@
 ---
 title: Адаптеры баз данных
-description: Изучите контракт хранения данных совместной работы и выберите Memory, SQLite или собственный Database Adapter.
+description: Изучите контракт хранения данных совместной работы и выберите Memory, SQLite, PostgreSQL или собственный Database Adapter.
 ---
 
 Database Adapter сохраняет основные данные совместной работы, используемые Collaboration Service. Разработчик может реализовать `IDatabaseAdapter` для любой базы, способной выполнить полный контракт поведения. Service отвечает за семантику Unit, OT и ревизий. Adapter превращает её в атомарные операции хранения, безопасные при повторе.
+
+Database Adapters открыты под лицензией Apache-2.0; исходный код находится в [univer-collaboration-sdk-community](https://github.com/dream-num/univer-collaboration-sdk-community), имена пакетов и версии те же, что у остальных пакетов.
 
 ## Проверка сохранения после перезапуска [#verify-persistence]
 
@@ -20,7 +22,7 @@ Database Adapter сохраняет основные данные совмест
 - записи идемпотентности[^submission-idempotency] отправок с ключом `(unitID, sid, reqId)`;
 - состояние логического удаления, восстановления и окончательного удаления Unit.
 
-По умолчанию он не хранит пользователей, роли, ACL, каталоги, файлы и метаданные продукта. History, Thread Comment и Worktree используют собственные независимые контракты Adapter.
+По умолчанию он не хранит пользователей, роли, ACL и метаданные продукта. History, Thread Comment и Worktree используют собственные независимые контракты Adapter.
 
 ## Обязательная семантика
 
@@ -40,10 +42,9 @@ Database Adapter сохраняет основные данные совмест
 
 ## Memory Adapter
 
-`@univerjs-pro/collaboration-database-memory` — реализация в памяти процесса для:
+[`@univerjs-pro/collaboration-database-memory`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-memory) — реализация в памяти процесса для:
 
 - модульных и интеграционных тестов;
-- официальных примеров;
 - временных сред разработки;
 - быстрой проверки собственных Middleware или сборки клиента.
 
@@ -59,7 +60,7 @@ Memory Adapter соблюдает те же контракты ревизий, C
 
 ## SQLite Adapter
 
-`@univerjs-pro/collaboration-database-sqlite` — постоянное хранилище SQLite для разработки, тестов, локальных приложений и небольших нагрузок.
+[`@univerjs-pro/collaboration-database-sqlite`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-sqlite) — постоянное хранилище SQLite для разработки, тестов, локальных приложений и небольших нагрузок.
 
 ```ts
 import { mkdir } from "node:fs/promises";
@@ -76,17 +77,31 @@ const database = new SQLiteDatabaseAdapter({
 const service = new UniverCollabService({ dbAdapter: database });
 ```
 
-SQLite Adapter использует внешние ключи и транзакции записи `BEGIN IMMEDIATE` для атомарных коммитов. В пустой базе он создаёт актуальную схему. Неполные или неподдерживаемые схемы он отказывается открывать, а не применяет неизвестные миграции автоматически.
+В пустой базе он инициализирует схему, а существующую только проверяет. Расположение файла, резервные копии и другие настройки SQLite определяет приложение.
 
-Он не меняет `journal_mode` и не определяет расположение файла, политику резервного копирования и другие настройки SQLite. SQLite предназначен для разработки, локальных приложений и небольших масштабов.
+## PostgreSQL Adapter
+
+[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) — постоянная реализация на основе node-postgres, которую могут разделять несколько узлов совместной работы.
+
+```ts
+import { PostgresDatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { Pool } from "pg";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const database = await PostgresDatabaseAdapter.create({ pool });
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
+Пул соединений принадлежит приложению и закрывается после освобождения Service. `create()` инициализирует схему `collaboration` в пустой базе, а существующую только проверяет.
 
 ## Собственные Database Adapters
 
 Собственный Adapter обычно подходит, когда:
 
-- приложение уже использует PostgreSQL, MySQL или другую бизнес-базу;
+- приложение уже использует MySQL или другую бизнес-базу;
 - отправки совместной работы должны интегрироваться со специфическими механизмами базы приложения;
-- эксплуатационные или нормативные требования выходят за предполагаемый масштаб SQLite.
+- эксплуатационные или нормативные требования выходят за рамки встроенных Adapters.
 
 Реализуйте `IDatabaseAdapter` и внедрите его в Service так же, как встроенный Adapter:
 
@@ -95,7 +110,7 @@ const database = new ApplicationCollaborationDatabase({ pool });
 const service = new UniverCollabService({ dbAdapter: database });
 ```
 
-Service не зависит от конкретной базы, но и не может добавить транзакции, CAS или дедупликацию в вашу реализацию. Adapter должен выполнить полный контракт средствами своей базы.
+Service не зависит от конкретной базы, но и не может добавить транзакции, CAS или дедупликацию в вашу реализацию. Adapter должен выполнить полный контракт средствами своей базы. Встроенные реализации в [репозитории сообщества](https://github.com/dream-num/univer-collaboration-sdk-community) показывают один контракт на разных базах и служат образцом.
 
 ## Context и граница приложения
 
@@ -108,7 +123,7 @@ Middleware Service
   → атомарно сохраняет эталонное состояние совместной работы
 ```
 
-Так Memory, SQLite и собственные Adapters используют общие политики приложения.
+Так Memory, SQLite, PostgreSQL и собственные Adapters используют общие политики приложения.
 
 Если бизнес-данным нужна строгая согласованность с данными совместной работы, собственный Database Adapter может прочитать значения из `customData` и записать оба набора в своей транзакции базы данных.
 
@@ -116,7 +131,7 @@ Middleware Service
 
 ## Хранение расширений
 
-History, Thread Comment и Worktree определяют независимые интерфейсы Database Adapter. Их Adapters могут использовать одну базу или разные хранилища. Одна собственная реализация также может предоставлять несколько интерфейсов Adapter и внедряться в соответствующие Services.
+History, Thread Comment, Worktree и File определяют независимые интерфейсы Database Adapter. Их Adapters могут использовать одну базу или разные хранилища. Одна собственная реализация также может предоставлять несколько интерфейсов Adapter и внедряться в соответствующие Services.
 
 Из-за независимости интерфейсов SDK по умолчанию не предоставляет межмодульных транзакций. Даже при общей базе стратегию межмодульной согласованности определяет приложение.
 
@@ -126,6 +141,7 @@ History, Thread Comment и Worktree определяют независимые 
 | --- | --- | --- |
 | Memory | Тесты, примеры, временная разработка | Данные исчезают при завершении процесса |
 | SQLite | Разработка, тесты, локальные приложения, небольшой масштаб | Однофайловая база с настройками под контролем приложения |
+| PostgreSQL | Развёртывание на нескольких узлах и существующие базы PostgreSQL | Пул и эксплуатация базы под контролем приложения |
 | Собственный | Существующие базы или особая интеграция бизнес-данных | Приложение реализует и проверяет полный контракт |
 
 Приложение владеет всеми внедрёнными Adapters. Освободите Service раньше Adapter:

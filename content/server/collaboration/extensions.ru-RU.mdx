@@ -1,24 +1,25 @@
 ---
 title: Модули расширения совместной работы
-description: Узнайте, как History, Thread Comment, Worktree и серверное преобразование Office расширяют базовую совместную работу.
+description: Узнайте, как History, Thread Comment, Worktree, File и серверное преобразование Office расширяют базовую совместную работу.
 ---
 
-History, Thread Comment и Worktree — независимые расширения, подключаемые по необходимости. Они могут повторно использовать Transport, систему идентификации и физическую базу, но сохраняют собственные границы Service, Middleware, Event, Database Adapter и жизненного цикла.
+History, Thread Comment, File и Worktree — независимые расширения, подключаемые по необходимости. Они могут повторно использовать Transport, систему идентификации и физическую базу, но сохраняют собственные границы Service, Middleware, Event, Database Adapter и жизненного цикла.
 
-Серверное преобразование Office — процесс приложения: оно объединяет конвертацию файлов с API Collaboration Service, а не включает переключатель функции в основном Service.
+Серверное преобразование Office объединяет File и Collaboration Service: оно преобразует файлы Office в совместные Units и обратно, имея собственные Service, Endpoint и Middleware.
 
 ## Связи модулей
 
-<Mermaid chart={"flowchart TB\n    Transport[\"Node Transport\"]\n\n    subgraph Modules[\"Модули совместной работы\"]\n        direction LR\n        Core[\"Ядро совместной работы<br/>Endpoint · Service · Adapter\"]\n        History[\"History<br/>Endpoint · Service · Adapter\"]\n        Comment[\"Thread Comment<br/>Endpoint · Service · Adapter\"]\n        Worktree[\"Worktree<br/>Client · Endpoint · Service · Adapter\"]\n    end\n\n    Transport --> Core\n    Transport --> History\n    Transport --> Comment\n    Transport --> Worktree"} />
+<Mermaid chart={"flowchart TB\n    Transport[\"Node Transport\"]\n\n    subgraph Modules[\"Модули совместной работы\"]\n        direction LR\n        Core[\"Ядро совместной работы<br/>Endpoint · Service · Adapter\"]\n        History[\"History<br/>Endpoint · Service · Adapter\"]\n        Comment[\"Thread Comment<br/>Endpoint · Service · Adapter\"]\n        File[\"File<br/>Endpoint · Service · Adapter · Blob Store\"]\n        Exchange[\"Office Exchange<br/>Endpoint · Service\"]\n        Worktree[\"Worktree<br/>Client · Endpoint · Service · Adapter\"]\n    end\n\n    Transport --> Core\n    Transport --> History\n    Transport --> Comment\n    Transport --> File\n    Transport --> Exchange\n    Transport --> Worktree\n    Exchange --> Core\n    Exchange --> File"} />
 
 | Расширение | Связь с ядром совместной работы |
 | --- | --- |
 | History | Наблюдает Events ядра и строит производный индекс истории |
 | Thread Comment | Использует Room Unit ядра; привязки комментариев относятся к основному содержимому |
+| File | Хранит изображения, вложения и файлы обмена, на которые ссылается Unit; в данных Unit записаны только ID файлов |
+| Office Exchange | Создаёт или читает Units через Service ядра, а файлы читает и записывает через File |
 | Worktree | Использует Unit и OT ядра и сливает черновики в основную ветку |
-| Office Exchange | Создаёт или читает Units через API снимков Service ядра |
 
-History, Thread Comment и Worktree настраивают собственные Middleware, Events и Database Adapters.
+History, Thread Comment, File и Worktree настраивают собственные Middleware, Events и Database Adapters.
 
 ## История версий
 
@@ -60,6 +61,43 @@ transport.register(
 
 Comment Service предоставляет Middleware добавления, списка, ответа, решения/повторного открытия, редактирования и удаления, а также Event `commentCommitted`. Политики чтения и редактирования основного Service не наследуются.
 
+## Хранение файлов
+
+File хранит бинарные файлы, которые загружают клиенты Univer: изображения и вложения, вставленные в Unit, а также исходные и результирующие файлы импорта и экспорта. В данных Unit записывается только ID файла; при загрузке клиент преобразует его в URL скачивания, поэтому снимки и наборы изменений остаются компактными.
+
+```ts
+const fileService = new UniverFileService({
+  database: fileDatabase,
+  blobStore,
+});
+
+transport.register(new UniverFileEndpoint(fileService));
+```
+
+Метаданные и содержимое — два независимых контракта: `IFileDatabaseAdapter` хранит записи о файлах, `IFileBlobStore` — содержимое. Временные файлы обмена доступны только загрузившему их пользователю и периодически удаляются Service; изображения и вложения Unit контролируются правами Unit через Middleware `upload`, `signUrl` и `download`.
+
+## Серверное преобразование Office
+
+Exchange Service импортирует файлы Office как совместные Units и экспортирует Units в файлы. Для преобразования он опирается на `@univerjs-pro/exchange-node`, создаёт и читает Units через Collaboration Service, а исходные и результирующие файлы хранит через File Service:
+
+```ts
+const exchangeService = new UniverExchangeService({ collabService, fileService });
+
+transport.register(new UniverExchangeEndpoint(exchangeService));
+```
+
+Импорт и экспорт — это task: клиент создаёт task и опрашивает результат. Импорт проходит через Middleware `createUnit` Core Service, экспорт — через `readUnitData`; собственные Middleware `import` и `export` в Exchange служат для ограничения частоты, квот и аудита.
+
+| Unit | Импорт | Экспорт |
+| --- | --- | --- |
+| Sheet | xls, xlsx, csv, tsv | xlsx, csv, tsv |
+| Doc | doc, docx | docx |
+| Slide | ppt, pptx | pptx |
+| Base | xls, xlsx, csv, tsv | xlsx, csv |
+| PDF | pdf | pdf |
+
+Task хранятся в экземпляре Service, поэтому разверните один узел импорта и экспорта и направляйте на него все три маршрута Exchange.
+
 ## Черновики Worktree и слияние
 
 Worktree добавляет изолированные черновики, заморозку, оценку слияния и слияние по Unit для одной или нескольких Units:
@@ -88,39 +126,20 @@ Worktree Service имеет независимые Middleware жизненног
 
 Слияние нескольких Units не атомарно между Units. Приложение должно показывать результат для каждой Unit.
 
-## Серверное преобразование Office
-
-Серверный Exchange объединяет `@univerjs-pro/exchange-node` с API Collaboration Service для перехода между файлами и совместным состоянием:
-
-```text
-Файл Office
-  → импорт exchange-node
-  → Snapshot + Sheet Blocks
-  → createUnitFromSnapshot()
-
-Подтверждённая ревизия Unit
-  → getUnitLoadDataWithBlocks()
-  → UnitSnapshotMaterializer
-  → экспорт exchange-node
-  → файл Office
-```
-
-Официальный пример импортирует XLS, XLSX, CSV или TSV в новую совместную Sheet и экспортирует текущую подтверждённую ревизию в XLSX, CSV или TSV.
-
-Файловое хранилище, состояние задач, контроль доступа, ограничения размера и бизнес-API принадлежат приложению. У Exchange нет отдельного Database Adapter совместной работы: он читает или создаёт эталонную Unit через основной Service.
-
 ## Независимые точки расширения
 
 При подключении расширения оценивайте каждую границу отдельно:
 
-| Граница | Ядро | History | Comment | Worktree |
-| --- | --- | --- | --- | --- |
-| Service | Независим | Независим | Независим | Независим |
-| Middleware | Не общий | Не наследует ядро | Не наследует ядро | Не наследует ядро |
-| Event | Жизненный цикл ядра | Наблюдает Events ядра | `commentCommitted` | Жизненный цикл/коммит Worktree |
-| Database Adapter | Adapter ядра | History Adapter | Comment Adapter | Worktree Adapter |
+| Граница | Ядро | History | Comment | File | Worktree |
+| --- | --- | --- | --- | --- | --- |
+| Service | Независим | Независим | Независим | Независим | Независим |
+| Middleware | Не общий | Не наследует ядро | Не наследует ядро | Не наследует ядро | Не наследует ядро |
+| Event | Жизненный цикл ядра | Наблюдает Events ядра | `commentCommitted` | — | Жизненный цикл/коммит Worktree |
+| Database Adapter | Adapter ядра | History Adapter | Comment Adapter | File Adapter и Blob Store | Worktree Adapter |
 
-Adapters могут использовать один файл SQLite, оставаясь разными объектами с отдельными контрактами. Services и Adapters также освобождаются независимо.
+Adapters могут использовать одну базу данных, оставаясь разными объектами с отдельными контрактами. Services и Adapters также освобождаются независимо.
+
+Office Exchange повторно использует хранилища Core и File: после его собственных Middleware `import` и `export` импорт и экспорт по-прежнему проходят через Middleware Core и File.
 
 ## Выбор возможностей
 
@@ -128,8 +147,9 @@ Adapters могут использовать один файл SQLite, оста�
 | --- | --- | --- |
 | История версий для пользователя | History Service, Endpoint, Adapter | `pnpm example:history` |
 | Комментарии Sheet или Doc | Comment Service, Endpoint, Adapter | `pnpm example:comments` |
+| Изображения, вложения и хранение файлов | File Service, Endpoint, Adapter, Blob Store | `pnpm example:file-service` |
+| Серверный импорт и экспорт Office | Exchange Service, Endpoint + File | `pnpm example:exchange` |
 | Изолированные черновики, проверка и слияние | Worktree Service, Endpoint, Client, Adapter | `pnpm example:worktree` |
-| Серверный импорт и экспорт Office | Exchange Node + Collaboration Service | `pnpm example:exchange` |
 
 Полные команды запуска и URL страниц приведены в [указателе примеров](/server/collaboration/examples).
 

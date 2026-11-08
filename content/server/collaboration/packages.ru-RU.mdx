@@ -1,9 +1,11 @@
 ---
 title: Обзор пакетов
-description: Публичные пакеты Collaboration SDK для Core, History, Thread Comment, Worktree и Office Exchange.
+description: Публичные пакеты Collaboration SDK для Core, History, Thread Comment, Worktree, File и Office Exchange.
 ---
 
 Это карта выбора пакетов. Сначала соберите Core Collaboration, затем добавьте нужные расширения. Все пакеты устанавливать не нужно.
+
+Серверные пакеты Database Adapter, File и Office Exchange открыты под лицензией Apache-2.0; исходный код находится в [univer-collaboration-sdk-community](https://github.com/dream-num/univer-collaboration-sdk-community). У них тот же префикс и та же версия, что у остальных пакетов, и устанавливаются они так же.
 
 ## Core Collaboration
 
@@ -19,9 +21,10 @@ Core Collaboration предоставляет основной путь брау
 | Server   | [**@univerjs-pro/collaboration-service**](https://www.npmjs.com/package/@univerjs-pro/collaboration-service)                 | Управляет Units, OT, ревизиями и API ядра                     |
 | База данных | [**@univerjs-pro/collaboration-database-memory**](https://www.npmjs.com/package/@univerjs-pro/collaboration-database-memory) | Хранение в процессе для тестов, примеров и временной разработки       |
 | База данных | [**@univerjs-pro/collaboration-database-sqlite**](https://www.npmjs.com/package/@univerjs-pro/collaboration-database-sqlite) | SQLite для разработки, тестов, локальных и небольших установок |
+| База данных | [**@univerjs-pro/collaboration-database-postgres**](https://www.npmjs.com/package/@univerjs-pro/collaboration-database-postgres) | Хранение в PostgreSQL, общее для нескольких узлов |
 | Multi-node | [**@univerjs-pro/collaboration-cluster-redis**](https://www.npmjs.com/package/@univerjs-pro/collaboration-cluster-redis) | Pub/sub-адаптер и хранилище session tickets на Redis для развёртывания на нескольких узлах |
 
-Core Server нужны Transport, Endpoint, Service и один Database Adapter. Memory и SQLite реализуют один контракт; обычно выбирают один. Для развёртывания на нескольких узлах также нужны pub/sub-адаптер и общее хранилище session tickets. Оба контракта (`IPubSubAdapter`, `ISessionTicketStore`) определяет Endpoint; SDK предоставляет реализацию на Redis.
+Core Server нужны Transport, Endpoint, Service и один Database Adapter. Memory, SQLite и PostgreSQL реализуют один контракт; обычно выбирают один. Для развёртывания на нескольких узлах также нужны pub/sub-адаптер и общее хранилище session tickets. Оба контракта (`IPubSubAdapter`, `ISessionTicketStore`) определяет Endpoint; SDK предоставляет реализацию на Redis.
 
 ## History
 
@@ -32,6 +35,7 @@ History строит индекс версий по событиям созда�
 | Браузер  | Повторно использует Core Client/UI                                                                                                                        | Показывает и читает историю                   |
 | Server   | [**@univerjs-pro/collaboration-history-service**](https://www.npmjs.com/package/@univerjs-pro/collaboration-history-service)                 | Строит и запрашивает индекс истории                 |
 | Server   | [**@univerjs-pro/collaboration-history-endpoint**](https://www.npmjs.com/package/@univerjs-pro/collaboration-history-endpoint)               | Предоставляет Client протокол History |
+| База данных | [**@univerjs-pro/collaboration-history-database-memory**](https://www.npmjs.com/package/@univerjs-pro/collaboration-history-database-memory) | Хранение индекса History в памяти процесса |
 | База данных | [**@univerjs-pro/collaboration-history-database-sqlite**](https://www.npmjs.com/package/@univerjs-pro/collaboration-history-database-sqlite) | Хранит производный индекс History                     |
 
 История — восстанавливаемый производный индекс. Наборы изменений Core остаются источником истины содержимого.
@@ -64,24 +68,44 @@ Worktree предоставляет изолированные черновик�
 
 Worktree Service сливает в trunk через Core Service, поэтому Middleware нужны на обеих границах.
 
+## File
+
+File хранит бинарные файлы, которые загружают клиенты Univer: изображения и вложения, вставленные в Unit, а также исходные и результирующие файлы импорта и экспорта. В данных Unit записывается только ID файла.
+
+| Среда | Пакет | Основная ответственность |
+| --- | --- | --- |
+| Браузер | Повторно использует Core Collaboration Client | Загружает изображения и вложения и преобразует ID файлов в URL |
+| Server | [**@univerjs-pro/collaboration-file-service**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-service) | Применяет правила владения, Middleware и очистку временных файлов |
+| Server | [**@univerjs-pro/collaboration-file-endpoint**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-endpoint) | Предоставляет маршруты загрузки, sign-url и скачивания |
+| База данных | [**@univerjs-pro/collaboration-file-memory**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-memory) | Хранение метаданных и содержимого в памяти процесса |
+| База данных | [**@univerjs-pro/collaboration-file-database-sqlite**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-database-sqlite) | Хранение метаданных файлов в SQLite |
+| База данных | [**@univerjs-pro/collaboration-file-database-postgres**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-database-postgres) | Хранение метаданных файлов в PostgreSQL |
+| Хранилище | [**@univerjs-pro/collaboration-file-blob-local**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-blob-local) | Хранит содержимое в локальном каталоге |
+| Хранилище | [**@univerjs-pro/collaboration-file-blob-s3**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-blob-s3) | Хранит содержимое в S3-совместимом объектном хранилище с подписанными прямыми ссылками |
+
+Метаданные и содержимое — два независимых контракта, поэтому каждый может следовать существующему хранилищу приложения, например метаданные в базе данных, а содержимое в объектном хранилище.
+
 ## Office Exchange
 
-Office Exchange — прикладной процесс преобразования файлов с Collaboration Service, без собственного совместного Database Adapter.
+Office Exchange импортирует файлы Office как совместные Units и экспортирует Units в файлы. Исходные и результирующие файлы хранит File.
 
-| Среда | Пакет                                                                                                        | Основная ответственность                                   |
-| ------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| Браузер | [**@univerjs-pro/exchange-client**](https://www.npmjs.com/package/@univerjs-pro/exchange-client)               | Базовые браузерные возможности обмена файлами |
-| Браузер | [**@univerjs-pro/sheets-exchange-client**](https://www.npmjs.com/package/@univerjs-pro/sheets-exchange-client) | Импорт и экспорт Sheet                    |
-| Server  | [**@univerjs-pro/exchange-node**](https://www.npmjs.com/package/@univerjs-pro/exchange-node)                   | Преобразование Office и данных Univer в Node.js         |
+| Среда | Пакет | Основная ответственность |
+| --- | --- | --- |
+| Браузер | [**@univerjs-pro/exchange-client**](https://www.npmjs.com/package/@univerjs-pro/exchange-client) | Базовые браузерные возможности обмена файлами |
+| Браузер | [**@univerjs-pro/sheets-exchange-client**](https://www.npmjs.com/package/@univerjs-pro/sheets-exchange-client) | Импорт и экспорт Sheet |
+| Server | [**@univerjs-pro/collaboration-exchange-service**](https://www.npmjs.com/package/@univerjs-pro/collaboration-exchange-service) | Управляет task импорта и экспорта, Middleware, созданием и чтением Units |
+| Server | [**@univerjs-pro/collaboration-exchange-endpoint**](https://www.npmjs.com/package/@univerjs-pro/collaboration-exchange-endpoint) | Предоставляет маршруты импорта, экспорта и task |
+| Server | [**@univerjs-pro/exchange-node**](https://www.npmjs.com/package/@univerjs-pro/exchange-node) | Преобразование Office и данных Univer в Node.js |
 
-При импорте данные передаются в `createUnitFromSnapshot()`, при экспорте подтверждённая ревизия читается через Core Service. Файлы, задачи и бизнес-API контролирует приложение.
+Exchange Service создаёт и читает Units через Core Service, а файлы читает и записывает через File Service, поэтому собирается вместе с Core и File.
 
 ## Правила выбора
 
 1. Начните с пакетов Core из [Быстрого старта](/server/collaboration/quick-start).
-2. Выберите один Core Database Adapter: Memory, SQLite или собственный.
+2. Выберите один Core Database Adapter: Memory, SQLite, PostgreSQL или собственный.
 3. Для развёртывания на нескольких узлах добавьте pub/sub-адаптер и хранилище session tickets на Redis.
 4. Установите только нужные расширения.
-5. Создайте отдельный Adapter для каждого модуля даже при общем файле SQLite.
+5. Для изображений, вложений или импорта и экспорта сначала соберите File, затем при необходимости добавьте Office Exchange.
+6. Создайте отдельный Adapter для каждого модуля даже при общей базе данных.
 
 Связи описаны в [Модулях расширений](/server/collaboration/extensions), запускаемые сборки — в [Примерах](/server/collaboration/examples).

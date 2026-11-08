@@ -1,9 +1,11 @@
 ---
 title: パッケージ概要
-description: Core、History、Thread Comment、Worktree、Office Exchange の公開パッケージを説明します。
+description: Core、History、Thread Comment、Worktree、File、Office Exchange の公開パッケージを説明します。
 ---
 
 まず Core Collaboration を構成し、製品に必要な拡張を加えてください。このページは選択の手引きで、すべてのパッケージの導入は不要です。
+
+Database Adapter、File、Office Exchange のサーバーパッケージは Apache-2.0 でオープンソースです。ソースは [univer-collaboration-sdk-community](https://github.com/dream-num/univer-collaboration-sdk-community) にあります。他のパッケージと同じ接頭辞とバージョンを持ち、同じ方法で導入します。
 
 ## Core Collaboration
 
@@ -19,9 +21,10 @@ Core Collaboration はブラウザー共同編集、サーバープロトコル�
 | Server   | [**@univerjs-pro/collaboration-service**](https://www.npmjs.com/package/@univerjs-pro/collaboration-service)                 | Unit、OT、リビジョン、コア API を管理                     |
 | データベース | [**@univerjs-pro/collaboration-database-memory**](https://www.npmjs.com/package/@univerjs-pro/collaboration-database-memory) | テスト、例、一時開発用のプロセス内保存       |
 | データベース | [**@univerjs-pro/collaboration-database-sqlite**](https://www.npmjs.com/package/@univerjs-pro/collaboration-database-sqlite) | 開発、テスト、ローカル、小規模向け SQLite 永続化 |
+| データベース | [**@univerjs-pro/collaboration-database-postgres**](https://www.npmjs.com/package/@univerjs-pro/collaboration-database-postgres) | 複数ノードで共有する PostgreSQL 永続化 |
 | Multi-node | [**@univerjs-pro/collaboration-cluster-redis**](https://www.npmjs.com/package/@univerjs-pro/collaboration-cluster-redis) | 複数ノードへのデプロイ向けの Redis ベースの pub/sub アダプターと Session Ticket ストア |
 
-Core Server は Transport、Endpoint、Service、1 つの Database Adapter が必要です。Memory と SQLite は同じ契約を実装し、通常どちらかを選びます。複数ノードへデプロイする場合は、pub/sub アダプターと共有の Session Ticket ストアも必要です。両方の契約（`IPubSubAdapter`、`ISessionTicketStore`）は Endpoint が定義し、SDK が Redis 実装を提供します。
+Core Server は Transport、Endpoint、Service、1 つの Database Adapter が必要です。Memory、SQLite、PostgreSQL は同じ契約を実装し、通常いずれかを選びます。複数ノードへデプロイする場合は、pub/sub アダプターと共有の Session Ticket ストアも必要です。両方の契約（`IPubSubAdapter`、`ISessionTicketStore`）は Endpoint が定義し、SDK が Redis 実装を提供します。
 
 ## History
 
@@ -32,6 +35,7 @@ History は Core の Unit 作成と変更コミットのイベントから履歴
 | ブラウザー  | Core Client/UI を再利用                                                                                                                        | 履歴項目を表示・取得                   |
 | Server   | [**@univerjs-pro/collaboration-history-service**](https://www.npmjs.com/package/@univerjs-pro/collaboration-history-service)                 | 履歴索引を構築・検索                 |
 | Server   | [**@univerjs-pro/collaboration-history-endpoint**](https://www.npmjs.com/package/@univerjs-pro/collaboration-history-endpoint)               | Client に History プロトコルを提供 |
+| データベース | [**@univerjs-pro/collaboration-history-database-memory**](https://www.npmjs.com/package/@univerjs-pro/collaboration-history-database-memory) | History インデックスのプロセス内ストレージ |
 | データベース | [**@univerjs-pro/collaboration-history-database-sqlite**](https://www.npmjs.com/package/@univerjs-pro/collaboration-history-database-sqlite) | 派生 History 索引を保存                     |
 
 履歴は再構築可能な派生索引であり、Unit 内容の正本は Core の変更セットです。
@@ -64,24 +68,44 @@ Worktree は隔離下書き、状態遷移、Unit ごとのマージを提供し
 
 Worktree Service は Core Service を介して trunk にマージするため、両 Service の境界に Middleware が必要です。
 
+## File
+
+File は Univer クライアントがアップロードするバイナリファイルを保存します。Unit に挿入した画像と添付、およびインポートとエクスポートの元ファイルと結果ファイルです。Unit データにはファイル ID だけを記録します。
+
+| 実行環境 | パッケージ | 主な責任 |
+| --- | --- | --- |
+| ブラウザー | Core Collaboration Client を再利用 | 画像と添付をアップロードし、ファイル ID を URL に解決 |
+| Server | [**@univerjs-pro/collaboration-file-service**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-service) | 所有ルール、Middleware、一時ファイルの掃除を実行 |
+| Server | [**@univerjs-pro/collaboration-file-endpoint**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-endpoint) | アップロード、sign-url、ダウンロードのルートを提供 |
+| データベース | [**@univerjs-pro/collaboration-file-memory**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-memory) | メタデータと内容のプロセス内ストレージ |
+| データベース | [**@univerjs-pro/collaboration-file-database-sqlite**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-database-sqlite) | ファイルメタデータの SQLite 永続化 |
+| データベース | [**@univerjs-pro/collaboration-file-database-postgres**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-database-postgres) | ファイルメタデータの PostgreSQL 永続化 |
+| ストレージ | [**@univerjs-pro/collaboration-file-blob-local**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-blob-local) | 内容をローカルディレクトリに保存 |
+| ストレージ | [**@univerjs-pro/collaboration-file-blob-s3**](https://www.npmjs.com/package/@univerjs-pro/collaboration-file-blob-s3) | 内容を S3 互換オブジェクトストレージに保存し、署名付き直リンクを発行 |
+
+メタデータと内容は独立した 2 つの契約なので、メタデータはデータベース、内容はオブジェクトストレージのように、アプリケーションの既存ストレージに合わせて選べます。
+
 ## Office Exchange
 
-Office Exchange は変換と Collaboration Service を組み合わせるアプリケーションフローです。独立した協同 Database Adapter はありません。
+Office Exchange は Office ファイルを共同編集 Unit としてインポートし、Unit をファイルとしてエクスポートします。元ファイルと結果ファイルは File が保存します。
 
-| 実行環境 | パッケージ                                                                                                        | 主な責任                                   |
-| ------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| ブラウザー | [**@univerjs-pro/exchange-client**](https://www.npmjs.com/package/@univerjs-pro/exchange-client)               | ブラウザーの基本ファイル交換を提供 |
-| ブラウザー | [**@univerjs-pro/sheets-exchange-client**](https://www.npmjs.com/package/@univerjs-pro/sheets-exchange-client) | Sheet ファイルの入出力                    |
-| Server  | [**@univerjs-pro/exchange-node**](https://www.npmjs.com/package/@univerjs-pro/exchange-node)                   | Node.js で Office と Univer データを変換         |
+| 実行環境 | パッケージ | 主な責任 |
+| --- | --- | --- |
+| ブラウザー | [**@univerjs-pro/exchange-client**](https://www.npmjs.com/package/@univerjs-pro/exchange-client) | ブラウザーの基本ファイル交換を提供 |
+| ブラウザー | [**@univerjs-pro/sheets-exchange-client**](https://www.npmjs.com/package/@univerjs-pro/sheets-exchange-client) | Sheet ファイルの入出力 |
+| Server | [**@univerjs-pro/collaboration-exchange-service**](https://www.npmjs.com/package/@univerjs-pro/collaboration-exchange-service) | インポートとエクスポートの task、Middleware、Unit の作成と読み取りを管理 |
+| Server | [**@univerjs-pro/collaboration-exchange-endpoint**](https://www.npmjs.com/package/@univerjs-pro/collaboration-exchange-endpoint) | インポート、エクスポート、task のルートを提供 |
+| Server | [**@univerjs-pro/exchange-node**](https://www.npmjs.com/package/@univerjs-pro/exchange-node) | Node.js で Office と Univer データを変換 |
 
-インポートは変換データを `createUnitFromSnapshot()` に渡し、エクスポートは Core Service から確定リビジョンを読みます。ファイル、タスク、業務 API はアプリケーションが管理します。
+Exchange Service は Core Service を通じて Unit を作成・読み取りし、File Service を通じてファイルを読み書きするため、Core と File と一緒に構成します。
 
 ## 選択の原則
 
 1. [クイックスタート](/server/collaboration/quick-start)の Core パッケージから始めます。
-2. Memory、SQLite、独自実装から Core Database Adapter を 1 つ選びます。
+2. Memory、SQLite、PostgreSQL、独自実装から Core Database Adapter を 1 つ選びます。
 3. 複数ノードへデプロイする場合は、Redis の pub/sub アダプターと Session Ticket ストアを追加します。
 4. 製品で使う拡張だけを導入します。
-5. SQLite ファイルを共有しても各モジュールに独立 Adapter を作ります。
+5. 画像、添付、インポートとエクスポートが必要なら、まず File を構成し、必要に応じて Office Exchange を加えます。
+6. データベースを共有しても各モジュールに独立 Adapter を作ります。
 
 関係は[共同編集拡張](/server/collaboration/extensions)、実行例は[サンプル一覧](/server/collaboration/examples)を参照してください。
