@@ -2,18 +2,12 @@ import type { NextRequest } from 'next/server'
 import createMiddleware from 'next-intl/middleware'
 import { NextResponse } from 'next/server'
 import { routing } from '@/i18n/routing'
+import { withHttpsAlternateLinks } from '@/lib/docs/alternate-links'
+import { resolveLegacyDocsPath } from '@/lib/docs/legacy-redirects'
 import { withLocale } from '@/lib/locale-path'
 
 const intlMiddleware = createMiddleware(routing)
-const legacyGuidePaths = new Map([
-  ['guides/pro', '/server/license'],
-  ['guides/sheets/getting-started/pro', '/server/license'],
-  ['guides/pro/server', '/server/deployment'],
-  ['guides/skills', '/guides/sheets/getting-started/installation#agent-skills'],
-  ['guides/skills/installation', '/guides/sheets/getting-started/installation#agent-skills'],
-  ['guides/recipes/tutorials/custom-plugin', '/blog/custom-plugin'],
-])
-const legacyGuidePath = new RegExp(`^/(?:(${routing.locales.join('|')})/)?(guides/.+?)/?$`)
+const defaultLocalePath = new RegExp(`^/${routing.defaultLocale}(/.*)?$`)
 const guidesRootPath = new RegExp(`^/(?:(${routing.locales.join('|')})/)?guides/?$`)
 const showcasePath = new RegExp(`^/(?:(${routing.locales.join('|')})/)?((?:showcase|playground)(?:/.*)?)$`)
 const agentDocsPath = new RegExp(
@@ -21,10 +15,9 @@ const agentDocsPath = new RegExp(
 )
 
 export default function proxy(request: NextRequest) {
-  const legacyMatch = request.nextUrl.pathname.match(legacyGuidePath)
-  const legacyTarget = legacyMatch && legacyGuidePaths.get(legacyMatch[2])
-  if (legacyMatch && legacyTarget) {
-    const destination = new URL(withLocale(legacyMatch[1] || routing.defaultLocale, legacyTarget), request.url)
+  const legacy = resolveLegacyDocsPath(request.nextUrl.pathname, routing.locales)
+  if (legacy) {
+    const destination = new URL(withLocale(legacy.locale || routing.defaultLocale, legacy.target), request.url)
     destination.search = request.nextUrl.search
     return NextResponse.redirect(destination, 308)
   }
@@ -45,15 +38,23 @@ export default function proxy(request: NextRequest) {
     return NextResponse.redirect(destination)
   }
 
+  // English pages have no prefix; /en-US/… is a permanent move, so search engines keep only the short address.
+  const defaultLocaleMatch = request.nextUrl.pathname.match(defaultLocalePath)
+  if (defaultLocaleMatch) {
+    const destination = request.nextUrl.clone()
+    destination.pathname = defaultLocaleMatch[1] || '/'
+    return NextResponse.redirect(destination, 308)
+  }
+
   const match = request.nextUrl.pathname.match(agentDocsPath)
-  if (!match) return intlMiddleware(request)
+  if (!match) {
+    const response = intlMiddleware(request)
+    const link = response.headers.get('link')
+    if (link) response.headers.set('link', withHttpsAlternateLinks(link))
+    return response
+  }
 
   const locale = match[1] ?? routing.defaultLocale
-  if (match[1] === routing.defaultLocale) {
-    const canonicalUrl = request.nextUrl.clone()
-    canonicalUrl.pathname = `/${match[2]}`
-    return NextResponse.redirect(canonicalUrl)
-  }
 
   const destination = request.nextUrl.clone()
   destination.pathname = `/api/agent-docs/${locale}/${match[2]}`

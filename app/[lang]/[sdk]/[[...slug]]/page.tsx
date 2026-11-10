@@ -37,7 +37,6 @@ function getSdkSource(sdk: string) {
 export async function generateMetadata({ params }: IProps) {
   const { sdk, slug, lang } = await params
   const { source } = getSdkSource(sdk)
-  const placementTarget = sdk === 'guides' ? getGuideContentPlacementTarget(slug) : undefined
   const page = source.getPage(sdk === 'guides' ? resolveGuideContentSlug(slug) : slug, lang)
   if (!page) {
     notFound()
@@ -46,7 +45,8 @@ export async function generateMetadata({ params }: IProps) {
   return {
     title: page.data.title,
     description: page.data.description,
-    alternates: placementTarget ? { canonical: `${DOCS_ORIGIN}${withLocale(lang, page.url)}` } : undefined,
+    // Every page names its own address; a guide placed under another path names the page it comes from.
+    alternates: { canonical: `${DOCS_ORIGIN}${withLocale(lang, page.url)}` },
   }
 }
 
