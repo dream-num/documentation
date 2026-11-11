@@ -390,6 +390,7 @@ function renderRootIndex(lang: Locale): IAgentDocsArtifact {
     `- Language: \`${lang}\``,
     `- Documentation version: \`${packageJson.version}\``,
     `- [Full documentation bundle](${DOCS_ORIGIN}${getRootFullPath(lang)}): Development guidance followed by the complete Web SDK, Server SDK, AI SDK, and API reference content.`,
+    `- [SDK MCP setup](${DOCS_ORIGIN}${withLocale(lang, '/overview/mcp.md')}): Connect to ${DOCS_ORIGIN}/mcp/docs to search documentation, read API references, inspect features, and generate browser initialization files.`,
     '',
     REQUIRED_DEVELOPMENT_WORKFLOW,
     '## Documentation scope',
