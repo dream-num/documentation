@@ -52,9 +52,13 @@ create_builder:
 check_license:
 	@test -n "$$CLIENT_LICENSE_TEXT" || { echo "CLIENT_LICENSE_TEXT is required to build the documentation image." >&2; exit 1; }
 
+.PHONY: prepare_build
+prepare_build: check_license create_builder
+	@mkdir -p buildconfigs
+
 .PHONY: push_image
 # Build and Push multi-platform Docker images for univer docs
-push_image: check_license create_builder
+push_image: prepare_build
 ifeq ($(PUSH_TAG), latest)
 	$(eval image_tag=-t $(CR)/$(NS)/$(REPOSITORY):latest)
 else
@@ -85,7 +89,7 @@ check_image:
 	@echo $(image_exists)
 
 .PHONY: build_image
-build_image: check_license create_builder
+build_image: prepare_build
 	$(eval image_tag=-t $(REPOSITORY):latest)
 	$(CTR) buildx build \
 	$(BASE_IMAGE_ARG) \
