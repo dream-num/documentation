@@ -13,6 +13,7 @@ import { normalizeLocale } from '@/i18n/locale-config'
 import { getAgentDocsSourceUrl, getAgentMarkdownPath } from '@/lib/agent-docs/links'
 import { createDocsRelativeLink } from '@/lib/docs/links'
 import { createDocsNavigation } from '@/lib/docs/navigation'
+import { withLocale } from '@/lib/locale-path'
 import { reference } from '@/lib/source'
 
 interface IProps {
@@ -21,6 +22,8 @@ interface IProps {
     lang: string
   }>
 }
+
+const DOCS_ORIGIN = 'https://docs.univer.ai'
 
 export function generateStaticParams() {
   // Cache each reference page on first visit; the corpus is too large to prerender per locale.
@@ -37,6 +40,7 @@ export async function generateMetadata({ params }: IProps) {
   return {
     title: page.data.title,
     description: page.data.description,
+    alternates: { canonical: `${DOCS_ORIGIN}${withLocale(lang, page.url)}` },
   }
 }
 
