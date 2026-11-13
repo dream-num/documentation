@@ -16,7 +16,6 @@ RUN [[ "${NPM_REGISTRY}" != "" ]] && npm config set registry ${NPM_REGISTRY} || 
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY buildconfigs ./buildconfigs
-RUN ls -al /app && ls -al /app/buildconfigs
 ENV NODE_EXTRA_CA_CERTS=${PROXY_SSL}
 RUN corepack enable pnpm \
   && HTTP_PROXY="${HTTP_PROXY}" HTTPS_PROXY="${HTTP_PROXY}" HUSKY=0 pnpm install --frozen-lockfile
