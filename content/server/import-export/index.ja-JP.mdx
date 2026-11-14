@@ -46,6 +46,46 @@ Excel を Univer で開くには、エディターが読めるデータへ変換
 
 配置前に容量制限、変換失敗、タイムアウトを処理してください。アップロード、タスク照会、ダウンロードにはアクセス検証が必要です。[ID と認可](/server/collaboration/identity-and-authorization)を参照してください。
 
+## プラグイン設定 [#exchange-client-configuration]
+
+`UniverExchangeClientPlugin`
+
+| <span data-config-options="">オプション</span> | 型 | 既定値 | 動作 |
+| --- | --- | --- | --- |
+| `downloadEndpointUrl` | `string` | `location.origin` | ファイルのダウンロードに使うベース URL。 |
+| `uploadFileServerUrl` | `string` | `'/universer-api/stream/file/upload'` | ファイルをアップロードするエンドポイント。 |
+| `importServerUrl` | `string` | `'/universer-api/exchange/{type}/import'` | インポートを開始するエンドポイント。`{type}` は残してください。 |
+| `exportServerUrl` | `string` | `'/universer-api/exchange/{type}/export'` | エクスポートを開始するエンドポイント。`{type}` は残してください。 |
+| `getTaskServerUrl` | `string` | `'/universer-api/exchange/task/{taskID}'` | タスクの状態を取得するエンドポイント。`{taskID}` は残してください。 |
+| `signUrlServerUrl` | `string` | `'/universer-api/file/{fileID}/sign-url'` | ファイル URL に署名するエンドポイント。`{fileID}` は残してください。 |
+| `maxTimeoutTime` | `number` | `120000` | 変換タスクをポーリングする最長時間。単位はミリ秒です。 |
+
+## OLE 添付ファイルの設定 [#ole-configuration]
+
+`UniverDrawingPlugin`
+
+| <span data-config-options="">オプション</span> | 型 | 既定値 | 動作 |
+| --- | --- | --- | --- |
+| <ConfigKey depth={0}>ole</ConfigKey> | `object` |  | この機能の設定。 |
+| <ConfigKey depth={1}>getLink</ConfigKey> | `IOleConfig["getLink"]` |  | オンライン添付ファイルを開くアプリのリンクを作成します。 |
+| <ConfigKey depth={1}>attachmentIo</ConfigKey> | `object` |  | 添付ファイルの原本をアプリのストレージで読み書きします。 |
+| <ConfigKey depth={2}>upload</ConfigKey> | `(file: File, targetUnitId: string) => Promise<IBaseAttachment>` |  | 添付ファイルをアプリのストレージに保存し、このユニットに関連付けます。 |
+| <ConfigKey depth={2}>read</ConfigKey> | `(attachment: IBaseAttachment, signal?: AbortSignal) => Promise<Uint8Array>` |  | アプリのストレージから添付ファイルのバイト列を読み込みます。 |
+| <ConfigKey depth={1}>previewOffice</ConfigKey> | `IOleConfig["previewOffice"]` |  | Office 添付ファイルのプレビュー処理を指定します。 |
+| <ConfigKey depth={1}>createOfficePreview</ConfigKey> | `IOleConfig["createOfficePreview"]` |  | アプリのコールバックで Office プレビューを作成します。 |
+
+Exchange より前に、既存の `UniverDrawingPlugin` 設定へ `ole` を追加してください。以下のルートはアプリ側のドキュメント画面を指します。必要なら `getLink` の第 2 引数（ドキュメント種別）で切り替えます。Exchange は Office 変換と共同編集状態の判定を提供します。UUID 参照の添付には、認可付きの `upload(file, targetUnitId)` と `read(attachment, signal)` を持つ `ole.attachmentIo` も必要です。Office プレビューには対応レンダラー、または独自の `previewOffice` / `createOfficePreview` が必要です。
+
+```ts
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+
+univer.registerPlugin(UniverDrawingPlugin, {
+  ole: {
+    getLink: (unitId) => `/documents/${encodeURIComponent(unitId)}`,
+  },
+})
+```
+
 ## エクスポート失敗とライセンス制限 [#export-errors]
 
 エクスポートは要求送信時にもタスクのポーリング中にも失敗します。HTTP 成功だけでは完了を判断できません。プロトコルの `error.code` とタスク状態を確認してください。Exchange クライアントは `IExchangeService.requestState$` でサーバーのエクスポートエラーを伝えるため、独自 UI は操作前に購読できます。
@@ -77,18 +117,6 @@ const subscription = exchange.requestState$.subscribe(({ error }) => {
 ## OLE 添付ファイル [#ole-attachments]
 
 Sheets、Docs、Slides はインポートした OLE の元ファイルとプレビュー画像を別々に保持します。利用可能な元ファイルをダウンロードし、権限があれば添付の表示名変更や削除ができます。画像と PDF はプレビューできます。Office プレビューは Exchange で JSON に変換し、一時的な読み取り専用エディターで開きます。永続的な子ドキュメントは作成せず、ネイティブ Office アプリやマクロも実行しません。
-
-Exchange より前に、既存の `UniverDrawingPlugin` 設定へ `ole` を追加してください。以下のルートはアプリ側のドキュメント画面を指します。必要なら `getLink` の第 2 引数（ドキュメント種別）で切り替えます。Exchange は Office 変換と共同編集状態の判定を提供します。UUID 参照の添付には、認可付きの `upload(file, targetUnitId)` と `read(attachment, signal)` を持つ `ole.attachmentIo` も必要です。Office プレビューには対応レンダラー、または独自の `previewOffice` / `createOfficePreview` が必要です。
-
-```ts
-import { UniverDrawingPlugin } from '@univerjs/drawing'
-
-univer.registerPlugin(UniverDrawingPlugin, {
-  ole: {
-    getLink: (unitId) => `/documents/${encodeURIComponent(unitId)}`,
-  },
-})
-```
 
 Office 添付をオンラインドキュメントへ変換するには、共同編集中のホスト、編集権限、変換機能、`getLink` が必要です。独立したドキュメントを作成してその識別情報を添付に保存し、以後は再利用します。オンライン側を編集しても元の添付バイト列は上書きしません。欠落、外部参照、未対応の添付はその状態を保持します。
 

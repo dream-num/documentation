@@ -15,6 +15,7 @@ export const PACKAGE_HEADLESS_SUPPORT: Readonly<Partial<Record<string, PackageHe
   '@univerjs-pro/boards-exchange-client': 'unsupported',
   '@univerjs-pro/boards-history': 'supported',
   '@univerjs-pro/boards-history-ui': 'unsupported',
+  '@univerjs-pro/boards-latex-ui': 'unsupported',
   '@univerjs-pro/boards-mind': 'supported',
   '@univerjs-pro/boards-mind-ui': 'unsupported',
   '@univerjs-pro/boards-print': 'unsupported',
