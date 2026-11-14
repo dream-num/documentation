@@ -46,6 +46,46 @@ description: Добавление импорта и экспорта в Univer �
 
 До развёртывания ограничьте размеры загрузок и обработайте ошибки и тайм-ауты. Загрузка, опрос задач и скачивание требуют проверки доступа; см. [Идентификация и авторизация](/server/collaboration/identity-and-authorization).
 
+## Настройка плагинов [#exchange-client-configuration]
+
+`UniverExchangeClientPlugin`
+
+| <span data-config-options="">Параметр</span> | Тип | По умолчанию | Действие |
+| --- | --- | --- | --- |
+| `downloadEndpointUrl` | `string` | `location.origin` | Базовый URL скачивания файлов. |
+| `uploadFileServerUrl` | `string` | `'/universer-api/stream/file/upload'` | Конечная точка загрузки файлов на сервер. |
+| `importServerUrl` | `string` | `'/universer-api/exchange/{type}/import'` | Конечная точка запуска импорта. Сохраните подстановку `{type}`. |
+| `exportServerUrl` | `string` | `'/universer-api/exchange/{type}/export'` | Конечная точка запуска экспорта. Сохраните подстановку `{type}`. |
+| `getTaskServerUrl` | `string` | `'/universer-api/exchange/task/{taskID}'` | Конечная точка проверки статуса задачи. Сохраните подстановку `{taskID}`. |
+| `signUrlServerUrl` | `string` | `'/universer-api/file/{fileID}/sign-url'` | Конечная точка подписи файловых URL. Сохраните подстановку `{fileID}`. |
+| `maxTimeoutTime` | `number` | `120000` | Максимальное время опроса задачи конвертации в миллисекундах. |
+
+## Настройка вложений OLE [#ole-configuration]
+
+`UniverDrawingPlugin`
+
+| <span data-config-options="">Параметр</span> | Тип | По умолчанию | Действие |
+| --- | --- | --- | --- |
+| <ConfigKey depth={0}>ole</ConfigKey> | `object` |  | Параметры этой функции. |
+| <ConfigKey depth={1}>getLink</ConfigKey> | `IOleConfig["getLink"]` |  | Создаёт ссылку для открытия онлайн-вложения. |
+| <ConfigKey depth={1}>attachmentIo</ConfigKey> | `object` |  | Читает и записывает исходное вложение в хранилище приложения. |
+| <ConfigKey depth={2}>upload</ConfigKey> | `(file: File, targetUnitId: string) => Promise<IBaseAttachment>` |  | Сохраняет вложение в хранилище приложения и связывает с текущей единицей. |
+| <ConfigKey depth={2}>read</ConfigKey> | `(attachment: IBaseAttachment, signal?: AbortSignal) => Promise<Uint8Array>` |  | Читает байты вложения из хранилища приложения. |
+| <ConfigKey depth={1}>previewOffice</ConfigKey> | `IOleConfig["previewOffice"]` |  | Заменяет обработку предпросмотра Office. |
+| <ConfigKey depth={1}>createOfficePreview</ConfigKey> | `IOleConfig["createOfficePreview"]` |  | Создаёт предпросмотр Office через функцию приложения. |
+
+Добавьте `ole` в существующую регистрацию `UniverDrawingPlugin` перед Exchange. Маршрут ниже должен открывать интерфейс документов вашего приложения; при необходимости учитывайте второй аргумент `getLink` — тип документа. Exchange предоставляет конвертацию Office и определение совместного режима. Вложения по UUID также требуют `ole.attachmentIo` с авторизованными callbacks `upload(file, targetUnitId)` и `read(attachment, signal)`. Для Office-просмотра нужен соответствующий рендерер либо собственный `previewOffice` / `createOfficePreview`.
+
+```ts
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+
+univer.registerPlugin(UniverDrawingPlugin, {
+  ole: {
+    getLink: (unitId) => `/documents/${encodeURIComponent(unitId)}`,
+  },
+})
+```
+
 ## Ошибки экспорта и ограничения лицензии [#export-errors]
 
 Экспорт может завершиться ошибкой при отправке запроса или опросе задачи. Успешный HTTP-ответ ещё не означает готовность файла: проверяйте `error.code` и состояние задачи. Клиент Exchange передаёт серверные ошибки экспорта через `IExchangeService.requestState$`; собственный интерфейс может подписаться до начала операции.
@@ -77,18 +117,6 @@ const subscription = exchange.requestState$.subscribe(({ error }) => {
 ## Вложения OLE [#ole-attachments]
 
 Sheets, Docs и Slides хранят импортированные файлы OLE отдельно от изображений предпросмотра. Доступные оригиналы можно скачать, а при наличии прав — переименовать отдельное вхождение или удалить вложение. Для изображений и PDF есть предпросмотр. Office-просмотр использует JSON-конвертацию Exchange и временный редактор только для чтения, не создавая постоянный дочерний документ. Нативные приложения Office и макросы не выполняются.
-
-Добавьте `ole` в существующую регистрацию `UniverDrawingPlugin` перед Exchange. Маршрут ниже должен открывать интерфейс документов вашего приложения; при необходимости учитывайте второй аргумент `getLink` — тип документа. Exchange предоставляет конвертацию Office и определение совместного режима. Вложения по UUID также требуют `ole.attachmentIo` с авторизованными callbacks `upload(file, targetUnitId)` и `read(attachment, signal)`. Для Office-просмотра нужен соответствующий рендерер либо собственный `previewOffice` / `createOfficePreview`.
-
-```ts
-import { UniverDrawingPlugin } from '@univerjs/drawing'
-
-univer.registerPlugin(UniverDrawingPlugin, {
-  ole: {
-    getLink: (unitId) => `/documents/${encodeURIComponent(unitId)}`,
-  },
-})
-```
 
 Преобразование вложения Office в онлайн-документ требует совместного хоста, права редактирования, конвертации и `getLink`. Создаётся независимый документ, его идентификатор сохраняется во вложении для повторного открытия. Правки онлайн-документа не перезаписывают исходные байты. Отсутствующие, внешние и неподдерживаемые вложения сохраняют свой статус.
 

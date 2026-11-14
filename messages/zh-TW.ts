@@ -21,6 +21,15 @@ const zhTWMessages = {
     'copy-code': '複製程式碼',
     'edit-on-github': '在 GitHub 上編輯',
   },
+  'config-options': {
+    'expand-all': '展開全部',
+    'collapse-all': '收合全部',
+    expand: '展開 {path}',
+    collapse: '收合 {path}',
+    'copy-path': '複製路徑：{path}',
+    'copied-path': '已複製路徑：{path}',
+    'copy-failed': '複製失敗，請重試。',
+  },
   tools: {
     'watermark-generator': '浮水印設定產生器',
     'watermark-generator-description': '設定文字、圖片與使用者資訊浮水印，即時預覽並匯出 JSON。',

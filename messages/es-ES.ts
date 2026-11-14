@@ -21,6 +21,15 @@ const esESMessages = {
     'copy-code': 'Copiar código',
     'edit-on-github': 'Editar en GitHub',
   },
+  'config-options': {
+    'expand-all': 'Expandir todo',
+    'collapse-all': 'Contraer todo',
+    expand: 'Expandir {path}',
+    collapse: 'Contraer {path}',
+    'copy-path': 'Copiar ruta: {path}',
+    'copied-path': 'Ruta copiada: {path}',
+    'copy-failed': 'No se pudo copiar. Inténtalo de nuevo.',
+  },
   tools: {
     'watermark-generator': 'Generador de marcas de agua',
     'watermark-generator-description':

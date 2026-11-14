@@ -19,6 +19,15 @@ const enUSMessages = {
     'copy-code': 'Copy code',
     'edit-on-github': 'Edit on GitHub',
   },
+  'config-options': {
+    'expand-all': 'Expand all',
+    'collapse-all': 'Collapse all',
+    expand: 'Expand {path}',
+    collapse: 'Collapse {path}',
+    'copy-path': 'Copy path: {path}',
+    'copied-path': 'Copied path: {path}',
+    'copy-failed': 'Could not copy. Please try again.',
+  },
   tools: {
     'watermark-generator': 'Watermark Generator',
     'watermark-generator-description':

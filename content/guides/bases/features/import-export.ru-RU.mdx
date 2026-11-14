@@ -60,6 +60,50 @@ univer.registerPlugin(UniverBasesExchangeClientPlugin)
 
 `exchangeConfig` содержит настройки загрузки, преобразования, опроса задач и скачивания файлов; подготовьте их по [руководству интеграции](/server/import-export).
 
+`UniverExchangeClientPlugin`
+
+| <span data-config-options="">Параметр</span> | Тип | По умолчанию | Действие |
+| --- | --- | --- | --- |
+| `downloadEndpointUrl` | `string` | `location.origin` | Базовый URL скачивания файлов. |
+| `uploadFileServerUrl` | `string` | `'/universer-api/stream/file/upload'` | Конечная точка загрузки файлов на сервер. |
+| `importServerUrl` | `string` | `'/universer-api/exchange/{type}/import'` | Конечная точка запуска импорта. Сохраните подстановку `{type}`. |
+| `exportServerUrl` | `string` | `'/universer-api/exchange/{type}/export'` | Конечная точка запуска экспорта. Сохраните подстановку `{type}`. |
+| `getTaskServerUrl` | `string` | `'/universer-api/exchange/task/{taskID}'` | Конечная точка проверки статуса задачи. Сохраните подстановку `{taskID}`. |
+| `signUrlServerUrl` | `string` | `'/universer-api/file/{fileID}/sign-url'` | Конечная точка подписи файловых URL. Сохраните подстановку `{fileID}`. |
+| `maxTimeoutTime` | `number` | `120000` | Максимальное время опроса задачи конвертации в миллисекундах. |
+
+### Настройка преобразования Excel [#excel-conversion]
+
+`UniverBasesExchangeClientPlugin`
+
+| <span data-config-options="">Параметр</span> | Тип | По умолчанию | Действие |
+| --- | --- | --- | --- |
+| `importSourceMode` | `ExchangeBaseImportMode` | `AUTO` | Импортирует таблицы Excel, листы или оба типа. |
+| `importFormulaPolicy` | `ExchangeBaseFormulaPolicy` | `CONVERT_THEN_VALUES` | Способ обработки формул при импорте. |
+| `exportStructureMode` | `ExchangeBaseExportMode` | `TABLES` | Экспортирует таблицы Excel или обычные диапазоны. |
+| `exportFormulaPolicy` | `ExchangeBaseFormulaPolicy` | `FAIL` | Способ обработки формул при экспорте. |
+
+Настройте плагин обмена Bases для изменения поведения преобразования. Ниже приведены значения по умолчанию; используйте эту регистрацию вместо предыдущей:
+
+```ts
+import {
+  ExchangeBaseExportMode,
+  ExchangeBaseFormulaPolicy,
+  ExchangeBaseImportMode,
+} from '@univerjs-pro/exchange-client'
+
+univer.registerPlugin(UniverBasesExchangeClientPlugin, {
+  importSourceMode: ExchangeBaseImportMode.AUTO,
+  importFormulaPolicy: ExchangeBaseFormulaPolicy.CONVERT_THEN_VALUES,
+  exportStructureMode: ExchangeBaseExportMode.TABLES,
+  exportFormulaPolicy: ExchangeBaseFormulaPolicy.FAIL,
+})
+```
+
+- Источник импорта: `AUTO` автоматически выбирает таблицы Excel и видимые листы; `TABLES` импортирует только таблицы Excel; `SHEETS` — видимые листы; `HYBRID` — таблицы Excel и видимые листы без таблиц Excel.
+- Структура экспорта: `TABLES` создаёт нативные таблицы Excel для непустых таблиц Base, оставляя пустые обычными диапазонами. `RANGES` экспортирует всё в обычные диапазоны листа.
+- Формулы: импорт пытается преобразовать формулу и использует кешированный результат для неподдерживаемых формул. Экспорт по умолчанию требует успешного преобразования. `VALUES` использует только кешированные результаты, а `TEXT` сохраняет исходные формулы как текст. При экспорте `CONVERT_THEN_VALUES` также завершается ошибкой, если формулу нельзя преобразовать.
+
 ## Импорт для редактирования на странице
 
 `file` может быть выбранным пользователем объектом `File` или URL удалённого файла. Возвращаемый снимок содержит данные Base, которые может загрузить редактор:
@@ -121,29 +165,6 @@ if (unitId) {
 ```
 
 Для экспорта серверного документа используйте `exportBaseByUnitIdAsync(unitId, format, tableId?)`. Перед экспортом дождитесь синхронизации ожидающих изменений из браузера.
-
-## Структура и формулы Excel
-
-Настройте плагин обмена Bases для изменения поведения преобразования. Ниже приведены значения по умолчанию; используйте эту регистрацию вместо предыдущей:
-
-```ts
-import {
-  ExchangeBaseExportMode,
-  ExchangeBaseFormulaPolicy,
-  ExchangeBaseImportMode,
-} from '@univerjs-pro/exchange-client'
-
-univer.registerPlugin(UniverBasesExchangeClientPlugin, {
-  importSourceMode: ExchangeBaseImportMode.AUTO,
-  importFormulaPolicy: ExchangeBaseFormulaPolicy.CONVERT_THEN_VALUES,
-  exportStructureMode: ExchangeBaseExportMode.TABLES,
-  exportFormulaPolicy: ExchangeBaseFormulaPolicy.FAIL,
-})
-```
-
-- Источник импорта: `AUTO` автоматически выбирает таблицы Excel и видимые листы; `TABLES` импортирует только таблицы Excel; `SHEETS` — видимые листы; `HYBRID` — таблицы Excel и видимые листы без таблиц Excel.
-- Структура экспорта: `TABLES` создаёт нативные таблицы Excel для непустых таблиц Base, оставляя пустые обычными диапазонами. `RANGES` экспортирует всё в обычные диапазоны листа.
-- Формулы: импорт пытается преобразовать формулу и использует кешированный результат для неподдерживаемых формул. Экспорт по умолчанию требует успешного преобразования. `VALUES` использует только кешированные результаты, а `TEXT` сохраняет исходные формулы как текст. При экспорте `CONVERT_THEN_VALUES` также завершается ошибкой, если формулу нельзя преобразовать.
 
 Проверяйте преобразование полей и формул на реальных файлах приложения. Методы могут вернуть `undefined` или выбросить ошибку запроса либо преобразования; обработайте оба случая в интерфейсе.
 

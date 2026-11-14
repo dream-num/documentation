@@ -31,7 +31,6 @@ icon: 'ChartPie'
         style: '@univerjs-pro/sheets-chart-ui/lib/index.css',
       },
     ],
-    license: true,
     server: false,
   }}
 />
@@ -145,6 +144,42 @@ const svg = await chart.exportImage({ format: 'svg' })
 
 `worksheet.getCharts()` と `worksheet.getChart(id)` でライブチャートを取得します。削除するときは `await chart.remove()` を呼び、共有 ECharts テーマは `univerAPI.registerTheme(name, theme)` で登録します。
 
+## グラフシート [#chart-sheets]
+
+`insertChartSheet()` でグラフ専用のタブを作成します。グラフの作成時に、同じブック内のグリッドシートをデータソースとして明示します。元のセルはそのシートに残ります。
+
+```ts
+import '@univerjs-pro/sheets-chart/facade'
+
+const workbook = univerAPI.getActiveWorkbook()
+const data = workbook?.getSheetByName('Data')
+if (!workbook || !data) throw new Error('The Data sheet is required')
+
+const info = data
+  .newChart(univerAPI.Enum.ChartTypeString.Column)
+  .setSource({ sheetId: data.getSheetId(), range: 'A1:B4' })
+  .build()
+
+const chartSheet = await workbook.insertChartSheet(info, { name: 'Sales' })
+const primaryChart = chartSheet.getPrimaryChart()
+```
+
+既存のグラフは `await chart.moveTo(targetSheet)` で移動できます。グラフシートに移すと、主グラフとは別に追加されます。主グラフを移せるのは他にグラフがない場合のみで、移動するとタブは削除されます。元に戻す操作とやり直しに対応します。
+
+[`FWorkbook.insertChartSheet()`](/reference/facade/workbook#insertchartsheet) · [`FWorksheet.getPrimaryChart()`](/reference/facade/worksheet#getprimarychart)
+
+## 誤差範囲 [#error-bars]
+
+基本的な 2D の縦棒、横棒、折れ線、散布図では、ビルダーまたは挿入済みのグラフで `setErrorBars()` を使えます。`seriesIndex` はカテゴリフィールドを含む元データのゼロ始まりの位置です。縦棒と折れ線には `y`、横棒には `x`、散布図にはいずれかの数値軸を指定します。
+
+```ts
+chart.setErrorBars([
+  { seriesIndex: 1, direction: 'y', type: 'both', valueType: 'percentage', value: 20 },
+])
+```
+
+[`FChart.setErrorBars()`](/reference/facade/chart#seterrorbars)
+
 ## 複数レベルのカテゴリ軸
 
 隣接するソース列が階層を構成する場合は、ルートからリーフの順に 0 始まりのインデックスを `setCategoryFields()` に渡し、複数レベル軸を有効にします。
@@ -170,9 +205,11 @@ chart.setCategoryFields([0, 1]).setMultiLevelCategoryAxis(true)
 
 ## サポートされているチャート種類
 
-`univerAPI.Enum.ChartTypeString` では、`Line`、`Column`、`ColumnStacked`、`ColumnPercentStacked`、`Bar`、`BarStacked`、`BarPercentStacked`、`Pie`、`Donut`、`Area`、`AreaStacked`、`AreaPercentStacked`、`Radar`、`Scatter`、`Combination`、`WordCloud`、`Funnel`、`Bubble`、`Relation`、`Waterfall`、`Pareto`、`Sankey`、`Heatmap`、`Boxplot`、`Candlestick`、`Histogram`、`Treemap`、`Sunburst`、`Gauge`、`Chord` を使用できます。
+`univerAPI.Enum.ChartTypeString` では、`Line`、`LineStacked`、`LinePercentStacked`、`Column`、`ColumnStacked`、`ColumnPercentStacked`、`Bar`、`BarStacked`、`BarPercentStacked`、`Pie`、`Donut`、`Area`、`AreaStacked`、`AreaPercentStacked`、`Radar`、`Scatter`、`Combination`、`WordCloud`、`Funnel`、`Bubble`、`Relation`、`Waterfall`、`Pareto`、`Sankey`、`Heatmap`、`Boxplot`、`Candlestick`、`Histogram`、`Treemap`、`Sunburst`、`Gauge`、`Chord` を使用できます。
 
 共通のビルダー設定は[チャート Facade リファレンス](/reference/facade/chart)を参照してください。
+
+`LineStacked` と `LinePercentStacked` は独立した 2D の積み上げ折れ線と 100% 積み上げ折れ線です。サーバー描画や Office ファイル変換に使う前に、それぞれの対応状況を確認してください。
 
 ## 非表示データと個別カテゴリ [#source-mapping]
 

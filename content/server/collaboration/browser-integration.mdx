@@ -16,6 +16,73 @@ Keep your Web SDK editor. Follow the [browser configuration in Quick Start](/ser
 
 Fixed example users and default permissions are for demonstration. In your application, include login credentials in requests so the backend can verify identity and document access. See [license configuration](/server/license) for licensing.
 
+## Plugin configuration [#client-configuration]
+
+### Batching and retry timeouts [#client-retry-timeouts]
+
+`UniverCollaborationClientPlugin`
+
+| <span data-config-options="">Option</span> | Type | Default | What it does |
+| --- | --- | --- | --- |
+| `socketService` | `Ctor<ICollaborationSocketService>` |  | Select the socket implementation for the current runtime. |
+| `sendChangesetTimeout` | `number` | `2000 ms` | Batch local edits before sending. |
+| `changesetAckTimeout` | `number` | `20000 ms` | Wait this long for acknowledgement before retrying. |
+| `maxChangesetAckTimeout` | `number` | `120000 ms` | Cap the interval between resends. |
+
+Batching delay and acknowledgement timeout are different. The client plugin defaults to `sendChangesetTimeout: 2000`, `changesetAckTimeout: 20000`, and `maxChangesetAckTimeout: 120000` (milliseconds). The submission request uses the acknowledgement timeout too; unacknowledged changesets are resent with exponential backoff up to the maximum. Equal acknowledgement and maximum timeouts give a constant interval.
+
+```ts
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import { BrowserCollaborationSocketService } from '@univerjs-pro/collaboration-client-ui'
+
+univer.registerPlugin(UniverCollaborationClientPlugin, {
+  socketService: BrowserCollaborationSocketService,
+  sendChangesetTimeout: 200,
+  changesetAckTimeout: 20_000,
+  maxChangesetAckTimeout: 120_000,
+})
+```
+
+Merge these options into your existing client registration, keeping its socket and endpoint configuration. The Sheets and Docs collaboration presets use a 200 ms batching delay and do not expose the acknowledgement timeout options; use plugin mode when customizing these timeouts.
+
+### Conflict recovery notices [#client-conflict-notices]
+
+`UniverCollaborationClientUIPlugin`
+
+| <span data-config-options="">Option</span> | Type | Default | What it does |
+| --- | --- | --- | --- |
+| `enableDefaultConflictUI` | `boolean` | `true` | Show built-in conflict recovery notices. |
+
+```ts
+import { UniverCollaborationClientUIPlugin } from '@univerjs-pro/collaboration-client-ui'
+
+univer.registerPlugin(UniverCollaborationClientUIPlugin, { enableDefaultConflictUI: false })
+```
+
+## Preset configuration [#client-preset-configuration]
+
+`UniverSheetsCollaborationPreset / UniverDocsCollaborationPreset`
+
+| <span data-config-options="">Option</span> | Type | Default | What it does |
+| --- | --- | --- | --- |
+| `enableDefaultConflictUI` | `boolean` | `true` | Show built-in conflict recovery notices. |
+
+```ts
+import { UniverSheetsCollaborationPreset } from '@univerjs/preset-sheets-collaboration'
+
+const collaborationPreset = UniverSheetsCollaborationPreset({ enableDefaultConflictUI: false })
+```
+
+```ts
+import { UniverDocsCollaborationPreset } from '@univerjs/preset-docs-collaboration'
+
+const collaborationPreset = UniverDocsCollaborationPreset({ enableDefaultConflictUI: false })
+```
+
+By default the UI shows a reason-specific conflict notice and offers reload after successful cache cleanup, or retry if cleanup failed. To own the recovery flow, set `enableDefaultConflictUI: false` in the existing initialization and handle the event yourself:
+
+The collaboration presets belong in the existing `createUniver({ presets: [...] })` configuration alongside the editor preset. Keep your endpoint and history settings. See [event payloads](#conflict-recovery) and [client configuration](/reference/packages/plugins/univerjs-pro/collaboration-client).
+
 ## Create and open the same document
 
 Creating and opening are separate actions:
@@ -75,22 +142,6 @@ const resendSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationChang
 
 `request_failed` means a retryable request failure, such as a network error or HTTP 408, 429, or 5xx. `license_editing_connections_exceeded` means the licensed editing connections are all in use and the server requested a resend.
 
-Batching delay and acknowledgement timeout are different. The client plugin defaults to `sendChangesetTimeout: 2000`, `changesetAckTimeout: 20000`, and `maxChangesetAckTimeout: 120000` (milliseconds). The submission request uses the acknowledgement timeout too; unacknowledged changesets are resent with exponential backoff up to the maximum. Equal acknowledgement and maximum timeouts give a constant interval.
-
-```ts
-import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
-import { BrowserCollaborationSocketService } from '@univerjs-pro/collaboration-client-ui'
-
-univer.registerPlugin(UniverCollaborationClientPlugin, {
-  socketService: BrowserCollaborationSocketService,
-  sendChangesetTimeout: 200,
-  changesetAckTimeout: 20_000,
-  maxChangesetAckTimeout: 120_000,
-})
-```
-
-Merge these options into your existing client registration, keeping its socket and endpoint configuration. The Sheets and Docs collaboration presets use a 200 ms batching delay and do not expose the acknowledgement timeout options; use plugin mode when customizing these timeouts.
-
 ## Handle conflicts in the host [#conflict-recovery]
 
 `CollaborationConflict` fires once when a unit enters conflict, after the offline-cache cleanup attempt. Register the listener before loading documents. Its `reason` is `transform_failed`, `apply_failed`, `changeset_rejected`, `license_unit_type_rejected`, `permission_rejected`, or `remote_revert`; `message` and `revert` provide additional details when available.
@@ -110,34 +161,6 @@ const conflictSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationCon
 The example retains the event for a host recovery screen. This Map is only in memory: before refreshing, save or export any `localChanges` through your application. The event is the opportunity to retain them; later reads cannot recover cleared cache data. `awaitingChangeset` may already have been applied on the server, so do not blindly replay it.
 
 `cacheCleared: false` means refreshing would replay the old cached edits. Resolve cache cleanup before refreshing. Clearing the cache does not mean unsynchronized edits were saved. A `permission_rejected` conflict also requires resolving access; reloading does not grant permission.
-
-By default the UI shows a reason-specific conflict notice and offers reload after successful cache cleanup, or retry if cleanup failed. To own the recovery flow, set `enableDefaultConflictUI: false` in the existing initialization and handle the event yourself:
-
-<Tabs items={['Plugin Mode', 'Sheets Preset', 'Docs Preset']}>
-  <Tab>
-    ```ts
-    import { UniverCollaborationClientUIPlugin } from '@univerjs-pro/collaboration-client-ui'
-
-    univer.registerPlugin(UniverCollaborationClientUIPlugin, { enableDefaultConflictUI: false })
-    ```
-  </Tab>
-  <Tab>
-    ```ts
-    import { UniverSheetsCollaborationPreset } from '@univerjs/preset-sheets-collaboration'
-
-    const collaborationPreset = UniverSheetsCollaborationPreset({ enableDefaultConflictUI: false })
-    ```
-  </Tab>
-  <Tab>
-    ```ts
-    import { UniverDocsCollaborationPreset } from '@univerjs/preset-docs-collaboration'
-
-    const collaborationPreset = UniverDocsCollaborationPreset({ enableDefaultConflictUI: false })
-    ```
-  </Tab>
-</Tabs>
-
-The collaboration presets belong in the existing `createUniver({ presets: [...] })` configuration alongside the editor preset. Keep your endpoint and history settings. See [event payloads](/reference/facade/events#collaborationconflict) and [client configuration](/reference/packages/plugins/univerjs-pro/collaboration-client).
 
 ## Server reasons and license notices [#server-rejections]
 

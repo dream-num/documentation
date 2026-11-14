@@ -19,6 +19,15 @@ const frFRMessages = {
     'copy-code': 'Copier le code',
     'edit-on-github': 'Modifier sur GitHub',
   },
+  'config-options': {
+    'expand-all': 'Tout développer',
+    'collapse-all': 'Tout réduire',
+    expand: 'Développer {path}',
+    collapse: 'Réduire {path}',
+    'copy-path': 'Copier le chemin : {path}',
+    'copied-path': 'Chemin copié : {path}',
+    'copy-failed': 'Échec de la copie. Veuillez réessayer.',
+  },
   tools: {
     'watermark-generator': 'Générateur de filigranes',
     'watermark-generator-description':

@@ -15,6 +15,73 @@ description: 將 Univer 編輯器接入協同服務，讓使用者編輯同一�
 
 範例中的固定使用者與預設權限只用於示範。實際應用程式的請求應包含登入憑證，讓後端驗證身分與文件存取權。授權相關設定請參閱[授權設定](/server/license)。
 
+## 外掛設定 [#client-configuration]
+
+### 批次傳送與重試逾時 [#client-retry-timeouts]
+
+`UniverCollaborationClientPlugin`
+
+| <span data-config-options="">設定項目</span> | 類型 | 預設值 | 作用 |
+| --- | --- | --- | --- |
+| `socketService` | `Ctor<ICollaborationSocketService>` |  | 指定目前執行環境的 Socket 實作。 |
+| `sendChangesetTimeout` | `number` | `2000 ms` | 累積一段時間內的本機變更後再傳送。 |
+| `changesetAckTimeout` | `number` | `20000 ms` | 等待伺服器確認的時間，逾時後重送。 |
+| `maxChangesetAckTimeout` | `number` | `120000 ms` | 限制兩次重送之間的最長等待時間。 |
+
+合併傳送延遲與確認逾時是兩個設定。用戶端外掛預設使用 `sendChangesetTimeout: 2000`、`changesetAckTimeout: 20000`、`maxChangesetAckTimeout: 120000`，單位均為毫秒。提交請求也使用確認逾時；未收到確認時以指數退避重送，間隔不超過最大值。後兩項相同時使用固定間隔。
+
+```ts
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import { BrowserCollaborationSocketService } from '@univerjs-pro/collaboration-client-ui'
+
+univer.registerPlugin(UniverCollaborationClientPlugin, {
+  socketService: BrowserCollaborationSocketService,
+  sendChangesetTimeout: 200,
+  changesetAckTimeout: 20_000,
+  maxChangesetAckTimeout: 120_000,
+})
+```
+
+將這些選項合併到現有用戶端註冊中，保留 socket 與介面位址設定。Sheets 和 Docs 協同預設使用 200 ms 的合併傳送延遲，未提供確認逾時選項；自訂逾時請使用外掛模式。
+
+### 衝突復原提示 [#client-conflict-notices]
+
+`UniverCollaborationClientUIPlugin`
+
+| <span data-config-options="">設定項目</span> | 類型 | 預設值 | 作用 |
+| --- | --- | --- | --- |
+| `enableDefaultConflictUI` | `boolean` | `true` | 顯示內建的衝突復原提示。 |
+
+```ts
+import { UniverCollaborationClientUIPlugin } from '@univerjs-pro/collaboration-client-ui'
+
+univer.registerPlugin(UniverCollaborationClientUIPlugin, { enableDefaultConflictUI: false })
+```
+
+## 預設設定 [#client-preset-configuration]
+
+`UniverSheetsCollaborationPreset / UniverDocsCollaborationPreset`
+
+| <span data-config-options="">設定項目</span> | 類型 | 預設值 | 作用 |
+| --- | --- | --- | --- |
+| `enableDefaultConflictUI` | `boolean` | `true` | 顯示內建的衝突復原提示。 |
+
+```ts
+import { UniverSheetsCollaborationPreset } from '@univerjs/preset-sheets-collaboration'
+
+const collaborationPreset = UniverSheetsCollaborationPreset({ enableDefaultConflictUI: false })
+```
+
+```ts
+import { UniverDocsCollaborationPreset } from '@univerjs/preset-docs-collaboration'
+
+const collaborationPreset = UniverDocsCollaborationPreset({ enableDefaultConflictUI: false })
+```
+
+預設 UI 依衝突原因顯示通知，快取清理成功後提供重新整理操作，失敗時提供重試。若由應用程式接管復原流程，在現有初始化設定 `enableDefaultConflictUI: false`，並自行處理事件：
+
+將協同預設放入現有 `createUniver({ presets: [...] })`，與編輯器預設組合，保留介面位址與歷史設定。詳見[事件參數](#conflict-recovery)和[用戶端設定](/reference/packages/plugins/univerjs-pro/collaboration-client)。
+
 ## 建立並開啟同一份文件
 
 建立與開啟是兩個不同操作：
@@ -74,22 +141,6 @@ const resendSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationChang
 
 `request_failed` 表示網路錯誤或 HTTP 408、429、5xx 等可重試的請求失敗。`license_editing_connections_exceeded` 表示授權允許的編輯連線數已用盡，伺服器要求稍後重送。
 
-合併傳送延遲與確認逾時是兩個設定。用戶端外掛預設使用 `sendChangesetTimeout: 2000`、`changesetAckTimeout: 20000`、`maxChangesetAckTimeout: 120000`，單位均為毫秒。提交請求也使用確認逾時；未收到確認時以指數退避重送，間隔不超過最大值。後兩項相同時使用固定間隔。
-
-```ts
-import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
-import { BrowserCollaborationSocketService } from '@univerjs-pro/collaboration-client-ui'
-
-univer.registerPlugin(UniverCollaborationClientPlugin, {
-  socketService: BrowserCollaborationSocketService,
-  sendChangesetTimeout: 200,
-  changesetAckTimeout: 20_000,
-  maxChangesetAckTimeout: 120_000,
-})
-```
-
-將這些選項合併到現有用戶端註冊中，保留 socket 與介面位址設定。Sheets 和 Docs 協同預設使用 200 ms 的合併傳送延遲，未提供確認逾時選項；自訂逾時請使用外掛模式。
-
 ## 由應用程式處理衝突 [#conflict-recovery]
 
 文件進入衝突後，`CollaborationConflict` 在嘗試清理離線快取後觸發一次，請在載入文件前監聽。`reason` 為 `transform_failed`、`apply_failed`、`changeset_rejected`、`license_unit_type_rejected`、`permission_rejected` 或 `remote_revert`；可用時由 `message` 和 `revert` 提供更多資訊。
@@ -109,34 +160,6 @@ const conflictSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationCon
 上述範例保留事件供應用程式復原介面使用。Map 僅存在於記憶體：重新整理前應儲存或匯出 `localChanges`。必須在事件中保留資料，後續讀取無法復原已清理的快取。`awaitingChangeset` 可能已套用至伺服器，不應直接重新提交。
 
 `cacheCleared: false` 表示重新整理會重播舊快取，請先解決清理問題。清理快取不代表未同步修改已儲存；`permission_rejected` 還需解決權限問題，重新整理不會授予權限。
-
-預設 UI 依衝突原因顯示通知，快取清理成功後提供重新整理操作，失敗時提供重試。若由應用程式接管復原流程，在現有初始化設定 `enableDefaultConflictUI: false`，並自行處理事件：
-
-<Tabs items={['外掛模式', 'Sheets 預設', 'Docs 預設']}>
-  <Tab>
-    ```ts
-    import { UniverCollaborationClientUIPlugin } from '@univerjs-pro/collaboration-client-ui'
-
-    univer.registerPlugin(UniverCollaborationClientUIPlugin, { enableDefaultConflictUI: false })
-    ```
-  </Tab>
-  <Tab>
-    ```ts
-    import { UniverSheetsCollaborationPreset } from '@univerjs/preset-sheets-collaboration'
-
-    const collaborationPreset = UniverSheetsCollaborationPreset({ enableDefaultConflictUI: false })
-    ```
-  </Tab>
-  <Tab>
-    ```ts
-    import { UniverDocsCollaborationPreset } from '@univerjs/preset-docs-collaboration'
-
-    const collaborationPreset = UniverDocsCollaborationPreset({ enableDefaultConflictUI: false })
-    ```
-  </Tab>
-</Tabs>
-
-將協同預設放入現有 `createUniver({ presets: [...] })`，與編輯器預設組合，保留介面位址與歷史設定。詳見[事件參數](/reference/facade/events#collaborationconflict)和[用戶端設定](/reference/packages/plugins/univerjs-pro/collaboration-client)。
 
 ## 伺服器原因與授權提示 [#server-rejections]
 
