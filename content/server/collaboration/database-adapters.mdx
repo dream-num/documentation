@@ -13,14 +13,14 @@ Stop Quick Start, then run `pnpm example:database-adapter` from the repository r
 
 The Core Collaboration Adapter stores:
 
-- the Unit record and current head revision;
+- the Unit record, current head revision, and application `metadata`;
 - revisioned snapshots;
-- confirmed changesets;
+- confirmed `ChangesetRecord` objects, including their application `metadata`;
 - blocks referenced by Sheet snapshots;
 - submission idempotency[^submission-idempotency] records keyed by `(unitID, sid, reqId)`;
 - Unit soft-delete, recovery, and permanent-delete state.
 
-By default, it does not store users, roles, ACLs, directories, files, or product metadata. History, Thread Comment, and Worktree use their own independent Adapter contracts.
+Applications define the contents of `UnitRecord.metadata` and `ChangesetRecord.metadata`. The Adapter does not define users, roles, ACLs, directories, or files. History, Thread Comment, and Worktree use their own independent Adapter contracts.
 
 ## Required semantics
 
@@ -28,15 +28,48 @@ By default, it does not store users, roles, ACLs, directories, files, or product
 
 | Contract                    | Meaning                                                                                    |
 | --------------------------- | ------------------------------------------------------------------------------------------ |
-| Atomic creation             | The initial snapshot and Sheet blocks become visible together, or not at all               |
+| Atomic creation             | The Unit metadata, initial snapshot, and Sheet blocks become visible together, or not at all               |
 | Revision CAS[^revision-cas]                | The next submission is confirmed only when the head revision matches the expected revision |
 | Submission idempotency      | Retrying the same `(unitID, sid, reqId)` returns the same determined result                |
+| Atomic metadata             | A confirmed changeset, its metadata, the new head, and complete Unit metadata are saved together |
 | Contiguous changesets       | Confirmed changesets and the Unit revision remain contiguous                               |
 | Snapshot visibility         | A snapshot becomes readable only after all of its dependencies are stored                  |
 | Atomic lifecycle operations | Every Unit in a delete or recovery batch succeeds, or none does                            |
 | Permanent-delete tombstone  | A hard-deleted Unit ID cannot be created again                                             |
 
 Mapping every method to an ordinary database read or write without implementing these concurrency and atomicity semantics will break OT and recovery behavior.
+
+## Application metadata
+
+`UnitRecord.metadata` describes the current Unit. `ChangesetRecord` extends the protocol `IChangeset`
+with `metadata` for that confirmed submission. Both fields use `Record<string, unknown>` and accept
+JSON values only. Call-level `customData` is independent of Unit and changeset metadata.
+
+Create a Unit with `metadata` on the `createUnitFromData()` or `createUnitFromSnapshot()` input, or
+set it in `createUnit` middleware. Use the complete `ctx.unit.metadata` and
+`ctx.changeset.metadata` drafts in `commitChangeset` middleware to save application information
+with a submission. See [Middleware and Events](/server/collaboration/middleware-and-events#persistent-metadata)
+for the lifecycle and retry rules.
+
+The Service initializes metadata and supplies complete objects on every Adapter write. Leaving the
+Unit draft unchanged preserves its values; clearing the draft saves `{}`.
+
+Custom Adapters must preserve these observable behaviors:
+
+- `createUnit()` saves `record.metadata` with the initial snapshot and blocks. An existing Unit keeps
+  its original metadata.
+- `commitChangeset()` requires both `input.changeset.metadata` and `input.unitMetadata`. It saves the
+  changeset and replaces the complete Unit metadata in the same atomic commit, using the supplied
+  values without defaults. A failed CAS changes neither metadata object.
+- `getUnit()` returns Unit metadata; `getChangesets()` and successful commit results return
+  `ChangesetRecord` objects with metadata. Input and returned objects must not expose mutable
+  references into stored state.
+- Snapshot saves leave metadata unchanged. Soft deletion and recovery preserve it; hard deletion
+  makes both metadata objects permanently inaccessible.
+
+Server-side reads, submission results, and events retain metadata. SDK frontend HTTP responses and
+WebSocket messages omit both Unit and changeset metadata. Applications decide what to return from
+their own endpoints.
 
 ## Memory Adapter
 
@@ -110,7 +143,7 @@ Service Middleware
 
 This lets Memory, SQLite, and custom Adapters share the same application policy.
 
-When business data must remain strongly consistent with collaboration data, a custom Database Adapter can read the required values from `customData` and write both sets of data in the Adapter's database transaction.
+For JSON information attached to a Unit or submission, use the built-in metadata fields. Additional business tables can share the collaboration transaction through a custom Database Adapter that explicitly reads the required values from `customData` and writes both sets of data.
 
 When business data does not need to share the collaboration transaction, Middleware or Events can write it to additional tables or external systems. Middleware and Events do not share the Adapter's internal transaction by default. Events are process-local, best-effort notifications emitted after a collaboration commit succeeds. The application is responsible for any required idempotency, retries, or compensation.
 
