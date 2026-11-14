@@ -145,12 +145,13 @@ service.use("createUnit", async (context, next) => {
 
 ## 持久化 metadata [#persistent-metadata]
 
-`UnitRecord.metadata` 保存 Unit 当前信息，`ChangesetRecord.metadata` 属于某一次 confirmed
-submission。两者均使用 `Record<string, unknown>`，只接受 JSON 值；字段的业务含义由应用定义。
+`metadata` 用于保存应用自定义的 JSON 数据，类型为 `Record<string, unknown>`。创建输入可提供
+`metadata`，默认为 `{}`；`createUnit` middleware 可以在保存前修改 `context.unit.metadata`。
 
-创建方法接受可选的 `metadata`，省略时由 Service 初始化为 `{}`。`createUnit` middleware 可以修改初始的
-`context.unit.metadata` 草稿。`commitChangeset` middleware 可以同时修改当前 Unit 草稿和本次提交的
-metadata：
+在 `commitChangeset` middleware 中：
+
+- `context.unit.metadata` 是 Unit 当前的 metadata，可以修改或删除其中的字段。
+- `context.changeset.metadata` 初始为 `{}`，用于记录本次提交的信息。
 
 ```ts
 service.use("commitChangeset", async (context, next) => {
@@ -160,19 +161,17 @@ service.use("commitChangeset", async (context, next) => {
 });
 ```
 
-在 `await next()` 前设置或删除字段，也可以修改嵌套 JSON 值。每轮提交得到基于预期 head 的全新
-Unit 草稿和空的 changeset metadata 对象。revision 冲突会丢弃草稿并重新运行 middleware；成功的
-一轮将两个完整对象与 changeset、head 原子保存。重复提交保留已保存的 metadata；
-`await next()` 返回后再修改草稿，不会改变已保存值。
+在 `await next()` 前完成修改，提交成功时一起保存。不修改 Unit metadata 就保留当前值，删除全部
+字段则清空。并发编辑时 middleware 可能再次执行；已成功提交的请求重试会返回原 metadata，不会再次覆盖。
 
-Service 始终将两份完整 metadata 对象传给 Adapter。未修改 Unit 草稿时保留当前值，删除草稿中
-全部字段则保存 `{}`。
+读取已保存的 metadata：
 
-Unit metadata 表示当前状态，保存或恢复 snapshot 不会自动恢复历史 Unit metadata。
-Changeset metadata 保留在对应的 confirmed revision 上。Adapter 的 `getUnit()`、服务端 changeset
-读取及提交结果返回已保存 metadata；event listener 通过 `unitCreated.record.metadata` 和
-`changesetCommitted.changeset.metadata` 读取。SDK 前端 HTTP 响应和 WebSocket 消息省略两类
-metadata，由应用决定通过自己的接口公开哪些字段。
+- **Unit record**：Adapter 的 `getUnit()` 返回 `record.metadata`。
+- **Changeset**：`getChangesets()` 结果中 `changesets` 数组的每一项包含 `metadata`；成功的
+  `submitChangeset()` 结果包含 `changeset.metadata`。
+- **Event**：`unitCreated.record.metadata` 和 `changesetCommitted.changeset.metadata`。
+
+恢复 snapshot 不会自动还原历史 Unit metadata。这些字段供服务端使用；由应用接口选择向前端公开哪些值。
 
 ## customData 的作用域
 

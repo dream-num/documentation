@@ -151,13 +151,13 @@ charges.
 
 ## Persistent metadata [#persistent-metadata]
 
-`UnitRecord.metadata` stores current Unit information, while `ChangesetRecord.metadata` belongs to
-one confirmed submission. Both use `Record<string, unknown>` with JSON values only. The SDK does
-not assign business meanings to their keys.
+Use `metadata` for application-defined JSON data (`Record<string, unknown>`). Creation inputs accept
+`metadata`, defaulting to `{}`. The `createUnit` middleware can edit `context.unit.metadata` before saving.
 
-The creation methods accept optional `metadata`; the Service initializes it to `{}` when omitted. `createUnit` middleware can
-edit the initial `context.unit.metadata` draft. `commitChangeset` middleware can edit both the
-current Unit draft and the current submission's metadata:
+In `commitChangeset` middleware:
+
+- `context.unit.metadata` contains the Unit's current metadata. You can change or delete its fields.
+- `context.changeset.metadata` starts as `{}` and describes this submission.
 
 ```ts
 service.use("commitChangeset", async (context, next) => {
@@ -167,21 +167,20 @@ service.use("commitChangeset", async (context, next) => {
 });
 ```
 
-Set or delete fields, including nested JSON values, before `await next()`. Each commit attempt gets
-a fresh Unit draft based on the expected head and an empty changeset metadata object. Revision
-conflicts discard the drafts and repeat the middleware. The successful attempt saves both complete
-objects atomically with the changeset and head. Repeated submissions preserve the metadata already
-saved; modifying a draft after `await next()` returns does not change the saved value.
+Finish editing before `await next()`; the changes are saved when the submission succeeds. Leaving
+Unit metadata unchanged preserves its values, while deleting every field clears it. Concurrent edits
+may cause middleware to run again. Retrying an already saved submission returns its original metadata
+without overwriting it.
 
-The Service always supplies both complete metadata objects to the Adapter. An unchanged Unit draft
-preserves the current values; clearing all its fields saves `{}`.
+Read saved metadata through:
 
-Unit metadata is current state. Saving or restoring a snapshot does not automatically restore older
-Unit metadata. Changeset metadata stays attached to its confirmed revision. The Adapter's
-`getUnit()` and server-side changeset reads and submission results expose the stored metadata.
-Event listeners can read `unitCreated.record.metadata` and `changesetCommitted.changeset.metadata`.
-SDK frontend HTTP responses and WebSocket messages omit both metadata fields; applications choose
-which values to expose through their own endpoints.
+- **Unit records:** the Adapter's `getUnit()` returns `record.metadata`.
+- **Changesets:** `getChangesets()` returns `metadata` on each item in its `changesets` array; successful
+  `submitChangeset()` results include `changeset.metadata`.
+- **Events:** `unitCreated.record.metadata` and `changesetCommitted.changeset.metadata`.
+
+Restoring a snapshot does not automatically restore historical Unit metadata. These fields are for
+server-side use; application endpoints choose which values to expose to clients.
 
 ## customData scope
 
