@@ -122,15 +122,15 @@ after reconnection.
 
 Service Middleware participates in authoritative collaboration data lifecycles:
 
-| Action            | Boundary                                                     | Common uses                                |
-| ----------------- | ------------------------------------------------------------ | ------------------------------------------ |
-| `readUnitData`    | Before reading snapshots, blocks, or changesets              | Read policy, tenant checks, audit          |
-| `createUnit`      | Before atomically creating a Unit                            | Type checks, create policy, business rules |
-| `deleteUnits`     | Before writing a delete batch                                | Delete policy and per-Unit checks          |
-| `recoverUnits`    | Before writing a recovery batch                              | Recovery policy and audit                  |
-| `submitChangeset` | Before logical submission enters idempotency and OT          | Edit policy, total size limits, trace      |
-| `applyChangeset`  | Before applying the transformed changeset to candidate state | Mutation-level validation                  |
-| `commitChangeset` | Before Adapter revision CAS and commit                       | Final revision rules and metrics           |
+| Action | When it runs | Visible fields | Retry semantics | Common uses |
+| --- | --- | --- | --- | --- |
+| `readUnitData` | Before reading snapshots, blocks, or changesets | `userID`, `customData`, `request` | Once per Service call | Read policy, tenant checks, audit |
+| `createUnit` | Before atomically creating a Unit | `userID`, `customData`, `request.snapshot`, `request.sheetBlocks`, `request.metadata`, `unit.metadata` | Once per create call | Create policy, initial metadata |
+| `deleteUnits` | Before writing a delete batch | `userID`, `customData`, `request.unitIDs`, `request.hardDelete` | Once per call | Delete policy and per-Unit checks |
+| `recoverUnits` | Before writing a recovery batch | `userID`, `customData`, `request.unitIDs` | Once per call | Recovery policy and audit |
+| `submitChangeset` | Before logical submission enters idempotency and OT | `userID`, `memberID`, `customData`, `request` | Once per logical submission | Edit policy, size limits, trace |
+| `applyChangeset` | Before applying the transformed changeset to candidate state | `userID`, `memberID`, `customData`, `request`, `changeset`, `currentRevision`, `attempt` | Repeated after a revision conflict | Mutation-level validation |
+| `commitChangeset` | Before Adapter revision CAS and commit | `userID`, `memberID`, `customData`, `request`, `changeset`, `unit.metadata`, `changeset.metadata`, `expectedHeadRevision`, `attempt` | Repeated with fresh drafts after a revision conflict | Final revision rules, persistent metadata |
 
 ```ts
 service.use("createUnit", async (context, next) => {
@@ -149,6 +149,40 @@ service.use("createUnit", async (context, next) => {
 must be retry-safe and must not directly send irreversible external messages or perform one-time
 charges.
 
+## Persistent metadata [#persistent-metadata]
+
+`UnitRecord.metadata` stores current Unit information, while `ChangesetRecord.metadata` belongs to
+one confirmed submission. Both use `Record<string, unknown>` with JSON values only. The SDK does
+not assign business meanings to their keys.
+
+The creation methods accept optional `metadata`; the Service initializes it to `{}` when omitted. `createUnit` middleware can
+edit the initial `context.unit.metadata` draft. `commitChangeset` middleware can edit both the
+current Unit draft and the current submission's metadata:
+
+```ts
+service.use("commitChangeset", async (context, next) => {
+  context.unit.metadata.lastEditor = context.userID;
+  context.changeset.metadata.source = "application";
+  await next();
+});
+```
+
+Set or delete fields, including nested JSON values, before `await next()`. Each commit attempt gets
+a fresh Unit draft based on the expected head and an empty changeset metadata object. Revision
+conflicts discard the drafts and repeat the middleware. The successful attempt saves both complete
+objects atomically with the changeset and head. Repeated submissions preserve the metadata already
+saved; modifying a draft after `await next()` returns does not change the saved value.
+
+The Service always supplies both complete metadata objects to the Adapter. An unchanged Unit draft
+preserves the current values; clearing all its fields saves `{}`.
+
+Unit metadata is current state. Saving or restoring a snapshot does not automatically restore older
+Unit metadata. Changeset metadata stays attached to its confirmed revision. The Adapter's
+`getUnit()` and server-side changeset reads and submission results expose the stored metadata.
+Event listeners can read `unitCreated.record.metadata` and `changesetCommitted.changeset.metadata`.
+SDK frontend HTTP responses and WebSocket messages omit both metadata fields; applications choose
+which values to expose through their own endpoints.
+
 ## customData scope
 
 `customData` is an application-writable, call-local object suitable for:
@@ -159,8 +193,8 @@ charges.
 - business objects shared by one Middleware chain.
 
 Ordinary HTTP requests, Service calls, and WebSocket Sessions have different lifecycles.
-`customData` is not automatically persisted, sent to the browser, or logged. Long-lived data still
-belongs in application storage.
+Call-level `customData` is independent of Unit and changeset metadata. It is not automatically
+persisted, sent to the browser, or logged.
 
 ## Event execution model
 

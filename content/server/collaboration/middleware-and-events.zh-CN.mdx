@@ -117,15 +117,15 @@ Endpoint 的 `session.userID` 和 `session.customData` 来自签发 Session Tick
 
 Service Middleware 参与权威协同数据的生命周期：
 
-| Action            | 操作边界                             | 常见用途                     |
-| ----------------- | ------------------------------------ | ---------------------------- |
-| `readUnitData`    | 读取 snapshot、block 或 changeset 前 | 读取规则、tenant、审计       |
-| `createUnit`      | 原子创建 Unit 前                     | 类型检查、创建权限、业务规则 |
-| `deleteUnits`     | 删除批次写入 Adapter 前              | 删除规则、逐 Unit 检查       |
-| `recoverUnits`    | 恢复批次写入 Adapter 前              | 恢复规则、审计               |
-| `submitChangeset` | 逻辑提交进入幂等与 OT 前             | 编辑规则、总大小限制、trace  |
-| `applyChangeset`  | OT 后的 changeset 应用到候选状态前   | mutation 级校验              |
-| `commitChangeset` | Adapter 执行 revision CAS 与写入前   | 最终 revision 规则、指标     |
+| Action | 触发时机 | 可见字段 | 重试语义 | 常见用途 |
+| --- | --- | --- | --- | --- |
+| `readUnitData` | 读取 snapshot、block 或 changeset 前 | `userID`、`customData`、`request` | 每次 Service 调用一次 | 读取规则、tenant、审计 |
+| `createUnit` | 原子创建 Unit 前 | `userID`、`customData`、`request.snapshot`、`request.sheetBlocks`、`request.metadata`、`unit.metadata` | 每次创建调用一次 | 创建权限、初始 metadata |
+| `deleteUnits` | 删除批次写入 Adapter 前 | `userID`、`customData`、`request.unitIDs`、`request.hardDelete` | 每次调用一次 | 删除规则、逐 Unit 检查 |
+| `recoverUnits` | 恢复批次写入 Adapter 前 | `userID`、`customData`、`request.unitIDs` | 每次调用一次 | 恢复规则、审计 |
+| `submitChangeset` | 逻辑提交进入幂等与 OT 前 | `userID`、`memberID`、`customData`、`request` | 每次逻辑提交一次 | 编辑规则、大小限制、trace |
+| `applyChangeset` | OT 后的 changeset 应用到候选状态前 | `userID`、`memberID`、`customData`、`request`、`changeset`、`currentRevision`、`attempt` | revision 冲突后重复 | mutation 级校验 |
+| `commitChangeset` | Adapter 执行 revision CAS 与写入前 | `userID`、`memberID`、`customData`、`request`、`changeset`、`unit.metadata`、`changeset.metadata`、`expectedHeadRevision`、`attempt` | revision 冲突后使用新草稿重复执行 | 最终 revision 规则、持久化 metadata |
 
 ```ts
 service.use("createUnit", async (context, next) => {
@@ -143,6 +143,37 @@ service.use("createUnit", async (context, next) => {
 `commitChangeset` 可能以新的 `attempt` 重复运行，因此这两个阶段的 Middleware 必须可重试，不能
 直接发送不可撤销的外部消息或执行一次性扣费。
 
+## 持久化 metadata [#persistent-metadata]
+
+`UnitRecord.metadata` 保存 Unit 当前信息，`ChangesetRecord.metadata` 属于某一次 confirmed
+submission。两者均使用 `Record<string, unknown>`，只接受 JSON 值；字段的业务含义由应用定义。
+
+创建方法接受可选的 `metadata`，省略时由 Service 初始化为 `{}`。`createUnit` middleware 可以修改初始的
+`context.unit.metadata` 草稿。`commitChangeset` middleware 可以同时修改当前 Unit 草稿和本次提交的
+metadata：
+
+```ts
+service.use("commitChangeset", async (context, next) => {
+  context.unit.metadata.lastEditor = context.userID;
+  context.changeset.metadata.source = "application";
+  await next();
+});
+```
+
+在 `await next()` 前设置或删除字段，也可以修改嵌套 JSON 值。每轮提交得到基于预期 head 的全新
+Unit 草稿和空的 changeset metadata 对象。revision 冲突会丢弃草稿并重新运行 middleware；成功的
+一轮将两个完整对象与 changeset、head 原子保存。重复提交保留已保存的 metadata；
+`await next()` 返回后再修改草稿，不会改变已保存值。
+
+Service 始终将两份完整 metadata 对象传给 Adapter。未修改 Unit 草稿时保留当前值，删除草稿中
+全部字段则保存 `{}`。
+
+Unit metadata 表示当前状态，保存或恢复 snapshot 不会自动恢复历史 Unit metadata。
+Changeset metadata 保留在对应的 confirmed revision 上。Adapter 的 `getUnit()`、服务端 changeset
+读取及提交结果返回已保存 metadata；event listener 通过 `unitCreated.record.metadata` 和
+`changesetCommitted.changeset.metadata` 读取。SDK 前端 HTTP 响应和 WebSocket 消息省略两类
+metadata，由应用决定通过自己的接口公开哪些字段。
+
 ## customData 的作用域
 
 `customData` 是应用可写的请求级对象，适合保存：
@@ -152,8 +183,8 @@ service.use("createUnit", async (context, next) => {
 - 计时起点或审计标签；
 - 当前 Middleware 链共享的业务对象。
 
-普通 HTTP request、Service 调用和 WebSocket Session 拥有不同生命周期。`customData` 不会自动写入
-协同数据库、发送到浏览器或记录日志。需要长期保存的数据必须进入应用自己的存储。
+普通 HTTP request、Service 调用和 WebSocket Session 拥有不同生命周期。调用级 `customData`
+与 Unit 和 changeset 的 metadata 相互独立，不会自动写入协同数据库、发送到浏览器或记录日志。
 
 ## Event 执行模型
 

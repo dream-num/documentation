@@ -15,15 +15,15 @@ Unit、OT 和 revision 语义；Adapter 负责把这些语义落实为原子、�
 
 Core Collaboration Adapter 保存：
 
-- Unit record 与当前 head revision；
+- Unit record、当前 head revision 与应用 `metadata`；
 - revisioned snapshot；
-- confirmed changeset；
+- 包含应用 `metadata` 的 confirmed `ChangesetRecord`；
 - Sheet snapshot 引用的 block；
 - `(unitID, sid, reqId)` 提交幂等记录[^submission-idempotency]；
 - Unit 软删除、恢复与永久删除状态。
 
-它默认不保存用户、角色、ACL、目录、文件或产品 metadata。History、Thread Comment 与 Worktree
-使用各自独立的 Adapter 合同。
+`UnitRecord.metadata` 与 `ChangesetRecord.metadata` 的内容由应用定义。Adapter 不定义用户、
+角色、ACL、目录或文件；History、Thread Comment 与 Worktree 使用各自独立的 Adapter 合同。
 
 ## Adapter 必须保证的语义
 
@@ -31,15 +31,44 @@ Core Collaboration Adapter 保存：
 
 | 合同            | 含义                                                     |
 | --------------- | -------------------------------------------------------- |
-| 原子创建        | 初始 snapshot 与 Sheet blocks 要么全部可见，要么都不可见 |
+| 原子创建        | Unit metadata、初始 snapshot 与 Sheet blocks 要么全部可见，要么都不可见 |
 | Revision CAS[^revision-cas]    | 只有 head revision 等于预期值时才能确认下一次提交        |
 | 提交幂等        | 相同 `(unitID, sid, reqId)` 重试必须返回同一个已确定结果 |
+| Metadata 原子性 | confirmed changeset、其 metadata、新 head 与完整 Unit metadata 一起保存 |
 | 连续 Changeset  | 已确认 changeset 与 Unit revision 保持连续               |
 | Snapshot 可见性 | Snapshot 的依赖完整写入后才能被读取                      |
 | 生命周期原子性  | 同一删除或恢复批次必须全有或全无                         |
 | 永久删除标记    | Hard delete 后相同 Unit ID 不可重新创建                  |
 
 自定义 Adapter 如果只把方法逐个映射成普通读写，而没有实现这些并发与原子语义，会破坏 OT 和恢复链路。
+
+## 应用 metadata
+
+`UnitRecord.metadata` 描述当前 Unit。`ChangesetRecord` 扩展协议 `IChangeset`，增加本次 confirmed
+submission 的 `metadata`。两类字段均使用 `Record<string, unknown>`，只接受 JSON 值。
+调用级 `customData` 与 Unit 和 changeset 的 metadata 相互独立。
+
+创建时，可以在 `createUnitFromData()` 或 `createUnitFromSnapshot()` 输入中提供 `metadata`，
+也可以在 `createUnit` middleware 中设置。提交时，在 `commitChangeset` middleware 中修改完整的
+`ctx.unit.metadata` 与 `ctx.changeset.metadata` 草稿，将应用信息与本次提交一起保存。
+生命周期和重试规则见 [Middleware 与 Event](/server/collaboration/middleware-and-events#persistent-metadata)。
+
+Service 负责初始化 metadata，每次调用 Adapter 写入时都提供完整对象。未修改 Unit 草稿时保留
+原值；清空草稿则保存 `{}`。
+
+自定义 Adapter 必须保证：
+
+- `createUnit()` 将 `record.metadata` 与初始 snapshot、blocks 一起保存；已有 Unit 保留原 metadata。
+- `commitChangeset()` 的 `input.changeset.metadata` 和 `input.unitMetadata` 均为必填。
+  它在同一次原子提交中保存 changeset 并完整替换 Unit metadata，按传入值写入，不补默认值。
+  CAS 失败不能改变任一 metadata 对象。
+- `getUnit()` 返回 Unit metadata；`getChangesets()` 和成功提交结果返回含 metadata 的
+  `ChangesetRecord`。输入与返回对象不能暴露可修改数据库内部状态的引用。
+- 保存 snapshot 不改变 metadata；软删除和恢复保留 metadata；hard delete 后两类
+  metadata 永久不可访问。
+
+服务端读取、提交结果和 event 保留 metadata；SDK 前端 HTTP 响应和 WebSocket 消息省略 Unit 与
+changeset metadata，由应用决定在自己的接口中返回哪些字段。
 
 ## Memory Adapter
 
@@ -119,8 +148,8 @@ Service Middleware
 
 这样，Memory、SQLite 和自定义 Adapter 可以共享相同的应用策略。
 
-如果业务数据需要与协同数据保持强一致，可以实现自定义 Database Adapter，从 `customData` 中读取所需
-信息，并在 Adapter 的同一个数据库事务中写入协同数据和业务数据。
+附属于 Unit 或单次提交的 JSON 信息可以直接使用内置 metadata 字段。额外的业务表如需与协同数据
+保持强一致，可以由自定义 Database Adapter 显式读取 `customData` 中所需信息，并在同一事务中写入。
 
 如果业务数据不要求与协同提交处于同一事务，也可以通过 Middleware 或 Event 将其写入额外的数据表或
 外部系统。Middleware 和 Event 默认不共享 Adapter 内部事务；Event 是协同提交成功后的进程内
