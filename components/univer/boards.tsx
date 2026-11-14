@@ -9,6 +9,7 @@ import {
   createBoardTextBoxShapeElement,
   UniverBoardsPlugin,
 } from '@univerjs-pro/boards'
+import { UniverBoardsLatexUIPlugin } from '@univerjs-pro/boards-latex-ui'
 import { UniverBoardsUIPlugin } from '@univerjs-pro/boards-ui'
 import BoardsUIEnUS from '@univerjs-pro/boards-ui/locale/en-US'
 import { ShapeFillEnum, ShapeLineTypeEnum, ShapeTextWrapType, ShapeTypeEnum } from '@univerjs-pro/engine-shape'
@@ -88,7 +89,7 @@ export default function BoardsDemo() {
       height: number,
       fill: string,
       parentId: string,
-      laneId?: string,
+      { laneId, shapeType = ShapeTypeEnum.RoundRect }: { laneId?: string; shapeType?: ShapeTypeEnum } = {},
     ) {
       const card = createBoardTextBoxShapeElement({
         id,
@@ -104,11 +105,16 @@ export default function BoardsDemo() {
         textStyle: { fs: 14, bl: BooleanNumber.TRUE, cl: { rgb: '#123B50' } },
         textWrap: ShapeTextWrapType.Square,
       })
-      card.shapeData.shapeType = ShapeTypeEnum.RoundRect
-      card.shapeData.fill = { fillType: ShapeFillEnum.SolidFill, color: fill }
-      card.shapeData.stroke = { lineStrokeType: ShapeLineTypeEnum.SolidLine, color: '#8FA8B5', width: 1 }
-      card.shapeData.textRectPadding = { left: 10, right: 10, top: 10, bottom: 10 }
-      return card
+      return {
+        ...card,
+        shapeData: {
+          ...card.shapeData,
+          shapeType,
+          fill: { fillType: ShapeFillEnum.SolidFill, color: fill },
+          stroke: { lineStrokeType: ShapeLineTypeEnum.SolidLine, color: '#8FA8B5', width: 1 },
+          textRectPadding: { left: 10, right: 10, top: 10, bottom: 10 },
+        },
+      }
     }
     const stickies = [
       ['A SPACE TO THINK\n\nPlace ideas anywhere.\nPan and zoom to explore.', '#FEF3C7'],
@@ -124,36 +130,30 @@ export default function BoardsDemo() {
         height: 138,
         fillColor,
       })
-      sticky.shapeData.shapeText = {
-        isRichText: false,
-        isHorizontal: true,
-        text,
-        fontFamily: 'Arial',
-        fontSize: 13,
-        color: '#334155',
-      }
-      sticky.shapeData.textRectPadding = { left: 14, right: 14, top: 16, bottom: 12 }
+      Object.assign(sticky.shapeData, {
+        shapeText: {
+          isRichText: false,
+          isHorizontal: true,
+          text,
+          fontFamily: 'Arial',
+          fontSize: 13,
+          color: '#334155',
+        },
+        textRectPadding: { left: 14, right: 14, top: 16, bottom: 12 },
+      })
       sticky.transform.rotation = index === 1 ? 2 : -2
       return sticky
     })
     const cards = [
       createCard('idea', 'Start with\nan idea', 352, 155, 142, 70, '#DBEAFE', flow.id),
       createCard('shape', 'Give it\na shape', 566, 155, 142, 70, '#DDF4EF', flow.id),
-      createCard('decision', 'GO?', 780, 146, 126, 88, '#FEF3C7', flow.id),
+      createCard('decision', 'GO?', 780, 146, 126, 88, '#FEF3C7', flow.id, { shapeType: ShapeTypeEnum.Diamond }),
       createCard('story', 'A clear\nvisual story', 972, 155, 132, 70, '#DDF4EF', flow.id),
       createCard('context', 'Add a note\nKeep the context', 352, 298, 194, 70, '#FCE7F3', flow.id),
       createCard('refine', 'Refine together\nMove · edit · reconnect', 686, 298, 218, 70, '#EDE9FE', flow.id),
-      createCard(
-        'capture-task',
-        'STICKY NOTES\nCapture the raw idea',
-        352,
-        542,
-        214,
-        86,
-        '#FEF3C7',
-        pipeline.id,
-        'capture',
-      ),
+      createCard('capture-task', 'STICKY NOTES\nCapture the raw idea', 352, 542, 214, 86, '#FEF3C7', pipeline.id, {
+        laneId: 'capture',
+      }),
       createCard(
         'connect-task',
         'BOUND CONNECTORS\nRelationships follow nodes',
@@ -163,21 +163,12 @@ export default function BoardsDemo() {
         86,
         '#DBEAFE',
         pipeline.id,
-        'connect',
+        { laneId: 'connect' },
       ),
-      createCard(
-        'share-task',
-        'FRAMES & LANES\nTurn a canvas into a plan',
-        886,
-        542,
-        214,
-        86,
-        '#DDF4EF',
-        pipeline.id,
-        'share',
-      ),
+      createCard('share-task', 'FRAMES & LANES\nTurn a canvas into a plan', 886, 542, 214, 86, '#DDF4EF', pipeline.id, {
+        laneId: 'share',
+      }),
     ]
-    cards[2].shapeData.shapeType = ShapeTypeEnum.Diamond
     const connections = [
       ['idea', 'shape', BoardConnectorSite.Right, BoardConnectorSite.Left, 'shape it'],
       ['shape', 'decision', BoardConnectorSite.Right, BoardConnectorSite.Left, 'review'],
@@ -220,6 +211,7 @@ export default function BoardsDemo() {
     (univer) => {
       univer.registerPlugin(UniverBoardsPlugin)
       univer.registerPlugin(UniverBoardsUIPlugin)
+      univer.registerPlugin(UniverBoardsLatexUIPlugin)
 
       const univerAPI = FUniver.newAPI(univer)
       seedBoard(univerAPI)

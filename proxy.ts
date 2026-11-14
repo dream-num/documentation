@@ -21,6 +21,9 @@ const agentDocsPath = new RegExp(
 )
 
 export default function proxy(request: NextRequest) {
+  // Next hides its internal prefetch header from Server Components.
+  if (request.headers.get('next-router-prefetch') === '1') request.headers.set('purpose', 'prefetch')
+
   const legacyMatch = request.nextUrl.pathname.match(legacyGuidePath)
   const legacyTarget = legacyMatch && legacyGuidePaths.get(legacyMatch[2])
   if (legacyMatch && legacyTarget) {

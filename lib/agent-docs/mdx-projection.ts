@@ -25,6 +25,7 @@ const AGENT_MDX_ELEMENTS = new Set([
   'CodeBlockTabs',
   'CodeBlockTabsList',
   'CodeBlockTabsTrigger',
+  'ConfigKey',
   'InstallTabs',
   'Mermaid',
   'MetaData',
@@ -503,6 +504,7 @@ function stringifyAgentMdx(node: MdxElement, stringifier: Stringifier): string {
     }
     case 'Cards':
     case 'CodeBlockTabsList':
+    case 'ConfigKey':
     case 'Steps':
       return children
     case 'CodeBlockTab':

@@ -1,6 +1,4 @@
-import process from 'node:process'
 import { notFound } from 'next/navigation'
-import { PostHog } from 'posthog-node'
 import { AgentDocsLinks } from '@/components/agent-docs-links'
 import { GuidesArticle } from '@/components/guides/article'
 import { GuidesPageLayout } from '@/components/guides/layout'
@@ -24,10 +22,8 @@ interface IProps {
 
 const DOCS_ORIGIN = 'https://docs.univer.ai'
 
-export function generateStaticParams() {
-  // Cache each document on first visit instead of rendering every locale during builds.
-  return []
-}
+// Feedback records visits during server rendering, rather than static generation.
+export const dynamic = 'force-dynamic'
 
 function getSdkSource(sdk: string) {
   if (sdk !== 'overview' && sdk !== 'guides' && sdk !== 'server' && sdk !== 'ai') notFound()
@@ -74,24 +70,7 @@ export default async function Page({ params }: IProps) {
         markdownUrl={getAgentMarkdownPath(lang, page.url)}
         navigation={navigation}
         lang={lang}
-        onRateAction={async (url, feedback) => {
-          'use server'
-
-          if (!process.env.NEXT_POSTHOG_APIKEY) return
-
-          const posthog = new PostHog(process.env.NEXT_POSTHOG_APIKEY, { host: 'https://us.i.posthog.com' })
-
-          posthog.capture({
-            event: 'on_rate_docs',
-            timestamp: new Date(),
-            distinctId: 'anonymous',
-            properties: {
-              ...feedback,
-              url,
-              lang,
-            },
-          })
-        }}
+        url={pathname}
       >
         <div data-docs-body>
           <MDXContent
