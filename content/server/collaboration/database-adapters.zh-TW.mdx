@@ -13,32 +13,29 @@ Database Adapter 以 Apache-2.0 開源，原始碼見 [univer-collaboration-sdk-
 
 ## Adapter 儲存的資料
 
-核心協同 Adapter 儲存：
+Adapter 為每份協作文件（Unit）儲存三類資料：
 
-- Unit 記錄與目前最新修訂版本；
-- 帶修訂版本的快照；
-- 已確認的變更集；
-- Sheet 快照引用的區塊；
-- 以 `(unitID, sid, reqId)` 為鍵的提交冪等[^submission-idempotency]記錄；
-- Unit 軟刪除、還原及永久刪除狀態。
+- **文件資訊**包含文件 ID、類型、建立者、建立時間及目前的修訂版本號（`headRevision`）。Adapter 儲存變更集（changeset）時也會更新版本號。應用程式可在 `UnitRecord.metadata` 中維護文件名稱（`name`）、最近編輯者（`lastEditorID`）和最近修改時間（`lastModifiedAt`）等自訂欄位。
+- **快照**保存文件在特定版本的內容。讀取指定版本時，Service 可載入不晚於目標版本的最新快照，再依序重播到目標版本為止的修改。對於試算表，Adapter 也會儲存快照參照的資料區塊。
+- **變更集**包含一次提交中的操作。Adapter 依版本順序儲存變更集，並保留 `sid` 和 `reqId`，讓 Service 能辨識用戶端重試的提交，避免重複套用修改。[^submission-idempotency] 應用程式可以在 `ChangesetRecord.metadata` 中保存這次編輯的來源（`source`）或相關業務操作的 ID（`operationId`）。
 
-預設不儲存使用者、角色、ACL 或產品中繼資料。History、Thread Comment 和 Worktree 使用各自獨立的 Adapter 契約。
+建立文件或提交變更集時如何設定 metadata，請參閱[持久化 metadata](/server/collaboration/middleware-and-events#persistent-metadata)。
 
-## 必要語意
+軟刪除會保留這些資料，還原後可繼續編輯。永久刪除後，文件資料無法再存取，原文件 ID 也不能重複使用。
 
-`IDatabaseAdapter` 不只是 CRUD 介面。實作必須維持 Collaboration Service 預期的正確性契約：
+使用者、角色和存取權限由應用程式管理。History、Thread Comment 和 Worktree 各自使用獨立的 Adapter 介面。
 
-| 契約 | 意義 |
+## Adapter 的讀寫要求
+
+自訂 `IDatabaseAdapter` 時，各項操作須符合以下要求。
+
+| 操作 | 實作要求 |
 | --- | --- |
-| 原子建立 | 初始快照與 Sheet 區塊一起可見，或全部不可見 |
-| 修訂版本 CAS[^revision-cas] | 最新修訂版本符合預期值時，才確認下一次提交 |
-| 提交冪等性 | 重試相同 `(unitID, sid, reqId)` 時，傳回相同的已確定結果 |
-| 連續變更集 | 已確認變更集與 Unit 修訂版本保持連續 |
-| 快照可見性 | 所有相依資料儲存完成後，快照才能被讀取 |
-| 原子生命週期操作 | 批次刪除或還原中的所有 Unit 全部成功或全部不執行 |
-| 永久刪除標記 | 徹底刪除的 Unit ID 不可再次建立 |
-
-若只將各方法對應到一般資料庫讀寫，而不實作上述並行與原子性語意，會破壞 OT 和還原行為。
+| 建立文件 | 以原子操作儲存 Unit 記錄（含 metadata）、初始快照及其參照的 Sheet 區塊，讓這些資料同時可讀。 |
+| 提交變更集 | 只有目前版本號與預期值相符時才能提交（CAS）[^revision-cas]。在同一次原子寫入中保存變更集及其 metadata、完整取代 Unit metadata，並將版本號加 1。版本不符時，傳回目前版本號，不寫入資料。 |
+| 讀取變更集 | 依版本號遞增順序傳回指定範圍內的變更集，版本號必須連續。保留每個變更集原有的 `sid` 和 `reqId`，供 Service 辨識同一 Unit 內的重複提交。 |
+| 儲存快照 | 快照可讀時，它參照的所有 Sheet 區塊也必須可讀。 |
+| 刪除與還原 | 刪除或還原須對整批 Unit 生效。任一項失敗時，整批維持原狀。 |
 
 ## Memory Adapter
 
@@ -112,22 +109,15 @@ const service = new UniverCollabService({ dbAdapter: database });
 
 Service 不依賴特定資料庫，但也無法替自訂實作補上交易、CAS 或去重。Adapter 必須利用資料庫能力實作完整契約。[社群儲存庫](https://github.com/dream-num/univer-collaboration-sdk-community)裡的內建實作展示了同一契約在不同資料庫上的寫法，可作為參考。
 
-## Context 與應用邊界
+## 如何儲存業務資料
 
-每次 Service 呼叫會將 `customData` 傳給 Middleware、Database Adapter 及相關 Events，但 SDK 不會自動持久化它。授權判斷通常應留在 Service Middleware，而非在各 Adapter 方法中重複：
+**文件或變更集的附加資訊可存入 `metadata`**。應用程式可在建立文件或提交變更集時設定這些欄位，由內建 Adapter 一併儲存。詳見[持久化 metadata](/server/collaboration/middleware-and-events#persistent-metadata)。
 
-```text
-Service Middleware
-  → 允許或拒絕業務操作
-  → Database Adapter
-  → 原子儲存以服務端為準的協同狀態
-```
+**獨立的業務資料表可透過 Middleware 或 Event 寫入**。要記錄一次操作嘗試，可在 Middleware 中寫入稽核表。若要在提交成功後更新業務表，可監聽 `changesetCommitted`。這些寫入預設在協作交易之外執行。版本衝突可能導致提交階段的 Middleware 重跑，寫入時應避免重複記錄。Event 只在程序內盡力投遞，適合可稍後補寫或重建的資料。
 
-這讓 Memory、SQLite、PostgreSQL 與自訂 Adapter 共享相同的應用策略。
+**需要使用應用程式自己的資料庫與結構，或在同一筆交易中寫入業務與協作資料時，可以自訂資料庫 Adapter**。應用程式呼叫 Service 時，可透過 `customData` 傳入業務操作 ID 等資訊。Adapter 方法可從 `ctx.customData` 讀取所需欄位，決定更新哪些資料表。例如，`commitChangeset()` 可以在儲存變更集的同一筆交易中，依業務操作 ID 更新對應的記錄。
 
-當業務資料必須與協同資料保持強一致時，自訂 Database Adapter 可從 `customData` 讀取所需值，在 Adapter 的資料庫交易中寫入兩組資料。
-
-不需要共享協同交易時，Middleware 或 Events 可將業務資料寫入其他資料表或外部系統。兩者預設不共享 Adapter 內部交易。Events 是協同提交成功後發出的程序內、盡力而為通知。必要的冪等、重試或補償由應用負責。
+`customData` 的作用域限於本次呼叫。內建 Adapter 不會自動儲存其中的欄位，也不會用它們寫入業務表。
 
 ## 擴充模組的儲存
 

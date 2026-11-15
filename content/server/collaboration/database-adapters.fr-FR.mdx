@@ -13,32 +13,29 @@ Arrêtez Quick Start puis lancez `pnpm example:database-adapter` depuis la racin
 
 ## Données stockées par l’Adapter
 
-L’Adapter central stocke :
+Pour chaque document collaboratif (Unit), l’Adapter stocke trois types de données.
 
-- l’enregistrement Unit et sa révision de tête ;
-- les instantanés révisionnés ;
-- les jeux de modifications confirmés ;
-- les blocs référencés par les instantanés Sheet ;
-- les enregistrements d’idempotence[^submission-idempotency] indexés par `(unitID, sid, reqId)` ;
-- l’état de suppression logique, de restauration et de suppression définitive des Units.
+- **L’enregistrement de l’Unit** contient l’identifiant du document, son type, son créateur, sa date de création et sa révision courante (`headRevision`). L’Adapter met à jour la révision dans la même opération que l’écriture du changeset. L’application peut gérer dans `UnitRecord.metadata` ses propres champs, par exemple le nom du document (`name`), l’identifiant de la dernière personne à l’avoir modifié (`lastEditorID`) et la date de cette modification (`lastModifiedAt`).
+- **Les instantanés** conservent le contenu du document à une révision donnée. Pour lire une révision, le Service peut charger l’instantané le plus récent dont la révision ne dépasse pas celle demandée, puis rejouer les modifications jusqu’à cette dernière. Pour un classeur, l’Adapter stocke également les blocs de données référencés par l’instantané.
+- **Les changesets** regroupent les opérations d’une soumission. L’Adapter les stocke dans l’ordre des révisions et conserve les identifiants de soumission `sid` et `reqId`. Le Service peut ainsi reconnaître une nouvelle tentative du client et éviter d’appliquer deux fois la même modification.[^submission-idempotency] L’application peut enregistrer dans `ChangesetRecord.metadata` l’origine de la modification (`source`) ou l’identifiant d’une opération métier associée (`operationId`).
 
-Par défaut, il ne stocke ni utilisateurs, ni rôles, ni ACL, ni métadonnées produit. History, Thread Comment et Worktree possèdent des contrats Adapter indépendants.
+Pour définir ces champs à la création ou à la soumission, consultez la section [Métadonnées persistantes](/server/collaboration/middleware-and-events#persistent-metadata).
 
-## Sémantique requise
+Une suppression logique conserve ces données. L’édition peut reprendre après restauration. Après une suppression définitive, les données du document sont inaccessibles et son identifiant ne peut plus être utilisé.
 
-`IDatabaseAdapter` dépasse une interface CRUD. L’implémentation doit respecter les garanties de correction attendues par Collaboration Service :
+L’application gère les utilisateurs, les rôles et les droits d’accès. History, Thread Comment et Worktree disposent chacun de leur propre interface Adapter.
 
-| Contrat | Signification |
+## Règles de lecture et d’écriture de l’Adapter
+
+Toute implémentation de `IDatabaseAdapter` doit respecter les règles suivantes.
+
+| Opération | Règle |
 | --- | --- |
-| Création atomique | L’instantané initial et les blocs Sheet deviennent visibles ensemble, ou pas du tout |
-| CAS[^revision-cas] de révision | La soumission suivante est confirmée seulement si la révision de tête correspond à la révision attendue |
-| Idempotence des soumissions | Réessayer le même `(unitID, sid, reqId)` renvoie le même résultat déterminé |
-| Modifications contiguës | Les jeux de modifications confirmés et la révision Unit restent contigus |
-| Visibilité des instantanés | Un instantané n’est lisible qu’après stockage de toutes ses dépendances |
-| Cycle de vie atomique | Toutes les Units d’un lot de suppression ou de restauration réussissent, ou aucune |
-| Marqueur de suppression définitive | L’ID d’une Unit supprimée définitivement ne peut pas être recréé |
-
-Traduire chaque méthode en simple lecture ou écriture sans ces garanties de concurrence et d’atomicité casse l’OT et la restauration.
+| Créer une Unit | Enregistrer de façon atomique l’Unit, métadonnées comprises, l’instantané initial et les blocs Sheet qu’il référence afin que l’ensemble soit lisible simultanément. |
+| Valider un changeset | Ne valider que si la révision courante correspond à la révision attendue (CAS)[^revision-cas]. En une écriture atomique, enregistrer le changeset avec ses métadonnées, remplacer intégralement les métadonnées de l’Unit et incrémenter la révision de un. En cas d’écart, renvoyer la révision courante sans rien écrire. |
+| Lire les changesets | Renvoyer les changesets de la plage demandée dans l’ordre croissant des révisions, sans lacune. Conserver les valeurs d’origine de `sid` et `reqId` pour que le Service puisse reconnaître un doublon pour la même Unit. |
+| Enregistrer un instantané | Dès que l’instantané est lisible, tous les blocs Sheet qu’il référence doivent l’être aussi. |
+| Supprimer ou restaurer des Units | Appliquer l’opération au lot entier. Si un élément échoue, conserver l’état initial de tout le lot. |
 
 ## Memory Adapter
 
@@ -112,22 +109,15 @@ const service = new UniverCollabService({ dbAdapter: database });
 
 Le Service ne dépend pas d’une base particulière, mais ne peut pas ajouter transactions, CAS ou déduplication à votre implémentation. L’Adapter doit réaliser le contrat complet avec les capacités de sa base. Les implémentations intégrées du [dépôt communautaire](https://github.com/dream-num/univer-collaboration-sdk-community) montrent le même contrat sur différentes bases et servent de référence.
 
-## Context et frontière applicative
+## Stocker les données métier
 
-Chaque appel Service transmet son `customData` aux Middleware, au Database Adapter et aux Events associés, sans persistance automatique. Les décisions d’autorisation restent généralement dans les Middleware Service plutôt que d’être répétées dans chaque méthode Adapter :
+**Utilisez `metadata` pour les informations rattachées à un document ou à un changeset.** L’application peut définir ces champs à la création du document ou à la soumission du changeset. L’Adapter intégré les enregistre avec les données collaboratives. Voir [Métadonnées persistantes](/server/collaboration/middleware-and-events#persistent-metadata).
 
-```text
-Middleware Service
-  → autorise ou refuse l’opération métier
-  → Database Adapter
-  → stocke atomiquement l’état collaboratif faisant autorité
-```
+**Utilisez les Middleware ou les Events pour écrire dans des tables métier distinctes.** Pour consigner une tentative d’opération, écrivez dans une table d’audit depuis un Middleware. Pour mettre à jour une table après la réussite du commit, écoutez `changesetCommitted`. Par défaut, ces écritures ont lieu en dehors de la transaction collaborative. Un conflit de révision peut relancer le Middleware de commit. Prévoyez le cas d’une nouvelle tentative pour éviter les doublons. Les Events sont locaux au processus et leur livraison n’est pas garantie. Ils conviennent aux données que l’application peut compléter ou reconstruire ultérieurement.
 
-Memory, SQLite, PostgreSQL et les Adapters personnalisés peuvent ainsi partager les mêmes politiques applicatives.
+**Utilisez un Adapter personnalisé si l’application a besoin de sa propre base et de son propre schéma, ou si les données métier et collaboratives doivent être écrites dans la même transaction.** Lors d’un appel au Service, l’application peut transmettre dans `customData` un identifiant d’opération métier, par exemple. La méthode de l’Adapter peut lire les champs nécessaires dans `ctx.customData` et choisir les tables à mettre à jour. Ainsi, `commitChangeset()` peut utiliser cet identifiant pour mettre à jour l’enregistrement métier dans la transaction qui enregistre le changeset.
 
-Si les données métier doivent rester fortement cohérentes avec les données collaboratives, un Database Adapter personnalisé peut lire les valeurs nécessaires dans `customData` et écrire les deux ensembles dans sa transaction de base de données.
-
-Si elles n’ont pas besoin de partager cette transaction, les Middleware ou Events peuvent les écrire dans d’autres tables ou systèmes externes. Ils ne partagent pas par défaut la transaction interne de l’Adapter. Les Events sont des notifications locales au processus, fournies au mieux après la réussite du commit collaboratif. L’application assume l’idempotence, les nouvelles tentatives et les compensations nécessaires.
+La portée de `customData` est limitée à l’appel en cours. Les Adapters intégrés ne persistent pas automatiquement ses champs et ne les utilisent pas pour écrire dans les tables métier.
 
 ## Stockage des modules d’extension
 

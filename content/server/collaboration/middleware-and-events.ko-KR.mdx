@@ -114,9 +114,9 @@ Service Middleware는 서버 기준 협업 데이터의 수명 주기에 참여�
 | `createUnit` | 원자적 Unit 생성 전 | 유형 검사, 생성 정책, 업무 규칙 |
 | `deleteUnits` | 삭제 배치 쓰기 전 | 삭제 정책과 Unit별 검사 |
 | `recoverUnits` | 복구 배치 쓰기 전 | 복구 정책과 감사 |
-| `submitChangeset` | 논리 제출이 멱등성·OT에 들어가기 전 | 편집 정책, 전체 크기 제한, 추적 |
-| `applyChangeset` | 변환된 변경 집합을 후보 상태에 적용하기 전 | mutation 단위 검증 |
-| `commitChangeset` | Adapter 리비전 CAS·커밋 전 | 최종 리비전 규칙과 지표 |
+| `submitChangeset` | 제출을 받은 후, 중복 제거와 OT 전 | 편집 권한 확인 또는 제출 크기 제한 |
+| `applyChangeset` | OT 후, 문서에 변경 집합을 적용하기 전 | 변환된 작업이 보호 범위에 영향을 주는지 검사하는 등 작업 내용 검증 |
+| `commitChangeset` | 변경 집합을 후보 상태에 적용한 후, Adapter가 저장하기 전 | 이번 제출과 함께 저장할 메타데이터 설정 |
 
 ```ts
 service.use("createUnit", async (context, next) => {
@@ -134,14 +134,40 @@ service.use("createUnit", async (context, next) => {
 
 ## customData 범위
 
-`customData`는 애플리케이션이 쓰기 가능한 호출 내부 객체이며 다음에 적합합니다.
+`customData`는 한 호출 안에서 컨텍스트를 공유하는 데 사용합니다. 호출자가 데이터를 전달하고 Middleware가 처리 중에 추가하면, 이후의 Middleware와 Database Adapter, 관련 Event에서 읽을 수 있습니다.
 
-- 테넌트 ID, 추적 ID, 요청 로거
-- 현재 호출에서 재사용할 ACL 조회 결과
-- 시간 측정 시작점, 감사 레이블
-- 한 Middleware 체인이 공유하는 업무 객체
+- 테넌트 ID, 추적 ID 또는 요청에 사용할 로거를 전달합니다.
+- 같은 호출에서 권한 조회 결과를 재사용합니다.
+- 측정 시작 시각이나 감사용 레이블을 기록합니다.
 
-일반 HTTP 요청, Service 호출, WebSocket Session은 수명 주기가 다릅니다. `customData`는 자동 저장·브라우저 전송·로그 기록되지 않습니다. 장기 데이터는 애플리케이션 스토리지에 저장합니다.
+SDK 내장 데이터베이스 Adapter는 `customData`를 영구 저장하지 않습니다. 문서나 변경 집합과 함께 저장할 필드는 [메타데이터 저장](#persistent-metadata)을 참고하세요.
+
+## 메타데이터 저장 [#persistent-metadata]
+
+`metadata`는 애플리케이션에서 정의한 데이터를 저장합니다. `UnitRecord.metadata`는 문서와 함께, `ChangesetRecord.metadata`는 개별 제출과 함께 저장됩니다.
+
+문서를 생성할 때 `createUnitFromData()` 또는 `createUnitFromSnapshot()`의 입력에 `metadata`를 전달하거나 `createUnit` Middleware에서 `context.unit.metadata`를 설정합니다. 기본값은 `{}`입니다.
+
+변경 집합을 제출할 때 `commitChangeset` Middleware에서 두 메타데이터 객체를 갱신할 수 있습니다. `context.unit.metadata`는 문서의 현재 메타데이터로, `context.changeset.metadata`는 `{}`로 시작합니다. 타입은 각각 `UnitMetadata`와 `ChangesetMetadata`이며 둘 다 `Record<string, unknown>`의 별칭입니다. 필드 값은 JSON으로 직렬화할 수 있어야 합니다.
+
+`await next()`를 호출하기 전에 값을 설정합니다. 다음 예제는 문서의 마지막 편집자를 갱신하고 이번 제출의 출처를 기록합니다.
+
+```ts
+service.use("commitChangeset", async (context, next) => {
+  context.unit.metadata.lastEditorID = context.userID;
+  context.changeset.metadata.source = "application";
+  await next();
+});
+```
+
+Service는 두 객체 전체를 Adapter에 전달하여 이번 제출과 함께 저장합니다.
+
+- **리비전 충돌**: Service는 최신 Unit 메타데이터와 비어 있는 변경 집합 메타데이터로 `commitChangeset` Middleware를 다시 실행합니다.
+- **중복 제출**: 이미 성공한 제출을 재시도하면 Service는 원래 변경 집합의 메타데이터를 반환합니다.
+
+문서 메타데이터는 Adapter의 `getUnit()`이 반환한 레코드의 `metadata`에서 읽습니다. 이번 제출의 메타데이터는 `submitChangeset()`의 성공 결과에 있는 `changeset.metadata`에서 읽을 수 있습니다. 이전 제출을 조회할 때는 `getChangesets()`가 반환하는 `changesets` 배열의 각 항목에 `metadata`가 포함됩니다.
+
+내장 SQLite 또는 PostgreSQL Adapter를 사용한다면 SQL로 문서나 변경 집합의 메타데이터를 직접 조회할 수도 있습니다. 테이블 이름과 열 이름은 사용하는 Adapter의 데이터베이스 스키마를 따릅니다.
 
 ## Event 실행 모델
 
@@ -167,11 +193,13 @@ subscription.dispose();
 | Event | 확정된 사실 | 일반 용도 |
 | --- | --- | --- |
 | `unitCreated` | Unit과 초기 데이터 생성 완료 | 로컬 목록 캐시·파생 인덱스 |
-| `changesetCommitted` | 변경 집합 확정 및 리비전 갱신 | 브로드캐스트, 지표, 파생 인덱스 |
+| `changesetCommitted` | Adapter가 변경 집합을 저장하고 리비전을 갱신함 | 브로드캐스트, 지표, 파생 인덱스 |
 | `unitsDeleted` | Adapter가 삭제 배치 확정 | 프로세스 내부 관련 상태 정리 |
 | `unitsRecovered` | Adapter가 복구 배치 확정 | 프로세스 내부 파생 상태 복구 |
 
-Endpoint는 같은 Service의 `changesetCommitted`를 듣고 현재 프로세스에서 Unit에 참여한 클라이언트로 확정 변경 집합을 브로드캐스트합니다. pub/sub 어댑터를 구성하면 다른 노드에도 전달합니다. 명시적 나가기, 연결 해제, Endpoint 해제에는 `memberLeftUnit`도 제공합니다.
+`unitCreated` 리스너에서는 `event.record.metadata`로 문서 메타데이터를 읽습니다. `changesetCommitted` 리스너에서는 `event.changeset.metadata`로 이번 제출의 메타데이터를 읽습니다.
+
+Endpoint는 같은 Service의 `changesetCommitted`를 듣고 현재 프로세스에서 Unit에 참여한 클라이언트로 변경 집합을 브로드캐스트합니다. pub/sub 어댑터를 구성하면 다른 노드에도 전달합니다. 명시적 나가기, 연결 해제, Endpoint 해제에는 `memberLeftUnit`도 제공합니다.
 
 ## 확장 모듈의 독립 확장 지점
 
