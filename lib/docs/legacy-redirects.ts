@@ -60,6 +60,8 @@ export const LEGACY_DOCS_PATHS: ReadonlyMap<string, string> = new Map([
   ['/guides/pro/server', '/server/deployment'],
   ['/guides/pro/api', '/server'],
   ['/guides/pro/deploy', '/server/deployment'],
+  ['/guides/pro/deploy/docker-compose', '/server/deployment'],
+  ['/guides/pro/deploy/kubernetes', '/server/deployment'],
   ['/guides/pro/event-sync', '/server/collaboration/middleware-and-events'],
   ['/guides/pro/license', '/server/license'],
   ['/guides/pro/usip', '/server/collaboration/identity-and-authorization'],
