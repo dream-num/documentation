@@ -114,9 +114,9 @@ Ils participent au cycle de vie des données collaboratives faisant autorité :
 | `createUnit` | Avant création atomique d’Unit | Types, politique de création, règles métier |
 | `deleteUnits` | Avant écriture du lot de suppression | Politique de suppression et contrôle par Unit |
 | `recoverUnits` | Avant écriture du lot de restauration | Politique de restauration et audit |
-| `submitChangeset` | Avant idempotence et OT de la soumission logique | Édition, limite de taille totale, traçage |
-| `applyChangeset` | Avant application des changements transformés à l’état candidat | Validation par mutation |
-| `commitChangeset` | Avant CAS de révision et commit de l’Adapter | Règles finales de révision et métriques |
+| `submitChangeset` | À la réception de la soumission, avant la déduplication et l’OT | Vérifier les droits d’édition ou limiter la taille de la soumission |
+| `applyChangeset` | Après l’OT, avant d’appliquer le changeset au document | Vérifier les opérations transformées, par exemple leur effet sur une plage protégée |
+| `commitChangeset` | Après l’application du changeset à l’état candidat, avant son écriture par l’Adapter | Définir les métadonnées à enregistrer avec cette soumission |
 
 ```ts
 service.use("createUnit", async (context, next) => {
@@ -134,14 +134,40 @@ service.use("createUnit", async (context, next) => {
 
 ## Portée de customData
 
-`customData` est un objet modifiable par l’application, local à l’appel, adapté aux :
+`customData` permet de partager le contexte au sein d’un même appel. L’appelant peut fournir des données et les Middleware peuvent les enrichir pour les Middleware suivants, le Database Adapter et les Events associés. Exemples d’utilisation :
 
-- ID de locataire, ID de trace et loggers de requête ;
-- résultats ACL réutilisés dans l’appel ;
-- points de départ de chronométrage et étiquettes d’audit ;
-- objets métier partagés dans une chaîne Middleware.
+- Transmettre un identifiant de locataire, un identifiant de trace ou le logger de la requête.
+- Réutiliser le résultat d’une vérification des droits pendant l’appel.
+- Consigner le début d’une mesure de durée ou une étiquette d’audit.
 
-Requêtes HTTP ordinaires, appels Service et Sessions WebSocket ont des cycles de vie différents. `customData` n’est ni persisté, ni envoyé au navigateur, ni journalisé automatiquement. Les données durables restent dans le stockage applicatif.
+Les Adapters de base de données intégrés au SDK ne persistent pas `customData`. Pour enregistrer des champs avec un document ou un changeset, voir [Métadonnées persistantes](#persistent-metadata).
+
+## Métadonnées persistantes [#persistent-metadata]
+
+`metadata` stocke les données définies par l’application. `UnitRecord.metadata` est enregistré avec le document et `ChangesetRecord.metadata` avec chaque soumission.
+
+À la création du document, passez `metadata` à `createUnitFromData()` ou à `createUnitFromSnapshot()`, ou définissez `context.unit.metadata` dans un Middleware `createUnit`. La valeur par défaut est `{}`.
+
+Lors de la soumission d’un changeset, vous pouvez modifier les deux objets dans un Middleware `commitChangeset`. La valeur initiale de `context.unit.metadata` est celle des métadonnées courantes du document. Celle de `context.changeset.metadata` est `{}`. Leurs types respectifs, `UnitMetadata` et `ChangesetMetadata`, sont des alias de `Record<string, unknown>`. Les valeurs des champs doivent être sérialisables en JSON.
+
+Effectuez les modifications avant `await next()`. Cet exemple met à jour l’identifiant de la dernière personne à avoir modifié le document et enregistre l’origine de la soumission.
+
+```ts
+service.use("commitChangeset", async (context, next) => {
+  context.unit.metadata.lastEditorID = context.userID;
+  context.changeset.metadata.source = "application";
+  await next();
+});
+```
+
+Le Service transmet les deux objets complets à l’Adapter pour les enregistrer avec la soumission.
+
+- **Conflit de révision.** Lors d’une nouvelle tentative, le Service réexécute le Middleware `commitChangeset` avec les dernières métadonnées de l’Unit et des métadonnées de changeset vides.
+- **Soumission en double.** Si la même soumission a déjà abouti, le Service renvoie les métadonnées du changeset d’origine.
+
+Pour lire les métadonnées du document, appelez `getUnit()` sur l’Adapter et lisez `metadata` dans l’enregistrement renvoyé. Pour la soumission courante, lisez `changeset.metadata` dans le résultat de `submitChangeset()` après sa réussite. Pour les soumissions antérieures, chaque élément du tableau `changesets` renvoyé par `getChangesets()` contient un champ `metadata`.
+
+Avec l’Adapter SQLite ou PostgreSQL intégré, vous pouvez aussi interroger directement en SQL les métadonnées du document ou du changeset. Utilisez les noms de tables et de colonnes du schéma de l’Adapter choisi.
 
 ## Modèle d’exécution des Events
 
@@ -167,11 +193,13 @@ Les Events conviennent aux suites internes au processus, récupérables ou non c
 | Event | Fait confirmé | Usage courant |
 | --- | --- | --- |
 | `unitCreated` | Unit et données initiales créées | Cache de catalogue local ou index dérivé |
-| `changesetCommitted` | Modifications confirmées et révision avancée | Diffusion, métriques, index dérivés |
+| `changesetCommitted` | L’Adapter a enregistré le changeset et mis à jour la révision | Diffusion, métriques, index dérivés |
 | `unitsDeleted` | Lot de suppression confirmé par l’Adapter | Nettoyage de l’état associé dans le processus |
 | `unitsRecovered` | Lot de restauration confirmé par l’Adapter | Restauration de l’état dérivé du processus |
 
-L’Endpoint écoute `changesetCommitted` sur le même Service et diffuse les changements confirmés aux clients inscrits dans l’Unit du processus courant, ou sur tous les nœuds lorsqu’un adaptateur pub/sub est configuré. Il expose aussi `memberLeftUnit` pour les départs explicites, déconnexions et libérations de l’Endpoint.
+Dans un écouteur de `unitCreated`, lisez les métadonnées du document dans `event.record.metadata`. Dans un écouteur de `changesetCommitted`, lisez celles de la soumission dans `event.changeset.metadata`.
+
+L’Endpoint écoute `changesetCommitted` sur le même Service et diffuse le changeset aux clients inscrits dans l’Unit du processus courant, ou sur tous les nœuds lorsqu’un adaptateur pub/sub est configuré. Il expose aussi `memberLeftUnit` pour les départs explicites, déconnexions et libérations de l’Endpoint.
 
 ## Points d’extension indépendants des modules
 

@@ -114,9 +114,9 @@ Service Middleware は正本の共同編集データのライフサイクルに�
 | `createUnit` | Unit のアトミックな作成前 | 型検査、作成ポリシー、業務ルール |
 | `deleteUnits` | 一括削除の書き込み前 | 削除ポリシーと Unit ごとの検査 |
 | `recoverUnits` | 一括復元の書き込み前 | 復元ポリシーと監査 |
-| `submitChangeset` | 論理送信が冪等性処理と OT に入る前 | 編集ポリシー、合計サイズ制限、追跡 |
-| `applyChangeset` | 変換済み変更セットを候補状態に適用する前 | mutation 単位の検証 |
-| `commitChangeset` | Adapter のリビジョン CAS とコミットの前 | 最終リビジョンのルールとメトリクス |
+| `submitChangeset` | 送信を受け取った後、重複排除と OT の前 | 編集権限を確認する、送信サイズを制限する |
+| `applyChangeset` | OT の後、変更セットをドキュメントに適用する前 | 変換後の操作が保護範囲に影響しないかなどを検証する |
+| `commitChangeset` | 変更セットを候補状態に適用した後、Adapter が書き込む前 | 今回の送信と一緒に保存するメタデータを設定する |
 
 ```ts
 service.use("createUnit", async (context, next) => {
@@ -134,14 +134,40 @@ service.use("createUnit", async (context, next) => {
 
 ## customData の範囲
 
-`customData` はアプリケーションが書き込める呼び出し内オブジェクトで、次に適しています。
+`customData` は、同じ呼び出しの中でコンテキストを共有するためのオブジェクトです。呼び出し元が渡したデータに Middleware が項目を追加でき、後続の Middleware、Database Adapter、関連する Event がその値を読み取れます。
 
-- テナント ID、追跡 ID、リクエストロガー；
-- 現在の呼び出しで再利用する ACL 検索結果；
-- 計時開始点や監査ラベル；
-- 同じ Middleware チェーンで共有する業務オブジェクト。
+- テナント ID、トレース ID、リクエスト用のロガーを渡す。
+- 呼び出し中に取得した権限の照会結果を再利用する。
+- 計測の開始時刻や監査用のラベルを記録する。
 
-通常の HTTP リクエスト、Service 呼び出し、WebSocket Session はライフサイクルが異なります。`customData` は自動保存、ブラウザー送信、ログ出力されません。長期データはアプリケーションのストレージに置きます。
+SDK の組み込みデータベース Adapter は `customData` を永続化しません。ドキュメントや変更セットと一緒に項目を保存する方法は、[メタデータの永続化](#persistent-metadata)を参照してください。
+
+## メタデータの永続化 [#persistent-metadata]
+
+`metadata` にはアプリケーション独自のデータを保存できます。`UnitRecord.metadata` はドキュメント単位、`ChangesetRecord.metadata` は送信単位で保存されます。
+
+ドキュメントの作成時に `createUnitFromData()` または `createUnitFromSnapshot()` の入力に `metadata` を渡すか、`createUnit` Middleware で `context.unit.metadata` を設定します。既定値は `{}` です。
+
+変更セットの送信時は、`commitChangeset` Middleware で両方のオブジェクトを更新できます。`context.unit.metadata` の初期値はその時点のドキュメントのメタデータ、`context.changeset.metadata` の初期値は `{}` です。型はそれぞれ `UnitMetadata` と `ChangesetMetadata` で、どちらも `Record<string, unknown>` の別名です。各値は JSON にシリアライズできる必要があります。
+
+`await next()` の前に値を設定します。次の例ではドキュメントの最終編集者を更新し、今回の編集元を記録します。
+
+```ts
+service.use("commitChangeset", async (context, next) => {
+  context.unit.metadata.lastEditorID = context.userID;
+  context.changeset.metadata.source = "application";
+  await next();
+});
+```
+
+Service は更新後の 2 つのオブジェクトを丸ごと Adapter に渡し、変更セットと一緒に保存します。
+
+- **リビジョンの競合**：再試行時には、最新の Unit メタデータと空の変更セットメタデータを使って `commitChangeset` Middleware を再実行します。
+- **同じ送信の再試行**：すでに成功した送信については、元の変更セットのメタデータを返します。
+
+ドキュメントのメタデータは Adapter の `getUnit()` が返すレコードの `metadata` で読み取れます。今回の送信分は `submitChangeset()` の成功結果の `changeset.metadata` を参照してください。過去の送信分は `getChangesets()` の戻り値にある `changesets` 配列の各要素の `metadata` から取得できます。
+
+組み込みの SQLite または PostgreSQL Adapter を使用する場合は、SQL でドキュメントや変更セットのメタデータを直接照会することもできます。テーブル名と列名は使用中の Adapter のスキーマを参照してください。
 
 ## Event の実行モデル
 
@@ -167,11 +193,13 @@ Events はプロセス内、復旧可能、または非クリティカルな後�
 | Event | 確定した事実 | 主な用途 |
 | --- | --- | --- |
 | `unitCreated` | Unit と初期データを作成済み | ローカル一覧キャッシュや派生インデックス |
-| `changesetCommitted` | 変更セットを確定しリビジョンを更新済み | 配信、メトリクス、派生インデックス |
+| `changesetCommitted` | Adapter が変更セットを保存し、リビジョンを更新した | 配信、メトリクス、派生インデックス |
 | `unitsDeleted` | Adapter が一括削除を確定済み | プロセス内の関連状態の消去 |
 | `unitsRecovered` | Adapter が一括復元を確定済み | プロセス内派生状態の復元 |
 
-Endpoint は同じ Service の `changesetCommitted` を監視し、現在のプロセスで Unit に参加したクライアントへ確定変更セットを配信します。pub/sub アダプターを設定している場合は他のノードにも届けます。また、明示的な退出、切断、Endpoint の破棄に対して `memberLeftUnit` を公開します。
+`unitCreated` のリスナーでは `event.record.metadata` からドキュメントのメタデータを、`changesetCommitted` のリスナーでは `event.changeset.metadata` から今回の送信のメタデータを取得できます。
+
+Endpoint は同じ Service の `changesetCommitted` を監視し、現在のプロセスで Unit に参加したクライアントへ変更セットを配信します。pub/sub アダプターを設定している場合は他のノードにも届けます。また、明示的な退出、切断、Endpoint の破棄に対して `memberLeftUnit` を公開します。
 
 ## 拡張モジュールは独自の拡張ポイントを持つ
 

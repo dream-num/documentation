@@ -123,9 +123,9 @@ Service Middleware 参与权威协同数据的生命周期：
 | `createUnit`      | 原子创建 Unit 前                     | 类型检查、创建权限、业务规则 |
 | `deleteUnits`     | 删除批次写入 Adapter 前              | 删除规则、逐 Unit 检查       |
 | `recoverUnits`    | 恢复批次写入 Adapter 前              | 恢复规则、审计               |
-| `submitChangeset` | 逻辑提交进入幂等与 OT 前             | 编辑规则、总大小限制、trace  |
-| `applyChangeset`  | OT 后的 changeset 应用到候选状态前   | mutation 级校验              |
-| `commitChangeset` | Adapter 执行 revision CAS 与写入前   | 最终 revision 规则、指标     |
+| `submitChangeset` | 收到提交后，去重和 OT 之前 | 检查编辑权限，限制本次提交的大小 |
+| `applyChangeset`  | OT 完成后，将 changeset 应用到文档之前 | 校验转换后的操作，例如检查它们是否涉及受保护的区域 |
+| `commitChangeset` | changeset 已应用到候选状态，Adapter 写入之前 | 设置要随本次提交保存的 metadata |
 
 ```ts
 service.use("createUnit", async (context, next) => {
@@ -145,15 +145,40 @@ service.use("createUnit", async (context, next) => {
 
 ## customData 的作用域
 
-`customData` 是应用可写的请求级对象，适合保存：
+`customData` 用于在同一次调用中共享上下文。调用方可以传入数据，Middleware 也可以在处理过程中补充，供后续 Middleware、Database Adapter 和相关 Event 读取。常见用途包括：
 
-- tenant、trace ID 或请求 logger；
-- 本次调用复用的 ACL 查询结果；
-- 计时起点或审计标签；
-- 当前 Middleware 链共享的业务对象。
+- 传递租户 ID、trace ID 或本次请求使用的 logger。
+- 复用本次调用中的权限查询结果。
+- 记录计时起点或审计标签。
 
-普通 HTTP request、Service 调用和 WebSocket Session 拥有不同生命周期。`customData` 不会自动写入
-协同数据库、发送到浏览器或记录日志。需要长期保存的数据必须进入应用自己的存储。
+SDK 内置的数据库适配器不会持久化 `customData`。如果需要将某些字段随文档或 changeset 一起保存，请参见[持久化 metadata](#persistent-metadata)。
+
+## 持久化 metadata [#persistent-metadata]
+
+`metadata` 用于保存应用自定义的数据。`UnitRecord.metadata` 随文档保存，`ChangesetRecord.metadata` 随单次提交保存。
+
+创建文档时，可以在 `createUnitFromData()` 或 `createUnitFromSnapshot()` 的输入中传入 `metadata`，也可以在 `createUnit` middleware 中设置 `context.unit.metadata`。未提供时默认为 `{}`。
+
+提交 changeset 时，可以在 `commitChangeset` middleware 中同时更新两份 metadata。`context.unit.metadata` 初始为文档当前的值，`context.changeset.metadata` 初始为 `{}`。两者的类型分别为 `UnitMetadata` 和 `ChangesetMetadata`，都是 `Record<string, unknown>`，字段值须可序列化为 JSON。
+
+在 `await next()` 前完成修改。例如，下面的代码更新文档的最近编辑者，并记录本次提交的来源：
+
+```ts
+service.use("commitChangeset", async (context, next) => {
+  context.unit.metadata.lastEditorID = context.userID;
+  context.changeset.metadata.source = "application";
+  await next();
+});
+```
+
+Service 将修改后的两个完整对象传给 Adapter，随本次提交一起保存。
+
+- **版本冲突**：Service 重试时，会用最新的 Unit metadata 和空的 changeset metadata 重新执行 `commitChangeset` middleware。
+- **重复提交**：如果同一次提交已经成功，服务会返回原 changeset 的 metadata。
+
+读取文档的 metadata 时，调用 Adapter 的 `getUnit()`，取返回记录的 `metadata`。读取本次提交的 metadata 时，取 `submitChangeset()` 成功结果中的 `changeset.metadata`。要查看以往提交，调用 `getChangesets()`，返回的 `changesets` 数组中每一项都包含 `metadata`。
+
+使用内置 SQLite 或 PostgreSQL 适配器时，也可以直接用 SQL 查询文档或 changeset 的 metadata。具体表名和字段名以所用适配器的数据库结构为准。
 
 ## Event 执行模型
 
@@ -181,11 +206,13 @@ subscription.dispose();
 | Event                | 已确认的事实                    | 典型用途                       |
 | -------------------- | ------------------------------- | ------------------------------ |
 | `unitCreated`        | Unit 及其初始数据已创建         | 更新本地目录缓存、建立派生索引 |
-| `changesetCommitted` | Changeset 已确认并推进 revision | 广播、指标、派生索引           |
+| `changesetCommitted` | Adapter 保存变更集并更新版本号 | 广播、指标、派生索引           |
 | `unitsDeleted`       | 删除批次已由 Adapter 确认       | 清理进程内关联状态             |
 | `unitsRecovered`     | 恢复批次已由 Adapter 确认       | 恢复本地派生状态               |
 
-Endpoint 监听同一个 Service 的 `changesetCommitted`，把 confirmed changeset 广播给当前进程中已经
+在 `unitCreated` 监听器中，通过 `event.record.metadata` 读取文档 metadata；在 `changesetCommitted` 监听器中，通过 `event.changeset.metadata` 读取本次提交的 metadata。
+
+Endpoint 监听同一个 Service 的 `changesetCommitted`，把变更集广播给当前进程中已经
 JOIN 对应 Unit 的 Client；配置了 pub/sub 适配器时，也投递到其他节点。Endpoint 自身还提供 `memberLeftUnit` Event，用于观察成员显式离开、断线或
 Endpoint 释放。
 

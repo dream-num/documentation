@@ -13,32 +13,29 @@ Quick Start를 중지하고 루트에서 `pnpm example:database-adapter`를 실�
 
 ## Adapter가 저장하는 데이터
 
-핵심 협업 Adapter는 다음을 저장합니다.
+Adapter는 각 협업 문서(Unit)에 대해 세 종류의 데이터를 저장합니다.
 
-- Unit 레코드와 현재 최신 리비전
-- 리비전이 지정된 스냅샷
-- 확정된 변경 집합
-- Sheet 스냅샷에서 참조하는 블록
-- `(unitID, sid, reqId)`를 키로 하는 제출 멱등성[^submission-idempotency] 레코드
-- Unit의 논리 삭제, 복구, 영구 삭제 상태
+- **Unit 레코드**에는 문서 ID, 유형, 작성자, 생성 시각, 현재 리비전(`headRevision`)이 들어갑니다. Adapter는 변경 집합을 저장할 때 리비전도 함께 갱신합니다. 애플리케이션은 `UnitRecord.metadata`에 문서 이름(`name`), 마지막 편집자 ID(`lastEditorID`), 마지막 수정 시각(`lastModifiedAt`) 같은 필드를 직접 관리할 수 있습니다.
+- **스냅샷**은 특정 리비전의 문서 내용을 담습니다. Service는 요청한 리비전 이하의 가장 최근 스냅샷을 읽고, 그 이후부터 요청한 리비전까지의 변경을 순서대로 적용할 수 있습니다. 스프레드시트의 경우 스냅샷이 참조하는 데이터 블록도 저장합니다.
+- **변경 집합**은 한 번에 제출한 작업을 묶은 것입니다. Adapter는 변경 집합을 리비전 순서대로 저장하고 제출 식별자 `sid`와 `reqId`를 보존합니다. Service는 이 값으로 클라이언트의 재시도를 식별해 같은 작업이 두 번 적용되는 것을 방지합니다.[^submission-idempotency] 애플리케이션은 `ChangesetRecord.metadata`에 편집 출처(`source`)나 관련 업무 작업 ID(`operationId`) 등을 저장할 수 있습니다.
 
-기본적으로 사용자, 역할, ACL, 제품 메타데이터는 저장하지 않습니다. History, Thread Comment, Worktree는 독립적인 Adapter 계약을 사용합니다.
+생성 및 제출 시 메타데이터를 설정하는 방법은 [메타데이터 저장](/server/collaboration/middleware-and-events#persistent-metadata)을 참고하세요.
 
-## 필수 동작 의미
+소프트 삭제는 데이터를 보존하므로 복구 후 편집을 재개할 수 있습니다. 영구 삭제 후에는 문서 데이터에 접근하거나 원래 문서 ID를 재사용할 수 없습니다.
 
-`IDatabaseAdapter`는 단순한 CRUD 인터페이스가 아닙니다. 구현은 Collaboration Service가 기대하는 정확성 계약을 지켜야 합니다.
+사용자, 역할, 접근 권한은 애플리케이션이 관리합니다. History, Thread Comment, Worktree는 각각 별도의 Adapter 인터페이스를 사용합니다.
 
-| 계약 | 의미 |
+## Adapter 읽기 및 쓰기 요구 사항
+
+`IDatabaseAdapter`를 구현할 때는 작업별로 다음 요구 사항을 충족해야 합니다.
+
+| 작업 | 요구 사항 |
 | --- | --- |
-| 원자적 생성 | 초기 스냅샷과 Sheet 블록이 함께 보이거나 모두 보이지 않음 |
-| 리비전 CAS[^revision-cas] | 최신 리비전이 기대값과 일치할 때만 다음 제출 확정 |
-| 제출 멱등성 | 동일한 `(unitID, sid, reqId)`를 재시도하면 동일한 확정 결과 반환 |
-| 연속 변경 집합 | 확정된 변경 집합과 Unit 리비전이 연속성을 유지 |
-| 스냅샷 가시성 | 모든 의존 데이터가 저장된 후에만 스냅샷 읽기 가능 |
-| 원자적 수명 주기 작업 | 삭제·복구 배치의 모든 Unit이 성공하거나 모두 적용되지 않음 |
-| 영구 삭제 표식 | 영구 삭제한 Unit ID는 다시 생성할 수 없음 |
-
-이러한 동시성과 원자성 없이 메서드를 일반 DB 읽기·쓰기에 매핑하면 OT와 복구 동작이 깨집니다.
+| Unit 생성 | Unit 레코드(메타데이터 포함), 초기 스냅샷, 스냅샷이 참조하는 Sheet 블록을 원자적으로 저장해 동시에 읽을 수 있도록 합니다. |
+| 변경 집합 커밋 | 현재 리비전이 예상 리비전과 일치할 때만 커밋합니다(CAS)[^revision-cas]. 한 번의 원자적 쓰기로 변경 집합과 해당 메타데이터를 저장하고, Unit 메타데이터 전체를 교체하고, 리비전을 1 증가시킵니다. 리비전이 일치하지 않으면 쓰기 없이 현재 리비전을 반환합니다. |
+| 변경 집합 읽기 | 요청 범위에 있는 변경 집합을 빠짐없이 리비전 오름차순으로 반환합니다. Service가 같은 Unit에 대한 중복 제출을 식별할 수 있도록 원래의 `sid`와 `reqId`를 보존합니다. |
+| 스냅샷 저장 | 스냅샷을 읽을 수 있는 시점에 참조된 Sheet 블록도 모두 읽을 수 있어야 합니다. |
+| 삭제 또는 복구 | 배치의 모든 Unit에 작업을 적용합니다. 하나라도 실패하면 배치 전체가 이전 상태를 유지해야 합니다. |
 
 ## Memory Adapter
 
@@ -112,22 +109,15 @@ const service = new UniverCollabService({ dbAdapter: database });
 
 Service는 특정 DB에 의존하지 않지만 사용자 정의 구현에 트랜잭션, CAS, 중복 제거를 보완해 주지도 못합니다. Adapter가 DB 기능을 사용해 전체 계약을 구현해야 합니다. [커뮤니티 저장소](https://github.com/dream-num/univer-collaboration-sdk-community)의 내장 구현은 같은 계약을 서로 다른 DB에 구현한 예이며 참고용으로 쓸 수 있습니다.
 
-## Context와 애플리케이션 경계
+## 업무 데이터 저장 방법
 
-Service 호출마다 `customData`가 Middleware, Database Adapter, 관련 Events에 전달되지만 SDK가 자동으로 저장하지는 않습니다. 권한 판단은 보통 Service Middleware에 두고 Adapter 메서드마다 반복하지 않습니다.
+**문서나 변경 집합에 속한 정보는 `metadata`에 저장할 수 있습니다.** 애플리케이션에서 문서를 생성하거나 변경 집합을 제출할 때 값을 설정하면 내장 Adapter가 협업 데이터와 함께 저장합니다. [메타데이터 저장](/server/collaboration/middleware-and-events#persistent-metadata)을 참고하세요.
 
-```text
-Service Middleware
-  → 업무 작업 허용 또는 거부
-  → Database Adapter
-  → 서버 기준 협업 상태를 원자적으로 저장
-```
+**별도 업무 테이블에는 Middleware나 Event를 통해 기록할 수 있습니다.** 작업 시도를 감사 테이블에 남기려면 Middleware에서 기록합니다. 커밋 성공 후 테이블을 갱신하려면 `changesetCommitted`를 구독합니다. 기본적으로 이러한 쓰기는 협업 트랜잭션 밖에서 실행됩니다. 리비전 충돌로 커밋 단계의 Middleware가 다시 실행될 수 있으므로 중복 레코드가 생기지 않게 해야 합니다. Event는 프로세스 내부에서만 전달되며 전달이 보장되지는 않습니다. 나중에 보충하거나 재구성할 수 있는 데이터에 적합합니다.
 
-이렇게 하면 Memory, SQLite, PostgreSQL, 사용자 정의 Adapter가 같은 애플리케이션 정책을 공유합니다.
+**자체 데이터베이스와 스키마를 사용하거나 업무 데이터와 협업 데이터를 같은 트랜잭션에서 기록하려면 사용자 정의 Adapter를 구현할 수 있습니다.** Service 호출 시 애플리케이션이 업무 작업 ID 같은 정보를 `customData`로 전달하면 Adapter 메서드에서 `ctx.customData`를 읽어 갱신할 테이블을 결정할 수 있습니다. 예를 들어 `commitChangeset()`은 변경 집합을 저장하는 트랜잭션 안에서 작업 ID에 해당하는 업무 레코드를 갱신할 수 있습니다.
 
-업무 데이터와 협업 데이터에 강한 일관성이 필요하면 사용자 정의 Database Adapter가 `customData`에서 값을 읽고 Adapter의 DB 트랜잭션 안에서 두 데이터를 함께 쓸 수 있습니다.
-
-같은 협업 트랜잭션이 필요하지 않으면 Middleware나 Events로 다른 테이블 또는 외부 시스템에 쓸 수 있습니다. 둘은 기본적으로 Adapter 내부 트랜잭션을 공유하지 않습니다. Events는 협업 커밋 성공 후 발행되는 프로세스 내부의 최선 노력 알림입니다. 필요한 멱등성, 재시도, 보상 처리는 애플리케이션이 담당합니다.
+`customData`의 범위는 현재 호출입니다. 내장 Adapter는 이 필드들을 자동으로 저장하거나 업무 테이블에 기록하지 않습니다.
 
 ## 확장 모듈 저장소
 

@@ -114,9 +114,9 @@ Participa en el ciclo de vida de los datos colaborativos autoritativos:
 | `createUnit` | Antes de crear una Unit atómicamente | Tipos, política de creación, reglas de negocio |
 | `deleteUnits` | Antes de escribir el lote de eliminación | Política de eliminación y comprobaciones por Unit |
 | `recoverUnits` | Antes de escribir el lote de recuperación | Política de recuperación y auditoría |
-| `submitChangeset` | Antes de idempotencia y OT del envío lógico | Edición, límite de tamaño total, trazas |
-| `applyChangeset` | Antes de aplicar los cambios transformados al estado candidato | Validación por mutación |
-| `commitChangeset` | Antes del CAS de revisión y commit del Adapter | Reglas finales de revisión y métricas |
+| `submitChangeset` | Al recibir el envío, antes de la deduplicación y de la OT | Comprobar los permisos de edición o limitar el tamaño del envío |
+| `applyChangeset` | Después de la OT, antes de aplicar el changeset al documento | Validar las operaciones transformadas, por ejemplo, comprobar si afectan a un rango protegido |
+| `commitChangeset` | Después de aplicar el changeset al estado candidato y antes de que el Adapter lo guarde | Definir los metadatos que se guardarán con el envío |
 
 ```ts
 service.use("createUnit", async (context, next) => {
@@ -134,14 +134,40 @@ service.use("createUnit", async (context, next) => {
 
 ## Alcance de customData
 
-`customData` es un objeto escribible por la aplicación y local a la llamada, apropiado para:
+`customData` permite compartir contexto dentro de una misma llamada. Quien realiza la llamada puede aportar datos y el Middleware puede ampliarlos para que los lean los siguientes Middleware, el Database Adapter y los Events asociados. Algunos usos habituales son:
 
-- ID de inquilino, trazas o registradores de solicitudes;
-- consultas ACL reutilizadas en la llamada;
-- puntos de inicio de medición o etiquetas de auditoría;
-- objetos de negocio compartidos por una cadena Middleware.
+- Pasar un ID de inquilino, un ID de traza o el logger de la petición.
+- Reutilizar los resultados de una consulta de permisos durante la llamada.
+- Registrar la hora de inicio de una medición o una etiqueta de auditoría.
 
-HTTP ordinario, llamadas Service y Sessions WebSocket tienen ciclos de vida distintos. `customData` no se persiste, envía al navegador ni registra automáticamente. Los datos duraderos siguen en el almacenamiento de la aplicación.
+Los Adapters de base de datos integrados en el SDK no guardan `customData` de forma persistente. Para guardar campos con el documento o el changeset, consulta [Metadatos persistentes](#persistent-metadata).
+
+## Metadatos persistentes [#persistent-metadata]
+
+`metadata` almacena datos definidos por la aplicación. `UnitRecord.metadata` se guarda con el documento y `ChangesetRecord.metadata` con cada envío.
+
+Al crear un documento puedes pasar `metadata` a `createUnitFromData()` o a `createUnitFromSnapshot()`, o bien establecer `context.unit.metadata` en el Middleware `createUnit`. El valor predeterminado es `{}`.
+
+Al enviar un changeset puedes actualizar ambos objetos en el Middleware `commitChangeset`. `context.unit.metadata` parte de los metadatos actuales del documento y `context.changeset.metadata` empieza como `{}`. Sus tipos, `UnitMetadata` y `ChangesetMetadata` respectivamente, son alias de `Record<string, unknown>`. Los valores de los campos deben ser serializables en JSON.
+
+Realiza los cambios antes de `await next()`. Este ejemplo actualiza el ID de quien editó el documento por última vez y registra el origen del envío.
+
+```ts
+service.use("commitChangeset", async (context, next) => {
+  context.unit.metadata.lastEditorID = context.userID;
+  context.changeset.metadata.source = "application";
+  await next();
+});
+```
+
+El Service pasa los dos objetos completos al Adapter para que los guarde con el envío.
+
+- **Conflicto de revisión.** Al reintentar, el Service vuelve a ejecutar el Middleware `commitChangeset` con los últimos metadatos de la Unit y los metadatos del changeset vacíos.
+- **Envío duplicado.** Si el mismo envío ya se completó correctamente, el Service devuelve los metadatos del changeset original.
+
+Para leer los metadatos del documento, llama a `getUnit()` en el Adapter y lee `metadata` en el registro devuelto. Para el envío actual, lee `changeset.metadata` en el resultado de `submitChangeset()` si el envío se ha completado correctamente. Al consultar envíos anteriores con `getChangesets()`, cada elemento del array `changesets` devuelto contiene `metadata`.
+
+Con los Adapters integrados de SQLite o PostgreSQL también puedes consultar los metadatos del documento o del changeset directamente con SQL. Usa los nombres de tabla y de columna del esquema del Adapter elegido.
 
 ## Modelo de ejecución de Events
 
@@ -167,11 +193,13 @@ Events es adecuado para tareas internas, recuperables o no críticas. No compart
 | Event | Hecho confirmado | Uso habitual |
 | --- | --- | --- |
 | `unitCreated` | Unit y datos iniciales creados | Caché de catálogo local o índice derivado |
-| `changesetCommitted` | Cambios confirmados y revisión avanzada | Difusión, métricas, índices derivados |
+| `changesetCommitted` | El Adapter ha guardado el changeset y actualizado la revisión | Difusión, métricas, índices derivados |
 | `unitsDeleted` | Adapter confirmó el lote de eliminación | Limpiar estado relacionado del proceso |
 | `unitsRecovered` | Adapter confirmó el lote de recuperación | Restaurar estado derivado del proceso |
 
-Endpoint escucha `changesetCommitted` en el mismo Service y difunde los cambios confirmados a los clientes unidos a la Unit en el proceso actual, o en todos los nodos cuando hay un adaptador pub/sub configurado. También expone `memberLeftUnit` para salida explícita, desconexión y liberación del Endpoint.
+En un listener de `unitCreated` puedes leer los metadatos del documento en `event.record.metadata`. En un listener de `changesetCommitted` encontrarás los metadatos del envío en `event.changeset.metadata`.
+
+Endpoint escucha `changesetCommitted` en el mismo Service y difunde el changeset a los clientes unidos a la Unit en el proceso actual, o en todos los nodos cuando hay un adaptador pub/sub configurado. También expone `memberLeftUnit` para salida explícita, desconexión y liberación del Endpoint.
 
 ## Las extensiones tienen puntos independientes
 
