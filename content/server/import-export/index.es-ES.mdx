@@ -46,6 +46,46 @@ Importa un archivo real de la aplicación, edítalo y expórtalo. Ábrelo en Off
 
 Antes de desplegar, limita el tamaño de subida y gestiona fallos y tiempos de espera. Subidas, consultas y descargas necesitan controles de acceso; consulta [Identidad y autorización](/server/collaboration/identity-and-authorization).
 
+## Configuración de plugins [#exchange-client-configuration]
+
+`UniverExchangeClientPlugin`
+
+| <span data-config-options="">Opción</span> | Tipo | Valor predeterminado | Efecto |
+| --- | --- | --- | --- |
+| `downloadEndpointUrl` | `string` | `location.origin` | URL base para descargar archivos. |
+| `uploadFileServerUrl` | `string` | `'/universer-api/stream/file/upload'` | Punto de conexión para subir archivos. |
+| `importServerUrl` | `string` | `'/universer-api/exchange/{type}/import'` | Punto de conexión que inicia la importación. Conserva `{type}`. |
+| `exportServerUrl` | `string` | `'/universer-api/exchange/{type}/export'` | Punto de conexión que inicia la exportación. Conserva `{type}`. |
+| `getTaskServerUrl` | `string` | `'/universer-api/exchange/task/{taskID}'` | Punto de conexión para consultar el estado de una tarea. Conserva `{taskID}`. |
+| `signUrlServerUrl` | `string` | `'/universer-api/file/{fileID}/sign-url'` | Punto de conexión para firmar URLs de archivos. Conserva `{fileID}`. |
+| `maxTimeoutTime` | `number` | `120000` | Tiempo máximo de consulta de una tarea de conversión, en milisegundos. |
+
+## Configurar los adjuntos OLE [#ole-configuration]
+
+`UniverDrawingPlugin`
+
+| <span data-config-options="">Opción</span> | Tipo | Valor predeterminado | Efecto |
+| --- | --- | --- | --- |
+| <ConfigKey depth={0}>ole</ConfigKey> | `object` |  | Ajustes de esta función. |
+| <ConfigKey depth={1}>getLink</ConfigKey> | `IOleConfig["getLink"]` |  | Genera el enlace de la aplicación que abre un adjunto en línea. |
+| <ConfigKey depth={1}>attachmentIo</ConfigKey> | `object` |  | Lee y escribe el adjunto original en el almacenamiento de la aplicación. |
+| <ConfigKey depth={2}>upload</ConfigKey> | `(file: File, targetUnitId: string) => Promise<IBaseAttachment>` |  | Guarda el adjunto en la aplicación y lo asocia con esta unidad. |
+| <ConfigKey depth={2}>read</ConfigKey> | `(attachment: IBaseAttachment, signal?: AbortSignal) => Promise<Uint8Array>` |  | Lee los bytes del adjunto del almacenamiento de la aplicación. |
+| <ConfigKey depth={1}>previewOffice</ConfigKey> | `IOleConfig["previewOffice"]` |  | Personaliza el flujo de vista previa de Office. |
+| <ConfigKey depth={1}>createOfficePreview</ConfigKey> | `IOleConfig["createOfficePreview"]` |  | Crea una vista previa de Office con una función de la aplicación. |
+
+Añada `ole` al registro existente de `UniverDrawingPlugin` antes de registrar Exchange. La ruta del ejemplo debe abrir la interfaz de documentos de su aplicación; puede usar el segundo argumento de `getLink` (tipo de documento). Exchange proporciona conversión de Office y detección de colaboración. Los adjuntos referenciados por UUID también requieren `ole.attachmentIo` con callbacks autorizados `upload(file, targetUnitId)` y `read(attachment, signal)`. La vista previa de Office necesita el renderizador correspondiente o `previewOffice` / `createOfficePreview` personalizados.
+
+```ts
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+
+univer.registerPlugin(UniverDrawingPlugin, {
+  ole: {
+    getLink: (unitId) => `/documents/${encodeURIComponent(unitId)}`,
+  },
+})
+```
+
 ## Errores de exportación y límites de licencia [#export-errors]
 
 La exportación puede fallar al enviar la solicitud o durante el seguimiento de la tarea. Un HTTP correcto no garantiza el archivo: compruebe `error.code` y el estado de la tarea. El cliente Exchange transmite los errores del servidor mediante `IExchangeService.requestState$`; una UI personalizada puede suscribirse antes de iniciar la operación.
@@ -77,18 +117,6 @@ Un backend o proxy propio debe conservar la respuesta estructurada y marcar las 
 ## Adjuntos OLE [#ole-attachments]
 
 Sheets, Docs y Slides conservan los archivos OLE importados separados de sus vistas previas. Se pueden descargar los originales disponibles y, con permisos, renombrar una instancia o eliminar el adjunto. Las imágenes y PDF admiten vista previa. La de Office usa conversión JSON de Exchange y un editor temporal de solo lectura, sin crear un documento hijo persistente. No ejecuta aplicaciones nativas de Office ni macros.
-
-Añada `ole` al registro existente de `UniverDrawingPlugin` antes de registrar Exchange. La ruta del ejemplo debe abrir la interfaz de documentos de su aplicación; puede usar el segundo argumento de `getLink` (tipo de documento). Exchange proporciona conversión de Office y detección de colaboración. Los adjuntos referenciados por UUID también requieren `ole.attachmentIo` con callbacks autorizados `upload(file, targetUnitId)` y `read(attachment, signal)`. La vista previa de Office necesita el renderizador correspondiente o `previewOffice` / `createOfficePreview` personalizados.
-
-```ts
-import { UniverDrawingPlugin } from '@univerjs/drawing'
-
-univer.registerPlugin(UniverDrawingPlugin, {
-  ole: {
-    getLink: (unitId) => `/documents/${encodeURIComponent(unitId)}`,
-  },
-})
-```
 
 Convertir un adjunto Office en documento en línea requiere un anfitrión colaborativo, permiso de edición, conversión y `getLink`. Crea un documento independiente y guarda su identidad en el adjunto para reutilizarlo. Editar ese documento no sobrescribe los bytes originales. Los adjuntos ausentes, externos o no compatibles mantienen su estado.
 

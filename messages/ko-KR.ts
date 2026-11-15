@@ -21,6 +21,15 @@ const koKRMessages = {
     'copy-code': '코드 복사',
     'edit-on-github': 'GitHub에서 편집',
   },
+  'config-options': {
+    'expand-all': '모두 펼치기',
+    'collapse-all': '모두 접기',
+    expand: '{path} 펼치기',
+    collapse: '{path} 접기',
+    'copy-path': '경로 복사: {path}',
+    'copied-path': '경로 복사됨: {path}',
+    'copy-failed': '복사하지 못했습니다. 다시 시도해 주세요.',
+  },
   tools: {
     'watermark-generator': '워터마크 설정 생성기',
     'watermark-generator-description':

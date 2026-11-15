@@ -47,6 +47,46 @@ Import a real application file, edit it, and export it. Open the result in an Of
 
 Before deployment, limit upload sizes and handle conversion failures and timeouts. Uploads, task queries, and downloads need access checks; see [identity and authorization](/server/collaboration/identity-and-authorization).
 
+## Plugin configuration [#exchange-client-configuration]
+
+`UniverExchangeClientPlugin`
+
+| <span data-config-options="">Option</span> | Type | Default | What it does |
+| --- | --- | --- | --- |
+| `downloadEndpointUrl` | `string` | `location.origin` | Base URL for downloading files. |
+| `uploadFileServerUrl` | `string` | `'/universer-api/stream/file/upload'` | Endpoint for uploading files. |
+| `importServerUrl` | `string` | `'/universer-api/exchange/{type}/import'` | Endpoint to start import. Preserve the `{type}` placeholder. |
+| `exportServerUrl` | `string` | `'/universer-api/exchange/{type}/export'` | Endpoint to start export. Preserve the `{type}` placeholder. |
+| `getTaskServerUrl` | `string` | `'/universer-api/exchange/task/{taskID}'` | Endpoint for task status. Preserve the `{taskID}` placeholder. |
+| `signUrlServerUrl` | `string` | `'/universer-api/file/{fileID}/sign-url'` | Endpoint for signing file URLs. Keep the `{fileID}` placeholder. |
+| `maxTimeoutTime` | `number` | `120000` | Maximum time to poll a conversion task, in milliseconds. |
+
+## Configure OLE attachments [#ole-configuration]
+
+`UniverDrawingPlugin`
+
+| <span data-config-options="">Option</span> | Type | Default | What it does |
+| --- | --- | --- | --- |
+| <ConfigKey depth={0}>ole</ConfigKey> | `object` |  | Settings for the selected feature. |
+| <ConfigKey depth={1}>getLink</ConfigKey> | `IOleConfig["getLink"]` |  | Build the application link for an online attachment. |
+| <ConfigKey depth={1}>attachmentIo</ConfigKey> | `object` |  | Read and write the original attachment in application storage. |
+| <ConfigKey depth={2}>upload</ConfigKey> | `(file: File, targetUnitId: string) => Promise<IBaseAttachment>` |  | Writes an attachment to application storage for this unit. |
+| <ConfigKey depth={2}>read</ConfigKey> | `(attachment: IBaseAttachment, signal?: AbortSignal) => Promise<Uint8Array>` |  | Reads the bytes of an attachment from application storage. |
+| <ConfigKey depth={1}>previewOffice</ConfigKey> | `IOleConfig["previewOffice"]` |  | Override the Office preview flow. |
+| <ConfigKey depth={1}>createOfficePreview</ConfigKey> | `IOleConfig["createOfficePreview"]` |  | Build an Office preview with an application callback. |
+
+Add `ole` to the existing `UniverDrawingPlugin` registration before registering Exchange. The route below is an application route: resolve it to your document UI, using the optional second `getLink` argument (document type) if needed. Exchange supplies Office conversion and collaboration detection. UUID-backed attachments additionally require `ole.attachmentIo` with authorized `upload(file, targetUnitId)` and `read(attachment, signal)` callbacks. Office previews require the corresponding renderer or a custom `previewOffice` / `createOfficePreview` callback.
+
+```ts
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+
+univer.registerPlugin(UniverDrawingPlugin, {
+  ole: {
+    getLink: (unitId) => `/documents/${encodeURIComponent(unitId)}`,
+  },
+})
+```
+
 ## Export failures and license limits [#export-errors]
 
 An export can fail when submitted or while polling its task. An HTTP success alone does not mean the file is ready: inspect the protocol `error.code` and the task state. The exchange client preserves server export errors in `IExchangeService.requestState$`; a custom export UI can subscribe before starting the operation.
@@ -78,18 +118,6 @@ For a custom backend or proxy, preserve the structured error response and report
 ## OLE attachments [#ole-attachments]
 
 Sheets, Docs, and Slides preserve imported OLE files separately from their preview images. Users can download available original files, rename an occurrence, and remove an attachment when permitted. Image and PDF attachments can be previewed. Office previews use Exchange JSON conversion and a temporary read-only editor; opening a preview does not create a persisted child document. Native Office applications and macros are not executed.
-
-Add `ole` to the existing `UniverDrawingPlugin` registration before registering Exchange. The route below is an application route: resolve it to your document UI, using the optional second `getLink` argument (document type) if needed. Exchange supplies Office conversion and collaboration detection. UUID-backed attachments additionally require `ole.attachmentIo` with authorized `upload(file, targetUnitId)` and `read(attachment, signal)` callbacks. Office previews require the corresponding renderer or a custom `previewOffice` / `createOfficePreview` callback.
-
-```ts
-import { UniverDrawingPlugin } from '@univerjs/drawing'
-
-univer.registerPlugin(UniverDrawingPlugin, {
-  ole: {
-    getLink: (unitId) => `/documents/${encodeURIComponent(unitId)}`,
-  },
-})
-```
 
 Converting an Office attachment to an online document requires a collaborative host, edit permission, conversion support, and `getLink`. It creates an independent document and saves its identity on the attachment; later opens reuse it. Editing that document does not overwrite the original attachment bytes. Missing, external, or unsupported attachments retain their status rather than becoming editable Office objects.
 

@@ -47,7 +47,7 @@ export function Rate({
   onRateAction,
 }: {
   lang: string
-  onRateAction: (url: string, feedback: IFeedback) => void
+  onRateAction: (url: string, feedback: IFeedback) => Promise<void>
 }) {
   const t = useTranslations()
   const url = usePathname()
@@ -89,7 +89,7 @@ export function Rate({
         message,
       }
 
-      onRateAction(url, feedback)
+      await onRateAction(url, feedback)
 
       setPrevious({
         ...feedback,
@@ -112,9 +112,7 @@ export function Rate({
       }}
     >
       <div className="flex flex-row items-center gap-2">
-        <p className="pe-2 text-sm font-medium">
-          {t('docs.feedback.question')}
-        </p>
+        <p className="pe-2 text-sm font-medium">{t('docs.feedback.question')}</p>
         <button
           className={clsx(
             rateButtonVariants({
@@ -133,58 +131,45 @@ export function Rate({
       </div>
 
       <CollapsibleContent className="mt-3">
-        {previous
-          ? (
-              <div
-                className={`
-                  flex flex-col items-center gap-3 rounded-xl bg-card px-3 py-6 text-center text-sm
-                  text-muted-foreground
-                `}
+        {previous ? (
+          <div
+            className={`flex flex-col items-center gap-3 rounded-xl bg-card px-3 py-6 text-center text-sm text-muted-foreground`}
+          >
+            <p className="m-0">{t('docs.feedback.thanks')}</p>
+            <div className="flex flex-row items-center gap-2">
+              <Button
+                className="text-xs"
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setOpinion(previous.opinion)
+                  setPrevious(null)
+                }}
               >
-                <p className="m-0">{t('docs.feedback.thanks')}</p>
-                <div className="flex flex-row items-center gap-2">
-                  <Button
-                    className="text-xs"
-                    type="button"
-                    variant="secondary"
-                    onClick={() => {
-                      setOpinion(previous.opinion)
-                      setPrevious(null)
-                    }}
-                  >
-                    {t('docs.feedback.retry')}
-                  </Button>
-                </div>
-              </div>
-            )
-          : (
-              <form className="flex flex-col gap-3" onSubmit={submit}>
-                <textarea
-                  className={`
-                    resize-none rounded-lg border bg-secondary p-3 text-secondary-foreground
-                    placeholder:text-muted-foreground
-                    focus-visible:outline-none
-                  `}
-                  value={message}
-                  placeholder={t('docs.feedback.message')}
-                  autoFocus
-                  required
-                  onChange={e => setMessage(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (!e.shiftKey && e.key === 'Enter') {
-                      submit(e)
-                    }
-                  }}
-                />
-                <Button
-                  className="w-fit self-end"
-                  type="submit"
-                  disabled={isPending}
-                >
-                  {t('docs.feedback.submit')}
-                </Button>
-              </form>
-            )}
+                {t('docs.feedback.retry')}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <form className="flex flex-col gap-3" onSubmit={submit}>
+            <textarea
+              className={`resize-none rounded-lg border bg-secondary p-3 text-secondary-foreground placeholder:text-muted-foreground focus-visible:outline-none`}
+              value={message}
+              placeholder={t('docs.feedback.message')}
+              autoFocus
+              required
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (!e.shiftKey && e.key === 'Enter') {
+                  submit(e)
+                }
+              }}
+            />
+            <Button className="w-fit self-end" type="submit" disabled={isPending}>
+              {t('docs.feedback.submit')}
+            </Button>
+          </form>
+        )}
       </CollapsibleContent>
     </Collapsible>
   )

@@ -21,6 +21,15 @@ const ruRUMessages = {
     'copy-code': 'Копировать код',
     'edit-on-github': 'Редактировать на GitHub',
   },
+  'config-options': {
+    'expand-all': 'Развернуть всё',
+    'collapse-all': 'Свернуть всё',
+    expand: 'Развернуть {path}',
+    collapse: 'Свернуть {path}',
+    'copy-path': 'Копировать путь: {path}',
+    'copied-path': 'Путь скопирован: {path}',
+    'copy-failed': 'Не удалось скопировать. Попробуйте ещё раз.',
+  },
   tools: {
     'watermark-generator': 'Генератор водяных знаков',
     'watermark-generator-description':

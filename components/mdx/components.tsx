@@ -9,7 +9,7 @@ import { InstallTabs, PackageInstallPre } from './install-tabs'
 import { Mermaid } from './mermaid'
 import { MetaData } from './meta-data'
 import { Step, Steps } from './steps'
-import { DocsTable } from './table'
+import { ConfigKey, DocsTable } from './table'
 import { Tab, Tabs } from './tabs'
 
 export function getGuidesMDXComponents(components?: MDXComponents): MDXComponents {
@@ -19,6 +19,7 @@ export function getGuidesMDXComponents(components?: MDXComponents): MDXComponent
     h4: createHeading('h4'),
     img: DocsImage,
     table: DocsTable,
+    ConfigKey,
     pre: PackageInstallPre,
     code: InlineCode,
     CodeBlockTabs,

@@ -1,11 +1,10 @@
 import type { ReactNode } from 'react'
 import { getTranslations } from 'next-intl/server'
-
 import type { Locale } from '@/i18n/routing'
 import type { IGuideNavigation } from '@/lib/guides/navigation'
+import { DocsFeedback } from '@/components/docs-feedback'
 import { DocsPageActions } from '@/components/docs-page-actions'
 import { DocsPagination } from '@/components/docs-shell/pagination'
-import { Rate } from '@/components/rate'
 import { Link } from '@/i18n/navigation'
 
 export async function GuidesArticle({
@@ -16,7 +15,7 @@ export async function GuidesArticle({
   navigation,
   lang,
   children,
-  onRateAction,
+  url,
 }: {
   title: string
   description?: string
@@ -25,7 +24,7 @@ export async function GuidesArticle({
   navigation: IGuideNavigation
   lang: string
   children: ReactNode
-  onRateAction: Parameters<typeof Rate>[0]['onRateAction']
+  url: string
 }) {
   const t = await getTranslations({ locale: lang as Locale })
 
@@ -35,7 +34,7 @@ export async function GuidesArticle({
         {navigation.activeTrail.length > 0 ? (
           <nav
             aria-label={t('docs.breadcrumb')}
-            className="text-muted-foreground flex min-w-0 gap-2 overflow-x-auto text-sm"
+            className="flex min-w-0 gap-2 overflow-x-auto text-sm text-muted-foreground"
           >
             {navigation.activeTrail.map((item, index) => (
               <span className="inline-flex items-center gap-2 whitespace-nowrap" key={item.id}>
@@ -59,11 +58,11 @@ export async function GuidesArticle({
       </div>
       <header className="border-b border-(--separator) pb-6">
         <h1 className="text-[28px]/9 font-semibold tracking-normal">{title}</h1>
-        {description ? <p className="text-muted-foreground mt-3 max-w-2xl text-base/[26px]">{description}</p> : null}
+        {description ? <p className="mt-3 max-w-2xl text-base/[26px] text-muted-foreground">{description}</p> : null}
       </header>
       <div className="mt-8 min-w-0">{children}</div>
       <div className="mt-10">
-        <Rate lang={lang} onRateAction={onRateAction} />
+        <DocsFeedback lang={lang} url={url} />
       </div>
       <DocsPagination
         previous={navigation.previous}

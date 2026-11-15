@@ -15,6 +15,73 @@ description: Подключение редактора Univer к совмест�
 
 Фиксированные пользователи и права примера предназначены для демонстрации. В приложении передавайте учётные данные в запросах, чтобы сервер проверял личность и доступ к документу. Лицензирование описано в [настройке лицензии](/server/license).
 
+## Настройка плагинов [#client-configuration]
+
+### Пакетная отправка и интервалы повторов [#client-retry-timeouts]
+
+`UniverCollaborationClientPlugin`
+
+| <span data-config-options="">Параметр</span> | Тип | По умолчанию | Действие |
+| --- | --- | --- | --- |
+| `socketService` | `Ctor<ICollaborationSocketService>` |  | Реализация сокета для текущей среды. |
+| `sendChangesetTimeout` | `number` | `2000 ms` | Задержка перед пакетной отправкой локальных изменений. |
+| `changesetAckTimeout` | `number` | `20000 ms` | Ожидание подтверждения перед повтором. |
+| `maxChangesetAckTimeout` | `number` | `120000 ms` | Ограничивает интервал повторных отправок. |
+
+Задержка объединения и тайм-аут подтверждения различаются. По умолчанию в миллисекундах: `sendChangesetTimeout: 2000`, `changesetAckTimeout: 20000`, `maxChangesetAckTimeout: 120000`. Запрос отправки использует тот же тайм-аут подтверждения. Неподтверждённые изменения отправляются повторно с экспоненциальным увеличением интервала до максимума. Равные два тайм-аута дают постоянный интервал.
+
+```ts
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import { BrowserCollaborationSocketService } from '@univerjs-pro/collaboration-client-ui'
+
+univer.registerPlugin(UniverCollaborationClientPlugin, {
+  socketService: BrowserCollaborationSocketService,
+  sendChangesetTimeout: 200,
+  changesetAckTimeout: 20_000,
+  maxChangesetAckTimeout: 120_000,
+})
+```
+
+Добавьте параметры в существующую регистрацию клиента, сохранив socket и endpoints. Пресеты совместной работы Sheets и Docs используют задержку объединения 200 мс и не предоставляют настройки тайм-аута подтверждения; для них используйте режим плагинов.
+
+### Уведомления об устранении конфликтов [#client-conflict-notices]
+
+`UniverCollaborationClientUIPlugin`
+
+| <span data-config-options="">Параметр</span> | Тип | По умолчанию | Действие |
+| --- | --- | --- | --- |
+| `enableDefaultConflictUI` | `boolean` | `true` | Показывает встроенные уведомления о восстановлении после конфликта. |
+
+```ts
+import { UniverCollaborationClientUIPlugin } from '@univerjs-pro/collaboration-client-ui'
+
+univer.registerPlugin(UniverCollaborationClientUIPlugin, { enableDefaultConflictUI: false })
+```
+
+## Настройка пресетов [#client-preset-configuration]
+
+`UniverSheetsCollaborationPreset / UniverDocsCollaborationPreset`
+
+| <span data-config-options="">Параметр</span> | Тип | По умолчанию | Действие |
+| --- | --- | --- | --- |
+| `enableDefaultConflictUI` | `boolean` | `true` | Показывает встроенные уведомления о восстановлении после конфликта. |
+
+```ts
+import { UniverSheetsCollaborationPreset } from '@univerjs/preset-sheets-collaboration'
+
+const collaborationPreset = UniverSheetsCollaborationPreset({ enableDefaultConflictUI: false })
+```
+
+```ts
+import { UniverDocsCollaborationPreset } from '@univerjs/preset-docs-collaboration'
+
+const collaborationPreset = UniverDocsCollaborationPreset({ enableDefaultConflictUI: false })
+```
+
+По умолчанию UI показывает уведомление с причиной и предлагает перезагрузку после успешной очистки либо повтор при ошибке очистки. Чтобы управлять восстановлением самостоятельно, задайте `enableDefaultConflictUI: false` в существующей инициализации и обработайте событие:
+
+Добавьте пресет совместной работы к пресету редактора в существующем `createUniver({ presets: [...] })`, сохранив endpoints и историю. См. [параметры событий](#conflict-recovery) и [конфигурацию клиента](/reference/packages/plugins/univerjs-pro/collaboration-client).
+
 ## Создание и открытие одного документа
 
 Создание и открытие — разные действия:
@@ -74,22 +141,6 @@ const resendSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationChang
 
 `request_failed` означает сбой запроса, допускающий повторную попытку, например сетевую ошибку или HTTP 408, 429, 5xx. `license_editing_connections_exceeded` означает, что все разрешённые лицензией подключения для редактирования заняты и сервер запросил повторную отправку.
 
-Задержка объединения и тайм-аут подтверждения различаются. По умолчанию в миллисекундах: `sendChangesetTimeout: 2000`, `changesetAckTimeout: 20000`, `maxChangesetAckTimeout: 120000`. Запрос отправки использует тот же тайм-аут подтверждения. Неподтверждённые изменения отправляются повторно с экспоненциальным увеличением интервала до максимума. Равные два тайм-аута дают постоянный интервал.
-
-```ts
-import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
-import { BrowserCollaborationSocketService } from '@univerjs-pro/collaboration-client-ui'
-
-univer.registerPlugin(UniverCollaborationClientPlugin, {
-  socketService: BrowserCollaborationSocketService,
-  sendChangesetTimeout: 200,
-  changesetAckTimeout: 20_000,
-  maxChangesetAckTimeout: 120_000,
-})
-```
-
-Добавьте параметры в существующую регистрацию клиента, сохранив socket и endpoints. Пресеты совместной работы Sheets и Docs используют задержку объединения 200 мс и не предоставляют настройки тайм-аута подтверждения; для них используйте режим плагинов.
-
 ## Обработка конфликтов приложением [#conflict-recovery]
 
 `CollaborationConflict` вызывается один раз при входе в конфликт после попытки очистить офлайн-кеш. Подпишитесь до загрузки документов. `reason`: `transform_failed`, `apply_failed`, `changeset_rejected`, `license_unit_type_rejected`, `permission_rejected` или `remote_revert`; при наличии `message` и `revert` дают подробности.
@@ -109,34 +160,6 @@ const conflictSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationCon
 Пример сохраняет событие для экрана восстановления. Map существует только в памяти: до перезагрузки сохраните или экспортируйте `localChanges`. Удержать данные нужно в этом событии: очищенный кеш затем не восстановить. `awaitingChangeset` мог уже примениться на сервере, поэтому не воспроизводите его без проверки.
 
 При `cacheCleared: false` перезагрузка повторно применит старый кеш. Сначала решите проблему очистки. Очистка не означает сохранение несинхронизированных изменений. При `permission_rejected` также нужно восстановить доступ: перезагрузка не выдаёт права.
-
-По умолчанию UI показывает уведомление с причиной и предлагает перезагрузку после успешной очистки либо повтор при ошибке очистки. Чтобы управлять восстановлением самостоятельно, задайте `enableDefaultConflictUI: false` в существующей инициализации и обработайте событие:
-
-<Tabs items={['Режим плагинов', 'Пресет Sheets', 'Пресет Docs']}>
-  <Tab>
-    ```ts
-    import { UniverCollaborationClientUIPlugin } from '@univerjs-pro/collaboration-client-ui'
-
-    univer.registerPlugin(UniverCollaborationClientUIPlugin, { enableDefaultConflictUI: false })
-    ```
-  </Tab>
-  <Tab>
-    ```ts
-    import { UniverSheetsCollaborationPreset } from '@univerjs/preset-sheets-collaboration'
-
-    const collaborationPreset = UniverSheetsCollaborationPreset({ enableDefaultConflictUI: false })
-    ```
-  </Tab>
-  <Tab>
-    ```ts
-    import { UniverDocsCollaborationPreset } from '@univerjs/preset-docs-collaboration'
-
-    const collaborationPreset = UniverDocsCollaborationPreset({ enableDefaultConflictUI: false })
-    ```
-  </Tab>
-</Tabs>
-
-Добавьте пресет совместной работы к пресету редактора в существующем `createUniver({ presets: [...] })`, сохранив endpoints и историю. См. [параметры событий](/reference/facade/events#collaborationconflict) и [конфигурацию клиента](/reference/packages/plugins/univerjs-pro/collaboration-client).
 
 ## Причины сервера и уведомления о лицензии [#server-rejections]
 

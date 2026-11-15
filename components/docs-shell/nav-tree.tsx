@@ -26,11 +26,12 @@ function NavContent({ item }: { item: INavTreeItem }) {
           <NavIconFrame icon={item.icon} />
           <NavUpdateBadge item={item} dot className="absolute -top-0.5 -left-0.5" />
         </span>
-      ) : (
-        <NavUpdateBadge item={item} dot />
-      )}
-      <span className="min-w-0 flex-1 truncate" title={item.name}>
-        {item.name}
+      ) : null}
+      <span className="relative min-w-0 flex-1">
+        {!item.icon ? <NavUpdateBadge item={item} dot className="absolute -top-0.5 -left-2" /> : null}
+        <span className="block truncate" title={item.name}>
+          {item.name}
+        </span>
       </span>
       {item.count !== undefined ? (
         <span className="shrink-0 rounded bg-muted px-1.5 text-xs text-muted-foreground tabular-nums">

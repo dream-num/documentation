@@ -15,6 +15,73 @@ description: Univer 편집기를 공동 편집 서비스에 연결해 사용자�
 
 예제의 고정 사용자와 기본 권한은 시연용입니다. 실제 요청에는 로그인 자격 증명을 포함하여 백엔드가 신원과 문서 접근을 검증하도록 하세요. 라이선스는 [라이선스 설정](/server/license)을 참고하세요.
 
+## 플러그인 설정 [#client-configuration]
+
+### 일괄 전송 및 재시도 시간 제한 [#client-retry-timeouts]
+
+`UniverCollaborationClientPlugin`
+
+| <span data-config-options="">옵션</span> | 유형 | 기본값 | 동작 |
+| --- | --- | --- | --- |
+| `socketService` | `Ctor<ICollaborationSocketService>` |  | 현재 런타임에서 사용할 소켓 구현입니다. |
+| `sendChangesetTimeout` | `number` | `2000 ms` | 로컬 변경을 모아서 전송하기까지 기다리는 시간입니다. |
+| `changesetAckTimeout` | `number` | `20000 ms` | 확인을 기다리는 시간입니다. 시간이 지나면 재전송합니다. |
+| `maxChangesetAckTimeout` | `number` | `120000 ms` | 재전송 간격의 최댓값입니다. |
+
+일괄 전송 지연과 확인 제한 시간은 다릅니다. 플러그인 기본값은 `sendChangesetTimeout: 2000`, `changesetAckTimeout: 20000`, `maxChangesetAckTimeout: 120000`(밀리초)입니다. 제출 요청에도 확인 제한 시간이 적용되며 미확인 변경은 최대값까지 지수 백오프로 재전송됩니다. 뒤의 두 값을 같게 하면 간격이 일정합니다.
+
+```ts
+import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
+import { BrowserCollaborationSocketService } from '@univerjs-pro/collaboration-client-ui'
+
+univer.registerPlugin(UniverCollaborationClientPlugin, {
+  socketService: BrowserCollaborationSocketService,
+  sendChangesetTimeout: 200,
+  changesetAckTimeout: 20_000,
+  maxChangesetAckTimeout: 120_000,
+})
+```
+
+기존 클라이언트 등록에 옵션을 추가하고 socket 및 엔드포인트를 유지하세요. Sheets와 Docs 공동 편집 프리셋은 일괄 전송 지연 200 ms를 사용하고 확인 제한 시간 옵션을 노출하지 않습니다. 시간을 변경하려면 플러그인 모드를 사용하세요.
+
+### 충돌 복구 알림 [#client-conflict-notices]
+
+`UniverCollaborationClientUIPlugin`
+
+| <span data-config-options="">옵션</span> | 유형 | 기본값 | 동작 |
+| --- | --- | --- | --- |
+| `enableDefaultConflictUI` | `boolean` | `true` | 기본 충돌 복구 알림을 표시합니다. |
+
+```ts
+import { UniverCollaborationClientUIPlugin } from '@univerjs-pro/collaboration-client-ui'
+
+univer.registerPlugin(UniverCollaborationClientUIPlugin, { enableDefaultConflictUI: false })
+```
+
+## 프리셋 설정 [#client-preset-configuration]
+
+`UniverSheetsCollaborationPreset / UniverDocsCollaborationPreset`
+
+| <span data-config-options="">옵션</span> | 유형 | 기본값 | 동작 |
+| --- | --- | --- | --- |
+| `enableDefaultConflictUI` | `boolean` | `true` | 기본 충돌 복구 알림을 표시합니다. |
+
+```ts
+import { UniverSheetsCollaborationPreset } from '@univerjs/preset-sheets-collaboration'
+
+const collaborationPreset = UniverSheetsCollaborationPreset({ enableDefaultConflictUI: false })
+```
+
+```ts
+import { UniverDocsCollaborationPreset } from '@univerjs/preset-docs-collaboration'
+
+const collaborationPreset = UniverDocsCollaborationPreset({ enableDefaultConflictUI: false })
+```
+
+기본 UI는 이유별 알림을 표시하고 캐시 정리 성공 후 새로고침, 실패 시 재시도를 제공합니다. 앱이 복구 흐름을 관리하려면 기존 초기화에 `enableDefaultConflictUI: false`를 설정하고 이벤트를 처리하세요.
+
+공동 편집 프리셋을 기존 `createUniver({ presets: [...] })`에서 편집기 프리셋과 조합하고 엔드포인트 및 기록 설정을 유지하세요. [이벤트 매개변수](#conflict-recovery)와 [클라이언트 설정](/reference/packages/plugins/univerjs-pro/collaboration-client)을 참고하세요.
+
 ## 같은 문서 생성 및 열기
 
 생성과 열기는 별개 작업입니다.
@@ -74,22 +141,6 @@ const resendSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationChang
 
 `request_failed`는 네트워크 오류나 HTTP 408, 429, 5xx 등 재시도 가능한 요청 실패를 뜻합니다. `license_editing_connections_exceeded`는 라이선스가 허용하는 편집 연결이 모두 사용 중이어서 서버가 재전송을 요청했음을 뜻합니다.
 
-일괄 전송 지연과 확인 제한 시간은 다릅니다. 플러그인 기본값은 `sendChangesetTimeout: 2000`, `changesetAckTimeout: 20000`, `maxChangesetAckTimeout: 120000`(밀리초)입니다. 제출 요청에도 확인 제한 시간이 적용되며 미확인 변경은 최대값까지 지수 백오프로 재전송됩니다. 뒤의 두 값을 같게 하면 간격이 일정합니다.
-
-```ts
-import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
-import { BrowserCollaborationSocketService } from '@univerjs-pro/collaboration-client-ui'
-
-univer.registerPlugin(UniverCollaborationClientPlugin, {
-  socketService: BrowserCollaborationSocketService,
-  sendChangesetTimeout: 200,
-  changesetAckTimeout: 20_000,
-  maxChangesetAckTimeout: 120_000,
-})
-```
-
-기존 클라이언트 등록에 옵션을 추가하고 socket 및 엔드포인트를 유지하세요. Sheets와 Docs 공동 편집 프리셋은 일괄 전송 지연 200 ms를 사용하고 확인 제한 시간 옵션을 노출하지 않습니다. 시간을 변경하려면 플러그인 모드를 사용하세요.
-
 ## 애플리케이션에서 충돌 처리 [#conflict-recovery]
 
 `CollaborationConflict`는 문서가 충돌 상태가 된 후 오프라인 캐시 정리를 시도한 다음 한 번 발생합니다. 문서 로드 전에 구독하세요. `reason`은 `transform_failed`, `apply_failed`, `changeset_rejected`, `license_unit_type_rejected`, `permission_rejected`, `remote_revert`이며 가능한 경우 `message`와 `revert`가 세부 정보를 제공합니다.
@@ -109,34 +160,6 @@ const conflictSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationCon
 예제는 복구 화면을 위해 이벤트를 보관합니다. Map은 메모리에만 존재합니다. 새로고침 전에 앱에서 `localChanges`를 저장하거나 내보내세요. 정리된 캐시는 나중에 복구할 수 없으므로 이벤트에서 보관해야 합니다. `awaitingChangeset`은 이미 서버에 적용되었을 수 있으므로 그대로 재실행하지 마세요.
 
 `cacheCleared: false`이면 새로고침 시 이전 캐시가 재실행되므로 먼저 정리 문제를 해결하세요. 캐시 정리는 미동기화 변경이 저장되었다는 뜻이 아닙니다. `permission_rejected`는 권한도 해결해야 하며 새로고침이 권한을 부여하지 않습니다.
-
-기본 UI는 이유별 알림을 표시하고 캐시 정리 성공 후 새로고침, 실패 시 재시도를 제공합니다. 앱이 복구 흐름을 관리하려면 기존 초기화에 `enableDefaultConflictUI: false`를 설정하고 이벤트를 처리하세요.
-
-<Tabs items={['플러그인 모드', 'Sheets 프리셋', 'Docs 프리셋']}>
-  <Tab>
-    ```ts
-    import { UniverCollaborationClientUIPlugin } from '@univerjs-pro/collaboration-client-ui'
-
-    univer.registerPlugin(UniverCollaborationClientUIPlugin, { enableDefaultConflictUI: false })
-    ```
-  </Tab>
-  <Tab>
-    ```ts
-    import { UniverSheetsCollaborationPreset } from '@univerjs/preset-sheets-collaboration'
-
-    const collaborationPreset = UniverSheetsCollaborationPreset({ enableDefaultConflictUI: false })
-    ```
-  </Tab>
-  <Tab>
-    ```ts
-    import { UniverDocsCollaborationPreset } from '@univerjs/preset-docs-collaboration'
-
-    const collaborationPreset = UniverDocsCollaborationPreset({ enableDefaultConflictUI: false })
-    ```
-  </Tab>
-</Tabs>
-
-공동 편집 프리셋을 기존 `createUniver({ presets: [...] })`에서 편집기 프리셋과 조합하고 엔드포인트 및 기록 설정을 유지하세요. [이벤트 매개변수](/reference/facade/events#collaborationconflict)와 [클라이언트 설정](/reference/packages/plugins/univerjs-pro/collaboration-client)을 참고하세요.
 
 ## 서버 거부 이유와 라이선스 알림 [#server-rejections]
 

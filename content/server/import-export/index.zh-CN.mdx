@@ -47,6 +47,46 @@ description: 为 Univer 应用接入文件导入和导出，并按是否需要�
 
 上线前，限制上传大小，并处理转换失败和超时。上传、任务查询和下载都需要检查用户权限，权限接入可参考[身份与权限](/server/collaboration/identity-and-authorization)。
 
+## 插件配置 [#exchange-client-configuration]
+
+`UniverExchangeClientPlugin`
+
+| <span data-config-options="">配置项</span> | 类型 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| `downloadEndpointUrl` | `string` | `location.origin` | 下载文件的基础地址。 |
+| `uploadFileServerUrl` | `string` | `'/universer-api/stream/file/upload'` | 上传文件的接口。 |
+| `importServerUrl` | `string` | `'/universer-api/exchange/{type}/import'` | 启动导入任务的接口。保留 `{type}` 占位符。 |
+| `exportServerUrl` | `string` | `'/universer-api/exchange/{type}/export'` | 启动导出任务的接口。保留 `{type}` 占位符。 |
+| `getTaskServerUrl` | `string` | `'/universer-api/exchange/task/{taskID}'` | 查询任务状态的接口。保留 `{taskID}` 占位符。 |
+| `signUrlServerUrl` | `string` | `'/universer-api/file/{fileID}/sign-url'` | 签发文件 URL 的接口。保留 `{fileID}` 占位符。 |
+| `maxTimeoutTime` | `number` | `120000` | 轮询转换任务的最长时间，单位为毫秒。 |
+
+## 配置 OLE 附件 [#ole-configuration]
+
+`UniverDrawingPlugin`
+
+| <span data-config-options="">配置项</span> | 类型 | 默认值 | 作用 |
+| --- | --- | --- | --- |
+| <ConfigKey depth={0}>ole</ConfigKey> | `object` |  | 该功能的配置项。 |
+| <ConfigKey depth={1}>getLink</ConfigKey> | `IOleConfig["getLink"]` |  | 生成打开在线附件的应用链接。 |
+| <ConfigKey depth={1}>attachmentIo</ConfigKey> | `object` |  | 通过应用的存储读写附件原文件。 |
+| <ConfigKey depth={2}>upload</ConfigKey> | `(file: File, targetUnitId: string) => Promise<IBaseAttachment>` |  | 把附件写入应用存储并关联到当前单元。 |
+| <ConfigKey depth={2}>read</ConfigKey> | `(attachment: IBaseAttachment, signal?: AbortSignal) => Promise<Uint8Array>` |  | 从应用存储读取附件字节。 |
+| <ConfigKey depth={1}>previewOffice</ConfigKey> | `IOleConfig["previewOffice"]` |  | 接管 Office 附件的预览流程。 |
+| <ConfigKey depth={1}>createOfficePreview</ConfigKey> | `IOleConfig["createOfficePreview"]` |  | 用应用提供的回调创建 Office 预览。 |
+
+在注册 Exchange 之前，将 `ole` 加入已有的 `UniverDrawingPlugin` 配置。以下路由由应用实现，应指向文档界面；可根据 `getLink` 的第二个参数（文档类型）选择路由。Exchange 提供 Office 转换和协同状态检测。使用 UUID 引用的附件还需配置 `ole.attachmentIo`，提供带鉴权的 `upload(file, targetUnitId)` 和 `read(attachment, signal)` 回调。Office 预览需要对应渲染器，或自定义 `previewOffice` / `createOfficePreview` 回调。
+
+```ts
+import { UniverDrawingPlugin } from '@univerjs/drawing'
+
+univer.registerPlugin(UniverDrawingPlugin, {
+  ole: {
+    getLink: (unitId) => `/documents/${encodeURIComponent(unitId)}`,
+  },
+})
+```
+
 ## 导出失败与许可证限制 [#export-errors]
 
 导出可能在提交请求时失败，也可能在任务轮询时失败。HTTP 请求成功不代表文件已生成，还需检查协议中的 `error.code` 和任务状态。Exchange 客户端会通过 `IExchangeService.requestState$` 保留服务端导出错误；自定义导出界面可在发起操作前订阅。
@@ -78,18 +118,6 @@ const subscription = exchange.requestState$.subscribe(({ error }) => {
 ## OLE 附件 [#ole-attachments]
 
 Sheets、Docs 和 Slides 将导入的 OLE 原文件与预览图分别保留。用户可以下载可用的原文件，并在权限允许时重命名某个附件实例或删除附件。图片和 PDF 可预览；Office 预览通过 Exchange 转换为 JSON，并在临时只读编辑器中打开，不创建持久化子文档。不会运行原生 Office 应用或宏。
-
-在注册 Exchange 之前，将 `ole` 加入已有的 `UniverDrawingPlugin` 配置。以下路由由应用实现，应指向文档界面；可根据 `getLink` 的第二个参数（文档类型）选择路由。Exchange 提供 Office 转换和协同状态检测。使用 UUID 引用的附件还需配置 `ole.attachmentIo`，提供带鉴权的 `upload(file, targetUnitId)` 和 `read(attachment, signal)` 回调。Office 预览需要对应渲染器，或自定义 `previewOffice` / `createOfficePreview` 回调。
-
-```ts
-import { UniverDrawingPlugin } from '@univerjs/drawing'
-
-univer.registerPlugin(UniverDrawingPlugin, {
-  ole: {
-    getLink: (unitId) => `/documents/${encodeURIComponent(unitId)}`,
-  },
-})
-```
 
 将 Office 附件转换为在线文档，需要宿主已启用协同、具有编辑权限，并配置转换能力和 `getLink`。转换创建独立文档，将其标识保存到附件上，后续打开时复用该文档。编辑在线文档不会覆盖附件原始字节。缺失、外部引用或不支持的附件保留相应状态，不会变成可编辑的 Office 对象。
 

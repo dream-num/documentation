@@ -21,6 +21,15 @@ const jaJPMessages = {
     'copy-code': 'コードをコピー',
     'edit-on-github': 'GitHub で編集',
   },
+  'config-options': {
+    'expand-all': 'すべて展開',
+    'collapse-all': 'すべて折りたたむ',
+    expand: '{path} を展開',
+    collapse: '{path} を折りたたむ',
+    'copy-path': 'パスをコピー: {path}',
+    'copied-path': 'パスをコピーしました: {path}',
+    'copy-failed': 'コピーできませんでした。もう一度お試しください。',
+  },
   tools: {
     'watermark-generator': '透かし設定ジェネレーター',
     'watermark-generator-description':

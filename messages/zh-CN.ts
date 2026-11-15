@@ -21,6 +21,15 @@ const zhCNMessages = {
     'copy-code': '复制代码',
     'edit-on-github': '在 GitHub 上编辑',
   },
+  'config-options': {
+    'expand-all': '展开全部',
+    'collapse-all': '收起全部',
+    expand: '展开 {path}',
+    collapse: '收起 {path}',
+    'copy-path': '复制路径：{path}',
+    'copied-path': '已复制路径：{path}',
+    'copy-failed': '复制失败，请重试。',
+  },
   tools: {
     'watermark-generator': '水印配置生成器',
     'watermark-generator-description': '配置文本、图片与用户信息水印，实时预览并导出 JSON。',
