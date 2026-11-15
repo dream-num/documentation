@@ -13,32 +13,29 @@ Stop Quick Start, then run `pnpm example:database-adapter` from the repository r
 
 ## What an Adapter stores
 
-The Core Collaboration Adapter stores:
+The Adapter stores three kinds of data for each collaborative document (Unit).
 
-- the Unit record and current head revision;
-- revisioned snapshots;
-- confirmed changesets;
-- blocks referenced by Sheet snapshots;
-- submission idempotency[^submission-idempotency] records keyed by `(unitID, sid, reqId)`;
-- Unit soft-delete, recovery, and permanent-delete state.
+- **The Unit record** stores the document ID, type, creator, creation time, and current revision (`headRevision`). When the Adapter commits a change, it saves the changeset and updates the revision in the same operation. The application can use `UnitRecord.metadata` to store and maintain its own document fields, such as the document name (`name`), the last editor’s ID (`lastEditorID`), and the last modification time (`lastModifiedAt`).
+- **Snapshots** capture the document content at a particular revision. To read a specific revision, the Service can load the latest snapshot at or before that revision and replay the changes up to the requested revision. For spreadsheets, the Adapter also stores the data blocks referenced by the snapshot.
+- **Changesets** group the operations in each submission. The Adapter stores changesets in revision order and preserves the submission identifiers `sid` and `reqId` so the Service can recognize a client retry and avoid applying the same edit twice.[^submission-idempotency] The application can use `ChangesetRecord.metadata` to store its own information about a submission, such as the source of the edit (`source`) or a related business operation ID (`operationId`).
 
-By default, it does not store users, roles, ACLs, or product metadata. History, Thread Comment, and Worktree use their own independent Adapter contracts.
+For details on setting metadata during creation and submission, see [Middleware and Events](/server/collaboration/middleware-and-events#persistent-metadata).
 
-## Required semantics
+Soft deletion preserves this data so editing can resume after recovery. After permanent deletion, the document data is inaccessible and the document ID cannot be reused.
 
-`IDatabaseAdapter` is more than a CRUD interface. An implementation must preserve the correctness contract expected by Collaboration Service:
+The application manages users, roles, and access permissions. History, Thread Comment, and Worktree each use a separate Adapter interface.
 
-| Contract                    | Meaning                                                                                    |
-| --------------------------- | ------------------------------------------------------------------------------------------ |
-| Atomic creation             | The initial snapshot and Sheet blocks become visible together, or not at all               |
-| Revision CAS[^revision-cas]                | The next submission is confirmed only when the head revision matches the expected revision |
-| Submission idempotency      | Retrying the same `(unitID, sid, reqId)` returns the same determined result                |
-| Contiguous changesets       | Confirmed changesets and the Unit revision remain contiguous                               |
-| Snapshot visibility         | A snapshot becomes readable only after all of its dependencies are stored                  |
-| Atomic lifecycle operations | Every Unit in a delete or recovery batch succeeds, or none does                            |
-| Permanent-delete tombstone  | A hard-deleted Unit ID cannot be created again                                             |
+## Adapter read and write requirements
 
-Mapping every method to an ordinary database read or write without implementing these concurrency and atomicity semantics will break OT and recovery behavior.
+A custom `IDatabaseAdapter` must meet the following requirements for each operation.
+
+| Operation | Requirement |
+| --- | --- |
+| Create a Unit | Save the Unit record (including its metadata), the initial snapshot, and its Sheet blocks atomically so they become readable together. |
+| Commit a changeset | Commit only if the Unit’s current revision matches the expected revision (CAS)[^revision-cas]. In one atomic write, save the changeset with its metadata, replace the Unit metadata in full, and increment the revision by one. On a mismatch, return the current revision without writing any data. |
+| Read changesets | Return the changesets in the requested range in ascending revision order, with no gaps. Preserve each changeset’s original `sid` and `reqId` so the Service can recognize duplicate submissions for the same Unit. |
+| Save a snapshot | When the snapshot becomes readable, every Sheet block it references must also be readable. |
+| Delete or recover Units | Apply the operation to the entire batch. If any item fails, leave the whole batch unchanged. |
 
 ## Memory Adapter
 
@@ -112,22 +109,15 @@ const service = new UniverCollabService({ dbAdapter: database });
 
 The Service does not depend on a specific database, but it also cannot add transactions, CAS, or deduplication to a custom implementation. The Adapter must implement the complete contract using the capabilities of its database. The built-in implementations in the [community repository](https://github.com/dream-num/univer-collaboration-sdk-community) show the same contract on different databases and serve as references.
 
-## Context and the application boundary
+## How to store business data
 
-Each Service call passes its `customData` to Middleware, the Database Adapter, and related Events, but the SDK does not persist this data automatically. Authorization decisions should usually remain in Service Middleware instead of being repeated across Adapter methods:
+**Use `metadata` for information attached to a document or changeset.** The application can set these fields when it creates a document or submits a changeset. The built-in Adapter saves them with the collaboration data. See [Middleware and Events](/server/collaboration/middleware-and-events#persistent-metadata).
 
-```text
-Service Middleware
-  → allow or reject the business operation
-  → Database Adapter
-  → atomically store authoritative collaboration state
-```
+**Use Middleware or Events to write to separate business tables.** To audit an attempted operation, write to an audit table in Middleware. To update a business table after a successful commit, listen for `changesetCommitted`. By default, these writes run outside the collaboration transaction. A revision conflict can cause commit-stage Middleware to run again, so make sure a retry cannot create a duplicate record. Events are delivered within the process on a best-effort basis. Use them for data the application can backfill or rebuild.
 
-This lets Memory, SQLite, PostgreSQL, and custom Adapters share the same application policy.
+**Use a custom Database Adapter if you need to use your application’s own database and schema or write business and collaboration data in one transaction.** When calling the Service, the application can pass context such as a business operation ID in `customData`. The Adapter method can read the fields it needs from `ctx.customData` and decide which tables to update. For example, `commitChangeset()` can use the operation ID to update the corresponding business record in the same transaction that saves the changeset.
 
-When business data must remain strongly consistent with collaboration data, a custom Database Adapter can read the required values from `customData` and write both sets of data in the Adapter's database transaction.
-
-When business data does not need to share the collaboration transaction, Middleware or Events can write it to additional tables or external systems. Middleware and Events do not share the Adapter's internal transaction by default. Events are process-local, best-effort notifications emitted after a collaboration commit succeeds. The application is responsible for any required idempotency, retries, or compensation.
+`customData` is scoped to the current call. Built-in Adapters do not automatically persist its fields or use them to write to business tables.
 
 ## Storage for extension modules
 
