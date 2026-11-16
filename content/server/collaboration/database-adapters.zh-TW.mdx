@@ -11,7 +11,7 @@ Database Adapter 以 Apache-2.0 開源，原始碼位於 [univer-collaboration-s
 
 停止 Quick Start，然後從倉庫根目錄執行 `pnpm example:database-adapter`。開啟 `http://127.0.0.1:3010/?unit=persistent-sheet`，修改一個單元格，再在另一個瀏覽器中確認修改結果。停止服務，重新執行同一條命令並開啟同一個 URL，該值應當仍然存在。
 
-資料儲存在 `examples/database-adapter/.data/collaboration.sqlite`，兩次執行之間不得刪除該檔案。服務啟動時會先讀取已有的 Unit，僅在收到 `UNIT_NOT_FOUND` 時呼叫 `createUnitFromData()`，因此不會覆蓋已儲存的資料。具體實現見 [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts)。
+[範例伺服器](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts)將資料儲存在 `examples/database-adapter/.data/collaboration.sqlite` 中。
 
 ## Adapter 儲存的資料
 
@@ -80,7 +80,7 @@ const service = new UniverCollabService({ dbAdapter: database });
 
 ## PostgreSQL Adapter
 
-[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) 基於 node-postgres，將資料儲存在 PostgreSQL 中，多個協同節點可以共用一個資料庫。
+[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) 將所有核心協同資料保存在 PostgreSQL 中，包括 Sheet 快照參照的儲存格資料區塊。多個協同節點可以共用同一個資料庫。
 
 ```ts
 import { PostgresDatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres";
@@ -93,6 +93,31 @@ const service = new UniverCollabService({ dbAdapter: database });
 ```
 
 連線池由應用持有，並在釋放 Service 之後關閉。`create()` 會在空資料庫中初始化 `collaboration` schema，schema 已存在時只做校驗。
+
+若有 S3 相容的物件儲存服務，建議使用 [PostgreSQL + S3 Adapter](#postgresql-s3-adapter)，以減少資料庫及其備份的大小。
+
+## PostgreSQL + S3 Adapter [#postgresql-s3-adapter]
+
+[`@univerjs-pro/collaboration-database-postgres-s3`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres-s3) 將 Sheet 的儲存格資料區塊存入 S3 相容儲存桶，Unit、changeset、快照記錄和區塊參照仍保存在 PostgreSQL 中。
+
+大型活頁簿的快照主要由儲存格資料構成。將這些資料區塊放在 S3，可以減少 PostgreSQL 資料庫及其備份的大小。活頁簿成長時，區塊的儲存容量也可以獨立擴充。
+
+將 `DATABASE_URL`、`S3_REGION` 和 `S3_BUCKET` 分別設為資料庫連線位址、儲存桶所在區域和既有儲存桶名稱。
+
+```ts
+import { S3Client } from "@aws-sdk/client-s3";
+import { PostgresS3DatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres-s3";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { Pool } from "pg";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const client = new S3Client({ region: process.env.S3_REGION });
+const database = await PostgresS3DatabaseAdapter.create({
+  pool,
+  s3: { client, bucket: process.env.S3_BUCKET! },
+});
+const service = new UniverCollabService({ dbAdapter: database });
+```
 
 ## 自訂 Database Adapter
 
@@ -129,12 +154,12 @@ History、Thread Comment、Worktree 與 File 等擴充套件模組各自定義�
 
 ## 選擇 Adapter
 
-| Adapter | 適用情境 | 主要限制 |
-| --- | --- | --- |
-| Memory | 測試、範例、臨時開發 | 程序結束後資料消失 |
-| SQLite | 開發、測試、本地應用與小規模使用 | 單檔案資料庫，設定由應用管理 |
-| PostgreSQL | 多節點部署與現有 PostgreSQL 資料庫 | 連線池與資料庫操作由應用負責 |
-| 自訂 | 已有資料庫或自定義業務資料整合 | 應用需要實現並驗證完整合同 |
+| Adapter         | 適用情境                                                 | 主要限制                                                                                     |
+| --------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Memory          | 測試、範例、臨時開發                                     | 程序結束後資料消失                                                                           |
+| SQLite          | 開發、測試、本地應用與小規模使用                         | 單檔案資料庫，設定由應用管理                                                                 |
+| PostgreSQL + S3 | 使用 PostgreSQL 和物件儲存的應用程式，尤其適合大型活頁簿 | 需管理資料庫和儲存桶。沒有 S3 相容儲存時，可選用 [PostgreSQL Adapter](#postgresql-adapter)。 |
+| 自訂            | 已有資料庫或自定義業務資料整合                           | 應用需要實現並驗證完整合同                                                                   |
 
 應用擁有所有注入的 Adapter。釋放時先釋放 Service，再釋放 Adapter：
 

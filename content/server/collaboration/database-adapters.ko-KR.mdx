@@ -11,7 +11,7 @@ description: 협업 영속성 계약을 이해하고 Memory, SQLite, PostgreSQL,
 
 빠른 시작을 중지하고 저장소 루트에서 `pnpm example:database-adapter`를 실행합니다. `http://127.0.0.1:3010/?unit=persistent-sheet`을 열고, 세포를 변경하고, 두 번째 브라우저에서 변경을 확인합니다. 그런 다음 서버를 중지하고 같은 명령을 다시 실행하고 동일한 URL을 다시 열 수 있습니다. 값은 여전히 존재해야합니다.
 
-데이터는 `examples/database-adapter/.data/collaboration.sqlite`에 저장되므로 실행 중에 파일을 삭제하지 마십시오. 서버가 기존 단위를 읽고 `createUnitFromData()`를 `UNIT_NOT_FOUND`을 수신할 때 ZXQXZ 만 호출하면 저장 된 데이터를 덮지 못합니다. 이 구현은 [서버/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts)입니다.
+[예제 서버](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts)는 데이터를 `examples/database-adapter/.data/collaboration.sqlite` 파일에 저장합니다.
 
 ## Adapter가 저장하는 데이터
 
@@ -80,7 +80,7 @@ const service = new UniverCollabService({ dbAdapter: database });
 
 ## PostgreSQL Adapter
 
-[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres)는 노드 포스트에 내장되어 있으며 PostgreSQL에서 데이터를 저장합니다. 여러 협업 노드는 단일 데이터베이스를 공유할 수 있습니다.
+[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres)는 시트 스냅샷이 참조하는 셀 데이터 블록을 포함한 모든 Core 협업 데이터를 PostgreSQL에 저장합니다. 여러 협업 노드가 같은 데이터베이스를 공유할 수 있습니다.
 
 ```ts
 import { PostgresDatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres";
@@ -93,6 +93,31 @@ const service = new UniverCollabService({ dbAdapter: database });
 ```
 
 이 응용 프로그램은 풀을 소유하고 서비스 처분 후 닫습니다. `create()`는 빈 데이터베이스의 `collaboration` 스키마를 초기화하고 기존 스키마를 검증합니다.
+
+S3 호환 객체 스토리지를 사용할 수 있다면 데이터베이스와 백업 크기를 줄일 수 있는 [PostgreSQL + S3 Adapter](#postgresql-s3-adapter)를 권장합니다.
+
+## PostgreSQL + S3 Adapter [#postgresql-s3-adapter]
+
+[`@univerjs-pro/collaboration-database-postgres-s3`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres-s3)는 시트의 셀 데이터 블록을 S3 호환 버킷에 저장합니다. Unit, changeset, 스냅샷 레코드와 블록 참조는 PostgreSQL에 저장합니다.
+
+큰 통합 문서에서는 셀 데이터가 스냅샷 크기의 대부분을 차지합니다. 이 블록을 S3에 저장하면 PostgreSQL 데이터베이스와 백업 크기가 줄어듭니다. 통합 문서가 커지면 블록 저장 용량을 데이터베이스와 독립적으로 확장할 수 있습니다.
+
+`DATABASE_URL`에는 데이터베이스 연결 문자열을, `S3_REGION`에는 버킷의 리전을, `S3_BUCKET`에는 기존 버킷 이름을 지정합니다.
+
+```ts
+import { S3Client } from "@aws-sdk/client-s3";
+import { PostgresS3DatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres-s3";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { Pool } from "pg";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const client = new S3Client({ region: process.env.S3_REGION });
+const database = await PostgresS3DatabaseAdapter.create({
+  pool,
+  s3: { client, bucket: process.env.S3_BUCKET! },
+});
+const service = new UniverCollabService({ dbAdapter: database });
+```
 
 ## 사용자 정의 Database Adapter
 
@@ -129,12 +154,12 @@ const service = new UniverCollabService({ dbAdapter: database });
 
 ## Adapter 선택
 
-| Adapter | 적합한 용도 | 주요 제약 |
-| --- | --- | --- |
-| Memory | 테스트, 예제, 임시 개발 | Data는 프로세스 종료시 손실됩니다. |
-| SQLite | 개발, 테스트, 로컬 앱, 소규모 사용 | 단일 파일 DB이며 설정은 애플리케이션이 관리 |
-| PostgreSQL | 다중 노드 배포와 기존 PostgreSQL DB | 연결 풀과 DB 운영은 애플리케이션이 관리 |
-| 사용자 정의 | 기존 DB 또는 자체 업무 데이터 통합 | 전체 계약을 직접 구현하고 검증해야 함 |
+| Adapter         | 적합한 용도                                                                         | 주요 제약                                                                                                                |
+| --------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Memory          | 테스트, 예제, 임시 개발                                                             | Data는 프로세스 종료시 손실됩니다.                                                                                       |
+| SQLite          | 개발, 테스트, 로컬 앱, 소규모 사용                                                  | 단일 파일 DB이며 설정은 애플리케이션이 관리                                                                              |
+| PostgreSQL + S3 | PostgreSQL과 객체 스토리지를 사용하는 애플리케이션, 특히 큰 통합 문서를 다루는 경우 | 데이터베이스와 버킷을 함께 관리합니다. S3 호환 스토리지가 없으면 [PostgreSQL Adapter](#postgresql-adapter)를 사용합니다. |
+| 사용자 정의     | 기존 DB 또는 자체 업무 데이터 통합                                                  | 전체 계약을 직접 구현하고 검증해야 함                                                                                    |
 
 주입한 Adapter는 모두 애플리케이션이 소유합니다. Service를 먼저 해제한 뒤 Adapter를 해제하세요.
 

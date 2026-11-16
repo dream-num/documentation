@@ -11,7 +11,7 @@ Les adaptateurs de base de données sont open source sous Apache-2.0. Le code so
 
 Arrêtez le démarrage rapide et lancez `pnpm example:database-adapter` à partir de la racine du dépôt. Ouvrez `http://127.0.0.1:3010/?unit=persistent-sheet`, modifiez une cellule et validez le changement dans un deuxième navigateur. Puis arrêtez le serveur, exécutez à nouveau la même commande et rouvrez la même URL. La valeur doit être toujours présente.
 
-Les données sont stockées dans `examples/database-adapter/.data/collaboration.sqlite`, donc ne supprimez pas ce fichier entre les lancers. Au démarrage, le serveur lit l'unité existante et appelle `createUnitFromData()` seulement lorsqu'il reçoit `UNIT_NOT_FOUND`, donc il n'écrase jamais les données stockées. [serveur/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts).
+Le [serveur de l’exemple](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts) enregistre les données dans `examples/database-adapter/.data/collaboration.sqlite`.
 
 ## Données stockées par l’Adapter
 
@@ -80,7 +80,7 @@ Il initialise le schéma lorsque la base de données est vide et ne vérifie le 
 
 ## PostgreSQL Adapter
 
-[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) est construit sur des nœuds et stocke ses données dans PostgreSQL. Plusieurs nœuds de collaboration peuvent partager une seule base de données.
+[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) stocke toutes les données de collaboration Core dans PostgreSQL, y compris les blocs de cellules référencés par les snapshots de feuilles. Plusieurs nœuds de collaboration peuvent partager la même base.
 
 ```ts
 import { PostgresDatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres";
@@ -93,6 +93,31 @@ const service = new UniverCollabService({ dbAdapter: database });
 ```
 
 L'application possède le pool et le ferme après avoir éliminé le Service. `create()` initialise le schéma `collaboration` dans une base de données vide et ne vérifie qu'un schéma existant.
+
+Si vous disposez d’un stockage objet compatible S3, nous recommandons l’[adaptateur PostgreSQL + S3](#postgresql-s3-adapter) pour réduire la taille de la base et de ses sauvegardes.
+
+## PostgreSQL + S3 Adapter [#postgresql-s3-adapter]
+
+[`@univerjs-pro/collaboration-database-postgres-s3`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres-s3) stocke les blocs de cellules dans un bucket compatible S3. Les Units, les changesets, les enregistrements de snapshot et les références aux blocs restent dans PostgreSQL.
+
+Les données des cellules représentent l’essentiel du snapshot d’un grand classeur. Placer ces blocs dans S3 réduit la taille de la base PostgreSQL et de ses sauvegardes. La capacité de stockage des blocs peut évoluer indépendamment de la base à mesure que les classeurs grossissent.
+
+Définissez `DATABASE_URL` sur la chaîne de connexion PostgreSQL, `S3_REGION` sur la région du bucket et `S3_BUCKET` sur le nom d’un bucket existant.
+
+```ts
+import { S3Client } from "@aws-sdk/client-s3";
+import { PostgresS3DatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres-s3";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { Pool } from "pg";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const client = new S3Client({ region: process.env.S3_REGION });
+const database = await PostgresS3DatabaseAdapter.create({
+  pool,
+  s3: { client, bucket: process.env.S3_BUCKET! },
+});
+const service = new UniverCollabService({ dbAdapter: database });
+```
 
 ## Database Adapters personnalisés
 
@@ -129,12 +154,12 @@ Comme ces interfaces Adapter sont indépendantes, le SDK ne fournit pas de trans
 
 ## Choisir un Adapter
 
-| Adapter | Usage adapté | Contrainte principale |
-| --- | --- | --- |
-| Memory | Tests, exemples, développement temporaire | Les données sont perdues lorsque le processus se termine |
-| SQLite | Développement, tests, applications locales, petite échelle | Base monofichier dont l’application gère les réglages |
-| PostgreSQL | Déploiements multi-nœuds et bases PostgreSQL existantes | L’application gère le pool et l’exploitation de la base |
-| Personnalisé | Bases existantes ou intégration métier spécifique | L’application doit implémenter et vérifier le contrat complet |
+| Adapter         | Usage adapté                                                                     | Contrainte principale                                                                                                          |
+| --------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Memory          | Tests, exemples, développement temporaire                                        | Les données sont perdues lorsque le processus se termine                                                                       |
+| SQLite          | Développement, tests, applications locales, petite échelle                       | Base monofichier dont l’application gère les réglages                                                                          |
+| PostgreSQL + S3 | Applications PostgreSQL avec stockage objet, notamment pour les grands classeurs | L’application gère la base et le bucket. Sans stockage compatible S3, utilisez l’[adaptateur PostgreSQL](#postgresql-adapter). |
+| Personnalisé    | Bases existantes ou intégration métier spécifique                                | L’application doit implémenter et vérifier le contrat complet                                                                  |
 
 L’application possède chaque Adapter injecté. Libérez le Service avant l’Adapter :
 
