@@ -11,6 +11,7 @@ import { normalizeLocale } from '@/i18n/locale-config'
 import { getAgentDocsSourceUrl, getAgentMarkdownPath } from '@/lib/agent-docs/links'
 import { createDocsRelativeLink } from '@/lib/docs/links'
 import { createDocsNavigation } from '@/lib/docs/navigation'
+import { withLocale } from '@/lib/locale-path'
 import { reference } from '@/lib/source'
 
 interface IProps {
@@ -19,6 +20,8 @@ interface IProps {
     lang: string
   }>
 }
+
+const DOCS_ORIGIN = 'https://docs.univer.ai'
 
 // Feedback records visits during server rendering, rather than static generation.
 export const dynamic = 'force-dynamic'
@@ -33,6 +36,7 @@ export async function generateMetadata({ params }: IProps) {
   return {
     title: page.data.title,
     description: page.data.description,
+    alternates: { canonical: `${DOCS_ORIGIN}${withLocale(lang, page.url)}` },
   }
 }
 
