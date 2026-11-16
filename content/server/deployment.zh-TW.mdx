@@ -4,7 +4,7 @@ title: 部署指引
 description: 依規模為 Server SDK 應用選擇部署形態：單機、拆分匯入匯出、多協同節點。
 ---
 
-本頁依規模介紹 Server SDK 應用的三種部署形態。先閱讀 [Collaboration SDK](/server/collaboration/overview)、[匯入匯出](/server/import-export)和[範例](/server/collaboration/examples)，了解模組如何組裝；部署是把同一套組裝放到一個或多個節點上。
+Server SDK 應用有三種部署形態，具體採用哪一種取決於規模。請先閱讀 [Collaboration SDK](/server/collaboration/overview)、[匯入匯出](/server/import-export)和[範例](/server/collaboration/examples)，瞭解模組的組裝方式。部署只決定同一套組裝執行在多少個節點上。
 
 | 形態 | 協同 | 匯入匯出 | 建議規模 |
 | --- | --- | --- | --- |
@@ -14,33 +14,33 @@ description: 依規模為 Server SDK 應用選擇部署形態：單機、拆分�
 
 ## 單機
 
-所有功能部署在一個 Node.js 程序裡，瀏覽器直接連線。
+所有元件執行在一個 Node.js 程序中，瀏覽器直接連線該程序。
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"瀏覽器\"]) --> App[\"協同 + 匯入匯出\"]\n    App --> DB[(\"資料庫\")]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
 - Database Adapter 實作 `IDatabaseAdapter` 契約，見 [資料庫配接器](/server/collaboration/database-adapters)。
-- 匯入匯出由 Exchange Service 與 File Service 組裝，見[協同擴充模組](/server/collaboration/extensions)。
-- 一次轉換是 CPU 密集型的，大檔案會拖慢協同。
+- 匯入匯出由 Exchange Service 和 File Service 提供，見[協同擴充套件模組](/server/collaboration/extensions)。
+- 轉換屬於 CPU 密集型操作，大檔案會拖慢協同。
 
-匯入匯出影響協同回應，或要面向多人持續服務時，拆分匯入匯出。
+當轉換開始影響協同延遲，或服務需要為大量使用者保持響應時，將匯入匯出拆分到獨立節點。
 
 ## 拆分匯入匯出
 
-匯入匯出放到獨立節點；協同仍是一個節點；閘道分別路由兩類路徑；兩者連同一個資料庫。
+匯入匯出執行在獨立節點上，協同仍執行在單個節點上。閘道器分別路由兩類請求，兩邊連線同一個資料庫。
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"瀏覽器\"]) --> Gateway[\"閘道\"]\n    Gateway -->|\"協同請求\"| Node[\"協同節點\"]\n    Gateway -->|\"匯入匯出請求\"| Exchange[\"匯入匯出節點\"]\n    Node --> DB[(\"資料庫\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
-匯入匯出節點組裝 Database Adapter、`UniverCollabService`、File Service 與 Exchange Service，直接存取資料庫，注入點與單機相同。兩類節點的 File Service 使用同一份檔案儲存，`UniverCollabService` 安裝同一套權限 Middleware。
+匯入匯出節點組裝 Database Adapter、`UniverCollabService`、File Service 和 Exchange Service，並直接訪問資料庫；注入點與單機部署相同。兩類節點都將 File Service 指向同一份檔案儲存，並在 `UniverCollabService` 上安裝同一套權限 Middleware。
 
-協同單節點能服務的文件數受程序記憶體限制。超出容量或需要故障轉移時進入多節點。
+一個協同節點可服務的文件數量受程序記憶體限制。容量不足或需要故障切換時，擴充套件為多節點。
 
 ## 多協同節點
 
-多個協同節點執行同一份程式碼，連同一個資料庫。pub/sub adapter 在節點間中繼 Room、Presence 和廣播，ticket store 共用 Session Ticket，`@univerjs-pro/collaboration-cluster-redis` 提供 Redis 實作。各節點設定同一份授權，授權涵蓋執行的節點數，見[協同節點](/server/collaboration/license#nodes)。參考範例：[Multi-node](/server/collaboration/examples#multi-node)。
+多個協同節點執行同一份程式碼，連線同一個資料庫。pub/sub adapter 在節點之間中繼 Room、Presence 和廣播，ticket store 共享 Session Ticket，Redis 實現由 `@univerjs-pro/collaboration-cluster-redis` 提供。所有節點使用同一份許可證，許可證須覆蓋實際執行的節點數，見[協同節點](/server/collaboration/license#nodes)。參考實現見 [Multi-node](/server/collaboration/examples#multi-node)。
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"瀏覽器\"]) --> Gateway[\"閘道\"]\n    subgraph Nodes[\"協同節點\"]\n        direction TB\n        A[\"節點 A\"]\n        B[\"節點 B\"]\n    end\n    Gateway -->|\"協同請求\"| A\n    Gateway --> B\n    subgraph Exchange[\"匯入匯出節點\"]\n        direction TB\n        X1[\"節點 A\"]\n        X2[\"節點 B\"]\n    end\n    Gateway -->|\"匯入匯出請求\"| X1\n    Gateway --> X2\n    A --- PubSub[(\"pub/sub + ticket store\")]\n    B --- PubSub\n    A --> DB[(\"資料庫\")]\n    B --> DB\n    X1 --> DB\n    X2 --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
-每個協同節點把 Redis 的 pub/sub adapter 和 ticket store 傳給 Endpoint，其餘組裝保持原樣：
+每個協同節點將 Redis 的 pub/sub adapter 和 ticket store 傳給 Endpoint，其餘組裝不變：
 
 ```ts
 import { createClient } from "redis";
@@ -58,4 +58,4 @@ const endpoint = new UniverCollabEndpoint(service, { pubSub, ticketStore });
 
 ## 進一步
 
-一個節點上同時處理超大文件會拖慢同節點上小文件的請求。可以依文件規模劃分節點池，由閘道把大文件路由到單獨的節點池處理；路由鍵仍是 unit ID，各池共用資料庫和 pub/sub。
+一個特別大的文件會拖慢同一節點上小文件的請求。可以按文件大小劃分節點池，由閘道器將大文件路由到專門的節點池。路由鍵仍然是 unit ID，各節點池共用資料庫和 pub/sub。

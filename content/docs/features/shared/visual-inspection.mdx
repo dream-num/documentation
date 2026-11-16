@@ -4,47 +4,47 @@ description: "Validate results with structured readback, rendered screenshots, a
 icon: ScanEye
 ---
 
-Visual inspection turns content models into images and layout evidence that can be checked. An Agent first validates data and formulas, then checks rendered text, shapes and pages. It can fix issues through Facades and verify the new content state again.
+Visual inspection converts a content model into images and layout evidence that can be examined. An agent verifies the data and the formulas first, then examines the rendered text, shapes, and pages. When it finds a problem, it corrects the content through a Facade and examines the resulting state again.
 
 ## Three kinds of evidence [#evidence]
 
 | Evidence | What it can establish |
 | --- | --- |
-| Structured readback | Raw values, formulas and results, paragraphs and object properties. |
-| PNG screenshot | Visible content, clipping, charts, colors and overall composition. |
-| Layout diagnostics | Rules, object IDs, bounds and issue locations derived from rendering for targeted fixes. |
+| Structured readback | Raw values, formulas and their results, and paragraph and object properties. |
+| PNG screenshot | The content that is actually visible, including clipping, charts, colors, and overall composition. |
+| Layout diagnostics | Rules, object IDs, bounds, and issue locations derived from the render, which identify the object to correct. |
 
 ## Prepare content state and dependencies [#state]
 
-Screenshot and Layout Lint accept materialized UnitData; they do not connect to remote targets or interpret changesets. For collaborative content, call `pull()`, await calculation after formula edits, then `exportUnitData()`. Export the correct draft for a Worktree. Applications can record the target, revision and scope with the report to identify exactly what was reviewed.
+Screenshot and Layout Lint operate on materialized UnitData. They do not connect to a remote target, and they do not interpret changesets. For collaborative content, call `pull()`, wait for calculation to finish after a formula edit, and then call `exportUnitData()`. In a Worktree, export the draft that is intended for inspection. An application can record the target, the revision, and the scope alongside the report, so that a review refers to one known state.
 
-A host Snapshot does not include every dependency. Supply Sheet/Relational Table sources through `formulaReferenceUnits` and child content through `embeddedUnits`. The Render Page materializes dependencies before the host so formulas and blocks have their sources available. UUID image assets can be prepared with `resolveUnitScreenshotImageAssets()` and an application resolver; resolution is best-effort, so check missing resources too.
+A host Snapshot does not include every dependency. Pass Sheet and Relational Table sources through `formulaReferenceUnits`, and pass child content through `embeddedUnits`. The Render Page materializes the dependencies before the host, so formulas and blocks load with their sources already in place. UUID image assets can be prepared with `resolveUnitScreenshotImageAssets()` and a resolver from the application. Resolution is best-effort, so missing resources require verification as well.
 
 ## From content to a stable image [#rendering]
 
 <Mermaid chart={"flowchart LR\nA[\"Explicit content state<br/>UnitData + dependencies\"]\nB[\"Render Runtime<br/>Browser and page protocol\"]\nC[\"Render Page<br/>Native Univer layout\"]\nD[\"Readiness checks<br/>Calculation and stable image\"]\nE[\"PNG / layout facts<br/>Agent and human review\"]\nA --> B --> C --> D --> E"} />
 
-`univer-render-runtime` hosts an application-built Render Page and starts a browser from Node.js. Product plugins restore the content, and both sides check the page protocol version. Operations enter one serial queue per Runtime, allowing reuse across inspection rounds. Its owner eventually calls `close()`.
+`univer-render-runtime` hosts a Render Page built by the application and starts a browser from Node.js. Product plugins restore the content on that page, and both sides check the page protocol version. A Runtime executes its operations through a single serial queue, so the same Runtime can be retained across inspection rounds. The owner of the Runtime calls `close()` when the work is complete.
 
-Readiness is product-specific. Formula-driven Shapes wait until results leave pending and, where needed, until pixels remain stable across frames, avoiding intermediate animation. Relational Table waits for fonts, calculation, the active table/view and stable DOM/Canvas layout. A non-pending formula result can still be an error: verify its value and status.
+Readiness depends on the product. Formula-driven Shapes wait until results leave pending and, where necessary, until the pixels remain unchanged across frames, so that a transitional animation is not captured. Relational Table waits for fonts, calculation, the active table or view, and a stable DOM and Canvas layout. A formula result that has left pending can still be an error, so both its value and its status require verification.
 
-The current implementation hashes serialized host UnitData, formula sources and embedded children into a rendering session key. Changed content receives a new key even when the Unit ID stays the same, preventing stale-image reuse based only on identity.
+The current implementation hashes the serialized host UnitData, the formula sources, and the embedded children into a render session key. Changed content receives a new key even when the Unit ID remains the same, so an old image is never reused solely because the ID matches.
 
 ## Choose the scope by product [#scope]
 
 | Product | Scope and output |
 | --- | --- |
-| Sheet | Select a worksheet and A1 range for a region PNG. Explicitly select important results. |
-| Doc | Select or enumerate pages for individual PNGs. |
-| Slide | Select 1-based page numbers or page IDs; optionally add a contact sheet. |
-| Relational Table | Capture the opening active table/view workbench using browser DOM + Canvas. |
-| Canvases | Use content bounds, or mutually exclusive region / elementIds selectors, with optional padding and layout evidence. |
+| Sheet | Select a worksheet and an A1 range to obtain a region PNG. Select important results explicitly. |
+| Doc | Select pages, or enumerate them, to obtain one PNG per page. |
+| Slide | Select 1-based page numbers or page IDs, and optionally add a contact sheet. |
+| Relational Table | Capture the workbench as it opens, including its active table or view, from the browser DOM and Canvas. |
+| Canvases | Use the content bounds, or a region / elementIds selector; the two are mutually exclusive. Padding and layout evidence are optional. |
 
-`unit-screenshot` returns image bytes, dimensions, page/range identity and suggested names; the application saves them. Scale accepts 0.1–4. Configure `maxPages` and per-image `maxPixels`; doubling scale produces roughly four times as many pixels. Inspect large content in regions. PDF is outside this five-product screenshot entry.
+`unit-screenshot` returns the image bytes, the dimensions, the page or range identity, and suggested file names; the application saves them. The scale factor accepts 0.1–4. Set `maxPages` and the per-image `maxPixels`. Doubling the scale produces roughly four times the pixels, so inspect large content in regions. PDF is outside this screenshot entry point, which covers the five products above.
 
 ## Share rendering for screenshots and lint [#example]
 
-The example captures and lints the same Slide data and formula sources. `renderRuntime` is an existing render Runtime and `slideData` is the prepared snapshot. These capabilities do not write files. See [AI SDK visual inspection](/ai/visual-inspection) for page construction and resource cleanup.
+The example captures and lints the same Slide data and formula sources. `renderRuntime` is an existing render Runtime, and `slideData` is the prepared snapshot. Neither capability writes files. For page construction and resource cleanup, see [AI SDK visual inspection](/ai/visual-inspection).
 
 ```ts
 import { createUnitScreenshot } from '@univer-cli/unit-screenshot'
@@ -67,28 +67,28 @@ const report = await lint.lint({ ...source, pages: [1] })
 
 ## Slide: locate problems using glyph ink [#slide-lint]
 
-Layout Lint uses browser-generated layout facts. An element's `declared` box describes its model geometry; text `ink` describes actual glyph bounds mapped into page coordinates with layout, alignment and rotation. A text box fitting on the page does not prove its glyphs fit.
+Layout Lint works from the layout facts that the browser produces. An element's `declared` box describes its geometry in the model, while text `ink` describes the area that the glyphs actually cover, mapped into page coordinates with layout, alignment, and rotation. A text box that fits on the page does not prove that its glyphs fit.
 
 | Current rule | Evidence checked |
 | --- | --- |
-| `text-off-page` | Actual text ink extends beyond the page. |
-| `text-escapes-container` | Text visibly escapes a matched, smaller opaque container. |
-| `text-overlaps-text` | Two actual text ink areas significantly overlap. |
+| `text-off-page` | The actual text ink extends past the page edge. |
+| `text-escapes-container` | Text visibly overflows a matched opaque container that is smaller. |
+| `text-overlaps-text` | Two actual text ink areas overlap substantially. |
 
-Reports include `coverage.pages` and `coverage.rules`. A finding carries `pageId`, element `id`, `text.ink` and relevant `overflow`, `container` or `other` evidence. A stable `fingerprint` helps compare repair rounds. Findings are currently warnings for review alongside screenshots; an empty list only means the selected scope triggered none of these rules.
+A report includes `coverage.pages` and `coverage.rules`. Each finding carries `pageId`, the element `id`, the `text.ink`, and the relevant `overflow`, `container`, or `other` evidence. A stable `fingerprint` simplifies comparison between repair rounds. Findings are currently warnings and are intended to be read alongside the screenshots. An empty list only means that the selected scope triggered none of these rules.
 
 ## Canvases: inspect rendered connector routes [#board-analysis]
 
-Canvases screenshots also return `layoutAnalysis` with browser-resolved routes, issues and a summary. This is separate from the Slide-only `unit-layout-lint` capability. Automatic connector paths can be unresolved in the model; use evidence with `source: 'rendered'` to inspect final routes.
+Canvases screenshots also return `layoutAnalysis`, which contains the routes resolved by the browser, the issues, and a summary. This is separate from `unit-layout-lint`, which only handles Slide. Automatic connector paths may be unresolved in the model, so inspect the final routes through the evidence with `source: 'rendered'`.
 
-Diagnostics can identify connectors crossing elements, intersections, arrowhead collisions and label conflicts, with `connectorIds`, `elementIds` and `focusBounds`. Fix the relevant objects, capture a region or element set, then review the full canvas. The evidence maps a visual concern to a specific Facade edit.
+Diagnostics can identify connectors that cross elements or intersect, colliding arrowheads, and conflicting labels, and report the corresponding `connectorIds`, `elementIds`, and `focusBounds`. Correct the objects involved, capture a region or an element set, and then review the whole canvas again. This associates a visual concern with one specific Facade edit.
 
 ## Include evidence in the handoff [#handoff]
 
 <Mermaid chart={"flowchart LR\nA[\"Facade edit\"]\nB[\"Read back data and formulas\"]\nC[\"Screenshot + diagnostics\"]\nD[\"Repair by object ID\"]\nE[\"Check the new state\"]\nF[\"Human review / handoff\"]\nA --> B --> C --> D --> E --> F\nD --> B"} />
 
-Keep structured results, scope/page information, images and diagnostics together. A screenshot does not establish formula correctness, and lint does not replace visual judgment. Verify complete toolbar, focus and popup interactions in the Web editor, and ensure cross-Unit dependencies were loaded.
+Keep the structured results, the scope and page information, the images, and the diagnostics together. A screenshot does not establish that formulas are correct, and lint does not replace visual judgment. Interactions that involve the toolbar, focus, and popups still require verification in the Web editor, and cross-Unit dependencies must be loaded.
 
-Run the checks before marking a [Worktree](/overview/features/shared/worktree) Ready so reviewers can match content changes to evidence. See [headless and server calculation](/overview/features/shared/server-calculation) for execution and [Agents and automation](/overview/features/shared/agents) for orchestration.
+Run these checks before a [Worktree](/overview/features/shared/worktree) is marked Ready, so that the reviewer can match content changes to evidence. See [headless and server calculation](/overview/features/shared/server-calculation) for execution and [Agents and automation](/overview/features/shared/agents) for orchestration.
 
 [Back to features](/overview/features)

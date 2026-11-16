@@ -4,7 +4,7 @@ title: Guide de déploiement
 description: Choisissez la forme de déploiement d’une application Server SDK selon son échelle, de la machine unique aux nœuds de collaboration multiples.
 ---
 
-Cette page décrit trois formes de déploiement d’une application Server SDK selon l’échelle. Lisez d’abord [Collaboration SDK](/server/collaboration/overview), [import et export](/server/import-export) et les [exemples](/server/collaboration/examples) pour voir comment les modules s’assemblent ; le déploiement place ce même assemblage sur un ou plusieurs nœuds.
+Une application Server SDK a trois formes de déploiement, et l'échelle de l'application détermine celle à utiliser. Commencez par [Collaboration SDK](/server/collaboration/overview), [importations et exportations](/server/import-export) et [exemples](/server/collaboration/examples) pour voir comment les modules sont assemblés. Le déploiement détermine seulement combien de nœuds fonctionnent ce même assemblage.
 
 | Forme | Collaboration | Import et export | Échelle recommandée |
 | --- | --- | --- | --- |
@@ -14,33 +14,33 @@ Cette page décrit trois formes de déploiement d’une application Server SDK s
 
 ## Machine unique
 
-Toutes les fonctions sont déployées dans un seul processus Node.js et le navigateur s’y connecte directement.
+Tous les composants fonctionnent dans un seul processus Node.js, et le navigateur se connecte directement à ce processus.
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Navigateur\"]) --> App[\"Collaboration + Exchange\"]\n    App --> DB[(\"Base de données\")]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
 - Le Database Adapter implémente le contrat `IDatabaseAdapter` ; voir [Adaptateurs de base de données](/server/collaboration/database-adapters).
-- L’import et l’export s’assemblent avec Exchange Service et File Service ; voir [modules d’extension de collaboration](/server/collaboration/extensions).
-- Une conversion sollicite fortement le processeur et un fichier volumineux ralentit la collaboration.
+- L'importation et l'exportation sont assurées par le service Exchange Service et File Service. Voir [Modules d'extension de la collaboration](/server/collaboration/extensions).
+- La conversion est liée au processeur, donc un grand fichier ralentit la collaboration.
 
-Séparez l’import et l’export lorsque les conversions pèsent sur la réactivité de la collaboration ou que le service doit servir de nombreux utilisateurs en continu.
+Déplacer l'importation et l'exportation vers un nœud distinct lorsque les conversions commencent à affecter la latence de la collaboration, ou lorsque le service doit rester réactif pour de nombreux utilisateurs.
 
 ## Séparer l’import et l’export
 
-L’import et l’export passent sur un nœud distinct ; la collaboration reste sur un nœud ; la passerelle route séparément les deux types de chemins ; les deux utilisent la même base de données.
+Importer et exporter fonctionne sur un nœud dédié tandis que la collaboration reste sur un seul nœud. La passerelle relie les deux types de requêtes séparément, et les deux côtés utilisent la même base de données.
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Navigateur\"]) --> Gateway[\"Passerelle\"]\n    Gateway -->|\"Requêtes de collaboration\"| Node[\"Nœud de collaboration\"]\n    Gateway -->|\"Requêtes d’import et d’export\"| Exchange[\"Nœud d’import et d’export\"]\n    Node --> DB[(\"Base de données\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
-Le nœud d’import et d’export assemble le Database Adapter, un `UniverCollabService`, File Service et Exchange Service, et accède directement à la base de données ; les points d’injection sont les mêmes que sur une machine unique. Les deux types de nœuds font pointer File Service vers le même stockage de fichiers et installent le même Middleware d’autorisation sur `UniverCollabService`.
+Le noeud d'importation et d'exportation assemble l'adaptateur de base de données, un `UniverCollabService`, File Service et Exchange Service, puis fonctionne directement avec la base de données. Les points d'injection sont les mêmes que sur une seule machine. Les deux nœuds pointent File Service au même stockage de fichiers, et les deux installent le même Middleware d'autorisation sur `UniverCollabService`.
 
-Les documents servis par un seul nœud de collaboration sont limités par la mémoire du processus. Passez à plusieurs nœuds au-delà de cette capacité ou pour le basculement.
+La mémoire du processus limite le nombre de documents qu'un noeud de collaboration peut servir. Déplacer vers plusieurs nœuds lorsque cette capacité est dépassée, ou lorsque la panne est nécessaire.
 
 ## Plusieurs nœuds de collaboration
 
-Plusieurs nœuds de collaboration exécutent le même code sur la même base de données. Un adaptateur pub/sub relaie les Rooms, la Presence et les diffusions entre les nœuds, un ticket store partage les Session Tickets et `@univerjs-pro/collaboration-cluster-redis` fournit l’implémentation Redis. Tous les nœuds utilisent la même licence, qui couvre le nombre de nœuds exécutés ; voir [nœuds de collaboration](/server/collaboration/license#nodes). Exemple de référence : [Multi-node](/server/collaboration/examples#multi-node).
+Plusieurs nœuds de collaboration exécutent le même code contre la même base de données. Un adaptateur pub/sub relaye les pièces, la présence et les émissions entre les nœuds, et une billetterie partage les tickets Session. `@univerjs-pro/collaboration-cluster-redis` fournit l'implémentation Redis. Chaque noeud utilise la même Licence, qui couvre le nombre de nœuds en cours d'exécution; voir [nœuds de collaboration](/server/collaboration/license#nodes). Pour une implémentation de référence, voir [Multi-noeud](/server/collaboration/examples#multi-node).
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Navigateur\"]) --> Gateway[\"Passerelle\"]\n    subgraph Nodes[\"Nœuds de collaboration\"]\n        direction TB\n        A[\"Nœud A\"]\n        B[\"Nœud B\"]\n    end\n    Gateway -->|\"Requêtes de collaboration\"| A\n    Gateway --> B\n    subgraph Exchange[\"Nœuds d’import et d’export\"]\n        direction TB\n        X1[\"Nœud A\"]\n        X2[\"Nœud B\"]\n    end\n    Gateway -->|\"Requêtes d’import et d’export\"| X1\n    Gateway --> X2\n    A --- PubSub[(\"pub/sub + ticket store\")]\n    B --- PubSub\n    A --> DB[(\"Base de données\")]\n    B --> DB\n    X1 --> DB\n    X2 --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
-Chaque nœud de collaboration transmet l’adaptateur pub/sub et le ticket store Redis à l’Endpoint ; le reste de l’assemblage reste identique :
+Chaque nœud de collaboration passe l'adaptateur pub/sous-adaptateur Redis et la billetterie à l'Endpoint. Le reste de l'assemblage est inchangé:
 
 ```ts
 import { createClient } from "redis";
@@ -58,4 +58,4 @@ const endpoint = new UniverCollabEndpoint(service, { pubSub, ticketStore });
 
 ## Pour aller plus loin
 
-Un très grand document ralentit les requêtes des petits documents du même nœud. Répartissez les nœuds en groupes selon la taille des documents et laissez la passerelle router les grands documents vers un groupe dédié ; la clé de routage reste l’unit ID et tous les groupes partagent la base de données et le pub/sub.
+Un très grand document ralentit les demandes de petits documents sur le même noeud. Split les nœuds par taille de document et laisser la passerelle router les grands documents vers un pool dédié. La clé de routage est toujours l'ID de l'unité, et chaque pool partage la base de données et le pub/sub.

@@ -3,18 +3,17 @@ title: Collaboration integration
 description: Connect the Univer editor to a collaboration service so users can edit the same document.
 ---
 
-Collaboration connects browser editors to a shared document service. For example, two users open the same spreadsheet, and an edit in one browser appears in the other.
+Collaboration connects browser editors to one shared document service. When two users open the same spreadsheet, an edit in one browser appears in the other.
 
-Prepare the backend using [server integration](/server), then configure the editor and document loading below. Follow the paired Server and Web code in [Collaboration Quick Start](/server/collaboration/quick-start).
-
+Set up the backend first through [server integration](/server). The editor configuration and document loading described below follow it. The paired Server and Web code is in [Collaboration Quick Start](/server/collaboration/quick-start).
 
 <Mermaid chart={'flowchart LR; A["User A editor"] <-->|Exchange edits| S["Collaboration service"]; S <-->|Exchange edits| B["User B editor"]; S --> D[("Save documents")];'} />
 
 ## Connect your existing editor
 
-Keep your Web SDK editor. Follow the [browser configuration in Quick Start](/server/collaboration/quick-start) to add collaboration plugins and configure document loading, edit submission, and WebSocket addresses. Keep browser and server package versions compatible.
+A different editor is not required. Retain the existing Web SDK editor and follow the [browser configuration in Quick Start](/server/collaboration/quick-start) to add the collaboration plugins, then configure document loading, edit submission, and the WebSocket address. Browser and server package versions must remain compatible.
 
-Fixed example users and default permissions are for demonstration. In your application, include login credentials in requests so the backend can verify identity and document access. See [license configuration](/server/license) for licensing.
+The fixed example users and default permissions are intended for demonstration. In an application, send login credentials with each request so the backend can verify identity and document access. Licensing is covered under [license configuration](/server/license).
 
 ## Plugin configuration [#client-configuration]
 
@@ -24,12 +23,12 @@ Fixed example users and default permissions are for demonstration. In your appli
 
 | <span data-config-options="">Option</span> | Type | Default | What it does |
 | --- | --- | --- | --- |
-| `socketService` | `Ctor<ICollaborationSocketService>` |  | Select the socket implementation for the current runtime. |
-| `sendChangesetTimeout` | `number` | `2000 ms` | Batch local edits before sending. |
-| `changesetAckTimeout` | `number` | `20000 ms` | Wait this long for acknowledgement before retrying. |
-| `maxChangesetAckTimeout` | `number` | `120000 ms` | Cap the interval between resends. |
+| `socketService` | `Ctor<ICollaborationSocketService>` |  | Selects the socket implementation used by the current runtime. |
+| `sendChangesetTimeout` | `number` | `2000 ms` | Sets how long local edits are buffered before they are sent. |
+| `changesetAckTimeout` | `number` | `20000 ms` | Sets how long to wait for an acknowledgement before retrying. |
+| `maxChangesetAckTimeout` | `number` | `120000 ms` | Sets the upper bound on the interval between resends. |
 
-Batching delay and acknowledgement timeout are different. The client plugin defaults to `sendChangesetTimeout: 2000`, `changesetAckTimeout: 20000`, and `maxChangesetAckTimeout: 120000` (milliseconds). The submission request uses the acknowledgement timeout too; unacknowledged changesets are resent with exponential backoff up to the maximum. Equal acknowledgement and maximum timeouts give a constant interval.
+The batching delay and the acknowledgement timeout are separate timers. The client plugin defaults to `sendChangesetTimeout: 2000`, `changesetAckTimeout: 20000`, and `maxChangesetAckTimeout: 120000`, all in milliseconds. The submission request uses the acknowledgement timeout as well. Changesets that are never acknowledged are resent with exponential backoff, capped at the maximum. Setting the acknowledgement timeout and the maximum timeout to the same value produces a constant interval.
 
 ```ts
 import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
@@ -43,7 +42,7 @@ univer.registerPlugin(UniverCollaborationClientPlugin, {
 })
 ```
 
-Merge these options into your existing client registration, keeping its socket and endpoint configuration. The Sheets and Docs collaboration presets use a 200 ms batching delay and do not expose the acknowledgement timeout options; use plugin mode when customizing these timeouts.
+Add these options to the existing client registration and keep its socket and endpoint configuration. The Sheets and Docs collaboration presets use a 200 ms batching delay and do not expose the acknowledgement timeout options, so customizing these timeouts requires plugin mode.
 
 ### Conflict recovery notices [#client-conflict-notices]
 
@@ -51,7 +50,7 @@ Merge these options into your existing client registration, keeping its socket a
 
 | <span data-config-options="">Option</span> | Type | Default | What it does |
 | --- | --- | --- | --- |
-| `enableDefaultConflictUI` | `boolean` | `true` | Show built-in conflict recovery notices. |
+| `enableDefaultConflictUI` | `boolean` | `true` | Shows the built-in conflict recovery notices. |
 
 ```ts
 import { UniverCollaborationClientUIPlugin } from '@univerjs-pro/collaboration-client-ui'
@@ -65,7 +64,7 @@ univer.registerPlugin(UniverCollaborationClientUIPlugin, { enableDefaultConflict
 
 | <span data-config-options="">Option</span> | Type | Default | What it does |
 | --- | --- | --- | --- |
-| `enableDefaultConflictUI` | `boolean` | `true` | Show built-in conflict recovery notices. |
+| `enableDefaultConflictUI` | `boolean` | `true` | Shows the built-in conflict recovery notices. |
 
 ```ts
 import { UniverSheetsCollaborationPreset } from '@univerjs/preset-sheets-collaboration'
@@ -79,22 +78,22 @@ import { UniverDocsCollaborationPreset } from '@univerjs/preset-docs-collaborati
 const collaborationPreset = UniverDocsCollaborationPreset({ enableDefaultConflictUI: false })
 ```
 
-By default the UI shows a reason-specific conflict notice and offers reload after successful cache cleanup, or retry if cleanup failed. To own the recovery flow, set `enableDefaultConflictUI: false` in the existing initialization and handle the event yourself:
+By default, the UI shows a conflict notice that names the reason. The notice offers a reload after cache cleanup succeeds, and a retry if cleanup fails. To run the recovery flow in the application, set `enableDefaultConflictUI: false` in the existing initialization and handle the event directly.
 
-The collaboration presets belong in the existing `createUniver({ presets: [...] })` configuration alongside the editor preset. Keep your endpoint and history settings. See [event payloads](#conflict-recovery) and [client configuration](/reference/packages/plugins/univerjs-pro/collaboration-client).
+Add the collaboration presets to the existing `createUniver({ presets: [...] })` call, next to the editor preset, and keep the endpoint and history settings. See [event payloads](#conflict-recovery) and [client configuration](/reference/packages/plugins/univerjs-pro/collaboration-client).
 
 ## Create and open the same document
 
-Creating and opening are separate actions:
+Creating a document and opening one are separate actions:
 
-1. When a user creates a document, your backend saves it and returns its ID.
-2. The browser loads that ID. Reuse it when reopening the document or sharing it with another user.
+1. When a user creates a document, the backend saves it and returns its ID.
+2. The browser loads that ID. Reuse the same ID when the document is reopened or shared with another user.
 
-The API's `unitId` is this document ID. Do not create a new local blank document on every visit.
+The API names the document ID `unitId`. Do not create a new local blank document on every visit.
 
 Set the current user before loading a document. The current user identifies the collaborator and owns the local offline cache; see [Identity and authorization](/server/collaboration/identity-and-authorization).
 
-For example, after registering Sheets and collaboration plugins, load a server spreadsheet:
+For example, after the Sheets and collaboration plugins are registered, load a spreadsheet from the server:
 
 ```ts
 import { UserManagerService } from '@univerjs/core'
@@ -106,25 +105,25 @@ const workbook = await univerAPI.getCollaboration().loadSheetAsync('your-documen
 if (!workbook) throw new Error('Document could not be loaded')
 ```
 
-See the [Sheets](/guides/sheets/features/collaboration), [Docs](/guides/docs/features/collaboration), [Slides](/guides/slides/features/collaboration), [Boards](/guides/boards/features/collaboration), [Bases](/guides/bases/features/collaboration), and [PDFs](/guides/pdfs/features/collaboration) guides for product-specific loading. Check support in the product and target backend release.
+Product-specific loading is covered in the [Sheets](/guides/sheets/features/collaboration), [Docs](/guides/docs/features/collaboration), [Slides](/guides/slides/features/collaboration), [Boards](/guides/boards/features/collaboration), [Bases](/guides/bases/features/collaboration), and [PDFs](/guides/pdfs/features/collaboration) guides. Confirm that the product and the backend release you target support the feature.
 
 ## Verify synchronization, saving, and permissions
 
-Open the same document in two independent browser sessions, such as a regular and private window. Edit in one and check the other. Then verify content after refresh, reconnection, and server restart.
+Open the same document in two independent browser sessions, such as a regular window and a private one. Edit in one session and check what the other shows. Then reload the page, reconnect, restart the server, and confirm that the content is still present.
 
-Test with an editor, viewer, and unauthorized user. Read-only UI settings control page interactions; the server must still reject unauthorized reads and changes.
+Test as an editor, a viewer, and a user with no access. Read-only UI settings only control what the page permits; the server must still reject unauthorized reads and changes.
 
-If documents load but edits do not synchronize, check the WebSocket connection. If content disappears after restart, check backend storage. See [server integration](/server) for those settings.
+If documents load but edits do not synchronize, check the WebSocket connection. If content disappears after a restart, check backend storage. Those settings belong to [server integration](/server).
 
 ## Add exchange, comments, or history
 
-To edit an imported file together, create a collaborative document from its converted data; see [file exchange integration](/server/import-export). Comments and history need their own plugins, services, and permissions. Follow [Office extension modules](/server/collaboration/extensions).
+To edit an imported file jointly, create a collaborative document from its converted data; see [file exchange integration](/server/import-export). Comments and history each require their own plugins, services, and permissions; follow [Office extension modules](/server/collaboration/extensions).
 
-For history panel configuration, see [Sheets](/guides/sheets/features/edit-history), [Docs](/guides/docs/features/edit-history), [Slides](/guides/slides/features/edit-history), [Boards](/guides/boards/features/edit-history), [Bases](/guides/bases/features/edit-history). See [PDFs history](/guides/pdfs/features/edit-history) for its current scope.
+For history panel configuration, see the [Sheets](/guides/sheets/features/edit-history), [Docs](/guides/docs/features/edit-history), [Slides](/guides/slides/features/edit-history), [Boards](/guides/boards/features/edit-history), and [Bases](/guides/bases/features/edit-history) guides. See [PDFs history](/guides/pdfs/features/edit-history) for what it covers today.
 
 ## Synchronization status and retries [#sync-status]
 
-Listen after importing the collaboration Facade. `CollaborationStatusChanged` reports the current status of units already collaborating when the listener is registered, then reports changes without consecutive duplicate statuses. `hasWritePending(unitId)` includes queued, awaiting-acknowledgement, and offline edits. Without an ID it checks the focused unit. A connected socket alone does not mean edits are saved.
+Import the collaboration Facade before registering listeners. `CollaborationStatusChanged` reports the current status of every unit already collaborating when the listener is registered, then reports changes without repeating consecutive identical statuses. `hasWritePending(unitId)` covers queued edits, edits awaiting acknowledgement, and offline edits. If the ID is omitted, it checks the focused unit. A connected socket does not mean the edits are saved.
 
 ```ts
 import '@univerjs-pro/collaboration-client/facade'
@@ -138,13 +137,13 @@ const resendSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationChang
 })
 ```
 
-`CollaborationChangesetResend` fires on resends, not the first submission. Reasons are `ack_timeout`, `request_failed`, `license_editing_connections_exceeded`, `should_retry`, and `reconnect`; `attempt`, `elapsedMs`, `unsyncedMutationCount`, and `nextDelayMs` support a saving/retrying indicator. Dispose event subscriptions when removing the editor.
+`CollaborationChangesetResend` fires on resends, not on the first submission. The reasons are `ack_timeout`, `request_failed`, `license_editing_connections_exceeded`, `should_retry`, and `reconnect`; `attempt`, `elapsedMs`, `unsyncedMutationCount`, and `nextDelayMs` provide the data needed for a saving or retrying indicator. Dispose the event subscriptions when the editor is removed.
 
-`request_failed` means a retryable request failure, such as a network error or HTTP 408, 429, or 5xx. `license_editing_connections_exceeded` means the licensed editing connections are all in use and the server requested a resend.
+`request_failed` means a retryable request failure, such as a network error or an HTTP 408, 429, or 5xx response. `license_editing_connections_exceeded` means the licensed editing connections are all in use and the server requested a resend.
 
 ## Handle conflicts in the host [#conflict-recovery]
 
-`CollaborationConflict` fires once when a unit enters conflict, after the offline-cache cleanup attempt. Register the listener before loading documents. Its `reason` is `transform_failed`, `apply_failed`, `changeset_rejected`, `license_unit_type_rejected`, `permission_rejected`, or `remote_revert`; `message` and `revert` provide additional details when available.
+`CollaborationConflict` fires once when a unit enters conflict, after the offline-cache cleanup attempt. Register the listener before loading any documents. Its `reason` is `transform_failed`, `apply_failed`, `changeset_rejected`, `license_unit_type_rejected`, `permission_rejected`, or `remote_revert`; `message` and `revert` provide additional detail when available.
 
 `license_unit_type_rejected` means the server license does not cover collaboration on this document type.
 
@@ -158,12 +157,12 @@ const conflictSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationCon
 })
 ```
 
-The example retains the event for a host recovery screen. This Map is only in memory: before refreshing, save or export any `localChanges` through your application. The event is the opportunity to retain them; later reads cannot recover cleared cache data. `awaitingChangeset` may already have been applied on the server, so do not blindly replay it.
+The example retains the event for a host recovery screen. The map lives only in memory, so the application must save or export any `localChanges` before a refresh. This event is the only opportunity to retain them; cache data that has already been cleared cannot be recovered by a later read. `awaitingChangeset` may already have been applied on the server, so it should not be replayed blindly.
 
-`cacheCleared: false` means refreshing would replay the old cached edits. Resolve cache cleanup before refreshing. Clearing the cache does not mean unsynchronized edits were saved. A `permission_rejected` conflict also requires resolving access; reloading does not grant permission.
+`cacheCleared: false` means a refresh would replay the old cached edits, so cache cleanup must be resolved before refreshing. Clearing the cache does not mean the unsynchronized edits were saved. A `permission_rejected` conflict also requires resolving access; reloading does not grant permission.
 
 ## Server reasons and license notices [#server-rejections]
 
-For server rejections, `CollaborationConflict.message` contains the server’s reason when provided; do not parse localized message text to decide the recovery action. Branch on `reason`. `license_unit_type_rejected` requires a server license that covers the document type, while `license_editing_connections_exceeded` is a resend signal: edits remain unacknowledged and continue retrying. Keep the editor open until `hasWritePending(unitId)` becomes false or the application has retained the edits.
+When the server rejects a change, `CollaborationConflict.message` carries the reason the server gave, if it gave one. Do not parse localized message text to decide the recovery action; branch on `reason` instead. `license_unit_type_rejected` requires a server license that covers the document type, while `license_editing_connections_exceeded` is a resend signal: the edits remain unacknowledged and keep retrying. Keep the editor open until `hasWritePending(unitId)` becomes false or the application has retained the edits.
 
-The default UI displays an editing-capacity notice and, on a resend at least 20 seconds after the first send, a save-timeout notice. These are removed when the unit leaves the awaiting states or is disposed. A domain rejection also has a dedicated notice. `enableDefaultConflictUI: false` disables conflict recovery notices only; it does not disable these waiting or domain notices.
+The default UI displays an editing-capacity notice and, on a resend at least 20 seconds after the first send, a save-timeout notice. These are removed when the unit leaves the awaiting states or is disposed. A domain rejection has a dedicated notice as well. `enableDefaultConflictUI: false` disables conflict recovery notices only; it does not disable these waiting or domain notices.

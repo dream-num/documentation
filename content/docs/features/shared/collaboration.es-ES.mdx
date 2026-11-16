@@ -4,47 +4,55 @@ description: "Coordina edición concurrente con OT, HTTP, WebSocket y persistenc
 icon: Users
 ---
 
-Personas y agentes conectados trabajan sobre el mismo documento. La edición se aplica primero localmente; el servidor confirma el orden y distribuye los cambios para combinar respuesta inmediata y consistencia eventual.
+La colaboración en tiempo real permite a las personas y los agentes conectados trabajar en el mismo documento. Una edición tiene efecto localmente primero. El servidor luego ordena las ediciones y las distribuye a los otros participantes, por lo que los usuarios reciben comentarios inmediatos mientras todos los participantes convergen en el mismo contenido.
 
 ## Concurrencia y conflictos
 
-Univer usa OT (Transformación Operacional). El cliente agrupa operaciones en changesets y el servidor las transforma sobre revisiones confirmadas. Si Alice edita `C2` y Bob inserta una columna antes de B, la edición sigue a la celda hasta `D2`. Deshacer y rehacer también se ajustan, sin resolver automáticamente todos los conflictos de negocio.
+Univer utiliza OT (Transformación Operacional) para coordinar ediciones concurrentes. Los clientes agrupan sus operaciones de edición en cambios, y el servidor transforma cada cambio en contra de las revisiones confirmadas antes de cometerlo. Los clientes convergen después de recibir los cambios de uno al otro.
 
-Si una operación no puede transformarse o aplicarse, se detiene la edición del documento. `CollaborationConflict` expone causa y cambios locales sin confirmar. Conserva esos datos antes de recargar. Consulta [recuperación](/server/collaboration/browser-integration#conflict-recovery) y [diseño OT](/blog/ot).
+Por ejemplo, Alice edita `C2` mientras que Bob inserta una columna antes de B. La edición transformada sigue la célula a `D2`. Deshacer y redo también cuenta para operaciones remotas. OT intenta preservar la intención del usuario, pero no puede resolver cada conflicto de negocios automáticamente.
+
+Una operación que no puede ser transformada o aplicada coloca al cliente en un estado de conflicto y deshabilita la edición para ese documento. `CollaborationConflict` reporta la razón y las ediciones locales que nunca fueron reconocidas. Las aplicaciones pueden utilizar esta información para recuperar o guardar el trabajo del usuario, pero deben conservar los datos locales antes de volver a cargar. [Recuperación de conflictos](/server/collaboration/browser-integration#conflict-recovery) y [OT y diseño de colaboración](/blog/ot).
 
 ## Canales y reconexión
 
 | Canal | Responsabilidad |
 | --- | --- |
-| HTTP | Cargar snapshots y cambios, obtener Session Ticket y enviar changesets. |
-| WebSocket | Mantener Session y Room; recibir ACK, cambios remotos y Presence. |
+| HTTP | Carga instantáneas y cambios, obtiene un boleto de sesión, y envía cambios. |
+| WebSocket | Mantiene la sesión de colaboración y la sala de documentos, y recibe ACKs, cambios remotos y notificaciones de presencia. |
 
-Un Ticket de un solo uso permite conectar y entrar en la Room. Presence comparte miembros, cursores y selecciones. **Una conexión activa o HTTP correcto no confirma que el cambio esté guardado.** Combina ACK, estado colaborativo y cambios pendientes.
+El cliente intercambia un ticket de sesión único para una conexión WebSocket y se une a la sala del documento. La presencia comparte la membresía en línea, los cursores y las selecciones a lo largo de la misma conexión. El estado del cliente avanza como el servidor confirma las revisiones. **Una toma conectada o una solicitud HTTP exitosa no indica que la edición se guarda.** Derive ahorra el estado de los ACKs, el estado de colaboración y las ediciones pendientes.
 
-Tras una desconexión, conserva cambios pendientes, recupera revisiones ausentes y reenvía. El servidor deduplica por identidad de envío. Consulta [estado de sincronización](/server/collaboration/browser-integration#sync-status) y [Presence](/server/collaboration/presence).
+Al desconectarse, el cliente puede realizar ediciones de caché que aún no han sido reconocidas. Al conectarse, se acortan las revisiones que perdió y reenvia las presentaciones pendientes. El servidor deduplica las sumisiones, por lo que no se aplica una reinscripción dos veces. Véase [estado de la sincronización y los registros](/server/collaboration/browser-integration#sync-status) y [Presencia](/server/collaboration/presence).
 
 ## Persistencia y snapshots
 
-Guarda changesets y revisiones confirmadas y genera snapshots según una política. Al cargar, aplica los cambios posteriores al snapshot; no hace falta uno por edición. Véase [cálculo Headless y servidor](/overview/features/shared/server-calculation). Historial, comentarios y Worktree son [extensiones](/server/collaboration/extensions).
+El servicio de colaboración persiste cambios confirmados y revisiones, y genera instantáneas de acuerdo a su política. Carga de un documento restaura una instantánea y luego aplica los cambios que lo siguieron. No cada edición requiere una nueva instantánea.
+
+Para el cálculo durante la generación de instantáneas, véase [Cálculo sin cabeza y lado del servidor](/overview/features/shared/server-calculation). Los paneles de historia, comentarios y el proyecto de agente de revisión son proporcionados por [Extensiones de colaboración](/server/collaboration/extensions) separado, que se puede añadir según sea necesario.
 
 ## Arquitectura de despliegue
 
 <Mermaid chart={"flowchart LR\n    A[\"Cliente A\"]\n    B[\"Cliente B / Agente\"]\n    S[\"Servicio colaborativo propio<br/>OT · Confirmar y distribuir\"]\n    D[\"Relational Table de datos propia\"]\n    A <-->|\"HTTP / WebSocket\"| S\n    B <-->|\"HTTP / WebSocket\"| S\n    S --> D"} />
 
-- **Un nodo:** combina Transport, Endpoint, Service y Database Adapter en Node.js. Memory sirve para pruebas temporales; SQLite, para uso local o pequeño. Otras bases requieren adaptadores de la aplicación.
-- **Escalado:** además de persistencia compartida, coordina difusión entre nodos, Presence, validación de Tickets y consistencia. Añadir procesos no basta; sigue el diseño de tu versión.
-- **Tareas pesadas:** separa conversiones intensivas en CPU para reducir interferencias.
+- **Nodo único:** monta Transporte, Endpoint, Service y un adaptador de base dentro de su aplicación Node.js. La memoria es suficiente para pruebas temporales, SQLite se adapta a implementaciones locales y pequeñas, y otras bases de datos están conectadas a través de un adaptador proporcionado por la aplicación.
+- La persistencia compartida **Diseño de escalado:** es insuficiente. Las emisiones de documentos a través de los nodos, la presencia, la validación de entradas de sesión y la consistencia de almacenamiento también deben ser coordinadas. Añadiendo más procesos de servicio no proporciona estas capacidades, así que siga el diseño de implementación para la versión que integra.
+- **Separar tareas pesadas:** despliega la conversión de archivos intensivos en CPU por separado para reducir su interferencia con la capacidad de respuesta de la colaboración.
 
-Consulta [módulos](/server/collaboration/modules), [despliegue](/server/deployment) y [ejemplo multinodo](/server/collaboration/examples#multi-node).
+Ver [Funciones del módulo](/server/collaboration/modules) para el montaje completo, el [Guía para el despliegue](/server/deployment) por pasos de implementación, y el [ejemplo de multinodo](/server/collaboration/examples#multi-node).
 
 ## Rendimiento y capacidad
 
-**Los benchmarks y cifras de capacidad de la versión actual están pendientes.** Dependen de tamaño documental, frecuencia, participantes y entorno. Mide confirmación, visualización remota, changesets por segundo, difusión y memoria.
+**Todavía están pendientes los parámetros de referencia y las cifras de capacidad para la versión actual.** La capacidad y la colaboración dependen del tamaño de documento, la frecuencia de edición, el número de colaboradores por documento y el entorno de implementación.
+
+Cuando evalúa el sistema, considere el tiempo de reconocimiento de la comunicación, el tiempo de visualización remoto, los cambios por segundo, el volumen de transmisión y la memoria utilizada por documentos activos.
 
 ## Integración y alcance
 
-Empieza por la [descripción general](/server/collaboration/overview) y el [ejemplo con dos navegadores](/server/collaboration/quick-start). Integra identidad y autorización mediante Middleware, selecciona un [Database Adapter](/server/collaboration/database-adapters) persistente y comprueba la conservación tras reiniciar.
+Comience con la [sinopsis de colaboración](/server/collaboration/overview) para entender cómo se relacionan los módulos, luego ejecute el 2-browser [Inicio rápido](/server/collaboration/quick-start) para verificar la edición, el reconocimiento y la radiodifusión. La identidad y la autorización están conectadas a través de la aplicación Middleware. Para datos duraderos, seleccione un persistente [Adaptador de bases de datos](/server/collaboration/database-adapters) y verifique que el contenido sobrevive a un reinicio de servicio.
 
-El núcleo admite Sheet, Doc, Slide, Canvases y Relational Table, no PDF. La aplicación aporta identidad, autorización, gestión de archivos y políticas de almacenamiento.
+## Ámbito
+
+El servicio central admite Hoja, Doc, Slide, Canvases y Tabla Relacional; PDF no está incluido en esta cobertura básica de cinco productos. Las aplicaciones proporcionan políticas de identidad, autorización, gestión de archivos y almacenamiento. Historia, comentarios y Worktree son extensiones separadas.
 
 [Volver a todas las funciones](/overview/features)

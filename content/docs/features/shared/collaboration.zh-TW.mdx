@@ -4,47 +4,55 @@ description: "以 OT 協調並行編輯，結合 HTTP、WebSocket、持久化與
 icon: Users
 ---
 
-使用者與接入協同的 Agent 可操作同一份內容。編輯先在本機生效，服務端確認順序並同步給其他參與者，兼顧即時回應與最終一致。
+即時協同使多個使用者和接入協同的 Agent 可以操作同一份文件。編輯先在本地生效，伺服器端隨後確定這些編輯的順序，再將其分發給其他參與者。使用者因此能立即獲得反饋，所有參與者最終看到的內容保持一致。
 
 ## 並行編輯與衝突
 
-Univer 使用 OT（操作轉換）。客戶端把編輯組成 changeset，服務端依已確認的 revision 轉換並提交，使各端接收遠端修改後保持一致。例如 Alice 編輯 `C2`，Bob 同時在 B 欄前插入一欄，轉換後位置會跟隨到 `D2`。復原與重做也會調整，但不能自動解決所有業務衝突。
+Univer 使用 OT（操作轉換）協調並行編輯。客戶端將編輯操作組織為 changeset，伺服器端在提交前按已確認的 revision 轉換 changeset。各客戶端在收到彼此的修改後收斂到同一份內容。
 
-無法轉換或執行時，客戶端進入衝突狀態並暫停該文件編輯。`CollaborationConflict` 提供原因與未確認的本機修改。重新整理前應保留這些資料。參閱[衝突復原](/server/collaboration/browser-integration#conflict-recovery)與 [OT 設計](/blog/ot)。
+例如，Alice 正在編輯 `C2`，Bob 同時在 B 列之前插入一列，轉換後的編輯位置會隨單元格移動到 `D2`。撤銷和重做同樣會考慮遠端操作。OT 力求保留使用者意圖，但無法自動解決所有業務衝突。
+
+如果某個操作既無法轉換也無法執行，客戶端會進入衝突狀態，並停止該文件的編輯。`CollaborationConflict` 會給出原因以及尚未得到確認的本地修改。應用可以據此恢復，或先儲存使用者的工作，但在重新載入之前必須保留本地資料。詳見[衝突恢復](/server/collaboration/browser-integration#conflict-recovery)，原理見 [OT 演算法與協同編輯設計](/blog/ot)。
 
 ## 通道與斷線復原
 
 | 通道 | 職責 |
 | --- | --- |
-| HTTP | 載入快照與增量、取得 Session Ticket、提交 changeset。 |
-| WebSocket | 維持 Session 與文件 Room，接收 ACK、遠端修改與 Presence。 |
+| HTTP | 載入快照和 changeset、取得 Session Ticket、提交 changeset。 |
+| WebSocket | 維持協同 Session 和文件 Room，接收 ACK、遠端修改及線上狀態通知。 |
 
-一次性 Ticket 用於建立連線，再加入文件 Room。Presence 同步成員、游標與選取範圍。**連線正常或 HTTP 成功不等於修改已確認儲存。** 應結合 ACK、協同狀態與待確認修改呈現儲存狀態。
+客戶端用一次性 Session Ticket 換取一條 WebSocket 連線，然後加入對應文件的 Room。Presence 透過這條連線同步線上成員、游標和選區。伺服器端每確認一個 revision，客戶端的狀態就向前推進。**連線正常或 HTTP 請求成功，並不代表修改已經儲存。** 儲存狀態應結合 ACK、協同狀態和待確認的修改來判斷。
 
-斷線時可快取未確認修改，重連後補齊 revision 並重送；服務端依提交身分去重。參閱[同步狀態](/server/collaboration/browser-integration#sync-status)及 [Presence](/server/collaboration/presence)。
+斷線期間，客戶端可以快取尚未確認的修改。重新連線後，它按 revision 取回缺失的修改，並重發待確認的提交。伺服器端會對提交去重，重試不會被執行兩次。見[同步狀態與重發](/server/collaboration/browser-integration#sync-status)和 [Presence](/server/collaboration/presence)。
 
 ## 持久化與版本快照
 
-服務保存已確認的 changeset、revision，按策略產生快照。載入時由快照加上後續修改還原，不必每次編輯都重新產生快照。計算配合見[無頭與服務端計算](/overview/features/shared/server-calculation)。歷史、評論和 Worktree 為獨立[擴充模組](/server/collaboration/extensions)。
+協同服務儲存已確認的 changeset 和 revision，並按自身策略生成版本快照。載入文件時，先從快照恢復內容，再應用之後的修改。並非每次編輯都需要重新生成快照。
+
+快照生成期間的計算，見[無頭與伺服器端計算](/overview/features/shared/server-calculation)。歷史面板、評論和 Agent 草稿審閱屬於獨立的[協同擴充套件模組](/server/collaboration/extensions)，可按需接入。
 
 ## 部署架構
 
 <Mermaid chart={"flowchart LR\n    A[\"客戶端 A\"]\n    B[\"客戶端 B / Agent\"]\n    S[\"應用協同服務<br/>OT · 確認與廣播\"]\n    D[\"應用資料庫\"]\n    A <-->|\"HTTP / WebSocket\"| S\n    B <-->|\"HTTP / WebSocket\"| S\n    S --> D"} />
 
-- **單節點**：在 Node.js 應用組合 Transport、Endpoint、Service 與 Database Adapter。Memory 用於臨時驗證；SQLite 適合本機及小規模部署，其他資料庫由應用提供適配器。
-- **擴容設計**：除共用儲存，還需協調跨節點廣播、Presence、Ticket 驗證及儲存一致性，不能只增加進程。依所用版本部署方案接入。
-- **重任務分離**：檔案轉換等 CPU 密集任務可獨立部署，減少對協同回應的影響。
+- **單節點**：在 Node.js 應用中組裝 Transport、Endpoint、Service 和 Database Adapter。Memory 可用於臨時驗證，SQLite 適合本地和小規模部署，其他資料庫透過應用提供的 Adapter 接入。
+- **擴容設計**：僅共享持久化並不足夠。跨節點的文件廣播、Presence、Session Ticket 驗證和儲存一致性都需要一併處理，僅增加服務程序無法解決。具體方案以所整合版本的部署設計為準。
+- **拆分重任務**：檔案轉換這類 CPU 密集型任務可單獨部署，以減少對協同響應的影響。
 
-參閱[模組分工](/server/collaboration/modules)、[部署](/server/deployment)和[多節點範例](/server/collaboration/examples#multi-node)。
+完整組裝見[模組分工](/server/collaboration/modules)，部署步驟見[部署指引](/server/deployment)，也可參考[多節點範例](/server/collaboration/examples#multi-node)。
 
 ## 效能與容量
 
-**目前版本的效能基準與容量資料待補充。** 容量取決於文件規模、編輯頻率、協作者及環境。可量測提交確認、遠端顯示延遲、每秒 changeset、廣播量與活躍文件記憶體。
+**當前版本的效能基準測試與容量資料待補充。** 實際容量和協同延遲取決於文件大小、編輯頻率、單文件的協作者數量以及部署環境。
+
+評估系統時，應關注提交確認耗時、遠端修改顯示耗時、每秒 changeset 數、廣播量以及活躍文件佔用的記憶體。
 
 ## 接入與範圍
 
-從[協同總覽](/server/collaboration/overview)與[雙瀏覽器快速開始](/server/collaboration/quick-start)驗證編輯、確認和廣播。以 Middleware 接入身分及授權，選擇持久化 [Database Adapter](/server/collaboration/database-adapters)，並驗證重啟後內容保留。
+先閱讀[協同總覽](/server/collaboration/overview)瞭解各模組之間的關係，再按[快速開始](/server/collaboration/quick-start)執行雙瀏覽器範例，驗證編輯、確認和廣播。身分與授權透過應用的 Middleware 接入。如需長期儲存資料，應選擇持久化的 [Database Adapter](/server/collaboration/database-adapters)，並驗證服務重啟後內容仍然保留。
 
-核心支援 Sheet、Doc、Slide、Canvases、Relational Table，不含 PDF。身分、授權、檔案管理及儲存策略由應用提供。
+## 適用邊界
+
+核心服務支援 Sheet、Doc、Slide、Canvases 和 Relational Table，PDF 不在這五個產品的核心協同範圍內。身分、授權、檔案管理和儲存策略由應用提供；歷史記錄、評論和 Worktree 屬於獨立擴充套件。
 
 [返回功能總覽](/overview/features)

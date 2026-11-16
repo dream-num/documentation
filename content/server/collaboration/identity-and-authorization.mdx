@@ -3,34 +3,29 @@ title: Identity and authorization
 description: Connect an existing authentication and authorization system through Transport, Endpoint, and Service Middleware.
 ---
 
-The Univer Collaboration SDK does not define users, roles, or an ACL model. Applications establish
-trusted identity in Transport Middleware, then protect realtime Sessions and authoritative
-collaboration data with Endpoint and Service Middleware.
+The Univer Collaboration SDK does not define users, roles, or an ACL model. An application establishes trusted identity in Transport Middleware and then protects realtime Sessions and authoritative collaboration data with Endpoint and Service Middleware.
 
-This page is a concrete application of [Middleware and Events](/server/collaboration/middleware-and-events)
-and focuses on integrating identity and authorization through Middleware.
+This page applies [Middleware and Events](/server/collaboration/middleware-and-events) to one concrete task: integrating identity and authorization through Middleware.
 
 ## Verify permissions [#verify-permissions]
 
-Stop the previous example and run `pnpm example:permissions`. Open `http://127.0.0.1:3010` in two independent browser contexts: sign in as **Alice · Editor** in one and **Bob · Viewer** in the other. The editor can modify the document; the viewer can read the synchronized result but cannot modify it. In [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/permissions/server/main.ts), follow identity resolution in `transport.use()`, read checks in `readUnitData`, room checks in `joinUnit`, and edit checks in `submitChangeset`. Replace the demo Cookie and user list with your own authentication and document ACL; **frontend readonly state alone is insufficient**.
+Stop the previous example and run `pnpm example:permissions`. Open `http://127.0.0.1:3010` in two separate browser contexts: sign in as **Alice · Editor** in one and as **Bob · Viewer** in the other. The editor can modify the document, and the viewer sees the synchronized result but cannot modify it. Open [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/permissions/server/main.ts) to follow the code: identity resolution in `transport.use()`, read checks in `readUnitData`, room checks in `joinUnit`, and edit checks in `submitChangeset`. Replace the demo Cookie and the user list with your own authentication and document ACL. **Frontend readonly state alone is insufficient.**
 
-The page also provides **Casey · No access**. Signing in with this account should deny document loading; the snapshot request returns HTTP 403.
+The page also provides a **Casey · No access** account. Signing in with that account should block document loading, and the snapshot request returns HTTP 403.
 
 ## Identity model
 
-| Identifier    | Provider    | Meaning and lifecycle                                                  |
+| Identifier    | Provider    | Meaning and lifetime                                                   |
 | ------------- | ----------- | ---------------------------------------------------------------------- |
 | `userID`      | Application | Stable business identity and author of confirmed changesets            |
 | `memberID`    | Endpoint    | Online member ID for one WebSocket Session; changes after reconnection |
 | `sid + reqId` | Client      | Changeset submission identity that remains stable across retries       |
 
-User profile fields submitted by the browser, `memberID`, and revisions cannot replace application
-authentication. Map the application's stable user key to `context.userID`.
+User profile fields submitted by the browser, `memberID`, and revisions cannot substitute for application authentication. An application maps its stable user key to `context.userID`.
 
 ## Establish identity in Transport Middleware
 
-The Transport reruns Middleware for every Collaboration HTTP request. An application can read a
-Cookie, Session, or Bearer token and attach the authenticated result to Context:
+The Transport runs Middleware for every Collaboration HTTP request. An application can read a Cookie, a Session, or a Bearer token and attach the authenticated result to Context:
 
 ```ts
 transport.use(async (context, next) => {
@@ -45,7 +40,7 @@ transport.use(async (context, next) => {
 });
 ```
 
-On authentication failure, end the HTTP response without calling `next()`:
+When authentication fails, end the HTTP response without calling `next()`:
 
 ```ts
 transport.use(async (context, next) => {
@@ -65,8 +60,7 @@ The SDK does not prescribe Cookie names, token formats, user tables, or login fl
 
 ## How identity enters a WebSocket Session
 
-The WebSocket path does not trust user fields in client payloads. The Endpoint extends an
-authenticated HTTP Context into a realtime Session through a one-time Session Ticket:
+The WebSocket path does not trust the user fields in client payloads. The Endpoint carries an authenticated HTTP Context into a realtime Session by means of a one-time Session Ticket:
 
 ```text
 Session Ticket HTTP request
@@ -77,9 +71,7 @@ Session Ticket HTTP request
   → creates Session { userID, memberID, customData }
 ```
 
-The ticket string does not contain `userID` or `customData`. `memberID` identifies only the current
-connection and is not an independent identity credential. With a shared ticket store in a multi-node
-deployment, the stored `customData` is serialized, so keep it JSON-serializable.
+The ticket string contains neither `userID` nor `customData`. `memberID` identifies only the current connection, and it is not an independent identity credential. In a multi-node deployment with a shared ticket store, the stored `customData` is serialized, so it must remain JSON-serializable.
 
 ## Authorize at the correct boundary
 
@@ -94,10 +86,7 @@ deployment, the stored `customData` is serialized, so keep it JSON-serializable.
 | Deleting Units                           | Service `deleteUnits`     |
 | Recovering Units                         | Service `recoverUnits`    |
 
-Endpoint `joinUnit` only controls whether a Session can enter a realtime Room. Snapshots and
-missing changesets can be read directly over HTTP, so a JOIN check cannot replace
-`readUnitData`. Likewise, a read-only client UI is a product hint, not a replacement for server-side
-`submitChangeset` policy.
+Endpoint `joinUnit` only controls whether a Session can enter a realtime Room. Snapshots and missing changesets can be read directly over HTTP, so a JOIN check cannot replace `readUnitData`. Likewise, a read-only client UI is a product hint and does not replace the `submitChangeset` policy on the server.
 
 ## Protect read, JOIN, and edit
 
@@ -130,14 +119,11 @@ service.use("submitChangeset", async (context, next) => {
 });
 ```
 
-Real applications typically install all three rules: read policy for HTTP and JOIN, and edit
-policy for submission.
+A real application normally installs all three rules: read policy for HTTP and JOIN, and edit policy for submission.
 
 ## Protect Unit lifecycle
 
-The collaboration protocol opens existing Units. “Create document” is normally an application API
-that creates a product record and ACL before calling `createUnitFromData()` or
-`createUnitFromSnapshot()`. Protect the lifecycle through Service Middleware as well:
+The collaboration protocol opens Units that already exist. “Create document” is normally an application API that writes a product record and an ACL before it calls `createUnitFromData()` or `createUnitFromSnapshot()`. The lifecycle also requires Service Middleware protection:
 
 ```ts
 service.use("createUnit", async (context, next) => {
@@ -157,12 +143,11 @@ service.use("deleteUnits", async (context, next) => {
 });
 ```
 
-Protect `recoverUnits` separately. A user who once had delete permission does not necessarily retain
-recovery permission forever.
+Protect `recoverUnits` separately. A user who once had delete permission does not necessarily retain recovery permission.
 
 ## Reuse lookups through customData
 
-Middleware in the same Service call can use `customData` to avoid duplicate queries:
+Middleware within the same Service call can use `customData` to avoid duplicate queries:
 
 ```ts
 service.use("submitChangeset", async (context, next) => {
@@ -176,30 +161,26 @@ service.use("submitChangeset", async (context, next) => {
 });
 ```
 
-`customData` belongs only to the current call or Session and is not automatically persisted. Roles,
-ACLs, and tenant relationships still belong in application storage.
+`customData` belongs only to the current call or Session and is not persisted automatically. Roles, ACLs, and tenant relationships remain in application storage.
 
 ## Extension modules need separate policy
 
-History, Thread Comment, Worktree, File, and Exchange have independent Service Middleware:
+History, Thread Comment, Worktree, File, and Exchange each have their own Service Middleware:
 
-- History list and changeset reads should check Unit read access;
-- Comment list should check read access, while add/reply/edit/delete apply Comment policy;
-- Worktree should separately protect visibility, draft edits, status changes, and merge;
-- a Worktree merge into trunk still enters the trunk Service Middleware;
-- File `upload` should check edit access to the target Unit, and `signUrl` and `download` should check read access;
-- Exchange `import` and `export` suit quota checks and access to the source Unit; creating the imported Unit and reading the exported Unit still enter the Core Service Middleware.
+- History list and changeset reads should check that the caller can read the Unit.
+- Comment list should check read access, while add, reply, edit, and delete apply Comment policy.
+- Worktree requires separate checks for visibility, draft edits, status changes, and merge.
+- A Worktree merge into the trunk still goes through the trunk Service Middleware.
+- File `upload` should check edit access to the target Unit, while `signUrl` and `download` check read access.
+- Exchange `import` and `export` are the appropriate place for quota checks and for checks on access to the source Unit; creating the imported Unit and reading the exported Unit still go through the Core Service Middleware.
 
-Rules on the core Collaboration Service do not automatically protect these modules. Reuse the same
-application policy service rather than creating a separate ACL data model for each extension.
+Rules installed on the core Collaboration Service do not automatically protect these modules. The same application policy service should be reused rather than a separate ACL data model built for each extension.
 
 ## Set the current user in the client
 
-`UserManagerService.setCurrentUser()` sets the user ID, name, and avatar for the current Univer
-instance so frontend components can read them. For example, the comment panel's “Concern me” filter
-uses this user ID to display comments related to the current user.
+`UserManagerService.setCurrentUser()` sets the user ID, name, and avatar for the current Univer instance, and frontend components read these values from there. The “Concern me” filter of the comment panel, for example, uses this user ID to display the comments that involve the current user.
 
-Set it after creating the Univer instance and before loading the document:
+Call it after the Univer instance is created and before the document is loaded:
 
 ```ts
 import { UserManagerService } from "@univerjs/core";
@@ -215,8 +196,6 @@ univer
   });
 ```
 
-Map the application's stable user ID to `userID`, matching the server's authenticated
-`context.userID`. Set the member names and avatars shared during collaboration in the server's
-`connect` Middleware, as described in [Presence](/server/collaboration/presence).
+Map the application's stable user ID to `userID` and keep it identical to the authenticated `context.userID` on the server. The member names and avatars shared during collaboration are set in the server's `connect` Middleware, as described in [Presence](/server/collaboration/presence).
 
-See the complete runnable [Permissions example](/server/collaboration/examples#permissions).
+The [Permissions example](/server/collaboration/examples#permissions) is the complete runnable version.

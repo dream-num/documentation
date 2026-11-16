@@ -3,13 +3,13 @@ title: License
 description: Configure Exchange export authorization, query remaining quota, and handle license errors.
 ---
 
-Exchange reads the License in the server process running `@univerjs-pro/exchange-node`. See [Office file import and export](/server/import-export/node) for conversion.
+Exchange reads the license inside the server process that runs `@univerjs-pro/exchange-node`. For the conversion itself, see [Office file import and export](/server/import-export/node).
 
 ## Configure authorization [#configure]
 
-Provide the License through the `UNIVER_LICENSE` and `UNIVER_LICENSE_KEY` environment variables. Calling `configureExchange` is optional: the SDK reads the environment once on the first export or quota query and reuses that configuration. Without environment credentials, Free applies. Supplied but invalid credentials return an error and cannot be used for export.
+The standard approach is to set `UNIVER_LICENSE` and `UNIVER_LICENSE_KEY` in the environment. Calling `configureExchange` is then optional: the SDK reads the environment once, on the first export or quota query, and keeps that configuration for the rest of the process. When neither variable is set, Free applies. When the variables are set but the credentials are invalid, calls return an error, and those credentials cannot be used for export.
 
-For explicit configuration, `configureExchange({ license, licenseKey })` returns `Promise<void>` and completely ignores the environment. Await it before starting exports that should use the new credentials.
+For explicit configuration, call `configureExchange({ license, licenseKey })`. The function returns `Promise<void>` and ignores the environment completely, so await it before starting exports that should use the new credentials.
 
 ```ts
 import { configureExchange, getExportQuota } from '@univerjs-pro/exchange-node'
@@ -22,22 +22,22 @@ await configureExchange({
 const quota = await getExportQuota()
 ```
 
-Use the complete `license` and `licenseKey` contents supplied by your license provider, not file paths. Configure both together through your application's secret management system.
+Pass the complete `license` and `licenseKey` contents supplied by the license provider, not paths to files. Set both values together and read them from the application's secret management system.
 
 | Input | Behavior |
 | --- | --- |
-| Do not call `configureExchange` | Read both environment variables on first use; use Free when neither is set. |
-| `configureExchange({ license, licenseKey })` | Use only the explicit credentials; ignore the environment. |
-| `configureExchange({})` | Explicitly select Free; ignore the environment. |
-| Only one credential is supplied in the selected source | Return `INVALID_ARGUMENT`; never fill the other field from a different source. |
+| Do not call `configureExchange` | Both environment variables are read on first use. Free applies when neither variable is set. |
+| `configureExchange({ license, licenseKey })` | Only the explicit credentials are used. The environment is ignored. |
+| `configureExchange({})` | Free is selected explicitly. The environment is ignored. |
+| Only one credential in the selected source | The call returns `INVALID_ARGUMENT`. The other field is never filled from a different source. |
 
-Once a complete environment configuration is read, it remains fixed even if a later operation fails. To replace the default credentials at runtime, explicitly call and await `configureExchange`. Failed configuration leaves the previous configuration in effect; handle the error before starting new exports.
+Once a complete environment configuration has been read, it stays fixed even if a later operation fails. To replace the default credentials at runtime, call `configureExchange` and await it. A failed call leaves the previous configuration in place, so handle the error before starting new exports.
 
-ESM and CommonJS share configuration within the same JavaScript context. Each `worker_threads` Worker must configure itself or initialize from its environment. Exports use the configuration captured when the public export method is called; later credential changes do not affect exports already started.
+ESM and CommonJS share a single configuration within the same JavaScript context. Each `worker_threads` Worker must configure itself or initialize from its own environment. An export uses the configuration that was in place when the public export method was called; changing credentials later does not affect exports that have already started.
 
 ### Provide authorization for one operation
 
-Pass a complete `license` and `licenseKey` pair in the options for an export API or `getExportQuota` to authorize only that operation without changing the default configuration. For example, query quota and export with the same credentials:
+To authorize a single call without changing the default configuration, pass a complete `license` and `licenseKey` pair in the options of an export API or of `getExportQuota`. The following example queries the quota and exports with the same credentials:
 
 ```ts
 import { UniverInstanceType } from '@univerjs/core'
@@ -52,7 +52,7 @@ const output = await exportToBuffer(workbook, {
 })
 ```
 
-This also applies to file exports, Snapshot exports, and optional PDF exports. Omitting both fields uses the default configuration; supplying only one returns `INVALID_ARGUMENT`. An explicit pair is never completed from the default configuration or environment, and empty strings are not treated as omitted. Invalid credentials return `LICENSE_INVALID` without falling back to the default commercial license.
+File exports, Snapshot exports, and the optional PDF exports accept the same pair. When both fields are omitted, the default configuration applies; when only one field is supplied, the call returns `INVALID_ARGUMENT`. An explicit pair is never completed from the default configuration or from the environment, and an empty string does not count as an omitted field. Invalid credentials return `LICENSE_INVALID`, and the SDK does not fall back to the default commercial license.
 
 ### Optional PDF support
 
@@ -74,29 +74,29 @@ await configureExchange({
 const quota = await getExportQuota()
 ```
 
-This entry registers PDF support; native components load when used. PDF uses the same `importBuffer`, `importFile`, `exportToBuffer`, `exportToFile`, and corresponding Snapshot APIs with `UniverInstanceType.UNIVER_PDF` and `ExchangeFormat.PDF`. A PDF-only application does not need to load the Office native component. Environment-based configuration also applies to PDF.
+The import registers PDF support, and the native components load when they are first used. PDF uses the same `importBuffer`, `importFile`, `exportToBuffer`, `exportToFile`, and corresponding Snapshot APIs, with `UniverInstanceType.UNIVER_PDF` and `ExchangeFormat.PDF`. An application that handles only PDF does not need the Office native component. Environment-based configuration applies to PDF as well.
 
 ## Query remaining quota [#quota]
 
-`getExportQuota({ license, licenseKey })` returns `Promise<ExportQuota>` for the authorization's shared Office and PDF quota. Omitting credentials queries the default configuration. It accepts no Unit type and does not check permission to export a particular type; that check occurs during export.
+`getExportQuota({ license, licenseKey })` returns `Promise<ExportQuota>` for the Office and PDF quota that the authorization shares. When the credentials are omitted, the call queries the default configuration. The call accepts no Unit type and does not check whether a particular export type is permitted; that check occurs during the export.
 
-Queries neither consume nor reserve quota, and do not check the SDK version, activation time, or export type entitlement. A zero balance still returns a successful snapshot. Other requests may consume quota afterward, so handle actual export errors as well.
+A query neither consumes nor reserves quota, and it does not check the SDK version, the activation time, or the export type entitlement. A zero balance still returns a successful snapshot. Other requests may consume quota immediately afterward, so handle the errors returned by the actual export as well.
 
-Before authorization starts, a limited-quota query returns the first authorization month with a future `periodStart`. A successful query or a `valid` status does not grant permission to export. Version, activation, type entitlement, available quota, and concurrency checks occur during export.
+Before the authorization takes effect, a query against a limited quota returns the snapshot for the first authorization month, whose `periodStart` lies in the future. A successful query, or a `valid` status, does not mean that export is permitted. The SDK checks version, activation, type entitlement, available quota, and concurrency during the export.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `licenseStatus` | `'not_configured' \| 'expired' \| 'valid'` | Export subscription is unconfigured, expired, or not expired. `valid` does not mean export admission checks have passed. Invalid credentials return an error. |
-| `expiresAt` | `string \| null` | Export subscription expiry as a UTC ISO timestamp; `null` when unconfigured or no expiry applies. |
+| `licenseStatus` | `'not_configured' \| 'expired' \| 'valid'` | The export subscription is unconfigured, expired, or not yet expired. `valid` does not mean that the export admission checks have passed. Invalid credentials return an error. |
+| `expiresAt` | `string \| null` | Expiry of the export subscription as a UTC ISO timestamp. `null` when nothing is configured or no expiry applies. |
 | `observedAt` | `string` | UTC ISO timestamp of this snapshot. |
-| `limit` | `number \| null` | Current monthly export limit; `null` when unlimited. |
-| `used` | `number \| null` | Successful exports in the current month; `null` when unlimited. |
-| `reserved` | `number \| null` | In-flight exports occupying the current month's quota; `null` when unlimited. |
-| `remaining` | `number \| null` | Available exports: `max(0, limit - used - reserved)`; `null` when unlimited. |
-| `periodStart` | `string \| null` | Inclusive UTC ISO start of the queried monthly quota window; the first period starts in the future before activation. `null` when unlimited. |
-| `periodEnd` | `string \| null` | Exclusive UTC ISO end of the queried monthly quota window; `null` when unlimited. |
+| `limit` | `number \| null` | Current monthly export limit. `null` when the quota is unlimited. |
+| `used` | `number \| null` | Successful exports in the current month. `null` when the quota is unlimited. |
+| `reserved` | `number \| null` | In-flight exports that hold quota in the current month. `null` when the quota is unlimited. |
+| `remaining` | `number \| null` | Exports still available, calculated as `max(0, limit - used - reserved)`. `null` when the quota is unlimited. |
+| `periodStart` | `string \| null` | Inclusive UTC ISO start of the queried monthly quota window. The first period starts in the future, before activation. `null` when the quota is unlimited. |
+| `periodEnd` | `string \| null` | Exclusive UTC ISO end of the queried monthly quota window. `null` when the quota is unlimited. |
 
-`periodEnd` marks the start of the next monthly quota window; `expiresAt` marks the end of the export subscription. A valid subscription always uses commercial quota. Exhaustion never selects Free, and a new commercial quota window begins the following month. Only subscription expiry selects the existing remaining Free quota, without resetting or granting it again.
+`periodEnd` is the start of the next monthly quota window, and `expiresAt` is the end of the export subscription. While the subscription is valid, exports always use commercial quota. Exhaustion never selects Free, and the next commercial window begins in the following month. Only subscription expiry switches to the remaining Free quota, which is neither reset nor granted again.
 
 Example of a limited-quota snapshot:
 
@@ -116,15 +116,15 @@ Example of a limited-quota snapshot:
 
 ## Use export quota [#accounting]
 
-Free allows 10 successful exports per authorization month. Commercial export quota, concurrency, and version entitlements depend on the purchased license. Neither Free nor commercial licenses impose file-size or cell-count limits. Use the query response for the current period and remaining quota. Unused monthly quota does not roll over.
+Free permits 10 successful exports per authorization month. Commercial export quota, concurrency, and version entitlements depend on the purchased license. Neither Free nor a commercial license limits file size or cell count. The query response reports the current period and the remaining quota. Unused monthly quota does not roll over.
 
-Imports do not require export authorization and do not consume export quota. Office and PDF exports using the same commercial license within a deployment share quota. See [Office file import and export](/server/import-export/node) for Exchange conversion formats.
+Imports require no export authorization and consume no export quota. Within one deployment, Office and PDF exports that use the same commercial license share quota. The Exchange conversion formats are listed in [Office file import and export](/server/import-export/node).
 
-Each successful conversion consumes one export. Returning a Buffer counts as success. A later file-write, upload, or download failure does not refund that export; another successful conversion consumes another export. When the current period has no remaining quota, new exports are rejected. Wait for the next authorization period or provide a valid license with a higher quota; an exhausted valid commercial license does not use Free quota.
+Each successful conversion consumes one export, and returning a Buffer counts as success. A subsequent failure to write, upload, or download the file does not refund that export, and another successful conversion consumes another one. When the current period has no quota left, new exports are rejected. Wait for the next authorization period or supply a valid license with a higher quota. An exhausted but valid commercial license does not fall back to Free quota.
 
 ## Handle errors [#errors]
 
-Use the structured `code` to identify errors instead of parsing `message` text. Your UI can map error codes to localized messages. Retain diagnostic information for technical support.
+Identify errors by the structured `code` rather than by parsing the `message` text. The UI can map error codes to localized messages. Retain the diagnostic details for technical support.
 
 ```ts
 import { UniverInstanceType } from '@univerjs/core'
@@ -145,27 +145,27 @@ try {
 }
 ```
 
-The table distinguishes quota queries (`getExportQuota`) from actual exports. Both APIs return Promises; handle failures with `await` and `try/catch`.
+The table below states whether an error originates from a quota query (`getExportQuota`) or from an actual export. Both APIs return Promises, so failures require `await` and `try/catch`.
 
 | Code | Operation | Meaning and response |
 | --- | --- | --- |
-| `LICENSE_EXPORT_QUOTA_EXCEEDED` | Export only | Insufficient export quota for the current period. Query quota or contact sales to adjust the license. |
-| `LICENSE_CONCURRENCY_TIMEOUT` | Export only | Waiting for available export concurrency timed out. Reduce concurrent exports before submitting again. |
-| `LICENSE_UNIT_TYPE_REJECTED` | Export only | This export type is not licensed or its type entitlement has expired. Provide a valid license covering the type. |
-| `LICENSE_INVALID` | Query, export | The license is invalid. Check the complete credentials or contact the license provider for an update. |
-| `LICENSE_POLICY_INVALID` | Query, export | The authorization configuration does not meet SDK requirements. Contact the license provider for an update. |
-| `LICENSE_NOT_YET_EFFECTIVE` | Export only | Authorization has not started yet. Use it after its effective date. |
+| `LICENSE_EXPORT_QUOTA_EXCEEDED` | Export only | The current period has insufficient export quota. Query the quota or contact sales to adjust the license. |
+| `LICENSE_CONCURRENCY_TIMEOUT` | Export only | Waiting for an export concurrency slot timed out. Reduce concurrent exports before submitting again. |
+| `LICENSE_UNIT_TYPE_REJECTED` | Export only | The export type is not covered by the license, or its type entitlement has expired. Provide a valid license that covers the type. |
+| `LICENSE_INVALID` | Query, export | The license is invalid. Check the complete credentials, or request an update from the license provider. |
+| `LICENSE_POLICY_INVALID` | Query, export | The authorization configuration does not meet the SDK requirements. Request an update from the license provider. |
+| `LICENSE_NOT_YET_EFFECTIVE` | Export only | The authorization has not yet taken effect. Use it after its effective date. |
 | `LICENSE_VERSION_NOT_ALLOWED` | Export only | The current SDK version is outside the licensed range. Use a matching version or update the license. |
-| `UNSUPPORTED_FORMAT` | Export only | The format is unsupported or incompatible with the Unit type. Check export options. |
-| `INVALID_FILE` | Export only | The conversion input is invalid. Check its contents. |
-| `INCOMPLETE_SNAPSHOT` | Export only | Export data is incomplete. Provide complete data or a complete Snapshot. |
-| `CONVERSION_FAILED` | Export only | Conversion failed. Retain the error and check the input contents. |
-| `IO_ERROR` | Export only | File input/output failed. An output-write failure after successful conversion has already consumed an export. |
-| `INVALID_ARGUMENT` | Query, export | Incomplete arguments or credentials. Check the configuration. |
-| `NATIVE_LOAD_FAILED` | Query, export | A native SDK component could not load. Check package and runtime compatibility. |
-| `LICENSE_USAGE_STATE_INVALID` | Query, export | License usage status cannot be verified. Preserve the error and contact technical support. |
-| `LICENSE_USAGE_STORAGE_ERROR` | Query, export | License usage processing failed. Preserve the error, contact technical support, and avoid automatic resubmission. |
+| `UNSUPPORTED_FORMAT` | Export only | The format is unsupported or does not match the Unit type. Check the export options. |
+| `INVALID_FILE` | Export only | The conversion input is invalid. Check the input contents. |
+| `INCOMPLETE_SNAPSHOT` | Export only | The export data is incomplete. Provide complete data or a complete Snapshot. |
+| `CONVERSION_FAILED` | Export only | The conversion failed. Retain the error and check the input contents. |
+| `IO_ERROR` | Export only | File input or output failed. If the conversion succeeded and writing the output failed, that export has already been consumed. |
+| `INVALID_ARGUMENT` | Query, export | Arguments or credentials are incomplete. Check the configuration. |
+| `NATIVE_LOAD_FAILED` | Query, export | A native SDK component failed to load. Check that the installed packages match the runtime environment. |
+| `LICENSE_USAGE_STATE_INVALID` | Query, export | The license usage state cannot be verified. Retain the error and contact technical support. |
+| `LICENSE_USAGE_STORAGE_ERROR` | Query, export | License usage processing failed. Retain the error, contact technical support, and do not resubmit automatically. |
 
-Applications can derive expiry reminders from `licenseStatus` and `expiresAt`; the SDK does not return a separate notice list.
+The application can build expiry reminders from `licenseStatus` and `expiresAt`. The SDK does not return a separate list of notices.
 
-After a license usage processing error, do not infer accounting solely from the error. Preserve the complete error and contact technical support.
+After a license usage processing error, do not infer from the error alone whether the export was counted. Retain the full error and contact technical support.

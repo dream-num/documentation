@@ -3,13 +3,13 @@ title: Web Workers
 icon: CircuitBoard
 ---
 
-以下の例では、Univer における Worker[^web-worker]（Web Worker）機能の基本的な利用方法を示します。
+以下の例では、Univer の式計算の Worker[^web-worker] コンフィギュレーションの手順を説明します。
 
-Sheets では、Worker は数式計算などの計算負荷が高い処理を担うためによく使用されます。数式計算を Worker プロセスで実行することで、メインスレッドの負荷を抑え、ブック内の数式が多い場合でもページのレンダリングや操作への影響を軽減できます。
+シートでは、ワーカーは一般的に計算などの計算式タスクを処理します。ワーカープロセスでこの作業を実行すると、メインスレッドの負荷が軽減されます。そのため、ワークブックには多くの式が含まれているときにページレンダリングとインタラクションが応答します。
 
 ## プラグインモード
 
-[インストール](/guides/sheets/getting-started/installation)のプラグインモード設定を基に、描画と UI のプラグインはメインスレッドに残します。既存の計算関連プラグイン 3 つの登録を次の設定に変更し、ワークブックの作成前にメインスレッド RPC プラグインを追加します。
+このセクションは、[導入事例](/guides/sheets/getting-started/installation)のプラグインモード設定から始まります。レンダリングとUIプラグインはメインスレッドに残ります。以下のバージョンで3つの計算プラグインの登録を置き換え、メインスレッドのRPCプラグインを登録して、ワークブックを作成してください。
 
 `UniverRPCMainThreadPlugin`
 
@@ -37,7 +37,7 @@ univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: true })
 univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: true })
 ```
 
-Worker には以下のデータと計算用プラグインのみを登録します。UI や描画プラグインは登録しません。メインスレッドの `notExecuteFormula: true` は計算を Worker に委譲します。
+Worker には、以下に示すデータと計算プラグインのみが含まれています。 Worker の UI やレンダープラグインを登録しないでください。 メインスレッドでは、`notExecuteFormula: true` は、ワーカーに式計算を委任します。
 
 `UniverSheetsPlugin`
 
@@ -59,9 +59,9 @@ univer.registerPlugin(UniverRPCWorkerThreadPlugin)
 univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
 ```
 
-フィルター使用時は、両方のスレッドに `UniverSheetsFilterPlugin` を登録して `SUBTOTAL` などに反映します。メインスレッドでは `@univerjs/sheets-filter`、Worker では `@univerjs/sheets-filter/worker` からインポートしてください。`UniverSheetsFilterUIPlugin` はメインスレッドだけで使用します。
+フィルタリングは、両方のスレッドで`UniverSheetsFilterPlugin`を必要とします。 このプラグインがなければ、`SUBTOTAL`などの式は、フィルタリングが隠されている行を決定することができません。 主要なスレッドで`@univerjs/sheets-filter`からプラグインをインポートし、ワーカーの`@univerjs/sheets-filter/worker`から。 `UniverSheetsFilterUIPlugin`はメインスレッドに残ります。
 
-Worker に計算プラグインを追加する場合は以下の入口を使用します。メインスレッドは各パッケージのルートを使用し、すべての SDK バージョンを揃えてください。
+Worker で追加の計算プラグインは、以下のエントリ ポイントを使用します。各パッケージのルートエントリからメイン スレッド インポートします。すべての SDK パッケージ バージョンが整列されている必要があります。
 
 ```typescript title="worker.ts"
 import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula/worker'
@@ -71,7 +71,7 @@ import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer/worker'
 import { UniverSheetsTablePlugin } from '@univerjs/sheets-table/worker'
 ```
 
-ピボットテーブルでは、両方のスレッドで `UniverFormulaEnginePlugin` を `UniverProFormulaEnginePlugin` に置き換え、`UniverLicensePlugin` と `UniverSheetsPivotTablePlugin` も登録します。Pro 数式エンジンとピボットプラグインの `notExecuteFormula` は、メインスレッドで `true`、Worker で `false` にします。両方にライセンスを渡し、UI はメインスレッドに置き、カスタム関数も両方のエンジンに登録してください。
+Pivotテーブルは異なる設定が必要です。 `UniverFormulaEnginePlugin`を`UniverProFormulaEnginePlugin`と交換し、`UniverLicensePlugin`や`UniverSheetsPivotTablePlugin`も登録します。メインスレッドでは、Proの式エンジンとPivotTableプラグインに`notExecuteFormula: true`を設定し、Workerで`false`にセットします。両方のランタイムはライセンスが必要です。 ピボットUIは、メインスレッドに登録されたエンジンと、両方の式エンジンの公式エンジンとPiovtTableの両方のプラグインを設定しなければなりません。
 
 `UniverLicensePlugin`
 
@@ -101,7 +101,7 @@ import { UniverSheetsTablePlugin } from '@univerjs/sheets-table/worker'
 
 ### 例: sheets-core-with-worker
 
-この例では `sheets-filter` プリセットパッケージをインポートしています。理由は、`SUBTOTAL` 関数の計算結果が sheets-filter によって非表示行の影響を受けるためです。数式計算を Worker 内で実行する場合、sheets-filter も同じく Worker 内で実行される必要があります。
+この例では、シートフィルタが行を隠すため、`sheets-filter`プリセットパッケージと、隠し行は`SUBTOTAL`の計算方法に影響します。 式計算がワーカーで実行されると、シートフィルタもワーカーで動作しなければなりません。
 
 ```typescript title="main.ts"
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'

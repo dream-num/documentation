@@ -3,9 +3,9 @@ title: Collaboration Extension Modules
 description: Understand how History, Thread Comment, Worktree, File, and server-side Office Exchange extend core collaboration.
 ---
 
-History, Thread Comment, File, and Worktree are independent collaboration extension modules that can be enabled as needed. They can reuse the Transport, identity system, and physical database, but each keeps its own Service, Middleware, Event, Database Adapter, and lifecycle boundaries.
+History, Thread Comment, File, and Worktree are optional collaboration extension modules that extend collaboration without changing the core. Each module provides its own Service, Middleware, Event, Database Adapter, and lifecycle boundary, so an application enables only the modules that the product requires. The modules can still share the Transport, the identity system, and the same physical database.
 
-Server-side Office Exchange combines File with Collaboration Service: it converts between Office files and collaborative Units, with its own Service, Endpoint, and Middleware.
+Server-side Office Exchange builds on File and Collaboration Service. It converts between Office files and collaborative Units, and it provides its own Service, Endpoint, and Middleware.
 
 ## Module relationships
 
@@ -19,11 +19,11 @@ Server-side Office Exchange combines File with Collaboration Service: it convert
 | Office Exchange  | Creates or reads Units through Core Service and reads and writes files through File                   |
 | Worktree         | Reuses Core Unit and OT capabilities and merges drafts into the trunk                                 |
 
-History, Thread Comment, File, and Worktree configure their own Middleware, Events, and Database Adapters.
+History, Thread Comment, File, and Worktree each configure their own Middleware, Events, and Database Adapters.
 
 ## Version history
 
-History groups Unit creation and confirmed changesets into user-facing history entries. It is a derived index: confirmed changesets in Core Collaboration Service remain the authoritative source for Unit content.
+History turns Unit creation and confirmed changesets into the history entries that a user sees. The index is derived: the confirmed changesets in Core Collaboration Service remain the authoritative source of Unit content.
 
 ```ts
 const historyService = new UniverHistoryService({
@@ -35,13 +35,13 @@ const historyService = new UniverHistoryService({
 transport.register(new UniverHistoryEndpoint(historyService));
 ```
 
-The constructor subscribes to the Core Service `unitCreated` and `changesetCommitted` Events and updates the index. `dispose()` removes those subscriptions. The default policy groups changes by time window and special mutations rather than creating a history entry for every changeset.
+The constructor subscribes to the Core Service `unitCreated` and `changesetCommitted` Events and keeps the index current, and `dispose()` removes those subscriptions. By default, History groups changes by time window and by special mutations rather than writing an entry for every changeset.
 
-History exposes read Middleware for `getHistoryList`, `listHistoryCreators`, and `getHistoryChangesets`. Indexing runs inside the service. `userProvider` only enriches display data such as names and avatars; it does not authenticate or authorize users. An Event Listener failure does not roll back an already confirmed Core changeset, so History should always be treated as rebuildable derived data.
+History exposes read Middleware for `getHistoryList`, `listHistoryCreators`, and `getHistoryChangesets`. Indexing takes place inside the service. `userProvider` only supplies display data such as names and avatars, and it performs neither authentication nor authorization. An Event Listener failure does not roll back a Core changeset that is already confirmed, so History should be treated as derived data that can always be rebuilt.
 
 ## Thread Comment
 
-Comment Service manages comment bodies, replies, edits, deletion, and solved state for Sheets and Docs:
+Comment Service manages comment bodies, replies, edits, deletion, and the solved state for both Sheets and Docs:
 
 ```ts
 const commentService = new UniverCommentService({
@@ -57,13 +57,13 @@ transport.register(
 );
 ```
 
-Comment bodies belong to the Comment Adapter. Anchors that move with Sheet or Doc content remain part of Core snapshots and changesets. The Comment Endpoint can publish `comment_update` through the main Collaboration Endpoint's Unit Room, but the realtime message is not the authoritative comment state; a Client can recover by listing comments again.
+Comment bodies belong to the Comment Adapter, while the anchors that move with Sheet or Doc content remain part of Core snapshots and changesets. The Comment Endpoint can publish `comment_update` through the Unit Room of the main Collaboration Endpoint, but that realtime message is not the authoritative comment state. A Client that misses the message can recover by listing the comments again.
 
-Comment Service provides Middleware for add, list, reply, solve/reopen, edit, and delete operations, plus a `commentCommitted` Event. It does not inherit the Core Service's read or edit policy.
+Comment Service provides Middleware for add, list, reply, solve or reopen, edit, and delete, and it publishes a `commentCommitted` Event. Comment Service does not inherit the read or edit policy of the Core Service.
 
 ## File storage
 
-File stores the binary files that Univer clients upload: images and attachments inserted into a Unit, plus the source and result files of import and export. Unit data records only the file ID; the client resolves the ID to a download URL when loading, so snapshots and changesets stay small.
+File stores the binary files that Univer clients upload: images and attachments inserted into a Unit, and the source and result files of import and export. Unit data records only the file ID, and the client resolves that ID to a download URL when it loads the Unit. Snapshots and changesets therefore stay small.
 
 ```ts
 const fileService = new UniverFileService({
@@ -74,11 +74,11 @@ const fileService = new UniverFileService({
 transport.register(new UniverFileEndpoint(fileService));
 ```
 
-Metadata and content are two independent contracts: `IFileDatabaseAdapter` stores file records and `IFileBlobStore` stores content. Temporary exchange files are accessible only to their uploader and are cleaned up by the Service on a schedule; Unit images and attachments are controlled by Unit permissions through the `upload`, `signUrl`, and `download` Middleware.
+Metadata and content are two independent contracts: `IFileDatabaseAdapter` stores file records and `IFileBlobStore` stores content. Temporary exchange files are accessible only to the user who uploaded them, and the Service deletes them on a schedule. Images and attachments inside a Unit are subject to Unit permissions through the `upload`, `signUrl`, and `download` Middleware.
 
 ## Server-side Office Exchange
 
-Exchange Service imports Office files as collaborative Units and exports Units as files. It relies on `@univerjs-pro/exchange-node` for conversion, creates and reads Units through Collaboration Service, and stores source and result files through File Service:
+Exchange Service imports Office files as collaborative Units and exports Units as files. It uses `@univerjs-pro/exchange-node` for the conversion, creates and reads Units through Collaboration Service, and stores the source and result files through File Service:
 
 ```ts
 const exchangeService = new UniverExchangeService({ collabService, fileService });
@@ -86,7 +86,7 @@ const exchangeService = new UniverExchangeService({ collabService, fileService }
 transport.register(new UniverExchangeEndpoint(exchangeService));
 ```
 
-Import and export are tasks: the client creates a task and polls for the result. Import passes through the Core Service `createUnit` Middleware and export through `readUnitData`; Exchange's own `import` and `export` Middleware cover rate limits, quotas, and audit.
+Import and export are tasks. The client creates a task and then polls for the result. Import goes through the `createUnit` Middleware of the Core Service, and export goes through `readUnitData`. The `import` and `export` Middleware of Exchange handle rate limits, quotas, and audit.
 
 | Unit  | Import              | Export         |
 | ----- | ------------------- | -------------- |
@@ -96,7 +96,7 @@ Import and export are tasks: the client creates a task and polls for the result.
 | Base  | xls, xlsx, csv, tsv | xlsx, csv      |
 | PDF   | pdf                 | pdf            |
 
-Tasks live in the Service instance, so deploy one import and export node and route all three Exchange routes to it.
+Tasks live in the Service instance, so an application deploys a single import and export node and routes all three Exchange routes to that node.
 
 ## Worktree drafts and merge
 
@@ -120,15 +120,15 @@ const worktreeService = new UniverCollabWorktreeService({
 });
 ```
 
-Worktree stores independent draft changesets by `(worktreeID, unitID)` while reusing the Core Service's Unit, OT, and submission engines. Only the `draft` state accepts further edits. `markReady()` freezes the current draft revision, and `mergeWorktree()` merges Units into the trunk one at a time.
+Worktree stores its own draft changesets by `(worktreeID, unitID)` and reuses the Unit, OT, and submission engines of the Core Service. Only the `draft` state accepts further edits. `markReady()` freezes the current draft revision, and `mergeWorktree()` merges Units into the trunk one at a time.
 
-Worktree Service owns independent lifecycle, read, draft submit/apply/commit Middleware, plus Events for creation, status changes, merge results, and draft changeset commits. A final write to the trunk still passes through the Core Service's own Middleware.
+Worktree Service has its own lifecycle, its own read Middleware, the draft submit/apply/commit Middleware, and Events for creation, status changes, merge results, and draft changeset commits. The final write to the trunk still goes through the Middleware of the Core Service.
 
 A multi-Unit merge is not atomic across Units. The application should display the merge result for each Unit.
 
 ## Independent extension points
 
-When enabling an extension module, evaluate each boundary separately:
+When an application enables an extension module, each boundary requires separate evaluation:
 
 | Boundary         | Core           | History               | Comment               | File                        | Worktree                  |
 | ---------------- | -------------- | --------------------- | --------------------- | --------------------------- | ------------------------- |
@@ -137,9 +137,9 @@ When enabling an extension module, evaluate each boundary separately:
 | Event            | Core lifecycle | Observes Core Events  | `commentCommitted`    | —                           | Worktree lifecycle/commit |
 | Database Adapter | Core Adapter   | History Adapter       | Comment Adapter       | File Adapter and Blob Store | Worktree Adapter          |
 
-Office Exchange reuses the storage of Core and File: after its own `import` and `export` Middleware run, import and export still pass through the Core and File Middleware.
+Office Exchange reuses the storage of Core and File. After the `import` and `export` Middleware of Exchange run, import and export still pass through the Core and File Middleware.
 
-These Adapters can use the same database while remaining separate objects with separate contracts. Services and Adapters should also be disposed independently.
+These Adapters can share a database and still remain separate objects with separate contracts. Services and Adapters should also be disposed independently.
 
 ## Choosing a capability
 
@@ -151,10 +151,10 @@ These Adapters can use the same database while remaining separate objects with s
 | Server-side Office import and export  | Exchange Service, Endpoint + File           | `pnpm example:exchange`     |
 | Isolated drafts, review, and merge    | Worktree Service, Endpoint, Client, Adapter | `pnpm example:worktree`     |
 
-See the [examples index](/server/collaboration/examples) for complete run commands and page URLs.
+The [examples index](/server/collaboration/examples) lists the full run commands and page URLs.
 
 ## Connect the Web SDK history viewer [#web-history]
 
-Mount the History Endpoint alongside the collaboration endpoints. The Web SDK `historyServerUrl` is the prefix for `/{unitId}/list`, `/{unitId}/creators`, and `/{unitId}/cs`; its default is `/universer-api/history`. If you expose a different prefix, configure the host History plugin and product History UI plugin with the same URL.
+Mount the History Endpoint alongside the collaboration endpoints. In the Web SDK, `historyServerUrl` is the common prefix for `/{unitId}/list`, `/{unitId}/creators`, and `/{unitId}/cs`, and it defaults to `/universer-api/history`. When a different prefix is used, the host History plugin and the product History UI plugin must be configured with the same URL.
 
-Restoring a version goes through the collaboration mutation path, not a standalone history REST restore endpoint. Keep collaboration loading, submission, and authorization configured. Read-only comparison of two materialized snapshots through `createUnitComparisonEngine()` is separate: it does not require a running history service and does not persist or restore versions.
+Restoring a version goes through the collaboration mutation path; there is no standalone history REST endpoint for restore. Collaboration loading, submission, and authorization must remain configured. Comparing two materialized snapshots through `createUnitComparisonEngine()` is a separate operation that only reads data. It does not require a running history service, and it neither persists nor restores versions.

@@ -5,31 +5,29 @@ description: Comprendre comment AI SDK ajoute une CLI Node.js et un point d’en
 source: https://github.com/dream-num/univer-cli-sdk/blob/main/README.md
 ---
 
-Univer Office SDK comprend [Web SDK](/guides/sheets) pour les éditeurs intégrés et le traitement de contenu headless, [Server SDK](/server) pour la collaboration et l’import/export de fichiers, et [AI SDK](/ai) pour les workflows des agents.
+Univer Office SDK comprend trois parties. [Web SDK](/guides/sheets) exécute les éditeurs dans le navigateur et peut traiter du contenu sans interface. [Server SDK](/server) fournit la collaboration et l’échange de fichiers. Cette section présente [AI SDK](/ai), un SDK TypeScript pour créer des CLI Office. Il fournit aux agents et aux automatisations un point d’entrée Node.js pour charger, analyser, modifier et vérifier des Units[^document-unit] Univer.
 
-**AI SDK** est un SDK TypeScript pour créer des CLI Office. Il fournit aux AI Agents et à l’automatisation un accès Node.js pour charger, comprendre, modifier et vérifier les Units[^document-unit] Univer.
-
-AI SDK est un ensemble de capacités composables, pas une CLI de produit figée. L’application métier possède les noms de commandes, arguments, cibles, identité et autorisations, sorties et déploiement.
+AI SDK fournit des capacités que vous pouvez combiner pour créer votre propre CLI. L’application définit les noms et les arguments des commandes, leurs cibles, la gestion de l’identité et des autorisations, le format de sortie et l’environnement d’exécution.
 
 ## Structure d’application recommandée
 
-Ce guide utilise une application `CLI + Web + Server` :
+Les exemples de cette section suivent une architecture `CLI + Web + Server` :
 
 <Mermaid chart={"flowchart LR\n    Agent([\"AI Agent / utilisateur CLI\"]) --> CLI[\"<b>AI SDK</b><br/>CLI métier\"]\n    Human([\"Utilisateur humain\"]) --> Web[\"<b>Web SDK</b><br/>Web\"]\n    CLI --> Server[\"<b>Server SDK</b><br/>Collaboration · Conversion de fichiers\"]\n    Web --> Server\n    Server --> Storage[\"Stockage\"]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Agent,Human actor"} />
 
-- CLI est le point d’entrée d’un AI Agent ou d’un utilisateur pour manipuler une Unit.
-- Web présente la vraie page pour l’édition interactive et la revue humaine.
-- Server conserve les Units, révisions et états collaboratifs partagés par CLI et Web.
+- Un agent ou une personne utilise la CLI pour donner des instructions à Univer.
+- Web affiche la page pour permettre aux utilisateurs de la modifier directement et de vérifier le résultat produit par l’agent.
+- Server stocke les Units, les révisions et l’état de collaboration partagés par la CLI et Web.
 
-Ces trois composants peuvent être déployés séparément ou fonctionner entièrement en local. Construire Web + Server avec Collaboration SDK avant la CLI est un parcours pédagogique recommandé, pas une contrainte de déploiement.
+Les trois parties peuvent être déployées séparément ou exécutées sur une seule machine. Pour débuter, raccordez Web et Server à Collaboration SDK, puis ajoutez la CLI. Cet ordre est facultatif.
 
-<Callout title="Les applications uniquement CLI sont aussi prises en charge">
-  AI SDK peut traiter directement des Units locales. Les résultats se vérifient par sortie structurée, inspection visuelle par AI Agent ou fichiers Office exportés. Les pages Web en direct, révisions partagées, History et Worktree nécessitent les capacités Web et collaboratives correspondantes.
+<Callout title="Application avec CLI seule">
+  AI SDK peut traiter des Units locales sans serveur. Vous pouvez examiner le résultat sous forme de données structurées, demander à l’agent de vérifier une capture d’écran ou exporter un fichier Office. Les pages Web en direct, les révisions partagées, History et Worktree nécessitent les capacités Web et de collaboration.
 </Callout>
 
 ## Organiser la CLI avec Commander
 
-Les paquets de base exposent des API TypeScript structurées. Les préréglages transforment les capacités courantes en objets Commander `Command` natifs. L’application métier possède toujours le programme racine :
+Les paquets de base fournissent des API TypeScript. Les paquets de préréglages exposent les fonctionnalités courantes sous forme d’objets `Command` de Commander que vous pouvez ajouter au programme de votre application :
 
 ```ts
 import { Command } from "commander";
@@ -42,15 +40,15 @@ program.addCommand(applicationCommand);
 await program.parseAsync();
 ```
 
-- Un **préréglage de commande** fournit arguments, aide et sortie texte ou JSON par défaut.
-- Une **commande applicative** compose Runtime[^live-runtime], cibles métier, identité, politique de commit ou de fichiers.
-- Les deux sont des objets Commander `Command` ordinaires et peuvent cohabiter dans un même programme racine.
+- Un **préréglage de commande** définit ses arguments et son texte d’aide et produit une sortie texte ou JSON.
+- Une **commande applicative** combine Runtime[^live-runtime], les cibles métier de l’application, l’identité et les règles de validation ou de gestion des fichiers.
+- Les deux sont des objets `Command` de Commander et peuvent être utilisés dans le même programme.
 
-Chaque thème commence par la capacité de base, puis explique sa connexion à Commander.
+Chaque page présente d’abord la fonctionnalité de base, puis son intégration avec Commander.
 
 ## Construire progressivement les capacités
 
-Le guide part des opérations essentielles sur les Units, puis ajoute fichiers, inspection visuelle, collaboration et processus :
+Commencez par lire et écrire le contenu d’une Unit. Ajoutez ensuite le traitement des fichiers, l’inspection visuelle, la collaboration et la gestion des processus :
 
 ```text
 charger et modifier une Unit
@@ -62,23 +60,23 @@ charger et modifier une Unit
 
 ### 1. Charger et modifier une Unit
 
-Établissez la boucle minimale d’un AI Agent : charger avec Collaboration Runtime, comprendre le contenu avec Inspection, exécuter du code Univer Facade et découvrir les API Facade au besoin.
+Chargez une Unit avec Collaboration Runtime, examinez sa structure, exécutez du code Facade sur son contenu et recherchez les API Facade dont vous avez besoin.
 
 ### 2. Connecter la frontière des fichiers Office
 
-Utilisez Exchange pour convertir fichiers Office et UnitData. Les Units importées restent sur Collaboration Server ; l’export récupère d’abord les dernières UnitData via Collaboration Runtime.
+Exchange convertit les fichiers Office en UnitData et inversement. Après l’import, l’Unit est stockée sur Collaboration Server. Lors de l’export, Collaboration Runtime récupère les dernières UnitData avant d’écrire le fichier.
 
 ### 3. Ajouter l’inspection visuelle
 
-Une sortie structurée ne décrit pas toute la mise en page. Screenshot fournit les images rendues à l’AI Agent, tandis que Layout Lint fournit des diagnostics structurés de disposition.
+Les données structurées ne décrivent qu’une partie de la page rendue. Screenshot fournit à l’agent une image de la page et Layout Lint signale les problèmes de mise en page qu’il peut corriger.
 
 ### 4. Isoler les changements avec Worktree
 
-Un AI Agent peut modifier et vérifier un brouillon Worktree pendant plusieurs cycles. Une fois prêt, une personne le révise dans Web et choisit Merge ou Reopen.
+Un agent peut modifier et vérifier un brouillon Worktree à plusieurs reprises sans toucher au document en cours. Une personne examine ensuite le brouillon dans Web et décide de le fusionner ou de le renvoyer pour révision.
 
 ### 5. Réutiliser les runtimes coûteux
 
-Commencez par des runtimes éphémères. Ajoutez pool, workers ou daemon seulement lorsque le coût de démarrage, la concurrence ou la réutilisation entre processus CLI devient important.
+Démarrez un runtime par commande et fermez-le à la fin. Ajoutez un pool, des workers ou un daemon quand le coût du démarrage, la concurrence ou le partage entre processus CLI le justifie.
 
 ## Ordre de lecture recommandé
 

@@ -2,7 +2,7 @@
 title: Formes et texte
 ---
 
-Slides utilise le moteur Shape partagé pour les formes, connecteurs et textes modifiables. `FSlide.insertShape()` renvoie une Facade de forme reliée au pipeline de commandes Slides.
+Slides dessine des formes modifiables, des connecteurs et du texte de forme avec le moteur de forme partagée. `FSlide.insertShape()` retourne une Facade de forme, et chaque opération sur elle passe à travers le pipeline de commande Slides.
 
 ## Fournir les polices pour la fusion de texte [#merge-shape-font-configuration]
 
@@ -12,7 +12,7 @@ Slides utilise le moteur Shape partagé pour les formes, connecteurs et textes m
 | --- | --- | --- | --- |
 | `mergeShapeFontResolver` | `(font: string, unitId: string, text: string) => ArrayBuffer \| Promise<ArrayBuffer \| undefined> \| undefined` |  | Renvoie les données exactes de la police utilisée pour le rendu. |
 
-Le plugin Slides UI peut lire les polices Web chargées qu’il prend en charge. Pour les polices fournies par votre application, configurez `mergeShapeFontResolver(font, unitId, text)` dans `UniverSlidesUIPlugin`. Renvoyez les données de la police exacte, en tenant compte de la graisse, du style et de la police de secours, sous forme d’`ArrayBuffer` ou de promesse. Renvoyez `undefined` si la police exacte est indisponible.
+Si l'application charge ses propres polices, définissez `mergeShapeFontResolver(font, unitId, text)` dans `UniverSlidesUIPlugin`. Retournez les octets de la face exacte qui sera utilisée, avec le poids, le style et le retour déjà appariés, comme `ArrayBuffer` ou une promesse. Retournez `undefined` lorsque cette face exacte n'est pas disponible.
 
 ## Insérer une forme
 
@@ -37,7 +37,7 @@ const shape = slide.insertShape({
 })
 ```
 
-`insertShape()` peut renvoyer `null` si l’adaptateur Shape est indisponible ou si l’entrée ne peut pas être créée. Enregistrez les dépendances Shape de la configuration Slides avant l’insertion.
+`insertShape()` retourne `null` lorsque l'adaptateur hôte Forme n'est pas disponible ou que l'entrée ne peut pas être créée. Enregistrez les dépendances de Forme requises par la configuration de Diapositives avant d'insérer des formes.
 
 ## Ajouter du texte enrichi
 
@@ -54,12 +54,11 @@ if (shape) {
 }
 ```
 
-Utilisez `slide.getShape(id)` ou `slide.getShapes()` pour retrouver les formes. Les méthodes communes modifient position, taille, visibilité, nom et description ; `slide.deleteElement(shape)` supprime la forme.
-
+Les Façades de forme sont disponibles à partir de `slide.getShape(id)` ou `slide.getShapes()`. Les méthodes d'éléments communs définissent la position, la taille, la visibilité, le nom et la description, et `slide.deleteElement(shape)` supprime la forme.
 
 ## Modifier le texte d’une forme
 
-Utilisez la forme renvoyée par `insertShape()` ci-dessous ou dans l’exemple précédent. `getText()` renvoie un objet [FShapeText](/reference/facade/shape-text) actif. Lisez le texte avec `getPlainText()`, remplacez-le entièrement avec `setText()` et réglez la police, la couleur et l’alignement.
+L'exemple suivant utilise l'objet de forme que `insertShape()` a retourné plus tôt. `getText()` retourne une poignée [Texte en forme de texte](/reference/facade/shape-text) en direct. Lisez le texte clair avec `getPlainText()`, remplacez-le par `setText()` et appliquez le formatage à travers les méthodes de police, de couleur et d'alignement.
 
 ```ts
 if (!shape) throw new Error('Shape is not available')
@@ -74,7 +73,7 @@ shapeText
   .setVerticalAlign(univerAPI.Enum.VerticalAlign.MIDDLE)
 ```
 
-`setText()` remplace le texte existant. Utilisez `setRichText()` pour combiner plusieurs styles. Pour modifier le texte enrichi existant, appelez `getRichText()?.copy()`, modifiez le constructeur puis transmettez-le à `setRichText()`. Ses modifications ne sont pas appliquées automatiquement. Voir aussi les [styles de texte](/reference/facade/shape-text#settextstyle) et les [marges et la disposition du bloc de texte](/reference/facade/shape-text#settextboxoptions).
+`setText()` remplace le texte existant. Utilisez `setRichText()` lorsqu'une seule forme nécessite plusieurs styles de texte. Pour modifier le texte riche existant, appelez `getRichText()?.copy()`, modifiez le constructeur et passez-le à `setRichText()`; l'édition du constructeur détaché ne réécrit aucun changement. D'autres options sont décrites dans [Style de texte](/reference/facade/shape-text#settextstyle) et [Rembourrage et mise en page de la boîte de texte](/reference/facade/shape-text#settextboxoptions).
 
 ```ts
 const richText = univerAPI.newRichText()
@@ -85,15 +84,15 @@ shapeText.setRichText(richText)
 
 ## Reproduire la mise en forme des formes [#format-painter]
 
-Sélectionnez la forme source, activez le pinceau puis choisissez la cible. Il copie remplissage, contour, effets et styles de texte pris en charge en conservant identité, géométrie, contenu et liaisons de formules de la cible. Effacer la mise en forme restaure les valeurs d’insertion. SmartArt est exclu. Le plugin UI correspondant active ce comportement automatiquement.
+Sélectionnez une forme source, activez le formateur, puis sélectionnez la forme cible. Le peintre copie le remplissage, la course, les effets et le formatage de texte supporté, et laisse inchangé l'identité de la cible, la géométrie, le contenu texte et les fixations de formule. Le formatage clair restaure les valeurs par défaut de l'insertion. SmartArt est exclu. Le plugin UI de forme correspondant enregistre automatiquement ce comportement.
 
 ## Fusionner les formes [#merge-shapes]
 
-Sélectionnez 2 à 10 objets compatibles sur une même diapositive, puis utilisez la fusion de formes. Les opérations sont `union` (toutes les zones), `combine` (exclure les chevauchements), `intersect` (zone commune), `subtract` (soustraire les autres de l’objet principal) et `fragment` (diviser en régions). L’objet principal fournit la mise en forme. La fusion remplace les objets sélectionnés et prend en charge annulation, rétablissement et collaboration.
+Sélectionnez 2–10 objets pris en charge sur la même diapositive, puis utilisez **Fusionner les formes**. Les opérations sont `union` (toutes les zones), `combine` (suppléments exclus), `intersect` (espace partagé), `subtract` (supprime les autres objets de l'objet primaire) et `fragment` (splited into regions). Le formatage provient de l'article primaire. La fusion remplace les objets sélectionnés et prend en charge l'annulation, le redécoupage et la collaboration.
 
-La commande ci-dessous utilise la sélection courante. `merged` vaut `false` si elle ne peut pas être appliquée. Les objets doivent être modifiables et appartenir au même niveau de groupe. Connecteurs, SmartArt, OLE, graphiques et tableaux sont exclus ; certains effets, animations et mises en page de texte complexes empêchent également la fusion.
+La commande suivante agit sur la sélection courante. `merged` est `false` lorsque la sélection ou l'opération ne peut pas être appliquée. Les objets doivent être modifiables et dans le même champ de groupe. Les connecteurs, SmartArt, les objets OLE, les graphiques et les tables ne peuvent pas être fusionner les opérandes, et certains effets, animations et mises en page de texte complexes empêchent également la fusion.
 
-Les zones de texte qui participent à la fusion sont converties en contours. Leur texte ne peut plus être modifié. Si la police utilisée pour le rendu est illisible, la fusion est annulée et les formes restent en place. Voir la [configuration des polices](#merge-shape-font-configuration).
+Une boîte de texte qui participe à une fusion est convertie en contours, et son texte ne peut plus être édité comme texte après. Si la police utilisée pour la rendre ne peut pas être lue, la fusion s'arrête et les formes originales restent inchangées. Voir [Configuration des polices](#merge-shape-font-configuration).
 
 ```ts
 import { MergeSlideShapesCommand } from '@univerjs-pro/slides-ui'

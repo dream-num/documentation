@@ -4,47 +4,47 @@ description: "結合資料回讀、真實渲染截圖與簡報版面檢查。"
 icon: ScanEye
 ---
 
-視覺檢查將內容模型轉換為可驗證的影像與版面證據。Agent 先檢查資料與公式，再檢查真正渲染出的文字、圖形與頁面；發現問題後透過 Facade 修正，再驗證新的內容狀態。
+視覺檢查把內容模型轉換為可供核驗的影像和版面配置證據。Agent 先核對資料與公式，再檢查實際渲染出的文字、圖形和頁面；發現問題後透過 Facade 修正內容，然後重新檢查新的狀態。
 
 ## 三類證據，回答不同問題 [#evidence]
 
 | 證據 | 可確認的內容 |
 | --- | --- |
-| 結構化讀回 | 原始值、公式與結果、段落和物件屬性。 |
-| PNG 截圖 | 可見內容、裁切、圖表、顏色與整體排版。 |
-| 版面診斷 | 依渲染幾何回傳規則、物件 ID、邊界與問題位置，方便定向修正。 |
+| 結構化讀回 | 原始值、公式及其計算結果、段落與物件屬性。 |
+| PNG 截圖 | 實際可見的內容，包括裁切、圖表、顏色與整體版式。 |
+| 版面診斷 | 基於渲染結果得出的規則、物件 ID、邊界與問題位置，用於定位需要修改的物件。 |
 
 ## 準備內容狀態與依賴 [#state]
 
-截圖與 Layout Lint 接收已物化 UnitData，不負責連線遠端 target 或解讀 changeset。協作內容先 `pull()`，公式修改後等待計算套用，再 `exportUnitData()`。Worktree 必須取對應草稿；應用程式可隨報告儲存目標、revision 與範圍，明確指出審閱狀態。
+截圖與 Layout Lint 處理的是已經物化的 UnitData。它們不連線遠端 target，也不解釋 changeset。對於協同內容，先呼叫 `pull()`，公式修改後等待計算完成，再呼叫 `exportUnitData()`。在 Worktree 中，匯出的應當是確實要檢查的那份草稿。應用可以將 target、revision 和檢查範圍與報告一併儲存，從而說明所審閱的是哪一份狀態。
 
-主 Unit Snapshot 不包含所有依賴。跨 Unit 公式以 `formulaReferenceUnits` 提供 Sheet/Relational Table 來源，嵌入內容以 `embeddedUnits` 提供子 Unit。Render Page 先物化依賴再建立宿主。UUID 圖片可由 `resolveUnitScreenshotImageAssets()` 與應用程式 resolver 補齊；這是 best-effort 解析，仍需核查遺漏資源。
+主 Unit 的 Snapshot 並不包含全部依賴。跨 Unit 公式的 Sheet/Relational Table 源資料透過 `formulaReferenceUnits` 傳入，嵌入內容透過 `embeddedUnits` 傳入子 Unit。Render Page 先物化依賴，再建立宿主，因此公式和嵌入塊載入時其來源已經就位。UUID 圖片可以用 `resolveUnitScreenshotImageAssets()` 配合應用提供的 resolver 準備；解析是 best-effort 的，缺失的資源也需要核查。
 
 ## 從內容到穩定畫面 [#rendering]
 
 <Mermaid chart={"flowchart LR\nA[\"明確內容狀態<br/>UnitData + 依賴\"]\nB[\"Render Runtime<br/>瀏覽器與頁面協定\"]\nC[\"Render Page<br/>Univer 原生排版\"]\nD[\"等待就緒<br/>計算與畫面穩定\"]\nE[\"PNG / 版面事實<br/>Agent 與人類審閱\"]\nA --> B --> C --> D --> E"} />
 
-`univer-render-runtime` 在 Node.js 託管應用程式建置的 Render Page 並啟動瀏覽器，頁面透過產品外掛還原內容，雙方驗證協定版本。同一 Runtime 的操作進入循序佇列，可跨多輪檢查重用，最後由擁有者 `close()`。
+`univer-render-runtime` 託管應用建置的 Render Page，並在 Node.js 中啟動瀏覽器。頁面上的內容由 Univer 產品外掛還原，雙方會核對頁面協議版本是否一致。一個 Runtime 的渲染操作透過一條序列佇列執行，因此可以跨多輪檢查複用同一個 Runtime。使用完畢後，由 Runtime 的所有者呼叫 `close()`。
 
-就緒條件依產品而異。公式形狀等待結果離開 pending，必要時等待連續影格像素穩定，避免擷取中間動畫；Relational Table 等待字型、計算、活動 table/view 與 DOM/Canvas 版面穩定。離開 pending 仍可能是錯誤結果，必須核對值與狀態。
+就緒條件隨產品而不同。由公式驅動的圖形會等待結果離開 pending，必要時還要等待連續多幀畫素保持不變，以避免擷取到播放中的動畫。Relational Table 會等待字型、計算、活動的 table/view，以及 DOM/Canvas 版面配置全部穩定。公式結果離開 pending 也可能是錯誤，因此數值和狀態都需要檢查。
 
-目前以主 UnitData、公式來源與嵌入內容的序列化結果產生雜湊，作為渲染工作階段 key。同 Unit ID 的資料變更也會產生不同 key，避免只按 ID 重用舊畫面。
+當前實現將主 UnitData、公式來源與嵌入子內容的序列化結果一起計算雜湊，作為渲染會話 key。只要內容發生變化，同一個 Unit ID 也會得到不同的 key，因此既能複用 Runtime，又不會僅憑 ID 複用舊影像。
 
 ## 依產品選擇範圍 [#scope]
 
 | 產品 | 範圍與輸出 |
 | --- | --- |
-| Sheet | 指定工作表與 A1 範圍，輸出區域 PNG；重要結果宜明確指定範圍。 |
-| Doc | 選擇或列舉頁面，輸出逐頁 PNG。 |
-| Slide | 以 1 起始頁碼或 page ID 選擇，可額外產生 contact sheet。 |
-| Relational Table | 以瀏覽器 DOM + Canvas 擷取開啟後的活動表格／檢視工作台。 |
-| Canvases | 全頁內容邊界，或互斥的 region / elementIds；可加 padding 並回傳版面證據。 |
+| Sheet | 選擇工作表和 A1 區域，輸出該區域的 PNG。重要的結果需要顯式選入範圍。 |
+| Doc | 選擇頁面或逐頁遍歷，每頁輸出一張 PNG。 |
+| Slide | 使用從 1 開始計數的頁碼或 page ID 選頁，可以另外生成 contact sheet 總覽。 |
+| Relational Table | 擷取開啟時的活動表格/檢視工作臺，畫面來自瀏覽器 DOM + Canvas。 |
+| Canvases | 使用整頁內容邊界，或使用 region / elementIds 選擇器，兩者互斥；padding 與版面配置證據均為可選項。 |
 
-`unit-screenshot` 回傳 bytes、尺寸、頁面／區域身分與建議檔名，由應用程式儲存。Scale 為 0.1–4，可設定 `maxPages` 與單圖 `maxPixels`。放大兩倍約有四倍像素，大量內容宜分區檢查。PDF 不屬於此五產品入口。
+`unit-screenshot` 返回圖片 bytes、尺寸、頁面或區域的標識以及建議的檔名，檔案由應用儲存。Scale 的取值範圍是 0.1–4。`maxPages` 和單圖的 `maxPixels` 可以配置。scale 翻倍會使畫素數大約變為四倍，因此內容較大時應分割槽域檢查。PDF 不在這套截圖入口的範圍內，該入口只覆蓋上述五個產品。
 
 ## 截圖與版面檢查共用內容狀態 [#example]
 
-以下對同一 Slide 資料與公式來源截圖並執行 Layout Lint。`renderRuntime` 是既有渲染 Runtime，`slideData` 為準備好的快照。能力本身不寫檔案，頁面建置與關閉方式見 [AI SDK 視覺檢查](/ai/visual-inspection)。
+以下範例對同一份 Slide 資料和公式來源執行截圖和 Layout Lint。`renderRuntime` 是已有的渲染 Runtime，`slideData` 是準備好的快照。這兩個能力都不寫入檔案。頁面建置與資源清理請參見 [AI SDK 視覺檢查](/ai/visual-inspection)。
 
 ```ts
 import { createUnitScreenshot } from '@univer-cli/unit-screenshot'
@@ -67,28 +67,28 @@ const report = await lint.lint({ ...source, pages: [1] })
 
 ## Slide：以字形墨跡定位問題 [#slide-lint]
 
-Layout Lint 使用瀏覽器產生的版面事實：`declared` 是模型宣告框，文字 `ink` 是字形實際墨跡範圍，結合排版、對齊與旋轉映射至頁面座標。文字框未越界，不代表字形也未越界。
+Layout Lint 使用瀏覽器提供的版面配置事實。模型中元素的 `declared` 是宣告框，文字的 `ink` 是字形實際落墨的範圍，會結合排版、對齊與旋轉對映到頁面座標。文字框本身沒有越出頁面，並不能說明其中的字形也未越出。
 
 | 目前規則 | 檢查依據 |
 | --- | --- |
-| `text-off-page` | 實際文字 ink 超出頁面。 |
-| `text-escapes-container` | 文字明顯溢出匹配到的較小不透明容器。 |
-| `text-overlaps-text` | 兩段實際文字 ink 顯著重疊。 |
+| `text-off-page` | 文字實際 ink 超出頁面邊界。 |
+| `text-escapes-container` | 文字明顯溢位匹配到的較小的不透明容器。 |
+| `text-overlaps-text` | 兩段實際文字 ink 出現明顯重疊。 |
 
-報告的 `coverage.pages` 與 `coverage.rules` 標明檢查範圍。Finding 帶 `pageId`、元素 `id`、`text.ink`，以及相關 `overflow`、`container` 或 `other`，穩定 `fingerprint` 可比對修復輪次。目前 finding 都是供搭配截圖複查的 warning；空清單僅代表所選範圍未觸發這些規則。
+報告包含 `coverage.pages` 和 `coverage.rules`，說明本次檢查覆蓋了哪些頁面、執行了哪些規則。每條 finding 帶有 `pageId`、元素 `id`、`text.ink`，以及相應的 `overflow`、`container` 或 `other` 證據。`fingerprint` 保持穩定，便於對比多輪修復的結果。目前所有 finding 均為 warning，需要結合截圖一併檢視；列表為空僅說明所選範圍沒有觸發這幾條規則。
 
 ## Canvases：驗證實際連線路徑 [#board-analysis]
 
-Canvases 截圖額外回傳 `layoutAnalysis`，包含瀏覽器解析的 routes、issues 與 summary，與僅支援 Slide 的 `unit-layout-lint` 為不同入口。模型中的自動連線可能尚未解析，應以 `source: 'rendered'` 檢查最終路徑。
+Canvases 的截圖還會額外返回 `layoutAnalysis`，其中包含瀏覽器解析得到的 routes、issues 與 summary。這與只支援 Slide 的 `unit-layout-lint` 是兩個不同的入口。模型中的自動連線路徑可能尚未解析，如需檢視最終走向，應使用 `source: 'rendered'` 的結果。
 
-診斷可指出連線穿越元素、交叉、箭頭碰撞或標籤衝突，提供 `connectorIds`、`elementIds` 與 `focusBounds`。Agent 可修正對應物件，再做 region 或 elementIds 局部截圖，最後回到全圖確認，將視覺問題落實為具體 Facade 修改。
+診斷可以指出穿過元素的連線、交叉位置、箭頭碰撞與標籤衝突，並給出對應的 `connectorIds`、`elementIds` 和 `focusBounds`。修正涉及的物件後，先擷取一塊區域或一組元素進行檢查，再回到整張畫布確認。這樣就能把一處視覺問題對應到一次具體的 Facade 修改。
 
 ## 將檢查證據帶入交付 [#handoff]
 
 <Mermaid chart={"flowchart LR\nA[\"Facade 修改\"]\nB[\"讀回資料與公式\"]\nC[\"截圖 + 版面診斷\"]\nD[\"依物件 ID 修正\"]\nE[\"重查新狀態\"]\nF[\"人類審閱 / 交付\"]\nA --> B --> C --> D --> E --> F\nD --> B"} />
 
-一併保留結構化結果、範圍與頁面資訊、圖片及診斷。截圖不能證明公式正確，Lint 也不能取代視覺判斷。工具列、焦點與彈出選單等完整互動仍應在 Web 編輯器驗收，跨 Unit 依賴也要確認載入。
+結構化結果、範圍與頁面資訊、圖片和診斷應當一併保留。截圖不能證明公式是否正確，Lint 也不能替代人工檢視頁面。涉及工具欄、焦點與彈出選單的互動，仍需要在 Web 編輯器中驗證。跨 Unit 的內容還需確認依賴已經載入。
 
-在 [Worktree](/overview/features/shared/worktree) 標記 Ready 前完成檢查，讓審閱者對照內容變更與視覺證據。執行機制見[無頭與伺服器計算](/overview/features/shared/server-calculation)，編排見 [Agent 與自動化](/overview/features/shared/agents)。
+在將 [Worktree](/overview/features/shared/worktree) 標記為 Ready 之前完成這些檢查，審閱者才能將每處內容變化與證據對應起來。執行機制參見[無頭與伺服器端計算](/overview/features/shared/server-calculation)，編排參見 [Agent 與自動化](/overview/features/shared/agents)。
 
 [返回功能總覽](/overview/features)

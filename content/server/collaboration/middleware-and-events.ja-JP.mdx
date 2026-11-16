@@ -3,7 +3,7 @@ title: Middleware と Events
 description: 汎用 Middleware と Events で Transport、Endpoint、Service、共同編集の拡張モジュールを拡張します。
 ---
 
-Middleware と Events は Collaboration SDK の汎用拡張ポイントです。本人確認と認可は Middleware で接続します。操作前の検証・制限には Middleware、状態確定後の変更記録や後続処理には Events を使います。どちらもログ、リクエスト追跡、メトリクス、派生状態の更新に使えます。
+ミドルウェアとイベントは、Collaboration SDKの汎用拡張ポイントです。 アイデンティティと認可は、ミドルウェアを介して統合されます。 ミドルウェアは、実行前に操作を検証または制限します。 状態の変化が確認された後にイベントレコードの変更またはトリガーフォローアップ作業を検証します。 サポートロギング、リクエストトレース、メトリック、および派生状態の更新。
 
 ## 2 つの拡張タイミング
 
@@ -11,15 +11,15 @@ Middleware と Events は Collaboration SDK の汎用拡張ポイントです。
 | --- | --- | --- |
 | 実行時点 | 操作中 | 状態変更の確定後 |
 | 操作への参加・拒否 | 可能 | 不可 |
-| 呼び出し Context の補完 | 可能 | Event に含まれる Context と結果を読み取る |
+| 呼び出し Context の補完 | 可能 | イベントが実施するコンテキストと結果を読みます |
 | リスナーの失敗 | 現在の操作が失敗する場合がある | 確定済みのドメイン結果から分離 |
 | 主な用途 | 本人確認、認可、検証、ログ、計時 | 派生インデックス、キャッシュ、メトリクス、プロセス内通知 |
 
-操作を続行できるか判断する場合は Middleware、状態変更が既に起きたことを観察する場合は Event を使います。
+操作が続行できるかどうかを判断する必要がある場合は、ミドルウェアを使用してください。 状態の変更が既に発生したことを観察する必要があるときにのみイベントを使用してください。
 
 ## Middleware の実行モデル
 
-同じ Action の Middleware は登録順の非同期チェーンになります。`await next()` が次の Middleware に入り、最内側で SDK の操作が実行されます。
+同じアクションのミドルウェアは、登録順に非同期チェーンを形成します。 `await next()`は、次のミドルウェアに入り、SDKの動作は最下の点で動作します。
 
 ```ts
 service.use("submitChangeset", async (context, next) => {
@@ -34,21 +34,15 @@ service.use("submitChangeset", async (context, next) => {
 });
 ```
 
-Middleware は次の処理を行えます。
+ミドルウェアは、アクション固有のリクエストを読み取り、`customData`を介してコールローカルデータを共有したり、`next()`の前に入力またはクエリアプリケーションシステムを検査したり、`next()`が返した後の録画期間または結果を記録したりすることができます。 `CollabError`を投げると、予想されるコラボレーション操作を拒否します。
 
-- Action 固有のリクエストを読む；
-- `customData` で呼び出し内データを共有する；
-- `next()` 前に入力を検査し、アプリケーションのシステムに問い合わせる；
-- `next()` が戻った後に時間や結果を記録する；
-- `CollabError` を投げ、想定された共同編集操作を拒否する。
-
-Transport HTTP Middleware は `next()` を呼ばずに HTTP レスポンスを終了できます。Service と Endpoint の Middleware は、黙って `next()` を省略せず、明示的なエラーで拒否します。
+トランスポート HTTP ミドルウェアは、`next()` を呼び出すことなく HTTP レスポンスを終了することができます。サービスおよびエンドポイントミドルウェアは静的に `next()`をスキップする代わりに、明示的なエラーで拒否する必要があります。
 
 ## Transport Middleware
 
 `transport.use()` は通常の HTTP Middleware を登録し、登録順に実行します。`await next()` で後続の処理に進むか、レスポンスを直接終了できます。`transport.useUpgrade()` は WebSocket ハンドシェイクを処理します。
 
-次の例では、HTTP の所要時間を記録し、認証して信頼できる `userID` を設定した後、Collaboration Endpoint を登録します。
+次の例では、HTTP の期間を記録し、リクエストを認証し、信頼できる `userID` を設定し、コラボレーションエンドポイントを登録します。
 
 ```ts
 transport.use(async (context, next) => {
@@ -78,13 +72,13 @@ transport.use(async (context, next) => {
 transport.register(collaborationEndpoint);
 ```
 
-`recordHttpDuration` と `authenticate` はアプリケーションが提供します。Endpoint は前段の Middleware が設定した `userID` を使用します。観測用 Middleware を認証より前に登録するため、認証による拒否も記録されます。
+アプリケーションは、`recordHttpDuration`と`authenticate`を供給します。エンドポイントは、以前のミドルウェアによって設定された`userID`を使用します。 認証前に、期間のオブザーバーが実行されるので、リクエストが記録されます。
 
-`context.route?.path` は一致した完全なルートテンプレートで、処理が Endpoint に到達した時点で利用できます。response の `finish` イベントでレスポンス完了までの時間を計測します。ルートの照合前に拒否されたリクエストや未知のパスは `unmatched` として記録されます。
+`context.route?.path`は、実行がエンドポイントに到達したら、完全な一致したルートテンプレートです。応答`finish`イベントを使用して、応答が完了したときに測定します。ルーティングと未知のパスが`unmatched`として記録される前の拒否。
 
 ## Endpoint Middleware
 
-Endpoint Middleware はリアルタイム Session と Presence の操作に参加します。
+エンドポイントミドルウェアは、リアルタイムセッションとプレゼンス操作をカバーします。
 
 | Action | 実行時点 | 主な用途 |
 | --- | --- | --- |
@@ -102,11 +96,11 @@ endpoint.use("receivePresence", async (context, next) => {
 });
 ```
 
-Endpoint の `session.userID` と `session.customData` は Session Ticket を発行した HTTP リクエストに由来します。Endpoint が現在の WebSocket Session に作る `memberID` は再接続時に変わります。
+エンドポイントの`session.userID`と`session.customData`は、セッションチケットを発行したHTTPリクエストから来ています。エンドポイントは、WebSocketセッション用の`memberID`を作成し、この識別子が再接続後に変更されます。
 
 ## Service Middleware
 
-Service Middleware は正本の共同編集データのライフサイクルに参加します。
+サービスミドルウェアは、権威あるコラボレーションデータのライフサイクルをカバーしています。
 
 | Action | 境界 | 主な用途 |
 | --- | --- | --- |
@@ -130,17 +124,17 @@ service.use("createUnit", async (context, next) => {
 });
 ```
 
-`submitChangeset` は論理送信ごとに 1 回実行されます。リビジョン競合により `applyChangeset` と `commitChangeset` が新しい `attempt` で再実行される場合があります。この段階の Middleware は再試行に安全である必要があり、取り消せない外部メッセージの送信や一度限りの課金を直接行ってはいけません。
+`submitChangeset`は、各論理的提出のために一度実行されます。 修正のコンテンツは、`applyChangeset`と`commitChangeset`が新しい`attempt`で再び実行するためにZXQXZを引き起こします。 これらの段階のミドルウェアは、再試行安全であり、不可逆的な外部メッセージを送信したり、ワンタイムの料金を直接実行したりしないでください。
 
 ## customData の範囲
 
-`customData` は、同じ呼び出しの中でコンテキストを共有するためのオブジェクトです。呼び出し元が渡したデータに Middleware が項目を追加でき、後続の Middleware、Database Adapter、関連する Event がその値を読み取れます。
+`customData`は、単一の呼び出し内でコンテキストを運びます。 発信者はデータを供給することができ、ミドルウェアは、後でミドルウェア、データベースアダプタ、および関連するイベントにそれを追加することができます。 典型的な使用は次のとおりです。
 
 - テナント ID、トレース ID、リクエスト用のロガーを渡す。
 - 呼び出し中に取得した権限の照会結果を再利用する。
 - 計測の開始時刻や監査用のラベルを記録する。
 
-SDK の組み込みデータベース Adapter は `customData` を永続化しません。ドキュメントや変更セットと一緒に項目を保存する方法は、[メタデータの永続化](#persistent-metadata)を参照してください。
+組み込みのデータベースアダプタは、`customData`を主張しません。 フィールドをドキュメントやチェンジセットと一緒に保存するには、[持続的なメタデータ](#persistent-metadata)を参照してください。
 
 ## メタデータの永続化 [#persistent-metadata]
 
@@ -148,9 +142,9 @@ SDK の組み込みデータベース Adapter は `customData` を永続化し�
 
 ドキュメントの作成時に `createUnitFromData()` または `createUnitFromSnapshot()` の入力に `metadata` を渡すか、`createUnit` Middleware で `context.unit.metadata` を設定します。既定値は `{}` です。
 
-変更セットの送信時は、`commitChangeset` Middleware で両方のオブジェクトを更新できます。`context.unit.metadata` の初期値はその時点のドキュメントのメタデータ、`context.changeset.metadata` の初期値は `{}` です。型はそれぞれ `UnitMetadata` と `ChangesetMetadata` で、どちらも `Record<string, unknown>` の別名です。各値は JSON にシリアライズできる必要があります。
+`commitChangeset`ミドルウェアでメタデータオブジェクトをアップデートすることができます。 `context.unit.metadata`は、ドキュメントの現在のメタデータから始まり、`context.changeset.metadata`が`{}`として起動します。 それらのタイプ、`UnitMetadata`と`ChangesetMetadata`、`Record<string, unknown>`のエイリアスです。 フィールド値はJSON-serializableでなければなりません。
 
-`await next()` の前に値を設定します。次の例ではドキュメントの最終編集者を更新し、今回の編集元を記録します。
+`await next()`を呼び出す前にメタデータを更新します。次の例では、ドキュメントの最後のエディタと投稿のソースを記録します。
 
 ```ts
 service.use("commitChangeset", async (context, next) => {
@@ -167,7 +161,7 @@ Service は更新後の 2 つのオブジェクトを丸ごと Adapter に渡し
 
 ドキュメントのメタデータは Adapter の `getUnit()` が返すレコードの `metadata` で読み取れます。今回の送信分は `submitChangeset()` の成功結果の `changeset.metadata` を参照してください。過去の送信分は `getChangesets()` の戻り値にある `changesets` 配列の各要素の `metadata` から取得できます。
 
-組み込みの SQLite または PostgreSQL Adapter を使用する場合は、SQL でドキュメントや変更セットのメタデータを直接照会することもできます。テーブル名と列名は使用中の Adapter のスキーマを参照してください。
+組み込みのSQLiteまたはPostgreSQLアダプタでは、文書とチェンジセットのメタデータもSQLで直接取得できます。そのアダプタのスキーマで定義されたテーブルと列名を使用してください。
 
 ## Event の実行モデル
 
@@ -184,9 +178,9 @@ const subscription = service.on("changesetCommitted", async (event) => {
 subscription.dispose();
 ```
 
-同じ Event のリスナーは登録順に逐次実行され、完了が待機されます。エラーはログに記録され、確定済みのドメイン結果から分離されます。たとえば `changesetCommitted` リスナーが失敗しても Adapter が保存した変更セットはロールバックされません。
+同じイベントのリスナーは、登録順に順次実行され、各SDKはそれぞれ待っています。 リスナーエラーは、既に定義されたドメイン結果からログオンおよび隔離されます。 たとえば、`changesetCommitted`リスナーに失敗したため、アダプターが既に保存されている変更セットをロールバックしません。
 
-Events はプロセス内、復旧可能、または非クリティカルな後続処理に適しています。DB コミットと共通のトランザクション境界ではなく、外部システムへの配信を保証しません。
+イベントは、インプロセス、回復可能、または非クリティカルフォローアップ作業に適しています。 彼らは、データベースコミットと共有されたトランザクション境界ではなく、外部システムへの配送を保証するものではありません。
 
 ## 基本 Service の Events
 
@@ -199,7 +193,7 @@ Events はプロセス内、復旧可能、または非クリティカルな後�
 
 `unitCreated` のリスナーでは `event.record.metadata` からドキュメントのメタデータを、`changesetCommitted` のリスナーでは `event.changeset.metadata` から今回の送信のメタデータを取得できます。
 
-Endpoint は同じ Service の `changesetCommitted` を監視し、現在のプロセスで Unit に参加したクライアントへ変更セットを配信します。pub/sub アダプターを設定している場合は他のノードにも届けます。また、明示的な退出、切断、Endpoint の破棄に対して `memberLeftUnit` を公開します。
+Endpoint は、同じサービスで `changesetCommitted` に耳を傾け、現在のプロセスでユニットに参加したクライアントに確認された変更をブロードキャストします。 pub/sub アダプターが構成されると、放送はすべてのノードにも到達します。エンドポイントは、明示的な残量、接続解除、エンドポイント処理の `memberLeftUnit` でも、エンドポイントの処理も公開します。
 
 ## 拡張モジュールは独自の拡張ポイントを持つ
 
@@ -209,6 +203,6 @@ History、Thread Comment、Worktree は基本 Collaboration Service の Middlewa
 - Comment は追加、返信、編集、削除、解決、一覧の Middleware と `commentCommitted` を提供します。
 - Worktree はライフサイクルと下書き read/submit/commit の Middleware、および作成、状態、マージ、下書きコミットの Events を提供します。
 
-有効にしたモジュールごとにルールを設定してください。基本 Service のログ、テナント、認可 Middleware は自動適用されません。
+各モジュールごとにルールをインストールします。 コアサービスのログ、テナント、または認証ミドルウェアは、これらのモジュールを自動的にカバーしません。
 
 既存のユーザーや ACL をこれらの境界に対応付ける具体例は[本人確認と認可](/server/collaboration/identity-and-authorization)に進んでください。

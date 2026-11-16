@@ -4,17 +4,17 @@ title: Permission Control
 
 import { PermissionShadowDemo } from './components/permission-shadow-demo'
 
-Univer provides permission control capabilities to restrict user operations on workbooks, worksheets, and ranges. When a user attempts an operation without the required permission, execution is halted and the user is notified. For example, you can protect a range to control whether collaborators can edit, view, copy, or filter within that range.
+Permission control in Univer determines what a user may do on a workbook, a worksheet, or a range. When a user attempts an operation without the required permission, Univer stops the operation and reports the missing permission. Protecting a range, for example, controls whether collaborators can edit, view, copy, or filter content inside it.
 
 <Callout type="warning">
-Your service must persist protection rules and collaborator changes, return the current user’s permissions, and propagate request failures. Empty mock lists are not a persistence implementation. In collaboration, the backend must independently check read, JOIN, and mutation permissions; see [Identity and authorization](/server/collaboration/identity-and-authorization). UI protection and hiding shadows do not replace server authorization.
+Your service must persist protection rules and collaborator changes, return the current user’s permissions, and pass request failures back to the caller. A mock that returns an empty list is not a persistence layer. In collaboration, the backend must also check read, JOIN, and mutation permissions itself; see [Identity and authorization](/server/collaboration/identity-and-authorization). Protection in the UI and hidden shadows do not replace server authorization.
 
 [Permission Service Integration](#authorization-service)
 </Callout>
 
 <PlaygroundFrame lang="en-US" slug="sheets/permission" clickToShow />
 
-Choose a task below. Basic operations, advanced examples, configuration, and troubleshooting stay on this page; full API contracts are maintained in Reference.
+This page covers basic operations, advanced examples, configuration, and troubleshooting. The full API contracts are collected in Reference.
 
 - [Common tasks](#permission-tasks)
 - [Permission UI Configuration](#permission-ui)
@@ -23,29 +23,29 @@ Choose a task below. Basic operations, advanced examples, configuration, and tro
 
 ## Core Concepts
 
-- Scope: Permissions apply at three levels—workbook, worksheet, and range.
-- Permission Points: Each feature corresponds to a permission point. Modifying a point controls whether that feature is available.
-- Protection Rules: Before setting permission points for worksheets and ranges, you must create a protection rule.
+- Scope: Permissions apply at three levels: workbook, worksheet, and range.
+- Permission Points: Each feature has one permission point, and changing its value enables or disables that feature.
+- Protection Rules: A worksheet or a range needs a protection rule before its permission points can be set.
 
 <Callout type="info">
-Local, non-persistent permissions can be changed through permission points. For persistence, see [Permission Service Integration](#authorization-service)
+Local, non-persistent permissions can be changed through permission points. For persistence, see [Permission Service Integration](#authorization-service).
 
-In a collaborative editing scenario, updating a permission point synchronizes the server state:
+In collaborative editing, updating a permission point also updates the server state:
   - `false`: The permission point requires at least the `owner` role
   - `true`: The permission point requires at least the `reader` role
 </Callout>
 
 ## Basic Example
 
-Replace `user1` and `user2` with real collaborator IDs returned by your authorization service before using the `allowedUsers` examples.
+Before using the `allowedUsers` examples, replace `user1` and `user2` with real collaborator IDs returned by your authorization service.
 
-The most common permission setting methods are shown below at three levels: workbook, worksheet, and range.
+The examples below show the usual way to set permissions at each of the three levels: workbook, worksheet, and range.
 
 ### Workbook Permissions Code Example
 
-Workbook-level permissions can be set directly via the [Facade API](/guides/sheets/getting-started/facade).
+Set workbook-level permissions directly through the [Facade API](/guides/sheets/getting-started/facade).
 
-The following example disables editing for the entire workbook. For other functions, replace the permission point accordingly (see the [workbook permission points list](#workbook-point)):
+The example below disables editing for the whole workbook. To control another feature, replace the permission point with the matching one; see the [workbook permission points list](#workbook-point):
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -56,12 +56,11 @@ const workbookPermission = fWorkbook.getWorkbookPermission()
 await workbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
 ```
 
-Key points:
-- Workbook permission points can be set directly without creating protection rules.
+Workbook permission points can be set directly, without creating a protection rule first.
 
 ### Worksheet Permissions Code Example
 
-Worksheet and range permissions can be set via the Facade API or commands. The following example demonstrates how to set worksheet edit permissions. For other features, replace the permission point accordingly (see the [worksheet permission points list](#worksheet-point)):
+Worksheet and range permissions can be set through the Facade API or through commands. This example sets the worksheet edit permission. To control another feature, replace the permission point with the matching one; see the [worksheet permission points list](#worksheet-point):
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -93,7 +92,7 @@ await worksheetPermission.unprotect()
 
 ### Custom Range Permissions Code Example
 
-Range permissions can also be set via API and command modes. Here, we'll use range edit permissions as an example. Other range functions require replacing the permission points, see the [list of permission points - Range](#range-point) for details.
+Range permissions can be set in the same two ways: through the API or through commands. The example below uses the range edit permission. Other range features require a different permission point; see the [list of permission points - Range](#range-point) for details.
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -184,9 +183,9 @@ console.log(permission.debugCellPermission(0, 0))
 
 ## List of permission points [#point-list]
 
-You can view the source code for all permission points [here](https://github.com/dream-num/univer/tree/dev/packages/sheets/src/services/permission/permission-point).
+The source code for every permission point is [here](https://github.com/dream-num/univer/tree/dev/packages/sheets/src/services/permission/permission-point).
 
-When workbook permissions overlap with worksheet or range permissions, **all** relevant permissions must be set to `true` for the feature to be usable.
+When both a workbook permission and a worksheet or range permission cover a feature, **all** of the relevant permissions must be `true` before that feature works.
 
 ### Workbook Permissions [#workbook-point]
 
@@ -255,10 +254,10 @@ When workbook permissions overlap with worksheet or range permissions, **all** r
 
 | <span data-config-options="">Option</span> | Type | Default | What it does |
 | --- | --- | --- | --- |
-| `protectedRangeShadow` | `boolean \| 'always' \| 'non-editable' \| 'non-viewable' \| 'none'` | `true` | Choose when protected ranges are shaded. |
-| <ConfigKey depth={0}>protectedRangeUserSelector</ConfigKey> | `object` |  | Customize the picker for users of a protected range. |
-| <ConfigKey depth={1}>component</ConfigKey> | `ComponentType<IPermissionDetailUserPartProps>` |  | Component used to pick users. |
-| <ConfigKey depth={1}>framework</ConfigKey> | `string` |  | Framework used by the component, such as `react`. |
+| `protectedRangeShadow` | `boolean \| 'always' \| 'non-editable' \| 'non-viewable' \| 'none'` | `true` | Which protected ranges show a shadow. |
+| <ConfigKey depth={0}>protectedRangeUserSelector</ConfigKey> | `object` |  | Customize the picker used for choosing users of a protected range. |
+| <ConfigKey depth={1}>component</ConfigKey> | `ComponentType<IPermissionDetailUserPartProps>` |  | Component that picks users. |
+| <ConfigKey depth={1}>framework</ConfigKey> | `string` |  | Framework the component uses, for example `react`. |
 
 ## Preset configuration [#preset-configuration]
 
@@ -266,17 +265,17 @@ When workbook permissions overlap with worksheet or range permissions, **all** r
 
 | <span data-config-options="">Option</span> | Type | Default | What it does |
 | --- | --- | --- | --- |
-| <ConfigKey depth={0}>sheets</ConfigKey> | `object` |  | Settings for the selected feature. |
-| <ConfigKey depth={1}>protectedRangeShadow</ConfigKey> | `boolean \| 'always' \| 'non-editable' \| 'non-viewable' \| 'none'` | `true` | Choose when protected ranges are shaded. |
-| <ConfigKey depth={1}>protectedRangeUserSelector</ConfigKey> | `object` |  | Customize the picker for users of a protected range. |
-| <ConfigKey depth={2}>component</ConfigKey> | `ComponentType<IPermissionDetailUserPartProps>` |  | Component used to pick users. |
-| <ConfigKey depth={2}>framework</ConfigKey> | `string` |  | Framework used by the component, such as `react`. |
+| <ConfigKey depth={0}>sheets</ConfigKey> | `object` |  | Options for the selected feature. |
+| <ConfigKey depth={1}>protectedRangeShadow</ConfigKey> | `boolean \| 'always' \| 'non-editable' \| 'non-viewable' \| 'none'` | `true` | Which protected ranges show a shadow. |
+| <ConfigKey depth={1}>protectedRangeUserSelector</ConfigKey> | `object` |  | Customize the picker used for choosing users of a protected range. |
+| <ConfigKey depth={2}>component</ConfigKey> | `ComponentType<IPermissionDetailUserPartProps>` |  | Component that picks users. |
+| <ConfigKey depth={2}>framework</ConfigKey> | `string` |  | Framework the component uses, for example `react`. |
 
 ## Protected Range Shadow Strategy [#permission-ui]
 
-To distinguish protected areas that the current user can edit from those they cannot, use `non-editable`. Editable protected areas have no shadow; protected areas with editing disabled keep their shadow. Non-viewable protected ranges remain masked.
+Use `non-editable` to distinguish the protected areas the current user can edit from those they cannot. Editable areas receive no shadow, areas with editing disabled keep their shadow, and non-viewable ranges stay masked.
 
-This setting controls the display of range and worksheet protection. It does not create protection rules or change edit/view permissions, and it does not add shadows to unprotected areas. Configure the protection rules and the current user's permissions first, as shown above.
+The setting affects only how range and worksheet protection is displayed. It does not create protection rules, does not change edit or view permissions, and does not add shadows to unprotected areas. Configure the protection rules and the current user’s permissions first, as described above.
 
 | Strategy | Display behavior |
 | --- | --- |
@@ -314,10 +313,10 @@ Set the strategy during initialization:
 
 ## Custom User Component
 
-Univer's built-in user selector has limited flexibility. For more complex scenarios, you can provide a custom component as shown below.
+The built-in user selector covers a limited set of cases. When your requirements exceed it, provide a custom component:
 
 <Callout>
-  You can refer to [Custom Components](/guides/sheets/ui/components) for how to create custom components.
+  For details on building one, see [Custom Components](/guides/sheets/ui/components).
 </Callout>
 
 <Tabs items={['Plugin Mode', 'Preset Mode']}>
@@ -365,7 +364,7 @@ Univer's built-in user selector has limited flexibility. For more complex scenar
 
 ### Protected Range Shadow Strategy [#protected-range-shadow-api]
 
-The Facade API below updates existing workbooks in the current Univer instance. In plugin mode, first import `@univerjs/sheets-ui/facade`; the Sheets Core preset already includes it.
+The Facade API below changes existing workbooks in the current Univer instance. In plugin mode, import `@univerjs/sheets-ui/facade` first; the Sheets Core preset already includes that module.
 
 ```typescript
 // Set to only show shadows for non-editable ranges
@@ -386,7 +385,7 @@ subscription.unsubscribe()
 
 ### Custom User Component [#permission-user-picker-api]
 
-Call `setSelectUserList()` from your picker’s change handler. This minimal React example clears the selection; `useDependency` runs inside the component and the service update runs only after a click. Implement the rest of your picker using `IPermissionDetailUserPartProps`.
+Call `setSelectUserList()` from the change handler of your user picker. The React example below clears the selection. `useDependency` runs inside the component, and the service is updated only after a click. Build the remaining parts of the picker against `IPermissionDetailUserPartProps`.
 
 <Tabs items={['Plugin Mode', 'Preset Mode']}>
   <Tab>
@@ -430,9 +429,9 @@ univerAPI.setPermissionDialogVisible(false)
 
 ### Extended usage
 
-When you need to check permissions in your own plugin, you can manipulate the permission points directly.
+To check permissions inside your own plugin, work with the permission points directly.
 
-The following example uses `WorkbookEditablePermission` to demonstrate how to check permissions in your own plugin. Other permission points work similarly.
+The example below uses `WorkbookEditablePermission`. Other permission points follow the same pattern.
 
 ```typescript
 import { IPermissionService } from '@univerjs/core'
@@ -456,7 +455,7 @@ class YourService {
 
 ### How to Extend Permission Points
 
-To customize permission points, implement `IPermissionPoint` and register it with the permission service:
+For custom permission points, implement `IPermissionPoint` and register it with the permission service:
 
 ```typescript
 import type { IPermissionPoint } from '@univerjs/core'
@@ -505,7 +504,7 @@ class ConsumeService {
 
 ### Integrating a Third-Party Authorization Service (Advanced) [#authorization-service]
 
-Implement [IAuthzIoService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/type.ts) in your application and connect its permission, role, and collaborator methods to your backend. The example assumes that `./authorization-service` exports this implementation as `YourAuthzService`. Register it before creating workbooks; keep the other initialization options and plugin registrations.
+Implement [IAuthzIoService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/type.ts) in your application and connect its permission, role, and collaborator methods to your backend. The example assumes `./authorization-service` exports the implementation as `YourAuthzService`. Register it before creating any workbooks, and keep the other initialization options and plugin registrations.
 
 ```typescript
 import { IAuthzIoService, Univer } from '@univerjs/core'
@@ -516,17 +515,17 @@ const univer = new Univer({
 })
 ```
 
-Your service must persist protection rules and collaborator changes, return the current user’s permissions, and propagate request failures. Empty mock lists are not a persistence implementation. In collaboration, the backend must independently check read, JOIN, and mutation permissions; see [Identity and authorization](/server/collaboration/identity-and-authorization). UI protection and hiding shadows do not replace server authorization.
+Your authz service must persist protection rules and collaborator changes, return the current user’s permissions, and surface request failures. A mock that returns empty lists persists nothing. In collaboration, the backend must still check read, JOIN, and mutation permissions itself; see [Identity and authorization](/server/collaboration/identity-and-authorization). UI protection and hidden shadows are not a substitute for server authorization.
 
 ![Permission](./permission/permission-en.png)
 
 ### Collaborator Management
 
 <Callout>
-  Collaborator management belongs to your application and permission service. Connect your user/ACL model and enforce server-side read, JOIN, and edit policies; see [identity and authorization](/server/collaboration/identity-and-authorization). The frontend APIs below require a matching permission-service implementation and do not automatically configure server authorization.
+  Collaborator management belongs to your application and its permission service. Connect your own user and ACL model, and enforce read, JOIN, and edit policies on the server; see [identity and authorization](/server/collaboration/identity-and-authorization). The frontend APIs below require a matching permission-service implementation; they do not configure server authorization.
 </Callout>
 
-- Get Collaborators List
+- Get the collaborator list
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -537,7 +536,7 @@ const collaborators = await workbookPermission.listCollaborators()
 console.log(collaborators)
 ```
 
-- Add Collaborators
+- Add collaborators
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -563,7 +562,7 @@ await workbookPermission.addCollaborator(
 )
 ```
 
-- Update collaborator role
+- Update collaborator roles
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()

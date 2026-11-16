@@ -3,7 +3,7 @@ title: Middleware y Events
 description: Amplía Transport, Endpoint, Service y los módulos colaborativos mediante Middleware y Events de propósito general.
 ---
 
-Middleware y Events son puntos de extensión generales de Collaboration SDK. La identidad y la autorización se integran con Middleware. Úsalo para validar y restringir antes de una operación; usa Events para registrar cambios o iniciar tareas tras confirmar el estado. Ambos admiten registros, trazabilidad, métricas y actualizaciones de estado derivado.
+Middleware y Eventos son los puntos de extensión para fines generales de la Collaboration SDK. La identidad y la autorización se integran a través de Middleware. Middleware valida o restringe una operación antes de que se ejecute; Eventos registra cambios o activa el trabajo de seguimiento después de que se confirme un cambio de estado.
 
 ## Dos momentos de extensión
 
@@ -11,15 +11,15 @@ Middleware y Events son puntos de extensión generales de Collaboration SDK. La 
 | --- | --- | --- |
 | Ejecución | Durante una operación | Tras confirmar un cambio de estado |
 | Participar o rechazar la operación | Sí | No |
-| Ampliar el Context | Sí | Lee el Context y resultado del Event |
+| Ampliar el Context | Sí | Lea el Contexto y el resultado llevado por el Evento |
 | Fallo del receptor | Puede fallar la operación actual | Aislado del resultado de dominio ya determinado |
 | Usos habituales | Identidad, autorización, validación, registro, medición de tiempo | Índices derivados, cachés, métricas, notificaciones internas |
 
-Usa Middleware para decidir si una operación puede continuar; Event para observar que un cambio ya ocurrió.
+Use Middleware cuando usted debe decidir si una operación puede continuar. Utilice un evento cuando usted necesita sólo para observar que un cambio de estado ya ha ocurrido.
 
 ## Modelo de ejecución de Middleware
 
-Los Middleware de una Action forman una cadena asíncrona en orden de registro. `await next()` entra en el siguiente Middleware y la operación del SDK se ejecuta en el punto más interno:
+Middleware para la misma Acción forma una cadena asincrónica en orden de registro. `await next()` entra en el próximo Middleware, y la operación SDK se ejecuta en el punto más interior:
 
 ```ts
 service.use("submitChangeset", async (context, next) => {
@@ -34,21 +34,15 @@ service.use("submitChangeset", async (context, next) => {
 });
 ```
 
-Middleware puede:
+Un Middleware puede leer la solicitud de acción específica, compartir datos de llamada local a través de `customData`, inspeccionar los sistemas de aplicación de entrada o consulta antes de `next()` y registrar la duración o los resultados después de que `next()` regrese. Lanzar un `CollabError` rechaza una operación de colaboración esperada.
 
-- leer la solicitud específica de la Action;
-- compartir datos locales de la llamada con `customData`;
-- inspeccionar entradas o consultar sistemas antes de `next()`;
-- registrar duración o resultados tras volver de `next()`;
-- lanzar `CollabError` para rechazar una operación colaborativa prevista.
-
-El Middleware HTTP de Transport puede terminar la respuesta sin llamar a `next()`. Los de Service y Endpoint deben rechazar con un error explícito en vez de omitir `next()` silenciosamente.
+Transporte HTTP Middleware puede terminar la respuesta HTTP sin llamar a `next()`. Servicio y Endpoint Middleware debe rechazar con un error explícito en lugar de saltar silenciosamente `next()` .
 
 ## Middleware de Transport
 
 `transport.use()` registra Middleware HTTP ordinario, que se ejecuta en orden de registro. Llama a `await next()` para continuar el procesamiento o finaliza la respuesta directamente. `transport.useUpgrade()` gestiona los protocolos de enlace WebSocket.
 
-Por ejemplo, registra la duración HTTP, autentica y establece un `userID` de confianza y, después, registra el Collaboration Endpoint:
+El siguiente ejemplo registra la duración de HTTP, autentica la solicitud y establece un `userID` de confianza, luego registra el Punto Final de Colaboración:
 
 ```ts
 transport.use(async (context, next) => {
@@ -78,13 +72,13 @@ transport.use(async (context, next) => {
 transport.register(collaborationEndpoint);
 ```
 
-La aplicación proporciona `recordHttpDuration` y `authenticate`. Endpoint utiliza el `userID` establecido por los Middleware anteriores. El Middleware de observación se registra antes de la autenticación, por lo que también se registran los rechazos.
+La aplicación suministra `recordHttpDuration` y `authenticate`. El Endpoint utiliza el `userID` establecido por el Middleware anterior. El observador de duración corre antes de la autenticación, por lo que las solicitudes rechazadas también se registran.
 
-`context.route?.path` es la plantilla completa de la ruta coincidente, disponible cuando la ejecución llega al Endpoint. Usa el evento `finish` de la respuesta para medir el tiempo hasta su finalización; los rechazos anteriores a la resolución de la ruta y las rutas desconocidas se registran como `unmatched`.
+`context.route?.path` es la plantilla de ruta completa, disponible una vez que la ejecución llegue al punto final. Utilice la respuesta `finish` evento para medir cuando la respuesta se complete. Reyecciones antes de la enrutamiento y caminos desconocidos se registran como `unmatched`.
 
 ## Middleware de Endpoint
 
-Participa en operaciones de Session en tiempo real y Presence:
+Endpoint Middleware cubre las operaciones de sesión y presencia en tiempo real:
 
 | Action | Momento | Usos habituales |
 | --- | --- | --- |
@@ -102,11 +96,11 @@ endpoint.use("receivePresence", async (context, next) => {
 });
 ```
 
-`session.userID` y `session.customData` de Endpoint proceden de la solicitud HTTP que emitió el Session Ticket. Endpoint crea `memberID` para la Session WebSocket actual; cambia al reconectar.
+El `session.userID` y `session.customData` de Endpoint provienen de la solicitud HTTP que emitió el boleto de sesión. El Endpoint crea `memberID` para la actual sesión WebSocket, y este identificador cambia después de la reconexión.
 
 ## Middleware de Service
 
-Participa en el ciclo de vida de los datos colaborativos autoritativos:
+Service Middleware cubre el ciclo de vida de los datos de colaboración autorizados:
 
 | Action | Límite | Usos habituales |
 | --- | --- | --- |
@@ -130,17 +124,17 @@ service.use("createUnit", async (context, next) => {
 });
 ```
 
-`submitChangeset` se ejecuta una vez por envío lógico. La contención de revisiones puede repetir `applyChangeset` y `commitChangeset` con otro `attempt`. Esos Middleware deben ser seguros ante reintentos y no enviar directamente mensajes externos irreversibles ni efectuar cobros de una sola vez.
+`submitChangeset` se ejecuta una vez por cada sumisión lógica. La contención de revisión puede causar `applyChangeset` y `commitChangeset` a ejecutar de nuevo con un nuevo `attempt`. El software medio en esas etapas debe ser seguro de reingreso y no debe enviar mensajes externos irreversibles o realizar cargos de una sola vez directamente.
 
 ## Alcance de customData
 
-`customData` permite compartir contexto dentro de una misma llamada. Quien realiza la llamada puede aportar datos y el Middleware puede ampliarlos para que los lean los siguientes Middleware, el Database Adapter y los Events asociados. Algunos usos habituales son:
+`customData` lleva el contexto dentro de una sola llamada. El callador puede suministrar datos, y Middleware puede agregar a él para más tarde Middleware, el Adaptador de bases de datos y eventos relacionados a leer.
 
 - Pasar un ID de inquilino, un ID de traza o el logger de la petición.
 - Reutilizar los resultados de una consulta de permisos durante la llamada.
 - Registrar la hora de inicio de una medición o una etiqueta de auditoría.
 
-Los Adapters de base de datos integrados en el SDK no guardan `customData` de forma persistente. Para guardar campos con el documento o el changeset, consulta [Metadatos persistentes](#persistent-metadata).
+Los adaptadores integrados de base de datos no persisten `customData`. Para guardar campos junto con un documento o un cambio, consulte [Metadatos persistentes](#persistent-metadata) .
 
 ## Metadatos persistentes [#persistent-metadata]
 
@@ -148,9 +142,9 @@ Los Adapters de base de datos integrados en el SDK no guardan `customData` de fo
 
 Al crear un documento puedes pasar `metadata` a `createUnitFromData()` o a `createUnitFromSnapshot()`, o bien establecer `context.unit.metadata` en el Middleware `createUnit`. El valor predeterminado es `{}`.
 
-Al enviar un changeset puedes actualizar ambos objetos en el Middleware `commitChangeset`. `context.unit.metadata` parte de los metadatos actuales del documento y `context.changeset.metadata` empieza como `{}`. Sus tipos, `UnitMetadata` y `ChangesetMetadata` respectivamente, son alias de `Record<string, unknown>`. Los valores de los campos deben ser serializables en JSON.
+Al enviar un cambio, ambos objetos de metadatos se pueden actualizar en el middleware `commitChangeset`. `context.unit.metadata` comienza con los metadatos actuales del documento, y `context.changeset.metadata` comienza como `{}`. Sus tipos, `UnitMetadata` y `ChangesetMetadata`, son alias de `Record<string, unknown>`. Los valores de campo deben ser JSON-serializable.
 
-Realiza los cambios antes de `await next()`. Este ejemplo actualiza el ID de quien editó el documento por última vez y registra el origen del envío.
+Actualizar metadatos antes de llamar a `await next()`. El siguiente ejemplo registra el último editor del documento y la fuente de la presentación.
 
 ```ts
 service.use("commitChangeset", async (context, next) => {
@@ -167,7 +161,7 @@ El Service pasa los dos objetos completos al Adapter para que los guarde con el 
 
 Para leer los metadatos del documento, llama a `getUnit()` en el Adapter y lee `metadata` en el registro devuelto. Para el envío actual, lee `changeset.metadata` en el resultado de `submitChangeset()` si el envío se ha completado correctamente. Al consultar envíos anteriores con `getChangesets()`, cada elemento del array `changesets` devuelto contiene `metadata`.
 
-Con los Adapters integrados de SQLite o PostgreSQL también puedes consultar los metadatos del documento o del changeset directamente con SQL. Usa los nombres de tabla y de columna del esquema del Adapter elegido.
+Con el adaptador SQLite incorporado o PostgreSQL, los metadatos de documento y de cambios también pueden ser consultados directamente con SQL. Utilice los nombres de tabla y columna definidos por el esquema de Adaptador.
 
 ## Modelo de ejecución de Events
 
@@ -184,9 +178,9 @@ const subscription = service.on("changesetCommitted", async (event) => {
 subscription.dispose();
 ```
 
-Los receptores del mismo Event se ejecutan secuencialmente en orden de registro y se espera su finalización. Sus errores se registran y aíslan del resultado de dominio ya determinado. Por ejemplo, un fallo de `changesetCommitted` no revierte cambios ya guardados por Adapter.
+Los oyentes del mismo Evento se ejecutan secuencialmente en orden de registro, y el SDK espera a cada uno. Los errores del oyente se registran y se aíslan del resultado de dominio ya determinado. Un oyente `changesetCommitted` fallido, por ejemplo, no retrocede un cambio que el Adaptador ya ha almacenado.
 
-Events es adecuado para tareas internas, recuperables o no críticas. No comparte un límite transaccional con el commit de la base ni garantiza la entrega a sistemas externos.
+Los eventos son apropiados para trabajos de seguimiento en proceso, recuperables o no críticos. No son un límite de transacción compartido con el compromiso de la base de datos, y no garantizan la entrega a un sistema externo.
 
 ## Events del Service principal
 
@@ -199,7 +193,7 @@ Events es adecuado para tareas internas, recuperables o no críticas. No compart
 
 En un listener de `unitCreated` puedes leer los metadatos del documento en `event.record.metadata`. En un listener de `changesetCommitted` encontrarás los metadatos del envío en `event.changeset.metadata`.
 
-Endpoint escucha `changesetCommitted` en el mismo Service y difunde el changeset a los clientes unidos a la Unit en el proceso actual, o en todos los nodos cuando hay un adaptador pub/sub configurado. También expone `memberLeftUnit` para salida explícita, desconexión y liberación del Endpoint.
+El Endpoint escucha a `changesetCommitted` en el mismo Servicio y transmite los cambios confirmados a los clientes que se unieron a la Unidad en el proceso actual. Cuando se configura un adaptador de pub/sub, la emisión también llega a cada nodo. El Endpoint también expone `memberLeftUnit` para licencia explícita, desconexión y eliminación de Endpoint.
 
 ## Las extensiones tienen puntos independientes
 
@@ -209,6 +203,6 @@ History, Thread Comment y Worktree no heredan Middleware ni Events del Collabora
 - Comment proporciona añadir, responder, editar, eliminar, resolver y listar, más `commentCommitted`;
 - Worktree proporciona ciclo de vida y lectura/envío/commit de borradores, más Events de creación, estado, fusión y commit de borrador.
 
-Instala las reglas por separado en cada módulo activo. El Middleware de registro, inquilino o autorización del Service principal no los cubre automáticamente.
+Instalar reglas por separado para cada módulo habilitado. Logging, tenant, o autorización Middleware en el Servicio básico no cubre estos módulos automáticamente.
 
 Continúa con [Identidad y autorización](/server/collaboration/identity-and-authorization) para asociar usuarios y ACL existentes con estos límites generales.

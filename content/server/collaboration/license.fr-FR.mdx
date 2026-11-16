@@ -3,36 +3,36 @@ title: Licence
 description: Collaboration SDK s’appuie sur la licence pour décider des connexions d’édition collaborative, des domaines autorisés, des nœuds de collaboration et des types de documents.
 ---
 
-`UniverCollabService` charge la licence à sa construction, et les Endpoints et Worktrees la partagent. Voir [Licence](/server/license#collaboration-sdk) pour la configuration ; sans licence, il fonctionne en version gratuite. Si la licence échoue à la vérification, le constructeur lève une `CollabError` (`LICENSE_INVALID` ou `LICENSE_POLICY_INVALID`) et le service s’arrête au démarrage.
+`UniverCollabService` charge la licence pendant la construction, et Endpoints et Worktrees partagent cette instance. Configurez la licence comme décrit dans [Licence](/server/license#collaboration-sdk); sans une, le SDK fonctionne sur le niveau libre. Si la vérification échoue, le constructeur lance un `CollabError` (`LICENSE_INVALID` ou `LICENSE_POLICY_INVALID`), et le service ne démarre pas.
 
 ## Ce que décide la licence [#limits]
 
 | Élément | Vérifié par | Au-delà de la limite |
 | --- | --- | --- |
-| Connexions d’édition collaborative | Endpoint, à la réception des soumissions | Les modifications des nouvelles connexions restent dans le navigateur et sont renvoyées |
-| Domaines autorisés | Endpoint, à la connexion et à la réception des soumissions | La session de collaboration du navigateur passe hors ligne |
+| Connexions d’édition collaborative | Point final, sur réception des soumissions | Les éditions des nouvelles connexions restent dans le navigateur et sont réétudiées |
+| Domaines autorisés | Point d'arrivée, lors de la connexion et sur les soumissions | La session de collaboration du navigateur passe hors ligne |
 | Nœuds de collaboration | Endpoint | Les nœuds au-delà de la limite passent hors ligne après un délai de grâce |
-| Types de documents | Service, à la création des Units et à la réception des modifications | La création et les soumissions sont refusées ; les documents existants restent consultables |
+| Types de documents | Service sur la création et l ' édition d ' unités | La création et les soumissions sont refusées ; les documents existants restent consultables |
 
 ### Connexions d’édition collaborative [#editing-connections]
 
-Le quota compte les connexions qui modifient : une connexion de collaboration prend une place à sa première soumission réussie et la libère à sa fermeture ou 120 secondes après sa dernière soumission réussie. Les connexions qui ouvrent un document pour le consulter peuvent rejoindre à tout moment. Les modifications dans un Worktree partagent les mêmes places que le tronc.
+Une connexion de collaboration occupe une fente après sa première soumission réussie et la libère lorsque la connexion se ferme, ou 120 secondes après sa dernière soumission réussie. Les connexions qui ouvrent un document seulement pour la visualisation peuvent se joindre à tout moment. Les modifications à l'intérieur d'un Worktree comptent contre le même pool de fente que les modifications sur le tronc.
 
-Quand toutes les places sont prises, les modifications d’une nouvelle connexion restent dans le navigateur et Web SDK les renvoie avec un délai croissant jusqu’à ce qu’une place se libère ; les connexions qui ont déjà une place continuent de modifier. Dans le navigateur, `CollaborationChangesetResend` signale ces renvois avec `reason: 'license_editing_connections_exceeded'`.
+Lorsque chaque fente est occupée, les modifications d'une nouvelle connexion restent dans le navigateur, et Web SDK les renver avec backoff jusqu'à ce qu'une fente devienne disponible. Les connexions qui détiennent déjà une fente continuent à éditer. Le `CollaborationChangesetResend` du navigateur rapporte ces renverres avec `reason: 'license_editing_connections_exceeded'`.
 
 ### Domaines autorisés [#domains]
 
-Quand Web SDK ouvre une connexion de collaboration ou soumet des modifications, l’Endpoint compare le domaine de la page aux domaines autorisés de la licence. Un domaine hors de cette liste reçoit `403` ; la session de collaboration du navigateur passe hors ligne et affiche la raison, puis réessaie quand l’utilisateur se reconnecte ou ouvre un autre document.
+Lorsque Web SDK ouvre une connexion de collaboration ou soumet des modifications, l'Endpoint compare le domaine de la page avec les domaines autorisés dans la Licence. Un domaine extérieur à cette liste reçoit `403` ; la session de collaboration du navigateur va ensuite hors ligne et affiche la raison. La session rétresse lorsque l'utilisateur se reconnecte ou ouvre un autre document.
 
 ### Nœuds de collaboration [#nodes]
 
-**Licence mono-nœud** (y compris la version gratuite) : exécute un seul nœud de collaboration. Passer `pubSub` à l’Endpoint fait lever `LICENSE_POLICY_INVALID` par le constructeur.
+Un **Licence unique de nœud**, y compris le niveau libre, exécute un nœud de collaboration. Le passage de `pubSub` à l'Endpoint rend le constructeur lancer `LICENSE_POLICY_INVALID`.
 
-**Licence multi-nœuds** : fixe une limite de nœuds. Quand plus de nœuds s’exécutent que la limite, les plus récents entrent dans un délai de grâce avec des avertissements progressifs, puis passent hors ligne : les nouvelles connexions reçoivent `503` et les connexions existantes sont fermées. Les nœuds dans la limite continuent de servir. Si le nombre revient dans la limite pendant le délai de grâce, les nœuds en trop reviennent à la normale ; un nœud déjà hors ligne est recompté comme nouveau nœud après le redémarrage de son processus. Voir [Déploiement](/server/deployment#plusieurs-nœuds-de-collaboration) pour les configurations multi-nœuds.
+Une **licence multi-noeud** définit une limite de nœud. Lorsque le nombre de nœuds en cours d'exécution dépasse cette limite, les nœuds les plus récents entrent dans une période de grâce avec des avertissements croissants et vont ensuite hors ligne. Les nouvelles connexions reçoivent `503`, et les connexions existantes se ferment. Les nœuds dans la limite continuent à servir le trafic. Si le nombre de noeuds tombe dans la limite pendant la période de grâce, les nœudS supplémentaires reviennent à la normale. Un noeud qui est passé hors ligne est compté comme un nouveau noeud après le redémarrage de son processus. Pour les déploiements multinoeuds, voir [Déploiement](/server/deployment#plusieurs-nœuds-de-collaboration).
 
 ### Types de documents [#unit-types]
 
-La licence liste les types de documents ouverts à la collaboration. Créer une Unit d’un autre type lève `LICENSE_UNIT_TYPE_REJECTED` et les modifications soumises sont refusées ; dans le navigateur, `CollaborationConflict` indique `reason` `license_unit_type_rejected`. Les documents existants restent consultables.
+La licence énumère les types de documents disponibles pour la collaboration. La création d'une unité de tout autre type lance `LICENSE_UNIT_TYPE_REJECTED`, et les modifications soumises sont rejetées. `CollaborationConflict` dans le navigateur rapporte `reason` sous `license_unit_type_rejected`. Les documents existants restent visibles.
 
 ## Observer l’état [#observe]
 
@@ -59,4 +59,4 @@ endpoint.license.on('editingConnectionsExceeded', ({ memberID, userID, unitID, u
 endpoint.license.on('nodesStatusChanged', ({ status, previousStatus, limit, reason }) => {}) // l’état de ce nœud a changé ; reason n’a de valeur qu’au passage hors ligne
 ```
 
-`nodesStatusChanged` est émis une fois à chaque changement d’état de ce nœud. Quand `status` vaut `exceeded-offline`, le nœud n’accepte plus de connexions ; retirez-le du répartiteur de charge ou déclenchez une alerte.
+`nodesStatusChanged` allume une fois pour chaque changement d'état de ce noeud. Lorsque `status` devient `exceeded-offline`, le noeud a cessé d'accepter les connexions; le retirer de l'équilibreur de charge ou soulever une alerte.

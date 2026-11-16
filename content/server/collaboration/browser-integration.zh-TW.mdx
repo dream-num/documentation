@@ -3,17 +3,17 @@ title: 協同整合
 description: 將 Univer 編輯器接入協同服務，讓使用者編輯同一份文件。
 ---
 
-協同功能將瀏覽器編輯器連接到共用文件服務。例如，兩位使用者開啟同一份試算表，一個瀏覽器中的修改會出現在另一個瀏覽器。
+協同把瀏覽器中的編輯器連線到同一個共享的文件服務。兩位使用者開啟同一份表格時，一端的修改會出現在另一端的瀏覽器中。
 
-先依[伺服器整合](/server)準備後端，再按照下方內容設定編輯器與文件載入。請對照 [協同快速開始](/server/collaboration/quick-start)成對的 Server 與 Web 程式碼。
+先按[伺服器端整合](/server)完成後端配置，再做下文的編輯器配置與文件載入。[協同快速開始](/server/collaboration/quick-start)中給出了配套的 Server 與 Web 程式碼。
 
 <Mermaid chart={'flowchart LR; A["使用者 A 編輯器"] <-->|交換修改| S["協同服務"]; S <-->|交換修改| B["使用者 B 編輯器"]; S --> D[("儲存文件")];'} />
 
 ## 接入現有編輯器
 
-保留現有 Web SDK 編輯器，依[快速開始的瀏覽器設定](/server/collaboration/quick-start)加入協同外掛，設定文件載入、修改提交與 WebSocket 位址。保持瀏覽器與伺服器套件版本相容。
+無需更換編輯器。保留現有的 Web SDK 編輯器，按[快速開始中的前端配置](/server/collaboration/quick-start)新增協同外掛，再配置文件載入、修改提交和 WebSocket 地址。前端與後端的包版本必須保持相容。
 
-範例中的固定使用者與預設權限只用於示範。實際應用程式的請求應包含登入憑證，讓後端驗證身分與文件存取權。授權相關設定請參閱[授權設定](/server/license)。
+範例中的固定使用者和預設權限僅用於演示。正式接入時，每個請求都需要攜帶應用的登入資訊，由後端確認使用者身分和文件訪問權限。許可證配置見[使用許可證](/server/license)。
 
 ## 外掛設定 [#client-configuration]
 
@@ -24,11 +24,11 @@ description: 將 Univer 編輯器接入協同服務，讓使用者編輯同一�
 | <span data-config-options="">設定項目</span> | 類型 | 預設值 | 作用 |
 | --- | --- | --- | --- |
 | `socketService` | `Ctor<ICollaborationSocketService>` |  | 指定目前執行環境的 Socket 實作。 |
-| `sendChangesetTimeout` | `number` | `2000 ms` | 累積一段時間內的本機變更後再傳送。 |
+| `sendChangesetTimeout` | `number` | `2000 ms` | 本地修改在傳送前的合併緩衝時長。 |
 | `changesetAckTimeout` | `number` | `20000 ms` | 等待伺服器確認的時間，逾時後重送。 |
-| `maxChangesetAckTimeout` | `number` | `120000 ms` | 限制兩次重送之間的最長等待時間。 |
+| `maxChangesetAckTimeout` | `number` | `120000 ms` | 兩次重發之間的最長間隔。 |
 
-合併傳送延遲與確認逾時是兩個設定。用戶端外掛預設使用 `sendChangesetTimeout: 2000`、`changesetAckTimeout: 20000`、`maxChangesetAckTimeout: 120000`，單位均為毫秒。提交請求也使用確認逾時；未收到確認時以指數退避重送，間隔不超過最大值。後兩項相同時使用固定間隔。
+合併傳送延遲與確認超時是兩個不同的計時器。客戶端外掛預設使用 `sendChangesetTimeout: 2000`、`changesetAckTimeout: 20000` 和 `maxChangesetAckTimeout: 120000`，單位均為毫秒。提交請求同樣使用確認超時。始終未獲確認的修改會按指數退避重發，間隔不超過最大值。確認超時與最大超時取相同值時，重發間隔固定。
 
 ```ts
 import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
@@ -42,7 +42,7 @@ univer.registerPlugin(UniverCollaborationClientPlugin, {
 })
 ```
 
-將這些選項合併到現有用戶端註冊中，保留 socket 與介面位址設定。Sheets 和 Docs 協同預設使用 200 ms 的合併傳送延遲，未提供確認逾時選項；自訂逾時請使用外掛模式。
+將這些選項併入現有的客戶端註冊，socket 與介面地址的配置保持不變。Sheets 和 Docs 的協同預設使用 200 ms 的合併傳送延遲，並且未提供確認超時選項，因此自定義這些超時需要改用外掛模式。
 
 ### 衝突復原提示 [#client-conflict-notices]
 
@@ -78,22 +78,22 @@ import { UniverDocsCollaborationPreset } from '@univerjs/preset-docs-collaborati
 const collaborationPreset = UniverDocsCollaborationPreset({ enableDefaultConflictUI: false })
 ```
 
-預設 UI 依衝突原因顯示通知，快取清理成功後提供重新整理操作，失敗時提供重試。若由應用程式接管復原流程，在現有初始化設定 `enableDefaultConflictUI: false`，並自行處理事件：
+預設情況下，UI 會顯示一條註明衝突原因的提示：快取清理成功後提供重新整理，清理失敗時提供重試。如果恢復流程由應用自行實現，在現有初始化中設定 `enableDefaultConflictUI: false`，並直接處理事件。
 
-將協同預設放入現有 `createUniver({ presets: [...] })`，與編輯器預設組合，保留介面位址與歷史設定。詳見[事件參數](#conflict-recovery)和[用戶端設定](/reference/packages/plugins/univerjs-pro/collaboration-client)。
+把協同預設加入現有的 `createUniver({ presets: [...] })` 配置，與編輯器預設放在一起，介面地址與歷史記錄的配置保持不變。事件參數見[衝突恢復事件](#conflict-recovery)，客戶端外掛的可選配置見[客戶端外掛配置](/reference/packages/plugins/univerjs-pro/collaboration-client)。
 
 ## 建立並開啟同一份文件
 
-建立與開啟是兩個不同操作：
+新建文件與開啟文件是兩個不同的動作：
 
-1. 使用者建立文件時，後端儲存文件並回傳 ID。
-2. 瀏覽器載入此 ID；重新開啟或與其他使用者分享時，都重用相同 ID。
+1. 使用者新建文件時，業務後端負責儲存，並把文件 ID 返回給前端。
+2. 前端使用該 ID 載入文件。再次開啟文件或分享給他人時，仍使用同一個 ID。
 
-API 中的 `unitId` 就是這個文件 ID。不要每次造訪都建立新的本機空白文件。
+API 把文件 ID 稱為 `unitId`。不要每次訪問都新建一個本地空白文件。
 
-先設定目前使用者，再載入文件。目前使用者決定協同編輯的身分與本機離線快取的歸屬，設定方式請參閱[身分與授權](/server/collaboration/identity-and-authorization)。
+先設定當前使用者，再載入文件。當前使用者決定協同身分，也是本地離線快取的歸屬者，詳見[身分與權限](/server/collaboration/identity-and-authorization)。
 
-例如，註冊 Sheets 與協同外掛後，可載入伺服器試算表：
+例如，Sheets 和協同外掛都註冊完成之後，可從伺服器端載入表格：
 
 ```ts
 import { UserManagerService } from '@univerjs/core'
@@ -105,25 +105,25 @@ const workbook = await univerAPI.getCollaboration().loadSheetAsync('your-documen
 if (!workbook) throw new Error('Document could not be loaded')
 ```
 
-各產品的載入方式請參閱 [Sheets](/guides/sheets/features/collaboration)、[Docs](/guides/docs/features/collaboration)、[Slides](/guides/slides/features/collaboration)、[Boards](/guides/boards/features/collaboration)、[Bases](/guides/bases/features/collaboration)與 [PDFs](/guides/pdfs/features/collaboration) 指南。請確認產品與目標後端版本的支援情況。
+各產品的載入方式見 [Sheets](/guides/sheets/features/collaboration)、[Docs](/guides/docs/features/collaboration)、[Slides](/guides/slides/features/collaboration)、[Boards](/guides/boards/features/collaboration)、[Bases](/guides/bases/features/collaboration) 和 [PDFs](/guides/pdfs/features/collaboration) 指南。使用前請確認目標產品與後端版本支援該能力。
 
 ## 驗證同步、儲存與權限
 
-在兩個獨立瀏覽器工作階段中開啟相同文件，例如一般視窗與無痕視窗。在一個視窗編輯，確認另一個收到變更，再驗證重新整理、重新連線與重啟伺服器後的內容。
+用兩個相互獨立的瀏覽器會話開啟同一份文件，例如一個普通視窗和一個無痕視窗。在一端修改，觀察另一端的顯示結果。隨後重新整理頁面、斷開重連、重啟服務，確認內容仍然存在。
 
-使用編輯者、檢視者與未授權使用者測試。唯讀 UI 設定控制頁面互動，伺服器仍須拒絕未授權的讀取與修改。
+分別以編輯者、檢視者和無權限使用者的身分進行測試。前端的只讀設定只限制頁面允許的操作，伺服器端仍須拒絕未授權的讀取和修改。
 
-若可載入但不同步，請檢查 WebSocket 連線。若重啟後內容遺失，請檢查後端儲存。相關設定請參閱[伺服器整合](/server)。
+文件能開啟但修改不同步時，檢查 WebSocket 連線；重啟後內容丟失時，檢查後端儲存。這些配置屬於[伺服器端整合](/server)。
 
 ## 加入檔案交換、留言或歷史記錄
 
-若要共同編輯匯入的檔案，請使用轉換後的資料建立協同文件，詳見[檔案交換整合](/server/import-export)。留言與歷史記錄各自需要外掛、服務與權限，請參考 [Office 擴充模組](/server/collaboration/extensions)。
+要讓多人共同編輯匯入的檔案，需要使用轉換後的資料建立協同文件，見[匯入匯出整合](/server/import-export)。評論和歷史記錄各自需要外掛、伺服器端和權限，按 [Office 協同擴充套件模組](/server/collaboration/extensions)接入。
 
-歷史面板設定請參閱 [Sheets](/guides/sheets/features/edit-history)、[Docs](/guides/docs/features/edit-history)、[Slides](/guides/slides/features/edit-history)、[Boards](/guides/boards/features/edit-history)、[Bases](/guides/bases/features/edit-history)。PDFs 目前的能力範圍請參閱 [PDFs 歷史記錄](/guides/pdfs/features/edit-history)。
+歷史面板的配置按產品區分：[Sheets](/guides/sheets/features/edit-history)、[Docs](/guides/docs/features/edit-history)、[Slides](/guides/slides/features/edit-history)、[Boards](/guides/boards/features/edit-history)、[Bases](/guides/bases/features/edit-history)。PDFs 目前支援到什麼程度見[歷史記錄說明](/guides/pdfs/features/edit-history)。
 
 ## 同步狀態與重送 [#sync-status]
 
-匯入協同 Facade 後註冊監聽。`CollaborationStatusChanged` 會報告註冊監聽時已在協同的文件的目前狀態，此後只報告變更，不連續重複相同狀態。`hasWritePending(unitId)` 包含等待傳送、等待確認和離線快取的修改；省略 ID 時檢查目前聚焦文件。WebSocket 已連線不代表修改已儲存。
+先匯入協同 Facade，再註冊監聽。註冊監聽時，`CollaborationStatusChanged` 會先為每個已處於協同狀態的文件報告當前狀態，之後只報告狀態變化，不會連續重複相同的狀態。`hasWritePending(unitId)` 涵蓋排隊中的修改、等待確認的修改和離線修改；不傳 ID 時檢查當前聚焦的文件。WebSocket 已連線並不表示修改已經儲存。
 
 ```ts
 import '@univerjs-pro/collaboration-client/facade'
@@ -137,15 +137,15 @@ const resendSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationChang
 })
 ```
 
-`CollaborationChangesetResend` 僅在重送時觸發，首次提交不觸發。原因包括 `ack_timeout`、`request_failed`、`license_editing_connections_exceeded`、`should_retry` 和 `reconnect`；`attempt`、`elapsedMs`、`unsyncedMutationCount`、`nextDelayMs` 可用來顯示儲存與重試狀態。移除編輯器時釋放事件訂閱。
+`CollaborationChangesetResend` 僅在重發時觸發，首次提交不觸發。原因包括 `ack_timeout`、`request_failed`、`license_editing_connections_exceeded`、`should_retry` 和 `reconnect`；`attempt`、`elapsedMs`、`unsyncedMutationCount` 和 `nextDelayMs` 為建置儲存中或重試中的提示提供所需資料。移除編輯器時釋放事件訂閱。
 
-`request_failed` 表示網路錯誤或 HTTP 408、429、5xx 等可重試的請求失敗。`license_editing_connections_exceeded` 表示授權允許的編輯連線數已用盡，伺服器要求稍後重送。
+`request_failed` 表示可重試的請求失敗，例如網路錯誤，或 HTTP 408、429、5xx 響應。`license_editing_connections_exceeded` 表示授權允許的編輯連線已全部佔用，伺服器端要求重發。
 
 ## 由應用程式處理衝突 [#conflict-recovery]
 
-文件進入衝突後，`CollaborationConflict` 在嘗試清理離線快取後觸發一次，請在載入文件前監聽。`reason` 為 `transform_failed`、`apply_failed`、`changeset_rejected`、`license_unit_type_rejected`、`permission_rejected` 或 `remote_revert`；可用時由 `message` 和 `revert` 提供更多資訊。
+文件進入衝突後，`CollaborationConflict` 會在嘗試清理離線快取之後觸發一次。監聽器必須在載入任何文件之前註冊。其 `reason` 為 `transform_failed`、`apply_failed`、`changeset_rejected`、`license_unit_type_rejected`、`permission_rejected` 或 `remote_revert`；`message` 和 `revert` 在有資料時提供補充資訊。
 
-`license_unit_type_rejected` 表示伺服器授權不支援此文件類型的協作。
+`license_unit_type_rejected` 表示伺服器端許可證不覆蓋該文件型別的協同。
 
 ```ts
 import type { IEventParamConfig } from '@univerjs/core/facade'
@@ -157,12 +157,12 @@ const conflictSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationCon
 })
 ```
 
-上述範例保留事件供應用程式復原介面使用。Map 僅存在於記憶體：重新整理前應儲存或匯出 `localChanges`。必須在事件中保留資料，後續讀取無法復原已清理的快取。`awaitingChangeset` 可能已套用至伺服器，不應直接重新提交。
+範例保留該事件，供應用的恢復介面使用。該 Map 僅存在於記憶體中，因此在重新整理之前，應用必須儲存或匯出所有 `localChanges`。該事件是留存這些修改的唯一機會，已清理的快取資料無法透過後續讀取恢復。`awaitingChangeset` 可能已在伺服器端應用，因此不要直接重放。
 
-`cacheCleared: false` 表示重新整理會重播舊快取，請先解決清理問題。清理快取不代表未同步修改已儲存；`permission_rejected` 還需解決權限問題，重新整理不會授予權限。
+`cacheCleared: false` 表示重新整理會重放舊的快取修改，因此需要先完成快取清理再重新整理。清理快取並不意味著未同步的修改已經儲存。`permission_rejected` 衝突還需要解決權限問題，重新整理不會授予權限。
 
 ## 伺服器原因與授權提示 [#server-rejections]
 
-伺服器拒絕修改時，`CollaborationConflict.message` 會攜帶伺服器提供的原因；復原流程應依 `reason` 分支，不要解析本地化訊息。`license_unit_type_rejected` 需要伺服器授權涵蓋該文件類型；`license_editing_connections_exceeded` 是重傳訊號，修改仍未確認且會繼續重試。在 `hasWritePending(unitId)` 變為 false 或應用程式已保留修改前，請保持編輯器開啟。
+伺服器端拒絕修改時，如果伺服器端給出了原因，`CollaborationConflict.message` 會攜帶該原因。不要解析本地化文案來決定恢復動作，應依據 `reason` 分支處理。`license_unit_type_rejected` 需要一份覆蓋該文件型別的伺服器端許可證；`license_editing_connections_exceeded` 是重發訊號：修改仍未確認，並會繼續重試。在 `hasWritePending(unitId)` 變為 false 或應用已留存這些修改之前，請保持編輯器開啟。
 
-預設 UI 會提示編輯連線容量已滿；首次傳送至少 20 秒後的重傳也會提示儲存逾時。文件離開等待確認狀態或被銷毀時會移除提示。網域遭拒亦有獨立提示。`enableDefaultConflictUI: false` 僅關閉衝突復原提示，不會關閉上述等待或網域提示。
+預設 UI 會顯示編輯連線容量提示；如果重發發生在首次傳送之後至少 20 秒，還會顯示儲存超時提示。文件離開等待狀態或被銷燬時，這些提示會被移除。域名被拒絕時也有單獨的提示。`enableDefaultConflictUI: false` 只關閉衝突恢復提示，不會關閉上述等待提示和域名提示。

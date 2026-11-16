@@ -4,11 +4,11 @@ description: "按需組合功能，以公開 API 擴充內容操作與業務介�
 icon: Puzzle
 ---
 
-Univer 透過插件組合產品與功能，透過 Facade 向應用開放內容操作。你可以選擇所需的內容引擎、功能與介面，也可以將業務邏輯封裝為插件，再提供具型別提示的 API，供自己的介面或 Agent 工具呼叫。
+Univer 透過外掛組合產品與功能，並透過 Facade 將內容操作開放給應用。應用可以選擇所需的內容引擎、功能和介面，也可以把業務邏輯封裝為外掛，為應用和 Agent 工具提供帶型別的方法。
 
 ## 按需組合內容能力 [#composition]
 
-Preset 是已組合好的插件集合，適合快速接入；Plugin 模式讓應用明確選擇產品、功能及設定。兩者使用相同的插件機制。
+Preset 是預先組合好的外掛集合，用於快速接入。Plugin 模式下，產品、功能和配置均由宿主顯式選擇。兩種方式使用同一套外掛機制。
 
 | 層次 | 職責 | 典型組成 |
 | --- | --- | --- |
@@ -17,42 +17,42 @@ Preset 是已組合好的插件集合，適合快速接入；Plugin 模式讓應
 | UI 與渲染插件 | 提供視覺呈現與互動入口。 | Canvas 渲染、選單、工具列、快捷鍵與元件。 |
 | Facade 擴充 | 為已安裝能力提供公開呼叫介面。 | 活頁簿、範圍、文件和物件操作，以及語意事件。 |
 
-產品邏輯與 UI 分離，使適合無頭執行的內容能力能在 Node.js、Worker 或瀏覽器中重用。Headless 宿主按需註冊內容插件；選單、DOM 和互動相關 API 仍需要對應的 UI 環境。
+產品邏輯與 UI 分離，適合的內容能力可以在 Node.js、Worker 或瀏覽器中執行。Headless 宿主只註冊所需的內容外掛；選單、DOM 和互動相關 API 仍然需要對應的 UI 環境。
 
 ## 依賴、生命週期與資源歸屬 [#coordination]
 
-插件透過 `@DependentOn(...)` 宣告直接依賴，由執行環境解析依賴並協調建構順序。缺少的依賴插件會以預設設定註冊；需要自訂設定時，宿主應先註冊並設定依賴。它不會代替套件安裝，也不會自動載入樣式、語言資源、Facade 入口或 Worker。
+外掛透過 `@DependentOn(...)` 宣告直接依賴，執行時負責解析依賴並確定構造順序。依賴外掛缺失時，執行時會以預設配置註冊該外掛。某個依賴需要自定義配置時，應先註冊並配置該依賴。這一機制不負責安裝包，也不會引入樣式、語言資源、Facade 入口或 Worker。
 
-插件內部以依賴注入（DI）連接 Service、Controller 和模型。模組依賴公開的服務識別符，平台實作可在支援的設定或注入邊界替換；業務邏輯無須自行建立及管理所有依賴。
+外掛內部使用依賴注入（DI），透過公開的服務識別符號連線 Service、Controller 和模型。平臺相關實現可在支援的配置或注入邊界處替換，業務邏輯不必自行建立和管理所有依賴。
 
 | 生命週期 | 適合執行的工作 |
 | --- | --- |
 | `onStarting()` | 註冊依賴、命令與控制器；不要讀取尚未建立的 Unit 或 DOM。 |
-| `onReady()` | 對應內容就緒後，初始化依賴模型的邏輯。 |
+| `onReady()` | 在對應內容就緒後，初始化依賴模型的邏輯。 |
 | `onRendered()` | 初始化需要渲染器、Canvas 或 DOM 的擴充。 |
-| `onSteady()` | 延後非首屏必要的工作。 |
+| `onSteady()` | 把首屏渲染不需要的工作延後執行。 |
 
-命令註冊、事件訂閱、快捷鍵與渲染模組等資源應由擁有者管理。對回傳 disposable 的註冊使用 `disposeWithMe()`，讓資源隨插件或控制器釋放。`mergeMenu()` 目前回傳 `void`，不能視為 disposable。
+命令註冊、事件訂閱、快捷鍵和渲染模組等資源由擁有者管理。註冊呼叫返回 disposable 時，應使用 `disposeWithMe()`，使資源隨外掛或控制器一起釋放。`mergeMenu()` 當前返回 `void`，不能視為 disposable。
 
 ## 不同入口，共用內容變更機制 [#commands]
 
-工具列、快捷鍵與業務 API 可以呼叫同一業務命令；Agent 宿主安裝對應能力後，也能重用這個入口。命令系統將業務意圖、持久化變更與暫時互動分開。
+工具欄、快捷鍵和業務 API 可以呼叫同一個業務命令。Agent 宿主在安裝所需能力後，也可以複用這一入口。命令系統將業務意圖、持久化變更和臨時互動分開處理。
 
 | 類型 | 職責 | 範例 |
 | --- | --- | --- |
-| `COMMAND` | 檢查目標、組織業務步驟，編排 Mutation 或 Operation。 | 寫入銷售報告、刪除資料列。 |
-| `MUTATION` | 以明確、可序列化的參數修改內容模型，供重播及對應的協同處理使用。 | 修改儲存格內容、插入資料列。 |
+| `COMMAND` | 校驗目標、組織業務步驟，並編排 Mutation 或 Operation。 | 寫入銷售報告、刪除資料列。 |
+| `MUTATION` | 透過明確、可序列化的參數修改內容模型，使變更可以重放並由協同流程處理。 | 修改儲存格內容、插入資料列。 |
 | `OPERATION` | 修改暫時互動狀態。 | 調整選取範圍、捲動位置或面板。 |
 
 <Mermaid chart={"flowchart TD\n    U[\"工具列 / 快捷鍵\"] --> C[\"Command<br/>檢查與業務編排\"]\n    A[\"業務應用 / Agent 工具\"] --> F[\"Facade API\"]\n    F --> C\n    C --> M[\"Mutation<br/>內容變更\"]\n    M --> D[\"內容模型\"]\n    D --> R[\"渲染 / 計算\"]\n    M -. \"對應適配機制\" .-> H[\"復原重做 / 協同 / 歷史記錄\"]"} />
 
-例如，`FRange.setValues()` 會呼叫 `SetRangeValuesCommand`，由命令產生 `SetRangeValuesMutation` 並準備復原資料。內容變更進入同一執行鏈，不同入口能重用既有的檢查、攔截與變更處理。圖中的復原、協同及歷史記錄仍需對應機制；註冊 Mutation 本身不會自動提供這些能力。
+以 `FRange.setValues()` 為例，它呼叫 `SetRangeValuesCommand`，該命令生成 `SetRangeValuesMutation`，並準備撤銷所需的資料。所有內容變更都遵循同一條執行路徑，不同入口複用已有的校驗、攔截和變更處理邏輯。圖中的撤銷、協同和歷史記錄仍然依賴各自的機制；僅註冊一個 Mutation 不會自動獲得這些能力。
 
 ## 將插件能力擴充為 Facade API [#facade]
 
-Facade 提供面向內容物件的公開介面，隱藏內部服務查找與命令參數編排。擴充可以組合既有 Facade 方法，也可以呼叫插件自己的業務命令。
+Facade 提供面向內容物件的公開介面，並隱藏內部的服務查詢和命令參數組裝。擴充套件可以組合現有的 Facade 方法，也可以呼叫外掛自身的業務命令。
 
-以下為 `FUniver` 增加 `generateSalesReport()`；業務命令將於下一節實作。三個部分分別提供執行時方法、執行時掛載與 TypeScript 型別提示。
+下面的擴充套件為 `FUniver` 新增 `generateSalesReport()`，它呼叫的業務命令在下一節實現。該檔案由三部分組成：執行時方法、執行時註冊和 TypeScript 型別。
 
 ### sales-report.facade.ts
 
@@ -78,19 +78,19 @@ declare module '@univerjs/core/facade' {
 }
 ```
 
-`FUniver.extend()` 在執行時安裝方法；模組擴充只補充型別。使用方必須透過 side-effect import 執行擴充檔案，僅匯出類別或註冊插件，不會執行另一個 Facade 入口。發布為套件時可提供獨立的 `/facade` 子路徑，並以 `package.json` 的 `sideEffects` 保留註冊副作用。
+`FUniver.extend()` 在執行時安裝該方法，模組增強只補充型別。接入方必須透過 side-effect import 執行擴充套件檔案；僅匯出類或註冊外掛不會執行獨立的 Facade 入口。釋出為包時，可以暴露獨立的 `/facade` 子路徑，並透過 `package.json` 的 `sideEffects` 保留這一註冊副作用。
 
-僅對明確支援 `extend()` 的 Facade 類別使用此方式；已匯出的 Facade 類別不一定支援 mixin。擴充方法應使用明確的業務命名，避免與既有方法或其他擴充重名。
+這種方式僅適用於明確支援 `extend()` 的 Facade 類。匯出一個 Facade 類並不意味著它可以用作 mixin。方法名應明確表達業務含義，並避免與已有方法或其他擴充套件重名。
 
 ## 案例：讓應用與 Agent 產生同一份銷售報告 [#example]
 
-這個最小業務插件將英文銷售資料、彙總公式與表頭樣式寫入指定 Sheet 的 `A1:D5`，會覆蓋該範圍。它明確接收活頁簿與工作表 ID，不依賴目前選取範圍或焦點。
+這個最小業務外掛將英文銷售資料、彙總公式和表頭樣式寫入指定 Sheet 的 `A1:D5`，並覆蓋該區域。工作簿 ID 和工作表 ID 由呼叫方顯式傳入，不依賴當前選區或焦點。
 
-命令先檢查目標及範圍大小，再呼叫既有的 `SetRangeValuesCommand`，重用其內容變更及復原／重做邏輯。插件在 `onStarting()` 註冊命令並保管釋放句柄。固定資料用於示範，實際應用可改為經過驗證的業務輸入。
+命令先校驗目標和區域尺寸，再呼叫現有的 `SetRangeValuesCommand`，以複用其內容變更和撤銷／重做邏輯。外掛在 `onStarting()` 中註冊命令，並持有其 disposable。資料為固定值，僅用於演示；實際應用應替換為校驗過的業務輸入。
 
 ![銷售報告插件輸出：各區域銷售資料與彙總公式結果](/assets/features/customization/sales-report.png)
 
-範例輸出。為便於閱讀，截圖補充了底色、數字顯示格式與列高欄寬。
+範例輸出。為便於閱讀，底色、數字格式和行列尺寸經過調整。
 
 ### sales-report.plugin.ts
 
@@ -152,7 +152,7 @@ export class SalesReportPlugin extends Plugin {
 }
 ```
 
-宿主先按照 [Sheet 接入指南](/guides/sheets/getting-started/installation)設定產品與公式能力，再註冊業務插件、匯入 Facade 擴充並呼叫。此處的 `univer` 是已完成該設定的實例；Node.js 的對應設定見 [headless Univer](/guides/sheets/getting-started/node)。
+先按 [Sheet 接入指南](/guides/sheets/getting-started/installation)配置產品和公式能力，再註冊業務外掛、匯入 Facade 擴充套件並呼叫。本範例中的 `univer` 是已完成該配置的例項。Node.js 下的配置見 [headless Univer](/guides/sheets/getting-started/node)。
 
 ```typescript
 import { FUniver } from '@univerjs/core/facade';
@@ -173,15 +173,15 @@ await univerAPI.getFormula().onCalculationResultApplied();
 console.log(worksheet.getRange('D5').getValue()); // 719000
 ```
 
-命令成功代表內容寫入完成；讀取公式值前仍需等待計算結果套用。本例的 `D5` 為 **719000**。
+命令返回成功表示內容寫入已完成。讀取公式值之前，需要等待計算結果應用完成。本範例中 `D5` 為 **719000**。
 
-應用按鈕可在點擊處理器呼叫 `generateSalesReport(target)`；Agent 工具處理器在 Headless 宿主安裝相同插件與 Facade 擴充後，也能呼叫此方法。業務動作和目標保持一致，UI 負責入口與回饋。安裝自訂插件不會自動將它註冊為 Agent 工具；工具開放與 Unit 授權仍由應用安排。
+應用按鈕可以在點選處理器中呼叫 `generateSalesReport(target)`。Agent 工具處理器所在的 Headless 宿主安裝同一外掛和 Facade 擴充套件後，也可以呼叫同一方法。業務動作和目標保持不變，UI 僅提供入口和反饋。安裝自定義外掛不會自動將其暴露為 Agent 工具。工具註冊和 Unit 授權仍由應用負責。
 
 ## 實作邊界與延伸閱讀 [#boundaries]
 
-- **重用既有內容命令**：本例使用 `SetRangeValuesCommand`。新增 Mutation 時需設計反向操作與對應的協同適配；引入新的持久化資源時也需處理序列化，不要直接修改底層模型。
-- **區分執行、計算與提交**：多個 Facade 呼叫不是自動的原子交易。本例使用一次範圍寫入；協同宿主仍須依 Runtime 規則提交並確認。
-- **依環境組合**：分別接入內容與 UI 插件，相關 Univer 套件維持相同發布版本，介面文案使用語言資源。Agent 入口仍需應用自己的授權與參數驗證。
+- 本例複用 `SetRangeValuesCommand`。新增 Mutation 時，需要設計反向操作和相應的協同整合。新增持久化資源還需要處理序列化，因此不要直接寫入底層模型。
+- 執行、計算和提交是三個獨立步驟，多次 Facade 呼叫不會自動構成原子事務。本例執行一次範圍寫入；協同宿主仍需按照 Runtime 的約定提交併確認變更。
+- 按執行環境組合外掛。內容外掛和 UI 外掛分別安裝，相關的 Univer 包保持同一釋出版本，介面文案使用語言資源。Agent 入口仍然需要應用負責授權和參數校驗。
 
 延伸閱讀：[Univer 架構](/blog/univer) · [Facade 接入](/guides/sheets/getting-started/facade) · [Facade API 參考](/reference/facade) · [UI 自訂](/guides/sheets/ui/overview) · [Agent 與自動化](/overview/features/shared/agents)
 

@@ -3,23 +3,25 @@ title: 資料庫配接器
 description: 瞭解協同持久化契約，選擇 Memory、SQLite、PostgreSQL 或自訂 Database Adapter。
 ---
 
-Database Adapter 持久化 Collaboration Service 使用的核心協同資料。開發者可實作 `IDatabaseAdapter`，連接任何能滿足完整行為契約的資料庫。Service 負責 Unit、OT 和修訂版本語意；Adapter 將其轉為原子且可安全重試的持久化操作。
+Collaboration Service 的核心協同資料由 Database Adapter 負責持久化。Service 負責 Unit、OT 與 revision 語義，Adapter 將這些語義轉換為原子且可安全重試的儲存操作。如需接入內建 Adapter 之外的資料庫，應實現 `IDatabaseAdapter`，並滿足其完整的行為約束。
 
-Database Adapter 以 Apache-2.0 開源，原始碼見 [univer-collaboration-sdk-community](https://github.com/dream-num/univer-collaboration-sdk-community)，套件名稱與版本和其他套件一致。
+Database Adapter 以 Apache-2.0 開源，原始碼位於 [univer-collaboration-sdk-community](https://github.com/dream-num/univer-collaboration-sdk-community)。其包名與版本和其他 package 保持一致。
 
 ## 驗證重啟後資料保留 [#verify-persistence]
 
-停止 Quick Start，從倉庫根目錄執行 `pnpm example:database-adapter`。開啟 `http://127.0.0.1:3010/?unit=persistent-sheet`，修改儲存格並在另一瀏覽器確認。停止服務、重新執行命令並開啟相同網址，修改應保留。資料庫為 `examples/database-adapter/.data/collaboration.sqlite`，重啟時勿刪除。服務先讀取 Unit，僅在 `UNIT_NOT_FOUND` 時呼叫 `createUnitFromData()`。參考 [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts)。
+停止 Quick Start，然後從倉庫根目錄執行 `pnpm example:database-adapter`。開啟 `http://127.0.0.1:3010/?unit=persistent-sheet`，修改一個單元格，再在另一個瀏覽器中確認修改結果。停止服務，重新執行同一條命令並開啟同一個 URL，該值應當仍然存在。
+
+資料儲存在 `examples/database-adapter/.data/collaboration.sqlite`，兩次執行之間不得刪除該檔案。服務啟動時會先讀取已有的 Unit，僅在收到 `UNIT_NOT_FOUND` 時呼叫 `createUnitFromData()`，因此不會覆蓋已儲存的資料。具體實現見 [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts)。
 
 ## Adapter 儲存的資料
 
 Adapter 為每份協作文件（Unit）儲存三類資料：
 
-- **文件資訊**包含文件 ID、類型、建立者、建立時間及目前的修訂版本號（`headRevision`）。Adapter 儲存變更集（changeset）時也會更新版本號。應用程式可在 `UnitRecord.metadata` 中維護文件名稱（`name`）、最近編輯者（`lastEditorID`）和最近修改時間（`lastModifiedAt`）等自訂欄位。
+- **文件資訊**記錄文件 ID、型別、建立者、建立時間和當前版本號（`headRevision`）。Adapter 儲存變更集（changeset）時會同時更新版本號。應用可以在 `UnitRecord.metadata` 中儲存文件級的自定義資訊，例如文件名稱（`name`）、最近編輯者（`lastEditorID`）和最近修改時間（`lastModifiedAt`），這些欄位由應用維護。
 - **快照**保存文件在特定版本的內容。讀取指定版本時，Service 可載入不晚於目標版本的最新快照，再依序重播到目標版本為止的修改。對於試算表，Adapter 也會儲存快照參照的資料區塊。
 - **變更集**包含一次提交中的操作。Adapter 依版本順序儲存變更集，並保留 `sid` 和 `reqId`，讓 Service 能辨識用戶端重試的提交，避免重複套用修改。[^submission-idempotency] 應用程式可以在 `ChangesetRecord.metadata` 中保存這次編輯的來源（`source`）或相關業務操作的 ID（`operationId`）。
 
-建立文件或提交變更集時如何設定 metadata，請參閱[持久化 metadata](/server/collaboration/middleware-and-events#persistent-metadata)。
+建立和提交時設定 metadata 的方法，見 [Middleware 與 Event](/server/collaboration/middleware-and-events#persistent-metadata)。
 
 軟刪除會保留這些資料，還原後可繼續編輯。永久刪除後，文件資料無法再存取，原文件 ID 也不能重複使用。
 
@@ -39,11 +41,11 @@ Adapter 為每份協作文件（Unit）儲存三類資料：
 
 ## Memory Adapter
 
-[`@univerjs-pro/collaboration-database-memory`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-memory) 是程序內實作，適合：
+[`@univerjs-pro/collaboration-database-memory`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-memory) 在程序內執行，適用於以下場景：
 
-- 單元與整合測試；
-- 臨時開發環境；
-- 快速驗證自訂 Middleware 或用戶端組裝。
+- 單元測試與整合測試
+- 臨時開發環境
+- 快速驗證自訂 Middleware 或用戶端組裝
 
 ```ts
 import { MemoryDatabaseAdapter } from "@univerjs-pro/collaboration-database-memory";
@@ -53,11 +55,11 @@ const database = new MemoryDatabaseAdapter();
 const service = new UniverCollabService({ dbAdapter: database });
 ```
 
-Memory Adapter 遵循與持久化實作相同的修訂版本、CAS 和冪等性契約，但所有資料均存於目前 Node.js 程序，程序結束即遺失。
+Memory Adapter 與持久化實現遵守相同的 revision、CAS 與冪等合同，但其資料僅存在於當前 Node.js 程序中，程序退出後即丟失。
 
 ## SQLite Adapter
 
-[`@univerjs-pro/collaboration-database-sqlite`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-sqlite) 是持久化 SQLite 實作，適用於開發、測試、本機應用及小規模使用。
+[`@univerjs-pro/collaboration-database-sqlite`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-sqlite) 將資料儲存到 SQLite 檔案中，適用於開發、測試、本地應用與小規模使用。
 
 ```ts
 import { mkdir } from "node:fs/promises";
@@ -74,11 +76,11 @@ const database = new SQLiteDatabaseAdapter({
 const service = new UniverCollabService({ dbAdapter: database });
 ```
 
-空資料庫會自動初始化 schema，已有 schema 時只做校驗。資料庫檔案位置、備份和其他 SQLite 設定由應用決定。
+資料庫為空時，它會初始化 schema；schema 已存在時，只做校驗。資料庫檔案的位置、備份方式以及其他 SQLite 設定均由應用決定。
 
 ## PostgreSQL Adapter
 
-[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) 是基於 node-postgres 的持久化實作，多個協同節點可以共用一個資料庫。
+[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) 基於 node-postgres，將資料儲存在 PostgreSQL 中，多個協同節點可以共用一個資料庫。
 
 ```ts
 import { PostgresDatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres";
@@ -90,59 +92,59 @@ const database = await PostgresDatabaseAdapter.create({ pool });
 const service = new UniverCollabService({ dbAdapter: database });
 ```
 
-連線池由應用持有，並在 Service 釋放後關閉。`create()` 為空資料庫初始化 `collaboration` schema，已有 schema 時只做校驗。
+連線池由應用持有，並在釋放 Service 之後關閉。`create()` 會在空資料庫中初始化 `collaboration` schema，schema 已存在時只做校驗。
 
 ## 自訂 Database Adapter
 
-以下情況通常適合自訂 Adapter：
+通常在以下情況下需要自定義 Adapter：
 
-- 應用已使用 MySQL 或其他業務資料庫；
-- 協同提交需要整合應用特有的資料庫機制；
-- 維運或合規需求超出內建 Adapter 的定位。
+- 應用已在使用 MySQL 或其他業務資料庫
+- 協同提交必須使用應用自有的資料庫機制
+- 運維或合規要求超出內建 Adapter 的覆蓋範圍
 
-實作 `IDatabaseAdapter`，並以與內建 Adapter 相同的方式注入 Service：
+實現 `IDatabaseAdapter`，然後像內建 Adapter 一樣將其注入 Service：
 
 ```ts
 const database = new ApplicationCollaborationDatabase({ pool });
 const service = new UniverCollabService({ dbAdapter: database });
 ```
 
-Service 不依賴特定資料庫，但也無法替自訂實作補上交易、CAS 或去重。Adapter 必須利用資料庫能力實作完整契約。[社群儲存庫](https://github.com/dream-num/univer-collaboration-sdk-community)裡的內建實作展示了同一契約在不同資料庫上的寫法，可作為參考。
+Service 不依賴具體資料庫，但也無法為自定義實現補充 transaction、CAS 或 deduplication。Adapter 必須利用自身資料庫提供的能力實現完整合同。[社群倉庫](https://github.com/dream-num/univer-collaboration-sdk-community)中的內建實現在不同資料庫上實現了同一份合同，可以作為參考。
 
 ## 如何儲存業務資料
 
-**文件或變更集的附加資訊可存入 `metadata`**。應用程式可在建立文件或提交變更集時設定這些欄位，由內建 Adapter 一併儲存。詳見[持久化 metadata](/server/collaboration/middleware-and-events#persistent-metadata)。
+**附在文件或 changeset 上的資訊，使用 `metadata` 儲存。** 應用可以在建立文件或提交 changeset 時設定這些欄位，內建 Adapter 會將它們隨協同資料一起儲存。具體用法見 [Middleware 與 Event](/server/collaboration/middleware-and-events#persistent-metadata)。
 
 **獨立的業務資料表可透過 Middleware 或 Event 寫入**。要記錄一次操作嘗試，可在 Middleware 中寫入稽核表。若要在提交成功後更新業務表，可監聽 `changesetCommitted`。這些寫入預設在協作交易之外執行。版本衝突可能導致提交階段的 Middleware 重跑，寫入時應避免重複記錄。Event 只在程序內盡力投遞，適合可稍後補寫或重建的資料。
 
-**需要使用應用程式自己的資料庫與結構，或在同一筆交易中寫入業務與協作資料時，可以自訂資料庫 Adapter**。應用程式呼叫 Service 時，可透過 `customData` 傳入業務操作 ID 等資訊。Adapter 方法可從 `ctx.customData` 讀取所需欄位，決定更新哪些資料表。例如，`commitChangeset()` 可以在儲存變更集的同一筆交易中，依業務操作 ID 更新對應的記錄。
+**使用應用自己的資料庫和表結構，或在同一事務中寫入業務資料和協同資料時，可以自定義 Database Adapter。** 呼叫 Service 時，應用可以將業務操作 ID 等上下文放入 `customData`。Adapter 在對應方法中讀取 `ctx.customData` 中所需的欄位，再決定寫入哪些表。例如，`commitChangeset()` 可以在儲存 changeset 的同一事務中，用業務操作 ID 更新對應的業務記錄。
 
-`customData` 的作用域限於本次呼叫。內建 Adapter 不會自動儲存其中的欄位，也不會用它們寫入業務表。
+`customData` 僅在本次呼叫內有效。內建 Adapter 不會自動儲存其中的欄位，也不會據此寫入業務表。
 
 ## 擴充模組的儲存
 
-History、Thread Comment、Worktree 和 File 等擴充模組定義獨立的 Database Adapter 介面，可共享一個資料庫或使用不同儲存。單一自訂實作也可提供多個 Adapter 介面，注入對應 Service。
+History、Thread Comment、Worktree 與 File 等擴充套件模組各自定義獨立的 Database Adapter 介面。這些 Adapter 可以共用一個資料庫，也可以使用獨立的儲存。一個自定義實現還可以同時提供多個 Adapter 介面，並分別注入對應的 Service。
 
-由於這些介面獨立，SDK 預設不提供跨模組交易。即使共享資料庫，跨模組一致性策略仍由應用負責。
+由於這些 Adapter 介面彼此獨立，SDK 預設不提供跨模組事務。即使多個模組共用一個資料庫，跨模組的一致性策略仍由應用負責。
 
 ## 選擇 Adapter
 
 | Adapter | 適用情境 | 主要限制 |
 | --- | --- | --- |
 | Memory | 測試、範例、臨時開發 | 程序結束後資料消失 |
-| SQLite | 開發、測試、本機應用、小規模使用 | 單檔資料庫，設定由應用負責 |
-| PostgreSQL | 多節點部署與既有 PostgreSQL 資料庫 | 連線池與資料庫維運由應用管理 |
-| 自訂 | 既有資料庫或自訂業務資料整合 | 應用必須實作並驗證完整契約 |
+| SQLite | 開發、測試、本地應用與小規模使用 | 單檔案資料庫，設定由應用管理 |
+| PostgreSQL | 多節點部署與現有 PostgreSQL 資料庫 | 連線池與資料庫操作由應用負責 |
+| 自訂 | 已有資料庫或自定義業務資料整合 | 應用需要實現並驗證完整合同 |
 
-應用擁有所有注入的 Adapter。先釋放 Service，再釋放 Adapter：
+應用擁有所有注入的 Adapter。釋放時先釋放 Service，再釋放 Adapter：
 
 ```ts
 await service.dispose();
 await database.dispose();
 ```
 
-可執行的對照實作請參閱[資料庫配接器範例](/server/collaboration/examples#database-adapter)。
+可執行的對照範例見 [Database Adapter 範例](/server/collaboration/examples#database-adapter)。
+
+[^revision-cas]: *CAS（比較並交換）* 僅在當前值仍等於預期值時更新資料。這裡必須原子地檢查當前修訂號並寫入下一狀態，避免兩個並行提交同時佔用同一修訂號。
 
 [^submission-idempotency]: 冪等性允許重試同一次提交，而不會將編輯套用兩次。重試時應保留原提交識別碼；即使內容相同，使用新識別碼仍會被視為新的提交。
-
-[^revision-cas]: *CAS（比較並交換）* 僅在目前值仍等於預期值時更新資料。此處必須以原子操作檢查目前修訂號並寫入下一狀態，避免兩個並行提交同時佔用同一修訂號。

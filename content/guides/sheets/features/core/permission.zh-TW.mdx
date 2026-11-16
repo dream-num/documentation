@@ -4,17 +4,17 @@ title: 權限控制
 
 import { PermissionShadowDemo } from './components/permission-shadow-demo'
 
-Univer 提供權限控制能力，用於限制使用者對工作簿、工作表、選區的操作。當使用者執行無權限動作時，Univer 會中止執行並提示缺失權限。常見場景如：對一片選區設定保護，限制協作者的編輯/檢視/複製等能力。
+Univer 的權限控制決定使用者可以對工作簿、工作表和選區執行哪些操作。使用者執行缺少所需權限的操作時，Univer 會中止該操作並提示缺少的權限。為選區新增保護後，即可控制協作者在該選區內能否編輯、檢視、複製和篩選。
 
 <Callout type="warning">
-服務需要持久化保護規則與協作者變更，傳回目前使用者的權限，並傳遞請求失敗。傳回空清單的 mock 不具備持久化能力。協同情境下，後端仍須分別驗證讀取、JOIN 與修改權限，見[身分與權限](/server/collaboration/identity-and-authorization)。前端保護與隱藏陰影不能取代伺服器授權。
+業務服務必須持久化保護規則和協作者變更，返回當前使用者的權限，並把請求失敗傳遞給呼叫方。返回空列表的 mock 不是持久化實現。協同場景下，後端還必須自行校驗讀取、JOIN 和修改權限，見[身分與權限](/server/collaboration/identity-and-authorization)。前端的保護與陰影隱藏不能替代伺服器端鑑權。
 
 [權限服務整合](#authorization-service)
 </Callout>
 
 <PlaygroundFrame lang="zh-TW" slug="sheets/permission" clickToShow />
 
-依任務跳轉到下方章節。本頁集中介紹基礎操作、進階範例、設定與疑難排解；完整 API 定義統一在 Reference 中維護。
+本頁覆蓋基礎操作、進階範例、配置和故障排查；完整的 API 定義統一收錄在 Reference。
 
 - [常用任務](#permission-tasks)
 - [權限介面設定](#permission-ui)
@@ -23,29 +23,29 @@ Univer 提供權限控制能力，用於限制使用者對工作簿、工作表�
 
 ## 核心概念
 
-- 作用範圍：權限可以作用在工作簿、工作表、選區三個層級。
-- 權限點位：每個功能對應一個權限點位，修改點位即可控制功能是否可用。
-- 保護規則：工作表和選區在設定權限點位前，需要先建立保護規則。
+- 作用範圍：權限作用於工作簿、工作表、選區三個層級。
+- 權限點位：每個功能對應一個權限點位，改變點位的值即可啟用或停用該功能。
+- 保護規則：工作表或選區必須先建立保護規則，才能設定其權限點位。
 
 <Callout type="info">
-本地非持久化權限可直接修改權限點位；持久化整合見 [權限服務整合](#authorization-service)
+本地非持久化的權限可以直接透過權限點位修改；如需持久化，見 [權限服務接入](#authorization-service)。
 
-協同編輯場景下，更新權限點位會同步更新服務端狀態：
+協同編輯時，更新權限點位會同步更新伺服器端狀態：
   - false：該權限點至少需要 `owner` 角色
   - true：該權限點至少需要 `reader` 角色
 </Callout>
 
 ## 基礎示例
 
-使用 `allowedUsers` 範例前，請將 `user1`、`user2` 替換為權限服務已傳回的真實協作者 ID。
+使用 `allowedUsers` 的範例之前，請先把 `user1`、`user2` 替換為權限服務返回的真實協作者 ID。
 
-下面按工作簿、工作表、選區三個層級展示最常見的權限設定方式。
+下面按工作簿、工作表、選區三個層級，說明最常用的權限設定方式。
 
 ### 工作簿權限程式碼示例
 
-工作簿層級權限透過 [Facade API](/guides/sheets/getting-started/facade) 直接修改權限點位即可。
+工作簿層級的權限直接透過 [Facade API](/guides/sheets/getting-started/facade) 設定。
 
-以編輯權限為例（其他功能只需替換權限點位，參考[權限點位列表 - 工作簿](#workbook-point)）：
+下面的範例關閉整個工作簿的編輯權限。如需控制其他功能，替換為對應的權限點位，見[權限點位列表 - 工作簿](#workbook-point)：
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -56,12 +56,11 @@ const workbookPermission = fWorkbook.getWorkbookPermission()
 await workbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
 ```
 
-要點：
-- 工作簿權限點位可以直接設定，不需要建立保護規則。
+工作簿權限點位可以直接設定，不需要先建立保護規則。
 
 ### 工作表權限程式碼示例
 
-工作表和選區相關的權限設定可以透過 Facade API 或命令系統實現。這裡以工作表編輯權限舉例，其他功能只需替換權限點位，參考[權限點位列表 - 工作表](#worksheet-point)。
+工作表和選區的權限可以透過 Facade API 設定，也可以透過命令設定。下面以工作表編輯權限為例；如需控制其他功能，替換為對應的權限點位，見[權限點位列表 - 工作表](#worksheet-point)。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -93,7 +92,7 @@ await worksheetPermission.unprotect()
 
 ### 自訂選區權限程式碼示例
 
-選區的權限同樣支援 API 和命令模式。這裡以選區編輯權限舉例，其他選區功能只需替換權限點位，參考[權限點位列表 - 選區](#range-point)。
+選區的權限同樣可以透過 API 和命令兩種方式設定。下面以選區編輯權限為例；其他選區功能需要替換權限點位，見[權限點位列表 - 選區](#range-point)。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -184,9 +183,9 @@ console.log(permission.debugCellPermission(0, 0))
 
 ## 權限點位列表 [#point-list]
 
-不同的功能權限由不同的權限點位控制，修改點位的值即可控制對應功能。具體點位程式碼請參閱[這裡](https://github.com/dream-num/univer/tree/dev/packages/sheets/src/services/permission/permission-point)。
+所有權限點位的原始碼在[這裡](https://github.com/dream-num/univer/tree/dev/packages/sheets/src/services/permission/permission-point)。
 
-如果 `workbook` 的權限控制和 `worksheet` / `range` 有交叉，那麼必須全部為 `true` 才能使用。例如一個單元格的編輯權限必須 `workbook` 和 `worksheet` 的編輯權限都為 `true` 才能編輯。
+當某個功能同時受 `workbook` 權限和 `worksheet`、`range` 權限約束時，相關權限必須全部為 `true`，該功能才可用。例如，單元格的編輯權限要求 `workbook` 和 `worksheet` 的編輯權限都為 `true`。
 
 ### 工作簿 [#workbook-point]
 
@@ -255,10 +254,10 @@ console.log(permission.debugCellPermission(0, 0))
 
 | <span data-config-options="">設定項目</span> | 類型 | 預設值 | 作用 |
 | --- | --- | --- | --- |
-| `protectedRangeShadow` | `boolean \| 'always' \| 'non-editable' \| 'non-viewable' \| 'none'` | `true` | 選擇哪些受保護範圍顯示陰影。 |
-| <ConfigKey depth={0}>protectedRangeUserSelector</ConfigKey> | `object` |  | 設定保護範圍的自訂使用者選擇器。 |
+| `protectedRangeShadow` | `boolean \| 'always' \| 'non-editable' \| 'non-viewable' \| 'none'` | `true` | 哪些受保護區域顯示陰影。 |
+| <ConfigKey depth={0}>protectedRangeUserSelector</ConfigKey> | `object` |  | 自定義選擇保護區域使用者的選擇器。 |
 | <ConfigKey depth={1}>component</ConfigKey> | `ComponentType<IPermissionDetailUserPartProps>` |  | 用於選取使用者的元件。 |
-| <ConfigKey depth={1}>framework</ConfigKey> | `string` |  | 元件使用的框架，例如 `react`。 |
+| <ConfigKey depth={1}>framework</ConfigKey> | `string` |  | 元件所使用的框架，例如 `react`。 |
 
 ## 預設設定 [#preset-configuration]
 
@@ -266,17 +265,17 @@ console.log(permission.debugCellPermission(0, 0))
 
 | <span data-config-options="">設定項目</span> | 類型 | 預設值 | 作用 |
 | --- | --- | --- | --- |
-| <ConfigKey depth={0}>sheets</ConfigKey> | `object` |  | 該功能的設定。 |
-| <ConfigKey depth={1}>protectedRangeShadow</ConfigKey> | `boolean \| 'always' \| 'non-editable' \| 'non-viewable' \| 'none'` | `true` | 選擇哪些受保護範圍顯示陰影。 |
-| <ConfigKey depth={1}>protectedRangeUserSelector</ConfigKey> | `object` |  | 設定保護範圍的自訂使用者選擇器。 |
+| <ConfigKey depth={0}>sheets</ConfigKey> | `object` |  | 所選功能的配置項。 |
+| <ConfigKey depth={1}>protectedRangeShadow</ConfigKey> | `boolean \| 'always' \| 'non-editable' \| 'non-viewable' \| 'none'` | `true` | 哪些受保護區域顯示陰影。 |
+| <ConfigKey depth={1}>protectedRangeUserSelector</ConfigKey> | `object` |  | 自定義選擇保護區域使用者的選擇器。 |
 | <ConfigKey depth={2}>component</ConfigKey> | `ComponentType<IPermissionDetailUserPartProps>` |  | 用於選取使用者的元件。 |
-| <ConfigKey depth={2}>framework</ConfigKey> | `string` |  | 元件使用的框架，例如 `react`。 |
+| <ConfigKey depth={2}>framework</ConfigKey> | `string` |  | 元件所使用的框架，例如 `react`。 |
 
 ## 權限保護範圍陰影策略 [#permission-ui]
 
-若要區分目前使用者可編輯和不可編輯的保護區域，請使用 `non-editable`：可編輯的保護區域不顯示陰影，編輯權限遭停用的保護區域保留陰影；不可檢視的保護範圍仍保留遮罩。
+如需區分當前使用者可以編輯和不能編輯的保護區域，使用 `non-editable`。可編輯的區域不顯示陰影，編輯被禁用的區域保留陰影，不可檢視的區域繼續遮罩。
 
-此設定控制範圍保護和工作表保護的顯示，不會建立保護規則或修改編輯、檢視權限，也不會在未受保護的區域新增陰影。請先依上文設定保護規則和目前使用者的權限。
+該設定隻影響範圍保護和工作表保護的顯示方式：它不會建立保護規則，不會修改編輯、檢視權限，也不會為未受保護的區域新增陰影。請先按上文配置好保護規則和當前使用者的權限。
 
 | 策略 | 顯示效果 |
 | --- | --- |
@@ -314,10 +313,10 @@ console.log(permission.debugCellPermission(0, 0))
 
 ## 自訂使用者元件
 
-Univer 內建的自訂使用者元件所適配的場景比較有限，如果需要更復雜的自訂元件，可以透過以下方式進行自訂。
+內建的使用者選擇器適用的場景有限。如果業務場景有更多需求，可以提供自定義元件：
 
 <Callout>
-  可在[《自訂元件》](/guides/sheets/ui/components)檢視如何自訂元件。
+  自定義元件的實現方式見[自定義元件](/guides/sheets/ui/components)。
 </Callout>
 
 <Tabs items={['外掛模式', '預設模式']}>
@@ -365,7 +364,7 @@ Univer 內建的自訂使用者元件所適配的場景比較有限，如果需�
 
 ### 權限保護範圍陰影策略 [#protected-range-shadow-api]
 
-下方 Facade API 會更新目前 Univer 執行個體中既有活頁簿的顯示策略。外掛模式下需先匯入 `@univerjs/sheets-ui/facade`；Sheets Core 預設已包含此匯入。
+下面的 Facade API 修改的是當前 Univer 例項中已有工作簿的顯示策略。外掛模式下需要先匯入 `@univerjs/sheets-ui/facade`；Sheets Core 預設已經包含該模組。
 
 ```typescript
 // 設定只顯示不可編輯範圍的陰影
@@ -386,7 +385,7 @@ subscription.unsubscribe()
 
 ### 自訂使用者元件 [#permission-user-picker-api]
 
-在使用者選擇器的變更回呼中呼叫 `setSelectUserList()`。以下最小 React 範例清空已選使用者：`useDependency` 在元件內呼叫，服務狀態只在點擊後更新。完整選擇器請依 `IPermissionDetailUserPartProps` 實作。
+在使用者選擇器的變更回撥中呼叫 `setSelectUserList()`。下面的 React 範例只完成一件事：清空已選使用者。`useDependency` 在元件內部呼叫，服務狀態在點選之後才更新。選擇器的其餘部分按 `IPermissionDetailUserPartProps` 實現。
 
 <Tabs items={['外掛模式', '預設模式']}>
   <Tab>
@@ -430,9 +429,9 @@ univerAPI.setPermissionDialogVisible(false)
 
 ### 拓展使用
 
-當你需要在自己的外掛中增加權限校驗時，可以直接操作權限點位。
+如需在自己的外掛中校驗權限，可直接操作權限點位。
 
-下面以 `WorkbookEditablePermission` 為例，其他點位類似：
+下面以 `WorkbookEditablePermission` 為例，其他權限點位的用法相同：
 
 ```typescript
 import { IPermissionService } from '@univerjs/core'
@@ -456,7 +455,7 @@ class YourService {
 
 ### 第三方外掛如何擴充權限點位
 
-如果你需要自訂權限點位，可以實現 `IPermissionPoint` 並註冊到權限服務中：
+自定義權限點位需要實現 `IPermissionPoint` 並註冊到權限服務中：
 
 ```typescript
 import type { IPermissionPoint } from '@univerjs/core'
@@ -505,7 +504,7 @@ class ConsumeService {
 
 ### 第三方權限服務接入(進階用法) [#authorization-service]
 
-在業務應用中實作 [IAuthzIoService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/type.ts)，將權限、角色與協作者方法接入後端。以下範例假定 `./authorization-service` 已將該實作匯出為 `YourAuthzService`。請在建立活頁簿前註冊，並保留其他初始化選項與外掛註冊。
+在業務應用中實現 [IAuthzIoService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/type.ts)，把權限、角色和協作者這幾組方法接到後端。下面的範例假定 `./authorization-service` 將實現匯出為 `YourAuthzService`。請在建立工作簿之前註冊它，並保留其他初始化選項和外掛註冊。
 
 ```typescript
 import { IAuthzIoService, Univer } from '@univerjs/core'
@@ -516,14 +515,14 @@ const univer = new Univer({
 })
 ```
 
-服務需要持久化保護規則與協作者變更，傳回目前使用者的權限，並傳遞請求失敗。傳回空清單的 mock 不具備持久化能力。協同情境下，後端仍須分別驗證讀取、JOIN 與修改權限，見[身分與權限](/server/collaboration/identity-and-authorization)。前端保護與隱藏陰影不能取代伺服器授權。
+該權限服務必須持久化保護規則和協作者變更，返回當前使用者的權限，並把請求失敗反饋給呼叫方。只返回空列表的 mock 不會持久化任何內容。協同場景下，後端仍需自行校驗讀取、JOIN 和修改權限，見[身分與權限](/server/collaboration/identity-and-authorization)。前端的保護和陰影隱藏不能替代伺服器端鑑權。
 
 ![權限](./permission/permission-cn.png)
 
 ### 協作者管理
 
 <Callout>
-  協作者管理由業務應用程式和權限服務負責。請接入自己的使用者與 ACL 模型，在伺服器端分別檢查讀取、JOIN 和修改權限，見[身分與權限](/server/collaboration/identity-and-authorization)。下方前端 API 需要匹配的權限服務實作，不會自動設定伺服器端權限。
+  協作者管理屬於業務應用及其權限服務的職責。請接入自己的使用者與 ACL 模型，並在伺服器端分別校驗讀取、JOIN 和修改權限，見[身分與權限](/server/collaboration/identity-and-authorization)。下面的前端 API 需要配套的權限服務實現，它們不會自動配置伺服器端權限。
 </Callout>
 
 - 獲取協作者列表

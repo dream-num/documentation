@@ -3,18 +3,17 @@ title: 协同集成
 description: 将 Univer 编辑器连接到协同服务，让多个用户编辑同一份文档。
 ---
 
-协同集成连接前端编辑器和协同服务。例如，两位用户打开同一份表格，一方修改单元格，另一方能实时看到变化。
+协同把浏览器中的编辑器连接到同一个共享的文档服务。两位用户打开同一份表格时，一端的修改会出现在另一端的浏览器中。
 
-先按[服务端集成](/server)准备后端，再完成下面的前端配置和文档加载。具体代码以 [协同快速开始](/server/collaboration/quick-start)中的 Server、Web 示例为准。
-
+先按[服务端集成](/server)完成后端配置，再做下文的编辑器配置与文档加载。[协同快速开始](/server/collaboration/quick-start)中给出了配套的 Server 与 Web 代码。
 
 <Mermaid chart={'flowchart LR; A["用户 A 的编辑器"] <-->|收发修改| S["协同服务"]; S <-->|收发修改| B["用户 B 的编辑器"]; S --> D[("保存文档")];'} />
 
 ## 连接已有编辑器
 
-保留已有的 Web SDK 编辑器，按[快速开始中的前端配置](/server/collaboration/quick-start)添加协同插件，并配置文档加载、修改提交和 WebSocket 连接地址。前后端包版本需要匹配。
+无需更换编辑器。保留现有的 Web SDK 编辑器，按[快速开始中的前端配置](/server/collaboration/quick-start)添加协同插件，再配置文档加载、修改提交和 WebSocket 地址。前端与后端的包版本必须保持兼容。
 
-示例中的固定用户和默认权限仅用于演示。正式接入时，让编辑器请求携带应用的登录信息，由后端确认用户身份和文档权限。许可证配置见[使用许可证](/server/license)。
+示例中的固定用户和默认权限仅用于演示。正式接入时，每个请求都需要携带应用的登录信息，由后端确认用户身份和文档访问权限。许可证配置见[使用许可证](/server/license)。
 
 ## 插件配置 [#client-configuration]
 
@@ -25,11 +24,11 @@ description: 将 Univer 编辑器连接到协同服务，让多个用户编辑�
 | <span data-config-options="">配置项</span> | 类型 | 默认值 | 作用 |
 | --- | --- | --- | --- |
 | `socketService` | `Ctor<ICollaborationSocketService>` |  | 指定当前运行环境使用的 Socket 实现。 |
-| `sendChangesetTimeout` | `number` | `2000 ms` | 累积一段时间内的本地修改后再发送。 |
+| `sendChangesetTimeout` | `number` | `2000 ms` | 本地修改在发送前的合并缓冲时长。 |
 | `changesetAckTimeout` | `number` | `20000 ms` | 等待服务端确认的时长，超时后重发。 |
-| `maxChangesetAckTimeout` | `number` | `120000 ms` | 限制两次重发之间的最长等待时间。 |
+| `maxChangesetAckTimeout` | `number` | `120000 ms` | 两次重发之间的最长间隔。 |
 
-合并发送延迟与确认超时是两个配置。客户端插件默认使用 `sendChangesetTimeout: 2000`、`changesetAckTimeout: 20000`、`maxChangesetAckTimeout: 120000`，单位均为毫秒。提交请求也使用确认超时；未收到确认时按指数退避重发，间隔不超过最大值。将后两项设为相同值可使用固定间隔。
+合并发送延迟与确认超时是两个不同的计时器。客户端插件默认使用 `sendChangesetTimeout: 2000`、`changesetAckTimeout: 20000` 和 `maxChangesetAckTimeout: 120000`，单位均为毫秒。提交请求同样使用确认超时。始终未获确认的修改会按指数退避重发，间隔不超过最大值。确认超时与最大超时取相同值时，重发间隔固定。
 
 ```ts
 import { UniverCollaborationClientPlugin } from '@univerjs-pro/collaboration-client'
@@ -43,7 +42,7 @@ univer.registerPlugin(UniverCollaborationClientPlugin, {
 })
 ```
 
-将这些选项合并到现有客户端注册中，保留 socket 与接口地址配置。Sheets 和 Docs 协同预设使用 200 ms 的合并发送延迟，未暴露确认超时选项；需要自定义超时时使用插件模式。
+将这些选项并入现有的客户端注册，socket 与接口地址的配置保持不变。Sheets 和 Docs 的协同预设使用 200 ms 的合并发送延迟，并且未提供确认超时选项，因此自定义这些超时需要改用插件模式。
 
 ### 冲突恢复提示 [#client-conflict-notices]
 
@@ -79,22 +78,22 @@ import { UniverDocsCollaborationPreset } from '@univerjs/preset-docs-collaborati
 const collaborationPreset = UniverDocsCollaborationPreset({ enableDefaultConflictUI: false })
 ```
 
-默认 UI 按冲突原因显示通知，缓存清理成功后提供刷新操作，清理失败时提供重试。若由应用接管恢复流程，在现有初始化中设置 `enableDefaultConflictUI: false`，并自行处理事件：
+默认情况下，UI 会显示一条注明冲突原因的提示：缓存清理成功后提供刷新，清理失败时提供重试。如果恢复流程由应用自行实现，在现有初始化中设置 `enableDefaultConflictUI: false`，并直接处理事件。
 
-将协同预设放入现有 `createUniver({ presets: [...] })`，与编辑器预设组合，保留接口地址及历史记录配置。详见[事件参数](#conflict-recovery)和[客户端配置](/reference/packages/plugins/univerjs-pro/collaboration-client)。
+把协同预设加入现有的 `createUniver({ presets: [...] })` 配置，与编辑器预设放在一起，接口地址与历史记录的配置保持不变。事件参数见[冲突恢复事件](#conflict-recovery)，客户端插件的可选配置见[客户端插件配置](/reference/packages/plugins/univerjs-pro/collaboration-client)。
 
 ## 创建和打开同一份文档
 
-“新建”和“打开”是两步不同的操作：
+新建文档与打开文档是两个不同的动作：
 
-1. 用户新建文档时，业务后端创建并保存文档，返回文档 ID。
-2. 前端用这个 ID 加载文档。再次打开或分享给其他用户时，仍使用同一个 ID。
+1. 用户新建文档时，业务后端负责保存，并把文档 ID 返回给前端。
+2. 前端使用该 ID 加载文档。再次打开文档或分享给他人时，仍使用同一个 ID。
 
-API 中的 `unitId` 就是文档 ID。不要在每次打开时重新创建本地空白文档。
+API 把文档 ID 称为 `unitId`。不要每次访问都新建一个本地空白文档。
 
-先设置当前用户，再加载文档。当前用户决定协同编辑的身份和本地离线缓存的归属，设置方式见[身份与权限](/server/collaboration/identity-and-authorization)。
+先设置当前用户，再加载文档。当前用户决定协同身份，也是本地离线缓存的归属者，详见[身份与权限](/server/collaboration/identity-and-authorization)。
 
-例如，已经注册 Sheets 和协同插件后，可以这样打开服务端表格：
+例如，Sheets 和协同插件都注册完成之后，可从服务端加载表格：
 
 ```ts
 import { UserManagerService } from '@univerjs/core'
@@ -106,25 +105,25 @@ const workbook = await univerAPI.getCollaboration().loadSheetAsync('your-documen
 if (!workbook) throw new Error('Document could not be loaded')
 ```
 
-不同产品的加载方式见 [Sheets](/guides/sheets/features/collaboration)、[Docs](/guides/docs/features/collaboration)、[Slides](/guides/slides/features/collaboration)、[Boards](/guides/boards/features/collaboration)、[Bases](/guides/bases/features/collaboration) 和 [PDFs](/guides/pdfs/features/collaboration)。使用前确认对应产品与目标服务端版本支持该能力。
+各产品的加载方式见 [Sheets](/guides/sheets/features/collaboration)、[Docs](/guides/docs/features/collaboration)、[Slides](/guides/slides/features/collaboration)、[Boards](/guides/boards/features/collaboration)、[Bases](/guides/bases/features/collaboration) 和 [PDFs](/guides/pdfs/features/collaboration) 指南。使用前请确认目标产品与后端版本支持该能力。
 
 ## 验证同步、保存和权限
 
-用两个独立浏览器会话打开同一文档，例如普通窗口和无痕窗口。在一端修改内容，检查另一端是否收到；刷新页面、断线重连和服务重启后，再检查内容是否保留。
+用两个相互独立的浏览器会话打开同一份文档，例如一个普通窗口和一个无痕窗口。在一端修改，观察另一端的显示结果。随后刷新页面、断开重连、重启服务，确认内容仍然存在。
 
-随后用编辑者、查看者和无权限用户验证访问规则。前端只读设置控制界面操作，服务端仍需拒绝无权限的读取和修改请求。
+分别以编辑者、查看者和无权限用户的身份进行测试。前端的只读设置只限制页面允许的操作，服务端仍须拒绝未授权的读取和修改。
 
-如果文档能打开但修改不同步，先检查 WebSocket 连接；如果重启后内容丢失，检查后端存储。相应配置见[服务端集成](/server)。
+文档能打开但修改不同步时，检查 WebSocket 连接；重启后内容丢失时，检查后端存储。这些配置属于[服务端集成](/server)。
 
 ## 添加导入导出、评论或历史记录
 
-导入文件后多人编辑，需要将转换结果创建为协同文档，见[导入导出集成](/server/import-export)。评论和历史记录需要各自的插件、后端服务及权限，按 [Office 协同扩展模块](/server/collaboration/extensions)接入。
+要让多人共同编辑导入的文件，需要使用转换后的数据创建协同文档，见[导入导出集成](/server/import-export)。评论和历史记录各自需要插件、服务端和权限，按 [Office 协同扩展模块](/server/collaboration/extensions)接入。
 
-历史面板的前端配置见 [Sheets](/guides/sheets/features/edit-history), [Docs](/guides/docs/features/edit-history), [Slides](/guides/slides/features/edit-history), [Boards](/guides/boards/features/edit-history), [Bases](/guides/bases/features/edit-history)。PDFs 的支持范围见[历史记录说明](/guides/pdfs/features/edit-history)。
+历史面板的配置按产品区分：[Sheets](/guides/sheets/features/edit-history)、[Docs](/guides/docs/features/edit-history)、[Slides](/guides/slides/features/edit-history)、[Boards](/guides/boards/features/edit-history)、[Bases](/guides/bases/features/edit-history)。PDFs 目前支持到什么程度见[历史记录说明](/guides/pdfs/features/edit-history)。
 
 ## 同步状态与重发 [#sync-status]
 
-导入协同 Facade 后注册监听。`CollaborationStatusChanged` 会报告注册监听时已在协同的文档的当前状态，此后只报告变化，不连续重复相同状态。`hasWritePending(unitId)` 包含等待发送、等待确认和离线缓存的修改；省略 ID 时检查当前聚焦文档。WebSocket 已连接并不代表修改已经保存。
+先导入协同 Facade，再注册监听。注册监听时，`CollaborationStatusChanged` 会先为每个已处于协同状态的文档报告当前状态，之后只报告状态变化，不会连续重复相同的状态。`hasWritePending(unitId)` 涵盖排队中的修改、等待确认的修改和离线修改；不传 ID 时检查当前聚焦的文档。WebSocket 已连接并不表示修改已经保存。
 
 ```ts
 import '@univerjs-pro/collaboration-client/facade'
@@ -138,15 +137,15 @@ const resendSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationChang
 })
 ```
 
-`CollaborationChangesetResend` 只在重发时触发，首次提交不触发。原因包括 `ack_timeout`、`request_failed`、`license_editing_connections_exceeded`、`should_retry` 和 `reconnect`；`attempt`、`elapsedMs`、`unsyncedMutationCount`、`nextDelayMs` 可用于展示保存与重试状态。移除编辑器时释放事件订阅。
+`CollaborationChangesetResend` 仅在重发时触发，首次提交不触发。原因包括 `ack_timeout`、`request_failed`、`license_editing_connections_exceeded`、`should_retry` 和 `reconnect`；`attempt`、`elapsedMs`、`unsyncedMutationCount` 和 `nextDelayMs` 为构建保存中或重试中的提示提供所需数据。移除编辑器时释放事件订阅。
 
-`request_failed` 表示网络错误或 HTTP 408、429、5xx 等可重试的请求失败。`license_editing_connections_exceeded` 表示授权允许的编辑连接数已用尽，服务端要求稍后重发。
+`request_failed` 表示可重试的请求失败，例如网络错误，或 HTTP 408、429、5xx 响应。`license_editing_connections_exceeded` 表示授权允许的编辑连接已全部占用，服务端要求重发。
 
 ## 由应用处理冲突 [#conflict-recovery]
 
-文档进入冲突后，`CollaborationConflict` 在尝试清理离线缓存后触发一次，请在加载文档前监听。`reason` 为 `transform_failed`、`apply_failed`、`changeset_rejected`、`license_unit_type_rejected`、`permission_rejected` 或 `remote_revert`；可用时由 `message` 和 `revert` 提供更多信息。
+文档进入冲突后，`CollaborationConflict` 会在尝试清理离线缓存之后触发一次。监听器必须在加载任何文档之前注册。其 `reason` 为 `transform_failed`、`apply_failed`、`changeset_rejected`、`license_unit_type_rejected`、`permission_rejected` 或 `remote_revert`；`message` 和 `revert` 在有数据时提供补充信息。
 
-`license_unit_type_rejected` 表示服务端授权不支持此文档类型的协作。
+`license_unit_type_rejected` 表示服务端许可证不覆盖该文档类型的协同。
 
 ```ts
 import type { IEventParamConfig } from '@univerjs/core/facade'
@@ -158,12 +157,12 @@ const conflictSubscription = univerAPI.addEvent(univerAPI.Event.CollaborationCon
 })
 ```
 
-上述示例保留事件，供应用恢复界面使用。Map 仅存在于内存：刷新前应由应用保存或导出 `localChanges`。需在事件中留存这些数据，后续读取无法恢复已经清理的缓存。`awaitingChangeset` 可能已被服务端应用，不应直接重新提交。
+示例保留该事件，供应用的恢复界面使用。该 Map 仅存在于内存中，因此在刷新之前，应用必须保存或导出所有 `localChanges`。该事件是留存这些修改的唯一机会，已清理的缓存数据无法通过后续读取恢复。`awaitingChangeset` 可能已在服务端应用，因此不要直接重放。
 
-`cacheCleared: false` 表示刷新会重放旧缓存，应先解决缓存清理问题。清理缓存不代表未同步修改已保存；`permission_rejected` 还需要解决权限问题，刷新不会授予权限。
+`cacheCleared: false` 表示刷新会重放旧的缓存修改，因此需要先完成缓存清理再刷新。清理缓存并不意味着未同步的修改已经保存。`permission_rejected` 冲突还需要解决权限问题，刷新不会授予权限。
 
 ## 服务端原因与许可证提示 [#server-rejections]
 
-服务端拒绝修改时，`CollaborationConflict.message` 会携带服务端提供的原因；恢复流程应根据 `reason` 分支，不要解析本地化消息。`license_unit_type_rejected` 需要服务端许可证覆盖该文档类型；`license_editing_connections_exceeded` 则是重发信号，修改仍未确认且会继续重试。在 `hasWritePending(unitId)` 变为 false 或应用已留存修改前，保持编辑器打开。
+服务端拒绝修改时，如果服务端给出了原因，`CollaborationConflict.message` 会携带该原因。不要解析本地化文案来决定恢复动作，应依据 `reason` 分支处理。`license_unit_type_rejected` 需要一份覆盖该文档类型的服务端许可证；`license_editing_connections_exceeded` 是重发信号：修改仍未确认，并会继续重试。在 `hasWritePending(unitId)` 变为 false 或应用已留存这些修改之前，请保持编辑器打开。
 
-默认 UI 会提示编辑连接容量已满；在首次发送至少 20 秒后的重发中，还会提示保存超时。文档离开等待确认状态或被销毁时会移除这些提示。域名被拒绝也有单独提示。`enableDefaultConflictUI: false` 仅关闭冲突恢复提示，不会关闭上述等待或域名提示。
+默认 UI 会显示编辑连接容量提示；如果重发发生在首次发送之后至少 20 秒，还会显示保存超时提示。文档离开等待状态或被销毁时，这些提示会被移除。域名被拒绝时也有单独的提示。`enableDefaultConflictUI: false` 只关闭冲突恢复提示，不会关闭上述等待提示和域名提示。

@@ -3,9 +3,7 @@ title: Module boundaries and relationships
 description: Understand the responsibilities, data flow, and assembly of the Collaboration Client, Transport, Endpoint, Service, and Database Adapter.
 ---
 
-Univer Collaboration combines a browser Client with a set of server-side modules. Each module owns
-one class of responsibility. Applications compose them through public interfaces without entering
-the internal OT[^operational-transformation], protocol, or persistence implementation.
+Univer Collaboration consists of a browser Client and a set of server-side modules. Each module owns one class of responsibility. Applications compose the modules through public interfaces, so their code does not depend on the internals of the OT[^operational-transformation] implementation, the protocol, or the persistence layer.
 
 ## Complete module diagram
 
@@ -13,25 +11,21 @@ the internal OT[^operational-transformation], protocol, or persistence implement
 
 ## Collaboration Client
 
-The Browser Collaboration Client runs beside the Web SDK and:
+The browser Collaboration Client runs alongside the Web SDK and handles the client side of collaboration:
 
-- requests Unit snapshots and missing confirmed changesets;
-- obtains a one-time Session Ticket and opens a WebSocket;
-- joins Unit Rooms and exchanges Presence;
-- submits local mutations as changesets;
-- receives ACKs and broadcasts, then fills missing changes after reconnection.
+- It requests Unit snapshots and any confirmed changesets that it is missing.
+- It uses a one-time Session Ticket to open a WebSocket connection.
+- It joins Unit Rooms and exchanges Presence with other members.
+- It submits local mutations to the server as changesets.
+- It receives ACKs and broadcasts, and after a reconnection it fetches the changes it missed.
 
-The Client does not decide whether a user is trusted and is not the authoritative data source. The
-server still enforces identity and authorization through the appropriate Middleware.
+The Client does not determine whether a user is trusted, and it is not the authoritative data source. That decision belongs to the server, which enforces identity and authorization in the corresponding Middleware.
 
 ## Node Transport
 
-`@univerjs-pro/collaboration-transport-node` is the Node.js HTTP/WebSocket entry point. It receives
-requests and WebSocket upgrades from the host HTTP server, runs application entry Middleware, and
-dispatches traffic to Endpoints.
+`@univerjs-pro/collaboration-transport-node` is the Node.js entry point for HTTP and WebSocket traffic. It receives requests and WebSocket upgrades from the host HTTP server, runs the entry Middleware registered by the application, and routes traffic to Endpoints.
 
-The Transport does not understand OT, Unit data, or ACL models. It exposes three primary assembly
-methods:
+The Transport does not understand OT, Unit data, or ACL models. Assembly uses three methods:
 
 ```ts
 transport.use(httpMiddleware);
@@ -39,44 +33,37 @@ transport.useUpgrade(upgradeMiddleware);
 transport.register(endpoint);
 ```
 
-- `use()` participates in ordinary HTTP requests and can establish `userID`, `customData`, logs,
-  or traces;
-- `useUpgrade()` participates in the WebSocket handshake and can reject it before connection;
-- `register()` registers a protocol Endpoint and gives the Transport ownership of its lifecycle.
+- `use()` handles ordinary HTTP requests and can establish `userID`, `customData`, logs, or traces.
+- `useUpgrade()` handles the WebSocket handshake and can reject the connection before it is established.
+- `register()` registers a protocol Endpoint, whose lifecycle the Transport then manages.
 
 ## Collaboration Endpoint
 
-`@univerjs-pro/collaboration-endpoint` implements the protocol used by Univer Collaboration Client
-and owns the following capabilities:
+`@univerjs-pro/collaboration-endpoint` implements the protocol used by the Univer Collaboration Client and owns the following capabilities:
 
-| Capability         | Endpoint responsibility                                                            |
-| ------------------ | ---------------------------------------------------------------------------------- |
-| Content loading    | Provides Unit snapshots, blocks, and missing confirmed changesets to the Client    |
-| Change submission  | Receives changesets, returns ACKs, and broadcasts confirmed changesets to the Room |
-| Session connection | Issues one-time Session Tickets and establishes and maintains WebSocket Sessions   |
-| Room collaboration | Handles JOIN, LEAVE, member state, and Presence                                    |
-| Unit lifecycle     | Maps delete and recovery requests to the corresponding Service calls               |
-| Multi-node         | Relays Rooms, Presence, and broadcasts across nodes through an optional pub/sub adapter and shared ticket store |
+| Capability         | Endpoint responsibility                                                                            |
+| ------------------ | -------------------------------------------------------------------------------------------------- |
+| Content loading    | Returns Unit snapshots and blocks, along with any confirmed changesets that the Client lacks       |
+| Change submission  | Receives changesets, returns ACKs, and broadcasts confirmed changesets to the Room                 |
+| Session connection | Issues one-time Session Tickets, then establishes and maintains WebSocket Sessions                 |
+| Room collaboration | Handles JOIN, LEAVE, member state, and Presence                                                    |
+| Unit lifecycle     | Maps delete and recovery requests to the corresponding Service calls                               |
+| Multi-node         | Relays Rooms, Presence, and broadcasts across nodes through an optional pub/sub adapter and a shared ticket store |
 
-The Endpoint does not perform OT or store collaboration data directly. It calls the Service for
-authoritative results and maps those results back to the Client protocol. Product operations such
-as creating a document should call the Service from an application API.
+The Endpoint does not perform OT and does not store collaboration data itself. It obtains the authoritative result from the Service and maps that result back to the Client protocol. Product operations such as creating a document belong in an application API that calls the Service.
 
 ## Collaboration Service
 
-`@univerjs-pro/collaboration-service` is the network-independent collaboration core for Sheet, Doc,
-Slide, Board, Base, and PDF. It:
+`@univerjs-pro/collaboration-service` is the collaboration core and does not depend on the network. It covers Sheet, Doc, Slide, Board, Base, and PDF:
 
-- reads Unit recovery data and confirmed changesets;
-- creates Units from Unit Data or Snapshots;
-- submits changesets, performs OT, and advances continuous revisions[^collaboration-revision];
-- identifies duplicate submissions through `(unitID, sid, reqId)`;
-- soft-deletes, recovers, or permanently deletes Units;
-- runs Service Middleware and emits Events after confirmation.
+- It reads Unit recovery data and confirmed changesets.
+- It creates Units from Unit Data or Snapshots.
+- Submitting a changeset runs OT and advances the continuous revision[^collaboration-revision].
+- It identifies duplicate submissions through `(unitID, sid, reqId)`.
+- It soft-deletes, recovers, or permanently deletes Units.
+- It runs Service Middleware and emits Events after confirmation.
 
-The Service does not provide HTTP, WebSocket, users, roles, ACLs, hierarchy, or file management. The
-Endpoint uses it to implement the browser protocol. Applications can also call its public API
-directly from business APIs or background tasks.
+The Service has no HTTP or WebSocket layer, and it does not know about users, roles, ACLs, hierarchy, or file management. The Endpoint builds the browser protocol on top of the Service. Applications can also call the Service's public API directly from business APIs or background tasks.
 
 ### Core APIs
 
@@ -94,32 +81,28 @@ The Database Adapter is the contract between the Service and storage. It must gu
 
 - atomic creation of an initial snapshot and its dependencies;
 - revision compare-and-swap;
-- idempotent changeset submissions;
-- snapshot visibility only after all dependencies exist;
+- idempotent changeset submission;
+- snapshot visibility only after all of its dependencies exist;
 - all-or-nothing Unit lifecycle batches.
 
-The SDK provides Memory, SQLite, and PostgreSQL implementations. Applications that need another database
-should implement the same contract. See [Database Adapters](/server/collaboration/database-adapters).
+The SDK provides Memory, SQLite, and PostgreSQL implementations. Applications that need a different database implement the same contract. See [Database Adapters](/server/collaboration/database-adapters).
 
 ## Four core concepts
 
-| Concept   | Meaning                                                                                          |
-| --------- | ------------------------------------------------------------------------------------------------ |
-| Unit      | Independently loadable and collaborative Univer content identified by a unique `unitID` and type |
-| Snapshot  | Persistent Unit content at a revision, not a mutable live object                                 |
-| Changeset | A submitted mutation collection with a base revision and idempotency identity                    |
-| Revision  | The continuous version number of confirmed Unit state; the initial value is `1`                  |
+| Concept   | Meaning                                                                                     |
+| --------- | ------------------------------------------------------------------------------------------- |
+| Unit      | Independently loadable and collaborative Univer content, with a unique `unitID` and a type   |
+| Snapshot  | Unit content persisted at a revision, not the live mutable object                            |
+| Changeset | A batch of mutations submitted together, with a base revision and an identity for idempotency |
+| Revision  | The continuous version number of confirmed Unit state, starting at `1`                       |
 
-Running content must be changed through Facade APIs or Commands. Mutating a snapshot object does not
-update a live Unit in the Client or Service.
+All changes to running content go through Facade APIs or Commands. Mutating a snapshot object does not update the live Unit in the Client or the Service.
 
 ## Loading a Unit
 
 <Mermaid chart={"sequenceDiagram\n    participant Client\n    participant Transport\n    participant Endpoint\n    participant Service\n    participant Adapter\n\n    Client->>Transport: Load Unit over HTTP\n    Transport->>Endpoint: Authenticated request context\n    Endpoint->>Service: getUnitLoadData()\n    Service->>Adapter: Snapshot + changesets\n    Adapter-->>Service: Authoritative data\n    Service-->>Endpoint: Unit load data\n    Endpoint-->>Client: Protocol response"} />
 
-The `userID/customData` established by Transport Middleware follows the current HTTP request into
-Service Middleware. Application policy decides whether reading is allowed; joining a Room is not a
-prerequisite for direct HTTP reads.
+The `userID/customData` established by Transport Middleware travels with the current HTTP request into Service Middleware. The application decides whether a read is allowed. A client does not need to join a Room before it reads over plain HTTP.
 
 ## Submitting an edit
 
@@ -135,9 +118,7 @@ Facade / Command
   → ACK / Room broadcast
 ```
 
-The confirmed revision in the Database Adapter is authoritative. ACKs and broadcasts keep online
-clients synchronized with low latency. A client that misses a message can retrieve confirmed
-changesets using its known revision.
+The confirmed revision in the Database Adapter is the authoritative state. ACKs and broadcasts keep online clients synchronized with low latency. A client that misses a message can fetch the confirmed changesets it lacks using the revision it already knows.
 
 ## Minimal server assembly
 
@@ -165,13 +146,11 @@ transport.attach(server);
 server.listen(3010);
 ```
 
-The fixed user and Memory Adapter demonstrate module assembly only. Applications establish real
-Context through Middleware and select an Adapter for their data requirements.
+The hard-coded user and the Memory Adapter demonstrate module assembly only. Real applications establish Context through Middleware and select an Adapter that matches their data requirements.
 
 ### Create a Unit through an application API
 
-An application can define its own HTTP or RPC endpoint and call the `service` created above after
-authentication, input validation, and business checks:
+Applications can define their own HTTP or RPC endpoints and call the `service` created above after authentication, input validation, and business checks pass:
 
 ```text
 Business client
@@ -181,8 +160,7 @@ Business client
   → Database Adapter
 ```
 
-The following Express example assumes authentication Middleware has set `response.locals.user` and
-that `request.body.data` has already been validated as Workbook Data:
+The Express example below assumes that authentication Middleware has set `response.locals.user` and that `request.body.data` has already been validated as Workbook Data:
 
 ```ts
 import { randomUUID } from "node:crypto";
@@ -217,14 +195,11 @@ app.post("/api/units", json({ limit: "1mb" }), async (request, response, next) =
 });
 ```
 
-`POST /api/units` belongs to the application; it is not a Collaboration Client protocol route.
-Calling `createUnitFromData()` still runs the Service's `createUnit` Middleware. Product records,
-owner ACLs, error-response mapping, and failure compensation remain application concerns.
+`POST /api/units` is an application route and is not part of the Collaboration Client protocol. Calling `createUnitFromData()` still runs the Service's `createUnit` Middleware. Product records, owner ACLs, error-response mapping, and failure compensation remain the responsibility of the application.
 
 ## Resource cleanup
 
-`transport.dispose()` disposes Endpoints registered through `register()`. The application disposes
-the Service and its injected Database Adapter separately. Use the reverse assembly order:
+`transport.dispose()` disposes the Endpoints registered with `register()`. The Service and the Database Adapter that the application injected must be disposed separately, in the reverse of the assembly order:
 
 ```ts
 await transport.dispose();
@@ -232,11 +207,9 @@ await service.dispose();
 await database.dispose();
 ```
 
-If you supplied a pub/sub adapter, dispose it and its connections after the transport; the Endpoint does
-not dispose them.
+If the application supplied a pub/sub adapter, it must also dispose that adapter and its connections after the Transport. The Endpoint does not dispose them.
 
-Continue with [Middleware and Events](/server/collaboration/middleware-and-events) to extend behavior at
-these module boundaries.
+To extend behavior at these module boundaries, continue with [Middleware and Events](/server/collaboration/middleware-and-events).
 
 [^operational-transformation]: *Operational transformation (OT)* adjusts operations created concurrently against different document revisions so they can be applied consistently. It operates on edits, rather than replacing the whole document with whichever snapshot arrives last.
 

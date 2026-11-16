@@ -2,7 +2,7 @@
 title: 範圍 & 選區 & 單元格
 ---
 
-這裡介紹如何讀寫儲存格、操作選取範圍，以及處理編輯事件。
+本文介紹範圍、選區和單元格：如何透過範圍讀寫資料、如何控制選區，以及如何處理指標、編輯和剪貼簿事件。
 
 - [範圍 Range](#range)
 - [選區 Selection](#selection)
@@ -12,15 +12,15 @@ title: 範圍 & 選區 & 單元格
 
 ## 範圍 Range [#range]
 
-範圍指工作表中的一塊矩形區域，有起始行號、起始列號、長寬或者結束行號、結束列號來確定。
+範圍是工作表中的一塊矩形區域。它可以用起始行號和起始列號加上行數、列數來定義，也可以用起始行號和起始列號加上結束行號和結束列號來定義。
 
-表格中的大部分操作都可以透過範圍 API 來操作，如設定值、獲取值、設定樣式、獲取樣式等。
+表格中的大部分操作都透過 Range API 完成，例如設定和讀取值、設定和讀取樣式。
 
-範圍完整 Facade API 型別定義，請檢視 [FRange Facade API](/reference/facade/range)
+範圍相關的完整 Facade API 型別定義見 [FRange Facade API](/reference/facade/range)。
 
 ### 建立範圍
 
-獲得一個範圍需要知道起始行號、起始列號、長寬。
+建立範圍需要起始行號、起始列號以及範圍的行數和列數。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -34,6 +34,8 @@ console.log(fRange, fRange.getA1Notation())
 const fRange2 = fWorksheet.getRange(0, 0, 2, 2)
 console.log(fRange2, fRange2.getA1Notation())
 ```
+
+也可以用 A1 表示法描述範圍，並可在前面帶上工作表名：
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -62,7 +64,7 @@ console.log(fRange5, fRange5.getA1Notation())
 
 ### 獲取範圍資料
 
-獲取範圍第一個單元格的值
+讀取範圍左上角單元格的值：
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -81,9 +83,9 @@ if (value !== null && typeof value === 'object') {
 }
 ```
 
-使用 `getValue(true)` 保留豐富文字物件。空儲存格傳回 `null` / `undefined`，一般儲存格傳回字串、數字或布林值；僅對豐富文字物件呼叫 `toPlainText()`。
+`getValue(true)` 會返回富文字物件。空單元格返回 `null` 或 `undefined`，普通單元格返回字串、數字或布林值；`toPlainText()` 只應對富文字物件呼叫。
 
-獲取範圍的所有值
+讀取範圍內所有單元格的值：
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -98,7 +100,7 @@ console.log(fRange.getCellDataGrid()) // 範圍所有單元格 ICellData 物件
 console.log(fRange.getValues(true))
 ```
 
-獲取範圍的所有公式
+讀取範圍內的所有公式：
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -113,9 +115,9 @@ console.log(fRange.getFormulas()) // 範圍所有單元格公式
 
 #### 設定單一值
 
-傳入一個值或者單元格物件，將會覆蓋範圍內所有單元格，如果以 `=` 開頭，將被解釋為公式。
+傳入一個值或一個單元格物件時，範圍內的所有單元格都會被覆蓋；以 `=` 開頭的字串按公式處理。
 
-比如，設定 A1:B2 的值為 `Hello, Univer`：
+例如，下面的程式碼把 A1:B2 全部設為 `Hello, Univer`：
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -124,7 +126,7 @@ const fRange = fWorksheet.getRange('A1:B2')
 fRange.setValue('Hello, Univer')
 ```
 
-將 C1 的值設為 `=A1+B1`，讓結果與輸入儲存格分開：
+下面的程式碼把 C1 設為 `=A1+B1`，結果落在輸入單元格之外：
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -134,7 +136,7 @@ const fRange = fWorksheet.getRange('C1')
 fRange.setValue('=A1+B1')
 ```
 
-設定 A1:B2 的值為單元格物件：
+也可以傳入單元格物件：
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -148,9 +150,9 @@ fRange.setValue({
 })
 ```
 
-寫入的 `ICellData` 物件包含 `v` 或 `p`，且未提供 `f` 和 `si` 時，會取代舊公式並清除共用公式識別碼。寫入 `f` 而未提供 `si` 時，也會解除原共用公式關聯。僅修改樣式或自訂欄位會保留公式。寫入 `v` 不會清除富文字，因此用值取代富文字時還須傳入 `p: null`。這些規則同樣適用於 `setValues()` 中的儲存格物件。
+寫入的 `ICellData` 物件如果包含 `v` 或 `p`，但不包含 `f` 和 `si`，就會替換原有公式及其共享公式標識；只寫入 `f` 而不寫入 `si`，同樣會解除該單元格與原共享公式的關聯。只帶樣式或自定義欄位的修改會保留公式。寫入 `v` 不會清除富文字，因此用值替換富文字時需要同時傳入 `p: null`。這些規則同樣適用於傳給 `setValues()` 的單元格物件。
 
-如果只想設定範圍左上角的單元格值，可以使用 [`FRange.setValueForCell`](/reference/facade/range#setvalueforcell) 方法：
+如果只需設定範圍左上角的單元格，可以使用 [`FRange.setValueForCell`](/reference/facade/range#setvalueforcell)：
 
 ```typescript
 fRange.setValueForCell('Hello, Univer')
@@ -158,9 +160,9 @@ fRange.setValueForCell('Hello, Univer')
 
 #### 透過陣列設定多個值
 
-陣列的長度和寬度必須和範圍的長寬一致。
+陣列的行數和列數必須與範圍一致。
 
-可以傳入單元格值也可以傳入單元格物件。
+陣列中的元素既可以是普通值，也可以是單元格物件。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -179,7 +181,7 @@ fRange.setValues([
 
 #### 透過物件設定多個值
 
-則物件的一級索引代表行號，二級索引代表列號，與範圍的長寬無需一致。
+傳入物件時，一級索引是行號，二級索引是列號，範圍的行列數不需要與物件一致。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -199,9 +201,9 @@ fRange.setValues({
 
 ### 清理範圍資料
 
-- [`FRange.clear`](/reference/facade/range#clear) 方法可以清理範圍的內容和格式資訊。
-- [`FRange.clearContent`](/reference/facade/range#clearcontent) 方法可以清理範圍的內容資訊。
-- [`FRange.clearFormat`](/reference/facade/range#clearformat) 方法可以清理範圍的格式資訊。
+- [`FRange.clear`](/reference/facade/range#clear) 會清除範圍的內容和格式。
+- [`FRange.clearContent`](/reference/facade/range#clearcontent) 只清除內容。
+- [`FRange.clearFormat`](/reference/facade/range#clearformat) 只清除格式。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -252,17 +254,17 @@ fRange.setFontWeight(null).setFontLine(null).setFontFamily(null).setFontSize(nul
 
 ### 將格式刷套用至整列或整欄 [#format-painter]
 
-選取來源格式並啟用格式刷後，可點選或拖曳選取目標列號、欄標，將格式套用至整列或整欄，也可以在儲存格網格中選取目標範圍。
+選中帶有源格式的單元格，啟用格式刷，然後點選或拖動目標行號、列標，即可將格式應用到整行或整列。也可以在網格中選擇目標單元格。
 
 ## 選區 Selection [#selection]
 
-方向鍵導覽、選取動畫、填滿控點與拖曳覆寫提示都在[選取與拖曳設定](/guides/sheets/features/core#selection-interaction)中設定。
+方向鍵導航、選區動畫、填充柄和拖動覆蓋提示，參見[選區與拖動配置](/guides/sheets/features/core#selection-interaction)。
 
-Univer 表格支援多選區，所以選區是一個範圍陣列，可以透過範圍 API 來操作選區資料。
+Univer 表格支援多選區，因此選區是一個範圍陣列，這些範圍透過 Range API 操作。
 
-我們還提供 API 來獲取當前選區、設定選區和監聽選區變化。
+取得當前選區、設定選區以及監聽選區變化，也都有對應的 API。
 
-選區完整 Facade API 型別定義，請檢視 [FSelection Facade API](/reference/facade/selection)
+選區相關的完整 Facade API 型別定義見 [FSelection FacadeAPI](/reference/facade/selection)。
 
 ### 獲取啟用選區的範圍
 
@@ -318,7 +320,7 @@ console.log(fWorksheet.getRange(newRow, newColumn).getA1Notation()) // B11
 
 ### 禁用/啟用/隱藏/顯示選區
 
-禁用後，選區將不會響應。設定選區不可見，與禁用選區不同，選區仍然有效，只是看不到它們。
+禁用後，選區不再響應輸入。把選區設為透明則是將其隱藏：與禁用選區不同，選區本身仍然有效，只是不可見。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -347,9 +349,9 @@ univerAPI.addEvent(univerAPI.Event.SelectionChanged, (params) => {
 
 ## 單元格 Cell [#cell]
 
-單元格資料以二維 Map 的形式儲存在工作表中，一二級索引分別代表行號和列號。
+單元格資料以二維 Map 的形式儲存在工作表中，一級索引是行號，二級索引是列號。
 
-以下是一個典型的單元格物件：
+一個典型的單元格物件如下：
 
 ```typescript
 const data = {
@@ -359,18 +361,18 @@ const data = {
 }
 ```
 
-詳細的欄位說明請參考 [單元格資訊](/guides/sheets/model/cell-data)。
+欄位的完整說明見[單元格資訊](/guides/sheets/model/cell-data)。
 
 ### 注意事項
 
-1. 對單元格的操作可以看作對行高 1 、列寬 1 的範圍進行操作，操作範圍請閱讀 [範圍-range](/guides/sheets/features/core/range-selection#range)。
-2. 外掛還會將拓展的單元格屬性儲存在 `Workbook` 的 `resources` 屬性中，詳細請閱讀 [外掛自訂模型](/blog/custom-model/)。
+1. 對單元格的操作可以視為對高 1 行、寬 1 列的範圍的操作。範圍支援的能力見[範圍-range](/guides/sheets/features/core/range-selection#range)。
+2. 外掛還會把擴充套件的單元格屬性存放在 `Workbook` 的 `resources` 屬性中，詳見[外掛自定義模型](/blog/custom-model/)。
 
 ## 範圍進階操作 [#range-operations]
 
 ### 插入單元格
 
-[`FRange.insertCells`](/reference/facade/range#insertcells) 方法可以在此範圍內插入空單元格。工作表中沿指定維度的現有資料將移離插入的範圍。
+[`FRange.insertCells`](/reference/facade/range#insertcells) 會在範圍內插入空單元格，工作表內沿指定維度的現有資料會被推離插入範圍。
 
 ```typescript
 // 假設當前工作表是空工作表
@@ -425,7 +427,7 @@ console.log(fWorksheet.getRange('A1:D5').getValues()) // [[null, null, 3, 4], [n
 
 ### 刪除單元格
 
-[`FRange.deleteCells`](/reference/facade/range#deletecells) 方法可以在範圍內刪除單元格。工作表中沿指定維度的現有資料將向已刪除的範圍移動。
+[`FRange.deleteCells`](/reference/facade/range#deletecells) 會刪除範圍內的單元格，工作表內沿指定維度的現有資料會向刪除範圍靠攏。
 
 ```typescript
 // 假設當前工作表是空工作表
@@ -504,7 +506,7 @@ fRange2.breakApart()
 
 ### 高亮範圍
 
-[`FRange.highlight`](/reference/facade/range#highlight) 方法可以使用指定樣式和主單元格高亮範圍。
+[`FRange.highlight`](/reference/facade/range#highlight) 使用指定的樣式和主單元格高亮範圍。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -537,9 +539,9 @@ setTimeout(() => {
 
 ### 資料分列
 
-[`FRange.splitTextToColumns`](/reference/facade/range#splittexttocolumns) 方法可以將單元格中的文字按指定分隔符分列。
+[`FRange.splitTextToColumns`](/reference/facade/range#splittexttocolumns) 按指定的分隔符把範圍內的文字拆分為多列。
 
-預設分隔符示例：
+第一個範例使用預設分隔符：
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -565,7 +567,7 @@ fRange.splitTextToColumns(true)
 fRange.splitTextToColumns(false)
 ```
 
-指定分隔符示例：
+第二個範例傳入分號和逗號：
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -591,7 +593,7 @@ fRange.splitTextToColumns(false, univerAPI.Enum.SplitDelimiterType.Semicolon | u
 fRange.splitTextToColumns(true, univerAPI.Enum.SplitDelimiterType.Semicolon | univerAPI.Enum.SplitDelimiterType.Comma)
 ```
 
-自訂分隔符示例：
+第三個範例使用自定義分隔符：
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -637,11 +639,11 @@ console.log(fRange.getCell())
 
 ## 儲存格事件與編輯 [#events]
 
-以下範例依指標、繪製、編輯與剪貼簿互動組織。完整事件與參數型別見[事件 Reference](/reference/facade/events#univerjssheets-ui)。外掛模式下訂閱前需匯入 `@univerjs/sheets-ui/facade`，Sheets Core 預設已包含此擴充。所屬元件或頁面卸載時應清理訂閱。
+下面的範例涵蓋指標、渲染、編輯和剪貼簿四類互動。完整的事件與參數型別見[事件 Reference](/reference/facade/events#univerjssheets-ui)。外掛模式下，訂閱之前需要先匯入 `@univerjs/sheets-ui/facade`，Sheets Core 預設已包含該模組。所屬元件或頁面解除安裝時，應釋放訂閱。
 
 ### 使用示例
 
-所有事件都可以透過 `addEvent` 方法進行監聽。基本格式如下：
+所有事件都透過 `addEvent` 註冊監聽，基本格式如下：
 
 ```typescript
 import '@univerjs/sheets-ui/facade'
@@ -655,7 +657,7 @@ const subscription = univerAPI.addEvent(univerAPI.Event.CellClicked, ({ row, col
 
 ### 單元格 PointerMove 事件
 
-`CellPointerMove` 事件在滑鼠移動到單元格上時觸發。透過此事件可以獲取當前滑鼠指向的單元格資訊。
+`CellPointerMove` 在滑鼠移到單元格上時觸發，並報告指標所在的單元格。
 
 ```typescript
 univerAPI.addEvent(univerAPI.Event.CellPointerMove, (params) => {
@@ -667,7 +669,7 @@ univerAPI.addEvent(univerAPI.Event.CellPointerMove, (params) => {
 
 ### 單元格 PointerDown 事件
 
-`CellPointerDown` 事件在滑鼠按下時觸發。
+`CellPointerDown` 在單元格上按下滑鼠時觸發。
 
 ```typescript
 univerAPI.addEvent(univerAPI.Event.CellPointerDown, (params) => {
@@ -678,7 +680,7 @@ univerAPI.addEvent(univerAPI.Event.CellPointerDown, (params) => {
 
 ### 單元格 PointerUp 事件
 
-`CellPointerUp` 事件在滑鼠釋放時觸發。
+`CellPointerUp` 在單元格上鬆開滑鼠時觸發。
 
 ```typescript
 univerAPI.addEvent(univerAPI.Event.CellPointerUp, (params) => {
@@ -689,7 +691,7 @@ univerAPI.addEvent(univerAPI.Event.CellPointerUp, (params) => {
 
 ### 單元格 Hover 事件
 
-`CellHover` 事件在滑鼠懸停在單元格上時觸發。
+`CellHover` 在滑鼠懸停於單元格上時觸發。
 
 ```typescript
 univerAPI.addEvent(univerAPI.Event.CellHover, (params) => {
@@ -700,7 +702,7 @@ univerAPI.addEvent(univerAPI.Event.CellHover, (params) => {
 
 ### 單元格 DragOver 事件
 
-`DragOver` 事件在拖動元素經過單元格時觸發。
+`DragOver` 在元素被拖動經過單元格時觸發。
 
 ```typescript
 univerAPI.addEvent(univerAPI.Event.DragOver, (params) => {
@@ -711,7 +713,7 @@ univerAPI.addEvent(univerAPI.Event.DragOver, (params) => {
 
 ### 單元格 Drop 事件
 
-`Drop` 事件在拖動元素放置到單元格時觸發。
+`Drop` 在元素被放到單元格上時觸發。
 
 ```typescript
 univerAPI.addEvent(univerAPI.Event.Drop, (params) => {
@@ -722,7 +724,7 @@ univerAPI.addEvent(univerAPI.Event.Drop, (params) => {
 
 ### 單元格 Click 事件
 
-`CellClicked` 事件在點選單元格時觸發。
+`CellClicked` 在單元格被點選時觸發。
 
 ```typescript
 univerAPI.addEvent(univerAPI.Event.CellClicked, (params) => {
@@ -733,9 +735,9 @@ univerAPI.addEvent(univerAPI.Event.CellClicked, (params) => {
 
 ### 單元格渲染事件
 
-`registerCellCustomRender` 用於註冊單元格自訂渲染器。
+`registerCellCustomRender` 用於註冊繪製單元格時使用的自定義渲染器。
 
-案例 1：固定位置渲染，新增行不會影響渲染位置
+案例 1 為固定位置渲染，插入行不會改變繪製內容的位置：
 
 ```typescript
 // 固定位置渲染
@@ -757,7 +759,7 @@ univerAPI.registerCellCustomRender([
 univerAPI.getActiveWorkbook().getActiveSheet().refreshCanvas()
 ```
 
-案例 2：按標記渲染，標記位置會隨著行列變化而變化
+案例 2 為按標記渲染，繪製內容的位置隨所在行、列變化：
 
 ```typescript
 // 設定標記
@@ -806,7 +808,7 @@ await fWorkbook.endEditingAsync(true)
 
 #### 開始編輯事件
 
-`BeforeSheetEditStart` 事件在單元格開始編輯前觸發。
+`BeforeSheetEditStart` 在單元格開始編輯之前觸發。
 
 ```typescript
 univerAPI.addEvent(univerAPI.Event.BeforeSheetEditStart, (params) => {
@@ -818,7 +820,7 @@ univerAPI.addEvent(univerAPI.Event.BeforeSheetEditStart, (params) => {
 })
 ```
 
-`SheetEditStarted` 事件在單元格開始編輯時觸發。
+`SheetEditStarted` 在單元格進入編輯狀態時觸發。
 
 ```typescript
 const disposable = univerAPI.addEvent(univerAPI.Event.SheetEditStarted, (params) => {
@@ -831,7 +833,7 @@ const disposable = univerAPI.addEvent(univerAPI.Event.SheetEditStarted, (params)
 
 #### 結束編輯事件
 
-`BeforeSheetEditEnd` 事件在單元格結束編輯前觸發。
+`BeforeSheetEditEnd` 在單元格編輯結束之前觸發。
 
 ```typescript
 const disposable = univerAPI.addEvent(univerAPI.Event.BeforeSheetEditEnd, (params) => {
@@ -845,7 +847,7 @@ const disposable = univerAPI.addEvent(univerAPI.Event.BeforeSheetEditEnd, (param
 // 移除事件監聽器，使用 `disposable.dispose()`
 ```
 
-`SheetEditEnded` 事件在單元格結束編輯後觸發。
+`SheetEditEnded` 在單元格編輯結束之後觸發。
 
 ```typescript
 univerAPI.addEvent(univerAPI.Event.SheetEditEnded, (params) => {
@@ -858,7 +860,7 @@ univerAPI.addEvent(univerAPI.Event.SheetEditEnded, (params) => {
 
 #### BeforeClipboardChange
 
-`BeforeClipboardChange` 事件在剪貼簿內容改變之前觸發。你可以使用此事件在內容改變之前監控或修改剪貼簿內容。
+`BeforeClipboardChange` 在剪貼簿內容改變之前觸發，可用於在內容改變之前檢視或修改該內容。
 
 ```typescript
 univerAPI.addEvent(univerAPI.Event.BeforeClipboardChange, (params) => {
@@ -871,7 +873,7 @@ univerAPI.addEvent(univerAPI.Event.BeforeClipboardChange, (params) => {
 
 #### BeforeClipboardPaste
 
-`BeforeClipboardPaste` 事件在內容貼上之前觸發。你可以使用此事件在貼上之前監控或修改內容。
+`BeforeClipboardPaste` 在內容貼上之前觸發，可用於在內容貼上之前檢視或修改該內容。
 
 ```typescript
 univerAPI.addEvent(univerAPI.Event.BeforeClipboardPaste, (params) => {
@@ -884,7 +886,7 @@ univerAPI.addEvent(univerAPI.Event.BeforeClipboardPaste, (params) => {
 
 #### ClipboardChanged
 
-`ClipboardChanged` 事件在剪貼簿內容改變之後觸發。
+`ClipboardChanged` 在剪貼簿內容改變之後觸發。
 
 ```typescript
 univerAPI.addEvent(univerAPI.Event.ClipboardChanged, (params) => {
@@ -895,7 +897,7 @@ univerAPI.addEvent(univerAPI.Event.ClipboardChanged, (params) => {
 
 #### ClipboardPasted
 
-`ClipboardPasted` 事件在內容貼上完成後觸發。
+`ClipboardPasted` 在內容貼上完成之後觸發。
 
 ```typescript
 univerAPI.addEvent(univerAPI.Event.ClipboardPasted, (params) => {
@@ -908,7 +910,7 @@ univerAPI.addEvent(univerAPI.Event.ClipboardPasted, (params) => {
 
 ### 如何實時獲取單元格編輯器內的資料？
 
-訂閱 `SheetEditChanging`，可在儲存格編輯過程中讀取目前的富文字值。此時內容仍在編輯器內，編輯結束後才會提交到工作表。
+訂閱 `SheetEditChanging` 可以在單元格編輯過程中讀取當前的富文字值。此時內容仍在編輯器中，編輯結束後才會寫入工作表。
 
 ```typescript
 import '@univerjs/sheets-ui/facade'
@@ -922,7 +924,7 @@ const subscription = univerAPI.addEvent(univerAPI.Event.SheetEditChanging, ({ va
 
 ### 單元格編輯器聚焦時，點選外部按鈕觸發事件，獲取的 snapshot 未包含當前單元格資料
 
-單元格資料會在編輯器失焦（即編輯狀態結束）時同步到 snapshot。因此，在嘗試獲取 snapshot 資料前，應確保單元格已經失去焦點。可以透過如下方式主動結束編輯：
+單元格資料在單元格編輯器失焦（即編輯結束）時同步到 snapshot。因此，讀取 snapshot 之前需要確認單元格已經失去焦點。可以按以下方式主動結束編輯：
 
 ```typescript
 import '@univerjs/sheets-ui/facade'
@@ -945,7 +947,7 @@ $btn.addEventListener('click', () => {
 
 ### 使用 Facade API 建立 Workbook 後，立即呼叫其它 API 不生效的情況
 
-部分 API 依賴於介面渲染完成後才能正常工作。如果在 Workbook 建立後立即呼叫相關 API，可能因尚未完成渲染而失效。建議在生命週期的 `Rendered` 或 `Steady` 階段再進行相關操作：
+許多 API 需要介面完成渲染後才能正常工作。在 Workbook 建立後立即呼叫這些 API，可能因為介面尚未渲染完成而不生效。請將這類呼叫放到生命週期的 `Rendered` 或 `Steady` 階段：
 
 ```typescript
 const disposable = univerAPI.addEvent(univerAPI.Event.LifeCycleChanged, ({ stage }) => {

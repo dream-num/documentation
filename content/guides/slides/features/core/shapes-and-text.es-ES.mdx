@@ -2,7 +2,7 @@
 title: Formas y texto
 ---
 
-Slides usa el motor Shape compartido para formas, conectores y texto editables. `FSlide.insertShape()` devuelve una Facade de forma respaldada por la canalización de comandos de Slides.
+Diapositivas dibuja formas editables, conectores y texto de forma con el motor compartido de Forma. `FSlide.insertShape()` devuelve una forma Facade, y cada operación en ella pasa a través de la tubería de comandos.
 
 ## Configurar fuentes para combinar texto [#merge-shape-font-configuration]
 
@@ -12,7 +12,7 @@ Slides usa el motor Shape compartido para formas, conectores y texto editables. 
 | --- | --- | --- | --- |
 | `mergeShapeFontResolver` | `(font: string, unitId: string, text: string) => ArrayBuffer \| Promise<ArrayBuffer \| undefined> \| undefined` |  | Devuelve los bytes de la fuente exacta con la que se dibuja el texto. |
 
-El plugin Slides UI puede leer las fuentes web compatibles que ya están cargadas. Si la aplicación proporciona la fuente, configura `mergeShapeFontResolver(font, unitId, text)` en `UniverSlidesUIPlugin`. Devuelve los bytes de la fuente exacta, con su peso, estilo y fuente de sustitución, como `ArrayBuffer` o una promesa. Si no está disponible, devuelve `undefined`.
+El plugin de diapositivas UI puede leer fuentes web compatibles que ya están cargadas. Si la aplicación carga sus propias fuentes, establece `mergeShapeFontResolver(font, unitId, text)` en `UniverSlidesUIPlugin`. Devuelve los bytes de la cara exacta que se utilizará, con el peso, el estilo y el retroceso ya emparejado, como un `ArrayBuffer` o una promesa. Volver `undefined` cuando esa cara exacta no está disponible.
 
 ## Insertar una forma
 
@@ -37,7 +37,7 @@ const shape = slide.insertShape({
 })
 ```
 
-`insertShape()` puede devolver `null` cuando el adaptador Shape no está disponible o no puede crear la entrada. Registre las dependencias Shape de la configuración de Slides antes de insertar formas.
+`insertShape()` devuelve `null` cuando el adaptador Shape host no está disponible o la entrada no se puede crear. Registrar las dependencias de Forma requeridas por la configuración de diapositivas antes de insertar formas.
 
 ## Añadir texto enriquecido
 
@@ -54,12 +54,11 @@ if (shape) {
 }
 ```
 
-Use `slide.getShape(id)` o `slide.getShapes()` para recuperar formas. Los métodos comunes actualizan posición, tamaño, visibilidad, nombre y descripción; `slide.deleteElement(shape)` elimina la forma.
-
+Las Facades de Forma están disponibles desde `slide.getShape(id)` o `slide.getShapes()`. Los métodos de elementos comunes establecen la posición, el tamaño, la visibilidad, el nombre y la descripción, y `slide.deleteElement(shape)` elimina la forma.
 
 ## Editar el texto de una forma
 
-Utiliza la forma devuelta por `insertShape()` a continuación o en el ejemplo anterior. `getText()` devuelve un objeto [FShapeText](/reference/facade/shape-text) activo. Lee el texto con `getPlainText()`, reemplázalo por completo con `setText()` y configura la fuente, el color y la alineación.
+El siguiente ejemplo utiliza el objeto de forma que `insertShape()` regresó antes. `getText()` devuelve un mango en vivo [FShapeText](/reference/facade/shape-text). Lea el texto llano con `getPlainText()`, reemplace todo con `setText()`, y aplique el formato a través de los métodos de fuente, color y alineación.
 
 ```ts
 if (!shape) throw new Error('Shape is not available')
@@ -74,7 +73,7 @@ shapeText
   .setVerticalAlign(univerAPI.Enum.VerticalAlign.MIDDLE)
 ```
 
-`setText()` reemplaza el texto existente. Utiliza `setRichText()` para combinar varios estilos. Para editar texto enriquecido existente, llama a `getRichText()?.copy()`, modifica el constructor y pásalo a `setRichText()`. Los cambios del constructor no se aplican automáticamente. Consulta también los [estilos de texto](/reference/facade/shape-text#settextstyle) y los [márgenes y la disposición del cuadro de texto](/reference/facade/shape-text#settextboxoptions).
+`setText()` reemplaza el texto existente. Utilice `setRichText()` cuando una forma única requiere varios estilos de texto. Para cambiar el texto rico existente, llame a `getRichText()?.copy()`, edite el constructor, y pasarlo a `setRichText()`; editar el constructor separado por sí solo no escribe ningún cambio. Más opciones se describen en [estilo de texto](/reference/facade/shape-text#settextstyle) y [texto caja de relleno y diseño](/reference/facade/shape-text#settextboxoptions).
 
 ```ts
 const richText = univerAPI.newRichText()
@@ -85,15 +84,15 @@ shapeText.setRichText(richText)
 
 ## Copiar formato de formas [#format-painter]
 
-Selecciona la forma original, activa el pincel y elige la forma de destino. Se copian relleno, contorno, efectos y formato de texto compatible, conservando identidad, geometría, contenido y vínculos de fórmulas del destino. Borrar formato restaura los valores de inserción. SmartArt queda excluido. El plugin UI correspondiente registra esta función automáticamente.
+Seleccione una forma de origen, active el pintor de formato, luego seleccione la forma de destino. El pintor copia el relleno, trazo, efectos, y el formato de texto compatible, y deja la identidad del objetivo, geometría, contenido de texto y unión de fórmula sin cambios. El formato claro restaura los defectos de la inserción. SmartArt está excluido. El plugin UI de forma de combinación registra este comportamiento automáticamente.
 
 ## Combinar formas [#merge-shapes]
 
-Seleccione entre 2 y 10 objetos compatibles de una diapositiva y use Combinar formas. Las operaciones son `union` (todas las áreas), `combine` (excluir solapamientos), `intersect` (área común), `subtract` (restar los demás al objeto principal) y `fragment` (dividir en regiones). El objeto principal aporta el formato. La combinación sustituye los objetos seleccionados y admite deshacer, rehacer y colaboración.
+Seleccione 2–10 objetos soportados en la misma diapositiva, luego utilice **Formas de fusión**. Las operaciones son `union` (todas las áreas), `combine` (excluidas superposiciones), `intersect` (zona dividida), `subtract` (remove los otros objetos del objeto primario), y `fragment` (split en regiones). El formato viene del objeto primario. La fusión reemplaza los objetos seleccionados y soporta el deshacer, redo y colaboración.
 
-El comando siguiente usa la selección actual. `merged` es `false` si no puede aplicarse. Los objetos deben ser editables y pertenecer al mismo ámbito de grupo. No admite conectores, SmartArt, OLE, gráficos ni tablas; algunos efectos, animaciones y diseños de texto complejos también impiden combinar.
+El siguiente comando actúa sobre la selección actual. `merged` es `false` cuando la selección o la operación no se puede aplicar. Los objetos deben ser editables y dentro del mismo alcance de grupo. Los conectores, SmartArt, OLE objetos, gráficos y tablas no pueden combinarse operados, y algunos efectos, animaciones y diseños de texto complejos también evitan la fusión.
 
-Los cuadros de texto que se combinan se convierten en contornos. Después, su contenido deja de ser editable como texto. Si la fuente usada para dibujarlo no se puede leer, la combinación se cancela y se conservan las formas originales. Consulta la [configuración de fuentes](#merge-shape-font-configuration).
+Una caja de texto que participa en una fusión se convierte en contornos, y su texto ya no puede ser editado como texto después. Si la fuente utilizada para renderizarla no puede ser leída, las paradas de fusión y las formas originales permanecen inalteradas. [configuración de fuentes](#merge-shape-font-configuration).
 
 ```ts
 import { MergeSlideShapesCommand } from '@univerjs-pro/slides-ui'

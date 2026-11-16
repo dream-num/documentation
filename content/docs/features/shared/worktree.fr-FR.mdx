@@ -4,81 +4,81 @@ description: "Comprenez l’isolation, les révisions de référence, la fusion 
 icon: GitBranch
 ---
 
-Worktree fournit des brouillons Office isolés et collaboratifs. Un agent peut modifier un budget, des données ou un document pendant que les utilisateurs travaillent sur le document principal (trunk). Les changements sont fusionnés après validation et relecture.
+Worktree fournit des ébauches isolées de contenu Office que les personnes et les agents peuvent encore éditer ensemble. Un agent peut réviser un budget, réorganiser les données ou réécrire un bref pendant que les gens continuent à éditer le document principal, qui est appelé le tronc. Le projet est validé et examiné avant que ses modifications atteignent le tronc.
 
-L’isolation concerne le contenu et les changements, pas un répertoire Git. Une tâche peut contenir plusieurs [Units](/guides/sheets/getting-started/quickstart#unit), comme un classeur, un document et une présentation.
+L'isolement s'applique au contenu du document et à ses modifications, pas à un répertoire de travail Git. Une seule tâche peut s'étendre sur plusieurs [Unités](/guides/sheets/getting-started/quickstart#unit), par exemple un cahier de travail, un document et une présentation.
 
 ## Isolation : évoluer depuis une référence commune [#isolation]
 
-Pour une Unit existante, la création enregistre sa révision trunk comme **baseline**. Le brouillon utilise snapshots, changesets, révisions, Presence et Rooms indépendants. Les modifications intermédiaires restent hors du trunk.
+Lorsqu'un Worktree est créé pour une unité existante, le service enregistre la révision actuelle du tronc de l'unité comme **de référence**. Le brouillon commence par cette révision et a ses propres instantanés, modifications, révisions, Présence et salles de collaboration. Les modifications faites dans le brouillon n'affectent pas le tronc.
 
 <Mermaid chart={"flowchart LR\n    A[\"Trunk à la création<br/>Baseline\"]\n    B[\"Trunk continue\"]\n    C[\"Brouillon Worktree\"]\n    D[\"Ready · Relecture\"]\n    E[\"Fusion OT\"]\n    F[\"Nouvelle révision trunk\"]\n    A --> B\n    A --> C --> D\n    B --> E\n    D --> E --> F"} />
 
 | Notion | Rôle |
 | --- | --- |
-| Baseline | Révision de départ dans trunk, référence de comparaison et fusion. |
-| Draft head | Dernière révision confirmée du brouillon. |
-| Ready head | Révision figée qui définit la portée de la relecture et fusion. |
+| Baseline | La version du tronc à partir de laquelle le projet a commencé, utilisé pour la comparaison et la fusion. |
+| Draft head | Le projet de révision le plus récent a été confirmé, et les projets de communications ont progressé. |
+| Ready head | Le projet de révision gelé qui définit ce qui est examiné et fusionné. |
 
-Trunk et brouillon avancent séparément. Leurs numéros décrivent des séquences distinctes et ne suffisent pas à comparer l’actualité du contenu. Synchroniser le brouillon n’y ajoute pas automatiquement les changements trunk ; ils sont réconciliés lors de l’aperçu ou de la fusion.
+Les révisions de chaque côté forment une séquence de soumission séparée, de sorte qu'un nombre plus élevé n'indique pas quel contenu est plus récent. Tirer une ébauche synchronise les propres modifications du brouillon. Les nouvelles éditions de tronc ne saisissent pas la version en cours d'examen par elles-mêmes ; l'aperçu de fusion et la fusion elle-même réconcilient les deux.
 
 ## Comment AI SDK rejoint le même brouillon [#ai-sdk]
 
-Le Collaboration Runtime d’AI SDK traite snapshots, changements et révisions d’une Unit. Le service Worktree de Server SDK gère création, états et fusion, sans exiger un autre moteur d’édition.
+AI SDK Collaboration Runtime gère les instantanés, les modifications et les révisions d'une unité. Du côté Server SDK, le service Worktree possède la création, le cycle de vie et la fusion.
 
-L’application résout `worktreeID + unitID` en URL de snapshot, soumission, WebSocket et Session Ticket du brouillon, puis les transmet au Runtime. Les mêmes outils servent au trunk ou au brouillon.
+L'application résout `worktreeID + unitID` dans l'instantané de l'ébauche, soumet, WebSocket et les URL de ticket de session, puis les passe à l'exécution. Les mêmes outils d'inspection et d'édition peuvent alors cibler soit le tronc, soit un brouillon.
 
 <Mermaid chart={"flowchart LR\n    A[\"Agent / CLI métier\"]\n    B[\"Relecture humaine Web\"]\n    C[\"Adaptateur de cible\"]\n    D[\"Worktree Endpoint\"]\n    E[\"Même Unit brouillon\"]\n    A --> C\n    B --> C\n    C --> D --> E"} />
 
-Un même Unit ID peut exister dans trunk et plusieurs Worktrees. Inspection, exécution, captures et aperçu Web doivent viser la même cible pour éviter de lire le brouillon et écrire dans trunk. Web utilise sa configuration collaborative correspondante.
+Un ID d'unité peut exister dans le coffre et dans plusieurs Worktrees à la fois. La cible doit inclure le Worktree dans lequel elle vit, et l'inspection, l'exécution, les captures d'écran et l'aperçu Web devraient tous utiliser cette même cible. Sinon, un outil peut lire à partir d'un brouillon et écrire dans le coffre. Le client Web charge le même brouillon avec la configuration de collaboration qui le correspond.
 
 | Élément | Responsabilité |
 | --- | --- |
-| Web SDK | Moteur commun pour Headless et édition navigateur. |
+| Web SDK | Le moteur de contenu partagé, pour les opérations d'agents Headless et pour l'édition dans le navigateur. |
 | Server SDK | Isolation, stockage des changements et révisions, états et OT. |
-| AI SDK | Runtime, Inspection, recherche API, exécution Facade et contrôles visuels. |
-| Votre application | Modèle, cibles, identité, autorisation, tâches et interface de relecture. |
+| AI SDK | Les contrôles d'exécution, d'inspection, de recherche API, d'exécution Facade et visuels. |
+| Votre application | Sélection de modèles, cartographie des cibles, identité, autorisation, tâches et l'interface utilisateur d'examen. |
 
 ## De l’édition à la remise [#agent-workflow]
 
-L’application peut organiser des tâches parallèles avec un Worktree distinct par agent. Chaque agent modifie, vérifie et passe son brouillon à Ready. Une personne les relit individuellement, rouvre le brouillon concerné si nécessaire et fusionne les changements acceptés avec le trunk actuel.
+L'application peut exécuter des tâches en parallèle en donnant à chaque agent son propre Worktree. Chaque agent modifie son brouillon, vérifie le résultat et le marque Prêt. Une personne passe ensuite en revue les brouillons un à la fois, rouvre le brouillon qui nécessite plus de travail, et fusionne les brouillards acceptés dans le coffre actuel.
 
 <Mermaid chart={"flowchart TB\n    TRUNK[\"Document principal · Trunk\"]\n    subgraph PARALLEL[\"Agents en parallèle\"]\n        direction LR\n        AGENT_A[\"Agent A<br/>Worktree A<br/>Modifier et vérifier\"]\n        AGENT_B[\"Agent B<br/>Worktree B<br/>Modifier et vérifier\"]\n        AGENT_C[\"Agent C<br/>Worktree C<br/>Modifier et vérifier\"]\n    end\n    REVIEW[\"Relecture humaine<br/>Brouillon et aperçu\"]\n    MERGE[\"Merge individuel<br/>Dans le trunk actuel\"]\n    RESULT[\"Nouvelle révision trunk\"]\n    TRUNK --> AGENT_A\n    AGENT_A -->|\"Ready\"| REVIEW\n    TRUNK --> AGENT_B\n    AGENT_B -->|\"Ready\"| REVIEW\n    TRUNK --> AGENT_C\n    AGENT_C -->|\"Ready\"| REVIEW\n    REVIEW -->|\"Approuver\"| MERGE\n    REVIEW -.->|\"Reopen du brouillon concerné\"| PARALLEL\n    MERGE --> RESULT"} />
 
-1. Créez le brouillon, sélectionnez les Units, connectez la cible Worktree et faites `pull`.
-2. Inspectez structure et données, cherchez les API au besoin et modifiez avec Facade.
-3. Soumettez au brouillon, relisez données et calculs. Ajoutez des captures si nécessaire, Layout Lint pour Slides, et recommencez si besoin.
-4. Passez à Ready pour figer les révisions et arrêter l’édition durant la relecture.
-5. Fusionnez après validation ; utilisez Reopen avant toute reprise humaine ou agent, ou Discard pour abandonner.
+1. Créez le Worktree et chargez-le. Sélectionnez les unités que couvre la tâche, connectez la cible Worktree, et tirez son dernier contenu.
+2. Inspectez la structure avec Inspection, recherchez les API au besoin et apportez des changements à travers Facades.
+3. Soumettre à l'ébauche, lire les données et les résultats de calcul, et capturer des captures d'écran lorsque nécessaire. Les diapositives peuvent également exécuter Layout Lint. Si la vérification signale un problème, modifiez l'ébauche à nouveau.
+4. Mark Ready. Cela bloque la révision préliminaire de chaque unité, et l'édition cesse jusqu'à ce que l'examen soit terminé.
+5. Révision. Fusionner les ébauches acceptées. Réouvrir une ébauche avant qu'une personne ou un agent ne réédite les ébauches qui ne sont pas nécessaires.
 
 | Opération | Effet |
 | --- | --- |
-| `runtime.commit()` | Soumet seulement au brouillon et avance sa révision. |
-| `markReady()` | Fige la version à relire, sans fusion. |
-| `reopenWorktree()` | Revient de Ready à Draft et permet l’édition. |
-| `mergeWorktree()` | Fusionne les changements figés Unit par Unit. |
+| `runtime.commit()` | Il ne soumet que le projet de révision et le fait avancer. |
+| `markReady()` | Gele la version de l'examen sans fusionner quoi que ce soit dans le coffre. |
+| `reopenWorktree()` | Prend un brouillon de Ready back to Draft, de sorte que l'édition peut continuer. |
+| `mergeWorktree()` | Fusionne les modifications de l'ébauche gelée dans le coffre, Unité par Unité. |
 
-Commit, Ready et Merge sont distincts. Un humain comme un agent doit rouvrir un brouillon Ready avant de modifier. Voir le [guide AI SDK](/ai/worktree).
+Commit, Ready et Merge sont trois opérations distinctes. Une fois qu'un brouillon est prêt, ni une personne ni un agent ne peuvent le modifier jusqu'à ce qu'il ait été rouvert. Pour la relation entre l'exécution et la CLI, voir le [flux de travail de AI SDK](/ai/worktree).
 
 ## Appliquer les changements au trunk actuel [#merge]
 
-Pour une Unit issue de trunk, le serveur lit les changesets de la **baseline au Ready head**, rassemble les mutations et les soumet au Collaboration Service principal. Si trunk a avancé, [OT](/overview/features/shared/collaboration) les transforme face aux modifications ultérieures, puis confirme une nouvelle révision.
+Pour une Unité qui vient du tronc, le service lit les changements de projet du **de base à la tête prête**, recueille leurs mutations et les soumet par le biais du service de collaboration du tronc. Si le tronc a progressé depuis la base de référence, [OT](/overview/features/shared/collaboration) transforme ces mutations contre les modifications du tronc ultérieures avant que le service ne confirme une nouvelle révision.
 
-La fusion applique des changements au lieu de remplacer le document actuel par un ancien snapshot. Une transformation ou application impossible renvoie un conflit à traiter. OT ne tranche pas tous les désaccords métier.
+La fusion applique donc des modifications; elle ne remplace pas le dernier document par un ancien snapshot. Les modifications simultanées qui peuvent être transformées sont rapprochées. Les modifications qui ne peuvent pas être transformées, ou qui ne s'appliquent plus, sont renvoyées en tant que conflits pour que l'application puisse les gérer. OT ne règle pas tous les désaccords commerciaux.
 
-Une Unit créée dans le brouillon n’a pas de baseline trunk. La fusion la crée dans trunk sans recopier tout son historique de changesets.
+Une unité créée à l'intérieur d'un Worktree n'a pas de base de base du tronc contre lequel fusionner.
 
 ## Relire les changements et leur intégration [#review]
 
-- **Qu’a-t-on changé ?** Comparez les états complets baseline et Ready avec [Compare](/overview/features/shared/compare).
-- **Que donnerait une fusion maintenant ?** Après Ready, appelez `evaluateUnitMerge()`. Si trunk a avancé, un Runtime isolé applique le candidat transformé par OT au trunk actuel pour produire un aperçu en lecture seule. Aucun changeset n’est soumis et aucun côté n’est modifié.
+- Pour voir ce qui a changé, comparez l'état de base complet avec l'état d'ébauche Ready en utilisant [Comparer](/overview/features/shared/compare).
+- Pour voir ce que la fusion ferait à un moment donné, appelez `evaluateUnitMerge()` après Ready. Lorsque le tronc a avancé, un Runtime isolé applique un candidat transformé en OT au tronc actuel et produit un aperçu en lecture seule. Il ne soumet aucun changementet et ne modifie ni le tronc ni le brouillon.
 
-L’aperçu reflète l’instant de la demande ; Merge utilise l’état au moment de son exécution. Une fusion multi-Unit n’est pas atomique : les réussites restent acquises si une autre Unit échoue. Affichez et traitez les résultats individuellement.
+Un aperçu décrit l'état au moment où il est demandé. Le tronc peut changer après, et le Merge fonctionne à partir de l'état qu'il trouve lorsqu'il fonctionne. Fusionner plusieurs Unités n'est pas non plus une transaction atomique, donc si une Unité échoue, les Unités qui ont déjà fusionné restent fusionnées. Affichez le résultat pour chaque Unité et manipulez les défaillances individuellement.
 
 ## Intégration et périmètre [#integration]
 
-Assemblez Worktree Client, Service, Endpoint et adaptateurs avec le noyau collaboratif. Séparez les stockages et partagez Session Ticket Store avec trunk. L’application autorise séparément accès au brouillon et écriture trunk : isoler ne donne pas de droits.
+Combinez les adaptateurs Worktree Client, Service, Endpoint et base de données avec le noyau de collaboration. Conservez le stockage de l'ébauche séparément et partagez une session Ticket Store avec le coffre. La demande autorise l'accès d'ébauche et l'écriture de l'ensemble séparément; l'isolement n'accorde pas l'accès par lui-même.
 
-Sheet, Doc, Slide, Canvases et Relational Table sont couverts, pas PDF. Consultez l’[exemple](/server/collaboration/examples#worktree), les [modules](/server/collaboration/packages#worktree) et le [guide agent](/ai/worktree).
+Feuille, Doc, Diapositive, Toiles et Table Relationnelle sont pris en charge. PDF n'est pas inclus. Les [exemple](/server/collaboration/examples#worktree), les [modules d'extension](/server/collaboration/packages#worktree) et les [guide d'intégration de l'agent](/ai/worktree) fournissent des points de départ.
 
 [Retour à toutes les fonctionnalités](/overview/features)

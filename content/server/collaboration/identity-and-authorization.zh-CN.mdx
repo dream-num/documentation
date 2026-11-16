@@ -3,17 +3,15 @@ title: 身份与权限
 description: 使用 Transport、Endpoint 与 Service Middleware 接入应用已有的认证和授权系统。
 ---
 
-Univer Collaboration SDK 不定义用户、角色或 ACL 数据模型。应用在 Transport Middleware 中建立可信
-身份，再使用 Endpoint 与 Service Middleware 保护实时 Session 和权威协同数据。
+Univer Collaboration SDK 不定义用户、角色，也不提供 ACL 模型。应用在 Transport Middleware 中建立可信身份，再通过 Endpoint 与 Service Middleware 保护实时 Session 和权威协同数据。
 
-本页是 [Middleware 与 Event](/server/collaboration/middleware-and-events) 的具体应用指南，重点介绍如何利用
-Middleware 接入身份与权限。
+本页将 [Middleware 与 Event](/server/collaboration/middleware-and-events) 应用到一个具体场景：接入身份与权限。
 
 ## 验证编辑与只读权限 [#verify-permissions]
 
-停止前一个示例，运行 `pnpm example:permissions`。在两个独立浏览器会话中打开 `http://127.0.0.1:3010`，分别登录 **Alice · Editor** 与 **Bob · Viewer**：editor 可以修改文档，viewer 可以看到同步结果但不能修改。按 [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/permissions/server/main.ts) 依次查看 `transport.use()` 的身份解析、`readUnitData` 的读取检查、`joinUnit` 的房间检查和 `submitChangeset` 的编辑检查。迁入业务时，将演示 Cookie 与用户列表替换为真实认证及文档 ACL；**前端只读状态不能代替这些检查**。
+停止上一个示例并运行 `pnpm example:permissions`。在两个独立的浏览器上下文中打开 `http://127.0.0.1:3010`，一个登录 **Alice · Editor**，另一个登录 **Bob · Viewer**。editor 可以修改文档，viewer 能看到同步结果但无法修改。代码见 [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/permissions/server/main.ts)：`transport.use()` 中解析身份，`readUnitData` 中检查读取权限，`joinUnit` 中检查房间权限，`submitChangeset` 中检查编辑权限。接入业务时，将演示用的 Cookie 和用户列表替换为应用自己的认证与文档 ACL；**只依赖前端的只读状态是不够的**。
 
-页面还提供 **Casey · No access**。使用该账号登录后，应拒绝加载文档，snapshot 请求返回 HTTP 403。
+页面还提供一个 **Casey · No access** 账号。使用该账号登录时，文档加载应被阻止，snapshot 请求返回 HTTP 403。
 
 ## 身份模型
 
@@ -23,13 +21,11 @@ Middleware 接入身份与权限。
 | `memberID`    | Endpoint | 当前 WebSocket Session 的在线成员 ID，重连后变化 |
 | `sid + reqId` | Client   | Changeset 的提交幂等身份，重试时保持不变         |
 
-浏览器提交的用户资料、`memberID` 或 revision 都不能代替应用认证。应用应把自己的稳定用户主键映射为
-`context.userID`。
+浏览器提交的用户资料、`memberID` 和 revision 都不能代替应用认证。应用应将自身稳定的用户主键映射到 `context.userID`。
 
 ## 在 Transport Middleware 中建立身份
 
-Transport 会为每个 Collaboration HTTP request 重新运行 Middleware。应用可以读取 Cookie、Session
-或 Bearer Token，并把认证结果挂到 Context：
+每个 Collaboration HTTP request 到达时，Transport 都会执行一次 Middleware。应用可以读取 Cookie、Session 或 Bearer Token，并将认证结果附加到 Context：
 
 ```ts
 transport.use(async (context, next) => {
@@ -44,7 +40,7 @@ transport.use(async (context, next) => {
 });
 ```
 
-认证失败时，应直接结束 HTTP response，不再调用 `next()`：
+认证失败时直接结束 HTTP response，不再调用 `next()`：
 
 ```ts
 transport.use(async (context, next) => {
@@ -60,12 +56,11 @@ transport.use(async (context, next) => {
 });
 ```
 
-SDK 不规定 Cookie 名称、Token 格式、用户表或登录流程；这些都属于应用。
+SDK 不规定 Cookie 名称、Token 格式、用户表结构或登录流程。
 
 ## 身份如何进入 WebSocket Session
 
-WebSocket 不信任客户端 payload 中的用户字段。Endpoint 使用一次性 Session Ticket 把已认证的 HTTP
-Context 延长到实时 Session：
+WebSocket 路径不信任客户端 payload 中的用户字段。Endpoint 通过一次性 Session Ticket 将已认证的 HTTP Context 带入实时 Session：
 
 ```text
 Session Ticket HTTP request
@@ -76,7 +71,7 @@ Session Ticket HTTP request
   → 创建 Session { userID, memberID, customData }
 ```
 
-Ticket 字符串本身不包含 `userID` 或 `customData`。`memberID` 只标识当前连接，不能单独作为身份凭据。多节点部署使用共享的 Ticket 存储时，`customData` 会被序列化保存，应保持可 JSON 化。
+Ticket 字符串本身既不包含 `userID`，也不包含 `customData`。`memberID` 只标识当前连接，不能单独作为身份凭据。多节点部署共用 Ticket 存储时，存储的 `customData` 会被序列化，因此必须保证它可以 JSON 序列化。
 
 ## 在正确边界执行授权
 
@@ -91,9 +86,7 @@ Ticket 字符串本身不包含 `userID` 或 `customData`。`memberID` 只标识
 | 删除 Unit                         | Service `deleteUnits`     |
 | 恢复 Unit                         | Service `recoverUnits`    |
 
-Endpoint `joinUnit` 只控制 Session 能否进入实时 Room。Snapshot 与 missing changeset 可以通过 HTTP
-读取，因此 JOIN 检查不能替代 Service `readUnitData`。同样，客户端只读 UI 只是产品提示，不能替代
-`submitChangeset` 的服务端规则。
+Endpoint 的 `joinUnit` 只决定 Session 能否进入实时 Room。Snapshot 和 missing changeset 可以直接通过 HTTP 读取，因此 JOIN 检查无法替代 `readUnitData`。同理，客户端只读 UI 只是产品层面的提示，不能替代服务端的 `submitChangeset` 策略。
 
 ## 保护读取、JOIN 与编辑
 
@@ -126,12 +119,11 @@ service.use("submitChangeset", async (context, next) => {
 });
 ```
 
-真实应用通常同时安装这三项规则：读取与 JOIN 使用 read policy，提交使用 edit policy。
+真实应用通常会同时安装三条规则：HTTP 和 JOIN 使用 read policy，提交使用 edit policy。
 
 ## 保护 Unit 生命周期
 
-协同协议只打开已有 Unit；“新建文档”通常由应用 API 编排。应用先创建产品记录和 ACL，再调用
-`createUnitFromData()` 或 `createUnitFromSnapshot()`。同时应使用 Service Middleware 保护生命周期：
+协同协议打开的都是已经存在的 Unit。“新建文档”通常由应用自己的 API 完成：先写入产品记录和 ACL，再调用 `createUnitFromData()` 或 `createUnitFromSnapshot()`。生命周期同样需要通过 Service Middleware 保护：
 
 ```ts
 service.use("createUnit", async (context, next) => {
@@ -151,11 +143,11 @@ service.use("deleteUnits", async (context, next) => {
 });
 ```
 
-恢复 Unit 需要单独保护 `recoverUnits`。不要因为用户曾经拥有删除权限，就默认其永久拥有恢复权限。
+`recoverUnits` 需要单独保护。用户曾经拥有删除权限，并不代表始终拥有恢复权限。
 
 ## 在 customData 中复用查询结果
 
-同一次 Service 调用中的 Middleware 可以用 `customData` 避免重复查询：
+同一次 Service 调用中的 Middleware 可以通过 `customData` 复用查询结果，避免重复查询：
 
 ```ts
 service.use("submitChangeset", async (context, next) => {
@@ -169,29 +161,26 @@ service.use("submitChangeset", async (context, next) => {
 });
 ```
 
-`customData` 只属于当前调用或当前 Session，不会自动持久化。长期角色、ACL 或租户关系仍应保存在应用
-数据库中。
+`customData` 只属于当前调用或当前 Session，不会自动持久化。角色、ACL 和租户关系仍应保存在应用自己的存储中。
 
 ## 扩展模块需要独立策略
 
-History、Thread Comment、Worktree、File 与 Exchange 拥有各自的 Service Middleware：
+History、Thread Comment、Worktree、File 和 Exchange 各自拥有独立的 Service Middleware：
 
-- History list 和 changeset read 应检查 Unit 读取权限；
-- Comment list 应检查读取权限，add/reply/edit/delete 应检查评论策略；
-- Worktree 应分别保护可见性、draft 编辑、状态变化与正式 merge；
-- Worktree 最终写入 trunk 时，还会进入 trunk Service 自己的 Middleware；
-- File 的 `upload` 应按目标 Unit 的编辑权限检查，`signUrl` 与 `download` 按查看权限检查；
-- Exchange 的 `import` 与 `export` 适合检查配额与来源 Unit 的访问权限，导入创建 Unit 与导出读取 Unit 仍进入 Core Service 的 Middleware。
+- History list 和 changeset read 应检查调用方能否读取该 Unit。
+- Comment list 检查读取权限，add、reply、edit、delete 使用评论策略。
+- Worktree 需要分别检查可见性、draft 编辑、状态变化和 merge。
+- Worktree 合入 trunk 时仍然经过 trunk Service 的 Middleware。
+- File 的 `upload` 检查目标 Unit 的编辑权限，`signUrl` 和 `download` 检查读取权限。
+- Exchange 的 `import` 和 `export` 是执行配额检查和来源 Unit 访问检查的位置；导入时创建 Unit、导出时读取 Unit 仍然经过 Core Service 的 Middleware。
 
-主 Collaboration Service 上的规则不会自动保护这些模块。启用扩展模块时，应显式复用应用的同一套
-policy service，而不是复制一份独立 ACL 数据。
+安装在核心 Collaboration Service 上的规则不会自动保护这些模块。应复用应用同一套 policy service，不必为每个扩展模块另外建立 ACL 数据模型。
 
 ## 在客户端设置当前用户
 
-`UserManagerService.setCurrentUser()` 设置当前 Univer 实例中的用户 ID、名称和头像，供前端组件
-读取。例如，评论面板的“与我有关”筛选会使用这里的用户 ID，展示与当前用户相关的评论。
+`UserManagerService.setCurrentUser()` 为当前 Univer 实例设置用户 ID、名称和头像，前端组件从这里读取这些值。例如，评论面板的“与我有关”筛选项使用该用户 ID 显示与当前用户相关的评论。
 
-在创建 Univer 实例之后、加载文档之前设置：
+在创建 Univer 实例之后、加载文档之前调用该方法：
 
 ```ts
 import { UserManagerService } from "@univerjs/core";
@@ -207,7 +196,6 @@ univer
   });
 ```
 
-将应用的稳定用户 ID 映射到 `userID`，与服务端认证得到的 `context.userID` 一致。
-协作时共享的成员名称与头像通过服务端 `connect` Middleware 设置，详见 [Presence](/server/collaboration/presence)。
+将应用的稳定用户 ID 映射到 `userID`，并与服务端认证得到的 `context.userID` 保持一致。协同过程中共享的成员名称与头像在服务端 `connect` Middleware 中设置，详见 [Presence](/server/collaboration/presence)。
 
-完整可运行实现见 [Permissions 示例](/server/collaboration/examples#permissions)。
+完整可运行的版本见 [Permissions 示例](/server/collaboration/examples#permissions)。

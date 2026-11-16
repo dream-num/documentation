@@ -5,31 +5,29 @@ description: 了解如何透過 AI SDK 為 Univer 應用程式加入 Node.js CLI
 source: https://github.com/dream-num/univer-cli-sdk/blob/main/README.md
 ---
 
-Univer Office SDK 包含三個 SDK：[Web SDK](/guides/sheets) 提供嵌入式編輯器和無頭內容處理能力，[Server SDK](/server) 提供協同與檔案匯入匯出能力，[AI SDK](/ai) 提供 Agent 工作流程能力。
+Univer Office SDK 分為三部分：[Web SDK](/guides/sheets) 在瀏覽器中執行編輯器，也能在沒有介面的情況下處理內容；[Server SDK](/server) 提供協同和檔案交換能力；本系列介紹的 [AI SDK](/ai) 是一套用於建置 Office CLI 的 TypeScript SDK，為 Agent 和自動化程式提供 Node.js 入口，用於載入、理解、修改和檢查 Univer Unit[^document-unit]。
 
-**AI SDK** 是用於建立 Office CLI 的 TypeScript SDK。它為 AI Agent 與自動化流程提供 Node.js 入口，用於載入、理解、修改與檢查 Univer Unit[^document-unit]。
-
-AI SDK 是一組可組合的能力，並非固定的產品 CLI。命令名稱、參數、目標、身分與授權、輸出及部署都由業務應用程式決定。
+AI SDK 不是現成的 CLI 產品。它提供可以自由組合的基礎能力，命令名稱、命令參數、操作物件、身分與權限校驗方式、輸出格式以及部署位置均由應用決定。
 
 ## 建議的應用程式結構
 
-本指南採用 `CLI + Web + Server` 架構：
+本系列的範例均基於 `CLI + Web + Server` 的結構：
 
 <Mermaid chart={"flowchart LR\n    Agent([\"AI Agent / CLI 使用者\"]) --> CLI[\"<b>AI SDK</b><br/>業務 CLI\"]\n    Human([\"人類使用者\"]) --> Web[\"<b>Web SDK</b><br/>Web\"]\n    CLI --> Server[\"<b>Server SDK</b><br/>協同 · 檔案轉換\"]\n    Web --> Server\n    Server --> Storage[\"儲存\"]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Agent,Human actor"} />
 
-- CLI 是 AI Agent 或使用者操作 Unit 的入口。
-- Web 提供實際頁面，供互動編輯與人類審閱。
-- Server 儲存 CLI 與 Web 共用的 Unit、修訂版本及協同狀態。
+- CLI 是 Agent 或人向 Univer 發出指令的入口。
+- Web 展示頁面本身，使用者可以直接編輯，並檢視 Agent 生成的結果。
+- Server 儲存 CLI 和 Web 共用的 Unit、revision 與協同狀態。
 
-CLI、Web 與 Server 可分開部署，也能全部在本機執行。先以 Collaboration SDK 建立 Web + Server，再加入 CLI，是建議的學習路徑，不是部署限制。
+這三部分可以分開部署，也可以執行在同一臺機器上。建議先讓 Web 和 Server 與 Collaboration SDK 配合工作，再接入 CLI；這是推薦的入門路徑，不是部署要求。
 
-<Callout title="也支援純 CLI 應用程式">
-  AI SDK 可直接處理本機 Unit。可透過結構化輸出、AI Agent 視覺檢查或匯出的 Office 檔案檢查結果。即時 Web 頁面、共用修訂版本、History 與 Worktree 需要對應的 Web 及協同能力。
+<Callout title="也可以只建置 CLI 應用">
+  AI SDK 也可以在沒有伺服器端的情況下處理本地 Unit。結果可以透過結構化輸出檢視、讓 Agent 檢視截圖，或匯出為 Office 檔案。即時的 Web 頁面、共享 revision、History 和 Worktree 則需要相應的 Web 與協同能力。
 </Callout>
 
 ## 使用 Commander 組織 CLI
 
-AI SDK 基礎套件提供結構化 TypeScript API。命令預設集將常用能力轉成原生 Commander `Command` 物件。根程式始終由業務應用程式掌控：
+基礎包僅提供 TypeScript API，預設套件則將常用能力封裝為原生的 Commander `Command` 物件，可直接加入應用自己的程式：
 
 ```ts
 import { Command } from "commander";
@@ -42,15 +40,15 @@ program.addCommand(applicationCommand);
 await program.parseAsync();
 ```
 
-- **命令預設集**提供預設參數、說明與文字或 JSON 輸出。
-- **應用程式命令**組合 Runtime[^live-runtime]、業務目標、身分、提交策略或檔案策略。
-- 兩者都是一般 Commander `Command`，可混合加入同一根程式。
+- **預設命令**已定義自身的參數與 help 文字，並輸出文字或 JSON。
+- **應用級命令**將 Runtime[^live-runtime]、業務 target、身分以及提交或檔案策略組合在一起。
+- 兩者都是普通的 Commander `Command`，可以放在同一個程式中混用。
 
-後續每個主題會先介紹基礎能力，再說明如何接入 Commander。
+後續每一篇都先介紹基礎能力，再說明如何接入 Commander。
 
 ## 逐步建立能力
 
-AI SDK 指南從 Unit 核心內容操作開始，再加入檔案、視覺、協同與程序能力：
+本系列按層次增加能力：先讀寫 Unit 內容，再加入檔案處理、視覺檢查、協同和程序管理：
 
 ```text
 載入與編輯 Unit
@@ -62,23 +60,23 @@ AI SDK 指南從 Unit 核心內容操作開始，再加入檔案、視覺、協�
 
 ### 1. 載入與編輯 Unit
 
-先建立最小 AI Agent 迴圈：以 Collaboration Runtime 載入 Unit，透過 Inspection 理解內容，執行 Univer Facade 程式碼，並在需要時查找 Facade API。
+先完成最小可用流程：透過 Collaboration Runtime 載入 Unit，使用 Inspection 瞭解內容結構，執行 Facade 程式碼；遇到未使用過的 Facade API 時再查詢。
 
 ### 2. 接入 Office 檔案邊界
 
-使用 Exchange 在 Office 檔案與 UnitData 間轉換。匯入的 Unit 保留在 Collaboration Server；匯出前先透過 Collaboration Runtime 取得最新 UnitData。
+Exchange 負責在 Office 檔案和 UnitData 之間轉換。匯入後 Unit 儲存在 Collaboration Server 上；匯出時 Collaboration Runtime 先取得最新的 UnitData，再寫入檔案。
 
 ### 3. 加入視覺檢查
 
-結構化輸出無法完整描述頁面版面。Screenshot 為 AI Agent 提供渲染圖片，Layout Lint 則提供結構化的版面診斷。
+結構化結果無法完整描述頁面的顯示效果。Screenshot 為 Agent 提供渲染影像，Layout Lint 則將版面配置問題整理為 Agent 可以直接處理的診斷資訊。
 
 ### 4. 使用 Worktree 隔離修改
 
-AI Agent 可以多輪編輯與檢查 Worktree 草稿。準備完成後，人類在 Web 審閱，再選擇 Merge 或 Reopen。
+Agent 可以在 Worktree draft 中反覆編輯和檢查，不會影響線上文件。完成後標記 Ready，由人在 Web 中審閱，決定 Merge 或 Reopen。
 
 ### 5. 重用成本較高的執行環境
 
-先使用短生命週期 Runtime。只有啟動成本、並行或跨 CLI 程序重用變得重要時，才加入集區、Worker 或 Daemon。
+起初每條命令啟動一個 runtime，使用完畢後關閉。只有當啟動開銷、並行或跨 CLI 程序共享成為實際問題時，再引入 pool、worker 或 daemon。
 
 ## 建議閱讀順序
 

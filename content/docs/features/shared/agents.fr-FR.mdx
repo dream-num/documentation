@@ -4,49 +4,49 @@ description: "Composez inspection, édition et validation pour vos agents exista
 icon: Bot
 ---
 
-AI SDK expose les modèles, Facades et services collaboratifs Univer sous forme de capacités TypeScript pour un Agent existant. Il peut comprendre, modifier, vérifier puis soumettre le contenu à une revue. Votre application choisit modèle, protocole des outils et orchestration.
+AI SDK expose les modèles de contenu de Univer, Facades, et la collaboration comme des capacités composables TypeScript. Un Agent existant peut lire le contenu, le modifier, vérifier le résultat et le remettre pour examen. L'application choisit le modèle, le protocole d'outil et la méthode d'orchestration.
 
 ## Connecter les capacités à l’Agent [#capabilities]
 
-Les capacités renvoient des résultats structurés pour outils, services ou CLI. Les paquets `-command` facultatifs proposent des commandes Commander natives. L’Agent utilise le modèle de contenu et le système de commandes communs à l’éditeur Web.
+Les paquets de capacités renvoient des résultats structurés que l'application peut transmettre à ses propres outils, services ou CLI. Les paquets optionnels `-command` exposent les mêmes capacités que les commandes natives Commander. Les deux formulaires fonctionnent sur le modèle de contenu et le système de commande partagés avec l'éditeur Web.
 
 | Capacité | Responsabilité |
 | --- | --- |
-| Inspection | Lire structure, plages, paragraphes et objets pour préciser la cible. |
-| API Reference | Consulter hors ligne les déclarations Facade, surcharges, types et exemples fournis. |
-| Content Execution | Lier `workbook`, `doc`, `presentation`, `base` ou `board` à une Unit explicite. |
-| Collaboration Runtime | Charger, capturer les mutations, réconcilier les changements distants et soumettre les changesets. |
+| Inspection | Lire la structure, les plages, les paragraphes et les détails de l'objet pour restreindre la tâche. |
+| API Reference | Interroge les déclarations groupées Facade, les surcharges, les types et les exemples hors ligne. |
+| Content Execution | Reliures `workbook`, `doc`, `presentation`, `base` ou `board` à une unité spécifique et prépare le code à exécuter. |
+| Collaboration Runtime | Charge le contenu, capture les mutations, réconcilie les modifications à distance et commit des changements explicitement. |
 
 ## Restaurer un état modifiable [#runtime]
 
-Un Collaboration Runtime reste lié à une Unit. Il ouvre le backend de l’application, lit un checkpoint UnitData ou Snapshot, rejoue ses changesets et complète les révisions continues jusqu’à la tête distante. Si le module de formules est installé, il attend aussi l’application du dernier calcul.
+Un Collaboration Runtime reste lié à une unité unique pendant toute sa durée de vie. Pendant le chargement, il ouvre le moteur fourni par l'application, lit un point de contrôle UnitData ou Snapshot, et rejoue les changements au-dessus de ce point de contrôle. Il ferme ensuite l'écart de révision continue à la tête distante et, lorsque le module formule est installé, attend les derniers résultats de calcul.
 
 <Mermaid chart={"sequenceDiagram\nparticipant A as Outil applicatif\nparticipant R as Runtime\nparticipant U as Moteur de contenu\nparticipant B as Backend collaboratif\nA->>R: load\nR->>B: Charger checkpoint et changements\nR->>U: Restaurer Unit et revision\nA->>R: pull : récupérer les changements\nR->>B: fetchChangesets\nB-->>R: changesets\nR->>U: Réconcilier avec OT et appliquer\nA->>R: execute : modifier via Facade\nR->>U: Facade\nU-->>R: Produire les mutations\nNote over R: Conserver pending\nA->>R: commit : soumettre le changeset\nR->>B: changeset\nB-->>R: ACK : vérifier identité et revision"} />
 
-`fetch()` récupère et valide les changements. `pull()` les réconcilie avec pending/awaiting par OT, puis les applique. `baseRevision`, `knownHeadRevision`, `pendingMutationCount` et `awaitingChangeset` rendent l’état observable.
+`fetch()` récupère les modifications et les valide. `pull()` concilie les modifications à distance avec l'état local en attente et en attente par l'intermédiaire de l'OT, puis applique le résultat. Le Runtime expose `baseRevision`, `knownHeadRevision`, `pendingMutationCount` et `awaitingChangeset` afin que l'application puisse évaluer les progrès.
 
 ## Localiser avant d’exécuter une Facade [#inspection]
 
-Commencez par overview puis ciblez des ID stables ou sélecteurs précis, sans envoyer tout le Snapshot au modèle. Inspection couvre plages Sheet, paragraphes Doc, pages Slide, schéma Relational Table et objets Canvases. L’aperçu Relational Table inclut la configuration des champs, mais pas les valeurs ni View projection ; lisez-les via Facade si nécessaire.
+Fournir au modèle un aperçu d'abord, puis demander un ID stable ou un sélecteur précis au lieu d'envoyer un Snapshot complet. L'inspection couvre les plages de feuilles, les paragraphes de Doc, les pages de diapositives, les aperçus de schéma de table relationnelle et les objets Canvas.
 
-`prepareContentExecutionProgram()` résout la Facade racine par Unit ID sans dépendre de la sélection Web et refuse de redéclarer les variables injectées. Le mode read bloque les actions métier persistantes avant exécution ; write capture les mutations de l’Unit cible. Création et destruction d’Units relèvent d’opérations de cycle de vie distinctes.
+`prepareContentExecutionProgram()` résout la racine Facade de l'United ID, indépendamment de la sélection courante du navigateur, et rejette une nouvelle déclaration d'une liaison injectée. En mode lecture, l'opération Runtime bloque les actions commerciales qui persisteraient avant qu'elles ne s'exécutent; en mode écriture, elle capture les mutations de l'Unité cible. La création et l'élimination de l'unité sont des opérations distinctes du cycle de vie et se situent en dehors de cette entrée d'exécution unique.
 
-Utilisez `find()` pour découvrir les API et `show()` pour leurs déclarations et types exacts. L’index fourni fonctionne sans moteur ni documentation en ligne. Voir [opérations de contenu](/ai/content-operations) et [paquets](/ai/packages).
+Lorsqu'une API n'est pas connue, `find()` liste les candidats et `show()` imprime la déclaration exacte avec les types connexes. La référence est distribuée avec le SDK, donc elle ne nécessite ni un moteur de contenu ni la documentation en ligne. Voir [Opérations de contenu](/ai/content-operations) et [vue d'ensemble du paquet](/ai/packages).
 
 ## Exécution et persistance confirmée [#commit]
 
-`execute({ mode: 'write' })` modifie l’Unit en mémoire et accumule pending. **Cela ne confirme pas l’enregistrement côté serveur.** `commit()` envoie un changeset identifié et valide identité, contenu et revision de l’ACK avant confirmation.
+`execute({ mode: 'write' })` modifie l'unité en direct et accumule les mutations en attente. **Cela ne signifie pas que le serveur a enregistré les modifications.** `commit()` crée un jeu de changements avec une identité attachée; l'ACK doit correspondre à cette identité, à la charge utile et à la révision avant que le changement ne compte comme confirmé.
 
 | État | Action de l’application |
 | --- | --- |
-| `confirmed` / `nothing-to-commit` | Envoi confirmé ou aucune modification à envoyer. |
-| `pull-required` | La version distante a avancé : `pull()` puis `commit()`. |
-| `retry` / `unknown` | Conserver awaiting dans le même Runtime et réessayer `commit()`, sans rejouer l’édition. |
+| `confirmed` / `nothing-to-commit` | Les changements sont confirmés, ou il n'y avait rien à soumettre. |
+| `pull-required` | La révision distante a avancé. Appelez `pull()` pour se rapprocher, puis appelez `commit()` à nouveau. |
+| `retry` / `unknown` | Gardez l'état d'attente dans le même temps d'exécution et réessayez `commit()`. Ne recourez pas le programme d'édition. |
 | `conflict` | Arrêter les écritures et décider récupération ou rechargement. |
 
-Un résultat incertain conserve `sid + reqId` pour faire confirmer le même changeset de manière idempotente. Le backend doit respecter ce contrat. Une exception peut laisser des mutations déjà effectuées : examinez pending avant de choisir la récupération. `execute()` ne constitue pas une transaction à annulation automatique.
+Lorsque le résultat d'une soumission est incertain, l'exécution conserve `sid + reqId`, de sorte que le moteur peut confirmer les mêmes changementset idempotently au lieu de dupliquer les modifications. Le moteur doit implémenter ce contrat d'idempotency. Un programme qui lance peut laisser les mutations qu'il a déjà faites en place, donc inspecter l'état en attente et décider comment récupérer. `execute()` n'est pas une transaction qui retourne automatiquement.
 
-L’exemple reçoit un Runtime Sheet chargé et renvoie exécution et état de commit. L’appelant traite ces états et ferme le Runtime à la fin de son cycle de propriété.
+L'exemple ci-dessous accepte une feuille d'exécution déjà chargée et renvoie à la fois le résultat d'exécution et le résultat de commit. L'appelant gère les statuts ci-dessus et ferme l'exécution lorsque sa période de propriété prend fin.
 
 ```ts
 import { prepareContentExecutionProgram } from '@univer-cli/content-execution'
@@ -76,23 +76,23 @@ async function updateSales(runtime: UniverCollaborationRuntime) {
 
 ## Réutiliser les Runtimes [#reuse]
 
-Le pool prête exclusivement un Worker Runtime par key applicative. La création à froid est single-flight et les leases suivent FIFO ; des keys différentes peuvent utiliser des Workers distincts. `release()` rend l’instance, TTL/LRU récupère les ressources inactives et `invalidate()` retire une instance non fiable.
+Les tâches fréquentes peuvent louer un Worker Runtime exclusivement sous une clé appartenant à l'application. La création froide est un vol par clé, les baux sont en file d'attente dans l'ordre FIFO, et différentes clés peuvent utiliser différents Workers. `release()` retourne l'instance, l'expulsion TTL/LRU récupère les ressources inoccupées, et `invalidate()` prend sa retraite d'une instance qui n'est plus digne de confiance.
 
-La key doit distinguer backend, Unit et Worktree. Le pool ne vérifie pas la compatibilité sémantique des init. Un daemon conserve le pool entre appels CLI courts, mais synchronisation et confirmation restent nécessaires. Équilibrez démarrage, mémoire résidente et Workers ; voir [réutilisation et daemon](/ai/runtime-architecture).
+Une clé doit distinguer le moteur, l'unité et le Worktree. Le pool ne vérifie pas si deux ensembles d'entrées d'initialisation sont compatibles sémantiquement. Un démon peut tenir le pool sur de courts appels CLI, mais un Runtime réutilisé nécessite toujours une synchronisation et une confirmation de commit. L'application doit équilibrer le coût de démarrage par rapport à la mémoire résidente et au nombre de travailleurs; voir [Réutilisation et démon des temps d'exécution](/ai/runtime-architecture) .
 
 ## De l’automatisation à la revue humaine [#handoff]
 
-Composez rapports, nettoyage, remplissage de modèles ou génération : localisez, écrivez via Facade, attendez les calculs nécessaires, relisez valeurs, textes et attributs, puis ajoutez une [inspection visuelle](/overview/features/shared/visual-inspection) au besoin.
+Les capacités peuvent être combinées pour le reporting, le nettoyage des données, le remplissage des modèles ou la génération de contenu. Le flux localise la cible, écrit par Facades, attend tout calcul dont dépend le résultat et lit les valeurs, le texte et les propriétés de l'objet. [Contrôle visuel](/overview/features/shared/visual-inspection) lorsque la tâche l'exige.
 
-Pour une approbation, ciblez un [Worktree](/overview/features/shared/worktree). L’Agent édite et vérifie, marque Ready et une personne décide Merge. Suivez les résultats par Unit : plusieurs Runtimes ne forment pas une transaction atomique entre documents.
+Pour les flux de travail d'approbation, l'Agent travaille dans un [Worktree](/overview/features/shared/worktree). Il édifie et vérifie en ronds, puis une personne passe en revue le contenu Ready et décide s'il faut fusionner.
 
-L’application gère identité, droits, modèle et tâches. Les restrictions read/write protègent les opérations métier ; l’isolation des processus et les droits fichiers/réseau du JavaScript non fiable restent aussi applicatifs. Essayez le [démarrage rapide](/overview/get-started) et l’[exemple CLI](/overview/examples/cli).
+L'application possède l'identité, l'autorisation, l'intégration du modèle et le cycle de vie des tâches. JavaScript demeure la responsabilité de la demande. Voir [commencer](/overview/get-started) et les [Exemple de CLI Univer](/overview/examples/cli).
 
 ## Créer et modifier du contenu avec les Skills [#skills]
 
-Pour confier directement du contenu Office à votre agent, choisissez l’application selon l’emplacement des fichiers :
+Pour permettre à un Agent existant de travailler directement sur le contenu Office, commencez par l'application qui correspond à l'emplacement des fichiers :
 
-- [Skills CLI](/overview/examples/cli#skills) : créer, modifier et vérifier des fichiers Office locaux, puis les ouvrir dans le Viewer pour revue.
-- [Skills Workspace](/overview/examples/workspace#skills) : travailler sur les fichiers d’un Space connecté, créer du contenu Office et des Web Apps, puis transmettre les modifications pour collaboration et revue.
+- [Compétences en matière d'ICD](/overview/examples/cli#skills) : créez, modifiez et vérifiez les fichiers locaux Office, puis ouvrez le Viewer pour examen.
+- [Compétences en espace de travail](/overview/examples/workspace#skills) : travailler sur des fichiers dans un espace connecté, générer du contenu Office et des applications Web, et des changements manuels pour la collaboration et l'examen.
 
 [Retour aux fonctionnalités](/overview/features)

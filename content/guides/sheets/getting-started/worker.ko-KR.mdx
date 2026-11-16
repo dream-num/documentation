@@ -3,13 +3,13 @@ title: Web Workers
 icon: CircuitBoard
 ---
 
-다음 예제는 Univer에서 Worker를 사용하는 기본 방법을 보여 줍니다.
+아래 예제는 Univer의 공식 계산을 위해 Worker[^web-worker]를 구성하는 방법을 설명합니다.
 
-Sheets에서 Worker는 수식 계산과 같이 많은 연산이 필요한 작업에 주로 사용됩니다. Worker[^web-worker] 프로세스에서 수식 계산을 실행하면 메인 스레드의 부담을 줄일 수 있으며, 통합 문서에 수식이 많을 때도 페이지 렌더링과 상호작용의 반응성을 유지할 수 있습니다.
+장에서는, 노동자는 공식적인 계산과 같은 compute-intensive 일을 일반적으로 취급합니다. 노동자 과정에 있는 이 일을 운영하는 것은 주요 실에 짐을 감소시킵니다, 그래서 페이지 연출 및 상호 작용은 워크북이 많은 공식을 포함합니다 때 대답합니다.
 
 ## 플러그인 모드
 
-[설치](/guides/sheets/getting-started/installation)의 플러그인 모드 설정을 기준으로 렌더링과 UI 플러그인은 메인 스레드에 유지하세요. 기존 계산 관련 플러그인 세 개의 등록을 아래 설정으로 바꾸고 통합 문서를 만들기 전에 메인 스레드 RPC 플러그인을 추가하세요.
+이 섹션은 [설치하기](/guides/sheets/getting-started/installation)의 플러그인 모드 설정에서 시작합니다. 렌더링 및 UI 플러그인은 메인 스레드에 남아. 아래 버전과 세 가지 계산 플러그인의 등록을 대체하고, 워크북을 만들기 전에 메인 스레드 RPC 플러그인을 등록하십시오.
 
 `UniverRPCMainThreadPlugin`
 
@@ -37,7 +37,7 @@ univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: true })
 univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: true })
 ```
 
-Worker에는 아래 데이터 및 계산 플러그인만 등록하고 UI나 렌더링 플러그인은 등록하지 않습니다. 메인 스레드의 `notExecuteFormula: true`는 계산을 Worker에 위임합니다.
+Worker는 아래에 나열된 데이터 및 계산 플러그인만 포함합니다. UI를 등록하거나 Worker 플러그인을 렌더링하지 마십시오. 주요 스레드에서 `notExecuteFormula: true`는 Worker에 공식 계산을 위임합니다.
 
 `UniverSheetsPlugin`
 
@@ -59,9 +59,9 @@ univer.registerPlugin(UniverRPCWorkerThreadPlugin)
 univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
 ```
 
-필터 사용 시 양쪽에 `UniverSheetsFilterPlugin`을 등록해 `SUBTOTAL` 등에 반영합니다. 메인 스레드는 `@univerjs/sheets-filter`, Worker는 `@univerjs/sheets-filter/worker`에서 가져오세요. `UniverSheetsFilterUIPlugin`은 메인 스레드에만 등록합니다.
+필터링은 두 개의 스레드에서 `UniverSheetsFilterPlugin`가 필요합니다. 이 플러그인없이 `SUBTOTAL`와 같은 공식은 필터링이 숨겨져있는 것을 결정할 수 없습니다. 메인 스레드에서 `@univerjs/sheets-filter`에서 플러그인을 가져와 노동자의 `@univerjs/sheets-filter/worker`. `UniverSheetsFilterUIPlugin`는 메인 스레드에 남아 있습니다.
 
-Worker에 계산 플러그인을 추가할 때는 아래 진입점을 사용합니다. 메인 스레드는 각 패키지 루트를 사용하고 모든 SDK 패키지 버전을 맞추세요.
+Worker에서 추가 계산 플러그인을 위해 아래의 항목 포인트를 사용하십시오. 각 패키지의 루트 항목에서 주요 스레드 가져오기. 모든 SDK 패키지 버전은 정렬해야합니다.
 
 ```typescript title="worker.ts"
 import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula/worker'
@@ -71,7 +71,7 @@ import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer/worker'
 import { UniverSheetsTablePlugin } from '@univerjs/sheets-table/worker'
 ```
 
-피벗 테이블을 사용하려면 양쪽에서 `UniverFormulaEnginePlugin`을 `UniverProFormulaEnginePlugin`으로 교체하고 `UniverLicensePlugin`과 `UniverSheetsPivotTablePlugin`도 등록하세요. Pro 수식 엔진과 피벗 플러그인의 `notExecuteFormula`는 메인 스레드에서 `true`, Worker에서 `false`로 설정합니다. 양쪽에 라이선스를 전달하고 UI는 메인 스레드에 유지하며 사용자 정의 수식도 양쪽 엔진에 등록하세요.
+Pivot 테이블은 다른 구성이 필요합니다. `UniverFormulaEnginePlugin`를 두 스레드에서 `UniverProFormulaEnginePlugin`로 교체하고 `UniverLicensePlugin` 및 `UniverSheetsPivotTablePlugin`을 등록하십시오. 주요 스레드에서 Pro 공식 엔진 및 PivotTable 플러그인에 `notExecuteFormula: true`가 설정됩니다. 노동자에서 `false`에 설정하십시오. 실행 시간은 라이센스가 필요합니다. 피벗은 UI 공식에 남아 있으며 사용자 정의 엔진에 등록해야합니다.
 
 `UniverLicensePlugin`
 
@@ -101,7 +101,7 @@ import { UniverSheetsTablePlugin } from '@univerjs/sheets-table/worker'
 
 ### 예제: sheets-core-with-worker
 
-이 예제에서는 `SUBTOTAL` 수식 계산이 sheets-filter에서 숨긴 행의 영향을 받으므로 `sheets-filter` 프리셋 패키지를 가져옵니다. Worker에서 수식 계산을 실행할 때는 sheets-filter도 Worker에서 실행해야 합니다.
+이 예제에는 시트 필터가 줄을 숨기고 숨겨지기 때문에 `sheets-filter` 사전 설정 패키지가 포함되어 있으며 `SUBTOTAL`가 계산되는 방법에 영향을 미칩니다. 수식 계산이 노동자에서 실행되면 시트 필터는 노동자에서 실행해야합니다.
 
 ```typescript title="main.ts"
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'

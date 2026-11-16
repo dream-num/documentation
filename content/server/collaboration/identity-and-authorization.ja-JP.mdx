@@ -3,29 +3,29 @@ title: 本人確認と認可
 description: Transport、Endpoint、Service の Middleware を通じて既存の認証・認可システムを接続します。
 ---
 
-Univer Collaboration SDK はユーザー、ロール、ACL モデルを定義しません。アプリケーションは Transport Middleware で信頼できる本人情報を確立し、Endpoint と Service の Middleware でリアルタイム Session とサーバー管理の共同編集データを保護します。
+Univer Collaboration SDKは、ユーザー、ロール、またはACLモデルを定義しません。アプリケーションは、輸送ミドルウェアで信頼できるアイデンティティを確立し、エンドポイントとサービスミドルウェアでリアルタイムと権限のあるコラボレーションデータを保護します。
 
-このページは [Middleware と Events](/server/collaboration/middleware-and-events) の具体例として、Middleware による本人確認と認可の統合を説明します。
+このページでは、[ミドルウェアとイベント](/server/collaboration/middleware-and-events) を 1 つの具体的なタスクに適用します。ミドルウェアによるアイデンティティと認可を統合します。
 
 ## 編集・閲覧権限を確認する [#verify-permissions]
 
-前のサンプルを停止し `pnpm example:permissions` を実行します。独立したブラウザー環境で `http://127.0.0.1:3010` を開き、片方は **Alice · Editor**、もう片方は **Bob · Viewer** でログインします。editor は編集でき、viewer は同期結果を読めますが編集できません。[server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/permissions/server/main.ts) の `transport.use()`、`readUnitData`、`joinUnit`、`submitChangeset` を順に確認します。デモ Cookie とユーザー一覧を実際の認証・文書 ACL に置き換えてください。**フロントエンドの読み取り専用状態だけでは不十分です**。
+前の例を止めて実行する `pnpm example:permissions`. 開く `http://127.0.0.1:3010` 2つの別々のブラウザのコンテキストで: としてサインイン **アリス・エディタ** 1 つとして **ボブ・ビューア** 一方、エディタは文書を変更でき、ビューアは同期した結果が見えますが変更できません。 [サーバ/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/permissions/server/main.ts) コードに従うこと: アイデンティティの決断の `transport.use()`, でチェックを読みます `readUnitData`、部屋の点検 `joinUnit`でチェックを編集し、 `submitChangeset`. デモクッキーとユーザーリストを独自の認証と文書 ACL に置き換えます。 **フロントエンドの読み取り専用状態のみが不十分です。**
 
-**Casey · No access** でもログインできます。このアカウントでは文書の読み込みが拒否され、snapshot リクエストは HTTP 403 を返します。
+このページでは、**キャシー・アクセスなし**アカウントも提供しています。そのアカウントにサインインすると、ドキュメントの読み込みをブロックし、スナップショットリクエストはHTTP 403を返します。
 
 ## ID モデル
 
-| 識別子 | 提供元 | 意味とライフサイクル |
+| 識別子 | 提供元 | 意味と寿命 |
 | --- | --- | --- |
 | `userID` | アプリケーション | 安定した業務上の ID。確定した変更セットの作成者 |
 | `memberID` | Endpoint | 1 つの WebSocket Session のオンラインメンバー ID。再接続すると変わる |
 | `sid + reqId` | クライアント | 再試行でも変わらない変更セット送信の識別子 |
 
-ブラウザーから送られるプロフィール、`memberID`、リビジョンはアプリケーションの認証を代替できません。安定したユーザーキーを `context.userID` に対応付けます。
+ブラウザで送信されたユーザープロファイルフィールド、`memberID`、およびリビジョンは、アプリケーション認証の代替はできません。アプリケーションは、`context.userID`に安定したユーザーキーをマップします。
 
 ## Transport Middleware で本人情報を確立する
 
-Transport は共同編集の HTTP リクエストごとに Middleware を実行します。アプリケーションは Cookie、Session、Bearer token を読み取り、認証結果を Context に追加できます。
+トランスポートは、すべてのコラボレーションHTTPリクエストに対してミドルウェアを実行します。アプリケーションは、Cookie、セッション、またはベアラートークンを読み、認証結果をコンテキストに添付することができます。
 
 ```ts
 transport.use(async (context, next) => {
@@ -40,7 +40,7 @@ transport.use(async (context, next) => {
 });
 ```
 
-認証に失敗した場合は `next()` を呼ばずに HTTP レスポンスを終了します。
+認証が失敗すると、`next()` を呼び出すことなく HTTP レスポンスを終了します。
 
 ```ts
 transport.use(async (context, next) => {
@@ -60,7 +60,7 @@ SDK は Cookie 名、トークン形式、ユーザーテーブル、ログイ�
 
 ## WebSocket Session への本人情報の引き継ぎ
 
-WebSocket の経路はクライアントのペイロード内のユーザーフィールドを信頼しません。Endpoint は使い捨ての Session Ticket により、認証済み HTTP Context をリアルタイム Session に引き継ぎます。
+WebSocket パスは、クライアントペイロードでユーザーフィールドを信頼しません。エンドポイントは、認証された HTTP コンテキストを 1 回セッションチケットの手段によってリアルタイムセッションに処理します。
 
 ```text
 Session Ticket の HTTP リクエスト
@@ -71,7 +71,7 @@ Session Ticket の HTTP リクエスト
   → Session { userID, memberID, customData } を作成
 ```
 
-チケット文字列には `userID` や `customData` は含まれません。`memberID` は現在の接続のみを識別し、独立した認証情報ではありません。複数ノードで共有チケットストアを使う場合、保存される `customData` はシリアライズされるため、JSON にできる内容にしてください。
+チケット文字列には`userID`と`customData`は含まれていません。 `memberID`では、現在の接続のみを識別し、独立したアイデンティティ認証ではありません。 共有チケットストアを備えたマルチノード展開では、保存された`customData`がシリアライズされているため、JSON-serializableを維持する必要があります。
 
 ## 適切な境界で認可する
 
@@ -86,7 +86,7 @@ Session Ticket の HTTP リクエスト
 | Unit の削除 | Service `deleteUnits` |
 | Unit の復元 | Service `recoverUnits` |
 
-Endpoint の `joinUnit` は Session がリアルタイム Room に参加できるかだけを制御します。スナップショットや不足する変更セットは HTTP で直接読めるため、JOIN の検査は `readUnitData` の代わりにはなりません。同様に、クライアントの読み取り専用 UI は製品上の表示であり、サーバー側の `submitChangeset` ポリシーを代替しません。
+エンドポイント`joinUnit`は、セッションがリアルタイムルームに入ることができるかどうかだけを制御します。 スナップショットと欠落したチェンジセットは、HTTP上で直接読み込むことができます。そのため、JOINチェックは`readUnitData`を置き換えることができません。 同様に、読み取り専用クライアントUIは製品ヒントであり、`submitChangeset`ポリシーをサーバーに置き換えません。
 
 ## 読み取り、JOIN、編集を保護する
 
@@ -119,11 +119,11 @@ service.use("submitChangeset", async (context, next) => {
 });
 ```
 
-通常のアプリケーションでは、HTTP と JOIN の読み取りポリシー、および送信の編集ポリシーの 3 つを設定します。
+実際のアプリケーションは、通常、HTTP と JOIN のポリシーを読み込み、投稿のポリシーを編集する3つのルールをすべてインストールします。
 
 ## Unit のライフサイクルを保護する
 
-共同編集プロトコルは既存の Unit を開きます。「ドキュメント作成」は通常、製品レコードと ACL を作成してから `createUnitFromData()` または `createUnitFromSnapshot()` を呼ぶアプリケーション API です。Service Middleware でもライフサイクルを保護します。
+コラボレーションプロトコルは、既に存在するユニットを開きます。 「ドキュメントを作成する」は通常、`createUnitFromData()`または`createUnitFromSnapshot()`を呼び出す前に、製品レコードとACLを記述するアプリケーションAPIです。 ライフサイクルには、サービスミドルウェア保護が必要です。
 
 ```ts
 service.use("createUnit", async (context, next) => {
@@ -143,11 +143,11 @@ service.use("deleteUnits", async (context, next) => {
 });
 ```
 
-`recoverUnits` は個別に保護してください。過去に削除権限があったユーザーが、いつまでも復元権限を持つとは限りません。
+`recoverUnits`を別々に保護します。一度削除権限を持っていたユーザーは、必ずしも回復権限を保持しません。
 
 ## customData で検索結果を再利用する
 
-同じ Service 呼び出し内の Middleware は `customData` で重複クエリを避けられます。
+同じサービスコール内のミドルウェアは、重複クエリを避けるために`customData`を使うことができます。
 
 ```ts
 service.use("submitChangeset", async (context, next) => {
@@ -161,26 +161,26 @@ service.use("submitChangeset", async (context, next) => {
 });
 ```
 
-`customData` は現在の呼び出しまたは Session にのみ属し、自動的には永続化されません。ロール、ACL、テナント関係はアプリケーションのストレージで管理します。
+`customData`は、現在のコールまたはセッションにのみ属し、自動的に主張されていません。 役割、ACL、テナント関係は、アプリケーションストレージに残ります。
 
 ## 拡張モジュールには個別のポリシーが必要
 
-History、Thread Comment、Worktree、File、Exchange は独立した Service Middleware を持ちます。
+歴史、スレッドコメント、Worktree、ファイル、および取引所はそれぞれ独自のサービスミドルウェアを持っています。
 
-- History の一覧と変更セットの読み取りでは Unit の閲覧権限を確認します。
-- コメント一覧では閲覧権限を、追加・返信・編集・削除ではコメントのポリシーを適用します。
-- Worktree では可視性、下書き編集、状態変更、マージを個別に保護します。
-- Worktree のトランクへのマージはトランクの Service Middleware を通ります。
-- File の `upload` では対象 Unit の編集権限を、`signUrl` と `download` では閲覧権限を確認します。
-- Exchange の `import` と `export` はクォータと元 Unit へのアクセス権限の確認に適しています。インポートした Unit の作成とエクスポートする Unit の読み取りは Core Service の Middleware を通ります。
+- 履歴リストとチェンジセットの読み込みは、呼び出し主がユニットを読み込むことができることを確認する必要があります。
+- コメントリストは、コメントポリシーを追加、返信、編集、削除する際の読み取りアクセスをチェックする必要があります。
+- Worktreeは、可視性、草案の編集、ステータス変更、およびマージのための別のチェックを必要とします。
+- Worktreeはトランクに統合し、トランクサービスミドルウェアを経由します。
+- ファイル `upload` は、`signUrl`と `download` check read access で、対象ユニットへの編集アクセスを確認する必要があります。
+- 交換`import`と`export`は、クォータチェックの適切な場所であり、ソースユニットへのアクセスをチェックします。 インポートユニットを作成し、エクスポートされたユニットを読んだりしても、コアサービスミドルウェアを通過します。
 
-基本の Collaboration Service のルールはこれらのモジュールを自動的には保護しません。拡張ごとに別の ACL モデルを作らず、同じアプリケーションのポリシーサービスを再利用してください。
+コアコラボレーションサービスにインストールされているルールは、これらのモジュールを自動的に保護しません。各拡張用に構築された別の ACL データモデルではなく、同じアプリケーションポリシーサービスを再使用する必要があります。
 
 ## クライアントの現在のユーザーを設定する
 
-`UserManagerService.setCurrentUser()` は現在の Univer インスタンスのユーザー ID、名前、アバターを設定し、フロントエンドコンポーネントが参照できるようにします。たとえばコメントパネルの「自分に関連」フィルターは、この ID で現在のユーザーに関連するコメントを表示します。
+`UserManagerService.setCurrentUser()`は、現在のUniverインスタンスのユーザーID、名前、アバターを設定し、フロントエンドコンポーネントはそこからこれらの値を読みます。コメントパネルの「Concern me」フィルタは、このユーザーIDを使用して、現在のユーザーを含むコメントを表示します。
 
-Univer インスタンス作成後、文書を読み込む前に設定します。
+Univerインスタンスが作成され、ドキュメントがロードされる前に呼び出します。
 
 ```ts
 import { UserManagerService } from "@univerjs/core";
@@ -196,6 +196,6 @@ univer
   });
 ```
 
-アプリケーションの安定したユーザー ID を `userID` に対応付け、サーバーで認証した `context.userID` と一致させます。共同編集中に共有する名前とアバターは、[Presence](/server/collaboration/presence) の説明に従い、サーバーの `connect` Middleware で設定します。
+アプリケーションの安定したユーザー ID を `userID` にマップし、サーバー上で認証された `context.userID` と同一に保ちます。 コラボレーション中に共有されたメンバー名とアバターは、[プレゼンス](/server/collaboration/presence) で説明されているように、サーバーの `connect` ミドルウェアで設定されます。
 
-実行可能な全体の実装は[権限のサンプル](/server/collaboration/examples#permissions)を参照してください。
+[許可例](/server/collaboration/examples#permissions)は、完全な実行可能なバージョンです。

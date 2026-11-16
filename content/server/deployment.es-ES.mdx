@@ -4,7 +4,7 @@ title: Guía de despliegue
 description: Elige la forma de despliegue de una aplicación Server SDK según su escala, desde una sola máquina hasta varios nodos de colaboración.
 ---
 
-Esta página describe tres formas de despliegue de una aplicación Server SDK según su escala. Lee primero [Collaboration SDK](/server/collaboration/overview), [importación y exportación](/server/import-export) y los [ejemplos](/server/collaboration/examples) para ver cómo se ensamblan los módulos; el despliegue coloca ese mismo ensamblaje en uno o varios nodos.
+Una aplicación Server SDK tiene tres formas de despliegue, y la escala de la aplicación determina cuál utilizar. Comience con [Collaboration SDK](/server/collaboration/overview), [importación y exportación](/server/import-export) y el [ejemplos](/server/collaboration/examples) para ver cómo se montan los módulos. El despliegue sólo determina cuántos nodos ejecutan esa misma asamblea.
 
 | Forma | Colaboración | Importación y exportación | Escala recomendada |
 | --- | --- | --- | --- |
@@ -14,33 +14,33 @@ Esta página describe tres formas de despliegue de una aplicación Server SDK se
 
 ## Una sola máquina
 
-Todas las funciones se despliegan en un solo proceso de Node.js y el navegador se conecta directamente.
+Todos los componentes funcionan en un solo proceso Node.js, y el navegador se conecta a ese proceso directamente.
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Navegador\"]) --> App[\"Colaboración + Exchange\"]\n    App --> DB[(\"Base de datos\")]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
 - El Database Adapter implementa el contrato `IDatabaseAdapter`; consulta [Adaptadores de base de datos](/server/collaboration/database-adapters).
-- La importación y exportación se ensamblan con Exchange Service y File Service; consulta [Módulos de extensión de colaboración](/server/collaboration/extensions).
-- Una conversión consume mucha CPU y un archivo grande ralentiza la colaboración.
+- Importación y exportación son proporcionados por Servicio de Intercambio y Servicio de Archivo. Ver [Módulos de extensión de colaboración](/server/collaboration/extensions).
+- Conversión es CPU-bound, por lo que un archivo grande retarda la colaboración.
 
-Separa la importación y exportación cuando las conversiones afecten a la respuesta de la colaboración o el servicio deba atender a muchos usuarios de forma continua.
+Mueva la importación y la exportación a un nodo separado cuando las conversiones comienzan a afectar la latencia de la colaboración, o cuando el servicio debe seguir siendo sensible para muchos usuarios.
 
 ## Separar la importación y exportación
 
-La importación y exportación pasan a un nodo independiente; la colaboración sigue en un nodo; el gateway enruta los dos tipos de rutas por separado; ambos usan la misma base de datos.
+La importación y exportación se ejecutan en un nodo dedicado mientras la colaboración permanece en un solo nodo. La puerta de entrada recorre los dos tipos de solicitudes por separado, y ambas partes utilizan la misma base de datos.
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Navegador\"]) --> Gateway[\"Gateway\"]\n    Gateway -->|\"Solicitudes de colaboración\"| Node[\"Nodo de colaboración\"]\n    Gateway -->|\"Solicitudes de importación y exportación\"| Exchange[\"Nodo de importación y exportación\"]\n    Node --> DB[(\"Base de datos\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
-El nodo de importación y exportación ensambla el Database Adapter, un `UniverCollabService`, File Service y Exchange Service, y accede directamente a la base de datos; los puntos de inyección son los mismos que en una sola máquina. Ambos tipos de nodo apuntan File Service al mismo almacenamiento de archivos e instalan el mismo Middleware de autorización en `UniverCollabService`.
+El nodo de importación y exportación monta el Adaptador de Bases de Datos, un `UniverCollabService`, Servicio de Archivo y Servicio de Intercambio, y luego trabaja directamente con la base de datos. Los puntos de inyección son los mismos que en una sola máquina. Ambos nodos apuntan Servicio de Archivo en el mismo almacenamiento de archivos, y ambos instalan la misma autorización Middleware en `UniverCollabService`.
 
-Los documentos que atiende un solo nodo de colaboración están limitados por la memoria del proceso. Pasa a varios nodos cuando superes esa capacidad o necesites conmutación por error.
+La memoria del proceso limita el número de documentos que un nodo de colaboración puede servir. Muévete a múltiples nodos cuando esa capacidad se exceda, o cuando se requiera la falla.
 
 ## Varios nodos de colaboración
 
-Varios nodos de colaboración ejecutan el mismo código sobre la misma base de datos. Un adaptador pub/sub retransmite Rooms, Presence y difusiones entre nodos, un ticket store comparte los Session Tickets y `@univerjs-pro/collaboration-cluster-redis` proporciona la implementación sobre Redis. Todos los nodos usan la misma licencia, que cubre el número de nodos que ejecutas; consulta [nodos de colaboración](/server/collaboration/license#nodes). Ejemplo de referencia: [Multi-node](/server/collaboration/examples#multi-node).
+Varios nodos de colaboración ejecutan el mismo código contra la misma base de datos. Un adaptador pub/sub relés Habitaciones, Presencia y transmisiones entre los nodos, y una tienda de entradas comparte entradas Sesión Tickets. `@univerjs-pro/collaboration-cluster-redis` proporciona la implementación de Redis. Cada nodo utiliza la misma Licencia, que cubre el número de nodos que se ejecutan; véase [nodos de colaboración](/server/collaboration/license#nodes). Para una implementación de referencia, vea [Nodos múltiples](/server/collaboration/examples#multi-node).
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"Navegador\"]) --> Gateway[\"Gateway\"]\n    subgraph Nodes[\"Nodos de colaboración\"]\n        direction TB\n        A[\"Nodo A\"]\n        B[\"Nodo B\"]\n    end\n    Gateway -->|\"Solicitudes de colaboración\"| A\n    Gateway --> B\n    subgraph Exchange[\"Nodos de importación y exportación\"]\n        direction TB\n        X1[\"Nodo A\"]\n        X2[\"Nodo B\"]\n    end\n    Gateway -->|\"Solicitudes de importación y exportación\"| X1\n    Gateway --> X2\n    A --- PubSub[(\"pub/sub + ticket store\")]\n    B --- PubSub\n    A --> DB[(\"Base de datos\")]\n    B --> DB\n    X1 --> DB\n    X2 --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
-Cada nodo de colaboración pasa el adaptador pub/sub y el ticket store de Redis al Endpoint; el resto del ensamblaje se mantiene igual:
+Cada nodo de colaboración pasa por el adaptador Redis pub/sub y la tienda de entradas al Endpoint. El resto de la asamblea no se cambia:
 
 ```ts
 import { createClient } from "redis";
@@ -58,4 +58,4 @@ const endpoint = new UniverCollabEndpoint(service, { pubSub, ticketStore });
 
 ## Más allá
 
-Un documento muy grande ralentiza las solicitudes de los documentos pequeños del mismo nodo. Divide los nodos en grupos según el tamaño de los documentos y haz que el gateway enrute los documentos grandes a un grupo dedicado; la clave de enrutamiento sigue siendo el unit ID y todos los grupos comparten la base de datos y pub/sub.
+Un documento muy grande ralentiza las solicitudes de documentos pequeños en el mismo nodo. Dividir las piscinas de nodo por tamaño de documento y dejar que la ruta de entrada documentos grandes a una piscina dedicada. La clave de enrutamiento sigue siendo el ID de unidad, y cada piscina comparte la base de datos y pub/sub.

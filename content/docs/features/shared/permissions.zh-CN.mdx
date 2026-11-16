@@ -4,27 +4,27 @@ description: "了解 Unit 级操作权限、各产品的对象权限，以及前
 icon: ShieldCheck
 ---
 
-Univer 将权限分为**整份内容的操作权限**与**内容内部的对象权限**。Web SDK 根据权限控制交互和命令执行；Server SDK 在读取、协同提交和扩展服务边界执行应用的授权策略。
+Univer 将权限划分为两层：**整份内容上的操作权限**与**内容内部的对象权限**。Web SDK 用这两层权限控制交互和命令执行，Server SDK 负责读取、协同提交和扩展服务这几处边界上的授权。
 
 ## Unit 级权限 [#unit-permissions]
 
-一个 [Unit（内容单元）](/guides/sheets/getting-started/quickstart#unit) 是一份完整的内容实例，例如一份工作簿、文档、演示文稿、Relational Table、画布或 PDF。下面的 Unit 权限适用于 Sheet、Doc、Slide、Relational Table 和 Canvases；PDF 的当前范围见下文。
+一个 [Unit（内容单元）](/guides/sheets/getting-started/quickstart#unit) 是一份完整的内容实例，例如工作簿、文档、演示文稿、Relational Table、画布或 PDF。下面的 Unit 级权限适用于 Sheet、Doc、Slide、Relational Table 和 Canvases；PDF 在后面的小节单独说明。
 
 | 权限 | 控制什么 | 典型用法 |
 | --- | --- | --- |
-| 编辑（Edit） | 修改内容和结构。 | 查看者只读，编辑者可以填写和调整内容。 |
-| 复制（Copy） | 在编辑器中复制内容。 | 允许阅读和评论，同时限制内容复制。 |
-| 评论（Comment） | 在启用评论功能后发起评论或回复。 | 允许审阅者提出意见，同时保持正文只读。 |
-| 打印（Print） | 使用产品的打印能力。 | 允许在线阅读，同时限制打印。 |
-| 导出（Export） | 将内容导出为支持的文件格式。 | 为交付或归档开放文件导出。 |
+| 编辑（Edit） | 修改内容与结构。 | 查看者只读，编辑者可填写和调整内容。 |
+| 复制（Copy） | 在编辑器内复制内容。 | 允许阅读和评论，同时禁止复制。 |
+| 评论（Comment） | 发起评论或回复（需已安装评论功能）。 | 审阅者可以评论，正文保持只读。 |
+| 打印（Print） | 使用产品的打印功能。 | 允许在线阅读，同时禁止打印。 |
+| 导出（Export） | 将内容导出为支持的文件格式。 | 便于交付文件或归档。 |
 
-编辑与评论相互独立。评论的编辑、删除和管理还应遵守应用对作者、所有者等身份的策略。
+编辑和评论彼此独立。编辑、删除和管理评论，同样遵循应用设定的作者与所有者策略。
 
-打印和导出同样属于 Unit 级权限。Sheet、Doc、Slide 和 Canvases 提供 Print 与 Export；Relational Table 当前提供 Export。各权限点需要配合对应的功能插件使用。
+打印和导出同样属于 Unit 级权限。Sheet、Doc、Slide 和 Canvases 两者都支持；Relational Table 目前只支持 Export。每个权限点需要与对应的功能插件配合使用。
 
-复制内容、复制整份文件、导出和下载属于不同操作，需要分别配置。是否允许打开文件，由应用的读取授权决定。
+复制内容、复制整份文件、导出、下载是四个不同的操作，需要分别配置。文件能否打开，取决于应用的读取授权。
 
-例如，Docs 可独立控制整份文档的 Unit 级权限：
+例如，一篇 Doc 的 Unit 级权限可以单独设置：
 
 ```ts
 import { UnitAction } from '@univerjs/protocol'
@@ -40,91 +40,91 @@ await permission.setPoint(UnitAction.Print, false)
 await permission.setPoint(UnitAction.Export, false)
 ```
 
-示例需要已注册相应产品与评论插件；插件模式还需导入 `@univerjs/docs/facade`。各产品的权限入口见下文，Sheets 使用自己的权限点枚举。
+运行这段示例前，需要先注册产品和评论插件；插件模式下还需要导入 `@univerjs/docs/facade`。各产品的权限入口见下文，Sheets 使用自己的一套权限点枚举。
 
-Pro 协同服务端对仅包含内置评论新增、删除、解决、更新或引用更新 mutation 的非空 changeset 检查 `UnitAction.Comment`。混合 changeset 及会修改文档内容的 mutation（包括 Docs 评论标记）仍要求 `UnitAction.Edit`，应用还须执行评论作者和所有者的权限策略。使用 Collaboration SDK 自定义 Service Middleware 时，需在 `submitChangeset` 策略中实现对应分类；统一检查 Edit 会阻止仅有评论权限的用户提交评论。
+当一个非空 changeset 只包含内置的评论新增、删除、解决、更新或引用更新 mutation 时，Pro 协同服务端检查 `UnitAction.Comment`。混合 changeset，以及任何会改动文档内容的 mutation（包括 Docs 的评论标记），仍然要求 `UnitAction.Edit`。评论作者和所有者的策略，也需要由应用自行执行。如果使用自定义的 Collaboration SDK Service Middleware，应在 `submitChangeset` 策略中做同样的分类；一律按 Edit 检查，会使只有评论权限的审阅者无法提交评论。
 
 ## 按产品控制内容细节
 
 ### 电子表格（Sheet）
 
-权限分为**工作簿 → 工作表 → 单元格区域**。工作簿决定整份内容的编辑、复制、评论等能力；工作表可进一步限制单元格值、样式、行列增删、排序、筛选、透视表与附加对象操作。区域保护可控制指定范围的编辑和查看，并指定允许编辑的协作者。
+权限按**工作簿 → 工作表 → 单元格区域**逐层细化。工作簿层控制整份文件的编辑、复制和评论；工作表权限点进一步限制单元格值、样式、行列变更、排序、筛选、透视表以及附加对象。区域保护规定指定范围能否编辑、能否查看，也可以指定允许操作的协作者。
 
-例如，锁定预算公式列，只开放费用填写区。入口分别为 `getWorkbookPermission()`、`getWorksheetPermission()` 和 `getRangePermission()`；工作表和区域设置保护点位前，先创建相应保护规则。涉及不可读取的数据时，应用读取接口也需按业务策略控制返回范围。
+例如，需要锁住预算公式、只开放费用填写区时，可分别调用 `getWorkbookPermission()`、`getWorksheetPermission()` 和 `getRangePermission()`。在设置工作表或区域保护的权限点之前，需要先创建对应的保护规则。如果某些数据不允许读取，应用还需要按业务策略控制读取接口的返回范围。
 
 [Sheets 权限与保护规则](/guides/sheets/features/core/permission)
 
 ### 文档（Doc）
 
-在整份文档之下，可以控制**节（Section）、段落和内容实体**的编辑权限。实体包括表格、绘图、自定义块或范围等有稳定标识的内容；页眉、页脚中的段落也通过所属 segment 定位。
+文档层之下，还可以保护**节（Section）、段落和内容实体**。实体包括表格、绘图、自定义块，以及带稳定标识的范围；页眉和页脚中的段落通过所属 segment 定位。
 
-例如，保护合同固定条款，只开放待填写段落。段落和节使用 `getPermission()`，内容实体使用 `document.getEntityPermission()`；对象权限随文档、父级与自身规则共同生效。
+例如，保护合同的固定条款，只开放需要填写的段落。节和段落使用 `getPermission()`，内容实体使用 `document.getEntityPermission()`。最终生效的权限由文档、适用的父级以及对象自身的规则共同决定。
 
 [文档级权限](/reference/facade/document-permission) · [节、段落与实体权限](/reference/facade/document-object-permission)
 
 ### 演示文稿（Slide）
 
-权限可作用于**演示文稿、单张幻灯片、页面元素以及母版编辑入口与元素**。可以保护品牌模板和固定图形，同时开放业务页面中的文本框、图片或图表对象。
+权限可覆盖**整份演示文稿、单张幻灯片、页面元素，以及母版编辑入口和母版元素**。品牌模板和固定图形可以保持锁定，同时开放选定的文本框、图片或图表对象供编辑。
 
-整份演示文稿使用 `presentation.getPermission()`，单页使用 `slide.getPermission()`，单个元素使用 `slide.getElementPermission()`。母版相关入口见 Presentation Facade。
+整份演示文稿使用 `presentation.getPermission()`，单张幻灯片使用 `slide.getPermission()`，单个元素使用 `slide.getElementPermission()`。母版相关的访问入口由 Presentation Facade 提供。
 
 [Slides 权限](/guides/slides/features/core/permissions) · [Presentation Facade](/reference/facade/presentation)
 
 ### 关系型表格（Relational Table） [#多维表格base]
 
-Relational Table 可以控制**表、字段、记录、视图与仪表盘**。编辑一个单元格时，会同时考虑 Relational Table、表、字段和记录的编辑限制；视图配置与仪表盘也可分别保护。
+Relational Table 的权限覆盖**表、字段、记录、视图和仪表盘**。编辑一个单元格时，Relational Table、表、字段、记录四层限制会同时生效；视图配置和仪表盘也可以单独保护。
 
-例如，保护字段结构与财务记录，允许业务人员维护日常任务。表、字段、记录和视图通过各自的 `getPermission()` 设置；仪表盘需要相应插件。按用户过滤可读取的字段或记录，应由应用的数据读取策略实现。
+例如，保护字段结构和财务记录，同时让业务人员继续维护日常任务。表、字段、记录、视图分别使用 `getPermission()` 设置；仪表盘需要对应插件。按用户过滤可读字段和记录，由应用的数据读取策略负责。
 
 [Relational Table 权限](/guides/bases/features/core/permissions) · [对象权限 API](/reference/facade/base-object-permission)
 
 ### 画布（Canvases） [#画板board]
 
-在整个 Canvases 的权限之下，可以控制**单个元素**的编辑，例如图形、文本、图片或连接线。适合保护架构底图、流程框架，同时允许协作者维护指定节点。
+在 Canvases Unit 内，可以保护**每个元素**，包括图形、文本、图片和连接线。架构底图或流程框架可以保持受保护状态，协作者只编辑需要维护的节点。
 
-整份画布使用 `board.getPermission()`，元素使用 `board.getElementPermission(elementId)`。元素的有效编辑权限同时受 Canvases 级和元素级规则约束。
+整份画布使用 `board.getPermission()`，单个元素使用 `board.getElementPermission(elementId)`。编辑一个元素需要同时具备 Canvases 级和元素级权限。
 
 [Canvases 权限](/reference/facade/board-permission) · [元素权限](/reference/facade/board-element-permission)
 
 ### PDF
 
-PDF 当前主要通过**查看 / 编辑模式**控制本地交互，与上述五类产品的 Unit / Object 权限 API 范围不同。文件读取、下载和导出策略由应用后端接入；PDF 当前也不属于核心协同服务支持的五类 Unit。
+PDF 目前通过**查看 / 编辑模式**控制本地交互，其作用范围与上面五类产品的 Unit / Object 权限 API 不同。文件读取、下载和导出的授权由应用后端负责。PDF 也不属于核心协同服务支持的五类 Unit。
 
 [PDF 接入与内容操作](/guides/pdfs/getting-started/facade)
 
 ## 权限继承与协作者策略
 
-**对象级许可不能突破产品级和适用父级的限制。** 例如，整份文档只读时，单独将某段落设为可编辑，最终仍不可编辑。通过 `canEdit()` 查询相应对象的有效结果。
+**对象级的授权不会覆盖 Unit 级限制，也不会覆盖适用父级的限制。** 整份文档只读时，将某个段落设为可编辑不会生效。支持的对象可以通过 `canEdit()` 查询最终结果。
 
-Doc、Slide、Relational Table 和 Canvases 的子对象权限主要控制 Edit；复制和评论在产品级配置。Sheets 另外提供工作表和选区的专用点位，不能把某一产品的权限粒度直接套用到所有产品。
+Doc、Slide、Relational Table 和 Canvases 的子对象权限主要控制 Edit，复制和评论在 Unit 级配置。Sheets 另外增加了工作表和选区两类权限点，因此各产品的权限粒度不同。
 
-对 Doc、Slide、Relational Table 和 Canvases，可通过 `setObjectPermissions()` 批量管理对象的协作者策略：
+Doc、Slide、Relational Table 和 Canvases 提供 `setObjectPermissions()`，用于批量设置对象的协作者策略：
 
 | 策略 | 允许谁编辑对象 |
 | --- | --- |
-| `all` | 已具有该 Unit 编辑权限的协作者。 |
-| `owner` | 对象所有者，同时保留产品与父级权限约束。 |
-| `members` | 指定的已有 Unit 协作者。 |
+| `all` | 已拥有该 Unit 编辑权限的协作者。 |
+| `owner` | 对象所有者，前提是 Unit 和父级权限允许。 |
+| `members` | 仅限你选择的现有 Unit 协作者。 |
 
-这类策略需要接入 Authz 服务、为目标类型配置 `objectPermissionTypes`，并持久化对象绑定、规则和成员关系。请使用 SDK 导出的对象 ID helper，保持内容对象 ID 稳定；`policy: null` 用于移除保护并恢复继承。批量设置的结果可能包含部分失败，应检查 `failed` 与 `refreshError`。Sheets 通过工作表 / 区域保护接口接入相应策略。
+使用这类策略需要接入 Authz 服务，为目标类型配置 `objectPermissionTypes`，并持久化对象绑定、规则和成员关系。对象 ID 应使用 SDK 导出的 helper 生成，并保持内容对象 ID 稳定。`policy: null` 会移除保护并恢复继承。批量写入可能只对部分对象成功，因此需要检查 `failed` 和 `refreshError`。Sheets 通过工作表 / 区域保护接口实现这类策略。
 
 ## 前后端如何共同授权
 
-应用维护一套可信的用户身份、角色与文档 / 对象策略，并分别驱动前端权限表现和服务端检查。
+应用维护一套可信的用户身份、角色与 Unit / 对象策略，前端行为和服务端授权都由它驱动。
 
 <Mermaid chart={"flowchart LR\n    P[\"应用身份<br/>权限策略\"]\n    W[\"Web SDK<br/>交互与命令检查\"]\n    S[\"Server SDK<br/>请求与变更授权\"]\n    D[\"持久化并广播\"]\n    P --> W\n    P --> S\n    W -->|\"提交修改\"| S\n    S -->|\"允许后\"| D"} />
 
 | 层级 | 负责什么 |
 | --- | --- |
-| Web SDK | 获取当前用户的授权结果，更新权限点、编辑入口与命令检查，向用户反馈被限制的操作。 |
-| 应用 Authz 接口 | 根据可信登录身份查询或修改规则，返回用户对 Unit / 对象的实际权限，并验证规则管理资格。 |
-| Transport | 验证 Cookie、Session 或 Token，建立可信身份；浏览器提交的用户字段不能作为授权依据。 |
-| Endpoint | 校验 WebSocket 连接与 `joinUnit`，控制是否可以加入文档的实时房间。 |
-| Service | 在 `readUnitData` 校验读取，在 `submitChangeset` 校验提交；涉及对象级策略时，在应用阶段结合当前内容模型校验受影响对象。 |
+| Web SDK | 读取当前用户可执行的操作，更新权限点和编辑入口，检查命令，并将受限操作反馈给用户。 |
+| 应用 Authz 接口 | 使用可信的登录身份查询或修改策略，返回该用户对 Unit 和对象的实际权限，同时校验策略管理资格。 |
+| Transport | 校验 Cookie、Session 或 Token 凭据并建立可信身份；客户端提交的用户字段不能作为授权依据。 |
+| Endpoint | 校验 WebSocket 连接和 `joinUnit` 的房间成员资格，决定谁可以加入文档的实时房间。 |
+| Service | 在 `readUnitData` 校验读取，在 `submitChangeset` 校验提交；存在对象策略时，在应用 changeset 的过程中结合受影响内容校验对象权限。 |
 
-Server SDK 提供 Middleware 授权入口，具体 ACL 和对象策略由应用提供。**前端设置只读或对象保护，不会自动替代服务端校验。** 只有 Unit 级编辑检查的应用，还需补充细粒度对象检查，才能落实上述段落、元素、字段或记录的业务限制。
+Server SDK 提供 Middleware 授权入口，ACL 和对象策略由应用提供。**前端的只读设置和对象保护本身并不构成后端授权。** 如果应用只检查 Unit 级 Edit，还需要补充对象级检查，才能约束对段落、元素、字段或记录的修改。
 
-例如，已创建的 `collabService` 可接入应用自己的 `acl`：
+例如，将一个已有的 `collabService` 接入自己的 `acl`：
 
 ```ts
 import { CollabError } from '@univerjs-pro/collaboration-service'
@@ -141,8 +141,8 @@ collabService.use('submitChangeset', async (context, next) => {
 })
 ```
 
-本例只演示 Unit 级编辑授权。完整接入还需保护读取、JOIN、权限规则的修改，以及扩展模块的接口。对细粒度修改，可在 `applyChangeset` 等应用阶段校验实际受影响的对象，并保持策略可重试。
+本例只覆盖 Unit 级编辑授权。读取、JOIN、策略变更和扩展接口同样需要保护。细粒度写入可以在 `applyChangeset` 这类应用阶段校验受影响的对象，策略需要能够安全重试。
 
-从[身份与权限](/server/collaboration/identity-and-authorization)了解完整接入方式，生命周期入口见 [Middleware 与 Event](/server/collaboration/middleware-and-events)。
+完整接入方式见[身份与权限](/server/collaboration/identity-and-authorization)，生命周期钩子的说明见 [Middleware 与 Event](/server/collaboration/middleware-and-events)。
 
 [返回功能总览](/overview/features)

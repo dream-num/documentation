@@ -4,17 +4,17 @@ title: 権限管理
 
 import { PermissionShadowDemo } from './components/permission-shadow-demo'
 
-Univer はブック・シート・セル範囲に対する権限制御機能を提供します。ユーザーが許可されていない操作を実行しようとすると、コード実行を停止し、権限不足を通知できます。たとえば、範囲保護（エリア保護）を設定し、その範囲内で他の共同編集者が編集 / 閲覧 / コピー / フィルター等を行えるかどうかを制御できます。
+Univerのパーミッション制御は、ユーザーがワークブック、ワークシート、または範囲で行うことができるかを決定します。 ユーザーが必要な権限なしで操作を試みるとき、Univerは動作を停止し、不足している権限を報告します。 たとえば、コラビエーターが編集、ビュー、コピー、またはその中のコンテンツをフィルタリングできるかどうかを制御する。
 
 <Callout type="warning">
-保護ルールと共同編集者の変更を永続化し、現在のユーザーの権限を返し、リクエスト失敗を呼び出し元へ伝えてください。空リストを返すモックでは永続化できません。共同編集では、バックエンドが読み取り・JOIN・変更の権限を個別に検証する必要があります。[ID と認可](/server/collaboration/identity-and-authorization)を参照してください。UI の保護やシャドウの非表示はサーバー認可の代替にはなりません。
+本サービスは、保護ルールとコラベーターの変更を永続させ、現在のユーザーの権限を返し、リクエストの失敗を呼び出し元に戻す必要があります。空のリストを返すモックは、永続レイヤーではありません。コラボレーションでは、バックエンドは、読み取り、JOIN、およびミューテーション権限自体をチェックする必要があります。[アイデンティティと認可](/server/collaboration/identity-and-authorization)を参照してください。UIおよび非表示のシャドウの保護は、サーバーの許可を置き換えません。
 
 [権限サービスの統合](#authorization-service)
 </Callout>
 
 <PlaygroundFrame lang="ja-JP" slug="sheets/permission" clickToShow />
 
-以下から目的のセクションへ進んでください。基本操作、応用例、設定、トラブルシューティングをこのページにまとめ、完全な API 定義は Reference で管理しています。
+このページでは、基本的な操作、高度な例、構成、トラブルシューティングについて説明します。フルAPI契約は、リファレンスで収集されます。
 
 - [よく使う操作](#permission-tasks)
 - [権限 UI の設定](#permission-ui)
@@ -23,29 +23,29 @@ Univer はブック・シート・セル範囲に対する権限制御機能を�
 
 ## 基本概念
 
-- 範囲：権限の対象となる範囲。Univer ではワークブック、ワークシート、選区の 3 つの範囲がサポートされており、ユーザーはこれらの範囲に対して権限を設定できます。
-- 権限ポイント：権限の対象となる機能点。各機能点は対応する権限ポイントクラスで表され、ユーザーはこれらのポイントを設定して特定の機能を制御できます。
-- 保護ルール：ワークシートと選区の権限設定には、まず保護ルールを作成する必要があります。保護ルールは、特定のユーザーやユーザーグループに対して範囲内の操作を許可または禁止するためのルールです。
+- スコープ: 権限は、ワークブック、ワークシート、範囲の3つのレベルで適用されます。
+- パーミッションポイント:各機能には1つのパーミッションポイントがあり、その値を変更することで、その機能が有効または無効化されます。
+- 保護規則: ワークシートまたは範囲は、その許可ポイントが設定できる前に保護ルールを必要とします。
 
 <Callout type="info">
-永続化しないローカル権限は権限ポイントで変更できます。永続化については次を参照してください： [権限サービスの統合](#authorization-service)
+永続化しないローカル権限は権限ポイントで変更できます。永続化については次を参照してください： [権限サービスの統合](#authorization-service)。
 
-協同編集シナリオでは、権限ポイントの更新はサーバー側の状態も同期的に更新します：
+共同編集では、許可ポイントを更新して、サーバーの状態を更新します。
   - false：その権限ポイントには少なくとも `owner` ロールが必要
   - true：その権限ポイントには少なくとも `reader` ロールが必要
 </Callout>
 
 ## 基本例
 
-`allowedUsers` の例を使う前に、`user1` と `user2` を認可サービスが返す実際の共同編集者 ID に置き換えてください。
+`allowedUsers`の例を使用する前に、`user1`と`user2`を実際のコラボレーターIDで置き換えてください。
 
-最も一般的な権限設定方法を、ワークブック、ワークシート、選区の 3 つのレベルで以下に示します。
+以下の例では、ワークブック、ワークシート、レンジの各3つのレベルの許可を設定する通常の方法を示します。
 
 ### ワークブック権限コード例
 
-現状、ブックレベルの権限は API を通じて直接変更します。Univer は [Facade API](/guides/sheets/getting-started/facade) を提供しており、これを用いてブックの各機能に対する権限を設定できます。
+[Facade API](/guides/sheets/getting-started/facade)から直接ワークブックレベルの権限を設定します。
 
-編集権限を例にとると（他の機能の場合は、権限ポイントを置き換えるだけで済みます。詳細については、[権限ポイントビット一覧 - ワークブック](#workbook-point)を参照してください）、次のコードを使用してワークブック全体を編集不可に設定できます：
+以下の例では、ワークブック全体で編集を無効にします。別の機能を制御するには、その設定を一致させる権限ポイントに置き換えてください。[ワークブック許可ポイントリスト](#workbook-point)を参照してください。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -56,12 +56,11 @@ const workbookPermission = fWorkbook.getWorkbookPermission()
 await workbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
 ```
 
-重要な点：
-- ブック権限ポイントは直接設定でき、保護ルールの作成は必要ありません。
+ワークブックの許可ポイントは、保護ルールを最初に作成することなく、直接設定できます。
 
 ### ワークシート権限コード例
 
-ワークシートおよび範囲に関連する権限は Facade API とコマンド両方で設定可能です。ここではワークシート編集権限を例とします。その他のワークシート機能は[権限ポイントビット一覧 - ワークシート](#worksheet-point)を参照してください。
+ワークシートと範囲のパーミッションは、Facade API またはコマンドを介して設定できます。この例では、ワークシートの編集権限を設定します。別の機能を制御するには、権限ポイントを一致するものに置き換えてください。[ワークシートのパーミッションポイントリスト](#worksheet-point)を参照してください。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -93,7 +92,7 @@ await worksheetPermission.unprotect()
 
 ### カスタム範囲権限コード例
 
-範囲（Range）権限も API とコマンドの両方式で設定できます。ここでは範囲編集権限を例とします。他の範囲機能は[権限ポイントビット一覧 - 範囲](#range-point)を参照してください。
+範囲の権限は、API またはコマンドを介して同じ2つの方法で設定できます。以下の例では、範囲の編集権限を使用します。その他の範囲の機能には、異なる権限ポイントが必要です。詳細は [許可ポイントの一覧 - 範囲](#range-point) を参照してください。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -184,9 +183,9 @@ console.log(permission.debugCellPermission(0, 0))
 
 ## 権限ポイントビット一覧 [#point-list]
 
-対象コードは次の [code](https://github.com/dream-num/univer/tree/dev/packages/sheets/src/services/permission/permission-point) を参照してください。
+すべての許可ポイントのソースコードは、[詳しくはこちら](https://github.com/dream-num/univer/tree/dev/packages/sheets/src/services/permission/permission-point)です。
 
-ブック権限とワークシート／範囲権限が交差する場合、利用には全て true に設定されている必要があります。
+ワークブックの許可とワークシートまたは範囲の許可が機能をカバーするとき、関連する権限の**すべて すべて**は、その機能が動作する前に`true`でなければなりません。
 
 ### ワークブック権限 [#workbook-point]
 
@@ -255,10 +254,10 @@ console.log(permission.debugCellPermission(0, 0))
 
 | <span data-config-options="">オプション</span> | 型 | 既定値 | 動作 |
 | --- | --- | --- | --- |
-| `protectedRangeShadow` | `boolean \| 'always' \| 'non-editable' \| 'non-viewable' \| 'none'` | `true` | 保護範囲を網掛けする条件を指定します。 |
-| <ConfigKey depth={0}>protectedRangeUserSelector</ConfigKey> | `object` |  | 保護範囲のユーザー選択 UI を変更します。 |
-| <ConfigKey depth={1}>component</ConfigKey> | `ComponentType<IPermissionDetailUserPartProps>` |  | ユーザーを選ぶコンポーネント。 |
-| <ConfigKey depth={1}>framework</ConfigKey> | `string` |  | コンポーネントのフレームワーク。例は `react`。 |
+| `protectedRangeShadow` | `boolean \| 'always' \| 'non-editable' \| 'non-viewable' \| 'none'` | `true` | 保護された範囲は影を示します。 |
+| <ConfigKey depth={0}>protectedRangeUserSelector</ConfigKey> | `object` |  | 保護された範囲のユーザーを選ぶために使用されるピッカーをカスタマイズして下さい。 |
+| <ConfigKey depth={1}>component</ConfigKey> | `ComponentType<IPermissionDetailUserPartProps>` |  | ユーザを選ぶコンポーネント。 |
+| <ConfigKey depth={1}>framework</ConfigKey> | `string` |  | コンポーネントの用途をフレームワーク化します。たとえば、`react` です。 |
 
 ## プリセット設定 [#preset-configuration]
 
@@ -266,17 +265,17 @@ console.log(permission.debugCellPermission(0, 0))
 
 | <span data-config-options="">オプション</span> | 型 | 既定値 | 動作 |
 | --- | --- | --- | --- |
-| <ConfigKey depth={0}>sheets</ConfigKey> | `object` |  | この機能の設定。 |
-| <ConfigKey depth={1}>protectedRangeShadow</ConfigKey> | `boolean \| 'always' \| 'non-editable' \| 'non-viewable' \| 'none'` | `true` | 保護範囲を網掛けする条件を指定します。 |
-| <ConfigKey depth={1}>protectedRangeUserSelector</ConfigKey> | `object` |  | 保護範囲のユーザー選択 UI を変更します。 |
-| <ConfigKey depth={2}>component</ConfigKey> | `ComponentType<IPermissionDetailUserPartProps>` |  | ユーザーを選ぶコンポーネント。 |
-| <ConfigKey depth={2}>framework</ConfigKey> | `string` |  | コンポーネントのフレームワーク。例は `react`。 |
+| <ConfigKey depth={0}>sheets</ConfigKey> | `object` |  | 選択した機能のオプション。 |
+| <ConfigKey depth={1}>protectedRangeShadow</ConfigKey> | `boolean \| 'always' \| 'non-editable' \| 'non-viewable' \| 'none'` | `true` | 保護された範囲は影を示します。 |
+| <ConfigKey depth={1}>protectedRangeUserSelector</ConfigKey> | `object` |  | 保護された範囲のユーザーを選ぶために使用されるピッカーをカスタマイズして下さい。 |
+| <ConfigKey depth={2}>component</ConfigKey> | `ComponentType<IPermissionDetailUserPartProps>` |  | ユーザを選ぶコンポーネント。 |
+| <ConfigKey depth={2}>framework</ConfigKey> | `string` |  | コンポーネントの用途をフレームワーク化します。たとえば、`react` です。 |
 
 ## 権限保護範囲シャドウ戦略 [#permission-ui]
 
-現在のユーザーが編集できる保護領域と編集できない保護領域を区別するには、`non-editable` を使用します。編集可能な保護領域のシャドウは非表示になり、編集権限が無効な保護領域にはシャドウが残ります。閲覧できない保護範囲のマスクも維持されます。
+`non-editable` を使用して、保護された領域を区別するために、現在のユーザーはそれらから編集することができます。 編集可能な領域は影を受け取り、無効に編集された領域は影を保持し、非閲覧可能な範囲はマスクされたままです。
 
-この設定は範囲保護とワークシート保護の表示を制御します。保護ルールの作成や編集・閲覧権限の変更は行わず、保護されていない領域にシャドウを追加することもありません。先に上記の手順で保護ルールと現在のユーザーの権限を設定してください。
+設定は、範囲とワークシートの保護が表示される方法だけに影響します。 保護ルールを作成せず、編集やビュー権限を変更せず、保護されていない領域に影を追加しません。 上記のように、保護ルールと現在のユーザーの許可を設定します。
 
 | 戦略 | 表示動作 |
 | --- | --- |
@@ -314,10 +313,10 @@ console.log(permission.debugCellPermission(0, 0))
 
 ## カスタムユーザーコンポーネント
 
-Univer の標準ユーザーコンポーネントは適応性に限界があります。より複雑なカスタムコンポーネントが必要な場合は以下の方法で作成できます。
+組み込みのユーザーセレクターは、限られた一連のケースをカバーしています。 要件がそれを超えると、カスタムコンポーネントを提供します。
 
 <Callout>
-  カスタムコンポーネントの作り方は [Custom Components](/guides/sheets/ui/components) を参照してください。
+  建物の1つについては、[カスタムコンポーネント](/guides/sheets/ui/components)を参照してください。
 </Callout>
 
 <Tabs items={['プラグインモード', 'プリセットモード']}>
@@ -365,7 +364,7 @@ Univer の標準ユーザーコンポーネントは適応性に限界があり�
 
 ### 権限保護範囲シャドウ戦略 [#protected-range-shadow-api]
 
-以下の Facade API は、現在の Univer インスタンス内の既存のワークブックを更新します。プラグインモードでは、事前に `@univerjs/sheets-ui/facade` をインポートしてください。Sheets Core プリセットにはこのインポートが含まれています。
+Facade API は、現在の Univerインスタンスの既存のワークブックを変更します。プラグインモードでは、`@univerjs/sheets-ui/facade`を最初にインポートします。シートコアプリセットには、そのモジュールが含まれています。
 
 ```typescript
 // 編集不可範囲の影のみ表示に設定
@@ -386,7 +385,7 @@ subscription.unsubscribe()
 
 ### カスタムユーザーコンポーネント [#permission-user-picker-api]
 
-ユーザー選択の変更ハンドラーから `setSelectUserList()` を呼び出します。この最小の React 例は選択をクリアします。`useDependency` はコンポーネント内で実行し、サービスの更新はクリック時だけ行います。選択 UI の残りは `IPermissionDetailUserPartProps` に従って実装してください。
+`setSelectUserList()` をユーザピッカーの変更ハンドラから呼びます。Reactの例では、選択をクリアします。`useDependency`はコンポーネント内で実行され、クリック後にサービスが更新されます。`IPermissionDetailUserPartProps`に対するピッカーの残りの部分をビルドします。
 
 <Tabs items={['プラグインモード', 'プリセットモード']}>
   <Tab>
@@ -430,9 +429,9 @@ univerAPI.setPermissionDialogVisible(false)
 
 ### 拡張利用
 
-独自のプラグイン内で権限検証を追加する必要がある場合は、直接権限ポイントを操作できます。
+自分のプラグイン内のパーミッションを確認するには、パーミッションポイントを直接使用してください。
 
-ここでは `WorkbookEditablePermission` を例に、独自プラグイン内で権限検証を追加します。他のポイントも同様です。
+以下の例では、`WorkbookEditablePermission` を使用します。その他の許可ポイントは同じパターンに従います。
 
 ```typescript
 import { IPermissionService } from '@univerjs/core'
@@ -456,7 +455,7 @@ class YourService {
 
 ### 権限ポイントの拡張方法
 
-権限ポイントをカスタマイズする必要がある場合は、`IPermissionPoint` を実装し、権限サービスに登録できます。
+カスタムのパーミッションポイントのために、`IPermissionPoint`を実装し、許可サービスに登録します。
 
 ```typescript
 import type { IPermissionPoint } from '@univerjs/core'
@@ -505,7 +504,7 @@ class ConsumeService {
 
 ### サードパーティ認可サービスの統合（高度な利用） [#authorization-service]
 
-アプリで [IAuthzIoService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/type.ts) を実装し、権限・ロール・共同編集者の各メソッドをバックエンドに接続します。この例では `./authorization-service` が実装を `YourAuthzService` として公開しているものとします。ブック作成前に登録し、他の初期化設定とプラグイン登録は保持してください。
+アプリケーションで[IAuthzIoサービス](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/type.ts)を実装し、その許可、役割、および協力者メソッドをバックエンドに接続します。この例では、`./authorization-service`が実装を`YourAuthzService`としてエクスポートします。任意のワークブックを作成する前に登録し、他の初期化オプションとプラグイン登録を維持します。
 
 ```typescript
 import { IAuthzIoService, Univer } from '@univerjs/core'
@@ -516,17 +515,17 @@ const univer = new Univer({
 })
 ```
 
-保護ルールと共同編集者の変更を永続化し、現在のユーザーの権限を返し、リクエスト失敗を呼び出し元へ伝えてください。空リストを返すモックでは永続化できません。共同編集では、バックエンドが読み取り・JOIN・変更の権限を個別に検証する必要があります。[ID と認可](/server/collaboration/identity-and-authorization)を参照してください。UI の保護やシャドウの非表示はサーバー認可の代替にはなりません。
+お使いのauthzサービスは、保護ルールとコラベーターの変更を持続させ、現在のユーザーの許可を返し、表面要求の失敗を返さなければなりません。空のリストが何も主張しないままを返すモック。コラボレーションでは、バックエンドは引き続き、読み取り、JOIN、およびミューテーションの権限自体をチェックする必要があります。[アイデンティティと認可](/server/collaboration/identity-and-authorization)を参照してください。UI保護と隠しシャドウは、サーバーの認可の代替ではありません。
 
 ![Permission](./permission/permission-en.png)
 
 ### 共同編集者管理
 
 <Callout>
-  共同編集者の管理はアプリのユーザー・ACL モデルと権限サービスで実装します。[Identity and authorization](/server/collaboration/identity-and-authorization) に沿って読み取り、JOIN、編集を保護してください。以下のフロントエンド API には対応する権限サービスの実装が必要です。
+  Collaborator管理は、アプリケーションとその権限サービスに属しています。独自のユーザーとACLモデルを接続し、サーバー上での読み込み、JOIN、および編集ポリシーを実行します。[アイデンティティと権限](/server/collaboration/identity-and-authorization)を参照してください。以下のフロントエンドAPIは、マッチング権限サービス実装が必要です。サーバーの認可を設定していません。
 </Callout>
 
-- 共同編集者リストの取得
+- コラボレーターリストを取得する
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -563,7 +562,7 @@ await workbookPermission.addCollaborator(
 )
 ```
 
-- 共同編集者ロールの更新
+- 共同作業者の役割を更新する
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()

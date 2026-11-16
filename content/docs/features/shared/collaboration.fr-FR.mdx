@@ -4,47 +4,55 @@ description: "Coordonnez les modifications simultanées avec OT, HTTP, WebSocket
 icon: Users
 ---
 
-Utilisateurs et agents connectés modifient le même document. Les changements sont locaux d’abord ; le serveur confirme leur ordre et les distribue, conciliant réponse immédiate et cohérence éventuelle.
+La collaboration en temps réel permet aux personnes et aux agents connectés de travailler sur le même document. Une modification prend effet localement d'abord. Le serveur commande ensuite les modifications et les distribue aux autres participants, de sorte que les utilisateurs reçoivent des commentaires immédiats tandis que tous les participants convergent sur le même contenu.
 
 ## Concurrence et conflits
 
-Univer utilise OT (transformation opérationnelle). Le client regroupe les opérations en changesets ; le serveur les transforme selon les révisions confirmées. Si Alice modifie `C2` pendant que Bob insère une colonne avant B, la modification suit la cellule vers `D2`. Annuler et rétablir s’ajustent aussi, sans résoudre tous les conflits métier.
+Univer utilise OT (Transformation Opérationnelle) pour coordonner les modifications simultanées. Les clients regroupent leurs opérations d'édition en changements, et le serveur transforme chaque changement par rapport aux révisions confirmées avant de le lancer.
 
-Une opération impossible à transformer ou appliquer bloque l’édition du document. `CollaborationConflict` fournit la cause et les changements locaux non confirmés. Conservez-les avant de recharger. Consultez la [récupération](/server/collaboration/browser-integration#conflict-recovery) et la [conception OT](/blog/ot).
+Par exemple, Alice édite `C2` alors que Bob insère une colonne avant B. L'édition transformée suit la cellule vers `D2`. Undo et redo tiennent également compte des opérations distantes. OT tente de préserver l'intention de l'utilisateur, mais il ne peut pas résoudre chaque conflit d'affaires automatiquement.
+
+Une opération qui ne peut être transformée ou appliquée place le client dans un état de conflit et désactive l'édition pour ce document. `CollaborationConflict` rapporte la raison et les modifications locales qui n'ont jamais été reconnues. Les applications peuvent utiliser ces informations pour récupérer ou enregistrer le travail de l'utilisateur, mais elles doivent conserver les données locales avant de recharger. Voir [le rétablissement des conflits](/server/collaboration/browser-integration#conflict-recovery) et [OT et conception de la collaboration](/blog/ot).
 
 ## Canaux et reconnexion
 
 | Canal | Rôle |
 | --- | --- |
-| HTTP | Charger snapshots et changements, obtenir un Session Ticket, soumettre les changesets. |
-| WebSocket | Maintenir Session et Room ; recevoir ACK, changements distants et Presence. |
+| HTTP | Charge les instantanés et les modifications, obtient un ticket Session et soumet les modifications. |
+| WebSocket | Maintenez la session de collaboration et la salle des documents, et recevez des ACK, des modifications à distance et des notifications de présence. |
 
-Un Ticket à usage unique permet de se connecter puis de rejoindre la Room. Presence partage membres, curseurs et sélections. **Une connexion active ou une requête HTTP réussie ne confirme pas l’enregistrement.** Combinez ACK, état collaboratif et modifications en attente.
+Le client échange un ticket Session unique pour une connexion WebSocket et rejoint la salle du document. Présence partage l'adhésion en ligne, les curseurs et les sélections sur la même connexion. L'état du client avance comme le serveur confirme les révisions. **Une socket connecté ou une requête HTTP réussie n'indique pas que l'édition est enregistrée.** Derive save status from ACKs, collaboration status, and en attente de modifications.
 
-Après une coupure, conservez les changements non confirmés, récupérez les révisions manquantes et renvoyez-les. Le serveur déduplique les envois. Consultez l’[état de synchronisation](/server/collaboration/browser-integration#sync-status) et [Presence](/server/collaboration/presence).
+Bien que déconnecté, le client peut cacher des modifications qui n'ont pas encore été reconnues. Lors de la reconnexion, il récupère les révisions qu'il a manquées et renvoye les soumissions en attente. Le serveur dédouble les soumissions, de sorte qu'une nouvelle tentative n'est pas appliquée deux fois. Voir [état de synchronisation et relevés](/server/collaboration/browser-integration#sync-status) et [Présence](/server/collaboration/presence).
 
 ## Persistance et snapshots
 
-Enregistrez changesets et révisions confirmés, puis générez les snapshots selon une politique. Le chargement applique les modifications postérieures au snapshot ; une image par édition n’est pas nécessaire. Voir [Headless et calcul serveur](/overview/features/shared/server-calculation). Historique, commentaires et Worktree sont des [extensions](/server/collaboration/extensions).
+Le service de collaboration persiste les changements confirmés et les révisions, et génère des instantanés selon sa politique. Chargement d'un document restaure un instantané et applique ensuite les changements qui l'ont suivi.
+
+Pour le calcul pendant la génération d'instantanés, voir [Calcul sans tête et côté serveur](/overview/features/shared/server-calculation). Les panneaux d'historique, les commentaires et l'ébauche de l'agent sont fournis par [extensions de la collaboration](/server/collaboration/extensions) séparé, qui peut être ajouté au besoin.
 
 ## Architecture de déploiement
 
 <Mermaid chart={"flowchart LR\n    A[\"Client A\"]\n    B[\"Client B / Agent\"]\n    S[\"Service collaboratif applicatif<br/>OT · Confirmer et diffuser\"]\n    D[\"Relational Table de données applicative\"]\n    A <-->|\"HTTP / WebSocket\"| S\n    B <-->|\"HTTP / WebSocket\"| S\n    S --> D"} />
 
-- **Un nœud :** assemblez Transport, Endpoint, Service et Database Adapter dans Node.js. Memory sert aux tests temporaires, SQLite au local ou aux petits déploiements. Les autres bases nécessitent un adaptateur applicatif.
-- **Extension :** en plus de la persistance partagée, coordonnez diffusion inter-nœuds, Presence, validation des Tickets et cohérence. Ajouter des processus ne suffit pas ; suivez la conception de votre version.
-- **Tâches lourdes :** isolez les conversions intensives en CPU.
+- **Noeud unique:** assemble Transport, Endpoint, Service et un adaptateur de base de données à l'intérieur de votre application Node.js. La mémoire est suffisante pour les tests temporaires, SQLite convient aux déploiements locaux et petits, et d'autres bases de données sont connectées par un adaptateur fourni par l'application.
+- La seule persistance partagée de **Conception de l'échelle:** est insuffisante. La diffusion de documents entre nœuds, la présence, la validation de tickets de session et la cohérence de stockage doivent également être coordonnées.
+- **Séparer les tâches lourdes :** déploie séparément la conversion de fichiers intensifs en CPU pour réduire son interférence avec la réactivité de collaboration.
 
-Consultez les [modules](/server/collaboration/modules), le [déploiement](/server/deployment) et l’[exemple multinœud](/server/collaboration/examples#multi-node).
+Voir [responsabilité des modules](/server/collaboration/modules) pour l'ensemble complet, [guide de déploiement](/server/deployment) et [exemple de multi-noeud](/server/collaboration/examples#multi-node).
 
 ## Performances et capacité
 
-**Les benchmarks et chiffres de capacité de la version actuelle restent à fournir.** Ils dépendent des documents, de la fréquence, des participants et de l’environnement. Mesurez confirmation, affichage distant, changesets par seconde, diffusion et mémoire.
+**Des repères de performance et des chiffres de capacité pour la version actuelle sont encore en attente.** La capacité et la latence de collaboration dépendent de la taille du document, de la fréquence d'édition, du nombre de collaborateurs par document et de l'environnement de déploiement.
+
+Lorsque vous évaluez le système, considérez le temps de réception, le temps d'affichage à distance, les changements par seconde, le volume de diffusion et la mémoire utilisée par les documents actifs.
 
 ## Intégration et périmètre
 
-Commencez par la [vue générale](/server/collaboration/overview) et l’[exemple à deux navigateurs](/server/collaboration/quick-start). Branchez identité et autorisation via Middleware, choisissez un [Database Adapter](/server/collaboration/database-adapters) persistant et vérifiez la conservation après redémarrage.
+Commencez par le [Aperçu général de la collaboration](/server/collaboration/overview) pour comprendre la relation entre les modules, puis lancez le bi-browser [démarrage rapide](/server/collaboration/quick-start) afin de vérifier l'édition, la reconnaissance et la diffusion. L'identité et l'autorisation sont connectées par l'application Middleware. Pour des données durables, sélectionnez un [Adaptateur de base de données](/server/collaboration/database-adapters) persistant et vérifiez que le contenu survit à un redémarrage du service.
 
-Le noyau couvre Sheet, Doc, Slide, Canvases et Relational Table, pas PDF. L’application fournit identité, autorisation, gestion des fichiers et politiques de stockage.
+## Portée
+
+Le service de base prend en charge Feuille, Doc, Diapositive, Toiles, et Table Relationnelle; PDF n'est pas inclus dans cette couverture de base de cinq produits. Worktree sont des extensions séparées.
 
 [Retour à toutes les fonctionnalités](/overview/features)

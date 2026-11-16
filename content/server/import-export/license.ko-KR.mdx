@@ -3,13 +3,13 @@ title: 라이선스
 description: Exchange 내보내기 인증을 설정하고, 남은 할당량을 조회하고, 라이선스 오류를 처리합니다.
 ---
 
-Exchange는 `@univerjs-pro/exchange-node`를 실행하는 서버 프로세스에서 라이선스를 읽습니다. 변환 방법은 [Office 파일 가져오기 및 내보내기](/server/import-export/node)를 참고하세요.
+Exchange는 `@univerjs-pro/exchange-node`를 실행하는 서버 프로세스 내에서 라이센스를 읽습니다. 변환 자체에 대해서는 [Office 파일 가져 오기 및 내보내기](/server/import-export/node) 를 참조하십시오.
 
 ## 인증 설정 [#configure]
 
-라이선스는 환경 변수 `UNIVER_LICENSE`와 `UNIVER_LICENSE_KEY`로 한 쌍으로 제공하는 것을 권장합니다. `configureExchange`를 호출할 필요는 없습니다. SDK는 첫 내보내기 또는 할당량 조회 시 환경 변수를 한 번 읽고 이후 그 설정을 재사용합니다. 환경에 자격 증명이 없으면 Free가 적용됩니다. 제공되었지만 유효하지 않은 자격 증명은 오류를 반환하며 내보내기에 사용할 수 없습니다.
+`UNIVER_LICENSE` 및 `UNIVER_LICENSE_KEY`를 환경 설정하는 표준 접근법은 다음과 같습니다. `configureExchange`는 다음 선택 사항입니다. SDK는 첫 번째 수출 또는 할당량 쿼리에 한 번 환경을 읽고 프로세스의 나머지 구성을 유지합니다. 변수가 설정되지 않을 때, 무료 적용이 적용됩니다. 변수가 설정되어있을 때, 자격 증명은 유효하지 않습니다, 통화는 오류를 반환하고, 그 자격 증명은 수출에 사용할 수 없습니다.
 
-명시적으로 설정하려면 `configureExchange({ license, licenseKey })`를 사용합니다. `Promise<void>`를 반환하며 환경 변수를 완전히 무시합니다. 새 자격 증명을 사용할 내보내기는 설정이 끝날 때까지 기다린 뒤 시작하세요.
+명시된 구성의 경우 `configureExchange({ license, licenseKey })`를 호출합니다. 함수는 `Promise<void>`을 반환하고 환경을 완전히 무시하므로 새로운 자격 증명을 사용해야 수출을 시작하기 전에 기다립니다.
 
 ```ts
 import { configureExchange, getExportQuota } from '@univerjs-pro/exchange-node'
@@ -22,22 +22,22 @@ await configureExchange({
 const quota = await getExportQuota()
 ```
 
-`license`와 `licenseKey`에는 라이선스 제공자에게 받은 전체 내용을 넣습니다. 파일 경로가 아닙니다. 두 값을 한 쌍으로, 애플리케이션의 시크릿 관리 시스템을 통해 제공하세요.
+라이센스 제공자가 제공하는 `license` 및 `licenseKey` 콘텐츠는 파일에 접근하지 않습니다. 두 값을 함께 설정하고 응용 프로그램의 비밀 관리 시스템에서 읽으십시오.
 
 | 입력 | 동작 |
 | --- | --- |
-| `configureExchange`를 호출하지 않음 | 처음 사용할 때 두 환경 변수를 읽음. 둘 다 없으면 Free를 사용. |
-| `configureExchange({ license, licenseKey })` | 명시한 자격 증명만 사용하고 환경 변수는 무시. |
-| `configureExchange({})` | 명시적으로 Free를 선택하고 환경 변수는 무시. |
-| 선택한 출처에서 자격 증명이 하나만 제공됨 | `INVALID_ARGUMENT`를 반환. 다른 출처에서 나머지를 채우지 않음. |
+| `configureExchange`를 호출하지 않음 | 두 환경 변수는 첫 번째 사용에 읽습니다. 변수가 설정되지 않을 때 무료 적용. |
+| `configureExchange({ license, licenseKey })` | 명시된 자격 증명만 사용됩니다. 환경은 무시됩니다. |
+| `configureExchange({})` | 자유롭게 선택되어 있습니다. 환경은 무시됩니다. |
+| 선택된 소스에서 1개의 credential만 | 호출은 `INVALID_ARGUMENT`를 반환합니다. 다른 필드는 다른 소스에서 채워지지 않습니다. |
 
-완전한 환경 설정을 한 번 읽으면 이후 작업이 실패하더라도 고정됩니다. 실행 중에 기본 자격 증명을 바꾸려면 `configureExchange`를 명시적으로 호출하고 완료를 기다리세요. 설정에 실패하면 이전 설정이 유지되므로, 오류를 처리한 뒤 새 내보내기를 시작하세요.
+완전한 환경 설정이 읽기되면 나중에 작동이 실패하더라도 고정됩니다. 런타임에서 기본 자격 증명을 대체하려면 `configureExchange`를 호출하고 기다립니다. 실패한 통화는 이전 구성을 남겨 새로운 수출을 시작하기 전에 오류를 처리합니다.
 
-같은 JavaScript 컨텍스트의 ESM과 CommonJS는 설정을 공유합니다. 각 `worker_threads` Worker는 따로 설정하거나 환경 변수로 초기화해야 합니다. 내보내기는 공개 내보내기 메서드를 호출한 시점의 설정을 사용하며, 이후 자격 증명을 바꿔도 이미 시작된 내보내기에는 영향을 주지 않습니다.
+ESM 및 CommonJS는 동일한 JavaScript 컨텍스트 내에서 단일 구성을 공유합니다. 각 `worker_threads` Worker는 자체 또는 초기화해야 합니다. 수출은 공공 수출 방식이 호출되었을 때 배치 된 구성을 사용합니다. 나중에 credentials 변경은 이미 시작된 수출에 영향을 미치지 않습니다.
 
 ### 한 번의 작업에 인증 지정
 
-내보내기 API나 `getExportQuota`의 옵션에 완전한 `license`와 `licenseKey` 쌍을 전달하면 기본 설정을 바꾸지 않고 그 작업만 인증할 수 있습니다. 예를 들어 같은 자격 증명으로 할당량을 조회하고 내보냅니다.
+기본 구성을 변경하지 않고 단일 통화를 승인하려면, 완전한 `license` 및 `licenseKey` 쌍을 수출 API 또는 `getExportQuota`의 옵션으로 전달하십시오. 다음 예제는 같은 자격 증명과 할당량 및 수출을 쿼리합니다.
 
 ```ts
 import { UniverInstanceType } from '@univerjs/core'
@@ -52,7 +52,7 @@ const output = await exportToBuffer(workbook, {
 })
 ```
 
-파일 내보내기, Snapshot 내보내기, 선택적 PDF 내보내기에도 똑같이 적용됩니다. 두 필드를 모두 생략하면 기본 설정을 사용하고, 하나만 제공하면 `INVALID_ARGUMENT`를 반환합니다. 명시한 쌍은 기본 설정이나 환경 변수로 보완되지 않으며, 빈 문자열도 생략으로 간주하지 않습니다. 유효하지 않은 자격 증명은 `LICENSE_INVALID`를 반환하고 기본 상용 라이선스로 대체하지 않습니다.
+파일 내보내기, Snapshot 수출 및 옵션 PDF 수출은 동일한 쌍을받습니다. 두 필드가 omitted 때, 기본 구성이 적용됩니다; 하나의 필드가 공급될 때, 호출은 `INVALID_ARGUMENT`를 반환합니다. 명시된 쌍은 기본 구성 또는 환경에서 완료되지 않으며 빈 문자열은 omitted 필드로 계산되지 않습니다. 잘못된 자격 증명 반환 `LICENSE_INVALID`, SDK는 기본 상용 라이센스로 돌아 가지 않습니다.
 
 ### 선택적 PDF 지원
 
@@ -74,29 +74,29 @@ await configureExchange({
 const quota = await getExportQuota()
 ```
 
-이 진입점은 PDF 지원을 등록하며, 네이티브 구성 요소는 사용할 때 불러옵니다. PDF도 같은 `importBuffer`, `importFile`, `exportToBuffer`, `exportToFile`과 해당 Snapshot API를 사용하고 `UniverInstanceType.UNIVER_PDF`와 `ExchangeFormat.PDF`를 지정합니다. PDF만 처리하는 애플리케이션은 Office 네이티브 구성 요소를 불러올 필요가 없습니다. 환경 변수 설정은 PDF에도 적용됩니다.
+수입은 PDF 지원 및 기본 구성 요소로드를 등록하면 먼저 사용됩니다. PDF는 `importBuffer`, `importFile`의 `exportToBuffer` 및 `exportToFile`와 같은 `UniverInstanceType.UNIVER_PDF`과 `ExchangeFormat.PDF`를 사용합니다. PDF 만 처리하는 응용 프로그램은 Office 네이티브 구성 요소가 필요하지 않습니다. 환경 기반 구성은 PDF뿐만 아니라 적용됩니다.
 
 ## 남은 할당량 조회 [#quota]
 
-`getExportQuota({ license, licenseKey })`는 `Promise<ExportQuota>`를 반환하며, 해당 인증에서 Office와 PDF가 공유하는 할당량을 조회합니다. 자격 증명을 생략하면 기본 설정을 조회합니다. Unit 유형을 받지 않으며 특정 유형의 내보내기 권한도 확인하지 않습니다. 그 확인은 내보내기 시점에 이루어집니다.
+`getExportQuota({ license, licenseKey })`는 허가 주식이 있는 사무실과 PDF 할당량을 위한 `Promise<ExportQuota>`를 반환합니다. 자격 증명이 omitted 때, 통화 쿼리는 기본 구성을 쿼리합니다. 통화는 단위 유형을 받아들이지 않으며 특정 수출 유형이 허용되지 않다는 것을 검사하지 않습니다; 그것은 수출 도중 발생합니다.
 
-조회는 할당량을 소비하거나 예약하지 않으며, SDK 버전, 활성화 시각, 내보내기 유형 권한도 확인하지 않습니다. 잔여량이 0이어도 조회는 성공하여 스냅샷을 반환합니다. 다른 요청이 그 뒤에 할당량을 사용할 수 있으므로 실제 내보내기 오류도 처리하세요.
+쿼리는 소모하거나 예비 할당량, 그리고 그것은 SDK 버전, 활성화 시간, 또는 수출 유형 제목을 확인하지 않습니다. 0 균형은 여전히 성공적인 스냅 샷을 반환합니다. 다른 요청은 즉시 할당량을 소비 할 수 있으므로 실제 수출에 의해 반환된 오류를 처리 할 수 있습니다.
 
-인증이 시작되기 전에는 할당량이 제한된 경우 첫 인증 월의 스냅샷이 미래의 `periodStart`와 함께 반환됩니다. 조회 성공이나 `valid` 상태가 내보내기를 허용한다는 뜻은 아닙니다. 버전, 활성화 시각, 유형 권한, 사용 가능한 할당량, 동시 실행 확인은 내보내기 시점에 이루어집니다.
+승인이 효력을 발생하기 전에, 제한된 할당량에 대한 쿼리는 첫 번째 승인 월 스냅 샷을 반환, 그 `periodStart`는 미래에 속한다. 성공적인 쿼리, 또는 `valid` 상태, 수출이 허용되지 않는 의미하지 않습니다. SDK는 버전, 활성화, 유형 제목, 사용 가능한 할당량 및 수출 중 통화를 확인합니다.
 
 | 필드 | 타입 | 의미 |
 | --- | --- | --- |
-| `licenseStatus` | `'not_configured' \| 'expired' \| 'valid'` | 내보내기 구독이 설정되지 않음, 만료됨, 또는 만료되지 않음. `valid`가 내보내기 허용 확인을 통과했다는 뜻은 아님. 유효하지 않은 자격 증명은 오류를 반환. |
-| `expiresAt` | `string \| null` | 내보내기 구독 만료 시각(UTC ISO 타임스탬프). 설정되지 않았거나 만료가 없으면 `null`. |
+| `licenseStatus` | `'not_configured' \| 'expired' \| 'valid'` | 수출 가입은 구성되지 않습니다, 만료, 또는 아직 만료되지 않습니다. `valid`는 수출입이 통과 한 것을 의미하지 않습니다. 잘못된 자격 증명은 오류를 반환합니다. |
+| `expiresAt` | `string \| null` | UTC ISO 타임스탬프로 내보내기 구독의 유효성. 아무것도 구성하거나 만료되지 않는 경우 `null`는 적용되지 않습니다. |
 | `observedAt` | `string` | 이 스냅샷의 UTC ISO 타임스탬프. |
-| `limit` | `number \| null` | 이번 달 내보내기 한도. 무제한이면 `null`. |
-| `used` | `number \| null` | 이번 달 성공한 내보내기 수. 무제한이면 `null`. |
-| `reserved` | `number \| null` | 이번 달 할당량을 차지한 진행 중인 내보내기 수. 무제한이면 `null`. |
-| `remaining` | `number \| null` | 사용 가능한 내보내기 수: `max(0, limit - used - reserved)`. 무제한이면 `null`. |
-| `periodStart` | `string \| null` | 조회한 월 할당량 기간의 UTC ISO 시작 시각(해당 시각 포함). 활성화 전에는 첫 기간이 미래에 시작됨. 무제한이면 `null`. |
-| `periodEnd` | `string \| null` | 조회한 월 할당량 기간의 UTC ISO 종료 시각(해당 시각 미포함). 무제한이면 `null`. |
+| `limit` | `number \| null` | 현재 월간 수출 제한. 할당량이 제한 될 때 `null`. |
+| `used` | `number \| null` | 현재 달에 있는 성공적인 수출. 할당량이 무제한 때 `null`. |
+| `reserved` | `number \| null` | 현재 달에 할당량을 보유하는 Flight 수출. 할당량이 무제한 때 `null`. |
+| `remaining` | `number \| null` | `max(0, limit - used - reserved)`로 계산된 수출은, 할당량이 무제한 때 `null`입니다. |
+| `periodStart` | `string \| null` | UTC ISO는 매달 할당량 창의 시작을 포함. 첫 번째 기간은 활성화하기 전에 미래에 시작. 할당량이 제한 될 때 `null`. |
+| `periodEnd` | `string \| null` | 매달 할당된 할당량 창의 독점적인 UTC ISO 끝. 할당량은 무제한일 때 `null`. |
 
-`periodEnd`는 다음 월 할당량 기간이 시작되는 시각이고, `expiresAt`은 내보내기 구독 전체가 끝나는 시각입니다. 유효한 구독은 항상 상용 할당량을 사용합니다. 다 써도 Free로 바뀌지 않으며 다음 달부터 새 상용 할당량 기간이 시작됩니다. 구독이 만료된 경우에만 기존 Free 잔여량을 사용하며, Free 할당량을 초기화하거나 다시 지급하지 않습니다.
+`periodEnd`는 다음 월 할당량 창의 시작이며 `expiresAt`은 수출 구독의 끝입니다. 구독이 유효하지만, 항상 상업 할당량을 사용합니다. 배출은 무료로 선택하지 않으며 다음 상업 창은 다음 달에 시작합니다. 나머지 무료 할당량으로만 구독 만료 스위치 만 다시 재설정 할 수 없습니다.
 
 할당량이 제한된 스냅샷 예시:
 
@@ -116,15 +116,15 @@ const quota = await getExportQuota()
 
 ## 할당량 사용 [#accounting]
 
-Free는 인증 월마다 내보내기 성공 10회를 허용합니다. 상용 라이선스의 내보내기 할당량, 동시 실행 수, 버전 범위는 구매한 라이선스에 따릅니다. Free와 상용 라이선스 모두 파일 크기나 셀 수 제한을 두지 않습니다. 현재 기간과 남은 할당량은 조회 결과로 확인하세요. 사용하지 않은 월 할당량은 이월되지 않습니다.
+무료 허가 10 승인 월 당 성공적인 수출. 상업 수출 할당량, concurrency, 및 버전 제목은 구매 된 라이센스에 따라 달라집니다. Neither 무료 또는 상업 라이센스 제한 파일 크기 또는 셀 수. 쿼리 응답은 현재 기간 및 나머지 할당량 보고서. 사용되지 않은 월 할당량은 초과하지 않습니다.
 
-가져오기에는 내보내기 인증이 필요 없으며 내보내기 할당량도 소비하지 않습니다. 같은 배포에서 같은 상용 라이선스를 사용하는 Office와 PDF 내보내기는 할당량을 공유합니다. Exchange 변환 형식은 [Office 파일 가져오기 및 내보내기](/server/import-export/node)를 참고하세요.
+수입은 수출 허가를 요구하고 수출 할당량은 사용하지 않습니다. 하나의 배포, 사무실 및 PDF 내보내기에서 동일한 상업 라이센스 공유 할당량을 사용합니다. 교환 변환 형식은 [Office 파일 가져 오기 및 내보내기](/server/import-export/node)에 나열됩니다.
 
-변환에 한 번 성공할 때마다 내보내기 1회를 소비합니다. Buffer를 반환하면 성공으로 봅니다. 이후 파일 쓰기, 업로드, 다운로드가 실패해도 반환되지 않으며, 다시 변환에 성공하면 1회를 더 소비합니다. 현재 기간에 남은 할당량이 없으면 새 내보내기는 거부됩니다. 다음 인증 기간을 기다리거나 할당량이 더 큰 유효한 라이선스를 사용하세요. 다 쓴 유효한 상용 라이선스는 Free 할당량을 사용하지 않습니다.
+각 성공적인 변환은 1개의 수출을 소비하고, 완충기 조사를 성공으로 돌려보냅니다. 쓰기, 업로드 또는 파일을 다운로드하기 위하여 그 수출을 환불하지 않으며, 또 다른 성공적인 변환은 다른 것을 소모합니다. 현재 기간에는 할당량이 남아 있지 않을 때, 새로운 수출은 거절됩니다. 다음 허가 기간을 기다리거나 더 높은 할당량으로 유효한 면허를 공급하십시오. 소진한 그러나 유효한 상업적인 면허는 자유로운 할당량으로 돌아올 것입니다.
 
 ## 오류 처리 [#errors]
 
-`message` 텍스트를 파싱하지 말고 구조화된 `code`로 오류를 식별하세요. UI에서는 오류 코드를 현지화된 메시지에 연결할 수 있습니다. 진단 정보는 기술 지원을 위해 보관하세요.
+`message` 텍스트를 파싱함으로써 구조화된 `code`에 의한 오류를 식별합니다. UI는 로컬화된 메시지에 오류 코드를 매핑할 수 있습니다. 기술 지원에 대한 진단 세부 정보를 유지하십시오.
 
 ```ts
 import { UniverInstanceType } from '@univerjs/core'
@@ -145,27 +145,27 @@ try {
 }
 ```
 
-아래 표는 할당량 조회(`getExportQuota`)와 실제 내보내기에서 오류가 발생하는 시점을 구분합니다. 두 API 모두 Promise를 반환하므로 `await`와 `try/catch`로 실패를 처리하세요.
+아래 표는 할당량 쿼리 (`getExportQuota`) 또는 실제 수출에서 오류가 발생했는지 여부를 나타냅니다. 두 APIs 반환 약속은 `await` 및 `try/catch`를 요구합니다.
 
 | 코드 | 발생 작업 | 의미와 대응 |
 | --- | --- | --- |
-| `LICENSE_EXPORT_QUOTA_EXCEEDED` | 내보내기만 | 현재 기간의 내보내기 할당량이 부족함. 할당량을 조회하거나 영업팀에 문의해 라이선스를 조정. |
-| `LICENSE_CONCURRENCY_TIMEOUT` | 내보내기만 | 내보내기 동시 실행 자리를 기다리다 시간이 초과됨. 동시 내보내기를 줄인 뒤 다시 제출. |
-| `LICENSE_UNIT_TYPE_REJECTED` | 내보내기만 | 이 내보내기 유형이 라이선스에 없거나 유형 권한이 만료됨. 해당 유형을 포함한 유효한 라이선스를 사용. |
-| `LICENSE_INVALID` | 조회, 내보내기 | 라이선스가 유효하지 않음. 자격 증명이 완전한지 확인하거나 라이선스 제공자에게 갱신을 요청. |
-| `LICENSE_POLICY_INVALID` | 조회, 내보내기 | 인증 구성이 SDK 요구 사항을 충족하지 않음. 라이선스 제공자에게 갱신을 요청. |
-| `LICENSE_NOT_YET_EFFECTIVE` | 내보내기만 | 인증이 아직 시작되지 않음. 효력 발생일 이후에 사용. |
+| `LICENSE_EXPORT_QUOTA_EXCEEDED` | 내보내기만 | 현재 기간에는 충분한 수출 할당량이 있습니다. 할당량 또는 접촉 판매는 면허를 조정하기 위하여 조회합니다. |
+| `LICENSE_CONCURRENCY_TIMEOUT` | 내보내기만 | 수출 concurrency 슬롯에 대한 대기 시간. 다시 제출하기 전에 concurrent 수출을 감소. |
+| `LICENSE_UNIT_TYPE_REJECTED` | 내보내기만 | 수출 유형은 라이센스에 의해 포함되지 않습니다, 또는 그것의 유형 제목은 만료되었습니다. 유형을 커버하는 유효한 면허를 제공하십시오. |
+| `LICENSE_INVALID` | 조회, 내보내기 | 라이센스는 유효하지 않습니다. 완전한 자격 증명을 확인하거나 라이센스 제공자로부터 업데이트를 요청하십시오. |
+| `LICENSE_POLICY_INVALID` | 조회, 내보내기 | 인증 구성은 SDK 요구 사항을 충족하지 않습니다. 라이센스 제공자로부터 업데이트를 요청하십시오. |
+| `LICENSE_NOT_YET_EFFECTIVE` | 내보내기만 | 저자화는 아직 효력을 가지고 있지 않았습니다. 그것의 효과적인 날짜 후에 그것을 사용하십시오. |
 | `LICENSE_VERSION_NOT_ALLOWED` | 내보내기만 | 현재 SDK 버전이 라이선스 범위 밖임. 맞는 버전을 사용하거나 라이선스를 갱신. |
-| `UNSUPPORTED_FORMAT` | 내보내기만 | 형식이 지원되지 않거나 Unit 유형과 맞지 않음. 내보내기 옵션을 확인. |
-| `INVALID_FILE` | 내보내기만 | 변환 입력이 유효하지 않음. 내용을 확인. |
-| `INCOMPLETE_SNAPSHOT` | 내보내기만 | 내보내기 데이터가 불완전함. 완전한 데이터나 Snapshot을 제공. |
-| `CONVERSION_FAILED` | 내보내기만 | 변환에 실패함. 오류를 보관하고 입력 내용을 확인. |
-| `IO_ERROR` | 내보내기만 | 파일 입출력에 실패함. 변환 성공 후 쓰기에 실패한 경우 이미 내보내기 1회를 소비함. |
-| `INVALID_ARGUMENT` | 조회, 내보내기 | 인수나 자격 증명이 불완전함. 설정을 확인. |
-| `NATIVE_LOAD_FAILED` | 조회, 내보내기 | SDK 네이티브 구성 요소를 불러올 수 없음. 패키지와 런타임 호환성을 확인. |
-| `LICENSE_USAGE_STATE_INVALID` | 조회, 내보내기 | 라이선스 사용 상태를 검증할 수 없음. 오류를 보관하고 기술 지원에 문의. |
-| `LICENSE_USAGE_STORAGE_ERROR` | 조회, 내보내기 | 라이선스 사용량 처리에 실패함. 오류를 보관하고 기술 지원에 문의하며 자동 재제출은 피함. |
+| `UNSUPPORTED_FORMAT` | 내보내기만 | 형식은 지원되지 않거나 단위 유형과 일치하지 않습니다. 수출 옵션을 확인하십시오. |
+| `INVALID_FILE` | 내보내기만 | 변환 입력은 유효하지 않습니다. 입력 내용을 확인합니다. |
+| `INCOMPLETE_SNAPSHOT` | 내보내기만 | 수출 자료는 불완전합니다. 완전한 자료 또는 완전한 Snapshot를 제공하십시오. |
+| `CONVERSION_FAILED` | 내보내기만 | 변환이 실패했습니다. 오류를 유지하고 입력 내용을 확인합니다. |
+| `IO_ERROR` | 내보내기만 | 파일 입력 또는 출력 실패. 변환이 성공하고 출력을 작성하면 수출이 이미 소모되었습니다. |
+| `INVALID_ARGUMENT` | 조회, 내보내기 | Arguments 또는 credentials는 불완전합니다. 윤곽을 검사하십시오. |
+| `NATIVE_LOAD_FAILED` | 조회, 내보내기 | 네이티브 SDK 구성 요소가 로드에 실패했습니다. 설치 패키지가 실행 환경과 일치한다는 것을 확인하십시오. |
+| `LICENSE_USAGE_STATE_INVALID` | 조회, 내보내기 | 라이센스 사용 상태는 검증되지 않습니다. 오류 및 연락처 기술 지원을 유지합니다. |
+| `LICENSE_USAGE_STORAGE_ERROR` | 조회, 내보내기 | 라이센스 사용 처리 실패. 오류를 유지, 기술 지원 접촉, 그리고 자동으로 다시 금지하지. |
 
-만료 알림은 애플리케이션이 `licenseStatus`와 `expiresAt`으로 직접 만들 수 있습니다. SDK는 별도의 알림 목록을 반환하지 않습니다.
+애플리케이션은 `licenseStatus` 및 `expiresAt`에서 만료된 알림을 구축할 수 있습니다. SDK는 별도의 공지 목록을 반환하지 않습니다.
 
-라이선스 사용량 처리 오류가 발생하면 오류만으로 계산 여부를 추측하지 마세요. 전체 오류를 보관하고 기술 지원에 문의하세요.
+라이센스 사용 처리 오류 후, 수출이 계산 된 경우 오류에서 infer하지 마십시오. 전체 오류를 유지하고 기술 지원을 접촉하십시오.

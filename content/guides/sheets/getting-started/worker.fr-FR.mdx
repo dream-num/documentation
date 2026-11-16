@@ -3,13 +3,13 @@ title: Web Workers
 icon: CircuitBoard
 ---
 
-Les exemples suivants illustrent l’utilisation de base des Workers[^web-worker] dans Univer.
+Les exemples ci-dessous montrent comment configurer un Worker[^web-worker] pour le calcul de la formule dans Univer.
 
-Dans Sheets, les Workers servent généralement à exécuter des tâches de calcul intensives, comme le calcul des formules. L’exécution de ce calcul dans un processus Worker réduit la charge du thread principal et préserve la fluidité du rendu et des interactions lorsqu’un classeur contient de nombreuses formules.
+Dans les feuilles, un worker s'occupe généralement de tâches à forte intensité de calcul telles que le calcul de la formule. L'exécution de ce travail dans un processus Worker réduit la charge sur le thread principal, de sorte que le rendu et l'interaction des pages restent réactifs lorsqu'un workbook contient de nombreuses formules.
 
 ## Mode Plugin
 
-Partez de la configuration du mode plugin de [l’installation](/guides/sheets/getting-started/installation). Gardez les plugins de rendu et d’interface sur le thread principal. Remplacez les trois enregistrements de calcul ci-dessous et ajoutez le plugin RPC avant de créer le classeur.
+Cette section commence à partir de la configuration en mode Plugin dans [installation](/guides/sheets/getting-started/installation). Les plugins Rendering et UI restent sur le thread principal. Remplacez les enregistrements des trois plugins de calcul par les versions ci-dessous, et enregistrez le plugin RPC fil principal avant de créer le cahier de travail.
 
 `UniverRPCMainThreadPlugin`
 
@@ -37,7 +37,7 @@ univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: true })
 univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: true })
 ```
 
-Le Worker ne contient que les plugins de données et de calcul ci-dessous. N’y enregistrez aucun plugin UI ou de rendu. `notExecuteFormula: true` délègue le calcul au Worker.
+Le Worker ne contient que les données et les plugins de calcul énumérés ci-dessous. Ne pas enregistrer l'interface utilisateur ou les plugins du rendu dans le Worker. Sur le thread principal, `notExecuteFormula: true` délègue le calcul de formule au Worker.
 
 `UniverSheetsPlugin`
 
@@ -59,9 +59,9 @@ univer.registerPlugin(UniverRPCWorkerThreadPlugin)
 univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
 ```
 
-Avec les filtres, enregistrez `UniverSheetsFilterPlugin` des deux côtés pour que `SUBTOTAL` tienne compte des lignes filtrées : importez-le depuis `@univerjs/sheets-filter` sur le thread principal et `@univerjs/sheets-filter/worker` dans le Worker. Gardez `UniverSheetsFilterUIPlugin` sur le thread principal.
+Le filtrage nécessite `UniverSheetsFilterPlugin` dans les deux threads. Sans ce plugin, des formules telles que `SUBTOTAL` ne peuvent pas déterminer quelles lignes de filtrage ont été cachées. Importez le plugin à partir de `@univerjs/sheets-filter` sur le thread principal et de `@univerjs/sheets-filter/worker` dans le Worker. `UniverSheetsFilterUIPlugin` reste sur le think principal.
 
-Utilisez ces entrées pour les plugins de calcul supplémentaires du Worker. Le thread principal utilise la racine de chaque paquet. Alignez toutes les versions du SDK.
+Pour des plugins de calcul supplémentaires dans le Worker, utilisez les points d'entrée ci-dessous. Le thread principal importe de l'entrée racine de chaque paquet. Toutes les versions du paquet SDK doivent rester alignées.
 
 ```typescript title="worker.ts"
 import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula/worker'
@@ -71,7 +71,7 @@ import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer/worker'
 import { UniverSheetsTablePlugin } from '@univerjs/sheets-table/worker'
 ```
 
-Pour les tableaux croisés, remplacez `UniverFormulaEnginePlugin` par `UniverProFormulaEnginePlugin` des deux côtés et enregistrez aussi `UniverLicensePlugin` et `UniverSheetsPivotTablePlugin`. Configurez `notExecuteFormula: true` sur le moteur Pro et le plugin de tableau croisé du thread principal, et `false` dans le Worker. Fournissez la licence dans les deux environnements, gardez l’interface sur le thread principal et enregistrez les fonctions personnalisées dans les deux moteurs.
+Les tables pivot nécessitent une configuration différente. Remplacez `UniverFormulaEnginePlugin` par `UniverProFormulaEnginePlugin` dans les deux threads, et enregistrez `UniverLicensePlugin` et `UniverSheetsPivotTablePlugin` aussi. Dans le thread principal, définissez `notExecuteFormula: true` sur le moteur de formule Pro et le plugin PivotTable; dans le Worker, définissez-le à `false`. Les deux runtimes nécessitent la licence. L'interface utilisateur pivot reste sur le thread principale, et les implémentations de formule personnalisée doivent être enregistrées dans les deux moteurs de formule.
 
 `UniverLicensePlugin`
 
@@ -101,7 +101,7 @@ Pour les tableaux croisés, remplacez `UniverFormulaEnginePlugin` par `UniverPro
 
 ### Exemple : sheets-core-with-worker
 
-Cet exemple importe le package de preset `sheets-filter`, car le calcul de la formule `SUBTOTAL` tient compte des lignes masquées par sheets-filter. Lorsque le calcul des formules est exécuté dans un Worker, sheets-filter doit également y être exécuté.
+Cet exemple inclut le paquet préréglé `sheets-filter` parce que le filtre feuilles cache des lignes, et les lignes cachées affectent la façon dont `SUBTOTAL` est calculé. Lorsque le calcul de la formule s'effectue dans un Worker, le filtre feuilles doit également s'exécuter dans le Worker.
 
 ```typescript title="main.ts"
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'

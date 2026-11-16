@@ -3,8 +3,7 @@ title: Importation et exportation
 icon: 'FolderSync'
 ---
 
-
-Avant d’utiliser les API ci-dessous, suivez l’[intégration des imports/exports](/server/import-export). Votre application doit fournir les contrats de téléversement, conversion, suivi des tâches et téléchargement autorisé. Les API de snapshot nécessitent aussi un backend de conversion. L’[exemple Exchange](/server/collaboration/examples#exchange) concerne Sheets ; vérifiez séparément les autres produits et formats.
+Les API de cette page nécessitent un moteur de conversion. Configurez d'abord [intégration d'échange de fichiers](/server/import-export) afin que les téléchargements, conversions, requêtes de tâches et téléchargements fonctionnent, puis configurez les plugins du navigateur. Les API de snapshot nécessitent le même moteur, mais ne nécessitent pas de document collaboratif.
 
 En cas d’échec d’export, consultez [les erreurs de licence et de tâche](/server/import-export#export-errors).
 
@@ -38,19 +37,20 @@ Pour les pièces jointes Office importées, voir [aperçus OLE, conversion en li
 
 ## Formats pris en charge
 
-Le tableau décrit les API du navigateur présentées ici. La conversion des fichiers Office nécessite un backend compatible avec le même type de document et le même format.
+Le tableau énumère les formats pris en charge par les API du navigateur sur cette page. La conversion de fichier Office nécessite en outre un moteur qui prend en charge le même type de document et le même format.
 
 | Importation | Exportation |
 | --- | --- |
 | `.xls`, `.xlsx`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` |
 
+CSV et TSV exportent une feuille de travail unique, sans formatage du cahier de travail ou les autres feuilles de travail. Passez `ExchangeFormat.CSV` ou `ExchangeFormat.TSV` avec le `sheetId` à l'API d'exportation; XLSX est la valeur par défaut. L'API du navigateur n'accepte pas `.xlsm`, même lorsque le moteur de conversion le supporte.
+
 ## API Facade [#facade-api]
 
 ### Importation
 
-<Callout type="info" title="Remarque sur le mode plugin">
-  L’importation manuelle du package Facade n’est nécessaire qu’en mode plugin. Le mode prédéfini inclut déjà le package
-  Facade correspondant, aucune importation supplémentaire n’est donc requise.
+<Callout type="info" title="Note du mode greffon">
+  Seul le mode plugin nécessite l'importation du paquet Facade manuellement. Le mode Preset inclut déjà le paquet correspondant.
 </Callout>
 
 ```typescript
@@ -63,11 +63,10 @@ import '@univerjs-pro/sheets-exchange-client/facade'
 #### Importer un fichier `.xlsx` et obtenir son `unitId`
 
 <Callout type="warning" title="Attention">
-  Cette méthode nécessite la collaboration : elle crée un document sur le serveur et renvoie un `unitId`. Si la
-  collaboration n’est pas activée, utilisez l’importation par instantané.
+  Cette méthode nécessite une collaboration : elle crée un document sur le serveur et renvoie un `unitId`. Si la collaboration n'est pas activée, utilisez plutôt l'import snapshot.
 </Callout>
 
-Lorsque l’édition collaborative est activée, chaque document possède un `unitId` unique. L’appel à `univerAPI.importSheetToUnitIdAsync` avec le paramètre `file` renvoie le `unitId` permettant d’accéder au document. Le paramètre `file` peut être un objet `File` ou l’URL d’un fichier distant.
+Lorsque l'édition collaborative est activée, chaque document a un `unitId` unique. Passez un `file` à `univerAPI.importSheetToUnitIdAsync`, et la méthode retourne que `unitId`, qui est utilisé pour ouvrir le document. `file` peut être un objet `File` ou une URL de fichier distant.
 
 ```typescript
 import '@univerjs-pro/collaboration-client/facade'
@@ -86,7 +85,7 @@ if (unitId) {
   l’importation par `unitId`.
 </Callout>
 
-L’appel à `univerAPI.importSheetToSnapshotAsync` pour importer un fichier `.xlsx` renvoie les données du document au format `IWorkbookData`.
+`univerAPI.importSheetToSnapshotAsync` importe un fichier `.xlsx` et retourne les données du document sous la forme de `IWorkbookData`.
 
 ```typescript
 // Accept a File object
@@ -103,11 +102,10 @@ if (snapshot) univerAPI.createWorkbook(snapshot)
 #### Exporter un fichier `.xlsx` à l’aide de son `unitId`
 
 <Callout type="warning" title="Attention">
-  L’exportation par `unitId` nécessite la collaboration. Si la collaboration n’est pas activée, utilisez l’exportation
-  par instantané.
+  Exporter par `unitId` nécessite une collaboration. Si la collaboration n'est pas activée, utilisez l'export des instantanés.
 </Callout>
 
-Lorsque l’édition collaborative est activée, chaque document possède un `unitId` unique. L’appel à `univerAPI.exportSheetByUnitIdAsync` avec le paramètre `unitId` renvoie un objet `File`.
+Lorsque l'édition collaborative est activée, chaque document possède un `unitId` unique. Passez ce `unitId` à `univerAPI.exportSheetByUnitIdAsync` et la méthode renvoie un objet `File`.
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -120,11 +118,9 @@ if (file) univerAPI.downloadFile(file, 'univer', 'xlsx')
 
 #### Exporter un fichier `.xlsx` à l’aide d’un objet `IWorkbookData`
 
-<Callout>
-  L’exportation par instantané ne nécessite pas la collaboration et convient aux flux de travail locaux.
-</Callout>
+<Callout>L'exportation de snapshots ne nécessite pas de collaboration et est adaptée aux flux de travail locaux seulement.</Callout>
 
-L’appel à `univerAPI.exportSheetBySnapshotAsync` avec les données `IWorkbookData` renvoie un objet `File`.
+Passez le `IWorkbookData` à `univerAPI.exportSheetBySnapshotAsync`, et la méthode renvoie un objet `File`.
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -137,8 +133,8 @@ if (file) univerAPI.downloadFile(file, 'univer', 'xlsx')
 
 ## Suppression des menus et des interactions UI d’importation et d’exportation intégrés [#import-export-ui-migration]
 
-<Callout type="warning" title="À noter">
-  À partir de la version **1.2.0**, Univer a supprimé les menus et les interactions UI d’importation et d’exportation intégrés. Les services sous-jacents et les API Facade restent disponibles.
+<Callout type="warning" title="Remarque">
+  Depuis la version **1.2.0**, Univer n'inclut plus les menus d'importation/exportation intégrés et les interactions UI. Les services sous-jacents et les API Facade restent disponibles.
 </Callout>
 
-Si votre application doit conserver les menus et les interactions UI d’importation et d’exportation existants, consultez l’[exemple de migration des menus et des interactions UI d’importation et d’exportation intégrés](https://office.univer.ai/showcase/sheets/custom-import-export) pour effectuer la migration avec un plugin personnalisé. L’exemple fournit le code source complet, consultable en ligne et téléchargeable.
+Si l'application a encore besoin de ces menus et interactions, le [exemple de migration pour les menus d'importation/exportation intégrés et les interactions d'assurance-chômage](https://office.univer.ai/showcase/sheets/custom-import-export) montre comment les restaurer avec un plugin personnalisé. Le code source complet est disponible pour la lecture ou le téléchargement en ligne.

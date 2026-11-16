@@ -4,7 +4,7 @@ title: デプロイガイド
 description: 規模に応じて Server SDK アプリケーションのデプロイ形態を選びます。単一マシン、インポートとエクスポートの分離、複数の共同編集ノード。
 ---
 
-このページでは、Server SDK アプリケーションの 3 つのデプロイ形態を規模順に紹介します。先に [Collaboration SDK](/server/collaboration/overview)、[インポートとエクスポート](/server/import-export)、[サンプル](/server/collaboration/examples)を読み、モジュールの組み立て方を把握してください。デプロイは、同じ組み立てを 1 つまたは複数のノードに配置することです。
+Server SDKアプリケーションには3つの展開図があり、アプリケーションのスケールはどのアプリケーションが使用するかを決定します。 [Collaboration SDK](/server/collaboration/overview)、[輸入および輸出](/server/import-export)および[事例紹介](/server/collaboration/examples)から始めて、モジュールがどのように組み立てられているかを確認します。 デプロイメントは、同じアセンブリを実行する多くのノードだけを決定します。
 
 | 形態 | 共同編集 | インポートとエクスポート | 推奨規模 |
 | --- | --- | --- | --- |
@@ -14,33 +14,33 @@ description: 規模に応じて Server SDK アプリケーションのデプロ�
 
 ## 単一マシン
 
-すべての機能を 1 つの Node.js プロセスにデプロイし、ブラウザーが直接接続します。
+単一のNode.jsプロセスで実行されるすべてのコンポーネントおよびブラウザは、そのプロセスに直接接続します。
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"ブラウザー\"]) --> App[\"共同編集 + Exchange\"]\n    App --> DB[(\"データベース\")]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
 - Database Adapter は `IDatabaseAdapter` の契約を実装します。[データベースアダプター](/server/collaboration/database-adapters)を参照してください。
-- インポートとエクスポートは Exchange Service と File Service で組み立てます。[共同編集の拡張モジュール](/server/collaboration/extensions)を参照してください。
-- 変換は CPU 負荷が高く、大きなファイルは共同編集を遅くします。
+- 輸出入は、Exchange ServiceとFile Serviceにより提供されます。[コラボレーション拡張モジュール](/server/collaboration/extensions)を参照してください。
+- 変換はCPU-boundなので、大きめのファイルが連携を遅くします。
 
-変換が共同編集の応答に影響する場合や、多数のユーザーに継続してサービスを提供する場合は、インポートとエクスポートを分離します。
+変換がコラボレーションレイテンシーに影響を及ぼすか、多くのユーザーに対してサービスが応答しなくなったときに、インポートとエクスポートを別のノードに移動します。
 
 ## インポートとエクスポートの分離
 
-インポートとエクスポートを独立ノードに移します。共同編集は 1 ノードのまま、ゲートウェイが 2 種類のパスを分けてルーティングし、両者は同じデータベースに接続します。
+コラボレーションが単一のノードに残っている間、専用のノードでインポートとエクスポートを実行します。ゲートウェイは2種類のリクエストを別々にルーティングし、両側は同じデータベースを使用します。
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"ブラウザー\"]) --> Gateway[\"ゲートウェイ\"]\n    Gateway -->|\"共同編集リクエスト\"| Node[\"共同編集ノード\"]\n    Gateway -->|\"インポート/エクスポートリクエスト\"| Exchange[\"インポート/エクスポートノード\"]\n    Node --> DB[(\"データベース\")]\n    Exchange --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
-インポートとエクスポートのノードは Database Adapter、`UniverCollabService`、File Service、Exchange Service を組み立て、データベースに直接アクセスします。注入ポイントは単一マシンと同じです。両方のノードで File Service は同じファイルストレージを使い、`UniverCollabService` には同じ認可 Middleware を設定します。
+インポートとエクスポートノードは、データベースアダプタ、`UniverCollabService`、File Service、Exchange Serviceを組み立て、データベースと直接連携します。インジェクションポイントは、単一のマシンと同じです。両方のノードは、同じファイルストレージでFile Serviceを指し、両方のノードは`UniverCollabService`上で同じ認可ミドルウェアをインストールします。
 
-1 つの共同編集ノードが扱えるドキュメント数はプロセスのメモリで決まります。容量を超える場合やフェイルオーバーが必要な場合は複数ノードに進みます。
+プロセスメモリは、1つのコラボレーションノードが機能できるドキュメントの数を制限します。その容量が上回っているとき、またはフェイルオーバーが必要な場合は、複数のノードに移動します。
 
 ## 複数の共同編集ノード
 
-複数の共同編集ノードが同じコードを実行し、同じデータベースに接続します。pub/sub アダプターがノード間で Room、Presence、ブロードキャストを中継し、ticket store が Session Ticket を共有します。`@univerjs-pro/collaboration-cluster-redis` が Redis 実装を提供します。各ノードには同じライセンスを設定し、ライセンスは実行するノード数をカバーする必要があります。[共同編集ノード](/server/collaboration/license#nodes)を参照してください。参考サンプル: [Multi-node](/server/collaboration/examples#multi-node)。
+複数のコラボレーションノードは同じデータベースに対して同じコードを実行します。パブ/サブアダプタは、ノード間でルーム、プレゼンス、および放送を中継し、チケットストアはセッションチケットを共有します。 `@univerjs-pro/collaboration-cluster-redis`は、Redisの実装を提供します。すべてのノードは、実行ノードの数をカバーする同じライセンスを使用します。 [コラボレーションノード](/server/collaboration/license#nodes)を参照してください。参照実装については、[マルチノード](/server/collaboration/examples#multi-node)をご覧ください。
 
 <Mermaid chart={"%%{init: {\"themeVariables\": {\"fontSize\": \"14px\"}, \"flowchart\": {\"nodeSpacing\": 24, \"rankSpacing\": 40, \"padding\": 12}}}%%\nflowchart LR\n    Browser([\"ブラウザー\"]) --> Gateway[\"ゲートウェイ\"]\n    subgraph Nodes[\"共同編集ノード\"]\n        direction TB\n        A[\"ノード A\"]\n        B[\"ノード B\"]\n    end\n    Gateway -->|\"共同編集リクエスト\"| A\n    Gateway --> B\n    subgraph Exchange[\"インポート/エクスポートノード\"]\n        direction TB\n        X1[\"ノード A\"]\n        X2[\"ノード B\"]\n    end\n    Gateway -->|\"インポート/エクスポートリクエスト\"| X1\n    Gateway --> X2\n    A --- PubSub[(\"pub/sub + ticket store\")]\n    B --- PubSub\n    A --> DB[(\"データベース\")]\n    B --> DB\n    X1 --> DB\n    X2 --> DB\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Browser actor"} />
 
-各共同編集ノードは Redis の pub/sub アダプターと ticket store を Endpoint に渡します。それ以外の組み立てはそのままです。
+各コラボレーションノードは、Redis pub/sub アダプターとチケットストアをエンドポイントに渡します。アセンブリの残りの部分は変更されません。
 
 ```ts
 import { createClient } from "redis";
@@ -58,4 +58,4 @@ const endpoint = new UniverCollabEndpoint(service, { pubSub, ticketStore });
 
 ## さらに先へ
 
-1 つのノードで非常に大きなドキュメントを処理すると、同じノード上の小さなドキュメントのリクエストが遅くなります。ドキュメントの規模でノードプールを分け、ゲートウェイが大きなドキュメントを専用プールにルーティングするようにできます。ルーティングキーは unit ID のままで、すべてのプールがデータベースと pub/sub を共有します。
+1つの非常に大きな文書は、同じノード上の小さな文書のリクエストを遅くします。 ノードプールを文書サイズで分割し、ゲートウェイは大きな文書を専用のプールにルーティングします。 ルーティングキーはユニットIDであり、すべてのプールはデータベースとパブ/サブを共有します。

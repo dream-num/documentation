@@ -3,7 +3,7 @@ title: Límites y relaciones entre módulos
 description: Comprende las responsabilidades, flujos de datos y montaje de Collaboration Client, Transport, Endpoint, Service y Database Adapter.
 ---
 
-Univer Collaboration combina un Client de navegador con módulos del servidor. Cada módulo tiene una clase de responsabilidad. La aplicación los compone mediante interfaces públicas sin entrar en la implementación interna de OT[^operational-transformation], protocolo o persistencia.
+Univer La colaboración consiste en un cliente del navegador y un conjunto de módulos del lado del servidor. Cada módulo posee una clase de responsabilidad. Las aplicaciones componen los módulos a través de interfaces públicas, por lo que su código no depende de los internos de la implementación OT[^operational-transformation], el protocolo o la capa de persistencia.
 
 ## Diagrama completo
 
@@ -11,21 +11,21 @@ Univer Collaboration combina un Client de navegador con módulos del servidor. C
 
 ## Collaboration Client
 
-Collaboration Client se ejecuta junto al Web SDK y:
+El navegador Collaboration Client corre junto al Web SDK y maneja el lado cliente de la colaboración:
 
-- solicita instantáneas Unit y cambios confirmados pendientes;
-- obtiene un Session Ticket de un solo uso y abre WebSocket;
-- entra en Rooms Unit e intercambia Presence;
-- envía mutaciones locales como conjuntos de cambios;
-- recibe ACK y difusiones, y recupera cambios pendientes tras reconectar.
+- Pide instantáneas de la unidad y cualquier cambio confirmado que no está.
+- Utiliza un boleto de sesión de una sola vez para abrir una conexión WebSocket.
+- Se une a Unit Rooms e intercambia Presence con otros miembros.
+- Presenta mutaciones locales al servidor como cambiaformas.
+- Recibe ACKs y transmisiones, y después de una reconexión, sembra los cambios que perdió.
 
-Client no determina la confianza del usuario ni es la fuente autoritativa. El servidor sigue aplicando identidad y autorización mediante el Middleware apropiado.
+El Cliente no determina si un usuario es confiable, y no es la fuente de datos autorizada. Esa decisión pertenece al servidor, que impone la identidad y la autorización en el correspondiente Middleware.
 
 ## Node Transport
 
-`@univerjs-pro/collaboration-transport-node` es la entrada HTTP/WebSocket de Node.js. Recibe solicitudes y actualizaciones WebSocket del servidor HTTP anfitrión, ejecuta Middleware de entrada y distribuye tráfico a Endpoints.
+`@univerjs-pro/collaboration-transport-node` es el punto de entrada Node.js para el tráfico HTTP y WebSocket. Recibe solicitudes y actualizaciones WebSockets desde el servidor HTTP host, ejecuta la entrada Middleware registrado por la aplicación, y rutas de tráfico a Endpoints.
 
-No conoce OT, datos Unit ni modelos ACL. Expone tres métodos principales de montaje:
+El transporte no comprende los modelos OT, Unit data o ACL. Assembly utiliza tres métodos:
 
 ```ts
 transport.use(httpMiddleware);
@@ -33,37 +33,37 @@ transport.useUpgrade(upgradeMiddleware);
 transport.register(endpoint);
 ```
 
-- `use()` participa en HTTP ordinario y puede establecer `userID`, `customData`, registros y trazas;
-- `useUpgrade()` participa en el enlace WebSocket y puede rechazar antes de conectar;
-- `register()` registra un Endpoint de protocolo y asigna su ciclo de vida a Transport.
+- `use()` maneja solicitudes HTTP ordinarias y puede establecer `userID`, `customData` , registros , o trazas .
+- `useUpgrade()` maneja el apretón de manos WebSocket y puede rechazar la conexión antes de que se establezca.
+- `register()` registra un protocolo Endpoint, cuyo ciclo de vida el Transporte entonces maneja.
 
 ## Collaboration Endpoint
 
-`@univerjs-pro/collaboration-endpoint` implementa el protocolo de Univer Collaboration Client y se encarga de:
+`@univerjs-pro/collaboration-endpoint` implementa el protocolo utilizado por el Cliente de Colaboración Univer y posee las siguientes capacidades:
 
 | Función | Responsabilidad de Endpoint |
 | --- | --- |
-| Carga de contenido | Proporciona instantáneas Unit, bloques y cambios confirmados pendientes al Client |
+| Carga de contenido | Devuelve instantáneas y bloques de la unidad, junto con cualquier cambio confirmado que el cliente carece |
 | Envío de cambios | Recibe cambios, devuelve ACK y difunde cambios confirmados a la Room |
-| Conexión Session | Emite tickets de un solo uso, establece y mantiene Sessions WebSocket |
+| Conexión Session | Temas de sesión de una sola vez Tickets, luego establece y mantiene WebSocket Sessions |
 | Colaboración Room | Gestiona JOIN, LEAVE, estado de miembros y Presence |
 | Ciclo de vida Unit | Asocia solicitudes de eliminación y recuperación con llamadas Service |
-| Varios nodos | Retransmite Rooms, Presence y difusiones entre nodos mediante un adaptador pub/sub opcional y un almacén de tickets compartido |
+| Varios nodos | Relays Rooms, Presence y transmisiones a través de nodos a través de un adaptador opcional de pub/sub y una tienda de entradas compartida |
 
-Endpoint no realiza OT ni guarda datos directamente. Solicita resultados autoritativos a Service y los adapta al protocolo Client. Las operaciones de producto, como crear documentos, deben llamar a Service desde una API de la aplicación.
+El Endpoint no realiza OT y no almacena datos de colaboración en sí mismo. Obtiene el resultado autorizado del Servicio y los mapas que dan lugar al protocolo del Cliente. Operaciones de productos como la creación de un documento pertenecen a una API de aplicación que llama al Servicio.
 
 ## Collaboration Service
 
-`@univerjs-pro/collaboration-service` es el núcleo independiente de la red para Sheet, Doc, Slide, Board, Base y PDF. Se encarga de:
+`@univerjs-pro/collaboration-service` es el núcleo de colaboración y no depende de la red. Cubre la hoja, Doc, Slide, Board, Base y PDF:
 
-- leer datos de recuperación Unit y cambios confirmados;
-- crear Units desde Unit Data o instantáneas;
-- enviar cambios, ejecutar OT y avanzar revisiones[^collaboration-revision] continuas;
-- identificar envíos duplicados por `(unitID, sid, reqId)`;
-- eliminar lógicamente, recuperar o eliminar permanentemente Units;
-- ejecutar Middleware de Service y emitir Events tras confirmar.
+- Lee datos de recuperación de la unidad y cambios confirmados.
+- Crea Unidades de Datos de Unidad o instantáneas.
+- Presentar un cambio de funcionamiento OT y adelanta la revisión continua[^collaboration-revision].
+- Identifica las presentaciones duplicadas a través de `(unitID, sid, reqId)`.
+- Suave-deletes, recupera o elimina permanentemente Unidades.
+- Funciona Service Middleware y emite Eventos después de la confirmación.
 
-No proporciona HTTP, WebSocket, usuarios, roles, ACL, jerarquía ni gestión de archivos. Endpoint lo usa para el protocolo del navegador. La aplicación puede llamar a su API pública desde API de negocio o tareas de fondo.
+El Servicio no tiene capa HTTP o WebSocket, y no sabe sobre usuarios, roles, ACLs, jerarquía o gestión de archivos. El Endpoint construye el protocolo del navegador en la parte superior del Servicio. Las aplicaciones también pueden llamar la API pública del Servicio directamente desde APIs de negocios o tareas de fondo.
 
 ### API principales
 
@@ -81,28 +81,28 @@ Es el contrato entre Service y almacenamiento. Debe garantizar:
 
 - creación atómica de instantánea inicial y dependencias;
 - comparación e intercambio de revisión;
-- envíos idempotentes de cambios;
-- visibilidad de instantáneas solo tras almacenar sus dependencias;
+- idempotent changeset submission;
+- la visibilidad instantánea sólo después de que todas sus dependencias existan;
 - lotes del ciclo de vida Unit de todo o nada.
 
-El SDK proporciona Memory, SQLite y PostgreSQL. Para otras bases se implementa el mismo contrato. Consulta [Adaptadores de base de datos](/server/collaboration/database-adapters).
+El SDK proporciona las implementaciones Memory, SQLite y PostgreSQL. Las aplicaciones que necesitan una base de datos diferente implementan el mismo contrato. Véase [Adaptadores de bases de datos](/server/collaboration/database-adapters).
 
 ## Cuatro conceptos principales
 
 | Concepto | Significado |
 | --- | --- |
-| Unit | Contenido Univer cargable y colaborativo de forma independiente, con `unitID` único y tipo |
-| Snapshot | Contenido Unit persistente en una revisión, no un objeto activo mutable |
-| Changeset | Conjunto enviado de mutaciones con revisión base e identidad de idempotencia |
-| Revision | Número continuo de versión del estado Unit confirmado, inicialmente `1` |
+| Unit | Contenido Univer de carga independiente y colaborativo, con un `unitID` único y un tipo |
+| Snapshot | El contenido de la unidad persiste en una revisión, no en el objeto mutable en vivo |
+| Changeset | Un lote de mutaciones presentadas conjuntamente, con una revisión de base y una identidad para la idempotencia |
+| Revision | El número de versión continua del estado de unidad confirmado, comenzando en `1` |
 
-El contenido activo se cambia con API Facade o Commands. Modificar un objeto de instantánea no actualiza una Unit activa del Client o Service.
+Todos los cambios en el contenido de ejecución pasan por Facade APIs o Comandos. Mutar un objeto de instantáneas no actualiza la Unidad en vivo en el Cliente o el Servicio.
 
 ## Cargar una Unit
 
 <Mermaid chart={"sequenceDiagram\n    participant Client\n    participant Transport\n    participant Endpoint\n    participant Service\n    participant Adapter\n\n    Client->>Transport: Cargar Unit por HTTP\n    Transport->>Endpoint: Context de solicitud autenticado\n    Endpoint->>Service: getUnitLoadData()\n    Service->>Adapter: Instantánea + cambios\n    Adapter-->>Service: Datos autoritativos\n    Service-->>Endpoint: Datos de carga Unit\n    Endpoint-->>Client: Respuesta del protocolo"} />
 
-El `userID/customData` del Middleware de Transport acompaña la solicitud HTTP hasta el Middleware de Service. La política de la aplicación decide si permite leer; entrar en una Room no es requisito para leer directamente por HTTP.
+El `userID/customData` establecido por Transport Middleware viaja con la actual solicitud HTTP en Service Middleware. La aplicación decide si se permite una lectura. Un cliente no necesita unirse a una habitación antes de leer sobre HTTP simple.
 
 ## Enviar una edición
 
@@ -118,7 +118,7 @@ Facade / Command
   → ACK / difusión a Room
 ```
 
-La revisión confirmada en Database Adapter es autoritativa. ACK y difusiones sincronizan clientes conectados con baja latencia. Si un cliente pierde un mensaje, recupera los cambios confirmados desde su revisión conocida.
+La revisión confirmada en el Adaptador de Bases de Datos es el estado autoritativo. ACKs y transmisiones mantienen a los clientes en línea sincronizados con baja latencia. Un cliente que pierde un mensaje puede buscar los cambios confirmados que falta utilizando la revisión que ya sabe.
 
 ## Montaje mínimo del servidor
 
@@ -146,11 +146,11 @@ transport.attach(server);
 server.listen(3010);
 ```
 
-El usuario fijo y Memory Adapter solo demuestran el montaje. La aplicación establece el Context real mediante Middleware y elige un Adapter según sus datos.
+El usuario codificado y el adaptador de memoria sólo muestran montaje de módulos. Aplicaciones reales establecen Contexto a través de Middleware y selecciona un adaptador que se ajuste a sus requisitos de datos.
 
 ### Crear una Unit con una API de aplicación
 
-Define tu endpoint HTTP o RPC y llama al `service` anterior tras autenticar, validar entradas y comprobar reglas de negocio:
+Las aplicaciones pueden definir sus propios puntos finales HTTP o RPC y llamar al `service` creado anteriormente después de la autenticación, validación de entrada y cheques de negocio pasan:
 
 ```text
 Cliente de negocio
@@ -160,7 +160,7 @@ Cliente de negocio
   → Database Adapter
 ```
 
-El ejemplo Express supone que el Middleware de autenticación estableció `response.locals.user` y que `request.body.data` se validó como Workbook Data:
+El ejemplo Express a continuación supone que la autenticación Middleware ha establecido `response.locals.user` y que `request.body.data` ya ha sido validada como Datos del Cuaderno de Trabajo:
 
 ```ts
 import { randomUUID } from "node:crypto";
@@ -195,11 +195,11 @@ app.post("/api/units", json({ limit: "1mb" }), async (request, response, next) =
 });
 ```
 
-`POST /api/units` pertenece a la aplicación, no al protocolo Collaboration Client. `createUnitFromData()` sigue ejecutando el Middleware `createUnit` de Service. Registros del producto, ACL del propietario, conversión de errores en respuestas y compensación siguen a cargo de la aplicación.
+`POST /api/units` es una ruta de aplicación y no forma parte del protocolo del cliente de colaboración. Llamando a `createUnitFromData()` sigue ejecutando el `createUnit` Middleware del Servicio. Registros de productos, ACLs propietario, asignación de responsabilidad de errores y compensación de fallos siguen siendo la responsabilidad de la aplicación.
 
 ## Liberar recursos
 
-`transport.dispose()` libera los Endpoints registrados con `register()`. La aplicación libera por separado Service y Database Adapter inyectado, en orden inverso al montaje:
+`transport.dispose()` dispone los puntos finales registrados con `register()`. El Servicio y el Adaptador de bases de datos que la aplicación inyectada debe ser eliminado por separado, en el reverso de la orden de montaje:
 
 ```ts
 await transport.dispose();
@@ -207,9 +207,9 @@ await service.dispose();
 await database.dispose();
 ```
 
-Si proporcionaste un adaptador pub/sub, libéralo junto con sus conexiones después del transport; el Endpoint no lo libera.
+Si la aplicación suministra un adaptador de pub/sub, también debe disponer de ese adaptador y sus conexiones después del Transporte. El Endpoint no los dispone.
 
-Continúa con [Middleware y Events](/server/collaboration/middleware-and-events) para ampliar comportamientos en estos límites.
+Para ampliar el comportamiento en estos límites de módulos, continúe con [Medios y Eventos](/server/collaboration/middleware-and-events).
 
 [^operational-transformation]: La transformación operacional (OT) ajusta operaciones concurrentes creadas sobre distintas revisiones para aplicarlas de forma coherente. Trabaja con las ediciones, sin sustituir todo el documento por la última instantánea recibida.
 

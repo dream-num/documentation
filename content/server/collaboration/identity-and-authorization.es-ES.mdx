@@ -3,29 +3,29 @@ title: Identidad y autorización
 description: Conecta un sistema existente de autenticación y autorización mediante Middleware de Transport, Endpoint y Service.
 ---
 
-Univer Collaboration SDK no define usuarios, roles ni un modelo ACL. La aplicación establece una identidad de confianza en el Middleware de Transport y protege las Sessions en tiempo real y los datos colaborativos autoritativos con Middleware de Endpoint y Service.
+El Univer Collaboration SDK no define usuarios, roles o un modelo ACL. Una aplicación establece la identidad de confianza en el Transport Middleware y luego protege las sesiones en tiempo real y los datos de colaboración autorizados con Endpoint y Service Middleware.
 
-Esta página aplica [Middleware y Events](/server/collaboration/middleware-and-events) a la integración de identidad y autorización mediante Middleware.
+Esta página aplica [Medios y Eventos](/server/collaboration/middleware-and-events) a una tarea concreta: integración de la identidad y la autorización a través de Middleware.
 
 ## Verificar los permisos [#verify-permissions]
 
-Detén el ejemplo anterior y ejecuta `pnpm example:permissions`. Abre `http://127.0.0.1:3010` en dos contextos independientes e inicia sesión como **Alice · Editor** y **Bob · Viewer**. El primero puede editar; el segundo ve los resultados sincronizados pero no puede modificarlos. Revisa `transport.use()`, `readUnitData`, `joinUnit` y `submitChangeset` en [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/permissions/server/main.ts). Sustituye Cookie y usuarios de demostración por autenticación real y ACL de documentos. **El modo de solo lectura del frontend no basta**.
+Pare el ejemplo anterior y corra `pnpm example:permissions`. `http://127.0.0.1:3010` en dos contextos separados del navegador: iniciar como **Alice · Editor** en uno y como **Bob · Visor** en el otro. El editor puede modificar el documento, y el espectador ve el resultado sincronizado pero no puede modificarlo. [servidor/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/permissions/server/main.ts) para seguir el código: resolución de identidad en `transport.use()`, leer los cheques en `readUnitData`, checks de habitación en `joinUnit`, y los cheques de edición en `submitChangeset`. Reemplazar la demo Cookie y la lista de usuarios con su propia autenticación y documento ACL. **El estado de Frontend sólo es insuficiente.**
 
-La página también ofrece **Casey · No access**. Con esta cuenta se debe denegar la carga del documento: la petición snapshot devuelve HTTP 403.
+La página también proporciona una cuenta **Casey · Sin acceso**. Iniciar sesión con esa cuenta debe bloquear la carga de documentos, y la solicitud de instantáneas devuelve HTTP 403.
 
 ## Modelo de identidad
 
-| Identificador | Proveedor | Significado y ciclo de vida |
+| Identificador | Proveedor | Significado y vida |
 | --- | --- | --- |
 | `userID` | Aplicación | Identidad de negocio estable y autor de los conjuntos de cambios confirmados |
 | `memberID` | Endpoint | ID del miembro conectado para una Session WebSocket; cambia al reconectar |
 | `sid + reqId` | Cliente | Identidad de envío del conjunto de cambios que se mantiene durante los reintentos |
 
-Los campos de perfil enviados por el navegador, `memberID` y las revisiones no sustituyen la autenticación de la aplicación. Asocia la clave estable de usuario con `context.userID`.
+Campos de perfil de usuario enviados por el navegador, `memberID`, y las revisiones no pueden sustituir la autenticación de aplicaciones. Una aplicación mapea su clave de usuario estable para `context.userID`.
 
 ## Establecer identidad en el Middleware de Transport
 
-Transport vuelve a ejecutar el Middleware para cada solicitud HTTP de colaboración. La aplicación puede leer una Cookie, una Session o un token Bearer y añadir el resultado autenticado al Context:
+El Transporte funciona con Middleware para cada solicitud de colaboración HTTP. Una aplicación puede leer una cookie, una sesión, o una ficha de Bearer y adjuntar el resultado autenticado a Contexto:
 
 ```ts
 transport.use(async (context, next) => {
@@ -40,7 +40,7 @@ transport.use(async (context, next) => {
 });
 ```
 
-Si falla la autenticación, termina la respuesta HTTP sin llamar a `next()`:
+Cuando la autenticación falla, termine la respuesta HTTP sin llamar a `next()`:
 
 ```ts
 transport.use(async (context, next) => {
@@ -60,7 +60,7 @@ El SDK no impone nombres de Cookie, formatos de token, tablas de usuarios ni flu
 
 ## Cómo llega la identidad a una Session WebSocket
 
-La ruta WebSocket no confía en los campos de usuario enviados por el cliente. Endpoint extiende un Context HTTP autenticado a una Session en tiempo real mediante un Session Ticket de un solo uso:
+La ruta WebSocket no confía en los campos de usuario en las cargas de pago de los clientes. El Endpoint lleva un HTTP autenticado Contexto en una sesión en tiempo real por medio de un boleto de sesión de una sola vez:
 
 ```text
 Solicitud HTTP de Session Ticket
@@ -71,7 +71,7 @@ Solicitud HTTP de Session Ticket
   → crea Session { userID, memberID, customData }
 ```
 
-La cadena del ticket no contiene `userID` ni `customData`. `memberID` solo identifica la conexión actual y no es una credencial de identidad independiente. Con un almacén de tickets compartido en un despliegue en varios nodos, el `customData` almacenado se serializa, así que mantenlo serializable a JSON.
+La cadena de tickets no contiene `userID` ni `customData`. `memberID` identifica solamente la conexión actual, y no es una credencial de identidad independiente. En un despliegue de varios nodos con una tienda de tickets compartida, el `customData` almacenado es serializado, por lo que debe permanecer JSON-serializable.
 
 ## Autorizar en el límite adecuado
 
@@ -86,7 +86,7 @@ La cadena del ticket no contiene `userID` ni `customData`. `memberID` solo ident
 | Eliminación de Units | Service `deleteUnits` |
 | Recuperación de Units | Service `recoverUnits` |
 
-`joinUnit` de Endpoint solo controla si una Session puede entrar en una Room en tiempo real. Las instantáneas y los cambios pendientes se pueden leer directamente por HTTP, por lo que comprobar JOIN no sustituye `readUnitData`. Asimismo, una interfaz cliente de solo lectura es una indicación del producto, no un sustituto de la política `submitChangeset` del servidor.
+Endpoint `joinUnit` solo controla si una sesión puede entrar en una habitación en tiempo real. Las instantáneas y los cambios que faltan se pueden leer directamente sobre HTTP, por lo que un cheque Únete no puede reemplazar `readUnitData`. Asimismo, un cliente de sólo lectura UI es una pista de producto y no reemplaza la política `submitChangeset` en el servidor.
 
 ## Proteger lectura, JOIN y edición
 
@@ -119,11 +119,11 @@ service.use("submitChangeset", async (context, next) => {
 });
 ```
 
-Una aplicación real suele instalar las tres reglas: lectura para HTTP y JOIN, y edición para el envío.
+Una aplicación real normalmente instala las tres reglas: política de lectura para HTTP y JOIN, y política de edición para su presentación.
 
 ## Proteger el ciclo de vida de las Units
 
-El protocolo colaborativo abre Units existentes. «Crear documento» suele ser una API de la aplicación que crea un registro del producto y una ACL antes de llamar a `createUnitFromData()` o `createUnitFromSnapshot()`. Protege también el ciclo de vida mediante Middleware de Service:
+El protocolo de colaboración abre Unidades que ya existen. “Crear documento” es normalmente una API de aplicación que escribe un registro de producto y un ACL antes de llamar `createUnitFromData()` o `createUnitFromSnapshot()`. El ciclo de vida también requiere protección de Service Middleware:
 
 ```ts
 service.use("createUnit", async (context, next) => {
@@ -143,11 +143,11 @@ service.use("deleteUnits", async (context, next) => {
 });
 ```
 
-Protege `recoverUnits` por separado. Un usuario que pudo eliminar no necesariamente conserva para siempre el permiso de recuperar.
+Proteger `recoverUnits` por separado. Un usuario que una vez tuvo permiso de eliminación no necesariamente conserva el permiso de recuperación.
 
 ## Reutilizar consultas mediante customData
 
-Los Middleware de una misma llamada a Service pueden usar `customData` para evitar consultas duplicadas:
+Middleware dentro de la misma llamada de servicio puede utilizar `customData` para evitar consultas duplicadas:
 
 ```ts
 service.use("submitChangeset", async (context, next) => {
@@ -161,26 +161,26 @@ service.use("submitChangeset", async (context, next) => {
 });
 ```
 
-`customData` pertenece únicamente a la llamada o Session actual y no se persiste automáticamente. Los roles, las ACL y las relaciones entre inquilinos siguen en el almacenamiento de la aplicación.
+`customData` pertenece sólo a la llamada actual o sesión y no se persiste automáticamente. Las funciones, ACLs y las relaciones de inquilino permanecen en el almacenamiento de aplicaciones.
 
 ## Las extensiones necesitan políticas independientes
 
-History, Thread Comment, Worktree, File y Exchange tienen Middleware de Service independientes:
+Historia, Comentario de los hilos, Worktree, Archivo y Intercambio cada uno tiene su propio Servicio de Medios:
 
-- la lista de History y la lectura de cambios deben comprobar el acceso de lectura a la Unit;
-- la lista de comentarios debe comprobar lectura, mientras que añadir, responder, editar y eliminar aplican la política de comentarios;
-- Worktree debe proteger por separado visibilidad, edición de borradores, cambios de estado y fusión;
-- una fusión de Worktree al tronco sigue pasando por el Middleware de Service del tronco;
-- `upload` de File debe comprobar el acceso de edición a la Unit de destino, y `signUrl` y `download` el acceso de lectura;
-- `import` y `export` de Exchange son el lugar para comprobar cuotas y el acceso a la Unit de origen; crear la Unit importada y leer la Unit exportada siguen pasando por el Middleware del Core Service.
+- La lista de historia y las lecturas de los cambios deben comprobar que la persona que llama puede leer la Unidad.
+- La lista de comentarios debe comprobar el acceso leído, al tiempo que añadir, responder, editar y eliminar la política de comentario.
+- Worktree requiere cheques separados para la visibilidad, borrado de ediciones, cambios de estado, y fusión.
+- Un Worktree se fusiona en el maletero todavía pasa por el maletero Service Middleware.
+- El archivo `upload` debe comprobar el acceso de edición a la unidad de destino, mientras que `signUrl` y `download` controlan el acceso de lectura.
+- Exchange `import` y `export` son el lugar adecuado para las comprobaciones de cupos y para los cheques de acceso a la unidad fuente; la creación de la unidad importada y la lectura de la unidad exportada siguen pasando por el equipo básico de servicio.
 
-Las reglas del Collaboration Service principal no protegen automáticamente estos módulos. Reutiliza el mismo servicio de políticas de la aplicación en lugar de crear un modelo ACL separado para cada extensión.
+Las reglas instaladas en el Servicio de Colaboración central no protegen automáticamente estos módulos. El mismo servicio de políticas de aplicación debe ser reutilizado en lugar de un modelo de datos ACL separado construido para cada extensión.
 
 ## Definir el usuario actual en el cliente
 
-`UserManagerService.setCurrentUser()` establece el ID, nombre y avatar del usuario de la instancia Univer actual para los componentes frontend. Por ejemplo, el filtro «Relacionado conmigo» del panel de comentarios utiliza este ID para mostrar los comentarios asociados al usuario actual.
+`UserManagerService.setCurrentUser()` establece el ID de usuario, nombre y avatar para la instancia Univer actual, y los componentes de frontend leen estos valores desde allí. El filtro “Concern me” del panel de comentarios, por ejemplo, utiliza este ID de usuario para mostrar los comentarios que involucran al usuario actual.
 
-Configúralo después de crear la instancia Univer y antes de cargar el documento:
+Llámalo después de la instancia Univer se crea y antes de que el documento se cargue:
 
 ```ts
 import { UserManagerService } from "@univerjs/core";
@@ -196,6 +196,6 @@ univer
   });
 ```
 
-Asocia el ID estable de usuario de la aplicación con `userID`, coincidiendo con el `context.userID` autenticado del servidor. Configura los nombres y avatares compartidos durante la colaboración en el Middleware `connect` del servidor, como se explica en [Presence](/server/collaboration/presence).
+Mapea el ID de usuario estable de la aplicación a `userID` y manténgalo idéntico al `context.userID` autenticado en el servidor. Los nombres de los miembros y avatares compartidos durante la colaboración se establecen en el `connect` Middleware del servidor, como se describe en [Presencia](/server/collaboration/presence).
 
-Consulta el [ejemplo de permisos](/server/collaboration/examples#permissions) completo y ejecutable.
+El [Ejemplo de permisos](/server/collaboration/examples#permissions) es la versión completa ejecutable.

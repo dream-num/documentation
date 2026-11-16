@@ -2,7 +2,7 @@
 title: Shapes and Text
 ---
 
-Slides uses the shared Shape engine for editable shapes, connectors, and shape text. `FSlide.insertShape()` returns a shape Facade backed by the Slides command pipeline.
+Slides draws editable shapes, connectors, and shape text with the shared Shape engine. `FSlide.insertShape()` returns a shape Facade, and every operation on it passes through the Slides command pipeline.
 
 ## Custom font sources for merging text [#merge-shape-font-configuration]
 
@@ -12,7 +12,7 @@ Slides uses the shared Shape engine for editable shapes, connectors, and shape t
 | --- | --- | --- | --- |
 | `mergeShapeFontResolver` | `(font: string, unitId: string, text: string) => ArrayBuffer \| Promise<ArrayBuffer \| undefined> \| undefined` |  | Resolve the exact font bytes used to draw the text. |
 
-The Slides UI plugin can read supported Web fonts that are already loaded. For fonts supplied by your application, set `mergeShapeFontResolver(font, unitId, text)` in `UniverSlidesUIPlugin`. Return the bytes of the exact face, including weight, style and fallback, as an `ArrayBuffer` or a promise. Return `undefined` when the exact face is unavailable.
+The Slides UI plugin can read supported Web fonts that are already loaded. If the application loads its own fonts, set `mergeShapeFontResolver(font, unitId, text)` in `UniverSlidesUIPlugin`. Return the bytes of the exact face that will be used, with the weight, style, and fallback already matched, as an `ArrayBuffer` or a promise. Return `undefined` when that exact face is unavailable.
 
 ## Insert a shape
 
@@ -37,7 +37,7 @@ const shape = slide.insertShape({
 })
 ```
 
-`insertShape()` can return `null` when the Shape host adapter is unavailable or the input cannot be created. Register the Shape dependencies used by the Slides setup before inserting shapes.
+`insertShape()` returns `null` when the Shape host adapter is unavailable or the input cannot be created. Register the Shape dependencies required by the Slides setup before inserting shapes.
 
 ## Add rich text
 
@@ -54,12 +54,11 @@ if (shape) {
 }
 ```
 
-Use `slide.getShape(id)` or `slide.getShapes()` to retrieve shape Facades. Common element methods update position, size, visibility, name, and description; `slide.deleteElement(shape)` removes the shape.
-
+Shape Facades are available from `slide.getShape(id)` or `slide.getShapes()`. The common element methods set the position, size, visibility, name, and description, and `slide.deleteElement(shape)` removes the shape.
 
 ## Edit shape text
 
-Use the shape returned by `insertShape()` below or in the preceding example. `getText()` returns a live [FShapeText](/reference/facade/shape-text) handle. Read plain text with `getPlainText()`, replace the entire text with `setText()`, and format it with font, color and alignment methods.
+The following example uses the shape object that `insertShape()` returned earlier. `getText()` returns a live [FShapeText](/reference/facade/shape-text) handle. Read the plain text with `getPlainText()`, replace all of it with `setText()`, and apply formatting through the font, color, and alignment methods.
 
 ```ts
 if (!shape) throw new Error('Shape is not available')
@@ -74,7 +73,7 @@ shapeText
   .setVerticalAlign(univerAPI.Enum.VerticalAlign.MIDDLE)
 ```
 
-`setText()` replaces the existing text; use `setRichText()` when you need multiple styles in one shape. To modify existing rich text, call `getRichText()?.copy()`, edit the builder, then pass it to `setRichText()`. Changes to that detached builder are not applied automatically. See [text style](/reference/facade/shape-text#settextstyle) and [text box padding and layout](/reference/facade/shape-text#settextboxoptions) for more options.
+`setText()` replaces the existing text. Use `setRichText()` when a single shape requires several text styles. To change existing rich text, call `getRichText()?.copy()`, edit the builder, and pass it to `setRichText()`; editing the detached builder alone does not write any change back. More options are described in [text style](/reference/facade/shape-text#settextstyle) and [text box padding and layout](/reference/facade/shape-text#settextboxoptions).
 
 ```ts
 const richText = univerAPI.newRichText()
@@ -85,15 +84,15 @@ shapeText.setRichText(richText)
 
 ## Shape format painter [#format-painter]
 
-Select a shape, activate the format painter, then select the target shape. It copies fill, stroke, effects, and supported text formatting while keeping the target’s identity, geometry, text content, and formula bindings. Clear formatting restores insertion defaults. SmartArt is excluded. The corresponding shape UI plugin registers this behavior automatically.
+Select a source shape, activate the format painter, then select the target shape. The painter copies the fill, stroke, effects, and supported text formatting, and leaves the target's identity, geometry, text content, and formula bindings unchanged. Clear formatting restores the defaults from insertion. SmartArt is excluded. The matching shape UI plugin registers this behavior automatically.
 
 ## Merge shapes [#merge-shapes]
 
-Select 2–10 supported objects on the same slide, then use **Merge Shapes**. The operations are `union` (all areas), `combine` (exclude overlaps), `intersect` (shared area), `subtract` (remove other objects from the primary object), and `fragment` (split into regions). The primary object supplies formatting. Merging replaces the selected objects and supports undo/redo and collaboration.
+Select 2–10 supported objects on the same slide, then use **Merge Shapes**. The operations are `union` (all areas), `combine` (overlaps excluded), `intersect` (shared area), `subtract` (removes the other objects from the primary object), and `fragment` (split into regions). Formatting comes from the primary object. Merging replaces the selected objects and supports undo, redo, and collaboration.
 
-The command below uses the current selection. `merged` is `false` when the selection or operation cannot be applied. Objects must be editable and share the same group scope. Connectors, SmartArt, OLE objects, charts, and tables are not merge operands; some effects, animations, and complex text layouts also prevent merging.
+The following command acts on the current selection. `merged` is `false` when the selection or the operation cannot be applied. Objects must be editable and within the same group scope. Connectors, SmartArt, OLE objects, charts, and tables cannot be merge operands, and some effects, animations, and complex text layouts also prevent merging.
 
-Text boxes are converted to outlines when they participate in a merge. Their text can no longer be edited afterward. The merge stops if the rendered font cannot be read. See [font configuration](#merge-shape-font-configuration).
+A text box that takes part in a merge is converted to outlines, and its text can no longer be edited as text afterward. If the font used to render it cannot be read, the merge stops and the original shapes remain unchanged. See [font configuration](#merge-shape-font-configuration).
 
 ```ts
 import { MergeSlideShapesCommand } from '@univerjs-pro/slides-ui'

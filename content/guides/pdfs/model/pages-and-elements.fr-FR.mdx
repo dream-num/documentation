@@ -8,18 +8,18 @@ icon: 'Layers'
 
 `IPdfDocument` contient le modèle normalisé du document PDF :
 
-- `pages` stocke l'ordre, la taille, la rotation, les calques, les libellés et les boîtes PDF natives des pages.
+- `pages` stocke l'ordre de page, la taille, la rotation, les calques, les étiquettes et les boîtes PDF natives.
 - `objects` stocke les objets sémantiques du document.
-- `displayLists` préserve les opérations PDF au niveau du rendu et la fidélité de la source.
-- `textStories` maintient le flux de texte modifiable indépendamment du regroupement instable des glyphes PDF.
-- `assets`, `styles` et `native` conservent les ressources réutilisables et propres à la source.
-- `sources`, `edits` et `exportPlan` enregistrent la provenance et l'intention d'exportation.
+- `displayLists` conserve les opérations PDF de niveau rendu et préserve la fidélité au fichier source.
+- `textStories` conserve le texte modifiable comme un flux, séparé du regroupement glyphe PDF, qui n'est pas stable.
+- `assets`, `styles` et `native` conservent des ressources et des ressources réutilisables propres à la source.
+- `sources`, `edits` et `exportPlan` enregistrent où le contenu est originaire et ce que l'exportation doit faire.
 
-Dans un PDF importé, toutes les opérations sources visibles ne deviennent pas des éléments de façade modifiables. Le contenu natif peut rester dans les listes d'affichage jusqu'à ce qu'une action de l'utilisateur le promeuve ou le remplace.
+Pendant l'importation PDF, toutes les opérations source visibles ne deviennent pas un élément Facade modifiable. Le contenu natif reste dans les listes d'affichage jusqu'à ce qu'une action de l'utilisateur le favorise ou le remplace.
 
 ## Pages
 
-`FPdf` lit les pages dans l'ordre matérialisé et insère des pages vides :
+`FPdf` lit les pages dans l'ordre matérialisé et peut insérer des pages blanches :
 
 ```ts
 const pages = pdf.getPages()
@@ -28,11 +28,11 @@ const pageById = firstPage ? pdf.getPageById(firstPage.getId()) : null
 const appendedPage = pdf.insertPage()
 ```
 
-`insertPage(index)` accepte un entier de `0` jusqu'au nombre actuel de pages. Une nouvelle page hérite de la taille, de la rotation et des boîtes PDF d'une page adjacente. En l'absence de page adjacente, elle utilise les dimensions A4 de 595 par 842 points.
+`insertPage(index)` accepte un entier de `0` par le nombre de pages en cours. Une nouvelle page hérite de la taille, de la rotation et des boîtes PDF de son voisin. Si aucun voisin n'existe, la page utilise A4, qui est 595 par 842 points.
 
 ## Contenu natif et calques modifiables
 
-`FPdfPage.getElements()` renvoie les calques modifiables persistants dans leur ordre d'empilement. Les accesseurs typés filtrent la même couche de calques :
+`FPdfPage.getElements()` retourne des superpositions modifiables durables en z-ordre. Les accédeurs tapés ci-dessous filtrent le même calque de superposition:
 
 | Accesseur          | Wrapper de façade |
 | ------------------ | ----------------- |
@@ -44,29 +44,29 @@ const appendedPage = pdf.insertPage()
 | `getDividers()`    | `FPdfDivider`     |
 | `getAnnotations()` | `FPdfAnnotation`  |
 
-`getTextSpans()` est différent : il énumère les snapshots des opérations de texte natif visibles. Appeler `replaceText()` sur une plage masque l'opération native et crée une nouvelle zone de texte modifiable.
+`getTextSpans()` se comporte différemment. Il énumère les instantanés des opérations de texte natif visibles. Appeler `replaceText()` sur une portée supprime l'opération native et crée une nouvelle boîte de texte modifiable.
 
 ## Systèmes de coordonnées
 
-Le modèle principal et la façade publique utilisent volontairement des unités différentes :
+Le modèle de base et la Facade publique utilisent différentes unités par conception:
 
 | Limite                                                                          | Unité et origine                                              |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| Positions et tailles de la façade, chemins d'annotations et épaisseurs de trait | Points PDF, positionnement depuis le coin supérieur gauche    |
-| Géométrie des pages et des objets du modèle principal                           | EMU, origine dans le coin supérieur gauche                    |
-| `pdfBoxes` importées et mappages de la source native                            | Espace utilisateur PDF, origine dans le coin inférieur gauche |
+| Positions et tailles de la façade, chemins d'annotations et épaisseurs de trait | Points PDF, positionnés en haut à gauche |
+| Géométrie des pages et des objets du modèle principal | UEM, origine en haut à gauche |
+| `pdfBoxes` importées et mappages de la source native | Espace utilisateur PDF, origine en bas à gauche |
 
-Utilisez `getTransform`, `setPosition`, `setSize`, `setRotation` et les options d'insertion typées de la façade dans le code de l'application. Utilisez `ptToEmu`, `emuToPt` et les utilitaires de conversion associés uniquement lors de la création de données de modèle de plus bas niveau.
+Utilisation du code d'application `getTransform`, `setPosition`, `setSize`, `setRotation`, et les options dactylographiées Facade insert. `ptToEmu`, `emuToPt`, et les aides à la conversion connexes ne sont nécessaires que lorsque l'on construit des données de modèle de niveau inférieur.
 
 ## Limites publiques de modification
 
 La façade valide plusieurs contraintes du modèle :
 
-- La largeur et la hauteur doivent être des valeurs finies positives ; les positions et les rotations doivent être finies.
-- Les niveaux de liste vont de `0` à `8` ; le numéro de départ d'une liste ordonnée doit être un entier positif.
-- Les dimensions d'un tableau doivent être des entiers positifs et celui-ci ne peut pas contenir plus de 10,000 cellules.
+- La largeur et la hauteur doivent être des valeurs finies positives. Les positions et rotations doivent être finies.
+- Les niveaux de liste vont de `0` à `8`, et le numéro de début d'une liste ordonnée doit être un entier positif.
+- Une table doit avoir des dimensions entières positives et ne pas contenir plus de 10 000 cellules.
 - L'insertion d'annotations par la façade prend en charge le surlignage, le soulignement, le texte barré, le soulignement ondulé et le dessin à main levée.
-- L'opacité d'une image va de `0` à `1` et un rectangle de recadrage doit avoir une aire positive.
-- Les plages de texte utilisent des décalages UTF-16 avec un début inclusif et une fin exclusive.
+- L'opacité de l'image varie de `0` à `1`, et un rectangle de culture doit avoir une zone positive.
+- Les gammes de texte utilisent des offsets UTF-16, avec un début inclusif et une fin exclusive.
 
 Pour des exemples axés sur des tâches, continuez avec [Modifier des PDF](/guides/pdfs/features/core/editing).

@@ -4,17 +4,17 @@ title: Contrôle des autorisations
 
 import { PermissionShadowDemo } from './components/permission-shadow-demo'
 
-Univer propose un système de contrôle des autorisations qui permet de limiter les opérations des utilisateurs sur les classeurs, les feuilles de calcul et les plages. Lorsqu’un utilisateur tente une opération sans disposer de l’autorisation requise, son exécution est interrompue et l’utilisateur en est informé. Vous pouvez, par exemple, protéger une plage afin de déterminer si les collaborateurs peuvent la modifier, l’afficher, la copier ou la filtrer.
+Le contrôle de la permission dans Univer détermine ce qu'un utilisateur peut faire sur un cahier de travail, une feuille de travail ou une plage. Lorsqu'un utilisateur tente une opération sans la permission requise, Univer arrête l'opération et signale la permission manquante.
 
 <Callout type="warning">
-Le service doit persister les règles et les changements de collaborateurs, retourner les droits de l’utilisateur actuel et propager les échecs de requête. Des listes vides simulées ne constituent pas une persistance. En collaboration, le backend doit vérifier séparément les droits de lecture, JOIN et modification ; voir [Identité et autorisation](/server/collaboration/identity-and-authorization). La protection de l’interface et le masquage des ombres ne remplacent pas l’autorisation serveur.
+Votre service doit persister les règles de protection et les changements de collaborateur, retourner les permissions de l'utilisateur actuel, et passer les échecs de requête à l'appelant. Une maquette qui renvoie une liste vide n'est pas une couche de persistance. En collaboration, le moteur doit également vérifier les autorisations de lecture, JOIN et mutation elle-même; voir [Identité et autorisation](/server/collaboration/identity-and-authorization). La protection dans l'interface utilisateur et les ombres cachées ne remplacent pas l'autorisation du serveur.
 
 [Intégration du service d’autorisation](#authorization-service)
 </Callout>
 
 <PlaygroundFrame lang="fr-FR" slug="sheets/permission" clickToShow />
 
-Accédez à la section correspondant à votre tâche. Opérations de base, exemples avancés, configuration et dépannage restent sur cette page ; les contrats API complets sont maintenus dans Reference.
+Cette page couvre les opérations de base, les exemples avancés, la configuration et le dépannage.
 
 - [Tâches courantes](#permission-tasks)
 - [Configuration de l’interface des permissions](#permission-ui)
@@ -23,29 +23,29 @@ Accédez à la section correspondant à votre tâche. Opérations de base, exemp
 
 ## Concepts fondamentaux
 
-- Portée : les autorisations s’appliquent à trois niveaux : classeur, feuille de calcul et plage.
-- Points d’autorisation : chaque fonctionnalité correspond à un point d’autorisation. La modification d’un point détermine si la fonctionnalité est disponible.
-- Règles de protection : avant de définir les points d’autorisation d’une feuille de calcul ou d’une plage, vous devez créer une règle de protection.
+- Portée : Les autorisations s'appliquent à trois niveaux : cahier de travail, feuille de travail et fourchette.
+- Points de permission : Chaque fonction a un point de permission, et modifier sa valeur permet ou désactive cette fonction.
+- Règles de protection : Une feuille de travail ou une plage a besoin d'une règle de protection avant que ses points de permission puissent être définis.
 
 <Callout type="info">
-Les permissions locales non persistantes se modifient via les points de permission. Pour la persistance, consultez [Intégration du service d’autorisation](#authorization-service)
+Les permissions locales non persistantes se modifient via les points de permission. Pour la persistance, consultez [Intégration du service d’autorisation](#authorization-service).
 
-Dans un contexte d’édition collaborative, la mise à jour d’un point d’autorisation synchronise l’état du serveur :
+Dans l'édition collaborative, la mise à jour d'un point d'autorisation met également à jour l'état du serveur :
   - `false` : le point d’autorisation exige au minimum le rôle `owner`
   - `true` : le point d’autorisation exige au minimum le rôle `reader`
 </Callout>
 
 ## Exemple de base
 
-Avant d’utiliser les exemples `allowedUsers`, remplacez `user1` et `user2` par les identifiants réels de collaborateurs retournés par votre service d’autorisation.
+Avant d'utiliser les exemples `allowedUsers`, remplacez `user1` et `user2` par de vrais identifiants de collaborateurs retournés par votre service d'autorisation.
 
-Les méthodes les plus courantes de configuration des autorisations sont présentées ci-dessous pour les trois niveaux : classeur, feuille de calcul et plage.
+Les exemples ci-dessous montrent la façon habituelle de définir les permissions à chacun des trois niveaux : cahier de travail, feuille de travail et portée.
 
 ### Exemple de code pour les autorisations d’un classeur
 
-Les autorisations au niveau du classeur peuvent être définies directement avec l’[Facade API](/guides/sheets/getting-started/facade).
+Définissez les autorisations au niveau du cahier de travail directement via le [Facade API](/guides/sheets/getting-started/facade).
 
-L’exemple suivant désactive la modification de l’ensemble du classeur. Pour les autres fonctionnalités, remplacez le point d’autorisation en conséquence (consultez la [liste des points d’autorisation du classeur](#workbook-point)) :
+L'exemple ci-dessous désactive l'édition pour l'ensemble du workbook. Pour contrôler une autre fonctionnalité, remplacez le point de permission par celui correspondant; voir le [liste des points d'autorisation du cahier](#workbook-point):
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -56,12 +56,11 @@ const workbookPermission = fWorkbook.getWorkbookPermission()
 await workbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
 ```
 
-À retenir :
-- Les points d’autorisation d’un classeur peuvent être définis directement, sans créer de règle de protection.
+Les points d'autorisation du cahier de travail peuvent être définis directement, sans créer une règle de protection en premier.
 
 ### Exemple de code pour les autorisations d’une feuille de calcul
 
-Les autorisations des feuilles de calcul et des plages peuvent être définies avec l’API Facade ou avec des commandes. L’exemple suivant montre comment configurer l’autorisation de modification d’une feuille de calcul. Pour les autres fonctionnalités, remplacez le point d’autorisation en conséquence (consultez la [liste des points d’autorisation des feuilles de calcul](#worksheet-point)) :
+Les permissions de feuille de travail et de portée peuvent être définies par l'intermédiaire de Facade API ou par des commandes. Cet exemple définit la permission d'éditer la feuille de travail. Pour contrôler une autre fonctionnalité, remplacez le point de permission par celui correspondant; voir la [liste des points d'autorisation de feuille de travail](#worksheet-point):
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -93,7 +92,7 @@ await worksheetPermission.unprotect()
 
 ### Exemple de code pour les autorisations d’une plage personnalisée
 
-Les autorisations d’une plage peuvent également être définies par l’API ou par des commandes. Nous prendrons ici l’autorisation de modification d’une plage comme exemple. Pour les autres fonctionnalités, remplacez les points d’autorisation ; consultez la [liste des points d’autorisation des plages](#range-point) pour en savoir plus.
+Les permissions de portée peuvent être définies de la même manière : à travers l'API ou les commandes. L'exemple ci-dessous utilise la permission de modification de portée. D'autres fonctionnalités de portée nécessitent un point de permission différent; voir le [liste des points d'autorisation - Gamme](#range-point) pour plus de détails.
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -184,9 +183,9 @@ console.log(permission.debugCellPermission(0, 0))
 
 ## Liste des points d’autorisation [#point-list]
 
-Vous pouvez consulter [ici](https://github.com/dream-num/univer/tree/dev/packages/sheets/src/services/permission/permission-point) le code source de tous les points d’autorisation.
+Le code source pour chaque point d'autorisation est [Ici.](https://github.com/dream-num/univer/tree/dev/packages/sheets/src/services/permission/permission-point).
 
-Lorsque les autorisations du classeur se superposent à celles d’une feuille de calcul ou d’une plage, **toutes** les autorisations concernées doivent être définies sur `true` pour que la fonctionnalité soit utilisable.
+Quand une autorisation de cahier de travail et une autorisation de feuille de travail ou de plage couvrent une fonctionnalité, **Tous** des autorisations pertinentes doit être `true` avant que cette fonctionnalité ne fonctionne.
 
 ### Autorisations du classeur [#workbook-point]
 
@@ -255,10 +254,10 @@ Lorsque les autorisations du classeur se superposent à celles d’une feuille d
 
 | <span data-config-options="">Option</span> | Type | Valeur par défaut | Effet |
 | --- | --- | --- | --- |
-| `protectedRangeShadow` | `boolean \| 'always' \| 'non-editable' \| 'non-viewable' \| 'none'` | `true` | Détermine quand ombrer les plages protégées. |
-| <ConfigKey depth={0}>protectedRangeUserSelector</ConfigKey> | `object` |  | Personnalise le sélecteur d’utilisateurs des plages protégées. |
-| <ConfigKey depth={1}>component</ConfigKey> | `ComponentType<IPermissionDetailUserPartProps>` |  | Composant de sélection des utilisateurs. |
-| <ConfigKey depth={1}>framework</ConfigKey> | `string` |  | Framework du composant, par exemple `react`. |
+| `protectedRangeShadow` | `boolean \| 'always' \| 'non-editable' \| 'non-viewable' \| 'none'` | `true` | Les plages protégées montrent une ombre. |
+| <ConfigKey depth={0}>protectedRangeUserSelector</ConfigKey> | `object` |  | Personnalisez le sélecteur utilisé pour choisir les utilisateurs d'une gamme protégée. |
+| <ConfigKey depth={1}>component</ConfigKey> | `ComponentType<IPermissionDetailUserPartProps>` |  | Composant qui choisit les utilisateurs. |
+| <ConfigKey depth={1}>framework</ConfigKey> | `string` |  | Cadre utilisé par le composant, par exemple `react`. |
 
 ## Configuration des préréglages [#preset-configuration]
 
@@ -266,17 +265,17 @@ Lorsque les autorisations du classeur se superposent à celles d’une feuille d
 
 | <span data-config-options="">Option</span> | Type | Valeur par défaut | Effet |
 | --- | --- | --- | --- |
-| <ConfigKey depth={0}>sheets</ConfigKey> | `object` |  | Paramètres de cette fonctionnalité. |
-| <ConfigKey depth={1}>protectedRangeShadow</ConfigKey> | `boolean \| 'always' \| 'non-editable' \| 'non-viewable' \| 'none'` | `true` | Détermine quand ombrer les plages protégées. |
-| <ConfigKey depth={1}>protectedRangeUserSelector</ConfigKey> | `object` |  | Personnalise le sélecteur d’utilisateurs des plages protégées. |
-| <ConfigKey depth={2}>component</ConfigKey> | `ComponentType<IPermissionDetailUserPartProps>` |  | Composant de sélection des utilisateurs. |
-| <ConfigKey depth={2}>framework</ConfigKey> | `string` |  | Framework du composant, par exemple `react`. |
+| <ConfigKey depth={0}>sheets</ConfigKey> | `object` |  | Options pour la fonction sélectionnée. |
+| <ConfigKey depth={1}>protectedRangeShadow</ConfigKey> | `boolean \| 'always' \| 'non-editable' \| 'non-viewable' \| 'none'` | `true` | Les plages protégées montrent une ombre. |
+| <ConfigKey depth={1}>protectedRangeUserSelector</ConfigKey> | `object` |  | Personnalisez le sélecteur utilisé pour choisir les utilisateurs d'une gamme protégée. |
+| <ConfigKey depth={2}>component</ConfigKey> | `ComponentType<IPermissionDetailUserPartProps>` |  | Composant qui choisit les utilisateurs. |
+| <ConfigKey depth={2}>framework</ConfigKey> | `string` |  | Cadre utilisé par le composant, par exemple `react`. |
 
 ## Stratégie d’ombrage des plages protégées [#permission-ui]
 
-Pour distinguer les zones protégées que l’utilisateur actuel peut modifier de celles qu’il ne peut pas modifier, utilisez `non-editable`. L’ombrage disparaît des zones protégées modifiables et reste visible lorsque le droit de modification est désactivé. Les plages protégées non consultables restent masquées.
+Utilisez `non-editable` pour distinguer les zones protégées que l'utilisateur actuel peut éditer de celles qu'il ne peut pas. Les zones modifiables ne reçoivent pas d'ombre, les zones dont l'édition est désactivée gardent leur ombre et les plages non visualisées restent masquées.
 
-Ce réglage contrôle l’affichage de la protection des plages et des feuilles. Il ne crée pas de règles de protection, ne modifie pas les droits de modification ou de consultation et n’ajoute pas d’ombrage aux zones non protégées. Configurez d’abord les règles et les droits de l’utilisateur actuel comme indiqué ci-dessus.
+Le paramètre n'affecte que la façon dont la protection de la plage et de la feuille de travail est affichée. Il ne crée pas de règles de protection, ne modifie pas les permissions d'édition ou d'affichage, et n'ajoute pas d'ombres à des zones non protégées.
 
 | Stratégie | Affichage |
 | --- | --- |
@@ -314,10 +313,10 @@ Définissez la stratégie à l’initialisation :
 
 ## Composant utilisateur personnalisé
 
-Le sélecteur d’utilisateurs intégré à Univer offre une souplesse limitée. Pour les cas plus complexes, vous pouvez fournir un composant personnalisé comme ci-dessous.
+Le sélecteur d'utilisateur intégré couvre un ensemble limité de cas. Lorsque vos exigences dépassent, fournir un composant personnalisé:
 
 <Callout>
-  Pour savoir comment créer des composants personnalisés, consultez la page [Composants personnalisés](/guides/sheets/ui/components).
+  Pour plus de détails sur le bâtiment 1, voir [Composants personnalisés](/guides/sheets/ui/components).
 </Callout>
 
 <Tabs items={['Mode plugin', 'Mode prédéfini']}>
@@ -365,7 +364,7 @@ Le sélecteur d’utilisateurs intégré à Univer offre une souplesse limitée.
 
 ### Stratégie d’ombrage des plages protégées [#protected-range-shadow-api]
 
-L’API Facade ci-dessous met à jour les classeurs existants dans l’instance Univer actuelle. En mode plugin, importez d’abord `@univerjs/sheets-ui/facade` ; le preset Sheets Core inclut déjà cet import.
+Le Facade API ci-dessous modifie les cahiers de travail existants dans l'instance actuelle Univer. En mode plugin, importez d'abord `@univerjs/sheets-ui/facade` ; le préréglage de base de feuilles inclut déjà ce module.
 
 ```typescript
 // Set to only show shadows for non-editable ranges
@@ -386,7 +385,7 @@ subscription.unsubscribe()
 
 ### Composant utilisateur personnalisé [#permission-user-picker-api]
 
-Appelez `setSelectUserList()` dans le gestionnaire de changement du sélecteur. Cet exemple React minimal efface la sélection : `useDependency` s’exécute dans le composant et le service ne change qu’au clic. Complétez le sélecteur selon `IPermissionDetailUserPartProps`.
+Appelez `setSelectUserList()` depuis le gestionnaire de changement de votre sélecteur. L'exemple React ci-dessous efface la sélection. `useDependency` fonctionne à l'intérieur du composant, et le service n'est mis à jour qu'après un clic. Construisez les parties restantes du sélecteur contre `IPermissionDetailUserPartProps`.
 
 <Tabs items={['Mode plugin', 'Mode prédéfini']}>
   <Tab>
@@ -430,9 +429,9 @@ univerAPI.setPermissionDialogVisible(false)
 
 ### Utilisation avancée
 
-Pour vérifier les autorisations dans votre propre plugin, vous pouvez manipuler directement les points d’autorisation.
+Pour vérifier les permissions à l'intérieur de votre propre plugin, travaillez directement avec les points de permission.
 
-L’exemple suivant utilise `WorkbookEditablePermission` pour montrer comment vérifier les autorisations dans votre propre plugin. Les autres points d’autorisation fonctionnent de la même façon.
+L'exemple ci-dessous utilise `WorkbookEditablePermission`. D'autres points d'autorisation suivent le même modèle.
 
 ```typescript
 import { IPermissionService } from '@univerjs/core'
@@ -456,7 +455,7 @@ class YourService {
 
 ### Étendre les points d’autorisation
 
-Pour personnaliser les points d’autorisation, implémentez `IPermissionPoint`, puis enregistrez-le auprès du service d’autorisation :
+Pour les points d'autorisation personnalisés, implémentez `IPermissionPoint` et enregistrez-le avec le service d'autorisation :
 
 ```typescript
 import type { IPermissionPoint } from '@univerjs/core'
@@ -505,7 +504,7 @@ class ConsumeService {
 
 ### Intégrer un service d’autorisation tiers (avancé) [#authorization-service]
 
-Implémentez [IAuthzIoService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/type.ts) dans votre application et reliez ses méthodes de permissions, rôles et collaborateurs au backend. Cet exemple suppose que `./authorization-service` exporte cette implémentation sous le nom `YourAuthzService`. Enregistrez-la avant de créer les classeurs, en conservant les autres options et plugins.
+Implémentez [Service IAuthzIo](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/type.ts) dans votre application et connectez ses méthodes d'autorisation, de rôle et de collaborateur à votre backend. L'exemple suppose que `./authorization-service` exporte l'implémentation sous la forme de `YourAuthzService`. Enregistrez-le avant de créer des cahiers de travail, et conservez les autres options d'initialisation et les enregistrements de plugins.
 
 ```typescript
 import { IAuthzIoService, Univer } from '@univerjs/core'
@@ -516,17 +515,17 @@ const univer = new Univer({
 })
 ```
 
-Le service doit persister les règles et les changements de collaborateurs, retourner les droits de l’utilisateur actuel et propager les échecs de requête. Des listes vides simulées ne constituent pas une persistance. En collaboration, le backend doit vérifier séparément les droits de lecture, JOIN et modification ; voir [Identité et autorisation](/server/collaboration/identity-and-authorization). La protection de l’interface et le masquage des ombres ne remplacent pas l’autorisation serveur.
+Votre service authz doit persister les règles de protection et les changements de collaborateur, retourner les permissions de l'utilisateur actuel, et les défaillances de la requête de surface. Une maquette qui renvoie des listes vides ne persiste rien. En collaboration, le moteur doit toujours vérifier les autorisations de lecture, JOIN et mutation elle-même ; voir [Identité et autorisation](/server/collaboration/identity-and-authorization). La protection de l'interface utilisateur et les ombres cachées ne remplacent pas l'autorisation du serveur.
 
 ![Autorisation](./permission/permission-en.png)
 
 ### Gestion des collaborateurs
 
 <Callout>
-  La gestion des collaborateurs appartient au modèle utilisateurs/ACL et au service de permissions de votre application. Protégez lecture, JOIN et modification selon [Identity and authorization](/server/collaboration/identity-and-authorization). Les API frontend ci-dessous nécessitent une implémentation correspondante du service de permissions.
+  La gestion des collaborateurs appartient à votre application et à son service d'autorisation. Connectez votre propre utilisateur et modèle ACL, et appliquez des politiques de lecture, JOIN et d'édition sur le serveur ; voir [identité et autorisation](/server/collaboration/identity-and-authorization). Les API frontend ci-dessous nécessitent une implémentation de service d'approbation correspondante ; elles ne configurent pas l'autorisation du serveur.
 </Callout>
 
-- Obtenir la liste des collaborateurs
+- Obtenez la liste des collaborateurs
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -563,7 +562,7 @@ await workbookPermission.addCollaborator(
 )
 ```
 
-- Modifier le rôle d’un collaborateur
+- Mettre à jour les rôles des collaborateurs
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()

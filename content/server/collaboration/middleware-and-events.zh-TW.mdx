@@ -3,23 +3,23 @@ title: Middleware 與 Events
 description: 使用通用 Middleware 和 Events 擴充 Transport、Endpoint、Service 與協同擴充模組。
 ---
 
-Middleware 和 Events 是 Collaboration SDK 的通用擴充點。身分與授權透過 Middleware 接入。操作執行前使用 Middleware 驗證及限制，狀態確認後使用 Events 記錄變更或觸發後續工作。兩者均可支援日誌、請求追蹤、指標與衍生狀態更新。
+Middleware 與 Event 是 Collaboration SDK 的通用擴充套件點。身分與權限透過 Middleware 接入。操作執行前需要校驗或限制時使用 Middleware，狀態確認後需要記錄變化或觸發後續處理時使用 Event。兩者都可用於日誌、請求追蹤、指標採集和派生資料更新。
 
 ## 兩種擴充時機
 
 | | Middleware | Event |
 | --- | --- | --- |
-| 執行時機 | 操作期間 | 狀態變更確認後 |
+| 執行時機 | 操作期間 | 狀態變化確認之後 |
 | 能否參與或拒絕操作 | 能 | 不能 |
-| 能否補充呼叫 Context | 能 | 讀取 Event 攜帶的 Context 與結果 |
+| 能否補充呼叫 Context | 能 | 讀取 Event 攜帶的 Context 和結果 |
 | 監聽器失敗 | 可能使目前操作失敗 | 與已確定的領域結果隔離 |
 | 典型用途 | 身分、授權、驗證、日誌、計時 | 衍生索引、快取、指標、程序內通知 |
 
-需要決定操作能否繼續時使用 Middleware；需要觀察已發生的狀態變更時使用 Event。
+判斷方式如下：需要決定操作能否繼續時使用 Middleware；只需確認某個狀態變化已經發生時使用 Event。
 
 ## Middleware 執行模型
 
-相同 Action 的 Middleware 按註冊順序形成非同步鏈。`await next()` 進入下一個 Middleware；SDK 操作在最內層執行：
+同一個 Action 的 Middleware 按註冊順序組成非同步鏈。`await next()` 進入下一個 Middleware，SDK 操作在最內層執行：
 
 ```ts
 service.use("submitChangeset", async (context, next) => {
@@ -34,21 +34,15 @@ service.use("submitChangeset", async (context, next) => {
 });
 ```
 
-Middleware 可以：
+Middleware 可以讀取該 Action 的 request，透過 `customData` 共享本次呼叫內的資料，在 `next()` 之前檢查輸入或查詢業務系統，並在 `next()` 返回後記錄耗時或結果。丟擲 `CollabError` 可以拒絕一次預期內的協同操作。
 
-- 讀取特定 Action 的請求；
-- 透過 `customData` 共享本次呼叫資料；
-- 在 `next()` 前檢查輸入或查詢應用系統；
-- 在 `next()` 傳回後記錄耗時或結果；
-- 拋出 `CollabError` 拒絕預期中的協同操作。
-
-Transport HTTP Middleware 可不呼叫 `next()` 而直接結束 HTTP 回應。Service 和 Endpoint Middleware 應以明確錯誤拒絕操作，不應默默略過 `next()`。
+Transport 的 HTTP Middleware 可以直接結束 HTTP response，而不呼叫 `next()`。Service 和 Endpoint 的 Middleware 如需拒絕操作，應丟擲明確的錯誤，而不是靜默跳過 `next()`。
 
 ## Transport Middleware
 
-`transport.use()` 註冊一般 HTTP Middleware，依註冊順序執行。呼叫 `await next()` 繼續處理，或直接結束回應。`transport.useUpgrade()` 則處理 WebSocket 握手。
+`transport.use()` 註冊普通 HTTP Middleware，按註冊順序執行。呼叫 `await next()` 可繼續處理，也可以直接結束響應。WebSocket 握手由 `transport.useUpgrade()` 處理。
 
-例如，先記錄 HTTP 耗時，再驗證身分並設定可信的 `userID`，最後註冊 Collaboration Endpoint：
+以下範例先記錄 HTTP 耗時，再認證請求並設定可信的 `userID`，最後註冊 Collaboration Endpoint：
 
 ```ts
 transport.use(async (context, next) => {
@@ -78,19 +72,19 @@ transport.use(async (context, next) => {
 transport.register(collaborationEndpoint);
 ```
 
-`recordHttpDuration` 和 `authenticate` 由應用程式提供。Endpoint 使用前序 Middleware 設定的 `userID`。觀測 Middleware 註冊在驗證之前，因此也會記錄驗證拒絕。
+`recordHttpDuration` 和 `authenticate` 由應用提供。Endpoint 使用前序 Middleware 設定的 `userID`。耗時觀測位於認證之前，因此被拒絕的請求同樣會被記錄。
 
-`context.route?.path` 是匹配後的完整路由範本，在執行到 Endpoint 時才可用。透過 response 的 `finish` 事件量測回應完成的耗時；路由匹配前的拒絕與未知路徑記為 `unmatched`。
+`context.route?.path` 是匹配到的完整路由模板，執行到 Endpoint 時才可用。透過 response 的 `finish` 事件可以觀測響應何時完成。路由匹配之前被拒絕的請求以及未知路徑均記為 `unmatched`。
 
 ## Endpoint Middleware
 
-Endpoint Middleware 參與即時 Session 與 Presence 操作：
+Endpoint Middleware 作用於即時 Session 與 Presence 操作：
 
 | Action | 執行時機 | 常見用途 |
 | --- | --- | --- |
 | `connect` | 票證消耗及 Session 建立後、HELLO 前 | 連線策略、成員顯示名稱與頭像 |
 | `joinUnit` | Session 加入 Unit Room 前 | 房間准入與 Unit 可見性 |
-| `receivePresence` | 收到已加入 Session 的 Presence 後、廣播前 | 驗證與 Presence 篩選 |
+| `receivePresence` | 已 JOIN Session 的 Presence 到達後、廣播前 | 驗證與 Presence 篩選 |
 | `sendPresence` | 向每個 Room 成員傳送 Presence 前 | 按接收者篩選 Presence |
 
 ```ts
@@ -106,7 +100,7 @@ Endpoint 的 `session.userID` 和 `session.customData` 來自簽發 Session Tick
 
 ## Service Middleware
 
-Service Middleware 參與權威協同資料的生命週期：
+Service Middleware 作用於權威協同資料的生命週期：
 
 | Action | 邊界 | 常見用途 |
 | --- | --- | --- |
@@ -130,7 +124,7 @@ service.use("createUnit", async (context, next) => {
 });
 ```
 
-每次邏輯提交執行一次 `submitChangeset`。修訂版本競爭可能讓 `applyChangeset` 和 `commitChangeset` 以新的 `attempt` 再次執行。這些階段的 Middleware 必須可安全重試，不能直接傳送不可逆的外部訊息或執行一次性扣款。
+`submitChangeset` 每次邏輯提交只執行一次。revision 發生競爭時，`applyChangeset` 和 `commitChangeset` 可能以新的 `attempt` 重新執行。這兩個階段的 Middleware 必須可重試，不能直接傳送不可撤銷的外部訊息，也不能執行一次性扣費。
 
 ## customData 範圍
 
@@ -140,7 +134,7 @@ service.use("createUnit", async (context, next) => {
 - 重複使用本次呼叫中的權限查詢結果。
 - 記錄計時起點或稽核標籤。
 
-SDK 內建的資料庫 Adapter 不會持久化 `customData`。若要將欄位隨文件或變更集儲存，請參閱[持久化 metadata](#persistent-metadata)。
+內建 Database Adapter 不會持久化 `customData`。如果需要將某些欄位隨文件或 changeset 一起儲存，請參見[持久化 metadata](#persistent-metadata)。
 
 ## 持久化 metadata [#persistent-metadata]
 
@@ -167,11 +161,11 @@ Service 將更新後的兩個完整物件傳給 Adapter，隨本次提交一併�
 
 要讀取文件的 metadata，可呼叫 Adapter 的 `getUnit()`，讀取傳回記錄的 `metadata`。本次提交成功後，可從 `submitChangeset()` 的結果讀取 `changeset.metadata`。查詢先前的提交時，`getChangesets()` 傳回的 `changesets` 陣列中每個項目都包含 `metadata`。
 
-使用內建 SQLite 或 PostgreSQL Adapter 時，也可直接用 SQL 查詢文件或變更集的 metadata。資料表與欄位名稱請以所用 Adapter 的資料庫結構為準。
+使用內建 SQLite 或 PostgreSQL Adapter 時，也可以直接用 SQL 查詢文件或 changeset 的 metadata。具體表名和欄位名以該 Adapter 的資料庫結構為準。
 
 ## Event 執行模型
 
-Service 以 `on()` 註冊程序內監聽器，並取得可釋放訂閱：
+Service 透過 `on()` 註冊程序內 Listener，該方法返回一個可釋放的訂閱：
 
 ```ts
 const subscription = service.on("changesetCommitted", async (event) => {
@@ -184,9 +178,9 @@ const subscription = service.on("changesetCommitted", async (event) => {
 subscription.dispose();
 ```
 
-相同 Event 的監聽器按註冊順序依序執行並被等待。監聽器錯誤會記錄並與已確定的領域結果隔離。例如，`changesetCommitted` 監聽器失敗，不會回滾 Adapter 已儲存的變更集。
+同一個 Event 的 Listener 按註冊順序依次執行，SDK 會等待前一個 Listener 完成後再執行下一個。Listener 的錯誤會被記錄並隔離，不會影響已經確定的領域結果。例如，`changesetCommitted` 的 Listener 失敗時，Adapter 已儲存的 changeset 不會被回滾。
 
-因此 Events 適合程序內、可還原或非關鍵的後續工作。它們不與資料庫提交共享交易邊界，也不保證送達外部系統。
+Event 因此適合程序內、可恢復或非關鍵的後續處理。它不與資料庫 commit 共享事務邊界，也不保證外部系統收到通知。
 
 ## 核心 Service Events
 
@@ -199,16 +193,16 @@ subscription.dispose();
 
 在 `unitCreated` 監聽器中，可從 `event.record.metadata` 讀取文件的 metadata。在 `changesetCommitted` 監聽器中，可從 `event.changeset.metadata` 讀取本次提交的 metadata。
 
-Endpoint 監聽同一 Service 的 `changesetCommitted`，將變更集廣播給目前程序中已加入 Unit 的用戶端；設定了 pub/sub 介面卡時，也會投遞到其他節點。Endpoint 也對主動離開、斷線與 Endpoint 釋放提供 `memberLeftUnit`。
+Endpoint 監聽同一個 Service 上的 `changesetCommitted`，把確認後的 changeset 廣播給當前程序中已 JOIN 該 Unit 的 Client；配置了 pub/sub 介面卡時，廣播也會到達其他節點。Endpoint 自身還提供 `memberLeftUnit`，用於觀察成員主動離開、斷線以及 Endpoint 釋放。
 
 ## 擴充模組具有獨立擴充點
 
-History、Thread Comment 和 Worktree 不繼承核心 Collaboration Service 的 Middleware 或 Events：
+History、Thread Comment 與 Worktree 不會自動繼承主 Collaboration Service 的 Middleware 或 Event：
 
-- History 提供 `getHistoryList`、`listHistoryCreators`、`getHistoryChangesets` 讀取 Middleware；
-- Comment 提供新增、回覆、編輯、刪除、解決、清單 Middleware 與 `commentCommitted`；
-- Worktree 提供生命週期與草稿 read/submit/commit Middleware，以及建立、狀態、合併與草稿提交 Events。
+- History 為 `getHistoryList`、`listHistoryCreators`、`getHistoryChangesets` 提供讀取 Middleware；
+- Comment 提供 add、reply、edit、delete、solve、list 的 Middleware，以及 `commentCommitted`；
+- Worktree 提供生命週期和 draft read/submit/commit 的 Middleware，以及建立、狀態、合入和 draft commit 相關的 Event。
 
-為每個啟用的模組分別安裝規則。核心 Service 上的日誌、租戶或授權 Middleware 不會自動涵蓋它們。
+每個啟用的模組都需要單獨安裝規則。主 Service 上的日誌、tenant 或權限 Middleware 不會自動覆蓋這些模組。
 
-繼續閱讀[身分與授權](/server/collaboration/identity-and-authorization)，瞭解如何將既有使用者與 ACL 對應到這些通用 Middleware 邊界。
+如需將已有的使用者與 ACL 系統對映到這些通用 Middleware 邊界，請閱讀[身分與權限](/server/collaboration/identity-and-authorization)。

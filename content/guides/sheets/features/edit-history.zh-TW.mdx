@@ -38,13 +38,15 @@ icon: 'RotateCcwClock'
   }}
 />
 
-查看先前版本、比較內容變更，並在取得權限後還原版本。持久化歷史記錄需要使用 Server SDK 整合歷史服務；目前編輯工作階段的復原與重做不需要歷史服務。
+修改單元格內容、公式或樣式後，可以開啟歷史記錄檢視之前的版本、對比變化，並在具備相應權限時恢復某個版本。歷史記錄讀取的是伺服器端儲存的版本。撤銷和重做僅作用於當前編輯會話，不需要歷史服務。
 
 ## 準備協同與歷史服務
 
-先完成[協同整合](/server/collaboration/browser-integration)與[授權設定](/server/license)，再依[協同擴充模組](/server/collaboration/extensions)及 [History 範例](/server/collaboration/examples#history)接入歷史儲存與權限。核心協同不會自動啟用歷史記錄。
+先完成[協同整合](/server/collaboration/browser-integration)和[許可證配置](/server/license)，再驗證兩個會話可以編輯同一份 Sheets 文件，且重新整理後改動仍然保留。
 
-在現有 Sheets 與協同設定中加入以下外掛。若已使用協同 preset，請調整既有設定，避免重複註冊。Sheets 歷史介面也需要 `UniverCollaborationClientUIPlugin`。
+參照 [Office 協同擴充套件模組](/server/collaboration/extensions)和 [History 範例](/server/collaboration/examples#history)接入歷史儲存和權限。核心協同不會自動開啟歷史記錄，後端還必須提供歷史列表、版本內容和恢復操作。
+
+將下面的配置新增到現有的產品、許可證和協同配置中。如果預設或現有配置已經註冊了這些外掛，請修改原有配置，不要重複註冊。
 
 ## 外掛模式 [#plugin-mode]
 
@@ -83,20 +85,22 @@ univer.registerPlugin(UniverSheetsHistoryUIPlugin, {
 
 | <span data-config-options="">設定項目</span> | 類型 | 預設值 | 作用 |
 | --- | --- | --- | --- |
-| `historyServerUrl` | `string` | `'/universer-api/history'` | 歷史記錄服務的位址。 |
+| `historyServerUrl` | `string` | `'/universer-api/history'` | 歷史記錄服務的基礎地址。 |
 
 `UniverSheetsHistoryUIPlugin`
 
 | <span data-config-options="">設定項目</span> | 類型 | 預設值 | 作用 |
 | --- | --- | --- | --- |
-| `historyServerUrl` | `string` | `'/universer-api/history'` | 歷史記錄服務的位址。 |
+| `historyServerUrl` | `string` | `'/universer-api/history'` | 歷史記錄服務的基礎地址。 |
 | `univerContainerId` | `string` |  | 編輯器容器的 DOM ID。 |
 
-將 `/api/history` 換成應用程式的歷史服務前綴，兩處 `historyServerUrl` 必須一致。`univerContainerId` 應與編輯器容器的 DOM ID 相同。語言資源需與編輯器一致。
+`/api/history` 僅為範例地址，應替換為應用實際使用的歷史介面，並確保該介面能夠處理客戶端傳送的請求。兩個 `historyServerUrl` 必須保持一致，`univerContainerId` 應指向編輯器容器的 DOM ID，語言套件應與編輯器當前語言一致。
+
+Sheets 歷史面板還依賴協同 UI 外掛 `UniverCollaborationClientUIPlugin`，需要在已有的協同配置中註冊。
 
 ## 行動裝置支援 [#mobile-support]
 
-先設定[行動版編輯器](/guides/sheets/getting-started/installation#mobile-support)。在本頁外掛模式的初始化程式碼中，將下列桌面版註冊替換為同一套件匯出的行動版外掛，並在**開啟文件前**完成。保留模型外掛、樣式、語言套件與 Facade 匯入，請勿同時註冊兩個版本。
+先配置[行動版編輯器](/guides/sheets/getting-started/installation#mobile-support)。在本頁外掛模式的初始化程式碼中，使用同一套件匯出的行動版外掛替換下列桌面版註冊，替換必須在**開啟文件前**完成。保留模型外掛、樣式、語言套件和 Facade 匯入，不要同時註冊兩個版本。
 
 | 套件 | 桌面版註冊 | 行動版註冊 |
 | --- | --- | --- |
@@ -112,7 +116,7 @@ npm install @univerjs/preset-sheets-collaboration
 
 ### 使用
 
-`UniverSheetsCollaborationPreset` 已包含歷史介面及其相依外掛。保留現有編輯器和授權設定；若已註冊此預設，請修改原有設定，不要重複註冊預設或歷史外掛。
+`UniverSheetsCollaborationPreset` 已包含歷史介面及其依賴的外掛。保留現有的編輯器和許可證配置；如果該預設已經註冊，請修改原有配置，不要再次註冊預設或歷史外掛。
 
 ```ts
 import { UniverSheetsCollaborationPreset } from '@univerjs/preset-sheets-collaboration'
@@ -134,15 +138,19 @@ const collaborationPreset = UniverSheetsCollaborationPreset({
 | `universerEndpoint` | `string` | `window.location.origin` | 協作服務的基礎位址。 |
 | `univerContainerId` | `string` | `'app'` | 編輯器容器的 DOM ID。 |
 
-將 `collaborationPreset` 加入現有 `createUniver()` 呼叫的 `presets` 陣列，並將 `CollaborationLocale` 合併至對應語言的資源。將 `universerEndpoint` 設為伺服器基礎 URL，`univerContainerId` 設為編輯器容器 ID。預設使用 `{universerEndpoint}/universer-api/history`；需要自訂 `historyServerUrl` 或 `viewerPlugins` 時，請使用外掛模式。仍須設定上文的後端服務。
+將 `collaborationPreset` 加入現有 `createUniver()` 呼叫的 `presets` 陣列，並將 `CollaborationLocale` 合併到對應語言的資源中。`universerEndpoint` 填寫伺服器端的基礎 URL，`univerContainerId` 填寫編輯器容器 ID。預設按 `{universerEndpoint}/universer-api/history` 拼接歷史地址；如需自定義 `historyServerUrl` 或 `viewerPlugins`，應使用外掛模式。上文所述的後端服務仍然必需。
 
 ## 檢視與還原版本
 
-修改儲存格、公式或格式，等待協同確認後，從編輯器選單開啟歷史記錄。檢查版本清單、差異內容及重新啟動後的持久化結果。還原會改變共用文件，服務端必須驗證還原權限；完成後應確認另一個協同工作階段收到更新。
+從編輯器選單開啟歷史記錄，選擇一個版本即可檢視其內容和改動。恢復操作會改寫當前共享文件，因此僅應允許具備恢復權限的使用者執行，並且該權限必須由伺服器端校驗。
+
+接入後，修改一個單元格內容、公式或樣式，等待協同確認，然後檢視歷史列表和版本內容。重新開啟應用並重啟服務，確認資料仍然存在。再恢復一箇舊版本，確認另一個瀏覽器會話也能收到恢復後的狀態。
+
+面板為空時，先確認該文件是否已被記錄到歷史中，再檢查文件 ID 和服務地址。如果版本可以檢視但恢復失敗，請檢查恢復權限和協同連線。舊版本中可能包含後來被刪除的資料，因此讀取歷史同樣需要權限校驗。
 
 ## 比較快照 [#compare-snapshots]
 
-若要建立審閱介面或向 AI Agent 提供變更資訊，可呼叫 `compareUnitData()`，或用 `prepareUnitComparison()` 計算一次後重複查詢。先註冊此品類的 History 外掛並匯入 Facade 入口，再將同一文件的兩份完整快照作為 `beforeSnapshot` 和 `afterSnapshot` 傳入。唯讀比較不需要歷史服務，也不會還原或合併內容。
+如需建置審閱介面，或將改動交給 AI Agent，可以呼叫 `compareUnitData()`，也可以使用 `prepareUnitComparison()` 計算一次並反覆查詢。先註冊本品類的 History 外掛並匯入 Facade 入口，再將同一文件的兩份完整快照分別作為 `beforeSnapshot` 和 `afterSnapshot` 傳入。該比較為只讀操作，不需要歷史服務，也不會恢復或合併內容。
 
 ```ts
 import { UnitComparisonDetailLevel, UnitComparisonFidelity } from '@univerjs-pro/edit-history'
@@ -163,4 +171,4 @@ const page = comparison.query({ scope, offset: 0, limit: 100 })
 console.log(page.items, page.page.hasMore, page.diagnostics)
 ```
 
-透過 `scopes` 取得可用檢視，將選定範圍傳入 `query()` 即可篩選結果，無須重新計算差異。預設每頁 100 項，上限 1,000 項；搭配 `page.hasMore` 與 `offset` 取得後續項目。`summary` 始終描述整體比較，不受項目篩選影響。使用前應檢查 `diagnostics.readiness` 與 `diagnostics.codes`，不要將降級結果視為完整比較。不建立編輯器的 Node.js 或 CLI 用法請見[無介面比較 API](/reference/packages/plugins/univerjs-pro/edit-history#headless-comparison)。
+透過 `scopes` 可以檢視可用的檢視，再將其中一個傳給 `query()` 篩選結果，無需重新執行比較。每頁預設返回 100 項，最多 1,000 項，可配合 `page.hasMore` 和 `offset` 取得剩餘內容。`summary` 始終描述整個比較，不隨條目篩選而變化。在將結果視為完整比較之前，請先檢查 `diagnostics.readiness` 和 `diagnostics.codes`。不使用編輯器、在 Node.js 或 CLI 中使用的方式見[無介面比較 API](/reference/packages/plugins/univerjs-pro/edit-history#headless-comparison)。

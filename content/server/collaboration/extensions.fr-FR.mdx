@@ -3,9 +3,9 @@ title: Modules d’extension de collaboration
 description: Découvrez comment History, Thread Comment, Worktree, File et la conversion Office côté serveur étendent la collaboration de base.
 ---
 
-History, Thread Comment, File et Worktree sont des modules indépendants, activables selon les besoins. Ils peuvent réutiliser le Transport, le système d’identité et la base physique, tout en conservant leurs propres frontières de Service, Middleware, Event, Database Adapter et cycle de vie.
+Historique, Thread Comment, File, et Worktree sont des modules d'extension de collaboration optionnels qui prolongent la collaboration sans changer le noyau. Chaque module fournit son propre Service, Middleware, Event, Database Adapter, et limite de cycle de vie, de sorte qu'une application permet seulement les modules que le produit nécessite. Les modules peuvent encore partager le Transport, le système d'identité, et la même base de données physique.
 
-La conversion Office côté serveur associe File et Collaboration Service : elle convertit entre fichiers Office et Units collaboratives, avec ses propres Service, Endpoint et Middleware.
+Le serveur Office Exchange s'appuie sur le service de fichiers et de collaboration. Il convertit les fichiers Office et les unités collaboratives, et fournit son propre service, Endpoint et Middleware.
 
 ## Relations entre modules
 
@@ -19,11 +19,11 @@ La conversion Office côté serveur associe File et Collaboration Service : elle
 | Office Exchange | Crée ou lit des Units via le Service central et lit et écrit les fichiers via File |
 | Worktree | Réutilise Unit et OT du cœur et fusionne les brouillons dans le tronc |
 
-History, Thread Comment, File et Worktree configurent chacun leurs Middleware, Events et Database Adapters.
+Historique, commentaires, fichiers et Worktree configurent chacun leurs propres adaptateurs Middleware, Events et Database.
 
 ## Historique des versions
 
-History regroupe la création d’Unit et les modifications confirmées en entrées d’historique visibles par l’utilisateur. C’est un index dérivé : les modifications confirmées dans le Collaboration Service central restent la source faisant autorité pour le contenu Unit.
+L'historique transforme la création d'unité et les changements confirmés dans les entrées d'historique qu'un utilisateur voit. L'index est dérivé : les changements confirmé dans le Service de collaboration de base demeurent la source autorisée de contenu d'unité.
 
 ```ts
 const historyService = new UniverHistoryService({
@@ -35,13 +35,13 @@ const historyService = new UniverHistoryService({
 transport.register(new UniverHistoryEndpoint(historyService));
 ```
 
-Le constructeur s’abonne aux Events `unitCreated` et `changesetCommitted` du Service central et met l’index à jour. `dispose()` retire ces abonnements. La politique par défaut regroupe les changements par fenêtre temporelle et mutations particulières, au lieu de créer une entrée pour chaque jeu de modifications.
+Le constructeur souscrit aux événements Core Service `unitCreated` et `changesetCommitted` et garde l'index à jour, et `dispose()` supprime ces abonnements. Par défaut, History regroupe les changements par fenêtre temporelle et par mutations spéciales plutôt que d'écrire une entrée pour chaque changement.
 
-History expose des Middleware de lecture pour `getHistoryList`, `listHistoryCreators` et `getHistoryChangesets`. L’indexation s’exécute à l’intérieur du Service. `userProvider` enrichit uniquement les données d’affichage, comme les noms et avatars ; il n’authentifie ni n’autorise. L’échec d’un Event Listener n’annule pas une modification centrale déjà confirmée : History doit toujours être considéré comme une donnée dérivée reconstructible.
+L'historique expose le Middleware pour `getHistoryList`, `listHistoryCreators` et `getHistoryChangesets`. L'indexation a lieu à l'intérieur du service. `userProvider` fournit uniquement des données d'affichage telles que les noms et les avatars, et il ne effectue ni authentification ni autorisation. Une défaillance Event Auditer ne retourne pas en arrière un changement Core qui est déjà confirmé, de sorte que l'historique doit être traité comme des données dérivées qui peuvent toujours être reconstruites.
 
 ## Commentaires en fil
 
-Comment Service gère le corps des commentaires, les réponses, modifications, suppressions et états résolus pour Sheets et Docs :
+Service de commentaires gère les organes de commentaires, les réponses, les modifications, la suppression et l'état résolu pour les feuilles et les documents:
 
 ```ts
 const commentService = new UniverCommentService({
@@ -57,13 +57,13 @@ transport.register(
 );
 ```
 
-Le corps des commentaires appartient au Comment Adapter. Les ancres qui suivent le contenu Sheet ou Doc restent dans les instantanés et modifications centraux. Le Comment Endpoint peut publier `comment_update` via la Room Unit du Collaboration Endpoint principal, mais le message temps réel n’est pas l’état faisant autorité ; le client peut récupérer l’état en relisant la liste des commentaires.
+Les corps de commentaires appartiennent à l'adaptateur de commentaires, tandis que les ancres qui se déplacent avec le contenu de la feuille ou du Doc restent une partie des instantanés et des modifications de base. Le commentaire Endpoint peut publier `comment_update` par l'intermédiaire de la salle d'unité du point d'extrémité de collaboration principal, mais ce message en temps réel n'est pas l'état de commentaire faisant autorité.
 
-Comment Service fournit des Middleware d’ajout, de liste, de réponse, de résolution/réouverture, de modification et de suppression, ainsi qu’un Event `commentCommitted`. Il n’hérite pas des politiques de lecture ou d’édition du Service central.
+Le Service de commentaires fournit le Middleware pour ajouter, lister, répondre, résoudre ou rouvrir, éditer et supprimer, et il publie un événement `commentCommitted`. Le Service de commentaire n'hérite pas de la politique de lecture ou de modification du Service de base.
 
 ## Stockage de fichiers
 
-File stocke les fichiers binaires envoyés par les clients Univer : images et pièces jointes insérées dans une Unit, ainsi que les fichiers source et résultat de l’import et de l’export. Les données de l’Unit n’enregistrent que l’ID du fichier ; le client le résout en URL de téléchargement au chargement, ce qui garde les snapshots et changesets légers.
+Le fichier stocke les fichiers binaires que les clients Univer téléchargent : images et pièces jointes insérées dans une unité, et les fichiers source et résultat d'importation et d'exportation. Les données de l'unité enregistrent seulement l'ID du fichier, et le client résout cet ID vers une URL de téléchargement quand il charge l'unité.
 
 ```ts
 const fileService = new UniverFileService({
@@ -74,11 +74,11 @@ const fileService = new UniverFileService({
 transport.register(new UniverFileEndpoint(fileService));
 ```
 
-Métadonnées et contenu sont deux contrats indépendants : `IFileDatabaseAdapter` stocke les enregistrements de fichier et `IFileBlobStore` le contenu. Les fichiers temporaires d’échange ne sont accessibles qu’à leur auteur et le Service les nettoie périodiquement ; les images et pièces jointes de l’Unit sont contrôlées par les droits de l’Unit via les Middleware `upload`, `signUrl` et `download`.
+Les métadonnées et le contenu sont deux contrats indépendants : `IFileDatabaseAdapter` stocke les dossiers et `IFileBlobStore` stocke le contenu. Les fichiers d'échange temporaire sont accessibles uniquement à l'utilisateur qui les a téléchargés, et le Service les supprime sur un horaire. Les images et les pièces jointes à l'intérieur d'une unité sont soumises aux permissions de l'unité par l'intermédiaire du Middleware `upload`, `signUrl` et `download`.
 
 ## Conversion Office côté serveur
 
-Exchange Service importe des fichiers Office en Units collaboratives et exporte des Units en fichiers. Il s’appuie sur `@univerjs-pro/exchange-node` pour la conversion, crée et lit les Units via Collaboration Service et stocke les fichiers source et résultat via File Service :
+Service d'échange importe des fichiers Office comme unités de collaboration et exporte des unités comme fichiers. Il utilise `@univerjs-pro/exchange-node` pour la conversion, crée et lit des unités par le biais du Service de collaboration, et stocke les fichiers source et résultat par le biais de File Service:
 
 ```ts
 const exchangeService = new UniverExchangeService({ collabService, fileService });
@@ -86,7 +86,7 @@ const exchangeService = new UniverExchangeService({ collabService, fileService }
 transport.register(new UniverExchangeEndpoint(exchangeService));
 ```
 
-L’import et l’export sont des task : le client crée une task puis interroge le résultat. L’import passe par le Middleware `createUnit` du Core Service et l’export par `readUnitData` ; les Middleware `import` et `export` propres à Exchange couvrent limitation de débit, quotas et audit.
+Importation et exportation sont des tâches. Le client crée une tâche et effectue ensuite des sondages pour le résultat. Importation passe par le Middleware `createUnit` du service de base, et exporte par le `readUnitData`. Le `import` et `export` Middlesware of Exchange gèrent les limites de taux, quotas et audit.
 
 | Unit | Import | Export |
 | --- | --- | --- |
@@ -96,7 +96,7 @@ L’import et l’export sont des task : le client crée une task puis interroge
 | Base | xls, xlsx, csv, tsv | xlsx, csv |
 | PDF | pdf | pdf |
 
-Les task vivent dans l’instance du Service : déployez un seul nœud d’import et d’export et routez-y les trois routes d’Exchange.
+Tâches en direct dans l'instance Service, donc une application déploie un seul nœud d'importation et d'exportation et fait route vers les trois routes Exchange vers ce nœud.
 
 ## Brouillons Worktree et fusion
 
@@ -120,15 +120,15 @@ const worktreeService = new UniverCollabWorktreeService({
 });
 ```
 
-Worktree stocke des modifications de brouillon indépendantes par `(worktreeID, unitID)` tout en réutilisant les moteurs Unit, OT et de soumission du Service central. Seul l’état `draft` accepte de nouvelles éditions. `markReady()` gèle la révision courante du brouillon et `mergeWorktree()` fusionne les Units une par une dans le tronc.
+Worktree stocke ses propres modifications de projet par `(worktreeID, unitID)` et réutilise les moteurs d'unité, d'OT et de soumission du service de base. Seul l'état `draft` accepte d'autres modifications. `markReady()` bloque la révision de projet actuelle, et `mergeWorktree()` fusionne les unités dans le coffre une à la fois.
 
-Worktree Service possède des Middleware indépendants de cycle de vie, lecture et soumission/application/commit de brouillon, ainsi que des Events de création, changement d’état, résultat de fusion et commit de modifications de brouillon. L’écriture finale dans le tronc traverse toujours les Middleware du Service central.
+Worktree Service a son propre cycle de vie, son propre Middleware lu, le projet soumettre/appliquer/commit Middle Software, et Événements pour la création, les changements d'état, les résultats de fusion, et les commits de projet de changementset. L'écriture finale au tronc passe toujours par le Middlesware du Service de base.
 
 Une fusion multi-Unit n’est pas atomique entre Units. L’application doit afficher le résultat de chaque Unit.
 
 ## Points d’extension indépendants
 
-À l’activation d’un module, examinez chaque frontière séparément :
+Lorsqu'une application permet un module d'extension, chaque limite nécessite une évaluation séparée:
 
 | Frontière | Cœur | History | Comment | File | Worktree |
 | --- | --- | --- | --- | --- | --- |
@@ -137,9 +137,9 @@ Une fusion multi-Unit n’est pas atomique entre Units. L’application doit aff
 | Event | Cycle de vie central | Observe les Events centraux | `commentCommitted` | — | Cycle de vie/commit Worktree |
 | Database Adapter | Adapter central | History Adapter | Comment Adapter | File Adapter et Blob Store | Worktree Adapter |
 
-Ces Adapters peuvent utiliser la même base de données tout en restant des objets distincts aux contrats distincts. Services et Adapters se libèrent aussi indépendamment.
+Office Exchange réutilise le stockage du noyau et du fichier. Après les logiciels `import` et `export` Middleware of Exchange, l'importation et l'exportation passent toujours par le noyau et le middleware de fichier.
 
-Office Exchange réutilise le stockage de Core et de File : après ses propres Middleware `import` et `export`, l’import et l’export passent toujours par les Middleware de Core et de File.
+Ces adaptateurs peuvent partager une base de données et restent des objets séparés avec des contrats distincts. Les services et les adaptateurs doivent également être éliminés indépendamment.
 
 ## Choisir une fonction
 
@@ -151,10 +151,10 @@ Office Exchange réutilise le stockage de Core et de File : après ses propres M
 | Import et export Office côté serveur | Exchange Service, Endpoint + File | `pnpm example:exchange` |
 | Brouillons isolés, revue et fusion | Worktree Service, Endpoint, Client, Adapter | `pnpm example:worktree` |
 
-Consultez l’[index des exemples](/server/collaboration/examples) pour les commandes complètes et les URL des pages.
+Le [exemple index](/server/collaboration/examples) liste les commandes complètes et les URL de la page.
 
 ## Connecter l’interface d’historique du Web SDK [#web-history]
 
-Montez le History Endpoint avec les endpoints collaboratifs. `historyServerUrl` est le préfixe commun de `/{unitId}/list`, `/{unitId}/creators` et `/{unitId}/cs`, avec `/universer-api/history` par défaut. Si vous utilisez un autre chemin, configurez la même URL dans le plugin History de l’hôte et le plugin History UI du produit.
+Montez le point d'extrémité de l'historique aux côtés des paramètres de collaboration. Dans le Web SDK, `historyServerUrl` est le préfixe commun pour `/{unitId}/list`, `/{unitId}/creators` et `/{unitId}/cs`, et il est par défaut à `/universer-api/history`. Lorsqu'un préfixe différent est utilisé, le plugin Host History et le plugin History UI du produit doivent être configurés avec la même URL.
 
-La restauration passe par une mutation collaborative, sans endpoint REST de restauration distinct. Conservez la configuration du chargement, de la soumission et des autorisations collaboratives. La comparaison en lecture seule de snapshots complets avec `createUnitComparisonEngine()` ne nécessite aucun service d’historique et ne conserve ni ne restaure les versions.
+La restauration d'une version passe par le chemin de la mutation de collaboration; il n'y a pas de paramètre d'historique autonome REST pour la restauration. Le chargement, la soumission et l'autorisation de la collaboration doivent rester configurés. La comparaison de deux instantanés matérialisés par `createUnitComparisonEngine()` est une opération séparée qui ne lit que les données.

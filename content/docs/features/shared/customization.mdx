@@ -4,11 +4,11 @@ description: "Compose required features and extend content operations and busine
 icon: Puzzle
 ---
 
-Univer composes products and features through plugins and exposes content operations through Facade APIs. Select the content engine, features, and UI you need, or package business logic as a plugin and offer typed methods to your application and Agent tools.
+Univer builds products and features from plugins and exposes content operations through Facade APIs. An application chooses the content engine, the features, and the UI it needs, or packages its own business logic as a plugin and provides typed methods for the application and Agent tools to call.
 
 ## Compose the content capabilities you need [#composition]
 
-A Preset is a preassembled collection of plugins for a quick start. Plugin mode lets the host select products, features, and configuration explicitly. Both use the same plugin mechanism.
+A Preset is a preassembled collection of plugins intended for a quick start. In Plugin mode, the host selects products, features, and configuration explicitly. Both modes use the same plugin mechanism.
 
 | Layer | Responsibility | Typical components |
 | --- | --- | --- |
@@ -17,42 +17,42 @@ A Preset is a preassembled collection of plugins for a quick start. Plugin mode 
 | UI and rendering plugins | Provide presentation and interaction entry points. | Canvas rendering, menus, toolbars, shortcuts, and components. |
 | Facade extensions | Expose public APIs for installed capabilities. | Workbook, range, document, and object operations, plus semantic events. |
 
-Separating product logic from UI lets suitable content capabilities run in Node.js, Workers, or the browser. A Headless host registers the content plugins it needs; menus, DOM, and interaction APIs still require their UI environment.
+Separating product logic from UI allows suitable content capabilities to run in Node.js, in Workers, or in the browser. A Headless host registers only the content plugins it needs, while menus, DOM, and interaction APIs still require their UI environment.
 
 ## Dependencies, lifecycle, and resource ownership [#coordination]
 
-Plugins declare direct dependencies with `@DependentOn(...)`; the runtime resolves them and coordinates construction order. Missing dependency plugins are registered with default configuration. If a dependency needs custom configuration, register and configure it first. This does not install packages or import styles, locales, Facade entries, or Workers.
+A plugin declares its direct dependencies with `@DependentOn(...)`, and the runtime resolves them and determines the construction order. When a dependency plugin is missing, the runtime registers it with the default configuration. When a dependency requires custom configuration, register and configure it first. This mechanism does not install packages, and it does not import styles, locales, Facade entries, or Workers.
 
-Inside a plugin, dependency injection (DI) connects services, controllers, and models through public service identifiers. Platform implementations can be replaced at supported configuration or injection boundaries, without making business logic construct and manage every dependency.
+Inside a plugin, dependency injection (DI) connects services, controllers, and models through public service identifiers. Platform implementations can be replaced at supported configuration or injection boundaries, so business logic does not need to construct and manage every dependency itself.
 
 | Lifecycle hook | Appropriate work |
 | --- | --- |
 | `onStarting()` | Register dependencies, commands, and controllers; do not read Units or DOM that do not exist yet. |
-| `onReady()` | Initialize model-dependent logic once the corresponding content is ready. |
+| `onReady()` | Initialize logic that depends on the model once the corresponding content is ready. |
 | `onRendered()` | Initialize extensions that need the renderer, Canvas, or DOM. |
-| `onSteady()` | Defer work that is not required for initial rendering. |
+| `onSteady()` | Defer work that initial rendering does not require. |
 
-The owner manages command registrations, event subscriptions, shortcuts, and render modules. Use `disposeWithMe()` for registrations that return a disposable so they are released with the plugin or controller. `mergeMenu()` currently returns `void`, not a disposable.
+The owner manages command registrations, event subscriptions, shortcuts, and render modules. When a registration returns a disposable, call `disposeWithMe()` so that it is released together with the plugin or controller. `mergeMenu()` currently returns `void` and is therefore not a disposable.
 
 ## Different entry points, one content-change mechanism [#commands]
 
-Toolbars, shortcuts, and business APIs can invoke the same business command. An Agent host can reuse that entry point after installing the required capabilities. The command system separates business intent, persisted changes, and transient interaction.
+A toolbar, a shortcut, and a business API can invoke the same business command. An Agent host can reuse that entry point after the required capabilities are installed. The command system separates business intent, persisted changes, and transient interaction.
 
 | Type | Responsibility | Example |
 | --- | --- | --- |
 | `COMMAND` | Validate targets and orchestrate business steps, Mutations, or Operations. | Write a sales report or delete a row. |
-| `MUTATION` | Change the content model using explicit, serializable parameters for replay and corresponding collaboration handling. | Update cell content or insert a row. |
+| `MUTATION` | Change the content model through explicit, serializable parameters so that the change can be replayed and handled by collaboration. | Update cell content or insert a row. |
 | `OPERATION` | Change transient interaction state. | Update a selection, scroll position, or panel. |
 
 <Mermaid chart={"flowchart TD\n    U[\"Toolbar / shortcut\"] --> C[\"Command<br/>Validation and orchestration\"]\n    A[\"Application / Agent tool\"] --> F[\"Facade API\"]\n    F --> C\n    C --> M[\"Mutation<br/>Content change\"]\n    M --> D[\"Content model\"]\n    D --> R[\"Rendering / calculation\"]\n    M -. \"Corresponding adapters\" .-> H[\"Undo/redo / collaboration / history\"]"} />
 
-For example, `FRange.setValues()` invokes `SetRangeValuesCommand`, which produces a `SetRangeValuesMutation` and prepares undo data. Changes follow the same execution path, so different entry points can reuse existing validation, interceptors, and change handling. Undo, collaboration, and history in the diagram still require their corresponding mechanisms; registering a Mutation alone does not provide them.
+For example, `FRange.setValues()` invokes `SetRangeValuesCommand`, which produces a `SetRangeValuesMutation` and prepares the undo data. All content changes follow the same execution path, so different entry points reuse the existing validation, interceptors, and change handling. Undo, collaboration, and history in the diagram still depend on their respective mechanisms; registering a Mutation alone does not provide them.
 
 ## Expose plugin capabilities as Facade APIs [#facade]
 
-Facade offers public, content-oriented objects while hiding internal service lookups and command parameter assembly. An extension can compose existing Facade methods or invoke its own business command.
+Facade provides public interfaces oriented to content objects and hides the internal service lookups and command parameter assembly. An extension can compose existing Facade methods or invoke the plugin's own business command.
 
-The following extension adds `generateSalesReport()` to `FUniver`; the command is implemented in the next section. Its three parts provide the runtime method, runtime registration, and TypeScript types.
+The following extension adds `generateSalesReport()` to `FUniver`; the business command it invokes is implemented in the next section. The file has three parts: the runtime method, the runtime registration, and the TypeScript types.
 
 ### sales-report.facade.ts
 
@@ -78,19 +78,19 @@ declare module '@univerjs/core/facade' {
 }
 ```
 
-`FUniver.extend()` installs the method at runtime; module augmentation only supplies types. Consumers must execute the extension file through a side-effect import. Exporting the class or registering a plugin does not execute a separate Facade entry. A published package can expose a dedicated `/facade` subpath and preserve that registration side effect with `package.json#sideEffects`.
+`FUniver.extend()` installs the method at runtime, and module augmentation only supplies types. Consumers must execute the extension file through a side-effect import; exporting the class or registering a plugin does not execute a separate Facade entry. A published package can expose a dedicated `/facade` subpath and preserve that registration side effect through `package.json#sideEffects`.
 
-Use this pattern only for Facade classes that explicitly support `extend()`. An exported Facade class is not necessarily a mixin target. Give methods clear business names and avoid collisions with existing methods or other extensions.
+This pattern applies only to Facade classes that explicitly support `extend()`. The fact that a Facade class is exported does not mean it can serve as a mixin target. Method names should state their business meaning clearly and should not collide with existing methods or other extensions.
 
 ## Example: one sales report for applications and Agents [#example]
 
-This minimal business plugin writes English sales data, summary formulas, and header styles into `A1:D5` of the specified Sheet, replacing that range. It accepts explicit workbook and worksheet IDs instead of relying on selection or focus.
+This minimal business plugin writes English sales data, summary formulas, and header styles into `A1:D5` of the specified Sheet and replaces that range. The workbook ID and worksheet ID are passed explicitly by the caller rather than taken from the current selection or focus.
 
-The command checks the target and dimensions, then invokes the existing `SetRangeValuesCommand` to reuse its content-change and undo/redo logic. The plugin registers the command in `onStarting()` and owns its disposable. The fixed data is illustrative; an application can replace it with validated business input.
+The command first checks the target and the range dimensions, then invokes the existing `SetRangeValuesCommand` so that its content-change and undo/redo logic is reused. The plugin registers the command in `onStarting()` and owns its disposable. The data is fixed and serves only as an illustration; an application should replace it with validated business input.
 
 ![Sales report plugin output with regional sales and calculated totals](/assets/features/customization/sales-report.png)
 
-Example output, with presentation colors, number formatting, and row and column dimensions adjusted for readability.
+Example output. The presentation colors, number formatting, and row and column dimensions were adjusted for readability.
 
 ### sales-report.plugin.ts
 
@@ -152,7 +152,7 @@ export class SalesReportPlugin extends Plugin {
 }
 ```
 
-First configure products and formula capabilities using the [Sheet installation guide](/guides/sheets/getting-started/installation), then register the business plugin, import its Facade extension, and call it. Here `univer` is an instance with that setup already complete. For Node.js configuration, see [headless Univer](/guides/sheets/getting-started/node).
+Configure the products and formula capabilities with the [Sheet installation guide](/guides/sheets/getting-started/installation), then register the business plugin, import its Facade extension, and call it. In this example, `univer` is an instance with that configuration already complete. For the Node.js configuration, see [headless Univer](/guides/sheets/getting-started/node).
 
 ```typescript
 import { FUniver } from '@univerjs/core/facade';
@@ -173,15 +173,15 @@ await univerAPI.getFormula().onCalculationResultApplied();
 console.log(worksheet.getRange('D5').getValue()); // 719000
 ```
 
-A successful command result means the content write has completed; wait for calculation results to be applied before reading formula values. In this example, `D5` is **719000**.
+A successful command result indicates that the content write has completed. Wait for the calculation results to be applied before reading formula values. In this example, `D5` is **719000**.
 
-An application button can call `generateSalesReport(target)` from its click handler. An Agent tool handler can call the same method after its Headless host installs the plugin and Facade extension. The business action and target stay the same; UI supplies entry points and feedback. Installing a custom plugin does not automatically expose an Agent tool: the application still arranges tool registration and Unit authorization.
+An application button can call `generateSalesReport(target)` from its click handler. An Agent tool handler can call the same method after its Headless host installs the same plugin and Facade extension. The business action and the target remain the same; the UI supplies the entry point and feedback. Installing a custom plugin does not automatically expose the method as an Agent tool. Tool registration and Unit authorization remain the responsibility of the application.
 
 ## Implementation boundaries and further reading [#boundaries]
 
-- **Reuse existing content commands**: this example reuses `SetRangeValuesCommand`. A new Mutation needs inverse operations and the appropriate collaboration integration. New persisted resources also need serialization; do not write directly to the underlying model.
-- **Separate execution, calculation, and submission**: multiple Facade calls are not an automatic atomic transaction. This example uses one range write; a collaborative host still submits and confirms changes under its Runtime contract.
-- **Compose for the environment**: install content and UI plugins separately, keep Univer release-train packages on the same version, and use locale resources for UI copy. Agent entry points still need application-owned authorization and parameter validation.
+- This example reuses `SetRangeValuesCommand`. A new Mutation requires inverse operations and the corresponding collaboration integration. A new persisted resource also requires serialization, so do not write directly to the underlying model.
+- Execution, calculation, and submission are separate steps, and multiple Facade calls do not form an automatic atomic transaction. This example performs a single range write; a collaborative host still submits and confirms changes under the Runtime contract.
+- Compose plugins according to the environment in which they run. Install content plugins and UI plugins separately, keep Univer release-train packages on the same version, and use locale resources for UI copy. Agent entry points still require authorization and parameter validation owned by the application.
 
 Learn more: [Univer architecture](/blog/univer) · [Facade setup](/guides/sheets/getting-started/facade) · [Facade API reference](/reference/facade) · [UI customization](/guides/sheets/ui/overview) · [Agents and automation](/overview/features/shared/agents)
 

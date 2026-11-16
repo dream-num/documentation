@@ -3,26 +3,25 @@ title: Database Adapter
 description: 理解协同持久化合同，并在 Memory、SQLite、PostgreSQL 与自定义 Database Adapter 之间选择。
 ---
 
-Database Adapter 负责 Collaboration Service 核心协同数据的持久化。开发者可以实现
-`IDatabaseAdapter`，将任何能够满足其完整行为约束的数据库接入 Collaboration Service。Service 负责
-Unit、OT 和 revision 语义；Adapter 负责把这些语义落实为原子、可重试的持久化操作。
+Collaboration Service 的核心协同数据由 Database Adapter 负责持久化。Service 负责 Unit、OT 与 revision 语义，Adapter 将这些语义转换为原子且可安全重试的存储操作。如需接入内置 Adapter 之外的数据库，应实现 `IDatabaseAdapter`，并满足其完整的行为约束。
 
-Database Adapter 以 Apache-2.0 开源，源码见
-[univer-collaboration-sdk-community](https://github.com/dream-num/univer-collaboration-sdk-community)，包名与版本和其他 package 一致。
+Database Adapter 以 Apache-2.0 开源，源码位于 [univer-collaboration-sdk-community](https://github.com/dream-num/univer-collaboration-sdk-community)。其包名与版本和其他 package 保持一致。
 
 ## 验证重启后数据保留 [#verify-persistence]
 
-先停止 Quick Start，再从仓库根目录运行 `pnpm example:database-adapter`。打开 `http://127.0.0.1:3010/?unit=persistent-sheet`，修改单元格并在另一个浏览器确认。停止服务，再执行同一命令并打开同一 URL：修改应仍然存在。数据库位于 `examples/database-adapter/.data/collaboration.sqlite`，重启时不要删除。服务先读取已有 Unit，仅在 `UNIT_NOT_FOUND` 时调用 `createUnitFromData()`，不会每次启动覆盖数据。对照 [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts) 迁入应用。
+停止 Quick Start，然后从仓库根目录运行 `pnpm example:database-adapter`。打开 `http://127.0.0.1:3010/?unit=persistent-sheet`，修改一个单元格，再在另一个浏览器中确认修改结果。停止服务，重新执行同一条命令并打开同一个 URL，该值应当仍然存在。
+
+数据保存在 `examples/database-adapter/.data/collaboration.sqlite`，两次运行之间不得删除该文件。服务启动时会先读取已有的 Unit，仅在收到 `UNIT_NOT_FOUND` 时调用 `createUnitFromData()`，因此不会覆盖已存储的数据。具体实现见 [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts)。
 
 ## Adapter 保存什么
 
 Adapter 为每个协作文档（Unit）保存三类数据：
 
-- **文档信息**记录文档 ID、类型、创建者、创建时间和当前版本号（`headRevision`）。Adapter 保存变更集（changeset）时会同时更新版本号。应用可以在 `UnitRecord.metadata` 中保存文档级的自定义信息，例如文档名称（`name`）、最近编辑者（`lastEditorID`）和最近修改时间（`lastModifiedAt`）。这些字段由应用维护。
+- **文档信息**记录文档 ID、类型、创建者、创建时间和当前版本号（`headRevision`）。Adapter 保存变更集（changeset）时会同时更新版本号。应用可以在 `UnitRecord.metadata` 中保存文档级的自定义信息，例如文档名称（`name`）、最近编辑者（`lastEditorID`）和最近修改时间（`lastModifiedAt`），这些字段由应用维护。
 - **文档快照**保存文档在某个版本的内容。读取指定版本时，服务可以先加载不晚于目标版本的最近一次快照，再重放快照之后到目标版本之间的修改。对于电子表格，Adapter 还会保存快照引用的数据块。
 - **changeset** 包含一次提交中的操作。Adapter 按版本顺序保存 changeset，并保留提交标识 `sid` 和 `reqId`，供服务在客户端重试时识别同一次提交，避免重复应用修改。[^submission-idempotency] 应用可以在 `ChangesetRecord.metadata` 中保存本次提交的自定义信息，例如编辑来源（`source`）或关联的业务操作 ID（`operationId`）。
 
-在创建和提交时设置 metadata 的方法见 [Middleware 与 Event](/server/collaboration/middleware-and-events#persistent-metadata)。
+创建和提交时设置 metadata 的方法，见 [Middleware 与 Event](/server/collaboration/middleware-and-events#persistent-metadata)。
 
 软删除会保留这些数据，恢复后可以继续编辑。永久删除后，文档数据无法再访问，原文档 ID 也不能复用。
 
@@ -42,11 +41,11 @@ Adapter 为每个协作文档（Unit）保存三类数据：
 
 ## Memory Adapter
 
-[`@univerjs-pro/collaboration-database-memory`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-memory) 是进程内实现，适合：
+[`@univerjs-pro/collaboration-database-memory`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-memory) 在进程内运行，适用于以下场景：
 
-- 单元测试和集成测试；
-- 临时开发环境；
-- 快速验证自定义 Middleware 或 Client 组装。
+- 单元测试与集成测试
+- 临时开发环境
+- 快速验证自定义 Middleware 或 Client 组装
 
 ```ts
 import { MemoryDatabaseAdapter } from "@univerjs-pro/collaboration-database-memory";
@@ -56,13 +55,11 @@ const database = new MemoryDatabaseAdapter();
 const service = new UniverCollabService({ dbAdapter: database });
 ```
 
-Memory Adapter 与持久化实现遵守相同的 revision、CAS 和幂等合同，但全部数据只存在于当前 Node.js
-进程，进程退出后数据丢失。
+Memory Adapter 与持久化实现遵守相同的 revision、CAS 与幂等合同，但其数据仅存在于当前 Node.js 进程中，进程退出后即丢失。
 
 ## SQLite Adapter
 
-[`@univerjs-pro/collaboration-database-sqlite`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-sqlite) 是持久化 SQLite 实现，适合开发、测试、本地应用和
-小规模场景。
+[`@univerjs-pro/collaboration-database-sqlite`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-sqlite) 将数据存储到 SQLite 文件中，适用于开发、测试、本地应用与小规模使用。
 
 ```ts
 import { mkdir } from "node:fs/promises";
@@ -79,11 +76,11 @@ const database = new SQLiteDatabaseAdapter({
 const service = new UniverCollabService({ dbAdapter: database });
 ```
 
-空数据库会自动初始化 schema，已有 schema 时只做校验。数据库文件位置、备份和其他 SQLite 运行参数由应用决定。
+数据库为空时，它会初始化 schema；schema 已存在时，只做校验。数据库文件的位置、备份方式以及其他 SQLite 设置均由应用决定。
 
 ## PostgreSQL Adapter
 
-[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) 是基于 node-postgres 的持久化实现，多个协同节点可以共用一个数据库。
+[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) 基于 node-postgres，将数据存储在 PostgreSQL 中，多个协同节点可以共用一个数据库。
 
 ```ts
 import { PostgresDatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres";
@@ -95,62 +92,58 @@ const database = await PostgresDatabaseAdapter.create({ pool });
 const service = new UniverCollabService({ dbAdapter: database });
 ```
 
-连接池由应用持有，并在 Service 释放后关闭。`create()` 为空数据库初始化 `collaboration` schema，已有 schema 时只做校验。
+连接池由应用持有，并在释放 Service 之后关闭。`create()` 会在空数据库中初始化 `collaboration` schema，schema 已存在时只做校验。
 
 ## 自定义 Database Adapter
 
-以下情况通常需要自定义 Adapter：
+通常在以下情况下需要自定义 Adapter：
 
-- 应用已经使用 MySQL 或其他业务数据库；
-- 需要把协同提交与应用自有的数据库机制结合；
-- 运维或合规要求超出内置 Adapter 的定位。
+- 应用已在使用 MySQL 或其他业务数据库
+- 协同提交必须使用应用自有的数据库机制
+- 运维或合规要求超出内置 Adapter 的覆盖范围
 
-应用实现 `IDatabaseAdapter`，再像内置实现一样注入 Service：
+实现 `IDatabaseAdapter`，然后像内置 Adapter 一样将其注入 Service：
 
 ```ts
 const database = new ApplicationCollaborationDatabase({ pool });
 const service = new UniverCollabService({ dbAdapter: database });
 ```
 
-Service 不依赖具体数据库，也不会为自定义实现补上 transaction、CAS 或 deduplication。Adapter 必须在
-自身数据库能力之上实现完整合同。[社区仓库](https://github.com/dream-num/univer-collaboration-sdk-community)里的内置实现展示了同一合同在不同数据库上的写法，可作为参考。
+Service 不依赖具体数据库，但也无法为自定义实现补充 transaction、CAS 或 deduplication。Adapter 必须利用自身数据库提供的能力实现完整合同。[社区仓库](https://github.com/dream-num/univer-collaboration-sdk-community)中的内置实现在不同数据库上实现了同一份合同，可以作为参考。
 
 ## 如何保存业务数据
 
-**附在文档或 changeset 上的信息，可以直接用 `metadata`。** 应用可以在创建文档或提交 changeset 时设置这些字段，由内置 Adapter 随协同数据一起保存。具体用法见 [Middleware 与 Event](/server/collaboration/middleware-and-events#persistent-metadata)。
+**附在文档或 changeset 上的信息，使用 `metadata` 保存。** 应用可以在创建文档或提交 changeset 时设置这些字段，内置 Adapter 会将它们随协同数据一起保存。具体用法见 [Middleware 与 Event](/server/collaboration/middleware-and-events#persistent-metadata)。
 
 **业务数据有独立的表时，可以通过 Middleware 或 Event 写入。** 需要记录一次操作尝试时，可以在 Middleware 中写入审计表。只关心成功提交的修改时，可以监听 `changesetCommitted` 更新业务表。这些写入默认在协同提交的事务之外执行。提交阶段的 Middleware 可能因版本冲突而重试，写入业务表时要避免重复记录。Event 是进程内的尽力投递通知，适合允许稍后补写或重建的数据。
 
-**需要使用应用自己的数据库和表结构，或在同一事务中写入业务数据和协同数据时，可以自定义数据库适配器**。调用 Service 时，应用可以把业务操作 ID 等上下文放入 `customData`。Adapter 在对应方法中通过 `ctx.customData` 读取所需字段，再决定写入哪些表。例如，`commitChangeset()` 可以在保存 changeset 的同一事务中，用业务操作 ID 更新对应的业务记录。
+**使用应用自己的数据库和表结构，或在同一事务中写入业务数据和协同数据时，可以自定义 Database Adapter。** 调用 Service 时，应用可以将业务操作 ID 等上下文放入 `customData`。Adapter 在对应方法中读取 `ctx.customData` 中所需的字段，再决定写入哪些表。例如，`commitChangeset()` 可以在保存 changeset 的同一事务中，用业务操作 ID 更新对应的业务记录。
 
-`customData` 只随本次调用传递。内置 Adapter 不会自动保存其中的字段，也不会根据这些字段写入业务表。
+`customData` 仅在本次调用内有效。内置 Adapter 不会自动保存其中的字段，也不会据此写入业务表。
 
 ## 扩展模块的存储
 
-History、Thread Comment、Worktree 与 File 等扩展模块都有独立的 Database Adapter 接口。开发者可以让这些
-Adapter 共用同一个数据库，也可以按模块拆分存储；一个自定义实现也可以同时提供多个 Adapter 接口，再
-分别注入对应的 Service。
+History、Thread Comment、Worktree 与 File 等扩展模块各自定义独立的 Database Adapter 接口。这些 Adapter 可以共用一个数据库，也可以使用独立的存储。一个自定义实现还可以同时提供多个 Adapter 接口，并分别注入对应的 Service。
 
-Adapter 接口相互独立，因此 SDK 不提供默认的跨模块事务。即使多个模块共用一个数据库，跨模块的一致性
-策略也由应用负责。
+由于这些 Adapter 接口彼此独立，SDK 默认不提供跨模块事务。即使多个模块共用一个数据库，跨模块的一致性策略仍由应用负责。
 
 ## 如何选择
 
 | Adapter    | 适用范围                           | 主要限制                         |
 | ---------- | ---------------------------------- | -------------------------------- |
 | Memory     | 测试、示例、临时开发               | 进程退出后数据丢失               |
-| SQLite     | 开发、测试、本地应用与小规模场景   | 单文件数据库，由应用管理运行参数 |
-| PostgreSQL | 多节点部署与既有 PostgreSQL 数据库 | 连接池与数据库运维由应用管理     |
-| Custom     | 既有数据库或自定义业务数据集成     | 应用负责实现和验证完整合同       |
+| SQLite     | 开发、测试、本地应用与小规模使用   | 单文件数据库，设置由应用管理     |
+| PostgreSQL | 多节点部署与现有 PostgreSQL 数据库 | 连接池与数据库操作由应用负责     |
+| Custom     | 已有数据库或自定义业务数据集成     | 应用需要实现并验证完整合同       |
 
-无论选择哪种实现，应用都拥有注入的 Adapter。释放时应先释放 Service，再释放 Adapter：
+应用拥有所有注入的 Adapter。释放时先释放 Service，再释放 Adapter：
 
 ```ts
 await service.dispose();
 await database.dispose();
 ```
 
-可运行对照见 [Database Adapter 示例](/server/collaboration/examples#database-adapter)。
+可运行的对照示例见 [Database Adapter 示例](/server/collaboration/examples#database-adapter)。
 
 [^revision-cas]: *CAS（比较并交换）* 仅在当前值仍等于预期值时更新数据。这里必须原子地检查当前修订号并写入下一状态，避免两个并发提交同时占用同一修订号。
 

@@ -3,27 +3,23 @@ title: Middleware 与 Event
 description: 使用通用 Middleware 和 Event 扩展 Transport、Endpoint、Service 及协同扩展模块。
 ---
 
-Middleware 与 Event 是 Collaboration SDK 的通用业务扩展点。身份与权限通过 Middleware 接入。
-Middleware 适合在操作执行前进行校验和限制；Event 适合在状态确认后记录变化或触发后续处理。两者都可
-用于日志、请求追踪、指标采集和派生数据更新。
+Middleware 与 Event 是 Collaboration SDK 的通用扩展点。身份与权限通过 Middleware 接入。操作执行前需要校验或限制时使用 Middleware，状态确认后需要记录变化或触发后续处理时使用 Event。两者都可用于日志、请求追踪、指标采集和派生数据更新。
 
 ## 两种不同的扩展时机
 
 |                      | Middleware                       | Event                            |
 | -------------------- | -------------------------------- | -------------------------------- |
-| 运行时机             | 一次操作执行过程中               | 状态变化已经确认后               |
+| 运行时机             | 一次操作执行过程中               | 状态变化确认之后                 |
 | 能否参与或拒绝操作   | 可以                             | 不可以                           |
-| 能否补充调用 Context | 可以                             | 读取 Event 携带的 Context 与结果 |
+| 能否补充调用 Context | 可以                             | 读取 Event 携带的 Context 和结果 |
 | Listener 失败        | 可能使当前操作失败               | 被隔离，不改变已经确定的领域结果 |
 | 典型用途             | 身份、权限、业务校验、日志、计时 | 派生索引、缓存、指标、进程内通知 |
 
-简单判断方式是：需要决定“这次操作能否继续”时使用 Middleware；需要知道“某个状态变化已经发生”
-时使用 Event。
+判断方式如下：需要决定操作能否继续时使用 Middleware；只需确认某个状态变化已经发生时使用 Event。
 
 ## Middleware 执行模型
 
-同一 Action 的 Middleware 按注册顺序组成异步链。`await next()` 进入下一个 Middleware，最内层才
-执行 SDK 操作：
+同一个 Action 的 Middleware 按注册顺序组成异步链。`await next()` 进入下一个 Middleware，SDK 操作在最内层执行：
 
 ```ts
 service.use("submitChangeset", async (context, next) => {
@@ -38,23 +34,15 @@ service.use("submitChangeset", async (context, next) => {
 });
 ```
 
-Middleware 可以：
+Middleware 可以读取该 Action 的 request，通过 `customData` 共享本次调用内的数据，在 `next()` 之前检查输入或查询业务系统，并在 `next()` 返回后记录耗时或结果。抛出 `CollabError` 可以拒绝一次预期内的协同操作。
 
-- 读取 action-specific request；
-- 在 `customData` 中共享当前调用所需的数据；
-- 在调用 `next()` 前检查输入或查询业务系统；
-- 在 `next()` 返回后记录耗时或结果；
-- 抛出 `CollabError` 拒绝预期内的协同操作。
-
-Transport HTTP Middleware 也可以直接结束 HTTP response 并不调用 `next()`。Service 和 Endpoint
-Middleware 若要拒绝操作，应抛出明确错误，而不是静默跳过 `next()`。
+Transport 的 HTTP Middleware 可以直接结束 HTTP response，而不调用 `next()`。Service 和 Endpoint 的 Middleware 如需拒绝操作，应抛出明确的错误，而不是静默跳过 `next()`。
 
 ## Transport Middleware
 
-`transport.use()` 注册普通 HTTP Middleware，按注册顺序执行。调用 `await next()`
-进入后续处理，也可以直接结束响应。`transport.useUpgrade()` 则用于 WebSocket 握手。
+`transport.use()` 注册普通 HTTP Middleware，按注册顺序执行。调用 `await next()` 可继续处理，也可以直接结束响应。WebSocket 握手由 `transport.useUpgrade()` 处理。
 
-例如，先统计 HTTP 耗时，再认证并设置可信 `userID`，最后注册 Collaboration Endpoint：
+以下示例先记录 HTTP 耗时，再认证请求并设置可信的 `userID`，最后注册 Collaboration Endpoint：
 
 ```ts
 transport.use(async (context, next) => {
@@ -84,21 +72,19 @@ transport.use(async (context, next) => {
 transport.register(collaborationEndpoint);
 ```
 
-`recordHttpDuration` 和 `authenticate` 由应用提供。Endpoint 使用前序 Middleware 设置的
-`userID` 处理请求；观测 Middleware 注册在认证之前，因此认证拒绝也会被记录。
+`recordHttpDuration` 和 `authenticate` 由应用提供。Endpoint 使用前序 Middleware 设置的 `userID`。耗时观测位于认证之前，因此被拒绝的请求同样会被记录。
 
-`context.route?.path` 是匹配后的完整路由模板，在执行到 Endpoint 时才可用。
-通过 response `finish` 统计响应完成的耗时；路由匹配前的拒绝和未知路径记为 `unmatched`。
+`context.route?.path` 是匹配到的完整路由模板，执行到 Endpoint 时才可用。通过 response 的 `finish` 事件可以观测响应何时完成。路由匹配之前被拒绝的请求以及未知路径均记为 `unmatched`。
 
 ## Endpoint Middleware
 
-Endpoint Middleware 参与实时 Session 与 Presence 操作：
+Endpoint Middleware 作用于实时 Session 与 Presence 操作：
 
 | Action            | 触发时机                                     | 常见用途                     |
 | ----------------- | -------------------------------------------- | ---------------------------- |
 | `connect`         | Ticket 已消费、Session 已创建，处理 HELLO 前 | 连接策略、补充成员名称与头像 |
 | `joinUnit`        | Session 加入 Unit Room 前                    | Room 准入、Unit 可见性检查   |
-| `receivePresence` | 收到已 JOIN Session 的 Presence 后、广播前   | 校验、过滤 Presence          |
+| `receivePresence` | 已 JOIN Session 的 Presence 到达后、广播前   | 校验、过滤 Presence          |
 | `sendPresence`    | Presence 发给某个 Room 成员前                | 按接收者过滤 Presence        |
 
 ```ts
@@ -110,12 +96,11 @@ endpoint.use("receivePresence", async (context, next) => {
 });
 ```
 
-Endpoint 的 `session.userID` 和 `session.customData` 来自签发 Session Ticket 的 HTTP request。`memberID`
-由 Endpoint 为当前 WebSocket Session 创建，重连后会变化。
+Endpoint 的 `session.userID` 和 `session.customData` 来自签发 Session Ticket 的 HTTP request。`memberID` 由 Endpoint 为当前 WebSocket Session 创建，重连后会变化。
 
 ## Service Middleware
 
-Service Middleware 参与权威协同数据的生命周期：
+Service Middleware 作用于权威协同数据的生命周期：
 
 | Action            | 操作边界                             | 常见用途                     |
 | ----------------- | ------------------------------------ | ---------------------------- |
@@ -139,9 +124,7 @@ service.use("createUnit", async (context, next) => {
 });
 ```
 
-`submitChangeset` 每次逻辑提交运行一次。发生 revision 竞争时，`applyChangeset` 和
-`commitChangeset` 可能以新的 `attempt` 重复运行，因此这两个阶段的 Middleware 必须可重试，不能
-直接发送不可撤销的外部消息或执行一次性扣费。
+`submitChangeset` 每次逻辑提交只运行一次。revision 发生竞争时，`applyChangeset` 和 `commitChangeset` 可能以新的 `attempt` 重新运行。这两个阶段的 Middleware 必须可重试，不能直接发送不可撤销的外部消息，也不能执行一次性扣费。
 
 ## customData 的作用域
 
@@ -151,7 +134,7 @@ service.use("createUnit", async (context, next) => {
 - 复用本次调用中的权限查询结果。
 - 记录计时起点或审计标签。
 
-SDK 内置的数据库适配器不会持久化 `customData`。如果需要将某些字段随文档或 changeset 一起保存，请参见[持久化 metadata](#persistent-metadata)。
+内置 Database Adapter 不会持久化 `customData`。如果需要将某些字段随文档或 changeset 一起保存，请参见[持久化 metadata](#persistent-metadata)。
 
 ## 持久化 metadata [#persistent-metadata]
 
@@ -178,11 +161,11 @@ Service 将修改后的两个完整对象传给 Adapter，随本次提交一起�
 
 读取文档的 metadata 时，调用 Adapter 的 `getUnit()`，取返回记录的 `metadata`。读取本次提交的 metadata 时，取 `submitChangeset()` 成功结果中的 `changeset.metadata`。要查看以往提交，调用 `getChangesets()`，返回的 `changesets` 数组中每一项都包含 `metadata`。
 
-使用内置 SQLite 或 PostgreSQL 适配器时，也可以直接用 SQL 查询文档或 changeset 的 metadata。具体表名和字段名以所用适配器的数据库结构为准。
+使用内置 SQLite 或 PostgreSQL Adapter 时，也可以直接用 SQL 查询文档或 changeset 的 metadata。具体表名和字段名以该 Adapter 的数据库结构为准。
 
 ## Event 执行模型
 
-Service 使用 `on()` 注册进程内 Listener，并返回可释放的订阅：
+Service 通过 `on()` 注册进程内 Listener，该方法返回一个可释放的订阅：
 
 ```ts
 const subscription = service.on("changesetCommitted", async (event) => {
@@ -195,11 +178,9 @@ const subscription = service.on("changesetCommitted", async (event) => {
 subscription.dispose();
 ```
 
-同一 Event 的 Listener 按注册顺序依次执行并被等待。Listener 抛出的错误会被记录和隔离，不会改变
-已经确定的领域结果。例如 `changesetCommitted` Listener 失败，不会回滚已经写入 Adapter 的 changeset。
+同一个 Event 的 Listener 按注册顺序依次执行，SDK 会等待前一个 Listener 完成后再执行下一个。Listener 的错误会被记录并隔离，不会影响已经确定的领域结果。例如，`changesetCommitted` 的 Listener 失败时，Adapter 已存储的 changeset 不会被回滚。
 
-因此 Event 适合进程内、可恢复或非关键的后续处理。它不是与数据库 commit 共享的事务边界，也不保证
-外部系统一定收到通知。
+Event 因此适合进程内、可恢复或非关键的后续处理。它不与数据库 commit 共享事务边界，也不保证外部系统收到通知。
 
 ## Core Service Event
 
@@ -212,20 +193,16 @@ subscription.dispose();
 
 在 `unitCreated` 监听器中，通过 `event.record.metadata` 读取文档 metadata；在 `changesetCommitted` 监听器中，通过 `event.changeset.metadata` 读取本次提交的 metadata。
 
-Endpoint 监听同一个 Service 的 `changesetCommitted`，把变更集广播给当前进程中已经
-JOIN 对应 Unit 的 Client；配置了 pub/sub 适配器时，也投递到其他节点。Endpoint 自身还提供 `memberLeftUnit` Event，用于观察成员显式离开、断线或
-Endpoint 释放。
+Endpoint 监听同一个 Service 上的 `changesetCommitted`，把确认后的 changeset 广播给当前进程中已 JOIN 该 Unit 的 Client；配置了 pub/sub 适配器时，广播也会到达其他节点。Endpoint 自身还提供 `memberLeftUnit`，用于观察成员主动离开、断线以及 Endpoint 释放。
 
 ## 扩展模块拥有独立扩展点
 
-History、Thread Comment 与 Worktree 不自动继承主 Collaboration Service 的 Middleware 或 Event：
+History、Thread Comment 与 Worktree 不会自动继承主 Collaboration Service 的 Middleware 或 Event：
 
-- History 提供 `getHistoryList`、`listHistoryCreators`、`getHistoryChangesets` 读取 Middleware；
-- Comment 提供 add、reply、edit、delete、solve/list Middleware，以及 `commentCommitted` Event；
-- Worktree 提供生命周期、draft read/submit/commit Middleware，以及创建、状态变化、合入结果等 Event。
+- History 为 `getHistoryList`、`listHistoryCreators`、`getHistoryChangesets` 提供读取 Middleware；
+- Comment 提供 add、reply、edit、delete、solve、list 的 Middleware，以及 `commentCommitted`；
+- Worktree 提供生命周期和 draft read/submit/commit 的 Middleware，以及创建、状态、合入和 draft commit 相关的 Event。
 
-应用应分别为实际启用的模块安装规则。主 Service 上的日志、tenant 或权限 Middleware 不会自动覆盖
-它们。
+每个启用的模块都需要单独安装规则。主 Service 上的日志、tenant 或权限 Middleware 不会自动覆盖这些模块。
 
-接下来可阅读[身份与权限](/server/collaboration/identity-and-authorization)，查看如何把已有用户与 ACL 系统
-映射到这些通用 Middleware。
+如需将已有的用户与 ACL 系统映射到这些通用 Middleware 边界，请阅读[身份与权限](/server/collaboration/identity-and-authorization)。

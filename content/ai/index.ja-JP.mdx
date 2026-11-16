@@ -5,31 +5,29 @@ description: AI SDK で Univer アプリケーションに Node.js CLI と AI Ag
 source: https://github.com/dream-num/univer-cli-sdk/blob/main/README.md
 ---
 
-Univer Office SDK は、埋め込みエディターとヘッドレスのコンテンツ処理を提供する [Web SDK](/guides/sheets)、共同編集とファイルのインポート・エクスポートを提供する [Server SDK](/server)、エージェントのワークフローを提供する [AI SDK](/ai) で構成されます。
+Univer Office SDK は 3 つの SDK で構成されています。[Web SDK](/guides/sheets) はブラウザーでエディターを実行し、UI を使わずにコンテンツを処理できます。[Server SDK](/server) は共同編集とファイル変換を提供します。このセクションで扱う [AI SDK](/ai) は Office CLI を構築するための TypeScript SDK です。エージェントや自動化処理が Univer Unit[^document-unit] を読み込み、内容を把握し、変更と確認を行うための Node.js エントリーポイントを提供します。
 
-**AI SDK** は Office CLI を構築する TypeScript SDK です。AI Agent や自動処理向けに、Univer Unit[^document-unit] の読み込み、理解、変更、確認を行う Node.js の入口を提供します。
-
-AI SDK は組み合わせ可能な機能群であり、固定の製品 CLI ではありません。コマンド名、引数、対象、ID と認可、出力、デプロイは業務アプリケーションが管理します。
+AI SDK の機能を組み合わせて独自の CLI を構築できます。コマンドの名前、引数、操作対象、認証と認可、出力形式、実行環境はアプリケーションが決めます。
 
 ## 推奨するアプリケーション構成
 
-このガイドは `CLI + Web + Server` の構成を使用します。
+このセクションの例は `CLI + Web + Server` 構成を前提としています。
 
 <Mermaid chart={"flowchart LR\n    Agent([\"AI Agent / CLI ユーザー\"]) --> CLI[\"<b>AI SDK</b><br/>業務 CLI\"]\n    Human([\"人間のユーザー\"]) --> Web[\"<b>Web SDK</b><br/>Web\"]\n    CLI --> Server[\"<b>Server SDK</b><br/>共同編集 · ファイル変換\"]\n    Web --> Server\n    Server --> Storage[\"ストレージ\"]\n    classDef default rx:8,ry:8,stroke-width:1px\n    classDef actor fill:transparent,stroke:none\n    class Agent,Human actor"} />
 
-- CLI は AI Agent やユーザーが Unit を操作する入口です。
-- Web は対話的な編集と人によるレビューのために実際のページを表示します。
-- Server は CLI と Web が共有する Unit、リビジョン、共同編集状態を保存します。
+- エージェントや利用者は CLI を通じて Univer に操作を指示します。
+- Web は利用者が直接編集し、エージェントの作業結果を確認できるページを表示します。
+- Server は CLI と Web が共有する Unit、リビジョン、共同編集の状態を保存します。
 
-CLI、Web、Server は別々に配置でき、すべてローカルでも実行できます。Collaboration SDK で Web + Server を先に作り、後から CLI を追加するのは推奨学習手順であり、配置上の制約ではありません。
+3 つの部分は個別にデプロイすることも、1 台のマシンで動かすこともできます。学習時には Collaboration SDK で Web と Server を接続してから CLI を追加する手順が目安になります。デプロイ時の必須条件ではありません。
 
-<Callout title="CLI のみのアプリケーションにも対応">
-  AI SDK はローカル Unit を直接処理できます。結果は構造化出力、AI Agent による視覚的検査、出力した Office ファイルで確認できます。ライブの Web ページ、共有リビジョン、History、Worktree には対応する Web と共同編集機能が必要です。
+<Callout title="CLI だけで構成するアプリケーション">
+  AI SDK はサーバーなしでローカルの Unit を処理できます。構造化出力を読む、エージェントにスクリーンショットを確認させる、Office ファイルをエクスポートするといった方法で結果を確認できます。ライブの Web ページ、共有リビジョン、History、Worktree には Web と共同編集の機能が必要です。
 </Callout>
 
 ## Commander で CLI を構成する
 
-AI SDK の基礎パッケージは構造化 TypeScript API を公開します。コマンドプリセットは共通機能をネイティブ Commander `Command` に変換します。ルートプログラムは常に業務アプリケーションが所有します。
+基本パッケージは TypeScript API を提供します。プリセットパッケージは、よく使う機能を Commander の `Command` オブジェクトとして提供します。このオブジェクトをアプリケーション自身のプログラムに追加できます。
 
 ```ts
 import { Command } from "commander";
@@ -42,15 +40,15 @@ program.addCommand(applicationCommand);
 await program.parseAsync();
 ```
 
-- **コマンドプリセット**は標準の引数、ヘルプ、テキストまたは JSON 出力を提供します。
-- **アプリケーションコマンド**は Runtime[^live-runtime]、業務対象、ID、コミット方針、ファイル方針を組み合わせます。
-- どちらも通常の Commander `Command` なので、同じルートに混在できます。
+- **コマンドプリセット**は引数とヘルプテキストを定義し、テキストまたは JSON を出力します。
+- **アプリケーションコマンド**は Runtime[^live-runtime]、アプリケーションの操作対象、実行者の情報、コミットやファイルのポリシーを組み合わせます。
+- どちらも Commander の `Command` オブジェクトなので、同じプログラムで併用できます。
 
-後続の各テーマでは基礎機能を説明した後、Commander との接続を示します。
+各ページでは基本機能を説明したあとで、Commander との統合方法を示します。
 
 ## 機能を段階的に構築する
 
-ガイドは Unit の基本操作から始め、ファイル、視覚、共同編集、プロセス機能を追加します。
+まず Unit のコンテンツの読み書きから始めます。その後でファイル処理、表示の確認、共同編集、プロセス管理を追加します。
 
 ```text
 Unit の読み込みと編集
@@ -62,23 +60,23 @@ Unit の読み込みと編集
 
 ### 1. Unit の読み込みと編集
 
-最小の AI Agent ループを作ります。Collaboration Runtime で読み込み、Inspection で内容を理解し、Univer Facade コードを実行し、必要に応じて Facade API を調べます。
+最小構成では、Collaboration Runtime で Unit を読み込み、構造を確認し、Facade コードを実行します。必要な Facade API は適宜調べます。
 
 ### 2. Office ファイルの境界を接続する
 
-Exchange で Office ファイルと UnitData を相互変換します。取り込んだ Unit は Collaboration Server に保持されます。出力時は先に Collaboration Runtime で最新 UnitData を取得します。
+Exchange は Office ファイルと UnitData を相互に変換します。インポート後の Unit は Collaboration Server に保存されます。エクスポート時は Collaboration Runtime が最新の UnitData を取得してからファイルに書き出します。
 
 ### 3. 視覚的検査を追加する
 
-構造化出力だけではレイアウトを完全に表せません。Screenshot は AI Agent に描画画像を、Layout Lint は構造化されたレイアウト診断を提供します。
+構造化出力だけでは、レンダリング後のページの見た目を完全には把握できません。Screenshot はページを画像としてエージェントに渡し、Layout Lint は修正可能なレイアウト上の問題を報告します。
 
 ### 4. Worktree で変更を分離する
 
-AI Agent は Worktree の下書きを何度も編集・確認できます。準備ができたら人が Web でレビューし、Merge または Reopen を選びます。
+エージェントはライブのドキュメントを変更せずに Worktree の下書きを繰り返し編集し、確認できます。作業後に利用者が Web で下書きを確認し、マージするか差し戻すかを決めます。
 
 ### 5. 高コストなランタイムを再利用する
 
-最初は短命の Runtime を使います。起動コスト、並行処理、CLI プロセス間での再利用が重要になってからプール、Worker、Daemon を追加します。
+最初はコマンドごとに runtime を起動し、完了後に閉じます。起動コスト、同時実行、CLI プロセス間の共有が課題になった段階で、プール、ワーカー、デーモンを導入します。
 
 ## 推奨する読む順序
 

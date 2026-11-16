@@ -3,8 +3,7 @@ title: 匯入匯出
 icon: 'FolderSync'
 ---
 
-
-使用下方瀏覽器 API 前，請先完成[匯入匯出整合](/server/import-export)。應用程式需要實作與用戶端匹配的上傳、轉換、任務查詢和受權限保護的下載契約。快照 API 仍需要轉換後端，只是不要求持久化協同 Unit。[Exchange 範例](/server/collaboration/examples#exchange)示範 Sheets；其他產品和格式需核對目標版本的支援範圍。
+本頁的 API 需要轉換後端。請先按[匯入匯出整合](/server/import-export)完成檔案上傳、轉換、任務查詢和下載的配置，再配置前端外掛。快照 API 同樣需要該後端，但不需要建立協同文件。
 
 匯出失敗時請見[授權錯誤碼與任務失敗處理](/server/import-export#export-errors)。
 
@@ -34,22 +33,24 @@ icon: 'FolderSync'
   }}
 />
 
-匯入 Office 附件的支援情況與整合方式，請見 [OLE 預覽、線上轉換與匯出來源選擇](/server/import-export#ole-attachments)。
+匯入的 Office 附件的處理方式，參見 [OLE 預覽、線上轉換和匯出來源選擇](/server/import-export#ole-attachments)。
 
 ## 支援的格式
 
-下表列出本頁前端 API 支援的格式。Office 檔案轉換還需要後端支援對應的文件類型和格式。
+下表列出本頁前端 API 支援的格式。Office 檔案轉換還需要後端支援相同的文件型別和格式。
 
 | 匯入 | 匯出 |
 | --- | --- |
 | `.xls`, `.xlsx`, `.csv`, `.tsv` | `.xlsx`, `.csv`, `.tsv` |
+
+CSV、TSV 只匯出一個工作表，不保留工作簿樣式和其他工作表。匯出時傳入 `ExchangeFormat.CSV` 或 `ExchangeFormat.TSV` 以及 `sheetId`，預設使用 XLSX。即使轉換後端支援 `.xlsm`，前端 API 也不接受該格式。
 
 ## Facade API [#facade-api]
 
 ### 匯入
 
 <Callout type="info" title="外掛模式提示">
-  僅外掛模式需要手動引入 Facade 套件。預設模式已內建對應的 Facade 套件，無需額外引入。
+  僅外掛模式需要手動引入 Facade 包。預設模式已內建對應的包，無需再次匯入。
 </Callout>
 
 ```typescript
@@ -62,10 +63,10 @@ import '@univerjs-pro/sheets-exchange-client/facade'
 #### 匯入 `.xlsx` 檔案並獲取 `unitId`
 
 <Callout type="warning" title="注意事項">
-  此方法依賴協同服務：匯入後會在服務端建立文件並回傳 `unitId`。若未啟用協同，請使用快照匯入。
+  該方法依賴協同服務：匯入後會在伺服器端建立文件並返回 `unitId`。未啟用協同服務時，請改用快照匯入。
 </Callout>
 
-在啟用協同編輯的時候，每個文件都有一個唯一的 `unitId`。使用 `univerAPI.importSheetToUnitIdAsync` 傳入 `file` 參數會返回 `unitId`，可以透過 `unitId` 來訪問文件。 `file` 參數可以是一個 `File` 物件，也可以是遠端檔案的 URL。
+啟用協同編輯後，每個文件都有唯一的 `unitId`。向 `univerAPI.importSheetToUnitIdAsync` 傳入 `file`，該方法返回 `unitId`，用於開啟文件。`file` 可以是 `File` 物件，也可以是遠端檔案的 URL。
 
 ```typescript
 import '@univerjs-pro/collaboration-client/facade'
@@ -79,7 +80,7 @@ if (unitId) {
 
 #### 匯入 `.xlsx` 檔案並獲取 `IWorkbookData`
 
-使用 `univerAPI.importSheetToSnapshotAsync` 匯入 `.xlsx` 檔案，會返回 `IWorkbookData` 格式的文件資料。
+快照匯入不依賴協同服務；需要協同文件時，請改用 `unitId` 匯入。`univerAPI.importSheetToSnapshotAsync` 匯入 `.xlsx` 檔案，返回 `IWorkbookData` 格式的文件資料。
 
 ```typescript
 // 接受 File 物件
@@ -96,10 +97,10 @@ if (snapshot) univerAPI.createWorkbook(snapshot)
 #### 透過 `unitId` 匯出 `.xlsx` 檔案
 
 <Callout type="warning" title="注意事項">
-  `unitId` 匯出依賴協同服務。若未啟用協同，請使用快照匯出。
+  透過 `unitId` 匯出依賴協同服務。未啟用協同服務時，請改用快照匯出。
 </Callout>
 
-在啟用協同編輯的時候，每個文件都有一個唯一的 `unitId`。使用 `univerAPI.exportSheetByUnitIdAsync` 傳入 `unitId` 參數會返回 `File` 物件。
+啟用協同編輯後，每個文件都有唯一的 `unitId`。將該 `unitId` 傳給 `univerAPI.exportSheetByUnitIdAsync`，該方法返回一個 `File` 物件。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -114,7 +115,7 @@ if (file) univerAPI.downloadFile(file, 'univer', 'xlsx')
 
 <Callout>快照匯出不依賴協同服務，適合僅在本機處理資料的場景。</Callout>
 
-使用 `univerAPI.exportSheetBySnapshotAsync` 傳入 `IWorkbookData` 會返回 `File` 物件。
+將 `IWorkbookData` 傳給 `univerAPI.exportSheetBySnapshotAsync`，該方法返回一個 `File` 物件。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
@@ -128,7 +129,7 @@ if (file) univerAPI.downloadFile(file, 'univer', 'xlsx')
 ## 移除內建匯入匯出選單和 UI 互動 [#import-export-ui-migration]
 
 <Callout type="warning" title="注意事項">
-  從 **1.2.0** 版本開始，Univer 移除了內建的匯入匯出選單和 UI 互動，底層服務及 Facade API 繼續保留。
+  從 **1.2.0** 版本開始，Univer 不再內建匯入匯出選單和 UI 互動。底層服務和 Facade API 仍然可用。
 </Callout>
 
-如果你的應用程式需要保留原有的匯入匯出選單和 UI 互動，可以參考[內建匯入匯出選單和 UI 互動遷移方案](https://office.univer.ai/zh-CN/showcase/sheets/custom-import-export)，透過自訂外掛完成遷移。範例提供完整原始碼，支援線上檢視和下載。
+如果應用仍需保留這些選單和互動，可參考[內建匯入匯出選單和 UI 互動遷移方案](https://office.univer.ai/zh-CN/showcase/sheets/custom-import-export)，透過自定義外掛恢復這些功能。範例提供完整原始碼，支援線上檢視和下載。

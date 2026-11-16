@@ -3,13 +3,13 @@ title: 许可证
 description: 配置 Exchange 导出授权、查询剩余额度并处理授权错误。
 ---
 
-Exchange 在运行 `@univerjs-pro/exchange-node` 的服务端进程中读取许可证。转换用法见 [Office 文件导入导出](/server/import-export/node)。
+Exchange 在运行 `@univerjs-pro/exchange-node` 的服务端进程内读取许可证。转换本身的使用方法参见 [Office 文件导入导出](/server/import-export/node)。
 
 ## 配置授权 [#configure]
 
-推荐通过环境变量 `UNIVER_LICENSE` 与 `UNIVER_LICENSE_KEY` 成对提供授权。无需调用 `configureExchange`；SDK 在首次导出或额度查询时自动读取一次，后续调用复用该配置。未提供环境凭据时使用 Free；已提供但无效的授权会报错，不能用于导出。
+常规做法是在环境变量中设置 `UNIVER_LICENSE` 和 `UNIVER_LICENSE_KEY`，此时调用 `configureExchange` 是可选的：SDK 会在第一次导出或查询额度时读取一次环境变量，并在进程余下的生命周期内沿用该配置。两个变量都未设置时使用 Free。变量已设置但凭据无效时，调用会返回错误，这些凭据不能用于导出。
 
-也可以使用 `configureExchange({ license, licenseKey })` 显式配置，它返回 `Promise<void>`。显式配置完全忽略环境变量；应等待配置完成后再开始使用新授权的导出。
+如需显式配置，调用 `configureExchange({ license, licenseKey })`。该函数返回 `Promise<void>`，并完全忽略环境变量，因此应在开始使用新凭据的导出之前 await 该调用。
 
 ```ts
 import { configureExchange, getExportQuota } from '@univerjs-pro/exchange-node'
@@ -22,22 +22,22 @@ await configureExchange({
 const quota = await getExportQuota()
 ```
 
-`license` 与 `licenseKey` 使用授权提供方交付的完整内容，不是文件路径。两项应成对配置，并通过应用的密钥管理系统提供。
+`license` 和 `licenseKey` 必须填写授权提供方给出的完整内容，而不是文件路径。两项应同时配置，并从应用的密钥管理系统中读取。
 
-| 输入 | 使用方式 |
+| 输入 | 行为 |
 | --- | --- |
-| 不调用 `configureExchange` | 首次使用时成对读取环境变量；均未提供则使用 Free。 |
-| `configureExchange({ license, licenseKey })` | 只使用显式凭据，完全忽略环境变量。 |
-| `configureExchange({})` | 显式选择 Free，忽略环境变量。 |
-| 所选来源只提供一个字段 | 返回 `INVALID_ARGUMENT`，不会从另一来源补齐。 |
+| 不调用 `configureExchange` | 首次使用时读取两个环境变量。两个变量都未设置时使用 Free。 |
+| `configureExchange({ license, licenseKey })` | 只使用显式传入的凭据。环境变量被忽略。 |
+| `configureExchange({})` | 显式选择 Free。环境变量被忽略。 |
+| 所选来源只提供一个凭据 | 调用返回 `INVALID_ARGUMENT`。另一个字段不会从其他来源补齐。 |
 
-完整的环境配置读取后即固定，即使后续操作失败也不会自动重读。更换默认授权应显式调用并等待 `configureExchange`；配置失败时保留此前配置，应处理错误后再开始新的导出。
+完整的环境配置一经读取即保持固定，即使后续操作失败也不会改变。若要在运行时替换默认凭据，应自行调用 `configureExchange` 并 await 该调用。调用失败时保留原有配置，因此应先处理错误，再开始新的导出。
 
-同一 JavaScript 上下文中的 ESM 与 CommonJS 共用配置。每个 `worker_threads` Worker 都需独立配置或从环境变量初始化。导出使用调用公开导出方法时的配置，后续换证不会改变已发起的导出。
+ESM 和 CommonJS 在同一个 JavaScript 上下文中共用一份配置。每个 `worker_threads` Worker 都必须自行配置，或从自身的环境变量初始化。导出使用的是调用公开导出方法时已生效的配置；此后更改凭据不影响已经开始的导出。
 
 ### 为单次操作指定授权
 
-导出 API 和 `getExportQuota` 的选项可传入完整的 `license`、`licenseKey`，仅作用于本次操作，不修改默认配置。例如，使用同一授权查询额度并导出：
+若要为单次调用授权而不改动默认配置，可在导出 API 或 `getExportQuota` 的选项中传入一对完整的 `license` 和 `licenseKey`。下面的示例用同一份凭据查询额度并执行导出：
 
 ```ts
 import { UniverInstanceType } from '@univerjs/core'
@@ -52,11 +52,11 @@ const output = await exportToBuffer(workbook, {
 })
 ```
 
-此方式同样适用于文件导出、Snapshot 导出和可选 PDF 导出。不传这两个字段时使用默认配置；只传一个字段返回 `INVALID_ARGUMENT`。显式传入的完整凭据不会从默认配置或环境变量补齐，空字符串也不会被视为省略；授权无效时返回 `LICENSE_INVALID`，不会重新使用默认商业授权。
+文件导出、Snapshot 导出和可选的 PDF 导出都支持同样的方式。两个字段都不传时使用默认配置；只传一个时返回 `INVALID_ARGUMENT`。显式传入的一对凭据不会从默认配置或环境变量中补齐，空字符串也不视为未传。凭据无效时返回 `LICENSE_INVALID`，SDK 不会回退到默认的商业授权。
 
 ### 可选 PDF 支持
 
-安装 PDF 扩展包，并在配置授权前导入 PDF 入口：
+安装 PDF 扩展包，并在配置授权之前导入其入口：
 
 ```sh
 pnpm add @univerjs-pro/exchange-node @univerjs-pro/exchange-pdf-node-binding
@@ -74,29 +74,29 @@ await configureExchange({
 const quota = await getExportQuota()
 ```
 
-该入口注册 PDF 支持，原生组件在实际使用时加载。PDF 仍使用 `importBuffer`、`importFile`、`exportToBuffer`、`exportToFile` 及对应 Snapshot API，指定 `UniverInstanceType.UNIVER_PDF` 和 `ExchangeFormat.PDF`；无需改用另一套转换 API。仅处理 PDF 的应用不需要加载 Office 原生组件。环境变量配置同样适用于 PDF。
+导入该入口即注册了 PDF 支持，原生组件在首次使用时加载。PDF 使用同一套 `importBuffer`、`importFile`、`exportToBuffer`、`exportToFile` 以及对应的 Snapshot API，并指定 `UniverInstanceType.UNIVER_PDF` 和 `ExchangeFormat.PDF`。仅处理 PDF 的应用不需要加载 Office 原生组件。通过环境变量的配置同样适用于 PDF。
 
 ## 查询剩余额度 [#quota]
 
-`getExportQuota({ license, licenseKey })` 返回 `Promise<ExportQuota>`，查询该授权在 Office 与 PDF 间共享的额度。不传凭据时查询默认配置。查询不接收类型参数，也不判断授权是否允许导出某个类型；类型授权在实际导出时检查。
+`getExportQuota({ license, licenseKey })` 返回 `Promise<ExportQuota>`，查询的是该授权在 Office 与 PDF 之间共享的额度。不传凭据时查询默认配置。该调用不接受 Unit 类型，也不判断某个类型是否允许导出；类型检查在导出时进行。
 
-查询不扣次、不预留额度，也不检查 SDK 版本、授权是否已生效或导出类型权限。余额为零时仍成功返回当前快照；其他并发请求可能随后使用额度，请同时处理实际导出的错误。
+查询既不消耗也不预留额度，也不检查 SDK 版本、授权生效时间和导出类型权限。余额为零时仍会成功返回一份快照。其他请求可能在此后立即消耗额度，因此实际导出返回的错误同样需要处理。
 
-授权尚未生效时，有限额度返回首个授权月的快照，`periodStart` 为未来日期。查询成功或 `licenseStatus` 为 `valid` 均不代表当前允许导出；版本、生效时间、类型权限、可用额度和并发名额在实际导出时检查。
+授权尚未生效时，有限额度的查询返回第一个授权月的快照，其 `periodStart` 位于未来。查询成功或 `licenseStatus` 为 `valid`，并不表示允许导出。版本、生效时间、类型权限、可用额度和并发名额都在导出时检查。
 
 | 字段 | 类型 | 含义 |
 | --- | --- | --- |
-| `licenseStatus` | `'not_configured' \| 'expired' \| 'valid'` | 导出订阅未配置、已到期或未到期；`valid` 不表示已通过导出准入检查。无效授权直接报错。 |
-| `expiresAt` | `string \| null` | 导出订阅到期的 UTC ISO 时间；未配置或无到期时间时为 `null`。 |
-| `observedAt` | `string` | 本次快照的 UTC ISO 时间。 |
-| `limit` | `number \| null` | 当前月额度上限；不限次数时为 `null`。 |
-| `used` | `number \| null` | 当前月已成功导出的次数；不限次数时为 `null`。 |
-| `reserved` | `number \| null` | 当前月正在处理的导出占用次数；不限次数时为 `null`。 |
-| `remaining` | `number \| null` | 当前可用次数，即 `max(0, limit - used - reserved)`；不限次数时为 `null`。 |
-| `periodStart` | `string \| null` | 所查询月额度窗口的 UTC ISO 起点，包含该时刻；尚未生效时为首期起点，不限次数时为 `null`。 |
-| `periodEnd` | `string \| null` | 所查询月额度窗口的 UTC ISO 终点，不包含该时刻；不限次数时为 `null`。 |
+| `licenseStatus` | `'not_configured' \| 'expired' \| 'valid'` | 导出订阅处于未配置、已过期或未过期状态。`valid` 并不意味着已通过导出的准入检查。凭据无效时返回错误。 |
+| `expiresAt` | `string \| null` | 导出订阅的到期时间，UTC ISO 时间戳。未配置或没有到期时间时为 `null`。 |
+| `observedAt` | `string` | 本快照的 UTC ISO 时间戳。 |
+| `limit` | `number \| null` | 当前每月的导出上限。额度不限时为 `null`。 |
+| `used` | `number \| null` | 当前月已成功导出的次数。额度不限时为 `null`。 |
+| `reserved` | `number \| null` | 当前月正在处理并占用额度的导出次数。额度不限时为 `null`。 |
+| `remaining` | `number \| null` | 仍可用的导出次数，按 `max(0, limit - used - reserved)` 计算。额度不限时为 `null`。 |
+| `periodStart` | `string \| null` | 所查询的月额度窗口的起点，UTC ISO 时间戳，包含该时刻。第一个周期在授权生效之前，起点位于未来。额度不限时为 `null`。 |
+| `periodEnd` | `string \| null` | 所查询的月额度窗口的终点，UTC ISO 时间戳，不包含该时刻。额度不限时为 `null`。 |
 
-`periodEnd` 表示下一月额度开始的时间，`expiresAt` 表示整个导出订阅到期的时间。订阅有效时始终使用商业额度；本月耗尽不会使用 Free，下个月开始使用新的商业月额度。订阅到期后使用原有 Free 剩余额度，不重新发放或清零。
+`periodEnd` 是下一个月额度窗口的起点，`expiresAt` 是导出订阅的终点。订阅有效期间，导出一律使用商业额度。额度用尽不会切换到 Free，下一个商业额度窗口在次月开启。只有订阅到期才会切换到剩余的 Free 额度，该额度既不重置，也不会重新发放。
 
 有限额度快照示例：
 
@@ -116,15 +116,15 @@ const quota = await getExportQuota()
 
 ## 使用额度 [#accounting]
 
-Free 每授权月允许 10 次成功导出。商业授权的次数、并发及版本范围以所购授权为准。Free 与商业授权均不设置授权层面的文件大小和单元格数量上限。周期与剩余额度以查询结果为准，未用完的月额度不结转。
+Free 每个授权月允许 10 次成功导出。商业授权的导出次数、并发数和版本权限取决于所购买的授权。Free 和商业授权都不限制文件大小或单元格数量。当前周期和剩余额度以查询结果为准。当月未用完的额度不结转。
 
-导入无需配置导出授权，也不消耗导出次数。同一部署中，Office 与 PDF 使用同一商业授权时共享额度。Office 转换格式见 [Office 文件导入导出](/server/import-export/node)。
+导入不需要导出授权，也不消耗导出额度。在同一个部署内，使用同一份商业授权的 Office 与 PDF 导出共享额度。Exchange 支持的转换格式参见 [Office 文件导入导出](/server/import-export/node)。
 
-每次成功转换计 1 次，返回 Buffer 即视为转换成功。转换成功后的文件写入、上传或下载失败不退回次数；再次成功转换会再次计次。本周期额度耗尽后拒绝新的导出，需等待下一授权周期或换用额度更高的有效授权；有效商业授权不会借用 Free 额度。
+每次成功转换消耗一次导出，返回 Buffer 即视为成功。此后写入、上传或下载文件失败不会退回该次导出，再次成功转换会再消耗一次。当前周期没有剩余额度时，新的导出会被拒绝。应等待下一个授权周期，或提供一份额度更高的有效授权。已用尽但仍在有效期内的商业授权不会回退到 Free 额度。
 
 ## 处理错误 [#errors]
 
-使用结构化 `code` 判断错误，不要解析 `message` 文本。用户界面可根据错误码提供本地化提示；诊断信息请保留供技术支持使用。
+判断错误时应依据结构化的 `code`，而不是解析 `message` 文本。UI 可以将错误码映射为本地化消息。诊断信息应保留给技术支持。
 
 ```ts
 import { UniverInstanceType } from '@univerjs/core'
@@ -145,27 +145,27 @@ try {
 }
 ```
 
-下表区分额度查询（`getExportQuota`）与实际导出的报错时机。两类 API 均返回 Promise，使用 `await` 配合 `try/catch` 处理错误。
+下表说明错误来自额度查询（`getExportQuota`）还是来自实际导出。两类 API 都返回 Promise，因此需要用 `await` 和 `try/catch` 处理失败。
 
-| 错误码 | 报错时机 | 含义及处理方式 |
+| 错误码 | 来源 | 含义与处理 |
 | --- | --- | --- |
-| `LICENSE_EXPORT_QUOTA_EXCEEDED` | 仅导出 | 当前周期的可用导出额度不足；查询额度或联系商务调整授权。 |
-| `LICENSE_CONCURRENCY_TIMEOUT` | 仅导出 | 等待可用导出并发名额超时；降低并发后再发起导出。 |
-| `LICENSE_UNIT_TYPE_REJECTED` | 仅导出 | 当前授权未包含此导出类型或该类型授权已到期；使用包含该类型的有效授权。 |
-| `LICENSE_INVALID` | 查询、导出 | 授权无效；检查完整凭据或联系授权提供方更新授权。 |
-| `LICENSE_POLICY_INVALID` | 查询、导出 | 授权配置不符合 SDK 要求；联系授权提供方更新授权。 |
-| `LICENSE_NOT_YET_EFFECTIVE` | 仅导出 | 授权尚未生效；在生效后使用。 |
-| `LICENSE_VERSION_NOT_ALLOWED` | 仅导出 | 当前 SDK 版本不在授权范围内；使用匹配版本或更新授权。 |
-| `UNSUPPORTED_FORMAT` | 仅导出 | 不支持指定的格式或格式与类型不匹配；检查导出选项。 |
-| `INVALID_FILE` | 仅导出 | 转换输入无效；检查输入内容。 |
-| `INCOMPLETE_SNAPSHOT` | 仅导出 | 导出数据不完整；提供完整数据或 Snapshot。 |
-| `CONVERSION_FAILED` | 仅导出 | 文件转换失败；保留错误信息并检查输入内容。 |
-| `IO_ERROR` | 仅导出 | 文件读写失败；成功转换后的文件写入失败已经消耗 1 次。 |
-| `INVALID_ARGUMENT` | 查询、导出 | 参数或凭据不完整；检查传入配置。 |
-| `NATIVE_LOAD_FAILED` | 查询、导出 | SDK 原生组件无法加载；检查已安装包及运行环境是否匹配。 |
-| `LICENSE_USAGE_STATE_INVALID` | 查询、导出 | 授权用量状态无法验证；保留错误信息并联系技术支持。 |
-| `LICENSE_USAGE_STORAGE_ERROR` | 查询、导出 | 授权用量处理失败；保留错误信息并联系技术支持，避免自动重复提交。 |
+| `LICENSE_EXPORT_QUOTA_EXCEEDED` | 仅导出 | 当前周期的导出额度不足。查询额度，或联系商务调整授权。 |
+| `LICENSE_CONCURRENCY_TIMEOUT` | 仅导出 | 等待导出并发名额超时。应先降低并发数，再重新提交。 |
+| `LICENSE_UNIT_TYPE_REJECTED` | 仅导出 | 该导出类型不在授权范围内，或该类型的授权已过期。应提供覆盖该类型的有效授权。 |
+| `LICENSE_INVALID` | 查询、导出 | 授权无效。检查完整凭据，或联系授权提供方获取更新。 |
+| `LICENSE_POLICY_INVALID` | 查询、导出 | 授权配置不符合 SDK 要求。联系授权提供方获取更新。 |
+| `LICENSE_NOT_YET_EFFECTIVE` | 仅导出 | 授权尚未生效。应在生效日期之后使用。 |
+| `LICENSE_VERSION_NOT_ALLOWED` | 仅导出 | 当前 SDK 版本超出授权范围。改用匹配的版本，或更新授权。 |
+| `UNSUPPORTED_FORMAT` | 仅导出 | 格式不受支持，或与 Unit 类型不匹配。检查导出选项。 |
+| `INVALID_FILE` | 仅导出 | 转换输入无效。检查输入内容。 |
+| `INCOMPLETE_SNAPSHOT` | 仅导出 | 导出数据不完整。应提供完整的数据或完整的 Snapshot。 |
+| `CONVERSION_FAILED` | 仅导出 | 转换失败。保留错误信息并检查输入内容。 |
+| `IO_ERROR` | 仅导出 | 文件输入或输出失败。如果转换成功但写入输出失败，该次导出已被消耗。 |
+| `INVALID_ARGUMENT` | 查询、导出 | 参数或凭据不完整。检查配置。 |
+| `NATIVE_LOAD_FAILED` | 查询、导出 | SDK 原生组件加载失败。检查安装的包与运行环境是否匹配。 |
+| `LICENSE_USAGE_STATE_INVALID` | 查询、导出 | 无法验证授权用量状态。保留错误信息并联系技术支持。 |
+| `LICENSE_USAGE_STORAGE_ERROR` | 查询、导出 | 授权用量处理失败。保留错误信息，联系技术支持，不要自动重复提交。 |
 
-应用可根据 `licenseStatus` 与 `expiresAt` 自行展示到期提醒；SDK 不额外返回提示列表。
+应用可以根据 `licenseStatus` 和 `expiresAt` 生成到期提醒。SDK 不单独返回提示列表。
 
-遇到授权用量处理异常时，不应仅根据错误推断本次是否已计次，请保留完整错误并联系技术支持。
+出现授权用量处理错误后，不要仅凭错误本身推断该次导出是否已计入。应保留完整的错误信息并联系技术支持。

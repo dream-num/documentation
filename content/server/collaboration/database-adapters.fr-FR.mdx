@@ -3,13 +3,15 @@ title: Adaptateurs de base de données
 description: Comprenez le contrat de persistance collaborative et choisissez entre Memory, SQLite, PostgreSQL et un Database Adapter personnalisé.
 ---
 
-Un Database Adapter persiste les données collaboratives centrales utilisées par Collaboration Service. Les développeurs peuvent implémenter `IDatabaseAdapter` pour connecter toute base capable de satisfaire son contrat comportemental complet. Le Service gère la sémantique des Units, de l’OT et des révisions ; l’Adapter la traduit en opérations de persistance atomiques et sûres à réessayer.
+Un adaptateur de base de données persiste les données de collaboration de base que le Service de collaboration gère. Le Service possède la sémantique de l'unité, de l'OT et de la révision, et l'adaptateur transforme ces sémantiques en opérations de stockage atomiques qui sont sûres à reessayer. Pour connecter une base de données qui n'est pas couverte par les adaptateurs intégrés, implémenter `IDatabaseAdapter` et satisfaire son contrat comportemental complet.
 
-Les Database Adapters sont open source sous Apache-2.0 ; le code se trouve dans [univer-collaboration-sdk-community](https://github.com/dream-num/univer-collaboration-sdk-community), avec les mêmes noms de paquet et versions que les autres paquets.
+Les adaptateurs de base de données sont open source sous Apache-2.0. Le code source est disponible dans [univer-collaboration-sdk-community](https://github.com/dream-num/univer-collaboration-sdk-community), et les paquets utilisent les mêmes noms et versions que tous les autres paquets.
 
 ## Vérifier la persistance [#verify-persistence]
 
-Arrêtez Quick Start puis lancez `pnpm example:database-adapter` depuis la racine. Ouvrez `http://127.0.0.1:3010/?unit=persistent-sheet`, modifiez une cellule et vérifiez-la dans un second navigateur. Arrêtez, relancez la même commande et rouvrez la même URL : la valeur doit rester. Le fichier est `examples/database-adapter/.data/collaboration.sqlite` ; ne le supprimez pas entre les lancements. Le serveur lit le Unit existant et appelle `createUnitFromData()` seulement pour `UNIT_NOT_FOUND`. Voir [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts).
+Arrêtez le démarrage rapide et lancez `pnpm example:database-adapter` à partir de la racine du dépôt. Ouvrez `http://127.0.0.1:3010/?unit=persistent-sheet`, modifiez une cellule et validez le changement dans un deuxième navigateur. Puis arrêtez le serveur, exécutez à nouveau la même commande et rouvrez la même URL. La valeur doit être toujours présente.
+
+Les données sont stockées dans `examples/database-adapter/.data/collaboration.sqlite`, donc ne supprimez pas ce fichier entre les lancers. Au démarrage, le serveur lit l'unité existante et appelle `createUnitFromData()` seulement lorsqu'il reçoit `UNIT_NOT_FOUND`, donc il n'écrase jamais les données stockées. [serveur/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts).
 
 ## Données stockées par l’Adapter
 
@@ -39,11 +41,11 @@ Toute implémentation de `IDatabaseAdapter` doit respecter les règles suivantes
 
 ## Memory Adapter
 
-[`@univerjs-pro/collaboration-database-memory`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-memory) est une implémentation en mémoire du processus adaptée :
+[`@univerjs-pro/collaboration-database-memory`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-memory) fonctionne à l'intérieur du processus Node.js. Il est adapté pour:
 
-- aux tests unitaires et d’intégration ;
-- aux environnements de développement temporaires ;
-- à la validation rapide de Middleware personnalisés ou de l’assemblage client.
+- aux tests unitaires et d’intégration
+- aux environnements de développement temporaires
+- contrôle rapide de l'assemblage personnalisé Middleware ou Client
 
 ```ts
 import { MemoryDatabaseAdapter } from "@univerjs-pro/collaboration-database-memory";
@@ -53,11 +55,11 @@ const database = new MemoryDatabaseAdapter();
 const service = new UniverCollabService({ dbAdapter: database });
 ```
 
-Memory Adapter respecte les mêmes contrats de révision, de CAS et d’idempotence que les implémentations persistantes, mais toutes les données résident dans le processus Node.js courant et disparaissent à son arrêt.
+L'adaptateur mémoire suit le même contrat de révision, CAS et idempotency que les implémentations persistantes. Ses données n'existent que dans le processus Node.js actuel et sont perdues lorsque ce processus s'en va.
 
 ## SQLite Adapter
 
-[`@univerjs-pro/collaboration-database-sqlite`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-sqlite) est une implémentation SQLite persistante pour le développement, les tests, les applications locales et les usages à petite échelle.
+[`@univerjs-pro/collaboration-database-sqlite`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-sqlite) stocke les données dans un fichier SQLite. Il convient au développement, aux essais, aux applications locales et à une utilisation à petite échelle.
 
 ```ts
 import { mkdir } from "node:fs/promises";
@@ -74,11 +76,11 @@ const database = new SQLiteDatabaseAdapter({
 const service = new UniverCollabService({ dbAdapter: database });
 ```
 
-Il initialise le schéma dans une base vide et ne fait que vérifier une base existante. L’emplacement du fichier, les sauvegardes et les autres réglages SQLite relèvent de l’application.
+Il initialise le schéma lorsque la base de données est vide et ne vérifie le schéma que lorsqu'il existe déjà. L'emplacement du fichier, la méthode de sauvegarde et tout autre paramètre SQLite sont déterminés par l'application.
 
 ## PostgreSQL Adapter
 
-[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) est une implémentation persistante basée sur node-postgres que plusieurs nœuds de collaboration peuvent partager.
+[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) est construit sur des nœuds et stocke ses données dans PostgreSQL. Plusieurs nœuds de collaboration peuvent partager une seule base de données.
 
 ```ts
 import { PostgresDatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres";
@@ -90,15 +92,15 @@ const database = await PostgresDatabaseAdapter.create({ pool });
 const service = new UniverCollabService({ dbAdapter: database });
 ```
 
-L’application possède le pool et le ferme après avoir libéré le Service. `create()` initialise le schéma `collaboration` dans une base vide et ne fait que vérifier un schéma existant.
+L'application possède le pool et le ferme après avoir éliminé le Service. `create()` initialise le schéma `collaboration` dans une base de données vide et ne vérifie qu'un schéma existant.
 
 ## Database Adapters personnalisés
 
-Un Adapter personnalisé convient généralement si :
+Un adaptateur personnalisé est généralement approprié dans les cas suivants:
 
-- l’application utilise déjà MySQL ou une autre base métier ;
-- les soumissions collaboratives doivent s’intégrer à des mécanismes de base propres à l’application ;
-- les exigences d’exploitation ou de conformité dépassent le périmètre des Adapters intégrés.
+- l’application utilise déjà MySQL ou une autre base métier
+- Les demandes de collaboration doivent utiliser des mécanismes de base de données que possède l'application
+- les exigences d’exploitation ou de conformité dépassent le périmètre des Adapters intégrés
 
 Implémentez `IDatabaseAdapter` et injectez-le dans le Service comme un Adapter intégré :
 
@@ -107,29 +109,29 @@ const database = new ApplicationCollaborationDatabase({ pool });
 const service = new UniverCollabService({ dbAdapter: database });
 ```
 
-Le Service ne dépend pas d’une base particulière, mais ne peut pas ajouter transactions, CAS ou déduplication à votre implémentation. L’Adapter doit réaliser le contrat complet avec les capacités de sa base. Les implémentations intégrées du [dépôt communautaire](https://github.com/dream-num/univer-collaboration-sdk-community) montrent le même contrat sur différentes bases et servent de référence.
+Le Service ne dépend pas d'une base de données spécifique, mais il ne peut pas ajouter de transactions, de CAS ou de déduplication à une implémentation personnalisée. L'Adaptateur doit mettre en œuvre le contrat complet en utilisant les capacités de sa base de données. Les implémentations intégrées dans le [dépôt communautaire](https://github.com/dream-num/univer-collaboration-sdk-community) appliquent le même contrat à différentes bases de données et servent de références.
 
 ## Stocker les données métier
 
-**Utilisez `metadata` pour les informations rattachées à un document ou à un changeset.** L’application peut définir ces champs à la création du document ou à la soumission du changeset. L’Adapter intégré les enregistre avec les données collaboratives. Voir [Métadonnées persistantes](/server/collaboration/middleware-and-events#persistent-metadata).
+**Utilisez `metadata` pour obtenir des informations jointes à un document ou à un ensemble de modifications.** L'application peut définir ces champs lorsqu'elle crée un document ou soumet un jeu de modifications, et les Adaptateurs intégrés les sauvegardent avec les données de collaboration. Voir [Middleware et événements](/server/collaboration/middleware-and-events#persistent-metadata).
 
-**Utilisez les Middleware ou les Events pour écrire dans des tables métier distinctes.** Pour consigner une tentative d’opération, écrivez dans une table d’audit depuis un Middleware. Pour mettre à jour une table après la réussite du commit, écoutez `changesetCommitted`. Par défaut, ces écritures ont lieu en dehors de la transaction collaborative. Un conflit de révision peut relancer le Middleware de commit. Prévoyez le cas d’une nouvelle tentative pour éviter les doublons. Les Events sont locaux au processus et leur livraison n’est pas garantie. Ils conviennent aux données que l’application peut compléter ou reconstruire ultérieurement.
+**Utilisez Middleware ou Events pour écrire pour séparer les tables d'affaires.** Pour vérifier une tentative d'opération, écrivez à une table d'audit dans Middleware. Pour mettre à jour une table commerciale après un commit réussi, écoutez pour `changesetCommitted`. Par défaut, ces écritures s'exécutent en dehors de la transaction de collaboration. Un conflit de révision peut provoquer une nouvelle exécution de commit-stade Middle Software, de sorte qu'une réessayer ne doit pas créer un enregistrement dupliqué. Les événements sont livrés dans le processus sur une base de meilleur effort. Utilisez-les pour les données que l'application peut reremplir ou reconstruire.
 
-**Utilisez un Adapter personnalisé si l’application a besoin de sa propre base et de son propre schéma, ou si les données métier et collaboratives doivent être écrites dans la même transaction.** Lors d’un appel au Service, l’application peut transmettre dans `customData` un identifiant d’opération métier, par exemple. La méthode de l’Adapter peut lire les champs nécessaires dans `ctx.customData` et choisir les tables à mettre à jour. Ainsi, `commitChangeset()` peut utiliser cet identifiant pour mettre à jour l’enregistrement métier dans la transaction qui enregistre le changeset.
+**Utilisez un adaptateur de base de données personnalisé lorsque l'application a besoin de sa propre base de données et de son propre schéma, ou lorsque les données d'affaires et de collaboration doivent être écrites dans une seule transaction.** Lorsque vous appelez le Service, l'application peut passer le contexte comme un ID d'opération d'entreprise dans `customData`. L'adaptateur peut alors lire les champs dont il a besoin de `ctx.customData` et décider quelles tables mettre à jour. Par exemple, `commitChangeset()` peut utiliser l'ID d'opération pour mettre à jour l'enregistrement d'entreprise correspondant dans la même transaction qui enregistre les changements.
 
-La portée de `customData` est limitée à l’appel en cours. Les Adapters intégrés ne persistent pas automatiquement ses champs et ne les utilisent pas pour écrire dans les tables métier.
+`customData` Adaptateurs intégrés ne persistent pas automatiquement ses champs, et ils ne les utilisent pas pour écrire aux tables d'affaires.
 
 ## Stockage des modules d’extension
 
-History, Thread Comment, Worktree et File définissent des interfaces Database Adapter indépendantes. Leurs Adapters peuvent partager une base ou utiliser des stockages distincts. Une seule implémentation personnalisée peut aussi fournir plusieurs interfaces Adapter et être injectée dans les Services correspondants.
+Les modules d'extension tels que History, Thread Comment, Worktree et File définissent chacun une interface d'adaptateur de base de données indépendante. Leurs adaptateurs peuvent partager une base de données ou utiliser un stockage séparé. Une seule implémentation personnalisée peut également fournir plusieurs interfaces d'adaptateur et être injecté dans les Services correspondants.
 
-Ces interfaces étant indépendantes, le SDK ne fournit pas par défaut de transactions intermodules. Même avec une base partagée, la stratégie de cohérence intermodules appartient à l’application.
+Comme ces interfaces Adapter sont indépendantes, le SDK ne fournit pas de transactions entre modules par défaut. Même lorsque plusieurs modules partagent une base de données, l'application possède la stratégie de cohérence entre modules.
 
 ## Choisir un Adapter
 
 | Adapter | Usage adapté | Contrainte principale |
 | --- | --- | --- |
-| Memory | Tests, exemples, développement temporaire | Données perdues à l’arrêt du processus |
+| Memory | Tests, exemples, développement temporaire | Les données sont perdues lorsque le processus se termine |
 | SQLite | Développement, tests, applications locales, petite échelle | Base monofichier dont l’application gère les réglages |
 | PostgreSQL | Déploiements multi-nœuds et bases PostgreSQL existantes | L’application gère le pool et l’exploitation de la base |
 | Personnalisé | Bases existantes ou intégration métier spécifique | L’application doit implémenter et vérifier le contrat complet |

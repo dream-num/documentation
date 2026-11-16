@@ -3,36 +3,36 @@ title: Licencia
 description: Collaboration SDK usa la licencia para decidir las conexiones de edición colaborativa, los dominios autorizados, los nodos de colaboración y los tipos de documento.
 ---
 
-`UniverCollabService` carga la licencia al construirse, y los Endpoints y Worktrees la comparten. Consulta [Licencia](/server/license#collaboration-sdk) para configurarla; sin licencia funciona con la versión gratuita. Si la licencia no supera la verificación, el constructor lanza un `CollabError` (`LICENSE_INVALID` o `LICENSE_POLICY_INVALID`) y el servicio se detiene en el arranque.
+`UniverCollabService` carga la Licencia durante la construcción, y Endpoints y Worktrees comparten esa instancia. Configure la Licencia como se describe en [Licencia](/server/license#collaboration-sdk); sin uno, el SDK se ejecuta en el nivel libre. Si la verificación falla, el constructor lanza un `CollabError` (`LICENSE_INVALID` o `LICENSE_POLICY_INVALID`), y el servicio no comienza.
 
 ## Qué decide la licencia [#limits]
 
 | Elemento | Dónde se comprueba | Al superar el límite |
 | --- | --- | --- |
-| Conexiones de edición colaborativa | Endpoint, al recibir envíos | Las ediciones de las conexiones nuevas se quedan en el navegador y se reintentan |
-| Dominios autorizados | Endpoint, al conectar y al recibir envíos | La sesión de colaboración del navegador pasa a sin conexión |
+| Conexiones de edición colaborativa | Endpoint, on receiving submissions | Las versiones de las nuevas conexiones permanecen en el navegador y se retiran |
+| Dominios autorizados | Endpoint, al conectarse y a las presentaciones | La sesión de colaboración del navegador pasa a sin conexión |
 | Nodos de colaboración | Endpoint | Los nodos que superan el límite se desconectan tras un periodo de gracia |
-| Tipos de documento | Service, al crear Units y al recibir ediciones | Se rechazan la creación y los envíos; los documentos existentes siguen visibles |
+| Tipos de documento | Servicio, creación de una unidad y presentación de edición | Se rechazan la creación y los envíos; los documentos existentes siguen visibles |
 
 ### Conexiones de edición colaborativa [#editing-connections]
 
-El cupo cuenta las conexiones que están editando: una conexión de colaboración ocupa una plaza con su primer envío correcto y la libera al cerrarse o 120 segundos después de su último envío correcto. Las conexiones que abren un documento para verlo pueden unirse en cualquier momento. Las ediciones dentro de un Worktree comparten las plazas con el tronco.
+La asignación sólo cuenta con conexiones que están editando activamente. Una conexión de colaboración ocupa una ranura después de su primera presentación exitosa y la libera cuando la conexión cierra, o 120 segundos después de su última presentación exitosa. Conexiones que abren un documento sólo para la visualización se pueden unir en cualquier momento. Edita dentro de un Worktree contamos con la misma ranura que edita en el maletero.
 
-Cuando todas las plazas están ocupadas, las ediciones de una conexión nueva se quedan en el navegador y Web SDK las reenvía con espera progresiva hasta que se libera una plaza; las conexiones que ya tienen plaza siguen editando. En el navegador, `CollaborationChangesetResend` informa de estos reenvíos con `reason: 'license_editing_connections_exceeded'`.
+Cuando cada ranura está ocupada, las ediciones de una nueva conexión permanecen en el navegador, y Web SDK las reenvia con backoff hasta que una ranura se pone disponible. Conexiones que ya tienen una ranura continuar editando. El `CollaborationChangesetResend` del navegador informa estos reenviamientos con `reason: 'license_editing_connections_exceeded'`.
 
 ### Dominios autorizados [#domains]
 
-Cuando Web SDK abre una conexión de colaboración o envía ediciones, el Endpoint compara el dominio de la página con los dominios autorizados de la licencia. Un dominio fuera de ellos recibe `403`; la sesión de colaboración del navegador pasa a sin conexión y muestra el motivo, y vuelve a intentarlo cuando el usuario se reconecta o abre otro documento.
+Cuando Web SDK abre una conexión de colaboración o envía ediciones, el Endpoint compara el dominio de la página con los dominios autorizados en la Licencia. Un dominio fuera de esa lista recibe `403`; la sesión de colaboración del navegador entonces se desconecta y muestra la razón. La sesión se vuelve cuando el usuario vuelve a conectar o abre otro documento.
 
 ### Nodos de colaboración [#nodes]
 
-**Licencia de un solo nodo** (incluida la versión gratuita): ejecuta un nodo de colaboración. Pasar `pubSub` al Endpoint hace que el constructor lance `LICENSE_POLICY_INVALID`.
+Un **Licencia de un solo nodo**, incluyendo el nivel libre, ejecuta un nodo de colaboración. Pasando `pubSub` al Endpoint hace que el constructor tire `LICENSE_POLICY_INVALID`.
 
-**Licencia multinodo**: fija un límite de nodos. Cuando se ejecutan más nodos que el límite, los más recientes entran en un periodo de gracia con avisos progresivos y después se desconectan: las conexiones nuevas reciben `503` y las existentes se cierran. Los nodos dentro del límite siguen dando servicio. Si el número vuelve a estar dentro del límite durante el periodo de gracia, los nodos sobrantes vuelven a la normalidad; un nodo ya desconectado se cuenta de nuevo como nodo nuevo cuando se reinicia su proceso. Consulta [Despliegue](/server/deployment#varios-nodos-de-colaboración) para configuraciones multinodo.
+A **Licencia multinodo** define un límite de nodo. Cuando el número de nodos que se ejecutan excede ese límite, los nodos más recientes entran en un período de gracia con advertencias crecientes y luego salen fuera de línea. `503`, y las conexiones existentes cierran. Nodos dentro del límite continúan sirviendo el tráfico. Si el recuento del nodo cae dentro del límite durante el período de gracia, los nodos extra vuelven a la normalidad. Un nodo que ha ido fuera de línea se cuenta como un nuevo nodo después de que su proceso se reinicia. [Despliegue](/server/deployment#varios-nodos-de-colaboración).
 
 ### Tipos de documento [#unit-types]
 
-La licencia indica qué tipos de documento admiten colaboración. Crear una Unit de otro tipo lanza `LICENSE_UNIT_TYPE_REJECTED` y las ediciones enviadas se rechazan; en el navegador, `CollaborationConflict` informa `reason` `license_unit_type_rejected`. Los documentos existentes se pueden seguir abriendo y viendo.
+La Licencia enumera los tipos de documentos disponibles para la colaboración. Crear una Unidad de cualquier otro tipo lanza `LICENSE_UNIT_TYPE_REJECTED`, y las ediciones presentadas son rechazadas. `CollaborationConflict` en el navegador informa `reason` como `license_unit_type_rejected`. Los documentos existentes siguen siendo visibles.
 
 ## Observar el estado [#observe]
 
@@ -59,4 +59,4 @@ endpoint.license.on('editingConnectionsExceeded', ({ memberID, userID, unitID, u
 endpoint.license.on('nodesStatusChanged', ({ status, previousStatus, limit, reason }) => {}) // cambió el estado de este nodo; reason solo tiene valor al desconectarse
 ```
 
-`nodesStatusChanged` se emite una vez cada vez que cambia el estado de este nodo. Cuando `status` es `exceeded-offline`, el nodo ha dejado de aceptar conexiones; retíralo del balanceador de carga o emite una alerta.
+`nodesStatusChanged` dispara una vez por cada cambio de estado de este nodo. Cuando `status` se convierte en `exceeded-offline`, el nodo ha dejado de aceptar conexiones; eliminarlo del balanceador de carga o levantar una alerta.

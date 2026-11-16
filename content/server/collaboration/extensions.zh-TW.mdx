@@ -3,9 +3,9 @@ title: 協同擴充模組
 description: 瞭解 History、Thread Comment、Worktree、File 和服務端 Office 檔案轉換如何擴充核心協同。
 ---
 
-History、Thread Comment、File 和 Worktree 是可按需啟用的獨立協同擴充模組。它們可重用 Transport、身分系統及實體資料庫，但各自保有 Service、Middleware、Event、Database Adapter 與生命週期邊界。
+History、Thread Comment、File 與 Worktree 是可選的協同擴充套件模組，可以在不修改核心的前提下擴充套件協同能力。每個模組都提供自己的 Service、Middleware、Event、Database Adapter 和生命週期邊界，應用可以只啟用產品需要的模組。這些模組仍然可以共用 Transport、身分系統和同一個物理資料庫。
 
-服務端 Office 檔案轉換組合 File 與 Collaboration Service：它在 Office 檔案與協同 Unit 之間轉換，擁有自己的 Service、Endpoint 與 Middleware。
+伺服器端 Office Exchange 建立在 File 與 Collaboration Service 之上。它負責在 Office 檔案和協同 Unit 之間相互轉換，並擁有自己的 Service、Endpoint 與 Middleware。
 
 ## 模組關係
 
@@ -13,17 +13,17 @@ History、Thread Comment、File 和 Worktree 是可按需啟用的獨立協同�
 
 | 擴充模組 | 與核心協同的關係 |
 | --- | --- |
-| History | 觀察核心 Events，建立衍生歷史索引 |
-| Thread Comment | 重用核心 Unit Room；留言錨點屬於核心內容 |
-| File | 儲存 Unit 引用的圖片、附件與匯入匯出檔案，Unit 資料只記錄檔案 ID |
+| History | 監聽 Core Event，生成一份派生的歷史索引 |
+| Thread Comment | 複用 Core Unit Room；評論 anchor 仍屬於 Core 內容 |
+| File | 儲存 Unit 引用的圖片、附件和匯入匯出檔案，Unit 資料只記錄檔案 ID |
 | Office Exchange | 透過核心 Service 建立或讀取 Unit，透過 File 讀寫檔案 |
-| Worktree | 重用核心 Unit 與 OT 能力，將草稿合併到主幹 |
+| Worktree | 複用 Core 的 Unit 與 OT 能力，把 draft 合入 trunk |
 
-History、Thread Comment、File 和 Worktree 各自設定 Middleware、Events 與 Database Adapter。
+History、Thread Comment、File 與 Worktree 各自配置自己的 Middleware、Event 和 Database Adapter。
 
 ## 版本歷史
 
-History 將 Unit 建立及已確認變更集分組為使用者可見的歷史項目。它是衍生索引：Unit 內容的權威來源仍是核心 Collaboration Service 中已確認的變更集。
+History 將 Unit 建立和 confirmed changeset 整理為使用者可見的歷史條目。歷史索引是派生資料：Unit 內容的權威來源始終是 Core Collaboration Service 中已確認的 changeset。
 
 ```ts
 const historyService = new UniverHistoryService({
@@ -35,13 +35,13 @@ const historyService = new UniverHistoryService({
 transport.register(new UniverHistoryEndpoint(historyService));
 ```
 
-建構 History Service 時即訂閱核心 Service 的 `unitCreated` 和 `changesetCommitted` Events 並更新索引。`dispose()` 會解除這些訂閱。預設策略按時間視窗與特殊 mutation 分組，而非每個變更集建立一筆歷史。
+建構函式會訂閱 Core Service 的 `unitCreated` 和 `changesetCommitted` Event 並據此更新索引，`dispose()` 負責解除這些訂閱。預設策略按時間視窗和特殊 mutation 歸組，不會為每條 changeset 都生成歷史條目。
 
-History 提供 `getHistoryList`、`listHistoryCreators` 與 `getHistoryChangesets` 讀取 Middleware。索引由 Service 在內部維護。`userProvider` 只補充名稱、頭像等顯示資料，不負責驗證或授權。Event Listener 失敗不會回滾已確認的核心變更集，因此應始終將 History 視為可重建的衍生資料。
+History 提供 `getHistoryList`、`listHistoryCreators` 和 `getHistoryChangesets` 三個讀取 Middleware，索引工作在 Service 內部完成。`userProvider` 只補全姓名、頭像這類展示資訊，既不參與認證，也不參與授權。Event Listener 出錯不會回滾已經確認的 Core changeset，因此 History 應視為可以隨時重建的派生資料。
 
 ## 討論串留言
 
-Comment Service 管理 Sheets 和 Docs 的留言本文、回覆、編輯、刪除及已解決狀態：
+Comment Service 管理 Sheet 和 Doc 的評論正文、回覆、編輯、刪除和 solved 狀態：
 
 ```ts
 const commentService = new UniverCommentService({
@@ -57,13 +57,13 @@ transport.register(
 );
 ```
 
-留言本文屬於 Comment Adapter。隨 Sheet 或 Doc 內容移動的錨點仍屬於核心快照與變更集。Comment Endpoint 可透過主 Collaboration Endpoint 的 Unit Room 發布 `comment_update`，但即時訊息不是權威留言狀態；用戶端可重新取得留言清單以還原。
+評論正文屬於 Comment Adapter，隨 Sheet 或 Doc 內容移動的 anchor 仍然屬於 Core snapshot 和 changeset。Comment Endpoint 可以透過主 Collaboration Endpoint 的 Unit Room 釋出 `comment_update`，但這條即時訊息不是評論狀態的權威來源；Client 錯過該訊息後重新取得評論列表即可恢復。
 
-Comment Service 提供新增、清單、回覆、解決／重新開啟、編輯、刪除的 Middleware，以及 `commentCommitted` Event。它不繼承核心 Service 的讀取或編輯策略。
+Comment Service 提供 add、list、reply、solve/reopen、edit 和 delete 的 Middleware，併釋出一個 `commentCommitted` Event。Comment Service 不繼承 Core Service 的讀取策略或編輯策略。
 
 ## 檔案儲存
 
-File 儲存 Univer 用戶端上傳的二進位檔案：插入 Unit 的圖片和附件，以及匯入匯出的來源檔與結果檔。Unit 資料只記錄檔案 ID，載入時用戶端用 ID 換取下載網址，snapshot 與 changeset 保持精簡。
+File 儲存 Univer 客戶端上傳的二進位制檔案，包括插入 Unit 的圖片和附件，以及匯入匯出的原始檔和結果檔案。Unit 資料只記錄檔案 ID，客戶端在載入 Unit 時用該 ID 換取下載地址，因此 snapshot 和 changeset 保持較小的體積。
 
 ```ts
 const fileService = new UniverFileService({
@@ -74,11 +74,11 @@ const fileService = new UniverFileService({
 transport.register(new UniverFileEndpoint(fileService));
 ```
 
-中繼資料與內容是兩個獨立契約：`IFileDatabaseAdapter` 儲存檔案記錄，`IFileBlobStore` 儲存內容。匯入匯出的暫存檔只有上傳者可以存取，並由 Service 定期清理；Unit 的圖片與附件透過 `upload`、`signUrl`、`download` Middleware 按 Unit 權限控制。
+後設資料和內容是兩套獨立的合同：`IFileDatabaseAdapter` 儲存檔案記錄，`IFileBlobStore` 儲存內容。匯入匯出的臨時檔案只有上傳者本人可以訪問，由 Service 定期清理。Unit 內的圖片和附件受 Unit 權限控制，由 `upload`、`signUrl`、`download` 三個 Middleware 執行校驗。
 
 ## 服務端 Office 檔案轉換
 
-Exchange Service 把 Office 檔案匯入為協同 Unit，並把 Unit 匯出為檔案。它依賴 `@univerjs-pro/exchange-node` 轉換，透過 Collaboration Service 建立和讀取 Unit，透過 File Service 儲存來源檔與結果檔：
+Exchange Service 將 Office 檔案匯入為協同 Unit，也將 Unit 匯出為檔案。轉換由 `@univerjs-pro/exchange-node` 完成，Unit 的建立和讀取透過 Collaboration Service 進行，原始檔和結果檔案透過 File Service 儲存：
 
 ```ts
 const exchangeService = new UniverExchangeService({ collabService, fileService });
@@ -86,7 +86,7 @@ const exchangeService = new UniverExchangeService({ collabService, fileService }
 transport.register(new UniverExchangeEndpoint(exchangeService));
 ```
 
-匯入與匯出都是 task：用戶端建立 task 後輪詢結果。匯入經過 Core Service 的 `createUnit` Middleware，匯出經過 `readUnitData` Middleware；Exchange 自己的 `import` 與 `export` Middleware 用於限流、配額與稽核。
+匯入和匯出都是 task：客戶端先建立 task，再輪詢結果。匯入經過 Core Service 的 `createUnit` Middleware，匯出經過 `readUnitData`；Exchange 自己的 `import` 和 `export` Middleware 負責限流、配額和審計。
 
 | Unit | 匯入 | 匯出 |
 | --- | --- | --- |
@@ -96,11 +96,11 @@ transport.register(new UniverExchangeEndpoint(exchangeService));
 | Base | xls, xlsx, csv, tsv | xlsx, csv |
 | PDF | pdf | pdf |
 
-task 保存在 Service 實例內，匯入匯出節點部署一個即可，並把 Exchange 的三條路由都發到這個節點。
+task 存放在 Service 例項中，因此匯入匯出節點只需部署一個，並將 Exchange 的三條路由都指向該節點。
 
 ## Worktree 草稿與合併
 
-Worktree 為一個或多個 Unit 增加隔離草稿、凍結、合併評估與逐 Unit 合併：
+Worktree 為一個或多個 Unit 提供隔離的 draft、凍結、合入評估和逐 Unit 合併：
 
 ```text
 create → draft → ready → merging → merged
@@ -120,15 +120,15 @@ const worktreeService = new UniverCollabWorktreeService({
 });
 ```
 
-Worktree 以 `(worktreeID, unitID)` 儲存獨立草稿變更集，同時重用核心 Service 的 Unit、OT 與提交引擎。只有 `draft` 狀態接受後續編輯。`markReady()` 凍結目前草稿修訂版本，`mergeWorktree()` 將 Unit 逐一合併到主幹。
+Worktree 按 `(worktreeID, unitID)` 儲存自己的 draft changeset，同時複用 Core Service 的 Unit、OT 和提交引擎。只有 `draft` 狀態可以繼續編輯。`markReady()` 凍結當前的 draft revision，`mergeWorktree()` 將 Unit 逐個合入 trunk。
 
-Worktree Service 有獨立的生命週期、讀取、草稿 submit/apply/commit Middleware，以及建立、狀態變更、合併結果、草稿變更集提交的 Events。最終寫入主幹仍會通過核心 Service 自身的 Middleware。
+Worktree Service 擁有獨立的生命週期、讀取 Middleware 和 draft submit/apply/commit Middleware，以及建立、狀態變化、合入結果和 draft changeset 提交這幾類 Event。最終寫入 trunk 時，仍然經過 Core Service 自己的 Middleware。
 
-多 Unit 合併並非跨 Unit 原子操作。應用應顯示每個 Unit 的合併結果。
+多個 Unit 一起合併時，跨 Unit 不具備原子性。應用應展示每個 Unit 的合入結果。
 
 ## 獨立擴充點
 
-啟用擴充模組時，分別評估每個邊界：
+啟用擴充套件模組時，每一項邊界都需要單獨評估：
 
 | 邊界 | 核心 | History | Comment | File | Worktree |
 | --- | --- | --- | --- | --- | --- |
@@ -137,9 +137,9 @@ Worktree Service 有獨立的生命週期、讀取、草稿 submit/apply/commit 
 | Event | 核心生命週期 | 觀察核心 Events | `commentCommitted` | — | Worktree 生命週期／提交 |
 | Database Adapter | 核心 Adapter | History Adapter | Comment Adapter | File Adapter 與 Blob Store | Worktree Adapter |
 
-這些 Adapter 可使用同一個資料庫，但仍是具有獨立契約的不同物件。Service 和 Adapter 也應分別釋放。
+Office Exchange 複用 Core 與 File 的儲存。在 Exchange 自己的 `import`、`export` Middleware 執行之後，匯入匯出仍然經過 Core 與 File 的 Middleware。
 
-Office Exchange 重用 Core 與 File 的儲存：它自己的 `import`、`export` Middleware 執行後，匯入匯出仍進入 Core 與 File 的 Middleware。
+這些 Adapter 可以共用同一個資料庫，但仍然各自是獨立的物件，擁有獨立的合同。Service 和 Adapter 也應分別釋放。
 
 ## 選擇能力
 
@@ -151,10 +151,10 @@ Office Exchange 重用 Core 與 File 的儲存：它自己的 `import`、`export
 | 服務端 Office 匯入與匯出 | Exchange Service、Endpoint + File | `pnpm example:exchange` |
 | 隔離草稿、審閱與合併 | Worktree Service、Endpoint、Client、Adapter | `pnpm example:worktree` |
 
-完整執行命令與頁面網址請參閱[範例索引](/server/collaboration/examples)。
+完整的執行命令和頁面地址見[範例索引](/server/collaboration/examples)。
 
 ## 連接 Web SDK 歷史介面 [#web-history]
 
-將 History Endpoint 與協同端點一起掛載。Web SDK 的 `historyServerUrl` 是 `/{unitId}/list`、`/{unitId}/creators` 與 `/{unitId}/cs` 的共同前綴，預設為 `/universer-api/history`。若使用其他前綴，請為宿主 History 外掛與品類 History UI 外掛設定相同位址。
+將 History Endpoint 與協同端點一同掛載。Web SDK 的 `historyServerUrl` 是 `/{unitId}/list`、`/{unitId}/creators` 和 `/{unitId}/cs` 的共同字首，預設值為 `/universer-api/history`。如果使用其他字首，宿主 History 外掛與品類 History UI 外掛必須配置相同的地址。
 
-還原版本會透過協同 mutation 提交，不是呼叫獨立的歷史還原 REST 介面。請保留協同載入、提交與授權設定。`createUnitComparisonEngine()` 對兩份完整快照進行唯讀比較，不需要執行歷史服務，也不會儲存或還原版本。
+恢復版本透過協同 mutation 路徑完成，沒有單獨的歷史恢復 REST 介面。協同的載入、提交與授權配置必須保持可用。使用 `createUnitComparisonEngine()` 比較兩份完整快照是另一項獨立操作，該操作只讀，不需要歷史服務執行，也不負責儲存或恢復版本。

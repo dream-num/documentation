@@ -3,13 +3,13 @@ title: Web Workers
 icon: CircuitBoard
 ---
 
-以下示例展示了 Univer 中使用 Worker[^web-worker] 的基本用法。
+以下範例說明如何在 Univer 中為公式計算配置 Worker[^web-worker]。
 
-在 Sheets 中，Worker 常用於承載公式計算等計算密集型任務。將公式計算放到 Worker 進程中執行，可以減少主執行緒壓力，避免工作簿公式較多時影響頁面渲染和互動。
+在 Sheets 中，Worker 通常承擔公式計算等計算密集型任務。把這類工作放到 Worker 程序中執行，可以減輕主執行緒的負擔；工作簿包含大量公式時，頁面渲染和互動不會受到影響。
 
 ## 外掛模式
 
-以[安裝與基本使用](/guides/sheets/getting-started/installation)中的外掛模式為基礎，保留主執行緒的渲染與 UI 外掛。將既有的三個計算相關外掛改為以下設定，並在建立活頁簿前加入主執行緒 RPC 外掛。
+本節以[安裝和基本使用](/guides/sheets/getting-started/installation)中的外掛模式為基礎。渲染和 UI 外掛保留在主執行緒。請將下面三個計算外掛的註冊替換為範例中的寫法，並在建立工作簿之前註冊主執行緒 RPC 外掛。
 
 `UniverRPCMainThreadPlugin`
 
@@ -37,7 +37,7 @@ univer.registerPlugin(UniverSheetsPlugin, { notExecuteFormula: true })
 univer.registerPlugin(UniverSheetsFormulaPlugin, { notExecuteFormula: true })
 ```
 
-Worker 只註冊以下資料與計算外掛，不註冊 UI 或渲染外掛。主執行緒的 `notExecuteFormula: true` 表示將計算交給 Worker。
+Worker 中只包含下面列出的資料和計算外掛，不應註冊 UI 或渲染外掛。在主執行緒中，`notExecuteFormula: true` 表示把公式計算交給 Worker。
 
 `UniverSheetsPlugin`
 
@@ -59,9 +59,9 @@ univer.registerPlugin(UniverRPCWorkerThreadPlugin)
 univer.registerPlugin(UniverRemoteSheetsFormulaPlugin)
 ```
 
-使用篩選功能時，兩端都須註冊 `UniverSheetsFilterPlugin`，讓 `SUBTOTAL` 等公式感知篩選後的列：主執行緒從 `@univerjs/sheets-filter` 匯入，Worker 從 `@univerjs/sheets-filter/worker` 匯入。`UniverSheetsFilterUIPlugin` 只在主執行緒註冊。
+使用篩選功能時，兩個執行緒都需要註冊 `UniverSheetsFilterPlugin`。缺少該外掛時，`SUBTOTAL` 等公式無法判斷哪些行已被篩選隱藏。主執行緒從 `@univerjs/sheets-filter` 匯入該外掛，Worker 從 `@univerjs/sheets-filter/worker` 匯入。`UniverSheetsFilterUIPlugin` 保留在主執行緒。
 
-在 Worker 中加入其他計算外掛時使用以下入口；主執行緒使用對應套件的根入口。所有 SDK 套件須保持版本一致。
+Worker 中如需新增其他計算外掛，請使用下面列出的入口；主執行緒從對應包的根入口匯入。所有 SDK 包的版本需保持一致。
 
 ```typescript title="worker.ts"
 import { UniverProFormulaEnginePlugin } from '@univerjs-pro/engine-formula/worker'
@@ -71,7 +71,7 @@ import { UniverSheetsSlicerPlugin } from '@univerjs-pro/sheets-slicer/worker'
 import { UniverSheetsTablePlugin } from '@univerjs/sheets-table/worker'
 ```
 
-使用樞紐分析表時，兩端都將 `UniverFormulaEnginePlugin` 替換為 `UniverProFormulaEnginePlugin`，並註冊 `UniverLicensePlugin` 和 `UniverSheetsPivotTablePlugin`。Pro 公式引擎與樞紐分析表外掛在主執行緒設定 `notExecuteFormula: true`，在 Worker 中設定 `false`。兩端都傳入授權，樞紐分析表 UI 留在主執行緒；自訂公式實作也須在兩端的公式引擎中註冊。
+使用透視表需要不同的配置。兩個執行緒都要把 `UniverFormulaEnginePlugin` 替換為 `UniverProFormulaEnginePlugin`，並同時註冊 `UniverLicensePlugin` 和 `UniverSheetsPivotTablePlugin`。主執行緒的 Pro 公式引擎和透視表外掛設 `notExecuteFormula: true`，Worker 中設 `false`。兩個執行環境都需要傳入許可證。透視表 UI 保留在主執行緒，自定義公式的實現也需要在兩個公式引擎中註冊。
 
 `UniverLicensePlugin`
 
@@ -101,7 +101,7 @@ import { UniverSheetsTablePlugin } from '@univerjs/sheets-table/worker'
 
 ### 示例：sheets-core-with-worker
 
-此處示例引入了 sheets-filter 的預設包，是因為公式 `SUBTOTAL` 計算時受到 sheets-filter 篩選隱藏行的影響。當公式計算在 Worker 中執行時，sheets-filter 也需要在 Worker 中執行。
+本範例引入 sheets-filter 預設套件，原因是 sheets-filter 會隱藏行，而隱藏行會影響 `SUBTOTAL` 的計算。公式計算在 Worker 中執行時，sheets-filter 也需要在 Worker 中執行。
 
 ```typescript title="main.ts"
 import { UniverSheetsCorePreset } from '@univerjs/preset-sheets-core'

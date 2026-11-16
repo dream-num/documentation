@@ -3,7 +3,7 @@ title: モジュールの境界と関係
 description: Collaboration Client、Transport、Endpoint、Service、Database Adapter の役割、データの流れ、組み立て方を理解します。
 ---
 
-Univer の共同編集はブラウザー Client とサーバー側モジュールを組み合わせます。各モジュールは 1 種類の責任を持ちます。アプリケーションは OT[^operational-transformation]、プロトコル、永続化の内部実装に触れず、公開インターフェースで構成します。
+Univerコラボレーションは、ブラウザクライアントとサーバーサイドモジュールのセットで構成されています。各モジュールは、責任の1つのクラスを所有しています。アプリケーションは、パブリックインターフェイスを介してモジュールを構成しているため、そのコードはOT[^operational-transformation]実装、プロトコル、または永続レイヤーの内部に依存しません。
 
 ## 全体のモジュール図
 
@@ -11,21 +11,21 @@ Univer の共同編集はブラウザー Client とサーバー側モジュー�
 
 ## Collaboration Client
 
-ブラウザーの Collaboration Client は Web SDK と並行して動作し、次を担当します。
+ブラウザコラボレーションクライアントは、Web SDKと並行して実行し、クライアントのコラボレーションの側面を処理します。
 
-- Unit のスナップショットと不足する確定変更セットを要求；
-- 使い捨て Session Ticket を取得して WebSocket を開く；
-- Unit Room に参加して Presence を交換；
-- ローカル mutation を変更セットとして送信；
-- ACK と配信を受信し、再接続後に不足分を補完。
+- ユニットのスナップショットと、それが欠落している確認されたチェンジセットを要求します。
+- WebSocket接続を開くには、ワンタイムセッションチケットを使用します。
+- ユニットルームと交流のプレゼンスを他のメンバーと結合します。
+- ローカルのミューテーションをサーバーに変更として送信します。
+- ACKsや放送を受信し、再接続後、見逃した変更が発生した。
 
-Client はユーザーの信頼性を判断せず、データの正本でもありません。サーバーが適切な Middleware で本人確認と認可を実施します。
+クライアントは、ユーザが信頼されるかどうかを判断しません。権限のあるデータソースではありません。その決定は、対応するミドルウェアのアイデンティティと認可を強化するサーバーに属します。
 
 ## Node Transport
 
-`@univerjs-pro/collaboration-transport-node` は Node.js の HTTP/WebSocket 入口です。ホスト HTTP サーバーからリクエストと WebSocket アップグレードを受け取り、入口の Middleware を実行し、Endpoint に通信を振り分けます。
+`@univerjs-pro/collaboration-transport-node`は、HTTPおよびWebSocketトラフィックのNode.jsエントリーポイントです。 リクエストとWebSocktがホストHTTPサーバーからアップグレードされ、アプリケーションによって登録されたエントリーミドルウェアを実行し、エンドポイントへのトラフィックをルート化します。
 
-Transport は OT、Unit データ、ACL モデルを理解しません。主な構成メソッドは 3 つです。
+トランスポートは、OT、ユニットデータ、またはACLモデルを理解していません。アセンブリは3つの方法を使用します。
 
 ```ts
 transport.use(httpMiddleware);
@@ -33,37 +33,37 @@ transport.useUpgrade(upgradeMiddleware);
 transport.register(endpoint);
 ```
 
-- `use()` は通常 HTTP に参加し、`userID`、`customData`、ログ、追跡を設定できます。
-- `useUpgrade()` は WebSocket ハンドシェイクに参加し、接続前に拒否できます。
-- `register()` はプロトコル Endpoint を登録し、そのライフサイクルを Transport の管理下に置きます。
+- `use()` は通常の HTTP リクエストを扱い、`userID`、`customData`, ログ、またはトレースを設定できます。
+- `useUpgrade()`はWebSocketハンドシェイクを扱い、その前に接続を拒否することができます。
+- `register()`は、輸送をライフサイクルし、管理するプロトコルエンドポイントを登録します。
 
 ## Collaboration Endpoint
 
-`@univerjs-pro/collaboration-endpoint` は Univer Collaboration Client のプロトコルを実装し、次を担当します。
+`@univerjs-pro/collaboration-endpoint`は、Univerコラボレーションクライアントが使用するプロトコルを実装し、次の機能を所有しています。
 
 | 機能 | Endpoint の役割 |
 | --- | --- |
-| 内容の読み込み | Unit のスナップショット、ブロック、不足する確定変更セットを Client に提供 |
+| 内容の読み込み | クライアントが欠けている確認された変更とともに、ユニットのスナップショットとブロックを返します。 |
 | 変更送信 | 変更セットを受け取り、ACK を返し、確定変更を Room に配信 |
-| Session 接続 | 使い捨て Session Ticket を発行し WebSocket Session を確立・維持 |
+| Session 接続 | ワンタイムセッションチケットを発行し、WebSocketセッションの確立と維持 |
 | Room の共同編集 | JOIN、LEAVE、メンバー状態、Presence を処理 |
 | Unit のライフサイクル | 削除・復元リクエストを Service 呼び出しに対応付け |
-| 複数ノード | 任意の pub/sub アダプターと共有チケットストアを通じて Room、Presence、配信を他ノードへ中継 |
+| 複数ノード | リレールーム、プレゼンス、およびオプションのパブ/サブアダプタと共有チケットストアを通じてノードを横断する放送 |
 
-Endpoint は OT やデータ保存を直接行いません。Service から正本の結果を得て、Client プロトコルに変換します。ドキュメント作成などの製品操作はアプリケーション API から Service を呼びます。
+Endpoint は OT を実行せず、コラボレーションデータ自体を格納しません。これにより、クライアントプロトコルに戻ったサービスやマップから権限のある結果が得られます。ドキュメントを作成するなどの製品操作は、サービスを呼び出すアプリケーション API に帰属します。
 
 ## Collaboration Service
 
-`@univerjs-pro/collaboration-service` はネットワークに依存しない Sheet、Doc、Slide、Board、Base、PDF の共同編集コアです。
+`@univerjs-pro/collaboration-service`はコラボレーションコアであり、ネットワークに依存しません。シート、ドキュメント、スライド、ボード、ベース、PDFをカバーしています。
 
-- Unit の復元データと確定変更セットを読む；
-- Unit Data やスナップショットから Unit を作成；
-- 変更セットを送信し OT を実行して連続するリビジョン[^collaboration-revision]を進める；
-- `(unitID, sid, reqId)` で重複送信を識別；
-- Unit を論理削除、復元、完全削除；
-- Service Middleware を実行し確定後に Events を発行。
+- ユニットの回復データを読み、チェンジセットを確認しました。
+- ユニットデータやスナップショットからユニットを作成します。
+- 変更セットを提出すると、OTを実行し、継続的なリビジョン[^collaboration-revision]を進歩させます。
+- `(unitID, sid, reqId)`で重複した投稿を識別します。
+- ソフト削除、回復、または永久にユニットを削除します。
+- サービスミドルウェアを実行し、確認後にイベントを発します。
 
-HTTP、WebSocket、ユーザー、ロール、ACL、階層、ファイル管理は提供しません。Endpoint はこれを使ってブラウザープロトコルを実装します。業務 API やバックグラウンドタスクから公開 API を直接呼ぶこともできます。
+本サービスには、HTTPまたはWebSocketレイヤーがなく、ユーザー、ロール、ACL、階層、ファイル管理については知りません。エンドポイントは、サービスの上にブラウザプロトコルを構築します。アプリケーションは、ビジネスAPIやバックグラウンドタスクから直接サービスパブリックAPIを呼び出すこともできます。
 
 ### 基本 API
 
@@ -81,28 +81,28 @@ Database Adapter は Service とストレージ間の契約で、次を保証し
 
 - 初期スナップショットと依存データのアトミックな作成；
 - リビジョンの比較交換（CAS）；
-- 変更セット送信の冪等性；
-- 全依存データの存在後にのみスナップショットを可視化；
+- 意図的なチェンジセットの提出;
+- すべての依存関係が存在する後だけ可視性をスナップショットします。
 - Unit ライフサイクルの一括操作を全件成功か全件未実行にする。
 
-SDK は Memory、SQLite、PostgreSQL 実装を提供します。他の DB は同じ契約を実装します。[データベースアダプター](/server/collaboration/database-adapters)を参照してください。
+SDKは、メモリ、SQLite、PostgreSQLの実装を提供しています。異なるデータベースを必要とするアプリケーションは、同じ契約を実行します。 [データベースのアダプター](/server/collaboration/database-adapters)を参照してください。
 
 ## 4 つの基本概念
 
 | 概念 | 意味 |
 | --- | --- |
-| Unit | 一意の `unitID` と型で識別する、独立して読み込み・共同編集できる Univer 内容 |
-| Snapshot | あるリビジョンの永続化された Unit 内容。変更可能なライブオブジェクトではない |
-| Changeset | 基準リビジョンと冪等性識別子を持つ mutation の送信集合 |
-| Revision | 確定 Unit 状態の連続バージョン番号。初期値は `1` |
+| Unit | 独自の`unitID`とタイプで、Univerコンテンツを独立してロード可能でコラボレーション |
+| Snapshot | 単位のコンテンツは、ライブミュータブルオブジェクトではなく、リビジョンで主張しました |
+| Changeset | 一緒に提出された突然変異のバッチ, ベースリビジョンと出欠のためのアイデンティティ |
+| Revision | `1`で始まる確認された単位の状態の連続的な版数 |
 
-動作中の内容は Facade API または Command で変更します。スナップショットオブジェクトの書き換えは Client や Service のライブ Unit を更新しません。
+コンテンツを実行するすべての変更は、ファサード API または Commands で行われます。スナップショットオブジェクトのミュートは、クライアントまたはサービス内のライブユニットを更新しません。
 
 ## Unit の読み込み
 
 <Mermaid chart={"sequenceDiagram\n    participant Client\n    participant Transport\n    participant Endpoint\n    participant Service\n    participant Adapter\n\n    Client->>Transport: HTTP で Unit を読み込み\n    Transport->>Endpoint: 認証済みリクエスト Context\n    Endpoint->>Service: getUnitLoadData()\n    Service->>Adapter: スナップショット + 変更セット\n    Adapter-->>Service: 正本データ\n    Service-->>Endpoint: Unit 読み込みデータ\n    Endpoint-->>Client: プロトコルレスポンス"} />
 
-Transport Middleware で設定した `userID/customData` は現在の HTTP リクエストと共に Service Middleware に入ります。読み取り可否はアプリケーションのポリシーが決め、直接の HTTP 読み取りに Room 参加は必須ではありません。
+`userID/customData` は、Transport Middleware が、現在の HTTP リクエストを Service Middleware に転送することで確立しました。このアプリケーションは、読み取りが許可されているかどうかを決定します。クライアントは、プレーン HTTP を読んだ前に、Room に参加する必要はありません。
 
 ## 編集の送信
 
@@ -118,7 +118,7 @@ Facade / Command
   → ACK / Room への配信
 ```
 
-Database Adapter の確定リビジョンが正本です。ACK と配信はオンラインクライアントを低遅延で同期します。受信を逃したクライアントは既知のリビジョンから確定変更セットを取得できます。
+データベースアダプタで確認されたリビジョンは、権威ある状態です。 ACKsと放送は、オンラインクライアントが低レイテンシで同期を維持します。 メッセージが見逃すクライアントは、すでに知っているリビジョンを使用して欠けている確認されたリチェンジを手に入れることができます。
 
 ## 最小のサーバー構成
 
@@ -146,11 +146,11 @@ transport.attach(server);
 server.listen(3010);
 ```
 
-固定ユーザーと Memory Adapter は構成の実演用です。アプリケーションは Middleware で実際の Context を設定し、データ要件に合う Adapter を選びます。
+ハードドライブのユーザーとメモリアダプタは、モジュールアセンブリのみを実証します。 実際のアプリケーションは、ミドルウェアを介してコンテキストを確立し、データ要件に合ったアダプタを選択します。
 
 ### アプリケーション API で Unit を作成
 
-独自の HTTP/RPC エンドポイントを定義し、認証、入力検証、業務検査後に上記 `service` を呼べます。
+アプリケーションは、独自のHTTPまたはRPCエンドポイントを定義し、認証、入力検証、およびビジネスチェックパスの後に作成した`service`を呼び出します。
 
 ```text
 業務クライアント
@@ -160,7 +160,7 @@ server.listen(3010);
   → Database Adapter
 ```
 
-次の Express 例は、認証 Middleware が `response.locals.user` を設定済みで、`request.body.data` が Workbook Data として検証済みである前提です。
+以下は、認証ミドルウェアが`response.locals.user`を設定し、`request.body.data`が既にWorkbook Dataとして検証されていることを想定しています。
 
 ```ts
 import { randomUUID } from "node:crypto";
@@ -195,11 +195,11 @@ app.post("/api/units", json({ limit: "1mb" }), async (request, response, next) =
 });
 ```
 
-`POST /api/units` はアプリケーションのルートであり Collaboration Client のプロトコルルートではありません。`createUnitFromData()` は Service の `createUnit` Middleware を実行します。製品レコード、所有者 ACL、エラーレスポンス変換、失敗時の補償はアプリケーションが担当します。
+`POST /api/units`はアプリケーションルートであり、コラボレーションクライアントプロトコルの一部ではありません。 `createUnitFromData()`を呼び出すと、サービスの`createUnit`ミドルウェアが実行されます。 製品レコード、所有者ACL、エラー応答マッピング、および障害補償は、アプリケーションに対する責任を保ちます。
 
 ## リソースの解放
 
-`transport.dispose()` は `register()` した Endpoint を破棄します。Service と注入した Database Adapter はアプリケーションが別途破棄します。組み立ての逆順です。
+`transport.dispose()`は、`register()`に登録されているエンドポイントを処分します。アプリケーションが注入したサービスおよびデータベースアダプタは、アセンブリの順番の逆に、別々に処分しなければなりません。
 
 ```ts
 await transport.dispose();
@@ -207,9 +207,9 @@ await service.dispose();
 await database.dispose();
 ```
 
-pub/sub アダプターを渡した場合は、Transport の後にアプリケーションがアダプターとその接続を破棄します。Endpoint は破棄しません。
+アプリケーションがパブ/サブアダプタを受け取った場合、トランスポート後にそのアダプタとその接続を処分する必要があります。エンドポイントはそれらを処分しません。
 
-[Middleware と Events](/server/collaboration/middleware-and-events)でこれらの境界での動作拡張に進みます。
+これらのモジュールの境界線で動作を拡張するには、[ミドルウェアとイベント](/server/collaboration/middleware-and-events) を続けてください。
 
 [^operational-transformation]: *操作変換（OT）*は、異なる文書リビジョンに対して同時に生成された操作を調整し、一貫して適用できるようにします。最後に届いたスナップショットで文書全体を置き換える方式ではありません。
 

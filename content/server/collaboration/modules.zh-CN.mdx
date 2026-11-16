@@ -3,8 +3,7 @@ title: 模块边界与协作关系
 description: 理解 Collaboration Client、Transport、Endpoint、Service 与 Database Adapter 的职责、数据流和组装方式。
 ---
 
-Univer Collaboration 由浏览器 Client 和一组服务端模块组成。每个模块只拥有一类职责，应用通过
-公开接口组装它们，而不需要进入 OT[^operational-transformation]、协议或持久化内部实现。
+Univer Collaboration 由浏览器端的 Client 和一组服务端模块组成。每个模块负责一类职责。应用通过公开接口完成组装，因此业务代码不需要了解 OT[^operational-transformation] 实现、协议细节或持久化层的内部结构。
 
 ## 完整模块图
 
@@ -12,22 +11,21 @@ Univer Collaboration 由浏览器 Client 和一组服务端模块组成。每个
 
 ## Collaboration Client
 
-Browser Collaboration Client 运行在 Web SDK 所在的浏览器中，负责：
+浏览器端的 Collaboration Client 与 Web SDK 一同运行，负责协同中属于客户端的工作：
 
-- 请求 Unit snapshot 与缺失的 confirmed changeset；
-- 获取一次性 Session Ticket 并建立 WebSocket；
-- JOIN Unit Room 并交换 Presence；
-- 把本地 mutation 组成 changeset 后提交；
-- 接收 ACK、广播，并在连接恢复后补齐缺失修改。
+- 向服务端请求 Unit snapshot，以及自身缺失的 confirmed changeset。
+- 使用一次性 Session Ticket 建立 WebSocket 连接。
+- 加入 Unit Room，并与其他成员交换 Presence。
+- 将本地 mutation 以 changeset 的形式提交到服务端。
+- 接收 ACK 与广播，并在重连后补齐漏掉的内容。
 
-Client 不决定用户是否可信，也不是权威数据源。服务端仍需在对应 Middleware 中执行身份和权限策略。
+Client 不判断用户是否可信，也不是权威数据源。该判断由服务端负责，服务端在相应的 Middleware 中执行身份与权限策略。
 
 ## Node Transport
 
-`@univerjs-pro/collaboration-transport-node` 是 Node.js HTTP/WebSocket 入口。它接收宿主 HTTP Server
-交来的 request 和 WebSocket upgrade，运行应用注册的入口 Middleware，再把流量分派给 Endpoint。
+`@univerjs-pro/collaboration-transport-node` 是 Node.js 侧的 HTTP 与 WebSocket 入口。它从宿主 HTTP Server 接收请求和 WebSocket upgrade，执行应用注册的入口 Middleware，再将流量路由到 Endpoint。
 
-Transport 不理解 OT、Unit 数据或 ACL 模型。它提供三个主要组装接口：
+Transport 不涉及 OT、Unit 数据或 ACL 模型。组装时使用以下三个方法：
 
 ```ts
 transport.use(httpMiddleware);
@@ -35,40 +33,37 @@ transport.useUpgrade(upgradeMiddleware);
 transport.register(endpoint);
 ```
 
-- `use()`：参与普通 HTTP 请求，适合建立 `userID`、`customData`、日志或 trace；
-- `useUpgrade()`：参与 WebSocket handshake，可在连接建立前拒绝；
-- `register()`：注册一个协议 Endpoint，并由 Transport 管理其生命周期。
+- `use()` 处理普通 HTTP 请求，`userID`、`customData`、日志与 trace 均在此建立。
+- `useUpgrade()` 处理 WebSocket handshake，可在连接建立之前拒绝该连接。
+- `register()` 注册协议 Endpoint，此后其生命周期由 Transport 管理。
 
 ## Collaboration Endpoint
 
-`@univerjs-pro/collaboration-endpoint` 实现 Univer Collaboration Client 使用的协议，负责以下能力：
+`@univerjs-pro/collaboration-endpoint` 实现了 Univer Collaboration Client 使用的协议，负责以下能力：
 
-| 能力分类      | Endpoint 负责的内容                                              |
-| ------------- | ---------------------------------------------------------------- |
-| 内容加载      | 向 Client 提供 Unit snapshot、block 与缺失的 confirmed changeset |
-| 修改提交      | 接收 changeset，返回 ACK，并向 Room 广播 confirmed changeset     |
-| Session 连接  | 签发一次性 Session Ticket，建立并维护 WebSocket Session          |
-| Room 协同     | 处理 JOIN、LEAVE、成员状态与 Presence                            |
-| Unit 生命周期 | 把删除与恢复请求转换为对应的 Service 调用                        |
-| 多节点        | 通过可选的 pub/sub 适配器与共享的 Session Ticket 存储，把 Room、Presence 和广播投递到其他节点 |
+| 能力分类      | Endpoint 负责的内容                                                                            |
+| ------------- | ---------------------------------------------------------------------------------------------- |
+| 内容加载      | 返回 Unit snapshot 与 block，以及 Client 缺失的 confirmed changeset                               |
+| 修改提交      | 接收 changeset，返回 ACK，并将 confirmed changeset 广播到 Room                                   |
+| Session 连接  | 签发一次性 Session Ticket，建立并维护 WebSocket Session                                          |
+| Room 协同     | 处理 JOIN、LEAVE、成员状态与 Presence                                                            |
+| Unit 生命周期 | 将删除与恢复请求映射为对应的 Service 调用                                                        |
+| 多节点        | 通过可选的 pub/sub 适配器与共享的 Session Ticket 存储，将 Room、Presence 与广播转发到其他节点     |
 
-Endpoint 不执行 OT，也不直接保存协同数据。它调用 Service 取得权威结果，并负责把结果映射回 Client
-协议。创建文档等产品行为应由应用 API 调用 Service 完成。
+Endpoint 本身不执行 OT，也不直接保存协同数据。它向 Service 获取权威结果，再将结果映射回 Client 协议。创建文档这类产品操作应由应用 API 调用 Service 完成。
 
 ## Collaboration Service
 
-`@univerjs-pro/collaboration-service` 是无网络依赖的协同核心，支持 Sheet、Doc、Slide、Board、Base 与 PDF。
-它负责：
+`@univerjs-pro/collaboration-service` 是协同核心，不依赖网络，覆盖 Sheet、Doc、Slide、Board、Base 与 PDF：
 
-- 读取 Unit 恢复数据和 confirmed changeset；
-- 从 Unit Data 或 Snapshot 创建 Unit；
-- 提交 changeset，执行 OT，并推进连续 revision[^collaboration-revision]；
-- 通过 `(unitID, sid, reqId)` 识别重复提交；
-- 软删除、恢复或永久删除 Unit；
-- 运行 Service Middleware 并发布确认后的 Event。
+- 读取 Unit 的恢复数据与 confirmed changeset。
+- 从 Unit Data 或 Snapshot 创建 Unit。
+- 提交 changeset 时执行 OT，并推进连续 revision[^collaboration-revision]。
+- 通过 `(unitID, sid, reqId)` 识别重复提交。
+- 软删除、恢复或永久删除 Unit。
+- 运行 Service Middleware，并在确认后发出 Event。
 
-Service 不提供 HTTP、WebSocket、用户、角色、ACL、目录或文件管理。Endpoint 使用它实现浏览器协议，
-应用也可以直接调用公开 Service API 实现自己的业务 API 或后台任务。
+Service 不包含 HTTP 与 WebSocket 层，也不涉及用户、角色、ACL、目录或文件管理。Endpoint 在 Service 之上实现浏览器协议；应用也可以直接在业务 API 或后台任务中调用其公开 API。
 
 ### 核心 API
 
@@ -82,35 +77,32 @@ Service 不提供 HTTP、WebSocket、用户、角色、ACL、目录或文件管�
 
 ## Database Adapter
 
-Database Adapter 是 Service 与实际存储之间的合同。它必须保证：
+Database Adapter 是 Service 与存储之间的合同，必须保证以下事项：
 
-- 初始 snapshot 与依赖数据原子创建；
+- 初始 snapshot 及其依赖数据的原子创建；
 - revision compare-and-swap；
-- changeset 提交幂等；
-- snapshot 完整后才对读取可见；
-- Unit 生命周期批次全有或全无。
+- changeset 提交的幂等性；
+- 依赖全部就位后，snapshot 才对读取可见；
+- Unit 生命周期批次的全有或全无。
 
-SDK 提供 Memory、SQLite 与 PostgreSQL 实现。需要接入其他数据库时，应用应实现相同合同。详细选择见
-[Database Adapter](/server/collaboration/database-adapters)。
+SDK 提供 Memory、SQLite 与 PostgreSQL 实现。如需接入其他数据库，实现同一份合同。适配器的选择见 [Database Adapters](/server/collaboration/database-adapters)。
 
 ## 四个核心概念
 
-| 概念      | 含义                                                           |
-| --------- | -------------------------------------------------------------- |
-| Unit      | 一份可独立加载和协同的 Univer 内容，由唯一 `unitID` 与类型标识 |
-| Snapshot  | Unit 在某个 revision 上的持久化内容状态，不是运行中的可变对象  |
-| Changeset | 一次提交的 mutation 集合，包含 base revision 与幂等身份        |
-| Revision  | Unit 已确认状态的连续版本号；初始值为 `1`                      |
+| 概念      | 含义                                                                       |
+| --------- | -------------------------------------------------------------------------- |
+| Unit      | 一份 Univer 内容，有唯一的 `unitID` 和类型，可以独立加载、独立协同          |
+| Snapshot  | Unit 在某个 revision 上持久化下来的内容，不是运行中的可变对象               |
+| Changeset | 一次提交中包含的 mutation 集合，带 base revision 和用于幂等的身份标识        |
+| Revision  | Unit 已确认状态的连续版本号，初始值为 `1`                                   |
 
-运行中的内容必须通过 Facade 或 Command 修改。直接改变 snapshot 对象不会更新 Client 或 Service 中的
-live Unit。
+运行中的内容只能通过 Facade 或 Command 修改。修改 snapshot 对象不会更新 Client 或 Service 中的 live Unit。
 
 ## 加载一个 Unit
 
 <Mermaid chart={"sequenceDiagram\n    participant Client\n    participant Transport\n    participant Endpoint\n    participant Service\n    participant Adapter\n\n    Client->>Transport: Load Unit over HTTP\n    Transport->>Endpoint: Authenticated request context\n    Endpoint->>Service: getUnitLoadData()\n    Service->>Adapter: Snapshot + changesets\n    Adapter-->>Service: Authoritative data\n    Service-->>Endpoint: Unit load data\n    Endpoint-->>Client: Protocol response"} />
 
-Transport Middleware 建立的 `userID/customData` 会随当前 HTTP 请求传给 Service Middleware。读取是否
-允许由应用策略决定，不由客户端是否已经 JOIN Room 决定。
+Transport Middleware 建立的 `userID/customData` 会随当前 HTTP 请求传入 Service Middleware。是否允许本次读取由应用策略决定。通过 HTTP 直接读取之前，客户端不需要先加入 Room。
 
 ## 提交一次修改
 
@@ -126,8 +118,7 @@ Facade / Command
   → ACK / Room broadcast
 ```
 
-Database Adapter 保存的 confirmed revision 是权威结果。ACK 与广播帮助在线客户端低延迟同步；客户端
-缺少消息时，仍可根据 revision 重新获取 confirmed changeset。
+Database Adapter 中的 confirmed revision 是权威状态。ACK 与广播使在线客户端以较低的延迟保持同步。客户端如果漏掉消息，可以使用已知的 revision 拉取缺失的 confirmed changeset。
 
 ## 最小服务端组装
 
@@ -155,12 +146,11 @@ transport.attach(server);
 server.listen(3010);
 ```
 
-固定用户和 Memory Adapter 只用于展示模块组装。应用应通过 Middleware 提供真实 Context，并根据数据
-规模选择合适 Adapter。
+此处写死的用户与 Memory Adapter 仅用于演示模块的组装方式。真实应用通过 Middleware 建立 Context，并根据自身数据需求选择 Adapter。
 
 ### 通过应用 API 创建 Unit
 
-应用可以定义自己的 HTTP/RPC 接口，并在完成认证、参数校验与业务检查后调用上面创建的 `service`：
+应用可以自行定义 HTTP 或 RPC 接口，在认证、参数校验与业务检查通过后，调用上文创建的 `service`：
 
 ```text
 业务客户端
@@ -170,8 +160,7 @@ server.listen(3010);
   → Database Adapter
 ```
 
-下面的 Express 示例假设认证 Middleware 已经设置 `response.locals.user`，并且
-`request.body.data` 已按 Workbook Data 结构完成校验：
+下面的 Express 示例假设认证 Middleware 已设置 `response.locals.user`，且 `request.body.data` 已按 Workbook Data 完成校验：
 
 ```ts
 import { randomUUID } from "node:crypto";
@@ -206,14 +195,11 @@ app.post("/api/units", json({ limit: "1mb" }), async (request, response, next) =
 });
 ```
 
-`POST /api/units` 是应用自己的接口，不是 Collaboration Client 的协议路由。调用
-`createUnitFromData()` 时仍会执行 Service 的 `createUnit` Middleware。产品记录、owner ACL、错误响应
-映射和失败补偿由应用处理。
+`POST /api/units` 是应用自己的路由，不属于 Collaboration Client 协议。调用 `createUnitFromData()` 时，Service 的 `createUnit` Middleware 仍会执行。产品记录、owner ACL、错误响应映射与失败补偿仍由应用负责。
 
 ## 资源释放
 
-`transport.dispose()` 会释放通过 `register()` 注册的 Endpoint。Service 和应用注入的 Database Adapter
-需要由应用分别释放。建议按照组装的相反顺序执行：
+`transport.dispose()` 释放通过 `register()` 注册的 Endpoint。应用注入的 Service 与 Database Adapter 需要分别释放，顺序与组装时相反：
 
 ```ts
 await transport.dispose();
@@ -221,9 +207,9 @@ await service.dispose();
 await database.dispose();
 ```
 
-如果传入了 pub/sub 适配器，在释放 Transport 之后由应用释放它和它的连接，Endpoint 不会代为释放。
+如果应用提供了 pub/sub 适配器，还应在释放 Transport 之后释放该适配器及其连接。Endpoint 不会代为释放。
 
-下一步阅读 [Middleware 与 Event](/server/collaboration/middleware-and-events)，了解应用如何在这些模块边界上扩展行为。
+如需在上述模块边界上扩展行为，请继续阅读 [Middleware 与 Event](/server/collaboration/middleware-and-events)。
 
 [^operational-transformation]: *操作转换（OT）* 会调整基于不同文档修订号并发产生的操作，使它们能够一致地应用。它处理的是编辑操作，而不是用最后到达的快照覆盖整份文档。
 

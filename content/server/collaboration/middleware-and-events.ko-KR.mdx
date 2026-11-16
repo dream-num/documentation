@@ -3,7 +3,7 @@ title: Middleware와 Events
 description: 범용 Middleware와 Events로 Transport, Endpoint, Service, 협업 확장 모듈을 확장합니다.
 ---
 
-Middleware와 Events는 Collaboration SDK의 범용 확장 지점입니다. 신원 확인과 권한 부여는 Middleware로 통합합니다. 작업 전 검증·제한에는 Middleware를, 상태 확정 후 변경 기록·후속 작업에는 Events를 사용합니다. 둘 다 로깅, 요청 추적, 지표, 파생 상태 업데이트를 지원할 수 있습니다.
+Middleware 및 Events는 Collaboration SDK의 범용 확장 포인트입니다. 식별 및 승인은 Middleware를 통해 통합됩니다. Middleware는 실행하기 전에 작동을 검증하거나 제한합니다. 이벤트 기록 변경 또는 상태 변경 후 후 트리거 후 작업이 확인됩니다. 두 지원 로깅, 요청 추적, 메트릭 및 파생 상태 업데이트.
 
 ## 두 가지 확장 시점
 
@@ -11,15 +11,15 @@ Middleware와 Events는 Collaboration SDK의 범용 확장 지점입니다. 신�
 | --- | --- | --- |
 | 실행 시점 | 작업 중 | 상태 변경 확정 후 |
 | 작업 참여 또는 거부 | 가능 | 불가 |
-| 호출 Context 보강 | 가능 | Event가 전달하는 Context와 결과 읽기 |
+| 호출 Context 보강 | 가능 | 이벤트에 의해 수행 된 Context 및 결과 읽기 |
 | 리스너 실패 | 현재 작업 실패 가능 | 이미 결정된 도메인 결과와 격리 |
 | 일반 용도 | 신원 확인, 권한 부여, 검증, 로깅, 시간 측정 | 파생 인덱스, 캐시, 지표, 프로세스 내부 알림 |
 
-작업의 계속 진행 여부를 결정하려면 Middleware를, 상태 변경이 이미 일어났음을 관찰하려면 Event를 사용합니다.
+작업이 계속될 수 있는지 결정해야 할 때 Middleware를 사용하십시오. 상태 변경이 이미 발생했는지 관찰 할 때 이벤트를 사용하십시오.
 
 ## Middleware 실행 모델
 
-같은 Action의 Middleware는 등록 순서대로 비동기 체인을 형성합니다. `await next()`가 다음 Middleware로 진입하며 SDK 작업은 가장 안쪽에서 실행됩니다.
+동일한 행동에 대한 Middleware는 등록 주문에 비동기 체인을 형성합니다. `await next()`는 다음 Middleware를 입력하고 SDK 작업은 내부 지점에서 실행됩니다.
 
 ```ts
 service.use("submitChangeset", async (context, next) => {
@@ -34,21 +34,15 @@ service.use("submitChangeset", async (context, next) => {
 });
 ```
 
-Middleware는 다음을 할 수 있습니다.
+Middleware는 `customData`를 통해 통화로 데이터를 공유하고 `next()` 전에 입력 또는 쿼리 응용 프로그램을 검사하고 `next()`가 반환한 후 지속 시간 또는 결과를 기록 할 수 있습니다. `CollabError`는 예상 협력 작업을 거부합니다.
 
-- Action별 요청 읽기
-- `customData`로 호출 내부 데이터 공유
-- `next()` 전에 입력 검사 또는 애플리케이션 시스템 조회
-- `next()` 반환 후 소요 시간이나 결과 기록
-- `CollabError`를 던져 예상된 협업 작업 거부
-
-Transport HTTP Middleware는 `next()` 호출 없이 HTTP 응답을 종료할 수 있습니다. Service와 Endpoint Middleware는 조용히 `next()`를 생략하지 말고 명시적인 오류로 거부해야 합니다.
+HTTP Middleware는 `next()`를 호출하지 않고 HTTP 응답을 종료 할 수 있습니다. 서비스 및 엔드포인트 Middleware는 침묵적으로 `next()`을 건너 대신 명시된 오류로 거부해야합니다.
 
 ## Transport Middleware
 
 `transport.use()`는 일반 HTTP Middleware를 등록하며 등록 순서대로 실행합니다. `await next()`를 호출해 다음 처리를 진행하거나 응답을 직접 종료할 수 있습니다. `transport.useUpgrade()`는 WebSocket 핸드셰이크를 처리합니다.
 
-다음 예제는 HTTP 소요 시간을 기록하고, 인증 후 신뢰할 수 있는 `userID`를 설정한 다음 Collaboration Endpoint를 등록합니다.
+다음 예제는 HTTP 지속 시간을 기록하고 요청을 인증하고 신뢰할 수있는 `userID`를 설정 한 다음 협업 엔드 포인트를 등록합니다.
 
 ```ts
 transport.use(async (context, next) => {
@@ -78,13 +72,13 @@ transport.use(async (context, next) => {
 transport.register(collaborationEndpoint);
 ```
 
-`recordHttpDuration`과 `authenticate`는 애플리케이션에서 제공합니다. Endpoint는 앞선 Middleware가 설정한 `userID`를 사용합니다. 관측 Middleware를 인증보다 먼저 등록하므로 인증 거부도 기록됩니다.
+응용 프로그램은 `recordHttpDuration` 및 `authenticate`를 공급합니다. 엔드포인트는 `userID`을 초기 Middleware로 사용합니다. 지속 관찰자는 인증 전에 실행되므로 거부 된 요청도 기록됩니다.
 
-`context.route?.path`는 일치한 전체 경로 템플릿이며 처리가 Endpoint에 도달하면 사용할 수 있습니다. response의 `finish` 이벤트로 응답 완료까지의 시간을 측정합니다. 경로 매칭 전의 거부와 알 수 없는 경로는 `unmatched`로 기록됩니다.
+`context.route?.path`는 풀 일치 경로 템플릿이며, 한 번 실행하면 엔드포인트에 도달합니다. 응답이 완료되면 측정하는 응답 `finish` 이벤트를 사용합니다. 라우팅 및 알 수없는 경로가 `unmatched`로 기록되기 전에 거부합니다.
 
 ## Endpoint Middleware
 
-Endpoint Middleware는 실시간 Session과 Presence 작업에 참여합니다.
+Endpoint Middleware는 실시간 세션과 지속적인 작업을 다룹니다:
 
 | Action | 실행 시점 | 일반 용도 |
 | --- | --- | --- |
@@ -102,11 +96,11 @@ endpoint.use("receivePresence", async (context, next) => {
 });
 ```
 
-Endpoint의 `session.userID`, `session.customData`는 Session Ticket을 발급한 HTTP 요청에서 옵니다. Endpoint가 현재 WebSocket Session에 부여한 `memberID`는 재연결 시 변경됩니다.
+Endpoint의 `session.userID` 및 `session.customData`는 세션 티켓 발행 HTTP 요청에서 제공됩니다. Endpoint는 현재 WebSocket 세션의 `memberID`를 만들고, 재연결 후 이 식별자 변경 사항을 생성합니다.
 
 ## Service Middleware
 
-Service Middleware는 서버 기준 협업 데이터의 수명 주기에 참여합니다.
+서비스 Middleware는 권위있는 협업 자료의 수명주기를 다룹니다:
 
 | Action | 경계 | 일반 용도 |
 | --- | --- | --- |
@@ -130,17 +124,17 @@ service.use("createUnit", async (context, next) => {
 });
 ```
 
-`submitChangeset`는 논리 제출마다 한 번 실행됩니다. 리비전 경합으로 `applyChangeset`, `commitChangeset`가 새 `attempt`로 다시 실행될 수 있습니다. 이 단계의 Middleware는 재시도에 안전해야 하며 되돌릴 수 없는 외부 메시지 전송이나 일회성 과금을 직접 수행하면 안 됩니다.
+`submitChangeset`는 각 논리적인 제출을 위해 한 번 실행합니다. 개정 내용은 `applyChangeset`와 `commitChangeset`를 새로운 `attempt`로 다시 실행할지도 모릅니다. 그 단계에 Middleware는 retry-safe가 되고 반대할 수 없는 외부 메시지를 보내거나 1 시간 책임 직접 실행할 필요가 없습니다.
 
 ## customData 범위
 
-`customData`는 한 호출 안에서 컨텍스트를 공유하는 데 사용합니다. 호출자가 데이터를 전달하고 Middleware가 처리 중에 추가하면, 이후의 Middleware와 Database Adapter, 관련 Event에서 읽을 수 있습니다.
+`customData`는 단일 통화 내에서 컨텍스트를 운반합니다. 콜러는 데이터를 공급할 수 있으며, Middleware는 나중에 Middleware, 데이터베이스 어댑터 및 관련 이벤트를 추가할 수 있습니다. 일반적인 용도는 다음과 같습니다.
 
 - 테넌트 ID, 추적 ID 또는 요청에 사용할 로거를 전달합니다.
 - 같은 호출에서 권한 조회 결과를 재사용합니다.
 - 측정 시작 시각이나 감사용 레이블을 기록합니다.
 
-SDK 내장 데이터베이스 Adapter는 `customData`를 영구 저장하지 않습니다. 문서나 변경 집합과 함께 저장할 필드는 [메타데이터 저장](#persistent-metadata)을 참고하세요.
+내장 된 데이터베이스 어댑터는 `customData`를 persist하지 않습니다. 문서 또는 변경 사항과 함께 필드를 저장하려면 [Persistent 메타데이터](#persistent-metadata)을 참조하십시오.
 
 ## 메타데이터 저장 [#persistent-metadata]
 
@@ -148,9 +142,9 @@ SDK 내장 데이터베이스 Adapter는 `customData`를 영구 저장하지 않
 
 문서를 생성할 때 `createUnitFromData()` 또는 `createUnitFromSnapshot()`의 입력에 `metadata`를 전달하거나 `createUnit` Middleware에서 `context.unit.metadata`를 설정합니다. 기본값은 `{}`입니다.
 
-변경 집합을 제출할 때 `commitChangeset` Middleware에서 두 메타데이터 객체를 갱신할 수 있습니다. `context.unit.metadata`는 문서의 현재 메타데이터로, `context.changeset.metadata`는 `{}`로 시작합니다. 타입은 각각 `UnitMetadata`와 `ChangesetMetadata`이며 둘 다 `Record<string, unknown>`의 별칭입니다. 필드 값은 JSON으로 직렬화할 수 있어야 합니다.
+변경 사항을 제출할 때, 모두 메타데이터 객체는 `commitChangeset` 미들웨어에서 업데이트 될 수 있습니다. `context.unit.metadata`는 문서의 현재 메타데이터로 시작되며 `context.changeset.metadata`가 `{}`로 시작합니다. 이 유형은 `UnitMetadata` 및 `ChangesetMetadata`이며 `Record<string, unknown>`의 별칭입니다. 필드 값은 JSON-serializable이어야 합니다.
 
-`await next()`를 호출하기 전에 값을 설정합니다. 다음 예제는 문서의 마지막 편집자를 갱신하고 이번 제출의 출처를 기록합니다.
+`await next()`를 호출하기 전에 메타데이터를 업데이트하십시오. 다음 예제는 문서의 마지막 편집자와 제출의 소스를 기록합니다.
 
 ```ts
 service.use("commitChangeset", async (context, next) => {
@@ -167,7 +161,7 @@ Service는 두 객체 전체를 Adapter에 전달하여 이번 제출과 함께 
 
 문서 메타데이터는 Adapter의 `getUnit()`이 반환한 레코드의 `metadata`에서 읽습니다. 이번 제출의 메타데이터는 `submitChangeset()`의 성공 결과에 있는 `changeset.metadata`에서 읽을 수 있습니다. 이전 제출을 조회할 때는 `getChangesets()`가 반환하는 `changesets` 배열의 각 항목에 `metadata`가 포함됩니다.
 
-내장 SQLite 또는 PostgreSQL Adapter를 사용한다면 SQL로 문서나 변경 집합의 메타데이터를 직접 조회할 수도 있습니다. 테이블 이름과 열 이름은 사용하는 Adapter의 데이터베이스 스키마를 따릅니다.
+내장 된 SQLite 또는 PostgreSQL 어댑터, 문서 및 변경 메타데이터는 SQL과 직접 정복 할 수 있습니다. 그 어댑터의 스키마에 의해 정의 된 테이블과 열 이름을 사용하십시오.
 
 ## Event 실행 모델
 
@@ -184,9 +178,9 @@ const subscription = service.on("changesetCommitted", async (event) => {
 subscription.dispose();
 ```
 
-같은 Event의 리스너는 등록 순서대로 실행되며 완료를 기다립니다. 리스너 오류는 기록되고 이미 결정된 도메인 결과에서 격리됩니다. 예를 들어 `changesetCommitted` 리스너 실패는 Adapter가 저장한 변경 집합을 롤백하지 않습니다.
+동일한 이벤트에 대한 인스트럭터는 등록 순서로 순차적으로 실행되며 SDK는 각 것을 기다립니다. 인스트럭처 오류는 이미 삭제 된 도메인 결과에서 기록되고 격리됩니다. 예를 들어 `changesetCommitted` 청취자는 어댑터가 이미 저장 된 변경 사항을 다시 롤하지 않습니다.
 
-따라서 Events는 프로세스 내부, 복구 가능 또는 비핵심 후속 작업에 적합합니다. DB 커밋과 공유하는 트랜잭션 경계가 아니며 외부 시스템 전달을 보장하지 않습니다.
+이 웹 사이트는 귀하가 웹 사이트를 탐색하는 동안 귀하의 경험을 향상시키기 위해 쿠키를 사용합니다. 이 쿠키들 중에서 필요에 따라 분류 된 쿠키는 웹 사이트의 기본적인 기능을 수행하는 데 필수적이므로 브라우저에 저장됩니다. 또한이 웹 사이트의 사용 방식을 분석하고 이해하는 데 도움이되는 제 3 자 쿠키를 사용합니다
 
 ## 핵심 Service Events
 
@@ -199,7 +193,7 @@ subscription.dispose();
 
 `unitCreated` 리스너에서는 `event.record.metadata`로 문서 메타데이터를 읽습니다. `changesetCommitted` 리스너에서는 `event.changeset.metadata`로 이번 제출의 메타데이터를 읽습니다.
 
-Endpoint는 같은 Service의 `changesetCommitted`를 듣고 현재 프로세스에서 Unit에 참여한 클라이언트로 변경 집합을 브로드캐스트합니다. pub/sub 어댑터를 구성하면 다른 노드에도 전달합니다. 명시적 나가기, 연결 해제, Endpoint 해제에는 `memberLeftUnit`도 제공합니다.
+Endpoint는 현재 프로세스에 참여한 클라이언트에게 확인된 변경 사항을 전달하는 동일한 서비스에서 `changesetCommitted`로 들어갑니다. pub/sub 어댑터가 구성될 때, 방송은 모든 노드에 도달합니다. Endpoint는 명시된 휴가, 단거리 및 엔드포인트 처리를위한 `memberLeftUnit`를 노출합니다.
 
 ## 확장 모듈의 독립 확장 지점
 
@@ -209,6 +203,6 @@ History, Thread Comment, Worktree는 핵심 Collaboration Service의 Middleware�
 - Comment는 추가, 답글, 편집, 삭제, 해결, 목록 Middleware와 `commentCommitted`를 제공합니다.
 - Worktree는 수명 주기와 초안 read/submit/commit Middleware, 생성·상태·병합·초안 커밋 Events를 제공합니다.
 
-활성화한 모듈마다 규칙을 설치하세요. 핵심 Service의 로깅·테넌트·권한 Middleware가 자동 적용되지는 않습니다.
+각 활성화 모듈에 대한 규칙을 별도로 설치하십시오. 핵심 서비스에 조깅, 임계, 또는 허가 Middleware는이 모듈을 자동으로 커버하지 않습니다.
 
 기존 사용자와 ACL을 이러한 경계에 매핑하는 사례는 [신원 확인과 권한 부여](/server/collaboration/identity-and-authorization)를 참고하세요.

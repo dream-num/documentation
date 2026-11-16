@@ -3,36 +3,36 @@ title: License
 description: Collaboration SDK uses the License to decide collaborative editing connections, authorized domains, collaboration nodes and document types.
 ---
 
-`UniverCollabService` loads the License at construction, and Endpoints and Worktrees share it. See [License](/server/license#collaboration-sdk) for configuration; without a License it runs on the free tier. A License that fails verification makes the constructor throw a `CollabError` (`LICENSE_INVALID` or `LICENSE_POLICY_INVALID`), so the service stops at startup.
+`UniverCollabService` loads the License during construction, and Endpoints and Worktrees share that instance. Configure the License as described in [License](/server/license#collaboration-sdk); without one, the SDK runs on the free tier. If verification fails, the constructor throws a `CollabError` (`LICENSE_INVALID` or `LICENSE_POLICY_INVALID`), and the service does not start.
 
 ## What the License decides [#limits]
 
-| Item                             | Checked at                                         | Beyond the limit                                       |
-| -------------------------------- | -------------------------------------------------- | ------------------------------------------------------ |
-| Collaborative editing connections | Endpoint, when receiving submissions              | Edits from new connections stay in the browser and retry |
-| Authorized domains               | Endpoint, when connecting and receiving submissions | The browser's collaboration session goes offline      |
-| Collaboration nodes              | Endpoint                                           | Nodes beyond the limit go offline after a grace period |
-| Document types                   | Service, when creating Units and submitting edits  | Creation and submissions are rejected; existing documents stay viewable |
+| Item                              | Checked at                                    | Beyond the limit                                                        |
+| --------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------- |
+| Collaborative editing connections | Endpoint, on receiving submissions            | Edits from new connections remain in the browser and are retried        |
+| Authorized domains                | Endpoint, when connecting and on submissions  | The browser's collaboration session goes offline                        |
+| Collaboration nodes               | Endpoint                                      | Nodes beyond the limit go offline after a grace period                  |
+| Document types                    | Service, on Unit creation and edit submission | Creation and submissions are rejected; existing documents stay viewable |
 
 ### Collaborative editing connections [#editing-connections]
 
-The allowance counts connections that are editing: a collaboration connection takes a slot on its first successful submission and releases it when the connection closes or 120 seconds after its last successful submission. Connections that open a document to view it can join at any time. Edits inside a Worktree share the same pool as the trunk.
+The allowance counts only connections that are actively editing. A collaboration connection occupies a slot after its first successful submission and releases it when the connection closes, or 120 seconds after its last successful submission. Connections that open a document only for viewing can join at any time. Edits inside a Worktree count against the same slot pool as edits on the trunk.
 
-When every slot is in use, edits from a new connection stay in the browser and Web SDK resends them with backoff until a slot frees up; connections that already hold a slot keep editing. `CollaborationChangesetResend` in the browser reports these resends with `reason: 'license_editing_connections_exceeded'`.
+When every slot is occupied, edits from a new connection remain in the browser, and Web SDK resends them with backoff until a slot becomes available. Connections that already hold a slot continue editing. The browser's `CollaborationChangesetResend` reports these resends with `reason: 'license_editing_connections_exceeded'`.
 
 ### Authorized domains [#domains]
 
-When Web SDK opens a collaboration connection or submits edits, the Endpoint checks the page's domain against the License's authorized domains. A domain outside them receives `403`; the browser's collaboration session goes offline and shows the reason, and tries again when the user reconnects or opens another document.
+When Web SDK opens a collaboration connection or submits edits, the Endpoint compares the page's domain with the authorized domains in the License. A domain outside that list receives `403`; the browser's collaboration session then goes offline and displays the reason. The session retries when the user reconnects or opens another document.
 
 ### Collaboration nodes [#nodes]
 
-**Single-node License** (including the free tier): runs one collaboration node. Passing `pubSub` to the Endpoint makes the constructor throw `LICENSE_POLICY_INVALID`.
+A **single-node License**, including the free tier, runs one collaboration node. Passing `pubSub` to the Endpoint makes the constructor throw `LICENSE_POLICY_INVALID`.
 
-**Multi-node License**: sets a node limit. When more nodes run than the limit, the newest ones enter a grace period with escalating warnings and then go offline: new connections receive `503` and existing connections close. Nodes within the limit keep serving. If the count drops back within the limit during the grace period, the extra nodes return to normal; a node that has gone offline is counted again as a new node after its process restarts. See [Deployment](/server/deployment#multiple-collaboration-nodes) for multi-node setups.
+A **multi-node License** defines a node limit. When the number of running nodes exceeds that limit, the newest nodes enter a grace period with escalating warnings and then go offline. New connections receive `503`, and existing connections close. Nodes within the limit continue serving traffic. If the node count drops back within the limit during the grace period, the extra nodes return to normal. A node that has gone offline is counted as a new node again after its process restarts. For multi-node deployments, see [Deployment](/server/deployment#multiple-collaboration-nodes).
 
 ### Document types [#unit-types]
 
-The License lists the document types available for collaboration. Creating a Unit of another type throws `LICENSE_UNIT_TYPE_REJECTED`, and submitted edits are rejected, with `CollaborationConflict` in the browser reporting `reason` `license_unit_type_rejected`; existing documents stay viewable.
+The License lists the document types available for collaboration. Creating a Unit of any other type throws `LICENSE_UNIT_TYPE_REJECTED`, and the submitted edits are rejected. `CollaborationConflict` in the browser reports `reason` as `license_unit_type_rejected`. Existing documents remain viewable.
 
 ## Observe the state [#observe]
 
@@ -59,4 +59,4 @@ endpoint.license.on('editingConnectionsExceeded', ({ memberID, userID, unitID, u
 endpoint.license.on('nodesStatusChanged', ({ status, previousStatus, limit, reason }) => {}) // this node's status changed; reason is set only when it goes offline
 ```
 
-`nodesStatusChanged` fires once each time this node's status changes. When `status` is `exceeded-offline`, the node has stopped accepting connections; take it out of the load balancer or raise an alert.
+`nodesStatusChanged` fires once for each status change of this node. When `status` becomes `exceeded-offline`, the node has stopped accepting connections; remove it from the load balancer or raise an alert.

@@ -3,24 +3,19 @@ title: Presence
 description: 在文档中展示在线成员、协作者名称与头像，并启用远端光标和选区。
 ---
 
-Presence 让用户看到谁打开了同一份文档，以及其他人正在操作哪里。例如，Bob 选中 B3 单元格时，
-Alice 能看到标有“Bob”的选区。你还可以在应用中用头像栏或成员列表展示当前协作者。
+Presence 让用户看到还有谁打开了同一份文档，以及其他成员正在操作的位置。例如，Bob 选中 B3 单元格时，Alice 能看到标有“Bob”的选区。应用也可以用头像栏或成员列表展示当前的协作者。
 
-SDK 负责同步成员和光标信息，并渲染支持的远端光标。应用可以提供协作者的名称与头像，
-并基于成员订阅 API 构建头像栏、成员面板或在线人数统计。
+SDK 负责同步成员和光标信息，并渲染编辑器支持的远端光标。协作者的名称和头像由应用提供，成员订阅 API 可用于构建头像栏、成员面板或在线人数统计。
 
 ## 开始之前
 
-先完成[快速开始](/server/collaboration/quick-start)和[身份与权限](/server/collaboration/identity-and-authorization)。
-此时，编辑器应已能同步内容修改，服务端通过 `context.userID` 识别登录用户，读取、JOIN 和编辑的
-权限规则也已配置。
+请先完成[快速开始](/server/collaboration/quick-start)和[身份与权限](/server/collaboration/identity-and-authorization)。此时编辑器应已能同步内容修改，服务端应能通过 `context.userID` 识别登录用户，读取、JOIN 和编辑的权限规则也已配置。
 
-以下代码在已有的 `transport`、`endpoint` 和 `univer` 配置上继续添加功能，保留上一节的认证和
-权限规则。
+以下示例在已有的 `transport`、`endpoint` 和 `univer` 配置上继续扩展，并沿用上一篇的认证和权限规则。
 
 ## 成员与光标同步
 
-Alice 和 Bob 打开同一张表格。Presence 有两类更新：
+Alice 和 Bob 打开同一张表格。Presence 会产生两类更新：
 
 | 操作               | 成员列表                   | Alice 在表格中看到的变化       |
 | ------------------ | -------------------------- | ------------------------------ |
@@ -29,15 +24,11 @@ Alice 和 Bob 打开同一张表格。Presence 有两类更新：
 | Bob 从 B3 移到 C5  | Alice、Bob                 | Bob 的选区移动到 C5            |
 | Bob 关闭表格       | 收到离开通知后，只剩 Alice | Bob 的选区消失                 |
 
-连接加入或离开时，成员列表会更新。移动光标改变的是编辑器中的选区位置，成员数量不变。
-如果 Bob 进一步修改 C5 的内容，文档内容会通过协同编辑流程同步。
+连接加入或离开时，成员列表会随之更新。移动光标只改变编辑器中绘制选区的位置，不会增加或减少成员。如果 Bob 随后修改 C5 的值，文档内容会通过协同编辑流程同步。
 
-Presence 的范围是一份文档（一个 Unit）。它反映当前连接到这份文档的人；上一节配置的访问权限
-列表则记录谁有权打开文档。Presence 是临时状态：移动光标不会生成 changeset、推进文档 revision，
-也不会保存到数据库。
+Presence 的作用范围是一份文档，也就是一个 Unit。它表示当前连接到这份文档的成员，上一篇配置的访问列表则表示谁有权打开这份文档。Presence 是临时状态：移动光标不会生成 changeset，不会推进文档 revision，也不会写入数据库。
 
-启用快速开始中的协同插件和对应编辑器 UI 后，SDK 会采集并发送本地光标与选区更新，
-并在其他成员的编辑器中渲染对应的光标、选区和名称。
+启用快速开始中的协同插件和对应的编辑器 UI 后，SDK 会采集本地的光标和选区更新并发送，再在其他成员的编辑器中渲染对应的光标、选区和名称。
 
 | 编辑器 | 在线成员订阅 | 远端光标与选区 UI      |
 | ------ | ------------ | ---------------------- |
@@ -49,12 +40,9 @@ Presence 的范围是一份文档（一个 Unit）。它反映当前连接到这
 
 ## 1. 设置协作者的名称和头像
 
-在 Endpoint 的 `connect` Middleware 中设置 `context.member.name` 和 `context.member.avatar`。
-资料由应用获取：既可以根据已认证的 `context.session.userID` 查询，也可以通过 `customData`
-复用认证时取得的资料。
+在 Endpoint 的 `connect` Middleware 中设置 `context.member.name` 和 `context.member.avatar`。资料的获取方式由应用决定：可以根据已认证的 `context.session.userID` 查询，也可以复用认证时存入 `customData` 的资料。
 
-下面采用 `customData` 方式，避免重复查询。将这些字段补充到已有的 Transport Middleware 中，
-并在启动服务前注册 `connect`：
+下面的示例通过 `customData` 避免第二次查询。请将这些字段加入已有的 Transport Middleware，并在启动服务前注册 `connect`：
 
 ```ts
 type AppUser = {
@@ -83,17 +71,13 @@ endpoint.use("connect", async (context, next) => {
 });
 ```
 
-SDK 将签发 Session Ticket 的请求中的 `customData` 传递到 `context.session.customData`。多节点部署下，连接在其他节点上的发送者只带 `userID` 和 `memberID`，需要随消息传递的数据应放在 Presence payload 中。
-其中的 `user` 字段和 `AppUser` 类型由本例自行约定，SDK 不解析它们。其他协作者收到的是应用设置在
-`context.member` 上的成员资料。
+SDK 会将签发 Session Ticket 的请求中的 `customData` 传递到 `context.session.customData`。多节点部署时，连接在其他节点上的发送者只携带 `userID` 和 `memberID`，因此需要随每条消息传递的数据应放入 Presence payload。`user` 字段名和 `AppUser` 类型由应用自行约定，SDK 不解析它们。其他协作者收到的是设置在 `context.member` 上的资料。
 
-`connect` 在每次建立新的 WebSocket 连接时执行一次，重连也会执行，时机在客户端加入文档之前。
-应用中修改用户资料后，不会自动更新已经共享给已有连接的成员资料。
+每条新的 WebSocket 连接都会执行一次 `connect`，重连也不例外，执行时机在客户端加入文档之前。应用中修改用户资料后，已共享给现有连接的成员资料不会自动更新。
 
 ## 2. 展示成员列表（可选）
 
-如果应用需要头像栏或成员面板，使用 `subscribeCollaborators(unitID, callback)` 订阅已打开文档的
-成员。光标渲染不依赖应用是否添加这个订阅。
+如需头像栏或成员面板，可用 `subscribeCollaborators(unitID, callback)` 订阅已打开文档的成员。光标渲染不依赖这个订阅。
 
 ```ts
 import { FUniver } from "@univerjs/core/facade";
@@ -109,8 +93,7 @@ const subscription = univerAPI.getCollaboration().subscribeCollaborators(unitID,
 });
 ```
 
-SDK 会等待文档的协同房间就绪。每次回调提供客户端当前已知成员的 `IMember[]` 快照，加入后也
-包含自己；初始化期间可能收到空列表。回调反映成员变化，不包含光标位置。
+SDK 会等待文档的协同房间就绪。每次回调提供客户端当前已知成员的 `IMember[]` 快照，加入后也包含自己；初始化期间可能先收到空列表。回调只报告成员，不包含光标位置。
 
 Alice 和 Bob 在线时，成员数据包含以下字段（ID 仅作示意）：
 
@@ -119,23 +102,19 @@ Alice 和 Bob 在线时，成员数据包含以下字段（ID 仅作示意）：
 | `alice`  | `83446a72-a1cc-4ed8-aedc-afd8907bbb18` | `Alice` | `""`     |
 | `bob`    | `7ee5a94e-c784-4e1e-b1a3-b9d34be8ec4e` | `Bob`   | `""`     |
 
-`userID` 标识应用中的一个用户，`memberID` 由 SDK 分配，标识一次连接。如果 Bob 再打开一个
-标签页，列表会增加一项：`userID` 仍为 `"bob"`，`memberID` 则不同。此时有两个用户、三个连接。
-应用可以按 `userID` 合并头像或统计在线用户数，也可以按 `memberID` 展示和统计连接。
-编辑器按连接分别展示光标。
+`userID` 标识应用中的一个用户，`memberID` 由 SDK 分配，标识一条连接。如果 Bob 再打开一个标签页，列表会增加一项，`userID` 仍为 `"bob"`，`memberID` 不同，此时共有两个用户、三条连接。应用可以按 `userID` 归并成员，用于头像栏或在线人数统计；也可以按 `memberID` 展示和统计连接。编辑器为每条连接单独渲染光标。
 
-使用此订阅的视图关闭时，释放订阅：
+使用该订阅的视图关闭时，请释放订阅：
 
 ```ts
 subscription.dispose();
 ```
 
-销毁编辑器时，再释放应用创建的 `univerAPI` 和 Univer 实例。如果只是关闭成员面板，释放该面板的
-订阅即可。
+销毁编辑器时，还需释放应用创建的 `univerAPI` 和 Univer 实例。如果只关闭成员面板，释放该面板的订阅即可。
 
 ### 示例：React 成员列表
 
-将已有的 `univerAPI` 和文档 ID 传入这个组件：
+将已有的 `univerAPI` 和文档 ID 传入该组件：
 
 ```tsx
 import type { FUniver } from "@univerjs/core/facade";
@@ -170,13 +149,12 @@ export function OnlineMembers({ univerAPI, unitID }: { univerAPI: FUniver; unitI
 }
 ```
 
-成员订阅反映客户端最近收到的房间成员状态。连接丢失需要时间才能检测到，因此离开的成员可能
-短暂保留。SDK 内置的协同状态 UI 提供当前客户端的同步状态、离线提示和重连入口。
+成员订阅反映客户端最近一次收到的房间成员状态。连接中断需要一定时间才能检测到，因此已离开的成员可能短暂保留在列表中。SDK 内置的协同状态 UI 会显示当前客户端的同步状态、离线提示和重连入口。
 
 ## 用两个用户验证
 
 1. 在不同的浏览器用户配置中分别登录 Alice 和 Bob，打开同一份文档。
 2. 确认成员列表中出现两人的名称。
-3. 在 Sheet 中，用 Bob 先选中 B3，再选中 C5。Alice 应看到标有 Bob 名称的选区移动，成员列表保持不变。
+3. 在 Sheet 中让 Bob 先选中 B3，再选中 C5。Alice 应看到标有 Bob 名称的选区移动，成员列表保持不变。
 4. 用 Bob 再打开一个标签页。订阅数据应增加一个 `memberID`，React 列表仍只显示一次 Bob。
-5. 关闭 Bob 的两个标签页。收到离开通知后，Alice 的成员列表应只剩自己。
+5. 关闭 Bob 的两个标签页。收到离开通知后，Alice 的成员列表应只剩她自己。

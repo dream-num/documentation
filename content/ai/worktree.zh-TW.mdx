@@ -5,7 +5,7 @@ description: 讓 AI Agent 在隔離的 Worktree 草稿中編輯與檢查 Unit，
 source: https://github.com/dream-num/univer-collaboration-sdk/blob/main/packages/collaboration-worktree-service/README.md
 ---
 
-Worktree[^document-worktree] 為 AI Agent 提供隔離的編輯空間。AI Agent 可在草稿中多輪拉取、檢查、執行與提交，完成結構化及視覺檢查後，將 Worktree 標記為 Ready。人類透過 Web 查看實際渲染頁面，再選擇 Merge 或 Reopen。
+Worktree[^document-worktree] 為 Agent 提供一塊隔離的編輯空間。在 draft 中，Agent 可以反覆執行 pull、inspect、execute、commit，完成結構化檢查和視覺檢查後將 Worktree 標記為 Ready；隨後由人透過 Web 檢視渲染後的頁面，決定 Merge 或 Reopen。
 
 ```text
 建立 Worktree
@@ -19,12 +19,12 @@ Worktree[^document-worktree] 為 AI Agent 提供隔離的編輯空間。AI Agent
 
 ## 為什麼使用 Worktree
 
-- AI Agent 的中間修改與主幹隔離。
-- 草稿擁有獨立的快照、變更集、修訂版本、Presence 與即時房間。
-- AI Agent 可先多輪同步、編輯與驗證，再交付結果。
-- Ready 凍結目前草稿修訂版本，建立明確的審閱邊界。
-- 人類可在 Web 審閱、繼續編輯、Merge 或 Reopen。
-- Merge 仍須通過主幹 Collaboration Service 的授權與提交邊界。
+- Agent 的中間修改不會進入 trunk；
+- 每個 draft 都有獨立的 Snapshot、changeset、revision、Presence 和即時房間；
+- Agent 可以經過多輪同步、修改和自檢後再提交結果；
+- Ready 會凍結 draft 當前的 revision，建立明確的審閱邊界；
+- 人可以在 Web 中審閱、繼續修改、Merge 或 Reopen；
+- Merge 仍然經過 trunk Collaboration Service 自身的權限和提交邊界。
 
 ## 完整流程
 
@@ -43,11 +43,11 @@ Worktree[^document-worktree] 為 AI Agent 提供隔離的編輯空間。AI Agent
 → merge / reopen
 ```
 
-完成[文件載入與內容操作](/ai/content-operations)、[Office 檔案匯入匯出](/server/import-export/node)與[視覺檢查](/ai/visual-inspection)後，將相同能力指向 Worktree 目標，即可形成建議的 AI Agent 編輯流程。
+[文件內容載入與讀寫](/ai/content-operations)、[Office 檔案匯入匯出](/server/import-export/node)和[視覺檢查](/ai/visual-inspection)均可用之後，將同一組能力指向 Worktree target，即可得到推薦的 Agent 編輯流程。
 
 ## Worktree 目標
 
-Collaboration Runtime 仍只處理單一 Unit 的快照、變更集與修訂版本，不解讀 Worktree 產品概念。應用程式介接器將 `worktreeID + unitID` 映射為 Worktree Endpoint 的 Snapshot、Submit、WebSocket 與 Session Ticket URL，再傳給 Runtime 後端。
+Collaboration Runtime 仍然只處理單個 Unit 的 Snapshot、changeset 和 revision，並不具備 Worktree 這個概念。Application adapter 負責把 `worktreeID + unitID` 對映為 Worktree Endpoint 的 Snapshot、Submit、WebSocket 和 Session Ticket URL，再把這組 URL 傳給 Runtime backend。
 
 ```text
 worktreeID + unitID
@@ -56,26 +56,26 @@ worktreeID + unitID
 → Collaboration Runtime
 ```
 
-因此，相同的 Runtime 執行模型既可連接主幹，也可連接隔離的 Worktree 草稿。
+同一套 Runtime 執行模型既可以接入 trunk，也可以接入隔離的 Worktree draft。
 
 ## AI Agent 在草稿中的操作
 
-Worktree Unit 與一般 Unit 使用相同的核心迴圈：
+Agent 操作 Worktree Unit 與操作普通 Unit 使用的是同一個核心迴圈：
 
 ```text
 load → pull → inspect → execute(write) → commit
 ```
 
-若要使用現成的 Inspection 入口，`@univer-cli/content-inspection-command` 提供兩個獨立工廠：
+`@univer-cli/content-inspection-command` 提供兩個獨立的 factory，作為現成的 Inspection 入口：
 
-- `createContentInspectionCommand()` 用於一般 Unit 目標。
-- `createWorktreeContentInspectionCommand()` 要求呼叫者明確選擇 `--trunk` 或 `--worktree <id>`。
+- `createContentInspectionCommand()`：作用於普通 Unit target；
+- `createWorktreeContentInspectionCommand()`：要求呼叫方明確選擇 `--trunk` 或 `--worktree <id>`。
 
-應用程式為 execute、screenshot 等命令加入相同的目標選擇，並負責取得與釋放選定的 Runtime。
+Application 需要為 execute、screenshot 和其他命令加入同樣的 target 選擇，並負責取得與釋放選中的 Runtime。
 
 ## 在 Commander 選擇 Worktree
 
-Inspection 預設集有 Worktree 變體，強制呼叫者選擇 `--trunk` 或 `--worktree <id>`：
+Inspection 預設提供一個 Worktree 版本，要求呼叫方明確選擇 `--trunk` 或 `--worktree <id>` 之一：
 
 ```ts
 import type { WorktreeContentInspectionCommandDependencies } from "@univer-cli/content-inspection-command";
@@ -107,51 +107,51 @@ function addWorktreeCommands(
 }
 ```
 
-`acquireRuntime` 與 `markReady` 是明確宣告的應用程式依賴，不是未展示的 AI SDK 輔助函式。前者實作上一節的目標與 Runtime 映射，後者呼叫 Collaboration SDK Worktree Client。
+`acquireRuntime` 和 `markReady` 都是此處顯式宣告的應用依賴，並非 AI SDK 內部隱藏的 helper。前者實現上一節所述的 Worktree target 到 Runtime 對映，後者呼叫 Collaboration SDK Worktree Client。
 
-execute、screenshot 與 layout lint 應共用相同目標模型，避免同一 Unit ID 被解析到不同主幹或草稿。Web 可透過同一 Worktree Client 提供 Reopen、Discard、Merge 與實際頁面審閱。產品可按需將部分操作包成額外的 Commander 子命令。
+execute、screenshot、layout lint 這些命令需要使用同一個 target model，否則同一個 Unit ID 可能解析到不同的 trunk 或 draft target。Web 可以在同一個 Worktree Client 上提供 Reopen、Discard、Merge 和真實頁面審閱；產品需要時，也可以將其中部分操作封裝為額外的 Commander 子命令。
 
 ## AI Agent 檢查
 
-Ready 前可組合兩種檢查：
+Ready 之前，Agent 可以結合使用兩類檢查：
 
 ```text
 結構化檢查：pull → inspect
 視覺檢查：Unit → Render Runtime → screenshot / layout lint
 ```
 
-- Inspection 驗證結構化的 Workbook、Worksheet、Range、Document、Paragraph、Presentation 或 Slide 內容。
-- Screenshot 提供實際渲染的視覺資訊。
-- Layout Lint 診斷 Slide 版面問題。
-- 發現問題後，AI Agent 可再次執行、提交與檢查。
+- Inspection 校驗 Workbook、Worksheet、Range、Document、Paragraph、Presentation 或 Slide 的結構化內容；
+- Screenshot 向 Agent 提供渲染後的頁面；
+- Layout Lint 診斷 Slide 上的版面配置問題；
+- 檢查發現問題時，Agent 可以繼續 execute、commit，然後再次檢查。
 
 ## 區分 Commit、Ready 與 Merge
 
 | 操作 | 含義 |
 | --- | --- |
-| `runtime.commit()` | 將目前修改產生的變更集提交到 Worktree 草稿 |
-| `markReady()` | 凍結每個 Unit 目前的草稿修訂版本，進入 `ready` |
-| `reopenWorktree()` | 從 `ready` 回到 `draft` 繼續編輯 |
-| `mergeWorktree()` | 逐一將 Worktree Unit 合併到主幹 |
+| `runtime.commit()` | 將當前 mutation 產生的 changeset 提交到 Worktree draft |
+| `markReady()` | 凍結各 Unit 當前的 draft revision，進入 `ready` 狀態 |
+| `reopenWorktree()` | 從 `ready` 回到 `draft`，繼續修改 |
+| `mergeWorktree()` | 將 Worktree 中的 Unit 逐個合入 trunk |
 
-`runtime.commit()` 只推進草稿，不會合併到主幹。Ready 將 AI Agent 的工作交付審閱；結果要進入主幹仍需 Worktree Merge。
+`runtime.commit()` 只推進 draft，不會合入 trunk。Ready 表示 Agent 的工作進入審閱階段，但結果仍需經過一次 Worktree Merge 才能進入 trunk。
 
 ## 透過 Web 進行人類審閱
 
-Web 使用 Worktree Client 與 Worktree 協同設定載入相同草稿。審閱介面可提供：
+Web 使用 Worktree Client 和 Worktree Collaboration 配置載入同一個 draft，審閱介面可以展示：
 
-- 目前 Worktree 狀態。
-- 草稿 Unit 的渲染頁面。
-- 主幹與草稿切換。
-- 各 Unit 的合併預覽。
-- Ready、Reopen、Discard 與 Merge 操作。
+- Worktree 的當前狀態；
+- draft 中 Unit 渲染後的頁面；
+- trunk 與 draft 之間的切換；
+- 單個 Unit 的 merge preview；
+- Ready、Reopen、Discard 和 Merge 操作。
 
-Ready 草稿為唯讀。人類或 AI Agent 要繼續編輯，都必須先 Reopen 回到 Draft；審閱確認後 Merge，再切回主幹檢視整合結果。
+Ready 狀態的 draft 是隻讀的。無論人還是 Agent，如需繼續修改，都要先 Reopen 回 Draft。審閱透過後執行 Merge，再切回 trunk 檢視合入後的結果。
 
 ## Collaboration SDK 邊界
 
-Worktree Service、Endpoint、Client 與 Database Adapter 屬於 Collaboration SDK。AI SDK 提供可組合的 Unit Runtime、Inspection、API Reference、Execution 與 Screenshot 能力。應用程式負責 Worktree 生命週期命令、目標映射、身分與授權。
+Worktree 的 Service、Endpoint、Client 和 Database Adapter 屬於 Collaboration SDK。AI SDK 提供可組合的 Unit Runtime、Inspection、API Reference、Execution 和 Screenshot 能力。Worktree 生命週期命令、target 對映、身分和權限由應用負責。
 
-伺服器組合、生命週期與合併限制請參閱[協同擴充](/server/collaboration/extensions)。
+伺服器端組裝、生命週期和合入限制參見[協同擴充套件模組](/server/collaboration/extensions)。
 
 [^document-worktree]: 此處的 Worktree 是文件內容的獨立協同草稿，不是 Git worktree，也不是原始碼目錄的檢出副本。草稿修改需經過審閱與合併流程才會進入主線。
