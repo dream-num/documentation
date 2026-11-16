@@ -128,9 +128,9 @@ Service Middleware participates in authoritative collaboration data lifecycles:
 | `createUnit`      | Before atomically creating a Unit                            | Type checks, create policy, business rules |
 | `deleteUnits`     | Before writing a delete batch                                | Delete policy and per-Unit checks          |
 | `recoverUnits`    | Before writing a recovery batch                              | Recovery policy and audit                  |
-| `submitChangeset` | Before logical submission enters idempotency and OT          | Edit policy, total size limits, trace      |
-| `applyChangeset`  | Before applying the transformed changeset to candidate state | Mutation-level validation                  |
-| `commitChangeset` | Before Adapter revision CAS and commit                       | Final revision rules and metrics           |
+| `submitChangeset` | After the Service receives a submission, before deduplication and OT | Check edit permissions or limit the size of the submission |
+| `applyChangeset`  | After OT, before applying the changeset to the document | Validate the transformed operations, for example by checking whether they affect a protected range |
+| `commitChangeset` | After applying the changeset to the candidate state, before the Adapter writes it to storage | Set metadata to save with the submission |
 
 ```ts
 service.use("createUnit", async (context, next) => {
@@ -151,16 +151,40 @@ charges.
 
 ## customData scope
 
-`customData` is an application-writable, call-local object suitable for:
+`customData` shares context within a single call. The caller can supply data, and Middleware can add to it for subsequent Middleware, the Database Adapter, and related Events to read. Common uses include:
 
-- tenant IDs, trace IDs, or request loggers;
-- reused ACL lookups for the current call;
-- timing starts or audit labels;
-- business objects shared by one Middleware chain.
+- Passing a tenant ID, a trace ID, or the logger for the request.
+- Reusing permission lookup results within the call.
+- Recording a start time or an audit label.
 
-Ordinary HTTP requests, Service calls, and WebSocket Sessions have different lifecycles.
-`customData` is not automatically persisted, sent to the browser, or logged. Long-lived data still
-belongs in application storage.
+The SDK’s built-in database adapters do not persist `customData`. To save fields with a document or changeset, see [Persistent metadata](#persistent-metadata).
+
+## Persistent metadata [#persistent-metadata]
+
+`metadata` stores application-defined data. `UnitRecord.metadata` is saved with the document, and `ChangesetRecord.metadata` is saved with each submission.
+
+When creating a document, pass `metadata` to `createUnitFromData()` or `createUnitFromSnapshot()`, or set `context.unit.metadata` in `createUnit` middleware. The default is `{}`.
+
+When submitting a changeset, you can update both metadata objects in `commitChangeset` middleware. `context.unit.metadata` starts with the document’s current metadata, and `context.changeset.metadata` starts as `{}`. Their types, `UnitMetadata` and `ChangesetMetadata`, are aliases of `Record<string, unknown>`. Field values must be JSON-serializable.
+
+Make your changes before calling `await next()`. This example updates the document’s last editor and records the source of the submission.
+
+```ts
+service.use("commitChangeset", async (context, next) => {
+  context.unit.metadata.lastEditorID = context.userID;
+  context.changeset.metadata.source = "application";
+  await next();
+});
+```
+
+The Service passes both complete objects to the Adapter to save with the submission.
+
+- **Revision conflict.** When the Service retries, it reruns `commitChangeset` middleware with the latest Unit metadata and empty changeset metadata.
+- **Duplicate submission.** If the same submission already succeeded, the Service returns the original changeset’s metadata.
+
+To read document metadata, call the Adapter’s `getUnit()` and read `metadata` from the returned record. For the current submission, read `changeset.metadata` from the successful `submitChangeset()` result. For past submissions, call `getChangesets()`. Each item in the returned `changesets` array includes `metadata`.
+
+With the built-in SQLite or PostgreSQL adapter, you can also query document or changeset metadata directly with SQL. Use the table and column names from your adapter’s database schema.
 
 ## Event execution model
 
@@ -191,12 +215,13 @@ external system.
 | Event                | Confirmed fact                                      | Typical use                          |
 | -------------------- | --------------------------------------------------- | ------------------------------------ |
 | `unitCreated`        | The Unit and initial data were created              | Local catalog cache or derived index |
-| `changesetCommitted` | A changeset was confirmed and advanced the revision | Broadcasts, metrics, derived indexes |
+| `changesetCommitted` | The Adapter saved the changeset and advanced the revision | Broadcasts, metrics, derived indexes |
 | `unitsDeleted`       | The Adapter confirmed the deletion batch            | Clear process-local related state    |
 | `unitsRecovered`     | The Adapter confirmed the recovery batch            | Restore process-local derived state  |
 
-The Endpoint listens to `changesetCommitted` on the same Service and broadcasts the confirmed
-changeset to clients that joined the Unit in the current process, or on every node when a pub/sub adapter
+In a `unitCreated` listener, read the document metadata from `event.record.metadata`. In a `changesetCommitted` listener, read the submission metadata from `event.changeset.metadata`.
+
+The Endpoint listens to `changesetCommitted` on the same Service and broadcasts the changeset to clients that joined the Unit in the current process, or on every node when a pub/sub adapter
 is configured. The Endpoint also exposes
 `memberLeftUnit` for explicit leave, disconnect, and Endpoint disposal.
 

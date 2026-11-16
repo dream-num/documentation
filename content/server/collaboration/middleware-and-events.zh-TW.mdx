@@ -114,9 +114,9 @@ Service Middleware 參與權威協同資料的生命週期：
 | `createUnit` | 原子建立 Unit 前 | 類型檢查、建立策略、業務規則 |
 | `deleteUnits` | 寫入批次刪除前 | 刪除策略與逐 Unit 檢查 |
 | `recoverUnits` | 寫入批次還原前 | 還原策略與稽核 |
-| `submitChangeset` | 邏輯提交進入冪等與 OT 前 | 編輯策略、總大小限制、追蹤 |
-| `applyChangeset` | 將轉換後變更集套用至候選狀態前 | mutation 層級驗證 |
-| `commitChangeset` | Adapter 修訂版本 CAS 與提交前 | 最終修訂版本規則與指標 |
+| `submitChangeset` | 收到提交後，在去重與 OT 之前 | 檢查編輯權限或限制單次提交大小 |
+| `applyChangeset` | OT 完成後，在套用變更集之前 | 檢查轉換後的操作，例如是否影響受保護的範圍 |
+| `commitChangeset` | 變更集已套用至候選狀態，Adapter 尚未寫入時 | 設定要隨本次提交儲存的 metadata |
 
 ```ts
 service.use("createUnit", async (context, next) => {
@@ -134,14 +134,40 @@ service.use("createUnit", async (context, next) => {
 
 ## customData 範圍
 
-`customData` 是應用可寫入、僅限本次呼叫的物件，適合儲存：
+`customData` 用於在同一次呼叫中共享上下文。呼叫端可傳入資料，Middleware 也可在執行時補充，供後續 Middleware、Database Adapter 和相關 Event 讀取。常見用途包括：
 
-- 租戶 ID、追蹤 ID 或請求記錄器；
-- 本次呼叫重用的 ACL 查詢結果；
-- 計時起點或稽核標籤；
-- 同一 Middleware 鏈共享的業務物件。
+- 傳遞租戶 ID、追蹤 ID 或本次請求的 logger。
+- 重複使用本次呼叫中的權限查詢結果。
+- 記錄計時起點或稽核標籤。
 
-一般 HTTP 請求、Service 呼叫與 WebSocket Session 的生命週期不同。`customData` 不會自動持久化、傳送至瀏覽器或寫入日誌。長期資料仍應存入應用儲存。
+SDK 內建的資料庫 Adapter 不會持久化 `customData`。若要將欄位隨文件或變更集儲存，請參閱[持久化 metadata](#persistent-metadata)。
+
+## 持久化 metadata [#persistent-metadata]
+
+`metadata` 用於儲存應用程式自訂的資料。`UnitRecord.metadata` 隨文件儲存，`ChangesetRecord.metadata` 隨單次提交儲存。
+
+建立文件時，可在 `createUnitFromData()` 或 `createUnitFromSnapshot()` 的輸入中傳入 `metadata`，也可在 `createUnit` middleware 中設定 `context.unit.metadata`。預設值為 `{}`。
+
+提交變更集時，可在 `commitChangeset` middleware 中更新兩個 metadata 物件。`context.unit.metadata` 的初始值為文件目前的 metadata，`context.changeset.metadata` 則從 `{}` 開始。兩者的型別分別是 `UnitMetadata` 和 `ChangesetMetadata`，都是 `Record<string, unknown>` 的別名。欄位值須能序列化為 JSON。
+
+在 `await next()` 前完成修改。以下範例更新文件的最近編輯者，並記錄本次提交的來源。
+
+```ts
+service.use("commitChangeset", async (context, next) => {
+  context.unit.metadata.lastEditorID = context.userID;
+  context.changeset.metadata.source = "application";
+  await next();
+});
+```
+
+Service 將更新後的兩個完整物件傳給 Adapter，隨本次提交一併儲存。
+
+- **版本衝突**：Service 重試時會用最新的 Unit metadata 和空的變更集 metadata 重新執行 `commitChangeset` middleware。
+- **重複提交**：若同一筆提交已成功，Service 會傳回原變更集的 metadata。
+
+要讀取文件的 metadata，可呼叫 Adapter 的 `getUnit()`，讀取傳回記錄的 `metadata`。本次提交成功後，可從 `submitChangeset()` 的結果讀取 `changeset.metadata`。查詢先前的提交時，`getChangesets()` 傳回的 `changesets` 陣列中每個項目都包含 `metadata`。
+
+使用內建 SQLite 或 PostgreSQL Adapter 時，也可直接用 SQL 查詢文件或變更集的 metadata。資料表與欄位名稱請以所用 Adapter 的資料庫結構為準。
 
 ## Event 執行模型
 
@@ -167,11 +193,13 @@ subscription.dispose();
 | Event | 已確認事實 | 典型用途 |
 | --- | --- | --- |
 | `unitCreated` | Unit 與初始資料已建立 | 本機目錄快取或衍生索引 |
-| `changesetCommitted` | 變更集已確認並推進修訂版本 | 廣播、指標、衍生索引 |
+| `changesetCommitted` | Adapter 已儲存變更集並更新版本號 | 廣播、指標、衍生索引 |
 | `unitsDeleted` | Adapter 已確認批次刪除 | 清除程序內相關狀態 |
 | `unitsRecovered` | Adapter 已確認批次還原 | 還原程序內衍生狀態 |
 
-Endpoint 監聽同一 Service 的 `changesetCommitted`，將已確認變更集廣播給目前程序中已加入 Unit 的用戶端；設定了 pub/sub 介面卡時，也會投遞到其他節點。Endpoint 也對主動離開、斷線與 Endpoint 釋放提供 `memberLeftUnit`。
+在 `unitCreated` 監聽器中，可從 `event.record.metadata` 讀取文件的 metadata。在 `changesetCommitted` 監聽器中，可從 `event.changeset.metadata` 讀取本次提交的 metadata。
+
+Endpoint 監聽同一 Service 的 `changesetCommitted`，將變更集廣播給目前程序中已加入 Unit 的用戶端；設定了 pub/sub 介面卡時，也會投遞到其他節點。Endpoint 也對主動離開、斷線與 Endpoint 釋放提供 `memberLeftUnit`。
 
 ## 擴充模組具有獨立擴充點
 

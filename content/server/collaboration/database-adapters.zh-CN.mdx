@@ -16,33 +16,29 @@ Database Adapter 以 Apache-2.0 开源，源码见
 
 ## Adapter 保存什么
 
-Core Collaboration Adapter 保存：
+Adapter 为每个协作文档（Unit）保存三类数据：
 
-- Unit record 与当前 head revision；
-- revisioned snapshot；
-- confirmed changeset；
-- Sheet snapshot 引用的 block；
-- `(unitID, sid, reqId)` 提交幂等记录[^submission-idempotency]；
-- Unit 软删除、恢复与永久删除状态。
+- **文档信息**记录文档 ID、类型、创建者、创建时间和当前版本号（`headRevision`）。Adapter 保存变更集（changeset）时会同时更新版本号。应用可以在 `UnitRecord.metadata` 中保存文档级的自定义信息，例如文档名称（`name`）、最近编辑者（`lastEditorID`）和最近修改时间（`lastModifiedAt`）。这些字段由应用维护。
+- **文档快照**保存文档在某个版本的内容。读取指定版本时，服务可以先加载不晚于目标版本的最近一次快照，再重放快照之后到目标版本之间的修改。对于电子表格，Adapter 还会保存快照引用的数据块。
+- **changeset** 包含一次提交中的操作。Adapter 按版本顺序保存 changeset，并保留提交标识 `sid` 和 `reqId`，供服务在客户端重试时识别同一次提交，避免重复应用修改。[^submission-idempotency] 应用可以在 `ChangesetRecord.metadata` 中保存本次提交的自定义信息，例如编辑来源（`source`）或关联的业务操作 ID（`operationId`）。
 
-它默认不保存用户、角色、ACL 或产品 metadata。History、Thread Comment 与 Worktree
-使用各自独立的 Adapter 合同。
+在创建和提交时设置 metadata 的方法见 [Middleware 与 Event](/server/collaboration/middleware-and-events#persistent-metadata)。
 
-## Adapter 必须保证的语义
+软删除会保留这些数据，恢复后可以继续编辑。永久删除后，文档数据无法再访问，原文档 ID 也不能复用。
 
-`IDatabaseAdapter` 不只是 CRUD 接口。实现必须维持 Collaboration Service 依赖的正确性合同：
+用户、角色和访问权限由应用管理。版本历史（History）、评论（Thread Comment）和 Worktree 各自使用独立的 Adapter 接口。
 
-| 合同            | 含义                                                     |
-| --------------- | -------------------------------------------------------- |
-| 原子创建        | 初始 snapshot 与 Sheet blocks 要么全部可见，要么都不可见 |
-| Revision CAS[^revision-cas]    | 只有 head revision 等于预期值时才能确认下一次提交        |
-| 提交幂等        | 相同 `(unitID, sid, reqId)` 重试必须返回同一个已确定结果 |
-| 连续 Changeset  | 已确认 changeset 与 Unit revision 保持连续               |
-| Snapshot 可见性 | Snapshot 的依赖完整写入后才能被读取                      |
-| 生命周期原子性  | 同一删除或恢复批次必须全有或全无                         |
-| 永久删除标记    | Hard delete 后相同 Unit ID 不可重新创建                  |
+## Adapter 的读写要求
 
-自定义 Adapter 如果只把方法逐个映射成普通读写，而没有实现这些并发与原子语义，会破坏 OT 和恢复链路。
+自定义 `IDatabaseAdapter` 时，各项操作需要满足以下要求。
+
+| 操作 | 实现要求 |
+| --- | --- |
+| 创建文档 | 原子保存 Unit 记录（含 metadata）、初始快照及其引用的 Sheet 数据块，使这些数据同时可读。 |
+| 提交 changeset | 仅当 Unit 当前版本号与预期一致时，Adapter 才能提交（CAS）[^revision-cas]。在同一次原子写入中保存 changeset 及其 metadata、完整替换 Unit metadata，并将版本号加 1。版本不匹配时，返回当前版本号，不写入数据。 |
+| 读取 changeset | 按版本号升序返回请求范围内的 changeset，版本号必须连续。每条 changeset 保留原始 `sid` 和 `reqId`，供 Service 在同一 Unit 内识别重复提交。 |
+| 保存快照 | 快照可读时，它引用的所有 Sheet 数据块也必须可读。 |
+| 删除与恢复 | 删除或恢复操作必须对整批 Unit 生效。任一项失败时，整批保持原状。 |
 
 ## Memory Adapter
 
@@ -119,26 +115,15 @@ const service = new UniverCollabService({ dbAdapter: database });
 Service 不依赖具体数据库，也不会为自定义实现补上 transaction、CAS 或 deduplication。Adapter 必须在
 自身数据库能力之上实现完整合同。[社区仓库](https://github.com/dream-num/univer-collaboration-sdk-community)里的内置实现展示了同一合同在不同数据库上的写法，可作为参考。
 
-## Context 与业务边界
+## 如何保存业务数据
 
-每次 Service 调用携带的 `customData` 会传递给 Middleware、Database Adapter 和相关 Event，但 SDK
-不会自动持久化这些数据。权限决策通常应放在 Service Middleware，而不是散落在每个 Adapter 方法中：
+**附在文档或 changeset 上的信息，可以直接用 `metadata`。** 应用可以在创建文档或提交 changeset 时设置这些字段，由内置 Adapter 随协同数据一起保存。具体用法见 [Middleware 与 Event](/server/collaboration/middleware-and-events#persistent-metadata)。
 
-```text
-Service Middleware
-  → 允许或拒绝业务操作
-  → Database Adapter
-  → 原子保存权威协同状态
-```
+**业务数据有独立的表时，可以通过 Middleware 或 Event 写入。** 需要记录一次操作尝试时，可以在 Middleware 中写入审计表。只关心成功提交的修改时，可以监听 `changesetCommitted` 更新业务表。这些写入默认在协同提交的事务之外执行。提交阶段的 Middleware 可能因版本冲突而重试，写入业务表时要避免重复记录。Event 是进程内的尽力投递通知，适合允许稍后补写或重建的数据。
 
-这样，Memory、SQLite、PostgreSQL 和自定义 Adapter 可以共享相同的应用策略。
+**需要使用应用自己的数据库和表结构，或在同一事务中写入业务数据和协同数据时，可以自定义数据库适配器**。调用 Service 时，应用可以把业务操作 ID 等上下文放入 `customData`。Adapter 在对应方法中通过 `ctx.customData` 读取所需字段，再决定写入哪些表。例如，`commitChangeset()` 可以在保存 changeset 的同一事务中，用业务操作 ID 更新对应的业务记录。
 
-如果业务数据需要与协同数据保持强一致，可以实现自定义 Database Adapter，从 `customData` 中读取所需
-信息，并在 Adapter 的同一个数据库事务中写入协同数据和业务数据。
-
-如果业务数据不要求与协同提交处于同一事务，也可以通过 Middleware 或 Event 将其写入额外的数据表或
-外部系统。Middleware 和 Event 默认不共享 Adapter 内部事务；Event 是协同提交成功后的进程内
-best-effort 通知。因此，额外写入所需的幂等、重试或补偿策略由应用负责。
+`customData` 只随本次调用传递。内置 Adapter 不会自动保存其中的字段，也不会根据这些字段写入业务表。
 
 ## 扩展模块的存储
 

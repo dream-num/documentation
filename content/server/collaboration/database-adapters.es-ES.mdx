@@ -13,32 +13,29 @@ Detén Quick Start y ejecuta `pnpm example:database-adapter` desde la raíz. Abr
 
 ## Qué almacena un Adapter
 
-El Adapter principal almacena:
+El Adapter almacena tres tipos de datos por cada documento colaborativo (Unit).
 
-- el registro Unit y la revisión actual de cabecera;
-- instantáneas con revisión;
-- conjuntos de cambios confirmados;
-- bloques referenciados por las instantáneas Sheet;
-- registros de idempotencia[^submission-idempotency] de envío con clave `(unitID, sid, reqId)`;
-- estado de eliminación lógica, recuperación y eliminación permanente de Units.
+- **El registro de la Unit** contiene el ID del documento, su tipo, el autor, la fecha de creación y la revisión actual (`headRevision`). Al guardar un changeset, el Adapter actualiza la revisión en la misma operación. La aplicación puede gestionar campos propios en `UnitRecord.metadata`, como el nombre del documento (`name`), el ID de quien lo editó por última vez (`lastEditorID`) o la fecha de esa edición (`lastModifiedAt`).
+- **Las instantáneas** guardan el contenido del documento en una revisión concreta. Para leer una revisión, el Service puede cargar la instantánea más reciente cuya revisión sea menor o igual que la solicitada y aplicar los cambios posteriores hasta llegar a ella. En las hojas de cálculo, el Adapter también almacena los bloques de datos a los que hace referencia la instantánea.
+- **Los changesets** agrupan las operaciones de cada envío. El Adapter los guarda por orden de revisión y conserva los identificadores `sid` y `reqId`. Así, el Service reconoce los reintentos del cliente y evita aplicar dos veces el mismo cambio.[^submission-idempotency] La aplicación puede guardar en `ChangesetRecord.metadata` datos como el origen de la edición (`source`) o el ID de una operación de negocio asociada (`operationId`).
 
-No almacena por defecto usuarios, roles, ACL ni metadatos del producto. History, Thread Comment y Worktree tienen contratos Adapter independientes.
+Para definir estos campos al crear un documento o enviar un changeset, consulta [Metadatos persistentes](/server/collaboration/middleware-and-events#persistent-metadata).
 
-## Semántica obligatoria
+La eliminación lógica conserva los datos y permite volver a editar el documento tras su recuperación. Una vez eliminado de forma permanente, ya no se puede acceder a sus datos ni reutilizar su ID.
 
-`IDatabaseAdapter` es más que una interfaz CRUD. La implementación debe mantener las garantías de corrección que espera Collaboration Service:
+La aplicación gestiona los usuarios, roles y permisos de acceso. History, Thread Comment y Worktree tienen interfaces de Adapter independientes.
 
-| Contrato | Significado |
+## Requisitos de lectura y escritura del Adapter
+
+Al implementar `IDatabaseAdapter`, respeta los siguientes requisitos para cada operación.
+
+| Operación | Requisito |
 | --- | --- |
-| Creación atómica | La instantánea inicial y los bloques Sheet se hacen visibles juntos o no se hace visible ninguno |
-| CAS[^revision-cas] de revisión | El siguiente envío solo se confirma cuando la revisión de cabecera coincide con la esperada |
-| Idempotencia de envío | Reintentar el mismo `(unitID, sid, reqId)` devuelve el mismo resultado determinado |
-| Cambios contiguos | Los conjuntos de cambios confirmados y la revisión de la Unit mantienen continuidad |
-| Visibilidad de instantáneas | Una instantánea solo se puede leer tras almacenar todas sus dependencias |
-| Ciclo de vida atómico | Todas las Units del lote de eliminación o recuperación tienen éxito, o ninguna |
-| Marca de eliminación permanente | No se puede volver a crear un ID de Unit eliminado permanentemente |
-
-Convertir cada método en una lectura o escritura normal sin implementar esta concurrencia y atomicidad rompe OT y la recuperación.
+| Crear una Unit | Guarda de forma atómica el registro de la Unit con sus metadatos, la instantánea inicial y los bloques Sheet que esta referencia. Todos deben estar disponibles para su lectura al mismo tiempo. |
+| Guardar un changeset | Guarda los datos solo si la revisión actual coincide con la esperada (CAS)[^revision-cas]. En una sola escritura atómica, guarda el changeset con sus metadatos, sustituye por completo los metadatos de la Unit e incrementa la revisión en uno. Si no coincide, devuelve la revisión actual sin escribir datos. |
+| Leer changesets | Devuelve los changesets del intervalo solicitado en orden ascendente de revisión, sin saltos. Conserva los valores originales de `sid` y `reqId` para que el Service reconozca envíos duplicados de una misma Unit. |
+| Guardar una instantánea | Cuando la instantánea se pueda leer, también deben poder leerse todos los bloques Sheet que referencia. |
+| Eliminar o recuperar Units | Aplica la operación al lote completo. Si falla un elemento, todo el lote debe conservar su estado anterior. |
 
 ## Memory Adapter
 
@@ -112,22 +109,15 @@ const service = new UniverCollabService({ dbAdapter: database });
 
 Service no depende de una base concreta, pero tampoco puede añadir transacciones, CAS o deduplicación a una implementación personalizada. Adapter debe implementar el contrato completo con las capacidades de su base de datos. Las implementaciones integradas del [repositorio de la comunidad](https://github.com/dream-num/univer-collaboration-sdk-community) muestran el mismo contrato en distintas bases de datos y sirven de referencia.
 
-## Context y límite de la aplicación
+## Cómo almacenar datos de negocio
 
-Cada llamada a Service pasa su `customData` a Middleware, Database Adapter y Events relacionados, pero el SDK no lo persiste automáticamente. Las decisiones de autorización suelen mantenerse en el Middleware de Service en vez de repetirse en los métodos del Adapter:
+**Usa `metadata` para los datos asociados a un documento o a un changeset.** La aplicación puede definir los campos al crear el documento o al enviar el changeset. El Adapter integrado los guarda junto con los datos de colaboración. Consulta [Metadatos persistentes](/server/collaboration/middleware-and-events#persistent-metadata).
 
-```text
-Middleware de Service
-  → permite o rechaza la operación de negocio
-  → Database Adapter
-  → almacena atómicamente el estado colaborativo autoritativo
-```
+**Usa Middleware o Events para escribir en tablas de negocio independientes.** Para registrar un intento de operación, escribe en una tabla de auditoría desde un Middleware. Para actualizar una tabla solo después de que se guarden los cambios, escucha `changesetCommitted`. Por defecto, estas escrituras se realizan fuera de la transacción de colaboración. Un conflicto de revisión puede provocar que el Middleware de commit vuelva a ejecutarse. Evita que un reintento genere registros duplicados. Los Events se entregan dentro del proceso sin garantía de entrega, por lo que son adecuados para datos que la aplicación pueda completar o reconstruir más adelante.
 
-Así, Memory, SQLite, PostgreSQL y los Adapters personalizados comparten la misma política de aplicación.
+**Usa un Adapter personalizado si necesitas una base de datos y un esquema propios o si los datos de negocio y de colaboración deben guardarse en la misma transacción.** Al llamar al Service, la aplicación puede incluir en `customData` el ID de una operación de negocio. El método del Adapter puede leer los campos que necesita de `ctx.customData` y decidir qué tablas actualizar. Por ejemplo, `commitChangeset()` puede usar ese ID para actualizar el registro de negocio en la misma transacción que guarda el changeset.
 
-Si los datos de negocio requieren consistencia fuerte con los colaborativos, un Database Adapter personalizado puede leer valores de `customData` y escribir ambos conjuntos dentro de su transacción de base de datos.
-
-Si no necesitan compartir la transacción colaborativa, Middleware o Events pueden escribirlos en otras tablas o sistemas externos. No comparten por defecto la transacción interna del Adapter. Los Events son notificaciones locales al proceso y de mejor esfuerzo emitidas tras un commit colaborativo correcto. La aplicación es responsable de la idempotencia, los reintentos y las compensaciones necesarios.
+El alcance de `customData` se limita a la llamada actual. Los Adapters integrados no guardan sus campos automáticamente ni los utilizan para escribir en tablas de negocio.
 
 ## Almacenamiento de extensiones
 
