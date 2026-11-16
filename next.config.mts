@@ -40,6 +40,13 @@ const config: NextConfig = {
 
   output: 'standalone',
 
+  turbopack: {
+    resolveAlias: {
+      // The Univer LaTeX wrapper references this file without shipping it.
+      'ratex_wasm_bg.wasm': './node_modules/ratex-wasm/pkg/ratex_wasm_bg.wasm',
+    },
+  },
+
   outputFileTracingIncludes: {
     '/*': [
       '.amamo-mdx/index.json',
