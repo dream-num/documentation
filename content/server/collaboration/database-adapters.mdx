@@ -11,7 +11,7 @@ Database Adapters are open source under Apache-2.0. The source code is available
 
 Stop Quick Start and run `pnpm example:database-adapter` from the repository root. Open `http://127.0.0.1:3010/?unit=persistent-sheet`, change a cell, and confirm the change in a second browser. Then stop the server, run the same command again, and reopen the same URL. The value should still be present.
 
-The data is stored in `examples/database-adapter/.data/collaboration.sqlite`, so do not delete that file between runs. On startup the server reads the existing Unit and calls `createUnitFromData()` only when it receives `UNIT_NOT_FOUND`, so it never overwrites stored data. The implementation is in [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts).
+Keep `examples/database-adapter/.data/collaboration.sqlite` between runs. On startup, the example calls `createUnitFromData()`. For an existing Unit, the result has status `already-exists` and the saved edits are preserved. See [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts).
 
 ## What an Adapter stores
 
@@ -80,7 +80,7 @@ It initializes the schema when the database is empty and only verifies the schem
 
 ## PostgreSQL Adapter
 
-[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) is built on node-postgres and stores its data in PostgreSQL. Several collaboration nodes can share a single database.
+[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) stores all core collaboration data in PostgreSQL, including the cell data blocks referenced by Sheet snapshots. Multiple collaboration nodes can share the same database.
 
 ```ts
 import { PostgresDatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres";
@@ -93,6 +93,31 @@ const service = new UniverCollabService({ dbAdapter: database });
 ```
 
 The application owns the pool and closes it after disposing the Service. `create()` initializes the `collaboration` schema in an empty database and only verifies an existing schema.
+
+If S3-compatible object storage is available, we recommend the [PostgreSQL + S3 Adapter](#postgresql-s3-adapter) to keep the database and its backups smaller.
+
+## PostgreSQL + S3 Adapter [#postgresql-s3-adapter]
+
+[`@univerjs-pro/collaboration-database-postgres-s3`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres-s3) stores Sheet cell data blocks in an S3-compatible bucket. PostgreSQL holds the Units, changesets, snapshot records, and block references.
+
+Cell data makes up most of a large workbook’s snapshot. Storing these blocks in S3 keeps the PostgreSQL database and its backups smaller. As workbooks grow, block storage can scale independently of the database.
+
+Set `DATABASE_URL` to the database connection string, `S3_REGION` to the bucket’s region, and `S3_BUCKET` to the name of an existing bucket.
+
+```ts
+import { S3Client } from "@aws-sdk/client-s3";
+import { PostgresS3DatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres-s3";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { Pool } from "pg";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const client = new S3Client({ region: process.env.S3_REGION });
+const database = await PostgresS3DatabaseAdapter.create({
+  pool,
+  s3: { client, bucket: process.env.S3_BUCKET! },
+});
+const service = new UniverCollabService({ dbAdapter: database });
+```
 
 ## Custom Database Adapters
 
@@ -129,12 +154,12 @@ Because these Adapter interfaces are independent, the SDK does not provide cross
 
 ## Choosing an Adapter
 
-| Adapter    | Best fit                                                  | Main constraint                                                 |
-| ---------- | --------------------------------------------------------- | --------------------------------------------------------------- |
-| Memory     | Tests, examples, temporary development                    | Data is lost when the process exits                             |
-| SQLite     | Development, testing, local applications, small-scale use | Single-file database with application-owned settings            |
-| PostgreSQL | Multi-node deployments and existing PostgreSQL databases  | The application owns the pool and database operations           |
-| Custom     | Existing databases or custom business-data integration    | The application must implement and verify the complete contract |
+| Adapter         | Best fit                                                                    | Main constraint                                                                                                        |
+| --------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Memory          | Tests, examples, temporary development                                      | Data is lost when the process exits                                                                                    |
+| SQLite          | Development, testing, local applications, small-scale use                   | Single-file database with application-owned settings                                                                   |
+| PostgreSQL + S3 | PostgreSQL applications with object storage, especially for large workbooks | Manage both the database and bucket. Without S3-compatible storage, use the [PostgreSQL Adapter](#postgresql-adapter). |
+| Custom          | Existing databases or custom business-data integration                      | The application must implement and verify the complete contract                                                        |
 
 The application owns every injected Adapter. Dispose the Service before disposing the Adapter:
 

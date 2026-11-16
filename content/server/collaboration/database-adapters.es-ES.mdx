@@ -11,7 +11,7 @@ Los adaptadores de bases de datos son de código abierto bajo Apache-2.0. El có
 
 Parar Inicio Rápido y ejecutar `pnpm example:database-adapter` desde la raíz del repositorio. Abrir `http://127.0.0.1:3010/?unit=persistent-sheet`, cambiar una celda, y confirmar el cambio en un segundo navegador. Después de detener el servidor, ejecutar el mismo comando de nuevo, y volver a abrir la misma URL. El valor todavía debe estar presente.
 
-Los datos se almacenan en `examples/database-adapter/.data/collaboration.sqlite`, por lo que no eliminar ese archivo entre carreras. En el inicio el servidor lee la unidad existente y llama `createUnitFromData()` sólo cuando recibe `UNIT_NOT_FOUND`, por lo que nunca sobrescribe los datos almacenados. La implementación es en [servidor/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts).
+Los datos se guardan en `examples/database-adapter/.data/collaboration.sqlite`. En cada arranque, el ejemplo llama a `createUnitFromData()`. Si la Unit ya existe, la llamada devuelve el estado `already-exists` y se conservan los cambios guardados. [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts)
 
 ## Qué almacena un Adapter
 
@@ -80,7 +80,7 @@ Inicia el esquema cuando la base de datos está vacía y sólo verifica el esque
 
 ## PostgreSQL Adapter
 
-[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) está construido sobre nodo-postgres y almacena sus datos en PostgreSQL. Varios nodos de colaboración pueden compartir una sola base de datos.
+[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) guarda todos los datos de colaboración de Core en PostgreSQL, incluidos los bloques de celdas a los que hacen referencia las instantáneas de las hojas. Varios nodos de colaboración pueden compartir una base de datos.
 
 ```ts
 import { PostgresDatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres";
@@ -93,6 +93,31 @@ const service = new UniverCollabService({ dbAdapter: database });
 ```
 
 La aplicación es dueña de la piscina y la cierra después de deshacerse del Servicio. `create()` inicializa el esquema `collaboration` en una base de datos vacía y sólo verifica un esquema existente.
+
+Si dispones de almacenamiento de objetos compatible con S3, recomendamos el [adaptador PostgreSQL + S3](#postgresql-s3-adapter) para reducir el tamaño de la base de datos y de sus copias de seguridad.
+
+## PostgreSQL + S3 Adapter [#postgresql-s3-adapter]
+
+[`@univerjs-pro/collaboration-database-postgres-s3`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres-s3) guarda los bloques de celdas en un bucket compatible con S3. Las Units, los changesets, los registros de instantáneas y las referencias a los bloques permanecen en PostgreSQL.
+
+Los datos de las celdas ocupan la mayor parte de la instantánea de un libro grande. Guardar estos bloques en S3 reduce el tamaño de la base PostgreSQL y de sus copias de seguridad. A medida que crecen los libros, la capacidad de almacenamiento de los bloques puede ampliarse de forma independiente.
+
+Configura `DATABASE_URL` con la cadena de conexión a la base de datos, `S3_REGION` con la región del bucket y `S3_BUCKET` con el nombre de un bucket existente.
+
+```ts
+import { S3Client } from "@aws-sdk/client-s3";
+import { PostgresS3DatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres-s3";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { Pool } from "pg";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const client = new S3Client({ region: process.env.S3_REGION });
+const database = await PostgresS3DatabaseAdapter.create({
+  pool,
+  s3: { client, bucket: process.env.S3_BUCKET! },
+});
+const service = new UniverCollabService({ dbAdapter: database });
+```
 
 ## Database Adapters personalizados
 
@@ -129,12 +154,12 @@ Debido a que estas interfaces de Adaptador son independientes, el SDK no proporc
 
 ## Elegir un Adapter
 
-| Adapter | Uso más adecuado | Restricción principal |
-| --- | --- | --- |
-| Memory | Pruebas, ejemplos, desarrollo temporal | Los datos se pierden cuando el proceso sale |
-| SQLite | Desarrollo, pruebas, aplicaciones locales, pequeña escala | Base de un archivo con ajustes a cargo de la aplicación |
-| PostgreSQL | Despliegues en varios nodos y bases PostgreSQL existentes | La aplicación gestiona el pool y la operación de la base |
-| Personalizado | Bases existentes o integración de datos de negocio | La aplicación debe implementar y verificar el contrato completo |
+| Adapter         | Uso más adecuado                                                                           | Restricción principal                                                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Memory          | Pruebas, ejemplos, desarrollo temporal                                                     | Los datos se pierden cuando el proceso sale                                                                                                    |
+| SQLite          | Desarrollo, pruebas, aplicaciones locales, pequeña escala                                  | Base de un archivo con ajustes a cargo de la aplicación                                                                                        |
+| PostgreSQL + S3 | Aplicaciones con PostgreSQL y almacenamiento de objetos, especialmente para libros grandes | La aplicación gestiona la base de datos y el bucket. Sin almacenamiento compatible con S3, usa el [adaptador PostgreSQL](#postgresql-adapter). |
+| Personalizado   | Bases existentes o integración de datos de negocio                                         | La aplicación debe implementar y verificar el contrato completo                                                                                |
 
 La aplicación es propietaria de cada Adapter inyectado. Libera Service antes de Adapter:
 

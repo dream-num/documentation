@@ -11,7 +11,7 @@ Database Adapter 以 Apache-2.0 开源，源码位于 [univer-collaboration-sdk-
 
 停止 Quick Start，然后从仓库根目录运行 `pnpm example:database-adapter`。打开 `http://127.0.0.1:3010/?unit=persistent-sheet`，修改一个单元格，再在另一个浏览器中确认修改结果。停止服务，重新执行同一条命令并打开同一个 URL，该值应当仍然存在。
 
-数据保存在 `examples/database-adapter/.data/collaboration.sqlite`，两次运行之间不得删除该文件。服务启动时会先读取已有的 Unit，仅在收到 `UNIT_NOT_FOUND` 时调用 `createUnitFromData()`，因此不会覆盖已存储的数据。具体实现见 [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts)。
+数据保存在 `examples/database-adapter/.data/collaboration.sqlite`。示例服务每次启动都会调用 `createUnitFromData()`。如果 Unit 已存在，返回结果的状态为 `already-exists`，之前的修改会保留。具体实现见 [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts)。
 
 ## Adapter 保存什么
 
@@ -80,7 +80,7 @@ const service = new UniverCollabService({ dbAdapter: database });
 
 ## PostgreSQL Adapter
 
-[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) 基于 node-postgres，将数据存储在 PostgreSQL 中，多个协同节点可以共用一个数据库。
+[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) 将全部核心协同数据保存在 PostgreSQL 中，包括 Sheet 快照引用的单元格数据块。多个协同节点可以共用同一个数据库。
 
 ```ts
 import { PostgresDatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres";
@@ -93,6 +93,32 @@ const service = new UniverCollabService({ dbAdapter: database });
 ```
 
 连接池由应用持有，并在释放 Service 之后关闭。`create()` 会在空数据库中初始化 `collaboration` schema，schema 已存在时只做校验。
+
+如果有 S3 兼容对象存储，推荐使用 [PostgreSQL + S3 Adapter](#postgresql-s3-adapter) 来减小数据库和备份的体积。
+
+## PostgreSQL + S3 Adapter [#postgresql-s3-adapter]
+
+[`@univerjs-pro/collaboration-database-postgres-s3`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres-s3) 将 Sheet 的单元格数据块存入 S3 兼容存储桶，Unit、changeset、快照记录和块引用仍保存在 PostgreSQL 中。
+
+大型工作簿的快照主要由单元格数据构成。把这些数据块放在 S3，可以减小 PostgreSQL 数据库及其备份的体积。工作簿增长时，数据块的存储容量也可以独立扩展。
+
+将 `DATABASE_URL`、`S3_REGION` 和 `S3_BUCKET` 分别设为数据库连接地址、存储桶所在区域和已有存储桶名称。
+
+```ts
+import { S3Client } from "@aws-sdk/client-s3";
+import { PostgresS3DatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres-s3";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { Pool } from "pg";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const client = new S3Client({ region: process.env.S3_REGION });
+const database = await PostgresS3DatabaseAdapter.create({
+  pool,
+  s3: { client, bucket: process.env.S3_BUCKET! },
+});
+const service = new UniverCollabService({ dbAdapter: database });
+```
+
 
 ## 自定义 Database Adapter
 
@@ -129,12 +155,12 @@ History、Thread Comment、Worktree 与 File 等扩展模块各自定义独立�
 
 ## 如何选择
 
-| Adapter    | 适用范围                           | 主要限制                         |
-| ---------- | ---------------------------------- | -------------------------------- |
-| Memory     | 测试、示例、临时开发               | 进程退出后数据丢失               |
-| SQLite     | 开发、测试、本地应用与小规模使用   | 单文件数据库，设置由应用管理     |
-| PostgreSQL | 多节点部署与现有 PostgreSQL 数据库 | 连接池与数据库操作由应用负责     |
-| Custom     | 已有数据库或自定义业务数据集成     | 应用需要实现并验证完整合同       |
+| Adapter         | 适用范围                                             | 主要限制                                                                                 |
+| --------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Memory          | 测试、示例、临时开发                                 | 进程退出后数据丢失                                                                       |
+| SQLite          | 开发、测试、本地应用与小规模使用                     | 单文件数据库，设置由应用管理                                                             |
+| PostgreSQL + S3 | 使用 PostgreSQL 和对象存储的应用，尤其适合大型工作簿 | 需管理数据库和存储桶。没有 S3 兼容存储时可选 [PostgreSQL Adapter](#postgresql-adapter)。 |
+| Custom          | 已有数据库或自定义业务数据集成                       | 应用需要实现并验证完整合同                                                               |
 
 应用拥有所有注入的 Adapter。释放时先释放 Service，再释放 Adapter：
 

@@ -11,7 +11,7 @@ description: 共同編集の永続化契約を理解し、Memory、SQLite、Post
 
 リポジトリのルートから`pnpm example:database-adapter`を起動し、実行します。 `http://127.0.0.1:3010/?unit=persistent-sheet`を開き、セルを変更し、2番目のブラウザで変更を確認します。 その後、サーバーを停止し、再び同じコマンドを実行し、同じURLを再オープンします。 値はまだ存在する必要があります。
 
-データは`examples/database-adapter/.data/collaboration.sqlite`に保存されているため、実行間でそのファイルを削除しません。 起動時に、サーバーは既存のユニットを読み込み、`UNIT_NOT_FOUND`を受信したときにのみ`createUnitFromData()`を呼び出すので、保存されたデータを上書きすることはありません。 実装は[サーバ/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts)です。
+データは `examples/database-adapter/.data/collaboration.sqlite` に保存されます。サンプルは起動するたびに `createUnitFromData()` を呼び出します。Unit がすでに存在する場合は `already-exists` が返り、保存済みの編集内容が保持されます。 [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts)
 
 ## Adapter が保存するもの
 
@@ -80,7 +80,7 @@ const service = new UniverCollabService({ dbAdapter: database });
 
 ## PostgreSQL Adapter
 
-[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) は、ノード・ポスト・グレス上に構築され、PostgreSQLのデータを格納しています。複数のコラボレーション・ノードは、単一のデータベースを共有できます。
+[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) は、シートのスナップショットが参照するセルのデータブロックを含め、Core の共同編集データをすべて PostgreSQL に保存します。複数の共同編集ノードで同じデータベースを共有できます。
 
 ```ts
 import { PostgresDatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres";
@@ -93,6 +93,31 @@ const service = new UniverCollabService({ dbAdapter: database });
 ```
 
 このアプリケーションは、プールを所有し、サービスを無効にした後に閉じます。 `create()`は、空のデータベースで`collaboration`スキーマを初期化し、既存のスキーマのみを検証します。
+
+S3 互換のオブジェクトストレージを利用できる場合は、データベースとバックアップの容量を抑えられる [PostgreSQL + S3 Adapter](#postgresql-s3-adapter) を推奨します。
+
+## PostgreSQL + S3 Adapter [#postgresql-s3-adapter]
+
+[`@univerjs-pro/collaboration-database-postgres-s3`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres-s3) はシートのセルのデータブロックを S3 互換バケットに保存します。Unit、changeset、スナップショットのレコード、ブロックへの参照は PostgreSQL に保存します。
+
+大きなワークブックでは、スナップショットの大半をセルデータが占めます。ブロックを S3 に保存すると、PostgreSQL のデータベースとバックアップの容量を抑えられます。ワークブックの増大に合わせて、ブロックのストレージを独立して拡張できます。
+
+`DATABASE_URL` にデータベースの接続文字列、`S3_REGION` にバケットのリージョン、`S3_BUCKET` に既存のバケット名を設定します。
+
+```ts
+import { S3Client } from "@aws-sdk/client-s3";
+import { PostgresS3DatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres-s3";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { Pool } from "pg";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const client = new S3Client({ region: process.env.S3_REGION });
+const database = await PostgresS3DatabaseAdapter.create({
+  pool,
+  s3: { client, bucket: process.env.S3_BUCKET! },
+});
+const service = new UniverCollabService({ dbAdapter: database });
+```
 
 ## カスタム Database Adapter
 
@@ -129,12 +154,12 @@ const service = new UniverCollabService({ dbAdapter: database });
 
 ## Adapter の選択
 
-| Adapter | 適した用途 | 主な制約 |
-| --- | --- | --- |
-| Memory | テスト、サンプル、一時的な開発 | プロセス終了時にデータが失われる |
-| SQLite | 開発、テスト、ローカルアプリ、小規模利用 | 単一ファイル DB。設定はアプリケーションが管理 |
-| PostgreSQL | 複数ノードへのデプロイと既存の PostgreSQL | 接続プールと DB の運用はアプリケーションが管理 |
-| カスタム | 既存 DB や独自の業務データ連携 | 完全な契約の実装と検証が必要 |
+| Adapter         | 適した用途                                                                                | 主な制約                                                                                                                         |
+| --------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Memory          | テスト、サンプル、一時的な開発                                                            | プロセス終了時にデータが失われる                                                                                                 |
+| SQLite          | 開発、テスト、ローカルアプリ、小規模利用                                                  | 単一ファイル DB。設定はアプリケーションが管理                                                                                    |
+| PostgreSQL + S3 | PostgreSQL とオブジェクトストレージを使うアプリケーション。特に大きなワークブックに適する | データベースとバケットの両方を管理します。S3 互換ストレージがない場合は [PostgreSQL Adapter](#postgresql-adapter) を使用します。 |
+| カスタム        | 既存 DB や独自の業務データ連携                                                            | 完全な契約の実装と検証が必要                                                                                                     |
 
 注入した Adapter はアプリケーションが所有します。Service を先に破棄し、次に Adapter を破棄します。
 

@@ -11,7 +11,7 @@ description: Изучите контракт хранения данных со�
 
 Остановите Quick Start и запустите `pnpm example:database-adapter` из корня репозитория. Откройте `http://127.0.0.1:3010/?unit=persistent-sheet`, измените ячейку и подтвердите изменение во втором браузере. Затем остановите сервер, снова запустите ту же команду и снова откройте тот же URL. Значение все равно должно присутствовать.
 
-Данные хранятся в `examples/database-adapter/.data/collaboration.sqlite`, поэтому не удаляйте этот файл между запусками. При запуске сервер считывает существующий блок и звонит `createUnitFromData()` только тогда, когда он получает `UNIT_NOT_FOUND`, поэтому он никогда не перезаписывает сохраненные данные. Реализация находится в [Сервер/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts).
+Данные хранятся в `examples/database-adapter/.data/collaboration.sqlite`. При каждом запуске пример вызывает `createUnitFromData()`. Если Unit уже существует, вызов возвращает статус `already-exists`, а сохранённые изменения остаются в документе. [server/main.ts](https://github.com/dream-num/univer-collaboration-examples/blob/main/examples/database-adapter/server/main.ts)
 
 ## Что хранит Adapter
 
@@ -80,7 +80,7 @@ const service = new UniverCollabService({ dbAdapter: database });
 
 ## PostgreSQL Adapter
 
-[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) построен на узле-постгре и хранит свои данные в PostgreSQL. Несколько узлов совместной работы могут совместно использовать одну базу данных.
+[`@univerjs-pro/collaboration-database-postgres`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres) хранит в PostgreSQL все данные совместного редактирования Core, включая блоки ячеек, на которые ссылаются снимки листов. Несколько узлов могут использовать одну базу данных.
 
 ```ts
 import { PostgresDatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres";
@@ -93,6 +93,31 @@ const service = new UniverCollabService({ dbAdapter: database });
 ```
 
 Приложение владеет пулом и закрывает его после удаления Сервиса. `create()` инициализирует схему `collaboration` в пустой базе данных и только проверяет существующую схему.
+
+Если доступно объектное хранилище, совместимое с S3, рекомендуем [адаптер PostgreSQL + S3](#postgresql-s3-adapter), чтобы уменьшить размер базы и её резервных копий.
+
+## PostgreSQL + S3 Adapter [#postgresql-s3-adapter]
+
+[`@univerjs-pro/collaboration-database-postgres-s3`](https://github.com/dream-num/univer-collaboration-sdk-community/tree/main/packages/collaboration-database-postgres-s3) сохраняет блоки ячеек в S3-совместимом бакете. Unit, наборы изменений, записи снимков и ссылки на блоки хранятся в PostgreSQL.
+
+Основную часть снимка большой книги занимают данные ячеек. Хранение этих блоков в S3 уменьшает объём базы PostgreSQL и её резервных копий. По мере роста книг ёмкость хранилища блоков можно увеличивать независимо от базы.
+
+Укажите строку подключения к базе в `DATABASE_URL`, регион бакета в `S3_REGION` и имя существующего бакета в `S3_BUCKET`.
+
+```ts
+import { S3Client } from "@aws-sdk/client-s3";
+import { PostgresS3DatabaseAdapter } from "@univerjs-pro/collaboration-database-postgres-s3";
+import { UniverCollabService } from "@univerjs-pro/collaboration-service";
+import { Pool } from "pg";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const client = new S3Client({ region: process.env.S3_REGION });
+const database = await PostgresS3DatabaseAdapter.create({
+  pool,
+  s3: { client, bucket: process.env.S3_BUCKET! },
+});
+const service = new UniverCollabService({ dbAdapter: database });
+```
 
 ## Собственные Database Adapters
 
@@ -129,12 +154,12 @@ const service = new UniverCollabService({ dbAdapter: database });
 
 ## Выбор Adapter
 
-| Adapter | Подходящие задачи | Основное ограничение |
-| --- | --- | --- |
-| Memory | Тесты, примеры, временная разработка | Данные теряются при выходе из процесса |
-| SQLite | Разработка, тесты, локальные приложения, небольшой масштаб | Однофайловая база с настройками под контролем приложения |
-| PostgreSQL | Развёртывание на нескольких узлах и существующие базы PostgreSQL | Пул и эксплуатация базы под контролем приложения |
-| Собственный | Существующие базы или особая интеграция бизнес-данных | Приложение реализует и проверяет полный контракт |
+| Adapter         | Подходящие задачи                                                         | Основное ограничение                                                                                                       |
+| --------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Memory          | Тесты, примеры, временная разработка                                      | Данные теряются при выходе из процесса                                                                                     |
+| SQLite          | Разработка, тесты, локальные приложения, небольшой масштаб                | Однофайловая база с настройками под контролем приложения                                                                   |
+| PostgreSQL + S3 | Приложения с PostgreSQL и объектным хранилищем, особенно для больших книг | Приложение управляет базой и бакетом. Без S3-совместимого хранилища используйте [адаптер PostgreSQL](#postgresql-adapter). |
+| Собственный     | Существующие базы или особая интеграция бизнес-данных                     | Приложение реализует и проверяет полный контракт                                                                           |
 
 Приложение владеет всеми внедрёнными Adapters. Освободите Service раньше Adapter:
 
