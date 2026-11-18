@@ -96,7 +96,9 @@ Before the authorization takes effect, a query against a limited quota returns t
 | `periodStart` | `string \| null` | Inclusive UTC ISO start of the queried monthly quota window. The first period starts in the future, before activation. `null` when the quota is unlimited. |
 | `periodEnd` | `string \| null` | Exclusive UTC ISO end of the queried monthly quota window. `null` when the quota is unlimited. |
 
-`periodEnd` is the start of the next monthly quota window, and `expiresAt` is the end of the export subscription. While the subscription is valid, exports always use commercial quota. Exhaustion never selects Free, and the next commercial window begins in the following month. Only subscription expiry switches to the remaining Free quota, which is neither reset nor granted again.
+For Free (Freemium), quota represents the monthly watermark-free export allowance. When `remaining` reaches zero, complete files can continue to be exported with watermarks. After a commercial subscription expires, Free rules apply with its existing monthly allowance and reset cycle. Continued commercial production use requires renewal of the commercial license.
+
+`periodEnd` marks the start of the next monthly quota window; `expiresAt` marks the end of the export subscription. During a valid subscription, exports use commercial quota. Once that quota is exhausted, exports resume at the next monthly reset or with a valid license upgrade providing more quota. On subscription expiry, exports follow Free rules with the existing Free allowance and its monthly reset cycle.
 
 Example of a limited-quota snapshot:
 
@@ -116,11 +118,11 @@ Example of a limited-quota snapshot:
 
 ## Use export quota [#accounting]
 
-Free permits 10 successful exports per authorization month. Commercial export quota, concurrency, and version entitlements depend on the purchased license. Neither Free nor a commercial license limits file size or cell count. The query response reports the current period and the remaining quota. Unused monthly quota does not roll over.
+Free (Freemium) includes 10 watermark-free exports per authorization month. From the 11th successful export of the month, complete files continue to be exported with watermarks. Each monthly reset restores the watermark-free allowance to 10 exports. Commercial export quota, concurrency, and version entitlements follow the purchased license. At the license level, both Free and commercial licenses allow unlimited file size and cell count. Use the query response for the current period and remaining allowance.
 
 Imports require no export authorization and consume no export quota. Within one deployment, Office and PDF exports that use the same commercial license share quota. The Exchange conversion formats are listed in [Office file import and export](/server/import-export/node).
 
-Each successful conversion consumes one export, and returning a Buffer counts as success. A subsequent failure to write, upload, or download the file does not refund that export, and another successful conversion consumes another one. When the current period has no quota left, new exports are rejected. Wait for the next authorization period or supply a valid license with a higher quota. An exhausted but valid commercial license does not fall back to Free quota.
+Each successful conversion counts once; returning a Buffer counts as success. The count remains recorded if a subsequent file write, upload, or download fails. Another successful conversion counts again. After the Free watermark-free allowance is exhausted, complete exports continue with watermarks. Once a valid commercial license exhausts its export quota, further exports require the next monthly reset or a valid license upgrade providing more quota.
 
 ## Handle errors [#errors]
 
@@ -149,7 +151,7 @@ The table below states whether an error originates from a quota query (`getExpor
 
 | Code | Operation | Meaning and response |
 | --- | --- | --- |
-| `LICENSE_EXPORT_QUOTA_EXCEEDED` | Export only | The current period has insufficient export quota. Query the quota or contact sales to adjust the license. |
+| `LICENSE_EXPORT_QUOTA_EXCEEDED` | Export only | The commercial export quota for the current period is insufficient. Query quota or contact sales to adjust the license. Free exports continue with watermarks after the watermark-free allowance is exhausted. |
 | `LICENSE_CONCURRENCY_TIMEOUT` | Export only | Waiting for an export concurrency slot timed out. Reduce concurrent exports before submitting again. |
 | `LICENSE_UNIT_TYPE_REJECTED` | Export only | The export type is not covered by the license, or its type entitlement has expired. Provide a valid license that covers the type. |
 | `LICENSE_INVALID` | Query, export | The license is invalid. Check the complete credentials, or request an update from the license provider. |
