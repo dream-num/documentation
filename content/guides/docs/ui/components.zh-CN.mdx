@@ -270,6 +270,40 @@ Angular Elements 将输入映射为元素属性，将输出转换为 DOM 的 `Cu
 univerAPI.registerComponent('UI_COLOR_PICKER_COMPONENT', () => <input type="color" />)
 ```
 
+### 替换用户信息渲染
+
+`@univerjs/ui` 通过 `UserInfo` 渲染用户名和头像。`UserInfo` 使用注册在 `USER_INFO_COMPONENT` 上的组件进行渲染，未注册时回退到 `DefaultUserInfo`。在对应视图首次打开前注册宿主组件：
+
+```tsx
+import { USER_INFO_COMPONENT } from '@univerjs/ui'
+import type { IUserInfoProps } from '@univerjs/ui'
+
+function HostUserInfo({ user, part, context, className, fallbackSrc }: IUserInfoProps) {
+  if (part === 'avatar') {
+    return <img className={className} src={user.avatar ?? fallbackSrc} alt="" />
+  }
+
+  return (
+    <span className={className} data-user-id={user.userId} data-scene={context.scene}>
+      {user.name ?? user.userId}
+    </span>
+  )
+}
+
+univerAPI.registerComponent(USER_INFO_COMPONENT, HostUserInfo)
+```
+
+`UserInfo` 会传入以下字段：
+
+- `user`：`{ userId?, name?, avatar?, isAnonymous? }`。`userId` 是来源用户标识，在用户资料加载完成前即可用，绝不是协同会话 ID。
+- `part`：`'name'` 或 `'avatar'`，组件分别渲染名称和头像。
+- `context`：`{ scene, unitId?, subUnitId?, commentId?, threadId?, versionId?, objectId?, tableId?, fieldId?, recordId? }`。`scene` 为 `'comment-author'`、`'history-author'`、`'history-filter'`、`'permission-member'`、`'permission-creator'` 或 `'base-person'`。没有关联文档的独立控件不提供 `unitId`。
+- `avatarSize?`、`fallbackSrc?` 和 `className?`：头像和名称元素的可选渲染参数。
+
+`DefaultUserInfo` 渲染内置的名称和头像，可用于宿主未自定义的场景。`inheritUserInfoComponent(source, target)` 把源 `ComponentManager` 中的用户信息组件注册到另一个组件管理器（例如用于历史或预览的子 `Univer` 实例），使同一覆盖组件在这些实例中生效。源管理器未注册时使用 `DefaultUserInfo`。
+
+该覆盖只改变渲染结果，不影响已持久化的提及、搜索文本或 Canvas 输出。与其他组件覆盖一样，应在视图首次打开前注册。注册变化不会重新渲染已挂载的视图。
+
 ### 作为内容组件添加到……
 
 #### 在侧边栏中使用

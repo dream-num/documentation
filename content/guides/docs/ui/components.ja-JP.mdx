@@ -270,6 +270,40 @@ Angular Elements は、要素のプロパティと出力を DOM `CustomEvent` �
 univerAPI.registerComponent('UI_COLOR_PICKER_COMPONENT', () => <input type="color" />)
 ```
 
+### ユーザー情報のレンダリングを置き換える
+
+`@univerjs/ui` は `UserInfo` を通じてユーザー名とアバターをレンダリングします。`UserInfo` は `USER_INFO_COMPONENT` に登録されたコンポーネントを通じてレンダリングし、登録がない場合は `DefaultUserInfo` にフォールバックします。対応するビューが開く前にホストコンポーネントを登録します。
+
+```tsx
+import { USER_INFO_COMPONENT } from '@univerjs/ui'
+import type { IUserInfoProps } from '@univerjs/ui'
+
+function HostUserInfo({ user, part, context, className, fallbackSrc }: IUserInfoProps) {
+  if (part === 'avatar') {
+    return <img className={className} src={user.avatar ?? fallbackSrc} alt="" />
+  }
+
+  return (
+    <span className={className} data-user-id={user.userId} data-scene={context.scene}>
+      {user.name ?? user.userId}
+    </span>
+  )
+}
+
+univerAPI.registerComponent(USER_INFO_COMPONENT, HostUserInfo)
+```
+
+`UserInfo` は次のフィールドを渡します。
+
+- `user`: `{ userId?, name?, avatar?, isAnonymous? }`。`userId` はソースのユーザー識別子であり、プロフィールの読み込み前から利用でき、コラボレーションのセッション ID ではありません。
+- `part`: `'name'` または `'avatar'`。コンポーネントは各部分を個別にレンダリングします。
+- `context`: `{ scene, unitId?, subUnitId?, commentId?, threadId?, versionId?, objectId?, tableId?, fieldId?, recordId? }`。`scene` は `'comment-author'`、`'history-author'`、`'history-filter'`、`'permission-member'`、`'permission-creator'`、`'base-person'` のいずれかです。関連するドキュメントを持たない独立したコントロールでは `unitId` は指定されません。
+- `avatarSize?`、`fallbackSrc?`、`className?`: アバターと名前要素の任意のレンダリングヒント。
+
+`DefaultUserInfo` は組み込みの名前とアバターをレンダリングし、ホストがカスタマイズしないシーンに使用できます。`inheritUserInfoComponent(source, target)` は、ソースの `ComponentManager` のユーザー情報コンポーネントを別のコンポーネントマネージャー（履歴やプレビュー用の子 `Univer` インスタンスなど）に登録し、同じオーバーライドをそこでも適用します。ソースにユーザー情報コンポーネントがない場合は `DefaultUserInfo` を登録します。
+
+このオーバーライドはレンダリングのみを変更します。保存済みのメンション、検索テキスト、Canvas の出力は変更しません。他のコンポーネントのオーバーライドと同様に、ビューが初めて開く前に登録してください。登録の変更は、既にマウントされているビューを再レンダリングしません。
+
 ### コンテンツコンポーネントとしての使用
 
 #### サイドバーで

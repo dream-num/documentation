@@ -8,7 +8,7 @@ Univer admite dos modos de integración: modo preestablecido y modo plugin. El m
 
 ## Configuración a través del modo complemento
 
-### Uso del Administrador de paquetes
+### Uso del administrador de paquetes
 
 La herramienta de construcción debe apoyar ES Modules y el campo `exports` en `package.json`.
 
@@ -19,7 +19,7 @@ Univer construye su interfaz de usuario con React y sus flujos de datos con RxJS
 Mantén todos los paquetes `@univerjs/*` y `@univerjs-pro/*` en **la misma versión**.
 
 <InstallTabs
-  packages="@univerjs/core @univerjs/design @univerjs/ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-ui"
+  packages="@univerjs/core @univerjs/design @univerjs/ui @univerjs/docs-ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-ui"
   overrides={{ yarn: { append: 'react react-dom rxjs' } }}
 />
 
@@ -47,10 +47,13 @@ Importar las entradas de fachada utilizadas a continuación antes de llamar `FUn
     import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
     import { FUniver } from '@univerjs/core/facade'
     import DesignEnUS from '@univerjs/design/locale/en-US'
+    import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+    import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
     import { UniverUIPlugin } from '@univerjs/ui'
     import UIEnUS from '@univerjs/ui/locale/en-US'
     import '@univerjs/design/lib/index.css'
     import '@univerjs/ui/lib/index.css'
+    import '@univerjs/docs-ui/lib/index.css'
     import '@univerjs-pro/pdfs-ui/lib/index.css'
     ```
 
@@ -73,12 +76,14 @@ Importar las entradas de fachada utilizadas a continuación antes de llamar `FUn
         [LocaleType.EN_US]: mergeLocales(
           DesignEnUS,
           UIEnUS,
+          DocsUIEnUS,
           PdfsUIEnUS,
         ),
       },
     })
 
     univer.registerPlugin(UniverUIPlugin, { container: 'app' })
+    univer.registerPlugin(UniverDocsUIPlugin)
     univer.registerPlugin(UniverLicensePlugin, {
       license: process.env.CLIENT_LICENSE_TEXT,
     })
@@ -117,6 +122,7 @@ Para registrar varios plugins a la vez, pasar un array a `univer.registerPlugins
 ```typescript
 univer.registerPlugins([
   [UniverUIPlugin, { container: 'app' }],
+  UniverDocsUIPlugin,
   [UniverLicensePlugin, {
     license: process.env.CLIENT_LICENSE_TEXT,
   }],
@@ -125,9 +131,36 @@ univer.registerPlugins([
 ])
 ```
 
+<Callout type="info">
+  `UniverPdfsUIPlugin` depende de `UniverDocsUIPlugin`, así que registre primero el plugin compartido de interfaz de usuario de documentos.
+</Callout>
+
 ## Compatibilidad móvil [#mobile-support]
 
-El paquete `@univerjs-pro/pdfs-ui` actual no exporta un plugin UI móvil dedicado. No proporciona una importación `MobileUIPlugin` ni una opción `mobile: true`, así que no trate de usar tampoco. Un contenedor estrecho no prueba que el soporte táctil está completo; evalúa la interfaz de usuario existente en los dispositivos de destino.
+La interfaz de usuario PDF móvil es una exportación separada del mismo paquete, `UniverPdfsMobileUIPlugin`. No hay ninguna opción `mobile: true` ni un preset PDF. Elija el modo de interfaz de usuario antes de abrir un PDF y **reemplace** los registros de la interfaz de usuario de escritorio. No registre ambos.
+
+| Paquete | Registro de escritorio | Registro móvil |
+| --- | --- | --- |
+| `@univerjs/ui` | `UniverUIPlugin` | `UniverMobileUIPlugin` |
+| `@univerjs/docs-ui` | `UniverDocsUIPlugin` | `UniverDocsMobileUIPlugin` |
+| `@univerjs-pro/pdfs-ui` | `UniverPdfsUIPlugin` | `UniverPdfsMobileUIPlugin` |
+| `@univerjs-pro/pdfs-print` | `UniverPdfsPrintPlugin` | `UniverPdfsMobilePrintPlugin` |
+
+```ts
+import { UniverDocsMobileUIPlugin } from '@univerjs/docs-ui'
+import { UniverPdfsMobileUIPlugin } from '@univerjs-pro/pdfs-ui'
+import { UniverPdfsMobilePrintPlugin } from '@univerjs-pro/pdfs-print'
+import { UniverMobileUIPlugin } from '@univerjs/ui'
+
+univer.registerPlugin(UniverMobileUIPlugin, { container: 'app' })
+univer.registerPlugin(UniverDocsMobileUIPlugin, { footer: false })
+univer.registerPlugin(UniverPdfsMobileUIPlugin)
+
+// Optional: add Print to the mobile viewer menu.
+univer.registerPlugin(UniverPdfsMobilePrintPlugin)
+```
+
+`UniverPdfsMobileUIPlugin` declara `UniverMobileUIPlugin` y `UniverDocsMobileUIPlugin` como dependencias, así que regístrelos primero. Se abre en la cuadrícula de vista previa de páginas en lugar de la barra de miniaturas de escritorio. La aplicación host decide cuándo montar esta pila, por ejemplo según el ancho de la ventana. Un contenedor estrecho alrededor del plugin de escritorio no produce la interfaz de usuario móvil. Consulte [Imprimir](/guides/pdfs/features/print#mobile-support) para el plugin de impresión móvil.
 
 ## Worker de miniaturas opcional
 

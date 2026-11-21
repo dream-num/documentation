@@ -4,146 +4,60 @@ title: Control de permisos
 
 import { PermissionShadowDemo } from './components/permission-shadow-demo'
 
-El control de permisos en Univer determina lo que un usuario puede hacer en un libro de trabajo, una hoja de trabajo o un rango. Cuando un usuario intenta una operación sin el permiso requerido, Univer detiene la operación e informa el permiso perdido. Proteger un rango, por ejemplo, controla si los colaboradores pueden editar, ver, copiar o filtrar contenido dentro de él.
-
-<Callout type="warning">
-Su servicio debe persistir reglas de protección y cambios de colaboradores, devolver los permisos del usuario actual, y pasar los fallos de solicitud de vuelta al callador. Un mock que devuelve una lista vacía no es una capa de persistencia. En colaboración, el backend también debe comprobar los permisos de lectura, unión y mutación en sí mismo; ver [Identidad y autorización](/server/collaboration/identity-and-authorization). La protección en la interfaz de usuario y sombras ocultas no reemplazan la autorización del servidor.
-
-[Integración del servicio de autorización](#authorization-service)
-</Callout>
-
-<PlaygroundFrame lang="en-US" slug="sheets/permission" clickToShow />
-
-Esta página cubre operaciones básicas, ejemplos avanzados, configuración y solución de problemas. Los contratos completos de API se recogen en Referencia.
-
-- [Tareas habituales](#permission-tasks)
-- [Configuración de la interfaz de permisos](#permission-ui)
-- [Integración del servicio de autorización](#permission-integration)
-- [Reference](#reference)
-
-## Conceptos principales
-
-- Alcance: Las permisos se aplican en tres niveles: libro de trabajo, hoja de trabajo y rango.
-- Puntos de Permisión: Cada característica tiene un punto de permiso, y cambiar su valor permite o deshabilita esa característica.
-- Reglas de protección: Una hoja de trabajo o un rango necesita una regla de protección antes de que se puedan establecer sus puntos de permiso.
-
-<Callout type="info">
-Los permisos locales sin persistencia se modifican mediante puntos de permiso. Para persistencia, consulte [Integración del servicio de autorización](#authorization-service).
-
-En la edición colaborativa, actualizar un punto de permiso también actualiza el estado del servidor:
-  - `false`: el punto de permiso requiere al menos el rol `owner`
-  - `true`: el punto de permiso requiere al menos el `reader` rol
-</Callout>
-
-## Ejemplo básico
-
-Antes de utilizar los ejemplos `allowedUsers`, sustitúyase `user1` y `user2` con IDs de colaboradores reales devueltos por su servicio de autorización.
-
-Los ejemplos a continuación muestran la forma habitual de establecer permisos en cada uno de los tres niveles: libro de trabajo, hoja de trabajo y rango.
-
-### Ejemplo de código de permisos de libro de trabajo
-
-Establecer permisos a nivel de libro de trabajo directamente a través de [Facade API](/guides/sheets/getting-started/facade).
-
-El ejemplo a continuación deshabilita la edición para todo el libro de trabajo. Para controlar otra característica, reemplace el punto de permiso con el que coincida; vea el [lista de puntos de permiso de libro de trabajo](#workbook-point):
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const workbookPermission = fWorkbook.getWorkbookPermission()
-
-// Set the workbook to be non-editable
-await workbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
-```
-
-Los puntos de permiso del libro de trabajo se pueden establecer directamente, sin crear una regla de protección primero.
-
-### Ejemplo de código de permisos de hoja de trabajo
-
-Los permisos de hoja de trabajo y rango se pueden configurar a través de Facade API o a través de comandos. Este ejemplo establece el permiso de edición de hoja de cálculo. Para controlar otra característica, reemplace el punto de permiso con el que coincida; vea el [lista de puntos de permiso de hoja de trabajo](#worksheet-point):
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// Create worksheet protection, allow specified users to edit
-const permissionId = await worksheetPermission.protect({
-  allowedUsers: ['user1', 'user2'],
-  name: 'My Worksheet Protection',
-})
-
-// To set permission points, you must first protect the worksheet
-await worksheetPermission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.Edit, false)
-```
-
-#### Eliminar permisos de hoja de trabajo
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// Remove worksheet protection
-await worksheetPermission.unprotect()
-```
-
-### Ejemplo de código de permisos de rango personalizado
-
-Los permisos de rango se pueden establecer de las mismas dos maneras: a través de la API o a través de comandos. El ejemplo a continuación utiliza el permiso de edición de rango. Otras características de rango requieren un punto de permiso diferente; vea el [lista de puntos de permiso - Rango](#range-point) para detalles.
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const fWorksheet = fWorkbook.getActiveSheet()
-const fRange = fWorksheet.getRange('A1:B2')
-const rangePermission = fRange.getRangePermission()
-
-// Set range protection permission, allow specified users to edit but not allow others to view
-const rule = await rangePermission.protect({
-  name: 'My protected range',
-  allowViewByOthers: false,
-  allowedUsers: ['user1', 'user2'],
-})
-console.log(rule)
-
-// To set permission points, you must first create a range protection rule.
-await rule.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
-await rule.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
-```
-
-#### Eliminar permisos de protección de rango
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const fWorksheet = fWorkbook.getActiveSheet()
-const fRange = fWorksheet.getRange('A1:B2')
-const rangePermission = fRange.getRangePermission()
-
-// delete all rules within the range
-await rangePermission.unprotect()
-
-// Or delete specific rules within the range
-const rules = await rangePermission.listRules()
-if (rules.length > 0) {
-  await rules[0].remove()
-}
-```
+El modo del libro controla la edición y los comentarios en toda la hoja de cálculo. Para que solo determinados colaboradores puedan editar una hoja o un rango, protege esa hoja o ese rango. En una sesión colaborativa, el servidor también debe autorizar la lectura, el acceso a la sesión y los cambios en el documento. Consulta [Identidad y autorización](/server/collaboration/identity-and-authorization).
 
 ## Tareas habituales [#permission-tasks]
 
-### Poner un libro en modo de solo lectura
+### Configurar un libro de solo lectura o permitir comentarios
+
+El modo `viewer` permite ver e imprimir el libro. Usa `'commenter'` en el ejemplo para permitir también los comentarios y mantener las celdas en modo de solo lectura. El modo configura los permisos del libro en conjunto. Para cambiar el rol de una persona, usa las [API de colaboradores](#collaborators).
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 if (!fWorkbook) throw new Error('No active workbook')
 const permission = fWorkbook.getWorkbookPermission()
 await permission.setMode('viewer')
-console.log(permission.getSnapshot())
 ```
+
+Para cambiar un solo permiso, llama a `setPoint`. Por ejemplo, `await permission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)` desactiva la edición del libro. Cuando cambia el valor, el SDK llama a `IAuthzIoService.update` con el rol `Editor` para `true` u `Owner` para `false`. Para conservar el ajuste al volver a abrir el documento, [conecta un servicio de autorización](#authorization-service).
+
+<PlaygroundFrame lang="en-US" slug="sheets/permission" clickToShow />
+
+### Permitir que determinados colaboradores editen una hoja
+
+Sustituye `user1` y `user2` por identificadores de colaboradores que ya tengan acceso al libro. Crea la regla con `protect()` antes de configurar permisos individuales de la hoja. Para quitar la protección de la hoja, llama a `worksheetPermission.unprotect()`.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const fWorksheet = fWorkbook.getActiveSheet()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
+
+await worksheetPermission.protect({
+  allowedUsers: ['user1', 'user2'],
+  name: 'My Worksheet Protection',
+})
+```
+
+### Restringir la lectura y edición de A1:B2 a determinados colaboradores
+
+`allowedUsers` indica quién puede editar el rango. Con `allowViewByOthers: false` también se restringe su lectura. Para quitar solo esta protección, llama a `rule.remove()` en la regla devuelta.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+const rangePermission = fRange.getRangePermission()
+
+const rule = await rangePermission.protect({
+  name: 'My protected range',
+  allowViewByOthers: false,
+  allowedUsers: ['user1', 'user2'],
+})
+```
+
+Llama a `rangePermission.listRules()` para consultar las reglas que intersectan el rango. `rangePermission.unprotect()` elimina todas esas reglas.
 
 ### Gestionar rangos protegidos
 
@@ -155,37 +69,70 @@ const permission = fWorksheet.getWorksheetPermission()
 
 const createdRules = await permission.protectRanges([
   {
-    ranges: [fWorksheet.getRange('A1:B2')],
+    ranges: [fWorksheet.getRange('D1:D4')],
     options: { name: 'Public area', allowViewByOthers: true },
   },
   {
-    ranges: [fWorksheet.getRange('C3:D4')],
+    ranges: [fWorksheet.getRange('E1:E4')],
     options: { name: 'Private area', allowViewByOthers: false, allowedUsers: ['user1'] },
   },
 ])
-console.log(createdRules)
 
-const rules = await permission.listRangeProtectionRules()
-const firstRule = rules[0]
-if (firstRule) {
-  await firstRule.updateRanges([fWorksheet.getRange('A1:B3')])
-}
+await createdRules[0].updateRanges([fWorksheet.getRange('D1:D5')])
 ```
 
-### Diagnosticar permisos de una celda
+### Averiguar por qué no se puede introducir un valor en A1
+
+El ejemplo muestra los permisos necesarios para introducir un valor simple. Si alguno es `false`, la edición queda bloqueada. `debugCellPermission(0, 0)` devuelve la regla que cubre A1 o `undefined` si no hay ninguna.
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 if (!fWorkbook) throw new Error('No active workbook')
-const permission = fWorkbook.getActiveSheet().getWorksheetPermission()
-console.log(permission.debugCellPermission(0, 0))
+const worksheet = fWorkbook.getActiveSheet().getWorksheetPermission()
+const rule = await worksheet.debugCellPermission(0, 0)
+
+console.table({
+  workbookEdit: fWorkbook.getWorkbookPermission().canEdit(),
+  worksheetEdit: worksheet.canEdit(),
+  setCellValue: worksheet.getPoint(univerAPI.Enum.WorksheetPermissionPoint.SetCellValue),
+  rangeEdit: rule?.canEdit() ?? true,
+})
 ```
 
 ## Lista de puntos de permiso [#point-list]
 
-El código fuente para cada punto de permiso es [aquí.](https://github.com/dream-num/univer/tree/dev/packages/sheets/src/services/permission/permission-point).
+### Acciones de hoja de trabajo y sus puntos
 
-Cuando tanto un permiso de libro de trabajo como una hoja de trabajo o permiso de rango cubren una característica, **todo** de los permisos pertinentes debe ser `true` antes de que la característica funciona.
+Cada operación comprueba sus propios puntos. Un punto de libro de trabajo se aplica junto con los puntos de hoja de trabajo y de rango de la misma fila, y un punto de rango significa el punto de edición de cada rango protegido que intersecta la operación. Ocultar una fila o una columna amplía la comprobación a toda la fila o columna.
+
+| Acción | Puntos requeridos |
+| --- | --- |
+| Introducir un valor en una celda (sin fórmulas) | `WorkbookEditablePermission`, `WorksheetEditPermission`, `WorksheetSetCellValuePermission`, `RangeProtectionPermissionEditPoint` |
+| Insertar una hoja de trabajo | `WorkbookEditablePermission`, `WorkbookCreateSheetPermission` |
+| Copiar una hoja de trabajo | `WorkbookEditablePermission`, `WorkbookCopySheetPermission` |
+| Mover una hoja de trabajo | `WorkbookEditablePermission`, `WorkbookMoveSheetPermission` |
+| Cambiar el nombre de una hoja de trabajo | `WorkbookEditablePermission`, `WorkbookRenameSheetPermission` |
+| Ocultar o mostrar una hoja de trabajo | `WorkbookEditablePermission`, `WorkbookHideSheetPermission` |
+| Eliminar una hoja de trabajo | `WorkbookEditablePermission`, `WorkbookDeleteSheetPermission` |
+| Ocultar o mostrar filas o columnas | `WorkbookEditablePermission`, `WorksheetEditPermission`, `WorksheetSetRowStylePermission` o `WorksheetSetColumnStylePermission`, y el punto de edición de cada rango protegido intersectado |
+| Cambiar el tamaño de filas o columnas, o ajustarlas a su contenido | `WorksheetSetRowStylePermission` o `WorksheetSetColumnStylePermission` |
+| Combinar o descombinar celdas | `WorkbookEditablePermission`, `WorksheetEditPermission`, `WorksheetSetCellValuePermission`, `WorksheetSetCellStylePermission`, y el punto de edición de cada rango protegido intersectado |
+| Ordenar un rango | `WorkbookEditablePermission`, `WorksheetEditPermission`, `WorksheetSortPermission`, y el punto de edición de cada rango protegido intersectado |
+| Inmovilizar o liberar paneles | `WorkbookEditablePermission`, `WorksheetEditPermission` |
+| Mostrar u ocultar las líneas de cuadrícula, o cambiar su color | `WorkbookEditablePermission`, `WorksheetEditPermission` |
+| Añadir, actualizar o eliminar una anotación | `WorkbookEditablePermission`, `WorksheetEditPermission`, y el punto de edición de cada rango protegido que contiene la celda |
+| Agrupar o desagrupar filas o columnas | `WorkbookEditablePermission`, `WorksheetEditPermission`, `WorksheetSetRowStylePermission` o `WorksheetSetColumnStylePermission`, y el punto de edición de cada rango protegido intersectado |
+| Crear una regla de protección | `WorkbookCreateProtectPermission` |
+| Administrar los colaboradores de una regla de protección | `WorksheetManageCollaboratorPermission` o `RangeProtectionPermissionManageCollaPoint` |
+| Eliminar una regla de protección | `WorksheetDeleteProtectionPermission` o `RangeProtectionPermissionDeleteProtectionPoint` |
+
+Cuando un punto requerido es `false`, el comando se rechaza antes de que cambie el documento.
+
+Las anotaciones siguen los puntos de edición de las celdas. La lectura de una anotación no se comprueba.
+
+### Permisos de comentarios
+
+Leer un comentario requiere el permiso `View` del libro y publicarlo requiere `Comment`. Ambas operaciones requieren `View` en la hoja. Si el comentario está asociado a una celda, todas las reglas que cubren esa celda deben permitir la lectura. Los autores pueden editar o eliminar sus propios comentarios.
 
 ### Permisos del libro de trabajo [#workbook-point]
 
@@ -427,6 +374,93 @@ univerAPI.setPermissionDialogVisible(false)
 
 ## Integración del servicio de autorización [#permission-integration]
 
+### Integración de un servicio de autorización de terceros (avanzado) [#authorization-service]
+
+Registra tu implementación de [`IAuthzIoService`](https://github.com/dream-num/univer/blob/v1.6.0/packages/core/src/services/authz-io/type.ts) antes de crear el libro. El servicio debe guardar las reglas de protección y los cambios de colaboradores, devolver los permisos del usuario actual y comunicar los errores a quien hizo la llamada.
+
+```typescript
+import { IAuthzIoService, Univer } from '@univerjs/core'
+import { YourAuthzService } from './authorization-service'
+
+const univer = new Univer({
+  override: [[IAuthzIoService, { useClass: YourAuthzService }]],
+})
+```
+
+![Permiso](./permission/permission-en.png)
+
+### Administración de colaboradores [#collaborators]
+
+- Obtenga la lista de colaboradores
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+const collaborators = await workbookPermission.listCollaborators()
+console.log(collaborators)
+```
+
+- Agregar colaboradores
+
+Usa `addCollaborator` para añadir a una persona. `setCollaborators` reemplaza la lista completa, así que incluye a todas las personas que deban conservar el acceso.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+await workbookPermission.addCollaborator(
+  { userID: 'user1', name: 'John Doe', avatar: '' },
+  univerAPI.Enum.UnitRole.Editor,
+)
+```
+
+- Reemplazar la lista de colaboradores
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+await workbookPermission.setCollaborators([
+  {
+    user: { userID: 'user1', name: 'John Doe', avatar: '' },
+    role: univerAPI.Enum.UnitRole.Editor,
+  },
+  {
+    user: { userID: 'user2', name: 'Jane Smith', avatar: '' },
+    role: univerAPI.Enum.UnitRole.Reader,
+  },
+])
+```
+
+- Actualizar funciones de colaboradores
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+await workbookPermission.updateCollaborator(
+  { userID: 'user1', name: 'John Doe Updated', avatar: '' },
+  univerAPI.Enum.UnitRole.Reader,
+)
+```
+
+- Eliminar colaboradores
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+await workbookPermission.removeCollaborators(['user1', 'user2'])
+```
+
+## Ampliar los permisos en un plugin
+
 ### Uso extendido
 
 Para comprobar los permisos dentro de su propio plugin, trabaje con los puntos de permiso directamente.
@@ -452,6 +486,8 @@ class YourService {
 ```
 
 [Lista de puntos de permiso](#point-list)
+
+`SheetPermissionCheckController.permissionCheckByPoints(points)` comprueba una lista explícita de puntos de permiso y devuelve `false` cuando alguno de ellos está deshabilitado. Úselo cuando un comando ya conoce los puntos que necesita, como los puntos de una regla de protección concreta.
 
 ### Cómo extender los puntos de permiso
 
@@ -500,93 +536,6 @@ class ConsumeService {
     console.log(point$)
   }
 }
-```
-
-### Integración de un servicio de autorización de terceros (avanzado) [#authorization-service]
-
-Implemente [IAuthzIoService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/type.ts) en su aplicación y conecte su permiso, papel y métodos de colaboradores a su backend. El ejemplo asume que `./authorization-service` exporta la implementación como `YourAuthzService`. Inscríbelo antes de crear libros de trabajo, y mantenga las otras opciones de inicialización y registros de plugins.
-
-```typescript
-import { IAuthzIoService, Univer } from '@univerjs/core'
-import { YourAuthzService } from './authorization-service'
-
-const univer = new Univer({
-  override: [[IAuthzIoService, { useClass: YourAuthzService }]],
-})
-```
-
-Su servicio authz debe persistir reglas de protección y cambios de colaboradores, devolver los permisos del usuario actual y los fallos de solicitud de superficie. Un mock que devuelve las listas vacías no persiste nada. En colaboración, el backend debe todavía revisar los permisos de lectura, INGRESO y mutación en sí mismo; vea [Identidad y autorización](/server/collaboration/identity-and-authorization). Protección de interfaz de usuario y sombras ocultas no son un sustituto de la autorización del servidor.
-
-![Permiso](./permission/permission-en.png)
-
-### Administración de colaboradores
-
-<Callout>
-  La gestión del colaborador pertenece a su aplicación y a su servicio de permisos. Conecte su propio usuario y modelo ACL, y ejecute políticas de lectura, INGRESO y edición en el servidor; vea [identidad y autorización](/server/collaboration/identity-and-authorization). Las APIs de frontend a continuación requieren una aplicación de permisos de conexión; no configuran la autorización del servidor.
-</Callout>
-
-- Obtenga la lista de colaboradores
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const workbookPermission = fWorkbook.getWorkbookPermission()
-
-const collaborators = await workbookPermission.listCollaborators()
-console.log(collaborators)
-```
-
-- Agregar colaboradores
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const workbookPermission = fWorkbook.getWorkbookPermission()
-
-// Add multiple collaborators at once
-await workbookPermission.setCollaborators([
-  {
-    user: { userID: 'user1', name: 'John Doe', avatar: 'https://...' },
-    role: univerAPI.Enum.UnitRole.Editor,
-  },
-  {
-    user: { userID: 'user2', name: 'Jane Smith', avatar: '' },
-    role: univerAPI.Enum.UnitRole.Reader,
-  },
-])
-
-// Add a single collaborator
-await workbookPermission.addCollaborator(
-  { userID: 'user1', name: 'John Doe', avatar: 'https://...' },
-  univerAPI.Enum.UnitRole.Editor,
-)
-```
-
-- Actualizar funciones de colaboradores
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const workbookPermission = fWorkbook.getWorkbookPermission()
-
-await workbookPermission.updateCollaborator(
-  { userID: 'user1', name: 'John Doe Updated', avatar: 'https://...' },
-  univerAPI.Enum.UnitRole.Reader,
-)
-```
-
-- Eliminar colaboradores
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const workbookPermission = fWorkbook.getWorkbookPermission()
-
-// Remove multiple collaborators
-await workbookPermission.removeCollaborators(['user1', 'user2'])
-
-// Remove a single collaborator
-await workbookPermission.removeCollaborator('user1')
 ```
 
 ## Reference

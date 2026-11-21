@@ -2,6 +2,7 @@ import catalog from './plugin-catalog.json' with { type: 'json' }
 
 export const SDK_VERSION = catalog.version
 export const PRODUCTS = ['sheets', 'docs', 'slides', 'bases', 'boards', 'pdfs'] as const
+export const MOBILE_PRODUCTS: ReadonlySet<string> = new Set(['sheets', 'pdfs'])
 export type Product = (typeof PRODUCTS)[number]
 export const SDK_LOCALES = ['en-US', 'zh-CN', 'zh-TW', 'ja-JP', 'ko-KR', 'fr-FR', 'ru-RU', 'es-ES'] as const
 export interface IGeneratorOptions {
@@ -181,7 +182,12 @@ export function resolvePlugins(options: IGeneratorOptions): string[] {
 }
 
 export function getFeatureAvailability(feature: IFeature, options: IGeneratorOptions): 'version' | 'mobile' | null {
-  if (options.mobile && feature.plugins.some((name) => name.includes('UI') && !plugins[name].mobile)) return 'mobile'
+  if (
+    options.mobile &&
+    (!MOBILE_PRODUCTS.has(options.product) ||
+      feature.plugins.some((name) => name.includes('UI') && !plugins[name].mobile))
+  )
+    return 'mobile'
   try {
     resolvePlugins({ ...options, features: [feature.id] })
     return null
@@ -205,8 +211,8 @@ export function generateProject(options: IGeneratorOptions): Record<string, stri
     throw new Error('Unsupported product or locale')
   if (options.mode === 'preset' && !['sheets', 'docs'].includes(options.product))
     throw new Error('Presets are available for Sheets and Docs')
-  if (options.mobile && (options.mode !== 'plugin' || options.product !== 'sheets'))
-    throw new Error('This SDK version supports mobile generation for Sheets plugin mode')
+  if (options.mobile && (options.mode !== 'plugin' || !MOBILE_PRODUCTS.has(options.product)))
+    throw new Error('Mobile generation requires Sheets or PDFs in plugin mode')
   const names = resolvePlugins(options)
   const requirements = getProjectRequirements(options)
   const selectedFeatures = getFeatures(options.product).filter((feature) => options.features.includes(feature.id))

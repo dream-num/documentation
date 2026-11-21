@@ -13,7 +13,7 @@ Une table peut avoir plusieurs vues. Les tâches peuvent être entrées dans une
 | `Grid` | Édition, filtrage et tri des lignes | Champs gelés, hauteur des rangs, largeurs des champs |
 | `Kanban` | Groupement par statut ou propriétaire | `groupFieldId` |
 | `Calendar` | Calendrier des dossiers par date | `startDateFieldId`, date de fin optionnelle |
-| `Gantt` | Durée de la planification et dépendances | Dates de début et de fin, champs optionnels de progrès et de dépendance |
+| `Gantt` | Durée de la planification et dépendances | Dates de début et de fin, comparaison de planning, achèvement, prédécesseurs et calendrier de travail |
 | `Gallery` | Affichage d'images et de cartes de contenu | Champs de couverture, de titre et de carte |
 | `Pivot` | Résumés et graphiques | Nécessite le [plugin tableau de bord](/guides/bases/features/dashboard) |
 
@@ -71,6 +71,70 @@ const calendar = table.createView('Schedule', univerAPI.Enum.BaseViewType.Calend
 ```
 
 Un calendrier nécessite un champ de démarrage. Gantt nécessite également un champ de fin de date et prend en charge les jours ouvrables, les progrès et les dépendances. Dans une galerie, `card` configure le titre et les champs que chaque carte affiche.
+
+## Planification Gantt
+
+`startDateFieldId` et `endDateFieldId` sont obligatoires. `progressFieldId` lie un champ Progression. Sa valeur définit l'achèvement de chaque barre, et l'achèvement peut être déplacé par glissement sur ordinateur. `workingDaysOnly` affiche en grisé les jours non ouvrables dans la chronologie et compte chaque barre en jours ouvrables, et `workingDays` définit le modèle hebdomadaire et les exceptions utilisés pour ces décomptes et les écarts.
+
+| Clé | Type | Description |
+| --- | --- | --- |
+| `startDateFieldId` | `string` | Champ de date de début du planning actuel. |
+| `endDateFieldId` | `string` | Champ de date de fin du planning actuel. |
+| `progressFieldId` | `string` | Champ Progression qui fournit l'achèvement. |
+| `showPlanComparison` | `boolean` | Affiche les barres planifiées sous les barres actuelles. |
+| `planStartDateFieldId` | `string` | Champ de date du début prévu. |
+| `planEndDateFieldId` | `string` | Champ de date de la fin prévue. |
+| `planColor` | `string` | Couleur de remplissage des barres planifiées. |
+| `remainingColor` | `string` | Couleur du travail inachevé lorsque `progressFieldId` est défini. Une nuance plus claire de la couleur de la barre est utilisée par défaut. |
+| `workingDaysOnly` | `boolean` | Marque les jours non ouvrables et ne compte que les jours ouvrables. |
+| `workingDays` | `object` | Calendrier des jours ouvrables avec `weekdays` et `exceptions`. |
+
+```ts
+const gantt = table.createView('Delivery', univerAPI.Enum.BaseViewType.Gantt, {
+  view: {
+    config: {
+      startDateFieldId: 'startDate',
+      endDateFieldId: 'endDate',
+      progressFieldId: 'progress',
+      showPlanComparison: true,
+      planStartDateFieldId: 'plannedStart',
+      planEndDateFieldId: 'plannedEnd',
+    },
+  },
+})
+```
+
+Dans l'interface, ouvrez les paramètres de la vue Gantt et activez « Comparer avec le plan », puis sélectionnez les champs de début et de fin prévus. Les barres planifiées s'affichent sous les barres actuelles lorsque les deux champs de plan sont définis. Survolez une barre sur ordinateur ou appuyez dessus sur mobile pour comparer les deux plannings. L'infobulle indique l'écart de début et de fin en jours ouvrables.
+
+## Prédécesseurs Gantt
+
+Définissez `dependencyFieldId` sur un champ Record Link multivalué qui cible la même table. Le champ doit être modifiable et ne doit pas être un champ système.
+
+Le package `@univerjs-pro/bases` exporte `AddGanttPredecessorCommand` et `RemoveGanttPredecessorCommand`. Les deux acceptent `unitId`, `tableId`, `viewId`, `predecessorId` et `successorId`. La commande d'ajout renvoie `true` lorsque le lien existe après l'appel, `false` lorsque la demande est rejetée, et `'cycle'` lorsque le lien créerait une dépendance cyclique. La commande de suppression renvoie `true` lorsque le lien est absent après l'appel.
+
+```ts
+import { AddGanttPredecessorCommand, RemoveGanttPredecessorCommand } from '@univerjs-pro/bases'
+
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('No active Base')
+
+const params = {
+  unitId: base.getId(),
+  tableId: table.getId(),
+  viewId: gantt.getId(),
+  predecessorId: 'task-1',
+  successorId: 'task-2',
+}
+
+const added = await univerAPI.executeCommand(AddGanttPredecessorCommand.id, params)
+// true: linked, false: rejected, 'cycle': would create a cycle
+
+await univerAPI.executeCommand(RemoveGanttPredecessorCommand.id, params)
+```
+
+Sur ordinateur, faites glisser le connecteur de l’une ou l’autre extrémité d’une barre actuelle sur une autre barre pour ajouter un lien fin-début. Une seule annulation supprime le lien.
+
+Pour la coédition du Gantt, mettez à jour la passerelle vers une version qui prend en charge la transformation opérationnelle de Base avant de déployer les clients 1.6.0.
 
 ## Tri et affichage des champs
 

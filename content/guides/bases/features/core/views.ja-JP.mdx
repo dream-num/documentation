@@ -13,7 +13,7 @@ import { ViewsDemo } from './components/views-demo'
 | `Grid` | 行の編集、フィルタリング、ソート | 凍結フィールド、行の高さ、フィールド幅 |
 | `Kanban` | ステータスまたは所有者によるグループ化 | `groupFieldId` |
 | `Calendar` | 日付によるレコードのスケジューリング | `startDateFieldId`の任意終わりの日付 |
-| `Gantt` | 計画期間と依存関係 | 開始日と終了日、オプションの進行状況と依存性フィールド |
+| `Gantt` | 計画期間と依存関係 | 開始日と終了日、計画との比較、完成度、先行タスク、作業日カレンダー |
 | `Gallery` | 画像とコンテンツカードを表示 | カバー、タイトル、カードフィールド |
 | `Pivot` | 概要とチャート | [ダッシュボードプラグイン](/guides/bases/features/dashboard)を要求します |
 
@@ -71,6 +71,70 @@ const calendar = table.createView('Schedule', univerAPI.Enum.BaseViewType.Calend
 ```
 
 カレンダーには、開始日時フィールドが必要です。ガントは、エンドデートフィールドを必要とし、作業日、進捗状況、および依存関係をサポートしています。ギャラリーでは、`card`は、各カードディスプレイのタイトルとフィールドを設定します。
+
+## ガントのスケジュール
+
+`startDateFieldId` と `endDateFieldId` は必須です。`progressFieldId` は進捗状況フィールドをバインドし、その値が各バーの完成度を設定します。デスクトップでは完成度をドラッグできます。`workingDaysOnly` は非作業日をタイムライン上で網掛けし、各バーを作業日単位で集計します。`workingDays` は週次のパターンと例外日を定義し、これらの集計と差異の計算に使用されます。
+
+| キー | 型 | 説明 |
+| --- | --- | --- |
+| `startDateFieldId` | `string` | 現在のスケジュールの開始日フィールド。 |
+| `endDateFieldId` | `string` | 現在のスケジュールの終了日フィールド。 |
+| `progressFieldId` | `string` | 完成度を提供する進捗状況フィールド。 |
+| `showPlanComparison` | `boolean` | 現在のバーの下に計画バーを表示します。 |
+| `planStartDateFieldId` | `string` | 計画開始日を持つ日付フィールド。 |
+| `planEndDateFieldId` | `string` | 計画終了日を持つ日付フィールド。 |
+| `planColor` | `string` | 計画バーの塗りつぶし色。 |
+| `remainingColor` | `string` | `progressFieldId` を設定した場合の未完了部分の色。既定ではバーの色の淡い色合いを使用します。 |
+| `workingDaysOnly` | `boolean` | 非作業日をマークし、作業日のみで集計します。 |
+| `workingDays` | `object` | `weekdays` と `exceptions` を持つ作業日カレンダー。 |
+
+```ts
+const gantt = table.createView('Delivery', univerAPI.Enum.BaseViewType.Gantt, {
+  view: {
+    config: {
+      startDateFieldId: 'startDate',
+      endDateFieldId: 'endDate',
+      progressFieldId: 'progress',
+      showPlanComparison: true,
+      planStartDateFieldId: 'plannedStart',
+      planEndDateFieldId: 'plannedEnd',
+    },
+  },
+})
+```
+
+UI では、ガントビューの設定を開いて「計画と比較」を有効にし、計画開始フィールドと計画終了フィールドを選択します。両方の計画フィールドを設定すると、計画バーが現在のバーの下に表示されます。デスクトップではバーにポインターを合わせ、モバイルではバーをタップすると、両方のスケジュールを比較できます。ツールチップには、開始と終了の差異が作業日数で表示されます。
+
+## ガントの先行タスク
+
+`dependencyFieldId` には、同じテーブルを対象とする複数値のレコードリンクフィールドを設定します。このフィールドは編集可能で、システムフィールド以外である必要があります。
+
+`@univerjs-pro/bases` パッケージは `AddGanttPredecessorCommand` と `RemoveGanttPredecessorCommand` をエクスポートします。どちらも `unitId`、`tableId`、`viewId`、`predecessorId`、`successorId` を受け取ります。追加コマンドは、呼び出し後にリンクが存在する場合は `true`、リクエストが拒否された場合は `false`、循環依存が作成される場合は `'cycle'` を返します。削除コマンドは、呼び出し後にリンクが存在しない場合に `true` を返します。
+
+```ts
+import { AddGanttPredecessorCommand, RemoveGanttPredecessorCommand } from '@univerjs-pro/bases'
+
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('No active Base')
+
+const params = {
+  unitId: base.getId(),
+  tableId: table.getId(),
+  viewId: gantt.getId(),
+  predecessorId: 'task-1',
+  successorId: 'task-2',
+}
+
+const added = await univerAPI.executeCommand(AddGanttPredecessorCommand.id, params)
+// true: リンク済み、false: 拒否、'cycle': 循環が作成される
+
+await univerAPI.executeCommand(RemoveGanttPredecessorCommand.id, params)
+```
+
+デスクトップでは、現在のバーのいずれかの端にあるコネクターを別のバーまでドラッグすると、終了から開始（finish-to-start）のリンクを追加できます。1 回の元に戻す操作でリンクが削除されます。
+
+ガントビューを共同編集する場合は、1.6.0 クライアントの配布前にゲートウェイを Base の操作変換（OT）に対応するバージョンへ更新してください。
 
 ## 並べ替えとフィールド表示
 

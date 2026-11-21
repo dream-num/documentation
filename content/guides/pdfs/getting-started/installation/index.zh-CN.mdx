@@ -19,7 +19,7 @@ Univer 的界面基于 React，数据流基于 RxJS，也可以嵌入 Vue 或 An
 所有 `@univerjs/*` 和 `@univerjs-pro/*` 包必须保持**相同版本**。
 
 <InstallTabs
-  packages="@univerjs/core @univerjs/design @univerjs/ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-ui"
+  packages="@univerjs/core @univerjs/design @univerjs/ui @univerjs/docs-ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-ui"
   overrides={{ yarn: { append: 'react react-dom rxjs' } }}
 />
 
@@ -47,10 +47,13 @@ Univer 的界面基于 React，数据流基于 RxJS，也可以嵌入 Vue 或 An
     import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
     import { FUniver } from '@univerjs/core/facade'
     import DesignEnUS from '@univerjs/design/locale/en-US'
+    import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+    import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
     import { UniverUIPlugin } from '@univerjs/ui'
     import UIEnUS from '@univerjs/ui/locale/en-US'
     import '@univerjs/design/lib/index.css'
     import '@univerjs/ui/lib/index.css'
+    import '@univerjs/docs-ui/lib/index.css'
     import '@univerjs-pro/pdfs-ui/lib/index.css'
     ```
 
@@ -73,12 +76,14 @@ Univer 的界面基于 React，数据流基于 RxJS，也可以嵌入 Vue 或 An
         [LocaleType.EN_US]: mergeLocales(
           DesignEnUS,
           UIEnUS,
+          DocsUIEnUS,
           PdfsUIEnUS,
         ),
       },
     })
 
     univer.registerPlugin(UniverUIPlugin, { container: 'app' })
+    univer.registerPlugin(UniverDocsUIPlugin)
     univer.registerPlugin(UniverLicensePlugin, {
       license: process.env.CLIENT_LICENSE_TEXT,
     })
@@ -117,6 +122,7 @@ Univer 实例创建完成后，调用 `univer.registerPlugin` 即可在该实例
 ```typescript
 univer.registerPlugins([
   [UniverUIPlugin, { container: 'app' }],
+  UniverDocsUIPlugin,
   [UniverLicensePlugin, {
     license: process.env.CLIENT_LICENSE_TEXT,
   }],
@@ -125,9 +131,36 @@ univer.registerPlugins([
 ])
 ```
 
+<Callout type="info">
+  `UniverPdfsUIPlugin` 依赖 `UniverDocsUIPlugin`，因此请先注册公共文档 UI 插件。
+</Callout>
+
 ## 移动端适配 [#mobile-support]
 
-当前 `@univerjs-pro/pdfs-ui` 包没有导出独立的移动端 UI 插件，既不存在 `MobileUIPlugin` 导入项，也不存在 `mobile: true` 选项，请不要尝试使用它们。容器变窄并不能说明触摸支持已经完整，现有 UI 需要在目标设备上实际验证。
+移动端 PDF UI 是同一个包中的另一个导出 `UniverPdfsMobileUIPlugin`。它没有 `mobile: true` 选项，也没有 PDF preset。请在打开 PDF 之前选定 UI 模式，并**替换**桌面端的 UI 注册，不要同时注册两套。
+
+| 包 | 桌面端注册 | 移动端注册 |
+| --- | --- | --- |
+| `@univerjs/ui` | `UniverUIPlugin` | `UniverMobileUIPlugin` |
+| `@univerjs/docs-ui` | `UniverDocsUIPlugin` | `UniverDocsMobileUIPlugin` |
+| `@univerjs-pro/pdfs-ui` | `UniverPdfsUIPlugin` | `UniverPdfsMobileUIPlugin` |
+| `@univerjs-pro/pdfs-print` | `UniverPdfsPrintPlugin` | `UniverPdfsMobilePrintPlugin` |
+
+```ts
+import { UniverDocsMobileUIPlugin } from '@univerjs/docs-ui'
+import { UniverPdfsMobileUIPlugin } from '@univerjs-pro/pdfs-ui'
+import { UniverPdfsMobilePrintPlugin } from '@univerjs-pro/pdfs-print'
+import { UniverMobileUIPlugin } from '@univerjs/ui'
+
+univer.registerPlugin(UniverMobileUIPlugin, { container: 'app' })
+univer.registerPlugin(UniverDocsMobileUIPlugin, { footer: false })
+univer.registerPlugin(UniverPdfsMobileUIPlugin)
+
+// 可选：将打印加入移动端查看菜单。
+univer.registerPlugin(UniverPdfsMobilePrintPlugin)
+```
+
+`UniverPdfsMobileUIPlugin` 声明依赖 `UniverMobileUIPlugin` 和 `UniverDocsMobileUIPlugin`，因此请先注册这两个插件。移动端打开后进入页面预览网格，而不是桌面端的缩略图栏。由宿主应用决定何时挂载这套插件栈（例如按视口宽度判断）。仅把容器变窄不会得到移动端 UI。移动端打印插件见[打印](/guides/pdfs/features/print#mobile-support)。
 
 ## 可选的缩略图 Worker
 

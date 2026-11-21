@@ -4,146 +4,60 @@ title: 权限控制
 
 import { PermissionShadowDemo } from './components/permission-shadow-demo'
 
-Univer 的权限控制决定用户可以对工作簿、工作表和选区执行哪些操作。用户执行缺少所需权限的操作时，Univer 会中止该操作并提示缺少的权限。为选区添加保护后，即可控制协作者在该选区内能否编辑、查看、复制和筛选。
-
-<Callout type="warning">
-业务服务必须持久化保护规则和协作者变更，返回当前用户的权限，并把请求失败传递给调用方。返回空列表的 mock 不是持久化实现。协同场景下，后端还必须自行校验读取、JOIN 和修改权限，见[身份与权限](/server/collaboration/identity-and-authorization)。前端的保护与阴影隐藏不能替代服务端鉴权。
-
-[权限服务接入](#authorization-service)
-</Callout>
-
-<PlaygroundFrame lang="zh-CN" slug="sheets/permission" clickToShow />
-
-本页覆盖基础操作、进阶示例、配置和故障排查；完整的 API 定义统一收录在 Reference。
-
-- [常用任务](#permission-tasks)
-- [权限界面配置](#permission-ui)
-- [权限服务接入](#permission-integration)
-- [Reference](#reference)
-
-## 核心概念
-
-- 作用范围：权限作用于工作簿、工作表、选区三个层级。
-- 权限点位：每个功能对应一个权限点位，改变点位的值即可启用或停用该功能。
-- 保护规则：工作表或选区必须先建立保护规则，才能设置其权限点位。
-
-<Callout type="info">
-本地非持久化的权限可以直接通过权限点位修改；如需持久化，见 [权限服务接入](#authorization-service)。
-
-协同编辑时，更新权限点位会同步更新服务端状态：
-  - false：该权限点至少需要 `owner` 角色
-  - true：该权限点至少需要 `reader` 角色
-</Callout>
-
-## 基础示例
-
-使用 `allowedUsers` 的示例之前，请先把 `user1`、`user2` 替换为权限服务返回的真实协作者 ID。
-
-下面按工作簿、工作表、选区三个层级，说明最常用的权限设置方式。
-
-### 工作簿权限代码示例
-
-工作簿层级的权限直接通过 [Facade API](/guides/sheets/getting-started/facade) 设置。
-
-下面的示例关闭整个工作簿的编辑权限。如需控制其他功能，替换为对应的权限点位，见[权限点位列表 - 工作簿](#workbook-point)：
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const workbookPermission = fWorkbook.getWorkbookPermission()
-
-// 设置工作簿不可编辑
-await workbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
-```
-
-工作簿权限点位可以直接设置，不需要先创建保护规则。
-
-### 工作表权限代码示例
-
-工作表和选区的权限可以通过 Facade API 设置，也可以通过命令设置。下面以工作表编辑权限为例；如需控制其他功能，替换为对应的权限点位，见[权限点位列表 - 工作表](#worksheet-point)。
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// 创建工作表保护, 允许指定用户编辑
-const permissionId = await worksheetPermission.protect({
-  allowedUsers: ['user1', 'user2'],
-  name: 'My Worksheet Protection',
-})
-
-// 如果需要设置权限点位，必须先创建工作表保护
-await worksheetPermission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.Edit, false)
-```
-
-#### 删除工作表权限
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// 删除工作表保护
-await worksheetPermission.unprotect()
-```
-
-### 自定义选区权限代码示例
-
-选区的权限同样可以通过 API 和命令两种方式设置。下面以选区编辑权限为例；其他选区功能需要替换权限点位，见[权限点位列表 - 选区](#range-point)。
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const fWorksheet = fWorkbook.getActiveSheet()
-const fRange = fWorksheet.getRange('A1:B2')
-const rangePermission = fRange.getRangePermission()
-
-// 设置区域保护权限，允许指定用户编辑但不允许他人查看
-const rule = await rangePermission.protect({
-  name: 'My protected range',
-  allowViewByOthers: false,
-  allowedUsers: ['user1', 'user2'],
-})
-console.log(rule)
-
-// 如果需要设置权限点位，必须先创建区域保护。
-await rule.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
-await rule.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
-```
-
-#### 删除区域保护权限
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const fWorksheet = fWorkbook.getActiveSheet()
-const fRange = fWorksheet.getRange('A1:B2')
-const rangePermission = fRange.getRangePermission()
-
-// 删除范围内所有保护规则
-await rangePermission.unprotect()
-
-// 或者删除范围内指定规则
-const rules = await rangePermission.listRules()
-if (rules.length > 0) {
-  await rules[0].remove()
-}
-```
+用工作簿模式控制整份表格能否编辑或评论。要让指定协作者填写某张工作表或某个区域，给相应范围添加保护规则。多人协同时，服务端还需分别校验读取、加入会话和修改文档的权限，见[身份与权限](/server/collaboration/identity-and-authorization)。
 
 ## 常用任务 [#permission-tasks]
 
-### 将工作簿设为只读
+### 将工作簿设为只读或允许评论
+
+`viewer` 模式允许查看和打印。要让用户可以评论，同时保持单元格只读，把上面的 `'viewer'` 换成 `'commenter'`。一个模式会一次性设置多个权限点位。要调整某位协作者的角色，请使用[协作者管理](#collaborators)中的 API。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 if (!fWorkbook) throw new Error('No active workbook')
 const permission = fWorkbook.getWorkbookPermission()
 await permission.setMode('viewer')
-console.log(permission.getSnapshot())
 ```
+
+只修改一个权限点位时，调用 `setPoint`。例如，关闭工作簿编辑权限可以使用 `await permission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)`。点位值发生变化时，SDK 会调用 `IAuthzIoService.update`。传入 `true` 时，发送给服务的策略角色是 `Editor`，传入 `false` 时是 `Owner`。要在重新打开文档后保留设置，请[接入权限服务](#authorization-service)。
+
+<PlaygroundFrame lang="zh-CN" slug="sheets/permission" clickToShow />
+
+### 允许指定协作者编辑工作表
+
+将 `user1` 和 `user2` 替换为这份工作簿已有协作者的 ID。要设置单个工作表权限点位，先用 `protect()` 创建保护规则。要解除整张工作表的保护，调用 `worksheetPermission.unprotect()`。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const fWorksheet = fWorkbook.getActiveSheet()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
+
+await worksheetPermission.protect({
+  allowedUsers: ['user1', 'user2'],
+  name: 'My Worksheet Protection',
+})
+```
+
+### 只允许指定协作者查看和编辑 A1:B2
+
+`allowedUsers` 指定可编辑该区域的协作者。`allowViewByOthers: false` 同时限制其他人的查看权限。稍后可用返回的 `rule.remove()` 单独移除这条规则。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+const rangePermission = fRange.getRangePermission()
+
+const rule = await rangePermission.protect({
+  name: 'My protected range',
+  allowViewByOthers: false,
+  allowedUsers: ['user1', 'user2'],
+})
+```
+
+要列出与该选区相交的规则，调用 `rangePermission.listRules()`。`rangePermission.unprotect()` 会移除所有相交的规则。
 
 ### 管理保护范围
 
@@ -155,37 +69,70 @@ const permission = fWorksheet.getWorksheetPermission()
 
 const createdRules = await permission.protectRanges([
   {
-    ranges: [fWorksheet.getRange('A1:B2')],
+    ranges: [fWorksheet.getRange('D1:D4')],
     options: { name: 'Public area', allowViewByOthers: true },
   },
   {
-    ranges: [fWorksheet.getRange('C3:D4')],
+    ranges: [fWorksheet.getRange('E1:E4')],
     options: { name: 'Private area', allowViewByOthers: false, allowedUsers: ['user1'] },
   },
 ])
-console.log(createdRules)
 
-const rules = await permission.listRangeProtectionRules()
-const firstRule = rules[0]
-if (firstRule) {
-  await firstRule.updateRanges([fWorksheet.getRange('A1:B3')])
-}
+await createdRules[0].updateRanges([fWorksheet.getRange('D1:D5')])
 ```
 
-### 排查单元格权限
+### 排查为什么 A1 无法输入
+
+下面的示例列出输入普通单元格值所需的权限。任何一项为 `false` 都会阻止输入。`debugCellPermission(0, 0)` 返回覆盖 A1 的保护规则，没有匹配规则时返回 `undefined`。
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 if (!fWorkbook) throw new Error('No active workbook')
-const permission = fWorkbook.getActiveSheet().getWorksheetPermission()
-console.log(permission.debugCellPermission(0, 0))
+const worksheet = fWorkbook.getActiveSheet().getWorksheetPermission()
+const rule = await worksheet.debugCellPermission(0, 0)
+
+console.table({
+  workbookEdit: fWorkbook.getWorkbookPermission().canEdit(),
+  worksheetEdit: worksheet.canEdit(),
+  setCellValue: worksheet.getPoint(univerAPI.Enum.WorksheetPermissionPoint.SetCellValue),
+  rangeEdit: rule?.canEdit() ?? true,
+})
 ```
 
 ## 权限点位列表 [#point-list]
 
-所有权限点位的源码在[这里](https://github.com/dream-num/univer/tree/dev/packages/sheets/src/services/permission/permission-point)。
+### 工作表操作及其权限点位
 
-当某个功能同时受 `workbook` 权限和 `worksheet`、`range` 权限约束时，相关权限必须全部为 `true`，该功能才可用。例如，单元格的编辑权限要求 `workbook` 和 `worksheet` 的编辑权限都为 `true`。
+每个操作都检查自己的一组权限点位。工作簿点位与同一行列出的 worksheet、range 点位同时生效。如果某一行包含区域点位，操作涉及的每个保护规则也必须允许该编辑。隐藏行或列时，检查范围会扩展到整行或整列。
+
+| 操作 | 需要的权限点位 |
+| --- | --- |
+| 写入单元格值（不含公式） | `WorkbookEditablePermission`、`WorksheetEditPermission`、`WorksheetSetCellValuePermission`、`RangeProtectionPermissionEditPoint` |
+| 插入工作表 | `WorkbookEditablePermission`、`WorkbookCreateSheetPermission` |
+| 复制工作表 | `WorkbookEditablePermission`、`WorkbookCopySheetPermission` |
+| 移动工作表 | `WorkbookEditablePermission`、`WorkbookMoveSheetPermission` |
+| 重命名工作表 | `WorkbookEditablePermission`、`WorkbookRenameSheetPermission` |
+| 隐藏或显示工作表 | `WorkbookEditablePermission`、`WorkbookHideSheetPermission` |
+| 删除工作表 | `WorkbookEditablePermission`、`WorkbookDeleteSheetPermission` |
+| 隐藏或显示行或列 | `WorkbookEditablePermission`、`WorksheetEditPermission`、`WorksheetSetRowStylePermission` 或 `WorksheetSetColumnStylePermission`，以及每个相交保护规则的编辑点位 |
+| 调整行高或列宽，或按内容自适应 | `WorksheetSetRowStylePermission` 或 `WorksheetSetColumnStylePermission` |
+| 合并或取消合并单元格 | `WorkbookEditablePermission`、`WorksheetEditPermission`、`WorksheetSetCellValuePermission`、`WorksheetSetCellStylePermission`，以及每个相交保护规则的编辑点位 |
+| 对区域排序 | `WorkbookEditablePermission`、`WorksheetEditPermission`、`WorksheetSortPermission`，以及每个相交保护规则的编辑点位 |
+| 冻结或取消冻结窗格 | `WorkbookEditablePermission`、`WorksheetEditPermission` |
+| 显示或隐藏网格线，或修改网格线颜色 | `WorkbookEditablePermission`、`WorksheetEditPermission` |
+| 添加、更新或删除批注 | `WorkbookEditablePermission`、`WorksheetEditPermission`，以及批注所在单元格相交的每个保护规则的编辑点位 |
+| 组合或取消组合行或列 | `WorkbookEditablePermission`、`WorksheetEditPermission`、`WorksheetSetRowStylePermission` 或 `WorksheetSetColumnStylePermission`，以及每个相交保护规则的编辑点位 |
+| 创建保护规则 | `WorkbookCreateProtectPermission` |
+| 管理保护规则的协作者 | `WorksheetManageCollaboratorPermission` 或 `RangeProtectionPermissionManageCollaPoint` |
+| 删除保护规则 | `WorksheetDeleteProtectionPermission` 或 `RangeProtectionPermissionDeleteProtectionPoint` |
+
+任一必需点位为 `false` 时，命令会在执行变更之前被拒绝，文档不会发生变化。
+
+批注遵循单元格的编辑点位，读取批注不检查权限。
+
+### 评论权限
+
+读取表格评论需要工作簿的 `View`，发表评论需要工作簿的 `Comment`。两者都需要工作表的 `View`。评论锚定在单元格上时，还会检查覆盖该单元格的保护规则是否允许查看。作者可以修改或删除自己的评论。
 
 ### 工作簿 [#workbook-point]
 
@@ -427,6 +374,93 @@ univerAPI.setPermissionDialogVisible(false)
 
 ## 权限服务接入 [#permission-integration]
 
+### 第三方权限服务接入(进阶用法) [#authorization-service]
+
+在创建工作簿前注册 [`IAuthzIoService`](https://github.com/dream-num/univer/blob/v1.6.0/packages/core/src/services/authz-io/type.ts) 的实现。服务需保存保护规则和协作者变更，按当前用户返回权限，并将请求错误返回给调用方。
+
+```typescript
+import { IAuthzIoService, Univer } from '@univerjs/core'
+import { YourAuthzService } from './authorization-service'
+
+const univer = new Univer({
+  override: [[IAuthzIoService, { useClass: YourAuthzService }]],
+})
+```
+
+![权限](./permission/permission-cn.png)
+
+### 协作者管理 [#collaborators]
+
+- 获取协作者列表
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+const collaborators = await workbookPermission.listCollaborators()
+console.log(collaborators)
+```
+
+- 添加协作者
+
+`addCollaborator` 添加一人。`setCollaborators` 替换完整名单，调用时请包含所有仍需保留的协作者。
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+await workbookPermission.addCollaborator(
+  { userID: 'user1', name: 'John Doe', avatar: '' },
+  univerAPI.Enum.UnitRole.Editor,
+)
+```
+
+- 替换协作者名单
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+await workbookPermission.setCollaborators([
+  {
+    user: { userID: 'user1', name: 'John Doe', avatar: '' },
+    role: univerAPI.Enum.UnitRole.Editor,
+  },
+  {
+    user: { userID: 'user2', name: 'Jane Smith', avatar: '' },
+    role: univerAPI.Enum.UnitRole.Reader,
+  },
+])
+```
+
+- 更新协作者角色
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+await workbookPermission.updateCollaborator(
+  { userID: 'user1', name: 'John Doe Updated', avatar: '' },
+  univerAPI.Enum.UnitRole.Reader,
+)
+```
+
+- 删除协作者
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+await workbookPermission.removeCollaborators(['user1', 'user2'])
+```
+
+## 在插件中扩展权限
+
 ### 拓展使用
 
 如需在自己的插件中校验权限，可直接操作权限点位。
@@ -452,6 +486,8 @@ class YourService {
 ```
 
 [权限点位列表](#point-list)
+
+`SheetPermissionCheckController.permissionCheckByPoints(points)` 检查显式传入的权限点位列表，只要其中任一点位被禁用就返回 `false`。当命令已经知道所需点位时，例如某个具体保护规则的点位，可以使用该方法。
 
 ### 第三方插件如何扩展权限点位
 
@@ -500,93 +536,6 @@ class ConsumeService {
     console.log(point$)
   }
 }
-```
-
-### 第三方权限服务接入(进阶用法) [#authorization-service]
-
-在业务应用中实现 [IAuthzIoService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/type.ts)，把权限、角色和协作者这几组方法接到后端。下面的示例假定 `./authorization-service` 将实现导出为 `YourAuthzService`。请在创建工作簿之前注册它，并保留其他初始化选项和插件注册。
-
-```typescript
-import { IAuthzIoService, Univer } from '@univerjs/core'
-import { YourAuthzService } from './authorization-service'
-
-const univer = new Univer({
-  override: [[IAuthzIoService, { useClass: YourAuthzService }]],
-})
-```
-
-该权限服务必须持久化保护规则和协作者变更，返回当前用户的权限，并把请求失败反馈给调用方。只返回空列表的 mock 不会持久化任何内容。协同场景下，后端仍需自行校验读取、JOIN 和修改权限，见[身份与权限](/server/collaboration/identity-and-authorization)。前端的保护和阴影隐藏不能替代服务端鉴权。
-
-![权限](./permission/permission-cn.png)
-
-### 协作者管理
-
-<Callout>
-  协作者管理属于业务应用及其权限服务的职责。请接入自己的用户与 ACL 模型，并在服务端分别校验读取、JOIN 和修改权限，见[身份与权限](/server/collaboration/identity-and-authorization)。下面的前端 API 需要配套的权限服务实现，它们不会自动配置服务端权限。
-</Callout>
-
-- 获取协作者列表
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const workbookPermission = fWorkbook.getWorkbookPermission()
-
-const collaborators = await workbookPermission.listCollaborators()
-console.log(collaborators)
-```
-
-- 添加协作者
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const workbookPermission = fWorkbook.getWorkbookPermission()
-
-// 一次添加多个协作者
-await workbookPermission.setCollaborators([
-  {
-    user: { userID: 'user1', name: 'John Doe', avatar: 'https://...' },
-    role: univerAPI.Enum.UnitRole.Editor,
-  },
-  {
-    user: { userID: 'user2', name: 'Jane Smith', avatar: '' },
-    role: univerAPI.Enum.UnitRole.Reader,
-  },
-])
-
-// 添加单个协作者
-await workbookPermission.addCollaborator(
-  { userID: 'user1', name: 'John Doe', avatar: 'https://...' },
-  univerAPI.Enum.UnitRole.Editor,
-)
-```
-
-- 更新协作者角色
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const workbookPermission = fWorkbook.getWorkbookPermission()
-
-await workbookPermission.updateCollaborator(
-  { userID: 'user1', name: 'John Doe Updated', avatar: 'https://...' },
-  univerAPI.Enum.UnitRole.Reader,
-)
-```
-
-- 删除协作者
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const workbookPermission = fWorkbook.getWorkbookPermission()
-
-// 删除多个协作者
-await workbookPermission.removeCollaborators(['user1', 'user2'])
-
-// 删除单个协作者
-await workbookPermission.removeCollaborator('user1')
 ```
 
 ## Reference

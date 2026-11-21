@@ -13,7 +13,7 @@ import { ViewsDemo } from './components/views-demo'
 | `Grid` | Редактирование, фильтрация и сортировка строк | Замороженные поля, высота рядов, ширина поля |
 | `Kanban` | Группировка по статусу или владельцу | `groupFieldId` |
 | `Calendar` | Расписание записей по датам | `startDateFieldId`, факультативная дата окончания |
-| `Gantt` | Продолжительность планирования и зависимости | Даты начала и окончания, факультативные области прогресса и зависимости |
+| `Gantt` | Продолжительность планирования и зависимости | Даты начала и окончания, сравнение с планом, завершённость, предшественники и рабочий календарь |
 | `Gallery` | Показать изображения и контент-карты | Обложка, название и карточные поля |
 | `Pivot` | Резюме и диаграммы | Требуется [плагин для приборной панели](/guides/bases/features/dashboard) |
 
@@ -71,6 +71,70 @@ const calendar = table.createView('Schedule', univerAPI.Enum.BaseViewType.Calend
 ```
 
 Календарь требует поля начальной даты. Гант также требует поля конечной даты и поддерживает рабочие дни, прогресс и зависимости. В галерее `card` настраивает заголовок и поля, которые отображает каждая карта.
+
+## Планирование в Ганте
+
+`startDateFieldId` и `endDateFieldId` обязательны. `progressFieldId` привязывает поле `Progress`: его значение задаёт завершённость каждой полосы, а на десктопе завершённость можно перетаскивать. `workingDaysOnly` затеняет нерабочие дни на шкале времени и считает каждую полосу в рабочих днях, а `workingDays` задаёт недельный шаблон и исключения, которые используются для этих подсчётов и отклонений.
+
+| Ключ | Тип | Описание |
+| --- | --- | --- |
+| `startDateFieldId` | `string` | Поле даты начала текущего расписания. |
+| `endDateFieldId` | `string` | Поле даты окончания текущего расписания. |
+| `progressFieldId` | `string` | Поле прогресса, задающее завершённость. |
+| `showPlanComparison` | `boolean` | Показывает плановые полосы под текущими. |
+| `planStartDateFieldId` | `string` | Поле даты с плановым началом. |
+| `planEndDateFieldId` | `string` | Поле даты с плановым окончанием. |
+| `planColor` | `string` | Цвет заливки плановых полос. |
+| `remainingColor` | `string` | Цвет незавершённой работы, когда задан `progressFieldId`. По умолчанию используется более светлый оттенок цвета полосы. |
+| `workingDaysOnly` | `boolean` | Помечает нерабочие дни и считает только рабочие дни. |
+| `workingDays` | `object` | Рабочий календарь с `weekdays` и `exceptions`. |
+
+```ts
+const gantt = table.createView('Delivery', univerAPI.Enum.BaseViewType.Gantt, {
+  view: {
+    config: {
+      startDateFieldId: 'startDate',
+      endDateFieldId: 'endDate',
+      progressFieldId: 'progress',
+      showPlanComparison: true,
+      planStartDateFieldId: 'plannedStart',
+      planEndDateFieldId: 'plannedEnd',
+    },
+  },
+})
+```
+
+В интерфейсе откройте настройки представления «Гант», включите «Сравнить с планом» и выберите поля планового начала и окончания. Если заданы оба плановых поля, плановые полосы отображаются под текущими. Наведите указатель на полосу на десктопе или коснитесь её на мобильном устройстве, чтобы сравнить оба расписания. Подсказка сообщает отклонение начала и окончания в рабочих днях.
+
+## Предшественники в Ганте
+
+Задайте `dependencyFieldId` как многозначное поле связи записей (`RecordLink`), которое указывает на ту же таблицу. Поле должно быть редактируемым и не должно быть системным полем.
+
+Пакет `@univerjs-pro/bases` экспортирует `AddGanttPredecessorCommand` и `RemoveGanttPredecessorCommand`. Обе команды принимают `unitId`, `tableId`, `viewId`, `predecessorId` и `successorId`. Команда добавления возвращает `true`, если после вызова связь существует, `false`, если запрос отклонён, и `'cycle'`, если связь создаст циклическую зависимость. Команда удаления возвращает `true`, если после вызова связь отсутствует.
+
+```ts
+import { AddGanttPredecessorCommand, RemoveGanttPredecessorCommand } from '@univerjs-pro/bases'
+
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('No active Base')
+
+const params = {
+  unitId: base.getId(),
+  tableId: table.getId(),
+  viewId: gantt.getId(),
+  predecessorId: 'task-1',
+  successorId: 'task-2',
+}
+
+const added = await univerAPI.executeCommand(AddGanttPredecessorCommand.id, params)
+// true — связь установлена; false — запрос отклонён; 'cycle' — возникнет цикл
+
+await univerAPI.executeCommand(RemoveGanttPredecessorCommand.id, params)
+```
+
+На десктопе перетащите соединитель с любого конца текущей полосы на другую полосу, чтобы добавить связь «окончание — начало». Одно действие отмены удаляет связь.
+
+Для совместного редактирования диаграммы Ганта сначала обновите шлюз до версии с поддержкой операционных преобразований Base, затем разверните клиенты 1.6.0.
 
 ## Сортировка и отображение полей
 
