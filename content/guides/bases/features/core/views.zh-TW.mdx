@@ -13,7 +13,7 @@ import { ViewsDemo } from './components/views-demo'
 | 網格 `Grid` | 按行編輯、篩選和排序 | 凍結欄位、行高、欄位寬度 |
 | 看板 `Kanban` | 按狀態或負責人分組 | `groupFieldId` |
 | 日曆 `Calendar` | 按日期安排記錄 | `startDateFieldId`，可選結束日期 |
-| 甘特圖 `Gantt` | 規劃工期與依賴 | 開始和結束日期，以及可選進度和依賴欄位 |
+| 甘特圖 `Gantt` | 規劃工期與依賴 | 開始和結束日期、計畫對照、完成度、前置任務和工作日曆 |
 | 畫廊 `Gallery` | 展示圖片和內容卡片 | 封面、標題和卡片欄位 |
 | 透視 `Pivot` | 彙總統計與圖表 | 需要[儀表盤外掛](/guides/bases/features/dashboard) |
 
@@ -71,6 +71,70 @@ const calendar = table.createView('Schedule', univerAPI.Enum.BaseViewType.Calend
 ```
 
 日曆需要開始日期欄位。甘特圖還需要結束日期欄位，並支援工作日、進度和依賴關係。畫廊使用 `card` 配置標題，以及每張卡片展示的欄位。
+
+## 甘特圖排期
+
+`startDateFieldId` 和 `endDateFieldId` 為必填。`progressFieldId` 綁定進度欄位，其值決定每個任務長條的完成度，桌面端可以拖曳完成度。`workingDaysOnly` 會在時間軸上標示非工作日，並以工作日計算每個任務長條。`workingDays` 定義用於這些計算與偏差的每週模式及例外。
+
+| 設定項 | 類型 | 說明 |
+| --- | --- | --- |
+| `startDateFieldId` | `string` | 目前排期的開始日期欄位。 |
+| `endDateFieldId` | `string` | 目前排期的結束日期欄位。 |
+| `progressFieldId` | `string` | 提供完成度的進度欄位。 |
+| `showPlanComparison` | `boolean` | 在目前任務長條下方顯示計畫任務長條。 |
+| `planStartDateFieldId` | `string` | 計畫開始的日期欄位。 |
+| `planEndDateFieldId` | `string` | 計畫完成的日期欄位。 |
+| `planColor` | `string` | 計畫任務長條的填色。 |
+| `remainingColor` | `string` | 設定 `progressFieldId` 後，未完成工作的顏色。預設使用任務長條顏色的淺色。 |
+| `workingDaysOnly` | `boolean` | 標示非工作日，並僅以工作日計算。 |
+| `workingDays` | `object` | 工作日曆，包含 `weekdays` 和 `exceptions`。 |
+
+```ts
+const gantt = table.createView('Delivery', univerAPI.Enum.BaseViewType.Gantt, {
+  view: {
+    config: {
+      startDateFieldId: 'startDate',
+      endDateFieldId: 'endDate',
+      progressFieldId: 'progress',
+      showPlanComparison: true,
+      planStartDateFieldId: 'plannedStart',
+      planEndDateFieldId: 'plannedEnd',
+    },
+  },
+})
+```
+
+在介面中開啟甘特圖檢視設定，啟用「與計畫對照」，然後選擇計畫開始和計畫完成欄位。兩個計畫欄位都設定後，計畫任務長條會顯示在目前任務長條下方。桌面端將滑鼠懸停在任務長條上，或在行動端輕點任務長條，即可對照兩套排期。提示中會顯示開始和完成的偏差（以工作日計）。
+
+## 甘特圖前置任務
+
+將 `dependencyFieldId` 設為指向同一張表的多值記錄關聯欄位。該欄位必須可編輯，且不能是系統欄位。
+
+`@univerjs-pro/bases` 套件匯出 `AddGanttPredecessorCommand` 和 `RemoveGanttPredecessorCommand`。兩者都接受 `unitId`、`tableId`、`viewId`、`predecessorId` 和 `successorId` 參數。新增命令在呼叫後關聯已存在時返回 `true`，請求被拒絕時返回 `false`，若會形成循環依賴則返回 `'cycle'`。移除命令在呼叫後關聯不存在時返回 `true`。
+
+```ts
+import { AddGanttPredecessorCommand, RemoveGanttPredecessorCommand } from '@univerjs-pro/bases'
+
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('No active Base')
+
+const params = {
+  unitId: base.getId(),
+  tableId: table.getId(),
+  viewId: gantt.getId(),
+  predecessorId: 'task-1',
+  successorId: 'task-2',
+}
+
+const added = await univerAPI.executeCommand(AddGanttPredecessorCommand.id, params)
+// true：已建立關聯；false：被拒絕；'cycle'：會形成循環依賴
+
+await univerAPI.executeCommand(RemoveGanttPredecessorCommand.id, params)
+```
+
+在桌面端，將目前任務長條任一端的連接點拖曳到另一個任務長條上，即可新增完成到開始（finish-to-start）關聯。一次撤銷即可移除該關聯。
+
+啟用甘特圖協同編輯前，請先將閘道升級至支援 Base 操作轉換（OT）的版本，再部署 1.6.0 用戶端。
 
 ## 排序與欄位顯示
 

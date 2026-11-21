@@ -19,7 +19,7 @@ UniverはReactとRxJSでのデータストリームでUIをビルドし、Vueま
 すべての `@univerjs/*` と `@univerjs-pro/*` パッケージのバージョンを揃えてください。
 
 <InstallTabs
-  packages="@univerjs/core @univerjs/design @univerjs/ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-ui"
+  packages="@univerjs/core @univerjs/design @univerjs/ui @univerjs/docs-ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-ui"
   overrides={{ yarn: { append: 'react react-dom rxjs' } }}
 />
 
@@ -47,10 +47,13 @@ Univerを初期化する前に、コンテナを明示的な高さで作成し�
     import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
     import { FUniver } from '@univerjs/core/facade'
     import DesignEnUS from '@univerjs/design/locale/en-US'
+    import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+    import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
     import { UniverUIPlugin } from '@univerjs/ui'
     import UIEnUS from '@univerjs/ui/locale/en-US'
     import '@univerjs/design/lib/index.css'
     import '@univerjs/ui/lib/index.css'
+    import '@univerjs/docs-ui/lib/index.css'
     import '@univerjs-pro/pdfs-ui/lib/index.css'
     ```
 
@@ -73,12 +76,14 @@ Univerを初期化する前に、コンテナを明示的な高さで作成し�
         [LocaleType.EN_US]: mergeLocales(
           DesignEnUS,
           UIEnUS,
+          DocsUIEnUS,
           PdfsUIEnUS,
         ),
       },
     })
 
     univer.registerPlugin(UniverUIPlugin, { container: 'app' })
+    univer.registerPlugin(UniverDocsUIPlugin)
     univer.registerPlugin(UniverLicensePlugin, {
       license: process.env.CLIENT_LICENSE_TEXT,
     })
@@ -117,6 +122,7 @@ Univerインスタンスが作成されると、`univer.registerPlugin` を呼�
 ```typescript
 univer.registerPlugins([
   [UniverUIPlugin, { container: 'app' }],
+  UniverDocsUIPlugin,
   [UniverLicensePlugin, {
     license: process.env.CLIENT_LICENSE_TEXT,
   }],
@@ -125,9 +131,36 @@ univer.registerPlugins([
 ])
 ```
 
+<Callout type="info">
+  `UniverPdfsUIPlugin` は `UniverDocsUIPlugin` に依存するため、共有ドキュメント UI プラグインを先に登録します。
+</Callout>
+
 ## モバイル対応 [#mobile-support]
 
-現在の`@univerjs-pro/pdfs-ui`パッケージは専用のモバイルUIプラグインをエクスポートしません。`MobileUIPlugin`のインポートと`mobile: true`オプションの両方を提供し、どちらを使用しても試みません。狭いコンテナは、タッチサポートが完了していることを証明しません。ターゲットデバイス上の既存のUIを評価します。
+モバイル用の PDF UI は、同じパッケージがエクスポートする別のプラグイン `UniverPdfsMobileUIPlugin` です。`mobile: true` オプションや PDF プリセットはありません。PDF を開く前に UI モードを選択し、デスクトップ UI の登録を**置き換えて**ください。両方を登録しないでください。
+
+| パッケージ | デスクトップの登録 | モバイルの登録 |
+| --- | --- | --- |
+| `@univerjs/ui` | `UniverUIPlugin` | `UniverMobileUIPlugin` |
+| `@univerjs/docs-ui` | `UniverDocsUIPlugin` | `UniverDocsMobileUIPlugin` |
+| `@univerjs-pro/pdfs-ui` | `UniverPdfsUIPlugin` | `UniverPdfsMobileUIPlugin` |
+| `@univerjs-pro/pdfs-print` | `UniverPdfsPrintPlugin` | `UniverPdfsMobilePrintPlugin` |
+
+```ts
+import { UniverDocsMobileUIPlugin } from '@univerjs/docs-ui'
+import { UniverPdfsMobileUIPlugin } from '@univerjs-pro/pdfs-ui'
+import { UniverPdfsMobilePrintPlugin } from '@univerjs-pro/pdfs-print'
+import { UniverMobileUIPlugin } from '@univerjs/ui'
+
+univer.registerPlugin(UniverMobileUIPlugin, { container: 'app' })
+univer.registerPlugin(UniverDocsMobileUIPlugin, { footer: false })
+univer.registerPlugin(UniverPdfsMobileUIPlugin)
+
+// 任意: モバイルビューアのメニューに Print を追加します。
+univer.registerPlugin(UniverPdfsMobilePrintPlugin)
+```
+
+`UniverPdfsMobileUIPlugin` は `UniverMobileUIPlugin` と `UniverDocsMobileUIPlugin` を依存関係として宣言するため、これらを先に登録します。このプラグインはデスクトップのサムネイルレールではなく、ページプレビューのグリッドで開きます。このスタックをマウントするタイミング（ビューポート幅など）はホストアプリケーションが決定します。デスクトッププラグインを狭いコンテナに置いてもモバイル UI にはなりません。モバイル印刷プラグインについては、[印刷](/guides/pdfs/features/print#mobile-support)を参照してください。
 
 ## 任意のサムネイル Worker
 

@@ -4,146 +4,60 @@ title: Управление разрешениями
 
 import { PermissionShadowDemo } from './components/permission-shadow-demo'
 
-Контроль разрешений в Univer определяет, что пользователь может делать на рабочей книге, листе или диапазоне. Когда пользователь пытается выполнить операцию без требуемого разрешения, Univer останавливает операцию и сообщает о недостающих разрешениях. Защита диапазона, например, контролирует, могут ли сотрудники редактировать, просматривать, копировать или фильтровать содержимое внутри него.
-
-<Callout type="warning">
-Ваша служба должна сохранять правила защиты и изменения сотрудника, возвращать текущие разрешения пользователя и передавать сбои запроса обратно абоненту. Имитация, которая возвращает пустой список, не является уровнем стойкости. В сотрудничестве бэкэнд также должен проверять сами разрешения на чтение, JOIN и мутации; см. [Идентификация и авторизация](/server/collaboration/identity-and-authorization). Защита в пользовательском интерфейсе и скрытые тени не заменяют авторизацию сервера.
-
-[Интеграция сервиса авторизации](#authorization-service)
-</Callout>
-
-<PlaygroundFrame lang="ru-RU" slug="sheets/permission" clickToShow />
-
-Эта страница охватывает основные операции, расширенные примеры, конфигурацию и устранение неполадок. Полные контракты API собираются в Справочнике.
-
-- [Типовые задачи](#permission-tasks)
-- [Настройка интерфейса прав](#permission-ui)
-- [Интеграция сервиса авторизации](#permission-integration)
-- [Reference](#reference)
-
-## Основные понятия
-
-- Объем: Разрешения применяются на трех уровнях: рабочая тетрадь, рабочий лист и диапазон.
-- Точки разрешения: каждая функция имеет одну точку разрешения, и изменение ее значения позволяет или отключает эту функцию.
-- Правила защиты: Рабочий лист или диапазон требуют правила защиты до того, как могут быть установлены точки разрешения.
-
-<Callout type="info">
-Локальные права без сохранения изменяются через точки прав. Для сохранения см. [Интеграция сервиса авторизации](#authorization-service).
-
-При совместном редактировании обновление точки разрешения также обновляет состояние сервера:
-  - `false`: для точки разрешения требуется роль не ниже `owner`
-  - `true`: для точки разрешения требуется роль не ниже `reader`
-</Callout>
-
-## Базовый пример
-
-Перед использованием примеров `allowedUsers` замените `user1` и `user2` реальными идентификаторами сотрудников, возвращенными службой авторизации.
-
-Приведенные ниже примеры показывают обычный способ установки разрешений на каждом из трех уровней: рабочая тетрадь, рабочий лист и диапазон.
-
-### Пример разрешений для книги
-
-Установите разрешения на уровне книги непосредственно через [Facade API](/guides/sheets/getting-started/facade).
-
-Приведенный ниже пример отключает редактирование для всей книги. Для управления другой функцией замените точку разрешения на соответствующую; см. [Список точек разрешения на работу](#workbook-point):
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const workbookPermission = fWorkbook.getWorkbookPermission()
-
-// Set the workbook to be non-editable
-await workbookPermission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)
-```
-
-Точки разрешения на работу могут быть установлены непосредственно, без создания правила защиты.
-
-### Пример разрешений для листа
-
-Рабочий лист и разрешения диапазона могут быть установлены через Facade API или через команды. Этот пример устанавливает разрешение редактирования рабочего листа. Чтобы управлять другой функцией, замените точку разрешения на соответствующую; см. [список точек разрешения рабочего листа](#worksheet-point):
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// Create worksheet protection, allow specified users to edit
-const permissionId = await worksheetPermission.protect({
-  allowedUsers: ['user1', 'user2'],
-  name: 'My Worksheet Protection',
-})
-
-// To set permission points, you must first protect the worksheet
-await worksheetPermission.setPoint(univerAPI.Enum.WorksheetPermissionPoint.Edit, false)
-```
-
-#### Удаление разрешений листа
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const fWorksheet = fWorkbook.getActiveSheet()
-const worksheetPermission = fWorksheet.getWorksheetPermission()
-
-// Remove worksheet protection
-await worksheetPermission.unprotect()
-```
-
-### Пример пользовательских разрешений диапазона
-
-Разрешения диапазона могут быть установлены одними и теми же двумя способами: через API или через команды. В приведенном ниже примере используется разрешение редактирования диапазона. Другие функции диапазона требуют другой точки разрешения; см. [Список точек разрешения - диапазон](#range-point) для деталей.
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const fWorksheet = fWorkbook.getActiveSheet()
-const fRange = fWorksheet.getRange('A1:B2')
-const rangePermission = fRange.getRangePermission()
-
-// Set range protection permission, allow specified users to edit but not allow others to view
-const rule = await rangePermission.protect({
-  name: 'My protected range',
-  allowViewByOthers: false,
-  allowedUsers: ['user1', 'user2'],
-})
-console.log(rule)
-
-// To set permission points, you must first create a range protection rule.
-await rule.setPoint(univerAPI.Enum.RangePermissionPoint.Edit, false)
-await rule.setPoint(univerAPI.Enum.RangePermissionPoint.View, true)
-```
-
-#### Удаление разрешений защиты диапазона
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const fWorksheet = fWorkbook.getActiveSheet()
-const fRange = fWorksheet.getRange('A1:B2')
-const rangePermission = fRange.getRangePermission()
-
-// delete all rules within the range
-await rangePermission.unprotect()
-
-// Or delete specific rules within the range
-const rules = await rangePermission.listRules()
-if (rules.length > 0) {
-  await rules[0].remove()
-}
-```
+Режим книги определяет, можно ли редактировать ячейки и оставлять комментарии. Чтобы разрешить редактирование листа или диапазона только выбранным участникам, создайте для него правило защиты. При совместной работе сервер также должен проверять права на чтение, подключение к сеансу и изменение документа. См. [Идентификация и авторизация](/server/collaboration/identity-and-authorization).
 
 ## Типовые задачи [#permission-tasks]
 
-### Перевести книгу в режим чтения
+### Открыть книгу только для чтения или разрешить комментарии
+
+В режиме `viewer` книгу можно просматривать и печатать. Чтобы разрешить также комментарии и сохранить ячейки доступными только для чтения, передайте `'commenter'` в примере ниже. Режим задаёт сразу все разрешения книги. Для изменения роли одного пользователя используйте [API управления участниками](#collaborators).
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 if (!fWorkbook) throw new Error('No active workbook')
 const permission = fWorkbook.getWorkbookPermission()
 await permission.setMode('viewer')
-console.log(permission.getSnapshot())
 ```
+
+Для изменения одного разрешения вызовите `setPoint`. Например, `await permission.setPoint(univerAPI.Enum.WorkbookPermissionPoint.Edit, false)` отключает редактирование книги. При изменении значения SDK вызывает `IAuthzIoService.update`, передавая в политике роль `Editor` для `true` или `Owner` для `false`. Чтобы настройка сохранялась при повторном открытии документа, [подключите службу авторизации](#authorization-service).
+
+<PlaygroundFrame lang="ru-RU" slug="sheets/permission" clickToShow />
+
+### Разрешить редактировать лист выбранным участникам
+
+Замените `user1` и `user2` идентификаторами участников этой книги. Прежде чем задавать отдельные разрешения листа, создайте правило защиты с помощью `protect()`. Для снятия защиты листа вызовите `worksheetPermission.unprotect()`.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const fWorksheet = fWorkbook.getActiveSheet()
+const worksheetPermission = fWorksheet.getWorksheetPermission()
+
+await worksheetPermission.protect({
+  allowedUsers: ['user1', 'user2'],
+  name: 'My Worksheet Protection',
+})
+```
+
+### Ограничить просмотр и редактирование A1:B2 выбранными участниками
+
+В `allowedUsers` укажите участников, которым разрешено редактировать диапазон. Параметр `allowViewByOthers: false` также ограничивает его просмотр. Чтобы снять только эту защиту, вызовите `rule.remove()` у полученного правила.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const fWorksheet = fWorkbook.getActiveSheet()
+const fRange = fWorksheet.getRange('A1:B2')
+const rangePermission = fRange.getRangePermission()
+
+const rule = await rangePermission.protect({
+  name: 'My protected range',
+  allowViewByOthers: false,
+  allowedUsers: ['user1', 'user2'],
+})
+```
+
+Вызовите `rangePermission.listRules()`, чтобы получить список правил, пересекающих диапазон. Метод `rangePermission.unprotect()` удаляет все такие правила.
 
 ### Управлять защищёнными диапазонами
 
@@ -155,37 +69,70 @@ const permission = fWorksheet.getWorksheetPermission()
 
 const createdRules = await permission.protectRanges([
   {
-    ranges: [fWorksheet.getRange('A1:B2')],
+    ranges: [fWorksheet.getRange('D1:D4')],
     options: { name: 'Public area', allowViewByOthers: true },
   },
   {
-    ranges: [fWorksheet.getRange('C3:D4')],
+    ranges: [fWorksheet.getRange('E1:E4')],
     options: { name: 'Private area', allowViewByOthers: false, allowedUsers: ['user1'] },
   },
 ])
-console.log(createdRules)
 
-const rules = await permission.listRangeProtectionRules()
-const firstRule = rules[0]
-if (firstRule) {
-  await firstRule.updateRanges([fWorksheet.getRange('A1:B3')])
-}
+await createdRules[0].updateRanges([fWorksheet.getRange('D1:D5')])
 ```
 
-### Проверить права ячейки
+### Выяснить, почему нельзя ввести значение в A1
+
+Пример показывает разрешения, необходимые для ввода обычного значения. Если хотя бы одно равно `false`, ввод блокируется. Метод `debugCellPermission(0, 0)` возвращает правило защиты для A1 или `undefined`, если такого правила нет.
 
 ```typescript
 const fWorkbook = univerAPI.getActiveWorkbook()
 if (!fWorkbook) throw new Error('No active workbook')
-const permission = fWorkbook.getActiveSheet().getWorksheetPermission()
-console.log(permission.debugCellPermission(0, 0))
+const worksheet = fWorkbook.getActiveSheet().getWorksheetPermission()
+const rule = await worksheet.debugCellPermission(0, 0)
+
+console.table({
+  workbookEdit: fWorkbook.getWorkbookPermission().canEdit(),
+  worksheetEdit: worksheet.canEdit(),
+  setCellValue: worksheet.getPoint(univerAPI.Enum.WorksheetPermissionPoint.SetCellValue),
+  rangeEdit: rule?.canEdit() ?? true,
+})
 ```
 
 ## Список точек разрешений [#point-list]
 
-Исходным кодом для каждой точки разрешения является [здесь](https://github.com/dream-num/univer/tree/dev/packages/sheets/src/services/permission/permission-point).
+### Действия с листом и их точки разрешений
 
-Когда разрешение на книгу и разрешение на работу или диапазон охватывают функцию, **все** соответствующих разрешений должен быть `true`, прежде чем эта функция будет работать.
+Каждая операция проверяет собственный набор точек. Точка книги применяется вместе с точками листа и диапазона в той же строке, а точка диапазона означает точку редактирования каждого защищённого диапазона, который пересекает операция. При скрытии строки или столбца проверка расширяется на всю строку или столбец.
+
+| Действие | Требуемые точки |
+| --- | --- |
+| Ввод значения в ячейку (кроме формул) | `WorkbookEditablePermission`, `WorksheetEditPermission`, `WorksheetSetCellValuePermission`, `RangeProtectionPermissionEditPoint` |
+| Вставка листа | `WorkbookEditablePermission`, `WorkbookCreateSheetPermission` |
+| Копирование листа | `WorkbookEditablePermission`, `WorkbookCopySheetPermission` |
+| Перемещение листа | `WorkbookEditablePermission`, `WorkbookMoveSheetPermission` |
+| Переименование листа | `WorkbookEditablePermission`, `WorkbookRenameSheetPermission` |
+| Скрытие или показ листа | `WorkbookEditablePermission`, `WorkbookHideSheetPermission` |
+| Удаление листа | `WorkbookEditablePermission`, `WorkbookDeleteSheetPermission` |
+| Скрытие или показ строк или столбцов | `WorkbookEditablePermission`, `WorksheetEditPermission`, `WorksheetSetRowStylePermission` или `WorksheetSetColumnStylePermission`, а также точка редактирования каждого пересекаемого защищённого диапазона |
+| Изменение размера строк или столбцов или подгонка по содержимому | `WorksheetSetRowStylePermission` или `WorksheetSetColumnStylePermission` |
+| Объединение или разделение ячеек | `WorkbookEditablePermission`, `WorksheetEditPermission`, `WorksheetSetCellValuePermission`, `WorksheetSetCellStylePermission`, а также точка редактирования каждого пересекаемого защищённого диапазона |
+| Сортировка диапазона | `WorkbookEditablePermission`, `WorksheetEditPermission`, `WorksheetSortPermission`, а также точка редактирования каждого пересекаемого защищённого диапазона |
+| Закрепить или снять закрепление областей | `WorkbookEditablePermission`, `WorksheetEditPermission` |
+| Показать или скрыть линии сетки, или изменить их цвет | `WorkbookEditablePermission`, `WorksheetEditPermission` |
+| Добавить, обновить или удалить примечание | `WorkbookEditablePermission`, `WorksheetEditPermission`, а также точка редактирования каждого защищённого диапазона, содержащего ячейку |
+| Сгруппировать или разгруппировать строки или столбцы | `WorkbookEditablePermission`, `WorksheetEditPermission`, `WorksheetSetRowStylePermission` или `WorksheetSetColumnStylePermission`, а также точка редактирования каждого пересекаемого защищённого диапазона |
+| Создание правила защиты | `WorkbookCreateProtectPermission` |
+| Управление участниками правила защиты | `WorksheetManageCollaboratorPermission` или `RangeProtectionPermissionManageCollaPoint` |
+| Удаление правила защиты | `WorksheetDeleteProtectionPermission` или `RangeProtectionPermissionDeleteProtectionPoint` |
+
+Когда требуемая точка равна `false`, команда отклоняется до изменения документа.
+
+Примечания подчиняются точкам редактирования ячеек. Чтение примечания не проверяется.
+
+### Разрешения на комментарии
+
+Для чтения комментария нужно разрешение `View` книги, а для публикации нужно `Comment`. В обоих случаях требуется также разрешение `View` листа. Если комментарий привязан к ячейке, все применимые к ней правила защиты должны разрешать просмотр. Авторы могут изменять и удалять собственные комментарии.
 
 ### Разрешения книги [#workbook-point]
 
@@ -427,6 +374,93 @@ univerAPI.setPermissionDialogVisible(false)
 
 ## Интеграция сервиса авторизации [#permission-integration]
 
+### Интеграция со сторонней службой авторизации (для опытных пользователей) [#authorization-service]
+
+Зарегистрируйте реализацию [`IAuthzIoService`](https://github.com/dream-num/univer/blob/v1.6.0/packages/core/src/services/authz-io/type.ts) до создания книги. Служба должна сохранять правила защиты и изменения списка участников, возвращать права текущего пользователя и передавать ошибки запроса вызывающей стороне.
+
+```typescript
+import { IAuthzIoService, Univer } from '@univerjs/core'
+import { YourAuthzService } from './authorization-service'
+
+const univer = new Univer({
+  override: [[IAuthzIoService, { useClass: YourAuthzService }]],
+})
+```
+
+![Разрешения](./permission/permission-en.png)
+
+### Управление участниками [#collaborators]
+
+- Получите список сотрудников
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+const collaborators = await workbookPermission.listCollaborators()
+console.log(collaborators)
+```
+
+- Добавление участников
+
+Для добавления одного участника используйте `addCollaborator`. Метод `setCollaborators` заменяет весь список. Включите в него всех участников, которым нужно сохранить доступ.
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+await workbookPermission.addCollaborator(
+  { userID: 'user1', name: 'John Doe', avatar: '' },
+  univerAPI.Enum.UnitRole.Editor,
+)
+```
+
+- Заменить список участников
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+await workbookPermission.setCollaborators([
+  {
+    user: { userID: 'user1', name: 'John Doe', avatar: '' },
+    role: univerAPI.Enum.UnitRole.Editor,
+  },
+  {
+    user: { userID: 'user2', name: 'Jane Smith', avatar: '' },
+    role: univerAPI.Enum.UnitRole.Reader,
+  },
+])
+```
+
+- Обновление ролей сотрудников
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+await workbookPermission.updateCollaborator(
+  { userID: 'user1', name: 'John Doe Updated', avatar: '' },
+  univerAPI.Enum.UnitRole.Reader,
+)
+```
+
+- Удаление участников
+
+```typescript
+const fWorkbook = univerAPI.getActiveWorkbook()
+if (!fWorkbook) throw new Error('No active workbook')
+const workbookPermission = fWorkbook.getWorkbookPermission()
+
+await workbookPermission.removeCollaborators(['user1', 'user2'])
+```
+
+## Расширение разрешений в плагине
+
 ### Расширенное использование
 
 Чтобы проверить разрешения внутри собственного плагина, работайте с точками разрешения напрямую.
@@ -452,6 +486,8 @@ class YourService {
 ```
 
 [Список точек разрешений](#point-list)
+
+`SheetPermissionCheckController.permissionCheckByPoints(points)` проверяет явный список точек разрешения и возвращает `false`, если любая из них отключена. Используйте его, когда команда уже знает необходимые точки, например точки конкретного правила защиты.
 
 ### Расширение точек разрешений
 
@@ -500,93 +536,6 @@ class ConsumeService {
     console.log(point$)
   }
 }
-```
-
-### Интеграция со сторонней службой авторизации (для опытных пользователей) [#authorization-service]
-
-Внедряйте [IAuthzIoService](https://github.com/dream-num/univer/blob/dev/packages/core/src/services/authz-io/type.ts) в ваше приложение и подключите его методы разрешения, роли и соавтора к вашему бэкэнду. Пример предполагает, что `./authorization-service` экспортирует реализацию как `YourAuthzService`. Зарегистрируйте его перед созданием любых рабочих книг и сохраните другие варианты инициализации и регистрации плагинов.
-
-```typescript
-import { IAuthzIoService, Univer } from '@univerjs/core'
-import { YourAuthzService } from './authorization-service'
-
-const univer = new Univer({
-  override: [[IAuthzIoService, { useClass: YourAuthzService }]],
-})
-```
-
-Ваша служба authz должна сохранять правила защиты и изменения сотрудника, возвращать текущие разрешения пользователя и сбои в запросе поверхности. Имитация, которая возвращает пустые списки, ничего не сохраняется. В сотрудничестве бэкэнд должен все еще проверять сами разрешения на чтение, JOIN и мутации; см. [Идентификация и авторизация](/server/collaboration/identity-and-authorization). Защита пользовательского интерфейса и скрытые тени не заменяют авторизацию сервера.
-
-![Разрешения](./permission/permission-en.png)
-
-### Управление участниками
-
-<Callout>
-  Управление коллаборационистами относится к вашему приложению и его службе разрешений. Подключите своего пользователя и модель ACL и примените политики чтения, соединения и редактирования на сервере; см. [удостоверение личности и разрешение](/server/collaboration/identity-and-authorization). Приведенные ниже интерфейсные API требуют соответствующей реализации службы разрешений; они не настраивают авторизацию сервера.
-</Callout>
-
-- Получите список сотрудников
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const workbookPermission = fWorkbook.getWorkbookPermission()
-
-const collaborators = await workbookPermission.listCollaborators()
-console.log(collaborators)
-```
-
-- Добавление участников
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const workbookPermission = fWorkbook.getWorkbookPermission()
-
-// Add multiple collaborators at once
-await workbookPermission.setCollaborators([
-  {
-    user: { userID: 'user1', name: 'John Doe', avatar: 'https://...' },
-    role: univerAPI.Enum.UnitRole.Editor,
-  },
-  {
-    user: { userID: 'user2', name: 'Jane Smith', avatar: '' },
-    role: univerAPI.Enum.UnitRole.Reader,
-  },
-])
-
-// Add a single collaborator
-await workbookPermission.addCollaborator(
-  { userID: 'user1', name: 'John Doe', avatar: 'https://...' },
-  univerAPI.Enum.UnitRole.Editor,
-)
-```
-
-- Обновление ролей сотрудников
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const workbookPermission = fWorkbook.getWorkbookPermission()
-
-await workbookPermission.updateCollaborator(
-  { userID: 'user1', name: 'John Doe Updated', avatar: 'https://...' },
-  univerAPI.Enum.UnitRole.Reader,
-)
-```
-
-- Удаление участников
-
-```typescript
-const fWorkbook = univerAPI.getActiveWorkbook()
-if (!fWorkbook) throw new Error('No active workbook')
-const workbookPermission = fWorkbook.getWorkbookPermission()
-
-// Remove multiple collaborators
-await workbookPermission.removeCollaborators(['user1', 'user2'])
-
-// Remove a single collaborator
-await workbookPermission.removeCollaborator('user1')
 ```
 
 ## Reference

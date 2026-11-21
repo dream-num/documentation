@@ -145,7 +145,7 @@ const handler = createMcpHandler(() => {
         mobile,
         features: getFeatures(product).map((feature) =>
           Object.assign(feature, {
-            unavailableReason: mobile && product !== 'sheets' ? 'mobile' : getFeatureAvailability(feature, options),
+            unavailableReason: getFeatureAvailability(feature, options),
           }),
         ),
       }
@@ -157,7 +157,7 @@ const handler = createMcpHandler(() => {
     'generate_setup',
     {
       description:
-        'Generate the same browser starter files as the Univer initialization generator: exact dependencies, plugin/preset registration, Facade imports, CSS, locales and required configuration. Returns file contents without writing or executing them. Use list_features for IDs. Read framework guides to adapt mounting and disposal; use Node guides for headless work. Presets support Sheets/Docs; mobile generation supports Sheets plugin mode.',
+        'Generate the same browser starter files as the Univer initialization generator: exact dependencies, plugin/preset registration, Facade imports, CSS, locales and required configuration. Returns file contents without writing or executing them. Use list_features for IDs. Read framework guides for mounting and disposal, and Node guides for headless use. Presets support Sheets and Docs. Mobile generation supports Sheets and PDFs in plugin mode.',
       inputSchema: z.object({
         product: z.enum(PRODUCTS),
         mode: z.enum(['plugin', 'preset']).default('plugin'),

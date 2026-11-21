@@ -6,9 +6,9 @@ Univer PDFs is part of the Univer Office SDK and does not provide a preset yet, 
 
 Univer supports two integration modes: preset mode and plugin mode. Preset mode provides a preconfigured bundle of plugins, which reduces the amount of wiring. If you need **deep customization or extensions**, use plugin mode, where each plugin is selected and configured individually.
 
-## Setting Up via Plugin Mode
+## Setting up via plugin mode
 
-### Using Package Manager
+### Using package manager
 
 The build tool must support ES Modules and the `exports` field in `package.json`.
 
@@ -19,7 +19,7 @@ Univer builds its UI with React and its data streams with RxJS, and it can also 
 Keep all `@univerjs/*` and `@univerjs-pro/*` packages on **the same version**.
 
 <InstallTabs
-  packages="@univerjs/core @univerjs/design @univerjs/ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-ui"
+  packages="@univerjs/core @univerjs/design @univerjs/ui @univerjs/docs-ui @univerjs-pro/license @univerjs-pro/pdfs @univerjs-pro/pdfs-ui"
   overrides={{ yarn: { append: 'react react-dom rxjs' } }}
 />
 
@@ -47,10 +47,13 @@ Import the facade entries used below before calling `FUniver.newAPI(univer)`. Im
     import { LocaleType, mergeLocales, Univer } from '@univerjs/core'
     import { FUniver } from '@univerjs/core/facade'
     import DesignEnUS from '@univerjs/design/locale/en-US'
+    import { UniverDocsUIPlugin } from '@univerjs/docs-ui'
+    import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US'
     import { UniverUIPlugin } from '@univerjs/ui'
     import UIEnUS from '@univerjs/ui/locale/en-US'
     import '@univerjs/design/lib/index.css'
     import '@univerjs/ui/lib/index.css'
+    import '@univerjs/docs-ui/lib/index.css'
     import '@univerjs-pro/pdfs-ui/lib/index.css'
     ```
 
@@ -73,12 +76,14 @@ Import the facade entries used below before calling `FUniver.newAPI(univer)`. Im
         [LocaleType.EN_US]: mergeLocales(
           DesignEnUS,
           UIEnUS,
+          DocsUIEnUS,
           PdfsUIEnUS,
         ),
       },
     })
 
     univer.registerPlugin(UniverUIPlugin, { container: 'app' })
+    univer.registerPlugin(UniverDocsUIPlugin)
     univer.registerPlugin(UniverLicensePlugin, {
       license: process.env.CLIENT_LICENSE_TEXT,
     })
@@ -106,7 +111,7 @@ Import the facade entries used below before calling `FUniver.newAPI(univer)`. Im
 | --- | --- | --- | --- |
 | `license` | `string` |  | Client license file contents. |
 
-#### `univer.registerPlugin` and `univer.registerPlugins` Methods [#registerPlugin]
+#### `univer.registerPlugin` and `univer.registerPlugins` methods [#registerPlugin]
 
 After the Univer instance is created, call `univer.registerPlugin` to register a plugin on it.
 
@@ -117,6 +122,7 @@ To register several plugins at once, pass an array to `univer.registerPlugins`. 
 ```typescript
 univer.registerPlugins([
   [UniverUIPlugin, { container: 'app' }],
+  UniverDocsUIPlugin,
   [UniverLicensePlugin, {
     license: process.env.CLIENT_LICENSE_TEXT,
   }],
@@ -125,9 +131,36 @@ univer.registerPlugins([
 ])
 ```
 
+<Callout type="info">
+  `UniverPdfsUIPlugin` depends on `UniverDocsUIPlugin`, so register the shared document UI plugin before it.
+</Callout>
+
 ## Mobile support [#mobile-support]
 
-The current `@univerjs-pro/pdfs-ui` package does not export a dedicated mobile UI plugin. It provides neither a `MobileUIPlugin` import nor a `mobile: true` option, so do not attempt to use either. A narrow container does not prove that touch support is complete; evaluate the existing UI on the target devices.
+The mobile PDF UI is a separate export of the same package, `UniverPdfsMobileUIPlugin`. There is no `mobile: true` option and no PDF preset. Choose the UI mode before opening a PDF and **replace** the desktop UI registrations. Do not register both.
+
+| Package | Desktop registration | Mobile registration |
+| --- | --- | --- |
+| `@univerjs/ui` | `UniverUIPlugin` | `UniverMobileUIPlugin` |
+| `@univerjs/docs-ui` | `UniverDocsUIPlugin` | `UniverDocsMobileUIPlugin` |
+| `@univerjs-pro/pdfs-ui` | `UniverPdfsUIPlugin` | `UniverPdfsMobileUIPlugin` |
+| `@univerjs-pro/pdfs-print` | `UniverPdfsPrintPlugin` | `UniverPdfsMobilePrintPlugin` |
+
+```ts
+import { UniverDocsMobileUIPlugin } from '@univerjs/docs-ui'
+import { UniverPdfsMobileUIPlugin } from '@univerjs-pro/pdfs-ui'
+import { UniverPdfsMobilePrintPlugin } from '@univerjs-pro/pdfs-print'
+import { UniverMobileUIPlugin } from '@univerjs/ui'
+
+univer.registerPlugin(UniverMobileUIPlugin, { container: 'app' })
+univer.registerPlugin(UniverDocsMobileUIPlugin, { footer: false })
+univer.registerPlugin(UniverPdfsMobileUIPlugin)
+
+// Optional: add Print to the mobile viewer menu.
+univer.registerPlugin(UniverPdfsMobilePrintPlugin)
+```
+
+`UniverPdfsMobileUIPlugin` declares `UniverMobileUIPlugin` and `UniverDocsMobileUIPlugin` as dependencies, so register them first. It opens on the page-preview grid instead of the desktop thumbnail rail. The host application decides when to mount this stack, for example by viewport width. A narrow container around the desktop plugin does not produce the mobile UI. See [Print](/guides/pdfs/features/print#mobile-support) for the mobile print plugin.
 
 ## Optional thumbnail worker
 
@@ -167,11 +200,11 @@ The option also accepts a string URL or an existing `Worker`. If workers or `Off
 
 A Node.js service can register `UniverPdfsPlugin` without any browser UI package. Add the collaboration stack above only when the service needs to load or synchronize persisted PDF units.
 
-## Other Releases
+## Other releases
 
 Besides stable releases, Univer maintains alpha and beta channels that provide access to features which are not officially released yet. More features also mean more risk: these versions may contain bugs, incomplete functionality, or unstable features, so avoid them in production where possible.
 
-### Alpha / Beta Release
+### Alpha / beta release
 
 When the Univer team completes a new feature or a significant change, it may pre-release the change to the alpha or beta channel. Install an alpha or beta version of a package with:
 
@@ -182,7 +215,7 @@ npm install @univerjs-pro/pdfs@beta # Beta version
 
 If a problem occurs or you have feedback while using an alpha or beta version, report it to the Univer team through [GitHub Issues](https://github.com/dream-num/univer/issues). Feedback on these early releases is welcome.
 
-## Next Steps
+## Next steps
 
 - [Quickstart](/guides/pdfs/getting-started/quickstart)
 - [Facade API](/guides/pdfs/getting-started/facade)

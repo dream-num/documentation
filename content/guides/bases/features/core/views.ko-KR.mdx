@@ -13,7 +13,7 @@ import { ViewsDemo } from './components/views-demo'
 | `Grid` | 편집, 필터링 및 정렬 행 | 언 필드, 행 높이, 필드 폭 |
 | `Kanban` | 상태 또는 소유자에 의해 그룹화 | `groupFieldId` |
 | `Calendar` | 날짜별 일정표 | `startDateFieldId`의 선택적인 끝 날짜 |
-| `Gantt` | 계획 기간 및 종속 | 시작 및 종료 날짜, 선택적 진행 및 의존성 필드 |
+| `Gantt` | 계획 기간 및 종속 | 시작 및 종료 날짜, 계획 비교, 완료율, 선행 작업 및 근무 일정 |
 | `Gallery` | 이미지 및 콘텐츠 카드 표시 | 표지, 제목 및 카드 필드 |
 | `Pivot` | 요약 및 차트 | [대시보드 플러그인](/guides/bases/features/dashboard)를 요구합니다 |
 
@@ -71,6 +71,70 @@ const calendar = table.createView('Schedule', univerAPI.Enum.BaseViewType.Calend
 ```
 
 일정은 시작 날짜 필드가 필요합니다. Gantt는 최종 날짜 필드를 필요로하며 작업 일, 진행 상황 및 의존성을 지원합니다. 갤러리에서 `card`는 제목과 각 카드 디스플레이 필드를 구성합니다.
+
+## Gantt 계획
+
+`startDateFieldId`와 `endDateFieldId`는 필수입니다. `progressFieldId`는 진행률 필드를 바인딩하며, 그 값이 각 막대의 완료율을 결정하고 데스크톱에서 완료율을 드래그할 수 있습니다. `workingDaysOnly`는 타임라인에서 비근무일에 음영을 표시하고 각 막대를 근무일 기준으로 계산하며, `workingDays`는 이 계산과 차이에 사용하는 주간 패턴과 예외를 정의합니다.
+
+| 키 | 유형 | 설명 |
+| --- | --- | --- |
+| `startDateFieldId` | `string` | 현재 일정의 시작 날짜 필드입니다. |
+| `endDateFieldId` | `string` | 현재 일정의 종료 날짜 필드입니다. |
+| `progressFieldId` | `string` | 완료율을 제공하는 진행률 필드입니다. |
+| `showPlanComparison` | `boolean` | 현재 막대 아래에 계획 막대를 표시합니다. |
+| `planStartDateFieldId` | `string` | 계획 시작이 담긴 날짜 필드입니다. |
+| `planEndDateFieldId` | `string` | 계획 종료가 담긴 날짜 필드입니다. |
+| `planColor` | `string` | 계획 막대의 채우기 색상입니다. |
+| `remainingColor` | `string` | `progressFieldId`가 설정된 경우 미완료 작업의 색상입니다. 기본값은 막대 색상의 더 밝은 음영입니다. |
+| `workingDaysOnly` | `boolean` | 비근무일에 음영을 표시하고 근무일만 계산합니다. |
+| `workingDays` | `object` | `weekdays`와 `exceptions`로 구성된 근무일 달력입니다. |
+
+```ts
+const gantt = table.createView('Delivery', univerAPI.Enum.BaseViewType.Gantt, {
+  view: {
+    config: {
+      startDateFieldId: 'startDate',
+      endDateFieldId: 'endDate',
+      progressFieldId: 'progress',
+      showPlanComparison: true,
+      planStartDateFieldId: 'plannedStart',
+      planEndDateFieldId: 'plannedEnd',
+    },
+  },
+})
+```
+
+UI에서 Gantt 뷰 설정을 열고 "계획과 비교"를 활성화한 다음 계획 시작 및 계획 종료 필드를 선택합니다. 두 계획 필드가 모두 설정되면 계획 막대가 현재 막대 아래에 렌더링됩니다. 데스크톱에서는 막대 위로 마우스를 이동하고 모바일에서는 막대를 탭하여 두 일정을 비교합니다. 툴팁에는 근무일 기준 시작 및 종료 차이가 표시됩니다.
+
+## Gantt 선행 작업
+
+`dependencyFieldId`를 같은 테이블을 대상으로 하는 다중 값 레코드 연결 필드로 설정합니다. 해당 필드는 편집할 수 있어야 하며 시스템 필드가 아니어야 합니다.
+
+`@univerjs-pro/bases` 패키지는 `AddGanttPredecessorCommand`와 `RemoveGanttPredecessorCommand`를 내보냅니다. 두 명령 모두 `unitId`, `tableId`, `viewId`, `predecessorId`, `successorId`를 받습니다. 추가 명령은 호출 후 연결이 존재하면 `true`, 요청이 거부되면 `false`, 연결이 순환 종속성을 만들면 `'cycle'`을 반환합니다. 제거 명령은 호출 후 연결이 없으면 `true`를 반환합니다.
+
+```ts
+import { AddGanttPredecessorCommand, RemoveGanttPredecessorCommand } from '@univerjs-pro/bases'
+
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('No active Base')
+
+const params = {
+  unitId: base.getId(),
+  tableId: table.getId(),
+  viewId: gantt.getId(),
+  predecessorId: 'task-1',
+  successorId: 'task-2',
+}
+
+const added = await univerAPI.executeCommand(AddGanttPredecessorCommand.id, params)
+// true: linked, false: rejected, 'cycle': would create a cycle
+
+await univerAPI.executeCommand(RemoveGanttPredecessorCommand.id, params)
+```
+
+데스크톱에서는 현재 막대 양 끝 중 한쪽의 연결점을 다른 막대 위로 드래그하여 완료-시작 링크를 추가합니다. 한 번 실행 취소하면 링크가 제거됩니다.
+
+간트 보기를 공동 편집하려면 1.6.0 클라이언트를 배포하기 전에 게이트웨이를 Base 연산 변환(OT)을 지원하는 버전으로 업그레이드하세요.
 
 ## 정렬 및 필드 표시
 

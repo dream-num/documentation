@@ -8,7 +8,7 @@ Univer does not accept a component as an argument to a render function. A compon
 
 If a Facade API instance is not available yet, see [Facade API](/guides/docs/getting-started/facade).
 
-## Registering Custom Components
+## Registering custom components
 
 ```typescript
 // [!code word:componentKey]
@@ -23,7 +23,7 @@ Use `univerAPI.registerComponent` to register a custom component. The method acc
 - `CustomComponent`: the component implementation, which can be a React component, a Vue component, or a Web Component.
 - `options`: optional settings, such as the framework the component depends on.
 
-### React Components [#react]
+### React components [#react]
 
 React components require no additional setup. Any valid React component can be registered:
 
@@ -35,7 +35,7 @@ function ReactComponent(props: Record<string, any>) {
 univerAPI.registerComponent('MyReactComponent', ReactComponent)
 ```
 
-### Vue Components [#vue]
+### Vue components [#vue]
 
 #### Vue 3.x
 
@@ -241,7 +241,7 @@ Retain the returned registration and sidebar handles and call `dispose()` on eac
 
 Angular Elements maps inputs to element properties and outputs to DOM `CustomEvent` events. The Univer adapter sets properties but does not subscribe to Angular outputs. The application subscribes to those events when they are required.
 
-## Using Custom Components
+## Using custom components
 
 The methods below cover the common ways to place a custom component in the Univer UI.
 
@@ -249,11 +249,11 @@ The methods below cover the common ways to place a custom component in the Unive
   1. Wait until Univer has finished rendering before calling these methods. 2. Register components that require registration before use. 3. Call `dispose()` to clean up and remove added components; otherwise the application leaks memory.
 </Callout>
 
-### Adding Custom Menu Items
+### Adding custom menu items
 
 Both the top menu bar (Ribbon) and the right-click menu (Context Menu) can contain custom components. Adding a component to a menu item requires a custom plugin.
 
-### Replacing Built-in Components
+### Replacing built-in components
 
 <Callout type="error" title="Warning">
   Replacing a built-in component can break other features that depend on it. Read the source code and the documentation before replacing a component, and proceed with caution.
@@ -270,9 +270,43 @@ For example, replacing the built-in ColorPicker component requires a single call
 univerAPI.registerComponent('UI_COLOR_PICKER_COMPONENT', () => <input type="color" />)
 ```
 
-### Using as Content Components
+### Replacing user information rendering
 
-#### In the Sidebar
+`@univerjs/ui` renders user names and avatars through `UserInfo`. `UserInfo` renders through the component registered for `USER_INFO_COMPONENT` and falls back to `DefaultUserInfo` when none is registered. Register a host component before the corresponding view opens:
+
+```tsx
+import { USER_INFO_COMPONENT } from '@univerjs/ui'
+import type { IUserInfoProps } from '@univerjs/ui'
+
+function HostUserInfo({ user, part, context, className, fallbackSrc }: IUserInfoProps) {
+  if (part === 'avatar') {
+    return <img className={className} src={user.avatar ?? fallbackSrc} alt="" />
+  }
+
+  return (
+    <span className={className} data-user-id={user.userId} data-scene={context.scene}>
+      {user.name ?? user.userId}
+    </span>
+  )
+}
+
+univerAPI.registerComponent(USER_INFO_COMPONENT, HostUserInfo)
+```
+
+`UserInfo` passes the following fields:
+
+- `user`: `{ userId?, name?, avatar?, isAnonymous? }`. `userId` is the source identity and is available before the profile loads. It is never a collaboration session ID.
+- `part`: `'name'` or `'avatar'`. The component renders each part separately.
+- `context`: `{ scene, unitId?, subUnitId?, commentId?, threadId?, versionId?, objectId?, tableId?, fieldId?, recordId? }`. `scene` is one of `'comment-author'`, `'history-author'`, `'history-filter'`, `'permission-member'`, `'permission-creator'`, or `'base-person'`. `unitId` is absent for standalone controls that have no associated document.
+- `avatarSize?`, `fallbackSrc?`, and `className?`: optional rendering hints for avatars and the name element.
+
+`DefaultUserInfo` renders the built-in name and avatar and can be used for scenes that a host does not customize. `inheritUserInfoComponent(source, target)` registers the source `ComponentManager`'s user-info component in another component manager, such as a child `Univer` instance for history or preview, so the same override applies there. It registers `DefaultUserInfo` when the source has no user-info component.
+
+The override changes rendering only. It does not change persisted mentions, search text, or Canvas output. As with other component overrides, register before the view first opens. Registration changes do not rerender views that are already mounted.
+
+### Using as content components
+
+#### In the sidebar
 
 `univerAPI.openSidebar` opens a sidebar in the Univer interface whose content is a registered component.
 
@@ -296,7 +330,7 @@ sidebar.dispose()
 
 See [`univerAPI.openSidebar`](/reference/facade/univer#opensidebar).
 
-#### In a Dialog
+#### In a dialog
 
 `univerAPI.openDialog` opens a dialog whose content is a custom component.
 

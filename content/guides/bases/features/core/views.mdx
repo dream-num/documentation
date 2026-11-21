@@ -13,7 +13,7 @@ A table can have several views. Tasks may be entered in a grid and their status 
 | `Grid` | Editing, filtering, and sorting rows | Frozen fields, row height, field widths |
 | `Kanban` | Grouping by status or owner | `groupFieldId` |
 | `Calendar` | Scheduling records by date | `startDateFieldId`, optional end date |
-| `Gantt` | Planning duration and dependencies | Start and end dates, optional progress and dependency fields |
+| `Gantt` | Planning duration and dependencies | Start and end dates, plan comparison, completion, predecessors, and work calendar |
 | `Gallery` | Showing images and content cards | Cover, title, and card fields |
 | `Pivot` | Summaries and charts | Requires the [dashboard plugin](/guides/bases/features/dashboard) |
 
@@ -71,6 +71,70 @@ const calendar = table.createView('Schedule', univerAPI.Enum.BaseViewType.Calend
 ```
 
 A calendar requires a start-date field. Gantt also requires an end-date field, and supports working days, progress, and dependencies. In a gallery, `card` configures the title and the fields that each card displays.
+
+## Gantt planning
+
+`startDateFieldId` and `endDateFieldId` are required. `progressFieldId` binds a Progress field; its value sets each bar's completion, and completion can be dragged on desktop. `workingDaysOnly` shades non-working days in the timeline and counts each bar in working days. `workingDays` defines the weekly pattern and exceptions used for those counts and variance.
+
+| Key | Type | Description |
+| --- | --- | --- |
+| `startDateFieldId` | `string` | Start-date field for the current schedule. |
+| `endDateFieldId` | `string` | End-date field for the current schedule. |
+| `progressFieldId` | `string` | Progress field that supplies completion. |
+| `showPlanComparison` | `boolean` | Shows planned bars below the current bars. |
+| `planStartDateFieldId` | `string` | Date field with the planned start. |
+| `planEndDateFieldId` | `string` | Date field with the planned finish. |
+| `planColor` | `string` | Fill color of the planned bars. |
+| `remainingColor` | `string` | Color of incomplete work when `progressFieldId` is set. A lighter shade of the bar color is used by default. |
+| `workingDaysOnly` | `boolean` | Marks non-working days and counts working days only. |
+| `workingDays` | `object` | Working-day calendar with `weekdays` and `exceptions`. |
+
+```ts
+const gantt = table.createView('Delivery', univerAPI.Enum.BaseViewType.Gantt, {
+  view: {
+    config: {
+      startDateFieldId: 'startDate',
+      endDateFieldId: 'endDate',
+      progressFieldId: 'progress',
+      showPlanComparison: true,
+      planStartDateFieldId: 'plannedStart',
+      planEndDateFieldId: 'plannedEnd',
+    },
+  },
+})
+```
+
+In the UI, open Gantt View Settings and enable "Compare with plan", then select the planned start and finish fields. Planned bars render under the current bars when both planned fields are set. Hover over a bar on desktop or tap it on mobile to compare both schedules. The tooltip reports start and finish variance in workdays.
+
+## Gantt predecessors
+
+Set `dependencyFieldId` to a multi-value Record Link field that targets the same table. The field must be editable and must not be a system field.
+
+The `@univerjs-pro/bases` package exports `AddGanttPredecessorCommand` and `RemoveGanttPredecessorCommand`. Both accept `unitId`, `tableId`, `viewId`, `predecessorId`, and `successorId`. The add command returns `true` when the link exists after the call, `false` when the request is rejected, and `'cycle'` when the link would create a cyclic dependency. The remove command returns `true` when the link is absent after the call.
+
+```ts
+import { AddGanttPredecessorCommand, RemoveGanttPredecessorCommand } from '@univerjs-pro/bases'
+
+const base = univerAPI.getActiveBase()
+if (!base) throw new Error('No active Base')
+
+const params = {
+  unitId: base.getId(),
+  tableId: table.getId(),
+  viewId: gantt.getId(),
+  predecessorId: 'task-1',
+  successorId: 'task-2',
+}
+
+const added = await univerAPI.executeCommand(AddGanttPredecessorCommand.id, params)
+// true: linked, false: rejected, 'cycle': would create a cycle
+
+await univerAPI.executeCommand(RemoveGanttPredecessorCommand.id, params)
+```
+
+On desktop, drag the connector at either end of a current bar onto another bar to add a finish-to-start link. One undo removes the link.
+
+For collaborative Gantt editing, upgrade the gateway to a version that supports Base operational transforms before deploying 1.6.0 clients.
 
 ## Sorting and field display
 

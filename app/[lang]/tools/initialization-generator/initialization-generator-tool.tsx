@@ -16,6 +16,7 @@ import {
   getFeatures,
   getFeatureAvailability,
   getProjectRequirements,
+  MOBILE_PRODUCTS,
   PRODUCTS,
   SDK_LOCALES,
   SDK_VERSION,
@@ -71,7 +72,7 @@ export function InitializationGeneratorTool() {
                   ...options,
                   product: product as Product,
                   mode: ['sheets', 'docs'].includes(product) ? options.mode : 'plugin',
-                  mobile: product === 'sheets' && options.mobile,
+                  mobile: MOBILE_PRODUCTS.has(product) && options.mobile,
                   features: [],
                 })
               }
@@ -134,7 +135,7 @@ export function InitializationGeneratorTool() {
               </SelectContent>
             </Select>
           </div>
-          {options.product === 'sheets' && options.mode === 'plugin' && (
+          {MOBILE_PRODUCTS.has(options.product) && options.mode === 'plugin' && (
             <div className="flex items-center gap-2 text-xs">
               <Checkbox
                 id="generator-mobile"

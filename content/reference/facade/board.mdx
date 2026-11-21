@@ -276,8 +276,25 @@ Whether all patches were validated and applied, including a valid empty plan.
 **Examples**
 
 ```ts
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board')
+const shapes = board.insertShapes([
+  { shapeType: univerAPI.Enum.ShapeTypeEnum.Rect, transform: { left: 80, top: 80 }, name: 'Start' },
+  {
+    shapeType: univerAPI.Enum.ShapeTypeEnum.Rect,
+    transform: { left: 320, top: 80 },
+    name: 'Finish',
+  },
+])
+if (!shapes) throw new Error('Cannot insert shapes')
+
+if (typeof document !== 'undefined') await document.fonts.ready
 const plan = board.planLayout({ mode: 'graph' })
 const applied = board.applyLayoutPlan(plan)
+if (plan.status === 'ready' && !applied) {
+  throw new Error('Board changed. Create a fresh plan.')
+}
+console.log(applied, plan.diagnostics)
 ```
 
 **Types:** [`IBoardLayoutPlan`](https://unpkg.com/@univerjs-pro/boards/lib/types/utils/board-graph-layout.util.d.ts)
@@ -446,7 +463,7 @@ const nodes = board.insertShapes([
 if (!nodes) throw new Error('Cannot insert flowchart nodes')
 const [start, decision, approved, rejected] = nodes
 const arranged = board.arrangeElementsInLayers(
-  [[start.id], [decision.id], [approved.id, rejected.id]],
+  [[start.getId()], [decision.getId()], [approved.getId(), rejected.getId()]],
   { direction: 'horizontal', layerGap: 140, itemGap: 100 },
 )
 if (!arranged) throw new Error('Cannot arrange flowchart')
@@ -663,6 +680,15 @@ clearBackground(): this
 **Returns**
 
 This board, for chaining.
+
+**Examples**
+
+```ts
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board.')
+board.setImageBackground({ source: 'https://example.com/background.jpg' }).clearBackground()
+if (board.getBackground()) throw new Error('Expected the default canvas background.')
+```
 
 **Package:** [`@univerjs-pro/boards`](/reference/packages/plugins/univerjs-pro/boards) · [Type definitions](https://unpkg.com/@univerjs-pro/boards/lib/types/facade/f-board.d.ts)
 
@@ -1069,6 +1095,17 @@ getBackground(): IBoardBackgroundData | undefined
 
 The explicit background, or `undefined` when the page uses the default canvas background.
 
+**Examples**
+
+```ts
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board.')
+board.setImageBackground({ source: 'https://example.com/background.jpg', fit: 'contain' })
+if (board.getBackground()?.type !== univerAPI.Enum.BoardBackgroundType.Image) {
+  throw new Error('Expected an image background.')
+}
+```
+
 **Types:** [`IBoardBackgroundData`](https://unpkg.com/@univerjs-pro/boards/lib/types/board.type.d.ts)
 
 **Package:** [`@univerjs-pro/boards`](/reference/packages/plugins/univerjs-pro/boards) · [Type definitions](https://unpkg.com/@univerjs-pro/boards/lib/types/facade/f-board.d.ts)
@@ -1131,8 +1168,19 @@ Labels synchronously, or an empty array if there are none or the id is not a con
 **Examples**
 
 ```ts
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board')
+const connector = board.insertConnector({
+  start: { kind: 'free', x: 80, y: 80 },
+  end: { kind: 'free', x: 320, y: 80 },
+  labelText: 'Next',
+})
+if (!connector) throw new Error('Cannot insert connector')
+const connectorId = connector.id
+
 const labels = board.getConnectorLabels(connectorId)
 const labelIds = labels.map((label) => label.id)
+console.log(labelIds)
 ```
 
 **Types:** [`IBoardConnectorLabel`](https://unpkg.com/@univerjs-pro/boards/lib/types/board.type.d.ts)
@@ -1774,9 +1822,9 @@ Permission facade combining the Board and Element Edit points.
 ```ts
 const board = univerAPI.getActiveBoard()
 if (!board) throw new Error('No active Board.')
-const element = Object.values(board.getElements())[0]
-if (!element) throw new Error('Board element not found.')
-await board.getElementPermission(element.id).setReadOnly()
+const shape = board.insertShape({ shapeType: univerAPI.Enum.ShapeTypeEnum.Rect })
+if (!shape) throw new Error('Cannot insert shape.')
+await board.getElementPermission(shape.getId()).setReadOnly()
 ```
 
 **Types:** [`FBoardElementPermission`](/reference/facade/board-element-permission)
@@ -2362,6 +2410,19 @@ The inserted element synchronously, or `null` if validation or the undoable comm
 **Examples**
 
 ```ts
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board')
+const shapes = board.insertShapes([
+  { shapeType: univerAPI.Enum.ShapeTypeEnum.Rect, transform: { left: 80, top: 80 }, name: 'Agent' },
+  {
+    shapeType: univerAPI.Enum.ShapeTypeEnum.Rect,
+    transform: { left: 320, top: 80 },
+    name: 'Tools',
+  },
+])
+if (!shapes) throw new Error('Cannot insert shapes')
+const [agentId, toolId] = shapes.map((shape) => shape.getId())
+
 const relation = board.insertClassRelation({
   type: 'composition',
   name: 'owns',
@@ -2397,6 +2458,24 @@ Inserted elements synchronously, or `null` on invalid input or command failure.
 **Examples**
 
 ```ts
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board')
+const shapes = board.insertShapes([
+  { shapeType: univerAPI.Enum.ShapeTypeEnum.Rect, transform: { left: 80, top: 80 }, name: 'Agent' },
+  {
+    shapeType: univerAPI.Enum.ShapeTypeEnum.Rect,
+    transform: { left: 320, top: 80 },
+    name: 'Base agent',
+  },
+  {
+    shapeType: univerAPI.Enum.ShapeTypeEnum.Rect,
+    transform: { left: 560, top: 80 },
+    name: 'Tools',
+  },
+])
+if (!shapes) throw new Error('Cannot insert shapes')
+const [agentId, baseAgentId, toolId] = shapes.map((shape) => shape.getId())
+
 const relations = board.insertClassRelations([
   { type: 'generalization', start: { elementId: agentId }, end: { elementId: baseAgentId } },
   { type: 'dependency', start: { elementId: agentId }, end: { elementId: toolId }, name: 'uses' },
@@ -2527,6 +2606,15 @@ The inserted element synchronously, or `null` if validation or the undoable comm
 **Examples**
 
 ```ts
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board')
+const shapes = board.insertShapes([
+  { shapeType: univerAPI.Enum.ShapeTypeEnum.Rect, transform: { left: 80, top: 80 }, name: 'Agent' },
+  { shapeType: univerAPI.Enum.ShapeTypeEnum.Rect, transform: { left: 320, top: 80 }, name: 'Run' },
+])
+if (!shapes) throw new Error('Cannot insert shapes')
+const [agentId, runId] = shapes.map((shape) => shape.getId())
+
 const relation = board.insertEntityRelation({
   type: 'nonIdentifying',
   label: 'records',
@@ -2561,6 +2649,15 @@ Inserted elements synchronously, or `null` on invalid input or command failure.
 **Examples**
 
 ```ts
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board')
+const shapes = board.insertShapes([
+  { shapeType: univerAPI.Enum.ShapeTypeEnum.Rect, transform: { left: 80, top: 80 }, name: 'Run' },
+  { shapeType: univerAPI.Enum.ShapeTypeEnum.Rect, transform: { left: 320, top: 80 }, name: 'Step' },
+])
+if (!shapes) throw new Error('Cannot insert shapes')
+const [runId, stepId] = shapes.map((shape) => shape.getId())
+
 const relations = board.insertEntityRelations([
   {
     type: 'identifying',
@@ -2682,6 +2779,23 @@ The inserted connector synchronously, or `null` when the message cannot be bound
 **Examples**
 
 ```ts
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board')
+const shapes = board.insertShapes([
+  {
+    shapeType: univerAPI.Enum.BoardSequenceShapeType.ObjectLifeline,
+    transform: { left: 80, top: 80 },
+    name: 'Agent',
+  },
+  {
+    shapeType: univerAPI.Enum.BoardSequenceShapeType.ObjectLifeline,
+    transform: { left: 320, top: 80 },
+    name: 'Tools',
+  },
+])
+if (!shapes) throw new Error('Cannot insert shapes')
+const [agentId, toolId] = shapes.map((shape) => shape.getId())
+
 const message = board.insertSequenceMessage(
   {
     fromParticipantId: agentId,
@@ -2726,6 +2840,23 @@ Inserted connectors synchronously, or `null` without partial insertion if any me
 **Examples**
 
 ```ts
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board')
+const shapes = board.insertShapes([
+  {
+    shapeType: univerAPI.Enum.BoardSequenceShapeType.ObjectLifeline,
+    transform: { left: 80, top: 80 },
+    name: 'Agent',
+  },
+  {
+    shapeType: univerAPI.Enum.BoardSequenceShapeType.ObjectLifeline,
+    transform: { left: 320, top: 80 },
+    name: 'Tools',
+  },
+])
+if (!shapes) throw new Error('Cannot insert shapes')
+const [agentId, toolId] = shapes.map((shape) => shape.getId())
+
 const messages = board.insertSequenceMessages(
   [
     {
@@ -2958,6 +3089,18 @@ isTreeBranchCollapsed(elementId: string): boolean | undefined
 
 - `elementId` — Required.
 
+**Examples**
+
+```ts
+const board = univerAPI.getActiveBoard()
+if (board) {
+  for (const element of Object.values(board.getElements())) {
+    const collapsed = board.isTreeBranchCollapsed(element.id)
+    if (collapsed !== undefined) console.log(element.id, collapsed)
+  }
+}
+```
+
 **Package:** [`@univerjs-pro/boards`](/reference/packages/plugins/univerjs-pro/boards) · [Type definitions](https://unpkg.com/@univerjs-pro/boards/lib/types/facade/f-board.d.ts)
 
 ### `FBoard.moveElementsOutOfContainer` [#moveelementsoutofcontainer]
@@ -3110,35 +3253,31 @@ A detached plan with exact page preconditions and diagnostics.
 **Examples**
 
 ```ts
-await document.fonts.ready
-const plan = board.planLayout({
-  mode: 'graph',
-  elementIds: nodeIds,
-  feedbackConnectorIds: retryIds,
-  layerGap: 140,
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board')
+const shapes = board.insertShapes([
+  { shapeType: univerAPI.Enum.ShapeTypeEnum.Rect, transform: { left: 80, top: 80 }, name: 'Start' },
+  {
+    shapeType: univerAPI.Enum.ShapeTypeEnum.Rect,
+    transform: { left: 320, top: 80 },
+    name: 'Finish',
+  },
+])
+if (!shapes) throw new Error('Cannot insert shapes')
+const edge = board.insertConnector({
+  fromElementId: shapes[0].getId(),
+  toElementId: shapes[1].getId(),
+  routing: 'orthogonal',
+  labelText: 'Next',
 })
-if (plan.status !== 'ready') throw new Error(JSON.stringify(plan.diagnostics))
-if (!board.applyLayoutPlan(plan)) throw new Error('Board changed. Create a fresh plan.')
-```
+if (!edge) throw new Error('Cannot insert connector')
 
-```ts
-const plan = board.planLayout({ mode: 'routes', connectorIds: ['edge-a', 'edge-b'] })
-console.log(plan.status, plan.diagnostics)
-```
-
-```ts
-const plan = board.planLayout({ mode: 'ports', connectorIds: ['edge-a'] })
-console.log(plan.patches)
-```
-
-```ts
-const plan = board.planLayout({ mode: 'labels', connectorIds: ['edge-a'] })
-console.log(plan.patches)
-```
-
-```ts
-const plan = board.planLayout({ mode: 'text', elementIds: ['node-a'], maximumWidthGrowth: 1.25 })
-console.log(plan.patches)
+if (typeof document !== 'undefined') await document.fonts.ready
+const modes = ['graph', 'routes', 'ports', 'labels', 'text'] as const
+for (const mode of modes) {
+  const plan = board.planLayout({ mode })
+  console.log(plan.status, plan.diagnostics)
+}
 ```
 
 **Types:** [`IBoardLayoutPlan`](https://unpkg.com/@univerjs-pro/boards/lib/types/utils/board-graph-layout.util.d.ts) · [`IBoardLayoutOptions`](https://unpkg.com/@univerjs-pro/boards/lib/types/utils/board-graph-layout.util.d.ts)
@@ -3199,8 +3338,13 @@ removeConnectorLabel(elementId: string, labelId?: string): boolean
 ```ts
 const board = univerAPI.getActiveBoard()
 if (!board) throw new Error('No active board')
-
-const connectorId = 'connector-id'
+const connector = board.insertConnector({
+  start: { kind: 'free', x: 80, y: 80 },
+  end: { kind: 'free', x: 320, y: 80 },
+  labelText: 'Next',
+})
+if (!connector) throw new Error('Cannot insert connector')
+const connectorId = connector.id
 if (!board.removeConnectorLabel(connectorId)) throw new Error('Cannot remove connector label')
 
 // Restore the removed label when needed.
@@ -3393,7 +3537,7 @@ const shapes = board.insertShapes([
 ])
 if (!shapes) throw new Error('Cannot insert shapes')
 const background = shapes[1]
-if (!board.reorderElements([background.id], 'back')) {
+if (!board.reorderElements([background.getId()], 'back')) {
   throw new Error('Cannot send background to back')
 }
 ```
@@ -3509,9 +3653,12 @@ Structured bounds or a selector error, or `false` when the command cannot run.
 const board = univerAPI.getActiveBoard()
 if (!board) throw new Error('No active board')
 
-const [element] = board.describeElements()
-if (!element) throw new Error('The active board is empty')
-const target = board.resolveCaptureBounds({ elementIds: [element.id], padding: 48 })
+const shape = board.insertShape({
+  shapeType: univerAPI.Enum.ShapeTypeEnum.Rect,
+  transform: { left: 80, top: 80 },
+})
+if (!shape) throw new Error('Cannot insert shape')
+const target = board.resolveCaptureBounds({ elementIds: [shape.getId()], padding: 48 })
 if (!target) throw new Error('Cannot resolve Board capture bounds')
 if (!target.ok) throw new Error(`Cannot capture Board: ${target.code}`)
 
@@ -3723,7 +3870,7 @@ const connector = board.insertConnector({
 if (!connector) throw new Error('Cannot insert connector')
 const replacement = shapes[2]
 const changed = board.setConnectorConnection(connector.id, {
-  end: { elementId: replacement.id, connectionSiteId: 3 },
+  end: { elementId: replacement.getId(), side: 'left' },
   routing: 'curve',
 })
 if (!changed) throw new Error('Cannot reconnect edge')
@@ -3756,6 +3903,16 @@ setConnectorLabels(elementId: string, labels: readonly IBoardFacadeConnectorLabe
 **Examples**
 
 ```ts
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board')
+const connector = board.insertConnector({
+  start: { kind: 'free', x: 80, y: 80 },
+  end: { kind: 'free', x: 320, y: 80 },
+  labelText: 'Next',
+})
+if (!connector) throw new Error('Cannot insert connector')
+const connectorId = connector.id
+
 const ok = board.setConnectorLabels(connectorId, [
   {
     id: 'name',
@@ -3799,7 +3956,13 @@ setConnectorLabelStyle(elementId: string, patch: IBoardConnectorLabelStylePatch)
 ```ts
 const board = univerAPI.getActiveBoard()
 if (!board) throw new Error('No active board')
-const connectorId = 'connector-id'
+const connector = board.insertConnector({
+  start: { kind: 'free', x: 80, y: 80 },
+  end: { kind: 'free', x: 320, y: 80 },
+  labelText: 'Next',
+})
+if (!connector) throw new Error('Cannot insert connector')
+const connectorId = connector.id
 
 if (
   !board.setConnectorLabelStyle(connectorId, {
@@ -3969,9 +4132,9 @@ if (!board) throw new Error('No active board')
 const containerId = `container-${Date.now()}`
 if (
   !board.createContainer({ id: containerId, left: 80, top: 80 }) ||
-  !board.setContainerAutoResize(containerId, true)
+  !board.setContainerAutoResize(containerId, false)
 )
-  throw new Error('Cannot enable auto-resize')
+  throw new Error('Cannot disable auto-resize')
 ```
 
 **Package:** [`@univerjs-pro/boards`](/reference/packages/plugins/univerjs-pro/boards) · [Type definitions](https://unpkg.com/@univerjs-pro/boards/lib/types/facade/f-board.d.ts)
@@ -4484,6 +4647,18 @@ setTreeBranchCollapsed(elementId: string, collapsed: boolean): boolean
 - `elementId` — Required.
 - `collapsed` — Required.
 
+**Examples**
+
+```ts
+const board = univerAPI.getActiveBoard()
+if (board) {
+  const branch = Object.values(board.getElements()).find(
+    (element) => board.isTreeBranchCollapsed(element.id) === false,
+  )
+  if (branch) board.setTreeBranchCollapsed(branch.id, true)
+}
+```
+
 **Package:** [`@univerjs-pro/boards`](/reference/packages/plugins/univerjs-pro/boards) · [Type definitions](https://unpkg.com/@univerjs-pro/boards/lib/types/facade/f-board.d.ts)
 
 ### `FBoard.translateElement` [#translateelement]
@@ -4617,7 +4792,19 @@ updateConnectorLabel(elementId: string, labelId: string, patch: IBoardFacadeConn
 **Examples**
 
 ```ts
-const ok = board.updateConnectorLabel(connectorId, 'name', {
+const board = univerAPI.getActiveBoard()
+if (!board) throw new Error('No active board')
+const connector = board.insertConnector({
+  start: { kind: 'free', x: 80, y: 80 },
+  end: { kind: 'free', x: 320, y: 80 },
+  labelText: 'Next',
+})
+if (!connector) throw new Error('Cannot insert connector')
+const connectorId = connector.id
+const [label] = board.getConnectorLabels(connectorId)
+if (!label) throw new Error('Connector label is missing')
+
+const ok = board.updateConnectorLabel(connectorId, label.id, {
   content: 'Executes tools with approval',
   layout: { mode: 'fixedWidth', width: 160 },
   placement: { anchor: 'center', offset: null },
