@@ -1,0 +1,282 @@
+---
+title: "Pruebas de rendimiento de la colaboración"
+description: "Entorno, métricas y resultados de las pruebas de edición simultánea en tiempo real con el motor de colaboración de Univer."
+---
+
+Probamos dos escenarios: varios usuarios editando un mismo documento y la edición simultánea de varios documentos. Tras el calentamiento, medimos la latencia de confirmación, el rendimiento, el porcentaje de envíos previstos que se completaron y el uso de CPU y memoria del proceso de colaboración.
+
+## Entorno de pruebas
+
+El servicio de colaboración y la base de datos se ejecutaron en servidores distintos. Las especificaciones de los resultados corresponden al nodo de colaboración del diagrama.
+
+<Mermaid chart={"flowchart LR\n    client[\"Clientes simulados en Node.js\"]\n    collab[\"Nodo de colaboración (1)\"]\n    db[(\"Servidor PostgreSQL (1)\")]\n    oss[(\"Almacenamiento de objetos OSS\")]\n    client -->|Enviar edición por HTTP| collab\n    collab -->|Confirmar por WebSocket| client\n    collab <-->|Leer y escribir documentos| db\n    collab <-->|Leer y escribir bloques de instantáneas| oss"} />
+
+PostgreSQL guarda los registros de documentos e instantáneas, los conjuntos de cambios y las referencias a bloques. OSS almacena los bloques de datos de celdas de las instantáneas.
+
+Todos los resultados corresponden a un solo nodo de colaboración. Si los documentos activos superan su capacidad, se pueden distribuir entre varios nodos. Estos comparten la base de datos y sincronizan las salas, la presencia y la difusión de cambios mediante publicación y suscripción. Véase [Varios nodos de colaboración](/server/deployment#varios-nodos-de-colaboración).
+
+| Componente | Configuración |
+| --- | --- |
+| Versión del SDK de colaboración de Univer | 1.5.2 |
+| Sistema y entorno de ejecución | Ubuntu 26.04.1 LTS, Node.js 24.14.0 |
+| Almacenamiento | PostgreSQL 18.6 y Alibaba Cloud OSS |
+| Adaptador de base de datos | [PostgreSQL + S3 Adapter](/server/collaboration/database-adapters#postgresql-s3-adapter) |
+| Nodo de colaboración | Alibaba Cloud ECS `ecs.g9i.xlarge` (4 vCPU, 16 GiB) o `ecs.g9i.2xlarge` (8 vCPU, 32 GiB), Intel Xeon 6982P-C, ESSD de 40 GiB |
+| Servidor de base de datos | Alibaba Cloud ECS `ecs.c9i.large`, 2 vCPU, 4 GiB, Intel Xeon 6982P-C, ESSD de 60 GiB |
+| Generador de carga | Alibaba Cloud ECS `ecs.u2a-c1m2.xlarge`, 4 vCPU, 8 GiB, AMD EPYC |
+| Red | Región de Shenzhen de Alibaba Cloud. Los clientes, el nodo y la base de datos se comunican por la red privada regional. OSS usa un punto de conexión interno. |
+
+### Configuración del servicio de colaboración
+
+En ambos nodos elevamos `runtime.maxLoadedUnits` de 1.200 a 4.000 para mantener hasta 4.000 documentos en memoria. Los demás parámetros conservaron sus valores predeterminados, incluida la selección automática del número de hilos. Se genera una instantánea tras 50 revisiones desde la última instantánea correcta o cuando un conjunto de cambios alcanza los 5 MiB.
+
+El servicio de prueba usa un grupo de conexiones PostgreSQL y un cliente OSS ya inicializados. El transporte se conecta al servidor HTTP de Node.js.
+
+```ts
+const dbAdapter = await PostgresS3DatabaseAdapter.create({
+  pool,
+  s3: { client, bucket, prefix },
+});
+const service = new UniverCollabService({
+  dbAdapter,
+  runtime: { maxLoadedUnits: 4000 },
+});
+const endpoint = new UniverCollabEndpoint(service);
+const transport = createNodeTransport();
+transport.register(endpoint);
+transport.attach(server);
+```
+
+## Instantáneas de prueba
+
+Cada documento se inicializa a partir de una instantánea. El recuento incluye las celdas con datos o fórmulas antes del calentamiento.
+
+| Instantánea | Celdas con contenido | Contenido |
+| --- | ---: | --- |
+| `blank` | 0 | Hoja vacía |
+| `10k-cells` | Unas 10.000 | Números, texto y fórmulas |
+| `100k-cells` | Unas 100.000 | Números, texto y fórmulas |
+
+Ambas hojas con datos contienen 26 columnas: 14 numéricas, nueve de texto y tres con fórmulas que hacen referencia a celdas de la misma fila.
+
+## Método
+
+### Clientes simulados
+
+Cada editor representa una sesión independiente que se une a un documento, envía cambios por HTTP y recibe confirmaciones por WebSocket. Los scripts llaman directamente a la API de colaboración. Tanto la petición HTTP como la espera de confirmación tienen un tiempo de espera de 10 segundos.
+
+### Calentamiento y muestreo
+
+Cada ejecución crea documentos a partir de la instantánea elegida. El calentamiento empieza cuando se han unido todas las sesiones. La primera edición carga el documento en el servidor. Para un solo documento se envía una edición previa. Con varios documentos se envían entre 1 y 49 ediciones por documento en orden y se vuelve a 1 en el documento 50. Así se escalonan las revisiones iniciales y las escrituras de instantáneas.
+
+El muestreo comienza cuando todos los documentos se han calentado. La latencia del primer envío se registra por separado durante el calentamiento. Los envíos, percentiles de latencia y valores de CPU y memoria de las tablas proceden del muestreo.
+
+### Carga de edición
+
+En la prueba de un documento aumentamos el número de editores de `blank`. Para cada una de las tres instantáneas aumentamos después el número de documentos activos. Cada envío contiene una operación `sheet.mutation.set-range-values` que escribe un número en una celda.
+
+| Condición | Un documento | Varios documentos |
+| --- | --- | --- |
+| Editores por documento | Varía según la prueba (véanse los resultados) | Dos en todas las pruebas |
+| Operación | Cada editor modifica su celda en momentos escalonados | Cada editor modifica su celda en momentos escalonados |
+| Frecuencia por editor | Una vez cada 6 segundos | Una vez cada 2 segundos |
+| Muestreo por ejecución | 300 segundos | 300 segundos |
+
+## Métricas
+
+| Métrica | Definición |
+| --- | --- |
+| Latencia de confirmación | Tiempo desde que el cliente envía una edición hasta que recibe la confirmación del servidor. P50, P95 y P99 son los tiempos en que se confirma el 50 %, 95 % y 99 % de los envíos correctos. Max es la mayor latencia de estos envíos. |
+| Rendimiento | Envíos correctos divididos por la duración del muestreo, en envíos por segundo. |
+| Tasa de cumplimiento | Porcentaje de envíos previstos que se completan correctamente. El total previsto incluye los fallidos y los que no llegaron a enviarse. |
+| CPU media / máxima (%) | Uso medio y máximo observado del proceso de colaboración. Un núcleo saturado cuenta como 100 %, por lo que la suma puede superar el 100 %. |
+| Memoria máxima (MiB) | Mayor valor muestreado de memoria residente (RSS) del proceso de colaboración. |
+
+### Criterios de aceptación
+
+Una ejecución cumple los criterios si la latencia de confirmación es **P99 < 1.000 ms**, la tasa de cumplimiento es **> 90 %** y el proceso sigue activo hasta que todos los documentos superan la comprobación de coherencia. Se evalúan los valores sin redondear.
+
+Si se hizo una sola ejecución para un nivel de carga, se usa ese resultado. Si hubo varias, todas deben cumplir los criterios. Las muestras interrumpidas y las métricas ausentes se indican como datos faltantes junto con el motivo.
+
+## Alcance de los resultados
+
+Los scripts de Node.js simulan sesiones y envían cambios directamente a la API para medir el procesamiento concurrente del servidor. La latencia abarca desde el envío hasta la confirmación. Excluye la interacción en el navegador y el renderizado de la hoja.
+
+Los resultados sirven para evaluar el rendimiento y dimensionar un nodo. Influyen la configuración, la red, el tamaño de los documentos y el tipo y la frecuencia de las ediciones.
+
+La carga máxima aceptada es el mayor nivel probado que cumplió los criterios. En algunos niveles, el uso medio de CPU se acercó al límite del nodo. **Estos valores orientan el dimensionamiento y no deben adoptarse directamente como carga sostenida de producción.** Reserve margen para picos y fluctuaciones y valide la carga sostenida con documentos representativos en el entorno de destino.
+
+## Resultados
+
+### Resumen
+
+<div className="[&_td]:whitespace-nowrap">
+
+Las tablas indican la mayor carga aceptada por tamaño de nodo y de documento. Para un documento se cuentan editores simultáneos y para varios se cuentan documentos activos. Cada fila incluye rendimiento, latencia, CPU y memoria. Los [resultados detallados](#benchmark-data) muestran las tasas de cumplimiento y los niveles superiores.
+
+#### Varios editores en un documento
+
+Ambas configuraciones superaron una ejecución con 500 editores.
+
+| Instantánea | Nodo | Máximo de editores aceptado | Rendimiento (envíos/s) | P95 (ms) | P99 (ms) | CPU media / máxima (%) | Memoria máxima (MiB) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `blank` | 4 núcleos / 16 GiB | 500 | 83,3 | 13,3 | 17,4 | 27,8 / 54,8 | 777 |
+| `blank` | 8 núcleos / 32 GiB | 500 | 83,3 | 13,9 | 18,0 | 25,6 / 100,5 | 1 322 |
+
+#### Edición simultánea de varios documentos
+
+| Instantánea | Nodo | Máximo de documentos aceptado | Rendimiento (envíos/s) | P95 (ms) | P99 (ms) | CPU media / máxima (%) | Memoria máxima (MiB) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `blank` | 4 núcleos / 16 GiB | 2 100 | 2 100,0 | 29,9 | 194,6 | 118,9 / 332,6 | 5 829 |
+| `blank` | 8 núcleos / 32 GiB | 2 900 | 2 900,0 | 17,8 | 56,2 | 145,3 / 363,9 | 7 404 |
+| `10k-cells` | 4 núcleos / 16 GiB | 1 800 | 1 800,0 | 106,2 | 311,9 | 241,3 / 379,3 | 6 304 |
+| `10k-cells` | 8 núcleos / 32 GiB | 2 400 | 2 400,0 | 26,9 | 482,0 | 286,3 / 749,3 | 8 071 |
+| `100k-cells` | 4 núcleos / 16 GiB | 380 | 380,0 | 91,1 | 200,9 | 389,6 / 401,8 | 12 440 |
+| `100k-cells` | 8 núcleos / 32 GiB | 750 | 750,0 | 33,5 | 72,3 | 649,7 / 782,1 | 29 276 |
+
+#### Estimaciones para 4 núcleos con 8 GiB y 8 núcleos con 16 GiB
+
+Las estimaciones para 4 núcleos con 8 GiB y 8 núcleos con 16 GiB se basan en mediciones de nodos de 4 núcleos con 16 GiB y 8 núcleos con 32 GiB, respectivamente. Se asignaron 6,5 y 13,7 GiB al proceso. Para cada escenario e instantánea se eligió el mayor nivel aceptado de los [resultados detallados](#benchmark-data) cuyo pico de RSS cabía en ese presupuesto, usando el máximo de todas las ejecuciones.
+
+##### Varios editores en un documento
+
+| Instantánea | Nodo objetivo | Editores estimados | Memoria máxima (MiB) |
+| --- | --- | ---: | ---: |
+| `blank` | 4 núcleos / 8 GiB | 500 | 777 |
+| `blank` | 8 núcleos / 16 GiB | 500 | 1 322 |
+
+##### Edición simultánea de varios documentos
+
+| Instantánea | Nodo objetivo | Documentos activos estimados | Memoria máxima (MiB) |
+| --- | --- | ---: | ---: |
+| `blank` | 4 núcleos / 8 GiB | 2 100 | 5 829 |
+| `blank` | 8 núcleos / 16 GiB | 2 900 | 7 404 |
+| `10k-cells` | 4 núcleos / 8 GiB | 1 800 | 6 304 |
+| `10k-cells` | 8 núcleos / 16 GiB | 2 400 | 8 071 |
+| `100k-cells` | 4 núcleos / 8 GiB | 350 | 5 413 |
+| `100k-cells` | 8 núcleos / 16 GiB | 600 | 8 943 |
+
+</div>
+
+#### Dimensionamiento de grupos de nodos
+
+En un [despliegue con varios nodos](/server/deployment), la puerta de enlace puede enrutar las ediciones a grupos distintos según el tamaño del documento. Las estimaciones por nodo suponen dos editores por documento, cada uno con una edición cada dos segundos.
+
+- **Para documentos pequeños y medianos, evalúe primero 4 núcleos con 8 GiB.** En el nodo de 4 núcleos con 16 GiB, las mayores cargas aceptadas dentro del presupuesto reducido fueron 2.100 hojas vacías o 1.800 hojas de unas 10.000 celdas con contenido.
+- **Para documentos grandes, evalúe 8 núcleos con 16 o 32 GiB.** Con unas 100.000 celdas por documento, el nodo de 8 núcleos con 32 GiB superó la prueba con 750 documentos. El nivel más alto dentro del presupuesto de la configuración de 16 GiB fue de 600.
+
+### Resultados detallados [#benchmark-data]
+
+<div className="[&_td:not(:last-child)]:whitespace-nowrap [&_td:last-child]:min-w-40">
+
+Para una ejecución se presentan los valores medidos. Al combinar varias ejecuciones del mismo nivel se usa la media aritmética para rendimiento, P50, P95, P99, Max, tasa de cumplimiento y CPU media. Para los picos de CPU y memoria se toma el máximo. Las notas indican cuántas ejecuciones se hicieron, el rango de Max y, cuando procede, el de P99. Cada ejecución se evalúa por separado.
+
+#### Varios editores en un documento
+
+##### Instantánea · `blank`
+
+###### 4 núcleos / 16 GiB
+
+| Editores | Rendimiento (envíos/s) | P50 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Tasa de cumplimiento | CPU media / máxima (%) | Memoria máxima (MiB) | Notas |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 150 | 25,0 | 2,9 | 4,3 | 5,4 | 12,6 | 100,00% | 5,7 / 27,9 | 690 | — |
+| 400 | 66,7 | 5,2 | 10,1 | 12,4 | 29,8 | 100,00% | 19,8 / 41,9 | 781 | — |
+| 500 | 83,3 | 6,6 | 13,3 | 17,4 | 40,1 | 100,00% | 27,8 / 54,8 | 777 | — |
+
+###### 8 núcleos / 32 GiB
+
+| Editores | Rendimiento (envíos/s) | P50 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Tasa de cumplimiento | CPU media / máxima (%) | Memoria máxima (MiB) | Notas |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 150 | 25,0 | 3,4 | 4,4 | 5,5 | 10,7 | 100,00% | 5,1 / 66,5 | 1 123 | — |
+| 400 | 66,7 | 6,2 | 10,8 | 13,4 | 28,2 | 100,00% | 18,2 / 75,9 | 1 196 | — |
+| 500 | 83,3 | 7,5 | 13,9 | 18,0 | 36,9 | 100,00% | 25,6 / 100,5 | 1 322 | — |
+
+#### Edición simultánea de varios documentos
+
+##### Instantánea · `blank`
+
+###### 4 núcleos / 16 GiB
+
+| Documentos activos | Rendimiento (envíos/s) | P50 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Tasa de cumplimiento | CPU media / máxima (%) | Memoria máxima (MiB) | Notas |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 500 | 500,0 | 1,1 | 1,6 | 3,7 | 25,0 | 100,00% | 33,8 / 89,3 | 2 057 | — |
+| 1 000 | 1 000,0 | 1,1 | 2,4 | 10,7 | 57,0 | 100,00% | 61,4 / 193,1 | 3 133 | — |
+| 1 500 | 1 500,0 | 1,3 | 4,8 | 40,1 | 361,6 | 100,00% | 86,3 / 279,0 | 4 134 | — |
+| 2 100 | 2 100,0 | 1,7 | 29,9 | 194,6 | 1 156,2 | 100,00% | 118,9 / 332,6 | 5 829 | 3 ejecuciones, rango de P99 141,9–254,0 ms, rango de Max 508,2–1 543,0 ms |
+| 2 200 | 2 200,0 | 1,8 | 70,1 | 270,4 | 1 227,5 | 100,00% | 123,5 / 369,9 | 6 050 | Ejecución 1 |
+| 2 200 | 2 199,8 | 2,0 | 274,0 | 860,4 | 2 787,2 | 99,99% | 127,1 / 392,6 | 6 172 | Ejecución 2 |
+| 2 200 | 2 198,8 | 2,2 | 376,5 | 1 062,4 | 3 747,8 | 99,95% | 126,1 / 347,2 | 6 071 | Ejecución 3  latencia fuera de objetivo |
+| 2 300 | 2 298,1 | 3,2 | 878,6 | 1 675,8 | 4 313,9 | 99,92% | 135,8 / 370,8 | 6 336 | P99 fuera de objetivo |
+| 2 400 | 2 204,8 | 2 192,5 | 2 457,5 | 2 888,6 | 4 611,5 | 91,87% | 163,6 / 394,8 | 7 023 | P99 fuera de objetivo |
+
+###### 8 núcleos / 32 GiB
+
+| Documentos activos | Rendimiento (envíos/s) | P50 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Tasa de cumplimiento | CPU media / máxima (%) | Memoria máxima (MiB) | Notas |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 500 | 500,0 | 1,0 | 1,3 | 2,2 | 26,1 | 100,00% | 30,6 / 78,1 | 2 823 | — |
+| 1 000 | 1 000,0 | 1,1 | 1,7 | 3,9 | 58,9 | 100,00% | 53,8 / 163,4 | 3 961 | — |
+| 1 500 | 1 500,0 | 1,2 | 2,6 | 9,6 | 51,8 | 100,00% | 76,3 / 165,1 | 4 694 | — |
+| 2 200 | 2 200,0 | 1,4 | 6,5 | 15,0 | 189,2 | 100,00% | 112,2 / 428,1 | 6 030 | — |
+| 2 600 | 2 600,0 | 1,8 | 13,0 | 38,8 | 334,1 | 100,00% | 132,2 / 477,5 | 6 891 | — |
+| 2 700 | 2 700,0 | 1,8 | 11,7 | 35,0 | 270,5 | 100,00% | 135,1 / 661,7 | 7 026 | 3 ejecuciones, pico de CPU 518,6%–661,7%, rango de Max 234,9–313,9 ms |
+| 2 800 | 2 800,0 | 2,0 | 14,6 | 52,1 | 352,0 | 100,00% | 140,5 / 537,4 | 7 331 | 3 ejecuciones, pico de CPU 464,9%–537,4%, rango de Max 273,3–430,0 ms |
+| 2 900 | 2 900,0 | 2,2 | 17,8 | 56,2 | 395,2 | 100,00% | 145,3 / 363,9 | 7 404 | 1 ejecución |
+| 3 000 | 2 375,5 | 2 537,1 | 2 715,4 | 2 868,1 | 3 821,8 | 79,18% | 194,3 / 570,9 | 8 257 | 2 ejecuciones, P99 y tasa fuera de objetivo, rango de Max 3 311,4–4 332,2 ms |
+
+##### Instantánea · `10k-cells`
+
+###### 4 núcleos / 16 GiB
+
+| Documentos activos | Rendimiento (envíos/s) | P50 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Tasa de cumplimiento | CPU media / máxima (%) | Memoria máxima (MiB) | Notas |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 500 | 500,0 | 1,1 | 3,2 | 7,7 | 206,5 | 100,00% | 71,1 / 165,8 | 2 514 | — |
+| 1 000 | 1 000,0 | 1,3 | 5,1 | 16,4 | 115,6 | 100,00% | 133,6 / 330,5 | 3 879 | — |
+| 1 600 | 1 600,0 | 2,0 | 42,7 | 256,7 | 1 165,7 | 100,00% | 215,2 / 371,1 | 5 677 | — |
+| 1 800 | 1 800,0 | 2,7 | 106,2 | 311,9 | 1 197,3 | 100,00% | 241,3 / 379,3 | 6 304 | 3 ejecuciones, rango de Max 773,7–1 455,4 ms |
+| 1 900 | 1 899,9 | 5,4 | 330,2 | 797,1 | 3 210,5 | 99,99% | 257,9 / 399,3 | 6 626 | Ejecución 1 |
+| 1 900 | 1 891,4 | 4,6 | 552,6 | 1 541,5 | 6 200,0 | 99,54% | 256,7 / 397,2 | 6 686 | Ejecución 2  latencia fuera de objetivo |
+| 2 000 | 1 868,4 | 2 084,5 | 2 401,9 | 2 964,0 | 7 658,3 | 93,42% | 284,8 / 397,6 | 7 104 | P99 fuera de objetivo |
+| 2 100 | 1 904,0 | 2 202,3 | 2 631,7 | 3 022,0 | 4 550,7 | 90,67% | 291,2 / 393,0 | 7 580 | P99 fuera de objetivo |
+
+###### 8 núcleos / 32 GiB
+
+| Documentos activos | Rendimiento (envíos/s) | P50 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Tasa de cumplimiento | CPU media / máxima (%) | Memoria máxima (MiB) | Notas |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 500 | 500,0 | 1,0 | 2,0 | 4,1 | 27,3 | 100,00% | 69,3 / 139,9 | 3 408 | — |
+| 1 000 | 1 000,0 | 1,1 | 2,8 | 6,8 | 30,3 | 100,00% | 127,2 / 238,8 | 4 601 | — |
+| 2 000 | 2 000,0 | 1,5 | 8,2 | 21,2 | 184,4 | 100,00% | 249,9 / 634,8 | 7 222 | — |
+| 2 200 | 2 200,0 | 1,7 | 11,6 | 33,8 | 244,0 | 100,00% | 268,6 / 713,0 | 7 716 | — |
+| 2 300 | 2 300,0 | 1,9 | 14,4 | 197,2 | 1 043,4 | 100,00% | 284,4 / 696,9 | 8 071 | 3 ejecuciones, rango de P99 39,6–368,8 ms, rango de Max 326,1–1 700,6 ms |
+| 2 400 | 2 400,0 | 2,1 | 26,9 | 482,0 | 2 287,6 | 100,00% | 286,3 / 749,3 | 8 071 | 1 ejecución |
+| 2 500 | 2 499,8 | 3,3 | 600,4 | 1 228,1 | 3 346,4 | 99,99% | 302,5 / 744,7 | 8 308 | P99 fuera de objetivo |
+| 2 600 | 2 367,6 | 1 053,5 | 2 489,8 | 2 646,2 | 4 510,6 | 91,06% | 324,3 / 741,4 | 8 865 | P99 fuera de objetivo |
+| 2 700 | 2 222,7 | 2 467,7 | 2 583,5 | 2 687,6 | 3 627,4 | 82,32% | 334,4 / 776,5 | 9 238 | 2 ejecuciones, P99 y tasa fuera de objetivo, rango de Max 3 547,4–3 707,3 ms |
+
+##### Instantánea · `100k-cells`
+
+###### 4 núcleos / 16 GiB
+
+| Documentos activos | Rendimiento (envíos/s) | P50 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Tasa de cumplimiento | CPU media / máxima (%) | Memoria máxima (MiB) | Notas |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 100 | 100,0 | 1,4 | 6,6 | 22,8 | 68,0 | 100,00% | 91,6 / 202,2 | 2 662 | — |
+| 250 | 250,0 | 1,9 | 23,0 | 56,8 | 637,3 | 100,00% | 246,3 / 396,6 | 4 046 | — |
+| 350 | 350,0 | 5,1 | 76,2 | 170,5 | 479,8 | 100,00% | 365,5 / 397,9 | 5 413 | — |
+| 380 | 380,0 | 5,7 | 91,1 | 200,9 | 725,9 | 100,00% | 389,6 / 401,8 | 12 440 | 3 ejecuciones, rango de Max 615,2–856,9 ms |
+| 390 | 390,0 | 5,8 | 106,0 | 275,3 | 1 339,3 | 100,00% | 391,1 / 399,6 | 13 639 | Memoria agotada tras el muestreo |
+| 400 | 394,7 | 6,2 | 108,1 | 210,3 | 675,8 | 98,67% | 377,4 / 398,3 | 14 226 | Memoria agotada, 1 385 envíos fallidos |
+
+###### 8 núcleos / 32 GiB
+
+| Documentos activos | Rendimiento (envíos/s) | P50 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Tasa de cumplimiento | CPU media / máxima (%) | Memoria máxima (MiB) | Notas |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 100 | 100,0 | 1,3 | 2,8 | 21,7 | 36,7 | 100,00% | 91,8 / 200,1 | 3 392 | — |
+| 250 | 250,0 | 1,2 | 5,8 | 23,0 | 284,2 | 100,00% | 242,0 / 471,1 | 5 013 | — |
+| 500 | 500,0 | 1,5 | 16,2 | 33,9 | 121,6 | 100,00% | 482,6 / 716,4 | 7 721 | — |
+| 600 | 600,0 | 2,0 | 26,7 | 65,6 | 302,1 | 100,00% | 575,9 / 772,1 | 8 943 | — |
+| 700 | 700,0 | 2,4 | 29,9 | 64,5 | 288,1 | 100,00% | 641,4 / 782,5 | 25 692 | — |
+| 750 | 750,0 | 2,6 | 33,5 | 72,3 | 280,7 | 100,00% | 649,7 / 782,1 | 29 276 | 3 ejecuciones, rango de Max 266,2–295,1 ms |
+| 775 | 725,2 | 2,7 | 32,7 | 71,0 | 314,2 | 93,57% | 607,2 / 789,1 | 29 360 | Memoria agotada, 4 474 envíos fallidos |
+
+</div>
+
+Seguimos optimizando el servicio para reducir el uso de CPU y memoria y mejorar la edición colaborativa de documentos grandes.
