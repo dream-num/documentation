@@ -1,3 +1,4 @@
+import type { ElementType } from 'react'
 // See https://fumadocs.vercel.app/docs/headless/source-api for more info
 import { loader } from 'fumadocs-core/source'
 import { icons as lucideIcons } from 'lucide-react'
@@ -8,6 +9,8 @@ import { IconWrapper } from '@/components/icon-wrapper'
 import { fumadocsI18n } from '@/i18n/fumadocs'
 import { createAmamoSource } from '@/lib/amamo-source'
 import { createGuidesLoader } from '@/lib/guides/loader'
+
+const lucideIconComponents = lucideIcons as unknown as Record<string, ElementType<{ className?: string }>>
 
 interface IDocumentFrontmatter {
   description?: string
@@ -50,8 +53,8 @@ export const reference = loader({
   icon(icon) {
     if (!icon) return
 
-    if (icon in lucideIcons) {
-      return createElement(lucideIcons[icon as keyof typeof lucideIcons])
+    if (icon in lucideIconComponents) {
+      return createElement(lucideIconComponents[icon])
     }
 
     if (icon.startsWith('#ref')) {
