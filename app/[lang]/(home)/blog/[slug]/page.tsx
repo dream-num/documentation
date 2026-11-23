@@ -9,6 +9,7 @@ import { getGuidesMDXComponents } from '@/components/mdx/components'
 import { Button } from '@/components/ui/button'
 import { formatLocalDate } from '@/lib/dayjs'
 import { createDocsRelativeLink } from '@/lib/docs/links'
+import { trackDocsPageView } from '@/lib/docs/page-view'
 import { getContentLocale, stripLocalePrefix, withLocale } from '@/lib/locale-path'
 import { blog, getActiveBlogPage, getActiveBlogParams } from '@/lib/source'
 
@@ -71,6 +72,7 @@ export default async function Page({ params }: IProps) {
   }
 
   const { default: MDXContent, toc } = await page.data.load()
+  await trackDocsPageView({ lang, url: stripLocalePrefix(page.url) })
   const BlogLink = createDocsRelativeLink(blog, page)
   const contentLocale = getContentLocale(page.path)
   const pageUrl = `${BLOG_ORIGIN}${withLocale(contentLocale, stripLocalePrefix(page.url))}`

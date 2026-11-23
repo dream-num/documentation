@@ -4,6 +4,7 @@ import Link from 'next/link'
 import type { Locale } from '@/i18n/routing'
 import { Footer } from '@/components/footer'
 import { formatLocalDate } from '@/lib/dayjs'
+import { trackDocsPageView } from '@/lib/docs/page-view'
 import { stripLocalePrefix, withLocale } from '@/lib/locale-path'
 import { getActiveBlogPages } from '@/lib/source'
 
@@ -39,6 +40,7 @@ export default async function Page({ params }: IProps) {
   const posts = getActiveBlogPages(lang).toSorted((a, b) => {
     return new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
   })
+  await trackDocsPageView({ lang, url: '/blog' })
   const postsByYear = new Map<number, typeof posts>()
 
   for (const post of posts) {
