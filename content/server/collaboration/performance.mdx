@@ -1,13 +1,13 @@
 ---
 title: "Collaboration performance test report"
-description: "Test environment, metrics, and results for real-time concurrent editing with the Univer collaboration engine."
+description: "Test environment, metrics, and results for real-time concurrent editing with the Univer collaboration service."
 ---
 
-We tested multiple editors in one document and simultaneous edits across many documents. After warming up the documents, we measured acknowledgment latency, throughput, the percentage of planned submissions that succeeded, and the collaboration process's CPU and memory usage.
+We tested multiple editors in one document and simultaneous edits across many documents. After warming up the documents, we measured acknowledgment latency, throughput, completion rate, and the collaboration process's CPU and memory usage.
 
 ## Test environment
 
-The collaboration service and PostgreSQL ran on separate servers. The machine sizes in the results refer to the collaboration node in the diagram.
+The collaboration service and PostgreSQL ran on separate servers. Node sizes in the results refer to the collaboration node in the diagram.
 
 <Mermaid chart={"flowchart LR\n    client[\"Simulated Node.js clients\"]\n    collab[\"Collaboration node (1)\"]\n    db[(\"PostgreSQL server (1)\")]\n    oss[(\"OSS object storage\")]\n    client -->|Submit edits over HTTP| collab\n    collab -->|Acknowledge over WebSocket| client\n    collab <-->|Read and write document data| db\n    collab <-->|Read and write snapshot blocks| oss"} />
 
@@ -17,7 +17,7 @@ All measurements are for a single collaboration node. When concurrent documents 
 
 | Component | Configuration |
 | --- | --- |
-| Univer Collaboration SDK version | 1.5.2 |
+| Univer Collaboration SDK version | 1.6.2 |
 | OS and runtime | Ubuntu 26.04.1 LTS, Node.js 24.14.0 |
 | Storage | PostgreSQL 18.6 and Alibaba Cloud OSS |
 | Database adapter | [PostgreSQL + S3 Adapter](/server/collaboration/database-adapters#postgresql-s3-adapter) |
@@ -28,7 +28,7 @@ All measurements are for a single collaboration node. When concurrent documents 
 
 ### Collaboration service configuration
 
-On both node sizes, we raised `runtime.maxLoadedUnits` from 1,200 to 4,000 so the node could keep up to 4,000 documents in memory. Other SDK runtime settings used their defaults, including automatic worker selection. The default snapshot policy triggers after 50 revisions since the last successful snapshot or when a single changeset reaches 5 MiB.
+On both node sizes, we raised `runtime.maxLoadedUnits` from 1,200 to 4,000 so the node could keep up to 4,000 documents in memory. Other SDK runtime settings used their defaults, including automatic worker selection. The default snapshot policy triggers after 50 revisions since the last successful snapshot or when a single changeset reaches 5 MiB. The collaboration process had a memory limit of 14 GiB on the 4-core node and 29 GiB on the 8-core node.
 
 The benchmark service uses an initialized PostgreSQL pool and OSS client. The transport attaches to the Node.js HTTP server.
 
@@ -57,7 +57,7 @@ Each document starts from a snapshot. Cell counts refer to cells containing data
 | `10k-cells` | About 10,000 | Numbers, text, and formulas |
 | `100k-cells` | About 100,000 | Numbers, text, and formulas |
 
-Both populated sheets have 26 columns: 14 numeric, nine text, and three containing formulas that reference cells in the same row.
+`10k-cells` and `100k-cells` both have 26 columns: 14 numeric, nine text, and three containing formulas that reference cells in the same row.
 
 ## Method
 
@@ -67,9 +67,9 @@ Each editor in the results is an independent session. Each session joins one doc
 
 ### Warm-up and sampling
 
-Each run creates documents from the selected snapshot. Warm-up starts once all sessions have joined. The first edit loads the document on the server. A single document receives one warm-up edit. In multi-document runs, successive documents receive one to 49 edits, restarting at one for the 50th document. This staggers the starting revisions and snapshot writes.
+Each run creates documents from the selected snapshot. Warm-up starts once all sessions have joined. The first edit loads the document on the server. A single document receives one warm-up edit. In multi-document runs, documents receive different numbers of warm-up edits, which staggers their starting revisions and snapshot writes.
 
-Sampling starts after all documents have warmed up. We record first-submission latency separately during warm-up. Submission counts, latency percentiles, CPU, and memory in the tables come from the sampling period.
+Sampling starts after all documents have warmed up. Submission counts, latency percentiles, CPU, and memory in the tables come from the sampling period.
 
 ### Edit workload
 
@@ -94,9 +94,14 @@ For the single-document test we increased the number of editors on `blank`. For 
 
 ### Pass criteria
 
-A run passes when acknowledgment latency is **P99 < 1,000 ms**, the completion rate is **> 90%**, and the collaboration process stays up until every test document passes the consistency check. Latency and completion rate are evaluated before rounding.
+A run passes only if all of the following hold:
 
-A load level is evaluated across the runs reported here. A single run must pass, and if there are multiple runs, every run must pass. Interrupted samples and missing metrics are marked as missing with the reason.
+- Acknowledgment latency **P99 < 1,000 ms**.
+- Completion rate **> 90%**.
+- The collaboration process stays up until every test document passes the consistency check.
+- Snapshot processing keeps up with writes during the sampling period, so pending snapshot tasks do not keep growing. Continued growth is reported as a sustained snapshot backlog.
+
+A load level tested once uses that run's result. A level tested multiple times passes only if every run passes.
 
 ## Interpreting the results
 
@@ -104,7 +109,7 @@ Node.js scripts simulate editing sessions and send cell changes directly to the 
 
 Use these measurements for performance assessment and single-node capacity planning. Performance depends on deployment, network conditions, document size, and edit type and frequency.
 
-The highest passing load is the largest tested level that met the criteria. Mean CPU usage approached node capacity at some passing levels. **Treat these levels as capacity-planning references, not sustained production targets.** Leave headroom for concurrency spikes and resource fluctuations, and validate sustained capacity with representative workloads in the target environment.
+A load level is one load value under a given set of test conditions: the editor count or the number of active documents. The highest passing level is the largest tested level that met the criteria. Mean CPU usage approached node capacity at some passing levels. **Treat these levels as capacity-planning references, not sustained production targets.** Leave headroom for concurrency spikes and resource fluctuations, and validate sustained capacity with representative workloads in the target environment.
 
 ## Results
 
@@ -112,49 +117,49 @@ The highest passing load is the largest tested level that met the criteria. Mean
 
 <div className="[&_td]:whitespace-nowrap">
 
-The tables show the highest passing load per node size and document size. Load counts editors for one document and active documents for multi-document runs. Each row gives throughput, latency, CPU, and memory at that level. See [detailed results](#benchmark-data) for completion rates and higher loads.
+The tables show the highest passing level per node size and snapshot on a single collaboration node. Load is the editor count for one document and the number of active documents for multi-document runs. Each row gives throughput, acknowledgment latency, CPU, and memory at that level. The limiting factor column gives the reason the next tested level failed. See [detailed results](#benchmark-data) for completion rates and higher levels.
 
 #### Multiple editors in one document
 
-Each node size passed one run with 500 editors.
+We tested up to 500 editors. Both node sizes passed in one run each.
 
-| Snapshot | Node size | Highest passing editor count | Throughput (edits/s) | P95 (ms) | P99 (ms) | CPU mean / peak (%) | Peak memory (MiB) |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `blank` | 4 cores / 16 GiB | 500 | 83.3 | 13.3 | 17.4 | 27.8 / 54.8 | 777 |
-| `blank` | 8 cores / 32 GiB | 500 | 83.3 | 13.9 | 18.0 | 25.6 / 100.5 | 1,322 |
+| Snapshot | Node size | Highest passing editor count | Throughput (edits/s) | P95 (ms) | P99 (ms) | CPU mean / peak (%) | Peak memory (MiB) | Limiting factor |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `blank` | 4 cores / 16 GiB | 500 | 83.3 | 13.3 | 16.8 | 26.4 / 70.5 | 957 | No limit reached |
+| `blank` | 8 cores / 32 GiB | 500 | 83.3 | 13.6 | 21.4 | 24.9 / 99.0 | 1,439 | No limit reached |
 
 #### Concurrent editing across documents
 
-| Snapshot | Node size | Highest passing document count | Throughput (edits/s) | P95 (ms) | P99 (ms) | CPU mean / peak (%) | Peak memory (MiB) |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `blank` | 4 cores / 16 GiB | 2,100 | 2,100.0 | 29.9 | 194.6 | 118.9 / 332.6 | 5,829 |
-| `blank` | 8 cores / 32 GiB | 2,900 | 2,900.0 | 17.8 | 56.2 | 145.3 / 363.9 | 7,404 |
-| `10k-cells` | 4 cores / 16 GiB | 1,800 | 1,800.0 | 106.2 | 311.9 | 241.3 / 379.3 | 6,304 |
-| `10k-cells` | 8 cores / 32 GiB | 2,400 | 2,400.0 | 26.9 | 482.0 | 286.3 / 749.3 | 8,071 |
-| `100k-cells` | 4 cores / 16 GiB | 380 | 380.0 | 91.1 | 200.9 | 389.6 / 401.8 | 12,440 |
-| `100k-cells` | 8 cores / 32 GiB | 750 | 750.0 | 33.5 | 72.3 | 649.7 / 782.1 | 29,276 |
+| Snapshot | Node size | Highest passing active documents | Throughput (edits/s) | P95 (ms) | P99 (ms) | CPU mean / peak (%) | Peak memory (MiB) | Limiting factor |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `blank` | 4 cores / 16 GiB | 2,300 | 2,300.0 | 111.0 | 357.3 | 127.7 / 337.6 | 6,627 | P99 exceeded the limit |
+| `blank` | 8 cores / 32 GiB | 2,800 | 2,800.0 | 14.2 | 55.4 | 140.9 / 448.9 | 7,457 | P99 exceeded the limit and the completion rate was too low |
+| `10k-cells` | 4 cores / 16 GiB | 1,900 | 1,898.0 | 362.4 | 898.1 | 254.0 / 399.4 | 6,859 | P99 exceeded the limit |
+| `10k-cells` | 8 cores / 32 GiB | 2,400 | 2,400.0 | 26.0 | 288.4 | 305.6 / 721.2 | 8,548 | P99 exceeded the limit |
+| `100k-cells` | 4 cores / 16 GiB | 350 | 350.0 | 75.6 | 152.1 | 364.4 / 398.4 | 5,348 | Sustained snapshot backlog |
+| `100k-cells` | 8 cores / 32 GiB | 700 | 700.0 | 110.1 | 214.7 | 761.2 / 794.1 | 10,254 | Sustained snapshot backlog |
 
 #### Load estimates for 4 cores / 8 GiB and 8 cores / 16 GiB
 
-The 4-core/8-GiB and 8-core/16-GiB figures are estimates based on measurements from 4-core/16-GiB and 8-core/32-GiB nodes respectively. We allowed 6.5 GiB and 13.7 GiB for the collaboration process. For each workload and snapshot we selected the highest passing level in the [detailed results](#benchmark-data) whose peak RSS fit the budget, using the highest RSS across runs.
+These figures are estimates, not measurements on the target sizes. Based on the 4-core/16-GiB and 8-core/32-GiB results respectively, we allowed about 6.5 GiB and 13.7 GiB for the collaboration process and selected the highest passing level in the [detailed results](#benchmark-data) whose peak memory fit that budget.
 
 ##### Multiple editors in one document
 
 | Snapshot | Target node size | Estimated editors | Peak memory (MiB) |
 | --- | --- | ---: | ---: |
-| `blank` | 4 cores / 8 GiB | 500 | 777 |
-| `blank` | 8 cores / 16 GiB | 500 | 1,322 |
+| `blank` | 4 cores / 8 GiB | 500 | 957 |
+| `blank` | 8 cores / 16 GiB | 500 | 1,439 |
 
 ##### Concurrent editing across documents
 
 | Snapshot | Target node size | Estimated active documents | Peak memory (MiB) |
 | --- | --- | ---: | ---: |
-| `blank` | 4 cores / 8 GiB | 2,100 | 5,829 |
-| `blank` | 8 cores / 16 GiB | 2,900 | 7,404 |
-| `10k-cells` | 4 cores / 8 GiB | 1,800 | 6,304 |
-| `10k-cells` | 8 cores / 16 GiB | 2,400 | 8,071 |
-| `100k-cells` | 4 cores / 8 GiB | 350 | 5,413 |
-| `100k-cells` | 8 cores / 16 GiB | 600 | 8,943 |
+| `blank` | 4 cores / 8 GiB | 2,300 | 6,627 |
+| `blank` | 8 cores / 16 GiB | 2,800 | 7,457 |
+| `10k-cells` | 4 cores / 8 GiB | 1,800 | 6,431 |
+| `10k-cells` | 8 cores / 16 GiB | 2,400 | 8,548 |
+| `100k-cells` | 4 cores / 8 GiB | 350 | 5,348 |
+| `100k-cells` | 8 cores / 16 GiB | 700 | 10,254 |
 
 </div>
 
@@ -162,14 +167,14 @@ The 4-core/8-GiB and 8-core/16-GiB figures are estimates based on measurements f
 
 In a [multi-node deployment](/server/deployment), the gateway can route documents by size to separate pools. These single-node estimates assume two editors per document, each editing once every two seconds.
 
-- **For small and medium documents, evaluate 4 cores and 8 GiB first.** In the 4-core/16-GiB tests, the highest passing loads within the smaller memory budget were 2,100 blank sheets or 1,800 sheets with about 10,000 populated cells each.
-- **For large documents, evaluate 8 cores with 16 or 32 GiB.** With about 100,000 populated cells per document, the 8-core/32-GiB node passed at 750 documents. The largest passing load within the 16-GiB configuration's memory budget was 600.
+- **For small and medium documents, evaluate 4 cores and 8 GiB first.** Estimated from the 4-core/16-GiB results, the 8-GiB memory budget fits 2,300 blank documents or 1,800 documents with about 10,000 populated cells each.
+- **For large documents, evaluate 8 cores with 16 or 32 GiB.** With about 100,000 populated cells per document, the highest passing level on 8 cores / 32 GiB was 700 documents, and its peak memory fits the 16-GiB budget. Snapshot processing is the limiting factor here: at 750 documents, acknowledgment latency still passed, but a sustained snapshot backlog developed.
 
 ### Detailed results [#benchmark-data]
 
 <div className="[&_td:not(:last-child)]:whitespace-nowrap [&_td:last-child]:min-w-40">
 
-Single-run rows show measured values. When combining runs at the same level, we report arithmetic means for throughput, P50, P95, P99, Max, completion rate, and mean CPU. Peak CPU and memory are the highest observed across runs. Notes give the run count, the range of per-run maxima, and the P99 range where relevant. Each run is evaluated separately.
+Single-run rows show measured values. When runs at the same level reach the same result, they are combined into one row using means, with peaks taken as the highest across runs. Notes give the run count and ranges. Runs with different results are listed separately.
 
 #### Multiple editors in one document
 
@@ -179,17 +184,17 @@ Single-run rows show measured values. When combining runs at the same level, we 
 
 | Editors | Throughput (edits/s) | P50 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Completion rate | CPU mean / peak (%) | Peak memory (MiB) | Notes |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| 150 | 25.0 | 2.9 | 4.3 | 5.4 | 12.6 | 100.00% | 5.7 / 27.9 | 690 | — |
-| 400 | 66.7 | 5.2 | 10.1 | 12.4 | 29.8 | 100.00% | 19.8 / 41.9 | 781 | — |
-| 500 | 83.3 | 6.6 | 13.3 | 17.4 | 40.1 | 100.00% | 27.8 / 54.8 | 777 | — |
+| 150 | 25.0 | 3.0 | 4.2 | 5.2 | 13.8 | 100.00% | 4.7 / 25.5 | 889 | — |
+| 400 | 66.7 | 5.1 | 9.5 | 12.0 | 22.7 | 100.00% | 18.2 / 63.5 | 1,008 | — |
+| 500 | 83.3 | 6.6 | 13.3 | 16.8 | 32.0 | 100.00% | 26.4 / 70.5 | 957 | — |
 
 ###### 8 cores / 32 GiB
 
 | Editors | Throughput (edits/s) | P50 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Completion rate | CPU mean / peak (%) | Peak memory (MiB) | Notes |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| 150 | 25.0 | 3.4 | 4.4 | 5.5 | 10.7 | 100.00% | 5.1 / 66.5 | 1,123 | — |
-| 400 | 66.7 | 6.2 | 10.8 | 13.4 | 28.2 | 100.00% | 18.2 / 75.9 | 1,196 | — |
-| 500 | 83.3 | 7.5 | 13.9 | 18.0 | 36.9 | 100.00% | 25.6 / 100.5 | 1,322 | — |
+| 150 | 25.0 | 2.9 | 3.9 | 4.9 | 8.6 | 100.00% | 4.6 / 54.3 | 1,381 | — |
+| 400 | 66.7 | 5.1 | 10.4 | 13.1 | 24.5 | 100.00% | 18.9 / 116.3 | 1,449 | — |
+| 500 | 83.3 | 6.5 | 13.6 | 21.4 | 43.7 | 100.00% | 24.9 / 99.0 | 1,439 | — |
 
 #### Concurrent editing across documents
 
@@ -199,29 +204,29 @@ Single-run rows show measured values. When combining runs at the same level, we 
 
 | Active documents | Throughput (edits/s) | P50 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Completion rate | CPU mean / peak (%) | Peak memory (MiB) | Notes |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| 500 | 500.0 | 1.1 | 1.6 | 3.7 | 25.0 | 100.00% | 33.8 / 89.3 | 2,057 | — |
-| 1,000 | 1,000.0 | 1.1 | 2.4 | 10.7 | 57.0 | 100.00% | 61.4 / 193.1 | 3,133 | — |
-| 1,500 | 1,500.0 | 1.3 | 4.8 | 40.1 | 361.6 | 100.00% | 86.3 / 279.0 | 4,134 | — |
-| 2,100 | 2,100.0 | 1.7 | 29.9 | 194.6 | 1,156.2 | 100.00% | 118.9 / 332.6 | 5,829 | 3 runs, P99 range 141.9–254.0 ms, Max range 508.2–1,543.0 ms |
-| 2,200 | 2,200.0 | 1.8 | 70.1 | 270.4 | 1,227.5 | 100.00% | 123.5 / 369.9 | 6,050 | Run 1 |
-| 2,200 | 2,199.8 | 2.0 | 274.0 | 860.4 | 2,787.2 | 99.99% | 127.1 / 392.6 | 6,172 | Run 2 |
-| 2,200 | 2,198.8 | 2.2 | 376.5 | 1,062.4 | 3,747.8 | 99.95% | 126.1 / 347.2 | 6,071 | Run 3, latency missed target |
-| 2,300 | 2,298.1 | 3.2 | 878.6 | 1,675.8 | 4,313.9 | 99.92% | 135.8 / 370.8 | 6,336 | P99 missed target |
-| 2,400 | 2,204.8 | 2,192.5 | 2,457.5 | 2,888.6 | 4,611.5 | 91.87% | 163.6 / 394.8 | 7,023 | P99 missed target |
+| 500 | 500.0 | 1.1 | 1.5 | 3.7 | 55.8 | 100.00% | 31.7 / 120.0 | 2,288 | — |
+| 1,000 | 1,000.0 | 1.2 | 2.5 | 11.5 | 141.1 | 100.00% | 59.7 / 195.5 | 3,362 | — |
+| 1,500 | 1,500.0 | 1.3 | 4.9 | 32.3 | 308.5 | 100.00% | 84.7 / 232.3 | 4,555 | — |
+| 2,100 | 2,100.0 | 1.7 | 15.5 | 170.8 | 1,363.3 | 100.00% | 114.3 / 354.0 | 6,265 | — |
+| 2,200 | 2,200.0 | 1.7 | 16.9 | 151.8 | 722.7 | 100.00% | 117.7 / 352.6 | 6,308 | — |
+| 2,300 | 2,300.0 | 1.9 | 111.0 | 357.3 | 1,710.7 | 100.00% | 127.7 / 337.6 | 6,627 | 3 runs, P99 range 310.6–425.3 ms, Max range 1,256.1–2,003.8 ms |
+| 2,400 | 2,399.6 | 2.4 | 301.6 | 770.2 | 3,851.7 | 99.98% | 133.3 / 381.5 | 7,084 | Run 1, passed |
+| 2,400 | 2,246.9 | 2,020.0 | 2,449.9 | 2,650.4 | 3,167.2 | 93.62% | 166.9 / 390.2 | 7,370 | Run 2, P99 exceeded the limit |
+| 2,500 | 2,235.6 | 2,284.5 | 2,550.5 | 3,224.1 | 5,859.9 | 89.42% | 162.5 / 358.5 | 7,564 | P99 exceeded the limit and the completion rate was too low |
 
 ###### 8 cores / 32 GiB
 
 | Active documents | Throughput (edits/s) | P50 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Completion rate | CPU mean / peak (%) | Peak memory (MiB) | Notes |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| 500 | 500.0 | 1.0 | 1.3 | 2.2 | 26.1 | 100.00% | 30.6 / 78.1 | 2,823 | — |
-| 1,000 | 1,000.0 | 1.1 | 1.7 | 3.9 | 58.9 | 100.00% | 53.8 / 163.4 | 3,961 | — |
-| 1,500 | 1,500.0 | 1.2 | 2.6 | 9.6 | 51.8 | 100.00% | 76.3 / 165.1 | 4,694 | — |
-| 2,200 | 2,200.0 | 1.4 | 6.5 | 15.0 | 189.2 | 100.00% | 112.2 / 428.1 | 6,030 | — |
-| 2,600 | 2,600.0 | 1.8 | 13.0 | 38.8 | 334.1 | 100.00% | 132.2 / 477.5 | 6,891 | — |
-| 2,700 | 2,700.0 | 1.8 | 11.7 | 35.0 | 270.5 | 100.00% | 135.1 / 661.7 | 7,026 | 3 runs, peak CPU 518.6%–661.7%, Max range 234.9–313.9 ms |
-| 2,800 | 2,800.0 | 2.0 | 14.6 | 52.1 | 352.0 | 100.00% | 140.5 / 537.4 | 7,331 | 3 runs, peak CPU 464.9%–537.4%, Max range 273.3–430.0 ms |
-| 2,900 | 2,900.0 | 2.2 | 17.8 | 56.2 | 395.2 | 100.00% | 145.3 / 363.9 | 7,404 | 1 run |
-| 3,000 | 2,375.5 | 2,537.1 | 2,715.4 | 2,868.1 | 3,821.8 | 79.18% | 194.3 / 570.9 | 8,257 | 2 runs, P99 and completion rate missed targets, Max range 3,311.4–4,332.2 ms |
+| 500 | 500.0 | 1.0 | 1.4 | 2.2 | 57.0 | 100.00% | 30.0 / 97.9 | 3,220 | — |
+| 1,000 | 1,000.0 | 1.1 | 1.9 | 6.1 | 110.4 | 100.00% | 55.5 / 163.2 | 4,198 | — |
+| 1,500 | 1,500.0 | 1.2 | 2.9 | 11.2 | 133.6 | 100.00% | 78.8 / 198.3 | 5,271 | — |
+| 2,200 | 2,200.0 | 1.5 | 6.6 | 17.4 | 314.9 | 100.00% | 112.3 / 364.2 | 6,642 | — |
+| 2,600 | 2,600.0 | 1.8 | 11.6 | 36.2 | 570.8 | 100.00% | 132.2 / 389.7 | 7,266 | — |
+| 2,700 | 2,700.0 | 2.0 | 13.3 | 63.1 | 701.3 | 100.00% | 137.1 / 401.6 | 7,530 | — |
+| 2,800 | 2,800.0 | 2.0 | 14.2 | 55.4 | 505.5 | 100.00% | 140.9 / 448.9 | 7,457 | — |
+| 2,900 | 2,362.5 | 2,522.8 | 2,693.0 | 2,763.6 | 3,009.2 | 81.47% | 191.4 / 510.4 | 8,299 | P99 exceeded the limit and the completion rate was too low |
+| 3,000 | 2,307.9 | 2,604.9 | 2,758.3 | 2,873.6 | 5,362.5 | 76.93% | 193.8 / 636.6 | 8,447 | P99 exceeded the limit and the completion rate was too low |
 
 ##### Snapshot · `10k-cells`
 
@@ -229,28 +234,27 @@ Single-run rows show measured values. When combining runs at the same level, we 
 
 | Active documents | Throughput (edits/s) | P50 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Completion rate | CPU mean / peak (%) | Peak memory (MiB) | Notes |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| 500 | 500.0 | 1.1 | 3.2 | 7.7 | 206.5 | 100.00% | 71.1 / 165.8 | 2,514 | — |
-| 1,000 | 1,000.0 | 1.3 | 5.1 | 16.4 | 115.6 | 100.00% | 133.6 / 330.5 | 3,879 | — |
-| 1,600 | 1,600.0 | 2.0 | 42.7 | 256.7 | 1,165.7 | 100.00% | 215.2 / 371.1 | 5,677 | — |
-| 1,800 | 1,800.0 | 2.7 | 106.2 | 311.9 | 1,197.3 | 100.00% | 241.3 / 379.3 | 6,304 | 3 runs, Max range 773.7–1,455.4 ms |
-| 1,900 | 1,899.9 | 5.4 | 330.2 | 797.1 | 3,210.5 | 99.99% | 257.9 / 399.3 | 6,626 | Run 1 |
-| 1,900 | 1,891.4 | 4.6 | 552.6 | 1,541.5 | 6,200.0 | 99.54% | 256.7 / 397.2 | 6,686 | Run 2, latency missed target |
-| 2,000 | 1,868.4 | 2,084.5 | 2,401.9 | 2,964.0 | 7,658.3 | 93.42% | 284.8 / 397.6 | 7,104 | P99 missed target |
-| 2,100 | 1,904.0 | 2,202.3 | 2,631.7 | 3,022.0 | 4,550.7 | 90.67% | 291.2 / 393.0 | 7,580 | P99 missed target |
+| 500 | 500.0 | 1.1 | 3.1 | 7.2 | 207.2 | 100.00% | 67.7 / 185.7 | 2,659 | — |
+| 1,000 | 1,000.0 | 1.3 | 5.6 | 20.8 | 139.4 | 100.00% | 131.4 / 278.7 | 3,974 | — |
+| 1,600 | 1,600.0 | 1.9 | 24.3 | 259.8 | 1,688.3 | 100.00% | 208.3 / 397.7 | 5,933 | — |
+| 1,800 | 1,800.0 | 2.6 | 110.8 | 414.6 | 2,158.4 | 100.00% | 237.4 / 379.6 | 6,431 | — |
+| 1,900 | 1,898.0 | 4.5 | 362.4 | 898.1 | 4,652.1 | 99.90% | 254.0 / 399.4 | 6,859 | — |
+| 2,000 | 1,910.6 | 1,976.7 | 2,360.9 | 2,598.6 | 7,209.3 | 95.53% | 287.5 / 393.8 | 7,394 | P99 exceeded the limit |
+| 2,100 | 1,910.3 | 2,160.1 | 2,596.4 | 3,435.4 | 7,819.5 | 90.97% | 290.9 / 395.4 | 7,805 | P99 exceeded the limit |
 
 ###### 8 cores / 32 GiB
 
 | Active documents | Throughput (edits/s) | P50 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Completion rate | CPU mean / peak (%) | Peak memory (MiB) | Notes |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| 500 | 500.0 | 1.0 | 2.0 | 4.1 | 27.3 | 100.00% | 69.3 / 139.9 | 3,408 | — |
-| 1,000 | 1,000.0 | 1.1 | 2.8 | 6.8 | 30.3 | 100.00% | 127.2 / 238.8 | 4,601 | — |
-| 2,000 | 2,000.0 | 1.5 | 8.2 | 21.2 | 184.4 | 100.00% | 249.9 / 634.8 | 7,222 | — |
-| 2,200 | 2,200.0 | 1.7 | 11.6 | 33.8 | 244.0 | 100.00% | 268.6 / 713.0 | 7,716 | — |
-| 2,300 | 2,300.0 | 1.9 | 14.4 | 197.2 | 1,043.4 | 100.00% | 284.4 / 696.9 | 8,071 | 3 runs, P99 range 39.6–368.8 ms, Max range 326.1–1,700.6 ms |
-| 2,400 | 2,400.0 | 2.1 | 26.9 | 482.0 | 2,287.6 | 100.00% | 286.3 / 749.3 | 8,071 | 1 run |
-| 2,500 | 2,499.8 | 3.3 | 600.4 | 1,228.1 | 3,346.4 | 99.99% | 302.5 / 744.7 | 8,308 | P99 missed target |
-| 2,600 | 2,367.6 | 1,053.5 | 2,489.8 | 2,646.2 | 4,510.6 | 91.06% | 324.3 / 741.4 | 8,865 | P99 missed target |
-| 2,700 | 2,222.7 | 2,467.7 | 2,583.5 | 2,687.6 | 3,627.4 | 82.32% | 334.4 / 776.5 | 9,238 | 2 runs, P99 and completion rate missed targets, Max range 3,547.4–3,707.3 ms |
+| 500 | 500.0 | 1.1 | 2.1 | 3.8 | 28.3 | 100.00% | 67.4 / 137.2 | 3,543 | — |
+| 1,000 | 1,000.0 | 1.1 | 3.0 | 7.3 | 38.3 | 100.00% | 131.1 / 256.4 | 4,848 | — |
+| 2,000 | 2,000.0 | 1.7 | 9.2 | 23.7 | 383.0 | 100.00% | 255.8 / 568.8 | 7,511 | — |
+| 2,200 | 2,200.0 | 1.9 | 11.9 | 37.7 | 292.6 | 100.00% | 280.2 / 659.1 | 8,054 | — |
+| 2,300 | 2,300.0 | 2.1 | 15.8 | 68.9 | 398.6 | 100.00% | 292.5 / 592.8 | 8,245 | — |
+| 2,400 | 2,400.0 | 2.4 | 26.0 | 288.4 | 1,239.7 | 100.00% | 305.6 / 721.2 | 8,548 | — |
+| 2,500 | 2,293.2 | 972.9 | 2,486.8 | 2,573.6 | 4,947.2 | 91.73% | 327.4 / 795.6 | 8,873 | P99 exceeded the limit |
+| 2,600 | 2,124.2 | 2,489.3 | 2,625.2 | 2,725.0 | 3,226.6 | 81.70% | 335.9 / 725.7 | 9,256 | P99 exceeded the limit and the completion rate was too low |
+| 2,700 | 2,145.9 | 2,539.7 | 2,658.2 | 2,806.6 | 3,438.7 | 79.48% | 335.9 / 791.3 | 9,445 | P99 exceeded the limit and the completion rate was too low |
 
 ##### Snapshot · `100k-cells`
 
@@ -258,24 +262,21 @@ Single-run rows show measured values. When combining runs at the same level, we 
 
 | Active documents | Throughput (edits/s) | P50 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Completion rate | CPU mean / peak (%) | Peak memory (MiB) | Notes |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| 100 | 100.0 | 1.4 | 6.6 | 22.8 | 68.0 | 100.00% | 91.6 / 202.2 | 2,662 | — |
-| 250 | 250.0 | 1.9 | 23.0 | 56.8 | 637.3 | 100.00% | 246.3 / 396.6 | 4,046 | — |
-| 350 | 350.0 | 5.1 | 76.2 | 170.5 | 479.8 | 100.00% | 365.5 / 397.9 | 5,413 | — |
-| 380 | 380.0 | 5.7 | 91.1 | 200.9 | 725.9 | 100.00% | 389.6 / 401.8 | 12,440 | 3 runs, Max range 615.2–856.9 ms |
-| 390 | 390.0 | 5.8 | 106.0 | 275.3 | 1,339.3 | 100.00% | 391.1 / 399.6 | 13,639 | Out of memory after sampling |
-| 400 | 394.7 | 6.2 | 108.1 | 210.3 | 675.8 | 98.67% | 377.4 / 398.3 | 14,226 | Out of memory, 1,385 failed submissions |
+| 100 | 100.0 | 1.4 | 6.3 | 22.2 | 58.6 | 100.00% | 89.2 / 213.9 | 2,655 | — |
+| 250 | 250.0 | 1.7 | 20.7 | 45.1 | 199.1 | 100.00% | 239.1 / 387.6 | 4,298 | — |
+| 350 | 350.0 | 5.3 | 75.6 | 152.1 | 472.4 | 100.00% | 364.4 / 398.4 | 5,348 | — |
+| 380 | 380.0 | 7.7 | 118.5 | 241.5 | 631.7 | 100.00% | 389.8 / 401.0 | 6,336 | Sustained snapshot backlog |
 
 ###### 8 cores / 32 GiB
 
 | Active documents | Throughput (edits/s) | P50 (ms) | P95 (ms) | P99 (ms) | Max (ms) | Completion rate | CPU mean / peak (%) | Peak memory (MiB) | Notes |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| 100 | 100.0 | 1.3 | 2.8 | 21.7 | 36.7 | 100.00% | 91.8 / 200.1 | 3,392 | — |
-| 250 | 250.0 | 1.2 | 5.8 | 23.0 | 284.2 | 100.00% | 242.0 / 471.1 | 5,013 | — |
-| 500 | 500.0 | 1.5 | 16.2 | 33.9 | 121.6 | 100.00% | 482.6 / 716.4 | 7,721 | — |
-| 600 | 600.0 | 2.0 | 26.7 | 65.6 | 302.1 | 100.00% | 575.9 / 772.1 | 8,943 | — |
-| 700 | 700.0 | 2.4 | 29.9 | 64.5 | 288.1 | 100.00% | 641.4 / 782.5 | 25,692 | — |
-| 750 | 750.0 | 2.6 | 33.5 | 72.3 | 280.7 | 100.00% | 649.7 / 782.1 | 29,276 | 3 runs, Max range 266.2–295.1 ms |
-| 775 | 725.2 | 2.7 | 32.7 | 71.0 | 314.2 | 93.57% | 607.2 / 789.1 | 29,360 | Out of memory, 4,474 failed submissions |
+| 100 | 100.0 | 1.3 | 2.8 | 22.1 | 46.9 | 100.00% | 92.2 / 244.1 | 3,602 | — |
+| 250 | 250.0 | 1.3 | 5.8 | 23.8 | 63.0 | 100.00% | 245.0 / 470.4 | 5,490 | — |
+| 500 | 500.0 | 1.8 | 21.1 | 44.2 | 154.7 | 100.00% | 507.1 / 776.9 | 8,002 | — |
+| 600 | 600.0 | 3.3 | 36.3 | 77.8 | 453.4 | 100.00% | 625.0 / 784.5 | 9,027 | — |
+| 700 | 700.0 | 9.1 | 110.1 | 214.7 | 599.6 | 100.00% | 761.2 / 794.1 | 10,254 | — |
+| 750 | 750.0 | 11.8 | 154.0 | 298.5 | 793.9 | 100.00% | 771.0 / 798.2 | 13,163 | Sustained snapshot backlog |
 
 </div>
 
